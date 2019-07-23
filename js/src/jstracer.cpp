@@ -157,6 +157,25 @@ LirNameMap::formatGuard(LIns *i, char *out)
             (long int)x->rp_adj,
             i->record()->profGuardID);
 }
+
+void
+LirNameMap::formatGuardXov(LIns *i, char *out)
+{
+    VMSideExit *x;
+
+    x = (VMSideExit *)i->record()->exit;
+    sprintf(out,
+            "%s = %s %s, %s -> pc=%p imacpc=%p sp%+ld rp%+ld (GuardID=%03d)",
+            formatRef(i),
+            lirNames[i->opcode()],
+            formatRef(i->oprnd1()),
+            formatRef(i->oprnd2()),
+            (void *)x->pc,
+            (void *)x->imacpc,
+            (long int)x->sp_adj,
+            (long int)x->rp_adj,
+            i->record()->profGuardID);
+}
 #endif
 
 } 
@@ -4094,7 +4113,7 @@ TraceRecorder::guard(bool expected, LIns* cond, VMSideExit* exit)
     if (exit->exitType == LOOP_EXIT)
         tree->sideExits.add(exit);
 
-    if (!cond->isCond()) {
+    if (!cond->isCmp()) {
         expected = !expected;
         cond = cond->isI32() ? lir->ins_eq0(cond) : lir->ins_peq0(cond);
     }
@@ -4105,6 +4124,41 @@ TraceRecorder::guard(bool expected, LIns* cond, VMSideExit* exit)
         debug_only_print0(LC_TMRecorder,
                           "    redundant guard, eliminated, no codegen\n");
     }
+}
+
+
+
+
+
+JS_REQUIRES_STACK LIns*
+TraceRecorder::guard_xov(LOpcode op, LIns* d0, LIns* d1, VMSideExit* exit)
+{
+    debug_only_printf(LC_TMRecorder,
+                      "    About to try emitting guard_xov code for "
+                      "SideExit=%p exitType=%s\n",
+                      (void*)exit, getExitName(exit->exitType));
+
+    GuardRecord* guardRec = createGuardRecord(exit);
+    JS_ASSERT(exit->exitType == OVERFLOW_EXIT);
+
+    switch (op) {
+      case LIR_add:
+        op = LIR_addxov;
+        break;
+      case LIR_sub:
+        op = LIR_subxov;
+        break;
+      case LIR_mul:
+        op = LIR_mulxov;
+        break;
+      default:
+        JS_NOT_REACHED("unexpected comparison op");
+        break;
+    }
+
+    LIns* guardIns = lir->insGuardXov(op, d0, d1, guardRec);
+    NanoAssert(guardIns);
+    return guardIns;
 }
 
 JS_REQUIRES_STACK VMSideExit*
@@ -8091,7 +8145,7 @@ TraceRecorder::alu(LOpcode v, jsdouble v0, jsdouble v1, LIns* s0, LIns* s1)
 
       default:
         v = f64arith_to_i32arith(v);
-        result = lir->ins2(v, d0, d1);
+        JS_ASSERT(v == LIR_add || v == LIR_mul || v == LIR_sub);
 
         
 
@@ -8100,11 +8154,13 @@ TraceRecorder::alu(LOpcode v, jsdouble v0, jsdouble v1, LIns* s0, LIns* s1)
 
 
 
-        if (!result->isconst() && result->isop(v) && (!IsOverflowSafe(v, d0) || !IsOverflowSafe(v, d1))) {
+        if (!IsOverflowSafe(v, d0) || !IsOverflowSafe(v, d1)) {
             exit = snapshot(OVERFLOW_EXIT);
-            guard(false, lir->ins1(LIR_ov, result), exit);
+            result = guard_xov(v, d0, d1, exit);
             if (v == LIR_mul) 
                 guard(false, lir->ins_eq0(result), exit);
+        } else {
+            result = lir->ins2(v, d0, d1);
         }
         break;
     }
@@ -10205,12 +10261,12 @@ TraceRecorder::record_JSOP_NEG()
             isPromoteInt(a) &&
             (!JSVAL_IS_INT(v) || JSVAL_TO_INT(v) != 0) &&
             (!JSVAL_IS_DOUBLE(v) || !JSDOUBLE_IS_NEGZERO(*JSVAL_TO_DOUBLE(v))) &&
-            -asNumber(v) == (int)-asNumber(v)) {
-            a = lir->ins1(LIR_neg, demote(lir, a));
-            if (!a->isconst() && a->isop(LIR_neg)) {
-                VMSideExit* exit = snapshot(OVERFLOW_EXIT);
-                guard(false, lir->ins1(LIR_ov, a), exit);
-                guard(false, lir->ins2i(LIR_eq, a, 0), exit);
+            -asNumber(v) == (int)-asNumber(v))
+        {
+            VMSideExit* exit = snapshot(OVERFLOW_EXIT);
+            a = guard_xov(LIR_sub, lir->insImm(0), demote(lir, a), exit);
+            if (!a->isconst() && a->isop(LIR_subxov)) {
+                guard(false, lir->ins2i(LIR_eq, a, 0), exit); 
             }
             a = lir->ins1(LIR_i2f, a);
         } else {
