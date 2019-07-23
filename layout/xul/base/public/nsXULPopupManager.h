@@ -41,6 +41,8 @@
 #ifndef nsXULPopupManager_h__
 #define nsXULPopupManager_h__
 
+#include "prlog.h"
+#include "nsGUIEvent.h"
 #include "nsIContent.h"
 #include "nsIWidget.h"
 #include "nsIRollupListener.h"
@@ -51,6 +53,7 @@
 #include "nsTArray.h"
 #include "nsITimer.h"
 #include "nsThreadUtils.h"
+#include "nsStyleConsts.h"
 
 
 
@@ -126,33 +129,23 @@ enum nsNavigationDirection {
 #define NS_DIRECTION_IS_BLOCK_TO_EDGE(dir) (dir == eNavigationDirection_First ||    \
                                             dir == eNavigationDirection_Last)
 
+PR_STATIC_ASSERT(NS_STYLE_DIRECTION_LTR == 0 && NS_STYLE_DIRECTION_RTL == 1);
+PR_STATIC_ASSERT((NS_VK_HOME == NS_VK_END + 1) &&
+                 (NS_VK_LEFT == NS_VK_END + 2) &&
+                 (NS_VK_UP == NS_VK_END + 3) &&
+                 (NS_VK_RIGHT == NS_VK_END + 4) &&
+                 (NS_VK_DOWN == NS_VK_END + 5));
 
 
 
 
 
-extern nsNavigationDirection DirectionFromKeyCode_lr_tb [6];
 
+extern const nsNavigationDirection DirectionFromKeyCodeTable[2][6];
 
-
-
-
-
-extern nsNavigationDirection DirectionFromKeyCode_rl_tb [6];
-
-#define NS_DIRECTION_FROM_KEY_CODE(frame, direction, keycode)    \
-  NS_ASSERTION(NS_VK_HOME == NS_VK_END + 1, "Broken ordering");  \
-  NS_ASSERTION(NS_VK_LEFT == NS_VK_END + 2, "Broken ordering");  \
-  NS_ASSERTION(NS_VK_UP == NS_VK_END + 3, "Broken ordering");    \
-  NS_ASSERTION(NS_VK_RIGHT == NS_VK_END + 4, "Broken ordering"); \
-  NS_ASSERTION(NS_VK_DOWN == NS_VK_END + 5, "Broken ordering");  \
-  NS_ASSERTION(keycode >= NS_VK_END && keycode <= NS_VK_DOWN,    \
-               "Illegal key code");                              \
-  const nsStyleVisibility* vis = frame->GetStyleVisibility();    \
-  if (vis->mDirection == NS_STYLE_DIRECTION_RTL)                 \
-    direction = DirectionFromKeyCode_rl_tb[keycode - NS_VK_END]; \
-  else                                                           \
-    direction = DirectionFromKeyCode_lr_tb[keycode - NS_VK_END];
+#define NS_DIRECTION_FROM_KEY_CODE(frame, keycode)                     \
+  (DirectionFromKeyCodeTable[frame->GetStyleVisibility()->mDirection]  \
+                            [keycode - NS_VK_END])
 
 
 

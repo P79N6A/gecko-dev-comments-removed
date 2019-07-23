@@ -68,23 +68,23 @@
 #include "nsIDocument.h"
 #include "nsPIDOMWindow.h"
 
-
-nsNavigationDirection DirectionFromKeyCode_lr_tb [6] = {
-  eNavigationDirection_Last,   
-  eNavigationDirection_First,  
-  eNavigationDirection_Start,  
-  eNavigationDirection_Before, 
-  eNavigationDirection_End,    
-  eNavigationDirection_After   
-};
-
-nsNavigationDirection DirectionFromKeyCode_rl_tb [6] = {
-  eNavigationDirection_Last,   
-  eNavigationDirection_First,  
-  eNavigationDirection_End,    
-  eNavigationDirection_Before, 
-  eNavigationDirection_Start,  
-  eNavigationDirection_After   
+const nsNavigationDirection DirectionFromKeyCodeTable[2][6] = {
+  {
+    eNavigationDirection_Last,   
+    eNavigationDirection_First,  
+    eNavigationDirection_Start,  
+    eNavigationDirection_Before, 
+    eNavigationDirection_End,    
+    eNavigationDirection_After   
+  },
+  {
+    eNavigationDirection_Last,   
+    eNavigationDirection_First,  
+    eNavigationDirection_End,    
+    eNavigationDirection_Before, 
+    eNavigationDirection_Start,  
+    eNavigationDirection_After   
+  }
 };
 
 nsXULPopupManager* nsXULPopupManager::sInstance = nsnull;
@@ -1604,7 +1604,8 @@ nsXULPopupManager::HandleKeyboardNavigation(PRUint32 aKeyCode)
     return PR_FALSE;
 
   nsNavigationDirection theDirection;
-  NS_DIRECTION_FROM_KEY_CODE(itemFrame, theDirection, aKeyCode);
+  NS_ASSERTION(aKeyCode >= NS_VK_END && aKeyCode <= NS_VK_DOWN, "Illegal key code");
+  theDirection = NS_DIRECTION_FROM_KEY_CODE(itemFrame, aKeyCode);
 
   
   if (item && HandleKeyboardNavigationInPopup(item, theDirection))
