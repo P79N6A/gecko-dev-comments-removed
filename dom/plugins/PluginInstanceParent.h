@@ -43,8 +43,6 @@
 #include "mozilla/plugins/PluginScriptableObjectParent.h"
 #if defined(OS_WIN)
 #include "mozilla/gfx/SharedDIBWin.h"
-#elif defined(OS_MACOSX)
-#include "nsCoreAnimationSupport.h"
 #endif
 
 #include "npfunctions.h"
@@ -68,7 +66,6 @@ class PluginInstanceParent : public PPluginInstanceParent
 public:
     PluginInstanceParent(PluginModuleParent* parent,
                          NPP npp,
-                         const nsCString& mimeType,
                          const NPNetscapeFuncs* npniface);
 
     virtual ~PluginInstanceParent();
@@ -249,21 +246,7 @@ public:
     virtual bool
     RecvSetNestedEventState(const bool& aState);
 
-#if defined(OS_MACOSX)
-    void Invalidate();
-#endif 
-
 private:
-    
-    enum PluginQuirks {
-        
-        
-        
-        COREANIMATION_REFRESH_TIMER = 1,
-    };
-
-    void InitQuirksModes(const nsCString& aMimeType);
-
     bool InternalGetValueForNPObject(NPNVariable aVariable,
                                      PPluginScriptableObjectParent** aValue,
                                      NPError* aResult);
@@ -273,7 +256,6 @@ private:
     NPP mNPP;
     const NPNetscapeFuncs* mNPNIface;
     NPWindowType mWindowType;
-    int mQuirks;
 
     nsDataHashtable<nsVoidPtrHashKey, PluginScriptableObjectParent*> mScriptableObjects;
 
@@ -300,12 +282,10 @@ private:
 #endif 
 #if defined(OS_MACOSX)
 private:
-    Shmem              mShSurface; 
-    size_t             mShWidth;
-    size_t             mShHeight;
-    CGColorSpaceRef    mShColorSpace;
-    int16_t            mDrawingModel;
-    nsIOSurface       *mIOSurface;
+    Shmem mShSurface; 
+    size_t mShWidth;
+    size_t mShHeight;
+    CGColorSpaceRef mShColorSpace;
 #endif 
 };
 
