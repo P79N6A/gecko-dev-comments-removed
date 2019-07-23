@@ -119,6 +119,8 @@ public:
       nsHTMLContainerFrame::IsFrameOfType(aFlags & ~(nsIFrame::eMathML));
   }
 
+  virtual PRIntn GetSkipSides() const { return 0; }
+
   NS_IMETHOD
   AppendFrames(nsIAtom*        aListName,
                nsIFrame*       aFrameList);
@@ -230,6 +232,13 @@ public:
                  nsHTMLReflowMetrics& aDesiredSize);
 
   
+  static void
+  SaveReflowAndBoundingMetricsFor(nsIFrame*                  aFrame,
+                                  const nsHTMLReflowMetrics& aReflowMetrics,
+                                  const nsBoundingMetrics&   aBoundingMetrics);
+
+  
+  
   
   
   
@@ -240,6 +249,10 @@ public:
                                  nsHTMLReflowMetrics& aReflowMetrics,
                                  nsBoundingMetrics&   aBoundingMetrics,
                                  eMathMLFrameType*    aMathMLFrameType = nsnull);
+
+  
+  
+  void ClearSavedChildMetrics();
 
   
   
@@ -284,8 +297,6 @@ public:
   ReLayoutChildren(nsIFrame* aParentFrame, nsFrameState aBits);
 
 protected:
-  virtual PRIntn GetSkipSides() const { return 0; }
-
   
   
   

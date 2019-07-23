@@ -145,9 +145,8 @@ nsMathMLTokenFrame::Reflow(nsPresContext*          aPresContext,
       return rv;
     }
 
-    
-    childFrame->SetRect(nsRect(0, childDesiredSize.ascent,
-                               childDesiredSize.width, childDesiredSize.height));
+    SaveReflowAndBoundingMetricsFor(childFrame, childDesiredSize,
+                                    childDesiredSize.mBoundingMetrics);
     
     aDesiredSize.mBoundingMetrics += childDesiredSize.mBoundingMetrics;
 
@@ -189,15 +188,14 @@ nsMathMLTokenFrame::Place(nsIRenderingContext& aRenderingContext,
     nscoord dy, dx = 0;
     nsIFrame* childFrame = GetFirstChild(nsnull);
     while (childFrame) {
-      nsRect rect = childFrame->GetRect();
       nsHTMLReflowMetrics childSize;
-      childSize.width = rect.width;
-      childSize.height = rect.height;
+      GetReflowAndBoundingMetricsFor(childFrame, childSize,
+                                     childSize.mBoundingMetrics);
 
       
-      dy = rect.IsEmpty() ? 0 : aDesiredSize.ascent - rect.y;
+      dy = childSize.height == 0 ? 0 : aDesiredSize.ascent - childSize.ascent;
       FinishReflowChild(childFrame, PresContext(), nsnull, childSize, dx, dy, 0);
-      dx += rect.width;
+      dx += childSize.width;
       childFrame = childFrame->GetNextSibling();
     }
   }

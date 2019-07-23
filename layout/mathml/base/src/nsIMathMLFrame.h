@@ -153,6 +153,7 @@ public:
 
 
 
+
   NS_IMETHOD
   Place(nsIRenderingContext& aRenderingContext,
         PRBool               aPlaceOrigin,
@@ -357,42 +358,42 @@ NS_DEFINE_STATIC_IID_ACCESSOR(nsIMathMLFrame, NS_IMATHMLFRAME_IID)
 
 
 
-#define NS_MATHML_DISPLAYSTYLE                        0x00000001
+#define NS_MATHML_DISPLAYSTYLE                        0x00000001U
 
 
 
-#define NS_MATHML_COMPRESSED                          0x00000002
-
-
-
-
-
-#define NS_MATHML_STRETCH_ALL_CHILDREN_VERTICALLY     0x00000004
+#define NS_MATHML_COMPRESSED                          0x00000002U
 
 
 
 
 
-#define NS_MATHML_STRETCH_ALL_CHILDREN_HORIZONTALLY   0x00000008
-
-
-
-
-#define NS_MATHML_EXPLICIT_DISPLAYSTYLE               0x00000020
-
-
-
-
-#define NS_MATHML_ERROR                               0x80000000
-
-
-#define NS_MATHML_STRETCH_DONE                        0x20000000
+#define NS_MATHML_STRETCH_ALL_CHILDREN_VERTICALLY     0x00000004U
 
 
 
 
 
-#define NS_MATHML_SHOW_BOUNDING_METRICS               0x10000000
+#define NS_MATHML_STRETCH_ALL_CHILDREN_HORIZONTALLY   0x00000008U
+
+
+
+
+#define NS_MATHML_EXPLICIT_DISPLAYSTYLE               0x00000020U
+
+
+
+
+#define NS_MATHML_ERROR                               0x80000000U
+
+
+#define NS_MATHML_STRETCH_DONE                        0x20000000U
+
+
+
+
+
+#define NS_MATHML_SHOW_BOUNDING_METRICS               0x10000000U
 
 
 

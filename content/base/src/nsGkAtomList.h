@@ -1491,6 +1491,9 @@ GK_ATOM(changeListProperty, "ChangeListProperty")
 GK_ATOM(collapseOffsetProperty, "CollapseOffsetProperty")  
 GK_ATOM(computedOffsetProperty, "ComputedOffsetProperty")  
 GK_ATOM(generatedContent, "GeneratedContentProperty")  
+#ifdef MOZ_MATHML
+GK_ATOM(HTMLReflowMetricsProperty, "HTMLReflowMetricsProperty") 
+#endif
 GK_ATOM(IBSplitSpecialPrevSibling, "IBSplitSpecialPrevSibling")
 GK_ATOM(IBSplitSpecialSibling, "IBSplitSpecialSibling")    
 GK_ATOM(lineCursorProperty, "LineCursorProperty") 
