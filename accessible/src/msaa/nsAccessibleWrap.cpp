@@ -441,6 +441,17 @@ STDMETHODIMP nsAccessibleWrap::get_accRole(
     msaaRole = ROLE_SYSTEM_BUTTONMENU;
   }
   
+  
+  
+  
+  if (xpRole == nsIAccessibleRole::ROLE_ROW) {
+    nsCOMPtr<nsIAccessible> parent = GetParent();
+    if (parent && Role(parent) == nsIAccessibleRole::ROLE_TREE_TABLE) {
+      msaaRole = ROLE_SYSTEM_OUTLINEITEM;
+    }
+  }
+  
+  
   if (msaaRole != USE_ROLE_STRING) {
     pvarRole->vt = VT_I4;
     pvarRole->lVal = msaaRole;  
