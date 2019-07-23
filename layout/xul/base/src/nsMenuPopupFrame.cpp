@@ -1624,7 +1624,10 @@ nsMenuPopupFrame::MoveToInternal(PRInt32 aLeft, PRInt32 aTop)
 
   
   
-  view->GetWidget()->Move(aLeft - screenPos.x, aTop - screenPos.y);
+  
+  nsIWidget* widget = view->GetWidget();
+  if (widget) 
+    widget->Move(aLeft - screenPos.x, aTop - screenPos.y);
 }
 
 void 
