@@ -47,19 +47,20 @@
 #include "nsContentUtils.h"
 #include "nsIParserService.h"
 
-#define SKIP_WHITESPACE(iter, end_iter, end_res)                 \
+#define SKIP_WHITESPACE(iter, end_iter)                          \
   while ((iter) != (end_iter) && nsCRT::IsAsciiSpace(*(iter))) { \
     ++(iter);                                                    \
   }                                                              \
-  if ((iter) == (end_iter)) {                                    \
-    return (end_res);                                            \
-  }
+  if ((iter) == (end_iter))                                      \
+    break
 
 #define SKIP_ATTR_NAME(iter, end_iter)                            \
   while ((iter) != (end_iter) && !nsCRT::IsAsciiSpace(*(iter)) && \
          *(iter) != '=') {                                        \
     ++(iter);                                                     \
-  }
+  }                                                               \
+  if ((iter) == (end_iter))                                       \
+    break
 
 PRBool
 nsParserUtils::GetQuotedAttributeValue(const nsString& aSource, nsIAtom *aName,
@@ -72,33 +73,29 @@ nsParserUtils::GetQuotedAttributeValue(const nsString& aSource, nsIAtom *aName,
   const PRUnichar *iter;
   
   while (start != end) {
-    SKIP_WHITESPACE(start, end, PR_FALSE)
+    SKIP_WHITESPACE(start, end);
     iter = start;
-    SKIP_ATTR_NAME(iter, end)
-
-    if (start == iter) {
-      return PR_FALSE;
-    }
+    SKIP_ATTR_NAME(iter, end);
 
     
     const nsDependentSubstring & attrName = Substring(start, iter);
 
     
     start = iter;
-    SKIP_WHITESPACE(start, end, PR_FALSE)
+    SKIP_WHITESPACE(start, end);
     if (*start != '=') {
       
       
-      return PR_FALSE;
+      break;
     }
     
     
     ++start;
-    SKIP_WHITESPACE(start, end, PR_FALSE)
+    SKIP_WHITESPACE(start, end);
     PRUnichar q = *start;
     if (q != kQuote && q != kApostrophe) {
       
-      return PR_FALSE;
+      break;
     }
     
     ++start;  
@@ -110,7 +107,7 @@ nsParserUtils::GetQuotedAttributeValue(const nsString& aSource, nsIAtom *aName,
 
     if (iter == end) {
       
-      return PR_FALSE;
+      break;
     }
 
     
@@ -171,74 +168,6 @@ nsParserUtils::GetQuotedAttributeValue(const nsString& aSource, nsIAtom *aName,
   return PR_FALSE;
 }
 
-PRBool
-nsParserUtils::GetQuotedAttrNameAt(const nsString& aSource, PRUint32 aIndex,
-                                   nsAString& aName)
-{
-  aName.Truncate();
-
-  const PRUnichar *start = aSource.get();
-  const PRUnichar *end = start + aSource.Length();
-  const PRUnichar *iter;
-  PRUint32 currIndex = 0;
-  
-  for (;;) {
-    SKIP_WHITESPACE(start, end, PR_TRUE)
-
-    iter = start;
-    SKIP_ATTR_NAME(iter, end)
-
-    if (start == iter) {
-      return PR_FALSE;
-    }
-
-    
-    const nsDependentSubstring & attrName = Substring(start, iter);
-
-    
-    start = iter;
-    SKIP_WHITESPACE(start, end, PR_FALSE);
-    if (*start != '=') {
-      
-      
-      return PR_FALSE;
-    }
-    
-    
-    ++start;
-    SKIP_WHITESPACE(start, end, PR_FALSE);
-    PRUnichar q = *start;
-    if (q != kQuote && q != kApostrophe) {
-      
-      return PR_FALSE;
-    }
-    
-    
-    do {
-      ++start;
-    } while (start != end && *start != q);
-
-    if (start == end) {
-      
-      return PR_FALSE;
-    }
-
-    
-    
-    if (aIndex == currIndex) {
-      aName = attrName;
-
-      return PR_TRUE;
-    }
-
-    
-    
-    ++start;
-    ++currIndex;
-  }
-
-  return PR_TRUE;
-}
 
 
 

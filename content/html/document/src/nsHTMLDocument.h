@@ -207,11 +207,6 @@ public:
     return mEditingState != eOff;
   }
 
-  virtual void DisableCookieAccess()
-  {
-    mDisableCookieAccess = PR_TRUE;
-  }
-
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED_NO_UNLINK(nsHTMLDocument, nsDocument)
 
 protected:
@@ -394,8 +389,6 @@ protected:
   
   
   PRInt32 mDefaultNamespaceID;
-
-  PRBool mDisableCookieAccess;
 };
 
 #endif 

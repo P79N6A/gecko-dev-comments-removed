@@ -58,30 +58,9 @@ public:
 
 
 
-
-
-
   static PRBool
   GetQuotedAttributeValue(const nsString& aSource, nsIAtom *aName,
                           nsAString& aValue);
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-  static PRBool
-  GetQuotedAttrNameAt(const nsString& aSource, PRUint32 aIndex,
-                      nsAString& aName);
 
   static PRBool
   IsJavaScriptLanguage(const nsString& aName, PRUint32 *aVerFlags);

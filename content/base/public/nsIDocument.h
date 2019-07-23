@@ -664,6 +664,11 @@ public:
 
   virtual nsresult AddXMLEventsContent(nsIContent * aXMLEventsElement) = 0;
 
+  virtual PRBool IsLoadedAsData()
+  {
+    return PR_FALSE;
+  }
+
   
 
 
@@ -871,11 +876,7 @@ public:
   {
     return mMarkedCCGeneration;
   }
-
-  PRBool IsLoadedAsData()
-  {
-    return mLoadedAsData;
-  }
+  
 
 protected:
   ~nsIDocument()
@@ -938,10 +939,6 @@ protected:
   PRPackedBool mIsInitialDocumentInWindow;
 
   PRPackedBool mShellsAreHidden;
-
-  
-  
-  PRPackedBool mLoadedAsData;
 
   
   

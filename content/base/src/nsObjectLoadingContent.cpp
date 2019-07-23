@@ -847,11 +847,6 @@ nsObjectLoadingContent::LoadObject(nsIURI* aURI,
   }
 
   
-  if (doc->IsLoadedAsData()) {
-    Fallback(PR_FALSE);
-    return NS_OK;
-  }
-
   
   
   

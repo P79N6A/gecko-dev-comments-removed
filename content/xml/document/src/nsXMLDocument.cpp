@@ -561,17 +561,27 @@ nsXMLDocument::StartDocumentLoad(const char* aCommand,
                                  PRBool aReset,
                                  nsIContentSink* aSink)
 {
+  if (nsCRT::strcmp(kLoadAsData, aCommand) == 0) {
+    mLoadedAsData = PR_TRUE;
+    
+    
+    
+
+    
+    ScriptLoader()->SetEnabled(PR_FALSE);
+
+    
+    CSSLoader()->SetEnabled(PR_FALSE); 
+  } else if (nsCRT::strcmp("loadAsInteractiveData", aCommand) == 0) {
+    mLoadedAsInteractiveData = PR_TRUE;
+    aCommand = kLoadAsData; 
+  }
+
   nsresult rv = nsDocument::StartDocumentLoad(aCommand,
                                               aChannel, aLoadGroup,
                                               aContainer, 
                                               aDocListener, aReset, aSink);
   if (NS_FAILED(rv)) return rv;
-
-  if (nsCRT::strcmp("loadAsInteractiveData", aCommand) == 0) {
-    mLoadedAsInteractiveData = PR_TRUE;
-    aCommand = kLoadAsData; 
-  }
-
 
   PRInt32 charsetSource = kCharsetFromDocTypeDefault;
   nsCAutoString charset(NS_LITERAL_CSTRING("UTF-8"));
@@ -645,6 +655,13 @@ nsXMLDocument::EndLoad()
   }    
   nsDocument::EndLoad();  
 }
+
+PRBool
+nsXMLDocument::IsLoadedAsData()
+{
+  return mLoadedAsData;
+}
+  
 
 
 
