@@ -833,15 +833,28 @@ gfxWindowsFontGroup::gfxWindowsFontGroup(const nsAString& aFamilies, const gfxFo
 
     if (mFontEntries.Length() == 0) {
         
+        
+        nsAutoString str;
         HGDIOBJ hGDI = ::GetStockObject(DEFAULT_GUI_FONT);
         LOGFONTW logFont;
-        if (!hGDI ||
-            !::GetObjectW(hGDI, sizeof(logFont), &logFont)) {
-            NS_ERROR("Failed to create font group");
-            return;
+        if (hGDI && ::GetObjectW(hGDI, sizeof(logFont), &logFont)) {
+            str.AppendLiteral("\"");
+            str.Append(nsDependentString(logFont.lfFaceName));
+            str.AppendLiteral("\"");
         }
-        nsRefPtr<FontEntry> fe = gfxWindowsPlatform::GetPlatform()->FindFontEntry(nsDependentString(logFont.lfFaceName), *aStyle);
-        mFontEntries.AppendElement(fe);
+
+        NONCLIENTMETRICSW ncm;
+        ncm.cbSize = sizeof(ncm);
+        BOOL status = ::SystemParametersInfoW(SPI_GETNONCLIENTMETRICS, 
+                                              sizeof(ncm), &ncm, 0);
+        if (status) {
+            str.AppendLiteral(",\"");
+            str.Append(nsDependentString(ncm.lfMessageFont.lfFaceName));
+            str.AppendLiteral("\"");
+        }
+
+        FamilyListToArrayList(str, mStyle.langGroup, &mFontEntries);
+
         
         
         
@@ -849,7 +862,7 @@ gfxWindowsFontGroup::gfxWindowsFontGroup(const nsAString& aFamilies, const gfxFo
         
         
         
-        mFonts.AppendElements(1);
+        mFonts.AppendElements(mFontEntries.Length());
     }
 
     if (!mStyle.systemFont) {
