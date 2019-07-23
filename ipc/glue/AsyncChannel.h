@@ -161,6 +161,7 @@ protected:
     
     void OnChannelOpened();
     void OnSend(Message* aMsg);
+    void OnClose();
 
     Transport* mTransport;
     AsyncListener* mListener;

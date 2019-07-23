@@ -188,22 +188,5 @@ ${CHILD_INIT_CASES}
     }
 }
 
-void IPDLUnitTestChildCleanUp()
-{
-    if (!gChildActor)
-        return;
-
-    switch (IPDLUnitTest()) {
-
-
-${CHILD_CLEANUP_CASES}
-
-
-    default:
-        fail("not reached");
-        return;                 
-    }
-}
-
 } 
 } 
