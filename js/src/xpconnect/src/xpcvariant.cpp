@@ -99,8 +99,12 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(XPCVariant)
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
 NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(XPCVariant)
-    if(!JSVAL_IS_STRING(tmp->mJSVal))
-        nsVariant::Cleanup(&tmp->mData);
+    
+    
+    if(JSVAL_IS_STRING(tmp->mJSVal))
+        tmp->mData.u.wstr.mWStringValue = nsnull;
+    nsVariant::Cleanup(&tmp->mData);
+
     if(JSVAL_IS_TRACEABLE(tmp->mJSVal))
     {
         XPCTraceableVariant *v = static_cast<XPCTraceableVariant*>(tmp);
