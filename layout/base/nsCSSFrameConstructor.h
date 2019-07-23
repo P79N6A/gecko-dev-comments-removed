@@ -771,8 +771,6 @@ private:
 
 
 
-
-
   
   
   
@@ -785,7 +783,6 @@ private:
                              nsStyleContext*              aStyleContext,
                              nsFrameItems* &              aFrameItems,
                              nsFrameConstructorSaveState& aSaveState,
-                             PRBool&                      aSuppressFrame,
                              PRBool&                      aCreatedPseudo);
 
   
@@ -905,6 +902,7 @@ private:
                                         PRUint32                 aFlags,
                                         nsTArray<FrameConstructionItem>& aItems);
 
+  
   nsresult ConstructFramesFromItem(nsFrameConstructorState& aState,
                                    FrameConstructionItem& aItem,
                                    nsIFrame* aParentFrame,
