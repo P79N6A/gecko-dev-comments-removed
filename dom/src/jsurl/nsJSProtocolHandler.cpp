@@ -262,6 +262,7 @@ nsresult nsJSThunk::EvaluateScript(nsIChannel *aChannel,
         
         
         JSContext *cx = (JSContext*)scriptContext->GetNativeContext();
+        JSAutoRequest ar(cx);
 
         PRBool ok;
         rv = securityManager->CanExecuteScripts(cx, principal, &ok);
@@ -336,7 +337,9 @@ nsresult nsJSThunk::EvaluateScript(nsIChannel *aChannel,
         
         
         
-        ::JS_ReportPendingException((JSContext*)scriptContext->GetNativeContext());
+        JSContext *cx = (JSContext*)scriptContext->GetNativeContext();
+        JSAutoRequest ar(cx);
+        ::JS_ReportPendingException(cx);
     }
     
     if (NS_FAILED(rv)) {
