@@ -1290,6 +1290,12 @@ js_DropAllEmptyScopeLocks(JSContext *cx, JSScope *scope)
     if (CX_THREAD_IS_RUNNING_GC(cx))
         return;
 
+    
+
+
+
+    JS_ASSERT(!scope->title.ownercx);
+
     LOGIT(&scope->title, '0');
     scope->title.u.count = 0;
     ThinUnlock(&scope->title.lock, CX_THINLOCK_ID(cx));
