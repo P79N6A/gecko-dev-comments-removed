@@ -414,6 +414,9 @@ public:
     
     nsExpirationState *GetExpirationState() { return &mExpirationState; }
 
+    
+    virtual PRUint32 GetSpaceGlyph() = 0;
+
 protected:
     
     nsString          mName;
@@ -492,8 +495,6 @@ public:
         
         void         *mUserData;
         
-        nsIAtom      *mLangGroup;
-        
         
         
         gfxSkipChars *mSkipChars;
@@ -503,34 +504,10 @@ public:
         PRUint32      mInitialBreakCount;
         
         PRUint32      mAppUnitsPerDevUnit;
-        
-        PRUint32      mFlags;
     };
 
     virtual ~gfxTextRunFactory() {}
-
-    
-
-
-
-    virtual gfxTextRun *MakeTextRun(const PRUnichar *aString, PRUint32 aLength,
-                                    Parameters *aParams) = 0;
-    
-
-
-
-    virtual gfxTextRun *MakeTextRun(const PRUint8 *aString, PRUint32 aLength,
-                                    Parameters *aParams) = 0;
 };
-
-
-
-
-
-
-
-
-
 
 
 
@@ -568,7 +545,7 @@ public:
 
 class THEBES_API gfxTextRun {
 public:
-    ~gfxTextRun() {}
+    virtual ~gfxTextRun();
 
     typedef gfxFont::RunMetrics Metrics;
 
@@ -601,15 +578,6 @@ public:
 
 
 
-    void RememberText(const PRUnichar *aText, PRUint32 aLength) {}
-    void RememberText(const PRUint8 *aText, PRUint32 aLength) {}
-
-    
-
-
-
-
-
 
 
 
@@ -631,16 +599,6 @@ public:
 
     class PropertyProvider {
     public:
-        
-
-
-
-
-
-
-
-        virtual void ForceRememberText() = 0;
-
         
         
         virtual void GetHyphenationBreaks(PRUint32 aStart, PRUint32 aLength,
@@ -757,7 +715,6 @@ public:
 
     virtual PRBool SetLineBreaks(PRUint32 aStart, PRUint32 aLength,
                                  PRBool aLineBreakBefore, PRBool aLineBreakAfter,
-                                 PropertyProvider *aProvider,
                                  gfxFloat *aAdvanceWidthDelta);
 
     
@@ -823,13 +780,30 @@ public:
     PRBool IsRightToLeft() const { return (mFlags & gfxTextRunFactory::TEXT_IS_RTL) != 0; }
     gfxFloat GetDirection() const { return (mFlags & gfxTextRunFactory::TEXT_IS_RTL) ? -1.0 : 1.0; }
     void *GetUserData() const { return mUserData; }
+    void SetUserData(void *aUserData) { mUserData = aUserData; }
     PRUint32 GetFlags() const { return mFlags; }
     const gfxSkipChars& GetSkipChars() const { return mSkipChars; }
     PRUint32 GetAppUnitsPerDevUnit() const { return mAppUnitsPerDevUnit; }
+    gfxFontGroup *GetFontGroup() const { return mFontGroup; }
+    const PRUint8 *GetText8Bit() const
+    { return (mFlags & gfxTextRunFactory::TEXT_IS_8BIT) ? mText.mSingle : nsnull; }
+    const PRUnichar *GetTextUnicode() const
+    { return (mFlags & gfxTextRunFactory::TEXT_IS_8BIT) ? nsnull : mText.mDouble; }
 
     
     
-    gfxTextRun(gfxTextRunFactory::Parameters *aParams, PRUint32 aLength);
+    
+    
+    gfxTextRun(const gfxTextRunFactory::Parameters *aParams, const void *aText,
+    		       PRUint32 aLength, gfxFontGroup *aFontGroup, PRUint32 aFlags);
+
+    
+    
+    
+    
+    
+    virtual gfxTextRun *Clone(const gfxTextRunFactory::Parameters *aParams, const void *aText,
+                              PRUint32 aLength, gfxFontGroup *aFontGroup, PRUint32 aFlags);
 
     
 
@@ -1050,6 +1024,8 @@ public:
         return mGlyphRuns.Elements();
     }
 
+    nsExpirationState *GetExpirationState() { return &mExpirationState; }
+
 private:
     
 
@@ -1110,14 +1086,21 @@ private:
     
     
     nsAutoTArray<GlyphRun,1>                       mGlyphRuns;
-
-    void        *mUserData;
-    gfxSkipChars mSkipChars;
     
     
-    PRUint32     mAppUnitsPerDevUnit;
-    PRUint32     mFlags;
-    PRUint32     mCharacterCount;
+    
+    
+    union {
+        const PRUint8   *mSingle;
+        const PRUnichar *mDouble;
+    } mText;
+    void             *mUserData;
+    gfxFontGroup     *mFontGroup; 
+    gfxSkipChars      mSkipChars;
+    nsExpirationState mExpirationState;
+    PRUint32          mAppUnitsPerDevUnit;
+    PRUint32          mFlags;
+    PRUint32          mCharacterCount;
 };
 
 class THEBES_API gfxFontGroup : public gfxTextRunFactory {
@@ -1145,12 +1128,30 @@ public:
     virtual gfxFontGroup *Copy(const gfxFontStyle *aStyle) = 0;
 
     
+
+
+
+    gfxTextRun *MakeEmptyTextRun(const Parameters *aParams, PRUint32 aFlags);
     
-    virtual gfxTextRun *MakeTextRun(const PRUnichar* aString, PRUint32 aLength,
-                                    Parameters* aParams) = 0;
+
+
+
+    gfxTextRun *MakeSpaceTextRun(const Parameters *aParams, PRUint32 aFlags);
+
     
-    virtual gfxTextRun *MakeTextRun(const PRUint8* aString, PRUint32 aLength,
-                                    Parameters* aParams) = 0;
+
+
+
+
+    virtual gfxTextRun *MakeTextRun(const PRUnichar *aString, PRUint32 aLength,
+                                    const Parameters *aParams, PRUint32 aFlags) = 0;
+    
+
+
+
+
+    virtual gfxTextRun *MakeTextRun(const PRUint8 *aString, PRUint32 aLength,
+                                    const Parameters *aParams, PRUint32 aFlags) = 0;
 
     
 
@@ -1169,31 +1170,10 @@ public:
 
     const nsString& GetFamilies() { return mFamilies; }
 
-    
-
-
-
-
-    enum SpecialString {
-        STRING_ELLIPSIS,
-        STRING_HYPHEN,
-        STRING_SPACE,
-        STRING_MAX = STRING_SPACE
-    };
-
-    
-    
-    
-    
-    
-    gfxTextRun *GetSpecialStringTextRun(SpecialString aString,
-                                        gfxTextRun *aTemplate);
-
 protected:
     nsString mFamilies;
     gfxFontStyle mStyle;
     nsTArray< nsRefPtr<gfxFont> > mFonts;
-    nsAutoPtr<gfxTextRun> mSpecialStrings[STRING_MAX + 1];
 
     static PRBool ForEachFontInternal(const nsAString& aFamilies,
                                       const nsACString& aLangGroup,
