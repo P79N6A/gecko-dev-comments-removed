@@ -139,8 +139,6 @@ nsNavBookmarks::Init()
   NS_ENSURE_SUCCESS(rv, rv);
 
   
-  
-  
   rv = dbConn->CreateStatement(NS_LITERAL_CSTRING(
       "SELECT a.id "
       "FROM moz_bookmarks a, moz_places h "
