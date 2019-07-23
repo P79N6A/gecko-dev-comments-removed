@@ -691,6 +691,99 @@ void nsHTTPListener::send_done_signal()
   }
 }
 
+
+
+nsPSMRememberCertErrorsTable sHostsWithCertErrors;
+
+nsPSMRememberCertErrorsTable::nsPSMRememberCertErrorsTable()
+{
+  mErrorHosts.Init(16);
+}
+
+nsresult
+nsPSMRememberCertErrorsTable::GetHostPortKey(nsNSSSocketInfo* infoObject,
+                                             nsCAutoString &result)
+{
+  nsresult rv;
+
+  result.Truncate();
+
+  char* hostName = nsnull;
+  rv = infoObject->GetHostName(&hostName);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  PRInt32 port;
+  rv = infoObject->GetPort(&port);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  result.Assign(hostName);
+  result.Append(':');
+  result.AppendInt(port);
+
+  nsCRT::free(hostName);
+
+  return NS_OK;
+}
+
+void
+nsPSMRememberCertErrorsTable::RememberCertHasError(nsNSSSocketInfo* infoObject,
+                                                  nsSSLStatus* status,
+                                                  SECStatus certVerificationResult)
+{
+  nsresult rv;
+
+  nsCAutoString hostPortKey;
+  rv = GetHostPortKey(infoObject, hostPortKey);
+  if (NS_FAILED(rv))
+    return;
+
+  if (certVerificationResult != SECSuccess) {
+    NS_ASSERTION(status,
+        "Must have nsSSLStatus object when remembering flags");
+
+    if (!status)
+      return;
+
+    CertStateBits bits;
+    bits.mIsDomainMismatch = status->mIsDomainMismatch;
+    bits.mIsNotValidAtThisTime = status->mIsNotValidAtThisTime;
+    bits.mIsUntrusted = status->mIsUntrusted;
+    mErrorHosts.Put(hostPortKey, bits);
+  }
+  else {
+    mErrorHosts.Remove(hostPortKey);
+  }
+}
+
+void
+nsPSMRememberCertErrorsTable::LookupCertErrorBits(nsNSSSocketInfo* infoObject,
+                                                  nsSSLStatus* status)
+{
+  
+  
+  if (status->mHaveCertErrorBits)
+    
+    return;
+
+  nsresult rv;
+
+  nsCAutoString hostPortKey;
+  rv = GetHostPortKey(infoObject, hostPortKey);
+  if (NS_FAILED(rv))
+    return;
+
+  CertStateBits bits;
+  if (!mErrorHosts.Get(hostPortKey, &bits))
+    
+    return;
+
+  
+  status->mHaveCertErrorBits = PR_TRUE;
+  status->mIsDomainMismatch = bits.mIsDomainMismatch;
+  status->mIsNotValidAtThisTime = bits.mIsNotValidAtThisTime;
+  status->mIsUntrusted = bits.mIsUntrusted;
+}
+
 static char*
 ShowProtectedAuthPrompt(PK11SlotInfo* slot, nsIInterfaceRequestor *ir)
 {
@@ -903,6 +996,8 @@ void PR_CALLBACK HandshakeCallback(PRFileDesc* fd, void* client_data) {
       infoObject->SetSSLStatus(status);
     }
 
+    sHostsWithCertErrors.LookupCertErrorBits(infoObject, status);
+
     CERTCertificate *serverCert = SSL_PeerCertificate(fd);
     if (serverCert) {
       nsRefPtr<nsNSSCertificate> nssc = new nsNSSCertificate(serverCert);
@@ -1028,6 +1123,17 @@ SECStatus PR_CALLBACK AuthCertificateCallback(void* client_data, PRFileDesc* fd,
       status = new nsSSLStatus();
       infoObject->SetSSLStatus(status);
     }
+
+    if (rv == SECSuccess) {
+      
+      
+      sHostsWithCertErrors.RememberCertHasError(infoObject, nsnull, rv);
+    }
+    else {
+      
+      sHostsWithCertErrors.LookupCertErrorBits(infoObject, status);
+    }
+
     if (status && !status->mServerCert) {
       status->mServerCert = nsc;
       PR_LOG(gPIPNSSLog, PR_LOG_DEBUG,
