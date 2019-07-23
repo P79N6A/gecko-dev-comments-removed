@@ -269,6 +269,21 @@ const kSaveAsType_Text     = 2;
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 function internalSave(aURL, aDocument, aDefaultFileName, aContentDisposition,
                       aContentType, aShouldBypassCache, aFilePickerTitleKey,
                       aChosenData, aReferrer, aSkipPrompt, aCacheKey)
@@ -280,33 +295,33 @@ function internalSave(aURL, aDocument, aDefaultFileName, aContentDisposition,
     aCacheKey = null;
 
   
-  var saveMode = GetSaveModeForContentType(aContentType);
-  var isDocument = aDocument != null && saveMode != SAVEMODE_FILEONLY;
-  var saveAsType = kSaveAsType_Complete;
+  var saveMode = GetSaveModeForContentType(aContentType, aDocument);
 
-  var file, fileURL;
+  var file, sourceURI, saveAsType;
   
   
-  var fileInfo = new FileInfo(aDefaultFileName);
-  if (aChosenData)
+  if (aChosenData) {
     file = aChosenData.file;
-  else {
+    sourceURI = aChosenData.uri;
+    saveAsType = kSaveAsType_Complete;
+  } else {
     var charset = null;
     if (aDocument)
       charset = aDocument.characterSet;
     else if (aReferrer)
       charset = aReferrer.originCharset;
+    var fileInfo = new FileInfo(aDefaultFileName);
     initFileInfo(fileInfo, aURL, charset, aDocument,
                  aContentType, aContentDisposition);
+    sourceURI = fileInfo.uri;
+
     var fpParams = {
       fpTitleKey: aFilePickerTitleKey,
-      isDocument: isDocument,
       fileInfo: fileInfo,
       contentType: aContentType,
       saveMode: saveMode,
-      saveAsType: saveAsType,
-      file: file,
-      fileURL: fileURL
+      saveAsType: kSaveAsType_Complete,
+      file: file
     };
 
     if (!getTargetFile(fpParams, aSkipPrompt))
@@ -315,40 +330,69 @@ function internalSave(aURL, aDocument, aDefaultFileName, aContentDisposition,
       return;
 
     saveAsType = fpParams.saveAsType;
-    saveMode = fpParams.saveMode;
     file = fpParams.file;
-    fileURL = fpParams.fileURL;
   }
 
-  if (!fileURL)
-    fileURL = makeFileURI(file);
-
   
   
   
-  var useSaveDocument = isDocument &&
+  var useSaveDocument = aDocument &&
                         (((saveMode & SAVEMODE_COMPLETE_DOM) && (saveAsType == kSaveAsType_Complete)) ||
                          ((saveMode & SAVEMODE_COMPLETE_TEXT) && (saveAsType == kSaveAsType_Text)));
   
   
   
-  var source = useSaveDocument ? aDocument : fileInfo.uri;
   var persistArgs = {
-    source      : source,
-    contentType : (!aChosenData && useSaveDocument &&
-                   saveAsType == kSaveAsType_Text) ?
-                  "text/plain" : null,
-    target      : fileURL,
-    postData    : isDocument ? getPostData(aDocument) : null,
-    bypassCache : aShouldBypassCache
+    sourceURI         : sourceURI,
+    sourceReferrer    : aReferrer,
+    sourceDocument    : useSaveDocument ? aDocument : null,
+    targetContentType : (saveAsType == kSaveAsType_Text) ? "text/plain" : null,
+    targetFile        : file,
+    sourceCacheKey    : aCacheKey,
+    sourcePostData    : aDocument ? getPostData(aDocument) : null,
+    bypassCache       : aShouldBypassCache
   };
 
+  
+  internalPersist(persistArgs);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function internalPersist(persistArgs)
+{
   var persist = makeWebBrowserPersist();
 
   
   const nsIWBP = Components.interfaces.nsIWebBrowserPersist;
   const flags = nsIWBP.PERSIST_FLAGS_REPLACE_EXISTING_FILES;
-  if (aShouldBypassCache)
+  if (persistArgs.bypassCache)
     persist.persistFlags = flags | nsIWBP.PERSIST_FLAGS_BYPASS_CACHE;
   else
     persist.persistFlags = flags | nsIWBP.PERSIST_FLAGS_FROM_CACHE;
@@ -357,14 +401,20 @@ function internalSave(aURL, aDocument, aDefaultFileName, aContentDisposition,
   persist.persistFlags |= nsIWBP.PERSIST_FLAGS_AUTODETECT_APPLY_CONVERSION;
 
   
-  var tr = Components.classes["@mozilla.org/transfer;1"].createInstance(Components.interfaces.nsITransfer);
+  var targetFileURL = makeFileURI(persistArgs.targetFile);
 
-  if (useSaveDocument) {
+  
+  var tr = Components.classes["@mozilla.org/transfer;1"].createInstance(Components.interfaces.nsITransfer);
+  tr.init(persistArgs.sourceURI,
+          targetFileURL, "", null, null, null, persist);
+  persist.progressListener = new DownloadListener(window, tr);
+
+  if (persistArgs.sourceDocument) {
     
     var filesFolder = null;
-    if (persistArgs.contentType != "text/plain") {
+    if (persistArgs.targetContentType != "text/plain") {
       
-      filesFolder = file.clone();
+      filesFolder = persistArgs.targetFile.clone();
 
       var nameWithoutExtension = getFileBaseName(filesFolder.leafName);
       var filesFolderLeafName = getStringBundle().formatStringFromName("filesFolder",
@@ -375,7 +425,7 @@ function internalSave(aURL, aDocument, aDefaultFileName, aContentDisposition,
     }
 
     var encodingFlags = 0;
-    if (persistArgs.contentType == "text/plain") {
+    if (persistArgs.targetContentType == "text/plain") {
       encodingFlags |= nsIWBP.ENCODE_FLAGS_FORMATTED;
       encodingFlags |= nsIWBP.ENCODE_FLAGS_ABSOLUTE_LINKS;
       encodingFlags |= nsIWBP.ENCODE_FLAGS_NOFRAMES_CONTENT;
@@ -385,18 +435,12 @@ function internalSave(aURL, aDocument, aDefaultFileName, aContentDisposition,
     }
 
     const kWrapColumn = 80;
-    tr.init((aChosenData ? aChosenData.uri : fileInfo.uri),
-            persistArgs.target, "", null, null, null, persist);
-    persist.progressListener = new DownloadListener(window, tr);
-    persist.saveDocument(persistArgs.source, persistArgs.target, filesFolder,
-                         persistArgs.contentType, encodingFlags, kWrapColumn);
+    persist.saveDocument(persistArgs.sourceDocument, targetFileURL, filesFolder,
+                         persistArgs.targetContentType, encodingFlags, kWrapColumn);
   } else {
-    tr.init((aChosenData ? aChosenData.uri : source),
-            persistArgs.target, "", null, null, null, persist);
-    persist.progressListener = new DownloadListener(window, tr);
-    persist.saveURI((aChosenData ? aChosenData.uri : source),
-                    aCacheKey, aReferrer, persistArgs.postData, null,
-                    persistArgs.target);
+    persist.saveURI(persistArgs.sourceURI,
+                    persistArgs.sourceCacheKey, persistArgs.sourceReferrer, persistArgs.sourcePostData, null,
+                    targetFileURL);
   }
 }
 
@@ -544,7 +588,7 @@ function getTargetFile(aFpP,  aSkipPrompt)
     if (dir)
       fp.displayDirectory = dir;
     
-    if (aFpP.isDocument) {
+    if (aFpP.saveMode != SAVEMODE_FILEONLY) {
       try {
         fp.filterIndex = prefs.getIntPref("save_converter_index");
       }
@@ -565,9 +609,8 @@ function getTargetFile(aFpP,  aSkipPrompt)
     fp.file.leafName = validateFileName(fp.file.leafName);
     aFpP.saveAsType = fp.filterIndex;
     aFpP.file = fp.file;
-    aFpP.fileURL = fp.fileURL;
 
-    if (aFpP.isDocument)
+    if (aFpP.saveMode != SAVEMODE_FILEONLY)
       prefs.setIntPref("save_converter_index", aFpP.saveAsType);
   }
   else {
@@ -937,8 +980,13 @@ function getDefaultExtension(aFilename, aURI, aContentType)
   }
 }
 
-function GetSaveModeForContentType(aContentType)
+function GetSaveModeForContentType(aContentType, aDocument)
 {
+  
+  if (!aDocument)
+    return SAVEMODE_FILEONLY;
+
+  
   var saveMode = SAVEMODE_FILEONLY;
   switch (aContentType) {
   case "text/html":
