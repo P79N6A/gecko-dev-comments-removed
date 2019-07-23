@@ -1914,18 +1914,6 @@ BindNameToSlot(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn,
 
 
 
-
-        if (!(tc->globalUses >= 100 ||
-              (tc->loopyGlobalUses &&
-               tc->loopyGlobalUses >= tc->globalUses / 2))) {
-            return JS_TRUE;
-        }
-
-        
-
-
-
-
         ATOM_LIST_SEARCH(ale, &tc->decls, atom);
         if (!ale) {
             

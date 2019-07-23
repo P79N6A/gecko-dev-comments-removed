@@ -162,8 +162,6 @@ struct JSStmtInfo {
 struct JSTreeContext {              
     uint16          flags;          
     uint16          ngvars;         
-    uint32          globalUses;     
-    uint32          loopyGlobalUses;
     uint16          scopeDepth;     
     uint16          maxScopeDepth;  
     JSStmtInfo      *topStmt;       
@@ -209,7 +207,6 @@ struct JSTreeContext {
 
 #define TREE_CONTEXT_INIT(tc, pc)                                             \
     ((tc)->flags = (tc)->ngvars = 0,                                          \
-     (tc)->globalUses = (tc)->loopyGlobalUses = 0,                            \
      (tc)->scopeDepth = (tc)->maxScopeDepth = 0,                              \
      (tc)->topStmt = (tc)->topScopeStmt = NULL,                               \
      (tc)->blockChain = NULL,                                                 \
