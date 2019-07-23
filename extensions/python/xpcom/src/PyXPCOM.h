@@ -80,6 +80,12 @@
 
 
 
+#if PY_VERSION_HEX < 0x02050000 && !defined(PY_SSIZE_T_MIN)
+typedef int Py_ssize_t;
+#endif
+
+
+
 #ifdef BUILD_PYXPCOM
     
 #   define PYXPCOM_EXPORT NS_EXPORT
