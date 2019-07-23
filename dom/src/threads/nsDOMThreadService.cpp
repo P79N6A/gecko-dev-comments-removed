@@ -539,13 +539,6 @@ DOMWorkerOperationCallback(JSContext* aCx)
 
     if (!wasSuspended) {
       
-      if (worker->IsCanceled()) {
-        NS_WARNING("Tried to suspend on a pool that has gone away");
-        JS_ClearPendingException(aCx);
-        return JS_FALSE;
-      }
-
-      
       
       suspendDepth = JS_SuspendRequest(aCx);
 
@@ -560,8 +553,16 @@ DOMWorkerOperationCallback(JSContext* aCx)
     }
 
     nsAutoMonitor mon(worker->Pool()->Monitor());
-    mon.Wait();
+
+    
+    
+    if (!worker->IsCanceled()) {
+      mon.Wait();
+    }
   }
+
+  NS_NOTREACHED("Should never get here!");
+  return JS_FALSE;
 }
 
 void
