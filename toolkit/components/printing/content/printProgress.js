@@ -98,6 +98,26 @@ var progressListener = {
         var percentPrint = getString( "progressText" );
         percentPrint = replaceInsert( percentPrint, 1, 100 );
         dialog.progressText.setAttribute("value", percentPrint);
+
+        var fm = Components.classes["@mozilla.org/focus-manager;1"]
+                     .getService(Components.interfaces.nsIFocusManager);
+        if (fm && fm.activeWindow == window) {
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          opener.focus();
+        }
+
         window.close();
       }
     },
