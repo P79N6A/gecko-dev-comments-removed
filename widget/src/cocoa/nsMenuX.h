@@ -42,7 +42,7 @@
 #include "nsCOMPtr.h"
 #include "nsAutoPtr.h"
 #include "nsIMenu.h"
-#include "nsIChangeManager.h"
+#include "nsChangeObserver.h"
 #include "nsMenuBarX.h"
 
 #import <Carbon/Carbon.h>
@@ -67,21 +67,20 @@ class nsMenuItemIconX;
 
 
 class nsMenuX : public nsIMenu,
-                public nsIChangeObserver
+                public nsChangeObserver
 {
-
 public:
     nsMenuX();
     virtual ~nsMenuX();
 
     NS_DECL_ISUPPORTS
-    NS_DECL_NSICHANGEOBSERVER
+    NS_DECL_CHANGEOBSERVER
 
     id GetNativeMenuItem();
 
     
     NS_IMETHOD Create(nsISupports * aParent, const nsAString &aLabel, const nsAString &aAccessKey, 
-                      nsIChangeManager* aManager, nsIContent* aNode);
+                      nsMenuBarX* aMenuBar, nsIContent* aNode);
     NS_IMETHOD GetParent(nsISupports *&aParent);
     NS_IMETHOD GetLabel(nsString &aText);
     NS_IMETHOD SetLabel(const nsAString &aText);
@@ -140,7 +139,7 @@ protected:
     PRUint32                    mVisibleItemsCount;     
 
     nsISupports*                mParent;                
-    nsIChangeManager*           mManager;               
+    nsMenuBarX*                 mMenuBar;               
     nsCOMPtr<nsIContent>        mMenuContent;           
     nsRefPtr<nsMenuItemIconX>   mIcon;
 

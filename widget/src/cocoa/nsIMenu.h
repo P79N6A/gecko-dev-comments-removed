@@ -45,10 +45,9 @@
 class nsIMenuBar;
 class nsIMenu;
 class nsIMenuItem;
-class nsIChangeManager;
 class nsIContent;
-class nsIMenuCommandDispatcher;
 class nsIWidget;
+class nsMenuBarX;
 
 
 
@@ -69,51 +68,51 @@ class nsIMenu : public nsISupports {
 
 
     NS_IMETHOD Create(nsISupports * aParent, const nsAString &aLabel, const nsAString &aAccessKey, 
-                      nsIChangeManager* aManager, nsIContent* aNode) = 0;
+                      nsMenuBarX* aMenuBar, nsIContent* aNode) = 0;
 
-   
+  
 
 
 
     NS_IMETHOD GetParent(nsISupports *&aParent) = 0;
 
-   
+  
 
 
 
     NS_IMETHOD GetLabel(nsString &aText) = 0;
 
-   
+  
 
 
 
     NS_IMETHOD SetLabel(const nsAString &aText) = 0;
 
-	
+  
 
 
 
-	NS_IMETHOD GetAccessKey(nsString &aText) = 0;
+  NS_IMETHOD GetAccessKey(nsString &aText) = 0;
    
-	
+  
 
 
 
-	NS_IMETHOD SetAccessKey(const nsAString &aText) = 0;
+  NS_IMETHOD SetAccessKey(const nsAString &aText) = 0;
 
-	
-
-
-
-	NS_IMETHOD SetEnabled(PRBool aIsEnabled) = 0;
-
-	
+  
 
 
 
-	NS_IMETHOD GetEnabled(PRBool* aIsEnabled) = 0;
-	
-	
+  NS_IMETHOD SetEnabled(PRBool aIsEnabled) = 0;
+
+  
+
+
+
+  NS_IMETHOD GetEnabled(PRBool* aIsEnabled) = 0;
+  
+  
 
 
 
