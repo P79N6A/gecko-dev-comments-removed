@@ -72,7 +72,7 @@ nsMIMEInfoBeOS::LoadUriInternal(nsIURI * aURL)
 		protoStr.Prepend("application/x-vnd.Be.URL.");
 		
 		nsCAutoString spec;
-		aURL->GetSpec(spec);
+		aURL->GetAsciiSpec(spec);
 		const char* args[] = { spec.get() };
 		
 		
