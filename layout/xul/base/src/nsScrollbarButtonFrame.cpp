@@ -71,6 +71,11 @@ nsScrollbarButtonFrame::HandleEvent(nsPresContext* aPresContext,
                                     nsGUIEvent* aEvent,
                                     nsEventStatus* aEventStatus)
 {  
+  NS_ENSURE_ARG_POINTER(aEventStatus);
+  if (nsEventStatus_eConsumeNoDefault == *aEventStatus) {
+    return NS_OK;
+  }
+
   
   if (aEvent->message == NS_MOUSE_EXIT_SYNTH ||
       aEvent->message == NS_MOUSE_BUTTON_UP)
