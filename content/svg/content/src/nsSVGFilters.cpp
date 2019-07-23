@@ -2771,7 +2771,6 @@ class nsSVGFEFloodElement : public nsSVGFEFloodElementBase,
 protected:
   nsSVGFEFloodElement(nsINodeInfo* aNodeInfo)
     : nsSVGFEFloodElementBase(aNodeInfo) {}
-  nsresult Init();
 
 public:
   virtual PRBool SubregionIsUnionOfRegions() { return PR_FALSE; }
@@ -2802,8 +2801,6 @@ public:
 protected:
   virtual PRBool OperatesOnSRGB(nsSVGFilterInstance*,
                                 nsIDOMSVGAnimatedString*) { return PR_TRUE; }
-
-  nsCOMPtr<nsIDOMSVGAnimatedString> mIn1;
 };
 
 NS_IMPL_NS_NEW_SVG_ELEMENT(FEFlood)
@@ -2826,39 +2823,11 @@ NS_INTERFACE_MAP_END_INHERITING(nsSVGFEFloodElementBase)
 
 
 
-nsresult
-nsSVGFEFloodElement::Init()
-{
-  nsresult rv = nsSVGFEFloodElementBase::Init();
-  NS_ENSURE_SUCCESS(rv,rv);
-
-  
-  {
-    rv = NS_NewSVGAnimatedString(getter_AddRefs(mIn1));
-    NS_ENSURE_SUCCESS(rv,rv);
-    rv = AddMappedSVGValue(nsGkAtoms::in, mIn1);
-    NS_ENSURE_SUCCESS(rv,rv);
-  }
-
-  return rv;
-}
-
-
-
-
 NS_IMPL_ELEMENT_CLONE_WITH_INIT(nsSVGFEFloodElement)
 
 
 
 
-
-
-NS_IMETHODIMP nsSVGFEFloodElement::GetIn1(nsIDOMSVGAnimatedString * *aIn)
-{
-  *aIn = mIn1;
-  NS_IF_ADDREF(*aIn);
-  return NS_OK;
-}
 
 nsresult
 nsSVGFEFloodElement::Filter(nsSVGFilterInstance *instance)
