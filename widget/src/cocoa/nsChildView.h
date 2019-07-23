@@ -448,7 +448,7 @@ protected:
   PRPackedBool          mVisible;
   PRPackedBool          mDrawing;
   PRPackedBool          mLiveResizeInProgress;
-  PRPackedBool          mIsPluginView; 
+  PRPackedBool          mIsPluginView;
   PRPackedBool          mPluginDrawing;
   PRPackedBool          mPluginIsCG; 
 
