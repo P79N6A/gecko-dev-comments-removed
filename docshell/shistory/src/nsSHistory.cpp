@@ -330,11 +330,16 @@ nsSHistory::AddEntry(nsISHEntry * aSHEntry, PRBool aPersist)
   
   
   
+  PRInt32 oldIndex = mIndex;
   mLength = (++mIndex + 1);
 
   
   if(!mListRoot)
     mListRoot = txn;
+
+  
+  
+  EvictWindowContentViewers(oldIndex, mIndex);
 
   
   if ((gHistoryMaxSize >= 0) && (mLength > gHistoryMaxSize))
@@ -583,9 +588,6 @@ nsSHistory::PurgeHistory(PRInt32 aEntries)
     mIndex = -1;
   }
 
-  if (mRootDocShell)
-    mRootDocShell->HistoryPurged(cnt);
-
   return NS_OK;
 }
 
@@ -655,10 +657,8 @@ nsSHistory::GetListener(nsISHistoryListener ** aListener)
 }
 
 NS_IMETHODIMP
-nsSHistory::EvictContentViewers(PRInt32 aPreviousIndex, PRInt32 aIndex)
+nsSHistory::EvictContentViewers()
 {
-  
-  EvictWindowContentViewers(aPreviousIndex, aIndex);
   
   EvictGlobalContentViewer();
   return NS_OK;
@@ -798,15 +798,9 @@ nsSHistory::EvictWindowContentViewers(PRInt32 aFromIndex, PRInt32 aToIndex)
   PRInt32 startIndex, endIndex;
   if (aToIndex > aFromIndex) { 
     endIndex = aToIndex - gHistoryMaxViewers;
-    if (endIndex <= 0) {
-      return;
-    }
     startIndex = PR_MAX(0, aFromIndex - gHistoryMaxViewers);
   } else { 
     startIndex = aToIndex + gHistoryMaxViewers + 1;
-    if (startIndex >= mLength) {
-      return;
-    }
     endIndex = PR_MIN(mLength, aFromIndex + gHistoryMaxViewers + 1);
   }
 
@@ -834,6 +828,11 @@ nsSHistory::EvictWindowContentViewers(PRInt32 aFromIndex, PRInt32 aToIndex)
   }
 #endif
 
+  if (endIndex <= 0 || startIndex >= mLength) {
+    
+    return;
+  }
+  
   EvictContentViewersInRange(startIndex, endIndex);
 }
 
@@ -1126,6 +1125,15 @@ nsSHistory::LoadURI(const PRUnichar* aURI,
 NS_IMETHODIMP
 nsSHistory::GotoIndex(PRInt32 aIndex)
 {
+ 
+  if (mIndex > -1 && PR_ABS(aIndex - mIndex) > gHistoryMaxViewers) {
+    
+    
+    nsCOMPtr<nsISHEntry> currentEntry;
+    nsresult rv = GetEntryAtIndex(mIndex, PR_FALSE, getter_AddRefs(currentEntry));
+    if (NS_SUCCEEDED(rv) && currentEntry)
+      currentEntry->SetSaveContentViewerFlag(PR_FALSE);
+  }
   return LoadEntry(aIndex, nsIDocShellLoadInfo::loadHistory, HIST_CMD_GOTOINDEX);
 }
 
@@ -1221,7 +1229,17 @@ nsSHistory::LoadEntry(PRInt32 aIndex, long aLoadType, PRUint32 aHistCmd)
   }
 
   
-  return InitiateLoad(nextEntry, docShell, aLoadType);
+  nsresult rv = InitiateLoad(nextEntry, docShell, aLoadType);
+
+  if (NS_SUCCEEDED(rv)) {
+    
+    nextEntry->SetSaveContentViewerFlag(PR_TRUE);
+    
+    
+    EvictWindowContentViewers(mIndex, mRequestedIndex);
+  }
+
+  return rv;
 }
 
 
