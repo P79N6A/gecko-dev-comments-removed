@@ -301,10 +301,6 @@ namespace nanojit
     
     const size_t LARGEST_BRANCH_PATCH = 4 * sizeof(NIns);
 
-    inline Register nextreg(Register r) {
-        return Register(r+1);
-    }
-
     #define EMIT1(ins, fmt, ...) do {\
         underrunProtect(4);\
         *(--_nIns) = (NIns) (ins);\

@@ -1769,7 +1769,15 @@ namespace nanojit
         
         RegisterMask skip = 0;
         verbose_only(bool shouldMention=false; )
-        for (Register r=FirstReg; r <= LastReg; r = nextreg(r))
+        
+        
+        
+        
+        
+        
+        
+        for (Register r=LastReg; r >= FirstReg && r <= LastReg;
+                                 r = prevreg(r))
         {
             LIns * curins = _allocator.getActive(r);
             LIns * savedins = saved.getActive(r);

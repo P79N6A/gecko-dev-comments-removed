@@ -563,10 +563,6 @@ namespace nanojit
     
     const size_t LARGEST_BRANCH_PATCH = 16 * sizeof(NIns);
 
-    inline Register nextreg(Register r) {
-        return Register(r+1);
-    }
-
 } 
 
 #endif
