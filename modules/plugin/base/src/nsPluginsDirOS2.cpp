@@ -81,6 +81,34 @@ static char *LoadRCDATAString( HMODULE hMod, ULONG resid)
    return string;
 }
 
+
+
+static char *LoadRCDATAVersion(HMODULE hMod, ULONG resid)
+{
+   APIRET rc;
+   ULONG  ulSize = 0;
+   char  *string = 0;
+
+   rc = DosQueryResourceSize(hMod, RT_RCDATA, resid, &ulSize);
+
+   
+   if (rc == NO_ERROR && ulSize == 8)
+   {
+      char *version = NULL;
+      rc = DosGetResource(hMod, RT_RCDATA, resid, (void**) &version);
+
+      if (rc == NO_ERROR)
+      {
+         string = PR_smprintf("%d.%d.%d.%d\n",
+                              version[0], version[2], version[4], version[6]);
+
+         DosFreeResource(version);
+      }
+   }
+
+   return string;
+}
+
 static PRUint32 CalculateVariantCount(char* mimeTypes)
 {
   PRUint32 variants = 1;
@@ -202,6 +230,8 @@ nsresult nsPluginFile::GetPluginInfo( nsPluginInfo &info)
       info.fPluginInfoSize = sizeof( nsPluginInfo);
 
       info.fName = LoadRCDATAString( hPlug, NS_INFO_ProductName);
+
+      info.fFileVersion = LoadRCDATAVersion( hPlug, NS_INFO_ProductVersion);
 
       
       info.fDescription = LoadRCDATAString( hPlug, NS_INFO_FileDescription);
