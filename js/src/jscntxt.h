@@ -1663,6 +1663,11 @@ class AutoGCRooter {
         ID =          -12, 
         VECTOR =      -13  
     };
+
+    private:
+    
+    AutoGCRooter(AutoGCRooter &ida);
+    void operator=(AutoGCRooter &ida);
 };
 
 class AutoSaveWeakRoots : private AutoGCRooter

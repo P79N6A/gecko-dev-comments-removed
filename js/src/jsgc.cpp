@@ -3214,7 +3214,7 @@ FireGCBegin(JSContext *cx, JSGCInvocationKind gckind)
 
 
     if (gckind != GC_SET_SLOT_REQUEST && callback) {
-        Conditionally<AutoUnlockGC> unlockIf(gckind & GC_LOCK_HELD, rt);
+        Conditionally<AutoUnlockGC> unlockIf(!!(gckind & GC_LOCK_HELD), rt);
         return callback(cx, JSGC_BEGIN) || gckind == GC_LAST_CONTEXT;
     }
     return true;
@@ -3371,7 +3371,7 @@ js_GC(JSContext *cx, JSGCInvocationKind gckind)
 
 
 
-                Conditionally<AutoKeepAtoms> keepIf(gckind & GC_KEEP_ATOMS, rt);
+                Conditionally<AutoKeepAtoms> keepIf(!!(gckind & GC_KEEP_ATOMS), rt);
 
                 
 

@@ -472,7 +472,11 @@ void
 TraceObjectVector(JSTracer *trc, JSObject **vec, uint32 len);
 
 inline void
+#ifdef DEBUG
 TraceValues(JSTracer *trc, size_t len, jsval *vec, const char *name)
+#else
+TraceValues(JSTracer *trc, size_t len, jsval *vec, const char *) 
+#endif
 {
     for (jsval *vp = vec, *end = vp + len; vp < end; vp++) {
         jsval v = *vp;
