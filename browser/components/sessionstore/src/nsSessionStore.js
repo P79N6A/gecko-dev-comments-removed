@@ -213,16 +213,10 @@ SessionStoreService.prototype = {
         
         this._initialState = this._safeEval(iniString);
         
-        
         let lastSessionCrashed =
           this._initialState.session && this._initialState.session.state &&
           this._initialState.session.state == STATE_RUNNING_STR;
         if (lastSessionCrashed) {
-          try {
-            this._writeFile(this._sessionFileBackup, iniString);
-          }
-          catch (ex) { } 
-          
           this._recentCrashes = (this._initialState.session &&
                                  this._initialState.session.recentCrashes || 0) + 1;
           
@@ -241,7 +235,16 @@ SessionStoreService.prototype = {
     
     if (!this._resume_from_crash)
       this._clearDisk();
-    
+    else { 
+      try {
+        if (this._sessionFileBackup.exists())
+          this._sessionFileBackup.remove(false);
+        if (this._sessionFile.exists())
+          this._sessionFile.copyTo(null, this._sessionFileBackup.leafName);
+      }
+      catch (ex) { Cu.reportError(ex); } 
+    }
+
     
     
     if (this._loadState != STATE_QUITTING &&
