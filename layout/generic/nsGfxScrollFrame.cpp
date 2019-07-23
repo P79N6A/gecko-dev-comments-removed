@@ -229,38 +229,40 @@ nsHTMLScrollFrame::InvalidateInternal(const nsRect& aDamageRect,
                                       nscoord aX, nscoord aY, nsIFrame* aForChild,
                                       PRUint32 aFlags)
 {
-  if (aForChild == mInner.mScrolledFrame) {
-    
-    nsRect damage = aDamageRect + nsPoint(aX, aY);
-    nsRect r;
-    if (r.IntersectRect(damage, mInner.mScrollableView->View()->GetBounds())) {
-      nsHTMLContainerFrame::InvalidateInternal(r, 0, 0, aForChild, aFlags);
-    }
-    if (mInner.mIsRoot && r != damage) {
+  if (aForChild) {
+    if (aForChild == mInner.mScrolledFrame) {
       
-      
-      
-      
-      
-      
-      
-      PresContext()->NotifyInvalidation(damage,
-          (aFlags & INVALIDATE_CROSS_DOC) != 0);
-    }
-    return;
-  } else if (aForChild == mInner.mHScrollbarBox) {
-    if (!mInner.mHasHorizontalScrollbar) {
-      
-      
-      
+      nsRect damage = aDamageRect + nsPoint(aX, aY);
+      nsRect r;
+      if (r.IntersectRect(damage, mInner.mScrollableView->View()->GetBounds())) {
+        nsHTMLContainerFrame::InvalidateInternal(r, 0, 0, aForChild, aFlags);
+      }
+      if (mInner.mIsRoot && r != damage) {
+        
+        
+        
+        
+        
+        
+        
+        PresContext()->NotifyInvalidation(damage,
+            (aFlags & INVALIDATE_CROSS_DOC) != 0);
+      }
       return;
-    }
-  } else if (aForChild == mInner.mVScrollbarBox) {
-    if (!mInner.mHasVerticalScrollbar) {
-      
-      
-      
-      return;
+    } else if (aForChild == mInner.mHScrollbarBox) {
+      if (!mInner.mHasHorizontalScrollbar) {
+        
+        
+        
+        return;
+      }
+    } else if (aForChild == mInner.mVScrollbarBox) {
+      if (!mInner.mHasVerticalScrollbar) {
+        
+        
+        
+        return;
+      }
     }
   }
  
