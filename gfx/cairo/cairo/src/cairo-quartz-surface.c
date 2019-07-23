@@ -3114,8 +3114,12 @@ cairo_quartz_get_cg_context_with_clip (cairo_t *cr)
 	if (clip->all_clipped) {
 	    
 
+
+	    
+
 	    CGRect empty = {{0,0}, {0,0}};
-	    CGContextClipToRect(quartz->cgContext, empty);
+	    CGContextClipToRect (quartz->cgContext, empty);
+	    CGContextSaveGState (quartz->cgContext);
 
 	    return quartz->cgContext;
 	}
@@ -3125,13 +3129,29 @@ cairo_quartz_get_cg_context_with_clip (cairo_t *cr)
     }
 
     status = _cairo_surface_clipper_set_clip (&quartz->clipper, clip);
+
+    
+
+    CGContextSaveGState (quartz->cgContext);
+
     if (unlikely (status))
 	return NULL;
 
     return quartz->cgContext;
 }
 
+void
+cairo_quartz_finish_cg_context_with_clip (cairo_t *cr)
+{
+    cairo_surface_t *surface = cr->gstate->target;
 
+    cairo_quartz_surface_t *quartz = (cairo_quartz_surface_t*)surface;
+
+    if (cairo_surface_get_type(surface) != CAIRO_SURFACE_TYPE_QUARTZ)
+	return;
+
+    CGContextRestoreGState (quartz->cgContext);
+}
 
 
 
