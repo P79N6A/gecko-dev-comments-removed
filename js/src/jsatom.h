@@ -70,8 +70,6 @@ struct JSAtom {
 };
 
 #define ATOM_KEY(atom)            ((jsval)(atom)->entry.key)
-#define ATOM_IS_OBJECT(atom)      JSVAL_IS_OBJECT(ATOM_KEY(atom))
-#define ATOM_TO_OBJECT(atom)      JSVAL_TO_OBJECT(ATOM_KEY(atom))
 #define ATOM_IS_INT(atom)         JSVAL_IS_INT(ATOM_KEY(atom))
 #define ATOM_TO_INT(atom)         JSVAL_TO_INT(ATOM_KEY(atom))
 #define ATOM_IS_DOUBLE(atom)      JSVAL_IS_DOUBLE(ATOM_KEY(atom))
@@ -371,13 +369,6 @@ js_UnpinPinnedAtoms(JSAtomState *state);
 
 
 extern JSAtom *
-js_AtomizeObject(JSContext *cx, JSObject *obj, uintN flags);
-
-
-
-
-
-extern JSAtom *
 js_AtomizeBoolean(JSContext *cx, JSBool b, uintN flags);
 
 
@@ -418,7 +409,7 @@ js_GetExistingStringAtom(JSContext *cx, const jschar *chars, size_t length);
 
 
 extern JSAtom *
-js_AtomizeValue(JSContext *cx, jsval value, uintN flags);
+js_AtomizePrimitiveValue(JSContext *cx, jsval value, uintN flags);
 
 
 
@@ -443,16 +434,8 @@ js_GetAtom(JSContext *cx, JSAtomMap *map, jsatomid i);
 
 
 
-
-
-extern JS_FRIEND_API(JSBool)
-js_InitAtomMap(JSContext *cx, JSAtomMap *map, JSAtomList *al);
-
-
-
-
 extern JS_FRIEND_API(void)
-js_FreeAtomMap(JSContext *cx, JSAtomMap *map);
+js_InitAtomMap(JSContext *cx, JSAtomMap *map, JSAtomList *al);
 
 JS_END_EXTERN_C
 

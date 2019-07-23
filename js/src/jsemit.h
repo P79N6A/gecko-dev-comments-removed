@@ -128,7 +128,10 @@ struct JSStmtInfo {
     ptrdiff_t       update;         
     ptrdiff_t       breaks;         
     ptrdiff_t       continues;      
-    JSAtom          *atom;          
+    union {
+        JSAtom      *label;         
+        JSObject    *blockObj;      
+    } u;
     JSStmtInfo      *down;          
     JSStmtInfo      *downScope;     
 };
@@ -156,7 +159,7 @@ struct JSStmtInfo {
 
 struct JSTreeContext {              
     uint16          flags;          
-    uint16          numGlobalVars;  
+    uint16          ngvars;         
     uint32          globalUses;     
     uint32          loopyGlobalUses;
     JSStmtInfo      *topStmt;       
@@ -167,7 +170,7 @@ struct JSTreeContext {
     JSParseNode     *blockNode;     
 
     JSAtomList      decls;          
-    JSParseNode     *nodeList;      
+    JSParseContext  *parseContext;
 };
 
 #define TCF_COMPILING          0x01 /* generating bytecode; this tc is a cg */
@@ -185,13 +188,14 @@ struct JSTreeContext {
 #define TCF_HAS_FUNCTION_STMT 0x400 /* block contains a function statement */
 #define TCF_GENEXP_LAMBDA     0x800 /* flag lambda from generator expression */
 
-#define TREE_CONTEXT_INIT(tc)                                                 \
-    ((tc)->flags = (tc)->numGlobalVars = 0,                                   \
+#define TREE_CONTEXT_INIT(tc, pc)                                             \
+    ((tc)->flags = (tc)->ngvars = 0,                                          \
      (tc)->globalUses = (tc)->loopyGlobalUses = 0,                            \
      (tc)->topStmt = (tc)->topScopeStmt = NULL,                               \
      (tc)->blockChain = NULL,                                                 \
      ATOM_LIST_INIT(&(tc)->decls),                                            \
-     (tc)->nodeList = NULL, (tc)->blockNode = NULL)
+     (tc)->blockNode = NULL,                                                  \
+     (tc)->parseContext = (pc))
 
 #define TREE_CONTEXT_FINISH(tc)                                               \
     ((void)0)
@@ -264,6 +268,14 @@ struct JSTryNode {
     JSTryNode       *prev;
 };
 
+typedef struct JSEmittedObjectList {
+    uint32              length;     
+    JSParsedObjectBox   *lastPob;   
+} JSEmittedObjectList;
+
+extern void
+FinishParsedObjects(JSEmittedObjectList *emittedList, JSObjectArray *objectMap);
+
 struct JSCodeGenerator {
     JSTreeContext   treeContext;    
 
@@ -271,7 +283,6 @@ struct JSCodeGenerator {
     JSArenaPool     *notePool;      
     void            *codeMark;      
     void            *noteMark;      
-    void            *tempMark;      
 
     struct {
         jsbytecode  *base;          
@@ -307,6 +318,11 @@ struct JSCodeGenerator {
 
     uintN           emitLevel;      
     JSAtomList      constList;      
+
+    JSEmittedObjectList objectList; 
+    JSEmittedObjectList regexpList; 
+
+
     JSCodeGenerator *parent;        
 };
 
@@ -339,7 +355,7 @@ struct JSCodeGenerator {
 
 
 extern JS_FRIEND_API(JSBool)
-js_InitCodeGenerator(JSContext *cx, JSCodeGenerator *cg,
+js_InitCodeGenerator(JSContext *cx, JSCodeGenerator *cg, JSParseContext *pc,
                      JSArenaPool *codePool, JSArenaPool *notePool,
                      const char *filename, uintN lineno,
                      JSPrincipals *principals);
@@ -423,7 +439,7 @@ js_PushStatement(JSTreeContext *tc, JSStmtInfo *stmt, JSStmtType type,
 
 
 extern void
-js_PushBlockScope(JSTreeContext *tc, JSStmtInfo *stmt, JSAtom *blockAtom,
+js_PushBlockScope(JSTreeContext *tc, JSStmtInfo *stmt, JSObject *blockObj,
                   ptrdiff_t top);
 
 
@@ -714,8 +730,7 @@ extern JSBool
 js_FinishTakingSrcNotes(JSContext *cx, JSCodeGenerator *cg, jssrcnote *notes);
 
 extern void
-js_FinishTakingTryNotes(JSContext *cx, JSCodeGenerator *cg,
-                        JSTryNoteArray *array);
+js_FinishTakingTryNotes(JSCodeGenerator *cg, JSTryNoteArray *array);
 
 JS_END_EXTERN_C
 

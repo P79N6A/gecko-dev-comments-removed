@@ -205,6 +205,10 @@ struct JSToken {
             JSAtom      *atom;          
         } s;
         struct {                        
+            JSOp        op;             
+            JSParsedObjectBox *pob;     
+        } o;
+        struct {                        
             JSAtom      *atom2;         
             JSAtom      *atom;          
         } p;
@@ -213,6 +217,7 @@ struct JSToken {
 };
 
 #define t_op            u.s.op
+#define t_pob           u.o.pob
 #define t_atom          u.s.atom
 #define t_atom2         u.p.atom2
 #define t_dval          u.dval
@@ -249,6 +254,7 @@ struct JSTokenStream {
     void                *listenerTSData;
     jschar              *saveEOL;       
 
+    JSParseContext      *parseContext;
 };
 
 #define CURRENT_TOKEN(ts)       ((ts)->tokens[(ts)->cursor])

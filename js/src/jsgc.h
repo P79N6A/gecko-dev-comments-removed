@@ -341,7 +341,7 @@ struct JSGCArenaList {
 #endif
 };
 
-typedef struct JSWeakRoots {
+struct JSWeakRoots {
     
     JSGCThing           *newborn[GCX_NTYPES];
 
@@ -350,7 +350,7 @@ typedef struct JSWeakRoots {
 
     
     jsval               lastInternalResult;
-} JSWeakRoots;
+};
 
 JS_STATIC_ASSERT(JSVAL_NULL == 0);
 #define JS_CLEAR_WEAK_ROOTS(wr) (memset((wr), 0, sizeof(JSWeakRoots)))

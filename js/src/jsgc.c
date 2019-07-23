@@ -69,6 +69,7 @@
 #include "jslock.h"
 #include "jsnum.h"
 #include "jsobj.h"
+#include "jsparse.h"
 #include "jsscope.h"
 #include "jsscript.h"
 #include "jsstr.h"
@@ -2093,7 +2094,6 @@ JS_CallTracer(JSTracer *trc, void *thing, uint32 kind)
     JSRuntime *rt;
     JSAtom *atom;
     uint8 *flagp;
-    jsval v;
 
     JS_ASSERT(thing);
     JS_ASSERT(JS_IS_VALID_TRACE_KIND(kind));
@@ -2119,6 +2119,14 @@ JS_CallTracer(JSTracer *trc, void *thing, uint32 kind)
 
 
 
+
+
+
+
+
+
+
+
         if (!(atom->flags & ATOM_MARK)) {
             atom->flags |= ATOM_MARK;
 
@@ -2127,18 +2135,6 @@ JS_CallTracer(JSTracer *trc, void *thing, uint32 kind)
 
 
             js_TraceAtom(trc, (JSAtom *)thing);
-        } else if (rt->gcThingCallback) {
-            v = ATOM_KEY(atom);
-
-            
-
-
-
-            if (JSVAL_IS_OBJECT(v) && v != JSVAL_NULL) {
-                thing = JSVAL_TO_GCTHING(v);
-                flagp = js_GetGCThingFlags(thing);
-                rt->gcThingCallback(thing, *flagp, rt->gcThingCallbackClosure);
-            }
         }
         goto out;
     }
@@ -2487,6 +2483,9 @@ js_TraceContext(JSTracer *trc, JSContext *acx)
             break;
           case JSTVU_WEAK_ROOTS:
             TraceWeakRoots(trc, tvr->u.weakRoots);
+            break;
+          case JSTVU_PARSE_CONTEXT:
+            js_TraceParseContext(trc, tvr->u.parseContext);
             break;
           default:
             JS_ASSERT(tvr->count >= 0);

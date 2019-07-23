@@ -500,20 +500,45 @@ typedef struct JSLocalRootStack {
 
 #define JSLRS_NULL_MARK ((uint32) -1)
 
-typedef struct JSTempValueRooter JSTempValueRooter;
-typedef void
-(* JS_DLL_CALLBACK JSTempValueTrace)(JSTracer *trc, JSTempValueRooter *tvr);
 
-typedef union JSTempValueUnion {
-    jsval               value;
-    JSObject            *object;
-    JSString            *string;
-    void                *gcthing;
-    JSTempValueTrace    trace;
-    JSScopeProperty     *sprop;
-    JSWeakRoots         *weakRoots;
-    jsval               *array;
-} JSTempValueUnion;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#define JSTVU_SINGLE        (-1)
+#define JSTVU_TRACE         (-2)
+#define JSTVU_SPROP         (-3)
+#define JSTVU_WEAK_ROOTS    (-4)
+#define JSTVU_PARSE_CONTEXT (-5)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -521,47 +546,6 @@ typedef union JSTempValueUnion {
 
 JS_STATIC_ASSERT(sizeof(JSTempValueUnion) == sizeof(jsval));
 JS_STATIC_ASSERT(sizeof(JSTempValueUnion) == sizeof(JSObject *));
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-struct JSTempValueRooter {
-    JSTempValueRooter   *down;
-    ptrdiff_t           count;
-    JSTempValueUnion    u;
-};
-
-#define JSTVU_SINGLE        (-1)
-#define JSTVU_TRACE         (-2)
-#define JSTVU_SPROP         (-3)
-#define JSTVU_WEAK_ROOTS    (-4)
 
 #define JS_PUSH_TEMP_ROOT_COMMON(cx,tvr)                                      \
     JS_BEGIN_MACRO                                                            \
@@ -639,6 +623,13 @@ struct JSTempValueRooter {
     JS_BEGIN_MACRO                                                            \
         (tvr)->count = JSTVU_WEAK_ROOTS;                                      \
         (tvr)->u.weakRoots = (weakRoots_);                                    \
+        JS_PUSH_TEMP_ROOT_COMMON(cx, tvr);                                    \
+    JS_END_MACRO
+
+#define JS_PUSH_TEMP_ROOT_PARSE_CONTEXT(cx,pc,tvr)                            \
+    JS_BEGIN_MACRO                                                            \
+        (tvr)->count = JSTVU_PARSE_CONTEXT;                                   \
+        (tvr)->u.parseContext = (pc);                                         \
         JS_PUSH_TEMP_ROOT_COMMON(cx, tvr);                                    \
     JS_END_MACRO
 

@@ -306,7 +306,7 @@ JS_ArenaRelease(JSArenaPool *pool, char *mark)
     for (a = &pool->first; a; a = a->next) {
         JS_ASSERT(a->base <= a->avail && a->avail <= a->limit);
 
-        if (JS_UPTRDIFF(mark, a->base) <= JS_UPTRDIFF(a->avail, a->base)) {
+        if (JS_ARENA_MARK_MATCH(a, mark)) {
             a->avail = JS_ARENA_ALIGN(pool, mark);
             JS_ASSERT(a->avail <= a->limit);
             FreeArenaList(pool, a);
@@ -500,3 +500,31 @@ JS_DumpArenaStats(FILE *fp)
     }
 }
 #endif 
+
+#ifdef DEBUG
+
+JSBool
+js_GuardedArenaMark(JSArenaPool *pool, void *mark, void *guardMark)
+{
+    JSArena *a;
+
+    a = pool->current;
+    if (JS_ARENA_MARK_MATCH(a, mark)) {
+        return !JS_ARENA_MARK_MATCH(a, guardMark) ||
+               (uint8 *)guardMark <= (uint8 *)mark;
+    }
+
+    for (a = &pool->first; !JS_ARENA_MARK_MATCH(a, guardMark); a = a->next) {
+        if (JS_ARENA_MARK_MATCH(a, mark))
+            return JS_FALSE;
+    }
+
+    
+
+
+
+    return !JS_ARENA_MARK_MATCH(a, mark) ||
+           (uint8 *)guardMark <= (uint8 *)mark;
+}
+
+#endif

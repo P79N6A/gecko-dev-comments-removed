@@ -277,7 +277,7 @@ struct JSParseNode {
     ptrdiff_t           pn_offset;      
     union {
         struct {                        
-            JSAtom      *funAtom;       
+            JSParsedObjectBox *funpob;  
             JSParseNode *body;          
             uint32      flags;          
         } func;
@@ -308,17 +308,25 @@ struct JSParseNode {
             jsint       slot;           
             uintN       attrs;          
         } name;
+        struct {                        
+            JSParsedObjectBox *pob;     
+            JSParseNode *expr;          
+            jsint       slot;           
+        } lexical;
         struct {
             JSAtom      *atom;          
             JSAtom      *atom2;         
         } apair;
+        struct {                        
+            JSParsedObjectBox *pob;
+        } object;
         jsdouble        dval;           
     } pn_u;
     JSParseNode         *pn_next;       
     JSTokenStream       *pn_ts;         
 };
 
-#define pn_funAtom      pn_u.func.funAtom
+#define pn_funpob       pn_u.func.funpob
 #define pn_body         pn_u.func.body
 #define pn_flags        pn_u.func.flags
 #define pn_head         pn_u.list.head
@@ -340,6 +348,7 @@ struct JSParseNode {
 #define pn_attrs        pn_u.name.attrs
 #define pn_dval         pn_u.dval
 #define pn_atom2        pn_u.apair.atom2
+#define pn_pob          pn_u.object.pob
 
 
 #define PNX_STRCAT      0x01            /* TOK_PLUS list has string term */
@@ -410,8 +419,28 @@ struct JSParseNode {
         (list)->pn_count++;                                                   \
     JS_END_MACRO
 
+struct JSParsedObjectBox {
+    JSParsedObjectBox   *traceLink;
+    JSParsedObjectBox   *emitLink;
+    JSObject            *object;
+};
 
 
+struct JSParseContext {
+    JSParseNode         *nodeList;      
+
+    JSParsedObjectBox   *traceListHead; 
+
+    JSTempValueRooter   tempRoot;       
+#ifdef DEBUG
+    
+
+
+
+
+    void                *lastAllocMark;
+#endif
+};
 
 
 
@@ -434,6 +463,21 @@ JS_FRIEND_API(JSParseNode *)
 js_ParseXMLTokenStream(JSContext *cx, JSObject *chain, JSTokenStream *ts,
                        JSBool allowList);
 #endif
+
+extern void
+js_InitParseContext(JSContext *cx, JSParseContext *pc);
+
+extern void
+js_FinishParseContext(JSContext *cx, JSParseContext *pc);
+
+
+
+
+extern JSParsedObjectBox *
+js_NewParsedObjectBox(JSContext *cx, JSParseContext *pc, JSObject *obj);
+
+extern void
+js_TraceParseContext(JSTracer *trc, JSParseContext *pc);
 
 JS_END_EXTERN_C
 

@@ -390,155 +390,33 @@ out:
 
 #endif 
 
-
-
-
-
-
-
-JS_STATIC_ASSERT(sizeof(JSTryNote) == 3 * sizeof(uint32));
-JS_STATIC_ASSERT(sizeof(JSTryNoteArray) == 4 * sizeof(uint32));
-
-#define JSTRYNOTE_ALIGNMASK     (sizeof(uint32) - 1)
-
-
-
-
-static size_t
-GetScriptSize(uint32 bytecodeLength, uint32 nsrcnotes, uint32 ntrynotes)
-{
-    size_t size;
-
-    size = sizeof(JSScript) +
-           bytecodeLength * sizeof(jsbytecode) +
-           nsrcnotes * sizeof(jssrcnote);
-    if (ntrynotes != 0) {
-        size += JSTRYNOTE_ALIGNMASK +
-                offsetof(JSTryNoteArray, notes) +
-                ntrynotes * sizeof(JSTryNote);
-    }
-    return size;
-}
-
-static void
-InitScriptTryNotes(JSScript *script, uint32 bytecodeLength, uint32 nsrcnotes,
-                   uint32 ntrynotes)
-{
-    size_t offset;
-
-    JS_ASSERT(ntrynotes != 0);
-    offset = sizeof(JSScript) +
-             bytecodeLength * sizeof(jsbytecode) +
-             nsrcnotes * sizeof(jssrcnote) +
-             JSTRYNOTE_ALIGNMASK;
-    script->trynotes = (JSTryNoteArray *)(((jsword)script + offset) &
-                                          ~(jsword)JSTRYNOTE_ALIGNMASK);
-    script->trynotes->length = ntrynotes;
-    memset(script->trynotes->notes, 0,
-           ntrynotes * sizeof script->trynotes->notes[0]);
-}
-
 #if JS_HAS_XDR
-
-static JSBool
-XDRAtomMap(JSXDRState *xdr, JSAtomMap *map)
-{
-    JSContext *cx;
-    uint32 natoms, i, index;
-    JSAtom **atoms;
-
-    cx = xdr->cx;
-
-    if (xdr->mode == JSXDR_ENCODE)
-        natoms = (uint32)map->length;
-
-    if (!JS_XDRUint32(xdr, &natoms))
-        return JS_FALSE;
-
-    if (xdr->mode == JSXDR_ENCODE) {
-        atoms = map->vector;
-    } else {
-        if (natoms == 0) {
-            atoms = NULL;
-        } else {
-            atoms = (JSAtom **) JS_malloc(cx, (size_t)natoms * sizeof *atoms);
-            if (!atoms)
-                return JS_FALSE;
-#ifdef DEBUG
-            memset(atoms, 0, (size_t)natoms * sizeof *atoms);
-#endif
-        }
-
-        map->vector = atoms;
-        map->length = natoms;
-    }
-
-    for (i = 0; i != natoms; ++i) {
-        if (xdr->mode == JSXDR_ENCODE)
-            index = i;
-        if (!JS_XDRUint32(xdr, &index))
-            goto bad;
-
-        
-
-
-
-        JS_ASSERT(index < natoms);
-        JS_ASSERT(xdr->mode == JSXDR_ENCODE || !atoms[index]);
-        if (!js_XDRAtom(xdr, &atoms[index]))
-            goto bad;
-    }
-
-    return JS_TRUE;
-
-  bad:
-    if (xdr->mode == JSXDR_DECODE) {
-        JS_free(cx, atoms);
-        map->vector = NULL;
-        map->length = 0;
-    }
-
-    return JS_FALSE;
-}
 
 JSBool
 js_XDRScript(JSXDRState *xdr, JSScript **scriptp, JSBool *hasMagic)
 {
     JSContext *cx;
-    JSScript *script, *newscript, *oldscript;
-    uint32 length, lineno, depth, magic, nsrcnotes, ntrynotes;
+    JSScript *script, *oldscript;
+    uint32 length, lineno, depth, magic;
+    uint32 natoms, nsrcnotes, ntrynotes, nobjects, nregexps, i;
     uint32 prologLength, version;
+    JSPrincipals *principals;
+    uint32 encodeable;
     JSBool filenameWasSaved;
     jssrcnote *notes, *sn;
 
     cx = xdr->cx;
     script = *scriptp;
-    nsrcnotes = ntrynotes = 0;
+    nsrcnotes = ntrynotes = natoms = nobjects = nregexps = 0;
     filenameWasSaved = JS_FALSE;
     notes = NULL;
-
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
     if (xdr->mode == JSXDR_ENCODE)
         magic = JSXDR_MAGIC_SCRIPT_CURRENT;
     if (!JS_XDRUint32(xdr, &magic))
         return JS_FALSE;
-    JS_ASSERT((uint32)JSXDR_MAGIC_SCRIPT_5 - (uint32)JSXDR_MAGIC_SCRIPT_1 == 4);
-    if (magic - (uint32)JSXDR_MAGIC_SCRIPT_1 > 4) {
+    if (magic != JSXDR_MAGIC_SCRIPT_CURRENT) {
+        
         if (!hasMagic) {
             JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL,
                                  JSMSG_BAD_SCRIPT_MAGIC);
@@ -554,9 +432,10 @@ js_XDRScript(JSXDRState *xdr, JSScript **scriptp, JSBool *hasMagic)
         length = script->length;
         prologLength = PTRDIFF(script->main, script->code, jsbytecode);
         JS_ASSERT((int16)script->version != JSVERSION_UNKNOWN);
-        version = (uint32)script->version | (script->numGlobalVars << 16);
+        version = (uint32)script->version | (script->ngvars << 16);
         lineno = (uint32)script->lineno;
         depth = (uint32)script->depth;
+        natoms = (uint32)script->atomMap.length;
 
         
         notes = SCRIPT_NOTES(script);
@@ -565,43 +444,48 @@ js_XDRScript(JSXDRState *xdr, JSScript **scriptp, JSBool *hasMagic)
         nsrcnotes = PTRDIFF(sn, notes, jssrcnote);
         nsrcnotes++;            
 
-        ntrynotes = script->trynotes ? script->trynotes->length : 0;
+        if (script->objectsOffset != 0)
+            nobjects = JS_SCRIPT_OBJECTS(script)->length;
+        if (script->regexpsOffset != 0)
+            nregexps = JS_SCRIPT_REGEXPS(script)->length;
+        if (script->trynotesOffset != 0)
+            ntrynotes = JS_SCRIPT_TRYNOTES(script)->length;
     }
 
     if (!JS_XDRUint32(xdr, &length))
         return JS_FALSE;
-    if (magic >= JSXDR_MAGIC_SCRIPT_2) {
-        if (!JS_XDRUint32(xdr, &prologLength))
-            return JS_FALSE;
-        if (!JS_XDRUint32(xdr, &version))
-            return JS_FALSE;
+    if (!JS_XDRUint32(xdr, &prologLength))
+        return JS_FALSE;
+    if (!JS_XDRUint32(xdr, &version))
+        return JS_FALSE;
 
-        
-        if (magic >= JSXDR_MAGIC_SCRIPT_4) {
-            if (!JS_XDRUint32(xdr, &nsrcnotes))
-                return JS_FALSE;
-            if (!JS_XDRUint32(xdr, &ntrynotes))
-                return JS_FALSE;
-        }
-    }
+    
+
+
+
+    if (!JS_XDRUint32(xdr, &natoms))
+        return JS_FALSE;
+    if (!JS_XDRUint32(xdr, &nsrcnotes))
+        return JS_FALSE;
+    if (!JS_XDRUint32(xdr, &ntrynotes))
+        return JS_FALSE;
+    if (!JS_XDRUint32(xdr, &nobjects))
+        return JS_FALSE;
+    if (!JS_XDRUint32(xdr, &nregexps))
+        return JS_FALSE;
 
     if (xdr->mode == JSXDR_DECODE) {
-        size_t alloclength = length;
-        if (magic < JSXDR_MAGIC_SCRIPT_5)
-            ++alloclength;      
-
-        script = js_NewScript(cx, alloclength, nsrcnotes, ntrynotes);
+        script = js_NewScript(cx, length, nsrcnotes, natoms, nobjects, nregexps,
+                              ntrynotes);
         if (!script)
             return JS_FALSE;
-        if (magic >= JSXDR_MAGIC_SCRIPT_2) {
-            script->main += prologLength;
-            script->version = (JSVersion) (version & 0xffff);
-            script->numGlobalVars = (uint16) (version >> 16);
 
-            
-            if (magic >= JSXDR_MAGIC_SCRIPT_4)
-                notes = SCRIPT_NOTES(script);
-        }
+        script->main += prologLength;
+        script->version = (JSVersion) (version & 0xffff);
+        script->ngvars = (uint16) (version >> 16);
+
+        
+        notes = SCRIPT_NOTES(script);
         *scriptp = script;
     }
 
@@ -609,72 +493,39 @@ js_XDRScript(JSXDRState *xdr, JSScript **scriptp, JSBool *hasMagic)
 
 
 
-
-
     oldscript = xdr->script;
     xdr->script = script;
-    if (!JS_XDRBytes(xdr, (char *)script->code, length * sizeof(jsbytecode)) ||
-        !XDRAtomMap(xdr, &script->atomMap)) {
+    if (!JS_XDRBytes(xdr, (char *)script->code, length * sizeof(jsbytecode)))
         goto error;
-    }
-
-    if (magic < JSXDR_MAGIC_SCRIPT_5) {
-        if (xdr->mode == JSXDR_DECODE) {
-            
-
-
-
-
-            script->code[length++] = JSOP_STOP;
-        }
-
-        if (magic < JSXDR_MAGIC_SCRIPT_4) {
-            if (!JS_XDRUint32(xdr, &nsrcnotes))
-                goto error;
-            if (xdr->mode == JSXDR_DECODE) {
-                notes = (jssrcnote *)
-                        JS_malloc(cx, nsrcnotes * sizeof(jssrcnote));
-                if (!notes)
-                    goto error;
-            }
-        }
-    }
 
     if (!JS_XDRBytes(xdr, (char *)notes, nsrcnotes * sizeof(jssrcnote)) ||
         !JS_XDRCStringOrNull(xdr, (char **)&script->filename) ||
         !JS_XDRUint32(xdr, &lineno) ||
-        !JS_XDRUint32(xdr, &depth) ||
-        (magic < JSXDR_MAGIC_SCRIPT_4 && !JS_XDRUint32(xdr, &ntrynotes))) {
+        !JS_XDRUint32(xdr, &depth)) {
         goto error;
     }
 
-    
-    if (magic >= JSXDR_MAGIC_SCRIPT_3) {
-        JSPrincipals *principals;
-        uint32 encodeable;
-
-        if (xdr->mode == JSXDR_ENCODE) {
-            principals = script->principals;
-            encodeable = (cx->runtime->principalsTranscoder != NULL);
-            if (!JS_XDRUint32(xdr, &encodeable))
-                goto error;
-            if (encodeable &&
-                !cx->runtime->principalsTranscoder(xdr, &principals)) {
+    if (xdr->mode == JSXDR_ENCODE) {
+        principals = script->principals;
+        encodeable = (cx->runtime->principalsTranscoder != NULL);
+        if (!JS_XDRUint32(xdr, &encodeable))
+            goto error;
+        if (encodeable &&
+            !cx->runtime->principalsTranscoder(xdr, &principals)) {
+            goto error;
+        }
+    } else {
+        if (!JS_XDRUint32(xdr, &encodeable))
+            goto error;
+        if (encodeable) {
+            if (!cx->runtime->principalsTranscoder) {
+                JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL,
+                                     JSMSG_CANT_DECODE_PRINCIPALS);
                 goto error;
             }
-        } else {
-            if (!JS_XDRUint32(xdr, &encodeable))
+            if (!cx->runtime->principalsTranscoder(xdr, &principals))
                 goto error;
-            if (encodeable) {
-                if (!cx->runtime->principalsTranscoder) {
-                    JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL,
-                                         JSMSG_CANT_DECODE_PRINCIPALS);
-                    goto error;
-                }
-                if (!cx->runtime->principalsTranscoder(xdr, &principals))
-                    goto error;
-                script->principals = principals;
-            }
+            script->principals = principals;
         }
     }
 
@@ -690,49 +541,57 @@ js_XDRScript(JSXDRState *xdr, JSScript **scriptp, JSBool *hasMagic)
         }
         script->lineno = (uintN)lineno;
         script->depth = (uintN)depth;
-
-        if (magic < JSXDR_MAGIC_SCRIPT_4) {
-            size_t scriptSize;
-
-            
-
-
-
-
-
-            scriptSize = GetScriptSize(length, nsrcnotes, ntrynotes);
-            newscript = (JSScript *) JS_realloc(cx, script, scriptSize);
-            if (!newscript)
-                goto error;
-
-            *scriptp = script = newscript;
-            script->code = (jsbytecode *)(script + 1);
-            script->main = script->code + prologLength;
-            memcpy(script->code + length, notes, nsrcnotes * sizeof(jssrcnote));
-            JS_free(cx, (void *) notes);
-            notes = NULL;
-            if (ntrynotes)
-                InitScriptTryNotes(script, length, nsrcnotes, ntrynotes);
-        }
     }
 
-    while (ntrynotes) {
+    for (i = 0; i != natoms; ++i) {
+        if (!js_XDRAtom(xdr, &script->atomMap.vector[i]))
+            goto error;
+    }
+
+    
+
+
+
+
+
+    for (i = 0; i != nobjects; ++i) {
+        if (!js_XDRObject(xdr, &JS_SCRIPT_OBJECTS(script)->vector[i]))
+            goto error;
+    }
+    for (i = 0; i != nregexps; ++i) {
+        if (!js_XDRObject(xdr, &JS_SCRIPT_REGEXPS(script)->vector[i]))
+            goto error;
+    }
+
+    if (ntrynotes != 0) {
         
 
 
 
-        JSTryNote *tn = &script->trynotes->notes[--ntrynotes];
-        uint32 kindAndDepth = ((uint32)tn->kind << 16) | (uint32)tn->stackDepth;
+        JSTryNote *tn, *tnfirst;
+        uint32 kindAndDepth;
         JS_STATIC_ASSERT(sizeof(tn->kind) == sizeof(uint8));
         JS_STATIC_ASSERT(sizeof(tn->stackDepth) == sizeof(uint16));
 
-        if (!JS_XDRUint32(xdr, &kindAndDepth) ||
-            !JS_XDRUint32(xdr, &tn->start) ||
-            !JS_XDRUint32(xdr, &tn->length)) {
-            goto error;
-        }
-        tn->kind = (uint8)(kindAndDepth >> 16);
-        tn->stackDepth = (uint16)kindAndDepth;
+        tnfirst = JS_SCRIPT_TRYNOTES(script)->vector;
+        JS_ASSERT(JS_SCRIPT_TRYNOTES(script)->length == ntrynotes);
+        tn = tnfirst + ntrynotes;
+        do {
+            --tn;
+            if (xdr->mode == JSXDR_ENCODE) {
+                kindAndDepth = ((uint32)tn->kind << 16)
+                               | (uint32)tn->stackDepth;
+            }
+            if (!JS_XDRUint32(xdr, &kindAndDepth) ||
+                !JS_XDRUint32(xdr, &tn->start) ||
+                !JS_XDRUint32(xdr, &tn->length)) {
+                goto error;
+            }
+            if (xdr->mode == JSXDR_DECODE) {
+                tn->kind = (uint8)(kindAndDepth >> 16);
+                tn->stackDepth = (uint16)kindAndDepth;
+            }
+        } while (tn != tnfirst);
     }
 
     xdr->script = oldscript;
@@ -744,11 +603,10 @@ js_XDRScript(JSXDRState *xdr, JSScript **scriptp, JSBool *hasMagic)
             JS_free(cx, (void *) script->filename);
             script->filename = NULL;
         }
-        if (notes && magic < JSXDR_MAGIC_SCRIPT_4)
-            JS_free(cx, (void *) notes);
         js_DestroyScript(cx, script);
         *scriptp = NULL;
     }
+    xdr->script = oldscript;
     return JS_FALSE;
 }
 
@@ -1378,21 +1236,131 @@ js_SweepScriptFilenames(JSRuntime *rt)
 #endif
 }
 
-JSScript *
-js_NewScript(JSContext *cx, uint32 length, uint32 nsrcnotes, uint32 ntrynotes)
-{
-    JSScript *script;
 
-    script = (JSScript *) JS_malloc(cx, GetScriptSize(length, nsrcnotes,
-                                                      ntrynotes));
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+JS_STATIC_ASSERT(sizeof(JSScript) % sizeof(void *) == 0);
+JS_STATIC_ASSERT(sizeof(JSObjectArray) % sizeof(void *) == 0);
+JS_STATIC_ASSERT(sizeof(JSTryNoteArray) == sizeof(JSObjectArray));
+JS_STATIC_ASSERT(sizeof(JSAtom *) == sizeof(JSObject *));
+JS_STATIC_ASSERT(sizeof(JSObject *) % sizeof(uint32) == 0);
+JS_STATIC_ASSERT(sizeof(JSTryNote) == 3 * sizeof(uint32));
+JS_STATIC_ASSERT(sizeof(uint32) % sizeof(jsbytecode) == 0);
+JS_STATIC_ASSERT(sizeof(jsbytecode) % sizeof(jssrcnote) == 0);
+
+
+
+
+JS_STATIC_ASSERT(sizeof(JSScript) + 2 * sizeof(JSObjectArray) < JS_BIT(8));
+
+JSScript *
+js_NewScript(JSContext *cx, uint32 length, uint32 nsrcnotes, uint32 natoms,
+             uint32 nobjects, uint32 nregexps, uint32 ntrynotes)
+{
+    size_t size, vectorSize;
+    JSScript *script;
+    uint8 *cursor;
+
+    size = sizeof(JSScript) +
+           sizeof(JSAtom *) * natoms +
+           length * sizeof(jsbytecode) +
+           nsrcnotes * sizeof(jssrcnote);
+    if (nobjects != 0)
+        size += sizeof(JSObjectArray) + nobjects * sizeof(JSObject *);
+    if (nregexps != 0)
+        size += sizeof(JSObjectArray) + nregexps * sizeof(JSObject *);
+    if (ntrynotes != 0)
+        size += sizeof(JSTryNoteArray) + ntrynotes * sizeof(JSTryNote);
+
+    script = (JSScript *) JS_malloc(cx, size);
     if (!script)
         return NULL;
     memset(script, 0, sizeof(JSScript));
-    script->code = script->main = (jsbytecode *)(script + 1);
     script->length = length;
     script->version = cx->version;
-    if (ntrynotes != 0)
-        InitScriptTryNotes(script, length, nsrcnotes, ntrynotes);
+
+    cursor = (uint8 *)script + sizeof(JSScript);
+    if (nobjects != 0) {
+        script->objectsOffset = (uint8)(cursor - (uint8 *)script);
+        cursor += sizeof(JSObjectArray);
+    }
+    if (nregexps != 0) {
+        script->regexpsOffset = (uint8)(cursor - (uint8 *)script);
+        cursor += sizeof(JSObjectArray);
+    }
+    if (ntrynotes != 0) {
+        script->trynotesOffset = (uint8)(cursor - (uint8 *)script);
+        cursor += sizeof(JSTryNoteArray);
+    }
+
+    if (natoms != 0) {
+        script->atomMap.length = natoms;
+        script->atomMap.vector = (JSAtom **)cursor;
+        vectorSize = natoms * sizeof(script->atomMap.vector[0]);
+
+        
+
+
+
+        memset(cursor, 0, vectorSize);
+        cursor += vectorSize;
+    }
+    if (nobjects != 0) {
+        JS_SCRIPT_OBJECTS(script)->length = nobjects;
+        JS_SCRIPT_OBJECTS(script)->vector = (JSObject **)cursor;
+        vectorSize = nobjects * sizeof(JS_SCRIPT_OBJECTS(script)->vector[0]);
+        memset(cursor, 0, vectorSize);
+        cursor += vectorSize;
+    }
+    if (nregexps != 0) {
+        JS_SCRIPT_REGEXPS(script)->length = nregexps;
+        JS_SCRIPT_REGEXPS(script)->vector = (JSObject **)cursor;
+        vectorSize = nregexps * sizeof(JS_SCRIPT_REGEXPS(script)->vector[0]);
+        memset(cursor, 0, vectorSize);
+        cursor += vectorSize;
+    }
+    if (ntrynotes != 0) {
+        JS_SCRIPT_TRYNOTES(script)->length = ntrynotes;
+        JS_SCRIPT_TRYNOTES(script)->vector = (JSTryNote *)cursor;
+        vectorSize = ntrynotes * sizeof(JS_SCRIPT_TRYNOTES(script)->vector[0]);
+#ifdef DEBUG
+        memset(cursor, 0, vectorSize);
+#endif
+        cursor += vectorSize;
+    }
+
+    script->code = script->main = (jsbytecode *)cursor;
+    JS_ASSERT(cursor +
+              length * sizeof(jsbytecode) +
+              nsrcnotes * sizeof(jssrcnote) ==
+              (uint8 *)script + size);
+
     return script;
 }
 
@@ -1403,11 +1371,17 @@ js_NewScriptFromCG(JSContext *cx, JSCodeGenerator *cg, JSFunction *fun)
     JSScript *script;
     const char *filename;
 
+    
+    JS_ASSERT(cg->atomList.count <= INDEX_LIMIT);
+    JS_ASSERT(cg->objectList.length <= INDEX_LIMIT);
+    JS_ASSERT(cg->regexpList.length <= INDEX_LIMIT);
+
     mainLength = CG_OFFSET(cg);
     prologLength = CG_PROLOG_OFFSET(cg);
     CG_COUNT_FINAL_SRCNOTES(cg, nsrcnotes);
     script = js_NewScript(cx, prologLength + mainLength, nsrcnotes,
-                          cg->ntrynotes);
+                          cg->atomList.count, cg->objectList.length,
+                          cg->regexpList.length, cg->ntrynotes);
     if (!script)
         return NULL;
 
@@ -1415,9 +1389,9 @@ js_NewScriptFromCG(JSContext *cx, JSCodeGenerator *cg, JSFunction *fun)
     script->main += prologLength;
     memcpy(script->code, CG_PROLOG_BASE(cg), prologLength * sizeof(jsbytecode));
     memcpy(script->main, CG_BASE(cg), mainLength * sizeof(jsbytecode));
-    script->numGlobalVars = cg->treeContext.numGlobalVars;
-    if (!js_InitAtomMap(cx, &script->atomMap, &cg->atomList))
-        goto bad;
+    script->ngvars = cg->treeContext.ngvars;
+
+    js_InitAtomMap(cx, &script->atomMap, &cg->atomList);
 
     filename = cg->filename;
     if (filename) {
@@ -1434,8 +1408,12 @@ js_NewScriptFromCG(JSContext *cx, JSCodeGenerator *cg, JSFunction *fun)
 
     if (!js_FinishTakingSrcNotes(cx, cg, SCRIPT_NOTES(script)))
         goto bad;
-    if (script->trynotes)
-        js_FinishTakingTryNotes(cx, cg, script->trynotes);
+    if (cg->ntrynotes != 0)
+        js_FinishTakingTryNotes(cg, JS_SCRIPT_TRYNOTES(script));
+    if (cg->objectList.length != 0)
+        FinishParsedObjects(&cg->objectList, JS_SCRIPT_OBJECTS(script));
+    if (cg->regexpList.length != 0)
+        FinishParsedObjects(&cg->regexpList, JS_SCRIPT_REGEXPS(script));
 
     
 
@@ -1487,7 +1465,6 @@ js_DestroyScript(JSContext *cx, JSScript *script)
     js_CallDestroyScriptHook(cx, script);
 
     JS_ClearScriptTraps(cx, script);
-    js_FreeAtomMap(cx, &script->atomMap);
     if (script->principals)
         JSPRINCIPALS_DROP(cx, script->principals);
     if (JS_GSN_CACHE(cx).script == script)
@@ -1501,12 +1478,35 @@ js_TraceScript(JSTracer *trc, JSScript *script)
     JSAtomMap *map;
     uintN i, length;
     JSAtom **vector;
+    JSObjectArray *objarray;
 
     map = &script->atomMap;
     length = map->length;
     vector = map->vector;
-    for (i = 0; i < length; i++)
-        JS_CALL_TRACER(trc, vector[i], JSTRACE_ATOM, "atom_table");
+    for (i = 0; i < length; i++) {
+        JS_SET_TRACING_INDEX(trc, "atomMap", i);
+        JS_CallTracer(trc, vector[i], JSTRACE_ATOM);
+    }
+
+    if (script->objectsOffset != 0) {
+        objarray = JS_SCRIPT_OBJECTS(script);
+        i = objarray->length;
+        do {
+            --i;
+            JS_SET_TRACING_INDEX(trc, "objects", i);
+            JS_CallTracer(trc, objarray->vector[i], JSTRACE_OBJECT);
+        } while (i != 0);
+    }
+
+    if (script->regexpsOffset != 0) {
+        objarray = JS_SCRIPT_REGEXPS(script);
+        i = objarray->length;
+        do {
+            --i;
+            JS_SET_TRACING_INDEX(trc, "regexps", i);
+            JS_CallTracer(trc, objarray->vector[i], JSTRACE_OBJECT);
+        } while (i != 0);
+    }
 
     if (IS_GC_MARKING_TRACER(trc) && script->filename)
         js_MarkScriptFilename(script->filename);
@@ -1592,7 +1592,7 @@ js_GetSrcNoteCached(JSContext *cx, JSScript *script, jsbytecode *pc)
 uintN
 js_PCToLineNumber(JSContext *cx, JSScript *script, jsbytecode *pc)
 {
-    JSAtom *atom;
+    JSObject *obj;
     JSFunction *fun;
     uintN lineno;
     ptrdiff_t offset, target;
@@ -1607,11 +1607,11 @@ js_PCToLineNumber(JSContext *cx, JSScript *script, jsbytecode *pc)
 
 
 
-    if (js_CodeSpec[*pc].format & JOF_ATOMBASE)
+    if (js_CodeSpec[*pc].format & JOF_INDEXBASE)
         pc += js_CodeSpec[*pc].length;
     if (*pc == JSOP_DEFFUN) {
-        atom = js_GetAtomFromBytecode(script, pc, 0);
-        fun = (JSFunction *) JS_GetPrivate(cx, ATOM_TO_OBJECT(atom));
+        GET_FUNCTION_FROM_BYTECODE(script, pc, 0, obj);
+        fun = (JSFunction *) JS_GetPrivate(cx, obj);
         JS_ASSERT(FUN_INTERPRETED(fun));
         return fun->u.i.script->lineno;
     }
@@ -1707,18 +1707,20 @@ js_GetScriptLineExtent(JSScript *script)
 JSBool
 js_IsInsideTryWithFinally(JSScript *script, jsbytecode *pc)
 {
+    JSTryNoteArray *tarray;
     JSTryNote *tn, *tnlimit;
     uint32 off;
 
     JS_ASSERT(script->code <= pc);
     JS_ASSERT(pc < script->code + script->length);
 
-    if (!script->trynotes)
+    if (!script->trynotesOffset != 0)
         return JS_FALSE;
-    JS_ASSERT(script->trynotes->length != 0);
+    tarray = JS_SCRIPT_TRYNOTES(script);
+    JS_ASSERT(tarray->length != 0);
 
-    tn = script->trynotes->notes;
-    tnlimit = tn + script->trynotes->length;
+    tn = tarray->vector;
+    tnlimit = tn + tarray->length;
     off = (uint32)(pc - script->main);
     do {
         if (off - tn->start < tn->length) {
