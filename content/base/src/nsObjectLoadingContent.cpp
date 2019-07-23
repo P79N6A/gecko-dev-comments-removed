@@ -526,6 +526,13 @@ nsObjectLoadingContent::OnStartRequest(nsIRequest *aRequest,
         
         mType = newType;
         notifier.Notify();
+
+        if (!mFrameLoader) {
+          
+          
+          
+          return NS_BINDING_ABORTED;
+        }
       }
 
       
