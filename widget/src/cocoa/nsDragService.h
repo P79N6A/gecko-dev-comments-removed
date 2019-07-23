@@ -68,6 +68,8 @@ private:
                               nsIScriptableRegion* aRegion);
 
   nsCOMPtr<nsISupportsArray> mDataItems; 
+  NSView* mNativeDragView;
+  NSEvent* mNativeDragEvent;
 };
 
 #endif 
