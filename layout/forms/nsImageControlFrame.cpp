@@ -129,7 +129,9 @@ nsImageControlFrame::~nsImageControlFrame()
 void
 nsImageControlFrame::Destroy()
 {
-  nsFormControlFrame::RegUnRegAccessKey(static_cast<nsIFrame*>(this), PR_FALSE);
+  if (!GetPrevInFlow()) {
+    nsFormControlFrame::RegUnRegAccessKey(this, PR_FALSE);
+  }
   nsImageControlFrameSuper::Destroy();
 }
 
@@ -148,6 +150,10 @@ nsImageControlFrame::Init(nsIContent*      aContent,
   NS_ENSURE_SUCCESS(rv, rv);
 
   
+  
+  if (aPrevInFlow) {
+    return NS_OK;
+  }
   
   return  mContent->SetProperty(nsGkAtoms::imageClickedPoint,
                                  new nsIntPoint(0, 0),
@@ -212,8 +218,8 @@ nsImageControlFrame::Reflow(nsPresContext*         aPresContext,
 {
   DO_GLOBAL_REFLOW_COUNT("nsImageControlFrame");
   DISPLAY_REFLOW(aPresContext, this, aReflowState, aDesiredSize, aStatus);
-  if (mState & NS_FRAME_FIRST_REFLOW) {
-    nsFormControlFrame::RegUnRegAccessKey(static_cast<nsIFrame*>(this), PR_TRUE);
+  if (!GetPrevInFlow() && (mState & NS_FRAME_FIRST_REFLOW)) {
+    nsFormControlFrame::RegUnRegAccessKey(this, PR_TRUE);
   }
   return nsImageControlFrameSuper::Reflow(aPresContext, aDesiredSize, aReflowState, aStatus);
 }

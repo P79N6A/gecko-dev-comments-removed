@@ -835,11 +835,9 @@ nsImageFrame::Reflow(nsPresContext*          aPresContext,
       NS_UNCONSTRAINEDSIZE != aReflowState.availableHeight && 
       aMetrics.height > aReflowState.availableHeight) { 
     
-    if (nsGkAtoms::imageFrame == GetType()) {
-      
-      aMetrics.height = PR_MAX(nsPresContext::CSSPixelsToAppUnits(1), aReflowState.availableHeight);
-      aStatus = NS_FRAME_NOT_COMPLETE;
-    }
+    
+    aMetrics.height = PR_MAX(nsPresContext::CSSPixelsToAppUnits(1), aReflowState.availableHeight);
+    aStatus = NS_FRAME_NOT_COMPLETE;
   }
 
   aMetrics.mOverflowArea.SetRect(0, 0, aMetrics.width, aMetrics.height);
