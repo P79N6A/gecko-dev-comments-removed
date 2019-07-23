@@ -103,11 +103,6 @@ private:
 
   
   
-  class AutoMarkerReferencer;
-  friend class AutoMarkerReferencer;
-
-  
-  
   
   
   
