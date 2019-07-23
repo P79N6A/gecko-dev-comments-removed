@@ -684,7 +684,6 @@ nsIBox::AddCSSPrefSize(nsBoxLayoutState& aState, nsIBox* aBox, nsSize& aSize)
         heightSet = PR_TRUE;
     }
     
-    
     nsIContent* content = aBox->GetContent();
     
     
@@ -782,7 +781,6 @@ nsIBox::AddCSSMinSize(nsBoxLayoutState& aState, nsIBox* aBox, nsSize& aSize)
         aSize.height = 0;
         heightSet = PR_TRUE;
     }
-    
 
     nsIContent* content = aBox->GetContent();
     if (content) {
@@ -841,7 +839,6 @@ nsIBox::AddCSSMaxSize(nsBoxLayoutState& aState, nsIBox* aBox, nsSize& aSize)
         aSize.height = max;
         heightSet = PR_TRUE;
     }
-    
 
     nsIContent* content = aBox->GetContent();
     if (content) {
