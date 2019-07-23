@@ -2985,7 +2985,7 @@ PreGCCleanup(JSContext *cx, JSGCInvocationKind gckind)
 #endif
 
     
-    if (!(gckind & GC_KEEP_ATOMS))
+    if (!rt->gcKeepAtoms)
         JS_CLEAR_WEAK_ROOTS(&cx->weakRoots);
 }
 
@@ -2997,7 +2997,7 @@ PreGCCleanup(JSContext *cx, JSGCInvocationKind gckind)
 
 
 static void
-GC(JSContext *cx, JSGCInvocationKind gckind  GCTIMER_PARAM)
+GC(JSContext *cx  GCTIMER_PARAM)
 {
     JSRuntime *rt = cx->runtime;
     rt->gcNumber++;
@@ -3019,11 +3019,7 @@ GC(JSContext *cx, JSGCInvocationKind gckind  GCTIMER_PARAM)
     }
 
     {
-        
-
-
-
-        bool keepAtoms = (gckind & GC_KEEP_ATOMS) || rt->gcKeepAtoms != 0;
+        bool keepAtoms = rt->gcKeepAtoms != 0;
         js_TraceRuntime(&trc, keepAtoms);
         js_MarkScriptFilenames(rt, keepAtoms);
     }
@@ -3208,7 +3204,7 @@ GCUntilDone(JSContext *cx, JSGCInvocationKind gckind  GCTIMER_PARAM)
             TIMESTAMP(startMark);
             firstRun = false;
         }
-        GC(cx, gckind  GCTIMER_ARG);
+        GC(cx  GCTIMER_ARG);
 
         
         
@@ -3225,7 +3221,7 @@ GCUntilDone(JSContext *cx, JSGCInvocationKind gckind  GCTIMER_PARAM)
 
 
 static void
-DelegateGC(JSContext *cx, JSGCInvocationKind gckind)
+DelegateGC(JSContext *cx)
 {
     JSRuntime *rt = cx->runtime;
     JS_ASSERT(rt->gcThread);
@@ -3272,9 +3268,6 @@ DelegateGC(JSContext *cx, JSGCInvocationKind gckind)
         js_ShareWaitingTitles(cx);
 
         
-        Conditionally<AutoKeepAtoms> keepIf(!!(gckind & GC_KEEP_ATOMS), rt);
-
-        
 
 
 
@@ -3305,7 +3298,7 @@ DelegateGC(JSContext *cx, JSGCInvocationKind gckind)
 
 
 static bool
-BeginGCSession(JSContext *cx, JSGCInvocationKind gckind)
+BeginGCSession(JSContext *cx)
 {
     JSRuntime *rt = cx->runtime;
 
@@ -3318,7 +3311,7 @@ BeginGCSession(JSContext *cx, JSGCInvocationKind gckind)
 
 
     if (rt->gcLevel > 0) {
-        DelegateGC(cx, gckind);
+        DelegateGC(cx);
         return false;
     }
 
@@ -3437,27 +3430,16 @@ FireGCEnd(JSContext *cx, JSGCInvocationKind gckind)
 
 
     if (gckind != GC_SET_SLOT_REQUEST && callback) {
-        if (!(gckind & GC_KEEP_ATOMS)) {
-            (void) callback(cx, JSGC_END);
+        Conditionally<AutoUnlockGC> unlockIf(gckind & GC_LOCK_HELD, rt);
 
-            
+        (void) callback(cx, JSGC_END);
 
-
-
-            if (gckind == GC_LAST_CONTEXT && rt->gcPoke)
-                return false;
-        } else {
-            
+        
 
 
 
-
-            AutoSaveWeakRoots save(cx);
-            AutoKeepAtoms keep(rt);
-            AutoUnlockGC unlock(rt);
-
-            (void) callback(cx, JSGC_END);
-        }
+        if (gckind == GC_LAST_CONTEXT && rt->gcPoke)
+            return false;
     }
     return true;
 }
@@ -3503,7 +3485,7 @@ ProcessAllSetSlotRequests(JSContext *cx, JSGCInvocationKind *gckindp)
             JS_NOTIFY_GC_DONE(rt);
             return false;
         }
-        if (!BeginGCSession(cx, *gckindp))  
+        if (!BeginGCSession(cx))  
             return false;
     }
     return true;
@@ -3535,6 +3517,8 @@ js_GC(JSContext *cx, JSGCInvocationKind gckind)
 
     GCTIMER_BEGIN();
 
+    Conditionally<AutoKeepAtoms> keepIf(!!(gckind & GC_KEEP_ATOMS), rt);
+
     for (;;) {
         if (!FireGCBegin(cx, gckind))
             return;
@@ -3543,7 +3527,7 @@ js_GC(JSContext *cx, JSGCInvocationKind gckind)
             
             Conditionally<AutoLockGC> lockIf(!(gckind & GC_LOCK_HELD), rt);
 
-            if (!BeginGCSession(cx, gckind)) {
+            if (!BeginGCSession(cx)) {
                 
                 return;
             }
