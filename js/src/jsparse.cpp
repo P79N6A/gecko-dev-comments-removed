@@ -543,6 +543,19 @@ js_CompileScript(JSContext *cx, JSObject *scopeChain, JSStackFrame *callerFrame,
     cg.treeContext.u.scopeChain = scopeChain;
     cg.staticDepth = TCF_GET_STATIC_DEPTH(tcflags);
 
+    if (callerFrame && (tcflags & TCF_COMPILE_N_GO)) {
+        
+
+
+
+
+        JSParsedObjectBox *pob;
+        pob = js_NewParsedObjectBox(cx, &pc, FUN_OBJECT(callerFrame->fun));
+        pob->emitLink = cg.objectList.lastPob;
+        cg.objectList.lastPob = pob;
+        cg.objectList.length++;
+    }
+
     
     for (;;) {
         pc.tokenStream.flags |= TSF_OPERAND;
