@@ -380,7 +380,6 @@ Process(JSContext *cx, JSObject *obj, char *filename, JSBool forceTTY)
     jsval result;
     JSString *str;
     char *buffer;
-    size_t size;
     int lineno;
     int startline;
     FILE *file;
@@ -439,9 +438,10 @@ Process(JSContext *cx, JSObject *obj, char *filename, JSBool forceTTY)
     
     lineno = 1;
     hitEOF = JS_FALSE;
-    size_t len;
     buffer = NULL;
     do {
+        size_t len = 0, size = 0; 
+
         
 
 
@@ -520,7 +520,6 @@ Process(JSContext *cx, JSObject *obj, char *filename, JSBool forceTTY)
             JS_DestroyScript(cx, script);
         }
         *buffer = '\0';
-        len = 0;
     } while (!gQuitting);
 
     free(buffer);
