@@ -392,14 +392,22 @@ Statement::Finalize()
   
   
   if (mCachedAsyncStatement) {
-    nsCOMPtr<nsIRunnable> event =
-      new AsyncStatementFinalizer(mCachedAsyncStatement);
-    NS_ENSURE_TRUE(event, NS_ERROR_OUT_OF_MEMORY);
-
     nsCOMPtr<nsIEventTarget> target = mDBConnection->getAsyncExecutionTarget();
-    nsresult rv = target->Dispatch(event, NS_DISPATCH_NORMAL);
-    NS_ENSURE_SUCCESS(rv, rv);
-    mCachedAsyncStatement = NULL;
+    if (!target) {
+      
+      
+      
+      (void)::sqlite3_finalize(mCachedAsyncStatement);
+    }
+    else {
+      nsCOMPtr<nsIRunnable> event =
+        new AsyncStatementFinalizer(mCachedAsyncStatement);
+      NS_ENSURE_TRUE(event, NS_ERROR_OUT_OF_MEMORY);
+
+      nsresult rv = target->Dispatch(event, NS_DISPATCH_NORMAL);
+      NS_ENSURE_SUCCESS(rv, rv);
+      mCachedAsyncStatement = NULL;
+    }
   }
 
   
