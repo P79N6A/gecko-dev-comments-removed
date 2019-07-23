@@ -3276,7 +3276,7 @@ nsDocShell::LoadErrorPage(nsIURI *aURI, const PRUnichar *aURL,
         OnLoadingSite(aFailedChannel, PR_TRUE, PR_FALSE);
     } else if (aURI) {
         mURIResultedInDocument = PR_TRUE;
-        OnNewURI(aURI, nsnull, mLoadType, PR_TRUE, PR_FALSE);
+        OnNewURI(aURI, nsnull, nsnull, mLoadType, PR_TRUE, PR_FALSE);
     }
     
     
@@ -5041,7 +5041,8 @@ nsDocShell::OnStateChange(nsIWebProgress * aProgress, nsIRequest * aRequest,
                 !equalUri) {
                 
                 
-                rv = AddToSessionHistory(uri, wcwgChannel, getter_AddRefs(mLSHE));
+                rv = AddToSessionHistory(uri, wcwgChannel, nsnull,
+                                         getter_AddRefs(mLSHE));
                 SetCurrentURI(uri, aRequest, PR_TRUE);
                 
                 rv = PersistLayoutHistoryState();
@@ -7092,7 +7093,11 @@ nsDocShell::InternalLoad(nsIURI * aURI,
 
 
 
-            OnNewURI(aURI, nsnull, mLoadType, PR_TRUE);
+            nsCOMPtr<nsISupports> owner;
+            if (mOSHE) {
+                mOSHE->GetOwner(getter_AddRefs(owner));
+            }
+            OnNewURI(aURI, nsnull, owner, mLoadType, PR_TRUE);
             nsCOMPtr<nsIInputStream> postData;
             PRUint32 pageIdent = PR_UINT32_MAX;
             nsCOMPtr<nsISupports> cacheKey;
@@ -7999,11 +8004,13 @@ nsDocShell::SetupReferrerFromChannel(nsIChannel * aChannel)
 }
 
 PRBool
-nsDocShell::OnNewURI(nsIURI * aURI, nsIChannel * aChannel,
+nsDocShell::OnNewURI(nsIURI * aURI, nsIChannel * aChannel, nsISupports* aOwner,
                      PRUint32 aLoadType, PRBool aFireOnLocationChange,
                      PRBool aAddToGlobalHistory)
 {
-    NS_ASSERTION(aURI, "uri is null");
+    NS_PRECONDITION(aURI, "uri is null");
+    NS_PRECONDITION(!aChannel || !aOwner, "Shouldn't have both set");
+
 #if defined(PR_LOGGING) && defined(DEBUG)
     if (PR_LOG_TEST(gDocShellLog, PR_LOG_DEBUG)) {
         nsCAutoString spec;
@@ -8131,7 +8138,8 @@ nsDocShell::OnNewURI(nsIURI * aURI, nsIChannel * aChannel,
 
 
 
-            (void) AddToSessionHistory(aURI, aChannel, getter_AddRefs(mLSHE));
+            (void) AddToSessionHistory(aURI, aChannel, aOwner,
+                                       getter_AddRefs(mLSHE));
         }
 
         
@@ -8174,7 +8182,7 @@ nsDocShell::OnLoadingSite(nsIChannel * aChannel, PRBool aFireOnLocationChange,
     NS_GetFinalChannelURI(aChannel, getter_AddRefs(uri));
     NS_ENSURE_TRUE(uri, PR_FALSE);
 
-    return OnNewURI(uri, aChannel, mLoadType, aFireOnLocationChange,
+    return OnNewURI(uri, aChannel, nsnull, mLoadType, aFireOnLocationChange,
                     aAddToGlobalHistory);
 
 }
@@ -8215,9 +8223,12 @@ nsDocShell::ShouldAddToSessionHistory(nsIURI * aURI)
 }
 
 nsresult
-nsDocShell::AddToSessionHistory(nsIURI * aURI,
-                                nsIChannel * aChannel, nsISHEntry ** aNewEntry)
+nsDocShell::AddToSessionHistory(nsIURI * aURI, nsIChannel * aChannel,
+                                nsISupports* aOwner, nsISHEntry ** aNewEntry)
 {
+    NS_PRECONDITION(aURI, "uri is null");
+    NS_PRECONDITION(!aChannel || !aOwner, "Shouldn't have both set");
+
 #if defined(PR_LOGGING) && defined(DEBUG)
     if (PR_LOG_TEST(gDocShellLog, PR_LOG_DEBUG)) {
         nsCAutoString spec;
@@ -8280,7 +8291,7 @@ nsDocShell::AddToSessionHistory(nsIURI * aURI,
     nsCOMPtr<nsIURI> referrerURI;
     nsCOMPtr<nsISupports> cacheKey;
     nsCOMPtr<nsISupports> cacheToken;
-    nsCOMPtr<nsISupports> owner;
+    nsCOMPtr<nsISupports> owner = aOwner;
     PRBool expired = PR_FALSE;
     PRBool discardLayoutState = PR_FALSE;
     if (aChannel) {

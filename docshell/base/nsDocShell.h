@@ -322,7 +322,10 @@ protected:
     
     
     
-    PRBool OnNewURI(nsIURI * aURI, nsIChannel * aChannel, PRUint32 aLoadType,
+    
+    
+    PRBool OnNewURI(nsIURI * aURI, nsIChannel * aChannel, nsISupports* aOwner,
+                    PRUint32 aLoadType,
                     PRBool aFireOnLocationChange,
                     PRBool aAddToGlobalHistory = PR_TRUE);
 
@@ -330,8 +333,11 @@ protected:
 
     
     virtual PRBool ShouldAddToSessionHistory(nsIURI * aURI);
+    
+    
     virtual nsresult AddToSessionHistory(nsIURI * aURI, nsIChannel * aChannel,
-        nsISHEntry ** aNewEntry);
+                                         nsISupports* aOwner,
+                                         nsISHEntry ** aNewEntry);
     nsresult DoAddChildSHEntry(nsISHEntry* aNewEntry, PRInt32 aChildOffset);
 
     NS_IMETHOD LoadHistoryEntry(nsISHEntry * aEntry, PRUint32 aLoadType);
