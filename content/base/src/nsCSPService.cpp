@@ -101,7 +101,6 @@ CSPService::ShouldLoad(PRUint32 aContentType,
 
     
     
-    nsresult rv;
     nsCOMPtr<nsINode> node(do_QueryInterface(aRequestContext));
     nsCOMPtr<nsIPrincipal> principal;
     nsCOMPtr<nsIContentSecurityPolicy> csp;
@@ -160,7 +159,6 @@ CSPService::ShouldProcess(PRUint32         aContentType,
 
     
     
-    nsresult rv;
     nsCOMPtr<nsINode> node(do_QueryInterface(aRequestContext));
     nsCOMPtr<nsIPrincipal> principal;
     nsCOMPtr<nsIContentSecurityPolicy> csp;
