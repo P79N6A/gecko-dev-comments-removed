@@ -853,20 +853,20 @@ SECStatus PR_CALLBACK AuthCertificateCallback(void* client_data, PRFileDesc* fd,
 
       CERT_DestroyCertList(certList);
     }
-    else {
-      
-      
-      nsNSSSocketInfo* infoObject = (nsNSSSocketInfo*) fd->higher->secret;
 
-      nsCOMPtr<nsSSLStatus> status;
-      infoObject->GetSSLStatus(getter_AddRefs(status));
-      if (!status) {
-        status = new nsSSLStatus();
-        infoObject->SetSSLStatus(status);
-      }
-      if (status) {
-        status->mServerCert = new nsNSSCertificate(serverCert);
-      }
+    
+    
+    
+    nsNSSSocketInfo* infoObject = (nsNSSSocketInfo*) fd->higher->secret;
+
+    nsCOMPtr<nsSSLStatus> status;
+    infoObject->GetSSLStatus(getter_AddRefs(status));
+    if (!status) {
+      status = new nsSSLStatus();
+      infoObject->SetSSLStatus(status);
+    }
+    if (status) {
+      status->mServerCert = new nsNSSCertificate(serverCert);
     }
   }
 
