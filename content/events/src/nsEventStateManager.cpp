@@ -2144,13 +2144,8 @@ nsEventStateManager::DetermineDragTarget(nsPresContext* aPresContext,
 
   
   
-  
-  if (!dragContent) {
-    if (dragDataNode)
-      dragContent = originalDragContent;
-    else
-      dragContent = mGestureDownContent;
-  }
+  if (!dragContent && dragDataNode)
+    dragContent = dragDataNode;
 
   if (dragContent) {
     

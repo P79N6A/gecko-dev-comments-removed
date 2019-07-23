@@ -665,9 +665,7 @@ public:
 
 
 
-  static PRBool ContentIsDraggable(nsIContent* aContent) {
-    return IsDraggableImage(aContent) || IsDraggableLink(aContent);
-  }
+  static PRBool ContentIsDraggable(nsIContent* aContent);
 
   
 
