@@ -155,10 +155,6 @@
 #define TEXT_WHITESPACE_FLAGS      0x18000000
 
 
-
-#define TEXT_IS_RUN_OWNER          0x20000000
-
-
 #define TEXT_BLINK_ON              0x80000000
 
 
@@ -188,8 +184,6 @@
 
 class nsTextFrame;
 class PropertyProvider;
-
-
 
 
 
@@ -598,9 +592,6 @@ DestroyUserData(void* aUserData)
 static void
 ClearAllTextRunReferences(nsTextFrame* aFrame, gfxTextRun* aTextRun)
 {
-  NS_ASSERTION(aFrame->GetStateBits() & TEXT_IS_RUN_OWNER,
-               "aFrame should be marked as a textrun owner");
-  aFrame->RemoveStateBits(TEXT_IS_RUN_OWNER);
   while (aFrame) {
     if (aFrame->GetTextRun() != aTextRun)
       break;
@@ -1944,13 +1935,9 @@ BuildTextRunsScanner::AssignTextRun(gfxTextRun* aTextRun)
       f->ClearTextRun();
       f->SetTextRun(aTextRun);
     }
-    nsIContent* content = startFrame->GetContent();
     
     
-    if (content != lastContent) {
-      startFrame->AddStateBits(TEXT_IS_RUN_OWNER);
-      lastContent = content;
-    }    
+    lastContent = startFrame->GetContent();
   }
 }
 
@@ -3254,10 +3241,10 @@ nsTextFrame::Init(nsIContent*      aContent,
 void
 nsTextFrame::Destroy()
 {
+  ClearTextRun();
   if (mNextContinuation) {
     mNextContinuation->SetPrevInFlow(nsnull);
   }
-  ClearTextRun();
   
   nsFrame::Destroy();
 }
@@ -3369,10 +3356,10 @@ nsContinuingTextFrame::Init(nsIContent* aContent,
 void
 nsContinuingTextFrame::Destroy()
 {
+  ClearTextRun();
   if (mPrevContinuation || mNextContinuation) {
     nsSplittableFrame::RemoveFromFlow(this);
   }
-  ClearTextRun();
   
   nsFrame::Destroy();
 }
@@ -3548,7 +3535,7 @@ nsTextFrame::ClearTextRun()
   
   gfxTextRun* textRun = mTextRun;
   
-  if (!textRun || !(GetStateBits() & TEXT_IS_RUN_OWNER))
+  if (!textRun)
     return;
 
   UnhookTextRunFromFrames(textRun);
