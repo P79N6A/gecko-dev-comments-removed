@@ -192,12 +192,18 @@ FindNextTextNode(nsIDOMNode* aNode, PRInt32 aOffset, nsIDOMNode* aRoot)
   } else {
     
     
-    aNode->GetLastChild(getter_AddRefs(child));
-    if (child) {
-      checkNode = FindNextNode(child, aRoot);
-    } else {
-      checkNode = FindNextNode(aNode, aRoot);
+    nsCOMPtr<nsIDOMNode> next;
+    aNode->GetNextSibling(getter_AddRefs(next));
+    while (!next) {
+      
+      aNode->GetParentNode(getter_AddRefs(next));
+      if (next == aRoot || !next) {
+        return nsnull;
+      }
+      aNode = next;
+      aNode->GetNextSibling(getter_AddRefs(next));
     }
+    checkNode = next;
   }
   
   while (checkNode && !IsTextNode(checkNode)) {
