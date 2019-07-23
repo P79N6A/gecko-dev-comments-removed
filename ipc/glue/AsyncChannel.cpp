@@ -40,9 +40,6 @@
 #include "mozilla/ipc/AsyncChannel.h"
 #include "mozilla/ipc/GeckoThread.h"
 
-#include "mozilla/dom/ContentProcessChild.h"
-using mozilla::dom::ContentProcessChild;
-
 #include "nsDebug.h"
 #include "nsXULAppAPI.h"
 
@@ -51,13 +48,6 @@ struct RunnableMethodTraits<mozilla::ipc::AsyncChannel>
 {
     static void RetainCallee(mozilla::ipc::AsyncChannel* obj) { }
     static void ReleaseCallee(mozilla::ipc::AsyncChannel* obj) { }
-};
-
-template<>
-struct RunnableMethodTraits<ContentProcessChild>
-{
-    static void RetainCallee(ContentProcessChild* obj) { }
-    static void ReleaseCallee(ContentProcessChild* obj) { }
 };
 
 namespace mozilla {
@@ -181,9 +171,7 @@ AsyncChannel::OnChannelError()
         
 #ifdef DEBUG
         
-        mWorkerLoop->PostTask(FROM_HERE,
-            NewRunnableMethod(ContentProcessChild::GetSingleton(),
-                              &ContentProcessChild::Quit));
+        XRE_ShutdownChildProcess(mWorkerLoop);
 
         
         MessageLoop::current()->Quit();
