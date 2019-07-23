@@ -112,15 +112,19 @@ public:
          return now32;
         }
     void          SetStartTime() {mStartTime = NowInMilliSecs();}
-    void          SetEndTime()
+    PRUint32      SetEndTime()
         {PRUint32 delta = NowInMilliSecs() - mStartTime;
          if(delta < mQuickTime)
             mQuickTime = delta;
          if (delta > mLongTime)
             mLongTime = delta;
-         mSum += delta;}
+         mSum += delta;
+         return delta;}
     PRUint32      GetQuickTime() {return mQuickTime;}
     PRUint32      GetLongTime() {return mLongTime;}
+    
+    void          AddNotSelfTime(PRUint32 delta) {mNotSelfSum += delta;}
+    PRUint32      GetSelf() { return mSum - mNotSelfSum;}
 
     ProfilerFunction(); 
 
@@ -136,6 +140,7 @@ private:
     PRUint32        mLongTime;      
     PRUint32        mStartTime;     
     PRUint32        mSum;
+    PRUint32        mNotSelfSum;
 };
 
 struct FunctionID
