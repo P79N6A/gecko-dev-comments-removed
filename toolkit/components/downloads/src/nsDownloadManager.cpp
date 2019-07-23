@@ -132,6 +132,28 @@ nsDownloadManager::~nsDownloadManager()
 }
 
 nsresult
+nsDownloadManager::ResumeRetry(nsDownload *aDl)
+{
+  
+  nsRefPtr<nsDownload> dl = aDl;
+
+  
+  nsresult rv = dl->Resume();
+
+  
+  if (NS_FAILED(rv)) {
+    
+    rv = CancelDownload(dl->mID);
+
+    
+    if (NS_SUCCEEDED(rv))
+      rv = RetryDownload(dl->mID);
+  }
+
+  return rv;
+}
+
+nsresult
 nsDownloadManager::PauseAllDownloads(PRBool aSetResume)
 {
   nsresult retVal = NS_OK;
@@ -146,6 +168,32 @@ nsDownloadManager::PauseAllDownloads(PRBool aSetResume)
 
       
       nsresult rv = dl->Pause();
+      if (NS_FAILED(rv))
+        retVal = rv;
+    }
+  }
+
+  return retVal;
+}
+
+nsresult
+nsDownloadManager::ResumeAllDownloads(PRBool aResumeAll)
+{
+  nsresult retVal = NS_OK;
+  for (PRInt32 i = mCurrentDownloads.Count() - 1; i >= 0; --i) {
+    nsRefPtr<nsDownload> dl = mCurrentDownloads[i];
+
+    
+    
+    if (aResumeAll || dl->ShouldAutoResume()) {
+      
+      
+      
+      
+      dl->mAutoResume = nsDownload::DONT_RESUME;
+
+      
+      nsresult rv = ResumeRetry(dl);
       if (NS_FAILED(rv))
         retVal = rv;
     }
@@ -678,13 +726,16 @@ nsDownloadManager::RestoreActiveDownloads()
   nsresult rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING(
     "SELECT id "
     "FROM moz_downloads "
-    "WHERE state = ?1 "
-      "AND LENGTH(entityID) > 0"), getter_AddRefs(stmt));
+    "WHERE (state = ?1 AND LENGTH(entityID) > 0) "
+      "OR autoResume != ?2"), getter_AddRefs(stmt));
   NS_ENSURE_SUCCESS(rv, rv);
 
   rv = stmt->BindInt32Parameter(0, nsIDownloadManager::DOWNLOAD_PAUSED);
   NS_ENSURE_SUCCESS(rv, rv);
+  rv = stmt->BindInt32Parameter(1, nsDownload::DONT_RESUME);
+  NS_ENSURE_SUCCESS(rv, rv);
 
+  nsresult retVal = NS_OK;
   PRBool hasResults;
   while (NS_SUCCEEDED(stmt->ExecuteStep(&hasResults)) && hasResults) {
     nsRefPtr<nsDownload> dl;
@@ -693,9 +744,14 @@ nsDownloadManager::RestoreActiveDownloads()
     
     if (NS_FAILED(GetDownloadFromDB(stmt->AsInt32(0), getter_AddRefs(dl))) ||
         NS_FAILED(AddToCurrentDownloads(dl)))
-      rv = NS_ERROR_FAILURE;
+      retVal = NS_ERROR_FAILURE;
   }
-  return rv;
+
+  
+  rv = ResumeAllDownloads(PR_FALSE);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  return retVal;
 }
 
 PRInt64

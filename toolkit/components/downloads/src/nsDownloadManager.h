@@ -160,9 +160,25 @@ protected:
 
 
 
+  nsresult ResumeRetry(nsDownload *aDl);
+
+  
+
+
+
+
 
 
   nsresult PauseAllDownloads(PRBool aSetResume);
+
+  
+
+
+
+
+
+
+  nsresult ResumeAllDownloads(PRBool aResumeAll);
 
   
 
