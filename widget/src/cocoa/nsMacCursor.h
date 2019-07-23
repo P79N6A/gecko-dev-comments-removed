@@ -37,7 +37,6 @@
 #define nsMacCursor_h_
 
 #import <Cocoa/Cocoa.h>
-#import <Carbon/Carbon.h>
 
 
 
@@ -52,14 +51,6 @@
   @protected
   int mFrameCounter;    
 }
-
-
-
-
-
-
-
-+ (nsMacCursor *) cursorWithThemeCursor: (ThemeCursor) aCursor;
 
 
 
@@ -98,11 +89,7 @@
 
 
 
-
-
-
-
-+ (nsMacCursor *) cursorWithResources: (int) aFirstFrame lastFrame: (int) aLastFrame;
++ (NSCursor *) cocoaCursorWithImageNamed: (NSString *) imageName hotSpot: (NSPoint) aPoint;
 
 
 
