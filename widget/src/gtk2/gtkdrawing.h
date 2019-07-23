@@ -152,6 +152,10 @@ typedef enum {
   
   MOZ_GTK_TABPANELS,
   
+  MOZ_GTK_TREEVIEW,
+  
+  MOZ_GTK_TREE_HEADER_CELL,
+  
   MOZ_GTK_MENUBAR,
   
   MOZ_GTK_MENUPOPUP,
@@ -249,15 +253,10 @@ moz_gtk_radio_get_metrics(gint* indicator_size, gint* indicator_spacing);
 
 
 
+
 gint
-moz_gtk_button_get_focus(gboolean* interior_focus,
+moz_gtk_widget_get_focus(GtkWidget* widget, gboolean* interior_focus,
                          gint* focus_width, gint* focus_pad);
-gint
-moz_gtk_checkbox_get_focus(gboolean* interior_focus,
-                           gint* focus_width, gint* focus_pad);
-gint
-moz_gtk_radio_get_focus(gboolean* interior_focus,
-                        gint* focus_width, gint* focus_pad);
 
 
 
