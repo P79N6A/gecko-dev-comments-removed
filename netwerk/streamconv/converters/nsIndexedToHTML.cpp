@@ -169,18 +169,6 @@ nsIndexedToHTML::OnStartRequest(nsIRequest* request, nsISupports *aContext) {
         
         
         
-        nsCAutoString path;
-        rv = uri->GetPath(path);
-        if (NS_FAILED(rv)) return rv;
-        if (baseUri.Last() != '/' && !path.LowerCaseEqualsLiteral("/%2f")) {
-            baseUri.Append('/');
-            path.Append('/');
-            uri->SetPath(path);
-        }
-
-        
-        
-        
         
         nsCAutoString pw;
         rv = uri->GetPassword(pw);
@@ -193,9 +181,11 @@ nsIndexedToHTML::OnStartRequest(nsIRequest* request, nsISupports *aContext) {
              if (NS_FAILED(rv)) return rv;
              rv = newUri->GetAsciiSpec(titleUri);
              if (NS_FAILED(rv)) return rv;
-             if (titleUri.Last() != '/' && !path.LowerCaseEqualsLiteral("/%2f"))
-                 titleUri.Append('/');
         }
+
+        nsCAutoString path;
+        rv = uri->GetPath(path);
+        if (NS_FAILED(rv)) return rv;
 
         if (!path.EqualsLiteral("//") && !path.LowerCaseEqualsLiteral("/%2f")) {
             rv = uri->Resolve(NS_LITERAL_CSTRING(".."),parentStr);

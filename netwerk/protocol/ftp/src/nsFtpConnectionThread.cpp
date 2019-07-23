@@ -1044,6 +1044,20 @@ nsFtpState::R_mdtm() {
 nsresult 
 nsFtpState::SetContentType()
 {
+    
+    
+    
+    
+    
+
+    if (!mPath.IsEmpty() && mPath.Last() != '/') {
+        nsCOMPtr<nsIURL> url = (do_QueryInterface(mChannel->URI()));
+        nsCAutoString filePath;
+        if(NS_SUCCEEDED(url->GetFilePath(filePath))) {
+            filePath.Append('/');
+            url->SetFilePath(filePath);
+        }
+    }
     return mChannel->SetContentType(
         NS_LITERAL_CSTRING(APPLICATION_HTTP_INDEX_FORMAT));
 }
