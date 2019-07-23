@@ -2094,6 +2094,84 @@ function testArrayPushPop() {
 testArrayPushPop.expected = "55,45";
 test(testArrayPushPop);
 
+function testSlowArrayPop() {
+    var a = [];
+    for (var i = 0; i < RUNLOOP; i++)
+        a[i] = [0];
+    a[RUNLOOP-1].__defineGetter__("0", function () { return 'xyzzy'; });
+
+    var last;
+    for (var i = 0; i < RUNLOOP; i++)
+        last = a[i].pop();  
+    return last;
+}
+testSlowArrayPop.expected = 'xyzzy';
+test(testSlowArrayPop);
+
+
+
+function testSlowArrayPopMultiFrame() {    
+    var a = [];
+    for (var i = 0; i < RUNLOOP; i++)
+        a[i] = [0];
+    a[RUNLOOP-1].__defineGetter__("0", function () { return 23; });
+
+    function child(a, i) {
+        return a[i].pop();  
+    }
+    function parent(a, i) {
+        return child(a, i);
+    }
+    function gramps(a, i) { 
+        return parent(a, i);
+    }
+
+    var last;
+    for (var i = 0; i < RUNLOOP; i++)
+        last = gramps(a, i);
+    return last;
+}
+testSlowArrayPopMultiFrame.expected = 23;
+test(testSlowArrayPopMultiFrame);
+
+
+
+
+
+function testSlowArrayPopNestedTrees() {    
+    var a = [];
+    for (var i = 0; i < RUNLOOP; i++)
+        a[i] = [0];
+    a[RUNLOOP-1].__defineGetter__("0", function () { return 3.14159 });
+
+    function child(a, i, j, k) {
+        var last = 2.71828;
+        for (var l = 0; l < RUNLOOP; l++)
+            if (i == RUNLOOP-1 && j == RUNLOOP-1 && k == RUNLOOP-1)
+                last = a[l].pop();  
+        return last;
+    }
+    function parent(a, i, j) {
+        var last;
+        for (var k = 0; k < RUNLOOP; k++)
+            last = child(a, i, j, k);
+        return last;
+    }
+    function gramps(a, i) { 
+        var last;
+        for (var j = 0; j < RUNLOOP; j++)
+            last = parent(a, i, j);
+        return last;
+    }
+
+    var last;
+    for (var i = 0; i < RUNLOOP; i++)
+        last = gramps(a, i);
+    return last;
+}
+testSlowArrayPopNestedTrees.expected = 3.14159;
+test(testSlowArrayPopNestedTrees);
+
 function testResumeOp() {
     var a = [1,"2",3,"4",5,"6",7,"8",9,"10",11,"12",13,"14",15,"16"];
     var x = "";
@@ -4124,29 +4202,34 @@ function testInterpreterReentry5() {
 }
 test(testInterpreterReentry5);
 
+function testInterpreterReentry6() {
+    var obj = {a:1, b:1, c:1, d:1, set e(x) { this._e = x; }};
+    for (var p in obj)
+        obj[p] = "grue";
+    return obj._e;
+}
+testInterpreterReentry6.expected = "grue";
+test(testInterpreterReentry6);
+
+function testInterpreterReentry7() {
+    var arr = [0, 1, 2, 3, 4];
+    arr.__defineSetter__("4", function(x) { this._4 = x; });
+    for (var i = 0; i < 5; i++)
+        arr[i] = "grue";
+    var tmp = arr._4;
+    for (var p in arr)
+        arr[p] = "bleen";
+    return tmp + " " + arr._4;
+}
+testInterpreterReentry7.expected = "grue bleen";
+test(testInterpreterReentry7);
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+function testInterpreterReentery8() {
+    var e = <x><y/></x>;
+    for (var j = 0; j < 4; ++j) { +[e]; }
+}
+test(testInterpreterReentery8);
 
 
 
