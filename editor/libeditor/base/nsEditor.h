@@ -348,7 +348,7 @@ protected:
   
   nsresult InstallEventListeners();
 
-  virtual nsresult CreateEventListeners() = 0;
+  virtual nsresult CreateEventListeners();
 
   
   virtual void RemoveEventListeners();
@@ -638,12 +638,7 @@ protected:
 
   nsString* mPhonetic;
 
-  nsCOMPtr<nsIDOMEventListener> mKeyListenerP;
-  nsCOMPtr<nsIDOMEventListener> mMouseListenerP;
-  nsCOMPtr<nsIDOMEventListener> mTextListenerP;
-  nsCOMPtr<nsIDOMEventListener> mCompositionListenerP;
-  nsCOMPtr<nsIDOMEventListener> mDragListenerP;
-  nsCOMPtr<nsIDOMEventListener> mFocusListenerP;
+ nsCOMPtr<nsIDOMEventListener> mEventListener;
 
   friend PRBool NSCanUnload(nsISupports* serviceMgr);
   friend class nsAutoTxnsConserveSelection;
