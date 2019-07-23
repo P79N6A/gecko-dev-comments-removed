@@ -101,10 +101,6 @@ function nsContextMenu(aXulMenu, aBrowser) {
 
 nsContextMenu.prototype = {
   
-  onDestroy: function () {
-  },
-
-  
   initMenu: function CM_initMenu(aPopup, aBrowser) {
     this.menu = aPopup;
     this.browser = aBrowser;
