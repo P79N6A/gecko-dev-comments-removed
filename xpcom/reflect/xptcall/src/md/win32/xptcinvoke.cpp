@@ -80,13 +80,11 @@ invoke_copy_to_stack(PRUint32* d, PRUint32 paramCount, nsXPTCVariant* s)
 
 
 #pragma optimize( "y", off )
-extern "C" NS_EXPORT __declspec(naked) nsresult NS_FROZENCALL
+extern "C" NS_EXPORT nsresult NS_FROZENCALL
 NS_InvokeByIndex_P(nsISupports* that, PRUint32 methodIndex,
                  PRUint32 paramCount, nsXPTCVariant* params)
 {
     __asm {
-        push    ebp
-        mov     ebp,esp
         mov     edx,paramCount      
         test    edx,edx             
         jz      noparams
@@ -103,8 +101,6 @@ noparams:
         mov     eax,methodIndex
         call    [edx][eax*4]        
         mov     esp,ebp
-        pop     ebp
-        ret
     }
 }
 #pragma warning(default : 4035) // restore default
