@@ -90,25 +90,8 @@ public:
     };
 
 public:
-    AsyncChannel(AsyncListener* aListener) :
-        mTransport(0),
-        mListener(aListener),
-        mChannelState(ChannelClosed),
-        mMutex("mozilla.ipc.AsyncChannel.mMutex"),
-        mCvar(mMutex, "mozilla.ipc.AsyncChannel.mCvar"),
-        mIOLoop(),
-        mWorkerLoop()
-    {
-    }
-
-    virtual ~AsyncChannel()
-    {
-        if (!mChild && mTransport)
-            Close();
-        
-        
-        mTransport = 0;
-    }
+    AsyncChannel(AsyncListener* aListener);
+    virtual ~AsyncChannel();
 
     
     

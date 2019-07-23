@@ -488,11 +488,14 @@ ReportExceptionIfPending(JSContext *cx)
 nsJSObjWrapper::nsJSObjWrapper(NPP npp)
   : nsJSObjWrapperKey(nsnull, npp)
 {
+  MOZ_COUNT_CTOR(nsJSObjWrapper);
   OnWrapperCreated();
 }
 
 nsJSObjWrapper::~nsJSObjWrapper()
 {
+  MOZ_COUNT_DTOR(nsJSObjWrapper);
+
   
   NP_Invalidate(this);
 
@@ -1855,6 +1858,16 @@ NPObjWrapperPluginDestroyedCallback(PLDHashTable *table, PLDHashEntryHdr *hdr,
     if (npobj->_class && npobj->_class->invalidate) {
       npobj->_class->invalidate(npobj);
     }
+
+#ifdef NS_BUILD_REFCNT_LOGGING
+    {
+      int32_t refCnt = npobj->referenceCount;
+      while (refCnt) {
+        --refCnt;
+        NS_LOG_RELEASE(npobj, refCnt, "BrowserNPObject");
+      }
+    }
+#endif
 
     
     

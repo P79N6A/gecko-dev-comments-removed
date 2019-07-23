@@ -71,20 +71,9 @@ public:
         RRPParentWins
     };
 
-    RPCChannel(RPCListener* aListener, RacyRPCPolicy aPolicy=RRPChildWins) :
-        SyncChannel(aListener),
-        mPending(),
-        mStack(),
-        mDeferred(),
-        mRemoteStackDepthGuess(0),
-        mRacePolicy(aPolicy)
-    {
-    }
+    RPCChannel(RPCListener* aListener, RacyRPCPolicy aPolicy=RRPChildWins);
 
-    virtual ~RPCChannel()
-    {
-        
-    }
+    virtual ~RPCChannel();
 
     
     bool Call(Message* msg, Message* reply);
