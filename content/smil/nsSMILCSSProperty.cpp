@@ -97,6 +97,11 @@ nsSMILValue
 nsSMILCSSProperty::GetBaseValue() const
 {
   
+  
+  
+  nsSMILValue baseValue;
+
+  
   if (nsCSSProps::IsShorthand(mPropID)) {
     
     
@@ -106,7 +111,9 @@ nsSMILCSSProperty::GetBaseValue() const
     
     
     
-    return nsSMILValue(&nsSMILCSSValueType::sSingleton);
+    nsSMILValue tmpVal(&nsSMILCSSValueType::sSingleton);
+    baseValue.Swap(tmpVal);
+    return baseValue;
   }
 
   
@@ -135,7 +142,6 @@ nsSMILCSSProperty::GetBaseValue() const
   }
 
   
-  nsSMILValue baseValue;
   if (didGetComputedVal) {
     nsSMILCSSValueType::ValueFromString(mPropID, mElement,
                                         computedStyleVal, baseValue);
