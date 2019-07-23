@@ -1,0 +1,110 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#ifndef _nsZipWriter_h_
+#define _nsZipWriter_h_
+
+#include "nsIZipWriter.h"
+#include "nsIFileStreams.h"
+#include "nsIBufferedStreams.h"
+#include "nsIRequestObserver.h"
+#include "nsZipHeader.h"
+#include "nsCOMPtr.h"
+#include "nsCOMArray.h"
+#include "nsTArray.h"
+#include "nsDataHashtable.h"
+
+#define ZIPWRITER_CONTRACTID "@mozilla.org/zipwriter;1"
+#define ZIPWRITER_CLASSNAME "Zip Writer"
+#define ZIPWRITER_CID { 0x430d416c, 0xa722, 0x4ad1, \
+           { 0xbe, 0x98, 0xd9, 0xa4, 0x45, 0xf8, 0x5e, 0x3f } }
+
+#define OPERATION_ADD 0
+#define OPERATION_REMOVE 1
+struct nsZipQueueItem
+{
+public:
+    PRUint32 mOperation;
+    nsCString mZipEntry;
+    nsCOMPtr<nsIFile> mFile;
+    nsCOMPtr<nsIChannel> mChannel;
+    nsCOMPtr<nsIInputStream> mStream;
+    PRTime mModTime;
+    PRInt32 mCompression;
+};
+
+class nsZipWriter : public nsIZipWriter,
+                    public nsIRequestObserver
+{
+public:
+    NS_DECL_ISUPPORTS
+    NS_DECL_NSIZIPWRITER
+    NS_DECL_NSIREQUESTOBSERVER
+
+    nsZipWriter();
+    nsresult EntryCompleteCallback(nsZipHeader *aHeader, nsresult aStatus);
+
+private:
+    ~nsZipWriter();
+
+    PRUint32 mCDSOffset;
+    PRPackedBool mCDSDirty;
+    PRPackedBool mInQueue;
+
+    nsCOMPtr<nsIFile> mFile;
+    nsCOMPtr<nsIRequestObserver> mProcessObserver;
+    nsCOMPtr<nsISupports> mProcessContext;
+    nsCOMPtr<nsIOutputStream> mStream;
+    nsCOMArray<nsZipHeader> mHeaders;
+    nsTArray<nsZipQueueItem> mQueue;
+    nsDataHashtable<nsCStringHashKey, PRInt32> mEntryHash;
+    nsCString mComment;
+
+    nsresult SeekCDS();
+    void Cleanup();
+    nsresult ReadFile(nsIFile *aFile);
+    nsresult InternalAddEntryDirectory(const nsACString & aZipEntry,
+                                       PRTime aModTime);
+    nsresult BeginProcessingAddition(nsZipQueueItem* aItem, PRBool* complete);
+    nsresult BeginProcessingRemoval(PRInt32 aPos);
+    void BeginProcessingNextItem();
+    void FinishQueue(nsresult aStatus);
+};
+
+#endif

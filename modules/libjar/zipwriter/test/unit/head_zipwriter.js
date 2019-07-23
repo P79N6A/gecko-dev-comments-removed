@@ -1,0 +1,79 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+const NS_OS_TEMP_DIR = "TmpD";
+const Ci = Components.interfaces;
+const Cc = Components.classes;
+const NS_ERROR_IN_PROGRESS = 2152398863;
+
+const PR_RDONLY      = 0x01
+const PR_WRONLY      = 0x02
+const PR_RDWR        = 0x04
+const PR_CREATE_FILE = 0x08
+const PR_APPEND      = 0x10
+const PR_TRUNCATE    = 0x20
+const PR_SYNC        = 0x40
+const PR_EXCL        = 0x80
+
+const ZIP_EOCDR_HEADER_SIZE = 22;
+const ZIP_FILE_HEADER_SIZE = 30;
+const ZIP_CDS_HEADER_SIZE = 46;
+const ZIP_METHOD_STORE = 0
+const ZIP_METHOD_DEFLATE = 8
+
+const PR_USEC_PER_MSEC = 1000;
+
+
+const TIME_RESOLUTION = 2000;
+
+const DATA_DIR = "modules/libjar/zipwriter/test/unit/data/";
+
+var ZipWriter = Components.Constructor("@mozilla.org/zipwriter;1",
+                                       "nsIZipWriter");
+var ZipReader = Components.Constructor("@mozilla.org/libjar/zip-reader;1",
+                                       "nsIZipReader", "open");
+
+var dirSvc = Cc["@mozilla.org/file/directory_service;1"]
+              .getService(Ci.nsIProperties);
+var tmpDir = dirSvc.get(NS_OS_TEMP_DIR, Ci.nsIFile);
+var tmpFile = tmpDir.clone();
+tmpFile.append("zipwriter-test.zip");
+if (tmpFile.exists())
+  tmpFile.remove(true);
+
+var zipW = new ZipWriter();
