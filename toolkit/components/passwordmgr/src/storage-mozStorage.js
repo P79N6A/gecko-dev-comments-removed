@@ -334,7 +334,7 @@ LoginManagerStorage_mozStorage.prototype = {
         this._checkInitializationState();
 
         let [logins, ids] =
-            this._searchLogins(login.hostname, login.formSubmitURL, login.httpRealm, false);
+            this._queryLogins(login.hostname, login.formSubmitURL, login.httpRealm);
         let idToDelete;
 
         
@@ -412,7 +412,7 @@ LoginManagerStorage_mozStorage.prototype = {
         this._checkInitializationState();
 
         let userCanceled;
-        let [logins, ids] = this._queryLogins([], {}, false);
+        let [logins, ids] = this._queryLogins("", "", "");
 
         
         [logins, userCanceled] = this._decryptLogins(logins);
@@ -530,7 +530,8 @@ LoginManagerStorage_mozStorage.prototype = {
         this._checkInitializationState();
 
         let userCanceled;
-        let [logins, ids] = this._searchLogins(hostname, formSubmitURL, httpRealm, false);
+        let [logins, ids] =
+            this._queryLogins(hostname, formSubmitURL, httpRealm);
 
         
         [logins, userCanceled] = this._decryptLogins(logins);
@@ -555,42 +556,28 @@ LoginManagerStorage_mozStorage.prototype = {
         this._checkInitializationState();
 
         
-        let [logins, ids] = this._searchLogins(hostname, formSubmitURL, httpRealm, true);
-        this.log("_countLogins: counted logins: " + ids.length);
-        return ids.length;
-    },
+        let [conditions, params] =
+            this._buildConditionsAndParams(hostname, formSubmitURL, httpRealm);
 
-
-    
-
-
-
-
-
-    _searchLogins : function (hostname, formSubmitURL, httpRealm, countOnly) {
-        let conditions = [];
-        let params = {};
-        
-        if (hostname == null) {
-            conditions.push("hostname isnull");
-        } else if (hostname != '') {
-            conditions.push("hostname = :hostname");
-            params["hostname"] = hostname;
-        }
-        if (formSubmitURL == null) {
-            conditions.push("formSubmitURL isnull");
-        } else if (formSubmitURL != '') {
-            conditions.push("formSubmitURL = :formSubmitURL OR formSubmitURL = ''");
-            params["formSubmitURL"] = formSubmitURL;
-        }
-        if (httpRealm == null) {
-            conditions.push("httpRealm isnull");
-        } else if (httpRealm != '') {
-            conditions.push("httpRealm = :httpRealm");
-            params["httpRealm"] = httpRealm;
+        let query = "SELECT COUNT(1) AS numLogins FROM moz_logins";
+        if (conditions.length) {
+            conditions = conditions.map(function(c) "(" + c + ")");
+            query += " WHERE " + conditions.join(" AND ");
         }
 
-        return this._queryLogins(conditions, params, countOnly);
+        let stmt, numLogins;
+        try {
+            stmt = this._dbCreateStatement(query, params);
+            stmt.step();
+            numLogins = stmt.row.numLogins;
+        } catch (e) {
+            this.log("_countLogins failed: " + e.name + " : " + e.message);
+        } finally {
+            stmt.reset();
+        }
+
+        this.log("_countLogins: counted logins: " + numLogins);
+        return numLogins;
     },
 
 
@@ -601,13 +588,13 @@ LoginManagerStorage_mozStorage.prototype = {
 
 
 
-
-
-
-    _queryLogins : function (conditions, params, countOnly) {
+    _queryLogins : function (hostname, formSubmitURL, httpRealm) {
         let logins = [], ids = [];
 
         let query = "SELECT * FROM moz_logins";
+        let [conditions, params] =
+            this._buildConditionsAndParams(hostname, formSubmitURL, httpRealm);
+
         if (conditions.length) {
             conditions = conditions.map(function(c) "(" + c + ")");
             query += " WHERE " + conditions.join(" AND ");
@@ -618,9 +605,6 @@ LoginManagerStorage_mozStorage.prototype = {
             stmt = this._dbCreateStatement(query, params);
             
             while (stmt.step()) {
-                ids.push(stmt.row.id);
-                if (countOnly)
-                    continue;
                 
                 let login = Cc["@mozilla.org/login-manager/loginInfo;1"].
                             createInstance(Ci.nsILoginInfo);
@@ -629,6 +613,7 @@ LoginManagerStorage_mozStorage.prototype = {
                            stmt.row.encryptedPassword, stmt.row.usernameField,
                            stmt.row.passwordField);
                 logins.push(login);
+                ids.push(stmt.row.id);
             }
         } catch (e) {
             this.log("_queryLogins failed: " + e.name + " : " + e.message);
@@ -669,6 +654,41 @@ LoginManagerStorage_mozStorage.prototype = {
         }
 
         return disabledHosts;
+    },
+
+
+    
+
+
+
+
+
+
+    _buildConditionsAndParams : function (hostname, formSubmitURL, httpRealm) {
+        let conditions = [], params = {};
+
+        if (hostname == null) {
+            conditions.push("hostname isnull");
+        } else if (hostname != '') {
+            conditions.push("hostname = :hostname");
+            params["hostname"] = hostname;
+        }
+
+        if (formSubmitURL == null) {
+            conditions.push("formSubmitURL isnull");
+        } else if (formSubmitURL != '') {
+            conditions.push("formSubmitURL = :formSubmitURL OR formSubmitURL = ''");
+            params["formSubmitURL"] = formSubmitURL;
+        }
+
+        if (httpRealm == null) {
+            conditions.push("httpRealm isnull");
+        } else if (httpRealm != '') {
+            conditions.push("httpRealm = :httpRealm");
+            params["httpRealm"] = httpRealm;
+        }
+
+        return [conditions, params];
     },
 
 
