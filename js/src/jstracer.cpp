@@ -82,6 +82,9 @@
 
 #define MAX_NATIVE_STACK_SLOTS 1024
 
+
+#define MAX_CALL_STACK_ENTRIES 64
+
 #ifdef DEBUG
 #define ABORT_TRACE(msg)   do { fprintf(stdout, "abort: %d: %s\n", __LINE__, msg); return false; } while(0)
 #else
@@ -639,6 +642,7 @@ TraceRecorder::TraceRecorder(JSContext* cx, GuardRecord* _anchor,
     cx_ins = addName(lir->insLoadi(lirbuf->state, offsetof(InterpState, cx)), "cx");
     gp_ins = addName(lir->insLoadi(lirbuf->state, offsetof(InterpState, gp)), "gp");
     eos_ins = addName(lir->insLoadi(lirbuf->state, offsetof(InterpState, eos)), "eos");
+    eor_ins = addName(lir->insLoadi(lirbuf->state, offsetof(InterpState, eor)), "eor");
 
     
     import(ngslots, callDepth, globalTypeMap, stackTypeMap); 
@@ -1334,13 +1338,21 @@ TraceRecorder::emitTreeCall(Fragment* inner, GuardRecord* lr)
 
         unsigned sp_adj = nativeStackSlots(callDepth - 1, cx->fp->down) * sizeof(double);
         
+        unsigned rp_adj = callDepth * sizeof(FrameInfo);
+        
 
         LIns* sp_top = lir->ins2i(LIR_add, lirbuf->sp, sp_adj + 
                 ti->maxNativeStackSlots * sizeof(double));
         guard(true, lir->ins2(LIR_lt, sp_top, eos_ins), OOM_EXIT);
         
+        LIns* rp_top = lir->ins2i(LIR_add, lirbuf->rp, rp_adj + 
+                ti->maxCallDepth * sizeof(FrameInfo));
+        guard(true, lir->ins2(LIR_lt, rp_top, eor_ins), OOM_EXIT);
+        
         lir->insStorei(lir->ins2i(LIR_add, lirbuf->sp, sp_adj), 
                 lirbuf->state, offsetof(InterpState, sp));
+        lir->insStorei(lir->ins2i(LIR_add, lirbuf->rp, rp_adj),
+                lirbuf->state, offsetof(InterpState, rp));
     }
     
     LIns* args[] = { lir->insImmPtr(inner), lirbuf->state }; 
@@ -1352,8 +1364,10 @@ TraceRecorder::emitTreeCall(Fragment* inner, GuardRecord* lr)
     import(exit->numGlobalSlots, exit->calldepth, 
            exit->typeMap, exit->typeMap + exit->numGlobalSlots);
     
-    if (callDepth > 0)
+    if (callDepth > 0) {
         lir->insStorei(lirbuf->sp, lirbuf->state, offsetof(InterpState, sp));
+        lir->insStorei(lirbuf->rp, lirbuf->state, offsetof(InterpState, rp));
+    }
     
 
     guard(true, lir->ins2(LIR_eq, ret, lir->insImmPtr(lr)), NESTED_EXIT);
@@ -1699,6 +1713,7 @@ js_ExecuteTree(JSContext* cx, Fragment* f, uintN& inlineCallCount)
     double* global = (double*)alloca((globalFrameSize+1) * sizeof(double));
     debug_only(*(uint64*)&global[globalFrameSize] = 0xdeadbeefdeadbeefLL;)
     double* stack = (double*)alloca(MAX_NATIVE_STACK_SLOTS * sizeof(double));
+    
 #ifdef DEBUG
     printf("entering trace at %s:%u@%u, native stack slots: %u\n",
            cx->fp->script->filename, js_PCToLineNumber(cx, cx->fp->script, cx->fp->regs->pc),
@@ -1715,15 +1730,18 @@ js_ExecuteTree(JSContext* cx, Fragment* f, uintN& inlineCallCount)
         }
         return NULL;
     }
-    ti->mismatchCount = 0;
     
-    double* entry_sp = &stack[ti->nativeStackBase/sizeof(double)];
+    ti->mismatchCount = 0;
 
-    FrameInfo* callstack = (FrameInfo*) alloca(ti->maxCallDepth * sizeof(FrameInfo));
+    double* entry_sp = &stack[ti->nativeStackBase/sizeof(double)];
+    
+    FrameInfo* callstack = (FrameInfo*) alloca(MAX_CALL_STACK_ENTRIES * sizeof(FrameInfo));
+    
     InterpState state;
     state.sp = (void*)entry_sp;
     state.eos = ((double*)state.sp) + MAX_NATIVE_STACK_SLOTS;
     state.rp = callstack;
+    state.eor = callstack + MAX_CALL_STACK_ENTRIES;
     state.gp = global;
     state.cx = cx;
     union { NIns *code; GuardRecord* (FASTCALL *func)(InterpState*, Fragment*); } u;
@@ -1964,7 +1982,7 @@ TraceRecorder::ifop()
         jsdouble d = asNumber(v);
         jsdpun u;
         u.d = 0;
-        guard((d == 0 || JSDOUBLE_IS_NaN(d)), lir->ins2(LIR_feq, get(&v), lir->insImmq(u.u64)), BRANCH_EXIT);
+        guard(d == 0, lir->ins2(LIR_feq, get(&v), lir->insImmq(u.u64)), BRANCH_EXIT);
     } else if (JSVAL_IS_STRING(v)) {
         guard(JSSTRING_LENGTH(JSVAL_TO_STRING(v)) == 0,
               lir->ins_eq0(lir->ins2(LIR_and,
