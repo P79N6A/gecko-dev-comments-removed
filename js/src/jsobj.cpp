@@ -4393,8 +4393,9 @@ js_NativeSet(JSContext *cx, JSObject *obj, JSScopeProperty *sprop, bool added,
 
 
 
-        if (SPROP_HAS_STUB_SETTER(sprop))
-            return true;
+
+        if (!(sprop->attrs & JSPROP_GETTER) && SPROP_HAS_STUB_SETTER(sprop))
+            return js_ReportGetterOnlyAssignment(cx);
     }
 
     sample = cx->runtime->propertyRemovals;
@@ -6121,17 +6122,20 @@ js_IsCallable(JSObject *obj, JSContext *cx)
     return callable;
 }
 
-void
+JSBool
 js_ReportGetterOnlyAssignment(JSContext *cx)
 {
-    JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL,
-                         JSMSG_GETTER_ONLY, NULL);
+    return JS_ReportErrorFlagsAndNumber(cx,
+                                        JSREPORT_WARNING | JSREPORT_STRICT |
+                                        JSREPORT_STRICT_MODE_ERROR,
+                                        js_GetErrorMessage, NULL,
+                                        JSMSG_GETTER_ONLY);
 }
 
 JS_FRIEND_API(JSBool)
 js_GetterOnlyPropertyStub(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 {
-    js_ReportGetterOnlyAssignment(cx);
+    JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_GETTER_ONLY);
     return JS_FALSE;
 }
 
