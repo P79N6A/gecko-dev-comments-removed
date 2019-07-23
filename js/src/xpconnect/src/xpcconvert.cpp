@@ -330,12 +330,11 @@ XPCConvert::NativeData2JS(XPCCallContext& ccx, jsval* d, const void* s,
                     break;
 
                 if(!p->IsVoid()) {
-                    JSString *str =
-                        XPCStringConvert::ReadableToJSString(cx, *p);
+                    jsval str = XPCStringConvert::ReadableToJSVal(cx, *p);
                     if(!str)
                         return JS_FALSE;
 
-                    *d = STRING_TO_JSVAL(str);
+                    *d = str;
                 }
 
                 
