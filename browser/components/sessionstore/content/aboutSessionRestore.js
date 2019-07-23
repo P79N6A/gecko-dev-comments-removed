@@ -115,21 +115,24 @@ function restoreSession() {
   }
   var stateString = gStateObject.toSource();
   
-  
+  var ss = Cc["@mozilla.org/browser/sessionstore;1"].getService(Ci.nsISessionStore);
   var top = getBrowserWindow();
-  var selfBrowser = top.gBrowser.getBrowserForDocument(document);
+  
+  
+  if (top.gBrowser.tabContainer.childNodes.length == 1) {
+    ss.setWindowState(top, stateString, true);
+    return;
+  }
+  
+  
   var newWindow = top.openDialog(top.location, "_blank", "chrome,dialog=no,all");
   newWindow.addEventListener("load", function() {
     newWindow.removeEventListener("load", arguments.callee, true);
-    
-    var ss = Cc["@mozilla.org/browser/sessionstore;1"].getService(Ci.nsISessionStore);
     ss.setWindowState(newWindow, stateString, true);
     
     var tabbrowser = top.gBrowser;
-    if (tabbrowser.tabContainer.childNodes.length == 1)
-      top.close();
-    else
-      tabbrowser.removeTab(getTabForBrowser(selfBrowser));
+    var tabIndex = tabbrowser.getBrowserIndexForDocument(document);
+    tabbrowser.removeTab(tabbrowser.tabContainer.childNodes[tabIndex]);
   }, true);
 }
 
@@ -183,11 +186,6 @@ function getBrowserWindow() {
   return window.QueryInterface(Ci.nsIInterfaceRequestor).getInterface(Ci.nsIWebNavigation)
                .QueryInterface(Ci.nsIDocShellTreeItem).rootTreeItem
                .QueryInterface(Ci.nsIInterfaceRequestor).getInterface(Ci.nsIDOMWindow);
-}
-
-function getTabForBrowser(aBrowser) {
-  return Array.filter(getBrowserWindow().gBrowser.tabContainer.childNodes,
-                      function(aTab) aTab.linkedBrowser == aBrowser)[0];
 }
 
 function toggleRowChecked(aIx) {
