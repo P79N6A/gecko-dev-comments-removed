@@ -6174,7 +6174,7 @@ let DownloadMonitorPanel = {
 
     
     let timeLeft;
-    [timeLeft, this._lastSec] = DownloadUtils.getTimeLeft(maxTime, this._lastSec);
+    [timeLeft, this._lastTime] = DownloadUtils.getTimeLeft(maxTime, this._lastTime);
 
     
     let numDls = numActive - numPaused;
