@@ -87,15 +87,6 @@ function getFile(key) {
 
 
 
-function getFileRelativeTo(dir, relPath) {
-  var file = dir.clone().QueryInterface(Components.interfaces.nsILocalFile);
-  file.setRelativeDescriptor(dir, relPath);
-  return file;
-}
-
-
-
-
 
 
 
