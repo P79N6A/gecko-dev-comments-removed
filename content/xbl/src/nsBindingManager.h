@@ -184,10 +184,16 @@ public:
   PRBool ShouldBuildChildFrames(nsIContent* aContent);
 
   
-  nsresult WalkRules(nsStyleSet* aStyleSet, 
-                     nsIStyleRuleProcessor::EnumFunc aFunc,
+  nsresult WalkRules(nsIStyleRuleProcessor::EnumFunc aFunc,
                      RuleProcessorData* aData,
                      PRBool* aCutOffInheritance);
+  
+
+
+
+
+  nsresult MediumFeaturesChanged(nsPresContext* aPresContext,
+                                 PRBool* aRulesChanged);
 
   NS_HIDDEN_(void) Traverse(nsIContent *aContent,
                             nsCycleCollectionTraversalCallback &cb);
