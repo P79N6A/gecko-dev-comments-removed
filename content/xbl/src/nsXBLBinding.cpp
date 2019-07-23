@@ -272,8 +272,7 @@ nsXBLBinding::nsXBLBinding(nsXBLPrototypeBinding* aBinding)
   : mPrototypeBinding(aBinding),
     mInsertionPointTable(nsnull),
     mIsStyleBinding(PR_TRUE),
-    mMarkedForDeath(PR_FALSE),
-    mInstalledAPI(PR_FALSE)
+    mMarkedForDeath(PR_FALSE)
 {
   NS_ASSERTION(mPrototypeBinding, "Must have a prototype binding!");
   
@@ -374,6 +373,18 @@ nsXBLBinding::SetBoundElement(nsIContent* aElement)
   mBoundElement = aElement;
   if (mNextBinding)
     mNextBinding->SetBoundElement(aElement);
+}
+
+nsXBLBinding*
+nsXBLBinding::GetFirstBindingWithConstructor()
+{
+  if (mPrototypeBinding->GetConstructor())
+    return this;
+
+  if (mNextBinding)
+    return mNextBinding->GetFirstBindingWithConstructor();
+
+  return nsnull;
 }
 
 PRBool
@@ -787,22 +798,6 @@ nsXBLBinding::GenerateAnonymousContent()
     if (mContent)
       mContent->UnsetAttr(namespaceID, name, PR_FALSE);
   }
-}
-
-nsresult
-nsXBLBinding::EnsureScriptAPI()
-{
-  if (mInstalledAPI) {
-    return NS_OK;
-  }
-  
-  
-  
-  mInstalledAPI = PR_TRUE;
-
-  InstallEventHandlers();
-
-  return InstallImplementation();
 }
 
 void
