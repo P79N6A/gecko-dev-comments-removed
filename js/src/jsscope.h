@@ -204,6 +204,7 @@ struct JSScope {
     jsrefcount      nrefs;              
     uint32          freeslot;           
     uint32          shape;              
+    JSScope         *emptyScope;        
     uint8           flags;              
     int8            hashShift;          
 
@@ -220,10 +221,28 @@ struct JSScope {
     void reportReadOnlyScope(JSContext *cx);
     JSScopeProperty **searchTable(jsid id, bool adding);
     inline JSScopeProperty **search(jsid id, bool adding);
+    JSScope *createEmptyScope(JSContext *cx, JSClass *clasp);
 
   public:
+    
     static JSScope *create(JSContext *cx, JSObjectOps *ops, JSClass *clasp, JSObject *obj);
+
     static void destroy(JSContext *cx, JSScope *scope);
+
+    
+
+
+
+
+
+
+    JSScope *getEmptyScope(JSContext *cx, JSClass *clasp) {
+        if (emptyScope) {
+            emptyScope->hold();
+            return emptyScope;
+        }
+        return createEmptyScope(cx, clasp);
+    }
 
     inline void hold();
     inline bool drop(JSContext *cx, JSObject *obj);
@@ -288,6 +307,8 @@ struct JSScope {
     bool branded()              { return flags & BRANDED; }
     void setBranded()           { flags |= BRANDED; }
     void clearBranded()         { flags &= ~BRANDED; }
+
+    bool owned()                { return object != NULL; }
 };
 
 #define JS_IS_SCOPE_LOCKED(cx, scope)   JS_IS_TITLE_LOCKED(cx, &(scope)->title)

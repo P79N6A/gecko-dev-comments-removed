@@ -5459,6 +5459,33 @@ testOwnPropertyWithInOperator.jitstats = {
 };
 test(testOwnPropertyWithInOperator);
 
+function testBug501690() {
+    
+    function B(){}
+    B.prototype = {x: 123};
+
+    function D(){}
+    D.prototype = new B;
+    D.prototype.x = 1;    
+
+    arr = [new D, new D, new D, D.prototype];  
+    for (var i = 0; i < 4; i++)
+        assertEq(arr[i].x, 1);  
+}
+test(testBug501690);
+
+function testObjectVsPrototype() {
+    function D() {}
+    var b = D.prototype = {x: 1};
+    var d = new D;
+    var arr = [b, b, b, d];
+    for (var i = 0; i < 4; i++)
+        arr[i].x = i;
+
+    d.y = 12;
+    assertEq(d.x, 3);
+}
+test(testObjectVsPrototype);
 
 
 

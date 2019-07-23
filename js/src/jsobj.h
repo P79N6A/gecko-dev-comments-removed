@@ -141,11 +141,6 @@ struct JSObjectMap {
         }                                                                     \
     JS_END_MACRO
 
-
-
-
-
-
 #define OBJ_TO_OUTER_OBJECT(cx,obj)                                           \
     JS_BEGIN_MACRO                                                            \
         JSClass *clasp_ = OBJ_GET_CLASS(cx, obj);                             \
@@ -426,8 +421,12 @@ extern JSClass  js_BlockClass;
 
 #define JSSLOT_BLOCK_DEPTH      (JSSLOT_PRIVATE + 1)
 
-#define OBJ_IS_CLONED_BLOCK(obj)                                              \
-    (OBJ_SCOPE(obj)->object != (obj))
+static inline bool
+OBJ_IS_CLONED_BLOCK(JSObject *obj)
+{
+    return obj->fslots[JSSLOT_PROTO] != JSVAL_NULL;
+}
+
 #define OBJ_BLOCK_COUNT(cx,obj)                                               \
     (OBJ_SCOPE(obj)->entryCount)
 #define OBJ_BLOCK_DEPTH(cx,obj)                                               \
@@ -456,8 +455,7 @@ extern JSObject *
 js_NewBlockObject(JSContext *cx);
 
 extern JSObject *
-js_CloneBlockObject(JSContext *cx, JSObject *proto, JSObject *parent,
-                    JSStackFrame *fp);
+js_CloneBlockObject(JSContext *cx, JSObject *proto, JSStackFrame *fp);
 
 extern JS_REQUIRES_STACK JSBool
 js_PutBlockObject(JSContext *cx, JSBool normalUnwind);
@@ -608,14 +606,12 @@ js_CheckForStringIndex(jsid id);
 extern void
 js_PurgeScopeChainHelper(JSContext *cx, JSObject *obj, jsid id);
 
-#ifdef __cplusplus 
 static JS_INLINE void
 js_PurgeScopeChain(JSContext *cx, JSObject *obj, jsid id)
 {
     if (OBJ_IS_DELEGATE(cx, obj))
         js_PurgeScopeChainHelper(cx, obj, id);
 }
-#endif
 
 
 
@@ -859,6 +855,36 @@ js_ReportGetterOnlyAssignment(JSContext *cx);
 
 extern JS_FRIEND_API(JSBool)
 js_GetterOnlyPropertyStub(JSContext *cx, JSObject *obj, jsval id, jsval *vp);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+static inline bool
+js_ObjectIsSimilarToProto(JSContext *cx, JSObject *obj, JSObjectOps *ops, JSClass *clasp,
+                          JSObject *proto)
+{
+    JS_ASSERT(proto == OBJ_GET_PROTO(cx, obj));
+
+    JSClass *protoclasp;
+    return (proto->map->ops == ops &&
+            ((protoclasp = OBJ_GET_CLASS(cx, proto)) == clasp ||
+             (!((protoclasp->flags ^ clasp->flags) &
+                (JSCLASS_HAS_PRIVATE |
+                 (JSCLASS_RESERVED_SLOTS_MASK << JSCLASS_RESERVED_SLOTS_SHIFT))) &&
+              protoclasp->reserveSlots == clasp->reserveSlots)));
+}
 
 #ifdef DEBUG
 JS_FRIEND_API(void) js_DumpChars(const jschar *s, size_t n);

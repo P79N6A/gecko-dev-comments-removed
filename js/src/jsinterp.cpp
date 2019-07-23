@@ -118,7 +118,6 @@ js_FillPropertyCache(JSContext *cx, JSObject *obj,
 
 
     scope = OBJ_SCOPE(pobj);
-    JS_ASSERT(scope->object == pobj);
     if (!scope->has(sprop)) {
         PCMETER(cache->oddfills++);
         return JS_NO_PROP_CACHE_FILL;
@@ -202,7 +201,6 @@ js_FillPropertyCache(JSContext *cx, JSObject *obj,
 
 
 
-
                 if (!scope->branded()) {
                     PCMETER(cache->brandfills++);
 #ifdef DEBUG_notme
@@ -262,13 +260,26 @@ js_FillPropertyCache(JSContext *cx, JSObject *obj,
 
 
 
-                JS_ASSERT(scope->object == obj);
+                JS_ASSERT(scope->owned());
                 if (sprop->parent) {
                     kshape = sprop->parent->shape;
                 } else {
+                    
+
+
+
+
+
                     JSObject *proto = STOBJ_GET_PROTO(obj);
-                    if (proto && OBJ_IS_NATIVE(proto))
-                        kshape = OBJ_SHAPE(proto);
+                    if (!proto || !OBJ_IS_NATIVE(proto))
+                        return JS_NO_PROP_CACHE_FILL;
+                    JSScope *protoscope = OBJ_SCOPE(proto);
+                    if (!protoscope->emptyScope ||
+                        !js_ObjectIsSimilarToProto(cx, obj, obj->map->ops, OBJ_GET_CLASS(cx, obj),
+                                                   proto)) {
+                        return JS_NO_PROP_CACHE_FILL;
+                    }
+                    kshape = protoscope->emptyScope->shape;
                 }
 
                 
@@ -288,8 +299,6 @@ js_FillPropertyCache(JSContext *cx, JSObject *obj,
     khash = PROPERTY_CACHE_HASH_PC(pc, kshape);
     if (obj == pobj) {
         JS_ASSERT(scopeIndex == 0 && protoIndex == 0);
-        JS_ASSERT(OBJ_SCOPE(obj)->object == obj);
-        JS_ASSERT(kshape != 0);
     } else {
         if (op == JSOP_LENGTH) {
             atom = cx->runtime->atomState.lengthAtom;
@@ -763,9 +772,7 @@ js_GetScopeChain(JSContext *cx, JSStackFrame *fp)
 
 
 
-
-    JSObject *innermostNewChild
-        = js_CloneBlockObject(cx, sharedBlock, fp->scopeChain, fp);
+    JSObject *innermostNewChild = js_CloneBlockObject(cx, sharedBlock, fp);
     if (!innermostNewChild)
         return NULL;
     JSAutoTempValueRooter tvr(cx, innermostNewChild);
@@ -785,7 +792,7 @@ js_GetScopeChain(JSContext *cx, JSStackFrame *fp)
 
         
         JSObject *clone
-            = js_CloneBlockObject(cx, sharedBlock, fp->scopeChain, fp);
+            = js_CloneBlockObject(cx, sharedBlock, fp);
         if (!clone)
             return NULL;
 
@@ -796,6 +803,8 @@ js_GetScopeChain(JSContext *cx, JSStackFrame *fp)
         STOBJ_SET_PARENT(newChild, clone);
         newChild = clone;
     }
+    STOBJ_SET_PARENT(newChild, fp->scopeChain);
+
 
     
 
@@ -4686,7 +4695,7 @@ js_Interpret(JSContext *cx)
 
                                 
                                 checkForAdd = false;
-                            } else if (scope->object == obj) {
+                            } else if (scope->owned()) {
                                 if (sprop == scope->lastProp || scope->has(sprop)) {
                                   fast_set_propcache_hit:
                                     PCMETER(cache->pchits++);
@@ -6442,7 +6451,7 @@ js_Interpret(JSContext *cx)
                     if (!SPROP_HAS_STUB_SETTER(sprop))
                         goto do_initprop_miss;
 
-                    if (scope->object != obj) {
+                    if (!scope->owned()) {
                         scope = js_GetMutableScope(cx, obj);
                         if (!scope) {
                             JS_UNLOCK_OBJ(cx, obj);
@@ -6493,7 +6502,8 @@ js_Interpret(JSContext *cx)
                         }
                         JS_ASSERT(sprop2 == sprop);
                     } else {
-                        js_LeaveTraceIfGlobalObject(cx, scope->object);
+                        JS_ASSERT(scope->owned());
+                        js_LeaveTraceIfGlobalObject(cx, obj);
                         scope->shape = sprop->shape;
                         ++scope->entryCount;
                         scope->lastProp = sprop;
