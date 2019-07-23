@@ -1029,10 +1029,7 @@ SessionStoreService.prototype = {
   },
 
   undoCloseWindow: function sss_undoCloseWindow(aIndex) {
-    
-    aIndex = aIndex || 0;
-
-    if (!aIndex in this._closedWindows)
+    if (!(aIndex in this._closedWindows))
       throw (Components.returnCode = Cr.NS_ERROR_INVALID_ARG);
 
     
