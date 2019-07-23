@@ -91,10 +91,6 @@ public:
   
 
   
-  NS_IMETHOD_(nsrefcnt) AddRef(void);
-  NS_IMETHOD_(nsrefcnt) Release(void);
-
-  
   NS_IMETHOD SetLayoutManager(nsIBoxLayout* aLayout);
   NS_IMETHOD GetLayoutManager(nsIBoxLayout** aLayout);
   NS_IMETHOD RelayoutChildAtOrdinal(nsBoxLayoutState& aState, nsIBox* aChild);
@@ -253,12 +249,6 @@ protected:
 
 private: 
 
-    
-    static PRBool AdjustTargetToScope(nsIFrame* aParent, nsIFrame*& aTargetFrame);
-
-
-
-
 #ifdef DEBUG_LAYOUT
     nsresult SetDebug(nsPresContext* aPresContext, PRBool aDebug);
     PRBool GetInitialDebug(PRBool& aDebug);
@@ -283,8 +273,6 @@ private:
 #endif
 
     void CacheAttributes();
-
-    nsIBox* GetBoxForFrame(nsIFrame* aFrame, PRBool& aIsAdaptor);
 
     
     Halignment mHalign;
