@@ -55,7 +55,8 @@ enum nsStyleUnit {
   eStyleUnit_Factor       = 11,     
   eStyleUnit_Coord        = 20,     
   eStyleUnit_Integer      = 30,     
-  eStyleUnit_Enumerated   = 32      
+  eStyleUnit_Enumerated   = 32,     
+  eStyleUnit_Chars        = 33      
 };
 
 typedef union {
@@ -196,8 +197,10 @@ inline PRInt32 nsStyleCoord::GetCoordValue(void) const
 inline PRInt32 nsStyleCoord::GetIntValue(void) const
 {
   NS_ASSERTION((mUnit == eStyleUnit_Enumerated) ||
+               (mUnit == eStyleUnit_Chars) ||
                (mUnit == eStyleUnit_Integer), "not an int value");
   if ((mUnit == eStyleUnit_Enumerated) ||
+      (mUnit == eStyleUnit_Chars) ||
       (mUnit == eStyleUnit_Integer)) {
     return mValue.mInt;
   }

@@ -606,16 +606,7 @@ public:
   static PRBool GetAbsoluteCoord(const nsStyleCoord& aStyle,
                                  nsIRenderingContext* aRenderingContext,
                                  nsStyleContext* aStyleContext,
-                                 nscoord& aResult)
-  {
-    nsStyleUnit unit = aStyle.GetUnit();
-    if (eStyleUnit_Coord == unit) {
-      aResult = aStyle.GetCoordValue();
-      return PR_TRUE;
-    }
-    return PR_FALSE;
-  }
-
+                                 nscoord& aResult);
   
 
 
@@ -769,6 +760,17 @@ public:
 
 
   static void SetFontFromStyle(nsIRenderingContext* aRC, nsStyleContext* aSC);
+
+  
+
+
+
+
+
+
+  static nscoord CharsToCoord(const nsStyleCoord& aStyle,
+                              nsIRenderingContext* aRenderingContext,
+                              nsStyleContext* aStyleContext);
 
   
 

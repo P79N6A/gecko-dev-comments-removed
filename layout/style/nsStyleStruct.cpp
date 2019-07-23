@@ -231,6 +231,10 @@ static nscoord CalcCoord(const nsStyleCoord& aCoord,
         }
       }
       break;
+    case eStyleUnit_Chars:
+      
+      NS_NOTYETIMPLEMENTED("CalcCoord: eStyleUnit_Chars");
+      return 0;
     default:
       NS_ERROR("bad unit type");
       break;
