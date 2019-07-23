@@ -73,10 +73,9 @@ var gTabsPane = {
 
 
 
-
   readLinkTarget: function() {
     var openExternal = document.getElementById("browser.link.open_external");
-    return openExternal.value != 2 ? 3 : 2;
+    return openExternal.value != 2;
   },
 
   
@@ -89,8 +88,8 @@ var gTabsPane = {
 
   writeLinkTarget: function() {
     var linkTargeting = document.getElementById("linkTargeting");
-    document.getElementById("browser.link.open_newwindow").value = linkTargeting.value;
-    return linkTargeting.value;
+    var linkTarget = linkTargeting.checked ? 3 : 2;
+    document.getElementById("browser.link.open_newwindow").value = linkTarget;
+    return linkTarget;
   }
 };
-
