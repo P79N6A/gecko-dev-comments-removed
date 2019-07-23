@@ -792,6 +792,7 @@ XPCWrappedNativeScope::FindInJSObjectScope(XPCCallContext& ccx, JSObject* obj,
 
     
     
+    XPCWrappedNativeScope* found = nsnull;
     {   
         XPCAutoLock lock(ccx.GetRuntime()->GetMapLock());
 
@@ -801,10 +802,16 @@ XPCWrappedNativeScope::FindInJSObjectScope(XPCCallContext& ccx, JSObject* obj,
         {
             if(obj == cur->GetGlobalJSObject())
             {
-                DEBUG_CheckForComponentsInScope(ccx, obj, OKIfNotInitialized);
-                return cur;
+                found = cur;
+                break;
             }
         }
+    }
+
+    if(found) {
+        
+        DEBUG_CheckForComponentsInScope(ccx, obj, OKIfNotInitialized);
+        return found;
     }
 
     
