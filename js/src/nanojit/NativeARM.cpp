@@ -544,6 +544,13 @@ Assembler::nFragExit(LInsp guard)
 #endif
 
     
+    verbose_only(
+       if (_logc->lcbits & LC_FragProfile) {
+           asm_inc_m32( &guard->record()->profCount );
+       }
+    )
+
+    
     MOV(SP, FP);
 }
 
@@ -1397,9 +1404,38 @@ Assembler::asm_mmq(Register rd, int dd, Register rs, int ds)
 
 
 verbose_only(
-void Assembler::asm_inc_m32(uint32_t* )
+void Assembler::asm_inc_m32(uint32_t* pCtr)
 {
     
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+
+    
+    
+    underrunProtect(8*4);
+    IMM32(0xE8BD0003);       
+    IMM32(0xE5801000);       
+    IMM32(0xE2811001);       
+    IMM32(0xE5901000);       
+    IMM32((uint32_t)pCtr);   
+    IMM32(0xEA000000);       
+    IMM32(0xE59F0000);       
+    IMM32(0xE92D0003);       
 }
 )
 
