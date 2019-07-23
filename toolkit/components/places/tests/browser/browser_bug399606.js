@@ -36,6 +36,8 @@
 
 
 
+Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
+
 function test() {
   
   waitForExplicitFinish();
