@@ -6061,6 +6061,9 @@ IdentityHandler.prototype = {
       return; 
 
     
+    handleURLBarRevert();
+
+    
     
     this._identityPopup.hidden = false;
     
