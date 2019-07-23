@@ -21,7 +21,13 @@
 extern "C" {
 #endif
 
+#include <stddef.h>
 #include <ogg/os_types.h>
+
+typedef struct {
+  void *iov_base;
+  size_t iov_len;
+} ogg_iovec_t;
 
 typedef struct {
   long endbyte;
@@ -69,7 +75,7 @@ typedef struct {
 
   long    serialno;
   long    pageno;
-  ogg_int64_t  packetno;      
+  ogg_int64_t  packetno;  
 
 
 
@@ -88,7 +94,7 @@ typedef struct {
   long  e_o_s;
 
   ogg_int64_t  granulepos;
-  
+
   ogg_int64_t  packetno;     
 
 
@@ -110,6 +116,7 @@ typedef struct {
 
 
 extern void  oggpack_writeinit(oggpack_buffer *b);
+extern int   oggpack_writecheck(oggpack_buffer *b);
 extern void  oggpack_writetrunc(oggpack_buffer *b,long bits);
 extern void  oggpack_writealign(oggpack_buffer *b);
 extern void  oggpack_writecopy(oggpack_buffer *b,void *source,long bits);
@@ -128,6 +135,7 @@ extern long  oggpack_bits(oggpack_buffer *b);
 extern unsigned char *oggpack_get_buffer(oggpack_buffer *b);
 
 extern void  oggpackB_writeinit(oggpack_buffer *b);
+extern int   oggpackB_writecheck(oggpack_buffer *b);
 extern void  oggpackB_writetrunc(oggpack_buffer *b,long bits);
 extern void  oggpackB_writealign(oggpack_buffer *b);
 extern void  oggpackB_writecopy(oggpack_buffer *b,void *source,long bits);
@@ -148,6 +156,8 @@ extern unsigned char *oggpackB_get_buffer(oggpack_buffer *b);
 
 
 extern int      ogg_stream_packetin(ogg_stream_state *os, ogg_packet *op);
+extern int      ogg_stream_iovecin(ogg_stream_state *os, ogg_iovec_t *iov,
+                                   int count, long e_o_s, ogg_int64_t granulepos);
 extern int      ogg_stream_pageout(ogg_stream_state *os, ogg_page *og);
 extern int      ogg_stream_flush(ogg_stream_state *os, ogg_page *og);
 
@@ -156,7 +166,8 @@ extern int      ogg_stream_flush(ogg_stream_state *os, ogg_page *og);
 extern int      ogg_sync_init(ogg_sync_state *oy);
 extern int      ogg_sync_clear(ogg_sync_state *oy);
 extern int      ogg_sync_reset(ogg_sync_state *oy);
-extern int	ogg_sync_destroy(ogg_sync_state *oy);
+extern int      ogg_sync_destroy(ogg_sync_state *oy);
+extern int      ogg_sync_check(ogg_sync_state *oy);
 
 extern char    *ogg_sync_buffer(ogg_sync_state *oy, long size);
 extern int      ogg_sync_wrote(ogg_sync_state *oy, long bytes);
@@ -173,18 +184,19 @@ extern int      ogg_stream_clear(ogg_stream_state *os);
 extern int      ogg_stream_reset(ogg_stream_state *os);
 extern int      ogg_stream_reset_serialno(ogg_stream_state *os,int serialno);
 extern int      ogg_stream_destroy(ogg_stream_state *os);
+extern int      ogg_stream_check(ogg_stream_state *os);
 extern int      ogg_stream_eos(ogg_stream_state *os);
 
 extern void     ogg_page_checksum_set(ogg_page *og);
 
-extern int      ogg_page_version(ogg_page *og);
-extern int      ogg_page_continued(ogg_page *og);
-extern int      ogg_page_bos(ogg_page *og);
-extern int      ogg_page_eos(ogg_page *og);
-extern ogg_int64_t  ogg_page_granulepos(ogg_page *og);
-extern int      ogg_page_serialno(ogg_page *og);
-extern long     ogg_page_pageno(ogg_page *og);
-extern int      ogg_page_packets(ogg_page *og);
+extern int      ogg_page_version(const ogg_page *og);
+extern int      ogg_page_continued(const ogg_page *og);
+extern int      ogg_page_bos(const ogg_page *og);
+extern int      ogg_page_eos(const ogg_page *og);
+extern ogg_int64_t  ogg_page_granulepos(const ogg_page *og);
+extern int      ogg_page_serialno(const ogg_page *og);
+extern long     ogg_page_pageno(const ogg_page *og);
+extern int      ogg_page_packets(const ogg_page *og);
 
 extern void     ogg_packet_clear(ogg_packet *op);
 
@@ -194,9 +206,3 @@ extern void     ogg_packet_clear(ogg_packet *op);
 #endif
 
 #endif
-
-
-
-
-
-
