@@ -1745,7 +1745,7 @@ static const CallInfo *
 fcallinfo(LIns *i)
 {
     if (nanojit::AvmCore::config.soft_float) {
-        if (!i->isop(LIR_qjoin))
+        if (i->isop(LIR_qjoin))
             return NULL;
         i = i->oprnd1();
         return i->isop(LIR_icall) ? i->callInfo() : NULL;
@@ -8369,12 +8369,13 @@ TraceRecorder::f2i(LIns* f)
         }
         if (ci == &js_String_p_charCodeAt_ci) {
             LIns* idx = fcallarg(f, 1);
-            
-            idx = isPromote(idx)
-                ? demote(lir, idx)
-                : lir->insCall(&js_DoubleToInt32_ci, &idx);
-            LIns* args[] = { idx, fcallarg(f, 0) };
-            return lir->insCall(&js_String_p_charCodeAt_int_ci, args);
+            if (isPromote(idx)) {
+                LIns* args[] = { demote(lir, idx), fcallarg(f, 0) };
+                return lir->insCall(&js_String_p_charCodeAt_int_int_ci, args);
+            } else {
+                LIns* args[] = { idx, fcallarg(f, 0) };
+                return lir->insCall(&js_String_p_charCodeAt_double_int_ci, args);
+            }
         }
     }
     return lir->insCall(&js_DoubleToInt32_ci, &f);
