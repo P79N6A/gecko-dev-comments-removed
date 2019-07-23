@@ -149,10 +149,17 @@ class NS_COM_GLUE nsTArray_base {
     }
 
     
+    
+    struct AutoArray {
+      Header *mHdr;
+      PRUint64 aligned;
+    };
+
+    
     Header* GetAutoArrayBuffer() {
       NS_ASSERTION(IsAutoArray(), "Should be an auto array to call this");
 
-      return reinterpret_cast<Header*>(&mHdr + 1);
+      return reinterpret_cast<Header*>(&(reinterpret_cast<AutoArray*>(&mHdr))->aligned);
     }
 
     
@@ -929,7 +936,10 @@ class nsAutoTArray : public nsTArray<E> {
     }
 
   protected:
-    char mAutoBuf[sizeof(Header) + N * sizeof(elem_type)];
+    union {
+      char mAutoBuf[sizeof(Header) + N * sizeof(elem_type)];
+      PRUint64 dummy;
+    };
 };
 
 
