@@ -44,6 +44,8 @@
 #include "nsMenuBaseX.h"
 #include "nsIMutationObserver.h"
 #include "nsHashtable.h"
+#include "nsHashKeys.h"
+#include "nsDataHashtable.h"
 #include "nsINativeMenuService.h"
 #include "nsAutoPtr.h"
 #include "nsString.h"
@@ -162,7 +164,12 @@ protected:
   PRUint32           mCurrentCommandID;    
   nsIDocument*       mDocument;            
   GeckoNSMenu*       mNativeMenu;            
-  nsHashtable        mObserverTable;       
+
+  
+  nsDataHashtable<nsPtrHashKey<nsIContent>, nsChangeObserver *> mContentToObserverTable;
+
+  
+  nsDataHashtable<nsUint32HashKey, nsMenuItemX *> mCommandToMenuObjectTable;
 };
 
 #endif 
