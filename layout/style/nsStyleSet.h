@@ -86,6 +86,8 @@ class nsStyleSet
   
   nsCachedStyleData* DefaultStyleData() { return &mDefaultStyleData; }
 
+  nsRuleNode* GetRuleTree() { return mRuleTree; }
+
   
   void EnableQuirkStyleSheet(PRBool aEnable);
 
@@ -247,6 +249,9 @@ class nsStyleSet
   PRBool BuildDefaultStyleData(nsPresContext* aPresContext);
 
   
+  void GCRuleTrees();
+
+  
   nsresult GatherRuleProcessors(sheetType aType);
 
   void AddImportantRules(nsRuleNode* aCurrLevelNode,
@@ -317,11 +322,14 @@ class nsStyleSet
 
   PRUint16 mBatching;
 
-  nsRuleNode* mOldRuleTree; 
-                            
+  
+  
+  
+  nsTArray<nsRuleNode*> mOldRuleTrees;
 
   unsigned mInShutdown : 1;
   unsigned mAuthorStyleDisabled: 1;
+  unsigned mInReconstruct : 1;
   unsigned mDirty : 7;  
 
 };

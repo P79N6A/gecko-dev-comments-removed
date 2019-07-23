@@ -5368,7 +5368,9 @@ nsRuleNode::Sweep()
   
   
   
-  if (!(mDependentBits & NS_RULE_NODE_GC_MARK) && !IsRoot()) {
+  if (!(mDependentBits & NS_RULE_NODE_GC_MARK) &&
+      
+      !(IsRoot() && mPresContext->StyleSet()->GetRuleTree() == this)) {
     Destroy();
     return PR_TRUE;
   }
