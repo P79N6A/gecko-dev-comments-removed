@@ -125,11 +125,27 @@ class ExceptionHandler {
   
   
   
+  enum HandlerType {
+    HANDLER_NONE = 0,
+    HANDLER_EXCEPTION = 1 << 0,          
+    HANDLER_INVALID_PARAMETER = 1 << 1,  
+    HANDLER_PURECALL = 1 << 2,           
+    HANDLER_ALL = HANDLER_EXCEPTION |
+                  HANDLER_INVALID_PARAMETER |
+                  HANDLER_PURECALL
+  };
+
+  
+  
+  
+  
   
   
   ExceptionHandler(const wstring &dump_path,
-                   FilterCallback filter, MinidumpCallback callback,
-                   void *callback_context, bool install_handler);
+                   FilterCallback filter,
+                   MinidumpCallback callback,
+                   void *callback_context,
+                   int handler_types);
   ~ExceptionHandler();
 
   
@@ -143,6 +159,10 @@ class ExceptionHandler {
   
   
   bool WriteMinidump();
+
+  
+  
+  bool WriteMinidumpForException(EXCEPTION_POINTERS *exinfo);
 
   
   
@@ -242,7 +262,7 @@ class ExceptionHandler {
 
   
   
-  bool installed_handler_;
+  int handler_types_;
 
   
   

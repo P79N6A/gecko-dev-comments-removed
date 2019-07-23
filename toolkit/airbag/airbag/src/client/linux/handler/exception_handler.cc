@@ -29,7 +29,6 @@
 
 
 
-#include <asm/sigcontext.h>
 #include <signal.h>
 #include <sys/stat.h>
 #include <sys/types.h>
