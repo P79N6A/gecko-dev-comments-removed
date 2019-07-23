@@ -145,12 +145,6 @@ nsXMLContentSink::nsXMLContentSink()
 
 nsXMLContentSink::~nsXMLContentSink()
 {
-  if (mDocument) {
-    
-    
-    mDocument->RemoveObserver(this);
-  }
-
   NS_IF_RELEASE(mDocElement);
   if (mText) {
     PR_Free(mText);  
@@ -189,9 +183,6 @@ NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION_INHERITED(nsXMLContentSink)
   NS_INTERFACE_MAP_ENTRY(nsIContentSink)
   NS_INTERFACE_MAP_ENTRY(nsIXMLContentSink)
   NS_INTERFACE_MAP_ENTRY(nsIExpatSink)
-  NS_INTERFACE_MAP_ENTRY(nsITimerCallback)
-  NS_INTERFACE_MAP_ENTRY(nsIDocumentObserver)
-  NS_INTERFACE_MAP_ENTRY(nsIMutationObserver)
   NS_INTERFACE_MAP_ENTRY(nsITransformObserver)
 NS_INTERFACE_MAP_END_INHERITING(nsContentSink)
 
