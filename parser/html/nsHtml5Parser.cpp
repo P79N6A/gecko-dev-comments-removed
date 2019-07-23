@@ -331,14 +331,26 @@ nsHtml5Parser::Parse(const nsAString& aSourceBuffer,
       prevSearchBuf = searchBuf;
       searchBuf = searchBuf->next;
     }
-  }
-  if (searchBuf == mLastBuffer || !aKey) {
+    if (searchBuf == mLastBuffer) {
+      
+      nsHtml5UTF16Buffer* keyHolder = new nsHtml5UTF16Buffer(aKey);
+      keyHolder->next = mFirstBuffer;
+      buffer->next = keyHolder;
+      mFirstBuffer = buffer;
+    }
+  } else {
     
     
-    nsHtml5UTF16Buffer* keyHolder = new nsHtml5UTF16Buffer(aKey);
-    keyHolder->next = mFirstBuffer;
-    buffer->next = keyHolder;
-    mFirstBuffer = buffer;
+    while (searchBuf != mLastBuffer) {
+      prevSearchBuf = searchBuf;
+      searchBuf = searchBuf->next;
+    }
+    buffer->next = mLastBuffer;
+    if (prevSearchBuf) {
+      prevSearchBuf->next = buffer;
+    } else {
+      mFirstBuffer = buffer;
+    }
   }
 
   if (!mBlocked) {
