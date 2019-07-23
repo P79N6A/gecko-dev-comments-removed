@@ -26,7 +26,6 @@ function test() {
                 
                 
                 
-                historyService.removeObserver(historyObserver, false);
                 finish();
             }
         },
