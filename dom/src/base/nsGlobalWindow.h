@@ -628,6 +628,14 @@ protected:
     return aList != &mTimeouts;
   }
 
+  
+  
+  
+  PRInt32 DevToCSSIntPixels(PRInt32 px);
+  PRInt32 CSSToDevIntPixels(PRInt32 px);
+  nsIntSize DevToCSSIntPixels(nsIntSize px);
+  nsIntSize CSSToDevIntPixels(nsIntSize px);
+
   static void NotifyDOMWindowDestroyed(nsGlobalWindow* aWindow);
 
   
