@@ -479,7 +479,6 @@ LPBYTE UnrollPlanarWordsBigEndian(register _LPcmsTRANSFORM info, register WORD w
 }
 
 
-
 static
 LPBYTE UnrollLabDouble(register _LPcmsTRANSFORM info, register WORD wIn[], register LPBYTE accum)
 {       
@@ -1427,9 +1426,6 @@ LPBYTE PackDouble(register _LPcmsTRANSFORM Info, register WORD wOut[], register 
     }
 
 }
-
-
-
 
 _cmsFIXFN _cmsIdentifyInputFormat(_LPcmsTRANSFORM xform, DWORD dwInput)
 {

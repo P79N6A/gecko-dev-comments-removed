@@ -31,6 +31,7 @@ unsigned long crc32(const unsigned char *s, unsigned int len);
 
 #define MAX(a,b) ((a) > (b) ? (a) : (b))
 #define MIN(a,b) ((a) <= (b) ? (a) : (b))
+#define ABS(a) ((a < 0) ? -a : a)
 
 #define BITMAP_PIXEL_COUNT (256 * 256 * 256)
 #define BITMAP_SIZE (BITMAP_PIXEL_COUNT * 3)
@@ -75,8 +76,7 @@ struct TestContext {
     struct TestParams *paramList;
 
     
-
-    unsigned char *src, *dst;
+    unsigned char *src, *fixedX, *floatX;
 
 };
 
@@ -185,8 +185,10 @@ TestInit(struct TestContext *ctx, const char *filePath)
     
     ctx->src = (unsigned char *) malloc(BITMAP_SIZE);
     CHECK(ctx->src != NULL, status, -1, "Can't allocate enough memory\n", error);
-    ctx->dst = (unsigned char *) malloc(BITMAP_SIZE);
-    CHECK(ctx->dst != NULL, status, -1, "Can't allocate enough memory\n", error);
+    ctx->fixedX = (unsigned char *) malloc(BITMAP_SIZE);
+    CHECK(ctx->fixedX != NULL, status, -1, "Can't allocate enough memory\n", error);
+    ctx->floatX = (unsigned char *) malloc(BITMAP_SIZE);
+    CHECK(ctx->floatX != NULL, status, -1, "Can't allocate enough memory\n", error);
 
     
     tfHandle = fopen(filePath, "r");
@@ -242,8 +244,10 @@ TestInit(struct TestContext *ctx, const char *filePath)
     
     if (ctx->src != NULL)
         free(ctx->src);
-    if (ctx->dst != NULL)
-        free(ctx->dst);
+    if (ctx->fixedX != NULL)
+        free(ctx->fixedX);
+    if (ctx->floatX != NULL)
+        free(ctx->floatX);
 
     done:
 
@@ -269,8 +273,12 @@ RunTest(struct TestContext *ctx, struct TestParams *params,
     
     cmsHPROFILE inProfile = NULL;
     cmsHPROFILE outProfile = NULL;
-    cmsHTRANSFORM transform = NULL;
+    cmsHTRANSFORM transformFixed = NULL;
+    cmsHTRANSFORM transformFloat = NULL;
     char *filePath;
+    unsigned i;
+    int difference;
+    int failures;
     int status = 0;
 
     
@@ -300,38 +308,70 @@ RunTest(struct TestContext *ctx, struct TestParams *params,
 
     
     cmsPrecacheProfile(inProfile, CMS_PRECACHE_LI16W_FORWARD);
+    cmsPrecacheProfile(inProfile, CMS_PRECACHE_LI16F_FORWARD);
     cmsPrecacheProfile(outProfile, CMS_PRECACHE_LI1616_REVERSE);
+    cmsPrecacheProfile(outProfile, CMS_PRECACHE_LI168_REVERSE);
 
     
-    transform = cmsCreateTransform(inProfile, TYPE_RGB_8, 
-                                   outProfile, TYPE_RGB_8, 
-                                   testedIntents[intentIndex], 0);
-    CHECK(transform != NULL, status, -1, "unable to create transform!\n", done);
+    transformFixed = cmsCreateTransform(inProfile, TYPE_RGB_8, 
+                                        outProfile, TYPE_RGB_8, 
+                                        testedIntents[intentIndex], 0);
+    CHECK(transformFixed != NULL, status, -1, 
+          "unable to create fixed transform!\n", done);
 
     
-    cmsDoTransform(transform, ctx->src, ctx->dst, BITMAP_PIXEL_COUNT);
-    params->ourCRCs[intentIndex] = crc32(ctx->dst, BITMAP_SIZE);
+    cmsDoTransform(transformFixed, ctx->src, ctx->fixedX, BITMAP_PIXEL_COUNT);
 
     
-    if (!strcmp(mode, "check")) {
+    params->ourCRCs[intentIndex] = crc32(ctx->fixedX, BITMAP_SIZE);
 
-        
-        CHECK(params->hasGolden, status, -1, 
-              "Error: Check mode enabled but no golden values in file\n", done);
-        printf("In: %s, Out: %s, Intent: %u - ", 
-               params->iProfileName, params->oProfileName, 
-               testedIntents[intentIndex]);
-        if (params->goldenCRCs[intentIndex] == params->ourCRCs[intentIndex])
-            printf("PASS\n");
-        else
-            printf("FAILED: Expected %x, Got %x\n", 
-                   params->goldenCRCs[intentIndex], params->ourCRCs[intentIndex]);
-    }
-    else {
+    
+    if (!strcmp(mode, "generate")) {
         printf("In: %s, Out: %s, Intent: %u Generated\n",
                params->iProfileName, params->oProfileName, testedIntents[intentIndex]);
+        goto done;
     }
-               
+
+    
+    transformFloat = cmsCreateTransform(inProfile, TYPE_RGB_8, 
+                                        outProfile, TYPE_RGB_8, 
+                                        testedIntents[intentIndex], 
+                                        cmsFLAGS_FLOATSHAPER);
+    CHECK(transformFloat != NULL, status, -1, 
+          "unable to create float transform!\n", done);
+
+    
+    CHECK(params->hasGolden, status, -1, 
+          "Error: Check mode enabled but no golden values in file\n", done);
+
+    
+    printf("In: %s, Out: %s, Intent: %u\n", 
+           params->iProfileName, params->oProfileName, 
+           testedIntents[intentIndex]);
+
+    
+    if (params->goldenCRCs[intentIndex] == params->ourCRCs[intentIndex])
+        printf("\tPASSED - CRC Check of Fixed Point Path\n");
+    else
+        printf("\tFAILED - CRC Check of Fixed Point Path - Expected %x, Got %x\n", 
+               params->goldenCRCs[intentIndex], params->ourCRCs[intentIndex]);
+
+    
+    cmsDoTransform(transformFloat, ctx->src, ctx->floatX, BITMAP_PIXEL_COUNT);
+
+    
+    failures = 0;
+    for (i = 0; i < BITMAP_SIZE; ++i) {
+        difference = (int)ctx->fixedX[i] - (int)ctx->floatX[i];
+        
+        if (ABS(difference) > 1)
+            ++failures;
+    }
+    if (failures == 0)
+        printf("\tPASSED - floating point path within acceptable parameters\n");
+    else
+        printf("\tWARNING - floating point path off by 2 or more in %d cases!\n",
+               failures);
 
     done:
 
@@ -339,8 +379,10 @@ RunTest(struct TestContext *ctx, struct TestParams *params,
     free(filePath);
 
     
-    if (transform != NULL)
-        cmsDeleteTransform(transform);
+    if (transformFixed != NULL)
+        cmsDeleteTransform(transformFixed);
+    if (transformFloat != NULL)
+        cmsDeleteTransform(transformFloat);
     if (inProfile != NULL)
         cmsCloseProfile(inProfile);
     if (outProfile != NULL)
