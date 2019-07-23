@@ -136,7 +136,7 @@ class EmbedPrivate {
   nsCOMPtr<nsISHistory>          mSessionHistory;
 
   
-  nsCOMPtr<nsPIDOMEventTarget>   mEventReceiver;
+  nsCOMPtr<nsPIDOMEventTarget>   mEventTarget;
 
   
   nsString                       mURI;
