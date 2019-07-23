@@ -67,8 +67,7 @@
 
 
 template <typename T>
-class Tracker
-{
+class Tracker {
     struct Page {
         struct Page*    next;
         jsuword         base;
@@ -172,20 +171,20 @@ class TraceRecorder {
     bool test_property_cache(JSObject* obj, nanojit::LIns* obj_ins, JSObject*& obj2,
                              JSPropCacheEntry*& entry);
     void stobj_set_slot(nanojit::LIns* obj_ins, unsigned slot,
-            nanojit::LIns*& dslots_ins, nanojit::LIns* v_ins);
+                        nanojit::LIns*& dslots_ins, nanojit::LIns* v_ins);
     nanojit::LIns* stobj_get_slot(nanojit::LIns* obj_ins, unsigned slot,
-            nanojit::LIns*& dslots_ins);
+                                  nanojit::LIns*& dslots_ins);
     bool native_set(nanojit::LIns* obj_ins, JSScopeProperty* sprop,
-            nanojit::LIns*& dslots_ins, nanojit::LIns* v_ins);
+                    nanojit::LIns*& dslots_ins, nanojit::LIns* v_ins);
     bool native_get(nanojit::LIns* obj_ins, nanojit::LIns* pobj_ins, JSScopeProperty* sprop,
-            nanojit::LIns*& dslots_ins, nanojit::LIns*& v_ins);
+                    nanojit::LIns*& dslots_ins, nanojit::LIns*& v_ins);
 
     bool box_jsval(jsval v, nanojit::LIns*& v_ins);
     bool unbox_jsval(jsval v, nanojit::LIns*& v_ins);
-    bool guardThatObjectIsDenseArray(JSObject* obj,
-            nanojit::LIns* obj_ins, nanojit::LIns*& dslots_ins);
-    bool guardDenseArrayIndexWithinBounds(JSObject* obj, jsint idx,
-            nanojit::LIns* obj_ins, nanojit::LIns*& dslots_ins, nanojit::LIns* idx_ins);
+    bool guardThatObjectIsDenseArray(JSObject* obj, nanojit::LIns* obj_ins,
+                                     nanojit::LIns*& dslots_ins);
+    bool guardDenseArrayIndexWithinBounds(JSObject* obj, jsint idx, nanojit::LIns* obj_ins,
+                                          nanojit::LIns*& dslots_ins, nanojit::LIns* idx_ins);
 public:
     TraceRecorder(JSContext* cx, nanojit::Fragmento*, nanojit::Fragment*);
     ~TraceRecorder();
@@ -214,11 +213,6 @@ FASTCALL jsdouble builtin_UnboxDouble(jsval v);
 FASTCALL jsint    builtin_UnboxInt32(jsval v);
 FASTCALL int32    builtin_doubleToInt32(jsdouble d);
 FASTCALL int32    builtin_doubleToUint32(jsdouble d);
-
-
-
-
-
 
 
 
