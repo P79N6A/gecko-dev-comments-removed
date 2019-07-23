@@ -256,7 +256,7 @@ nsresult ArabicShaping(const PRUnichar* aString, PRUint32 aLen,
                        PRBool aInputLogical, PRBool aOutputLogical)
 {
   nsAutoString tempString(aString);
-  PRUnichar *tempBuf = (PRUnichar*)tempString.get();
+  PRUnichar *tempBuf = NS_CONST_CAST(PRUnichar*, tempString.get());
   if (aInputLogical) {
     ReverseString(tempBuf, aLen);
   }
@@ -318,7 +318,8 @@ nsresult ArabicShaping(const PRUnichar* aString, PRUint32 aLen,
       for(i=0;i<8;i++) {
         if(key == gArabicLigatureMap[i]) {
           done = PR_TRUE;
-          *lDest++ = 0x200B;
+          
+          
           *lDest++ = 0xFEF5 + i;
           lSrc+=2;
           break;
