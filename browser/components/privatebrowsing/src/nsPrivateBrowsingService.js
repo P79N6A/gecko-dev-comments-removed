@@ -154,31 +154,32 @@ PrivateBrowsingService.prototype = {
           this._savedBrowserState = ss.getBrowserState();
       }
       if (!this._quitting && this._saveSession) {
-        
-        let transitionState = {
-          "windows": [{
-            "tabs": [{
-              "entries": [{
-                "url": "about:blank"
-              }]
-            }],
-            "_closedTabs": []
-          }]
-        };
-        
-        
-        ss.setBrowserState(JSON.stringify(transitionState));
-
-        let browser = Cc["@mozilla.org/appshell/window-mediator;1"].
-                      getService(Ci.nsIWindowMediator).
-                      getMostRecentWindow("navigator:browser");
+        let browserWindow = this._getBrowserWindow();
 
         
         
-        if (browser) {
+        if (browserWindow) {
+          
+          let transitionState = {
+            "windows": [{
+              "tabs": [{
+                "entries": [{
+                  "url": "about:blank"
+                }]
+              }],
+              "_closedTabs": []
+            }]
+          };
+
+          ss.setBrowserState(JSON.stringify(transitionState));
+
           
           
-          browser = browser.gBrowser;
+          
+          let browser = this._getBrowserWindow().gBrowser;
+
+          
+          
           browser.addTab();
           browser.removeTab(browser.tabContainer.firstChild);
         }
@@ -233,6 +234,12 @@ PrivateBrowsingService.prototype = {
     cancelLeave.data = false;
     this._obs.notifyObservers(cancelLeave, "private-browsing-cancel-vote", "exit");
     return !cancelLeave.data;
+  },
+
+  _getBrowserWindow: function PBS__getBrowserWindow() {
+    return Cc["@mozilla.org/appshell/window-mediator;1"].
+           getService(Ci.nsIWindowMediator).
+           getMostRecentWindow("navigator:browser");
   },
 
   
