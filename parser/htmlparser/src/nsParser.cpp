@@ -1493,6 +1493,12 @@ nsParser::ParseFragment(const nsAString& aSourceBuffer,
     theContext.AppendLiteral(">");
   }
 
+  if (theCount == 0) {
+    
+    
+    theContext.AssignLiteral(" ");
+  }
+
   
   
   result = Parse(theContext, (void*)&theContext, aMimeType, PR_FALSE, aMode);
