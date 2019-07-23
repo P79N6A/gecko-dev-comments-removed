@@ -233,6 +233,16 @@ nsListControlFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
 
   DO_GLOBAL_REFLOW_COUNT_DSP("nsListControlFrame");
 
+  if (IsInDropDownMode()) {
+    
+    
+    
+    aLists.BorderBackground()->AppendNewToBottom(
+      new (aBuilder) nsDisplaySolidColor(
+        this, nsRect(aBuilder->ToReferenceFrame(this), GetSize()),
+        mLastDropdownBackstopColor));
+  }
+
   
   
   
@@ -1731,6 +1741,9 @@ nsListControlFrame::SyncViewWithFrame()
 void
 nsListControlFrame::AboutToDropDown()
 {
+  NS_ASSERTION(IsInDropDownMode(),
+    "AboutToDropDown called without being in dropdown mode");
+
   if (mIsAllContentHere && mIsAllFramesHere && mHasBeenInitialized) {
     ScrollToIndex(GetSelectedIndex());
 #ifdef ACCESSIBILITY
@@ -1738,6 +1751,28 @@ nsListControlFrame::AboutToDropDown()
 #endif
   }
   mItemSelectionStarted = PR_FALSE;
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  nsIFrame* comboboxFrame = do_QueryFrame(mComboboxFrame);
+  nsStyleContext* context = comboboxFrame->GetStyleContext()->GetParent();
+  mLastDropdownBackstopColor = NS_RGBA(0,0,0,0);
+  while (NS_GET_A(mLastDropdownBackstopColor) < 255 && context) {
+    mLastDropdownBackstopColor =
+      NS_ComposeColors(context->GetStyleBackground()->mBackgroundColor,
+                       mLastDropdownBackstopColor);
+    context = context->GetParent();
+  }
+  mLastDropdownBackstopColor =
+    NS_ComposeColors(PresContext()->DefaultBackgroundColor(),
+                     mLastDropdownBackstopColor);
 }
 
 

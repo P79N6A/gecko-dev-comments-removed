@@ -443,11 +443,15 @@ protected:
   
   nscoord mLastDropdownComputedHeight;
 
+  
+  
+  nscolor mLastDropdownBackstopColor;
+  
   nsRefPtr<nsListEventListener> mEventListener;
 
   static nsListControlFrame * mFocused;
   static nsString * sIncrementalString;
-  
+
 #ifdef DO_REFLOW_COUNTER
   PRInt32 mReflowId;
 #endif
