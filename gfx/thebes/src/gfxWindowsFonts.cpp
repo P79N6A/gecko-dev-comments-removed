@@ -1137,7 +1137,10 @@ public:
         if (FAILED(rv))
             return;
         gfxTextRun::CompressedGlyph g;
-        for (PRUint32 i = 0; i < mLength; ++i) {
+        
+        
+        
+        for (PRUint32 i = 1; i < mLength; ++i) {
             if (!logAttr[i].fCharStop) {
                 aRun->SetCharacterGlyph(i + aOffsetInRun, g.SetClusterContinuation());
             }
