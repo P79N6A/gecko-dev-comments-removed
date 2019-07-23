@@ -77,6 +77,38 @@ var gAccRetrieval = null;
 
 
 
+
+
+
+
+function addA11yLoadEvent(aFunc)
+{
+  function waitForDocLoad()
+  {
+    window.setTimeout(
+      function()
+      {
+        var accDoc = getAccessible(document);
+        var state = {};
+        accDoc.getState(state, {});
+        if (state.value & nsIAccessibleStates.STATE_BUSY)
+          return waitForDocLoad();
+
+        aFunc.call();
+      },
+      0
+    );
+  }
+
+  addLoadEvent(waitForDocLoad);
+}
+
+
+
+
+
+
+
 function getNode(aNodeOrID)
 {
   if (!aNodeOrID)
