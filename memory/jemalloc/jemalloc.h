@@ -69,6 +69,8 @@ typedef struct {
 	size_t	large_max;	
 	size_t	chunksize;	
 	size_t	dirty_max;	
+	size_t	reserve_min;	
+	size_t	reserve_max;	
 
 	
 
@@ -77,6 +79,7 @@ typedef struct {
 	size_t	committed;	
 	size_t	allocated;	
 	size_t	dirty;		
+	size_t	reserve_cur;	
 } jemalloc_stats_t;
 
 #ifndef MOZ_MEMORY_DARWIN
@@ -91,6 +94,125 @@ int	posix_memalign(void **memptr, size_t alignment, size_t size);
 void	*memalign(size_t alignment, size_t size);
 size_t	malloc_usable_size(const void *ptr);
 void	jemalloc_stats(jemalloc_stats_t *stats);
+
+
+void	*xmalloc(size_t size);
+void	*xcalloc(size_t num, size_t size);
+void	*xrealloc(void *ptr, size_t size);
+void	*xmemalign(size_t alignment, size_t size);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+typedef enum {
+	RESERVE_CND_LOW,
+	RESERVE_CND_CRIT,
+	RESERVE_CND_FAIL
+} reserve_cnd_t;
+
+
+
+
+
+
+
+
+
+typedef void reserve_cb_t(void *ctx, reserve_cnd_t cnd, size_t size);
+
+
+
+
+
+
+
+
+
+
+
+jemalloc_bool	reserve_cb_register(reserve_cb_t *cb, void *ctx);
+
+
+
+
+
+
+
+
+
+
+
+
+jemalloc_bool	reserve_cb_unregister(reserve_cb_t *cb, void *ctx);
+
+
+
+
+
+
+size_t	reserve_cur_get(void);
+
+
+
+
+
+
+
+size_t	reserve_min_get(void);
+
+
+
+
+
+
+
+
+
+jemalloc_bool	reserve_min_set(size_t min);
 
 #ifdef __cplusplus
 } 
