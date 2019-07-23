@@ -134,7 +134,10 @@ struct JSString {
 
   public:
     
-    static const size_t MAX_LENGTH = (1 << 28);
+
+
+
+    static const size_t MAX_LENGTH = (1 << 28) - 1;
 
     bool isDependent() const {
         return hasFlag(DEPENDENT);
