@@ -67,6 +67,7 @@
 #endif
 
 #include "WindowHook.h"
+#include "TaskbarWindowPreview.h"
 
 #ifdef ACCESSIBILITY
 #include "OLEACC.H"
@@ -89,6 +90,9 @@ class imgIContainer;
 class nsWindow : public nsBaseWidget
 {
   typedef mozilla::widget::WindowHook WindowHook;
+#if MOZ_WINSDK_TARGETVER >= MOZ_NTDDI_WIN7
+  typedef mozilla::widget::TaskbarWindowPreview TaskbarWindowPreview;
+#endif
 public:
   nsWindow();
   virtual ~nsWindow();
@@ -223,6 +227,20 @@ public:
   
   PRBool                  PluginHasFocus() { return mIMEEnabled == nsIWidget::IME_STATUS_PLUGIN; }
   virtual void            SetUpForPaint(HDC aHDC);
+
+#if MOZ_WINSDK_TARGETVER >= MOZ_NTDDI_WIN7
+  PRBool HasTaskbarIconBeenCreated() { return mHasTaskbarIconBeenCreated; }
+  
+  
+  void SetHasTaskbarIconBeenCreated(PRBool created = PR_TRUE) { mHasTaskbarIconBeenCreated = created; }
+
+  
+  already_AddRefed<nsITaskbarWindowPreview> GetTaskbarPreview() {
+    nsCOMPtr<nsITaskbarWindowPreview> preview(do_QueryReferent(mTaskbarPreview));
+    return preview.forget();
+  }
+  void SetTaskbarPreview(nsITaskbarWindowPreview *preview) { mTaskbarPreview = do_GetWeakReference(preview); }
+#endif
 
 protected:
 
@@ -457,6 +475,14 @@ protected:
 #if !defined(WINCE)
   nsWinGesture          mGesture;
 #endif 
+
+#if MOZ_WINSDK_TARGETVER >= MOZ_NTDDI_WIN7
+  
+  nsWeakPtr             mTaskbarPreview;
+  
+  
+  PRBool                mHasTaskbarIconBeenCreated;
+#endif
 
 #if defined(WINCE_HAVE_SOFTKB)
   static PRBool         sSoftKeyMenuBar;
