@@ -4610,7 +4610,6 @@ var gHomeButton = {
 
   updatePersonalToolbarStyle: function (homeButton)
   {
-return; 
     if (!homeButton)
       homeButton = document.getElementById("home-button");
     if (homeButton)

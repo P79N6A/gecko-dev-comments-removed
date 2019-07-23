@@ -214,7 +214,7 @@ BrowserGlue.prototype = {
     distro.applyCustomizations();
 
     
-    this._migrateUI();
+    
   },
 
   
