@@ -47,7 +47,9 @@ var gPlayTests = [
   { name:"beta-phrasebook.ogg", type:"audio/ogg", duration:4 },
   
   { name:"bug520493.ogg", type:"audio/ogg", duration:0.458 },
- 
+  
+  { name:"bug520500.ogg", type:"audio/ogg", duration:0.123 },
+
   { name:"bogus.duh", type:"bogus/duh" }
 ];
 
