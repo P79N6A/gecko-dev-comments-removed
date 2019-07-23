@@ -252,7 +252,8 @@ nsXPCWrappedJSClass::CallQueryInterfaceOnJSObject(XPCCallContext& ccx,
     
     
     
-    if(!STOBJ_IS_SYSTEM(JS_GetGlobalForObject(ccx, jsobj)))
+    if(XPCPerThreadData::IsMainThread(ccx) &&
+       !STOBJ_IS_SYSTEM(JS_GetGlobalForObject(ccx, jsobj)))
     {
         nsCOMPtr<nsIPrincipal> objprin;
         nsIScriptSecurityManager *ssm = XPCWrapper::GetSecurityManager();
