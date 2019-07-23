@@ -140,6 +140,13 @@ private:
     return ((1 << mPaletteDepth) * sizeof(PRUint32));
   }
 
+  
+
+
+
+
+  gfxContext::GraphicsOperator OptimalFillOperator();
+
 private: 
   nsRefPtr<gfxImageSurface> mImageSurface;
   nsRefPtr<gfxASurface> mOptSurface;
