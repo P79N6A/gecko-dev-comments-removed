@@ -959,6 +959,9 @@ public:
 
         PRUint32 mGlyphID:31;
         
+
+
+   
         PRInt32  mAdvance;
         float    mXOffset, mYOffset;
     };
