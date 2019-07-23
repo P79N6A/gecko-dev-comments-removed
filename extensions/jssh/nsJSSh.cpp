@@ -151,7 +151,7 @@ Print(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
        shell->mOutput->Write(JS_GetStringBytes(str), JS_GetStringLength(str), &bytesWritten);
      }
      else
-       printf(JS_GetStringBytes(str)); 
+       printf("%s", JS_GetStringBytes(str)); 
 #ifdef DEBUG
 
 #endif
