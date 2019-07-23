@@ -521,8 +521,25 @@ mozJSComponentLoader::ReallyInit()
     uint32 options = JS_GetOptions(mContext);
     JS_SetOptions(mContext, options | JSOPTION_XML);
 
-  
-  JS_SetVersion(mContext, JSVERSION_LATEST);
+    
+    JS_SetVersion(mContext, JSVERSION_LATEST);
+
+    
+    int stackDummy;
+    const jsuword kStackSize = 0x80000;
+    jsuword stackLimit, currentStackAddr = (jsuword)&stackDummy;
+
+#if JS_STACK_GROWTH_DIRECTION < 0
+    stackLimit = (currentStackAddr > kStackSize)
+                 ? currentStackAddr - kStackSize
+                 : 0;
+#else
+    stackLimit = (currentStackAddr + kStackSize > currentStackAddr)
+                 ? currentStackAddr + kStackSize
+                 : (jsuword) -1;
+#endif
+    
+    JS_SetThreadStackLimit(mContext, stackLimit);
 
 #ifndef XPCONNECT_STANDALONE
     nsCOMPtr<nsIScriptSecurityManager> secman = 
