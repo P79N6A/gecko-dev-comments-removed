@@ -186,6 +186,11 @@ XBLResolve(JSContext *cx, JSObject *obj, jsval id, uintN flags,
     return JS_FALSE;
   }
 
+  if (content->HasFlag(NODE_IS_IN_BINDING_TEARDOWN)) {
+    
+    return JS_TRUE;
+  }
+
   
   nsIDocument* doc = content->GetOwnerDoc();
   if (!doc) {
@@ -1045,7 +1050,7 @@ nsXBLBinding::ChangeDocument(nsIDocument* aOldDocument, nsIDocument* aNewDocumen
       if (mPrototypeBinding->HasImplementation()) { 
         nsIScriptGlobalObject *global = aOldDocument->GetScopeObject();
         if (global) {
-          nsIScriptContext *context = global->GetContext();
+          nsCOMPtr<nsIScriptContext> context = global->GetContext();
           if (context) {
             JSContext *cx = (JSContext *)context->GetNativeContext();
  
@@ -1061,8 +1066,6 @@ nsXBLBinding::ChangeDocument(nsIDocument* aOldDocument, nsIDocument* aNewDocumen
             rv = wrapper->GetJSObject(&scriptObject);
             if (NS_FAILED(rv))
               return;
-
-            mPrototypeBinding->UndefineFields(cx, scriptObject);
 
             
             
@@ -1114,6 +1117,13 @@ nsXBLBinding::ChangeDocument(nsIDocument* aOldDocument, nsIDocument* aNewDocumen
               ::JS_SetPrototype(cx, base, grandProto);
               break;
             }
+
+            
+            
+            
+            mBoundElement->SetFlags(NODE_IS_IN_BINDING_TEARDOWN);
+            mPrototypeBinding->UndefineFields(cx, scriptObject);
+            mBoundElement->UnsetFlags(NODE_IS_IN_BINDING_TEARDOWN);
 
             
             
