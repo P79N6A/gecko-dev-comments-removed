@@ -308,15 +308,10 @@ gfxPlatformGtk::LookupLocalFont(const gfxProxyFontEntry *aProxyEntry,
 
 gfxFontEntry* 
 gfxPlatformGtk::MakePlatformFont(const gfxProxyFontEntry *aProxyEntry, 
-                                 nsISupports *aLoader,
                                  const PRUint8 *aFontData, PRUint32 aLength)
 {
     
-    
-    if (!gfxFontUtils::ValidateSFNTHeaders(aFontData, aLength))
-        return nsnull;
-
-    return gfxPangoFontGroup::NewFontEntry(*aProxyEntry, aLoader,
+    return gfxPangoFontGroup::NewFontEntry(*aProxyEntry,
                                            aFontData, aLength);
 }
 

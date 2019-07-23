@@ -215,11 +215,11 @@ public:
 
 
 
+
+
     virtual gfxFontEntry* MakePlatformFont(const gfxProxyFontEntry *aProxyEntry,
-                                           nsISupports *aLoader,
                                            const PRUint8 *aFontData,
-                                           PRUint32 aLength)
-    { return nsnull; }
+                                           PRUint32 aLength);
 
     
 

@@ -327,6 +327,21 @@ gfxPlatform::DownloadableFontsEnabled()
     return allowDownloadableFonts;
 }
 
+gfxFontEntry*
+gfxPlatform::MakePlatformFont(const gfxProxyFontEntry *aProxyEntry,
+                              const PRUint8 *aFontData,
+                              PRUint32 aLength)
+{
+    
+    
+    
+    
+    
+    if (aFontData) {
+        NS_Free((void*)aFontData);
+    }
+    return nsnull;
+}
 
 static void
 AppendGenericFontFromPref(nsString& aFonts, const char *aLangGroup, const char *aGenericName)

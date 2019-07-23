@@ -187,10 +187,16 @@ gfxPlatformMac::LookupLocalFont(const gfxProxyFontEntry *aProxyEntry,
 
 gfxFontEntry* 
 gfxPlatformMac::MakePlatformFont(const gfxProxyFontEntry *aProxyEntry,
-                                 nsISupports *aLoader,
                                  const PRUint8 *aFontData, PRUint32 aLength)
 {
-    return gfxPlatformFontList::PlatformFontList()->MakePlatformFont(aProxyEntry, aFontData, aLength);
+    
+    
+    gfxFontEntry *fe =
+        gfxPlatformFontList::PlatformFontList()->MakePlatformFont(aProxyEntry,
+                                                                  aFontData,
+                                                                  aLength);
+    NS_Free((void*)aFontData);
+    return fe;
 }
 
 PRBool

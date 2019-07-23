@@ -130,8 +130,11 @@ nsFontFaceLoader::OnStreamComplete(nsIStreamLoader* aLoader,
   if (!userFontSet) {
     return aStatus;
   }
+
   
-  PRBool fontUpdate = userFontSet->OnLoadComplete(mFontEntry, aLoader,
+  
+  
+  PRBool fontUpdate = userFontSet->OnLoadComplete(mFontEntry,
                                                   aString, aStringLen,
                                                   aStatus);
 
@@ -143,7 +146,7 @@ nsFontFaceLoader::OnStreamComplete(nsIStreamLoader* aLoader,
     LOG(("fontdownloader (%p) reflow\n", this));
   }
 
-  return aStatus;
+  return NS_SUCCESS_ADOPTED_DATA;
 }
 
 void

@@ -108,6 +108,7 @@ public:
                                           const nsAString& aFontName) = 0;
 
     
+    
     virtual gfxFontEntry* MakePlatformFont(const gfxFontEntry *aProxyEntry,
                                            const PRUint8 *aFontData,
                                            PRUint32 aLength) = 0;

@@ -86,12 +86,14 @@ public:
     }
 
     static FontEntry* 
-    CreateFontEntry(const gfxProxyFontEntry &aProxyEntry, nsISupports *aLoader,
+    CreateFontEntry(const gfxProxyFontEntry &aProxyEntry,
                     const PRUint8 *aFontData, PRUint32 aLength);
-    
+
     static FontEntry* 
-    CreateFontEntryFromFace(FT_Face aFace);
-    
+    CreateFontEntryFromFace(FT_Face aFace, const PRUint8 *aFontData = nsnull);
+        
+        
+
     cairo_font_face_t *CairoFontFace();
     nsresult ReadCMAP();
 

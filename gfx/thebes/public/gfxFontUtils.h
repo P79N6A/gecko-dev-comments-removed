@@ -359,6 +359,13 @@ struct FontDataOverlay {
     PRUint32  overlayDest;   
 };
     
+enum gfxUserFontType {
+    GFX_USERFONT_UNKNOWN = 0,
+    GFX_USERFONT_OPENTYPE = 1,
+    GFX_USERFONT_SVG = 2,
+    GFX_USERFONT_WOFF = 3
+};
+
 class THEBES_API gfxFontUtils {
 
 public:
@@ -484,13 +491,22 @@ public:
     static nsresult
     MakeEOTHeader(const PRUint8 *aFontData, PRUint32 aFontDataLength,
                   nsTArray<PRUint8> *aHeader, FontDataOverlay *aOverlay);
-#endif
 
     
     
     static PRBool
-    ValidateSFNTHeaders(const PRUint8 *aFontData, PRUint32 aFontDataLength,
-                        PRBool *aIsCFF = nsnull);
+    IsCffFont(const PRUint8* aFontData);
+
+#endif
+
+    
+    static gfxUserFontType
+    DetermineFontDataType(const PRUint8 *aFontData, PRUint32 aFontDataLength);
+
+    
+    
+    static PRBool
+    ValidateSFNTHeaders(const PRUint8 *aFontData, PRUint32 aFontDataLength);
     
     
     

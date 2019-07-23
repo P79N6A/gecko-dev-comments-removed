@@ -302,8 +302,8 @@ class gfxDownloadedFcFontEntry : public gfxFcFontEntry {
 public:
     
     gfxDownloadedFcFontEntry(const gfxProxyFontEntry &aProxyEntry,
-                             nsISupports *aLoader, FT_Face aFace)
-        : gfxFcFontEntry(aProxyEntry), mLoader(aLoader), mFace(aFace)
+                             const PRUint8 *aData, FT_Face aFace)
+        : gfxFcFontEntry(aProxyEntry), mFontData(aData), mFace(aFace)
     {
         NS_PRECONDITION(aFace != NULL, "aFace is NULL!");
         InitPattern();
@@ -320,8 +320,12 @@ protected:
     virtual void InitPattern();
 
     
-    nsCOMPtr<nsISupports> mLoader;
+    
+    
+    const PRUint8* mFontData;
+
     FT_Face mFace;
+
     
     
     
@@ -371,6 +375,7 @@ gfxDownloadedFcFontEntry::~gfxDownloadedFcFontEntry()
         FcPatternDel(mPatterns[0], FC_FT_FACE);
     }
     FT_Done_Face(mFace);
+    NS_Free((void*)mFontData);
 }
 
 typedef FcPattern* (*QueryFaceFunction)(const FT_Face face,
@@ -2218,18 +2223,22 @@ GetFTLibrary()
 
  gfxFontEntry *
 gfxPangoFontGroup::NewFontEntry(const gfxProxyFontEntry &aProxyEntry,
-                                nsISupports *aLoader,
                                 const PRUint8 *aFontData, PRUint32 aLength)
 {
+    
+    
+
     
     
     FT_Face face;
     FT_Error error =
         FT_New_Memory_Face(GetFTLibrary(), aFontData, aLength, 0, &face);
-    if (error != 0)
+    if (error != 0) {
+        NS_Free((void*)aFontData);
         return nsnull;
+    }
 
-    return new gfxDownloadedFcFontEntry(aProxyEntry, aLoader, face);
+    return new gfxDownloadedFcFontEntry(aProxyEntry, aFontData, face);
 }
 
 

@@ -52,6 +52,8 @@
 
 #include "plbase64.h"
 
+#include "woff.h"
+
 #ifdef XP_MACOSX
 #include <CoreFoundation/CoreFoundation.h>
 #endif
@@ -694,12 +696,38 @@ ValidateKernTable(const PRUint8 *aKernTable, PRUint32 aKernLength)
     return PR_FALSE;
 }
 
+gfxUserFontType
+gfxFontUtils::DetermineFontDataType(const PRUint8 *aFontData, PRUint32 aFontDataLength)
+{
+    
+    
+    if (aFontDataLength >= sizeof(SFNTHeader)) {
+        const SFNTHeader *sfntHeader = reinterpret_cast<const SFNTHeader*>(aFontData);
+        PRUint32 sfntVersion = sfntHeader->sfntVersion;
+        if (IsValidSFNTVersion(sfntVersion)) {
+            return GFX_USERFONT_OPENTYPE;
+        }
+    }
+    
+    
+    if (aFontDataLength >= sizeof(AutoSwap_PRUint32)) {
+        const AutoSwap_PRUint32 *version = 
+            reinterpret_cast<const AutoSwap_PRUint32*>(aFontData);
+        if (PRUint32(*version) == TRUETYPE_TAG('w','O','F','F')) {
+            return GFX_USERFONT_WOFF;
+        }
+    }
+    
+    
+    
+    return GFX_USERFONT_UNKNOWN;
+}
+
 PRBool
 gfxFontUtils::ValidateSFNTHeaders(const PRUint8 *aFontData, 
-                                  PRUint32 aFontDataLength, 
-                                  PRBool *aIsCFF)
+                                  PRUint32 aFontDataLength)
 {
-    NS_ASSERTION(aFontData && aFontDataLength != 0, "null font data");
+    NS_ASSERTION(aFontData, "null font data");
 
     PRUint64 dataLength(aFontDataLength);
     
@@ -716,9 +744,6 @@ gfxFontUtils::ValidateSFNTHeaders(const PRUint8 *aFontData,
         return PR_FALSE;
     }
     
-    if (aIsCFF)
-        *aIsCFF = (sfntVersion == TRUETYPE_TAG('O','T','T','O'));
-
     
     PRBool foundHead = PR_FALSE, foundOS2 = PR_FALSE, foundName = PR_FALSE;
     PRBool foundGlyphs = PR_FALSE, foundCFF = PR_FALSE, foundKern = PR_FALSE;
@@ -1731,6 +1756,16 @@ gfxFontUtils::MakeEOTHeader(const PRUint8 *aFontData, PRUint32 aFontDataLength,
     
 
     return NS_OK;
+}
+
+
+PRBool
+gfxFontUtils::IsCffFont(const PRUint8* aFontData)
+{
+    
+    
+    const SFNTHeader *sfntHeader = reinterpret_cast<const SFNTHeader*>(aFontData);
+    return (sfntHeader->sfntVersion == TRUETYPE_TAG('O','T','T','O'));
 }
 
 #endif

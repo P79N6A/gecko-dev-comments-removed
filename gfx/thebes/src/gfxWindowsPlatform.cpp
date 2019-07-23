@@ -841,13 +841,18 @@ gfxWindowsPlatform::LookupLocalFont(const gfxProxyFontEntry *aProxyEntry,
 
 gfxFontEntry* 
 gfxWindowsPlatform::MakePlatformFont(const gfxProxyFontEntry *aProxyEntry,
-                                     nsISupports *aLoader,
                                      const PRUint8 *aFontData, PRUint32 aLength)
 {
 #ifdef MOZ_FT2_FONTS
-    return FontEntry::CreateFontEntry(*aProxyEntry, aLoader, aFontData, aLength);
+    
+    
+    
+    return FontEntry::CreateFontEntry(*aProxyEntry, aFontData, aLength);
 #else
-    return FontEntry::LoadFont(*aProxyEntry, aLoader, aFontData, aLength);
+    
+    gfxFontEntry *fe = FontEntry::LoadFont(*aProxyEntry, aFontData, aLength);
+    NS_Free((void*)aFontData);
+    return fe;
 #endif    
 }
 

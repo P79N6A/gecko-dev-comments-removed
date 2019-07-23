@@ -35,6 +35,7 @@
 
 
 
+
 #ifdef MOZ_LOGGING
 #define FORCE_PR_LOG
 #endif 
@@ -45,6 +46,8 @@
 #include "nsReadableUtils.h"
 #include "nsUnicharUtils.h"
 #include "prlong.h"
+
+#include "woff.h"
 
 #ifdef PR_LOGGING
 static PRLogModuleInfo *gUserFontsLog = PR_NewLogModule("userfonts");
@@ -87,7 +90,6 @@ gfxUserFontSet::gfxUserFontSet()
 
 gfxUserFontSet::~gfxUserFontSet()
 {
-
 }
 
 void
@@ -170,24 +172,98 @@ gfxUserFontSet::FindFontEntry(const nsAString& aName,
 }
 
 
+
+
+
+
+
+const PRUint8*
+PrepareOpenTypeData(const PRUint8* aData, PRUint32* aLength)
+{
+    switch(gfxFontUtils::DetermineFontDataType(aData, *aLength)) {
+    
+    case GFX_USERFONT_OPENTYPE:
+        
+        return aData;
+        
+    case GFX_USERFONT_WOFF: {
+        PRUint32 status = eWOFF_ok;
+        PRUint32 bufferSize = woffGetDecodedSize(aData, *aLength, &status);
+        if (WOFF_FAILURE(status)) {
+            break;
+        }
+        PRUint8* decodedData = static_cast<PRUint8*>(NS_Alloc(bufferSize));
+        if (!decodedData) {
+            break;
+        }
+        woffDecodeToBuffer(aData, *aLength,
+                           decodedData, bufferSize,
+                           aLength, &status);
+        
+        NS_Free((void*)aData);
+        aData = decodedData;
+        if (WOFF_FAILURE(status)) {
+            
+            break;
+        }
+        
+        return aData;
+    }
+
+    
+
+    default:
+        NS_WARNING("unknown font format");
+        break;
+    }
+
+    
+    NS_Free((void*)aData);
+
+    return nsnull;
+}
+
+
+
+
 PRBool 
 gfxUserFontSet::OnLoadComplete(gfxFontEntry *aFontToLoad,
-                               nsISupports *aLoader,
                                const PRUint8 *aFontData, PRUint32 aLength, 
                                nsresult aDownloadStatus)
 {
     NS_ASSERTION(aFontToLoad->mIsProxy, "trying to load font data for wrong font entry type");
 
-    if (!aFontToLoad->mIsProxy)
+    if (!aFontToLoad->mIsProxy) {
+        NS_Free((void*)aFontData);
         return PR_FALSE;
+    }
 
     gfxProxyFontEntry *pe = static_cast<gfxProxyFontEntry*> (aFontToLoad);
 
     
     if (NS_SUCCEEDED(aDownloadStatus)) {
-        gfxFontEntry *fe = 
-            gfxPlatform::GetPlatform()->MakePlatformFont(pe, aLoader,
-                                                         aFontData, aLength);
+        gfxFontEntry *fe = nsnull;
+
+        
+        
+        
+        aFontData = PrepareOpenTypeData(aFontData, &aLength);
+        if (aFontData &&
+            gfxFontUtils::ValidateSFNTHeaders(aFontData, aLength)) {
+            
+            
+            fe = gfxPlatform::GetPlatform()->MakePlatformFont(pe,
+                                                              aFontData,
+                                                              aLength);
+            aFontData = nsnull; 
+        } else {
+            
+            
+            if (aFontData) {
+                NS_Free((void*)aFontData);
+            }
+        }
+
         if (fe) {
             static_cast<gfxMixedFontFamily*>(pe->mFamily)->ReplaceFontEntry(pe, fe);
             IncrementGeneration();
@@ -195,10 +271,9 @@ gfxUserFontSet::OnLoadComplete(gfxFontEntry *aFontToLoad,
             if (LOG_ENABLED()) {
                 nsCAutoString fontURI;
                 pe->mSrcList[pe->mSrcIndex].mURI->GetSpec(fontURI);
-
-                LOG(("userfonts (%p) [src %d] loaded uri: (%s) for (%s) gen: %8.8x\n", 
-                     this, pe->mSrcIndex, fontURI.get(), 
-                     NS_ConvertUTF16toUTF8(pe->mFamily->Name()).get(), 
+                LOG(("userfonts (%p) [src %d] loaded uri: (%s) for (%s) gen: %8.8x\n",
+                     this, pe->mSrcIndex, fontURI.get(),
+                     NS_ConvertUTF16toUTF8(pe->mFamily->Name()).get(),
                      PRUint32(mGeneration)));
             }
 #endif
@@ -208,21 +283,24 @@ gfxUserFontSet::OnLoadComplete(gfxFontEntry *aFontToLoad,
             if (LOG_ENABLED()) {
                 nsCAutoString fontURI;
                 pe->mSrcList[pe->mSrcIndex].mURI->GetSpec(fontURI);
-                LOG(("userfonts (%p) [src %d] failed uri: (%s) for (%s) error making platform font\n", 
-                     this, pe->mSrcIndex, fontURI.get(), 
+                LOG(("userfonts (%p) [src %d] failed uri: (%s) for (%s) error making platform font\n",
+                     this, pe->mSrcIndex, fontURI.get(),
                      NS_ConvertUTF16toUTF8(pe->mFamily->Name()).get()));
             }
 #endif
         }
     } else {
         
+        if (aFontData) {
+            NS_Free((void*)aFontData);
+        }
 #ifdef PR_LOGGING
         if (LOG_ENABLED()) {
             nsCAutoString fontURI;
             pe->mSrcList[pe->mSrcIndex].mURI->GetSpec(fontURI);
-            LOG(("userfonts (%p) [src %d] failed uri: (%s) for (%s) error %8.8x downloading font data\n", 
-                 this, pe->mSrcIndex, fontURI.get(), 
-                 NS_ConvertUTF16toUTF8(pe->mFamily->Name()).get(), 
+            LOG(("userfonts (%p) [src %d] failed uri: (%s) for (%s) error %8.8x downloading font data\n",
+                 this, pe->mSrcIndex, fontURI.get(),
+                 NS_ConvertUTF16toUTF8(pe->mFamily->Name()).get(),
                  aDownloadStatus));
         }
 #endif
