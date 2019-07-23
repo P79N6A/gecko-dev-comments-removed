@@ -2494,6 +2494,14 @@ NS_IMETHODIMP nsExternalHelperAppService::GetFromTypeAndExtension(const nsACStri
       rv = FillMIMEInfoForExtensionFromExtras(aFileExt, *_retval);
       LOG(("Searched extras (by ext), rv 0x%08X\n", rv));
     }
+    
+    if (NS_FAILED(rv) && !aFileExt.IsEmpty()) {
+      
+      nsCAutoString desc(aFileExt);
+      desc.Append(" File");
+      (*_retval)->SetDescription(NS_ConvertASCIItoUTF16(desc));
+      LOG(("Falling back to 'File' file description\n"));
+    }
   }
 
   
