@@ -65,13 +65,16 @@ class nsHtml5StackNode
     PRBool special;
     PRBool fosterParenting;
     PRBool tainted;
+  private:
+    PRInt32 refcount;
+  public:
     nsHtml5StackNode(PRInt32 group, PRInt32 ns, nsIAtom* name, nsIContent* node, PRBool scoping, PRBool special, PRBool fosterParenting, nsIAtom* popName);
     nsHtml5StackNode(PRInt32 ns, nsHtml5ElementName* elementName, nsIContent* node);
     nsHtml5StackNode(PRInt32 ns, nsHtml5ElementName* elementName, nsIContent* node, nsIAtom* popName);
     nsHtml5StackNode(PRInt32 ns, nsHtml5ElementName* elementName, nsIContent* node, nsIAtom* popName, PRBool scoping);
-  private:
-    void destructor();
-  public:
+    ~nsHtml5StackNode();
+    void retain();
+    void release();
     static void initializeStatics();
     static void releaseStatics();
 };

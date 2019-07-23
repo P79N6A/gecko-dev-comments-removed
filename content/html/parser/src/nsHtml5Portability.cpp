@@ -1,3 +1,40 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "prtypes.h"
 #include "nsIAtom.h"
 #include "nsString.h"
@@ -57,14 +94,27 @@ nsHtml5Portability::releaseString(nsString* str)
 }
 
 void
+nsHtml5Portability::retainLocal(nsIAtom* local)
+{
+  NS_IF_ADDREF(local);
+}
+
+void
 nsHtml5Portability::releaseLocal(nsIAtom* local)
 {
-  NS_RELEASE(local);
+  NS_IF_RELEASE(local);
+}
+
+void
+nsHtml5Portability::retainElement(nsIContent* element)
+{
+  NS_IF_ADDREF(element);
 }
 
 void
 nsHtml5Portability::releaseElement(nsIContent* element)
 {
+  NS_IF_RELEASE(element);
 }
 
 PRBool
