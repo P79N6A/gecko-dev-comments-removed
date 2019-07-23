@@ -289,6 +289,7 @@ private:
 
 
 
+
   void ViewToWidget(nsView *aView, nsView* aWidgetView, nsRect &aRect) const;
 
   

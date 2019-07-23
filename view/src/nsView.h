@@ -175,6 +175,9 @@ public:
 
   virtual ~nsView();
 
+  
+  
+  
   nsPoint ViewToWidgetOffset() const {
     if (mParent && mParent->GetViewManager() != GetViewManager()) {
       

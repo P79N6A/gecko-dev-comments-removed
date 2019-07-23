@@ -429,13 +429,14 @@ void nsViewManager::Refresh(nsView *aView, nsIRenderingContext *aContext,
 
   nsRect viewRect;
   aView->GetDimensions(viewRect);
+  nsPoint vtowoffset = aView->ViewToWidgetOffset();
 
   
   nsRegion damageRegion;
   
   ConvertNativeRegionToAppRegion(aRegion, &damageRegion, mContext);
   
-  damageRegion.MoveBy(viewRect.x, viewRect.y);
+  damageRegion.MoveBy(viewRect.TopLeft() - vtowoffset);
 
   if (damageRegion.IsEmpty()) {
 #ifdef DEBUG_roc
@@ -488,7 +489,6 @@ void nsViewManager::Refresh(nsView *aView, nsIRenderingContext *aContext,
 
     ctx->Save();
 
-    nsPoint vtowoffset = aView->ViewToWidgetOffset();
     ctx->Translate(gfxPoint(gfxFloat(vtowoffset.x) / p2a,
                             gfxFloat(vtowoffset.y) / p2a));
 
@@ -521,6 +521,7 @@ void nsViewManager::Refresh(nsView *aView, nsIRenderingContext *aContext,
 #endif
 
 }
+
 
 void nsViewManager::DefaultRefresh(nsView* aView, nsIRenderingContext *aContext, const nsRect* aRect)
 {
@@ -599,6 +600,7 @@ void nsViewManager::AddCoveringWidgetsToOpaqueRegion(nsRegion &aRgn, nsIDeviceCo
     }
   }
 }
+
 
 void nsViewManager::RenderViews(nsView *aView, nsIRenderingContext& aRC,
                                 const nsRegion& aRegion)
@@ -1880,8 +1882,15 @@ nsViewManager::CreateRenderingContext(nsView &aView)
 
   if (nsnull != win)
     {
+      
       mContext->CreateRenderingContext(par, cx);
 
+      
+      NS_ASSERTION(aView.ViewToWidgetOffset()
+                   - aView.GetDimensions().TopLeft() ==
+                   par->ViewToWidgetOffset()
+                   - par->GetDimensions().TopLeft(),
+                   "ViewToWidgetOffset not handled!");
       if (nsnull != cx)
         cx->Translate(ax, ay);
     }
