@@ -9781,7 +9781,7 @@ nsHTMLPluginObjElementSH::Call(nsIXPConnectWrappedNative *wrapper,
 
   
   
-  if (!ObjectIsNativeWrapper(cx, obj) || !pi) {
+  if (ObjectIsNativeWrapper(cx, obj) || !pi) {
     return NS_ERROR_NOT_AVAILABLE;
   }
 
