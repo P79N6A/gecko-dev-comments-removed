@@ -2453,6 +2453,7 @@ nsXMLHttpRequest::Send(nsIVariant *aBody)
     nsXPIDLString serial;
     nsCOMPtr<nsIInputStream> postDataStream;
     nsCAutoString charset(NS_LITERAL_CSTRING("UTF-8"));
+    nsCAutoString defaultContentType(NS_LITERAL_CSTRING("text/plain"));
 
     PRUint16 dataType;
     rv = aBody->GetDataType(&dataType);
@@ -2474,6 +2475,8 @@ nsXMLHttpRequest::Send(nsIVariant *aBody)
         
         nsCOMPtr<nsIDOMDocument> doc(do_QueryInterface(supports));
         if (doc) {
+          defaultContentType.AssignLiteral("application/xml");
+
           nsCOMPtr<nsIDOMSerializer> serializer(do_CreateInstance(NS_XMLSERIALIZER_CONTRACTID, &rv));
           if (NS_FAILED(rv)) return rv;
 
@@ -2481,9 +2484,7 @@ nsXMLHttpRequest::Send(nsIVariant *aBody)
           if (dom3doc) {
             nsAutoString inputEncoding;
             dom3doc->GetInputEncoding(inputEncoding);
-            if (DOMStringIsNull(inputEncoding)) {
-              charset.AssignLiteral("UTF-8");
-            } else {
+            if (!DOMStringIsNull(inputEncoding)) {
               CopyUTF16toUTF8(inputEncoding, charset);
             }
           }
@@ -2525,15 +2526,10 @@ nsXMLHttpRequest::Send(nsIVariant *aBody)
     case nsIDataType::VTYPE_EMPTY:
       
       break;
-    case nsIDataType::VTYPE_EMPTY_ARRAY:
-    case nsIDataType::VTYPE_ARRAY:
-      
-      return NS_ERROR_INVALID_ARG;
     default:
       
       rv = aBody->GetAsWString(getter_Copies(serial));
-      if (NS_FAILED(rv))
-        return rv;
+      NS_ENSURE_SUCCESS(rv, rv);
       break;
     }
 
@@ -2562,7 +2558,7 @@ nsXMLHttpRequest::Send(nsIVariant *aBody)
                       GetRequestHeader(NS_LITERAL_CSTRING("Content-Type"),
                                        contentType)) ||
           contentType.IsEmpty()) {
-        contentType = NS_LITERAL_CSTRING("application/xml");
+        contentType = defaultContentType;
       }
 
       
@@ -2573,25 +2569,21 @@ nsXMLHttpRequest::Send(nsIVariant *aBody)
         rv = NS_ExtractCharsetFromContentType(contentType, specifiedCharset,
                                               &haveCharset, &charsetStart,
                                               &charsetEnd);
-        if (NS_FAILED(rv)) {
-          contentType.AssignLiteral("application/xml");
-          specifiedCharset.Truncate();
-          charsetStart = charsetEnd = contentType.Length();
-        }
-
-        
-        
-        
-        
-        
-        
-        
-        if (!specifiedCharset.Equals(charset,
-                                     nsCaseInsensitiveCStringComparator())) {
-          nsCAutoString newCharset("; charset=");
-          newCharset.Append(charset);
-          contentType.Replace(charsetStart, charsetEnd - charsetStart,
-                              newCharset);
+        if (NS_SUCCEEDED(rv)) {
+          
+          
+          
+          
+          
+          
+          
+          if (!specifiedCharset.Equals(charset,
+                                       nsCaseInsensitiveCStringComparator())) {
+            nsCAutoString newCharset("; charset=");
+            newCharset.Append(charset);
+            contentType.Replace(charsetStart, charsetEnd - charsetStart,
+                                newCharset);
+          }
         }
       }
 
