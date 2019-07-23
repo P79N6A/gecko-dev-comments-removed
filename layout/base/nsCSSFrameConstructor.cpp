@@ -6098,7 +6098,7 @@ nsCSSFrameConstructor::ConstructXULFrame(nsFrameConstructorState& aState,
 
     
     nsFrameItems childItems;
-    rv = ProcessChildren(aState, aContent, aStyleContext, newFrame, PR_FALSE,
+    rv = ProcessChildren(aState, aContent, aStyleContext, newFrame, PR_TRUE,
                          childItems, PR_FALSE);
 
     
