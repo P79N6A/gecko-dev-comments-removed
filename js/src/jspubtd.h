@@ -263,6 +263,12 @@ typedef JSBool
 
 
 
+typedef JSType
+(* JSTypeOfOp)(JSContext *cx, JSObject *obj);
+
+
+
+
 
 
 typedef void

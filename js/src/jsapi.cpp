@@ -496,49 +496,13 @@ JS_TypeOfValue(JSContext *cx, jsval v)
 {
     JSType type;
     JSObject *obj;
-    const JSObjectOps *ops;
-    JSClass *clasp;
 
     CHECK_REQUEST(cx);
     if (JSVAL_IS_OBJECT(v)) {
-        type = JSTYPE_OBJECT;           
         obj = JSVAL_TO_OBJECT(v);
-        if (obj) {
-            obj = js_GetWrappedObject(cx, obj);
-
-            ops = obj->map->ops;
-#if JS_HAS_XML_SUPPORT
-            if (ops == &js_XMLObjectOps) {
-                type = JSTYPE_XML;
-            } else
-#endif
-            {
-                
-
-
-
-
-                clasp = OBJ_GET_CLASS(cx, obj);
-                if ((ops == &js_ObjectOps)
-                    ? (clasp->call
-                       ? clasp == &js_ScriptClass
-                       : clasp == &js_FunctionClass)
-                    : ops->call != NULL) {
-                    type = JSTYPE_FUNCTION;
-                } else {
-#ifdef NARCISSUS
-                    JSAutoResolveFlags rf(cx, JSRESOLVE_QUALIFIED);
-
-                    if (!obj->getProperty(cx, ATOM_TO_JSID(cx->runtime->atomState.__call__Atom),
-                                          &v)) {
-                        JS_ClearPendingException(cx);
-                    } else if (VALUE_IS_FUNCTION(cx, v)) {
-                        type = JSTYPE_FUNCTION;
-                    }
-#endif
-                }
-            }
-        }
+        if (obj)
+            return obj->map->ops->typeOf(cx, obj);
+        return JSTYPE_OBJECT;
     } else if (JSVAL_IS_NUMBER(v)) {
         type = JSTYPE_NUMBER;
     } else if (JSVAL_IS_STRING(v)) {
