@@ -806,7 +806,7 @@ WebContentConverterRegistrar.prototype = {
 
 
 
-    var vals = branch.getChildList("", {});
+    var vals = branch.getChildList("");
     if (vals.length == 0)
       return;
 
@@ -832,7 +832,7 @@ WebContentConverterRegistrar.prototype = {
         getService(Ci.nsIPrefService);
 
     var kids = ps.getBranch(PREF_CONTENTHANDLERS_BRANCH)
-                 .getChildList("", {});
+                 .getChildList("");
 
     
     var nums = [];
@@ -857,7 +857,7 @@ WebContentConverterRegistrar.prototype = {
     
     try {
       var autoBranch = ps.getBranch(PREF_CONTENTHANDLERS_AUTO);
-      var childPrefs = autoBranch.getChildList("", { });
+      var childPrefs = autoBranch.getChildList("");
       for (var i = 0; i < childPrefs.length; ++i) {
         var type = childPrefs[i];
         var uri = autoBranch.getCharPref(type);
