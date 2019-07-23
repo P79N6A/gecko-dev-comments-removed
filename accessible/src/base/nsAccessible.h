@@ -185,7 +185,7 @@ protected:
 
 
 
-  nsresult GetTextFromRelationID(EAriaProperty aIDProperty, nsString &aName);
+  nsresult GetTextFromRelationID(nsIAtom *aIDProperty, nsString &aName);
 
   static nsIContent *GetHTMLLabelContent(nsIContent *aForNode);
   static nsIContent *GetLabelContent(nsIContent *aForNode);
@@ -251,7 +251,7 @@ protected:
 
 
 
-  nsresult GetAttrValue(EAriaProperty aAriaProperty, double *aValue);
+  nsresult GetAttrValue(nsIAtom *aAriaProperty, double *aValue);
 
   
   nsCOMPtr<nsIAccessible> mParent;

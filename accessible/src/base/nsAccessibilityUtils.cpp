@@ -581,78 +581,12 @@ nsAccUtils::GetID(nsIContent *aContent, nsAString& aID)
   return idAttribute ? aContent->GetAttr(kNameSpaceID_None, idAttribute, aID) : PR_FALSE;
 }
 
-PRUint32
-nsAccUtils::GetAriaPropTypes(nsIContent *aContent, nsIWeakReference *aWeakShell)
-{
-  NS_ENSURE_ARG_POINTER(aContent);
-
-  PRUint32 ariaPropTypes = 0;
-
-  
-  nsCOMPtr<nsIAccessibleDocument> docAccessible;
-  if (aWeakShell) {
-    docAccessible = nsAccessNode::GetDocAccessibleFor(aWeakShell);
-  }
-  else {
-      nsCOMPtr<nsIDOMNode> node = do_QueryInterface(aContent);
-    if (node) {
-      docAccessible = nsAccessNode::GetDocAccessibleFor(node);
-    }
-  }
-  if (docAccessible) {
-    docAccessible->GetAriaPropTypes(&ariaPropTypes);
-  }
-  return ariaPropTypes;
-}
-
-PRBool
-nsAccUtils::HasAriaProperty(nsIContent *aContent, nsIWeakReference *aWeakShell,
-                            EAriaProperty aProperty, PRUint32 aAriaPropTypes)
-{
-  if (!aAriaPropTypes) {
-    
-    aAriaPropTypes = GetAriaPropTypes(aContent, aWeakShell);
-  }
-
-  return ((aAriaPropTypes & nsIAccessibleDocument::eCheckNamespaced) &&
-          aContent->HasAttr(kNameSpaceID_WAIProperties,
-                            *nsARIAMap::gAriaAtomPtrsNS[aProperty])) ||
-         ((aAriaPropTypes & nsIAccessibleDocument::eCheckHyphenated) &&
-          aContent->HasAttr(kNameSpaceID_None,
-                            *nsARIAMap::gAriaAtomPtrsHyphenated[aProperty]));
-}
-
-PRBool
-nsAccUtils::GetAriaProperty(nsIContent *aContent, nsIWeakReference *aWeakShell,
-                            EAriaProperty aProperty, nsAString& aValue,
-                            PRUint32 aAriaPropTypes)
-{
-  aValue.Truncate();
-  if (!aAriaPropTypes) {
-    
-    aAriaPropTypes = GetAriaPropTypes(aContent, aWeakShell);
-  }
-  return ((aAriaPropTypes & nsIAccessibleDocument::eCheckNamespaced) &&
-          aContent->GetAttr(kNameSpaceID_WAIProperties,
-                            *nsARIAMap::gAriaAtomPtrsNS[aProperty],
-                            aValue)) ||
-         ((aAriaPropTypes & nsIAccessibleDocument::eCheckHyphenated) &&
-          aContent->GetAttr(kNameSpaceID_None,
-                            *nsARIAMap::gAriaAtomPtrsHyphenated[aProperty],
-                            aValue));
-}
-
 nsIContent*
 nsAccUtils::FindNeighbourPointingToNode(nsIContent *aForNode, 
-                                        EAriaProperty aAriaProperty, 
-                                        nsIAtom *aTagName,
                                         nsIAtom *aRelationAttr,
+                                        nsIAtom *aTagName,
                                         PRUint32 aAncestorLevelsToSearch)
 {
-  NS_ASSERTION(aAriaProperty == eAria_none || !aRelationAttr,
-               "Cannot pass in both an ARIA relation property and an atom relation. Choose one");
-  NS_ASSERTION(aAriaProperty == eAria_none || !aTagName,
-               "Cannot use aTagName with ARIA relation property, because ARIA relations apply to any tag");
   nsCOMPtr<nsIContent> binding;
   nsAutoString controlID;
   if (!nsAccUtils::GetID(aForNode, controlID)) {
@@ -703,14 +637,14 @@ nsAccUtils::FindNeighbourPointingToNode(nsIContent *aForNode,
           return nsnull;
 
         if (content != prevSearched) {
-          labelContent = FindDescendantPointingToID(&controlID, content, aAriaProperty,
+          labelContent = FindDescendantPointingToID(&controlID, content,
                                                     aRelationAttr, nsnull, aTagName);
         }
       }
       break;
     }
 
-    labelContent = FindDescendantPointingToID(&controlID, aForNode, aAriaProperty,
+    labelContent = FindDescendantPointingToID(&controlID, aForNode,
                                               aRelationAttr, prevSearched, aTagName);
     prevSearched = aForNode;
   }
@@ -722,7 +656,6 @@ nsAccUtils::FindNeighbourPointingToNode(nsIContent *aForNode,
 nsIContent*
 nsAccUtils::FindDescendantPointingToID(const nsString *aId,
                                        nsIContent *aLookContent,
-                                       EAriaProperty aAriaProperty,
                                        nsIAtom *aRelationAttr,
                                        nsIContent *aExcludeContent,
                                        nsIAtom *aTagType)
@@ -731,26 +664,25 @@ nsAccUtils::FindDescendantPointingToID(const nsString *aId,
   nsCAutoString idWithSpaces(' ');
   LossyAppendUTF16toASCII(*aId, idWithSpaces);
   idWithSpaces += ' ';
-  PRUint32 ariaPropTypes = (aAriaProperty == eAria_none) ? 0 :
-                            nsAccUtils::GetAriaPropTypes(aLookContent);
   return FindDescendantPointingToIDImpl(idWithSpaces, aLookContent,
-                                        aAriaProperty, ariaPropTypes,
                                         aRelationAttr, aExcludeContent, aTagType);
 }
 
 nsIContent*
 nsAccUtils::FindDescendantPointingToIDImpl(nsCString& aIdWithSpaces,
                                            nsIContent *aLookContent,
-                                           EAriaProperty aAriaProperty,
-                                           PRUint32 aAriaPropTypes,
                                            nsIAtom *aRelationAttr,
                                            nsIContent *aExcludeContent,
                                            nsIAtom *aTagType)
 {
-  if (aAriaProperty != eAria_none) {  
+  NS_ENSURE_TRUE(aLookContent, nsnull);
+  NS_ENSURE_TRUE(aRelationAttr, nsnull);
+
+  if (!aTagType || aLookContent->Tag() == aTagType) {
+    
+    
     nsAutoString idList;
-    if (nsAccUtils::GetAriaProperty(aLookContent, nsnull, aAriaProperty,
-                                    idList, aAriaPropTypes)) {
+    if (aLookContent->GetAttr(kNameSpaceID_None, aRelationAttr, idList)) {
       idList.Insert(' ', 0);  
       idList.Append(' ');
       
@@ -758,23 +690,6 @@ nsAccUtils::FindDescendantPointingToIDImpl(nsCString& aIdWithSpaces,
       
       if (idList.Find(aIdWithSpaces) != -1) {
         return aLookContent;
-      }
-    }
-  }
-  else if (!aTagType || aLookContent->Tag() == aTagType) {
-    
-    if (aRelationAttr) {
-      
-      nsAutoString idList;
-      if (aLookContent->GetAttr(kNameSpaceID_None, aRelationAttr, idList)) {
-        idList.Insert(' ', 0);  
-        idList.Append(' ');
-        
-        
-        
-        if (idList.Find(aIdWithSpaces) != -1) {
-          return aLookContent;
-        }
       }
     }
     if (aTagType) {
@@ -792,7 +707,6 @@ nsAccUtils::FindDescendantPointingToIDImpl(nsCString& aIdWithSpaces,
   while ((child = aLookContent->GetChildAt(count++)) != nsnull) {
     if (child != aExcludeContent) {
       labelContent = FindDescendantPointingToIDImpl(aIdWithSpaces, child,
-                                                    aAriaProperty, aAriaPropTypes,
                                                     aRelationAttr, aExcludeContent, aTagType);
       if (labelContent) {
         return labelContent;
@@ -802,62 +716,24 @@ nsAccUtils::FindDescendantPointingToIDImpl(nsCString& aIdWithSpaces,
   return nsnull;
 }
 
-const char *
-nsAccUtils::TrimmedRole(const char *aRole, nsIContent *aContent)
-{  
-  const char kWaiRolePrefix[] = "wairole:";
-  const PRUint32 kWaiRolePrefixLen = NS_ARRAY_LENGTH(kWaiRolePrefix) - 1;
-
-  if (!PL_strncmp(aRole, kWaiRolePrefix, kWaiRolePrefixLen)) {
-    return aRole + kWaiRolePrefixLen;
-  }
-
-  
-  char *colon = PL_strchr(aRole, ':');
-  if (colon) {
-    nsCOMPtr<nsIDOM3Node> dom3Node = do_QueryInterface(aContent);
-    if (dom3Node) {
-      
-      nsAutoString prefix;
-      NS_NAMED_LITERAL_STRING(kWAIRoles_Namespace, "http://www.w3.org/2005/01/wai-rdf/GUIRoleTaxonomy#");
-      dom3Node->LookupPrefix(kWAIRoles_Namespace, prefix);
-      prefix += ':';
-      PRUint32 prefixLength = colon - aRole + 1;
-
-      if (!PL_strncmp(aRole, NS_LossyConvertUTF16toASCII(prefix).get(), prefixLength)) {
-        
-        
-        return aRole + prefixLength;
-      }
-    }
-  }
-
-  return aRole;
-}
-
 nsRoleMapEntry*
 nsAccUtils::GetRoleMapEntry(nsIDOMNode *aNode)
 {
   nsIContent *content = nsAccessible::GetRoleContent(aNode);
-  if (!content) {
-    return nsnull;
-  }
   nsAutoString roleString;
-  if (!nsAccessNode::GetARIARole(content, roleString)) {
+  if (!content || !content->GetAttr(kNameSpaceID_None, nsAccessibilityAtoms::role, roleString)) {
     return nsnull;
   }
 
   nsWhitespaceTokenizer tokenizer(roleString);
   while (tokenizer.hasMoreTokens()) {
     
-    const char *rawRole = NS_LossyConvertUTF16toASCII(tokenizer.nextToken()).get();
-    const char *trimmedRole = TrimmedRole(rawRole, content);
-
+    const char *role = NS_LossyConvertUTF16toASCII(tokenizer.nextToken()).get();
     PRInt32 low = 0;
     PRInt32 high = nsARIAMap::gWAIRoleMapLength;
     while (low <= high) {
       PRInt32 index = low + ((high - low) / 2);
-      PRInt32 compare = PL_strcmp(trimmedRole, nsARIAMap::gWAIRoleMap[index].roleString);
+      PRInt32 compare = PL_strcmp(role, nsARIAMap::gWAIRoleMap[index].roleString);
       if (compare == 0) {
         
         return &nsARIAMap::gWAIRoleMap[index];

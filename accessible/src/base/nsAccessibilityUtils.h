@@ -270,52 +270,6 @@ public:
 
 
 
-  static PRUint32 GetAriaPropTypes(nsIContent *aContent, nsIWeakReference *aWeakShell = nsnull);
-
-  
-
-
-
-
-
-
-
-
-
-  static PRBool HasAriaProperty(nsIContent *aContent, nsIWeakReference *aWeakShell,
-                                EAriaProperty aProperty,
-                                PRUint32 aCheckFlags = 0);
-
-  
-
-
-
-
-
-
-
-
-
-
-  static PRBool GetAriaProperty(nsIContent *aContent, nsIWeakReference *aWeakShell,
-                                EAriaProperty aProperty, nsAString& aValue, 
-                                PRUint32 aCheckFlags = 0);
-
-  
-
-
-
-
-
-
-  static const char *TrimmedRole(const char *aRole, nsIContent *aContent);  
-
-  
-
-
-
-
-
    static nsRoleMapEntry* GetRoleMapEntry(nsIDOMNode *aNode);
 
   
@@ -330,11 +284,9 @@ public:
 
 
 
-
   static nsIContent *FindNeighbourPointingToNode(nsIContent *aForNode,
-                                                 EAriaProperty aAriaProperty,
+                                                 nsIAtom *aRelationAttr,
                                                  nsIAtom *aTagName = nsnull,
-                                                 nsIAtom *aRelationAttr = nsnull,
                                                  PRUint32 aAncestorLevelsToSearch = 5);
 
   
@@ -350,20 +302,16 @@ public:
 
 
 
-
   static nsIContent *FindDescendantPointingToID(const nsString *aId,
                                                 nsIContent *aLookContent,
-                                                EAriaProperty aAriaProperty,
-                                                nsIAtom *aRelationAttr = nsnull,
+                                                nsIAtom *aRelationAttr,
                                                 nsIContent *aExcludeContent = nsnull,
                                                 nsIAtom *aTagType = nsAccessibilityAtoms::label);
 
   
   static nsIContent *FindDescendantPointingToIDImpl(nsCString& aIdWithSpaces,
                                                     nsIContent *aLookContent,
-                                                    EAriaProperty aAriaProperty,
-                                                    PRUint32 aAriaPropTypes,
-                                                    nsIAtom *aRelationAttr = nsnull,
+                                                    nsIAtom *aRelationAttrs,
                                                     nsIContent *aExcludeContent = nsnull,
                                                     nsIAtom *aTagType = nsAccessibilityAtoms::label);
 };

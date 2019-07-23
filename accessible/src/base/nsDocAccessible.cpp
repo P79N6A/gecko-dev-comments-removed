@@ -84,8 +84,7 @@ PRUint32 nsDocAccessible::gLastFocusedAccessiblesState = 0;
 
 nsDocAccessible::nsDocAccessible(nsIDOMNode *aDOMNode, nsIWeakReference* aShell):
   nsHyperTextAccessibleWrap(aDOMNode, aShell), mWnd(nsnull),
-  mScrollPositionChangedTicks(0), mIsContentLoaded(PR_FALSE),
-  mAriaPropTypes(eCheckNamespaced)
+  mScrollPositionChangedTicks(0), mIsContentLoaded(PR_FALSE)
 {
   
   if (!mDOMNode)
@@ -101,20 +100,6 @@ nsDocAccessible::nsDocAccessible(nsIDOMNode *aDOMNode, nsIWeakReference* aShell)
     
     mDocument = shell->GetDocument();
     
-    if (!mDocument) {
-      NS_WARNING("No document!");
-      return;
-    }
-    
-    nsCOMPtr<nsIDOMNSHTMLDocument> htmlDoc(do_QueryInterface(mDocument));
-    if (htmlDoc) {
-      nsAutoString mimeType;
-      GetMimeType(mimeType);
-      mAriaPropTypes = eCheckHyphenated;
-      if (! mimeType.EqualsLiteral("text/html")) {
-        mAriaPropTypes |= eCheckNamespaced;
-      }
-    }
     
     nsIViewManager* vm = shell->GetViewManager();
     if (vm) {
@@ -225,7 +210,7 @@ NS_IMETHODIMP
 nsDocAccessible::GetDescription(nsAString& aDescription)
 {
   nsAutoString description;
-  GetTextFromRelationID(eAria_describedby, description);
+  GetTextFromRelationID(nsAccessibilityAtoms::aria_describedby, description);
   aDescription = description;
   return NS_OK;
 }
@@ -909,13 +894,6 @@ NS_IMETHODIMP nsDocAccessible::Observe(nsISupports *aSubject, const char *aTopic
   return NS_OK;
 }
 
-NS_IMETHODIMP
-nsDocAccessible::GetAriaPropTypes(PRUint32 *aAriaPropTypes) 
-{
-  *aAriaPropTypes = mAriaPropTypes;
-  return NS_OK;
-}
-
   
 
 
@@ -960,13 +938,6 @@ nsDocAccessible::AttributeChangedImpl(nsIContent* aContent, PRInt32 aNameSpaceID
   if (!docShell) {
     return;
   }
-  if (aNameSpaceID == kNameSpaceID_WAIProperties) {
-    
-    
-    
-    
-    mAriaPropTypes |= eCheckNamespaced;
-  }
 
   PRUint32 busyFlags;
   docShell->GetBusyFlags(&busyFlags);
@@ -992,7 +963,7 @@ nsDocAccessible::AttributeChangedImpl(nsIContent* aContent, PRInt32 aNameSpaceID
 
   
   if (aAttribute == nsAccessibilityAtoms::disabled ||
-      (aAttribute == nsAccessibilityAtoms::aria_disabled && (mAriaPropTypes & eCheckHyphenated))) {
+      aAttribute == nsAccessibilityAtoms::aria_disabled) {
     
     
     
@@ -1013,28 +984,19 @@ nsDocAccessible::AttributeChangedImpl(nsIContent* aContent, PRInt32 aNameSpaceID
   }
 
   
-  nsCOMPtr<nsIAtom> ariaAttribute;
-  if (aNameSpaceID == kNameSpaceID_WAIProperties) {
-    ariaAttribute = aAttribute;
-  }
-  else if (mAriaPropTypes & eCheckHyphenated && aNameSpaceID == kNameSpaceID_None) {
+  if (aNameSpaceID == kNameSpaceID_None) {
     
     const char* attributeName;
     aAttribute->GetUTF8String(&attributeName);
     if (!PL_strncmp("aria-", attributeName, 5)) {
-      
-      ariaAttribute = do_GetAtom(attributeName + 5);
+      ARIAAttributeChanged(aContent, aAttribute);
     }
-  }
-  if (ariaAttribute) {  
-    ARIAAttributeChanged(aContent, ariaAttribute);
-    return;
   }
 
   if (aAttribute == nsAccessibilityAtoms::role ||
       aAttribute == nsAccessibilityAtoms::href ||
       aAttribute == nsAccessibilityAtoms::onclick ||
-      aAttribute == nsAccessibilityAtoms::droppable) {
+      aAttribute == nsAccessibilityAtoms::aria_droppable) {
     
     
     
@@ -1042,7 +1004,8 @@ nsDocAccessible::AttributeChangedImpl(nsIContent* aContent, PRInt32 aNameSpaceID
     return;
   }
 
-  if (aAttribute == nsAccessibilityAtoms::selected) {
+  if (aAttribute == nsAccessibilityAtoms::selected ||
+      aAttribute == nsAccessibilityAtoms::aria_selected) {
     
     nsCOMPtr<nsIAccessible> multiSelect = GetMultiSelectFor(targetNode);
     
@@ -1063,11 +1026,8 @@ nsDocAccessible::AttributeChangedImpl(nsIContent* aContent, PRInt32 aNameSpaceID
 
       static nsIContent::AttrValuesArray strings[] =
         {&nsAccessibilityAtoms::_empty, &nsAccessibilityAtoms::_false, nsnull};
-      if (aContent->FindAttrValueIn(kNameSpaceID_None,
-                                    nsAccessibilityAtoms::selected,
-                                    strings, eCaseMatters) !=
-          nsIContent::ATTR_VALUE_NO_MATCH) {
-
+      if (aContent->FindAttrValueIn(kNameSpaceID_None, aAttribute,
+                                    strings, eCaseMatters) >= 0) {
         FireDelayedToolkitEvent(nsIAccessibleEvent::EVENT_SELECTION_REMOVE,
                                 targetNode, nsnull);
         return;
@@ -1095,7 +1055,7 @@ nsDocAccessible::ARIAAttributeChanged(nsIContent* aContent, nsIAtom* aAttribute)
   if (!targetNode)
     return;
 
-  if (aAttribute == nsAccessibilityAtoms::required) {
+  if (aAttribute == nsAccessibilityAtoms::aria_required) {
     nsCOMPtr<nsIAccessibleStateChangeEvent> event =
       new nsAccStateChangeEvent(targetNode,
                                 nsIAccessibleStates::STATE_REQUIRED,
@@ -1104,7 +1064,7 @@ nsDocAccessible::ARIAAttributeChanged(nsIContent* aContent, nsIAtom* aAttribute)
     return;
   }
 
-  if (aAttribute == nsAccessibilityAtoms::invalid) {
+  if (aAttribute == nsAccessibilityAtoms::aria_invalid) {
     nsCOMPtr<nsIAccessibleStateChangeEvent> event =
       new nsAccStateChangeEvent(targetNode,
                                 nsIAccessibleStates::STATE_INVALID,
@@ -1113,7 +1073,7 @@ nsDocAccessible::ARIAAttributeChanged(nsIContent* aContent, nsIAtom* aAttribute)
     return;
   }
 
-  if (aAttribute == nsAccessibilityAtoms::activedescendant) {
+  if (aAttribute == nsAccessibilityAtoms::aria_activedescendant) {
     
     
     nsCOMPtr<nsIDOMNode> currentFocus = GetCurrentFocus();
@@ -1125,7 +1085,7 @@ nsDocAccessible::ARIAAttributeChanged(nsIContent* aContent, nsIAtom* aAttribute)
     return;
   }
 
-  if (!HasRoleAttribute(aContent)) {
+  if (!aContent->HasAttr(kNameSpaceID_None, nsAccessibilityAtoms::role)) {
     
     
     
@@ -1133,9 +1093,10 @@ nsDocAccessible::ARIAAttributeChanged(nsIContent* aContent, nsIAtom* aAttribute)
     return;
   }
 
-  if (aAttribute == nsAccessibilityAtoms::checked ||
-      aAttribute == nsAccessibilityAtoms::pressed) {
-    const PRUint32 kState = (aAttribute == nsAccessibilityAtoms::checked) ?
+  
+  if (aAttribute == nsAccessibilityAtoms::aria_checked ||
+      aAttribute == nsAccessibilityAtoms::aria_pressed) {
+    const PRUint32 kState = (aAttribute == nsAccessibilityAtoms::aria_checked) ?
                             nsIAccessibleStates::STATE_CHECKED : 
                             nsIAccessibleStates::STATE_PRESSED;
     nsCOMPtr<nsIAccessibleStateChangeEvent> event =
@@ -1163,7 +1124,7 @@ nsDocAccessible::ARIAAttributeChanged(nsIContent* aContent, nsIAtom* aAttribute)
     return;
   }
 
-  if (aAttribute == nsAccessibilityAtoms::expanded) {
+  if (aAttribute == nsAccessibilityAtoms::aria_expanded) {
     nsCOMPtr<nsIAccessibleStateChangeEvent> event =
       new nsAccStateChangeEvent(targetNode,
                                 nsIAccessibleStates::STATE_EXPANDED,
@@ -1172,7 +1133,7 @@ nsDocAccessible::ARIAAttributeChanged(nsIContent* aContent, nsIAtom* aAttribute)
     return;
   }
 
-  if (aAttribute == nsAccessibilityAtoms::readonly) {
+  if (aAttribute == nsAccessibilityAtoms::aria_readonly) {
     nsCOMPtr<nsIAccessibleStateChangeEvent> event =
       new nsAccStateChangeEvent(targetNode,
                                 nsIAccessibleStates::STATE_READONLY,
@@ -1181,21 +1142,18 @@ nsDocAccessible::ARIAAttributeChanged(nsIContent* aContent, nsIAtom* aAttribute)
     return;
   }
 
-  if (aAttribute == nsAccessibilityAtoms::valuenow) {
+  if (aAttribute == nsAccessibilityAtoms::aria_valuenow) {
     FireDelayedToolkitEvent(nsIAccessibleEvent::EVENT_VALUE_CHANGE,
                             targetNode, nsnull);
     return;
   }
 
-  if (aAttribute == nsAccessibilityAtoms::multiselectable) {
+  if (aAttribute == nsAccessibilityAtoms::aria_multiselectable &&
+      aContent->HasAttr(kNameSpaceID_None, nsAccessibilityAtoms::role)) {
     
     
     
-    if (HasRoleAttribute(aContent)) {
-      
-      
-      InvalidateCacheSubtree(aContent, nsIAccessibleEvent::EVENT_DOM_SIGNIFICANT_CHANGE);
-    }
+    InvalidateCacheSubtree(aContent, nsIAccessibleEvent::EVENT_DOM_SIGNIFICANT_CHANGE);
   }
 }
 

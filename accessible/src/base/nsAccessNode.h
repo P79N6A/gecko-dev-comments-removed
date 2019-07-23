@@ -72,16 +72,6 @@ class nsIDocShellTreeItem;
 typedef nsInterfaceHashtable<nsVoidPtrHashKey, nsIAccessNode>
         nsAccessNodeHashtable;
 
-
-
-
-
-
-
-
-#define ARIARoleEquals(aContent, aRoleName) \
-  nsAccessNode::ARIARoleEqualsImpl(aContent, aRoleName, NS_ARRAY_LENGTH(aRoleName) - 1)
-
 class nsAccessNode: public nsIAccessNode, public nsPIAccessNode
 {
   public: 
@@ -118,25 +108,6 @@ class nsAccessNode: public nsIAccessNode, public nsPIAccessNode
     static already_AddRefed<nsIDOMNode> GetDOMNodeForContainer(nsISupports *aContainer);
     static already_AddRefed<nsIPresShell> GetPresShellFor(nsIDOMNode *aStartNode);
     
-    
-    static PRBool HasRoleAttribute(nsIContent *aContent)
-    {
-      return (aContent->IsNodeOfType(nsINode::eHTML) && aContent->HasAttr(kNameSpaceID_None, nsAccessibilityAtoms::role)) ||
-              aContent->HasAttr(kNameSpaceID_XHTML, nsAccessibilityAtoms::role) ||
-              aContent->HasAttr(kNameSpaceID_XHTML2_Unofficial, nsAccessibilityAtoms::role);
-    }
-
-    
-
-
-
-
-
-    static PRBool GetARIARole(nsIContent *aContent, nsString& aRole);
-
-    static PRBool ARIARoleEqualsImpl(nsIContent* aContent, const char* aRoleName, PRUint32 aLen)
-      { nsAutoString role; return GetARIARole(aContent, role) && role.EqualsASCII(aRoleName, aLen); }
-
     static void GetComputedStyleDeclaration(const nsAString& aPseudoElt,
                                             nsIDOMElement *aElement,
                                             nsIDOMCSSStyleDeclaration **aCssDecl);

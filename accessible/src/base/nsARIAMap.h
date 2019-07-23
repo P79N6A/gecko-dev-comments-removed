@@ -43,12 +43,6 @@
 #include "prtypes.h"
 #include "nsAccessibilityAtoms.h"
 
-#define ARIA_PROPERTY(atom) eAria_##atom,
-enum EAriaProperty {
-#include "nsARIAPropertyList.h"
-  eAria_none };
-#undef ARIA_PROPERTY
-
 
 enum ENameRule
 {
@@ -86,7 +80,7 @@ enum EValueRule
 
 struct nsStateMapEntry
 {
-  EAriaProperty attributeName;  
+  nsIAtom** attributeName;  
   const char* attributeValue; 
   PRUint32 state;             
 };
@@ -131,8 +125,6 @@ struct nsRoleMapEntry
 
 struct nsARIAMap
 {
-  static nsIAtom** gAriaAtomPtrsNS[eAria_none];
-  static nsIAtom** gAriaAtomPtrsHyphenated[eAria_none];
   static nsRoleMapEntry gWAIRoleMap[];
   static PRUint32 gWAIRoleMapLength;
   static nsRoleMapEntry gLandmarkRoleMap;
