@@ -186,6 +186,9 @@ BrowserGlue.prototype = {
     distro.applyCustomizations();
 
     
+    this._migrateUI();
+
+    
     this._profileStarted = true;
   },
 
@@ -404,6 +407,85 @@ BrowserGlue.prototype = {
       Cc["@mozilla.org/browser/places/import-export-service;1"].
       getService(Ci.nsIPlacesImportExportService);
     importer.backupBookmarksFile();
+  },
+
+  _migrateUI: function bg__migrateUI() {
+    var prefBranch = Cc["@mozilla.org/preferences-service;1"].getService(Ci.nsIPrefBranch);
+
+    var migration = 0;
+    try {
+      migration = prefBranch.getIntPref("browser.migration.version");
+    } catch(ex) {}
+
+    if (migration == 0) {
+      
+
+      
+      this._rdf = Cc["@mozilla.org/rdf/rdf-service;1"].getService(Ci.nsIRDFService);
+      var localStore = this._rdf.GetDataSource("rdf:local-store");
+
+      
+      var foundHome = false;
+
+      var currentSet = this._rdf.GetResource("currentset");
+      var target = null;
+      var dirty = false;
+
+      
+      var navBar = this._rdf.GetResource("chrome://browser/content/browser.xul#nav-bar");
+      target = this._getPersist(localStore, navBar, currentSet);
+      if (target) {
+        foundHome = (target.indexOf("home-button") != -1);
+        if (foundHome)
+          target = target.replace("home-button", "");
+        target = "unified-back-forward-button," + target;
+        this._setPersist(localStore, navBar, currentSet, target);
+        dirty = true;
+      }
+
+      
+      if (foundHome) {
+        var personalBar = this._rdf.GetResource("chrome://browser/content/browser.xul#PersonalToolbar");
+        target = this._getPersist(localStore, personalBar, currentSet);
+        if (target && target.indexOf("home-button") == -1) {
+          this._setPersist(localStore, personalBar, currentSet, "home-button," + target);
+          dirty = true;
+        }
+      }
+
+      
+      if (dirty)
+        localStore.QueryInterface(Ci.nsIRDFRemoteDataSource).Flush();
+
+      
+      this._rdf = null;
+
+      
+      prefBranch.setIntPref("browser.migration.version", 1);
+    }
+  },
+
+  _getPersist: function bg__getPersist(aDataSource, aSource, aProperty) {
+    var target = aDataSource.GetTarget(aSource, aProperty, true);
+    if (target instanceof Ci.nsIRDFLiteral)
+      return target.Value;
+    return null;
+  },
+
+  _setPersist: function bg__setPersist(aDataSource, aSource, aProperty, aTarget) {
+    try {
+      var oldTarget = aDataSource.GetTarget(aSource, aProperty, true);
+      if (oldTarget) {
+        if (aTarget)
+          aDataSource.Change(aSource, aProperty, oldTarget, this._rdf.GetLiteral(aTarget));
+        else
+          aDataSource.Unassert(aSource, aProperty, oldTarget);
+      }
+      else {
+        aDataSource.Assert(aSource, aProperty, this._rdf.GetLiteral(aTarget), true);
+      }
+    }
+    catch(ex) {}
   },
 
   
