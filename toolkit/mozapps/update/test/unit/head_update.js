@@ -42,12 +42,14 @@ const AUS_Cc = Components.classes;
 const AUS_Ci = Components.interfaces;
 const AUS_Cr = Components.results;
 
-const NS_APP_PROFILE_DIR_STARTUP = "ProfDS";
-const NS_APP_USER_PROFILE_50_DIR = "ProfD";
-const NS_GRE_DIR                 = "GreD";
-const XRE_UPDATE_ROOT_DIR        = "UpdRootD";
+const NS_APP_PROFILE_DIR_STARTUP   = "ProfDS";
+const NS_APP_USER_PROFILE_50_DIR   = "ProfD";
+const NS_GRE_DIR                   = "GreD";
+const NS_XPCOM_CURRENT_PROCESS_DIR = "XCurProcD"
+const XRE_UPDATE_ROOT_DIR          = "UpdRootD";
 
-const PREF_APP_UPDATE_URL_OVERRIDE = "app.update.url.override";
+const PREF_APP_UPDATE_URL_OVERRIDE      = "app.update.url.override";
+const PREF_APP_UPDATE_SHOW_INSTALLED_UI = "app.update.showInstalledUI";
 
 const URI_UPDATES_PROPERTIES = "chrome://mozapps/locale/update/updates.properties";
 const gUpdateBundle = AUS_Cc["@mozilla.org/intl/stringbundle;1"]
@@ -77,6 +79,8 @@ const PERMS_DIRECTORY = 0755;
 const URL_HOST = "http://localhost:4444/"
 const DIR_DATA = "data"
 
+var gDirSvc = AUS_Cc["@mozilla.org/file/directory_service;1"]
+                .getService(AUS_Ci.nsIProperties);
 var gPrefs = AUS_Cc["@mozilla.org/preferences;1"]
                .getService(AUS_Ci.nsIPrefBranch);
 var gAUS;
@@ -104,6 +108,9 @@ var gStatusText;
 function startAUS() {
   createAppInfo("xpcshell@tests.mozilla.org", "XPCShell", "1.0", "2.0");
 
+  
+  
+  gPrefs.setBoolPref(PREF_APP_UPDATE_SHOW_INSTALLED_UI, false);
   
   gPrefs.setBoolPref("app.update.log.all", true);
   
@@ -348,7 +355,7 @@ function getPatchString(aType, aURL, aHashFunction, aHashValue, aSize) {
 
 
 function writeUpdatesToXMLFile(aContent, aIsActiveUpdate) {
-  var file = gCustomGreD.clone();
+  var file = getCurrentProcessDir();
   file.append(aIsActiveUpdate ? FILE_UPDATE_ACTIVE : FILE_UPDATES_DB);
   writeFile(file, aContent);
 }
@@ -361,7 +368,7 @@ function writeUpdatesToXMLFile(aContent, aIsActiveUpdate) {
 
 
 function writeStatusFile(aStatus) {
-  var file = gCustomGreD.clone();
+  var file = getCurrentProcessDir();
   file.append("updates");
   file.append("0");
   file.append("update.status");
@@ -587,7 +594,8 @@ const updateCheckListener = {
 
 
 function removeUpdateDirsAndFiles() {
-  var file = gCustomGreD.clone();
+  var appDir = getCurrentProcessDir();
+  file = appDir.clone();
   file.append("active-update.xml");
   try {
     if (file.exists())
@@ -598,7 +606,7 @@ function removeUpdateDirsAndFiles() {
          "\nException: " + e + "\n");
   }
 
-  file = gCustomGreD.clone();
+  file = appDir.clone();
   file.append("updates.xml");
   try {
     if (file.exists())
@@ -609,7 +617,7 @@ function removeUpdateDirsAndFiles() {
          "\nException: " + e + "\n");
   }
 
-  file = gCustomGreD.clone();
+  file = appDir.clone();
   file.append("updates");
   file.append("last-update.log");
   try {
@@ -621,7 +629,7 @@ function removeUpdateDirsAndFiles() {
          "\nException: " + e + "\n");
   }
 
-  var updatesSubDir = gCustomGreD.clone();
+  var updatesSubDir = appDir.clone();
   updatesSubDir.append("updates");
   updatesSubDir.append("0");
   if (updatesSubDir.exists()) {
@@ -668,7 +676,7 @@ function removeUpdateDirsAndFiles() {
   }
 
   
-  var updatesDir = gCustomGreD.clone();
+  var updatesDir = appDir.clone();
   updatesDir.append("updates");
   try {
     if (updatesDir.exists())
@@ -748,22 +756,24 @@ function createAppInfo(id, name, version, platformVersion) {
                             XULAPPINFO_CONTRACTID, XULAppInfoFactory);
 }
 
-function copyUpdaterINI() {
-  try {
-    
-    var updaterINI = gRealGreD.clone();
-    updaterINI.append("updater.ini");
-    updaterINI.copyTo(gCustomGreD, updaterINI.leafName);
-  }
-  catch (e) {
-    do_throw("Unable to copy updater.ini to the custom GRE directory\n" +
-             "Exception: " + e + "\n");
-  }
+
+
+
+
+
+
+function getGREDir() {
+  return gDirSvc.get(NS_GRE_DIR, AUS_Ci.nsIFile);
 }
 
 
-var gDirSvc = AUS_Cc["@mozilla.org/file/directory_service;1"].
-             getService(AUS_Ci.nsIProperties);
+
+
+
+
+function getCurrentProcessDir() {
+  return gDirSvc.get(NS_XPCOM_CURRENT_PROCESS_DIR, AUS_Ci.nsIFile);
+}
 
 
 var gProfD = do_get_cwd();
@@ -772,29 +782,6 @@ if (gProfD.exists())
   gProfD.remove(true);
 gProfD.create(AUS_Ci.nsIFile.DIRECTORY_TYPE, PERMS_DIRECTORY);
 
-var gRealGreD = gDirSvc.get(NS_GRE_DIR, AUS_Ci.nsIFile);
-
-
-
-
-var gCustomGreD = gRealGreD.clone();
-
-
-
-
-  
-  
-
-
-
-
-
-
-
-
-
-
-
 var dirProvider = {
   getFile: function(prop, persistent) {
     switch (prop) {
@@ -802,10 +789,9 @@ var dirProvider = {
       case NS_APP_PROFILE_DIR_STARTUP:
         persistent.value = true;
         return gProfD.clone();
-
-
-
-
+      case XRE_UPDATE_ROOT_DIR:
+        persistent.value = true;
+        return getCurrentProcessDir();
     }
     return null;
   },
