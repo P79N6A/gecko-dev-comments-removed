@@ -141,6 +141,11 @@ struct JSObjectMap {
         }                                                                     \
     JS_END_MACRO
 
+
+
+
+
+
 #define OBJ_TO_OUTER_OBJECT(cx,obj)                                           \
     JS_BEGIN_MACRO                                                            \
         JSClass *clasp_ = OBJ_GET_CLASS(cx, obj);                             \
