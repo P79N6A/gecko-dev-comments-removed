@@ -508,39 +508,6 @@ nsTableCellFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
   return BuildDisplayListForChild(aBuilder, kid, aDirtyRect, aLists);
 }
 
-
-NS_IMETHODIMP
-nsTableCellFrame::SetSelected(nsPresContext*  aPresContext,
-                              nsIDOMRange*    aRange,
-                              PRBool          aSelected,
-                              nsSpread        aSpread,
-                              SelectionType   aType)
-{
-  
-#if 0
-  if ((aSpread == eSpreadDown)){
-    nsIFrame* kid = GetFirstChild(nsnull);
-    while (nsnull != kid) {
-      kid->SetSelected(nsnull, aSelected, eSpreadDown);
-      kid = kid->GetNextSibling();
-    }
-  }
-  
-#endif
-  
-  
-  
-  nsFrame::SetSelected(aPresContext, aRange, aSelected, aSpread, aType);
-
-  nsCOMPtr<nsFrameSelection> frameSelection =
-    aPresContext->PresShell()->FrameSelection();
-  if (frameSelection->GetTableCellSelection()) {
-    
-    InvalidateOverflowRect();
-  }
-  return NS_OK;
-}
-
 PRIntn
 nsTableCellFrame::GetSkipSides() const
 {

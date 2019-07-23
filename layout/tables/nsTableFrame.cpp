@@ -1477,32 +1477,6 @@ nsTableFrame::PaintTableBorderBackground(nsIRenderingContext& aRenderingContext,
   }
 }
 
-
-NS_IMETHODIMP
-nsTableFrame::SetSelected(nsPresContext* aPresContext,
-                          nsIDOMRange *aRange,
-                          PRBool aSelected,
-                          nsSpread aSpread,
-                          SelectionType aType)
-{
-#if 0
-  
-  if ((aSpread == eSpreadDown)){
-    nsIFrame* kid = GetFirstChild(nsnull);
-    while (kid) {
-      kid->SetSelected(nsnull, aSelected, eSpreadDown);
-      kid = kid->GetNextSibling();
-    }
-  }
-#endif
-  
-  
-  
-  nsFrame::SetSelected(aPresContext, aRange, aSelected, aSpread, aType);
-  return NS_OK;
-  
-}
-
 PRBool nsTableFrame::ParentDisablesSelection() const 
 {
   PRBool returnval;
