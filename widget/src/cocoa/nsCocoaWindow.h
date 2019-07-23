@@ -62,6 +62,11 @@ class nsChildView;
 @end
 
 
+@interface ToolbarWindow : NSWindow
+{
+}
+@end
+
 class nsCocoaWindow : public nsBaseWidget, public nsPIWidgetCocoa
 {
 private:
