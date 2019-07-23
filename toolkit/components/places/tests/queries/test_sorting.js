@@ -1214,10 +1214,14 @@ tests.push({
 
 
 
-function prepare_for_next_test() {
+function prepare_and_run_next_test(aTest) {
+  aTest.setup();
+  aTest.check();
   
-  PlacesUtils.bhistory.removeAllPages();
+  aTest.check_reverse();
+  
   remove_all_bookmarks();
+  waitForClearHistory(runNextTest);
 }
 
 
@@ -1226,13 +1230,16 @@ function prepare_for_next_test() {
 
 
 function run_test() {
-  prepare_for_next_test();
-  while (tests.length) {
+  do_test_pending();
+  runNextTest();
+}
+
+function runNextTest() {
+  if (tests.length) {
     let test = tests.shift();
-    test.setup();
-    test.check();
-    
-    test.check_reverse();
-    prepare_for_next_test();
+    prepare_and_run_next_test(test);
+  }
+  else {
+    do_test_finished();
   }
 }
