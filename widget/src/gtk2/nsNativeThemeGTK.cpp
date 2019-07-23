@@ -175,6 +175,10 @@ nsNativeThemeGTK::GetGtkWidgetAndState(PRUint8 aWidgetType, nsIFrame* aFrame,
     } else {
 
       
+      if (aWidgetType == NS_THEME_DROPDOWN_TEXTFIELD)
+        aFrame = aFrame->GetParent();
+
+      
       
       nsIFrame *stateFrame = aFrame;
       if (aFrame && ((aWidgetFlags && (IsCheckboxWidgetType(aWidgetType) ||
@@ -971,7 +975,7 @@ nsNativeThemeGTK::ThemeSupportsWidget(nsPresContext* aPresContext,
   case NS_THEME_TEXTFIELD:
   case NS_THEME_TEXTFIELD_MULTILINE:
     
-  case NS_THEME_DROPDOWN_BUTTON:
+    
   case NS_THEME_DROPDOWN_TEXTFIELD:
   case NS_THEME_SCALE_HORIZONTAL:
   case NS_THEME_SCALE_THUMB_HORIZONTAL:
