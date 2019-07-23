@@ -298,7 +298,7 @@ struct JSParseNode {
 #define PN_OP(pn)    ((JSOp)(pn)->pn_op)
 #define PN_TYPE(pn)  ((js::TokenKind)(pn)->pn_type)
 
-    js::TokenPos          pn_pos;         
+    js::TokenPos        pn_pos;         
     int32               pn_offset;      
     JSParseNode         *pn_next;       
     JSParseNode         *pn_link;       

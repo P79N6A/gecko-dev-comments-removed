@@ -344,6 +344,10 @@ class TokenStream
     Token *mutableCurrentToken() { return &tokens[cursor]; }
     bool reportCompileErrorNumberVA(JSParseNode *pn, uintN flags, uintN errorNumber, va_list ap);
 
+    
+
+
+
     TokenKind getToken() {
         
         while (lookahead != 0) {
@@ -366,6 +370,9 @@ class TokenStream
         JS_ASSERT(index < ntokens);
         return &tokens[index];
     }
+
+    
+
 
     void ungetToken() {
         JS_ASSERT(lookahead < ntokensMask);
@@ -390,6 +397,9 @@ class TokenStream
         flags &= ~TSF_NEWLINES;
         return tt;
     }
+
+    
+
 
     JSBool matchToken(TokenKind tt) {
         if (getToken() == tt)
@@ -527,52 +537,6 @@ ReportCompileErrorNumber(JSContext *cx, TokenStream *ts, JSParseNode *pn, uintN 
 bool
 ReportStrictModeError(JSContext *cx, TokenStream *ts, JSTreeContext *tc, JSParseNode *pn,
                       uintN errorNumber, ...);
-
-
-
-
-static inline TokenKind
-PeekToken(JSContext *cx, TokenStream *ts)
-{
-    JS_ASSERT(cx == ts->getContext());
-    return ts->peekToken();
-}
-
-static inline TokenKind
-PeekTokenSameLine(JSContext *cx, TokenStream *ts)
-{
-    JS_ASSERT(cx == ts->getContext());
-    return ts->peekTokenSameLine();
-}
-
-
-
-
-static inline TokenKind
-GetToken(JSContext *cx, TokenStream *ts)
-{
-    JS_ASSERT(cx == ts->getContext());
-    return ts->getToken();
-}
-
-
-
-
-static inline void
-UngetToken(TokenStream *ts)
-{
-    ts->ungetToken();
-}
-
-
-
-
-static inline JSBool
-MatchToken(JSContext *cx, TokenStream *ts, TokenKind tt)
-{
-    JS_ASSERT(cx == ts->getContext());
-    return ts->matchToken(tt);
-}
 
 } 
 

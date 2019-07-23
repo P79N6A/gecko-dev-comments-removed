@@ -2336,7 +2336,7 @@ Function(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
         }
 
         
-        tt = GetToken(cx, &ts);
+        tt = ts.getToken();
         if (tt != TOK_EOF) {
             for (;;) {
                 
@@ -2371,12 +2371,12 @@ Function(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 
 
 
-                tt = GetToken(cx, &ts);
+                tt = ts.getToken();
                 if (tt == TOK_EOF)
                     break;
                 if (tt != TOK_COMMA)
                     goto after_args;
-                tt = GetToken(cx, &ts);
+                tt = ts.getToken();
             }
         }
 
