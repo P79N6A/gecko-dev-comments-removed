@@ -52,12 +52,14 @@
 #include "jspubtd.h"
 #include "jsprvtd.h"
 
+namespace js { class AutoDescriptorArray; }
+
 
 
 
 
 struct PropertyDescriptor {
-  friend class AutoDescriptorArray;
+  friend class js::AutoDescriptorArray;
 
   private:
     PropertyDescriptor();
