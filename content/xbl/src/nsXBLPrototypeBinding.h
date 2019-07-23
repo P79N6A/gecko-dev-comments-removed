@@ -74,7 +74,12 @@ public:
   void SetBindingElement(nsIContent* aElement);
 
   nsIURI* BindingURI() const { return mBindingURI; }
+  nsIURI* AlternateBindingURI() const { return mAlternateBindingURI; }
   nsIURI* DocURI() const { return mXBLDocInfoWeak->DocumentURI(); }
+
+  
+  
+  PRBool CompareBindingURI(nsIURI* aURI) const;
 
   nsresult GetAllowScripts(PRBool* aResult);
 
@@ -195,7 +200,8 @@ public:
   
   nsresult Init(const nsACString& aRef,
                 nsIXBLDocumentInfo* aInfo,
-                nsIContent* aElement);
+                nsIContent* aElement,
+                PRBool aFirstBinding = PR_FALSE);
 
   void Traverse(nsCycleCollectionTraversalCallback &cb) const;
   void UnlinkJSObjects();
@@ -256,6 +262,7 @@ protected:
 
 protected:
   nsCOMPtr<nsIURI> mBindingURI;
+  nsCOMPtr<nsIURI> mAlternateBindingURI; 
   nsCOMPtr<nsIContent> mBinding; 
   nsAutoPtr<nsXBLPrototypeHandler> mPrototypeHandler; 
   

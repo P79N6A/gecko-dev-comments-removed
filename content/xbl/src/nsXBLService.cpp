@@ -119,43 +119,8 @@ IsAncestorBinding(nsIDocument* aDocument,
     if (!binding) {
       continue;
     }
-    PRBool equal;
-    nsresult rv;
-    nsCOMPtr<nsIURL> childBindingURL = do_QueryInterface(aChildBindingURI);
-    nsCAutoString childRef;
-    if (childBindingURL &&
-        NS_SUCCEEDED(childBindingURL->GetRef(childRef)) &&
-        childRef.IsEmpty()) {
-      
-      
-      
-      
-      
 
-      
-      
-      
-      
-      nsCOMPtr<nsIURI> compareURI;
-      rv = binding->PrototypeBinding()->BindingURI()->Clone(getter_AddRefs(compareURI));
-      NS_ENSURE_SUCCESS(rv, PR_TRUE); 
-
-      nsCOMPtr<nsIURL> compareURL = do_QueryInterface(compareURI, &rv);
-      NS_ENSURE_SUCCESS(rv, PR_TRUE); 
-      
-      rv = compareURL->SetRef(EmptyCString());
-      NS_ENSURE_SUCCESS(rv, PR_TRUE); 
-
-      rv = compareURL->Equals(aChildBindingURI, &equal);
-    } else {
-      
-      rv = binding->PrototypeBinding()->BindingURI()->Equals(aChildBindingURI,
-                                                             &equal);
-    }
-
-    NS_ENSURE_SUCCESS(rv, PR_TRUE); 
-
-    if (equal) {
+    if (binding->PrototypeBinding()->CompareBindingURI(aChildBindingURI)) {
       ++bindingRecursion;
       if (bindingRecursion < NS_MAX_XBL_BINDING_RECURSION) {
         continue;
@@ -599,9 +564,7 @@ nsXBLService::LoadBindings(nsIContent* aContent, nsIURI* aURL,
       }
       else {
         
-        nsIURI* uri = styleBinding->PrototypeBinding()->BindingURI();
-        PRBool equal;
-        if (NS_SUCCEEDED(uri->Equals(aURL, &equal)) && equal)
+        if (styleBinding->PrototypeBinding()->CompareBindingURI(aURL))
           return NS_OK;
         FlushStyleBindings(aContent);
         binding = nsnull;
@@ -883,8 +846,6 @@ nsXBLService::GetBinding(nsIContent* aBoundElement, nsIURI* aURI,
   if (!aURI)
     return NS_ERROR_FAILURE;
 
-  NS_ENSURE_TRUE(aDontExtendURIs.AppendElement(aURI), NS_ERROR_OUT_OF_MEMORY);
-
   nsCAutoString ref;
   nsCOMPtr<nsIURL> url(do_QueryInterface(aURI));
   if (url)
@@ -913,6 +874,14 @@ nsXBLService::GetBinding(nsIContent* aBoundElement, nsIURI* aURI,
   NS_ASSERTION(protoBinding, "Unable to locate an XBL binding.");
   if (!protoBinding)
     return NS_ERROR_FAILURE;
+
+  NS_ENSURE_TRUE(aDontExtendURIs.AppendElement(protoBinding->BindingURI()),
+                 NS_ERROR_OUT_OF_MEMORY);
+  nsCOMPtr<nsIURI> altBindingURI = protoBinding->AlternateBindingURI();
+  if (altBindingURI) {
+    NS_ENSURE_TRUE(aDontExtendURIs.AppendElement(altBindingURI),
+                   NS_ERROR_OUT_OF_MEMORY);
+  }
 
   nsCOMPtr<nsIContent> child = protoBinding->GetBindingElement();
 
