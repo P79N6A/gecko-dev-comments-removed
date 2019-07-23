@@ -90,7 +90,7 @@ protected:
   
   
   PRUint32               mHadMoreEventsCount;
-  static const PRUint32  kHadMoreEventsCountMax = 10;
+  static const PRUint32  kHadMoreEventsCountMax = 3;
 };
 
 #endif 
