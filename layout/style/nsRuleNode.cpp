@@ -44,6 +44,7 @@
 
 
 
+
 #include "nsRuleNode.h"
 #include "nscore.h"
 #include "nsIServiceManager.h"
@@ -2221,12 +2222,12 @@ nsRuleNode::SetFont(nsPresContext* aPresContext, nsStyleContext* aContext,
  void
 nsRuleNode::SetGenericFont(nsPresContext* aPresContext,
                            nsStyleContext* aContext,
-                           const nsRuleDataFont& aFontData,
                            PRUint8 aGenericFontID, nscoord aMinFontSize,
                            nsStyleFont* aFont)
 {
   
   nsAutoVoidArray contextPath;
+  contextPath.AppendElement(aContext);
   nsStyleContext* higherContext = aContext->GetParent();
   while (higherContext) {
     if (higherContext->GetStyleFont()->mFlags & aGenericFontID) {
@@ -2266,6 +2267,9 @@ nsRuleNode::SetGenericFont(nsPresContext* aPresContext,
     ruleData.mFontData = &fontData;
 
     
+    
+    
+    
     for (nsRuleNode* ruleNode = context->GetRuleNode(); ruleNode;
          ruleNode = ruleNode->GetParent()) {
       if (ruleNode->mNoneBits & fontBit)
@@ -2281,7 +2285,11 @@ nsRuleNode::SetGenericFont(nsPresContext* aPresContext,
     }
 
     
-    fontData.mFamily.Reset(); 
+
+    
+    
+    if (i != 0)
+      fontData.mFamily.Reset();
 
     nsRuleNode::SetFont(aPresContext, context, aMinFontSize,
                         aGenericFontID, fontData, &parentFont, aFont, dummy);
@@ -2295,12 +2303,6 @@ nsRuleNode::SetGenericFont(nsPresContext* aPresContext,
     parentFont.mFont = aFont->mFont;
     parentFont.mSize = aFont->mSize;
   }
-
-  
-  
-  
-  nsRuleNode::SetFont(aPresContext, aContext, aMinFontSize,
-                      aGenericFontID, aFontData, &parentFont, aFont, dummy);
 }
 
 static PRBool ExtractGeneric(const nsString& aFamily, PRBool aGeneric,
@@ -2348,6 +2350,8 @@ nsRuleNode::ComputeFontData(nsStyleStruct* aStartStruct,
 
   
   PRUint8 generic = kGenericFont_NONE;
+  
+  
   if (eCSSUnit_String == fontData.mFamily.GetUnit()) {
     fontData.mFamily.GetStringValue(font->mFont.name);
     
@@ -2387,7 +2391,7 @@ nsRuleNode::ComputeFontData(nsStyleStruct* aStartStruct,
   else {
     
     inherited = PR_TRUE;
-    nsRuleNode::SetGenericFont(mPresContext, aContext, fontData, generic,
+    nsRuleNode::SetGenericFont(mPresContext, aContext, generic,
                                minimumFontSize, font);
   }
 
