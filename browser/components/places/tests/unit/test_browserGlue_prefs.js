@@ -212,6 +212,8 @@ tests.push({
 
 
 function finish_test() {
+  
+  os.notifyObservers(null, "quit-application-granted", null);
   do_test_finished();
 }
 
@@ -219,6 +221,9 @@ var testIndex = 0;
 function next_test() {
   
   remove_all_bookmarks();
+
+  
+  os.notifyObservers(null, "quit-application-granted", null);
 
   
   
