@@ -60,6 +60,9 @@ DownloadProgressListener.prototype = {
 
   onDownloadStateChange: function dlPL_onDownloadStateChange(aState, aDownload)
   {
+    
+    onUpdateProgress();
+
     let state = aDownload.state;
     switch (state) {
       case nsIDM.DOWNLOAD_QUEUED:
