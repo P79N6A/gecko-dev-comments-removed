@@ -1029,7 +1029,7 @@ nsScriptLoader::ShouldExecuteScript(nsIDocument* aDocument,
 }
 
 void
-nsScriptLoader::EndDeferringScripts(PRBool aKillDeferred)
+nsScriptLoader::ParsingComplete(PRBool aTerminated)
 {
   if (mDeferEnabled) {
     
@@ -1037,15 +1037,16 @@ nsScriptLoader::EndDeferringScripts(PRBool aKillDeferred)
     mUnblockOnloadWhenDoneProcessing = PR_TRUE;
   }
   mDeferEnabled = PR_FALSE;
-  for (PRUint32 i = 0; i < (PRUint32)mRequests.Count(); ++i) {
-    if (aKillDeferred && mRequests[i]->mDefer) {
-      mRequests.RemoveObjectAt(i--);
-    }
-    else {
+  if (aTerminated) {
+    mRequests.Clear();
+  } else {
+    for (PRUint32 i = 0; i < (PRUint32)mRequests.Count(); ++i) {
       mRequests[i]->mDefer = PR_FALSE;
     }
   }
 
+  
+  
   ProcessPendingRequests();
 }
 

@@ -217,8 +217,7 @@ public:
 
 
 
-
-  void EndDeferringScripts(PRBool aKillDeferred);
+  void ParsingComplete(PRBool aTerminated);
 
   
 
