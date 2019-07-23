@@ -52,9 +52,18 @@ function getTestDB()
 function cleanup()
 {
   
+  print("*** Storage Tests: Trying to close!");
+  getOpenedDatabase().close();
+
+  
+  
+  gDBConn = null;
+
+  
+  print("*** Storage Tests: Trying to remove file!");
   var dbFile = getTestDB();
   if (dbFile.exists())
-    try { dbFile.remove(true); } catch(e) {  }
+    try { dbFile.remove(false); } catch(e) {  }
 }
 
 function getService()
@@ -65,7 +74,10 @@ function getService()
 var gDBConn = null;
 function getOpenedDatabase()
 {
-  return gDBConn ? gDBConn : gDBConn = getService().openDatabase(getTestDB());
+  if (!gDBConn) {
+    gDBConn = getService().openDatabase(getTestDB());
+  }
+  return gDBConn;
 }
 
 function createStatement(aSQL)
