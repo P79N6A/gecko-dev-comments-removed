@@ -567,7 +567,10 @@ nsSVGRadialGradientFrame::CreateGradient()
     
     
     
-    double dMax = 0.999 * r;
+    
+    
+    
+    double dMax = 0.99 * r;
     float dx = fx - cx;
     float dy = fy - cy;
     double d = sqrt((dx * dx) + (dy * dy));
