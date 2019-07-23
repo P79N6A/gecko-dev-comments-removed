@@ -6589,6 +6589,7 @@ nsNodeSH::SetProperty(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
     
     
     
+    
     return NS_ERROR_DOM_NOT_SUPPORTED_ERR;
   }
 
