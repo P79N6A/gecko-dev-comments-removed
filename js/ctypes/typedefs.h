@@ -38,8 +38,23 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #if defined(DEFINE_TYPE)
 #  define DEFINE_CHAR_TYPE(x, y, z)         DEFINE_TYPE(x, y, z)
+#  define DEFINE_JSCHAR_TYPE(x, y, z)       DEFINE_TYPE(x, y, z)
 #  define DEFINE_BOOL_TYPE(x, y, z)         DEFINE_TYPE(x, y, z)
 #  define DEFINE_INT_TYPE(x, y, z)          DEFINE_TYPE(x, y, z)
 #  define DEFINE_WRAPPED_INT_TYPE(x, y, z)  DEFINE_TYPE(x, y, z)
@@ -50,6 +65,9 @@
 #  endif
 #  ifndef DEFINE_CHAR_TYPE
 #    define DEFINE_CHAR_TYPE(x, y, z)
+#  endif
+#  ifndef DEFINE_JSCHAR_TYPE
+#    define DEFINE_JSCHAR_TYPE(x, y, z)
 #  endif
 #  ifndef DEFINE_INT_TYPE
 #    define DEFINE_INT_TYPE(x, y, z)
@@ -63,11 +81,13 @@
 #endif
 
 
-#ifndef _MSC_VER
+#ifdef HAVE_SSIZE_T
 #define CTYPES_SSIZE_T ssize_t
 #else
 #define CTYPES_SSIZE_T intptr_t
 #endif
+
+
 
 
 
@@ -81,17 +101,6 @@
 #define CTYPES_FFI_UINTPTR_T (sizeof(uintptr_t) == 4 ? ffi_type_uint32 : ffi_type_uint64)
 
 
-
-
-
-
-
-
-
-
-
-
-
 DEFINE_BOOL_TYPE       (bool,               bool,               CTYPES_FFI_BOOL)
 DEFINE_INT_TYPE        (int8_t,             PRInt8,             ffi_type_sint8)
 DEFINE_INT_TYPE        (int16_t,            PRInt16,            ffi_type_sint16)
@@ -103,7 +112,6 @@ DEFINE_INT_TYPE        (short,              short,              ffi_type_sint16)
 DEFINE_INT_TYPE        (unsigned_short,     unsigned short,     ffi_type_uint16)
 DEFINE_INT_TYPE        (int,                int,                ffi_type_sint32)
 DEFINE_INT_TYPE        (unsigned_int,       unsigned int,       ffi_type_uint32)
-DEFINE_INT_TYPE        (unsigned,           unsigned,           ffi_type_uint32)
 DEFINE_WRAPPED_INT_TYPE(int64_t,            PRInt64,            ffi_type_sint64)
 DEFINE_WRAPPED_INT_TYPE(uint64_t,           PRUint64,           ffi_type_uint64)
 DEFINE_WRAPPED_INT_TYPE(long,               long,               CTYPES_FFI_LONG)
@@ -121,7 +129,7 @@ DEFINE_FLOAT_TYPE      (double,             double,             ffi_type_double)
 DEFINE_CHAR_TYPE       (char,               char,               ffi_type_uint8)
 DEFINE_CHAR_TYPE       (signed_char,        signed char,        ffi_type_sint8)
 DEFINE_CHAR_TYPE       (unsigned_char,      unsigned char,      ffi_type_uint8)
-DEFINE_CHAR_TYPE       (jschar,             jschar,             ffi_type_uint16)
+DEFINE_JSCHAR_TYPE     (jschar,             jschar,             ffi_type_uint16)
 
 #undef CTYPES_SSIZE_T
 #undef CTYPES_FFI_BOOL
@@ -134,6 +142,7 @@ DEFINE_CHAR_TYPE       (jschar,             jschar,             ffi_type_uint16)
 
 #undef DEFINE_TYPE
 #undef DEFINE_CHAR_TYPE
+#undef DEFINE_JSCHAR_TYPE
 #undef DEFINE_BOOL_TYPE
 #undef DEFINE_INT_TYPE
 #undef DEFINE_WRAPPED_INT_TYPE

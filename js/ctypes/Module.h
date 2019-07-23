@@ -53,7 +53,7 @@ public:
   Module();
 
   
-  bool Init(JSContext* aContext, JSObject* aGlobal);
+  JSBool Init(JSContext* aContext, JSObject* aGlobal);
 
 private:
   ~Module();

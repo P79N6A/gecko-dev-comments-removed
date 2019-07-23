@@ -57,7 +57,7 @@ enum ErrorNum {
 
 const JSErrorFormatString*
 GetErrorMessage(void* userRef, const char* locale, const uintN errorNumber);
-bool TypeError(JSContext* cx, const char* expected, jsval actual);
+JSBool TypeError(JSContext* cx, const char* expected, jsval actual);
 
 
 
@@ -84,16 +84,26 @@ ABICode GetABICode(JSContext* cx, JSObject* obj);
 
 struct FieldInfo
 {
-  nsCString mName;
+  nsString  mName;
   JSObject* mType;
   size_t    mOffset;
 };
 
-bool InitTypeClasses(JSContext* cx, JSObject* parent);
 
-bool ConvertToJS(JSContext* cx, JSObject* typeObj, JSObject* dataObj, void* data, bool wantPrimitive, jsval* result);
-bool ImplicitConvert(JSContext* cx, jsval val, JSObject* targetType, void* buffer, bool isArgument, bool* freePointer);
-bool ExplicitConvert(JSContext* cx, jsval val, JSObject* targetType, void* buffer);
+struct PropertySpec
+{
+  const jschar* name;
+  size_t namelen;
+  uint8 flags;
+  JSPropertyOp getter;
+  JSPropertyOp setter;
+};
+
+JSBool InitTypeClasses(JSContext* cx, JSObject* parent);
+
+JSBool ConvertToJS(JSContext* cx, JSObject* typeObj, JSObject* dataObj, void* data, bool wantPrimitive, jsval* result);
+JSBool ImplicitConvert(JSContext* cx, jsval val, JSObject* targetType, void* buffer, bool isArgument, bool* freePointer);
+JSBool ExplicitConvert(JSContext* cx, jsval val, JSObject* targetType, void* buffer);
 
 
 
@@ -112,11 +122,20 @@ enum CTypeProtoSlot {
 };
 
 enum CTypeSlot {
-  SLOT_TYPECODE  = 0, 
-  SLOT_FFITYPE   = 1, 
-  SLOT_ALIGN     = 2, 
-  SLOT_PTR       = 3, 
-  SLOT_FIELDINFO = 4, 
+  SLOT_PROTO     = 0, 
+  SLOT_TYPECODE  = 1, 
+  SLOT_FFITYPE   = 2, 
+  SLOT_NAME      = 3, 
+  SLOT_SIZE      = 4, 
+  SLOT_ALIGN     = 5, 
+  SLOT_PTR       = 6, 
+  
+  
+  SLOT_TARGET_T  = 7, 
+  SLOT_ELEMENT_T = 7, 
+  SLOT_LENGTH    = 8, 
+  SLOT_FIELDS    = 7, 
+  SLOT_FIELDINFO = 8, 
   CTYPE_SLOTS
 };
 
@@ -139,7 +158,7 @@ enum Int64FunctionSlot {
 
 class CType {
 public:
-  static JSObject* Create(JSContext* cx, JSObject* proto, JSString* name, TypeCode type, jsval size, jsval align, ffi_type* ffiType);
+  static JSObject* Create(JSContext* cx, JSObject* proto, TypeCode type, jsval name, jsval size, jsval align, ffi_type* ffiType, JSFunctionSpec* fs, PropertySpec* ps);
   static JSObject* DefineBuiltin(JSContext* cx, JSObject* parent, const char* propName, JSObject* proto, const char* name, TypeCode type, jsval size, jsval align, ffi_type* ffiType);
   static void Finalize(JSContext* cx, JSObject* obj);
 
@@ -159,6 +178,9 @@ public:
   static JSObject* GetProtoFromCtor(JSContext* cx, JSObject* obj, CTypeProtoSlot slot);
   static JSObject* GetProtoFromType(JSContext* cx, JSObject* obj, CTypeProtoSlot slot);
 
+  static JSBool ProtoGetter(JSContext* cx, JSObject* obj, jsval idval, jsval* vp);
+  static JSBool NameGetter(JSContext* cx, JSObject* obj, jsval idval, jsval* vp);
+  static JSBool SizeGetter(JSContext* cx, JSObject* obj, jsval idval, jsval* vp);
   static JSBool PtrGetter(JSContext* cx, JSObject* obj, jsval idval, jsval* vp);
   static JSBool Array(JSContext* cx, uintN argc, jsval* vp);
   static JSBool ToString(JSContext* cx, uintN argc, jsval* vp);
@@ -171,10 +193,10 @@ public:
   static JSObject* CreateInternal(JSContext* cx, JSObject* ctor, JSObject* baseType, JSString* name);
 
   static JSBool ConstructData(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval);
-  static JSObject* ConstructInternal(JSContext* cx, JSObject* typeObj, JSObject* parentObj, void* data);
 
   static JSObject* GetBaseType(JSContext* cx, JSObject* obj);
 
+  static JSBool TargetGetter(JSContext* cx, JSObject* obj, jsval idval, jsval* vp);
   static JSBool ContentsGetter(JSContext* cx, JSObject* obj, jsval idval, jsval* vp);
   static JSBool ContentsSetter(JSContext* cx, JSObject* obj, jsval idval, jsval* vp);
 };
@@ -185,12 +207,13 @@ public:
   static JSObject* CreateInternal(JSContext* cx, JSObject* baseType, size_t length, bool lengthDefined);
 
   static JSBool ConstructData(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval);
-  static JSObject* ConstructInternal(JSContext* cx, JSObject* typeObj, JSObject* parentObj, void* data);
 
   static JSObject* GetBaseType(JSContext* cx, JSObject* obj);
   static size_t GetLength(JSContext* cx, JSObject* obj);
   static bool GetSafeLength(JSContext* cx, JSObject* obj, size_t* result);
 
+  static JSBool ElementTypeGetter(JSContext* cx, JSObject* obj, jsval idval, jsval* vp);
+  static JSBool LengthGetter(JSContext* cx, JSObject* obj, jsval idval, jsval* vp);
   static JSBool Getter(JSContext* cx, JSObject* obj, jsval idval, jsval* vp);
   static JSBool Setter(JSContext* cx, JSObject* obj, jsval idval, jsval* vp);
   static JSBool AddressOfElement(JSContext* cx, uintN argc, jsval* vp);
@@ -201,11 +224,11 @@ public:
   static JSBool Create(JSContext* cx, uintN argc, jsval* vp);
 
   static JSBool ConstructData(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval);
-  static JSObject* ConstructInternal(JSContext* cx, JSObject* typeObj, JSObject* parentObj, void* data);
 
   static nsTArray<FieldInfo>* GetFieldInfo(JSContext* cx, JSObject* obj);
   static FieldInfo* LookupField(JSContext* cx, JSObject* obj, jsval idval);
 
+  static JSBool FieldsArrayGetter(JSContext* cx, JSObject* obj, jsval idval, jsval* vp);
   static JSBool FieldGetter(JSContext* cx, JSObject* obj, jsval idval, jsval* vp);
   static JSBool FieldSetter(JSContext* cx, JSObject* obj, jsval idval, jsval* vp);
   static JSBool AddressOfField(JSContext* cx, uintN argc, jsval* vp);
