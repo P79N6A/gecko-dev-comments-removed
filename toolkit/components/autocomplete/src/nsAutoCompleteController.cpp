@@ -1232,9 +1232,10 @@ nsAutoCompleteController::ProcessResult(PRInt32 aSearchIndex, nsIAutoCompleteRes
   
   
   
+  
   if (mRowCount)
     OpenPopup();
-  else
+  else if (result != nsIAutoCompleteResult::RESULT_NOMATCH_ONGOING)
     ClosePopup();
 
   if (mSearchesOngoing == 0) {
