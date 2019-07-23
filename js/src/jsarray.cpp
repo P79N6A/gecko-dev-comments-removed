@@ -2502,6 +2502,7 @@ array_shift(JSContext *cx, uintN argc, jsval *vp)
     obj = JS_THIS_OBJECT(cx, vp);
     if (!obj || !js_GetLengthProperty(cx, obj, &length))
         return JS_FALSE;
+
     if (length == 0) {
         *vp = JSVAL_VOID;
     } else {
@@ -2509,42 +2510,34 @@ array_shift(JSContext *cx, uintN argc, jsval *vp)
 
         if (obj->isDenseArray() && !js_PrototypeHasIndexedProperties(cx, obj) &&
             length < js_DenseArrayCapacity(obj)) {
-            if (JS_LIKELY(obj->dslots != NULL)) {
-                *vp = obj->dslots[0];
-                if (*vp == JSVAL_HOLE)
-                    *vp = JSVAL_VOID;
-                else
-                    obj->decArrayCountBy(1);
-                memmove(obj->dslots, obj->dslots + 1, length * sizeof(jsval));
-                obj->dslots[length] = JSVAL_HOLE;
-            } else {
-                
-
-
-
-
-                JS_ASSERT(obj->getArrayCount() == 0);
+            *vp = obj->dslots[0];
+            if (*vp == JSVAL_HOLE)
                 *vp = JSVAL_VOID;
-            }
-        } else {
-            
-            if (!GetArrayElement(cx, obj, 0, &hole, vp))
-                return JS_FALSE;
-
-            
-            AutoValueRooter tvr(cx);
-            for (i = 0; i != length; i++) {
-                if (!JS_CHECK_OPERATION_LIMIT(cx) ||
-                    !GetArrayElement(cx, obj, i + 1, &hole, tvr.addr()) ||
-                    !SetOrDeleteArrayElement(cx, obj, i, hole, tvr.value())) {
-                    return JS_FALSE;
-                }
-            }
-
-            
-            if (!hole && !DeleteArrayElement(cx, obj, length))
-                return JS_FALSE;
+            else
+                obj->decArrayCountBy(1);
+            memmove(obj->dslots, obj->dslots + 1, length * sizeof(jsval));
+            obj->dslots[length] = JSVAL_HOLE;
+            obj->setArrayLength(length);
+            return JS_TRUE;
         }
+
+        
+        if (!GetArrayElement(cx, obj, 0, &hole, vp))
+            return JS_FALSE;
+
+        
+        AutoValueRooter tvr(cx);
+        for (i = 0; i != length; i++) {
+            if (!JS_CHECK_OPERATION_LIMIT(cx) ||
+                !GetArrayElement(cx, obj, i + 1, &hole, tvr.addr()) ||
+                !SetOrDeleteArrayElement(cx, obj, i, hole, tvr.value())) {
+                return JS_FALSE;
+            }
+        }
+
+        
+        if (!hole && !DeleteArrayElement(cx, obj, length))
+            return JS_FALSE;
     }
     return js_SetLengthProperty(cx, obj, length);
 }
