@@ -41,7 +41,7 @@
 #include "nsSVGAnimationElement.h"
 #include "nsIDOMSVGAnimateMotionElement.h"
 #include "nsSVGEnum.h"
-#include "nsSMILAnimationFunction.h"
+#include "SVGMotionSMILAnimationFunction.h"
 
 #include "nsCOMArray.h"
 #include "nsIDOMSVGPathSeg.h"
@@ -59,7 +59,7 @@ protected:
                                                    nsINodeInfo *aNodeInfo);
   nsSVGAnimateMotionElement(nsINodeInfo* aNodeInfo);
 
-  nsSMILAnimationFunction mAnimationFunction;
+  mozilla::SVGMotionSMILAnimationFunction mAnimationFunction;
 
 public:
   
@@ -76,6 +76,9 @@ public:
 
   
   virtual nsSMILAnimationFunction& AnimationFunction();
+  virtual nsIAtom* GetTargetAttributeName() const;
+  virtual nsSMILTargetAttrType GetTargetAttributeType() const;
+
 };
 
 NS_IMPL_NS_NEW_SVG_ELEMENT(AnimateMotion)
@@ -116,4 +119,22 @@ nsSMILAnimationFunction&
 nsSVGAnimateMotionElement::AnimationFunction()
 {
   return mAnimationFunction;
+}
+
+nsIAtom*
+nsSVGAnimateMotionElement::GetTargetAttributeName() const
+{
+  
+  
+  
+  return nsGkAtoms::mozAnimateMotionDummyAttr;
+}
+
+nsSMILTargetAttrType
+nsSVGAnimateMotionElement::GetTargetAttributeType() const
+{
+  
+  
+  
+  return eSMILTargetAttrType_XML;
 }

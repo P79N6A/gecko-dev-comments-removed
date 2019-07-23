@@ -255,7 +255,7 @@ nsSMILAnimationFunction::ComposeResult(const nsISMILAttr& aSMILAttr,
   } else if (mLastValue) {
 
     
-    nsSMILValue last(values[values.Length() - 1]);
+    const nsSMILValue& last = values[values.Length() - 1];
     result = last;
 
     

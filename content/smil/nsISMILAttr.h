@@ -43,6 +43,7 @@
 class nsSMILValue;
 class nsISMILType;
 class nsISMILAnimationElement;
+class nsIContent;
 
 
 
@@ -106,7 +107,17 @@ public:
   
 
 
-  virtual ~nsISMILAttr() {};
+
+
+
+
+
+  virtual const nsIContent* GetTargetNode() const { return nsnull; }
+
+  
+
+
+  virtual ~nsISMILAttr() {}
 };
 
 #endif 

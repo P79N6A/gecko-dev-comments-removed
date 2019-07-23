@@ -63,6 +63,7 @@ public:
   NS_IMETHOD_(PRBool) IsAttributeMapped(const nsIAtom* aAttribute) const;
 
   virtual gfxMatrix PrependLocalTransformTo(const gfxMatrix &aMatrix);
+  virtual void SetAnimateMotionTransform(const gfxMatrix* aMatrix);
 
 protected:
   
@@ -72,6 +73,9 @@ protected:
                                  const nsAString* aValue, PRBool aNotify);
 
   nsCOMPtr<nsIDOMSVGAnimatedTransformList> mTransforms;
+
+  
+  nsAutoPtr<gfxMatrix> mAnimateMotionTransform;
 
   
   nsresult CreateTransformList();
