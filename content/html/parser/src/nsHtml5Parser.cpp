@@ -475,6 +475,8 @@ nsHtml5Parser::Terminate(void)
   
   CancelParsingEvents();
 
+  PRBool ready = ReadyToCallDidBuildModelImpl(PR_TRUE);
+  NS_ASSERTION(ready, "Should always be ready to call DidBuildModel here.");
   return DidBuildModel(); 
 }
 
@@ -1300,7 +1302,11 @@ nsHtml5Parser::ParseUntilSuspend()
             mFirstBuffer->setEnd(0);
             return; 
           case STREAM_ENDING:
-            DidBuildModel();
+            if (ReadyToCallDidBuildModelImpl(PR_FALSE)) {
+              DidBuildModel();            
+            } else {
+              MaybePostContinueEvent();
+            }
             return; 
           default:
             NS_NOTREACHED("ParseUntilSuspended should only be called in PARSING and STREAM_ENDING life cycle states.");
