@@ -56,10 +56,10 @@ public:
   
   nsresult ClipPaint(nsSVGRenderState* aContext,
                      nsIFrame* aParent,
-                     nsIDOMSVGMatrix *aMatrix);
+                     const gfxMatrix &aMatrix);
 
   PRBool ClipHitTest(nsIFrame* aParent,
-                     nsIDOMSVGMatrix *aMatrix,
+                     const gfxMatrix &aMatrix,
                      const nsPoint &aPoint);
 
   
