@@ -1541,8 +1541,8 @@ nsNativeThemeWin::GetWidgetPadding(nsIDeviceContext* aContext,
 
 
     if (aWidgetType == NS_THEME_TEXTFIELD || aWidgetType == NS_THEME_TEXTFIELD_MULTILINE) {
-      aResult->top = aResult->bottom = 1;
-      aResult->left = aResult->right = 1;
+      aResult->top = aResult->bottom = 2;
+      aResult->left = aResult->right = 2;
       return PR_TRUE;
     }
   }
