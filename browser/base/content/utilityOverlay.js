@@ -377,10 +377,8 @@ function openAboutDialog()
   if (win)
     win.focus();
   else {
-    
-    
-    window.open("chrome://browser/content/aboutDialog.xul", "About",
-                "chrome, resizable=no, minimizable=no");
+    window.openDialog("chrome://browser/content/aboutDialog.xul", "About",
+                      "chrome, resizable=no, minimizable=no");
   }
 #else
   window.openDialog("chrome://browser/content/aboutDialog.xul", "About", "centerscreen,chrome,resizable=no");
