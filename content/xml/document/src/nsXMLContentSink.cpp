@@ -412,6 +412,7 @@ nsXMLContentSink::OnTransformDone(nsresult aResult,
   if (NS_FAILED(aResult) && contentViewer) {
     
     if (domDoc) {
+      aResultDocument->SetMayStartLayout(PR_FALSE);
       
       contentViewer->SetDOMDocument(domDoc);
     }
