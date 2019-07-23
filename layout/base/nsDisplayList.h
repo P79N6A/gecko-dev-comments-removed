@@ -662,6 +662,7 @@ public:
 
 
 
+
   void Paint(nsDisplayListBuilder* aBuilder, nsIRenderingContext* aCtx,
              const nsRect& aDirtyRect) const;
   

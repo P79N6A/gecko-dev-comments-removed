@@ -400,6 +400,7 @@ public:
 
 
 
+
   static nsresult PaintFrame(nsIRenderingContext* aRenderingContext, nsIFrame* aFrame,
                              const nsRegion& aDirtyRegion, nscolor aBackground);
 

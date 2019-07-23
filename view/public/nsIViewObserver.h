@@ -63,6 +63,9 @@ public:
 
 
 
+
+
+
   NS_IMETHOD Paint(nsIView*             aRootView,
                    nsIRenderingContext* aRenderingContext,
                    const nsRegion&      aDirtyRegion) = 0;
