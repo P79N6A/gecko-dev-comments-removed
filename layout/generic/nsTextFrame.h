@@ -54,6 +54,7 @@
 #include "nsLineBox.h"
 #include "gfxFont.h"
 #include "gfxSkipChars.h"
+#include "gfxContext.h"
 
 class nsTextPaintStyle;
 class PropertyProvider;
@@ -253,6 +254,7 @@ public:
   gfxFloat GetSnappedBaselineY(gfxContext* aContext, gfxFloat aY);
 
   
+  
   void PaintText(nsIRenderingContext* aRenderingContext, nsPoint aPt,
                  const nsRect& aDirtyRect);
   
@@ -260,7 +262,8 @@ public:
                             const gfxPoint& aFramePt,
                             const gfxPoint& aTextBaselinePt,
                             nsTextPaintStyle& aTextStyle,
-                            PropertyProvider& aProvider);
+                            PropertyProvider& aProvider,
+                            const nscolor& aOverrideColor = 0);
   
   
   
@@ -381,6 +384,25 @@ protected:
   void UnionTextDecorationOverflow(nsPresContext* aPresContext,
                                    PropertyProvider& aProvider,
                                    nsRect* aOverflowRect);
+
+  void DrawText(gfxContext* aCtx,
+                const gfxPoint& aTextBaselinePt,
+                PRUint32 aOffset,
+                PRUint32 aLength,
+                const gfxRect* aDirtyRect,
+                PropertyProvider* aProvider,
+                gfxFloat& aAdvanceWidth,
+                PRBool aDrawSoftHyphen);
+
+  void PaintOneShadow(PRUint32 aOffset,
+                      PRUint32 aLength,
+                      nsTextShadowItem* aShadowDetails,
+                      PropertyProvider* aProvider,
+                      const gfxRect& aDirtyRect,
+                      const gfxPoint& aFramePt,
+                      const gfxPoint& aTextBaselinePt,
+                      gfxContext* aCtx,
+                      const nscolor& aForegroundColor);
 
   struct TextDecorations {
     PRUint8 mDecorations;

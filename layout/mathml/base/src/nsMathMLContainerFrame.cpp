@@ -857,6 +857,12 @@ nsMathMLContainerFrame::GatherAndStoreOverflow(nsHTMLReflowMetrics* aMetrics)
   nsRect frameRect(0, 0, aMetrics->width, aMetrics->height);
 
   
+  if (PresContext()->CompatibilityMode() != eCompatibility_NavQuirks) {
+    nsRect shadowRect = nsLayoutUtils::GetTextShadowRectsUnion(frameRect, this);
+    frameRect.UnionRect(frameRect, shadowRect);
+  }
+
+  
   
   nsRect boundingBox(mBoundingMetrics.leftBearing,
                      aMetrics->ascent - mBoundingMetrics.ascent,
