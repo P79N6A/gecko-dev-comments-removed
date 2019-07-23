@@ -68,7 +68,6 @@ typedef struct JSFrameRegs {
 
 struct JSStackFrame {
     JSFrameRegs     *regs;
-    jsbytecode      *imacpc;        
     jsval           *slots;         
     JSObject        *callobj;       
     JSObject        *argsobj;       
@@ -95,16 +94,6 @@ struct JSStackFrame {
     jsrefcount      pcDisabledSave; 
 #endif
 };
-
-#ifdef DEBUG
-#ifdef __cplusplus
-static JS_INLINE uintN
-FramePCOffset(JSStackFrame* fp)
-{
-    return uintN((fp->imacpc ? fp->imacpc : fp->regs->pc) - fp->script->code);
-}
-#endif
-#endif
 
 static JS_INLINE jsval *
 StackBase(JSStackFrame *fp)
