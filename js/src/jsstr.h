@@ -51,7 +51,6 @@
 #include <ctype.h>
 #include "jspubtd.h"
 #include "jsprvtd.h"
-#include "jshashtable.h"
 #include "jslock.h"
 
 JS_BEGIN_EXTERN_C
@@ -68,6 +67,10 @@ extern jschar *
 js_GetDependentStringChars(JSString *str);
 
 JS_STATIC_ASSERT(JS_BITS_PER_WORD >= 32);
+
+
+
+
 
 
 
@@ -121,6 +124,7 @@ struct JSString {
     static const size_t DEPENDENT =     JSSTRING_BIT(1);
     static const size_t MUTABLE =       JSSTRING_BIT(2);
     static const size_t ATOMIZED =      JSSTRING_BIT(3);
+    static const size_t DEFLATED =      JSSTRING_BIT(4);
 
     inline bool hasFlag(size_t flag) const {
         return (mFlags & flag) != 0;
@@ -139,6 +143,14 @@ struct JSString {
 
     inline bool isFlat() const {
         return !isDependent();
+    }
+
+    inline bool isDeflated() const {
+        return hasFlag(DEFLATED);
+    }
+
+    inline void setDeflated() {
+        JS_ATOMIC_SET_MASK(&mFlags, DEFLATED);
     }
 
     inline bool isMutable() const {
@@ -194,6 +206,18 @@ struct JSString {
 
 
 
+    void reinitFlat(jschar *chars, size_t length) {
+        mLength = length;
+        mOffset = 0;
+        mFlags = mFlags & DEFLATED;
+        mChars = chars;
+    }
+
+    
+
+
+
+
 
 
 
@@ -237,6 +261,15 @@ struct JSString {
         mLength = len;
         mOffset = off;
         mFlags = DEPENDENT;
+        mBase = bstr;
+    }
+
+    
+    inline void reinitDependent(JSString *bstr, size_t off, size_t len) {
+        JS_ASSERT(len <= MAX_LENGTH);
+        mLength = len;
+        mOffset = off;
+        mFlags = DEPENDENT | (mFlags & DEFLATED);
         mBase = bstr;
     }
 
@@ -471,6 +504,19 @@ JS_ISSPACE(jschar c)
 #define JS7_ISLET(c)    ((c) < 128 && isalpha(c))
 
 
+extern JSBool
+js_InitRuntimeStringState(JSContext *cx);
+
+extern JSBool
+js_InitDeflatedStringCache(JSRuntime *rt);
+
+extern void
+js_FinishRuntimeStringState(JSContext *cx);
+
+extern void
+js_FinishDeflatedStringCache(JSRuntime *rt);
+
+
 extern JSClass js_StringClass;
 
 extern JSObject *
@@ -644,8 +690,19 @@ js_DeflateStringToBuffer(JSContext *cx, const jschar *chars,
 
 
 
+extern JSBool
+js_SetStringBytes(JSContext *cx, JSString *str, char *bytes, size_t length);
+
+
+
+
+
 extern const char *
 js_GetStringBytes(JSContext *cx, JSString *str);
+
+
+extern void
+js_PurgeDeflatedStringCache(JSRuntime *rt, JSString *str);
 
 
 extern JSBool
@@ -692,58 +749,5 @@ extern JSBool
 js_String(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval);
 
 JS_END_EXTERN_C
-
-namespace js {
-
-class DeflatedStringCache {
-  public:
-    DeflatedStringCache();
-    bool init();
-    ~DeflatedStringCache();
-
-    void sweep(JSContext *cx);
-    void remove(JSString *str);
-    bool setBytes(JSContext *cx, JSString *str, char *bytes);
-
-  private:
-    struct StringPtrHasher
-    {
-        typedef JSString *Lookup;
-
-        static uint32 hash(JSString *str) {
-            
-
-
-
-
-            const jsuword ALIGN_LOG = tl::FloorLog2<sizeof(JSString)>::result;
-            JS_STATIC_ASSERT(sizeof(JSString) == (size_t(1) << ALIGN_LOG));
-
-            jsuword ptr = reinterpret_cast<jsuword>(str);
-            jsuword key = ptr >> ALIGN_LOG;
-            JS_ASSERT((key << ALIGN_LOG) == ptr);
-            return uint32(key);
-        }
-
-        static bool match(JSString *s1, JSString *s2) {
-            return s1 == s2;
-        }
-    };
-
-    typedef HashMap<JSString *, char *, StringPtrHasher, SystemAllocPolicy> Map;
-
-    
-    char *getBytes(JSContext *cx, JSString *str);
-
-    friend const char *
-    ::js_GetStringBytes(JSContext *cx, JSString *str);
-
-    Map                 map;
-#ifdef JS_THREADSAFE
-    JSLock              *lock;
-#endif
-};
-
-} 
 
 #endif 
