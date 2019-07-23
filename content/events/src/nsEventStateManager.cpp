@@ -5431,8 +5431,15 @@ nsEventStateManager::ResetBrowseWithCaret()
   if (itemType == nsIDocShellTreeItem::typeChrome)
     return;  
 
+  PRPackedBool browseWithCaret =
+    nsContentUtils::GetBoolPref("accessibility.browsewithcaret");
+  mBrowseWithCaret = browseWithCaret;
+
   nsIPresShell *presShell = mPresContext->GetPresShell();
 
+  
+  
+  
   nsCOMPtr<nsIEditorDocShell> editorDocShell(do_QueryInterface(shellItem));
   if (editorDocShell) {
     PRBool isEditable;
@@ -5440,29 +5447,24 @@ nsEventStateManager::ResetBrowseWithCaret()
     if (presShell && isEditable) {
       nsCOMPtr<nsIHTMLDocument> doc =
         do_QueryInterface(presShell->GetDocument());
-      if (!doc || doc->GetEditingState() != nsIHTMLDocument::eContentEditable) {
-        return;  
-                 
-      }
+
+      PRBool isContentEditableDoc =
+        doc && doc->GetEditingState() == nsIHTMLDocument::eContentEditable;
+
+      PRBool isFocusEditable =
+        mCurrentFocus && mCurrentFocus->HasFlag(NODE_IS_EDITABLE);
+
+      if (!isContentEditableDoc || isFocusEditable)
+        return;
     }
   }
-
-  PRPackedBool browseWithCaret =
-    nsContentUtils::GetBoolPref("accessibility.browsewithcaret");
-
-  mBrowseWithCaret = browseWithCaret;
 
   
   
   
   if (presShell && gLastFocusedDocument && gLastFocusedDocument == mDocument) {
 
-    
-    PRBool isFocusEditable =
-      (mCurrentFocus) ? mCurrentFocus->HasFlag(NODE_IS_EDITABLE) : PR_FALSE;
-
-    PRBool caretShouldBeVisible = isFocusEditable ||
-                                  browseWithCaret ||
+    PRBool caretShouldBeVisible = browseWithCaret ||
                                   GetWindowShowCaret(mDocument);
 
     SetContentCaretVisible(presShell, mCurrentFocus, caretShouldBeVisible);
