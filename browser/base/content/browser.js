@@ -7625,3 +7625,23 @@ function switchToTabHavingURI(aURI) {
   
   return false;
 }
+
+var TabContextMenu = {
+  contextTab: null,
+  updateContextMenu: function updateContextMenu(aPopupMenu) {
+    this.contextTab = document.popupNode.localName == "tab" ?
+                      document.popupNode : gBrowser.selectedTab;
+    var disabled = gBrowser.tabs.length == 1;
+    var menuItems = aPopupMenu.getElementsByAttribute("tbattr", "tabbrowser-multiple");
+    for (var i = 0; i < menuItems.length; i++)
+      menuItems[i].disabled = disabled;
+
+    
+    
+    
+    document.getElementById("context_undoCloseTab").hidden =
+      Cc["@mozilla.org/browser/sessionstore;1"].
+      getService(Ci.nsISessionStore).
+      getClosedTabCount(window) == 0;
+  }
+}
