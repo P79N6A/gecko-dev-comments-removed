@@ -216,8 +216,17 @@ Library::Declare(JSContext* cx, uintN argc, jsval* vp)
   }
 
   
-  if (argc < 3) {
-    JS_ReportError(cx, "declare requires at least three arguments");
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  if (argc < 2) {
+    JS_ReportError(cx, "declare requires at least two arguments");
     return JS_FALSE;
   }
 
@@ -231,32 +240,66 @@ Library::Declare(JSContext* cx, uintN argc, jsval* vp)
   if (!name)
     return JS_FALSE;
 
-  PRFuncPtr func = PR_FindFunctionSymbol(library, name);
-  if (!func) {
-    JS_ReportError(cx, "couldn't find function symbol in library");
-    return JS_FALSE;
+  JSObject* typeObj;
+  js::AutoValueRooter root(cx);
+  bool isFunction = argc > 2;
+  if (isFunction) {
+    
+    
+    typeObj = FunctionType::CreateInternal(cx,
+                argv[1], argv[2], &argv[3], argc - 3);
+    if (!typeObj)
+      return JS_FALSE;
+    root.setObject(typeObj);
+
+  } else {
+    
+    if (JSVAL_IS_PRIMITIVE(argv[1]) ||
+        !CType::IsCType(cx, JSVAL_TO_OBJECT(argv[1]))) {
+      JS_ReportError(cx, "second argument must be a type");
+      return JS_FALSE;
+    }
+
+    typeObj = JSVAL_TO_OBJECT(argv[1]);
+    isFunction = CType::GetTypeCode(cx, typeObj) == TYPE_function;
   }
 
-  
-  JSObject* typeObj = FunctionType::CreateInternal(cx,
-                        argv[1], argv[2], &argv[3], argc - 3);
-  if (!typeObj)
+  void* data;
+  PRFuncPtr fnptr;
+  if (isFunction) {
+    
+    fnptr = PR_FindFunctionSymbol(library, name);
+    if (!fnptr) {
+      JS_ReportError(cx, "couldn't find function symbol in library");
+      return JS_FALSE;
+    }
+    data = &fnptr;
+
+  } else {
+    
+    data = PR_FindSymbol(library, name);
+    if (!data) {
+      JS_ReportError(cx, "couldn't find symbol in library");
+      return JS_FALSE;
+    }
+  }
+
+  JSObject* result = CData::Create(cx, typeObj, obj, data, isFunction);
+  if (!result)
     return JS_FALSE;
-  js::AutoValueRooter root(cx, typeObj);
 
-  JSObject* fn = CData::Create(cx, typeObj, obj, &func, true);
-  if (!fn)
+  JS_SET_RVAL(cx, vp, OBJECT_TO_JSVAL(result));
+
+  
+  
+  
+  
+  
+  
+  if (isFunction && !JS_SealObject(cx, result, JS_FALSE))
     return JS_FALSE;
 
-  JS_SET_RVAL(cx, vp, OBJECT_TO_JSVAL(fn));
-
-  
-  
-  
-  
-  
-  
-  return JS_SealObject(cx, fn, JS_FALSE);
+  return JS_TRUE;
 }
 
 }

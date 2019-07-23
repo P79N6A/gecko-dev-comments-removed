@@ -5098,9 +5098,7 @@ CData::Create(JSContext* cx,
   JS_ASSERT(CType::IsCType(cx, typeObj));
   JS_ASSERT(CType::IsSizeDefined(cx, typeObj));
   JS_ASSERT(ownResult || source);
-  if (refObj) {
-    JS_ASSERT(CData::IsCData(cx, refObj) ? !ownResult : ownResult);
-  }
+  JS_ASSERT_IF(refObj && CData::IsCData(cx, refObj), !ownResult);
 
   
   jsval slot;
