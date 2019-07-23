@@ -53,9 +53,12 @@ class PluginScriptableObjectParent;
 struct ParentNPObject : NPObject
 {
   ParentNPObject()
-    : parent(NULL) { }
+    : NPObject(), parent(NULL), invalidated(false) { }
 
+  
+  
   PluginScriptableObjectParent* parent;
+  bool invalidated;
 };
 
 class PluginScriptableObjectParent : public PPluginScriptableObjectParent
@@ -63,11 +66,14 @@ class PluginScriptableObjectParent : public PPluginScriptableObjectParent
   friend class PluginInstanceParent;
 
 public:
-  PluginScriptableObjectParent();
+  PluginScriptableObjectParent(ScriptableObjectType aType);
   virtual ~PluginScriptableObjectParent();
 
-  virtual bool
-  AnswerInvalidate();
+  void
+  InitializeProxy();
+
+  void
+  InitializeLocal(NPObject* aObject);
 
   virtual bool
   AnswerHasMethod(const NPRemoteIdentifier& aId,
@@ -116,9 +122,11 @@ public:
                      Variant* aResult,
                      bool* aSuccess);
 
-  void
-  Initialize(PluginInstanceParent* aInstance,
-             NPObject* aObject);
+  virtual bool
+  AnswerProtect();
+
+  virtual bool
+  AnswerUnprotect();
 
   static const NPClass*
   GetClass()
@@ -127,15 +135,36 @@ public:
   }
 
   PluginInstanceParent*
-  GetInstance()
+  GetInstance() const
   {
     return mInstance;
   }
 
   NPObject*
-  GetObject()
-  {
-    return mObject;
+  GetObject(bool aCanResurrect);
+
+  
+  
+  
+  
+  void Protect();
+
+  
+  
+  
+  
+  void Unprotect();
+
+  
+  
+  
+  
+  
+  void DropNPObject();
+
+  ScriptableObjectType
+  Type() const {
+    return mType;
   }
 
 private:
@@ -195,12 +224,23 @@ private:
                       uint32_t aArgCount,
                       NPVariant* aResult);
 
+  NPObject*
+  CreateProxyObject();
+
+  
+  
+  
+  bool ResurrectProxyObject();
+
 private:
   PluginInstanceParent* mInstance;
 
   
   
   NPObject* mObject;
+  int mProtectCount;
+
+  ScriptableObjectType mType;
 
   static const NPClass sNPClass;
 };
