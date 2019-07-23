@@ -154,7 +154,7 @@ typedef struct JSInlineFrame {
 #define PCVCAP_MAKE(t,s,p)      (((t) << PCVCAP_TAGBITS) |                    \
                                  ((s) << PCVCAP_PROTOBITS) |                  \
                                  (p))
-#define PCVCAP_PCTYPE(t)        ((t) >> PCVCAP_TAGBITS)
+#define PCVCAP_SHAPE(t)         ((t) >> PCVCAP_TAGBITS)
 
 #define SHAPE_OVERFLOW_BIT      JS_BIT(32 - PCVCAP_TAGBITS)
 
@@ -192,10 +192,15 @@ typedef struct JSPropertyCache {
     uint32              tests;          
     uint32              pchits;         
     uint32              protopchits;    
+    uint32              initests;       
+    uint32              inipchits;      
+    uint32              inipcmisses;    
     uint32              settests;       
     uint32              addpchits;      
     uint32              setpchits;      
     uint32              setpcmisses;    
+    uint32              slotchanges;    
+
     uint32              setmisses;      
     uint32              idmisses;       
     uint32              komisses;       
@@ -286,7 +291,7 @@ js_FillPropertyCache(JSContext *cx, JSObject *obj, jsuword kshape,
                 pobj = tmp_;                                                  \
                 JS_LOCK_OBJ(cx, pobj);                                        \
             }                                                                 \
-            if (PCVCAP_PCTYPE(entry->vcap) == OBJ_SCOPE(pobj)->shape) {       \
+            if (PCVCAP_SHAPE(entry->vcap) == OBJ_SCOPE(pobj)->shape) {        \
                 PCMETER(cache_->pchits++);                                    \
                 PCMETER(!PCVCAP_TAG(entry->vcap) || cache_->protopchits++);   \
                 pobj = OBJ_SCOPE(pobj)->object;                               \
