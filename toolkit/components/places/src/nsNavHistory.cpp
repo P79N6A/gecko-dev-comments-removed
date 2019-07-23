@@ -7678,6 +7678,7 @@ nsNavHistory::GetDBInvalidFrecencies()
   
   
   nsresult rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING(
+      "/* do not warn (bug 482351) */ "
       "SELECT * FROM ( "
         "SELECT id, visit_count, hidden, typed, frecency, url "
         "FROM ( "
