@@ -33,12 +33,21 @@
 #include "base/message_pump.h"
 
 #include <CoreFoundation/CoreFoundation.h>
+#include <IOKit/IOKitLib.h>
+
+#if defined(__OBJC__)
+@class NSAutoreleasePool;
+#else  
+class NSAutoreleasePool;
+#endif  
 
 namespace base {
 
 class Time;
 
 class MessagePumpCFRunLoopBase : public MessagePump {
+  
+  friend class MessagePumpScopedAutoreleasePool;
  public:
   MessagePumpCFRunLoopBase();
   virtual ~MessagePumpCFRunLoopBase();
@@ -55,7 +64,15 @@ class MessagePumpCFRunLoopBase : public MessagePump {
 
  protected:
   
-  CFRunLoopRef run_loop_;
+  CFRunLoopRef run_loop() const { return run_loop_; }
+  int nesting_level() const { return nesting_level_; }
+  int run_nesting_level() const { return run_nesting_level_; }
+
+  
+  
+  
+  
+  virtual NSAutoreleasePool* CreateAutoreleasePool();
 
  private:
   
@@ -65,49 +82,96 @@ class MessagePumpCFRunLoopBase : public MessagePump {
 
   
   
-  static void RunWork(void* info);
+  
+  static void RunWorkSource(void* info);
+  bool RunWork();
 
   
   
   
-  static void RunDelayedWork(void* info);
+  
+  
+  static void RunDelayedWorkSource(void* info);
+  bool RunDelayedWork();
 
   
   
-  static void RunIdleWork(CFRunLoopObserverRef observer,
-                          CFRunLoopActivity activity, void* info);
+  
+  
+  
+  static void RunIdleWorkSource(void* info);
+  bool RunIdleWork();
+
+  
+  
+  
+  
+  
+  
+  static void RunNestingDeferredWorkSource(void* info);
+  bool RunNestingDeferredWork();
+
+  
+  
+  
+  
+  
+  void MaybeScheduleNestingDeferredWork();
+
+  
+  
+  static void PreWaitObserver(CFRunLoopObserverRef observer,
+                              CFRunLoopActivity activity, void* info);
+
+  
+  
+  static void PreSourceObserver(CFRunLoopObserverRef observer,
+                                CFRunLoopActivity activity, void* info);
+
+  
+  
+  
+  static void EnterExitObserver(CFRunLoopObserverRef observer,
+                                CFRunLoopActivity activity, void* info);
+
+  
+  
+  
+  virtual void EnterExitRunLoop(CFRunLoopActivity activity);
+
+  
+  
+  static void PowerStateNotification(void* info, io_service_t service,
+                                     uint32_t message_type,
+                                     void* message_argument);
+
+  
+  CFRunLoopRef run_loop_;
 
   
   
   CFRunLoopTimerRef delayed_work_timer_;
   CFRunLoopSourceRef work_source_;
   CFRunLoopSourceRef delayed_work_source_;
-  CFRunLoopObserverRef idle_work_observer_;
+  CFRunLoopSourceRef idle_work_source_;
+  CFRunLoopSourceRef nesting_deferred_work_source_;
+  CFRunLoopObserverRef pre_wait_observer_;
+  CFRunLoopObserverRef pre_source_observer_;
+  CFRunLoopObserverRef enter_exit_observer_;
+
+  
+  io_connect_t root_power_domain_;
+  IONotificationPortRef power_notification_port_;
+  io_object_t power_notification_object_;
 
   
   Delegate* delegate_;
 
-  DISALLOW_COPY_AND_ASSIGN(MessagePumpCFRunLoopBase);
-};
-
-class MessagePumpCFRunLoop : public MessagePumpCFRunLoopBase {
- public:
-  MessagePumpCFRunLoop();
-  virtual ~MessagePumpCFRunLoop();
-
-  virtual void DoRun(Delegate* delegate);
-  virtual void Quit();
-
- private:
   
   
   
   
-  static void EnterExitRunLoop(CFRunLoopObserverRef observer,
-                               CFRunLoopActivity activity, void* info);
-
-  
-  CFRunLoopObserverRef enter_exit_observer_;
+  CFAbsoluteTime delayed_work_fire_time_;
 
   
   
@@ -116,7 +180,33 @@ class MessagePumpCFRunLoop : public MessagePumpCFRunLoopBase {
 
   
   
-  int innermost_quittable_;
+  int run_nesting_level_;
+
+  
+  
+  int deepest_nesting_level_;
+
+  
+  
+  
+  
+  
+  bool delegateless_work_;
+  bool delegateless_delayed_work_;
+  bool delegateless_idle_work_;
+
+  DISALLOW_COPY_AND_ASSIGN(MessagePumpCFRunLoopBase);
+};
+
+class MessagePumpCFRunLoop : public MessagePumpCFRunLoopBase {
+ public:
+  MessagePumpCFRunLoop();
+
+  virtual void DoRun(Delegate* delegate);
+  virtual void Quit();
+
+ private:
+  virtual void EnterExitRunLoop(CFRunLoopActivity activity);
 
   
   
@@ -152,6 +242,10 @@ class MessagePumpNSApplication : public MessagePumpCFRunLoopBase {
 
   virtual void DoRun(Delegate* delegate);
   virtual void Quit();
+
+ protected:
+  
+  virtual NSAutoreleasePool* CreateAutoreleasePool();
 
  private:
   
