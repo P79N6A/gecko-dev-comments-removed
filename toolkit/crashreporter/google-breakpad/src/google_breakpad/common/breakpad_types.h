@@ -43,6 +43,10 @@
 #ifndef _WIN32
 
 #include <sys/types.h>
+#ifndef __STDC_FORMAT_MACROS
+#define __STDC_FORMAT_MACROS
+#endif  
+#include <inttypes.h>
 
 #if defined(__SUNPRO_CC) || (defined(__GNUC__) && defined(__sun__))
 typedef uint8_t u_int8_t;
@@ -68,5 +72,12 @@ typedef struct {
 } u_int128_t;
 
 typedef u_int64_t breakpad_time_t;
+
+
+
+
+#ifndef PRIx64
+#define PRIx64 "llx"
+#endif  
 
 #endif  

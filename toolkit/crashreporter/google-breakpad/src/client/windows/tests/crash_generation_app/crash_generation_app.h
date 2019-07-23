@@ -1,0 +1,35 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#ifndef CLIENT_WINDOWS_TESTS_CRASH_GENERATION_APP_CRASH_GENERATION_APP_H__
+#define CLIENT_WINDOWS_TESTS_CRASH_GENERATION_APP_CRASH_GENERATION_APP_H__
+
+#include "resource.h"
+
+#endif  

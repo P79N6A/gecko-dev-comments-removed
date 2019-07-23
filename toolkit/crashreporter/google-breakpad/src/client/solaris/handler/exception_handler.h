@@ -32,9 +32,6 @@
 #ifndef CLIENT_SOLARIS_HANDLER_EXCEPTION_HANDLER_H__
 #define CLIENT_SOLARIS_HANDLER_EXCEPTION_HANDLER_H__
 
-#include <pthread.h>
-#include <semaphore.h>
-
 #include <map>
 #include <string>
 #include <vector>
@@ -120,8 +117,10 @@ class ExceptionHandler {
   ~ExceptionHandler();
 
   
+  string dump_path() const { return dump_path_; }
   void set_dump_path(const string &dump_path) {
-    dump_path_c_ = dump_path.c_str();
+    dump_path_ = dump_path;
+    dump_path_c_ = dump_path_.c_str();
   }
 
   
@@ -151,35 +150,24 @@ class ExceptionHandler {
   static void HandleException(int signo);
 
   
-  bool WriteMinidumpOnHandlerThread(int signo);
-
   
-  bool InternalWriteMinidump();
+  
+  
+  
+  
+  
+  bool InternalWriteMinidump(int signo, uintptr_t sighandler_ebp,
+                             ucontext_t **sig_ctx);
 
  private:
-  
-  int signo_;
-
-  
-  pthread_t handler_thread_;
-
-  
-  
-  
-  
-  
-  sem_t handler_start_semaphore_;
-  sem_t handler_finish_semaphore_;
-
-  
-  
-  bool handler_return_value_;
-
   
   FilterCallback filter_;
   MinidumpCallback callback_;
   void *callback_context_;
 
+  
+  
+  string dump_path_;
   
   
   const char *dump_path_c_;
