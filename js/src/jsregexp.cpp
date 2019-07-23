@@ -2026,7 +2026,6 @@ LookupNativeRegExp(JSContext* cx, uint16 re_flags,
                               ? (++(tm->lastFragID)) : 0;
         )
         frag = new (alloc) REFragment(0 verbose_only(, profFragID));
-        frag->lirbuf = tm->reLirBuf;
         
 
 
@@ -2303,6 +2302,8 @@ class RegExpNativeCompiler {
     LIns*            state;
     LIns*            start;
     LIns*            cpend;
+
+    LirBuffer* const lirbuf;
 
     bool outOfMemory() {
         return tempAlloc.outOfMemory() || JS_TRACE_MONITOR(cx).dataAlloc->outOfMemory();
@@ -3134,12 +3135,19 @@ class RegExpNativeCompiler {
  public:
     RegExpNativeCompiler(JSContext* cx, JSRegExp* re, CompilerState* cs, Fragment* fragment)
         : tempAlloc(*JS_TRACE_MONITOR(cx).reTempAlloc), cx(cx),
-          re(re), cs(cs), fragment(fragment), lir(NULL), lirBufWriter(NULL) {  }
+          re(re), cs(cs), fragment(fragment), lir(NULL), lirBufWriter(NULL),
+          lirbuf(new (tempAlloc) LirBuffer(tempAlloc))
+    {
+        fragment->lirbuf = lirbuf;
+#ifdef DEBUG
+        LabelMap* labels = new (tempAlloc) LabelMap(tempAlloc, &js_LogController);
+        lirbuf->names = new (tempAlloc) LirNameMap(tempAlloc, labels);
+#endif
+    }
 
     ~RegExpNativeCompiler() {
         
         tempAlloc.reset();
-        JS_TRACE_MONITOR(cx).reLirBuf->clear();
     }
 
     JSBool compile()
@@ -3235,7 +3243,7 @@ class RegExpNativeCompiler {
 
         JS_ASSERT(!lirbuf->sp && !lirbuf->rp);
 
-        ::compile(assm, fragment, tempAlloc verbose_only(, tm->labels));
+        ::compile(assm, fragment, tempAlloc verbose_only(, lirbuf->names->labels));
         if (assm->error() != nanojit::None)
             goto fail;
 

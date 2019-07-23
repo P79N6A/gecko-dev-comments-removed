@@ -95,10 +95,6 @@ namespace nanojit
     class Assembler;
     class CodeAlloc;
     class Fragment;
-    class LirBuffer;
-#ifdef DEBUG
-    class LabelMap;
-#endif
     template<typename K> struct DefaultHash;
     template<typename K, typename V, typename H> class HashMap;
     template<typename T> class Seq;
@@ -236,17 +232,25 @@ struct JSTraceMonitor {
 
 
 
-    VMAllocator*            dataAlloc;   
-    VMAllocator*            traceAlloc;  
-    VMAllocator*            tempAlloc;   
-    nanojit::CodeAlloc*     codeAlloc;   
+
+
+
+
+
+
+
+
+
+
+
+
+    VMAllocator*            dataAlloc;
+    VMAllocator*            traceAlloc;
+    VMAllocator*            tempAlloc;
+    VMAllocator*            reTempAlloc;
+    nanojit::CodeAlloc*     codeAlloc;
     nanojit::Assembler*     assembler;
-    nanojit::LirBuffer*     lirbuf;
-    nanojit::LirBuffer*     reLirBuf;
     FrameInfoCache*         frameCache;
-#ifdef DEBUG
-    nanojit::LabelMap*      labels;
-#endif
 
     TraceRecorder*          recorder;
 
@@ -278,11 +282,6 @@ struct JSTraceMonitor {
 
 
     REHashMap*              reFragments;
-
-    
-
-
-    VMAllocator*            reTempAlloc;
 
 #ifdef DEBUG
     
