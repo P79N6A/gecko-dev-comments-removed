@@ -181,6 +181,7 @@ public:
   NS_IMETHOD GetDocShell(nsIDocShell **aDocShell);
   NS_IMETHOD BeginSwapDocShells(nsIFrame* aOther);
   virtual void EndSwapDocShells(nsIFrame* aOther);
+  virtual nsIFrame* GetFrame() { return this; }
 
   
   virtual PRBool ReflowFinished();

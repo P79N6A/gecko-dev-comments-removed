@@ -54,6 +54,7 @@
 class nsIContent;
 class nsIURI;
 class nsIFrameFrame;
+class nsIView;
 
 #ifdef MOZ_IPC
 namespace mozilla {
@@ -62,6 +63,10 @@ namespace mozilla {
     class PIFrameEmbeddingParent;
   }
 }
+
+#ifdef MOZ_WIDGET_GTK2
+typedef struct _GtkWidget GtkWidget;
+#endif
 #endif
 
 class nsFrameLoader : public nsIFrameLoader
@@ -77,6 +82,9 @@ protected:
 #ifdef MOZ_IPC
     , mRemoteFrame(false)
     , mChildProcess(nsnull)
+#ifdef MOZ_WIDGET_GTK2
+    , mRemoteSocket(nsnull)
+#endif
 #endif
   {}
 
@@ -145,7 +153,11 @@ private:
 
 #ifdef MOZ_IPC
   
-  PRBool TryNewProcess();
+  bool TryNewProcess();
+
+  
+  
+  bool ShowRemoteFrame(nsIFrameFrame* frame, nsIView* view);
 #endif
 
   nsCOMPtr<nsIDocShell> mDocShell;
@@ -161,6 +173,10 @@ private:
   bool mRemoteFrame;
   
   mozilla::dom::TabParent* mChildProcess;
+
+#ifdef MOZ_WIDGET_GTK2
+  GtkWidget* mRemoteSocket;
+#endif
 #endif
 };
 
