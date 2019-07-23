@@ -58,7 +58,7 @@ var SpatialNavigation = {
   init: function(browser, callback) {
     browser.addEventListener("keypress", function (event) { _onInputKeyPress(event, callback) }, true);
   },
-  
+
   uninit: function() {
   }
 };
@@ -126,26 +126,54 @@ function _onInputKeyPress (event, callback) {
       return;
   }
 
-  if ((target instanceof Ci.nsIDOMHTMLInputElement && (target.type == "text" || target.type == "password")) ||
-      target instanceof Ci.nsIDOMHTMLTextAreaElement ) {
+  
+  if (target instanceof Ci.nsIDOMHTMLInputElement &&
+     (target.type == "text" || target.type == "password")) {
+
     
+    
+    if (key != PrefObserver['keyCodeUp'] &&
+        key != PrefObserver['keyCodeDown']) {
+
+      
+      if (target.selectionEnd - target.selectionStart > 0)
+        return;
+
+      
+      if (target.textLength > 0) {
+        
+        if (key == PrefObserver['keyCodeLeft'] &&
+            target.selectionStart != 0)
+          return;
+
+        
+        if (key == PrefObserver['keyCodeRight'] &&
+            target.textLength != target.selectionEnd)
+          return;
+      }
+    }
+  }
+  
+  else if (target instanceof Ci.nsIDOMHTMLTextAreaElement) {
+
     
     if (target.selectionEnd - target.selectionStart > 0)
       return;
-    
+
     
     if (target.textLength > 0) {
-      if (key == PrefObserver['keyCodeRight'] ||
-          key == PrefObserver['keyCodeDown'] ) {
-        
-        if (target.textLength != target.selectionEnd)
-          return;
-      }
-      else
-      {
+      if (key == PrefObserver['keyCodeUp'] ||
+          key == PrefObserver['keyCodeLeft']) {
         
         if (target.selectionStart != 0)
           return;
+      }
+      else {
+        if (key == PrefObserver['keyCodeDown'] ||
+            key == PrefObserver['keyCodeRight'])
+          
+          if (target.selectionEnd != target.textLength)
+            return;
       }
     }
   }
@@ -173,7 +201,7 @@ function _onInputKeyPress (event, callback) {
         return Ci.nsIDOMNodeFilter.FILTER_SKIP;
       return  Ci.nsIDOMNodeFilter.FILTER_ACCEPT;
     }
-    
+
     if ((node instanceof Ci.nsIDOMHTMLButtonElement ||
          node instanceof Ci.nsIDOMHTMLInputElement ||
          node instanceof Ci.nsIDOMHTMLLinkElement ||
@@ -182,7 +210,7 @@ function _onInputKeyPress (event, callback) {
          node instanceof Ci.nsIDOMHTMLTextAreaElement) &&
         node.disabled == false)
       return Ci.nsIDOMNodeFilter.FILTER_ACCEPT;
-    
+
     return Ci.nsIDOMNodeFilter.FILTER_SKIP;
   }
 
@@ -193,7 +221,7 @@ function _onInputKeyPress (event, callback) {
 
   var treeWalker = doc.createTreeWalker(doc, Ci.nsIDOMNodeFilter.SHOW_ELEMENT, snavfilter, false);
   var nextNode;
-  
+
   while ((nextNode = treeWalker.nextNode())) {
 
     if (nextNode == target)
@@ -208,13 +236,13 @@ function _onInputKeyPress (event, callback) {
     var distance = _spatialDistance(key, focusedRect, nextRect);
 
     
-    
+
     if (distance <= distanceToBestElement && distance > 0) {
       distanceToBestElement = distance;
       bestElementToFocus = nextNode;
     }
   }
-  
+
   if (bestElementToFocus != null) {
     
 
@@ -230,7 +258,7 @@ function _onInputKeyPress (event, callback) {
 
     if (callback != undefined)
       callback(bestElementToFocus);
-    
+
   } else {
     
     _focusNextUsingCmdDispatcher(key, callback);
@@ -278,7 +306,7 @@ function _isRectInDirection(key, focusedRect, anotherRect)
 function _inflateRect(rect, value)
 {
   var newRect = new Object();
-  
+
   newRect.left   = rect.left - value;
   newRect.top    = rect.top - value;
   newRect.right  = rect.right  + value;
@@ -310,7 +338,7 @@ function _spatialDistance(key, a, b)
     
     
     
-    
+
     if (a.top > b.bottom) {
       
       mx = a.left;
@@ -323,7 +351,7 @@ function _spatialDistance(key, a, b)
       mx = a.left;
       my = a.bottom;
       nx = b.right;
-      ny = b.top;       
+      ny = b.top;
     }
     else {
       mx = a.left;
@@ -342,7 +370,7 @@ function _spatialDistance(key, a, b)
     
     
     
-    
+
     if (a.top > b.bottom) {
       
       mx = a.right;
@@ -355,7 +383,7 @@ function _spatialDistance(key, a, b)
       mx = a.right;
       my = a.bottom;
       nx = b.left;
-      ny = b.top;       
+      ny = b.top;
     } else {
       mx = a.right;
       my = 0;
@@ -370,7 +398,7 @@ function _spatialDistance(key, a, b)
     
     
     
-    
+
     if (a.left > b.right) {
       
       mx = a.left;
@@ -382,7 +410,7 @@ function _spatialDistance(key, a, b)
       mx = a.right;
       my = a.top;
       nx = b.left;
-      ny = b.bottom;       
+      ny = b.bottom;
     } else {
       
       mx = 0;
@@ -398,7 +426,7 @@ function _spatialDistance(key, a, b)
     
     
     
-    
+
     if (a.left > b.right) {
       
       mx = a.left;
@@ -410,7 +438,7 @@ function _spatialDistance(key, a, b)
       mx = a.right;
       my = a.bottom;
       nx = b.left;
-      ny = b.top;      
+      ny = b.top;
     } else {
       
       mx = 0;
@@ -419,7 +447,7 @@ function _spatialDistance(key, a, b)
       ny = b.top;
     }
   }
-  
+
   var scopedRect = _inflateRect(a, gRectFudge);
 
   if (key == PrefObserver['keyCodeLeft'] ||
@@ -434,13 +462,13 @@ function _spatialDistance(key, a, b)
     scopedRect.bottom = Infinity;
     inlineNavigation = _containsRect(scopedRect, b);
   }
-  
+
   var d = Math.pow((mx-nx), 2) + Math.pow((my-ny), 2);
-  
+
   
   if (inlineNavigation)
     d /= gDirectionalBias;
-  
+
   return d;
 }
 
