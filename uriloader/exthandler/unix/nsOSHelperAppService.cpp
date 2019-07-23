@@ -1275,6 +1275,10 @@ nsresult nsOSHelperAppService::OSProtocolHandlerExists(const char * aProtocolSch
   
   if (!*aHandlerExists)
     *aHandlerExists = nsGNOMERegistry::HandlerExists(aProtocolScheme);
+#ifdef MOZ_PLATFORM_HILDON
+  if (!*aHandlerExists)
+    *aHandlerExists = nsMIMEInfoUnix::HandlerExists(aProtocolScheme);
+#endif
 #endif
 
   return NS_OK;
