@@ -80,14 +80,21 @@ public:
     
     PRInt32 OSXVersion();
 
+    
+    PRUint32 GetAntiAliasingThreshold() { return mFontAntiAliasingThreshold; }
+    
 private:
     void gfxPlatformMac::AppendCJKPrefLangs(eFontPrefLang aPrefLangs[], PRUint32 &aLen, 
                                             eFontPrefLang aCharLang, eFontPrefLang aPageLang);
                                                
     virtual cmsHPROFILE GetPlatformCMSOutputProfile();
     
+    
+    static PRUint32 ReadAntiAliasingThreshold();    
+    
     nsTArray<PRUint32> mCJKPrefLangs;
     PRInt32 mOSXVersion;
+    PRUint32 mFontAntiAliasingThreshold;
 };
 
 #endif 

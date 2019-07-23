@@ -140,6 +140,13 @@ gfxAtsuiFont::gfxAtsuiFont(MacOSFontEntry *aFontEntry,
     }
 
     cairo_font_options_t *fontOptions = cairo_font_options_create();
+    
+    
+    if (mAdjustedSize <= (float) gfxPlatformMac::GetPlatform()->GetAntiAliasingThreshold()) {
+        cairo_font_options_set_antialias(fontOptions, CAIRO_ANTIALIAS_NONE); 
+        
+    }
+    
     mScaledFont = cairo_scaled_font_create(mFontFace, &sizeMatrix, &ctm, fontOptions);
     cairo_font_options_destroy(fontOptions);
     NS_ASSERTION(cairo_scaled_font_status(mScaledFont) == CAIRO_STATUS_SUCCESS,

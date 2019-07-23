@@ -172,6 +172,9 @@ pref("accessibility.typeaheadfind.soundURL", "beep");
 pref("accessibility.typeaheadfind.enablesound", true);
 pref("accessibility.typeaheadfind.prefillwithselection", true);
 
+
+pref("gfx.use_text_smoothing_setting", false);
+
 pref("browser.history_expire_days", 9);
 
 

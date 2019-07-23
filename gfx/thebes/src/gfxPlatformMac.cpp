@@ -65,6 +65,7 @@ gfxPlatformMac::gfxPlatformMac()
         glitz_agl_init();
 #endif
     mOSXVersion = 0;
+    mFontAntiAliasingThreshold = ReadAntiAliasingThreshold();
 }
 
 already_AddRefed<gfxASurface>
@@ -336,6 +337,39 @@ gfxPlatformMac::AppendCJKPrefLangs(eFontPrefLang aPrefLangs[], PRUint32 &aLen, e
         
 }
 
+PRUint32
+gfxPlatformMac::ReadAntiAliasingThreshold()
+{
+    PRUint32 threshold = 0;  
+    
+    
+    PRBool useAntiAliasingThreshold = PR_FALSE;
+    nsCOMPtr<nsIPrefBranch> prefs = do_GetService(NS_PREFSERVICE_CONTRACTID);
+    if (prefs) {
+        PRBool enabled;
+        nsresult rv =
+            prefs->GetBoolPref("gfx.use_text_smoothing_setting", &enabled);
+        if (NS_SUCCEEDED(rv)) {
+            useAntiAliasingThreshold = enabled;
+        }
+    }
+    
+    
+    if (!useAntiAliasingThreshold)
+        return threshold;
+        
+    
+    CFNumberRef prefValue = (CFNumberRef)CFPreferencesCopyAppValue(CFSTR("AppleAntiAliasingThreshold"), kCFPreferencesCurrentApplication);
+
+    if (prefValue) {
+        if (!CFNumberGetValue(prefValue, kCFNumberIntType, &threshold)) {
+            threshold = 0;
+        }
+        CFRelease(prefValue);
+    }
+
+    return threshold;
+}
 
 cmsHPROFILE
 gfxPlatformMac::GetPlatformCMSOutputProfile()
