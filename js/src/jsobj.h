@@ -156,7 +156,13 @@ struct JSObjectMap {
         }                                                                     \
     JS_END_MACRO
 
-#define JS_INITIAL_NSLOTS   5
+const uint32 JS_INITIAL_NSLOTS = 5;
+
+const uint32 JSSLOT_PROTO   = 0;
+const uint32 JSSLOT_PARENT  = 1;
+const uint32 JSSLOT_PRIVATE = 2;
+
+const uint32 JSSLOT_CLASS_MASK_BITS = 3;
 
 
 
@@ -194,11 +200,41 @@ struct JSObject {
     jsuword     classword;                  
     jsval       fslots[JS_INITIAL_NSLOTS];  
     jsval       *dslots;                    
+
+    JSClass *getClass() const {
+        return (JSClass *) (classword & ~JSSLOT_CLASS_MASK_BITS);
+    }
+
+    
+
+
+    void *getAssignedPrivate() const {
+        JS_ASSERT(getClass()->flags & JSCLASS_HAS_PRIVATE);
+
+        jsval v = fslots[JSSLOT_PRIVATE];
+        JS_ASSERT(JSVAL_IS_INT(v));
+        return JSVAL_TO_PRIVATE(v);
+    }
+
+    
+
+
+    void *getPrivate() const {
+        JS_ASSERT(getClass()->flags & JSCLASS_HAS_PRIVATE);
+
+        jsval v = fslots[JSSLOT_PRIVATE];
+        if (JSVAL_IS_INT(v))
+            return JSVAL_TO_PRIVATE(v);
+        JS_ASSERT(JSVAL_IS_VOID(v));
+        return NULL;
+    }
+
+    void setPrivate(void *data) {
+        JS_ASSERT(getClass()->flags & JSCLASS_HAS_PRIVATE);
+        fslots[JSSLOT_PRIVATE] = PRIVATE_TO_JSVAL(data);
+    }
 };
 
-#define JSSLOT_PROTO        0
-#define JSSLOT_PARENT       1
-#define JSSLOT_PRIVATE      2
 #define JSSLOT_START(clasp) (((clasp)->flags & JSCLASS_HAS_PRIVATE)           \
                              ? JSSLOT_PRIVATE + 1                             \
                              : JSSLOT_PARENT + 1)
@@ -259,7 +295,7 @@ struct JSObject {
 JS_ALWAYS_INLINE JSClass*
 STOBJ_GET_CLASS(const JSObject* obj)
 {
-    return (JSClass *) (obj->classword & ~JSSLOT_CLASS_MASK_BITS);
+    return obj->getClass();
 }
 
 #define STOBJ_IS_DELEGATE(obj)  (((obj)->classword & 1) != 0)
@@ -268,10 +304,6 @@ STOBJ_GET_CLASS(const JSObject* obj)
     (!(obj) || STOBJ_SET_DELEGATE((JSObject*)obj))
 #define STOBJ_IS_SYSTEM(obj)    (((obj)->classword & 2) != 0)
 #define STOBJ_SET_SYSTEM(obj)   ((obj)->classword |= 2)
-
-#define STOBJ_GET_PRIVATE(obj)                                                \
-    (JS_ASSERT(JSVAL_IS_INT(STOBJ_GET_SLOT(obj, JSSLOT_PRIVATE))),            \
-     JSVAL_TO_PRIVATE(STOBJ_GET_SLOT(obj, JSSLOT_PRIVATE)))
 
 #define OBJ_CHECK_SLOT(obj,slot)                                              \
     JS_ASSERT_IF(OBJ_IS_NATIVE(obj), slot < OBJ_SCOPE(obj)->freeslot)
@@ -328,9 +360,6 @@ STOBJ_GET_CLASS(const JSObject* obj)
 
 #define LOCKED_OBJ_GET_CLASS(obj) \
     STOBJ_GET_CLASS(obj)
-
-#define LOCKED_OBJ_GET_PRIVATE(obj) \
-    (OBJ_CHECK_SLOT(obj, JSSLOT_PRIVATE), STOBJ_GET_PRIVATE(obj))
 
 #ifdef JS_THREADSAFE
 
@@ -392,7 +421,6 @@ STOBJ_GET_CLASS(const JSObject* obj)
 
 
 #define OBJ_GET_CLASS(cx,obj)           STOBJ_GET_CLASS(obj)
-#define OBJ_GET_PRIVATE(cx,obj)         STOBJ_GET_PRIVATE(obj)
 
 
 
