@@ -1896,6 +1896,54 @@ var PlacesUtils = {
     return element;
   },
 
+  cleanPlacesPopup: function PU_cleanPlacesPopup(aPopup) {
+    
+    
+    
+    var items = [];
+    aPopup._startMarker = -1;
+    aPopup._endMarker = -1;
+    for (var i = 0; i < aPopup.childNodes.length; ++i) {
+      var item = aPopup.childNodes[i];
+      if (item.getAttribute("builder") == "start") {
+        aPopup._startMarker = i;
+        continue;
+      }
+      if (item.getAttribute("builder") == "end") {
+        aPopup._endMarker = i;
+        continue;
+      }
+      if ((aPopup._startMarker != -1) && (aPopup._endMarker == -1))
+        items.push(item);
+    }
+
+    
+    
+    for (var i = 0; i < items.length; ++i) {
+      
+      if (aPopup._emptyMenuItem != items[i]) {
+        aPopup.removeChild(items[i]);
+        if (this._endMarker > 0)
+          --this._endMarker;
+      }
+    }
+
+    
+    
+    if (aPopup._startMarker == -1) {
+      var end = aPopup._endMarker == -1 ?
+                aPopup.childNodes.length - 1 : aPopup._endMarker - 1;
+      for (var i = end; i >= 0; i--) {
+        
+        if (aPopup._emptyMenuItem != aPopup.childNodes[i]) {
+          aPopup.removeChild(aPopup.childNodes[i]);
+          if (aPopup._endMarker > 0)
+            --aPopup._endMarker;
+        }
+      }
+    }
+  },
+
   getBestTitle: function PU_getBestTitle(aNode) {
     var title;
     if (!aNode.title && this.uriTypes.indexOf(aNode.type) != -1) {
