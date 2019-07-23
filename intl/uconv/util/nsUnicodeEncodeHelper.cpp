@@ -62,7 +62,7 @@ nsresult nsUnicodeEncodeHelper::ConvertByTable(
 
   while (src < srcEnd) {
     if (!uMapCode((uTable*) aMappingTable, static_cast<PRUnichar>(*(src++)), reinterpret_cast<PRUint16*>(&med))) {
-      if (*(src - 1) < 0x20) {
+      if (aScanClass == u1ByteCharset && *(src - 1) < 0x20) {
         
         med = *(src - 1);
       } else {
