@@ -40,7 +40,7 @@
 #include "nsIMenuParent.h"
 #include "nsMenuFrame.h"
 #include "nsIPopupBoxObject.h"
-
+#include "nsContentUtils.h"
 
 nsMenuDismissalListener* nsMenuDismissalListener::sInstance = nsnull;
 
@@ -85,8 +85,9 @@ nsMenuDismissalListener::GetInstance()
 nsMenuDismissalListener::Shutdown()
 {
   if (sInstance) {
-    if (sInstance->mMenuParent)
-      sInstance->mMenuParent->RemoveKeyboardNavigator();
+    
+    nsContentUtils::NotifyInstalledMenuKeyboardListener(PR_FALSE);
+
     sInstance->Unregister();
     NS_RELEASE(sInstance);
   }
