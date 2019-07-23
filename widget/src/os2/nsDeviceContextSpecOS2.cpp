@@ -262,26 +262,6 @@ NS_IMETHODIMP nsDeviceContextSpecOS2 :: QueryInterface(REFNSIID aIID, void** aIn
 NS_IMPL_ADDREF(nsDeviceContextSpecOS2)
 NS_IMPL_RELEASE(nsDeviceContextSpecOS2)
 
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 NS_IMETHODIMP nsDeviceContextSpecOS2::Init(nsIWidget *aWidget,
                                            nsIPrintSettings* aPS,
                                            PRBool aIsPrintPreview)
