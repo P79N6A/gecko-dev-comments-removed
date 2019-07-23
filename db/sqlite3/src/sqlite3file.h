@@ -47,6 +47,7 @@
 
 
 
+
 extern "C" {
 
 struct ThreadData;
@@ -100,6 +101,7 @@ struct IoMethod {
   int (*xUnlock)(OsFile*, int);
   int (*xLockState)(OsFile *id);
   int (*xCheckReservedLock)(OsFile *id);
+  int (*xSectorSize)(OsFile *id);
 };
 
 
@@ -148,6 +150,10 @@ struct sqlite3OsVtbl {
   void *(*xRealloc)(void *, int);
   void (*xFree)(void *);
   int (*xAllocationSize)(void *);
+
+  void *(*xDlopen)(const char*);
+  void *(*xDlsym)(void*, const char*);
+  int (*xDlclose)(void*);
 };
 
 
@@ -185,7 +191,10 @@ struct sqlite3OsVtbl {
     sqlite3OsMalloc,
     sqlite3OsRealloc,
     sqlite3OsFree,
-    sqlite3OsAllocationSize
+    sqlite3OsAllocationSize,
+    IF_DLOPEN( sqlite3OsDlopen ),
+    IF_DLOPEN( sqlite3OsDlsym ),
+    IF_DLOPEN( sqlite3OsDlclose ),
   };
 #else
   
