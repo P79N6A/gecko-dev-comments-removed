@@ -53,19 +53,17 @@
 
 
 
-
-
-
 #ifndef CLIENT_WINDOWS_HANDLER_EXCEPTION_HANDLER_H__
 #define CLIENT_WINDOWS_HANDLER_EXCEPTION_HANDLER_H__
 
 #include <stdlib.h>
 #include <Windows.h>
 #include <DbgHelp.h>
+#include <rpc.h>
 
 #pragma warning( push )
 
-#pragma warning( disable : 4530 ) 
+#pragma warning( disable : 4530 )
 
 #include <string>
 #include <vector>
@@ -196,6 +194,9 @@ class ExceptionHandler {
       CONST PMINIDUMP_CALLBACK_INFORMATION CallbackParam);
 
   
+  typedef RPC_STATUS (RPC_ENTRY *UuidCreate_type)(UUID *Uuid);
+
+  
   static DWORD WINAPI ExceptionHandlerThreadMain(void *lpParameter);
 
   
@@ -271,6 +272,9 @@ class ExceptionHandler {
 
   HMODULE dbghelp_module_;
   MiniDumpWriteDump_type minidump_write_dump_;
+
+  HMODULE rpcrt4_module_;
+  UuidCreate_type uuid_create_;
 
   
   

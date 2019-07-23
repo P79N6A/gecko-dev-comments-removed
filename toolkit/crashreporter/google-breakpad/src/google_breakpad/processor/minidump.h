@@ -805,6 +805,9 @@ class Minidump {
   bool SeekSet(off_t offset);
 
   
+  off_t Tell() { return valid_ ? lseek(fd_, 0, SEEK_CUR) : (off_t)-1; }
+
+  
 
   
   

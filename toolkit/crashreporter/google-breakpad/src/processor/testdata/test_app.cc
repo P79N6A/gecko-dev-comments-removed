@@ -32,7 +32,6 @@
 
 
 
-
 #include <cstdio>
 
 #include "client/windows/handler/exception_handler.h"
