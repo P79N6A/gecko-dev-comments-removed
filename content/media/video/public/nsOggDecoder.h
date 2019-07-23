@@ -445,6 +445,10 @@ protected:
 
   
   
+  void SeekingStoppedAtEnd();
+
+  
+  
   void SeekingStarted();
 
   
