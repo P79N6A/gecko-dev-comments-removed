@@ -673,7 +673,7 @@ nsDocShell::LoadURI(nsIURI * aURI,
                     PRUint32 aLoadFlags,
                     PRBool aFirstParty)
 {
-    if (mFiredUnloadEvent) {
+    if (!IsNavigationAllowed()) {
       return NS_OK; 
     }
     nsresult rv;
