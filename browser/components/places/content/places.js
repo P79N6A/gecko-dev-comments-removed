@@ -192,10 +192,6 @@ var PlacesOrganizer = {
     
     var options = node.queryOptions.clone();
     options.excludeItems = false;
-    
-    
-    
-    options.excludeQueries = false;
 
     this._content.load(queries, 
                        OptionsFilter.filter(queries, options, null));
@@ -343,6 +339,57 @@ var PlacesOrganizer = {
     }
     gEditItemOverlay.uninitPanel();
     deck.selectedIndex = 0;
+  },
+
+  
+
+
+  saveSearch: function PP_saveSearch() {
+    
+    
+    var queries = [];
+    var options = this.getCurrentOptions();
+    options.excludeQueries = true;
+    var advancedSearch = document.getElementById("advancedSearch");
+    if (!advancedSearch.collapsed) {
+      queries = PlacesQueryBuilder.queries;
+    }
+    
+    else if (PlacesSearchBox.value && PlacesSearchBox.value.length > 0) {
+      var query = PlacesUtils.history.getNewQuery();
+      query.searchTerms = PlacesSearchBox.value;
+      queries.push(query);
+    }
+    
+    else {
+      
+     return;
+    }
+    var placeSpec = PlacesUtils.history.queriesToQueryString(queries,
+                                                             queries.length,
+                                                             options);
+    var placeURI = IO.newURI(placeSpec);
+
+    
+    
+    
+    var title = PlacesUtils.getString("saveSearch.title");
+    var inputLabel = PlacesUtils.getString("saveSearch.inputLabel");
+    var defaultText = PlacesUtils.getString("saveSearch.defaultText");
+
+    var prompts = Cc["@mozilla.org/embedcomp/prompt-service;1"].
+                    getService(Ci.nsIPromptService);
+    var check = {value: false};
+    var input = {value: defaultText};
+    var save = prompts.prompt(null, title, inputLabel, input, null, check);
+
+    
+    if (!save || input.value == "")
+     return;
+
+    
+    var txn = PlacesUtils.ptm.createItem(placeURI, PlacesUtils.bookmarks.bookmarksRoot, PlacesUtils.bookmarks.DEFAULT_INDEX, input.value);
+    PlacesUtils.ptm.commitTransaction(txn);
   }
 };
 
@@ -384,8 +431,10 @@ var PlacesSearchBox = {
       PO.setHeaderText(PO.HEADER_TYPE_SEARCH, filterString);
       break;
     case "bookmarks":
-      if (filterString != "")
+      if (filterString) {
         content.applyFilter(filterString, true);
+        PO.setHeaderText(PO.HEADER_TYPE_SEARCH, filterString);
+      }
       else
         PlacesOrganizer.onPlaceSelected();
       break;
@@ -445,6 +494,8 @@ var PlacesSearchBox = {
   },
   set filterCollection(collectionName) {
     this.searchFilter.setAttribute("collection", collectionName);
+    if (this.searchFilter.value)
+      return; 
     var newGrayText = null;
     if (collectionName == "collection")
       newGrayText = PlacesOrganizer._places.selectedNode.title;
@@ -483,6 +534,9 @@ var PlacesSearchBox = {
 
 
 var PlacesQueryBuilder = {
+
+  queries: [],
+  queryOptions: null,
 
   _numRows: 0,
 
@@ -906,7 +960,7 @@ var PlacesQueryBuilder = {
   doSearch: function PQB_doSearch() {
     
     var queryType = document.getElementById("advancedSearchType").selectedItem.value;
-    var queries = [];
+    this.queries = [];
     if (queryType == "and")
       queries.push(PlacesUtils.history.getNewQuery());
     var updated = 0;
@@ -922,7 +976,7 @@ var PlacesQueryBuilder = {
         
         var query;
         if (queryType == "and")
-          query = queries[0];
+          query = this.queries[0];
         else
           query = PlacesUtils.history.getNewQuery();
         
@@ -930,15 +984,15 @@ var PlacesQueryBuilder = {
         this._queryBuilders[querySubject](query, prefix);
         
         if (queryType == "or")
-          queries.push(query);
+          this.queries.push(query);
           
         ++updated;
       }
     }
     
     
-    var options = PlacesOrganizer.getCurrentOptions();
-    options.resultType = options.RESULT_TYPE_URI;
+    this.options = PlacesOrganizer.getCurrentOptions();
+    this.options.resultType = options.RESULT_TYPE_URI;
 
     
     PlacesOrganizer._content.load(queries, 

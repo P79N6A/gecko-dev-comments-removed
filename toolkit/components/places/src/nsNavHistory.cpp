@@ -1550,7 +1550,7 @@ nsNavHistory::EvaluateQueryForNode(const nsCOMArray<nsNavHistoryQuery>& aQueries
       nsCOMArray<nsNavHistoryResultNode> inputSet;
       inputSet.AppendObject(aNode);
       nsCOMArray<nsNavHistoryResultNode> filteredSet;
-      nsresult rv = FilterResultSet(inputSet, &filteredSet, query->SearchTerms());
+      nsresult rv = FilterResultSet(nsnull, inputSet, &filteredSet, query->SearchTerms());
       if (NS_FAILED(rv))
         continue;
       if (! filteredSet.Count())
@@ -2412,11 +2412,11 @@ nsNavHistory::GetQueryResults(nsNavHistoryQueryResultNode *aResultNode,
       
       if (groupCount == 0) {
         
-        FilterResultSet(toplevel, aResults, aQueries[0]->SearchTerms());
+        FilterResultSet(aResultNode, toplevel, aResults, aQueries[0]->SearchTerms());
       } else {
         
         nsCOMArray<nsNavHistoryResultNode> filteredResults;
-        FilterResultSet(toplevel, &filteredResults, aQueries[0]->SearchTerms());
+        FilterResultSet(aResultNode, toplevel, &filteredResults, aQueries[0]->SearchTerms());
         rv = RecursiveGroup(aResultNode, filteredResults, groupings, groupCount,
                             aResults);
         NS_ENSURE_SUCCESS(rv, rv);
@@ -4099,18 +4099,23 @@ nsNavHistory::GroupByHost(nsNavHistoryQueryResultNode *aResultNode,
 
 
 
+
 nsresult
-nsNavHistory::FilterResultSet(const nsCOMArray<nsNavHistoryResultNode>& aSet,
+nsNavHistory::FilterResultSet(nsNavHistoryQueryResultNode* aParentNode,
+                              const nsCOMArray<nsNavHistoryResultNode>& aSet,
                               nsCOMArray<nsNavHistoryResultNode>* aFiltered,
                               const nsString& aSearch)
 {
+  nsresult rv;
   nsStringArray terms;
   ParseSearchQuery(aSearch, &terms);
 
   
-  if (terms.Count() == 0) {
-    aFiltered->AppendObjects(aSet);
-    return NS_OK;
+  
+  PRBool excludeQueries = PR_FALSE;
+  if (aParentNode) {
+    rv = aParentNode->mOptions->GetExcludeQueries(&excludeQueries);
+    NS_ENSURE_SUCCESS(rv, rv);
   }
 
   nsCStringArray searchAnnotations;
@@ -4124,6 +4129,14 @@ nsNavHistory::FilterResultSet(const nsCOMArray<nsNavHistoryResultNode>& aSet,
 
 
   for (PRInt32 nodeIndex = 0; nodeIndex < aSet.Count(); nodeIndex ++) {
+    if (aParentNode) {
+      if (aParentNode->mItemId == aSet[nodeIndex]->mItemId)
+        continue; 
+    }
+
+    if (excludeQueries && IsQueryURI(aSet[nodeIndex]->mURI))
+      continue;
+
     PRBool allTermsFound = PR_TRUE;
 
     nsStringArray curAnnotations;
@@ -4141,28 +4154,33 @@ nsNavHistory::FilterResultSet(const nsCOMArray<nsNavHistoryResultNode>& aSet,
 
 
 
-    for (PRInt32 termIndex = 0; termIndex < terms.Count(); termIndex ++) {
-      PRBool termFound = PR_FALSE;
-      
-      if (CaseInsensitiveFindInReadable(*terms[termIndex],
-                                        NS_ConvertUTF8toUTF16(aSet[nodeIndex]->mTitle)) ||
-          (aSet[nodeIndex]->IsURI() &&
-           CaseInsensitiveFindInReadable(*terms[termIndex],
-                                  NS_ConvertUTF8toUTF16(aSet[nodeIndex]->mURI))))
-        termFound = PR_TRUE;
-      
-      
+    if (terms.Count() == 0) {
+        allTermsFound = PR_TRUE;
+    } else {
+      for (PRInt32 termIndex = 0; termIndex < terms.Count(); termIndex ++) {
+        PRBool termFound = PR_FALSE;
+        
+        if (CaseInsensitiveFindInReadable(*terms[termIndex],
+                                          NS_ConvertUTF8toUTF16(aSet[nodeIndex]->mTitle)) ||
+            (aSet[nodeIndex]->IsURI() &&
+             CaseInsensitiveFindInReadable(*terms[termIndex],
+                                    NS_ConvertUTF8toUTF16(aSet[nodeIndex]->mURI))))
+          termFound = PR_TRUE;
+        
+        
 
 
 
 
 
 
-      if (! termFound) {
-        allTermsFound = PR_FALSE;
-        break;
+        if (! termFound) {
+          allTermsFound = PR_FALSE;
+          break;
+        }
       }
     }
+
     if (allTermsFound)
       aFiltered->AppendObject(aSet[nodeIndex]);
   }
@@ -4318,9 +4336,8 @@ nsNavHistory::RowToResult(mozIStorageValueArray* aRow,
 
   if (IsQueryURI(url)) {
     
-    
-    
-    return QueryRowToResult(url, title, accessCount, time, favicon, aResult);
+    PRInt64 itemId = aRow->AsInt64(kGetInfoIndex_ItemId);
+    return QueryRowToResult(itemId, url, title, accessCount, time, favicon, aResult);
   } else if (aOptions->ResultType() == nsNavHistoryQueryOptions::RESULTS_AS_URI) {
     *aResult = new nsNavHistoryResultNode(url, title, accessCount, time,
                                           favicon);
@@ -4387,7 +4404,8 @@ nsNavHistory::RowToResult(mozIStorageValueArray* aRow,
 
 
 nsresult
-nsNavHistory::QueryRowToResult(const nsACString& aURI, const nsACString& aTitle,
+nsNavHistory::QueryRowToResult(PRInt64 itemId, const nsACString& aURI,
+                               const nsACString& aTitle,
                                PRUint32 aAccessCount, PRTime aTime,
                                const nsACString& aFavicon,
                                nsNavHistoryResultNode** aNode)
@@ -4422,6 +4440,7 @@ nsNavHistory::QueryRowToResult(const nsACString& aURI, const nsACString& aTitle,
                                                queries, options);
       if (! *aNode)
         return NS_ERROR_OUT_OF_MEMORY;
+      (*aNode)->mItemId = itemId;
       NS_ADDREF(*aNode);
     }
   }
