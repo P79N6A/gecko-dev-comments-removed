@@ -162,8 +162,6 @@ struct JSStmtInfo {
 struct JSTreeContext {              
     uint16          flags;          
     uint16          ngvars;         
-    uint16          scopeDepth;     
-    uint16          maxScopeDepth;  
     JSStmtInfo      *topStmt;       
     JSStmtInfo      *topScopeStmt;  
     JSObject        *blockChain;    
@@ -175,6 +173,10 @@ struct JSTreeContext {
     JSParseContext  *parseContext;
     JSFunction      *fun;           
 
+#ifdef JS_SCOPE_DEPTH_METER
+    uint16          scopeDepth;     
+    uint16          maxScopeDepth;  
+#endif
 };
 
 #define TCF_IN_FUNCTION        0x01 /* parsing inside function body */
@@ -205,18 +207,32 @@ struct JSTreeContext {
                                  TCF_FUN_USES_NONLOCALS |                     \
                                  TCF_FUN_CLOSURE_VS_VAR)
 
+#ifdef JS_SCOPE_DEPTH_METER
+# define JS_SCOPE_DEPTH_METERING(code) ((void) (code))
+#else
+# define JS_SCOPE_DEPTH_METERING(code) ((void) 0)
+#endif
+
 #define TREE_CONTEXT_INIT(tc, pc)                                             \
     ((tc)->flags = (tc)->ngvars = 0,                                          \
-     (tc)->scopeDepth = (tc)->maxScopeDepth = 0,                              \
      (tc)->topStmt = (tc)->topScopeStmt = NULL,                               \
      (tc)->blockChain = NULL,                                                 \
      ATOM_LIST_INIT(&(tc)->decls),                                            \
      (tc)->blockNode = NULL,                                                  \
      (tc)->parseContext = (pc),                                               \
-     (tc)->fun = NULL)
+     (tc)->fun = NULL,                                                        \
+     JS_SCOPE_DEPTH_METERING((tc)->scopeDepth = (tc)->maxScopeDepth = 0))
 
-#define TREE_CONTEXT_FINISH(tc)                                               \
-    ((void)0)
+
+
+
+
+
+#define TREE_CONTEXT_FINISH(cx, tc)                                           \
+    JS_SCOPE_DEPTH_METERING(                                                  \
+        (tc)->maxScopeDepth == (uintN) -1 ||                                  \
+        JS_BASIC_STATS_ACCUM(&(cx)->runtime->lexicalScopeDepthStats,          \
+                             (tc)->maxScopeDepth))
 
 
 
@@ -330,7 +346,7 @@ struct JSCodeGenerator {
     ptrdiff_t       spanDepTodo;    
 
 
-    uintN           arrayCompSlot;  
+    uintN           arrayCompDepth; 
 
     uintN           emitLevel;      
     JSAtomList      constList;      
@@ -430,14 +446,6 @@ js_InStatement(JSTreeContext *tc, JSStmtType type);
 
 
 #define js_InWithStatement(tc)      js_InStatement(tc, STMT_WITH)
-
-
-
-
-
-
-extern JSBool
-js_IsGlobalReference(JSTreeContext *tc, JSAtom *atom, JSBool *loopyp);
 
 
 

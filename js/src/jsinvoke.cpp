@@ -37,6 +37,6 @@
 
 
 
-#define js_invoke_c__
+#define jsinvoke_cpp___
 
 #include "jsinterp.cpp"

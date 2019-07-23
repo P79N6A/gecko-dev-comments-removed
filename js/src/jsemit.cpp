@@ -105,7 +105,7 @@ js_InitCodeGenerator(JSContext *cx, JSCodeGenerator *cg, JSParseContext *pc,
 JS_FRIEND_API(void)
 js_FinishCodeGenerator(JSContext *cx, JSCodeGenerator *cg)
 {
-    TREE_CONTEXT_FINISH(&cg->treeContext);
+    TREE_CONTEXT_FINISH(cx, &cg->treeContext);
     JS_ARENA_RELEASE(cg->codePool, cg->codeMark);
     JS_ARENA_RELEASE(cg->notePool, cg->noteMark);
     if (cg->spanDeps) 
@@ -562,7 +562,7 @@ AddSpanDep(JSContext *cx, JSCodeGenerator *cg, jsbytecode *pc, jsbytecode *pc2,
         SD_SET_BPDELTA(sd, off);
     } else if (off == 0) {
         
-        SD_SET_TARGET(sd, NULL);
+        SD_SET_TARGET(sd, 0);
     } else {
         
         if (!SetSpanDepTarget(cx, cg, sd, off))
@@ -1235,30 +1235,6 @@ js_InStatement(JSTreeContext *tc, JSStmtType type)
     return JS_FALSE;
 }
 
-JSBool
-js_IsGlobalReference(JSTreeContext *tc, JSAtom *atom, JSBool *loopyp)
-{
-    JSStmtInfo *stmt;
-    JSScope *scope;
-
-    *loopyp = JS_FALSE;
-    for (stmt = tc->topStmt; stmt; stmt = stmt->down) {
-        if (stmt->type == STMT_WITH)
-            return JS_FALSE;
-        if (STMT_IS_LOOP(stmt)) {
-            *loopyp = JS_TRUE;
-            continue;
-        }
-        if (stmt->flags & SIF_SCOPE) {
-            JS_ASSERT(STOBJ_GET_CLASS(stmt->u.blockObj) == &js_BlockClass);
-            scope = OBJ_SCOPE(stmt->u.blockObj);
-            if (SCOPE_GET_PROPERTY(scope, ATOM_TO_JSID(atom)))
-                return JS_FALSE;
-        }
-    }
-    return JS_TRUE;
-}
-
 void
 js_PushStatement(JSTreeContext *tc, JSStmtInfo *stmt, JSStmtType type,
                  ptrdiff_t top)
@@ -1468,7 +1444,7 @@ js_PopStatement(JSTreeContext *tc)
         tc->topScopeStmt = stmt->downScope;
         if (stmt->flags & SIF_SCOPE) {
             tc->blockChain = STOBJ_GET_PARENT(stmt->u.blockObj);
-            --tc->scopeDepth;
+            JS_SCOPE_DEPTH_METERING(--tc->scopeDepth);
         }
     }
 }
@@ -1590,7 +1566,6 @@ LookupCompileTimeConstant(JSContext *cx, JSCodeGenerator *cg, JSAtom *atom,
 {
     JSBool ok;
     JSStmtInfo *stmt;
-    jsint slot;
     JSAtomListElement *ale;
     JSObject *obj, *pobj;
     JSProperty *prop;
@@ -1606,7 +1581,7 @@ LookupCompileTimeConstant(JSContext *cx, JSCodeGenerator *cg, JSAtom *atom,
         if ((cg->treeContext.flags & TCF_IN_FUNCTION) ||
             cx->fp->varobj == cx->fp->scopeChain) {
             
-            stmt = js_LexicalLookup(&cg->treeContext, atom, &slot, 0);
+            stmt = js_LexicalLookup(&cg->treeContext, atom, NULL, 0);
             if (stmt)
                 return JS_TRUE;
 
@@ -1768,7 +1743,7 @@ EmitObjectOp(JSContext *cx, JSParsedObjectBox *pob, JSOp op,
 
 
 JS_STATIC_ASSERT(ARGNO_LEN == 2);
-JS_STATIC_ASSERT(VARNO_LEN == 2);
+JS_STATIC_ASSERT(SLOTNO_LEN == 2);
 
 static JSBool
 EmitSlotIndexOp(JSContext *cx, JSOp op, uintN slot, uintN index,
@@ -1793,6 +1768,30 @@ EmitSlotIndexOp(JSContext *cx, JSOp op, uintN slot, uintN index,
     pc += 2;
     SET_INDEX(pc, index);
     return bigSuffix == JSOP_NOP || js_Emit1(cx, cg, bigSuffix) >= 0;
+}
+
+
+
+
+
+
+
+
+
+static jsint
+AdjustBlockSlot(JSContext *cx, JSCodeGenerator *cg, jsint slot)
+{
+    JS_ASSERT((jsuint) slot < cg->maxStackDepth);
+    if (cg->treeContext.flags & TCF_IN_FUNCTION) {
+        slot += cg->treeContext.fun->u.i.nvars;
+        if ((uintN) slot >= SLOTNO_LIMIT) {
+            js_ReportCompileErrorNumber(cx, CG_TS(cg), NULL,
+                                        JSREPORT_ERROR,
+                                        JSMSG_TOO_MANY_LOCALS);
+            slot = -1;
+        }
+    }
+    return slot;
 }
 
 
@@ -1864,6 +1863,9 @@ BindNameToSlot(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn,
           default: JS_ASSERT(0);
         }
         if (op != pn->pn_op) {
+            slot = AdjustBlockSlot(cx, cg, slot);
+            if (slot < 0)
+                return JS_FALSE;
             pn->pn_op = op;
             pn->pn_slot = slot;
         }
@@ -1886,6 +1888,10 @@ BindNameToSlot(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn,
 
 
 
+
+
+        if (js_InWithStatement(tc))
+            return JS_TRUE;
 
         fp = cx->fp;
         if (fp->scopeChain != fp->varobj)
@@ -3500,7 +3506,7 @@ static JSBool
 EmitGroupAssignment(JSContext *cx, JSCodeGenerator *cg, JSOp declOp,
                     JSParseNode *lhs, JSParseNode *rhs)
 {
-    jsuint depth, limit, slot, nslots;
+    jsuint depth, limit, i, nslots;
     JSParseNode *pn;
 
     depth = limit = (uintN) cg->stackDepth;
@@ -3525,9 +3531,14 @@ EmitGroupAssignment(JSContext *cx, JSCodeGenerator *cg, JSOp declOp,
     if (js_NewSrcNote2(cx, cg, SRC_GROUPASSIGN, OpToDeclType(declOp)) < 0)
         return JS_FALSE;
 
-    slot = depth;
-    for (pn = lhs->pn_head; pn; pn = pn->pn_next) {
-        if (slot < limit) {
+    i = depth;
+    for (pn = lhs->pn_head; pn; pn = pn->pn_next, ++i) {
+        if (i < limit) {
+            jsint slot;
+
+            slot = AdjustBlockSlot(cx, cg, i);
+            if (slot < 0)
+                return JS_FALSE;
             EMIT_UINT16_IMM_OP(JSOP_GETLOCAL, slot);
         } else {
             if (js_Emit1(cx, cg, JSOP_PUSH) < 0)
@@ -3540,7 +3551,6 @@ EmitGroupAssignment(JSContext *cx, JSCodeGenerator *cg, JSOp declOp,
             if (!EmitDestructuringLHS(cx, cg, pn))
                 return JS_FALSE;
         }
-        ++slot;
     }
 
     nslots = limit - depth;
@@ -3969,9 +3979,11 @@ js_EmitTree(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn)
                              cg->codePool, cg->notePool,
                              pn->pn_pos.begin.lineno);
         cg2->treeContext.flags = (uint16) (pn->pn_flags | TCF_IN_FUNCTION);
-        cg2->treeContext.maxScopeDepth = pn->pn_sclen;
         cg2->treeContext.fun = fun;
         cg2->parent = cg;
+
+         
+        JS_SCOPE_DEPTH_METERING(cg2->treeContext.maxScopeDepth = (uintN) -1);
         if (!js_EmitFunctionScript(cx, cg2, pn->pn_body)) {
             pn = NULL;
         } else {
@@ -5023,7 +5035,11 @@ js_EmitTree(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn)
 
           case TOK_NAME:
             
-            pn2->pn_slot += OBJ_BLOCK_DEPTH(cx, blockObj);
+            JS_ASSERT(pn2->pn_slot == -1);
+            pn2->pn_slot = AdjustBlockSlot(cx, cg,
+                                           OBJ_BLOCK_DEPTH(cx, blockObj));
+            if (pn2->pn_slot < 0)
+                return JS_FALSE;
             EMIT_UINT16_IMM_OP(JSOP_SETLOCALPOP, pn2->pn_slot);
             break;
 
@@ -6049,7 +6065,9 @@ js_EmitTree(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn)
 #endif 
 
 #if JS_HAS_GENERATORS
-       case TOK_ARRAYPUSH:
+      case TOK_ARRAYPUSH: {
+        jsint slot;
+
         
 
 
@@ -6057,8 +6075,13 @@ js_EmitTree(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn)
 
         if (!js_EmitTree(cx, cg, pn->pn_kid))
             return JS_FALSE;
-        EMIT_UINT16_IMM_OP(PN_OP(pn), cg->arrayCompSlot);
+        slot = cg->arrayCompDepth;
+        slot = AdjustBlockSlot(cx, cg, slot);
+        if (slot < 0)
+            return JS_FALSE;
+        EMIT_UINT16_IMM_OP(PN_OP(pn), slot);
         break;
+      }
 #endif
 
       case TOK_RB:
@@ -6102,7 +6125,7 @@ js_EmitTree(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn)
 
 #if JS_HAS_GENERATORS
         if (pn->pn_type == TOK_ARRAYCOMP) {
-            uintN saveSlot;
+            uintN saveDepth;
 
             
 
@@ -6110,11 +6133,11 @@ js_EmitTree(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn)
 
 
             JS_ASSERT(cg->stackDepth > 0);
-            saveSlot = cg->arrayCompSlot;
-            cg->arrayCompSlot = (uint32) (cg->stackDepth - 1);
+            saveDepth = cg->arrayCompDepth;
+            cg->arrayCompDepth = (uint32) (cg->stackDepth - 1);
             if (!js_EmitTree(cx, cg, pn2))
                 return JS_FALSE;
-            cg->arrayCompSlot = saveSlot;
+            cg->arrayCompDepth = saveDepth;
 
             
             if (js_Emit1(cx, cg, JSOP_ENDINIT) < 0)

@@ -91,7 +91,7 @@ struct JSScript {
     jsbytecode      *code;      
     uint32          length;     
     uint16          version;    
-    uint16          ngvars;     
+    uint16          nfixed;     
 
     uint8           objectsOffset;  
 
@@ -104,13 +104,19 @@ struct JSScript {
     JSAtomMap       atomMap;    
     const char      *filename;  
     uintN           lineno;     
-    uintN           depth;      
+    uintN           nslots;     
     JSPrincipals    *principals;
     JSObject        *object;    
 #ifdef CHECK_SCRIPT_OWNER
     JSThread        *owner;     
 #endif
 };
+
+static inline uintN
+StackDepth(JSScript *script)
+{
+    return script->nslots- script->nfixed;
+}
 
 
 #define SCRIPT_NOTES(script)    ((jssrcnote*)((script)->code+(script)->length))
