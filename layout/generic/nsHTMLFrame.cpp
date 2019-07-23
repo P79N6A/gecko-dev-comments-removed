@@ -571,6 +571,13 @@ CanvasFrame::Reflow(nsPresContext*          aPresContext,
                                      nsSize(aReflowState.availableWidth,
                                             NS_UNCONSTRAINEDSIZE));
 
+    if (aReflowState.mFlags.mVResize &&
+        (kidFrame->GetStateBits() & NS_FRAME_CONTAINS_RELATIVE_HEIGHT)) {
+      
+      
+      kidReflowState.mFlags.mVResize = PR_TRUE;
+    }
+    
     
     ReflowChild(kidFrame, aPresContext, kidDesiredSize, kidReflowState,
                 kidReflowState.mComputedMargin.left, kidReflowState.mComputedMargin.top,
