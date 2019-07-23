@@ -280,6 +280,12 @@ typedef int8_t JSTraceType;
 #endif
 
 
+
+
+
+
+const uint32 TT_INVALID = uint32(-1);
+
 typedef Queue<uint16> SlotList;
 
 class TypeMap : public Queue<JSTraceType> {
@@ -629,7 +635,7 @@ class TraceRecorder : public avmplus::GCObject {
 
     JS_REQUIRES_STACK nanojit::LIns* scopeChain() const;
     JS_REQUIRES_STACK JSStackFrame* frameIfInRange(JSObject* obj, unsigned* depthp = NULL) const;
-    JS_REQUIRES_STACK JSRecordingStatus activeCallOrGlobalSlot(JSObject* obj, jsval*& vp);
+    JS_REQUIRES_STACK JSRecordingStatus scopeChainProp(JSObject* obj, jsval*& vp, nanojit::LIns*& ins, bool& tracked);
 
     JS_REQUIRES_STACK nanojit::LIns* arg(unsigned n);
     JS_REQUIRES_STACK void arg(unsigned n, nanojit::LIns* i);
@@ -706,7 +712,7 @@ class TraceRecorder : public avmplus::GCObject {
 
     nanojit::LIns* getStringLength(nanojit::LIns* str_ins);
 
-    JS_REQUIRES_STACK JSRecordingStatus name(jsval*& vp);
+    JS_REQUIRES_STACK JSRecordingStatus name(jsval*& vp, nanojit::LIns*& ins, bool& tracked);
     JS_REQUIRES_STACK JSRecordingStatus prop(JSObject* obj, nanojit::LIns* obj_ins, uint32& slot,
                                              nanojit::LIns*& v_ins);
     JS_REQUIRES_STACK JSRecordingStatus denseArrayElement(jsval& oval, jsval& idx, jsval*& vp,
