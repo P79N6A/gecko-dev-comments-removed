@@ -249,6 +249,28 @@ nsXPCWrappedJSClass::CallQueryInterfaceOnJSObject(XPCCallContext& ccx,
     jsval fun;
 
     
+    
+    
+    
+    if(!STOBJ_IS_SYSTEM(JS_GetGlobalForObject(ccx, jsobj)))
+    {
+        nsCOMPtr<nsIPrincipal> objprin;
+        nsIScriptSecurityManager *ssm = XPCWrapper::GetSecurityManager();
+        if(ssm)
+        {
+            nsresult rv = ssm->GetObjectPrincipal(ccx, jsobj, getter_AddRefs(objprin));
+            NS_ENSURE_SUCCESS(rv, nsnull);
+
+            PRBool isSystem;
+            rv = ssm->IsSystemPrincipal(objprin, &isSystem);
+            NS_ENSURE_SUCCESS(rv, nsnull);
+
+            if(!isSystem)
+                return nsnull;
+        }
+    }
+
+    
     funid = mRuntime->GetStringID(XPCJSRuntime::IDX_QUERY_INTERFACE);
     if(!JS_GetPropertyById(cx, jsobj, funid, &fun) || JSVAL_IS_PRIMITIVE(fun))
         return nsnull;
