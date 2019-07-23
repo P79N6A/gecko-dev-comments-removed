@@ -12,7 +12,7 @@
 
 
 
-#ifdef XP_WIN
+#ifdef _MSC_VER
 #  define TRY       try
 #  define CATCH(e)  catch (e)
 #else
