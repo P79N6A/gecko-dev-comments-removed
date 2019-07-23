@@ -525,8 +525,16 @@ nsNavHistoryContainerResultNode::CloseContainer(PRBool aUpdateView)
   
   
   
-  if (result->mRootNode == this)
+  if (result->mRootNode == this) {
     result->StopObserving();
+    
+    
+    
+    if (this->IsQuery())
+      this->GetAsQuery()->ClearChildren(PR_TRUE);
+    else if (this->IsFolder())
+      this->GetAsFolder()->ClearChildren(PR_TRUE);
+  }
 
   return NS_OK;
 }
@@ -3924,14 +3932,6 @@ nsNavHistoryResult::StopObserving()
       mIsHistoryObserver = PR_FALSE;
     }
   }
-
-  
-  
-  
-  if (mRootNode->IsQuery())
-    mRootNode->GetAsQuery()->ClearChildren(PR_TRUE);
-  else if (mRootNode->IsFolder())
-    mRootNode->GetAsFolder()->ClearChildren(PR_TRUE);
 }
 
 
