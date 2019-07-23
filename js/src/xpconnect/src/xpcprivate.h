@@ -2983,14 +2983,20 @@ private:
 
 
 
-struct JSContextAndFrame {
-    JSContextAndFrame(JSContext* aCx) :
+struct XPCJSContextInfo {
+    XPCJSContextInfo(JSContext* aCx) :
         cx(aCx),
-        frame(nsnull)
+        frame(nsnull),
+        requestDepth(0)
     {}
     JSContext* cx;
-    JSStackFrame* frame;  
-                          
+
+    
+    
+    JSStackFrame* frame;
+
+    
+    jsrefcount requestDepth;
 };
 
 class XPCJSContextStack
@@ -3006,14 +3012,14 @@ public:
     JSBool DEBUG_StackHasJSContext(JSContext*  aJSContext);
 #endif
 
-    const nsTArray<JSContextAndFrame>* GetStack()
+    const nsTArray<XPCJSContextInfo>* GetStack()
     { return &mStack; }
 
 private:
     void SyncJSContexts();
 
 private:
-    nsAutoTArray<JSContextAndFrame, 16> mStack;
+    nsAutoTArray<XPCJSContextInfo, 16> mStack;
     JSContext*  mSafeJSContext;
 
     
@@ -3034,7 +3040,7 @@ public:
     NS_DECL_NSIJSCONTEXTSTACKITERATOR
 
 private:
-    const nsTArray<JSContextAndFrame> *mStack;
+    const nsTArray<XPCJSContextInfo> *mStack;
     PRUint32 mPosition;
 };
 
