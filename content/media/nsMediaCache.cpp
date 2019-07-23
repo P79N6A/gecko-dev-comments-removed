@@ -1133,8 +1133,15 @@ nsMediaCache::Update()
       
       
       
+      
+      
+      
+      
+      
+      
       LOG(PR_LOG_DEBUG, ("Stream %p at end of stream", stream));
-      enableReading = PR_TRUE;
+      enableReading = !stream->mCacheSuspended &&
+        desiredOffset == stream->mChannelOffset;
     } else if (desiredOffset < stream->mStreamOffset) {
       
       
