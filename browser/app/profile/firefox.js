@@ -324,8 +324,7 @@ pref("browser.bookmarks.sort.resource", "rdf:http://home.netscape.com/NC-rdf#Nam
 
 
 
-
-pref("browser.bookmarks.autoExportHTML",          false);
+pref("browser.bookmarks.overwrite",               false);
 
 
 pref("dom.disable_open_during_load",              true);
