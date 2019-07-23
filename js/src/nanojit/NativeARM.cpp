@@ -246,7 +246,7 @@ Assembler::asm_arg(ArgSize sz, LInsp arg, Register& r, int& stkd)
             if (arg->isop(LIR_quad)) {
 
                 
-                int32_t v = arg->imm64lo();     
+                int32_t v = arg->imm64_0();     
                 for (int k = 0; k < 2; k++) {
                     if (r != UnknownReg) {
                         asm_ld_imm(r, v);
@@ -258,7 +258,7 @@ Assembler::asm_arg(ArgSize sz, LInsp arg, Register& r, int& stkd)
                         asm_ld_imm(IP, v);
                         stkd += 4;
                     }
-                    v = arg->imm64hi();         
+                    v = arg->imm64_1();         
                 }
             } else {
                 int d = findMemFor(arg);
@@ -691,9 +691,9 @@ Assembler::asm_store64(LInsp value, int dr, LInsp base)
 
             
             STR(IP, rb, dr);
-            LD32_nochk(IP, value->imm64lo());
+            LD32_nochk(IP, value->imm64_0());
             STR(IP, rb, dr+4);
-            LD32_nochk(IP, value->imm64hi());
+            LD32_nochk(IP, value->imm64_1());
 
             return;
         }
@@ -721,7 +721,7 @@ Assembler::asm_store64(LInsp value, int dr, LInsp base)
         
         if (value->isconstq()) {
             underrunProtect(4*4);
-            asm_quad_nochk(rv, value->imm64lo(), value->imm64hi());
+            asm_quad_nochk(rv, value->imm64_0(), value->imm64_1());
         }
     } else {
         int da = findMemFor(value);
@@ -735,7 +735,7 @@ Assembler::asm_store64(LInsp value, int dr, LInsp base)
 
 
 void
-Assembler::asm_quad_nochk(Register rr, int32_t imm64lo, int32_t imm64hi)
+Assembler::asm_quad_nochk(Register rr, int32_t imm64_0, int32_t imm64_1)
 {
     
     
@@ -750,8 +750,8 @@ Assembler::asm_quad_nochk(Register rr, int32_t imm64lo, int32_t imm64hi)
 
     FLDD(rr, PC, -16);
 
-    *(--_nIns) = (NIns) imm64hi;
-    *(--_nIns) = (NIns) imm64lo;
+    *(--_nIns) = (NIns) imm64_1;
+    *(--_nIns) = (NIns) imm64_0;
 
     JMP_nochk(_nIns+2);
 }
@@ -772,13 +772,13 @@ Assembler::asm_quad(LInsp ins)
             FSTD(rr, FP, d);
 
         underrunProtect(4*4);
-        asm_quad_nochk(rr, ins->imm64lo(), ins->imm64hi());
+        asm_quad_nochk(rr, ins->imm64_0(), ins->imm64_1());
     } else {
         NanoAssert(d);
         STR(IP, FP, d+4);
-        asm_ld_imm(IP, ins->imm64hi());
+        asm_ld_imm(IP, ins->imm64_1());
         STR(IP, FP, d);
-        asm_ld_imm(IP, ins->imm64lo());
+        asm_ld_imm(IP, ins->imm64_0());
     }
 }
 
