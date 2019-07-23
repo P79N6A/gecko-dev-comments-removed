@@ -742,7 +742,7 @@ nsMenuFrame::DoLayout(nsBoxLayoutState& aState)
     nsSize minSize = mPopupFrame->GetMinSize(aState); 
     nsSize maxSize = mPopupFrame->GetMaxSize(aState);
 
-    BoundsCheck(minSize, prefSize, maxSize);
+    prefSize = BoundsCheck(minSize, prefSize, maxSize);
 
     if (sizeToPopup)
         prefSize.width = mRect.width;
@@ -1286,7 +1286,7 @@ nsMenuFrame::GetPrefSize(nsBoxLayoutState& aState)
     
     nsSize minSize = nsBoxFrame::GetMinSize(aState);
     nsSize maxSize = GetMaxSize(aState);
-    BoundsCheck(minSize, size, maxSize);
+    size = BoundsCheck(minSize, size, maxSize);
   }
 
   return size;

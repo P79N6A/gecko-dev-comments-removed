@@ -218,7 +218,7 @@ nsGridRowLeafLayout::PopulateBoxSizes(nsIBox* aBox, nsBoxLayoutState& aState, ns
       }
     
      
-     nsBox::BoundsCheck(min, pref, max);
+     pref = nsBox::BoundsCheck(min, pref, max);
    
      current = new (aState) nsBoxSize();
      current->pref = pref;
