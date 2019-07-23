@@ -769,6 +769,23 @@ private:
 
 
 
+
+struct PendingBinding : public PRCList
+{
+#ifdef NS_BUILD_REFCNT_LOGGING
+  PendingBinding() {
+    MOZ_COUNT_CTOR(PendingBinding);
+  }
+  ~PendingBinding() {
+    MOZ_COUNT_DTOR(PendingBinding);
+  }
+#endif
+
+  nsRefPtr<nsXBLBinding> mBinding;
+};
+
+
+
 class NS_STACK_CLASS nsFrameConstructorState {
 public:
   nsPresContext            *mPresContext;
@@ -890,6 +907,44 @@ public:
     return mFixedPosIsAbsPos ? mAbsoluteItems : mFixedItems;
   }
 
+
+  
+
+
+
+
+  class PendingBindingAutoPusher;
+  friend class PendingBindingAutoPusher;
+  class NS_STACK_CLASS PendingBindingAutoPusher {
+  public:
+    PendingBindingAutoPusher(nsFrameConstructorState& aState,
+                             PendingBinding* aPendingBinding) :
+      mState(aState),
+      mPendingBinding(aState.mCurrentPendingBindingInsertionPoint)
+        {
+          NS_PRECONDITION(mPendingBinding, "how did that happen?");
+          if (aPendingBinding) {
+            aState.mCurrentPendingBindingInsertionPoint = aPendingBinding;
+          }
+        }
+
+    ~PendingBindingAutoPusher()
+      {
+        mState.mCurrentPendingBindingInsertionPoint = mPendingBinding;
+      }
+
+  private:
+    nsFrameConstructorState& mState;
+    PRCList* mPendingBinding;
+  };
+
+  
+
+
+  void AddPendingBinding(PendingBinding* aPendingBinding) {
+    PR_INSERT_BEFORE(aPendingBinding, mCurrentPendingBindingInsertionPoint);
+  }
+
 protected:
   friend class nsFrameConstructorSaveState;
 
@@ -899,6 +954,12 @@ protected:
 
   void ProcessFrameInsertions(nsAbsoluteItems& aFrameItems,
                               nsIAtom* aChildListName);
+
+  
+  
+  PRCList mPendingBindings;
+
+  PRCList* mCurrentPendingBindingInsertionPoint;
 };
 
 nsFrameConstructorState::nsFrameConstructorState(nsIPresShell*          aPresShell,
@@ -921,7 +982,8 @@ nsFrameConstructorState::nsFrameConstructorState(nsIPresShell*          aPresShe
     mFixedPosIsAbsPos(aAbsoluteContainingBlock &&
                       aAbsoluteContainingBlock->GetStyleDisplay()->
                         HasTransform()),
-    mHavePendingPopupgroup(PR_FALSE)
+    mHavePendingPopupgroup(PR_FALSE),
+    mCurrentPendingBindingInsertionPoint(&mPendingBindings)
 {
 #ifdef MOZ_XUL
   nsIRootBox* rootBox = nsIRootBox::GetRootBox(aPresShell);
@@ -930,6 +992,7 @@ nsFrameConstructorState::nsFrameConstructorState(nsIPresShell*          aPresShe
   }
 #endif
   MOZ_COUNT_CTOR(nsFrameConstructorState);
+  PR_INIT_CLIST(&mPendingBindings);
 }
 
 nsFrameConstructorState::nsFrameConstructorState(nsIPresShell* aPresShell,
@@ -950,7 +1013,8 @@ nsFrameConstructorState::nsFrameConstructorState(nsIPresShell* aPresShell,
     mFixedPosIsAbsPos(aAbsoluteContainingBlock &&
                       aAbsoluteContainingBlock->GetStyleDisplay()->
                         HasTransform()),
-    mHavePendingPopupgroup(PR_FALSE)
+    mHavePendingPopupgroup(PR_FALSE),
+    mCurrentPendingBindingInsertionPoint(&mPendingBindings)
 {
 #ifdef MOZ_XUL
   nsIRootBox* rootBox = nsIRootBox::GetRootBox(aPresShell);
@@ -960,6 +1024,7 @@ nsFrameConstructorState::nsFrameConstructorState(nsIPresShell* aPresShell,
 #endif
   MOZ_COUNT_CTOR(nsFrameConstructorState);
   mFrameState = aPresShell->GetDocument()->GetLayoutHistoryState();
+  PR_INIT_CLIST(&mPendingBindings);
 }
 
 nsFrameConstructorState::~nsFrameConstructorState()
@@ -982,6 +1047,16 @@ nsFrameConstructorState::~nsFrameConstructorState()
   for (PRInt32 i = mGeneratedTextNodesWithInitializer.Count() - 1; i >= 0; --i) {
     mGeneratedTextNodesWithInitializer[i]->
       DeleteProperty(nsGkAtoms::genConInitializerProperty);
+  }
+  if (!PR_CLIST_IS_EMPTY(&mPendingBindings)) {
+    nsBindingManager* bindingManager = mPresShell->GetDocument()->BindingManager();
+    do {
+      PendingBinding* pendingBinding =
+        static_cast<PendingBinding*>(PR_NEXT_LINK(&mPendingBindings));
+      PR_REMOVE_LINK(pendingBinding);
+      bindingManager->AddToAttachedQueue(pendingBinding->mBinding);
+      delete pendingBinding;
+    } while (!PR_CLIST_IS_EMPTY(&mPendingBindings));
   }
 }
 
@@ -2026,7 +2101,7 @@ nsCSSFrameConstructor::ConstructTable(nsFrameConstructorState& aState,
                                      innerFrame, childItems);
   } else {
     rv = ProcessChildren(aState, content, styleContext, innerFrame,
-                         PR_TRUE, childItems, PR_FALSE);
+                         PR_TRUE, childItems, PR_FALSE, aItem.mPendingBinding);
   }
   
   if (NS_FAILED(rv)) return rv;
@@ -2081,7 +2156,7 @@ nsCSSFrameConstructor::ConstructTableRow(nsFrameConstructorState& aState,
                                      childItems);
   } else {
     rv = ProcessChildren(aState, content, styleContext, newFrame,
-                         PR_TRUE, childItems, PR_FALSE);
+                         PR_TRUE, childItems, PR_FALSE, aItem.mPendingBinding);
   }
   if (NS_FAILED(rv)) return rv;
 
@@ -2221,7 +2296,7 @@ nsCSSFrameConstructor::ConstructTableCell(nsFrameConstructorState& aState,
   } else {
     
     rv = ProcessChildren(aState, content, styleContext, cellInnerFrame,
-                         PR_TRUE, childItems, isBlock);
+                         PR_TRUE, childItems, isBlock, aItem.mPendingBinding);
   }
   
   if (NS_FAILED(rv)) {
@@ -2395,6 +2470,7 @@ nsCSSFrameConstructor::ConstructDocElementFrame(nsIContent*              aDocEle
 
   const nsStyleDisplay* display = styleContext->GetStyleDisplay();
 
+  PendingBinding* pendingBinding = nsnull;
   
   if (display->mBinding) {
     
@@ -2405,16 +2481,22 @@ nsCSSFrameConstructor::ConstructDocElementFrame(nsIContent*              aDocEle
     if (!xblService)
       return NS_ERROR_FAILURE;
 
-    nsRefPtr<nsXBLBinding> binding;
+    nsAutoPtr<PendingBinding> newPendingBinding(new PendingBinding());
+    if (!newPendingBinding) {
+      return NS_ERROR_OUT_OF_MEMORY;
+    }
     rv = xblService->LoadBindings(aDocElement, display->mBinding->mURI,
                                   display->mBinding->mOriginPrincipal,
-                                  PR_FALSE, getter_AddRefs(binding),
+                                  PR_FALSE,
+                                  getter_AddRefs(newPendingBinding->mBinding),
                                   &resolveStyle);
     if (NS_FAILED(rv))
       return NS_OK; 
 
-    if (binding) {
-      mDocument->BindingManager()->AddToAttachedQueue(binding);
+    if (newPendingBinding->mBinding) {
+      pendingBinding = newPendingBinding;
+      
+      state.AddPendingBinding(newPendingBinding.forget());
     }
 
     if (resolveStyle) {
@@ -2520,7 +2602,7 @@ nsCSSFrameConstructor::ConstructDocElementFrame(nsIContent*              aDocEle
       nsRefPtr<nsStyleContext> extraRef(styleContext);
       FrameConstructionItem item(&rootTableData, aDocElement,
                                  aDocElement->Tag(), kNameSpaceID_None,
-                                 -1, extraRef.forget());
+                                 -1, pendingBinding, extraRef.forget());
 
       nsFrameItems frameItems;
       
@@ -2543,7 +2625,8 @@ nsCSSFrameConstructor::ConstructDocElementFrame(nsIContent*              aDocEle
                           state.GetGeometricParent(display,
                                                    mDocElementContainingBlock),
                           mDocElementContainingBlock, styleContext,
-                          &contentFrame, frameItems, display->IsPositioned());
+                          &contentFrame, frameItems, display->IsPositioned(),
+                          pendingBinding);
       if (NS_FAILED(rv) || frameItems.IsEmpty())
         return rv;
       *aNewFrame = frameItems.FirstChild();
@@ -2576,7 +2659,7 @@ nsCSSFrameConstructor::ConstructDocElementFrame(nsIContent*              aDocEle
     NS_ASSERTION(!nsLayoutUtils::GetAsBlock(contentFrame),
                  "Only XUL and SVG frames should reach here");
     ProcessChildren(state, aDocElement, styleContext, contentFrame, PR_TRUE,
-                    childItems, PR_FALSE);
+                    childItems, PR_FALSE, pendingBinding);
 
     
     contentFrame->SetInitialChildList(nsnull, childItems);
@@ -3071,7 +3154,8 @@ nsCSSFrameConstructor::ConstructButtonFrame(nsFrameConstructorState& aState,
 #endif
 
     rv = ProcessChildren(aState, content, styleContext, blockFrame, PR_TRUE,
-                         childItems, aStyleDisplay->IsBlockInside());
+                         childItems, aStyleDisplay->IsBlockInside(),
+                         aItem.mPendingBinding);
     if (NS_FAILED(rv)) return rv;
   
     
@@ -3085,7 +3169,8 @@ nsCSSFrameConstructor::ConstructButtonFrame(nsFrameConstructorState& aState,
     
     
     
-    CreateAnonymousFrames(aState, content, buttonFrame, anonymousChildItems);
+    CreateAnonymousFrames(aState, content, buttonFrame, aItem.mPendingBinding,
+                          anonymousChildItems);
     if (anonymousChildItems.NotEmpty()) {
       
       aState.mFrameManager->AppendFrames(blockFrame, nsnull,
@@ -3181,7 +3266,8 @@ nsCSSFrameConstructor::ConstructSelectFrame(nsFrameConstructorState& aState,
       nsIFrame* scrolledFrame = NS_NewSelectsAreaFrame(mPresShell, styleContext, flags);
 
       InitializeSelectFrame(aState, listFrame, scrolledFrame, content,
-                            comboboxFrame, listStyle, PR_TRUE, aFrameItems);
+                            comboboxFrame, listStyle, PR_TRUE,
+                            aItem.mPendingBinding, aFrameItems);
 
         
         
@@ -3194,7 +3280,8 @@ nsCSSFrameConstructor::ConstructSelectFrame(nsFrameConstructorState& aState,
       
 
       nsFrameItems childItems;
-      CreateAnonymousFrames(aState, content, comboboxFrame, childItems);
+      CreateAnonymousFrames(aState, content, comboboxFrame,
+                            aItem.mPendingBinding, childItems);
   
       comboboxFrame->SetInitialChildList(nsnull, childItems);
 
@@ -3231,7 +3318,8 @@ nsCSSFrameConstructor::ConstructSelectFrame(nsFrameConstructorState& aState,
       
 
       InitializeSelectFrame(aState, listFrame, scrolledFrame, content,
-                            aParentFrame, styleContext, PR_FALSE, aFrameItems);
+                            aParentFrame, styleContext, PR_FALSE,
+                            aItem.mPendingBinding, aFrameItems);
 
       *aNewFrame = listFrame;
     }
@@ -3253,6 +3341,7 @@ nsCSSFrameConstructor::InitializeSelectFrame(nsFrameConstructorState& aState,
                                              nsIFrame*                aParentFrame,
                                              nsStyleContext*          aStyleContext,
                                              PRBool                   aBuildCombobox,
+                                             PendingBinding*          aPendingBinding,
                                              nsFrameItems&            aFrameItems)
 {
   const nsStyleDisplay* display = aStyleContext->GetStyleDisplay();
@@ -3316,7 +3405,7 @@ nsCSSFrameConstructor::InitializeSelectFrame(nsFrameConstructorState& aState,
   }
 
   ProcessChildren(aState, aContent, aStyleContext, scrolledFrame, PR_FALSE,
-                  childItems, PR_TRUE);
+                  childItems, PR_TRUE, aPendingBinding);
 
   
   scrolledFrame->SetInitialChildList(nsnull, childItems);
@@ -3379,7 +3468,7 @@ nsCSSFrameConstructor::ConstructFieldSetFrame(nsFrameConstructorState& aState,
   }
 
   ProcessChildren(aState, content, styleContext, blockFrame, PR_TRUE,
-                  childItems, PR_TRUE);
+                  childItems, PR_TRUE, aItem.mPendingBinding);
 
   nsFrameItems fieldsetKids;
   fieldsetKids.AddChild(blockFrame);
@@ -3860,7 +3949,8 @@ nsCSSFrameConstructor::ConstructFrameFromItemInternal(FrameConstructionItem& aIt
       rv = ProcessChildren(aState, content, styleContext, newFrame,
                            !(bits & FCDATA_DISALLOW_GENERATED_CONTENT),
                            childItems,
-                           (bits & FCDATA_ALLOW_BLOCK_STYLES) != 0);
+                           (bits & FCDATA_ALLOW_BLOCK_STYLES) != 0,
+                           aItem.mPendingBinding);
     }
 
 #ifdef MOZ_XUL
@@ -3931,6 +4021,7 @@ nsresult
 nsCSSFrameConstructor::CreateAnonymousFrames(nsFrameConstructorState& aState,
                                              nsIContent*              aParent,
                                              nsIFrame*                aParentFrame,
+                                             PendingBinding*          aPendingBinding,
                                              nsFrameItems&            aChildItems)
 {
   nsAutoTArray<nsIContent*, 4> newAnonymousItems;
@@ -3941,6 +4032,9 @@ nsCSSFrameConstructor::CreateAnonymousFrames(nsFrameConstructorState& aState,
   if (count == 0) {
     return NS_OK;
   }
+
+  nsFrameConstructorState::PendingBindingAutoPusher pusher(aState,
+                                                           aPendingBinding);
 
   nsIAnonymousContentCreator* creator = do_QueryFrame(aParentFrame);
   NS_ASSERTION(creator,
@@ -4304,7 +4398,11 @@ nsCSSFrameConstructor::BeginBuildingScrollFrame(nsFrameConstructorState& aState,
 
   
   
-  CreateAnonymousFrames(aState, aContent, gfxScrollFrame, anonymousItems);
+  
+  
+  
+  CreateAnonymousFrames(aState, aContent, gfxScrollFrame, nsnull,
+                        anonymousItems);
 
   aNewFrame = gfxScrollFrame;
 
@@ -4535,7 +4633,8 @@ nsCSSFrameConstructor::ConstructScrollableBlock(nsFrameConstructorState& aState,
   nsresult rv = ConstructBlock(aState,
                                scrolledContentStyle->GetStyleDisplay(), content,
                                *aNewFrame, *aNewFrame, scrolledContentStyle,
-                               &scrolledFrame, blockItem, aDisplay->IsPositioned());
+                               &scrolledFrame, blockItem, aDisplay->IsPositioned(),
+                               aItem.mPendingBinding);
   if (NS_UNLIKELY(NS_FAILED(rv))) {
     
     return rv;
@@ -4571,7 +4670,8 @@ nsCSSFrameConstructor::ConstructNonScrollableBlock(nsFrameConstructorState& aSta
   return ConstructBlock(aState, aDisplay, aItem.mContent,
                         aState.GetGeometricParent(aDisplay, aParentFrame),
                         aParentFrame, styleContext, aNewFrame,
-                        aFrameItems, aDisplay->IsPositioned());
+                        aFrameItems, aDisplay->IsPositioned(),
+                        aItem.mPendingBinding);
 }
 
 
@@ -5000,7 +5100,8 @@ nsCSSFrameConstructor::ConstructSVGForeignObjectFrame(nsFrameConstructorState& a
   
   rv = ConstructBlock(aState, innerPseudoStyle->GetStyleDisplay(), content,
                       newFrame, newFrame, innerPseudoStyle,
-                      &blockFrame, childItems, PR_TRUE);
+                      &blockFrame, childItems, PR_TRUE,
+                      aItem.mPendingBinding);
 
   
   
@@ -5039,7 +5140,7 @@ nsCSSFrameConstructor::AddPageBreakItem(nsIContent* aContent,
   
   
   aItems.AppendItem(&sPageBreakData, aContent, nsCSSAnonBoxes::pageBreak,
-                    kNameSpaceID_None, -1, pseudoStyle.forget());
+                    kNameSpaceID_None, -1, nsnull, pseudoStyle.forget());
 }
 
 nsresult
@@ -5133,7 +5234,7 @@ nsCSSFrameConstructor::AddFrameConstructionItemsInternal(nsFrameConstructorState
   
   const nsStyleDisplay* display = aStyleContext->GetStyleDisplay();
   nsRefPtr<nsStyleContext> styleContext(aStyleContext);
-  nsAutoEnqueueBinding binding(mDocument);
+  PendingBinding* pendingBinding = nsnull;
   if ((aFlags & ITEM_ALLOW_XBL_BASE) && display->mBinding)
   {
     
@@ -5144,13 +5245,23 @@ nsCSSFrameConstructor::AddFrameConstructionItemsInternal(nsFrameConstructorState
 
     PRBool resolveStyle;
 
+    nsAutoPtr<PendingBinding> newPendingBinding(new PendingBinding());
+    if (!newPendingBinding) {
+      return;
+    }
     nsresult rv = xblService->LoadBindings(aContent, display->mBinding->mURI,
                                            display->mBinding->mOriginPrincipal,
                                            PR_FALSE,
-                                           getter_AddRefs(binding.mBinding),
+                                           getter_AddRefs(newPendingBinding->mBinding),
                                            &resolveStyle);
     if (NS_FAILED(rv))
       return;
+
+    if (newPendingBinding->mBinding) {
+      pendingBinding = newPendingBinding;
+      
+      aState.AddPendingBinding(newPendingBinding.forget());
+    }
 
     if (resolveStyle) {
       styleContext = ResolveStyleContext(styleContext->GetParent(), aContent);
@@ -5272,7 +5383,7 @@ nsCSSFrameConstructor::AddFrameConstructionItemsInternal(nsFrameConstructorState
 
   FrameConstructionItem* item =
     aItems.AppendItem(data, aContent, aTag, aNameSpaceID, aContentIndex,
-                      styleContext.forget());
+                      pendingBinding, styleContext.forget());
   if (!item) {
     if (isGeneratedContent) {
       aContent->UnbindFromTree();
@@ -8163,8 +8274,11 @@ nsCSSFrameConstructor::CreateContinuingTableFrame(nsIPresShell* aPresShell,
                                          (NS_NewTableRowGroupFrame(aPresShell, rowGroupFrame->GetStyleContext()));
           nsIContent* headerFooter = rowGroupFrame->GetContent();
           headerFooterFrame->Init(headerFooter, newFrame, nsnull);
+          
+          
           ProcessChildren(state, headerFooter, rowGroupFrame->GetStyleContext(),
-                          headerFooterFrame, PR_TRUE, childItems, PR_FALSE);
+                          headerFooterFrame, PR_TRUE, childItems, PR_FALSE,
+                          nsnull);
           NS_ASSERTION(state.mFloatedItems.IsEmpty(), "unexpected floated element");
           headerFooterFrame->SetInitialChildList(nsnull, childItems);
           headerFooterFrame->SetRepeatable(PR_TRUE);
@@ -9403,6 +9517,8 @@ nsCSSFrameConstructor::CreateNeededTablePseudos(FrameConstructionItemList& aItem
                                 
                                 iter.item().mNameSpaceID,
                                 -1,
+                                
+                                nsnull,
                                 wrapperStyle.forget());
 
     if (!newItem) {
@@ -9467,14 +9583,6 @@ nsCSSFrameConstructor::ConstructFramesFromItemList(nsFrameConstructorState& aSta
   return NS_OK;
 }
 
-
-
-
-
-
-
-
-
 nsresult
 nsCSSFrameConstructor::ProcessChildren(nsFrameConstructorState& aState,
                                        nsIContent*              aContent,
@@ -9482,7 +9590,8 @@ nsCSSFrameConstructor::ProcessChildren(nsFrameConstructorState& aState,
                                        nsIFrame*                aFrame,
                                        const PRBool             aCanHaveGeneratedContent,
                                        nsFrameItems&            aFrameItems,
-                                       const PRBool             aAllowBlockStyles)
+                                       const PRBool             aAllowBlockStyles,
+                                       PendingBinding*          aPendingBinding)
 {
   NS_PRECONDITION(aFrame, "Must have parent frame here");
   NS_PRECONDITION(aFrame->GetContentInsertionFrame() == aFrame,
@@ -9506,6 +9615,9 @@ nsCSSFrameConstructor::ProcessChildren(nsFrameConstructorState& aState,
   } else if (aFrame->IsFloatContainingBlock()) {
     aState.PushFloatContainingBlock(aFrame, floatSaveState);
   }
+
+  nsFrameConstructorState::PendingBindingAutoPusher pusher(aState,
+                                                           aPendingBinding);
 
   FrameConstructionItemList itemsToConstruct;
   nsresult rv = NS_OK;
@@ -10547,7 +10659,8 @@ nsCSSFrameConstructor::ConstructBlock(nsFrameConstructorState& aState,
                                       nsStyleContext*          aStyleContext,
                                       nsIFrame**               aNewFrame,
                                       nsFrameItems&            aFrameItems,
-                                      PRBool                   aAbsPosContainer)
+                                      PRBool                   aAbsPosContainer,
+                                      PendingBinding*          aPendingBinding)
 {
   
   nsIFrame* blockFrame = *aNewFrame;
@@ -10611,7 +10724,7 @@ nsCSSFrameConstructor::ConstructBlock(nsFrameConstructorState& aState,
   
   nsFrameItems childItems;
   rv = ProcessChildren(aState, aContent, aStyleContext, blockFrame, PR_TRUE,
-                       childItems, PR_TRUE);
+                       childItems, PR_TRUE, aPendingBinding);
 
   
   blockFrame->SetInitialChildList(nsnull, childItems);
@@ -10848,6 +10961,8 @@ nsCSSFrameConstructor::BuildInlineChildItems(nsFrameConstructorState& aState,
 {
   
   
+  nsFrameConstructorState::PendingBindingAutoPusher
+    pusher(aState, aParentItem.mPendingBinding);
 
   
   nsStyleContext* const parentStyleContext = aParentItem.mStyleContext;
@@ -11726,8 +11841,12 @@ nsCSSFrameConstructor::LazyGenerateChildrenEvent::Run()
 
       nsFrameItems childItems;
       nsFrameConstructorState state(mPresShell, nsnull, nsnull, nsnull);
+      
+      
+      
       nsresult rv = fc->ProcessChildren(state, mContent, frame->GetStyleContext(),
-                                        frame, PR_FALSE, childItems, PR_FALSE);
+                                        frame, PR_FALSE, childItems, PR_FALSE,
+                                        nsnull);
       if (NS_FAILED(rv)) {
         fc->EndUpdate();
         return rv;
