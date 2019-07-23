@@ -41,9 +41,9 @@
 #include "nsISupports.h"
 #include "nsMargin.h"
 #include "nsRect.h"
+#include "gfxPattern.h"
 
 class gfxASurface;
-class gfxPattern;
 struct gfxMatrix;
 struct gfxRect;
 class gfxContext;
@@ -76,8 +76,8 @@ typedef enum {
 
 
 #define NS_IIMAGE_IID \
-  { 0xc942f66c, 0x97d0, 0x470e, \
-    { 0x99, 0xde, 0xa1, 0xef, 0xb4, 0x58, 0x6a, 0xfd } }
+  { 0x358ce68, 0xb076, 0x43b0, \
+    { 0x8f, 0x5c, 0x36, 0xed, 0x45, 0x92, 0x82, 0x2c } }
 
 
 class nsIImage : public nsISupports
@@ -210,7 +210,9 @@ public:
 
 
 
+
   virtual void Draw(gfxContext*        aContext,
+                    gfxPattern::GraphicsFilter aFilter,
                     const gfxMatrix&   aUserSpaceToImageSpace,
                     const gfxRect&     aFill,
                     const nsIntMargin& aPadding,

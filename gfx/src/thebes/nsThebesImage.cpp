@@ -449,6 +449,7 @@ IsSafeImageTransformComponent(gfxFloat aValue)
 
 void
 nsThebesImage::Draw(gfxContext*        aContext,
+                    gfxPattern::GraphicsFilter aFilter,
                     const gfxMatrix&   aUserSpaceToImageSpace,
                     const gfxRect&     aFill,
                     const nsIntMargin& aPadding,
@@ -670,6 +671,7 @@ nsThebesImage::Draw(gfxContext*        aContext,
         case gfxASurface::SurfaceTypeQuartz:
         case gfxASurface::SurfaceTypeQuartzImage:
             
+            pattern->SetFilter(aFilter);
             break;
 
         default:
@@ -677,6 +679,7 @@ nsThebesImage::Draw(gfxContext*        aContext,
             
             
             pattern->SetExtend(gfxPattern::EXTEND_PAD);
+            pattern->SetFilter(aFilter);
             break;
         }
     }
