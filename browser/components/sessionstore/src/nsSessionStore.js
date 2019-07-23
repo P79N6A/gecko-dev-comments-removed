@@ -3010,8 +3010,12 @@ let XPathHelper = {
     if (!aNode.parentNode)
       return "";
     
-    let prefix = this.namespacePrefixes[aNode.namespaceURI] || null;
-    let tag = (prefix ? prefix + ":" : "") + this.escapeName(aNode.localName);
+    
+    let nNamespaceURI = aNode.namespaceURI;
+    let nLocalName = aNode.localName;
+
+    let prefix = this.namespacePrefixes[nNamespaceURI] || null;
+    let tag = (prefix ? prefix + ":" : "") + this.escapeName(nLocalName);
     
     
     if (aNode.id)
@@ -3022,7 +3026,7 @@ let XPathHelper = {
     let count = 0;
     let nName = aNode.name || null;
     for (let n = aNode; (n = n.previousSibling); )
-      if (n.localName == aNode.localName && n.namespaceURI == aNode.namespaceURI &&
+      if (n.localName == nLocalName && n.namespaceURI == nNamespaceURI &&
           (!nName || n.name == nName))
         count++;
     
