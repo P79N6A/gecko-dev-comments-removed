@@ -81,12 +81,7 @@ void    ConvertMaskBitMap(PRUint8 *inBuf, PBITMAPINFO2 pBMInfo,
 
 
 
-#ifdef MOZ_PHOENIX  
 static PRBool sUseRws = PR_TRUE;
-#else 
-      
-static PRBool sUseRws = PR_FALSE;
-#endif
 
 
 
