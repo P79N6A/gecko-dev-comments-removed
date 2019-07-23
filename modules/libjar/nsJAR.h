@@ -60,7 +60,6 @@
 #include "nsHashtable.h"
 #include "nsAutoLock.h"
 #include "nsIZipReader.h"
-#include "nsIJAR.h"
 #include "nsZipArchive.h"
 #include "nsIPrincipal.h"
 #include "nsISignatureVerifier.h"
@@ -90,7 +89,7 @@ typedef enum
 
 
 
-class nsJAR : public nsIZipReader, public nsIJAR
+class nsJAR : public nsIZipReader
 {
   
   friend class nsJARInputStream;
@@ -105,8 +104,6 @@ class nsJAR : public nsIZipReader, public nsIJAR
     NS_DECL_ISUPPORTS
 
     NS_DECL_NSIZIPREADER
-
-    NS_DECL_NSIJAR
 
     nsresult GetJarPath(nsACString& aResult);
 

@@ -47,7 +47,6 @@
 
 #include "nsIURL.h"
 #include "nsIFileURL.h"
-#include "nsIJAR.h"
 
 #include "nsITransport.h"
 #include "nsIOutputStream.h"
@@ -635,13 +634,9 @@ VerifySigning(nsIZipReader* hZip, nsIPrincipal* aPrincipal)
     if (!hasCert)
         return NS_ERROR_FAILURE;
 
-    nsCOMPtr<nsIJAR> jar(do_QueryInterface(hZip));
-    if (!jar)
-        return NS_ERROR_FAILURE;
-
     
     nsCOMPtr<nsIPrincipal> principal;
-    nsresult rv = jar->GetCertificatePrincipal(nsnull, getter_AddRefs(principal));
+    nsresult rv = hZip->GetCertificatePrincipal(nsnull, getter_AddRefs(principal));
     if (NS_FAILED(rv) || !principal)
         return NS_ERROR_FAILURE;
 
@@ -670,7 +665,7 @@ VerifySigning(nsIZipReader* hZip, nsIPrincipal* aPrincipal)
         entryCount++;
 
         
-        rv = jar->GetCertificatePrincipal(name.get(), getter_AddRefs(principal));
+        rv = hZip->GetCertificatePrincipal(name.get(), getter_AddRefs(principal));
         if (NS_FAILED(rv) || !principal) return NS_ERROR_FAILURE;
 
         PRBool equal;
@@ -680,7 +675,7 @@ VerifySigning(nsIZipReader* hZip, nsIPrincipal* aPrincipal)
 
     
     PRUint32 manifestEntryCount;
-    rv = jar->GetManifestEntriesCount(&manifestEntryCount);
+    rv = hZip->GetManifestEntriesCount(&manifestEntryCount);
     if (NS_FAILED(rv))
         return rv;
 
