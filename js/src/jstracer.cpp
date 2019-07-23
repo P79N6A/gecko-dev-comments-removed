@@ -39,7 +39,6 @@
 
 
 
-#include "jsstddef.h"           
 #include "jsbit.h"              
 #include "jsprf.h"
 #include <math.h>               
@@ -1576,7 +1575,7 @@ NativeToValue(JSContext* cx, jsval& v, uint8 type, double* slot)
       case JSVAL_BOXED:
         v = *(jsval*)slot;
         JS_ASSERT(v != JSVAL_ERROR_COOKIE); 
-        debug_only_v(printf("box<%lx> ", v));
+        debug_only_v(printf("box<%p> ", (void*)v));
         break;
       case JSVAL_TNULL:
         JS_ASSERT(*(JSObject**)slot == NULL);
@@ -3427,7 +3426,7 @@ js_AttemptToExtendTree(JSContext* cx, VMSideExit* anchor, VMSideExit* exitedFrom
 
     debug_only_v(printf("trying to attach another branch to the tree (hits = %d)\n", c->hits());)
 
-    int32& hits = c->hits();
+    int32_t& hits = c->hits();
     if (hits++ >= HOTEXIT && hits <= HOTEXIT+MAXEXIT) {
         
         c->lirbuf = f->lirbuf;
@@ -4194,7 +4193,7 @@ js_MonitorLoopEdge(JSContext* cx, uintN& inlineCallCount)
 
     debug_only_v(printf("Looking for compat peer %d@%d, from %p (ip: %p)\n",
                         js_FramePCToLineNumber(cx, cx->fp),
-                        FramePCOffset(cx->fp), f, f->ip);)
+                        FramePCOffset(cx->fp), (void*)f, f->ip);)
 
     uintN count;
     Fragment* match = js_FindVMCompatiblePeer(cx, f, count);
@@ -4305,9 +4304,7 @@ TraceRecorder::monitorRecording(JSContext* cx, TraceRecorder* tr, JSOp op)
             js_Disassemble1(cx, cx->fp->script, cx->fp->regs->pc,             \
                             (cx->fp->imacpc)                                  \
                             ? 0                                               \
-                            : PTRDIFF(cx->fp->regs->pc,                       \
-                                      cx->fp->script->code,                   \
-                                      jsbytecode),                            \
+                            : cx->fp->regs->pc - cx->fp->script->code,        \
                             !cx->fp->imacpc, stdout);)                        \
         flag = tr->record_##x();                                              \
         if (x == JSOP_ITER || x == JSOP_NEXTITER || x == JSOP_APPLY ||        \
@@ -5246,28 +5243,39 @@ TraceRecorder::equalityHelper(jsval l, jsval r, LIns* l_ins, LIns* r_ins,
         fp = true;
     } else {
         if (JSVAL_TAG(l) == JSVAL_BOOLEAN) {
-            args[0] = l_ins, args[1] = cx_ins;
-            l_ins = lir->insCall(&js_BooleanOrUndefinedToNumber_ci, args);
-            l = (l == JSVAL_VOID)
-                ? DOUBLE_TO_JSVAL(cx->runtime->jsNaN)
-                : INT_TO_JSVAL(l == JSVAL_TRUE);
-            return equalityHelper(l, r, l_ins, r_ins, negate,
-                                  tryBranchAfterCond, rval);
+            bool isVoid = JSVAL_IS_VOID(l);
+            guard(isVoid,
+                  lir->ins2(LIR_eq, l_ins, INS_CONST(JSVAL_TO_PSEUDO_BOOLEAN(JSVAL_VOID))),
+                  BRANCH_EXIT);
+            if (!isVoid) {
+                args[0] = l_ins, args[1] = cx_ins;
+                l_ins = lir->insCall(&js_BooleanOrUndefinedToNumber_ci, args);
+                l = (l == JSVAL_VOID)
+                    ? DOUBLE_TO_JSVAL(cx->runtime->jsNaN)
+                    : INT_TO_JSVAL(l == JSVAL_TRUE);
+                return equalityHelper(l, r, l_ins, r_ins, negate,
+                                      tryBranchAfterCond, rval);
+            }
+        } else if (JSVAL_TAG(r) == JSVAL_BOOLEAN) {
+            bool isVoid = JSVAL_IS_VOID(r);
+            guard(isVoid,
+                  lir->ins2(LIR_eq, r_ins, INS_CONST(JSVAL_TO_PSEUDO_BOOLEAN(JSVAL_VOID))),
+                  BRANCH_EXIT);
+            if (!isVoid) {
+                args[0] = r_ins, args[1] = cx_ins;
+                r_ins = lir->insCall(&js_BooleanOrUndefinedToNumber_ci, args);
+                r = (r == JSVAL_VOID)
+                    ? DOUBLE_TO_JSVAL(cx->runtime->jsNaN)
+                    : INT_TO_JSVAL(r == JSVAL_TRUE);
+                return equalityHelper(l, r, l_ins, r_ins, negate,
+                                      tryBranchAfterCond, rval);
+            }
+        } else {
+            if ((JSVAL_IS_STRING(l) || isNumber(l)) && !JSVAL_IS_PRIMITIVE(r))
+                return call_imacro(equality_imacros.any_obj);
+            if (!JSVAL_IS_PRIMITIVE(l) && (JSVAL_IS_STRING(r) || isNumber(r)))
+                return call_imacro(equality_imacros.obj_any);
         }
-        if (JSVAL_TAG(r) == JSVAL_BOOLEAN) {
-            args[0] = r_ins, args[1] = cx_ins;
-            r_ins = lir->insCall(&js_BooleanOrUndefinedToNumber_ci, args);
-            r = (r == JSVAL_VOID)
-                ? DOUBLE_TO_JSVAL(cx->runtime->jsNaN)
-                : INT_TO_JSVAL(r == JSVAL_TRUE);
-            return equalityHelper(l, r, l_ins, r_ins, negate,
-                                  tryBranchAfterCond, rval);
-        }
-
-        if ((JSVAL_IS_STRING(l) || isNumber(l)) && !JSVAL_IS_PRIMITIVE(r))
-            return call_imacro(equality_imacros.any_obj);
-        if (!JSVAL_IS_PRIMITIVE(l) && (JSVAL_IS_STRING(r) || isNumber(r)))
-            return call_imacro(equality_imacros.obj_any);
 
         l_ins = lir->insImm(0);
         r_ins = lir->insImm(1);
@@ -5907,9 +5915,9 @@ JS_REQUIRES_STACK bool
 TraceRecorder::guardDenseArrayIndex(JSObject* obj, jsint idx, LIns* obj_ins,
                                     LIns* dslots_ins, LIns* idx_ins, ExitType exitType)
 {
-    jsuint length = ARRAY_DENSE_LENGTH(obj);
+    jsuint capacity = js_DenseArrayCapacity(obj);
 
-    bool cond = (jsuint(idx) < jsuint(obj->fslots[JSSLOT_ARRAY_LENGTH]) && jsuint(idx) < length);
+    bool cond = (jsuint(idx) < jsuint(obj->fslots[JSSLOT_ARRAY_LENGTH]) && jsuint(idx) < capacity);
     if (cond) {
         
         LIns* exit = guard(true,
@@ -7134,7 +7142,7 @@ TraceRecorder::record_JSOP_GETELEM()
         idx = ID_TO_VALUE(id);
         jsuint index;
         if (js_IdIsIndex(idx, &index) && guardDenseArray(obj, obj_ins, BRANCH_EXIT)) {
-            v = (index >= ARRAY_DENSE_LENGTH(obj)) ? JSVAL_HOLE : obj->dslots[index];
+            v = (index >= js_DenseArrayCapacity(obj)) ? JSVAL_HOLE : obj->dslots[index];
             if (v == JSVAL_HOLE)
                 ABORT_TRACE("can't see through hole in dense array");
         } else {
