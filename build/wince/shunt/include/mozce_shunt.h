@@ -67,6 +67,7 @@ typedef unsigned short wchar_t;
 namespace std {
   struct nothrow_t {};
   extern const nothrow_t nothrow;
+  struct bad_alloc {};
 };
 #endif
 
@@ -76,23 +77,17 @@ namespace std {
 
 
 
-inline void *operator new(size_t size) throw() {
-  return (void*) malloc(size);
-}
 inline void *operator new(size_t size, const std::nothrow_t&) throw() {
-  return (void*) malloc(size);
-}
-inline void operator delete(void *ptr) throw() {
-  free(ptr);
-}
-inline void *operator new[](size_t size) throw() {
-  return (void*) malloc(size);
+  return malloc(size);
 }
 inline void *operator new[](size_t size, const std::nothrow_t&) throw() {
-  return (void*) malloc(size);
+  return malloc(size);
 }
-inline void operator delete[](void *ptr) throw() {
-  return free(ptr);
+inline void operator delete(void* ptr, const std::nothrow_t&) throw() {
+  free(ptr);
+}
+inline void operator delete[](void* ptr, const std::nothrow_t&) throw() {
+  free(ptr);
 }
 
 
@@ -103,6 +98,30 @@ inline void *operator new(size_t, void *p) {
 inline void *operator new[](size_t, void *p) {
   return p;
 }
+
+
+
+
+
+#if defined(_MOZILLA_CONFIG_H_) && !defined(XPCOM_GLUE) && !defined(NS_NO_XPCOM) && !defined(MOZ_NO_MOZALLOC)
+#  include "mozilla/mozalloc.h"
+#else
+
+inline void* operator new(size_t size) throw() {
+  return malloc(size);
+}
+inline void* operator new[](size_t size) throw() {
+  return malloc(size);
+}
+inline void operator delete(void* ptr) throw() {
+  free(ptr);
+}
+inline void operator delete[](void* ptr) throw() {
+  free(ptr);
+}
+
+#endif  
+
 
 extern "C" {
 #endif
@@ -115,6 +134,9 @@ extern "C" {
 #undef wcsdup
 #undef _wcsndup
 #undef wcsndup
+
+
+
 
 char * __cdecl
 _strdup(const char*);
