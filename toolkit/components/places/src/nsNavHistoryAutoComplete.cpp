@@ -84,6 +84,12 @@
   "@mozilla.org/autocomplete/simple-result;1"
 
 
+#define GET_BEHAVIOR(aBitName) \
+  (mAutoCompleteCurrentBehavior & kAutoCompleteBehavior##aBitName)
+#define SET_BEHAVIOR(aBitName) \
+  mAutoCompleteCurrentBehavior |= kAutoCompleteBehavior##aBitName
+
+
 
 #define SQL_STR_FRAGMENT_GET_BOOK_TAG(name, column, comparison, getMostRecent) \
   NS_LITERAL_CSTRING(", (" \
@@ -793,17 +799,13 @@ void
 nsNavHistory::ProcessTokensForSpecialSearch()
 {
   
-  mRestrictHistory = mAutoCompleteRestrictHistory.IsEmpty();
-  mRestrictBookmark = mAutoCompleteRestrictBookmark.IsEmpty();
-  mRestrictTag = mAutoCompleteRestrictTag.IsEmpty();
-  mMatchTitle = mAutoCompleteMatchTitle.IsEmpty();
-  mMatchUrl = mAutoCompleteMatchUrl.IsEmpty();
+  mAutoCompleteCurrentBehavior = mAutoCompleteDefaultBehavior;
 
   
   if (mAutoCompleteSearchSources == SEARCH_HISTORY)
-    mRestrictHistory = PR_TRUE;
+    SET_BEHAVIOR(History);
   else if (mAutoCompleteSearchSources == SEARCH_BOOKMARK)
-    mRestrictBookmark = PR_TRUE;
+    SET_BEHAVIOR(Bookmark);
   
 
   
@@ -812,15 +814,15 @@ nsNavHistory::ProcessTokensForSpecialSearch()
     const nsString *token = mCurrentSearchTokens.StringAt(i);
 
     if (token->Equals(mAutoCompleteRestrictHistory))
-      mRestrictHistory = PR_TRUE;
+      SET_BEHAVIOR(History);
     else if (token->Equals(mAutoCompleteRestrictBookmark))
-      mRestrictBookmark = PR_TRUE;
+      SET_BEHAVIOR(Bookmark);
     else if (token->Equals(mAutoCompleteRestrictTag))
-      mRestrictTag = PR_TRUE;
+      SET_BEHAVIOR(Tag);
     else if (token->Equals(mAutoCompleteMatchTitle))
-      mMatchTitle = PR_TRUE;
+      SET_BEHAVIOR(Title);
     else if (token->Equals(mAutoCompleteMatchUrl))
-      mMatchUrl = PR_TRUE;
+      SET_BEHAVIOR(Url);
     else
       needToRemove = PR_FALSE;
 
@@ -831,9 +833,9 @@ nsNavHistory::ProcessTokensForSpecialSearch()
 
   
   
-  mDBCurrentQuery = mRestrictTag ? GetDBAutoCompleteTagsQuery() :
-    mRestrictBookmark ? GetDBAutoCompleteStarQuery() :
-    mRestrictHistory ? GetDBAutoCompleteHistoryQuery() :
+  mDBCurrentQuery = GET_BEHAVIOR(Tag) ? GetDBAutoCompleteTagsQuery() :
+    GET_BEHAVIOR(Bookmark) ? GetDBAutoCompleteStarQuery() :
+    GET_BEHAVIOR(History) ? GetDBAutoCompleteHistoryQuery() :
     static_cast<mozIStorageStatement *>(mDBAutoCompleteQuery);
 }
 
@@ -1026,9 +1028,9 @@ nsNavHistory::AutoCompleteProcessSearch(mozIStorageStatement* aQuery,
           
           
           
-          PRBool matchAll = !((mRestrictHistory && visitCount == 0) ||
-            (mRestrictBookmark && !parentId) ||
-            (mRestrictTag && entryTags.IsEmpty()));
+          PRBool matchAll = !((GET_BEHAVIOR(History) && visitCount == 0) ||
+                              (GET_BEHAVIOR(Bookmark) && !parentId) ||
+                              (GET_BEHAVIOR(Tag) && entryTags.IsEmpty()));
 
           
           nsString entryURL = FixupURIText(escapedEntryURL);
@@ -1045,14 +1047,14 @@ nsNavHistory::AutoCompleteProcessSearch(mozIStorageStatement* aQuery,
 
             
             matchAll = matchTags || matchTitle;
-            if (mMatchTitle && !matchAll)
+            if (GET_BEHAVIOR(Title) && !matchAll)
               break;
 
             
             PRBool matchUrl = (*tokenMatchesTarget)(*token, entryURL);
             
             
-            if (mMatchUrl && !matchUrl)
+            if (GET_BEHAVIOR(Url) && !matchUrl)
               matchAll = PR_FALSE;
             else
               matchAll |= matchUrl;

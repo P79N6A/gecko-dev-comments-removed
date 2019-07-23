@@ -248,6 +248,14 @@ pref("browser.urlbar.match.url", "@");
 
 
 
+
+
+pref("browser.urlbar.default.behavior", 0);
+
+
+
+
+
 pref("browser.download.saveLinkAsFilenameTimeout", 1000);
 
 pref("browser.download.useDownloadDir", true);
