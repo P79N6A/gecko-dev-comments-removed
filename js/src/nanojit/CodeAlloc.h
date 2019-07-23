@@ -65,7 +65,15 @@ namespace nanojit
         CodeList* lower;
 
         
+        CodeList* terminator;
+
+        
         bool isFree;
+
+        
+
+        bool isExec;
+
         union {
             
             
@@ -143,7 +151,15 @@ namespace nanojit
         
 
 
+
+
         void freeCodeChunk(void* addr, size_t nbytes);
+
+        
+        void markCodeChunkExec(void* addr, size_t nbytes);
+
+        
+        void markCodeChunkWrite(void* addr, size_t nbytes);
 
     public:
         CodeAlloc();
@@ -198,6 +214,12 @@ namespace nanojit
 
         
         void sweep();
+
+        
+        void markAllExec();
+
+        
+        void markBlockWrite(CodeList* b);
     };
 }
 
