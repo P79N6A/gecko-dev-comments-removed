@@ -51,6 +51,26 @@ toolbar[mode="icons"] > #reload-button[displaystop] {
   -moz-binding: url(chrome://browser/content/urlbarBindings.xml#urlbar);
 }
 
+
+
+#urlbar:-moz-locale-dir(rtl) > .autocomplete-textbox-container > .textbox-input-box {
+  direction: rtl;
+}
+
+#urlbar html|*.autocomplete-textbox {
+  direction: ltr;
+}
+
+
+
+richlistitem[type="action"]:-moz-locale-dir(rtl) > .ac-url-box {
+  direction: rtl;
+}
+
+#urlbar:not([actiontype]) > #urlbar-display {
+  display: none;
+}
+
 #wrapper-urlbar-container > #urlbar-container > #urlbar {
   -moz-user-input: disabled;
   cursor: -moz-grab;

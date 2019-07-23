@@ -427,6 +427,8 @@ protected:
   nsCOMPtr<mozIStorageStatement> mDBGetTags; 
   nsCOMPtr<mozIStorageStatement> mDBGetItemsWithAnno; 
   nsCOMPtr<mozIStorageStatement> mDBSetPlaceTitle; 
+  nsCOMPtr<mozIStorageStatement> mDBRegisterOpenPage; 
+  nsCOMPtr<mozIStorageStatement> mDBUnregisterOpenPage; 
 
   
   
