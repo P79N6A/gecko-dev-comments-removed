@@ -120,7 +120,7 @@ private:
 
 
 
-class nsGeolocationService : public nsIGeolocationUpdate, public nsIObserver
+class nsGeolocationService : public nsIGeolocationService, public nsIGeolocationUpdate, public nsIObserver
 {
 public:
 
@@ -131,6 +131,7 @@ public:
   NS_DECL_ISUPPORTS
   NS_DECL_NSIGEOLOCATIONUPDATE
   NS_DECL_NSIOBSERVER
+  NS_DECL_NSIGEOLOCATIONSERVICE
 
   nsGeolocationService();
 
@@ -141,6 +142,9 @@ public:
   
   already_AddRefed<nsIDOMGeoPosition> GetLastKnownPosition();
   
+  
+  nsIGeolocationPrompt* GetPrompt() { return mPrompt; } 
+
   
   
   PRBool   IsDeviceReady();
@@ -173,6 +177,9 @@ private:
   
   
   nsTArray<nsGeolocation*> mGeolocators;
+
+  
+  nsCOMPtr<nsIGeolocationPrompt> mPrompt;
 };
 
 
