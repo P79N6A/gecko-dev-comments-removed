@@ -40,6 +40,9 @@
 gPrefs.setBoolPref("extensions.checkUpdateSecurity", false);
 
 
+gPrefs.setCharPref("extensions.update.url", "http://localhost:4444/");
+
+
 do_import_script("netwerk/test/httpserver/httpd.js");
 var testserver;
 

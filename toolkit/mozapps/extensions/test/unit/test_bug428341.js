@@ -37,6 +37,12 @@
 
 
 
+gPrefs.setCharPref("extensions.update.url", "http://localhost:4444/");
+
+do_import_script("netwerk/test/httpserver/httpd.js");
+var testserver;
+
+
 var promptService = {
   alert: function(aParent, aDialogTitle, aText) {
   },
@@ -232,6 +238,7 @@ var installListener = {
 
 function installNextAddon() {
   if (gIndex >= ADDONS.length) {
+    testserver.stop();
     do_test_finished();
     return;
   }
@@ -253,6 +260,10 @@ function run_test() {
   gEM.addInstallListener(installListener);
   gIndex = 0;
   do_test_pending();
+
+  
+  testserver = new nsHttpServer();
+  testserver.start(4444);
 
   installNextAddon();
 }
