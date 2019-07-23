@@ -52,21 +52,18 @@
 #include "nsWindowsWMain.cpp"
 #endif
 
-class ScopedLogging
-{
-public:
-    ScopedLogging() { NS_LogInit(); }
-    ~ScopedLogging() { NS_LogTerm(); }
-};
-
 int
 main(int argc, char* argv[])
 {
-    ScopedLogging log;
+#if 0
+    MessageBox(NULL, L"Hi", L"Hi", MB_OK);
+#endif
 
     GeckoChildProcessType proctype =
-        XRE_StringToChildProcessType(argv[argc-1]);
-    nsresult rv = XRE_InitChildProcess(--argc, argv, proctype);
+        XRE_StringToChildProcessType(argv[argc - 1]);
+
+    nsresult rv = XRE_InitChildProcess(argc - 1, argv, proctype);
     NS_ENSURE_SUCCESS(rv, 1);
+
     return 0;
 }

@@ -1,0 +1,9 @@
+
+
+
+enum IPCMessageStart {
+
+
+  LastMsgIndex
+};
+
