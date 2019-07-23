@@ -5732,16 +5732,7 @@ nsGlobalWindow::LeaveModalState()
     if (mSuspendedDoc) {
       nsCOMPtr<nsIDocument> currentDoc =
         do_QueryInterface(topWin->GetExtantDocument());
-      if (currentDoc == mSuspendedDoc) {
-        NS_DispatchToCurrentThread(
-          NS_NEW_RUNNABLE_METHOD(nsIDocument, mSuspendedDoc.get(),
-                                 UnsuppressEventHandling));
-      } else {
-        
-        
-        
-        mSuspendedDoc->UnsuppressEventHandlingAndFireEvents(PR_FALSE);
-      }
+      mSuspendedDoc->UnsuppressEventHandlingAndFireEvents(currentDoc == mSuspendedDoc);
       mSuspendedDoc = nsnull;
     }
   }

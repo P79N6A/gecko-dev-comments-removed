@@ -101,8 +101,8 @@ class nsFrameLoader;
 
 
 #define NS_IDOCUMENT_IID      \
-{ 0x6e467d95, 0x9934, 0x422a, \
- { 0x81, 0x07, 0x3f, 0xff, 0xe1, 0x38, 0xe6, 0x1e } }
+{ 0x98a4006e, 0x53c4, 0x4390, \
+  { 0xb4, 0x2d, 0x33, 0x68, 0x4a, 0xa9, 0x24, 0x04 } }
 
 
 #define NS_STYLESHEET_FROM_CATALOG                (1 << 0)
@@ -1123,12 +1123,12 @@ public:
 
   virtual void SuppressEventHandling(PRUint32 aIncrease = 1) = 0;
 
-  virtual void UnsuppressEventHandlingAndFireEvents(PRBool aFireEvents) = 0;
+  
 
-  void UnsuppressEventHandling()
-  {
-    UnsuppressEventHandlingAndFireEvents(PR_TRUE);
-  }
+
+
+
+  virtual void UnsuppressEventHandlingAndFireEvents(PRBool aFireEvents) = 0;
 
   PRUint32 EventHandlingSuppressed() { return mEventsSuppressed; }
 protected:
