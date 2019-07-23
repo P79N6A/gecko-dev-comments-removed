@@ -3472,7 +3472,7 @@ var FullScreen =
     
     this.showXULChrome("toolbar", window.fullScreen);
     this.showXULChrome("statusbar", window.fullScreen);
-    document.getElementById("fullScreenItem").setAttribute("checked", !window.fullScreen);
+    document.getElementById("View:FullScreen").setAttribute("checked", !window.fullScreen);
 
     var fullScrToggler = document.getElementById("fullscr-toggler");
     if (!window.fullScreen) {
