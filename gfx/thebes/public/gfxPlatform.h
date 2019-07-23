@@ -154,6 +154,11 @@ public:
     
 
 
+    static cmsHTRANSFORM GetCMSInverseRGBTransform();
+
+    
+
+
     static cmsHTRANSFORM GetCMSRGBATransform();
 
 protected:
