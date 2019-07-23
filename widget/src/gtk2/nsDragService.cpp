@@ -246,6 +246,8 @@ nsDragService::InvokeDragSession(nsIDOMNode *aDOMNode,
 
     gtk_target_list_unref(sourceList);
 
+    StartDragSession();
+
     return rv;
 }
 
@@ -309,7 +311,8 @@ nsDragService::StartDragSession()
 NS_IMETHODIMP
 nsDragService::EndDragSession(PRBool aDoneDrag)
 {
-    PR_LOG(sDragLm, PR_LOG_DEBUG, ("nsDragService::EndDragSession"));
+    PR_LOG(sDragLm, PR_LOG_DEBUG, ("nsDragService::EndDragSession %d",
+                                   aDoneDrag));
     
     SetDragAction(DRAGDROP_ACTION_NONE);
     return nsBaseDragService::EndDragSession(aDoneDrag);
@@ -1152,10 +1155,43 @@ nsDragService::GetSourceList(void)
 }
 
 void
-nsDragService::SourceEndDrag(void)
+nsDragService::SourceEndDrag(GdkDragContext *aContext)
 {
     
-    mSourceDataItems = 0;
+    mSourceDataItems = nsnull;
+
+    if (!mDoingDrag)
+        return; 
+
+    
+    
+    
+
+    
+    GdkDragAction action =
+        aContext->dest_window ? aContext->action : (GdkDragAction)0;
+
+    
+    
+    
+    PRUint32 dropEffect;
+    if (!action)
+        dropEffect = DRAGDROP_ACTION_NONE;
+    else if (action & GDK_ACTION_COPY)
+        dropEffect = DRAGDROP_ACTION_COPY;
+    else if (action & GDK_ACTION_LINK)
+        dropEffect = DRAGDROP_ACTION_LINK;
+    else if (action & GDK_ACTION_MOVE)
+        dropEffect = DRAGDROP_ACTION_MOVE;
+    else
+        dropEffect = DRAGDROP_ACTION_COPY;
+    
+    nsCOMPtr<nsIDOMNSDataTransfer> dataTransfer =
+        do_QueryInterface(mDataTransfer);
+
+    if (dataTransfer) {
+        dataTransfer->SetDropEffectInt(dropEffect);
+    }
 
     
     EndDragSession(PR_TRUE);
@@ -1344,7 +1380,7 @@ invisibleSourceDragDataGet(GtkWidget        *aWidget,
                            guint32           aTime,
                            gpointer          aData)
 {
-    PR_LOG(sDragLm, PR_LOG_DEBUG, ("invisibleDragDataGet"));
+    PR_LOG(sDragLm, PR_LOG_DEBUG, ("invisibleSourceDragDataGet"));
     nsDragService *dragService = (nsDragService *)aData;
     dragService->SourceDataGet(aWidget, aContext,
                                aSelectionData, aInfo, aTime);
@@ -1356,7 +1392,7 @@ invisibleSourceDragEnd(GtkWidget        *aWidget,
                        GdkDragContext   *aContext,
                        gpointer          aData)
 {
-    PR_LOG(sDragLm, PR_LOG_DEBUG, ("invisibleDragEnd"));
+    PR_LOG(sDragLm, PR_LOG_DEBUG, ("invisibleSourceDragEnd"));
     nsDragService *dragService = (nsDragService *)aData;
 
     gint x, y;
@@ -1367,6 +1403,6 @@ invisibleSourceDragEnd(GtkWidget        *aWidget,
     }
 
     
-    dragService->SourceEndDrag();
+    dragService->SourceEndDrag(aContext);
 }
 

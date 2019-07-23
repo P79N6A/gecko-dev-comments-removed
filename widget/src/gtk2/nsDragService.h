@@ -101,7 +101,7 @@ public:
     
     
     
-    void           SourceEndDrag(void);
+    void           SourceEndDrag(GdkDragContext *aContext);
     void           SourceDataGet(GtkWidget        *widget,
                                  GdkDragContext   *context,
                                  GtkSelectionData *selection_data,
