@@ -723,9 +723,13 @@ nsPresContext::ClearStyleDataAndReflow()
     mShell->FrameManager()->ComputeStyleChangeFor(mShell->GetRootFrame(),
                                                   &changeList, nsChangeHint(0));
     
-    mShell->StyleSet()->EndReconstruct();
-    
     mShell->FrameConstructor()->ProcessRestyledFrames(changeList);
+    
+    
+    
+    
+    
+    mShell->StyleSet()->EndReconstruct();
   }
 }
 
