@@ -268,7 +268,7 @@ nsControllerCommandGroup::AddCommandToGroup(const char * aCommand, const char *a
     mGroupsHash.Put(&groupKey, (void *)commandList);
   }
   
-  char*  commandString = nsCRT::strdup(aCommand);     
+  char* commandString = NS_strdup(aCommand); 
   if (!commandString) return NS_ERROR_OUT_OF_MEMORY;
   
   PRBool      appended = commandList->AppendElement(commandString) != nsnull;
