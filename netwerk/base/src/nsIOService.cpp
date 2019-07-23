@@ -903,7 +903,7 @@ nsIOService::TrackNetworkLinkStatusForOffline()
         
         
         if (autodialEnabled) {
-#if defined(XP_WIN)
+#if defined(XP_WIN) && !defined(WINCE)
             
             
             
