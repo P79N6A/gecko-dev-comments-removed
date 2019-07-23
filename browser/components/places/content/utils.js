@@ -192,6 +192,14 @@ var PlacesUtils = {
                            getService(Ci.nsIURIFixup);
   },
 
+  get ellipsis() {
+    delete this.ellipsis;
+    var pref = Cc["@mozilla.org/preferences-service;1"].
+               getService(Ci.nsIPrefBranch);
+    return this.ellipsis = pref.getComplexValue("intl.ellipsis",
+                                                Ci.nsIPrefLocalizedString).data;
+  },
+
   
 
 
@@ -1877,7 +1885,8 @@ var PlacesUtils = {
       else
         throw "Unexpected node";
 
-      element.setAttribute("label", aNode.title);
+      element.setAttribute("label", this.getBestTitle(aNode));
+
       if (iconURISpec)
         element.setAttribute("image", iconURISpec);
     }
@@ -1885,6 +1894,31 @@ var PlacesUtils = {
     element.node.viewIndex = 0;
 
     return element;
+  },
+
+  getBestTitle: function PU_getBestTitle(aNode) {
+    var title;
+    if (!aNode.title && this.uriTypes.indexOf(aNode.type) != -1) {
+      
+      
+      try {
+        var uri = this._uri(aNode.uri);
+        var host = uri.host;
+        var fileName = uri.QueryInterface(Ci.nsIURL).fileName;
+        
+        title = host + (fileName ?
+                        (host ? "/" + this.ellipsis + "/" : "") + fileName :
+                        uri.path);
+      }
+      catch (e) {
+        
+        title = "";
+      }
+    }
+    else
+      title = aNode.title;
+
+    return title || PlacesUtils.getString("noTitle");
   },
 
   get leftPaneQueries() {    
