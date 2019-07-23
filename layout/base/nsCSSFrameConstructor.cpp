@@ -8749,6 +8749,28 @@ nsCSSFrameConstructor::MaybeRecreateContainerForFrameRemoval(nsIFrame* aFrame,
   
   
   
+  
+  
+  nsIFrame* nextSibling = inFlowFrame->GetNextSibling();
+  NS_ASSERTION(!IsTablePseudo(inFlowFrame), "Shouldn't happen here");
+  if (nextSibling && IsTablePseudo(nextSibling)) {
+#ifdef DEBUG
+    if (gNoisyContentUpdates) {
+      printf("nsCSSFrameConstructor::MaybeRecreateContainerForFrameRemoval: "
+             "frame=");
+      nsFrame::ListTag(stdout, aFrame);
+      printf(" has a table pseudo next sibling of different type\n");
+    }
+#endif
+    
+    
+    *aResult = RecreateFramesForContent(parent->GetContent());
+    return PR_TRUE;
+  }
+
+  
+  
+  
   if (!IsFrameSpecial(parent)) {
     return PR_FALSE;
   }
@@ -10751,6 +10773,29 @@ nsCSSFrameConstructor::WipeContainingBlock(nsFrameConstructorState& aState,
   if (aFrame->IsBoxFrame() &&
       !(aFrame->GetStateBits() & NS_STATE_BOX_WRAPS_KIDS_IN_BLOCK) &&
       aItems.AnyItemsNeedBlockParent()) {
+    RecreateFramesForContent(aFrame->GetContent());
+    return PR_TRUE;
+  }
+
+  
+  ParentType parentType = GetParentType(aFrame);
+  
+  
+  
+  
+  
+  
+  if (!aItems.AllWantParentType(parentType)) {
+    
+    
+    
+    
+    
+    
+    
+
+    
+    
     RecreateFramesForContent(aFrame->GetContent());
     return PR_TRUE;
   }
