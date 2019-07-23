@@ -146,8 +146,11 @@ function openUILink( url, e, ignoreButton, ignoreAlt, allowKeywordFixup, postDat
 
 function whereToOpenLink( e, ignoreButton, ignoreAlt )
 {
+  
+  
+  
   if (!e)
-    e = { shiftKey:false, ctrlKey:false, metaKey:false, altKey:false, button:0 };
+    return "current";
 
   var shift = e.shiftKey;
   var ctrl =  e.ctrlKey;
