@@ -156,7 +156,7 @@ STDMETHODIMP nsAccessibleWrap::AccessibleObjectFromWindow(HWND hwnd,
 {
   
   if (!gmAccLib)
-    gmAccLib =::LoadLibraryW(L"OLEACC.DLL");
+    gmAccLib =::LoadLibrary("OLEACC.DLL");
 
   if (gmAccLib) {
     if (!gmAccessibleObjectFromWindow)
