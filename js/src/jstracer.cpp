@@ -279,7 +279,7 @@ nanojit::Allocator::allocChunk(size_t nbytes)
 {
     VMAllocator *vma = (VMAllocator*)this;
     JS_ASSERT(!vma->outOfMemory());
-    void *p = calloc(1, nbytes);
+    void *p = malloc(nbytes);
     if (!p) {
         JS_ASSERT(nbytes < sizeof(vma->mReserve));
         vma->mOutOfMemory = true;
@@ -2193,24 +2193,24 @@ TraceRecorder::TraceRecorder(JSContext* cx, VMSideExit* _anchor, Fragment* _frag
                       (void*)anchor);
 #endif
 
-    lir = lir_buf_writer = new (tempAlloc) LirBufWriter(lirbuf);
+    lir = lir_buf_writer = new LirBufWriter(lirbuf);
 #ifdef DEBUG
-    lir = sanity_filter_1 = new (tempAlloc) SanityFilter(lir);
+    lir = sanity_filter_1 = new SanityFilter(lir);
 #endif
     debug_only_stmt(
         if (js_LogController.lcbits & LC_TMRecorder) {
            lir = verbose_filter
-               = new (tempAlloc) VerboseWriter (tempAlloc, lir, lirbuf->names,
-                                                &js_LogController);
+               = new VerboseWriter (tempAlloc, lir, lirbuf->names,
+                                    &js_LogController);
         }
     )
     if (nanojit::AvmCore::config.soft_float)
-        lir = float_filter = new (tempAlloc) SoftFloatFilter(lir);
-    lir = cse_filter = new (tempAlloc) CseFilter(lir, tempAlloc);
-    lir = expr_filter = new (tempAlloc) ExprFilter(lir);
-    lir = func_filter = new (tempAlloc) FuncFilter(lir);
+        lir = float_filter = new SoftFloatFilter(lir);
+    lir = cse_filter = new CseFilter(lir, tempAlloc);
+    lir = expr_filter = new ExprFilter(lir);
+    lir = func_filter = new FuncFilter(lir);
 #ifdef DEBUG
-    lir = sanity_filter_2 = new (tempAlloc) SanityFilter(lir);
+    lir = sanity_filter_2 = new SanityFilter(lir);
 #endif
     lir->ins0(LIR_start);
 
@@ -2288,7 +2288,17 @@ TraceRecorder::~TraceRecorder()
 
     
     tempAlloc.reset();
-    traceMonitor->lirbuf->clear();
+
+#ifdef DEBUG
+    debug_only_stmt( delete verbose_filter; )
+    delete sanity_filter_1;
+    delete sanity_filter_2;
+#endif
+    delete cse_filter;
+    delete expr_filter;
+    delete func_filter;
+    delete float_filter;
+    delete lir_buf_writer;
 }
 
 bool
@@ -2584,8 +2594,8 @@ JSTraceMonitor::flush()
     }
 
     assembler = new (alloc) Assembler(*codeAlloc, alloc, core, &js_LogController);
-    lirbuf = new (alloc) LirBuffer(*tempAlloc);
-    reLirBuf = new (alloc) LirBuffer(*reTempAlloc);
+    lirbuf = new (alloc) LirBuffer(alloc);
+    reLirBuf = new (alloc) LirBuffer(alloc);
     verbose_only( branches = NULL; )
 
 #ifdef DEBUG
@@ -3903,6 +3913,7 @@ TraceRecorder::snapshot(ExitType exitType)
                                        (stackSlots + ngslots) * sizeof(JSTraceType));
 
     
+    memset(exit, 0, sizeof(VMSideExit));
     exit->from = fragment;
     exit->calldepth = callDepth;
     exit->numGlobalSlots = ngslots;
@@ -3935,6 +3946,7 @@ TraceRecorder::createGuardRecord(VMSideExit* exit)
 {
     GuardRecord* gr = new (*traceMonitor->dataAlloc) GuardRecord();
 
+    memset(gr, 0, sizeof(GuardRecord));
     gr->exit = exit;
     exit->addGuard(gr);
 
@@ -6264,16 +6276,6 @@ LeaveTree(InterpState& state, VMSideExit* lr)
             regs->sp -= (cs.format & JOF_INVOKE) ? GET_ARGC(regs->pc) + 2 : cs.nuses;
             regs->sp += cs.ndefs;
             regs->pc += cs.length;
-            
-
-
-
-
-            if (op == JSOP_SETELEM && (JSOp)*regs->pc == JSOP_POP) {
-                regs->pc += JSOP_POP_LENGTH;
-                JS_ASSERT(js_CodeSpec[JSOP_POP].ndefs == 0 && js_CodeSpec[JSOP_POP].nuses == 1);
-                regs->sp -= 1;
-            }
             JS_ASSERT_IF(!cx->fp->imacpc,
                          cx->fp->slots + cx->fp->script->nfixed +
                          js_ReconstructStackDepth(cx, cx->fp->script, regs->pc) ==
@@ -6925,9 +6927,6 @@ js_arm_check_arch() {
 
 static bool
 js_arm_check_vfp() {
-#ifdef WINCE_WINDOWS_MOBILE
-    return false;
-#else
     bool ret = false;
     __try {
         js_arm_try_vfp_op();
@@ -6936,7 +6935,6 @@ js_arm_check_vfp() {
         ret = false;
     }
     return ret;
-#endif
 }
 
 #define HAVE_ENABLE_DISABLE_DEBUGGER_EXCEPTIONS 1
@@ -11118,7 +11116,7 @@ TraceRecorder::initOrSetPropertyByName(LIns* obj_ins, jsval* idvalp, jsval* rval
         LIns* args[] = {vp_ins, idvalp_ins, obj_ins, cx_ins};
         ok_ins = lir->insCall(&SetPropertyByName_ci, args);
     }
-    pendingGuardCondition = ok_ins;
+    guard(true, ok_ins, STATUS_EXIT);
 
     leaveDeepBailCall();
     return JSRS_CONTINUE;
@@ -11173,7 +11171,7 @@ TraceRecorder::initOrSetPropertyByIndex(LIns* obj_ins, LIns* index_ins, jsval* r
         LIns* args[] = {vp_ins, index_ins, obj_ins, cx_ins};
         ok_ins = lir->insCall(&SetPropertyByIndex_ci, args);
     }
-    pendingGuardCondition = ok_ins;
+    guard(true, ok_ins, STATUS_EXIT);
 
     leaveDeepBailCall();
     return JSRS_CONTINUE;
