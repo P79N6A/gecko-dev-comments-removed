@@ -368,20 +368,8 @@ nsXBLPrototypeBinding::Traverse(nsCycleCollectionTraversalCallback &cb) const
 void
 nsXBLPrototypeBinding::Unlink()
 {
-  mBinding = nsnull;
   if (mImplementation)
     mImplementation->Unlink();
-  if (mResources)
-    NS_IF_RELEASE(mResources->mLoader);
-
-  
-  
-  
-  
-  delete mInsertionPointTable;
-  mInsertionPointTable = nsnull;
-  delete mInterfaceTable;
-  mInterfaceTable = nsnull;
 }
 
 void
