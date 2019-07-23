@@ -81,10 +81,9 @@ Assembler::genPrologue()
     
     
     uint32_t stackNeeded = STACK_GRANULARITY * _activation.highwatermark + NJ_STACK_OFFSET;
-    uint32_t savingCount = 0;
 
-    uint32_t savingMask = SavedRegs | rmask(FP) | rmask(LR);
-    savingCount = NumSavedRegs+2;
+    uint32_t savingMask = rmask(FP) | rmask(LR);
+    uint32_t savingCount = 2;
 
     
     uint32_t stackPushed = STACK_GRANULARITY * savingCount;
@@ -139,7 +138,7 @@ Assembler::nFragExit(LInsp guard)
 #endif
 
     
-    LDi(R2, int(lr));
+    LDi(R0, int(lr));
 }
 
 NIns*
@@ -150,7 +149,7 @@ Assembler::genEpilogue()
     
     
 
-    RegisterMask savingMask = SavedRegs | rmask(FP) | rmask(LR);
+    RegisterMask savingMask = rmask(FP) | rmask(LR);
     POP_mask(savingMask); 
     return _nIns;
 }
