@@ -141,8 +141,7 @@ function testSymLinks(testDir, relative) {
 
 function run_test() {
   
-  
-  if (isWin || isOS2 || isMac)
+  if (isWin || isOS2)
     return;
 
   var testDir = CWD;
