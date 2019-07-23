@@ -253,6 +253,14 @@ class NS_STACK_CLASS nsWSRunObject
     
     
     
+
+    
+
+
+
+
+    already_AddRefed<nsIDOMNode> GetWSBoundingParent();
+
     nsresult GetWSNodes();
     nsresult GetRuns();
     void     ClearRuns();

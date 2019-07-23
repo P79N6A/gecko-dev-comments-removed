@@ -691,6 +691,21 @@ nsWSRunObject::AdjustWhitespace()
 
 
 
+already_AddRefed<nsIDOMNode>
+nsWSRunObject::GetWSBoundingParent()
+{
+  nsCOMPtr<nsIDOMNode> wsBoundingParent = mNode;
+  while (!IsBlockNode(wsBoundingParent))
+  {
+    nsCOMPtr<nsIDOMNode> parent;
+    wsBoundingParent->GetParentNode(getter_AddRefs(parent));
+    if (!parent || !mHTMLEditor->IsEditable(parent))
+      break;
+    wsBoundingParent.swap(parent);
+  }
+  return wsBoundingParent.forget();
+}
+
 nsresult
 nsWSRunObject::GetWSNodes()
 {
@@ -699,10 +714,8 @@ nsWSRunObject::GetWSNodes()
   
   nsresult res = NS_OK;
   
-  nsCOMPtr<nsIDOMNode> blockParent;
   DOMPoint start(mNode, mOffset), end(mNode, mOffset);
-  if (IsBlockNode(mNode)) blockParent = mNode;
-  else blockParent = mHTMLEditor->GetBlockNodeParent(mNode);
+  nsCOMPtr<nsIDOMNode> wsBoundingParent = GetWSBoundingParent();
 
   
   if (mHTMLEditor->IsTextNode(mNode))
@@ -753,7 +766,7 @@ nsWSRunObject::GetWSNodes()
   while (!mStartNode)
   {
     
-    res = GetPreviousWSNode(start, blockParent, address_of(priorNode));
+    res = GetPreviousWSNode(start, wsBoundingParent, address_of(priorNode));
     NS_ENSURE_SUCCESS(res, res);
     if (priorNode)
     {
@@ -833,7 +846,7 @@ nsWSRunObject::GetWSNodes()
       
       start.GetPoint(mStartNode, mStartOffset);
       mStartReason = eThisBlock;
-      mStartReasonNode = blockParent;
+      mStartReasonNode = wsBoundingParent;
     } 
   }
   
@@ -886,7 +899,7 @@ nsWSRunObject::GetWSNodes()
   while (!mEndNode)
   {
     
-    res = GetNextWSNode(end, blockParent, address_of(nextNode));
+    res = GetNextWSNode(end, wsBoundingParent, address_of(nextNode));
     NS_ENSURE_SUCCESS(res, res);
     if (nextNode)
     {
@@ -968,7 +981,7 @@ nsWSRunObject::GetWSNodes()
       
       end.GetPoint(mEndNode, mEndOffset);
       mEndReason = eThisBlock;
-      mEndReasonNode = blockParent;
+      mEndReasonNode = wsBoundingParent;
     } 
   }
 
@@ -2067,7 +2080,8 @@ nsWSRunObject::CheckTrailingNBSPOfRun(WSFragment *aRun)
       if (aRun->mRightType == eText)    rightCheck = PR_TRUE;
       if (aRun->mRightType == eSpecial) rightCheck = PR_TRUE;
       if (aRun->mRightType == eBreak)   rightCheck = PR_TRUE;
-      if (aRun->mRightType & eBlock)
+      if ((aRun->mRightType & eBlock) &&
+          IsBlockNode(nsCOMPtr<nsIDOMNode>(GetWSBoundingParent())))
       {
         
         
@@ -2086,11 +2100,11 @@ nsWSRunObject::CheckTrailingNBSPOfRun(WSFragment *aRun)
         
         
         
-        
+
         nsCOMPtr<nsIDOMNode> brNode;
         res = mHTMLEditor->CreateBR(aRun->mEndNode, aRun->mEndOffset, address_of(brNode));
         NS_ENSURE_SUCCESS(res, res);
-        
+
         
         res = GetCharBefore(aRun->mEndNode, aRun->mEndOffset, &thePoint);
         NS_ENSURE_SUCCESS(res, res);
