@@ -1811,6 +1811,12 @@ nsWindow::NativeCreate(nsIWidget        *aParent,
 
     Initialize(mDrawingArea);
 
+    
+    if (aParent != nsnull)
+    {
+        mDrawingArea->setFocusPolicy(Qt::NoFocus);
+    }
+
     LOG(("Create: nsWindow [%p] [%p]\n", (void *)this, (void *)mDrawingArea));
 
     
