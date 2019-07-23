@@ -140,6 +140,7 @@ private:
                      PRBool aRemove);
 
   void TriggerOperationCallbackForPool(nsDOMWorkerPool* aPool);
+  void RescheduleSuspendedWorkerForPool(nsDOMWorkerPool* aPool);
 
   void NoteEmptyPool(nsDOMWorkerPool* aPool);
 
@@ -161,6 +162,8 @@ private:
 
   static PRUint32 GetWorkerCloseHandlerTimeoutMS();
 
+  PRBool QueueSuspendedWorker(nsDOMWorkerRunnable* aRunnable);
+
   
   nsCOMPtr<nsIThreadPool> mThreadPool;
 
@@ -177,6 +180,10 @@ private:
   
   
   nsTArray<JSContext*> mJSContexts;
+
+  
+  
+  nsTArray<nsDOMWorkerRunnable*> mSuspendedWorkers;
 
   nsString mAppName;
   nsString mAppVersion;
