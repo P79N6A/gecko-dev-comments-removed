@@ -118,6 +118,9 @@ class nsIDocShellLoadInfo;
 class WindowStateHolder;
 class nsGlobalWindowObserver;
 class nsGlobalWindow;
+#ifdef OJI
+class nsDummyJavaPluginOwner;
+#endif
 
 class nsDOMOfflineResourceList;
 class nsDOMOfflineLoadStatusList;
@@ -419,6 +422,10 @@ public:
   NS_DECL_CYCLE_COLLECTION_CLASS_AMBIGUOUS(nsGlobalWindow,
                                            nsIScriptGlobalObject)
 
+#ifdef OJI
+  void InitJavaProperties();
+#endif
+
 protected:
   
   virtual ~nsGlobalWindow();
@@ -628,6 +635,10 @@ protected:
 
   
   
+  PRPackedBool                  mDidInitJavaProperties : 1;
+  
+  
+  
   PRPackedBool                  mFullScreen : 1;
   PRPackedBool                  mIsClosed : 1;
   PRPackedBool                  mInClose : 1;
@@ -693,6 +704,10 @@ protected:
   PRUint32                      mTimeoutPublicIdCounter;
   PRUint32                      mTimeoutFiringDepth;
   nsCOMPtr<nsIDOMStorage>       mSessionStorage;
+
+#ifdef OJI
+  nsRefPtr<nsDummyJavaPluginOwner> mDummyJavaPluginOwner;
+#endif
 
   
   nsCOMPtr<nsIPrincipal> mDocumentPrincipal;

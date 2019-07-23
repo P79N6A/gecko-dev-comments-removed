@@ -99,6 +99,8 @@ public:
 
     virtual PRUint16 GetPluginAPIVersion();
 
+    virtual void DefineJavaProperties();
+
     
     
 

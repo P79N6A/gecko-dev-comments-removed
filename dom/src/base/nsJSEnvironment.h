@@ -172,7 +172,6 @@ public:
 
 protected:
   nsresult InitializeExternalClasses();
-  nsresult InitializeLiveConnectClasses(JSObject *aGlobalObj);
   
   nsresult FindXPCNativeWrapperClass(nsIXPConnectJSObjectHolder *aHolder);
 

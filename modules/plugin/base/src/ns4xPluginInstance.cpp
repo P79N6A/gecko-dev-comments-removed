@@ -1425,6 +1425,66 @@ ns4xPluginInstance::GetJSObject(JSContext *cx)
   return obj;
 }
 
+void
+ns4xPluginInstance::DefineJavaProperties()
+{
+  
+  
+  
+  
+  
+
+#ifdef OJI
+  NPObject *plugin_obj = nsnull;
+
+  
+  
+  
+
+  
+  nsresult rv = GetValueInternal(NPPVpluginScriptableNPObject, &plugin_obj);
+
+  if (NS_FAILED(rv) || !plugin_obj) {
+    return;
+  }
+
+  
+  NPObject *window_obj = _getwindowobject(&fNPP);
+
+  if (!window_obj) {
+    _releaseobject(plugin_obj);
+
+    return;
+  }
+
+  NPIdentifier java_id = _getstringidentifier("java");
+  NPIdentifier packages_id = _getstringidentifier("Packages");
+
+  NPObject *java_obj = nsnull;
+  NPVariant v;
+  OBJECT_TO_NPVARIANT(plugin_obj, v);
+
+  
+
+  bool ok = _setproperty(&fNPP, window_obj, packages_id, &v);
+  if (ok) {
+    ok = _getproperty(&fNPP, plugin_obj, java_id, &v);
+
+    if (ok && NPVARIANT_IS_OBJECT(v)) {
+      
+      
+      java_obj = NPVARIANT_TO_OBJECT(v);
+
+      ok = _setproperty(&fNPP, window_obj, java_id, &v);
+    }
+  }
+
+  _releaseobject(window_obj);
+  _releaseobject(plugin_obj);
+  _releaseobject(java_obj);
+#endif
+}
+
 nsresult
 ns4xPluginInstance::GetFormValue(nsAString& aValue)
 {
