@@ -36,6 +36,7 @@
 
 
 
+
 #include <stdio.h>
 #include <gtk/gtk.h>
 #include <unistd.h>
@@ -102,24 +103,21 @@ ShowProgressUI()
   if (sQuit || sProgressVal > 50.0f)
     return 0;
 
-  char path[PATH_MAX];
-  snprintf(path, sizeof(path), "%s.ini", sProgramPath);
+  char ini_path[PATH_MAX];
+  snprintf(ini_path, sizeof(ini_path), "%s.ini", sProgramPath);
 
   StringTable strings;
-  if (ReadStrings(path, &strings) != OK)
+  if (ReadStrings(ini_path, &strings) != OK)
     return -1;
-  
+
   sWin = gtk_window_new(GTK_WINDOW_TOPLEVEL);
   if (!sWin)
     return -1;
 
-  
-  
-  
-  
-  
-  
- 
+  static GdkPixbuf *pixbuf;
+  char icon_path[PATH_MAX];
+  snprintf(icon_path, sizeof(icon_path), "%s.png", sProgramPath);
+
   g_signal_connect(G_OBJECT(sWin), "delete_event",
                    G_CALLBACK(OnDeleteEvent), NULL);
 
@@ -127,7 +125,11 @@ ShowProgressUI()
   gtk_window_set_type_hint(GTK_WINDOW(sWin), GDK_WINDOW_TYPE_HINT_DIALOG);
   gtk_window_set_position(GTK_WINDOW(sWin), GTK_WIN_POS_CENTER_ALWAYS);
   gtk_window_set_resizable(GTK_WINDOW(sWin), FALSE);
-  gtk_window_set_decorated(GTK_WINDOW(sWin), FALSE);
+  gtk_window_set_decorated(GTK_WINDOW(sWin), TRUE);
+  gtk_window_set_deletable(GTK_WINDOW(sWin),FALSE);
+  pixbuf = gdk_pixbuf_new_from_file (icon_path, NULL);
+  gtk_window_set_icon(GTK_WINDOW(sWin), pixbuf);
+  g_object_unref(pixbuf);
 
   GtkWidget *vbox = gtk_vbox_new(TRUE, 6);
   sLabel = gtk_label_new(strings.info);
