@@ -71,8 +71,6 @@
 #include "nsIScriptGlobalObject.h"
 #include "nsNetCID.h"
 #include "nsIOfflineCacheUpdate.h"
-#include "nsIApplicationCache.h"
-#include "nsIApplicationCacheContainer.h"
 #include "nsIScriptSecurityManager.h"
 #include "nsIDOMLoadStatus.h"
 #include "nsICookieService.h"
@@ -881,24 +879,6 @@ nsContentSink::ProcessOfflineManifest(nsIContent *aElement)
   
   if (!nsContentUtils::OfflineAppAllowed(mDocumentURI)) {
     return;
-  }
-
-  
-  
-  
-  
-  
-
-  nsCOMPtr<nsIApplicationCacheContainer> channelContainer =
-    do_QueryInterface(mDocument->GetChannel());
-
-  nsCOMPtr<nsIApplicationCacheContainer> docContainer =
-    do_QueryInterface(mDocument);
-
-  if (channelContainer && docContainer) {
-    nsCOMPtr<nsIApplicationCache> appCache;
-    channelContainer->GetApplicationCache(getter_AddRefs(appCache));
-    docContainer->SetApplicationCache(appCache);
   }
 
   nsCOMPtr<nsIURI> manifestURI;
