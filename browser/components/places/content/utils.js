@@ -1572,6 +1572,29 @@ var PlacesUtils = {
     return "";
   },
 
+
+  
+
+
+
+  getBookmarksForURI:
+  function PU_getBookmarksForURI(aURI) {
+    var bmkIds = this.bookmarks.getBookmarkIdsForURI(aURI, {});
+
+    
+    return bmkIds.filter(function(aID) {
+      var parent = this.bookmarks.getFolderIdForItem(aID);
+      
+      if (this.annotations.itemHasAnnotation(parent, LMANNO_FEEDURI))
+        return false;
+      var grandparent = this.bookmarks.getFolderIdForItem(parent);
+      
+      if (grandparent == this.tagsFolderId)
+        return false;
+      return true;
+    }, this);
+  },
+
   
 
 

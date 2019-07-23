@@ -303,14 +303,15 @@ var StarUI = {
     }
 
     
-    
     this._uri = PlacesUtils.bookmarks.getBookmarkURI(this._itemId);
-    var txn = PlacesUtils.ptm.removeItem(this._itemId);
-    PlacesUtils.ptm.doTransaction(txn);
 
     
-    var untagTxn = PlacesUtils.ptm.untagURI(this._uri, null);
-    PlacesUtils.ptm.doTransaction(untagTxn);
+    
+    var itemIds = PlacesUtils.getBookmarksForURI(this._uri);
+    for (var i=0; i < itemIds.length; i++) {
+      var txn = PlacesUtils.ptm.removeItem(itemIds[i]);
+      PlacesUtils.ptm.doTransaction(txn);
+    }
 
     
     
