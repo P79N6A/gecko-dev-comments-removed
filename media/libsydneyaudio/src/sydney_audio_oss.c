@@ -258,12 +258,15 @@ sa_stream_open(sa_stream_t *s) {
 int
 sa_stream_destroy(sa_stream_t *s) {
   int result = SA_SUCCESS;
+  pthread_t thread_id;
 
   if (s == NULL) {
     return SA_SUCCESS;
   }
 
   pthread_mutex_lock(&s->mutex);
+
+  thread_id = s->thread_id;
 
   
 
@@ -280,6 +283,8 @@ sa_stream_destroy(sa_stream_t *s) {
   }
 
   pthread_mutex_unlock(&s->mutex);
+
+  pthread_join(thread_id, NULL);
 
   
 
