@@ -1552,6 +1552,19 @@ nsDownloadManager::CleanUp()
   NS_ENSURE_SUCCESS(rv, rv);
 
   
+  nsCOMPtr<nsIFile> oldDownloadsFile;
+  rv = NS_GetSpecialDirectory(NS_APP_DOWNLOADS_50_FILE,
+                              getter_AddRefs(oldDownloadsFile));
+
+  if (NS_FAILED(rv)) return rv;
+
+  PRBool fileExists;
+  if (NS_SUCCEEDED(oldDownloadsFile->Exists(&fileExists)) && fileExists) {
+    rv = oldDownloadsFile->Remove(PR_FALSE);
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
+
+  
   return mObserverService->NotifyObservers(nsnull,
                                            "download-manager-remove-download",
                                            nsnull);
