@@ -573,16 +573,14 @@ BasicTableLayoutStrategy::DistributePctWidthToColumns(float aSpanPrefPct,
             continue;
         }
 
-        
-        
-        
-        float allocatedPct = 0.0f;
         if (scolFrame->GetPrefPercent() == 0.0f) {
             NS_ASSERTION((!spanHasNonPctPref ||
                           nonPctTotalPrefWidth != 0) &&
                          nonPctColCount != 0,
                          "should not be zero if we haven't allocated "
                          "all pref percent");
+
+            float allocatedPct; 
             if (spanHasNonPctPref) {
                 
                 
@@ -601,6 +599,16 @@ BasicTableLayoutStrategy::DistributePctWidthToColumns(float aSpanPrefPct,
             aSpanPrefPct -= allocatedPct;
             nonPctTotalPrefWidth -= scolFrame->GetPrefCoord();
             --nonPctColCount;
+
+            if (!aSpanPrefPct) {
+                
+                NS_ASSERTION(spanHasNonPctPref ? 
+                             nonPctTotalPrefWidth == 0 :
+                             nonPctColCount == 0,
+                             "No more pct width to distribute, but there are "
+                             "still cols that need some.");
+                return;
+            }
         }
     }
 }
