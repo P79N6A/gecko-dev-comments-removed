@@ -1054,6 +1054,9 @@ pref("layout.frames.force_resizability", false);
 pref("layout.css.report_errors", true);
 
 
+pref("layout.css.visited_links_enabled", true);
+
+
 
 
 
