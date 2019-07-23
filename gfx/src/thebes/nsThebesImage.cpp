@@ -482,20 +482,8 @@ nsThebesImage::ThebesDrawTile(gfxContext *thebesContext,
     
     nsRefPtr<gfxPattern> pat;
 
-    gfxMatrix savedCTM(thebesContext->CurrentMatrix());
-    PRBool doSnap = !(savedCTM.HasNonTranslation());
+    PRBool doSnap = !(thebesContext->CurrentMatrix().HasNonTranslation());
     PRBool hasPadding = ((xPadding != 0) || (yPadding != 0));
-
-    
-    
-    
-    
-    if (doSnap) {
-        gfxMatrix roundedCTM(savedCTM);
-        roundedCTM.x0 = ::floor(roundedCTM.x0 + 0.5);
-        roundedCTM.y0 = ::floor(roundedCTM.y0 + 0.5);
-        thebesContext->SetMatrix(roundedCTM);
-    }
 
     nsRefPtr<gfxASurface> tmpSurfaceGrip;
 
@@ -518,7 +506,6 @@ nsThebesImage::ThebesDrawTile(gfxContext *thebesContext,
             surface = new gfxImageSurface(gfxIntSize(width, height),
                                           gfxASurface::ImageFormatARGB32);
             if (!surface || surface->CairoStatus()) {
-                thebesContext->SetMatrix(savedCTM);
                 return NS_ERROR_OUT_OF_MEMORY;
             }
 
@@ -542,19 +529,14 @@ nsThebesImage::ThebesDrawTile(gfxContext *thebesContext,
         gfxMatrix patMat;
         gfxPoint p0;
 
-        if (offset.x > width || offset.y > height) {
-            p0.x = - floor(fmod(offset.x, gfxFloat(width)) + 0.5);
-            p0.y = - floor(fmod(offset.y, gfxFloat(height)) + 0.5);
-        } else {
-            p0.x = - floor(offset.x + 0.5);
-            p0.y = - floor(offset.y + 0.5);
-        }
+        p0.x = - floor(offset.x + 0.5);
+        p0.y = - floor(offset.y + 0.5);
         
         
         
-        gfxFloat scale = gfxFloat(nsIDeviceContext::AppUnitsPerCSSPixel()) / 
-                         gfxFloat(dx->AppUnitsPerDevPixel());
-        patMat.Scale(1.0 / scale, 1.0 / scale);
+        gfxFloat scale = gfxFloat(dx->AppUnitsPerDevPixel()) /
+                         gfxFloat(nsIDeviceContext::AppUnitsPerCSSPixel());
+        patMat.Scale(scale, scale);
         patMat.Translate(p0);
 
         pat = new gfxPattern(surface);
@@ -577,8 +559,6 @@ nsThebesImage::ThebesDrawTile(gfxContext *thebesContext,
     thebesContext->Fill();
 
     thebesContext->SetColor(gfxRGBA(0,0,0,0));
-    if (doSnap)
-        thebesContext->SetMatrix(savedCTM);
 
     return NS_OK;
 }
