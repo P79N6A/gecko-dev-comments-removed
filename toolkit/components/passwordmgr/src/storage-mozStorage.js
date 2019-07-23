@@ -41,7 +41,10 @@
 const Cc = Components.classes;
 const Ci = Components.interfaces;
 
-const DB_VERSION = 2; 
+const DB_VERSION = 3; 
+
+const ENCTYPE_BASE64 = 0;
+const ENCTYPE_SDR = 1;
 
 Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
 
@@ -129,8 +132,9 @@ LoginManagerStorage_mozStorage.prototype = {
                                 "passwordField      TEXT NOT NULL,"       +
                                 "encryptedUsername  TEXT NOT NULL,"       +
                                 "encryptedPassword  TEXT NOT NULL,"       +
-                                "guid               TEXT",
-
+                                "guid               TEXT,"                +
+                                "encType            INTEGER",
+            
             moz_disabledHosts:  "id                 INTEGER PRIMARY KEY," +
                                 "hostname           TEXT UNIQUE ON CONFLICT REPLACE",
         },
@@ -150,6 +154,10 @@ LoginManagerStorage_mozStorage.prototype = {
           moz_logins_guid_index: {
               table: "moz_logins",
               columns: ["guid"]
+          },
+          moz_logins_encType_index: {
+              table: "moz_logins",
+              columns: ["encType"]
           }
         }
     },
@@ -160,6 +168,7 @@ LoginManagerStorage_mozStorage.prototype = {
     _signonsFile  : null,  
     _importFile   : null,  
     _debug        : false, 
+    _base64checked : false,
 
 
     
@@ -292,14 +301,20 @@ LoginManagerStorage_mozStorage.prototype = {
             loginClone.guid = this._uuidService.generateUUID().toString();
         }
 
+        
+        let encType = ENCTYPE_SDR;
+        if (isEncrypted &&
+            (encUsername.charAt(0) == '~' || encPassword.charAt(0) == '~'))
+            encType = ENCTYPE_BASE64;
+
         let query =
             "INSERT INTO moz_logins " +
             "(hostname, httpRealm, formSubmitURL, usernameField, " +
              "passwordField, encryptedUsername, encryptedPassword, " +
-             "guid) " +
+             "guid, encType) " +
             "VALUES (:hostname, :httpRealm, :formSubmitURL, :usernameField, " +
                     ":passwordField, :encryptedUsername, :encryptedPassword, " +
-                    ":guid)";
+                    ":guid, :encType)";
 
         let params = {
             hostname:          loginClone.hostname,
@@ -309,7 +324,8 @@ LoginManagerStorage_mozStorage.prototype = {
             passwordField:     loginClone.passwordField,
             encryptedUsername: encUsername,
             encryptedPassword: encPassword,
-            guid:              loginClone.guid
+            guid:              loginClone.guid,
+            encType:           encType
         };
 
         let stmt;
@@ -429,7 +445,8 @@ LoginManagerStorage_mozStorage.prototype = {
                 "passwordField = :passwordField, " +
                 "encryptedUsername = :encryptedUsername, " +
                 "encryptedPassword = :encryptedPassword, " +
-                "guid = :guid " +
+                "guid = :guid, " +
+                "encType = :encType " +
             "WHERE id = :id";
 
         let params = {
@@ -441,7 +458,8 @@ LoginManagerStorage_mozStorage.prototype = {
             passwordField:     newLogin.passwordField,
             encryptedUsername: encUsername,
             encryptedPassword: encPassword,
-            guid:              newLogin.guid
+            guid:              newLogin.guid,
+            encType:           ENCTYPE_SDR
         };
 
         let stmt;
@@ -697,12 +715,17 @@ LoginManagerStorage_mozStorage.prototype = {
 
 
 
-    _queryLogins : function (hostname, formSubmitURL, httpRealm) {
+    _queryLogins : function (hostname, formSubmitURL, httpRealm, encType) {
         let logins = [], ids = [];
 
         let query = "SELECT * FROM moz_logins";
         let [conditions, params] =
             this._buildConditionsAndParams(hostname, formSubmitURL, httpRealm);
+
+        if (typeof encType != "undefined") {
+          conditions.push("encType = :encType");
+          params.encType = encType;
+        }
 
         if (conditions.length) {
             conditions = conditions.map(function(c) "(" + c + ")");
@@ -975,6 +998,9 @@ LoginManagerStorage_mozStorage.prototype = {
         if (userCanceled)
             return [null, null, true];
 
+        if (!this._base64checked)
+            this._reencryptBase64Logins();
+
         return [encUsername, encPassword, false];
     },
 
@@ -1020,7 +1046,43 @@ LoginManagerStorage_mozStorage.prototype = {
             result.push(login);
         }
 
+        if (!this._base64checked && !userCanceled)
+            this._reencryptBase64Logins();
+
         return [result, userCanceled];
+    },
+
+
+    
+
+
+
+
+
+
+
+
+    _reencryptBase64Logins : function () {
+        this._base64checked = true;
+        
+
+        try {
+            let [logins, ids] =
+               this._queryLogins("", "", "", 0);
+
+            if (!logins.length)
+                return;
+
+            let userCancelled;
+            [logins, userCanceled] = this._decryptLogins(logins);
+            if (userCanceled)
+                return;
+
+            for each (let login in logins)
+                this.modifyLogin(login, login);
+        } catch (e) {
+            this.log("_reencryptBase64Logins caught error: " + e);
+        }
     },
 
 
@@ -1308,6 +1370,73 @@ LoginManagerStorage_mozStorage.prototype = {
 
 
 
+    _dbMigrateToVersion3 : function () {
+        
+        let exists = true;
+        let query = "SELECT encType FROM moz_logins";
+        let stmt;
+        try { 
+            stmt = this._dbConnection.createStatement(query);
+            
+            stmt.finalize();
+        } catch (e) {
+            exists = false;
+        }
+
+        
+        if (!exists) {
+            query = "ALTER TABLE moz_logins ADD COLUMN encType INTEGER";
+            this._dbConnection.executeSimpleSQL(query);
+
+            query = "CREATE INDEX IF NOT EXISTS " +
+                        "moz_logins_encType_index ON moz_logins (encType)";
+            this._dbConnection.executeSimpleSQL(query);
+        }
+
+        
+        let logins = [];
+        query = "SELECT id, encryptedUsername, encryptedPassword " +
+                    "FROM moz_logins WHERE encType isnull";
+        try {
+            stmt = this._dbCreateStatement(query);
+            while (stmt.step()) {
+                let params = { id: stmt.row.id };
+                if (stmt.row.encryptedUsername.charAt(0) == '~' ||
+                    stmt.row.encryptedPassword.charAt(0) == '~')
+                    params.encType = ENCTYPE_BASE64;
+                else
+                    params.encType = ENCTYPE_SDR;
+                logins.push(params);
+            }
+        } catch (e) {
+            this.log("Failed getting logins: " + e);
+            throw e;
+        } finally {
+            stmt.reset();
+        }
+
+        
+        query = "UPDATE moz_logins SET encType = :encType WHERE id = :id";
+        for each (params in logins) {
+            try {
+                stmt = this._dbCreateStatement(query, params);
+                stmt.execute();
+            } catch (e) {
+                this.log("Failed setting encType: " + e);
+                throw e;
+            } finally {
+                stmt.reset();
+            }
+        }
+        
+    },
+
+
+    
+
+
+
+
 
     _dbAreExpectedColumnsPresent : function () {
         let query = "SELECT " +
@@ -1319,7 +1448,8 @@ LoginManagerStorage_mozStorage.prototype = {
                        "passwordField, " +
                        "encryptedUsername, " +
                        "encryptedPassword, " +
-                       "guid " +
+                       "guid, " +
+                       "encType " +
                     "FROM moz_logins";
         try { 
             let stmt = this._dbConnection.createStatement(query);

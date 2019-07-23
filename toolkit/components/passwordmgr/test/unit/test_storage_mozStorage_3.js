@@ -8,12 +8,23 @@
 
 
 const STORAGE_TYPE = "mozStorage";
+const ENCTYPE_BASE64 = 0;
+const ENCTYPE_SDR = 1;
 
 function run_test() {
 
 try {
 
 var storage, testnum = 0;
+
+function countBase64Logins(conn) {
+    let stmt = conn.createStatement("SELECT COUNT(1) as numBase64 FROM moz_logins " +
+                                    "WHERE encType = " + ENCTYPE_BASE64);
+    do_check_true(stmt.step());
+    let numBase64 = stmt.row.numBase64;
+    stmt.finalize();
+    return numBase64;
+}
 
 
 
@@ -26,6 +37,8 @@ var dummyuser2 = Cc["@mozilla.org/login-manager/loginInfo;1"].
                  createInstance(Ci.nsILoginInfo);
 var dummyuser3 = Cc["@mozilla.org/login-manager/loginInfo;1"].
                  createInstance(Ci.nsILoginInfo);
+var dummyuser4 = Cc["@mozilla.org/login-manager/loginInfo;1"].
+                 createInstance(Ci.nsILoginInfo);
 
 dummyuser1.init("http://dummyhost.mozilla.org", "", null,
     "testuser1", "testpass1", "put_user_here", "put_pw_here");
@@ -35,6 +48,10 @@ dummyuser2.init("http://dummyhost2.mozilla.org", "", null,
 
 dummyuser3.init("http://dummyhost2.mozilla.org", "", null,
     "testuser3", "testpass3", "put_user3_here", "put_pw3_here");
+
+dummyuser4.init("http://dummyhost4.mozilla.org", "", null,
+    "testuser4", "testpass4", "put_user4_here", "put_pw4_here");
+
 
 LoginTest.deleteFile(OUTDIR, "signons.sqlite");
 
@@ -559,6 +576,77 @@ LoginTest.checkStorageData(storage, [utfHost], [utfUser1, utfUser2]);
 testdesc = "[flush and reload for verification]"
 storage = LoginTest.reloadStorage(OUTDIR, "output-451155.sqlite");
 LoginTest.checkStorageData(storage, [utfHost], [utfUser1, utfUser2]);
+
+LoginTest.deleteFile(OUTDIR, "output-451155.sqlite");
+
+
+
+
+
+
+
+
+
+testnum++;
+testdesc = "ensure base64 logins are reencrypted on first call to getAllLogins"
+
+
+storage = LoginTest.initStorage(INDIR, "signons-380961-3.txt",
+                               OUTDIR, "output-316984-1.sqlite");
+
+
+let dbConnection = LoginTest.openDB("output-316984-1.sqlite");
+do_check_eq(countBase64Logins(dbConnection), 2);
+
+
+LoginTest.checkStorageData(storage, [], [dummyuser1, dummyuser2, dummyuser3]);
+
+
+do_check_eq(countBase64Logins(dbConnection), 0);
+
+LoginTest.deleteFile(OUTDIR, "output-316984-1.sqlite");
+
+
+
+testnum++;
+testdesc = "ensure base64 logins are reencrypted when first new login is added"
+
+
+storage = LoginTest.initStorage(INDIR, "signons-380961-3.txt",
+                               OUTDIR, "output-316984-2.sqlite");
+
+
+dbConnection = LoginTest.openDB("output-316984-2.sqlite");
+do_check_eq(countBase64Logins(dbConnection), 2);
+
+
+storage.addLogin(dummyuser4)
+
+
+do_check_eq(countBase64Logins(dbConnection), 0);
+
+LoginTest.deleteFile(OUTDIR, "output-316984-2.sqlite");
+
+
+
+testnum++;
+testdesc = "ensure base64 logins are NOT reencrypted on call to countLogins"
+
+
+storage = LoginTest.initStorage(INDIR, "signons-380961-3.txt",
+                               OUTDIR, "output-316984-3.sqlite");
+
+
+dbConnection = LoginTest.openDB("output-316984-3.sqlite");
+do_check_eq(countBase64Logins(dbConnection), 2);
+
+
+storage.countLogins("", "", "")
+
+
+do_check_eq(countBase64Logins(dbConnection), 2);
+
+LoginTest.deleteFile(OUTDIR, "output-316984-3.sqlite");
 
 
 
