@@ -14,38 +14,38 @@
 
 
 
-assertEq(testLenientAndStrict('function(x,y) {}',
+assertEq(testLenientAndStrict('function f(x,y) {}',
                               parsesSuccessfully,
                               parsesSuccessfully),
          true);
-assertEq(testLenientAndStrict('function(x,x) {}',
+assertEq(testLenientAndStrict('function f(x,x) {}',
                               parsesSuccessfully,
                               parseRaisesException(SyntaxError)),
          true);
-assertEq(testLenientAndStrict('function(x,y,z,y) {}',
-                              parsesSuccessfully,
-                              parseRaisesException(SyntaxError)),
-         true);
-
-
-assertEq(testLenientAndStrict('function(a,b,c,d,e,f,g,h,d) {}',
+assertEq(testLenientAndStrict('function f(x,y,z,y) {}',
                               parsesSuccessfully,
                               parseRaisesException(SyntaxError)),
          true);
 
 
+assertEq(testLenientAndStrict('function f(a,b,c,d,e,f,g,h,d) {}',
+                              parsesSuccessfully,
+                              parseRaisesException(SyntaxError)),
+         true);
 
 
 
-assertEq(testLenientAndStrict('function([x,y]) {}',
+
+
+assertEq(testLenientAndStrict('function f([x,y]) {}',
                               parsesSuccessfully,
                               parsesSuccessfully),
          true);
-assertEq(testLenientAndStrict('function([x,x]){}',
+assertEq(testLenientAndStrict('function f([x,x]){}',
                               parseRaisesException(SyntaxError),
                               parseRaisesException(SyntaxError)),
          true);
-assertEq(testLenientAndStrict('function(x,[x]){}',
+assertEq(testLenientAndStrict('function f(x,[x]){}',
                               parseRaisesException(SyntaxError),
                               parseRaisesException(SyntaxError)),
          true);
@@ -54,7 +54,7 @@ assertEq(testLenientAndStrict('function(x,[x]){}',
 
 
 
-assertEq(testLenientAndStrict('function(x,x) { "use strict" };',
+assertEq(testLenientAndStrict('function f(x,x) { "use strict" };',
                               parseRaisesException(SyntaxError),
                               parseRaisesException(SyntaxError)),
          true);
@@ -410,3 +410,5 @@ assertEq(testLenientAndStrict('Function("arguments","\'use strict\';")',
                               raisesException(SyntaxError)),
          true);
 
+
+reportCompare(true, true);

@@ -27,3 +27,5 @@ assertEq(parsesSuccessfully('function f() { "use strict"; }; 010'),
 
 assertEq(parsesSuccessfully('function f() { 010; }'),
          true);
+
+reportCompare(true, true);
