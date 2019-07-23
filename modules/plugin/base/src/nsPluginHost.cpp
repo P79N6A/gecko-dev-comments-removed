@@ -5356,7 +5356,7 @@ nsresult nsPluginStreamListenerPeer::ServeStreamAsFile(nsIRequest *request,
   if (owner) {
     NPWindow* window = nsnull;
     owner->GetWindow(window);
-#if defined (MOZ_WIDGET_GTK2)
+#if defined(MOZ_WIDGET_GTK2) || defined(MOZ_WIDGET_QT)
     
     
     nsCOMPtr<nsIWidget> widget;
