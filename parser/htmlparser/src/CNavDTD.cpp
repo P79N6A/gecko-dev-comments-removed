@@ -42,6 +42,7 @@
 #include "nsHTMLTokens.h"
 #include "nsCRT.h"
 #include "nsParser.h"
+#include "nsIParser.h"
 #include "nsIHTMLContentSink.h"
 #include "nsScanner.h"
 #include "prenv.h"
@@ -81,8 +82,18 @@ static const  char kInvalidTagStackPos[] = "Error: invalid tag stack position";
 
 #include "nsElementTable.h"
 
-#define START_TIMER()
-#define STOP_TIMER()
+#ifdef MOZ_PERF_METRICS
+#  define START_TIMER()                    \
+    if (mParser) MOZ_TIMER_START(mParser->mParseTime); \
+    if (mParser) MOZ_TIMER_START(mParser->mDTDTime); 
+
+#  define STOP_TIMER()                     \
+    if (mParser) MOZ_TIMER_STOP(mParser->mParseTime); \
+    if (mParser) MOZ_TIMER_STOP(mParser->mDTDTime); 
+#else
+#  define STOP_TIMER() 
+#  define START_TIMER()
+#endif
 
 
 #define NS_DTD_FLAG_NONE                   0x00000000
@@ -116,7 +127,7 @@ CNavDTD::CNavDTD()
     mTokenAllocator(0),
     mBodyContext(new nsDTDContext()),
     mTempContext(0),
-    mCountLines(PR_TRUE),
+    mParser(0),
     mTokenizer(0),
     mDTDMode(eDTDMode_quirks),
     mDocType(eHTML_Quirks),
@@ -241,24 +252,22 @@ CNavDTD::WillBuildModel(const CParserContext& aParserContext,
 }
 
 nsresult
-CNavDTD::BuildModel(nsITokenizer* aTokenizer,
-                    PRBool aCanInterrupt,
-                    PRBool aCountLines,
-                    const nsCString*)
+CNavDTD::BuildModel(nsIParser* aParser,
+                    nsITokenizer* aTokenizer)
 {
   NS_PRECONDITION(mBodyContext != nsnull,
                   "Create a context before calling build model");
 
   nsresult result = NS_OK;
 
-  if (!aTokenizer) {
+  if (!aTokenizer || !aParser) {
     return NS_OK;
   }
 
   nsITokenizer*  oldTokenizer = mTokenizer;
 
-  mCountLines     = aCountLines;
   mTokenizer      = aTokenizer;
+  mParser         = (nsParser*)aParser;
   mTokenAllocator = mTokenizer->GetTokenAllocator();
   
   if (!mSink) {
@@ -319,7 +328,7 @@ CNavDTD::BuildModel(nsITokenizer* aTokenizer,
       if (!theToken) {
         break;
       }
-      result = HandleToken(theToken);
+      result = HandleToken(theToken, aParser);
     } else {
       result = NS_ERROR_HTMLPARSER_STOPPARSING;
       break;
@@ -331,7 +340,14 @@ CNavDTD::BuildModel(nsITokenizer* aTokenizer,
       
       
       
-      if (aCanInterrupt && NS_SUCCEEDED(result)) {
+      
+      
+      
+      
+      
+      if (mParser->CanInterrupt() && 
+          !IsParserInDocWrite() && 
+          NS_SUCCEEDED(result)) {
         result = NS_ERROR_HTMLPARSER_INTERRUPTED;
         break;
       }
@@ -344,8 +360,9 @@ CNavDTD::BuildModel(nsITokenizer* aTokenizer,
 
 nsresult
 CNavDTD::BuildNeglectedTarget(eHTMLTags aTarget,
-                              eHTMLTokenTypes aType)
-{
+                              eHTMLTokenTypes aType,
+                              nsIParser* aParser)
+{ 
   NS_ASSERTION(mTokenizer, "tokenizer is null! unable to build target.");
   NS_ASSERTION(mTokenAllocator, "unable to create tokens without an allocator.");
   if (!mTokenizer || !mTokenAllocator) {
@@ -355,24 +372,20 @@ CNavDTD::BuildNeglectedTarget(eHTMLTags aTarget,
   CToken* target = mTokenAllocator->CreateTokenOfType(aType, aTarget);
   NS_ENSURE_TRUE(target, NS_ERROR_OUT_OF_MEMORY);
   mTokenizer->PushTokenFront(target);
-  
-  
-  
-  
-  
-  return BuildModel(mTokenizer, PR_FALSE, mCountLines, 0);
+  return BuildModel(aParser, mTokenizer);
 }
 
 nsresult
 CNavDTD::DidBuildModel(nsresult anErrorCode,
-                       PRBool aNotifySink)
+                       PRBool aNotifySink,
+                       nsIParser* aParser)
 {
   if (!mSink) {
     return NS_OK;
   }
 
   nsresult result = NS_OK;
-  if (aNotifySink) {
+  if (aParser && aNotifySink) {
     if (NS_OK == anErrorCode) {
       if (!(mFlags & NS_DTD_FLAG_HAS_MAIN_CONTAINER)) {
         
@@ -380,7 +393,7 @@ CNavDTD::DidBuildModel(nsresult anErrorCode,
         
         
         
-        BuildNeglectedTarget(eHTMLTag_body, eToken_start);
+        BuildNeglectedTarget(eHTMLTag_body, eToken_start, aParser);
       }
       if (mFlags & NS_DTD_FLAG_MISPLACED_CONTENT) {
         
@@ -590,7 +603,7 @@ CNavDTD::HandleToken(CToken* aToken)
 
   aToken->SetLineNumber(mLineNumber);
 
-  if (mCountLines) {
+  if (!IsParserInDocWrite()) {
     mLineNumber += aToken->GetNewlineCount();
   }
 
@@ -727,7 +740,7 @@ CNavDTD::HandleToken(CToken* aToken)
                 mTokenAllocator->CreateTokenOfType(eToken_start,
                                                    eHTMLTag_body,
                                                    NS_LITERAL_STRING("body"));
-              result = HandleToken(theBodyToken);
+              result = HandleToken(theBodyToken, aParser);
             }
             return result;
           }
@@ -736,6 +749,8 @@ CNavDTD::HandleToken(CToken* aToken)
   }
 
   if (theToken) {
+    mParser = (nsParser*)aParser;
+
     switch (theType) {
       case eToken_text:
       case eToken_start:
@@ -803,7 +818,7 @@ CNavDTD::DidHandleStartTag(nsIParserNode& aNode, eHTMLTags aChildTag)
         if (ePlainText != mDocType && theNextToken) {
           eHTMLTokenTypes theType = eHTMLTokenTypes(theNextToken->GetTokenType());
           if (eToken_newline == theType) {
-            if (mCountLines) {
+            if (!IsParserInDocWrite()) {
               mLineNumber += theNextToken->GetNewlineCount();
             }
             theNextToken = mTokenizer->PopToken();
@@ -1636,7 +1651,7 @@ CNavDTD::HandleEndToken(CToken* aToken)
           
           CToken* theToken = mTokenAllocator->CreateTokenOfType(eToken_start,
                                                                 theChildTag);
-          result = HandleToken(theToken);
+          result = HandleToken(theToken, mParser);
         }
       }
       break;
@@ -1731,11 +1746,11 @@ CNavDTD::HandleEndToken(CToken* aToken)
                   
                   
                   
-                  result = HandleToken(theStartToken);
+                  result = HandleToken(theStartToken, mParser);
                   NS_ENSURE_SUCCESS(result, result);
 
                   IF_HOLD(aToken);
-                  result = HandleToken(aToken);
+                  result = HandleToken(aToken, mParser);
                 }
               }
             }
@@ -1856,7 +1871,7 @@ CNavDTD::HandleSavedTokens(PRInt32 anIndex)
           
           
           
-          result = HandleToken(theToken);
+          result = HandleToken(theToken, mParser);
         }
       }
 
@@ -1923,7 +1938,7 @@ CNavDTD::HandleEntityToken(CToken* aToken)
     NS_ENSURE_TRUE(theToken, NS_ERROR_OUT_OF_MEMORY);
 
     
-    return HandleToken(theToken);
+    return HandleToken(theToken, mParser);
   }
 
   eHTMLTags theParentTag = mBodyContext->Last();
@@ -2035,7 +2050,7 @@ CNavDTD::HandleDocTypeDeclToken(CToken* aToken)
   CDoctypeDeclToken* theToken = static_cast<CDoctypeDeclToken*>(aToken);
   nsAutoString docTypeStr(theToken->GetStringValue());
   
-  if (mCountLines) {
+  if (!IsParserInDocWrite()) {
     mLineNumber += docTypeStr.CountChar(kNewLine);
   }
 
@@ -2095,7 +2110,7 @@ CNavDTD::CollectAttributes(nsIParserNode *aNode, eHTMLTags aTag, PRInt32 aCount)
           break;
         }
 
-        if (mCountLines) {
+        if (!IsParserInDocWrite()) {
           mLineNumber += theToken->GetNewlineCount();
         }
 
@@ -3134,7 +3149,7 @@ CNavDTD::CreateContextStackFor(eHTMLTags aParent, eHTMLTags aChild)
     
     
     CToken *theToken = mTokenAllocator->CreateTokenOfType(eToken_start, theTag);
-    HandleToken(theToken);
+    HandleToken(theToken, mParser);
   }
 }
 

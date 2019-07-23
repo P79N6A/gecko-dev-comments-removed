@@ -1531,7 +1531,7 @@ nsParser::DidBuildModel(nsresult anErrorCode)
       PRBool terminated = mInternalState == NS_ERROR_HTMLPARSER_STOPPARSING;
       if (mDTD && mSink &&
           mSink->ReadyToCallDidBuildModel(terminated)) {
-        result = mDTD->DidBuildModel(anErrorCode,PR_TRUE);
+        result = mDTD->DidBuildModel(anErrorCode,PR_TRUE,this);
       }
 
       
@@ -2364,13 +2364,7 @@ nsParser::BuildModel()
   if (NS_SUCCEEDED(result)) {
     if (mDTD) {
       MOZ_TIMER_START(mDTDTime);
-      
-      PRBool inDocWrite = !!mParserContext->mPrevContext;
-      result = mDTD->BuildModel(theTokenizer,
-                                
-                                CanInterrupt() && !inDocWrite,
-                                !inDocWrite, 
-                                &mCharset);
+      result = mDTD->BuildModel(this, theTokenizer);
       MOZ_TIMER_STOP(mDTDTime);
     }
   } else {
