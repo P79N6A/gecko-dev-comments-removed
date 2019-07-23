@@ -925,6 +925,18 @@ nsBlockFrame::Reflow(nsPresContext*           aPresContext,
     return NS_OK;
   }
 
+  
+  
+  
+  nsRect overflowContainerBounds;
+  nsReflowStatus ocStatus = NS_FRAME_COMPLETE;
+  if (GetPrevInFlow()) {
+    ReflowOverflowContainerChildren(aPresContext, aReflowState,
+                                    overflowContainerBounds, 0,
+                                    ocStatus);
+  }
+
+
   PRBool marginRoot = BlockIsMarginRoot(this);
   nsBlockReflowState state(aReflowState, aPresContext, this, aMetrics,
                            marginRoot, marginRoot, needFloatManager);
@@ -959,13 +971,7 @@ nsBlockFrame::Reflow(nsPresContext*           aPresContext,
   NS_ASSERTION(NS_SUCCEEDED(rv), "reflow dirty lines failed");
   if (NS_FAILED(rv)) return rv;
 
-  
-  nsRect overflowContainerBounds;
-  if (GetPrevInFlow()) {
-    ReflowOverflowContainerChildren(aPresContext, aReflowState,
-                                    overflowContainerBounds, 0,
-                                    state.mReflowStatus);
-  }
+  NS_MergeReflowStatusInto(&state.mReflowStatus, ocStatus);
 
   
   
