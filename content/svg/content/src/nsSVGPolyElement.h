@@ -59,7 +59,7 @@ public:
   NS_DECL_NSIDOMSVGANIMATEDPOINTS
 
   
-  NS_IMETHODIMP_(PRBool) IsAttributeMapped(const nsIAtom* name) const;
+  NS_IMETHOD_(PRBool) IsAttributeMapped(const nsIAtom* name) const;
   
   
   virtual PRBool IsDependentAttribute(nsIAtom *aName);
