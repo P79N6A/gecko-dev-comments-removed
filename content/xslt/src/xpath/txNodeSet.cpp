@@ -552,7 +552,7 @@ PRBool txNodeSet::ensureGrowSize(PRInt32 aSize)
 
     
     
-    PRInt32 newLength = PR_MAX(oldLength, kTxNodeSetMinSize);
+    PRInt32 newLength = NS_MAX(oldLength, kTxNodeSetMinSize);
 
     while (newLength < ensureSize) {
         newLength *= kTxNodeSetGrowFactor;
