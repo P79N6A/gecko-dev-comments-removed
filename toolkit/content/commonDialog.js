@@ -39,8 +39,13 @@
 
 
 
+const Ci = Components.interfaces;
+const Cr = Components.results;
+const Cc = Components.classes;
+
+
 var gCommonDialogParam = 
-  window.arguments[0].QueryInterface(Components.interfaces.nsIDialogParamBlock);
+  window.arguments[0].QueryInterface(Ci.nsIDialogParamBlock);
   
 function showControls()
 {
@@ -101,6 +106,27 @@ function setLabelForNode(aNode, aLabel, aIsLabelFlag)
     aNode.accessKey = accessKey;
 }
 
+var softkbObserver = {
+ QueryInterface: function (aIID) {
+    if (aIID.equals(Ci.nsISupports) ||
+        aIID.equals(Ci.nsIObserver))
+      return this;
+    throw Cr.NS_ERROR_NO_INTERFACE;
+  },
+ observe: function(subject, topic, data) {
+    if (topic === "softkb-change") {
+      var rect = JSON.parse(data);
+      if (rect) {
+        var height = rect.bottom - rect.top;
+        var width = rect.right - rect.left;
+        var top = (rect.top + (height - window.innerHeight) / 2);
+        var left = (rect.left + (width - window.innerWidth) / 2);
+        window.moveTo(left, top);
+      }
+    }
+  }
+};
+
 function commonDialogOnLoad()
 {
   
@@ -112,6 +138,10 @@ function commonDialogOnLoad()
 #else
   document.title = gCommonDialogParam.GetString(12);
 #endif
+
+  var observerService = Cc["@mozilla.org/observer-service;1"]
+                          .getService(Ci.nsIObserverService);
+  observerService.addObserver(softkbObserver, "softkb-change", false);
 
   
   var nButtons = gCommonDialogParam.GetInt(2);
@@ -182,8 +212,8 @@ function commonDialogOnLoad()
   {
     var delayInterval = 2000;
     try {
-      var prefs = Components.classes["@mozilla.org/preferences-service;1"]
-                  .getService(Components.interfaces.nsIPrefBranch);
+      var prefs = Cc["@mozilla.org/preferences-service;1"]
+                    .getService(Ci.nsIPrefBranch);
       delayInterval = prefs.getIntPref("security.dialog_enable_delay");
     } catch (e) {}
 
@@ -203,11 +233,17 @@ function commonDialogOnLoad()
   try {
     var sound = gCommonDialogParam.GetString(13);
     if (sound) {
-      Components.classes["@mozilla.org/sound;1"]
-                .createInstance(Components.interfaces.nsISound)
-                .playSystemSound(sound);
+      Cc["@mozilla.org/sound;1"]
+        .createInstance(Ci.nsISound)
+        .playSystemSound(sound);
     }
   } catch (e) { }
+}
+
+function commonDialogOnUnload(){
+  var observerService = Cc["@mozilla.org/observer-service;1"]
+                          .getService(Ci.nsIObserverService);
+  observerService.removeObserver(softkbObserver, "softkb-change");
 }
 
 var gDelayExpired = false;
