@@ -45,6 +45,18 @@
 PRLock *_pr_flock_lock;
 PRCondVar *_pr_flock_cv;
 
+#ifdef WINCE
+
+
+
+
+static HANDLE GetStdHandle(DWORD nStdHandle)
+{
+    SetLastError(ERROR_CALL_NOT_IMPLEMENTED);
+    return INVALID_HANDLE_VALUE;
+}
+#endif
+
 void _PR_InitIO(void)
 {
     const PRIOMethods *methods = PR_GetFileMethods();

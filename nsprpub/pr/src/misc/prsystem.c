@@ -313,7 +313,7 @@ PR_IMPLEMENT(PRUint64) PR_GetPhysicalMemorySize(void)
 
     
     GlobalMemoryStatusExFn globalMemory = (GlobalMemoryStatusExFn) NULL;
-    HMODULE module = GetModuleHandle("kernel32.dll");
+    HMODULE module = GetModuleHandleW(L"kernel32.dll");
 
     if (module) {
         globalMemory = (GlobalMemoryStatusExFn)GetProcAddress(module, "GlobalMemoryStatusEx");
