@@ -70,7 +70,7 @@
 #ifdef DEBUG
 static struct {
     uint64 recorderStarted, recorderAborted, traceCompleted, sideExitIntoInterpreter,
-    blacklisted, typeMapMismatchAtEntry, returnToDifferentLoopHeader, traceTriggered,
+    typeMapMismatchAtEntry, returnToDifferentLoopHeader, traceTriggered, 
     globalShapeMismatchAtEntry, typeMapTrashed, slotDemoted, slotPromoted, unstableLoopVariable;
 } stat = { 0LL, };
 #define AUDIT(x) (stat.x++)
@@ -1048,9 +1048,7 @@ js_DeleteRecorder(JSContext* cx)
     tm->recorder = NULL;
 }
 
-#define HOTLOOP1 10
-#define HOTLOOP2 13
-#define HOTLOOP3 37
+#define HOTLOOP 10
 
 bool
 js_LoopEdge(JSContext* cx)
@@ -1082,63 +1080,58 @@ js_LoopEdge(JSContext* cx)
 
     Fragment* f = tm->fragmento->getLoop(cx->fp->regs->pc);
     if (!f->code()) {
-        int hits = ++f->hits();
-        if (!f->isBlacklisted() && hits >= HOTLOOP1) {
-            if (hits == HOTLOOP1 || hits == HOTLOOP2 || hits == HOTLOOP3) {
-                AUDIT(recorderStarted);
-                f->calldepth = 0;
-                
-                if (!f->lirbuf) {
-                    f->lirbuf = new (&gc) LirBuffer(tm->fragmento, builtins);
-#ifdef DEBUG                
-                    f->lirbuf->names = new (&gc) LirNameMap(&gc, builtins, tm->fragmento->labels);
+        if (++f->hits() >= HOTLOOP) {
+            AUDIT(recorderStarted);
+            f->calldepth = 0;
+            
+            if (!f->lirbuf) {
+                f->lirbuf = new (&gc) LirBuffer(tm->fragmento, builtins);
+#ifdef DEBUG                    
+                f->lirbuf->names = new (&gc) LirNameMap(&gc, builtins, tm->fragmento->labels);
 #endif
-                }
-                
-                VMFragmentInfo* fi = (VMFragmentInfo*)f->vmprivate;
-                if (!fi) {
-                    
-                    fi = new VMFragmentInfo(); 
-                    f->vmprivate = fi;
-
-                    
-                    int internableGlobals = findInternableGlobals(cx, cx->fp, NULL);
-                    if (internableGlobals < 0)
-                        return false;
-                    fi->gslots = (uint16*)malloc(sizeof(uint16) * internableGlobals);
-                    if ((fi->ngslots = findInternableGlobals(cx, cx->fp, fi->gslots)) < 0)
-                        return false;
-                    fi->globalShape = OBJ_SCOPE(JS_GetGlobalForObject(cx, 
-                                                                      cx->fp->scopeChain))->shape;
-
-                    
-                    unsigned entryNativeFrameSlots = nativeFrameSlots(fi->ngslots,
-                            cx->fp, cx->fp, *cx->fp->regs);
-                    fi->entryNativeFrameSlots = entryNativeFrameSlots;
-                    fi->nativeStackBase = (entryNativeFrameSlots -
-                            (cx->fp->regs->sp - cx->fp->spbase)) * sizeof(double);
-                    fi->maxNativeFrameSlots = entryNativeFrameSlots;
-                    fi->maxCallDepth = 0;
-                }
-                
-                
-                if (!fi->typeMap) {
-                    fi->typeMap = (uint8*)malloc(fi->entryNativeFrameSlots * sizeof(uint8));
-                    uint8* m = fi->typeMap;
-
-                    
-                    FORALL_SLOTS_IN_PENDING_FRAMES(cx, fi->ngslots, fi->gslots, cx->fp, cx->fp,
-                        *m++ = getCoercedType(*vp)
-                    );
-                }
-                
-                tm->recorder = new (&gc) TraceRecorder(cx, f, fi->typeMap);
-
-                
-                return !cx->throwing;
             }
-            if (hits > HOTLOOP3)
-                f->blacklist();
+            
+            VMFragmentInfo* fi = (VMFragmentInfo*)f->vmprivate;
+            if (!fi) {
+                
+                fi = new VMFragmentInfo(); 
+                f->vmprivate = fi;
+                
+                
+                int internableGlobals = findInternableGlobals(cx, cx->fp, NULL);
+                if (internableGlobals < 0)
+                    return false;
+                fi->gslots = (uint16*)malloc(sizeof(uint16) * internableGlobals);
+                if ((fi->ngslots = findInternableGlobals(cx, cx->fp, fi->gslots)) < 0)
+                    return false;
+                fi->globalShape = OBJ_SCOPE(JS_GetGlobalForObject(cx, 
+                        cx->fp->scopeChain))->shape;
+
+                
+                unsigned entryNativeFrameSlots = nativeFrameSlots(fi->ngslots,
+                        cx->fp, cx->fp, *cx->fp->regs);
+                fi->entryNativeFrameSlots = entryNativeFrameSlots;
+                fi->nativeStackBase = (entryNativeFrameSlots -
+                        (cx->fp->regs->sp - cx->fp->spbase)) * sizeof(double);
+                fi->maxNativeFrameSlots = entryNativeFrameSlots;
+                fi->maxCallDepth = 0;
+            }
+                
+            
+            if (!fi->typeMap) {
+                fi->typeMap = (uint8*)malloc(fi->entryNativeFrameSlots * sizeof(uint8));
+                uint8* m = fi->typeMap;
+
+                
+                FORALL_SLOTS_IN_PENDING_FRAMES(cx, fi->ngslots, fi->gslots, cx->fp, cx->fp,
+                    *m++ = getCoercedType(*vp)
+                );
+            }
+                
+            tm->recorder = new (&gc) TraceRecorder(cx, f, fi->typeMap);
+
+            
+            return !cx->throwing;
         }
         return false;
     }
@@ -1235,9 +1228,9 @@ js_DestroyJIT(JSContext* cx)
            "unstable loop variable(%llu)\n", stat.recorderStarted, stat.recorderAborted,
            stat.traceCompleted, stat.returnToDifferentLoopHeader, stat.typeMapTrashed,
            stat.slotDemoted, stat.slotPromoted, stat.unstableLoopVariable);
-    printf("monitor: triggered(%llu), exits (%llu), blacklisted(%llu), type mismatch(%llu), "
+    printf("monitor: triggered(%llu), exits (%llu), type mismatch(%llu), "
            "global mismatch(%llu)\n", stat.traceTriggered, stat.sideExitIntoInterpreter,
-           stat.blacklisted, stat.typeMapMismatchAtEntry, stat.globalShapeMismatchAtEntry);
+           stat.typeMapMismatchAtEntry, stat.globalShapeMismatchAtEntry);
 #endif    
 }
 
