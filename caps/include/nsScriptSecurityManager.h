@@ -551,18 +551,8 @@ private:
 
 
 
-
-
-
-
-
-
-
-
-
     nsresult
-    CheckXPCPermissions(JSContext* cx,
-                        nsISupports* aObj, JSObject* aJSObject,
+    CheckXPCPermissions(nsISupports* aObj, JSObject* aJSObject,
                         nsIPrincipal* aSubjectPrincipal,
                         const char* aObjectSecurityLevel);
 
