@@ -1131,8 +1131,7 @@ nsDocAccessible::AttributeChangedImpl(nsIContent* aContent, PRInt32 aNameSpaceID
 
   if (aAttribute == nsAccessibilityAtoms::role ||
       aAttribute == nsAccessibilityAtoms::href ||
-      aAttribute == nsAccessibilityAtoms::onclick ||
-      aAttribute == nsAccessibilityAtoms::aria_droppable) {
+      aAttribute == nsAccessibilityAtoms::onclick) {
     
     
     
