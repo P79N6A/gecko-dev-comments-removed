@@ -171,6 +171,13 @@ jpeg_idct_ifast_orig (j_decompress_ptr cinfo, jpeg_component_info * compptr,
 		 JSAMPARRAY output_buf, JDIMENSION output_col);
 #endif
 
+#ifdef HAVE_SSE2_INTRINSICS
+GLOBAL(void)
+jpeg_idct_ifast_sse2 (j_decompress_ptr cinfo, jpeg_component_info * compptr,
+                 JCOEFPTR coef_block,
+                 JSAMPARRAY output_buf, JDIMENSION output_col);
+#endif 
+
 GLOBAL(void)
 jpeg_idct_ifast(j_decompress_ptr cinfo, jpeg_component_info * compptr,
 		 JCOEFPTR coef_block,
@@ -1646,5 +1653,459 @@ jpeg_idct_ifast_mmx (j_decompress_ptr cinfo, jpeg_component_info * compptr,
 	}
 }
 #endif
+
+#ifdef HAVE_SSE2_INTRINSICS
+#include "xmmintrin.h"
+#include "emmintrin.h"
+
+
+
+
+
+SSE2_ALIGN unsigned short SSE2_1_414213562[8] =
+  {23170, 23170, 23170, 23170, 23170, 23170, 23170, 23170};
+SSE2_ALIGN unsigned short SSE2_1_847759065[8] =
+  {30274, 30274, 30274, 30274, 30274, 30274, 30274, 30274};
+SSE2_ALIGN unsigned short SSE2_1_082392200[8] =
+  {17734, 17734, 17734, 17734, 17734, 17734, 17734, 17734};
+SSE2_ALIGN unsigned short SSE2_NEG_0_765366865[8] =
+  {52996, 52996, 52996, 52996, 52996, 52996, 52996, 52996};
+
+
+
+
+SSE2_ALIGN unsigned short SSE2_ADD_128[8] =
+  {4096, 4096, 4096, 4096, 4096, 4096, 4096, 4096};
+
+
+
+inline GLOBAL(void)
+     jpeg_idct_ifast_sse2 (j_decompress_ptr cinfo, jpeg_component_info * compptr,
+                           JCOEFPTR coef_block,
+                           JSAMPARRAY output_buf, JDIMENSION output_col)
+{
+  __m128i row0, row1, row2, row3, row4, row5, row6, row7;
+  __m128i tmp0, tmp1, tmp2, tmp3, tmp4, tmp5, tmp6, tmp7;
+  __m128i tmp10, tmp11, tmp12, tmp13, z10, z11, z12, z13;
+  __m128i xps0, xps1, xps2, xps3, rowa;
+  __m128i * quantptr;
+  __m128i * coefptr;
+  JSAMPROW outptr0, outptr1, outptr2, outptr3, outptr4, outptr5, outptr6, outptr7;
+
+  
+  
+  
+
+  quantptr = (__m128i *) compptr->dct_table;
+  coefptr  = (__m128i *) coef_block;
+
+  row0 = *(coefptr+0);
+  row1 = *(coefptr+1);
+  row2 = *(coefptr+2);
+  row3 = *(coefptr+3);
+  row4 = *(coefptr+4);
+  row5 = *(coefptr+5);
+  row6 = *(coefptr+6);
+  row7 = *(coefptr+7);
+  row0 = _mm_mullo_epi16(row0, *(quantptr+0));
+  row1 = _mm_mullo_epi16(row1, *(quantptr+1));
+  row2 = _mm_mullo_epi16(row2, *(quantptr+2));
+  row3 = _mm_mullo_epi16(row3, *(quantptr+3));
+  row4 = _mm_mullo_epi16(row4, *(quantptr+4));
+  row5 = _mm_mullo_epi16(row5, *(quantptr+5));
+  row6 = _mm_mullo_epi16(row6, *(quantptr+6));
+  row7 = _mm_mullo_epi16(row7, *(quantptr+7));
+
+  
+  
+  
+
+  
+
+  
+  
+
+  tmp10 = _mm_add_epi16(row0, row4);
+  tmp11 = _mm_sub_epi16(row0, row4);
+
+  
+  
+  
+
+  tmp13 = _mm_add_epi16(row2, row6);
+  tmp12 = _mm_mulhi_epi16(_mm_slli_epi16(_mm_sub_epi16(row2, row6), 2),
+                          *((__m128i *) SSE2_1_414213562));
+  tmp12 = _mm_sub_epi16(tmp12, tmp13);
+
+  
+  
+  
+  
+
+  tmp0 = _mm_add_epi16(tmp10, tmp13);
+  tmp3 = _mm_sub_epi16(tmp10, tmp13);
+  tmp1 = _mm_add_epi16(tmp11, tmp12);
+  tmp2 = _mm_sub_epi16(tmp11, tmp12);
+
+  
+
+  
+  
+  
+  
+
+  z13 = _mm_add_epi16(row5, row3);
+  z10 = _mm_sub_epi16(row5, row3);
+  z11 = _mm_add_epi16(row1, row7);
+  z12 = _mm_sub_epi16(row1, row7);
+
+  
+
+  
+  
+
+  tmp7 = _mm_add_epi16(z11, z13);
+  tmp11 = _mm_mulhi_epi16(_mm_slli_epi16(_mm_sub_epi16(z11, z13), 2),
+                          *((__m128i *) SSE2_1_414213562));
+
+  
+  
+  
+
+  
+  
+  
+
+  
+  
+
+  
+
+  
+  
+
+  z10 = _mm_slli_epi16(z10, 2);
+  z12 = _mm_slli_epi16(z12, 2);
+
+  tmp10 = _mm_sub_epi16(_mm_mulhi_epi16(z12, *((__m128i *)SSE2_NEG_0_765366865)),
+                        _mm_mulhi_epi16(z10, *((__m128i *)SSE2_1_847759065)));
+  tmp12 = _mm_add_epi16(_mm_mulhi_epi16(z10, *((__m128i *)SSE2_NEG_0_765366865)),
+                        _mm_mulhi_epi16(z12, *((__m128i *)SSE2_1_847759065)));
+
+  
+
+  
+  
+  
+
+  tmp6 = _mm_sub_epi16(tmp12, tmp7);
+  tmp5 = _mm_sub_epi16(tmp11, tmp6);
+  tmp4 = _mm_add_epi16(tmp10, tmp5);
+
+  
+  
+  
+  
+
+  row0 = _mm_add_epi16(tmp0, tmp7);
+  row7 = _mm_sub_epi16(tmp0, tmp7);
+
+  
+  
+  
+  
+
+  row1 = _mm_add_epi16(tmp1, tmp6);
+  row6 = _mm_sub_epi16(tmp1, tmp6);
+
+  
+  
+  
+  
+
+  row2 = _mm_add_epi16(tmp2, tmp5);
+  row5 = _mm_sub_epi16(tmp2, tmp5);
+
+  
+  
+  
+  
+
+  row4 = _mm_add_epi16(tmp3, tmp4);
+  row3 = _mm_sub_epi16(tmp3, tmp4);
+
+  
+  
+  
+
+  
+
+  xps0 = _mm_move_epi64(row0);
+  xps1 = _mm_move_epi64(row2);
+  xps2 = _mm_move_epi64(row4);
+  xps3 = _mm_move_epi64(row6);
+
+  
+
+  row0 = _mm_unpackhi_epi16(row0, row1);    
+  row2 = _mm_unpackhi_epi16(row2, row3);    
+  row4 = _mm_unpackhi_epi16(row4, row5);    
+  row6 = _mm_unpackhi_epi16(row6, row7);     
+
+  rowa = row0;
+  row0 = _mm_unpacklo_epi32(row0, row2);    
+  rowa = _mm_unpackhi_epi32(rowa, row2);    
+
+  row2 = row4;
+  row4 = _mm_unpacklo_epi32(row4, row6);    
+  row2 = _mm_unpackhi_epi32(row2, row6);    
+
+  row6 = row0;
+  row0 = _mm_unpacklo_epi64(row0, row4);    
+  row6 = _mm_unpackhi_epi64(row6, row4);    
+
+  row4 = rowa;
+  rowa = _mm_unpacklo_epi64(rowa, row2);    
+  row4 = _mm_unpackhi_epi64(row4, row2);    
+
+  
+
+  
+
+  xps0 = _mm_unpacklo_epi16(xps0, row1);    
+  xps1 = _mm_unpacklo_epi16(xps1, row3);    
+  xps2 = _mm_unpacklo_epi16(xps2, row5);    
+  xps3 = _mm_unpacklo_epi16(xps3, row7);    
+
+  row2 = xps0;
+  xps0 = _mm_unpacklo_epi32(xps0, xps1);    
+  row2 = _mm_unpackhi_epi32(row2, xps1);    
+
+  xps1 = xps2;
+  xps2 = _mm_unpacklo_epi32(xps2, xps3);    
+  xps1 = _mm_unpackhi_epi32(xps1, xps3);    
+
+  xps3 = xps0;
+  xps0 = _mm_unpacklo_epi64(xps0, xps2);    
+  xps3 = _mm_unpackhi_epi64(xps3, xps2);    
+
+  xps2 = row2;
+  row2 = _mm_unpacklo_epi64(row2, xps1);    
+  xps2 = _mm_unpackhi_epi64(xps2, xps1);    
+
+  
+
+  
+
+  row7 = row4;
+  row5 = row6;
+  row6 = rowa;
+  row4 = row0;
+  row0 = xps0;
+  row1 = xps3;
+  row3 = xps2;
+
+  
+  
+  
+
+  
+
+  
+  
+
+  tmp10 = _mm_add_epi16(row0, row4);
+  tmp11 = _mm_sub_epi16(row0, row4);
+
+  
+  
+  
+
+  tmp13 = _mm_add_epi16(row2, row6);
+  tmp12 = _mm_mulhi_epi16(_mm_slli_epi16(_mm_sub_epi16(row2, row6), 2),
+                          *((__m128i *) SSE2_1_414213562));
+  tmp12 = _mm_sub_epi16(tmp12, tmp13);
+
+  
+  
+  
+  
+
+  tmp0 = _mm_add_epi16(tmp10, tmp13);
+  tmp3 = _mm_sub_epi16(tmp10, tmp13);
+  tmp1 = _mm_add_epi16(tmp11, tmp12);
+  tmp2 = _mm_sub_epi16(tmp11, tmp12);
+
+  
+
+  
+  
+  
+  
+
+  z13 = _mm_add_epi16(row5, row3);
+  z10 = _mm_sub_epi16(row5, row3);
+  z11 = _mm_add_epi16(row1, row7);
+  z12 = _mm_sub_epi16(row1, row7);
+
+  
+
+  
+  
+
+  tmp7 = _mm_add_epi16(z11, z13);
+  tmp11 = _mm_mulhi_epi16(_mm_slli_epi16(_mm_sub_epi16(z11, z13), 2),
+                          *((__m128i *) SSE2_1_414213562));
+
+  
+  
+  
+
+  
+  
+  
+
+  
+  
+
+  
+
+  
+  
+
+  z10 = _mm_slli_epi16(z10, 2);
+  z12 = _mm_slli_epi16(z12, 2);
+
+  tmp10 = _mm_sub_epi16(_mm_mulhi_epi16(z12, *((__m128i *)SSE2_NEG_0_765366865)),
+                        _mm_mulhi_epi16(z10, *((__m128i *)SSE2_1_847759065)));
+  tmp12 = _mm_add_epi16(_mm_mulhi_epi16(z10, *((__m128i *)SSE2_NEG_0_765366865)),
+                        _mm_mulhi_epi16(z12, *((__m128i *)SSE2_1_847759065)));
+
+  
+
+  
+  
+  
+
+  tmp6 = _mm_sub_epi16(tmp12, tmp7);
+  tmp5 = _mm_sub_epi16(tmp11, tmp6);
+  tmp4 = _mm_add_epi16(tmp10, tmp5);
+
+  
+  
+  
+  
+
+  row0 = _mm_add_epi16(tmp0, tmp7);
+  row7 = _mm_sub_epi16(tmp0, tmp7);
+
+  
+  
+  
+  
+
+  row1 = _mm_add_epi16(tmp1, tmp6);
+  row6 = _mm_sub_epi16(tmp1, tmp6);
+
+  
+  
+  
+  
+
+  row2 = _mm_add_epi16(tmp2, tmp5);
+  row5 = _mm_sub_epi16(tmp2, tmp5);
+
+  
+  
+  
+  
+
+  row4 = _mm_add_epi16(tmp3, tmp4);
+  row3 = _mm_sub_epi16(tmp3, tmp4);
+
+  
+  
+  
+
+  
+
+  row0 = _mm_add_epi16(row0, *((__m128i *) SSE2_ADD_128));
+  row1 = _mm_add_epi16(row1, *((__m128i *) SSE2_ADD_128));
+  row2 = _mm_add_epi16(row2, *((__m128i *) SSE2_ADD_128));
+  row3 = _mm_add_epi16(row3, *((__m128i *) SSE2_ADD_128));
+  row4 = _mm_add_epi16(row4, *((__m128i *) SSE2_ADD_128));
+  row5 = _mm_add_epi16(row5, *((__m128i *) SSE2_ADD_128));
+  row6 = _mm_add_epi16(row6, *((__m128i *) SSE2_ADD_128));
+  row7 = _mm_add_epi16(row7, *((__m128i *) SSE2_ADD_128));
+
+  row0 = _mm_srai_epi16(row0, 5);
+  row1 = _mm_srai_epi16(row1, 5);
+  row2 = _mm_srai_epi16(row2, 5);
+  row3 = _mm_srai_epi16(row3, 5);
+  row4 = _mm_srai_epi16(row4, 5);
+  row5 = _mm_srai_epi16(row5, 5);
+  row6 = _mm_srai_epi16(row6, 5);
+  row7 = _mm_srai_epi16(row7, 5);
+
+  
+
+  row0 = _mm_packus_epi16(row0, row4);
+  row1 = _mm_packus_epi16(row1, row5);
+  row2 = _mm_packus_epi16(row2, row6);
+  row3 = _mm_packus_epi16(row3, row7);
+
+  
+
+  row4 = _mm_unpackhi_epi8(row0, row1);   
+  row5 = _mm_unpackhi_epi8(row2, row3);   
+  row0 = _mm_unpacklo_epi8(row0, row1);   
+  row2 = _mm_unpacklo_epi8(row2, row3);   
+
+  row6 = _mm_unpackhi_epi16(row0, row2);  
+  row7 = _mm_unpackhi_epi16(row4, row5);  
+  row0 = _mm_unpacklo_epi16(row0, row2);  
+  row4 = _mm_unpacklo_epi16(row4, row5);  
+
+  row1 = _mm_unpackhi_epi32(row0, row4);  
+  row2 = _mm_unpackhi_epi32(row6, row7);  
+  row0 = _mm_unpacklo_epi32(row0, row4);  
+  row6 = _mm_unpacklo_epi32(row6, row7);  
+
+  
+
+  row3 = row2;
+  row2 = row6;
+
+  
+  
+  
+
+  outptr0 = output_buf[0] + output_col;
+  outptr1 = output_buf[1] + output_col;
+  outptr2 = output_buf[2] + output_col;
+  outptr3 = output_buf[3] + output_col;
+  outptr4 = output_buf[4] + output_col;
+  outptr5 = output_buf[5] + output_col;
+  outptr6 = output_buf[6] + output_col;
+  outptr7 = output_buf[7] + output_col;
+
+  
+  
+
+  row4 = _mm_srli_si128(row0, 8);
+  row5 = _mm_srli_si128(row1, 8);
+  row6 = _mm_srli_si128(row2, 8);
+  row7 = _mm_srli_si128(row3, 8);
+
+  _mm_storel_epi64((__m128i *) outptr0, row0);
+  _mm_storel_epi64((__m128i *) outptr2, row1);
+  _mm_storel_epi64((__m128i *) outptr4, row2);
+  _mm_storel_epi64((__m128i *) outptr6, row3);
+  _mm_storel_epi64((__m128i *) outptr1, row4);
+  _mm_storel_epi64((__m128i *) outptr3, row5);
+  _mm_storel_epi64((__m128i *) outptr5, row6);
+  _mm_storel_epi64((__m128i *) outptr7, row7);
+}
+#endif 
 
 #endif 
