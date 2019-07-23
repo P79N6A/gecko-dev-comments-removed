@@ -69,9 +69,22 @@ const STATE_FAILED            = "failed";
 const SRCEVT_FOREGROUND       = 1;
 const SRCEVT_BACKGROUND       = 2;
 
-var gConsole    = null;
-var gPref       = null;
-var gLogEnabled = false;
+__defineGetter__("gConsole", function() {
+  delete this.gConsole;
+  return this.gConsole = CoC["@mozilla.org/consoleservice;1"].
+                         getService(CoI.nsIConsoleService);
+});
+
+__defineGetter__("gPref", function() {
+  delete this.gPref;
+  return this.gPref = CoC["@mozilla.org/preferences-service;1"].
+                      getService(CoI.nsIPrefBranch2);
+});
+
+__defineGetter__("gLogEnabled", function() {
+  delete this.gLogEnabled;
+  return this.gLogEnabled = getPref("getBoolPref", PREF_APP_UPDATE_LOG, false);
+});
 
 
 
@@ -290,12 +303,6 @@ var gUpdates = {
 
 
 
-  errorMessage: "",
-
-  
-
-
-
   _cacheButtonStrings: function (buttonName) {
     var button = this.wiz.getButton(buttonName);
     button.defaultLabel = button.label;
@@ -307,13 +314,6 @@ var gUpdates = {
 
   onLoad: function() {
     this.wiz = document.documentElement;
-
-    gPref = CoC["@mozilla.org/preferences-service;1"].
-            getService(CoI.nsIPrefBranch2);
-    gConsole = CoC["@mozilla.org/consoleservice;1"].
-               getService(CoI.nsIConsoleService);
-    gLogEnabled = getPref("getBoolPref", PREF_APP_UPDATE_LOG, false)
-
     this.strings = document.getElementById("updateStrings");
     var brandStrings = document.getElementById("brandStrings");
     this.brandName = brandStrings.getString("brandShortName");
@@ -364,26 +364,25 @@ var gUpdates = {
         var p = this.update.selectedPatch;
         if (p) {
           var state = p.state;
-          if (state == STATE_DOWNLOADING) {
-            var patchFailed = false;
-            try {
-              patchFailed = this.update.getProperty("patchingFailed");
-            }
-            catch (e) {
-            }
-            if (patchFailed == "partial") {
-              
-              
-              
-              state = STATE_FAILED;
-            }
-            else if (patchFailed == "complete") {
-              
-              
-              
-              
-              state = STATE_DOWNLOAD_FAILED;
-            }
+          var patchFailed;
+          try {
+            patchFailed = this.update.getProperty("patchingFailed");
+            LOG("gUpdates", "get startPage - patchFailed = " + patchFailed);
+          }
+          catch (e) {
+          }
+          if (patchFailed == "partial") {
+            
+            
+            
+            state = STATE_FAILED;
+          }
+          else if (patchFailed == "complete") {
+            
+            
+            
+            
+            state = STATE_DOWNLOAD_FAILED;
           }
 
           
@@ -1163,6 +1162,12 @@ var gDownloadingPage = {
 
     gUpdates.setButtons("hideButton", null, null, false);
     gUpdates.wiz.getButton("extra1").focus();
+  },
+
+  showVerificationError: function() {
+    var verificationError = gUpdates.getAUSString("verificationError",
+                                                  [gUpdates.brandName]);
+    gUpdates.advanceToErrorPage(verificationError);                             
   },
 
   
