@@ -92,6 +92,12 @@ public:
   static nsIPresShell*
   GetPresShellForContent(nsIContent* aContent);
 
+  
+  void SetExposeVisitedStyle(PRBool aExpose) {
+    NS_ASSERTION(aExpose != mExposeVisitedStyle, "should always be changing");
+    mExposeVisitedStyle = aExpose;
+  }
+
 private:
   void AssertFlushedPendingReflows() {
     NS_ASSERTION(mFlushedPendingReflows,
@@ -471,6 +477,8 @@ private:
   nsIPresShell* mPresShell;
 
   PRInt32 mAppUnitsPerInch; 
+
+  PRPackedBool mExposeVisitedStyle;
 
 #ifdef DEBUG
   PRBool mFlushedPendingReflows;
