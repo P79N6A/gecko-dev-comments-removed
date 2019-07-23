@@ -597,6 +597,8 @@ nsPrintEngine::DoCommonPrint(PRBool                  aIsPrintPreview,
           
           printSilently = PR_TRUE;
         }
+        
+        mPrt->mPrintSettings->GetShrinkToFit(&mPrt->mShrinkToFit);
       } else {
         rv = NS_ERROR_GFX_NO_PRINTROMPTSERVICE;
       }
