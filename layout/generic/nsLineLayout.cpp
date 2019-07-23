@@ -1328,6 +1328,8 @@ nsLineLayout::AddBulletFrame(nsIFrame* aFrame,
 {
   NS_ASSERTION(mCurrentSpan == mRootSpan, "bad linelayout user");
 
+  SetFlag(LL_HASBULLET, PR_TRUE);
+
   PerFrameData* pfd;
   nsresult rv = NewPerFrameData(&pfd);
   if (NS_SUCCEEDED(rv)) {
@@ -2012,39 +2014,24 @@ nsLineLayout::VerticalAlignFrames(PerSpanData* psd)
     
     
     
+
     
-    PRBool applyMinLH = !(psd->mZeroEffectiveSpanBox); 
-    PRBool isFirstLine = !mLineNumber; 
+    PRBool applyMinLH = !psd->mZeroEffectiveSpanBox || GetFlag(LL_HASBULLET);
     PRBool isLastLine = (!mLineBox->IsLineWrapped() && !GetFlag(LL_LINEENDSINBR));
-    PRBool foundLI = PR_FALSE;  
-    
-    
-    
-    
-    if (!applyMinLH && (isFirstLine || isLastLine)) {
+    if (!applyMinLH && isLastLine) {
       nsIContent* blockContent = mRootSpan->mFrame->mFrame->GetContent();
       if (blockContent) {
         nsIAtom *blockTagAtom = blockContent->Tag();
         
-        if (isFirstLine && blockTagAtom == nsGkAtoms::li) {
-          
-          
-          if (!IsZeroHeight()) {
-            applyMinLH = PR_TRUE;
-            foundLI = PR_TRUE;
-          }
-        }
-        
-        else if (!applyMinLH && isLastLine &&
-                 ((blockTagAtom == nsGkAtoms::li) ||
-                  (blockTagAtom == nsGkAtoms::dt) ||
-                  (blockTagAtom == nsGkAtoms::dd))) {
+        if (blockTagAtom == nsGkAtoms::li ||
+            blockTagAtom == nsGkAtoms::dt ||
+            blockTagAtom == nsGkAtoms::dd) {
           applyMinLH = PR_TRUE;
         }
       }
     }
     if (applyMinLH) {
-      if (psd->mHasNonemptyContent || preMode || foundLI) {
+      if (psd->mHasNonemptyContent || preMode || GetFlag(LL_HASBULLET)) {
 #ifdef NOISY_VERTICAL_ALIGN
         printf("  [span]==> adjusting min/maxY: currentValues: %d,%d", minY, maxY);
 #endif
