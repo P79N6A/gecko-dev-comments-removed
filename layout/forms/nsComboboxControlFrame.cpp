@@ -586,6 +586,22 @@ nsComboboxControlFrame::GetPrefWidth(nsIRenderingContext *aRenderingContext)
     result = 0;
   }
 
+  
+  
+  
+  if (NS_LIKELY(mListControlFrame && mDisplayFrame)) {
+    nsIScrollableFrame* scrollable;
+    CallQueryInterface(mListControlFrame, &scrollable);
+    NS_ASSERTION(scrollable, "List must be a scrollable frame");
+    nsBoxLayoutState bls(GetPresContext(), aRenderingContext);
+    nscoord displayResult =
+      scrollable->GetDesiredScrollbarSizes(&bls).LeftRight() +
+      nsLayoutUtils::IntrinsicForContainer(aRenderingContext, mDisplayFrame,
+                                           nsLayoutUtils::PREF_WIDTH);
+
+    result = PR_MAX(result, displayResult);
+  }
+
   return result;
 }
 
