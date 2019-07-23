@@ -75,10 +75,11 @@ NS_GetComplexLineBreaks(const PRUnichar* aText, PRUint32 aLength,
         aBreakBefore[++u16Offset] = PR_FALSE; 
       ++u16Offset;
 
-      PRUint32 ch = UTF8CharEnumerator::NextChar(&p, end);
+      PRBool err;
+      PRUint32 ch = UTF8CharEnumerator::NextChar(&p, end, &err);
       ++attr;
 
-      if (ch == 0) {
+      if (ch == 0 || err) {
         
         
         
