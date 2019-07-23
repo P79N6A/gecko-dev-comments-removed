@@ -92,7 +92,6 @@
 #include "nsIChannel.h"
 #include "nsCycleCollectionParticipant.h"
 #include "nsContentList.h"
-#include "nsGkAtoms.h"
 
 
 #include "nsHTMLStyleSheet.h"
@@ -105,7 +104,6 @@
 #include "nsDOMAttributeMap.h"
 #include "nsPresShellIterator.h"
 #include "nsContentUtils.h"
-#include "nsThreadUtils.h"
 
 #define XML_DECLARATION_BITS_DECLARATION_EXISTS   (1 << 0)
 #define XML_DECLARATION_BITS_ENCODING_EXISTS      (1 << 1)
@@ -429,8 +427,6 @@ public:
                                      nsIContentSink* aContentSink = nsnull) = 0;
 
   virtual void StopDocumentLoad();
-
-  virtual void NotifyPossibleTitleChange(PRBool aBoundTitleElement);
 
   virtual void SetDocumentURI(nsIURI* aURI);
   
@@ -800,9 +796,6 @@ public:
   static nsresult GetElementsByClassNameHelper(nsINode* aRootNode,
                                                const nsAString& aClasses,
                                                nsIDOMNodeList** aReturn);
-
-  void DoNotifyPossibleTitleChange();
-
 protected:
 
   void RegisterNamedItems(nsIContent *aContent);
@@ -834,30 +827,6 @@ protected:
   
   
   void DestroyLinkMap();
-
-  
-  
-  nsIContent* GetHtmlContent();
-  
-  
-  nsIContent* GetHtmlChildContent(nsIAtom* aTag);
-  
-  
-  nsIContent* GetBodyContent() {
-    return GetHtmlChildContent(nsGkAtoms::body);
-  }
-  
-  
-  nsIContent* GetHeadContent() {
-    return GetHtmlChildContent(nsGkAtoms::head);
-  }
-  
-  
-  nsIContent* GetTitleContent(PRUint32 aNodeType);
-  
-  
-  
-  void GetTitleFromElement(PRUint32 aNodeType, nsAString& aTitle);
 
   nsresult doCreateShell(nsPresContext* aContext,
                          nsIViewManager* aViewManager, nsStyleSet* aStyleSet,
@@ -971,9 +940,6 @@ protected:
   
   
   PRPackedBool mIsRegularHTML:1;
-  
-  
-  PRPackedBool mMayHaveTitleElement:1;
 
   PRPackedBool mHasWarnedAboutBoxObjects:1;
 
@@ -1065,8 +1031,7 @@ private:
 
   nsTArray<nsRefPtr<nsFrameLoader> > mInitializableFrameLoaders;
   nsTArray<nsRefPtr<nsFrameLoader> > mFinalizableFrameLoaders;
-
-  nsRevocableEventPtr<nsRunnableMethod<nsDocument> > mPendingTitleChangeEvent;
 };
+
 
 #endif 

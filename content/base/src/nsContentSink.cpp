@@ -1419,6 +1419,11 @@ nsContentSink::EndUpdate(nsIDocument *aDocument, nsUpdateType aUpdateType)
 void
 nsContentSink::DidBuildModelImpl(void)
 {
+  if (mDocument && mDocument->GetDocumentTitle().IsVoid()) {
+    nsCOMPtr<nsIDOMNSDocument> dom_doc(do_QueryInterface(mDocument));
+    dom_doc->SetTitle(EmptyString());
+  }
+
   
   if (mNotificationTimer) {
     SINK_TRACE(gContentSinkLogModuleInfo, SINK_TRACE_REFLOW,
