@@ -351,7 +351,6 @@ nsWindow::nsWindow() : nsBaseWidget()
   mIsVisible            = PR_FALSE;
   mHas3DBorder          = PR_FALSE;
   mIsInMouseCapture     = PR_FALSE;
-  mIsPluginWindow       = PR_FALSE;
   mIsTopWidgetWindow    = PR_FALSE;
   mInScrollProcessing   = PR_FALSE;
   mUnicodeWidget        = PR_TRUE;
@@ -512,8 +511,6 @@ nsWindow::Create(nsIWidget *aParent,
   }
 
   if (nsnull != aInitData) {
-    SetWindowType(aInitData->mWindowType);
-    SetBorderStyle(aInitData->mBorderStyle);
     mPopupType = aInitData->mPopupHint;
   }
 
@@ -563,12 +560,15 @@ nsWindow::Create(nsIWidget *aParent,
   if (!mWnd)
     return NS_ERROR_FAILURE;
 
-  
-  
-  
-  ::CreateWindowW(L"SCROLLBAR", L"FAKETRACKPOINTSCROLLBAR", 
-                  WS_CHILD | WS_VISIBLE, 0,0,0,0, mWnd, NULL,
-                  nsToolkit::mDllInstance, NULL);
+  if (mWindowType != eWindowType_plugin &&
+      mWindowType != eWindowType_invisible) {
+    
+    
+    
+    ::CreateWindowW(L"SCROLLBAR", L"FAKETRACKPOINTSCROLLBAR", 
+                    WS_CHILD | WS_VISIBLE, 0,0,0,0, mWnd, NULL,
+                    nsToolkit::mDllInstance, NULL);
+  }
 
   
 
@@ -773,6 +773,7 @@ DWORD nsWindow::WindowStyle()
   DWORD style;
 
   switch (mWindowType) {
+    case eWindowType_plugin:
     case eWindowType_child:
       style = WS_OVERLAPPED;
       break;
@@ -843,6 +844,7 @@ DWORD nsWindow::WindowExStyle()
 {
   switch (mWindowType)
   {
+    case eWindowType_plugin:
     case eWindowType_child:
       return 0;
 
@@ -2213,7 +2215,6 @@ void* nsWindow::GetNativeData(PRUint32 aDataType)
 {
   switch (aDataType) {
     case NS_NATIVE_PLUGIN_PORT:
-      mIsPluginWindow = 1;
     case NS_NATIVE_WIDGET:
     case NS_NATIVE_WINDOW:
       return (void*)mWnd;
@@ -4213,7 +4214,6 @@ PRBool nsWindow::ProcessMessage(UINT msg, WPARAM &wParam, LPARAM &lParam,
     {
       if (mWindowType != eWindowType_invisible &&
           mWindowType != eWindowType_plugin &&
-          mWindowType != eWindowType_java &&
           mWindowType != eWindowType_toplevel) {
         
         
@@ -5726,7 +5726,7 @@ PRBool nsWindow::HandleScrollingPlugins(UINT aMsg, WPARAM aWParam,
     return PR_FALSE; 
   }
   nsWindow* destWindow = GetNSWindowPtr(destWnd);
-  if (!destWindow || destWindow->mIsPluginWindow) {
+  if (!destWindow || destWindow->mWindowType == eWindowType_plugin) {
     
     
     
@@ -6249,7 +6249,7 @@ LRESULT CALLBACK nsWindow::MozSpecialMouseProc(int code, WPARAM wParam, LPARAM l
         if (mozWin) {
           
           
-          if (static_cast<nsWindow*>(mozWin)->mIsPluginWindow)
+          if (static_cast<nsWindow*>(mozWin)->mWindowType == eWindowType_plugin)
             ScheduleHookTimer(ms->hwnd, (UINT)wParam);
         } else {
           ScheduleHookTimer(ms->hwnd, (UINT)wParam);

@@ -730,8 +730,8 @@ void nsWindow::DoCreate( HWND hwndP, nsWindow *aParent,
     mIsTopWidgetWindow = PR_FALSE;
 
    if( aInitData != nsnull) {
-     SetWindowType(aInitData->mWindowType);
-     SetBorderStyle(aInitData->mBorderStyle);
+     mWindowType = aInitData->mWindowType;
+     mBorerStyle = aInitData->mBorderStyle;
    }
 
    
@@ -1276,7 +1276,8 @@ NS_METHOD nsWindow::Resize(PRInt32 aX,
    
    
    
-   if( !mWnd || mWindowType == eWindowType_child) 
+   if( !mWnd || mWindowType == eWindowType_child ||
+       mWindowType == eWindowType_plugin ) 
    {
       
       mBounds.x      = aX ;

@@ -357,6 +357,7 @@ DWORD nsWindow::WindowStyle()
   
 
   switch (mWindowType) {
+    case eWindowType_plugin:
     case eWindowType_child:
       style = WS_CHILD;
       break;

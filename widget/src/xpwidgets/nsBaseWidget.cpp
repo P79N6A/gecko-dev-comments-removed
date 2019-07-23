@@ -200,7 +200,8 @@ void nsBaseWidget::BaseCreate(nsIWidget *aParent,
   }
 
   if (nsnull != aInitData) {
-    PreCreateWidget(aInitData);
+    mWindowType = aInitData->mWindowType;
+    mBorderStyle = aInitData->mBorderStyle;
   }
 
   if (aParent) {
@@ -530,12 +531,6 @@ NS_IMETHODIMP nsBaseWidget::GetWindowType(nsWindowType& aWindowType)
   return NS_OK;
 }
 
-NS_IMETHODIMP nsBaseWidget::SetWindowType(nsWindowType aWindowType) 
-{
-  mWindowType = aWindowType;
-  return NS_OK;
-}
-
 
 
 
@@ -720,13 +715,6 @@ NS_METHOD nsBaseWidget::SetWindowClass(const nsAString& xulWinType)
 {
   return NS_ERROR_NOT_IMPLEMENTED;
 }
-
-NS_METHOD nsBaseWidget::SetBorderStyle(nsBorderStyle aBorderStyle)
-{
-  mBorderStyle = aBorderStyle;
-  return NS_OK;
-}
-
 
 
 

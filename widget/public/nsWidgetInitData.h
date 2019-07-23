@@ -55,7 +55,6 @@ enum nsWindowType {
                          
   eWindowType_invisible, 
   eWindowType_plugin,    
-  eWindowType_java,      
   eWindowType_sheet      
 };
 
