@@ -767,18 +767,6 @@ var PlacesUtils = {
   },
 
   
-
-
-
-
-  getQueryStringForFolder: function PU_getQueryStringForFolder(aFolderId) {
-    var options = this.history.getNewQueryOptions();
-    var query = this.history.getNewQuery();
-    query.setFolders([aFolderId], 1);
-    return this.history.queriesToQueryString([query], 1, options);
-  },
-
-  
   get placesRootId() {
     delete this.placesRootId;
     return this.placesRootId = this.bookmarks.placesRoot;

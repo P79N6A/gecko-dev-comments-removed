@@ -221,7 +221,7 @@
                       onpopupshown="CreateMenu('more-menu');"
                       observes="isImage">
                     <template>
-                        <rule rdf:type="http:
+                        <rule rdf:type="http://home.netscape.com/NC-rdf#BookmarkSeparator">
                             <menupopup>
                             <menuseparator uri="..." />
                             </menupopup>
@@ -236,7 +236,7 @@
                     <menupopup>
                     <menu label="&charsetMenuAutodet.label;" accesskey="&charsetMenuAutodet.accesskey;" datasources="rdf:charset-menu" ref="NC:BrowserAutodetMenuRoot">
                         <template>
-                            <rule rdf:type="http:
+                            <rule rdf:type="http://home.netscape.com/NC-rdf#CharsetDetector">
                                 <menupopup>
                                 <menuitem type="radio" name="detectorGroup" checked="rdf:http://home.netscape.com/NC-rdf#Checked" uri="..." label="rdf:http://home.netscape.com/NC-rdf#Name"/>
                                 </menupopup>
@@ -402,7 +402,7 @@
         ondragover="nsDragAndDrop.dragOver(event, BookmarksMenuDropHandler);">
     <menupopup id="bookmarksMenuPopup"
                type="places"
-               place="place:folder=BOOKMARKS_MENU&amp;expandQueries=1"
+               place="place:folder=BOOKMARKS_MENU"
                context="placesContext"
                openInTabs="children"
                oncommand="BookmarksEventHandler.onCommand(event);"
@@ -432,9 +432,11 @@
       <menuseparator id="organizeBookmarksSeparator"/>
       <menu id="bookmarksToolbarFolderMenu"
             class="menu-iconic bookmark-item"
+            label="&personalbarCmd.label;"
             container="true">
         <menupopup id="bookmarksToolbarFolderPopup"
                    type="places"
+                   place="place:folder=TOOLBAR"
                    context="placesContext"
                    onpopupshowing="BookmarksEventHandler.onPopupShowing(event);"/>
       </menu>
