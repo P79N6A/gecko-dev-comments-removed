@@ -119,6 +119,7 @@ class nsGlobalWindowObserver;
 class nsGlobalWindow;
 
 class nsDOMOfflineResourceList;
+class nsDOMOfflineLoadStatusList;
 
 
 enum OpenAllowValue {
@@ -758,6 +759,7 @@ protected:
   nsRefPtr<nsMimeTypeArray> mMimeTypes;
   nsRefPtr<nsPluginArray> mPlugins;
   nsRefPtr<nsDOMOfflineResourceList> mOfflineResources;
+  nsRefPtr<nsDOMOfflineLoadStatusList> mPendingOfflineLoads;
   nsIDocShell* mDocShell; 
 
   static jsval       sPrefInternal_id;
