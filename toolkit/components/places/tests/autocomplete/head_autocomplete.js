@@ -39,6 +39,7 @@
 
 
 
+
 Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
 
 const TRANSITION_LINK = Ci.nsINavHistoryService.TRANSITION_LINK;
@@ -164,6 +165,8 @@ try {
               getService(Ci.nsIIOService);
   var prefs = Cc["@mozilla.org/preferences-service;1"].
               getService(Ci.nsIPrefBranch);
+  var lmsvc = Cc["@mozilla.org/browser/livemark-service;2"].
+              getService(Ci.nsILivemarkService);
 } catch(ex) {
   do_throw("Could not get services\n");
 }
@@ -222,7 +225,73 @@ function setPageTitle(aURI, aTitle)
 
 
 
-function addPageBook(aURI, aTitle, aBook, aTags, aKey, aTransitionType)
+
+function addLivemark(aContainerSiteURI, aContainerFeedURI, aContainerTitle,
+                     aChildURI, aChildTitle, aTransitionType, aNoChildVisit)
+{
+  
+  gPages[aChildURI] = [aChildURI, aChildTitle, ];
+
+  let out = [aChildURI, aChildTitle];
+  out.push("\nchild uri=" + kURIs[aChildURI]);
+  out.push("\nchild title=" + kTitles[aChildTitle]);
+
+  
+  let containerSiteURI = toURI(kURIs[aContainerSiteURI]);
+  let containerFeedURI = toURI(kURIs[aContainerFeedURI]);
+  let containerTitle = kTitles[aContainerTitle];
+  let containerId = lmsvc.createLivemarkFolderOnly(bmsvc.unfiledBookmarksFolder,
+                                                   containerTitle,
+                                                   containerSiteURI,
+                                                   containerFeedURI,
+                                                   bmsvc.DEFAULT_INDEX);
+  
+  let childURI = toURI(kURIs[aChildURI]);
+  let childTitle = kTitles[aChildTitle];
+  bmsvc.insertBookmark(containerId, childURI, bmsvc.DEFAULT_INDEX, childTitle);
+
+  
+  if (!aNoChildVisit) {
+    let tt = aTransitionType || TRANSITION_LINK;
+    let isRedirect = tt == TRANSITION_REDIRECT_PERMANENT ||
+                     tt == TRANSITION_REDIRECT_TEMPORARY;
+    histsvc.addVisit(childURI, gDate, null, tt, isRedirect, 0);
+    out.push("\nwith visit");
+  }
+
+  print("\nAdding livemark: " + out.join(", "));
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function addPageBook(aURI, aTitle, aBook, aTags, aKey, aTransitionType, aNoVisit)
 {
   
   gPages[aURI] = [aURI, aBook != undefined ? aBook : aTitle, aTags];
@@ -235,11 +304,14 @@ function addPageBook(aURI, aTitle, aBook, aTags, aKey, aTransitionType)
   out.push("\ntitle=" + title);
 
   
-  let tt = aTransitionType || TRANSITION_LINK;
-  let isRedirect = tt == TRANSITION_REDIRECT_PERMANENT ||
-                   tt == TRANSITION_REDIRECT_TEMPORARY;
-  histsvc.addVisit(uri, gDate, null, tt, isRedirect, 0);
-  setPageTitle(uri, title);
+  if (!aNoVisit) {
+    let tt = aTransitionType || TRANSITION_LINK;
+    let isRedirect = tt == TRANSITION_REDIRECT_PERMANENT ||
+                     tt == TRANSITION_REDIRECT_TEMPORARY;
+    histsvc.addVisit(uri, gDate, null, tt, isRedirect, 0);
+    setPageTitle(uri, title);
+    out.push("\nwith visit");
+  }
 
   
   if (aBook != undefined) {
