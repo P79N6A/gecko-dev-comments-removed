@@ -219,7 +219,6 @@ LoginManagerPrompter.prototype = {
             throw Components.results.NS_ERROR_NOT_IMPLEMENTED;
 
         var selectedLogin = null;
-        var foundLogins;
         var checkBox = { value : false };
         var checkBoxLabel = null;
         var hostname = this._getFormattedHostname(aPasswordRealm);
@@ -234,19 +233,28 @@ LoginManagerPrompter.prototype = {
         if (canRememberLogin)
             checkBoxLabel = this._getLocalizedString("rememberPassword");
 
-        if (!aUsername.value && !aPassword.value) {
-            
-            foundLogins = this._pwmgr.findLogins({}, hostname, null,
+        
+        var foundLogins = this._pwmgr.findLogins({}, hostname, null,
                                                  aPasswordRealm);
+
+        
+        
+        if (foundLogins.length > 0) {
+            selectedLogin = foundLogins[0];
 
             
             
-            if (foundLogins.length > 0) {
-                selectedLogin = foundLogins[0];
+            
+            if (aUsername.value)
+                selectedLogin = this._repickSelectedLogin(foundLogins,
+                                                          aUsername.value);
+
+            if (selectedLogin) {
+                checkBox.value = true;
+                aUsername.value = selectedLogin.username;
                 
-                
-                aUsername.value = foundLogins[0].username;
-                aPassword.value = foundLogins[0].password;
+                if (!aPassword.value)
+                    aPassword.value = selectedLogin.password;
             }
         }
 
@@ -254,29 +262,33 @@ LoginManagerPrompter.prototype = {
                     aDialogTitle, aText, aUsername, aPassword,
                     checkBoxLabel, checkBox);
 
-        if (ok && checkBox.value) {
-            var newLogin = Cc["@mozilla.org/login-manager/loginInfo;1"].
-                           createInstance(Ci.nsILoginInfo);
-            newLogin.init(hostname, null, aPasswordRealm,
-                          aUsername.value, aPassword.value,
-                          "", "");
+        if (!ok || !checkBox.value)
+            return ok;
 
-            
-            
-            if (!selectedLogin || username != selectedLogin.username) {
-                
-                this.log("New login seen for " + aPasswordRealm);
 
-                this._pwmgr.addLogin(newLogin);
-            } else if (selectedLogin &&
-                       password != selectedLogin.password) {
-                
-                this.log("Updating password for  " + aPasswordRealm);
-                this._pwmgr.modifyLogin(foundLogins[0], newLogin);
-            } else {
-                this.log("Login unchanged, no further action needed.");
-                return ok;
-            }
+        var newLogin = Cc["@mozilla.org/login-manager/loginInfo;1"].
+                       createInstance(Ci.nsILoginInfo);
+        newLogin.init(hostname, null, aPasswordRealm,
+                      aUsername.value, aPassword.value,
+                      "", "");
+
+        
+        
+        
+        selectedLogin = this._repickSelectedLogin(foundLogins, aUsername.value);
+
+        
+        
+        if (!selectedLogin) {
+            
+            this.log("New login seen for " + aPasswordRealm);
+            this._pwmgr.addLogin(newLogin);
+        } else if (aPassword.value != selectedLogin.password) {
+            
+            this.log("Updating password for  " + aPasswordRealm);
+            this._pwmgr.modifyLogin(selectedLogin, newLogin);
+        } else {
+            this.log("Login unchanged, no further action needed.");
         }
 
         return ok;
@@ -316,15 +328,13 @@ LoginManagerPrompter.prototype = {
         if (!aPassword.value) {
             
             var foundLogins = this._pwmgr.findLogins({}, hostname, null,
-
                                                      newRealm);
 
-            var i;
             
             
             
             
-            for (i = 0; i < foundLogins.length; ++i) {
+            for (var i = 0; i < foundLogins.length; ++i) {
                 if (foundLogins[i].username == username) {
                     aPassword.value = foundLogins[i].password;
                     
@@ -414,48 +424,48 @@ LoginManagerPrompter.prototype = {
 
         var ok = this._promptService.promptAuth(this._window, aChannel,
                                 aLevel, aAuthInfo, checkboxLabel, checkbox);
-        if (epicfail)
+
+        
+        
+        
+        
+        var rememberLogin = notifyBox ? canRememberLogin : checkbox.value;
+        if (!ok || !rememberLogin || epicfail)
             return ok;
 
         try {
             var [username, password] = this._GetAuthInfo(aAuthInfo);
 
-            
-            
-            
-            
-            var rememberLogin = notifyBox ? canRememberLogin : checkbox.value;
+            var newLogin = Cc["@mozilla.org/login-manager/loginInfo;1"].
+                           createInstance(Ci.nsILoginInfo);
+            newLogin.init(hostname, null, httpRealm,
+                          username, password, "", "");
 
-            if (ok && rememberLogin) {
-                var newLogin = Cc["@mozilla.org/login-manager/loginInfo;1"].
-                               createInstance(Ci.nsILoginInfo);
-                newLogin.init(hostname, null, httpRealm,
-                              username, password, "", "");
+            
+            
+            
+            selectedLogin = this._repickSelectedLogin(foundLogins, username);
 
+            
+            
+            if (!selectedLogin) {
                 
+                this.log("New login seen for " + username +
+                         " @ " + hostname + " (" + httpRealm + ")");
+                if (notifyBox)
+                    this._showSaveLoginNotification(notifyBox, newLogin);
+                else
+                    this._pwmgr.addLogin(newLogin);
+
+            } else if (password != selectedLogin.password) {
+
+                this.log("Updating password for " + username +
+                         " @ " + hostname + " (" + httpRealm + ")");
                 
-                if (!selectedLogin || username != selectedLogin.username) {
+                this._pwmgr.modifyLogin(selectedLogin, newLogin);
 
-                    
-                    this.log("New login seen for " + username +
-                             " @ " + hostname + " (" + httpRealm + ")");
-                    if (notifyBox)
-                        this._showSaveLoginNotification(notifyBox, newLogin);
-                    else
-                        this._pwmgr.addLogin(newLogin);
-
-                } else if (selectedLogin &&
-                           password != selectedLogin.password) {
-
-                    this.log("Updating password for " + username +
-                             " @ " + hostname + " (" + httpRealm + ")");
-                    
-                    this._pwmgr.modifyLogin(foundLogins[0], newLogin);
-
-                } else {
-                    this.log("Login unchanged, no further action needed.");
-                    return ok;
-                }
+            } else {
+                this.log("Login unchanged, no further action needed.");
             }
         } catch (e) {
             Components.utils.reportError("LoginManagerPrompter: " +
@@ -899,6 +909,21 @@ LoginManagerPrompter.prototype = {
     },
 
 
+    
+
+
+
+
+
+
+    _repickSelectedLogin : function (foundLogins, username) {
+        for (var i = 0; i < foundLogins.length; i++)
+            if (foundLogins[i].username == username)
+                return foundLogins[i];
+        return null;
+    },
+
+    
     
 
 
