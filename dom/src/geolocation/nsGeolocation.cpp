@@ -386,7 +386,6 @@ nsresult nsGeolocationService::Init()
   if (provider)
     mProviders.AppendObject(provider);
 
-
   
   nsCOMPtr<nsICategoryManager> catMan(do_GetService("@mozilla.org/categorymanager;1"));
   if (!catMan)
@@ -416,13 +415,6 @@ nsresult nsGeolocationService::Init()
   }
 
   
-
-  
-#ifdef NS_MAEMO_LOCATION
-  provider = new MaemoLocationProvider();
-  if (provider)
-    mProviders.AppendObject(provider);
-#endif
 
   
 #ifdef WINCE_WINDOWS_MOBILE
