@@ -98,8 +98,15 @@ class nsStyleSet
   ResolveStyleFor(nsIContent* aContent, nsStyleContext* aParentContext);
 
   
+  
+  
+  
+  
   already_AddRefed<nsStyleContext>
-  ResolveStyleForRules(nsStyleContext* aParentContext, const nsCOMArray<nsIStyleRule> &rules);
+  ResolveStyleForRules(nsStyleContext* aParentContext,
+                       nsIAtom* aPseudoTag,
+                       nsRuleNode *aRuleNode,
+                       const nsCOMArray<nsIStyleRule> &aRules);
 
   
   
