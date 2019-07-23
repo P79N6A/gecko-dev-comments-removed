@@ -86,7 +86,7 @@ tests.push({
 
     
     
-    excludedFolderId =
+    var excludedFolderId =
       PlacesUtils.bookmarks.createFolder(PlacesUtils.placesRootId,
                                          "excluded",
                                          PlacesUtils.bookmarks.DEFAULT_INDEX);
