@@ -3580,16 +3580,11 @@ nsHTMLEditRules::WillCSSIndent(nsISelection *aSelection, PRBool *aCancel, PRBool
   
   
   
-  nsVoidArray transitionList;
-  res = MakeTransitionList(arrayOfNodes, transitionList);
-  if (NS_FAILED(res)) return res;                                 
-  
-  
-  
   PRInt32 i;
   nsCOMPtr<nsIDOMNode> curParent;
   nsCOMPtr<nsIDOMNode> curQuote;
   nsCOMPtr<nsIDOMNode> curList;
+  nsCOMPtr<nsIDOMNode> sibling;
   PRInt32 listCount = arrayOfNodes.Count();
   for (i=0; i<listCount; i++)
   {
@@ -3606,7 +3601,48 @@ nsHTMLEditRules::WillCSSIndent(nsISelection *aSelection, PRBool *aCancel, PRBool
     
     if (nsHTMLEditUtils::IsList(curParent))
     {
-      if (!curList || transitionList[i])
+      sibling = nsnull;
+
+      
+      
+      
+      mHTMLEditor->GetNextHTMLSibling(curNode, address_of(sibling));
+      if (sibling && nsHTMLEditUtils::IsList(sibling))
+      {
+        nsAutoString curListTag, siblingListTag;
+        nsEditor::GetTagString(curParent, curListTag);
+        nsEditor::GetTagString(sibling, siblingListTag);
+        if (curListTag == siblingListTag)
+        {
+          res = mHTMLEditor->MoveNode(curNode, sibling, 0);
+          if (NS_FAILED(res)) return res;
+          continue;
+        }
+      }
+      
+      
+      
+      mHTMLEditor->GetPriorHTMLSibling(curNode, address_of(sibling));
+      if (sibling && nsHTMLEditUtils::IsList(sibling))
+      {
+        nsAutoString curListTag, siblingListTag;
+        nsEditor::GetTagString(curParent, curListTag);
+        nsEditor::GetTagString(sibling, siblingListTag);
+        if (curListTag == siblingListTag)
+        {
+          res = mHTMLEditor->MoveNode(curNode, sibling, -1);
+          if (NS_FAILED(res)) return res;
+          continue;
+        }
+      }
+      sibling = nsnull;
+      
+      
+      
+      if (curList)
+        mHTMLEditor->GetPriorHTMLSibling(curNode, address_of(sibling));
+
+      if (!curList || (sibling && sibling != curList))
       {
         nsAutoString listTag;
         nsEditor::GetTagString(curParent,listTag);
@@ -3635,7 +3671,7 @@ nsHTMLEditRules::WillCSSIndent(nsISelection *aSelection, PRBool *aCancel, PRBool
         curQuote = nsnull;
       }
       else {
-        if (!curQuote) 
+        if (!curQuote)
         {
           NS_NAMED_LITERAL_STRING(divquoteType, "div");
           res = SplitAsNeeded(&divquoteType, address_of(curParent), &offset);

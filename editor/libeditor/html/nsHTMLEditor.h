@@ -452,6 +452,13 @@ protected:
   virtual void RemoveEventListeners();
 
   
+  
+  
+  void UpdateForFlags(PRUint32 aFlags) {
+    mCSSAware = ((aFlags & (eEditorNoCSSMask | eEditorMailMask)) == 0);
+  }
+
+  
 
 
 
