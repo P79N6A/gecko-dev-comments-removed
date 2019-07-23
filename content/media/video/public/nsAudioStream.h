@@ -45,7 +45,7 @@ class nsAudioStream
  public:
   
   
-  static nsresult InitLibrary();
+  static void InitLibrary();
 
   
   
@@ -56,21 +56,15 @@ class nsAudioStream
   
   
   
-  nsresult Init(PRInt32 aNumChannels, PRInt32 aRate);
+  void Init(PRInt32 aNumChannels, PRInt32 aRate);
 
   
-  nsresult Shutdown();
-
-  
-  nsresult Pause();
-
-  
-  nsresult Resume();
+  void Shutdown();
 
   
   
   
-  nsresult Write(float* aBuf, PRUint32 count);
+  void Write(float* aBuf, PRUint32 count);
 
   
   
@@ -78,28 +72,16 @@ class nsAudioStream
 
   
   
-  nsresult GetTime(double* aTime);
+  float GetVolume();
 
   
   
-  nsresult GetVolume(float* aVolume);
-
-  
-  
-  nsresult SetVolume(float aVolume);
+  void SetVolume(float aVolume);
 
  private:
   double mVolume;
-#if defined(SYDNEY_AUDIO_NO_POSITION)
-  
-  double mPauseTime;
-#else
-  
-  
-  PRInt64 mPauseBytes;
-#endif
   void* mAudioHandle;
   int mRate;
   int mChannels;
-  PRBool mPaused;
+  PRPackedBool mMute;
 };
