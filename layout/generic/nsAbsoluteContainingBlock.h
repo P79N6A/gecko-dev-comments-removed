@@ -96,9 +96,9 @@ public:
                         nsIAtom*       aListName,
                         nsIFrame*      aPrevFrame,
                         nsFrameList&   aFrameList);
-  nsresult RemoveFrame(nsIFrame*      aDelegatingFrame,
-                       nsIAtom*       aListName,
-                       nsIFrame*      aOldFrame);
+  void RemoveFrame(nsIFrame*      aDelegatingFrame,
+                   nsIAtom*       aListName,
+                   nsIFrame*      aOldFrame);
 
   
   

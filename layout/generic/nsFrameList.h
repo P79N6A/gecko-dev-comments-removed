@@ -139,9 +139,15 @@ public:
 
 
 
+  void RemoveFrame(nsIFrame* aFrame, nsIFrame* aPrevSiblingHint = nsnull);
+
+  
 
 
-  PRBool RemoveFrame(nsIFrame* aFrame, nsIFrame* aPrevSiblingHint = nsnull);
+
+
+
+  PRBool RemoveFrameIfPresent(nsIFrame* aFrame);
 
   
 
@@ -162,9 +168,14 @@ public:
 
 
 
+  void DestroyFrame(nsIFrame* aFrame, nsIFrame* aPrevSiblingHint = nsnull);
+
+  
 
 
-  PRBool DestroyFrame(nsIFrame* aFrame, nsIFrame* aPrevSiblingHint = nsnull);
+
+
+  PRBool DestroyFrameIfPresent(nsIFrame* aFrame);
 
   
 
