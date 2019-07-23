@@ -377,10 +377,27 @@ LoginManagerStorage_legacy.prototype = {
 
 
 
-    countLogins : function (hostname, formSubmitURL, httpRealm) {
-        var logins = this._searchLogins(hostname, formSubmitURL, httpRealm);
+    countLogins : function (aHostname, aFormSubmitURL, aHttpRealm) {
+        var logins;
 
-        return logins.length;
+        
+        if (aHostname) {
+            logins = this._searchLogins(aHostname, aFormSubmitURL, aHttpRealm);
+            return logins.length
+        } 
+
+        
+        if (aHostname == null)
+            return 0;
+
+        
+        var count = 0;
+        for (var hostname in this._logins) {
+            logins = this._searchLogins(hostname, aFormSubmitURL, aHttpRealm);
+            count += logins.length;
+        }
+
+        return count;
     },
 
 
