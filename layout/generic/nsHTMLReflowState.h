@@ -408,10 +408,13 @@ public:
 
 
 
-
-  static nscoord CalcLineHeight(nsPresContext* aPresContext,
-                                nsIRenderingContext* aRenderingContext,
+  static nscoord CalcLineHeight(nsIRenderingContext* aRenderingContext,
                                 nsIFrame* aFrame);
+  
+
+
+  static nscoord CalcLineHeight(nsStyleContext* aStyleContext,
+                                nsIDeviceContext* aDeviceContext);
 
   void InitFrameType();
 

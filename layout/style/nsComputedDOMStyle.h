@@ -79,14 +79,10 @@ private:
   
 #define STYLE_STRUCT(name_, checkdata_cb_, ctor_args_)                  \
   const nsStyle##name_ * GetStyle##name_() {                            \
-    return NS_STATIC_CAST(const nsStyle##name_ *,                       \
-                          GetStyleData(eStyleStruct_##name_));          \
+    return mStyleContextHolder->GetStyle##name_();                      \
   }
 #include "nsStyleStructList.h"
 #undef STYLE_STRUCT
-
-  
-  const nsStyleStruct* GetStyleData(nsStyleStructID aSID);
 
   nsresult GetOffsetWidthFor(PRUint8 aSide, nsIDOMCSSValue** aValue);
 
@@ -338,6 +334,7 @@ private:
 
 
 
+
   nsRefPtr<nsStyleContext> mStyleContextHolder;
   nsCOMPtr<nsIAtom> mPseudo;
 
@@ -346,6 +343,11 @@ private:
 
 
   nsIFrame* mFrame;
+  
+
+
+
+  nsIPresShell* mPresShell;
 
   PRInt32 mAppUnitsPerInch; 
 };
