@@ -136,6 +136,47 @@ extern "C" {
 
 
 
+JS_STATIC_ASSERT(sizeof(JSTempValueUnion) == sizeof(jsval));
+JS_STATIC_ASSERT(sizeof(JSTempValueUnion) == sizeof(void *));
+
+
+
+
+
+
+JS_STATIC_ASSERT(JSTRACE_OBJECT == 0);
+JS_STATIC_ASSERT(JSTRACE_DOUBLE == 1);
+JS_STATIC_ASSERT(JSTRACE_STRING == 2);
+JS_STATIC_ASSERT(JSTRACE_XML    == 3);
+
+
+
+
+
+JS_STATIC_ASSERT(JSTRACE_STRING + 1 == JSTRACE_XML);
+
+
+
+
+JS_STATIC_ASSERT(GCX_NTYPES <= GCX_LIMIT);
+
+
+
+
+
+JS_STATIC_ASSERT(sizeof(JSGCDoubleCell) == sizeof(double));
+
+
+
+
+JS_STATIC_ASSERT(JSVAL_NULL == 0);
+
+
+
+
+
+
+
 
 
 

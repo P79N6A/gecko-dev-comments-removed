@@ -93,6 +93,8 @@ JS_Assert(const char *s, const char *file, JSIntn ln);
 #endif
 #endif
 
+#define JS_STATIC_ASSERT_IF(cond, expr) JS_STATIC_ASSERT(!(cond) || (expr))
+
 
 
 

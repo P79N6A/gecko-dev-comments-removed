@@ -50,8 +50,6 @@
 
 JS_BEGIN_EXTERN_C
 
-JS_STATIC_ASSERT(JSTRACE_STRING == 2);
-
 #define JSTRACE_XML         3
 
 
@@ -72,15 +70,10 @@ JS_STATIC_ASSERT(JSTRACE_STRING == 2);
 
 
 
+
 #define GCX_NTYPES              (GCX_EXTERNAL_STRING + 8)
-
-
-
-
 #define GCX_LIMIT_LOG2         4           /* type index bits */
 #define GCX_LIMIT              JS_BIT(GCX_LIMIT_LOG2)
-
-JS_STATIC_ASSERT(GCX_NTYPES <= GCX_LIMIT);
 
 
 #define GCF_TYPEMASK    JS_BITMASK(GCX_LIMIT_LOG2)
@@ -241,12 +234,6 @@ js_IsAboutToBeFinalized(JSContext *cx, void *thing);
 
 
 
-JS_STATIC_ASSERT(JSTRACE_STRING + 1 == JSTRACE_XML);
-
-
-
-
-
 
 extern void
 js_CallValueTracerIfGCThing(JSTracer *trc, jsval v);
@@ -335,8 +322,6 @@ union JSGCDoubleCell {
     JSGCDoubleCell  *link;
 };
 
-JS_STATIC_ASSERT(sizeof(JSGCDoubleCell) == sizeof(double));
-
 typedef struct JSGCDoubleArenaList {
     JSGCArenaInfo   *first;             
     jsbitmap        *nextDoubleFlags;   
@@ -366,7 +351,6 @@ struct JSWeakRoots {
     jsval           lastInternalResult;
 };
 
-JS_STATIC_ASSERT(JSVAL_NULL == 0);
 #define JS_CLEAR_WEAK_ROOTS(wr) (memset((wr), 0, sizeof(JSWeakRoots)))
 
 

@@ -56,6 +56,11 @@
 #include "jsscope.h"
 #include "jsstr.h"
 
+
+
+
+JS_STATIC_ASSERT(offsetof(JSScope, title) == sizeof(JSObjectMap));
+
 #define ReadWord(W) (W)
 
 

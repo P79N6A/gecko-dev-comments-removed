@@ -65,9 +65,6 @@ JS_BEGIN_EXTERN_C
 #define ATOM_IS_STRING(atom)      JSVAL_IS_STRING(ATOM_KEY(atom))
 #define ATOM_TO_STRING(atom)      JSVAL_TO_STRING(ATOM_KEY(atom))
 
-JS_STATIC_ASSERT(sizeof(JSHashNumber) == 4);
-JS_STATIC_ASSERT(sizeof(JSAtom *) == JS_BYTES_PER_WORD);
-
 #if JS_BYTES_PER_WORD == 4
 # define ATOM_HASH(atom)          ((JSHashNumber)(atom) >> 2)
 #elif JS_BYTES_PER_WORD == 8
@@ -274,10 +271,6 @@ struct JSAtomState {
     ((offsetof(JSAtomState, typeAtoms[type]) - ATOM_OFFSET_START)             \
      / sizeof(JSAtom*))
 
-
-JS_STATIC_ASSERT(ATOM_OFFSET_START % sizeof(JSAtom *) == 0);
-JS_STATIC_ASSERT(ATOM_OFFSET_LIMIT % sizeof(JSAtom *) == 0);
-
 #define ATOM_OFFSET(name)       offsetof(JSAtomState, name##Atom)
 #define OFFSET_TO_ATOM(rt,off)  (*(JSAtom **)((char*)&(rt)->atomState + (off)))
 #define CLASS_ATOM_OFFSET(name) offsetof(JSAtomState,classAtoms[JSProto_##name])
@@ -291,14 +284,8 @@ extern const size_t      js_common_atom_count;
 
 
 
-
 #define JS_BOOLEAN_STR(type) (js_common_atom_names[1 + (type)])
 #define JS_TYPE_STR(type)    (js_common_atom_names[1 + 2 + (type)])
-
-JS_STATIC_ASSERT(1 * sizeof(JSAtom *) ==
-                 offsetof(JSAtomState, booleanAtoms) - ATOM_OFFSET_START);
-JS_STATIC_ASSERT((1 + 2) * sizeof(JSAtom *) ==
-                 offsetof(JSAtomState, typeAtoms) - ATOM_OFFSET_START);
 
 
 #define JS_PROTO(name,code,init) extern const char js_##name##_str[];

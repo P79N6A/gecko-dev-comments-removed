@@ -76,6 +76,11 @@
 #include "jsautooplen.h"
 
 
+
+
+JS_STATIC_ASSERT(sizeof(uint32) * JS_BITS_PER_BYTE >= INDEX_LIMIT_LOG2 + 1);
+
+
 #define OPDEF(op,val,name,token,length,nuses,ndefs,prec,format)               \
     JS_STATIC_ASSERT(op##_LENGTH == length);
 #include "jsopcode.tbl"
