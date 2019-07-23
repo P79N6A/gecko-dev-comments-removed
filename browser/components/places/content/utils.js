@@ -730,12 +730,16 @@ var PlacesUtils = {
 
 
 
+
+
+
   showAddBookmarkUI: function PU_showAddBookmarkUI(aURI,
                                                    aTitle,
                                                    aDescription,
                                                    aDefaultInsertionPoint,
                                                    aShowPicker,
-                                                   aLoadInSidebar) {
+                                                   aLoadInSidebar,
+                                                   aKeyword) {
     var info = {
       action: "add",
       type: "bookmark"
@@ -760,6 +764,9 @@ var PlacesUtils = {
     if (aLoadInSidebar)
       info.loadBookmarkInSidebar = true;
 
+    if (typeof(aKeyword) == "string")
+      info.keyword = aKeyword;
+
     return this._showBookmarkDialog(info);
   },
 
@@ -771,10 +778,13 @@ var PlacesUtils = {
 
 
 
+
+
+
   showMinimalAddBookmarkUI:
   function PU_showMinimalAddBookmarkUI(aURI, aTitle, aDescription,
                                        aDefaultInsertionPoint, aShowPicker,
-                                       aLoadInSidebar) {
+                                       aLoadInSidebar, aKeyword) {
     var info = {
       action: "add",
       type: "bookmark",
@@ -798,6 +808,11 @@ var PlacesUtils = {
 
     if (aLoadInSidebar)
       info.loadBookmarkInSidebar = true;
+
+    if (typeof(aKeyword) == "string")
+      info.keyword = aKeyword;
+    else
+      info.hiddenRows.push("keyword");
 
     return this._showBookmarkDialog(info, true);
   },
