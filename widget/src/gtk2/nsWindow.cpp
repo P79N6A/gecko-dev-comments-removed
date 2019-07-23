@@ -4050,7 +4050,11 @@ nsWindow::HideWindowChrome(PRBool aShouldHide)
     
     
     
-    gdk_window_hide(mShell->window);
+    PRBool wasVisible = PR_FALSE;
+    if (gdk_window_is_visible(mShell->window)) {
+        gdk_window_hide(mShell->window);
+        wasVisible = PR_TRUE;
+    }
 
     gint wmd;
     if (aShouldHide)
@@ -4060,7 +4064,8 @@ nsWindow::HideWindowChrome(PRBool aShouldHide)
 
     gdk_window_set_decorations(mShell->window, (GdkWMDecoration) wmd);
 
-    gdk_window_show(mShell->window);
+    if (wasVisible)
+        gdk_window_show(mShell->window);
 
     
     
