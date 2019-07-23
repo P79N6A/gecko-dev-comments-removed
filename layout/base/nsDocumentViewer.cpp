@@ -433,7 +433,7 @@ protected:
   nsCOMPtr<nsIContentViewer> mPreviousViewer;
   nsCOMPtr<nsISHEntry> mSHEntry;
 
-  nsIWidget* mParentWidget; 
+  nsIWidget* mParentWidget;          
 
   
   
@@ -817,11 +817,7 @@ DocumentViewerImpl::InitInternal(nsIWidget* aParentWidget,
 
   PRBool makeCX = PR_FALSE;
   if (aDoCreation) {
-    
-    
-    
-    
-    if ((aParentWidget || mDocument->GetDisplayDocument()) && !mPresContext) {
+    if (aParentWidget && !mPresContext) {
       
       if (mIsPageMode) {
         
@@ -962,11 +958,14 @@ DocumentViewerImpl::LoadComplete(nsresult aStatus)
   
   nsPIDOMWindow *window = mDocument->GetWindow();
 
+  
+  NS_ENSURE_TRUE(window, NS_ERROR_NULL_POINTER);
+
   mLoaded = PR_TRUE;
 
   
   PRBool restoring = PR_FALSE;
-  if(NS_SUCCEEDED(aStatus) && window) {
+  if(NS_SUCCEEDED(aStatus)) {
     nsEventStatus status = nsEventStatus_eIgnore;
     nsEvent event(PR_TRUE, NS_LOAD);
     event.flags |= NS_EVENT_FLAG_CANT_BUBBLE;
@@ -1242,14 +1241,20 @@ DocumentViewerImpl::Open(nsISupports *aState, nsISHEntry *aSHEntry)
 {
   NS_ENSURE_TRUE(mPresShell, NS_ERROR_NOT_INITIALIZED);
 
+  
+  
+  nsCOMPtr<nsISupports> container = do_QueryReferent(mContainer);
+  if (!container)
+    return NS_ERROR_NOT_AVAILABLE;
+
   nsRect bounds;
   mWindow->GetBounds(bounds);
 
-  if (mDocument)
-    mDocument->SetContainer(nsCOMPtr<nsISupports>(do_QueryReferent(mContainer)));
-
   nsresult rv = InitInternal(mParentWidget, aState, bounds, PR_FALSE, PR_FALSE);
   NS_ENSURE_SUCCESS(rv, rv);
+
+  if (mDocument)
+    mDocument->SetContainer(nsCOMPtr<nsISupports>(do_QueryReferent(mContainer)));
 
   if (mPresShell)
     mPresShell->SetForwardingContainer(nsnull);
@@ -1257,13 +1262,11 @@ DocumentViewerImpl::Open(nsISupports *aState, nsISHEntry *aSHEntry)
   
   
 
-  if (aSHEntry) {
-    nsCOMPtr<nsIDocShellTreeItem> item;
-    PRInt32 itemIndex = 0;
-    while (NS_SUCCEEDED(aSHEntry->ChildShellAt(itemIndex++,
-                                               getter_AddRefs(item))) && item) {
-      AttachContainerRecurse(nsCOMPtr<nsIDocShell>(do_QueryInterface(item)));
-    }
+  nsCOMPtr<nsIDocShellTreeItem> item;
+  PRInt32 itemIndex = 0;
+  while (NS_SUCCEEDED(aSHEntry->ChildShellAt(itemIndex++,
+                                             getter_AddRefs(item))) && item) {
+    AttachContainerRecurse(nsCOMPtr<nsIDocShell>(do_QueryInterface(item)));
   }
   
   SyncParentSubDocMap();
@@ -1870,11 +1873,11 @@ DocumentViewerImpl::Show(void)
 
   if (mDocument && !mPresShell && !mWindow) {
     nsCOMPtr<nsIBaseWindow> base_win(do_QueryReferent(mContainer));
-    if (base_win) {
-      base_win->GetParentWidget(&mParentWidget);
-      NS_ENSURE_TRUE(mParentWidget, NS_ERROR_UNEXPECTED);
-      mParentWidget->Release(); 
-    }
+    NS_ENSURE_TRUE(base_win, NS_ERROR_UNEXPECTED);
+
+    base_win->GetParentWidget(&mParentWidget);
+    NS_ENSURE_TRUE(mParentWidget, NS_ERROR_UNEXPECTED);
+    mParentWidget->Release(); 
 
     nsresult rv = CreateDeviceContext(mParentWidget);
     NS_ENSURE_SUCCESS(rv, rv);
@@ -1891,12 +1894,7 @@ DocumentViewerImpl::Show(void)
     }
 
     nsRect tbounds;
-    if (mParentWidget) {
-      mParentWidget->GetBounds(tbounds);
-    } else {
-      
-      tbounds = nsRect(0, 0, 0, 0);
-    }
+    mParentWidget->GetBounds(tbounds);
 
     rv = MakeWindow(nsSize(mPresContext->DevPixelsToAppUnits(tbounds.width),
                            mPresContext->DevPixelsToAppUnits(tbounds.height)));
@@ -2100,14 +2098,11 @@ DocumentViewerImpl::CreateStyleSet(nsIDocument* aDocument,
   
   
   
-#ifdef DEBUG
-  nsCOMPtr<nsISupports> debugDocContainer = aDocument->GetContainer();
-  nsCOMPtr<nsIDocShellTreeItem> debugDocShell(do_QueryReferent(mContainer));
-  NS_ASSERTION(SameCOMIdentity(debugDocContainer, debugDocShell),
-               "Unexpected containers");
-#endif
+  nsCOMPtr<nsIDocShellTreeItem> docShell(do_QueryReferent(mContainer));
+  PRInt32 shellType;
+  docShell->GetItemType(&shellType);
   nsICSSStyleSheet* sheet = nsnull;
-  if (nsContentUtils::IsInChromeDocshell(aDocument)) {
+  if (shellType == nsIDocShellTreeItem::typeChrome) {
     sheet = nsLayoutStylesheetCache::UserChromeSheet();
   }
   else {
@@ -2119,16 +2114,12 @@ DocumentViewerImpl::CreateStyleSet(nsIDocument* aDocument,
 
   
   PRBool shouldOverride = PR_FALSE;
-  
-  
-  nsCOMPtr<nsIDocShell> ds(do_QueryReferent(mContainer));
+  nsCOMPtr<nsIDocShell> ds(do_QueryInterface(docShell));
   nsCOMPtr<nsIDOMEventTarget> chromeHandler;
   nsCOMPtr<nsIURI> uri;
   nsCOMPtr<nsICSSStyleSheet> csssheet;
 
-  if (ds) {
-    ds->GetChromeEventHandler(getter_AddRefs(chromeHandler));
-  }
+  ds->GetChromeEventHandler(getter_AddRefs(chromeHandler));
   if (chromeHandler) {
     nsCOMPtr<nsIDOMElement> elt(do_QueryInterface(chromeHandler));
     nsCOMPtr<nsIContent> content(do_QueryInterface(elt));
@@ -2218,8 +2209,7 @@ DocumentViewerImpl::MakeWindow(const nsSize& aSize)
 
   
   
-  nsIView* containerView =
-    mParentWidget ? nsIView::GetViewFor(mParentWidget) : nsnull;
+  nsIView* containerView = nsIView::GetViewFor(mParentWidget);
 
   if (containerView) {
     
@@ -2261,21 +2251,8 @@ DocumentViewerImpl::MakeWindow(const nsSize& aSize)
   
   
   
-  nsWidgetInitData initData;
-  nsWidgetInitData* initDataPtr;
-  if (!mParentWidget) {
-    initDataPtr = &initData;
-    initData.mWindowType = eWindowType_invisible;
-
-    initData.mContentType =
-      nsContentUtils::IsInChromeDocshell(mDocument) ?
-        eContentTypeUI : eContentTypeContent;
-  } else {
-    initDataPtr = nsnull;
-  }
-  rv = view->CreateWidget(kWidgetCID, initDataPtr,
-                          (containerView != nsnull || !mParentWidget) ?
-                            nsnull : mParentWidget->GetNativeData(NS_NATIVE_WIDGET),
+  rv = view->CreateWidget(kWidgetCID, nsnull,
+                          containerView != nsnull ? nsnull : mParentWidget->GetNativeData(NS_NATIVE_WIDGET),
                           PR_TRUE, PR_FALSE);
   if (NS_FAILED(rv))
     return rv;
@@ -2296,31 +2273,12 @@ DocumentViewerImpl::MakeWindow(const nsSize& aSize)
 nsresult
 DocumentViewerImpl::CreateDeviceContext(nsIWidget* aWidget)
 {
-  NS_PRECONDITION(!mPresShell && !mPresContext && !mWindow,
-                  "This will screw up our existing presentation");
-  NS_PRECONDITION(mDocument, "Gotta have a document here");
-  
-  nsIDocument* doc = mDocument->GetDisplayDocument();
-  if (doc) {
-    NS_ASSERTION(!aWidget, "Shouldn't have a widget here");
-    
-    
-    nsIPresShell* shell = doc->GetPrimaryShell();
-    if (shell) {
-      nsPresContext* ctx = shell->GetPresContext();
-      if (ctx) {
-        mDeviceContext = ctx->DeviceContext();
-        return NS_OK;
-      }
-    }
+  NS_PRECONDITION(!mDeviceContext, "How come we're calling this?");
+  if (aWidget) {
+    mDeviceContext = do_CreateInstance(kDeviceContextCID);
+    NS_ENSURE_TRUE(mDeviceContext, NS_ERROR_FAILURE);
+    mDeviceContext->Init(aWidget->GetNativeData(NS_NATIVE_WIDGET));
   }
-  
-  
-  
-  mDeviceContext = do_CreateInstance(kDeviceContextCID);
-  NS_ENSURE_TRUE(mDeviceContext, NS_ERROR_FAILURE);
-  mDeviceContext->Init(aWidget ?
-                       aWidget->GetNativeData(NS_NATIVE_WIDGET) : nsnull);
   return NS_OK;
 }
 
@@ -2703,38 +2661,6 @@ SetChildFullZoom(nsIMarkupDocumentViewer* aChild, void* aClosure)
   aChild->SetFullZoom(ZoomInfo->mZoom);
 }
 
-PR_STATIC_CALLBACK(PRBool)
-SetExtResourceTextZoom(nsIDocument* aDocument, void* aClosure)
-{
-  
-  nsIPresShell* shell = aDocument->GetPrimaryShell();
-  if (shell) {
-    nsPresContext* ctxt = shell->GetPresContext();
-    if (ctxt) {
-      struct ZoomInfo* ZoomInfo = static_cast<struct ZoomInfo*>(aClosure);
-      ctxt->SetTextZoom(ZoomInfo->mZoom);
-    }
-  }
-
-  return PR_TRUE;
-}
-
-PR_STATIC_CALLBACK(PRBool)
-SetExtResourceFullZoom(nsIDocument* aDocument, void* aClosure)
-{
-  
-  nsIPresShell* shell = aDocument->GetPrimaryShell();
-  if (shell) {
-    nsPresContext* ctxt = shell->GetPresContext();
-    if (ctxt) {
-      struct ZoomInfo* ZoomInfo = static_cast<struct ZoomInfo*>(aClosure);
-      ctxt->SetFullZoom(ZoomInfo->mZoom);
-    }
-  }
-
-  return PR_TRUE;
-}
-
 NS_IMETHODIMP
 DocumentViewerImpl::SetTextZoom(float aTextZoom)
 {
@@ -2756,9 +2682,6 @@ DocumentViewerImpl::SetTextZoom(float aTextZoom)
   if (pc && aTextZoom != mPresContext->TextZoom()) {
       pc->SetTextZoom(aTextZoom);
   }
-
-  
-  mDocument->EnumerateExternalResources(SetExtResourceTextZoom, &ZoomInfo);
 
   batch.EndUpdateViewBatch(NS_VMREFRESH_NO_SYNC);
   
@@ -2790,9 +2713,6 @@ DocumentViewerImpl::SetFullZoom(float aFullZoom)
   if (pc) {
     pc->SetFullZoom(aFullZoom);
   }
-
-  
-  mDocument->EnumerateExternalResources(SetExtResourceFullZoom, &ZoomInfo);
 
   batch.EndUpdateViewBatch(NS_VMREFRESH_NO_SYNC);
 
@@ -2842,6 +2762,8 @@ DocumentViewerImpl::GetAuthorStyleDisabled(PRBool* aStyleDisabled)
 NS_IMETHODIMP
 DocumentViewerImpl::GetDefaultCharacterSet(nsACString& aDefaultCharacterSet)
 {
+  NS_ENSURE_STATE(nsCOMPtr<nsISupports>(do_QueryReferent(mContainer)));
+
   if (mDefaultCharacterSet.IsEmpty())
   {
     const nsAdoptingString& defCharset =
@@ -3136,10 +3058,9 @@ NS_IMETHODIMP DocumentViewerImpl::SizeToContent()
 {
    NS_ENSURE_TRUE(mDocument, NS_ERROR_NOT_AVAILABLE);
 
-   
    nsCOMPtr<nsIDocShellTreeItem> docShellAsItem(do_QueryReferent(mContainer));
-   NS_ENSURE_TRUE(docShellAsItem, NS_ERROR_NOT_AVAILABLE);
-   
+   NS_ENSURE_TRUE(docShellAsItem, NS_ERROR_FAILURE);
+
    nsCOMPtr<nsIDocShellTreeItem> docShellParent;
    docShellAsItem->GetSameTypeParent(getter_AddRefs(docShellParent));
 

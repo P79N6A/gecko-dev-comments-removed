@@ -6282,9 +6282,6 @@ nsEventStateManager::ShiftFocusByDoc(PRBool aForward)
 
   nsCOMPtr<nsISupports> pcContainer = mPresContext->GetContainer();
   nsCOMPtr<nsIDocShellTreeNode> curNode = do_QueryInterface(pcContainer);
-  if (!curNode) {
-    return;
-  }
 
   
   

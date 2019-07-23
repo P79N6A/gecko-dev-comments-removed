@@ -84,13 +84,9 @@ GetDeviceContextFor(nsPresContext* aPresContext)
   
   
   
-  nsIDeviceContext* ctx = nsLayoutUtils::GetDeviceContextForScreenInfo(
+  return nsLayoutUtils::GetDeviceContextForScreenInfo(
     nsCOMPtr<nsIDocShell>(do_QueryInterface(
       nsCOMPtr<nsISupports>(aPresContext->GetContainer()))));
-  if (!ctx) {
-    ctx = aPresContext->DeviceContext();
-  }
-  return ctx;
 }
 
 PR_STATIC_CALLBACK(nsresult)

@@ -1804,35 +1804,49 @@ PresShell::SetPreferenceStyleRules(PRBool aForceReflow)
 
   NS_PRECONDITION(mPresContext, "presContext cannot be null");
   if (mPresContext) {
-    
-    if (nsContentUtils::IsInChromeDocshell(mDocument)) {
-      return NS_OK;
-    }
+    nsresult result = NS_OK;
 
+    
+    nsCOMPtr<nsISupports> container = mPresContext->GetContainer();
+    if (container) {
+      nsCOMPtr<nsIDocShellTreeItem> docShell(do_QueryInterface(container, &result));
+      if (NS_SUCCEEDED(result) && docShell){
+        PRInt32 docShellType;
+        result = docShell->GetItemType(&docShellType);
+        if (NS_SUCCEEDED(result)){
+          if (nsIDocShellTreeItem::typeChrome == docShellType){
+            return NS_OK;
+          }
+        }      
+      }
+    }
+    if (NS_SUCCEEDED(result)) {
+    
 #ifdef DEBUG_attinasi
-    printf("Setting Preference Style Rules:\n");
+      printf("Setting Preference Style Rules:\n");
 #endif
-    
-    
-    
-    
-    
-    nsresult result = ClearPreferenceStyleRules();
+      
+      
       
     
-    
-    
-    if (NS_SUCCEEDED(result)) {
-      result = SetPrefLinkRules();
-    }
-    if (NS_SUCCEEDED(result)) {
-      result = SetPrefFocusRules();
-    }
-    if (NS_SUCCEEDED(result)) {
-      result = SetPrefNoScriptRule();
-    }
-    if (NS_SUCCEEDED(result)) {
-      result = SetPrefNoFramesRule();
+      
+      result = ClearPreferenceStyleRules();
+      
+      
+      
+      
+      if (NS_SUCCEEDED(result)) {
+        result = SetPrefLinkRules();
+      }
+      if (NS_SUCCEEDED(result)) {
+        result = SetPrefFocusRules();
+      }
+      if (NS_SUCCEEDED(result)) {
+        result = SetPrefNoScriptRule();
+      }
+      if (NS_SUCCEEDED(result)) {
+        result = SetPrefNoFramesRule();
+      }
     }
 #ifdef DEBUG_attinasi
     printf( "Preference Style Rules set: error=%ld\n", (long)result);
@@ -5474,11 +5488,7 @@ nsresult PresShell::RetargetEventToParent(nsGUIEvent*     aEvent,
   
   nsCOMPtr<nsIDocShellTreeItem> treeItem = 
     do_QueryInterface(container);
-  if (!treeItem) {
-    
-    return NS_ERROR_FAILURE;
-  }
-  
+  NS_ASSERTION(treeItem, "No tree item for container.");
   nsCOMPtr<nsIDocShellTreeItem> parentTreeItem;
   treeItem->GetParent(getter_AddRefs(parentTreeItem));
   nsCOMPtr<nsIDocShell> parentDocShell = 
