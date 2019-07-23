@@ -4993,11 +4993,62 @@ BuildGlobalTypeMapFromInnerTree(Queue<JSTraceType>& typeMap, VMSideExit* inner)
 JS_REQUIRES_STACK void
 TraceRecorder::emitTreeCall(TreeFragment* inner, VMSideExit* exit, LIns* inner_sp_ins)
 {
-    TreeInfo* ti = inner->treeInfo;
+    
+    LIns* args[] = { lirbuf->state }; 
+    
+    CallInfo* ci = new (traceAlloc()) CallInfo();
+    ci->_address = uintptr_t(inner->code());
+    JS_ASSERT(ci->_address);
+    ci->_argtypes = ARGSIZE_P | ARGSIZE_P << ARGSIZE_SHIFT;
+    ci->_cse = ci->_fold = 0;
+    ci->_abi = ABI_FASTCALL;
+#ifdef DEBUG
+    ci->_name = "fragment";
+#endif
+    LIns* rec = lir->insCall(ci, args);
+    LIns* lr = lir->insLoad(LIR_ldp, rec, offsetof(GuardRecord, exit));
+    LIns* nested = lir->insBranch(LIR_jt,
+                                  lir->ins2i(LIR_eq,
+                                             lir->insLoad(LIR_ld, lr, offsetof(VMSideExit, exitType)),
+                                             NESTED_EXIT),
+                                  NULL);
 
     
-    LIns* args[] = { INS_CONSTPTR(inner), lirbuf->state }; 
-    LIns* ret = lir->insCall(&js_CallTree_ci, args);
+
+
+
+
+    lir->insStorei(lr, lirbuf->state, offsetof(InterpState, lastTreeExitGuard));
+    LIns* done1 = lir->insBranch(LIR_j, NULL, NULL);
+
+    
+
+
+
+
+    nested->setTarget(lir->ins0(LIR_label));
+    LIns* done2 = lir->insBranch(LIR_jf,
+                                 lir->ins_peq0(lir->insLoad(LIR_ldp,
+                                                            lirbuf->state,
+                                                            offsetof(InterpState, lastTreeCallGuard))),
+                                 NULL);
+    lir->insStorei(lr, lirbuf->state, offsetof(InterpState, lastTreeCallGuard));
+    lir->insStorei(lir->ins2(LIR_piadd,
+                             lir->insLoad(LIR_ldp, lirbuf->state, offsetof(InterpState, rp)),
+                             lir->ins2i(LIR_lsh,
+                                        lir->insLoad(LIR_ld, lr, offsetof(VMSideExit, calldepth)),
+                                        sizeof(void*) == 4 ? 2 : 3)),
+                   lirbuf->state,
+                   offsetof(InterpState, rpAtLastTreeCall));
+    LIns* label = lir->ins0(LIR_label);
+    done1->setTarget(label);
+    done2->setTarget(label);
+
+    
+
+
+
+    lir->insStorei(lr, lirbuf->state, offsetof(InterpState, outermostTreeExitGuard));
 
     
 #ifdef DEBUG
@@ -5010,6 +5061,7 @@ TraceRecorder::emitTreeCall(TreeFragment* inner, VMSideExit* exit, LIns* inner_s
     for (i = 0; i < exit->numStackSlots; i++)
         JS_ASSERT(map[i] != TT_JSVAL);
 #endif
+
     
 
 
@@ -5017,6 +5069,8 @@ TraceRecorder::emitTreeCall(TreeFragment* inner, VMSideExit* exit, LIns* inner_s
     TypeMap fullMap(NULL);
     fullMap.add(exit->stackTypeMap(), exit->numStackSlots);
     BuildGlobalTypeMapFromInnerTree(fullMap, exit);
+
+    TreeInfo* ti = inner->treeInfo;
     import(ti, inner_sp_ins, exit->numStackSlots, fullMap.length() - exit->numStackSlots,
            exit->calldepth, fullMap.data());
 
@@ -5030,11 +5084,11 @@ TraceRecorder::emitTreeCall(TreeFragment* inner, VMSideExit* exit, LIns* inner_s
 
 
 
-    VMSideExit* nested = snapshot(NESTED_EXIT);
+    VMSideExit* nestedExit = snapshot(NESTED_EXIT);
     JS_ASSERT(exit->exitType == LOOP_EXIT);
-    guard(true, lir->ins2(LIR_peq, ret, INS_CONSTPTR(exit)), nested);
+    guard(true, lir->ins2(LIR_peq, lr, INS_CONSTPTR(exit)), nestedExit);
     debug_only_printf(LC_TMTreeVis, "TREEVIS TREECALL INNER=%p EXIT=%p GUARD=%p\n", (void*)inner,
-                      (void*)nested, (void*)exit);
+                      (void*)nestedExit, (void*)exit);
 
     
     inner->treeInfo->dependentTrees.addUnique(fragment->root);
