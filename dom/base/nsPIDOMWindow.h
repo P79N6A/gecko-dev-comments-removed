@@ -439,7 +439,7 @@ protected:
   nsCOMPtr<nsIDOMDocument> mDocument; 
 
   
-  nsIDOMElement *mFrameElement; 
+  nsCOMPtr<nsIDOMElement> mFrameElement;
   nsIDocShell           *mDocShell;  
 
   PRUint32               mModalStateDepth;
