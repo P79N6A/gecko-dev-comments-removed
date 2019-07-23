@@ -42,6 +42,11 @@
 
 #if defined(MOZ_WIDGET_GTK2)
 #  include <gdk/gdkx.h>
+#elif defined(MOZ_WIDGET_QT)
+
+
+#  undef CursorShape
+#  include <QX11Info>
 #else
 #  error Implement me for your toolkit
 #endif
@@ -115,8 +120,11 @@ private:
         
 
         
-        
+#if defined(MOZ_WIDGET_GTK2)
         return GDK_DISPLAY();
+#elif defined(MOZ_WIDGET_QT)
+        return QX11Info::display();
+#endif
     }
 
     static Display* GetXDisplay(const XErrorEvent& ev)
@@ -124,8 +132,11 @@ private:
         
 
         
-        
+#if defined(MOZ_WIDGET_GTK2)
         return GDK_DISPLAY();
+#elif defined(MOZ_WIDGET_QT)
+        return QX11Info::display();
+#endif
     }
 
     static void SetXDisplay(XEvent& ev)

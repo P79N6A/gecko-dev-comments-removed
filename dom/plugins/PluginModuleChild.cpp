@@ -39,7 +39,7 @@
 
 #include "mozilla/plugins/PluginModuleChild.h"
 
-#ifdef OS_LINUX
+#ifdef MOZ_WIDGET_GTK2
 #include <gtk/gtk.h>
 #endif
 
@@ -234,7 +234,7 @@ bool
 PluginModuleChild::InitGraphics()
 {
     
-#if defined(OS_LINUX)
+#if defined(MOZ_WIDGET_GTK2)
     gtk_init(0, 0);
 
     
