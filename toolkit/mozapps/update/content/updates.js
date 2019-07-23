@@ -1568,16 +1568,13 @@ var gFinishedPage = {
   
 
 
-
-
-
-  onPageShow: function(aDelayRestart) {
-    gUpdates.setButtons(null, true, null, true, "restartButton", aDelayRestart,
+  onPageShow: function() {
+    gUpdates.setButtons(null, true, null, true, "restartButton", false,
                         "notNowButton", false, false, null, false, null, false);
-    if (aDelayRestart)
-      setTimeout(this._enableRestartButton, 2000);
-    else
+    
+    setTimeout(function () {
       gUpdates.wiz.getButton("finish").focus();
+    }, 0);
   },
 
   
@@ -1595,24 +1592,13 @@ var gFinishedPage = {
     var link = document.getElementById("finishedBackgroundLink");
     link.href = gUpdates.update.detailsURL;
 
-    this.onPageShow(true);
+    this.onPageShow();
 
     if (getPref("getBoolPref", PREF_UPDATE_TEST_LOOP, false)) {
-      window.restart = function () {
-        gUpdates.wiz.getButton("finish").click();
-      }
-      setTimeout("restart();", UPDATE_TEST_LOOP_INTERVAL);
+      setTimeout(function () {
+                   gUpdates.wiz.getButton("finish").click();
+                 }, UPDATE_TEST_LOOP_INTERVAL);
     }
-  },
-
-  
-
-
-  _enableRestartButton: function() {
-    gUpdates.wiz.canAdvance = true;
-    var finishButton = gUpdates.wiz.getButton("finish");
-    finishButton.disabled = false;
-    finishButton.focus();
   },
 
   
