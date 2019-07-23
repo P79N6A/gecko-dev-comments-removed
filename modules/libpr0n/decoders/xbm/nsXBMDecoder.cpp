@@ -136,15 +136,27 @@ nsresult nsXBMDecoder::ProcessData(const char* aData, PRUint32 aCount) {
     
     
     const PRPtrdiff posOffset = mPos ? (mPos - mBuf) : 0;
-    mBuf = (char*)realloc(mBuf, mBufSize + aCount + 1);
+
+    
+    char* oldbuf = mBuf;
+    PRUint32 newbufsize = mBufSize + aCount + 1;
+    if (newbufsize < mBufSize)
+        mBuf = nsnull;  
+    else
+        mBuf = (char*)realloc(mBuf, newbufsize);
+
     if (!mBuf) {
         mState = RECV_DONE;
+        if (oldbuf)
+            free(oldbuf);
         return NS_ERROR_OUT_OF_MEMORY;
     }
     memcpy(mBuf + mBufSize, aData, aCount);
     mBufSize += aCount;
     mBuf[mBufSize] = 0;
     mPos = mBuf + posOffset;
+
+    
     if (mState == RECV_HEADER) {
         mPos = strstr(mBuf, "#define");
         if (!mPos)
