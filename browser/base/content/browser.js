@@ -1921,10 +1921,19 @@ function URLBarSetURI(aURI) {
         value = "";
     } else {
       
-      
-      try {
-        value = decodeURI(value).replace(/[%\r\n\t]/g, encodeURI);
-      } catch(e) {}
+      if (!/%25(?:3B|2F|3F|3A|40|26|3D|2B|24|2C|23)/i.test(value))
+        try {
+          value = decodeURI(value)
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    .replace(/%(?!3B|2F|3F|3A|40|26|3D|2B|24|2C|23)|[\r\n\t]/ig,
+                             encodeURIComponent);
+        } catch (e) {}
 
       state = "valid";
     }
