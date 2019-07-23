@@ -155,6 +155,16 @@ nsTextEditRules::Init(nsPlaintextEditor *aEditor, PRUint32 aFlags)
   nsresult res = CreateBogusNodeIfNeeded(selection);
   if (NS_FAILED(res)) return res;
 
+  
+  
+  PRInt32 rangeCount;
+  res = selection->GetRangeCount(&rangeCount);
+  NS_ENSURE_SUCCESS(res, res);
+  if (!rangeCount) {
+    res = mEditor->EndOfDocument();
+    NS_ENSURE_SUCCESS(res, res);
+  }
+
   if (mFlags & nsIPlaintextEditor::eEditorPlaintextMask)
   {
     
