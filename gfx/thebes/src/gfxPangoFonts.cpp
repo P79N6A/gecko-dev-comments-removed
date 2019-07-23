@@ -102,6 +102,352 @@ static PangoLanguage *GetPangoLanguage(const nsACString& aLangGroup);
 
 
 
+#define GFX_TYPE_PANGO_FONTSET              (gfx_pango_fontset_get_type())
+#define GFX_PANGO_FONTSET(object)           (G_TYPE_CHECK_INSTANCE_CAST ((object), GFX_TYPE_PANGO_FONTSET, gfxPangoFontset))
+#define GFX_IS_PANGO_FONTSET(object)        (G_TYPE_CHECK_INSTANCE_TYPE ((object), GFX_TYPE_PANGO_FONTSET))
+
+
+GType gfx_pango_fontset_get_type (void);
+
+#define GFX_PANGO_FONTSET_CLASS(klass)      (G_TYPE_CHECK_CLASS_CAST ((klass), GFX_TYPE_PANGO_FONTSET, gfxPangoFontsetClass))
+#define GFX_IS_PANGO_FONTSET_CLASS(klass)   (G_TYPE_CHECK_CLASS_TYPE ((klass), GFX_TYPE_PANGO_FONTSET))
+#define GFX_PANGO_FONTSET_GET_CLASS(obj)    (G_TYPE_INSTANCE_GET_CLASS ((obj), GFX_TYPE_PANGO_FONTSET, gfxPangoFontsetClass))
+
+
+struct gfxPangoFontset {
+    PangoFontset parent_instance;
+
+    PangoContext *mContext;
+    PangoFontDescription *mFontDesc;
+    PangoLanguage *mLanguage;
+    PangoFont *mBaseFont;
+    PangoFontMap *mFontMap;
+    PangoFontset *mChildFontset;
+
+    static PangoFontset *
+    NewFontset(PangoContext *aContext,
+               const PangoFontDescription *aFontDesc,
+               PangoLanguage *aLanguage,
+               PangoFont *aBaseFont, PangoFontMap *aFontMap)
+    {
+        gfxPangoFontset *fontset = static_cast<gfxPangoFontset *>
+            (g_object_new(GFX_TYPE_PANGO_FONTSET, NULL));
+
+        fontset->mContext = aContext;
+        g_object_ref(aContext);
+
+        fontset->mFontDesc = pango_font_description_copy(aFontDesc);
+        fontset->mLanguage = aLanguage;
+
+        fontset->mBaseFont = aBaseFont;
+        if(aBaseFont)
+            g_object_ref(aBaseFont);
+
+        fontset->mFontMap = aFontMap;
+        g_object_ref(aFontMap);
+
+        return PANGO_FONTSET(fontset);
+    }
+};
+
+struct gfxPangoFontsetClass {
+    PangoFontsetClass parent_class;
+};
+
+G_DEFINE_TYPE (gfxPangoFontset, gfx_pango_fontset, PANGO_TYPE_FONTSET)
+
+static void
+gfx_pango_fontset_init(gfxPangoFontset *fontset)
+{
+    fontset->mContext = NULL;
+    fontset->mFontDesc = NULL;
+    fontset->mLanguage = NULL;
+    fontset->mBaseFont = NULL;
+    fontset->mFontMap = NULL;
+    fontset->mChildFontset = NULL;
+}
+
+
+static void
+gfx_pango_fontset_finalize(GObject *object)
+{
+    gfxPangoFontset *self = GFX_PANGO_FONTSET(object);
+
+    if (self->mContext)
+        g_object_unref(self->mContext);
+    if (self->mFontDesc)
+        pango_font_description_free(self->mFontDesc);
+    if (self->mBaseFont)
+        g_object_unref(self->mBaseFont);
+    if (self->mFontMap)
+        g_object_unref(self->mFontMap);
+    if (self->mChildFontset)
+        g_object_unref(self->mChildFontset);
+
+    G_OBJECT_CLASS(gfx_pango_fontset_parent_class)->finalize(object);
+}
+
+static PangoLanguage *
+gfx_pango_fontset_get_language(PangoFontset *fontset)
+{
+    gfxPangoFontset *self = GFX_PANGO_FONTSET(fontset);
+    return self->mLanguage;
+}
+
+struct ForeachExceptBaseData {
+    PangoFont *mBaseFont;
+    PangoFontset *mFontset;
+    PangoFontsetForeachFunc mFunc;
+    gpointer mData;
+};
+
+static gboolean
+foreach_except_base_cb(PangoFontset *fontset, PangoFont *font, gpointer data)
+{
+    ForeachExceptBaseData *baseData =
+        static_cast<ForeachExceptBaseData *>(data);
+    
+    
+    return font != baseData->mBaseFont &&
+        (*baseData->mFunc)(baseData->mFontset, font, baseData->mData);
+}
+
+static PangoFontset *
+EnsureChildFontset(gfxPangoFontset *self)
+{
+    if (!self->mChildFontset) {
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        self->mChildFontset =
+            pango_font_map_load_fontset(self->mFontMap, self->mContext,
+                                        self->mFontDesc, self->mLanguage);
+    }
+    return self->mChildFontset;
+}
+
+static void
+gfx_pango_fontset_foreach(PangoFontset *fontset, PangoFontsetForeachFunc func,
+                          gpointer data)
+{
+    gfxPangoFontset *self = GFX_PANGO_FONTSET(fontset);
+
+    if (self->mBaseFont && (*func)(fontset, self->mBaseFont, data))
+        return;
+
+    
+    PangoFontset *childFontset = EnsureChildFontset(self);
+    ForeachExceptBaseData baseData = { self->mBaseFont, fontset, func, data };
+    pango_fontset_foreach(childFontset, foreach_except_base_cb, &baseData);
+}
+
+static PangoFont *
+gfx_pango_fontset_get_font(PangoFontset *fontset, guint wc)
+{
+    gfxPangoFontset *self = GFX_PANGO_FONTSET(fontset);
+
+    PangoCoverageLevel baseLevel = PANGO_COVERAGE_NONE;
+    if (self->mBaseFont) {
+        
+        PangoCoverage *coverage =
+            pango_font_get_coverage(self->mBaseFont, self->mLanguage);
+        if (coverage) {
+            baseLevel = pango_coverage_get(coverage, wc);
+            pango_coverage_unref(coverage);
+        }
+    }
+
+    if (baseLevel != PANGO_COVERAGE_EXACT) {
+        PangoFontset *childFontset = EnsureChildFontset(self);
+        PangoFont *childFont = pango_fontset_get_font(childFontset, wc);
+        if (!self->mBaseFont || childFont == self->mBaseFont)
+            return childFont;
+
+        if (childFont) {
+            PangoCoverage *coverage =
+                pango_font_get_coverage(childFont, self->mLanguage);
+            if (coverage) {
+                PangoCoverageLevel childLevel =
+                    pango_coverage_get(coverage, wc);
+                pango_coverage_unref(coverage);
+
+                
+                if (childLevel > baseLevel)
+                    return childFont;
+            }
+            g_object_unref(childFont);
+        }
+    }
+
+    g_object_ref(self->mBaseFont);
+    return self->mBaseFont;
+}
+
+static void
+gfx_pango_fontset_class_init (gfxPangoFontsetClass *klass)
+{
+    GObjectClass *object_class = G_OBJECT_CLASS (klass);
+    PangoFontsetClass *fontset_class = PANGO_FONTSET_CLASS (klass);
+
+    object_class->finalize = gfx_pango_fontset_finalize;
+    fontset_class->get_font = gfx_pango_fontset_get_font;
+    
+    fontset_class->get_language = gfx_pango_fontset_get_language;
+    fontset_class->foreach = gfx_pango_fontset_foreach;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#define GFX_TYPE_PANGO_FONT_MAP              (gfx_pango_font_map_get_type())
+#define GFX_PANGO_FONT_MAP(object)           (G_TYPE_CHECK_INSTANCE_CAST ((object), GFX_TYPE_PANGO_FONT_MAP, gfxPangoFontMap))
+#define GFX_IS_PANGO_FONT_MAP(object)        (G_TYPE_CHECK_INSTANCE_TYPE ((object), GFX_TYPE_PANGO_FONT_MAP))
+
+GType gfx_pango_font_map_get_type (void);
+
+#define GFX_PANGO_FONT_MAP_CLASS(klass)      (G_TYPE_CHECK_CLASS_CAST ((klass), GFX_TYPE_PANGO_FONT_MAP, gfxPangoFontMapClass))
+#define GFX_IS_PANGO_FONT_MAP_CLASS(klass)   (G_TYPE_CHECK_CLASS_TYPE ((klass), GFX_TYPE_PANGO_FONT_MAP))
+#define GFX_PANGO_FONT_MAP_GET_CLASS(obj)    (G_TYPE_INSTANCE_GET_CLASS ((obj), GFX_TYPE_PANGO_FONT_MAP, gfxPangoFontMapClass))
+
+
+
+struct gfxPangoFontMap {
+    PangoFontMap parent_instance;
+
+    PangoFontMap *mChildFontMap;
+    PangoFont *mBaseFont;
+
+    static PangoFontMap *
+    NewFontMap(PangoFontMap *aChildFontMap, PangoFont *aBaseFont)
+    {
+        NS_ASSERTION(strcmp(pango_font_map_get_shape_engine_type(aChildFontMap), 
+                            PANGO_RENDER_TYPE_FC) == 0,
+                     "Unexpected child PangoFontMap shape engine type");
+
+        gfxPangoFontMap *fontmap = static_cast<gfxPangoFontMap *>
+            (g_object_new(GFX_TYPE_PANGO_FONT_MAP, NULL));
+
+        fontmap->mChildFontMap = aChildFontMap;
+        g_object_ref(aChildFontMap);
+
+        fontmap->mBaseFont = aBaseFont;
+        if(aBaseFont)
+            g_object_ref(aBaseFont);
+
+        return PANGO_FONT_MAP(fontmap);
+    }
+
+    void
+    SetBaseFont(PangoFont *aBaseFont)
+    {
+        if (mBaseFont)
+            g_object_unref(mBaseFont);
+
+        mBaseFont = aBaseFont;
+
+        if (aBaseFont)
+            g_object_ref(aBaseFont);
+    }
+};
+
+struct gfxPangoFontMapClass {
+    PangoFontMapClass parent_class;
+};
+
+G_DEFINE_TYPE (gfxPangoFontMap, gfx_pango_font_map, PANGO_TYPE_FONT_MAP)
+
+static void
+gfx_pango_font_map_init(gfxPangoFontMap *fontset)
+{
+    fontset->mChildFontMap = NULL;    
+    fontset->mBaseFont = NULL;
+}
+
+static void
+gfx_pango_font_map_finalize(GObject *object)
+{
+    gfxPangoFontMap *self = GFX_PANGO_FONT_MAP(object);
+
+    if (self->mChildFontMap)
+        g_object_unref(self->mChildFontMap);
+    if (self->mBaseFont)
+        g_object_unref(self->mBaseFont);
+
+    G_OBJECT_CLASS(gfx_pango_font_map_parent_class)->finalize(object);
+}
+
+static PangoFont *
+gfx_pango_font_map_load_font(PangoFontMap *fontmap, PangoContext *context,
+                             const PangoFontDescription *description)
+{
+    gfxPangoFontMap *self = GFX_PANGO_FONT_MAP(fontmap);
+    if (self->mBaseFont) {
+        g_object_ref(self->mBaseFont);
+        return self->mBaseFont;
+    }
+
+    return pango_font_map_load_font(self->mChildFontMap, context, description);
+}
+
+static PangoFontset *
+gfx_pango_font_map_load_fontset(PangoFontMap *fontmap, PangoContext *context,
+                               const PangoFontDescription *desc,
+                               PangoLanguage *language)
+{
+    gfxPangoFontMap *self = GFX_PANGO_FONT_MAP(fontmap);
+    return gfxPangoFontset::NewFontset(context, desc, language,
+                                       self->mBaseFont, self->mChildFontMap);
+}
+
+static void
+gfx_pango_font_map_list_families(PangoFontMap *fontmap,
+                                 PangoFontFamily ***families, int *n_families)
+{
+    gfxPangoFontMap *self = GFX_PANGO_FONT_MAP(fontmap);
+    pango_font_map_list_families(self->mChildFontMap, families, n_families);
+}
+
+static void
+gfx_pango_font_map_class_init(gfxPangoFontMapClass *klass)
+{
+    GObjectClass *object_class = G_OBJECT_CLASS (klass);
+    PangoFontMapClass *fontmap_class = PANGO_FONT_MAP_CLASS (klass);
+
+    object_class->finalize = gfx_pango_font_map_finalize;
+    fontmap_class->load_font = gfx_pango_font_map_load_font;
+    fontmap_class->load_fontset = gfx_pango_font_map_load_fontset;
+    fontmap_class->list_families = gfx_pango_font_map_list_families;
+    fontmap_class->shape_engine_type = PANGO_RENDER_TYPE_FC;
+}
+
+
+
+
+
 static int
 FFRECountHyphens (const nsAString &aFFREName)
 {
@@ -1228,6 +1574,22 @@ gfxPangoFontGroup::CreateGlyphRunsFast(gfxTextRun *aTextRun,
 }
 #endif
 
+static void
+SetBaseFont(PangoContext *aContext, PangoFont *aBaseFont)
+{
+    PangoFontMap *fontmap = pango_context_get_font_map(aContext);
+    if (GFX_IS_PANGO_FONT_MAP(fontmap)) {
+        
+        GFX_PANGO_FONT_MAP(fontmap)->SetBaseFont(aBaseFont);
+    }
+    else if (aBaseFont) {
+        
+        fontmap = gfxPangoFontMap::NewFontMap(fontmap, aBaseFont);
+        pango_context_set_font_map(aContext, fontmap);
+        g_object_unref(fontmap);
+    }
+}
+
 void 
 gfxPangoFontGroup::CreateGlyphRunsItemizing(gfxTextRun *aTextRun,
                                             const gchar *aUTF8, PRUint32 aUTF8Length,
@@ -1252,6 +1614,18 @@ gfxPangoFontGroup::CreateGlyphRunsItemizing(gfxTextRun *aTextRun,
     
     
     pango_context_set_language(context, lang);
+
+    
+    
+    
+    
+    
+    
+    
+    
+    if (lang && !GetStyle()->systemFont) {
+        SetBaseFont(context, GetFontAt(0)->GetPangoFont());
+    }
 
     PangoDirection dir = aTextRun->IsRightToLeft() ? PANGO_DIRECTION_RTL : PANGO_DIRECTION_LTR;
     GList *items = pango_itemize_with_base_dir(context, dir, aUTF8, 0, aUTF8Length, nsnull, nsnull);
