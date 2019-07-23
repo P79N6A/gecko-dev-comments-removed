@@ -71,7 +71,7 @@
 #define HOTLOOP 2
 
 
-#define HOTEXIT 0
+#define HOTEXIT 1
 
 
 #define MAX_CALLDEPTH 5
