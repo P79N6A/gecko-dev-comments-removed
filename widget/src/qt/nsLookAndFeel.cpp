@@ -107,7 +107,7 @@ nsresult nsLookAndFeel::NativeGetColor(const nsColorID aID,nscolor &aColor)
       break;
 
     case eColor_TextForeground:
-      aColor = QCOLOR_TO_NS_RGB(palette.color(QPalette::Normal, QPalette::Text));
+      aColor = QCOLOR_TO_NS_RGB(palette.color(QPalette::Normal, QPalette::WindowText));
       break;
 
     case eColor_TextSelectBackground:
@@ -252,40 +252,44 @@ nsresult nsLookAndFeel::NativeGetColor(const nsColorID aID,nscolor &aColor)
 
      
      
-     case eColor__moz_field:
-       aColor = QCOLOR_TO_NS_RGB(palette.color(QPalette::Normal, QPalette::Base));
-       break;
 
-     case eColor__moz_fieldtext:
-       aColor = QCOLOR_TO_NS_RGB(palette.color(QPalette::Normal, QPalette::Text));
-       break;
+    case eColor__moz_buttondefault:
+      aColor = QCOLOR_TO_NS_RGB(palette.color(QPalette::Normal, QPalette::Button));
+      break;
 
-     case eColor__moz_dialog:
-       aColor = QCOLOR_TO_NS_RGB(palette.color(QPalette::Normal, QPalette::Window));
-       break;
+    case eColor__moz_field:
+      aColor = QCOLOR_TO_NS_RGB(palette.color(QPalette::Normal, QPalette::Base));
+      break;
 
-     case eColor__moz_dialogtext:
-       aColor = QCOLOR_TO_NS_RGB(palette.color(QPalette::Normal, QPalette::WindowText));
-       break;
+    case eColor__moz_fieldtext:
+      aColor = QCOLOR_TO_NS_RGB(palette.color(QPalette::Normal, QPalette::Text));
+      break;
 
-     case eColor__moz_dragtargetzone:
-       aColor = QCOLOR_TO_NS_RGB(palette.color(QPalette::Normal, QPalette::Window));
-       break;
+    case eColor__moz_dialog:
+      aColor = QCOLOR_TO_NS_RGB(palette.color(QPalette::Normal, QPalette::Window));
+      break;
 
-     case eColor__moz_buttonhovertext:
-       aColor = QCOLOR_TO_NS_RGB(palette.color(QPalette::Normal, QPalette::ButtonText));
-       break;
+    case eColor__moz_dialogtext:
+      aColor = QCOLOR_TO_NS_RGB(palette.color(QPalette::Normal, QPalette::WindowText));
+      break;
+
+    case eColor__moz_dragtargetzone:
+      aColor = QCOLOR_TO_NS_RGB(palette.color(QPalette::Normal, QPalette::Window));
+      break;
+
+    case eColor__moz_buttonhovertext:
+      aColor = QCOLOR_TO_NS_RGB(palette.color(QPalette::Normal, QPalette::ButtonText));
+      break;
 
     case eColor__moz_menuhovertext:
     case eColor__moz_menubarhovertext:
-       aColor = QCOLOR_TO_NS_RGB(palette.color(QPalette::Normal, QPalette::Text));
-       break;
+      aColor = QCOLOR_TO_NS_RGB(palette.color(QPalette::Normal, QPalette::Text));
+      break;
 
-
-     default:
-       aColor = 0;
-       res    = NS_ERROR_FAILURE;
-       break;
+    default:
+      aColor = 0;
+      res    = NS_ERROR_FAILURE;
+      break;
   }
   return res;
 }
