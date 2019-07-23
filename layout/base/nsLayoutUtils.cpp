@@ -999,18 +999,22 @@ nsLayoutUtils::PaintFrame(nsIRenderingContext* aRenderingContext, nsIFrame* aFra
 
 static void
 AccumulateItemInRegion(nsRegion* aRegion, const nsRect& aAreaRect,
-                       const nsRect& aItemRect, nsDisplayItem* aItem)
+                       const nsRect& aItemRect, const nsRect& aExclude,
+                       nsDisplayItem* aItem)
 {
   nsRect damageRect;
   if (damageRect.IntersectRect(aAreaRect, aItemRect)) {
+    nsRegion r;
+    r.Sub(damageRect, aExclude);
 #ifdef DEBUG
     if (gDumpRepaintRegionForCopy) {
+      nsRect bounds = r.GetBounds();
       fprintf(stderr, "Adding rect %d,%d,%d,%d for frame %p\n",
-              damageRect.x, damageRect.y, damageRect.width, damageRect.height,
+              bounds.x, bounds.y, bounds.width, bounds.height,
               (void*)aItem->GetUnderlyingFrame());
     }
 #endif
-    aRegion->Or(*aRegion, damageRect);
+    aRegion->Or(*aRegion, r);
   }
 }
 
@@ -1052,25 +1056,28 @@ AddItemsToRegion(nsDisplayListBuilder* aBuilder, nsDisplayList* aList,
       if (r.IntersectRect(aClipRect, item->GetBounds(aBuilder))) {
         nsIFrame* f = item->GetUnderlyingFrame();
         NS_ASSERTION(f, "Must have an underlying frame for leaf item");
+        nsRect exclude;
         if (aBuilder->IsMovingFrame(f)) {
           if (item->IsVaryingRelativeToMovingFrame(aBuilder)) {
             
             
-            AccumulateItemInRegion(aRegion, aRect + aDelta, r, item);
+            AccumulateItemInRegion(aRegion, aRect + aDelta, r, exclude, item);
           }
         } else {
           
-          
-          PRBool skip = r.Contains(aRect) && r.Contains(aRect + aDelta) &&
-              item->IsUniform(aBuilder);
-          if (!skip) {
-            
-            AccumulateItemInRegion(aRegion, aRect + aDelta, r, item);
+          if (item->IsUniform(aBuilder)) {
             
             
-            
-            AccumulateItemInRegion(aRegion, aRect + aDelta, r + aDelta, item);
+            exclude.IntersectRect(r, r + aDelta);
           }
+          
+          AccumulateItemInRegion(aRegion, aRect + aDelta, r, exclude, item);
+          
+          
+          
+          
+          AccumulateItemInRegion(aRegion, aRect + aDelta, r + aDelta,
+                                 exclude + aDelta, item);
         }
       }
     }
