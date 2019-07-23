@@ -123,6 +123,9 @@ public:
   
   
 
+  
+  
+  
   nsSVGSVGElement* GetCtx();
 
   virtual void DidChangeLength(PRUint8 aAttrEnum, PRBool aDoSetAttr);
