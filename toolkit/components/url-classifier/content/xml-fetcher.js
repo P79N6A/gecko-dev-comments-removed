@@ -110,6 +110,11 @@ PROT_XMLFetcher.prototype = {
     this._request.send(null);
   },
 
+  cancel: function() {
+    this._request.onreadystatechange = null;
+    this._request.abort();
+  },
+
   
 
 
