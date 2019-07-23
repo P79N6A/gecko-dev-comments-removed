@@ -6874,8 +6874,55 @@ nsGlobalWindow::SetTimeoutOrInterval(nsIScriptTimeoutHandler *aHandler,
 nsresult
 nsGlobalWindow::SetTimeoutOrInterval(PRBool aIsInterval, PRInt32 *aReturn)
 {
-  FORWARD_TO_INNER(SetTimeoutOrInterval, (aIsInterval, aReturn),
-                   NS_ERROR_NOT_INITIALIZED);
+  
+  
+  
+  
+  
+  
+
+  if (IsOuterWindow()) {
+    nsCOMPtr<nsIXPCNativeCallContext> ncc;
+    nsresult rv = nsContentUtils::XPConnect()->
+      GetCurrentNativeCallContext(getter_AddRefs(ncc));
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    if (!ncc) {
+      return NS_ERROR_NOT_AVAILABLE;
+    }
+
+    JSContext *cx = nsnull;
+
+    rv = ncc->GetJSContext(&cx);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    JSObject *scope = ::JS_GetScopeChain(cx);
+
+    if (!scope) {
+      return NS_ERROR_NOT_AVAILABLE;
+    }
+
+    nsCOMPtr<nsIXPConnectWrappedNative> wrapper;
+    nsContentUtils::XPConnect()->
+      GetWrappedNativeOfJSObject(cx, ::JS_GetGlobalForObject(cx, scope),
+                                 getter_AddRefs(wrapper));
+    NS_ENSURE_TRUE(wrapper, NS_ERROR_NOT_AVAILABLE);
+
+    nsGlobalWindow *callerInner = FromWrapper(wrapper);
+    NS_ENSURE_TRUE(callerInner, NS_ERROR_NOT_AVAILABLE);
+
+    
+    
+    
+    
+
+    if (callerInner->GetOuterWindow() == this) {
+      return callerInner->SetTimeoutOrInterval(aIsInterval, aReturn);
+    }
+
+    FORWARD_TO_INNER(SetTimeoutOrInterval, (aIsInterval, aReturn),
+                     NS_ERROR_NOT_INITIALIZED);
+  }
 
   PRInt32 interval = 0;
   PRBool isInterval = aIsInterval;

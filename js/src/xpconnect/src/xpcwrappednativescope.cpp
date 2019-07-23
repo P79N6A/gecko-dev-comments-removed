@@ -680,10 +680,7 @@ XPCWrappedNativeScope::FindInJSObjectScope(XPCCallContext& ccx, JSObject* obj,
 
     
 
-    JSObject* parent;
-
-    while(nsnull != (parent = JS_GetParent(ccx, obj)))
-        obj = parent;
+    obj = JS_GetGlobalForObject(ccx, obj);
 
     
     
