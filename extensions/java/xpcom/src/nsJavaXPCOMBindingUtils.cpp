@@ -797,19 +797,18 @@ JavaXPCOMInstance::~JavaXPCOMInstance()
 
 
 nsresult
-GetNewOrUsedJavaObject(JNIEnv* env, nsISupports* aXPCOMObject,
-                       const nsIID& aIID, jobject aObjectLoader,
-                       jobject* aResult)
+NativeInterfaceToJavaObject(JNIEnv* env, nsISupports* aXPCOMObject,
+                            const nsIID& aIID, jobject aObjectLoader,
+                            jobject* aResult)
 {
   NS_PRECONDITION(aResult != nsnull, "null ptr");
   if (!aResult)
     return NS_ERROR_NULL_POINTER;
 
-  nsresult rv;
+  
   nsJavaXPTCStub* stub = nsnull;
   aXPCOMObject->QueryInterface(NS_GET_IID(nsJavaXPTCStub), (void**) &stub);
   if (stub) {
-    
     *aResult = stub->GetJavaObject();
     NS_ASSERTION(*aResult != nsnull, "nsJavaXPTCStub w/o matching Java object");
     NS_RELEASE(stub);
@@ -817,23 +816,13 @@ GetNewOrUsedJavaObject(JNIEnv* env, nsISupports* aXPCOMObject,
   }
 
   
-  nsCOMPtr<nsISupports> rootObject = do_QueryInterface(aXPCOMObject, &rv);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  
-  rv = gNativeToJavaProxyMap->Find(env, rootObject, aIID, aResult);
-  NS_ENSURE_SUCCESS(rv, rv);
-  if (*aResult)
-    return NS_OK;
-
-  
-  
-  return CreateJavaProxy(env, rootObject, aIID, aObjectLoader, aResult);
+  return GetNewOrUsedJavaWrapper(env, aXPCOMObject, aIID, aObjectLoader,
+                                 aResult);
 }
 
 nsresult
-GetNewOrUsedXPCOMObject(JNIEnv* env, jobject aJavaObject, const nsIID& aIID,
-                        nsISupports** aResult)
+JavaObjectToNativeInterface(JNIEnv* env, jobject aJavaObject, const nsIID& aIID,
+                            void** aResult)
 {
   NS_PRECONDITION(aResult != nsnull, "null ptr");
   if (!aResult)
@@ -842,8 +831,6 @@ GetNewOrUsedXPCOMObject(JNIEnv* env, jobject aJavaObject, const nsIID& aIID,
   nsresult rv;
   *aResult = nsnull;
 
-  
-  
   
   
   jboolean isProxy = env->CallStaticBooleanMethod(xpcomJavaProxyClass,
@@ -859,55 +846,14 @@ GetNewOrUsedXPCOMObject(JNIEnv* env, jobject aJavaObject, const nsIID& aIID,
 
     nsISupports* rootObject =
               NS_STATIC_CAST(JavaXPCOMInstance*, inst)->GetInstance();
-    rv = rootObject->QueryInterface(aIID, (void**) aResult);
+    rv = rootObject->QueryInterface(aIID, aResult);
     NS_ENSURE_SUCCESS(rv, rv);
 
     return NS_OK;
   }
 
-  nsJavaXPTCStub* stub;
-  jint hash = env->CallStaticIntMethod(systemClass, hashCodeMID, aJavaObject);
-  rv = gJavaToXPTCStubMap->Find(hash, aIID, &stub);
-  NS_ENSURE_SUCCESS(rv, rv);
-  if (stub) {
-    
-    *aResult = stub->GetStub();
-    return NS_OK;
-  }
-
   
-  
-  
-  
-
-  
-  nsCOMPtr<nsIInterfaceInfoManager>
-    iim(do_GetService(NS_INTERFACEINFOMANAGER_SERVICE_CONTRACTID, &rv));
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  nsCOMPtr<nsIInterfaceInfo> iinfo;
-  rv = iim->GetInfoForIID(&aIID, getter_AddRefs(iinfo));
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  
-  stub = new nsJavaXPTCStub(aJavaObject, iinfo, &rv);
-  if (!stub)
-    return NS_ERROR_OUT_OF_MEMORY;
-  if (NS_FAILED(rv)) {
-    delete stub;
-    return rv;
-  }
-
-  rv = gJavaToXPTCStubMap->Add(hash, stub);
-  if (NS_FAILED(rv)) {
-    delete stub;
-    return rv;
-  }
-
-  NS_ADDREF(stub);
-  *aResult = stub->GetStub();
-
-  return NS_OK;
+  return nsJavaXPTCStub::GetNewOrUsed(env, aJavaObject, aIID, aResult);
 }
 
 nsresult

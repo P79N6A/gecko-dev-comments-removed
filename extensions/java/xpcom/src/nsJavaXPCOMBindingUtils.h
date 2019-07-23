@@ -275,11 +275,9 @@ protected:
 
 
 
-
-nsresult GetNewOrUsedJavaObject(JNIEnv* env, nsISupports* aXPCOMObject,
-                                const nsIID& aIID, jobject aObjectLoader,
-                                jobject* aResult);
-
+nsresult NativeInterfaceToJavaObject(JNIEnv* env, nsISupports* aXPCOMObject,
+                                     const nsIID& aIID, jobject aObjectLoader,
+                                     jobject* aResult);
 
 
 
@@ -291,8 +289,8 @@ nsresult GetNewOrUsedJavaObject(JNIEnv* env, nsISupports* aXPCOMObject,
 
 
 
-nsresult GetNewOrUsedXPCOMObject(JNIEnv* env, jobject aJavaObject,
-                                 const nsIID& aIID, nsISupports** aResult);
+nsresult JavaObjectToNativeInterface(JNIEnv* env, jobject aJavaObject,
+                                     const nsIID& aIID, void** aResult);
 
 nsresult GetIIDForMethodParam(nsIInterfaceInfo *iinfo,
                               const XPTMethodDescriptor *methodInfo,

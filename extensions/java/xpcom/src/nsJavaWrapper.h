@@ -55,9 +55,9 @@
 
 
 
-nsresult CreateJavaProxy(JNIEnv* env, nsISupports* aXPCOMObject,
-                         const nsIID& aIID, jobject aObjectLoader,
-                         jobject* aResult);
+nsresult GetNewOrUsedJavaWrapper(JNIEnv* env, nsISupports* aXPCOMObject,
+                                 const nsIID& aIID, jobject aObjectLoader,
+                                 jobject* aResult);
 
 
 

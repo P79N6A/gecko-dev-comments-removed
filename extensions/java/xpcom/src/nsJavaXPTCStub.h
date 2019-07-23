@@ -79,6 +79,21 @@ public:
   
   void DeleteStrongRef();
 
+  
+
+
+
+
+
+
+
+
+
+
+  static nsresult GetNewOrUsed(JNIEnv* env, jobject aJavaObject,
+                               const nsIID& aIID, void** aResult);
+  
+
 private:
   NS_IMETHOD_(nsrefcnt) AddRefInternal();
   NS_IMETHOD_(nsrefcnt) ReleaseInternal();
