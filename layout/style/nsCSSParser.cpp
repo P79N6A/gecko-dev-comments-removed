@@ -3333,27 +3333,27 @@ CSSParserImpl::ParseDeclaration(nsresult& aErrorCode,
   }
 
   if (eCSSToken_Symbol == tk->mType && '!' == tk->mSymbol) {
-        
-        if (!GetToken(aErrorCode, PR_TRUE)) {
-          
-          REPORT_UNEXPECTED_EOF(PEImportantEOF);
-          ClearTempData(propID);
-          return PR_FALSE;
-        }
-        if ((eCSSToken_Ident != tk->mType) ||
-            !tk->mIdent.LowerCaseEqualsLiteral("important")) {
-          REPORT_UNEXPECTED_TOKEN(PEExpectedImportant);
-          OUTPUT_ERROR();
-          UngetToken();
-          ClearTempData(propID);
-          return PR_FALSE;
-        }
-        isImportant = PR_TRUE;
-      }
-      else {
-        
-        UngetToken();
-      }
+    
+    if (!GetToken(aErrorCode, PR_TRUE)) {
+      
+      REPORT_UNEXPECTED_EOF(PEImportantEOF);
+      ClearTempData(propID);
+      return PR_FALSE;
+    }
+    if ((eCSSToken_Ident != tk->mType) ||
+        !tk->mIdent.LowerCaseEqualsLiteral("important")) {
+      REPORT_UNEXPECTED_TOKEN(PEExpectedImportant);
+      OUTPUT_ERROR();
+      UngetToken();
+      ClearTempData(propID);
+      return PR_FALSE;
+    }
+    isImportant = PR_TRUE;
+  }
+  else {
+    
+    UngetToken();
+  }
 
   
   

@@ -279,16 +279,13 @@ js_NewContext(JSRuntime *rt, size_t stackChunkSize)
 #ifdef JS_THREADSAFE
         JS_BeginRequest(cx);
 #endif
+        ok = js_InitCommonAtoms(cx);
+
         
 
 
 
 
-
-
-        ok = (rt->atomState.liveAtoms == 0)
-             ? js_InitAtomState(cx, &rt->atomState)
-             : js_InitPinnedAtoms(cx, &rt->atomState);
         if (ok && !rt->scriptFilenameTable)
             ok = js_InitRuntimeScriptState(rt);
         if (ok)
@@ -374,7 +371,7 @@ js_DestroyContext(JSContext *cx, JSDestroyContextMode mode)
         js_FinishRuntimeStringState(cx);
 
         
-        js_UnpinPinnedAtoms(&rt->atomState);
+        js_FinishCommonAtoms(cx);
 
         
         JS_ClearAllTraps(cx);
@@ -409,18 +406,8 @@ js_DestroyContext(JSContext *cx, JSDestroyContextMode mode)
         js_GC(cx, GC_LAST_CONTEXT);
 
         
-        if (rt->atomState.liveAtoms == 0)
-            js_FreeAtomState(cx, &rt->atomState);
-
-        
         if (rt->scriptFilenameTable && rt->scriptFilenameTable->nentries == 0)
             js_FinishRuntimeScriptState(rt);
-
-        
-
-
-
-        js_FinishDeflatedStringCache(rt);
 
         
 

@@ -2455,7 +2455,7 @@ restart:
 
 
     js_SweepScopeProperties(cx);
-    js_SweepAtomState(&rt->atomState);
+    js_SweepAtomState(cx);
 
     
 
