@@ -169,7 +169,13 @@ js_FillPropertyCache(JSContext *cx, JSObject *obj, jsuword kshape,
         tmp = obj;
         for (;;) {
             tmp = OBJ_GET_PROTO(cx, tmp);
-            if (!tmp) {
+
+            
+
+
+
+
+            if (!tmp || !OBJ_IS_NATIVE(tmp)) {
                 PCMETER(cache->noprotos++);
                 *entryp = NULL;
                 return;
