@@ -39,6 +39,8 @@ function test_visibility_open()
 {
   var dmui = Cc["@mozilla.org/download-manager-ui;1"].
              getService(Ci.nsIDownloadManagerUI);
+  is(dmui.open, true,
+     "nsIDownloadManagerUI indicates that the UI is open");
   is(dmui.visible, true,
      "nsIDownloadManagerUI indicates that the UI is visible");
 }
@@ -49,11 +51,26 @@ function test_getAttention_opened()
              getService(Ci.nsIDownloadManagerUI);
 
   
-  window.focus();
-
-  dmui.getAttention();
+  is(dmui.open, true,
+     "nsIDownloadManagerUI indicates that the UI is open");
   is(dmui.visible, true,
      "nsIDownloadManagerUI indicates that the UI is visible");
+
+  
+  window.focus();
+
+  
+  is(dmui.open, true,
+     "nsIDownloadManagerUI indicates that the UI is open");
+  is(dmui.visible, false,
+     "nsIDownloadManagerUI inidicates that the UI is not visible");
+
+  dmui.getAttention();
+  
+  is(dmui.open, true,
+     "nsIDownloadManagerUI indicates that the UI is open");
+  is(dmui.visible, false,
+     "nsIDownloadManagerUI indicates that the UI is not visible");
 }
 
 function test_visibility_closed(aWin)
@@ -61,6 +78,9 @@ function test_visibility_closed(aWin)
   var dmui = Cc["@mozilla.org/download-manager-ui;1"].
              getService(Ci.nsIDownloadManagerUI);
   aWin.close();
+  
+  is(dmui.open, false,
+     "nsIDownloadManagerUI indicates that the UI is open");
   is(dmui.visible, false,
      "nsIDownloadManagerUI indicates that the UI is not visible");
 }
