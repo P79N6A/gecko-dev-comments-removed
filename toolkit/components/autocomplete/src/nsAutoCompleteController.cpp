@@ -75,7 +75,6 @@ NS_INTERFACE_TABLE_HEAD(nsAutoCompleteController)
 NS_INTERFACE_MAP_END
 
 nsAutoCompleteController::nsAutoCompleteController() :
-  mEnterAfterSearch(0),
   mDefaultIndexCompleted(PR_FALSE),
   mBackspaced(PR_FALSE),
   mPopupClosedByCompositionStart(PR_FALSE),
@@ -150,7 +149,6 @@ nsAutoCompleteController::SetInput(nsIAutoCompleteInput *aInput)
 
   
   mSearchString = newValue;
-  mEnterAfterSearch = 0;
   mDefaultIndexCompleted = PR_FALSE;
   mBackspaced = PR_FALSE;
   mSearchStatus = nsIAutoCompleteController::STATUS_NONE;
@@ -285,11 +283,7 @@ nsAutoCompleteController::HandleEnter(PRBool aIsPopupSelection, PRBool *_retval)
   }
 
   
-  
-  
-  
-  if (mSearchStatus != nsIAutoCompleteController::STATUS_SEARCHING)
-    ClearSearchTimer();
+  StopSearch();
   EnterMatch(aIsPopupSelection);
 
   return NS_OK;
@@ -1080,14 +1074,6 @@ nsAutoCompleteController::ClearSearchTimer()
 nsresult
 nsAutoCompleteController::EnterMatch(PRBool aIsPopupSelection)
 {
-  
-  
-  if (mSearchStatus == nsIAutoCompleteController::STATUS_SEARCHING) {
-    mEnterAfterSearch = aIsPopupSelection ? 2 : 1;
-    return NS_OK;
-  }
-  mEnterAfterSearch = 0;
-
   nsCOMPtr<nsIAutoCompleteInput> input(mInput);
   nsCOMPtr<nsIAutoCompletePopup> popup;
   input->GetPopup(getter_AddRefs(popup));
@@ -1277,11 +1263,6 @@ nsAutoCompleteController::ProcessResult(PRInt32 aSearchIndex, nsIAutoCompleteRes
     
     PostSearchCleanup();
   }
-  else if (mEnterAfterSearch) {
-    
-    
-    StopSearch();
-  }
 
   return NS_OK;
 }
@@ -1308,11 +1289,6 @@ nsAutoCompleteController::PostSearchCleanup()
 
   
   input->OnSearchComplete();
-
-  
-  
-  if (mEnterAfterSearch)
-    EnterMatch(mEnterAfterSearch == 2);
 
   return NS_OK;
 }
@@ -1343,7 +1319,7 @@ nsAutoCompleteController::ClearResults()
 nsresult
 nsAutoCompleteController::CompleteDefaultIndex(PRInt32 aSearchIndex)
 {
-  if (mDefaultIndexCompleted || mEnterAfterSearch || mBackspaced || mRowCount == 0 || mSearchString.Length() == 0)
+  if (mDefaultIndexCompleted || mBackspaced || mRowCount == 0 || mSearchString.Length() == 0)
     return NS_OK;
 
   PRInt32 selectionStart;

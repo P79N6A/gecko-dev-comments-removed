@@ -109,10 +109,6 @@ protected:
   nsCOMPtr<nsITreeBoxObject> mTree;
 
   nsString mSearchString;
-  
-  
-  
-  PRInt8 mEnterAfterSearch;
   PRPackedBool mDefaultIndexCompleted;
   PRPackedBool mBackspaced;
   PRPackedBool mPopupClosedByCompositionStart;
