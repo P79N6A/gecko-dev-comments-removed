@@ -221,12 +221,12 @@ function getMostRecentBrowserWindow() {
   var win = wm.getMostRecentWindow("navigator:browser", true);
 
   
-  if (win && !win.toolbar.visible) {
+  if (win && win.document.documentElement.getAttribute("chromehidden")) {
     var windowList = wm.getEnumerator("navigator:browser", true);
     
     while (windowList.hasMoreElements()) {
       var nextWin = windowList.getNext();
-      if (nextWin.toolbar.visible)
+      if (!nextWin.document.documentElement.getAttribute("chromehidden"))
         win = nextWin;
     }
   }
@@ -236,7 +236,7 @@ function getMostRecentBrowserWindow() {
     return null;
 
   var win = windowList.getNext();
-  while (!win.toolbar.visible) {
+  while (win.document.documentElement.getAttribute("chromehidden")) {
     if (!windowList.hasMoreElements()) 
       return null;
 
