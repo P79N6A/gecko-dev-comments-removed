@@ -45,15 +45,17 @@
 
 class nsRuleWalker {
 public:
-  nsRuleNode* GetCurrentNode() { return mCurrent; }
-  void SetCurrentNode(nsRuleNode* aNode) { mCurrent = aNode; }
+  nsRuleNode* CurrentNode() { return mCurrent; }
+  void SetCurrentNode(nsRuleNode* aNode) {
+    NS_ASSERTION(aNode, "Must have node here!");
+    mCurrent = aNode;
+  }
 
   void Forward(nsIStyleRule* aRule) { 
-    if (mCurrent) { 
-      mCurrent = mCurrent->Transition(aRule, mLevel, mImportance);
-      mCheckForImportantRules =
-        mCheckForImportantRules && !aRule->GetImportantRule();
-    }
+    mCurrent = mCurrent->Transition(aRule, mLevel, mImportance);
+    mCheckForImportantRules =
+      mCheckForImportantRules && !aRule->GetImportantRule();
+    NS_POSTCONDITION(mCurrent, "Transition messed up");
   }
 
   void Reset() { mCurrent = mRoot; }
@@ -83,6 +85,9 @@ private:
                                         
 
 public:
-  nsRuleWalker(nsRuleNode* aRoot) :mCurrent(aRoot), mRoot(aRoot) { MOZ_COUNT_CTOR(nsRuleWalker); }
+  nsRuleWalker(nsRuleNode* aRoot) :mCurrent(aRoot), mRoot(aRoot) {
+    NS_ASSERTION(mCurrent, "Caller screwed up and gave us null node");
+    MOZ_COUNT_CTOR(nsRuleWalker);
+  }
   ~nsRuleWalker() { MOZ_COUNT_DTOR(nsRuleWalker); }
 };
