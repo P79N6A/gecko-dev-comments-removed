@@ -119,6 +119,7 @@
 #include "nsFrameManager.h"
 #include "nsComponentManagerUtils.h"
 #include "nsIObserverService.h"
+#include "nsIScrollableFrame.h"
 
 
 #include "nsIScriptGlobalObject.h"
@@ -4721,14 +4722,11 @@ nsPluginInstanceOwner::PrepareToStop(PRBool aDelayedStop)
 #endif
 
   
-  nsIFrame* parentWithView = mObjectFrame->GetAncestorWithView();
-  nsIView* curView = parentWithView ? parentWithView->GetView() : nsnull;
-  while (curView) {
-    nsIScrollableView* scrollingView = curView->ToScrollableView();
-    if (scrollingView)
-      scrollingView->RemoveScrollPositionListener((nsIScrollPositionListener *)this);
-    
-    curView = curView->GetParent();
+  for (nsIFrame* f = mObjectFrame; f; f = nsLayoutUtils::GetCrossDocParentFrame(f)) {
+    nsIScrollableFrame* sf = do_QueryFrame(f);
+    if (sf) {
+      sf->RemoveScrollPositionListener(this);
+    }
   }
 }
 
@@ -5478,14 +5476,11 @@ nsresult nsPluginInstanceOwner::Init(nsPresContext* aPresContext,
   
   
   
-  nsIFrame* parentWithView = mObjectFrame->GetAncestorWithView();
-  nsIView* curView = parentWithView ? parentWithView->GetView() : nsnull;
-  while (curView) {
-    nsIScrollableView* scrollingView = curView->ToScrollableView();
-    if (scrollingView)
-      scrollingView->AddScrollPositionListener((nsIScrollPositionListener *)this);
-    
-    curView = curView->GetParent();
+  for (nsIFrame* f = mObjectFrame; f; f = nsLayoutUtils::GetCrossDocParentFrame(f)) {
+    nsIScrollableFrame* sf = do_QueryFrame(f);
+    if (sf) {
+      sf->RemoveScrollPositionListener(this);
+    }
   }
 
   return NS_OK; 
