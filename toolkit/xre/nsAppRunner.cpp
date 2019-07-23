@@ -2013,6 +2013,14 @@ SelectProfile(nsIProfileLock* *aResult, nsINativeAppSupport* aNative,
     nsCOMPtr<nsIProfileUnlocker> unlocker;
 
     
+    PRBool exists;
+    lf->Exists(&exists);
+    if (!exists) {
+        rv = lf->Create(nsIFile::DIRECTORY_TYPE, 0644);
+        NS_ENSURE_SUCCESS(rv, rv);
+    }
+
+    
     
     rv = NS_LockProfilePath(lf, lf, getter_AddRefs(unlocker), aResult);
     if (NS_SUCCEEDED(rv))
