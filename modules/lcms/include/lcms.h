@@ -34,7 +34,13 @@
 
 
 
+
+#ifdef WINCE
+
+#define USE_C            1
+#else
 #define USE_ASSEMBLER    1
+#endif
 
 
 
