@@ -97,7 +97,7 @@ public:
 
 protected:
     
-    bool ProcessingSyncMessage() {
+    bool ProcessingSyncMessage() const {
         return mProcessingSyncMessage;
     }
 
@@ -132,7 +132,7 @@ protected:
     void NotifyWorkerThread();
 
     
-    bool AwaitingSyncReply() {
+    bool AwaitingSyncReply() const {
         mMutex.AssertCurrentThreadOwns();
         return mPendingReply != 0;
     }
