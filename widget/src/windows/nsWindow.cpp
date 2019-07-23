@@ -1500,28 +1500,17 @@ NS_IMETHODIMP nsWindow::SetSizeMode(PRInt32 aMode) {
       case nsSizeMode_Maximized :
         mode = SW_MAXIMIZE;
         break;
+
       case nsSizeMode_Minimized :
+        
+        
+        
+        
+        
+        
         mode = sTrimOnMinimize ? SW_MINIMIZE : SW_SHOWMINIMIZED;
-        if (!sTrimOnMinimize) {
-          
-          HWND hwndBelow = ::GetNextWindow(mWnd, GW_HWNDNEXT);
-          while (hwndBelow && (!::IsWindowEnabled(hwndBelow) || !::IsWindowVisible(hwndBelow) ||
-                               ::IsIconic(hwndBelow))) {
-            hwndBelow = ::GetNextWindow(hwndBelow, GW_HWNDNEXT);
-          }
-
-          
-          
-          ::SetWindowPos(mWnd, HWND_BOTTOM, 0, 0, 0, 0,
-                         SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE);
-          if (hwndBelow)
-            ::SetForegroundWindow(hwndBelow);
-
-          
-          
-          ::PlaySoundW(L"Minimize", nsnull, SND_ALIAS | SND_NODEFAULT | SND_ASYNC);
-        }
         break;
+
       default :
         mode = SW_RESTORE;
     }
@@ -4831,7 +4820,7 @@ BOOL nsWindow::OnInputLangChange(HKL aHKL)
   return PR_FALSE;   
 }
 
-#if !defined(WINCE)
+#if !defined(WINCE) 
 void nsWindow::OnWindowPosChanged(WINDOWPOS *wp, PRBool& result)
 {
   if (wp == nsnull)
@@ -4877,6 +4866,14 @@ void nsWindow::OnWindowPosChanged(WINDOWPOS *wp, PRBool& result)
     
     
     mSizeMode = event.mSizeMode;
+
+    
+    
+    
+    
+    
+    if (!sTrimOnMinimize && nsSizeMode_Minimized == event.mSizeMode)
+      ActivateOtherWindowHelper(mWnd);
 
 #ifdef WINSTATE_DEBUG_OUTPUT
     switch (mSizeMode) {
@@ -4973,6 +4970,28 @@ void nsWindow::OnWindowPosChanged(WINDOWPOS *wp, PRBool& result)
     
     result = OnResize(rect);
   }
+}
+
+
+void nsWindow::ActivateOtherWindowHelper(HWND aWnd)
+{
+  
+  HWND hwndBelow = ::GetNextWindow(aWnd, GW_HWNDNEXT);
+  while (hwndBelow && (!::IsWindowEnabled(hwndBelow) || !::IsWindowVisible(hwndBelow) ||
+                       ::IsIconic(hwndBelow))) {
+    hwndBelow = ::GetNextWindow(hwndBelow, GW_HWNDNEXT);
+  }
+
+  
+  
+  ::SetWindowPos(aWnd, HWND_BOTTOM, 0, 0, 0, 0,
+                 SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE);
+  if (hwndBelow)
+    ::SetForegroundWindow(hwndBelow);
+
+  
+  
+  ::PlaySoundW(L"Minimize", nsnull, SND_ALIAS | SND_NODEFAULT | SND_ASYNC);
 }
 #endif 
 
