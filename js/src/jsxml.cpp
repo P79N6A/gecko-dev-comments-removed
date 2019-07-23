@@ -7495,7 +7495,7 @@ js_AddAttributePart(JSContext *cx, JSBool isName, JSString *str, JSString *str2)
 
 
 
-        js_PurgeDeflatedStringCache(cx->runtime, str);
+        cx->runtime->deflatedStringCache->remove(str);
     }
 
     str2->getCharsAndLength(chars2, len2);
