@@ -1959,6 +1959,7 @@ TraceRecorder::checkForGlobalObjectReallocation()
 static bool
 js_IsLoopExit(jsbytecode* pc, jsbytecode* header)
 {
+    JS_ASSERT(*header == JSOP_LOOP);
     switch (*pc) {
       case JSOP_LT:
       case JSOP_GT:
@@ -2906,15 +2907,15 @@ TraceRecorder::flipIf(jsbytecode* pc, bool& cond)
 JS_REQUIRES_STACK void
 TraceRecorder::fuseIf(jsbytecode* pc, bool cond, LIns* x)
 {
-    if (x->isconst()) 
-        return;
     if (*pc == JSOP_IFEQ) {
         flipIf(pc, cond);
-        guard(cond, x, BRANCH_EXIT);
+        if (!x->isconst())
+            guard(cond, x, BRANCH_EXIT);
         trackCfgMerges(pc);
     } else if (*pc == JSOP_IFNE) {
         flipIf(pc, cond);
-        guard(cond, x, BRANCH_EXIT);
+        if (!x->isconst())
+            guard(cond, x, BRANCH_EXIT);
     }
 }
 
@@ -5390,9 +5391,7 @@ TraceRecorder::equalityHelper(jsval l, jsval r, LIns* l_ins, LIns* r_ins,
     
 
 
-
-
-    if (tryBranchAfterCond && !x->isconst())
+    if (tryBranchAfterCond)
         fuseIf(cx->fp->regs->pc + 1, cond, x);
 
     
@@ -5510,9 +5509,7 @@ TraceRecorder::relational(LOpcode op, bool tryBranchAfterCond)
     
 
 
-
-
-    if (tryBranchAfterCond && !x->isconst())
+    if (tryBranchAfterCond)
         fuseIf(cx->fp->regs->pc + 1, cond, x);
 
     
@@ -6177,8 +6174,8 @@ TraceRecorder::record_LeaveFrame()
                    js_AtomToPrintableString(cx, cx->fp->fun->atom),
                    callDepth);
         );
-    if (callDepth-- <= 0)
-        ABORT_TRACE("returned out of a loop we started tracing");
+    JS_ASSERT(callDepth > 0);
+    callDepth--;
 
     
     
