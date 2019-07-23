@@ -235,6 +235,20 @@ var PlacesOrganizer = {
     
     
     
+    var folderButton = document.getElementById("scopeBarFolder");
+    var folderTitle = node.title || folderButton.getAttribute("emptytitle");
+    folderButton.setAttribute("label", folderTitle);
+    var cmd = document.getElementById("OrganizerCommand_find:current");
+    var label = PlacesUIUtils.getFormattedString("findInPrefix", [folderTitle]);
+    cmd.setAttribute("label", label);
+    if (PlacesSearchBox.filterCollection == "collection")
+      PlacesSearchBox.updateCollectionTitle(folderTitle);
+
+    
+    
+    
+    
+    
     
     if (node.uri == this._cachedLeftPaneSelectedURI)
       return;
@@ -266,20 +280,8 @@ var PlacesOrganizer = {
 
     
     var folderButton = document.getElementById("scopeBarFolder");
-    folderButton.disabled = !PlacesUtils.nodeIsFolder(aNode) ||
-                            itemId == PlacesUIUtils.allBookmarksFolderId;
-    if (!folderButton.disabled) {
-      
-
-      
-      
-      
-      
-      var cmd = document.getElementById("OrganizerCommand_find:current");
-      var label = PlacesUIUtils.getFormattedString("findInPrefix",
-                                                   [aNode.title]);
-      cmd.setAttribute("label", label);
-    }
+    folderButton.hidden = !PlacesUtils.nodeIsFolder(aNode) ||
+                          itemId == PlacesUIUtils.allBookmarksFolderId;
   },
 
   
@@ -957,8 +959,11 @@ var PlacesSearchBox = {
     this.searchFilter.setAttribute("collection", collectionName);
 
     var newGrayText = null;
-    if (collectionName == "collection")
-      newGrayText = PlacesOrganizer._places.selectedNode.title;
+    if (collectionName == "collection") {
+      newGrayText = PlacesOrganizer._places.selectedNode.title ||
+                    document.getElementById("scopeBarFolder").
+                      getAttribute("emptytitle");
+    }
     this.updateCollectionTitle(newGrayText);
     return collectionName;
   },
@@ -1521,7 +1526,7 @@ var PlacesQueryBuilder = {
       
       
       
-      if (!document.getElementById("scopeBarFolder").disabled) {
+      if (!document.getElementById("scopeBarFolder").hidden) {
         filterCollection = "collection";
         scopeButtonId = "scopeBarFolder";
         folders.push(PlacesUtils.getConcreteItemId(
