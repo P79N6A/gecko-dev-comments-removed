@@ -36,6 +36,8 @@
 
 
 
+
+
 #ifndef nsNavBookmarks_h_
 #define nsNavBookmarks_h_
 
@@ -105,9 +107,6 @@ public:
 
 
   PRBool IsRealBookmark(PRInt64 aPlaceId);
-
-  
-  nsresult OnQuit();
 
   nsresult BeginUpdateBatch();
   nsresult EndUpdateBatch();

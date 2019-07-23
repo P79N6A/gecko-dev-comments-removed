@@ -523,10 +523,9 @@ function startExpireNeither() {
   prefs.setIntPref("browser.history_expire_days", 3);
 
   
-  
 
   
-  do_timeout(3600, "checkExpireNeither();");
+  do_timeout(600, "checkExpireNeither();");
 }
 
 function checkExpireNeither() {
@@ -585,10 +584,9 @@ function startExpireDaysOnly() {
   prefs.setIntPref("browser.history_expire_days", 3);
 
   
-  
 
   
-  do_timeout(3600, "checkExpireDaysOnly();");
+  do_timeout(600, "checkExpireDaysOnly();");
 }
 
 function checkExpireDaysOnly() {
@@ -656,10 +654,9 @@ function startExpireBoth() {
   prefs.setIntPref("browser.history_expire_days_min", 1);
 
   
-  
 
   
-  do_timeout(3600, "checkExpireBoth();"); 
+  do_timeout(600, "checkExpireBoth();"); 
 }
 
 function checkExpireBoth() {
@@ -715,10 +712,9 @@ function startExpireNeitherOver() {
   prefs.setIntPref("browser.history_expire_days", 3);
 
   
-  
 
   
-  do_timeout(3600, "checkExpireNeitherOver();");
+  do_timeout(600, "checkExpireNeitherOver();");
 }
 
 function checkExpireNeitherOver() {
@@ -765,10 +761,9 @@ function startExpireHistoryDisabled() {
   prefs.setIntPref("browser.history_expire_days", 0);
 
   
-  
 
   
-  do_timeout(3600, "checkExpireHistoryDisabled();");
+  do_timeout(600, "checkExpireHistoryDisabled();");
 }
 
 function checkExpireHistoryDisabled() {
@@ -818,10 +813,9 @@ function startExpireBadPrefs() {
   prefs.setIntPref("browser.history_expire_days", 1);
 
   
-  
 
   
-  do_timeout(3600, "checkExpireBadPrefs();");
+  do_timeout(600, "checkExpireBadPrefs();");
 }
 
 function checkExpireBadPrefs() {

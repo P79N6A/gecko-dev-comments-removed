@@ -38,6 +38,7 @@
 
 
 
+
 #ifndef nsNavHistory_h_
 #define nsNavHistory_h_
 
@@ -528,7 +529,7 @@ protected:
 
   
   friend class nsNavHistoryExpire;
-  nsNavHistoryExpire mExpire;
+  nsNavHistoryExpire *mExpire;
 
 #ifdef LAZY_ADD
   
@@ -691,15 +692,6 @@ protected:
   nsresult TokensToQueries(const nsTArray<QueryKeyValuePair>& aTokens,
                            nsCOMArray<nsNavHistoryQuery>* aQueries,
                            nsNavHistoryQueryOptions* aOptions);
-
-  
-
-
-
-  nsCOMPtr<nsITimer> mIdleTimer;
-  nsresult InitializeIdleTimer();
-  static void IdleTimerCallback(nsITimer* aTimer, void* aClosure);
-  nsresult OnIdle();
 
   PRInt64 mTagsFolder;
 

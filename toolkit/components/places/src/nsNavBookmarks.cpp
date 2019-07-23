@@ -37,6 +37,8 @@
 
 
 
+
+
 #include "nsAppDirectoryServiceDefs.h"
 #include "nsNavBookmarks.h"
 #include "nsNavHistory.h"
@@ -3028,15 +3030,6 @@ NS_IMETHODIMP
 nsNavBookmarks::RemoveObserver(nsINavBookmarkObserver *aObserver)
 {
   return mObservers.RemoveWeakElement(aObserver);
-}
-
-
-
-
-nsresult
-nsNavBookmarks::OnQuit()
-{
-  return NS_OK;
 }
 
 
