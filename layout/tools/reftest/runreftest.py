@@ -36,6 +36,7 @@
 
 
 
+
 """
 Runs the reftest test harness.
 """
@@ -44,7 +45,7 @@ import sys, shutil, os, os.path
 SCRIPT_DIRECTORY = os.path.abspath(os.path.realpath(os.path.dirname(sys.argv[0])))
 sys.path.append(SCRIPT_DIRECTORY)
 import automation
-from automationutils import addCommonOptions
+from automationutils import addCommonOptions, processLeakLog
 from optparse import OptionParser
 from tempfile import mkdtemp
 
@@ -166,7 +167,7 @@ Are you executing $objdir/_tests/reftest/runreftest.py?""" \
                                ["-reftest", reftestlist],
                                xrePath=options.xrePath,
                                symbolsPath=options.symbolsPath)
-    automation.processLeakLog(leakLogFile, options.leakThreshold)
+    processLeakLog(leakLogFile, options.leakThreshold)
     automation.log.info("\nREFTEST INFO | runreftest.py | Running tests: end.")
   finally:
     if profileDir is not None:
