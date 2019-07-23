@@ -1013,13 +1013,7 @@ nsBlockReflowState::FlowAndPlaceFloat(nsFloatCache*   aFloatCache,
                  borderPadding.top + floatMargin.top + floatY);
 
   
-  if (NS_STYLE_POSITION_RELATIVE == floatDisplay->mPosition) {
-    nsPoint *offsets = static_cast<nsPoint*>
-                                  (floatFrame->GetProperty(nsGkAtoms::computedOffsetProperty));
-    if (offsets) {
-      origin += *offsets;
-    }
-  }
+  origin += floatFrame->GetRelativeOffset(floatDisplay);
 
   
   

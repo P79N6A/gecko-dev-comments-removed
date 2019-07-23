@@ -713,6 +713,16 @@ public:
 
 
 
+  static nscoord CalculateContentBottom(nsIFrame* aFrame);
+
+  
+
+
+
+
+
+
+
   static nsIFrame* GetClosestLayer(nsIFrame* aFrame);
 
   

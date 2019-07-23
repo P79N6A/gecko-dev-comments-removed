@@ -506,7 +506,8 @@ protected:
 
   void ComputeRelativeOffsets(const nsHTMLReflowState* cbrs,
                               nscoord aContainingBlockWidth,
-                              nscoord aContainingBlockHeight);
+                              nscoord aContainingBlockHeight,
+                              nsPresContext* aPresContext);
 
   
   

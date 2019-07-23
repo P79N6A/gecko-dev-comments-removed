@@ -2960,7 +2960,6 @@ nsBlockFrame::ReflowBlockFrame(nsBlockReflowState& aState,
     }
     
     
-    nsMargin computedOffsets;
     
     
     nsHTMLReflowState blockHtmlRS(aState.mPresContext, aState.mReflowState, frame, 
@@ -2977,7 +2976,7 @@ nsBlockFrame::ReflowBlockFrame(nsBlockReflowState& aState,
     
     nsReflowStatus frameReflowStatus = NS_FRAME_COMPLETE;
     rv = brc.ReflowBlock(availSpace, applyTopMargin, aState.mPrevBottomMargin,
-                         clearance, aState.IsAdjacentWithTop(), computedOffsets,
+                         clearance, aState.IsAdjacentWithTop(),
                          aLine.get(), blockHtmlRS, frameReflowStatus, aState);
 
     
@@ -3023,7 +3022,7 @@ nsBlockFrame::ReflowBlockFrame(nsBlockReflowState& aState,
       nsCollapsingMargin collapsedBottomMargin;
       nsRect combinedArea(0,0,0,0);
       *aKeepReflowGoing = brc.PlaceBlock(blockHtmlRS, forceFit, aLine.get(),
-                                         computedOffsets, collapsedBottomMargin,
+                                         collapsedBottomMargin,
                                          aLine->mBounds, combinedArea, frameReflowStatus);
       if (aLine->SetCarriedOutBottomMargin(collapsedBottomMargin)) {
         line_iterator nextLine = aLine;
@@ -5699,11 +5698,9 @@ nsBlockFrame::ReflowFloat(nsBlockReflowState& aState,
       }
     }
 
-    nsMargin offsets; 
-                      
     rv = brc.ReflowBlock(availSpace, PR_TRUE, margin,
                          0, isAdjacentWithTop,
-                         offsets, nsnull, floatRS,
+                         nsnull, floatRS,
                          aReflowStatus, aState);
   } while (NS_SUCCEEDED(rv) && clearanceFrame);
 

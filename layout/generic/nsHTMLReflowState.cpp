@@ -575,10 +575,19 @@ nsHTMLReflowState::InitFrameType()
   mFrameType = frameType;
 }
 
+static void
+nsPointDtor(void *aFrame, nsIAtom *aPropertyName,
+            void *aPropertyValue, void *aDtorData)
+{
+  nsPoint *point = static_cast<nsPoint*>(aPropertyValue);
+  delete point;
+}
+
 void
 nsHTMLReflowState::ComputeRelativeOffsets(const nsHTMLReflowState* cbrs,
                                           nscoord aContainingBlockWidth,
-                                          nscoord aContainingBlockHeight)
+                                          nscoord aContainingBlockHeight,
+                                          nsPresContext* aPresContext)
 {
   
   
@@ -680,6 +689,19 @@ nsHTMLReflowState::ComputeRelativeOffsets(const nsHTMLReflowState* cbrs,
 
     
     mComputedOffsets.bottom = -mComputedOffsets.top;
+  }
+
+  
+  nsPropertyTable* propTable = aPresContext->PropertyTable();
+  nsPoint* offsets = static_cast<nsPoint*>
+                                (propTable->GetProperty(frame, nsGkAtoms::computedOffsetProperty));
+  if (offsets)
+    offsets->MoveTo(mComputedOffsets.left, mComputedOffsets.top);
+  else {
+    offsets = new nsPoint(mComputedOffsets.left, mComputedOffsets.top);
+    if (offsets)
+      propTable->SetProperty(frame, nsGkAtoms::computedOffsetProperty,
+                              offsets, nsPointDtor, nsnull);
   }
 }
 
@@ -1707,7 +1729,7 @@ nsHTMLReflowState::InitConstraints(nsPresContext* aPresContext,
     
     
     if (NS_STYLE_POSITION_RELATIVE == mStyleDisplay->mPosition) {
-      ComputeRelativeOffsets(cbrs, aContainingBlockWidth, aContainingBlockHeight);
+      ComputeRelativeOffsets(cbrs, aContainingBlockWidth, aContainingBlockHeight, aPresContext);
     } else {
       
       mComputedOffsets.SizeTo(0, 0, 0, 0);
