@@ -5932,7 +5932,20 @@ interrupt:
                     JS_ASSERT(PCVAL_IS_SPROP(entry->vword));
                     sprop = PCVAL_TO_SPROP(entry->vword);
                     JS_ASSERT(!(sprop->attrs & JSPROP_READONLY));
-                    JS_ASSERT(SPROP_HAS_STUB_SETTER(sprop));
+
+                    
+
+
+
+
+
+                    if (!SPROP_HAS_STUB_SETTER(sprop))
+                        goto do_initprop_miss;
+
+                    
+
+
+
                     JS_ASSERT(PCVCAP_MAKE(sprop->shape, 0, 0) == entry->vcap);
 
                     if (scope->object != obj) {
