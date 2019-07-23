@@ -67,7 +67,7 @@ pref("browser.cache.disk.capacity",         20000);
 pref("browser.cache.memory.enable",         true);
 
 
-pref("browser.cache.disk_cache_ssl",        false);
+pref("browser.cache.disk_cache_ssl",        true);
 
 pref("browser.cache.check_doc_frequency",   3);
 
