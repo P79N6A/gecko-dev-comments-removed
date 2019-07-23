@@ -1034,6 +1034,8 @@ NS_IMETHODIMP imgRequest::OnDataAvailable(nsIRequest *aRequest, nsISupports *ctx
     }
   }
 
+  mImage->RequestDecode();
+
   
   PRUint32 bytesRead;
   rv = inStr->ReadSegments(imgContainer::WriteToContainer,
