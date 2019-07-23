@@ -284,16 +284,16 @@ function run_test() {
 
   
   
-  includeHidden_options = [true, false];
-  redirectsMode_options =  [Ci.nsINavHistoryQueryOptions.REDIRECTS_MODE_ALL,
-                            Ci.nsINavHistoryQueryOptions.REDIRECTS_MODE_SOURCE,
-                            Ci.nsINavHistoryQueryOptions.REDIRECTS_MODE_TARGET];
-  maxResults_options = [5, 10, 20, null];
+  let includeHidden_options = [true, false];
+  let redirectsMode_options =  [Ci.nsINavHistoryQueryOptions.REDIRECTS_MODE_ALL,
+                                Ci.nsINavHistoryQueryOptions.REDIRECTS_MODE_SOURCE,
+                                Ci.nsINavHistoryQueryOptions.REDIRECTS_MODE_TARGET];
+  let maxResults_options = [5, 10, 20, null];
   
   
-  sorting_options = [Ci.nsINavHistoryQueryOptions.SORT_BY_NONE,
-                     Ci.nsINavHistoryQueryOptions.SORT_BY_VISITCOUNT_DESCENDING,
-                     Ci.nsINavHistoryQueryOptions.SORT_BY_DATE_DESCENDING];
+  let sorting_options = [Ci.nsINavHistoryQueryOptions.SORT_BY_NONE,
+                         Ci.nsINavHistoryQueryOptions.SORT_BY_VISITCOUNT_DESCENDING,
+                         Ci.nsINavHistoryQueryOptions.SORT_BY_DATE_DESCENDING];
   
   cartProd([includeHidden_options, redirectsMode_options, maxResults_options, sorting_options],
            check_results_callback);

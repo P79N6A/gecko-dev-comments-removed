@@ -122,8 +122,8 @@ function run_test()
   prefs.setIntPref(kSyncPrefName, SYNC_INTERVAL);
 
   
-  visitId = hs.addVisit(uri(TEST_URI), Date.now() * 1000, null,
-                        hs.TRANSITION_TYPED, false, 0);
+  let visitId = hs.addVisit(uri(TEST_URI), Date.now() * 1000, null,
+                            hs.TRANSITION_TYPED, false, 0);
   
   icons.setFaviconUrlForPage(uri(TEST_URI), uri(TEST_ICON_URI));
 

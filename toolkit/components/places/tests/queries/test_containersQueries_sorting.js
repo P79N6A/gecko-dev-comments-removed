@@ -231,8 +231,8 @@ function test_query_callback(aSequence) {
     
     
     
-    innerContainer = container.getChild(0)
-                              .QueryInterface(Ci.nsINavHistoryContainerResultNode);
+    let innerContainer = container.getChild(0)
+                                  .QueryInterface(Ci.nsINavHistoryContainerResultNode);
     innerContainer.containerOpen = true;
     check_children_sorting(innerContainer,
                            Ci.nsINavHistoryQueryOptions.SORT_BY_TITLE_ASCENDING);
@@ -304,8 +304,8 @@ function test_result_sortingMode_change(aResult, aResultType, aOriginalSortingMo
                              Ci.nsINavHistoryQueryOptions.SORT_BY_TITLE_ASCENDING);
       
       
-      innerContainer = container.getChild(0)
-                                .QueryInterface(Ci.nsINavHistoryContainerResultNode);
+      let innerContainer = container.getChild(0)
+                                    .QueryInterface(Ci.nsINavHistoryContainerResultNode);
       innerContainer.containerOpen = true;
       check_children_sorting(innerContainer, aForcedSortingMode.value);
       innerContainer.containerOpen = false;
