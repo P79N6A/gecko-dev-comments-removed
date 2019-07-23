@@ -100,16 +100,36 @@ nsResizerFrame::HandleEvent(nsPresContext* aPresContext,
            static_cast<nsMouseEvent*>(aEvent)->button ==
              nsMouseEvent::eLeftButton)
        {
-         
-         mTrackingMouseMove = PR_TRUE;
+
+         nsresult rv = NS_OK;
 
          
-         aEvent->widget->CaptureMouse(PR_TRUE);
-         CaptureMouseEvents(aPresContext,PR_TRUE);
+         
+         static const PRInt8 directions[][2] = {
+           {-1, -1}, {0, -1}, {1, -1},
+           {-1,  0},          {1,  0},
+           {-1,  1}, {0,  1}, {1,  1}
+         };
 
          
-         mLastPoint = aEvent->refPoint;
-         aEvent->widget->GetScreenBounds(mWidgetRect);
+         rv = aEvent->widget->BeginResizeDrag(aEvent, 
+             directions[mDirection][0], directions[mDirection][1]);
+
+         if (rv == NS_ERROR_NOT_IMPLEMENTED) {
+           
+           
+
+           
+           mTrackingMouseMove = PR_TRUE;
+
+           
+           aEvent->widget->CaptureMouse(PR_TRUE);
+           CaptureMouseEvents(aPresContext,PR_TRUE);
+
+           
+           mLastPoint = aEvent->refPoint;
+           aEvent->widget->GetScreenBounds(mWidgetRect);
+         }
 
          *aEventStatus = nsEventStatus_eConsumeNoDefault;
          doDefault = PR_FALSE;

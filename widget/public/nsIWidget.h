@@ -97,8 +97,8 @@ typedef nsEventStatus (*PR_CALLBACK EVENT_CALLBACK)(nsGUIEvent *event);
 
 
 #define NS_IWIDGET_IID \
-{ 0x092c37e8, 0x2806, 0x4ebc, \
-  { 0xb0, 0x4b, 0xe0, 0xbb, 0x62, 0x4c, 0xe0, 0xd4 } }
+{ 0xd7d1aae8, 0xfcb9, 0x4fe7, \
+  { 0xbe, 0x62, 0xb2, 0x0f, 0xfc, 0x53, 0xf1, 0xf9 } }
 
 
 
@@ -1044,6 +1044,11 @@ class nsIWidget : public nsISupports {
 
 
     virtual nsIContent* GetLastRollup() = 0;
+
+    
+
+
+    NS_IMETHOD BeginResizeDrag(nsGUIEvent* aEvent, PRInt32 aHorizontal, PRInt32 aVertical) = 0;
 
 protected:
     
