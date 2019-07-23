@@ -10,7 +10,7 @@ function test() {
   }
   
   
-  let tabbrowser = getBrowser();
+  let tabbrowser = gBrowser;
   waitForExplicitFinish();
   
   
