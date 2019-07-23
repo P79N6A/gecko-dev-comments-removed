@@ -325,6 +325,8 @@ NS_IMETHODIMP nsExtProtocolChannel::AsyncOpen(nsIStreamListener *listener, nsISu
     nsCOMPtr<nsIRunnable> event = new nsWebProtocolRedirect(mUrl, uriTemplate,
                                                             listener, ctxt, 
                                                             this);
+    
+    
     rv = NS_DispatchToCurrentThread(event);
     if (NS_SUCCEEDED(rv)) {
       return rv;
