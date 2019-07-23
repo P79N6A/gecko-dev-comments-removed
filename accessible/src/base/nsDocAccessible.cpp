@@ -440,22 +440,23 @@ NS_IMETHODIMP nsDocAccessible::CacheAccessNode(void *aUniqueID, nsIAccessNode *a
 NS_IMETHODIMP nsDocAccessible::GetParent(nsIAccessible **aParent)
 {
   
+  *aParent = nsnull;
+  NS_ENSURE_TRUE(mDocument, NS_ERROR_FAILURE);
   if (!mParent) {
     nsIDocument *parentDoc = mDocument->GetParentDocument();
-    if (parentDoc) {
-      nsIContent *ownerContent = parentDoc->FindContentForSubDocument(mDocument);
-      nsCOMPtr<nsIDOMNode> ownerNode(do_QueryInterface(ownerContent));
-      if (ownerNode) {
-        nsCOMPtr<nsIAccessibilityService> accService =
-          do_GetService("@mozilla.org/accessibilityService;1");
-        if (accService) {
-          
-          
-          
-          
-          
-          accService->GetAccessibleFor(ownerNode, getter_AddRefs(mParent));
-        }
+    NS_ENSURE_TRUE(parentDoc, NS_ERROR_FAILURE);
+    nsIContent *ownerContent = parentDoc->FindContentForSubDocument(mDocument);
+    nsCOMPtr<nsIDOMNode> ownerNode(do_QueryInterface(ownerContent));
+    if (ownerNode) {
+      nsCOMPtr<nsIAccessibilityService> accService =
+        do_GetService("@mozilla.org/accessibilityService;1");
+      if (accService) {
+        
+        
+        
+        
+        
+        accService->GetAccessibleFor(ownerNode, getter_AddRefs(mParent));
       }
     }
   }
