@@ -722,6 +722,8 @@ nsTableFrame::CreateAnonymousColFrames(PRInt32         aNumColsToAdd,
                                        PRBool          aDoAppend,
                                        nsIFrame*       aPrevColIn)
 {
+  NS_PRECONDITION(aColType != eColAnonymousCol, "Shouldn't happen");
+  
   
   nsTableColGroupFrame* colGroupFrame = nsnull;
   nsIFrame* childFrame = mColGroups.FirstChild();
@@ -740,11 +742,6 @@ nsTableFrame::CreateAnonymousColFrames(PRInt32         aNumColsToAdd,
   if (eColAnonymousCell == aColType) {
     if (eColGroupAnonymousCell != lastColGroupType) {
       newColGroupType = eColGroupAnonymousCell;
-    }
-  }
-  else if (eColAnonymousCol == aColType) {
-    if (eColGroupAnonymousCol != lastColGroupType) {
-      newColGroupType = eColGroupAnonymousCol;
     }
   }
   else {
@@ -781,6 +778,8 @@ nsTableFrame::CreateAnonymousColFrames(nsTableColGroupFrame* aColGroupFrame,
                                        nsIFrame**            aFirstNewFrame)
 {
   NS_PRECONDITION(aColGroupFrame, "null frame");
+  NS_PRECONDITION(aColType != eColAnonymousCol, "Shouldn't happen");
+
   *aFirstNewFrame = nsnull;
   nsIFrame* lastColFrame = nsnull;
   nsPresContext* presContext = PresContext();
@@ -803,20 +802,13 @@ nsTableFrame::CreateAnonymousColFrames(nsTableColGroupFrame* aColGroupFrame,
     nsRefPtr<nsStyleContext> styleContext;
     nsStyleContext* parentStyleContext;
 
-    if ((aColType == eColAnonymousCol) && aPrevFrameIn) {
-      
-      styleContext = aPrevFrameIn->GetStyleContext();
-      
-      iContent = aPrevFrameIn->GetContent();
-    }
-    else {
-      
-      iContent = aColGroupFrame->GetContent();
-      parentStyleContext = aColGroupFrame->GetStyleContext();
-      styleContext = shell->StyleSet()->ResolvePseudoStyleFor(iContent,
-                                                              nsCSSAnonBoxes::tableCol,
-                                                              parentStyleContext);
-    }
+    
+    
+    iContent = aColGroupFrame->GetContent();
+    parentStyleContext = aColGroupFrame->GetStyleContext();
+    styleContext = shell->StyleSet()->ResolvePseudoStyleFor(iContent,
+                                                            nsCSSAnonBoxes::tableCol,
+                                                            parentStyleContext);
     
     NS_ASSERTION(iContent, "null content in CreateAnonymousColFrames");
 
