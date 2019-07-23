@@ -129,11 +129,17 @@ protected:
 
 
   struct ColumnBalanceData {
+    
     nscoord mMaxHeight;
+    
     nscoord mSumHeight;
+    
     nscoord mLastHeight;
+    
+    
+    nscoord mMaxOverflowingHeight;
     void Reset() {
-      mMaxHeight = mSumHeight = mLastHeight = 0;
+      mMaxHeight = mSumHeight = mLastHeight = mMaxOverflowingHeight = 0;
     }
   };
   
@@ -669,6 +675,10 @@ nsColumnSetFrame::ReflowChildren(nsHTMLReflowMetrics&     aDesiredSize,
       if (childContentBottom > aConfig.mColMaxHeight) {
         allFit = PR_FALSE;
       }
+      if (childContentBottom > availSize.height) {
+        aColData.mMaxOverflowingHeight = PR_MAX(childContentBottom,
+            aColData.mMaxOverflowingHeight);
+      }
     }
 
     contentRect.UnionRect(contentRect, child->GetRect());
@@ -908,6 +918,11 @@ nsColumnSetFrame::Reflow(nsPresContext*           aPresContext,
         }
       } else {
         knownInfeasibleHeight = PR_MAX(knownInfeasibleHeight, mLastBalanceHeight);
+        
+        
+        
+        knownInfeasibleHeight = PR_MAX(knownInfeasibleHeight,
+                                       colData.mMaxOverflowingHeight - 1);
 
         if (unboundedLastColumn) {
           
