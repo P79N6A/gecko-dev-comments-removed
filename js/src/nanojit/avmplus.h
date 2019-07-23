@@ -253,10 +253,6 @@ namespace avmplus {
 
 
 
-
-
-
-
     class BitSet
     {
         public:
@@ -266,23 +262,19 @@ namespace avmplus {
             BitSet()
             {
                 capacity = kDefaultCapacity;
+                ar = (long*)calloc(capacity, sizeof(long));
                 reset();
             }
 
             ~BitSet()
             {
-                if (capacity > kDefaultCapacity)
-                    free(bits.ptr);
+                free(ar);
             }
 
             void reset()
             {
-                if (capacity > kDefaultCapacity)
-                    for(int i=0; i<capacity; i++)
-                        bits.ptr[i] = 0;
-                else
-                    for(int i=0; i<capacity; i++)
-                        bits.ar[i] = 0;
+                for (int i = 0; i < capacity; i++)
+                    ar[i] = 0;
             }
 
             void set(int bitNbr)
@@ -292,10 +284,7 @@ namespace avmplus {
                 if (index >= capacity)
                     grow(index+1);
 
-                if (capacity > kDefaultCapacity)
-                    bits.ptr[index] |= (1<<bit);
-                else
-                    bits.ar[index] |= (1<<bit);
+                ar[index] |= (1<<bit);
             }
 
             void clear(int bitNbr)
@@ -303,12 +292,7 @@ namespace avmplus {
                 int index = bitNbr / kUnit;
                 int bit = bitNbr % kUnit;
                 if (index < capacity)
-                {
-                    if (capacity > kDefaultCapacity)
-                        bits.ptr[index] &= ~(1<<bit);
-                    else
-                        bits.ar[index] &= ~(1<<bit);
-                }
+                    ar[index] &= ~(1<<bit);
             }
 
             bool get(int bitNbr) const
@@ -317,12 +301,7 @@ namespace avmplus {
                 int bit = bitNbr % kUnit;
                 bool value = false;
                 if (index < capacity)
-                {
-                    if (capacity > kDefaultCapacity)
-                        value = ( bits.ptr[index] & (1<<bit) ) ? true : false;
-                    else
-                        value = ( bits.ar[index] & (1<<bit) ) ? true : false;
-                }
+                    value = ( ar[index] & (1<<bit) ) ? true : false;
                 return value;
             }
 
@@ -333,35 +312,21 @@ namespace avmplus {
                 
                 newCapacity *= 2;
                 
-                long* newBits = (long*)calloc(1, newCapacity * sizeof(long));
-                
+                long* newAr = (long*)calloc(newCapacity, sizeof(long));
 
                 
-                if (capacity > kDefaultCapacity)
-                    for(int i=0; i<capacity; i++)
-                        newBits[i] = bits.ptr[i];
-                else
-                    for(int i=0; i<capacity; i++)
-                        newBits[i] = bits.ar[i];
+                for (int i = 0; i < capacity; i++)
+                    newAr[i] = ar[i];
 
                 
-                if (capacity > kDefaultCapacity)
-                    free(bits.ptr);
+                free(ar);
 
-                bits.ptr = newBits;
+                ar = newAr;
                 capacity = newCapacity;
             }
 
-            
-            
-            
             int capacity;
-            union
-            {
-                long ar[kDefaultCapacity];
-                long*  ptr;
-            }
-            bits;
+            long* ar;
     };
 }
 
