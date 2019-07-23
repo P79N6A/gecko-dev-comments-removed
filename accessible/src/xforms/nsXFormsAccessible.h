@@ -73,17 +73,21 @@ public:
   nsXFormsAccessible(nsIDOMNode* aNode, nsIWeakReference* aShell);
 
   
-  NS_IMETHOD GetValue(nsAString& aValue);
 
   
-  
-  NS_IMETHOD GetState(PRUint32 *aState, PRUint32 *aExtraState);
+  NS_IMETHOD GetValue(nsAString& aValue);
 
   
   NS_IMETHOD GetDescription(nsAString& aDescription);
 
   
+
+  
   virtual nsresult GetNameInternal(nsAString& aName);
+
+  
+  
+  virtual nsresult GetStateInternal(PRUint32 *aState, PRUint32 *aExtraState);
 
   
   
@@ -145,10 +149,11 @@ class nsXFormsEditableAccessible : public nsXFormsAccessible
 public:
   nsXFormsEditableAccessible(nsIDOMNode *aNode, nsIWeakReference *aShell);
 
-  NS_IMETHOD GetState(PRUint32 *aState, PRUint32 *aExtraState);
-
   
   NS_IMETHOD GetAssociatedEditor(nsIEditor **aEditor);
+
+  
+  virtual nsresult GetStateInternal(PRUint32 *aState, PRUint32 *aExtraState);
 };
 
 

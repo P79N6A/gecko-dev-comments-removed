@@ -94,13 +94,13 @@ NS_IMPL_ISUPPORTS_INHERITED1(nsHTMLImageAccessible, nsAccessible,
 
 
 
-NS_IMETHODIMP
-nsHTMLImageAccessible::GetState(PRUint32 *aState, PRUint32 *aExtraState)
+nsresult
+nsHTMLImageAccessible::GetStateInternal(PRUint32 *aState, PRUint32 *aExtraState)
 {
   
   
 
-  nsresult rv = nsLinkableAccessible::GetState(aState, aExtraState);
+  nsresult rv = nsLinkableAccessible::GetStateInternal(aState, aExtraState);
   NS_ENSURE_SUCCESS(rv, rv);
   if (!mDOMNode)
     return NS_OK;

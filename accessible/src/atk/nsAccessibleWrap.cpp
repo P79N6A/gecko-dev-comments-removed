@@ -835,7 +835,7 @@ GetAttributeSet(nsIAccessible* aAccessible)
     if (attributes) {
         
         PRUint32 state;
-        aAccessible->GetFinalState(&state, nsnull);
+        aAccessible->GetState(&state, nsnull);
         if (state & nsIAccessibleStates::STATE_HASPOPUP) {
           
           nsAutoString oldValueUnused;
@@ -1033,7 +1033,7 @@ refStateSetCB(AtkObject *aAtkObj)
 
     
     PRUint32 accState = 0, accExtState = 0;
-    nsresult rv = accWrap->GetFinalState(&accState, &accExtState);
+    nsresult rv = accWrap->GetState(&accState, &accExtState);
     NS_ENSURE_SUCCESS(rv, state_set);
 
     TranslateStates(accState, gAtkStateMap, state_set);

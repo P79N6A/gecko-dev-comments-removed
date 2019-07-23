@@ -91,7 +91,7 @@ __try {
 
   
   PRUint32 states = 0;
-  nsresult rv = acc->GetFinalState(&states, nsnull);
+  nsresult rv = acc->GetState(&states, nsnull);
   if (NS_FAILED(rv))
     return GetHRESULT(rv);
 

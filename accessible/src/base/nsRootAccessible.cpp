@@ -210,10 +210,10 @@ PRUint32 nsRootAccessible::GetChromeFlags()
 }
 #endif
 
-NS_IMETHODIMP
-nsRootAccessible::GetState(PRUint32 *aState, PRUint32 *aExtraState)
+nsresult
+nsRootAccessible::GetStateInternal(PRUint32 *aState, PRUint32 *aExtraState)
 {
-  nsresult rv = nsDocAccessibleWrap::GetState(aState, aExtraState);
+  nsresult rv = nsDocAccessibleWrap::GetStateInternal(aState, aExtraState);
   NS_ENSURE_SUCCESS(rv, rv);
   if (!mDOMNode)
     return NS_OK;
