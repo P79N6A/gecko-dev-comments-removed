@@ -114,7 +114,8 @@ private:
 
 
     nsString mDrives;
-    const PRUnichar *mLetter;
+    nsAString::const_iterator mStartOfCurrentDrive;
+    nsAString::const_iterator mEndOfDrivesString;
 };
 
 
@@ -3033,7 +3034,6 @@ nsLocalFile::GlobalShutdown()
 NS_IMPL_ISUPPORTS1(nsDriveEnumerator, nsISimpleEnumerator)
 
 nsDriveEnumerator::nsDriveEnumerator()
- : mLetter(0)
 {
 }
 
@@ -3046,19 +3046,20 @@ nsresult nsDriveEnumerator::Init()
     
 
 
-    DWORD length = GetLogicalDriveStrings(0, 0);
+    DWORD length = GetLogicalDriveStringsW(0, 0);
     
     if (!EnsureStringLength(mDrives, length+1))
         return NS_ERROR_OUT_OF_MEMORY;
     if (!GetLogicalDriveStringsW(length, mDrives.BeginWriting()))
         return NS_ERROR_FAILURE;
-    mLetter = mDrives.get();
+    mDrives.BeginReading(mStartOfCurrentDrive);
+    mDrives.EndReading(mEndOfDrivesString);
     return NS_OK;
 }
 
 NS_IMETHODIMP nsDriveEnumerator::HasMoreElements(PRBool *aHasMore)
 {
-    *aHasMore = *mLetter != '\0';
+    *aHasMore = *mStartOfCurrentDrive != L'\0';
     return NS_OK;
 }
 
@@ -3066,12 +3067,18 @@ NS_IMETHODIMP nsDriveEnumerator::GetNext(nsISupports **aNext)
 {
     
 
-    if (!*mLetter) {
+
+
+    if (*mStartOfCurrentDrive == L'\0') {
         *aNext = nsnull;
         return NS_OK;
     }
-    nsString drive(mDrives);
-    mLetter += drive.Length() + 1;
+
+    nsAString::const_iterator driveEnd = mStartOfCurrentDrive;
+    FindCharInReadable(L'\0', driveEnd, mEndOfDrivesString);
+    nsString drive(Substring(mStartOfCurrentDrive, driveEnd));
+    mStartOfCurrentDrive = ++driveEnd;
+
     nsILocalFile *file;
     nsresult rv = NS_NewLocalFile(drive, PR_FALSE, &file);
 
