@@ -440,24 +440,6 @@ nsSVGPathGeometryFrame::Render(nsSVGRenderState *aContext)
 
   GeneratePath(gfx);
 
-  if (renderMode != nsSVGRenderState::NORMAL) {
-    gfx->Restore();
-
-    if (GetClipRule() == NS_STYLE_FILL_RULE_EVENODD)
-      gfx->SetFillRule(gfxContext::FILL_RULE_EVEN_ODD);
-    else
-      gfx->SetFillRule(gfxContext::FILL_RULE_WINDING);
-
-    if (renderMode == nsSVGRenderState::CLIP_MASK) {
-      gfx->SetAntialiasMode(gfxContext::MODE_ALIASED);
-      gfx->SetColor(gfxRGBA(1.0f, 1.0f, 1.0f, 1.0f));
-      gfx->Fill();
-      gfx->NewPath();
-    }
-
-    return;
-  }
-
   switch (GetStyleSVG()->mShapeRendering) {
   case NS_STYLE_SHAPE_RENDERING_OPTIMIZESPEED:
   case NS_STYLE_SHAPE_RENDERING_CRISPEDGES:
@@ -466,6 +448,22 @@ nsSVGPathGeometryFrame::Render(nsSVGRenderState *aContext)
   default:
     gfx->SetAntialiasMode(gfxContext::MODE_COVERAGE);
     break;
+  }
+
+  if (renderMode != nsSVGRenderState::NORMAL) {
+    if (GetClipRule() == NS_STYLE_FILL_RULE_EVENODD)
+      gfx->SetFillRule(gfxContext::FILL_RULE_EVEN_ODD);
+    else
+      gfx->SetFillRule(gfxContext::FILL_RULE_WINDING);
+
+    if (renderMode == nsSVGRenderState::CLIP_MASK) {
+      gfx->SetColor(gfxRGBA(1.0f, 1.0f, 1.0f, 1.0f));
+      gfx->Fill();
+      gfx->NewPath();
+    }
+    gfx->Restore();
+
+    return;
   }
 
   if (SetupCairoFill(gfx)) {
