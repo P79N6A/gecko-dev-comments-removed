@@ -624,13 +624,14 @@ nsThebesDeviceContext::SetDPI()
     
     
     
-    PRInt32 prefDevPixelsPerCSSPixel = -1;
+    float prefDevPixelsPerCSSPixel = -1.0;
 
     nsCOMPtr<nsIPrefBranch> prefs = do_GetService(NS_PREFSERVICE_CONTRACTID);
     if (prefs) {
-        nsresult rv = prefs->GetIntPref("layout.css.devPixelsPerPx", &prefDevPixelsPerCSSPixel);
-        if (NS_FAILED(rv)) {
-            prefDevPixelsPerCSSPixel = -1;
+        nsXPIDLCString prefString;
+        nsresult rv = prefs->GetCharPref("layout.css.devPixelsPerPx", getter_Copies(prefString));
+        if (NS_SUCCEEDED(rv)) {
+            prefDevPixelsPerCSSPixel = static_cast<float>(atof(prefString));
         }
     }
 
@@ -738,7 +739,8 @@ nsThebesDeviceContext::SetDPI()
                 PR_MAX(1, AppUnitsPerCSSPixel() / PR_MAX(1, roundedDPIScaleFactor));
         } else {
             mAppUnitsPerDevNotScaledPixel =
-                PR_MAX(1, AppUnitsPerCSSPixel() / prefDevPixelsPerCSSPixel);
+                PR_MAX(1, static_cast<PRInt32>(AppUnitsPerCSSPixel() /
+                                               prefDevPixelsPerCSSPixel));
         }
     } else {
         
