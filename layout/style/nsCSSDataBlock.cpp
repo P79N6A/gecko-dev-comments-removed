@@ -610,7 +610,7 @@ nsCSSExpandedDataBlock::DoExpand(nsRefPtr<nsCSSCompressedDataBlock> *aBlock,
         
         
         *aBlock = (*aBlock)->Clone();
-        if (!aBlock) {
+        if (!*aBlock) {
             
             NS_WARNING("out of memory");
             return;
