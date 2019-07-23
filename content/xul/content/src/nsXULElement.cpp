@@ -1065,14 +1065,6 @@ nsXULElement::AfterSetAttr(PRInt32 aNamespaceID, nsIAtom* aName,
         }
 
         
-        if (aName == nsGkAtoms::readonly && document) {
-            mozAutoDocUpdate upd(document, UPDATE_CONTENT_STATE, PR_TRUE);
-            document->ContentStatesChanged(this, nsnull,
-                                           NS_EVENT_STATE_MOZ_READONLY |
-                                           NS_EVENT_STATE_MOZ_READWRITE);
-        }
-
-        
         
     }
 
