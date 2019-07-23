@@ -1274,14 +1274,22 @@ nsLineLayout::CanPlaceFrame(PerFrameData* pfd,
 #ifdef NOISY_CAN_PLACE_FRAME
     printf("   ==> placing overflowing textrun, requesting backup\n");
 #endif
+
+    
+    SetFlag(LL_NEEDBACKUP, PR_TRUE);
+
     if (!aCanRollBackBeforeFrame) {
       
       return PR_TRUE;
     }
-
+    if (pfd->mSpan) {
+      
+      
+      
+      return PR_TRUE;
+    }
     
     
-    SetFlag(LL_NEEDBACKUP, PR_TRUE);
   }
 
 #ifdef NOISY_CAN_PLACE_FRAME
