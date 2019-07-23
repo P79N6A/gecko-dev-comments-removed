@@ -65,8 +65,6 @@ PRBool nsStandardURL::gInitialized = PR_FALSE;
 PRBool nsStandardURL::gEscapeUTF8 = PR_TRUE;
 PRBool nsStandardURL::gAlwaysEncodeInUTF8 = PR_TRUE;
 PRBool nsStandardURL::gEncodeQueryInUTF8 = PR_TRUE;
-PRBool nsStandardURL::gShowPunycode = PR_FALSE;
-nsIPrefBranch *nsStandardURL::gIDNWhitelistPrefBranch = nsnull;
 
 #if defined(PR_LOGGING)
 
@@ -140,8 +138,6 @@ end:
 #define NS_NET_PREF_ENABLEIDN          "network.enableIDN"
 #define NS_NET_PREF_ALWAYSENCODEINUTF8 "network.standard-url.encode-utf8"
 #define NS_NET_PREF_ENCODEQUERYINUTF8  "network.standard-url.encode-query-utf8"
-#define NS_NET_PREF_SHOWPUNYCODE       "network.IDN_show_punycode"
-#define NS_NET_PREF_IDNWHITELIST       "network.IDN.whitelist."
 
 NS_IMPL_ISUPPORTS1(nsStandardURL::nsPrefObserver, nsIObserver)
 
@@ -315,17 +311,8 @@ nsStandardURL::InitGlobalObjects()
         prefBranch->AddObserver(NS_NET_PREF_ALWAYSENCODEINUTF8, obs.get(), PR_FALSE);
         prefBranch->AddObserver(NS_NET_PREF_ENCODEQUERYINUTF8, obs.get(), PR_FALSE);
         prefBranch->AddObserver(NS_NET_PREF_ENABLEIDN, obs.get(), PR_FALSE);
-        prefBranch->AddObserver(NS_NET_PREF_SHOWPUNYCODE, obs.get(), PR_FALSE);
 
         PrefsChanged(prefBranch, nsnull);
-
-        nsCOMPtr<nsIPrefService> prefs = do_QueryInterface(prefBranch); 
-        if (prefs) {
-            nsCOMPtr<nsIPrefBranch> branch;
-           if (NS_SUCCEEDED(prefs->GetBranch( NS_NET_PREF_IDNWHITELIST,
-                                              getter_AddRefs(branch) )))
-               NS_ADDREF(gIDNWhitelistPrefBranch = branch);
-        }
     }
 }
 
@@ -334,7 +321,6 @@ nsStandardURL::ShutdownGlobalObjects()
 {
     NS_IF_RELEASE(gIDN);
     NS_IF_RELEASE(gCharsetMgr);
-    NS_IF_RELEASE(gIDNWhitelistPrefBranch);
 }
 
 
@@ -405,23 +391,13 @@ nsStandardURL::NormalizeIDN(const nsCSubstring &host, nsCString &result)
 
     NS_ASSERTION(mHostEncoding == eEncoding_ASCII, "unexpected default encoding");
 
-    if (IsASCII(host)) {
-        PRBool isACE;
-        if (gIDN &&
-            NS_SUCCEEDED(gIDN->IsACE(host, &isACE)) && isACE &&
-            NS_SUCCEEDED(ACEtoDisplayIDN(host, result))) {
-            mHostEncoding = eEncoding_UTF8;
-            return PR_TRUE;
-        }
-    }
-    else {
-        mHostEncoding = eEncoding_UTF8;
-        if (gIDN && NS_SUCCEEDED(UTF8toDisplayIDN(host, result))) {
-            
-            if (IsASCII(result))
-                mHostEncoding = eEncoding_ASCII;
-            return PR_TRUE;
-        }
+    PRBool isASCII;
+    if (gIDN &&
+        NS_SUCCEEDED(gIDN->ConvertToDisplayIDN(host, &isASCII, result))) {
+        if (!isASCII)
+          mHostEncoding = eEncoding_UTF8;
+
+        return PR_TRUE;
     }
 
     result.Truncate();
@@ -861,66 +837,8 @@ nsStandardURL::PrefsChanged(nsIPrefBranch *prefs, const char *pref)
             gEncodeQueryInUTF8 = val;
         LOG(("encode query in UTF-8 %s\n", gEncodeQueryInUTF8 ? "enabled" : "disabled"));
     }
-
-    if (PREF_CHANGED(NS_NET_PREF_SHOWPUNYCODE)) {
-        if (GOT_PREF(NS_NET_PREF_SHOWPUNYCODE, val))
-            gShowPunycode = val;
-        LOG(("show punycode %s\n", gShowPunycode ? "enabled" : "disabled"));
-    }
 #undef PREF_CHANGED
 #undef GOT_PREF
-}
-
- nsresult
-nsStandardURL::ACEtoDisplayIDN(const nsCSubstring &host, nsCString &result)
-{
-    if (gShowPunycode || !IsInWhitelist(host)) {
-        result = host;
-        return NS_OK;
-    }
-
-    return gIDN->ConvertACEtoUTF8(host, result);
-}
-
- nsresult
-nsStandardURL::UTF8toDisplayIDN(const nsCSubstring &host, nsCString &result)
-{
-    
-    
-
-    nsCAutoString temp;
-    if (gShowPunycode || NS_FAILED(gIDN->Normalize(host, temp)))
-        return gIDN->ConvertUTF8toACE(host, result);
-
-    PRBool isACE = PR_FALSE;
-    gIDN->IsACE(temp, &isACE);
-
-    
-    
- 
-    if (!isACE && !IsInWhitelist(temp))
-        return gIDN->ConvertUTF8toACE(temp, result);
-
-    result = temp;
-    return NS_OK;
-}
-
- PRBool
-nsStandardURL::IsInWhitelist(const nsCSubstring &host)
-{
-    PRInt32 pos; 
-    PRBool safe;
-
-    
-
-    if (gIDNWhitelistPrefBranch && 
-        (pos = nsCAutoString(host).RFind(".")) != kNotFound &&
-        NS_SUCCEEDED(gIDNWhitelistPrefBranch->
-                     GetBoolPref(nsCAutoString(Substring(host, pos + 1)).get(),
-                                 &safe)))
-        return safe;
-
-    return PR_FALSE;
 }
 
 

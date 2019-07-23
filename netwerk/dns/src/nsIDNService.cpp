@@ -57,6 +57,8 @@ static const PRUint32 kMaxDNSNodeLen = 63;
 #define NS_NET_PREF_IDNTESTBED      "network.IDN_testbed"
 #define NS_NET_PREF_IDNPREFIX       "network.IDN_prefix"
 #define NS_NET_PREF_IDNBLACKLIST    "network.IDN.blacklist_chars"
+#define NS_NET_PREF_SHOWPUNYCODE    "network.IDN_show_punycode"
+#define NS_NET_PREF_IDNWHITELIST    "network.IDN.whitelist."
 
 inline PRBool isOnlySafeChars(const nsAFlatString& in,
                               const nsAFlatString& blacklist)
@@ -77,13 +79,19 @@ NS_IMPL_THREADSAFE_ISUPPORTS3(nsIDNService,
 
 nsresult nsIDNService::Init()
 {
-  nsCOMPtr<nsIPrefBranch2> prefInternal(do_GetService(NS_PREFSERVICE_CONTRACTID));
+  nsCOMPtr<nsIPrefService> prefs(do_GetService(NS_PREFSERVICE_CONTRACTID));
+  if (prefs)
+    prefs->GetBranch(NS_NET_PREF_IDNWHITELIST, getter_AddRefs(mIDNWhitelistPrefBranch));
+
+  nsCOMPtr<nsIPrefBranch2> prefInternal(do_QueryInterface(prefs));
   if (prefInternal) {
     prefInternal->AddObserver(NS_NET_PREF_IDNTESTBED, this, PR_TRUE); 
     prefInternal->AddObserver(NS_NET_PREF_IDNPREFIX, this, PR_TRUE); 
     prefInternal->AddObserver(NS_NET_PREF_IDNBLACKLIST, this, PR_TRUE);
+    prefInternal->AddObserver(NS_NET_PREF_SHOWPUNYCODE, this, PR_TRUE);
     prefsChanged(prefInternal, nsnull);
   }
+
   return NS_OK;
 }
 
@@ -121,6 +129,11 @@ void nsIDNService::prefsChanged(nsIPrefBranch *prefBranch, const PRUnichar *pref
       blacklist->ToString(getter_Copies(mIDNBlacklist));
     else
       mIDNBlacklist.Truncate();
+  }
+  if (!pref || NS_LITERAL_STRING(NS_NET_PREF_SHOWPUNYCODE).Equals(pref)) {
+    PRBool val;
+    if (NS_SUCCEEDED(prefBranch->GetBoolPref(NS_NET_PREF_SHOWPUNYCODE, &val)))
+      mShowPunycode = val;
   }
 }
 
@@ -278,6 +291,53 @@ NS_IMETHODIMP nsIDNService::Normalize(const nsACString & input, nsACString & out
   CopyUTF16toUTF8(outUTF16, output);
   if (!isOnlySafeChars(outUTF16, mIDNBlacklist))
     return ConvertUTF8toACE(output, output);
+
+  return NS_OK;
+}
+
+NS_IMETHODIMP nsIDNService::ConvertToDisplayIDN(const nsACString & input, PRBool * _isASCII, nsACString & _retval)
+{
+  
+  
+
+  nsresult rv;
+
+  if (IsASCII(input)) {
+    
+    _retval = input;
+    ToLowerCase(_retval);
+
+    PRBool isACE;
+    IsACE(_retval, &isACE);
+
+    if (isACE && !mShowPunycode && isInWhitelist(_retval)) {
+      
+      nsCAutoString temp(_retval);
+      ConvertACEtoUTF8(temp, _retval);
+      *_isASCII = IsASCII(_retval);
+    } else {
+      *_isASCII = PR_TRUE;
+    }
+  } else {
+    if (mShowPunycode && NS_SUCCEEDED(ConvertUTF8toACE(input, _retval))) {
+      *_isASCII = PR_TRUE;
+      return NS_OK;
+    }
+
+    
+    
+    rv = Normalize(input, _retval);
+    if (NS_FAILED(rv)) return rv;
+
+    
+    
+    
+    *_isASCII = IsASCII(_retval);
+    if (!*_isASCII && !isInWhitelist(_retval)) {
+      *_isASCII = PR_TRUE;
+      return ConvertUTF8toACE(_retval, _retval);
+    }
+  }
 
   return NS_OK;
 }
@@ -570,3 +630,21 @@ nsresult nsIDNService::decodeACE(const nsACString& in, nsACString& out)
 
   return NS_OK;
 }
+
+PRBool nsIDNService::isInWhitelist(const nsACString &host)
+{
+  if (mIDNWhitelistPrefBranch) {
+    
+    nsCAutoString tld(host);
+    tld.Trim(".");
+    PRInt32 pos = tld.RFind(".");
+
+    PRBool safe;
+    if (pos != kNotFound &&
+        NS_SUCCEEDED(mIDNWhitelistPrefBranch->GetBoolPref(tld.get() + pos + 1, &safe)))
+      return safe;
+  }
+
+  return PR_FALSE;
+}
+
