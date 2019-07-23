@@ -66,34 +66,6 @@ nsAccessibleWrap(aNode, aShell)
 NS_IMPL_ISUPPORTS_INHERITED0(nsLeafAccessible, nsAccessible)
 
 
-NS_IMETHODIMP nsLeafAccessible::GetFirstChild(nsIAccessible **_retval)
-{
-  *_retval = nsnull;
-  return NS_OK;
-}
-
-
-NS_IMETHODIMP nsLeafAccessible::GetLastChild(nsIAccessible **_retval)
-{
-  *_retval = nsnull;
-  return NS_OK;
-}
-
-
-NS_IMETHODIMP nsLeafAccessible::GetChildCount(PRInt32 *_retval)
-{
-  *_retval = 0;
-  return NS_OK;
-}
-
-
-PRBool
-nsLeafAccessible::GetAllowsAnonChildAccessibles()
-{
-  return PR_FALSE;
-}
-
-
 nsresult
 nsLeafAccessible::GetChildAtPoint(PRInt32 aX, PRInt32 aY,
                                   PRBool aDeepestChild,
@@ -103,6 +75,16 @@ nsLeafAccessible::GetChildAtPoint(PRInt32 aX, PRInt32 aY,
   NS_ADDREF(*aChild = this);
   return NS_OK;
 }
+
+
+void
+nsLeafAccessible::CacheChildren()
+{
+  
+  mAccChildCount = IsDefunct() ? eChildCountUninitialized : 0;
+}
+
+
 
 
 

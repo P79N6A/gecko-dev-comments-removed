@@ -41,8 +41,6 @@
 
 #include "nsBaseWidgetAccessible.h"
 
- 
-
 
 
 
@@ -52,14 +50,14 @@ public:
   nsTextAccessible(nsIDOMNode* aDomNode, nsIWeakReference* aShell);
 
   
-  NS_IMETHOD GetFirstChild(nsIAccessible **_retval);
-  NS_IMETHOD GetLastChild(nsIAccessible **_retval);
-  NS_IMETHOD GetChildCount(PRInt32 *_retval);
-
-  
   virtual nsresult GetRoleInternal(PRUint32 *aRole);
   virtual nsresult AppendTextTo(nsAString& aText, PRUint32 aStartOffset,
                                 PRUint32 aLength);
+
+protected:
+
+  
+  virtual void CacheChildren();
 };
 
 

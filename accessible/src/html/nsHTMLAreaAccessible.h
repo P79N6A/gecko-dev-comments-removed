@@ -54,10 +54,6 @@ public:
   
   NS_IMETHOD GetDescription(nsAString& aDescription);
 
-  NS_IMETHOD GetFirstChild(nsIAccessible **_retval);
-  NS_IMETHOD GetLastChild(nsIAccessible **_retval);
-  NS_IMETHOD GetChildCount(PRInt32 *_retval);
-
   NS_IMETHOD GetBounds(PRInt32 *x, PRInt32 *y, PRInt32 *width, PRInt32 *height);
 
   
@@ -65,6 +61,11 @@ public:
   virtual nsresult GetChildAtPoint(PRInt32 aX, PRInt32 aY,
                                    PRBool aDeepestChild,
                                    nsIAccessible **aChild);
+
+protected:
+
+  
+  virtual void CacheChildren();
 };
 
 #endif  

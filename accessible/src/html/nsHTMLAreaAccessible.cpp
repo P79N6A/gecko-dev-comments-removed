@@ -48,11 +48,12 @@
 
 
 
+
 nsHTMLAreaAccessible::
   nsHTMLAreaAccessible(nsIDOMNode *aDomNode, nsIAccessible *aParent,
                        nsIWeakReference* aShell):
   nsHTMLLinkAccessible(aDomNode, aShell)
-{ 
+{
 }
 
 
@@ -86,33 +87,6 @@ nsHTMLAreaAccessible::GetDescription(nsAString& aDescription)
   if (area) 
     area->GetShape(aDescription);
 
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsHTMLAreaAccessible::GetFirstChild(nsIAccessible **aChild)
-{
-  NS_ENSURE_ARG_POINTER(aChild);
-
-  *aChild = nsnull;
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsHTMLAreaAccessible::GetLastChild(nsIAccessible **aChild)
-{
-  NS_ENSURE_ARG_POINTER(aChild);
-
-  *aChild = nsnull;
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsHTMLAreaAccessible::GetChildCount(PRInt32 *aCount)
-{
-  NS_ENSURE_ARG_POINTER(aCount);
-
-  *aCount = 0;
   return NS_OK;
 }
 
@@ -162,6 +136,8 @@ nsHTMLAreaAccessible::GetBounds(PRInt32 *x, PRInt32 *y,
 }
 
 
+
+
 nsresult
 nsHTMLAreaAccessible::GetChildAtPoint(PRInt32 aX, PRInt32 aY,
                                       PRBool aDeepestChild,
@@ -170,4 +146,14 @@ nsHTMLAreaAccessible::GetChildAtPoint(PRInt32 aX, PRInt32 aY,
   
   NS_ADDREF(*aChild = this);
   return NS_OK;
+}
+
+
+
+
+void
+nsHTMLAreaAccessible::CacheChildren()
+{
+  
+  mAccChildCount = IsDefunct() ? eChildCountUninitialized : 0;
 }
