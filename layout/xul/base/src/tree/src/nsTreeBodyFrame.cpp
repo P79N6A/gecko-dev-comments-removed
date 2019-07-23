@@ -106,6 +106,9 @@
 #include "nsBidiPresUtils.h"
 #endif
 
+
+#define ELLIPSIS PRUnichar(0x2026)
+
 static NS_DEFINE_CID(kWidgetCID, NS_CHILD_CID);
 
 
@@ -1340,16 +1343,15 @@ nsTreeBodyFrame::AdjustForCellText(nsAutoString& aText,
   if (width > maxWidth) {
     
     
-    const nsAdoptingString& kEllipsis = nsContentUtils::GetLocalizedEllipsis();
     nscoord ellipsisWidth;
     aRenderingContext.SetTextRunRTL(PR_FALSE);
-    aRenderingContext.GetWidth(kEllipsis, ellipsisWidth);
+    aRenderingContext.GetWidth(ELLIPSIS, ellipsisWidth);
 
     width = maxWidth;
     if (ellipsisWidth > width)
       aText.SetLength(0);
     else if (ellipsisWidth == width)
-      aText.Assign(kEllipsis);
+      aText.Assign(ELLIPSIS);
     else {
       
       
@@ -1374,7 +1376,7 @@ nsTreeBodyFrame::AdjustForCellText(nsAutoString& aText,
             twidth += cwidth;
           }
           aText.Truncate(i);
-          aText.Append(kEllipsis);
+          aText.Append(ELLIPSIS);
         }
         break;
 
@@ -1394,7 +1396,7 @@ nsTreeBodyFrame::AdjustForCellText(nsAutoString& aText,
 
           nsAutoString copy;
           aText.Right(copy, length-1-i);
-          aText.Assign(kEllipsis);
+          aText.Assign(ELLIPSIS);
           aText += copy;
         }
         break;
@@ -1423,7 +1425,7 @@ nsTreeBodyFrame::AdjustForCellText(nsAutoString& aText,
             --rightPos;
           }
           aText = leftStr;
-          aText.Append(kEllipsis);
+          aText.Append(ELLIPSIS);
           aText += rightStr;
         }
         break;

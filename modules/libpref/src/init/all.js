@@ -818,7 +818,6 @@ pref("intl.charsetmenu.browser.cache.size", 5);
 pref("intl.charset.detector",               "chrome://navigator/locale/navigator.properties");
 pref("intl.charset.default",                "chrome://navigator-platform/locale/navigator.properties");
 pref("intl.content.langcode",               "chrome://communicator-region/locale/region.properties");
-pref("intl.ellipsis",                       "chrome://global-platform/locale/intl.properties");
 pref("intl.locale.matchOS",                 false);
 
 
