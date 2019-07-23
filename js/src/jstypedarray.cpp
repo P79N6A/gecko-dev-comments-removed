@@ -920,7 +920,7 @@ class TypedArrayTemplate
     {
         NativeType *dest = static_cast<NativeType*>(data);
 
-        if (ar->isDenseArray()) {
+        if (ar->isDenseArray() && js_DenseArrayCapacity(ar) >= len) {
             JS_ASSERT(ar->fslots[JSSLOT_ARRAY_LENGTH] == (jsval)len);
 
             jsval *src = ar->dslots;
@@ -931,6 +931,12 @@ class TypedArrayTemplate
                     *dest++ = NativeType(JSVAL_TO_INT(v));
                 } else if (JSVAL_IS_DOUBLE(v)) {
                     *dest++ = NativeType(*JSVAL_TO_DOUBLE(v));
+                } else if (v == JSVAL_HOLE) {
+                    
+                    
+                    
+                    
+                    *dest++ = NativeType(int32(0));
                 } else {
                     jsdouble dval;
                     if (!JS_ValueToNumber(cx, v, &dval))
@@ -950,6 +956,9 @@ class TypedArrayTemplate
                     *dest++ = NativeType(JSVAL_TO_INT(v));
                 } else if (JSVAL_IS_DOUBLE(v)) {
                     *dest++ = NativeType(*JSVAL_TO_DOUBLE(v));
+                } else if (v == JSVAL_VOID) {
+                    
+                    *dest++ = NativeType(int32(0));
                 } else {
                     jsdouble dval;
                     if (!JS_ValueToNumber(cx, v, &dval))
