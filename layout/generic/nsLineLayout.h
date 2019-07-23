@@ -88,7 +88,17 @@ public:
 
   void EndLineReflow();
 
-  void UpdateBand(nscoord aX, nscoord aY, nscoord aWidth, nscoord aHeight,
+  
+
+
+
+
+
+
+
+
+
+  void UpdateBand(const nsRect& aNewAvailableSpace,
                   PRBool aPlacedLeftFloat,
                   nsIFrame* aFloatFrame);
 
@@ -201,12 +211,17 @@ public:
   
   
   
-  PRBool InitFloat(nsPlaceholderFrame* aFrame, nsReflowStatus& aReflowStatus) {
-    return mBlockRS->InitFloat(*this, aFrame, aReflowStatus);
+  PRBool InitFloat(nsPlaceholderFrame* aFrame, 
+                   nscoord aAvailableWidth,
+                   nsReflowStatus& aReflowStatus) {
+    return mBlockRS->InitFloat(*this, aFrame, aAvailableWidth, aReflowStatus);
   }
 
-  PRBool AddFloat(nsPlaceholderFrame* aFrame, nsReflowStatus& aReflowStatus) {
-    return mBlockRS->AddFloat(*this, aFrame, PR_FALSE, aReflowStatus);
+  PRBool AddFloat(nsPlaceholderFrame* aFrame,
+                  nscoord aAvailableWidth,
+                  nsReflowStatus& aReflowStatus) {
+    return mBlockRS->AddFloat(*this, aFrame, PR_FALSE,
+                              aAvailableWidth, aReflowStatus);
   }
 
   void SetTrimmableWidth(nscoord aTrimmableWidth) {
@@ -531,8 +546,6 @@ protected:
 
   void PlaceFrame(PerFrameData* pfd,
                   nsHTMLReflowMetrics& aMetrics);
-
-  void UpdateFrames();
 
   void VerticalAlignFrames(PerSpanData* psd);
 

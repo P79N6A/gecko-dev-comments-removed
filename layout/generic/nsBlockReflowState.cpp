@@ -533,6 +533,7 @@ nsBlockReflowState::IsImpactedByFloat() const
 PRBool
 nsBlockReflowState::InitFloat(nsLineLayout&       aLineLayout,
                               nsPlaceholderFrame* aPlaceholder,
+                              nscoord             aAvailableWidth,
                               nsReflowStatus&     aReflowStatus)
 {
   
@@ -541,7 +542,8 @@ nsBlockReflowState::InitFloat(nsLineLayout&       aLineLayout,
 
   
   
-  return AddFloat(aLineLayout, aPlaceholder, PR_TRUE, aReflowStatus);
+  return AddFloat(aLineLayout, aPlaceholder, PR_TRUE,
+                  aAvailableWidth, aReflowStatus);
 }
 
 
@@ -558,6 +560,7 @@ PRBool
 nsBlockReflowState::AddFloat(nsLineLayout&       aLineLayout,
                              nsPlaceholderFrame* aPlaceholder,
                              PRBool              aInitialReflow,
+                             nscoord             aAvailableWidth,
                              nsReflowStatus&     aReflowStatus)
 {
   NS_PRECONDITION(mBlock->end_lines() != mCurrentLine, "null ptr");
@@ -571,7 +574,12 @@ nsBlockReflowState::AddFloat(nsLineLayout&       aLineLayout,
 
   
   
-  if (aLineLayout.CanPlaceFloatNow()) {
+  
+  
+  
+  if (mBelowCurrentLineFloats.IsEmpty() &&
+      (aLineLayout.CanPlaceFloatNow() ||
+       mBlock->ComputeFloatWidth(*this, aPlaceholder) <= aAvailableWidth)) {
     
     
     
@@ -594,10 +602,9 @@ nsBlockReflowState::AddFloat(nsLineLayout&       aLineLayout,
     if (forceFit || (placed && !NS_FRAME_IS_TRUNCATED(aReflowStatus))) {
       
       GetAvailableSpace(mY, forceFit);
-      aLineLayout.UpdateBand(mAvailSpaceRect.x + BorderPadding().left, mY,
-                             mAvailSpaceRect.width,
-                             mAvailSpaceRect.height,
-                             isLeftFloat,
+      nsRect availSpace(nsPoint(mAvailSpaceRect.x + BorderPadding().left, mY),
+                        mAvailSpaceRect.Size());
+      aLineLayout.UpdateBand(availSpace, isLeftFloat,
                              aPlaceholder->GetOutOfFlowFrame());
       
       
