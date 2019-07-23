@@ -3296,7 +3296,12 @@ BOOL nsWindow::OnKeyDown(UINT aVirtualKeyCode, UINT aScanCode, LPARAM aKeyData)
            (msg.message == WM_SYSCHAR) ? "WM_SYSCHAR" : "WM_CHAR",
            msg.wParam, msg.wParam, msg.lParam);
 #endif
-    return OnChar(msg.wParam, msg.lParam, extraFlags);
+    BOOL result = OnChar(msg.wParam, msg.lParam, extraFlags);
+    
+    
+    if (!result && msg.message == WM_SYSCHAR)
+      ::DefWindowProcW(mWnd, msg.message, msg.wParam, msg.lParam);
+    return result;
   } else if (!mIsControlDown && !mIsAltDown &&
              (KeyboardLayout::IsPrintableCharKey(aVirtualKeyCode) ||
               KeyboardLayout::IsNumpadKey(aVirtualKeyCode)))
