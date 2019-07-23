@@ -651,6 +651,14 @@ _getvalue(NPP aNPP,
     AssertPluginThread();
 
     switch (aVariable) {
+        
+        case NPNVToolkit:
+#ifdef MOZ_WIDGET_GTK2
+            *static_cast<NPNToolkitType*>(aValue) = NPNVGtk2;
+            return NPERR_NO_ERROR;
+#endif
+            return NPERR_GENERIC_ERROR;
+
         case NPNVjavascriptEnabledBool: 
         case NPNVasdEnabledBool: 
         case NPNVisOfflineBool: 
