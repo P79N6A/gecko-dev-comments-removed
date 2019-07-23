@@ -232,25 +232,14 @@ public:
   
 
 
-
-
   NS_IMETHOD GetNumLines(PRInt32* aResult);
 
   
 
 
-
   NS_IMETHOD GetDirection(PRBool* aIsRightToLeft);
   
   
-
-
-
-
-
-
-
-
 
 
 
@@ -274,8 +263,6 @@ public:
 
 
 
-
-
   NS_IMETHOD FindLineContaining(nsIFrame* aFrame, PRInt32* aLineNumberResult);
   
   
@@ -284,9 +271,6 @@ public:
   NS_IMETHOD FindLineAt(nscoord aY, PRInt32* aLineNumberResult);
 
   
-
-
-
 
 
 
