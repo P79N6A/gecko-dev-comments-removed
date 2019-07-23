@@ -1,0 +1,110 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+.folder-icon > .menulist-label-box > .menulist-icon {
+  width: 16px;
+  height: 16px;
+}
+
+.folder-icon > .menu-iconic-left {
+  display: -moz-box;
+}
+
+.folder-icon {
+  list-style-image: url("chrome://global/skin/icons/folder-item.png") !important;
+  -moz-image-region: rect(0px, 32px, 16px, 16px) !important;
+}
+
+
+
+
+.expander-up,
+.expander-down {
+  min-width: 0;
+}
+
+.expander-up {
+	list-style-image: url("chrome://global/skin/arrow/arrow-up.gif");
+}
+
+.expander-down {
+  list-style-image: url("chrome://global/skin/arrow/arrow-dn.gif");
+}
+
+.expander-down:hover:active {
+	list-style-image: url("chrome://global/skin/arrow/arrow-dn-hov.gif");
+}
+
+.expander-up:hover:active {
+	list-style-image: url("chrome://global/skin/arrow/arrow-up-hov.gif");
+}
+
+
+
+
+
+
+#editBMPanel_namePicker[droppable="false"] {
+  
+
+  
+  -moz-appearance: textfield;
+  cursor: text;
+
+  border: 2px solid;
+  -moz-border-top-colors: ThreeDShadow ThreeDDarkShadow;
+  -moz-border-right-colors: ThreeDHighlight ThreeDLightShadow;
+  -moz-border-bottom-colors: ThreeDHighlight ThreeDLightShadow;
+  -moz-border-left-colors: ThreeDShadow ThreeDDarkShadow;
+  background-color: -moz-Field;
+  color: -moz-FieldText;
+}
+
+#editBMPanel_namePicker[droppable="false"] > .menulist-dropmarker {
+  
+  -moz-appearance: none;
+  padding: 2px 2px 3px 4px;
+}
+
+
+
+
+#editBMPanel_namePicker[droppable="false"] > .menulist-dropmarker,
+#editBMPanel_namePicker[droppable="false"] > menupopup {
+  display: none;
+}

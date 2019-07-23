@@ -1017,6 +1017,7 @@ function delayedStartup()
 
   initBookmarksToolbar();
   PlacesUtils.bookmarks.addObserver(gBookmarksObserver, false);
+  PlacesStarButton.init();
 
   
   
@@ -1157,6 +1158,7 @@ function BrowserShutdown()
   }
 
   PlacesUtils.bookmarks.removeObserver(gBookmarksObserver);
+  PlacesStarButton.uninit();
 
   try {
     gPrefService.removeObserver(gAutoHideTabbarPrefListener.domain,
@@ -3519,6 +3521,9 @@ nsBrowserStatusHandler.prototype =
           gURLBar.value = userTypedValue;
           SetPageProxyState("invalid");
         }
+
+        
+        PlacesStarButton.updateState(aLocationURI);
       }
     }
     UpdateBackForwardCommands(gBrowser.webNavigation);

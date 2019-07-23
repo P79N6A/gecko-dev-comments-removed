@@ -78,8 +78,8 @@ function run_test() {
   var uri2 = uri("https://bar.tld/");
 
   
-  tagssvc.tagURI(uri1, ["tag 1"], 1);
-  tagssvc.tagURI(uri2, ["tag 1"], 1);
+  tagssvc.tagURI(uri1, ["tag 1"]);
+  tagssvc.tagURI(uri2, ["tag 1"]);
   do_check_eq(tagRoot.childCount, 1);
 
   var tag1node = tagRoot.getChild(0)
@@ -89,12 +89,12 @@ function run_test() {
   do_check_eq(tag1node.childCount, 2);
 
   
-  tagssvc.tagURI(uri1, ["tag 1"], 1);
+  tagssvc.tagURI(uri1, ["tag 1"]);
   do_check_eq(tag1node.childCount, 2);
 
   
   do_check_eq(tagRoot.childCount, 1);
-  tagssvc.tagURI(uri1, ["tag 1", "tag 2"], 2);
+  tagssvc.tagURI(uri1, ["tag 1", "tag 2"]);
   do_check_eq(tagRoot.childCount, 2);
 
   
@@ -112,10 +112,16 @@ function run_test() {
   do_check_true(tag1uris[0].equals(uri1));
   do_check_true(tag1uris[1].equals(uri2));
 
-  tagssvc.untagURI(uri1, ["tag 1"], 1);
+  
+  var allTags = tagssvc.allTags;
+  do_check_eq(allTags.length, 2);
+  do_check_eq(allTags[0], "tag 1");
+  do_check_eq(allTags[1], "tag 2");
+
+  tagssvc.untagURI(uri1, ["tag 1"]);
   do_check_eq(tag1node.childCount, 1);
 
   
-  tagssvc.untagURI(uri2, ["tag 1"], 1);
+  tagssvc.untagURI(uri2, ["tag 1"]);
   do_check_eq(tagRoot.childCount, 1);
 }
