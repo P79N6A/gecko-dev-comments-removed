@@ -99,6 +99,11 @@ namespace nanojit
         "ah", "ch", "dh", "bh"
     };
 
+    const char *gpRegNames16[] = {
+        "ax",  "cx",  "dx",   "bx",   "spx",  "bpx",  "six",  "dix",
+        "r8x", "r9x", "r10x", "r11x", "r12x", "r13x", "r14x", "r15x"
+    };
+
 #ifdef _DEBUG
     #define TODO(x) todo(#x)
     static void todo(const char *s) {
@@ -241,6 +246,11 @@ namespace nanojit
     }
 
     
+    void Assembler::emitrm8(uint64_t op, Register r, int32_t d, Register b) {
+        emit(rexrb8(mod_disp32(op, r, b, d), r, b));
+    }
+
+    
     void Assembler::emitrm(uint64_t op, Register r, int32_t d, Register b) {
         emit(rexrb(mod_disp32(op, r, b, d), r, b));
     }
@@ -343,6 +353,7 @@ namespace nanojit
     }
 
 #define RB(r)       gpRegNames8[(r)]
+#define RS(r)       gpRegNames16[(r)]
 #define RBhi(r)     gpRegNames8hi[(r)]
 #define RL(r)       gpRegNames32[(r)]
 #define RQ(r)       gpn(r)
@@ -439,6 +450,8 @@ namespace nanojit
     void Assembler::SUBSD(   R l, R r)  { emitprr(X64_subsd,   l,r); asm_output("subsd %s, %s",   RQ(l),RQ(r)); }
     void Assembler::CVTSQ2SD(R l, R r)  { emitprr(X64_cvtsq2sd,l,r); asm_output("cvtsq2sd %s, %s",RQ(l),RQ(r)); }
     void Assembler::CVTSI2SD(R l, R r)  { emitprr(X64_cvtsi2sd,l,r); asm_output("cvtsi2sd %s, %s",RQ(l),RL(r)); }
+    void Assembler::CVTSS2SD(R l, R r)  { emitprr(X64_cvtss2sd,l,r); asm_output("cvtss2sd %s, %s",RQ(l),RL(r)); }
+    void Assembler::CVTSD2SS(R l, R r)  { emitprr(X64_cvtsd2ss,l,r); asm_output("cvtsd2ss %s, %s",RL(l),RQ(r)); }
     void Assembler::UCOMISD( R l, R r)  { emitprr(X64_ucomisd, l,r); asm_output("ucomisd %s, %s", RQ(l),RQ(r)); }
     void Assembler::MOVQRX(  R l, R r)  { emitprr(X64_movqrx,  r,l); asm_output("movq %s, %s",    RQ(l),RQ(r)); } 
     void Assembler::MOVQXR(  R l, R r)  { emitprr(X64_movqxr,  l,r); asm_output("movq %s, %s",    RQ(l),RQ(r)); }
@@ -483,14 +496,21 @@ namespace nanojit
     void Assembler::LEAQRM(R r1, I d, R r2)     { emitrm(X64_leaqrm,r1,d,r2); asm_output("leaq %s, %d(%s)",RQ(r1),d,RQ(r2)); }
     void Assembler::MOVLRM(R r1, I d, R r2)     { emitrm(X64_movlrm,r1,d,r2); asm_output("movl %s, %d(%s)",RL(r1),d,RQ(r2)); }
     void Assembler::MOVQRM(R r1, I d, R r2)     { emitrm(X64_movqrm,r1,d,r2); asm_output("movq %s, %d(%s)",RQ(r1),d,RQ(r2)); }
+    void Assembler::MOVBMR(R r1, I d, R r2)     { emitrm8(X64_movbmr,r1,d,r2); asm_output("movb %d(%s), %s",d,RQ(r1),RB(r2)); }
+    void Assembler::MOVSMR(R r1, I d, R r2)     { emitprm(X64_movsmr,r1,d,r2); asm_output("movs %d(%s), %s",d,RQ(r1),RS(r2)); }
     void Assembler::MOVLMR(R r1, I d, R r2)     { emitrm(X64_movlmr,r1,d,r2); asm_output("movl %d(%s), %s",d,RQ(r1),RL(r2)); }
     void Assembler::MOVQMR(R r1, I d, R r2)     { emitrm(X64_movqmr,r1,d,r2); asm_output("movq %d(%s), %s",d,RQ(r1),RQ(r2)); }
 
     void Assembler::MOVZX8M( R r1, I d, R r2)   { emitrm_wide(X64_movzx8m, r1,d,r2); asm_output("movzxb %s, %d(%s)",RQ(r1),d,RQ(r2)); }
     void Assembler::MOVZX16M(R r1, I d, R r2)   { emitrm_wide(X64_movzx16m,r1,d,r2); asm_output("movzxs %s, %d(%s)",RQ(r1),d,RQ(r2)); }
 
+    void Assembler::MOVSX8M( R r1, I d, R r2)   { emitrm_wide(X64_movsx8m, r1,d,r2); asm_output("movsxb %s, %d(%s)",RQ(r1),d,RQ(r2)); }
+    void Assembler::MOVSX16M(R r1, I d, R r2)   { emitrm_wide(X64_movsx16m,r1,d,r2); asm_output("movsxs %s, %d(%s)",RQ(r1),d,RQ(r2)); }
+
     void Assembler::MOVSDRM(R r1, I d, R r2)    { emitprm(X64_movsdrm,r1,d,r2); asm_output("movsd %s, %d(%s)",RQ(r1),d,RQ(r2)); }
     void Assembler::MOVSDMR(R r1, I d, R r2)    { emitprm(X64_movsdmr,r1,d,r2); asm_output("movsd %d(%s), %s",d,RQ(r1),RQ(r2)); }
+    void Assembler::MOVSSRM(R r1, I d, R r2)    { emitprm(X64_movssrm,r1,d,r2); asm_output("movss %s, %d(%s)",RQ(r1),d,RQ(r2)); }
+    void Assembler::MOVSSMR(R r1, I d, R r2)    { emitprm(X64_movssmr,r1,d,r2); asm_output("movss %d(%s), %s",d,RQ(r1),RQ(r2)); }
 
     void Assembler::JMP8( S n, NIns* t)    { emit_target8(n, X64_jmp8,t); asm_output("jmp %p", t); }
 
@@ -1339,58 +1359,62 @@ namespace nanojit
             
             MOVAPSR(d, s);
         } else {
+            NanoAssert(IsFpReg(d) && !IsFpReg(s));
             
             MOVQXR(d, s);
         }
     }
 
-    void Assembler::regalloc_load(LIns *ins, Register &rr, int32_t &dr, Register &rb) {
+    void Assembler::regalloc_load(LIns *ins, RegisterMask allow, Register &rr, int32_t &dr, Register &rb) {
         dr = ins->disp();
         LIns *base = ins->oprnd1();
         rb = getBaseReg(ins->opcode(), base, dr, BaseRegs);
-        if (ins->isUnusedOrHasUnknownReg()) {
-            
-            rr = prepResultReg(ins, GpRegs & ~rmask(rb));
+        if (ins->isUnusedOrHasUnknownReg() || !(allow & rmask(ins->getReg()))) {
+            rr = prepResultReg(ins, allow & ~rmask(rb));
         } else {
             
             rr = ins->getReg();
+            NanoAssert(allow & rmask(rr));
             freeRsrcOf(ins, false);
         }
     }
 
     void Assembler::asm_load64(LIns *ins) {
 
+        Register rr, rb;
+        int32_t dr;
         switch (ins->opcode()) {
             case LIR_ldq:
             case LIR_ldqc:
-                
+                regalloc_load(ins, GpRegs, rr, dr, rb);
+                if (IsGpReg(rr)) {
+                    
+                    MOVQRM(rr, dr, rb);
+                } else {
+                    NanoAssert(IsFpReg(rr));
+                    
+                    MOVSDRM(rr, dr, rb);
+                }
                 break;
             case LIR_ld32f:
             case LIR_ldc32f:
-                NanoAssertMsg(0, "NJ_EXPANDED_LOADSTORE_SUPPORTED not yet supported for this architecture");
-                return;
+                regalloc_load(ins, FpRegs, rr, dr, rb);
+                NanoAssert(IsFpReg(rr));
+                CVTSS2SD(rr, rr);
+                MOVSSRM(rr, dr, rb); 
+                break;
             default:
                 NanoAssertMsg(0, "asm_load64 should never receive this LIR opcode");
-                return;
+                break;
         }
 
-        Register rr, rb;
-        int32_t dr;
-        regalloc_load(ins, rr, dr, rb);
-        if (IsGpReg(rr)) {
-            
-            MOVQRM(rr, dr, rb);
-        } else {
-            
-            MOVSDRM(rr, dr, rb);
-        }
     }
 
     void Assembler::asm_load32(LIns *ins) {
         NanoAssert(!ins->isQuad());
         Register r, b;
         int32_t d;
-        regalloc_load(ins, r, d, b);
+        regalloc_load(ins, GpRegs, r, d, b);
         LOpcode op = ins->opcode();
         switch(op) {
             case LIR_ldzb:
@@ -1406,40 +1430,32 @@ namespace nanojit
                 MOVLRM(  r, d, b);
                 break;
             case LIR_ldsb:
-            case LIR_ldss:
             case LIR_ldcsb:
+                MOVSX8M( r, d, b);
+                break;
+            case LIR_ldss:
             case LIR_ldcss:
-                NanoAssertMsg(0, "NJ_EXPANDED_LOADSTORE_SUPPORTED not yet supported for this architecture");
-                return;
+                MOVSX16M( r, d, b);
+                break;
             default:
                 NanoAssertMsg(0, "asm_load32 should never receive this LIR opcode");
-                return;
+                break;
         }
     }
 
     void Assembler::asm_store64(LOpcode op, LIns *value, int d, LIns *base) {
         NanoAssert(value->isQuad());
 
-        switch (op) {
-            case LIR_stqi:
-                
-                break;
-            case LIR_st32f:
-                NanoAssertMsg(0, "NJ_EXPANDED_LOADSTORE_SUPPORTED not yet supported for this architecture");
-                return;
-            default:
-                NanoAssertMsg(0, "asm_store64 should never receive this LIR opcode");
-                return;
-        }
-
         Register b = getBaseReg(LIR_stqi, base, d, BaseRegs);
+        Register r;
 
         
-        Register r;
         if (value->isUnusedOrHasUnknownReg()) {
             RegisterMask allow;
             
-            if (value->isFloat() || value->isop(LIR_float) || value->isop(LIR_fmod)) {
+            
+            
+            if (op == LIR_st32f || value->isFloat() || value->isop(LIR_float) || value->isop(LIR_fmod)) {
                 allow = FpRegs;
             } else {
                 allow = GpRegs;
@@ -1449,37 +1465,76 @@ namespace nanojit
             r = value->getReg();
         }
 
-        if (IsGpReg(r)) {
-            
-            MOVQMR(r, d, b);
-        }
-        else {
-            
-            MOVSDMR(r, d, b);
+        switch (op) {
+            case LIR_stqi:
+            {
+                if (IsGpReg(r)) {
+                    
+                    MOVQMR(r, d, b);
+                }
+                else {
+                    
+                    MOVSDMR(r, d, b);
+                }
+                break;
+            }
+            case LIR_st32f:
+            {
+                
+                Register t = registerAllocTmp(FpRegs & ~rmask(r));
+
+                
+                MOVSSMR(t, d, b);
+
+                
+                if (IsGpReg(r))
+                {
+                    CVTSD2SS(t, t);
+                    MOVQXR(t, r); 
+                }
+                else
+                {
+                    NanoAssert(IsFpReg(r));
+                    CVTSD2SS(t, r);
+                }
+                XORPS(t); 
+                break;
+            }
+            default:
+                NanoAssertMsg(0, "asm_store64 should never receive this LIR opcode");
+                break;
         }
     }
 
     void Assembler::asm_store32(LOpcode op, LIns *value, int d, LIns *base) {
 
-        switch (op) {
-            case LIR_sti:
-                
-                break;
-            case LIR_stb:
-            case LIR_sts:
-                NanoAssertMsg(0, "NJ_EXPANDED_LOADSTORE_SUPPORTED not yet supported for this architecture");
-                return;
-            default:
-                NanoAssertMsg(0, "asm_store32 should never receive this LIR opcode");
-                return;
-        }
+        
+        
+        const RegisterMask SrcRegs = 
+                        (op == LIR_stb) ?
+                        (GpRegs & ~(1<<RSP | 1<<RBP | 1<<RSI | 1<<RDI)) :
+                        GpRegs;
 
         NanoAssert(!value->isQuad());
         Register b = getBaseReg(LIR_sti, base, d, BaseRegs);
-        Register r = findRegFor(value, GpRegs & ~rmask(b));
+        Register r = findRegFor(value, SrcRegs & ~rmask(b));
 
-        
-        MOVLMR(r, d, b);
+        switch (op) {
+            case LIR_stb:
+                MOVBMR(r, d, b);
+                break;
+            case LIR_sts:
+                MOVSMR(r, d, b);
+                break;
+            case LIR_sti:
+                MOVLMR(r, d, b);
+                break;
+            default:
+                NanoAssertMsg(0, "asm_store32 should never receive this LIR opcode");
+                break;
+        }
+
+
     }
 
     

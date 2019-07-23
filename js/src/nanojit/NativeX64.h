@@ -61,7 +61,7 @@ namespace nanojit
 #define NJ_MAX_STACK_ENTRY              256
 #define NJ_ALIGN_STACK                  16
 #define NJ_JTBL_SUPPORTED               1
-#define NJ_EXPANDED_LOADSTORE_SUPPORTED 0
+#define NJ_EXPANDED_LOADSTORE_SUPPORTED 1
 
     enum Register {
         RAX = 0, 
@@ -191,6 +191,8 @@ namespace nanojit
         X64_cmpqr8  = 0x00F8834800000004LL, 
         X64_cvtsi2sd= 0xC02A0F40F2000005LL, 
         X64_cvtsq2sd= 0xC02A0F48F2000005LL, 
+        X64_cvtss2sd= 0xC05A0F40F3000005LL, 
+        X64_cvtsd2ss= 0xC05A0F40F2000005LL, 
         X64_divsd   = 0xC05E0F40F2000005LL, 
         X64_mulsd   = 0xC0590F40F2000005LL, 
         X64_addsd   = 0xC0580F40F2000005LL, 
@@ -230,6 +232,8 @@ namespace nanojit
         X64_learm   = 0x00000000808D4007LL, 
         X64_learip  = 0x00000000058D4807LL, 
         X64_movlr   = 0xC08B400000000003LL, 
+        X64_movbmr  = 0x0000000080884007LL, 
+        X64_movsmr  = 0x8089406600000004LL, 
         X64_movlmr  = 0x0000000080894007LL, 
         X64_movlrm  = 0x00000000808B4007LL, 
         X64_movqmr  = 0x0000000080894807LL, 
@@ -245,10 +249,14 @@ namespace nanojit
         X64_movsdrr = 0xC0100F40F2000005LL, 
         X64_movsdrm = 0x80100F40F2000005LL, 
         X64_movsdmr = 0x80110F40F2000005LL, 
+        X64_movssrm = 0x80100F40F3000005LL, 
+        X64_movssmr = 0x80110F40F3000005LL, 
         X64_movsxdr = 0xC063480000000003LL, 
         X64_movzx8  = 0xC0B60F4000000004LL, 
         X64_movzx8m = 0x80B60F4000000004LL, 
         X64_movzx16m= 0x80B70F4000000004LL, 
+        X64_movsx8m = 0x80BE0F4000000004LL, 
+        X64_movsx16m= 0x80BF0F4000000004LL, 
         X64_neg     = 0xD8F7400000000003LL, 
         X64_nop1    = 0x9000000000000001LL, 
         X64_nop2    = 0x9066000000000002LL, 
@@ -359,6 +367,7 @@ namespace nanojit
         void emitr(uint64_t op, Register b) { emitrr(op, (Register)0, b); }\
         void emitr8(uint64_t op, Register b) { emitrr8(op, (Register)0, b); }\
         void emitprr(uint64_t op, Register r, Register b);\
+        void emitrm8(uint64_t op, Register r, int32_t d, Register b);\
         void emitrm(uint64_t op, Register r, int32_t d, Register b);\
         void emitrm_wide(uint64_t op, Register r, int32_t d, Register b);\
         uint64_t emit_disp32(uint64_t op, int32_t d);\
@@ -380,7 +389,7 @@ namespace nanojit
         void asm_arith_imm(LIns*);\
         void regalloc_unary(LIns *ins, RegisterMask allow, Register &rr, Register &ra);\
         void regalloc_binary(LIns *ins, RegisterMask allow, Register &rr, Register &ra, Register &rb);\
-        void regalloc_load(LIns *ins, Register &rr, int32_t &d, Register &rb);\
+        void regalloc_load(LIns *ins, RegisterMask allow, Register &rr, int32_t &d, Register &rb);\
         void dis(NIns *p, int bytes);\
         void asm_cmp(LIns*);\
         void asm_cmp_imm(LIns*);\
@@ -460,6 +469,8 @@ namespace nanojit
         void SUBSD(Register l, Register r);\
         void CVTSQ2SD(Register l, Register r);\
         void CVTSI2SD(Register l, Register r);\
+        void CVTSS2SD(Register l, Register r);\
+        void CVTSD2SS(Register l, Register r);\
         void UCOMISD(Register l, Register r);\
         void MOVQRX(Register l, Register r);\
         void MOVQXR(Register l, Register r);\
@@ -495,12 +506,18 @@ namespace nanojit
         void LEAQRM(Register r1, int d, Register r2);\
         void MOVLRM(Register r1, int d, Register r2);\
         void MOVQRM(Register r1, int d, Register r2);\
+        void MOVBMR(Register r1, int d, Register r2);\
+        void MOVSMR(Register r1, int d, Register r2);\
         void MOVLMR(Register r1, int d, Register r2);\
         void MOVQMR(Register r1, int d, Register r2);\
         void MOVZX8M(Register r1, int d, Register r2);\
         void MOVZX16M(Register r1, int d, Register r2);\
+        void MOVSX8M(Register r1, int d, Register r2);\
+        void MOVSX16M(Register r1, int d, Register r2);\
         void MOVSDRM(Register r1, int d, Register r2);\
         void MOVSDMR(Register r1, int d, Register r2);\
+        void MOVSSMR(Register r1, int d, Register r2);\
+        void MOVSSRM(Register r1, int d, Register r2);\
         void JMP8(size_t n, NIns* t);\
         void JMP32(size_t n, NIns* t);\
         void JMPX(Register indexreg, NIns** table);\
