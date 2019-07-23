@@ -1211,6 +1211,9 @@ function nonBrowserWindowDelayedStartup()
   
   
   gSanitizeListener = new SanitizeListener();
+
+  
+  initBookmarksToolbar();
 }
 
 function nonBrowserWindowShutdown()
