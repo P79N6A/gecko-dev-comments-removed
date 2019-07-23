@@ -476,7 +476,16 @@ namespace nanojit
 
     Register Assembler::prepResultReg(LIns *ins, RegisterMask allow)
     {
-        const bool pop = ins->isUnusedOrHasUnknownReg();
+        
+        
+        
+        
+#ifdef NANOJIT_IA32
+        const bool pop = (allow & rmask(FST0)) &&
+                         (ins->isUnusedOrHasUnknownReg() || ins->getReg() != FST0);
+#else
+        const bool pop = false;
+#endif
         Register r = findRegFor(ins, allow);
         freeRsrcOf(ins, pop);
         return r;
