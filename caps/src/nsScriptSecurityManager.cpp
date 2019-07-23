@@ -1018,6 +1018,10 @@ nsScriptSecurityManager::LookupPolicy(nsIPrincipal* aPrincipal,
     
     if (mPolicyPrefsChanged)
     {
+        if (!mSecurityPref) {
+            rv = InitPrefs();
+            NS_ENSURE_SUCCESS(rv, rv);
+        }
         rv = InitPolicies();
         if (NS_FAILED(rv))
             return rv;
@@ -3238,8 +3242,7 @@ nsresult nsScriptSecurityManager::Init()
         sEnabledID = STRING_TO_JSVAL(::JS_InternString(cx, "enabled"));
     ::JS_EndRequest(cx);
 
-    rv = InitPrefs();
-    NS_ENSURE_SUCCESS(rv, rv);
+    InitPrefs();
 
     rv = CallGetService(NS_IOSERVICE_CONTRACTID, &sIOService);
     NS_ENSURE_SUCCESS(rv, rv);
@@ -3823,23 +3826,46 @@ const char nsScriptSecurityManager::sXPCDefaultGrantAllName[] =
 inline void
 nsScriptSecurityManager::ScriptSecurityPrefChanged()
 {
-    PRBool temp;
-    nsresult rv = mSecurityPref->SecurityGetBoolPref(sJSEnabledPrefName, &temp);
     
-    mIsJavaScriptEnabled = NS_FAILED(rv) || temp;
+    mIsJavaScriptEnabled = PR_TRUE;
 
-    rv = mSecurityPref->SecurityGetBoolPref(sJSMailEnabledPrefName, &temp);
+    
+    mIsMailJavaScriptEnabled = PR_FALSE;
+
+    sStrictFileOriginPolicy = PR_TRUE;
+
+#ifdef XPC_IDISPATCH_SUPPORT
+    
+    mXPCDefaultGrantAll = PR_FALSE;
+#endif
+
+    nsresult rv;
+    if (!mSecurityPref) {
+        rv = InitPrefs();
+        if (NS_FAILED(rv))
+            return;
+    }
+
+    PRBool temp;
+    rv = mSecurityPref->SecurityGetBoolPref(sJSEnabledPrefName, &temp);
+    if (NS_SUCCEEDED(rv))
+        mIsJavaScriptEnabled = temp;
+
     
     
-    mIsMailJavaScriptEnabled = PR_FALSE; 
+    
+    
+    
+    
 
     rv = mSecurityPref->SecurityGetBoolPref(sFileOriginPolicyPrefName, &temp);
-    sStrictFileOriginPolicy = NS_SUCCEEDED(rv) && temp;
+    if (NS_SUCCEEDED(rv))
+        sStrictFileOriginPolicy = NS_SUCCEEDED(rv) && temp;
 
 #ifdef XPC_IDISPATCH_SUPPORT
     rv = mSecurityPref->SecurityGetBoolPref(sXPCDefaultGrantAllName, &temp);
-    
-    mXPCDefaultGrantAll = NS_SUCCEEDED(rv) && temp;
+    if (NS_SUCCEEDED(rv))
+        mXPCDefaultGrantAll = temp;
 #endif
 }
 
