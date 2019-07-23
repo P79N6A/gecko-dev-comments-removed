@@ -70,7 +70,6 @@
 #include <cairo-ft.h>
 
 #include <pango/pango.h>
-#include <pango/pango-utils.h>
 #include <pango/pangocairo.h>
 #include <pango/pangofc-fontmap.h>
 
@@ -90,7 +89,8 @@
 #define PANGO_GLYPH_EMPTY           ((PangoGlyph)0)
 #endif
 
-#define IS_MISSING_GLYPH(g) (((g) & PANGO_GLYPH_UNKNOWN_FLAG) || (g) == PANGO_GLYPH_EMPTY)
+#define IS_MISSING_GLYPH(g) ((g) & PANGO_GLYPH_UNKNOWN_FLAG)
+#define IS_EMPTY_GLYPH(g) ((g) == PANGO_GLYPH_EMPTY)
 
 static PangoLanguage *GetPangoLanguage(const nsACString& aLangGroup);
 
@@ -394,7 +394,7 @@ gfxPangoFont::GetCharSize(char aChar, gfxSize& aInkSize, gfxSize& aLogSize,
         *aGlyphID = 0;
         if (glstr->num_glyphs == 1) {
             PangoGlyph glyph = glstr->glyphs[0].glyph;
-            if (!IS_MISSING_GLYPH(glyph)) {
+            if (!IS_MISSING_GLYPH(glyph) && !IS_EMPTY_GLYPH(glyph)) {
                 *aGlyphID = glyph;
             }
         }
@@ -1002,18 +1002,17 @@ gfxPangoFontGroup::SetGlyphs(gfxTextRun *aTextRun, gfxPangoFont *aFont,
                 return NS_ERROR_FAILURE;
             }
         } else {
-            gunichar ch = g_utf8_get_char(clusterUTF8);
-            do { 
-                
-                
-                if (IS_MISSING_GLYPH(glyphs[glyphIndex].glyph)) {
-                    if (pango_is_zero_width(ch)) {
-                        
-                        
-                        glyphs[glyphIndex].glyph = aFont->GetGlyph(' ');
-                        glyphs[glyphIndex].geometry.width = 0;
-                    } else
-                        haveMissingGlyph = PR_TRUE;
+            do {
+                if (IS_EMPTY_GLYPH(glyphs[glyphIndex].glyph)) {
+                    
+                    
+                    glyphs[glyphIndex].glyph = aFont->GetGlyph(' ');
+                    glyphs[glyphIndex].geometry.width = 0;
+                } else if (IS_MISSING_GLYPH(glyphs[glyphIndex].glyph)) {
+                    
+                    
+                    
+                    haveMissingGlyph = PR_TRUE;
                 }
                 glyphIndex++;
             } while (glyphIndex < numGlyphs && 
