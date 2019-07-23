@@ -195,6 +195,8 @@ public:
   static PRBool IsIMEEnabled() { return sIsIMEEnabled; }
   static PRBool IgnoreCommit() { return sIgnoreCommit; }
 
+  static void OnDestroyView(NSView<mozView>* aDestroyingView);
+
   
   
   static PRBool IsRomanKeyboardsOnly() { return sIsRomanKeyboardsOnly; }
