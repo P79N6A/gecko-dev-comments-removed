@@ -368,6 +368,14 @@ js_GetSprop(JSContext* cx, JSScopeProperty* sprop, JSObject* obj, jsval* vp)
                                    0, 0, vp);
     }
 
+    
+
+
+
+
+
+    if (STOBJ_GET_CLASS(obj) == &js_WithClass)
+        obj = obj->map->ops->thisObject(cx, obj);
     return sprop->getter(cx, obj, SPROP_USERID(sprop), vp);
 }
 
@@ -388,6 +396,9 @@ js_SetSprop(JSContext* cx, JSScopeProperty* sprop, JSObject* obj, jsval* vp)
         return JS_FALSE;
     }
 
+    
+    if (STOBJ_GET_CLASS(obj) == &js_WithClass)
+        obj = obj->map->ops->thisObject(cx, obj);
     return sprop->setter(cx, obj, SPROP_USERID(sprop), vp);
 }
 
