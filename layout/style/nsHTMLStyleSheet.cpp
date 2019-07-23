@@ -238,23 +238,18 @@ nsHTMLStyleSheet::RulesMatching(ElementRuleProcessorData* aData)
       
       if (tag == nsGkAtoms::a) {
         if (mLinkRule || mVisitedRule || mActiveRule) {
-          if (aData->IsLink()) {
-            switch (aData->LinkState()) {
-              case eLinkState_Unvisited:
-                if (mLinkRule)
-                  ruleWalker->Forward(mLinkRule);
-                break;
-              case eLinkState_Visited:
-                if (mVisitedRule)
-                  ruleWalker->Forward(mVisitedRule);
-                break;
-              default:
-                break;
-            }
+          PRUint32 state = aData->ContentState();
+          if (mLinkRule && (state & NS_EVENT_STATE_UNVISITED)) {
+            ruleWalker->Forward(mLinkRule);
+          }
+          else if (mVisitedRule && (state & NS_EVENT_STATE_VISITED)) {
+            ruleWalker->Forward(mVisitedRule);
+          }
 
-            
-            if (mActiveRule && (aData->ContentState() & NS_EVENT_STATE_ACTIVE))
-              ruleWalker->Forward(mActiveRule);
+          
+          if (mActiveRule && aData->IsLink() &&
+              (state & NS_EVENT_STATE_ACTIVE)) {
+            ruleWalker->Forward(mActiveRule);
           }
         } 
       } 
