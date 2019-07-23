@@ -246,13 +246,9 @@ getObjectCB(AtkHyperlink *aLink, gint aLinkIndex)
     accHyperlink->GetObject(aLinkIndex, getter_AddRefs(accObj));
     NS_ENSURE_TRUE(accObj, nsnull);
 
-    void *atkObj = nsnull;
-    accObj->GetNativeInterface(&atkObj);
-    if (!atkObj) {
-        return nsnull;
-    }
+    AtkObject *atkObj = nsAccessibleWrap::GetAtkObject(accObj);
     
-    return ATK_OBJECT(atkObj);
+    return atkObj;
 }
 
 gint

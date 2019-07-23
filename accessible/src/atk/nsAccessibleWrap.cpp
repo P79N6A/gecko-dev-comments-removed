@@ -39,7 +39,6 @@
 
 
 
-#include "nsMai.h"
 #include "nsAccessibleWrap.h"
 #include "nsAccessibleEventData.h"
 #include "nsString.h"
@@ -392,6 +391,16 @@ nsAccessibleWrap::GetAtkObject(void)
 }
 
 
+
+AtkObject *
+nsAccessibleWrap::GetAtkObject(nsIAccessible * acc)
+{
+    void *atkObjPtr = nsnull;
+    acc->GetNativeInterface(&atkObjPtr);
+    return atkObjPtr ? ATK_OBJECT(atkObjPtr) : nsnull;    
+}
+
+
 PRUint16
 nsAccessibleWrap::CreateMaiInterfaces(void)
 {
@@ -707,24 +716,20 @@ finalizeCB(GObject *aObj)
 const gchar *
 getNameCB(AtkObject *aAtkObj)
 {
-    if (NS_FAILED(CheckMaiAtkObject(aAtkObj))) {
-      return nsnull;
+    nsAccessibleWrap *accWrap = GetAccessibleWrap(aAtkObj);
+    if (!accWrap) {
+        return nsnull;
     }
 
-    nsAutoString uniName;
-
-    nsAccessibleWrap *accWrap = GetAccessibleWrap(aAtkObj);
-
     
+    nsAutoString uniName;
     nsresult rv = accWrap->GetName(uniName);
     NS_ENSURE_SUCCESS(rv, nsnull);
 
-    if (uniName.Length() > 0) {
-        NS_ConvertUTF8toUTF16 objName(aAtkObj->name);
-        if (!uniName.Equals(objName)) {
-            atk_object_set_name(aAtkObj,
-                                NS_ConvertUTF16toUTF8(uniName).get());
-        }
+    NS_ConvertUTF8toUTF16 objName(aAtkObj->name);
+    if (!uniName.Equals(objName)) {
+        atk_object_set_name(aAtkObj,
+                            NS_ConvertUTF16toUTF8(uniName).get());
     }
     return aAtkObj->name;
 }
@@ -732,24 +737,20 @@ getNameCB(AtkObject *aAtkObj)
 const gchar *
 getDescriptionCB(AtkObject *aAtkObj)
 {
-    if (NS_FAILED(CheckMaiAtkObject(aAtkObj))) {
-      return nsnull;
+    nsAccessibleWrap *accWrap = GetAccessibleWrap(aAtkObj);
+    if (!accWrap) {
+        return nsnull;
     }
 
-    if (!aAtkObj->description) {
-        gint len;
-        nsAutoString uniDesc;
+    
+    nsAutoString uniDesc;
+    nsresult rv = accWrap->GetDescription(uniDesc);
+    NS_ENSURE_SUCCESS(rv, nsnull);
 
-        nsAccessibleWrap *accWrap = GetAccessibleWrap(aAtkObj);
-
-        
-        nsresult rv = accWrap->GetDescription(uniDesc);
-        NS_ENSURE_SUCCESS(rv, nsnull);
-        len = uniDesc.Length();
-        if (len > 0) {
-            atk_object_set_description(aAtkObj,
-                                       NS_ConvertUTF16toUTF8(uniDesc).get());
-        }
+    NS_ConvertUTF8toUTF16 objDesc(aAtkObj->description);
+    if (!uniDesc.Equals(objDesc)) {
+        atk_object_set_description(aAtkObj,
+                                   NS_ConvertUTF16toUTF8(uniDesc).get());
     }
     return aAtkObj->description;
 }
@@ -757,18 +758,16 @@ getDescriptionCB(AtkObject *aAtkObj)
 AtkRole
 getRoleCB(AtkObject *aAtkObj)
 {
-    if (NS_FAILED(CheckMaiAtkObject(aAtkObj))) {
-      return ATK_ROLE_INVALID;
+    nsAccessibleWrap *accWrap = GetAccessibleWrap(aAtkObj);
+    if (!accWrap) {
+        return ATK_ROLE_INVALID;
     }
 
 #ifdef DEBUG_A11Y
-        nsAccessibleWrap *testAccWrap = GetAccessibleWrap(aAtkObj);
-        NS_ASSERTION(nsAccessible::IsTextInterfaceSupportCorrect(testAccWrap), "Does not support nsIAccessibleText when it should");
+    NS_ASSERTION(nsAccessible::IsTextInterfaceSupportCorrect(accWrap), "Does not support nsIAccessibleText when it should");
 #endif
 
     if (aAtkObj->role == ATK_ROLE_INVALID) {
-        nsAccessibleWrap *accWrap = GetAccessibleWrap(aAtkObj);
-
         PRUint32 accRole, atkRole;
         nsresult rv = accWrap->GetFinalRole(&accRole);
         NS_ENSURE_SUCCESS(rv, ATK_ROLE_INVALID);
@@ -821,32 +820,27 @@ GetAttributeSet(nsIAccessible* aAccessible)
 AtkAttributeSet *
 getAttributesCB(AtkObject *aAtkObj)
 {
-    if (NS_FAILED(CheckMaiAtkObject(aAtkObj))) {
-      return nsnull;
-    }
     nsAccessibleWrap *accWrap = GetAccessibleWrap(aAtkObj);
 
-    return GetAttributeSet(accWrap);
+    return accWrap ? GetAttributeSet(accWrap) : nsnull;
 }
 
 AtkObject *
 getParentCB(AtkObject *aAtkObj)
 {
-    if (NS_FAILED(CheckMaiAtkObject(aAtkObj))) {
-      return nsnull;
-    }
-    nsAccessibleWrap *accWrap = GetAccessibleWrap(aAtkObj);
+    if (!aAtkObj->accessible_parent) {
+        nsAccessibleWrap *accWrap = GetAccessibleWrap(aAtkObj);
+        if (!accWrap) {
+            return nsnull;
+        }
 
-    nsCOMPtr<nsIAccessible> accParent;
-    nsresult rv = accWrap->GetParent(getter_AddRefs(accParent));
-    if (NS_FAILED(rv) || !accParent)
-        return nsnull;
+        nsCOMPtr<nsIAccessible> accParent;
+        nsresult rv = accWrap->GetParent(getter_AddRefs(accParent));
+        if (NS_FAILED(rv) || !accParent)
+            return nsnull;
 
-    void *parentAtkObj = nsnull;
-    accParent->GetNativeInterface(&parentAtkObj);
-
-    if (parentAtkObj && !aAtkObj->accessible_parent) {
-        atk_object_set_parent(aAtkObj, ATK_OBJECT(parentAtkObj));
+        atk_object_set_parent(aAtkObj,
+                              nsAccessibleWrap::GetAtkObject(accParent));
     }
     return aAtkObj->accessible_parent;
 }
@@ -854,10 +848,10 @@ getParentCB(AtkObject *aAtkObj)
 gint
 getChildCountCB(AtkObject *aAtkObj)
 {
-    if (NS_FAILED(CheckMaiAtkObject(aAtkObj))) {
-      return 0;
-    }
     nsAccessibleWrap *accWrap = GetAccessibleWrap(aAtkObj);
+    if (!accWrap) {
+        return 0;
+    }
 
     PRInt32 count = 0;
     nsCOMPtr<nsIAccessibleHyperText> hyperText;
@@ -888,10 +882,10 @@ refChildCB(AtkObject *aAtkObj, gint aChildIndex)
     
     
     
-    if (NS_FAILED(CheckMaiAtkObject(aAtkObj))) {
-      return nsnull;
-    }
     nsAccessibleWrap *accWrap = GetAccessibleWrap(aAtkObj);
+    if (!accWrap) {
+        return nsnull;
+    }
 
     nsresult rv;
     nsCOMPtr<nsIAccessible> accChild;
@@ -914,14 +908,12 @@ refChildCB(AtkObject *aAtkObj, gint aChildIndex)
     if (NS_FAILED(rv) || !accChild)
         return nsnull;
 
-    void* childAtkObjPtr = nsnull;
-    accChild->GetNativeInterface(&childAtkObjPtr);
+    AtkObject* childAtkObj = nsAccessibleWrap::GetAtkObject(accChild);
 
-    NS_ASSERTION(childAtkObjPtr, "Fail to get AtkObj");
-    if (!childAtkObjPtr)
+    NS_ASSERTION(childAtkObj, "Fail to get AtkObj");
+    if (!childAtkObj)
         return nsnull;
     
-    AtkObject* childAtkObj = ATK_OBJECT(childAtkObjPtr);
     
     atk_object_set_parent(childAtkObj, aAtkObj);
     g_object_ref(childAtkObj);
@@ -933,10 +925,10 @@ getIndexInParentCB(AtkObject *aAtkObj)
 {
     
     
-    if (NS_FAILED(CheckMaiAtkObject(aAtkObj))) {
-      return -1;
-    }
     nsAccessibleWrap *accWrap = GetAccessibleWrap(aAtkObj);
+    if (!accWrap) {
+        return -1;
+    }
 
     nsCOMPtr<nsIAccessible> parent;
     accWrap->GetParent(getter_AddRefs(parent));
@@ -1000,13 +992,12 @@ refStateSetCB(AtkObject *aAtkObj)
     AtkStateSet *state_set = nsnull;
     state_set = ATK_OBJECT_CLASS(parent_class)->ref_state_set(aAtkObj);
 
-    if (NS_FAILED(CheckMaiAtkObject(aAtkObj))) {
+    nsAccessibleWrap *accWrap = GetAccessibleWrap(aAtkObj);
+    if (!accWrap) {
         TranslateStates(nsIAccessibleStates::EXT_STATE_DEFUNCT,
                         gAtkStateMapExt, state_set);
         return state_set;
     }
-
-    nsAccessibleWrap *accWrap = GetAccessibleWrap(aAtkObj);
 
     
     PRUint32 accState = 0, accExtState = 0;
@@ -1025,10 +1016,10 @@ refRelationSetCB(AtkObject *aAtkObj)
     AtkRelationSet *relation_set = nsnull;
     relation_set = ATK_OBJECT_CLASS(parent_class)->ref_relation_set(aAtkObj);
 
-    if (NS_FAILED(CheckMaiAtkObject(aAtkObj))) {
-      return relation_set;
-    }
     nsAccessibleWrap *accWrap = GetAccessibleWrap(aAtkObj);
+    if (!accWrap) {
+        return relation_set;
+    }
 
     AtkObject *accessible_array[1];
     AtkRelation* relation;
@@ -1054,9 +1045,7 @@ refRelationSetCB(AtkObject *aAtkObj)
         nsIAccessible* accRelated;
         nsresult rv = accWrap->GetAccessibleRelated(relationType[i], &accRelated);
         if (NS_SUCCEEDED(rv) && accRelated) {
-            void *relatedAtkObj = nsnull;
-            accRelated->GetNativeInterface(&relatedAtkObj);
-            accessible_array[0] = ATK_OBJECT(relatedAtkObj);
+            accessible_array[0] = nsAccessibleWrap::GetAtkObject(accRelated);
             relation = atk_relation_new(accessible_array, 1,
                                         NS_STATIC_CAST(AtkRelationType, relationType[i]));
             atk_relation_set_add(relation_set, relation);
@@ -1068,16 +1057,18 @@ refRelationSetCB(AtkObject *aAtkObj)
 }
 
 
-nsresult
-CheckMaiAtkObject(AtkObject *aAtkObj)
+
+nsAccessibleWrap *GetAccessibleWrap(AtkObject *aAtkObj)
 {
-    NS_ENSURE_ARG(IS_MAI_OBJECT(aAtkObj));
-    nsAccessibleWrap * tmpAccWrap = GetAccessibleWrap(aAtkObj);
+    NS_ENSURE_TRUE(IS_MAI_OBJECT(aAtkObj), nsnull);
+    nsAccessibleWrap *tmpAccWrap = MAI_ATK_OBJECT(aAtkObj)->accWrap;
 
     
     if (tmpAccWrap == nsnull) {
-        return NS_ERROR_NULL_POINTER;
+        return nsnull;
     }
+
+    NS_ENSURE_TRUE(tmpAccWrap->GetAtkObject() == aAtkObj, nsnull);
 
     nsRefPtr<nsApplicationAccessibleWrap> appAccWrap =
         nsAccessNode::GetApplicationAccessible();
@@ -1085,20 +1076,8 @@ CheckMaiAtkObject(AtkObject *aAtkObj)
         NS_STATIC_CAST(nsAccessibleWrap*, appAccWrap.get());
 
     if (tmpAppAccWrap != tmpAccWrap && !tmpAccWrap->IsValidObject())
-        return NS_ERROR_INVALID_POINTER;
+        return nsnull;
 
-    NS_ENSURE_TRUE(tmpAccWrap->GetAtkObject() == aAtkObj, NS_ERROR_FAILURE);
-    return NS_OK;
-}
-
-
-
-nsAccessibleWrap *GetAccessibleWrap(AtkObject *aAtkObj)
-{
-    NS_ENSURE_TRUE(IS_MAI_OBJECT(aAtkObj), nsnull);
-    nsAccessibleWrap * tmpAccWrap = MAI_ATK_OBJECT(aAtkObj)->accWrap;
-    NS_ENSURE_TRUE(tmpAccWrap != nsnull, nsnull);
-    NS_ENSURE_TRUE(tmpAccWrap->GetAtkObject() == aAtkObj, nsnull);
     return tmpAccWrap;
 }
 
@@ -1112,14 +1091,12 @@ nsAccessibleWrap::FireAccessibleEvent(nsIAccessibleEvent *aEvent)
     aEvent->GetAccessible(getter_AddRefs(accessible));
     NS_ENSURE_TRUE(accessible, NS_ERROR_FAILURE);
 
-    void *atkObjPtr = nsnull;
-    accessible->GetNativeInterface(&atkObjPtr);
-
     PRUint32 type = 0;
     rv = aEvent->GetEventType(&type);
     NS_ENSURE_SUCCESS(rv, rv);
 
-    AtkObject *atkObj = ATK_OBJECT(atkObjPtr);
+    AtkObject *atkObj = nsAccessibleWrap::GetAtkObject(accessible);
+
     
     
     if (!atkObj) {
