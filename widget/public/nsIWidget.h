@@ -96,8 +96,8 @@ typedef nsEventStatus (*PR_CALLBACK EVENT_CALLBACK)(nsGUIEvent *event);
 
 
 #define NS_IWIDGET_IID \
-{ 0x3d304df2, 0x8e6b, 0x4f09, \
-  { 0x87, 0x82, 0x98, 0xbd, 0x64, 0x9c, 0x7e, 0x96 } }
+{ 0xae42543f, 0xbf61, 0x4164, \
+  { 0x96, 0xba, 0xaf, 0x8f, 0x4e, 0xdc, 0xee, 0xad } }
 
 
 
@@ -228,6 +228,12 @@ enum nsTopLevelWidgetZPlacement {
   eZPlacementBottom = 0,  
   eZPlacementBelow,       
   eZPlacementTop          
+};
+
+enum nsTransparencyMode {
+  eTransparencyOpaque = 0,  
+  eTransparencyTransparent, 
+  eTransparencyGlass        
 };
 
 
@@ -689,17 +695,13 @@ class nsIWidget : public nsISupports {
 
 
 
-
-
-    NS_IMETHOD SetHasTransparentBackground(PRBool aTransparent) = 0;
+    virtual void SetTransparencyMode(nsTransparencyMode aMode) = 0;
 
     
 
 
 
-
-
-    NS_IMETHOD GetHasTransparentBackground(PRBool& aTransparent) = 0;
+    virtual nsTransparencyMode GetTransparencyMode() = 0;
 
     
 

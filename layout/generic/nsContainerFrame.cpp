@@ -70,6 +70,9 @@
 #include "nsIEventStateManager.h"
 #include "nsListControlFrame.h"
 #include "nsIBaseWindow.h"
+#include "nsThemeConstants.h"
+#include "nsCSSFrameConstructor.h"
+#include "nsThemeConstants.h"
 
 #ifdef NS_DEBUG
 #undef NOISY
@@ -495,7 +498,15 @@ SyncFrameViewGeometryDependentProperties(nsPresContext*  aPresContext,
 
     if (aView->HasWidget() && aView == rootView &&
         IsTopLevelWidget(aPresContext)) {
-      aView->GetWidget()->SetHasTransparentBackground(nsLayoutUtils::FrameHasTransparency(aFrame));
+      
+      
+      
+      
+      nsTransparencyMode mode = nsLayoutUtils::GetFrameTransparency(aFrame);
+      nsIFrame *rootFrame = aPresContext->PresShell()->FrameConstructor()->GetRootElementStyleFrame();
+      if(rootFrame && NS_THEME_WIN_GLASS == rootFrame->GetStyleDisplay()->mAppearance)
+        mode = eTransparencyGlass;
+      aView->GetWidget()->SetTransparencyMode(mode);
     }
   }
 }

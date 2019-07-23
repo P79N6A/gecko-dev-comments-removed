@@ -241,6 +241,14 @@ public:
 
 
 
+    eMetric_DWMCompositor,
+
+    
+
+
+
+
+
 
 
 

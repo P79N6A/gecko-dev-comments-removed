@@ -744,7 +744,7 @@ public:
 
 
 
-  static PRBool FrameHasTransparency(nsIFrame* aFrame);
+  static nsTransparencyMode GetFrameTransparency(nsIFrame* aFrame);
 
   
 

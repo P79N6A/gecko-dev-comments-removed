@@ -1312,9 +1312,9 @@ nsCSSRendering::PaintBackground(nsPresContext* aPresContext,
     if (!rootView->GetParent()) {
       PRBool widgetIsTransparent = PR_FALSE;
 
-      if (rootView->HasWidget()) {
-        rootView->GetWidget()->GetHasTransparentBackground(widgetIsTransparent);
-      }
+      if (rootView->HasWidget())
+        
+        widgetIsTransparent = eTransparencyOpaque != rootView->GetWidget()->GetTransparencyMode();
       
       if (!widgetIsTransparent) {
         
