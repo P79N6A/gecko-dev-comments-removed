@@ -377,6 +377,15 @@ nsSVGUseElement::CreateAnonymousContent()
     }
   }
 
+  
+  nsCOMPtr<nsIURI> baseURI = targetContent->GetBaseURI();
+  if (!baseURI)
+    return nsnull;
+  nsCAutoString spec;
+  baseURI->GetSpec(spec);
+  newcontent->SetAttr(kNameSpaceID_XML, nsGkAtoms::base,
+                      NS_ConvertUTF8toUTF16(spec), PR_FALSE);
+
   targetContent->AddMutationObserver(this);
   mClone = newcontent;
   return mClone;
