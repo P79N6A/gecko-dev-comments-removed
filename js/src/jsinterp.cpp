@@ -271,13 +271,25 @@ js_FillPropertyCache(JSContext *cx, JSObject *obj, jsuword kshape,
         }
     } while (0);
 
+    
+
+
+
+
+
+
+
+
+
+
+    if (!(cs->format & (JOF_SET | JOF_INCDEC)))
+        kshape = scope->shape;
+
     khash = PROPERTY_CACHE_HASH_PC(pc, kshape);
     if (obj == pobj) {
         JS_ASSERT(kshape != 0 || scope->shape != 0);
         JS_ASSERT(scopeIndex == 0 && protoIndex == 0);
         JS_ASSERT(OBJ_SCOPE(obj)->object == obj);
-        if (!(cs->format & JOF_SET))
-            kshape = scope->shape;
     } else {
         if (op == JSOP_LENGTH) {
             atom = cx->runtime->atomState.lengthAtom;
