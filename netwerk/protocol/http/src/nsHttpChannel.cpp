@@ -2771,7 +2771,7 @@ nsHttpChannel::SetupReplacementChannel(nsIURI       *newURI,
         return NS_OK; 
 
     if (preserveMethod) {
-        nsCOMPtr<nsIUploadChannel2> uploadChannel = do_QueryInterface(httpChannel);
+        nsCOMPtr<nsIUploadChannel> uploadChannel = do_QueryInterface(httpChannel);
         if (mUploadStream && uploadChannel) {
             
             nsCOMPtr<nsISeekableStream> seekable = do_QueryInterface(mUploadStream);
@@ -2779,18 +2779,20 @@ nsHttpChannel::SetupReplacementChannel(nsIURI       *newURI,
                 seekable->Seek(nsISeekableStream::NS_SEEK_SET, 0);
 
             
-            const char *ctype = mRequestHead.PeekHeader(nsHttp::Content_Type);
-            if (!ctype)
-              ctype = "";
-            const char *clen  = mRequestHead.PeekHeader(nsHttp::Content_Length);
-            if (clen)
-                uploadChannel->ExplicitSetUploadStream(
-                    mUploadStream,
-                    nsDependentCString(ctype),
-                    nsCRT::atoll(clen),
-                    nsDependentCString(mRequestHead.Method()),
-                    mUploadStreamHasHeaders);
+            if (mUploadStreamHasHeaders)
+                uploadChannel->SetUploadStream(mUploadStream, EmptyCString(), -1);
+            else {
+                const char *ctype = mRequestHead.PeekHeader(nsHttp::Content_Type);
+                const char *clen  = mRequestHead.PeekHeader(nsHttp::Content_Length);
+                if (ctype && clen)
+                    uploadChannel->SetUploadStream(mUploadStream,
+                                                   nsDependentCString(ctype),
+                                                   atoi(clen));
+            }
         }
+        
+        
+        httpChannel->SetRequestMethod(nsDependentCString(mRequestHead.Method()));
     }
     
     if (mReferrer)
@@ -4076,7 +4078,6 @@ NS_INTERFACE_MAP_BEGIN(nsHttpChannel)
     NS_INTERFACE_MAP_ENTRY(nsIHttpChannel)
     NS_INTERFACE_MAP_ENTRY(nsICachingChannel)
     NS_INTERFACE_MAP_ENTRY(nsIUploadChannel)
-    NS_INTERFACE_MAP_ENTRY(nsIUploadChannel2)
     NS_INTERFACE_MAP_ENTRY(nsICacheListener)
     NS_INTERFACE_MAP_ENTRY(nsIEncodedChannel)
     NS_INTERFACE_MAP_ENTRY(nsIHttpChannelInternal)
@@ -4684,9 +4685,7 @@ nsHttpChannel::GetUploadStream(nsIInputStream **stream)
 }
 
 NS_IMETHODIMP
-nsHttpChannel::SetUploadStream(nsIInputStream *stream,
-                               const nsACString &contentType,
-                               PRInt32 contentLength)
+nsHttpChannel::SetUploadStream(nsIInputStream *stream, const nsACString &contentType, PRInt32 contentLength)
 {
     
     
@@ -4704,8 +4703,7 @@ nsHttpChannel::SetUploadStream(nsIInputStream *stream,
                     return NS_ERROR_FAILURE;
                 }
             }
-            mRequestHead.SetHeader(nsHttp::Content_Length,
-                                   nsPrintfCString("%d", contentLength));
+            mRequestHead.SetHeader(nsHttp::Content_Length, nsPrintfCString("%d", contentLength));
             mRequestHead.SetHeader(nsHttp::Content_Type, contentType);
             mUploadStreamHasHeaders = PR_FALSE;
             mRequestHead.SetMethod(nsHttp::Put); 
@@ -4720,37 +4718,6 @@ nsHttpChannel::SetUploadStream(nsIInputStream *stream,
         mRequestHead.SetMethod(nsHttp::Get); 
     }
     mUploadStream = stream;
-    return NS_OK;
-}
-
-NS_IMETHODIMP
-nsHttpChannel::ExplicitSetUploadStream(nsIInputStream *aStream,
-                                       const nsACString &aContentType,
-                                       PRInt64 aContentLength,
-                                       const nsACString &aMethod,
-                                       PRBool aStreamHasHeaders)
-{
-    
-    NS_ENSURE_TRUE(aStream, NS_ERROR_FAILURE);
-
-    if (aContentLength < 0) {
-        PRUint32 streamLength;
-        aStream->Available(&streamLength);
-        aContentLength = streamLength;
-        if (aContentLength < 0) {
-            NS_ERROR("unable to determine content length");
-            return NS_ERROR_FAILURE;
-        }
-    }
-
-    nsresult rv = SetRequestMethod(aMethod);
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    mRequestHead.SetHeader(nsHttp::Content_Length, nsPrintfCString("%lld", aContentLength));
-    mRequestHead.SetHeader(nsHttp::Content_Type, aContentType);
-
-    mUploadStreamHasHeaders = aStreamHasHeaders;
-    mUploadStream = aStream;
     return NS_OK;
 }
 
