@@ -276,10 +276,10 @@ PRBool nsWindow::sIsDraggingOutOf = PR_FALSE;
 
 
 
-guint32   nsWindow::mLastButtonPressTime = 0;
+guint32   nsWindow::sLastButtonPressTime = 0;
 
 
-guint32   nsWindow::mLastButtonReleaseTime = 0;
+guint32   nsWindow::sLastButtonReleaseTime = 0;
 
 static NS_DEFINE_IID(kCDragServiceCID,  NS_DRAGSERVICE_CID);
 
@@ -341,7 +341,11 @@ static GtkWidget *gInvisibleContainer = NULL;
 
 
 
-template<class T> gpointer
+static guint gButtonState;
+
+
+
+template<class T> static inline gpointer
 FuncToGpointer(T aFunction)
 {
     return reinterpret_cast<gpointer>
@@ -2628,7 +2632,18 @@ void
 nsWindow::OnEnterNotifyEvent(GtkWidget *aWidget, GdkEventCrossing *aEvent)
 {
     
+    
+    
+    
+    
     if (aEvent->subwindow != NULL)
+        return;
+
+    
+    
+    DispatchMissedButtonReleases(aEvent);
+
+    if (is_parent_ungrab_enter(aEvent))
         return;
 
     nsMouseEvent event(PR_TRUE, NS_MOUSE_ENTER, this, nsMouseEvent::eReal);
@@ -2643,6 +2658,7 @@ nsWindow::OnEnterNotifyEvent(GtkWidget *aWidget, GdkEventCrossing *aEvent)
     nsEventStatus status;
     DispatchEvent(&event, status);
 }
+
 
 static PRBool
 is_top_level_mouse_exit(GdkWindow* aWindow, GdkEventCrossing *aEvent)
@@ -2661,6 +2677,13 @@ is_top_level_mouse_exit(GdkWindow* aWindow, GdkEventCrossing *aEvent)
 void
 nsWindow::OnLeaveNotifyEvent(GtkWidget *aWidget, GdkEventCrossing *aEvent)
 {
+    
+    
+    
+    
+    
+    
+    
     
     if (aEvent->subwindow != NULL)
         return;
@@ -2837,6 +2860,61 @@ nsWindow::OnMotionNotifyEvent(GtkWidget *aWidget, GdkEventMotion *aEvent)
 }
 #endif
 
+
+
+
+
+
+
+
+void
+nsWindow::DispatchMissedButtonReleases(GdkEventCrossing *aGdkEvent)
+{
+    guint changed = aGdkEvent->state ^ gButtonState;
+    
+    
+    guint released = changed & gButtonState;
+    gButtonState = aGdkEvent->state;
+
+    
+    
+    for (guint buttonMask = GDK_BUTTON1_MASK;
+         buttonMask <= GDK_BUTTON3_MASK;
+         buttonMask <<= 1) {
+
+        if (released & buttonMask) {
+            PRInt16 buttonType;
+            switch (buttonMask) {
+            case GDK_BUTTON1_MASK:
+                buttonType = nsMouseEvent::eLeftButton;
+                break;
+            case GDK_BUTTON2_MASK:
+                buttonType = nsMouseEvent::eMiddleButton;
+                break;
+            default:
+                NS_ASSERTION(buttonMask == GDK_BUTTON3_MASK,
+                             "Unexpected button mask");
+                buttonType = nsMouseEvent::eRightButton;
+            }
+
+            LOG(("Synthesized button %u release on %p\n",
+                 guint(buttonType + 1), (void *)this));
+
+            
+            
+            
+            
+            nsMouseEvent synthEvent(PR_TRUE, NS_MOUSE_BUTTON_UP, this,
+                                    nsMouseEvent::eSynthesized);
+            synthEvent.button = buttonType;
+            nsEventStatus status;
+            DispatchEvent(&synthEvent, status);
+
+            sLastButtonReleaseTime = aGdkEvent->time;
+        }
+    }
+}
+
 void
 nsWindow::InitButtonEvent(nsMouseEvent &aEvent,
                           GdkEventButton *aGdkEvent)
@@ -2870,9 +2948,16 @@ nsWindow::InitButtonEvent(nsMouseEvent &aEvent,
     }
 }
 
+static guint ButtonMaskFromGDKButton(guint button)
+{
+    return GDK_BUTTON1_MASK << (button - 1);
+}
+
 void
 nsWindow::OnButtonPressEvent(GtkWidget *aWidget, GdkEventButton *aEvent)
 {
+    LOG(("Button %u press on %p\n", aEvent->button, (void *)this));
+
     nsEventStatus status;
 
     
@@ -2890,8 +2975,8 @@ nsWindow::OnButtonPressEvent(GtkWidget *aWidget, GdkEventButton *aEvent)
     }
 
     
-    mLastButtonPressTime = aEvent->time;
-    mLastButtonReleaseTime = 0;
+    sLastButtonPressTime = aEvent->time;
+    sLastButtonReleaseTime = 0;
 
     nsWindow *containerWindow = GetContainerWindow();
     if (!gFocusWindow && containerWindow) {
@@ -2953,6 +3038,8 @@ nsWindow::OnButtonPressEvent(GtkWidget *aWidget, GdkEventButton *aEvent)
         return;
     }
 
+    gButtonState |= ButtonMaskFromGDKButton(aEvent->button);
+
     nsMouseEvent event(PR_TRUE, NS_MOUSE_BUTTON_DOWN, this, nsMouseEvent::eReal);
     event.button = domButton;
     InitButtonEvent(event, aEvent);
@@ -2974,8 +3061,10 @@ nsWindow::OnButtonPressEvent(GtkWidget *aWidget, GdkEventButton *aEvent)
 void
 nsWindow::OnButtonReleaseEvent(GtkWidget *aWidget, GdkEventButton *aEvent)
 {
+    LOG(("Button %u release on %p\n", aEvent->button, (void *)this));
+
     PRUint16 domButton;
-    mLastButtonReleaseTime = aEvent->time;
+    sLastButtonReleaseTime = aEvent->time;
 
     switch (aEvent->button) {
     case 1:
@@ -2990,6 +3079,8 @@ nsWindow::OnButtonReleaseEvent(GtkWidget *aWidget, GdkEventButton *aEvent)
     default:
         return;
     }
+
+    gButtonState &= ~ButtonMaskFromGDKButton(aEvent->button);
 
     nsMouseEvent event(PR_TRUE, NS_MOUSE_BUTTON_UP, this, nsMouseEvent::eReal);
     event.button = domButton;
@@ -3584,7 +3675,7 @@ nsWindow::OnDragMotionEvent(GtkWidget *aWidget,
 {
     LOGDRAG(("nsWindow::OnDragMotionSignal\n"));
 
-    if (mLastButtonReleaseTime) {
+    if (sLastButtonReleaseTime) {
       
       
       GtkWidget *widget = gtk_grab_get_current();
@@ -3592,9 +3683,9 @@ nsWindow::OnDragMotionEvent(GtkWidget *aWidget,
       gboolean retval;
       memset(&event, 0, sizeof(event));
       event.type = GDK_BUTTON_RELEASE;
-      event.button.time = mLastButtonReleaseTime;
+      event.button.time = sLastButtonReleaseTime;
       event.button.button = 1;
-      mLastButtonReleaseTime = 0;
+      sLastButtonReleaseTime = 0;
       if (widget) {
         g_signal_emit_by_name(widget, "button_release_event", &event, &retval);
         return TRUE;
@@ -5636,10 +5727,6 @@ gboolean
 enter_notify_event_cb(GtkWidget *widget,
                       GdkEventCrossing *event)
 {
-    if (is_parent_ungrab_enter(event)) {
-        return TRUE;
-    }
-
     nsRefPtr<nsWindow> window = get_window_for_gdk_window(event->window);
     if (!window)
         return TRUE;
