@@ -582,12 +582,12 @@ var BookmarksEventHandler = {
 
     var target = aEvent.originalTarget;
     var view = PlacesUtils.getViewForNode(target);
-    if (PlacesUtils.nodeIsFolder(view.selectedNode)) {
+    if (target.node && PlacesUtils.nodeIsFolder(target.node)) {
       
       
       
-      if (!view.controller.rootNodeIsSelected())
-        view.controller.openSelectionInTabs(aEvent);
+      if (target.localName == "menu" || target.localName == "toolbarbutton")
+        PlacesUtils.openContainerNodeInTabs(target.node, aEvent);
     }
     else
       this.onCommand(aEvent);
@@ -624,11 +624,8 @@ var BookmarksEventHandler = {
 
   onCommand: function BM_onCommand(aEvent) {
     var target = aEvent.originalTarget;
-    if (target.node) {
-      PlacesUtils.getViewForNode(target)
-                 .controller
-                 .openSelectedNodeWithEvent(aEvent);
-    }
+    if (target.node)
+      PlacesUtils.openNodeWithEvent(target.node, aEvent);
   },
 
   

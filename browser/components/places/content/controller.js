@@ -213,13 +213,13 @@ PlacesController.prototype = {
       this.selectAll();
       break;
     case "placesCmd_open":
-      this.openSelectedNodeIn("current");
+      PlacesUtils.openNodeIn(this._view.selectedNode, "current");
       break;
     case "placesCmd_open:window":
-      this.openSelectedNodeIn("window");
+      PlacesUtils.openNodeIn(this._view.selectedNode, "window");
       break;
     case "placesCmd_open:tab":
-      this.openSelectedNodeIn("tab");
+      PlacesUtils.openNodeIn(this._view.selectedNode, "tab");
       break;
     case "placesCmd_new:folder":
       this.newItem("folder");
@@ -610,50 +610,6 @@ PlacesController.prototype = {
 
   selectAll: function PC_selectAll() {
     this._view.selectAll();
-  },
-
-  
-
-
-
-
-
-
-
-  openSelectedNodeWithEvent: function PC_openSelectedNodeWithEvent(aEvent) {
-    this.openSelectedNodeIn(whereToOpenLink(aEvent));
-  },
-
-  
-
-
-
-
-  openSelectedNodeIn: function PC_openSelectedNodeIn(aWhere) {
-    var node = this._view.selectedNode;
-    if (node && PlacesUtils.nodeIsURI(node) &&
-        PlacesUtils.checkURLSecurity(node)) {
-      var isBookmark = PlacesUtils.nodeIsBookmark(node);
-
-      if (isBookmark)
-        PlacesUtils.markPageAsFollowedBookmark(node.uri);
-      else
-        PlacesUtils.markPageAsTyped(node.uri);
-
-      
-      
-      if (aWhere == "current" && isBookmark) {
-        if (PlacesUtils.annotations
-                       .itemHasAnnotation(node.itemId, LOAD_IN_SIDEBAR_ANNO)) {
-          var w = getTopWin();
-          if (w) {
-            w.openWebPanel(node.title, node.uri);
-            return;
-          }
-        }
-      }
-      openUILinkIn(node.uri, aWhere);
-    }
   },
 
   

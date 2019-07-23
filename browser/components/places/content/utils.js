@@ -1783,6 +1783,51 @@ var PlacesUtils = {
   
 
 
+
+
+
+
+
+
+
+  openNodeWithEvent: function PU_openNodeWithEvent(aNode, aEvent) {
+    this.openNodeIn(aNode, whereToOpenLink(aEvent));
+  },
+  
+  
+
+
+
+
+  openNodeIn: function PU_openNodeIn(aNode, aWhere) {
+    if (aNode && PlacesUtils.nodeIsURI(aNode) &&
+        PlacesUtils.checkURLSecurity(aNode)) {
+      var isBookmark = PlacesUtils.nodeIsBookmark(aNode);
+
+      if (isBookmark)
+        PlacesUtils.markPageAsFollowedBookmark(aNode.uri);
+      else
+        PlacesUtils.markPageAsTyped(aNode.uri);
+
+      
+      
+      if (aWhere == "current" && isBookmark) {
+        if (PlacesUtils.annotations
+                       .itemHasAnnotation(aNode.itemId, LOAD_IN_SIDEBAR_ANNO)) {
+          var w = getTopWin();
+          if (w) {
+            w.openWebPanel(aNode.title, aNode.uri);
+            return;
+          }
+        }
+      }
+      openUILinkIn(aNode.uri, aWhere);
+    }
+  },
+
+  
+
+
   createMenuItemForNode: function(aNode, aContainersMap) {
     var element;
     var type = aNode.type;

@@ -232,21 +232,19 @@ var PlacesOrganizer = {
 
 
   onTreeClick: function PO_onTreeClick(aEvent) {
-    var currentView = aEvent.currentTarget;
-    var controller = currentView.controller;
-
     if (aEvent.target.localName != "treechildren")
       return;
 
+    var currentView = aEvent.currentTarget;
     var selectedNode = currentView.selectedNode;
     if (selectedNode && aEvent.button == 1) {
-      if (PlacesUtils.nodeIsURI(currentView.selectedNode))
-        controller.openSelectedNodeWithEvent(aEvent);
+      if (PlacesUtils.nodeIsURI(selectedNode))
+        PlacesUtils.openNodeWithEvent(selectedNode, aEvent);
       else if (PlacesUtils.nodeIsContainer(selectedNode)) {
         
         
         
-        controller.openLinksInTabs();
+        PlacesUtils.openContainerNodeInTabs(selectedNode);
       }
     }
   },
@@ -259,7 +257,7 @@ var PlacesOrganizer = {
   },
 
   openSelectedNode: function PU_openSelectedNode(aEvent) {
-    this._content.controller.openSelectedNodeWithEvent(aEvent);
+    PlacesUtils.openNodeWithEvent(this._content.selectedNode, aEvent);
   },
 
   
