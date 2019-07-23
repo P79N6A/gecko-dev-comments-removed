@@ -129,7 +129,6 @@ HTTP_ATOM(Warning,                   "Warning")
 
 
 
-
 HTTP_ATOM(Connect,                   "CONNECT")
 HTTP_ATOM(Copy,                      "COPY")
 HTTP_ATOM(Delete,                    "DELETE")
