@@ -1866,6 +1866,13 @@ nsCSSRendering::PaintBackgroundWithSC(nsPresContext* aPresContext,
   
   
   nsRect tileRect(anchor, nsSize(tileWidth, tileHeight));
+  
+  
+  
+  
+  PRBool useSingleImagePath =
+    tileRect.Contains(bgClipArea - borderAreaOriginSnapped);
+
   if (repeat & NS_STYLE_BG_REPEAT_X) {
     
     
@@ -1906,7 +1913,9 @@ nsCSSRendering::PaintBackgroundWithSC(nsPresContext* aPresContext,
     nsRect destRect; 
     destRect.IntersectRect(absTileRect, bgClipArea);
     nsRect subimageRect = destRect - borderAreaOriginSnapped - tileRect.TopLeft();
-    if (sourceRect.XMost() <= tileWidth && sourceRect.YMost() <= tileHeight) {
+    if (useSingleImagePath) {
+      NS_ASSERTION(sourceRect.XMost() <= tileWidth && sourceRect.YMost() <= tileHeight,
+                   "We shouldn't need to tile here");
       
       
       nsLayoutUtils::DrawImage(&aRenderingContext, image,
