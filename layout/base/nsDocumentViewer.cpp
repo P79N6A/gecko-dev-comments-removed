@@ -365,14 +365,18 @@ private:
   
 
 
+
+
+
   nsIView* FindContainerView();
 
   
 
 
-  nsresult CreateDeviceContext(nsIWidget* aWidget);
+  nsresult CreateDeviceContext(nsIView* aContainerView);
 
   
+
 
 
   nsresult InitInternal(nsIWidget* aParentWidget,
@@ -443,6 +447,8 @@ protected:
   nsCOMPtr<nsISHEntry> mSHEntry;
 
   nsIWidget* mParentWidget; 
+
+  nsIntRect mBounds;
 
   
   
@@ -687,9 +693,6 @@ NS_IMETHODIMP
 DocumentViewerImpl::Init(nsIWidget* aParentWidget,
                          const nsIntRect& aBounds)
 {
-  nsresult rv = CreateDeviceContext(aParentWidget);
-  NS_ENSURE_SUCCESS(rv, rv);
-  
   return InitInternal(aParentWidget, nsnull, aBounds, PR_TRUE, PR_FALSE);
 }
 
@@ -731,11 +734,8 @@ DocumentViewerImpl::InitPresentationStuff(PRBool aDoInitialReflow, PRBool aReena
   mPresShell->BeginObservingDocument();
 
   
-  nsIntRect bounds;
-  mWindow->GetBounds(bounds);
-
-  nscoord width = mPresContext->DeviceContext()->UnscaledAppUnitsPerDevPixel() * bounds.width;
-  nscoord height = mPresContext->DeviceContext()->UnscaledAppUnitsPerDevPixel() * bounds.height;
+  nscoord width = mPresContext->DeviceContext()->UnscaledAppUnitsPerDevPixel() * mBounds.width;
+  nscoord height = mPresContext->DeviceContext()->UnscaledAppUnitsPerDevPixel() * mBounds.height;
 
   mViewManager->DisableRefresh();
   mViewManager->SetWindowDimensions(width, height);
@@ -839,6 +839,7 @@ DocumentViewerImpl::InitInternal(nsIWidget* aParentWidget,
                                  PRBool aNeedMakeCX )
 {
   mParentWidget = aParentWidget; 
+  mBounds = aBounds;
 
   nsresult rv = NS_OK;
   NS_ENSURE_TRUE(mDocument, NS_ERROR_NULL_POINTER);
@@ -847,11 +848,15 @@ DocumentViewerImpl::InitInternal(nsIWidget* aParentWidget,
 
   PRBool makeCX = PR_FALSE;
   if (aDoCreation) {
+    nsresult rv = CreateDeviceContext(containerView);
+    NS_ENSURE_SUCCESS(rv, rv);
+
     
     
     
     
-    if ((aParentWidget || mDocument->GetDisplayDocument()) && !mPresContext) {
+    if (!mPresContext &&
+        (aParentWidget || containerView || mDocument->GetDisplayDocument())) {
       
       if (mIsPageMode) {
         
@@ -1298,13 +1303,10 @@ DocumentViewerImpl::Open(nsISupports *aState, nsISHEntry *aSHEntry)
 {
   NS_ENSURE_TRUE(mPresShell, NS_ERROR_NOT_INITIALIZED);
 
-  nsIntRect bounds;
-  mWindow->GetBounds(bounds);
-
   if (mDocument)
     mDocument->SetContainer(nsCOMPtr<nsISupports>(do_QueryReferent(mContainer)));
 
-  nsresult rv = InitInternal(mParentWidget, aState, bounds, PR_FALSE, PR_FALSE);
+  nsresult rv = InitInternal(mParentWidget, aState, mBounds, PR_FALSE, PR_FALSE);
   NS_ENSURE_SUCCESS(rv, rv);
 
   if (mPresShell)
@@ -1770,13 +1772,7 @@ NS_IMETHODIMP
 DocumentViewerImpl::GetBounds(nsIntRect& aResult)
 {
   NS_ENSURE_TRUE(mDocument, NS_ERROR_NOT_AVAILABLE);
-  NS_PRECONDITION(mWindow, "null window");
-  if (mWindow) {
-    mWindow->GetBounds(aResult);
-  }
-  else {
-    aResult.SetRect(0, 0, 0, 0);
-  }
+  aResult = mBounds;
   return NS_OK;
 }
 
@@ -1826,11 +1822,16 @@ DocumentViewerImpl::SetBounds(const nsIntRect& aBounds)
 {
   NS_ENSURE_TRUE(mDocument, NS_ERROR_NOT_AVAILABLE);
 
+  mBounds = aBounds;
   if (mWindow) {
     
     
     mWindow->Resize(aBounds.x, aBounds.y, aBounds.width, aBounds.height,
                     PR_FALSE);
+  } else if (mPresContext && mViewManager) {
+    PRInt32 p2a = mPresContext->AppUnitsPerDevPixel();
+    mViewManager->SetWindowDimensions(NSIntPixelsToAppUnits(mBounds.width, p2a),
+                                      NSIntPixelsToAppUnits(mBounds.height, p2a));
   }
 
   
@@ -1857,7 +1858,7 @@ NS_IMETHODIMP
 DocumentViewerImpl::Move(PRInt32 aX, PRInt32 aY)
 {
   NS_ENSURE_TRUE(mDocument, NS_ERROR_NOT_AVAILABLE);
-  NS_PRECONDITION(mWindow, "null window");
+  mBounds.MoveTo(aX, aY);
   if (mWindow) {
     mWindow->Move(aX, aY);
   }
@@ -1907,18 +1908,21 @@ DocumentViewerImpl::Show(void)
     mWindow->Show(PR_TRUE);
   }
 
-  if (mDocument && !mPresShell && !mWindow) {
+  if (mDocument && !mPresShell) {
+    NS_ASSERTION(!mWindow, "Window already created but no presshell?");
+
     nsCOMPtr<nsIBaseWindow> base_win(do_QueryReferent(mContainer));
     if (base_win) {
       base_win->GetParentWidget(&mParentWidget);
-      NS_ENSURE_TRUE(mParentWidget, NS_ERROR_UNEXPECTED);
-      mParentWidget->Release(); 
+      if (mParentWidget) {
+        mParentWidget->Release(); 
+      }
     }
 
-    nsresult rv = CreateDeviceContext(mParentWidget);
-    NS_ENSURE_SUCCESS(rv, rv);
-
     nsIView* containerView = FindContainerView();
+
+    nsresult rv = CreateDeviceContext(containerView);
+    NS_ENSURE_SUCCESS(rv, rv);
 
     
     NS_ASSERTION(!mPresContext, "Shouldn't have a prescontext if we have no shell!");
@@ -1932,16 +1936,8 @@ DocumentViewerImpl::Show(void)
       return rv;
     }
 
-    nsIntRect tbounds;
-    if (mParentWidget) {
-      mParentWidget->GetBounds(tbounds);
-    } else {
-      
-      tbounds = nsIntRect(0, 0, 0, 0);
-    }
-
-    rv = MakeWindow(nsSize(mPresContext->DevPixelsToAppUnits(tbounds.width),
-                           mPresContext->DevPixelsToAppUnits(tbounds.height)),
+    rv = MakeWindow(nsSize(mPresContext->DevPixelsToAppUnits(mBounds.width),
+                           mPresContext->DevPixelsToAppUnits(mBounds.height)),
                            containerView);
     if (NS_FAILED(rv))
       return rv;
@@ -1977,7 +1973,6 @@ DocumentViewerImpl::Show(void)
 NS_IMETHODIMP
 DocumentViewerImpl::Hide(void)
 {
-  NS_PRECONDITION(mWindow, "null window");
   if (mWindow) {
     mWindow->Show(PR_FALSE);
   }
@@ -2263,25 +2258,29 @@ DocumentViewerImpl::MakeWindow(const nsSize& aSize, nsIView* aContainerView)
 
   
   
-  
-  nsWidgetInitData initData;
-  nsWidgetInitData* initDataPtr;
-  if (!mParentWidget) {
-    initDataPtr = &initData;
-    initData.mWindowType = eWindowType_invisible;
+  if (mParentWidget || !aContainerView) {
+    
+    
+    
+    nsWidgetInitData initData;
+    nsWidgetInitData* initDataPtr;
+    if (!mParentWidget) {
+      initDataPtr = &initData;
+      initData.mWindowType = eWindowType_invisible;
 
-    initData.mContentType =
-      nsContentUtils::IsInChromeDocshell(mDocument) ?
-        eContentTypeUI : eContentTypeContent;
-  } else {
-    initDataPtr = nsnull;
+      initData.mContentType =
+        nsContentUtils::IsInChromeDocshell(mDocument) ?
+          eContentTypeUI : eContentTypeContent;
+    } else {
+      initDataPtr = nsnull;
+    }
+    rv = view->CreateWidget(kWidgetCID, initDataPtr,
+                            (aContainerView != nsnull || !mParentWidget) ?
+                              nsnull : mParentWidget->GetNativeData(NS_NATIVE_WIDGET),
+                            PR_TRUE, PR_FALSE);
+    if (NS_FAILED(rv))
+      return rv;
   }
-  rv = view->CreateWidget(kWidgetCID, initDataPtr,
-                          (aContainerView != nsnull || !mParentWidget) ?
-                            nsnull : mParentWidget->GetNativeData(NS_NATIVE_WIDGET),
-                          PR_TRUE, PR_FALSE);
-  if (NS_FAILED(rv))
-    return rv;
 
   
   mViewManager->SetRootView(view);
@@ -2299,14 +2298,50 @@ DocumentViewerImpl::MakeWindow(const nsSize& aSize, nsIView* aContainerView)
 nsIView*
 DocumentViewerImpl::FindContainerView()
 {
-  
-  
-  if (!mParentWidget)
-    return nsnull;
-  nsIView* containerView = nsIView::GetViewFor(mParentWidget);
+  nsIView* containerView = nsnull;
+
+  if (mParentWidget) {
+    containerView = nsIView::GetViewFor(mParentWidget);
+  } else if (mContainer) {
+    nsCOMPtr<nsIDocShellTreeItem> docShellItem = do_QueryReferent(mContainer);
+    nsCOMPtr<nsPIDOMWindow> pwin(do_GetInterface(docShellItem));
+    if (pwin) {
+      nsCOMPtr<nsIContent> content = do_QueryInterface(pwin->GetFrameElementInternal());
+      nsCOMPtr<nsIPresShell> parentPresShell;
+      if (docShellItem) {
+        nsCOMPtr<nsIDocShellTreeItem> parentDocShellItem;
+        docShellItem->GetParent(getter_AddRefs(parentDocShellItem));
+        if (parentDocShellItem) {
+          nsCOMPtr<nsIDocShell> parentDocShell = do_QueryInterface(parentDocShellItem);
+          parentDocShell->GetPresShell(getter_AddRefs(parentPresShell));
+        }
+      }
+      if (content && parentPresShell) {
+        nsIFrame* f = parentPresShell->GetRealPrimaryFrameFor(content);
+        if (f) {
+          nsIFrame* subdocFrame = f->GetContentInsertionFrame();
+          
+          
+          
+          
+          if (subdocFrame->GetType() == nsGkAtoms::subDocumentFrame) {
+            nsIView* subdocFrameView = subdocFrame->GetView();
+            NS_ASSERTION(subdocFrameView, "Subdoc frames must have views");
+            nsIView* innerView = subdocFrameView->GetFirstChild();
+            NS_ASSERTION(innerView, "Subdoc frames must have an inner view too");
+            containerView = innerView;
+          }
+        }
+      }
+    }
+  }
+
   if (!containerView)
     return nsnull;
-  if (mParentWidget->GetTransparencyMode() == eTransparencyTransparent)
+
+  nsIWidget* outerWidget = containerView->GetNearestWidget(nsnull);
+  if (outerWidget &&
+      outerWidget->GetTransparencyMode() == eTransparencyTransparent)
     return containerView;
 
   
@@ -2339,7 +2374,7 @@ DocumentViewerImpl::FindContainerView()
 }
 
 nsresult
-DocumentViewerImpl::CreateDeviceContext(nsIWidget* aWidget)
+DocumentViewerImpl::CreateDeviceContext(nsIView* aContainerView)
 {
   NS_PRECONDITION(!mPresShell && !mPresContext && !mWindow,
                   "This will screw up our existing presentation");
@@ -2347,8 +2382,7 @@ DocumentViewerImpl::CreateDeviceContext(nsIWidget* aWidget)
   
   nsIDocument* doc = mDocument->GetDisplayDocument();
   if (doc) {
-    NS_ASSERTION(!aWidget, "Shouldn't have a widget here");
-    
+    NS_ASSERTION(!aContainerView, "External resource document embedded somewhere?");
     
     nsIPresShell* shell = doc->GetPrimaryShell();
     if (shell) {
@@ -2364,7 +2398,14 @@ DocumentViewerImpl::CreateDeviceContext(nsIWidget* aWidget)
   
   mDeviceContext = do_CreateInstance(kDeviceContextCID);
   NS_ENSURE_TRUE(mDeviceContext, NS_ERROR_FAILURE);
-  mDeviceContext->Init(aWidget ? aWidget->GetTopLevelWidget() : nsnull);
+  nsIWidget* widget = nsnull;
+  if (aContainerView) {
+    widget = aContainerView->GetNearestWidget(nsnull);
+    if (widget) {
+      widget = widget->GetTopLevelWidget();
+    }
+  }
+  mDeviceContext->Init(widget);
   return NS_OK;
 }
 
@@ -4235,9 +4276,6 @@ NS_IMETHODIMP DocumentViewerImpl::SetPageMode(PRBool aPageMode, nsIPrintSettings
   
   
   mIsPageMode = aPageMode;
-  
-  nsIntRect bounds;
-  mWindow->GetBounds(bounds);
 
   if (mPresShell) {
     DestroyPresShell();
@@ -4264,7 +4302,7 @@ NS_IMETHODIMP DocumentViewerImpl::SetPageMode(PRBool aPageMode, nsIPrintSettings
     nsresult rv = mPresContext->Init(mDeviceContext);
     NS_ENSURE_SUCCESS(rv, rv);
   }
-  InitInternal(mParentWidget, nsnull, bounds, PR_TRUE, PR_FALSE, PR_FALSE);
+  InitInternal(mParentWidget, nsnull, mBounds, PR_TRUE, PR_FALSE, PR_FALSE);
   mViewManager->EnableRefresh(NS_VMREFRESH_NO_SYNC);
 
   Show();

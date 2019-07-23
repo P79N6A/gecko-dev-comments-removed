@@ -274,6 +274,11 @@ nsSubDocumentFrame::Init(nsIContent*     aContent,
     view->CreateWidget(kCChildCID);
   }
 
+  
+  
+  
+  PresContext()->FrameManager()->SetPrimaryFrameFor(aContent, this);
+
   ShowViewer();
   return NS_OK;
 }
