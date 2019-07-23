@@ -1542,6 +1542,8 @@ typedef JSBool
 (*Binder)(JSContext *cx, BindData *data, JSAtom *atom, JSTreeContext *tc);
 
 struct BindData {
+    BindData() : fresh(true) {}
+
     JSParseNode     *pn;        
 
     JSOp            op;         
@@ -1551,6 +1553,7 @@ struct BindData {
             uintN   overflow;
         } let;
     };
+    bool fresh;
 };
 
 static JSBool
@@ -3118,6 +3121,7 @@ BindVarOrConst(JSContext *cx, BindData *data, JSAtom *atom, JSTreeContext *tc)
 
     if (stmt && stmt->type == STMT_WITH) {
         pn->pn_op = JSOP_NAME;
+        data->fresh = false;
         return JS_TRUE;
     }
 
@@ -3185,6 +3189,8 @@ BindVarOrConst(JSContext *cx, BindData *data, JSAtom *atom, JSTreeContext *tc)
 
 
         JSDefinition *dn = ALE_DEFN(ale);
+
+        data->fresh = false;
 
         if (!pn->pn_used) {
             
@@ -5670,7 +5676,7 @@ Variables(JSContext *cx, JSTokenStream *ts, JSTreeContext *tc, bool inLetHead)
                          ? JSOP_SETCONST
                          : JSOP_SETNAME;
 
-            NoteLValue(cx, pn2, tc, PND_INITIALIZED);
+            NoteLValue(cx, pn2, tc, data.fresh ? PND_INITIALIZED : PND_ASSIGNED);
 
             
             pn2->pn_pos.end = init->pn_pos.end;
