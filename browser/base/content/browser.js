@@ -6163,26 +6163,23 @@ var FeedHandler = {
     }
   }, 
 
-  addFeed: function(feed, targetDoc) {
-    if (feed) {
+  addFeed: function(link, targetDoc) {
+    
+    var browserForLink = gBrowser.getBrowserForDocument(targetDoc);
+    if (!browserForLink) {
       
-      var browserForLink = gBrowser.getBrowserForDocument(targetDoc);
-      if (!browserForLink) {
-        
-        return;
-      }
+      return;
+    }
 
-      var feeds = [];
-      if (browserForLink.feeds != null)
-        feeds = browserForLink.feeds;
+    if (!browserForLink.feeds)
+      browserForLink.feeds = [];
 
-      feeds.push(feed);
-      browserForLink.feeds = feeds;
-      if (browserForLink == gBrowser.mCurrentBrowser) {
-        var feedButton = document.getElementById("feed-button");
-        if (feedButton)
-          feedButton.collapsed = false;
-      }
+    browserForLink.feeds.push({ href: link.href, title: link.title });
+
+    if (browserForLink == gBrowser.mCurrentBrowser) {
+      var feedButton = document.getElementById("feed-button");
+      if (feedButton)
+        feedButton.collapsed = false;
     }
   }
 };
