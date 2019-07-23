@@ -355,16 +355,6 @@ nsSocketTransportService::Poll(PRBool wait, PRUint32 *interval)
 }
 
 
-
-
-NS_IMPL_THREADSAFE_ISUPPORTS5(nsSocketTransportService,
-                              nsISocketTransportService,
-                              nsIEventTarget,
-                              nsIThreadObserver,
-                              nsIRunnable,
-                              nsPISocketTransportService)
-
-
 NS_IMETHODIMP
 nsSocketTransportService::Init()
 {
