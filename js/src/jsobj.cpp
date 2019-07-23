@@ -2796,7 +2796,6 @@ js_FinalizeObject(JSContext *cx, JSObject *obj)
 
     
     js_DropObjectMap(cx, map, obj);
-    obj->map = NULL;
     FreeSlots(cx, obj);
 }
 

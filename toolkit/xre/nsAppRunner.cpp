@@ -755,6 +755,51 @@ nsXULAppInfo::PostUpdate(nsILocalFile *aLogFile)
   free(upgradeArgv);
   return rv;
 }
+
+
+
+typedef enum 
+{
+  VistaTokenElevationTypeDefault = 1,
+  VistaTokenElevationTypeFull,
+  VistaTokenElevationTypeLimited
+} VISTA_TOKEN_ELEVATION_TYPE;
+
+
+
+#define VistaTokenElevationType static_cast< TOKEN_INFORMATION_CLASS >( 18 )
+
+NS_IMETHODIMP
+nsXULAppInfo::GetUserCanElevate(PRBool *aUserCanElevate)
+{
+  HANDLE hToken;
+
+  VISTA_TOKEN_ELEVATION_TYPE elevationType;
+  DWORD dwSize; 
+
+  if (!OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &hToken) ||
+      !GetTokenInformation(hToken, VistaTokenElevationType, &elevationType,
+                           sizeof(elevationType), &dwSize)) {
+    *aUserCanElevate = PR_FALSE;
+  } 
+  else {
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    *aUserCanElevate = (elevationType == VistaTokenElevationTypeLimited);
+  }
+
+  if (hToken)
+    CloseHandle(hToken);
+
+  return NS_OK;
+}
 #endif
 
 #ifdef MOZ_CRASHREPORTER
