@@ -190,11 +190,6 @@ nsAppStartup::Quit(PRUint32 aMode)
   if (mShuttingDown)
     return NS_OK;
 
-  nsCOMPtr<nsIObserverService> obsService
-    (do_GetService("@mozilla.org/observer-service;1"));
-  if (obsService)
-    obsService->NotifyObservers(nsnull, "quit-application-granted", nsnull);
-
   
 
 
@@ -236,11 +231,16 @@ nsAppStartup::Quit(PRUint32 aMode)
   if (!mRestart) 
       mRestart = (aMode & eRestart) != 0;
 
+  nsCOMPtr<nsIObserverService> obsService;
   
 
 
 
   if (ferocity == eAttemptQuit || ferocity == eForceQuit) {
+
+    obsService = do_GetService("@mozilla.org/observer-service;1");
+    if (obsService)
+      obsService->NotifyObservers(nsnull, "quit-application-granted", nsnull);
 
     AttemptingQuit(PR_TRUE);
 
