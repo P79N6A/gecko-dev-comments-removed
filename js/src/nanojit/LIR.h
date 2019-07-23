@@ -45,7 +45,10 @@ namespace nanojit
 {
 	#define is_trace_skip_tramp(op) ((op) <= LIR_tramp)
 	
-	enum LOpcode __msvc_only(: unsigned)	
+	enum LOpcode
+#if defined(_MSC_VER) && _MSC_VER >= 1400
+          : unsigned
+#endif
 	{
 		
 		LIR64	= 0x40,			
