@@ -47,6 +47,9 @@ do_check_eq(typeof PlacesUtils, "object");
 
 function run_test() {
   
+  return;
+
+  
 
 
 
