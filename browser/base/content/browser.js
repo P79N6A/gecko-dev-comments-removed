@@ -5066,21 +5066,19 @@ function BrowserSetForcedDetector(doReload)
 
 function UpdateCurrentCharset()
 {
-    var menuitem = null;
-
     
     var wnd = document.commandDispatcher.focusedWindow;
     if ((window == wnd) || (wnd == null)) wnd = window.content;
-    menuitem = document.getElementById('charset.' + wnd.document.characterSet);
 
+    
+    if (gPrevCharset) {
+        var pref_item = document.getElementById('charset.' + gPrevCharset);
+        if (pref_item)
+          pref_item.setAttribute('checked', 'false');
+    }
+
+    var menuitem = document.getElementById('charset.' + wnd.document.characterSet);
     if (menuitem) {
-        
-        
-        if (gPrevCharset) {
-            var pref_item = document.getElementById('charset.' + gPrevCharset);
-            if (pref_item)
-              pref_item.setAttribute('checked', 'false');
-        }
         menuitem.setAttribute('checked', 'true');
     }
 }
