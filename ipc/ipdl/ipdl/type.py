@@ -32,7 +32,7 @@
 
 import os, sys
 
-from ipdl.ast import CxxInclude, Decl, Loc, QualifiedId, TypeSpec, UsingStmt, Visitor, ASYNC, SYNC, RPC, IN, OUT, INOUT, ANSWER, CALL, RECV, SEND
+from ipdl.ast import CxxInclude, Decl, Loc, QualifiedId, State, TypeSpec, UsingStmt, Visitor, ASYNC, SYNC, RPC, IN, OUT, INOUT, ANSWER, CALL, RECV, SEND
 import ipdl.builtin as builtin
 
 class Type:
@@ -487,6 +487,11 @@ class GatherDecls(TcheckVisitor):
                 type=StateType(trans.state.start),
                 progname=trans.state.name)
 
+        
+        self.declare(loc=State.ANY.loc,
+                     type=StateType(start=False),
+                     progname=State.ANY.name)
+
         for trans in p.transitionStmts:
             self.seentriggers = set()
             trans.accept(self)
@@ -494,6 +499,13 @@ class GatherDecls(TcheckVisitor):
         
         
         def resolvestate(param):
+            if param.type.state is None:
+                
+                
+                
+                
+                param.type.state = State.ANY
+
             loc = param.loc
             statename = param.type.state.name
             statedecl = self.symtab.lookup(statename)
