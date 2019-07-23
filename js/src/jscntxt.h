@@ -187,8 +187,10 @@ struct JSThread {
     
     JSPropertyCache     propertyCache;
 
+#ifdef JS_TRACER
     
     JSTraceMonitor      traceMonitor;
+#endif
 
     
     JSScript            *scriptsToGC;

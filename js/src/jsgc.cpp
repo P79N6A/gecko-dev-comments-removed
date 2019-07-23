@@ -1834,7 +1834,11 @@ js_NewGCThing(JSContext *cx, uintN flags, size_t nbytes)
 
     arenaList = &rt->gcArenaList[flindex];
     for (;;) {
-        if (doGC && !JS_ON_TRACE(cx) && !JS_TRACE_MONITOR(cx).useReservedObjects) {
+        if (doGC
+#ifdef JS_TRACER
+            && !JS_ON_TRACE(cx) && !JS_TRACE_MONITOR(cx).useReservedObjects
+#endif
+            ) {
             
 
 
@@ -3100,6 +3104,7 @@ js_TraceRuntime(JSTracer *trc, JSBool allAtoms)
     if (rt->gcExtraRootsTraceOp)
         rt->gcExtraRootsTraceOp(trc, rt->gcExtraRootsData);
 
+#ifdef JS_TRACER
 #ifdef JS_THREADSAFE
     
    while ((acx = js_ContextIterator(rt, JS_FALSE, &iter)) != NULL) {
@@ -3109,6 +3114,7 @@ js_TraceRuntime(JSTracer *trc, JSBool allAtoms)
    }
 #else
    js_TraceTraceMonitor(trc, &rt->traceMonitor);
+#endif
 #endif
 }
 
