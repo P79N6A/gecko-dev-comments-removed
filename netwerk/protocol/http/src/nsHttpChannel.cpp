@@ -1543,7 +1543,7 @@ nsHttpChannel::OpenCacheEntry(PRBool offline, PRBool *delayed)
 
     
     nsCacheAccessMode accessRequested;
-    if (mLoadFlags & (LOAD_ONLY_FROM_CACHE | INHIBIT_CACHING)) {
+    if (offline || (mLoadFlags & INHIBIT_CACHING)) {
         
         
         
@@ -1918,11 +1918,11 @@ nsHttpChannel::CheckCache()
     
     
     
-    
-    if (mLoadFlags & LOAD_ONLY_FROM_CACHE ||
-        (mCacheAccess == nsICache::ACCESS_READ &&
-         !((mLoadFlags & INHIBIT_CACHING) || mCacheForOfflineUse)) ||
-        mFallbackChannel) {
+    if (!mCacheForOfflineUse &&
+        (mLoadedFromApplicationCache ||
+         (mCacheAccess == nsICache::ACCESS_READ &&
+          !(mLoadFlags & INHIBIT_CACHING)) ||
+         mFallbackChannel)) {
         mCachedContentIsValid = PR_TRUE;
         return NS_OK;
     }
