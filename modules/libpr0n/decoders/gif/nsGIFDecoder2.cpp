@@ -421,9 +421,13 @@ void nsGIFDecoder2::EndImageFrame()
     
     mImageContainer->SetFrameTimeout(mGIFStruct.images_decoded, mGIFStruct.delay_time);
     mImageContainer->EndFrameDecode(mGIFStruct.images_decoded);
-
-    mGIFStruct.images_decoded++;
   }
+
+  
+  
+  
+  
+  mGIFStruct.images_decoded++;
 
   if (mObserver)
     mObserver->OnStopFrame(nsnull, curframe);
