@@ -41,7 +41,6 @@
 #define GFXQUARTZFONTCACHE_H_
 
 #include "nsDataHashtable.h"
-#include "nsRefPtrHashtable.h"
 
 #include "gfxFontUtils.h"
 #include "gfxAtsuiFonts.h"
@@ -64,7 +63,6 @@ struct FontSearch {
 };
 
 class MacOSFamilyEntry;
-class gfxQuartzFontCache;
 
 
 class MacOSFontEntry
@@ -107,16 +105,13 @@ protected:
 };
 
 
-class AddOtherFamilyNameFunctor;
-
-
 class MacOSFamilyEntry
 {
 public:
     THEBES_INLINE_DECL_REFCOUNTING(MacOSFamilyEntry)
 
     MacOSFamilyEntry(nsString &aName) :
-        mName(aName), mOtherFamilyNamesInitialized(PR_FALSE)
+        mName(aName)
     {
     }
 
@@ -133,9 +128,6 @@ public:
     
     void FindFontForChar(FontSearch *aMatchData);
     
-    
-    void ReadOtherFamilyNames(AddOtherFamilyNameFunctor& aOtherFamilyFunctor);
-    
 protected:
     
     
@@ -149,7 +141,6 @@ protected:
     
     nsString mName;  
     nsTArray<nsRefPtr<MacOSFontEntry> >  mAvailableFonts;
-    PRPackedBool mOtherFamilyNamesInitialized;
 };
 
 
@@ -193,28 +184,16 @@ public:
     
     PRBool GetPrefFontFamilyEntries(eFontPrefLang aLangGroup, nsTArray<nsRefPtr<MacOSFamilyEntry> > *array);
     void SetPrefFontFamilyEntries(eFontPrefLang aLangGroup, nsTArray<nsRefPtr<MacOSFamilyEntry> >& array);
-    
-    void AddOtherFamilyName(MacOSFamilyEntry *aFamilyEntry, nsAString& aOtherFamilyName);
 
 private:
     static PLDHashOperator PR_CALLBACK FindFontForCharProc(nsStringHashKey::KeyType aKey,
                                                              nsRefPtr<MacOSFamilyEntry>& aFamilyEntry,
                                                              void* userArg);
-
     static gfxQuartzFontCache *sSharedFontCache;
 
     gfxQuartzFontCache();
 
-    
     void InitFontList();
-    void ReadOtherFamilyNamesForFamily(const nsAString& aFamilyName);
-    
-    
-    void InitOtherFamilyNames();
-                                                             
-    static PLDHashOperator PR_CALLBACK InitOtherFamilyNamesProc(nsStringHashKey::KeyType aKey,
-                                                             nsRefPtr<MacOSFamilyEntry>& aFamilyEntry,
-                                                             void* userArg);
     
     void GenerateFontListKey(const nsAString& aKeyName, nsAString& aResult);
     static void ATSNotification(ATSFontNotificationInfoRef aInfo, void* aUserArg);
@@ -226,11 +205,11 @@ private:
                                 void* aUserArg);
 
     
-    nsRefPtrHashtable<nsStringHashKey, MacOSFamilyEntry> mFontFamilies;    
+    nsDataHashtable<nsStringHashKey, nsRefPtr<MacOSFamilyEntry> > mFontFamilies;    
 
     
     
-    nsRefPtrHashtable<nsStringHashKey, MacOSFamilyEntry> mOtherFamilyNames;    
+    nsDataHashtable<nsStringHashKey, nsRefPtr<MacOSFamilyEntry> > mLocalizedFamilies;    
 
     
     
@@ -238,9 +217,6 @@ private:
 
     
     gfxSparseBitSet mCodepointsWithNoFonts;
-    
-    
-    PRPackedBool mOtherFamilyNamesInitialized;
 
 };
 
