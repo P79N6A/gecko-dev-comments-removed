@@ -605,9 +605,10 @@ TypeMap::captureStackTypes(JSContext* cx, unsigned callDepth)
     uint8* m = map;
     FORALL_SLOTS_IN_PENDING_FRAMES(cx, callDepth,
         uint8 type = getCoercedType(*vp);
-        if ((type == JSVAL_INT) && oracle.isStackSlotUndemotable(cx->fp->script,
-                cx->fp->regs->pc, unsigned(m - map)))
+        if ((type == JSVAL_INT) &&
+            oracle.isStackSlotUndemotable(cx->fp->script, cx->fp->regs->pc, unsigned(m - map))) {
             type = JSVAL_DOUBLE;
+        }
         *m++ = type;
     );
 }
@@ -1360,7 +1361,7 @@ TraceRecorder::closeLoop(Fragmento* fragmento)
         return;
     }
     if (treeInfo->maxNativeStackSlots >= MAX_NATIVE_STACK_SLOTS) {
-        debug_only(printf("Trace rejected: excess stack use.\n"));
+        debug_only(printf("Trace rejected: excessive stack use.\n"));
         fragment->blacklist();
         return;
     }
