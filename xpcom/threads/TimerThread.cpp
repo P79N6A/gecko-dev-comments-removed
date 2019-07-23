@@ -154,6 +154,7 @@ nsresult TimerThread::Shutdown()
   if (!mThread)
     return NS_ERROR_NOT_INITIALIZED;
 
+  nsVoidArray timers;
   {   
     nsAutoLock lock(mLock);
 
@@ -163,12 +164,22 @@ nsresult TimerThread::Shutdown()
     if (mCondVar && mWaiting)
       PR_NotifyCondVar(mCondVar);
 
-    nsTimerImpl *timer;
-    for (PRInt32 i = mTimers.Count() - 1; i >= 0; i--) {
-      timer = static_cast<nsTimerImpl*>(mTimers[i]);
-      timer->ReleaseCallback();
-      RemoveTimerInternal(timer);
-    }
+    
+    
+    
+    
+    
+    
+    PRBool rv = timers.AppendElements(mTimers);
+    NS_ASSERTION(rv, "Could not copy timers array, remaining timers will not be released");
+    mTimers.Clear();
+  }
+
+  PRInt32 timersCount = timers.Count();
+  for (PRInt32 i = 0; i < timersCount; i++) {
+    nsTimerImpl *timer = static_cast<nsTimerImpl*>(timers[i]);
+    timer->ReleaseCallback();
+    ReleaseTimerInternal(timer);
   }
 
   mThread->Shutdown();    
@@ -434,10 +445,15 @@ PRBool TimerThread::RemoveTimerInternal(nsTimerImpl *aTimer)
   if (!mTimers.RemoveElement(aTimer))
     return PR_FALSE;
 
+  ReleaseTimerInternal(aTimer);
+  return PR_TRUE;
+}
+
+void TimerThread::ReleaseTimerInternal(nsTimerImpl *aTimer)
+{
   
   aTimer->mArmed = PR_FALSE;
   NS_RELEASE(aTimer);
-  return PR_TRUE;
 }
 
 void TimerThread::DoBeforeSleep()

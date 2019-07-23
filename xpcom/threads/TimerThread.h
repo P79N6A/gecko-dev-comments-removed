@@ -91,6 +91,7 @@ private:
   
   PRInt32 AddTimerInternal(nsTimerImpl *aTimer);
   PRBool  RemoveTimerInternal(nsTimerImpl *aTimer);
+  void    ReleaseTimerInternal(nsTimerImpl *aTimer);
 
   nsCOMPtr<nsIThread> mThread;
   PRLock *mLock;
