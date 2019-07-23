@@ -3987,25 +3987,27 @@ nsHTMLDocument::EditingStateChanged()
   nsCOMPtr<nsIEditingSession> editSession = do_GetInterface(docshell, &rv);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  PRBool makeWindowEditable = (mEditingState == eOff) && HasPresShell(window);
-  if (!makeWindowEditable) {
+  if (!HasPresShell(window)) {
     
     
     return NS_OK;
   }
 
-  
-  
-  
-  
-  EditingState oldState = mEditingState;
-  mEditingState = eSettingUp;
+  PRBool makeWindowEditable = mEditingState == eOff;
+  if (makeWindowEditable) {
+    
+    
+    
+    
+    EditingState oldState = mEditingState;
+    mEditingState = eSettingUp;
 
-  rv = editSession->MakeWindowEditable(window, "html", PR_FALSE, PR_FALSE,
-                                       PR_TRUE);
-  NS_ENSURE_SUCCESS(rv, rv);
+    rv = editSession->MakeWindowEditable(window, "html", PR_FALSE, PR_FALSE,
+                                         PR_TRUE);
+    NS_ENSURE_SUCCESS(rv, rv);
 
-  mEditingState = oldState;
+    mEditingState = oldState;
+  }
 
   
   nsCOMPtr<nsIEditorDocShell> editorDocShell =
@@ -4072,20 +4074,22 @@ nsHTMLDocument::EditingStateChanged()
 
   mEditingState = newState;
 
-  
-  
-  
-  PRBool unused;
-  rv = ExecCommand(NS_LITERAL_STRING("insertBrOnReturn"), PR_FALSE,
-                   NS_LITERAL_STRING("false"), &unused);
-
-  if (NS_FAILED(rv)) {
+  if (makeWindowEditable) {
     
     
-    editSession->TearDownEditorOnWindow(window, PR_TRUE);
-    mEditingState = eOff;
+    
+    PRBool unused;
+    rv = ExecCommand(NS_LITERAL_STRING("insertBrOnReturn"), PR_FALSE,
+                     NS_LITERAL_STRING("false"), &unused);
 
-    return rv;
+    if (NS_FAILED(rv)) {
+      
+      
+      editSession->TearDownEditorOnWindow(window, PR_TRUE);
+      mEditingState = eOff;
+
+      return rv;
+    }
   }
 
   if (updateState) {
