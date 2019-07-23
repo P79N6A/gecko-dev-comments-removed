@@ -503,12 +503,13 @@ nsNPAPIPluginStreamListener::OnDataAvailable(nsIPluginStreamInfo* pluginInfo,
     PRUint32 contentLength;
     pluginInfo->GetLength(&contentLength);
 
-    mStreamBufferSize = PR_MAX(length, contentLength);
+    mStreamBufferSize = NS_MAX(length, contentLength);
 
     
     
     
-    mStreamBufferSize = PR_MIN(mStreamBufferSize, MAX_PLUGIN_NECKO_BUFFER);
+    mStreamBufferSize = NS_MIN(mStreamBufferSize,
+                               PRUint32(MAX_PLUGIN_NECKO_BUFFER));
 
     mStreamBuffer = (char*) PR_Malloc(mStreamBufferSize);
     if (!mStreamBuffer)
@@ -563,7 +564,7 @@ nsNPAPIPluginStreamListener::OnDataAvailable(nsIPluginStreamInfo* pluginInfo,
       }
 
       PRUint32 bytesToRead =
-        PR_MIN(length, mStreamBufferSize - mStreamBufferByteCount);
+        NS_MIN(length, mStreamBufferSize - mStreamBufferByteCount);
 
       PRUint32 amountRead = 0;
       rv = input->Read(mStreamBuffer + mStreamBufferByteCount, bytesToRead,
@@ -642,7 +643,7 @@ nsNPAPIPluginStreamListener::OnDataAvailable(nsIPluginStreamInfo* pluginInfo,
           break;
         }
 
-        numtowrite = PR_MIN(numtowrite, mStreamBufferByteCount);
+        numtowrite = NS_MIN(numtowrite, mStreamBufferByteCount);
       } else {
         
         
@@ -670,7 +671,7 @@ nsNPAPIPluginStreamListener::OnDataAvailable(nsIPluginStreamInfo* pluginInfo,
         NS_ASSERTION(writeCount <= mStreamBufferByteCount,
                      "Plugin read past the end of the available data!");
 
-        writeCount = PR_MIN(writeCount, mStreamBufferByteCount);
+        writeCount = NS_MIN(writeCount, mStreamBufferByteCount);
         mStreamBufferByteCount -= writeCount;
 
         streamPosition += writeCount;
