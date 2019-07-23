@@ -37,7 +37,6 @@
 
 
 
-
 #ifndef __OGGPLAY_READER_H__
 #define __OGGPLAY_READER_H__
 
@@ -47,16 +46,15 @@
 
 struct _OggPlayReader;
 
-
 typedef struct _OggPlayReader {
-  OggPlayErrorCode  (*initialise) (struct _OggPlayReader * me, int block);
-  OggPlayErrorCode  (*destroy)    (struct _OggPlayReader * me);
-  OggPlayErrorCode  (*seek)       (struct _OggPlayReader *me, OGGZ *oggz, 
-                                   ogg_int64_t milliseconds);
-  int               (*available)  (struct _OggPlayReader *me,
-                                   ogg_int64_t current_bytes,
-                                   ogg_int64_t current_time);
-  ogg_int64_t       (*duration)   (struct _OggPlayReader *me);
+  OggPlayErrorCode  (*initialise)(struct _OggPlayReader * me, int block);
+  OggPlayErrorCode  (*destroy)(struct _OggPlayReader * me);
+  OggPlayErrorCode  (*seek)(struct _OggPlayReader *me, OGGZ *oggz, 
+                                                    ogg_int64_t milliseconds);
+  int               (*available)(struct _OggPlayReader *me,
+                                              ogg_int64_t current_bytes,
+                                              ogg_int64_t current_time);
+  ogg_int64_t       (*duration)(struct _OggPlayReader *me);
   int               (*finished_retrieving)(struct _OggPlayReader *me);
 
   
@@ -73,7 +71,7 @@ typedef struct _OggPlayReader {
 
 
 OggPlayReader *
-oggplay_file_reader_new(const char *filename);
+oggplay_file_reader_new(char *filename);
 
 
 
@@ -85,6 +83,6 @@ oggplay_file_reader_new(const char *filename);
 
 
 OggPlayReader *
-oggplay_tcp_reader_new(const char *uri, const char *proxy, int proxy_port);
+oggplay_tcp_reader_new(char *uri, char *proxy, int proxy_port);
 
 #endif
