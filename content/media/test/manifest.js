@@ -38,6 +38,9 @@ var gPlayTests = [
 
 
 var gErrorTests = [
+  { name: "bug498855-1.ogv", type:"video/ogg", duration:0.2 },
+  { name: "bug498855-2.ogv", type:"video/ogg", duration:0.2 },
+  { name: "bug498855-3.ogv", type:"video/ogg", duration:0.2 },
   { name:"bogus.wav", type:"audio/x-wav" },
   { name:"bogus.ogv", type:"video/ogg" },
   { name:"448636.ogv", type:"video/ogg" },
