@@ -104,12 +104,13 @@ nsImageLoadingContent::nsImageLoadingContent()
     mImageBlockingStatus(nsIContentPolicy::ACCEPT),
     mLoadingEnabled(PR_TRUE),
     mStartingLoad(PR_FALSE),
+    mIsImageStateForced(PR_FALSE),
     mLoading(PR_FALSE),
     
     mBroken(PR_TRUE),
     mUserDisabled(PR_FALSE),
     mSuppressed(PR_FALSE),
-    mIsImageStateForced(PR_FALSE)    
+    mBlockingOnload(PR_FALSE)
 {
   if (!nsContentUtils::GetImgLoader()) {
     mLoadingEnabled = PR_FALSE;
@@ -119,6 +120,9 @@ nsImageLoadingContent::nsImageLoadingContent()
 void
 nsImageLoadingContent::DestroyImageLoadingContent()
 {
+  
+  SetBlockingOnload(PR_FALSE);
+
   
   if (mCurrentRequest) {
     mCurrentRequest->CancelAndForgetObserver(NS_ERROR_FAILURE);
@@ -176,6 +180,12 @@ nsImageLoadingContent::OnStartRequest(imgIRequest* aRequest)
 NS_IMETHODIMP
 nsImageLoadingContent::OnStartDecode(imgIRequest* aRequest)
 {
+  
+  if (aRequest == mCurrentRequest) {
+    NS_ABORT_IF_FALSE(!mBlockingOnload, "Shouldn't already be blocking");
+    SetBlockingOnload(PR_TRUE);
+  }
+
   LOOP_OVER_OBSERVERS(OnStartDecode(aRequest));
   return NS_OK;
 }
@@ -213,6 +223,10 @@ NS_IMETHODIMP
 nsImageLoadingContent::OnStopFrame(imgIRequest* aRequest,
                                    PRUint32 aFrame)
 {
+  
+  if (aRequest == mCurrentRequest)
+    SetBlockingOnload(PR_FALSE);
+
   LOOP_OVER_OBSERVERS(OnStopFrame(aRequest, aFrame));
   return NS_OK;
 }
@@ -221,6 +235,15 @@ NS_IMETHODIMP
 nsImageLoadingContent::OnStopContainer(imgIRequest* aRequest,
                                        imgIContainer* aContainer)
 {
+  
+  
+  
+  
+  
+  
+  if (aRequest == mCurrentRequest)
+    SetBlockingOnload(PR_FALSE);
+
   LOOP_OVER_OBSERVERS(OnStopContainer(aRequest, aContainer));
   return NS_OK;
 }
@@ -230,14 +253,66 @@ nsImageLoadingContent::OnStopDecode(imgIRequest* aRequest,
                                     nsresult aStatus,
                                     const PRUnichar* aStatusArg)
 {
+  
+  NS_ABORT_IF_FALSE(aRequest, "no request?");
+
   NS_PRECONDITION(aRequest == mCurrentRequest || aRequest == mPendingRequest,
                   "Unknown request");
   LOOP_OVER_OBSERVERS(OnStopDecode(aRequest, aStatus, aStatusArg));
 
   if (aRequest == mPendingRequest) {
+
+    
+    SetBlockingOnload(PR_FALSE);
+
+    
+    
+    
     mCurrentRequest->Cancel(NS_ERROR_IMAGE_SRC_CHANGED);
     mPendingRequest.swap(mCurrentRequest);
     mPendingRequest = nsnull;
+  }
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+
+  
+  nsIPresShell* shell = GetOurDocument()->GetPrimaryShell();
+  if (shell) {
+
+    
+    PRBool doRequestDecode = PR_FALSE;
+
+    
+    
+    if (!shell->DidInitialReflow())
+      doRequestDecode = PR_TRUE;
+
+    
+    
+    
+    
+    PRBool isSuppressed = PR_FALSE;
+    nsresult rv = shell->IsPaintingSuppressed(&isSuppressed);
+    if (NS_SUCCEEDED(rv) && isSuppressed)
+      doRequestDecode = PR_TRUE;
+
+    
+    if (doRequestDecode)
+      aRequest->RequestDecode();
   }
 
   
@@ -731,6 +806,11 @@ nsImageLoadingContent::CancelImageRequests(nsresult aReason,
       
       
       
+
+      
+      SetBlockingOnload(PR_FALSE);
+
+      
       mImageBlockingStatus = aNewImageStatus;
       mCurrentRequest->Cancel(aReason);
       mCurrentRequest = nsnull;
@@ -883,3 +963,24 @@ nsImageLoadingContent::FireEvent(const nsAString& aEventType)
   return NS_DispatchToCurrentThread(evt);
 }
 
+void
+nsImageLoadingContent::SetBlockingOnload(PRBool aBlocking)
+{
+  
+  if (mBlockingOnload == aBlocking)
+    return;
+
+  
+  nsIDocument* doc = GetOurDocument();
+
+  if (doc) {
+    
+    if (aBlocking)
+      doc->BlockOnload();
+    else
+      doc->UnblockOnload(PR_FALSE);
+
+    
+    mBlockingOnload = aBlocking;
+  }
+}

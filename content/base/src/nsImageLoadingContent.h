@@ -154,6 +154,11 @@ protected:
   void ClearBrokenState() { mBroken = PR_FALSE; }
 
   PRBool LoadingEnabled() { return mLoadingEnabled; }
+
+  
+  
+  void SetBlockingOnload(PRBool aBlocking);
+
 private:
   
 
@@ -283,6 +288,11 @@ private:
   PRPackedBool mBroken : 1;
   PRPackedBool mUserDisabled : 1;
   PRPackedBool mSuppressed : 1;
+
+  
+
+
+  PRPackedBool mBlockingOnload : 1;
 };
 
 #endif 
