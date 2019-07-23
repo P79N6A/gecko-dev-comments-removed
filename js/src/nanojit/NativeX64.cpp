@@ -1432,8 +1432,9 @@ namespace nanojit
     
     
     verbose_only(
-    void Assembler::asm_inc_m32(uint32_t* pCtr)
+    void Assembler::asm_inc_m32(uint32_t* )
     {
+        
     }
     )
 

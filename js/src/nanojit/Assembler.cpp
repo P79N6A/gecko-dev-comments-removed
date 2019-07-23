@@ -45,6 +45,11 @@
 #include "../core/CodegenLIR.h"
 #endif
 
+#ifdef _MSC_VER
+    
+    #pragma warning(disable:4310) // cast truncates constant value
+#endif
+
 namespace nanojit
 {
 #ifdef NJ_VERBOSE

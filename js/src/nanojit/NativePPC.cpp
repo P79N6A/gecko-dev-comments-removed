@@ -1098,7 +1098,11 @@ namespace nanojit
     #else
         if (pc - instr < top) {
             verbose_only(if (_logc->lcbits & LC_Assembly) outputf("newpage %p:", pc);)
-            codeAlloc();
+            if (_inExit)
+                codeAlloc(exitStart, exitEnd, _nIns verbose_only(, exitBytes));
+            else
+                codeAlloc(codeStart, codeEnd, _nIns verbose_only(, codeBytes));
+
             
             
             br(pc, 0);
@@ -1175,16 +1179,24 @@ namespace nanojit
 
     void Assembler::nativePageSetup() {
         if (!_nIns) {
-            codeAlloc();
+            codeAlloc(codeStart, codeEnd, _nIns verbose_only(, codeBytes));
             IF_PEDANTIC( pedanticTop = _nIns; )
         }
         if (!_nExitIns) {
-            codeAlloc(true);
+            codeAlloc(exitStart, exitEnd, _nExitIns verbose_only(, exitBytes));
         }
     }
 
     void Assembler::nativePageReset()
     {}
+
+    
+    
+    verbose_only(
+    void Assembler::asm_inc_m32(uint32_t* )
+    {
+    }
+    )
 
     void Assembler::nPatchBranch(NIns *branch, NIns *target) {
         
@@ -1279,6 +1291,7 @@ namespace nanojit
         case LIR_qirsh:
         case LIR_qilsh:
         case LIR_qxor:
+        case LIR_qiadd:
             asm_arith(ins);
             break;
         default:

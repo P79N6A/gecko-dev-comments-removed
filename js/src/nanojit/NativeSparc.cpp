@@ -992,13 +992,6 @@ namespace nanojit
         FCMPD(rLhs, rRhs);
     }
 
-    verbose_only(
-    void Assembler::asm_inc_m32(uint32_t* pCtr)
-    {
-        
-    }
-    )
-
     void Assembler::nativePageReset()
     {
     }
@@ -1016,13 +1009,20 @@ namespace nanojit
             codeAlloc(exitStart, exitEnd, _nExitIns verbose_only(, exitBytes));
     }
 
+    
+    
+    verbose_only(
+    void Assembler::asm_inc_m32(uint32_t*)
+    {
+        
+    }
+    )
+
     void
     Assembler::underrunProtect(int n)
     {
         NIns *eip = _nIns;
         if (eip - n < (_inExit ? exitStart : codeStart)) {
-            
-            
             if (_inExit)
                 codeAlloc(exitStart, exitEnd, _nIns verbose_only(, exitBytes));
             else
