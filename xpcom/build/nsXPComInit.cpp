@@ -661,6 +661,9 @@ NS_InitXPCOM3(nsIServiceManager* *result,
     nsDirectoryService::gService->RegisterCategoryProviders();
 
     
+    nsMemoryImpl::InitFlusher();
+
+    
     NS_CreateServicesFromCategory(NS_XPCOM_STARTUP_CATEGORY, 
                                   nsnull,
                                   NS_XPCOM_STARTUP_OBSERVER_ID);
