@@ -1106,7 +1106,7 @@ nsTextControlFrame::PreDestroy()
       
       SetValue(value);
     }
-    mEditor->PreDestroy();
+    mEditor->PreDestroy(PR_TRUE);
   }
   
   

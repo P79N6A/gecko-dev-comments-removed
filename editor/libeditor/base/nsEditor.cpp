@@ -470,7 +470,7 @@ nsEditor::GetDesiredSpellCheckState()
 }
 
 NS_IMETHODIMP
-nsEditor::PreDestroy()
+nsEditor::PreDestroy(PRBool aDestroyingFrames)
 {
   if (mDidPreDestroy)
     return NS_OK;
@@ -482,7 +482,7 @@ nsEditor::PreDestroy()
   
   
   if (mInlineSpellChecker)
-    mInlineSpellChecker->Cleanup();
+    mInlineSpellChecker->Cleanup(aDestroyingFrames);
 
   
   NotifyDocumentListeners(eDocumentToBeDestroyed);

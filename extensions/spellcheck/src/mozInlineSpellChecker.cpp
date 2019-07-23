@@ -571,7 +571,7 @@ mozInlineSpellChecker::Init(nsIEditor *aEditor)
 
 
 
-nsresult mozInlineSpellChecker::Cleanup()
+nsresult mozInlineSpellChecker::Cleanup(PRBool aDestroyingFrames)
 {
   mNumWordsInSpellSelection = 0;
   nsCOMPtr<nsISelection> spellCheckSelection;
@@ -580,7 +580,9 @@ nsresult mozInlineSpellChecker::Cleanup()
     
     UnregisterEventListeners();
   } else {
-    spellCheckSelection->RemoveAllRanges();
+    if (!aDestroyingFrames) {
+      spellCheckSelection->RemoveAllRanges();
+    }
 
     rv = UnregisterEventListeners();
   }
@@ -710,7 +712,7 @@ mozInlineSpellChecker::SetEnableRealTimeSpell(PRBool aEnabled)
 {
   if (!aEnabled) {
     mSpellCheck = nsnull;
-    return Cleanup();
+    return Cleanup(PR_FALSE);
   }
 
   if (!mSpellCheck) {

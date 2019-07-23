@@ -5955,7 +5955,7 @@ PresShell::HandleEventInternal(nsEvent* aEvent, nsIView *aView,
                                  aStatus, aView);
 
     
-    if ((GetCurrentEventFrame()) && NS_SUCCEEDED(rv)) {
+    if (GetCurrentEventFrame() && NS_SUCCEEDED(rv)) {
       
       
       if (!IsSynthesizedMouseMove(aEvent)) {
@@ -5980,7 +5980,7 @@ PresShell::HandleEventInternal(nsEvent* aEvent, nsIView *aView,
 
       
       
-      if (NS_SUCCEEDED(rv)) {
+      if (!mIsDestroying && NS_SUCCEEDED(rv)) {
         rv = manager->PostHandleEvent(mPresContext, aEvent,
                                       GetCurrentEventFrame(), aStatus,
                                       weakView.GetView());
