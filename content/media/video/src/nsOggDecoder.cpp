@@ -157,11 +157,8 @@ public:
     
     void Write(nsAudioStream* aStream)
     {
-      PRUint32 length = mAudioData.Length();
-      if (length == 0)
-        return;
-
-      aStream->Write(mAudioData.Elements(), length);
+      aStream->Write(mAudioData.Elements(), mAudioData.Length());
+      mAudioData.Clear(); 
     }
 
     void SetVideoHeader(OggPlayDataHeader* aVideoHeader)
@@ -230,6 +227,20 @@ public:
       return !mEmpty && mHead == mTail;
     }
 
+    float ResetTimes(float aPeriod)
+    {
+      float time = 0.0;
+      if (!mEmpty) {
+        PRInt32 current = mHead;
+        do {
+          mQueue[current]->mTime = time;
+          time += aPeriod;
+          current = (current + 1) % OGGPLAY_BUFFER_SIZE;
+        } while (current != mTail);
+      }
+      return time;
+    }
+
   private:
     FrameData* mQueue[OGGPLAY_BUFFER_SIZE];
     PRInt32 mHead;
@@ -292,6 +303,9 @@ public:
   
   void PlayVideo(FrameData* aFrame);
 
+  
+  
+  
   
   
   void PlayAudio(FrameData* aFrame);
@@ -365,10 +379,21 @@ protected:
   void StopAudio();
 
   
+  
   void StartPlayback();
 
   
+  
   void StopPlayback();
+
+  
+  
+  
+  void PausePlayback();
+
+  
+  
+  void ResumePlayback();
 
   
   
@@ -376,6 +401,11 @@ protected:
   
   
   void UpdatePlaybackPosition(float aTime);
+
+  
+  
+  
+  void QueueDecodedFrames();
 
 private:
   
@@ -753,7 +783,7 @@ void nsOggDecodeStateMachine::PlayFrame() {
 
   if (mDecoder->GetState() == nsOggDecoder::PLAY_STATE_PLAYING) {
     if (!mPlaying) {
-      StartPlayback();
+      ResumePlayback();
     }
 
     if (!mDecodedFrames.IsEmpty()) {
@@ -769,7 +799,14 @@ void nsOggDecodeStateMachine::PlayFrame() {
 
       double time;
       for (;;) {
-        time = (TimeStamp::Now() - mPlayStartTime - mPauseDuration).ToSeconds();
+        
+        
+        
+        PlayAudio(frame);
+        double hwtime = mAudioStream ? mAudioStream->GetPosition() : -1.0;
+        time = hwtime < 0.0 ?
+          (TimeStamp::Now() - mPlayStartTime - mPauseDuration).ToSeconds() :
+          hwtime;
         if (time < frame->mTime) {
           mon.Wait(PR_MillisecondsToInterval(PRInt64((frame->mTime - time)*1000)));
           if (mState == DECODER_STATE_SHUTDOWN)
@@ -780,24 +817,33 @@ void nsOggDecodeStateMachine::PlayFrame() {
       }
 
       mDecodedFrames.Pop();
+      QueueDecodedFrames();
 
       
       while (!mDecodedFrames.IsEmpty() && time >= mDecodedFrames.Peek()->mTime) {
         LOG(PR_LOG_DEBUG, ("Skipping frame time %f with audio at time %f", mDecodedFrames.Peek()->mTime, time));
+        PlayAudio(frame);
         delete frame;
         frame = mDecodedFrames.Peek();
         mDecodedFrames.Pop();
       }
-      PlayAudio(frame);
-      PlayVideo(frame);
-      mDecoder->mPlaybackPosition = frame->mEndStreamPosition;
-      UpdatePlaybackPosition(frame->mDecodedFrameTime);
-      delete frame;
+      if (time < frame->mTime + mCallbackPeriod) {
+        PlayAudio(frame);
+        PlayVideo(frame);
+        mDecoder->mPlaybackPosition = frame->mEndStreamPosition;
+        UpdatePlaybackPosition(frame->mDecodedFrameTime);
+        delete frame;
+      }
+      else {
+        PlayAudio(frame);
+        delete frame;
+        frame = 0;
+      }
     }
   }
   else {
     if (mPlaying) {
-      StopPlayback();
+      PausePlayback();
     }
 
     if (mState == DECODER_STATE_DECODING) {
@@ -904,14 +950,50 @@ void nsOggDecodeStateMachine::StartPlayback()
     
     mPauseStartTime = TimeStamp();
   }
+  mPlayStartTime = TimeStamp::Now();
+  mPauseDuration = 0;
+
 }
 
 void nsOggDecodeStateMachine::StopPlayback()
 {
   
+  mLastFrameTime = mDecodedFrames.ResetTimes(mCallbackPeriod);
   StopAudio();
   mPlaying = PR_FALSE;
   mPauseStartTime = TimeStamp::Now();
+}
+
+void nsOggDecodeStateMachine::PausePlayback()
+{
+  if (!mAudioStream) {
+    StopPlayback();
+    return;
+  }
+
+  mAudioStream->Pause();
+  mPlaying = PR_FALSE;
+  mPauseStartTime = TimeStamp::Now();
+}
+
+void nsOggDecodeStateMachine::ResumePlayback()
+{
+ if (!mAudioStream) {
+    StartPlayback();
+    return;
+ }
+ 
+ mAudioStream->Resume();
+ mPlaying = PR_TRUE;
+
+ 
+ if (!mPauseStartTime.IsNull()) {
+   mPauseDuration += TimeStamp::Now() - mPauseStartTime;
+   
+   mPauseStartTime = TimeStamp();
+ }
+ mPlayStartTime = TimeStamp::Now();
+ mPauseDuration = 0;
 }
 
 void nsOggDecodeStateMachine::UpdatePlaybackPosition(float aTime)
@@ -923,6 +1005,15 @@ void nsOggDecodeStateMachine::UpdatePlaybackPosition(float aTime)
     nsCOMPtr<nsIRunnable> event =
       NS_NEW_RUNNABLE_METHOD(nsOggDecoder, mDecoder, PlaybackPositionChanged);
     NS_DispatchToMainThread(event, NS_DISPATCH_NORMAL);
+  }
+}
+
+void nsOggDecodeStateMachine::QueueDecodedFrames()
+{
+  
+  FrameData* frame;
+  while (!mDecodedFrames.IsFull() && (frame = NextFrame())) {
+    mDecodedFrames.Push(frame);
   }
 }
 
@@ -1096,10 +1187,7 @@ nsresult nsOggDecodeStateMachine::Run()
           mon.Wait(PR_MillisecondsToInterval(PRInt64(mCallbackPeriod*500)));
           if (mState != DECODER_STATE_DECODING)
             break;
-          FrameData* frame = NextFrame();
-          if (frame) {
-            mDecodedFrames.Push(frame);
-          }
+          QueueDecodedFrames();
         }
 
         if (mState != DECODER_STATE_DECODING)
@@ -1108,11 +1196,11 @@ nsresult nsOggDecodeStateMachine::Run()
         if (mDecodingCompleted) {
           LOG(PR_LOG_DEBUG, ("Changed state from DECODING to COMPLETED"));
           mState = DECODER_STATE_COMPLETED;
-          mStepDecodeThread->Shutdown();
-          mStepDecodeThread = nsnull;
           mDecodingCompleted = PR_FALSE;
           mBufferExhausted = PR_FALSE;
           mon.NotifyAll();
+          mStepDecodeThread->Shutdown();
+          mStepDecodeThread = nsnull;
           continue;
         }
 
@@ -1130,7 +1218,7 @@ nsresult nsOggDecodeStateMachine::Run()
           
           
           if (mPlaying) {
-            StopPlayback();
+            PausePlayback();
           }
 
           
@@ -1153,7 +1241,7 @@ nsresult nsOggDecodeStateMachine::Run()
               BUFFERING_RATE(playbackRate) * BUFFERING_WAIT;
           mState = DECODER_STATE_BUFFERING;
           if (mPlaying) {
-            StopPlayback();
+            PausePlayback();
           }
           LOG(PR_LOG_DEBUG, ("Changed state from DECODING to BUFFERING"));
         } else {
@@ -1284,7 +1372,7 @@ nsresult nsOggDecodeStateMachine::Run()
           NS_DispatchToMainThread(event, NS_DISPATCH_NORMAL);
           if (mDecoder->GetState() == nsOggDecoder::PLAY_STATE_PLAYING) {
             if (!mPlaying) {
-              StartPlayback();
+              ResumePlayback();
             }
           }
         }
@@ -1296,23 +1384,18 @@ nsresult nsOggDecodeStateMachine::Run()
       {
         
         
-        FrameData* frame;
-        do {
-          frame = NextFrame();
-          if (frame) {
-            mDecodedFrames.Push(frame);
-          }
-        } while (frame);
+        QueueDecodedFrames();
 
         
         while (mState == DECODER_STATE_COMPLETED &&
                !mDecodedFrames.IsEmpty()) {
           PlayFrame();
-          if (mState != DECODER_STATE_SHUTDOWN) {
+          if (mState == DECODER_STATE_COMPLETED) {
             
             
             
             mon.Wait(PR_MillisecondsToInterval(PRInt64(mCallbackPeriod*1000)));
+            QueueDecodedFrames();
           }
         }
 

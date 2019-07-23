@@ -89,6 +89,16 @@ class nsAudioStream
   
   void Drain();
 
+  
+  void Pause();
+
+  
+  void Resume();
+
+  
+  
+  float GetPosition();
+
  private:
   double mVolume;
   void* mAudioHandle;
