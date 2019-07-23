@@ -283,11 +283,6 @@ protected:
   
 
 
-  nsresult RealResume();
-
-  
-
-
   PRBool IsPaused();
 
   
@@ -299,11 +294,6 @@ protected:
 
 
   PRBool WasResumed();
-
-  
-
-
-  PRBool IsRealPaused();
 
   
 
