@@ -44,7 +44,7 @@
 
 
 
-#include "icint.h"
+#include "pixmanint.h"
 
 
 

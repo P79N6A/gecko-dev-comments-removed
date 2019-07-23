@@ -20,6 +20,8 @@
 
 
 
+#include "pixmanint.h"
+
 #include <string.h>
 #include "pixman-xserver-compat.h"
 
@@ -77,14 +79,14 @@
 
 
 
-static INLINE CARD8
+static inline CARD8
 clip255 (int x)
 {
     if (x > 255) return 255;
     return x;
 }
 
-static INLINE void
+static inline void
 add_saturate_8 (CARD8 *buf, int value, int length)
 {
     while (length--)

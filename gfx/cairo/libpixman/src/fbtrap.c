@@ -20,7 +20,7 @@
 
 
 
-
+#include "pixmanint.h"
 
 #include "pixman-xserver-compat.h"
 

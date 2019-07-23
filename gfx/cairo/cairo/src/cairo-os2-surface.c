@@ -35,8 +35,12 @@
 
 
 
-#include <stdlib.h>
-#include <stdio.h>
+#include "cairoint.h"
+
+#include "cairo-os2-private.h"
+
+#include <fontconfig/fontconfig.h>
+
 #include <float.h>
 #ifdef BUILD_CAIRO_DLL
 # define INCL_WIN
@@ -49,9 +53,6 @@
 #  include <emx/startup.h>
 # endif
 #endif
-#include "cairoint.h"
-#include "cairo-os2-private.h"
-#include "fontconfig/fontconfig.h"
 
 
 
@@ -67,14 +68,6 @@
 
 
 static int cairo_os2_initialization_count = 0;
-
-
-HMTX _cairo_scaled_font_map_mutex = 0;
-HMTX _global_image_glyph_cache_mutex = 0;
-HMTX _cairo_font_face_mutex = 0;
-#ifdef CAIRO_HAS_FT_FONT
-HMTX _cairo_ft_unscaled_font_map_mutex = 0;
-#endif
 
 static void inline
 DisableFPUException (void)
@@ -104,19 +97,9 @@ cairo_os2_init (void)
     DisableFPUException ();
 
     
-
-    
-    DosCreateMutexSem (NULL, &_cairo_scaled_font_map_mutex, 0, FALSE);
-    DosCreateMutexSem (NULL, &_global_image_glyph_cache_mutex, 0, FALSE);
-    DosCreateMutexSem (NULL, &_cairo_font_face_mutex, 0, FALSE);
-
-#ifdef CAIRO_HAS_FT_FONT
-    
-    DosCreateMutexSem (NULL, &_cairo_ft_unscaled_font_map_mutex, 0, FALSE);
-#endif
-
-    
     FcInit ();
+
+    CAIRO_MUTEX_INITIALIZE ();
 }
 
 cairo_public void
@@ -137,28 +120,7 @@ cairo_os2_fini (void)
     _cairo_ft_font_reset_static_data ();
 #endif
 
-    
-    
-    if (_cairo_scaled_font_map_mutex) {
-        DosCloseMutexSem (_cairo_scaled_font_map_mutex);
-        _cairo_scaled_font_map_mutex = 0;
-    }
-    if (_global_image_glyph_cache_mutex) {
-        DosCloseMutexSem (_global_image_glyph_cache_mutex);
-        _global_image_glyph_cache_mutex = 0;
-    }
-    if (_cairo_font_face_mutex) {
-        DosCloseMutexSem (_cairo_font_face_mutex);
-        _cairo_font_face_mutex = 0;
-    }
-
-#ifdef CAIRO_HAS_FT_FONT
-    
-    if (_cairo_ft_unscaled_font_map_mutex) {
-        DosCloseMutexSem (_cairo_ft_unscaled_font_map_mutex);
-        _cairo_ft_unscaled_font_map_mutex = 0;
-    }
-#endif
+    CAIRO_MUTEX_FINALIZE ();
 
     
     FcFini ();

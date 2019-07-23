@@ -26,7 +26,24 @@
 
 #include "cairoint.h"
 
-#define MAX_LEVEL   31
+
+
+
+
+
+
+
+
+
+#define MAX_LEVEL   15
+
+
+#define FREELIST_FOR_LEVEL(level) (((level) - 1) / 2)
+
+
+#define FREELIST_MAX_LEVEL_FOR(level) (((level) + 1) & ~1)
+
+#define MAX_FREELIST_LEVEL (FREELIST_FOR_LEVEL (MAX_LEVEL - 1) + 1)
 
 
 
@@ -52,7 +69,7 @@ typedef struct _skip_list {
     size_t elt_size;
     size_t data_size;
     skip_elt_t *chains[MAX_LEVEL];
-    skip_elt_t *freelists[MAX_LEVEL];
+    skip_elt_t *freelists[MAX_FREELIST_LEVEL];
     int		max_level;
 } cairo_skip_list_t;
 

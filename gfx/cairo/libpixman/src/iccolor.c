@@ -21,7 +21,7 @@
 
 
 
-#include "icint.h"
+#include "pixmanint.h"
 
 #ifdef ICINT_NEED_IC_ONES
 

@@ -43,7 +43,7 @@
 static cairo_status_t
 _cairo_traps_grow (cairo_traps_t *traps);
 
-static cairo_status_t
+static void
 _cairo_traps_add_trap (cairo_traps_t *traps, cairo_fixed_t top, cairo_fixed_t bottom,
 		       cairo_line_t *left, cairo_line_t *right);
 
@@ -57,10 +57,21 @@ _cairo_traps_init (cairo_traps_t *traps)
 
     traps->num_traps = 0;
 
-    traps->traps_size = 0;
-    traps->traps = NULL;
+    traps->traps_size = ARRAY_LENGTH (traps->traps_embedded);
+    traps->traps = traps->traps_embedded;
     traps->extents.p1.x = traps->extents.p1.y = INT32_MAX;
     traps->extents.p2.x = traps->extents.p2.y = INT32_MIN;
+
+    traps->has_limits = FALSE;
+}
+
+void
+_cairo_traps_limit (cairo_traps_t	*traps,
+		    cairo_box_t		*limits)
+{
+    traps->has_limits = TRUE;
+
+    traps->limits = *limits;
 }
 
 void
@@ -87,45 +98,104 @@ cairo_status_t
 _cairo_traps_init_box (cairo_traps_t *traps,
 		       cairo_box_t   *box)
 {
-  _cairo_traps_init (traps);
+    _cairo_traps_init (traps);
 
-  traps->status = _cairo_traps_grow (traps);
-  if (traps->status)
+    assert (traps->traps_size >= 1);
+
+    traps->num_traps = 1;
+
+    traps->traps[0].top = box->p1.y;
+    traps->traps[0].bottom = box->p2.y;
+    traps->traps[0].left.p1 = box->p1;
+    traps->traps[0].left.p2.x = box->p1.x;
+    traps->traps[0].left.p2.y = box->p2.y;
+    traps->traps[0].right.p1.x = box->p2.x;
+    traps->traps[0].right.p1.y = box->p1.y;
+    traps->traps[0].right.p2 = box->p2;
+
+    traps->extents = *box;
+
     return traps->status;
-
-  traps->num_traps = 1;
-
-  traps->traps[0].top = box->p1.y;
-  traps->traps[0].bottom = box->p2.y;
-  traps->traps[0].left.p1 = box->p1;
-  traps->traps[0].left.p2.x = box->p1.x;
-  traps->traps[0].left.p2.y = box->p2.y;
-  traps->traps[0].right.p1.x = box->p2.x;
-  traps->traps[0].right.p1.y = box->p1.y;
-  traps->traps[0].right.p2 = box->p2;
-
-  traps->extents = *box;
-
-  return traps->status;
 }
 
-static cairo_status_t
+cairo_status_t
+_cairo_traps_status (cairo_traps_t *traps)
+{
+    return traps->status;
+}
+
+static void
 _cairo_traps_add_trap (cairo_traps_t *traps, cairo_fixed_t top, cairo_fixed_t bottom,
 		       cairo_line_t *left, cairo_line_t *right)
 {
     cairo_trapezoid_t *trap;
 
     if (traps->status)
-	return traps->status;
+	return;
 
-    if (top == bottom) {
-	return CAIRO_STATUS_SUCCESS;
+    
+
+
+
+
+
+
+
+
+
+
+
+
+    if (traps->has_limits) {
+	
+
+	if (left->p1.x >= traps->limits.p2.x &&
+	    left->p2.x >= traps->limits.p2.x)
+	{
+	    return;
+	}
+
+	if (right->p1.x <= traps->limits.p1.x &&
+	    right->p2.x <= traps->limits.p1.x)
+	{
+	    return;
+	}
+
+	
+
+
+
+
+
+	if (top < traps->limits.p1.y)
+	    top = traps->limits.p1.y;
+
+	if (bottom > traps->limits.p2.y)
+	    bottom = traps->limits.p2.y;
+
+	if (left->p1.x < traps->limits.p1.x &&
+	    left->p2.x < traps->limits.p1.x)
+	{
+	    left->p1.x = traps->limits.p1.x;
+	    left->p2.x = traps->limits.p1.x;
+	}
+
+	if (right->p1.x > traps->limits.p2.x &&
+	    right->p2.x > traps->limits.p2.x)
+	{
+	    right->p1.x = traps->limits.p2.x;
+	    right->p2.x = traps->limits.p2.x;
+	}
+    }
+
+    if (top >= bottom) {
+	return;
     }
 
     if (traps->num_traps >= traps->traps_size) {
 	traps->status = _cairo_traps_grow (traps);
 	if (traps->status)
-	    return traps->status;
+	    return;
     }
 
     trap = &traps->traps[traps->num_traps];
@@ -157,11 +227,9 @@ _cairo_traps_add_trap (cairo_traps_t *traps, cairo_fixed_t top, cairo_fixed_t bo
 	traps->extents.p2.x = right->p2.x;
 
     traps->num_traps++;
-
-    return traps->status;
 }
 
-cairo_status_t
+void
 _cairo_traps_add_trap_from_points (cairo_traps_t *traps, cairo_fixed_t top, cairo_fixed_t bottom,
 				   cairo_point_t left_p1, cairo_point_t left_p2,
 				   cairo_point_t right_p1, cairo_point_t right_p2)
@@ -170,7 +238,7 @@ _cairo_traps_add_trap_from_points (cairo_traps_t *traps, cairo_fixed_t top, cair
     cairo_line_t right;
 
     if (traps->status)
-	return traps->status;
+	return;
 
     left.p1 = left_p1;
     left.p2 = left_p2;
@@ -178,7 +246,7 @@ _cairo_traps_add_trap_from_points (cairo_traps_t *traps, cairo_fixed_t top, cair
     right.p1 = right_p1;
     right.p2 = right_p2;
 
-    return _cairo_traps_add_trap (traps, top, bottom, &left, &right);
+    _cairo_traps_add_trap (traps, top, bottom, &left, &right);
 }
 
 
@@ -186,19 +254,7 @@ static cairo_status_t
 _cairo_traps_grow (cairo_traps_t *traps)
 {
     cairo_trapezoid_t *new_traps;
-    int old_size = traps->traps_size;
-    int embedded_size = sizeof (traps->traps_embedded) / sizeof (traps->traps_embedded[0]);
-    int new_size = 2 * MAX (old_size, 16);
-
-    
-
-    if (old_size < embedded_size) {
-	traps->traps = traps->traps_embedded;
-	traps->traps_size = embedded_size;
-	return traps->status;
-    }
-
-    assert (traps->num_traps <= traps->traps_size);
+    int new_size = 2 * MAX (traps->traps_size, 16);
 
     if (traps->status)
 	return traps->status;
@@ -206,7 +262,7 @@ _cairo_traps_grow (cairo_traps_t *traps)
     if (traps->traps == traps->traps_embedded) {
 	new_traps = malloc (new_size * sizeof (cairo_trapezoid_t));
 	if (new_traps)
-	    memcpy (new_traps, traps->traps, old_size * sizeof (cairo_trapezoid_t));
+	    memcpy (new_traps, traps->traps, sizeof (traps->traps_embedded));
     } else {
 	new_traps = realloc (traps->traps, new_size * sizeof (cairo_trapezoid_t));
     }
@@ -219,7 +275,7 @@ _cairo_traps_grow (cairo_traps_t *traps)
     traps->traps = new_traps;
     traps->traps_size = new_size;
 
-    return traps->status;
+    return CAIRO_STATUS_SUCCESS;
 }
 
 static int
@@ -536,19 +592,16 @@ _cairo_traps_extents (cairo_traps_t *traps, cairo_box_t *extents)
 
 
 
-cairo_status_t
-_cairo_traps_extract_region (cairo_traps_t      *traps,
-			     pixman_region16_t **region)
+
+cairo_int_status_t
+_cairo_traps_extract_region (cairo_traps_t     *traps,
+			     pixman_region16_t *region)
 {
-    int i;
-
-    
-
-
-    if (traps->num_traps > 200) {
-        *region = NULL;
-        return CAIRO_STATUS_SUCCESS;
-    }
+#define NUM_STATIC_BOXES 16
+    pixman_box16_t static_boxes[NUM_STATIC_BOXES];
+    pixman_box16_t *boxes;
+    int i, box_count;
+    pixman_region_status_t status;
 
     for (i = 0; i < traps->num_traps; i++)
 	if (!(traps->traps[i].left.p1.x == traps->traps[i].left.p2.x
@@ -557,30 +610,49 @@ _cairo_traps_extract_region (cairo_traps_t      *traps,
 	      && _cairo_fixed_is_integer(traps->traps[i].bottom)
 	      && _cairo_fixed_is_integer(traps->traps[i].left.p1.x)
 	      && _cairo_fixed_is_integer(traps->traps[i].right.p1.x))) {
-	    *region = NULL;
-	    return CAIRO_STATUS_SUCCESS;
+	    return CAIRO_INT_STATUS_UNSUPPORTED;
 	}
 
-    *region = pixman_region_create ();
+    if (traps->num_traps <= NUM_STATIC_BOXES) {
+	boxes = static_boxes;
+    } else {
+	
+	boxes = malloc (traps->num_traps * sizeof(pixman_box16_t));
+
+	if (boxes == NULL)
+	    return CAIRO_STATUS_NO_MEMORY;
+    }
+
+    box_count = 0;
 
     for (i = 0; i < traps->num_traps; i++) {
-	int x = _cairo_fixed_integer_part(traps->traps[i].left.p1.x);
-	int y = _cairo_fixed_integer_part(traps->traps[i].top);
-	int width = _cairo_fixed_integer_part(traps->traps[i].right.p1.x) - x;
-	int height = _cairo_fixed_integer_part(traps->traps[i].bottom) - y;
+	int x1 = _cairo_fixed_integer_part(traps->traps[i].left.p1.x);
+	int y1 = _cairo_fixed_integer_part(traps->traps[i].top);
+	int x2 = _cairo_fixed_integer_part(traps->traps[i].right.p1.x);
+	int y2 = _cairo_fixed_integer_part(traps->traps[i].bottom);
 
 	
 
 
+	if (x1 == x2 || y1 == y2)
+	    continue;
 
-	if (width == 0 || height == 0)
-	  continue;
+	boxes[box_count].x1 = (short) x1;
+	boxes[box_count].y1 = (short) y1;
+	boxes[box_count].x2 = (short) x2;
+	boxes[box_count].y2 = (short) y2;
 
-	if (pixman_region_union_rect (*region, *region,
-				      x, y, width, height) != PIXMAN_REGION_STATUS_SUCCESS) {
-	    pixman_region_destroy (*region);
-	    return CAIRO_STATUS_NO_MEMORY;
-	}
+	box_count++;
+    }
+
+    status = pixman_region_init_rects (region, boxes, box_count);
+
+    if (boxes != static_boxes)
+	free (boxes);
+
+    if (status != PIXMAN_REGION_STATUS_SUCCESS) {
+	pixman_region_fini (region);
+	return CAIRO_INT_STATUS_UNSUPPORTED;
     }
 
     return CAIRO_STATUS_SUCCESS;
