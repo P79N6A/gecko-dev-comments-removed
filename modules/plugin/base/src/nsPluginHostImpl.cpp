@@ -418,6 +418,7 @@ PRBool nsPluginInstanceTagList::remove(nsPluginInstanceTag * plugin)
   for (nsPluginInstanceTag * p = mFirst; p != nsnull; p = p->mNext) {
     if (p == plugin) {
       PRBool lastInstance = IsLastInstance(p);
+      nsPluginTag *pluginTag = p->mPluginTag;
 
       if (p == mFirst)
         mFirst = p->mNext;
@@ -427,23 +428,18 @@ PRBool nsPluginInstanceTagList::remove(nsPluginInstanceTag * plugin)
       if (prev && !prev->mNext)
         mLast = prev;
 
-      
-      
-      
-      if (lastInstance) {
-        
-        nsPluginTag *pluginTag = p->mPluginTag;
+      delete p;
 
-        delete p; 
+      if (lastInstance && pluginTag) {
+        nsresult rv;
+        nsCOMPtr<nsIPrefBranch> pref(do_GetService(NS_PREFSERVICE_CONTRACTID, &rv));
+        NS_ENSURE_SUCCESS(rv, rv);
 
-        if (pluginTag)
+        PRBool unloadPluginsASAP = PR_FALSE;
+        rv = pref->GetBoolPref("plugins.unloadASAP", &unloadPluginsASAP);
+        if (NS_SUCCEEDED(rv) && unloadPluginsASAP)
           pluginTag->TryUnloadPlugin();
-        else
-          NS_ASSERTION(pluginTag, "pluginTag was not set, plugin not shutdown");
-
       }
-      else
-        delete p;
 
       mCount--;
       return PR_TRUE;
@@ -801,7 +797,7 @@ nsPluginTag::nsPluginTag(const char* aName,
 
 nsPluginTag::~nsPluginTag()
 {
-  TryUnloadPlugin(PR_TRUE);
+  TryUnloadPlugin();
 
   
   
@@ -1015,7 +1011,7 @@ nsresult PostPluginUnloadEvent(PRLibrary* aLibrary)
   return NS_ERROR_FAILURE;
 }
 
-void nsPluginTag::TryUnloadPlugin(PRBool aForceShutdown)
+void nsPluginTag::TryUnloadPlugin()
 {
   if (mEntryPoint) {
     mEntryPoint->Shutdown();
@@ -1026,9 +1022,10 @@ void nsPluginTag::TryUnloadPlugin(PRBool aForceShutdown)
   
   if (mLibrary && mCanUnloadLibrary) {
     
-    if (!mXPConnected)
+    if (!mXPConnected) {
       
       PostPluginUnloadEvent(mLibrary);
+    }
     else {
       
       if (mPluginHost)
