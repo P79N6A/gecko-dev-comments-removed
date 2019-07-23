@@ -2858,8 +2858,8 @@ void
 js_GC(JSContext *cx, JSGCInvocationKind gckind)
 {
     JSRuntime *rt;
-    JSBool keepAtoms;
     JSGCCallback callback;
+    bool keepAtoms;
     JSTracer trc;
     JSGCArena *emptyArenas, *a, **ap;
 #ifdef JS_THREADSAFE
@@ -2882,18 +2882,6 @@ js_GC(JSContext *cx, JSGCInvocationKind gckind)
     
     JS_ASSERT(!JS_IS_RUNTIME_LOCKED(rt));
 #endif
-
-    if (gckind & GC_KEEP_ATOMS) {
-        
-
-
-
-        keepAtoms = JS_TRUE;
-    } else {
-        
-        keepAtoms = (rt->gcKeepAtoms != 0);
-        JS_CLEAR_WEAK_ROOTS(&cx->weakRoots);
-    }
 
     
 
@@ -2974,7 +2962,6 @@ js_GC(JSContext *cx, JSGCInvocationKind gckind)
                 }
 #endif
                 rt->requestCount -= requestDebit;
-
                 if (rt->requestCount == 0)
                     JS_NOTIFY_REQUEST_DONE(rt);
 
@@ -2989,11 +2976,21 @@ js_GC(JSContext *cx, JSGCInvocationKind gckind)
 
 
 
+                if (gckind & GC_KEEP_ATOMS)
+                    JS_KEEP_ATOMS(rt);
+
+                
+
+
+
                 JS_ASSERT(rt->gcLevel > 0);
                 do {
                     JS_AWAIT_GC_DONE(rt);
                 } while (rt->gcLevel > 0);
+
                 cx->thread->gcWaiting = false;
+                if (gckind & GC_KEEP_ATOMS)
+                    JS_UNKEEP_ATOMS(rt);
                 rt->requestCount += requestDebit;
             }
         }
@@ -3116,11 +3113,6 @@ js_GC(JSContext *cx, JSGCInvocationKind gckind)
     PurgeJITOracle();
 #endif
 
-  restart:
-    rt->gcNumber++;
-    JS_ASSERT(!rt->gcUnmarkedArenaStackTop);
-    JS_ASSERT(rt->gcMarkLaterCount == 0);
-
     
 
 
@@ -3138,12 +3130,33 @@ js_GC(JSContext *cx, JSGCInvocationKind gckind)
     }
 
     js_PurgeThreads(cx);
+
 #ifdef JS_TRACER
     if (gckind == GC_LAST_CONTEXT) {
         
         memset(rt->builtinFunctions, 0, sizeof rt->builtinFunctions);
     }
 #endif
+
+    if (gckind & GC_KEEP_ATOMS) {
+        
+
+
+
+        keepAtoms = true;
+    } else {
+        
+
+
+
+        keepAtoms = (rt->gcKeepAtoms != 0);
+        JS_CLEAR_WEAK_ROOTS(&cx->weakRoots);
+    }
+
+  restart:
+    rt->gcNumber++;
+    JS_ASSERT(!rt->gcUnmarkedArenaStackTop);
+    JS_ASSERT(rt->gcMarkLaterCount == 0);
 
     
 
