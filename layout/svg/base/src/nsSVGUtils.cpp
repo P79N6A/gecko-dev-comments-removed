@@ -1486,10 +1486,6 @@ nsSVGUtils::WritePPM(const char *fname, gfxImageSurface *aSurface)
 nsSVGUtils::PathExtentsToMaxStrokeExtents(const gfxRect& aPathExtents,
                                           nsSVGGeometryFrame* aFrame)
 {
-  if (aPathExtents.Width() == 0 && aPathExtents.Height() == 0) {
-    return gfxRect(0, 0, 0, 0);
-  }
-
   
 
   double style_expansion = 0.5;
