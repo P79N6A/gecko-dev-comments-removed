@@ -166,7 +166,8 @@ nsSVGPropertyBase::ContentRemoved(nsIDocument *aDocument,
   DoUpdate();
 }
 
-class nsSVGFilterProperty : public nsSVGPropertyBase {
+class nsSVGFilterProperty :
+  public nsSVGPropertyBase, public nsISVGFilterProperty {
 public:
   nsSVGFilterProperty(nsIContent *aFilter, nsIFrame *aFilteredFrame);
   virtual ~nsSVGFilterProperty() {
@@ -178,7 +179,13 @@ public:
   void UpdateRect();
 
   
+  NS_DECL_ISUPPORTS
+
+  
   NS_DECL_NSIMUTATIONOBSERVER_PARENTCHAINCHANGED
+
+  
+  virtual void Invalidate() { DoUpdate(); }
 
 private:
   
@@ -186,6 +193,10 @@ private:
 
   nsRect mFilterRect;
 };
+
+NS_IMPL_ISUPPORTS_INHERITED1(nsSVGFilterProperty,
+                             nsSVGPropertyBase,
+                             nsISVGFilterProperty)
 
 nsSVGFilterProperty::nsSVGFilterProperty(nsIContent *aFilter,
                                          nsIFrame *aFilteredFrame)
