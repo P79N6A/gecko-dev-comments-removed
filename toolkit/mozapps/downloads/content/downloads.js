@@ -508,15 +508,6 @@ let gDownloadObserver = {
           
           
           
-          
-          
-          
-          document.title = document.documentElement.getAttribute("statictitle");
-
-          
-          
-          
-          
           setTimeout(function() {
             initStatement();
             buildDownloadList(true);
