@@ -103,7 +103,7 @@ static struct {
         recorderStarted, recorderAborted, traceCompleted, sideExitIntoInterpreter,
         typeMapMismatchAtEntry, returnToDifferentLoopHeader, traceTriggered,
         globalShapeMismatchAtEntry, treesTrashed, slotPromoted,
-        unstableLoopVariable, breakLoopExits;
+        unstableLoopVariable, breakLoopExits, returnLoopExits;
 } stat = { 0LL, };
 #define AUDIT(x) (stat.x++)
 #else
@@ -2507,6 +2507,15 @@ js_MonitorRecording(JSContext* cx)
             return false; 
         }
     }
+
+    
+    if (*pc == JSOP_RETURN && tr->callDepth == 0) {
+        AUDIT(returnLoopExits);
+        tr->endLoop(JS_TRACE_MONITOR(cx).fragmento);
+        js_DeleteRecorder(cx);
+        return false; 
+    }
+
     
     return true;
 }
@@ -2602,10 +2611,10 @@ js_FinishJIT(JSTraceMonitor *tm)
 #ifdef DEBUG
     printf("recorder: started(%llu), aborted(%llu), completed(%llu), different header(%llu), "
            "trees trashed(%llu), slot promoted(%llu), unstable loop variable(%llu), "
-           "breaks: (%llu)\n",
-           stat.recorderStarted, stat.recorderAborted,
-           stat.traceCompleted, stat.returnToDifferentLoopHeader, stat.treesTrashed,
-           stat.slotPromoted, stat.unstableLoopVariable, stat.breakLoopExits);
+           "breaks(%llu), returns(%llu)\n",
+           stat.recorderStarted, stat.recorderAborted, stat.traceCompleted,
+           stat.returnToDifferentLoopHeader, stat.treesTrashed, stat.slotPromoted,
+           stat.unstableLoopVariable, stat.breakLoopExits, stat.returnLoopExits);
     printf("monitor: triggered(%llu), exits(%llu), type mismatch(%llu), "
            "global mismatch(%llu)\n", stat.traceTriggered, stat.sideExitIntoInterpreter,
            stat.typeMapMismatchAtEntry, stat.globalShapeMismatchAtEntry);
