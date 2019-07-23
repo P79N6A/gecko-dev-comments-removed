@@ -150,9 +150,11 @@ public:
     static void      OnProfileChanged();
 
     static void      SetDiskCacheEnabled(PRBool  enabled);
+    
     static void      SetDiskCacheCapacity(PRInt32  capacity);
 
     static void      SetOfflineCacheEnabled(PRBool  enabled);
+    
     static void      SetOfflineCacheCapacity(PRInt32  capacity);
 
     static void      SetMemoryCache();
