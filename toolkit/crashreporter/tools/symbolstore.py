@@ -546,11 +546,11 @@ class Dumper:
                     
                     
                     print rel_path
-                    if self.copy_debug:
-                        self.CopyDebug(file, debug_file, guid)
                     if self.srcsrv and vcs_root:
                         
-                        self.SourceServerIndexing(debug_file, guid, sourceFileStream, vcs_root)
+                        self.SourceServerIndexing(file, guid, sourceFileStream, vcs_root)
+                    if self.copy_debug:
+                        self.CopyDebug(file, debug_file, guid)
             except StopIteration:
                 pass
             except:
@@ -616,20 +616,17 @@ class Dumper_Win32(Dumper):
         
     def SourceServerIndexing(self, debug_file, guid, sourceFileStream, vcs_root):
         
-        cwd = os.getcwd()
+        debug_file = os.path.abspath(debug_file)
         streamFilename = debug_file + ".stream"
-        stream_output_path = os.path.join(cwd, streamFilename)
+        stream_output_path = os.path.abspath(streamFilename)
         
         result = SourceIndex(sourceFileStream, stream_output_path, vcs_root)
-        
         if self.copy_debug:
             pdbstr_path = os.environ.get("PDBSTR_PATH")
             pdbstr = os.path.normpath(pdbstr_path)
-            pdb_rel_path = os.path.join(debug_file, guid, debug_file)
-            pdb_filename = os.path.normpath(os.path.join(self.symbol_path, pdb_rel_path))
-            
-            os.chdir(os.path.dirname(stream_output_path))
-            os.spawnv(os.P_WAIT, pdbstr, [pdbstr, "-w", "-p:" + pdb_filename, "-i:" + streamFilename, "-s:srcsrv"])
+            call([pdbstr, "-w", "-p:" + os.path.basename(debug_file),
+                  "-i:" + os.path.basename(streamFilename), "-s:srcsrv"],
+                 cwd=os.path.dirname(stream_output_path))
             
             os.remove(stream_output_path)
         return result
