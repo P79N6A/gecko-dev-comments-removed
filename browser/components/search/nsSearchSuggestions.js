@@ -334,15 +334,19 @@ SuggestAutoComplete.prototype = {
   
 
 
-
-
   notify: function SAC_notify(timer) {
     
-    if ((timer != this._formHistoryTimer) || !this._listener)
+    
+    this._formHistoryTimer = null;
+
+    
+    
+    if (!this._listener)
       return;
 
+    
+    
     this._listener.onSearchResult(this, this._formHistoryResult);
-    this._formHistoryTimer = null;
     this._reset();
   },
 
