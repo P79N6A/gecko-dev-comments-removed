@@ -467,7 +467,7 @@ PrivateBrowsingService.prototype = {
     }
   },
 
-  get helpInfo PBS_get_helpInfo() {
+  get helpInfo() {
     return "  -private            Enable private browsing mode.\n" +
            "  -private-toggle     Toggle private browsing mode.\n";
   },
@@ -477,14 +477,14 @@ PrivateBrowsingService.prototype = {
   
 
 
-  get privateBrowsingEnabled PBS_get_privateBrowsingEnabled() {
+  get privateBrowsingEnabled() {
     return this._inPrivateBrowsing;
   },
 
   
 
 
-  set privateBrowsingEnabled PBS_set_privateBrowsingEnabled(val) {
+  set privateBrowsingEnabled(val) {
     
     
     
@@ -546,7 +546,7 @@ PrivateBrowsingService.prototype = {
   
 
 
-  get autoStarted PBS_get_autoStarted() {
+  get autoStarted() {
     return this._inPrivateBrowsing && this._autoStarted;
   },
 
