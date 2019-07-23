@@ -198,7 +198,7 @@ JS_STATIC_ASSERT(sizeof(TraceType) == 1);
 JS_STATIC_ASSERT(offsetof(TraceNativeStorage, stack_global_buf) % 16 == 0);
 
 
-static const char typeChar[] = "OIDXSNBF";
+static const char typeChar[] = "OIDXSNBUF";
 static const char tagChar[]  = "OIDISIBI";
 
 
