@@ -1479,12 +1479,13 @@ nsListControlFrame::AddOption(PRInt32 aIndex)
     }
   }
   
+  
+  mNeedToReset = PR_TRUE;
+
   if (!mHasBeenInitialized) {
     return NS_OK;
   }
 
-  
-  mNeedToReset = PR_TRUE;
   mPostChildrenLoadedReset = mIsAllContentHere;
   return NS_OK;
 }
