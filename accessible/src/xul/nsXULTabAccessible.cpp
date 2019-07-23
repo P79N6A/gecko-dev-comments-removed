@@ -96,15 +96,17 @@ NS_IMETHODIMP nsXULTabAccessible::GetRole(PRUint32 *_retval)
 
 
 
-NS_IMETHODIMP nsXULTabAccessible::GetState(PRUint32 *_retval)
+NS_IMETHODIMP
+nsXULTabAccessible::GetState(PRUint32 *aState, PRUint32 *aExtraState)
 {
   
-  nsLeafAccessible::GetState(_retval);
+  nsresult rv = nsLeafAccessible::GetState(aState, aExtraState);
+  NS_ENSURE_SUCCESS(rv, rv);
 
   
   
   
-  *_retval &= ~nsIAccessibleStates::STATE_FOCUSABLE;
+  *aState &= ~nsIAccessibleStates::STATE_FOCUSABLE;
   nsCOMPtr<nsIContent> content(do_QueryInterface(mDOMNode));
   nsCOMPtr<nsIPresShell> presShell(do_QueryReferent(mWeakShell));
   if (presShell && content) {
@@ -112,17 +114,17 @@ NS_IMETHODIMP nsXULTabAccessible::GetState(PRUint32 *_retval)
     if (frame) {
       const nsStyleUserInterface* ui = frame->GetStyleUserInterface();
       if (ui->mUserFocus == NS_STYLE_USER_FOCUS_NORMAL)
-        *_retval |= nsIAccessibleStates::STATE_FOCUSABLE;
+        *aState |= nsIAccessibleStates::STATE_FOCUSABLE;
     }
   }
   
-  *_retval |= nsIAccessibleStates::STATE_SELECTABLE;
-  *_retval &= ~nsIAccessibleStates::STATE_SELECTED;
+  *aState |= nsIAccessibleStates::STATE_SELECTABLE;
+  *aState &= ~nsIAccessibleStates::STATE_SELECTED;
   nsCOMPtr<nsIDOMXULSelectControlItemElement> tab(do_QueryInterface(mDOMNode));
   if (tab) {
     PRBool selected = PR_FALSE;
     if (NS_SUCCEEDED(tab->GetSelected(&selected)) && selected)
-      *_retval |= nsIAccessibleStates::STATE_SELECTED;
+      *aState |= nsIAccessibleStates::STATE_SELECTED;
   }
   return NS_OK;
 }
@@ -162,10 +164,13 @@ NS_IMETHODIMP nsXULTabBoxAccessible::GetRole(PRUint32 *_retval)
 }
 
 
-NS_IMETHODIMP nsXULTabBoxAccessible::GetState(PRUint32 *_retval)
+NS_IMETHODIMP
+nsXULTabBoxAccessible::GetState(PRUint32 *aState, PRUint32 *aExtraState)
 {
-  nsAccessible::GetState(_retval);
-  *_retval &= ~nsIAccessibleStates::STATE_FOCUSABLE;
+  nsresult rv = nsAccessible::GetState(aState, aExtraState);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  *aState &= ~nsIAccessibleStates::STATE_FOCUSABLE;
   return NS_OK;
 }
 
@@ -207,16 +212,6 @@ NS_IMETHODIMP nsXULTabPanelsAccessible::GetRole(PRUint32 *aRole)
 
 
 
-NS_IMETHODIMP nsXULTabPanelsAccessible::GetState(PRUint32 *_retval)
-{
-  
-  nsAccessible::GetState(_retval);
-  return NS_OK;
-}
-
-
-
-
 
 
 NS_IMETHODIMP nsXULTabPanelsAccessible::GetName(nsAString& _retval)
@@ -249,9 +244,10 @@ NS_IMETHODIMP nsXULTabsAccessible::GetNumActions(PRUint8 *_retval)
 }
 
 
-NS_IMETHODIMP nsXULTabsAccessible::GetState(PRUint32 *_retval)
+NS_IMETHODIMP
+nsXULTabsAccessible::GetState(PRUint32 *aState, PRUint32 *aExtraState)
 {
-  return nsAccessible::GetState(_retval);
+  return nsAccessible::GetState(aState, aExtraState);
 }
 
 

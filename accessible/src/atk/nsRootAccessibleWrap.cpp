@@ -167,7 +167,7 @@ nsresult nsRootAccessibleWrap::HandleEventWithTarget(nsIDOMEvent *aEvent,
             for (PRInt32 index = 0; index < childCount; index++) {
                 accessible->GetChildAt(index, getter_AddRefs(radioAcc));
                 if (radioAcc) {
-                    radioAcc->GetFinalState(&stateData.state);
+                    stateData.state = State(radioAcc);
                     if (stateData.state & (nsIAccessibleStates::STATE_CHECKED |
                         nsIAccessibleStates::STATE_SELECTED)) {
                         break;
@@ -207,7 +207,7 @@ nsresult nsRootAccessibleWrap::HandleEventWithTarget(nsIDOMEvent *aEvent,
     }
     else if (eventType.LowerCaseEqualsLiteral("checkboxstatechange") || 
              eventType.LowerCaseEqualsLiteral("radiostatechange")) { 
-        accessible->GetFinalState(&stateData.state);
+        stateData.state = State(accessible);
         
         
         stateData.enable = (stateData.state &
@@ -222,7 +222,7 @@ nsresult nsRootAccessibleWrap::HandleEventWithTarget(nsIDOMEvent *aEvent,
         }
     }
     else if (eventType.LowerCaseEqualsLiteral("openstatechange")) { 
-        accessible->GetFinalState(&stateData.state);
+        stateData.state = State(accessible);
         stateData.enable = (stateData.state & nsIAccessibleStates::STATE_EXPANDED) != 0;
         stateData.state = nsIAccessibleStates::STATE_EXPANDED;
         privAcc->FireToolkitEvent(nsIAccessibleEvent::EVENT_STATE_CHANGE, accessible, &stateData);

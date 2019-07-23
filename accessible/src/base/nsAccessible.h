@@ -158,7 +158,20 @@ public:
   NS_IMETHOD Init();
   NS_IMETHOD Shutdown();
 
-  NS_IMETHOD GetState(PRUint32 *aState);  
+  
+
+
+
+
+
+  NS_IMETHOD GetState(PRUint32 *aState, PRUint32 *aExtraState);
+
+  
+
+
+
+
+  nsresult GetARIAState(PRUint32 *aState);
 
 #ifdef MOZ_ACCESSIBILITY_ATK
   static PRBool FindTextFrame(PRInt32 &index, nsPresContext *aPresContext, nsIFrame *aCurFrame, 
@@ -170,7 +183,7 @@ public:
 #endif
 
   static PRBool IsCorrectFrameType(nsIFrame* aFrame, nsIAtom* aAtom);
-  static PRUint32 State(nsIAccessible *aAcc) { PRUint32 state; aAcc->GetFinalState(&state); return state; }
+  static PRUint32 State(nsIAccessible *aAcc) { PRUint32 state; aAcc->GetFinalState(&state, nsnull); return state; }
   static PRUint32 Role(nsIAccessible *aAcc) { PRUint32 role; aAcc->GetFinalRole(&role); return role; }
   static PRBool IsText(nsIAccessible *aAcc) { PRUint32 role = Role(aAcc); return role == nsIAccessibleRole::ROLE_TEXT_LEAF || role == nsIAccessibleRole::ROLE_STATICTEXT; }
   static PRBool IsEmbeddedObject(nsIAccessible *aAcc) { PRUint32 role = Role(aAcc); return role != nsIAccessibleRole::ROLE_TEXT_LEAF && role != nsIAccessibleRole::ROLE_WHITESPACE && role != nsIAccessibleRole::ROLE_STATICTEXT; }

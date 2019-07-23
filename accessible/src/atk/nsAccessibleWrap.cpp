@@ -931,16 +931,11 @@ refStateSetCB(AtkObject *aAtkObj)
         NS_REINTERPRET_CAST(MaiAtkObject*, aAtkObj)->accWrap;
 
     
-    PRUint32 accState;
-    nsresult rv = accWrap->GetFinalState(&accState);
+    PRUint32 accState = 0, accExtState = 0;
+    nsresult rv = accWrap->GetFinalState(&accState, &accExtState);
     NS_ENSURE_SUCCESS(rv, state_set);
+
     TranslateStates(accState, gAtkStateMap, state_set);
-
-    
-    PRUint32 accExtState;
-    rv = accWrap->GetExtState(&accExtState);
-    NS_ENSURE_SUCCESS(rv, state_set);
-
     TranslateStates(accExtState, gAtkStateMapExt, state_set);
 
     
