@@ -48,6 +48,10 @@
 
 
 
+
+
+
+
 Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
 let current_test = 0;
 
@@ -190,6 +194,32 @@ function prepTest(name) {
 }
 
 let tests = [
+
+function() {
+  prepTest("0 same count, diff rank, same term; no search");
+  setCountRank(uri1, c1, c1, s2);
+  setCountRank(uri2, c1, c2, s2);
+  ensure_results([uri1, uri2], s0);
+},
+function() {
+  prepTest("1 same count, diff rank, same term; no search");
+  setCountRank(uri1, c1, c2, s2);
+  setCountRank(uri2, c1, c1, s2);
+  ensure_results([uri2, uri1], s0);
+},
+function() {
+  prepTest("2 diff count, same rank, same term; no search");
+  setCountRank(uri1, c1, c1, s2);
+  setCountRank(uri2, c2, c1, s2);
+  ensure_results([uri1, uri2], s0);
+},
+function() {
+  prepTest("3 diff count, same rank, same term; no search");
+  setCountRank(uri1, c2, c1, s2);
+  setCountRank(uri2, c1, c1, s2);
+  ensure_results([uri2, uri1], s0);
+},
+
 
 function() {
   prepTest("4 same count, same rank, diff term; one exact/one partial search");
