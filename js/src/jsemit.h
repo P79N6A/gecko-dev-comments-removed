@@ -474,10 +474,6 @@ extern JSBool
 js_DefineCompileTimeConstant(JSContext *cx, JSCodeGenerator *cg, JSAtom *atom,
                              JSParseNode *pn);
 
-extern JSBool
-js_LookupCompileTimeConstant(JSContext *cx, JSCodeGenerator *cg, JSAtom *atom,
-                             jsval *vp);
-
 
 
 
