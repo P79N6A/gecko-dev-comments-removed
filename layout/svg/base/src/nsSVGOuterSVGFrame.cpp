@@ -419,7 +419,10 @@ nsSVGOuterSVGFrame::DidReflow(nsPresContext*   aPresContext,
     
     
     if (mForeignObjectHash.IsInitialized()) {
-      PRUint32 count = mForeignObjectHash.EnumerateEntries(ReflowForeignObject, nsnull);
+#ifdef DEBUG
+      PRUint32 count =
+#endif
+        mForeignObjectHash.EnumerateEntries(ReflowForeignObject, nsnull);
       NS_ASSERTION(count == mForeignObjectHash.Count(),
                    "We didn't reflow all our nsSVGForeignObjectFrames!");
     }

@@ -1169,7 +1169,6 @@ nsObjectFrame::PrintPlugin(nsIRenderingContext& aRenderingContext,
     return;
 
   
-  nsresult rv;
   nsPluginWindow    window;
   window.window =   nsnull;
 
@@ -1218,7 +1217,7 @@ nsObjectFrame::PrintPlugin(nsIRenderingContext& aRenderingContext,
   window.width =   aDirtyRect.width;
   window.height =   aDirtyRect.height;
   npprint.print.embedPrint.window        = window;
-  rv = pi->Print(&npprint);
+  nsresult rv = pi->Print(&npprint);
   if (NS_FAILED(rv)) {
     PR_LOG(nsObjectFrameLM, PR_LOG_DEBUG, ("error: plugin returned failure %lx\n", (long)rv));
     fclose(plugintmpfile);
@@ -1241,7 +1240,7 @@ nsObjectFrame::PrintPlugin(nsIRenderingContext& aRenderingContext,
   npprint.print.embedPrint.platformPrint = hps;
   npprint.print.embedPrint.window = window;
   
-  rv = pi->Print(&npprint);
+  pi->Print(&npprint);
 #elif defined(XP_WIN)
 
   
@@ -1295,7 +1294,7 @@ nsObjectFrame::PrintPlugin(nsIRenderingContext& aRenderingContext,
     npprint.print.embedPrint.platformPrint = dc;
     npprint.print.embedPrint.window = window;
     
-    rv = pi->Print(&npprint);
+    pi->Print(&npprint);
 
     nativeDraw.EndNativeDrawing();
   } while (nativeDraw.ShouldRenderAgain());
@@ -1332,7 +1331,7 @@ nsObjectFrame::PrintPlugin(nsIRenderingContext& aRenderingContext,
   npprint.print.embedPrint.platformPrint = dc;
   npprint.print.embedPrint.window = window;
   
-    rv = pi->Print(&npprint);
+  pi->Print(&npprint);
 #endif
 
   

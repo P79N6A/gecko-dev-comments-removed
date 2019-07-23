@@ -90,9 +90,7 @@
 
 
 
-#ifdef DEBUG
 PRBool nsLayoutUtils::sDisableGetUsedXAssertions = PR_FALSE;
-#endif
 
 nsIFrame*
 nsLayoutUtils::GetLastContinuationWithChild(nsIFrame* aFrame)
@@ -2023,7 +2021,6 @@ nsLayoutUtils::ComputeWidthDependentValue(
   NS_PRECONDITION(aContainingBlockWidth != NS_UNCONSTRAINEDSIZE,
                   "unconstrained widths no longer supported");
 
-  nscoord result;
   if (eStyleUnit_Coord == aCoord.GetUnit()) {
     return aCoord.GetCoordValue();
   }
@@ -2101,7 +2098,6 @@ nsLayoutUtils::ComputeHeightDependentValue(
                  nscoord              aContainingBlockHeight,
                  const nsStyleCoord&  aCoord)
 {
-  nscoord result;
   if (eStyleUnit_Coord == aCoord.GetUnit()) {
     return aCoord.GetCoordValue();
   }

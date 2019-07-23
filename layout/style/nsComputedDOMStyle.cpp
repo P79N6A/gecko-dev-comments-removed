@@ -890,11 +890,6 @@ nsresult nsComputedDOMStyle::GetMozTransform(nsIDOMCSSValue **aValue)
     resultString.AppendFloat(display->mTransform.GetMainMatrixEntry(index));
     resultString.Append(NS_LITERAL_STRING(", "));
   }
-  
-  
-
-
-  PRInt32 cssPxWidth = 0, cssPxHeight = 0;
 
   
 
