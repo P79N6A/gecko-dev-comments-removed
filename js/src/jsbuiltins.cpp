@@ -329,15 +329,16 @@ static JSBool
 HasProperty(JSContext* cx, JSObject* obj, jsid id)
 {
     
+    if (obj->map->ops->lookupProperty != js_LookupProperty)
+        return JSVAL_TO_PSEUDO_BOOLEAN(JSVAL_VOID);
     JSClass* clasp = OBJ_GET_CLASS(cx, obj);
     if (clasp->resolve != JS_ResolveStub && clasp != &js_StringClass)
-        return JSVAL_TO_BOOLEAN(JSVAL_VOID);
+        return JSVAL_TO_PSEUDO_BOOLEAN(JSVAL_VOID);
 
-    JSAutoResolveFlags rf(cx, JSRESOLVE_QUALIFIED);
     JSObject* obj2;
     JSProperty* prop;
-    if (!OBJ_LOOKUP_PROPERTY(cx, obj, id, &obj2, &prop))
-        return JSVAL_TO_BOOLEAN(JSVAL_VOID);
+    if (!js_LookupPropertyWithFlags(cx, obj, id, JSRESOLVE_QUALIFIED, &obj2, &prop))
+        return JSVAL_TO_PSEUDO_BOOLEAN(JSVAL_VOID);
     if (prop)
         OBJ_DROP_PROPERTY(cx, obj2, prop);
     return prop != NULL;
