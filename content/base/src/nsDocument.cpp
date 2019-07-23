@@ -2603,6 +2603,10 @@ nsDocument::RemoveObserver(nsIDocumentObserver* aObserver)
 void
 nsDocument::BeginUpdate(nsUpdateType aUpdateType)
 {
+  if (mUpdateNestLevel == 0) {
+    mBindingManager->BeginOutermostUpdate();
+  }
+  
   ++mUpdateNestLevel;
   if (mScriptLoader) {
     mScriptLoader->AddExecuteBlocker();
@@ -2619,7 +2623,7 @@ nsDocument::EndUpdate(nsUpdateType aUpdateType)
   if (mUpdateNestLevel == 0) {
     
     
-    mBindingManager->ProcessAttachedQueue();
+    mBindingManager->EndOutermostUpdate();
   }
 
   if (mScriptLoader) {

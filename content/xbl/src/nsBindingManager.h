@@ -205,6 +205,11 @@ public:
 
   NS_DECL_CYCLE_COLLECTION_CLASS(nsBindingManager)
 
+  
+  
+  void BeginOutermostUpdate();
+  void EndOutermostUpdate();
+
 protected:
   nsIXPConnectWrappedJS* GetWrappedJS(nsIContent* aContent);
   nsresult SetWrappedJS(nsIContent* aContent, nsIXPConnectWrappedJS* aResult);
@@ -278,7 +283,8 @@ protected:
 
   
   nsBindingList mAttachedStack;
-  PRBool mProcessingAttachedStack;
+  PRPackedBool mProcessingAttachedStack;
+  PRPackedBool mProcessOnEndUpdate;
 
   
   friend class nsRunnableMethod<nsBindingManager>;
