@@ -113,6 +113,11 @@ private:
 
 - (void)_modalSession:(NSModalSession)aSession sendEvent:(NSEvent *)theEvent;
 
+
+
+
+- (void)setHelpMenu:(NSMenu *)helpMenu;
+
 @end
 
 class nsCocoaUtils
