@@ -120,6 +120,7 @@ private:
   friend class imgRequestProxy;
   friend class imgLoader;
   friend class imgCacheValidator;
+  friend class imgCacheExpirationTracker;
 
   inline void SetLoadId(void *aLoadId) {
     mLoadId = aLoadId;
@@ -139,6 +140,14 @@ private:
   inline nsIProperties *Properties() {
     return mProperties;
   }
+
+  
+  
+  
+  void SetCacheEntry(imgCacheEntry *entry);
+
+  
+  PRBool HasCacheEntry() const;
 
   
   
