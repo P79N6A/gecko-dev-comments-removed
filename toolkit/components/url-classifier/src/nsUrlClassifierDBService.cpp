@@ -1937,37 +1937,28 @@ nsUrlClassifierStore::DeleteEntry(nsUrlClassifierEntry& entry)
 nsresult
 nsUrlClassifierStore::WriteEntry(nsUrlClassifierEntry& entry)
 {
-  PRBool newEntry = (entry.mId == -1);
-
-  if (newEntry) {
+  if (entry.mId != -1) {
     
-    
-    
-    nsresult rv;
-    for (PRUint32 i = 0; i < 10; i++) {
-      mozStorageStatementScoper scoper(mInsertStatement);
-
-      rv = BindStatement(entry, mInsertStatement);
-      NS_ENSURE_SUCCESS(rv, rv);
-
-      rv = mInsertStatement->Execute();
-      if (NS_SUCCEEDED(rv)) {
-        break;
-      }
-    }
-
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    PRInt64 rowId;
-    rv = mConnection->GetLastInsertRowID(&rowId);
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    if (rowId > PR_UINT32_MAX) {
-      return NS_ERROR_FAILURE;
-    }
-
-    entry.mId = rowId;
+    return NS_OK;
   }
+
+  mozStorageStatementScoper scoper(mInsertStatement);
+
+  nsresult rv = BindStatement(entry, mInsertStatement);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  rv = mInsertStatement->Execute();
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  PRInt64 rowId;
+  rv = mConnection->GetLastInsertRowID(&rowId);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  if (rowId > PR_UINT32_MAX) {
+    return NS_ERROR_FAILURE;
+  }
+
+  entry.mId = rowId;
 
   return NS_OK;
 }
