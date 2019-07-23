@@ -169,8 +169,7 @@ nsSVGOuterSVGFrame::Init(nsIContent* aContent,
     }
     
     
-    
-    doc->AddMutationObserver(&sSVGMutationObserver);
+    doc->AddMutationObserverUnlessExists(&sSVGMutationObserver);
   }
 
   SuspendRedraw();  

@@ -3770,8 +3770,9 @@ nsDocument::ScriptLoader()
 void
 nsDocument::AddObserver(nsIDocumentObserver* aObserver)
 {
-  
-  mObservers.AppendElementUnlessExists(aObserver);
+  NS_ASSERTION(mObservers.IndexOf(aObserver) == nsTArray_base::NoIndex,
+               "Observer already in the list");
+  mObservers.AppendElement(aObserver);
   AddMutationObserver(aObserver);
 }
 

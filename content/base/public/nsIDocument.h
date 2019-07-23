@@ -672,6 +672,7 @@ public:
 
 
 
+
   virtual void AddObserver(nsIDocumentObserver* aObserver) = 0;
 
   
