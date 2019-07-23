@@ -1078,8 +1078,9 @@ protected:
     return kNameSpaceID_None;
   }
 
-  
-  void DispatchEventToWindow(nsEvent *aEvent);
+  void DispatchPageTransition(nsPIDOMEventTarget* aDispatchTarget,
+                              const nsAString& aType,
+                              PRBool aPersisted);
 
   
   static PRBool MatchClassNames(nsIContent* aContent, PRInt32 aNamespaceID,
