@@ -269,7 +269,6 @@ js_InitJITStatsClass(JSContext *cx, JSObject *glob)
 #define INS_NULL()            INS_CONSTPTR(NULL)
 #define INS_VOID()            INS_CONST(JSVAL_TO_SPECIAL(JSVAL_VOID))
 
-static GC gc = GC();
 static avmplus::AvmCore s_core = avmplus::AvmCore();
 static avmplus::AvmCore* core = &s_core;
 
@@ -731,7 +730,7 @@ struct Tracker::Page*
 Tracker::addPage(const void* v) {
     jsuword base = getPageBase(v);
     struct Tracker::Page* p = (struct Tracker::Page*)
-        GC::Alloc(sizeof(*p) - sizeof(p->map) + (NJ_PAGE_SIZE >> 2) * sizeof(LIns*));
+        calloc(1, sizeof(*p) - sizeof(p->map) + (NJ_PAGE_SIZE >> 2) * sizeof(LIns*));
     p->base = base;
     p->next = pagelist;
     pagelist = p;
@@ -744,7 +743,7 @@ Tracker::clear()
     while (pagelist) {
         Page* p = pagelist;
         pagelist = pagelist->next;
-        GC::Free(p);
+        free(p);
     }
 }
 
@@ -1409,103 +1408,72 @@ fsub(jsdouble x, jsdouble y)
 }
 JS_DEFINE_CALLINFO_2(static, DOUBLE, fsub, DOUBLE, DOUBLE, 1, 1)
 
-
 class SoftFloatFilter: public LirWriter
 {
 public:
-    SoftFloatFilter(LirWriter *out) : LirWriter(out)
-    {}
-
-    LIns *hi(LIns *q) {
-        return ins1(LIR_qhi, q);
-    }
-    LIns *lo(LIns *q) {
-        return ins1(LIR_qlo, q);
+    SoftFloatFilter(LirWriter* out):
+        LirWriter(out)
+    {
     }
 
-    LIns *split(LIns *a) {
-        if (a->isQuad() && !a->isop(LIR_qjoin)) {
-            
-            a = ins2(LIR_qjoin, lo(a), hi(a));
+    LIns* quadCall(const CallInfo *ci, LIns* args[]) {
+        LInsp qlo, qhi;
+
+        qlo = out->insCall(ci, args);
+        qhi = out->ins1(LIR_callh, qlo);
+        return out->qjoin(qlo, qhi);
+    }
+
+    LIns* ins1(LOpcode v, LIns* s0)
+    {
+        if (v == LIR_fneg)
+            return quadCall(&fneg_ci, &s0);
+
+        if (v == LIR_i2f)
+            return quadCall(&i2f_ci, &s0);
+
+        if (v == LIR_u2f)
+            return quadCall(&u2f_ci, &s0);
+
+        return out->ins1(v, s0);
+    }
+
+    LIns* ins2(LOpcode v, LIns* s0, LIns* s1)
+    {
+        LIns* args[2];
+        LIns* bv;
+
+        
+        if (LIR_fadd <= v && v <= LIR_fdiv) {
+            static const CallInfo *fmap[] = { &fadd_ci, &fsub_ci, &fmul_ci, &fdiv_ci };
+
+            args[0] = s1;
+            args[1] = s0;
+
+            return quadCall(fmap[v - LIR_fadd], args);
         }
-        return a;
-    }
 
-    LIns *split(const CallInfo *call, LInsp args[]) {
-        LIns *lo = out->insCall(call, args);
-        LIns *hi = out->ins1(LIR_callh, lo);
-        return out->ins2(LIR_qjoin, lo, hi);
-    }
+        if (LIR_feq <= v && v <= LIR_fge) {
+            static const CallInfo *fmap[] = { &fcmpeq_ci, &fcmplt_ci, &fcmpgt_ci, &fcmple_ci, &fcmpge_ci };
 
-    LIns *fcall1(const CallInfo *call, LIns *a) {
-        LIns *args[] = { split(a) };
-        return split(call, args);
-    }
+            args[0] = s1;
+            args[1] = s0;
 
-    LIns *fcall2(const CallInfo *call, LIns *a, LIns *b) {
-        LIns *args[] = { split(b), split(a) };
-        return split(call, args);
-    }
-
-    LIns *fcmp(const CallInfo *call, LIns *a, LIns *b) {
-        LIns *args[] = { split(b), split(a) };
-        return out->ins2(LIR_eq, out->insCall(call, args), out->insImm(1));
-    }
-
-    LIns *ins1(LOpcode op, LIns *a) {
-        switch (op) {
-        case LIR_i2f:
-            return fcall1(&i2f_ci, a);
-        case LIR_u2f:
-            return fcall1(&u2f_ci, a);
-        case LIR_fneg:
-            return fcall1(&fneg_ci, a);
-        case LIR_fret:
-            return out->ins1(op, split(a));
-        default:
-            return out->ins1(op, a);
+            bv = out->insCall(fmap[v - LIR_feq], args);
+            return out->ins2(LIR_eq, bv, out->insImm(1));
         }
+
+        return out->ins2(v, s0, s1);
     }
 
-    LIns *ins2(LOpcode op, LIns *a, LIns *b) {
-        switch (op) {
-        case LIR_fadd:
-            return fcall2(&fadd_ci, a, b);
-        case LIR_fsub:
-            return fcall2(&fsub_ci, a, b);
-        case LIR_fmul:
-            return fcall2(&fmul_ci, a, b);
-        case LIR_fdiv:
-            return fcall2(&fdiv_ci, a, b);
-        case LIR_feq:
-            return fcmp(&fcmpeq_ci, a, b);
-        case LIR_flt:
-            return fcmp(&fcmplt_ci, a, b);
-        case LIR_fgt:
-            return fcmp(&fcmpgt_ci, a, b);
-        case LIR_fle:
-            return fcmp(&fcmple_ci, a, b);
-        case LIR_fge:
-            return fcmp(&fcmpge_ci, a, b);
-        default:
-            ;
-        }
-        return out->ins2(op, a, b);
-    }
+    LIns* insCall(const CallInfo *ci, LIns* args[])
+    {
+        
+        
+        if ((ci->_argtypes & ARGSIZE_MASK_ANY) == ARGSIZE_F)
+            return quadCall(ci, args);
 
-    LIns *insCall(const CallInfo *ci, LInsp args[]) {
-        uint32_t argt = ci->_argtypes;
-
-        for (uint32_t i = 0, argsizes = argt >> ARGSIZE_SHIFT; argsizes != 0; i++, argsizes >>= ARGSIZE_SHIFT)
-            args[i] = split(args[i]);
-
-        if ((argt & ARGSIZE_MASK_ANY) == ARGSIZE_F) {
-            
-            
-            return split(ci, args);
-        } else {
-            return out->insCall(ci, args);
-        }
+        return out->insCall(ci, args);
     }
 };
 
@@ -2049,26 +2017,24 @@ TraceRecorder::TraceRecorder(JSContext* cx, VMSideExit* _anchor, Fragment* _frag
 
 #endif
 
-    lir = lir_buf_writer = new (&gc) LirBufWriter(lirbuf);
+    lir = lir_buf_writer = new LirBufWriter(lirbuf);
 #ifdef DEBUG
-    lir = sanity_filter_1 = new (&gc) SanityFilter(lir);
+    lir = sanity_filter_1 = new SanityFilter(lir);
 #endif
     debug_only_stmt(
         if (js_LogController.lcbits & LC_TMRecorder) {
            lir = verbose_filter
-               = new (&gc) VerboseWriter(*traceMonitor->allocator, lir,
-                                         lirbuf->names, &js_LogController);
+               = new VerboseWriter (*JS_TRACE_MONITOR(cx).allocator, lir, lirbuf->names,
+                                    &js_LogController);
         }
     )
     if (nanojit::AvmCore::config.soft_float)
-        lir = float_filter = new (&gc) SoftFloatFilter(lir);
-    else
-        float_filter = 0;
-    lir = cse_filter = new (&gc) CseFilter(lir, *traceMonitor->allocator);
-    lir = expr_filter = new (&gc) ExprFilter(lir);
-    lir = func_filter = new (&gc) FuncFilter(lir);
+        lir = float_filter = new SoftFloatFilter(lir);
+    lir = cse_filter = new CseFilter(lir, *JS_TRACE_MONITOR(cx).allocator);
+    lir = expr_filter = new ExprFilter(lir);
+    lir = func_filter = new FuncFilter(lir);
 #ifdef DEBUG
-    lir = sanity_filter_2 = new (&gc) SanityFilter(lir);
+    lir = sanity_filter_2 = new SanityFilter(lir);
 #endif
     lir->ins0(LIR_start);
 
@@ -4977,9 +4943,9 @@ StartRecorder(JSContext* cx, VMSideExit* anchor, Fragment* f, TreeInfo* ti,
     JS_ASSERT(f->root != f || !cx->fp->imacpc);
 
     
-    tm->recorder = new (&gc) TraceRecorder(cx, anchor, f, ti,
-                                           stackSlots, ngslots, typeMap,
-                                           expectedInnerExit, outer, outerArgc);
+    tm->recorder = new TraceRecorder(cx, anchor, f, ti,
+                                     stackSlots, ngslots, typeMap,
+                                     expectedInnerExit, outer, outerArgc);
 
     if (cx->throwing) {
         js_AbortRecording(cx, "setting up recorder failed");
@@ -6804,9 +6770,6 @@ js_arm_check_arch() {
 
 static bool
 js_arm_check_vfp() {
-#ifdef WINCE_WINDOWS_MOBILE
-    return false;
-#else
     bool ret = false;
     __try {
         js_arm_try_vfp_op();
@@ -6815,7 +6778,6 @@ js_arm_check_vfp() {
         ret = false;
     }
     return ret;
-#endif
 }
 
 #define HAVE_ENABLE_DISABLE_DEBUGGER_EXCEPTIONS 1
