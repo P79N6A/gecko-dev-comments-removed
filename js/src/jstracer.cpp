@@ -8156,7 +8156,7 @@ TraceRecorder::alu(LOpcode v, jsdouble v0, jsdouble v1, LIns* s0, LIns* s1)
 
 
 
-        guard(false, lir->ins2i(LIR_lt, d1, 0), exit);
+        guard(false, lir->ins2i(LIR_lt, d0, 0), exit);
         branch->setTarget(lir->ins0(LIR_label));
         break;
       }
