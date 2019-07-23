@@ -3683,7 +3683,6 @@ PRBool nsWindow::ProcessMessage(UINT msg, WPARAM &wParam, LPARAM &lParam,
   static UINT vkKeyCached = 0; 
   PRBool result = PR_FALSE;    
   *aRetValue = 0;
-  nsPaletteInfo palInfo;
 
 #if !defined (WINCE_WINDOWS_MOBILE)
   static PRBool getWheelInfo = PR_TRUE;
@@ -4321,36 +4320,6 @@ PRBool nsWindow::ProcessMessage(UINT msg, WPARAM &wParam, LPARAM &lParam,
       getWheelInfo = PR_TRUE;
 #endif
       OnSettingsChange(wParam, lParam);
-      break;
-
-    case WM_PALETTECHANGED:
-      if ((HWND)wParam == mWnd) {
-        
-        
-        result = PR_TRUE;
-        break;
-      }
-      
-
-    case WM_QUERYNEWPALETTE:      
-      mContext->GetPaletteInfo(palInfo);
-      if (palInfo.isPaletteDevice && palInfo.palette) {
-        HDC hDC = ::GetDC(mWnd);
-        HPALETTE hOldPal = ::SelectPalette(hDC, (HPALETTE)palInfo.palette, TRUE);
-
-        
-        int i = ::RealizePalette(hDC);
-
-#ifdef DEBUG
-        
-#endif
-        
-        ::InvalidateRect(mWnd, (LPRECT)NULL, TRUE);
-
-        ::ReleaseDC(mWnd, hDC);
-        *aRetValue = TRUE;
-      }
-      result = PR_TRUE;
       break;
 
 #ifndef WINCE

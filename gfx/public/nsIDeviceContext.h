@@ -173,17 +173,6 @@ const PRUint8 kUseAltDCFor_SURFACE_DIM     = 0x08;
 { 0x40aebd88, 0xa82b, 0x48b0, \
   { 0x8a, 0x44, 0xbe, 0x51, 0x51, 0x00, 0x64, 0xa7 } }
 
-
-typedef void * nsPalette;
-
-  
-  struct nsPaletteInfo {
-     PRPackedBool  isPaletteDevice;
-     PRUint16      sizePalette;  
-     PRUint16      numReserved;  
-     nsPalette     palette;      
-  };
-
   typedef enum {
     eSystemFont_Caption,         
     eSystemFont_Icon,
@@ -376,11 +365,6 @@ public:
 
 
   NS_IMETHOD GetDepth(PRUint32& aDepth) = 0;
-
-  
-
-
-  NS_IMETHOD GetPaletteInfo(nsPaletteInfo& aPaletteInfo) = 0;
 
   
 
