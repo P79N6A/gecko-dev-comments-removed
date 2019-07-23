@@ -45,7 +45,10 @@
 
 
 
+#if HAVE_CONFIG_H
 #include <config.h>
+#endif
+
 #include <stdlib.h>
 #include <limits.h>
 #include <string.h>
