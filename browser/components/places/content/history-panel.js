@@ -71,6 +71,13 @@ function HistorySidebarInit()
   
   
   setTimeout(function() { searchHistory(gSearchBox.value); }, 0); 
+  
+  
+  
+  
+  
+  
+  setTimeout(function() { searchHistory(gSearchBox.value); }, 0); 
   gSearchBox.focus();
 }
 
