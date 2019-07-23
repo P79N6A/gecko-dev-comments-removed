@@ -529,8 +529,9 @@ CheckArgShell(const char* aArg)
 
 
 
+
 static void
-ProcessDDE(nsINativeAppSupport* aNative)
+ProcessDDE(nsINativeAppSupport* aNative, PRBool aWait)
 {
   
   
@@ -544,13 +545,15 @@ ProcessDDE(nsINativeAppSupport* aNative)
   ar = CheckArgShell("requestpending");
   if (ar == ARG_FOUND) {
     aNative->Enable(); 
-    nsIThread *thread = NS_GetCurrentThread();
-    
-    
-    PRInt32 count = 20;
-    while(--count >= 0) {
-      NS_ProcessNextEvent(thread);
-      PR_Sleep(PR_MillisecondsToInterval(1));
+    if (aWait) {
+      nsIThread *thread = NS_GetCurrentThread();
+      
+      
+      PRInt32 count = 20;
+      while(--count >= 0) {
+        NS_ProcessNextEvent(thread);
+        PR_Sleep(PR_MillisecondsToInterval(1));
+      }
     }
   }
 }
@@ -1717,7 +1720,9 @@ ShowProfileManager(nsIToolkitProfileService* aProfileSvc,
 #endif
 
 #ifdef XP_WIN
-    ProcessDDE(aNative);
+    
+    
+    ProcessDDE(aNative, PR_FALSE);
 #endif
 
     { 
@@ -3207,7 +3212,7 @@ XRE_main(int argc, char* argv[], const nsXREAppData* aAppData)
           needsRestart = PR_TRUE;
 
 #ifdef XP_WIN
-          ProcessDDE(nativeApp);
+          ProcessDDE(nativeApp, PR_TRUE);
 #endif
 
 #ifdef XP_MACOSX
