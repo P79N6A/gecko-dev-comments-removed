@@ -7466,7 +7466,7 @@ static JSParseNode *
 XMLExpr(JSContext *cx, JSTokenStream *ts, JSBool inTag, JSTreeContext *tc)
 {
     JSParseNode *pn, *pn2;
-    uintN oldflags;
+    uintN oldflag;
 
     JS_ASSERT(CURRENT_TOKEN(ts).type == TOK_LC);
     pn = NewParseNode(PN_UNARY, tc);
@@ -7479,14 +7479,14 @@ XMLExpr(JSContext *cx, JSTokenStream *ts, JSBool inTag, JSTreeContext *tc)
 
 
 
-    oldflags = ts->flags;
-    ts->flags = oldflags & ~TSF_XMLTAGMODE;
+    oldflag = ts->flags & TSF_XMLTAGMODE;
+    ts->flags &= ~TSF_XMLTAGMODE;
     pn2 = Expr(cx, ts, tc);
     if (!pn2)
         return NULL;
 
     MUST_MATCH_TOKEN(TOK_RC, JSMSG_CURLY_IN_XML_EXPR);
-    ts->flags = oldflags;
+    ts->flags |= oldflag;
     pn->pn_kid = pn2;
     pn->pn_op = inTag ? JSOP_XMLTAGEXPR : JSOP_XMLELTEXPR;
     return pn;
