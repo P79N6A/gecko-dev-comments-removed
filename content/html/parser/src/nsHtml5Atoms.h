@@ -34,7 +34,7 @@
 
 
 
-
+ 
 
 
 
@@ -47,13 +47,9 @@
 #include "nsIAtom.h"
 
 class nsHtml5Atoms {
-public:
-
-  static void AddRefAtoms();
-
-  
-
-
+  public:
+    static void AddRefAtoms();
+    
 
 
 

@@ -34,7 +34,7 @@
 
 
 
-
+ 
 private:
   nsCOMPtr<nsIUnicodeDecoder>  mUnicodeDecoder;
   nsCString mCharset;
