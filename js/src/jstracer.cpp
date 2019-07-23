@@ -1268,10 +1268,9 @@ TraceRecorder::cmp(LOpcode op, bool negate)
         }
         
 
-        if (cx->fp->regs->pc[1] == ::JSOP_IFEQ)
+        if (cx->fp->regs->pc[1] == ::JSOP_IFEQ
+            || cx->fp->regs->pc[1] == ::JSOP_IFNE)
             guard(cond, x);
-        else if (cx->fp->regs->pc[1] == ::JSOP_IFNE)
-            guard(!cond, x);
         
 
 
