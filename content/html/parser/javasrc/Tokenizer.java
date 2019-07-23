@@ -466,8 +466,6 @@ public class Tokenizer implements Locator {
 
     
 
-    private PushedLocation pushedLocation;
-
     protected LocatorImpl ampersandLocation;
 
     public Tokenizer(TokenHandler tokenHandler,

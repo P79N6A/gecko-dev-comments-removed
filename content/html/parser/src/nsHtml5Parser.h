@@ -39,6 +39,7 @@
 #ifndef NS_HTML5_PARSER__
 #define NS_HTML5_PARSER__
 
+#include "nsAutoPtr.h"
 #include "nsTimer.h"
 #include "nsIParser.h"
 #include "nsDeque.h"
@@ -62,10 +63,6 @@
 #include "nsDetectionConfident.h"
 #include "nsHtml5UTF16Buffer.h"
 #include "nsHtml5MetaScanner.h"
-
-#define NS_HTML5_PARSER_CID \
-  {0x3113adb0, 0xe56d, 0x459e, \
-    {0xb9, 0x5b, 0xf1, 0xf2, 0x4a, 0xba, 0x2a, 0x80}}
 
 #define NS_HTML5_PARSER_READ_BUFFER_SIZE 1024
 
@@ -364,50 +361,50 @@ class nsHtml5Parser : public nsIParser,
   
   private:
     
-    PRBool                       mNeedsCharsetSwitch;
-    PRBool                       mLastWasCR;
-    PRBool                       mTerminated;
-    PRBool                       mLayoutStarted;
-    PRBool                       mFragmentMode;
-    PRBool                       mBlocked;
-    PRBool                       mSuspending;
-    eHtml5ParserLifecycle        mLifeCycle;
-    eStreamState                 mStreamListenerState;
+    PRBool                        mNeedsCharsetSwitch;
+    PRBool                        mLastWasCR;
+    PRBool                        mTerminated;
+    PRBool                        mLayoutStarted;
+    PRBool                        mFragmentMode;
+    PRBool                        mBlocked;
+    PRBool                        mSuspending;
+    eHtml5ParserLifecycle         mLifeCycle;
+    eStreamState                  mStreamListenerState;
 
     
-    nsCOMPtr<nsIContent>         mScriptElement;
-    PRUint32                     mScriptsExecuting;
+    nsCOMPtr<nsIContent>          mScriptElement;
+    PRUint32                      mScriptsExecuting;
      
     
-    void*                        mRootContextKey;
-    nsCOMPtr<nsIRequest>         mRequest; 
-    nsCOMPtr<nsIRequestObserver> mObserver;
-    nsIRunnable*                 mContinueEvent;  
+    void*                         mRootContextKey;
+    nsCOMPtr<nsIRequest>          mRequest; 
+    nsCOMPtr<nsIRequestObserver>  mObserver;
+    nsIRunnable*                  mContinueEvent;  
  
     
-    nsIContent*                  mDocElement; 
+    nsIContent*                   mDocElement; 
   
     
-    PRInt32                      mCharsetSource;
-    nsCString                    mCharset;
-    nsCString                    mPendingCharset;
-    nsCOMPtr<nsIUnicodeDecoder>  mUnicodeDecoder;
-    PRUint8*                     mSniffingBuffer;
-    PRUint32                     mSniffingLength; 
-    eBomState                    mBomState;
-    nsHtml5MetaScanner*          mMetaScanner;
+    PRInt32                       mCharsetSource;
+    nsCString                     mCharset;
+    nsCString                     mPendingCharset;
+    nsCOMPtr<nsIUnicodeDecoder>   mUnicodeDecoder;
+    PRUint8*                      mSniffingBuffer;
+    PRUint32                      mSniffingLength; 
+    eBomState                     mBomState;
+    nsHtml5MetaScanner*           mMetaScanner;
         
     
-    nsHtml5UTF16Buffer*          mFirstBuffer; 
-    nsHtml5UTF16Buffer*          mLastBuffer; 
+    nsHtml5UTF16Buffer*           mFirstBuffer; 
+    nsHtml5UTF16Buffer*           mLastBuffer; 
                       
-    nsHtml5TreeBuilder*          mTreeBuilder; 
-    nsHtml5Tokenizer*            mTokenizer; 
+    nsAutoPtr<nsHtml5TreeBuilder> mTreeBuilder;
+    nsAutoPtr<nsHtml5Tokenizer>   mTokenizer;
 #ifdef DEBUG
-    nsHtml5StateSnapshot*        mSnapshot;
-    static PRUint32              sUnsafeDocWrites;
-    static PRUint32              sTokenSafeDocWrites;
-    static PRUint32              sTreeSafeDocWrites;
+    nsHtml5StateSnapshot*         mSnapshot;
+    static PRUint32               sUnsafeDocWrites;
+    static PRUint32               sTokenSafeDocWrites;
+    static PRUint32               sTreeSafeDocWrites;
 #endif
 };
 
