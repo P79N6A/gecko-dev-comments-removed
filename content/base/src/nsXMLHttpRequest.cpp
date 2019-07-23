@@ -2578,10 +2578,6 @@ nsXMLHttpRequest::Send(nsIVariant *aBody)
   
   mDocument = nsnull;
 
-  if (!(mState & XML_HTTP_REQUEST_ASYNC)) {
-    mState |= XML_HTTP_REQUEST_SYNCLOOPING;
-  }
-
   rv = CheckChannelForCrossSiteRequest(mChannel);
   NS_ENSURE_SUCCESS(rv, rv);
 
@@ -2686,7 +2682,7 @@ nsXMLHttpRequest::Send(nsIVariant *aBody)
   
   
   
-  else if (mState & XML_HTTP_REQUEST_SYNCLOOPING) {
+  else if (!(mState & XML_HTTP_REQUEST_ASYNC)) {
     AddLoadFlags(mChannel,
         nsICachingChannel::LOAD_BYPASS_LOCAL_CACHE_IF_BUSY);
     if (mACGetChannel) {
@@ -2737,6 +2733,7 @@ nsXMLHttpRequest::Send(nsIVariant *aBody)
 
   
   if (!(mState & XML_HTTP_REQUEST_ASYNC)) {
+    mState |= XML_HTTP_REQUEST_SYNCLOOPING;
     nsIThread *thread = NS_GetCurrentThread();
     while (mState & XML_HTTP_REQUEST_SYNCLOOPING) {
       if (!NS_ProcessNextEvent(thread)) {
