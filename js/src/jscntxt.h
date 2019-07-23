@@ -56,7 +56,6 @@
 #include "jspubtd.h"
 #include "jsregexp.h"
 #include "jsutil.h"
-#include "jstracer.h"
 
 JS_BEGIN_EXTERN_C
 
@@ -93,6 +92,21 @@ typedef struct JSGSNCache {
 
 #define JS_CLEAR_GSN_CACHE(cx)      GSN_CACHE_CLEAR(&JS_GSN_CACHE(cx))
 #define JS_METER_GSN_CACHE(cx,cnt)  GSN_CACHE_METER(&JS_GSN_CACHE(cx), cnt)
+
+namespace nanojit {
+    class Fragmento;
+}
+class TraceRecorder;
+
+
+
+
+
+
+struct JSTraceMonitor {
+    nanojit::Fragmento*     fragmento;
+    TraceRecorder*          recorder;
+};
 
 #ifdef JS_THREADSAFE
 

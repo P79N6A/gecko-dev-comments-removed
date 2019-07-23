@@ -213,16 +213,6 @@ public:
 #undef OPDEF
 };
 
-
-
-
-
-
-struct JSTraceMonitor {
-    nanojit::Fragmento*     fragmento;
-    TraceRecorder*          recorder;
-};
-
 #define TRACING_ENABLED(cx)       JS_HAS_OPTION(cx, JSOPTION_JIT)
 
 extern bool
