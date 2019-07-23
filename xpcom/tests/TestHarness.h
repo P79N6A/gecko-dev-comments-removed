@@ -75,9 +75,10 @@ void fail(const char* msg, ...)
 
 
 
+
 void passed(const char* test)
 {
-  printf("%s PASSED!\n", test);
+  printf("TEST-PASS | %s\n", test);
 }
 
 
