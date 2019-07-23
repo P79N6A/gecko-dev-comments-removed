@@ -295,6 +295,7 @@ protected:
                                               nsIAppShell *aAppShell,
                                               nsIToolkit *aToolkit);
   void                 DestroyNativeWindow();
+  void                 AdjustWindowShadow();
 
   nsIWidget*           mParent;         
   BaseWindow*          mWindow;         
@@ -302,6 +303,7 @@ protected:
   nsRefPtr<nsMenuBarX> mMenuBar;
   NSWindow*            mSheetWindowParent; 
   nsChildView*         mPopupContentView; 
+  PRInt32              mShadowStyle;
 
   PRPackedBool         mIsResizing;     
   PRPackedBool         mWindowMadeHere; 
