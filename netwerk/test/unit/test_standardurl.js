@@ -68,8 +68,7 @@ function test_setQuery()
     [
      ["http://example.com", "http://example.com/?foo"],
      ["http://example.com/bar", "http://example.com/bar?foo"],
-     
-     
+     ["http://example.com#bar", "http://example.com/?foo#bar"],
      ["http://example.com/#bar", "http://example.com/?foo#bar"],
      ["http://example.com/?longerthanfoo#bar", "http://example.com/?foo#bar"],
      ["http://example.com/?longerthanfoo", "http://example.com/?foo"],

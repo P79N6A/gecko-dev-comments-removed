@@ -560,6 +560,11 @@ nsStandardURL::BuildNormalizedSpec(const char *spec)
             LOG(("adding leading slash to path\n"));
             leadingSlash = 1;
             buf[i++] = '/';
+            
+            if (mBasename.mLen == -1) {
+                mBasename.mPos = i;
+                mBasename.mLen = 0;
+            }
         }
 
         
