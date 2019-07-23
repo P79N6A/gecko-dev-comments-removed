@@ -103,8 +103,8 @@ typedef PRUint32 nsFrameState;
 
 
 #define NS_IPRESSHELL_IID \
-{ 0xb8ace28a, 0xd3fa, 0x46d8, \
-  { 0xa5, 0xa0, 0xd7, 0xc3, 0x5c, 0x12, 0xfd, 0x41 } }
+{ 0xfa1bf801, 0x9fb6, 0x4d19, \
+  { 0x8d, 0x33, 0x69, 0x8e, 0x99, 0x61, 0xfc, 0x10 } }
 
 
 #define NS_PRESSHELL_SCROLL_TOP      0
@@ -792,6 +792,11 @@ public:
 
   void SetCanvasBackground(nscolor aColor) { mCanvasBackgroundColor = aColor; }
   nscolor GetCanvasBackground() { return mCanvasBackgroundColor; }
+
+  
+
+
+  virtual void UpdateCanvasBackground() = 0;
 
   void ObserveNativeAnonMutationsForPrint(PRBool aObserve)
   {
