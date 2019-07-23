@@ -4188,8 +4188,12 @@ UnaryExpr(JSContext *cx, JSTokenStream *ts, JSTreeContext *tc)
 
 
 
+
+
         while (pn2->pn_type == TOK_RP)
             pn2 = pn2->pn_kid;
+        if (!js_FoldConstants(cx, pn2, tc))
+            return NULL;
         if (pn2->pn_type == TOK_LP &&
             pn2->pn_op != JSOP_SETCALL &&
             !MakeSetCall(cx, pn2, JSMSG_BAD_DELETE_OPERAND)) {
