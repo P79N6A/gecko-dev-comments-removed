@@ -88,6 +88,30 @@ inline void VERIFY_COORD(nscoord aCoord) {
 #endif
 }
 
+inline nscoord NSToCoordRound(float aValue)
+{
+#if defined(XP_WIN32) && defined(_M_IX86) && !defined(__GNUC__)
+  return NS_lroundup30(aValue);
+#else
+  return nscoord(NS_floorf(aValue + 0.5f));
+#endif 
+}
+
+inline nscoord NSToCoordRoundWithClamp(float aValue)
+{
+#ifndef NS_COORD_IS_FLOAT
+  
+  if (aValue >= nscoord_MAX) {
+    NS_WARNING("Overflowed nscoord_MAX in conversion to nscoord");
+    return nscoord_MAX;
+  }
+  if (aValue <= nscoord_MIN) {
+    NS_WARNING("Overflowed nscoord_MIN in conversion to nscoord");
+    return nscoord_MIN;
+  }
+#endif
+  return NSToCoordRound(aValue);
+}
 
 
 
@@ -95,28 +119,53 @@ inline void VERIFY_COORD(nscoord aCoord) {
 
 
 
-inline nscoord NSCoordSaturatingMultiply(nscoord aCoord, float aVal) {
+inline nscoord _nscoordSaturatingMultiply(nscoord aCoord, float aScale,
+                                          PRBool requireNotNegative) {
   VERIFY_COORD(aCoord);
-  NS_ASSERTION(aVal >= 0.0f,
-               "negative scaling factors must be handled manually");
+  if (requireNotNegative) {
+    NS_ABORT_IF_FALSE(aScale >= 0.0f,
+                      "negative scaling factors must be handled manually");
+  }
 #ifdef NS_COORD_IS_FLOAT
-  return floorf(aCoord * aVal);
+  return floorf(aCoord * aScale);
 #else
   
-  NS_WARN_IF_FALSE(aCoord > 0
-                   ? floorf(aCoord * aVal) < nscoord_MAX
-                   : ceilf(aCoord * aVal) > nscoord_MIN,
+  
+  NS_WARN_IF_FALSE((requireNotNegative
+                    ? aCoord > 0
+                    : (aCoord > 0) == (aScale > 0))
+                   ? floorf(aCoord * aScale) < nscoord_MAX
+                   : ceilf(aCoord * aScale) > nscoord_MIN,
                    "nscoord multiplication capped");
 
-  if (aCoord > 0)
-    return PRInt32(PR_MIN(nscoord_MAX, aCoord * aVal));
-  return PRInt32(PR_MAX(nscoord_MIN, aCoord * aVal));
+  float product = aCoord * aScale;
+  if (requireNotNegative ? aCoord > 0 : (aCoord > 0) == (aScale > 0))
+    return NSToCoordRoundWithClamp(PR_MIN(nscoord_MAX, product));
+  return NSToCoordRoundWithClamp(PR_MAX(nscoord_MIN, product));
 #endif
 }
 
-inline nscoord NSCoordMultiply(nscoord aCoord, PRInt32 aVal) {
+
+
+
+
+
+
+inline nscoord NSCoordSaturatingNonnegativeMultiply(nscoord aCoord, float aScale) {
+  return _nscoordSaturatingMultiply(aCoord, aScale, PR_TRUE);
+}
+
+
+
+
+
+inline nscoord NSCoordSaturatingMultiply(nscoord aCoord, float aScale) {
+  return _nscoordSaturatingMultiply(aCoord, aScale, PR_FALSE);
+}
+
+inline nscoord NSCoordMultiply(nscoord aCoord, PRInt32 aScale) {
   VERIFY_COORD(aCoord);
-  return aCoord*aVal;
+  return aCoord * aScale;
 }
 
 inline nscoord NSCoordDivide(nscoord aCoord, float aVal) {
@@ -337,31 +386,6 @@ inline nscoord NSToCoordCeilClamped(float aValue)
   }
 #endif
   return NSToCoordCeil(aValue);
-}
-
-inline nscoord NSToCoordRound(float aValue)
-{
-#if defined(XP_WIN32) && defined(_M_IX86) && !defined(__GNUC__)
-  return NS_lroundup30(aValue);
-#else
-  return nscoord(NS_floorf(aValue + 0.5f));
-#endif 
-}
-
-inline nscoord NSToCoordRoundWithClamp(float aValue)
-{
-#ifndef NS_COORD_IS_FLOAT
-  
-  if (aValue >= nscoord_MAX) {
-    NS_WARNING("Overflowed nscoord_MAX in conversion to nscoord");
-    return nscoord_MAX;
-  }
-  if (aValue <= nscoord_MIN) {
-    NS_WARNING("Overflowed nscoord_MIN in conversion to nscoord");
-    return nscoord_MIN;
-  }
-#endif
-  return NSToCoordRound(aValue);
 }
 
 
