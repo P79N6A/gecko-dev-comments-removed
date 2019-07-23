@@ -4466,19 +4466,31 @@ nsWindowSH::GetProperty(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
     
     
     
+    
+    
+    
+    
 
-    nsCOMPtr<nsIXPConnectWrappedNative> vpwrapper;
-    sXPConnect->GetWrappedNativeOfJSObject(cx, JSVAL_TO_OBJECT(*vp),
-                                           getter_AddRefs(vpwrapper));
+    const char *name = JS_GET_CLASS(cx, JSVAL_TO_OBJECT(*vp))->name;
 
-    if (vpwrapper) {
-      nsCOMPtr<nsIDOMWindow> window(do_QueryWrappedNative(vpwrapper));
+    
+    
+    if ((*name == 'W' && strcmp(name, "Window") == 0) ||
+        (*name == 'C' && strcmp(name, "ChromeWindow") == 0) ||
+        (*name == 'M' && strcmp(name, "ModalContentWindow") == 0)) {
+      nsCOMPtr<nsIXPConnectWrappedNative> vpwrapper;
+      sXPConnect->GetWrappedNativeOfJSObject(cx, JSVAL_TO_OBJECT(*vp),
+                                             getter_AddRefs(vpwrapper));
 
-      if (window) {
-        
-        
+      if (vpwrapper) {
+        nsCOMPtr<nsIDOMWindow> window(do_QueryWrappedNative(vpwrapper));
 
-        return NS_SUCCESS_I_DID_SOMETHING;
+        if (window) {
+          
+          
+
+          return NS_SUCCESS_I_DID_SOMETHING;
+        }
       }
     }
   }
