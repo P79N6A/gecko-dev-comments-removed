@@ -3527,12 +3527,8 @@ nsPluginInstanceOwner::Destroy()
 void
 nsPluginInstanceOwner::PrepareToStop(PRBool aDelayedStop)
 {
-  if (!mWidget) {
-    return;
-  }
-
 #ifdef XP_WIN
-  if (aDelayedStop) {
+  if (aDelayedStop && mWidget) {
     
     
     
