@@ -174,12 +174,19 @@ struct nsCSSRendering {
 
 
 
+  enum {
+    
+
+
+
+    PAINT_WILL_PAINT_BORDER = 0x01
+  };
   static void PaintBackground(nsPresContext* aPresContext,
                               nsIRenderingContext& aRenderingContext,
                               nsIFrame* aForFrame,
                               const nsRect& aDirtyRect,
                               const nsRect& aBorderArea,
-                              PRBool aUsePrintSettings,
+                              PRUint32 aFlags,
                               nsRect* aBGClipRect = nsnull);
 
   
@@ -194,7 +201,7 @@ struct nsCSSRendering {
                                     const nsRect& aBorderArea,
                                     const nsStyleBackground& aColor,
                                     const nsStyleBorder& aBorder,
-                                    PRBool aUsePrintSettings = PR_FALSE,
+                                    PRUint32 aFlags,
                                     nsRect* aBGClipRect = nsnull);
 
   
