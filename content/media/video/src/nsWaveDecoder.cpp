@@ -574,17 +574,18 @@ nsWaveStateMachine::Run()
           ChangeState(STATE_ENDED);
         }
 
-        PRInt64 available =
-          mStream->GetCachedDataEnd(mPlaybackPosition) - mPlaybackPosition;
+        PRInt64 availableOffset = mStream->GetCachedDataEnd(mPlaybackPosition);
 
         
         
         
-        if (mState != STATE_ENDED && available < len &&
+        if (mState != STATE_ENDED &&
+            availableOffset < mPlaybackPosition + len &&
             !mStream->IsSuspendedByCache()) {
             mBufferingStart = now;
             mBufferingEndOffset = mPlaybackPosition +
               TimeToBytes(mBufferingWait.ToSeconds());
+            mBufferingEndOffset = PR_MAX(mPlaybackPosition + len, mBufferingEndOffset);
             mNextState = mState;
             ChangeState(STATE_BUFFERING);
 
