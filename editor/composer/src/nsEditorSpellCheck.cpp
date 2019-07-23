@@ -182,19 +182,16 @@ nsEditorSpellCheck::InitSpellChecker(nsIEditor* aEditor, PRBool aEnableSelection
   nsCOMPtr<nsIPrefBranch> prefBranch =
     do_GetService(NS_PREFSERVICE_CONTRACTID, &rv);
 
-  PRBool hasPreference = PR_FALSE;
   if (NS_SUCCEEDED(rv) && prefBranch) {
     nsCOMPtr<nsISupportsString> prefString;
     rv = prefBranch->GetComplexValue("spellchecker.dictionary",
                                      NS_GET_IID(nsISupportsString),
                                      getter_AddRefs(prefString));
-    if (NS_SUCCEEDED(rv) && prefString) {
-      hasPreference = PR_TRUE;
-      prefString->ToString(getter_Copies(dictName));
-    }
+    if (NS_SUCCEEDED(rv) && prefString)
+      prefString->GetData(dictName);
   }
 
-  if (! hasPreference || dictName.IsEmpty())
+  if (dictName.IsEmpty())
   {
     
     
@@ -220,10 +217,7 @@ nsEditorSpellCheck::InitSpellChecker(nsIEditor* aEditor, PRBool aEnableSelection
   
   
   
-  
-  
-  
-  if (! hasPreference && ! setDictionary) {
+  if (! setDictionary) {
     nsStringArray dictList;
     rv = mSpellChecker->GetDictionaryList(&dictList);
     NS_ENSURE_SUCCESS(rv, rv);
