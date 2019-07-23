@@ -275,10 +275,6 @@ static gpointer SendThread(gpointer args)
 {
   string response, error;
 
-#ifdef MOZ_ENABLE_GCONF
-  LoadProxyinfo();
-#endif
-
   bool success = google_breakpad::HTTPUpload::SendRequest
     (gSendURL,
      gQueryParameters,
@@ -319,6 +315,10 @@ static void SendReport()
   gtk_widget_show_all(gThrobber);
   gtk_label_set_text(GTK_LABEL(gProgressLabel),
                      gStrings[ST_REPORTDURINGSUBMIT].c_str());
+
+#ifdef MOZ_ENABLE_GCONF
+  LoadProxyinfo();
+#endif
 
   
   GError* err;
