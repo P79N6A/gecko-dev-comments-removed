@@ -197,9 +197,6 @@ write_png (cairo_surface_t	*surface,
     case CAIRO_FORMAT_A1:
 	depth = 1;
 	png_color_type = PNG_COLOR_TYPE_GRAY;
-#ifndef WORDS_BIGENDIAN
-	png_set_packswap (png);
-#endif
 	break;
     default:
 	status = _cairo_error (CAIRO_STATUS_INVALID_FORMAT);
@@ -354,12 +351,6 @@ cairo_surface_write_to_png_stream (cairo_surface_t	*surface,
 {
     struct png_write_closure_t png_closure;
 
-    if (surface->status)
-	return surface->status;
-
-    if (surface->finished)
-	return _cairo_error (CAIRO_STATUS_SURFACE_FINISHED);
-
     png_closure.write_func = write_func;
     png_closure.closure = closure;
 
@@ -507,36 +498,24 @@ read_png (png_rw_ptr	read_func,
     if (interlace != PNG_INTERLACE_NONE)
         png_set_interlace_handling (png);
 
-    png_set_filler (png, 0xff, PNG_FILLER_AFTER);
-
-    
-    png_read_update_info (png, info);
-    png_get_IHDR (png, info,
-                  &png_width, &png_height, &depth,
-                  &color_type, &interlace, NULL, NULL);
-    if (depth != 8 || interlace != PNG_INTERLACE_NONE ||
-	! (color_type == PNG_COLOR_TYPE_RGB ||
-	   color_type == PNG_COLOR_TYPE_RGB_ALPHA))
-    {
-	surface = _cairo_surface_create_in_error (_cairo_error (CAIRO_STATUS_READ_ERROR));
-	goto BAIL;
-    }
-
     switch (color_type) {
 	default:
-	    ASSERT_NOT_REACHED;
-	    
-
+	case PNG_COLOR_TYPE_GRAY_ALPHA:
 	case PNG_COLOR_TYPE_RGB_ALPHA:
 	    format = CAIRO_FORMAT_ARGB32;
 	    png_set_read_user_transform_fn (png, premultiply_data);
 	    break;
 
+	case PNG_COLOR_TYPE_GRAY:
+	case PNG_COLOR_TYPE_PALETTE:
 	case PNG_COLOR_TYPE_RGB:
 	    format = CAIRO_FORMAT_RGB24;
 	    png_set_read_user_transform_fn (png, convert_bytes_to_data);
+	    png_set_filler (png, 0xff, PNG_FILLER_AFTER);
 	    break;
     }
+
+    png_read_update_info (png, info);
 
     stride = cairo_format_stride_for_width (format, png_width);
     if (stride < 0) {

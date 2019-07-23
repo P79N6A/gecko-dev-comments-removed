@@ -165,7 +165,7 @@ _cairo_quartz_font_face_scaled_font_create (void *abstract_face,
 
     status = _cairo_scaled_font_init (&font->base,
 				      &font_face->base, font_matrix, ctm, options,
-				      &_cairo_quartz_scaled_font_backend);
+				      &cairo_quartz_scaled_font_backend);
     if (status)
 	goto FINISH;
 
@@ -188,7 +188,6 @@ _cairo_quartz_font_face_scaled_font_create (void *abstract_face,
 	quartz_CGFontMetrics *m;
 	m = CGFontGetHMetricsPtr (font_face->cgFont);
 
-	
 	if (!m) {
 	    status = _cairo_error(CAIRO_STATUS_NULL_POINTER);
 	    goto FINISH;
@@ -741,7 +740,7 @@ _cairo_quartz_ucs4_to_index (void *abstract_font,
     return glyph;
 }
 
-const cairo_scaled_font_backend_t _cairo_quartz_scaled_font_backend = {
+const cairo_scaled_font_backend_t cairo_quartz_scaled_font_backend = {
     CAIRO_FONT_TYPE_QUARTZ,
     _cairo_quartz_font_create_toy,
     _cairo_quartz_font_fini,

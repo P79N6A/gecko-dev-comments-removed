@@ -52,6 +52,8 @@
 
 #define CAIRO_FONT_TYPE_ATSUI CAIRO_FONT_TYPE_QUARTZ
 
+#ifndef _CAIROINT_H_
+
 
 
 
@@ -134,5 +136,7 @@
 #define cairo_set_target_drawable	cairo_set_target_drawable_DEPRECATED_BY_cairo_xlib_surface_create
 #define cairo_get_status_string		cairo_get_status_string_DEPRECATED_BY_cairo_status_AND_cairo_status_to_string
 #define cairo_status_string		cairo_status_string_DEPRECATED_BY_cairo_status_AND_cairo_status_to_string
+
+#endif
 
 #endif 

@@ -63,8 +63,6 @@
 
 
 
-
-
 #define FIXED_POINT_DECIMAL_DIGITS ((int)(CAIRO_FIXED_FRAC_BITS*0.301029996 + 1))
 
 void

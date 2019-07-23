@@ -276,47 +276,6 @@ cairo_type1_font_subset_find_segments (cairo_type1_font_subset_t *font)
     return CAIRO_STATUS_SUCCESS;
 }
 
-
-
-
-
-
-
-
-
-
-static void
-cairo_type1_font_erase_dict_key (cairo_type1_font_subset_t *font,
-				 const char *key)
-{
-    const char *start, *p, *segment_end;
-
-    segment_end = font->header_segment + font->header_segment_size;
-
-    start = font->header_segment;
-    do {
-	start = find_token (start, segment_end, key);
-	if (start) {
-	    p = start + strlen(key);
-	    
-	    while (p < segment_end &&
-		   (isspace(*p) ||
-		    isdigit(*p) ||
-		    *p == '[' ||
-		    *p == ']'))
-	    {
-		p++;
-	    }
-
-	    if (p + 3 < segment_end && memcmp(p, "def", 3) == 0) {
-		
-		memset((char *) start, ' ', p + 3 - start);
-	    }
-	    start += strlen(key);
-	}
-    } while (start);
-}
-
 static cairo_status_t
 cairo_type1_font_subset_write_header (cairo_type1_font_subset_t *font,
 					 const char *name)
@@ -324,57 +283,14 @@ cairo_type1_font_subset_write_header (cairo_type1_font_subset_t *font,
     const char *start, *end, *segment_end;
     unsigned int i;
 
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    cairo_type1_font_erase_dict_key (font, "/UniqueID");
-    cairo_type1_font_erase_dict_key (font, "/XUID");
-
     segment_end = font->header_segment + font->header_segment_size;
 
-    
-
-
-
-
-
-
-
-
-
-    end = font->header_segment;
-    start = find_token (font->header_segment, segment_end, "/UniqueID");
-    if (start) {
-	start += 9;
-	while (start < segment_end && isspace (*start))
-	    start++;
-	if (start + 5 < segment_end && memcmp(start, "known", 5) == 0) {
-	    _cairo_output_stream_write (font->output, font->header_segment,
-					start + 5 - font->header_segment);
-	    _cairo_output_stream_printf (font->output, " pop false ");
-	    end = start + 5;
-	}
-    }
-
-    start = find_token (end, segment_end, "/FontName");
+    start = find_token (font->header_segment, segment_end, "/FontName");
     if (start == NULL)
 	return CAIRO_INT_STATUS_UNSUPPORTED;
 
-    _cairo_output_stream_write (font->output, end,
-				start - end);
+    _cairo_output_stream_write (font->output, font->header_segment,
+				start - font->header_segment);
 
     _cairo_output_stream_printf (font->output, "/FontName /%s def", name);
 
@@ -466,7 +382,6 @@ cairo_type1_font_subset_decrypt_eexec_segment (cairo_type1_font_subset_t *font)
     unsigned char *in, *end;
     char *out;
     int c, p;
-    int i;
 
     in = (unsigned char *) font->eexec_segment;
     end = (unsigned char *) in + font->eexec_segment_size;
@@ -491,23 +406,6 @@ cairo_type1_font_subset_decrypt_eexec_segment (cairo_type1_font_subset_t *font)
 	*out++ = p;
     }
     font->cleartext_end = out;
-
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-    for (i = 0; i < 4 && i < font->eexec_segment_size; i++)
-	font->cleartext[i] = ' ';
 
     return CAIRO_STATUS_SUCCESS;
 }

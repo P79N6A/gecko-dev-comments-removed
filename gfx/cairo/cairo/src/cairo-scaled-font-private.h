@@ -89,14 +89,9 @@ struct _cairo_scaled_font {
     cairo_matrix_t ctm;	          
     cairo_font_options_t options;
 
-    cairo_bool_t placeholder; 
-
-    cairo_bool_t finished;
-
     
     cairo_matrix_t scale;	  
     cairo_matrix_t scale_inverse; 
-    double max_scale;		  
     cairo_font_extents_t extents; 
 
     

@@ -27,7 +27,6 @@
 #include <config.h>
 #endif
 
-#include <stdlib.h>
 #include <math.h>
 
 #include "pixman-private.h"
@@ -679,31 +678,4 @@ void pixmanFetchSourcePict(source_image_t * pict, int x, int y, int width,
             }
         }
     }
-}
-
-
-
-
-
-
-void pixmanFetchSourcePict64(source_image_t * pict, int x, int y, int width,
-                             uint64_t *buffer, uint64_t *mask, uint32_t maskBits)
-{
-    uint32_t *mask8 = NULL;
-
-    
-    
-    if (mask) {
-        mask8 = pixman_malloc_ab(width, sizeof(uint32_t));
-        pixman_contract(mask8, mask, width);
-    }
-
-    
-    pixmanFetchSourcePict(pict, x, y, width, (uint32_t*)buffer, mask8,
-                          maskBits);
-
-    
-    pixman_expand(buffer, (uint32_t*)buffer, PIXMAN_a8r8g8b8, width);
-
-    free(mask8);
 }

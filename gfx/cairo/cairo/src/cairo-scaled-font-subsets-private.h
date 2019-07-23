@@ -46,9 +46,6 @@ typedef struct _cairo_scaled_font_subsets_glyph {
     cairo_bool_t is_scaled;
     cairo_bool_t is_composite;
     double       x_advance;
-    double       y_advance;
-    cairo_bool_t utf8_is_mapped;
-    uint32_t 	 unicode;
 } cairo_scaled_font_subsets_glyph_t;
 
 
@@ -185,18 +182,10 @@ _cairo_scaled_font_subsets_destroy (cairo_scaled_font_subsets_t *font_subsets);
 
 
 
-
-
-
-
-
-
 cairo_private cairo_status_t
 _cairo_scaled_font_subsets_map_glyph (cairo_scaled_font_subsets_t	*font_subsets,
 				      cairo_scaled_font_t		*scaled_font,
 				      unsigned long			 scaled_font_glyph_index,
-				      const char * 			 utf8,
-				      int				 utf8_len,
                                       cairo_scaled_font_subsets_glyph_t *subset_glyph_ret);
 
 typedef cairo_status_t
@@ -563,27 +552,5 @@ _cairo_type2_charstrings_fini (cairo_type2_charstrings_t *charstrings);
 
 cairo_private cairo_int_status_t
 _cairo_truetype_create_glyph_to_unicode_map (cairo_scaled_font_subset_t	*font_subset);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-cairo_private cairo_int_status_t
-_cairo_truetype_index_to_ucs4 (cairo_scaled_font_t *scaled_font,
-                               unsigned long        index,
-                               uint32_t            *ucs4);
 
 #endif 
