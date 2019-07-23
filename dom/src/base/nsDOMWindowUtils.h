@@ -54,5 +54,7 @@ public:
 protected:
   nsRefPtr<nsGlobalWindow> mWindow;
 
-  nsIWidget* GetWidget();
+  
+  
+  nsIWidget* GetWidget(nsPoint* aOffset = nsnull);
 };
