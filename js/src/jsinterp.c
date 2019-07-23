@@ -4708,7 +4708,7 @@ interrupt:
 
 
                 parent = OBJ_GET_PARENT(cx, obj);
-                if (OBJ_GET_CLASS(cx, parent) == &js_BlockClass)
+                if (parent && OBJ_GET_CLASS(cx, parent) == &js_BlockClass)
                     fp->blockChain = parent;
                 parent = js_GetScopeChain(cx, fp);
             } else {
@@ -4871,7 +4871,6 @@ interrupt:
             LOAD_FUNCTION(0);
 
             
-
 
 
 

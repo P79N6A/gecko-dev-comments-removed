@@ -1089,46 +1089,20 @@ fun_resolve(JSContext *cx, JSObject *obj, jsval id, uintN flags,
 
     atom = cx->runtime->atomState.classPrototypeAtom;
     if (id == ATOM_KEY(atom)) {
-        JSObject *proto, *parentProto;
-        jsval pval;
-
-        proto = parentProto = NULL;
-        if (fun->object != obj &&
-            (!cx->runtime->findObjectPrincipals ||
-             cx->runtime->findObjectPrincipals(cx, obj) ==
-             cx->runtime->findObjectPrincipals(cx, fun->object))) {
-            
-
-
-
-
-
-            if (!OBJ_GET_PROPERTY(cx, fun->object, ATOM_TO_JSID(atom), &pval))
-                return JS_FALSE;
-            if (!JSVAL_IS_PRIMITIVE(pval)) {
-                
-
-
-
-
-                cx->weakRoots.newborn[GCX_OBJECT] = JSVAL_TO_GCTHING(pval);
-                parentProto = JSVAL_TO_OBJECT(pval);
-            }
-        }
+        JSObject *proto;
 
         
 
 
 
-        if (!parentProto && fun->atom == CLASS_ATOM(cx, Object))
+        if (fun->atom == CLASS_ATOM(cx, Object))
             return JS_TRUE;
 
         
 
 
 
-
-        proto = js_NewObject(cx, &js_ObjectClass, parentProto,
+        proto = js_NewObject(cx, &js_ObjectClass, NULL,
                              OBJ_GET_PARENT(cx, obj));
         if (!proto)
             return JS_FALSE;
@@ -1216,6 +1190,8 @@ fun_xdrObject(JSXDRState *xdr, JSObject **objp)
         fun = js_NewFunction(cx, NULL, NULL, 0, JSFUN_INTERPRETED, NULL, NULL);
         if (!fun)
             return JS_FALSE;
+        STOBJ_SET_PARENT(fun->object, NULL);
+        STOBJ_SET_PROTO(fun->object, NULL);
 #ifdef __GNUC__
         nvars = nargs = 0;   
 #endif
