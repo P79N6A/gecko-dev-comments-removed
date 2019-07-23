@@ -162,6 +162,17 @@
 
 
 
+#define NS_ITERATIVE_UNREF_LIST(type_, list_, mNext_)                \
+  {                                                                  \
+    while (list_) {                                                  \
+      type_ temp = list_->mNext_;                                    \
+      list_->mNext_ = nsnull;                                        \
+      list_ = temp;                                                  \
+    }                                                                \
+  }
+
+
+
 #define kPluginTmpDirName NS_LITERAL_CSTRING("plugtmp")
 
 
@@ -407,7 +418,6 @@ PRBool nsPluginInstanceTagList::remove(nsPluginInstanceTag * plugin)
   for (nsPluginInstanceTag * p = mFirst; p != nsnull; p = p->mNext) {
     if (p == plugin) {
       PRBool lastInstance = IsLastInstance(p);
-      nsPluginTag *pluginTag = p->mPluginTag;
 
       if (p == mFirst)
         mFirst = p->mNext;
@@ -417,18 +427,26 @@ PRBool nsPluginInstanceTagList::remove(nsPluginInstanceTag * plugin)
       if (prev && !prev->mNext)
         mLast = prev;
 
-      delete p;
+      if (lastInstance) {
+        nsRefPtr<nsPluginTag> pluginTag = p->mPluginTag;
 
-      if (lastInstance && pluginTag) {
-        nsresult rv;
-        nsCOMPtr<nsIPrefBranch> pref(do_GetService(NS_PREFSERVICE_CONTRACTID, &rv));
-        NS_ENSURE_SUCCESS(rv, rv);
+        delete p;
 
-        PRBool unloadPluginsASAP = PR_FALSE;
-        rv = pref->GetBoolPref("plugins.unloadASAP", &unloadPluginsASAP);
-        if (NS_SUCCEEDED(rv) && unloadPluginsASAP)
-          pluginTag->TryUnloadPlugin();
+        if (pluginTag) {
+          nsresult rv;
+          nsCOMPtr<nsIPrefBranch> pref(do_GetService(NS_PREFSERVICE_CONTRACTID, &rv));
+          NS_ENSURE_SUCCESS(rv, rv);
+
+          PRBool unloadPluginsASAP = PR_FALSE;
+          rv = pref->GetBoolPref("plugins.unloadASAP", &unloadPluginsASAP);
+          if (NS_SUCCEEDED(rv) && unloadPluginsASAP)
+            pluginTag->TryUnloadPlugin();
+        } 
+        else
+          NS_ASSERTION(pluginTag, "pluginTag was not set, plugin not shutdown");
       }
+      else
+        delete p;
 
       mCount--;
       return PR_TRUE;
@@ -786,6 +804,8 @@ nsPluginTag::nsPluginTag(const char* aName,
 
 nsPluginTag::~nsPluginTag()
 {
+  NS_ASSERTION(!mNext, "Risk of exhausting the stack space, bug 486349");
+
   TryUnloadPlugin();
 
   
@@ -2436,14 +2456,10 @@ nsPluginStreamListenerPeer::VisitHeader(const nsACString &header, const nsACStri
 }
 
 nsPluginHost::nsPluginHost()
+  
+  
+  : mJavaEnabled(PR_TRUE)
 {
-  mPluginsLoaded = PR_FALSE;
-  mDontShowBadPluginMessage = PR_FALSE;
-  mIsDestroyed = PR_FALSE;
-  mOverrideInternalTypes = PR_FALSE;
-  mAllowAlienStarHandler = PR_FALSE;
-  mDefaultPluginDisabled = PR_FALSE;
-  mJavaEnabled = PR_TRUE;
 
   gActivePluginList = &mPluginInstanceTagList;
 
@@ -2496,7 +2512,6 @@ nsPluginHost::nsPluginHost()
   PLUGIN_LOG(PLUGIN_LOG_ALWAYS,("nsPluginHost::ctor\n"));
   PR_LogFlush();
 #endif
-  mCachedPlugins = nsnull;
 }
 
 nsPluginHost::~nsPluginHost()
@@ -2957,19 +2972,8 @@ NS_IMETHODIMP nsPluginHost::Destroy()
     mPluginPath = nsnull;
   }
 
-  while (mPlugins) {
-    nsRefPtr<nsPluginTag> temp = mPlugins->mNext;
-    
-    
-    
-    
-    
-    mPlugins->mNext = nsnull;
-    mPlugins = temp;
-  }
-
-  
-  mCachedPlugins = nsnull;
+  NS_ITERATIVE_UNREF_LIST(nsRefPtr<nsPluginTag>, mPlugins, mNext);
+  NS_ITERATIVE_UNREF_LIST(nsRefPtr<nsPluginTag>, mCachedPlugins, mNext);
 
   
   if (sPluginTempDir) {
@@ -3511,6 +3515,7 @@ NS_IMETHODIMP nsPluginHost::SetUpPluginInstance(const char *aMimeType,
       return rv;
 
     
+    aOwner->SetInstance(nsnull); 
     rv = TrySetUpPluginInstance(aMimeType, aURL, aOwner);
   }
 
@@ -4449,7 +4454,6 @@ nsresult nsPluginHost::ScanPluginsDirectory(nsIFile * pluginsDir,
         
         
         
-        
         bAddIt = PR_FALSE;
       }
     }
@@ -4462,12 +4466,6 @@ nsresult nsPluginHost::ScanPluginsDirectory(nsIFile * pluginsDir,
 
       if (pluginTag->IsEnabled())
         pluginTag->RegisterWithCategoryManager(mOverrideInternalTypes);
-    }
-    else if (!pluginTag->HasFlag(NS_PLUGIN_FLAG_UNWANTED)) {
-      
-      
-      
-      pluginTag = nsnull;
     }
   }
   return NS_OK;
@@ -4582,7 +4580,7 @@ nsresult nsPluginHost::FindPlugins(PRBool aCreatePluginList, PRBool * aPluginsCh
     
     
     if (!aCreatePluginList && *aPluginsChanged) {
-      mCachedPlugins = nsnull;
+      NS_ITERATIVE_UNREF_LIST(nsRefPtr<nsPluginTag>, mCachedPlugins, mNext);
       return NS_OK;
     }
   }
@@ -4608,7 +4606,7 @@ nsresult nsPluginHost::FindPlugins(PRBool aCreatePluginList, PRBool * aPluginsCh
       
       
       if (!aCreatePluginList && *aPluginsChanged) {
-        mCachedPlugins = nsnull;
+        NS_ITERATIVE_UNREF_LIST(nsRefPtr<nsPluginTag>, mCachedPlugins, mNext);
         return NS_OK;
       }
     }
@@ -4656,7 +4654,7 @@ nsresult nsPluginHost::FindPlugins(PRBool aCreatePluginList, PRBool * aPluginsCh
       
       
       if (!aCreatePluginList && *aPluginsChanged) {
-        mCachedPlugins = nsnull;
+        NS_ITERATIVE_UNREF_LIST(nsRefPtr<nsPluginTag>, mCachedPlugins, mNext);
         return NS_OK;
       }
     }
@@ -4683,7 +4681,7 @@ nsresult nsPluginHost::FindPlugins(PRBool aCreatePluginList, PRBool * aPluginsCh
 
   
   if (!aCreatePluginList) {
-    mCachedPlugins = nsnull;
+    NS_ITERATIVE_UNREF_LIST(nsRefPtr<nsPluginTag>, mCachedPlugins, mNext);
     return NS_OK;
   }
 
@@ -4693,7 +4691,7 @@ nsresult nsPluginHost::FindPlugins(PRBool aCreatePluginList, PRBool * aPluginsCh
     WritePluginInfo();
 
   
-  mCachedPlugins = nsnull;
+  NS_ITERATIVE_UNREF_LIST(nsRefPtr<nsPluginTag>, mCachedPlugins, mNext);
 
   
   nsRefPtr<nsPluginTag> next;
@@ -4717,7 +4715,7 @@ nsPluginHost::UpdatePluginInfo(nsPluginTag* aPluginTag)
 {
   ReadPluginInfo();
   WritePluginInfo();
-  mCachedPlugins = nsnull;
+  NS_ITERATIVE_UNREF_LIST(nsRefPtr<nsPluginTag>, mCachedPlugins, mNext);
 
   if (!aPluginTag || aPluginTag->IsEnabled())
     return NS_OK;
