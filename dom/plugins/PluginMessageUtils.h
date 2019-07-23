@@ -170,16 +170,9 @@ inline void AssertPluginThread()
 void DeferNPObjectLastRelease(const NPNetscapeFuncs* f, NPObject* o);
 void DeferNPVariantLastRelease(const NPNetscapeFuncs* f, NPVariant* v);
 
-} 
-
-} 
 
 
-namespace {
-
-
-
-nsCString
+inline nsCString
 NullableString(const char* aString)
 {
     if (!aString) {
@@ -190,12 +183,18 @@ NullableString(const char* aString)
     return nsCString(aString);
 }
 
+inline const char*
+NullableStringGet(const nsCString& str)
+{
+  if (str.IsVoid())
+    return NULL;
+
+  return str.get();
+}
+
 } 
 
-
-#define NullableStringGet(__string)                     \
-    ( __string.IsVoid() ? NULL : __string.get())
-
+} 
 
 namespace IPC {
 
