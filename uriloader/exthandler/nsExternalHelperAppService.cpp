@@ -1337,7 +1337,8 @@ nsExternalHelperAppService::GetProtocolHandlerInfo(const nsACString &aScheme,
   
   
   
-  *aHandlerInfo = GetProtocolInfoFromOS(aScheme).get();
+  PRBool exists;
+  *aHandlerInfo = GetProtocolInfoFromOS(aScheme, &exists).get();
   if (!(*aHandlerInfo)) {
     
     return NS_ERROR_FAILURE;
@@ -1350,8 +1351,13 @@ nsExternalHelperAppService::GetProtocolHandlerInfo(const nsACString &aScheme,
     
     
     
-    (*aHandlerInfo)->SetPreferredAction(nsIHandlerInfo::useSystemDefault);
     (*aHandlerInfo)->SetAlwaysAskBeforeHandling(PR_TRUE);
+    
+    
+    if (exists)
+      (*aHandlerInfo)->SetPreferredAction(nsIHandlerInfo::useSystemDefault);
+    else
+      (*aHandlerInfo)->SetPreferredAction(nsIHandlerInfo::alwaysAsk);
   } else if (NS_FAILED(rv)) {
     NS_RELEASE(*aHandlerInfo);
     return rv;

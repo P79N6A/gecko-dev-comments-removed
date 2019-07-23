@@ -204,7 +204,8 @@ public:
 
 
 
-  virtual already_AddRefed<nsIHandlerInfo> GetProtocolInfoFromOS(const nsACString &aScheme) = 0;
+  virtual already_AddRefed<nsIHandlerInfo> GetProtocolInfoFromOS(const nsACString &aScheme,
+                                                                 PRBool *found) = 0;
 
   
 

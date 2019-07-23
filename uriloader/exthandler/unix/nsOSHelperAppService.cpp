@@ -1635,23 +1635,29 @@ nsOSHelperAppService::GetMIMEInfoFromOS(const nsACString& aType,
 }
 
 already_AddRefed<nsIHandlerInfo>
-nsOSHelperAppService::GetProtocolInfoFromOS(const nsACString &aScheme)
+nsOSHelperAppService::GetProtocolInfoFromOS(const nsACString &aScheme,
+                                            PRBool *found)
 {
   NS_ASSERTION(!aScheme.IsEmpty(), "No scheme was specified!");
 
   
   
   
-  PRBool exists;
   nsresult rv = OSProtocolHandlerExists(nsPromiseFlatCString(aScheme).get(),
-                                        &exists);
-  if (NS_FAILED(rv) || !exists)
+                                        found);
+  if (NS_FAILED(rv))
     return nsnull;
 
   nsMIMEInfoUnix *handlerInfo =
     new nsMIMEInfoUnix(aScheme, nsMIMEInfoBase::eProtocolInfo);
   NS_ENSURE_TRUE(handlerInfo, nsnull);
   NS_ADDREF(handlerInfo);
+
+  if (!*found) {
+    
+    
+    return handlerInfo;
+  }
 
   nsAutoString desc;
   GetApplicationDescription(aScheme, desc);
