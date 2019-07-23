@@ -1338,20 +1338,45 @@ bool UIGetSettingsPath(const string& vendor,
                        string& settings_path)
 {
   wchar_t path[MAX_PATH];
-  if(SUCCEEDED(SHGetFolderPath(NULL,
-                               CSIDL_APPDATA,
-                               NULL,
-                               0,
-                               path)))  {
-    if (!vendor.empty()) {
-      PathAppend(path, UTF8ToWide(vendor).c_str());
-    }
-    PathAppend(path, UTF8ToWide(product).c_str());
-    PathAppend(path, L"Crash Reports");
-    settings_path = WideToUTF8(path);
-    return true;
+  HRESULT hRes = SHGetFolderPath(NULL,
+                                 CSIDL_APPDATA,
+                                 NULL,
+                                 0,
+                                 path);
+  if (FAILED(hRes)) {
+    
+    
+    
+    HKEY key;
+    DWORD type, size, dwRes;
+    dwRes = ::RegOpenKeyExW(HKEY_CURRENT_USER,
+                            L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Shell Folders",
+                            0,
+                            KEY_READ,
+                            &key);
+    if (dwRes != ERROR_SUCCESS)
+      return false;
+
+    dwRes = RegQueryValueExW(key,
+                             L"AppData",
+                             NULL,
+                             &type,
+                             (LPBYTE)&path,
+                             &size);
+    ::RegCloseKey(key);
+    
+    
+    if (dwRes != ERROR_SUCCESS || type != REG_SZ || size == 0 || size % 2 != 0)
+        return false;
   }
-  return false;
+
+  if (!vendor.empty()) {
+    PathAppend(path, UTF8ToWide(vendor).c_str());
+  }
+  PathAppend(path, UTF8ToWide(product).c_str());
+  PathAppend(path, L"Crash Reports");
+  settings_path = WideToUTF8(path);
+  return true;
 }
 
 bool UIEnsurePathExists(const string& path)
