@@ -360,7 +360,7 @@ function testTableSelection(aIdentifier, aCellsArray, aMsg)
   }
 
   
-  is(acc.selectedcolumnCount, selCols.length,
+  is(acc.selectedColumnCount, selCols.length,
      msg + "Wrong count of selected columns for " + prettyName(aIdentifier));
 
   
@@ -400,7 +400,7 @@ function testTableSelection(aIdentifier, aCellsArray, aMsg)
   }
 
   
-  is(acc.selectedrowCount, selRows.length,
+  is(acc.selectedRowCount, selRows.length,
      msg + "Wrong count of selected rows for " + prettyName(aIdentifier));
 
   
