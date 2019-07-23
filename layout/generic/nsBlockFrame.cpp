@@ -1978,6 +1978,11 @@ nsBlockFrame::ReflowDirtyLines(nsBlockReflowState& aState)
       
       
       deltaY = line->mBounds.YMost() - oldYMost;
+
+      
+      
+      
+      aState.mPresContext->CheckForInterrupt(this);
     } else {
       aState.mOverflowTracker.Skip(line->mFirstChild, aState.mReflowStatus);
         
@@ -2044,7 +2049,7 @@ nsBlockFrame::ReflowDirtyLines(nsBlockReflowState& aState)
 
     DumpLine(aState, line, deltaY, -1);
 
-    if (aState.mPresContext->CheckForInterrupt(this)) {
+    if (aState.mPresContext->HasPendingInterrupt()) {
       willReflowAgain = PR_TRUE;
       
       
