@@ -242,6 +242,8 @@ js_FillPropertyCache(JSContext *cx, JSObject *obj, jsuword kshape,
 
         
         if (!(cs->format & JOF_SET) &&
+            !((cs->format & (JOF_INCDEC | JOF_FOR)) && 
+              (sprop->attrs & JSPROP_READONLY)) && 
             SPROP_HAS_STUB_GETTER(sprop) &&
             SPROP_HAS_VALID_SLOT(sprop, scope)) {
             
