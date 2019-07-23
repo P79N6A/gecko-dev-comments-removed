@@ -39,6 +39,7 @@
 
 
 
+
 const Cc = Components.classes;
 const Ci = Components.interfaces;
 const Cr = Components.results;
@@ -405,29 +406,8 @@ Blocklist.prototype = {
       return false;
 
     for (var i = 0; i < blItem.length; ++i) {
-      if (gVersionChecker.compare(version, blItem[i].minVersion) < 0  ||
-          gVersionChecker.compare(version, blItem[i].maxVersion) > 0)
-        continue;
-
-      var blTargetApp = blItem[i].targetApps[gApp.ID];
-      if (blTargetApp) {
-        for (var x = 0; x < blTargetApp.length; ++x) {
-          if (gVersionChecker.compare(appVersion, blTargetApp[x].minVersion) < 0 ||
-              gVersionChecker.compare(appVersion, blTargetApp[x].maxVersion) > 0)
-            continue;
-          return true;
-        }
-      }
-
-      blTargetApp = blItem[i].targetApps[TOOLKIT_ID];
-      if (!blTargetApp)
-        return false;
-      for (x = 0; x < blTargetApp.length; ++x) {
-        if (gVersionChecker.compare(toolkitVersion, blTargetApp[x].minVersion) < 0 ||
-            gVersionChecker.compare(toolkitVersion, blTargetApp[x].maxVersion) > 0)
-          continue;
+      if (blItem[i].includesItem(version, appVersion, toolkitVersion))
         return true;
-      }
     }
     return false;
   },
@@ -630,7 +610,7 @@ Blocklist.prototype = {
 
       var childNodes = doc.documentElement.childNodes;
       this._addonEntries = this._processItemNodes(childNodes, "em",
-                                            this._handleEmItemNode);
+                                                  this._handleEmItemNode);
       this._pluginEntries = this._processItemNodes(childNodes, "plugin",
                                                    this._handlePluginItemNode);
     }
@@ -694,40 +674,52 @@ Blocklist.prototype = {
       return;
 
     var matchNodes = blocklistElement.childNodes;
-    var matchList;
+    var blockEntry = {
+      matches: {},
+      versions: []
+    };
     for (var x = 0; x < matchNodes.length; ++x) {
       var matchElement = matchNodes.item(x);
-      if (!(matchElement instanceof Ci.nsIDOMElement) ||
-          matchElement.localName != "match")
+      if (!(matchElement instanceof Ci.nsIDOMElement))
         continue;
-
-      var name = matchElement.getAttribute("name");
-      var exp = matchElement.getAttribute("exp");
-      if (!matchList)
-        matchList = { };
-      matchList[name] = new RegExp(exp, "m");
+      if (matchElement.localName == "match") {
+        var name = matchElement.getAttribute("name");
+        var exp = matchElement.getAttribute("exp");
+        blockEntry.matches[name] = new RegExp(exp, "m");
+      }
+      if (matchElement.localName == "versionRange")
+        blockEntry.versions.push(new BlocklistItemData(matchElement));
     }
-    if (matchList)
-      result.push(matchList);
+    result.push(blockEntry);
   },
 
-  _checkPlugin: function(plugin) {
-    for each (var matchList in this._pluginEntries) {
+  _isPluginBlocklisted: function(plugin, appVersion, toolkitVersion) {
+    for each (var blockEntry in this._pluginEntries) {
       var matchFailed = false;
-      for (var name in matchList) {
-        if (typeof(plugin[name]) != "string" ||
-            !matchList[name].test(plugin[name])) {
+      for (var name in blockEntry.matches) {
+        if (!(name in plugin) ||
+            typeof(plugin[name]) != "string" ||
+            !blockEntry.matches[name].test(plugin[name])) {
           matchFailed = true;
           break;
         }
       }
 
-      if (!matchFailed) {
-        plugin.blocklisted = true;
-        return;
+      if (matchFailed)
+        continue;
+
+      
+      if (blockEntry.versions.length == 0)
+        return true;
+
+      for (var i = 0; i < blockEntry.versions.length; i++) {
+        if (blockEntry.versions[i].includesItem(plugin.version, appVersion,
+                                                toolkitVersion))
+          return true;
       }
     }
-    plugin.blocklisted = false;
+
+    return false;
   },
 
   _checkPluginsList: function() {
@@ -735,7 +727,11 @@ Blocklist.prototype = {
       this._loadBlocklist();
     var phs = Cc["@mozilla.org/plugin/host;1"].
               getService(Ci.nsIPluginHost);
-    phs.getPluginTags({ }).forEach(this._checkPlugin, this);
+    var plugins = phs.getPluginTags({});
+    for (var i = 0; i < plugins.length; i++)
+      plugins[i].blocklisted = this._isPluginBlocklisted(plugins[i],
+                                                         gApp.version,
+                                                         gApp.platformVersion);
   },
 
   classDescription: "Blocklist Service",
@@ -779,7 +775,80 @@ function BlocklistItemData(versionRangeElement) {
 }
 
 BlocklistItemData.prototype = {
+  
 
+
+
+
+
+
+
+
+
+
+
+
+  includesItem: function(version, appVersion, toolkitVersion) {
+    
+    
+    if (!version && (this.minVersion || this.maxVersion))
+      return false;
+
+    
+    if (!this.matchesRange(version, this.minVersion, this.maxVersion))
+      return false;
+
+    
+    if (this.matchesTargetRange(gApp.ID, appVersion))
+      return true;
+
+    
+    return this.matchesTargetRange(TOOLKIT_ID, toolkitVersion);
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+  matchesRange: function(version, minVersion, maxVersion) {
+    if (minVersion && gVersionChecker.compare(version, minVersion) < 0)
+      return false;
+    if (maxVersion && gVersionChecker.compare(version, maxVersion) > 0)
+      return false;
+    return true;
+  },
+
+  
+
+
+
+
+
+
+
+
+  matchesTargetRange: function(appID, appVersion) {
+    var blTargetApp = this.targetApps[appID];
+    if (!blTargetApp)
+      return false;
+
+    for (var x = 0; x < blTargetApp.length; ++x) {
+      if (this.matchesRange(appVersion, blTargetApp[x].minVersion, blTargetApp[x].maxVersion))
+        return true;
+    }
+
+    return false;
+  },
+
+  
 
 
 
@@ -790,7 +859,6 @@ BlocklistItemData.prototype = {
 
   getBlocklistAppVersions: function(targetAppElement) {
     var appVersions = [ ];
-    var found = false;
 
     if (targetAppElement) {
       for (var i = 0; i < targetAppElement.childNodes.length; ++i) {
@@ -798,17 +866,17 @@ BlocklistItemData.prototype = {
         if (!(versionRangeElement instanceof Ci.nsIDOMElement) ||
             versionRangeElement.localName != "versionRange")
           continue;
-        found = true;
         appVersions.push(this.getBlocklistVersionRange(versionRangeElement));
       }
     }
     
-    if (!found)
-      return [ this.getBlocklistVersionRange(null) ];
+    
+    if (appVersions.length == 0)
+      appVersions.push(this.getBlocklistVersionRange(null));
     return appVersions;
   },
 
-
+  
 
 
 
@@ -818,8 +886,8 @@ BlocklistItemData.prototype = {
 
 
   getBlocklistVersionRange: function(versionRangeElement) {
-    var minVersion = "0";
-    var maxVersion = "*";
+    var minVersion = null;
+    var maxVersion = null;
     if (!versionRangeElement)
       return { minVersion: minVersion, maxVersion: maxVersion };
 
