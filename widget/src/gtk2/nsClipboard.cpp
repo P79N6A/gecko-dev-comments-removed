@@ -121,18 +121,26 @@ clipboard_text_received(GtkClipboard *clipboard,
                         gpointer      data);
 
 nsClipboard::nsClipboard()
-{    
+{
 }
 
 nsClipboard::~nsClipboard()
 {
+    
+    
+    if (mGlobalTransferable) {
+        gtk_clipboard_clear(gtk_clipboard_get(GDK_SELECTION_CLIPBOARD));
+    }
+    if (mSelectionTransferable) {
+        gtk_clipboard_clear(gtk_clipboard_get(GDK_SELECTION_PRIMARY));
+    }
 }
 
 NS_IMPL_ISUPPORTS1(nsClipboard, nsIClipboard)
 
 nsresult
 nsClipboard::Init(void)
-{    
+{
     nsresult rv;
     nsCOMPtr<nsIObserverService> os
       (do_GetService("@mozilla.org/observer-service;1", &rv));
