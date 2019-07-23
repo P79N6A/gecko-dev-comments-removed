@@ -1409,7 +1409,6 @@ void
 Assembler::nativePageReset()
 {
     _nSlot = 0;
-    _startingSlot = 0;
     _nExitSlot = 0;
 }
 
@@ -2115,7 +2114,7 @@ Assembler::asm_arith(LInsp ins)
     
     if (rhs->isconst() && op != LIR_mul)
     {
-        if ((op == LIR_add || op == LIR_iaddp) && lhs->isop(LIR_alloc)) {
+        if ((op == LIR_add || op == LIR_iaddp) && lhs->isop(LIR_ialloc)) {
             
             
             Register    rs = prepResultReg(ins, allow);

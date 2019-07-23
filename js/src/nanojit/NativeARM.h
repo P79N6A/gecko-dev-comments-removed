@@ -138,7 +138,7 @@ typedef enum {
     
     NV = 0xF  
 } ConditionCode;
-#define IsCond(_cc) ( (((_cc) & 0xf) == (_cc)) && ((_cc) != NV) )
+#define IsCond(cc)        (((cc) >= EQ) && ((cc) <= AL))
 
 
 
@@ -193,7 +193,10 @@ verbose_only( extern const char* shiftNames[]; )
     inline bool         isOp2Imm(uint32_t literal);                     \
     inline uint32_t     decOp2Imm(uint32_t enc);
 #else
-# define DECLARE_PLATFORM_ASSEMBLER_DEBUG()
+
+# define DECLARE_PLATFORM_ASSEMBLER_DEBUG()								\
+    inline bool         isOp2Imm(uint32_t ) { return true; }			\
+    inline uint32_t     decOp2Imm(uint32_t ) { return 0; } 
 #endif
 
 #define DECLARE_PLATFORM_ASSEMBLER()                                            \
@@ -227,12 +230,9 @@ verbose_only( extern const char* shiftNames[]; )
     inline bool     encOp2Imm(uint32_t literal, uint32_t * enc);                \
     inline uint32_t CountLeadingZeroes(uint32_t data);                          \
     int *       _nSlot;                                                         \
-    int *       _startingSlot;                                                  \
     int *       _nExitSlot;                                                     \
     bool        blx_lr_bug;                                                     \
     int         max_out_args; /* bytes */                                      
-
-
 
 #define swapptrs()  {                                                   \
         NIns* _tins = _nIns; _nIns=_nExitIns; _nExitIns=_tins;          \
@@ -260,7 +260,7 @@ typedef enum {
     RRX     = 6, 
     ROR_reg = 7  
 } ShiftOperator;
-#define IsShift(sh) (((sh) >= LSL_imm) && ((sh) <= ROR_reg))
+#define IsShift(sh)    (((sh) >= LSL_imm) && ((sh) <= ROR_reg))
 
 #define LD32_size 8
 
@@ -299,7 +299,7 @@ enum {
     ARM_bic = 14,
     ARM_mvn = 15
 };
-#define IsOp(op)    (((ARM_##op) >= ARM_and) && ((ARM_##op) <= ARM_mvn))
+#define IsOp(op)      (((ARM_##op) >= ARM_and) && ((ARM_##op) <= ARM_mvn))
 
 
 
@@ -459,13 +459,22 @@ enum {
 
 
 
-#define MUL(_d,_l,_r)  do {                                  \
+#define MUL_dont_check_op1(_d, _l, _r)  do {                                \
         underrunProtect(4);                                                 \
         NanoAssert((ARM_ARCH >= 6) || ((_d) != (_l)));                      \
         NanoAssert(IsGpReg(_d) && IsGpReg(_l) && IsGpReg(_r));              \
         NanoAssert(((_d) != PC) && ((_l) != PC) && ((_r) != PC));           \
         *(--_nIns) = (NIns)( COND_AL | (_d)<<16 | (_r)<<8 | 0x90 | (_l) );  \
-        asm_output("mul %s,%s,%s",gpn(_d),gpn(_l),gpn(_r)); } while(0)
+        asm_output("mul %s, %s, %s",gpn(_d),gpn(_l),gpn(_r)); } while(0)
+
+#if NJ_ARM_ARCH >= NJ_ARM_V6
+#define MUL(_d, _l, _r) MUL_dont_check_op1(_d, _l, _r)
+#else
+#define MUL(_d, _l, _r) do {            \
+        NanoAssert((_d)!=(_l));         \
+        MUL_dont_check_op1(_d, _l, _r); \
+    } while(0)
+#endif
 
 
 
@@ -644,11 +653,13 @@ enum {
         *(--_nIns) = (NIns)( COND_AL | (0x92<<20) | (SP<<16) | (_mask) ); \
         asm_output("push %x", (_mask));} while (0)
 
+
 #define POPr(_r) do {                                                   \
         underrunProtect(4);                                             \
         NanoAssert(IsGpReg(_r));                                        \
         *(--_nIns) = (NIns)( COND_AL | (0x8B<<20) | (SP<<16) | rmask(_r) ); \
         asm_output("pop %s",gpn(_r));} while (0)
+
 
 #define POP_mask(_mask) do {                                            \
         underrunProtect(4);                                             \
