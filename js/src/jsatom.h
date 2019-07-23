@@ -203,6 +203,7 @@ struct JSAtomState {
     JSAtom              *toSourceAtom;
     JSAtom              *toStringAtom;
     JSAtom              *valueOfAtom;
+    JSAtom              *void0Atom;
     JSAtom              *xmlAtom;
 
     
