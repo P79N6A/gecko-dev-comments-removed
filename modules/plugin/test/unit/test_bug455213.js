@@ -43,6 +43,15 @@ const NS_APP_USER_PROFILE_50_DIR      = "ProfD";
 const NS_APP_PROFILE_DIR_STARTUP      = "ProfDS";
 
 
+const CWD = do_get_cwd();
+function checkOS(os) {
+  const nsILocalFile_ = "nsILocalFile" + os;
+  return nsILocalFile_ in Components.interfaces &&
+         CWD instanceof Components.interfaces[nsILocalFile_];
+}
+const isMac = checkOS("Mac");
+
+
 var DELIM = ":";
 if ("@mozilla.org/windows-registry-key;1" in Components.classes)
   DELIM = "|";
@@ -155,8 +164,13 @@ function run_test() {
 
   
   var registry = "";
-  registry += file.leafName + DELIM + "$\n";
-  registry += file.path + DELIM + "$\n";
+  if (isMac) {
+    registry += file.leafName + DELIM + "$\n";
+    registry += file.path + DELIM + "$\n";
+  } else {
+    registry += file.path + DELIM + "$\n";
+    registry += DELIM + "$\n";
+  }
   registry += file.lastModifiedTime + DELIM + "0" + DELIM + "0" + DELIM + "$\n";
   registry += "Plug-in for testing purposes." + DELIM + "$\n";
   registry += "Test Plug-in" + DELIM + "$\n";

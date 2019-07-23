@@ -399,7 +399,7 @@ private:
 
   
   
-  void RemoveCachedPluginsInfo(const char *filename,
+  void RemoveCachedPluginsInfo(const char *filePath,
                                nsPluginTag **result);
 
   

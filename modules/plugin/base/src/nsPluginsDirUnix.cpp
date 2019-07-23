@@ -434,7 +434,6 @@ nsresult nsPluginFile::LoadPlugin(PRLibrary* &outLibrary)
 nsresult nsPluginFile::GetPluginInfo(nsPluginInfo& info)
 {
     nsresult rv;
-    const char* mimedescr = 0, *name = 0, *description = 0;
 
     
     
@@ -449,9 +448,6 @@ nsresult nsPluginFile::GetPluginInfo(nsPluginInfo& info)
     info.fVersion = nsnull;
     if (nsGetFactory) {
         
-        
-        
-        
         static NS_DEFINE_CID(kPluginCID, NS_PLUGIN_CID);
 
         nsCOMPtr<nsIFactory> factory;
@@ -463,7 +459,8 @@ nsresult nsPluginFile::GetPluginInfo(nsPluginInfo& info)
             
             
             
-            rv = nsNPAPIPlugin::CreatePlugin(0, 0, pLibrary, getter_AddRefs(plugin));
+            
+            rv = nsNPAPIPlugin::CreatePlugin(NULL, pLibrary, getter_AddRefs(plugin));
             if (NS_FAILED(rv))
                 return rv;
         } else {
@@ -472,7 +469,7 @@ nsresult nsPluginFile::GetPluginInfo(nsPluginInfo& info)
     } else {
         
         
-        rv = nsNPAPIPlugin::CreatePlugin(0, 0, pLibrary, getter_AddRefs(plugin));
+        rv = nsNPAPIPlugin::CreatePlugin(NULL, pLibrary, getter_AddRefs(plugin));
         if (NS_FAILED(rv)) return rv;
     }
 
@@ -482,21 +479,32 @@ nsresult nsPluginFile::GetPluginInfo(nsPluginInfo& info)
         if (npGetPluginVersion)
             info.fVersion = PL_strdup(npGetPluginVersion());
 
+        const char *mimedescr = NULL;
         plugin->GetMIMEDescription(&mimedescr);
 #ifdef NS_DEBUG
         printf("GetMIMEDescription() returned \"%s\"\n", mimedescr);
 #endif
         if (NS_FAILED(rv = ParsePluginMimeDescription(mimedescr, info)))
             return rv;
-        nsCAutoString filename;
-        if (NS_FAILED(rv = mPlugin->GetNativePath(filename)))
-            return rv;
-        info.fFileName = PL_strdup(filename.get());
-        plugin->GetValue(nsPluginVariable_NameString, &name);
-        if (!name)
-            name = PL_strrchr(info.fFileName, '/') + 1;
-        info.fName = PL_strdup(name);
 
+        nsCAutoString path;
+        if (NS_FAILED(rv = mPlugin->GetNativePath(path)))
+            return rv;
+        info.fFullPath = PL_strdup(path.get());
+
+        nsCAutoString fileName;
+        if (NS_FAILED(rv = mPlugin->GetNativeLeafName(fileName)))
+          return rv;
+        info.fFileName = PL_strdup(fileName.get());
+
+        const char *name = NULL;
+        plugin->GetValue(nsPluginVariable_NameString, &name);
+        if (name)
+          info.fName = PL_strdup(name);
+        else
+          info.fName = PL_strdup(fileName.get());
+
+        const char *description = NULL;
         plugin->GetValue(nsPluginVariable_DescriptionString, &description);
         if (!description)
             description = "";
@@ -528,6 +536,9 @@ nsresult nsPluginFile::FreePluginInfo(nsPluginInfo& info)
     PR_FREEIF(info.fMimeTypeArray);
     PR_FREEIF(info.fMimeDescriptionArray);
     PR_FREEIF(info.fExtensionArray);
+
+    if (info.fFullPath != nsnull)
+        PL_strfree(info.fFullPath);
 
     if (info.fFileName != nsnull)
         PL_strfree(info.fFileName);

@@ -86,9 +86,8 @@ public:
   NS_DECL_NSIPLUGIN
 
   
-  static nsresult CreatePlugin(const char* aFileName,
-                               const char* aFullPath,
-                               PRLibrary* aLibrary,
+  
+  static nsresult CreatePlugin(const char* aFilePath, PRLibrary* aLibrary,
                                nsIPlugin** aResult);
 #ifdef XP_MACOSX
   void SetPluginRefNum(short aRefNum);
