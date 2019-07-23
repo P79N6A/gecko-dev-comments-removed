@@ -594,6 +594,17 @@ private:
 
 
 #ifdef MOZ_MATHML
+  
+
+
+
+
+  nsresult FlushAccumulatedBlock(nsFrameConstructorState& aState,
+                                 nsIContent* aContent,
+                                 nsIFrame* aParentFrame,
+                                 nsFrameItems* aBlockItems,
+                                 nsFrameItems* aNewItems);
+
   nsresult ConstructMathMLFrame(nsFrameConstructorState& aState,
                                 nsIContent*              aContent,
                                 nsIFrame*                aParentFrame,

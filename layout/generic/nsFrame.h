@@ -289,6 +289,10 @@ public:
                              PRBool aShrinkWrap);
 
   
+  
+  nsRect ComputeSimpleTightBounds(gfxContext* aContext) const;
+  
+  
 
 
 
@@ -539,7 +543,7 @@ protected:
   
 
                  
-  PRBool HasBorder();
+  PRBool HasBorder() const;
 
   
 

@@ -92,6 +92,7 @@ class nsDisplayListSet;
 class nsDisplayList;
 class gfxSkipChars;
 class gfxSkipCharsIterator;
+class gfxContext;
 class nsLineList_iterator;
 
 struct nsPeekOffsetStruct;
@@ -1304,6 +1305,16 @@ public:
                              nsSize aCBSize, nscoord aAvailableWidth,
                              nsSize aMargin, nsSize aBorder, nsSize aPadding,
                              PRBool aShrinkWrap) = 0;
+
+  
+
+
+
+
+
+
+
+  virtual nsRect ComputeTightBounds(gfxContext* aContext) const;
 
   
 
