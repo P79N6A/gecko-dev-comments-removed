@@ -322,6 +322,25 @@ function strings()
 }
 test("strings", strings(), "aaa,bbb,ccc,ddd,eee,fff,ggg,hhh,iii,jjj1019");
 
+function stringConvert()
+{
+  var a = [];
+  var s1 = "F", s2 = "1.3", s3 = "5";
+  for (var i = 0; i < 10; i++) {
+    a[0] = 1 >> s1;
+    a[1] = 10 - s2;
+    a[2] = 15 * s3;
+    a[3] = s3 | 32;
+    
+    
+    
+    a[7] = s3 & "7";
+    
+  }
+  return a.toString();
+}
+test("stringConvert", stringConvert(), "1,8.7,75,37,,,,5");
+
 
 print("pass:", passes.length ? passes.join(",") : "<none>");
 print("FAIL:", fails.length ? fails.join(",") : "<none>");
