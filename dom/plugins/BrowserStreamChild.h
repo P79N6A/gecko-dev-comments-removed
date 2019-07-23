@@ -45,7 +45,7 @@ namespace mozilla {
 namespace plugins {
 
 class PluginInstanceChild;
-class PStreamNotifyChild;
+class StreamNotifyChild;
 
 class BrowserStreamChild : public PBrowserStreamChild, public AStream
 {
@@ -54,22 +54,17 @@ public:
                      const nsCString& url,
                      const uint32_t& length,
                      const uint32_t& lastmodified,
-                     const PStreamNotifyChild* notifyData,
+                     StreamNotifyChild* notifyData,
                      const nsCString& headers,
                      const nsCString& mimeType,
                      const bool& seekable,
                      NPError* rv,
                      uint16_t* stype);
-  virtual ~BrowserStreamChild() { }
+  virtual ~BrowserStreamChild();
 
   NS_OVERRIDE virtual bool IsBrowserStream() { return true; }
 
   NPError StreamConstructed(
-            const nsCString& url,
-            const uint32_t& length,
-            const uint32_t& lastmodified,
-            PStreamNotifyChild* notifyData,
-            const nsCString& headers,
             const nsCString& mimeType,
             const bool& seekable,
             uint16_t* stype);
@@ -95,21 +90,87 @@ public:
   NPError NPN_RequestRead(NPByteRange* aRangeList);
   void NPN_DestroyStream(NPReason reason);
 
+  void NotifyPending() {
+    NS_ASSERTION(!mNotifyPending, "Pending twice?");
+    mNotifyPending = true;
+    EnsureDeliveryPending();
+  }
+
+  
+
+
+
+
+  bool InstanceDying() {
+    if (DELETING == mState)
+      return false;
+
+    mInstanceDying = true;
+    return true;
+  }
+
+  void FinishDelivery() {
+    NS_ASSERTION(mInstanceDying, "Should only be called after InstanceDying");
+    NS_ASSERTION(DELETING != mState, "InstanceDying didn't work?");
+    mStreamStatus = NPRES_NETWORK_ERR;
+    Deliver();
+    NS_ASSERTION(!mStreamNotify, "Didn't deliver NPN_URLNotify?");
+  }
+
 private:
+  friend class StreamNotifyChild;
   using PBrowserStreamChild::SendNPN_DestroyStream;
 
   
 
 
 
-  void DeliverData();
-  void MaybeDeliverNPP_DestroyStream();
+  void EnsureDeliveryPending();
+
+  
+
+
+
+  void Deliver();
+
+  
+
+
+
+  bool DeliverPendingData();
+
   void SetSuspendedTimer();
   void ClearSuspendedTimer();
 
   PluginInstanceChild* mInstance;
   NPStream mStream;
-  bool mClosed;
+
+  static const NPReason kStreamOpen = -1;
+
+  
+
+
+
+
+
+
+  NPReason mStreamStatus;
+
+  
+
+
+
+  enum {
+    NOT_DESTROYED, 
+    DESTROY_PENDING, 
+    DESTROYED 
+  } mDestroyPending;
+  bool mNotifyPending;
+
+  
+  
+  bool mInstanceDying;
+
   enum {
     CONSTRUCTING,
     ALIVE,
@@ -118,16 +179,7 @@ private:
   } mState;
   nsCString mURL;
   nsCString mHeaders;
-
-  static const NPReason kDestroyNotPending = -1;
-
-  
-
-
-
-
-
-  NPReason mDestroyPending;
+  StreamNotifyChild* mStreamNotify;
 
   struct PendingData
   {
@@ -143,7 +195,7 @@ private:
 
 
 
-  ScopedRunnableMethodFactory<BrowserStreamChild> mDeliverDataTracker;
+  ScopedRunnableMethodFactory<BrowserStreamChild> mDeliveryTracker;
   base::RepeatingTimer<BrowserStreamChild> mSuspendedTimer;
 };
 
