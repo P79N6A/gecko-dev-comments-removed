@@ -147,19 +147,6 @@ function pageShowEventHandlers(event) {
   }
 }
 
-
-
-
-
-function getContentAreaFrameCount()
-{
-  var saveFrameItem = document.getElementById("menu_saveFrame");
-  if (!content || !content.frames.length || !isContentFrame(document.commandDispatcher.focusedWindow))
-    saveFrameItem.setAttribute("hidden", "true");
-  else
-    saveFrameItem.removeAttribute("hidden");
-}
-
 function UpdateBackForwardCommands(aWebNavigation) {
   var backBroadcaster = document.getElementById("Browser:Back");
   var forwardBroadcaster = document.getElementById("Browser:Forward");
