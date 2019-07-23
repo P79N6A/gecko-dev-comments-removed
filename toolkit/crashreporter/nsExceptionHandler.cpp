@@ -99,6 +99,9 @@ static google_breakpad::ExceptionHandler* gExceptionHandler = nsnull;
 static XP_CHAR* crashReporterPath;
 
 
+static bool doReport = true;
+
+
 static nsDataHashtable<nsCStringHashKey,nsCString>* crashReporterAPIData_Hash;
 static nsCString* crashReporterAPIData = nsnull;
 
@@ -161,6 +164,10 @@ bool MinidumpCallback(const XP_CHAR* dump_path,
     }
   }
 
+  if (!doReport) {
+    return succeeded;
+  }
+
   STARTUPINFO si;
   PROCESS_INFORMATION pi;
 
@@ -189,6 +196,10 @@ bool MinidumpCallback(const XP_CHAR* dump_path,
       write(fd, crashReporterAPIData->get(), crashReporterAPIData->Length());
       close (fd);
     }
+  }
+
+  if (!doReport) {
+    return succeeded;
   }
 
   pid_t pid = fork();
@@ -289,8 +300,14 @@ nsresult SetExceptionHandler(nsILocalFile* aXREDirectory)
   
   
   const char* airbagEnv = PR_GetEnv("MOZ_AIRBAG");
-  if (airbagEnv == NULL || atoi(airbagEnv) == 0)
+  if (airbagEnv == NULL || *airbagEnv == '\0')
     return NS_ERROR_NOT_AVAILABLE;
+
+  
+  
+  const char* noReportEnv = PR_GetEnv("MOZ_CRASHREPORTER_NO_REPORT");
+  if (noReportEnv && *noReportEnv)
+    doReport = false;
 
   
   crashReporterAPIData = new nsCString();
