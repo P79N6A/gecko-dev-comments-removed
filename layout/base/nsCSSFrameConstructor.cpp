@@ -1967,7 +1967,7 @@ nsCSSFrameConstructor::CreateGeneratedContent(nsIContent*     aParentContent,
     
 
     nsCOMPtr<nsINodeInfo> nodeInfo;
-    mDocument->NodeInfoManager()->GetNodeInfo(nsGkAtoms::img, nsnull,
+    mDocument->NodeInfoManager()->GetNodeInfo(nsGkAtoms::mozgeneratedcontentimage, nsnull,
                                               kNameSpaceID_XHTML,
                                               getter_AddRefs(nodeInfo));
 
@@ -3220,7 +3220,8 @@ IsSpecialContent(nsIContent*     aContent,
       return PR_TRUE;
     }
 
-    if (aTag == nsGkAtoms::img) {
+    if (aTag == nsGkAtoms::img ||
+        aTag == nsGkAtoms::mozgeneratedcontentimage) {
       return nsImageFrame::ShouldCreateImageFrameFor(aContent, aStyleContext);
     }
 
@@ -5239,7 +5240,7 @@ nsCSSFrameConstructor::ConstructHTMLFrame(nsFrameConstructorState& aState,
   const nsStyleDisplay* display = aStyleContext->GetStyleDisplay();
 
   
-  if (nsGkAtoms::img == aTag) {
+  if (nsGkAtoms::img == aTag || nsGkAtoms::mozgeneratedcontentimage == aTag) {
     
     rv = CreateHTMLImageFrame(aContent, aStyleContext, NS_NewImageFrame,
                               &newFrame);
