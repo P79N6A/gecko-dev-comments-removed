@@ -159,8 +159,8 @@ namespace nanojit
 
 #include "Native.h"
 #include "LIR.h"
-
-
+#include "RegAlloc.h"
+#include "Fragmento.h"
 
 
 #endif 
