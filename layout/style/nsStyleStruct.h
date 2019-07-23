@@ -65,22 +65,8 @@
 class nsIFrame;
 class imgIRequest;
 
-enum nsStyleStructID {
 
-
-
-
-
-
-
-
-#define STYLE_STRUCT(name, checkdata_cb, ctor_args) eStyleStruct_##name,
-#include "nsStyleStructList.h"
-#undef STYLE_STRUCT
-
-nsStyleStructID_Length 
-
-};
+#include "nsStyleStructFwd.h"
 
 
 #define NS_STYLE_INHERIT_BIT(sid_)        (1 << PRInt32(eStyleStruct_##sid_))
