@@ -5852,8 +5852,9 @@ nsCSSFrameConstructor::AppendFrames(nsFrameConstructorState&       aState,
                                    nsIPresShell::eTreeChange,
                                    NS_FRAME_HAS_DIRTY_CHILDREN);
 
-      return aState.mFrameManager->InsertFrames(aParentFrame->GetParent(),
-                                                nsnull, aParentFrame, ibSiblings);
+      
+      return AppendFrames(aState, aParentFrame->GetParent(), ibSiblings,
+                          aParentFrame);
     }
 
     return NS_OK;
@@ -11030,6 +11031,26 @@ nsCSSFrameConstructor::BuildInlineChildItems(nsFrameConstructorState& aState,
   aParentItem.mIsAllInline = aParentItem.mChildItems.AreAllItemsInline();
 }
 
+
+
+
+static PRBool
+IsSafeToAppendToSpecialInline(nsIFrame* aParentFrame, nsIFrame* aNextSibling)
+{
+  NS_PRECONDITION(IsInlineFrame(aParentFrame),
+                  "Must have an inline parent here");
+  do {
+    NS_ASSERTION(IsFrameSpecial(aParentFrame), "How is this not special?");
+    if (aNextSibling || aParentFrame->GetNextContinuation() ||
+        GetSpecialSibling(aParentFrame)) {
+      return PR_FALSE;
+    }
+
+    aNextSibling = aParentFrame->GetNextSibling();
+    aParentFrame = aParentFrame->GetParent();
+  } while (IsInlineFrame(aParentFrame));
+}
+
 PRBool
 nsCSSFrameConstructor::WipeContainingBlock(nsFrameConstructorState& aState,
                                            nsIFrame* aContainingBlock,
@@ -11242,8 +11263,10 @@ nsCSSFrameConstructor::WipeContainingBlock(nsFrameConstructorState& aState,
       
       
       
-      if (aIsAppend && !nextSibling && !aFrame->GetNextContinuation() &&
-          !GetSpecialSibling(aFrame)) {
+      
+      
+      
+      if (aIsAppend && IsSafeToAppendToSpecialInline(aFrame, nextSibling)) {
         return PR_FALSE;
       }
 
