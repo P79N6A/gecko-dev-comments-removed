@@ -50,6 +50,7 @@
 #include "jslong.h"
 #include "jsatom.h"
 #include "jsdhash.h"
+#include "jsdtoa.h"
 #include "jsgc.h"
 #include "jshashtable.h"
 #include "jsinterp.h"
@@ -556,6 +557,9 @@ struct JSThreadData {
 #endif
 
     
+    DtoaState           *dtoaState;
+
+    
 
 
 
@@ -569,7 +573,7 @@ struct JSThreadData {
 
     jsuword             nativeEnumCache[NATIVE_ENUM_CACHE_SIZE];
 
-    void init();
+    bool init();
     void finish();
     void mark(JSTracer *trc);
     void purge(JSContext *cx);

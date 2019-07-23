@@ -48,6 +48,13 @@
 
 JS_BEGIN_EXTERN_C
 
+struct DtoaState;
+
+DtoaState *
+js_NewDtoaState();
+
+void
+js_DestroyDtoaState(DtoaState *state);
 
 
 
@@ -63,8 +70,8 @@ JS_BEGIN_EXTERN_C
 
 #define JS_DTOA_ERANGE 1
 #define JS_DTOA_ENOMEM 2
-JS_FRIEND_API(double)
-JS_strtod(const char *s00, char **se, int *err);
+double
+js_strtod_harder(DtoaState *state, const char *s00, char **se, int *err);
 
 
 
@@ -102,8 +109,9 @@ typedef enum JSDToStrMode {
 
 
 
-JS_FRIEND_API(char *)
-JS_dtostr(char *buffer, size_t bufferSize, JSDToStrMode mode, int precision, double dval);
+char *
+js_dtostr(DtoaState *state, char *buffer, size_t bufferSize, JSDToStrMode mode, int precision,
+          double dval);
 
 
 
@@ -116,15 +124,8 @@ JS_dtostr(char *buffer, size_t bufferSize, JSDToStrMode mode, int precision, dou
 
 
 
-JS_FRIEND_API(char *)
-JS_dtobasestr(int base, double d);
-
-
-
-
-
-JS_FRIEND_API(JSBool) js_InitDtoa(void);
-JS_FRIEND_API(void) js_FinishDtoa(void);
+char *
+js_dtobasestr(DtoaState *state, int base, double d);
 
 JS_END_EXTERN_C
 
