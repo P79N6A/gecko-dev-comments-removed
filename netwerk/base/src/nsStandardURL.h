@@ -155,6 +155,7 @@ protected:
     
     
     
+    
     virtual nsresult EnsureFile();
 
 private:

@@ -1605,15 +1605,20 @@ nsStandardURL::Equals(nsIURI *unknownOther, PRBool *result)
         
         
         *result = PR_FALSE;
-        
+
         rv = EnsureFile();
+        nsresult rv2 = other->EnsureFile();
+        
+        if (rv == NS_ERROR_NO_INTERFACE && rv == rv2) 
+            return NS_OK;
+        
         if (NS_FAILED(rv)) {
             LOG(("nsStandardURL::Equals [this=%p spec=%s] failed to ensure file",
                 this, mSpec.get()));
             return rv;
         }
         NS_ASSERTION(mFile, "EnsureFile() lied!");
-        rv = other->EnsureFile();
+        rv = rv2;
         if (NS_FAILED(rv)) {
             LOG(("nsStandardURL::Equals [other=%p spec=%s] other failed to ensure file",
                  other.get(), other->mSpec.get()));
