@@ -1658,21 +1658,15 @@ function BrowserCloseTabOrWindow()
   }
 #endif
 
-  if (gBrowser.tabContainer.childNodes.length > 1) {
+  if (gBrowser.tabContainer.childNodes.length > 1 ||
+      window.toolbar.visible && !gPrefService.getBoolPref("browser.tabs.autoHide")) {
     
+    var isLastTab = gBrowser.tabContainer.childNodes.length == 1;
     gBrowser.removeCurrentTab();
-    return;
-  }
-#ifndef XP_MACOSX
-  if (window.toolbar.visible &&
-      !gPrefService.getBoolPref("browser.tabs.autoHide")) {
-    
-    gBrowser.removeCurrentTab();
-    if (gURLBar)
+    if (isLastTab && gURLBar)
       setTimeout(function() { gURLBar.focus(); }, 0);
     return;
   }
-#endif
 
   closeWindow(true);
 }
