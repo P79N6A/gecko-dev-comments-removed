@@ -55,7 +55,6 @@
 #include "nsIDOMToString.h"
 #include "nsDOMEvent.h"
 #include "nsIDOMStorageEvent.h"
-#include "nsIDOMStorageEventObsolete.h"
 #include "nsIDOMStorageManager.h"
 #include "nsCycleCollectionParticipant.h"
 
@@ -146,19 +145,13 @@ public:
   nsresult Clear();
 
   
-  virtual nsresult InitAsSessionStorage(nsIPrincipal *aPrincipal, const nsSubstring &aDocumentURI);
-  virtual nsresult InitAsLocalStorage(nsIPrincipal *aPrincipal, const nsSubstring &aDocumentURI);
+  virtual nsresult InitAsSessionStorage(nsIPrincipal *aPrincipal);
+  virtual nsresult InitAsLocalStorage(nsIPrincipal *aPrincipal);
   virtual nsresult InitAsGlobalStorage(const nsACString &aDomainDemanded);
   virtual already_AddRefed<nsIDOMStorage> Clone();
-  virtual already_AddRefed<nsIDOMStorage> Fork(const nsSubstring &aDocumentURI);
-  virtual PRBool IsForkOf(nsIDOMStorage* aThat);
   virtual nsTArray<nsString> *GetKeys();
   virtual nsIPrincipal* Principal();
   virtual PRBool CanAccess(nsIPrincipal *aPrincipal);
-  virtual nsDOMStorageType StorageType();
-  virtual void BroadcastChangeNotification(const nsSubstring &aKey,
-                                           const nsSubstring &aOldValue,
-                                           const nsSubstring &aNewValue);
 
   
   
@@ -225,16 +218,12 @@ protected:
   
   nsresult CacheKeysFromDB();
 
+  void BroadcastChangeNotification();
+
   PRBool CanAccessSystem(nsIPrincipal *aPrincipal);
 
   
   PRPackedBool mUseDB;
-
-  
-  nsCString mDomain;
-
-  
-  nsString mDocumentURI;
 
   
   
@@ -247,10 +236,13 @@ protected:
   
   
   
-  nsDOMStorageType mStorageType;
+  PRPackedBool mLocalStorage;
 
   
   PRPackedBool mItemsCached;
+
+  
+  nsCString mDomain;
 
   
   nsTHashtable<nsSessionStorageEntry> mItems;
@@ -263,7 +255,6 @@ protected:
 
   friend class nsIDOMStorage2;
   nsPIDOMStorage* mSecurityChecker;
-  nsPIDOMStorage* mEventBroadcaster;
 
 public:
   
@@ -297,34 +288,19 @@ public:
   NS_DECL_NSIDOMSTORAGE
 
   
-  virtual nsresult InitAsSessionStorage(nsIPrincipal *aPrincipal, const nsSubstring &aDocumentURI);
-  virtual nsresult InitAsLocalStorage(nsIPrincipal *aPrincipal, const nsSubstring &aDocumentURI);
+  virtual nsresult InitAsSessionStorage(nsIPrincipal *aPrincipal);
+  virtual nsresult InitAsLocalStorage(nsIPrincipal *aPrincipal);
   virtual nsresult InitAsGlobalStorage(const nsACString &aDomainDemanded);
   virtual already_AddRefed<nsIDOMStorage> Clone();
-  virtual already_AddRefed<nsIDOMStorage> Fork(const nsSubstring &aDocumentURI);
-  virtual PRBool IsForkOf(nsIDOMStorage* aThat);
   virtual nsTArray<nsString> *GetKeys();
   virtual nsIPrincipal* Principal();
   virtual PRBool CanAccess(nsIPrincipal *aPrincipal);
-  virtual nsDOMStorageType StorageType();
-  virtual void BroadcastChangeNotification(const nsSubstring &aKey,
-                                           const nsSubstring &aOldValue,
-                                           const nsSubstring &aNewValue);
-
-  nsresult InitAsSessionStorageFork(nsIPrincipal *aPrincipal,
-                                    const nsSubstring &aDocumentURI,
-                                    nsIDOMStorageObsolete* aStorage);
 
 private:
   
   
   nsCOMPtr<nsIPrincipal> mPrincipal;
 
-  
-  
-  nsString mDocumentURI;
-
-  friend class nsDOMStorage2;
   nsRefPtr<nsDOMStorage> mStorage;
 };
 
@@ -446,9 +422,15 @@ class nsDOMStorageEvent : public nsDOMEvent,
                           public nsIDOMStorageEvent
 {
 public:
-  nsDOMStorageEvent()
-    : nsDOMEvent(nsnull, nsnull)
+  nsDOMStorageEvent(const nsAString& aDomain)
+    : nsDOMEvent(nsnull, nsnull), mDomain(aDomain)
   {
+    if (aDomain.IsEmpty()) {
+      
+      
+
+      mDomain = NS_LITERAL_STRING("#session");
+    }
   }
 
   virtual ~nsDOMStorageEvent()
@@ -459,31 +441,6 @@ public:
 
   NS_DECL_ISUPPORTS
   NS_DECL_NSIDOMSTORAGEEVENT
-  NS_FORWARD_NSIDOMEVENT(nsDOMEvent::)
-
-protected:
-  nsString mKey;
-  nsString mOldValue;
-  nsString mNewValue;
-  nsString mUrl;
-  nsCOMPtr<nsIDOMStorage> mStorageArea;
-};
-
-class nsDOMStorageEventObsolete : public nsDOMEvent,
-                          public nsIDOMStorageEventObsolete
-{
-public:
-  nsDOMStorageEventObsolete()
-    : nsDOMEvent(nsnull, nsnull)
-  {
-  }
-
-  virtual ~nsDOMStorageEventObsolete()
-  {
-  }
-
-  NS_DECL_ISUPPORTS
-  NS_DECL_NSIDOMSTORAGEEVENTOBSOLETE
   NS_FORWARD_NSIDOMEVENT(nsDOMEvent::)
 
 protected:
