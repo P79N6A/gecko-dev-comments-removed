@@ -362,8 +362,8 @@ SessionStoreService.prototype = {
     case "browser:purge-session-history": 
       let openWindows = {};
       this._forEachBrowserWindow(function(aWindow) {
-        Array.forEach(aWindow.getBrowser().browsers, function(aBrowser) {
-          delete aBrowser.parentNode.__SS_data;
+        Array.forEach(aWindow.gBrowser.browsers, function(aBrowser) {
+          delete aBrowser.__SS_data;
         });
         openWindows[aWindow.__SSi] = true;
       });
@@ -516,41 +516,35 @@ SessionStoreService.prototype = {
 
 
   handleEvent: function sss_handleEvent(aEvent) {
+    var win = aEvent.currentTarget.ownerDocument.defaultView;
     switch (aEvent.type) {
       case "load":
       case "pageshow":
-        this.onTabLoad(aEvent.currentTarget.ownerDocument.defaultView, aEvent.currentTarget, aEvent);
+        this.onTabLoad(win, aEvent.currentTarget, aEvent);
         break;
       case "change":
       case "input":
       case "DOMAutoComplete":
-        this.onTabInput(aEvent.currentTarget.ownerDocument.defaultView, aEvent.currentTarget);
+        this.onTabInput(win, aEvent.currentTarget);
         break;
       case "scroll":
-        this.onTabScroll(aEvent.currentTarget.ownerDocument.defaultView);
+        this.onTabScroll(win);
         break;
       case "TabOpen":
       case "TabClose":
-        let target = aEvent.originalTarget;
-        let panelID = target.linkedPanel;
-        let ownerDoc = target.ownerDocument;
-        let bindingParent = ownerDoc.getBindingParent(target);
-        let tabpanel =
-          ownerDoc.getAnonymousElementByAttribute(bindingParent, "id",
-                                                  panelID);
+        let browser = aEvent.originalTarget.linkedBrowser;
         if (aEvent.type == "TabOpen") {
-          this.onTabAdd(aEvent.currentTarget.ownerDocument.defaultView, tabpanel);
+          this.onTabAdd(win, browser);
         }
         else {
           
           if (!aEvent.detail)
-            this.onTabClose(aEvent.currentTarget.ownerDocument.defaultView, aEvent.originalTarget);
-          this.onTabRemove(aEvent.currentTarget.ownerDocument.defaultView, tabpanel);
+            this.onTabClose(win, aEvent.originalTarget);
+          this.onTabRemove(win, browser);
         }
         break;
       case "TabSelect":
-        var tabpanels = aEvent.currentTarget.mPanelContainer;
-        this.onTabSelect(aEvent.currentTarget.ownerDocument.defaultView, tabpanels);
+        this.onTabSelect(win);
         break;
     }
   },
@@ -644,12 +638,11 @@ SessionStoreService.prototype = {
     }
 #endif
 
-    var tabbrowser = aWindow.getBrowser();
-    var tabpanels = tabbrowser.mPanelContainer;
+    var tabbrowser = aWindow.gBrowser;
     
     
-    for (var i = 0; i < tabpanels.childNodes.length; i++) {
-      this.onTabAdd(aWindow, tabpanels.childNodes[i], true);
+    for (let i = 0; i < tabbrowser.browsers.length; i++) {
+      this.onTabAdd(aWindow, tabbrowser.browsers[i], true);
     }
     
     tabbrowser.addEventListener("TabOpen", this, true);
@@ -684,8 +677,7 @@ SessionStoreService.prototype = {
       delete this.windowToFocus;
     }
     
-    var tabbrowser = aWindow.getBrowser();
-    var tabpanels = tabbrowser.mPanelContainer;
+    var tabbrowser = aWindow.gBrowser;
 
     tabbrowser.removeEventListener("TabOpen", this, true);
     tabbrowser.removeEventListener("TabClose", this, true);
@@ -717,8 +709,8 @@ SessionStoreService.prototype = {
       this.saveStateDelayed();
     }
     
-    for (var i = 0; i < tabpanels.childNodes.length; i++) {
-      this.onTabRemove(aWindow, tabpanels.childNodes[i], true);
+    for (let i = 0; i < tabbrowser.browsers.length; i++) {
+      this.onTabRemove(aWindow, tabbrowser.browsers[i], true);
     }
     
     
@@ -736,13 +728,13 @@ SessionStoreService.prototype = {
 
 
 
-  onTabAdd: function sss_onTabAdd(aWindow, aPanel, aNoNotification) {
-    aPanel.addEventListener("load", this, true);
-    aPanel.addEventListener("pageshow", this, true);
-    aPanel.addEventListener("change", this, true);
-    aPanel.addEventListener("input", this, true);
-    aPanel.addEventListener("DOMAutoComplete", this, true);
-    aPanel.addEventListener("scroll", this, true);
+  onTabAdd: function sss_onTabAdd(aWindow, aBrowser, aNoNotification) {
+    aBrowser.addEventListener("load", this, true);
+    aBrowser.addEventListener("pageshow", this, true);
+    aBrowser.addEventListener("change", this, true);
+    aBrowser.addEventListener("input", this, true);
+    aBrowser.addEventListener("DOMAutoComplete", this, true);
+    aBrowser.addEventListener("scroll", this, true);
     
     if (!aNoNotification) {
       this.saveStateDelayed(aWindow);
@@ -758,15 +750,15 @@ SessionStoreService.prototype = {
 
 
 
-  onTabRemove: function sss_onTabRemove(aWindow, aPanel, aNoNotification) {
-    aPanel.removeEventListener("load", this, true);
-    aPanel.removeEventListener("pageshow", this, true);
-    aPanel.removeEventListener("change", this, true);
-    aPanel.removeEventListener("input", this, true);
-    aPanel.removeEventListener("DOMAutoComplete", this, true);
-    aPanel.removeEventListener("scroll", this, true);
+  onTabRemove: function sss_onTabRemove(aWindow, aBrowser, aNoNotification) {
+    aBrowser.removeEventListener("load", this, true);
+    aBrowser.removeEventListener("pageshow", this, true);
+    aBrowser.removeEventListener("change", this, true);
+    aBrowser.removeEventListener("input", this, true);
+    aBrowser.removeEventListener("DOMAutoComplete", this, true);
+    aBrowser.removeEventListener("scroll", this, true);
     
-    delete aPanel.__SS_data;
+    delete aBrowser.__SS_data;
     
     if (!aNoNotification) {
       this.saveStateDelayed(aWindow);
@@ -824,14 +816,14 @@ SessionStoreService.prototype = {
 
 
 
-  onTabLoad: function sss_onTabLoad(aWindow, aPanel, aEvent) { 
+  onTabLoad: function sss_onTabLoad(aWindow, aBrowser, aEvent) { 
     
     
     if (aEvent.type != "load" && !aEvent.persisted) {
       return;
     }
     
-    delete aPanel.__SS_data;
+    delete aBrowser.__SS_data;
     this.saveStateDelayed(aWindow);
     
     
@@ -845,9 +837,9 @@ SessionStoreService.prototype = {
 
 
 
-  onTabInput: function sss_onTabInput(aWindow, aPanel) {
-    if (aPanel.__SS_data)
-      delete aPanel.__SS_data._formDataSaved;
+  onTabInput: function sss_onTabInput(aWindow, aBrowser) {
+    if (aBrowser.__SS_data)
+      delete aBrowser.__SS_data._formDataSaved;
     
     this.saveStateDelayed(aWindow, 3000);
   },
@@ -866,11 +858,9 @@ SessionStoreService.prototype = {
 
 
 
-
-
-  onTabSelect: function sss_onTabSelect(aWindow, aPanels) {
+  onTabSelect: function sss_onTabSelect(aWindow) {
     if (this._loadState == STATE_RUNNING) {
-      this._windows[aWindow.__SSi].selected = aPanels.selectedIndex;
+      this._windows[aWindow.__SSi].selected = aWindow.gBrowser.tabContainer.selectedIndex;
       this.saveStateDelayed(aWindow);
 
       
@@ -1156,9 +1146,9 @@ SessionStoreService.prototype = {
     if (!browser || !browser.currentURI)
       
       return tabData;
-    else if (browser.parentNode.__SS_data && browser.parentNode.__SS_data._tabStillLoading)
+    else if (browser.__SS_data && browser.__SS_data._tabStillLoading)
       
-      return browser.parentNode.__SS_data;
+      return browser.__SS_data;
     
     var history = null;
     try {
@@ -1168,10 +1158,10 @@ SessionStoreService.prototype = {
     
     
     
-    if (history && browser.parentNode.__SS_data &&
-        browser.parentNode.__SS_data.entries[history.index] &&
+    if (history && browser.__SS_data &&
+        browser.__SS_data.entries[history.index] &&
         history.index < this._sessionhistory_max_entries - 1 && !aFullData) {
-      tabData = browser.parentNode.__SS_data;
+      tabData = browser.__SS_data;
       tabData.index = history.index + 1;
     }
     else if (history && history.count > 0) {
@@ -1182,7 +1172,7 @@ SessionStoreService.prototype = {
 
       
       if (!aFullData)
-        browser.parentNode.__SS_data = tabData;
+        browser.__SS_data = tabData;
     }
     else if (browser.currentURI.spec != "about:blank" ||
              browser.contentDocument.body.hasChildNodes()) {
@@ -1408,8 +1398,8 @@ SessionStoreService.prototype = {
     for (var i = 0; i < browsers.length; i++) {
       try {
         var tabData = this._windows[aWindow.__SSi].tabs[i];
-        if (browsers[i].parentNode.__SS_data &&
-            browsers[i].parentNode.__SS_data._tabStillLoading)
+        if (browsers[i].__SS_data &&
+            browsers[i].__SS_data._tabStillLoading)
           continue; 
         this._updateTextAndScrollDataForTab(aWindow, browsers[i], tabData);
       }
@@ -1970,7 +1960,7 @@ SessionStoreService.prototype = {
       
       
       
-      browser.parentNode.__SS_data = aTabData[t];
+      browser.__SS_data = aTabData[t];
     }
     
     if (aTabs.length > 0) {
