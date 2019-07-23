@@ -2134,8 +2134,11 @@ nsNavHistory::ExecuteQueries(nsINavHistoryQuery** aQueries, PRUint32 aQueryCount
 
 
 
+
+
+
 static
-PRBool IsHistoryMenuQuery(const nsCOMArray<nsNavHistoryQuery>& aQueries, nsNavHistoryQueryOptions *aOptions)
+PRBool IsHistoryMenuQuery(const nsCOMArray<nsNavHistoryQuery>& aQueries, nsNavHistoryQueryOptions *aOptions, PRUint16 aSortMode)
 {
   if (aQueries.Count() != 1)
     return PR_FALSE;
@@ -2148,7 +2151,7 @@ PRBool IsHistoryMenuQuery(const nsCOMArray<nsNavHistoryQuery>& aQueries, nsNavHi
   if (aOptions->ResultType() != nsINavHistoryQueryOptions::RESULTS_AS_URI)
     return PR_FALSE;
 
-  if (aOptions->SortingMode() != nsINavHistoryQueryOptions::SORT_BY_DATE_DESCENDING)
+  if (aOptions->SortingMode() != aSortMode)
     return PR_FALSE;
 
   if (aOptions->MaxResults() <= 0)
@@ -2242,7 +2245,8 @@ nsNavHistory::ConstructQueryString(const nsCOMArray<nsNavHistoryQuery>& aQueries
 
   
   
-  if (IsHistoryMenuQuery(aQueries, aOptions)) {
+  if (IsHistoryMenuQuery(aQueries, aOptions, 
+        nsINavHistoryQueryOptions::SORT_BY_DATE_DESCENDING)) {
     
     
     queryString = NS_LITERAL_CSTRING(
@@ -2259,6 +2263,27 @@ nsNavHistory::ConstructQueryString(const nsCOMArray<nsNavHistoryQuery>& aQueries
     queryString += NS_LITERAL_CSTRING(")) GROUP BY h.id ORDER BY 6 DESC"); 
     return NS_OK;
   }
+
+  
+  
+  if (IsHistoryMenuQuery(aQueries, aOptions, 
+        nsINavHistoryQueryOptions::SORT_BY_VISITCOUNT_DESCENDING)) {
+    
+    
+    
+    
+    
+    queryString = NS_LITERAL_CSTRING(
+      "SELECT h.id, h.url, h.title, h.rev_host, h.visit_count, "
+      "null, f.url, null, null "
+      "FROM moz_places h "
+      "LEFT OUTER JOIN moz_favicons f ON h.favicon_id = f.id WHERE "
+      "h.id IN (SELECT id FROM moz_places WHERE hidden <> 1 "
+      " ORDER BY visit_count DESC LIMIT ");
+    queryString.AppendInt(aOptions->MaxResults());
+    queryString += NS_LITERAL_CSTRING(") ORDER BY h.visit_count DESC");
+    return NS_OK;
+  }  
 
   PRBool asVisits =
     (aOptions->ResultType() == nsINavHistoryQueryOptions::RESULTS_AS_VISIT ||
