@@ -3384,7 +3384,6 @@ nsTableFrame::IsAutoHeight()
 
   switch (position->mHeight.GetUnit()) {
     case eStyleUnit_Auto:         
-    case eStyleUnit_Proportional: 
       break;
     case eStyleUnit_Coord:
       isAuto = PR_FALSE;

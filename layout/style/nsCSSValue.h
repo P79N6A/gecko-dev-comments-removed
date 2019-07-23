@@ -107,9 +107,6 @@ enum nsCSSUnit {
   eCSSUnit_Pixel        = 900,    
 
   
-  eCSSUnit_Proportional = 950, 
-
-  
   eCSSUnit_Degree       = 1000,    
   eCSSUnit_Grad         = 1001,    
   eCSSUnit_Radian       = 1002,    
@@ -165,11 +162,11 @@ public:
 
   nsCSSUnit GetUnit() const { return mUnit; }
   PRBool    IsLengthUnit() const
-    { return PRBool((eCSSUnit_Inch <= mUnit) && (mUnit <= eCSSUnit_Proportional)); }
+    { return PRBool((eCSSUnit_Inch <= mUnit) && (mUnit <= eCSSUnit_Pixel)); }
   PRBool    IsFixedLengthUnit() const  
     { return PRBool((eCSSUnit_Inch <= mUnit) && (mUnit <= eCSSUnit_Cicero)); }
   PRBool    IsRelativeLengthUnit() const  
-    { return PRBool((eCSSUnit_EM <= mUnit) && (mUnit <= eCSSUnit_Proportional)); }
+    { return PRBool((eCSSUnit_EM <= mUnit) && (mUnit <= eCSSUnit_Pixel)); }
   PRBool    IsAngularUnit() const  
     { return PRBool((eCSSUnit_Degree <= mUnit) && (mUnit <= eCSSUnit_Radian)); }
   PRBool    IsFrequencyUnit() const  

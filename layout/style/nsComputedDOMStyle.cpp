@@ -2772,7 +2772,6 @@ nsComputedDOMStyle::SetValueToCoord(nsROCSSPrimitiveValue* aValue,
       break;
       
     default:
-      
       NS_ERROR("Can't handle this unit");
       break;
   }
