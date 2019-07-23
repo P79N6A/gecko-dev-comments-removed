@@ -762,7 +762,6 @@ struct nsCallbackEventRequest
 
 
 class nsPresShellEventCB;
-class nsAutoCauseReflowNotifier;
 
 class PresShell : public nsIPresShell, public nsIViewObserver,
                   public nsStubDocumentObserver,
@@ -1013,13 +1012,6 @@ protected:
 
   void UnsuppressAndInvalidate();
 
-  void WillCauseReflow() {
-    nsContentUtils::AddScriptBlocker();
-    ++mChangeNestCount;
-  }
-  nsresult DidCauseReflow();
-  friend class nsAutoCauseReflowNotifier;
-
   void     WillDoReflow();
   void     DidDoReflow();
   nsresult ProcessReflowCommands(PRBool aInterruptible);
@@ -1133,11 +1125,6 @@ protected:
 
   PRPackedBool mIgnoreFrameDestruction;
   PRPackedBool mHaveShutDown;
-
-  
-  
-  
-  PRUint32  mChangeNestCount;
   
   nsIFrame*   mCurrentEventFrame;
   nsCOMPtr<nsIContent> mCurrentEventContent;
@@ -1214,29 +1201,6 @@ private:
   void EnumeratePlugins(nsIDOMDocument *aDocument,
                         const nsString &aPluginTag,
                         nsPluginEnumCallback aCallback);
-};
-
-class nsAutoCauseReflowNotifier
-{
-public:
-  nsAutoCauseReflowNotifier(PresShell* aShell)
-    : mShell(aShell)
-  {
-    mShell->WillCauseReflow();
-  }
-  ~nsAutoCauseReflowNotifier()
-  {
-    
-    
-    if (!mShell->mHaveShutDown) {
-      mShell->DidCauseReflow();
-    }
-    else {
-      nsContentUtils::RemoveScriptBlocker();
-    }
-  }
-
-  PresShell* mShell;
 };
 
 class NS_STACK_CLASS nsPresShellEventCB : public nsDispatchingCallback
@@ -2408,7 +2372,7 @@ PresShell::InitialReflow(nscoord aWidth, nscoord aHeight)
     MOZ_TIMER_START(mFrameCreationWatch);
 
     {
-      nsAutoCauseReflowNotifier reflowNotifier(this);
+      nsAutoScriptBlocker scriptBlocker;
       mFrameConstructor->BeginUpdate();
 
       if (!rootFrame) {
@@ -2554,7 +2518,7 @@ PresShell::ResizeReflow(nscoord aWidth, nscoord aHeight)
       
 
       {
-        nsAutoCauseReflowNotifier crNotifier(this);
+        nsAutoScriptBlocker scriptBlocker;
         WillDoReflow();
 
         
@@ -3089,7 +3053,6 @@ PresShell::RestoreRootScrollPosition()
   
   
   nsAutoScriptBlocker scriptBlocker;
-  ++mChangeNestCount;
 
   if (historyState) {
     nsIFrame* scrollFrame = GetRootScrollFrame();
@@ -3103,8 +3066,6 @@ PresShell::RestoreRootScrollPosition()
       }
     }
   }
-
-  --mChangeNestCount;
 }
 
 void
@@ -3384,10 +3345,7 @@ PresShell::RecreateFramesFor(nsIContent* aContent)
   nsStyleChangeList changeList;
   changeList.AppendChange(nsnull, aContent, nsChangeHint_ReconstructFrame);
 
-  
-  ++mChangeNestCount;
   nsresult rv = mFrameConstructor->ProcessRestyledFrames(changeList);
-  --mChangeNestCount;
   
   batch.EndUpdateViewBatch(NS_VMREFRESH_NO_SYNC);
 #ifdef ACCESSIBILITY
@@ -4487,29 +4445,21 @@ PresShell::HandlePostedReflowCallbacks()
 NS_IMETHODIMP 
 PresShell::IsSafeToFlush(PRBool& aIsSafeToFlush)
 {
+  aIsSafeToFlush = nsContentUtils::IsSafeToRunScript();
+#ifdef DEBUG
   
+  PRBool isSafeToFlush = !mIsReflowing;
   
-  
-  
-  
-  aIsSafeToFlush = !mIsReflowing &&
-                   !mChangeNestCount;
-
-  if (aIsSafeToFlush) {
-    
-    nsIViewManager* viewManager = GetViewManager();
-    if (viewManager) {
-      PRBool isPainting = PR_FALSE;
-      viewManager->IsPainting(isPainting);
-      if (isPainting) {
-        aIsSafeToFlush = PR_FALSE;
-      }
+  nsIViewManager* viewManager = GetViewManager();
+  if (viewManager) {
+    PRBool isPainting = PR_FALSE;
+    viewManager->IsPainting(isPainting);
+    if (isPainting) {
+      isSafeToFlush = PR_FALSE;
     }
   }
-
-  NS_ASSERTION(aIsSafeToFlush == nsContentUtils::IsSafeToRunScript(),
-               "Someone forgot to block scripts");
-
+  NS_ASSERTION(!aIsSafeToFlush || isSafeToFlush, "Missing a script blocker!");
+#endif
   return NS_OK;
 }
 
@@ -4622,7 +4572,7 @@ PresShell::CharacterDataChanged(nsIDocument *aDocument,
   NS_PRECONDITION(!mIsDocumentGone, "Unexpected CharacterDataChanged");
   NS_PRECONDITION(aDocument == mDocument, "Unexpected aDocument");
 
-  nsAutoCauseReflowNotifier crNotifier(this);
+  nsAutoScriptBlocker scriptBlocker;
 
   if (mCaret) {
     
@@ -4664,7 +4614,7 @@ PresShell::ContentStatesChanged(nsIDocument* aDocument,
   NS_PRECONDITION(aDocument == mDocument, "Unexpected aDocument");
 
   if (mDidInitialReflow) {
-    nsAutoCauseReflowNotifier crNotifier(this);
+    nsAutoScriptBlocker scriptBlocker;
     mFrameConstructor->ContentStatesChanged(aContent1, aContent2, aStateMask);
     VERIFY_STYLE_TREE;
   }
@@ -4686,7 +4636,7 @@ PresShell::AttributeChanged(nsIDocument* aDocument,
   
   
   if (mDidInitialReflow) {
-    nsAutoCauseReflowNotifier crNotifier(this);
+    nsAutoScriptBlocker scriptBlocker;
     mFrameConstructor->AttributeChanged(aContent, aNameSpaceID,
                                         aAttribute, aModType, aStateMask);
     VERIFY_STYLE_TREE;
@@ -4706,7 +4656,7 @@ PresShell::ContentAppended(nsIDocument *aDocument,
     return;
   }
   
-  nsAutoCauseReflowNotifier crNotifier(this);
+  nsAutoScriptBlocker scriptBlocker;
   MOZ_TIMER_DEBUGLOG(("Start: Frame Creation: PresShell::ContentAppended(), this=%p\n", this));
   MOZ_TIMER_START(mFrameCreationWatch);
 
@@ -4735,7 +4685,7 @@ PresShell::ContentInserted(nsIDocument* aDocument,
     return;
   }
   
-  nsAutoCauseReflowNotifier crNotifier(this);
+  nsAutoScriptBlocker scriptBlocker;
 
   
   
@@ -4766,7 +4716,7 @@ PresShell::ContentRemoved(nsIDocument *aDocument,
   
   mPresContext->EventStateManager()->ContentRemoved(aChild);
 
-  nsAutoCauseReflowNotifier crNotifier(this);
+  nsAutoScriptBlocker scriptBlocker;
 
   
   
@@ -4784,7 +4734,7 @@ PresShell::ContentRemoved(nsIDocument *aDocument,
 nsresult
 PresShell::ReconstructFrames(void)
 {
-  nsAutoCauseReflowNotifier crNotifier(this);
+  nsAutoScriptBlocker scriptBlocker;
   mFrameConstructor->BeginUpdate();
   nsresult rv = mFrameConstructor->ReconstructDocElementHierarchy();
   VERIFY_STYLE_TREE;
@@ -5591,7 +5541,7 @@ PresShell::HandleEvent(nsIView         *aView,
 {
   NS_ASSERTION(aView, "null view");
 
-  if (mIsDestroying || mIsReflowing || mChangeNestCount) {
+  if (mIsDestroying || !nsContentUtils::IsSafeToRunScript()) {
     return NS_OK;
   }
 
@@ -5602,9 +5552,6 @@ PresShell::HandleEvent(nsIView         *aView,
     return HandleEventInternal(aEvent, aView, aEventStatus);
   }
 #endif
-
-  NS_ASSERTION(nsContentUtils::IsSafeToRunScript(),
-               "How did we get here if it's not safe to run scripts?");
 
   
   if (aEvent->message == NS_THEMECHANGED && mPresContext) {
@@ -6051,8 +5998,7 @@ PresShell::WillPaint()
 {
   
   
-  
-  if (mIsReflowing || mChangeNestCount || mPaintingSuppressed) {
+  if (mPaintingSuppressed) {
     return;
   }
   
@@ -6262,25 +6208,6 @@ PresShell::PostReflowEvent()
     }
 #endif    
   }
-}
-
-nsresult
-PresShell::DidCauseReflow()
-{
-  NS_ASSERTION(mChangeNestCount != 0, "Unexpected call to DidCauseReflow()");
-  if (--mChangeNestCount == 0) {
-    
-    
-
-    
-    
-    
-    PostReflowEvent();
-  }
-
-  nsContentUtils::RemoveScriptBlocker();
-
-  return NS_OK;
 }
 
 void
@@ -6632,9 +6559,7 @@ PresShell::Observe(nsISupports* aSubject,
       
       {
         nsAutoScriptBlocker scriptBlocker;
-        ++mChangeNestCount;
         mFrameConstructor->ProcessRestyledFrames(changeList);
-        --mChangeNestCount;
       }
 
       batch.EndUpdateViewBatch(NS_VMREFRESH_NO_SYNC);
@@ -7214,9 +7139,10 @@ PresShell::VerifyIncrementalReflow()
   
   sh->SetVerifyReflowEnable(PR_FALSE); 
   vm->SetViewObserver((nsIViewObserver *)((PresShell*)sh.get()));
-  WillCauseReflow();
-  sh->InitialReflow(r.width, r.height);
-  DidCauseReflow();
+  {
+    nsAutoScriptBlocker scriptBlocker;
+    sh->InitialReflow(r.width, r.height);
+  }
   mDocument->BindingManager()->ProcessAttachedQueue();
   sh->FlushPendingNotifications(Flush_Layout);
   sh->SetVerifyReflowEnable(PR_TRUE);  
