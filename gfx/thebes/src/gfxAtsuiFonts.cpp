@@ -218,9 +218,8 @@ gfxAtsuiFont::InitMetrics(ATSUFontID aFontID, ATSFontRef aFontRef)
         mMetrics.maxAdvance = mMetrics.aveCharWidth;
     }
 
-    mMetrics.underlineOffset = -mMetrics.maxDescent - atsMetrics.underlinePosition * size;
-    
-    mMetrics.underlineSize = PR_MAX(1.0, atsMetrics.underlineThickness * size);
+    mMetrics.underlineOffset = atsMetrics.underlinePosition * size;
+    mMetrics.underlineSize = atsMetrics.underlineThickness * size;
 
     mMetrics.subscriptOffset = mMetrics.xHeight;
     mMetrics.superscriptOffset = mMetrics.xHeight;
@@ -231,6 +230,8 @@ gfxAtsuiFont::InitMetrics(ATSUFontID aFontID, ATSFontRef aFontRef)
     PRUint32 glyphID;
     mMetrics.spaceWidth = GetCharWidth(' ', &glyphID);
     mSpaceGlyph = glyphID;
+
+    SanitizeMetrics(&mMetrics);
 
 #if 0
     fprintf (stderr, "Font: %p size: %f (fixed: %d)", this, size, gfxQuartzFontCache::SharedFontCache()->IsFixedPitch(aFontID));

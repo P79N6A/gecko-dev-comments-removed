@@ -547,6 +547,9 @@ protected:
     nsExpirationState          mExpirationState;
     gfxFontStyle               mStyle;
     nsAutoTArray<gfxGlyphExtents*,1> mGlyphExtentsArray;
+
+    
+    void SanitizeMetrics(gfxFont::Metrics *aMetrics);
 };
 
 class THEBES_API gfxTextRunFactory {

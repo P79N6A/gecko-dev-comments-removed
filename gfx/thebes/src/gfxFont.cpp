@@ -526,6 +526,35 @@ gfxFont::SetupGlyphExtents(gfxContext *aContext, PRUint32 aGlyphID, PRBool aNeed
     aExtents->SetTightGlyphExtents(aGlyphID, bounds);
 }
 
+void
+gfxFont::SanitizeMetrics(gfxFont::Metrics *aMetrics)
+{
+    
+    
+    
+    if (aMetrics->superscriptOffset == 0 ||
+        aMetrics->superscriptOffset >= aMetrics->maxAscent) {
+        aMetrics->superscriptOffset = aMetrics->xHeight;
+    }
+    
+    if (aMetrics->subscriptOffset == 0 ||
+        aMetrics->subscriptOffset >= aMetrics->maxAscent) {
+        aMetrics->subscriptOffset = aMetrics->xHeight;
+    }
+
+    aMetrics->underlineSize = PR_MAX(1.0, aMetrics->underlineSize);
+    aMetrics->strikeoutSize = PR_MAX(1.0, aMetrics->strikeoutSize);
+
+    aMetrics->underlineOffset = PR_MIN(aMetrics->underlineOffset, -1.0);
+
+    
+
+    
+    
+    if (aMetrics->underlineSize - aMetrics->underlineOffset > aMetrics->maxDescent)
+        aMetrics->underlineOffset = aMetrics->underlineSize - aMetrics->maxDescent;
+}
+
 gfxGlyphExtents::~gfxGlyphExtents()
 {
 #ifdef DEBUG_TEXT_RUN_STORAGE_METRICS
