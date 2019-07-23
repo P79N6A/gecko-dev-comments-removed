@@ -3577,8 +3577,7 @@ nsCSSFrameConstructor::ConstructTableFrame(nsFrameConstructorState& aState,
     if (NS_FAILED(rv)) return rv;
 
     
-    CreateAnonymousFrames(nsnull, aState, aContent, aNewInnerFrame,
-                          PR_FALSE, childItems);
+    CreateAnonymousFrames(nsnull, aState, aContent, aNewInnerFrame, childItems);
 
     nsFrameItems captionItems;
     PullOutCaptionFrames(childItems, captionItems);
@@ -3706,8 +3705,7 @@ nsCSSFrameConstructor::ConstructTableRowGroupFrame(nsFrameConstructorState& aSta
     if (NS_FAILED(rv)) return rv;
 
     
-    CreateAnonymousFrames(nsnull, aState, aContent, aNewFrame,
-                          PR_FALSE, childItems);
+    CreateAnonymousFrames(nsnull, aState, aContent, aNewFrame, childItems);
 
     aNewFrame->SetInitialChildList(nsnull, childItems.childList);
     if (aIsPseudoParent) {
@@ -3821,8 +3819,7 @@ nsCSSFrameConstructor::ConstructTableRowFrame(nsFrameConstructorState& aState,
                          PR_FALSE);
     if (NS_FAILED(rv)) return rv;
     
-    CreateAnonymousFrames(nsnull, aState, aContent, aNewFrame,
-                          PR_FALSE, childItems);
+    CreateAnonymousFrames(nsnull, aState, aContent, aNewFrame, childItems);
 
     aNewFrame->SetInitialChildList(nsnull, childItems.childList);
     if (aIsPseudoParent) {
@@ -4348,7 +4345,7 @@ nsCSSFrameConstructor::ConstructDocElementFrame(nsFrameConstructorState& aState,
     
     
     CreateAnonymousFrames(nsnull, aState, aDocElement, contentFrame,
-                          PR_FALSE, childItems, PR_TRUE);
+                          childItems, PR_TRUE);
     NS_ASSERTION(!nsLayoutUtils::GetAsBlock(contentFrame),
                  "Only XUL and SVG frames should reach here");
     ProcessChildren(aState, aDocElement, contentFrame, PR_TRUE, childItems,
@@ -4881,7 +4878,7 @@ nsCSSFrameConstructor::ConstructButtonFrame(nsFrameConstructorState& aState,
   nsFrameItems  anonymousChildItems;
   
   CreateAnonymousFrames(aTag, aState, aContent, buttonFrame,
-                          PR_FALSE, anonymousChildItems);
+                        anonymousChildItems);
   if (anonymousChildItems.childList) {
     
     aState.mFrameManager->AppendFrames(blockFrame, nsnull,
@@ -4992,7 +4989,7 @@ nsCSSFrameConstructor::ConstructSelectFrame(nsFrameConstructorState& aState,
 
       nsFrameItems childItems;
       CreateAnonymousFrames(nsGkAtoms::combobox, aState, aContent,
-                            comboboxFrame, PR_TRUE, childItems);
+                            comboboxFrame, childItems);
   
       comboboxFrame->SetInitialChildList(nsnull, childItems.childList);
 
@@ -5620,8 +5617,7 @@ nsCSSFrameConstructor::ConstructHTMLFrame(nsFrameConstructorState& aState,
     }
 
     
-    CreateAnonymousFrames(aTag, aState, aContent, newFrame,
-                          PR_FALSE, childItems);
+    CreateAnonymousFrames(aTag, aState, aContent, newFrame, childItems);
 
     
     if (childItems.childList) {
@@ -5655,7 +5651,6 @@ nsCSSFrameConstructor::CreateAnonymousFrames(nsIAtom*                 aTag,
                                              nsFrameConstructorState& aState,
                                              nsIContent*              aParent,
                                              nsIFrame*                aNewFrame,
-                                             PRBool                   aAppendToExisting,
                                              nsFrameItems&            aChildItems,
                                              PRBool                   aIsRoot)
 {
@@ -5664,8 +5659,6 @@ nsCSSFrameConstructor::CreateAnonymousFrames(nsIAtom*                 aTag,
   
   
   
-  
-
   
   
   if (!aIsRoot &&
@@ -5684,8 +5677,7 @@ nsCSSFrameConstructor::CreateAnonymousFrames(nsIAtom*                 aTag,
       )
     return NS_OK;
 
-  return CreateAnonymousFrames(aState, aParent, mDocument, aNewFrame,
-                               aAppendToExisting, aChildItems);
+  return CreateAnonymousFrames(aState, aParent, aNewFrame, aChildItems);
 }
 
 
@@ -5693,9 +5685,7 @@ nsCSSFrameConstructor::CreateAnonymousFrames(nsIAtom*                 aTag,
 nsresult
 nsCSSFrameConstructor::CreateAnonymousFrames(nsFrameConstructorState& aState,
                                              nsIContent*              aParent,
-                                             nsIDocument*             aDocument,
                                              nsIFrame*                aParentFrame,
-                                             PRBool                   aAppendToExisting,
                                              nsFrameItems&            aChildItems)
 {
   nsIAnonymousContentCreator* creator = nsnull;
@@ -5734,7 +5724,7 @@ nsCSSFrameConstructor::CreateAnonymousFrames(nsFrameConstructorState& aState,
       content->SetNativeAnonymous();
     }
 
-    rv = content->BindToTree(aDocument, aParent, aParent, PR_TRUE);
+    rv = content->BindToTree(mDocument, aParent, aParent, PR_TRUE);
     if (NS_FAILED(rv)) {
       content->UnbindFromTree();
       return rv;
@@ -6236,8 +6226,7 @@ nsCSSFrameConstructor::ConstructXULFrame(nsFrameConstructorState& aState,
     }
       
     
-    CreateAnonymousFrames(aTag, aState, aContent, newFrame, PR_FALSE,
-                          childItems);
+    CreateAnonymousFrames(aTag, aState, aContent, newFrame, childItems);
 
     
     newFrame->SetInitialChildList(nsnull, childItems.childList);
@@ -6317,8 +6306,7 @@ nsCSSFrameConstructor::BeginBuildingScrollFrame(nsFrameConstructorState& aState,
 
   
   
-  CreateAnonymousFrames(aState, aContent, mDocument, gfxScrollFrame,
-                        PR_FALSE, anonymousItems);
+  CreateAnonymousFrames(aState, aContent, gfxScrollFrame, anonymousItems);
 
   parentFrame = gfxScrollFrame;
   aNewFrame = gfxScrollFrame;
@@ -6974,8 +6962,7 @@ nsCSSFrameConstructor::ConstructMathMLFrame(nsFrameConstructorState& aState,
                            childItems, PR_FALSE);
     }
 
-    CreateAnonymousFrames(aTag, aState, aContent, newFrame, PR_FALSE,
-                          childItems);
+    CreateAnonymousFrames(aTag, aState, aContent, newFrame, childItems);
 
     
     if (NS_SUCCEEDED(rv)) {
@@ -7284,8 +7271,7 @@ nsCSSFrameConstructor::ConstructSVGFrame(nsFrameConstructorState& aState,
         rv = ProcessChildren(aState, aContent, newFrame, PR_FALSE, childItems,
                              PR_FALSE);
       }
-      CreateAnonymousFrames(aTag, aState, aContent, newFrame,
-                            PR_FALSE, childItems);
+      CreateAnonymousFrames(aTag, aState, aContent, newFrame, childItems);
     }
 
     
@@ -12502,7 +12488,7 @@ nsCSSFrameConstructor::ConstructBlock(nsFrameConstructorState& aState,
                        PR_TRUE);
 
   CreateAnonymousFrames(aContent->Tag(), aState, aContent, blockFrame,
-                        PR_FALSE, childItems);
+                        childItems);
 
   
   blockFrame->SetInitialChildList(nsnull, childItems.childList);
@@ -12557,7 +12543,7 @@ nsCSSFrameConstructor::ConstructInline(nsFrameConstructorState& aState,
   if (kidsAllInline) {
     
     CreateAnonymousFrames(aContent->Tag(), aState, aContent, aNewFrame,
-                          PR_FALSE, childItems);
+                          childItems);
 
     aNewFrame->SetInitialChildList(nsnull, childItems.childList);
     return rv;
@@ -13611,7 +13597,7 @@ nsCSSFrameConstructor::LazyGenerateChildrenEvent::Run()
         return rv;
 
       fc->CreateAnonymousFrames(mContent->Tag(), state, mContent, frame,
-                                PR_FALSE, childItems);
+                                childItems);
       frame->SetInitialChildList(nsnull, childItems.childList);
 
       fc->EndUpdate();
