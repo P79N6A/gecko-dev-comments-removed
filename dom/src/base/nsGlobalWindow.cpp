@@ -8449,7 +8449,22 @@ nsGlobalWindow::ResumeTimeouts()
   PRTime now = PR_Now();
   nsresult rv;
 
+#ifdef DEBUG
+  PRBool _seenDummyTimeout = PR_FALSE;
+#endif
+
   for (nsTimeout *t = FirstTimeout(); IsTimeout(t); t = t->Next()) {
+    
+    
+    
+    if (!t->mWindow) {
+#ifdef DEBUG
+      NS_ASSERTION(!_seenDummyTimeout, "More than one dummy timeout?!");
+      _seenDummyTimeout = PR_TRUE;
+#endif
+      continue;
+    }
+
     
     
     
