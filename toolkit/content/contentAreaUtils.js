@@ -166,7 +166,9 @@ function saveDocument(aDocument, aSkipPrompt)
     
   }
   internalSave(aDocument.location.href, aDocument, null, contentDisposition,
-               aDocument.contentType, false, null, null, aSkipPrompt);
+               aDocument.contentType, false, null, null,
+               aDocument.referrer ? makeURI(aDocument.referrer) : null,
+               aSkipPrompt);
 }
 
 function DownloadListener(win, transfer) {
