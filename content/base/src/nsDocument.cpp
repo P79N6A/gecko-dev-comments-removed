@@ -2690,6 +2690,94 @@ nsDocument::ElementFromPointHelper(float aX, float aY,
   return NS_OK;
 }
 
+nsresult
+nsDocument::NodesFromRectHelper(float aX, float aY,
+                                float aTopSize, float aRightSize,
+                                float aBottomSize, float aLeftSize,
+                                PRBool aIgnoreRootScrollFrame,
+                                PRBool aFlushLayout,
+                                nsIDOMNodeList** aReturn)
+{
+  NS_ENSURE_ARG_POINTER(aReturn);
+  
+  nsBaseContentList* elements = new nsBaseContentList();
+  NS_ADDREF(elements);
+  *aReturn = elements;
+
+  
+  
+  if (!aIgnoreRootScrollFrame && (aX < 0 || aY < 0))
+    return NS_OK;
+
+  nscoord x = nsPresContext::CSSPixelsToAppUnits(aX - aLeftSize);
+  nscoord y = nsPresContext::CSSPixelsToAppUnits(aY - aTopSize);
+  nscoord w = nsPresContext::CSSPixelsToAppUnits(aLeftSize + aRightSize) + 1;
+  nscoord h = nsPresContext::CSSPixelsToAppUnits(aTopSize + aBottomSize) + 1;
+
+  nsRect rect(x, y, w, h);
+
+  
+  
+  if (aFlushLayout) {
+    FlushPendingNotifications(Flush_Layout);
+  }
+
+  nsIPresShell *ps = GetPrimaryShell();
+  NS_ENSURE_STATE(ps);
+  nsIFrame *rootFrame = ps->GetRootFrame();
+
+  
+  if (!rootFrame)
+    return NS_OK; 
+
+  nsTArray<nsIFrame*> outFrames;
+  nsLayoutUtils::GetFramesForArea(rootFrame, rect, outFrames,
+                                  PR_TRUE, aIgnoreRootScrollFrame);
+
+  PRInt32 length = outFrames.Length();
+  if (!length)
+    return NS_OK;
+
+  
+  nsIContent* lastAdded = nsnull;
+
+  for (PRInt32 i = 0; i < length; i++) {
+
+    nsIContent* ptContent = outFrames.ElementAt(i)->GetContent();
+    NS_ENSURE_STATE(ptContent);
+
+    
+    nsIDocument *currentDoc = ptContent->GetCurrentDoc();
+    if (currentDoc && (currentDoc != this)) {
+      
+      nsCOMPtr<nsIDOMElement> x = CheckAncestryAndGetFrame(currentDoc);
+      nsCOMPtr<nsIContent> elementDoc = do_QueryInterface(x);
+      if (elementDoc != lastAdded) {
+        elements->AppendElement(elementDoc);
+        lastAdded = elementDoc;
+      }
+      continue;
+    }
+
+    
+    
+    
+    while (ptContent &&
+           (!(ptContent->IsNodeOfType(nsINode::eELEMENT) ||
+              ptContent->IsNodeOfType(nsINode::eTEXT)) ||
+            ptContent->IsInAnonymousSubtree())) {
+      
+      ptContent = ptContent->GetParent();
+    }
+   
+    if (ptContent && ptContent != lastAdded) {
+      elements->AppendElement(ptContent);
+      lastAdded = ptContent;
+    }
+  }
+  return NS_OK;
+}
+
 NS_IMETHODIMP
 nsDocument::GetElementsByClassName(const nsAString& aClasses,
                                    nsIDOMNodeList** aReturn)
