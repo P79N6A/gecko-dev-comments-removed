@@ -890,11 +890,6 @@ function delayedStartup()
     gURLBar.setAttribute("enablehistory", "false");
   }
 
-  if (gURLBar) {
-    gURLBar.addEventListener("dragover", URLBarOnDragOver, true);
-    gURLBar.addEventListener("dragdrop", URLBarOnDrop, true);
-  }
-
   gBrowser.addEventListener("pageshow", function(evt) { setTimeout(pageShowEventHandlers, 0, evt); }, true);
 
   window.addEventListener("keypress", ctrlNumberTabSelection, false);
@@ -2108,55 +2103,6 @@ function URLBarOnInput(evt)
     ih._identityPopup.hidePopup();
 }
 
-function URLBarOnDragOver(evt)
-{
-  nsDragAndDrop.dragOver(evt, urlbarObserver);
-}
-
-function URLBarOnDrop(evt)
-{
-  nsDragAndDrop.drop(evt, urlbarObserver);
-}
-
-var urlbarObserver = {
-  onDragOver: function ()
-    {
-      return true;
-    },
-  onDrop: function (aEvent, aXferData, aDragSession)
-    {
-      var url = transferUtils.retrieveURLFromData(aXferData.data, aXferData.flavour.contentType);
-
-      
-      
-      if (url) {
-        nsDragAndDrop.dragDropSecurityCheck(aEvent, aDragSession, url);
-
-        try {
-          gURLBar.value = url;
-          const nsIScriptSecMan = Components.interfaces.nsIScriptSecurityManager;
-          urlSecurityCheck(gURLBar.value,
-                           gBrowser.contentPrincipal,
-                           nsIScriptSecMan.DISALLOW_INHERIT_PRINCIPAL);
-          handleURLBarCommand();
-        } catch (ex) {}
-      }
-    },
-  getSupportedFlavours: function ()
-    {
-      var flavourSet = new FlavourSet();
-
-      
-      
-      
-      
-      flavourSet.appendFlavour("text/x-moz-url");
-      flavourSet.appendFlavour("text/unicode");
-      flavourSet.appendFlavour("application/x-moz-file", "nsIFile");
-      return flavourSet;
-    }
-}
-
 function BrowserImport()
 {
 #ifdef XP_MACOSX
@@ -2204,7 +2150,7 @@ function BrowserOnCommand(event) {
           Components.utils.reportError("Couldn't get ssl_override pref: " + e);
         }
         
-        window.openDialog('chrome:
+        window.openDialog('chrome://pippki/content/exceptionDialog.xul',
                           '','chrome,centerscreen,modal', params);
         
         
@@ -2367,10 +2313,10 @@ function getMarkupDocumentViewer()
 function FillInHTMLTooltip(tipElement)
 {
   var retVal = false;
-  if (tipElement.namespaceURI == "http:
+  if (tipElement.namespaceURI == "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul")
     return retVal;
 
-  const XLinkNS = "http:
+  const XLinkNS = "http://www.w3.org/1999/xlink";
 
 
   var titleText = null;
