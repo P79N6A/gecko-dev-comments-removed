@@ -218,10 +218,12 @@ EnsureLegalActivity(JSContext *cx, JSObject *obj)
     return JS_TRUE;
   }
 
-  XPCCallContext ccx(JS_CALLER, cx);
-  nsIXPCSecurityManager *sm = ccx.GetXPCContext()->
-    GetAppropriateSecurityManager(nsIXPCSecurityManager::HOOK_CALL_METHOD);
-  nsCOMPtr<nsIScriptSecurityManager> ssm(do_QueryInterface(sm));
+  nsIScriptSecurityManager *ssm = XPCWrapper::GetSecurityManager();
+  if (!ssm) {
+    
+    
+    return JS_TRUE;
+  }
 
   
   
