@@ -1009,9 +1009,12 @@ DocumentViewerImpl::LoadComplete(nsresult aStatus)
   
   
   if (mPresShell && !mStopped) {
-    nsCOMPtr<nsIPresShell> shellDeathGrip(mPresShell); 
+    nsCOMPtr<nsIPresShell> shellDeathGrip(mPresShell);
     mPresShell->UnsuppressPainting();
-    mPresShell->ScrollToAnchor();
+    
+    if (mPresShell) {
+      mPresShell->ScrollToAnchor();
+    }
   }
 
   nsJSContext::LoadEnd();
