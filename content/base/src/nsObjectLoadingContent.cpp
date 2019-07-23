@@ -762,14 +762,26 @@ nsObjectLoadingContent::HasNewFrame(nsIObjectFrame* aFrame)
 {
   LOG(("OBJLC [%p]: Got frame %p (mInstantiating=%i)\n", this, aFrame,
        mInstantiating));
-  if (!mInstantiating && aFrame && mType == eType_Plugin) {
-    
-    
+
+  
+  
+  mPendingInstantiateEvent = nsnull;
+
+  nsCOMPtr<nsIPluginInstance> instance;
+  aFrame->GetPluginInstance(*getter_AddRefs(instance));
+
+  if (instance) {
     
     
 
+    return NS_OK;
+  }
+
+  if (!mInstantiating && mType == eType_Plugin) {
     
-    mPendingInstantiateEvent = nsnull;
+    
+    
+    
 
     
     
