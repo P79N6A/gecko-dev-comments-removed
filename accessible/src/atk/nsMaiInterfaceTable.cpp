@@ -344,6 +344,9 @@ AtkObject*
 getSummaryCB(AtkTable *aTable)
 {
     
+    
+    
+    
     return nsnull;
 }
 

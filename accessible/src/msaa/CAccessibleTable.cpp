@@ -425,7 +425,12 @@ STDMETHODIMP
 CAccessibleTable::get_summary(IUnknown **aAccessible)
 {
   *aAccessible = NULL;
-  return E_NOTIMPL;
+
+  
+  
+  
+  
+  return S_OK;
 }
 
 STDMETHODIMP
