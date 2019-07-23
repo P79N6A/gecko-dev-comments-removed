@@ -899,28 +899,43 @@ nsBindingManager::AddToAttachedQueue(nsXBLBinding* aBinding)
   
   
   if (!mProcessingAttachedStack && !mProcessAttachedQueueEvent) {
-    mProcessAttachedQueueEvent =
-      new nsRunnableMethod<nsBindingManager>(
-        this, &nsBindingManager::DoProcessAttachedQueue);
-    nsresult rv = NS_DispatchToCurrentThread(mProcessAttachedQueueEvent);
-    if (NS_SUCCEEDED(rv) && mDocument) {
-      mDocument->BlockOnload();
-    }
+    PostProcessAttachedQueueEvent();
   }
 
   return NS_OK;
+
+}
+
+void
+nsBindingManager::PostProcessAttachedQueueEvent()
+{
+  mProcessAttachedQueueEvent =
+    new nsRunnableMethod<nsBindingManager>(
+      this, &nsBindingManager::DoProcessAttachedQueue);
+  nsresult rv = NS_DispatchToCurrentThread(mProcessAttachedQueueEvent);
+  if (NS_SUCCEEDED(rv) && mDocument) {
+    mDocument->BlockOnload();
+  }
 }
 
 void
 nsBindingManager::DoProcessAttachedQueue()
 {
-  ProcessAttachedQueue();
+  if (!mProcessingAttachedStack) {
+    ProcessAttachedQueue();
 
-  NS_ASSERTION(mAttachedStack.Length() == 0,
+    NS_ASSERTION(mAttachedStack.Length() == 0,
                "Shouldn't have pending bindings!");
   
-  mProcessAttachedQueueEvent = nsnull;
+    mProcessAttachedQueueEvent = nsnull;
+  } else {
+    
+    
+    
+    PostProcessAttachedQueueEvent();
+  }
 
+  
   if (mDocument) {
     
     
