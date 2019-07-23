@@ -181,25 +181,6 @@ namespace nanojit
         #endif
     #endif
 
-    struct Stats
-    {
-        counter_define(steals;)
-        counter_define(remats;)
-        counter_define(spills;)
-        counter_define(native;)
-        counter_define(exitnative;)
-
-        int32_t pages;
-        NIns* codeStart;
-        NIns* codeExitStart;
-
-        DECLARE_PLATFORM_STATS()
-#ifdef __GNUC__
-        
-        bool pad[4];
-#endif
-    };
-
     
     enum AssmError
     {
@@ -323,8 +304,6 @@ namespace nanojit
             CodeList*   codeList;                   
 
         private:
-            Stats       _stats;
-
             void        gen(LirFilter* toCompile);
             NIns*       genPrologue();
             NIns*       genEpilogue();

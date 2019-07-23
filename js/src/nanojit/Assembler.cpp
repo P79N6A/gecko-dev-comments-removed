@@ -79,7 +79,6 @@ namespace nanojit
     #endif
         , _config(config)
     {
-        VMPI_memset(&_stats, 0, sizeof(_stats));
         VMPI_memset(lookahead, 0, N_LOOKAHEAD * sizeof(LInsp));
         nInit(core);
         (void)logc;
@@ -219,8 +218,6 @@ namespace nanojit
             _allocator.addActive(r, ins);
             ins->setReg(r);
         } else {
-            counter_increment(steals);
-
             
             
             LIns* vic = findVictim(setA___);
@@ -282,7 +279,6 @@ namespace nanojit
         _nExitIns = 0;
         codeStart = codeEnd = 0;
         exitStart = exitEnd = 0;
-        _stats.pages = 0;
         codeList = 0;
 
         nativePageReset();
@@ -705,8 +701,6 @@ namespace nanojit
     void Assembler::evict(LIns* vic)
     {
         
-        counter_increment(steals);
-
         Register r = vic->getReg();
 
         NanoAssert(!_allocator.isFree(r));
@@ -779,7 +773,6 @@ namespace nanojit
 
     NIns* Assembler::asm_leave_trace(LInsp guard)
     {
-        verbose_only( int32_t nativeSave = _stats.native );
         verbose_only( verbose_outputf("----------------------------------- ## END exit block %p", guard);)
 
         
@@ -822,8 +815,6 @@ namespace nanojit
         NanoAssertMsgf(_fpuStkDepth == _sv_fpuStkDepth, "LIR_xtf, _fpuStkDepth=%d, expect %d",_fpuStkDepth, _sv_fpuStkDepth);
         debug_only( _fpuStkDepth = _sv_fpuStkDepth; _sv_fpuStkDepth = 9999; )
 #endif
-
-        verbose_only(_stats.exitnative += (_stats.native-nativeSave));
 
         return jmpTarget;
     }
@@ -993,12 +984,6 @@ namespace nanojit
         _thisfrag = frag;
         _inExit = false;
 
-        counter_reset(native);
-        counter_reset(exitnative);
-        counter_reset(steals);
-        counter_reset(spills);
-        counter_reset(remats);
-
         setError(None);
 
         
@@ -1006,12 +991,6 @@ namespace nanojit
 
         
         if (error()) return;
-
-#ifdef PERFM
-        _stats.pages = 0;
-        _stats.codeStart = _nIns-1;
-        _stats.codeExitStart = _nExitIns-1;
-#endif 
 
         _epilogue = NULL;
 

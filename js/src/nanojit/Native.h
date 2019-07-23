@@ -150,7 +150,6 @@ namespace nanojit {
         
         
         #define asm_output(...) do { \
-            counter_increment(native); \
             if (_logc->lcbits & LC_Assembly) { \
                 outline[0]='\0'; \
                VMPI_sprintf(outline, "%010lx   ", (unsigned long)_nIns); \
