@@ -363,8 +363,19 @@ LoginManager.prototype = {
         if (login.password == null || login.password.length == 0)
             throw "Can't add a login with a null or empty password.";
 
-        if (!login.httpRealm && !login.formSubmitURL)
+        if (login.formSubmitURL || login.formSubmitURL == "") {
+            
+            if (login.httpRealm != null)
+                throw "Can't add a login with both a httpRealm and formSubmitURL.";
+        } else if (login.httpRealm) {
+            
+            if (login.formSubmitURL != null)
+                throw "Can't add a login with both a httpRealm and formSubmitURL.";
+        } else {
+            
             throw "Can't add a login without a httpRealm or formSubmitURL.";
+        }
+
 
         
         var logins = this.findLogins({}, login.hostname, login.formSubmitURL,
