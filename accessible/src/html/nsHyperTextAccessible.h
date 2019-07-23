@@ -45,7 +45,7 @@
 #include "nsIAccessibleHyperText.h"
 #include "nsIAccessibleEditableText.h"
 #include "nsAccessibleEventData.h"
-#include "nsTextAttrs.h"
+#include "nsTextUtils.h"
 
 #include "nsFrameSelection.h"
 #include "nsISelectionController.h"
@@ -293,6 +293,88 @@ protected:
                                  PRInt32 *aStartOffset,
                                  PRInt32 *aEndOffset,
                                  nsIPersistentProperties *aAttributes);
+
+  
+
+
+
+
+
+
+
+
+
+
+  nsresult GetLangTextAttributes(PRBool aIncludeDefAttrs,
+                                 nsIDOMNode *aSourceNode,
+                                 PRInt32 *aStartOffset,
+                                 PRInt32 *aEndOffset,
+                                 nsIPersistentProperties *aAttributes);
+
+  
+
+
+
+
+
+
+
+
+
+
+  nsresult GetCSSTextAttributes(PRBool aIncludeDefAttrs,
+                                nsIDOMNode *aSourceNode,
+                                PRInt32 *aStartOffset,
+                                PRInt32 *aEndOffset,
+                                nsIPersistentProperties *aAttributes);
+
+  
+
+
+
+
+
+
+
+
+
+
+  nsresult GetRangeForTextAttr(nsIDOMNode *aNode,
+                               nsTextAttr *aComparer,
+                               PRInt32 *aStartHTOffset,
+                               PRInt32 *aEndHTOffset);
+
+  
+
+
+
+
+
+
+
+
+
+  PRBool FindEndOffsetInSubtree(nsIDOMNode *aCurrNode,
+                                nsTextAttr *aComparer,
+                                PRInt32 *aHTOffset);
+
+  
+
+
+
+
+
+
+
+
+
+
+
+  PRBool FindStartOffsetInSubtree(nsIDOMNode *aCurrNode,
+                                  nsIDOMNode *aPrevNode,
+                                  nsTextAttr *aComparer,
+                                  PRInt32 *aHTOffset);
+
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsHyperTextAccessible,
