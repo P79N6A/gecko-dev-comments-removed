@@ -2762,6 +2762,7 @@ nsXULDocument::ResumeWalk()
     
     
     nsresult rv;
+    nsCOMPtr<nsIURI> overlayURI = mCurrentPrototype->GetURI();
 
     while (1) {
         
@@ -2950,8 +2951,6 @@ nsXULDocument::ResumeWalk()
 
                     const PRUnichar* params[] = { piProto->mTarget.get() };
 
-                    nsCOMPtr<nsIURI> overlayURI = mCurrentPrototype->GetURI();
-
                     nsContentUtils::ReportToConsole(
                                         nsContentUtils::eXUL_PROPERTIES,
                                         "PINotInProlog",
@@ -3006,8 +3005,21 @@ nsXULDocument::ResumeWalk()
             continue;
         if (NS_FAILED(rv))
             return rv;
+        if (mOverlayLoadObservers.IsInitialized()) {
+            nsIObserver *obs = mOverlayLoadObservers.GetWeak(overlayURI);
+            if (obs) {
+                
+                
+                
+                
+                if (!mOverlayLoadObservers.GetWeak(uri))
+                    mOverlayLoadObservers.Put(uri, obs);
+                mOverlayLoadObservers.Remove(overlayURI);
+            }
+        }
         if (shouldReturn)
             return NS_OK;
+        overlayURI.swap(uri);
     }
 
     
