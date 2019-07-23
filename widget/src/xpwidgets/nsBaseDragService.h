@@ -79,6 +79,8 @@ public:
 
   void SetDragEndPoint(nsIntPoint aEndDragPoint) { mEndDragPoint = aEndDragPoint; }
 
+  PRUint16 GetInputSource() { return mInputSource; }
+
 protected:
 
   
@@ -161,6 +163,9 @@ protected:
   nsIntPoint mEndDragPoint;
 
   PRUint32 mSuppressLevel;
+
+  
+  PRUint16 mInputSource;
 };
 
 #endif 
