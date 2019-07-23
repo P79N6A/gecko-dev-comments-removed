@@ -70,6 +70,18 @@ private:
   virtual nsresult Enable();
   virtual nsresult Disable();
   virtual void DetachFromNSWindow(PRBool windowIsAlive);
+
+  
+  static PRBool MainWindowHook(void *aContext,
+                               HWND hWnd, UINT nMsg,
+                               WPARAM wParam, LPARAM lParam,
+                               LRESULT *aResult);
+
+  
+  
+  
+  void UpdateProxyWindowStyle();
+
   nsresult UpdateTitle();
   nsresult UpdateIcon();
   nsresult UpdateNext();

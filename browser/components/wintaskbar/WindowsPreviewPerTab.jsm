@@ -289,7 +289,7 @@ PreviewController.prototype = {
     this.win.tabbrowser.previewTab(this.tab, function () self.previewTabCallback(ctx));
 
     
-    return true;
+    return false;
   },
 
   previewTabCallback: function (ctx) {
