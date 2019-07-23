@@ -46,9 +46,7 @@ const Ci = Components.interfaces;
 const Cr = Components.results;
 
 const CONTENT_HANDLING_URL = "chrome://mozapps/content/handling/dialog.xul";
-
-
-const STRINGBUNDLE_URL = "chrome://mozapps/content/handling/handling.properties";
+const STRINGBUNDLE_URL = "chrome://mozapps/locale/handling/handling.properties";
 
 
 
