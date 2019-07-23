@@ -791,10 +791,12 @@ js_NewGenerator(JSContext *cx, JSStackFrame *fp)
     gen->frame.down = NULL;
     gen->frame.annotation = NULL;
     gen->frame.scopeChain = fp->scopeChain;
-    gen->frame.pc = fp->pc;
 
-    
-    gen->frame.spbase = gen->frame.sp = newsp;
+    gen->frame.spbase = newsp;
+    JS_ASSERT(fp->spbase == fp->regs->sp);
+    gen->savedRegs.sp = newsp;
+    gen->savedRegs.pc = fp->regs->pc;
+    gen->frame.regs = &gen->savedRegs;
 
     
     gen->frame.sharpDepth = 0;
@@ -853,7 +855,7 @@ SendToGenerator(JSContext *cx, JSGeneratorOp op, JSObject *obj,
 
 
 
-            gen->frame.sp[-1] = arg;
+            gen->savedRegs.sp[-1] = arg;
         }
         gen->state = JSGEN_RUNNING;
         break;
