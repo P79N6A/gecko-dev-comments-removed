@@ -2636,7 +2636,7 @@ nsresult nsHTMLEditor::ParseFragment(const nsAString & aFragStr,
                                      nsCOMPtr<nsIDOMNode> *outNode)
 {
   
-  PRBool bContext = !aTagStack.IsEmpty();
+  PRBool bContext = aTagStack.IsEmpty();
 
   
   nsresult res;
