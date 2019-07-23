@@ -77,16 +77,19 @@
 #include "gfxImageSurface.h"
 #include "nsIDOMNSUIEvent.h"
 
+#ifdef DEBUG_vladimir
+#include "nsFunctionTimer.h"
+#endif
+
+
+
+
+#include "cairo-features.h"
+
 #ifdef WINCE
 
 #include "aygshell.h"
 #include "imm.h"
-
-
-#define PAINT_USE_IMAGE_SURFACE
-
-
-#define PAINT_USE_IMAGE_SURFACE_24BPP
 
 #ifdef WINCE_WINDOWS_MOBILE
 #define WINCE_HAVE_SOFTKB
@@ -96,7 +99,7 @@
 #include "winuserm.h"
 #endif
 
-#else
+#else 
 
 #include "nsUXThemeData.h"
 #include "nsUXThemeConstants.h"
@@ -111,7 +114,8 @@
 
 #include <mmsystem.h>
 #include <zmouse.h>
-#endif
+
+#endif 
 
 
 
@@ -170,10 +174,8 @@
 #include "nsTextStore.h"
 #endif 
 
-#ifdef PAINT_USE_DDRAW_SURFACE
+#ifdef CAIRO_HAS_DDRAW_SURFACE
 #include "gfxDDrawSurface.h"
-#include <ddraw.h>
-#include "cairo-ddraw.h"
 
 
 static LPDIRECTDRAW glpDD = NULL;
@@ -193,10 +195,8 @@ static void DDError(const char *msg, HRESULT hr)
 
 #define MAX_RECTS_IN_REGION 100
 
-#ifdef PAINT_USE_IMAGE_SURFACE
 static nsAutoPtr<PRUint8> gSharedSurfaceData;
 static gfxIntSize gSharedSurfaceSize;
-#endif
 
 
 
@@ -417,6 +417,36 @@ PRBool     nsWindow::gSwitchKeyboardLayout     = PR_FALSE;
 
 
 PRBool gDisableNativeTheme = PR_FALSE;
+
+typedef enum {
+  
+  RENDER_GDI = 0,
+
+  
+  RENDER_IMAGE_STRETCH32,
+
+  
+  RENDER_IMAGE_STRETCH24,
+
+  
+  RENDER_DDRAW,
+
+  
+  RENDER_MODE_MAX
+} WinRenderMode;
+
+
+
+
+#if defined(WINCE_WINDOWS_MOBILE)
+#define DEFAULT_RENDER_MODE   RENDER_IMAGE_STRETCH24
+#elif defined(WINCE)
+#define DEFAULT_RENDER_MODE   RENDER_IMAGE_DDRAW
+#else
+#define DEFAULT_RENDER_MODE   RENDER_GDI
+#endif
+
+static WinRenderMode gRenderMode = DEFAULT_RENDER_MODE;
 
 #ifndef WINCE
 static KeyboardLayout gKbdLayout;
@@ -1326,6 +1356,19 @@ nsWindow::StandardWindowCreate(nsIWidget *aParent,
         if (NS_SUCCEEDED(prefBranch->GetBoolPref("mozilla.widget.disable-native-theme",
                                                  &temp)))
           gDisableNativeTheme = temp;
+
+        PRInt32 tempint;
+        if (NS_SUCCEEDED(prefBranch->GetIntPref("mozilla.widget.render-mode",
+                                                &tempint)))
+        {
+          if (tempint > 0 && tempint < RENDER_MODE_MAX) {
+#ifndef CAIRO_HAS_DDRAW_SURFACE
+            if (tempint == RENDER_DDRAW)
+              tempint = RENDER_IMAGE_STRETCH24;
+#endif
+            gRenderMode = (WinRenderMode) tempint;
+          }
+        }
       }
     }
   }
@@ -5902,6 +5945,49 @@ ConvertHRGNToRegion(HRGN aRgn)
 
 
 
+
+#ifdef CAIRO_HAS_DDRAW_SURFACE
+
+static PRBool
+InitDDraw()
+{
+  HRESULT hr;
+
+  hr = DirectDrawCreate(NULL, &glpDD, NULL);
+  NS_ENSURE_SUCCESS(hr, PR_FALSE);
+
+  hr = glpDD->SetCooperativeLevel(NULL, DDSCL_NORMAL);
+  NS_ENSURE_SUCCESS(hr, PR_FALSE);
+
+  DDSURFACEDESC ddsd;
+  memset(&ddsd, 0, sizeof(ddsd));
+  ddsd.dwSize = sizeof(ddsd);
+  ddsd.dwFlags = DDSD_CAPS;
+  ddsd.ddpfPixelFormat.dwSize = sizeof(ddsd.ddpfPixelFormat);
+  ddsd.ddsCaps.dwCaps = DDSCAPS_PRIMARYSURFACE;
+
+  hr = glpDD->CreateSurface(&ddsd, &glpDDPrimary, NULL);
+  NS_ENSURE_SUCCESS(hr, PR_FALSE);
+
+  hr = glpDD->CreateClipper(0, &glpDDClipper, NULL);
+  NS_ENSURE_SUCCESS(hr, PR_FALSE);
+
+  hr = glpDDPrimary->SetClipper(glpDDClipper);
+  NS_ENSURE_SUCCESS(hr, PR_FALSE);
+
+  gfxIntSize screen_size(GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN));
+  gpDDSurf = new gfxDDrawSurface(glpDD, screen_size, gfxASurface::ImageFormatRGB24);
+  if (!gpDDSurf) {
+    
+    fprintf(stderr, "couldn't create ddsurf\n");
+    return PR_FALSE;
+  }
+
+  return PR_TRUE;
+}
+
+#endif
+
 PRBool nsWindow::OnPaint(HDC aDC)
 {
   PRBool result = PR_TRUE;
@@ -5969,83 +6055,91 @@ PRBool nsWindow::OnPaint(HDC aDC)
 #endif
   }
 
+#ifdef DEBUG_vladimir
+  nsFunctionTimer ft("OnPaint [%d %d %d %d]",
+                     ps.rcPaint.left, ps.rcPaint.top, 
+                     ps.rcPaint.right - ps.rcPaint.left,
+                     ps.rcPaint.bottom - ps.rcPaint.top);
+#endif
+
   nsCOMPtr<nsIRegion> paintRgnWin;
   if (paintRgn) {
     paintRgnWin = ConvertHRGNToRegion(paintRgn);
     ::DeleteObject(paintRgn);
   }
 
-  if (paintRgnWin && !paintRgnWin->IsEmpty()) {
+  if (paintRgnWin &&
+      !paintRgnWin->IsEmpty() &&
+      mEventCallback)
+  {
     
-    if (mEventCallback)
-    {
-      nsPaintEvent event(PR_TRUE, NS_PAINT, this);
+    nsPaintEvent event(PR_TRUE, NS_PAINT, this);
 
-      InitEvent(event);
+    InitEvent(event);
 
-      event.region = paintRgnWin;
-      event.rect = nsnull;
+    event.region = paintRgnWin;
+    event.rect = nsnull;
  
-      
-      
+    
+    
 
 #ifdef NS_DEBUG
-      debug_DumpPaintEvent(stdout,
-                           this,
-                           &event,
-                           nsCAutoString("noname"),
-                           (PRInt32) mWnd);
+    debug_DumpPaintEvent(stdout,
+                         this,
+                         &event,
+                         nsCAutoString("noname"),
+                         (PRInt32) mWnd);
 #endif 
 
-#if defined(MOZ_XUL) && !defined(PAINT_USE_IMAGE_SURFACE) && !defined(PAINT_USE_DDRAW_SURFACE)
-      nsRefPtr<gfxASurface> targetSurface;
-      if (eTransparencyTransparent == mTransparencyMode) {
-        if (mTransparentSurface == nsnull)
-          SetupTranslucentWindowMemoryBitmap(mTransparencyMode);
-        targetSurface = mTransparentSurface;
-      } else {
-        targetSurface = new gfxWindowsSurface(hDC);
-      }
-#elif defined(PAINT_USE_DDRAW_SURFACE)
+    nsRefPtr<gfxASurface> targetSurface;
 
-      HRESULT hr;
+#if defined(MOZ_XUL)
+    
+    if (gRenderMode == RENDER_GDI && eTransparencyTransparent == mTransparencyMode) {
+      if (mTransparentSurface == nsnull)
+        SetupTranslucentWindowMemoryBitmap(mTransparencyMode);
+      targetSurface = mTransparentSurface;
+    }
+#endif
 
+    nsRefPtr<gfxWindowsSurface> targetSurfaceWin;
+    if (!targetSurface &&
+        gRenderMode == RENDER_GDI)
+    {
+      targetSurfaceWin = new gfxWindowsSurface(hDC);
+      targetSurface = targetSurfaceWin;
+    }
+
+#ifdef CAIRO_HAS_DDRAW_SURFACE
+    nsRefPtr<gfxDDrawSurface> targetSurfaceDDraw;
+    if (!targetSurface &&
+        gRenderMode == RENDER_DDRAW)
+    {
       if (!glpDD) {
-        
-        if (FAILED(hr = DirectDrawCreate(NULL, &glpDD, NULL)))
-          DDError("DirectDrawCreate", hr);
-        if (FAILED(hr = glpDD->SetCooperativeLevel(NULL, DDSCL_NORMAL)))
-          DDError("SetCooperativeLevel", hr);
-        DDSURFACEDESC ddsd;
-        memset(&ddsd, 0, sizeof(ddsd));
-        ddsd.dwSize = sizeof(ddsd);
-        ddsd.dwFlags = DDSD_CAPS;
-        ddsd.ddpfPixelFormat.dwSize = sizeof(ddsd.ddpfPixelFormat);
-        ddsd.ddsCaps.dwCaps = DDSCAPS_PRIMARYSURFACE;
-        if (FAILED(hr = glpDD->CreateSurface(&ddsd, &glpDDPrimary, NULL)))
-          DDError("CreateSurface", hr);
-        if (FAILED(hr = glpDD->CreateClipper(0, &glpDDClipper, NULL)))
-          DDError("CreateClipper", hr);
-        if (FAILED(hr = glpDDPrimary->SetClipper(glpDDClipper)))
-          DDError("SetClipper", hr);
-        gfxIntSize screen_size(GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN));
-        gpDDSurf = new gfxDDrawSurface(glpDD, screen_size, gfxASurface::ImageFormatRGB24);
-        if (!gpDDSurf) {
-          
-          fprintf(stderr, "couldn't create ddsurf\n");
+        if (!InitDDraw()) {
+          NS_WARNING("DirectDraw init failed; falling back to RENDER_IMAGE_STRETCH24");
+          gRenderMode = RENDER_IMAGE_STRETCH24;
+          goto DDRAW_FAILED;
         }
       }
 
+      
       
       RECT winrect;
       GetClientRect(mWnd, &winrect);
       MapWindowPoints(mWnd, NULL, (LPPOINT)&winrect, 2);
 
-      
-      nsRefPtr<gfxDDrawSurface> targetSurface = new gfxDDrawSurface(gpDDSurf.get(), winrect);
+      targetSurfaceDDraw = new gfxDDrawSurface(gpDDSurf.get(), winrect);
+      targetSurface = targetSurfaceDDraw;
+    }
+#endif
 
-#elif defined(PAINT_USE_IMAGE_SURFACE)
-
+DDRAW_FAILED:
+    nsRefPtr<gfxImageSurface> targetSurfaceImage;
+    if (!targetSurface &&
+        (gRenderMode == RENDER_IMAGE_STRETCH32 ||
+         gRenderMode == RENDER_IMAGE_STRETCH24))
+    {
       if (!gSharedSurfaceData) {
         gSharedSurfaceSize.height = GetSystemMetrics(SM_CYSCREEN);
         gSharedSurfaceSize.width = GetSystemMetrics(SM_CXSCREEN);
@@ -6055,42 +6149,43 @@ PRBool nsWindow::OnPaint(HDC aDC)
       gfxIntSize surfaceSize(ps.rcPaint.right - ps.rcPaint.left,
                              ps.rcPaint.bottom - ps.rcPaint.top);
 
-      nsRefPtr<gfxImageSurface> targetSurface;
-
       if (!gSharedSurfaceData ||
           surfaceSize.width > gSharedSurfaceSize.width ||
           surfaceSize.height > gSharedSurfaceSize.height)
       {
-#ifdef DEBUG_vladimir
-          RETAILMSG(1, (L"OnPaint: Paint area bigger than screen! Screen %dx%d, surface %dx%d, HWND %p\r\n", gSharedSurfaceSize.width, gSharedSurfaceSize.height, surfaceSize.width, surfaceSize.height, mWnd));
-#endif
-
-          
-          
-          targetSurface = new gfxImageSurface(surfaceSize, gfxASurface::ImageFormatRGB24);
+        
+        
+        targetSurfaceImage = new gfxImageSurface(surfaceSize, gfxASurface::ImageFormatRGB24);
       } else {
-          
-          
-          targetSurface = new gfxImageSurface(gSharedSurfaceData.get(),
-                                              surfaceSize,
-                                              surfaceSize.width * 4,
-                                              gfxASurface::ImageFormatRGB24);
+        
+        
+        targetSurfaceImage = new gfxImageSurface(gSharedSurfaceData.get(),
+                                                 surfaceSize,
+                                                 surfaceSize.width * 4,
+                                                 gfxASurface::ImageFormatRGB24);
       }
 
-      if (targetSurface && !targetSurface->CairoStatus()) {
-        targetSurface->SetDeviceOffset(gfxPoint(-ps.rcPaint.left, -ps.rcPaint.top));
+      if (targetSurfaceImage && !targetSurfaceImage->CairoStatus()) {
+        targetSurfaceImage->SetDeviceOffset(gfxPoint(-ps.rcPaint.left, -ps.rcPaint.top));
+        targetSurface = targetSurfaceImage;
       }
-#else
-      nsRefPtr<gfxASurface> targetSurface = new gfxWindowsSurface(hDC);
+    }
+
+    if (!targetSurface) {
+      NS_ERROR("Invalid gRenderMode!");
+      return NS_ERROR_FAILURE;
+    }
+
+    nsRefPtr<gfxContext> thebesContext = new gfxContext(targetSurface);
+    thebesContext->SetFlag(gfxContext::FLAG_DESTINED_FOR_SCREEN);
+
+#ifdef WINCE
+    thebesContext->SetFlag(gfxContext::FLAG_SIMPLIFY_OPERATORS);
 #endif
 
-      nsRefPtr<gfxContext> thebesContext = new gfxContext(targetSurface);
-      thebesContext->SetFlag(gfxContext::FLAG_DESTINED_FOR_SCREEN);
-
-      
-      
-#if !defined(PAINT_USE_IMAGE_SURFACE) && !defined(PAINT_USE_DDRAW_SURFACE)
-# if defined(MOZ_XUL)
+    
+    if (gRenderMode == RENDER_GDI) {
+# if defined(MOZ_XUL) && !defined(WINCE)
       if (eTransparencyGlass == mTransparencyMode && nsUXThemeData::sHaveCompositor) {
         thebesContext->PushGroup(gfxASurface::CONTENT_COLOR_ALPHA);
       } else if (eTransparencyTransparent == mTransparencyMode) {
@@ -6099,70 +6194,78 @@ PRBool nsWindow::OnPaint(HDC aDC)
         thebesContext->SetOperator(gfxContext::OPERATOR_CLEAR);
         thebesContext->Paint();
         thebesContext->SetOperator(gfxContext::OPERATOR_OVER);
-      } else {
+      } else
+#endif
+      {
         
         thebesContext->PushGroup(gfxASurface::CONTENT_COLOR);
       }
-# else
-      
-      thebesContext->PushGroup(gfxASurface::CONTENT_COLOR);
-# endif
+    }
+
+    nsCOMPtr<nsIRenderingContext> rc;
+    nsresult rv = mContext->CreateRenderingContextInstance (*getter_AddRefs(rc));
+    if (NS_FAILED(rv)) {
+      NS_WARNING("CreateRenderingContextInstance failed");
+      return PR_FALSE;
+    }
+
+    rv = rc->Init(mContext, thebesContext);
+    if (NS_FAILED(rv)) {
+      NS_WARNING("RC::Init failed");
+      return PR_FALSE;
+    }
+
+#ifdef DEBUG_vladimir
+    ft.Mark("Init");
 #endif
 
-      nsCOMPtr<nsIRenderingContext> rc;
-      nsresult rv = mContext->CreateRenderingContextInstance (*getter_AddRefs(rc));
-      if (NS_FAILED(rv)) {
-        NS_WARNING("CreateRenderingContextInstance failed");
-        return PR_FALSE;
-      }
+    event.renderingContext = rc;
+    result = DispatchWindowEvent(&event, eventStatus);
+    event.renderingContext = nsnull;
 
-      rv = rc->Init(mContext, thebesContext);
-      if (NS_FAILED(rv)) {
-        NS_WARNING("RC::Init failed");
-        return PR_FALSE;
-      }
-
-      event.renderingContext = rc;
-      result = DispatchWindowEvent(&event, eventStatus);
-      event.renderingContext = nsnull;
+#ifdef DEBUG_vladimir
+    ft.Mark("Dispatch");
+#endif
 
 #ifdef MOZ_XUL
-      if (eTransparencyTransparent == mTransparencyMode) {
-        
-        
-        
-        UpdateTranslucentWindow();
-      } else
+    if (gRenderMode == RENDER_GDI &&
+        eTransparencyTransparent == mTransparencyMode) {
+      
+      
+      
+      UpdateTranslucentWindow();
+    } else
 #endif
-      if (result) {
-#if !defined(PAINT_USE_IMAGE_SURFACE) && !defined(PAINT_USE_DDRAW_SURFACE)
+    if (result) {
+      if (gRenderMode == RENDER_GDI) {
         
         
         thebesContext->PopGroupToSource();
         thebesContext->SetOperator(gfxContext::OPERATOR_SOURCE);
         thebesContext->Paint();
-
-#elif defined(PAINT_USE_DDRAW_SURFACE)
-
+      } else if (gRenderMode == RENDER_DDRAW) {
+#ifdef CAIRO_HAS_DDRAW_SURFACE
         
-
-        if (FAILED(hr = glpDDClipper->SetHWnd(0, mWnd)))
+        HRESULT hr = glpDDClipper->SetHWnd(0, mWnd);
+        if (FAILED(hr))
           DDError("SetHWnd", hr);
 
         
         
         RECT dst_rect = ps.rcPaint;
         MapWindowPoints(mWnd, NULL, (LPPOINT)&dst_rect, 2);
-
-        if (FAILED(hr = glpDDPrimary->Blt(&dst_rect,
-                                          targetSurface->GetDDSurface(),
-                                          &dst_rect,
-                                          DDBLT_WAITNOTBUSY,
-                                          NULL)))
+        hr = glpDDPrimary->Blt(&dst_rect,
+                               gpDDSurf->GetDDSurface(),
+                               &dst_rect,
+                               DDBLT_WAITNOTBUSY,
+                               NULL);
+        if (FAILED(hr))
           DDError("Blt", hr);
-        
-
-#else 
+#endif
+      } else if (gRenderMode == RENDER_IMAGE_STRETCH24 ||
+                 gRenderMode == RENDER_IMAGE_STRETCH32) 
+      {
+        gfxIntSize surfaceSize = targetSurfaceImage->GetSize();
 
         
         BITMAPINFOHEADER bi;
@@ -6174,80 +6277,87 @@ PRBool nsWindow::OnPaint(HDC aDC)
         bi.biBitCount = 32;
         bi.biCompression = BI_RGB;
 
-#ifdef PAINT_USE_IMAGE_SURFACE_24BPP
-        
-        
-        
-        
-        
-        int srcstride = surfaceSize.width*4;
-        int dststride = surfaceSize.width*3;
-        dststride = (dststride + 3) & ~3;
-
-        
-        for (int j = 0; j < surfaceSize.height; ++j) {
-          unsigned int *src = (unsigned int*) (targetSurface->Data() + j*srcstride);
-          unsigned int *dst = (unsigned int*) (targetSurface->Data() + j*dststride);
+        if (gRenderMode == RENDER_IMAGE_STRETCH24) {
+          
+          
+          
+          
+          
+          int srcstride = surfaceSize.width*4;
+          int dststride = surfaceSize.width*3;
+          dststride = (dststride + 3) & ~3;
 
           
-          
-          
-          
-          
-          
-          int width_left = surfaceSize.width;
-          while (width_left >= 4) {
-            unsigned int a = *src++;
-            unsigned int b = *src++;
-            unsigned int c = *src++;
-            unsigned int d = *src++;
+          for (int j = 0; j < surfaceSize.height; ++j) {
+            unsigned int *src = (unsigned int*) (targetSurfaceImage->Data() + j*srcstride);
+            unsigned int *dst = (unsigned int*) (targetSurfaceImage->Data() + j*dststride);
 
-            *dst++ =  (a & 0x00ffffff)        | (b << 24);
-            *dst++ = ((b & 0x00ffff00) >> 8)  | (c << 16);
-            *dst++ = ((c & 0x00ff0000) >> 16) | (d << 8);
+            
+            
+            
+            
+            
+            
+            int width_left = surfaceSize.width;
+            while (width_left >= 4) {
+              unsigned int a = *src++;
+              unsigned int b = *src++;
+              unsigned int c = *src++;
+              unsigned int d = *src++;
 
-            width_left -= 4;
+              *dst++ =  (a & 0x00ffffff)        | (b << 24);
+              *dst++ = ((b & 0x00ffff00) >> 8)  | (c << 16);
+              *dst++ = ((c & 0x00ff0000) >> 16) | (d << 8);
+
+              width_left -= 4;
+            }
+
+            
+            
+            unsigned char *bsrc = (unsigned char*) src;
+            unsigned char *bdst = (unsigned char*) dst;
+            switch (width_left) {
+              case 3:
+                *bdst++ = *bsrc++;
+                *bdst++ = *bsrc++;
+                *bdst++ = *bsrc++;
+                bsrc++;
+              case 2:
+                *bdst++ = *bsrc++;
+                *bdst++ = *bsrc++;
+                *bdst++ = *bsrc++;
+                bsrc++;
+              case 1:
+                *bdst++ = *bsrc++;
+                *bdst++ = *bsrc++;
+                *bdst++ = *bsrc++;
+                bsrc++;
+              case 0:
+                break;
+            }
           }
 
-          
-          
-          unsigned char *bsrc = (unsigned char*) src;
-          unsigned char *bdst = (unsigned char*) dst;
-          switch (width_left) {
-          case 3:
-            *bdst++ = *bsrc++;
-            *bdst++ = *bsrc++;
-            *bdst++ = *bsrc++;
-            bsrc++;
-          case 2:
-            *bdst++ = *bsrc++;
-            *bdst++ = *bsrc++;
-            *bdst++ = *bsrc++;
-            bsrc++;
-          case 1:
-            *bdst++ = *bsrc++;
-            *bdst++ = *bsrc++;
-            *bdst++ = *bsrc++;
-            bsrc++;
-          case 0:
-            break;
-          }
+          bi.biBitCount = 24;
         }
-
-        bi.biBitCount = 24;
-#endif
 
         StretchDIBits(hDC,
                       ps.rcPaint.left, ps.rcPaint.top,
                       surfaceSize.width, surfaceSize.height,
                       0, 0,
                       surfaceSize.width, surfaceSize.height,
-                      targetSurface->Data(),
+                      targetSurfaceImage->Data(),
                       (BITMAPINFO*) &bi,
                       DIB_RGB_COLORS,
                       SRCCOPY);
-#endif
       }
+
+#ifdef DEBUG_vladimir
+      ft.Mark("Blit");
+#endif
+    } else {
+#ifdef DEBUG_vladimir
+      ft.Mark("Discard!");
+#endif
     }
   }
 
