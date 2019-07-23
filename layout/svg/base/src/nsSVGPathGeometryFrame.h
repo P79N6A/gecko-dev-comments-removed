@@ -123,18 +123,6 @@ private:
   void Render(nsSVGRenderState *aContext);
   void GeneratePath(gfxContext *aContext);
 
-  
-
-
-
-
-  static PRBool
-  IsDegeneratePath(const gfxRect& rect)
-  {
-    return (rect.X() == 0 && rect.Y() == 0 &&
-            rect.Width() == 0 && rect.Height() == 0);
-  }
-
   struct MarkerProperties {
     nsSVGMarkerProperty* mMarkerStart;
     nsSVGMarkerProperty* mMarkerMid;
