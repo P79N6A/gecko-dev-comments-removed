@@ -92,8 +92,6 @@ public:
          VARIANT varChild,
          BSTR __RPC_FAR *pszValue);
 
-    virtual void FireAnchorJumpEvent();
-
   
 
   

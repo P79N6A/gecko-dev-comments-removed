@@ -3858,6 +3858,10 @@ PresShell::GoToAnchor(const nsAString& aAnchorName, PRBool aScroll)
 
   esm->SetContentState(content, NS_EVENT_STATE_URLTARGET);
 
+#ifdef ACCESSIBILITY
+  nsIContent *anchorTarget = content;
+#endif
+
   if (content) {
     if (aScroll) {
       rv = ScrollContentIntoView(content, NS_PRESSHELL_SCROLL_TOP,
@@ -3926,7 +3930,7 @@ PresShell::GoToAnchor(const nsAString& aAnchorName, PRBool aScroll)
     }
   } else {
     rv = NS_ERROR_FAILURE; 
-    
+
     
     
     if ((NS_LossyConvertUTF16toASCII(aAnchorName).LowerCaseEqualsLiteral("top")) &&
@@ -3945,6 +3949,15 @@ PresShell::GoToAnchor(const nsAString& aAnchorName, PRBool aScroll)
       }
     }
   }
+
+#ifdef ACCESSIBILITY
+  if (anchorTarget && gIsAccessibilityActive) {
+    nsCOMPtr<nsIAccessibilityService> accService = 
+      do_GetService("@mozilla.org/accessibilityService;1");
+    if (accService)
+      accService->NotifyOfAnchorJumpTo(anchorTarget);
+  }
+#endif
 
   return rv;
 }

@@ -142,41 +142,6 @@ __try {
   return E_FAIL;
 }
 
-void
-nsDocAccessibleWrap::FireAnchorJumpEvent()
-{
-  
-  
-  
-  
-  
-  
-  nsDocAccessible::FireAnchorJumpEvent();
-  if (!mIsAnchorJumped)
-    return;
-
-  nsCOMPtr<nsIDOMNode> focusNode;
-  if (mIsAnchor) {
-    nsCOMPtr<nsISelectionController> selCon(do_QueryReferent(mWeakShell));
-    if (!selCon)
-      return;
-
-    nsCOMPtr<nsISelection> domSel;
-    selCon->GetSelection(nsISelectionController::SELECTION_NORMAL, getter_AddRefs(domSel));
-    if (!domSel)
-      return;
-
-    domSel->GetFocusNode(getter_AddRefs(focusNode));
-  }
-  else {
-    focusNode = mDOMNode; 
-  }
-
-  nsCOMPtr<nsIAccessible> accessible = GetFirstAvailableAccessible(focusNode, PR_TRUE);
-  nsAccUtils::FireAccEvent(nsIAccessibleEvent::EVENT_SCROLLING_START,
-                           accessible);
-}
-
 STDMETHODIMP nsDocAccessibleWrap::get_URL( BSTR __RPC_FAR *aURL)
 {
 __try {

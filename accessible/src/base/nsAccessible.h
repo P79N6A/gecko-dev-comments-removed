@@ -331,8 +331,10 @@ protected:
 
 
 
+
    
-  already_AddRefed<nsIAccessible> GetFirstAvailableAccessible(nsIDOMNode *aStartNode, PRBool aRequireLeaf = PR_FALSE);
+  already_AddRefed<nsIAccessible>
+    GetFirstAvailableAccessible(nsIDOMNode *aStartNode);
 
   
   virtual nsresult GetLinkOffset(PRInt32* aStartOffset, PRInt32* aEndOffset);

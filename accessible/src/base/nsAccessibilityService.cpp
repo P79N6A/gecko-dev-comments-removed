@@ -127,8 +127,7 @@ nsAccessibilityService::nsAccessibilityService()
   nsCOMPtr<nsIWebProgress> progress(do_GetService(NS_DOCUMENTLOADER_SERVICE_CONTRACTID));
   if (progress) {
     progress->AddProgressListener(static_cast<nsIWebProgressListener*>(this),
-                                  nsIWebProgress::NOTIFY_STATE_DOCUMENT |
-                                  nsIWebProgress::NOTIFY_LOCATION);
+                                  nsIWebProgress::NOTIFY_STATE_DOCUMENT);
   }
 
   
@@ -266,6 +265,35 @@ NS_IMETHODIMP nsAccessibilityService::ProcessDocLoadEvent(nsITimer *aTimer, void
 }
 
 NS_IMETHODIMP
+nsAccessibilityService::NotifyOfAnchorJumpTo(nsIContent *aTarget)
+{
+  nsCOMPtr<nsIDOMNode> targetNode(do_QueryInterface(aTarget));
+
+  nsCOMPtr<nsIAccessible> targetAcc;
+  GetAccessibleFor(targetNode, getter_AddRefs(targetAcc));
+
+  
+  
+  if (!targetAcc) {
+    nsIDocument *document = aTarget->GetCurrentDoc();
+    nsCOMPtr<nsIDOMNode> documentNode(do_QueryInterface(document));
+    if (documentNode) {
+      nsCOMPtr<nsIAccessibleDocument> accessibleDoc =
+        nsAccessNode::GetDocAccessibleFor(documentNode);
+      if (accessibleDoc)
+        accessibleDoc->GetAccessibleInParentChain(targetNode, PR_TRUE,
+                                                  getter_AddRefs(targetAcc));
+    }
+  }
+
+  if (targetAcc)
+    return nsAccUtils::FireAccEvent(nsIAccessibleEvent::EVENT_SCROLLING_START,
+                                    targetAcc);
+
+  return NS_OK;
+}
+
+NS_IMETHODIMP
 nsAccessibilityService::FireAccessibleEvent(PRUint32 aEvent,
                                             nsIAccessible *aTarget)
 {
@@ -309,28 +337,7 @@ NS_IMETHODIMP nsAccessibilityService::OnProgressChange(nsIWebProgress *aWebProgr
 NS_IMETHODIMP nsAccessibilityService::OnLocationChange(nsIWebProgress *aWebProgress,
   nsIRequest *aRequest, nsIURI *location)
 {
-  
-  
-  
-  
-  
-  nsCOMPtr<nsIDOMWindow> domWindow;
-  aWebProgress->GetDOMWindow(getter_AddRefs(domWindow));
-  NS_ASSERTION(domWindow, "DOM Window for state change is null");
-  NS_ENSURE_TRUE(domWindow, NS_ERROR_FAILURE);
-
-  nsCOMPtr<nsIDOMDocument> domDoc;
-  domWindow->GetDocument(getter_AddRefs(domDoc));
-  nsCOMPtr<nsIDOMNode> domDocRootNode(do_QueryInterface(domDoc));
-  NS_ENSURE_TRUE(domDocRootNode, NS_ERROR_FAILURE);
-
-  nsCOMPtr<nsIAccessibleDocument> accessibleDoc =
-    nsAccessNode::GetDocAccessibleFor(domDocRootNode);
-  nsRefPtr<nsDocAccessible> docAcc =
-    nsAccUtils::QueryAccessibleDocument(accessibleDoc);
-  if (docAcc)
-    docAcc->FireAnchorJumpEvent();
-
+  NS_NOTREACHED("notification excluded in AddProgressListener(...)");
   return NS_OK;
 }
 
