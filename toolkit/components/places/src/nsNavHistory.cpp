@@ -2991,7 +2991,9 @@ PRBool NeedToFilterResultSet(const nsCOMArray<nsNavHistoryQuery>& aQueries,
                              nsNavHistoryQueryOptions *aOptions)
 {
   
-  if (aOptions->QueryType() == nsINavHistoryQueryOptions::QUERY_TYPE_BOOKMARKS)
+  
+  if (aOptions->QueryType() == nsINavHistoryQueryOptions::QUERY_TYPE_BOOKMARKS &&
+      aOptions->ResultType() != nsINavHistoryQueryOptions::RESULTS_AS_TAG_QUERY)
     return PR_TRUE;
 
   nsCString parentAnnotationToExclude;

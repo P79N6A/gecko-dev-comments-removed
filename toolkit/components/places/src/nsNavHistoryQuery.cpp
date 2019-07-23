@@ -1197,6 +1197,10 @@ nsNavHistoryQueryOptions::SetResultType(PRUint16 aType)
 {
   if (aType > RESULTS_AS_TAG_CONTENTS)
     return NS_ERROR_INVALID_ARG;
+  
+  
+  if (aType == RESULTS_AS_TAG_QUERY || aType == RESULTS_AS_TAG_CONTENTS)
+    mQueryType = QUERY_TYPE_BOOKMARKS;
   mResultType = aType;
   return NS_OK;
 }
@@ -1322,6 +1326,11 @@ nsNavHistoryQueryOptions::GetQueryType(PRUint16* _retval)
 NS_IMETHODIMP
 nsNavHistoryQueryOptions::SetQueryType(PRUint16 aQueryType)
 {
+  
+  
+  if (mResultType == RESULTS_AS_TAG_CONTENTS ||
+      mResultType == RESULTS_AS_TAG_QUERY)
+   return NS_OK;
   mQueryType = aQueryType;
   return NS_OK;
 }
