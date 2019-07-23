@@ -46,6 +46,8 @@
 
 #include "nsIObjectFrame.h"
 #include "nsFrame.h"
+#include "nsRegion.h"
+#include "nsDisplayList.h"
 
 #ifdef ACCESSIBILITY
 class nsIAccessible;
@@ -55,6 +57,7 @@ class nsPluginInstanceOwner;
 class nsIPluginHost;
 class nsIPluginInstance;
 class nsPresContext;
+class nsDisplayPlugin;
 
 #define nsObjectFrameSuper nsFrame
 
@@ -124,6 +127,18 @@ public:
   }
 
   
+  
+  
+  
+  
+  
+  
+  
+  void GetEmptyClipConfiguration(nsTArray<nsIWidget::Configuration>* aConfigurations) {
+    ComputeWidgetGeometry(nsRegion(), nsPoint(0,0), aConfigurations);
+  }
+
+  
 #ifdef ACCESSIBILITY
   NS_IMETHOD GetAccessible(nsIAccessible** aAccessible);
 #ifdef XP_WIN
@@ -168,6 +183,8 @@ protected:
   
   PRBool IsHidden(PRBool aCheckVisibilityStyle = PR_TRUE) const;
 
+  PRBool IsOpaque() const;
+
   void NotifyContentObjectWrapper();
 
   nsIntPoint GetWindowOriginInPixels(PRBool aWindowless);
@@ -189,9 +206,27 @@ protected:
 
   NS_HIDDEN_(nsresult) PrepareInstanceOwner();
 
+  
+
+
+
+
+
+
+
+
+  void ComputeWidgetGeometry(const nsRegion& aRegion,
+                             const nsPoint& aPluginOrigin,
+                             nsTArray<nsIWidget::Configuration>* aConfigurations);
+
+  nsIWidget* GetWidget() { return mWidget; }
+
   friend class nsPluginInstanceOwner;
+  friend class nsDisplayPlugin;
+
 private:
   nsRefPtr<nsPluginInstanceOwner> mInstanceOwner;
+  nsCOMPtr<nsIWidget>             mWidget;
   nsIntRect                       mWindowlessRect;
 
   
@@ -200,5 +235,41 @@ private:
   PRBool mPreventInstantiation;
 };
 
+class nsDisplayPlugin : public nsDisplayItem {
+public:
+  nsDisplayPlugin(nsIFrame* aFrame)
+    : nsDisplayItem(aFrame)
+  {
+    MOZ_COUNT_CTOR(nsDisplayPlugin);
+  }
+#ifdef NS_BUILD_REFCNT_LOGGING
+  virtual ~nsDisplayPlugin() {
+    MOZ_COUNT_DTOR(nsDisplayPlugin);
+  }
+#endif
+
+  virtual Type GetType() { return TYPE_PLUGIN; }
+  virtual nsRect GetBounds(nsDisplayListBuilder* aBuilder);
+  virtual PRBool IsOpaque(nsDisplayListBuilder* aBuilder);
+  virtual void Paint(nsDisplayListBuilder* aBuilder, nsIRenderingContext* aCtx,
+     const nsRect& aDirtyRect);
+  virtual PRBool OptimizeVisibility(nsDisplayListBuilder* aBuilder,
+      nsRegion* aVisibleRegion);
+
+  NS_DISPLAY_DECL_NAME("Plugin")
+
+  
+  
+  
+  
+  
+  
+  
+  void GetWidgetConfiguration(nsDisplayListBuilder* aBuilder,
+                              nsTArray<nsIWidget::Configuration>* aConfigurations);
+
+private:
+  nsRegion mVisibleRegion;
+};
 
 #endif 

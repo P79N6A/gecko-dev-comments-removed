@@ -1583,6 +1583,8 @@ public:
 
 
 
+
+
   nsPoint GetOffsetTo(const nsIFrame* aOther) const;
   virtual nsPoint GetOffsetToExternal(const nsIFrame* aOther) const;
 

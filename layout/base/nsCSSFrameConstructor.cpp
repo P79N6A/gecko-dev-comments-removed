@@ -7712,7 +7712,8 @@ nsCSSFrameConstructor::ProcessRestyledFrames(nsStyleChangeList& aChangeList)
   
   BeginUpdate();
 
-  nsPropertyTable *propTable = mPresShell->GetPresContext()->PropertyTable();
+  nsPresContext* presContext = mPresShell->GetPresContext();
+  nsPropertyTable *propTable = presContext->PropertyTable();
 
   
   
@@ -7730,6 +7731,9 @@ nsCSSFrameConstructor::ProcessRestyledFrames(nsStyleChangeList& aChangeList)
   }
 
   index = count;
+  PRBool didInvalidate = PR_FALSE;
+  PRBool didReflow = PR_FALSE;
+
   while (0 <= --index) {
     nsIFrame* frame;
     nsIContent* content;
@@ -7765,9 +7769,11 @@ nsCSSFrameConstructor::ProcessRestyledFrames(nsStyleChangeList& aChangeList)
 #endif
       if (hint & nsChangeHint_ReflowFrame) {
         StyleChangeReflow(frame);
+        didReflow = PR_TRUE;
       }
       if (hint & (nsChangeHint_RepaintFrame | nsChangeHint_SyncFrameView)) {
-        ApplyRenderingChangeToTree(mPresShell->GetPresContext(), frame, hint);
+        ApplyRenderingChangeToTree(presContext, frame, hint);
+        didInvalidate = PR_TRUE;
       }
       if (hint & nsChangeHint_UpdateCursor) {
         nsIViewManager* viewMgr = mPresShell->GetViewManager();
@@ -7778,7 +7784,15 @@ nsCSSFrameConstructor::ProcessRestyledFrames(nsStyleChangeList& aChangeList)
   }
 
   EndUpdate();
-  
+
+  if (didInvalidate && !didReflow) {
+    
+    
+    
+    nsIFrame* rootFrame = mPresShell->FrameManager()->GetRootFrame();
+    presContext->RootPresContext()->UpdatePluginGeometry(rootFrame);
+  }
+
   
   
   

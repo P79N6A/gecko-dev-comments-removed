@@ -70,6 +70,7 @@
 #include "nsAutoPtr.h"
 #include "nsThreadUtils.h"
 #include "nsContentUtils.h"
+#include "nsIWidget.h"
 
 class nsImageLoader;
 #ifdef IBMBIDI
@@ -98,6 +99,7 @@ class nsIRunnable;
 class gfxUserFontSet;
 class nsUserFontSet;
 struct nsFontFaceRuleContainer;
+class nsObjectFrame;
 
 #ifdef MOZ_REFLOW_PERF
 class nsIRenderingContext;
@@ -1066,6 +1068,42 @@ public:
 class nsRootPresContext : public nsPresContext {
 public:
   nsRootPresContext(nsIDocument* aDocument, nsPresContextType aType) NS_HIDDEN;
+  virtual ~nsRootPresContext();
+
+  
+
+
+
+
+
+  void RegisterPluginForGeometryUpdates(nsObjectFrame* aPlugin);
+  
+
+
+
+
+  void UnregisterPluginForGeometryUpdates(nsObjectFrame* aPlugin);
+
+  
+
+
+
+
+
+  void UpdatePluginGeometry(nsIFrame* aChangedRoot);
+
+  
+
+
+
+
+
+
+  void GetPluginGeometryUpdates(nsIFrame* aChangedRoot,
+                                nsTArray<nsIWidget::Configuration>* aConfigurations);
+
+private:
+  nsTHashtable<nsPtrHashKey<nsObjectFrame> > mRegisteredPlugins;
 };
 
 #ifdef DEBUG

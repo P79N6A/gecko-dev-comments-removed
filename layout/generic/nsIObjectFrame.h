@@ -89,6 +89,11 @@ public:
 
 
   virtual void StopPlugin() = 0;
+
+  
+
+
+  virtual nsIWidget* GetWidget() = 0;
 };
 
 #endif 

@@ -43,6 +43,7 @@
 #include "nsRect.h"
 #include "nsPoint.h"
 #include "nsNativeWidget.h"
+#include "nsIWidget.h"
 #include "nsWidgetInitData.h"
 
 class nsIViewManager;
@@ -322,6 +323,17 @@ public:
   void DisownWidget() {
     mVFlags |= NS_VIEW_DISOWNS_WIDGET;
   }
+
+  
+
+
+
+
+  EVENT_CALLBACK AttachWidgetEventHandler(nsIWidget* aWidget);
+  
+
+
+  void DetachWidgetEventHandler(nsIWidget* aWidget);
 
   
 

@@ -93,6 +93,7 @@
 #include "prenv.h"
 #include "nsIPrivateDOMEvent.h"
 #include "nsIDOMEventTarget.h"
+#include "nsObjectFrame.h"
 
 #ifdef MOZ_SMIL
 #include "nsSMILAnimationController.h"
@@ -2156,4 +2157,176 @@ nsRootPresContext::nsRootPresContext(nsIDocument* aDocument,
                                      nsPresContextType aType)
   : nsPresContext(aDocument, aType)
 {
+  mRegisteredPlugins.Init();
 }  
+
+nsRootPresContext::~nsRootPresContext()
+{
+  NS_ASSERTION(mRegisteredPlugins.Count() == 0,
+               "All plugins should have been unregistered");
+}
+
+void
+nsRootPresContext::RegisterPluginForGeometryUpdates(nsObjectFrame* aPlugin)
+{
+  mRegisteredPlugins.PutEntry(aPlugin);
+}
+
+void
+nsRootPresContext::UnregisterPluginForGeometryUpdates(nsObjectFrame* aPlugin)
+{
+  mRegisteredPlugins.RemoveEntry(aPlugin);
+}
+
+struct PluginGeometryClosure {
+  nsIFrame* mRootFrame;
+  nsIFrame* mChangedSubtree;
+  nsRect    mChangedRect;
+  nsTHashtable<nsPtrHashKey<nsObjectFrame> > mAffectedPlugins;
+  nsRect    mAffectedPluginBounds;
+  nsTArray<nsIWidget::Configuration>* mOutputConfigurations;
+};
+static PLDHashOperator
+PluginBoundsEnumerator(nsPtrHashKey<nsObjectFrame>* aEntry, void* userArg)
+{
+  PluginGeometryClosure* closure = static_cast<PluginGeometryClosure*>(userArg);
+  nsObjectFrame* f = aEntry->GetKey();
+  nsRect fBounds = f->GetContentRect() +
+      f->GetParent()->GetOffsetTo(closure->mRootFrame);
+  
+  
+  
+  
+  
+  
+  
+  if (fBounds.Intersects(closure->mChangedRect) ||
+      nsLayoutUtils::IsAncestorFrameCrossDoc(closure->mChangedSubtree, f)) {
+    closure->mAffectedPluginBounds.UnionRect(
+        closure->mAffectedPluginBounds, fBounds);
+    closure->mAffectedPlugins.PutEntry(f);
+  }
+  return PL_DHASH_NEXT;
+}
+
+static PLDHashOperator
+PluginHideEnumerator(nsPtrHashKey<nsObjectFrame>* aEntry, void* userArg)
+{
+  PluginGeometryClosure* closure = static_cast<PluginGeometryClosure*>(userArg);
+  nsObjectFrame* f = aEntry->GetKey();
+  f->GetEmptyClipConfiguration(closure->mOutputConfigurations);
+  return PL_DHASH_NEXT;
+}
+
+static void
+RecoverPluginGeometry(nsDisplayListBuilder* aBuilder,
+    nsDisplayList* aList, PluginGeometryClosure* aClosure)
+{
+  for (nsDisplayItem* i = aList->GetBottom(); i; i = i->GetAbove()) {
+    switch (i->GetType()) {
+    case nsDisplayItem::TYPE_PLUGIN: {
+      nsDisplayPlugin* displayPlugin = static_cast<nsDisplayPlugin*>(i);
+      nsObjectFrame* f = static_cast<nsObjectFrame*>(
+          displayPlugin->GetUnderlyingFrame());
+      
+      
+      
+      
+      nsPtrHashKey<nsObjectFrame>* entry =
+        aClosure->mAffectedPlugins.GetEntry(f);
+      if (entry) {
+        displayPlugin->GetWidgetConfiguration(aBuilder,
+                                              aClosure->mOutputConfigurations);
+        
+        aClosure->mAffectedPlugins.RawRemoveEntry(entry);
+      }
+      break;
+    }
+    default: {
+      nsDisplayList* sublist = i->GetList();
+      if (sublist) {
+        RecoverPluginGeometry(aBuilder, sublist, aClosure);
+      }
+      break;
+    }
+    }
+  }
+}
+
+#ifdef DEBUG
+#include <stdio.h>
+
+static PRBool gDumpPluginList = PR_FALSE;
+#endif
+
+void
+nsRootPresContext::GetPluginGeometryUpdates(nsIFrame* aChangedSubtree,
+                                            nsTArray<nsIWidget::Configuration>* aConfigurations)
+{
+  if (mRegisteredPlugins.Count() == 0)
+    return;
+
+  PluginGeometryClosure closure;
+  closure.mRootFrame = mShell->FrameManager()->GetRootFrame();
+  closure.mChangedSubtree = aChangedSubtree;
+  closure.mChangedRect = aChangedSubtree->GetOverflowRect() +
+      aChangedSubtree->GetOffsetTo(closure.mRootFrame);
+  closure.mAffectedPlugins.Init();
+  closure.mOutputConfigurations = aConfigurations;
+  
+  mRegisteredPlugins.EnumerateEntries(PluginBoundsEnumerator, &closure);
+
+  nsRect bounds;
+  if (bounds.IntersectRect(closure.mAffectedPluginBounds,
+                           closure.mRootFrame->GetRect())) {
+    
+    
+    
+    nsAutoDisableGetUsedXAssertions disableAssertions;
+
+    nsDisplayListBuilder builder(closure.mRootFrame, PR_FALSE, PR_FALSE);
+    builder.SetAccurateVisibleRegions();
+    nsDisplayList list;
+
+    builder.EnterPresShell(closure.mRootFrame, bounds);
+    closure.mRootFrame->BuildDisplayListForStackingContext(
+        &builder, bounds, &list);
+    builder.LeavePresShell(closure.mRootFrame, bounds);
+
+#ifdef DEBUG
+    if (gDumpPluginList) {
+      fprintf(stderr, "Plugins --- before optimization (bounds %d,%d,%d,%d):\n",
+          bounds.x, bounds.y, bounds.width, bounds.height);
+      nsIFrameDebug::PrintDisplayList(&builder, list);
+    }
+#endif
+  
+    nsRegion visibleRegion(bounds);
+    list.OptimizeVisibility(&builder, &visibleRegion);
+
+#ifdef DEBUG
+    if (gDumpPluginList) {
+      fprintf(stderr, "Plugins --- after optimization:\n");
+      nsIFrameDebug::PrintDisplayList(&builder, list);
+    }
+#endif
+
+    RecoverPluginGeometry(&builder, &list, &closure);
+    list.DeleteAll();
+  }
+
+  
+  closure.mAffectedPlugins.EnumerateEntries(PluginHideEnumerator, &closure);
+}
+
+void
+nsRootPresContext::UpdatePluginGeometry(nsIFrame* aChangedSubtree)
+{
+  nsTArray<nsIWidget::Configuration> configurations;
+  GetPluginGeometryUpdates(aChangedSubtree, &configurations);
+  if (configurations.IsEmpty())
+    return;
+  nsIWidget* widget = configurations[0].mChild->GetParent();
+  NS_ASSERTION(widget, "Plugin must have a parent");
+  widget->ConfigureChildren(configurations);
+}
