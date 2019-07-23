@@ -1627,8 +1627,6 @@ nsNativeThemeWin::ThemeSupportsWidget(nsPresContext* aPresContext,
                                       nsIFrame* aFrame,
                                       PRUint8 aWidgetType)
 {
-  if (gfxPlatform::UseGlitz())
-    return PR_FALSE;
   
   
 

@@ -135,16 +135,6 @@ public:
     
 
 
-    static PRBool UseGlitz();
-
-    
-
-
-    static void SetUseGlitz(PRBool use);
-
-    
-
-
 
     virtual already_AddRefed<gfxASurface> CreateOffscreenSurface(const gfxIntSize& size,
                                                                  gfxASurface::gfxImageFormat imageFormat) = 0;
