@@ -406,25 +406,8 @@ moz_gtk_button_paint(GdkDrawable* drawable, GdkRectangle* rect,
 
     gtk_widget_set_state(widget, button_state);
 
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    if (state->isDefault)
+        GTK_WIDGET_SET_FLAGS(widget, GTK_HAS_DEFAULT);
 
     if (!interior_focus && state->focused) {
         x += focus_width + focus_pad;
@@ -463,6 +446,7 @@ moz_gtk_button_paint(GdkDrawable* drawable, GdkRectangle* rect,
                         widget, "button", x, y, width, height);
     }
 
+    GTK_WIDGET_UNSET_FLAGS(widget, GTK_HAS_DEFAULT);
     return MOZ_GTK_SUCCESS;
 }
 
