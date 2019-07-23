@@ -64,18 +64,18 @@
 #include "nsIdleServiceQt.h"
 #include "nsDragService.h"
 #include "nsSound.h"
-
-
-
-
-
-
-
-
-
-
-
 #include "nsBidiKeyboard.h"
+#include "nsNativeThemeQt.h"
+
+
+
+
+
+
+
+
+
+
 
 
 NS_GENERIC_FACTORY_CONSTRUCTOR(nsWindow)
@@ -99,7 +99,7 @@ NS_GENERIC_FACTORY_CONSTRUCTOR(nsDragService)
 NS_GENERIC_FACTORY_CONSTRUCTOR(nsBidiKeyboard)
 NS_GENERIC_FACTORY_CONSTRUCTOR(nsIdleServiceQt)
 NS_GENERIC_FACTORY_CONSTRUCTOR(nsSound)
-
+NS_GENERIC_FACTORY_CONSTRUCTOR(nsNativeThemeQt)
 
 
 
@@ -171,12 +171,12 @@ static const nsModuleComponentInfo components[] =
 
 
 
-#if 0
-    { "Native Theme Renderer",
-      NS_THEMERENDERER_CID,
-      "@mozilla.org/chrome/chrome-native-theme;1",
-      nsNativeThemeQtConstructor }
-#endif
+
+
+
+
+
+
 };
 
 PR_STATIC_CALLBACK(void)
