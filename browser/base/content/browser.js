@@ -1147,6 +1147,17 @@ function delayedStartup()
   Cc["@mozilla.org/microsummary/service;1"].getService(Ci.nsIMicrosummaryService);
 
   
+  
+  
+  try {
+    ContentPrefSink.init();
+    TextZoom.init();
+  }
+  catch(ex) {
+    Components.utils.reportError(ex);
+  }
+
+  
   if (document.documentElement.getAttribute("windowtype") == "navigator:browser") {
     try {
       var ss = Cc["@mozilla.org/browser/sessionstore;1"].
@@ -1170,6 +1181,14 @@ function delayedStartup()
 
 function BrowserShutdown()
 {
+  try {
+    TextZoom.destroy();
+    ContentPrefSink.destroy();
+  }
+  catch(ex) {
+    Components.utils.reportError(ex);
+  }
+
   var os = Components.classes["@mozilla.org/observer-service;1"]
     .getService(Components.interfaces.nsIObserverService);
   os.removeObserver(gSessionHistoryObserver, "browser:purge-session-history");
@@ -1269,7 +1288,7 @@ function nonBrowserWindowStartup()
 
   
   
-  if (window.location.href == "chrome:
+  if (window.location.href == "chrome://browser/content/hiddenWindow.xul")
   {
     var hiddenWindowDisabledItems = ['cmd_close', 'minimizeWindow', 'zoomWindow'];
     for (var id in hiddenWindowDisabledItems)
@@ -1722,7 +1741,7 @@ function updateGoMenu(aEvent, goMenu)
   if (count == 0)
     return;
 
-  const NC_NS     = "http:
+  const NC_NS     = "http://home.netscape.com/NC-rdf#";
 
   if (!gRDF)
      gRDF = Components.classes["@mozilla.org/rdf/rdf-service;1"]
@@ -2189,7 +2208,7 @@ function BrowserPageInfo(doc, initialTab)
   var args = {doc: doc, initialTab: initialTab};
   toOpenDialogByTypeAndUrl("Browser:page-info",
                            doc ? doc.location : window.content.document.location,
-                           "chrome://browser/content/pageinfo/pageInfo.xul",
+                           "chrome:
                            "chrome,toolbar,dialog=no,resizable",
                            args);
 }
@@ -2362,7 +2381,7 @@ function canonizeUrl(aTriggeringEvent, aPostDataRef) {
       } else
         url = url + (existingSuffix == -1 ? suffix : "/");
 
-      url = "http://www." + url;
+      url = "http:
     }
   }
 
@@ -2495,11 +2514,11 @@ function BrowserImport()
   if (win)
     win.focus();
   else {
-    window.openDialog("chrome://browser/content/migration/migration.xul",
+    window.openDialog("chrome:
                       "migration", "centerscreen,chrome,resizable=no");
   }
 #else
-  window.openDialog("chrome://browser/content/migration/migration.xul",
+  window.openDialog("chrome:
                     "migration", "modal,centerscreen,chrome,resizable=no");
 #endif
 }
@@ -5668,6 +5687,9 @@ var FeedHandler = {
 #ifdef MOZ_PLACES
 #include browser-places.js
 #endif
+
+#include browser-contentPrefSink.js
+#include browser-textZoom.js
 
 
 
