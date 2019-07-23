@@ -2774,10 +2774,7 @@ NS_IMETHODIMP nsPluginInstanceOwner::GetNetscapeWindow(void *value)
     if (win) {
       nsIView *view = nsIView::GetViewFor(win);
       NS_ASSERTION(view, "No view for widget");
-      nsIView *rootView = nsnull;
-      vm->GetRootView(rootView);
-      NS_ASSERTION(rootView, "No root view");
-      nsPoint offset = view->GetOffsetTo(rootView);
+      nsPoint offset = view->GetOffsetTo(nsnull);
       
       if (offset.x || offset.y) {
         
@@ -2791,7 +2788,7 @@ NS_IMETHODIMP nsPluginInstanceOwner::GetNetscapeWindow(void *value)
 #endif
   
   nsCOMPtr<nsIWidget> widget;
-  nsresult rv = vm->GetWidget(getter_AddRefs(widget));            
+  nsresult rv = vm->GetRootWidget(getter_AddRefs(widget));            
   if (widget) {
     *pvalue = (void*)widget->GetNativeData(NS_NATIVE_WINDOW);
   } else {
