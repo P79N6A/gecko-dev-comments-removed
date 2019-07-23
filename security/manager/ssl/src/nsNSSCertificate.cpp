@@ -442,6 +442,44 @@ nsNSSCertificate::FormatUIStrings(const nsAutoString &nickname, nsAutoString &ni
       details.Append(PRUnichar('\n'));
     }
 
+    PRUint32 num;
+    PRUnichar **emailAddr = NULL;
+    if (NS_SUCCEEDED(GetEmailAddresses(&num, &emailAddr)) && num > 0) {
+      details.AppendLiteral("  ");
+      if (NS_SUCCEEDED(nssComponent->GetPIPNSSBundleString("CertInfoEmail", info))) {
+        details.Append(info);
+        details.AppendLiteral(": ");
+      }
+      details.Append(*emailAddr);
+
+      
+
+
+
+
+
+      PRUnichar *firstEmail = *emailAddr;
+      emailAddr++;
+      num--;
+
+      
+      while (num > 0) {
+        if (!nsDependentString(firstEmail).Equals(nsDependentString(*emailAddr))) {
+          details.AppendLiteral(", ");
+          details.Append(*emailAddr);
+        }
+        nsMemory::Free(*emailAddr);
+        *emailAddr = nsnull;
+        emailAddr++;
+        num--;
+      }
+
+      details.Append(PRUnichar('\n'));
+      nsMemory::Free(firstEmail);
+    }
+    nsMemory::Free(emailAddr);
+    emailAddr = nsnull;
+
     if (NS_SUCCEEDED(nssComponent->GetPIPNSSBundleString("CertInfoIssuedBy", info))) {
       details.Append(info);
       details.Append(PRUnichar(' '));
@@ -463,6 +501,8 @@ nsNSSCertificate::FormatUIStrings(const nsAutoString &nickname, nsAutoString &ni
     }
 
     
+
+
 
 
 
