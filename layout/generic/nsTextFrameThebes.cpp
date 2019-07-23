@@ -5545,9 +5545,20 @@ nsTextFrame::Reflow(nsPresContext*           aPresContext,
     
     PRInt32 numJustifiableCharacters =
       provider.ComputeJustifiableCharacters(offset, charsFit);
+    
+    
+    
+    if (canTrimTrailingWhitespace) {
+      
+      PRUint32 charIndex = transformedOffset + transformedCharsFit;
+      while (charIndex > transformedOffset &&
+             mTextRun->GetChar(charIndex - 1) == ' ') {
+        --charIndex;
+      }
+    }
 
     NS_ASSERTION(numJustifiableCharacters <= charsFit,
-                 "Bad justifiable character count");
+                 "Justifiable characters combined???");
     lineLayout.SetTextJustificationWeights(numJustifiableCharacters,
         charsFit - numJustifiableCharacters);
   }
