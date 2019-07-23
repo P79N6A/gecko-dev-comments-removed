@@ -131,8 +131,7 @@ nsTreeBoxObject::GetTreeBody()
      return nsnull;
 
   
-  nsTreeBodyFrame *treeBody = nsnull;
-  CallQueryInterface(frame, &treeBody);
+  nsTreeBodyFrame *treeBody = do_QueryFrame(frame);
   NS_ENSURE_TRUE(treeBody && treeBody->GetTreeBoxObject() == this, nsnull);
 
   mTreeBody = treeBody;

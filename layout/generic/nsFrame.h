@@ -157,7 +157,7 @@ private:
 public:
 
   
-  NS_IMETHOD  QueryInterface(const nsIID& aIID, void** aInstancePtr);
+  NS_DECL_QUERYFRAME
 
   
   NS_IMETHOD  Init(nsIContent*      aContent,
@@ -442,9 +442,8 @@ public:
 
   static void ListTag(FILE* out, nsIFrame* aFrame) {
     nsAutoString tmp;
-    nsIFrameDebug*  frameDebug;
-
-    if (NS_SUCCEEDED(aFrame->QueryInterface(NS_GET_IID(nsIFrameDebug), (void**)&frameDebug))) {
+    nsIFrameDebug*  frameDebug = do_QueryFrame(aFrame);
+    if (frameDebug) {
       frameDebug->GetFrameName(tmp);
     }
     fputs(NS_LossyConvertUTF16toASCII(tmp).get(), out);
@@ -622,10 +621,6 @@ private:
   NS_IMETHODIMP RefreshSizeCache(nsBoxLayoutState& aState);
 
   virtual nsILineIterator* GetLineIterator();
-
-protected:
-  NS_IMETHOD_(nsrefcnt) AddRef(void);
-  NS_IMETHOD_(nsrefcnt) Release(void);
 };
 
 

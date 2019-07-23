@@ -37,26 +37,21 @@
 #ifndef nsITableLayout_h__
 #define nsITableLayout_h__
 
-#include "nsISupports.h"
+#include "nsQueryFrame.h"
 class nsIDOMElement;
 
 
 
-#define NS_ITABLELAYOUT_IID \
- { 0xf8363dea, 0x11ad, 0x483a, { 0xba, 0xea, 0xf6, 0xf2, 0xc3, 0x58, 0x8d, 0xde }}
 
 
 
 
 
-
-
-
-class nsITableLayout : public nsISupports
+class nsITableLayout
 {
 public:
 
-  NS_DECLARE_STATIC_IID_ACCESSOR(NS_ITABLELAYOUT_IID)
+  NS_DECLARE_FRAME_ACCESSOR(nsITableLayout)
 
   
 
@@ -113,7 +108,5 @@ public:
   NS_IMETHOD GetRowAndColumnByIndex(PRInt32 aIndex,
                                     PRInt32 *aRow, PRInt32 *aColumn) = 0;
 };
-
-NS_DEFINE_STATIC_IID_ACCESSOR(nsITableLayout, NS_ITABLELAYOUT_IID)
 
 #endif
