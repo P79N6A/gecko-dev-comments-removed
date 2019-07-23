@@ -44,14 +44,17 @@
 #include "nsCOMArray.h"
 class mozIStorageRow;
 
-class mozStorageResultSet : public mozIStorageResultSet
+namespace mozilla {
+namespace storage {
+
+class ResultSet : public mozIStorageResultSet
 {
 public:
   NS_DECL_ISUPPORTS
   NS_DECL_MOZISTORAGERESULTSET
 
-  mozStorageResultSet();
-  ~mozStorageResultSet();
+  ResultSet();
+  ~ResultSet();
 
   
 
@@ -68,10 +71,14 @@ private:
 
 
   PRInt32 mCurrentIndex;
+
   
 
 
   nsCOMArray<mozIStorageRow> mData;
 };
+
+} 
+} 
 
 #endif 
