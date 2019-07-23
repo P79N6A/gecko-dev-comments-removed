@@ -180,8 +180,6 @@ public:
   NS_IMETHOD BeginSwapDocShells(nsIFrame* aOther);
   virtual void EndSwapDocShells(nsIFrame* aOther);
 
-  NS_IMETHOD  VerifyTree() const;
-
   
   virtual PRBool ReflowFinished();
   virtual void ReflowCallbackCanceled();
@@ -644,14 +642,6 @@ void
 nsSubDocumentFrame::ReflowCallbackCanceled()
 {
   mPostedReflowCallback = PR_FALSE;
-}
-
-NS_IMETHODIMP
-nsSubDocumentFrame::VerifyTree() const
-{
-  
-  
-  return NS_OK;
 }
 
 NS_IMETHODIMP

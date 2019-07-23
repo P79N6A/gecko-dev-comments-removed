@@ -80,21 +80,6 @@ public:
 
   NS_IMETHOD  DumpRegressionData(nsPresContext* aPresContext, FILE* out, PRInt32 aIndent) = 0;
 
-  NS_IMETHOD  VerifyTree() const = 0;
-
-  
-
-
-
-
-
-  static PRBool GetVerifyTreeEnable();
-
-  
-
-
-  static void SetVerifyTreeEnable(PRBool aEnabled);
-
   
 
 

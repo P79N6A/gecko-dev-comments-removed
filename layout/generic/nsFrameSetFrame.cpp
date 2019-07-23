@@ -1467,15 +1467,6 @@ nsHTMLFramesetFrame::SetBorderResize(PRInt32*                   aChildTypes,
   }
 }
   
-        
-NS_IMETHODIMP
-nsHTMLFramesetFrame::VerifyTree() const
-{
-  
-  
-  return NS_OK;
-}
-
 void
 nsHTMLFramesetFrame::StartMouseDrag(nsPresContext*            aPresContext, 
                                     nsHTMLFramesetBorderFrame* aBorder, 
