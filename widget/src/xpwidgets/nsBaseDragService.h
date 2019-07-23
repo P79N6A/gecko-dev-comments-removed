@@ -128,6 +128,7 @@ protected:
                              PRInt32* aScreenX, PRInt32* aScreenY);
 
   PRPackedBool mCanDrop;
+  PRPackedBool mOnlyChromeDrop;
   PRPackedBool mDoingDrag;
   
   PRPackedBool mHasImage;

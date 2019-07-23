@@ -3043,6 +3043,13 @@ nsEventStateManager::PostHandleEvent(nsPresContext* aPresContext,
         break;
 
       
+      dragSession->SetOnlyChromeDrop(PR_FALSE);
+      if (mPresContext) {
+        EnsureDocument(mPresContext);
+      }
+      PRBool isChromeDoc = nsContentUtils::IsChromeDoc(mDocument);
+
+      
       
       nsCOMPtr<nsIDOMNSDataTransfer> dataTransfer;
       nsCOMPtr<nsIDOMDataTransfer> initialDataTransfer;
@@ -3117,6 +3124,16 @@ nsEventStateManager::PostHandleEvent(nsPresContext* aPresContext,
         
         dragSession->SetDragAction(action);
         dragSession->SetCanDrop(action != nsIDragService::DRAGDROP_ACTION_NONE);
+
+        
+        
+        if (aEvent->message == NS_DRAGDROP_OVER && !isChromeDoc) {
+          
+          dragSession->SetOnlyChromeDrop(
+            !(aEvent->flags & NS_EVENT_FLAG_NO_DEFAULT_CALLED_IN_CONTENT));
+        }
+      } else if (aEvent->message == NS_DRAGDROP_OVER && !isChromeDoc) {
+        dragSession->SetCanDrop(PR_FALSE);
       }
 
       
