@@ -731,7 +731,7 @@ nsresult nsRootAccessible::HandleEventWithTarget(nsIDOMEvent* aEvent,
   else
 #endif
   if (eventType.EqualsLiteral("focus")) {
-    if (aTargetNode == mDOMNode) {
+    if (aTargetNode == mDOMNode && mDOMNode != gLastFocusedNode) {
       
       
       
