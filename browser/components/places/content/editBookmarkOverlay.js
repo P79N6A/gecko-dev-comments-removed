@@ -228,7 +228,6 @@ var gEditItemOverlay = {
 
       
       this._rebuildTagsSelectorList();
-      this._initialized = true;
     }
 
     
@@ -243,6 +242,8 @@ var gEditItemOverlay = {
       window.addEventListener("unload", this, false);
       this._observersAdded = true;
     }
+
+    this._initialized = true;
   },
 
   _getCommonTags: function(aArrIndex) {
@@ -809,7 +810,7 @@ var gEditItemOverlay = {
       
       const FOLDER_TREE_PLACE_URI =
         "place:excludeItems=1&excludeQueries=1&excludeReadOnlyFolders=1&folder=" +
-        window.top.PlacesUIUtils.allBookmarksFolderId;
+        PlacesUIUtils.allBookmarksFolderId;
       this._folderTree.place = FOLDER_TREE_PLACE_URI;
 
       this._element("chooseFolderSeparator").hidden =
