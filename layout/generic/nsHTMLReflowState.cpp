@@ -362,7 +362,16 @@ IsQuirkContainingBlockHeight(const nsHTMLReflowState* rs)
   nsIAtom* frameType = rs->frame->GetType();
   if (nsGkAtoms::blockFrame == frameType ||
       nsGkAtoms::areaFrame == frameType ||
-      nsGkAtoms::scrollFrame == frameType) {
+      nsGkAtoms::scrollFrame == frameType) {  
+
+    if (nsGkAtoms::areaFrame == frameType) {
+      
+      if (rs->frame->GetStyleContext()->GetPseudoType() ==
+          nsCSSAnonBoxes::scrolledContent) {
+        return PR_FALSE;
+      }
+    }
+    
     
     
     if (NS_AUTOHEIGHT == rs->ComputedHeight()) {
@@ -415,7 +424,7 @@ nsHTMLReflowState::InitResizeFlags(nsPresContext* aPresContext)
     mStylePosition->mMinHeight.GetUnit() == eStyleUnit_Percent ||
     mStylePosition->mMaxHeight.GetUnit() == eStyleUnit_Percent ||
     mStylePosition->mOffset.GetTopUnit() == eStyleUnit_Percent ||
-    mStylePosition->mOffset.GetBottomUnit() != eStyleUnit_Auto ||
+    mStylePosition->mOffset.GetBottomUnit() == eStyleUnit_Percent ||
     frame->IsBoxFrame() ||
     frame->GetIntrinsicSize().height.GetUnit() == eStyleUnit_Percent;
 
@@ -1408,6 +1417,14 @@ CalcQuirkContainingBlockHeight(const nsHTMLReflowState* aCBReflowState)
     if (nsGkAtoms::blockFrame == frameType ||
         nsGkAtoms::areaFrame == frameType ||
         nsGkAtoms::scrollFrame == frameType) {
+      
+      if (nsGkAtoms::areaFrame == frameType) {
+        
+        if (rs->frame->GetStyleContext()->GetPseudoType() ==
+            nsCSSAnonBoxes::scrolledContent) {
+          continue;
+        }
+      }
 
       secondAncestorRS = firstAncestorRS;
       firstAncestorRS = (nsHTMLReflowState*)rs;
@@ -1426,6 +1443,11 @@ CalcQuirkContainingBlockHeight(const nsHTMLReflowState* aCBReflowState)
     }
     else if (nsGkAtoms::canvasFrame == frameType) {
       
+      
+      nsHTMLReflowState* scrollState = (nsHTMLReflowState *)rs->parentReflowState;
+      if (nsGkAtoms::scrollFrame == scrollState->frame->GetType()) {
+        rs = scrollState;
+      }
     }
     else if (nsGkAtoms::pageContentFrame == frameType) {
       nsIFrame* prevInFlow = rs->frame->GetPrevInFlow();
@@ -1649,11 +1671,21 @@ nsHTMLReflowState::InitConstraints(nsPresContext* aPresContext,
       
       
       
+      
+      
       if (cbrs->parentReflowState) {
-        fType = cbrs->frame->GetType();
-        if (IS_TABLE_CELL(fType)) {
+        nsIFrame* f = cbrs->parentReflowState->frame;
+        fType = f->GetType();
+        if (nsGkAtoms::scrollFrame == fType) {
           
-          aContainingBlockHeight = cbrs->mComputedHeight;
+          aContainingBlockHeight = cbrs->parentReflowState->mComputedHeight;
+        }
+        else {
+          fType = cbrs->frame->GetType();
+          if (IS_TABLE_CELL(fType)) {
+            
+            aContainingBlockHeight = cbrs->mComputedHeight;
+          }
         }
       }
     }
