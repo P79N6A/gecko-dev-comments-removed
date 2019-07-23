@@ -489,8 +489,8 @@ nsMenuPopupFrame::InitializePopup(nsIContent* aAnchorContent,
       mPopupAlignment = POPUPALIGNMENT_TOPLEFT;
     }
     else if (position.EqualsLiteral("after_pointer")) {
-      mPopupAnchor = POPUPALIGNMENT_NONE;
-      mPopupAlignment = POPUPALIGNMENT_NONE;
+      mPopupAnchor = POPUPALIGNMENT_TOPLEFT;
+      mPopupAlignment = POPUPALIGNMENT_TOPLEFT;
       
       
       mYPos += 21;
