@@ -1578,7 +1578,7 @@ nsDownload::nsDownload() : mDownloadState(nsIDownloadManager::DOWNLOAD_NOTSTARTE
                            mMaxBytes(LL_MAXUINT),
                            mStartTime(0),
                            mLastUpdate(PR_Now() - (PRUint32)gUpdateInterval),
-                           mResumedAt(0),
+                           mResumedAt(-1),
                            mSpeed(0)
 {
 }
@@ -2038,14 +2038,14 @@ nsDownload::GetPercentComplete(PRInt32 *aPercentComplete)
 NS_IMETHODIMP
 nsDownload::GetAmountTransferred(PRUint64 *aAmountTransferred)
 {
-  *aAmountTransferred = mCurrBytes + mResumedAt;
+  *aAmountTransferred = mCurrBytes + (WasResumed() ? mResumedAt : 0);
   return NS_OK;
 }
 
 NS_IMETHODIMP
 nsDownload::GetSize(PRUint64 *aSize)
 {
-  *aSize = mMaxBytes + (mMaxBytes != LL_MAXUINT ? mResumedAt : 0);
+  *aSize = mMaxBytes + (WasResumed() && mMaxBytes != LL_MAXUINT ? mResumedAt : 0);
   return NS_OK;
 }
 
@@ -2155,7 +2155,7 @@ nsDownload::RealResume()
   NS_ENSURE_SUCCESS(rv, rv);
 
   
-  PRInt64 fileSize;
+  
   nsCOMPtr<nsILocalFile> targetLocalFile(mTempFile);
   if (!targetLocalFile) {
     rv = GetTargetFile(getter_AddRefs(targetLocalFile));
@@ -2164,11 +2164,12 @@ nsDownload::RealResume()
 
   
   
+  PRInt64 fileSize;
+  
   nsCOMPtr<nsIFile> clone;
-  rv = targetLocalFile->Clone(getter_AddRefs(clone));
-  NS_ENSURE_SUCCESS(rv, rv);
-  rv = clone->GetFileSize(&fileSize);
-  NS_ENSURE_SUCCESS(rv, rv);
+  if (NS_FAILED(targetLocalFile->Clone(getter_AddRefs(clone))) ||
+      NS_FAILED(clone->GetFileSize(&fileSize)))
+    fileSize = 0;
 
   
   nsCOMPtr<nsIResumableChannel> resumableChannel(do_QueryInterface(channel));
@@ -2226,7 +2227,7 @@ nsDownload::IsResumable()
 PRBool
 nsDownload::WasResumed()
 {
-  return mResumedAt > 0;
+  return mResumedAt != -1;
 }
 
 PRBool
