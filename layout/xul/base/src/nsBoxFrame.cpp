@@ -1806,6 +1806,8 @@ nsBoxFrame::GetFrameSizeWithMargin(nsIBox* aBox, nsSize& aSize)
 
 
 
+
+
 nsresult
 nsBoxFrame::CreateViewForFrame(nsPresContext*  aPresContext,
                                nsIFrame*        aFrame,
@@ -1832,9 +1834,7 @@ nsBoxFrame::CreateViewForFrame(nsPresContext*  aPresContext,
         zIndex = PR_INT32_MAX;
       }
       else {
-        nsIFrame* parent = aFrame->GetAncestorWithView();
-        NS_ASSERTION(parent, "GetAncestorWithView failed");
-        parentView = parent->GetView();
+        parentView = aFrame->GetParent()->GetParentViewForChildFrame(aFrame);
       }
 
       NS_ASSERTION(parentView, "no parent view");
