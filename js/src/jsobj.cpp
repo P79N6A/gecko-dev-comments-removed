@@ -3934,30 +3934,30 @@ js_NativeSet(JSContext *cx, JSObject *obj, JSScopeProperty *sprop, jsval *vp)
     return JS_TRUE;
 }
 
-
-
-
-
 static jsbytecode*
 js_GetCurrentBytecodePC(JSContext* cx)
 {
-    jsbytecode *pc = cx->pcHint;
-    if (!pc || !JS_ON_TRACE(cx)) {
-        JSStackFrame* fp = js_GetTopStackFrame(cx);
-        if (fp && fp->regs) {
-            pc = fp->regs->pc;
-            
-            
-            if (*pc == JSOP_CALL &&
-                fp->imacpc &&
-                js_GetOpcode(cx, fp->script, fp->imacpc) == JSOP_GETELEM) {
-                pc = fp->imacpc;
-            }
-        } else {
-            pc = NULL;
-        }
+    jsbytecode *pc, *imacpc;
+
+#ifdef JS_TRACER
+    if (JS_ON_TRACE(cx)) {
+        pc = cx->bailExit->pc;
+        imacpc = cx->bailExit->imacpc;
+    } else
+#endif
+    if (cx->fp && cx->fp->regs) {
+        pc = cx->fp->regs->pc;
+        imacpc = cx->fp->imacpc;
+    } else {
+        return NULL;
     }
-    return pc;
+
+    
+
+
+
+
+    return (*pc == JSOP_CALL && imacpc) ? imacpc : pc;
 }
 
 JSBool

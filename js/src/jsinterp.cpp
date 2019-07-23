@@ -6924,9 +6924,6 @@ js_Interpret(JSContext *cx)
 #endif 
 
   error:
-    
-    cx->pcHint = NULL;
-
     if (fp->imacpc && cx->throwing) {
         
         if (*fp->imacpc == JSOP_NEXTITER) {
