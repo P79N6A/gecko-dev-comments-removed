@@ -112,6 +112,12 @@ js_GetMutableScope(JSContext *cx, JSObject *obj)
     JS_ASSERT(newscope->freeslot == JSSLOT_FREE(STOBJ_GET_CLASS(obj)));
     clasp = STOBJ_GET_CLASS(obj);
     if (clasp->reserveSlots) {
+        
+
+
+
+
+
         freeslot = JSSLOT_FREE(clasp) + clasp->reserveSlots(cx, obj);
         if (freeslot > STOBJ_NSLOTS(obj))
             freeslot = STOBJ_NSLOTS(obj);

@@ -1831,13 +1831,6 @@ BEGIN_CASE(JSOP_SETMETHOD)
                                 JS_UNLOCK_SCOPE(cx, scope);
                                 goto error;
                             }
-                            if (sprop2 != sprop) {
-                                PCMETER(cache->slotchanges++);
-                                JS_ASSERT(slot != sprop->slot &&
-                                          slot == sprop2->slot &&
-                                          sprop2->id == sprop->id);
-                                entry->vword = SPROP_TO_PCVAL(sprop2);
-                            }
                             sprop = sprop2;
                         } else {
                             scope->extend(cx, sprop);

@@ -313,8 +313,6 @@ typedef struct JSPropertyCache {
     uint32              addpchits;      
     uint32              setpchits;      
     uint32              setpcmisses;    
-    uint32              slotchanges;    
-
     uint32              setmisses;      
     uint32              idmisses;       
     uint32              komisses;       
