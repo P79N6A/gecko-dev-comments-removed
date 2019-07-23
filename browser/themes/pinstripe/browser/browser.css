@@ -648,6 +648,7 @@ toolbar[iconsize="small"] #unified-back-forward-button > #back-forward-dropmarke
 #copy-button[checked="true"] {
   -moz-image-region: rect(46px, 468px, 69px, 432px);
 }
+
 	
 
 #paste-button {
@@ -663,22 +664,32 @@ toolbar[iconsize="small"] #unified-back-forward-button > #back-forward-dropmarke
 
 
 
-
-#window-controls {
-  -moz-box-align: center;
-  padding: 0;
-  -moz-padding-start: 4px;
-  -moz-padding-end: 2px;
+#fullscreen-button {
+  -moz-image-region: rect(0px, 684px, 23px, 648px);
 }
 
-#minimize-button {
-  list-style-image: url("chrome://global/skin/icons/minimize.gif");
+#fullscreen-button:hover:active {
+  -moz-image-region: rect(46px, 684px, 69px, 648px);
 }
+
+#fullscreen-button[checked="true"],
 #restore-button {
-  list-style-image: url("chrome://global/skin/icons/restore.gif");
+  background-color: transparent;
+  border-color: transparent;
+  -moz-image-region: rect(0px, 720px, 23px, 684px);
 }
-#close-button {
-  list-style-image: url("chrome://global/skin/icons/close.gif");
+
+#fullscreen-button[checked="true"]:hover:active,
+#restore-button:hover:active {
+  -moz-image-region: rect(46px, 720px, 69px, 684px);
+}
+
+
+
+#minimize-button,
+#close-button,
+#fullscreen-button ~ #window-controls > #restore-button {
+  display: none;
 }
 
 
