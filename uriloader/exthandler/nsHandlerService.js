@@ -40,6 +40,10 @@ const Cu = Components.utils;
 const Cr = Components.results;
 
 
+const CLASS_MIMEINFO        = "mimetype";
+const CLASS_PROTOCOLINFO    = "scheme";
+
+
 
 const NC_NS                 = "http://home.netscape.com/NC-rdf#";
 
@@ -49,8 +53,6 @@ const NC_MIME_TYPES         = NC_NS + "MIME-types";
 const NC_PROTOCOL_SCHEMES   = NC_NS + "Protocol-Schemes";
 
 
-
-const NC_EDITABLE           = NC_NS + "editable";
 
 
 const NC_VALUE              = NC_NS + "value";
@@ -101,6 +103,14 @@ HandlerService.prototype = {
   
   
 
+  enumerate: function HS_enumerate() {
+    var handlers = Cc["@mozilla.org/array;1"].
+                   createInstance(Ci.nsIMutableArray);
+    this._appendHandlers(handlers, CLASS_MIMEINFO);
+    this._appendHandlers(handlers, CLASS_PROTOCOLINFO);
+    return handlers.enumerate();
+  },
+
   store: function HS_store(aHandlerInfo) {
     
     
@@ -111,6 +121,37 @@ HandlerService.prototype = {
     this._storePreferredAction(aHandlerInfo);
     this._storePreferredHandler(aHandlerInfo);
     this._storeAlwaysAsk(aHandlerInfo);
+
+    
+    
+    if (this._ds instanceof Ci.nsIRDFRemoteDataSource)
+      this._ds.Flush();
+  },
+
+  remove: function HS_remove(aHandlerInfo) {
+    var preferredHandlerID = this._getPreferredHandlerID(aHandlerInfo);
+    this._removeAssertions(preferredHandlerID);
+
+    var infoID = this._getInfoID(aHandlerInfo);
+    this._removeAssertions(infoID);
+
+    var typeID = this._getTypeID(aHandlerInfo);
+    this._removeAssertions(typeID);
+
+    
+    
+    var typeList = this._ensureAndGetTypeList(this._getClass(aHandlerInfo));
+    var type = this._rdf.GetResource(typeID);
+    var typeIndex = typeList.IndexOf(type);
+    if (typeIndex != -1)
+      typeList.RemoveElementAt(typeIndex, true);
+
+    
+    
+    
+    
+    if (this._ds instanceof Ci.nsIRDFRemoteDataSource)
+      this._ds.Flush();
   },
 
 
@@ -199,6 +240,26 @@ HandlerService.prototype = {
   
 
   
+  __mimeSvc: null,
+  get _mimeSvc() {
+    if (!this.__mimeSvc)
+      this.__mimeSvc =
+        Cc["@mozilla.org/uriloader/external-helper-app-service;1"].
+        getService(Ci.nsIMIMEService);
+    return this.__mimeSvc;
+  },
+
+  
+  __protocolSvc: null,
+  get _protocolSvc() {
+    if (!this.__protocolSvc)
+      this.__protocolSvc =
+        Cc["@mozilla.org/uriloader/external-protocol-service;1"].
+        getService(Ci.nsIExternalProtocolService);
+    return this.__protocolSvc;
+  },
+
+  
   __rdf: null,
   get _rdf() {
     if (!this.__rdf)
@@ -235,6 +296,10 @@ HandlerService.prototype = {
     return this.__ds;
   },
 
+
+  
+  
+
   
 
 
@@ -245,9 +310,9 @@ HandlerService.prototype = {
 
   _getClass: function HS__getClass(aHandlerInfo) {
     if (aHandlerInfo instanceof Ci.nsIMIMEInfo)
-      return "mimetype";
+      return CLASS_MIMEINFO;
     else
-      return "scheme";
+      return CLASS_PROTOCOLINFO;
   },
 
   
@@ -330,8 +395,8 @@ HandlerService.prototype = {
 
     var source = this._rdf.GetResource("urn:" + aClass + "s");
     var property =
-      this._rdf.GetResource(aClass == "mimetype" ? NC_MIME_TYPES
-                                                 : NC_PROTOCOL_SCHEMES);
+      this._rdf.GetResource(aClass == CLASS_MIMEINFO ? NC_MIME_TYPES
+                                                     : NC_PROTOCOL_SCHEMES);
     var target = this._rdf.GetResource("urn:" + aClass + "s:root");
 
     
@@ -375,7 +440,6 @@ HandlerService.prototype = {
 
     
     typeList.AppendElement(type);
-    this._setLiteral(typeID, NC_EDITABLE, "true");
     this._setLiteral(typeID, NC_VALUE, aHandlerInfo.type);
     
     
@@ -394,6 +458,68 @@ HandlerService.prototype = {
     var preferredHandlerID = this._getPreferredHandlerID(aHandlerInfo);
     this._setLiteral(preferredHandlerID, NC_PATH, "");
     this._setResource(infoID, NC_PREFERRED_APP, preferredHandlerID);
+  },
+
+  
+
+
+
+
+
+
+  _appendHandlers: function HS__appendHandlers(aHandlers, aClass) {
+    var typeList = this._ensureAndGetTypeList(aClass);
+    var enumerator = typeList.GetElements();
+
+    while (enumerator.hasMoreElements()) {
+      var element = enumerator.getNext();
+      
+      
+      
+      
+      
+      if (!(element instanceof Ci.nsIRDFResource))
+        continue;
+
+      
+      
+      var type = this._getValue(element.ValueUTF8, NC_VALUE);
+      if (!type)
+        continue;
+
+      var handler;
+      if (typeList.Resource.Value == "urn:mimetypes:root")
+        handler = this._mimeSvc.getFromTypeAndExtension(type, null);
+      else
+        handler = this._protocolSvc.getProtocolHandlerInfo(type);
+
+      aHandlers.appendElement(handler, false);
+    }
+  },
+
+  
+
+
+
+
+
+
+  _getValue: function HS__getValue(sourceURI, propertyURI) {
+    var source = this._rdf.GetResource(sourceURI);
+    var property = this._rdf.GetResource(propertyURI);
+
+    var target = this._ds.GetTarget(source, property, true);
+
+    if (!target)
+      return null;
+    
+    if (target instanceof Ci.nsIRDFResource)
+      return target.ValueUTF8;
+
+    if (target instanceof Ci.nsIRDFLiteral)
+      return target.Value;
+
+    return null;
   },
 
   
@@ -456,7 +582,27 @@ HandlerService.prototype = {
 
     if (this._ds.hasArcOut(source, property)) {
       var target = this._ds.GetTarget(source, property, true);
-      this._ds.Unassert(source, property, target, true);
+      this._ds.Unassert(source, property, target);
+    }
+  },
+
+ 
+
+
+
+
+
+
+
+
+  _removeAssertions: function HS__removeAssertions(sourceURI) {
+    var source = this._rdf.GetResource(sourceURI);
+    var properties = this._ds.ArcLabelsOut(source);
+ 
+    while (properties.hasMoreElements()) {
+      var property = properties.getNext();
+      var target = this._ds.GetTarget(source, property, true);
+      this._ds.Unassert(source, property, target);
     }
   },
 

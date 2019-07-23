@@ -49,7 +49,8 @@ var HandlerServiceTest = {
   get _dirSvc() {
     if (!this.__dirSvc)
       this.__dirSvc = Cc["@mozilla.org/file/directory_service;1"].
-                      getService(Ci.nsIProperties);
+                      getService(Ci.nsIProperties).
+                      QueryInterface(Ci.nsIDirectoryService);
     return this.__dirSvc;
   },
 
@@ -71,6 +72,33 @@ var HandlerServiceTest = {
     if (!this.interfaces.some( function(v) { return iid.equals(v) } ))
       throw Cr.NS_ERROR_NO_INTERFACE;
     return this;
+  },
+
+
+  
+  
+  
+  init: function HandlerServiceTest_init() {
+    
+    
+    try        { this._dirSvc.get("UMimTyp", Ci.nsIFile) }
+    catch (ex) { this._dirSvc.registerProvider(this) }
+
+    
+    
+    
+    this._deleteDatasourceFile();
+
+    
+    var prefBranch = Cc["@mozilla.org/preferences-service;1"].
+                     getService(Ci.nsIPrefBranch);
+    prefBranch.setBoolPref("browser.contentHandling.log", true);
+  },
+
+  destroy: function HandlerServiceTest_destroy() {
+    
+    
+    this._deleteDatasourceFile();
   },
 
 
@@ -104,21 +132,10 @@ var HandlerServiceTest = {
   
 
 
-
-  getDatasourceFile: function HandlerServiceTest_getDatasourceFile() {
-    var datasourceFile;
-
-    try {
-      datasourceFile = this._dirSvc.get("UMimTyp", Ci.nsIFile);
-    }
-    catch (e) {}
-
-    if (!datasourceFile) {
-      this._dirSvc.QueryInterface(Ci.nsIDirectoryService).registerProvider(this);
-      datasourceFile = this._dirSvc.get("UMimTyp", Ci.nsIFile);
-    }
-
-    return datasourceFile;
+  _deleteDatasourceFile: function HandlerServiceTest__deleteDatasourceFile() {
+    var file = this._dirSvc.get("UMimTyp", Ci.nsIFile);
+    if (file.exists())
+      file.remove(false);
   },
 
   
@@ -168,9 +185,4 @@ var HandlerServiceTest = {
 
 };
 
-HandlerServiceTest.getDatasourceFile();
-
-
-var prefBranch = Cc["@mozilla.org/preferences-service;1"].
-                 getService(Ci.nsIPrefBranch);
-prefBranch.setBoolPref("browser.contentHandling.log", true);
+HandlerServiceTest.init();

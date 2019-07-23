@@ -126,6 +126,27 @@ function run_test() {
 
   
   
+  
+  var handlerInfo2 = mimeSvc.getFromTypeAndExtension("nonexistent/type2", null);
+  handlerSvc.store(handlerInfo2);
+  var handlerTypes = ["nonexistent/type", "nonexistent/type2"];
+  var handlers = handlerSvc.enumerate();
+  while (handlers.hasMoreElements()) {
+    var handler = handlers.getNext().QueryInterface(Ci.nsIHandlerInfo);
+    do_check_neq(handlerTypes.indexOf(handler.type), -1);
+    handlerTypes.splice(handlerTypes.indexOf(handler.type), 1);
+  }
+  do_check_eq(handlerTypes.length, 0);
+
+  
+  handlerSvc.remove(handlerInfo2);
+  handlers = handlerSvc.enumerate();
+  while (handlers.hasMoreElements())
+    do_check_neq(handlers.getNext().QueryInterface(Ci.nsIHandlerInfo).type,
+                 handlerInfo2.type);
+
+  
+  
   var noPreferredHandlerInfo =
     mimeSvc.getFromTypeAndExtension("nonexistent/no-preferred-handler", null);
   handlerSvc.store(noPreferredHandlerInfo);
