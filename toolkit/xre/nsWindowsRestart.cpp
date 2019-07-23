@@ -172,6 +172,11 @@ MakeCommandLine(int argc, PRUnichar **argv)
   for (i = 0; i < argc; ++i)
     len += ArgStrLen(argv[i]) + 1;
 
+#ifdef WINCE
+  wchar_t *env = mozce_GetEnvironmentCL();
+  len += (wcslen(env));
+#endif
+
   
   if (len == 0)
     len = 1;
@@ -191,6 +196,9 @@ MakeCommandLine(int argc, PRUnichar **argv)
 
   *c = '\0';
 
+#ifdef WINCE
+  wcscat(s, env);
+#endif
   return s;
 }
 
@@ -257,6 +265,19 @@ WinLaunchChild(const PRUnichar *exePath, int argc, PRUnichar **argv)
 {
   PRUnichar *cl;
   BOOL ok;
+
+#ifdef WINCE
+  
+  
+  
+  
+  
+  
+  
+  argv = argv + 1;
+  argc--;
+#endif
+
   cl = MakeCommandLine(argc, argv);
   if (!cl)
     return FALSE;
@@ -278,6 +299,19 @@ WinLaunchChild(const PRUnichar *exePath, int argc, PRUnichar **argv)
   if (ok) {
     CloseHandle(pi.hProcess);
     CloseHandle(pi.hThread);
+  } else {
+    LPVOID lpMsgBuf;
+    FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER |
+		  FORMAT_MESSAGE_FROM_SYSTEM |
+		  FORMAT_MESSAGE_IGNORE_INSERTS,
+		  NULL,
+		  GetLastError(),
+		  MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+		  (LPTSTR) &lpMsgBuf,
+		  0,
+		  NULL
+		  );
+    wprintf(L"Error restarting: %s\n", lpMsgBuf);
   }
 
   free(cl);
