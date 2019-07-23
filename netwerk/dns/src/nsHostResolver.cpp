@@ -613,6 +613,9 @@ nsHostResolver::OnLookupComplete(nsHostRecord *rec, nsresult status, PRAddrInfo 
         MoveCList(rec->callbacks, cbs);
 
         
+        
+	if (rec->addr_info)
+	  PR_FreeAddrInfo(rec->addr_info);
         rec->addr_info = result;
         rec->expiration = NowInMinutes() + mMaxCacheLifetime;
         rec->resolving = PR_FALSE;
