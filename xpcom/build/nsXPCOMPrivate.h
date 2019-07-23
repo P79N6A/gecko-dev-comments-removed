@@ -208,6 +208,26 @@ XPCOM_API(nsresult)
 NS_GetFrozenFunctions(XPCOMFunctions *entryPoints, const char* libraryPath);
 
 
+namespace mozilla {
+
+
+
+
+
+
+
+
+
+
+
+
+nsresult
+ShutdownXPCOM(nsIServiceManager* servMgr);
+
+} 
+
+
+
 #define XPCOM_GLUE_VERSION 1
 
 

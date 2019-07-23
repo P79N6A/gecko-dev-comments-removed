@@ -75,6 +75,10 @@
 #include "nsThreadManager.h"
 #include "nsThreadPool.h"
 
+#ifdef DEBUG
+#include "BlockingResourceBase.h"
+#endif 
+
 #include "nsIProxyObjectManager.h"
 #include "nsProxyEventPrivate.h"  
 
@@ -737,6 +741,14 @@ NS_InitXPCOM3(nsIServiceManager* *result,
 EXPORT_XPCOM_API(nsresult)
 NS_ShutdownXPCOM(nsIServiceManager* servMgr)
 {
+    return mozilla::ShutdownXPCOM(servMgr);
+}
+
+namespace mozilla {
+
+nsresult
+ShutdownXPCOM(nsIServiceManager* servMgr)
+{
     NS_ENSURE_STATE(NS_IsMainThread());
 
     nsresult rv;
@@ -874,6 +886,7 @@ NS_ShutdownXPCOM(nsIServiceManager* servMgr)
     nsComponentManagerImpl::gComponentManager = nsnull;
 
 #ifdef DEBUG
+    
     _FreeAutoLockStatics();
 #endif
 
@@ -884,6 +897,22 @@ NS_ShutdownXPCOM(nsIServiceManager* servMgr)
     NS_IF_RELEASE(gDebug);
 
     TimeStamp::Shutdown();
+
+#ifdef DEBUG
+    
+
+
+
+
+
+
+
+
+
+
+
+    BlockingResourceBase::Shutdown();
+#endif
     
     NS_LogTerm();
 
@@ -894,3 +923,5 @@ NS_ShutdownXPCOM(nsIServiceManager* servMgr)
 
     return NS_OK;
 }
+
+} 

@@ -374,6 +374,17 @@ public:
 
 
 
+    ~DeadlockDetector()
+    {
+        PL_HashTableDestroy(mOrdering);
+        PR_DestroyLock(mLock);
+    }
+
+    
+
+
+
+
 
 
 

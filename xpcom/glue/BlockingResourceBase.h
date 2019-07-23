@@ -325,7 +325,7 @@ private:
 
 
 
-    static DDT sDeadlockDetector;
+    static DDT* sDeadlockDetector;
 
     
 
@@ -334,12 +334,29 @@ private:
 
 
 
-
     static PRStatus InitStatics() {
         PR_NewThreadPrivateIndex(&sResourceAcqnChainFrontTPI, 0);
+        sDeadlockDetector = new DDT();
+        if (!sDeadlockDetector)
+            NS_RUNTIMEABORT("can't allocate deadlock detector");
         return PR_SUCCESS;
     }
 
+    
+
+
+
+
+
+    static void Shutdown() {
+        delete sDeadlockDetector;
+        sDeadlockDetector = 0;
+    }
+
+#  ifdef MOZILLA_INTERNAL_API
+    
+    friend nsresult ShutdownXPCOM(nsIServiceManager*);
+#  endif  
 
 #else  
 
