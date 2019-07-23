@@ -274,6 +274,10 @@ private:
 
   
   PRPackedBool mSeekable;
+
+  
+  
+  PRPackedBool mResourceLoaded;
 };
 
 #endif
