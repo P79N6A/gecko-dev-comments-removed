@@ -1181,8 +1181,6 @@ protected:
   ReflowCountMgr * mReflowCountMgr;
 #endif
 
-  nsresult CompleteMoveInner(PRBool aForward, PRBool aExtend, PRBool sScrollIntoView);
-  
 private:
 
   PRBool InZombieDocument(nsIContent *aContent);
@@ -2898,12 +2896,7 @@ PresShell::CompleteMove(PRBool aForward, PRBool aExtend)
 {
   
   
-  return CompleteMoveInner(aForward, aExtend, PR_TRUE);
-}
 
-nsresult
-PresShell::CompleteMoveInner(PRBool aForward, PRBool aExtend, PRBool aScrollIntoView)
-{
   nsIContent* root = mSelection->GetAncestorLimiter();
   nsIDocument* doc;
   if (root && (doc = root->GetOwnerDoc()) && doc->GetRootContent() != root) {
@@ -2934,16 +2927,12 @@ PresShell::CompleteMoveInner(PRBool aForward, PRBool aExtend, PRBool aScrollInto
     
     mSelection->SetAncestorLimiter(root);
 
-    if (aScrollIntoView) {
-      
-      
-      return
-        ScrollSelectionIntoView(nsISelectionController::SELECTION_NORMAL, 
-                                nsISelectionController::SELECTION_FOCUS_REGION,
-                                PR_TRUE);
-    }
-
-    return NS_OK;
+    
+    
+    return
+      ScrollSelectionIntoView(nsISelectionController::SELECTION_NORMAL, 
+                              nsISelectionController::SELECTION_FOCUS_REGION,
+                              PR_TRUE);
   }
 
   nsIScrollableView *scrollableView;
@@ -2980,15 +2969,11 @@ PresShell::CompleteMoveInner(PRBool aForward, PRBool aExtend, PRBool aScrollInto
 
   mSelection->HandleClick(pos.mResultContent ,pos.mContentOffset ,pos.mContentOffset ,aExtend, PR_FALSE, aForward);
 
-  if (aScrollIntoView) {
-    
-    
-    result = ScrollSelectionIntoView(nsISelectionController::SELECTION_NORMAL, 
-                                     nsISelectionController::SELECTION_FOCUS_REGION, PR_TRUE);
-    if (NS_FAILED(result)) 
-      return result;
-  }
-  return NS_OK;
+  
+  
+  return ScrollSelectionIntoView(nsISelectionController::SELECTION_NORMAL, 
+                                 nsISelectionController::SELECTION_FOCUS_REGION,
+                                 PR_TRUE);
 }
 
 NS_IMETHODIMP 
@@ -4356,18 +4341,6 @@ PresShell::UnsuppressAndInvalidate()
 
   if (mViewManager)
     mViewManager->SynthesizeMouseMove(PR_FALSE);
-  
-  
-  if (mSelection) {
-    nsISelection* domSelection = mSelection->
-      GetSelection(nsISelectionController::SELECTION_NORMAL);
-    if (domSelection) {
-      PRInt32 rangeCount;
-      domSelection->GetRangeCount(&rangeCount);
-      if (rangeCount == 0)
-        CompleteMoveInner(PR_FALSE, PR_FALSE, PR_FALSE);
-    }
-  }
 }
 
 NS_IMETHODIMP
