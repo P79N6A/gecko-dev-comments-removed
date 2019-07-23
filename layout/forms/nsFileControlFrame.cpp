@@ -345,8 +345,6 @@ nsFileControlFrame::MouseListener::MouseClick(nsIDOMEvent* aMouseEvent)
   result = filePicker->Show(&mode);
   if (NS_FAILED(result))
     return result;
-  if (mode == nsIFilePicker::returnCancel)
-    return NS_OK;
 
   if (!mFrame) {
     
@@ -357,30 +355,35 @@ nsFileControlFrame::MouseListener::MouseClick(nsIDOMEvent* aMouseEvent)
   }
   
   
+  nsAutoString unicodePath;
   nsCOMPtr<nsILocalFile> localFile;
-  result = filePicker->GetFile(getter_AddRefs(localFile));
-  if (localFile) {
-    nsAutoString unicodePath;
-    result = localFile->GetPath(unicodePath);
-    if (!unicodePath.IsEmpty()) {
-      
-      
-      
-      PRBool oldState = mFrame->mTextFrame->GetFireChangeEventState();
-      mFrame->mTextFrame->SetFireChangeEventState(PR_TRUE);
-      nsCOMPtr<nsIFileControlElement> fileControl = do_QueryInterface(content);
-      if (fileControl) {
-        fileControl->SetFileName(unicodePath);
-      }
-      
-      mFrame->mTextFrame->SetFireChangeEventState(oldState);
-      
-      mFrame->mTextFrame->CheckFireOnChange();
-      return NS_OK;
+  if (mode != nsIFilePicker::returnCancel) {
+    result = filePicker->GetFile(getter_AddRefs(localFile));
+    if (localFile) {
+      result = localFile->GetPath(unicodePath);
     }
   }
 
-  return NS_FAILED(result) ? result : NS_ERROR_FAILURE;
+  nsAutoString oldFileName;
+  nsCOMPtr<nsIFileControlElement> fileControl = do_QueryInterface(content);
+  NS_ENSURE_TRUE(fileControl, NS_ERROR_UNEXPECTED);
+
+  fileControl->GetFileName(oldFileName);
+
+  if (!unicodePath.Equals(oldFileName)) {
+    
+    
+    
+    PRBool oldState = mFrame->mTextFrame->GetFireChangeEventState();
+    mFrame->mTextFrame->SetFireChangeEventState(PR_TRUE);
+    fileControl->SetFileName(unicodePath);
+      
+    mFrame->mTextFrame->SetFireChangeEventState(oldState);
+    
+    mFrame->mTextFrame->CheckFireOnChange();
+  }
+
+  return NS_OK;
 }
 
 nscoord
