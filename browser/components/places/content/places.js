@@ -306,7 +306,7 @@ var PlacesOrganizer = {
         
         
         
-        PlacesUIUtils.openContainerNodeInTabs(selectedNode);
+        PlacesUIUtils.openContainerNodeInTabs(selectedNode, aEvent);
       }
     }
   },
