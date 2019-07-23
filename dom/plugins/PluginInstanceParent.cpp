@@ -990,6 +990,25 @@ PluginInstanceParent::AnswerNPN_GetAuthenticationInfo(const nsCString& protocol,
     return true;
 }
 
+bool
+PluginInstanceParent::AnswerNPN_ConvertPoint(const double& sourceX,
+                                             const double& sourceY,
+                                             const NPCoordinateSpace& sourceSpace,
+                                             const NPCoordinateSpace& destSpace,
+                                             double *destX,
+                                             bool *ignoreDestX,
+                                             double *destY,
+                                             bool *ignoreDestY,
+                                             bool *result)
+{
+    *result = mNPNIface->convertpoint(mNPP, sourceX, sourceY, sourceSpace,
+                                      ignoreDestX ? nsnull : destX,
+                                      ignoreDestY ? nsnull : destY,
+                                      destSpace);
+
+    return true;
+}
+
 #if defined(OS_WIN)
 
 
