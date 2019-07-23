@@ -288,6 +288,7 @@ protected:
     PRPackedBool          mVisible;           
 
     PRPackedBool          mDrawn;             
+    PRPackedBool          mPendingDraw;       
 
     PRPackedBool          mReadOnly;          
     PRPackedBool          mShowDuringSelection; 

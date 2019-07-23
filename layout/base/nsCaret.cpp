@@ -91,6 +91,7 @@ nsCaret::nsCaret()
 , mBlinkRate(500)
 , mVisible(PR_FALSE)
 , mDrawn(PR_FALSE)
+, mPendingDraw(PR_FALSE)
 , mReadOnly(PR_FALSE)
 , mShowDuringSelection(PR_FALSE)
 , mIgnoreUserModify(PR_TRUE)
@@ -961,11 +962,19 @@ void nsCaret::GetViewForRendering(nsIFrame *caretFrame,
   *outRenderingView = returnView;
 }
 
-nsresult nsCaret::CheckCaretDrawingState() 
+nsresult nsCaret::CheckCaretDrawingState()
 {
-  
-  if (mDrawn && (!mVisible || !MustDrawCaret(PR_TRUE)))
-    EraseCaret();
+  if (mDrawn) {
+    
+    if (!mVisible || !MustDrawCaret(PR_TRUE))
+      EraseCaret();
+  }
+  else
+  {
+    
+    if (mPendingDraw && (mVisible && MustDrawCaret(PR_TRUE)))
+      DrawCaret(PR_TRUE);
+  }
   return NS_OK;
 }
 
@@ -983,22 +992,14 @@ nsresult nsCaret::CheckCaretDrawingState()
 
 PRBool nsCaret::MustDrawCaret(PRBool aIgnoreDrawnState)
 {
-  nsCOMPtr<nsIPresShell> presShell = do_QueryReferent(mPresShell);
-  if (presShell) {
-    PRBool isPaintingSuppressed;
-    presShell->IsPaintingSuppressed(&isPaintingSuppressed);
-    if (isPaintingSuppressed)
-      return PR_FALSE;
-  }
-
   if (!aIgnoreDrawnState && mDrawn)
     return PR_TRUE;
 
   nsCOMPtr<nsISelection> domSelection = do_QueryReferent(mDomSelectionWeak);
   if (!domSelection)
     return PR_FALSE;
-  PRBool isCollapsed;
 
+  PRBool isCollapsed;
   if (NS_FAILED(domSelection->GetIsCollapsed(&isCollapsed)))
     return PR_FALSE;
 
@@ -1059,18 +1060,29 @@ PRBool nsCaret::IsMenuPopupHidingCaret()
   return PR_FALSE;
 }
 
-
-
-
-
-
-
 void nsCaret::DrawCaret(PRBool aInvalidate)
 {
   
   if (!MustDrawCaret(PR_FALSE))
     return;
   
+  
+  nsCOMPtr<nsIPresShell> presShell = do_QueryReferent(mPresShell);
+  NS_ENSURE_TRUE(presShell, );
+  {
+    PRBool isPaintingSuppressed;
+    presShell->IsPaintingSuppressed(&isPaintingSuppressed);
+    if (isPaintingSuppressed)
+    {
+      if (!mDrawn)
+        mPendingDraw = PR_TRUE;
+
+      
+      
+      return;
+    }
+  }
+
   nsCOMPtr<nsIDOMNode> node;
   PRInt32 offset;
   nsFrameSelection::HINT hint;
@@ -1102,7 +1114,9 @@ void nsCaret::DrawCaret(PRBool aInvalidate)
     nsCOMPtr<nsFrameSelection> frameSelection = GetFrameSelection();
     if (!frameSelection)
       return;
+
     bidiLevel = frameSelection->GetCaretBidiLevel();
+    mPendingDraw = PR_FALSE;
   }
   else
   {
