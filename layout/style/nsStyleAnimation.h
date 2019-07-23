@@ -38,6 +38,7 @@
 
 
 
+
 #ifndef nsStyleAnimation_h_
 #define nsStyleAnimation_h_
 
@@ -47,6 +48,7 @@
 
 class nsCSSDeclaration;
 class nsIContent;
+class nsPresContext;
 class nsStyleCoord;
 class nsStyleContext;
 
@@ -150,6 +152,21 @@ public:
   static PRBool ExtractComputedValue(nsCSSProperty aProperty,
                                      nsStyleContext* aStyleContext,
                                      nsStyleCoord& aComputedValue);
+
+  
+
+
+
+
+
+
+
+
+
+  static PRBool StoreComputedValue(nsCSSProperty aProperty,
+                                   nsPresContext* aPresContext,
+                                   void* aStyleStruct,
+                                   const nsStyleCoord& aComputedValue);
 };
 
 #endif
