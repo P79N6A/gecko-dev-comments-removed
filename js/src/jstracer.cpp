@@ -11732,61 +11732,114 @@ TraceRecorder::record_JSOP_POPN()
     return JSRS_CONTINUE;
 }
 
+
+
+
+
+
+
+
+
+
+JS_REQUIRES_STACK JSRecordingStatus
+TraceRecorder::traverseScopeChain(JSObject *obj, LIns *obj_ins, JSObject *obj2, LIns *&obj2_ins)
+{
+    for (;;) {
+        if (obj != globalObj) {
+            if (!js_IsCacheableNonGlobalScope(obj))
+                ABORT_TRACE("scope chain lookup crosses non-cacheable object");
+
+            
+            
+            
+            if (STOBJ_GET_CLASS(obj) == &js_CallClass &&
+                JSFUN_HEAVYWEIGHT_TEST(js_GetCallObjectFunction(obj)->flags)) {
+                LIns* map_ins = map(obj_ins);
+                LIns* shape_ins = addName(lir->insLoad(LIR_ld, map_ins, offsetof(JSScope, shape)),
+                                          "obj_shape");
+                guard(true,
+                      addName(lir->ins2i(LIR_eq, shape_ins, OBJ_SHAPE(obj)), "guard_shape"),
+                      BRANCH_EXIT);
+            }
+        }
+
+        if (obj == obj2)
+            break;
+
+        obj = STOBJ_GET_PARENT(obj);
+        if (!obj)
+            ABORT_TRACE("target object not reached on scope chain");
+        obj_ins = stobj_get_parent(obj_ins);
+    }
+
+    obj2_ins = obj_ins;
+    return JSRS_CONTINUE;
+}
+
 JS_REQUIRES_STACK JSRecordingStatus
 TraceRecorder::record_JSOP_BINDNAME()
 {
     JSStackFrame *fp = cx->fp;
     JSObject *obj;
 
-    if (fp->fun) {
-        
-        
-        
-        if (JSFUN_HEAVYWEIGHT_TEST(fp->fun->flags))
-            ABORT_TRACE("Can't trace JSOP_BINDNAME in heavyweight functions.");
-
-        
-        
-        obj = OBJ_GET_PARENT(cx, JSVAL_TO_OBJECT(fp->argv[-2]));
-    } else {
+    if (!fp->fun) {
         obj = fp->scopeChain;
 
-        
         
         
         while (OBJ_GET_CLASS(cx, obj) == &js_BlockClass) {
             
             JS_ASSERT(obj->getAssignedPrivate() == fp);
-
             obj = OBJ_GET_PARENT(cx, obj);
-
             
             JS_ASSERT(obj);
         }
-    }
 
-    if (obj != globalObj) {
-        if (OBJ_GET_CLASS(cx, obj) != &js_CallClass)
-            ABORT_TRACE("Can only trace JSOP_BINDNAME with global or call object");
+        if (obj != globalObj)
+            ABORT_TRACE("BINDNAME in global code resolved to non-global object");
 
         
 
 
 
 
-        JS_ASSERT(obj == cx->fp->scopeChain || obj == OBJ_GET_PARENT(cx, cx->fp->scopeChain));
-        stack(0, stobj_get_parent(get(&cx->fp->argv[-2])));
+
+
+        stack(0, INS_CONSTOBJ(obj));
         return JSRS_CONTINUE;
     }
 
     
+    
+    
+    if (JSFUN_HEAVYWEIGHT_TEST(fp->fun->flags))
+        ABORT_TRACE("BINDNAME in heavyweight function.");
 
+    
+    
+    
+    jsval *callee = &cx->fp->argv[-2];
+    obj = STOBJ_GET_PARENT(JSVAL_TO_OBJECT(*callee));
+    if (obj == globalObj) {
+        stack(0, INS_CONSTOBJ(obj));
+        return JSRS_CONTINUE;
+    }
+    LIns *obj_ins = stobj_get_parent(get(callee));
 
+    
+    JSAtom *atom = atoms[GET_INDEX(cx->fp->regs->pc)];
+    jsid id = ATOM_TO_JSID(atom);
+    JSObject *obj2 = js_FindIdentifierBase(cx, fp->scopeChain, id);
+    if (obj2 != globalObj && STOBJ_GET_CLASS(obj2) != &js_CallClass)
+        ABORT_TRACE("BINDNAME on non-global, non-call object");
 
+    
+    LIns *obj2_ins;
+    CHECK_STATUS(traverseScopeChain(obj, obj_ins, obj2, obj2_ins));
 
-
-
-    stack(0, INS_CONSTOBJ(obj));
+    
+    
+    stack(0, obj2 == globalObj ? INS_CONSTOBJ(obj2) : obj2_ins);
     return JSRS_CONTINUE;
 }
 
