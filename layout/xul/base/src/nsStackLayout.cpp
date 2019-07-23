@@ -267,7 +267,7 @@ nsStackLayout::Layout(nsIBox* aBox, nsBoxLayoutState& aState)
       PRBool sizeChanged = (oldRect != childRect);
 
       
-      if (sizeChanged || (child->GetStateBits() & (NS_FRAME_IS_DIRTY | NS_FRAME_HAS_DIRTY_CHILDREN))) {
+      if (sizeChanged || NS_SUBTREE_DIRTY(child)) {
           
           nsMargin margin;
           child->GetMargin(margin);

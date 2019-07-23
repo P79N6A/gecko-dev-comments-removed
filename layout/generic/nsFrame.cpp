@@ -688,8 +688,7 @@ NS_IMETHODIMP nsFrame::DidSetStyleContext()
  nsMargin
 nsIFrame::GetUsedMargin() const
 {
-  NS_ASSERTION(!(GetStateBits() &
-                 (NS_FRAME_IS_DIRTY | NS_FRAME_HAS_DIRTY_CHILDREN)) ||
+  NS_ASSERTION(!NS_SUBTREE_DIRTY(this) ||
                (GetStateBits() & NS_FRAME_IN_REFLOW),
                "cannot call on a dirty frame not currently being reflowed");
 
@@ -708,8 +707,7 @@ nsIFrame::GetUsedMargin() const
  nsMargin
 nsIFrame::GetUsedBorder() const
 {
-  NS_ASSERTION(!(GetStateBits() &
-                 (NS_FRAME_IS_DIRTY | NS_FRAME_HAS_DIRTY_CHILDREN)) ||
+  NS_ASSERTION(!NS_SUBTREE_DIRTY(this) ||
                (GetStateBits() & NS_FRAME_IN_REFLOW),
                "cannot call on a dirty frame not currently being reflowed");
 
@@ -736,8 +734,7 @@ nsIFrame::GetUsedBorder() const
  nsMargin
 nsIFrame::GetUsedPadding() const
 {
-  NS_ASSERTION(!(GetStateBits() &
-                 (NS_FRAME_IS_DIRTY | NS_FRAME_HAS_DIRTY_CHILDREN)) ||
+  NS_ASSERTION(!NS_SUBTREE_DIRTY(this) ||
                (GetStateBits() & NS_FRAME_IN_REFLOW),
                "cannot call on a dirty frame not currently being reflowed");
 
@@ -832,8 +829,7 @@ nsFrame::SetAdditionalStyleContext(PRInt32 aIndex,
 nscoord
 nsFrame::GetBaseline() const
 {
-  NS_ASSERTION(!(GetStateBits() & (NS_FRAME_IS_DIRTY |
-                                   NS_FRAME_HAS_DIRTY_CHILDREN)),
+  NS_ASSERTION(!NS_SUBTREE_DIRTY(this),
                "frame must not be dirty");
   
   
@@ -6113,8 +6109,7 @@ nsFrame::BoxReflow(nsBoxLayoutState&        aState,
   PRBool redrawAfterReflow = PR_FALSE;
   PRBool redrawNow = PR_FALSE;
 
-  PRBool needsReflow =
-    (GetStateBits() & (NS_FRAME_IS_DIRTY | NS_FRAME_HAS_DIRTY_CHILDREN)) != 0;
+  PRBool needsReflow = NS_SUBTREE_DIRTY(this);
 
   if (redrawNow)
      Redraw(aState);

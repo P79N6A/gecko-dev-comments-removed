@@ -296,7 +296,6 @@ nsHTMLButtonControlFrame::Reflow(nsPresContext* aPresContext,
   
   
   
-  
   nsMargin focusPadding = mRenderer.GetAddedButtonBorderAndPadding();
   
   

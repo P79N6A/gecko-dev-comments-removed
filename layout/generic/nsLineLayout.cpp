@@ -914,8 +914,7 @@ nsLineLayout::ReflowFrame(nsIFrame* aFrame,
       if (outOfFlowFrame) {
         nsPlaceholderFrame* placeholder = NS_STATIC_CAST(nsPlaceholderFrame*, aFrame);
         
-        if (!(aFrame->GetStateBits() &
-              (NS_FRAME_IS_DIRTY | NS_FRAME_HAS_DIRTY_CHILDREN))) {
+        if (!NS_SUBTREE_DIRTY(aFrame)) {
           
           placedFloat = InitFloat(placeholder, aReflowStatus);
         }

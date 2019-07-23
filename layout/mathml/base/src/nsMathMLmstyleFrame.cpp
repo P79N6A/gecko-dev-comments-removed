@@ -168,5 +168,5 @@ nsMathMLmstyleFrame::AttributeChanged(PRInt32         aNameSpaceID,
   
   
   
-  return ReLayoutChildren(mParent);
+  return ReLayoutChildren(mParent, NS_FRAME_IS_DIRTY);
 }

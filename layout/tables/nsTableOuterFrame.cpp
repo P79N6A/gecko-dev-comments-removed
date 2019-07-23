@@ -284,10 +284,9 @@ nsTableOuterFrame::AppendFrames(nsIAtom*        aListName,
 
     
     
-    AddStateBits(NS_FRAME_HAS_DIRTY_CHILDREN);
     PresContext()->PresShell()->
-      FrameNeedsReflow(this, nsIPresShell::eTreeChange);
-    
+      FrameNeedsReflow(this, nsIPresShell::eTreeChange,
+                       NS_FRAME_HAS_DIRTY_CHILDREN);
   }
   else {
     NS_PRECONDITION(PR_FALSE, "unexpected child list");
@@ -338,9 +337,9 @@ nsTableOuterFrame::RemoveFrame(nsIAtom*        aListName,
   mCaptionFrames.DestroyFrame(aOldFrame);
   mCaptionFrame = mCaptionFrames.FirstChild();
   
-  AddStateBits(NS_FRAME_HAS_DIRTY_CHILDREN); 
   PresContext()->PresShell()->
-    FrameNeedsReflow(this, nsIPresShell::eTreeChange);
+    FrameNeedsReflow(this, nsIPresShell::eTreeChange,
+                     NS_FRAME_HAS_DIRTY_CHILDREN); 
 
   return NS_OK;
 }
@@ -1187,10 +1186,9 @@ NS_METHOD nsTableOuterFrame::Reflow(nsPresContext*           aPresContext,
     MoveOverflowToChildList(aPresContext);
   }
 
-  PRBool reflowCaption = mCaptionFrame && (reflowAllKids || (mCaptionFrame->
-    GetStateBits() & (NS_FRAME_IS_DIRTY | NS_FRAME_HAS_DIRTY_CHILDREN)));
-  PRBool reflowInner = reflowAllKids || (mInnerTableFrame->
-    GetStateBits() & (NS_FRAME_IS_DIRTY | NS_FRAME_HAS_DIRTY_CHILDREN));
+  PRBool reflowCaption =
+    mCaptionFrame && (reflowAllKids || NS_SUBTREE_DIRTY(mCaptionFrame));
+  PRBool reflowInner = reflowAllKids || NS_SUBTREE_DIRTY(mInnerTableFrame);
 
   
   

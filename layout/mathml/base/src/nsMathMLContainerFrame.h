@@ -301,8 +301,10 @@ public:
   
   
   
+  
+  
   static nsresult
-  ReLayoutChildren(nsIFrame* aParentFrame);
+  ReLayoutChildren(nsIFrame* aParentFrame, nsFrameState aBits);
 
 protected:
   virtual PRIntn GetSkipSides() const { return 0; }
@@ -361,7 +363,8 @@ public:
   {
     NS_ASSERTION(!aListName, "internal error");
     nsresult rv = nsBlockFrame::AppendFrames(aListName, aFrameList);
-    nsMathMLContainerFrame::ReLayoutChildren(this);
+    nsMathMLContainerFrame::ReLayoutChildren(this,
+                                             NS_FRAME_HAS_DIRTY_CHILDREN);
     return rv;
   }
 
@@ -372,7 +375,8 @@ public:
   {
     NS_ASSERTION(!aListName, "internal error");
     nsresult rv = nsBlockFrame::InsertFrames(aListName, aPrevFrame, aFrameList);
-    nsMathMLContainerFrame::ReLayoutChildren(this);
+    nsMathMLContainerFrame::ReLayoutChildren(this,
+                                             NS_FRAME_HAS_DIRTY_CHILDREN);
     return rv;
   }
 
@@ -382,7 +386,8 @@ public:
   {
     NS_ASSERTION(!aListName, "internal error");
     nsresult rv = nsBlockFrame::RemoveFrame(aListName, aOldFrame);
-    nsMathMLContainerFrame::ReLayoutChildren(this);
+    nsMathMLContainerFrame::ReLayoutChildren(this,
+                                             NS_FRAME_HAS_DIRTY_CHILDREN);
     return rv;
   }
 
@@ -444,7 +449,8 @@ public:
   {
     NS_ASSERTION(!aListName, "internal error");
     nsresult rv = nsInlineFrame::AppendFrames(aListName, aFrameList);
-    nsMathMLContainerFrame::ReLayoutChildren(this);
+    nsMathMLContainerFrame::ReLayoutChildren(this,
+                                             NS_FRAME_HAS_DIRTY_CHILDREN);
     return rv;
   }
 
@@ -455,7 +461,8 @@ public:
   {
     NS_ASSERTION(!aListName, "internal error");
     nsresult rv = nsInlineFrame::InsertFrames(aListName, aPrevFrame, aFrameList);
-    nsMathMLContainerFrame::ReLayoutChildren(this);
+    nsMathMLContainerFrame::ReLayoutChildren(this,
+                                             NS_FRAME_HAS_DIRTY_CHILDREN);
     return rv;
   }
 
@@ -465,7 +472,8 @@ public:
   {
     NS_ASSERTION(!aListName, "internal error");
     nsresult rv = nsInlineFrame::RemoveFrame(aListName, aOldFrame);
-    nsMathMLContainerFrame::ReLayoutChildren(this);
+    nsMathMLContainerFrame::ReLayoutChildren(this,
+                                             NS_FRAME_HAS_DIRTY_CHILDREN);
     return rv;
   }
 

@@ -522,7 +522,11 @@ protected:
   
   
 
-  void RenumberLists(nsPresContext* aPresContext);
+  
+  
+  
+  
+  PRBool RenumberLists(nsPresContext* aPresContext);
 
   PRBool RenumberListsInBlock(nsPresContext* aPresContext,
                               nsBlockFrame* aContainerFrame,

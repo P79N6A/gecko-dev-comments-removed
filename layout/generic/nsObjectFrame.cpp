@@ -755,9 +755,8 @@ nsObjectFrame::InstantiatePlugin(nsIPluginHost* aPluginHost,
 
   
   
-  AddStateBits(NS_FRAME_IS_DIRTY);
   PresContext()->GetPresShell()->
-    FrameNeedsReflow(this, nsIPresShell::eStyleChange);
+    FrameNeedsReflow(this, nsIPresShell::eStyleChange, NS_FRAME_IS_DIRTY);
   return rv;
 }
 
@@ -1321,7 +1320,7 @@ nsObjectFrame::Instantiate(nsIChannel* aChannel, nsIStreamListener** aStreamList
   
   
   PresContext()->GetPresShell()->
-    FrameNeedsReflow(this, nsIPresShell::eStyleChange);
+    FrameNeedsReflow(this, nsIPresShell::eStyleChange, NS_FRAME_IS_DIRTY);
   return rv;
 }
 

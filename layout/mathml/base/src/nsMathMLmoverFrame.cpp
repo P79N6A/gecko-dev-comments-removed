@@ -74,7 +74,7 @@ nsMathMLmoverFrame::AttributeChanged(PRInt32         aNameSpaceID,
   if (nsGkAtoms::accent_ == aAttribute) {
     
     
-    return ReLayoutChildren(mParent);
+    return ReLayoutChildren(mParent, NS_FRAME_IS_DIRTY);
   }
 
   return nsMathMLContainerFrame::

@@ -99,6 +99,7 @@ class nsIScrollableFrame;
 class gfxASurface;
 
 typedef short SelectionType;
+typedef PRUint32 nsFrameState;
 
 
 #define NS_IPRESSHELL_IID \
@@ -346,6 +347,7 @@ public:
 
 
 
+
   enum IntrinsicDirty {
     
     eResize,     
@@ -353,7 +355,8 @@ public:
     eStyleChange 
   };
   NS_IMETHOD FrameNeedsReflow(nsIFrame *aFrame,
-                              IntrinsicDirty aIntrinsicDirty) = 0;
+                              IntrinsicDirty aIntrinsicDirty,
+                              nsFrameState aBitsToAdd) = 0;
 
   NS_IMETHOD CancelAllPendingReflows() = 0;
 

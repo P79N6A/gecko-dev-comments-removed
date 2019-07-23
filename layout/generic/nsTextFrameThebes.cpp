@@ -3093,22 +3093,26 @@ nsTextFrame::CharacterDataChanged(nsPresContext* aPresContext,
   if (aAppend) {
     lastTextFrame = NS_STATIC_CAST(nsTextFrame*, GetLastContinuation());
     lastTextFrame->mState &= ~TEXT_WHITESPACE_FLAGS;
-    lastTextFrame->mState |= NS_FRAME_IS_DIRTY;
     targetTextFrame = lastTextFrame;
   } else {
+    
+    
     
     
     nsTextFrame* textFrame = this;
     PRInt32 newLength = nodeLength;
     do {
       textFrame->mState &= ~TEXT_WHITESPACE_FLAGS;
-      textFrame->mState |= NS_FRAME_IS_DIRTY;
       
       textFrame->mContentLength = PR_MIN(mContentLength, newLength);
       newLength -= textFrame->mContentLength;
       lastTextFrame = textFrame;
       textFrame = NS_STATIC_CAST(nsTextFrame*, textFrame->GetNextContinuation());
-    } while (textFrame);
+      if (!textFrame) {
+        break;
+      }
+      textFrame->mState |= NS_FRAME_IS_DIRTY;
+    } while (1);
     targetTextFrame = this;
   }
   
@@ -3116,7 +3120,8 @@ nsTextFrame::CharacterDataChanged(nsPresContext* aPresContext,
 
   
   aPresContext->GetPresShell()->FrameNeedsReflow(targetTextFrame,
-                                                 nsIPresShell::eStyleChange);
+                                                 nsIPresShell::eStyleChange,
+                                                 NS_FRAME_IS_DIRTY);
 
   return NS_OK;
 }

@@ -187,10 +187,14 @@ typedef PRUint32 nsFrameState;
 
 
 
+
+
 #define NS_FRAME_IS_DIRTY                             0x00000400
 
 
 #define NS_FRAME_IS_UNFLOWABLE                        0x00000800
+
+
 
 
 
@@ -243,6 +247,11 @@ typedef PRUint32 nsFrameState;
 
 #define NS_STATE_IS_HORIZONTAL                        0x00400000
 #define NS_STATE_IS_DIRECTION_NORMAL                  0x80000000
+
+
+#define NS_SUBTREE_DIRTY(_frame)  \
+  (((_frame)->GetStateBits() &      \
+    (NS_FRAME_IS_DIRTY | NS_FRAME_HAS_DIRTY_CHILDREN)) != 0)
 
 
 
