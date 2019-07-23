@@ -45,10 +45,6 @@
 #include "nanojit/nanojit.h"
 #include "jstracer.h"
 
-#ifdef THIS
-#undef THIS
-#endif
-
 enum JSTNErrType { INFALLIBLE, FAIL_NULL, FAIL_NEG, FAIL_VOID, FAIL_JSVAL };
 enum { JSTN_ERRTYPE_MASK = 7, JSTN_MORE = 8 };
 
@@ -343,10 +339,9 @@ js_BooleanOrUndefinedToNumber(JSContext* cx, int32 unboxed);
 
 JS_DECLARE_CALLINFO(js_Array_dense_setelem)
 JS_DECLARE_CALLINFO(js_FastNewArray)
-JS_DECLARE_CALLINFO(js_Array_1int)
+JS_DECLARE_CALLINFO(js_NewUninitializedArray)
+JS_DECLARE_CALLINFO(js_FastNewArrayWithLength)
 JS_DECLARE_CALLINFO(js_Array_1str)
-JS_DECLARE_CALLINFO(js_Array_2obj)
-JS_DECLARE_CALLINFO(js_Array_3num)
 
 
 JS_DECLARE_CALLINFO(js_FastNewDate)
