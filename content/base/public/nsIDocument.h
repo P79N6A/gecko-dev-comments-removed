@@ -903,6 +903,14 @@ public:
   nsCompatibility GetCompatibilityMode() const {
     return mCompatMode;
   }
+  
+  
+
+
+
+  PRBool HaveFiredDOMTitleChange() const {
+    return mHaveFiredTitleChange;
+  }
 
   
 
@@ -1065,6 +1073,9 @@ protected:
   
   
   PRPackedBool mMayStartLayout;
+  
+  
+  PRPackedBool mHaveFiredTitleChange;
 
   
   
