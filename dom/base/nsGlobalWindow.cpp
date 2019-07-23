@@ -242,6 +242,10 @@ static PRBool               gDOMWindowDumpEnabled      = PR_FALSE;
 
 
 
+#define DOM_CLAMP_TIMEOUT_NESTING_LEVEL 5
+
+
+
 
 #define DOM_MAX_TIMEOUT_VALUE    PR_BIT(8 * sizeof(PRIntervalTime) - 1)
 
@@ -7665,6 +7669,8 @@ nsGlobalWindow::ClearWindowScope(nsISupports *aWindow)
 
 
 
+PRUint32 sNestingLevel;
+
 nsresult
 nsGlobalWindow::SetTimeoutOrInterval(nsIScriptTimeoutHandler *aHandler,
                                      PRInt32 interval,
@@ -7679,7 +7685,9 @@ nsGlobalWindow::SetTimeoutOrInterval(nsIScriptTimeoutHandler *aHandler,
     return NS_OK;
   }
 
-  if (interval < DOM_MIN_TIMEOUT_VALUE) {
+  PRUint32 nestingLevel = sNestingLevel + 1;
+  if (interval < DOM_MIN_TIMEOUT_VALUE &&
+      (aIsInterval || nestingLevel >= DOM_CLAMP_TIMEOUT_NESTING_LEVEL)) {
     
     
 
@@ -7780,6 +7788,10 @@ nsGlobalWindow::SetTimeoutOrInterval(nsIScriptTimeoutHandler *aHandler,
   }
 
   timeout->mWindow = this;
+
+  if (!aIsInterval) {
+    timeout->mNestingLevel = nestingLevel;
+  }
 
   
   timeout->mPopupState = openAbused;
@@ -7998,6 +8010,13 @@ nsGlobalWindow::RunTimeout(nsTimeout *aTimeout)
     ++gRunningTimeoutDepth;
     ++mTimeoutFiringDepth;
 
+    PRBool trackNestingLevel = !timeout->mInterval;
+    PRUint32 nestingLevel;
+    if (trackNestingLevel) {
+      nestingLevel = sNestingLevel;
+      sNestingLevel = timeout->mNestingLevel;
+    }
+
     nsCOMPtr<nsIScriptTimeoutHandler> handler(timeout->mScriptHandler);
     void *scriptObject = handler->GetScriptObject();
     if (!scriptObject) {
@@ -8037,6 +8056,10 @@ nsGlobalWindow::RunTimeout(nsTimeout *aTimeout)
 
     }
     handler = nsnull; 
+
+    if (trackNestingLevel) {
+      sNestingLevel = nestingLevel;
+    }
 
     --mTimeoutFiringDepth;
     --gRunningTimeoutDepth;

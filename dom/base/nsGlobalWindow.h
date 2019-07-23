@@ -186,6 +186,9 @@ struct nsTimeout : PRCList
   PRUint32 mFiringDepth;
 
   
+  PRUint32 mNestingLevel;
+
+  
   
   PopupControlState mPopupState;
 
