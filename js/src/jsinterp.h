@@ -82,51 +82,13 @@ struct JSStackFrame {
     jsval           rval;           
     JSStackFrame    *down;          
     void            *annotation;    
-
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    JSObject        *scopeChain;
-    JSObject        *blockChain;
-
+    JSObject        *scopeChain;    
     uintN           sharpDepth;     
     JSObject        *sharpArray;    
     uint32          flags;          
     JSStackFrame    *dormantNext;   
     JSObject        *xmlNamespace;  
+    JSObject        *blockChain;    
     JSStackFrame    *displaySave;   
 
 #ifdef DEBUG
@@ -178,6 +140,7 @@ typedef struct JSInlineFrame {
 #define JSFRAME_ROOTED_ARGV    0x20 /* frame.argv is rooted by the caller */
 #define JSFRAME_YIELDING       0x40 /* js_Interpret dispatched JSOP_YIELD */
 #define JSFRAME_ITERATOR       0x80 /* trying to get an iterator for for-in */
+#define JSFRAME_POP_BLOCKS    0x100 /* scope chain contains blocks to pop */
 #define JSFRAME_GENERATOR     0x200 /* frame belongs to generator-iterator */
 #define JSFRAME_IMACRO_START  0x400 /* imacro starting -- see jstracer.h */
 
