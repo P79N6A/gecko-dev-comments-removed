@@ -97,6 +97,9 @@ const PREF_FEED_SELECTED_READER = "browser.feeds.handler.default";
 
 const kActionUsePlugin = 5;
 
+const ICON_URL_PLUGIN   = "chrome://browser/skin/preferences/plugin.png";
+const ICON_URL_LIVEMARK = "chrome://browser/skin/page-livemarks.png";
+const ICON_URL_APP      = "chrome://browser/skin/preferences/application.png";
 
 
 
@@ -913,7 +916,8 @@ var gApplicationsPane = {
       let item = document.createElement("richlistitem");
       item.setAttribute("type", visibleType.type);
       item.setAttribute("typeDescription", visibleType.description);
-      item.setAttribute("typeIcon", visibleType.smallIcon);
+      if (visibleType.smallIcon)
+        item.setAttribute("typeIcon", visibleType.smallIcon);
       item.setAttribute("actionDescription",
                         this._describePreferredAction(visibleType));
       item.setAttribute("actionIcon",
@@ -1115,7 +1119,7 @@ var gApplicationsPane = {
       label = this._prefsBundle.getFormattedString("liveBookmarksInApp",
                                                    [this._brandShortName]);
       menuItem.setAttribute("label", label);
-      menuItem.setAttribute("image", "chrome://browser/skin/page-livemarks.png");
+      menuItem.setAttribute("image", ICON_URL_LIVEMARK);
       menuPopup.appendChild(menuItem);
       if (handlerInfo.preferredAction == Ci.nsIHandlerInfo.handleInternally)
         menu.selectedItem = menuItem;
@@ -1131,12 +1135,7 @@ var gApplicationsPane = {
       let menuItem = document.createElementNS(kXULNS, "menuitem");
       menuItem.setAttribute("action", Ci.nsIHandlerInfo.useSystemDefault);
       menuItem.setAttribute("label", handlerInfo.defaultDescription);
-
-      if (handlerInfo.wrappedHandlerInfo) {
-        let iconURL =
-          this._getIconURLForSystemDefault(handlerInfo.wrappedHandlerInfo);
-        menuItem.setAttribute("image", iconURL);
-      }
+      menuItem.setAttribute("image", this._getIconURLForSystemDefault(handlerInfo));
 
       menuPopup.appendChild(menuItem);
       if (handlerInfo.preferredAction == Ci.nsIHandlerInfo.useSystemDefault)
@@ -1181,6 +1180,7 @@ var gApplicationsPane = {
                                                        [handlerInfo.plugin.name,
                                                         this._brandShortName]);
       menuItem.setAttribute("label", label);
+      menuItem.setAttribute("image", ICON_URL_PLUGIN);
       menuPopup.appendChild(menuItem);
       if (handlerInfo.preferredAction == kActionUsePlugin)
         menu.selectedItem = menuItem;
@@ -1355,9 +1355,10 @@ var gApplicationsPane = {
     handlerInfo.store();
 
     
-    
     typeItem.setAttribute("actionDescription",
                           this._describePreferredAction(handlerInfo));
+    typeItem.setAttribute("actionIcon",
+                          this._getIconURLForPreferredAction(handlerInfo));
   },
 
   chooseApp: function(aEvent) {
@@ -1414,15 +1415,24 @@ var gApplicationsPane = {
   },
 
   _getIconURLForPreferredAction: function(aHandlerInfo) {
-    var preferredApp = aHandlerInfo.preferredApplicationHandler;
+    switch (aHandlerInfo.preferredAction) {
+      case Ci.nsIHandlerInfo.handleInternally:
+        if (aHandlerInfo.type == TYPE_MAYBE_FEED)
+          return ICON_URL_LIVEMARK;
+        break;
 
-    if (aHandlerInfo.preferredAction == Ci.nsIHandlerInfo.useHelperApp &&
-        this.isValidHandlerApp(preferredApp))
-      return this._getIconURLForHandlerApp(preferredApp);
+      case Ci.nsIHandlerInfo.useSystemDefault:
+        return this._getIconURLForSystemDefault(aHandlerInfo);
 
-    if (aHandlerInfo.preferredAction == Ci.nsIHandlerInfo.useSystemDefault &&
-        aHandlerInfo.wrappedHandlerInfo)
-      return this._getIconURLForSystemDefault(aHandlerInfo.wrappedHandlerInfo);
+      case Ci.nsIHandlerInfo.useHelperApp:
+        let preferredApp = aHandlerInfo.preferredApplicationHandler;
+        if (this.isValidHandlerApp(preferredApp))
+          return this._getIconURLForHandlerApp(preferredApp);
+        break;
+
+      case kActionUsePlugin:
+        return ICON_URL_PLUGIN;
+    }
 
     
     return "";
@@ -1470,19 +1480,24 @@ var gApplicationsPane = {
     
     
     
-    if (aHandlerInfo instanceof Ci.nsIMIMEInfo &&
-        aHandlerInfo instanceof Ci.nsIPropertyBag) {
-      try {
-        let url = aHandlerInfo.getProperty("defaultApplicationIconURL");
-        if (url)
-          return url + "?size=16";
+    if ("wrappedHandlerInfo" in aHandlerInfo) {
+      let wrappedHandlerInfo = aHandlerInfo.wrappedHandlerInfo;
+
+      if (wrappedHandlerInfo instanceof Ci.nsIMIMEInfo &&
+          wrappedHandlerInfo instanceof Ci.nsIPropertyBag) {
+        try {
+          let url = wrappedHandlerInfo.getProperty("defaultApplicationIconURL");
+          if (url)
+            return url + "?size=16";
+        }
+        catch(ex) {}
       }
-      catch(ex) {}
     }
 
     
     
-    return "";
+    
+    return ICON_URL_APP;
   }
 
 };
