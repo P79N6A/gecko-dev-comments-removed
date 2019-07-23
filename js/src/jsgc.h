@@ -112,7 +112,7 @@ js_GetGCStringRuntime(JSString *str);
 #endif
 
 extern JSBool
-js_InitGC(JSRuntime *rt, size_t maxbytes);
+js_InitGC(JSRuntime *rt, uint32 maxbytes);
 
 extern void
 js_FinishGC(JSRuntime *rt);
@@ -286,6 +286,7 @@ js_GC(JSContext *cx, JSGCInvocationKind gckind);
 
 typedef struct JSGCArenaInfo JSGCArenaInfo;
 typedef struct JSGCArenaList JSGCArenaList;
+typedef struct JSGCChunkInfo JSGCChunkInfo;
 
 struct JSGCArenaList {
     JSGCArenaInfo   *last;          
@@ -324,6 +325,22 @@ struct JSWeakRoots {
 };
 
 #define JS_CLEAR_WEAK_ROOTS(wr) (memset((wr), 0, sizeof(JSWeakRoots)))
+
+
+
+
+
+
+
+
+
+
+
+extern JSBool
+js_AddAsGCBytes(JSContext *cx, size_t sz);
+
+extern void
+js_RemoveAsGCBytes(JSRuntime* rt, size_t sz);
 
 #ifdef JS_THREADSAFE
 class JSFreePointerListTask : public JSBackgroundTask {
@@ -396,6 +413,7 @@ typedef struct JSGCStats {
 #endif
     uint32  maxlevel;   
     uint32  poke;       
+    uint32  afree;      
     uint32  stackseg;   
     uint32  segslots;   
     uint32  nclose;     
