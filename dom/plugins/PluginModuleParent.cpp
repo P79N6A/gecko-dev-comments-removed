@@ -473,9 +473,12 @@ PluginModuleParent::NP_Shutdown(NPError* error)
 {
     _MOZ_LOG(__FUNCTION__);
 
-    
-
     bool ok = CallNP_Shutdown(error);
+
+    
+    
+    
+    
     Close();
 
     return ok ? NS_OK : NS_ERROR_FAILURE;

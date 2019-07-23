@@ -39,6 +39,7 @@
 
 #include "mozilla/ipc/AsyncChannel.h"
 #include "mozilla/ipc/GeckoThread.h"
+#include "mozilla/ipc/ProtocolUtils.h"
 
 #include "nsDebug.h"
 #include "nsTraceRefcnt.h"
@@ -71,11 +72,7 @@ AsyncChannel::AsyncChannel(AsyncListener* aListener)
 AsyncChannel::~AsyncChannel()
 {
     MOZ_COUNT_DTOR(AsyncChannel);
-    if (!mChild && mTransport)
-        Close();
-    
-    
-    mTransport = 0;
+    Clear();
 }
 
 bool
@@ -129,19 +126,34 @@ AsyncChannel::Open(Transport* aTransport, MessageLoop* aIOLoop)
 void
 AsyncChannel::Close()
 {
-    MutexAutoLock lock(mMutex);
+    {
+        MutexAutoLock lock(mMutex);
 
-    if (!mChild && ChannelConnected == mChannelState) {
+        if (ChannelConnected != mChannelState)
+            
+            
+            NS_RUNTIMEABORT("Close() called on closed channel!");
+
         AssertWorkerThread();
 
-        mIOLoop->PostTask(
-            FROM_HERE, NewRunnableMethod(this, &AsyncChannel::OnClose));
+        
+        SendGoodbye();
 
-        while (ChannelConnected == mChannelState)
+        mChannelState = ChannelClosing;
+
+        
+        mIOLoop->PostTask(
+            FROM_HERE, NewRunnableMethod(this, &AsyncChannel::OnCloseChannel));
+
+        while (ChannelClosing == mChannelState)
             mCvar.Wait();
+
+        
+        
+        mChannelState = ChannelClosed;
     }
 
-    mTransport = NULL;
+    return NotifyChannelClosed();
 }
 
 bool
@@ -173,7 +185,116 @@ AsyncChannel::OnDispatchMessage(const Message& msg)
     NS_ASSERTION(!msg.is_reply(), "can't process replies here");
     NS_ASSERTION(!(msg.is_sync() || msg.is_rpc()), "async dispatch only");
 
+    if (MaybeInterceptGoodbye(msg))
+        
+        
+        return;
+
+    
+    
+
     (void)MaybeHandleError(mListener->OnMessageReceived(msg), "AsyncChannel");
+}
+
+
+class GoodbyeMessage : public IPC::Message
+{
+public:
+    enum { ID = GOODBYE_MESSAGE_TYPE };
+    GoodbyeMessage() :
+        IPC::Message(MSG_ROUTING_NONE, ID, PRIORITY_NORMAL)
+    {
+    }
+    
+    
+    static bool Read(const Message* msg)
+    {
+        return true;
+    }
+    void Log(const std::string& aPrefix,
+             FILE* aOutf) const
+    {
+        fputs("(special `Goodbye' message)", aOutf);
+    }
+};
+
+void
+AsyncChannel::SendGoodbye()
+{
+    AssertWorkerThread();
+
+    mIOLoop->PostTask(
+        FROM_HERE,
+        NewRunnableMethod(this, &AsyncChannel::OnSend, new GoodbyeMessage()));
+}
+
+bool
+AsyncChannel::MaybeInterceptGoodbye(const Message& msg)
+{
+    
+    
+    if (MSG_ROUTING_NONE != msg.routing_id())
+        return false;
+
+    if (msg.is_sync() || msg.is_rpc() || GOODBYE_MESSAGE_TYPE != msg.type())
+        NS_RUNTIMEABORT("received unknown MSG_ROUTING_NONE message when expecting `Goodbye'");
+
+    MutexAutoLock lock(mMutex);
+    
+    
+    mChannelState = ChannelClosing;
+
+    printf("NOTE: %s process received `Goodbye', closing down\n",
+           mChild ? "child" : "parent");
+
+    return true;
+}
+
+void
+AsyncChannel::NotifyChannelClosed()
+{
+    if (ChannelClosed != mChannelState)
+        NS_RUNTIMEABORT("channel should have been closed!");
+
+    
+    
+    mListener->OnChannelClose();
+    Clear();
+}
+
+void
+AsyncChannel::NotifyMaybeChannelError()
+{
+    
+    
+    if (ChannelClosing == mChannelState) {
+        
+        
+        mChannelState = ChannelClosed;
+        return NotifyChannelClosed();
+    }
+
+    
+    mChannelState = ChannelError;
+    mListener->OnChannelError();
+
+    Clear();
+}
+
+void
+AsyncChannel::Clear()
+{
+    mListener = 0;
+    mIOLoop = 0;
+    mWorkerLoop = 0;
+
+    if (mTransport) {
+        mTransport->set_listener(0);
+
+        
+        
+        mTransport = 0;
+    }
 }
 
 bool
@@ -201,7 +322,7 @@ AsyncChannel::MaybeHandleError(Result code, const char* channelName)
         break;
 
     default:
-        NOTREACHED();
+        NS_RUNTIMEABORT("unknown Result code");
         return false;
     }
 
@@ -235,7 +356,6 @@ AsyncChannel::ReportConnectionError(const char* channelName)
 
 
 
-
 void
 AsyncChannel::OnMessageReceived(const Message& msg)
 {
@@ -246,6 +366,14 @@ AsyncChannel::OnMessageReceived(const Message& msg)
     mWorkerLoop->PostTask(
         FROM_HERE,
         NewRunnableMethod(this, &AsyncChannel::OnDispatchMessage, msg));
+}
+
+void
+AsyncChannel::OnChannelOpened()
+{
+    AssertIOThread();
+    mChannelState = ChannelOpening;
+    mTransport->Connect();
 }
 
 void
@@ -263,37 +391,16 @@ AsyncChannel::OnChannelError()
 {
     AssertIOThread();
 
-    {
-        MutexAutoLock lock(mMutex);
+    MutexAutoLock lock(mMutex);
+
+    
+    
+    if (ChannelClosing != mChannelState)
         mChannelState = ChannelError;
-    }
 
-    if (XRE_GetProcessType() == GeckoProcessType_Default) {
-        
-    }
-    else {
-        
-#if defined(DEBUG) || defined(NS_BUILD_REFCNT_LOGGING)
-        
-        XRE_ShutdownChildProcess(mWorkerLoop);
-
-        
-        MessageLoop::current()->Quit();
-#else
-        
-        
-        
-        _exit(0);
-#endif
-    }
-}
-
-void
-AsyncChannel::OnChannelOpened()
-{
-    AssertIOThread();
-    mChannelState = ChannelOpening;
-    mTransport->Connect();
+    mWorkerLoop->PostTask(
+        FROM_HERE,
+        NewRunnableMethod(this, &AsyncChannel::NotifyMaybeChannelError));
 }
 
 void
@@ -305,20 +412,15 @@ AsyncChannel::OnSend(Message* aMsg)
 }
 
 void
-AsyncChannel::OnClose()
+AsyncChannel::OnCloseChannel()
 {
     AssertIOThread();
 
     mTransport->Close();
 
-    
-    if (ChannelError != mChannelState)
-        mChannelState = ChannelClosed;
-
-    if (!mChild) {
-        MutexAutoLock lock(mMutex);
-        mCvar.Notify();
-    }
+    MutexAutoLock lock(mMutex);
+    mChannelState = ChannelClosed;
+    mCvar.Notify();
 }
 
 

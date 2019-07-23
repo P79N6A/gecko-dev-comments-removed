@@ -75,6 +75,7 @@ protected:
         ChannelClosed,
         ChannelOpening,
         ChannelConnected,
+        ChannelClosing,
         ChannelError
     };
 
@@ -86,10 +87,16 @@ public:
     {
     public:
         virtual ~AsyncListener() { }
+
+        virtual void OnChannelClose() = 0;
+        virtual void OnChannelError() = 0;
         virtual Result OnMessageReceived(const Message& aMessage) = 0;
     };
 
 public:
+    
+    
+    
     AsyncChannel(AsyncListener* aListener);
     virtual ~AsyncChannel();
 
@@ -105,6 +112,10 @@ public:
 
     
     bool Send(Message* msg);
+
+    
+    
+    
 
     
     NS_OVERRIDE virtual void OnMessageReceived(const Message& msg);
@@ -142,9 +153,20 @@ protected:
     }
 
     
+
+    void SendGoodbye();
+    bool MaybeInterceptGoodbye(const Message& msg);
+
+    void NotifyChannelClosed();
+    void NotifyMaybeChannelError();
+
+    void Clear();
+
+    
+
     void OnChannelOpened();
     void OnSend(Message* aMsg);
-    void OnClose();
+    void OnCloseChannel();
 
     Transport* mTransport;
     AsyncListener* mListener;

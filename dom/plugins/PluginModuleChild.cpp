@@ -49,6 +49,7 @@
 #include "nsDebug.h"
 #include "nsCOMPtr.h"
 #include "nsPluginsDir.h"
+#include "nsXULAppAPI.h"
 
 #include "mozilla/plugins/PluginInstanceChild.h"
 #include "mozilla/plugins/StreamNotifyChild.h"
@@ -195,9 +196,22 @@ PluginModuleChild::AnswerNP_Shutdown(NPError *rv)
     AssertPluginThread();
 
     
+    
 
     *rv = mShutdownFunc ? mShutdownFunc() : NPERR_NO_ERROR;
+
+    
+    memset(&mFunctions, 0, sizeof(mFunctions));
+
     return true;
+}
+
+void
+PluginModuleChild::ActorDestroy(ActorDestroyReason why)
+{
+    
+    
+    XRE_ShutdownChildProcess();
 }
 
 void

@@ -46,7 +46,14 @@
 
 #include "prenv.h"
 
-#include "mozilla/ipc/RPCChannel.h"
+
+
+
+namespace {
+enum {
+    GOODBYE_MESSAGE_TYPE       = kuint16max - 1,
+};
+}
 
 namespace mozilla {
 namespace ipc {
@@ -64,6 +71,13 @@ template<class ListenerT>
 class  IProtocolManager
 {
 public:
+    enum ActorDestroyReason {
+        Deletion,
+        AncestorDeletion,
+        NormalShutdown,
+        AbnormalShutdown
+    };
+
     typedef base::ProcessHandle ProcessHandle;
 
     virtual int32 Register(ListenerT*) = 0;
@@ -120,4 +134,4 @@ struct ParamTraits<mozilla::ipc::ActorHandle>
 } 
 
 
-#endif  
+#endif

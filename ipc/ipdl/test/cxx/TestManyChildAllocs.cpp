@@ -1,11 +1,5 @@
 #include "TestManyChildAllocs.h"
 
-#include "nsIAppShell.h"
-
-#include "nsCOMPtr.h"
-#include "nsServiceManagerUtils.h" 
-#include "nsWidgetsCID.h"       
-
 #include "IPDLUnitTests.h"      
 
 
@@ -37,12 +31,8 @@ bool
 TestManyChildAllocsParent::RecvDone()
 {
     
-
-    passed("allocs were successfuly");
     
-    static NS_DEFINE_CID(kAppShellCID, NS_APPSHELL_CID);
-    nsCOMPtr<nsIAppShell> appShell (do_GetService(kAppShellCID));
-    appShell->Exit();
+    Close();
 
     return true;
 }
