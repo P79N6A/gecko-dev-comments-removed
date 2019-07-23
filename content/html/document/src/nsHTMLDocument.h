@@ -197,6 +197,11 @@ public:
     return mEditingState;
   }
 
+  virtual void DisableCookieAccess()
+  {
+    mDisableCookieAccess = PR_TRUE;
+  }
+
   virtual nsIContent* GetBodyContentExternal();
   
   class nsAutoEditingState {
@@ -355,6 +360,9 @@ protected:
   nsresult   DoClipboardSecurityCheck(PRBool aPaste);
   static jsval       sCutCopyInternal_id;
   static jsval       sPasteInternal_id;
+
+  
+  PRBool mDisableCookieAccess;
 
   
   nsCOMPtr<nsIParser> mFragmentParser;

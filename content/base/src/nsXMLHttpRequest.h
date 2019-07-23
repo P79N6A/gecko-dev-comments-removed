@@ -75,6 +75,65 @@
 
 class nsILoadGroup;
 
+class nsAccessControlLRUCache
+{
+  struct CacheEntry : public PRCList
+  {
+    CacheEntry(const nsACString& aKey, PRTime aValue)
+    : key(aKey), value(aValue)
+    {
+      MOZ_COUNT_CTOR(nsAccessControlLRUCache::CacheEntry);
+    }
+    
+    ~CacheEntry()
+    {
+      MOZ_COUNT_DTOR(nsAccessControlLRUCache::CacheEntry);
+    }
+    
+    nsCString key;
+    PRTime value;
+  };
+
+public:
+  nsAccessControlLRUCache()
+  {
+    MOZ_COUNT_CTOR(nsAccessControlLRUCache);
+    PR_INIT_CLIST(&mList);
+  }
+
+  ~nsAccessControlLRUCache()
+  {
+    Clear();
+    MOZ_COUNT_DTOR(nsAccessControlLRUCache);
+  }
+
+  PRBool Initialize()
+  {
+    return mTable.Init();
+  }
+
+  void GetEntry(nsIURI* aURI, nsIPrincipal* aPrincipal,
+                PRTime* _retval);
+
+  void PutEntry(nsIURI* aURI, nsIPrincipal* aPrincipal,
+                PRTime aValue);
+
+  void Clear();
+
+private:
+  PRBool GetEntryInternal(const nsACString& aKey, CacheEntry** _retval);
+
+  PR_STATIC_CALLBACK(PLDHashOperator)
+    RemoveExpiredEntries(const nsACString& aKey, nsAutoPtr<CacheEntry>& aValue,
+                         void* aUserData);
+
+  static PRBool GetCacheKey(nsIURI* aURI, nsIPrincipal* aPrincipal,
+                            nsACString& _retval);
+
+  nsClassHashtable<nsCStringHashKey, CacheEntry> mTable;
+  PRCList mList;
+};
+
 class nsDOMEventListenerWrapper : public nsIDOMEventListener
 {
 public:
@@ -262,6 +321,32 @@ public:
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(nsXMLHttpRequest,
                                            nsXHREventTarget)
 
+  static PRBool EnsureACCache()
+  {
+    if (sAccessControlCache)
+      return PR_TRUE;
+
+    nsAutoPtr<nsAccessControlLRUCache> newCache(new nsAccessControlLRUCache());
+    NS_ENSURE_TRUE(newCache, PR_FALSE);
+
+    if (newCache->Initialize()) {
+      sAccessControlCache = newCache.forget();
+      return PR_TRUE;
+    }
+
+    return PR_FALSE;
+  }
+
+  static void ShutdownACCache()
+  {
+    if (sAccessControlCache) {
+      delete sAccessControlCache;
+      sAccessControlCache = nsnull;
+    }
+  }
+
+  static nsAccessControlLRUCache* sAccessControlCache;
+
 protected:
   friend class nsMultipartProxyListener;
 
@@ -295,7 +380,7 @@ protected:
 
 
 
-  nsresult CheckChannelForCrossSiteRequest();
+  nsresult CheckChannelForCrossSiteRequest(nsIChannel* aChannel);
 
   nsCOMPtr<nsISupports> mContext;
   nsCOMPtr<nsIPrincipal> mPrincipal;
@@ -303,6 +388,7 @@ protected:
   
   nsCOMPtr<nsIRequest> mReadRequest;
   nsCOMPtr<nsIDOMDocument> mDocument;
+  nsCOMPtr<nsIChannel> mACGetChannel;
 
   nsRefPtr<nsDOMEventListenerWrapper> mOnUploadProgressListener;
   nsRefPtr<nsDOMEventListenerWrapper> mOnReadystatechangeListener;
