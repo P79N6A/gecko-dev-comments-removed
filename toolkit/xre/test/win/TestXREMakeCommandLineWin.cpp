@@ -274,3 +274,25 @@ int wmain(int argc, PRUnichar *argv[])
 
   return rv;
 }
+
+#ifdef __MINGW32__
+
+
+
+
+
+#include <shellapi.h>
+
+int main(int argc, char **argv)
+{
+  LPWSTR commandLine = GetCommandLineW();
+  int argcw = 0;
+  LPWSTR *argvw = CommandLineToArgvW(commandLine, &argcw);
+  if (!argvw)
+    return 127;
+
+  int result = wmain(argcw, argvw);
+  LocalFree(argvw);
+  return result;
+}
+#endif 
