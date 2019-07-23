@@ -272,6 +272,10 @@ nsSimplePageSequenceFrame::Reflow(nsPresContext*          aPresContext,
   nsHTMLReflowMetrics kidSize;
   for (nsIFrame* kidFrame = mFrames.FirstChild(); nsnull != kidFrame; ) {
     
+    nsPageFrame * pf = static_cast<nsPageFrame*>(kidFrame);
+    pf->SetSharedPageData(mPageData);
+
+    
     nsHTMLReflowState kidReflowState(aPresContext, aReflowState, kidFrame,
                                      availSize);
     nsReflowStatus  status;
@@ -279,10 +283,6 @@ nsSimplePageSequenceFrame::Reflow(nsPresContext*          aPresContext,
     kidReflowState.SetComputedWidth(kidReflowState.availableWidth);
     
     PR_PL(("AV W: %d   H: %d\n", kidReflowState.availableWidth, kidReflowState.availableHeight));
-
-    
-    nsPageFrame * pf = static_cast<nsPageFrame*>(kidFrame);
-    pf->SetSharedPageData(mPageData);
 
     
     

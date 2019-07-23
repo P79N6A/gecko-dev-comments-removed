@@ -66,6 +66,15 @@ public:
 
 
 
+  virtual nsSize ComputeSize(nsIRenderingContext *aRenderingContext,
+                             nsSize aCBSize, nscoord aAvailableWidth,
+                             nsSize aMargin, nsSize aBorder, nsSize aPadding,
+                             PRBool aShrinkWrap);
+
+  
+
+
+
 
   virtual nsIAtom* GetType() const;
   
