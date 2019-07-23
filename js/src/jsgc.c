@@ -2038,7 +2038,7 @@ TraceWeakRoots(JSTracer *trc, JSWeakRoots *wr)
 JS_FRIEND_API(void)
 js_TraceContext(JSTracer *trc, JSContext *acx)
 {
-    JSStackFrame *chain, *fp;
+    JSStackFrame *fp, *nextChain;
     JSStackHeader *sh;
     JSTempValueRooter *tvr;
 
@@ -2047,24 +2047,24 @@ js_TraceContext(JSTracer *trc, JSContext *acx)
 
 
 
+    fp = acx->fp;
+    nextChain = acx->dormantFrameChain;
+    if (!fp)
+        goto next_chain;
 
-    chain = acx->fp;
-    if (chain) {
-        JS_ASSERT(!chain->dormantNext);
-        chain->dormantNext = acx->dormantFrameChain;
-    } else {
-        chain = acx->dormantFrameChain;
-    }
-
-    for (fp = chain; fp; fp = chain = chain->dormantNext) {
+    
+    JS_ASSERT(!fp->dormantNext);
+    for (;;) {
         do {
             js_TraceStackFrame(trc, fp);
         } while ((fp = fp->down) != NULL);
-    }
 
-    
-    if (acx->fp)
-        acx->fp->dormantNext = NULL;
+      next_chain:
+        if (!nextChain)
+            break;
+        fp = nextChain;
+        nextChain = nextChain->dormantNext;
+    }
 
     
     if (acx->globalObject)
