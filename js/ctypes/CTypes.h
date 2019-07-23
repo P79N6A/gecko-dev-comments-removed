@@ -110,6 +110,20 @@ struct FunctionInfo
   nsTArray<ffi_type*> mFFITypes;
 };
 
+
+struct ClosureInfo
+{
+  JSContext* cx;         
+  JSObject* closureObj;  
+  JSObject* typeObj;     
+  JSObject* thisObj;     
+  JSObject* jsfnObj;     
+  ffi_closure* closure;  
+#ifdef DEBUG
+  PRThread* thread;      
+#endif
+};
+
 JSBool InitTypeClasses(JSContext* cx, JSObject* parent);
 
 JSBool ConvertToJS(JSContext* cx, JSObject* typeObj, JSObject* dataObj, void* data, bool wantPrimitive, bool ownResult, jsval* result);
@@ -135,6 +149,7 @@ enum CTypeProtoSlot {
   SLOT_FUNCTIONDATAPROTO = 8,  
   SLOT_INT64PROTO        = 9,  
   SLOT_UINT64PROTO       = 10, 
+  SLOT_CLOSURECX         = 11, 
   CTYPEPROTO_SLOTS
 };
 
@@ -166,6 +181,11 @@ enum CDataSlot {
   CDATA_SLOTS
 };
 
+enum CClosureSlot {
+  SLOT_CLOSUREINFO = 0, 
+  CCLOSURE_SLOTS
+};
+
 enum TypeCtorSlot {
   SLOT_FN_CTORPROTO = 0 
   
@@ -187,6 +207,7 @@ public:
   static JSObject* DefineBuiltin(JSContext* cx, JSObject* parent, const char* propName, JSObject* typeProto, JSObject* dataProto, const char* name, TypeCode type, jsval size, jsval align, ffi_type* ffiType);
   static void Trace(JSTracer* trc, JSObject* obj);
   static void Finalize(JSContext* cx, JSObject* obj);
+  static void FinalizeProtoClass(JSContext* cx, JSObject* obj);
 
   static JSBool ConstructAbstract(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval);
   static JSBool ConstructData(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval);
@@ -289,7 +310,7 @@ public:
   static JSObject* CreateInternal(JSContext* cx, jsval abi, jsval rtype, jsval* argtypes, jsuint arglen);
 
   static JSBool ConstructData(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval);
-  static JSObject* ConstructWithLibrary(JSContext* cx, JSObject* typeObj, JSObject* libraryObj, PRFuncPtr fnptr);
+  static JSObject* ConstructWithObject(JSContext* cx, JSObject* typeObj, JSObject* refObj, PRFuncPtr fnptr, JSObject* result);
 
   static JSBool Call(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval);
 
@@ -298,6 +319,15 @@ public:
   static JSBool ArgTypesGetter(JSContext* cx, JSObject* obj, jsval idval, jsval* vp);
   static JSBool ReturnTypeGetter(JSContext* cx, JSObject* obj, jsval idval, jsval* vp);
   static JSBool ABIGetter(JSContext* cx, JSObject* obj, jsval idval, jsval* vp);
+};
+
+class CClosure {
+public:
+  static JSObject* Create(JSContext* cx, JSObject* typeObj, JSObject* fnObj, JSObject* thisObj, PRFuncPtr* fnptr);
+  static void Trace(JSTracer* trc, JSObject* obj);
+  static void Finalize(JSContext* cx, JSObject* obj);
+
+  static void ClosureStub(ffi_cif* cif, void* result, void** args, void* userData);
 };
 
 class CData {

@@ -83,7 +83,7 @@ static JSClass sCTypeProtoClass = {
   "CType",
   JSCLASS_HAS_RESERVED_SLOTS(CTYPEPROTO_SLOTS),
   JS_PropertyStub, JS_PropertyStub, JS_PropertyStub, JS_PropertyStub,
-  JS_EnumerateStub, JS_ResolveStub, JS_ConvertStub, JS_FinalizeStub,
+  JS_EnumerateStub, JS_ResolveStub, JS_ConvertStub, CType::FinalizeProtoClass,
   NULL, NULL, ConstructAbstract, ConstructAbstract, NULL, NULL, NULL, NULL
 };
 
@@ -112,6 +112,14 @@ static JSClass sCDataClass = {
   JS_PropertyStub, JS_PropertyStub, ArrayType::Getter, ArrayType::Setter,
   JS_EnumerateStub, JS_ResolveStub, JS_ConvertStub, CData::Finalize,
   NULL, NULL, FunctionType::Call, FunctionType::Call, NULL, NULL, NULL, NULL
+};
+
+static JSClass sCClosureClass = {
+  "CClosure",
+  JSCLASS_HAS_RESERVED_SLOTS(CCLOSURE_SLOTS) | JSCLASS_MARK_IS_TRACE,
+  JS_PropertyStub, JS_PropertyStub, JS_PropertyStub, JS_PropertyStub,
+  JS_EnumerateStub, JS_ResolveStub, JS_ConvertStub, CClosure::Finalize,
+  NULL, NULL, NULL, NULL, NULL, NULL, JS_CLASS_TRACE(CClosure::Trace), NULL
 };
 
 #define CTYPESFN_FLAGS \
@@ -561,7 +569,8 @@ AttachProtos(JSContext* cx, JSObject* proto, JSObject** protos)
 {
   
   
-  for (PRUint32 i = 0; i < CTYPEPROTO_SLOTS; ++i) {
+  
+  for (PRUint32 i = 0; i <= SLOT_UINT64PROTO; ++i) {
     if (!JS_SetReservedSlot(cx, proto, i, OBJECT_TO_JSVAL(protos[i])))
       return false;
   }
@@ -2384,6 +2393,21 @@ CType::Finalize(JSContext* cx, JSObject* obj)
     
     break;
   }
+}
+
+void
+CType::FinalizeProtoClass(JSContext* cx, JSObject* obj)
+{
+  
+  
+  
+  
+  
+  jsval slot;
+  if (!JS_GetReservedSlot(cx, obj, SLOT_CLOSURECX, &slot) || JSVAL_IS_VOID(slot))
+    return;
+
+  JS_DestroyContextNoGC(static_cast<JSContext*>(JSVAL_TO_PRIVATE(slot)));
 }
 
 void
@@ -4214,51 +4238,60 @@ FunctionType::ConstructData(JSContext* cx,
     return JS_FALSE;
   }
 
-  if (argc > 1) {
-    JS_ReportError(cx, "constructor takes zero or one argument");
-    return JS_FALSE;
-  }
-
   JSObject* result = CData::Create(cx, obj, NULL, NULL, true);
   if (!result)
     return JS_FALSE;
 
   *rval = OBJECT_TO_JSVAL(result);
 
-  if (argc == 1) {
+  if (argc == 0) {
     
-    if (!ExplicitConvert(cx, argv[0], obj, CData::GetData(cx, result)))
-      return JS_FALSE;
+    return JS_TRUE;
   }
 
-  return JS_TRUE;
-}
+  if (argc == 1 || argc == 2) {
+    jsval arg = argv[0];
+    PRFuncPtr* data = static_cast<PRFuncPtr*>(CData::GetData(cx, result));
 
-JSObject*
-FunctionType::ConstructWithLibrary(JSContext* cx,
-                                   JSObject* typeObj,
-                                   JSObject* libraryObj,
-                                   PRFuncPtr fnptr)
-{
-  JS_ASSERT(CType::IsCType(cx, typeObj));
-  JS_ASSERT(CType::GetTypeCode(cx, typeObj) == TYPE_function);
+    if (JSVAL_IS_OBJECT(arg) && JS_ObjectIsFunction(cx, JSVAL_TO_OBJECT(arg))) {
+      
+      JSObject* thisObj = NULL;
+      if (argc == 2) {
+        if (JSVAL_IS_OBJECT(argv[1])) {
+          thisObj = JSVAL_TO_OBJECT(argv[1]);
+        } else if (!JS_ValueToObject(cx, argv[1], &thisObj)) {
+          return JS_FALSE;
+        }
+      }
 
-  
-  JSObject* result = CData::Create(cx, typeObj, libraryObj, &fnptr, true);
-  if (!result)
-    return NULL;
-  JSAutoTempValueRooter root(cx, result);
+      JSObject* fnObj = JSVAL_TO_OBJECT(arg);
+      JSObject* closureObj = CClosure::Create(cx, obj, fnObj, thisObj, data);
+      if (!closureObj)
+        return JS_FALSE;
+      JSAutoTempValueRooter root(cx, closureObj);
 
-  
-  
-  
-  
-  
-  
-  if (!JS_SealObject(cx, result, JS_FALSE))
-    return NULL;
+      
+      if (!JS_SetReservedSlot(cx, result, SLOT_REFERENT,
+             OBJECT_TO_JSVAL(closureObj)))
+        return JS_FALSE;
 
-  return result;
+      
+      
+      
+      
+      
+      
+      return JS_SealObject(cx, result, JS_FALSE);
+    }
+
+    if (argc == 1) {
+      
+      return ExplicitConvert(cx, arg, obj, data);
+    }
+  }
+
+  JS_ReportError(cx, "constructor takes 0, 1, or 2 arguments");
+  return JS_FALSE;
 }
 
 JSBool
@@ -4419,6 +4452,202 @@ FunctionType::ABIGetter(JSContext* cx, JSObject* obj, jsval idval, jsval* vp)
   
   *vp = OBJECT_TO_JSVAL(GetFunctionInfo(cx, obj)->mABI);
   return JS_TRUE;
+}
+
+
+
+
+
+JSObject*
+CClosure::Create(JSContext* cx,
+                 JSObject* typeObj,
+                 JSObject* fnObj,
+                 JSObject* thisObj,
+                 PRFuncPtr* fnptr)
+{
+  JSObject* result = JS_NewObject(cx, &sCClosureClass, NULL, NULL);
+  if (!result)
+    return NULL;
+  JSAutoTempValueRooter root(cx, result);
+
+  
+  FunctionInfo* fninfo = FunctionType::GetFunctionInfo(cx, typeObj);
+
+  nsAutoPtr<ClosureInfo> cinfo(new ClosureInfo());
+  if (!cinfo) {
+    JS_ReportOutOfMemory(cx);
+    return NULL;
+  }
+
+  
+  
+  JSObject* proto = JS_GetPrototype(cx, typeObj);
+  JS_ASSERT(proto);
+  JS_ASSERT(JS_GET_CLASS(cx, proto) == &sCTypeProtoClass);
+
+  
+  jsval slot;
+  ASSERT_OK(JS_GetReservedSlot(cx, proto, SLOT_CLOSURECX, &slot));
+  if (!JSVAL_IS_VOID(slot)) {
+    
+    cinfo->cx = static_cast<JSContext*>(JSVAL_TO_PRIVATE(slot));
+    JS_ASSERT(cinfo->cx);
+  } else {
+    
+    
+    JSRuntime* runtime = JS_GetRuntime(cx);
+    cinfo->cx = JS_NewContext(runtime, 8192);
+    if (!cinfo->cx) {
+      JS_ReportOutOfMemory(cx);
+      return NULL;
+    }
+
+    if (!JS_SetReservedSlot(cx, proto, SLOT_CLOSURECX,
+           PRIVATE_TO_JSVAL(cinfo->cx))) {
+      JS_DestroyContextNoGC(cinfo->cx);
+      return NULL;
+    }
+  }
+
+  cinfo->closureObj = result;
+  cinfo->typeObj = typeObj;
+  cinfo->thisObj = thisObj;
+  cinfo->jsfnObj = fnObj;
+#ifdef DEBUG
+  cinfo->thread = PR_GetCurrentThread();
+#endif
+
+  
+  void* code;
+  cinfo->closure =
+    static_cast<ffi_closure*>(ffi_closure_alloc(sizeof(ffi_closure), &code));
+  if (!cinfo->closure || !code) {
+    JS_ReportError(cx, "couldn't create closure - libffi error");
+    return NULL;
+  }
+
+  ffi_status status = ffi_prep_closure_loc(cinfo->closure, &fninfo->mCIF,
+    CClosure::ClosureStub, cinfo, code);
+  if (status != FFI_OK) {
+    ffi_closure_free(cinfo->closure);
+    JS_ReportError(cx, "couldn't create closure - libffi error");
+    return NULL;
+  }
+
+  
+  if (!JS_SetReservedSlot(cx, result, SLOT_CLOSUREINFO,
+         PRIVATE_TO_JSVAL(cinfo.get()))) {
+    ffi_closure_free(cinfo->closure);
+    return NULL;
+  }
+  cinfo.forget();
+
+  *fnptr = (PRFuncPtr) code;
+  return result;
+}
+
+void
+CClosure::Trace(JSTracer* trc, JSObject* obj)
+{
+  JSContext* cx = trc->context;
+
+  
+  jsval slot;
+  if (!JS_GetReservedSlot(cx, obj, SLOT_CLOSUREINFO, &slot) ||
+      JSVAL_IS_VOID(slot))
+    return;
+
+  ClosureInfo* cinfo = static_cast<ClosureInfo*>(JSVAL_TO_PRIVATE(slot));
+
+  
+  
+  JS_CALL_TRACER(trc, cinfo->typeObj, JSTRACE_OBJECT, "typeObj");
+  JS_CALL_TRACER(trc, cinfo->thisObj, JSTRACE_OBJECT, "thisObj");
+  JS_CALL_TRACER(trc, cinfo->jsfnObj, JSTRACE_OBJECT, "jsfnObj");
+}
+
+void
+CClosure::Finalize(JSContext* cx, JSObject* obj)
+{
+  
+  jsval slot;
+  if (!JS_GetReservedSlot(cx, obj, SLOT_CLOSUREINFO, &slot) ||
+      JSVAL_IS_VOID(slot))
+    return;
+
+  ClosureInfo* cinfo = static_cast<ClosureInfo*>(JSVAL_TO_PRIVATE(slot));
+  if (cinfo->closure)
+    ffi_closure_free(cinfo->closure);
+
+  delete cinfo;
+}
+
+void
+CClosure::ClosureStub(ffi_cif* cif, void* result, void** args, void* userData)
+{
+  JS_ASSERT(cif);
+  JS_ASSERT(result);
+  JS_ASSERT(args);
+  JS_ASSERT(userData);
+
+  
+  if (cif->rtype != &ffi_type_void)
+    memset(result, 0, cif->rtype->size);
+
+  
+  ClosureInfo* cinfo = static_cast<ClosureInfo*>(userData);
+  JSContext* cx = cinfo->cx;
+  JSObject* typeObj = cinfo->typeObj;
+  JSObject* thisObj = cinfo->thisObj;
+  JSObject* jsfnObj = cinfo->jsfnObj;
+
+#ifdef DEBUG
+  
+  PRThread* thread = PR_GetCurrentThread();
+  JS_ASSERT(thread == cinfo->thread);
+#endif
+
+  JSAutoRequest ar(cx);
+
+  
+  FunctionInfo* fninfo = FunctionType::GetFunctionInfo(cx, typeObj);
+  JS_ASSERT(cif == &fninfo->mCIF);
+
+  
+  JSAutoTempValueRooter root(cx, cinfo->closureObj);
+
+  
+  nsAutoTArray<jsval, 16> argv;
+  if (!argv.SetLength(cif->nargs)) {
+    JS_ReportOutOfMemory(cx);
+    return;
+  }
+
+  for (PRUint32 i = 0; i < cif->nargs; ++i)
+    argv[i] = JSVAL_VOID;
+
+  JSAutoTempValueRooter roots(cx, argv.Length(), argv.Elements());
+  for (PRUint32 i = 0; i < cif->nargs; ++i) {
+    
+    
+    if (!ConvertToJS(cx, fninfo->mArgTypes[i], NULL, args[i], false, false,
+           &argv[i]))
+      return;
+  }
+
+  
+  
+  jsval rval;
+  if (!JS_CallFunctionValue(cx, thisObj, OBJECT_TO_JSVAL(jsfnObj), cif->nargs,
+       argv.Elements(), &rval))
+    return;
+
+  
+  
+  
+  
+  
+  ImplicitConvert(cx, rval, fninfo->mReturnType, result, false, NULL);
 }
 
 

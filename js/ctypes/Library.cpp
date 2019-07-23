@@ -254,12 +254,19 @@ Library::Declare(JSContext* cx, uintN argc, jsval* vp)
     return JS_FALSE;
   JSAutoTempValueRooter root(cx, typeObj);
 
-  JSObject* fn = FunctionType::ConstructWithLibrary(cx, typeObj, obj, func);
+  JSObject* fn = CData::Create(cx, typeObj, obj, &func, true);
   if (!fn)
     return JS_FALSE;
 
   JS_SET_RVAL(cx, vp, OBJECT_TO_JSVAL(fn));
-  return JS_TRUE;
+
+  
+  
+  
+  
+  
+  
+  return JS_SealObject(cx, fn, JS_FALSE);
 }
 
 }
