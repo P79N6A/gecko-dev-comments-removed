@@ -164,7 +164,7 @@ public:
 private:
   nsTArray<PopupControlState> mPopupStates;
 
-  nsMIMEType mMIMEType;
+  char* mMIMEType;
 
   
   

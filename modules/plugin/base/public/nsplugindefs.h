@@ -114,8 +114,6 @@
 
 
 
-typedef const char*     nsMIMEType;
-
 struct nsByteRange {
     PRInt32             offset; 	
     PRUint32            length;
