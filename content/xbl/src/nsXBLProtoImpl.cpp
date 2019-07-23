@@ -200,7 +200,7 @@ nsXBLProtoImpl::CompilePrototypeMembers(nsXBLPrototypeBinding* aBinding)
 }
 
 void
-nsXBLProtoImpl::Trace(TraceCallback aCallback, void *aClosure) const
+nsXBLProtoImpl::Traverse(nsCycleCollectionTraversalCallback &cb) const
 {
   
   
@@ -211,7 +211,7 @@ nsXBLProtoImpl::Trace(TraceCallback aCallback, void *aClosure) const
 
   nsXBLProtoImplMember *member;
   for (member = mMembers; member; member = member->GetNext()) {
-    member->Trace(aCallback, aClosure);
+    member->Traverse(cb);
   }
 }
 
