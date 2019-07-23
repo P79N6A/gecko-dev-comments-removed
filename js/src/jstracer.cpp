@@ -1686,7 +1686,7 @@ TraceRecorder::ifop()
               lir->ins_eq0(lir->ins2(LIR_eq, get(&v), lir->insImm(1))),
               BRANCH_EXIT);
     } else if (JSVAL_IS_OBJECT(v)) {
-        guard(!JSVAL_IS_NULL(v), lir->ins_eq0(get(&v)), BRANCH_EXIT);
+        guard(JSVAL_IS_NULL(v), lir->ins_eq0(get(&v)), BRANCH_EXIT);
     } else if (isNumber(v)) {
         jsdouble d = asNumber(v);
         jsdpun u;
@@ -1694,7 +1694,10 @@ TraceRecorder::ifop()
         
         guard(d == 0, lir->ins2(LIR_feq, get(&v), lir->insImmq(u.u64)), BRANCH_EXIT);
     } else if (JSVAL_IS_STRING(v)) {
-        ABORT_TRACE("string condition not supported");
+        guard(JSSTRING_LENGTH(JSVAL_TO_STRING(v)) == 0,
+              lir->ins_eq0(lir->ins2(LIR_and,
+                                     lir->insLoadi(get(&v), offsetof(JSString, length)),
+                                     lir->insImm(JSSTRING_LENGTH_MASK))));
     } else {
         JS_NOT_REACHED("ifop");
     }
