@@ -919,7 +919,6 @@ public:
   virtual nsresult SetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
                            nsIAtom* aPrefix, const nsAString& aValue,
                            PRBool aNotify);
-  virtual void DestroyContent();
 
   
   NS_IMETHOD GetTabIndex(PRInt32 *aTabIndex);
