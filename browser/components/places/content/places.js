@@ -853,6 +853,10 @@ var PlacesSearchBox = {
       
       break;
     case "bookmarks":
+      
+      
+      
+      currentOptions.resultType = currentOptions.RESULT_TYPE_URI;
       content.applyFilter(filterString,
                           [PlacesUtils.bookmarksMenuFolderId,
                            PlacesUtils.toolbarFolderId,
