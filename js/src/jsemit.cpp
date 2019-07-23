@@ -3928,6 +3928,14 @@ GettableNoteForNextOp(JSCodeGenerator *cg)
 }
 #endif
 
+
+static JSBool
+EmitFunctionDefNop(JSContext *cx, JSCodeGenerator *cg, uintN index)
+{
+    return js_NewSrcNote2(cx, cg, SRC_FUNCDEF, (ptrdiff_t)index) >= 0 &&
+           js_Emit1(cx, cg, JSOP_NOP) >= 0;
+}
+
 JSBool
 js_EmitTree(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn)
 {
@@ -3962,9 +3970,9 @@ js_EmitTree(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn)
     switch (pn->pn_type) {
       case TOK_FUNCTION:
       {
+        JSFunction *fun;
         void *cg2mark;
         JSCodeGenerator *cg2;
-        JSFunction *fun;
         uintN slot;
 
 #if JS_HAS_XML_SUPPORT
@@ -3974,6 +3982,21 @@ js_EmitTree(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn)
             break;
         }
 #endif
+
+        fun = GET_FUNCTION_PRIVATE(cx, pn->pn_funpob->object);
+        if (fun->u.i.script) {
+            
+
+
+
+
+            JS_ASSERT(pn->pn_op == JSOP_NOP);
+            JS_ASSERT(cg->treeContext.flags & TCF_IN_FUNCTION);
+            JS_ASSERT(pn->pn_index != (uint32) -1);
+            if (!EmitFunctionDefNop(cx, cg, pn->pn_index))
+                return JS_FALSE;
+            break;
+        }
 
         
         cg2mark = JS_ARENA_MARK(&cx->tempPool);
@@ -3987,7 +4010,6 @@ js_EmitTree(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn)
                              pn->pn_pos.begin.lineno);
         cg2->treeContext.flags = (uint16) (pn->pn_flags | TCF_IN_FUNCTION);
         cg2->treeContext.maxScopeDepth = pn->pn_sclen;
-        fun = GET_FUNCTION_PRIVATE(cx, pn->pn_funpob->object);
         cg2->treeContext.fun = fun;
         cg2->parent = cg;
         if (!js_EmitFunctionScript(cx, cg2, pn->pn_body)) {
@@ -4024,19 +4046,17 @@ js_EmitTree(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn)
         }
 
         
-        noteIndex = js_NewSrcNote2(cx, cg, SRC_FUNCDEF, (ptrdiff_t)index);
-        if (noteIndex < 0 ||
-            js_Emit1(cx, cg, JSOP_NOP) < 0) {
-            return JS_FALSE;
-        }
-
-        
 
 
 
-        CG_SWITCH_TO_PROLOG(cg);
+
+
+
+
 
         if (!(cg->treeContext.flags & TCF_IN_FUNCTION)) {
+            CG_SWITCH_TO_PROLOG(cg);
+
             
 
 
@@ -4044,31 +4064,22 @@ js_EmitTree(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn)
             JS_ASSERT(!cg->treeContext.topStmt);
             op = (cx->fp->flags & JSFRAME_EVAL) ? JSOP_CLOSURE : JSOP_DEFFUN;
             EMIT_INDEX_OP(op, index);
+            CG_SWITCH_TO_MAIN(cg);
+
+            
+            if (!EmitFunctionDefNop(cx, cg, index))
+                return JS_FALSE;
         } else {
 #ifdef DEBUG
             JSLocalKind localKind =
 #endif
                 js_LookupLocal(cx, cg->treeContext.fun, fun->atom, &slot);
             JS_ASSERT(localKind == JSLOCAL_VAR || localKind == JSLOCAL_CONST);
-
-            
-
-
-
-
-
-            stmt = cg->treeContext.topStmt;
-            if (stmt && stmt->type == STMT_BLOCK &&
-                stmt->down && stmt->down->type == STMT_BLOCK &&
-                (stmt->down->flags & SIF_SCOPE)) {
-                JS_ASSERT(STOBJ_GET_CLASS(stmt->down->u.blockObj) ==
-                          &js_BlockClass);
-                OBJ_SET_PARENT(cx, fun->object, stmt->down->u.blockObj);
-            }
+            JS_ASSERT(pn->pn_index == (uint32) -1);
+            pn->pn_index = index;
             if (!EmitSlotIndexOp(cx, JSOP_DEFLOCALFUN, slot, index, cg))
                 return JS_FALSE;
         }
-        CG_SWITCH_TO_MAIN(cg);
         break;
       }
 
@@ -4526,13 +4537,13 @@ js_EmitTree(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn)
             }
         } else {
             op = JSOP_POP;
-            if (!pn2->pn_kid1) {
+            pn3 = pn2->pn_kid1;
+            if (!pn3) {
                 
                 op = JSOP_NOP;
             } else {
                 cg->treeContext.flags |= TCF_IN_FOR_INIT;
 #if JS_HAS_DESTRUCTURING
-                pn3 = pn2->pn_kid1;
                 if (pn3->pn_type == TOK_ASSIGN &&
                     !MaybeEmitGroupAssignment(cx, cg, op, pn3, &op)) {
                     return JS_FALSE;
@@ -5158,6 +5169,27 @@ js_EmitTree(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn)
         }
 
         js_PushStatement(&cg->treeContext, &stmtInfo, STMT_BLOCK, top);
+        if (pn->pn_extra & PNX_FUNCDEFS) {
+            
+
+
+
+
+
+
+
+
+
+
+            JS_ASSERT(cg->treeContext.flags & TCF_IN_FUNCTION);
+            for (pn2 = pn->pn_head; pn2; pn2 = pn2->pn_next) {
+                if (pn2->pn_type == TOK_FUNCTION) {
+                    JS_ASSERT(pn2->pn_op == JSOP_NOP);
+                    if (!js_EmitTree(cx, cg, pn2))
+                        return JS_FALSE;
+                }
+            }
+        }
         for (pn2 = pn->pn_head; pn2; pn2 = pn2->pn_next) {
             if (!js_EmitTree(cx, cg, pn2))
                 return JS_FALSE;
