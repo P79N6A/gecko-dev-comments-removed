@@ -796,47 +796,6 @@ obj_toSource(JSContext *cx, uintN argc, jsval *vp)
         }
     }
 
-#ifdef DUMP_CALL_TABLE
-    if (cx->options & JSOPTION_LOGCALL_TOSOURCE) {
-        const char *classname = OBJ_GET_CLASS(cx, obj)->name;
-        size_t classnchars = strlen(classname);
-        static const char classpropid[] = "C";
-        const char *cp;
-#ifdef DEBUG
-        size_t onchars = nchars;
-#endif
-
-        
-        classnchars += sizeof classpropid - 1 + 2 + 2;
-        if (ida->length)
-            classnchars += 2;
-
-        
-        chars = (jschar *)
-            realloc((ochars = chars),
-                    (nchars + classnchars + 2 + 1) * sizeof(jschar));
-        if (!chars) {
-            free(ochars);
-            goto error;
-        }
-
-        chars[nchars++] = '{';          
-        for (cp = classpropid; *cp; cp++)
-            chars[nchars++] = (jschar) *cp;
-        chars[nchars++] = ':';
-        chars[nchars++] = ' ';          
-        chars[nchars++] = '"';
-        for (cp = classname; *cp; cp++)
-            chars[nchars++] = (jschar) *cp;
-        chars[nchars++] = '"';          
-        if (ida->length) {
-            chars[nchars++] = ',';
-            chars[nchars++] = ' ';      
-        }
-
-        JS_ASSERT(nchars - onchars == 1 + classnchars);
-    } else
-#endif
     chars[nchars++] = '{';
 
     comma = NULL;
@@ -1113,10 +1072,6 @@ obj_toSource(JSContext *cx, uintN argc, jsval *vp)
 
             if (vsharp)
                 JS_free(cx, vsharp);
-#ifdef DUMP_CALL_TABLE
-            if (outermost && nchars >= js_LogCallToSourceLimit)
-                break;
-#endif
         }
     }
 
@@ -4127,11 +4082,7 @@ js_Enumerate(JSContext *cx, JSObject *obj, JSIterateOp enum_op,
             
             for (sprop = lastProp = SCOPE_LAST_PROP(scope); sprop;
                  sprop = sprop->parent) {
-                if ((
-#ifdef DUMP_CALL_TABLE
-                     (cx->options & JSOPTION_LOGCALL_TOSOURCE) ||
-#endif
-                     (sprop->attrs & JSPROP_ENUMERATE)) &&
+                if ((sprop->attrs & JSPROP_ENUMERATE) &&
                     !(sprop->flags & SPROP_IS_ALIAS) &&
                     (!SCOPE_HAD_MIDDLE_DELETE(scope) ||
                      SCOPE_HAS_PROPERTY(scope, sprop))) {
@@ -4145,11 +4096,7 @@ js_Enumerate(JSContext *cx, JSObject *obj, JSIterateOp enum_op,
             }
             i = length;
             for (sprop = lastProp; sprop; sprop = sprop->parent) {
-                if ((
-#ifdef DUMP_CALL_TABLE
-                     (cx->options & JSOPTION_LOGCALL_TOSOURCE) ||
-#endif
-                     (sprop->attrs & JSPROP_ENUMERATE)) &&
+                if ((sprop->attrs & JSPROP_ENUMERATE) &&
                     !(sprop->flags & SPROP_IS_ALIAS) &&
                     (!SCOPE_HAD_MIDDLE_DELETE(scope) ||
                      SCOPE_HAS_PROPERTY(scope, sprop))) {
