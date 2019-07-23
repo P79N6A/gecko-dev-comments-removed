@@ -392,51 +392,37 @@ namespace nanojit
     LInsp LirReader::read()
     {
         NanoAssert(_i);
-        LInsp cur = _i;
-        uintptr_t i = uintptr_t(cur);
-        LOpcode iop = ((LInsp)i)->opcode();
+        LInsp ret = _i;
 
         
-        
-        
-        
-        
-        
-        
-        
-        
-        
+        LOpcode iop = _i->opcode();
         NanoAssert(iop != LIR_skip);
 
-        do
+#ifdef DEBUG
+        if (iop == LIR_start) {
+            
+            
+            
+            
+            
+            _i = 0;
+            return ret;
+        }
+        else 
+#endif
         {
             
             
-            
-            
-            switch (iop)
-            {
-                default:
-                    i -= insSizes[((LInsp)i)->opcode()];
-                    break;
-
-                case LIR_skip:
-                    
-                    NanoAssert(((LInsp)i)->prevLIns() != (LInsp)i);
-                    i = uintptr_t(((LInsp)i)->prevLIns());
-                    break;
-
-                case LIR_start:
-                    
-                    
-                    _i = 0;
-                    return cur;
-            }
-            iop = ((LInsp)i)->opcode();
+            _i = (LInsp)(uintptr_t(_i) - insSizes[iop]);
         }
-        while (LIR_skip == iop);
-        _i = (LInsp)i;
-        return cur;
+
+        
+        while (LIR_skip == _i->opcode()) {
+            NanoAssert(_i->prevLIns() != _i);
+            _i = _i->prevLIns();
+        }
+
+        return ret;
     }
 
     
