@@ -7740,10 +7740,7 @@ GetBindingURL(nsIContent *aContent, nsIDocument *aDocument,
   
   
   nsIPresShell *shell = aDocument->GetPrimaryShell();
-  nsIFrame *frame;
-  if (!shell ||
-      (frame = shell->GetPrimaryFrameFor(aContent)) ||
-      !aContent->IsXUL()) {
+  if (!shell || aContent->GetPrimaryFrame() || !aContent->IsXUL()) {
     *aResult = nsnull;
 
     return PR_TRUE;

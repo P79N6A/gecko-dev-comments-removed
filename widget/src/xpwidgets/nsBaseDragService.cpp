@@ -470,7 +470,7 @@ nsBaseDragService::DrawDrag(nsIDOMNode* aDOMNode,
       
       
       nsCOMPtr<nsIContent> content = do_QueryInterface(dragNode);
-      nsIFrame* frame = presShell->GetPrimaryFrameFor(content);
+      nsIFrame* frame = content->GetPrimaryFrame();
       if (frame) {
         nsIntRect screenRect = frame->GetScreenRectExternal();
         aScreenDragRect->SetRect(screenRect.x, screenRect.y,

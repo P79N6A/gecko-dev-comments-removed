@@ -1306,7 +1306,7 @@ nsFocusManager::CheckIfFocusable(nsIContent* aContent, PRUint32 aFlags)
   if (presContext && presContext->Type() == nsPresContext::eContext_PrintPreview)
     return nsnull;
 
-  nsIFrame* frame = shell->GetPrimaryFrameFor(aContent);
+  nsIFrame* frame = aContent->GetPrimaryFrame();
   if (!frame)
     return nsnull;
 
@@ -1409,7 +1409,7 @@ nsFocusManager::Blur(nsPIDOMWindow* aWindowToClear,
     
     
     if (mActiveWindow) {
-      nsIFrame* contentFrame = presShell->GetPrimaryFrameFor(content);
+      nsIFrame* contentFrame = content->GetPrimaryFrame();
       nsIObjectFrame* objectFrame = do_QueryFrame(contentFrame);
       if (objectFrame) {
         
@@ -1603,12 +1603,16 @@ nsFocusManager::Focus(nsPIDOMWindow* aWindow,
       presContext->EventStateManager()->SetContentState(aContent, NS_EVENT_STATE_FOCUS);  
 
       
-      nsIFrame* contentFrame = presShell->GetPrimaryFrameFor(aContent);
-      nsIObjectFrame* objectFrame = do_QueryFrame(contentFrame);
-      if (objectFrame) {
-        nsIWidget* widget = objectFrame->GetWidget();
-        if (widget)
-          widget->SetFocus(PR_FALSE);
+      
+      
+      if (presShell->GetDocument() == aContent->GetDocument()) {
+        nsIFrame* contentFrame = aContent->GetPrimaryFrame();
+        nsIObjectFrame* objectFrame = do_QueryFrame(contentFrame);
+        if (objectFrame) {
+          nsIWidget* widget = objectFrame->GetWidget();
+          if (widget)
+            widget->SetFocus(PR_FALSE);
+        }
       }
 
       nsIMEStateManager::OnChangeFocus(presContext, aContent);
@@ -1906,7 +1910,9 @@ nsFocusManager::SetCaretVisible(nsIPresShell* aPresShell,
 
   nsCOMPtr<nsFrameSelection> frameSelection;
   if (aContent) {
-    nsIFrame *focusFrame = aPresShell->GetPrimaryFrameFor(aContent);
+    NS_ASSERTION(aContent->GetDocument() == aPresShell->GetDocument(),
+                 "Wrong document?");
+    nsIFrame *focusFrame = aContent->GetPrimaryFrame();
     if (focusFrame)
       frameSelection = focusFrame->GetFrameSelection();
   }
@@ -2001,7 +2007,7 @@ nsFocusManager::GetSelectionLocation(nsIDocument* aDocument,
 
   nsIFrame *startFrame = nsnull;
   if (startContent) {
-    startFrame = aPresShell->GetPrimaryFrameFor(startContent);
+    startFrame = startContent->GetPrimaryFrame();
     if (isCollapsed) {
       
       
@@ -2152,7 +2158,7 @@ nsFocusManager::DetermineElementToMoveFocus(nsPIDOMWindow* aWindow,
 
   PRInt32 tabIndex = forward ? 1 : 0;
   if (startContent) {
-    nsIFrame* frame = presShell->GetPrimaryFrameFor(startContent);
+    nsIFrame* frame = startContent->GetPrimaryFrame();
     if (startContent->Tag() == nsGkAtoms::area &&
         startContent->IsHTML())
       startContent->IsFocusable(&tabIndex);
@@ -2333,7 +2339,7 @@ nsFocusManager::DetermineElementToMoveFocus(nsPIDOMWindow* aWindow,
       rootContent = doc->GetRootContent();
       startContent = do_QueryInterface(piWindow->GetFrameElementInternal());
       if (startContent) {
-        nsIFrame* frame = presShell->GetPrimaryFrameFor(startContent);
+        nsIFrame* frame = startContent->GetPrimaryFrame();
         if (!frame)
           return NS_OK;
 
@@ -2415,7 +2421,7 @@ nsFocusManager::GetNextTabbableContent(nsIPresShell* aPresShell,
   PRBool getNextFrame = PR_TRUE;
   nsCOMPtr<nsIContent> iterStartContent = aStartContent;
   while (1) {
-    nsIFrame* startFrame = aPresShell->GetPrimaryFrameFor(iterStartContent);
+    nsIFrame* startFrame = iterStartContent->GetPrimaryFrame();
     
     if (!startFrame) {
       
@@ -2730,7 +2736,7 @@ nsFocusManager::GetRootForFocus(nsPIDOMWindow* aWindow,
   if (rootContent) {
     if (aCheckVisibility) {
       nsIPresShell* presShell = aDocument->GetPrimaryShell();
-      if (!presShell || !presShell->GetPrimaryFrameFor(rootContent))
+      if (!presShell || !rootContent->GetPrimaryFrame())
         return nsnull;
     }
 
