@@ -179,7 +179,6 @@ public:
   
 
 
-
   static JSObject *Unwrap(JSContext *cx, JSObject *wrapper) {
     if (JS_GET_CLASS(cx, wrapper) != &sXPC_XOW_JSClass.base) {
       return nsnull;
@@ -230,6 +229,18 @@ public:
            ? XPC_NW_WrapFunction(cx, funobj, v)
            : XPC_XOW_WrapFunction(cx, wrapperObj, funobj, v);
   }
+
+  
+
+
+
+
+
+  static JSObject *CreateIteratorObj(JSContext *cx,
+                                     JSObject *tempWrapper,
+                                     JSObject *wrapperObj,
+                                     JSObject *innerObj,
+                                     JSBool keysonly);
 
   
 
