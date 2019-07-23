@@ -990,7 +990,8 @@ moz_gtk_button_paint(GdkDrawable* drawable, GdkRectangle* rect,
     }
  
     if (relief != GTK_RELIEF_NONE || state->depressed ||
-        button_state == GTK_STATE_PRELIGHT) {
+        (button_state != GTK_STATE_NORMAL &&
+         button_state != GTK_STATE_INSENSITIVE)) {
         TSOffsetStyleGCs(style, x, y);
         
 
