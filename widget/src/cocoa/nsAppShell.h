@@ -72,6 +72,8 @@ protected:
   virtual void ScheduleNativeEventCallback();
   virtual PRBool ProcessNextNativeEvent(PRBool aMayWait);
 
+  PRBool InGeckoMainEventLoop();
+
   static void ProcessGeckoEvents(void* aInfo);
 
 protected:
@@ -96,6 +98,9 @@ protected:
   
   
   static const PRUint32  kHadMoreEventsCountMax = 3;
+
+  PRInt32            mRecursionDepth;
+  PRInt32            mNativeEventCallbackDepth;
 };
 
 #endif 
