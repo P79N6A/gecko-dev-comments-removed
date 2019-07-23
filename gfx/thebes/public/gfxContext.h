@@ -143,6 +143,16 @@ public:
     
 
 
+    already_AddRefed<gfxPath> CopyPath();
+
+    
+
+
+    void AppendPath(gfxPath* path);
+
+    
+
+
     void MoveTo(const gfxPoint& pt);
 
     
