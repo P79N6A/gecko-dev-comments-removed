@@ -1,0 +1,115 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+var _PBSvc = null;
+function get_PBSvc() {
+  if (_PBSvc)
+    return _PBSvc;
+
+  try {
+    _PBSvc = Cc["@mozilla.org/privatebrowsing;1"].
+             getService(Ci.nsIPrivateBrowsingService);
+    if (_PBSvc) {
+      var observer = {
+        QueryInterface: function (iid) {
+          const interfaces = [Ci.nsIObserver,
+                              Ci.nsISupports];
+          if (!interfaces.some(function(v) iid.equals(v)))
+            throw Components.results.NS_ERROR_NO_INTERFACE;
+          return this;
+        },
+        observe: function (subject, topic, data) {
+          subject.QueryInterface(Ci.nsISupportsPRUint32);
+          subject.data = 0;
+        }
+      };
+      var os = Cc["@mozilla.org/observer-service;1"].
+               getService(Ci.nsIObserverService);
+      os.addObserver(observer, "private-browsing-enter", false);
+    }
+    return _PBSvc;
+  } catch (e) {}
+  return null;
+}
+
+var _CMSvc = null;
+function get_ContentPrefs() {
+  if (_CMSvc)
+    return _CMSvc;
+
+  return Cc["@mozilla.org/content-pref/service;1"].
+         createInstance(Ci.nsIContentPrefService);
+}
+
+function run_test() {
+  var pb = get_PBSvc();
+  if (pb) { 
+    ContentPrefTest.deleteDatabase();
+    var cp = get_ContentPrefs();
+    do_check_neq(cp, null, "Retrieving the content prefs service failed");
+
+    try {
+      const uri1 = ContentPrefTest.getURI("http://www.example.com/");
+      const uri2 = ContentPrefTest.getURI("http://www.anotherexample.com/");
+      const pref_name = "browser.content.full-zoom";
+      const zoomA = 1.5, zoomA_new = 0.8, zoomB = 1.3;
+      
+      cp.setPref(uri1, pref_name, zoomA);
+      
+      do_check_eq(cp.getPref(uri1, pref_name), zoomA);
+      
+      pb.privateBrowsingEnabled = true;
+      
+      do_check_eq(cp.getPref(uri1, pref_name), zoomA);
+      
+      cp.setPref(uri2, pref_name, zoomB);
+      
+      do_check_eq(cp.getPref(uri2, pref_name), undefined);
+      
+      cp.setPref(uri1, pref_name, zoomA_new);
+      
+      do_check_eq(cp.getPref(uri1, pref_name), zoomA_new);
+      
+      pb.privateBrowsingEnabled = false;
+      
+      do_check_eq(cp.getPref(uri1, pref_name), zoomA_new);
+    } catch (e) {
+      do_throw("Unexpected exception: " + e);
+    }
+  }
+  do_test_finished();
+}
