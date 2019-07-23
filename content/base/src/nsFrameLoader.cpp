@@ -73,6 +73,7 @@
 #include "nsGUIEvent.h"
 #include "nsEventDispatcher.h"
 #include "nsISHistory.h"
+#include "nsISHistoryInternal.h"
 
 #include "nsIURI.h"
 #include "nsIURL.h"
@@ -494,24 +495,23 @@ nsFrameLoader::SwapWithOtherLoader(nsFrameLoader* aOther,
   nsCOMPtr<nsIDocShellTreeItem> ourRootTreeItem, otherRootTreeItem;
   ourTreeItem->GetSameTypeRootTreeItem(getter_AddRefs(ourRootTreeItem));
   otherTreeItem->GetSameTypeRootTreeItem(getter_AddRefs(otherRootTreeItem));
-  if (ourRootTreeItem != ourTreeItem || otherRootTreeItem != otherTreeItem) {
-    nsCOMPtr<nsIWebNavigation> ourRootWebnav =
-      do_QueryInterface(ourRootTreeItem);
-    nsCOMPtr<nsIWebNavigation> otherRootWebnav =
-      do_QueryInterface(otherRootTreeItem);
+  nsCOMPtr<nsIWebNavigation> ourRootWebnav =
+    do_QueryInterface(ourRootTreeItem);
+  nsCOMPtr<nsIWebNavigation> otherRootWebnav =
+    do_QueryInterface(otherRootTreeItem);
 
-    if (!ourRootWebnav || !otherRootWebnav) {
-      return NS_ERROR_NOT_IMPLEMENTED;
-    }
+  if (!ourRootWebnav || !otherRootWebnav) {
+    return NS_ERROR_NOT_IMPLEMENTED;
+  }
 
-    nsCOMPtr<nsISHistory> ourHistory;
-    nsCOMPtr<nsISHistory> otherHistory;
-    ourRootWebnav->GetSessionHistory(getter_AddRefs(ourHistory));
-    otherRootWebnav->GetSessionHistory(getter_AddRefs(otherHistory));
+  nsCOMPtr<nsISHistory> ourHistory;
+  nsCOMPtr<nsISHistory> otherHistory;
+  ourRootWebnav->GetSessionHistory(getter_AddRefs(ourHistory));
+  otherRootWebnav->GetSessionHistory(getter_AddRefs(otherHistory));
 
-    if (ourHistory || otherHistory) {
-      return NS_ERROR_NOT_IMPLEMENTED;
-    }
+  if ((ourRootTreeItem != ourTreeItem || otherRootTreeItem != otherTreeItem) &&
+      (ourHistory || otherHistory)) {
+    return NS_ERROR_NOT_IMPLEMENTED;
   }
 
   
@@ -691,6 +691,18 @@ nsFrameLoader::SwapWithOtherLoader(nsFrameLoader* aOther,
   aOther->mOwnerContent = ourContent;
 
   aFirstToSwap.swap(aSecondToSwap);
+
+  
+  nsCOMPtr<nsISHistoryInternal> ourInternalHistory =
+    do_QueryInterface(ourHistory);
+  nsCOMPtr<nsISHistoryInternal> otherInternalHistory =
+    do_QueryInterface(otherHistory);
+  if (ourInternalHistory) {
+    ourInternalHistory->EvictAllContentViewers();
+  }
+  if (otherInternalHistory) {
+    otherInternalHistory->EvictAllContentViewers();
+  }
 
   
   if (ourFrame == ourShell->GetPrimaryFrameFor(ourContent) &&
