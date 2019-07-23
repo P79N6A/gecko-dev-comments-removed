@@ -191,22 +191,20 @@ double Stopwatch::GetRealTime(){
 #endif
 }
 
-
-double Stopwatch::GetCPUTime(){ 
+double Stopwatch::GetCPUTime() {
 #if defined(R__MAC)
 
-   return(double)clock();
+  return(double)clock();
 #elif defined(R__UNIX)
-   struct tms cpt;
-   times(&cpt);
-   return (double)(cpt.tms_utime+cpt.tms_stime) / gTicks;
+  struct tms cpt;
+  times(&cpt);
+  return (double)(cpt.tms_utime+cpt.tms_stime) / gTicks;
 #elif defined(R__VMS)
-   return(double)clock()/gTicks;
+  return(double)clock()/gTicks;
 #elif defined(WINCE)
-   return 0;
+  return 0;
 #elif defined(WIN32)
 
-  DWORD       ret;
   FILETIME    ftCreate,       
               ftExit;         
 
@@ -219,15 +217,16 @@ double Stopwatch::GetCPUTime(){
             } ftUser;   
 
   HANDLE hProcess = GetCurrentProcess();
-  ret = GetProcessTimes (hProcess, &ftCreate, &ftExit,
-                                   &ftKernel.ftFileTime,
-                                   &ftUser.ftFileTime);
-  if (ret != PR_TRUE){
-    ret = GetLastError ();
 #ifdef DEBUG
-    printf("%s 0x%lx\n"," Error on GetProcessTimes", (int)ret);
+  BOOL ret =
 #endif
-    }
+    GetProcessTimes(hProcess, &ftCreate, &ftExit,
+                              &ftKernel.ftFileTime, &ftUser.ftFileTime);
+#ifdef DEBUG
+  if (!ret)
+    
+    printf("Error: GetProcessTimes() failed, 0x%lx\n", (int)GetLastError());
+#endif
 
   
 
@@ -237,10 +236,9 @@ double Stopwatch::GetCPUTime(){
 
 
 
+  return (double) (ftKernel.ftInt64 + ftUser.ftInt64) * gTicks;
 
-    return (double) (ftKernel.ftInt64 + ftUser.ftInt64) * gTicks;
-
-#endif
+#endif # elif, WIN32
 }
 
 
