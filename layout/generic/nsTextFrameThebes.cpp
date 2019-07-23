@@ -603,10 +603,11 @@ public:
     mDoubleByteText = PR_FALSE;
   }
   void ResetLineBreaker() {
-    mLineBreaker.Reset();
+    PRBool trailingBreak;
+    mLineBreaker.Reset(&trailingBreak);
   }
   void AccumulateRunInfo(nsTextFrame* aFrame);
-  void BuildTextRunForFrames(void* aTextBuffer);
+  gfxTextRun* BuildTextRunForFrames(void* aTextBuffer);
   void AssignTextRun(gfxTextRun* aTextRun);
   nsTextFrame* GetNextBreakBeforeFrame(PRUint32* aIndex);
   void SetupBreakSinksForTextRun(gfxTextRun* aTextRun, PRBool aIsExistingTextRun,
@@ -691,7 +692,6 @@ private:
   gfxContext*                   mContext;
   nsIFrame*                     mLineContainer;
   nsTextFrame*                  mLastFrame;
-  
   
   
   nsIFrame*                     mCommonAncestorWithLastFrame;
@@ -1028,26 +1028,32 @@ void BuildTextRunsScanner::FlushFrames(PRBool aFlushLineBreaks)
   if (mMappedFlows.Length() == 0)
     return;
 
+  gfxTextRun* textRun;
   if (!mSkipIncompleteTextRuns && mCurrentFramesAllSameTextRun &&
       ((mCurrentFramesAllSameTextRun->GetFlags() & nsTextFrameUtils::TEXT_INCOMING_WHITESPACE) != 0) ==
       mCurrentRunTrimLeadingWhitespace &&
       IsTextRunValidForMappedFlows(mCurrentFramesAllSameTextRun)) {
     
-
+    textRun = mCurrentFramesAllSameTextRun;
+      
     
     
-    SetupBreakSinksForTextRun(mCurrentFramesAllSameTextRun, PR_TRUE, PR_FALSE);
+    SetupBreakSinksForTextRun(textRun, PR_TRUE, PR_FALSE);
     mTrimNextRunLeadingWhitespace =
-      (mCurrentFramesAllSameTextRun->GetFlags() & nsTextFrameUtils::TEXT_TRAILING_WHITESPACE) != 0;
+      (textRun->GetFlags() & nsTextFrameUtils::TEXT_TRAILING_WHITESPACE) != 0;
   } else {
     nsAutoTArray<PRUint8,BIG_TEXT_NODE_SIZE> buffer;
     if (!buffer.AppendElements(mMaxTextLength*(mDoubleByteText ? 2 : 1)))
       return;
-    BuildTextRunForFrames(buffer.Elements());
+    textRun = BuildTextRunForFrames(buffer.Elements());
   }
 
   if (aFlushLineBreaks) {
-    mLineBreaker.Reset();
+    PRBool trailingLineBreak;
+    nsresult rv = mLineBreaker.Reset(&trailingLineBreak);
+    if (NS_SUCCEEDED(rv) && trailingLineBreak) {
+      textRun->SetFlagBits(nsTextFrameUtils::TEXT_HAS_TRAILING_BREAK);
+    }
     PRUint32 i;
     for (i = 0; i < mBreakSinks.Length(); ++i) {
       if (!mBreakSinks[i]->mExistingTextRun || mBreakSinks[i]->mChangedBreaks) {
@@ -1067,7 +1073,7 @@ void BuildTextRunsScanner::AccumulateRunInfo(nsTextFrame* aFrame)
   mMaxTextLength += aFrame->GetContentLength();
   mDoubleByteText |= aFrame->GetContent()->GetText()->Is2b();
   mLastFrame = aFrame;
-  mCommonAncestorWithLastFrame = aFrame;
+  mCommonAncestorWithLastFrame = aFrame->GetParent();
 
   MappedFlow* mappedFlow = &mMappedFlows[mMappedFlows.Length() - 1];
   NS_ASSERTION(mappedFlow->mStartFrame == aFrame ||
@@ -1198,12 +1204,12 @@ void BuildTextRunsScanner::ScanFrame(nsIFrame* aFrame)
   PRBool descendInto = PR_TRUE;
   if (!continueTextRun) {
     FlushFrames(PR_TRUE);
-    mCommonAncestorWithLastFrame = nsnull;
+    mCommonAncestorWithLastFrame = aFrame;
+    mTrimNextRunLeadingWhitespace = PR_FALSE;
     
     
     descendInto = !aFrame->IsFloatContainingBlock();
     mStartOfLine = PR_FALSE;
-    mTrimNextRunLeadingWhitespace = PR_FALSE;
   }
 
   if (descendInto) {
@@ -1215,7 +1221,7 @@ void BuildTextRunsScanner::ScanFrame(nsIFrame* aFrame)
 
   if (!continueTextRun) {
     FlushFrames(PR_TRUE);
-    mCommonAncestorWithLastFrame = nsnull;
+    mCommonAncestorWithLastFrame = aFrame;
     mTrimNextRunLeadingWhitespace = PR_FALSE;
   }
 
@@ -1322,7 +1328,7 @@ GetFontMetrics(gfxFontGroup* aFontGroup)
   return font->GetMetrics();
 }
 
-void
+gfxTextRun*
 BuildTextRunsScanner::BuildTextRunForFrames(void* aTextBuffer)
 {
   gfxSkipCharsBuilder builder;
@@ -1421,7 +1427,7 @@ BuildTextRunsScanner::BuildTextRunForFrames(void* aTextBuffer)
         nsAutoTArray<PRUint8,BIG_TEXT_NODE_SIZE> tempBuf;
         if (!tempBuf.AppendElements(contentLength)) {
           DestroyUserData(userData);
-          return;
+          return nsnull;
         }
         PRUint8* bufStart = tempBuf.Elements();
         PRUint8* end = nsTextFrameUtils::TransformText(
@@ -1456,7 +1462,7 @@ BuildTextRunsScanner::BuildTextRunForFrames(void* aTextBuffer)
   
   if (!builder.IsOK()) {
     DestroyUserData(userData);
-    return;
+    return nsnull;
   }
 
   void* finalUserData;
@@ -1491,7 +1497,7 @@ BuildTextRunsScanner::BuildTextRunForFrames(void* aTextBuffer)
   gfxFontGroup* fontGroup = GetFontGroupForFrame(firstFrame);
   if (!fontGroup) {
     DestroyUserData(userData);
-    return;
+    return nsnull;
   }
 
   if (textFlags & nsTextFrameUtils::TEXT_HAS_TAB) {
@@ -1598,7 +1604,7 @@ BuildTextRunsScanner::BuildTextRunForFrames(void* aTextBuffer)
   }
   if (!textRun) {
     DestroyUserData(userData);
-    return;
+    return nsnull;
   }
 
   
@@ -1615,12 +1621,13 @@ BuildTextRunsScanner::BuildTextRunForFrames(void* aTextBuffer)
     gTextRuns->RemoveFromCache(textRun);
     delete textRun;
     DestroyUserData(userData);
-    return;
+    return nsnull;
   }
 
   
   
   AssignTextRun(textRun);
+  return textRun;
 }
 
 static PRBool
@@ -5461,6 +5468,19 @@ nsTextFrame::Reflow(nsPresContext*           aPresContext,
     lineLayout.NotifyOptionalBreakPosition(mContent, offset + length,
         textMetrics.mAdvanceWidth + provider.GetHyphenWidth() <= availWidth);
   }
+  PRBool breakAfter = PR_FALSE;
+  if ((charsFit == length && transformedOffset + transformedLength == mTextRun->GetLength() &&
+       (mTextRun->GetFlags() & nsTextFrameUtils::TEXT_HAS_TRAILING_BREAK))) {
+    
+    
+    
+    
+    if (textMetrics.mAdvanceWidth - trimmableWidth > availWidth) {
+      breakAfter = PR_TRUE;
+    } else {
+      lineLayout.NotifyOptionalBreakPosition(mContent, offset + length, PR_TRUE);
+    }
+  }
   if (completedFirstLetter) {
     lineLayout.SetFirstLetterStyleOK(PR_FALSE);
   }
@@ -5476,6 +5496,8 @@ nsTextFrame::Reflow(nsPresContext*           aPresContext,
     
     aStatus = NS_INLINE_LINE_BREAK_AFTER(aStatus);
     lineLayout.SetLineEndsInBR(PR_TRUE);
+  } else if (breakAfter) {
+    aStatus = NS_INLINE_LINE_BREAK_AFTER(aStatus);
   }
 
   
