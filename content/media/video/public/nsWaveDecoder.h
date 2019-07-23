@@ -266,7 +266,6 @@ private:
   
   
   
-  float mEndedCurrentTime;
   float mEndedDuration;
   PRPackedBool mEnded;
 

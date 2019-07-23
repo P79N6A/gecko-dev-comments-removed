@@ -266,9 +266,6 @@ protected:
   PRIntervalTime mDataTime;
 
   
-  PRPackedBool mSizeChanged;
-
-  
   
   
   
@@ -282,6 +279,9 @@ protected:
   
   
   float mFramerate;
+
+  
+  PRPackedBool mSizeChanged;
 
   
   
