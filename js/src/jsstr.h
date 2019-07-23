@@ -48,6 +48,7 @@
 
 
 
+#include "jsstddef.h"
 #include <ctype.h>
 #include "jspubtd.h"
 #include "jsprvtd.h"
@@ -241,7 +242,8 @@ extern const jschar *
 js_GetStringChars(JSContext *cx, JSString *str);
 
 extern JSString *
-js_ConcatStrings(JSContext *cx, JSString *left, JSString *right);
+js_ConcatStrings(JSContext *cx, JSString *left, JSString *right,
+                 uintN gcflag __cplusplus_only( = 0));
 
 extern const jschar *
 js_UndependString(JSContext *cx, JSString *str);
@@ -443,7 +445,8 @@ extern const char js_encodeURIComponent_str[];
 
 
 extern JSString *
-js_NewString(JSContext *cx, jschar *chars, size_t length);
+js_NewString(JSContext *cx, jschar *chars, size_t length,
+             uintN gcflag __cplusplus_only( = 0));
 
 extern JSString *
 js_NewDependentString(JSContext *cx, JSString *base, size_t start,
@@ -502,18 +505,20 @@ js_ValueToSource(JSContext *cx, jsval v);
 extern uint32
 js_HashString(JSString *str);
 
+#ifdef __cplusplus
 
 
 
 
-extern JSBool
+extern bool JS_FASTCALL
 js_EqualStrings(JSString *str1, JSString *str2);
+#endif
 
 
 
 
 
-extern intN
+extern jsint JS_FASTCALL
 js_CompareStrings(JSString *str1, JSString *str2);
 
 
