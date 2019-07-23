@@ -792,22 +792,6 @@ function ParamSubstitution(aParamValue, aSearchTerms, aEngine) {
 
 
 
-function createStatement (dbconn, sql) {
-  var stmt = dbconn.createStatement(sql);
-  var wrapper = Cc["@mozilla.org/storage/statement-wrapper;1"].
-                createInstance(Ci.mozIStorageStatementWrapper);
-
-  wrapper.initialize(stmt);
-  return wrapper;
-}
-
-
-
-
-
-
-
-
 
 
 
@@ -3296,14 +3280,11 @@ var engineMetadataService = {
       
     }
 
-    this.mGetData = createStatement (
-      this.mDB,
+    this.mGetData = this.mDB.createStatement (
       "SELECT value FROM engine_data WHERE engineid = :engineid AND name = :name");
-    this.mDeleteData = createStatement (
-      this.mDB,
+    this.mDeleteData = this.mDB.createStatement (
       "DELETE FROM engine_data WHERE engineid = :engineid AND name = :name");
-    this.mInsertData = createStatement (
-      this.mDB,
+    this.mInsertData = this.mDB.createStatement (
       "INSERT INTO engine_data (engineid, name, value) " +
       "VALUES (:engineid, :name, :value)");
   },
@@ -3318,7 +3299,7 @@ var engineMetadataService = {
     pp.name = name;
 
     var value = null;
-    if (stmt.step())
+    if (stmt.executeStep())
       value = stmt.row.value;
     stmt.reset();
     return value;
@@ -3333,14 +3314,14 @@ var engineMetadataService = {
     var pp = this.mDeleteData.params;
     pp.engineid = engine._id;
     pp.name = name;
-    this.mDeleteData.step();
+    this.mDeleteData.executeStep();
     this.mDeleteData.reset();
 
     pp = this.mInsertData.params;
     pp.engineid = engine._id;
     pp.name = name;
     pp.value = value;
-    this.mInsertData.step();
+    this.mInsertData.executeStep();
     this.mInsertData.reset();
 
     this.mDB.commitTransaction();
@@ -3356,14 +3337,14 @@ var engineMetadataService = {
       var pp = this.mDeleteData.params;
       pp.engineid = engines[i]._id;
       pp.name = names[i];
-      this.mDeleteData.step();
+      this.mDeleteData.executeStep();
       this.mDeleteData.reset();
 
       pp = this.mInsertData.params;
       pp.engineid = engines[i]._id;
       pp.name = names[i];
       pp.value = values[i];
-      this.mInsertData.step();
+      this.mInsertData.executeStep();
       this.mInsertData.reset();
     }
 
@@ -3377,7 +3358,7 @@ var engineMetadataService = {
     var pp = this.mDeleteData.params;
     pp.engineid = engine._id;
     pp.name = name;
-    this.mDeleteData.step();
+    this.mDeleteData.executeStep();
     this.mDeleteData.reset();
   }
 }
