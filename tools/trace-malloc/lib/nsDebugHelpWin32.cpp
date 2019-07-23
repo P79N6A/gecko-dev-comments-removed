@@ -199,8 +199,8 @@ DHWImportHooker::~DHWImportHooker()
                 cur->mNext = mNext;
                 break;
             }
+            PR_ASSERT(cur->mNext); 
         }
-        PR_ASSERT(cur); 
     }
 
     if(!gHooks)
