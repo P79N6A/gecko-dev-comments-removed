@@ -408,13 +408,7 @@ var PlacesUtils = {
 
 
   nodeIsLivemarkItem: function PU_nodeIsLivemarkItem(aNode) {
-    if (this.nodeIsBookmark(aNode)) {
-      if (this.annotations
-              .itemHasAnnotation(aNode.itemId, "livemark/bookmarkFeedURI"))
-        return true;
-    }
-
-    return false;
+    return aNode.parent && this.nodeIsLivemarkContainer(aNode.parent);
   },
 
   

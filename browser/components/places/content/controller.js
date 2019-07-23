@@ -462,6 +462,7 @@ PlacesController.prototype = {
 
 
 
+
   _buildSelectionMetadata: function PC__buildSelectionMetadata() {
     var metadata = [];
     var nodes = [];
@@ -506,6 +507,9 @@ PlacesController.prototype = {
             var mss = PlacesUtils.microsummaries;
             if (mss.hasMicrosummary(node.itemId))
               nodeData["microsummary"] = true;
+            else if (node.parent &&
+                     PlacesUtils.nodeIsLivemarkContainer(node.parent))
+              nodeData["livemarkChild"] = true;
           }
           break;
         case Ci.nsINavHistoryResultNode.RESULT_TYPE_DAY:
