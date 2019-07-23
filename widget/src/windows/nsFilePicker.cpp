@@ -209,8 +209,6 @@ NS_IMETHODIMP nsFilePicker::ShowW(PRInt16 *aReturnVal)
 
     ofn.Flags = OFN_NOCHANGEDIR | OFN_SHAREAWARE | OFN_LONGNAMES | OFN_OVERWRITEPROMPT | OFN_HIDEREADONLY | OFN_PATHMUSTEXIST;
 
-    PRInt32 extIndex = mDefault.RFind(".");
-
     if (!mDefaultExtension.IsEmpty()) {
       ofn.lpstrDefExt = mDefaultExtension.get();
     }
@@ -218,6 +216,7 @@ NS_IMETHODIMP nsFilePicker::ShowW(PRInt16 *aReturnVal)
       
       
       
+      PRInt32 extIndex = mDefault.RFind(".");
       if ( extIndex >= 0) {
         nsAutoString ext;
         mDefault.Right(ext, mDefault.Length() - extIndex);
@@ -260,12 +259,6 @@ NS_IMETHODIMP nsFilePicker::ShowW(PRInt16 *aReturnVal)
             StringEndsWith(ext, NS_LITERAL_CSTRING(".pif")) ||
             StringEndsWith(ext, NS_LITERAL_CSTRING(".url")))
           ofn.Flags |= OFN_NODEREFERENCELINKS;
-
-        
-        
-        
-        if (ofn.lpstrDefExt && extIndex >= 0 && extIndex < FILE_BUFFER_SIZE)
-          fileBuffer[extIndex] = '\0';
 
         result = ::GetSaveFileNameW(&ofn);
         if (!result) {
