@@ -49,7 +49,6 @@ int mainReturn = 0;
 BOOL b16 = FALSE;
 BOOL bSimple = FALSE;
 
-
 FILE *pAltFile = stdout;
 
 CStringArray includeDirectories;
