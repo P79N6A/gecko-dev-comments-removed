@@ -190,7 +190,9 @@ enum {
   NS_FRAME_IS_DIRTY =                           0x00000400,
 
   
-  NS_FRAME_IS_UNFLOWABLE =                      0x00000800,
+  
+  
+  NS_FRAME_TOO_DEEP_IN_FRAME_TREE =             0x00000800,
 
   
   
