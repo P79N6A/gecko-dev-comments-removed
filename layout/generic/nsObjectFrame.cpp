@@ -1272,9 +1272,24 @@ nsObjectFrame::PaintPlugin(nsIRenderingContext& aRenderingContext,
       
       
       
+      
+      
       nsPluginPort* pluginPort = mInstanceOwner->GetPluginPort();
-      NS_ASSERTION(pluginPort->cgPort.context == cgContext,
-                   "BeginNativeDrawing using different CGContextRef to plugin");
+      nsCOMPtr<nsIPluginInstance> inst;
+      GetPluginInstance(*getter_AddRefs(inst));
+      if (!inst) {
+        NS_WARNING("null plugin instance during PaintPlugin");
+        return;
+      }
+      nsPluginWindow* window;
+      mInstanceOwner->GetWindow(window);
+      if (!window) {
+        NS_WARNING("null plugin window during PaintPlugin");
+        return;
+      }
+      pluginPort->cgPort.context = cgContext;
+      window->window = pluginPort;
+      inst->SetWindow(window);
 
       mInstanceOwner->Paint(aDirtyRect);
 
