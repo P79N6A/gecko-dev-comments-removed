@@ -83,6 +83,11 @@ private:
 
   nsresult GetAccessibleByType(nsIDOMNode *aNode, nsIAccessible **aAccessible);
   PRBool HasListener(nsIContent *aContent, nsAString& aEventType);
+
+  
+
+
+  nsresult GetAccessibleForDeckChildren(nsIDOMNode *aNode, nsIAccessible **aAccessible);
 };
 
 #endif 

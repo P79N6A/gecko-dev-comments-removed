@@ -188,43 +188,6 @@ NS_IMETHODIMP nsXULTabBoxAccessible::GetChildCount(PRInt32 *_retval)
 
 
 
-
-
-
-
-
-
-
-
-
-nsXULTabPanelsAccessible::nsXULTabPanelsAccessible(nsIDOMNode* aNode, nsIWeakReference* aShell):
-nsAccessibleWrap(aNode, aShell)
-{ 
-}
-
-
-NS_IMETHODIMP nsXULTabPanelsAccessible::GetRole(PRUint32 *aRole)
-{
-  *aRole = nsIAccessibleRole::ROLE_PROPERTYPAGE;
-  return NS_OK;
-}
-
-
-
-
-
-
-NS_IMETHODIMP nsXULTabPanelsAccessible::GetName(nsAString& aName)
-{
-  aName.Truncate();
-  return NS_OK;
-}
-
-
-
-
-
-
 nsXULTabsAccessible::nsXULTabsAccessible(nsIDOMNode* aNode, nsIWeakReference* aShell):
 nsXULSelectableAccessible(aNode, aShell)
 { 

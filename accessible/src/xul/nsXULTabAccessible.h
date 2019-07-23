@@ -73,25 +73,6 @@ public:
 };
 
 
-
-
-
-class nsXULTabPanelsAccessible : public nsAccessibleWrap
-{
-public:
-  nsXULTabPanelsAccessible(nsIDOMNode* aNode, nsIWeakReference* aShell);
-  NS_IMETHOD GetRole(PRUint32 *_retval); 
-  NS_IMETHOD GetName(nsAString& _retval); 
-
-protected:
-  nsresult GetAccPluginChild(nsIAccessible **_retval);
-
-  
-  nsCOMPtr<nsIDOMNode> mGParentDOMNode;
-  nsCOMPtr<nsIDOMNode> mParentDOMNode;
-};
-
-
 class nsXULTabsAccessible : public nsXULSelectableAccessible
 {
 public:
