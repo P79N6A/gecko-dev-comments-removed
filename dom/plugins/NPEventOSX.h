@@ -79,22 +79,34 @@ struct ParamTraits<mozilla::plugins::NPRemoteEvent>
             case NPCocoaEventFocusChanged:
             case NPCocoaEventWindowFocusChanged:
             case NPCocoaEventScrollWheel:
-                
-                break;
+                aMsg->WriteBytes(&paramCopy, sizeof(paramType));
+                return;
             case NPCocoaEventDrawRect:
-                
                 paramCopy.event.data.draw.context = NULL;
-                break;
+                aMsg->WriteBytes(&paramCopy, sizeof(paramType));
+                return;
+            case NPCocoaEventFlagsChanged:
+                paramCopy.event.data.key.characters = NULL;
+                paramCopy.event.data.key.charactersIgnoringModifiers = NULL;
+                aMsg->WriteBytes(&paramCopy, sizeof(paramType));
+                return;
             case NPCocoaEventKeyDown:
             case NPCocoaEventKeyUp:
-            case NPCocoaEventFlagsChanged:
+                paramCopy.event.data.key.characters = NULL;
+                paramCopy.event.data.key.charactersIgnoringModifiers = NULL;
+                aMsg->WriteBytes(&paramCopy, sizeof(paramType));
+                WriteParam(aMsg, aParam.event.data.key.characters);
+                WriteParam(aMsg, aParam.event.data.key.charactersIgnoringModifiers);
+                return;
             case NPCocoaEventTextInput:
+                paramCopy.event.data.text.text = NULL;
+                aMsg->WriteBytes(&paramCopy, sizeof(paramType));
+                WriteParam(aMsg, aParam.event.data.text.text);
+                return;
             default:
-                
-                return; 
+                NS_NOTREACHED("Attempted to serialize unknown event type.");
+                return;
         }
-
-        aMsg->WriteBytes(&paramCopy, sizeof(paramType));
     }
 
     static bool Read(const Message* aMsg, void** aIter, paramType* aResult)
@@ -105,6 +117,36 @@ struct ParamTraits<mozilla::plugins::NPRemoteEvent>
             return false;
         }
         memcpy(aResult, bytes, sizeof(paramType));
+
+        switch (aResult->event.type) {
+            case NPCocoaEventMouseDown:
+            case NPCocoaEventMouseUp:
+            case NPCocoaEventMouseMoved:
+            case NPCocoaEventMouseEntered:
+            case NPCocoaEventMouseExited:
+            case NPCocoaEventMouseDragged:
+            case NPCocoaEventFocusChanged:
+            case NPCocoaEventWindowFocusChanged:
+            case NPCocoaEventScrollWheel:
+            case NPCocoaEventDrawRect:
+            case NPCocoaEventFlagsChanged:
+                break;
+            case NPCocoaEventKeyDown:
+            case NPCocoaEventKeyUp:
+                if (!ReadParam(aMsg, aIter, &aResult->event.data.key.characters) ||
+                    !ReadParam(aMsg, aIter, &aResult->event.data.key.charactersIgnoringModifiers)) {
+                  return false;
+                }
+                break;
+            case NPCocoaEventTextInput:
+                if (!ReadParam(aMsg, aIter, &aResult->event.data.text.text)) {
+                    return false;
+                }
+                break;
+            default:
+                
+                return false;
+        }
 
         return true;
     }
