@@ -119,7 +119,10 @@ struct JSStackFrame {
 
 
 
-    JSObject        *scopeChain;
+    union {
+        JSObject    *scopeChain;
+        jsval       scopeChainVal;
+    };
     JSObject        *blockChain;
 
     uint32          flags;          
