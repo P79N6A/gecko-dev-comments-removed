@@ -446,34 +446,22 @@ nsCookieService::InitDB()
   } else {
     
     PRInt32 dbSchemaVersion;
-    {
+    rv = mDBConn->GetSchemaVersion(&dbSchemaVersion);
+    NS_ENSURE_SUCCESS(rv, rv);
+    
+    if (dbSchemaVersion == 0) {
+      NS_WARNING("couldn't get schema version!");
+        
       
-      nsCOMPtr<mozIStorageStatement> stmt;
-      rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING("PRAGMA user_version"),
-                                    getter_AddRefs(stmt));
+      
+      
+      
+      
+      rv = mDBConn->SetSchemaVersion(COOKIES_SCHEMA_VERSION);
       NS_ENSURE_SUCCESS(rv, rv);
 
-      PRBool hasResult;
-      rv = stmt->ExecuteStep(&hasResult);
-      if (NS_SUCCEEDED(rv) && hasResult) {
-        dbSchemaVersion = stmt->AsInt32(0);
-      } else {
-        NS_WARNING("couldn't get schema version!");
-        stmt = nsnull;
-        
-        
-        
-        
-        
-        
-        nsCAutoString stmtString(NS_LITERAL_CSTRING("PRAGMA user_version="));
-        stmtString.AppendInt(COOKIES_SCHEMA_VERSION);
-        rv = mDBConn->ExecuteSimpleSQL(stmtString);
-        NS_ENSURE_SUCCESS(rv, rv);
-
-        
-        dbSchemaVersion = PR_INT32_MAX;
-      }
+      
+      dbSchemaVersion = PR_INT32_MAX;
     }
 
     if (dbSchemaVersion != COOKIES_SCHEMA_VERSION) {
@@ -542,9 +530,7 @@ nsresult
 nsCookieService::CreateTable()
 {
   
-  nsCAutoString stmtString(NS_LITERAL_CSTRING("PRAGMA user_version="));
-  stmtString.AppendInt(COOKIES_SCHEMA_VERSION);
-  nsresult rv = mDBConn->ExecuteSimpleSQL(stmtString);
+  nsresult rv = mDBConn->SetSchemaVersion(COOKIES_SCHEMA_VERSION);
   if (NS_FAILED(rv)) return rv;
 
   
