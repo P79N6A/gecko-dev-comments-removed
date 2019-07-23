@@ -507,7 +507,8 @@ QuoteString(Sprinter *sp, JSString *str, uint32 quote)
     for (t = s; t < z; s = ++t) {
         
         c = *t;
-        while (JS_ISPRINT(c) && c != qc && c != '\\' && !(c >> 8)) {
+        while (JS_ISPRINT(c) && c != qc && c != '\\' && c != '\t' &&
+               !(c >> 8)) {
             c = *++t;
             if (t == z)
                 break;
