@@ -58,7 +58,23 @@ struct StackFrameX86 : public StackFrame {
     CONTEXT_VALID_ALL  = -1
   };
 
-  StackFrameX86() : context(), context_validity(CONTEXT_VALID_NONE) {}
+  
+  
+  
+  
+  enum FrameTrust {
+    FRAME_TRUST_NONE,     
+    FRAME_TRUST_SCAN,     
+    FRAME_TRUST_CFI_SCAN, 
+    FRAME_TRUST_FP,       
+    FRAME_TRUST_CFI,      
+    FRAME_TRUST_CONTEXT   
+  };
+
+ StackFrameX86()
+     : context(),
+       context_validity(CONTEXT_VALID_NONE),
+       trust(FRAME_TRUST_NONE) {}
 
   
   
@@ -70,6 +86,10 @@ struct StackFrameX86 : public StackFrame {
   
   
   int context_validity;
+  
+  
+  
+  FrameTrust trust;
 };
 
 struct StackFramePPC : public StackFrame {

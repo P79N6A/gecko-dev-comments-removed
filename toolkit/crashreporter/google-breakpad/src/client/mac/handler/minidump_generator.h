@@ -68,7 +68,7 @@ typedef MDRawContextPPC MinidumpContext;
 
 
 
-#if __DARWIN_UNIX03 || !TARGET_CPU_X86 || TARGET_CPU_X86_64
+#if __DARWIN_UNIX03 || TARGET_CPU_X86_64 || TARGET_CPU_PPC64
 
 
 

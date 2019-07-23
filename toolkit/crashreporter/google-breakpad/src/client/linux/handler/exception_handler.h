@@ -27,28 +27,15 @@
 
 
 
+#ifndef CLIENT_LINUX_HANDLER_EXCEPTION_HANDLER_H_
+#define CLIENT_LINUX_HANDLER_EXCEPTION_HANDLER_H_
 
-
-#ifndef CLIENT_LINUX_HANDLER_EXCEPTION_HANDLER_H__
-#define CLIENT_LINUX_HANDLER_EXCEPTION_HANDLER_H__
-
-#include <pthread.h>
-
-#include <map>
-#include <string>
-#include <signal.h>
 #include <vector>
+#include <string>
 
-#include "client/linux/handler/minidump_generator.h"
-
-
-struct sigcontex;
+#include <signal.h>
 
 namespace google_breakpad {
-
-using std::string;
-
-
 
 
 
@@ -113,21 +100,34 @@ class ExceptionHandler {
   
   
   
+  typedef bool (*HandlerCallback)(const void* crash_context,
+                                  size_t crash_context_size,
+                                  void* context);
+
   
   
   
-  ExceptionHandler(const string &dump_path,
+  
+  
+  
+  
+  
+  ExceptionHandler(const std::string &dump_path,
                    FilterCallback filter, MinidumpCallback callback,
                    void *callback_context,
                    bool install_handler);
   ~ExceptionHandler();
 
   
-  string dump_path() const { return dump_path_; }
-  void set_dump_path(const string &dump_path) {
+  std::string dump_path() const { return dump_path_; }
+  void set_dump_path(const std::string &dump_path) {
     dump_path_ = dump_path;
     dump_path_c_ = dump_path_.c_str();
     UpdateNextID();
+  }
+
+  void set_crash_handler(HandlerCallback callback) {
+    crash_handler_ = callback;
   }
 
   
@@ -136,89 +136,61 @@ class ExceptionHandler {
 
   
   
-  static bool WriteMinidump(const string &dump_path,
+  static bool WriteMinidump(const std::string &dump_path,
                             MinidumpCallback callback,
                             void *callback_context);
 
+  
+  
+  struct CrashContext {
+    siginfo_t siginfo;
+    pid_t tid;  
+    struct ucontext context;
+    struct _libc_fpstate float_state;
+  };
+
  private:
-  
-  void SetupHandler();
-  
-  void SetupHandler(int signo);
-  
-  void TeardownHandler(int signo);
-  
-  void TeardownHandler(int signo, struct sigaction *old);
-  
-  void TeardownAllHandler();
+  bool InstallHandlers();
+  void UninstallHandlers();
+  void PreresolveSymbols();
 
-  
-  static void HandleException(int signo);
-
-  
-  
-  
-  
-  
-  
-  bool InternalWriteMinidump(int signo, uintptr_t sighandler_ebp,
-                             struct sigcontext **sig_ctx);
-
-  
-  
   void UpdateNextID();
+  static void SignalHandler(int sig, siginfo_t* info, void* uc);
+  bool HandleSignal(int sig, siginfo_t* info, void* uc);
+  static int ThreadEntry(void* arg);
+  bool DoDump(pid_t crashing_process, const void* context,
+              size_t context_size);
 
- private:
-  FilterCallback filter_;
-  MinidumpCallback callback_;
-  void *callback_context_;
+  const FilterCallback filter_;
+  const MinidumpCallback callback_;
+  void* const callback_context_;
 
-  
-  
-  string dump_path_;
-
-  
-  string next_minidump_id_;
-
-  
-  
-  string next_minidump_path_;
+  std::string dump_path_;
+  std::string next_minidump_path_;
+  std::string next_minidump_id_;
 
   
   
   
-  const char *dump_path_c_;
-  const char *next_minidump_id_c_;
-  const char *next_minidump_path_c_;
+  const char* dump_path_c_;
+  const char* next_minidump_path_c_;
+  const char* next_minidump_id_c_;
+
+  const bool handler_installed_;
+  void* signal_stack;  
+  HandlerCallback crash_handler_;
 
   
   
-  bool installed_handler_;
-
   
+  static std::vector<ExceptionHandler*> *handler_stack_;
   
-  
-  static std::vector<ExceptionHandler *> *handler_stack_;
-  
-  static int handler_stack_index_;
+  static unsigned handler_stack_index_;
   static pthread_mutex_t handler_stack_mutex_;
 
   
-  MinidumpGenerator minidump_generator_;
-
   
-  explicit ExceptionHandler(const ExceptionHandler &);
-  void operator=(const ExceptionHandler &);
-
-  
-  struct sigaction act_;
-
-
-  
-  
-  
-  
-  struct sigaction old_actions_[NSIG];
+  std::vector<std::pair<int, void *> > old_handlers_;
 };
 
 }  

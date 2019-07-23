@@ -28,6 +28,7 @@
 
 
 #include <cassert>
+#include <cstdio>
 
 #include "google_breakpad/processor/minidump_processor.h"
 #include "google_breakpad/processor/call_stack.h"
@@ -84,6 +85,9 @@ ProcessResult MinidumpProcessor::Process(
     process_state->crash_reason_ = GetCrashReason(
         dump, &process_state->crash_address_);
   }
+
+   
+   process_state->assertion_ = GetAssertion(dump);
 
   MinidumpModuleList *module_list = dump->GetModuleList();
 
@@ -169,7 +173,9 @@ ProcessResult MinidumpProcessor::Process(
         
         
         
-        context = exception->GetContext();
+        
+        MinidumpContext *ctx = exception->GetContext();
+        context = ctx ? ctx : thread->GetContext();
       }
     }
 
@@ -206,6 +212,7 @@ ProcessResult MinidumpProcessor::Process(
       interrupted = true;
     }
     process_state->threads_.push_back(stack.release());
+    process_state->thread_memory_regions_.push_back(thread_memory);
   }
 
   if (interrupted) {
@@ -752,6 +759,9 @@ string MinidumpProcessor::GetCrashReason(Minidump *dump, u_int64_t *address) {
         case MD_EXCEPTION_CODE_WIN_POSSIBLE_DEADLOCK:
           reason = "EXCEPTION_POSSIBLE_DEADLOCK";
           break;
+        case MD_EXCEPTION_CODE_WIN_UNHANDLED_CPP_EXCEPTION:
+	  reason = "Unhandled C++ Exception";
+	  break;
         default:
           BPLOG(INFO) << "Unknown exception reason " << reason;
           break;
@@ -997,6 +1007,59 @@ string MinidumpProcessor::GetCrashReason(Minidump *dump, u_int64_t *address) {
   }
 
   return reason;
+}
+
+
+string MinidumpProcessor::GetAssertion(Minidump *dump)
+{
+  MinidumpAssertion *assertion = dump->GetAssertion();
+  if (!assertion)
+    return "";
+
+  const MDRawAssertionInfo *raw_assertion = assertion->assertion();
+  if (!raw_assertion)
+    return "";
+
+  string assertion_string;
+  switch (raw_assertion->type) {
+  case MD_ASSERTION_INFO_TYPE_INVALID_PARAMETER:
+    assertion_string = "Invalid parameter passed to library function";
+    break;
+  case MD_ASSERTION_INFO_TYPE_PURE_VIRTUAL_CALL:
+    assertion_string = "Pure virtual function called";
+    break;
+  default: {
+    char assertion_type[32];
+    sprintf(assertion_type, "0x%08x", raw_assertion->type);
+    assertion_string = "Unknown assertion type ";
+    assertion_string += assertion_type;
+    break;
+  }
+  }
+
+  string expression = assertion->expression();
+  if (!expression.empty()) {
+    assertion_string.append(" " + expression);
+  }
+
+  string function = assertion->function();
+  if (!function.empty()) {
+    assertion_string.append(" in function " + function);
+  }
+
+  string file = assertion->file();
+  if (!file.empty()) {
+    assertion_string.append(", in file " + file);
+  }
+
+  if (raw_assertion->line != 0) {
+    char assertion_line[32];
+    sprintf(assertion_line, "%u", raw_assertion->line);
+    assertion_string.append(" at line ");
+    assertion_string.append(assertion_line);
+  }
+
+  return assertion_string;
 }
 
 }  

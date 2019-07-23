@@ -41,6 +41,24 @@
 extern NSString *const kGoogleServerType;
 extern NSString *const kSocorroServerType;
 extern NSString *const kDefaultServerType;
+
+
+
+
+
+
+
+
+
+
+@interface LengthLimitingTextField : NSTextField {
+  @private
+   unsigned int maximumLength_;
+}
+
+- (void) setMaximumLength:(unsigned int)maxLength;
+@end
+
 @interface Reporter : NSObject {
  @public
   IBOutlet NSWindow *alertWindow_;        
@@ -50,25 +68,33 @@ extern NSString *const kDefaultServerType;
   IBOutlet NSBox *preEmailBox_;
   IBOutlet NSBox *emailSectionBox_;
   
-  IBOutlet NSTextField *dialogTitle_;
-  IBOutlet NSTextField *commentMessage_;
-  IBOutlet NSTextField *emailMessage_;
-  IBOutlet NSTextField *emailLabel_;
-  IBOutlet NSTextField *privacyLinkLabel_;
-  IBOutlet NSButton    *sendButton_;
-  IBOutlet NSButton    *cancelButton_;
-  IBOutlet NSView      *emailEntryField_;
-  IBOutlet NSView      *privacyLinkArrow_;
+  IBOutlet NSTextField                *dialogTitle_;
+  IBOutlet NSTextField                *commentMessage_;
+  IBOutlet NSTextField                *emailMessage_;
+  IBOutlet NSTextField                *emailLabel_;
+  IBOutlet NSTextField                *privacyLinkLabel_;
+  IBOutlet NSButton                   *sendButton_;
+  IBOutlet NSButton                   *cancelButton_;
+  IBOutlet LengthLimitingTextField    *emailEntryField_;
+  IBOutlet LengthLimitingTextField    *commentsEntryField_;
+  IBOutlet NSTextField                *countdownLabel_;
+  IBOutlet NSView                     *privacyLinkArrow_;
 
   
   NSString *commentsValue_;                
   NSString *emailValue_;                   
-
+  NSString *countdownMessage_;             
+                                           
  @private
   int configFile_;                         
   NSMutableDictionary *parameters_;        
   NSData *minidumpContents_;               
   NSData *logFileData_;                    
+                                           
+  NSTimeInterval remainingDialogTime_;     
+                                           
+                                           
+  NSTimer *messageTimer_;                  
                                            
   NSMutableDictionary *serverDictionary_;  
                                            
@@ -106,5 +132,8 @@ extern NSString *const kDefaultServerType;
 
 - (NSString *)emailValue;
 - (void)setEmailValue:(NSString *)value;
+
+- (NSString *)countdownMessage;
+- (void)setCountdownMessage:(NSString *)value;
 
 @end

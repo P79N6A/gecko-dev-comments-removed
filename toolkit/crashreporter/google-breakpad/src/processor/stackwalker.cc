@@ -189,5 +189,39 @@ Stackwalker* Stackwalker::StackwalkerForCPU(
   return cpu_stackwalker;
 }
 
+bool Stackwalker::InstructionAddressSeemsValid(u_int64_t address) {
+  const CodeModule *module = modules_->GetModuleForAddress(address);
+  if (!module) {
+    
+    return false;
+  }
+
+  if (!resolver_ || !supplier_) {
+    
+    
+    return true;
+  }
+
+  if (!resolver_->HasModule(module->code_file())) {
+    string symbol_data, symbol_file;
+    SymbolSupplier::SymbolResult symbol_result =
+      supplier_->GetSymbolFile(module, system_info_,
+                               &symbol_file, &symbol_data);
+
+    if (symbol_result != SymbolSupplier::FOUND ||
+        !resolver_->LoadModuleUsingMapBuffer(module->code_file(),
+                                             symbol_data)) {
+      
+      return true;
+    }
+  }
+
+  StackFrame frame;
+  frame.module = module;
+  frame.instruction = address;
+  resolver_->FillSourceLineInfo(&frame);
+  
+  return !frame.function_name.empty();
+}
 
 }  

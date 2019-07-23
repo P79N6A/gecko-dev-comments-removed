@@ -89,6 +89,7 @@ extern "C" {
 #define BREAKPAD_PROCESS_CRASH_TIME       "BreakpadProcessCrashTime"
 #define BREAKPAD_LOGFILE_KEY_PREFIX       "BreakpadAppLogFile"
 #define BREAKPAD_SERVER_PARAMETER_PREFIX  "BreakpadServerParameterPrefix_"
+#define BREAKPAD_ON_DEMAND                "BreakpadOnDemand"
 
 
 
@@ -100,6 +101,12 @@ typedef bool (*BreakpadFilterCallback)(int exception_type,
                                        int exception_code,
                                        mach_port_t crashing_thread,
                                        void *context);
+
+
+
+
+
+
 
 
 
@@ -286,7 +293,7 @@ void BreakpadRemoveKeyValue(BreakpadRef ref, NSString *key);
 
 
 void BreakpadAddUploadParameter(BreakpadRef ref, NSString *key,
-				NSString *value);
+                                NSString *value);
 
 
 
