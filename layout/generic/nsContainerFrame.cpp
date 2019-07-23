@@ -198,24 +198,14 @@ nsContainerFrame::RemoveFrame(nsIAtom*  aListName,
     
     
     
-    PRBool generateReflowCommand =
-      aOldFrame->GetType() == nsGkAtoms::brFrame;
-
+    PRBool generateReflowCommand = PR_TRUE;
+#ifdef IBMBIDI
+    if (nsGkAtoms::nextBidi == aListName) {
+      generateReflowCommand = PR_FALSE;
+    }
+#endif
     nsContainerFrame* parent = static_cast<nsContainerFrame*>(aOldFrame->GetParent());
     while (aOldFrame) {
-#ifdef IBMBIDI
-      if (nsGkAtoms::nextBidi != aListName) {
-#endif
-
-
-      nsRect bbox = aOldFrame->GetRect();
-      if (bbox.width || bbox.height) {
-        generateReflowCommand = PR_TRUE;
-      }
-#ifdef IBMBIDI
-      }
-#endif
-
       
       
       
