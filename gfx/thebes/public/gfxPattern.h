@@ -71,7 +71,17 @@ public:
         EXTEND_NONE,
         EXTEND_REPEAT,
         EXTEND_REFLECT,
-        EXTEND_PAD
+        EXTEND_PAD,
+
+        
+        
+        
+        
+        
+        
+        
+        
+        EXTEND_PAD_EDGE = 1000
     };
 
     
