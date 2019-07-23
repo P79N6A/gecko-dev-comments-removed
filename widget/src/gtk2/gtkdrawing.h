@@ -332,8 +332,8 @@ moz_gtk_widget_get_focus(GtkWidget* widget, gboolean* interior_focus,
 
 
 gint
-moz_gtk_button_get_default_border(gint* border_top, gint* border_left,
-                                  gint* border_bottom, gint* border_right);
+moz_gtk_button_get_default_overflow(gint* border_top, gint* border_left,
+                                    gint* border_bottom, gint* border_right);
 
 
 

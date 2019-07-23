@@ -655,7 +655,8 @@ ThemeRenderer::NativeDraw(GdkDrawable * drawable, short offsetX,
 }
 
 static PRBool
-GetExtraSizeForWidget(PRUint8 aWidgetType, nsIntMargin* aExtra)
+GetExtraSizeForWidget(PRUint8 aWidgetType, PRBool aWidgetIsDefault,
+                      nsIntMargin* aExtra)
 {
   *aExtra = nsIntMargin(0,0,0,0);
   
@@ -689,13 +690,17 @@ GetExtraSizeForWidget(PRUint8 aWidgetType, nsIntMargin* aExtra)
     }
   case NS_THEME_BUTTON :
     {
-      gint top, left, bottom, right;
-      moz_gtk_button_get_default_border(&top, &left, &bottom, &right);
-      aExtra->top = top;
-      aExtra->right = right;
-      aExtra->bottom = bottom;
-      aExtra->left = left;
-      return PR_TRUE;
+      if (aWidgetIsDefault) {
+        
+        
+        gint top, left, bottom, right;
+        moz_gtk_button_get_default_overflow(&top, &left, &bottom, &right);
+        aExtra->top = top;
+        aExtra->right = right;
+        aExtra->bottom = bottom;
+        aExtra->left = left;
+        return PR_TRUE;
+      }
     }
   default:
     return PR_FALSE;
@@ -755,7 +760,7 @@ nsNativeThemeGTK::DrawWidgetBackground(nsIRenderingContext* aContext,
   
   
   
-  if (GetExtraSizeForWidget(aWidgetType, &extraSize)) {
+  if (GetExtraSizeForWidget(aWidgetType, state.isDefault, &extraSize)) {
     drawingRect.Inflate(extraSize);
   }
 
@@ -920,7 +925,7 @@ nsNativeThemeGTK::GetWidgetOverflow(nsIDeviceContext* aContext,
     }
   } else {
     nsIntMargin extraSize;
-    if (!GetExtraSizeForWidget(aWidgetType, &extraSize))
+    if (!GetExtraSizeForWidget(aWidgetType, IsDefaultButton(aFrame), &extraSize))
       return PR_FALSE;
 
     p2a = aContext->AppUnitsPerDevPixel();
