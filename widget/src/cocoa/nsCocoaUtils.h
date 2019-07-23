@@ -70,7 +70,6 @@ typedef unsigned int NSUInteger;
 #endif  
 
 
-
 class nsAutoRetainCocoaObject {
 public:
 nsAutoRetainCocoaObject(id anObject)
@@ -84,7 +83,6 @@ nsAutoRetainCocoaObject(id anObject)
 private:
   id mObject;  
 };
-
 
 @interface NSApplication (Undocumented)
 

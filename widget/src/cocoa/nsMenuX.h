@@ -55,7 +55,6 @@ class nsIWidget;
 
 
 
-
 @interface MenuDelegate : NSObject
 {
   nsMenuX* mGeckoMenu; 
@@ -64,7 +63,6 @@ class nsIWidget;
 }
 - (id)initWithGeckoMenu:(nsMenuX*)geckoMenu;
 @end
-
 
 
 

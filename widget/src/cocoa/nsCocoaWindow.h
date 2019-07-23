@@ -58,7 +58,6 @@ typedef struct _nsCocoaWindowList {
   nsCocoaWindow *window; 
 } nsCocoaWindowList;
 
-
 @interface NSWindow (Undocumented)
 
 
@@ -75,7 +74,6 @@ typedef struct _nsCocoaWindowList {
 
 @end
 
-
 @interface PopupWindow : NSWindow
 {
 @private
@@ -89,7 +87,6 @@ typedef struct _nsCocoaWindowList {
 
 @end
 
-
 @interface BorderlessWindow : NSWindow
 {
 }
@@ -98,7 +95,6 @@ typedef struct _nsCocoaWindowList {
 - (BOOL)canBecomeMainWindow;
 
 @end
-
 
 @interface WindowDelegate : NSObject
 {
@@ -307,6 +303,5 @@ protected:
 
   PRInt32              mNumModalDescendents;
 };
-
 
 #endif 

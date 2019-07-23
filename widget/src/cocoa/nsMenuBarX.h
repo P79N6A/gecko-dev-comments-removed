@@ -48,7 +48,6 @@
 #include "nsAutoPtr.h"
 #include "nsString.h"
 
-
 class nsMenuX;
 class nsMenuItemX;
 class nsChangeObserver;
@@ -57,14 +56,12 @@ class nsIContent;
 class nsIDocument;
 
 
-
 class nsNativeMenuServiceX : public nsINativeMenuService
 {
 public:
   NS_DECL_ISUPPORTS
   NS_IMETHOD CreateNativeMenuBar(nsIWidget* aParent, nsIContent* aMenuBarNode);
 };
-
 
 
 
@@ -78,13 +75,11 @@ public:
 @end
 
 
-
 @interface NativeMenuItemTarget : NSObject
 {
 }
 -(IBAction)menuItemHit:(id)sender;
 @end
-
 
 
 

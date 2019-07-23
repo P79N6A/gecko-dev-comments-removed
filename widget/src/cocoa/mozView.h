@@ -46,12 +46,6 @@ class nsIWidget;
 
 
 
-
-
-
-
-
-
 @protocol mozView
 
   
@@ -77,10 +71,6 @@ class nsIWidget;
 - (void)widgetDestroyed;
 
 @end
-
-
-
-
 
 
 

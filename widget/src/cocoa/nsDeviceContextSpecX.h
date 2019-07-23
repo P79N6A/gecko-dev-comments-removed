@@ -46,10 +46,6 @@
 class nsDeviceContextSpecX : public nsIDeviceContextSpec
 {
 public:
-    
-
-
-
     nsDeviceContextSpecX();
 
     NS_DECL_ISUPPORTS
@@ -69,20 +65,14 @@ public:
 
 
 
-
     NS_IMETHOD Init(nsIWidget *aWidget, nsIPrintSettings* aPS, PRBool aIsPrintPreview);
     
     void GetPaperRect(double* aTop, double* aLeft, double* aBottom, double* aRight);
 
 protected:
-
-
-
-
   virtual ~nsDeviceContextSpecX();
 
 protected:
-
     PMPrintSession    mPrintSession;              
     PMPageFormat      mPageFormat;                
     PMPrintSettings   mPrintSettings;             

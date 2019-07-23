@@ -53,8 +53,6 @@
 
 
 
-
-
 @interface WindowDataMap : NSObject
 {
 @private
@@ -75,10 +73,7 @@
 
 @end
 
-
 @class ChildView;
-
-
 
 
 

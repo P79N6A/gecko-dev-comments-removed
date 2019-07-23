@@ -53,11 +53,6 @@
 class nsILocalFileMac;
 @class NSArray;
 
-
-
-
-
-
 class nsFilePicker : public nsBaseFilePicker
 {
 public:
@@ -65,8 +60,8 @@ public:
   virtual ~nsFilePicker();
 
   NS_DECL_ISUPPORTS
-   
-    
+
+  
   NS_IMETHOD GetDefaultString(nsAString& aDefaultString);
   NS_IMETHOD SetDefaultString(const nsAString& aDefaultString);
   NS_IMETHOD GetDefaultExtension(nsAString& aDefaultExtension);
@@ -81,13 +76,12 @@ public:
 
 protected:
 
-  virtual void InitNative(nsIWidget *aParent, const nsAString& aTitle,
-                          PRInt16 aMode);
+  virtual void InitNative(nsIWidget *aParent, const nsAString& aTitle, PRInt16 aMode);
 
-    
-    
-    
-    
+  
+  
+  
+  
   PRInt16 GetLocalFiles(const nsString& inTitle, const nsString& inDefaultName, PRBool inAllowMultiple, nsCOMArray<nsILocalFile>& outFiles);
   PRInt16 GetLocalFolder(const nsString& inTitle, nsILocalFile** outFile);
   PRInt16 PutLocalFile(const nsString& inTitle, const nsString& inDefaultName, nsILocalFile** outFile);
