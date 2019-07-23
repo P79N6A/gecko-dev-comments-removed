@@ -1190,19 +1190,15 @@ nsBoxFrame::AttributeChanged(PRInt32 aNameSpaceID,
   }
   else if (aAttribute == nsGkAtoms::ordinal) {
     nsBoxLayoutState state(PresContext());
-
-    nsIFrame* frameToMove = this;
-    if (GetStateBits() & NS_FRAME_OUT_OF_FLOW) {
-      PresContext()->PresShell()->GetPlaceholderFrameFor(this,
-                                                            &frameToMove);
-      NS_ASSERTION(frameToMove, "Out of flow without placeholder?");
-    }
-    
-    nsIBox* parent = frameToMove->GetParentBox();
+    nsIBox* parent = GetParentBox();
     
     
-    if (parent) {
-      parent->RelayoutChildAtOrdinal(state, frameToMove);
+    
+    
+    
+    if (parent && !(GetStateBits() & NS_FRAME_OUT_OF_FLOW) &&
+        GetStyleDisplay()->mDisplay != NS_STYLE_DISPLAY_POPUP) {
+      parent->RelayoutChildAtOrdinal(state, this);
       
       PresContext()->PresShell()->
         FrameNeedsReflow(parent, nsIPresShell::eStyleChange,
