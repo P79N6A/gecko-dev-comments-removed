@@ -777,7 +777,8 @@ var gEditItemOverlay = {
     var ip = this._folderTree.insertionPoint;
 
     
-    if (ip.itemId == PlacesUIUtils.allBookmarksFolderId ||
+    if (!ip ||
+        ip.itemId == PlacesUIUtils.allBookmarksFolderId ||
         ip.itemId == PlacesUIUtils.unfiledBookmarksFolderId) {
       ip.itemId = PlacesUtils.bookmarksMenuFolderId;
       ip.index = -1;
@@ -819,8 +820,22 @@ var gEditItemOverlay = {
   
   onItemChanged: function EIO_onItemChanged(aItemId, aProperty,
                                             aIsAnnotationProperty, aValue) {
-    if (this._itemId != aItemId)
+    if (this._itemId != aItemId) {
+      if (aProperty == "title") {
+        
+        
+        
+        var menupopup = this._folderMenuList.menupopup;
+        for (var i=0; i < menupopup.childNodes.length; i++) {
+          if (menupopup.childNodes[i].folderId == aItemId) {
+            menupopup.childNodes[i].label = aValue;
+            break;
+          }
+        }
+      }
+
       return;
+    }
 
     switch (aProperty) {
     case "title":
