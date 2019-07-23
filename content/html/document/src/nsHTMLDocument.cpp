@@ -2083,17 +2083,39 @@ nsHTMLDocument::OpenCommon(const nsACString& aContentType, PRBool aReplace)
   }
 
   nsCOMPtr<nsIPrincipal> callerPrincipal;
-  nsContentUtils::GetSecurityManager()->
-    GetSubjectPrincipal(getter_AddRefs(callerPrincipal));
+  nsIScriptSecurityManager *secMan = nsContentUtils::GetSecurityManager();
+
+  secMan->GetSubjectPrincipal(getter_AddRefs(callerPrincipal));
+
+  if (!callerPrincipal) {
+    
+    
+    
+    
+    
+    
+
+    return NS_ERROR_DOM_SECURITY_ERR;
+  }
+
+  
+  
+  
+  
+  
+
+  PRBool equals = PR_FALSE;
+  if (NS_FAILED(callerPrincipal->Equals(NodePrincipal(), &equals)) ||
+      !equals) {
+    return NS_ERROR_DOM_SECURITY_ERR;
+  }
 
   
   
   
   nsCOMPtr<nsIURI> uri;
+  callerPrincipal->GetURI(getter_AddRefs(uri));
 
-  if (callerPrincipal) {
-    callerPrincipal->GetURI(getter_AddRefs(uri));
-  }
   if (!uri) {
     rv = NS_NewURI(getter_AddRefs(uri),
                    NS_LITERAL_CSTRING("about:blank"));
@@ -2150,15 +2172,6 @@ nsHTMLDocument::OpenCommon(const nsACString& aContentType, PRBool aReplace)
   if (window) {
     
     nsCOMPtr<nsIScriptGlobalObject> oldScope(do_QueryReferent(mScopeObject));
-
-    
-    
-    PRBool samePrincipal;
-    if (!callerPrincipal ||
-        NS_FAILED(callerPrincipal->Equals(NodePrincipal(), &samePrincipal)) ||
-        !samePrincipal) {
-      SetIsInitialDocument(PR_FALSE);
-    }
 
     rv = window->SetNewDocument(this, nsnull, PR_FALSE);
     NS_ENSURE_SUCCESS(rv, rv);

@@ -193,14 +193,8 @@ nsXMLDocument::~nsXMLDocument()
   mLoopingForSyncLoad = PR_FALSE;
 }
 
-NS_IMPL_CYCLE_COLLECTION_CLASS(nsXMLDocument)
 
-NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INHERITED(nsXMLDocument, nsDocument)
-  NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMPTR(mScriptContext)
-NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
-
-
-NS_INTERFACE_TABLE_HEAD_CYCLE_COLLECTION_INHERITED(nsXMLDocument)
+NS_INTERFACE_TABLE_HEAD(nsXMLDocument)
   NS_INTERFACE_TABLE_INHERITED3(nsXMLDocument,
                                 nsIInterfaceRequestor,
                                 nsIChannelEventSink,
@@ -227,8 +221,6 @@ void
 nsXMLDocument::Reset(nsIChannel* aChannel, nsILoadGroup* aLoadGroup)
 {
   nsDocument::Reset(aChannel, aLoadGroup);
-
-  mScriptContext = nsnull;
 }
 
 void
@@ -240,7 +232,7 @@ nsXMLDocument::ResetToURI(nsIURI *aURI, nsILoadGroup *aLoadGroup,
     mChannel->Cancel(NS_BINDING_ABORTED);
     mChannelIsPending = nsnull;
   }
-  
+
   nsDocument::ResetToURI(aURI, aLoadGroup, aPrincipal);
 }
 
@@ -289,27 +281,19 @@ nsXMLDocument::OnChannelRedirect(nsIChannel *aOldChannel,
 
   nsIScriptSecurityManager *secMan = nsContentUtils::GetSecurityManager();
 
-  if (mScriptContext && !mCrossSiteAccessEnabled) {
-    nsCOMPtr<nsIJSContextStack> stack(do_GetService("@mozilla.org/js/xpc/ContextStack;1", & rv));
-    if (NS_FAILED(rv))
-      return rv;
+  nsCOMPtr<nsIURI> oldURI;
+  rv = aOldChannel->GetURI(getter_AddRefs(oldURI));
+  NS_ENSURE_SUCCESS(rv, rv);
 
-    JSContext *cx = (JSContext *)mScriptContext->GetNativeContext();
-    if (!cx)
-      return NS_ERROR_UNEXPECTED;
+  nsCOMPtr<nsIURI> newURI;
+  rv = aNewChannel->GetURI(getter_AddRefs(newURI));
+  NS_ENSURE_SUCCESS(rv, rv);
 
-    stack->Push(cx);
+  rv = nsContentUtils::GetSecurityManager()->
+    CheckSameOriginURI(oldURI, newURI, PR_TRUE);
 
-    rv = secMan->CheckSameOrigin(nsnull, newLocation);
-
-    stack->Pop(&cx);
-  
-    if (NS_FAILED(rv)) {
-      
-      
-      ::JS_ReportPendingException(cx);
-      return rv;
-    }
+  if (NS_FAILED(rv)) {
+    return rv;
   }
 
   
@@ -360,64 +344,21 @@ nsXMLDocument::SetAsync(PRBool aAsync)
   return NS_OK;
 }
 
-nsresult 
-nsXMLDocument::GetLoadGroup(nsILoadGroup **aLoadGroup)
-{
-  NS_ENSURE_ARG_POINTER(aLoadGroup);
-  *aLoadGroup = nsnull;
-
-  if (mScriptContext) {
-    nsCOMPtr<nsIDOMWindow> window =
-      do_QueryInterface(mScriptContext->GetGlobalObject());
-
-    if (window) {
-      nsCOMPtr<nsIDOMDocument> domdoc;
-      window->GetDocument(getter_AddRefs(domdoc));
-      nsCOMPtr<nsIDocument> doc = do_QueryInterface(domdoc);
-      if (doc) {
-        *aLoadGroup = doc->GetDocumentLoadGroup().get(); 
-      }
-    }
-  }
-
-  return NS_OK;
-}
-
-
 NS_IMETHODIMP
 nsXMLDocument::Load(const nsAString& aUrl, PRBool *aReturn)
 {
   NS_ENSURE_ARG_POINTER(aReturn);
   *aReturn = PR_FALSE;
 
-  nsIScriptContext *callingContext = nsnull;
-
-  nsCOMPtr<nsIJSContextStack> stack =
-    do_GetService("@mozilla.org/js/xpc/ContextStack;1");
-  if (stack) {
-    JSContext *cx;
-    if (NS_SUCCEEDED(stack->Peek(&cx)) && cx) {
-      callingContext = nsJSUtils::GetDynamicScriptContext(cx);
-    }
-  }
+  nsCOMPtr<nsIDocument> callingDoc =
+    do_QueryInterface(nsContentUtils::GetDocumentFromContext());
 
   nsIURI *baseURI = mDocumentURI;
   nsCAutoString charset;
 
-  if (callingContext) {
-    nsCOMPtr<nsIDOMWindow> window =
-      do_QueryInterface(callingContext->GetGlobalObject());
-
-    if (window) {
-      nsCOMPtr<nsIDOMDocument> dom_doc;
-      window->GetDocument(getter_AddRefs(dom_doc));
-      nsCOMPtr<nsIDocument> doc(do_QueryInterface(dom_doc));
-
-      if (doc) {
-        baseURI = doc->GetBaseURI();
-        charset = doc->GetDocumentCharacterSet();
-      }
-    }
+  if (callingDoc) {
+    baseURI = callingDoc->GetBaseURI();
+    charset = callingDoc->GetDocumentCharacterSet();
   }
 
   
@@ -427,26 +368,30 @@ nsXMLDocument::Load(const nsAString& aUrl, PRBool *aReturn)
     return rv;
   }
 
-  
-  
-  
-  
-  
-  
-  
-  nsCOMPtr<nsIPrincipal> principal = NodePrincipal();
-  nsCOMPtr<nsIEventListenerManager> elm(mListenerManager);
-  mListenerManager = nsnull;
-
-  ResetToURI(uri, nsnull, principal);
-
-  mListenerManager = elm;
+  nsCOMPtr<nsIURI> codebase;
+  NodePrincipal()->GetURI(getter_AddRefs(codebase));
 
   
-  nsCOMPtr<nsIScriptSecurityManager> secMan = 
-           do_GetService(NS_SCRIPTSECURITYMANAGER_CONTRACTID, &rv);
-  if (NS_FAILED(rv)) {
-    return rv;
+  
+  
+  
+  
+  nsIScriptSecurityManager *secMan = nsContentUtils::GetSecurityManager();
+
+  if (codebase) {
+    rv = secMan->CheckSameOriginURI(codebase, uri, PR_FALSE);
+
+    if (NS_FAILED(rv)) {
+      return rv;
+    }
+  } else {
+    
+    
+
+    PRBool isChrome = PR_FALSE;
+    if (NS_FAILED(uri->SchemeIs("chrome", &isChrome)) || !isChrome) {
+      return NS_ERROR_DOM_SECURITY_ERR;
+    }
   }
 
   rv = secMan->CheckConnect(nsnull, uri, "XMLDocument", "load");
@@ -460,26 +405,29 @@ nsXMLDocument::Load(const nsAString& aUrl, PRBool *aReturn)
 
   
   
-
-  mScriptContext = callingContext;
+  
+  
+  
+  
+  
+  nsCOMPtr<nsIPrincipal> principal = NodePrincipal();
+  nsCOMPtr<nsIEventListenerManager> elm(mListenerManager);
+  mListenerManager = nsnull;
 
   
   
-  PRBool crossSiteAccessEnabled;
-  rv = secMan->IsCapabilityEnabled("UniversalBrowserRead",
-                                   &crossSiteAccessEnabled);
-  if (NS_FAILED(rv)) {
-    return rv;
+  
+
+  nsCOMPtr<nsILoadGroup> loadGroup;
+  if (callingDoc) {
+    loadGroup = callingDoc->GetDocumentLoadGroup();
   }
 
-  mCrossSiteAccessEnabled = crossSiteAccessEnabled;
+  ResetToURI(uri, loadGroup, principal);
+
+  mListenerManager = elm;
 
   
-  
-  
-  
-  nsCOMPtr<nsILoadGroup> loadGroup;
-  GetLoadGroup(getter_AddRefs(loadGroup));
 
   nsCOMPtr<nsIChannel> channel;
   
