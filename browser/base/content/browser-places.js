@@ -823,6 +823,21 @@ var PlacesMenuDNDController = {
 
 
 
+  onDragExit: function PMDC_onDragExit(event) {
+    
+    if ("closeTime" in this._timers)
+      return;
+      
+    this._setDragTimer("closeTime", this._closePopups, 
+                       this._springLoadDelay, [event.target]);
+  },
+  
+  
+
+
+
+
+
 
 
 
