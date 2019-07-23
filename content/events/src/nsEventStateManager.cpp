@@ -1947,10 +1947,6 @@ nsEventStateManager::GenerateDragGesture(nsPresContext* aPresContext,
       nsCOMPtr<nsIWidget> widget = mCurrentTarget->GetWindow();
 
       
-      nsMouseEvent startEvent(NS_IS_TRUSTED_EVENT(aEvent), NS_DRAGDROP_START,
-                              widget, nsMouseEvent::eReal);
-      FillInEventFromGestureDown(&startEvent);
-
       nsMouseEvent gestureEvent(NS_IS_TRUSTED_EVENT(aEvent), NS_DRAGDROP_GESTURE,
                                 widget, nsMouseEvent::eReal);
       FillInEventFromGestureDown(&gestureEvent);
@@ -1972,14 +1968,8 @@ nsEventStateManager::GenerateDragGesture(nsPresContext* aPresContext,
 
       
       nsEventStatus status = nsEventStatus_eIgnore;
-      nsEventDispatcher::Dispatch(targetContent, aPresContext, &startEvent, nsnull,
+      nsEventDispatcher::Dispatch(targetContent, aPresContext, &gestureEvent, nsnull,
                                   &status);
-
-      if (status != nsEventStatus_eConsumeNoDefault) {
-        status = nsEventStatus_eIgnore;
-        nsEventDispatcher::Dispatch(targetContent, aPresContext, &gestureEvent, nsnull,
-                                    &status);
-      }
 
       
       
@@ -2518,34 +2508,6 @@ nsEventStateManager::PostHandleEvent(nsPresContext* aPresContext,
     break;
 
   case NS_DRAGDROP_DROP:
-    {
-      
-      if (mCurrentTarget) {
-        nsCOMPtr<nsIContent> targetContent;
-        mCurrentTarget->GetContentForEvent(presContext, aEvent,
-                                           getter_AddRefs(targetContent));
-
-        nsCOMPtr<nsIWidget> widget = mCurrentTarget->GetWindow();
-        nsMouseEvent event(NS_IS_TRUSTED_EVENT(aEvent), NS_DRAGDROP_DRAGDROP,
-                           widget, nsMouseEvent::eReal);
-
-        nsMouseEvent* mouseEvent = static_cast<nsMouseEvent*>(aEvent);
-        event.refPoint = mouseEvent->refPoint;
-        event.isShift = mouseEvent->isShift;
-        event.isControl = mouseEvent->isControl;
-        event.isAlt = mouseEvent->isAlt;
-        event.isMeta = mouseEvent->isMeta;
-
-        nsEventStatus status = nsEventStatus_eIgnore;
-        nsCOMPtr<nsIPresShell> presShell = mPresContext->GetPresShell();
-        if (presShell) {
-          presShell->HandleEventWithTarget(&event, mCurrentTarget,
-                                           targetContent, &status);
-        }
-      }
-      
-    }
-
   case NS_DRAGDROP_EXIT:
     
     
@@ -3182,8 +3144,6 @@ nsEventStateManager::GenerateDragDropEnterExit(nsPresContext* aPresContext,
           
           mLastDragOverFrame->GetContentForEvent(aPresContext, aEvent, getter_AddRefs(lastContent));
 
-          FireDragEnterOrExit(aPresContext, aEvent, NS_DRAGDROP_LEAVE_SYNTH,
-                              targetContent, lastContent, mLastDragOverFrame);
           FireDragEnterOrExit(aPresContext, aEvent, NS_DRAGDROP_EXIT_SYNTH,
                               targetContent, lastContent, mLastDragOverFrame);
         }
@@ -3204,8 +3164,6 @@ nsEventStateManager::GenerateDragDropEnterExit(nsPresContext* aPresContext,
         nsCOMPtr<nsIContent> lastContent;
         mLastDragOverFrame->GetContentForEvent(aPresContext, aEvent, getter_AddRefs(lastContent));
 
-        FireDragEnterOrExit(aPresContext, aEvent, NS_DRAGDROP_LEAVE_SYNTH,
-                            nsnull, lastContent, mLastDragOverFrame);
         FireDragEnterOrExit(aPresContext, aEvent, NS_DRAGDROP_EXIT_SYNTH,
                             nsnull, lastContent, mLastDragOverFrame);
 
