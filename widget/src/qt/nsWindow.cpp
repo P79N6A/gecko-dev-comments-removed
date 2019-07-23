@@ -482,14 +482,13 @@ nsWindow::SetSizeMode(PRInt32 aMode)
     case nsSizeMode_Minimized:
         mWidget->showMinimized();
         break;
+    case nsSizeMode_Fullscreen:
+        mWidget->showFullScreen();
+        break;
+
     default:
         
-        mWidget->showNormal ();
-        
-        
-        
-        
-        
+        mWidget->showNormal();
         break;
     }
 
@@ -1832,7 +1831,32 @@ void nsWindow::QWidgetDestroyed()
 NS_IMETHODIMP
 nsWindow::MakeFullScreen(PRBool aFullScreen)
 {
-    return nsBaseWidget::MakeFullScreen(aFullScreen);
+    if (aFullScreen) {
+        if (mSizeMode != nsSizeMode_Fullscreen)
+            mLastSizeMode = mSizeMode;
+        
+        mSizeMode = nsSizeMode_Fullscreen;
+        mWidget->showFullScreen();
+    }
+    else {
+        mSizeMode = mLastSizeMode;
+
+        switch (mSizeMode) {
+        case nsSizeMode_Maximized:
+            mWidget->showMaximized();
+            break;
+        case nsSizeMode_Minimized:
+            mWidget->showMinimized();
+            break;
+        case nsSizeMode_Normal:
+            mWidget->showNormal();
+            break;
+        }
+    }
+    
+    NS_ASSERTION(mLastSizeMode != nsSizeMode_Fullscreen,
+                 "mLastSizeMode should never be fullscreen");
+    return NS_OK;
 }
 
 NS_IMETHODIMP

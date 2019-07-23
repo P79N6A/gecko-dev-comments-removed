@@ -231,6 +231,10 @@ protected:
     PRBool              mPlaced;
 
     
+    
+    nsSizeMode         mLastSizeMode;
+
+    
 
 
 
