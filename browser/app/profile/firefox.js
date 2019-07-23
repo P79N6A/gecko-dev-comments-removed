@@ -114,13 +114,12 @@ pref("app.update.url", "https://aus2.mozilla.org/update/3/%PRODUCT%/%VERSION%/%B
 pref("app.update.interval", 86400);
 
 
-pref("app.update.nagTimer.download", 86400);
-
-
-pref("app.update.nagTimer.restart", 1800);
+pref("app.update.nagTimer.restart", 86400);
 
 
 pref("app.update.timer", 600000);
+
+pref("app.update.promptWaitTime", 43200);
 
 pref("app.update.idletime", 60);
 
