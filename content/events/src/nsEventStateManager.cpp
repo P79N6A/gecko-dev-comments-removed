@@ -2914,7 +2914,9 @@ nsEventStateManager::PostHandleEvent(nsPresContext* aPresContext,
         if (!(msEvent->scrollFlags & nsMouseScrollEvent::kHasPixels)) {
           
           
+          nsWeakFrame weakFrame(aTargetFrame);
           SendPixelScrollEvent(aTargetFrame, msEvent, presContext, aStatus);
+          NS_ENSURE_STATE(weakFrame.IsAlive());
         }
       }
 
