@@ -858,7 +858,7 @@ nsIEProfileMigrator::MigrateSiteAuthSignons(IPStore* aPStore)
           
           nsresult rv;
 
-          ncCOMPtr<nsILoginInfo> aLogin (do_CreateInstance(NS_LOGININFO_CONTRACTID, &rv));
+          nsCOMPtr<nsILoginInfo> aLogin (do_CreateInstance(NS_LOGININFO_CONTRACTID, &rv));
           NS_ENSURE_SUCCESS(rv, rv);
 
           
