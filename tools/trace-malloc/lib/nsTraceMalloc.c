@@ -1108,7 +1108,22 @@ static callsite *calltree(void **bp)
 
 
         info.dli_fname = info.dli_sname = NULL;
+
+        
+
+
+
+
+
+
+
+
+
+
+
+        TM_EXIT_MONITOR();
         ok = my_dladdr((void*) pc, &info);
+        TM_ENTER_MONITOR();
         if (ok < 0) {
             tmstats.dladdr_failures++;
             return NULL;
