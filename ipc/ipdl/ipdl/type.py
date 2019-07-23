@@ -500,6 +500,10 @@ class GatherDecls(TcheckVisitor):
             fullname=fullname)
 
         
+        
+        p.decl.type._p = p
+
+        
         for pinc in tu.protocolIncludes:
             pinc.accept(self)
 
