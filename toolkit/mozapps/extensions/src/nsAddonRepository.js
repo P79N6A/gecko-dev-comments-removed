@@ -181,19 +181,23 @@ AddonRepository.prototype = {
   _reportSuccess: function(aCount) {
     this._searching = false;
     this._request = null;
-    this._callback.searchSucceeded(this._addons, this._addons.length,
-                                   this._recommended ? -1 : aCount);
+    
+    var addons = this._addons;
+    var callback = this._callback;
     this._callback = null;
     this._addons = null;
+    callback.searchSucceeded(addons, addons.length, this._recommended ? -1 : aCount);
   },
 
   
   _reportFailure: function(aEvent) {
     this._searching = false;
     this._request = null;
-    this._callback.searchFailed();
+    
+    var callback = this._callback;
     this._callback = null;
     this._addons = null;
+    callback.searchFailed();
   },
 
   
