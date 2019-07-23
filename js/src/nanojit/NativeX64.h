@@ -193,6 +193,7 @@ namespace nanojit
         X64_cvtsq2sd= 0xC02A0F48F2000005LL, 
         X64_cvtss2sd= 0xC05A0F40F3000005LL, 
         X64_cvtsd2ss= 0xC05A0F40F2000005LL, 
+        X64_cvtsd2si= 0xC02D0F40F2000005LL, 
         X64_divsd   = 0xC05E0F40F2000005LL, 
         X64_mulsd   = 0xC0590F40F2000005LL, 
         X64_addsd   = 0xC0580F40F2000005LL, 
