@@ -6654,16 +6654,11 @@ already_AddRefed<nsStyleContext>
 nsCSSFrameConstructor::ResolveStyleContext(nsIFrame*         aParentFrame,
                                            nsIContent*       aContent)
 {
+  aParentFrame = nsFrame::CorrectStyleParentFrame(aParentFrame, nsnull);
+  
   
   
   nsStyleContext* parentStyleContext = aParentFrame->GetStyleContext();
-
-  
-  
-  while (parentStyleContext && parentStyleContext->GetPseudoType() ==
-         nsCSSAnonBoxes::scrolledContent) {
-    parentStyleContext = parentStyleContext->GetParent();
-  }
 
   nsStyleSet *styleSet = mPresShell->StyleSet();
 
@@ -11216,7 +11211,10 @@ nsCSSFrameConstructor::ProcessChildren(nsFrameConstructorState& aState,
   
   
   nsresult rv = NS_OK;
-  nsStyleContext* styleContext = aFrame->GetStyleContext();
+  
+  
+  nsStyleContext* styleContext =
+    nsFrame::CorrectStyleParentFrame(aFrame, nsnull)->GetStyleContext();
     
   if (aCanHaveGeneratedContent) {
     

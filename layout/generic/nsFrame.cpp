@@ -118,6 +118,7 @@
 #include "nsWidgetsCID.h"     
 #include "nsUnicharUtils.h"
 #include "nsLayoutErrors.h"
+#include "nsContentErrors.h"
 #include "nsHTMLContainerFrame.h"
 #include "nsBoxLayoutState.h"
 #include "nsBlockFrame.h"
@@ -5433,25 +5434,15 @@ GetIBSpecialSibling(nsPresContext* aPresContext,
                              aPresContext->PropertyTable()->GetProperty(aFrame,
                                nsGkAtoms::IBSplitSpecialPrevSibling, &rv));
 
-  if (NS_OK == rv) {
+  if (NS_PROPTABLE_PROP_NOT_THERE == rv) {
+    *aSpecialSibling = nsnull;
+    rv = NS_OK;
+  } else if (NS_SUCCEEDED(rv)) {
     NS_ASSERTION(specialSibling, "null special sibling");
     *aSpecialSibling = specialSibling;
   }
 
-  return NS_OK;
-}
-
-static PRBool
-IsTablePseudo(nsIAtom* aPseudo)
-{
-  return
-    aPseudo == nsCSSAnonBoxes::tableOuter ||
-    aPseudo == nsCSSAnonBoxes::table ||
-    aPseudo == nsCSSAnonBoxes::tableRowGroup ||
-    aPseudo == nsCSSAnonBoxes::tableRow ||
-    aPseudo == nsCSSAnonBoxes::tableCell ||
-    aPseudo == nsCSSAnonBoxes::tableColGroup ||
-    aPseudo == nsCSSAnonBoxes::tableCol;
+  return rv;
 }
 
 
@@ -5469,35 +5460,71 @@ GetCorrectedParent(nsPresContext* aPresContext, nsIFrame* aFrame,
                    nsIFrame** aSpecialParent)
 {
   nsIFrame *parent = aFrame->GetParent();
-  *aSpecialParent = parent;
-  if (parent) {
-    nsIAtom* pseudo = aFrame->GetStyleContext()->GetPseudoType();
-
-    
-    
-    if (pseudo != nsCSSAnonBoxes::scrolledContent) {
-      while (parent->GetStyleContext()->GetPseudoType() ==
-             nsCSSAnonBoxes::scrolledContent) {
-        parent = parent->GetParent();
-      }
-    }
-
-    
-    
-    if (!IsTablePseudo(pseudo)) {
-      while (IsTablePseudo(parent->GetStyleContext()->GetPseudoType())) {
-        parent = parent->GetParent();
-      }
-    }
-
-    if (parent->GetStateBits() & NS_FRAME_IS_SPECIAL) {
-      GetIBSpecialSibling(aPresContext, parent, aSpecialParent);
-    } else {
-      *aSpecialParent = parent;
-    }
+  if (!parent) {
+    *aSpecialParent = nsnull;
+  } else {
+    *aSpecialParent =
+      nsFrame::CorrectStyleParentFrame(parent,
+                                       aFrame->GetStyleContext()->
+                                         GetPseudoType());
   }
 
   return NS_OK;
+}
+
+
+nsIFrame*
+nsFrame::CorrectStyleParentFrame(nsIFrame* aProspectiveParent,
+                                 nsIAtom* aChildPseudo)
+{
+  NS_PRECONDITION(aProspectiveParent, "Must have a prospective parent");
+
+  
+  
+  if (aChildPseudo && aChildPseudo != nsCSSAnonBoxes::mozNonElement &&
+      nsCSSAnonBoxes::IsAnonBox(aChildPseudo)) {
+    NS_ASSERTION(aChildPseudo != nsCSSAnonBoxes::mozAnonymousBlock &&
+                 aChildPseudo != nsCSSAnonBoxes::mozAnonymousPositionedBlock,
+                 "Should have dealt with kids that have NS_FRAME_IS_SPECIAL "
+                 "elsewhere");
+    return aProspectiveParent;
+  }
+
+  
+  nsIFrame* parent = aProspectiveParent;
+  do {
+    if (parent->GetStateBits() & NS_FRAME_IS_SPECIAL) {
+      nsIFrame* sibling;
+      nsresult rv =
+        GetIBSpecialSibling(parent->PresContext(), parent, &sibling);
+      if (NS_FAILED(rv)) {
+        
+        
+        NS_NOTREACHED("Shouldn't get here");
+        return aProspectiveParent;
+      }
+
+      if (sibling) {
+        
+        
+        parent = sibling;
+      }
+    }
+      
+    nsIAtom* parentPseudo = parent->GetStyleContext()->GetPseudoType();
+    if (!parentPseudo || !nsCSSAnonBoxes::IsAnonBox(parentPseudo)) {
+      return parent;
+    }
+
+    parent = parent->GetParent();
+  } while (parent);
+
+  
+  
+  NS_ASSERTION(aProspectiveParent->GetStyleContext()->GetPseudoType() ==
+               nsCSSAnonBoxes::viewportScroll,
+               "Should have found a parent before this");
+  return aProspectiveParent;
 }
 
 nsresult
@@ -5521,9 +5548,16 @@ nsFrame::DoGetParentStyleContextFrame(nsPresContext* aPresContext,
 
 
     if (mState & NS_FRAME_IS_SPECIAL) {
-      GetIBSpecialSibling(aPresContext, this, aProviderFrame);
-      if (*aProviderFrame)
+      nsresult rv = GetIBSpecialSibling(aPresContext, this, aProviderFrame);
+      if (NS_FAILED(rv)) {
+        NS_NOTREACHED("Shouldn't get here");
+        *aProviderFrame = nsnull;
+        return rv;
+      }
+
+      if (*aProviderFrame) {
         return NS_OK;
+      }
     }
 
     

@@ -518,6 +518,18 @@ public:
   nsresult DisplayOutline(nsDisplayListBuilder*   aBuilder,
                           const nsDisplayListSet& aLists);
 
+  
+
+
+
+
+
+
+
+
+  static nsIFrame*
+  CorrectStyleParentFrame(nsIFrame* aProspectiveParent, nsIAtom* aChildPseudo);
+
 protected:
   
   nsFrame(nsStyleContext* aContext);
