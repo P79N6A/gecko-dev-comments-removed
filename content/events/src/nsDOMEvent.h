@@ -48,20 +48,13 @@
 #include "nsPresContext.h"
 #include "nsPoint.h"
 #include "nsGUIEvent.h"
-#include "nsRecycled.h"
 
 class nsIContent;
 class nsIScrollableView;
-
-
-
-
-
  
 class nsDOMEvent : public nsIDOMEvent,
                    public nsIDOMNSEvent,
-                   public nsIPrivateDOMEvent,
-                   public nsRecycledSingle<nsDOMEvent>
+                   public nsIPrivateDOMEvent
 {
 public:
 
