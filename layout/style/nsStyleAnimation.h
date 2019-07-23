@@ -76,9 +76,9 @@ public:
 
 
 
-  static PRBool Add(Value& aDest, const Value& aValueToAdd,
-                    PRUint32 aCount) {
-    return AddWeighted(1.0, aDest, aCount, aValueToAdd, aDest);
+  static PRBool Add(nsCSSProperty aProperty, Value& aDest,
+                    const Value& aValueToAdd, PRUint32 aCount) {
+    return AddWeighted(aProperty, 1.0, aDest, aCount, aValueToAdd, aDest);
   }
 
   
@@ -99,7 +99,8 @@ public:
 
 
 
-  static PRBool ComputeDistance(const Value& aStartValue,
+  static PRBool ComputeDistance(nsCSSProperty aProperty,
+                                const Value& aStartValue,
                                 const Value& aEndValue,
                                 double& aDistance);
 
@@ -119,13 +120,14 @@ public:
 
 
 
-  static PRBool Interpolate(const Value& aStartValue,
+  static PRBool Interpolate(nsCSSProperty aProperty,
+                            const Value& aStartValue,
                             const Value& aEndValue,
                             double aPortion,
                             Value& aResultValue) {
     NS_ABORT_IF_FALSE(0.0 <= aPortion && aPortion <= 1.0, "out of range");
-    return AddWeighted(1.0 - aPortion, aStartValue, aPortion, aEndValue,
-                       aResultValue);
+    return AddWeighted(aProperty, 1.0 - aPortion, aStartValue,
+                       aPortion, aEndValue, aResultValue);
   }
 
   
@@ -142,7 +144,8 @@ public:
 
 
 
-  static PRBool AddWeighted(double aCoeff1, const Value& aValue1,
+  static PRBool AddWeighted(nsCSSProperty aProperty,
+                            double aCoeff1, const Value& aValue1,
                             double aCoeff2, const Value& aValue2,
                             Value& aResultValue);
 
