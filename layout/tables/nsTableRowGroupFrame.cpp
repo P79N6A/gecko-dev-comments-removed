@@ -404,8 +404,9 @@ nsTableRowGroupFrame::ReflowChildren(nsPresContext*         aPresContext,
                          tableFrame->IsGeometryDirty();
   PRBool needToCalcRowHeights = reflowAllKids;
 
-  for (nsIFrame* kidFrame = mFrames.FirstChild(); kidFrame;
-       kidFrame = kidFrame->GetNextSibling()) {
+  nsIFrame *prevKidFrame = nsnull;
+  for (nsIFrame* kidFrame = GetFirstFrame(); kidFrame;
+       prevKidFrame = kidFrame, kidFrame = kidFrame->GetNextSibling()) {
     if (kidFrame->GetType() != nsGkAtoms::tableRowFrame) {
       
       NS_NOTREACHED("yikes, a non-row child");
@@ -441,8 +442,11 @@ nsTableRowGroupFrame::ReflowChildren(nsPresContext*         aPresContext,
       if (aReflowState.reflowState.mFlags.mHResize)
         kidReflowState.mFlags.mHResize = PR_TRUE;
      
+      NS_ASSERTION(kidFrame == GetFirstFrame() || prevKidFrame, 
+                   "If we're not on the first frame, we should have a "
+                   "previous sibling...");
       
-      if (kidFrame != GetFirstFrame()) {
+      if (prevKidFrame && prevKidFrame->GetRect().YMost() > 0) {
         kidReflowState.mFlags.mIsTopOfPage = PR_FALSE;
       }
 
@@ -1308,7 +1312,9 @@ nsTableRowGroupFrame::SplitRowGroup(nsPresContext*           aPresContext,
         break;
       }
     }
-    isTopOfPage = PR_FALSE; 
+    
+    
+    isTopOfPage = isTopOfPage && rowRect.YMost() == 0;
   }
   return NS_OK;
 }

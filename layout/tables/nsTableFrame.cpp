@@ -2973,7 +2973,9 @@ nsTableFrame::ReflowChildren(nsTableReflowState& aReflowState,
       
       
       
-      if (childX > (thead ? 1 : 0)) {
+      
+      if (childX > (thead ? 1 : 0) &&
+          (rowGroups[childX - 1]->GetRect().YMost() > 0)) {
         kidReflowState.mFlags.mIsTopOfPage = PR_FALSE;
       }
       aReflowState.y += cellSpacingY;
