@@ -569,10 +569,18 @@ var Microformats = {
           break;
         case "microformat":
           try {
-            result = new Microformats[prop.microformat].mfObject(node);
+            result = new Microformats[prop.microformat].mfObject(node, true);
           } catch (ex) {
             
             
+            
+            
+            
+            
+            
+            if (ex != "Node is not a microformat (" + prop.microformat + ")") {
+              break;
+            }
           }
           if (result != undefined) {
             if (prop.microformat_property) {
