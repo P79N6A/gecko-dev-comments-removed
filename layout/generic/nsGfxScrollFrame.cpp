@@ -425,10 +425,6 @@ nsHTMLScrollFrame::ReflowScrolledFrame(const ScrollReflowState& aState,
       mInner.mVScrollbarBox->GetPrefSize(const_cast<nsBoxLayoutState&>(aState.mBoxState));
     availWidth = PR_MAX(0, availWidth - vScrollbarPrefSize.width);
   }
-  
-  nsPresContext* presContext = PresContext();
-  nscoord twp = nsPresContext::CSSPixelsToAppUnits(1);
-  availWidth -=  availWidth % twp;
 
   
   
@@ -437,6 +433,7 @@ nsHTMLScrollFrame::ReflowScrolledFrame(const ScrollReflowState& aState,
                 new nsMargin(aState.mReflowState.mComputedPadding),
                 nsCSSOffsetState::DestroyMarginFunc);  
   
+  nsPresContext* presContext = PresContext();
   
   nsHTMLReflowState kidReflowState(presContext, aState.mReflowState,
                                    mInner.mScrolledFrame,
