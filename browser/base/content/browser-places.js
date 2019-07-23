@@ -590,12 +590,16 @@ var BookmarksEventHandler = {
 
   onClick: function BT_onClick(aEvent) {
     
-    if (aEvent.button != 1)
+#ifdef XP_MACOSX
+    var modifKey = aEvent.metaKey || aEvent.shiftKey;
+#else
+    var modifKey = aEvent.ctrlKey || aEvent.shiftKey;
+#endif
+    if (aEvent.button == 2 || (aEvent.button == 0 && !modifKey))
       return;
 
     var target = aEvent.originalTarget;
-    var view = PlacesUIUtils.getViewForNode(target);
-    if (target.node && PlacesUtils.nodeIsFolder(target.node)) {
+    if (target.node && PlacesUtils.nodeIsContainer(target.node)) {
       
       
       
@@ -606,26 +610,14 @@ var BookmarksEventHandler = {
       this.onCommand(aEvent);
 
     
-    
-    if (target.localName == "menu" ||
-        target.localName == "menuitem") {
-      var node = target.parentNode;
-      while (node && 
-             (node.localName == "menu" || 
-              node.localName == "menupopup")) {
+    if (target.localName == "menu" || target.localName == "menuitem") {
+      for (node = target.parentNode; node; node = node.parentNode) {
         if (node.localName == "menupopup")
           node.hidePopup();
-
-        node = node.parentNode;
+        else if (node.localName != "menu")
+          break;
       }
     }
-    
-    
-    
-    
-    var bookmarksBar = document.getElementById("bookmarksBarContent");
-    if (bookmarksBar._chevron.getAttribute("open") == "true")
-      bookmarksBar._chevron.firstChild.hidePopup();
   },
 
   
@@ -727,6 +719,8 @@ var BookmarksEventHandler = {
         target._endOptOpenAllInTabs = document.createElement("menuitem");
         target._endOptOpenAllInTabs.setAttribute("oncommand",
             "PlacesUIUtils.openContainerNodeInTabs(this.parentNode._resultNode, event);");
+        target._endOptOpenAllInTabs.setAttribute("onclick",
+            "checkForMiddleClick(this, event); event.stopPropagation();");
         target._endOptOpenAllInTabs.setAttribute("label",
             gNavigatorBundle.getString("menuOpenAllInTabs.label"));
         target.appendChild(target._endOptOpenAllInTabs);
