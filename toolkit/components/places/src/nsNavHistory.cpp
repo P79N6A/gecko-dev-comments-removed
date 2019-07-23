@@ -2784,8 +2784,12 @@ nsNavHistory::AddVisit(nsIURI* aURI, PRTime aTime, nsIURI* aReferringURI,
   PRInt64 referringVisitID = 0;
   PRInt64 referringSessionID;
   PRTime referringTime;
+  PRBool referrerIsSame;
   if (aReferringURI &&
+      NS_SUCCEEDED(aReferringURI->Equals(aURI, &referrerIsSame)) &&
+      !referrerIsSame &&
       !FindLastVisit(aReferringURI, &referringVisitID, &referringTime, &referringSessionID)) {
+    
     
     rv = AddVisit(aReferringURI, aTime - 1, nsnull, TRANSITION_LINK, PR_FALSE,
                   aSessionID, &referringVisitID);
@@ -5153,7 +5157,8 @@ nsNavHistory::AddURIInternal(nsIURI* aURI, PRTime aTime, PRBool aRedirect,
   mozStorageTransaction transaction(mDBConn, PR_FALSE);
 
   PRInt64 redirectBookmark = 0;
-  PRInt64 visitID, sessionID;
+  PRInt64 visitID = 0;
+  PRInt64 sessionID = 0;
   nsresult rv = AddVisitChain(aURI, aTime, aToplevel, aRedirect, aReferrer,
                               &visitID, &sessionID, &redirectBookmark);
   NS_ENSURE_SUCCESS(rv, rv);
@@ -5237,6 +5242,12 @@ nsNavHistory::AddVisitChain(nsIURI* aURI,
     NS_ENSURE_SUCCESS(rv, rv);
 
     
+    PRBool redirectIsSame;
+    if (NS_SUCCEEDED(aURI->Equals(redirectSourceURI, &redirectIsSame)) &&
+        redirectIsSame)
+      return NS_OK;
+
+    
     nsNavBookmarks *bookmarkService = nsNavBookmarks::GetBookmarksService();
     PRBool isBookmarked;
     if (bookmarkService &&
@@ -5277,11 +5288,30 @@ nsNavHistory::AddVisitChain(nsIURI* aURI,
     
 
     
+    PRTime lastVisitTime;
+    PRInt64 referringVisitId;
+    PRBool referrerHasPreviousVisit =
+      FindLastVisit(aReferrerURI, &referringVisitId, &lastVisitTime, aSessionID);
+
+    
+    
+    
     
     PRBool referrerIsSame;
     if (NS_SUCCEEDED(aURI->Equals(aReferrerURI, &referrerIsSame)) &&
-        referrerIsSame)
+        referrerIsSame && referrerHasPreviousVisit) {
+      
+      if (aIsRedirect)
+        *aSessionID = GetNewSessionID();
       return NS_OK;
+    }
+
+    if (!referrerHasPreviousVisit ||
+        aTime - lastVisitTime > RECENT_EVENT_THRESHOLD) {
+      
+      
+      *aSessionID = GetNewSessionID();
+    }
 
     
     
@@ -5294,17 +5324,6 @@ nsNavHistory::AddVisitChain(nsIURI* aURI,
       transitionType = nsINavHistoryService::TRANSITION_FRAMED_LINK;
     else
       transitionType = nsINavHistoryService::TRANSITION_LINK;
-
-    
-    
-    PRTime lastVisitTime;
-    PRInt64 referringVisitId;
-    if (!FindLastVisit(aReferrerURI, &referringVisitId, &lastVisitTime, aSessionID) ||
-        aTime - lastVisitTime > RECENT_EVENT_THRESHOLD) {
-      
-      
-      *aSessionID = GetNewSessionID();
-    }
   }
   else {
     
