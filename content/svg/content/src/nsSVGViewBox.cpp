@@ -78,6 +78,7 @@ nsSVGViewBox::Init()
 {
   mBaseVal = nsSVGViewBoxRect();
   mAnimVal = nsnull;
+  mHasBaseVal = PR_FALSE;
 }
 
 const nsSVGViewBoxRect&
@@ -94,10 +95,8 @@ nsSVGViewBox::SetBaseValue(float aX, float aY, float aWidth, float aHeight,
                            nsSVGElement *aSVGElement, PRBool aDoSetAttr)
 {
   mAnimVal = nsnull;
-  mBaseVal.x = aX;
-  mBaseVal.y = aY;
-  mBaseVal.width  = aWidth;
-  mBaseVal.height = aHeight;
+  mBaseVal = nsSVGViewBoxRect(aX, aY, aWidth, aHeight);
+  mHasBaseVal = PR_TRUE;
 
   aSVGElement->DidChangeViewBox(aDoSetAttr);
 }
@@ -128,11 +127,7 @@ nsSVGViewBox::SetBaseValueString(const nsAString& aValue,
     
     rv = NS_ERROR_FAILURE;
   } else {
-    mAnimVal = nsnull;
-    mBaseVal.x = vals[0];
-    mBaseVal.y = vals[1];
-    mBaseVal.width = vals[2];
-    mBaseVal.height = vals[3];
+    SetBaseValue(vals[0], vals[1], vals[2], vals[3], aSVGElement, aDoSetAttr);
   }
 
   nsMemory::Free(str);

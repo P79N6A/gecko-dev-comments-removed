@@ -61,6 +61,10 @@ public:
 
   void Init();
 
+  
+  PRBool IsValid() const
+    { return (mHasBaseVal || mAnimVal); }
+
   const nsSVGViewBoxRect& GetBaseValue() const
     { return mBaseVal; }
   void SetBaseValue(float aX, float aY, float aWidth, float aHeight,
@@ -80,6 +84,7 @@ private:
 
   nsSVGViewBoxRect mBaseVal;
   nsAutoPtr<nsSVGViewBoxRect> mAnimVal;
+  PRPackedBool mHasBaseVal;
 
   struct DOMBaseVal : public nsIDOMSVGRect
   {
