@@ -108,8 +108,9 @@ PlacesController.prototype = {
       return PlacesUtils.tm.numberOfRedoItems > 0;
     case "cmd_cut":
     case "cmd_delete":
+      return this._hasRemovableSelection(false);
     case "placesCmd_moveBookmarks":
-      return this._hasRemovableSelection();
+      return this._hasRemovableSelection(true);
     case "cmd_copy":
       return this._view.hasSelection;
     case "cmd_paste":
@@ -209,7 +210,7 @@ PlacesController.prototype = {
       if (this._view.hasSingleSelection) {
         var selectedNode = this._view.selectedNode;
         if (PlacesUtils.nodeIsFolder(selectedNode) &&
-            selectedNode.itemId != PlacesUtils.bookmarks.toolbarFolder) {
+            selectedNode.itemId != PlacesUtils.toolbarFolderId) {
           return true;
         }
       }
@@ -319,7 +320,10 @@ PlacesController.prototype = {
 
 
 
-  _hasRemovableSelection: function PC__hasRemovableSelection() {
+
+
+
+  _hasRemovableSelection: function PC__hasRemovableSelection(aIsMoveCommand) {
     if (!this._view.hasSelection)
       return false;
 
@@ -333,7 +337,8 @@ PlacesController.prototype = {
         return false;
 
       
-      if (PlacesUtils.nodeIsFolder(nodes[i]) && nodes[i].itemId == btFolderId)
+      if (!aIsMoveCommand &&
+          PlacesUtils.nodeIsFolder(nodes[i]) && nodes[i].itemId == btFolderId)
         return false;
 
       
@@ -370,7 +375,7 @@ PlacesController.prototype = {
       cstring.data = types[i];
       flavors.AppendElement(cstring);
     }
-  
+
     var clipboard = 
         Cc["@mozilla.org/widget/clipboard;1"].getService(Ci.nsIClipboard);
     return clipboard.hasDataMatchingFlavors(flavors, 
