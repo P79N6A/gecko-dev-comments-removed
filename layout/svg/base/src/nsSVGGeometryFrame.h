@@ -98,10 +98,6 @@ public:
 
 
   PRBool SetupCairoFill(gfxContext *aContext, void **aClosure);
-  
-
-
-  void CleanupCairoFill(gfxContext *aContext, void *aClosure);
 
   
   void SetupCairoStrokeGeometry(gfxContext *aContext);
@@ -114,10 +110,6 @@ public:
 
 
   PRBool SetupCairoStroke(gfxContext *aContext, void **aClosure);
-  
-
-
-  void CleanupCairoStroke(gfxContext *aContext, void *aClosure);
 
 protected:
   virtual nsresult UpdateGraphic(PRBool suppressInvalidation = PR_FALSE) = 0;

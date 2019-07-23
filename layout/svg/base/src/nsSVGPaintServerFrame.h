@@ -61,11 +61,6 @@ public:
                                   float aOpacity,
                                   void **aClosure) = 0;
   
-
-
-  virtual void CleanupPaintServer(gfxContext *aContext, void *aClosure) = 0;
-
-  
   NS_IMETHOD QueryInterface(const nsIID& aIID, void** aInstancePtr);
 
   
