@@ -1107,12 +1107,36 @@ namespace nanojit
 		args = args2;
         NanoAssert(j == argc);
 #endif
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
 
 		NanoAssert(argc <= (int)MAXARGS);
 		uint32_t words = argwords(argc);
 		int32_t insSz = words + LIR_CALL_SLOTS; 
-		ensureRoom(argc+insSz);  
-		LInsp from = _buf->next()+argc+words; 
+		ensureRoom(argc + insSz);  
+
+		
+		
+		LInsp from = _buf->next() + argc + insSz - 1; 
 		for (int32_t i=0; i < argc; i++)
 			makeReachable(args[i], from);
 
