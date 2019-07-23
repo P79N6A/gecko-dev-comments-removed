@@ -87,7 +87,7 @@
         defined(__ARM_ARCH_5E__) || \
         defined(__ARM_ARCH_5TE__)
 
-    #define NJ_COMPILER_ARM_ARCH 5;
+    #define NJ_COMPILER_ARM_ARCH 5
 
 
 #elif defined(_MSC_VER) && defined(_M_ARM)
