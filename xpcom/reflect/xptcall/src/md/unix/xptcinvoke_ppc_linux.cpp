@@ -137,5 +137,5 @@ invoke_copy_to_stack(PRUint32* d,
 
 extern "C"
 EXPORT_XPCOM_API(nsresult)
-NS_InvokeByIndex(nsISupports* that, PRUint32 methodIndex,
+NS_InvokeByIndex_P(nsISupports* that, PRUint32 methodIndex,
                  PRUint32 paramCount, nsXPTCVariant* params);
