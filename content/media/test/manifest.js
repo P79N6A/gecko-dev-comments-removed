@@ -20,7 +20,6 @@ var gSmallTests = [
 
 
 
-
 var gPlayTests = [
   
   { name:"r11025_u8_c1.wav", type:"audio/x-wav", duration:1.0 },
@@ -44,9 +43,13 @@ var gPlayTests = [
   { name:"bug504613.ogv", type:"video/ogg" },
   
   { name:"bug516323.ogv", type:"video/ogg", duration:4.424 },
+  
+  { name:"beta-phrasebook.ogg", type:"audio/ogg", duration:4 },
 
   { name:"bogus.duh", type:"bogus/duh" }
 ];
+
+
 
 
 

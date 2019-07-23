@@ -109,6 +109,7 @@ typedef struct vorbis_info_residue0{
   
   int    grouping;         
   int    partitions;       
+  int    partvals;         
   int    groupbook;        
   int    secondstages[64]; 
   int    booklist[512];    
