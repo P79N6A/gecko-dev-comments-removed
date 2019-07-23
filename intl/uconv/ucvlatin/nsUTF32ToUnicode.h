@@ -51,20 +51,18 @@
 
 
 
-class nsUTF32ToUnicode : public nsBasicDecoderSupport
+class nsUTF32ToUnicodeBase : public nsBasicDecoderSupport
 {
-
-public:
-
-  
-
-
-  nsUTF32ToUnicode();
 
 protected:
 
   
-  PRUint16 mState;  
+
+
+  nsUTF32ToUnicodeBase();
+
+  
+  PRUint16 mState;
   
   PRUint8  mBufferInc[4];
 
@@ -88,7 +86,7 @@ protected:
 
 
 
-class nsUTF32BEToUnicode : public nsUTF32ToUnicode
+class nsUTF32BEToUnicode : public nsUTF32ToUnicodeBase
 {
 public:
 
@@ -112,7 +110,7 @@ public:
 
 
 
-class nsUTF32LEToUnicode : public nsUTF32ToUnicode
+class nsUTF32LEToUnicode : public nsUTF32ToUnicodeBase
 {
 public:
 
@@ -125,5 +123,42 @@ public:
 
 };
 
-#endif 
+
+
+
+
+
+
+
+
+
+
+class nsUTF32ToUnicode : public nsUTF32ToUnicodeBase
+{
+public:
+
+  
+
+
+  nsUTF32ToUnicode() { Reset(); }
+
+  
+  
+
+  NS_IMETHOD Convert(const char * aSrc, PRInt32 * aSrcLength, 
+                     PRUnichar * aDest, PRInt32 * aDestLength);
+
+  
+  
+
+  NS_IMETHOD Reset();
+
+private:
+
+  enum Endian {kUnknown, kBigEndian, kLittleEndian};
+  Endian  mEndian; 
+  PRBool  mFoundBOM;
+};
+
+#endif
 
