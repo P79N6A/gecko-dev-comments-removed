@@ -140,15 +140,22 @@ void ExceptionHandler::Initialize(const wstring& dump_path,
     
     InitializeCriticalSection(&handler_critical_section_);
     handler_start_semaphore_ = CreateSemaphore(NULL, 0, 1, NULL);
-    handler_finish_semaphore_ = CreateSemaphore(NULL, 0, 1, NULL);
+    assert(handler_start_semaphore_ != NULL);
 
-    DWORD thread_id;
-    handler_thread_ = CreateThread(NULL,         
-                                   kExceptionHandlerThreadInitialStackSize,
-                                   ExceptionHandlerThreadMain,
-                                   this,         
-                                   0,            
-                                   &thread_id);
+    handler_finish_semaphore_ = CreateSemaphore(NULL, 0, 1, NULL);
+    assert(handler_finish_semaphore_ != NULL);
+
+    
+    if (handler_finish_semaphore_ != NULL && handler_start_semaphore_ != NULL) {
+      DWORD thread_id;
+      handler_thread_ = CreateThread(NULL,         
+                                     kExceptionHandlerThreadInitialStackSize,
+                                     ExceptionHandlerThreadMain,
+                                     this,         
+                                     0,            
+                                     &thread_id);
+      assert(handler_thread_ != NULL);
+    }
 
     dbghelp_module_ = LoadLibrary(L"dbghelp.dll");
     if (dbghelp_module_) {
@@ -264,6 +271,8 @@ ExceptionHandler::~ExceptionHandler() {
 DWORD ExceptionHandler::ExceptionHandlerThreadMain(void* lpParameter) {
   ExceptionHandler* self = reinterpret_cast<ExceptionHandler *>(lpParameter);
   assert(self);
+  assert(self->handler_start_semaphore_ != NULL);
+  assert(self->handler_finish_semaphore_ != NULL);
 
   while (true) {
     if (WaitForSingleObject(self->handler_start_semaphore_, INFINITE) ==
@@ -518,6 +527,17 @@ void ExceptionHandler::HandlePureVirtualCall() {
 bool ExceptionHandler::WriteMinidumpOnHandlerThread(
     EXCEPTION_POINTERS* exinfo, MDRawAssertionInfo* assertion) {
   EnterCriticalSection(&handler_critical_section_);
+
+  
+  
+  if (handler_thread_ == NULL) {
+    LeaveCriticalSection(&handler_critical_section_);
+    return false;
+  }
+
+  
+  assert(handler_start_semaphore_ != NULL);
+  assert(handler_finish_semaphore_ != NULL);
 
   
   requesting_thread_id_ = GetCurrentThreadId();

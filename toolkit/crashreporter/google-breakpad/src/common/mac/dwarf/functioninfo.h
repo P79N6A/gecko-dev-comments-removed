@@ -48,6 +48,8 @@ struct FunctionInfo {
   
   string name;
   
+  string mangled_name;
+  
   string file;
   
   uint32 line;
@@ -169,6 +171,7 @@ class CUFunctionInfoHandler: public Dwarf2Handler {
   const SectionMap& sections_;
   ByteReader* reader_;
   FunctionInfo* current_function_info_;
+  uint64 current_compilation_unit_offset_;
 };
 
 }  
