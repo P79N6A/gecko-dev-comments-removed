@@ -3,21 +3,13 @@
 
 
 
+
 var gSmallTests = [
   { name:"r11025_s16_c1.wav", type:"audio/x-wav", duration:1.0 },
   { name:"320x240.ogv", type:"video/ogg", width:320, height:240 },
-  { name:"bug499519.ogv", type:"video/ogg", duration:0.24 },
-  { name:"bug506094.ogv", type:"video/ogg", duration:0 },
-  { name:"bug501279.ogg", type:"audio/ogg", duration:0 },
-  { name:"bug498855-1.ogv", type:"video/ogg", duration:0.2 },
-  { name:"bug498855-2.ogv", type:"video/ogg", duration:0.2 },
-  { name:"bug498855-3.ogv", type:"video/ogg", duration:0.2 },
-  { name:"bug504644.ogv", type:"video/ogg", duration:1.56 },
-  { name:"chain.ogv", type:"video/ogg", duration:Number.NaN },
-  
-  { name:"bug520908.ogv", type:"video/ogg", duration:9000 },
   { name:"bogus.duh", type:"bogus/duh" }
 ];
+
 
 
 
@@ -31,6 +23,7 @@ var gPlayTests = [
   { name:"r11025_s16_c1_trailing.wav", type:"audio/x-wav", duration:1.0 },
   
   { name:"r16000_u8_c1_list.wav", type:"audio/x-wav", duration:4.2 },
+
   
   { name:"bug461281.ogg", type:"application/ogg" },
   
@@ -52,8 +45,21 @@ var gPlayTests = [
   
   { name:"bug520500.ogg", type:"audio/ogg", duration:0.123 },
 
+  
+  { name:"bug499519.ogv", type:"video/ogg", duration:0.24 },
+  { name:"bug506094.ogv", type:"video/ogg", duration:0 },
+  { name:"bug501279.ogg", type:"audio/ogg", duration:0 },
+  { name:"bug498855-1.ogv", type:"video/ogg", duration:0.2 },
+  { name:"bug498855-2.ogv", type:"video/ogg", duration:0.2 },
+  { name:"bug498855-3.ogv", type:"video/ogg", duration:0.2 },
+  { name:"bug504644.ogv", type:"video/ogg", duration:1.56 },
+  { name:"chain.ogv", type:"video/ogg", duration:Number.NaN },
+  
+  { name:"bug520908.ogv", type:"video/ogg", duration:9000 },
+
   { name:"bogus.duh", type:"bogus/duh" }
 ];
+
 
 
 
