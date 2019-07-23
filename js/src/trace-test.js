@@ -4454,84 +4454,84 @@ load("mandelbrot-results.js");
     pointArray[slotIdx+2] = colors[n][2];
     pointArray[slotIdx+3] = colors[n][3];
   }
-
-  function createMandelSet() {
-    var realRange = { min: -2.1, max: 1 };
-    var imagRange = { min: -1.5, max: 1.5 };
-
-    var addPoint;
-    if (doImageData) {
-      addPoint = addPointImagedata;
-      points = new Array(4*numCols*numRows);
-      if (avoidSparseArray) {
-        for (var idx = 0; idx < 4*numCols*numRows; ++idx) {
-          points[idx] = 0;
-        }
-      }
-    } else {
-      addPoint = addPointOrig;
-      points = [];
-    }
-    var realStep = (realRange.max - realRange.min)/numCols;
-    var imagStep = (imagRange.min - imagRange.max)/numRows;
-    for (var i = 0, curReal = realRange.min;
-         i < numCols;
-         ++i, curReal += realStep) {
-      for (var j = 0, curImag = imagRange.max;
-           j < numRows;
-           ++j, curImag += imagStep) {
-        var n = computeEscapeSpeed(curReal, curImag);
-        addPoint(points, n, i, j)
-      }
-    }
-    var result;
-    if (doImageData) {
-      if (colorMap == fuzzyColors) {
-        result = mandelbrotImageDataFuzzyResult;
-      } else {
-        result = mandelbrotImageDataModdedResult;
-      }
-    } else {
-      result = mandelbrotNoImageDataResult;
-    }
-    return points.toSource() == result;
-  }
-
-  createMandelSet.expected = true;
-
-  const escapeTests = [ escapeAbsDiff ];
-  const colorMaps = [ fuzzyColors, moddedColors ];
-  const escapeComputations = [ computeEscapeSpeedObjects,
-                               computeEscapeSpeedOneObject,
-                               computeEscapeSpeedDoubles ];
   
-  
-  doImageData = true;
-  avoidSparseArray = true;
-  for (var escapeIdx in escapeTests) {
-    escape = escapeTests[escapeIdx];
-    for (var colorMapIdx in colorMaps) {
-      colorMap = colorMaps[colorMapIdx];
-      for (var escapeComputationIdx in escapeComputations) {
-        computeEscapeSpeed = escapeComputations[escapeComputationIdx];
-        test(createMandelSet);
-      }
-    }
-  }
 
-  
-  
-  escape = escapeAbsDiff;
-  colorMap = fuzzyColors; 
-  computeEscapeSpeed = computeEscapeSpeedDoubles;
 
-  doImageData = true;
-  avoidSparseArray = false;
-  test(createMandelSet);
 
-  escape = escapeNorm2;
-  doImageData = false;  
-  test(createMandelSet);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 } 
