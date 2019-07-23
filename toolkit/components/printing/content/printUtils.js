@@ -93,15 +93,19 @@ var PrintUtils = {
   
   
   
-  printPreview: function (aEnterPPCallback, aExitPPCallback, aWindow)
+  printPreview: function (aListenerOrEnterCallback, aExitCallback)
   {
     
     
     
-    var pptoolbar = document.getElementById("print-preview-toolbar");
-    if (!pptoolbar) {
-      this._onEnterPP = aEnterPPCallback;
-      this._onExitPP  = aExitPPCallback;
+    if (!document.getElementById("print-preview-toolbar")) {
+      if (typeof aListenerOrEnterCallback == "object") {
+        this._onEnterPP = function () { aListenerOrEnterCallback.onEnter(); };
+        this._onExitPP  = function () { aListenerOrEnterCallback.onExit(); };
+      } else {
+        this._onEnterPP = aListenerOrEnterCallback;
+        this._onExitPP  = aExitCallback;
+      }
     } else {
       
       
@@ -114,7 +118,7 @@ var PrintUtils = {
     this._webProgressPP = {};
     var ppParams        = {};
     var notifyOnOpen    = {};
-    var webBrowserPrint = this.getWebBrowserPrint(aWindow);
+    var webBrowserPrint = this.getWebBrowserPrint();
     var printSettings   = this.getPrintSettings();
     
     
@@ -215,7 +219,7 @@ var PrintUtils = {
     }
   },
 
-  enterPrintPreview: function (aWindow)
+  enterPrintPreview: function ()
   {
     gFocusedElement = document.commandDispatcher.focusedElement;
 
@@ -225,7 +229,7 @@ var PrintUtils = {
       ZoomManager.reset();
     }
 
-    var webBrowserPrint = this.getWebBrowserPrint(aWindow);
+    var webBrowserPrint = this.getWebBrowserPrint();
     var printSettings   = this.getPrintSettings();
     try {
       webBrowserPrint.printPreview(printSettings, null, this._webProgressPP.value);
@@ -269,9 +273,8 @@ var PrintUtils = {
 
     
     window.addEventListener("keypress", this.onKeyPressPP, true);
- 
-    var contentWindow = aWindow || window.content;
-    contentWindow.focus();
+
+    window.content.focus();
 
     
     if (this._onEnterPP) {
@@ -280,7 +283,7 @@ var PrintUtils = {
     }
   },
 
-  exitPrintPreview: function (aWindow)
+  exitPrintPreview: function ()
   {
     window.removeEventListener("keypress", this.onKeyPressPP, true);
 
@@ -288,7 +291,7 @@ var PrintUtils = {
     document.documentElement.setAttribute("onclose", this._closeHandlerPP);
     this._closeHandlerPP = null;
 
-    var webBrowserPrint = this.getWebBrowserPrint(aWindow);
+    var webBrowserPrint = this.getWebBrowserPrint();
     webBrowserPrint.exitPrintPreview();
     if (typeof ZoomManager == "object")
       ZoomManager.zoom = this._originalZoomValue;
@@ -302,7 +305,7 @@ var PrintUtils = {
     if (gFocusedElement)
       fm.setFocus(gFocusedElement, fm.FLAG_NOSCROLL);
     else
-      (aWindow || window.content).focus();
+      window.content.focus();
     gFocusedElement = null;
 
     
