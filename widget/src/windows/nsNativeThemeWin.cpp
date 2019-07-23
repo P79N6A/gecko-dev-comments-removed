@@ -1488,20 +1488,20 @@ nsNativeThemeWin::GetWidgetPadding(nsIDeviceContext* aContext,
       aResult->left = aResult->right = 1;
       return PR_TRUE;
     }
+  }
 
-    
-    
-    if (IsHTMLContent(aFrame)) {
-      if (aWidgetType == NS_THEME_DROPDOWN) {
-        
+  
+  
+  if (IsHTMLContent(aFrame)) {
+    if (aWidgetType == NS_THEME_DROPDOWN) {
+      
 
 
 
 
-        aResult->top = aResult->bottom = 1;
-        aResult->left = aResult->right = 1;
-        return PR_TRUE;
-      }
+      aResult->top = aResult->bottom = 1;
+      aResult->left = aResult->right = 1;
+      return PR_TRUE;
     }
   }
 
