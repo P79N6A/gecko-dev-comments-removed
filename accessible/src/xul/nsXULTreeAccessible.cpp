@@ -916,7 +916,12 @@ nsXULTreeitemAccessible::IsDefunct()
 
   PRInt32 rowCount = 0;
   nsresult rv = mTreeView->GetRowCount(&rowCount);
-  return NS_FAILED(rv) || mRow >= rowCount;
+  if (NS_FAILED(rv) || mRow >= rowCount)
+    return PR_TRUE;
+
+  
+  nsCOMPtr<nsIPresShell> presShell(GetPresShell());
+  return !presShell;
 }
 
 PRBool nsXULTreeitemAccessible::IsExpandable()

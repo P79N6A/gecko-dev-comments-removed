@@ -344,6 +344,17 @@ void nsAccessNode::ShutdownXPAccessibility()
   NotifyA11yInitOrShutdown();
 }
 
+PRBool
+nsAccessNode::IsDefunct()
+{
+  if (!mDOMNode)
+    return PR_TRUE;
+
+  
+  nsCOMPtr<nsIPresShell> presShell(GetPresShell());
+  return !presShell;
+}
+
 already_AddRefed<nsIPresShell> nsAccessNode::GetPresShell()
 {
   nsIPresShell *presShell = nsnull;
