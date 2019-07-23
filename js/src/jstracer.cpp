@@ -423,7 +423,7 @@ public:
     }
 };
 
-TraceRecorder::TraceRecorder(JSContext* cx, Fragmento* fragmento, Fragment* _fragment)
+TraceRecorder::TraceRecorder(JSContext* cx, Fragment* _fragment, uint8* typemap)
 {
     this->cx = cx;
     this->globalObj = JS_GetGlobalForObject(cx, cx->fp->scopeChain);
@@ -1097,9 +1097,10 @@ js_LoopEdge(JSContext* cx)
 #endif
                 }
                 
-                if (!f->vmprivate) {
+                VMFragmentInfo* fi = (VMFragmentInfo*)f->vmprivate;
+                if (!fi) {
                     
-                    VMFragmentInfo* fi = new VMFragmentInfo(); 
+                    fi = new VMFragmentInfo(); 
                     f->vmprivate = fi;
                     
                     int internableGlobals = findInternableGlobals(cx, cx->fp, NULL);
@@ -1126,7 +1127,7 @@ js_LoopEdge(JSContext* cx)
                         *m++ = getCoercedType(*vp)
                     );
                 }
-                tm->recorder = new (&gc) TraceRecorder(cx, tm->fragmento, f);
+                tm->recorder = new (&gc) TraceRecorder(cx, f, fi->typeMap);
 
                 
                 return !cx->throwing;
