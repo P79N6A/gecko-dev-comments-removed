@@ -108,7 +108,7 @@ function saveURL(aURL, aFileName, aFilePickerTitleKey, aShouldBypassCache,
                  aSkipPrompt, aReferrer)
 {
   internalSave(aURL, null, aFileName, null, null, aShouldBypassCache,
-               aFilePickerTitleKey, null, aReferrer, aSkipPrompt);
+               aFilePickerTitleKey, null, aReferrer, aSkipPrompt, null);
 }
 
 
@@ -139,7 +139,8 @@ function saveImageURL(aURL, aFileName, aFilePickerTitleKey, aShouldBypassCache,
     }
   }
   internalSave(aURL, null, aFileName, contentDisposition, contentType,
-               aShouldBypassCache, aFilePickerTitleKey, null, aReferrer, aSkipPrompt);
+               aShouldBypassCache, aFilePickerTitleKey, null, aReferrer,
+               aSkipPrompt, null);
 }
 
 function saveFrameDocument()
@@ -155,20 +156,32 @@ function saveDocument(aDocument, aSkipPrompt)
     throw "Must have a document when calling saveDocument";
 
   
+  var ifreq =
+    aDocument.defaultView
+             .QueryInterface(Components.interfaces.nsIInterfaceRequestor);
+
   var contentDisposition = null;
   try {
     contentDisposition =
-      aDocument.defaultView
-               .QueryInterface(Components.interfaces.nsIInterfaceRequestor)
-               .getInterface(Components.interfaces.nsIDOMWindowUtils)
-               .getDocumentMetadata("content-disposition");
+      ifreq.getInterface(Components.interfaces.nsIDOMWindowUtils)
+           getDocumentMetadata("content-disposition");
   } catch (ex) {
     
   }
+
+  var cacheKey = null;
+  try {
+    cacheKey =
+      ifreq.getInterface(Components.interfaces.nsIWebNavigation)
+           .QueryInterface(Components.interfaces.nsIWebPageDescriptor);
+  } catch (ex) {
+    
+  }
+
   internalSave(aDocument.location.href, aDocument, null, contentDisposition,
                aDocument.contentType, false, null, null,
                aDocument.referrer ? makeURI(aDocument.referrer) : null,
-               aSkipPrompt);
+               aSkipPrompt, cacheKey);
 }
 
 function DownloadListener(win, transfer) {
@@ -253,12 +266,18 @@ const kSaveAsType_Text     = 2;
 
 
 
+
+
+
 function internalSave(aURL, aDocument, aDefaultFileName, aContentDisposition,
                       aContentType, aShouldBypassCache, aFilePickerTitleKey,
-                      aChosenData, aReferrer, aSkipPrompt)
+                      aChosenData, aReferrer, aSkipPrompt, aCacheKey)
 {
   if (aSkipPrompt == undefined)
     aSkipPrompt = false;
+
+  if (aCacheKey == undefined)
+    aCacheKey = null;
 
   
   var saveMode = GetSaveModeForContentType(aContentType);
@@ -376,7 +395,7 @@ function internalSave(aURL, aDocument, aDefaultFileName, aContentDisposition,
             persistArgs.target, "", null, null, null, persist);
     persist.progressListener = new DownloadListener(window, tr);
     persist.saveURI((aChosenData ? aChosenData.uri : source),
-                    null, aReferrer, persistArgs.postData, null,
+                    aCacheKey, aReferrer, persistArgs.postData, null,
                     persistArgs.target);
   }
 }
