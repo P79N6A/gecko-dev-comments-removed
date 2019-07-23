@@ -114,7 +114,7 @@ protected:
 
 
 
-    NS_HIDDEN_(nsresult) ConfigureFromPAC(const nsCString &pacURI);
+    NS_HIDDEN_(nsresult) ConfigureFromPAC(const nsCString &pacURI, PRBool forceReload);
 
     
 
