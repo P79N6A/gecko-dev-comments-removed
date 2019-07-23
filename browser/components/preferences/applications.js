@@ -1323,6 +1323,13 @@ var gApplicationsPane = {
     }
 
     
+#ifdef XP_WIN
+    
+    
+    var executableType = Cc["@mozilla.org/mime;1"].getService(Ci.nsIMIMEService)
+                                                  .getTypeFromExtension("exe");
+    if (handlerInfo.type != executableType)
+#endif
     {
       let menuItem = document.createElementNS(kXULNS, "menuitem");
       menuItem.setAttribute("oncommand", "gApplicationsPane.chooseApp(event)");
