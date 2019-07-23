@@ -79,13 +79,19 @@ public:
   
   nsresult LoadIcon(nsIURI* aIconURI);
 
+  
+  
+  
+  
+  void Destroy();
+
 protected:
   nsCOMPtr<nsIContent>  mContent;
   nsCOMPtr<imgIRequest> mIconRequest;
-  nsMenuObjectX*        mMenuObject;
+  nsMenuObjectX*        mMenuObject; 
   PRPackedBool          mLoadedIcon;
   PRPackedBool          mSetIcon;
-  NSMenuItem*           mNativeMenuItem;
+  NSMenuItem*           mNativeMenuItem; 
 };
 
 #endif 
