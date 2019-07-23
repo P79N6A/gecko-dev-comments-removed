@@ -157,17 +157,31 @@
 
 
 
-#if (!defined(MOZ_MEMORY_DARWIN) && !defined(MOZ_MEMORY_WINDOWS))
-#define	MALLOC_DSS
-#endif
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #ifdef MOZ_MEMORY_LINUX
 #define	_GNU_SOURCE
 #define	issetugid() 0
 #if 0 
 #  define MALLOC_DECOMMIT
-
-#  undef MALLOC_DSS
 #endif
 #endif
 
