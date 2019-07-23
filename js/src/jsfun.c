@@ -658,7 +658,6 @@ js_PutCallObject(JSContext *cx, JSStackFrame *fp)
 }
 
 static JSPropertySpec call_props[] = {
-    {js_arguments_str,  CALL_ARGUMENTS, JSPROP_PERMANENT,0,0},
     {"__callee__",      CALL_CALLEE,    0,0,0},
     {0,0,0,0,0}
 };
@@ -913,8 +912,32 @@ call_resolve(JSContext *cx, JSObject *obj, jsval id, uintN flags,
             }
             *objp = obj;
         }
+        return JS_TRUE;
     }
 
+    if (!(flags & JSRESOLVE_ASSIGNING)) {
+        
+
+
+
+        atom = cx->runtime->atomState.argumentsAtom;
+        if (id == ATOM_KEY(atom)) {
+            if (!js_DefineNativeProperty(cx, obj,
+                                         ATOM_TO_JSID(atom), JSVAL_VOID,
+                                         NULL, NULL, JSPROP_PERMANENT,
+                                         SPROP_HAS_SHORTID, CALL_ARGUMENTS,
+                                         NULL)) {
+                return JS_FALSE;
+            }
+            *objp = obj;
+            return JS_TRUE;
+        }
+
+        
+
+
+
+    }
     return JS_TRUE;
 }
 
