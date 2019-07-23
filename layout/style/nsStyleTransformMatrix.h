@@ -113,9 +113,12 @@ class nsStyleTransformMatrix
 
 
 
+
+
   void SetToTransformFunction(const nsCSSValue::Array* aData,
                               nsStyleContext* aContext,
-                              nsPresContext* aPresContext);
+                              nsPresContext* aPresContext,
+                              PRBool& aInherited);
 
   
 
