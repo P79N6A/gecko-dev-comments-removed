@@ -322,6 +322,9 @@ public:
   
   nsresult RemoveDuplicateURIs();
 
+  
+  nsresult UpdateSchemaVersion();
+
  private:
   ~nsNavHistory();
 

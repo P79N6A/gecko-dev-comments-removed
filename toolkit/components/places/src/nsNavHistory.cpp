@@ -442,6 +442,14 @@ nsNavHistory::InitDB(PRBool *aDoImport)
   NS_ENSURE_SUCCESS(rv, rv);
 
   
+  rv = mDBConn->TableExists(NS_LITERAL_CSTRING("moz_places"), &tableExists);
+  NS_ENSURE_SUCCESS(rv, rv);
+  if (!tableExists) {
+    rv = UpdateSchemaVersion();
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
+
+  
   PRInt32 DBSchemaVersion;
   {
     nsCOMPtr<mozIStorageStatement> statement;
@@ -504,9 +512,7 @@ nsNavHistory::InitDB(PRBool *aDoImport)
     }
 
     
-    nsCAutoString schemaVersionPragma("PRAGMA user_version=");
-    schemaVersionPragma.AppendInt(PLACES_SCHEMA_VERSION);
-    rv = mDBConn->ExecuteSimpleSQL(schemaVersionPragma);
+    rv = UpdateSchemaVersion();
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
@@ -545,8 +551,6 @@ nsNavHistory::InitDB(PRBool *aDoImport)
   NS_ENSURE_SUCCESS(rv, rv);
 
   
-  rv = mDBConn->TableExists(NS_LITERAL_CSTRING("moz_places"), &tableExists);
-  NS_ENSURE_SUCCESS(rv, rv);
   if (! tableExists) {
     *aDoImport = PR_TRUE;
     rv = mDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING("CREATE TABLE moz_places ("
@@ -625,6 +629,16 @@ nsNavHistory::InitDB(PRBool *aDoImport)
   return NS_OK;
 }
 
+
+
+
+nsresult
+nsNavHistory::UpdateSchemaVersion()
+{
+  nsCAutoString schemaVersionPragma("PRAGMA user_version=");
+  schemaVersionPragma.AppendInt(PLACES_SCHEMA_VERSION);
+  return mDBConn->ExecuteSimpleSQL(schemaVersionPragma);
+}
 
 
 
