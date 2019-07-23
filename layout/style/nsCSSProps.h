@@ -83,6 +83,9 @@ enum nsStyleAnimType {
   eStyleAnimType_nscoord,
 
   
+  eStyleAnimType_float,
+
+  
   eStyleAnimType_Color,
 
   
