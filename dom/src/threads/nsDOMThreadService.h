@@ -44,7 +44,6 @@
 #include "nsIEventTarget.h"
 #include "nsIObserver.h"
 #include "nsIThreadPool.h"
-#include "nsIDOMThreads.h"
 
 
 #include "jsapi.h"
@@ -59,9 +58,9 @@
 extern PRLogModuleInfo* gDOMThreadsLog;
 #endif
 
+class nsDOMWorker;
 class nsDOMWorkerPool;
 class nsDOMWorkerRunnable;
-class nsDOMWorkerThread;
 class nsDOMWorkerTimeout;
 class nsIJSRuntimeService;
 class nsIScriptGlobalObject;
@@ -71,9 +70,9 @@ class nsIXPCSecurityManager;
 
 class nsDOMThreadService : public nsIEventTarget,
                            public nsIObserver,
-                           public nsIThreadPoolListener,
-                           public nsIDOMThreadService
+                           public nsIThreadPoolListener
 {
+  friend class nsDOMWorker;
   friend class nsDOMWorkerPool;
   friend class nsDOMWorkerRunnable;
   friend class nsDOMWorkerThread;
@@ -82,19 +81,24 @@ class nsDOMThreadService : public nsIEventTarget,
   friend class nsDOMWorkerXHRProxy;
   friend class nsLayoutStatics;
 
+  friend void DOMWorkerErrorReporter(JSContext* aCx,
+                                     const char* aMessage,
+                                     JSErrorReport* aReport);
+
 public:
   NS_DECL_ISUPPORTS
   NS_DECL_NSIEVENTTARGET
   NS_DECL_NSIOBSERVER
   NS_DECL_NSITHREADPOOLLISTENER
-  NS_DECL_NSIDOMTHREADSERVICE
 
   
-  static already_AddRefed<nsIDOMThreadService> GetOrInitService();
+  static already_AddRefed<nsDOMThreadService> GetOrInitService();
 
   
   
   static nsDOMThreadService* get();
+
+  static JSContext* GetCurrentContext();
 
   
   static nsIJSRuntimeService* JSRuntimeService();
@@ -116,24 +120,29 @@ private:
 
   static void Shutdown();
 
-  nsresult Dispatch(nsDOMWorkerThread* aWorker,
+  nsresult Dispatch(nsDOMWorker* aWorker,
                     nsIRunnable* aRunnable);
 
   void WorkerComplete(nsDOMWorkerRunnable* aRunnable);
 
-  void WaitForCanceledWorker(nsDOMWorkerThread* aWorker);
-
   static JSContext* CreateJSContext();
 
-  void NoteDyingPool(nsDOMWorkerPool* aPool);
+  already_AddRefed<nsDOMWorkerPool>
+    GetPoolForGlobal(nsIScriptGlobalObject* aGlobalObject,
+                     PRBool aRemove);
+
+  void NoteEmptyPool(nsDOMWorkerPool* aPool);
 
   void TimeoutReady(nsDOMWorkerTimeout* aTimeout);
+
+  nsresult RegisterWorker(nsDOMWorker* aWorker,
+                          nsIScriptGlobalObject* aGlobalObject);
 
   
   nsCOMPtr<nsIThreadPool> mThreadPool;
 
   
-  nsTPtrArray<nsDOMWorkerPool> mPools;
+  nsRefPtrHashtable<nsISupportsHashKey, nsDOMWorkerPool> mPools;
 
   
   
