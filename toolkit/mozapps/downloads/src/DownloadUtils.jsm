@@ -133,6 +133,7 @@ let DownloadUtils = {
       (aMaxBytes - aCurrBytes) / aSpeed : -1;
 
     
+    let status;
     let (transfer = DownloadUtils.getTransferTotal(aCurrBytes, aMaxBytes)) {
       
       status = replaceInsert(gStr.statusFormat, 1, transfer);
