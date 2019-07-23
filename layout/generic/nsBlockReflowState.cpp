@@ -203,7 +203,10 @@ nsBlockReflowState::ComputeBlockAvailSpace(nsIFrame* aFrame,
   aResult.y = mY;
   aResult.height = GetFlag(BRS_UNCONSTRAINEDHEIGHT)
     ? NS_UNCONSTRAINEDSIZE
-    : mBottomEdge - mY;
+    : PR_MAX(0, mBottomEdge - mY);
+  
+  
+  
 
   const nsMargin& borderPadding = BorderPadding();
 

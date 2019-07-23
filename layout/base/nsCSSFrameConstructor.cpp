@@ -10802,8 +10802,12 @@ nsCSSFrameConstructor::ReplicateFixedFrames(nsPageContentFrame* aParentFrame)
   }
 
   
+  
+  
+  
+  
   nsFrameConstructorState state(mPresShell, aParentFrame,
-                                mInitialContainingBlock,
+                                nsnull,
                                 mInitialContainingBlock);
 
   
