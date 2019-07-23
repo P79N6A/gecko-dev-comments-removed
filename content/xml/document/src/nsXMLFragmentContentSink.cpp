@@ -609,7 +609,7 @@ nsresult
 nsXHTMLParanoidFragmentSink::AddAttributes(const PRUnichar** aAtts,
                                            nsIContent* aContent)
 {
-  nsresult rv;
+  nsresult rv = NS_OK;
 
   
   nsIScriptSecurityManager* secMan = nsContentUtils::GetSecurityManager();
