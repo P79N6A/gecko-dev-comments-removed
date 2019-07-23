@@ -138,6 +138,10 @@ class nsNativeTheme
     return CheckBooleanAttr(aFrame, nsWidgetAtoms::checked);
   }
 
+  PRBool IsOpenButton(nsIFrame* aFrame) {
+    return CheckBooleanAttr(aFrame, nsWidgetAtoms::open);
+  }
+
   
   TreeSortDirection GetTreeSortDirection(nsIFrame* aFrame);
   PRBool IsLastTreeHeaderCell(nsIFrame* aFrame);
