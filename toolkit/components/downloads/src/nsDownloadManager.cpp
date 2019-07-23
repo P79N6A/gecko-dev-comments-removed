@@ -1385,12 +1385,25 @@ nsDownloadManager::AddDownload(DownloadType aDownloadType,
 
 #ifdef DOWNLOAD_SCANNER
   if (mScanner) {
-    AVCheckPolicyState res = mScanner->CheckPolicy(aSource, aTarget);
-    if (res == AVPOLICY_BLOCKED) {
-      
-      
-      (void)CancelDownload(id);
-      startState = nsIDownloadManager::DOWNLOAD_BLOCKED_POLICY;
+    PRBool scan = PR_TRUE;
+    nsCOMPtr<nsIPrefBranch> prefs(do_GetService(NS_PREFSERVICE_CONTRACTID));
+    if (prefs) {
+      (void)prefs->GetBoolPref(PREF_BDM_SCANWHENDONE, &scan);
+    }
+    
+    
+    
+    
+    
+    
+    if (scan) {
+      AVCheckPolicyState res = mScanner->CheckPolicy(aSource, aTarget);
+      if (res == AVPOLICY_BLOCKED) {
+        
+        
+        (void)CancelDownload(id);
+        startState = nsIDownloadManager::DOWNLOAD_BLOCKED_POLICY;
+      }
     }
   }
 #endif
