@@ -1074,7 +1074,7 @@ var BookmarkPropertiesPanel = {
     if (!selectedNode)
       return;
 
-    var folderId = asFolder(selectedNode).folderId;
+    var folderId = selectedNode.itemId;
     
     
     var oldSelectedItem = this._folderMenuList.selectedItem;

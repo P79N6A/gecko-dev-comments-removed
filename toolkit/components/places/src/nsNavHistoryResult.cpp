@@ -2574,10 +2574,9 @@ nsNavHistoryQueryResultNode::OnFolderChanged(PRInt64 aFolder,
 
 
 
-NS_IMPL_ISUPPORTS_INHERITED2(nsNavHistoryFolderResultNode,
+NS_IMPL_ISUPPORTS_INHERITED1(nsNavHistoryFolderResultNode,
                              nsNavHistoryContainerResultNode,
-                             nsINavHistoryQueryResultNode,
-                             nsINavHistoryFolderResultNode)
+                             nsINavHistoryQueryResultNode)
 
 nsNavHistoryFolderResultNode::nsNavHistoryFolderResultNode(
     const nsACString& aTitle, nsNavHistoryQueryOptions* aOptions,
