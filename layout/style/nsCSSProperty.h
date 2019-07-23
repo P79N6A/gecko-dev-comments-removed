@@ -75,4 +75,19 @@ enum nsCSSType {
   eCSSType_ValuePairList
 };
 
+
+
+
+
+enum nsCSSFontDesc {
+  eCSSFontDesc_UNKNOWN = -1,
+  eCSSFontDesc_Family,
+  eCSSFontDesc_Style,
+  eCSSFontDesc_Weight,
+  eCSSFontDesc_Stretch,
+  eCSSFontDesc_Src,
+  eCSSFontDesc_UnicodeRange,
+  eCSSFontDesc_COUNT
+};
+
 #endif 

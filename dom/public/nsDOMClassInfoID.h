@@ -429,6 +429,10 @@ enum nsDOMClassInfoID {
   eDOMClassInfo_Geolocator_id,
 
   
+  eDOMClassInfo_CSSFontFaceRule_id,
+  eDOMClassInfo_CSSFontFaceStyleDecl_id,
+
+  
 #if defined(MOZ_MEDIA)
   eDOMClassInfo_HTMLVideoElement_id,
   eDOMClassInfo_HTMLSourceElement_id,
