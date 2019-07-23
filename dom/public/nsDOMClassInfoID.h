@@ -454,6 +454,10 @@ enum nsDOMClassInfoID {
 
   eDOMClassInfo_SimpleGestureEvent_id,
 
+#ifdef MOZ_MATHML
+  eDOMClassInfo_MathMLElement_id,
+#endif
+
   
   eDOMClassInfoIDCount
 };
