@@ -1254,15 +1254,16 @@ nsSafariProfileMigrator::GetSourceHomePageURL(nsACString& aResult)
 
   
   CFDictionaryRef safariPrefs = CopySafariPrefs();
-  if (GetDictionaryCStringValue(safariPrefs,
-                                CFSTR(SAFARI_HOME_PAGE_PREF),
-                                aResult, kCFStringEncodingUTF8)) {
-    ::CFRelease(safariPrefs);
-    return NS_OK;
-  }
-
+  PRBool foundPref = GetDictionaryCStringValue(safariPrefs,
+                                               CFSTR(SAFARI_HOME_PAGE_PREF),
+                                               aResult, kCFStringEncodingUTF8);
   ::CFRelease(safariPrefs);
+  if (foundPref)
+    return NS_OK;
 
+#ifdef __LP64__
+  return NS_ERROR_FAILURE;
+#else
   
   
   ICInstance internetConfig;
@@ -1284,4 +1285,5 @@ nsSafariProfileMigrator::GetSourceHomePageURL(nsACString& aResult)
   ::ICStop(internetConfig);
 
   return NS_OK;
+#endif
 }
