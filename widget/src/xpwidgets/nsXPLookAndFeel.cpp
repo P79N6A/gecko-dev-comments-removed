@@ -171,6 +171,7 @@ const char nsXPLookAndFeel::sColorPrefs[][38] =
   "ui.textSelectBackgroundDisabled",
   "ui.textSelectBackgroundAttention",
   "ui.textHighlightBackground",
+  "ui.textHighlightForeground",
   "ui.IMERawInputBackground",
   "ui.IMERawInputForeground",
   "ui.IMERawInputUnderline",
@@ -590,6 +591,13 @@ nsXPLookAndFeel::GetColor(const nsColorID aID, nscolor &aColor)
     
     
     aColor = NS_RGB(0xf0, 0xe0, 0x20);
+    return NS_OK;
+  }
+
+  if (aID == eColor_TextHighlightForeground) {
+    
+    
+    aColor = NS_RGB(0x00, 0x00, 0x00);
     return NS_OK;
   }
 
