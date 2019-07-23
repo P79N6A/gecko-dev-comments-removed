@@ -1399,6 +1399,10 @@ nsHTMLCopyEncoder::PromoteAncestorChain(nsCOMPtr<nsIDOMNode> *ioNode,
 
   nsCOMPtr<nsIDOMNode> frontNode, endNode, parent;
   PRInt32 frontOffset, endOffset;
+
+  
+  nsCOMPtr<nsINode> node = do_QueryInterface(*ioNode);
+  PRBool isEditable = node->IsEditable();
   
   
   while (!done)
@@ -1415,8 +1419,11 @@ nsHTMLCopyEncoder::PromoteAncestorChain(nsCOMPtr<nsIDOMNode> *ioNode,
       
       rv = GetPromotedPoint( kEnd, *ioNode, *ioEndOffset, address_of(endNode), &endOffset, parent);
       NS_ENSURE_SUCCESS(rv, rv);
+
+      nsCOMPtr<nsINode> frontINode = do_QueryInterface(frontNode);
       
-      if ( (frontNode != parent) || (endNode != parent) )
+      
+      if ( (frontNode != parent) || (endNode != parent) || (frontINode->IsEditable() != isEditable) )
         done = PR_TRUE;
       else
       {
