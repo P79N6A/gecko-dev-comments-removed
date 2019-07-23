@@ -85,9 +85,15 @@ var gAllTests = [
     wh.onload = function () {
       this.selectDuration(Sanitizer.TIMESPAN_HOUR);
       this.checkPrefCheckbox("history", false);
-      this.checkDetails();
+      this.checkDetails(false);
+
+      
       this.toggleDetails();
-      this.checkDetails();
+      this.checkDetails(true);
+
+      
+      this.toggleDetails();
+      this.checkDetails(false);
       this.cancelDialog();
 
       ensureHistoryClearedState(uris, false);
@@ -226,9 +232,16 @@ var gAllTests = [
          "with a predefined timespan");
       this.selectDuration(Sanitizer.TIMESPAN_EVERYTHING);
       this.checkPrefCheckbox("history", true);
-      this.checkDetails();
+      this.checkDetails(false);
+
+      
       this.toggleDetails();
-      this.checkDetails();
+      this.checkDetails(true);
+
+      
+      this.toggleDetails();
+      this.checkDetails(false);
+
       this.acceptDialog();
 
       intPrefIs("sanitize.timeSpan", Sanitizer.TIMESPAN_EVERYTHING,
@@ -264,6 +277,32 @@ var gAllTests = [
                 "timeSpan pref should be everything after accepting dialog " +
                 "with everything selected");
       ensureHistoryClearedState(uris, true);
+    };
+    wh.open();
+  },
+
+  
+
+
+  function () {
+    let wh = new WindowHelper();
+
+    wh.onload = function () {
+      
+      this.toggleDetails();
+      this.checkDetails(true);
+      this.cancelDialog();
+    };
+    wh.open();
+
+    wh.onload = function () {
+      
+      this.checkDetails(true);
+      
+      
+      this.toggleDetails();
+      this.checkDetails(false);
+      this.cancelDialog();
     };
     wh.open();
   }
@@ -314,10 +353,16 @@ WindowHelper.prototype = {
 
 
 
-  checkDetails: function () {
+
+
+
+  checkDetails: function (aShouldBeShown) {
     let button = this.getDetailsButton();
     let list = this.getItemList();
     let hidden = list.hidden || list.collapsed;
+    is(hidden, !aShouldBeShown,
+       "Details should be " + (aShouldBeShown ? "shown" : "hidden") +
+       " but were actually " + (hidden ? "hidden" : "shown"));
     let dir = hidden ? "down" : "up";
     is(button.className, "expander-" + dir,
        "Details button should be " + dir + " because item list is " +
