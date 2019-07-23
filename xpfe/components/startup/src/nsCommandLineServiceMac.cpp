@@ -138,16 +138,11 @@ nsresult nsMacCommandLine::Initialize(int& argc, char**& argv)
   mArgs[0] = nsnull;
   mArgsAllocated = kArgsGrowSize;
   mArgsUsed = 0;
-  
-#if defined(XP_MACOSX)
+
   
   
   for (int arg = 0; arg < argc; arg++)
     AddToCommandLine(argv[arg]);
-#else
-  
-  AddToCommandLine("mozilla");
-#endif
 
   
   OSErr err = CreateAEHandlerClasses(false);
@@ -175,8 +170,8 @@ nsresult nsMacCommandLine::Initialize(int& argc, char**& argv)
       err = ::AEProcessAppleEvent(&anEvent);
     }
   }
-  
-  if (GetCurrentKeyModifiers() & optionKey)
+
+  if (::GetCurrentEventKeyModifiers() & optionKey)
     AddToCommandLine("-p");
 
   
