@@ -492,7 +492,8 @@ static const char kDOMStringBundleURL[] =
    nsIXPCScriptable::WANT_ADDPROPERTY |                                       \
    nsIXPCScriptable::WANT_DELPROPERTY |                                       \
    nsIXPCScriptable::WANT_GETPROPERTY |                                       \
-   nsIXPCScriptable::WANT_POSTCREATE)
+   nsIXPCScriptable::WANT_POSTCREATE  |                                       \
+   nsIXPCScriptable::WANT_FINALIZE)
 
 #define ARRAY_SCRIPTABLE_FLAGS                                                \
   (DOM_DEFAULT_SCRIPTABLE_FLAGS       |                                       \
@@ -6506,6 +6507,10 @@ nsNodeSH::PreCreate(nsISupports *nativeObj, JSContext *cx, JSObject *globalObj,
   
   
 
+  if (native_parent == doc && (*parentObj = doc->GetJSObject())) {
+    return NS_OK;
+  }
+
   jsval v;
   nsCOMPtr<nsIXPConnectJSObjectHolder> holder;
   nsresult rv = WrapNative(cx, globalObj, native_parent,
@@ -7536,9 +7541,6 @@ NS_IMETHODIMP
 nsDocumentSH::PostCreate(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
                          JSObject *obj)
 {
-  nsresult rv = nsNodeSH::PostCreate(wrapper, cx, obj);
-  NS_ENSURE_SUCCESS(rv, rv);
-
   
   
   
@@ -7547,6 +7549,13 @@ nsDocumentSH::PostCreate(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
   if (!doc) {
     return NS_ERROR_UNEXPECTED;
   }
+
+  
+  
+  doc->SetJSObject(obj);
+
+  nsresult rv = nsNodeSH::PostCreate(wrapper, cx, obj);
+  NS_ENSURE_SUCCESS(rv, rv);
 
   nsIScriptGlobalObject *sgo = doc->GetScriptGlobalObject();
   nsCOMPtr<nsPIDOMWindow> win = do_QueryInterface(sgo);
@@ -7584,6 +7593,20 @@ nsDocumentSH::PostCreate(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
       return NS_ERROR_FAILURE;
     }
   }
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsDocumentSH::Finalize(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
+                       JSObject *obj)
+{
+  nsCOMPtr<nsIDocument> doc = do_QueryWrappedNative(wrapper);
+  if (!doc) {
+    return NS_ERROR_UNEXPECTED;
+  }
+
+  doc->SetJSObject(nsnull);
+
   return NS_OK;
 }
 
