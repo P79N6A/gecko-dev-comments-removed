@@ -1874,17 +1874,14 @@ nsRuleNode::WalkRuleTree(const nsStyleStructID aSID,
 
     
     
-    
-    
-    if (detail == eRuleNone)
-      while (ruleNode->mDependentBits & bit) {
-        NS_ASSERTION(ruleNode->mStyleData.GetStyleData(aSID) == nsnull,
-                     "dependent bit with cached data makes no sense");
-        
-        rootNode = ruleNode;
-        ruleNode = ruleNode->mParent;
-        NS_ASSERTION(!(ruleNode->mNoneBits & bit), "can't have both bits set");
-      }
+    while (ruleNode->mDependentBits & bit) {
+      NS_ASSERTION(ruleNode->mStyleData.GetStyleData(aSID) == nsnull,
+                   "dependent bit with cached data makes no sense");
+      
+      rootNode = ruleNode;
+      ruleNode = ruleNode->mParent;
+      NS_ASSERTION(!(ruleNode->mNoneBits & bit), "can't have both bits set");
+    }
 
     
     
