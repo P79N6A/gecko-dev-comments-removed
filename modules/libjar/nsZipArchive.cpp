@@ -50,7 +50,6 @@
 
 
 
-#define ZFILE_CREATE    PR_WRONLY | PR_CREATE_FILE
 #define READTYPE  PRInt32
 #include "zlib.h"
 #include "nsISupportsUtils.h"
@@ -173,7 +172,7 @@ zlibAlloc(void *opaque, uInt items, uInt size)
     PRUint32 realitems = items;
     if (size == 4 && items < BY4ALLOC_ITEMS)
       realitems = BY4ALLOC_ITEMS;
-     return zallocator->Calloc(realitems, size);
+    return zallocator->Calloc(realitems, size);
   }
   else
     return calloc(items, size);
@@ -228,13 +227,14 @@ nsresult nsZipHandle::Init(PRFileDesc *fd, nsZipHandle **ret)
     return NS_ERROR_FILE_TOO_BIG;
 
   PRFileMap *map = PR_CreateFileMap(fd, size, PR_PROT_READONLY);
-
   if (!map)
     return NS_ERROR_FAILURE;
 
   nsZipHandle *handle = new nsZipHandle();
-  if (!handle)
+  if (!handle) {
+    PR_CloseFileMap(map);
     return NS_ERROR_OUT_OF_MEMORY;
+  }
 
   handle->mFd = fd;
   handle->mMap = map;
@@ -245,22 +245,17 @@ nsresult nsZipHandle::Init(PRFileDesc *fd, nsZipHandle **ret)
   return NS_OK;
 }
 
-PRInt32 nsZipHandle::Read(PRUint32 aPosition, void *aBuffer, PRUint32 aCount)
-{
-  if (mLen < 0 || aPosition+aCount > (PRUint32) mLen)
-    return -1;
-  PRInt32 count = PR_MIN(aCount, mLen - aPosition);
-  memcpy(aBuffer, mFileData + aPosition, count);
-  return count;
-}
-
 nsZipHandle::~nsZipHandle()
 {
-  if (mFd) {
+  if (mFileData) {
     PR_MemUnmap(mFileData, mLen);
     PR_CloseFileMap(mMap);
+    mFileData = nsnull;
+    mMap = nsnull;
+  }
+  if (mFd) {
     PR_Close(mFd);
-    mFd = 0;
+    mFd = nsnull;
   }
   MOZ_COUNT_DTOR(nsZipHandle);
 }
@@ -326,6 +321,7 @@ nsresult nsZipArchive::CloseArchive()
 {
   if (mFd) {
     PL_FinishArenaPool(&mArena);
+    mFd = NULL;
   }
 
   
@@ -335,11 +331,8 @@ nsresult nsZipArchive::CloseArchive()
   
   
   
-  for (int i = 0; i < ZIP_TABSIZE; i++) {
-    mFiles[i] = 0;
-  }
-  mFd = NULL;
-  mBuiltSynthetics = PR_FALSE;
+  memset(mFiles, 0, sizeof(mFiles));
+  mBuiltSynthetics = false;
   return ZIP_OK;
 }
 
@@ -388,25 +381,17 @@ nsresult nsZipArchive::ExtractFile(nsZipItem *item, const char *outname,
   
   PR_ASSERT(!item->isDirectory);
 
-  
-  if (!MaybeReadItem(item))
-    return ZIP_ERR_CORRUPT;
-
-  nsSeekableZipHandle fd;
-  if (!fd.Open(mFd.get(), item->dataOffset, item->size))
-    return ZIP_ERR_CORRUPT;
-
   nsresult rv;
 
   
   switch(item->compression)
   {
     case STORED:
-      rv = CopyItemToDisk(item->size, item->crc32, fd, aFd);
+      rv = CopyItemToDisk(item, aFd);
       break;
 
     case DEFLATED:
-      rv = InflateItem(item, fd, aFd);
+      rv = InflateItem(item, aFd);
       break;
 
     default:
@@ -607,14 +592,12 @@ nsresult nsZipArchive::BuildFileList()
       return ZIP_ERR_MEMORY;
 
     item->headerOffset  = xtolong(central->localhdr_offset);
-    item->dataOffset    = 0;
     item->size          = xtolong(central->size);
     item->realsize      = xtolong(central->orglen);
     item->crc32         = xtolong(central->crc32);
     item->time          = xtoint(central->time);
     item->date          = xtoint(central->date);
     item->isSynthetic   = PR_FALSE;
-    item->hasDataOffset = PR_FALSE;
     item->compression   = PR_MIN(xtoint(central->method), UNSUPPORTED);
     item->mode          = ExtractMode(central->external_attributes);
 #if defined(XP_UNIX) || defined(XP_BEOS)
@@ -652,7 +635,7 @@ nsresult nsZipArchive::BuildSynthetics()
 {
   if (mBuiltSynthetics)
     return ZIP_OK;
-  mBuiltSynthetics = PR_TRUE;
+  mBuiltSynthetics = true;
 
   
   
@@ -737,9 +720,9 @@ nsresult nsZipArchive::BuildSynthetics()
   return ZIP_OK;
 }
 
-nsZipHandle* nsZipArchive::GetFD(nsZipItem* aItem)
+nsZipHandle* nsZipArchive::GetFD()
 {
-  if (!mFd || !MaybeReadItem(aItem))
+  if (!mFd)
     return NULL;
   return mFd.get();
 }
@@ -747,81 +730,58 @@ nsZipHandle* nsZipArchive::GetFD(nsZipItem* aItem)
 
 
 
-bool nsZipArchive::MaybeReadItem(nsZipItem* aItem)
+PRUint8* nsZipArchive::GetData(nsZipItem* aItem)
 {
   PR_ASSERT (aItem);
 
   
-  if (!aItem->hasDataOffset)
-  {
-    
-    
-    
-    
-    
-    
-    if (!mFd || !mFd->mLen > aItem->headerOffset + ZIPLOCAL_SIZE)
-      return false;
+  
+  if (aItem->headerOffset + ZIPLOCAL_SIZE > mFd->mLen)
+    return nsnull;
 
-    ZipLocal   *Local =     (ZipLocal*)(mFd->mFileData + aItem->headerOffset);
-    
-    if ((xtolong(Local->signature) != LOCALSIG))
-    {
-      
-      return false;
-    }
+  
+  ZipLocal* Local = (ZipLocal*)(mFd->mFileData + aItem->headerOffset);
+  if ((xtolong(Local->signature) != LOCALSIG))
+    return nsnull;
 
-    aItem->dataOffset = aItem->headerOffset +
+  
+  
+  
+  PRUint32 dataOffset = aItem->headerOffset +
                         ZIPLOCAL_SIZE +
                         xtoint(Local->filename_len) +
                         xtoint(Local->extrafield_len);
-    aItem->hasDataOffset = PR_TRUE;
-  }
 
-  return true;
+  
+  if (dataOffset + aItem->size > mFd->mLen)
+    return nsnull;
+
+  return mFd->mFileData + dataOffset;
 }
 
 
 
 
 nsresult
-nsZipArchive::CopyItemToDisk(PRUint32 itemSize, PRUint32 itemCrc, 
-                             nsSeekableZipHandle &fd, PRFileDesc* outFD)
-
-
-
-
-
+nsZipArchive::CopyItemToDisk(nsZipItem *item, PRFileDesc* outFD)
 {
-  PRUint32    chunk, pos, crc;
-  char buf[ZIP_BUFLEN];
+  PR_ASSERT(item);
 
   
-  crc = crc32(0L, Z_NULL, 0);
+  const PRUint8* itemData = GetData(item);
+  if (!itemData)
+    return ZIP_ERR_CORRUPT;
 
-  
-  for (pos = 0; pos < itemSize; pos += chunk)
+  if (outFD && PR_Write(outFD, itemData, item->size) < (READTYPE)item->size)
   {
-    chunk = (itemSize - pos < ZIP_BUFLEN) ? (itemSize - pos) : ZIP_BUFLEN;
     
-    if (fd.Read(buf, chunk) != (READTYPE)chunk)
-    {
-      
-      return ZIP_ERR_CORRUPT;
-    }
-
-    
-    crc = crc32(crc, (const unsigned char*)buf, chunk);
-
-    if (outFD && PR_Write(outFD, buf, chunk) < (READTYPE)chunk)
-    {
-      
-      return ZIP_ERR_DISK;
-    }
+    return ZIP_ERR_DISK;
   }
 
   
-  if (crc != itemCrc)
+  PRUint32 crc = crc32(0L, (const unsigned char*)itemData, item->size);
+  
+  if (crc != item->crc32)
       return ZIP_ERR_CORRUPT;
 
   return ZIP_OK;
@@ -831,17 +791,15 @@ nsZipArchive::CopyItemToDisk(PRUint32 itemSize, PRUint32 itemCrc,
 
 
 
-nsresult nsZipArchive::InflateItem(const nsZipItem* aItem, nsSeekableZipHandle &fd, PRFileDesc* outFD)
+nsresult nsZipArchive::InflateItem(nsZipItem * item, PRFileDesc* outFD)
 
 
 
 
 
 {
-  PR_ASSERT(aItem);
-
+  PR_ASSERT(item);
   
-  Bytef inbuf[ZIP_BUFLEN];
   Bytef outbuf[ZIP_BUFLEN];
 
   
@@ -851,95 +809,44 @@ nsresult nsZipArchive::InflateItem(const nsZipItem* aItem, nsSeekableZipHandle &
     return ZIP_ERR_GENERAL;
 
   
-  zs.next_out = outbuf;
-  zs.avail_out = ZIP_BUFLEN;
+  zs.avail_in = item->size;
+  zs.next_in = (Bytef*)GetData(item);
+  if (!zs.next_in)
+    return ZIP_ERR_CORRUPT;
 
-  PRUint32  size = aItem->size;
-  PRUint32  outpos = 0;
   PRUint32  crc = crc32(0L, Z_NULL, 0);
-  int       zerr = Z_OK;
+  int zerr = Z_OK;
   while (zerr == Z_OK)
   {
-    PRBool      bRead = PR_FALSE;
-    PRBool      bWrote= PR_FALSE;
+    zs.next_out = outbuf;
+    zs.avail_out = ZIP_BUFLEN;
 
-    if (zs.avail_in == 0 && zs.total_in < size)
+    zerr = inflate(&zs, Z_PARTIAL_FLUSH);
+    if (zerr != Z_OK && zerr != Z_STREAM_END)
     {
-      
-      
-      PRUint32 chunk = (size-zs.total_in < ZIP_BUFLEN) ? size-zs.total_in : ZIP_BUFLEN;
-
-      if (fd.Read(inbuf, chunk) != (READTYPE)chunk)
-      {
-        
-        status = ZIP_ERR_CORRUPT;
-        break;
-      }
-
-      zs.next_in  = inbuf;
-      zs.avail_in = chunk;
-      bRead       = PR_TRUE;
+      status = (zerr == Z_MEM_ERROR) ? ZIP_ERR_MEMORY : ZIP_ERR_CORRUPT;
+      break;
     }
+    PRUint32 count = zs.next_out - outbuf;
 
-    if (zs.avail_out == 0)
+    
+    crc = crc32(crc, (const unsigned char*)outbuf, count);
+
+    if (outFD && PR_Write(outFD, outbuf, count) < (READTYPE)count)
     {
-      
-      if (outFD && PR_Write(outFD, outbuf, ZIP_BUFLEN) < ZIP_BUFLEN)
-      {
-        
-        status = ZIP_ERR_DISK;
-        break;
-      }
-
-      outpos = zs.total_out;
-      zs.next_out  = outbuf;
-      zs.avail_out = ZIP_BUFLEN;
-      bWrote       = PR_TRUE;
+      status = ZIP_ERR_DISK;
+      break;
     }
-
-    if(bRead || bWrote)
-    {
-      Bytef* old_next_out = zs.next_out;
-
-      zerr = inflate(&zs, Z_PARTIAL_FLUSH);
-
-      
-      crc = crc32(crc, (const unsigned char*)old_next_out, zs.next_out - old_next_out);
-    }
-    else
-      zerr = Z_STREAM_END;
-
   } 
 
   
-  if ((status == ZIP_OK) && (crc != aItem->crc32))
-  {
-      status = ZIP_ERR_CORRUPT;
-      goto cleanup;
-  }
-
-  
-  if (zerr == Z_STREAM_END && outpos < zs.total_out)
-  {
-    PRUint32 chunk = zs.total_out - outpos;
-    if (outFD && PR_Write(outFD, outbuf, chunk) < (READTYPE)chunk)
-      status = ZIP_ERR_DISK;
-  }
-
-  
-  if (status == ZIP_OK && zerr != Z_OK && zerr != Z_STREAM_END)
-  {
-    status = (zerr == Z_MEM_ERROR) ? ZIP_ERR_MEMORY : ZIP_ERR_CORRUPT;
-  }
-
-  
-  PR_ASSERT(status != ZIP_OK || zs.total_in == aItem->size);
-  PR_ASSERT(status != ZIP_OK || zs.total_out == aItem->realsize);
-
-cleanup:
-  
   inflateEnd(&zs);
 
+  
+  if ((status == ZIP_OK) && (crc != item->crc32))
+  {
+    status = ZIP_ERR_CORRUPT;
+  }
   return status;
 }
 
@@ -948,12 +855,12 @@ cleanup:
 
 
 nsZipArchive::nsZipArchive() :
-  mBuiltSynthetics(PR_FALSE)
+  mBuiltSynthetics(false)
 {
   MOZ_COUNT_CTOR(nsZipArchive);
 
   
-  memset(mFiles, 0, sizeof mFiles);
+  memset(mFiles, 0, sizeof(mFiles));
 }
 
 nsZipArchive::~nsZipArchive()
