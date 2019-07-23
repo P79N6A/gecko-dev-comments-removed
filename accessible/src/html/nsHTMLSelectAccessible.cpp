@@ -115,19 +115,20 @@ nsHTMLSelectableAccessible::iterator::AddAccessibleIfSelected(nsIMutableArray *a
                                                               nsPresContext *aContext)
 {
   PRBool isSelected = PR_FALSE;
-  nsCOMPtr<nsIAccessible> tempAccess;
+  nsRefPtr<nsAccessible> tempAcc;
 
   if (mOption) {
     mOption->GetSelected(&isSelected);
     if (isSelected) {
       nsCOMPtr<nsIDOMNode> optionNode(do_QueryInterface(mOption));
-      GetAccService()->GetAccessibleInWeakShell(optionNode, mWeakShell,
-                                                getter_AddRefs(tempAccess));
+      tempAcc = GetAccService()->GetAccessibleInWeakShell(optionNode,
+                                                          mWeakShell);
     }
   }
 
-  if (tempAccess)
-    aSelectedAccessibles->AppendElement(static_cast<nsISupports*>(tempAccess), PR_FALSE);
+  if (tempAcc)
+    aSelectedAccessibles->AppendElement(static_cast<nsIAccessible*>(tempAcc),
+                                        PR_FALSE);
 }
 
 PRBool
@@ -144,7 +145,11 @@ nsHTMLSelectableAccessible::iterator::GetAccessibleIfSelected(PRInt32 aIndex,
     if (isSelected) {
       if (mSelCount == aIndex) {
         nsCOMPtr<nsIDOMNode> optionNode(do_QueryInterface(mOption));
-        GetAccService()->GetAccessibleInWeakShell(optionNode, mWeakShell, aAccessible);
+        nsRefPtr<nsAccessible> acc =
+          GetAccService()->GetAccessibleInWeakShell(optionNode, mWeakShell);
+        if (acc)
+          CallQueryInterface(acc, aAccessible);
+
         return PR_TRUE;
       }
       mSelCount++;
@@ -392,13 +397,9 @@ nsHTMLSelectListAccessible::CacheOptSiblings(nsIContent *aParentContent)
       
       nsCOMPtr<nsIDOMNode> childNode(do_QueryInterface(childContent));
 
-      nsCOMPtr<nsIAccessible> accessible;
-      GetAccService()->GetAccessibleInWeakShell(childNode, mWeakShell,
-                                                getter_AddRefs(accessible));
-      if (accessible) {
-        nsRefPtr<nsAccessible> acc =
-          nsAccUtils::QueryObject<nsAccessible>(accessible);
-
+      nsRefPtr<nsAccessible> acc =
+        GetAccService()->GetAccessibleInWeakShell(childNode, mWeakShell);
+      if (acc) {
         mChildren.AppendElement(acc);
         acc->SetParent(this);
       }
@@ -415,32 +416,31 @@ nsHTMLSelectListAccessible::CacheOptSiblings(nsIContent *aParentContent)
 
 
 
-
-nsHTMLSelectOptionAccessible::nsHTMLSelectOptionAccessible(nsIDOMNode* aDOMNode, nsIWeakReference* aShell):
-nsHyperTextAccessibleWrap(aDOMNode, aShell)
+nsHTMLSelectOptionAccessible::
+  nsHTMLSelectOptionAccessible(nsIDOMNode *aDOMNode, nsIWeakReference *aShell) :
+  nsHyperTextAccessibleWrap(aDOMNode, aShell)
 {
   nsCOMPtr<nsIDOMNode> parentNode;
   aDOMNode->GetParentNode(getter_AddRefs(parentNode));
-  nsCOMPtr<nsIAccessible> parentAccessible;
-  if (parentNode) {
-    
-    
-    
-    
-    
-    GetAccService()->GetAccessibleInWeakShell(parentNode, mWeakShell, 
-                                              getter_AddRefs(parentAccessible));
-    if (parentAccessible) {
-      if (nsAccUtils::RoleInternal(parentAccessible) ==
-          nsIAccessibleRole::ROLE_COMBOBOX) {
-        nsCOMPtr<nsIAccessible> comboAccessible(parentAccessible);
-        comboAccessible->GetLastChild(getter_AddRefs(parentAccessible));
-      }
-    }
+
+  if (!parentNode)
+    return;
+
+  
+  
+  
+  
+  
+  nsRefPtr<nsAccessible> parentAcc =
+    GetAccService()->GetAccessibleInWeakShell(parentNode, mWeakShell);
+  if (!parentAcc)
+    return;
+
+  if (nsAccUtils::RoleInternal(parentAcc) == nsIAccessibleRole::ROLE_COMBOBOX) {
+    PRInt32 childCount = parentAcc->GetChildCount();
+    parentAcc = parentAcc->GetChildAt(childCount - 1);
   }
 
-  nsRefPtr<nsAccessible> parentAcc =
-    nsAccUtils::QueryObject<nsAccessible>(parentAccessible);
   SetParent(parentAcc);
 }
 
@@ -1004,26 +1004,25 @@ NS_IMETHODIMP nsHTMLComboboxAccessible::GetDescription(nsAString& aDescription)
     return NS_OK;
   }
   
-  nsCOMPtr<nsIAccessible> optionAccessible = GetFocusedOptionAccessible();
-  return optionAccessible ? optionAccessible->GetDescription(aDescription) : NS_OK;
+  nsRefPtr<nsAccessible> optionAcc = GetFocusedOptionAccessible();
+  return optionAcc ? optionAcc->GetDescription(aDescription) : NS_OK;
 }
 
-already_AddRefed<nsIAccessible>
+already_AddRefed<nsAccessible>
 nsHTMLComboboxAccessible::GetFocusedOptionAccessible()
 {
-  if (!mWeakShell) {
-    return nsnull;  
-  }
+  if (IsDefunct())
+    return nsnull;
+
   nsCOMPtr<nsIDOMNode> focusedOptionNode;
-  nsHTMLSelectOptionAccessible::GetFocusedOptionNode(mDOMNode, getter_AddRefs(focusedOptionNode));
+  nsHTMLSelectOptionAccessible::
+    GetFocusedOptionNode(mDOMNode, getter_AddRefs(focusedOptionNode));
   if (!focusedOptionNode) {
     return nsnull;
   }
 
-  nsIAccessible *optionAccessible;
-  GetAccService()->GetAccessibleInWeakShell(focusedOptionNode, mWeakShell, 
-                                            &optionAccessible);
-  return optionAccessible;
+  return GetAccService()->GetAccessibleInWeakShell(focusedOptionNode,
+                                                   mWeakShell);
 }
 
 
@@ -1034,9 +1033,8 @@ nsHTMLComboboxAccessible::GetFocusedOptionAccessible()
 NS_IMETHODIMP nsHTMLComboboxAccessible::GetValue(nsAString& aValue)
 {
   
-  nsCOMPtr<nsIAccessible> optionAccessible = GetFocusedOptionAccessible();
-  NS_ENSURE_TRUE(optionAccessible, NS_ERROR_FAILURE);
-  return optionAccessible->GetName(aValue);
+  nsRefPtr<nsAccessible> optionAcc = GetFocusedOptionAccessible();
+  return optionAcc ? optionAcc->GetName(aValue) : NS_OK;
 }
 
 

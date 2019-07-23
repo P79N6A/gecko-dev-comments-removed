@@ -107,10 +107,8 @@ public:
 
 
 
-
-  nsresult GetAccessibleInWeakShell(nsIDOMNode *aNode,
-                                    nsIWeakReference *aPresShell,
-                                    nsIAccessible **aAccessible);
+  already_AddRefed<nsAccessible>
+    GetAccessibleInWeakShell(nsIDOMNode *aNode, nsIWeakReference *aPresShell);
 
   
 

@@ -583,7 +583,7 @@ nsresult nsHyperTextAccessible::DOMPointToHypertextOffset(nsIDOMNode* aNode, PRI
 
   
   
-  nsCOMPtr<nsIAccessible> descendantAccessible;
+  nsRefPtr<nsAccessible> descendantAcc;
   if (findNode) {
     nsCOMPtr<nsIContent> findContent = do_QueryInterface(findNode);
     if (findContent->IsHTML() && 
@@ -596,14 +596,11 @@ nsresult nsHyperTextAccessible::DOMPointToHypertextOffset(nsIDOMNode* aNode, PRI
       *aHyperTextOffset = 0;
       return NS_OK;
     }
-    descendantAccessible = GetFirstAvailableAccessible(findNode);
+    descendantAcc = GetFirstAvailableAccessible(findNode);
   }
 
   
   nsRefPtr<nsAccessible> childAccAtOffset;
-  nsRefPtr<nsAccessible> descendantAcc =
-    nsAccUtils::QueryObject<nsAccessible>(descendantAccessible);
-
   while (descendantAcc) {
     nsRefPtr<nsAccessible> parentAcc = descendantAcc->GetParent();
     if (parentAcc == this) {

@@ -361,7 +361,7 @@ protected:
 
 
    
-  already_AddRefed<nsIAccessible>
+  already_AddRefed<nsAccessible>
     GetFirstAvailableAccessible(nsIDOMNode *aStartNode);
 
   
