@@ -1070,7 +1070,9 @@ nsPlainTextSerializer::DoAddLeaf(const nsIParserNode *aNode, PRInt32 aTag,
     
     return NS_OK;
   }
-  else if (mTagStackIndex > 0 && mTagStack[mTagStackIndex-1] == eHTMLTag_script) {
+  else if (mTagStackIndex > 0 &&
+           (mTagStack[mTagStackIndex-1] == eHTMLTag_script ||
+            mTagStack[mTagStackIndex-1] == eHTMLTag_style)) {
     
     return NS_OK;
   }
