@@ -1097,7 +1097,11 @@ function delayedStartup()
 
   
   
-  Cc["@mozilla.org/microsummary/service;1"].getService(Ci.nsIMicrosummaryService);
+  try {
+    Cc["@mozilla.org/microsummary/service;1"].getService(Ci.nsIMicrosummaryService);
+  } catch (ex) {
+    Components.utils.reportError("Failed to init microsummary service:\n" + ex);
+  }
 
   
   
@@ -1107,7 +1111,7 @@ function delayedStartup()
     TextZoom.init();
   }
   catch(ex) {
-    Components.utils.reportError(ex);
+    Components.utils.reportError("Failed to init content pref service:\n" + ex);
   }
 
   
