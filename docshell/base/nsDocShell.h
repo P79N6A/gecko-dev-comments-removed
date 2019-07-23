@@ -614,7 +614,8 @@ protected:
     nsresult IsCommandEnabled(const char * inCommand, PRBool* outEnabled);
     nsresult DoCommand(const char * inCommand);
     nsresult EnsureCommandHandler();
-    
+
+    nsIChannel* GetCurrentDocChannel();
 protected:
     
     virtual nsresult SetDocLoaderParent(nsDocLoader * aLoader);
