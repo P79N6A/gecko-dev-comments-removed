@@ -55,6 +55,7 @@
 #define nsIPresShell_h___
 
 #include "nsISupports.h"
+#include "nsQueryFrame.h"
 #include "nsCoord.h"
 #include "nsRect.h"
 #include "nsColor.h"
@@ -123,8 +124,8 @@ typedef struct CapturingContentInfo {
 
 
 #define NS_IPRESSHELL_IID     \
-{ 0xeba51d41, 0x68db, 0x4dab, \
-  { 0xa5, 0x7b, 0xdc, 0x1a, 0x27, 0x04, 0xde, 0x87 } }
+{ 0xeed2ef56, 0x133f, 0x4696, \
+  { 0x9e, 0xee, 0x5f, 0xc4, 0x5d, 0x81, 0x6b, 0xe8 } }
 
 
 #define NS_PRESSHELL_SCROLL_TOP      0
@@ -191,8 +192,9 @@ public:
   
   
   
-  virtual void* AllocateFrame(size_t aSize, unsigned int aCode) = 0;
-  virtual void  FreeFrame(size_t aSize, unsigned int aCode, void* aChunk) = 0;
+  
+  virtual void* AllocateFrame(nsQueryFrame::FrameIID aCode, size_t aSize) = 0;
+  virtual void  FreeFrame(nsQueryFrame::FrameIID aCode, void* aChunk) = 0;
 
   
   
