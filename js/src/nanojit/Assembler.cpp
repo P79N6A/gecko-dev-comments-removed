@@ -159,7 +159,7 @@ namespace nanojit
 
 
 
-    Assembler::Assembler(CodeAlloc* codeAlloc, AvmCore *core, LogControl* logc)
+    Assembler::Assembler(CodeAlloc& codeAlloc, AvmCore *core, LogControl* logc)
         : hasLoop(0)
         , codeList(0)
         , core(core)
@@ -255,7 +255,7 @@ namespace nanojit
             CodeAlloc::add(codeList, start, end);
 
         
-        _codeAlloc->alloc(start, end);
+        _codeAlloc.alloc(start, end);
         NanoAssert(uintptr_t(end) - uintptr_t(start) >= (size_t)LARGEST_UNDERRUN_PROT);
         eip = end;
     }
@@ -790,9 +790,9 @@ namespace nanojit
         
         if (error()) {
             
-            _codeAlloc->freeAll(codeList);
-            _codeAlloc->free(exitStart, exitEnd);
-            _codeAlloc->free(codeStart, codeEnd);
+            _codeAlloc.freeAll(codeList);
+            _codeAlloc.free(exitStart, exitEnd);
+            _codeAlloc.free(codeStart, codeEnd);
             return;
         }
 
@@ -825,16 +825,16 @@ namespace nanojit
 
         
 #ifdef NANOJIT_ARM
-        _codeAlloc->addRemainder(codeList, exitStart, exitEnd, _nExitSlot, _nExitIns);
-        _codeAlloc->addRemainder(codeList, codeStart, codeEnd, _nSlot, _nIns);
+        _codeAlloc.addRemainder(codeList, exitStart, exitEnd, _nExitSlot, _nExitIns);
+        _codeAlloc.addRemainder(codeList, codeStart, codeEnd, _nSlot, _nIns);
 #else
-        _codeAlloc->addRemainder(codeList, exitStart, exitEnd, exitStart, _nExitIns);
-        _codeAlloc->addRemainder(codeList, codeStart, codeEnd, codeStart, _nIns);
+        _codeAlloc.addRemainder(codeList, exitStart, exitEnd, exitStart, _nExitIns);
+        _codeAlloc.addRemainder(codeList, codeStart, codeEnd, codeStart, _nIns);
 #endif
 
-
-
-        _codeAlloc->flushICache(codeList);
+        
+        
+        _codeAlloc.flushICache(codeList);
 
         
         frag->fragEntry = fragEntry;

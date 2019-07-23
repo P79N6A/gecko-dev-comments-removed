@@ -102,7 +102,7 @@ namespace nanojit
 
 
 
-    class CodeAlloc : public GCFinalizedObject
+    class CodeAlloc
     {
         static const size_t sizeofMinBlock = offsetof(CodeList, code);
         static const size_t minAllocSize = LARGEST_UNDERRUN_PROT;
