@@ -262,9 +262,11 @@ nsFileControlFrame::SetFocus(PRBool aOn, PRBool aRepaint)
 
 
 
-nsresult 
-nsFileControlFrame::MouseClick(nsIDOMEvent* aMouseEvent)
+NS_IMETHODIMP
+nsFileControlFrame::MouseListener::MouseClick(nsIDOMEvent* aMouseEvent)
 {
+  NS_ASSERTION(mFrame, "We should have been unregistered");
+
   
   nsCOMPtr<nsIDOMMouseEvent> mouseEvent = do_QueryInterface(aMouseEvent);
   nsCOMPtr<nsIDOMNSUIEvent> uiEvent = do_QueryInterface(aMouseEvent);
@@ -288,7 +290,7 @@ nsFileControlFrame::MouseClick(nsIDOMEvent* aMouseEvent)
   nsresult result;
 
   
-  nsIContent* content = GetContent();
+  nsIContent* content = mFrame->GetContent();
   if (!content)
     return NS_ERROR_FAILURE;
 
@@ -314,7 +316,7 @@ nsFileControlFrame::MouseClick(nsIDOMEvent* aMouseEvent)
 
   
   nsAutoString defaultName;
-  GetFormProperty(nsGkAtoms::value, defaultName);
+  mFrame->GetFormProperty(nsGkAtoms::value, defaultName);
 
   nsCOMPtr<nsILocalFile> currentFile = do_CreateInstance("@mozilla.org/file/local;1");
   if (currentFile && !defaultName.IsEmpty()) {
@@ -338,7 +340,7 @@ nsFileControlFrame::MouseClick(nsIDOMEvent* aMouseEvent)
   }
 
   
-  mTextFrame->InitFocusedValue();
+  mFrame->mTextFrame->InitFocusedValue();
 
   
   PRInt16 mode;
@@ -348,7 +350,10 @@ nsFileControlFrame::MouseClick(nsIDOMEvent* aMouseEvent)
   if (mode == nsIFilePicker::returnCancel)
     return NS_OK;
 
-  if (!mTextFrame) {
+  if (!mFrame) {
+    
+    
+    
     
     return NS_OK;
   }
@@ -363,16 +368,16 @@ nsFileControlFrame::MouseClick(nsIDOMEvent* aMouseEvent)
       
       
       
-      PRBool oldState = mTextFrame->GetFireChangeEventState();
-      mTextFrame->SetFireChangeEventState(PR_TRUE);
-      nsCOMPtr<nsIFileControlElement> fileControl = do_QueryInterface(mContent);
+      PRBool oldState = mFrame->mTextFrame->GetFireChangeEventState();
+      mFrame->mTextFrame->SetFireChangeEventState(PR_TRUE);
+      nsCOMPtr<nsIFileControlElement> fileControl = do_QueryInterface(content);
       if (fileControl) {
         fileControl->SetFileName(unicodePath);
       }
       
-      mTextFrame->SetFireChangeEventState(oldState);
+      mFrame->mTextFrame->SetFireChangeEventState(oldState);
       
-      mTextFrame->CheckFireOnChange();
+      mFrame->mTextFrame->CheckFireOnChange();
       return NS_OK;
     }
   }
@@ -615,13 +620,3 @@ NS_IMETHODIMP nsFileControlFrame::GetAccessible(nsIAccessible** aAccessible)
 NS_IMPL_ISUPPORTS2(nsFileControlFrame::MouseListener,
                    nsIDOMMouseListener,
                    nsIDOMEventListener)
-
-NS_IMETHODIMP
-nsFileControlFrame::MouseListener::MouseClick(nsIDOMEvent* aMouseEvent)
-{
-  if (mFrame) {
-    return mFrame->MouseClick(aMouseEvent);
-  }
-
-  return NS_OK;
-}
