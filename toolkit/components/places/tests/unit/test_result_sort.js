@@ -65,7 +65,7 @@ try {
 function add_visit(aURI, aTime) {
   histsvc.addVisit(aURI,
                     aTime,
-                    0, 
+                    null, 
                     histsvc.TRANSITION_TYPED, 
                     false, 
                     0);
