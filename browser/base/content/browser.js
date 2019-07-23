@@ -1302,13 +1302,15 @@ function ctrlNumberTabSelection(event)
   }
 
 #ifdef XP_MACOSX
-  if (!event.metaKey)
+  
+  if (!event.metaKey || event.ctrlKey || event.altKey || event.shiftKey)
 #else
 #ifdef XP_UNIX
   
-  if (!event.altKey || event.shiftKey)
+  if (!event.altKey || event.ctrlKey || event.metaKey || event.shiftKey)
 #else
-  if (!event.ctrlKey)
+  
+  if (!event.ctrlKey || event.metaKey || event.altKey || event.shiftKey)
 #endif
 #endif
     return;
