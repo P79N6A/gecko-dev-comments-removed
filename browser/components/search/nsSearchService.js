@@ -2755,6 +2755,12 @@ SearchService.prototype = {
       engineToRemove.alias = null;
     } else {
       
+      if (engineToRemove._serializeTimer) {
+        engineToRemove._serializeTimer.cancel();
+        engineToRemove._serializeTimer = null;
+      }
+
+      
       engineToRemove._remove();
       engineToRemove._file = null;
 
