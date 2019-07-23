@@ -54,6 +54,7 @@
 #include "nsAutoLock.h"
 
 #include "mozIStorageAggregateFunction.h"
+#include "mozIStorageCompletionCallback.h"
 #include "mozIStorageFunction.h"
 
 #include "mozStorageAsyncStatementExecution.h"
@@ -245,6 +246,48 @@ aggregateFunctionFinalHelper(sqlite3_context *aCtx)
   }
 }
 
+} 
+
+
+
+
+namespace {
+
+class AsyncCloseConnection : public nsRunnable
+{
+public:
+  AsyncCloseConnection(Connection *aConnection,
+                       nsIEventTarget *aCallingThread,
+                       nsIRunnable *aCallbackEvent)
+  : mConnection(aConnection)
+  , mCallingThread(aCallingThread)
+  , mCallbackEvent(aCallbackEvent)
+  {
+  }
+
+  NS_METHOD Run()
+  {
+    
+    
+    
+    PRBool onCallingThread = PR_FALSE;
+    (void)mCallingThread->IsOnCurrentThread(&onCallingThread);
+    if (!onCallingThread) {
+      (void)mCallingThread->Dispatch(this, NS_DISPATCH_NORMAL);
+      return NS_OK;
+    }
+
+    (void)mConnection->internalClose();
+    if (mCallbackEvent)
+      (void)mCallingThread->Dispatch(mCallbackEvent, NS_DISPATCH_NORMAL);
+
+    return NS_OK;
+  }
+private:
+  nsCOMPtr<Connection> mConnection;
+  nsCOMPtr<nsIEventTarget> mCallingThread;
+  nsCOMPtr<nsIRunnable> mCallbackEvent;
+};
 
 } 
 
@@ -255,8 +298,7 @@ Connection::Connection(Service *aService)
 : sharedAsyncExecutionMutex("Connection::sharedAsyncExecutionMutex")
 , threadOpenedOn(do_GetCurrentThread())
 , mDBConn(nsnull)
-, mAsyncExecutionMutex(nsAutoLock::NewLock("AsyncExecutionMutex"))
-, mAsyncExecutionThreadShuttingDown(PR_FALSE)
+, mAsyncExecutionThreadShuttingDown(false)
 , mDBMutex("Connection::mDBMutex")
 , mTransactionInProgress(PR_FALSE)
 , mProgressHandler(nsnull)
@@ -268,7 +310,6 @@ Connection::Connection(Service *aService)
 Connection::~Connection()
 {
   (void)Close();
-  nsAutoLock::DestroyLock(mAsyncExecutionMutex);
 }
 
 NS_IMPL_THREADSAFE_ISUPPORTS1(
@@ -279,7 +320,7 @@ NS_IMPL_THREADSAFE_ISUPPORTS1(
 already_AddRefed<nsIEventTarget>
 Connection::getAsyncExecutionTarget()
 {
-  nsAutoLock mutex(mAsyncExecutionMutex);
+  MutexAutoLock lockedScope(sharedAsyncExecutionMutex);
 
   
   
@@ -303,7 +344,6 @@ nsresult
 Connection::initialize(nsIFile *aDatabaseFile)
 {
   NS_ASSERTION (!mDBConn, "Initialize called on already opened database!");
-  NS_ENSURE_TRUE(mAsyncExecutionMutex, NS_ERROR_OUT_OF_MEMORY);
 
   int srv;
   nsresult rv;
@@ -473,14 +513,49 @@ Connection::progressHandler()
   return 0;
 }
 
-
-
-
-NS_IMETHODIMP
-Connection::Close()
+nsresult
+Connection::setClosedState()
 {
-  if (!mDBConn)
-    return NS_ERROR_NOT_INITIALIZED;
+  
+  PRBool onOpenedThread;
+  nsresult rv = threadOpenedOn->IsOnCurrentThread(&onOpenedThread);
+  NS_ENSURE_SUCCESS(rv, rv);
+  if (!onOpenedThread) {
+    NS_ERROR("Must close the database on the thread that you opened it with!");
+    return NS_ERROR_UNEXPECTED;
+  }
+
+  
+  
+  {
+    MutexAutoLock lockedScope(sharedAsyncExecutionMutex);
+    NS_ENSURE_FALSE(mAsyncExecutionThreadShuttingDown, NS_ERROR_UNEXPECTED);
+    mAsyncExecutionThreadShuttingDown = true;
+  }
+
+  return NS_OK;
+}
+
+nsresult
+Connection::internalClose()
+{
+#ifdef DEBUG
+  
+  NS_ASSERTION(mDBConn, "Database connection is already null!");
+
+  { 
+    MutexAutoLock lockedScope(sharedAsyncExecutionMutex);
+    NS_ASSERTION(mAsyncExecutionThreadShuttingDown,
+                 "Did not call setClosedState!");
+  }
+
+  { 
+    PRBool onOpenedThread = PR_FALSE;
+    (void)threadOpenedOn->IsOnCurrentThread(&onOpenedThread);
+    NS_ASSERTION(onOpenedThread,
+                 "Not called on the thread the database was opened on!");
+  }
+#endif
 
 #ifdef PR_LOGGING
   nsCAutoString leafName(":memory");
@@ -489,20 +564,6 @@ Connection::Close()
   PR_LOG(gStorageLog, PR_LOG_NOTICE, ("Closing connection to '%s'",
                                       leafName.get()));
 #endif
-
-  
-  
-  {
-    nsAutoLock mutex(mAsyncExecutionMutex);
-    mAsyncExecutionThreadShuttingDown = PR_TRUE;
-  }
-  
-  
-  
-  if (mAsyncExecutionThread) {
-    mAsyncExecutionThread->Shutdown();
-    mAsyncExecutionThread = nsnull;
-  }
 
 #ifdef DEBUG
   
@@ -522,6 +583,57 @@ Connection::Close()
   mDBConn = NULL;
   return convertResultCode(srv);
 }
+
+
+
+
+NS_IMETHODIMP
+Connection::Close()
+{
+  if (!mDBConn)
+    return NS_ERROR_NOT_INITIALIZED;
+
+  { 
+    MutexAutoLock lockedScope(sharedAsyncExecutionMutex);
+    NS_ENSURE_FALSE(mAsyncExecutionThread, NS_ERROR_UNEXPECTED);
+  }
+
+  nsresult rv = setClosedState();
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  return internalClose();
+}
+
+NS_IMETHODIMP
+Connection::AsyncClose(mozIStorageCompletionCallback *aCallback)
+{
+  if (!mDBConn)
+    return NS_ERROR_NOT_INITIALIZED;
+
+  nsCOMPtr<nsIEventTarget> asyncThread(getAsyncExecutionTarget());
+  NS_ENSURE_TRUE(asyncThread, NS_ERROR_UNEXPECTED);
+
+  nsresult rv = setClosedState();
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  nsCOMPtr<nsIRunnable> completeEvent;
+  if (aCallback) {
+    completeEvent = newCompletionEvent(aCallback);
+    NS_ENSURE_TRUE(completeEvent, NS_ERROR_OUT_OF_MEMORY);
+  }
+
+  
+  nsCOMPtr<nsIRunnable> closeEvent =
+    new AsyncCloseConnection(this, NS_GetCurrentThread(), completeEvent);
+  NS_ENSURE_TRUE(closeEvent, NS_ERROR_OUT_OF_MEMORY);
+
+  rv = asyncThread->Dispatch(closeEvent, NS_DISPATCH_NORMAL);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  return NS_OK;
+}
+
 
 NS_IMETHODIMP
 Connection::GetConnectionReady(PRBool *_ready)

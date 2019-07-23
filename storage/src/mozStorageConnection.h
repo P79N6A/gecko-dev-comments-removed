@@ -99,15 +99,30 @@ public:
 
 
 
+
   Mutex sharedAsyncExecutionMutex;
 
   
 
 
+
   const nsCOMPtr<nsIThread> threadOpenedOn;
+
+  
+
+
+  nsresult internalClose();
 
 private:
   ~Connection();
+
+  
+
+
+
+
+
+  nsresult setClosedState();
 
   
 
@@ -148,11 +163,6 @@ private:
   
 
 
-  PRLock *mAsyncExecutionMutex;
-
-  
-
-
 
 
   nsCOMPtr<nsIThread> mAsyncExecutionThread;
@@ -162,7 +172,7 @@ private:
 
 
 
-  PRBool mAsyncExecutionThreadShuttingDown;
+  bool mAsyncExecutionThreadShuttingDown;
 
   
 
