@@ -45,7 +45,6 @@
 
 #include <stddef.h>
 #include <stdio.h>
-#include "js-config.h"
 #include "jspubtd.h"
 #include "jsutil.h"
 
@@ -338,6 +337,9 @@ JS_ValueToConstructor(JSContext *cx, jsval v);
 
 extern JS_PUBLIC_API(JSString *)
 JS_ValueToString(JSContext *cx, jsval v);
+
+extern JS_PUBLIC_API(JSString *)
+JS_ValueToSource(JSContext *cx, jsval v);
 
 extern JS_PUBLIC_API(JSBool)
 JS_ValueToNumber(JSContext *cx, jsval v, jsdouble *dp);
