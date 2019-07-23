@@ -52,6 +52,7 @@
 #include "mozilla/Mutex.h"
 #include "nsHtml5AtomTable.h"
 #include "nsHtml5Speculation.h"
+#include "nsITimer.h"
 
 class nsHtml5Parser;
 
@@ -106,11 +107,14 @@ class nsHtml5StreamParser : public nsIStreamListener,
   friend class nsHtml5RequestStopper;
   friend class nsHtml5DataAvailable;
   friend class nsHtml5StreamParserContinuation;
+  friend class nsHtml5StreamParserTimerFlusher;
 
   public:
     NS_DECL_AND_IMPL_ZEROING_OPERATOR_NEW
     NS_DECL_CYCLE_COLLECTING_ISUPPORTS
     NS_DECL_CYCLE_COLLECTION_CLASS_AMBIGUOUS(nsHtml5StreamParser, nsIStreamListener)
+
+    static void InitializeStatics();
 
     nsHtml5StreamParser(nsHtml5TreeOpExecutor* aExecutor,
                         nsHtml5Parser* aOwner);
@@ -301,6 +305,23 @@ class nsHtml5StreamParser : public nsIStreamListener,
     nsresult SetupDecodingFromBom(const char* aCharsetName,
                                   const char* aDecoderCharsetName);
 
+    
+
+
+    static void TimerCallback(nsITimer* aTimer, void* aClosure);
+
+    
+
+
+
+    void PostTimerFlush();
+
+    
+
+
+
+    void TimerFlush();
+
     nsCOMPtr<nsIRequest>          mRequest;
     nsCOMPtr<nsIRequestObserver>  mObserver;
 
@@ -435,6 +456,31 @@ class nsHtml5StreamParser : public nsIStreamListener,
 
 
     nsCOMPtr<nsIDocument>         mDocument;
+
+    
+
+
+    nsCOMPtr<nsITimer>            mFlushTimer;
+
+    
+
+
+
+
+    static PRInt32                sTimerStartDelay;
+
+    
+
+
+
+
+    static PRInt32                sTimerContinueDelay;
+
+    
+
+
+
+    static PRInt32                sTimerInterval;
 };
 
 #endif 

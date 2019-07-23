@@ -50,13 +50,7 @@ class nsAHtml5TreeOpSink {
 
 
 
-    virtual void MaybeFlush(nsTArray<nsHtml5TreeOperation>& aOpQueue) = 0;
-
-    
-
-
-
-    virtual void ForcedFlush(nsTArray<nsHtml5TreeOperation>& aOpQueue) = 0;
+    virtual void MoveOpsFrom(nsTArray<nsHtml5TreeOperation>& aOpQueue) = 0;
     
 };
 

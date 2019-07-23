@@ -54,18 +54,12 @@ class nsHtml5TreeOpStage : public nsAHtml5TreeOpSink {
 
 
 
-    virtual void MaybeFlush(nsTArray<nsHtml5TreeOperation>& aOpQueue);
-
-    
-
-
-
-    virtual void ForcedFlush(nsTArray<nsHtml5TreeOperation>& aOpQueue);
+    virtual void MoveOpsFrom(nsTArray<nsHtml5TreeOperation>& aOpQueue);
     
     
 
 
-    void RetrieveOperations(nsTArray<nsHtml5TreeOperation>& aOpQueue);
+    void MoveOpsTo(nsTArray<nsHtml5TreeOperation>& aOpQueue);
 
 #ifdef DEBUG
     void AssertEmpty();
