@@ -6482,8 +6482,8 @@ PRBool NotifyListBoxBody(nsPresContext*    aPresContext,
       
       
       if (!aChildFrame || aChildFrame->GetParent() == listBoxBodyFrame) {
-        listBoxBodyFrame->OnContentRemoved(aPresContext, aChildFrame,
-                                           aIndexInContainer);
+        listBoxBodyFrame->OnContentRemoved(aPresContext, aContainer,
+                                           aChildFrame, aIndexInContainer);
         return PR_TRUE;
       }
     } else {
