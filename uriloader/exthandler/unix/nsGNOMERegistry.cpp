@@ -242,6 +242,14 @@ nsGNOMERegistry::HandlerExists(const char *aProtocolScheme)
   return PR_FALSE;
 }
 
+
+
+
+
+
+
+
+
  nsresult
 nsGNOMERegistry::LoadURL(nsIURI *aURL)
 {

@@ -585,7 +585,9 @@ NS_IMETHODIMP nsExternalProtocolHandler::NewURI(const nsACString &aSpec,
 NS_IMETHODIMP nsExternalProtocolHandler::NewChannel(nsIURI *aURI, nsIChannel **_retval)
 {
   
-
+  
+  
+  
   PRBool haveExternalHandler = HaveExternalProtocolHandler(aURI);
   if (haveExternalHandler)
   {
