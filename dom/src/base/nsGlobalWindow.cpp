@@ -5106,9 +5106,9 @@ nsGlobalWindow::CallerInnerWindow()
 }
 
 NS_IMETHODIMP
-nsGlobalWindow::PostMessageMoz(const nsAString& aMessage)
+nsGlobalWindow::PostMessageMoz(const nsAString& aMessage, const nsAString& aOrigin)
 {
-  FORWARD_TO_INNER_CREATE(PostMessageMoz, (aMessage));
+  FORWARD_TO_INNER_CREATE(PostMessageMoz, (aMessage, aOrigin));
 
   
   
@@ -5127,67 +5127,102 @@ nsGlobalWindow::PostMessageMoz(const nsAString& aMessage)
 
   
   
+  
   nsIPrincipal* callerPrin = callerInnerWin->GetPrincipal();
   if (!callerPrin)
     return NS_OK;
-  nsCOMPtr<nsIURI> docURI;
-  if (NS_FAILED(callerPrin->GetURI(getter_AddRefs(docURI))))
+  nsCOMPtr<nsIURI> callerURI;
+  if (NS_FAILED(callerPrin->GetURI(getter_AddRefs(callerURI))))
     return NS_OK;
-
-  
-  
-  if (!docURI) {
+  if (!callerURI) {
     nsCOMPtr<nsIDocument> doc = do_QueryInterface(callerInnerWin->mDocument);
     if (!doc)
       return NS_OK;
+    callerURI = doc->GetDocumentURI();
+    if (!callerURI)
+      return NS_OK;
+  }
+  const nsCString& empty = EmptyCString();
+  nsCOMPtr<nsIURI> callerOrigin;
+  if (NS_FAILED(callerURI->Clone(getter_AddRefs(callerOrigin))) ||
+      NS_FAILED(callerOrigin->SetUserPass(empty)))
+    return NS_OK;
 
-    docURI = doc->GetDocumentURI();
-    if (!docURI)
+
+  
+  if (!mDocument)
+    return NS_OK;
+
+  nsCOMPtr<nsIDOMEventTarget> targetDoc = do_QueryInterface(mDocument);
+  nsCOMPtr<nsIDOMDocumentEvent> docEvent = do_QueryInterface(mDocument);
+
+
+  
+  
+  if (!aOrigin.IsVoid()) {
+    nsCOMPtr<nsIURI> providedOrigin;
+    if (NS_FAILED(NS_NewURI(getter_AddRefs(providedOrigin), aOrigin)))
+      return NS_ERROR_DOM_SYNTAX_ERR;
+    if (NS_FAILED(providedOrigin->SetUserPass(empty)) ||
+        NS_FAILED(providedOrigin->SetPath(empty)))
+      return NS_OK;
+
+    
+    
+    
+    nsIPrincipal* targetPrin = GetPrincipal();
+    if (!targetPrin)
+      return NS_OK;
+    nsCOMPtr<nsIURI> targetURI;
+    if (NS_FAILED(targetPrin->GetURI(getter_AddRefs(targetURI))))
+      return NS_OK;
+    if (!targetURI) {
+      nsCOMPtr<nsIDocument> targetDoc = do_QueryInterface(mDocument);
+      if (!targetDoc)
+        return NS_OK;
+      targetURI = targetDoc->GetDocumentURI();
+      if (!targetURI)
+        return NS_OK;
+    }
+    nsCOMPtr<nsIURI> targetOrigin;
+    if (NS_FAILED(targetURI->Clone(getter_AddRefs(targetOrigin))) ||
+        NS_FAILED(targetOrigin->SetUserPass(empty)) ||
+        NS_FAILED(targetOrigin->SetPath(empty)))
+      return NS_OK;
+
+    PRBool equal = PR_FALSE;
+    if (NS_FAILED(targetOrigin->Equals(providedOrigin, &equal)) || !equal)
       return NS_OK;
   }
 
-  nsCAutoString domain, uri;
-  nsresult rv  = docURI->GetSpec(uri);
-  if (NS_FAILED(rv))
-    return NS_OK;
 
   
-  
-  
-  
-  
-  
-  if (NS_FAILED(docURI->GetHost(domain)))
-    domain.Truncate();
-
-  
-  nsCOMPtr<nsIDOMDocumentEvent> docEvent = do_QueryInterface(mDocument);
-  if (!docEvent)
-    return NS_OK;
   nsCOMPtr<nsIDOMEvent> event;
   docEvent->CreateEvent(NS_LITERAL_STRING("MessageEvent"),
                         getter_AddRefs(event));
   if (!event)
-    return NS_ERROR_FAILURE;
+    return NS_OK;
   
+  nsCAutoString origin;
+  if (NS_FAILED(callerOrigin->GetPrePath(origin)))
+    return NS_OK;
+
   nsCOMPtr<nsIDOMMessageEvent> message = do_QueryInterface(event);
-  rv = message->InitMessageEvent(NS_LITERAL_STRING("message"),
-                                 PR_TRUE ,
-                                 PR_TRUE ,
-                                 aMessage,
-                                 NS_ConvertUTF8toUTF16(domain),
-                                 NS_ConvertUTF8toUTF16(uri),
-                                 nsContentUtils::IsCallerChrome()
-                                 ? nsnull
-                                 : callerInnerWin->GetOuterWindowInternal());
+  nsresult rv = message->InitMessageEvent(NS_LITERAL_STRING("message"),
+                                          PR_TRUE ,
+                                          PR_TRUE ,
+                                          aMessage,
+                                          NS_ConvertUTF8toUTF16(origin),
+                                          nsContentUtils::IsCallerChrome()
+                                          ? nsnull
+                                          : callerInnerWin->GetOuterWindowInternal());
   if (NS_FAILED(rv))
-    return rv;
+    return NS_OK;
 
 
   
   
   PRBool dummy;
-  nsCOMPtr<nsIDOMEventTarget> targetDoc = do_QueryInterface(mDocument);
   targetDoc->DispatchEvent(message, &dummy);
 
   
