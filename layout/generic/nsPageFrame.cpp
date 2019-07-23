@@ -110,7 +110,9 @@ NS_IMETHODIMP nsPageFrame::Reflow(nsPresContext*          aPresContext,
                     avHeight);
     float scale = aPresContext->GetPageScale();
     maxSize.width = NSToCoordCeil(maxSize.width / scale);
-    maxSize.height = NSToCoordCeil(maxSize.height / scale);
+    if (maxSize.height != NS_UNCONSTRAINEDSIZE) {
+      maxSize.height = NSToCoordCeil(maxSize.height / scale);
+    }
     
     nscoord onePixelInTwips = nsPresContext::CSSPixelsToAppUnits(1);
     
