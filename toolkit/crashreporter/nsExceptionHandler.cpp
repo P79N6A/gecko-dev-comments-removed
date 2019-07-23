@@ -35,6 +35,7 @@
 
 
 
+
 #include "nsExceptionHandler.h"
 
 #if defined(XP_WIN32)
@@ -882,6 +883,16 @@ nsresult WriteMinidumpForException(EXCEPTION_POINTERS* aExceptionInfo)
     return NS_ERROR_NOT_INITIALIZED;
 
   return gExceptionHandler->WriteMinidumpForException(aExceptionInfo) ? NS_OK : NS_ERROR_FAILURE;
+}
+#endif
+
+#ifdef XP_MACOSX
+nsresult AppendObjCExceptionInfoToAppNotes(void *inException)
+{
+  nsCAutoString excString;
+  GetObjCExceptionInfo(inException, excString);
+  AppendAppNotesToCrashReport(excString);
+  return NS_OK;
 }
 #endif
 
