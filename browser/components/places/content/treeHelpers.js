@@ -292,5 +292,9 @@ var OptionsFilter = {
     var options = queryNode.queryOptions.clone();
     options.sortingMode = result.sortingMode;
     this.getHandler(queries).value = options;
+
+    
+    
+    window.document.commandDispatcher.updateCommands("sort");
   }
 };
