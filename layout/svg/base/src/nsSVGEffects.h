@@ -150,10 +150,19 @@ private:
   nsRect mFilterRect;
 };
 
+class nsSVGMarkerProperty : public nsSVGRenderingObserver {
+public:
+  nsSVGMarkerProperty(nsIURI *aURI, nsIFrame *aFrame)
+    : nsSVGRenderingObserver(aURI, aFrame) {}
+
+protected:
+  virtual void DoUpdate();
+};
+
 class nsSVGPaintingProperty : public nsSVGRenderingObserver {
 public:
-  nsSVGPaintingProperty(nsIURI *aURI, nsIFrame *aClippedFrame)
-    : nsSVGRenderingObserver(aURI, aClippedFrame) {}
+  nsSVGPaintingProperty(nsIURI *aURI, nsIFrame *aFrame)
+    : nsSVGRenderingObserver(aURI, aFrame) {}
 
 protected:
   virtual void DoUpdate();
@@ -264,6 +273,11 @@ public:
 
   static void InvalidateDirectRenderingObservers(nsIFrame *aFrame);
 
+  
+
+
+  static nsSVGMarkerProperty *
+  GetMarkerProperty(nsIURI *aURI, nsIFrame *aFrame, nsIAtom *aProp);
   
 
 
