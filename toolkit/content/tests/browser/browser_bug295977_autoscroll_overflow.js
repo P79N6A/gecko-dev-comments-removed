@@ -23,10 +23,11 @@ function test()
 
   function nextTest() {
     var test = allTests.shift();
-    if(!test) {
+    if (!test) {
       endTest();
       return;
     }
+
     var elem = doc.getElementById(test.elem);
     EventUtils.synthesizeMouse(elem, 10, 10, { button: 1 },
                                gBrowser.contentWindow);
@@ -81,9 +82,10 @@ function test()
       prefSvc.clearUserPref(kPrefName_AutoScroll);
 
     
-    gBrowser.addTab().linkedBrowser.stop();
+    gBrowser.addTab("about:blank");
     gBrowser.removeCurrentTab();
 
-    finish();
+    
+    waitForFocus(finish);
   }
 }
