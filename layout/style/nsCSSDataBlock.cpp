@@ -251,10 +251,6 @@ nsCSSCompressedDataBlock::MapRuleInfoInto(nsRuleData *aRuleData) const
                                             mPresContext->
                                             DefaultBackgroundColor());
                                     }
-                                } else if (iProp == eCSSProperty_color) {
-                                    
-                                    target->SetColorValue(aRuleData->
-                                        mPresContext-> DefaultColor());
                                 } else {
                                     
                                     
