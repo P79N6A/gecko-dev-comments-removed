@@ -944,6 +944,9 @@ public:
 
   virtual void RegisterFileDataUri(nsACString& aUri);
 
+  
+  void AsyncBlockOnload();
+
 protected:
   friend class nsNodeUtils;
   void RegisterNamedItems(nsIContent *aContent);
@@ -1174,7 +1177,10 @@ private:
   
   nsCOMPtr<nsILayoutHistoryState> mLayoutHistoryState;
 
+  
   PRUint32 mOnloadBlockCount;
+  
+  PRUint32 mAsyncOnloadBlockCount;
   nsCOMPtr<nsIRequest> mOnloadBlocker;
   ReadyState mReadyState;
 

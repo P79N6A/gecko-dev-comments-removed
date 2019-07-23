@@ -7173,6 +7173,15 @@ nsDocument::EnsureOnloadBlocker()
 }
 
 void
+nsDocument::AsyncBlockOnload()
+{
+  while (mAsyncOnloadBlockCount) {
+    --mAsyncOnloadBlockCount;
+    BlockOnload();
+  }
+}
+
+void
 nsDocument::BlockOnload()
 {
   if (mDisplayDocument) {
@@ -7183,6 +7192,16 @@ nsDocument::BlockOnload()
   
   
   if (mOnloadBlockCount == 0 && mScriptGlobalObject) {
+    if (!nsContentUtils::IsSafeToRunScript()) {
+      
+      
+      ++mAsyncOnloadBlockCount;
+      if (mAsyncOnloadBlockCount == 1) {
+        nsContentUtils::AddScriptRunner(
+          NS_NEW_RUNNABLE_METHOD(nsDocument, this, AsyncBlockOnload));
+      }
+      return;
+    }
     nsCOMPtr<nsILoadGroup> loadGroup = GetDocumentLoadGroup();
     if (loadGroup) {
       loadGroup->AddRequest(mOnloadBlocker, nsnull);
@@ -7199,7 +7218,7 @@ nsDocument::UnblockOnload(PRBool aFireSync)
     return;
   }
 
-  if (mOnloadBlockCount == 0) {
+  if (mOnloadBlockCount == 0 && mAsyncOnloadBlockCount == 0) {
     NS_NOTREACHED("More UnblockOnload() calls than BlockOnload() calls; dropping call");
     return;
   }
@@ -7209,7 +7228,7 @@ nsDocument::UnblockOnload(PRBool aFireSync)
   
   
   if (mOnloadBlockCount == 0 && mScriptGlobalObject) {
-    if (aFireSync) {
+    if (aFireSync && mAsyncOnloadBlockCount == 0) {
       
       ++mOnloadBlockCount;
       DoUnblockOnload();
@@ -7258,6 +7277,11 @@ nsDocument::DoUnblockOnload()
     
     
     return;
+  }
+
+  if (mAsyncOnloadBlockCount != 0) {
+    
+    PostUnblockOnloadEvent();
   }
 
   
