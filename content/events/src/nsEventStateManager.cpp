@@ -609,12 +609,15 @@ void
 nsMouseWheelTransaction::OnFailToScrollTarget()
 {
   NS_PRECONDITION(sTargetFrame, "We don't have mouse scrolling transaction");
-  
-  nsContentUtils::DispatchTrustedEvent(
-                    sTargetFrame->GetContent()->GetOwnerDoc(),
-                    sTargetFrame->GetContent(),
-                    NS_LITERAL_STRING("MozMouseScrollFailed"),
-                    PR_TRUE, PR_TRUE);
+
+  if (nsContentUtils::GetBoolPref("test.mousescroll", PR_FALSE)) {
+    
+    nsContentUtils::DispatchTrustedEvent(
+                      sTargetFrame->GetContent()->GetOwnerDoc(),
+                      sTargetFrame->GetContent(),
+                      NS_LITERAL_STRING("MozMouseScrollFailed"),
+                      PR_TRUE, PR_TRUE);
+  }
   
   
   if (!sTargetFrame)
@@ -634,12 +637,15 @@ nsMouseWheelTransaction::OnTimeout(nsITimer* aTimer, void* aClosure)
   
   
   EndTransaction();
-  
-  nsContentUtils::DispatchTrustedEvent(
-                    frame->GetContent()->GetOwnerDoc(),
-                    frame->GetContent(),
-                    NS_LITERAL_STRING("MozMouseScrollTransactionTimeout"),
-                    PR_TRUE, PR_TRUE);
+
+  if (nsContentUtils::GetBoolPref("test.mousescroll", PR_FALSE)) {
+    
+    nsContentUtils::DispatchTrustedEvent(
+                      frame->GetContent()->GetOwnerDoc(),
+                      frame->GetContent(),
+                      NS_LITERAL_STRING("MozMouseScrollTransactionTimeout"),
+                      PR_TRUE, PR_TRUE);
+  }
 }
 
 void
