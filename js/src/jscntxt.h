@@ -210,10 +210,6 @@ struct JSRuntime {
 
     JSPtrTable          gcIteratorTable;
 
-#ifdef JS_GCMETER
-    JSGCStats           gcStats;
-#endif
-
     
 
 
@@ -383,6 +379,12 @@ struct JSRuntime {
     
     JSAtomState         atomState;
 
+    
+
+
+
+
+
 #if defined DEBUG || defined JS_DUMP_PROPTREE_STATS
     
     jsrefcount          inlineCalls;
@@ -433,6 +435,10 @@ struct JSRuntime {
 
     JSBasicStats        hostenvScopeDepthStats;
     JSBasicStats        lexicalScopeDepthStats;
+#endif
+
+#ifdef JS_GCMETER
+    JSGCStats           gcStats;
 #endif
 };
 

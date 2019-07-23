@@ -256,11 +256,52 @@ js_GC(JSContext *cx, JSGCInvocationKind gckind);
 extern void
 js_UpdateMallocCounter(JSContext *cx, size_t nbytes);
 
+typedef struct JSGCArenaInfo JSGCArenaInfo;
+typedef struct JSGCArenaList JSGCArenaList;
+typedef struct JSGCChunkInfo JSGCChunkInfo;
+
+struct JSGCArenaList {
+    JSGCArenaInfo   *last;          
+    uint16          lastCount;      
+
+    uint16          thingSize;      
+
+    JSGCThing       *freeList;      
+};
+
+struct JSWeakRoots {
+    
+    void            *newborn[GCX_NTYPES];
+
+    
+    jsval           lastAtom;
+
+    
+    jsval           lastInternalResult;
+};
+
+JS_STATIC_ASSERT(JSVAL_NULL == 0);
+#define JS_CLEAR_WEAK_ROOTS(wr) (memset((wr), 0, sizeof(JSWeakRoots)))
+
 #ifdef DEBUG_notme
 #define JS_GCMETER 1
 #endif
 
 #ifdef JS_GCMETER
+
+typedef struct JSGCArenaStats {
+    uint32  narenas;        
+    uint32  maxarenas;      
+    uint32  nthings;        
+    uint32  maxthings;      
+    uint32  totalnew;       
+    uint32  freelen;        
+    uint32  recycle;        
+    uint32  totalarenas;    
+
+    uint32  totalfreelen;   
+
+} JSGCArenaStats;
 
 typedef struct JSGCStats {
 #ifdef JS_THREADSAFE
@@ -294,60 +335,14 @@ typedef struct JSGCStats {
     uint32  maxnclose;  
     uint32  closelater; 
     uint32  maxcloselater; 
+
+    JSGCArenaStats  arenas[GC_NUM_FREELISTS];
 } JSGCStats;
 
 extern JS_FRIEND_API(void)
 js_DumpGCStats(JSRuntime *rt, FILE *fp);
 
 #endif 
-
-typedef struct JSGCArenaInfo JSGCArenaInfo;
-typedef struct JSGCArenaList JSGCArenaList;
-typedef struct JSGCChunkInfo JSGCChunkInfo;
-
-#ifdef JS_GCMETER
-typedef struct JSGCArenaStats JSGCArenaStats;
-
-struct JSGCArenaStats {
-    uint32  narenas;        
-    uint32  maxarenas;      
-    uint32  nthings;        
-    uint32  maxthings;      
-    uint32  totalnew;       
-    uint32  freelen;        
-    uint32  recycle;        
-    uint32  totalarenas;    
-
-    uint32  totalfreelen;   
-
-};
-#endif
-
-struct JSGCArenaList {
-    JSGCArenaInfo   *last;          
-    uint16          lastCount;      
-
-    uint16          thingSize;      
-
-    JSGCThing       *freeList;      
-#ifdef JS_GCMETER
-    JSGCArenaStats  stats;
-#endif
-};
-
-struct JSWeakRoots {
-    
-    void            *newborn[GCX_NTYPES];
-
-    
-    jsval           lastAtom;
-
-    
-    jsval           lastInternalResult;
-};
-
-JS_STATIC_ASSERT(JSVAL_NULL == 0);
-#define JS_CLEAR_WEAK_ROOTS(wr) (memset((wr), 0, sizeof(JSWeakRoots)))
 
 JS_END_EXTERN_C
 
