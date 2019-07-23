@@ -813,6 +813,10 @@ struct JSContext {
 
     
     JSDebugHooks        *debugHooks;
+    
+    
+    JSScript            *recorderScript;
+    JSObject            *recorderScriptObject;
 };
 
 #ifdef JS_THREADSAFE
