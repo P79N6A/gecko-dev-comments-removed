@@ -119,11 +119,7 @@ nsHtml5Parser::nsHtml5Parser()
 nsHtml5Parser::~nsHtml5Parser()
 {
   mTokenizer->end();
-  while (mFirstBuffer) {
-     nsHtml5UTF16Buffer* old = mFirstBuffer;
-     mFirstBuffer = mFirstBuffer->next;
-     delete old;
-  }
+  mFirstBuffer = nsnull;
 }
 
 NS_IMETHODIMP_(void)
@@ -161,7 +157,7 @@ nsHtml5Parser::SetCommand(eParserCommands aParserCommand)
 NS_IMETHODIMP_(void)
 nsHtml5Parser::SetDocumentCharset(const nsACString& aCharset, PRInt32 aCharsetSource)
 {
-  NS_PRECONDITION(mExecutor->GetLifeCycle() == NOT_STARTED,
+  NS_PRECONDITION(!mExecutor->HasStarted(),
                   "Document charset set too late.");
   NS_PRECONDITION(mStreamParser, "Tried to set charset on a script-only parser.");
   mStreamParser->SetDocumentCharset(aCharset, aCharsetSource);
@@ -196,6 +192,10 @@ nsHtml5Parser::GetStreamListener(nsIStreamListener** aListener)
 {
   if (!mStreamParser) {
     mStreamParser = new nsHtml5StreamParser(mExecutor, this);
+    nsIDocument* doc = mExecutor->GetDocument();
+    if (doc) {
+      mStreamParser->SetSpeculativeLoaderWithDocument(doc);
+    }
   }
   NS_ADDREF(*aListener = mStreamParser);
   return NS_OK;
@@ -262,10 +262,14 @@ nsHtml5Parser::Parse(nsIURI* aURL,
 
 
 
-  NS_PRECONDITION(mExecutor->GetLifeCycle() == NOT_STARTED, 
+  NS_PRECONDITION(!mExecutor->HasStarted(), 
                   "Tried to start parse without initializing the parser properly.");
   if (!mStreamParser) {
     mStreamParser = new nsHtml5StreamParser(mExecutor, this);
+    nsIDocument* doc = mExecutor->GetDocument();
+    if (doc) {
+      mStreamParser->SetSpeculativeLoaderWithDocument(doc);
+    }
   }
   mStreamParser->SetObserver(aObserver);
   mExecutor->SetStreamParser(mStreamParser);
@@ -293,27 +297,23 @@ nsHtml5Parser::Parse(const nsAString& aSourceBuffer,
   nsRefPtr<nsHtml5TreeOpExecutor> treeOpKungFuDeathGrip(mExecutor);
 
   
-  switch (mExecutor->GetLifeCycle()) {
-    case TERMINATED:
-      return NS_OK;
-    case NOT_STARTED:
-      NS_ASSERTION(!mStreamParser,
-                   "Had stream parser but document.write started life cycle.");
-      mExecutor->SetParser(this);
-      mTreeBuilder->setScriptingEnabled(mExecutor->IsScriptEnabled());
-      mTokenizer->start();
-      mExecutor->Start();
-      
+  if (!mExecutor->HasStarted()) {
+    NS_ASSERTION(!mStreamParser,
+                 "Had stream parser but document.write started life cycle.");
+    mExecutor->SetParser(this);
+    mTreeBuilder->setScriptingEnabled(mExecutor->IsScriptEnabled());
+    mTokenizer->start();
+    mExecutor->Start();
+    
 
 
 
 
-      mExecutor->WillBuildModel(eDTDMode_unknown);
-      break;
-    default:
-      break;
+    mExecutor->WillBuildModel(eDTDMode_unknown);
   }
-
+  if (mExecutor->IsComplete()) {
+    return NS_OK;
+  }
   if (aLastCall && aSourceBuffer.IsEmpty() && aKey == GetRootContextKey()) {
     
       NS_ASSERTION(!mStreamParser,
@@ -326,7 +326,7 @@ nsHtml5Parser::Parse(const nsAString& aSourceBuffer,
   PRInt32 lineNumberSave = mTokenizer->getLineNumber();
 
   if (!aSourceBuffer.IsEmpty()) {
-    nsHtml5UTF16Buffer* buffer = new nsHtml5UTF16Buffer(aSourceBuffer.Length());
+    nsRefPtr<nsHtml5UTF16Buffer> buffer = new nsHtml5UTF16Buffer(aSourceBuffer.Length());
     memcpy(buffer->getBuffer(), aSourceBuffer.BeginReading(), aSourceBuffer.Length() * sizeof(PRUnichar));
     buffer->setEnd(aSourceBuffer.Length());
     if (!mBlocked) {
@@ -337,12 +337,11 @@ nsHtml5Parser::Parse(const nsAString& aSourceBuffer,
         if (buffer->hasMore()) {
           mLastWasCR = mTokenizer->tokenizeBuffer(buffer);
           if (mTreeBuilder->HasScript()) {
+            mTreeBuilder->flushCharacters(); 
             mTreeBuilder->Flush(); 
             mExecutor->Flush(); 
-            
           }
           if (mBlocked) {
-            
             
             break;
           }
@@ -388,16 +387,17 @@ nsHtml5Parser::Parse(const nsAString& aSourceBuffer,
         buffer->next = keyHolder;
         mFirstBuffer = buffer;
       }
-      MaybePostContinueEvent();
-    } else {
-      delete buffer;
+      if (!mStreamParser) {
+        MaybePostContinueEvent();
+      }
+    } else { 
+      
+      mTreeBuilder->flushCharacters(); 
+      mTreeBuilder->Flush(); 
+      mExecutor->Flush(); 
     }
   }
 
-  
-  
-  mTreeBuilder->Flush();
-  mExecutor->Flush();
   mTokenizer->setLineNumber(lineNumberSave);
   return NS_OK;
 }
@@ -416,7 +416,7 @@ nsHtml5Parser::Terminate(void)
 {
   
   
-  if (mExecutor->GetLifeCycle() == TERMINATED) {
+  if (mExecutor->IsComplete()) {
     return NS_OK;
   }
   
@@ -474,7 +474,7 @@ nsHtml5Parser::ParseFragment(const nsAString& aSourceBuffer,
   mTreeBuilder->setFragmentContext(aContextLocalName, aContextNamespace, &weakTarget, aQuirks);
   mFragmentMode = PR_TRUE;
   
-  NS_PRECONDITION(mExecutor->GetLifeCycle() == NOT_STARTED, "Tried to start parse without initializing the parser properly.");
+  NS_PRECONDITION(!mExecutor->HasStarted(), "Tried to start parse without initializing the parser properly.");
   mTreeBuilder->setScriptingEnabled(mExecutor->IsScriptEnabled());
   mTokenizer->start();
   mExecutor->Start(); 
@@ -497,7 +497,6 @@ nsHtml5Parser::ParseFragment(const nsAString& aSourceBuffer,
   mTreeBuilder->Flush();
   mExecutor->Flush();
   mTokenizer->end();
-  mExecutor->SetLifeCycle(TERMINATED);
   mExecutor->DropParserAndPerfHint();
   mAtomTable.Clear();
   return NS_OK;
@@ -530,11 +529,7 @@ nsHtml5Parser::Reset()
   mContinueEvent = nsnull;  
   mAtomTable.Clear(); 
   
-  while (mFirstBuffer->next) {
-    nsHtml5UTF16Buffer* oldBuf = mFirstBuffer;
-    mFirstBuffer = mFirstBuffer->next;
-    delete oldBuf;
-  }
+  mFirstBuffer->next = nsnull;
   mFirstBuffer->setStart(0);
   mFirstBuffer->setEnd(0);
 }
@@ -568,58 +563,51 @@ nsHtml5Parser::ParseUntilScript()
     return;
   }
 
-  switch (mExecutor->GetLifeCycle()) {
-    case TERMINATED:
-      return;
-    case NOT_STARTED:
-      NS_NOTREACHED("Bad life cycle!");
-      break;
-    default:
-      break;
+  if (mExecutor->IsComplete()) {
+    return;
   }
+  NS_ASSERTION(mExecutor->HasStarted(), "Bad life cycle.");
 
   mExecutor->WillResume();
   for (;;) {
     if (!mFirstBuffer->hasMore()) {
       if (mFirstBuffer == mLastBuffer) {
-        switch (mExecutor->GetLifeCycle()) {
-          case TERMINATED:
-            
-            return;
-          case PARSING:
-            if (mDocumentClosed) {
-              NS_ASSERTION(!mStreamParser,
-                           "This should only happen with script-created parser.");
-              mTokenizer->eof();
-              mTreeBuilder->StreamEnded();
-              mTreeBuilder->Flush();
-              mExecutor->Flush();
-              mTokenizer->end();
-              return;            
-            } else {
-              
-              mFirstBuffer->setStart(0);
-              mFirstBuffer->setEnd(0);
-              if (mStreamParser) {
-                mStreamParser->ContinueAfterScripts(mTokenizer, 
-                                                    mTreeBuilder, 
-                                                    mLastWasCR);
-              }
-              return; 
-            }
-          default:
-            NS_NOTREACHED("It should be impossible to reach this.");
-            return;
+        if (mExecutor->IsComplete()) {
+          
+          return;
+        }
+        if (mDocumentClosed) {
+          NS_ASSERTION(!mStreamParser,
+                       "This should only happen with script-created parser.");
+          mTokenizer->eof();
+          mTreeBuilder->StreamEnded();
+          mTreeBuilder->Flush();
+          mExecutor->Flush();
+          mTokenizer->end();
+          return;            
+        } else {
+          
+          NS_ASSERTION(!mLastBuffer->getStart(), 
+            "Sentinel buffer had its indeces changed.");
+          NS_ASSERTION(!mLastBuffer->getEnd(), 
+            "Sentinel buffer had its indeces changed.");
+          if (mStreamParser && 
+              mReturnToStreamParserPermitted && 
+              !mExecutor->IsScriptExecuting()) {
+            mReturnToStreamParserPermitted = PR_FALSE;
+            mStreamParser->ContinueAfterScripts(mTokenizer, 
+                                                mTreeBuilder, 
+                                                mLastWasCR);
+          }
+          return; 
         }
       } else {
-        nsHtml5UTF16Buffer* oldBuf = mFirstBuffer;
         mFirstBuffer = mFirstBuffer->next;
-        delete oldBuf;
         continue;
       }
     }
 
-    if (mBlocked || (mExecutor->GetLifeCycle() == TERMINATED)) {
+    if (mBlocked || mExecutor->IsComplete()) {
       return;
     }
 
@@ -644,7 +632,7 @@ nsHtml5Parser::ParseUntilScript()
 void
 nsHtml5Parser::MaybePostContinueEvent()
 {
-  NS_PRECONDITION(mExecutor->GetLifeCycle() != TERMINATED, 
+  NS_PRECONDITION(!mExecutor->IsComplete(), 
                   "Tried to post continue event when the parser is done.");
   if (mContinueEvent) {
     return; 
@@ -665,6 +653,9 @@ nsHtml5Parser::Initialize(nsIDocument* aDoc,
                           nsISupports* aContainer,
                           nsIChannel* aChannel)
 {
+  if (mStreamParser && aDoc) {
+    mStreamParser->SetSpeculativeLoaderWithDocument(aDoc);
+  }
   return mExecutor->Init(aDoc, aURI, aContainer, aChannel);
 }
 
@@ -680,4 +671,5 @@ nsHtml5Parser::InitializeDocWriteParserState(nsAHtml5TreeBuilderState* aState)
   mTokenizer->resetToDataState();
   mTreeBuilder->loadState(aState, &mAtomTable);
   mLastWasCR = PR_FALSE;
+  mReturnToStreamParserPermitted = PR_TRUE;
 }

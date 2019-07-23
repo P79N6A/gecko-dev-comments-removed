@@ -61,24 +61,6 @@ class nsHtml5TreeBuilder;
 class nsHtml5Tokenizer;
 class nsHtml5StreamParser;
 
-enum eHtml5ParserLifecycle {
-  
-
-
-  NOT_STARTED = 0,
-
-  
-
-
-
-  PARSING = 1,
-
-  
-
-
-  TERMINATED = 2
-};
-
 typedef nsIContent* nsIContentPtr;
 
 class nsHtml5TreeOpExecutor : public nsContentSink,
@@ -121,7 +103,7 @@ class nsHtml5TreeOpExecutor : public nsContentSink,
     
 
 
-    eHtml5ParserLifecycle         mLifeCycle;
+    PRBool                        mStarted;
 
     
 
@@ -326,15 +308,11 @@ class nsHtml5TreeOpExecutor : public nsContentSink,
 #endif
 
     PRBool IsComplete() {
-      return (mLifeCycle == TERMINATED);
+      return !mParser;
     }
     
-    eHtml5ParserLifecycle GetLifeCycle() {
-      return mLifeCycle;
-    }
-    
-    void SetLifeCycle(eHtml5ParserLifecycle aLifeCycle) {
-      mLifeCycle = aLifeCycle;
+    PRBool HasStarted() {
+      return mStarted;
     }
     
     void ExecuteScript();
@@ -382,6 +360,12 @@ class nsHtml5TreeOpExecutor : public nsContentSink,
     void StreamEnded();
     
     void ScheduleTimer();
+
+#ifdef DEBUG
+    void AssertStageEmpty() {
+      mStage.AssertEmpty();
+    }
+#endif
 
   private:
 

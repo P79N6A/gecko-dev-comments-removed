@@ -91,10 +91,9 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN_INHERITED(nsHtml5TreeOpExecutor, nsContent
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 
 nsHtml5TreeOpExecutor::nsHtml5TreeOpExecutor()
-  : mHasProcessedBase(PR_FALSE)
-  , mReadingFromStage(PR_FALSE)
-  , mFlushTimer(do_CreateInstance("@mozilla.org/timer;1"))
+  : mFlushTimer(do_CreateInstance("@mozilla.org/timer;1"))
 {
+  
 }
 
 nsHtml5TreeOpExecutor::~nsHtml5TreeOpExecutor()
@@ -124,9 +123,8 @@ nsHtml5TreeOpExecutor::WillParse()
 NS_IMETHODIMP
 nsHtml5TreeOpExecutor::DidBuildModel(PRBool aTerminated)
 {
-  NS_PRECONDITION(mLifeCycle == PARSING, 
+  NS_PRECONDITION(mStarted && mParser, 
                   "Bad life cycle.");
-  mLifeCycle = TERMINATED;
   
   DidBuildModelImpl(aTerminated);
   mDocument->ScriptLoader()->RemoveObserver(this);
@@ -266,15 +264,13 @@ nsHtml5TreeOpExecutor::UpdateStyleSheet(nsIContent* aElement)
 void
 nsHtml5TreeOpExecutor::Flush()
 {
-  nsRefPtr<nsHtml5TreeOpExecutor> kungFuDeathGrip(this); 
-  nsCOMPtr<nsIParser> parserKungFuDeathGrip(mParser);
-
-  if (mLifeCycle == TERMINATED) {
+  if (!mParser) {
     mFlushTimer->Cancel();
     return;
   }
 
-  NS_ASSERTION(mParser, "mParser was nulled out but life cycle wasn't terminated.");
+  nsRefPtr<nsHtml5TreeOpExecutor> kungFuDeathGrip(this); 
+  nsCOMPtr<nsIParser> parserKungFuDeathGrip(mParser);
 
   if (mReadingFromStage) {
     mStage.RetrieveOperations(mOpQueue);
@@ -420,7 +416,7 @@ nsHtml5TreeOpExecutor::ExecuteScript()
   NS_ASSERTION(mScriptElement, "No script to run");
 
   nsCOMPtr<nsIScriptElement> sele = do_QueryInterface(mScriptElement);
-  if (mLifeCycle == TERMINATED) {
+  if (!mParser) {
     NS_ASSERTION(sele->IsMalformed(), "Script wasn't marked as malformed.");
     
     
@@ -442,11 +438,12 @@ nsHtml5TreeOpExecutor::ExecuteScript()
   if (rv == NS_ERROR_HTMLPARSER_BLOCK) {
     mScriptElements.AppendObject(sele);
     mParser->BlockParser();
-  } else if (mLifeCycle != TERMINATED) {
+  } else {
     
     
     htmlDocument->ScriptExecuted(sele);
-    static_cast<nsHtml5Parser*> (mParser.get())->MaybePostContinueEvent();
+    
+    ContinueInterruptedParsingAsync();
   }
 }
 
@@ -466,8 +463,8 @@ nsHtml5TreeOpExecutor::Init(nsIDocument* aDoc,
 void
 nsHtml5TreeOpExecutor::Start()
 {
-  NS_PRECONDITION(mLifeCycle == NOT_STARTED, "Tried to start when already started.");
-  mLifeCycle = PARSING;
+  NS_PRECONDITION(!mStarted, "Tried to start when already started.");
+  mStarted = PR_TRUE;
   mScriptElement = nsnull;
   ScheduleTimer();
 }
@@ -505,7 +502,7 @@ nsHtml5TreeOpExecutor::Reset() {
   mHasProcessedBase = PR_FALSE;
   mReadingFromStage = PR_FALSE;
   mOpQueue.Clear();
-  mLifeCycle = NOT_STARTED;
+  mStarted = PR_FALSE;
   mScriptElement = nsnull;
   mCallDidBuildModel = PR_FALSE;
 }

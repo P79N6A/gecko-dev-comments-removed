@@ -51,6 +51,7 @@
 #include "nsICharsetAlias.h"
 #include "mozilla/Mutex.h"
 #include "nsHtml5AtomTable.h"
+#include "nsHtml5Speculation.h"
 
 class nsHtml5Parser;
 
@@ -104,7 +105,7 @@ class nsHtml5StreamParser : public nsIStreamListener,
 
   friend class nsHtml5RequestStopper;
   friend class nsHtml5DataAvailable;
-  friend class nsHtml5ContinueAfterScript;
+  friend class nsHtml5StreamParserContinuation;
 
   public:
     NS_DECL_AND_IMPL_ZEROING_OPERATOR_NEW
@@ -154,7 +155,9 @@ class nsHtml5StreamParser : public nsIStreamListener,
       NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
       mObserver = aObserver;
     }
-    
+
+    void SetSpeculativeLoaderWithDocument(nsIDocument* aDocument);
+
     nsresult GetChannel(nsIChannel** aChannel);
 
     
@@ -169,8 +172,6 @@ class nsHtml5StreamParser : public nsIStreamListener,
     void Terminate() {
       mozilla::MutexAutoLock autoLock(mTerminatedMutex);
       mTerminated = PR_TRUE;
-      
-      
     }
     
   private:
@@ -183,15 +184,34 @@ class nsHtml5StreamParser : public nsIStreamListener,
     }
 #endif
 
-    void ParseUntilScript();
+    void Interrupt() {
+      NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
+      mozilla::MutexAutoLock autoLock(mTerminatedMutex);
+      mInterrupted = PR_TRUE;
+    }
+
+    void Uninterrupt() {
+      NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
+      mTokenizerMutex.AssertCurrentThreadOwns();
+      
+      
+      mInterrupted = PR_FALSE;      
+    }
+
+    void ParseAvailableData();
     
     void DoStopRequest();
     
     void DoDataAvailable(PRUint8* aBuffer, PRUint32 aLength);
 
+    PRBool IsTerminatedOrInterrupted() {
+      mozilla::MutexAutoLock autoLock(mTerminatedMutex);
+      return mTerminated || mInterrupted;
+    }
+
     PRBool IsTerminated() {
       mozilla::MutexAutoLock autoLock(mTerminatedMutex);
-      return mTerminated;    
+      return mTerminated;
     }
 
     
@@ -324,7 +344,7 @@ class nsHtml5StreamParser : public nsIStreamListener,
     
 
 
-    nsHtml5UTF16Buffer*           mFirstBuffer; 
+    nsRefPtr<nsHtml5UTF16Buffer>  mFirstBuffer;
 
     
 
@@ -376,12 +396,27 @@ class nsHtml5StreamParser : public nsIStreamListener,
     
 
 
-    PRBool                        mWaitingForScripts;
+    PRBool                        mSpeculating;
+
+    
+
+
+    PRBool                        mAtEOF;
+
+    
+
+
+
+
+
+    nsTArray<nsAutoPtr<nsHtml5Speculation> >  mSpeculations;
+    mozilla::Mutex                            mSpeculationMutex;
 
     
 
 
     PRBool                        mTerminated;
+    PRBool                        mInterrupted;
     mozilla::Mutex                mTerminatedMutex;
     
     
@@ -390,6 +425,11 @@ class nsHtml5StreamParser : public nsIStreamListener,
     nsCOMPtr<nsIThread>           mThread;
     
     nsCOMPtr<nsIRunnable>         mExecutorFlusher;
+    
+    
+
+
+    nsCOMPtr<nsIDocument>         mDocument;
 };
 
 #endif 

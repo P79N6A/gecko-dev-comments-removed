@@ -1,0 +1,75 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#include "nsHtml5Speculation.h"
+
+nsHtml5Speculation::nsHtml5Speculation(nsHtml5UTF16Buffer* aBuffer, 
+                                       PRInt32 aStart, 
+                                       nsAHtml5TreeBuilderState* aSnapshot)
+  : mBuffer(aBuffer)
+  , mStart(aStart)
+  , mSnapshot(aSnapshot)
+{
+  MOZ_COUNT_CTOR(nsHtml5Speculation);
+}
+
+nsHtml5Speculation::~nsHtml5Speculation()
+{
+  MOZ_COUNT_DTOR(nsHtml5Speculation);
+}
+
+void
+nsHtml5Speculation::MaybeFlush(nsTArray<nsHtml5TreeOperation>& aOpQueue)
+{
+  
+}
+
+void
+nsHtml5Speculation::ForcedFlush(nsTArray<nsHtml5TreeOperation>& aOpQueue)
+{
+  if (mOpQueue.IsEmpty()) {
+    mOpQueue.SwapElements(aOpQueue);
+    return;
+  }
+  mOpQueue.MoveElementsFrom(aOpQueue);
+}
+
+void
+nsHtml5Speculation::FlushToSink(nsAHtml5TreeOpSink* aSink)
+{
+  aSink->ForcedFlush(mOpQueue);
+}

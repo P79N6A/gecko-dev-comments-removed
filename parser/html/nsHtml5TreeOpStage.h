@@ -67,6 +67,10 @@ class nsHtml5TreeOpStage : public nsAHtml5TreeOpSink {
 
     void RetrieveOperations(nsTArray<nsHtml5TreeOperation>& aOpQueue);
 
+#ifdef DEBUG
+    void AssertEmpty();
+#endif
+
   private:
     nsTArray<nsHtml5TreeOperation> mOpQueue;
     mozilla::Mutex                 mMutex;

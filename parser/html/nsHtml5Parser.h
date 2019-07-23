@@ -331,7 +331,7 @@ class nsHtml5Parser : public nsIParser {
     
 
 
-    nsHtml5UTF16Buffer*           mFirstBuffer; 
+    nsRefPtr<nsHtml5UTF16Buffer>  mFirstBuffer;
 
     
 
@@ -358,6 +358,11 @@ class nsHtml5Parser : public nsIParser {
 
 
     nsRefPtr<nsHtml5StreamParser>       mStreamParser;
+    
+    
+
+
+    PRBool                              mReturnToStreamParserPermitted;
 
     
 
