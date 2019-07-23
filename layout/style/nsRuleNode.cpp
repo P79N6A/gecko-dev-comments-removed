@@ -2991,6 +2991,9 @@ nsRuleNode::ComputeDisplayData(nsStyleStruct* aStartStruct,
     
     
     
+    
+    
+    
 
     if (display->mPosition != NS_STYLE_POSITION_STATIC)
       display->mPosition = NS_STYLE_POSITION_STATIC;
