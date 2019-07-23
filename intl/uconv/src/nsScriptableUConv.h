@@ -54,9 +54,7 @@ public:
   virtual ~nsScriptableUnicodeConverter();
 
 protected:
-  
-  
-  nsCAutoString mCharset;
+  nsCString mCharset;
   nsCOMPtr<nsIUnicodeEncoder> mEncoder;
   nsCOMPtr<nsIUnicodeDecoder> mDecoder;
 

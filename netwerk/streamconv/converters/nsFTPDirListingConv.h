@@ -77,7 +77,7 @@ private:
     char*    DigestBufferLines(char *aBuffer, nsCString &aString);
 
     
-    nsCAutoString       mBuffer;            
+    nsCString           mBuffer;            
     PRBool              mSentHeading;       
 
     nsIStreamListener   *mFinalListener; 

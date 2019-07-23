@@ -121,6 +121,5 @@ public:
   
 private:
   nsCOMPtr<nsILocalFile> mFile;
-  nsCAutoString mRelativeToKey; 
-                                
+  nsCString mRelativeToKey;
 };
