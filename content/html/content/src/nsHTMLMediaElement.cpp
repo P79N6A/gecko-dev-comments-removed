@@ -652,17 +652,24 @@ NS_IMETHODIMP nsHTMLMediaElement::SetCurrentTime(float aCurrentTime)
   if (!mDecoder)
     return NS_ERROR_DOM_INVALID_STATE_ERR;
 
-  
-  if (!(aCurrentTime >= 0.0))
-    return NS_ERROR_FAILURE;
-
   if (mReadyState == nsIDOMHTMLMediaElement::HAVE_NOTHING) 
     return NS_ERROR_DOM_INVALID_STATE_ERR;
+
+  
+  if (aCurrentTime != aCurrentTime)
+    return NS_ERROR_FAILURE;
+
+  
+  float clampedTime = PR_MAX(0, aCurrentTime);
+  float duration = mDecoder->GetDuration();
+  if (duration >= 0) {
+    clampedTime = PR_MIN(clampedTime, duration);
+  }
 
   mPlayingBeforeSeek = IsPotentiallyPlaying();
   
   
-  nsresult rv = mDecoder->Seek(aCurrentTime);
+  nsresult rv = mDecoder->Seek(clampedTime);
   return rv;
 }
 
