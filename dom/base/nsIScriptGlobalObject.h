@@ -101,9 +101,8 @@ NS_HandleScriptError(nsIScriptGlobalObject *aScriptGlobal,
 
 
 #define NS_ISCRIPTGLOBALOBJECT_IID \
-{ /* {6afecd40-0b9a-4cfd-8c42-0f645cd91829} */ \
-  0x6afecd40, 0x0b9a, 0x4cfd, \
-  { 0x8c, 0x42, 0x0f, 0x64, 0x5c, 0xd9, 0x18, 0x29 } }
+{ 0xe9f3f2c1, 0x2d94, 0x4722, \
+  { 0xbb, 0xd4, 0x2b, 0xf6, 0xfd, 0xf4, 0x2f, 0x48 } }
 
 
 
@@ -168,13 +167,6 @@ public:
 
   
 
-
-
-
-
-  virtual nsresult SetNewArguments(nsIArray *aArguments) = 0;
-
-  
 
   virtual nsresult HandleScriptError(nsScriptErrorEvent *aErrorEvent,
                                      nsEventStatus *aEventStatus) {
