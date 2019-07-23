@@ -108,9 +108,6 @@ nsXHTMLContentSerializer::Init(PRUint32 aFlags, PRUint32 aWrapColumn,
   if (aFlags & nsIDocumentEncoder::OutputFormatted ) {
       aFlags = aFlags | nsIDocumentEncoder::OutputWrap;
   }
-  else if (!(aFlags & nsIDocumentEncoder::OutputRaw)) {
-      aFlags = aFlags | nsIDocumentEncoder::OutputWrap;
-  }
 
   nsresult rv;
   rv = nsXMLContentSerializer::Init(aFlags, aWrapColumn, aCharSet, aIsCopying, aRewriteEncodingDeclaration);
@@ -185,7 +182,9 @@ nsXHTMLContentSerializer::AppendText(nsIDOMText* aText,
     PRInt32 lastNewlineOffset = kNotFound;
     if (HasLongLines(data, lastNewlineOffset)) {
       
+      mDoWrap = PR_TRUE;
       AppendToStringWrapped(data, aStr);
+      mDoWrap = PR_FALSE;
     }
     else {
       AppendToStringConvertLF(data, aStr);
