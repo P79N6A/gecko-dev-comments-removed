@@ -595,9 +595,11 @@ nsBlockFrame::IsContainingBlock() const
   
   
   
+  
   nsIAtom *pseudoType = GetStyleContext()->GetPseudo();
   return pseudoType != nsCSSAnonBoxes::mozAnonymousBlock &&
-         pseudoType != nsCSSAnonBoxes::mozAnonymousPositionedBlock;
+         pseudoType != nsCSSAnonBoxes::mozAnonymousPositionedBlock &&
+         pseudoType != nsCSSAnonBoxes::cellContent;
 }
 
  PRBool

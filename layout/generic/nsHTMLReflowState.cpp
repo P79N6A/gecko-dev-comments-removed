@@ -313,8 +313,7 @@ void nsHTMLReflowState::InitCBReflowState()
     
     
     if (parentReflowState->parentReflowState &&
-        (IS_TABLE_CELL(parentReflowState->parentReflowState->frame->GetType()) ||
-         frame->GetType() == nsGkAtoms::tableFrame)) {
+        frame->GetType() == nsGkAtoms::tableFrame) {
       mCBReflowState = parentReflowState->parentReflowState;
     } else {
       mCBReflowState = parentReflowState;
@@ -374,6 +373,8 @@ nsHTMLReflowState::InitResizeFlags(nsPresContext* aPresContext)
     
     mFlags.mVResize = PR_TRUE;
   } else if (mCBReflowState && !frame->IsContainingBlock()) {
+    
+    
     
     
     mFlags.mVResize = mCBReflowState->mFlags.mVResize;
@@ -717,13 +718,6 @@ nsHTMLReflowState::ComputeRelativeOffsets(const nsHTMLReflowState* cbrs,
   }
 }
 
-inline PRBool
-IsAnonBlockPseudo(nsIAtom *aPseudo)
-{
-  return aPseudo == nsCSSAnonBoxes::mozAnonymousBlock ||
-         aPseudo == nsCSSAnonBoxes::mozAnonymousPositionedBlock;
-}
-
 nsIFrame*
 nsHTMLReflowState::GetHypotheticalBoxContainer(nsIFrame* aFrame,
                                                nscoord& aCBLeftEdge,
@@ -732,9 +726,7 @@ nsHTMLReflowState::GetHypotheticalBoxContainer(nsIFrame* aFrame,
   do {
     aFrame = aFrame->GetParent();
     NS_ASSERTION(aFrame, "Must find containing block somewhere");
-  } while (!(aFrame->IsContainingBlock() ||
-             (aFrame->IsFrameOfType(nsIFrame::eBlockFrame) &&
-              IsAnonBlockPseudo(aFrame->GetStyleContext()->GetPseudo()))));
+  } while (!aFrame->IsContainingBlock());
 
   NS_ASSERTION(aFrame != frame, "How did that happen?");
 
