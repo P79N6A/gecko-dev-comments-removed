@@ -7357,6 +7357,8 @@ TraceRecorder::record_JSOP_TYPEOF()
         type = INS_CONSTPTR(ATOM_TO_STRING(cx->runtime->atomState.typeAtoms[JSTYPE_STRING]));
     } else if (isNumber(r)) {
         type = INS_CONSTPTR(ATOM_TO_STRING(cx->runtime->atomState.typeAtoms[JSTYPE_NUMBER]));
+    } else if (VALUE_IS_FUNCTION(cx, r)) {
+        type = INS_CONSTPTR(ATOM_TO_STRING(cx->runtime->atomState.typeAtoms[JSTYPE_FUNCTION]));
     } else {
         LIns* args[] = { get(&r), cx_ins };
         if (JSVAL_TAG(r) == JSVAL_BOOLEAN) {
@@ -7507,24 +7509,15 @@ TraceRecorder::record_SetPropHit(JSPropCacheEntry* entry, JSScopeProperty* sprop
 
         LIns* r_ins = get(&r);
 
-        if (JSVAL_IS_OBJECT(r)) {
-            
-
-
-
-            if (VALUE_IS_FUNCTION(cx, r))
-                ABORT_TRACE("potential rebranding of the global object");
-
-            
+        
 
 
 
 
-            guardClass(obj, obj_ins, &js_FunctionClass, snapshot(MISMATCH_EXIT));
-            set(&STOBJ_GET_SLOT(obj, slot), r_ins);
-        } else {
-            set(&STOBJ_GET_SLOT(obj, slot), r_ins);
-        }
+
+        if (VALUE_IS_FUNCTION(cx, r))
+            ABORT_TRACE("potential rebranding of the global object");
+        set(&STOBJ_GET_SLOT(obj, slot), r_ins);
 
         JS_ASSERT(*pc != JSOP_INITPROP);
         if (pc[JSOP_SETPROP_LENGTH] != JSOP_POP)
