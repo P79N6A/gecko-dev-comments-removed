@@ -587,6 +587,14 @@ TraceRecorder::nativeGlobalOffset(jsval* p) const
 }
 
 
+bool 
+TraceRecorder::isGlobal(jsval* p) const
+{
+    return ((size_t(p - globalObj->fslots) < JS_INITIAL_NSLOTS) ||
+            (size_t(p - globalObj->dslots) < (STOBJ_NSLOTS(globalObj) - JS_INITIAL_NSLOTS)));
+}
+
+
 ptrdiff_t
 TraceRecorder::nativeStackOffset(jsval* p) const
 {
