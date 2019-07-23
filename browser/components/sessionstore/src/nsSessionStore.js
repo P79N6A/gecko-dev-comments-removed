@@ -1034,6 +1034,11 @@ SessionStoreService.prototype = {
         else { 
           entry.children.push({ url: "about:blank" });
         }
+        
+        if (/^wyciwyg:\/\//.test(entry.children[i].url)) {
+          delete entry.children;
+          break;
+        }
       }
     }
     
