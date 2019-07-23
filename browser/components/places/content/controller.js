@@ -53,15 +53,6 @@ const RELOAD_ACTION_REMOVE = 2;
 
 const RELOAD_ACTION_MOVE = 3;
 
-#ifdef XP_MACOSX
-
-
-const NEWLINE= "\n";
-#else
-
-const NEWLINE = "\r\n";
-#endif
-
 
 
 
@@ -1212,7 +1203,7 @@ PlacesController.prototype = {
         copiedFolders.push(node);
         
       function generateChunk(type, overrideURI) {
-        var suffix = i < (nodes.length - 1) ? "\n" : "";
+        var suffix = i < (nodes.length - 1) ? NEWLINE : "";
         var uri = overrideURI;
         
         if (PlacesUtils.nodeIsLivemarkContainer(node))
