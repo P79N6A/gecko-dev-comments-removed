@@ -3301,6 +3301,7 @@ GetFromClosure(JSContext* cx, JSObject* call, const ClosureVarInfo* cv, double* 
 
 struct ArgClosureTraits
 {
+    
     static inline uint32 adj_slot(JSStackFrame* fp, uint32 slot) { return 2 + slot; }
 
     
@@ -3317,10 +3318,11 @@ GetClosureArg(JSContext* cx, JSObject* callee, const ClosureVarInfo* cv, double*
 
 struct VarClosureTraits
 {
-    static inline uint32 adj_slot(JSStackFrame* fp, uint32 slot) { return slot; }
+    
+    static inline uint32 adj_slot(JSStackFrame* fp, uint32 slot) { return 3 + fp->argc + slot; }
 
     
-    static inline jsval* slots(JSStackFrame* fp) { return 3 + fp->argc + fp->slots; }
+    static inline jsval* slots(JSStackFrame* fp) { return fp->slots; }
 private:
     VarClosureTraits();
 };
