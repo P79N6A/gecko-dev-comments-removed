@@ -169,7 +169,10 @@ STATIC void
 TTYflush()
 {
     if (ScreenCount) {
-	(void)write(1, Screen, ScreenCount);
+        
+
+	ssize_t dummy = write(1, Screen, ScreenCount);
+        (void)dummy;
 	ScreenCount = 0;
     }
 }

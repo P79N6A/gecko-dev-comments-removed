@@ -109,14 +109,7 @@ typedef enum JSShellExitCode {
 size_t gStackChunkSize = 8192;
 
 
-#if defined(DEBUG) && defined(__SUNPRO_CC)
-
-
-static size_t gMaxStackSize = 5000000;
-#else
 static size_t gMaxStackSize = 500000;
-#endif
-
 
 #ifdef JS_THREADSAFE
 static PRUintn gStackBaseThreadIndex;
@@ -3541,7 +3534,9 @@ CancelExecution(JSRuntime *rt)
     static const char msg[] = "Script runs for too long, terminating.\n";
 #if defined(XP_UNIX) && !defined(JS_THREADSAFE)
     
-    write(2, msg, sizeof(msg) - 1);
+    
+    ssize_t dummy = write(2, msg, sizeof(msg) - 1);
+    (void)dummy;
 #else
     fputs(msg, stderr);
 #endif
