@@ -42,6 +42,10 @@
 
 
 
+
+
+
+
 let katakana = ["\u30a8", "\u30c9"]; 
 let ideograph = ["\u4efb", "\u5929", "\u5802"]; 
 
@@ -88,8 +92,10 @@ addPageBook(9, 0);
 
 
 let gTests = [
+  
   ["0: Match 'match' at the beginning or after / or on a CamelCase",
-   "match", [0,2,4,9]],
+   "match", [0,2,4,9],
+   function() setBehavior(2)],
   ["1: Match 'dont' at the beginning or after /",
    "dont", [1,3,5]],
   ["2: Match '2' after the slash and after a word (in tags too)",
@@ -119,4 +125,13 @@ let gTests = [
    "ch", []],
   ["13: Don't match one character after a camel-case word boundary (bug 429498)",
    "atch", []],
+
+  
+  ["14: Match on word boundaries as well as anywhere (bug 429531)",
+   "tch", [0,1,2,3,4,5,9],
+   function() setBehavior(1)],
 ];
+
+function setBehavior(aType) {
+  prefs.setIntPref("browser.urlbar.matchBehavior", aType);
+}

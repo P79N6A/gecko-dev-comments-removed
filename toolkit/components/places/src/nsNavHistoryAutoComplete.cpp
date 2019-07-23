@@ -360,12 +360,22 @@ nsNavHistory::PerformAutoComplete()
 
   
   
-  if (!moreChunksToSearch)
-    mCurrentChunkOffset = -1;
+  PRBool notEnoughResults = !AutoCompleteHasEnoughResults();
+  if (!moreChunksToSearch) {
+    
+    
+    if (notEnoughResults && mCurrentMatchType == MATCH_BOUNDARY_ANYWHERE) {
+      mCurrentMatchType = MATCH_ANYWHERE;
+      mCurrentChunkOffset = -mAutoCompleteSearchChunkSize;
+      moreChunksToSearch = PR_TRUE;
+    } else {
+      mCurrentChunkOffset = -1;
+    }
+  } else {
+    
+    moreChunksToSearch = notEnoughResults;
+  }
 
-  
-  moreChunksToSearch &= !AutoCompleteHasEnoughResults();
- 
   
   PRUint32 count;
   mCurrentResult->GetMatchCount(&count); 
@@ -402,6 +412,7 @@ nsNavHistory::PerformAutoComplete()
 void
 nsNavHistory::DoneSearching(PRBool aFinished)
 {
+  mPreviousMatchType = mCurrentMatchType;
   mPreviousChunkOffset = mCurrentChunkOffset;
   mAutoCompleteFinishedSearch = aFinished;
   mCurrentResult = nsnull;
@@ -500,10 +511,15 @@ nsNavHistory::StartSearch(const nsAString & aSearchString,
         rv = mDBPreviousQuery->BindStringParameter(i + 1, *urls[i]);
         NS_ENSURE_SUCCESS(rv, rv);
       }
+
+      
+      mCurrentMatchType = mPreviousMatchType;
     }
   } else {
     
     mDBPreviousQuery = nsnull;
+    
+    mCurrentMatchType = mAutoCompleteMatchBehavior;
   }
 
   mAutoCompleteFinishedSearch = PR_FALSE;
@@ -670,7 +686,7 @@ nsNavHistory::AutoCompleteProcessSearch(mozIStorageStatement* aQuery,
 
   
   PRBool (*tokenMatchesTarget)(const nsAString &, const nsAString &) =
-    mAutoCompleteOnWordBoundary ? FindOnBoundary : FindAnywhere;
+    mCurrentMatchType != MATCH_ANYWHERE ? FindOnBoundary : FindAnywhere;
 
   PRBool hasMore = PR_FALSE;
   
