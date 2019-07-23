@@ -286,7 +286,7 @@ public:
 
 
   
-  nsresult HandleTableSelection(nsIContent *aParentContent,
+  nsresult HandleTableSelection(nsINode *aParentContent,
                                 PRInt32 aContentOffset,
                                 PRInt32 aTarget,
                                 nsMouseEvent *aMouseEvent);
@@ -640,7 +640,7 @@ private:
   nsresult CreateAndAddRange(nsIDOMNode *aParentNode, PRInt32 aOffset);
   nsresult ClearNormalSelection();
 
-  nsCOMPtr<nsIDOMNode> mCellParent; 
+  nsCOMPtr<nsINode> mCellParent; 
   nsCOMPtr<nsIContent> mStartSelectedCell;
   nsCOMPtr<nsIContent> mEndSelectedCell;
   nsCOMPtr<nsIContent> mAppendStartSelectedCell;
