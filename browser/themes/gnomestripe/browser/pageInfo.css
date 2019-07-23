@@ -1,3 +1,40 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 @import "chrome://global/skin/";
 
 tree {
@@ -29,4 +66,8 @@ textbox.header {
 
 .fixedsize {
   height: 8.5em;
+}
+
+textbox[disabled] {
+  text-style: italic;
 }
