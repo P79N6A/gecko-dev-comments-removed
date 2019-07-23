@@ -107,28 +107,25 @@ typedef int (WINAPI *mozDllRegisterServerPtr)(void);
 typedef int (WINAPI *mozDllUnregisterServerPtr)(void);
 
 
-int  InstallConduit(HINSTANCE hInstance, TCHAR *installPath);
+int  InstallConduit(HINSTANCE hInstance, TCHAR *installPath, TCHAR *appName);
 int UninstallConduit();
-void ConstructMessage(HINSTANCE hInstance, DWORD dwMessageId, TCHAR *formattedMsg);
+void ConstructMessage(HINSTANCE hInstance, TCHAR *appName, DWORD dwMessageId, TCHAR *formattedMsg);
 
 
 BOOL    gWasHotSyncRunning = FALSE;
 
-void ConstructMessage(HINSTANCE hInstance, DWORD dwMessageId, TCHAR *formattedMsg)
+void ConstructMessage(HINSTANCE hInstance, TCHAR *appName, DWORD dwMessageId, TCHAR *formattedMsg)
 {
   
-  TCHAR brandName[MAX_LOADSTRING];
   TCHAR formatString[MAX_LOADSTRING];
-  LoadString(hInstance, IDS_BRAND_NAME, brandName, MAX_LOADSTRING-1);
   LoadString(hInstance, dwMessageId, formatString, MAX_LOADSTRING-1);
 
   
   if ((dwMessageId == IDS_SUCCESS_INSTALL) ||
-      (dwMessageId == IDS_CONFIRM_INSTALL) ||
-      (dwMessageId == IDS_ERR_REGISTERING_MOZ_DLL))
-    _sntprintf(formattedMsg, MAX_LOADSTRING-1, formatString, brandName, brandName);
+      (dwMessageId == IDS_CONFIRM_INSTALL))
+    _sntprintf(formattedMsg, MAX_LOADSTRING-1, formatString, appName, appName);
   else
-    _sntprintf(formattedMsg, MAX_LOADSTRING-1, formatString, brandName);
+    _sntprintf(formattedMsg, MAX_LOADSTRING-1, formatString, appName);
 
   formattedMsg[MAX_LOADSTRING-1]='\0';
 }
@@ -138,57 +135,104 @@ int APIENTRY WinMain(HINSTANCE hInstance,
                      LPSTR     lpCmdLine,
                      int       nCmdShow)
 {
-    TCHAR appTitle[MAX_LOADSTRING];
-    TCHAR msgStr[MAX_LOADSTRING];
+  TCHAR appTitle[MAX_LOADSTRING];
+  TCHAR appName[MAX_LOADSTRING] = {0};
+  TCHAR msgStr[MAX_LOADSTRING];
 
-    int strResource=0;
-    int res=-1;
+  enum eActionType
+  {
+    eInstall,
+    eSilentInstall,
+    eUninstall,
+    eSilentUninstall
+  };
 
+  int res = -1;
+
+  char* installDir = NULL;
+  eActionType action = eInstall;
+
+  if (__argc > 1)
+  {
+    char* arg;
     
-    char *installDir = strstr(lpCmdLine, "/p");
-    if (installDir)
-      installDir += 2; 
-
-    if(!strcmpi(lpCmdLine,"/u")) 
+    for (int i = 1; i < __argc; ++i)
     {
-        ConstructMessage(hInstance, IDS_APP_TITLE_UNINSTALL, appTitle);
-        ConstructMessage(hInstance, IDS_CONFIRM_UNINSTALL, msgStr);
-        if (MessageBox(NULL, msgStr, appTitle, MB_YESNO) == IDYES) 
-        {
-            res = UninstallConduit();
-            if(!res)
-                res = IDS_SUCCESS_UNINSTALL;
-        }
-        else
-          return 0;
-    }
-    else if (!strcmpi(lpCmdLine,"/us")) 
-    {
-        return UninstallConduit();
-    }
-    else if (!strcmpi(lpCmdLine,"/s")) 
-    {
-        return InstallConduit(hInstance, installDir);
-    }
-    else 
-    {
-        ConstructMessage(hInstance, IDS_APP_TITLE_INSTALL, appTitle);
-        ConstructMessage(hInstance, IDS_CONFIRM_INSTALL, msgStr);
-        if (MessageBox(NULL, msgStr, appTitle, MB_YESNO) == IDYES) 
-        {
-            res = InstallConduit(hInstance, installDir);
-            if(!res)
-                res = IDS_SUCCESS_INSTALL;
-        }
-    }
+      
+      arg = strstr(__argv[i], "/n");
+      if (arg)
+      {
+        
+        arg += 2;
 
-    if(res > IDS_ERR_MAX || res < IDS_ERR_GENERAL)
-        res = IDS_ERR_GENERAL;
+        
+        strncpy(appName, arg, MAX_LOADSTRING - 1);
 
-    ConstructMessage(hInstance, res, msgStr);
-    MessageBox(NULL, msgStr, appTitle, MB_OK);
+        
+        strcat(appName, " ");
+      }
+      else
+      {
+        
+        
+        arg = strstr(__argv[i], "/p");
+        if (arg)
+          
+          installDir = arg + 2;
+        else if (!strcmpi(__argv[i], "/u"))
+          action = eUninstall;
+        else if (!strcmpi(__argv[i], "/us"))
+          action = eSilentUninstall;
+        else if (!strcmpi(__argv[i], "/s"))
+          action = eSilentInstall;
+      }
+    }
+  }
 
+  
+  LocalFree(__argv);
+
+  switch (action)
+  {
+  case eInstall:
+    ConstructMessage(hInstance, appName, IDS_APP_TITLE_INSTALL, appTitle);
+    ConstructMessage(hInstance, appName, IDS_CONFIRM_INSTALL, msgStr);
+
+    if (MessageBox(NULL, msgStr, appTitle, MB_YESNO) == IDYES) 
+    {
+      res = InstallConduit(hInstance, installDir, appName);
+      if (!res)
+        res = IDS_SUCCESS_INSTALL;
+    }
+    break;
+
+  case eSilentInstall:
+    return InstallConduit(hInstance, installDir, appName);
+
+  case eUninstall:
+    ConstructMessage(hInstance, appName, IDS_APP_TITLE_UNINSTALL, appTitle);
+    ConstructMessage(hInstance, appName, IDS_CONFIRM_UNINSTALL, msgStr);
+
+    if (MessageBox(NULL, msgStr, appTitle, MB_YESNO) == IDYES) 
+    {
+      res = UninstallConduit();
+      if (!res)
+        res = IDS_SUCCESS_UNINSTALL;
+      break;
+    }
     return 0;
+
+  case eSilentUninstall:
+    return UninstallConduit();
+  }
+
+  if (res > IDS_ERR_MAX || res < IDS_ERR_GENERAL)
+     res = IDS_ERR_GENERAL;
+
+  ConstructMessage(hInstance, appName, res, msgStr);
+  MessageBox(NULL, msgStr, appTitle, MB_OK);
+
+  return 0;
 }
 
 
@@ -426,7 +470,7 @@ char oldSettingsStr[500];
 static char             gSavedCwd[_MAX_PATH];
 
 
-int InstallConduit(HINSTANCE hInstance, TCHAR *installDir)
+int InstallConduit(HINSTANCE hInstance, TCHAR *installDir, TCHAR *appName)
 { 
     int dwReturnCode;
     BOOL    bHotSyncRunning = FALSE;
@@ -449,21 +493,27 @@ int InstallConduit(HINSTANCE hInstance, TCHAR *installDir)
     else
       strncpy(szConduitPath, installDir, sizeof(szConduitPath) - 1);
 
+    TCHAR shortConduitPath[_MAX_PATH];
 
     
-    if((strlen(szConduitPath) + strlen(DIRECTORY_SEPARATOR_STR) + strlen(CONDUIT_FILENAME)) > _MAX_PATH)
+    if (!GetShortPathName(szConduitPath, shortConduitPath, _MAX_PATH))
+      
+      strncpy(shortConduitPath, szConduitPath, _MAX_PATH);
+
+    
+    if((strlen(shortConduitPath) + strlen(DIRECTORY_SEPARATOR_STR) + strlen(CONDUIT_FILENAME)) > _MAX_PATH)
         return IDS_ERR_LOADING_CONDMGR;
     
-    if (!strstr(szConduitPath, CONDUIT_FILENAME)) 
+    if (!strstr(shortConduitPath, CONDUIT_FILENAME)) 
     {
-      if (szConduitPath[strlen(szConduitPath) - 1] != DIRECTORY_SEPARATOR)
-        strcat(szConduitPath, DIRECTORY_SEPARATOR_STR);
-      strcat(szConduitPath, CONDUIT_FILENAME);
+      if (shortConduitPath[strlen(shortConduitPath) - 1] != DIRECTORY_SEPARATOR)
+        strcat(shortConduitPath, DIRECTORY_SEPARATOR_STR);
+      strcat(shortConduitPath, CONDUIT_FILENAME);
     }
     
     struct _finddata_t dll_file;
     long hFile;
-    if( (hFile = _findfirst( szConduitPath, &dll_file )) == -1L )
+    if( (hFile = _findfirst( shortConduitPath, &dll_file )) == -1L )
         return IDS_ERR_CONDUIT_NOT_FOUND;
 
     
@@ -593,17 +643,17 @@ int InstallConduit(HINSTANCE hInstance, TCHAR *installDir)
             
             FreeLibrary(hConduitManagerDLL);
             FreeLibrary(hHsapiDLL);
-            return InstallConduit(hInstance, szConduitPath);
+            return InstallConduit(hInstance, shortConduitPath, appName);
         }
     }
     if( dwReturnCode == 0 )
     {
         (*lpfnCmSetCreatorValueString) (CREATOR, "oldConduitSettings", oldSettingsStr);
-        dwReturnCode = (*lpfnCmSetCreatorName)(CREATOR, szConduitPath);
+        dwReturnCode = (*lpfnCmSetCreatorName)(CREATOR, shortConduitPath);
         if( dwReturnCode != 0 ) return dwReturnCode;
         TCHAR title[MAX_LOADSTRING];
         
-        ConstructMessage(hInstance, IDS_CONDUIT_TITLE, title);
+        ConstructMessage(hInstance, appName, IDS_CONDUIT_TITLE, title);
         dwReturnCode = (*lpfnCmSetCreatorTitle)(CREATOR, title);
         if( dwReturnCode != 0 ) return dwReturnCode;
         dwReturnCode = (*lpfnCmSetCreatorRemote)(CREATOR, REMOTE_DB);
