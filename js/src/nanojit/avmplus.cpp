@@ -48,10 +48,6 @@
 using namespace avmplus;
 
 Config AvmCore::config;
-static GC _gc;
-GC* AvmCore::gc = &_gc;
-GCHeap GC::heap;
-String* AvmCore::k_str[] = { (String*)"" };
 
 void
 avmplus::AvmLog(char const *msg, ...) {
@@ -177,31 +173,8 @@ void VMPI_setPageProtection(void *address,
 #endif 
 
 
-#ifdef WINCE
 
-
-
-
-
-
-#ifndef MOZ_MEMORY
-#error MOZ_MEMORY required for building on WINCE
-#endif
-
-void*
-nanojit::CodeAlloc::allocCodeChunk(size_t nbytes) {
-    void * buffer;
-    posix_memalign(&buffer, 4096, nbytes);
-    return buffer;
-}
-
-void
-nanojit::CodeAlloc::freeCodeChunk(void *p, size_t nbytes) {
-    ::free(p);
-}
-
-#elif defined(WIN32)
-
+#ifdef WIN32
 void*
 nanojit::CodeAlloc::allocCodeChunk(size_t nbytes) {
     return VirtualAlloc(NULL,
