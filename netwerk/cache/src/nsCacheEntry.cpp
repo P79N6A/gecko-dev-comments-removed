@@ -154,15 +154,6 @@ nsCacheEntry::TouchMetaData()
 }
 
 
-nsresult
-nsCacheEntry::GetSecurityInfo( nsISupports ** result)
-{
-    NS_ENSURE_ARG_POINTER(result);
-    NS_IF_ADDREF(*result = mSecurityInfo);
-    return NS_OK;
-}
-
-
 
 
 
@@ -554,4 +545,3 @@ nsCacheEntryHashTable::ClearEntry(PLDHashTable * ,
 {
     ((nsCacheEntryHashTableEntry *)hashEntry)->cacheEntry = 0;
 }
-
