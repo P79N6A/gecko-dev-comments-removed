@@ -74,6 +74,7 @@ enum { JSTN_ERRTYPE_MASK = 7, JSTN_MORE = 8 };
 
 
 
+
 struct JSTraceableNative {
     JSFastNative            native;
     const nanojit::CallInfo *builtin;
