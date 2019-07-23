@@ -1985,6 +1985,23 @@ namespace nanojit
 
     LInsp CseFilter::insGuard(LOpcode v, LInsp c, LInsp x)
     {
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
         if (isCseOpcode(v)) {
             
             NanoAssert(operandCount[v]==1);
