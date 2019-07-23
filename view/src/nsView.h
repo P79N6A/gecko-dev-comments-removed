@@ -195,17 +195,12 @@ public:
     return mViewToWidgetOffset;
   }
 
-  nsIntRect CalcWidgetBounds(nsWindowType aType);
-
-  PRBool IsEffectivelyVisible();
-
 protected:
   
   
   void DoResetWidgetBounds(PRBool aMoveOnly, PRBool aInvalidateChangedSize);
 
   nsRegion*    mDirtyRegion;
-  nsPoint      mViewToWidgetOffset;
 };
 
 #endif
