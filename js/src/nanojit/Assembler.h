@@ -167,6 +167,7 @@ namespace nanojit
             void printActivationState();
 
             StringList* _outputCache;
+            LabelMap*   _labelMap;
 
             
             
