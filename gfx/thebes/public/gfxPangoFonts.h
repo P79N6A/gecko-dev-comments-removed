@@ -139,8 +139,15 @@ protected:
 
     
 
+    
+
+
+
+
+
     void InitTextRun(gfxTextRun *aTextRun, const gchar *aUTF8Text,
-                     PRUint32 aUTF8Length, PRUint32 aUTF8HeaderLength);
+                     PRUint32 aUTF8Length, PRUint32 aUTF8HeaderLength,
+                     PRBool aTake8BitPath);
     
     nsresult SetGlyphs(gfxTextRun *aTextRun, gfxPangoFont *aFont,
                        const gchar *aUTF8, PRUint32 aUTF8Length,
