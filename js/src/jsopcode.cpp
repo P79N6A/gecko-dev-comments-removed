@@ -4987,7 +4987,6 @@ js_DecompileValueGenerator(JSContext *cx, intN spindex, jsval v,
 
 
             stackBase = StackBase(fp);
-            JS_ASSERT((size_t) (regs->sp - stackBase) <= StackDepth(script));
             sp = regs->sp;
             do {
                 if (sp == stackBase) {
@@ -4998,6 +4997,7 @@ js_DecompileValueGenerator(JSContext *cx, intN spindex, jsval v,
 
             if (sp >= stackBase + pcdepth) {
                 
+
 
 
 

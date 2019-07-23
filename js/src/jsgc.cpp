@@ -2796,8 +2796,6 @@ js_TraceStackFrame(JSTracer *trc, JSStackFrame *fp)
 
 
 
-            JS_ASSERT((size_t) (fp->regs->sp - fp->slots) <=
-                      fp->script->nslots);
             nslots = (uintN) (fp->regs->sp - fp->slots);
             TRACE_JSVALS(trc, nslots, fp->slots, "slot");
         }
