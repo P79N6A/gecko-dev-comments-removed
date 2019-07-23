@@ -2549,7 +2549,7 @@ var bookmarksButtonObserver = {
     var split = aXferData.data.split("\n");
     var url = split[0];
     if (url != aXferData.data)  
-      PlacesUIUtils.showMinimalAddBookmarkUI(makeURI(url), split[1]);
+      PlacesUtils.showMinimalAddBookmarkUI(makeURI(url), split[1]);
   },
 
   onDragOver: function (aEvent, aFlavour, aDragSession)
@@ -3019,7 +3019,7 @@ function addToUrlbarHistory(aUrlToAdd)
 
    try {
      if (aUrlToAdd.indexOf(" ") == -1) {
-       PlacesUIUtils.markPageAsTyped(aUrlToAdd);
+       PlacesUtils.markPageAsTyped(aUrlToAdd);
      }
    }
    catch(ex) {
@@ -4430,9 +4430,9 @@ function asyncOpenWebPanel(event)
          
          
          
-         PlacesUIUtils.showMinimalAddBookmarkUI(makeURI(wrapper.href),
-                                                wrapper.getAttribute("title"),
-                                                null, null, true, true);
+         PlacesUtils.showMinimalAddBookmarkUI(makeURI(wrapper.href),
+                                              wrapper.getAttribute("title"),
+                                              null, null, true, true);
          event.preventDefault();
          return false;
        }
@@ -5396,9 +5396,9 @@ function AddKeywordForSearchField()
   else
     spec += "?" + formData.join("&");
 
-  var description = PlacesUIUtils.getDescriptionFromDocument(node.ownerDocument);
-  PlacesUIUtils.showMinimalAddBookmarkUI(makeURI(spec), "", description, null,
-                                         null, null, "", postData);
+  var description = PlacesUtils.getDescriptionFromDocument(node.ownerDocument);
+  PlacesUtils.showMinimalAddBookmarkUI(makeURI(spec), "", description, null,
+                                       null, null, "", postData);
 }
 
 function SwitchDocumentDirection(aWindow) {
