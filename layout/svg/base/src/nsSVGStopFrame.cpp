@@ -40,7 +40,7 @@
 #include "nsStyleContext.h"
 #include "nsFrame.h"
 #include "nsGkAtoms.h"
-#include "nsSVGEffects.h"
+#include "nsISVGValue.h"
 
 
 
@@ -94,8 +94,9 @@ public:
 NS_IMETHODIMP
 nsSVGStopFrame::DidSetStyleContext()
 {
-  nsSVGStopFrameBase::DidSetStyleContext();
-  nsSVGEffects::InvalidateRenderingObservers(this);
+  
+  if (mParent)
+    mParent->DidSetStyleContext();
   return NS_OK;
 }
 
@@ -112,8 +113,21 @@ nsSVGStopFrame::AttributeChanged(PRInt32         aNameSpaceID,
 {
   if (aNameSpaceID == kNameSpaceID_None &&
       aAttribute == nsGkAtoms::offset) {
-    nsSVGEffects::InvalidateRenderingObservers(this);
-  }
+
+    
+    
+    
+    
+    if (mParent) {
+      nsISVGValue *svgParent;
+      CallQueryInterface(mParent, &svgParent);
+      if (svgParent) {
+        svgParent->BeginBatchUpdate();
+        svgParent->EndBatchUpdate();
+      }
+    }
+    return NS_OK;
+  } 
 
   return nsSVGStopFrameBase::AttributeChanged(aNameSpaceID,
                                               aAttribute, aModType);

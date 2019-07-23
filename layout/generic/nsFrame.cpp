@@ -122,7 +122,6 @@
 
 #ifdef MOZ_SVG
 #include "nsSVGIntegrationUtils.h"
-#include "nsSVGEffects.h"
 #endif
 
 #include "gfxContext.h"
@@ -431,8 +430,7 @@ nsFrame::Init(nsIContent*      aContent,
     
     mState |= state & (NS_FRAME_SELECTED_CONTENT |
                        NS_FRAME_INDEPENDENT_SELECTION |
-                       NS_FRAME_IS_SPECIAL |
-                       NS_FRAME_MAY_BE_TRANSFORMED_OR_HAVE_RENDERING_OBSERVERS);
+                       NS_FRAME_IS_SPECIAL);
   }
   if (mParent) {
     nsFrameState state = mParent->GetStateBits();
@@ -444,7 +442,7 @@ nsFrame::Init(nsIContent*      aContent,
   if (GetStyleDisplay()->HasTransform()) {
     
     
-    mState |= NS_FRAME_MAY_BE_TRANSFORMED_OR_HAVE_RENDERING_OBSERVERS;
+    mState |= NS_FRAME_MAY_BE_TRANSFORMED;
   }
   
   DidSetStyleContext();
@@ -497,10 +495,6 @@ nsFrame::RemoveFrame(nsIAtom*        aListName,
 void
 nsFrame::Destroy()
 {
-#ifdef MOZ_SVG
-  nsSVGEffects::InvalidateDirectRenderingObservers(this);
-#endif
-
   
   
   nsIView* view = GetView();
@@ -681,7 +675,7 @@ nsIFrame::GetPaddingRect() const
 PRBool
 nsIFrame::IsTransformed() const
 {
-  return (mState & NS_FRAME_MAY_BE_TRANSFORMED_OR_HAVE_RENDERING_OBSERVERS) &&
+  return (mState & NS_FRAME_MAY_BE_TRANSFORMED) &&
     GetStyleDisplay()->HasTransform();
 }
 
@@ -1204,8 +1198,7 @@ nsIFrame::BuildDisplayListForStackingContext(nsDisplayListBuilder* aBuilder,
   
 
 
-  if ((mState & NS_FRAME_MAY_BE_TRANSFORMED_OR_HAVE_RENDERING_OBSERVERS) &&
-      disp->HasTransform())
+  if ((mState & NS_FRAME_MAY_BE_TRANSFORMED) && disp->HasTransform())
     dirtyRect = nsDisplayTransform::UntransformRect(dirtyRect, this, nsPoint(0, 0));
   
   if (applyAbsPosClipping) {
@@ -1325,8 +1318,7 @@ nsIFrame::BuildDisplayListForStackingContext(nsDisplayListBuilder* aBuilder,
   
 
 
-  if ((mState & NS_FRAME_MAY_BE_TRANSFORMED_OR_HAVE_RENDERING_OBSERVERS) &&
-      disp->HasTransform()) {
+  if ((mState & NS_FRAME_MAY_BE_TRANSFORMED) && disp->HasTransform()) {
     nsDisplayTransform* transform = new (aBuilder) nsDisplayTransform(this, &resultList);
     if (!transform)  
       return NS_ERROR_OUT_OF_MEMORY;
@@ -1476,7 +1468,7 @@ nsIFrame::BuildDisplayListForChild(nsDisplayListBuilder*   aBuilder,
   
   
   PRBool isComposited = disp->mOpacity != 1.0f ||
-    ((aChild->mState & NS_FRAME_MAY_BE_TRANSFORMED_OR_HAVE_RENDERING_OBSERVERS) && 
+    ((aChild->mState & NS_FRAME_MAY_BE_TRANSFORMED) && 
      aChild->GetStyleDisplay()->HasTransform())
 #ifdef MOZ_SVG
     || nsSVGIntegrationUtils::UsingEffectsForFrame(aChild)
@@ -3692,7 +3684,7 @@ nsIFrame::InvalidateInternalAfterResize(const nsRect& aDamageRect, nscoord aX,
 
 
 
-  if ((mState & NS_FRAME_MAY_BE_TRANSFORMED_OR_HAVE_RENDERING_OBSERVERS) &&
+  if ((mState & NS_FRAME_MAY_BE_TRANSFORMED) &&
       GetStyleDisplay()->HasTransform()) {
     nsRect newDamageRect;
     newDamageRect.UnionRect(nsDisplayTransform::TransformRect
@@ -3770,7 +3762,7 @@ nsIFrame::GetTransformMatrix(nsIFrame **aOutAncestor)
     return gfxMatrix();
   
   
-  while (!(*aOutAncestor)->IsTransformed()) {
+  while (!((*aOutAncestor)->mState & NS_FRAME_MAY_BE_TRANSFORMED)) {
     
     nsIFrame* parent = nsLayoutUtils::GetCrossDocParentFrame(*aOutAncestor);
     if (!parent)
@@ -3940,7 +3932,7 @@ nsIFrame::GetOverflowRectRelativeToParent() const
 nsRect
 nsIFrame::GetOverflowRectRelativeToSelf() const
 {
-  if (!(mState & NS_FRAME_MAY_BE_TRANSFORMED_OR_HAVE_RENDERING_OBSERVERS) ||
+  if (!(mState & NS_FRAME_MAY_BE_TRANSFORMED) ||
       !GetStyleDisplay()->HasTransform())
     return GetOverflowRect();
   return *static_cast<nsRect*>
@@ -5640,7 +5632,7 @@ nsIFrame::FinishAndStoreOverflow(nsRect* aOverflowArea, nsSize aNewSize)
   *aOverflowArea = GetAdditionalOverflow(*aOverflowArea, aNewSize);
 
   
-  if ((mState & NS_FRAME_MAY_BE_TRANSFORMED_OR_HAVE_RENDERING_OBSERVERS) && 
+  if ((mState & NS_FRAME_MAY_BE_TRANSFORMED) && 
       GetStyleDisplay()->HasTransform()) {
     
     SetRectProperty(this, nsGkAtoms::preTransformBBoxProperty, *aOverflowArea);

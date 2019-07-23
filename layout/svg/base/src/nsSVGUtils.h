@@ -91,9 +91,16 @@ class nsISVGChildFrame;
 #define NS_STATE_SVG_DIRTY            0x00400000
 
 
-#define NS_STATE_SVG_NONDISPLAY_CHILD 0x00800000
+#define NS_STATE_SVG_FILL_PSERVER     0x00800000
 
-#define NS_STATE_SVG_PROPAGATE_TRANSFORM 0x01000000
+#define NS_STATE_SVG_STROKE_PSERVER   0x01000000
+
+#define NS_STATE_SVG_PSERVER_MASK     0x01800000
+
+
+#define NS_STATE_SVG_NONDISPLAY_CHILD 0x02000000
+
+#define NS_STATE_SVG_PROPAGATE_TRANSFORM 0x04000000
 
 
 
@@ -345,6 +352,13 @@ public:
   PaintChildWithEffects(nsSVGRenderState *aContext,
                         nsIntRect *aDirtyRect,
                         nsIFrame *aFrame);
+
+  
+
+
+
+  static void
+  UpdateEffects(nsIFrame *aFrame);
 
   
 
