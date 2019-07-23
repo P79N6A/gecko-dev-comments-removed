@@ -4786,8 +4786,7 @@ nsDocument::FlushPendingNotifications(mozFlushType aType)
 {
   
   
-  if ((aType & Flush_Content) && mParser &&
-      (!(aType & Flush_SinkNotifications) || IsSafeToFlush())) {
+  if (mParser && (aType == Flush_Content || IsSafeToFlush())) {
     nsCOMPtr<nsIContentSink> sink = mParser->GetContentSink();
     if (sink) {
       sink->FlushPendingNotifications(aType);
@@ -4798,8 +4797,7 @@ nsDocument::FlushPendingNotifications(mozFlushType aType)
 
   nsPIDOMWindow *window = GetWindow();
 
-  if (aType == (aType & (Flush_Content | Flush_SinkNotifications)) ||
-      !window) {
+  if (aType <= Flush_ContentAndNotify || !window) {
     
     return;
   }

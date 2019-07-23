@@ -3199,13 +3199,13 @@ HTMLContentSink::FlushPendingNotifications(mozFlushType aType)
   
   
   if (mCurrentContext && !mInNotification) {
-    if (aType & Flush_SinkNotifications) {
+    if (aType >= Flush_ContentAndNotify) {
       mCurrentContext->FlushTags();
     }
     else {
       mCurrentContext->FlushText();
     }
-    if (aType & Flush_OnlyReflow) {
+    if (aType >= Flush_Layout) {
       
       
       StartLayout(PR_TRUE);

@@ -212,7 +212,10 @@ public:
   nsresult      ScrollRectIntoView(nsIScrollableView *aScrollableView, nsRect& aRect, PRIntn  aVPercent, PRIntn  aHPercent, PRBool aScrollParentViews);
 
   nsresult      PostScrollSelectionIntoViewEvent(SelectionRegion aRegion);
-  NS_IMETHOD    ScrollIntoView(SelectionRegion aRegion=nsISelectionController::SELECTION_FOCUS_REGION, PRBool aIsSynchronous=PR_TRUE);
+  
+  
+  nsresult      ScrollIntoView(SelectionRegion aRegion, PRBool aIsSynchronous,
+                               PRBool aDoFlush);
   nsresult      AddItem(nsIDOMRange *aRange);
   nsresult      RemoveItem(nsIDOMRange *aRange);
   nsresult      Clear(nsPresContext* aPresContext);
@@ -1262,7 +1265,9 @@ nsFrameSelection::MoveCaret(PRUint32          aKeycode,
           }
           result = mDomSelections[index]->Collapse(weakNodeUsed, offsetused);
           mHint = HINTRIGHT;
-          mDomSelections[index]->ScrollIntoView();
+          mDomSelections[index]->
+            ScrollIntoView(nsISelectionController::SELECTION_FOCUS_REGION,
+                           PR_FALSE, PR_FALSE);
           return NS_OK;
 
       case nsIDOMKeyEvent::DOM_VK_RIGHT :
@@ -1277,7 +1282,9 @@ nsFrameSelection::MoveCaret(PRUint32          aKeycode,
           }
           result = mDomSelections[index]->Collapse(weakNodeUsed, offsetused);
           mHint = HINTLEFT;
-          mDomSelections[index]->ScrollIntoView();
+          mDomSelections[index]->
+            ScrollIntoView(nsISelectionController::SELECTION_FOCUS_REGION,
+                           PR_FALSE, PR_FALSE);
           return NS_OK;
     }
   }
@@ -1426,7 +1433,9 @@ nsFrameSelection::MoveCaret(PRUint32          aKeycode,
   if (NS_SUCCEEDED(result))
   {
     mHint = tHint; 
-    result = mDomSelections[index]->ScrollIntoView();
+    result = mDomSelections[index]->
+      ScrollIntoView(nsISelectionController::SELECTION_FOCUS_REGION,
+                     PR_FALSE, PR_FALSE);
   }
 
   return result;
@@ -2538,7 +2547,8 @@ nsFrameSelection::ScrollSelectionIntoView(SelectionType   aType,
   if (!mDomSelections[index])
     return NS_ERROR_NULL_POINTER;
 
-  return mDomSelections[index]->ScrollIntoView(aRegion, aIsSynchronous);
+  return mDomSelections[index]->ScrollIntoView(aRegion, aIsSynchronous,
+                                               PR_FALSE);
 }
 
 nsresult
@@ -5831,7 +5841,8 @@ nsTypedSelection::RemoveRange(nsIDOMRange* aRange)
     if (cnt > 0)
     {
       setAnchorFocusRange(cnt - 1);
-      ScrollIntoView();
+      ScrollIntoView(nsISelectionController::SELECTION_FOCUS_REGION, PR_FALSE,
+                     PR_FALSE);
     }
   }
   if (!mFrameSelection)
@@ -7251,7 +7262,7 @@ nsTypedSelection::ScrollSelectionIntoViewEvent::Run()
     return NS_OK;  
 
   mTypedSelection->mScrollEvent.Forget();
-  mTypedSelection->ScrollIntoView(mRegion, PR_TRUE);
+  mTypedSelection->ScrollIntoView(mRegion, PR_TRUE, PR_TRUE);
   return NS_OK;
 }
 
@@ -7273,8 +7284,9 @@ nsTypedSelection::PostScrollSelectionIntoViewEvent(SelectionRegion aRegion)
   return NS_OK;
 }
 
-NS_IMETHODIMP
-nsTypedSelection::ScrollIntoView(SelectionRegion aRegion, PRBool aIsSynchronous)
+nsresult
+nsTypedSelection::ScrollIntoView(SelectionRegion aRegion,
+                                 PRBool aIsSynchronous, PRBool aDoFlush)
 {
   nsresult result;
   if (!mFrameSelection)
@@ -7298,13 +7310,21 @@ nsTypedSelection::ScrollIntoView(SelectionRegion aRegion, PRBool aIsSynchronous)
   presShell->GetCaret(getter_AddRefs(caret));
   if (caret)
   {
-    StCaretHider  caretHider(caret);      
+    
+    
+    
+    
+    
+    if (aDoFlush) {
+      presShell->FlushPendingNotifications(Flush_Layout);
 
-    
-    
-    
-    
-    presShell->FlushPendingNotifications(Flush_OnlyReflow);
+      
+      result = GetPresShell(getter_AddRefs(presShell));
+      if (NS_FAILED(result) || !presShell)
+        return result;
+    }
+
+    StCaretHider  caretHider(caret);      
 
     
     

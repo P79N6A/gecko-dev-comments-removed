@@ -1022,7 +1022,7 @@ NS_IMETHODIMP nsViewManager::DispatchEvent(nsGUIEvent *aEvent, nsEventStatus *aS
             
             
             
-            nsViewManager* rootVM = RootViewManager();
+            nsRefPtr<nsViewManager> rootVM = RootViewManager();
 
             nsIWidget *widget = mRootView->GetWidget();
             PRBool translucentWindow = PR_FALSE;

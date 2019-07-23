@@ -2739,15 +2739,6 @@ nsListControlFrame::KeyPress(nsIDOMEvent* aKeyEvent)
 #endif
 
     
-    
-    
-    if (IsInDropDownMode()) {
-      
-      PresContext()->PresShell()->
-        GetDocument()->FlushPendingNotifications(Flush_OnlyReflow);
-    }
-
-    
     Invalidate(nsRect(0,0,mRect.width,mRect.height), PR_TRUE);
 
   }

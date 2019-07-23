@@ -1918,7 +1918,7 @@ nsPrintEngine::ReflowPrintObject(nsPrintObject * aPO)
   NS_ASSERTION(aPO->mPresShell, "Presshell should still be here");
 
   
-  aPO->mPresShell->FlushPendingNotifications(Flush_OnlyReflow);
+  aPO->mPresShell->FlushPendingNotifications(Flush_Layout);
 
   nsCOMPtr<nsIPresShell> displayShell;
   aPO->mDocShell->GetPresShell(getter_AddRefs(displayShell));

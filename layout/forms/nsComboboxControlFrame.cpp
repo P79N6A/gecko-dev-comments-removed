@@ -419,9 +419,8 @@ nsComboboxControlFrame::ShowList(nsPresContext* aPresContext, PRBool aShowList)
   }
 
   
-  shell->GetDocument()->FlushPendingNotifications(Flush_OnlyReflow);
+  shell->GetDocument()->FlushPendingNotifications(Flush_Layout);
   if (!weakFrame.IsAlive()) {
-    NS_ERROR("Flush_OnlyReflow destroyed the frame");
     return PR_FALSE;
   }
 

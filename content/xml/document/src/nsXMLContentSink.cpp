@@ -1579,13 +1579,13 @@ nsXMLContentSink::FlushPendingNotifications(mozFlushType aType)
   
   
   if (!mInNotification) {
-    if (aType & Flush_SinkNotifications) {
+    if (aType >= Flush_ContentAndNotify) {
       FlushTags();
     }
     else {
       FlushText();
     }
-    if (aType & Flush_OnlyReflow) {
+    if (aType >= Flush_Layout) {
       
       
       MaybeStartLayout(PR_TRUE);
