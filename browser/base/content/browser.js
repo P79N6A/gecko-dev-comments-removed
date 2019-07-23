@@ -43,6 +43,8 @@
 #   Johnathan Nightingale <johnath@mozilla.com>
 #   Ehsan Akhgari <ehsan.akhgari@gmail.com>
 #   Dão Gottwald <dao@mozilla.com>
+#   Thomas K. Dyas <tdyas@zecador.org>
+#   Edward Lee <edward.lee@engineering.uiuc.edu>
 #
 # Alternatively, the contents of this file may be used under the terms of
 # either the GNU General Public License Version 2 or later (the "GPL"), or
@@ -667,6 +669,143 @@ const gXPInstallObserver = {
   }
 };
 
+
+
+
+
+
+
+
+
+
+
+
+let gGestureSupport = {
+  
+
+
+
+
+
+  init: function GS_init(aAddListener) {
+    const gestureEvents = ["SwipeGesture",
+      "MagnifyGestureStart", "MagnifyGestureUpdate", "MagnifyGesture",
+      "RotateGesture", "RotateGestureUpdate", "RotateGesture"];
+
+    let addRemove = aAddListener ? window.addEventListener :
+      window.removeEventListener;
+
+    for each (let event in gestureEvents)
+      addRemove("Moz" + event, this, true);
+  },
+
+  
+
+
+
+
+
+
+  handleEvent: function GS_handleEvent(aEvent) {
+    aEvent.stopPropagation();
+
+    switch (aEvent.type) {
+      case "MozSwipeGesture":
+        this.onSwipe(aEvent);
+        break;
+      case "MozMagnifyGestureStart":
+      case "MozRotateGestureStart":
+        this.onStart(aEvent);
+        break;
+      case "MozMagnifyGestureUpdate":
+        this.onMagnify(aEvent);
+        break;
+      case "MozRotateGestureUpdate":
+        this.onRotate(aEvent);
+        break;
+    }
+  },
+
+  
+
+
+
+
+
+  onSwipe: function GS_onSwipe(aEvent) {
+    
+    let fakeEvent = { shiftKey: aEvent.shiftKey, ctrlKey: aEvent.ctrlKey,
+      metaKey: aEvent.metaKey, altKey: aEvent.altKey, button: 0 };
+
+    if (aEvent.direction == SimpleGestureEvent.DIRECTION_LEFT)
+      BrowserBack(fakeEvent);
+    else if (aEvent.direction == SimpleGestureEvent.DIRECTION_RIGHT)
+      BrowserForward(fakeEvent);
+    else if (aEvent.direction == SimpleGestureEvent.DIRECTION_UP)
+      goDoCommand("cmd_scrollTop");
+    else if (aEvent.direction == SimpleGestureEvent.DIRECTION_DOWN)
+      goDoCommand("cmd_scrollBottom");
+  },
+
+  
+  _lastOffset: 0,
+
+  
+
+
+
+
+
+  onStart: function GS_onStart(aEvent) {
+    this._lastOffset = 0;
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+  _handleUpdate: function GS__handleUpdate(aEvent, aThreshold, aIncDec) {
+    
+    this._lastOffset += aEvent.delta;
+
+    
+    if (Math.abs(this._lastOffset) > aThreshold) {
+      aIncDec(this._lastOffset);
+      this.onStart(aEvent);
+    }
+  },
+
+  
+
+
+
+
+
+  onMagnify: function GS_onMagnify(aEvent) {
+    this._handleUpdate(aEvent, 100, function(aOffset) aOffset > 0 ?
+      FullZoom.enlarge() : FullZoom.reduce());
+  },
+
+  
+
+
+
+
+
+  onRotate: function GS_onRotate(aEvent) {
+    this._handleUpdate(aEvent, 22.5, function(aOffset) gBrowser.mTabContainer.
+      advanceSelectedTab(aOffset > 0 ? 1 : -1, true));
+  },
+};
+
 function BrowserStartup() {
   var uriToLoad = null;
 
@@ -908,6 +1047,9 @@ function prepareForStartup() {
 
   
   gBrowser.addEventListener("DOMLinkAdded", DOMLinkHandler, false);
+
+  
+  gGestureSupport.init(true);
 }
 
 function delayedStartup(isLoadingBlank, mustLoadSidebar) {
@@ -1111,6 +1253,8 @@ function BrowserShutdown()
 {
   tabPreviews.uninit();
   ctrlTab.uninit();
+
+  gGestureSupport.init(false);
 
   try {
     FullZoom.destroy();
@@ -2716,7 +2860,7 @@ const BrowserSearch = {
           setTimeout(BrowserSearch.webSearch, 0);
         }
 
-        win = window.openDialog("chrome://browser/content/", "_blank",
+        win = window.openDialog("chrome:
                                 "chrome,all,dialog=no", "about:blank");
         win.addEventListener("load", webSearchCallback, false);
       }
@@ -2865,7 +3009,7 @@ function addToUrlbarHistory(aUrlToAdd) {
 
 function toJavaScriptConsole()
 {
-  toOpenWindowByType("global:console", "chrome://global/content/console.xul");
+  toOpenWindowByType("global:console", "chrome:
 }
 
 function BrowserDownloadsUI()
@@ -3130,7 +3274,7 @@ function updateEditUIVisibility()
 
 var FullScreen =
 {
-  _XULNS: "http:
+  _XULNS: "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul",
   toggle: function()
   {
     
