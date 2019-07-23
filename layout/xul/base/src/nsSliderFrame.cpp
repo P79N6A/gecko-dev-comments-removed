@@ -452,61 +452,43 @@ nsSliderFrame::HandleEvent(nsPresContext* aPresContext,
         break;
       }
 
-       nscoord pos = isHorizontal ? eventPoint.x : eventPoint.y;
+      nscoord pos = isHorizontal ? eventPoint.x : eventPoint.y;
 
-       nscoord onePixel = nsPresContext::CSSPixelsToAppUnits(1);
+      nsIFrame* thumbFrame = mFrames.FirstChild();
+      if (!thumbFrame) {
+        return NS_OK;
+      }
 
-       nsIFrame* thumbFrame = mFrames.FirstChild();
-       if (!thumbFrame) {
-         return NS_OK;
-       }
+      
+      pos -= mDragStart;
+      PRBool isMouseOutsideThumb = PR_FALSE;
+      if (gSnapMultiplier) {
+        nsSize thumbSize = thumbFrame->GetSize();
+        if (isHorizontal) {
+          
+          
+          
+          if (eventPoint.y < -gSnapMultiplier * thumbSize.height ||
+              eventPoint.y > thumbSize.height +
+                               gSnapMultiplier * thumbSize.height)
+            isMouseOutsideThumb = PR_TRUE;
+        }
+        else {
+          
+          if (eventPoint.x < -gSnapMultiplier * thumbSize.width ||
+              eventPoint.x > thumbSize.width +
+                               gSnapMultiplier * thumbSize.width)
+            isMouseOutsideThumb = PR_TRUE;
+        }
+      }
+      if (isMouseOutsideThumb)
+      {
+        SetCurrentThumbPosition(scrollbar, mThumbStart, PR_FALSE, PR_TRUE, PR_FALSE);
+        return NS_OK;
+      }
 
-       
-       pos -= mDragStart;
-       PRBool isMouseOutsideThumb = PR_FALSE;
-       if (gSnapMultiplier) {
-         nsSize thumbSize = thumbFrame->GetSize();
-         if (isHorizontal) {
-           
-           
-           
-           if (eventPoint.y < -gSnapMultiplier * thumbSize.height ||
-               eventPoint.y > thumbSize.height +
-                                gSnapMultiplier * thumbSize.height)
-             isMouseOutsideThumb = PR_TRUE;
-         }
-         else {
-           
-           if (eventPoint.x < -gSnapMultiplier * thumbSize.width ||
-               eventPoint.x > thumbSize.width +
-                                gSnapMultiplier * thumbSize.width)
-             isMouseOutsideThumb = PR_TRUE;
-         }
-       }
-       if (isMouseOutsideThumb)
-       {
-         
-         SetCurrentPosition(scrollbar, (int) (mThumbStart / onePixel / mRatio),
-                            PR_FALSE, PR_TRUE);
-         return NS_OK;
-       }
-
-       
-       nscoord pospx = pos/onePixel;
-
-       
-       pospx = nscoord(pospx/mRatio);
-
-       
-       
-       if (mContent->AttrValueIs(kNameSpaceID_None, nsGkAtoms::snap,
-                                 nsGkAtoms::_true, eCaseMatters)) {
-         PRInt32 increment = GetIncrement(scrollbar);
-         pospx = NSToCoordRound(pospx / (float)increment) * increment;
-       }
-
-       
-       SetCurrentPosition(scrollbar, pospx, PR_FALSE, PR_TRUE);
+      
+      SetCurrentThumbPosition(scrollbar, pos, PR_FALSE, PR_TRUE, PR_TRUE); 
     }
     break;
 
@@ -535,30 +517,23 @@ nsSliderFrame::HandleEvent(nsPresContext* aPresContext,
              (gMiddlePref && aEvent->message == NS_MOUSE_BUTTON_DOWN &&
               static_cast<nsMouseEvent*>(aEvent)->button ==
                 nsMouseEvent::eMiddleButton)) {
-    
+
     nsPoint eventPoint = nsLayoutUtils::GetEventCoordinatesRelativeTo(aEvent,
                                                                       this);
     nscoord pos = isHorizontal ? eventPoint.x : eventPoint.y;
 
-    nscoord onePixel = nsPresContext::CSSPixelsToAppUnits(1);
-    nscoord pospx = pos/onePixel;
-
-   
+    
     nsIFrame* thumbFrame = mFrames.FirstChild();
     if (!thumbFrame) {
       return NS_OK;
     }
     nsSize thumbSize = thumbFrame->GetSize();
     nscoord thumbLength = isHorizontal ? thumbSize.width : thumbSize.height;
-    thumbLength /= onePixel;
-    pospx -= (thumbLength/2);
-
-    
-    pospx = nscoord(pospx/mRatio);
 
     
     nsWeakFrame weakFrame(this);
-    SetCurrentPosition(scrollbar, pospx, PR_FALSE, PR_FALSE);
+    
+    SetCurrentThumbPosition(scrollbar, pos - thumbLength/2, PR_FALSE, PR_FALSE, PR_FALSE);
     NS_ENSURE_TRUE(weakFrame.IsAlive(), NS_OK);
 
     DragThumb(PR_TRUE);
@@ -716,33 +691,58 @@ static void UpdateAttribute(nsIContent* aScrollbar, nscoord aNewPos, PRBool aNot
 
 
 
+
 void
-nsSliderFrame::SetCurrentPosition(nsIContent* scrollbar, nscoord newpos,
+nsSliderFrame::SetCurrentThumbPosition(nsIContent* aScrollbar, nscoord aNewPos,
+                                       PRBool aIsSmooth, PRBool aImmediateRedraw, PRBool aMaySnap)
+{
+  nsRect crect;
+  GetClientRect(crect);
+  nscoord offset = IsHorizontal() ? crect.x : crect.y;
+  float realpos = nsPresContext::AppUnitsToFloatCSSPixels(aNewPos - offset);
+  
+  if (aMaySnap && mContent->AttrValueIs(kNameSpaceID_None, nsGkAtoms::snap,
+                                        nsGkAtoms::_true, eCaseMatters)) {
+    
+    
+    PRInt32 increment = GetIncrement(aScrollbar);
+    realpos = NSToCoordRound(realpos / float(increment)) * increment;
+  }
+  
+  SetCurrentPosition(aScrollbar, NSToIntRound(realpos / mRatio), aIsSmooth, aImmediateRedraw);
+}
+
+
+
+
+
+void
+nsSliderFrame::SetCurrentPosition(nsIContent* aScrollbar, PRInt32 aNewPos,
                                   PRBool aIsSmooth, PRBool aImmediateRedraw)
 {
    
-  PRInt32 minpos = GetMinPosition(scrollbar);
-  PRInt32 maxpos = GetMaxPosition(scrollbar);
+  PRInt32 minpos = GetMinPosition(aScrollbar);
+  PRInt32 maxpos = GetMaxPosition(aScrollbar);
 
   
   
   if (mContent->AttrValueIs(kNameSpaceID_None, nsGkAtoms::dir,
                             nsGkAtoms::reverse, eCaseMatters))
-    newpos = maxpos - newpos;
+    aNewPos = maxpos - aNewPos;
   else
-    newpos += minpos;
+    aNewPos += minpos;
 
   
-  if (newpos < minpos || maxpos < minpos)
-    newpos = minpos;
-  else if (newpos > maxpos)
-    newpos = maxpos;
+  if (aNewPos < minpos || maxpos < minpos)
+    aNewPos = minpos;
+  else if (aNewPos > maxpos)
+    aNewPos = maxpos;
 
-  SetCurrentPositionInternal(scrollbar, newpos, aIsSmooth, aImmediateRedraw);
+  SetCurrentPositionInternal(aScrollbar, aNewPos, aIsSmooth, aImmediateRedraw);
 }
 
 void
-nsSliderFrame::SetCurrentPositionInternal(nsIContent* aScrollbar, nscoord newpos,
+nsSliderFrame::SetCurrentPositionInternal(nsIContent* aScrollbar, PRInt32 aNewPos,
                                           PRBool aIsSmooth,
                                           PRBool aImmediateRedraw)
 {
@@ -757,9 +757,9 @@ nsSliderFrame::SetCurrentPositionInternal(nsIContent* aScrollbar, nscoord newpos
     if (mediator) {
       nsRefPtr<nsPresContext> context = PresContext();
       nsCOMPtr<nsIContent> content = GetContent();
-      mediator->PositionChanged(scrollbarFrame, GetCurrentPosition(scrollbar), newpos);
+      mediator->PositionChanged(scrollbarFrame, GetCurrentPosition(scrollbar), aNewPos);
       
-      UpdateAttribute(scrollbar, newpos, PR_FALSE, aIsSmooth);
+      UpdateAttribute(scrollbar, aNewPos, PR_FALSE, aIsSmooth);
       nsIPresShell* shell = context->GetPresShell();
       if (shell) {
         nsIFrame* frame = shell->GetPrimaryFrameFor(content);
@@ -772,10 +772,10 @@ nsSliderFrame::SetCurrentPositionInternal(nsIContent* aScrollbar, nscoord newpos
     }
   }
 
-  UpdateAttribute(scrollbar, newpos, PR_TRUE, aIsSmooth);
+  UpdateAttribute(scrollbar, aNewPos, PR_TRUE, aIsSmooth);
 
 #ifdef DEBUG_SLIDER
-  printf("Current Pos=%d\n",newpos);
+  printf("Current Pos=%d\n",aNewPos);
 #endif
 
 }
@@ -820,7 +820,9 @@ nsSliderMediator::MouseUp(nsIDOMEvent* aMouseEvent)
 nsresult
 nsSliderFrame::MouseDown(nsIDOMEvent* aMouseEvent)
 {
-  
+#ifdef DEBUG_SLIDER
+  printf("Begin dragging\n");
+#endif
 
   if (mContent->AttrValueIs(kNameSpaceID_None, nsGkAtoms::disabled,
                             nsGkAtoms::_true, eCaseMatters))
@@ -862,11 +864,8 @@ nsSliderFrame::MouseDown(nsIDOMEvent* aMouseEvent)
   
   
   nsCOMPtr<nsIContent> scrollbar;
-  nscoord pospx = 0;
+  nscoord newpos = pos;
   if (scrollToClick) {
-    nscoord onePixel = nsPresContext::CSSPixelsToAppUnits(1);
-    pospx = pos/onePixel;
-
     
     nsIFrame* thumbFrame = mFrames.FirstChild();
     if (!thumbFrame) {
@@ -874,11 +873,8 @@ nsSliderFrame::MouseDown(nsIDOMEvent* aMouseEvent)
     }
     nsSize thumbSize = thumbFrame->GetSize();
     nscoord thumbLength = isHorizontal ? thumbSize.width : thumbSize.height;
-    thumbLength /= onePixel;
-    pospx -= (thumbLength/2);
 
-    
-    pospx = nscoord(pospx/mRatio);
+    newpos -= (thumbLength/2);
 
     nsIBox* scrollbarBox = GetScrollbar();
     scrollbar = GetContentOfBox(scrollbarBox);
@@ -897,10 +893,14 @@ nsSliderFrame::MouseDown(nsIDOMEvent* aMouseEvent)
      mThumbStart = thumbFrame->GetPosition().y;
 
   mDragStart = pos - mThumbStart;
-  
+
+#ifdef DEBUG_SLIDER
+  printf("Pressed mDragStart=%d\n",mDragStart);
+#endif
 
   if (scrollToClick) {
-    SetCurrentPosition(scrollbar, pospx, PR_FALSE, PR_FALSE);
+    
+    SetCurrentThumbPosition(scrollbar, newpos, PR_FALSE, PR_FALSE, PR_FALSE);
   }
   return NS_OK;
 }
@@ -908,7 +908,9 @@ nsSliderFrame::MouseDown(nsIDOMEvent* aMouseEvent)
 nsresult
 nsSliderFrame::MouseUp(nsIDOMEvent* aMouseEvent)
 {
- 
+#ifdef DEBUG_SLIDER
+  printf("Finish dragging\n");
+#endif
 
   return NS_OK;
 }
@@ -916,7 +918,7 @@ nsSliderFrame::MouseUp(nsIDOMEvent* aMouseEvent)
 void
 nsSliderFrame::DragThumb(PRBool aGrabMouseEvents)
 {
-    
+  
   nsIView* view = GetView();
 
   if (view) {
@@ -937,7 +939,7 @@ nsSliderFrame::DragThumb(PRBool aGrabMouseEvents)
 PRBool
 nsSliderFrame::isDraggingThumb()
 {
-    
+  
   nsIView* view = GetView();
 
   if (view) {
