@@ -10,9 +10,9 @@
 
 
 
-function testAttrs(aID, aAttrs, aSkipUnexpectedAttrs)
+function testAttrs(aAccOrElmOrID, aAttrs, aSkipUnexpectedAttrs)
 {
-  var accessible = getAccessible(aID);
+  var accessible = getAccessible(aAccOrElmOrID);
   if (!accessible)
     return;
 
@@ -22,12 +22,33 @@ function testAttrs(aID, aAttrs, aSkipUnexpectedAttrs)
   } catch (e) { }
   
   if (!attrs) {
-    ok(false, "Can't get object attributes for " + aID);
+    ok(false, "Can't get object attributes for " + aAccOrElmOrID);
     return;
   }
   
-  var errorMsg = " for " + aID;
+  var errorMsg = " for " + aAccOrElmOrID;
   compareAttrs(errorMsg, attrs, aAttrs, aSkipUnexpectedAttrs);
+}
+
+
+
+
+
+
+
+
+
+function testGroupAttrs(aAccOrElmOrID, aPosInSet, aSetSize, aLevel)
+{
+  var attrs = {
+    "posinset": String(aPosInSet),
+    "setsize": String(aSetSize)
+  };
+
+  if (aLevel)
+    attrs["level"] = String(aLevel);
+
+  testAttrs(aAccOrElmOrID, attrs, true);
 }
 
 

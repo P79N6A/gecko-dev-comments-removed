@@ -2019,91 +2019,8 @@ nsAccessible::GetAttributes(nsIPersistentProperties **aAttributes)
   if (!nsAccUtils::HasAccGroupAttrs(attributes)) {
     
     
-    
-
-    
-    
-    if ((role == nsIAccessibleRole::ROLE_LISTITEM ||
-         role == nsIAccessibleRole::ROLE_MENUITEM ||
-         role == nsIAccessibleRole::ROLE_CHECK_MENU_ITEM ||
-         role == nsIAccessibleRole::ROLE_RADIO_MENU_ITEM ||
-         role == nsIAccessibleRole::ROLE_RADIOBUTTON ||
-         role == nsIAccessibleRole::ROLE_PAGETAB ||
-         role == nsIAccessibleRole::ROLE_OPTION ||
-         role == nsIAccessibleRole::ROLE_RADIOBUTTON ||
-         role == nsIAccessibleRole::ROLE_OUTLINEITEM) &&
-        0 == (nsAccUtils::State(this) & nsIAccessibleStates::STATE_INVISIBLE)) {
-
-      PRUint32 baseRole = role;
-      if (role == nsIAccessibleRole::ROLE_CHECK_MENU_ITEM ||
-          role == nsIAccessibleRole::ROLE_RADIO_MENU_ITEM)
-        baseRole = nsIAccessibleRole::ROLE_MENUITEM;
-
-      nsCOMPtr<nsIAccessible> parent = GetParent();
-      NS_ENSURE_TRUE(parent, NS_ERROR_FAILURE);
-
-      PRInt32 positionInGroup = 0;
-      PRInt32 setSize = 0;
-
-      nsCOMPtr<nsIAccessible> sibling, nextSibling;
-      parent->GetFirstChild(getter_AddRefs(sibling));
-      NS_ENSURE_TRUE(sibling, NS_ERROR_FAILURE);
-
-      PRBool foundCurrent = PR_FALSE;
-      PRUint32 siblingRole, siblingBaseRole;
-      while (sibling) {
-        sibling->GetFinalRole(&siblingRole);
-
-        siblingBaseRole = siblingRole;
-        if (siblingRole == nsIAccessibleRole::ROLE_CHECK_MENU_ITEM ||
-            siblingRole == nsIAccessibleRole::ROLE_RADIO_MENU_ITEM)
-          siblingBaseRole = nsIAccessibleRole::ROLE_MENUITEM;
-
-        
-        if (siblingBaseRole == baseRole &&
-            !(nsAccUtils::State(sibling) & nsIAccessibleStates::STATE_INVISIBLE)) {
-          ++ setSize;
-          if (!foundCurrent) {
-            ++ positionInGroup;
-            if (sibling == this)
-              foundCurrent = PR_TRUE;
-          }
-        }
-
-        
-        if (siblingRole == nsIAccessibleRole::ROLE_SEPARATOR) {
-          if (foundCurrent) 
-            break;
-
-          
-          positionInGroup = 0;
-          setSize = 0;
-        }
-
-        sibling->GetNextSibling(getter_AddRefs(nextSibling));
-        sibling = nextSibling;
-      }
-
-      PRInt32 groupLevel = 0;
-      if (role == nsIAccessibleRole::ROLE_OUTLINEITEM) {
-        groupLevel = 1;
-        nsCOMPtr<nsIAccessible> nextParent;
-        while (parent) {
-          parent->GetFinalRole(&role);
-
-          if (role == nsIAccessibleRole::ROLE_OUTLINE)
-            break;
-          if (role == nsIAccessibleRole::ROLE_GROUPING)
-            ++ groupLevel;
-
-          parent->GetParent(getter_AddRefs(nextParent));
-          parent.swap(nextParent);
-        }
-      }
-
-      nsAccUtils::SetAccGroupAttrs(attributes, groupLevel, positionInGroup,
-                                   setSize);
-    }
+    rv = ComputeGroupAttributes(role, attributes);
+    NS_ENSURE_SUCCESS(rv, rv);
   }
 
   
@@ -3566,4 +3483,146 @@ nsAccessible::GetActionRule(PRUint32 aStates)
     return mRoleMapEntry->actionRule;
 
   return eNoAction;
+}
+
+nsresult
+nsAccessible::ComputeGroupAttributes(PRUint32 aRole,
+                                     nsIPersistentProperties *aAttributes)
+{
+  
+  
+  
+  
+  
+
+  
+  
+  if (nsAccUtils::State(this) & nsIAccessibleStates::STATE_INVISIBLE)
+    return NS_OK;
+
+  if (aRole != nsIAccessibleRole::ROLE_LISTITEM &&
+      aRole != nsIAccessibleRole::ROLE_MENUITEM &&
+      aRole != nsIAccessibleRole::ROLE_CHECK_MENU_ITEM &&
+      aRole != nsIAccessibleRole::ROLE_RADIO_MENU_ITEM &&
+      aRole != nsIAccessibleRole::ROLE_RADIOBUTTON &&
+      aRole != nsIAccessibleRole::ROLE_PAGETAB &&
+      aRole != nsIAccessibleRole::ROLE_OPTION &&
+      aRole != nsIAccessibleRole::ROLE_OUTLINEITEM)
+    return NS_OK;
+
+  PRUint32 baseRole = aRole;
+  if (aRole == nsIAccessibleRole::ROLE_CHECK_MENU_ITEM ||
+      aRole == nsIAccessibleRole::ROLE_RADIO_MENU_ITEM)
+    baseRole = nsIAccessibleRole::ROLE_MENUITEM;
+
+  nsCOMPtr<nsIAccessible> parent = GetParent();
+  NS_ENSURE_TRUE(parent, NS_ERROR_FAILURE);
+
+  
+  PRInt32 positionInGroup = 0;
+  PRInt32 setSize = 0;
+
+  nsCOMPtr<nsIAccessible> sibling, nextSibling;
+  parent->GetFirstChild(getter_AddRefs(sibling));
+  NS_ENSURE_STATE(sibling);
+
+  PRBool foundCurrent = PR_FALSE;
+  PRUint32 siblingRole, siblingBaseRole;
+  while (sibling) {
+    siblingRole = nsAccUtils::Role(sibling);
+
+    siblingBaseRole = siblingRole;
+    if (siblingRole == nsIAccessibleRole::ROLE_CHECK_MENU_ITEM ||
+        siblingRole == nsIAccessibleRole::ROLE_RADIO_MENU_ITEM)
+      siblingBaseRole = nsIAccessibleRole::ROLE_MENUITEM;
+
+    
+    if (siblingBaseRole == baseRole &&
+        !(nsAccUtils::State(sibling) & nsIAccessibleStates::STATE_INVISIBLE)) {
+      ++ setSize;
+      if (!foundCurrent) {
+        ++ positionInGroup;
+        if (sibling == this)
+          foundCurrent = PR_TRUE;
+      }
+    }
+
+    
+    if (siblingRole == nsIAccessibleRole::ROLE_SEPARATOR) {
+      if (foundCurrent) 
+        break;
+
+      
+      positionInGroup = 0;
+      setSize = 0;
+    }
+
+    sibling->GetNextSibling(getter_AddRefs(nextSibling));
+    sibling = nextSibling;
+  }
+
+  
+  PRInt32 groupLevel = 0;
+  if (aRole == nsIAccessibleRole::ROLE_OUTLINEITEM) {
+    
+    
+    
+    groupLevel = 1;
+    nsCOMPtr<nsIAccessible> nextParent;
+    while (parent) {
+      PRUint32 parentRole = nsAccUtils::Role(parent);
+
+      if (parentRole == nsIAccessibleRole::ROLE_OUTLINE)
+        break;
+      if (parentRole == nsIAccessibleRole::ROLE_GROUPING)
+        ++ groupLevel;
+
+      parent->GetParent(getter_AddRefs(nextParent));
+      parent.swap(nextParent);
+    }
+  } else if (aRole == nsIAccessibleRole::ROLE_LISTITEM) {
+    
+    
+    
+    
+
+    
+    nsCOMPtr<nsIAccessible> nextParent;
+    while (parent) {
+      PRUint32 parentRole = nsAccUtils::Role(parent);
+
+      if (parentRole == nsIAccessibleRole::ROLE_LISTITEM)
+        ++ groupLevel;
+      else if (parentRole != nsIAccessibleRole::ROLE_LIST)
+        break;
+
+      parent->GetParent(getter_AddRefs(nextParent));
+      parent.swap(nextParent);
+    }
+
+    if (groupLevel == 0) {
+      
+      
+      nsCOMPtr<nsIAccessible> parent = GetParent();
+      parent->GetFirstChild(getter_AddRefs(sibling));
+
+      while (sibling) {
+        nsCOMPtr<nsIAccessible> siblingChild;
+        sibling->GetLastChild(getter_AddRefs(siblingChild));
+        if (nsAccUtils::Role(siblingChild) == nsIAccessibleRole::ROLE_LIST) {
+          groupLevel = 1;
+          break;
+        }
+
+        sibling->GetNextSibling(getter_AddRefs(nextSibling));
+        sibling.swap(nextSibling);
+      }
+    } else
+      groupLevel++; 
+  }
+
+  nsAccUtils::SetAccGroupAttrs(aAttributes, groupLevel, positionInGroup,
+                               setSize);
+
+  return NS_OK;
 }

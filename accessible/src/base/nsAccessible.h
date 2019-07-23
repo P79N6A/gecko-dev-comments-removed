@@ -292,6 +292,17 @@ protected:
 
 
 
+  nsresult ComputeGroupAttributes(PRUint32 aRole,
+                                  nsIPersistentProperties *aAttributes);
+
+  
+
+
+
+
+
+
+
   virtual nsresult FirePlatformEvent(nsIAccessibleEvent *aEvent) = 0;
 
   
