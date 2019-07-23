@@ -420,7 +420,8 @@ protected:
 
     enum {
         eDontTestEmpty = (1 << 0),
-        eDontRecurse = (2 << 0)
+        eDontRecurse = (1 << 1),
+        eLoggingEnabled = (1 << 2)
     };
 
     PRInt32 mFlags;
@@ -491,6 +492,18 @@ protected:
 
     virtual nsresult
     SynchronizeResult(nsIXULTemplateResult* aResult) = 0;
+
+    
+
+
+
+
+
+
+    void
+    OutputMatchToLog(nsIRDFResource* aId,
+                     nsTemplateMatch* aMatch,
+                     PRBool aIsNew);
 
     virtual void Traverse(nsCycleCollectionTraversalCallback &cb) const
     {
