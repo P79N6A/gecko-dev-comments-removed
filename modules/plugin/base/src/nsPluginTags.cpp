@@ -78,7 +78,6 @@ mMimeDescriptionArray(aPluginTag->mMimeDescriptionArray),
 mExtensionsArray(nsnull),
 mLibrary(nsnull),
 mCanUnloadLibrary(PR_TRUE),
-mXPConnected(PR_FALSE),
 mIsJavaPlugin(aPluginTag->mIsJavaPlugin),
 mIsNPRuntimeEnabledJavaPlugin(aPluginTag->mIsNPRuntimeEnabledJavaPlugin),
 mFileName(aPluginTag->mFileName),
@@ -113,7 +112,6 @@ mCanUnloadLibrary(!aPluginInfo->fBundle),
 #else
 mCanUnloadLibrary(PR_TRUE),
 #endif
-mXPConnected(PR_FALSE),
 mIsJavaPlugin(PR_FALSE),
 mIsNPRuntimeEnabledJavaPlugin(PR_FALSE),
 mFileName(aPluginInfo->fFileName),
@@ -203,7 +201,6 @@ mMimeTypeArray(nsnull),
 mExtensionsArray(nsnull),
 mLibrary(nsnull),
 mCanUnloadLibrary(aCanUnload),
-mXPConnected(PR_FALSE),
 mIsJavaPlugin(PR_FALSE),
 mIsNPRuntimeEnabledJavaPlugin(PR_FALSE),
 mFileName(aFileName),
@@ -544,15 +541,7 @@ void nsPluginTag::TryUnloadPlugin()
   
   if (mLibrary && mCanUnloadLibrary) {
     
-    if (!mXPConnected) {
-      
-      nsPluginHost::PostPluginUnloadEvent(mLibrary);
-    }
-    else {
-      
-      if (mPluginHost)
-        mPluginHost->AddUnusedLibrary(mLibrary);
-    }
+    nsPluginHost::PostPluginUnloadEvent(mLibrary);
   }
   
   
@@ -582,7 +571,6 @@ nsPluginInstanceTag::nsPluginInstanceTag(nsPluginTag* aPluginTag,
   mInstance = aInstance;
   if (aInstance)
     NS_ADDREF(aInstance);
-  mXPConnected = PR_FALSE;
   mDefaultPlugin = aDefaultPlugin;
   mStopped = PR_FALSE;
   mllStopTime = LL_ZERO;
