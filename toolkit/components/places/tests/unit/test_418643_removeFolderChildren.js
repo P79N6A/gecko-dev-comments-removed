@@ -62,6 +62,7 @@ var deletedBookmarkIds = [];
 var observer = {
   
   _onItemRemovedItemIds: [],
+  onBeforeItemRemoved: function(aItemId) { },
   onItemRemoved: function(aItemId, aParentId, aIndex) {
     
     do_check_eq(this._onItemRemovedItemIds.indexOf(aParentId), -1);

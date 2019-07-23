@@ -2884,6 +2884,11 @@ nsNavHistoryQueryResultNode::OnItemAdded(PRInt64 aItemId, PRInt64 aFolder,
   return NS_OK;
 }
 NS_IMETHODIMP
+nsNavHistoryQueryResultNode::OnBeforeItemRemoved(PRInt64 aItemId)
+{
+  return NS_OK;
+}
+NS_IMETHODIMP
 nsNavHistoryQueryResultNode::OnItemRemoved(PRInt64 aItemId, PRInt64 aFolder,
                                             PRInt32 aIndex)
 {
@@ -3463,6 +3468,15 @@ nsNavHistoryFolderResultNode::OnItemAdded(PRInt64 aItemId,
   }
   
   return InsertSortedChild(node, PR_FALSE);
+}
+
+
+
+
+NS_IMETHODIMP
+nsNavHistoryFolderResultNode::OnBeforeItemRemoved(PRInt64 aItemId)
+{
+  return NS_OK;
 }
 
 
@@ -4147,6 +4161,16 @@ nsNavHistoryResult::OnItemAdded(PRInt64 aItemId,
       OnItemAdded(aItemId, aFolder, aIndex));
   ENUMERATE_HISTORY_OBSERVERS(OnItemAdded(aItemId, aFolder, aIndex));
   ENUMERATE_ALL_BOOKMARKS_OBSERVERS(OnItemAdded(aItemId, aFolder, aIndex));
+  return NS_OK;
+}
+
+
+
+
+NS_IMETHODIMP
+nsNavHistoryResult::OnBeforeItemRemoved(PRInt64 aItemId)
+{
+  
   return NS_OK;
 }
 

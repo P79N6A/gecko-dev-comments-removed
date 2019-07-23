@@ -1185,6 +1185,9 @@ nsNavBookmarks::RemoveItem(PRInt64 aItemId)
     return NS_OK;
   }
 
+  ENUMERATE_WEAKARRAY(mObservers, nsINavBookmarkObserver,
+                      OnBeforeItemRemoved(aItemId))
+
   mozStorageTransaction transaction(mDBConn, PR_FALSE);
 
   
@@ -1593,6 +1596,9 @@ nsNavBookmarks::RemoveFolder(PRInt64 aFolderId)
 {
   NS_ENSURE_TRUE(aFolderId != mRoot, NS_ERROR_INVALID_ARG);
 
+  ENUMERATE_WEAKARRAY(mObservers, nsINavBookmarkObserver,
+                      OnBeforeItemRemoved(aFolderId))
+
   mozStorageTransaction transaction(mDBConn, PR_FALSE);
 
   nsresult rv;
@@ -1780,10 +1786,16 @@ nsNavBookmarks::RemoveFolderChildren(PRInt64 aFolderId)
   nsCString foldersToRemove;
   for (PRUint32 i = 0; i < folderChildrenArray.Length(); i++) {
     folderChildrenInfo child = folderChildrenArray[i];
+
+    
+    ENUMERATE_WEAKARRAY(mObservers, nsINavBookmarkObserver,
+                        OnBeforeItemRemoved(child.itemId))
+
     if (child.itemType == TYPE_FOLDER) {
       foldersToRemove.AppendLiteral(",");
       foldersToRemove.AppendInt(child.itemId);
 
+      
       
       
       if (child.folderType.Length() > 0) {
@@ -2755,6 +2767,10 @@ nsNavBookmarks::SetItemIndex(PRInt64 aItemId, PRInt32 aNewIndex)
   rv = mDBSetItemIndex->Execute();
   NS_ENSURE_SUCCESS(rv, rv);
 
+  
+  
+  ENUMERATE_WEAKARRAY(mObservers, nsINavBookmarkObserver,
+                      OnBeforeItemRemoved(aItemId))
   ENUMERATE_WEAKARRAY(mObservers, nsINavBookmarkObserver,
                       OnItemRemoved(aItemId, parent, oldIndex))
   ENUMERATE_WEAKARRAY(mObservers, nsINavBookmarkObserver,
