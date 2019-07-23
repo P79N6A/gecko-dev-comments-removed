@@ -47,6 +47,9 @@
 #endif 
 #include <stddef.h>             
 #include <stdlib.h>             
+#if defined(XP_UNIX)
+#  include <unistd.h>           
+#endif 
 
 #if defined(XP_WIN) || (defined(XP_OS2) && defined(__declspec))
 #  define MOZALLOC_EXPORT __declspec(dllexport)
