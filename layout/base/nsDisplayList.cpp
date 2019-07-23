@@ -325,6 +325,7 @@ nsDisplayList::ComputeVisibility(nsDisplayListBuilder* aBuilder,
   FlattenTo(&elements);
 
   
+  
   nsRect movingContentAccumulatedBounds;
   
   
@@ -345,7 +346,13 @@ nsDisplayList::ComputeVisibility(nsDisplayListBuilder* aBuilder,
 
     nsIFrame* f = item->GetUnderlyingFrame();
     PRBool isMoving = f && aBuilder->IsMovingFrame(f);
-    if (isMoving) {
+    
+    
+    
+    if (isMoving &&
+        !(item->IsUniform(aBuilder) &&
+          bounds.Contains(aVisibleRegion->GetBounds()) &&
+          bounds.Contains(aVisibleRegionBeforeMove->GetBounds()))) {
       if (movingContentAccumulatedBounds.IsEmpty()) {
         
         
