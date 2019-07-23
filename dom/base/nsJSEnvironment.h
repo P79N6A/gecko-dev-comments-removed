@@ -216,8 +216,7 @@ protected:
   
   
   
-  
-  void ReportPendingException(PRBool aSetAsideFrameChain);
+  void ReportPendingException();
 private:
   void DestroyJSContext();
 

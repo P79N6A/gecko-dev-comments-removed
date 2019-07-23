@@ -1453,6 +1453,14 @@ nsJSContext::EvaluateStringWithValue(const nsAString& aScript,
                                             aURL,
                                             aLineNo,
                                             &val);
+
+    if (!ok) {
+      
+      
+      
+
+      ReportPendingException();
+    }
   }
 
   
@@ -1624,7 +1632,7 @@ nsJSContext::EvaluateString(const nsAString& aScript,
       
       
 
-      ReportPendingException(PR_FALSE);
+      ReportPendingException();
     }
   }
 
@@ -1893,7 +1901,7 @@ nsJSContext::CompileEventHandler(nsIAtom *aName,
   if (!fun) {
     
     
-    ReportPendingException(PR_TRUE);
+    ReportPendingException();
     return NS_ERROR_ILLEGAL_VALUE;
   }
 
@@ -2030,7 +2038,7 @@ nsJSContext::CallEventHandler(nsISupports* aTarget, void *aScope, void *aHandler
       
       
 
-      ReportPendingException(PR_FALSE);
+      ReportPendingException();
 
       
       rval = JSVAL_VOID;
@@ -2104,7 +2112,7 @@ nsJSContext::BindCompiledEventHandler(nsISupports* aTarget, void *aScope,
       !::JS_DefineProperty(mContext, target, charName,
                            OBJECT_TO_JSVAL(funobj), nsnull, nsnull,
                            JSPROP_ENUMERATE | JSPROP_PERMANENT)) {
-    ReportPendingException(PR_TRUE);
+    ReportPendingException();
     rv = NS_ERROR_FAILURE;
   }
 
@@ -3659,14 +3667,13 @@ nsJSContext::DropScriptObject(void* aScriptObject)
 }
 
 void
-nsJSContext::ReportPendingException(PRBool aSetAsideFrameChain)
+nsJSContext::ReportPendingException()
 {
-  JSStackFrame* frame =
-    aSetAsideFrameChain ? JS_SaveFrameChain(mContext) : nsnull;
+  
+  
   if (mIsInitialized && ::JS_IsExceptionPending(mContext)) {
+    JSStackFrame* frame = JS_SaveFrameChain(mContext);
     ::JS_ReportPendingException(mContext);
-  }
-  if (aSetAsideFrameChain) {
     JS_RestoreFrameChain(mContext, frame);
   }
 }

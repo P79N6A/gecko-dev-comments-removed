@@ -136,13 +136,6 @@ nsXBLProtoImplField::InstallField(nsIScriptContext* aContext,
   if (NS_FAILED(rv))
     return rv;
 
-  
-  
-  
-  if (::JS_IsExceptionPending(cx)) {
-    ::JS_ReportPendingException(cx);
-  }
-
   if (undefined) {
     result = JSVAL_VOID;
   }
