@@ -310,6 +310,11 @@ public:
   
 
 
+  static nsIFrame* GetFrameFor(nsIDOMElement *aElm);
+
+  
+
+
 
 
 

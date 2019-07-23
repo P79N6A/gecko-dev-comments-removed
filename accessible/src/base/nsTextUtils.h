@@ -43,6 +43,7 @@
 #include "nsIDOMCSSStyleDeclaration.h"
 
 #include "nsIContent.h"
+#include "nsIFrame.h"
 
 #include "nsCOMPtr.h"
 #include "nsString.h"
@@ -107,6 +108,42 @@ private:
 
   nsCOMPtr<nsIDOMCSSStyleDeclaration> mStyleDecl;
   nsCOMPtr<nsIDOMCSSStyleDeclaration> mDefStyleDecl;
+};
+
+
+
+
+
+class nsBackgroundTextAttr : public nsTextAttr
+{
+public:
+  nsBackgroundTextAttr(nsIFrame *aFrame, nsIFrame *aRootFrame);
+  
+  
+  virtual PRBool equal(nsIDOMElement *aElm);
+
+  
+
+
+
+  virtual PRBool get(nsAString& aValue);
+
+private:
+  
+
+
+
+
+
+
+
+
+
+
+  nscolor getColor(nsIFrame *aFrame);
+
+  nsIFrame *mFrame;
+  nsIFrame *mRootFrame;
 };
 
 #endif
