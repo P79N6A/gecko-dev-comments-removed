@@ -165,18 +165,19 @@ XBLResolve(JSContext *cx, JSObject *obj, jsval id, uintN flags,
   
   if (~nodeClass->flags &
       (JSCLASS_HAS_PRIVATE | JSCLASS_PRIVATE_IS_NSISUPPORTS)) {
-    
-    
-    
-    
-    return JS_TRUE;
+    nsDOMClassInfo::ThrowJSException(cx, NS_ERROR_UNEXPECTED);
+    return JS_FALSE;
   }
 
   nsCOMPtr<nsIXPConnectWrappedNative> xpcWrapper =
     do_QueryInterface(static_cast<nsISupports*>(::JS_GetPrivate(cx, origObj)));
   if (!xpcWrapper) {
-    nsDOMClassInfo::ThrowJSException(cx, NS_ERROR_UNEXPECTED);
-    return JS_FALSE;
+    
+    
+    
+    
+    
+    return JS_TRUE;
   }
 
   nsCOMPtr<nsIContent> content = do_QueryWrappedNative(xpcWrapper);
