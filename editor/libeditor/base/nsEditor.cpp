@@ -2085,14 +2085,15 @@ nsEditor::ForceCompositionEnd()
 
 
 #if defined(XP_MAC) || defined(XP_MACOSX) || defined(XP_WIN) || defined(XP_OS2)
+  
+  
+  
+  
+  
+  
+  
   if(! mInIMEMode)
     return NS_OK;
-#endif
-
-#ifdef XP_UNIX
-  if(IsPasswordEditor()) {
-    return NS_OK;
-  }
 #endif
 
   nsCOMPtr<nsIWidget> widget;
