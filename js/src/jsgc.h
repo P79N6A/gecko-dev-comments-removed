@@ -75,8 +75,8 @@ js_GetGCThingTraceKind(void *thing);
 
 
 
-JSRuntime*
-js_GetGCStringRuntime(JSString *str);
+JSRuntime *
+js_GetGCThingRuntime(void *thing);
 
 #if 1
 
