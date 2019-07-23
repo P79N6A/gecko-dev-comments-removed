@@ -243,7 +243,7 @@ NPP_NewStream(NPP pInstance,
 
 
 
-int32 NP_LOADDS
+int32_t NP_LOADDS
 NPP_WriteReady(NPP pInstance, NPStream *stream)
 {
   dbgOut1("NPP_WriteReady");
@@ -262,8 +262,9 @@ NPP_WriteReady(NPP pInstance, NPStream *stream)
 
 
 
-int32 NP_LOADDS
-NPP_Write(NPP pInstance, NPStream *stream, int32 offset, int32 len, void *buffer)
+int32_t NP_LOADDS
+NPP_Write(NPP pInstance, NPStream *stream, int32_t offset, int32_t len,
+          void *buffer)
 {
   
   if(pInstance == NULL)

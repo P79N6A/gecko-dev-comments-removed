@@ -95,7 +95,7 @@ NP_GetEntryPoints(NPPluginFuncs* pFuncs)
     pFuncs->print         = NPP_Print;
     pFuncs->event         = 0;       
 
-	g_pluginFuncs		  = pFuncs;
+    g_pluginFuncs         = pFuncs;
 
     return NPERR_NO_ERROR;
 }
@@ -106,7 +106,7 @@ NP_GetEntryPoints(NPPluginFuncs* pFuncs)
 
 
 
-NPError OSCALL NP_EXPORT 
+NPError OSCALL NP_EXPORT
 NP_Initialize(NPNetscapeFuncs* pFuncs)
 {
     
@@ -120,16 +120,16 @@ NP_Initialize(NPNetscapeFuncs* pFuncs)
     if(HIBYTE(pFuncs->version) > NP_VERSION_MAJOR)
         return NPERR_INCOMPATIBLE_VERSION_ERROR;
 
-	
+    
     int navMinorVers = g_pNavigatorFuncs->version & 0xFF;
 
-	if( navMinorVers >= NPVERS_HAS_NOTIFICATION ) {
-		g_pluginFuncs->urlnotify = NPP_URLNotify;
-	}
-	if( navMinorVers >= NPVERS_HAS_LIVECONNECT ) {
-		g_pluginFuncs->javaClass = NULL;
-	}
-	
+    if( navMinorVers >= NPVERS_HAS_NOTIFICATION ) {
+        g_pluginFuncs->urlnotify = NPP_URLNotify;
+    }
+    if( navMinorVers >= NPVERS_HAS_LIVECONNECT ) {
+        g_pluginFuncs->javaClass = NULL;
+    }
+    
     return NPP_Initialize();
 }
 
@@ -141,7 +141,7 @@ NP_Initialize(NPNetscapeFuncs* pFuncs)
 
 
 
-NPError OSCALL NP_EXPORT 
+NPError OSCALL NP_EXPORT
 NP_Shutdown()
 {
     NPP_Shutdown();
@@ -149,7 +149,8 @@ NP_Shutdown()
     return NPERR_NO_ERROR;
 }
 
-char * NP_GetMIMEDescription()
+char*
+NP_GetMIMEDescription()
 {
     static char mimetype[] = NS_PLUGIN_DEFAULT_MIME_DESCRIPTION;
     return mimetype;
@@ -171,7 +172,9 @@ char * NP_GetMIMEDescription()
 
 
 
-void NPN_Version(int* plugin_major, int* plugin_minor, int* netscape_major, int* netscape_minor)
+void
+NPN_Version(int* plugin_major, int* plugin_minor, int* netscape_major,
+            int* netscape_minor)
 {
     *plugin_major   = NP_VERSION_MAJOR;
     *plugin_minor   = NP_VERSION_MINOR;
@@ -179,7 +182,8 @@ void NPN_Version(int* plugin_major, int* plugin_minor, int* netscape_major, int*
     *netscape_minor = LOBYTE(g_pNavigatorFuncs->version);
 }
 
-NPError NPN_GetValue(NPP instance, NPNVariable variable, void *result)
+NPError
+NPN_GetValue(NPP instance, NPNVariable variable, void *result)
 {
     return g_pNavigatorFuncs->getvalue(instance, variable, result);
 }
@@ -187,41 +191,47 @@ NPError NPN_GetValue(NPP instance, NPNVariable variable, void *result)
 
 
 
-NPError NPN_GetURLNotify(NPP instance, const char *url, const char *target, void* notifyData)
-
+NPError
+NPN_GetURLNotify(NPP instance, const char *url, const char *target,
+                 void* notifyData)
 {
-	int navMinorVers = g_pNavigatorFuncs->version & 0xFF;
-	NPError err;
-	if( navMinorVers >= NPVERS_HAS_NOTIFICATION ) {
-		err = g_pNavigatorFuncs->geturlnotify(instance, url, target, notifyData);
-	}
-	else {
-		err = NPERR_INCOMPATIBLE_VERSION_ERROR;
-	}
-	return err;
+    int navMinorVers = g_pNavigatorFuncs->version & 0xFF;
+    NPError err;
+    if( navMinorVers >= NPVERS_HAS_NOTIFICATION ) {
+        err = g_pNavigatorFuncs->geturlnotify(instance, url, target, notifyData);
+    }
+    else {
+        err = NPERR_INCOMPATIBLE_VERSION_ERROR;
+    }
+    return err;
 }
 
 
-NPError NPN_GetURL(NPP instance, const char *url, const char *target)
+NPError
+NPN_GetURL(NPP instance, const char *url, const char *target)
 {
     return g_pNavigatorFuncs->geturl(instance, url, target);
 }
 
-NPError NPN_PostURLNotify(NPP instance, const char* url, const char* window, uint32 len, const char* buf, NPBool file, void* notifyData)
+NPError
+NPN_PostURLNotify(NPP instance, const char* url, const char* window,
+                  uint32_t len, const char* buf, NPBool file, void* notifyData)
 {
-	int navMinorVers = g_pNavigatorFuncs->version & 0xFF;
-	NPError err;
-	if( navMinorVers >= NPVERS_HAS_NOTIFICATION ) {
-		err = g_pNavigatorFuncs->posturlnotify(instance, url, window, len, buf, file, notifyData);
-	}
-	else {
-		err = NPERR_INCOMPATIBLE_VERSION_ERROR;
-	}
-	return err;
+    int navMinorVers = g_pNavigatorFuncs->version & 0xFF;
+    NPError err;
+    if( navMinorVers >= NPVERS_HAS_NOTIFICATION ) {
+        err = g_pNavigatorFuncs->posturlnotify(instance, url, window, len, buf, file, notifyData);
+    }
+    else {
+        err = NPERR_INCOMPATIBLE_VERSION_ERROR;
+    }
+    return err;
 }
 
 
-NPError NPN_PostURL(NPP instance, const char* url, const char* window, uint32 len, const char* buf, NPBool file)
+NPError
+NPN_PostURL(NPP instance, const char* url, const char* window, uint32_t len,
+            const char* buf, NPBool file)
 {
     return g_pNavigatorFuncs->posturl(instance, url, window, len, buf, file);
 }
@@ -230,7 +240,8 @@ NPError NPN_PostURL(NPP instance, const char* url, const char* window, uint32 le
 
 
 
-NPError NPN_RequestRead(NPStream* stream, NPByteRange* rangeList)
+NPError
+NPN_RequestRead(NPStream* stream, NPByteRange* rangeList)
 {
     return g_pNavigatorFuncs->requestread(stream, rangeList);
 }
@@ -238,65 +249,69 @@ NPError NPN_RequestRead(NPStream* stream, NPByteRange* rangeList)
 
 
 
-NPError NPN_NewStream(NPP instance, NPMIMEType type, 
-								const char* target, NPStream** stream)
+NPError
+NPN_NewStream(NPP instance, NPMIMEType type, const char* target,
+              NPStream** stream)
 {
-	int navMinorVersion = g_pNavigatorFuncs->version & 0xFF;
-	NPError err;
+    int navMinorVersion = g_pNavigatorFuncs->version & 0xFF;
+    NPError err;
 
-	if( navMinorVersion >= NPVERS_HAS_STREAMOUTPUT ) {
-		err = g_pNavigatorFuncs->newstream(instance, type, target, stream);
-	}
-	else {
-		err = NPERR_INCOMPATIBLE_VERSION_ERROR;
-	}
-	return err;
+    if( navMinorVersion >= NPVERS_HAS_STREAMOUTPUT ) {
+        err = g_pNavigatorFuncs->newstream(instance, type, target, stream);
+    }
+    else {
+        err = NPERR_INCOMPATIBLE_VERSION_ERROR;
+    }
+    return err;
 }
 
 
 
-int32 NPN_Write(NPP instance, NPStream *stream,
-                int32 len, void *buffer)
+int32_t
+NPN_Write(NPP instance, NPStream *stream, int32_t len, void *buffer)
 {
-	int navMinorVersion = g_pNavigatorFuncs->version & 0xFF;
-	int32 result;
+    int navMinorVersion = g_pNavigatorFuncs->version & 0xFF;
+    int32_t result;
 
-	if( navMinorVersion >= NPVERS_HAS_STREAMOUTPUT ) {
-		result = g_pNavigatorFuncs->write(instance, stream, len, buffer);
-	}
-	else {
-		result = -1;
-	}
-	return result;
+    if( navMinorVersion >= NPVERS_HAS_STREAMOUTPUT ) {
+        result = g_pNavigatorFuncs->write(instance, stream, len, buffer);
+    }
+    else {
+        result = -1;
+    }
+    return result;
 }
 
 
 
 
-NPError NPN_DestroyStream(NPP instance, NPStream* stream, NPError reason)
+NPError
+NPN_DestroyStream(NPP instance, NPStream* stream, NPError reason)
 {
-	int navMinorVersion = g_pNavigatorFuncs->version & 0xFF;
-	NPError err;
+    int navMinorVersion = g_pNavigatorFuncs->version & 0xFF;
+    NPError err;
 
-	if( navMinorVersion >= NPVERS_HAS_STREAMOUTPUT ) {
-		err = g_pNavigatorFuncs->destroystream(instance, stream, reason);
-	}
-	else {
-		err = NPERR_INCOMPATIBLE_VERSION_ERROR;
-	}
-	return err;
+    if( navMinorVersion >= NPVERS_HAS_STREAMOUTPUT ) {
+        err = g_pNavigatorFuncs->destroystream(instance, stream, reason);
+    }
+    else {
+        err = NPERR_INCOMPATIBLE_VERSION_ERROR;
+    }
+    return err;
 }
 
 
 
-void NPN_Status(NPP instance, const char *message)
+void
+NPN_Status(NPP instance, const char *message)
 {
     g_pNavigatorFuncs->status(instance, message);
 }
 
 
 
-const char* NPN_UserAgent(NPP instance)
+const char*
+NPN_UserAgent(NPP instance)
 {
     return g_pNavigatorFuncs->uagent(instance);
 }
@@ -304,22 +319,24 @@ const char* NPN_UserAgent(NPP instance)
 
 
 
-
-
-void* NPN_MemAlloc(uint32 size)
+void*
+NPN_MemAlloc(uint32_t size)
 {
     return g_pNavigatorFuncs->memalloc(size);
 }
 
 
 
-void NPN_MemFree(void* ptr)
+void
+NPN_MemFree(void* ptr)
 {
     g_pNavigatorFuncs->memfree(ptr);
 }
 
 
-void NPN_ReloadPlugins(NPBool reloadPages)
+
+void
+NPN_ReloadPlugins(NPBool reloadPages)
 {
     g_pNavigatorFuncs->reloadplugins(reloadPages);
 }
