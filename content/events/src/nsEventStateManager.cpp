@@ -836,7 +836,8 @@ nsEventStateManager::PreHandleEvent(nsPresContext* aPresContext,
         
         
         
-        aEvent->message = NS_MOUSE_MOVE;
+        mouseEvent->message = NS_MOUSE_MOVE;
+        mouseEvent->reason = nsMouseEvent::eSynthesized;
         
       } else {
         GenerateMouseEnterExit((nsGUIEvent*)aEvent);
