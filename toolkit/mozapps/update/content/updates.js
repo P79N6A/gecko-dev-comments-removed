@@ -862,6 +862,12 @@ var gLicensePage = {
 
 
   onAcceptDeclineRadio: function() {
+    
+    
+    
+    if (!this._licenseContent)
+      return;
+
     var selectedIndex = document.getElementById("acceptDeclineLicense")
                                 .selectedIndex;
     
