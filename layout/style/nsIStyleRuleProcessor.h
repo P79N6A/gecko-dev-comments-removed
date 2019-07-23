@@ -53,15 +53,18 @@ struct RuleProcessorData;
 struct ElementRuleProcessorData;
 struct PseudoElementRuleProcessorData;
 struct AnonBoxRuleProcessorData;
-struct PseudoRuleProcessorData;
+#ifdef MOZ_XUL
+struct XULTreeRuleProcessorData;
+#endif
 struct StateRuleProcessorData;
 struct AttributeRuleProcessorData;
 class nsPresContext;
 
 
+
 #define NS_ISTYLE_RULE_PROCESSOR_IID     \
-{ 0xa4ec760e, 0x6bfb, 0x4b9f, \
- { 0xbd, 0x08, 0x9d, 0x1c, 0x23, 0xb7, 0x00, 0xf6 } }
+{ 0xec92bc0c, 0x9518, 0x48ea, \
+ { 0x92, 0x89, 0x74, 0xe6, 0x54, 0x65, 0x9b, 0xe9 } }
 
 
 
@@ -98,11 +101,13 @@ public:
 
   NS_IMETHOD RulesMatching(AnonBoxRuleProcessorData* aData) = 0;
 
+#ifdef MOZ_XUL
   
 
 
 
-  NS_IMETHOD RulesMatching(PseudoRuleProcessorData* aData) = 0;
+  NS_IMETHOD RulesMatching(XULTreeRuleProcessorData* aData) = 0;
+#endif
 
   
 
