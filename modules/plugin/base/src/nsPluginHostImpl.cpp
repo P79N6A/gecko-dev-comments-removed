@@ -4503,13 +4503,6 @@ NS_IMETHODIMP nsPluginHostImpl::LoadPlugins()
 
   
   if (pluginschanged) {
-    
-    nsCOMPtr<nsIInterfaceInfoManager>
-      iim(do_GetService(NS_INTERFACEINFOMANAGER_SERVICE_CONTRACTID));
-
-    if (iim)
-      iim->AutoRegisterInterfaces();
-
     nsCOMPtr<nsIObserverService>
       obsService(do_GetService("@mozilla.org/observer-service;1"));
     if (obsService)

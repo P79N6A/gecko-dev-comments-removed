@@ -262,7 +262,6 @@ PRBool xptiInterfaceInfoManager::BuildFileSearchPath(nsISupportsArray** aPath)
     
     
     
-    
     nsCOMPtr<nsILocalFile> greComponentDirectory;
     nsresult rv = GetDirectoryFromDirService(NS_GRE_COMPONENT_DIR, 
                                     getter_AddRefs(greComponentDirectory));
@@ -277,7 +276,6 @@ PRBool xptiInterfaceInfoManager::BuildFileSearchPath(nsISupportsArray** aPath)
     }
 
     (void)AppendFromDirServiceList(NS_XPCOM_COMPONENT_DIR_LIST, searchPath);
-    (void)AppendFromDirServiceList(NS_APP_PLUGINS_DIR_LIST, searchPath);
 
     NS_ADDREF(*aPath = searchPath);
     return PR_TRUE;
