@@ -368,9 +368,6 @@ public:
     static void GetPrefsFontList(const char *aPrefName, 
                                  nsTArray<nsString>& aFontList);
 
-    
-    static nsresult MakeUniqueUserFontName(nsAString& aName);
-
 };
 
 
