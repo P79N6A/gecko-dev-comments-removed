@@ -481,30 +481,15 @@ nsTableCellFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
   nsresult rv = DisplayOutline(aBuilder, aLists);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  PRBool quirkyClip = HasPctOverHeight() &&
-    eCompatibility_NavQuirks == PresContext()->CompatibilityMode();
   nsIFrame* kid = mFrames.FirstChild();
   NS_ASSERTION(kid && !kid->GetNextSibling(), "Table cells should have just one child");
-  if (!quirkyClip) {
-    
-    
-    
-    
-    
-    
-    return BuildDisplayListForChild(aBuilder, kid, aDirtyRect, aLists);
-  }
-    
   
-  nsDisplayListCollection set;
-  rv = BuildDisplayListForChild(aBuilder, kid, aDirtyRect, set);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  nsRect clip = GetOverflowRect();
-  if (quirkyClip) {
-    clip = nsRect(nsPoint(0, 0), GetSize());
-  }
-  return OverflowClip(aBuilder, set, aLists, clip + aBuilder->ToReferenceFrame(this));
+  
+  
+  
+  
+  
+  return BuildDisplayListForChild(aBuilder, kid, aDirtyRect, aLists);
 }
 
 
