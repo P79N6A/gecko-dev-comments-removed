@@ -3875,22 +3875,6 @@ TraceRecorder::snapshot(ExitType exitType)
         }
     }
 
-    if (sizeof(VMSideExit) + (stackSlots + ngslots) * sizeof(JSTraceType) >
-        LirBuffer::MAX_SKIP_PAYLOAD_SZB) {
-        
-
-
-
-
-
-
-
-        stackSlots = 0;
-        ngslots = 0;
-        typemap_size = 0;
-        trashSelf = true;
-    }
-
     
     VMSideExit* exit = (VMSideExit*)
         traceMonitor->traceAlloc->alloc(sizeof(VMSideExit) +
@@ -11148,8 +11132,6 @@ TraceRecorder::record_JSOP_GETELEM()
                         
                         
                         unsigned stackSlots = NativeStackSlots(cx, 0 );
-                        if (stackSlots * sizeof(JSTraceType) > LirBuffer::MAX_SKIP_PAYLOAD_SZB)
-                            RETURN_STOP_A("|arguments| requires saving too much stack");
                         JSTraceType* typemap = new (*traceMonitor->traceAlloc) JSTraceType[stackSlots];
                         DetermineTypesVisitor detVisitor(*this, typemap);
                         VisitStackSlots(detVisitor, cx, 0);
@@ -11631,8 +11613,6 @@ TraceRecorder::interpretedFunctionCall(jsval& fval, JSFunction* fun, uintN argc,
 
     
     unsigned stackSlots = NativeStackSlots(cx, 0 );
-    if (sizeof(FrameInfo) + stackSlots * sizeof(JSTraceType) > LirBuffer::MAX_SKIP_PAYLOAD_SZB)
-        RETURN_STOP("interpreted function call requires saving too much stack");
     FrameInfo* fi = (FrameInfo*)
         traceMonitor->traceAlloc->alloc(sizeof(FrameInfo) +
                                         stackSlots * sizeof(JSTraceType));
