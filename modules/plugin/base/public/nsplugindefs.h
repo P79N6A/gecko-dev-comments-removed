@@ -395,7 +395,6 @@ enum nsPluginReason {
 
 
 class nsIPlugin;                        
-class nsIEventHandler;                  
 class nsIPluginInstance;                
 
 
