@@ -149,9 +149,6 @@ private:
   nsCOMPtr<nsIGeolocationProvider> mProvider;
 
   
-  PRBool mProviderStarted;
-
-  
   
   
   nsTArray<nsGeolocation*> mGeolocators;

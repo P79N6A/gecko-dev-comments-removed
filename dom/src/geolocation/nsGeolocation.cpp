@@ -280,9 +280,6 @@ nsGeolocationRequest::Allow()
     
     
     SendLocation(lastPosition);
-    
-    
-    mLocator->RemoveRequest(this);
   }
 
   PRInt32 timeout;
@@ -352,7 +349,6 @@ NS_IMPL_THREADSAFE_ADDREF(nsGeolocationService)
 NS_IMPL_THREADSAFE_RELEASE(nsGeolocationService)
 
 nsGeolocationService::nsGeolocationService()
- : mProviderStarted(PR_FALSE)
 {
   nsCOMPtr<nsIObserverService> obs = do_GetService("@mozilla.org/observer-service;1");
   if (obs) {
@@ -360,6 +356,10 @@ nsGeolocationService::nsGeolocationService()
   }
 
   mTimeout = nsContentUtils::GetIntPref("geo.timeout", 6000);
+
+  PRBool enabled = nsContentUtils::GetBoolPref("geo.enabled", PR_TRUE);
+  if (!enabled)
+    return;
 
   mProvider = do_GetService(NS_GEOLOCATION_PROVIDER_CONTRACTID);
   
@@ -453,25 +453,18 @@ nsGeolocationService::StartDevice()
   if (!mProvider)
     return NS_ERROR_NOT_AVAILABLE;
   
-  if (!mProviderStarted) {
-
-    
-    nsresult rv = mProvider->Startup();
-    if (NS_FAILED(rv)) 
-      return NS_ERROR_NOT_AVAILABLE;
   
-    
-    mProvider->Watch(this);
-
-    
-    mProviderStarted = PR_TRUE;
-
-    
-    
-    
-    SetDisconnectTimer();
-
-  }
+  nsresult rv = mProvider->Startup();
+  if (NS_FAILED(rv)) 
+    return NS_ERROR_NOT_AVAILABLE;
+  
+  
+  mProvider->Watch(this);
+  
+  
+  
+  
+  SetDisconnectTimer();
 
   return NS_OK;
 }
@@ -494,7 +487,6 @@ nsGeolocationService::StopDevice()
 {
   if (mProvider) {
     mProvider->Shutdown();
-    mProviderStarted = PR_FALSE;
   }
 
   if(mDisconnectTimer) {
