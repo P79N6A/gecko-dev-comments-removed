@@ -45,6 +45,7 @@
 #include "nsIContent.h"
 #include "nsIFrame.h"
 
+class nsTreeBodyFrame;
 class nsTreeColumns;
 
 
