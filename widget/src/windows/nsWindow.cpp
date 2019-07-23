@@ -84,6 +84,9 @@
 
 #define PAINT_USE_IMAGE_SURFACE
 
+
+#define PAINT_USE_IMAGE_SURFACE_24BPP
+
 #ifdef WINCE_WINDOWS_MOBILE
 #define WINCE_HAVE_SOFTKB
 #include "tpcshell.h"
@@ -6074,6 +6077,69 @@ PRBool nsWindow::OnPaint(HDC aDC)
         bi.biPlanes = 1;
         bi.biBitCount = 32;
         bi.biCompression = BI_RGB;
+
+#ifdef PAINT_USE_IMAGE_SURFACE_24BPP
+        
+        
+        
+        
+        
+        int srcstride = surfaceSize.width*4;
+        int dststride = surfaceSize.width*3;
+        dststride = (dststride + 3) & ~3;
+
+        
+        for (int j = 0; j < surfaceSize.height; ++j) {
+          unsigned int *src = (unsigned int*) (targetSurface->Data() + j*srcstride);
+          unsigned int *dst = (unsigned int*) (targetSurface->Data() + j*dststride);
+
+          
+          
+          
+          
+          
+          
+          int width_left = surfaceSize.width;
+          while (width_left > 4) {
+            unsigned int a = *src++;
+            unsigned int b = *src++;
+            unsigned int c = *src++;
+            unsigned int d = *src++;
+
+            *dst++ =  (a & 0x00ffffff)        | (b << 24);
+            *dst++ = ((b & 0x00ffff00) >> 8)  | (c << 16);
+            *dst++ = ((c & 0x00ff0000) >> 16) | (d << 8);
+
+            width_left -= 4;
+          }
+
+          
+          
+          unsigned char *bsrc = (unsigned char*) src;
+          unsigned char *bdst = (unsigned char*) dst;
+          switch (width_left) {
+          case 3:
+            *bdst++ = *bsrc++;
+            *bdst++ = *bsrc++;
+            *bdst++ = *bsrc++;
+            bsrc++;
+          case 2:
+            *bdst++ = *bsrc++;
+            *bdst++ = *bsrc++;
+            *bdst++ = *bsrc++;
+            bsrc++;
+          case 1:
+            *bdst++ = *bsrc++;
+            *bdst++ = *bsrc++;
+            *bdst++ = *bsrc++;
+            bsrc++;
+          case 0:
+            break;
+          }
+        }
+
+        bi.biBitCount = 24;
+#endif
 
         StretchDIBits(hDC,
                       ps.rcPaint.left, ps.rcPaint.top,
