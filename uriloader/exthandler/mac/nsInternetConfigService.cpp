@@ -131,7 +131,7 @@ NS_IMETHODIMP nsInternetConfigService::HasMappingForMIMEType(const char *mimetyp
 NS_IMETHODIMP nsInternetConfigService::HasProtocolHandler(const char *protocol, PRBool *_retval)
 {
   *_retval = PR_FALSE;            
-  nsresult rv = NS_ERROR_FAILURE; 
+  nsresult rv = NS_OK;
 
   
   
@@ -163,7 +163,6 @@ NS_IMETHODIMP nsInternetConfigService::HasProtocolHandler(const char *protocol, 
           else
           {
             *_retval = PR_TRUE;
-            rv = NS_OK;
           }
         }
       }

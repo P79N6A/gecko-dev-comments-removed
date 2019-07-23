@@ -79,7 +79,7 @@ nsresult nsOSHelperAppService::OSProtocolHandlerExists(const char * aProtocolSch
   
   *aHandlerExists = PR_FALSE;
   
-  nsresult rv = NS_ERROR_FAILURE;
+  nsresult rv = NS_OK;
   nsCOMPtr<nsIInternetConfigService> icService (do_GetService(NS_INTERNETCONFIGSERVICE_CONTRACTID));
   if (icService)
   {
@@ -87,38 +87,15 @@ nsresult nsOSHelperAppService::OSProtocolHandlerExists(const char * aProtocolSch
     if (rv == NS_ERROR_NOT_AVAILABLE)
     {
       
-      nsCOMPtr<nsIStringBundleService> stringBundleService = do_GetService(NS_STRINGBUNDLE_CONTRACTID);
-      if (stringBundleService)
-      {
-        nsCOMPtr<nsIStringBundle> appLauncherBundle;
-        rv = stringBundleService->CreateBundle(HELPERAPPLAUNCHER_BUNDLE_URL, getter_AddRefs(appLauncherBundle));
-        if (rv == NS_OK)
-        {
-          nsCOMPtr<nsIStringBundle> brandBundle;
-          rv = stringBundleService->CreateBundle(BRAND_BUNDLE_URL, getter_AddRefs(brandBundle));
-          if (rv == NS_OK)
-          {
-            nsXPIDLString brandName;
-            rv = brandBundle->GetStringFromName(NS_LITERAL_STRING("brandShortName").get(), getter_Copies(brandName));
-            if (rv == NS_OK)
-            {
-              nsXPIDLString errorStr;
-              NS_ConvertASCIItoUTF16 proto(aProtocolScheme);
-              const PRUnichar *formatStrings[] = { brandName.get(), proto.get() };
-              rv = appLauncherBundle->FormatStringFromName(NS_LITERAL_STRING("protocolNotHandled").get(),
-                                                           formatStrings,
-                                                           2,
-                                                           getter_Copies(errorStr));
-              if (rv == NS_OK)
-              {
-                nsCOMPtr<nsIPromptService> prompt (do_GetService(NS_PROMPTSERVICE_CONTRACTID));
-                if (prompt)
-                  prompt->Alert(nsnull, NS_LITERAL_STRING("Alert").get(), errorStr.get());
-              }
-            }
-          }
-        }
-      }
+      
+      
+      *aHandlerExists = PR_FALSE;
+      rv = NS_OK;
+
+      
+      
+      
+      
     }
   }
   return rv;
