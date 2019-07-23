@@ -89,8 +89,6 @@ class nsToolkit : public nsIToolkit
             PRThread*       GetGuiThread(void)       { return mGuiThread;   }
             HWND            GetDispatchWindow(void)  { return mDispatchWnd; }
             void            CreateInternalWindow(PRThread *aThread);
-            
-            PRBool          UserIsMovingWindow(void);
 
 private:
                             ~nsToolkit();

@@ -59,13 +59,6 @@
 NS_IMPL_ISUPPORTS1(nsToolkit, nsIToolkit)
 
 
-static PRBool gIsMovingWindow = PR_FALSE;
-
-
-
-static HHOOK   nsMsgFilterHook = NULL;
-
-
 
 
 
@@ -129,39 +122,6 @@ struct ThreadInitInfo {
     PRMonitor *monitor;
     nsToolkit *toolkit;
 };
-
-
-
-#ifndef WINCE
-LRESULT CALLBACK DetectWindowMove(int code, WPARAM wParam, LPARAM lParam)
-{
-    static NS_DEFINE_CID(kAppShellCID, NS_APPSHELL_CID);
-
-    
-
-
-
-    CWPSTRUCT* sysMsg = (CWPSTRUCT*)lParam;
-    if (sysMsg) {
-      nsCOMPtr<nsIAppShell> appShell = do_GetService(kAppShellCID);
-      NS_ASSERTION(appShell, "no appshell");
-      if (sysMsg->message == WM_ENTERSIZEMOVE) {
-        gIsMovingWindow = PR_TRUE; 
-        
-        
-        
-        appShell->FavorPerformanceHint(PR_FALSE, 0);
-      } else if (sysMsg->message == WM_EXITSIZEMOVE) {
-        gIsMovingWindow = PR_FALSE;
-        
-        
-        
-        appShell->FavorPerformanceHint(PR_TRUE, 0);
-      }
-    }
-    return CallNextHookEx(nsMsgFilterHook, code, wParam, lParam);
-}
-#endif 
 
 MouseTrailer*       nsToolkit::gMouseTrailer;
 
@@ -227,15 +187,6 @@ nsToolkit::~nsToolkit()
       delete gMouseTrailer;
       gMouseTrailer = nsnull;
     }
-
-    
-    
-#ifndef WINCE
-    if (nsMsgFilterHook != NULL) {
-      UnhookWindowsHookEx(nsMsgFilterHook);
-      nsMsgFilterHook = NULL;
-    }
-#endif
 
 #if defined (MOZ_STATIC_COMPONENT_LIBS) || defined(WINCE)
     nsToolkit::Shutdown();
@@ -370,21 +321,7 @@ NS_METHOD nsToolkit::Init(PRThread *aThread)
 
     nsWidgetAtoms::RegisterAtoms();
 
-#ifndef WINCE
-    
-    
-    if (nsMsgFilterHook == NULL) {
-      nsMsgFilterHook = SetWindowsHookEx(WH_CALLWNDPROC, DetectWindowMove, 
-                                         NULL, GetCurrentThreadId());
-    }
-#endif
-
     return NS_OK;
-}
-
-PRBool nsToolkit::UserIsMovingWindow(void)
-{
-    return gIsMovingWindow;
 }
 
 

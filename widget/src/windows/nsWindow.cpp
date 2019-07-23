@@ -2729,9 +2729,13 @@ nsWindow::HasPendingInputEvent()
   
   
   
-  WORD qstatus = HIWORD(GetQueueStatus(QS_INPUT));
-  nsToolkit* toolkit = (nsToolkit *)mToolkit;
-  return qstatus || (toolkit && toolkit->UserIsMovingWindow());
+  if (HIWORD(GetQueueStatus(QS_INPUT)))
+    return PR_TRUE;
+  GUITHREADINFO guiInfo;
+  guiInfo.cbSize = sizeof(GUITHREADINFO);
+  if (!GetGUIThreadInfo(GetCurrentThreadId(), &guiInfo))
+    return PR_FALSE;
+  return GUI_INMOVESIZE == (guiInfo.flags & GUI_INMOVESIZE);
 }
 
 
