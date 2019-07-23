@@ -528,6 +528,14 @@ PRBool nsRootAccessible::FireAccessibleFocusEvent(nsIAccessible *aAccessible,
   gLastFocusedNode = finalFocusNode;
   NS_IF_ADDREF(gLastFocusedNode);
 
+  nsCOMPtr<nsIContent> focusContent = do_QueryInterface(gLastFocusedNode);
+  nsIFrame *focusFrame = nsnull;
+  if (focusContent) {
+    nsCOMPtr<nsIPresShell> shell = nsAccessNode::GetPresShellFor(gLastFocusedNode);
+    focusFrame = shell->GetRealPrimaryFrameFor(focusContent);
+  }
+  gLastFocusedFrameType = (focusFrame && focusFrame->GetStyleVisibility()->IsVisible()) ? focusFrame->GetType() : 0;
+
   nsCOMPtr<nsIAccessibleDocument> docAccessible = do_QueryInterface(finalFocusAccessible);
   if (docAccessible) {
     
@@ -536,7 +544,8 @@ PRBool nsRootAccessible::FireAccessibleFocusEvent(nsIAccessible *aAccessible,
       
       
       
-      return PR_FALSE;
+      
+return PR_FALSE;
     }
   }
 
