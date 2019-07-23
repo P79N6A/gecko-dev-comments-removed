@@ -36,6 +36,8 @@
 
 
 const NS_APP_USER_PROFILE_50_DIR = "ProfD";
+const NS_APP_HISTORY_50_FILE = "UHist";
+
 const Ci = Components.interfaces;
 const Cc = Components.classes;
 const Cr = Components.results;
@@ -69,6 +71,11 @@ if (!profileDir) {
      persistent.value = true;
      if (prop == NS_APP_USER_PROFILE_50_DIR) {
        return dirSvc.get("CurProcD", Ci.nsIFile);
+     }
+     if (prop == NS_APP_HISTORY_50_FILE) {
+       var histFile = dirSvc.get("CurProcD", Ci.nsIFile);
+       histFile.append("history.dat");
+       return histFile;
      }
      throw Cr.NS_ERROR_FAILURE;
    },
@@ -163,10 +170,10 @@ function populateDB(aArray) {
       if (qdata.isVisit) {
         
         var referrer = qdata.referrer ? uri(qdata.referrer) : null;
-        var placeID = histsvc.addVisit(uri(qdata.uri), qdata.lastVisit,
+        var visitId = histsvc.addVisit(uri(qdata.uri), qdata.lastVisit,
                                        referrer, qdata.transType,
                                        qdata.isRedirect, qdata.sessionID);
-        do_check_true(placeID > 0);
+        do_check_true(visitId > 0);
       }
 
       if (qdata.isDetails) {
@@ -231,8 +238,15 @@ function populateDB(aArray) {
       }
 
       if (qdata.isBookmark) {
-        bmsvc.insertBookmark(qdata.parentFolder, uri(qdata.uri), qdata.index,
-                               qdata.title);
+        let itemId = bmsvc.insertBookmark(qdata.parentFolder, uri(qdata.uri),
+                                          qdata.index, qdata.title);
+        if (qdata.keyword)
+          bmsvc.setKeywordForBookmark(itemId, qdata.keyword);
+        if (qdata.dateAdded)
+          bmsvc.setItemDateAdded(itemId, qdata.dateAdded);
+        if (qdata.lastModified)
+          bmsvc.setItemLastModified(itemId, qdata.lastModified);
+
         LOG("added bookmark");
       }
 
@@ -390,4 +404,31 @@ function displayResultSet(aRoot) {
     LOG("Result Set URI: " + aRoot.getChild(i).uri + " Title: " +
         aRoot.getChild(i).title);
   }
+}
+
+
+
+
+function remove_all_bookmarks() {
+  
+  bmsvc.removeFolderChildren(bmsvc.bookmarksMenuFolder);
+  bmsvc.removeFolderChildren(bmsvc.toolbarFolder);
+  bmsvc.removeFolderChildren(bmsvc.unfiledBookmarksFolder);
+  
+  check_no_bookmarks()
+}
+
+
+
+
+function check_no_bookmarks() {
+  var query = histsvc.getNewQuery();
+  query.setFolders([bmsvc.toolbarFolder, bmsvc.bookmarksMenuFolder, bmsvc.unfiledBookmarksFolder], 3);
+  var options = histsvc.getNewQueryOptions();
+  options.queryType = Ci.nsINavHistoryQueryOptions.QUERY_TYPE_BOOKMARKS;
+  var result = histsvc.executeQuery(query, options);
+  var root = result.root;
+  root.containerOpen = true;
+  do_check_eq(root.childCount, 0);
+  root.containerOpen = false;
 }
