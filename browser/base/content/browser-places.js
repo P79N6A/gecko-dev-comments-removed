@@ -126,8 +126,9 @@ var StarUI = {
           
           
           if (aEvent.target.localName != "tree" &&
-              (aEvent.target.id != "editBMPanel_tagsField" ||
-               !aEvent.target.popupOpen))
+              aEvent.target.className != "expander-up" &&
+              aEvent.target.className != "expander-down" &&
+              !aEvent.target.popupOpen)
             this.panel.hidePopup();
         }
         break;
