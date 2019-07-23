@@ -1489,7 +1489,7 @@ XRE_GetBinaryPath(const char* argv0, nsILocalFile* *aResult)
 #include "nsWindowsRestart.cpp"
 #endif
 
-#if defined(XP_OS2) && (__GNUC__ == 3 && __GNUC_MINOR__ == 3) 
+#if defined(XP_OS2) && (__KLIBC__ == 0 && __KLIBC_MINOR__ >= 6) 
 
 
 
@@ -1616,7 +1616,7 @@ static nsresult LaunchChild(nsINativeAppSupport* aNative,
   if (NS_FAILED(rv))
     return rv;
 
-#if defined(XP_OS2) && (__GNUC__ == 3 && __GNUC_MINOR__ == 3)
+#if defined(XP_OS2) && (__KLIBC__ == 0 && __KLIBC_MINOR__ >= 6)
   
   if (OS2LaunchChild(exePath.get(), gRestartArgc, gRestartArgv) == -1)
     return NS_ERROR_FAILURE;
