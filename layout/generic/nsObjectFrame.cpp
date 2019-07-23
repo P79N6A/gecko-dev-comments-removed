@@ -1395,6 +1395,7 @@ nsObjectFrame::Instantiate(nsIChannel* aChannel, nsIStreamListener** aStreamList
   
   PresContext()->GetPresShell()->
     FrameNeedsReflow(this, nsIPresShell::eStyleChange, NS_FRAME_IS_DIRTY);
+
   return rv;
 }
 
@@ -1418,18 +1419,24 @@ nsObjectFrame::Instantiate(const char* aMimeType, nsIURI* aURI)
 
   
   if (NS_SUCCEEDED(rv)) {
-    nsCOMPtr<nsIPluginInstance> inst;
-    mInstanceOwner->GetInstance(*getter_AddRefs(inst));
-    if (inst) {
-      
-      
-      
-      
-      NotifyContentObjectWrapper();
-    }
+    TryNotifyContentObjectWrapper();
   }
 
   return rv;
+}
+
+void
+nsObjectFrame::TryNotifyContentObjectWrapper()
+{
+  nsCOMPtr<nsIPluginInstance> inst;
+  mInstanceOwner->GetInstance(*getter_AddRefs(inst));
+  if (inst) {
+    
+    
+    
+    
+    NotifyContentObjectWrapper();
+  }
 }
 
 void

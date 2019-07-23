@@ -504,6 +504,14 @@ nsObjectLoadingContent::OnStartRequest(nsIRequest *aRequest, nsISupports *aConte
       }
 #endif
       Fallback(PR_FALSE);
+    } else if (mType == eType_Plugin) {
+      nsIObjectFrame* frame = GetFrame(PR_FALSE);
+      if (frame) {
+        
+        
+        
+        frame->TryNotifyContentObjectWrapper();
+      }
     }
     return rv;
   }
