@@ -5066,10 +5066,10 @@ nsPluginInstanceOwner::NativeImageDraw(NPRect* invalidRect)
   if (absPosHeight == 0 || absPosWidth == 0)
     return;
 
-  if (!mSharedXImage ||
-      mPluginSize.width != absPosWidth ||
-      mPluginSize.height != absPosHeight) {
-    
+  PRBool sizeChanged = (mPluginSize.width != absPosWidth ||
+                        mPluginSize.height != absPosHeight);
+
+  if (!mSharedXImage || sizeChanged) {
     mPluginSize = nsIntSize(absPosWidth, absPosHeight);
 
     if (NS_FAILED(SetupXShm()))
@@ -5083,23 +5083,24 @@ nsPluginInstanceOwner::NativeImageDraw(NPRect* invalidRect)
   
   
   
-  
-  NPRect newClipRect;
-  newClipRect.left = 0;
-  newClipRect.top = 0;
-  newClipRect.right = window->width;
-  newClipRect.bottom = window->height;
-  
-  window->clipRect = newClipRect; 
-  window->x = 0;
-  window->y = 0;
+  if (!invalidRect && sizeChanged) {
+    NPRect newClipRect;
+    newClipRect.left = 0;
+    newClipRect.top = 0;
+    newClipRect.right = window->width;
+    newClipRect.bottom = window->height;
     
-  NPSetWindowCallbackStruct* ws_info =
-    static_cast<NPSetWindowCallbackStruct*>(window->ws_info);
-  ws_info->visual = 0;
-  ws_info->colormap = 0;
-  ws_info->depth = 16;
-  mInstance->SetWindow(window);
+    window->clipRect = newClipRect; 
+    window->x = 0;
+    window->y = 0;
+      
+    NPSetWindowCallbackStruct* ws_info =
+      static_cast<NPSetWindowCallbackStruct*>(window->ws_info);
+    ws_info->visual = 0;
+    ws_info->colormap = 0;
+    ws_info->depth = 16;
+    mInstance->SetWindow(window);
+  }
 
   NPEvent pluginEvent;
   NPImageExpose imageExpose;
@@ -5781,7 +5782,7 @@ nsPluginInstanceOwner::SetAbsoluteScreenPosition(nsIDOMElement* element,
   clip->GetWidth(&width);
   clip->GetHeight(&height);
 
-  mAbsolutePositionClip = gfxRect(left,top, width, height);
+  mAbsolutePositionClip = gfxRect(left, top, width, height);
 
   mBlitParentElement = element;
     
