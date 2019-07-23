@@ -38,6 +38,8 @@
 
 #include "nsSMILAnimationController.h"
 #include "nsSMILCompositor.h"
+#include "nsSMILCSSProperty.h"
+#include "nsCSSProps.h"
 #include "nsComponentManagerUtils.h"
 #include "nsITimer.h"
 #include "nsIContent.h"
@@ -294,6 +296,7 @@ nsSMILAnimationController::DoSample()
   DoSample(PR_TRUE); 
 }
 
+
 void
 nsSMILAnimationController::DoSample(PRBool aSkipUnchangedContainers)
 {
@@ -359,6 +362,10 @@ nsSMILAnimationController::DoSample(PRBool aSkipUnchangedContainers)
     mLastCompositorTable->EnumerateEntries(DoClearAnimationEffects, nsnull);
   }
 
+  
+  
+  
+  
   
   currentCompositorTable->EnumerateEntries(DoComposeAttribute, nsnull);
 
@@ -483,15 +490,15 @@ nsSMILAnimationController::GetCompositorKeyForAnimation(
   
   
   
-  
-  
-  
+  PRBool isCSS;
   if (attributeType == eSMILTargetAttrType_auto) {
-    attributeType = (targetElem->IsAttributeMapped(attributeName))
-                  ? eSMILTargetAttrType_CSS
-                  : eSMILTargetAttrType_XML;
+    nsAutoString attributeNameStr;
+    attributeName->ToString(attributeNameStr);
+    nsCSSProperty prop = nsCSSProps::LookupProperty(attributeNameStr);
+    isCSS = nsSMILCSSProperty::IsPropertyAnimatable(prop);
+  } else {
+    isCSS = (attributeType == eSMILTargetAttrType_CSS);
   }
-  PRBool isCSS = (attributeType == eSMILTargetAttrType_CSS);
 
   
   aResult.mElement = targetElem;

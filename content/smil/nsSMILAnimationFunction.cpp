@@ -362,8 +362,6 @@ nsSMILAnimationFunction::InterpolateResult(const nsSMILValueArray& aValues,
                                            nsSMILValue& aBaseValue)
 {
   nsresult rv = NS_OK;
-  const nsSMILValue* from = nsnull;
-  const nsSMILValue* to = nsnull;
   const nsSMILTime& dur = mSimpleDuration.GetMillis();
 
   
@@ -409,8 +407,48 @@ nsSMILAnimationFunction::InterpolateResult(const nsSMILValueArray& aValues,
 
   ScaleSimpleProgress(simpleProgress);
 
+  if (GetCalcMode() != CALC_DISCRETE) {
+    
+    const nsSMILValue* from = nsnull;
+    const nsSMILValue* to = nsnull;
+    double intervalProgress;
+    if (IsToAnimation()) {
+      
+      
+      from = &aBaseValue;
+      to = &aValues[0];
+      intervalProgress = simpleProgress;
+      ScaleIntervalProgress(intervalProgress, 0, 1);
+    } else {
+      if (GetCalcMode() == CALC_PACED) {
+        rv = ComputePacedPosition(aValues, simpleProgress,
+                                  intervalProgress, from, to);
+        
+        
+        
+        
+      } else { 
+        PRUint32 index = (PRUint32)floor(simpleProgress *
+                                         (aValues.Length() - 1));
+        from = &aValues[index];
+        to = &aValues[index + 1];
+        intervalProgress = simpleProgress * (aValues.Length() - 1) - index;
+        ScaleIntervalProgress(intervalProgress, index, aValues.Length() - 1);
+      }
+    }
+    if (NS_SUCCEEDED(rv)) {
+      NS_ABORT_IF_FALSE(from, "NULL from-value during interpolation.");
+      NS_ABORT_IF_FALSE(to, "NULL to-value during interpolation.");
+      NS_ABORT_IF_FALSE(0.0f <= intervalProgress && intervalProgress < 1.0f,
+                      "Interval progress should be in the range [0, 1)");
+      rv = from->Interpolate(*to, intervalProgress, aResult);
+    }
+  }
+
   
-  if (GetCalcMode() == CALC_DISCRETE) {
+  
+  
+  if (GetCalcMode() == CALC_DISCRETE || NS_FAILED(rv)) {
     if (IsToAnimation()) {
       
       aResult = (simpleProgress < 0.5f) ? aBaseValue : aValues[0];
@@ -418,35 +456,9 @@ nsSMILAnimationFunction::InterpolateResult(const nsSMILValueArray& aValues,
       PRUint32 index = (PRUint32) floor(simpleProgress * (aValues.Length()));
       aResult = aValues[index];
     }
-    return NS_OK;
+    rv = NS_OK;
   }
-
-  
-  double intervalProgress;
-  if (IsToAnimation()) {
-    
-    
-    from = &aBaseValue;
-    to = &aValues[0];
-    intervalProgress = simpleProgress;
-    ScaleIntervalProgress(intervalProgress, 0, 1);
-  } else {
-    if (GetCalcMode() == CALC_PACED) {
-      rv = ComputePacedPosition(aValues, simpleProgress, intervalProgress,
-                                from, to);
-      NS_ENSURE_SUCCESS(rv,rv);
-    } else { 
-      PRUint32 index = (PRUint32)floor(simpleProgress * (aValues.Length() - 1));
-      from = &aValues[index];
-      to = &aValues[index + 1];
-      intervalProgress = simpleProgress * (aValues.Length() - 1) - index;
-      ScaleIntervalProgress(intervalProgress, index, aValues.Length() - 1);
-    }
-  }
-  NS_ASSERTION(from, "NULL from-value during interpolation.");
-  NS_ASSERTION(to, "NULL to-value during interpolation.");
-
-  return from->Interpolate(*to, intervalProgress, aResult);
+  return rv;
 }
 
 nsresult
@@ -464,6 +476,7 @@ nsSMILAnimationFunction::AccumulateResult(const nsSMILValueArray& aValues,
 
   return NS_OK;
 }
+
 
 
 
@@ -508,8 +521,11 @@ nsSMILAnimationFunction::ComputePacedPosition(const nsSMILValueArray& aValues,
     NS_ASSERTION(remainingDist >= 0, "distance values must be non-negative");
 
     double curIntervalDist;
-    nsresult tmpRv = aValues[i].ComputeDistance(aValues[i+1], curIntervalDist);
-    NS_ASSERTION(NS_SUCCEEDED(tmpRv), "ComputeDistance failed...?");
+    nsresult rv = aValues[i].ComputeDistance(aValues[i+1], curIntervalDist);
+    NS_ABORT_IF_FALSE(NS_SUCCEEDED(rv),
+                      "If we got through ComputePacedTotalDistance, we should "
+                      "be able to recompute each sub-distance without errors");
+
     NS_ASSERTION(curIntervalDist >= 0, "distance values must be non-negative");
     
     curIntervalDist = PR_MAX(curIntervalDist, 0.0f);
@@ -544,6 +560,7 @@ nsSMILAnimationFunction::ComputePacedPosition(const nsSMILValueArray& aValues,
 
 
 
+
 double
 nsSMILAnimationFunction::ComputePacedTotalDistance(
     const nsSMILValueArray& aValues) const
@@ -555,13 +572,13 @@ nsSMILAnimationFunction::ComputePacedTotalDistance(
   for (PRUint32 i = 0; i < aValues.Length() - 1; i++) {
     double tmpDist;
     nsresult rv = aValues[i].ComputeDistance(aValues[i+1], tmpDist);
-    if (!NS_SUCCEEDED(rv)) {
-      NS_NOTREACHED("ComputeDistance failed...?");
+    if (NS_FAILED(rv)) {
       return COMPUTE_DISTANCE_ERROR;
     }
 
     
-    NS_ASSERTION(tmpDist >= 0, "distance values must be non-negative");
+    
+    NS_ABORT_IF_FALSE(tmpDist >= 0.0f, "distance values must be non-negative");
     tmpDist = PR_MAX(tmpDist, 0.0f);
 
     totalDistance += tmpDist;

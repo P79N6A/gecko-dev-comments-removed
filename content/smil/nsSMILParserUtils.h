@@ -106,6 +106,15 @@ public:
                                   PRUint32 aFlags = 0,
                                   PRBool* aIsMedia = nsnull);
 
+  
+
+
+
+
+
+
+  static PRInt32 CheckForNegativeNumber(const nsAString& aStr);
+
 private:
   static void   SkipWsp(nsACString::const_iterator& aIter,
                         const nsACString::const_iterator& aIterEnd);

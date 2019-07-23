@@ -53,6 +53,8 @@
 #define DOM_WINDOW_DESTROYED_TOPIC "dom-window-destroyed"
 
 class nsIPrincipal;
+class nsICSSDeclaration;
+class nsComputedDOMStyle;
 
 
 
@@ -247,6 +249,10 @@ public:
 
     return win->mIsHandlingResizeEvent;
   }
+
+  
+  virtual already_AddRefed<nsComputedDOMStyle>
+    LookupComputedStyleFor(nsIContent* aElem) = 0;
 
   
   

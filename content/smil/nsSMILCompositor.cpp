@@ -36,6 +36,8 @@
 
 
 #include "nsSMILCompositor.h"
+#include "nsSMILCSSProperty.h"
+#include "nsCSSProps.h"
 #include "nsHashKeys.h"
 
 
@@ -89,9 +91,12 @@ nsISMILAttr*
 nsSMILCompositor::CreateSMILAttr()
 {
   if (mKey.mIsCSS) {
-    
-    
-    
+    nsAutoString name;
+    mKey.mAttributeName->ToString(name);
+    nsCSSProperty propId = nsCSSProps::LookupProperty(name);
+    if (nsSMILCSSProperty::IsPropertyAnimatable(propId)) {
+      return new nsSMILCSSProperty(propId, mKey.mElement.get());
+    }
   } else {
     return mKey.mElement->GetAnimatedAttr(mKey.mAttributeName);
   }
