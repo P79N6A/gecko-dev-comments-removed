@@ -1050,37 +1050,38 @@ GetBorderRadiusTwips(const nsStyleCorners& aBorderRadius,
 }
 
 void
-nsCSSRendering::PaintBoxShadow(nsPresContext* aPresContext,
-                               nsIRenderingContext& aRenderingContext,
-                               nsIFrame* aForFrame,
-                               const nsPoint& aForFramePt,
-                               const nsRect& aDirtyRect)
+nsCSSRendering::PaintBoxShadowOuter(nsPresContext* aPresContext,
+                                    nsIRenderingContext& aRenderingContext,
+                                    nsIFrame* aForFrame,
+                                    const nsRect& aFrameArea,
+                                    const nsRect& aDirtyRect)
 {
   const nsStyleBorder* styleBorder = aForFrame->GetStyleBorder();
   if (!styleBorder->mBoxShadow)
     return;
 
-  nsMargin borderValues = styleBorder->GetActualBorder();
   PRIntn sidesToSkip = aForFrame->GetSkipSides();
-  nsRect frameRect = nsRect(aForFramePt, aForFrame->GetSize());
 
   
   nscoord twipsRadii[8];
   PRBool hasBorderRadius = GetBorderRadiusTwips(styleBorder->mBorderRadius,
-                                                frameRect.width, twipsRadii);
+                                                aFrameArea.width, twipsRadii);
   nscoord twipsPerPixel = aPresContext->DevPixelsToAppUnits(1);
 
   gfxCornerSizes borderRadii;
-  ComputePixelRadii(twipsRadii, frameRect, sidesToSkip,
+  ComputePixelRadii(twipsRadii, aFrameArea, sidesToSkip,
                     twipsPerPixel, &borderRadii);
 
-  gfxRect frameGfxRect = RectToGfxRect(frameRect, twipsPerPixel);
+  gfxRect frameGfxRect = RectToGfxRect(aFrameArea, twipsPerPixel);
   frameGfxRect.Round();
   gfxRect dirtyGfxRect = RectToGfxRect(aDirtyRect, twipsPerPixel);
 
   for (PRUint32 i = styleBorder->mBoxShadow->Length(); i > 0; --i) {
     nsCSSShadowItem* shadowItem = styleBorder->mBoxShadow->ShadowAt(i - 1);
-    gfxRect shadowRect(frameRect.x, frameRect.y, frameRect.width, frameRect.height);
+    if (shadowItem->mInset)
+      continue;
+
+    gfxRect shadowRect(aFrameArea.x, aFrameArea.y, aFrameArea.width, aFrameArea.height);
     shadowRect.MoveBy(gfxPoint(shadowItem->mXOffset, shadowItem->mYOffset));
     shadowRect.Outset(shadowItem->mSpread);
 
@@ -1136,6 +1137,120 @@ nsCSSRendering::PaintBoxShadow(nsPresContext* aPresContext,
       shadowContext->RoundedRectangle(shadowRect, borderRadii);
     else
       shadowContext->Rectangle(shadowRect);
+    shadowContext->Fill();
+
+    blurringArea.DoPaint();
+    renderContext->Restore();
+  }
+}
+
+void
+nsCSSRendering::PaintBoxShadowInner(nsPresContext* aPresContext,
+                                    nsIRenderingContext& aRenderingContext,
+                                    nsIFrame* aForFrame,
+                                    const nsRect& aFrameArea,
+                                    const nsRect& aDirtyRect)
+{
+  const nsStyleBorder* styleBorder = aForFrame->GetStyleBorder();
+  if (!styleBorder->mBoxShadow)
+    return;
+
+  
+  nscoord twipsRadii[8];
+  PRBool hasBorderRadius = GetBorderRadiusTwips(styleBorder->mBorderRadius,
+                                                aFrameArea.width, twipsRadii);
+  nscoord twipsPerPixel = aPresContext->DevPixelsToAppUnits(1);
+
+  nsRect paddingRect = aFrameArea;
+  nsMargin border = aForFrame->GetUsedBorder();
+  aForFrame->ApplySkipSides(border);
+  paddingRect.Deflate(border);
+
+  gfxCornerSizes innerRadii;
+  if (hasBorderRadius) {
+    gfxCornerSizes borderRadii;
+    PRIntn sidesToSkip = aForFrame->GetSkipSides();
+
+    ComputePixelRadii(twipsRadii, aFrameArea, sidesToSkip,
+                      twipsPerPixel, &borderRadii);
+    gfxFloat borderSizes[4] = {
+      border.top / twipsPerPixel, border.right / twipsPerPixel,
+      border.bottom / twipsPerPixel, border.left / twipsPerPixel
+    };
+    nsCSSBorderRenderer::ComputeInnerRadii(borderRadii, borderSizes,
+                                           &innerRadii);
+  }
+
+  gfxRect frameGfxRect = RectToGfxRect(paddingRect, twipsPerPixel);
+  frameGfxRect.Round();
+  gfxRect dirtyGfxRect = RectToGfxRect(aDirtyRect, twipsPerPixel);
+
+  for (PRUint32 i = styleBorder->mBoxShadow->Length(); i > 0; --i) {
+    nsCSSShadowItem* shadowItem = styleBorder->mBoxShadow->ShadowAt(i - 1);
+    if (!shadowItem->mInset)
+      continue;
+
+    
+
+
+
+
+
+
+    nscoord blurRadius = shadowItem->mRadius;
+    gfxRect shadowRect(paddingRect.x, paddingRect.y, paddingRect.width, paddingRect.height);
+    gfxRect shadowPaintRect = shadowRect;
+    shadowPaintRect.Outset(blurRadius);
+
+    gfxRect shadowClipRect = shadowRect;
+    shadowClipRect.MoveBy(gfxPoint(shadowItem->mXOffset, shadowItem->mYOffset));
+    shadowClipRect.Inset(shadowItem->mSpread);
+
+    shadowRect.ScaleInverse(twipsPerPixel);
+    shadowRect.Round();
+    shadowPaintRect.ScaleInverse(twipsPerPixel);
+    shadowPaintRect.RoundOut();
+    shadowClipRect.ScaleInverse(twipsPerPixel);
+    shadowClipRect.Round();
+
+    gfxContext* renderContext = aRenderingContext.ThebesContext();
+    nsRefPtr<gfxContext> shadowContext;
+    nsContextBoxBlur blurringArea;
+
+    
+    blurRadius /= twipsPerPixel;
+    shadowContext = blurringArea.Init(shadowPaintRect, blurRadius, 1, renderContext, dirtyGfxRect);
+    if (!shadowContext)
+      continue;
+
+    
+    nscolor shadowColor;
+    if (shadowItem->mHasColor)
+      shadowColor = shadowItem->mColor;
+    else
+      shadowColor = aForFrame->GetStyleColor()->mColor;
+
+    renderContext->Save();
+    renderContext->SetColor(gfxRGBA(shadowColor));
+
+    
+    
+    renderContext->NewPath();
+    if (hasBorderRadius)
+      renderContext->RoundedRectangle(shadowRect, innerRadii, PR_FALSE);
+    else
+      renderContext->Rectangle(shadowRect);
+    renderContext->Clip();
+
+    
+    
+    shadowContext->NewPath();
+    shadowContext->Rectangle(shadowPaintRect);
+    if (hasBorderRadius)
+      shadowContext->RoundedRectangle(shadowClipRect, innerRadii, PR_FALSE);
+    else
+      shadowContext->Rectangle(shadowClipRect);
+    shadowContext->SetFillRule(gfxContext::FILL_RULE_EVEN_ODD);
     shadowContext->Fill();
 
     blurringArea.DoPaint();

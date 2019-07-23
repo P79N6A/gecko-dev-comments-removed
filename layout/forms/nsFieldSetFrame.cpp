@@ -215,13 +215,15 @@ nsFieldSetFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
   
   
   if (IsVisibleForPainting(aBuilder)) {
-    nsresult rv = aLists.BorderBackground()->AppendNewToTop(new (aBuilder)
-        nsDisplayBoxShadow(this));
-    NS_ENSURE_SUCCESS(rv, rv);
+    if (GetStyleBorder()->mBoxShadow) {
+      nsresult rv = aLists.BorderBackground()->AppendNewToTop(new (aBuilder)
+          nsDisplayBoxShadowOuter(this));
+      NS_ENSURE_SUCCESS(rv, rv);
+    }
 
     
     
-    rv = aLists.BorderBackground()->AppendNewToTop(new (aBuilder)
+    nsresult rv = aLists.BorderBackground()->AppendNewToTop(new (aBuilder)
         nsDisplayFieldSetBorderBackground(this));
     NS_ENSURE_SUCCESS(rv, rv);
   
@@ -278,6 +280,9 @@ nsFieldSetFrame::PaintBorderBackground(nsIRenderingContext& aRenderingContext,
 
   nsCSSRendering::PaintBackground(presContext, aRenderingContext, this,
                                   aDirtyRect, rect, PR_TRUE);
+
+  nsCSSRendering::PaintBoxShadowInner(presContext, aRenderingContext,
+                                      this, rect, aDirtyRect);
 
    if (mLegendFrame) {
 

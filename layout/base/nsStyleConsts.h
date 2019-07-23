@@ -101,6 +101,9 @@
 #define NS_STYLE_BOX_SIZING_BORDER        2
 
 
+#define NS_STYLE_BOX_SHADOW_INSET         0
+
+
 #define NS_STYLE_FLOAT_EDGE_CONTENT       0
 #define NS_STYLE_FLOAT_EDGE_MARGIN        1
 

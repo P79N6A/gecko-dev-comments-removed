@@ -1039,14 +1039,14 @@ private:
 
 
 
-class nsDisplayBoxShadow : public nsDisplayItem {
+class nsDisplayBoxShadowOuter : public nsDisplayItem {
 public:
-  nsDisplayBoxShadow(nsIFrame* aFrame) : nsDisplayItem(aFrame) {
-    MOZ_COUNT_CTOR(nsDisplayBoxShadow);
+  nsDisplayBoxShadowOuter(nsIFrame* aFrame) : nsDisplayItem(aFrame) {
+    MOZ_COUNT_CTOR(nsDisplayBoxShadowOuter);
   }
 #ifdef NS_BUILD_REFCNT_LOGGING
-  virtual ~nsDisplayBoxShadow() {
-    MOZ_COUNT_DTOR(nsDisplayBoxShadow);
+  virtual ~nsDisplayBoxShadowOuter() {
+    MOZ_COUNT_DTOR(nsDisplayBoxShadowOuter);
   }
 #endif
 
@@ -1054,7 +1054,26 @@ public:
      const nsRect& aDirtyRect);
   virtual nsRect GetBounds(nsDisplayListBuilder* aBuilder);
   virtual PRBool OptimizeVisibility(nsDisplayListBuilder* aBuilder, nsRegion* aVisibleRegion);
-  NS_DISPLAY_DECL_NAME("BoxShadow")
+  NS_DISPLAY_DECL_NAME("BoxShadowOuter")
+};
+
+
+
+
+class nsDisplayBoxShadowInner : public nsDisplayItem {
+public:
+  nsDisplayBoxShadowInner(nsIFrame* aFrame) : nsDisplayItem(aFrame) {
+    MOZ_COUNT_CTOR(nsDisplayBoxShadowInner);
+  }
+#ifdef NS_BUILD_REFCNT_LOGGING
+  virtual ~nsDisplayBoxShadowInner() {
+    MOZ_COUNT_DTOR(nsDisplayBoxShadowInner);
+  }
+#endif
+
+  virtual void Paint(nsDisplayListBuilder* aBuilder, nsIRenderingContext* aCtx,
+     const nsRect& aDirtyRect);
+  NS_DISPLAY_DECL_NAME("BoxShadowInner")
 };
 
 
