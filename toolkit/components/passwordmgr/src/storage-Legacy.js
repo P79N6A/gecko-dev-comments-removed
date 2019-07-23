@@ -52,23 +52,22 @@ LoginManagerStorage_legacy.prototype = {
     __logService : null, 
     get _logService() {
         if (!this.__logService)
-            this.__logService = Cc["@mozilla.org/consoleservice;1"]
-                                    .getService(Ci.nsIConsoleService);
+            this.__logService = Cc["@mozilla.org/consoleservice;1"].
+                                getService(Ci.nsIConsoleService);
         return this.__logService;
     },
 
     __decoderRing : null,  
     get _decoderRing() {
         if (!this.__decoderRing)
-            this.__decoderRing = Cc["@mozilla.org/security/sdr;1"]
-                                .getService(Ci.nsISecretDecoderRing);
+            this.__decoderRing = Cc["@mozilla.org/security/sdr;1"].
+                                 getService(Ci.nsISecretDecoderRing);
         return this.__decoderRing;
     },
 
     _prefBranch : null,  
 
-    _datafile    : null,  
-    _datapath    : null,  
+    _signonsFile : null,  
     _debug       : false, 
 
 
@@ -103,15 +102,13 @@ LoginManagerStorage_legacy.prototype = {
 
 
     initWithFile : function(aInputFile, aOutputFile) {
-        this._datapath = aInputFile.parent.path;
-        this._datafile = aInputFile.leafName;
+        this._signonsFile = aInputFile;
 
         this.init();
 
         if (aOutputFile) {
-            this._datapath = aOutputFile.parent.path;
-            this._datafile = aOutputFile.leafName;
-            this._writeFile(this._datapath, this._datafile);
+            this._signonsFile = aOutputFile;
+            this._writeFile();
         }
     },
 
@@ -130,8 +127,7 @@ LoginManagerStorage_legacy.prototype = {
         this._prefBranch = this._prefBranch.getBranch("signon.");
         this._prefBranch.QueryInterface(Ci.nsIPrefBranch2);
 
-        if (this._prefBranch.prefHasUserValue("debug"))
-            this._debug = this._prefBranch.getBoolPref("debug");
+        this._debug = this._prefBranch.getBoolPref("debug");
 
         
         
@@ -144,40 +140,26 @@ LoginManagerStorage_legacy.prototype = {
             token.initPassword("");
         }
 
-        
-        if (!this._datapath) {
-            var DIR_SERVICE = new Components.Constructor(
-                    "@mozilla.org/file/directory_service;1", "nsIProperties");
-            this._datapath = (new DIR_SERVICE()).get("ProfD", Ci.nsIFile).path;
-        }
-
-        if (!this._datafile)
-            this._datafile = this._prefBranch.getCharPref("SignonFileName2");
-
         var importFile = null;
-        if (!this._doesFileExist(this._datapath, this._datafile)) {
-            this.log("SignonFilename2 file does not exist. (file=" +
-                        this._datafile + ") path=(" + this._datapath + ")");
-
-            
-            importFile = this._prefBranch.getCharPref("SignonFileName");
-            if (!this._doesFileExist(this._datapath, importFile)) {
-                this.log("SignonFilename1 file does not exist. (file=" +
-                            importFile + ") path=(" + this._datapath + ")");
-                this.log("Creating new signons file...");
-                importFile = null;
-                this._writeFile(this._datapath, this._datafile);
-            }
-        }
+        
+        if (!this._signonsFile)
+            [this._signonsFile, importFile] = this._getSignonsFile();
 
         
         if (importFile) {
-            this.log("Importing " + importFile);
-            this._readFile(this._datapath, importFile);
+            this.log("Importing " + importFile.path);
 
-            this._writeFile(this._datapath, this._datafile);
-        } else {
-            this._readFile(this._datapath, this._datafile);
+            var tmp = this._signonsFile;
+            this._signonsFile = importFile;
+        }
+
+        
+        this._readFile()
+
+        
+        if (importFile) {
+            this._signonsFile = tmp;
+            this._writeFile();
         }
     },
 
@@ -195,7 +177,7 @@ LoginManagerStorage_legacy.prototype = {
 
         this._logins[key].push(login);
 
-        this._writeFile(this._datapath, this._datafile);
+        this._writeFile();
     },
 
 
@@ -223,7 +205,7 @@ LoginManagerStorage_legacy.prototype = {
         if (logins.length == 0)
             delete this._logins[key];
 
-        this._writeFile(this._datapath, this._datafile);
+        this._writeFile();
     },
 
 
@@ -264,7 +246,7 @@ LoginManagerStorage_legacy.prototype = {
         this._logins = {};
         
 
-        this._writeFile(this._datapath, this._datafile);
+        this._writeFile();
     },
 
 
@@ -303,7 +285,7 @@ LoginManagerStorage_legacy.prototype = {
         else
             this._disabledHosts[hostname] = true;
 
-        this._writeFile(this._datapath, this._datafile);
+        this._writeFile();
     },
 
 
@@ -352,20 +334,70 @@ LoginManagerStorage_legacy.prototype = {
 
 
 
-    _readFile : function (pathname, filename) {
-        var oldFormat = false;
-        var writeOnFinish = false;
 
-        this.log("Reading passwords from " + pathname + "/" + filename);
 
-        var file = Cc["@mozilla.org/file/local;1"]
-                        .createInstance(Ci.nsILocalFile);
+
+    _getSignonsFile : function() {
+        var importFile = null;
+
+        
+        var DIR_SERVICE = new Components.Constructor(
+                "@mozilla.org/file/directory_service;1", "nsIProperties");
+        var pathname = (new DIR_SERVICE()).get("ProfD", Ci.nsIFile).path;
+
+
+        
+        var filename = this._prefBranch.getCharPref("SignonFileName2");
+
+        var file = Cc["@mozilla.org/file/local;1"].
+                   createInstance(Ci.nsILocalFile);
         file.initWithPath(pathname);
         file.append(filename);
 
+        if (!file.exists()) {
+            this.log("SignonFilename2 file does not exist. file=" +
+                     filename + ", path=" + pathname);
+
+            
+            var oldname = this._prefBranch.getCharPref("SignonFileName");
+
+            importFile = Cc["@mozilla.org/file/local;1"].
+                         createInstance(Ci.nsILocalFile);
+            importFile.initWithPath(pathname);
+            importFile.append(oldname);
+
+            if (!importFile.exists()) {
+                this.log("SignonFilename1 file does not exist. file=" +
+                        oldname + ", path=" + pathname);
+                importFile = null;
+            }
+        }
+
+        return [file, importFile];
+    },
+
+
+    
+
+
+
+    _readFile : function () {
+        var oldFormat = false;
+        var writeOnFinish = false;
+
+        this.log("Reading passwords from " + this._signonsFile.path);
+
+        
+        if (!this._signonsFile.exists()) {
+            this.log("Creating new signons file...");
+            this._writeFile();
+            return;
+        }
+
         var inputStream = Cc["@mozilla.org/network/file-input-stream;1"]
                                 .createInstance(Ci.nsIFileInputStream);
-        inputStream.init(file, 0x01, -1, null); 
+        
+        inputStream.init(this._signonsFile, 0x01, -1, null);
         var lineStream = inputStream.QueryInterface(Ci.nsILineInputStream);
         var line = { value: "" };
 
@@ -388,7 +420,7 @@ LoginManagerStorage_legacy.prototype = {
                         oldFormat = true;
                     } else if (line.value != "#2d") {
                         this.log("invalid file header (" + line.value + ")");
-                        throw "invalid file header in " + filename;
+                        throw "invalid file header in signons file";
                         
                         
                         
@@ -501,7 +533,7 @@ LoginManagerStorage_legacy.prototype = {
         lineStream.close();
 
         if (writeOnFinish)
-            this._writeFile(pathname, filename);
+            this._writeFile();
 
         return;
     },
@@ -511,25 +543,20 @@ LoginManagerStorage_legacy.prototype = {
 
 
 
-    _writeFile : function (pathname, filename) {
+    _writeFile : function () {
         function writeLine(data) {
             data += "\r\n";
             outputStream.write(data, data.length);
         }
 
-        this.log("Writing passwords to " + pathname + "/" + filename);
-
-        var file = Cc["@mozilla.org/file/local;1"]
-                        .createInstance(Ci.nsILocalFile);
-        file.initWithPath(pathname);
-        file.append(filename);
+        this.log("Writing passwords to " + this._signonsFile.path);
 
         var outputStream = Cc["@mozilla.org/network/safe-file-output-stream;1"]
                                 .createInstance(Ci.nsIFileOutputStream);
         outputStream.QueryInterface(Ci.nsISafeOutputStream);
 
         
-        outputStream.init(file, 0x02 | 0x08 | 0x20, 0600, null);
+        outputStream.init(this._signonsFile, 0x02 | 0x08 | 0x20, 0600, null);
 
         
         writeLine("#2d");
@@ -649,19 +676,6 @@ LoginManagerStorage_legacy.prototype = {
         return plainText;
     },
 
-
-    
-
-
-
-    _doesFileExist : function (filepath, filename) {
-        var file = Cc["@mozilla.org/file/local;1"]
-                        .createInstance(Ci.nsILocalFile);
-        file.initWithPath(filepath);
-        file.append(filename);
-
-        return file.exists();
-    }
 }; 
 
 
