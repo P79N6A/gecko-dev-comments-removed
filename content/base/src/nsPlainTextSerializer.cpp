@@ -149,7 +149,8 @@ NS_IMPL_ISUPPORTS4(nsPlainTextSerializer,
 
 NS_IMETHODIMP 
 nsPlainTextSerializer::Init(PRUint32 aFlags, PRUint32 aWrapColumn,
-                            const char* aCharSet, PRBool aIsCopying)
+                            const char* aCharSet, PRBool aIsCopying,
+                            PRBool aIsWholeDocument)
 {
 #ifdef DEBUG
   
@@ -274,7 +275,7 @@ NS_IMETHODIMP
 nsPlainTextSerializer::Initialize(nsAString* aOutString,
                                   PRUint32 aFlags, PRUint32 aWrapCol)
 {
-  nsresult rv = Init(aFlags, aWrapCol, nsnull, PR_FALSE);
+  nsresult rv = Init(aFlags, aWrapCol, nsnull, PR_FALSE, PR_FALSE);
   NS_ENSURE_SUCCESS(rv, rv);
 
   
