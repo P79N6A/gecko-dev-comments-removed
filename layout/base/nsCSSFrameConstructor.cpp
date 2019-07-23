@@ -1798,7 +1798,7 @@ nsCSSFrameConstructor::nsCSSFrameConstructor(nsIDocument *aDocument,
                                              nsIPresShell *aPresShell)
   : mDocument(aDocument)
   , mPresShell(aPresShell)
-  , mInitialContainingBlock(nsnull)
+  , mRootElementFrame(nsnull)
   , mRootElementStyleFrame(nsnull)
   , mFixedContainingBlock(nsnull)
   , mDocElementContainingBlock(nsnull)
@@ -3253,10 +3253,10 @@ nsCSSFrameConstructor::ConstructTableFrame(nsFrameConstructorState& aState,
       return rv;
     }
 
-    if (!mInitialContainingBlock) {
+    if (!mRootElementFrame) {
       
       
-      mInitialContainingBlock = aNewOuterFrame;
+      mRootElementFrame = aNewOuterFrame;
     }
 
     nsFrameItems childItems;
@@ -3864,7 +3864,7 @@ nsCSSFrameConstructor::ConstructDocElementFrame(nsFrameConstructorState& aState,
 
   if (NS_UNLIKELY(display->mDisplay == NS_STYLE_DISPLAY_NONE)) {
     aState.mFrameManager->SetUndisplayedContent(aDocElement, styleContext);
-    mInitialContainingBlock = nsnull;
+    mRootElementFrame = nsnull;
     mRootElementStyleFrame = nsnull;
     return NS_OK;
   }
@@ -3972,10 +3972,10 @@ nsCSSFrameConstructor::ConstructDocElementFrame(nsFrameConstructorState& aState,
   
   aState.mFrameManager->SetPrimaryFrameFor(aDocElement, contentFrame);
 
-  NS_ASSERTION(processChildren ? !mInitialContainingBlock :
-                 mInitialContainingBlock == contentFrame,
-               "unexpected mInitialContainingBlock");
-  mInitialContainingBlock = contentFrame;
+  NS_ASSERTION(processChildren ? !mRootElementFrame :
+                 mRootElementFrame == contentFrame,
+               "unexpected mRootElementFrame");
+  mRootElementFrame = contentFrame;
 
   
   
@@ -3984,7 +3984,7 @@ nsCSSFrameConstructor::ConstructDocElementFrame(nsFrameConstructorState& aState,
   contentFrame->GetParentStyleContextFrame(aState.mPresContext,
           &mRootElementStyleFrame, &isChild);
   if (!isChild) {
-    mRootElementStyleFrame = mInitialContainingBlock;
+    mRootElementStyleFrame = mRootElementFrame;
   }
 
   if (processChildren) {
@@ -6935,7 +6935,7 @@ nsCSSFrameConstructor::ReconstructDocElementHierarchyInternal()
     }
     
     if (rootContent && NS_SUCCEEDED(rv)) {
-      mInitialContainingBlock = nsnull;
+      mRootElementFrame = nsnull;
       mRootElementStyleFrame = nsnull;
 
       
@@ -6980,7 +6980,7 @@ nsCSSFrameConstructor::GetFrameFor(nsIContent* aContent)
 nsIFrame*
 nsCSSFrameConstructor::GetAbsoluteContainingBlock(nsIFrame* aFrame)
 {
-  NS_PRECONDITION(nsnull != mInitialContainingBlock, "no initial containing block");
+  NS_PRECONDITION(nsnull != mRootElementFrame, "no root element frame");
   
   
   
@@ -7037,7 +7037,7 @@ nsCSSFrameConstructor::GetAbsoluteContainingBlock(nsIFrame* aFrame)
 nsIFrame*
 nsCSSFrameConstructor::GetFloatContainingBlock(nsIFrame* aFrame)
 {
-  NS_PRECONDITION(mInitialContainingBlock, "no initial containing block");
+  NS_PRECONDITION(mRootElementFrame, "no root element frame");
   
   
   
@@ -7831,7 +7831,7 @@ nsCSSFrameConstructor::ContentInserted(nsIContent*            aContainer,
     nsIContent *docElement = mDocument->GetRootContent();
 
     if (aChild == docElement) {
-      NS_PRECONDITION(nsnull == mInitialContainingBlock, "initial containing block already created");
+      NS_PRECONDITION(nsnull == mRootElementFrame, "root element frame already created");
       
       if (!mDocElementContainingBlock)
         return NS_OK; 
@@ -8616,12 +8616,12 @@ nsCSSFrameConstructor::ContentRemoved(nsIContent* aContainer,
       }
     }
 
-    if (mInitialContainingBlock == childFrame) {
-      mInitialContainingBlock = nsnull;
+    if (mRootElementFrame == childFrame) {
+      mRootElementFrame = nsnull;
       mRootElementStyleFrame = nsnull;
     }
 
-    if (haveFLS && mInitialContainingBlock) {
+    if (haveFLS && mRootElementFrame) {
       NS_ASSERTION(containingBlock == GetFloatContainingBlock(parentFrame),
                    "What happened here?");
       nsFrameConstructorState state(mPresShell, mFixedContainingBlock,
@@ -9760,10 +9760,9 @@ nsCSSFrameConstructor::ReplicateFixedFrames(nsPageContentFrame* aParentFrame)
   
   
   
-  
   nsFrameConstructorState state(mPresShell, aParentFrame,
                                 nsnull,
-                                mInitialContainingBlock);
+                                mRootElementFrame);
 
   
   
@@ -10460,7 +10459,7 @@ nsCSSFrameConstructor::ProcessChildren(nsFrameConstructorState& aState,
   nsPseudoFrames priorPseudoFrames;
   aState.mPseudoFrames.Reset(&priorPseudoFrames);
 
-  if (aFrame == mInitialContainingBlock) {
+  if (aFrame == mRootElementFrame) {
     
     
     
@@ -10503,7 +10502,7 @@ nsCSSFrameConstructor::ProcessChildren(nsFrameConstructorState& aState,
     }
   }
 
-  if (aFrame != mInitialContainingBlock) {
+  if (aFrame != mRootElementFrame) {
     CreateAnonymousFrames(aContent->Tag(), aState, aContent, aFrame,
                           aFrameItems);
   }
@@ -11607,10 +11606,10 @@ nsCSSFrameConstructor::ConstructBlock(nsFrameConstructorState& aState,
   
   nsHTMLContainerFrame::CreateViewForFrame(blockFrame, PR_FALSE);
 
-  if (!mInitialContainingBlock) {
+  if (!mRootElementFrame) {
     
     
-    mInitialContainingBlock = *aNewFrame;
+    mRootElementFrame = *aNewFrame;
   }
 
   

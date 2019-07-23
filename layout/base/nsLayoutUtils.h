@@ -332,7 +332,7 @@ public:
 
 
 
-  static PRBool IsInitialContainingBlock(nsIFrame* aFrame);
+  static PRBool IsRootElementFrame(nsIFrame* aFrame);
 
   
 

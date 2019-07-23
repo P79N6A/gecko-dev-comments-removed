@@ -263,9 +263,9 @@ public:
   nsresult RemoveMappingsForFrameSubtree(nsIFrame* aRemovedFrame);
 
   
-  nsIFrame* GetInitialContainingBlock() { return mInitialContainingBlock; }
   
-  nsIFrame* GetRootElementFrame() { return mInitialContainingBlock; }
+  
+  nsIFrame* GetRootElementFrame() { return mRootElementFrame; }
   
   
   nsIFrame* GetRootElementStyleFrame() { return mRootElementStyleFrame; }
@@ -1372,8 +1372,7 @@ private:
   
   
   
-  
-  nsIFrame*           mInitialContainingBlock;
+  nsIFrame*           mRootElementFrame;
   
   nsIFrame*           mRootElementStyleFrame;
   
