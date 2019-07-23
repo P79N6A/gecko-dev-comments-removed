@@ -38,6 +38,7 @@
 
 
 
+
 #include "nsCookiePermission.h"
 #include "nsICookie2.h"
 #include "nsIServiceManager.h"
@@ -49,15 +50,15 @@
 #include "nsIPrefBranch.h"
 #include "nsIPrefBranch2.h"
 #include "nsIDocShell.h"
-#include "nsIDocShellTreeItem.h"
 #include "nsIWebNavigation.h"
-#include "nsINode.h"
 #include "nsIChannel.h"
 #include "nsIDOMWindow.h"
 #include "nsIDOMDocument.h"
 #include "nsIPrincipal.h"
 #include "nsString.h"
 #include "nsCRT.h"
+#include "nsILoadContext.h"
+#include "nsIScriptObjectPrincipal.h"
 
 
 
@@ -90,6 +91,7 @@ static const char kCookiesAskPermission[] = "network.cookie.warnAboutCookies";
 static const char kPermissionType[] = "cookie";
 
 #ifdef MOZ_MAIL_NEWS
+
 
 static PRBool
 IsFromMailNews(nsIURI *aURI)
@@ -211,32 +213,18 @@ nsCookiePermission::CanAccess(nsIURI         *aURI,
     
     
     
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    PRUint32 appType = nsIDocShell::APP_TYPE_UNKNOWN;
+    PRBool isMail = PR_FALSE;
     if (aChannel) {
-      nsCOMPtr<nsIDocShellTreeItem> item, parent;
-      NS_QueryNotificationCallbacks(aChannel, parent);
-      if (parent) {
-        do {
-            item = parent;
-            nsCOMPtr<nsIDocShell> docshell = do_QueryInterface(item);
-            if (docshell)
-              docshell->GetAppType(&appType);
-        } while (appType != nsIDocShell::APP_TYPE_MAIL &&
-                 NS_SUCCEEDED(item->GetParent(getter_AddRefs(parent))) &&
-                 parent);
+      nsCOMPtr<nsILoadContext> ctx;
+      NS_QueryNotificationCallbacks(aChannel, ctx);
+      if (ctx) {
+        PRBool temp;
+        isMail =
+          NS_FAILED(ctx->IsAppOfType(nsIDocShell::APP_TYPE_MAIL, &temp)) ||
+          temp;
       }
     }
-    if ((appType == nsIDocShell::APP_TYPE_MAIL) ||
-        IsFromMailNews(aURI)) {
+    if (isMail || IsFromMailNews(aURI)) {
       *aResult = ACCESS_DENY;
       return NS_OK;
     }
@@ -350,8 +338,13 @@ nsCookiePermission::CanSetCookie(nsIURI     *aURI,
 
       
       nsCOMPtr<nsIDOMWindow> parent;
-      if (aChannel)
-        NS_QueryNotificationCallbacks(aChannel, parent);
+      if (aChannel) {
+        nsCOMPtr<nsILoadContext> ctx;
+        NS_QueryNotificationCallbacks(aChannel, ctx);
+        if (ctx) {
+          ctx->GetAssociatedWindow(getter_AddRefs(parent));
+        }
+      }
 
       
       
@@ -449,14 +442,6 @@ nsCookiePermission::GetOriginatingURI(nsIChannel  *aChannel,
 
 
 
-
-
-
-
-
-
-
-
   *aURI = nsnull;
 
   
@@ -464,21 +449,23 @@ nsCookiePermission::GetOriginatingURI(nsIChannel  *aChannel,
     return NS_ERROR_NULL_POINTER;
 
   
-  nsCOMPtr<nsIDocShellTreeItem> docshell, root;
-  NS_QueryNotificationCallbacks(aChannel, docshell);
-  if (docshell)
-    docshell->GetSameTypeRootTreeItem(getter_AddRefs(root));
-
-  PRInt32 type;
-  if (root)
-    root->GetItemType(&type);
+  nsCOMPtr<nsILoadContext> ctx;
+  NS_QueryNotificationCallbacks(aChannel, ctx);
+  nsCOMPtr<nsIDOMWindow> topWin, ourWin;
+  if (ctx) {
+    ctx->GetTopWindow(getter_AddRefs(topWin));
+    ctx->GetAssociatedWindow(getter_AddRefs(ourWin));
+  }
 
   
-  if (!root || type != nsIDocShellTreeItem::typeContent)
+  if (!topWin)
     return NS_ERROR_INVALID_ARG;
 
   
-  if (docshell == root) {
+  if (ourWin == topWin) {
+    
+    
+    
     nsLoadFlags flags;
     aChannel->GetLoadFlags(&flags);
 
@@ -493,14 +480,13 @@ nsCookiePermission::GetOriginatingURI(nsIChannel  *aChannel,
   }
 
   
-  nsCOMPtr<nsIWebNavigation> webnav = do_QueryInterface(root);
-  if (webnav) {
-    nsCOMPtr<nsIDOMDocument> doc;
-    webnav->GetDocument(getter_AddRefs(doc));
-    nsCOMPtr<nsINode> node = do_QueryInterface(doc);
-    if (node)
-      node->NodePrincipal()->GetURI(aURI);
-  }
+  nsCOMPtr<nsIScriptObjectPrincipal> scriptObjPrin = do_QueryInterface(topWin);
+  NS_ENSURE_TRUE(scriptObjPrin, NS_ERROR_UNEXPECTED);
+
+  nsIPrincipal* prin = scriptObjPrin->GetPrincipal();
+  NS_ENSURE_TRUE(prin, NS_ERROR_UNEXPECTED);
+  
+  prin->GetURI(aURI);
 
   if (!*aURI)
     return NS_ERROR_NULL_POINTER;

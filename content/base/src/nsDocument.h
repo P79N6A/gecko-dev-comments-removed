@@ -110,6 +110,10 @@
 #include "nsThreadUtils.h"
 #include "nsIDocumentViewer.h"
 #include "nsIInterfaceRequestor.h"
+#include "nsILoadContext.h"
+#include "nsIProgressEventSink.h"
+#include "nsISecurityEventSink.h"
+#include "nsIChannelEventSink.h"
 
 #define XML_DECLARATION_BITS_DECLARATION_EXISTS   (1 << 0)
 #define XML_DECLARATION_BITS_ENCODING_EXISTS      (1 << 1)
@@ -496,7 +500,42 @@ protected:
     NS_DECL_ISUPPORTS
     NS_DECL_NSIINTERFACEREQUESTOR
   private:
+    
+    
+    
     nsCOMPtr<nsIInterfaceRequestor> mCallbacks;
+
+    
+    
+    
+    
+    
+    
+#define DECL_SHIM(_i, _allcaps)                                              \
+    class _i##Shim : public nsIInterfaceRequestor,                           \
+                     public _i                                               \
+    {                                                                        \
+    public:                                                                  \
+      _i##Shim(nsIInterfaceRequestor* aIfreq, _i* aRealPtr)                  \
+        : mIfReq(aIfreq), mRealPtr(aRealPtr)                                 \
+      {                                                                      \
+        NS_ASSERTION(mIfReq, "Expected non-null here");                      \
+        NS_ASSERTION(mRealPtr, "Expected non-null here");                    \
+      }                                                                      \
+      NS_DECL_ISUPPORTS                                                      \
+      NS_FORWARD_NSIINTERFACEREQUESTOR(mIfReq->);                            \
+      NS_FORWARD_##_allcaps(mRealPtr->);                                     \
+    private:                                                                 \
+      nsCOMPtr<nsIInterfaceRequestor> mIfReq;                                \
+      nsCOMPtr<_i> mRealPtr;                                                 \
+    };
+
+    DECL_SHIM(nsILoadContext, NSILOADCONTEXT)
+    DECL_SHIM(nsIProgressEventSink, NSIPROGRESSEVENTSINK)
+    DECL_SHIM(nsIChannelEventSink, NSICHANNELEVENTSINK)
+    DECL_SHIM(nsISecurityEventSink, NSISECURITYEVENTSINK)
+    DECL_SHIM(nsIApplicationCacheContainer, NSIAPPLICATIONCACHECONTAINER)
+#undef DECL_SHIM
   };
   
   
