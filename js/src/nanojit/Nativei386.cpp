@@ -175,6 +175,12 @@ namespace nanojit
         uint32_t iargs = call->count_iargs();
         int32_t fargs = call->count_args() - iargs;
 
+        bool indirect = call->isIndirect();
+        if (indirect) {
+            
+            iargs --;
+        }
+
         uint32_t max_regs = max_abi_regs[call->_abi];
         if (max_regs > iargs)
             max_regs = iargs;
@@ -204,7 +210,16 @@ namespace nanojit
         }
 
         NanoAssert(ins->isop(LIR_call) || ins->isop(LIR_fcall));
-        CALL(call);
+        if (!indirect) {
+            CALL(call);
+        }
+        else {
+            
+            
+            
+            
+            CALLr(call, EAX);
+        }
 
         
         NanoAssert(_allocator.isFree(FST0));
@@ -215,6 +230,10 @@ namespace nanojit
 
         ArgSize sizes[MAXARGS];
         uint32_t argc = call->get_sizes(sizes);
+        if (indirect) {
+            argc--;
+            asm_arg(ARGSIZE_P, ins->arg(argc), EAX);
+        }
 
         for(uint32_t i=0; i < argc; i++)
         {
