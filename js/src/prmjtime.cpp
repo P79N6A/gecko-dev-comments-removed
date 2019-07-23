@@ -560,8 +560,10 @@ PRMJ_DSTOffset(JSInt64 local_time)
 size_t
 PRMJ_FormatTime(char *buf, int buflen, const char *fmt, PRMJTime *prtm)
 {
+    size_t result = 0;
 #if defined(XP_UNIX) || defined(XP_WIN) || defined(XP_OS2) || defined(XP_BEOS)
     struct tm a;
+    int fake_tm_year = 0;
 
     
 
@@ -584,7 +586,25 @@ PRMJ_FormatTime(char *buf, int buflen, const char *fmt, PRMJTime *prtm)
     a.tm_mday = prtm->tm_mday;
     a.tm_mon = prtm->tm_mon;
     a.tm_wday = prtm->tm_wday;
-    a.tm_year = prtm->tm_year - 1900;
+
+    
+
+
+
+
+
+
+
+
+
+#define FAKE_YEAR_BASE 9900
+    if (prtm->tm_year < 1900 || prtm->tm_year > 9999) {
+        fake_tm_year = FAKE_YEAR_BASE + prtm->tm_year % 100;
+        a.tm_year = fake_tm_year - 1900;
+    }
+    else {
+        a.tm_year = prtm->tm_year - 1900;
+    }
     a.tm_yday = prtm->tm_yday;
     a.tm_isdst = prtm->tm_isdst;
 
@@ -607,8 +627,34 @@ PRMJ_FormatTime(char *buf, int buflen, const char *fmt, PRMJTime *prtm)
     }
 #endif
 
-    return strftime(buf, buflen, fmt, &a);
+    result = strftime(buf, buflen, fmt, &a);
+
+    if (fake_tm_year && result) {
+        char real_year[16];
+        char fake_year[16];
+        size_t real_year_len;
+        size_t fake_year_len;
+        char* p;
+
+        sprintf(real_year, "%d", prtm->tm_year);
+        real_year_len = strlen(real_year);
+        sprintf(fake_year, "%d", fake_tm_year);
+        fake_year_len = strlen(fake_year);
+
+        
+        for (p = buf; (p = strstr(p, fake_year)); p += real_year_len) {
+            size_t new_result = result + real_year_len - fake_year_len;
+            if ((int)new_result >= buflen) {
+                return 0;
+            }
+            memmove(p + real_year_len, p + fake_year_len, strlen(p + fake_year_len));
+            memcpy(p, real_year, real_year_len);
+            result = new_result;
+            *(buf + result) = '\0';
+        }
+    }
 #endif
+    return result;
 }
 
 
