@@ -518,6 +518,13 @@ PRBool nsRootAccessible::FireAccessibleFocusEvent(nsIAccessible *aAccessible,
   privateAccessible->FireToolkitEvent(nsIAccessibleEvent::EVENT_FOCUS,
                                       finalFocusAccessible, nsnull);
 
+  
+  nsCOMPtr<nsIAccessibleStateChangeEvent> accEvent =
+    new nsAccStateChangeEvent(finalFocusAccessible,
+                              nsIAccessibleStates::STATE_FOCUSED,
+                              PR_FALSE, PR_TRUE);
+  FireAccessibleEvent(accEvent);
+
   return PR_TRUE;
 }
 
@@ -562,7 +569,6 @@ NS_IMETHODIMP nsRootAccessible::HandleEvent(nsIDOMEvent* aEvent)
   
   return HandleEventWithTarget(aEvent, targetNode);
 }
-
 
 nsresult nsRootAccessible::HandleEventWithTarget(nsIDOMEvent* aEvent,
                                                  nsIDOMNode* aTargetNode)
@@ -761,7 +767,7 @@ nsresult nsRootAccessible::HandleEventWithTarget(nsIDOMEvent* aEvent,
     privAcc->FireToolkitEvent(nsIAccessibleEvent::EVENT_ALERT, 
                               accessible, nsnull);
   }
-  if (eventType.EqualsLiteral("popupshown")) {
+  else if (eventType.EqualsLiteral("popupshown")) {
     
     PRUint32 role = Role(accessible);
     PRInt32 event = 0;
