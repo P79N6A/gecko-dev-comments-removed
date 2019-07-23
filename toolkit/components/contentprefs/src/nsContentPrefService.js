@@ -695,12 +695,15 @@ ContentPrefService.prototype = {
     if (!dbFile.exists())
       dbConnection = this._dbCreate(dbService, dbFile);
     else {
-      dbConnection = dbService.openDatabase(dbFile);
-
+      try {
+        dbConnection = dbService.openDatabase(dbFile);
+      }
       
       
-      if (!dbConnection.connectionReady)
-        dbConnection = this._dbBackUpAndRecreate(dbService, dbFile, dbConnection);
+      catch (e if e.result == Cr.NS_ERROR_FILE_CORRUPTED) {
+        dbConnection = this._dbBackUpAndRecreate(dbService, dbFile,
+                                                 dbConnection);
+      }
 
       
       var version = dbConnection.schemaVersion;
@@ -762,7 +765,7 @@ ContentPrefService.prototype = {
   _dbBackUpAndRecreate: function ContentPrefService__dbBackUpAndRecreate(aDBService,
                                                                          aDBFile,
                                                                          aDBConnection) {
-    aDBConnection.backupDB("content-prefs.sqlite.corrupt");
+    aDBService.backupDatabaseFile(aDBFile, "content-prefs.sqlite.corrupt");
 
     
     

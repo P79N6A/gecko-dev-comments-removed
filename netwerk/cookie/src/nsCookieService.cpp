@@ -468,22 +468,14 @@ nsCookieService::InitDB()
 
   
   rv = storage->OpenDatabase(cookieFile, getter_AddRefs(mDBConn));
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  PRBool ready;
-  mDBConn->GetConnectionReady(&ready);
-  if (!ready) {
+  if (rv == NS_ERROR_FILE_CORRUPTED) {
     
     rv = cookieFile->Remove(PR_FALSE);
     NS_ENSURE_SUCCESS(rv, rv);
 
     rv = storage->OpenDatabase(cookieFile, getter_AddRefs(mDBConn));
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    mDBConn->GetConnectionReady(&ready);
-    if (!ready)
-      return NS_ERROR_UNEXPECTED;
   }
+  NS_ENSURE_SUCCESS(rv, rv);
 
   PRBool tableExists = PR_FALSE;
   mDBConn->TableExists(NS_LITERAL_CSTRING("moz_cookies"), &tableExists);

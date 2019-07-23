@@ -521,6 +521,8 @@ nsNavHistory::InitDBFile(PRBool aForceInit)
   if (aForceInit) {
     NS_ASSERTION(mDBConn,
                  "When forcing initialization, a database connection must exist!");
+    NS_ASSERTION(mDBService,
+                 "When forcing initialization, the database service must exist!");
   }
 
   
@@ -538,7 +540,8 @@ nsNavHistory::InitDBFile(PRBool aForceInit)
   if (aForceInit) {
     
     nsCOMPtr<nsIFile> backup;
-    rv = mDBConn->BackupDB(DB_CORRUPT_FILENAME, profDir, getter_AddRefs(backup));
+    rv = mDBService->BackupDatabaseFile(mDBFile, DB_CORRUPT_FILENAME, profDir,
+                                        getter_AddRefs(backup));
     NS_ENSURE_SUCCESS(rv, rv);
 
     
@@ -560,16 +563,13 @@ nsNavHistory::InitDBFile(PRBool aForceInit)
   mDBService = do_GetService(MOZ_STORAGE_SERVICE_CONTRACTID, &rv);
   NS_ENSURE_SUCCESS(rv, rv);
   rv = mDBService->OpenDatabase(mDBFile, getter_AddRefs(mDBConn));
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  PRBool ready;
-  (void)mDBConn->GetConnectionReady(&ready);
-  if (!ready) {
+  if (rv == NS_ERROR_FILE_CORRUPTED) {
     dbExists = PR_FALSE;
   
     
     nsCOMPtr<nsIFile> backup;
-    rv = mDBConn->BackupDB(DB_CORRUPT_FILENAME, profDir, getter_AddRefs(backup));
+    rv = mDBService->BackupDatabaseFile(mDBFile, DB_CORRUPT_FILENAME, profDir,
+                                        getter_AddRefs(backup));
     NS_ENSURE_SUCCESS(rv, rv);
  
     
@@ -582,13 +582,8 @@ nsNavHistory::InitDBFile(PRBool aForceInit)
     rv = mDBFile->Append(DB_FILENAME);
     NS_ENSURE_SUCCESS(rv, rv);
     rv = mDBService->OpenDatabase(mDBFile, getter_AddRefs(mDBConn));
-    NS_ENSURE_SUCCESS(rv, rv);
-    (void)mDBConn->GetConnectionReady(&ready);
-    if (!ready) {
-      mDBConn = nsnull;
-      return NS_ERROR_UNEXPECTED;
-    }
   }
+  NS_ENSURE_SUCCESS(rv, rv);
   
   
   if (!dbExists) {

@@ -49,6 +49,14 @@ function getTestDB()
   return db;
 }
 
+
+
+
+function getCorruptDB()
+{
+  return do_get_file("storage/test/unit/corruptDB.sqlite");
+}
+
 function cleanup()
 {
   
