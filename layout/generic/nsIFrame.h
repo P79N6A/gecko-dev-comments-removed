@@ -103,6 +103,7 @@ struct nsPoint;
 struct nsRect;
 struct nsSize;
 struct nsMargin;
+struct CharacterDataChangeInfo;
 
 typedef class nsIFrame nsIBox;
 
@@ -1123,14 +1124,7 @@ public:
 
 
 
-
-
-
-
-
-  NS_IMETHOD  CharacterDataChanged(nsPresContext* aPresContext,
-                                   nsIContent*     aChild,
-                                   PRBool          aAppend) = 0;
+  NS_IMETHOD  CharacterDataChanged(CharacterDataChangeInfo* aInfo) = 0;
 
   
 
