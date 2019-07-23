@@ -284,7 +284,7 @@ XPCThrower::ThrowExceptionObject(JSContext* cx, nsIException* e)
         
         
         if((xpcEx = do_QueryInterface(e)) &&
-           xpcEx->StealThrownJSVal(&thrown) &&
+           xpcEx->GetThrownJSVal(&thrown) &&
            !IsCallerChrome())
         {
             JS_SetPendingException(cx, thrown);
