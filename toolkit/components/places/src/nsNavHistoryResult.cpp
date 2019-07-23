@@ -489,7 +489,7 @@ nsNavHistoryContainerResultNode::ReverseUpdateStats(PRInt32 aAccessCountChange)
 
     
     
-    PRUint32 sortMode = mParent->GetSortType();
+    PRUint16 sortMode = mParent->GetSortType();
     PRBool resorted = PR_FALSE;
     if (((sortMode == nsINavHistoryQueryOptions::SORT_BY_VISITCOUNT_ASCENDING ||
           sortMode == nsINavHistoryQueryOptions::SORT_BY_VISITCOUNT_DESCENDING) &&
@@ -537,7 +537,7 @@ nsNavHistoryContainerResultNode::ReverseUpdateStats(PRInt32 aAccessCountChange)
 
 
 
-PRUint32
+PRUint16
 nsNavHistoryContainerResultNode::GetSortType()
 {
   if (mParent)
@@ -565,7 +565,7 @@ nsNavHistoryContainerResultNode::GetSortingAnnotation(nsACString& aAnnotation)
 
 
 nsNavHistoryContainerResultNode::SortComparator
-nsNavHistoryContainerResultNode::GetSortingComparator(PRUint32 aSortType)
+nsNavHistoryContainerResultNode::GetSortingComparator(PRUint16 aSortType)
 {
   switch (aSortType)
   {
@@ -1414,7 +1414,7 @@ nsNavHistoryContainerResultNode::ChangeTitles(nsIURI* aURI,
   nsNavHistoryResult* result = GetResult();
   NS_ENSURE_TRUE(result, NS_ERROR_FAILURE);
 
-  PRUint32 sortType = GetSortType();
+  PRUint16 sortType = GetSortType();
   PRBool updateSorting =
     (sortType == nsINavHistoryQueryOptions::SORT_BY_TITLE_ASCENDING ||
      sortType == nsINavHistoryQueryOptions::SORT_BY_TITLE_DESCENDING);
@@ -2098,7 +2098,7 @@ nsNavHistoryQueryResultNode::Refresh()
 
 
 
-PRUint32
+PRUint16
 nsNavHistoryQueryResultNode::GetSortType()
 {
   if (mParent) {
@@ -2234,7 +2234,7 @@ nsNavHistoryQueryResultNode::OnVisit(nsIURI* aURI, PRInt64 aVisitId,
   
 
   PRUint32 groupCount;
-  const PRUint32* groupings = mOptions->GroupingMode(&groupCount);
+  const PRUint16* groupings = mOptions->GroupingMode(&groupCount);
   nsCOMArray<nsNavHistoryResultNode> grouped;
   if (groupCount > 0) {
     
@@ -2290,12 +2290,7 @@ nsNavHistoryQueryResultNode::OnTitleChanged(nsIURI* aURI,
   }
 
   
-  nsCAutoString newTitle;
-  if (mOptions->ForceOriginalTitle() || aUserTitle.IsVoid()) {
-    newTitle = NS_ConvertUTF16toUTF8(aPageTitle);
-  } else {
-    newTitle = NS_ConvertUTF16toUTF8(aUserTitle);
-  }
+  nsCAutoString newTitle = NS_ConvertUTF16toUTF8(aPageTitle);
 
   PRBool onlyOneEntry = (mOptions->ResultType() ==
                          nsINavHistoryQueryOptions::RESULTS_AS_URI);
@@ -2942,7 +2937,7 @@ nsNavHistoryFolderResultNode::OnItemAdded(PRInt64 aBookmarkId, nsIURI* aBookmark
   NS_ENSURE_TRUE(history, NS_ERROR_OUT_OF_MEMORY);
 
   nsNavHistoryResultNode* node;
-  nsresult rv = history->UriToResultNode(aBookmark, mOptions, &node);
+  nsresult rv = history->BookmarkIdToResultNode(aBookmarkId, mOptions, &node);
   NS_ENSURE_SUCCESS(rv, rv);
   node->mBookmarkIndex = aIndex;
   node->mBookmarkId = aBookmarkId;
@@ -3335,6 +3330,7 @@ nsNavHistorySeparatorResultNode::nsNavHistorySeparatorResultNode()
 
 
 
+
 NS_IMPL_ADDREF(nsNavHistoryResult)
 NS_IMPL_RELEASE(nsNavHistoryResult)
 
@@ -3560,7 +3556,7 @@ nsNavHistoryResult::BookmarkObserversForId(PRInt64 aFolderId, PRBool aCreate)
 
 
 NS_IMETHODIMP
-nsNavHistoryResult::GetSortingMode(PRUint32* aSortingMode)
+nsNavHistoryResult::GetSortingMode(PRUint16* aSortingMode)
 {
   *aSortingMode = mSortingMode;
   return NS_OK;
@@ -3569,7 +3565,7 @@ nsNavHistoryResult::GetSortingMode(PRUint32* aSortingMode)
 
 
 NS_IMETHODIMP
-nsNavHistoryResult::SetSortingMode(PRUint32 aSortingMode)
+nsNavHistoryResult::SetSortingMode(PRUint16 aSortingMode)
 {
   if (aSortingMode > nsINavHistoryQueryOptions::SORT_BY_ANNOTATION_DESCENDING)
     return NS_ERROR_INVALID_ARG;

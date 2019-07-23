@@ -170,7 +170,7 @@ public:
 
   
   
-  PRUint32 mSortingMode;
+  PRUint16 mSortingMode;
 
   
   nsCString mSortingAnnotation;
@@ -539,10 +539,10 @@ public:
 
   
   typedef nsCOMArray<nsNavHistoryResultNode>::nsCOMArrayComparatorFunc SortComparator;
-  virtual PRUint32 GetSortType();
+  virtual PRUint16 GetSortType();
   virtual void GetSortingAnnotation(nsACString& aSortingAnnotation);
 
-  static SortComparator GetSortingComparator(PRUint32 aSortType);
+  static SortComparator GetSortingComparator(PRUint16 aSortType);
   virtual void RecursiveSort(const char* aData,
                              SortComparator aComparator);
   PRUint32 FindInsertionPoint(nsNavHistoryResultNode* aNode, SortComparator aComparator,
@@ -677,7 +677,7 @@ public:
   void ClearChildren(PRBool unregister);
   nsresult Refresh();
 
-  virtual PRUint32 GetSortType();
+  virtual PRUint16 GetSortType();
   virtual void GetSortingAnnotation(nsACString& aSortingAnnotation);
 };
 

@@ -64,7 +64,6 @@ const PRInt32 nsNavBookmarks::kGetChildrenIndex_Position = 9;
 const PRInt32 nsNavBookmarks::kGetChildrenIndex_Type = 10;
 const PRInt32 nsNavBookmarks::kGetChildrenIndex_ForeignKey = 11;
 const PRInt32 nsNavBookmarks::kGetChildrenIndex_FolderTitle = 12;
-const PRInt32 nsNavBookmarks::kGetChildrenIndex_ID = 13;
 
 const PRInt32 nsNavBookmarks::kGetBookmarkPropertiesIndex_ID = 0;
 const PRInt32 nsNavBookmarks::kGetBookmarkPropertiesIndex_URI = 1;
@@ -148,10 +147,9 @@ nsNavBookmarks::Init()
   
   nsCAutoString selectItemChildren =
     NS_LITERAL_CSTRING("SELECT h.id, h.url, a.title, "
-      "(SELECT title FROM moz_bookmarks WHERE fk = h.id), "
       "h.rev_host, h.visit_count, "
       "(SELECT MAX(visit_date) FROM moz_historyvisits WHERE place_id = h.id), "
-      "f.url, null, a.position, a.type, a.fk, null, a.id "
+      "f.url, null, a.id, a.position, a.type, a.fk, null "
     "FROM moz_bookmarks a "
     "JOIN moz_places h ON a.fk = h.id "
     "LEFT OUTER JOIN moz_favicons f ON h.favicon_id = f.id "
@@ -165,8 +163,8 @@ nsNavBookmarks::Init()
   
   
   nsCAutoString selectFolderChildren = 
-    NS_LITERAL_CSTRING("SELECT null, null, null, null, null, null, null, null, "
-      "null, a.position, a.type, a.fk, c.name, a.id "
+    NS_LITERAL_CSTRING("SELECT null, null, null, null, null, null, null, "
+      "null, a.id, a.position, a.type, a.fk, c.name "
     "FROM moz_bookmarks a "
     "JOIN moz_bookmarks_folders c ON c.id = a.fk "
     "WHERE a.parent = ?1 AND a.type = ") +
@@ -180,8 +178,8 @@ nsNavBookmarks::Init()
   
   
   nsCAutoString selectSeparatorChildren =
-  NS_LITERAL_CSTRING("SELECT null, null, null, null, null, null, null, null, "
-      "null, a.position, a.type, null, null, a.id "
+  NS_LITERAL_CSTRING("SELECT null, null, null, null, null, null, null, "
+      "null, a.id, a.position, a.type, null, null "
     "FROM moz_bookmarks a "
     "WHERE a.type = ") +
       nsPrintfCString("%d", TYPE_SEPARATOR) +
@@ -1416,7 +1414,7 @@ nsNavBookmarks::RemoveFolderChildren(PRInt64 aFolder)
         separatorChildren.AppendElement(mDBGetChildren->AsInt32(kGetChildrenIndex_Position));
       } else {
         
-        itemChildren.AppendElement(mDBGetChildren->AsInt32(kGetChildrenIndex_ID));
+        itemChildren.AppendElement(mDBGetChildren->AsInt64(nsNavHistory::kGetInfoIndex_BookmarkItemId));
       }
     }
   }
@@ -1932,6 +1930,11 @@ nsNavBookmarks::QueryFolderChildren(PRInt64 aFolderId,
       }
       node = new nsNavHistorySeparatorResultNode();
       NS_ENSURE_TRUE(node, NS_ERROR_OUT_OF_MEMORY);
+
+      
+      
+      node->mBookmarkId =
+        mDBGetChildren->AsInt64(nsNavHistory::kGetInfoIndex_BookmarkItemId);
     } else {
       rv = History()->RowToResult(mDBGetChildren, options,
                                   getter_AddRefs(node));
@@ -1951,10 +1954,6 @@ nsNavBookmarks::QueryFolderChildren(PRInt64 aFolderId,
     
     
     node->mBookmarkIndex = index;
-
-    
-    if (!isFolder)
-      node->mBookmarkId = mDBGetChildren->AsInt64(kGetChildrenIndex_ID);
 
     NS_ENSURE_TRUE(aChildren->AppendObject(node), NS_ERROR_OUT_OF_MEMORY);
   }
