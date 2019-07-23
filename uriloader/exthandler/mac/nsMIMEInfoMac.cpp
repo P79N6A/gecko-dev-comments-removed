@@ -69,19 +69,40 @@ nsMIMEInfoMac::LaunchWithURI(nsIURI* aURI)
     rv = localHandlerApp->GetExecutable(getter_AddRefs(application));
     NS_ENSURE_SUCCESS(rv, rv);
     
-  } else if (mPreferredAction == useSystemDefault)
+  } else if (mPreferredAction == useSystemDefault) {
+
+    
+    
+    
+    
+    if (mClass == eProtocolInfo) {
+      return LoadUriInternal(aURI);      
+    }
+
     application = mDefaultApplication;
+  }
   else
     return NS_ERROR_INVALID_ARG;
 
-  if (mClass == eProtocolInfo)
-    return LoadUriInternal(aURI);
 
   
   nsCOMPtr<nsILocalFile> docToLoad;
   rv = GetLocalFileFromURI(aURI, getter_AddRefs(docToLoad));
-  NS_ENSURE_SUCCESS(rv, rv);
+  if (NS_FAILED(rv)) {
 
+    
+    NS_ASSERTION(mClass == eProtocolInfo, 
+                 "nsMIMEInfoMac should be a protocol handler");
+
+    
+    nsCAutoString spec;
+    aURI->GetSpec(spec);
+    return OpenApplicationWithURI(application, spec);
+  }
+
+  
+  
+  
   
   nsCOMPtr<nsILocalFileMac> app;
   if (application) {
@@ -134,3 +155,51 @@ nsMIMEInfoMac::GetHasDefaultHandler(PRBool *_retval)
   return NS_OK;
 }
 
+
+
+
+
+
+nsresult
+nsMIMEInfoMac::OpenApplicationWithURI(nsIFile* aApplication, 
+                                      const nsCString& aURI)
+{
+  nsresult rv;
+  nsCOMPtr<nsILocalFileMac> lfm(do_QueryInterface(aApplication, &rv));
+  NS_ENSURE_SUCCESS(rv, rv);
+  
+  CFURLRef appURL;
+  rv = lfm->GetCFURL(&appURL);
+  if (NS_FAILED(rv))
+    return rv;
+  
+  const UInt8* uriString = (const UInt8*)aURI.get();
+  CFURLRef uri = ::CFURLCreateWithBytes(NULL, uriString, aURI.Length(),
+                                        kCFStringEncodingUTF8, NULL);
+  if (!uri) {
+    ::CFRelease(appURL);
+    return NS_ERROR_OUT_OF_MEMORY;
+  }
+  
+  CFArrayRef uris = ::CFArrayCreate(NULL, (const void**)&uri, 1, NULL);
+  if (!uris) {
+    ::CFRelease(uri);
+    ::CFRelease(appURL);
+    return NS_ERROR_OUT_OF_MEMORY;
+  }
+  
+  LSLaunchURLSpec launchSpec;
+  launchSpec.appURL = appURL;
+  launchSpec.itemURLs = uris;
+  launchSpec.passThruParams = NULL;
+  launchSpec.launchFlags = kLSLaunchDefaults;
+  launchSpec.asyncRefCon = NULL;
+  
+  OSErr err = ::LSOpenFromURLSpec(&launchSpec, NULL);
+  
+  ::CFRelease(uris);
+  ::CFRelease(uri);
+  ::CFRelease(appURL);
+  
+  return err != noErr ? NS_ERROR_FAILURE : NS_OK;
+}

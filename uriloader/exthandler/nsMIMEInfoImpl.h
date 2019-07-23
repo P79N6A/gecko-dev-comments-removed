@@ -148,8 +148,8 @@ class nsMIMEInfoBase : public nsIMIMEInfo {
 
 
 
-
-    static NS_HIDDEN_(nsresult) LaunchWithIProcess(nsIFile* aApp, nsIFile* aFile);
+    static NS_HIDDEN_(nsresult) LaunchWithIProcess(nsIFile* aApp,
+                                                   const nsCString &aArg);
 
     
 
