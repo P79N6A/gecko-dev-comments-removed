@@ -1044,9 +1044,9 @@ protected:
 #endif
 
   
-  nsresult DoScrollContentIntoView(nsIContent* aContent,
-                                   PRIntn      aVPercent,
-                                   PRIntn      aHPercent);
+  void DoScrollContentIntoView(nsIContent* aContent,
+                               PRIntn      aVPercent,
+                               PRIntn      aHPercent);
 
   friend class nsPresShellEventCB;
 
@@ -4135,19 +4135,10 @@ PresShell::ScrollContentIntoView(nsIContent* aContent,
                                  PRIntn      aVPercent,
                                  PRIntn      aHPercent)
 {
-  mContentToScrollTo = aContent;
-  mContentScrollVPosition = aVPercent;
-  mContentScrollHPosition = aHPercent;
-
   nsCOMPtr<nsIContent> content = aContent; 
   NS_ENSURE_TRUE(content, NS_ERROR_NULL_POINTER);
   nsCOMPtr<nsIDocument> currentDoc = content->GetCurrentDoc();
   NS_ENSURE_STATE(currentDoc);
-  currentDoc->FlushPendingNotifications(Flush_InterruptibleLayout);
-
-  
-  
-  
 
   
   
@@ -4170,10 +4161,28 @@ PresShell::ScrollContentIntoView(nsIContent* aContent,
     }
   }
 
-  return DoScrollContentIntoView(content, aVPercent, aHPercent);
+  mContentToScrollTo = aContent;
+  mContentScrollVPosition = aVPercent;
+  mContentScrollHPosition = aHPercent;
+
+  
+  currentDoc->FlushPendingNotifications(Flush_InterruptibleLayout);
+
+  
+  
+  
+  
+  
+  
+  
+  
+  if (mContentToScrollTo) {
+    DoScrollContentIntoView(content, aVPercent, aHPercent);
+  }
+  return NS_OK;
 }
 
-nsresult
+void
 PresShell::DoScrollContentIntoView(nsIContent* aContent,
                                    PRIntn      aVPercent,
                                    PRIntn      aHPercent)
@@ -4181,7 +4190,7 @@ PresShell::DoScrollContentIntoView(nsIContent* aContent,
   nsIFrame* frame = GetPrimaryFrameFor(aContent);
   if (!frame) {
     mContentToScrollTo = nsnull;
-    return NS_ERROR_NULL_POINTER;
+    return;
   }
 
   
@@ -4214,8 +4223,6 @@ PresShell::DoScrollContentIntoView(nsIContent* aContent,
     frameBounds += closestView->GetPosition();
     closestView = parent;
   }
-
-  return NS_OK;
 }
 
 
