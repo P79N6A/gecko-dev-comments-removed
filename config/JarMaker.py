@@ -268,33 +268,38 @@ class JarMaker(object):
     
     
     
-    while True:
-      try:
-        l = lines.next()
-      except StopIteration:
-        
-        self.finalizeJar(jarfile, chromebasepath, register)
-        if jf is not None:
-          jf.close()
-        
-        raise
-      if self.ignore.match(l):
-        continue
-      m = self.regline.match(l)
-      if  m:
-        rline = m.group(1)
-        register[rline] = 1
-        continue
-      m = self.entryline.match(l)
-      if not m:
-        
-        self.finalizeJar(jarfile, chromebasepath, register)
-        if jf is not None:
-          jf.close()
-        lines.pushback(l)
-        return
-      self._processEntryLine(m, sourcedirs, topsourcedir, localedirs,
-                            outHelper, jf)
+    
+    try:
+      while True:
+        try:
+          l = lines.next()
+        except StopIteration:
+          
+          self.finalizeJar(jarfile, chromebasepath, register)
+          if jf is not None:
+            jf.close()
+          
+          raise
+        if self.ignore.match(l):
+          continue
+        m = self.regline.match(l)
+        if  m:
+          rline = m.group(1)
+          register[rline] = 1
+          continue
+        m = self.entryline.match(l)
+        if not m:
+          
+          self.finalizeJar(jarfile, chromebasepath, register)
+          if jf is not None:
+            jf.close()
+          lines.pushback(l)
+          return
+        self._processEntryLine(m, sourcedirs, topsourcedir, localedirs,
+                              outHelper, jf)
+    finally:
+      if jf is not None:
+        jf.close()
     return
 
   def _processEntryLine(self, m, 
