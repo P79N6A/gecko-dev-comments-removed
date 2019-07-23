@@ -268,6 +268,15 @@ public:
 
 
 
+    eMetric_TouchEnabled,
+
+    
+
+
+
+
+
+
     eMetric_MacGraphiteTheme,
 
     
