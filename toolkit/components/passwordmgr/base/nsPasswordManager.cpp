@@ -883,11 +883,12 @@ nsPasswordManager::OnSecurityChange(nsIWebProgress* aWebProgress,
 
 
 NS_IMETHODIMP
-nsPasswordManager::Notify(nsIContent* aFormNode,
+nsPasswordManager::Notify(nsIDOMHTMLFormElement* aDOMForm,
                           nsIDOMWindowInternal* aWindow,
                           nsIURI* aActionURL,
                           PRBool* aCancelSubmit)
 {
+  nsCOMPtr<nsIContent> formNode = do_QueryInterface(aDOMForm);
   
   
 
@@ -901,7 +902,7 @@ nsPasswordManager::Notify(nsIContent* aFormNode,
   nsCAutoString realm;
   
   
-  if (!GetPasswordRealm(aFormNode->GetOwnerDoc()->GetDocumentURI(), realm))
+  if (!GetPasswordRealm(formNode->GetOwnerDoc()->GetDocumentURI(), realm))
     return NS_OK;
 
   PRInt32 rejectValue;
@@ -910,7 +911,7 @@ nsPasswordManager::Notify(nsIContent* aFormNode,
     return NS_OK;
   }
 
-  nsCOMPtr<nsIForm> formElement = do_QueryInterface(aFormNode);
+  nsCOMPtr<nsIForm> formElement = do_QueryInterface(formNode);
 
   PRUint32 numControls;
   formElement->GetElementCount(&numControls);
@@ -966,8 +967,7 @@ nsPasswordManager::Notify(nsIContent* aFormNode,
           return NS_OK;
       }
 
-      nsCOMPtr<nsIDOMElement> formDOMEl = do_QueryInterface(aFormNode);
-      formDOMEl->GetAttribute(NS_LITERAL_STRING("autocomplete"), autocomplete);
+      aDOMForm->GetAttribute(NS_LITERAL_STRING("autocomplete"), autocomplete);
       if (autocomplete.EqualsIgnoreCase("off"))
         return NS_OK;
 

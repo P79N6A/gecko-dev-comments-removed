@@ -340,15 +340,17 @@ static PRUint32 GetSecurityStateFromChannel(nsIChannel* aChannel)
 
 
 NS_IMETHODIMP
-nsSecureBrowserUIImpl::Notify(nsIContent* formNode,
+nsSecureBrowserUIImpl::Notify(nsIDOMHTMLFormElement* aDOMForm,
                               nsIDOMWindowInternal* window, nsIURI* actionURL,
                               PRBool* cancelSubmit)
 {
   
   *cancelSubmit = PR_FALSE;
-  if (!window || !actionURL || !formNode)
+  if (!window || !actionURL || !aDOMForm)
     return NS_OK;
   
+  nsCOMPtr<nsIContent> formNode = do_QueryInterface(aDOMForm);
+
   nsCOMPtr<nsIDocument> document = formNode->GetDocument();
   if (!document) return NS_OK;
 
