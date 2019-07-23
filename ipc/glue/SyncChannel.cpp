@@ -64,9 +64,10 @@ SyncChannel::Send(Message* msg, Message* reply)
 
     MutexAutoLock lock(mMutex);
 
-    if (!Connected())
-        
+    if (!Connected()) {
+        ReportConnectionError("SyncChannel");
         return false;
+    }
 
     mPendingReply = msg->type() + 1;
     mIOLoop->PostTask(
@@ -76,9 +77,10 @@ SyncChannel::Send(Message* msg, Message* reply)
     
     WaitForNotify();
 
-    if (!Connected())
-        
+    if (!Connected()) {
+        ReportConnectionError("SyncChannel");
         return false;
+    }
 
     
     
@@ -111,26 +113,13 @@ SyncChannel::OnDispatchMessage(const Message& msg)
         static_cast<SyncListener*>(mListener)->OnMessageReceived(msg, reply);
     mProcessingSyncMessage = false;
 
-    switch (rv) {
-    case MsgProcessed:
-        break;
-
-    case MsgNotKnown:
-    case MsgNotAllowed:
-    case MsgPayloadError:
-    case MsgRouteError:
-    case MsgValueError:
+    if (!MaybeHandleError(rv, "SyncChannel")) {
         
         delete reply;
         reply = new Message();
         reply->set_sync();
         reply->set_reply();
         reply->set_reply_error();
-        break;
-
-    default:
-        NOTREACHED();
-        return;
     }
 
     mIOLoop->PostTask(

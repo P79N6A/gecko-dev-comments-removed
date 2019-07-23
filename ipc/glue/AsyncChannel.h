@@ -145,6 +145,14 @@ protected:
 
     
     void OnDispatchMessage(const Message& aMsg);
+    bool MaybeHandleError(Result code, const char* channelName);
+    void ReportConnectionError(const char* channelName);
+
+    void PrintErrorMessage(const char* channelName, const char* msg)
+    {
+        fprintf(stderr, "\n###!!! [%s][%s] Error: %s\n\n",
+                mChild ? "Child" : "Parent", channelName, msg);
+    }
 
     
     void OnChannelOpened();
