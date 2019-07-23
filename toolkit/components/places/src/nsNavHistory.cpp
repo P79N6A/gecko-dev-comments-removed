@@ -4246,12 +4246,13 @@ nsNavHistory::AddURIInternal(nsIURI* aURI, PRTime aTime, PRBool aRedirect,
 nsresult
 nsNavHistory::AddVisitChain(nsIURI* aURI, PRTime aTime,
                             PRBool aToplevel, PRBool aIsRedirect,
-                            nsIURI* aReferrer, PRInt64* aVisitID,
+                            nsIURI* aReferrerURI, PRInt64* aVisitID,
                             PRInt64* aSessionID, PRInt64* aRedirectBookmark)
 {
   PRUint32 transitionType = 0;
   PRInt64 referringVisit = 0;
   PRTime visitTime = 0;
+  nsCOMPtr<nsIURI> fromVisitURI = aReferrerURI;
 
   nsCAutoString spec;
   nsresult rv = aURI->GetSpec(spec);
@@ -4278,7 +4279,7 @@ nsNavHistory::AddVisitChain(nsIURI* aURI, PRTime aTime,
     
     
     
-    rv = AddVisitChain(redirectURI, aTime - 1, aToplevel, PR_TRUE, aReferrer,
+    rv = AddVisitChain(redirectURI, aTime - 1, aToplevel, PR_TRUE, aReferrerURI,
                        &referringVisit, aSessionID, aRedirectBookmark);
     NS_ENSURE_SUCCESS(rv, rv);
 
@@ -4287,12 +4288,16 @@ nsNavHistory::AddVisitChain(nsIURI* aURI, PRTime aTime,
     if (!aToplevel) {
       transitionType = nsINavHistoryService::TRANSITION_EMBED;
     }
-  } else if (aReferrer) {
+
+    
+    
+    fromVisitURI = redirectURI;
+  } else if (aReferrerURI) {
     
     
     
     PRBool referrerIsSame;
-    if (NS_SUCCEEDED(aURI->Equals(aReferrer, &referrerIsSame)) && referrerIsSame)
+    if (NS_SUCCEEDED(aURI->Equals(aReferrerURI, &referrerIsSame)) && referrerIsSame)
       return NS_OK;
 
     
@@ -4322,7 +4327,7 @@ nsNavHistory::AddVisitChain(nsIURI* aURI, PRTime aTime,
 
     
     
-    if (!FindLastVisit(aReferrer, &referringVisit, aSessionID)) {
+    if (!FindLastVisit(aReferrerURI, &referringVisit, aSessionID)) {
       
       *aSessionID = GetNewSessionID();
     }
@@ -4349,7 +4354,7 @@ nsNavHistory::AddVisitChain(nsIURI* aURI, PRTime aTime,
   }
 
   
-  return AddVisit(aURI, visitTime, aReferrer, transitionType,
+  return AddVisit(aURI, visitTime, fromVisitURI, transitionType,
                   aIsRedirect, *aSessionID, aVisitID);
 }
 
