@@ -884,19 +884,22 @@ LoginManager.prototype = {
     _fillDocument : function (doc) {
         var forms = doc.forms;
         if (!forms || forms.length == 0)
-            return; 
+            return;
 
         var formOrigin = this._getPasswordOrigin(doc.documentURI);
-        var autofillForm = this._prefBranch.getBoolPref("autofillForms");
 
-        this.log("fillDocument found " + forms.length +
+        
+        if (!this.countLogins(formOrigin, "", null))
+            return;
+
+        this.log("fillDocument processing " + forms.length +
                  " forms on " + doc.documentURI);
 
+        var autofillForm = this._prefBranch.getBoolPref("autofillForms");
         var previousActionOrigin = null;
 
         for (var i = 0; i < forms.length; i++) {
             var form = forms[i];
-            var actionOrigin = this._getActionOrigin(form);
 
             
             
@@ -912,6 +915,7 @@ LoginManager.prototype = {
 
             
             
+            var actionOrigin = this._getActionOrigin(form);
             if (actionOrigin != previousActionOrigin) {
                 var foundLogins =
                     this.findLogins({}, formOrigin, actionOrigin, null);
