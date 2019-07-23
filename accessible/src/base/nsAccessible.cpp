@@ -1064,6 +1064,24 @@ nsAccessible::GetChildAtPoint(PRInt32 aX, PRInt32 aY,
   NS_ENSURE_ARG_POINTER(aAccessible);
   *aAccessible = nsnull;
 
+  if (!mDOMNode) {
+    return NS_ERROR_FAILURE;  
+  }
+
+  
+  
+  nsCOMPtr<nsIAccessible> fallbackAnswer;
+  PRInt32 x, y, width, height;
+  GetBounds(&x, &y, &width, &height);
+  if (aX >= x && aX < x + width &&
+      aY >= y && aY < y + height) {
+    fallbackAnswer = this;
+  }
+  if (MustPrune(this)) {  
+    NS_IF_ADDREF(*aAccessible = fallbackAnswer);
+    return NS_OK;
+  }
+
   
   
   
@@ -1073,9 +1091,7 @@ nsAccessible::GetChildAtPoint(PRInt32 aX, PRInt32 aY,
   nsCOMPtr<nsIAccessibleDocument> accDocument;
   nsresult rv = GetAccessibleDocument(getter_AddRefs(accDocument));
   NS_ENSURE_SUCCESS(rv, rv);
-
-  if (!accDocument)
-    return NS_OK;
+  NS_ENSURE_TRUE(accDocument, NS_ERROR_FAILURE);
 
   nsCOMPtr<nsPIAccessNode> accessNodeDocument(do_QueryInterface(accDocument));
   NS_ASSERTION(accessNodeDocument,
@@ -1092,37 +1108,75 @@ nsAccessible::GetChildAtPoint(PRInt32 aX, PRInt32 aY,
 
   nsCOMPtr<nsIPresShell> presShell = presContext->PresShell();
   nsIFrame *foundFrame = presShell->GetFrameForPoint(frame, offset);
-  if (!foundFrame)
+  nsCOMPtr<nsIContent> content;
+  if (!foundFrame || !(content = foundFrame->GetContent())) {
+    NS_IF_ADDREF(*aAccessible = fallbackAnswer);
     return NS_OK;
-
-  nsCOMPtr<nsIContent> content(foundFrame->GetContent());
-  if (!content)
-    return NS_OK;
+  }
 
   nsCOMPtr<nsIDOMNode> node(do_QueryInterface(content));
   nsCOMPtr<nsIAccessibilityService> accService = GetAccService();
 
   nsCOMPtr<nsIDOMNode> relevantNode;
   accService->GetRelevantContentNodeFor(node, getter_AddRefs(relevantNode));
-  if (!relevantNode)
+  if (!relevantNode) {
+    NS_IF_ADDREF(*aAccessible = fallbackAnswer);
     return NS_OK;
+  }
 
   nsCOMPtr<nsIAccessible> accessible;
   accService->GetAccessibleFor(relevantNode, getter_AddRefs(accessible));
-  if (!accessible)
-    return NS_OK;
-
-  nsCOMPtr<nsIAccessible> parent;
-  accessible->GetParent(getter_AddRefs(parent));
-
-  while (parent && parent != this) {
-    accessible.swap(parent);
-    accessible->GetParent(getter_AddRefs(parent));
+  if (!accessible) {
+    
+    
+    accDocument->GetAccessibleInParentChain(relevantNode,
+                                            getter_AddRefs(accessible));
+    if (!accessible) {
+      NS_IF_ADDREF(*aAccessible = fallbackAnswer);
+      return NS_OK;
+    }
   }
 
-  if (parent)
-    NS_ADDREF(*aAccessible = accessible);
+  if (accessible == this) {
+    
+    
+    
+    
+    nsCOMPtr<nsIAccessible> child;
+    while (NextChild(child)) {
+      PRInt32 childX, childY, childWidth, childHeight;
+      child->GetBounds(&childX, &childY, &childWidth, &childHeight);
+      if (aX >= childX && aX < childX + childWidth &&
+          aY >= childY && aY < childY + childHeight &&
+          (State(child) & nsIAccessibleStates::STATE_INVISIBLE) == 0) {
+        
+        NS_IF_ADDREF(*aAccessible = child);
+        return NS_OK;
+      }
+    }
+    
+    
+  }
+  else {
+    nsCOMPtr<nsIAccessible> parent;
+    while (PR_TRUE) {
+      accessible->GetParent(getter_AddRefs(parent));
+      if (!parent) {
+        
+        
+        NS_IF_ADDREF(*aAccessible = fallbackAnswer);
+        return NS_OK;
+      }
+      if (parent == this) {
+        
+        
+        break;
+      }
+      accessible.swap(parent);
+    }
+  }
 
+  NS_IF_ADDREF(*aAccessible = accessible);
   return NS_OK;
 }
 
