@@ -110,11 +110,16 @@ private:
 
   void ReleaseCallback()
   {
-    if (mCallbackType == CALLBACK_TYPE_INTERFACE)
+    
+    
+    
+    PRUint8 cbType = mCallbackType;
+    mCallbackType = CALLBACK_TYPE_UNKNOWN; 
+
+    if (cbType == CALLBACK_TYPE_INTERFACE)
       NS_RELEASE(mCallback.i);
-    else if (mCallbackType == CALLBACK_TYPE_OBSERVER)
+    else if (cbType == CALLBACK_TYPE_OBSERVER)
       NS_RELEASE(mCallback.o);
-    mCallbackType = CALLBACK_TYPE_UNKNOWN;
   }
 
   nsCOMPtr<nsIThread>   mCallingThread;
