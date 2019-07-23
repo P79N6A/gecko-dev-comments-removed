@@ -73,7 +73,7 @@ nsThebesFontMetrics::Init(const nsFont& aFont, nsIAtom* aLangGroup,
     mTextRunRTL = PR_FALSE;
 
     
-    double size = NSAppUnitsToFloatPixels(aFont.size, mP2A);
+    gfxFloat size = gfxFloat(aFont.size) / mP2A;
     if (size == 0.0)
         size = 1.0;
 

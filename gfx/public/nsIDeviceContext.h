@@ -45,6 +45,8 @@
 #include "nsIWidget.h"
 #include "nsIRenderingContext.h"
 
+#include "gfxPoint.h"
+
 class nsIView;
 class nsIFontMetrics;
 class nsIWidget;
@@ -168,8 +170,8 @@ const PRUint8 kUseAltDCFor_SURFACE_DIM     = 0x08;
 
 
 #define NS_IDEVICE_CONTEXT_IID   \
-{ 0x7353cfdf, 0x964f, 0x4c20, \
- { 0x87, 0x29, 0xb1, 0x17, 0x29, 0xcc, 0x00, 0x00 } }
+{ 0x4dd372b6, 0xef19, 0x4995, \
+ { 0xa7, 0xac, 0xba, 0x3e, 0xfd, 0x3f, 0x65, 0x6f } }
 
 
 typedef void * nsPalette;
@@ -283,8 +285,20 @@ public:
   
 
 
+  static gfxFloat AppUnitsToGfxCSSPixels(nscoord aAppUnits)
+  { return gfxFloat(aAppUnits) / AppUnitsPerCSSPixel(); }
+
+  
+
+
 
   PRInt32 AppUnitsPerDevPixel() const { return mAppUnitsPerDevPixel; }
+
+  
+
+
+  gfxFloat AppUnitsToGfxUnits(nscoord aAppUnits) const
+  { return gfxFloat(aAppUnits) / AppUnitsPerDevPixel(); }
 
   
 
