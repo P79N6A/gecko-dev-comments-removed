@@ -124,6 +124,9 @@ function run_test() {
   
   
   var oldLastModified = bmsvc.getItemLastModified(bookmarkId);
+  
+  
+  bmsvc.setItemTitle(bookmarkId, "Google"); 
   bmsvc.setItemTitle(bookmarkId, "Google");
   
   do_check_neq(oldLastModified, childNode.lastModified);
