@@ -419,6 +419,10 @@ nsNavHistory::StartSearch(const nsAString & aSearchString,
   NS_ENSURE_ARG_POINTER(aListener);
 
   
+  if (!mTextURIService)
+    mTextURIService = do_GetService(NS_ITEXTTOSUBURI_CONTRACTID);
+
+  
   PRUint32 prevMatchCount = mCurrentResultURLs.Count();
   nsAutoString prevSearchString(mCurrentSearchString);
 
@@ -682,11 +686,6 @@ nsNavHistory::AutoCompleteProcessSearch(mozIStorageStatement* aQuery,
     
     PRBool dummy;
     if (!mCurrentResultURLs.Get(escapedEntryURL, &dummy)) {
-      
-      NS_LossyConvertUTF16toASCII cEntryURL(escapedEntryURL);
-      NS_UnescapeURL(cEntryURL);
-      NS_ConvertUTF8toUTF16 entryURL(cEntryURL);
-
       PRInt64 parentId = 0;
       nsAutoString entryTitle, entryFavicon, entryBookmarkTitle;
       rv = aQuery->GetString(kAutoCompleteIndex_Title, entryTitle);
@@ -716,6 +715,9 @@ nsNavHistory::AutoCompleteProcessSearch(mozIStorageStatement* aQuery,
           
           if (aHasMoreResults)
             *aHasMoreResults = PR_TRUE;
+
+          
+          nsString entryURL = FixupURIText(escapedEntryURL);
 
           
           
@@ -826,4 +828,24 @@ nsNavHistory::AutoCompleteFeedback(PRInt32 aIndex,
   NS_ENSURE_SUCCESS(rv, rv);
 
   return NS_OK;
+}
+
+nsString
+nsNavHistory::FixupURIText(const nsAString &aURIText)
+{
+  
+  NS_ConvertUTF16toUTF8 escaped(aURIText);
+
+  nsString fixedUp;
+  
+  if (mTextURIService) {
+    mTextURIService->UnEscapeURIForUI(NS_LITERAL_CSTRING("UTF-8"),
+      escaped, fixedUp);
+    return fixedUp;
+  }
+
+  
+  NS_UnescapeURL(escaped);
+  CopyUTF8toUTF16(escaped, fixedUp);
+  return fixedUp;
 }
