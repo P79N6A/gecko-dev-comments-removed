@@ -53,7 +53,6 @@ addPageBook(1, 0);
 
 
 
-
 let gTests = [
   ["0: Match non-javascript: with plain search",
    "a", [0]],

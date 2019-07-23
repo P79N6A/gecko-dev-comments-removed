@@ -61,8 +61,6 @@ addPageBook(3, 0, 0, [0,1,2]);
 
 
 
-
-
 let gTests = [
   ["0: Make sure tags come back in the title when matching tags",
    "page1 tag", [0]],
