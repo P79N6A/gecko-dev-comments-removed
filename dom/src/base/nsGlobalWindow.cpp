@@ -659,8 +659,8 @@ nsGlobalWindow::nsGlobalWindow(nsGlobalWindow *aOuterWindow)
   }
 #ifdef DEBUG
   printf("++DOMWINDOW == %d (%p) [serial = %d] [Outer = %p]\n", gRefCnt,
-         static_cast<nsIScriptGlobalObject*>(this), ++gSerialCounter,
-         aOuterWindow);
+         static_cast<void*>(static_cast<nsIScriptGlobalObject*>(this)),
+         ++gSerialCounter, aOuterWindow);
   mSerial = gSerialCounter;
 #endif
 
@@ -680,8 +680,9 @@ nsGlobalWindow::~nsGlobalWindow()
     NS_IF_RELEASE(gEntropyCollector);
   }
 #ifdef DEBUG
-  printf("--DOMWINDOW == %d (%p) [serial = %d] [Outer = %p]\n", gRefCnt,
-         static_cast<nsIScriptGlobalObject*>(this), mSerial, mOuterWindow);
+  printf("--DOMWINDOW == %d (%p) [serial = %d] [Outer = %p]\n",
+         gRefCnt, static_cast<void*>(static_cast<nsIScriptGlobalObject*>(this)),
+         mSerial, mOuterWindow);
 #endif
 
 #ifdef PR_LOGGING
@@ -1938,6 +1939,18 @@ nsGlobalWindow::SetNewDocument(nsIDocument* aDocument,
                                   OBJECT_TO_JSVAL(nav), nsnull, nsnull,
                                   JSPROP_ENUMERATE | JSPROP_PERMANENT |
                                   JSPROP_READONLY);
+
+              
+              
+              
+              
+              nsIDOMNavigator* navigator =
+                static_cast<nsIDOMNavigator*>(mNavigator);
+
+              xpc->
+                ReparentWrappedNativeIfFound(cx, nav, newInnerWindow->mJSObject,
+                                             navigator,
+                                             getter_AddRefs(navigatorHolder));
             }
           }
         }
