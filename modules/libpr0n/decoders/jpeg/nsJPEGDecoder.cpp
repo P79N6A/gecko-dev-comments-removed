@@ -208,7 +208,7 @@ NS_IMETHODIMP nsJPEGDecoder::Close(PRUint32 aFlags)
   
 
   if (!(aFlags & CLOSE_FLAG_DONTNOTIFY) &&
-      !(mFlags && imgIDecoder::DECODER_FLAG_HEADERONLY) &&
+      !(mFlags & imgIDecoder::DECODER_FLAG_HEADERONLY) &&
       !mNotifiedDone)
     NotifyDone( PR_FALSE);
 
