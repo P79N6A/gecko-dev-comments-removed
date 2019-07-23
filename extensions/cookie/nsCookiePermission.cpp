@@ -37,6 +37,7 @@
 
 
 
+
 #include "nsCookiePermission.h"
 #include "nsICookie2.h"
 #include "nsIServiceManager.h"
@@ -49,11 +50,12 @@
 #include "nsIPrefBranch2.h"
 #include "nsIDocShell.h"
 #include "nsIDocShellTreeItem.h"
-#include "nsIInterfaceRequestor.h"
-#include "nsIInterfaceRequestorUtils.h"
-#include "nsILoadGroup.h"
+#include "nsIWebNavigation.h"
+#include "nsINode.h"
 #include "nsIChannel.h"
 #include "nsIDOMWindow.h"
+#include "nsIDOMDocument.h"
+#include "nsIPrincipal.h"
 #include "nsString.h"
 #include "nsCRT.h"
 
@@ -199,7 +201,6 @@ nsCookiePermission::SetAccess(nsIURI         *aURI,
 
 NS_IMETHODIMP
 nsCookiePermission::CanAccess(nsIURI         *aURI,
-                              nsIURI         *aFirstURI,
                               nsIChannel     *aChannel,
                               nsCookieAccess *aResult)
 {
@@ -235,7 +236,6 @@ nsCookiePermission::CanAccess(nsIURI         *aURI,
       }
     }
     if ((appType == nsIDocShell::APP_TYPE_MAIL) ||
-        (aFirstURI && IsFromMailNews(aFirstURI)) ||
         IsFromMailNews(aURI)) {
       *aResult = ACCESS_DENY;
       return NS_OK;
@@ -418,6 +418,94 @@ nsCookiePermission::CanSetCookie(nsIURI     *aURI,
     }
   }
 
+  return NS_OK;
+}
+
+NS_IMETHODIMP 
+nsCookiePermission::GetOriginatingURI(nsIChannel  *aChannel,
+                                      nsIURI     **aURI)
+{
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  *aURI = nsnull;
+
+  
+  if (!aChannel)
+    return NS_ERROR_NULL_POINTER;
+
+  
+  nsCOMPtr<nsIDocShellTreeItem> docshell, root;
+  NS_QueryNotificationCallbacks(aChannel, docshell);
+  if (docshell)
+    docshell->GetSameTypeRootTreeItem(getter_AddRefs(root));
+
+  PRInt32 type;
+  if (root)
+    root->GetItemType(&type);
+
+  
+  if (!root || type != nsIDocShellTreeItem::typeContent)
+    return NS_ERROR_INVALID_ARG;
+
+  
+  if (docshell == root) {
+    nsLoadFlags flags;
+    aChannel->GetLoadFlags(&flags);
+
+    if (flags & nsIChannel::LOAD_DOCUMENT_URI) {
+      
+      aChannel->GetURI(aURI);
+      if (!*aURI)
+        return NS_ERROR_NULL_POINTER;
+
+      return NS_OK;
+    }
+  }
+
+  
+  nsCOMPtr<nsIWebNavigation> webnav = do_QueryInterface(root);
+  if (webnav) {
+    nsCOMPtr<nsIDOMDocument> doc;
+    webnav->GetDocument(getter_AddRefs(doc));
+    nsCOMPtr<nsINode> node = do_QueryInterface(doc);
+    if (node)
+      node->NodePrincipal()->GetURI(aURI);
+  }
+
+  if (!*aURI)
+    return NS_ERROR_NULL_POINTER;
+
+  
   return NS_OK;
 }
 
