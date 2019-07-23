@@ -2028,12 +2028,8 @@ nsCookieService::CheckPath(nsCookieAttributes &aCookieAttributes,
       }
     }
 
-  } else {
-    if (aCookieAttributes.path.Length() > kMaxBytesPerPath ||
-        aCookieAttributes.path.FindChar('\t') != kNotFound )
-      return PR_FALSE;
-
 #if 0
+  } else {
     
 
 
@@ -2048,6 +2044,10 @@ nsCookieService::CheckPath(nsCookieAttributes &aCookieAttributes,
     }
 #endif
   }
+
+  if (aCookieAttributes.path.Length() > kMaxBytesPerPath ||
+      aCookieAttributes.path.FindChar('\t') != kNotFound )
+    return PR_FALSE;
 
   return PR_TRUE;
 }
