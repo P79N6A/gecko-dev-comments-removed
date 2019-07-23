@@ -51,7 +51,11 @@
 #include "nsIContent.h"
 #include "nsGUIEvent.h"
 #include "nsXULFormControlAccessible.h"
+#include "nsILookAndFeel.h"
+#include "nsWidgetsCID.h"
 
+
+static NS_DEFINE_CID(kLookAndFeelCID, NS_LOOKANDFEEL_CID);
 
 
 
@@ -322,7 +326,9 @@ nsXULMenuitemAccessible::GetState(PRUint32 *aState, PRUint32 *aExtraState)
   }
 
   
-  if (Role(this) == nsIAccessibleRole::ROLE_COMBOBOX_OPTION) {
+  PRBool isComboboxOption =
+    (Role(this) == nsIAccessibleRole::ROLE_COMBOBOX_OPTION);
+  if (isComboboxOption) {
     
     PRBool isSelected = PR_FALSE;
     nsCOMPtr<nsIDOMXULSelectControlItemElement>
@@ -338,12 +344,6 @@ nsXULMenuitemAccessible::GetState(PRUint32 *aState, PRUint32 *aExtraState)
       isCollapsed = PR_TRUE;
     }
     
-    
-    if (0 == (*aState & nsIAccessibleStates::STATE_UNAVAILABLE)) {
-      *aState |= (nsIAccessibleStates::STATE_FOCUSABLE |
-                  nsIAccessibleStates::STATE_SELECTABLE);
-    }
-
     if (isSelected) {
       *aState |= nsIAccessibleStates::STATE_SELECTED;
       
@@ -368,6 +368,23 @@ nsXULMenuitemAccessible::GetState(PRUint32 *aState, PRUint32 *aExtraState)
       } 
     } 
   } 
+
+  
+  
+  if (*aState & nsIAccessibleStates::STATE_UNAVAILABLE) {
+    
+    nsCOMPtr<nsILookAndFeel> lookNFeel(do_GetService(kLookAndFeelCID));
+    PRInt32 skipDisabledMenuItems = 0;
+    lookNFeel->GetMetric(nsILookAndFeel::eMetric_SkipNavigatingDisabledMenuItem,
+                         skipDisabledMenuItems);
+    
+    
+    if (skipDisabledMenuItems || isComboboxOption) {
+      return NS_OK;
+    }
+  }
+  *aState|= (nsIAccessibleStates::STATE_FOCUSABLE |
+             nsIAccessibleStates::STATE_SELECTABLE);
 
   return NS_OK;
 }
