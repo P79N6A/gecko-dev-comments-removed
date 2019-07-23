@@ -138,6 +138,7 @@ class nsCocoaUtils
   
   
   
+  
   static NSPoint ScreenLocationForEvent(NSEvent* anEvent);
   
   
