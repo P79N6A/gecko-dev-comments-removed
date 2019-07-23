@@ -5174,7 +5174,7 @@ TryMatchingElementsInSubtree(nsINode* aRoot,
 
 
 
-  char databuf[2 * sizeof(RuleProcessorData)];
+  union { char c[2 * sizeof(RuleProcessorData)]; void *p; } databuf;
   RuleProcessorData* prevSibling = nsnull;
   RuleProcessorData* data = reinterpret_cast<RuleProcessorData*>(databuf);
 
