@@ -41,6 +41,10 @@
 
 #include "nsXPCOM.h"
 
+#ifdef XP_WIN
+#include <objbase.h>
+#endif
+
 namespace mozilla {
 namespace ipc {
 
@@ -57,6 +61,11 @@ MozillaChildThread::Init()
 {
   ChildThread::Init();
 
+#ifdef XP_WIN
+  
+  ::CoInitialize(NULL);
+#endif
+
   
   
   message_loop()->set_exception_restoration(true);
@@ -68,6 +77,10 @@ void
 MozillaChildThread::CleanUp()
 {
   NS_LogTerm();
+
+#ifdef XP_WIN
+  ::CoUninitialize();
+#endif
 }
 
 } 
