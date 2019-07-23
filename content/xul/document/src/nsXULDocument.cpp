@@ -2534,7 +2534,14 @@ nsXULDocument::InsertXMLStylesheetPI(const nsXULPrototypePI* aProtoPI,
         ++mPendingSheets;
     }
 
-    return rv;
+    
+    
+    
+    if (rv == NS_ERROR_OUT_OF_MEMORY) {
+        return rv;
+    }
+    
+    return NS_OK;
 }
 
 nsresult
