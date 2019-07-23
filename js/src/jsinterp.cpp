@@ -5036,8 +5036,23 @@ js_Interpret(JSContext *cx)
                     }
 #endif
                     regs.sp = vp + 1;
-                    if (!ok)
-                        goto error;
+                    if (!ok) {
+                        
+
+
+
+
+                        if (fp->imacpc && *fp->imacpc == JSOP_NEXTITER &&
+                            cx->throwing && js_ValueIsStopIteration(cx->exception)) {
+                            
+                            JS_ASSERT(*regs.pc == JSOP_CALL || *regs.pc == JSOP_DUP);
+                            cx->throwing = JS_FALSE;
+                            cx->exception = JSVAL_VOID;
+                            regs.sp[-1] = JSVAL_HOLE;
+                        } else {
+                            goto error;
+                        }
+                    }
                     TRACE_0(FastNativeCallComplete);
                     goto end_call;
                 }
