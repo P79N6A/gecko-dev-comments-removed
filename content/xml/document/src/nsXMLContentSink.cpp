@@ -139,8 +139,7 @@ NS_NewXMLContentSink(nsIXMLContentSink** aResult,
 
 nsXMLContentSink::nsXMLContentSink()
   : mConstrainSize(PR_TRUE),
-    mPrettyPrintXML(PR_TRUE),
-    mAllowAutoXLinks(PR_TRUE)
+    mPrettyPrintXML(PR_TRUE)
 {
 }
 
@@ -980,7 +979,6 @@ nsXMLContentSink::SetDocElement(PRInt32 aNameSpaceID,
     if (mPrettyPrintXML) {
       
       
-      mAllowAutoXLinks = PR_FALSE;
       mDocument->ScriptLoader()->SetEnabled(PR_FALSE);
       if (mCSSLoader) {
         mCSSLoader->SetEnabled(PR_FALSE);
@@ -1537,17 +1535,6 @@ nsXMLContentSink::AddAttributes(const PRUnichar** aAtts,
     aContent->SetAttr(nameSpaceID, localName, prefix,
                       nsDependentString(aAtts[1]), PR_FALSE);
     aAtts += 2;
-  }
-
-  
-  if (mDocShell && mAllowAutoXLinks) {
-    nsresult rv = aContent->MaybeTriggerAutoLink(mDocShell);
-    if (rv == NS_XML_AUTOLINK_REPLACE ||
-        rv == NS_XML_AUTOLINK_UNDEFINED) {
-      
-      
-      mParser->Terminate();
-    }
   }
 
   return NS_OK;

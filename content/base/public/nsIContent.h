@@ -72,8 +72,8 @@ enum nsLinkState {
 
 
 #define NS_ICONTENT_IID       \
-{ 0xd510382f, 0xf5eb, 0x48bb, \
-  { 0x9a, 0xd9, 0xb3, 0xdc, 0x48, 0x06, 0xfa, 0xaf } }
+{ 0xc726e716, 0xa4be, 0x4202, \
+  { 0x8a, 0x5e, 0x32, 0xd0, 0x52, 0x59, 0x03, 0xe8 } }
 
 
 
@@ -671,26 +671,6 @@ public:
   virtual already_AddRefed<nsIURI> GetHrefURI() const
   {
     return nsnull;
-  }
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  virtual nsresult MaybeTriggerAutoLink(nsIDocShell *aShell)
-  {
-    return NS_OK;
   }
 
   

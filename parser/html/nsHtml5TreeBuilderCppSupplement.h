@@ -310,20 +310,6 @@ nsHtml5TreeBuilder::elementPushed(PRInt32 aNamespace, nsIAtom* aName, nsIContent
       return;
     }
   }
-  #if 0
-    else {
-    nsIDocShell* docShell = parser->GetDocShell();
-    if (docShell) {
-      nsresult rv = aElement->MaybeTriggerAutoLink(docShell);
-      if (rv == NS_XML_AUTOLINK_REPLACE ||
-          rv == NS_XML_AUTOLINK_UNDEFINED) {
-        
-        
-        parser->Terminate();
-      }
-    }
-  }
-  #endif
   mExecutor->MaybeSuspend();
 }
 
