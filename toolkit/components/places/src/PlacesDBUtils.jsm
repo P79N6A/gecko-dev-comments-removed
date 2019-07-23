@@ -230,40 +230,7 @@ nsPlacesDBUtils.prototype = {
       ")");
     cleanupStatements.push(deleteOrphanAnnos);
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    
     
     
     
@@ -274,8 +241,9 @@ nsPlacesDBUtils.prototype = {
       
       let createPlacesRoot = this._dbConn.createStatement(
         "INSERT INTO moz_bookmarks (id, type, fk, parent, position, title) " +
-        "VALUES (:places_root, 2, NULL, 0, 0, NULL)");
+        "VALUES (:places_root, 2, NULL, 0, 0, :title)");
       createPlacesRoot.params["places_root"] = this._bms.placesRoot;
+      createPlacesRoot.params["title"] = "";
       cleanupStatements.push(createPlacesRoot);
 
       
@@ -287,6 +255,41 @@ nsPlacesDBUtils.prototype = {
       cleanupStatements.push(fixPlacesRootChildren);
     }
     selectPlacesRoot.finalize();
+
+    
+    
+    
+    let updateRootTitleSql = "UPDATE moz_bookmarks SET title = :title " +
+                             "WHERE id = :root_id AND title <> :title";
+    
+    let fixPlacesRootTitle = this._dbConn.createStatement(updateRootTitleSql);
+    fixPlacesRootTitle.params["root_id"] = this._bms.placesRoot;
+    fixPlacesRootTitle.params["title"] = "";
+    cleanupStatements.push(fixPlacesRootTitle);
+    
+    let fixBookmarksMenuTitle = this._dbConn.createStatement(updateRootTitleSql);
+    fixBookmarksMenuTitle.params["root_id"] = this._bms.bookmarksMenuFolder;
+    fixBookmarksMenuTitle.params["title"] =
+      this._bundle.GetStringFromName("BookmarksMenuFolderTitle");
+    cleanupStatements.push(fixBookmarksMenuTitle);
+    
+    let fixBookmarksToolbarTitle = this._dbConn.createStatement(updateRootTitleSql);
+    fixBookmarksToolbarTitle.params["root_id"] = this._bms.toolbarFolder;
+    fixBookmarksToolbarTitle.params["title"] =
+      this._bundle.GetStringFromName("BookmarksToolbarFolderTitle");
+    cleanupStatements.push(fixBookmarksToolbarTitle);
+    
+    let fixUnsortedBookmarksTitle = this._dbConn.createStatement(updateRootTitleSql);
+    fixUnsortedBookmarksTitle.params["root_id"] = this._bms.unfiledBookmarksFolder;
+    fixUnsortedBookmarksTitle.params["title"] =
+      this._bundle.GetStringFromName("UnsortedBookmarksFolderTitle");
+    cleanupStatements.push(fixUnsortedBookmarksTitle);
+    
+    let fixTagsRootTitle = this._dbConn.createStatement(updateRootTitleSql);
+    fixTagsRootTitle.params["root_id"] = this._bms.tagsFolder;
+    fixTagsRootTitle.params["title"] =
+      this._bundle.GetStringFromName("TagsFolderTitle");
+    cleanupStatements.push(fixTagsRootTitle);
 
     
     
