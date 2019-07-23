@@ -10644,17 +10644,15 @@ TraceRecorder::getClassPrototype(JSProtoKey key, LIns*& proto_ins)
     
     JS_ASSERT(localtm.recorder);
 
-    
-    
-    
+#ifdef DEBUG
     
     if (key != JSProto_Array) {
-        if (!OBJ_IS_NATIVE(proto))
-            RETURN_STOP("non-native class prototype");
+        JS_ASSERT(OBJ_IS_NATIVE(proto));
         JSEmptyScope *emptyScope = OBJ_SCOPE(proto)->emptyScope;
-        if (!emptyScope || JSCLASS_CACHED_PROTO_KEY(emptyScope->clasp) != key)
-            RETURN_STOP("class prototype is not the standard one");
+        JS_ASSERT(emptyScope);
+        JS_ASSERT(JSCLASS_CACHED_PROTO_KEY(emptyScope->clasp) == key);
     }
+#endif
 
     proto_ins = INS_CONSTOBJ(proto);
     return RECORD_CONTINUE;
@@ -14163,9 +14161,11 @@ TraceRecorder::record_JSOP_LAMBDA()
         return ARECORD_CONTINUE;
     }
 
+    LIns *proto_ins;
+    CHECK_STATUS_A(getClassPrototype(JSProto_Function, proto_ins));
     LIns* scopeChain_ins = scopeChain();
     JS_ASSERT(scopeChain_ins);
-    LIns* args[] = { scopeChain_ins, INS_CONSTPTR(fun), cx_ins };
+    LIns* args[] = { proto_ins, scopeChain_ins, INS_CONSTPTR(fun), cx_ins };
     LIns* call_ins = lir->insCall(&js_CloneFunctionObject_ci, args);
     guard(false,
           addName(lir->ins_peq0(call_ins), "guard(js_CloneFunctionObject)"),
@@ -14535,7 +14535,11 @@ TraceRecorder::record_JSOP_REGEXP()
     JSScript* script = fp->script;
     unsigned index = atoms - script->atomMap.vector + GET_INDEX(fp->regs->pc);
 
+    LIns* proto_ins;
+    CHECK_STATUS_A(getClassPrototype(JSProto_RegExp, proto_ins));
+
     LIns* args[] = {
+        proto_ins,
         INS_CONSTOBJ(script->getRegExp(index)),
         cx_ins
     };
