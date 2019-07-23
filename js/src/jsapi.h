@@ -926,7 +926,6 @@ JS_CallTracer(JSTracer *trc, void *thing, uint32 kind);
 
 
 
-
 #ifdef DEBUG
 # define JS_SET_TRACING_DETAILS(trc, printer, arg, index)                     \
     JS_BEGIN_MACRO                                                            \
@@ -1009,10 +1008,33 @@ JS_CallTracer(JSTracer *trc, void *thing, uint32 kind);
 extern JS_PUBLIC_API(void)
 JS_TraceChildren(JSTracer *trc, void *thing, uint32 kind);
 
+extern JS_PUBLIC_API(void)
+JS_TraceRuntime(JSTracer *trc);
+
 #ifdef DEBUG
+
 extern JS_PUBLIC_API(void)
 JS_PrintTraceThingInfo(char *buf, size_t bufsize, JSTracer *trc,
                        void *thing, uint32 kind, JSBool includeDetails);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+extern JS_PUBLIC_API(JSBool)
+JS_DumpHeap(JSContext *cx, void* startThing, uint32 startKind,
+            void *thingToFind, size_t maxDepth, void *thingToIgnore,
+            JSPrintfFormater format, void *closure);
 #endif
 
 
