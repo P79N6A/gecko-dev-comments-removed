@@ -828,6 +828,7 @@ LoginManager.prototype = {
         
         
         
+        
         if (this._isAutocompleteDisabled(form) ||
             this._isAutocompleteDisabled(usernameField) ||
             this._isAutocompleteDisabled(newPasswordField) ||
@@ -913,6 +914,13 @@ LoginManager.prototype = {
                 this.log("...passwords differ, prompting to change.");
                 prompter = getPrompter(win);
                 prompter.promptToChangePassword(existingLogin, formLogin);
+            } else {
+                
+                var propBag = Cc["@mozilla.org/hash-property-bag;1"].
+                              createInstance(Ci.nsIWritablePropertyBag);
+                propBag.setProperty("timeLastUsed", Date.now());
+                propBag.setProperty("timesUsedIncrement", 1);
+                this.modifyLogin(existingLogin, propBag);
             }
 
             return;

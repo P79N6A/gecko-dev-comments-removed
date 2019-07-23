@@ -237,6 +237,13 @@ const LoginTest = {
         profileFile.remove(false);
 
     file.copyTo(PROFDIR, filename);
+  },
+
+  
+  is_about_now : function (timestamp) {
+    var delta = Math.abs(timestamp - Date.now());
+    var seconds = 30 * 1000;
+    return delta < seconds;
   }
 };
 
