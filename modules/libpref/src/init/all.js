@@ -2761,6 +2761,9 @@ pref("image.cache.timeweight", 500);
 
 pref("image.http.accept", "image/png,image/*;q=0.8,*/*;q=0.5");
 
+
+pref("webgl.enabled_for_all_sites", false);
+
 #ifdef XP_WIN
 #ifndef WINCE
 

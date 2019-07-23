@@ -1,4 +1,42 @@
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "WebGLContext.h"
 
 #include "prprf.h"
@@ -21,7 +59,6 @@
 #include "nsContentUtils.h"
 
 #if 0
-
 #include "nsIContentURIGrouper.h"
 #include "nsIContentPrefService.h"
 #endif
@@ -50,14 +87,11 @@ WebGLContext::SafeToCreateCanvas3DContext(nsICanvasElement *canvasElement)
     NS_ENSURE_SUCCESS(rv, PR_FALSE);
 
     PRBool allSites = PR_FALSE;
-    rv = prefService->GetBoolPref("layout.canvas3d.enabled_for_all_sites", &allSites);
+    rv = prefService->GetBoolPref("webgl.enabled_for_all_sites", &allSites);
     if (NS_SUCCEEDED(rv) && allSites) {
         
         return PR_TRUE;
     }
-
-    
-    
 
 #if 0
     
@@ -83,7 +117,7 @@ WebGLContext::SafeToCreateCanvas3DContext(nsICanvasElement *canvasElement)
 
     
     nsCOMPtr<nsIVariant> val;
-    rv = cpsvc->GetPref(contentURI, NS_LITERAL_STRING("canvas3d.enabled"), getter_AddRefs(val));
+    rv = cpsvc->GetPref(contentURI, NS_LITERAL_STRING("webgl.enabled"), getter_AddRefs(val));
     NS_ENSURE_SUCCESS(rv, PR_FALSE);
 
     PRInt32 iv;
