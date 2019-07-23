@@ -280,13 +280,15 @@ BrowserGlue.prototype = {
                      getService(Ci.nsIPrefBranch);
     var showPrompt = true;
     try {
-      if (prefBranch.getIntPref("browser.startup.page") == 3 ||
-          prefBranch.getBoolPref("browser.sessionstore.resume_session_once"))
+      
+      
+      
+      if (prefBranch.getBoolPref("browser.warnOnQuit") == false)
         showPrompt = false;
+      else if (aQuitType == "restart")
+        showPrompt = prefBranch.getBoolPref("browser.warnOnRestart");
       else
-        showPrompt = aQuitType == "restart" ?
-                     prefBranch.getBoolPref("browser.warnOnRestart") :
-                     prefBranch.getBoolPref("browser.warnOnQuit");
+        showPrompt = prefBranch.getBoolPref("browser.tabs.warnOnClose");
     } catch (ex) {}
 
     var buttonChoice = 0;
@@ -338,7 +340,7 @@ BrowserGlue.prototype = {
       switch (buttonChoice) {
       case 2:
         if (neverAsk.value)
-          prefBranch.setBoolPref("browser.warnOnQuit", false);
+          prefBranch.setBoolPref("browser.tabs.warnOnClose", false);
         break;
       case 1:
         aCancelQuit.QueryInterface(Ci.nsISupportsPRBool);
@@ -351,6 +353,7 @@ BrowserGlue.prototype = {
             prefBranch.setBoolPref("browser.warnOnRestart", false);
           else {
             
+            prefBranch.setBoolPref("browser.tabs.warnOnClose", false);
             
             prefBranch.setIntPref("browser.startup.page", 3);
           }
