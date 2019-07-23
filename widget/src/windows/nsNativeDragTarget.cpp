@@ -422,6 +422,11 @@ nsNativeDragTarget::Drop(LPDATAOBJECT pData,
   ProcessDrag(pData, NS_DRAGDROP_DROP, grfKeyState, aPT, pdwEffect);
 
   
+  
+  
+  winDragService->SetDroppedLocal();
+
+  
   serv->EndDragSession(PR_TRUE);
   return S_OK;
 }

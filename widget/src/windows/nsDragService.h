@@ -75,6 +75,9 @@ public:
   NS_IMETHOD StartInvokingDragSession(IDataObject * aDataObj,
                                       PRUint32 aActionType);
 
+  
+  void SetDroppedLocal();
+
 protected:
   nsDataObjCollection* GetDataObjCollection(IDataObject * aDataObj);
 
@@ -93,6 +96,7 @@ protected:
   IDropSource * mNativeDragSrc;
   nsNativeDragTarget * mNativeDragTarget;
   IDataObject * mDataObject;
+  PRPackedBool mSentLocalDropEvent;
 };
 
 #endif 

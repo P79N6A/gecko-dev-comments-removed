@@ -80,7 +80,7 @@
 
 
 nsDragService::nsDragService()
-  : mNativeDragSrc(nsnull), mNativeDragTarget(nsnull), mDataObject(nsnull)
+  : mNativeDragSrc(nsnull), mNativeDragTarget(nsnull), mDataObject(nsnull), mSentLocalDropEvent(PR_FALSE)
 {
 }
 
@@ -278,7 +278,7 @@ nsDragService::StartInvokingDragSession(IDataObject * aDataObj,
   mNativeDragSrc->AddRef();
 
   
-  DWORD dropRes;
+  DWORD winDropRes;
   DWORD effects = DROPEFFECT_SCROLL;
   if (aActionType & DRAGDROP_ACTION_COPY) {
     effects |= DROPEFFECT_COPY;
@@ -294,6 +294,7 @@ nsDragService::StartInvokingDragSession(IDataObject * aDataObj,
   
   mDragAction = aActionType;
   mDoingDrag  = PR_TRUE;
+  mSentLocalDropEvent = PR_FALSE;
 
   
   StartDragSession();
@@ -311,7 +312,7 @@ nsDragService::StartInvokingDragSession(IDataObject * aDataObj,
   }
 
   
-  HRESULT res = ::DoDragDrop(aDataObj, mNativeDragSrc, effects, &dropRes);
+  HRESULT res = ::DoDragDrop(aDataObj, mNativeDragSrc, effects, &winDropRes);
 
   if (isAsyncAvailable)
   {
@@ -326,6 +327,31 @@ nsDragService::StartInvokingDragSession(IDataObject * aDataObj,
     }
   }
 
+  
+  
+  if (!mSentLocalDropEvent) {
+    PRUint32 dropResult;
+    
+    if (winDropRes & DROPEFFECT_COPY)
+        dropResult = DRAGDROP_ACTION_COPY;
+    else if (winDropRes & DROPEFFECT_LINK)
+        dropResult = DRAGDROP_ACTION_LINK;
+    else if (winDropRes & DROPEFFECT_MOVE)
+        dropResult = DRAGDROP_ACTION_MOVE;
+    else
+        dropResult = DRAGDROP_ACTION_NONE;
+    
+    nsCOMPtr<nsIDOMNSDataTransfer> dataTransfer =
+      do_QueryInterface(mDataTransfer);
+
+    if (dataTransfer) {
+      if (res == DRAGDROP_S_DROP) 
+        dataTransfer->SetDropEffectInt(dropResult);
+      else
+        dataTransfer->SetDropEffectInt(DRAGDROP_ACTION_NONE);
+    }
+  }
+      
   
   EndDragSession(PR_TRUE);
 
@@ -466,6 +492,16 @@ nsDragService::SetIDataObject(IDataObject * aDataObj)
   NS_IF_ADDREF(mDataObject);
 
   return NS_OK;
+}
+
+
+void
+nsDragService::SetDroppedLocal()
+{
+  
+  
+  mSentLocalDropEvent = PR_TRUE;
+  return;
 }
 
 
