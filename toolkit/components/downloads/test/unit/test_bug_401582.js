@@ -38,6 +38,8 @@
 
 
 
+cleanup();
+
 importDownloadsFile("bug_401582_downloads.sqlite");
 
 const nsIDownloadManager = Ci.nsIDownloadManager;
@@ -62,4 +64,6 @@ function run_test()
 {
   for (var i = 0; i < tests.length; i++)
     tests[i]();
+  
+  cleanup();
 }

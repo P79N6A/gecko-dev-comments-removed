@@ -38,6 +38,8 @@
 
 
 
+cleanup();
+
 importDownloadsFile("bug_409179_downloads.sqlite");
 
 function run_test()
@@ -50,4 +52,6 @@ function run_test()
     caughtException = true;
   }
   do_check_false(caughtException);
+  
+  cleanup();
 }

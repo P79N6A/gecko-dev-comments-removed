@@ -8,9 +8,36 @@ const Ci = Components.interfaces;
 const Cc = Components.classes;
 const Cr = Components.results;
 
-do_get_profile();
 
 var dirSvc = Cc["@mozilla.org/file/directory_service;1"].getService(Ci.nsIProperties);
+var profileDir = null;
+try {
+  profileDir = dirSvc.get(NS_APP_USER_PROFILE_50_DIR, Ci.nsIFile);
+} catch (e) {}
+
+if (!profileDir) {
+  
+  
+  var provider = {
+    getFile: function(prop, persistent) {
+      dump("getting file " + prop + "\n");
+      persistent.value = true;
+      if (prop == NS_APP_USER_PROFILE_50_DIR ||
+          prop == NS_APP_USER_PROFILE_LOCAL_50_DIR) {
+        return dirSvc.get("CurProcD", Ci.nsIFile);
+      }
+      throw Cr.NS_ERROR_FAILURE;
+    },
+    QueryInterface: function(iid) {
+      if (iid.equals(Ci.nsIDirectoryServiceProvider) ||
+          iid.equals(Ci.nsISupports)) {
+        return this;
+      }
+      throw Cr.NS_ERROR_NO_INTERFACE;
+    }
+  };
+  dirSvc.QueryInterface(Ci.nsIDirectoryService).registerProvider(provider);
+}
 
 var iosvc = Cc["@mozilla.org/network/io-service;1"].getService(Ci.nsIIOService);
 

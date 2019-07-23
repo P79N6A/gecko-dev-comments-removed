@@ -117,7 +117,7 @@ function test_dm_getDownload(aDl)
 {
   
   var dl = dm.getDownload(aDl.id);
-
+  
   do_check_eq(aDl.displayName, dl.displayName);
 }
 
@@ -130,7 +130,7 @@ var httpserv = null;
 function run_test()
 {
   httpserv = new nsHttpServer();
-  httpserv.registerDirectory("/", do_get_cwd());
+  httpserv.registerDirectory("/", dirSvc.get("ProfD", Ci.nsILocalFile));
   httpserv.start(4444);
 
   
@@ -161,4 +161,6 @@ function run_test()
 
   for (var i = 0; i < tests.length; i++)
     tests[i]();
+
+  cleanup();
 }

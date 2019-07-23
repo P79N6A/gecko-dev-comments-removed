@@ -37,12 +37,11 @@
 
 
 
-import re, sys, os, os.path, logging, shutil
+import re, sys, os, os.path, logging
 import tempfile
 from glob import glob
 from optparse import OptionParser
 from subprocess import Popen, PIPE, STDOUT
-from tempfile import mkdtemp
 
 from automationutils import addCommonOptions, checkForCrashes
 
@@ -227,12 +226,7 @@ def runTests(xpcshell, testdirs=[], xrePath=None, testPath=None,
       proc = Popen(cmdH + cmdT + xpcsRunArgs,
                    stdout=pStdout, stderr=pStderr, env=env, cwd=testdir)
       
-      
-      profd = mkdtemp()
-      env["XPCSHELL_TEST_PROFILE_DIR"] = profd
       stdout, stderr = proc.communicate()
-
-      shutil.rmtree(profd, True)
 
       if interactive:
         
