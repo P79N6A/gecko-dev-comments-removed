@@ -105,7 +105,7 @@ public:
 
 
 
-  nsresult AddDocSelectionListener(nsIDOMDocument *aDoc);
+  nsresult AddDocSelectionListener(nsIPresShell *aShell);
 
   
 
@@ -113,7 +113,9 @@ public:
 
 
 
-  nsresult RemoveDocSelectionListener(nsIDOMDocument *aDoc);
+
+
+  nsresult RemoveDocSelectionListener(nsIPresShell *aShell);
 
   nsRect GetCaretRect(nsIWidget **aOutWidget);
 
