@@ -3,252 +3,262 @@
 
 
 
+#ifndef mozilla_plugins_NPAPIProtocol_h
+#define mozilla_plugins_NPAPIProtocol_h
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#ifndef dom_plugins_NPAPIProtocol_h
-#define dom_plugins_NPAPIProtocol_h 1
-
-#include "npapi.h"
-
+#include "nscore.h"
 #include "IPC/IPCMessageUtils.h"
 #include "mozilla/ipc/MessageTypes.h"
+#include "mozilla/ipc/ProtocolUtils.h"
+#include "npapi.h"
+#include "mozilla/plugins/NPPProtocol.h"
 
 namespace mozilla {
 namespace plugins {
+namespace NPAPIProtocol {
 
 
-class NS_FINAL_CLASS NPAPIProtocol
+enum State {
+};
+
+enum NPAPIProtocolMsgType {
+    NPAPIProtocolStart = NPAPIProtocolMsgStart << 12,
+    NPAPIProtocolPreStart = (NPAPIProtocolMsgStart << 12) - 1,
+    Msg_NP_Initialize__ID,
+    Reply_NP_Initialize__ID,
+    Msg_NPPConstructor__ID,
+    Reply_NPPConstructor__ID,
+    Msg_NPPDestructor__ID,
+    Reply_NPPDestructor__ID,
+    NPAPIProtocolEnd
+};
+class Msg_NP_Initialize :
+    public IPC::Message
 {
-public:
-    
-
-
-
-
-
-
-
-
-     class Parent
-    {
-    protected:
-        Parent() { }
-        virtual ~Parent() { }
-        Parent(const Parent&);
-        Parent& operator=(const Parent&);
-    };
-
-    
-
-
-
-
-
-
-
-
-     class Child
-    {
-    public:
-        virtual NPError NP_Initialize() = 0;
-
-        virtual NPError NPP_New(const mozilla::ipc::String& aMimeType,
-                                 const int& aHandle,
-                                const uint16_t& aMode,
-                                const mozilla::ipc::StringArray& aNames,
-                                const mozilla::ipc::StringArray& aValues) = 0;
-
-        virtual void NPP_Destroy() = 0;
-
-    protected:
-        Child() { }
-        virtual ~Child() { }
-        Child(const Child&);
-        Child& operator=(const Child&);
-    };
-
-    enum State {
-        StateStart = 0,
-
-        StateInitializing = StateStart,
-        StateInitialized,
-        StateNotScriptable,
-        StateScriptable,
-
-        
-        StateLast
-    };
-
-    
-
 private:
-    NPAPIProtocol();
-    virtual ~NPAPIProtocol() = 0;
-    NPAPIProtocol& operator=(const NPAPIProtocol&);
-    
+    typedef mozilla::ipc::String String;
+    typedef mozilla::ipc::StringArray StringArray;
+
+public:
+    enum {
+        ID = Msg_NP_Initialize__ID
+    };
+    Msg_NP_Initialize() :
+        IPC::Message(MSG_ROUTING_NONE, ID, PRIORITY_NORMAL)
+    {
+    }
+
+    static bool Read(const Message* msg)
+    {
+        return true;
+    }
 };
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-enum NPAPI_ParentToChildMsgType {
-    NPAPI_ParentToChildStart = NPAPI_ParentToChildMsgStart << 12,
-    NPAPI_ParentToChildPreStart = (NPAPI_ParentToChildMsgStart << 12) - 1,
-
-    NPAPI_ParentToChildMsg_NP_Initialize__ID,
-    NPAPI_ParentToChildMsg_NPP_New__ID,
-    NPAPI_ParentToChildMsg_NPP_Destroy__ID,
-
-    NPAPI_ParentToChildEnd
-};
-
-class NPAPI_ParentToChildMsg_NP_Initialize : public IPC::Message
+class Reply_NP_Initialize :
+    public IPC::Message
 {
-public:
-    enum { ID = NPAPI_ParentToChildMsg_NP_Initialize__ID };
-    NPAPI_ParentToChildMsg_NP_Initialize() :
-        IPC::Message(MSG_ROUTING_CONTROL, ID, PRIORITY_NORMAL)
-    {}
-};
+private:
+    typedef mozilla::ipc::String String;
+    typedef mozilla::ipc::StringArray StringArray;
 
-class NPAPI_ParentToChildMsg_NPP_New :
-        public IPC::MessageWithTuple<
-    Tuple5<mozilla::ipc::String, int, uint16_t, mozilla::ipc::StringArray, mozilla::ipc::StringArray> >
+public:
+    enum {
+        ID = Reply_NP_Initialize__ID
+    };
+    Reply_NP_Initialize(const NPError& rv) :
+        IPC::Message(MSG_ROUTING_NONE, ID, PRIORITY_NORMAL)
+    {
+        IPC::WriteParam(this, rv);
+    }
+
+    static bool Read(
+                const Message* msg,
+                NPError* rv)
+    {
+        void* iter = 0;
+
+        if (!(IPC::ReadParam(msg, &(iter), rv))) {
+            return false;
+        }
+
+        return true;
+    }
+};
+class Msg_NPPConstructor :
+    public IPC::Message
 {
+private:
+    typedef mozilla::ipc::String String;
+    typedef mozilla::ipc::StringArray StringArray;
+
 public:
-    enum { ID = NPAPI_ParentToChildMsg_NPP_New__ID };
-    NPAPI_ParentToChildMsg_NPP_New(const mozilla::ipc::String& aMimeType,
-                                   
-                                   const int& aHandle,
-                                   const uint16_t& aMode,
-                                   const mozilla::ipc::StringArray& aNames,
-                                   const mozilla::ipc::StringArray& aValues) :
-        IPC::MessageWithTuple<
-        Tuple5<mozilla::ipc::String, int, uint16_t, mozilla::ipc::StringArray, mozilla::ipc::StringArray> >(
-            MSG_ROUTING_CONTROL, ID, MakeTuple(aMimeType,
-                                               aHandle,
-                                               aMode,
-                                               aNames,
-                                               aValues))
-    {}
+    enum {
+        ID = Msg_NPPConstructor__ID
+    };
+    Msg_NPPConstructor(
+                const String& aMimeType,
+                const int& aHandle,
+                const uint16_t& aMode,
+                const StringArray& aNames,
+                const StringArray& aValues,
+                const mozilla::ipc::ActorHandle& __ah) :
+        IPC::Message(MSG_ROUTING_NONE, ID, PRIORITY_NORMAL)
+    {
+        IPC::WriteParam(this, aMimeType);
+        IPC::WriteParam(this, aHandle);
+        IPC::WriteParam(this, aMode);
+        IPC::WriteParam(this, aNames);
+        IPC::WriteParam(this, aValues);
+        IPC::WriteParam(this, __ah);
+    }
+
+    static bool Read(
+                const Message* msg,
+                String* aMimeType,
+                int* aHandle,
+                uint16_t* aMode,
+                StringArray* aNames,
+                StringArray* aValues,
+                mozilla::ipc::ActorHandle* __ah)
+    {
+        void* iter = 0;
+
+        if (!(IPC::ReadParam(msg, &(iter), aMimeType))) {
+            return false;
+        }
+
+        if (!(IPC::ReadParam(msg, &(iter), aHandle))) {
+            return false;
+        }
+
+        if (!(IPC::ReadParam(msg, &(iter), aMode))) {
+            return false;
+        }
+
+        if (!(IPC::ReadParam(msg, &(iter), aNames))) {
+            return false;
+        }
+
+        if (!(IPC::ReadParam(msg, &(iter), aValues))) {
+            return false;
+        }
+
+        if (!(IPC::ReadParam(msg, &(iter), __ah))) {
+            return false;
+        }
+
+        return true;
+    }
 };
-
-class NPAPI_ParentToChildMsg_NPP_Destroy : public IPC::Message {
-public:
-    enum { ID = NPAPI_ParentToChildMsg_NPP_Destroy__ID };
-    NPAPI_ParentToChildMsg_NPP_Destroy() :
-        IPC::Message(MSG_ROUTING_CONTROL, ID, PRIORITY_NORMAL)
-    {}
-};
-
-
-
-enum NPAPI_ChildToParentMsgType {
-    NPAPI_ChildToParentStart = NPAPI_ChildToParentMsgStart << 12,
-    NPAPI_ChildToParentPreStart = (NPAPI_ChildToParentMsgStart << 12) - 1,
-
-    NPAPI_ChildToParentMsg_Reply_NP_Initialize__ID,
-
-    NPAPI_ChildToParentMsg_Reply_NPP_New__ID,
-    NPAPI_ChildToParentMsg_Reply_NPP_Destroy__ID,
-
-    NPAPI_ChildToParentEnd
-};
-
-class NPAPI_ChildToParentMsg_Reply_NP_Initialize :
-        public IPC::MessageWithTuple<NPError>
+class Reply_NPPConstructor :
+    public IPC::Message
 {
-public:
-    enum { ID = NPAPI_ChildToParentMsg_Reply_NP_Initialize__ID };
-    NPAPI_ChildToParentMsg_Reply_NP_Initialize(const NPError& arg1) :
-        IPC::MessageWithTuple<NPError>(MSG_ROUTING_CONTROL, ID, arg1)
-    {}
-};
+private:
+    typedef mozilla::ipc::String String;
+    typedef mozilla::ipc::StringArray StringArray;
 
-class NPAPI_ChildToParentMsg_Reply_NPP_New :
-        public IPC::MessageWithTuple<NPError>
+public:
+    enum {
+        ID = Reply_NPPConstructor__ID
+    };
+    Reply_NPPConstructor(
+                const NPError& rv,
+                const mozilla::ipc::ActorHandle& __ah) :
+        IPC::Message(MSG_ROUTING_NONE, ID, PRIORITY_NORMAL)
+    {
+        IPC::WriteParam(this, rv);
+        IPC::WriteParam(this, __ah);
+    }
+
+    static bool Read(
+                const Message* msg,
+                NPError* rv,
+                mozilla::ipc::ActorHandle* __ah)
+    {
+        void* iter = 0;
+
+        if (!(IPC::ReadParam(msg, &(iter), rv))) {
+            return false;
+        }
+
+        if (!(IPC::ReadParam(msg, &(iter), __ah))) {
+            return false;
+        }
+
+        return true;
+    }
+};
+class Msg_NPPDestructor :
+    public IPC::Message
 {
-public:
-    enum { ID = NPAPI_ChildToParentMsg_Reply_NPP_New__ID };
-    NPAPI_ChildToParentMsg_Reply_NPP_New(const NPError& arg1) :
-        IPC::MessageWithTuple<NPError>(MSG_ROUTING_CONTROL, ID, arg1)
-    {}
-};
+private:
+    typedef mozilla::ipc::String String;
+    typedef mozilla::ipc::StringArray StringArray;
 
-class NPAPI_ChildToParentMsg_Reply_NPP_Destroy : public IPC::Message
+public:
+    enum {
+        ID = Msg_NPPDestructor__ID
+    };
+    Msg_NPPDestructor(const mozilla::ipc::ActorHandle& __ah) :
+        IPC::Message(MSG_ROUTING_NONE, ID, PRIORITY_NORMAL)
+    {
+        IPC::WriteParam(this, __ah);
+    }
+
+    static bool Read(
+                const Message* msg,
+                mozilla::ipc::ActorHandle* __ah)
+    {
+        void* iter = 0;
+
+        if (!(IPC::ReadParam(msg, &(iter), __ah))) {
+            return false;
+        }
+
+        return true;
+    }
+};
+class Reply_NPPDestructor :
+    public IPC::Message
 {
+private:
+    typedef mozilla::ipc::String String;
+    typedef mozilla::ipc::StringArray StringArray;
+
 public:
-    enum { ID = NPAPI_ChildToParentMsg_Reply_NPP_Destroy__ID };
-    NPAPI_ChildToParentMsg_Reply_NPP_Destroy()
-        : IPC::Message(MSG_ROUTING_CONTROL, ID, PRIORITY_NORMAL)
-    {}
+    enum {
+        ID = Reply_NPPDestructor__ID
+    };
+    Reply_NPPDestructor(
+                const NPError& rv,
+                const mozilla::ipc::ActorHandle& __ah) :
+        IPC::Message(MSG_ROUTING_NONE, ID, PRIORITY_NORMAL)
+    {
+        IPC::WriteParam(this, rv);
+        IPC::WriteParam(this, __ah);
+    }
+
+    static bool Read(
+                const Message* msg,
+                NPError* rv,
+                mozilla::ipc::ActorHandle* __ah)
+    {
+        void* iter = 0;
+
+        if (!(IPC::ReadParam(msg, &(iter), rv))) {
+            return false;
+        }
+
+        if (!(IPC::ReadParam(msg, &(iter), __ah))) {
+            return false;
+        }
+
+        return true;
+    }
 };
-
-
-#if 0
-
-class FOO_5PARAMS :
-        public IPC::MessageWithTuple<
-    Tuple5<NPError, int, bool, std::string, short> >
-{
-public:
-    enum { ID = FOO_5PARAMS__ID };
-    FOO_5PARAMS(const NPError& arg1,
-                const int& arg2,
-                const bool& arg3,
-                const std::string& arg4,
-                const short& arg5) :
-        IPC::MessageWithTuple<
-        Tuple5<NPError, int, bool, std::string, short> >(
-            MSG_ROUTING_CONTROL, ID, MakeTuple(arg1, arg2, arg3, arg4, arg5))
-    {}
-};
-#endif
 
 
 } 
 } 
-
+} 
 
 #endif

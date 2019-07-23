@@ -37,11 +37,14 @@
 
 
 
+
 #ifndef dom_plugins_NPAPIPluginChild_h
 #define dom_plugins_NPAPIPluginChild_h 1
 
 #include <string>
 #include <vector>
+
+#include "base/basictypes.h"
 
 #include "prlink.h"
 
@@ -91,11 +94,23 @@ namespace mozilla {
 namespace plugins {
 
 
-class NPAPIPluginChild : public NPAPIProtocol::Child
+class NPAPIPluginChild : public NPAPIProtocolChild
 {
-private:
-    typedef mozilla::ipc::String String;
-    typedef mozilla::ipc::StringArray StringArray;
+protected:
+    
+    virtual nsresult AnswerNP_Initialize(NPError* rv);
+
+    virtual NPPProtocolChild* NPPConstructor(
+        const String& aMimeType,
+        const int& aHandle,
+        const uint16_t& aMode,
+        const StringArray& aNames,
+        const StringArray& aValues,
+        NPError* rv);
+
+    virtual nsresult NPPDestructor(
+        NPPProtocolChild* actor,
+        NPError* rv);
 
 public:
     NPAPIPluginChild();
@@ -107,32 +122,24 @@ public:
 
     void CleanUp();
 
-    
-    virtual NPError NP_Initialize();
-
-    virtual NPError NPP_New(const String& aMimeType,
-                            const int& aHandle,
-                            const uint16_t& aMode,
-                            const StringArray& aNames,
-                            const StringArray& aValues);
-
-    virtual void NPP_Destroy()
-    {
-        _MOZ_LOG(__FUNCTION__);
-    }
-
     static const NPNetscapeFuncs sBrowserFuncs;
 
 private:
+    bool InitGraphics();
+
     std::string mPluginFilename;
-    NPAPIProtocolChild mNpapi;
     PRLibrary* mLibrary;
 
 
 
 
     
+#ifdef OS_LINUX
     NP_PLUGINUNIXINIT mInitializeFunc;
+#elif OS_WIN
+    NP_PLUGININIT mInitializeFunc;
+    NP_GETENTRYPOINTS mGetEntryPointsFunc;
+#endif
     NP_PLUGINSHUTDOWN mShutdownFunc;
     NPPluginFuncs mFunctions;
     NPSavedData mSavedData;

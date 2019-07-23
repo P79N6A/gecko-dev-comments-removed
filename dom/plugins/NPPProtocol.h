@@ -3,171 +3,218 @@
 
 
 
+#ifndef mozilla_plugins_NPPProtocol_h
+#define mozilla_plugins_NPPProtocol_h
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#ifndef dom_plugins_NPPProtocol_h
-#define dom_plugins_NPPProtocol_h 1
-
-
+#include "nscore.h"
 #include "IPC/IPCMessageUtils.h"
 #include "mozilla/ipc/MessageTypes.h"
-
-
-#include "npapi.h"
-#include "X11/X.h"
+#include "mozilla/ipc/ProtocolUtils.h"
+#include "PluginMessageUtils.h"
+#include "mozilla/plugins/NPAPIProtocol.h"
 
 namespace mozilla {
 namespace plugins {
+namespace NPPProtocol {
 
 
-class NS_FINAL_CLASS NPPProtocol
+enum State {
+};
+
+enum NPPProtocolMsgType {
+    NPPProtocolStart = NPPProtocolMsgStart << 12,
+    NPPProtocolPreStart = (NPPProtocolMsgStart << 12) - 1,
+    Msg_NPP_SetWindow__ID,
+    Reply_NPP_SetWindow__ID,
+    Msg_NPP_GetValue__ID,
+    Reply_NPP_GetValue__ID,
+    Msg_NPN_GetValue__ID,
+    Reply_NPN_GetValue__ID,
+    NPPProtocolEnd
+};
+class Msg_NPP_SetWindow :
+    public IPC::Message
 {
-public:
-     class Parent
-    {
-    public:
-        virtual void NPN_GetValue() = 0;
-
-    protected:
-        Parent() { }
-        virtual ~Parent() { }
-        Parent(const Parent&);
-        Parent& operator=(const Parent&);
-    };
-
-     class Child
-    {
-    public:
-        virtual NPError NPP_SetWindow(XID aWindow,
-                                      int32_t aWidth,
-                                      int32_t aHeight) = 0;
-
-    protected:
-        Child() { }
-        virtual ~Child() { }
-        Child(const Child&);
-        Child& operator=(const Child&);
-    };
-
-    enum State {
-        StateStart = 0,
-
-
-        
-        StateLast
-    };
-
 private:
-    NPPProtocol();
-    virtual ~NPPProtocol() = 0;
-    NPPProtocol& operator=(const NPPProtocol&);
-    
-};
+    typedef mozilla::ipc::String String;
+    typedef mozilla::ipc::StringArray StringArray;
 
-
-
-
-
-
-enum NPP_ParentToChildMsgType {
-    NPP_ParentToChildStart = NPP_ParentToChildMsgStart << 12,
-    NPP_ParentToChildPreStart = (NPP_ParentToChildMsgStart << 12) - 1,
-
-    NPP_ParentToChildMsg_NPP_SetWindow__ID,
-
-    NPP_ParentToChildMsg_Reply_NPN_GetValue__ID,
-
-    NPP_ParentToChildEnd
-};
-
-class NPP_ParentToChildMsg_NPP_SetWindow :
-        public IPC::MessageWithTuple<
-    Tuple3<XID, int32_t, int32_t> >
-{
 public:
-    enum { ID = NPP_ParentToChildMsg_NPP_SetWindow__ID };
-    NPP_ParentToChildMsg_NPP_SetWindow(const XID& window,
-                                       const int32_t& width,
-                                       const int32_t& height) :
-        IPC::MessageWithTuple<
-        Tuple3<XID, int32_t, int32_t> >(
-            MSG_ROUTING_CONTROL, ID, MakeTuple(window, width, height))
-    {}
-};
+    enum {
+        ID = Msg_NPP_SetWindow__ID
+    };
+    Msg_NPP_SetWindow(const NPWindow& window) :
+        IPC::Message(MSG_ROUTING_NONE, ID, PRIORITY_NORMAL)
+    {
+        IPC::WriteParam(this, window);
+    }
 
-class NPP_ParentToChildMsg_Reply_NPN_GetValue : public IPC::Message
+    static bool Read(
+                const Message* msg,
+                NPWindow* window)
+    {
+        void* iter = 0;
+
+        if (!(IPC::ReadParam(msg, &(iter), window))) {
+            return false;
+        }
+
+        return true;
+    }
+};
+class Reply_NPP_SetWindow :
+    public IPC::Message
 {
+private:
+    typedef mozilla::ipc::String String;
+    typedef mozilla::ipc::StringArray StringArray;
+
 public:
-    enum { ID = NPP_ParentToChildMsg_Reply_NPN_GetValue__ID };
-    NPP_ParentToChildMsg_Reply_NPN_GetValue() :
-        IPC::Message(MSG_ROUTING_CONTROL, ID, PRIORITY_NORMAL)
-    {}
+    enum {
+        ID = Reply_NPP_SetWindow__ID
+    };
+    Reply_NPP_SetWindow(const NPError& rv) :
+        IPC::Message(MSG_ROUTING_NONE, ID, PRIORITY_NORMAL)
+    {
+        IPC::WriteParam(this, rv);
+    }
+
+    static bool Read(
+                const Message* msg,
+                NPError* rv)
+    {
+        void* iter = 0;
+
+        if (!(IPC::ReadParam(msg, &(iter), rv))) {
+            return false;
+        }
+
+        return true;
+    }
 };
-
-
-
-enum NPP_ChildToParentMsgType {
-    NPP_ChildToParentStart = NPP_ChildToParentMsgStart << 12,
-    NPP_ChildToParentPreStart = (NPP_ChildToParentMsgStart << 12) - 1,
-
-    NPP_ChildToParentMsg_NPN_GetValue__ID,
-
-    NPP_ChildToParentMsg_Reply_NPP_SetWindow__ID,
-
-    NPP_ChildToParentEnd
-};
-
-class NPP_ChildToParentMsg_NPN_GetValue : public IPC::Message
+class Msg_NPP_GetValue :
+    public IPC::Message
 {
-public:
-    enum { ID = NPP_ChildToParentMsg_NPN_GetValue__ID };
-    NPP_ChildToParentMsg_NPN_GetValue() :
-        IPC::Message(MSG_ROUTING_CONTROL, ID, PRIORITY_NORMAL)
-    {}
-};
+private:
+    typedef mozilla::ipc::String String;
+    typedef mozilla::ipc::StringArray StringArray;
 
-class NPP_ChildToParentMsg_Reply_NPP_SetWindow :
-        public IPC::MessageWithTuple<NPError>
+public:
+    enum {
+        ID = Msg_NPP_GetValue__ID
+    };
+    Msg_NPP_GetValue(const String& key) :
+        IPC::Message(MSG_ROUTING_NONE, ID, PRIORITY_NORMAL)
+    {
+        IPC::WriteParam(this, key);
+    }
+
+    static bool Read(
+                const Message* msg,
+                String* key)
+    {
+        void* iter = 0;
+
+        if (!(IPC::ReadParam(msg, &(iter), key))) {
+            return false;
+        }
+
+        return true;
+    }
+};
+class Reply_NPP_GetValue :
+    public IPC::Message
 {
+private:
+    typedef mozilla::ipc::String String;
+    typedef mozilla::ipc::StringArray StringArray;
+
 public:
-    enum { ID = NPP_ChildToParentMsg_Reply_NPP_SetWindow__ID };
-    NPP_ChildToParentMsg_Reply_NPP_SetWindow(const NPError& arg1) :
-        IPC::MessageWithTuple<NPError>(MSG_ROUTING_CONTROL, ID, arg1)
-    {}
+    enum {
+        ID = Reply_NPP_GetValue__ID
+    };
+    Reply_NPP_GetValue(const String& value) :
+        IPC::Message(MSG_ROUTING_NONE, ID, PRIORITY_NORMAL)
+    {
+        IPC::WriteParam(this, value);
+    }
+
+    static bool Read(
+                const Message* msg,
+                String* value)
+    {
+        void* iter = 0;
+
+        if (!(IPC::ReadParam(msg, &(iter), value))) {
+            return false;
+        }
+
+        return true;
+    }
+};
+class Msg_NPN_GetValue :
+    public IPC::Message
+{
+private:
+    typedef mozilla::ipc::String String;
+    typedef mozilla::ipc::StringArray StringArray;
+
+public:
+    enum {
+        ID = Msg_NPN_GetValue__ID
+    };
+    Msg_NPN_GetValue(const String& key) :
+        IPC::Message(MSG_ROUTING_NONE, ID, PRIORITY_NORMAL)
+    {
+        IPC::WriteParam(this, key);
+    }
+
+    static bool Read(
+                const Message* msg,
+                String* key)
+    {
+        void* iter = 0;
+
+        if (!(IPC::ReadParam(msg, &(iter), key))) {
+            return false;
+        }
+
+        return true;
+    }
+};
+class Reply_NPN_GetValue :
+    public IPC::Message
+{
+private:
+    typedef mozilla::ipc::String String;
+    typedef mozilla::ipc::StringArray StringArray;
+
+public:
+    enum {
+        ID = Reply_NPN_GetValue__ID
+    };
+    Reply_NPN_GetValue(const String& value) :
+        IPC::Message(MSG_ROUTING_NONE, ID, PRIORITY_NORMAL)
+    {
+        IPC::WriteParam(this, value);
+    }
+
+    static bool Read(
+                const Message* msg,
+                String* value)
+    {
+        void* iter = 0;
+
+        if (!(IPC::ReadParam(msg, &(iter), value))) {
+            return false;
+        }
+
+        return true;
+    }
 };
 
 
+} 
 } 
 } 
 

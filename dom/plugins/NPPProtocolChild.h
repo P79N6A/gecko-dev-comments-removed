@@ -3,153 +3,133 @@
 
 
 
+#ifndef mozilla_plugins_NPPProtocolChild_h
+#define mozilla_plugins_NPPProtocolChild_h
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#ifndef dom_plugins_NPPProtocolChild_h
-#define dom_plugins_NPPProtocolChild_h 1
-
-#include "npapi.h"
-
-#include "nsDebug.h"
-
-#include "IPC/IPCMessageUtils.h"
-#include "mozilla/ipc/RPCChannel.h"
 #include "mozilla/plugins/NPPProtocol.h"
-
-#ifdef DEBUG
-#  undef _MSG_LOG0
-#  undef _MSG_LOG
-
-#  define _MSG_LOG0(fmt, ...)                                       \
-    do {                                                            \
-        printf("[NPAPIProtocolChild] %s "fmt"\n", __VA_ARGS__);    \
-    } while(0)
-
-#  define _MSG_LOG(fmt, ...)                    \
-    _MSG_LOG0(fmt, __FUNCTION__,## __VA_ARGS__)
-#else
-#  define _MSG_LOG(fmt, ...)
-#endif
+#include "mozilla/ipc/RPCChannel.h"
 
 namespace mozilla {
 namespace plugins {
 
 
-class NS_FINAL_CLASS NPPProtocolChild :
-        public NPPProtocol::Parent,
-        public mozilla::ipc::RPCChannel::Listener
+class  NPPProtocolChild :
+    public mozilla::ipc::RPCChannel::Listener
 {
+    friend class NPAPIProtocolChild;
+
+protected:
+    typedef mozilla::ipc::String String;
+    typedef mozilla::ipc::StringArray StringArray;
+
+    virtual nsresult AnswerNPP_SetWindow(
+                const NPWindow& window,
+                NPError* rv) = 0;
+    virtual nsresult AnswerNPP_GetValue(
+                const String& key,
+                String* value) = 0;
+
 private:
     typedef IPC::Message Message;
-    typedef mozilla::ipc::RPCChannel RPCChannel;
+    typedef mozilla::ipc::RPCChannel Channel;
 
 public:
-    NPPProtocolChild(NPPProtocol::Child* aChild) :
-        mChild(aChild)
+    NPPProtocolChild()
     {
-
     }
 
     virtual ~NPPProtocolChild()
     {
-
     }
 
-    
-    
-
-    void SetChannel(RPCChannel* aRpc)
+    nsresult CallNPN_GetValue(
+                const String& key,
+                String* value)
     {
-        
-        NS_ASSERTION(aRpc, "need a valid RPC channel");
-        mRpc = aRpc;
-    }
-
-    void NextState(NPPProtocol::State aNextState)
-    {
-        
-    }
-
-    
-    virtual void NPN_GetValue()
-    {
-        _MSG_LOG("outcall NPN_GetValue()");
-
-        Message reply;
-
-        mRpc->Call(new NPP_ChildToParentMsg_NPN_GetValue(),
-                   &reply);
-        NS_ASSERTION(NPP_ParentToChildMsg_Reply_NPN_GetValue__ID
-                     == reply.type(),
-                     "wrong reply msg to NPN_GetValue()");
-        
-        return;
-    }
-
-    virtual Result OnCallReceived(const Message& msg, Message*& reply)
-    {
-        switch(msg.type()) {
-        case NPP_ParentToChildMsg_NPP_SetWindow__ID: {
-            XID aWindow;
-            int32_t aWidth;
-            int32_t aHeight;
-
-            NPP_ParentToChildMsg_NPP_SetWindow::Param p;
-            NS_ASSERTION(NPP_ParentToChildMsg_NPP_SetWindow::Read(&msg, &p),
-                         "bad types in NPP_SetWindow() msg");
-            aWindow = p.a;
-            aWidth = p.b;
-            aHeight = p.c;
-
-            _MSG_LOG("incall NPP_SetWindow(%lx, %d, %d)\n",
-                     aWindow, aWidth, aHeight);
-
-            NPError val0 = mChild->NPP_SetWindow(aWindow, aWidth, aHeight);
-            reply = new NPP_ChildToParentMsg_Reply_NPP_SetWindow(val0);
-            reply->set_reply();
-            return MsgProcessed;
+        Message __reply;
+        Message* __msg;
+        __msg = new NPPProtocol::Msg_NPN_GetValue(key);
+        __msg->set_routing_id(mPeerId);
+        if (!(mChannel->Call(__msg, &(__reply)))) {
+            return NS_ERROR_FAILURE;
         }
+        if (!(NPPProtocol::Reply_NPN_GetValue::Read(&(__reply), value))) {
+            return NS_ERROR_ILLEGAL_VALUE;
+        }
+        return NS_OK;
+    }
 
+    virtual Result OnMessageReceived(const Message& msg)
+    {
+        switch (msg.type()) {
         default:
-            return MsgNotKnown;
+            {
+                return MsgNotKnown;
+            }
+        }
+    }
+
+    virtual Result OnMessageReceived(
+                const Message& msg,
+                Message*& reply)
+    {
+        switch (msg.type()) {
+        default:
+            {
+                return MsgNotKnown;
+            }
+        }
+    }
+
+    virtual Result OnCallReceived(
+                const Message& msg,
+                Message*& reply)
+    {
+        switch (msg.type()) {
+        case NPPProtocol::Msg_NPP_SetWindow__ID:
+            {
+                NPWindow window;
+                NPError rv;
+
+                if (!(NPPProtocol::Msg_NPP_SetWindow::Read(&(msg), &(window)))) {
+                    return MsgPayloadError;
+                }
+                if (AnswerNPP_SetWindow(window, &(rv))) {
+                    return MsgValueError;
+                }
+
+                reply = new NPPProtocol::Reply_NPP_SetWindow(rv);
+                reply->set_reply();
+                return MsgProcessed;
+            }
+        case NPPProtocol::Msg_NPP_GetValue__ID:
+            {
+                String key;
+                String value;
+
+                if (!(NPPProtocol::Msg_NPP_GetValue::Read(&(msg), &(key)))) {
+                    return MsgPayloadError;
+                }
+                if (AnswerNPP_GetValue(key, &(value))) {
+                    return MsgValueError;
+                }
+
+                reply = new NPPProtocol::Reply_NPP_GetValue(value);
+                reply->set_reply();
+                return MsgProcessed;
+            }
+        default:
+            {
+                return MsgNotKnown;
+            }
         }
     }
 
 private:
-    NPPProtocol::Child* mChild;
-    NPPProtocol::State mState;
-    RPCChannel* mRpc;
+    Channel* mChannel;
+    int mId;
+    int mPeerId;
+    mozilla::ipc::IProtocolManager* mManager;
 };
 
 

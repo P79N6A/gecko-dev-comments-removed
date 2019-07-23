@@ -43,6 +43,8 @@
 
 
 
+#include "prenv.h"
+
 #include "nsIDOMHTMLIFrameElement.h"
 #include "nsIDOMHTMLFrameElement.h"
 #include "nsIDOMWindow.h"
@@ -1034,14 +1036,18 @@ nsFrameLoader::CheckForRecursiveLoad(nsIURI* aURI)
 PRBool
 nsFrameLoader::TryNewProcess()
 {
+  if (PR_GetEnv("DISABLE_OOP_IFRAME")) {
+      return PR_FALSE;
+  }
+
   nsIDocument* doc = mOwnerContent->GetDocument();
   if (!doc) {
-    return NS_ERROR_UNEXPECTED;
+    return PR_FALSE;
   }
 
   if (doc->GetDisplayDocument()) {
     
-    return NS_ERROR_NOT_AVAILABLE;
+    return PR_FALSE;
   }
 
   nsCOMPtr<nsIWebNavigation> parentAsWebNav =

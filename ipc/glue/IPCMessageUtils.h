@@ -46,15 +46,8 @@
 
 
 enum IPCMessageStart {
-  
-  
-  
-  NPAPI_ParentToChildMsgStart = 0,
-  NPAPI_ChildToParentMsgStart,
-  NPP_ParentToChildMsgStart,
-  NPP_ChildToParentMsgStart,
-  NPObject_ParentToChildMsgStart,
-  NPObject_ChildToParentMsgStart,
+  NPAPIProtocolMsgStart = 0,
+  NPPProtocolMsgStart = 0,
 
   IFrameEmbedding_ParentToChildMsgStart,
   IFrameEmbedding_ChildToParentMsgStart,

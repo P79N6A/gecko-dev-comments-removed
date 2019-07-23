@@ -3,89 +3,44 @@
 
 
 
+#ifndef mozilla_plugins_NPAPIProtocolParent_h
+#define mozilla_plugins_NPAPIProtocolParent_h
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#ifndef dom_plugins_NPAPIProtocolParentImpl_h
-#define dom_plugins_NPAPIProtocolParentImpl_h 1
-
-#include "chrome/common/ipc_channel.h"
-#include "chrome/common/ipc_message.h"
-
-#include "nsDebug.h"
-
-#include "mozilla/ipc/RPCChannel.h"
 #include "mozilla/plugins/NPAPIProtocol.h"
-
-
 #include "mozilla/plugins/NPPProtocolParent.h"
-
-#ifdef DEBUG
-#  undef _MSG_LOG0
-#  undef _MSG_LOG
-
-#  define _MSG_LOG0(fmt, ...)                                       \
-    do {                                                            \
-        printf("[NPAPIProtocolParent] %s "fmt"\n", __VA_ARGS__);    \
-    } while(0)
-
-#  define _MSG_LOG(fmt, ...)                    \
-    _MSG_LOG0(fmt, __FUNCTION__,## __VA_ARGS__)
-#else
-#  define _MSG_LOG(fmt, ...)
-#endif
+#include "base/id_map.h"
+#include "mozilla/ipc/RPCChannel.h"
 
 namespace mozilla {
 namespace plugins {
 
 
-
-
-
-
-
-class NS_FINAL_CLASS NPAPIProtocolParent :
-        public NPAPIProtocol::Child,
-        public mozilla::ipc::RPCChannel::Listener
+class  NPAPIProtocolParent :
+    public mozilla::ipc::RPCChannel::Listener,
+    public mozilla::ipc::IProtocolManager
 {
+protected:
+    typedef mozilla::ipc::String String;
+    typedef mozilla::ipc::StringArray StringArray;
+
+    virtual NPPProtocolParent* NPPConstructor(
+                const String& aMimeType,
+                const int& aHandle,
+                const uint16_t& aMode,
+                const StringArray& aNames,
+                const StringArray& aValues,
+                NPError* rv) = 0;
+    virtual nsresult NPPDestructor(
+                NPPProtocolParent* __a,
+                NPError* rv) = 0;
+
 private:
     typedef IPC::Message Message;
-    typedef mozilla::ipc::RPCChannel RPCChannel;
+    typedef mozilla::ipc::RPCChannel Channel;
 
 public:
-    NPAPIProtocolParent(NPAPIProtocol::Parent* aParent) :
-        mParent(aParent),
-        mRpc(this)
+    NPAPIProtocolParent() :
+        mChannel(this)
     {
     }
 
@@ -93,104 +48,165 @@ public:
     {
     }
 
-    bool Open(IPC::Channel* aChannel)
+    bool Open(
+                IPC::Channel* aChannel,
+                MessageLoop* aThread = 0)
     {
-        return mRpc.Open(aChannel);
+        return mChannel.Open(aChannel, aThread);
     }
 
     void Close()
     {
-        mRpc.Close();
+        mChannel.Close();
     }
 
-    void NextState(NPAPIProtocol::State aNextState)
+    nsresult CallNP_Initialize(NPError* rv)
     {
-        
+        Message __reply;
+        Message* __msg;
+        __msg = new NPAPIProtocol::Msg_NP_Initialize();
+        __msg->set_routing_id(MSG_ROUTING_CONTROL);
+        if (!(mChannel.Call(__msg, &(__reply)))) {
+            return NS_ERROR_FAILURE;
+        }
+        if (!(NPAPIProtocol::Reply_NP_Initialize::Read(&(__reply), rv))) {
+            return NS_ERROR_ILLEGAL_VALUE;
+        }
+        return NS_OK;
     }
 
-    
-    virtual NPError NP_Initialize()
+    NPPProtocolParent* CallNPPConstructor(
+                const String& aMimeType,
+                const int& aHandle,
+                const uint16_t& aMode,
+                const StringArray& aNames,
+                const StringArray& aValues,
+                NPError* rv)
     {
-        _MSG_LOG("outcall NP_Initialize()");
+        NPPProtocolParent* __a;
+        __a = NPPConstructor(aMimeType, aHandle, aMode, aNames, aValues, rv);
+        if (!(__a)) {
+            return 0;
+        }
+        __a->mId = Register(__a);
+        mozilla::ipc::ActorHandle __ah;
+        __ah.mParentId = __a->mId;
 
-        Message reply;
-
-        mRpc.Call(new NPAPI_ParentToChildMsg_NP_Initialize(),
-                  &reply);
-        NS_ASSERTION(NPAPI_ChildToParentMsg_Reply_NP_Initialize__ID
-                     == reply.type(),
-                     "wrong reply msg to NP_Initialize()");
-        
-        NPError ret0;
-        NS_ASSERTION(NPAPI_ChildToParentMsg_Reply_NP_Initialize
-                     ::Read(&reply, &ret0),
-                     "bad types in reply msg to NP_Initialize()");
-
-        return ret0;
+        Message __reply;
+        Message* __msg;
+        __msg = new NPAPIProtocol::Msg_NPPConstructor(aMimeType, aHandle, aMode, aNames, aValues, __ah);
+        __msg->set_routing_id(MSG_ROUTING_CONTROL);
+        if (!(mChannel.Call(__msg, &(__reply)))) {
+            return 0;
+        }
+        if (!(NPAPIProtocol::Reply_NPPConstructor::Read(&(__reply), rv, &(__ah)))) {
+            return 0;
+        }
+        __a->mPeerId = __ah.mChildId;
+        __a->mManager = this;
+        __a->mChannel = &(mChannel);
+        return __a;
     }
 
-    virtual NPError NPP_New(const mozilla::ipc::String& aMimeType,
-                             const int& aHandle,
-                            const uint16_t& aMode,
-                            const mozilla::ipc::StringArray& aNames,
-                            const mozilla::ipc::StringArray& aValues)
+    nsresult CallNPPDestructor(
+                NPPProtocolParent* __a,
+                NPError* rv)
     {
-        _MSG_LOG("outcall NPP_New(%s, %hd, %hd, <vec>, <vec>)",
-                 aMimeType.c_str(), aHandle, aMode);
+        if (!(__a)) {
+            return NS_ERROR_ILLEGAL_VALUE;
+        }
+        NPPProtocolParent* __b;
+        __b = dynamic_cast<NPPProtocolParent*>(Lookup(__a->mId));
+        if ((__a) != (__b)) {
+            return NS_ERROR_ILLEGAL_VALUE;
+        }
 
-        Message reply;
+        mozilla::ipc::ActorHandle __ah;
+        __ah.mParentId = __a->mId;
+        __ah.mChildId = __a->mPeerId;
 
-        mRpc.Call(new NPAPI_ParentToChildMsg_NPP_New(aMimeType,
-                                                     aHandle,
-                                                     aMode,
-                                                     aNames,
-                                                     aValues),
-                  &reply);
-        NS_ASSERTION(NPAPI_ChildToParentMsg_Reply_NPP_New__ID
-                     == reply.type(),
-                     "wrong reply msg to NPP_New()");
-
-        NPError ret0;
-        NS_ASSERTION(NPAPI_ChildToParentMsg_Reply_NPP_New
-                     ::Read(&reply, &ret0),
-                     "bad types in reply msg to NPP_New()");
-
-        return ret0;
+        Message __reply;
+        Message* __msg;
+        __msg = new NPAPIProtocol::Msg_NPPDestructor(__ah);
+        __msg->set_routing_id(MSG_ROUTING_CONTROL);
+        if (!(mChannel.Call(__msg, &(__reply)))) {
+            return NS_ERROR_FAILURE;
+        }
+        if (!(NPAPIProtocol::Reply_NPPDestructor::Read(&(__reply), rv, &(__ah)))) {
+            return NS_ERROR_ILLEGAL_VALUE;
+        }
+        Unregister(__a->mId);
+        __a->mId = -1;
+        __a->mManager = 0;
+        __a->mPeerId = -1;
+        return NS_OK;
     }
 
-    virtual void NPP_Destroy()
+    virtual Result OnMessageReceived(const Message& msg)
     {
-        _MSG_LOG("outcall NPP_New()");
-    }
-    
-
-    
-    virtual Result OnCallReceived(const Message& msg, Message*& reply)
-    {
-        switch(msg.type()) {
+        switch (msg.type()) {
         default:
-            
-            return HACK_npp->OnCallReceived(msg, reply);
-
-
-
+            {
+                return MsgNotKnown;
+            }
         }
     }
 
-    
-    RPCChannel* HACK_getchannel_please() { return &mRpc; }
-    NPPProtocolParent* HACK_npp;
-    
+    virtual Result OnMessageReceived(
+                const Message& msg,
+                Message*& reply)
+    {
+        switch (msg.type()) {
+        default:
+            {
+                return MsgNotKnown;
+            }
+        }
+    }
 
+    virtual Result OnCallReceived(
+                const Message& msg,
+                Message*& reply)
+    {
+        int __route;
+        __route = msg.routing_id();
+        if ((MSG_ROUTING_CONTROL) != (__route)) {
+            Channel::Listener* __routed;
+            __routed = Lookup(__route);
+            if (!(__routed)) {
+                return MsgRouteError;
+            }
+            return __routed->OnCallReceived(msg, reply);
+        }
+
+        switch (msg.type()) {
+        default:
+            {
+                return MsgNotKnown;
+            }
+        }
+    }
+
+    virtual int32 Register(Channel::Listener* aRouted)
+    {
+        return mActorMap.Add(aRouted);
+    }
+    virtual Channel::Listener* Lookup(int32 aId)
+    {
+        return mActorMap.Lookup(aId);
+    }
+    virtual void Unregister(int32 aId)
+    {
+        return mActorMap.Remove(aId);
+    }
 
 private:
-    NPAPIProtocol::Parent* mParent;
-    RPCChannel mRpc;
-    NPAPIProtocol::State mState;
+    Channel mChannel;
+    IDMap<Channel::Listener> mActorMap;
 };
 
 
 } 
 } 
 
-#endif  
+#endif 

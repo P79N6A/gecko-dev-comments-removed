@@ -36,13 +36,14 @@
 
 
 
+#include "NPPInstanceChild.h"
+
+#ifdef OS_LINUX
 #include <gtk/gtk.h>
 #include <gdk/gdkx.h>
 #include <gdk/gdk.h>
-
 #include "gtk2xtbin.h"
-
-#include "NPPInstanceChild.h"
+#endif
 
 namespace mozilla {
 namespace plugins {
@@ -86,73 +87,90 @@ NPPInstanceChild::NPN_GetValue(NPNVariable aVar, void* aValue)
     printf ("[NPPInstanceChild] NPN_GetValue(%s)\n",
             NPNVariableToString(aVar));
 
-#ifdef OS_LINUX
-    
-
     switch(aVar) {
+
+    case NPNVSupportsWindowless:
+        
+        
+        *((NPBool*)aValue) = PR_FALSE;
+        return NPERR_NO_ERROR;
+
+#if defined(OS_LINUX)
     case NPNVSupportsXEmbedBool:
-        *((PRBool*)aValue) = PR_TRUE;
+        *((NPBool*)aValue) = PR_TRUE;
         return NPERR_NO_ERROR;
 
     case NPNVToolkit:
         *((NPNToolkitType*)aValue) = NPNVGtk2;
         return NPERR_NO_ERROR;
 
-    case NPNVSupportsWindowless:
-        
-        
-        *((PRBool*)aValue) = PR_FALSE;
-        return NPERR_NO_ERROR;
-
+#elif defined(OS_WIN)
+    case NPNVToolkit:
+        return NPERR_GENERIC_ERROR;
+#endif
     default:
         printf("  unhandled var %s\n", NPNVariableToString(aVar));
         return NPERR_GENERIC_ERROR;   
     }
-#else
-#  error Add support for your OS
-#endif
 
 }
 
-NPError
-NPPInstanceChild::NPP_SetWindow(XID aWindow, int32_t aWidth, int32_t aHeight)
+nsresult
+NPPInstanceChild::AnswerNPP_GetValue(const String& key, String* value)
+{
+    return NPERR_GENERIC_ERROR;
+}
+
+nsresult
+NPPInstanceChild::AnswerNPP_SetWindow(const NPWindow& aWindow, NPError* rv)
 {
     printf("[NPPInstanceChild] NPP_SetWindow(%lx, %d, %d)\n",
-           aWindow, aWidth, aHeight);
+           reinterpret_cast<unsigned long>(aWindow.window),
+           aWindow.width, aWindow.height);
 
-#ifdef OS_LINUX
+#if defined(OS_LINUX)
     
     
     
 
-    GdkNativeWindow handle = (GdkNativeWindow) aWindow;
-    mPlug = gtk_plug_new(handle);
-    
-    mWindow.window = (void*) handle;
-    mWindow.width = aWidth;
-    mWindow.height = aHeight;
-    mWindow.type = NPWindowTypeWindow;
-
+    GdkNativeWindow handle = (GdkNativeWindow) aWindow.window;
     GdkWindow* gdkWindow = gdk_window_lookup(handle);
 
-    fprintf (stderr, "GDK_WINDOW\n");
+    mWindow.window = (void*) handle;
+    mWindow.width = aWindow.width;
+    mWindow.height = aWindow.height;
+    mWindow.type = NPWindowTypeWindow;
+
+    mWsInfo.display = GDK_DISPLAY_XDISPLAY(gdk_display_get_default());
+
+    
+    
+    
+    
+    
+#if 0
     mWsInfo.display = GDK_WINDOW_XDISPLAY(gdkWindow);
-    fprintf (stderr, "GDK_COLORMAP\n");
-    mWsInfo.colormap = GDK_COLORMAP_XCOLORMAP(gdk_drawable_get_colormap(gdkWindow));
-    fprintf (stderr, "gdk_get_visual\n");
+    mWsInfo.colormap =
+        GDK_COLORMAP_XCOLORMAP(gdk_drawable_get_colormap(gdkWindow));
     GdkVisual* gdkVisual = gdk_drawable_get_visual(gdkWindow);
-    fprintf (stderr, "GDK_VISUAL_XVISUAL\n");
     mWsInfo.visual = GDK_VISUAL_XVISUAL(gdkVisual);
-    fprintf (stderr, "gdkVisual->depth\n");
     mWsInfo.depth = gdkVisual->depth;
+#endif
 
     mWindow.ws_info = (void*) &mWsInfo;
 
-    return mPluginIface->setwindow(&mData, &mWindow);
+#elif defined(OS_WIN)
+    mWindow.window = aWindow.window;
+    mWindow.width = aWindow.width;
+    mWindow.height = aWindow.height;
+    mWindow.type = NPWindowTypeWindow;
 
 #else
 #  error Implement me for your OS
 #endif
+
+    *rv = mPluginIface->setwindow(&mData, &mWindow);
+    return NS_OK;
 }
 
 
