@@ -3024,23 +3024,13 @@ function BrowserCustomizeToolbar()
   cmd.setAttribute("disabled", "true");
 
 #ifdef TOOLBAR_CUSTOMIZATION_SHEET
-  document.getElementById("customizeToolbarSheetBox").hidden = false;
-
+  var sheetFrame = document.getElementById("customizeToolbarSheetIFrame");
+  sheetFrame.hidden = false;
   
-
-
-
-
-  function TabOpenSheetHandler(aEvent) {
-    getBrowser().removeEventListener("TabOpen", TabOpenSheetHandler, false);
-
-    document.getElementById("customizeToolbarSheetIFrame")
-            .contentWindow.gCustomizeToolbarSheet.done();
-    document.getElementById("customizeToolbarSheetBox").hidden = true;
-    BrowserCustomizeToolbar();
-    
-  }
-  getBrowser().addEventListener("TabOpen", TabOpenSheetHandler, false);
+  
+  var sheetWidth = sheetFrame.style.width.match(/([0-9]+)px/)[1];
+  document.getElementById("customizeToolbarSheetPopup")
+          .openPopup(getNavToolbox(), "after_start", (window.innerWidth - sheetWidth) / 2, 0);
 #else
   window.openDialog("chrome://global/content/customizeToolbar.xul",
                     "CustomizeToolbar",
@@ -3052,7 +3042,8 @@ function BrowserCustomizeToolbar()
 function BrowserToolboxCustomizeDone(aToolboxChanged)
 {
 #ifdef TOOLBAR_CUSTOMIZATION_SHEET
-  document.getElementById("customizeToolbarSheetBox").hidden = true;
+  document.getElementById("customizeToolbarSheetIFrame").hidden = true;
+  document.getElementById("customizeToolbarSheetPopup").hidePopup();
 #endif
 
   
