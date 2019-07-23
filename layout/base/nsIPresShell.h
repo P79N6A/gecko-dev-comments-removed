@@ -515,12 +515,14 @@ public:
   
 
 
+
   NS_IMETHOD HandleEventWithTarget(nsEvent* aEvent,
                                    nsIFrame* aFrame,
                                    nsIContent* aContent,
                                    nsEventStatus* aStatus) = 0;
 
   
+
 
 
   NS_IMETHOD HandleDOMEventWithTarget(nsIContent* aTargetContent,

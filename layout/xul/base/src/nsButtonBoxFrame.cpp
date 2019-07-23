@@ -155,9 +155,8 @@ nsButtonBoxFrame::DoMouseClick(nsGUIEvent* aEvent, PRBool aTrustEvent)
   }
 
   
-  nsIPresShell *shell = GetPresContext()->GetPresShell();
+  nsCOMPtr<nsIPresShell> shell = GetPresContext()->GetPresShell();
   if (shell) {
     shell->HandleDOMEventWithTarget(mContent, &event, &status);
-    
   }
 }

@@ -2440,7 +2440,7 @@ nsGenericElement::DispatchEvent(nsPresContext* aPresContext,
     return NS_OK;
   }
 
-  nsIPresShell *shell = aPresContext->GetPresShell();
+  nsCOMPtr<nsIPresShell> shell = aPresContext->GetPresShell();
   if (!shell) {
     return NS_OK;
   }
@@ -3882,7 +3882,7 @@ nsGenericElement::PostHandleEventForLinks(nsEventChainPostVisitor& aVisitor)
       }
 
       
-      nsIPresShell *shell = aVisitor.mPresContext->GetPresShell();
+      nsCOMPtr<nsIPresShell> shell = aVisitor.mPresContext->GetPresShell();
       if (shell) {
         
         nsEventStatus status = nsEventStatus_eIgnore;

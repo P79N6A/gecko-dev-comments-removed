@@ -379,7 +379,8 @@ nsHTMLButtonElement::PostHandleEvent(nsEventChainPostVisitor& aVisitor)
       case NS_MOUSE_CLICK:
         {
           if (NS_IS_MOUSE_LEFT_CLICK(aVisitor.mEvent)) {
-            nsIPresShell *presShell = aVisitor.mPresContext->GetPresShell();
+            nsCOMPtr<nsIPresShell> presShell =
+              aVisitor.mPresContext->GetPresShell();
             if (presShell) {
               
               nsUIEvent event(NS_IS_TRUSTED_EVENT(aVisitor.mEvent),
@@ -403,7 +404,8 @@ nsHTMLButtonElement::PostHandleEvent(nsEventChainPostVisitor& aVisitor)
             event.originator      = this;
             nsEventStatus status  = nsEventStatus_eIgnore;
 
-            nsIPresShell *presShell = aVisitor.mPresContext->GetPresShell();
+            nsCOMPtr<nsIPresShell> presShell =
+              aVisitor.mPresContext->GetPresShell();
             
             
             

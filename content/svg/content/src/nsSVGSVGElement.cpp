@@ -1011,7 +1011,7 @@ nsSVGSVGElement::SetCurrentScaleTranslate(float s, float x, float y)
   
   nsIDocument* doc = GetCurrentDoc();
   if (doc) {
-    nsIPresShell* presShell = doc->GetShellAt(0);
+    nsCOMPtr<nsIPresShell> presShell = doc->GetShellAt(0);
     NS_ASSERTION(presShell, "no presShell");
     if (presShell &&
         doc->GetRootContent() == NS_STATIC_CAST(nsIContent*, this)) {
@@ -1036,7 +1036,7 @@ nsSVGSVGElement::SetCurrentTranslate(float x, float y)
   
   nsIDocument* doc = GetCurrentDoc();
   if (doc) {
-    nsIPresShell* presShell = doc->GetShellAt(0);
+    nsCOMPtr<nsIPresShell> presShell = doc->GetShellAt(0);
     NS_ASSERTION(presShell, "no presShell");
     if (presShell &&
         doc->GetRootContent() == NS_STATIC_CAST(nsIContent*, this)) {
