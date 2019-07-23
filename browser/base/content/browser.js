@@ -4556,6 +4556,9 @@ function sidebarOnLoad(event) {
 
 
 
+
+
+
 function fireSidebarFocusedEvent() {
   var sidebar = document.getElementById("sidebar");
   var event = document.createEvent("Events");
