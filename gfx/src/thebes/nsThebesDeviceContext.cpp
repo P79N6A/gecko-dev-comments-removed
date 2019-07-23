@@ -675,7 +675,13 @@ nsThebesDeviceContext::SetDPI()
             }
         }
 
-        dpi = gfxPlatform::GetDPI();        
+        dpi = gfxPlatform::GetDPI();
+
+#ifdef MOZ_ENABLE_GTK2
+        if (prefDPI < 0) 
+            dpi = PR_MAX(dpi, 96);
+#endif
+ 
         if (prefDPI > 0 && !mPrintingSurface)
             dpi = prefDPI;
     }
