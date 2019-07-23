@@ -40,6 +40,7 @@
 
 #include "nsSMILInterval.h"
 #include "nsSMILInstanceTime.h"
+#include "nsSMILMilestone.h"
 #include "nsSMILTimeValueSpec.h"
 #include "nsSMILRepeatCount.h"
 #include "nsSMILTypes.h"
@@ -47,6 +48,7 @@
 #include "nsAutoPtr.h"
 #include "nsAttrValue.h"
 
+class nsISMILAnimationElement;
 class nsSMILAnimationFunction;
 class nsSMILTimeContainer;
 class nsSMILTimeValue;
@@ -64,6 +66,18 @@ public:
 
 
 
+  void SetAnimationElement(nsISMILAnimationElement* aElement);
+
+  
+
+
+
+  nsSMILTimeContainer* GetTimeContainer();
+
+  
+
+
+
   
 
 
@@ -72,11 +86,7 @@ public:
 
 
 
-
-
-
-  nsresult BeginElementAt(double aOffsetSeconds,
-                          const nsSMILTimeContainer* aContainer);
+  nsresult BeginElementAt(double aOffsetSeconds);
 
   
 
@@ -86,11 +96,7 @@ public:
 
 
 
-
-
-
-  nsresult EndElementAt(double aOffsetSeconds,
-                        const nsSMILTimeContainer* aContainer);
+  nsresult EndElementAt(double aOffsetSeconds);
 
   
 
@@ -131,7 +137,6 @@ public:
 
 
 
-
   void AddInstanceTime(const nsSMILInstanceTime& aInstanceTime,
                        PRBool aIsBegin);
 
@@ -156,7 +161,21 @@ public:
 
 
 
-  void SampleAt(nsSMILTime aDocumentTime);
+  void SampleAt(nsSMILTime aContainerTime);
+
+  
+
+
+
+
+
+
+
+
+
+
+
+  void SampleEndAt(nsSMILTime aContainerTime);
 
   
 
@@ -206,6 +225,11 @@ public:
 
   PRBool UnsetAttr(nsIAtom* aAttribute);
 
+  
+
+
+  void BindToTree();
+
 protected:
   
   
@@ -232,6 +256,7 @@ protected:
   void              UnsetFillMode();
 
   nsresult          SetBeginOrEndSpec(const nsAString& aSpec, PRBool aIsBegin);
+  void              DoSampleAt(nsSMILTime aContainerTime, PRBool aEndOnly);
 
   
 
@@ -243,24 +268,27 @@ protected:
   PRBool            GetNextGreater(const nsTArray<nsSMILInstanceTime>& aList,
                                    const nsSMILTimeValue& aBase,
                                    PRInt32& aPosition,
-                                   nsSMILTimeValue& aResult);
+                                   nsSMILTimeValue& aResult) const;
   PRBool            GetNextGreaterOrEqual(
                                    const nsTArray<nsSMILInstanceTime>& aList,
                                    const nsSMILTimeValue& aBase,
                                    PRInt32& aPosition,
-                                   nsSMILTimeValue& aResult);
+                                   nsSMILTimeValue& aResult) const;
   nsSMILTimeValue   CalcActiveEnd(const nsSMILTimeValue& aBegin,
-                                  const nsSMILTimeValue& aEnd);
-  nsSMILTimeValue   GetRepeatDuration();
-  nsSMILTimeValue   ApplyMinAndMax(const nsSMILTimeValue& aDuration);
+                                  const nsSMILTimeValue& aEnd) const;
+  nsSMILTimeValue   GetRepeatDuration() const;
+  nsSMILTimeValue   ApplyMinAndMax(const nsSMILTimeValue& aDuration) const;
   nsSMILTime        ActiveTimeToSimpleTime(nsSMILTime aActiveTime,
                                            PRUint32& aRepeatIteration);
-  void              CheckForEarlyEnd(const nsSMILTimeValue& aDocumentTime);
+  nsSMILTimeValue   CheckForEarlyEnd(
+                        const nsSMILTimeValue& aContainerTime) const;
   void              UpdateCurrentInterval();
   void              SampleSimpleTime(nsSMILTime aActiveTime);
   void              SampleFillValue();
   void              AddInstanceTimeFromCurrentTime(nsSMILTime aCurrentTime,
                         double aOffsetSeconds, PRBool aIsBegin);
+  void              RegisterMilestone();
+  PRBool            GetNextMilestone(nsSMILMilestone& aNextMilestone) const;
 
   
   typedef nsTArray<nsRefPtr<nsSMILTimeValueSpec> >  SMILTimeValueSpecList;
@@ -268,6 +296,7 @@ protected:
   
   
   
+  nsISMILAnimationElement* mAnimationElement; 
   SMILTimeValueSpecList mBeginSpecs;
   SMILTimeValueSpecList mEndSpecs;
 
@@ -312,6 +341,8 @@ protected:
   nsSMILAnimationFunction*        mClient;
   nsSMILInterval                  mCurrentInterval;
   nsTArray<nsSMILInterval>        mOldIntervals;
+  nsSMILMilestone                 mPrevRegisteredMilestone;
+  static const nsSMILMilestone    sMaxMilestone;
 
   
 

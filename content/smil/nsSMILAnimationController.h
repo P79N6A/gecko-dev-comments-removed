@@ -47,6 +47,7 @@
 #include "nsHashKeys.h"
 #include "nsSMILTimeContainer.h"
 #include "nsSMILCompositorTable.h"
+#include "nsSMILMilestone.h"
 
 class nsISMILAnimationElement;
 class nsIDocument;
@@ -82,14 +83,14 @@ public:
   
   
   
-  void Resample();
+  void Resample() { DoSample(PR_FALSE); }
   void SetResampleNeeded() { mResampleNeeded = PR_TRUE; }
   void FlushResampleRequests()
   {
     if (!mResampleNeeded)
       return;
 
-    DoSample(PR_FALSE); 
+    Resample();
   }
 
   
@@ -119,6 +120,12 @@ protected:
     nsSMILCompositorTable*  mCompositorTable;
   };
 
+  struct GetMilestoneElementsParams
+  {
+    nsTArray<nsRefPtr<nsISMILAnimationElement> > mElements;
+    nsSMILMilestone                              mMilestone;
+  };
+
   
   friend nsSMILAnimationController*
   NS_NewSMILAnimationController(nsIDocument* aDoc);
@@ -136,11 +143,14 @@ protected:
   
   virtual void DoSample();
   void DoSample(PRBool aSkipUnchangedContainers);
+  void DoMilestoneSamples();
+  PR_STATIC_CALLBACK(PLDHashOperator) GetNextMilestone(
+      TimeContainerPtrKey* aKey, void* aData);
+  PR_STATIC_CALLBACK(PLDHashOperator) GetMilestoneElements(
+      TimeContainerPtrKey* aKey, void* aData);
   PR_STATIC_CALLBACK(PLDHashOperator) SampleTimeContainer(
       TimeContainerPtrKey* aKey, void* aData);
   PR_STATIC_CALLBACK(PLDHashOperator) SampleAnimation(
-      AnimationElementPtrKey* aKey, void* aData);
-  PR_STATIC_CALLBACK(PLDHashOperator) AddAnimationToCompositorTable(
       AnimationElementPtrKey* aKey, void* aData);
   static void SampleTimedElement(nsISMILAnimationElement* aElement,
                                  TimeContainerHashtable* aActiveContainers);

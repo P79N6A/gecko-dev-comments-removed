@@ -36,6 +36,8 @@
 
 
 #include "nsSMILTimeContainer.h"
+#include "nsSMILTimeValue.h"
+#include "nsSMILTimedElement.h"
 
 nsSMILTimeContainer::nsSMILTimeContainer()
 :
@@ -53,6 +55,26 @@ nsSMILTimeContainer::~nsSMILTimeContainer()
   if (mParent) {
     mParent->RemoveChild(*this);
   }
+}
+
+nsSMILTimeValue
+nsSMILTimeContainer::ContainerToParentTime(nsSMILTime aContainerTime) const
+{
+  
+  if (IsPaused() && aContainerTime > mCurrentTime)
+    return nsSMILTimeValue::Indefinite();
+
+  return nsSMILTimeValue(aContainerTime + mParentOffset);
+}
+
+nsSMILTimeValue
+nsSMILTimeContainer::ParentToContainerTime(nsSMILTime aParentTime) const
+{
+  
+  if (IsPaused() && aParentTime > mPauseStart)
+    return nsSMILTimeValue::Indefinite();
+
+  return nsSMILTimeValue(aParentTime - mParentOffset);
 }
 
 void
@@ -123,7 +145,7 @@ nsSMILTimeContainer::SetCurrentTime(nsSMILTime aSeekTo)
   nsSMILTime parentTime = GetParentTime();
   mParentOffset = parentTime - aSeekTo;
 
-  if (mPauseState) {
+  if (IsPaused()) {
     mNeedsPauseSample = PR_TRUE;
     mPauseStart = parentTime;
   }
@@ -171,9 +193,92 @@ nsSMILTimeContainer::SetParent(nsSMILTimeContainer* aParent)
   return rv;
 }
 
+PRBool
+nsSMILTimeContainer::AddMilestone(const nsSMILMilestone& aMilestone,
+                                  nsISMILAnimationElement& aElement)
+{
+  
+  
+  
+  
+  return mMilestoneEntries.Push(MilestoneEntry(aMilestone, aElement));
+}
+
+void
+nsSMILTimeContainer::ClearMilestones()
+{
+  mMilestoneEntries.Clear();
+}
+
+PRBool
+nsSMILTimeContainer::GetNextMilestoneInParentTime(
+    nsSMILMilestone& aNextMilestone) const
+{
+  if (mMilestoneEntries.IsEmpty())
+    return PR_FALSE;
+
+  nsSMILTimeValue parentTime =
+    ContainerToParentTime(mMilestoneEntries.Top().mMilestone.mTime);
+  if (!parentTime.IsResolved())
+    return PR_FALSE;
+
+  aNextMilestone = nsSMILMilestone(parentTime.GetMillis(),
+                                   mMilestoneEntries.Top().mMilestone.mIsEnd);
+
+  return PR_TRUE;
+}
+
+PRBool
+nsSMILTimeContainer::PopMilestoneElementsAtMilestone(
+      const nsSMILMilestone& aMilestone,
+      AnimElemArray& aMatchedElements)
+{
+  if (mMilestoneEntries.IsEmpty())
+    return PR_FALSE;
+
+  nsSMILTimeValue containerTime = ParentToContainerTime(aMilestone.mTime);
+  if (!containerTime.IsResolved())
+    return PR_FALSE;
+
+  nsSMILMilestone containerMilestone(containerTime.GetMillis(),
+                                     aMilestone.mIsEnd);
+
+  NS_ABORT_IF_FALSE(mMilestoneEntries.Top().mMilestone >= containerMilestone,
+      "Trying to pop off earliest times but we have earlier ones that were "
+      "overlooked");
+
+  PRBool gotOne = PR_FALSE;
+  while (!mMilestoneEntries.IsEmpty() &&
+      mMilestoneEntries.Top().mMilestone == containerMilestone)
+  {
+    aMatchedElements.AppendElement(mMilestoneEntries.Pop().mTimebase);
+    gotOne = PR_TRUE;
+  }
+
+  return gotOne;
+}
+
+void
+nsSMILTimeContainer::Traverse(nsCycleCollectionTraversalCallback* aCallback)
+{
+  const MilestoneEntry* p = mMilestoneEntries.Elements();
+  const MilestoneEntry* const end = p + mMilestoneEntries.Length();
+  while (p != end) {
+    NS_CYCLE_COLLECTION_NOTE_EDGE_NAME(*aCallback, "mTimebase");
+    aCallback->NoteXPCOMChild(p->mTimebase.get());
+    ++p;
+  }
+}
+
+void
+nsSMILTimeContainer::Unlink()
+{
+  mMilestoneEntries.Clear();
+}
+
 void
 nsSMILTimeContainer::UpdateCurrentTime()
 {
-  nsSMILTime now = mPauseState ? mPauseStart : GetParentTime();
+  nsSMILTime now = IsPaused() ? mPauseStart : GetParentTime();
   mCurrentTime = now - mParentOffset;
 }

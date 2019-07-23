@@ -66,24 +66,39 @@ nsAttrValue::EnumTable nsSMILTimedElement::sRestartModeTable[] = {
       {nsnull, 0}
 };
 
+const nsSMILMilestone nsSMILTimedElement::sMaxMilestone(LL_MAXINT, PR_FALSE);
+
 
 
 
 nsSMILTimedElement::nsSMILTimedElement()
 :
-  mBeginSpecs(),
-  mEndSpecs(),
+  mAnimationElement(nsnull),
   mFillMode(FILL_REMOVE),
   mRestartMode(RESTART_ALWAYS),
   mBeginSpecSet(PR_FALSE),
   mEndHasEventConditions(PR_FALSE),
   mClient(nsnull),
-  mCurrentInterval(),
+  mPrevRegisteredMilestone(sMaxMilestone),
   mElementState(STATE_STARTUP)
 {
   mSimpleDur.SetIndefinite();
   mMin.SetMillis(0L);
   mMax.SetIndefinite();
+}
+
+void
+nsSMILTimedElement::SetAnimationElement(nsISMILAnimationElement* aElement)
+{
+  NS_ABORT_IF_FALSE(aElement, "NULL owner element");
+  NS_ABORT_IF_FALSE(!mAnimationElement, "Re-setting owner");
+  mAnimationElement = aElement;
+}
+
+nsSMILTimeContainer*
+nsSMILTimedElement::GetTimeContainer()
+{
+  return mAnimationElement ? mAnimationElement->GetTimeContainer() : nsnull;
 }
 
 
@@ -103,14 +118,13 @@ nsSMILTimedElement::nsSMILTimedElement()
 
 
 nsresult
-nsSMILTimedElement::BeginElementAt(double aOffsetSeconds,
-                                   const nsSMILTimeContainer* aContainer)
+nsSMILTimedElement::BeginElementAt(double aOffsetSeconds)
 {
-  if (!aContainer)
+  nsSMILTimeContainer* container = GetTimeContainer();
+  if (!container)
     return NS_ERROR_FAILURE;
 
-  nsSMILTime currentTime = aContainer->GetCurrentTime();
-
+  nsSMILTime currentTime = container->GetCurrentTime();
   AddInstanceTimeFromCurrentTime(currentTime, aOffsetSeconds, PR_TRUE);
 
   
@@ -139,21 +153,28 @@ nsSMILTimedElement::BeginElementAt(double aOffsetSeconds,
   
   
 
-  SampleAt(currentTime);
+  
+  
+  
+  if (mElementState != STATE_STARTUP) {
+    DoSampleAt(currentTime, PR_FALSE); 
+  }
 
   return NS_OK;
 }
 
 nsresult
-nsSMILTimedElement::EndElementAt(double aOffsetSeconds,
-                                 const nsSMILTimeContainer* aContainer)
+nsSMILTimedElement::EndElementAt(double aOffsetSeconds)
 {
-  if (!aContainer)
+  nsSMILTimeContainer* container = GetTimeContainer();
+  if (!container)
     return NS_ERROR_FAILURE;
 
-  nsSMILTime currentTime = aContainer->GetCurrentTime();
+  nsSMILTime currentTime = container->GetCurrentTime();
   AddInstanceTimeFromCurrentTime(currentTime, aOffsetSeconds, PR_FALSE);
-  SampleAt(currentTime);
+  if (mElementState != STATE_STARTUP) {
+    DoSampleAt(currentTime, PR_FALSE); 
+  }
 
   return NS_OK;
 }
@@ -197,15 +218,60 @@ nsSMILTimedElement::SetTimeClient(nsSMILAnimationFunction* aClient)
 }
 
 void
-nsSMILTimedElement::SampleAt(nsSMILTime aDocumentTime)
+nsSMILTimedElement::SampleAt(nsSMILTime aContainerTime)
 {
-  PRBool          stateChanged;
-  nsSMILTimeValue docTime;
-  docTime.SetMillis(aDocumentTime);
+  
+  mPrevRegisteredMilestone = sMaxMilestone;
+
+  DoSampleAt(aContainerTime, PR_FALSE);
+}
+
+void
+nsSMILTimedElement::SampleEndAt(nsSMILTime aContainerTime)
+{
+  
+  mPrevRegisteredMilestone = sMaxMilestone;
 
   
   
   
+  
+  
+  
+  
+  
+  
+  if (mElementState == STATE_ACTIVE || mElementState == STATE_STARTUP) {
+    DoSampleAt(aContainerTime, PR_TRUE); 
+  } else {
+    
+    
+    RegisterMilestone();
+  }
+}
+
+void
+nsSMILTimedElement::DoSampleAt(nsSMILTime aContainerTime, PRBool aEndOnly)
+{
+  NS_ABORT_IF_FALSE(mAnimationElement,
+      "Got sample before being registered with an animation element");
+  NS_ABORT_IF_FALSE(GetTimeContainer(),
+      "Got sample without being registered with a time container");
+
+  
+  
+  
+  
+  
+  if (GetTimeContainer()->IsPausedByType(nsSMILTimeContainer::PAUSE_BEGIN))
+    return;
+
+  NS_ABORT_IF_FALSE(mElementState != STATE_STARTUP || aEndOnly,
+      "Got a regular sample during startup state, expected an end sample"
+      " instead");
+
+  PRBool          stateChanged;
+  nsSMILTimeValue sampleTime(aContainerTime);
 
   do {
     stateChanged = PR_FALSE;
@@ -224,7 +290,7 @@ nsSMILTimedElement::SampleAt(nsSMILTime aDocumentTime)
 
     case STATE_WAITING:
       {
-        if (mCurrentInterval.mBegin.CompareTo(docTime) <= 0) {
+        if (mCurrentInterval.mBegin <= sampleTime) {
           mElementState = STATE_ACTIVE;
           if (mClient) {
             mClient->Activate(mCurrentInterval.mBegin.GetMillis());
@@ -236,8 +302,15 @@ nsSMILTimedElement::SampleAt(nsSMILTime aDocumentTime)
 
     case STATE_ACTIVE:
       {
-        CheckForEarlyEnd(docTime);
-        if (mCurrentInterval.mEnd.CompareTo(docTime) <= 0) {
+        
+        if (mCurrentInterval.mEnd > sampleTime) {
+          nsSMILTimeValue earlyEnd = CheckForEarlyEnd(sampleTime);
+          if (earlyEnd.IsResolved()) {
+            mCurrentInterval.mEnd = earlyEnd;
+          }
+        }
+
+        if (mCurrentInterval.mEnd <= sampleTime) {
           nsSMILInterval newInterval;
           mElementState =
             (NS_SUCCEEDED(GetNextInterval(&mCurrentInterval, newInterval)))
@@ -253,7 +326,7 @@ nsSMILTimedElement::SampleAt(nsSMILTime aDocumentTime)
           stateChanged = PR_TRUE;
         } else {
           nsSMILTime beginTime = mCurrentInterval.mBegin.GetMillis();
-          nsSMILTime activeTime = aDocumentTime - beginTime;
+          nsSMILTime activeTime = aContainerTime - beginTime;
           SampleSimpleTime(activeTime);
         }
       }
@@ -262,7 +335,17 @@ nsSMILTimedElement::SampleAt(nsSMILTime aDocumentTime)
     case STATE_POSTACTIVE:
       break;
     }
-  } while (stateChanged);
+
+  
+  
+  
+  
+  
+  
+  } while (stateChanged && (!aEndOnly || (mElementState != STATE_WAITING &&
+                                          mElementState != STATE_POSTACTIVE)));
+
+  RegisterMilestone();
 }
 
 void
@@ -631,6 +714,12 @@ nsSMILTimedElement::UnsetFillMode()
     mClient->Inactivate(PR_FALSE);
 }
 
+void
+nsSMILTimedElement::BindToTree()
+{
+  RegisterMilestone();
+}
+
 
 
 
@@ -684,8 +773,7 @@ nsresult
 nsSMILTimedElement::GetNextInterval(const nsSMILInterval* aPrevInterval,
                                     nsSMILInterval& aResult)
 {
-  static nsSMILTimeValue zeroTime;
-  zeroTime.SetMillis(0L);
+  static nsSMILTimeValue zeroTime(0L);
 
   if (mRestartMode == RESTART_NEVER && aPrevInterval)
     return NS_ERROR_FAILURE;
@@ -695,8 +783,7 @@ nsSMILTimedElement::GetNextInterval(const nsSMILInterval* aPrevInterval,
   PRBool prevIntervalWasZeroDur = PR_FALSE;
   if (aPrevInterval) {
     beginAfter = aPrevInterval->mEnd;
-    prevIntervalWasZeroDur
-      = (aPrevInterval->mEnd.CompareTo(aPrevInterval->mBegin) == 0);
+    prevIntervalWasZeroDur = (aPrevInterval->mEnd == aPrevInterval->mBegin);
   } else {
     beginAfter.SetMillis(LL_MININT);
   }
@@ -709,7 +796,7 @@ nsSMILTimedElement::GetNextInterval(const nsSMILInterval* aPrevInterval,
   mEndInstances.Sort(comparator);
 
   while (PR_TRUE) {
-    if (!mBeginSpecSet && beginAfter.CompareTo(zeroTime) <= 0) {
+    if (!mBeginSpecSet && beginAfter <= zeroTime) {
       tempBegin.SetMillis(0);
     } else {
       PRInt32 beginPos = 0;
@@ -731,7 +818,7 @@ nsSMILTimedElement::GetNextInterval(const nsSMILInterval* aPrevInterval,
 
       
       
-      if (tempEnd.CompareTo(tempBegin) == 0 && prevIntervalWasZeroDur) {
+      if (tempEnd == tempBegin && prevIntervalWasZeroDur) {
         endFound = GetNextGreater(mEndInstances, tempBegin, endPos, tempEnd);
       }
 
@@ -755,17 +842,17 @@ nsSMILTimedElement::GetNextInterval(const nsSMILInterval* aPrevInterval,
     
     
     
-    if (tempEnd.IsResolved() && tempBegin.CompareTo(tempEnd) == 0) {
+    if (tempEnd.IsResolved() && tempBegin == tempEnd) {
       if (prevIntervalWasZeroDur) {
-        beginAfter.SetMillis(tempEnd.GetMillis()+1);
+        beginAfter.SetMillis(tempEnd.GetMillis() + 1);
         prevIntervalWasZeroDur = PR_FALSE;
         continue;
       }
       prevIntervalWasZeroDur = PR_TRUE;
     }
 
-    if (tempEnd.CompareTo(zeroTime) > 0 ||
-     (tempBegin.CompareTo(zeroTime) == 0 && tempEnd.CompareTo(zeroTime) == 0)) {
+    if (tempEnd > zeroTime ||
+       (tempBegin == zeroTime && tempEnd == zeroTime)) {
       aResult.mBegin = tempBegin;
       aResult.mEnd = tempEnd;
       return NS_OK;
@@ -785,12 +872,12 @@ PRBool
 nsSMILTimedElement::GetNextGreater(
     const nsTArray<nsSMILInstanceTime>& aList,
     const nsSMILTimeValue& aBase,
-    PRInt32 &aPosition,
-    nsSMILTimeValue& aResult)
+    PRInt32& aPosition,
+    nsSMILTimeValue& aResult) const
 {
   PRBool found;
-  while ((found = GetNextGreaterOrEqual(aList, aBase, aPosition, aResult))
-         && aResult.CompareTo(aBase) == 0);
+  while ((found = GetNextGreaterOrEqual(aList, aBase, aPosition, aResult)) &&
+         aResult == aBase);
   return found;
 }
 
@@ -798,15 +885,15 @@ PRBool
 nsSMILTimedElement::GetNextGreaterOrEqual(
     const nsTArray<nsSMILInstanceTime>& aList,
     const nsSMILTimeValue& aBase,
-    PRInt32 &aPosition,
-    nsSMILTimeValue& aResult)
+    PRInt32& aPosition,
+    nsSMILTimeValue& aResult) const
 {
   PRBool found = PR_FALSE;
   PRInt32 count = aList.Length();
 
   for (; aPosition < count && !found; ++aPosition) {
     const nsSMILInstanceTime &val = aList[aPosition];
-    if (val.Time().CompareTo(aBase) >= 0) {
+    if (val.Time() >= aBase) {
       aResult = val.Time();
       found = PR_TRUE;
     }
@@ -820,7 +907,7 @@ nsSMILTimedElement::GetNextGreaterOrEqual(
 
 nsSMILTimeValue
 nsSMILTimedElement::CalcActiveEnd(const nsSMILTimeValue& aBegin,
-                                  const nsSMILTimeValue& aEnd)
+                                  const nsSMILTimeValue& aEnd) const
 {
   nsSMILTimeValue result;
 
@@ -860,19 +947,21 @@ nsSMILTimedElement::CalcActiveEnd(const nsSMILTimeValue& aBegin,
 }
 
 nsSMILTimeValue
-nsSMILTimedElement::GetRepeatDuration()
+nsSMILTimedElement::GetRepeatDuration() const
 {
   nsSMILTimeValue result;
 
   if (mRepeatCount.IsDefinite() && mRepeatDur.IsResolved()) {
     if (mSimpleDur.IsResolved()) {
-      nsSMILTime activeDur = mRepeatCount * double(mSimpleDur.GetMillis());
+      nsSMILTime activeDur =
+        nsSMILTime(mRepeatCount * double(mSimpleDur.GetMillis()));
       result.SetMillis(NS_MIN(activeDur, mRepeatDur.GetMillis()));
     } else {
       result = mRepeatDur;
     }
   } else if (mRepeatCount.IsDefinite() && mSimpleDur.IsResolved()) {
-    nsSMILTime activeDur = mRepeatCount * double(mSimpleDur.GetMillis());
+    nsSMILTime activeDur =
+      nsSMILTime(mRepeatCount * double(mSimpleDur.GetMillis()));
     result.SetMillis(activeDur);
   } else if (mRepeatDur.IsResolved()) {
     result = mRepeatDur;
@@ -886,23 +975,23 @@ nsSMILTimedElement::GetRepeatDuration()
 }
 
 nsSMILTimeValue
-nsSMILTimedElement::ApplyMinAndMax(const nsSMILTimeValue& aDuration)
+nsSMILTimedElement::ApplyMinAndMax(const nsSMILTimeValue& aDuration) const
 {
   if (!aDuration.IsResolved() && !aDuration.IsIndefinite()) {
     return aDuration;
   }
 
-  if (mMax.CompareTo(mMin) < 0) {
+  if (mMax < mMin) {
     return aDuration;
   }
 
   nsSMILTimeValue result;
 
-  if (aDuration.CompareTo(mMax) > 0) {
+  if (aDuration > mMax) {
     result = mMax;
-  } else if (aDuration.CompareTo(mMin) < 0) {
+  } else if (aDuration < mMin) {
     nsSMILTimeValue repeatDur = GetRepeatDuration();
-    result = (mMin.CompareTo(repeatDur) > 0) ? repeatDur : mMin;
+    result = mMin > repeatDur ? repeatDur : mMin;
   } else {
     result = aDuration;
   }
@@ -942,11 +1031,12 @@ nsSMILTimedElement::ActiveTimeToSimpleTime(nsSMILTime aActiveTime,
 
 
 
-void
-nsSMILTimedElement::CheckForEarlyEnd(const nsSMILTimeValue& aDocumentTime)
+nsSMILTimeValue
+nsSMILTimedElement::CheckForEarlyEnd(
+    const nsSMILTimeValue& aContainerTime) const
 {
   if (mRestartMode != RESTART_ALWAYS)
-    return;
+    return nsSMILTimeValue();
 
   nsSMILTimeValue nextBegin;
   PRInt32 position = 0;
@@ -954,16 +1044,28 @@ nsSMILTimedElement::CheckForEarlyEnd(const nsSMILTimeValue& aDocumentTime)
   GetNextGreater(mBeginInstances, mCurrentInterval.mBegin, position, nextBegin);
 
   if (nextBegin.IsResolved() &&
-      nextBegin.CompareTo(mCurrentInterval.mBegin) > 0 &&
-      nextBegin.CompareTo(mCurrentInterval.mEnd) < 0 &&
-      nextBegin.CompareTo(aDocumentTime) <= 0) {
-    mCurrentInterval.mEnd = nextBegin;
+      nextBegin > mCurrentInterval.mBegin &&
+      nextBegin < mCurrentInterval.mEnd &&
+      nextBegin <= aContainerTime) {
+    return nextBegin;
   }
+
+  return nsSMILTimeValue();
 }
 
 void
 nsSMILTimedElement::UpdateCurrentInterval()
 {
+  
+  
+  
+  
+  
+  
+  
+  if (mElementState == STATE_STARTUP)
+    return;
+
   nsSMILInterval updatedInterval;
   nsSMILInterval* prevInterval = mOldIntervals.IsEmpty()
                                ? nsnull
@@ -973,13 +1075,17 @@ nsSMILTimedElement::UpdateCurrentInterval()
   if (NS_SUCCEEDED(rv)) {
 
     if (mElementState != STATE_ACTIVE &&
-        updatedInterval.mBegin.CompareTo(mCurrentInterval.mBegin)) {
+        updatedInterval.mBegin != mCurrentInterval.mBegin) {
       mCurrentInterval.mBegin = updatedInterval.mBegin;
     }
 
-    if (updatedInterval.mEnd.CompareTo(mCurrentInterval.mEnd)) {
+    if (updatedInterval.mEnd != mCurrentInterval.mEnd) {
       mCurrentInterval.mEnd = updatedInterval.mEnd;
     }
+
+    
+    
+    RegisterMilestone();
 
     if (mElementState == STATE_POSTACTIVE) {
       
@@ -1049,9 +1155,100 @@ nsSMILTimedElement::AddInstanceTimeFromCurrentTime(nsSMILTime aCurrentTime,
   double offset = aOffsetSeconds * PR_MSEC_PER_SEC;
   nsSMILTime timeWithOffset = aCurrentTime + PRInt64(NS_round(offset));
 
-  nsSMILTimeValue timeVal;
-  timeVal.SetMillis(timeWithOffset);
+  nsSMILTimeValue timeVal(timeWithOffset);
 
   nsSMILInstanceTime instanceTime(timeVal, nsnull, PR_TRUE);
   AddInstanceTime(instanceTime, aIsBegin);
+}
+
+void
+nsSMILTimedElement::RegisterMilestone()
+{
+  nsSMILTimeContainer* container = GetTimeContainer();
+  if (!container)
+    return;
+  NS_ABORT_IF_FALSE(mAnimationElement,
+      "Got a time container without an owning animation element");
+
+  nsSMILMilestone nextMilestone;
+  if (!GetNextMilestone(nextMilestone))
+    return;
+
+  
+  
+  
+  
+  if (nextMilestone >= mPrevRegisteredMilestone)
+    return;
+
+  container->AddMilestone(nextMilestone, *mAnimationElement);
+  mPrevRegisteredMilestone = nextMilestone;
+}
+
+PRBool
+nsSMILTimedElement::GetNextMilestone(nsSMILMilestone& aNextMilestone) const
+{
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+
+  switch (mElementState)
+  {
+  case STATE_STARTUP:
+    
+    
+    aNextMilestone.mIsEnd = PR_TRUE; 
+    aNextMilestone.mTime = 0;
+    return PR_TRUE;
+
+  case STATE_WAITING:
+    aNextMilestone.mIsEnd = PR_FALSE;
+    aNextMilestone.mTime = mCurrentInterval.mBegin.GetMillis();
+    return PR_TRUE;
+
+  case STATE_ACTIVE:
+    {
+      
+      
+
+      
+      nsSMILTimeValue earlyEnd = CheckForEarlyEnd(mCurrentInterval.mEnd);
+      if (earlyEnd.IsResolved()) {
+        aNextMilestone.mIsEnd = PR_TRUE;
+        aNextMilestone.mTime = earlyEnd.GetMillis();
+        return PR_TRUE;
+      }
+
+      
+      if (mCurrentInterval.mEnd.IsResolved()) {
+        aNextMilestone.mIsEnd = PR_TRUE;
+        aNextMilestone.mTime = mCurrentInterval.mEnd.GetMillis();
+        return PR_TRUE;
+      }
+
+      return PR_FALSE;
+    }
+
+  case STATE_POSTACTIVE:
+    return PR_FALSE;
+
+  default:
+    NS_ABORT_IF_FALSE(PR_FALSE, "Invalid element state");
+    return PR_FALSE;
+  }
 }

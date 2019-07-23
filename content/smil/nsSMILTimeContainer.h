@@ -40,6 +40,12 @@
 
 #include "nscore.h"
 #include "nsSMILTypes.h"
+#include "nsTPriorityQueue.h"
+#include "nsAutoPtr.h"
+#include "nsISMILAnimationElement.h"
+#include "nsSMILMilestone.h"
+
+class nsSMILTimeValue;
 
 
 
@@ -100,6 +106,15 @@ public:
 
 
 
+
+
+
+  PRBool IsPaused() const { return mPauseState != 0; }
+
+  
+
+
+
   nsSMILTime GetCurrentTime() const;
 
   
@@ -114,6 +129,24 @@ public:
 
 
   virtual nsSMILTime GetParentTime() const;
+
+  
+
+
+
+
+
+
+  nsSMILTimeValue ContainerToParentTime(nsSMILTime aContainerTime) const;
+
+  
+
+
+
+
+
+
+  nsSMILTimeValue ParentToContainerTime(nsSMILTime aParentTime) const;
 
   
 
@@ -135,6 +168,52 @@ public:
 
 
   nsresult SetParent(nsSMILTimeContainer* aParent);
+
+  
+
+
+
+
+
+
+
+  PRBool AddMilestone(const nsSMILMilestone& aMilestone,
+                      nsISMILAnimationElement& aElement);
+
+  
+
+
+  void ClearMilestones();
+
+  
+
+
+
+
+
+
+
+
+  PRBool GetNextMilestoneInParentTime(nsSMILMilestone& aNextMilestone) const;
+
+  typedef nsTArray<nsRefPtr<nsISMILAnimationElement> > AnimElemArray;
+
+  
+
+
+
+
+
+
+
+
+
+  PRBool PopMilestoneElementsAtMilestone(const nsSMILMilestone& aMilestone,
+                                         AnimElemArray& aMatchedElements);
+
+  
+  void Traverse(nsCycleCollectionTraversalCallback* aCallback);
+  void Unlink();
 
 protected:
   
@@ -181,7 +260,6 @@ protected:
   nsSMILTime mParentOffset;
 
   
-  
   nsSMILTime mPauseStart;
 
   
@@ -189,6 +267,29 @@ protected:
 
   
   PRUint32 mPauseState;
+
+  struct MilestoneEntry
+  {
+    MilestoneEntry(nsSMILMilestone aMilestone,
+                   nsISMILAnimationElement& aElement)
+      : mMilestone(aMilestone), mTimebase(&aElement)
+    { }
+
+    PRBool operator<(const MilestoneEntry& aOther) const
+    {
+      return mMilestone < aOther.mMilestone;
+    }
+
+    nsSMILMilestone mMilestone; 
+    nsRefPtr<nsISMILAnimationElement> mTimebase;
+  };
+
+  
+  
+  
+  
+  
+  nsTPriorityQueue<MilestoneEntry> mMilestoneEntries;
 };
 
 #endif 
