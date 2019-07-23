@@ -755,7 +755,7 @@ protected:
   nsRefPtr<nsScriptLoader> mScriptLoader;
   nsDocHeaderData* mHeaderData;
 
-  nsHashtable mRadioGroups;
+  nsClassHashtable<nsStringHashKey, nsRadioGroupStruct> mRadioGroups;
 
   
   PRPackedBool mIsGoingAway:1;
