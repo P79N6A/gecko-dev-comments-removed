@@ -42,7 +42,7 @@
 #ifndef nsContentUtils_h___
 #define nsContentUtils_h___
 
-#include "jspubtd.h"
+#include "jsprvtd.h"
 #include "jsnum.h"
 #include "nsAString.h"
 #include "nsIStatefulFrame.h"
@@ -106,7 +106,6 @@ class nsIWidget;
 class nsIDragSession;
 class nsPIDOMWindow;
 class nsPIDOMEventTarget;
-class nsIPresShell;
 #ifdef MOZ_XTF
 class nsIXTFService;
 #endif
@@ -1144,33 +1143,6 @@ public:
 
   static nsresult DropJSObjects(void* aScriptObjectHolder);
 
-  static void PreserveWrapper(nsISupports* aScriptObjectHolder,
-                              nsWrapperCache* aCache)
-  {
-    if (!aCache->PreservingWrapper()) {
-      nsXPCOMCycleCollectionParticipant* participant;
-      CallQueryInterface(aScriptObjectHolder, &participant);
-      HoldJSObjects(aScriptObjectHolder, participant);
-      aCache->SetPreservingWrapper(PR_TRUE);
-    }
-  }
-  static void ReleaseWrapper(nsISupports* aScriptObjectHolder,
-                             nsWrapperCache* aCache)
-  {
-    if (aCache->PreservingWrapper()) {
-      DropJSObjects(aScriptObjectHolder);
-      aCache->SetPreservingWrapper(PR_FALSE);
-    }
-  }
-  static void TraceWrapper(nsWrapperCache* aCache, TraceCallback aCallback,
-                           void *aClosure)
-  {
-    if (aCache->PreservingWrapper()) {
-      aCallback(nsIProgrammingLanguage::JAVASCRIPT, aCache->GetWrapper(),
-                aClosure);
-    }
-  }
-
   
 
 
@@ -1435,31 +1407,10 @@ public:
 
 
 
-  static nsresult DispatchXULCommand(nsIContent* aTarget,
-                                     PRBool aTrusted,
-                                     nsIDOMEvent* aSourceEvent = nsnull,
-                                     nsIPresShell* aShell = nsnull,
-                                     PRBool aCtrl = PR_FALSE,
-                                     PRBool aAlt = PR_FALSE,
-                                     PRBool aShift = PR_FALSE,
-                                     PRBool aMeta = PR_FALSE);
-
-  
-
-
-
-
-
 
   static already_AddRefed<nsIDocument>
   GetDocumentFromScriptContext(nsIScriptContext *aScriptContext);
 
-  
-
-
-
-
-  static PRBool CanAccessNativeAnon();
 private:
 
   static PRBool InitializeEventTable();

@@ -135,6 +135,27 @@ typedef struct JSXMLArray           JSXMLArray;
 typedef struct JSXMLArrayCursor     JSXMLArrayCursor;
 
 
+
+
+
+
+
+
+
+
+#ifdef __cplusplus
+# ifdef WRAPPED_IN_EXTERN_C
+}
+# endif
+
+template <class T> class JSTempVector;
+
+# ifdef WRAPPED_IN_EXTERN_C
+extern "C" {
+# endif
+#endif
+
+
 typedef enum JSTrapStatus {
     JSTRAP_ERROR,
     JSTRAP_CONTINUE,
@@ -363,4 +384,4 @@ typedef JSBool
 extern JSBool js_CStringsAreUTF8;
 #endif
 
-#endif 
+#endif
