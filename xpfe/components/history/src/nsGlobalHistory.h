@@ -341,9 +341,6 @@ protected:
   nsresult GetRowValue(nsIMdbRow *aRow, mdb_column aCol, PRInt32* aResult);
 
   
-  nsresult GetRowURL(nsIMdbRow *aRow, nsAString& aResult);
-
-  
   
   nsresult FindRow(mdb_column aCol, const char *aURL, nsIMdbRow **aResult);
 
