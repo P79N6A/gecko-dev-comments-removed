@@ -558,6 +558,10 @@ nsWindow::SetSizeMode(PRInt32 aMode)
         widget->showMinimized();
         break;
     case nsSizeMode_Fullscreen:
+        
+        
+        
+        XSync(QX11Info().display(), False);
         widget->showFullScreen();
         break;
 
@@ -1932,6 +1936,10 @@ nsWindow::MakeFullScreen(PRBool aFullScreen)
             mLastSizeMode = mSizeMode;
 
         mSizeMode = nsSizeMode_Fullscreen;
+        
+        
+        
+        XSync(QX11Info().display(), False);
         widget->showFullScreen();
     }
     else {
