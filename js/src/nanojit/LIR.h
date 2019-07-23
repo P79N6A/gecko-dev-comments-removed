@@ -299,18 +299,6 @@ namespace nanojit
     
     
     
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
 
     enum LInsRepKind {
         
@@ -379,7 +367,7 @@ namespace nanojit
         inline void initLInsSk(LIns* prevLIns);
         
         
-        inline void initLInsC(LOpcode opcode, int32_t argc, const CallInfo* ci);
+        inline void initLInsC(LOpcode opcode, LIns** args, const CallInfo* ci);
         inline void initLInsP(int32_t arg, int32_t kind);
         inline void initLInsI(LOpcode opcode, int32_t imm32);
         inline void initLInsI64(LOpcode opcode, int64_t imm64);
@@ -756,7 +744,10 @@ namespace nanojit
     private:
         friend class LIns;
 
-        uintptr_t   argc:8;
+        
+        
+        
+        LIns**      args;
 
         const CallInfo* ci;
 
@@ -876,11 +867,10 @@ namespace nanojit
         toLInsSk()->prevLIns = prevLIns;
         NanoAssert(isLInsSk());
     }
-    void LIns::initLInsC(LOpcode opcode, int32_t argc, const CallInfo* ci) {
-        NanoAssert(isU8(argc));
+    void LIns::initLInsC(LOpcode opcode, LIns** args, const CallInfo* ci) {
         lastWord.clear();
         lastWord.opcode = opcode;
-        toLInsC()->argc = argc;
+        toLInsC()->args = args;
         toLInsC()->ci = ci;
         NanoAssert(isLInsC());
     }
@@ -992,15 +982,12 @@ namespace nanojit
     LIns* LIns::arg(uint32_t i) const
     {
         NanoAssert(isCall());
-        NanoAssert(i < argc());
-        
-        LInsp* argSlot = (LInsp*)(uintptr_t(toLInsC()) - (i+1)*sizeof(void*));
-        return *argSlot;
+        NanoAssert(i < callInfo()->count_args());
+        return toLInsC()->args[i];  
     }
 
     uint32_t LIns::argc() const {
-        NanoAssert(isCall());
-        return toLInsC()->argc;
+        return callInfo()->count_args();
     }
 
     LIns* LIns::callArgN(uint32_t n) const
@@ -1070,6 +1057,7 @@ namespace nanojit
             base = insDisp(base, d);
             return out->insStorei(value, base, d);
         }
+        
         virtual LInsp insCall(const CallInfo *call, LInsp args[]) {
             return out->insCall(call, args);
         }

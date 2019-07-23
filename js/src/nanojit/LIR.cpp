@@ -408,15 +408,6 @@ namespace nanojit
                     i -= insSizes[((LInsp)i)->opcode()];
                     break;
 
-                case LIR_icall:
-                case LIR_fcall:
-                case LIR_qcall: {
-                    int argc = ((LInsp)i)->argc();
-                    i -= sizeof(LInsC);         
-                    i -= argc*sizeof(LInsp);    
-                    break;
-                }
-
                 case LIR_skip:
                     
                     NanoAssert(((LInsp)i)->prevLIns() != (LInsp)i);
@@ -968,27 +959,25 @@ namespace nanojit
         LOpcode op = k_callmap[argt & ARGSIZE_MASK_ANY];
         NanoAssert(op != LIR_skip); 
 
-        ArgSize sizes[MAXARGS];
-        int32_t argc = ci->get_sizes(sizes);
+        int32_t argc = ci->count_args();
+        NanoAssert(argc <= (int)MAXARGS);
 
         if (!ARM_VFP && (op == LIR_fcall || op == LIR_qcall))
             op = LIR_callh;
 
-        NanoAssert(argc <= (int)MAXARGS);
-
         
         
-        LInsp* newargs = (LInsp*)_buf->makeRoom(argc*sizeof(LInsp) + sizeof(LInsC)); 
-        for (int32_t i = 0; i < argc; i++)
-            newargs[argc - i - 1] = args[i];
-
         
-        LInsC* insC = (LInsC*)(uintptr_t(newargs) + argc*sizeof(LInsp));
+        LInsp* args2 = (LInsp*)_buf->_allocator.alloc(argc * sizeof(LInsp));
+        memcpy(args2, args, argc * sizeof(LInsp));
+ 
+        
+        LInsC* insC = (LInsC*)_buf->makeRoom(sizeof(LInsC));
         LIns*  ins  = insC->getLIns();
 #ifndef NANOJIT_64BIT
-        ins->initLInsC(op==LIR_callh ? LIR_icall : op, argc, ci);
+        ins->initLInsC(op==LIR_callh ? LIR_icall : op, args2, ci);
 #else
-        ins->initLInsC(op, argc, ci);
+        ins->initLInsC(op, args2, ci);
 #endif
         return ins;
     }
