@@ -1178,15 +1178,10 @@ UpdateService.prototype = {
 
     var status = readStatusFile(getUpdatesDir());
     
-
-
-
-
-
-
-
+    
     if (status == STATE_NONE) {
       LOG("UpdateService:_postUpdateProcessing - no status, no update");
+      cleanupActiveUpdate();
       return;
     }
 
