@@ -114,7 +114,7 @@ static avmplus::AvmCore s_core = avmplus::AvmCore();
 static avmplus::AvmCore* core = &s_core;
 
 
-static bool nesting_enabled = getenv("TRACEMONKEY") && strstr(getenv("TRACEMONKEY"), "nesting");
+static bool nesting_enabled = true;
 
 
 
