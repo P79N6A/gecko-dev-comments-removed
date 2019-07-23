@@ -133,4 +133,21 @@ protected:
   PRUint32 mRole;
 };
 
+
+
+
+
+ 
+class nsEnumRoleXBLAccessible : public nsEnumRoleAccessible
+{
+public:
+  nsEnumRoleXBLAccessible(nsIDOMNode* aNode, nsIWeakReference* aShell,
+                          PRUint32 aRole);
+  virtual ~nsEnumRoleXBLAccessible() { }
+
+  
+  NS_IMETHOD GetAllowsAnonChildAccessibles(PRBool *aAllowsAnonChildren);
+
+};
+
 #endif  
