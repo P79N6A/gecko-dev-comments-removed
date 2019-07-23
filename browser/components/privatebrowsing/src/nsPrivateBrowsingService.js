@@ -138,6 +138,16 @@ PrivateBrowsingService.prototype = {
     if (!this._autoStart) {
       let ss = Cc["@mozilla.org/browser/sessionstore;1"].
                getService(Ci.nsISessionStore);
+      let blankState = JSON.stringify({
+        "windows": [{
+          "tabs": [{
+            "entries": [{
+              "url": "about:blank"
+            }]
+          }],
+          "_closedTabs": []
+        }]
+      });
 
       if (this._inPrivateBrowsing) {
         
@@ -150,8 +160,12 @@ PrivateBrowsingService.prototype = {
         } catch (ex) {}
 
         
-        if (this._saveSession && !this._savedBrowserState)
-          this._savedBrowserState = ss.getBrowserState();
+        if (this._saveSession && !this._savedBrowserState) {
+          if (this._getBrowserWindow())
+            this._savedBrowserState = ss.getBrowserState();
+          else 
+            this._savedBrowserState = blankState;
+        }
       }
       if (!this._quitting && this._saveSession) {
         let browserWindow = this._getBrowserWindow();
@@ -160,18 +174,7 @@ PrivateBrowsingService.prototype = {
         
         if (browserWindow) {
           
-          let transitionState = {
-            "windows": [{
-              "tabs": [{
-                "entries": [{
-                  "url": "about:blank"
-                }]
-              }],
-              "_closedTabs": []
-            }]
-          };
-
-          ss.setBrowserState(JSON.stringify(transitionState));
+          ss.setBrowserState(blankState);
 
           
           
