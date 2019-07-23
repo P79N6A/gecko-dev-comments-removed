@@ -494,7 +494,7 @@ nsWebShellWindow::HandleEvent(nsGUIEvent *aEvent)
 }
 
 #ifdef USE_NATIVE_MENUS
-static void LoadNativeMenus(nsIDOMDocument *aDOMDoc, nsIWidget *aParentWindow, nsIDocShell *aDocShell)
+static void LoadNativeMenus(nsIDOMDocument *aDOMDoc, nsIWidget *aParentWindow)
 {
   
   
@@ -519,7 +519,7 @@ static void LoadNativeMenus(nsIDOMDocument *aDOMDoc, nsIWidget *aParentWindow, n
 
   
   nsMenuEvent fake(PR_TRUE, 0, nsnull);
-  menuListener->MenuConstruct(fake, aParentWindow, menubarNode, aDocShell);
+  menuListener->MenuConstruct(fake, aParentWindow, menubarNode);
 }
 #endif
 
@@ -608,9 +608,7 @@ nsWebShellWindow::OnStateChange(nsIWebProgress *aProgress,
   
   nsCOMPtr<nsIDOMDocument> menubarDOMDoc(GetNamedDOMDoc(NS_LITERAL_STRING("this"))); 
   if (menubarDOMDoc)
-  {
-    LoadNativeMenus(menubarDOMDoc, mWindow, mDocShell);
-  }
+    LoadNativeMenus(menubarDOMDoc, mWindow);
 #endif 
 
   OnChromeLoaded();
