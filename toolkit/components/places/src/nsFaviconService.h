@@ -124,6 +124,10 @@ private:
 
   nsCOMPtr<nsIURI> mDefaultIcon;
 
+  
+  
+  bool mExpirationRunning;
+
   PRUint32 mFailedFaviconSerial;
   nsDataHashtable<nsCStringHashKey, PRUint32> mFailedFavicons;
 
@@ -132,11 +136,6 @@ private:
 
   nsresult UpdateBookmarkRedirectFavicon(nsIURI* aPage, nsIURI* aFavicon);
   void SendFaviconNotifications(nsIURI* aPage, nsIURI* aFaviconURI);
-
-  
-
-
-  nsresult ExpireAllFavicons();
 
   friend class FaviconLoadListener;
 };
