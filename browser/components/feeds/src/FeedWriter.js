@@ -566,13 +566,13 @@ FeedWriter.prototype = {
 
 
 
-          if (this._document.getElementById("handlersMenuList")
-                  .getAttribute("open") == "true") {
-            if (!this._chooseClientApp()) {
-              
-              
-              this._setSelectedHandler();
-            }
+          var popupbox = this._document.getElementById("handlersMenuList")
+                             .firstChild.boxObject;
+          popupbox.QueryInterface(Components.interfaces.nsIPopupBoxObject);
+          if (popupbox.popupState == "hiding" && !this._chooseClientApp()) {
+            
+            
+            this._setSelectedHandler();
           }
           break;
         default:
