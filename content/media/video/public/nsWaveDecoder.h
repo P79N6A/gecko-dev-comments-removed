@@ -206,6 +206,16 @@ class nsWaveDecoder : public nsMediaDecoder
   
   virtual void Shutdown();
 
+  
+  
+  
+  virtual void Suspend();
+
+  
+  
+  
+  virtual void Resume();
+
 private:
   
   void BufferingStarted();

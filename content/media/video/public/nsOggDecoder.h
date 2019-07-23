@@ -355,6 +355,16 @@ class nsOggDecoder : public nsMediaDecoder
   
   nsChannelReader* GetReader() { return mReader; }
 
+  
+  
+  
+  virtual void Suspend();
+
+  
+  
+  
+  virtual void Resume();
+
 protected:
 
   

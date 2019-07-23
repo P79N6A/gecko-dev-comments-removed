@@ -91,6 +91,8 @@ public:
   virtual float    DownloadRate() = 0;
   virtual void     Cancel() { }
   virtual nsIPrincipal* GetCurrentPrincipal() = 0;
+  virtual void     Suspend() = 0;
+  virtual void     Resume() = 0;
 
 protected:
   
@@ -187,6 +189,14 @@ class nsMediaStream
 
   
   nsIPrincipal* GetCurrentPrincipal();
+
+  
+  
+  void Suspend();
+
+  
+  
+  void Resume();
 
  private:
   

@@ -171,6 +171,16 @@ class nsMediaDecoder : public nsIObserver
   
   virtual void Shutdown();
 
+  
+  
+  
+  virtual void Suspend() = 0;
+
+  
+  
+  
+  virtual void Resume() = 0;
+
 protected:
 
   
