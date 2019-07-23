@@ -109,8 +109,11 @@ class nsCaret : public nsISelectionListener
 
 
 
+
+
     virtual nsIFrame* GetGeometry(nsISelection* aSelection,
-                                  nsRect* aRect);
+                                  nsRect* aRect,
+                                  nscoord* aBidiIndicatorSize = nsnull);
 
     
 
@@ -223,8 +226,8 @@ protected:
     void          DrawCaret(PRBool aInvalidate);
     void          DrawCaretAfterBriefDelay();
     nsresult      UpdateCaretRects(nsIFrame* aFrame, PRInt32 aFrameOffset);
-    nsresult      UpdateHookRect(nsPresContext* aPresContext,
-                                 const Metrics& aMetrics);
+    nsresult      UpdateHookRect(nsISelection* aSelection,
+                                 nscoord aBidiIndicatorSize);
     static void   InvalidateRects(const nsRect &aRect, const nsRect &aHook,
                                   nsIFrame *aFrame);
     nsRect        GetHookRect()

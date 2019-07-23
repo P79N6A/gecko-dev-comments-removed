@@ -83,6 +83,86 @@ static const PRInt32 kMinBidiIndicatorPixels = 2;
 
 
 
+
+
+
+
+static nsIFrame*
+CheckForTrailingTextFrameRecursive(nsIFrame* aFrame, nsIFrame* aStopAtFrame)
+{
+  if (aFrame == aStopAtFrame ||
+      ((aFrame->GetType() == nsGkAtoms::textFrame &&
+       (static_cast<nsTextFrame*>(aFrame))->IsAtEndOfLine())))
+    return aFrame;
+  if (!aFrame->IsFrameOfType(nsIFrame::eLineParticipant))
+    return nsnull;
+
+  for (nsIFrame* f = aFrame->GetFirstChild(nsnull); f; f = f->GetNextSibling())
+  {
+    nsIFrame* r = CheckForTrailingTextFrameRecursive(f, aStopAtFrame);
+    if (r)
+      return r;
+  }
+  return nsnull;
+}
+
+static nsLineBox*
+FindContainingLine(nsIFrame* aFrame)
+{
+  while (aFrame && aFrame->IsFrameOfType(nsIFrame::eLineParticipant))
+  {
+    nsIFrame* parent = aFrame->GetParent();
+    nsBlockFrame* blockParent = nsLayoutUtils::GetAsBlock(parent);
+    if (blockParent)
+    {
+      PRBool isValid;
+      nsBlockInFlowLineIterator iter(blockParent, aFrame, &isValid);
+      return isValid ? iter.GetLine().get() : nsnull;
+    }
+    aFrame = parent;
+  }
+  return nsnull;
+}
+
+static void
+AdjustCaretFrameForLineEnd(nsIFrame** aFrame, PRInt32* aOffset)
+{
+  nsLineBox* line = FindContainingLine(*aFrame);
+  if (!line)
+    return;
+  PRInt32 count = line->GetChildCount();
+  for (nsIFrame* f = line->mFirstChild; count > 0; --count, f = f->GetNextSibling())
+  {
+    nsIFrame* r = CheckForTrailingTextFrameRecursive(f, *aFrame);
+    if (r == *aFrame)
+      return;
+    if (r)
+    {
+      *aFrame = r;
+      NS_ASSERTION(r->GetType() == nsGkAtoms::textFrame, "Expected text frame");
+      *aOffset = (static_cast<nsTextFrame*>(r))->GetContentEnd();
+      return;
+    }
+  }
+}
+
+static PRBool
+FramesOnSameLineHaveZeroHeight(nsIFrame* aFrame)
+{
+  nsLineBox* line = FindContainingLine(aFrame);
+  if (!line)
+    return aFrame->GetRect().height == 0;
+  PRInt32 count = line->GetChildCount();
+  for (nsIFrame* f = line->mFirstChild; count > 0; --count, f = f->GetNextSibling())
+  {
+   if (f->GetRect().height != 0)
+     return PR_FALSE;
+  }
+  return PR_TRUE;
+}
+
+
+
 nsCaret::nsCaret()
 : mPresShell(nsnull)
 , mBlinkRate(500)
@@ -277,7 +357,8 @@ void nsCaret::SetCaretReadOnly(PRBool inMakeReadonly)
   mReadOnly = inMakeReadonly;
 }
 
-nsIFrame* nsCaret::GetGeometry(nsISelection* aSelection, nsRect* aRect)
+nsIFrame* nsCaret::GetGeometry(nsISelection* aSelection, nsRect* aRect,
+                               nscoord* aBidiIndicatorSize)
 {
   nsCOMPtr<nsIDOMNode> focusNode;
   nsresult rv = aSelection->GetFocusNode(getter_AddRefs(focusNode));
@@ -312,10 +393,47 @@ nsIFrame* nsCaret::GetGeometry(nsISelection* aSelection, nsRect* aRect)
   if (NS_FAILED(rv))
     return nsnull;
 
-  
   nscoord height = theFrame->GetContentRect().height;
-  nscoord width = ComputeMetrics(theFrame, theFrameOffset, height).mCaretWidth;
-  *aRect = nsRect(framePos.x, 0, width, height);
+  if (height == 0) {
+    nsCOMPtr<nsIFontMetrics> fm;
+    nsLayoutUtils::GetFontMetricsForFrame(theFrame, getter_AddRefs(fm));
+    if (fm) {
+      nscoord ascent, descent;
+      fm->GetMaxAscent(ascent);
+      fm->GetMaxDescent(descent);
+      height = ascent + descent;
+
+      
+      
+      
+      if (theFrame->GetStyleDisplay()->IsInlineOutside() &&
+          !FramesOnSameLineHaveZeroHeight(theFrame))
+        framePos.y -= ascent;
+    }
+  }
+  Metrics caretMetrics = ComputeMetrics(theFrame, theFrameOffset, height);
+  *aRect = nsRect(framePos, nsSize(caretMetrics.mCaretWidth, height));
+
+  
+  
+  nsIFrame *scrollFrame =
+    nsLayoutUtils::GetClosestFrameOfType(theFrame, nsGkAtoms::scrollFrame);
+  if (scrollFrame) {
+    
+    nsIScrollableFrame *sf = do_QueryFrame(scrollFrame);
+    nsIFrame *scrolled = sf->GetScrolledFrame();
+    nsRect caretInScroll = *aRect + theFrame->GetOffsetTo(scrolled);
+
+    
+    
+    nscoord overflow = caretInScroll.XMost() -
+      scrolled->GetOverflowRectRelativeToSelf().width;
+    if (overflow > 0)
+      aRect->x -= overflow;
+  }
+
+  if (aBidiIndicatorSize)
+    *aBidiIndicatorSize = caretMetrics.mBidiIndicatorSize;
   return theFrame;
 }
 
@@ -603,71 +721,6 @@ nsCaret::DrawAtPositionWithHint(nsIDOMNode*             aNode,
     InvalidateRects(mCaretRect, mHookRect, theFrame);
 
   return PR_TRUE;
-}
-
-
-
-
-
-
-
-static nsIFrame*
-CheckForTrailingTextFrameRecursive(nsIFrame* aFrame, nsIFrame* aStopAtFrame)
-{
-  if (aFrame == aStopAtFrame ||
-      ((aFrame->GetType() == nsGkAtoms::textFrame &&
-       (static_cast<nsTextFrame*>(aFrame))->IsAtEndOfLine())))
-    return aFrame;
-  if (!aFrame->IsFrameOfType(nsIFrame::eLineParticipant))
-    return nsnull;
-
-  for (nsIFrame* f = aFrame->GetFirstChild(nsnull); f; f = f->GetNextSibling())
-  {
-    nsIFrame* r = CheckForTrailingTextFrameRecursive(f, aStopAtFrame);
-    if (r)
-      return r;
-  }
-  return nsnull;
-}
-
-static nsLineBox*
-FindContainingLine(nsIFrame* aFrame)
-{
-  while (aFrame && aFrame->IsFrameOfType(nsIFrame::eLineParticipant))
-  {
-    nsIFrame* parent = aFrame->GetParent();
-    nsBlockFrame* blockParent = nsLayoutUtils::GetAsBlock(parent);
-    if (blockParent)
-    {
-      PRBool isValid;
-      nsBlockInFlowLineIterator iter(blockParent, aFrame, &isValid);
-      return isValid ? iter.GetLine().get() : nsnull;
-    }
-    aFrame = parent;
-  }
-  return nsnull;
-}
-
-static void
-AdjustCaretFrameForLineEnd(nsIFrame** aFrame, PRInt32* aOffset)
-{
-  nsLineBox* line = FindContainingLine(*aFrame);
-  if (!line)
-    return;
-  PRInt32 count = line->GetChildCount();
-  for (nsIFrame* f = line->mFirstChild; count > 0; --count, f = f->GetNextSibling())
-  {
-    nsIFrame* r = CheckForTrailingTextFrameRecursive(f, *aFrame);
-    if (r == *aFrame)
-      return;
-    if (r)
-    {
-      *aFrame = r;
-      NS_ASSERTION(r->GetType() == nsGkAtoms::textFrame, "Expected text frame");
-      *aOffset = (static_cast<nsTextFrame*>(r))->GetContentEnd();
-      return;
-    }
-  }
 }
 
 nsresult 
@@ -1020,103 +1073,24 @@ void nsCaret::DrawCaret(PRBool aInvalidate)
   ToggleDrawnStatus();
 }
 
-static PRBool
-FramesOnSameLineHaveZeroHeight(nsIFrame* aFrame)
-{
-  nsLineBox* line = FindContainingLine(aFrame);
-  if (!line)
-    return aFrame->GetRect().height == 0;
-  PRInt32 count = line->GetChildCount();
-  for (nsIFrame* f = line->mFirstChild; count > 0; --count, f = f->GetNextSibling())
-  {
-   if (f->GetRect().height != 0)
-     return PR_FALSE;
-  }
-  return PR_TRUE;
-}
-
 nsresult nsCaret::UpdateCaretRects(nsIFrame* aFrame, PRInt32 aFrameOffset)
 {
   NS_ASSERTION(aFrame, "Should have a frame here");
 
-  nsRect frameRect = aFrame->GetContentRect();
-  frameRect.x = 0;
-  frameRect.y = 0;
-
-  nsCOMPtr<nsIPresShell> presShell = do_QueryReferent(mPresShell);
-  if (!presShell) return NS_ERROR_FAILURE;
-
-  
-  
-  if (frameRect.height == 0)
-  {
-    nsCOMPtr<nsIFontMetrics> fm;
-    nsLayoutUtils::GetFontMetricsForFrame(aFrame, getter_AddRefs(fm));
-
-    if (fm)
-    {
-      nscoord ascent, descent;
-      fm->GetMaxAscent(ascent);
-      fm->GetMaxDescent(descent);
-      frameRect.height = ascent + descent;
-
-      
-      
-      
-      if (aFrame->GetStyleDisplay()->IsInlineOutside() &&
-          !FramesOnSameLineHaveZeroHeight(aFrame))
-        frameRect.y -= ascent;
-    }
-  }
-
-  mCaretRect = frameRect;
   nsCOMPtr<nsISelection> domSelection = do_QueryReferent(mDomSelectionWeak);
-  nsCOMPtr<nsISelectionPrivate> privateSelection = do_QueryInterface(domSelection);
-
-  nsPoint framePos;
-
-  
-  nsresult rv = privateSelection->GetCachedFrameOffset(aFrame, aFrameOffset,
-                                                       framePos);
-  if (NS_FAILED(rv))
-  {
-    mCaretRect.Empty();
-    return rv;
-  }
-
-  mCaretRect += framePos;
-  Metrics metrics = ComputeMetrics(aFrame, aFrameOffset, mCaretRect.height);
-  mCaretRect.width = metrics.mCaretWidth;
-
-  
-  
-  nsIFrame *scrollFrame =
-    nsLayoutUtils::GetClosestFrameOfType(aFrame, nsGkAtoms::scrollFrame);
-  if (scrollFrame)
-  {
-    
-    nsIScrollableFrame *sf = do_QueryFrame(scrollFrame);
-    nsIFrame *scrolled = sf->GetScrolledFrame();
-    nsRect caretInScroll = mCaretRect + aFrame->GetOffsetTo(scrolled);
-
-    
-    
-    nscoord overflow = caretInScroll.XMost() -
-      scrolled->GetOverflowRectRelativeToSelf().width;
-    if (overflow > 0)
-      mCaretRect.x -= overflow;
-  }
+  nscoord bidiIndicatorSize;
+  GetGeometry(domSelection, &mCaretRect, &bidiIndicatorSize);
 
   
   const nsStyleVisibility* vis = aFrame->GetStyleVisibility();
   if (NS_STYLE_DIRECTION_RTL == vis->mDirection)
     mCaretRect.x -= mCaretRect.width;
 
-  return UpdateHookRect(presShell->GetPresContext(), metrics);
+  return UpdateHookRect(domSelection, bidiIndicatorSize);
 }
 
-nsresult nsCaret::UpdateHookRect(nsPresContext* aPresContext,
-                                 const Metrics& aMetrics)
+nsresult nsCaret::UpdateHookRect(nsISelection* aSelection,
+                                 nscoord aBidiIndicatorSize)
 {
   mHookRect.Empty();
 
@@ -1142,24 +1116,19 @@ nsresult nsCaret::UpdateHookRect(nsPresContext* aPresContext,
 
  
       mKeyboardRTL = isCaretRTL;
-      nsCOMPtr<nsISelection> domSelection = do_QueryReferent(mDomSelectionWeak);
-      if (domSelection)
+      if (NS_SUCCEEDED(aSelection->SelectionLanguageChange(mKeyboardRTL)))
       {
-        if (NS_SUCCEEDED(domSelection->SelectionLanguageChange(mKeyboardRTL)))
-        {
-          return NS_ERROR_FAILURE;
-        }
+        return NS_ERROR_FAILURE;
       }
     }
     
     
     
-    nscoord bidiIndicatorSize = aMetrics.mBidiIndicatorSize;
     mHookRect.SetRect(mCaretRect.x + ((isCaretRTL) ?
-                      bidiIndicatorSize * -1 :
+                      aBidiIndicatorSize * -1 :
                       mCaretRect.width),
-                      mCaretRect.y + bidiIndicatorSize,
-                      bidiIndicatorSize,
+                      mCaretRect.y + aBidiIndicatorSize,
+                      aBidiIndicatorSize,
                       mCaretRect.width);
   }
 #endif 
