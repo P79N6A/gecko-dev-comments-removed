@@ -366,31 +366,6 @@ MakeBevelColor(PRIntn whichSide, PRUint8 style,
   return theColor;
 }
 
-nscolor
-nsCSSRendering::TransformColor(nscolor  aMapColor,PRBool aNoBackGround)
-{
-PRUint16  hue,sat,value;
-nscolor   newcolor;
-
-  newcolor = aMapColor;
-  if (PR_TRUE == aNoBackGround){
-    
-    NS_RGB2HSV(newcolor,hue,sat,value);
-    
-    
-    
-    
-    
-    
-    if (value > sat) {
-      value = sat;
-      
-      NS_HSV2RGB(newcolor,hue,sat,value);
-    }
-  }
-  return newcolor;
-}
-
 
 
 

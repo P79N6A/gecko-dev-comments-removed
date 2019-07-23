@@ -275,7 +275,7 @@ nsFrameManager::Destroy()
   
   mPresShell->SetIgnoreFrameDestruction(PR_TRUE);
 
-  mIsDestroyingFrames = PR_TRUE;  
+  mIsDestroying = PR_TRUE;  
 
   
   nsFrameManager::ClearPlaceholderFrameMap();
@@ -324,12 +324,12 @@ nsIFrame*
 nsFrameManager::GetPrimaryFrameFor(nsIContent* aContent,
                                    PRInt32 aIndexHint)
 {
+  NS_ASSERTION(!mIsDestroyingFrames,
+               "GetPrimaryFrameFor() called while frames are being destroyed!");
   NS_ENSURE_TRUE(aContent, nsnull);
 
-  if (mIsDestroyingFrames) {
-#ifdef DEBUG
-    printf("GetPrimaryFrameFor() called while nsFrameManager is being destroyed!\n");
-#endif
+  if (mIsDestroying) {
+    NS_ERROR("GetPrimaryFrameFor() called while nsFrameManager is being destroyed!");
     return nsnull;
   }
 
@@ -684,6 +684,10 @@ nsFrameManager::RemoveFrame(nsIFrame*       aParentFrame,
                             nsIAtom*        aListName,
                             nsIFrame*       aOldFrame)
 {
+#ifdef DEBUG  
+  PRBool wasDestroyingFrames = mIsDestroyingFrames;
+  mIsDestroyingFrames = PR_TRUE;
+#endif
   
   
   
@@ -692,7 +696,11 @@ nsFrameManager::RemoveFrame(nsIFrame*       aParentFrame,
   
   aOldFrame->Invalidate(aOldFrame->GetOverflowRect());
 
-  return aParentFrame->RemoveFrame(aListName, aOldFrame);
+  nsresult rv = aParentFrame->RemoveFrame(aListName, aOldFrame);
+#ifdef DEBUG  
+  mIsDestroyingFrames = wasDestroyingFrames;
+#endif
+  return rv;
 }
 
 
@@ -1102,11 +1110,7 @@ nsFrameManager::ReResolveStyleContext(nsPresContext    *aPresContext,
   nsStyleContext* oldContext = aFrame->GetStyleContext();
   nsStyleSet* styleSet = aPresContext->StyleSet();
 #ifdef ACCESSIBILITY
-  PRBool isAccessibilityActive = mPresShell->IsAccessibilityActive();
-  PRBool isVisible;
-  if (isAccessibilityActive) {
-    isVisible = aFrame->GetStyleVisibility()->IsVisible();
-  }
+  PRBool isVisible = aFrame->GetStyleVisibility()->IsVisible();
 #endif
 
   
@@ -1445,7 +1449,7 @@ nsFrameManager::ReResolveStyleContext(nsPresContext    *aPresContext,
   }
 
 #ifdef ACCESSIBILITY
-  if (isAccessibilityActive &&
+  if (mPresShell->IsAccessibilityActive() &&
       aFrame->GetStyleVisibility()->IsVisible() != isVisible &&
       !aFrame->GetPrevContinuation()) { 
     
@@ -1455,9 +1459,10 @@ nsFrameManager::ReResolveStyleContext(nsPresContext    *aPresContext,
     nsCOMPtr<nsIAccessibilityService> accService = 
       do_GetService("@mozilla.org/accessibilityService;1");
     if (accService) {
-      accService->InvalidateSubtreeFor(mPresShell, aFrame->GetContent(),
-                                       isVisible ? nsIAccessibleEvent::EVENT_ASYNCH_HIDE :
-                                                   nsIAccessibleEvent::EVENT_ASYNCH_SHOW);
+      PRUint32 event = isVisible ?
+        PRUint32(nsIAccessibleEvent::EVENT_ASYNCH_HIDE) :
+        PRUint32(nsIAccessibleEvent::EVENT_ASYNCH_SHOW);
+      accService->InvalidateSubtreeFor(mPresShell, aFrame->GetContent(), event);
     }
   }
 #endif
