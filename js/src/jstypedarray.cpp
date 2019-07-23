@@ -37,6 +37,8 @@
 
 
 
+#define __STDC_LIMIT_MACROS
+
 #include <string.h>
 
 #include "jstypes.h"
@@ -918,7 +920,17 @@ class TypedArrayTemplate
                 len = (uint32) lengthInt;
             }
 
-            if (boffset + len*sizeof(NativeType) > abuf->byteLength) {
+            
+            uint32 arrayByteLength = len*sizeof(NativeType);
+            if (uint32(len) >= INT32_MAX / sizeof(NativeType) ||
+                uint32(boffset) >= INT32_MAX - arrayByteLength)
+            {
+                JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL,
+                                     JSMSG_TYPED_ARRAY_BAD_ARGS);
+                return false; 
+            }
+
+            if (arrayByteLength + boffset > abuf->byteLength) {
                 JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL,
                                      JSMSG_TYPED_ARRAY_BAD_ARGS);
                 return false; 
@@ -927,7 +939,7 @@ class TypedArrayTemplate
             buffer = abuf;
             bufferJS = other;
             byteOffset = boffset;
-            byteLength = len * sizeof(NativeType);
+            byteLength = arrayByteLength;
             length = len;
             data = abuf->offsetData(boffset);
         } else {
@@ -1095,13 +1107,15 @@ class TypedArrayTemplate
     bool
     createBufferWithSizeAndCount(JSContext *cx, uint32 size, uint32 count)
     {
-        int32 bytelen = size * count;
-        if (bytelen / size != count) {
+        JS_ASSERT(size != 0);
+
+        if (size != 0 && count >= INT32_MAX / size) {
             JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL,
                                  JSMSG_NEED_DIET, "size and count");
             return false;
         }
 
+        int32 bytelen = size * count;
         if (!createBufferWithByteLength(cx, bytelen))
             return false;
 
