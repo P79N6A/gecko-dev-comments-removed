@@ -40,84 +40,16 @@
 #define nsCoreUtils_h_
 
 #include "nsAccessibilityAtoms.h"
-#include "nsIAccessible.h"
-#include "nsIAccessNode.h"
-#include "nsARIAMap.h"
 
 #include "nsIDOMNode.h"
-#include "nsIPersistentProperties2.h"
 #include "nsIContent.h"
 #include "nsIFrame.h"
 #include "nsIDocShellTreeItem.h"
 #include "nsPoint.h"
-#include "nsIAccessibleDocument.h"
 
 class nsCoreUtils
 {
 public:
-  
-
-
-
-
-
-
-  static void GetAccAttr(nsIPersistentProperties *aAttributes,
-                         nsIAtom *aAttrName,
-                         nsAString& aAttrValue);
-
-  
-
-
-
-
-
-
-  static void SetAccAttr(nsIPersistentProperties *aAttributes,
-                         nsIAtom *aAttrName,
-                         const nsAString& aAttrValue);
-
-  
-
-
-  static void GetAccGroupAttrs(nsIPersistentProperties *aAttributes,
-                               PRInt32 *aLevel,
-                               PRInt32 *aPosInSet,
-                               PRInt32 *aSetSize);
-
-  
-
-
-  static PRBool HasAccGroupAttrs(nsIPersistentProperties *aAttributes);
-
-  
-
-
-  static void SetAccGroupAttrs(nsIPersistentProperties *aAttributes,
-                               PRInt32 aLevel,
-                               PRInt32 aPosInSet,
-                               PRInt32 aSetSize);
-
-  
-
-
-
-
-
-
-  static void SetAccAttrsForXULSelectControlItem(nsIDOMNode *aNode,
-                                                 nsIPersistentProperties *aAttributes);
-
-  
-
-
-
-
-
-
-  static void SetAccAttrsForXULContainerItem(nsIDOMNode *aNode,
-                                             nsIPersistentProperties *aAttributes);
-
   
 
 
@@ -146,12 +78,6 @@ public:
   
 
 
-  static nsresult FireAccEvent(PRUint32 aEventType, nsIAccessible *aAccessible,
-                               PRBool aIsAsynch = PR_FALSE);
-
-  
-
-
 
 
 
@@ -176,28 +102,6 @@ public:
 
    static PRBool AreSiblings(nsIDOMNode *aDOMNode1,
                              nsIDOMNode *aDOMNode2);
-
-  
-
-
-
-
-
-   static already_AddRefed<nsIAccessible>
-     GetAncestorWithRole(nsIAccessible *aDescendant, PRUint32 aRole);
-
-   
-
-
-
-
-
-
-
-   static void
-     GetARIATreeItemParent(nsIAccessible *aStartTreeItem,
-                           nsIContent *aStartTreeItemContent,
-                           nsIAccessible **aTreeItemParent);
 
   
 
@@ -255,52 +159,7 @@ public:
 
 
 
-
-
-
-
-
-
-  static nsresult ConvertToScreenCoords(PRInt32 aX, PRInt32 aY,
-                                        PRUint32 aCoordinateType,
-                                        nsIAccessNode *aAccessNode,
-                                        nsIntPoint *aCoords);
-
-  
-
-
-
-
-
-
-
-
-
-
-  static nsresult ConvertScreenCoordsTo(PRInt32 *aX, PRInt32 *aY,
-                                        PRUint32 aCoordinateType,
-                                        nsIAccessNode *aAccessNode);
-
-  
-
-
-
-
   static nsIntPoint GetScreenCoordsForWindow(nsIDOMNode *aNode);
-
-  
-
-
-
-
-  static nsIntPoint GetScreenCoordsForWindow(nsIAccessNode *aAccessNode);
-
-  
-
-
-
-
-  static nsIntPoint GetScreenCoordsForParent(nsIAccessNode *aAccessNode);
 
   
 
@@ -338,14 +197,6 @@ public:
 
   static void GetLanguageFor(nsIContent *aContent, nsIContent *aRootContent,
                              nsAString& aLanguage);
-
-  
-
-
-
-
-
-   static nsRoleMapEntry* GetRoleMapEntry(nsIDOMNode *aNode);
 
   
 
@@ -415,19 +266,6 @@ public:
                                                     PRUint32 aAttrNum = 1,
                                                     nsIContent *aExcludeContent = nsnull,
                                                     nsIAtom *aTagType = nsAccessibilityAtoms::label);
-  
-  
-  static PRBool IsARIAPropForObjectAttr(nsIAtom *aAtom);
-
-
-  
-
-
-
-
-
-  static void GetLiveContainerAttributes(nsIPersistentProperties *aAttributes,
-                                         nsIContent *aStartContent, nsIContent *aTopContent);
 };
 
 #endif

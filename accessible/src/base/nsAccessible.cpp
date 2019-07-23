@@ -2169,7 +2169,7 @@ nsAccessible::GetAttributes(nsIPersistentProperties **aAttributes)
   }
 
   
-  if (!nsCoreUtils::HasAccGroupAttrs(attributes)) {
+  if (!nsAccUtils::HasAccGroupAttrs(attributes)) {
     
     
     
@@ -2254,8 +2254,8 @@ nsAccessible::GetAttributes(nsIPersistentProperties **aAttributes)
         }
       }
 
-      nsCoreUtils::SetAccGroupAttrs(attributes, groupLevel, positionInGroup,
-                                    setSize);
+      nsAccUtils::SetAccGroupAttrs(attributes, groupLevel, positionInGroup,
+                                   setSize);
     }
   }
 
@@ -2269,7 +2269,7 @@ nsAccessible::GetAttributes(nsIPersistentProperties **aAttributes)
       attrAtom->GetUTF8String(&attrStr);
       if (PL_strncmp(attrStr, "aria-", 5)) 
         continue; 
-      if (!nsCoreUtils::IsARIAPropForObjectAttr(attrAtom))
+      if (!nsAccUtils::IsARIAPropForObjectAttr(attrAtom))
         continue; 
       nsAutoString value;
       if (content->GetAttr(kNameSpaceID_None, attrAtom, value)) {
@@ -2304,7 +2304,7 @@ nsAccessible::GetAttributesInternal(nsIPersistentProperties *aAttributes)
   
   nsAutoString _class;
   if (content->GetAttr(kNameSpaceID_None, nsAccessibilityAtoms::_class, _class))
-    nsCoreUtils::SetAccAttr(aAttributes, nsAccessibilityAtoms::_class, _class);
+    nsAccUtils::SetAccAttr(aAttributes, nsAccessibilityAtoms::_class, _class);
 
   
   
@@ -2321,8 +2321,8 @@ nsAccessible::GetAttributesInternal(nsIPersistentProperties *aAttributes)
     NS_ENSURE_STATE(docNode);
     nsIContent *topContent = GetRoleContent(docNode);
     NS_ENSURE_STATE(topContent);
-    nsCoreUtils::GetLiveContainerAttributes(aAttributes, startContent,
-                                            topContent);
+    nsAccUtils::SetLiveContainerAttributes(aAttributes, startContent,
+                                           topContent);
     
     nsCOMPtr<nsISupports> container = doc->GetContainer();
     nsIDocShellTreeItem *docShellTreeItem = nsnull;
@@ -2346,8 +2346,8 @@ nsAccessible::GetAttributesInternal(nsIPersistentProperties *aAttributes)
                                       NS_LITERAL_STRING("display"),
                                       displayValue);
   if (NS_SUCCEEDED(rv))
-    nsCoreUtils::SetAccAttr(aAttributes, nsAccessibilityAtoms::display,
-                            displayValue);
+    nsAccUtils::SetAccAttr(aAttributes, nsAccessibilityAtoms::display,
+                           displayValue);
   return NS_OK;
 }
 
@@ -2378,7 +2378,7 @@ nsAccessible::GroupPosition(PRInt32 *aGroupLevel,
     return NS_ERROR_FAILURE;
   }
   PRInt32 level, posInSet, setSize;
-  nsCoreUtils::GetAccGroupAttrs(attributes, &level, &posInSet, &setSize);
+  nsAccUtils::GetAccGroupAttrs(attributes, &level, &posInSet, &setSize);
 
   if (!posInSet && !setSize)
     return NS_OK;
@@ -2980,7 +2980,7 @@ NS_IMETHODIMP nsAccessible::GetAccessibleRelated(PRUint32 aRelationType, nsIAcce
         do_QueryInterface(nsCoreUtils::FindNeighbourPointingToNode(content, nsAccessibilityAtoms::aria_owns));
       if (!relatedNode && mRoleMapEntry && mRoleMapEntry->role == nsIAccessibleRole::ROLE_OUTLINEITEM) {
         
-        nsCoreUtils::GetARIATreeItemParent(this, content, aRelated);
+        nsAccUtils::GetARIATreeItemParent(this, content, aRelated);
         return NS_OK;
       }
       

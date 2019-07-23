@@ -247,7 +247,7 @@ NS_IMETHODIMP nsDocAccessible::SetRoleMapEntry(nsRoleMapEntry* aRoleMapEntry)
   nsIContent *ownerContent = parentDoc->FindContentForSubDocument(mDocument);
   nsCOMPtr<nsIDOMNode> ownerNode(do_QueryInterface(ownerContent));
   if (ownerNode) {
-    nsRoleMapEntry *roleMapEntry = nsCoreUtils::GetRoleMapEntry(ownerNode);
+    nsRoleMapEntry *roleMapEntry = nsAccUtils::GetRoleMapEntry(ownerNode);
     if (roleMapEntry)
       mRoleMapEntry = roleMapEntry; 
   }
@@ -922,7 +922,7 @@ NS_IMETHODIMP nsDocAccessible::FireDocLoadEvents(PRUint32 aEventType)
       FireAccessibleEvent(accEvent);
     }
 
-    nsCoreUtils::FireAccEvent(aEventType, this);
+    nsAccUtils::FireAccEvent(aEventType, this);
   }
   return NS_OK;
 }
@@ -937,7 +937,7 @@ void nsDocAccessible::ScrollTimerCallback(nsITimer *aTimer, void *aClosure)
     
     
     
-    nsCoreUtils::FireAccEvent(nsIAccessibleEvent::EVENT_SCROLLING_END, docAcc);
+    nsAccUtils::FireAccEvent(nsIAccessibleEvent::EVENT_SCROLLING_END, docAcc);
 
     docAcc->mScrollPositionChangedTicks = 0;
     if (docAcc->mScrollWatchTimer) {
@@ -1677,7 +1677,7 @@ NS_IMETHODIMP nsDocAccessible::FlushPendingEvents()
           
           nsCOMPtr<nsIAccessible> accForFocus;
           GetAccService()->GetAccessibleFor(gLastFocusedNode, getter_AddRefs(accForFocus));
-          nsCoreUtils::FireAccEvent(nsIAccessibleEvent::EVENT_ALERT, accForFocus);
+          nsAccUtils::FireAccEvent(nsIAccessibleEvent::EVENT_ALERT, accForFocus);
 #endif
           nsCOMPtr<nsIAccessibleCaretMoveEvent> caretMoveEvent =
             new nsAccCaretMoveEvent(accessible, caretOffset);
@@ -1689,8 +1689,8 @@ NS_IMETHODIMP nsDocAccessible::FlushPendingEvents()
           PRInt32 selectionCount;
           accessibleText->GetSelectionCount(&selectionCount);
           if (selectionCount) {  
-            nsCoreUtils::FireAccEvent(nsIAccessibleEvent::EVENT_TEXT_SELECTION_CHANGED,
-                                      accessible, PR_TRUE);
+            nsAccUtils::FireAccEvent(nsIAccessibleEvent::EVENT_TEXT_SELECTION_CHANGED,
+                                     accessible, PR_TRUE);
           }
         } 
       }
@@ -1773,8 +1773,8 @@ void nsDocAccessible::RefreshNodes(nsIDOMNode *aStartNode)
       if (!popup) {
         
         
-        nsCoreUtils::FireAccEvent(nsIAccessibleEvent::EVENT_MENUPOPUP_END,
-                                  accessible);
+        nsAccUtils::FireAccEvent(nsIAccessibleEvent::EVENT_MENUPOPUP_END,
+                                 accessible);
       }
     }
     nsCOMPtr<nsPIAccessible> privateAccessible = do_QueryInterface(accessible);
@@ -2013,7 +2013,7 @@ NS_IMETHODIMP nsDocAccessible::InvalidateCacheSubtree(nsIContent *aChild,
 
     
     
-    nsRoleMapEntry *roleMapEntry = nsCoreUtils::GetRoleMapEntry(childNode);
+    nsRoleMapEntry *roleMapEntry = nsAccUtils::GetRoleMapEntry(childNode);
     if (roleMapEntry && roleMapEntry->role == nsIAccessibleRole::ROLE_MENUPOPUP) {
       FireDelayedToolkitEvent(nsIAccessibleEvent::EVENT_MENUPOPUP_START,
                               childNode, nsAccEvent::eRemoveDupes,
@@ -2034,7 +2034,7 @@ NS_IMETHODIMP nsDocAccessible::InvalidateCacheSubtree(nsIContent *aChild,
       if (!ancestorNode) {
         break;
       }
-      roleMapEntry = nsCoreUtils::GetRoleMapEntry(ancestorNode);
+      roleMapEntry = nsAccUtils::GetRoleMapEntry(ancestorNode);
     }
   }
 
