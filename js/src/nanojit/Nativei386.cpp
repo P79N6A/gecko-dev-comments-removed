@@ -686,6 +686,36 @@ namespace nanojit
         JMP(exit);
     }
 
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
     void Assembler::asm_cmp(LIns *cond)
     {
         LOpcode condop = cond->opcode();
