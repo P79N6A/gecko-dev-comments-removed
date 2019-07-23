@@ -123,22 +123,40 @@ nsVideoFrame::IsLeaf() const
   return PR_TRUE;
 }
 
+
+
+static gfxRect
+CorrectForAspectRatio(const gfxRect& aRect, const nsIntSize& aRatio)
+{
+  NS_ASSERTION(aRatio.width > 0 && aRatio.height > 0 && !aRect.IsEmpty(),
+               "Nothing to draw");
+  
+  gfxFloat scale =
+    PR_MIN(aRect.Width()/aRatio.width, aRect.Height()/aRatio.height);
+  gfxSize scaledRatio(scale*aRatio.width, scale*aRatio.height);
+  gfxPoint topLeft((aRect.Width() - scaledRatio.width)/2,
+                   (aRect.Height() - scaledRatio.height)/2);
+  return gfxRect(aRect.TopLeft() + topLeft, scaledRatio);
+}
+
 void
 nsVideoFrame::PaintVideo(nsIRenderingContext& aRenderingContext,
                          const nsRect& aDirtyRect, nsPoint aPt) 
 {
-  gfxContext* ctx = static_cast<gfxContext*>(aRenderingContext.GetNativeGraphicData(nsIRenderingContext::NATIVE_THEBES_CONTEXT));
-  
-  
-  
   nsRect area = GetContentRect() - GetPosition() + aPt;
+  nsHTMLVideoElement* element = static_cast<nsHTMLVideoElement*>(GetContent());
+  nsIntSize videoSize = element->GetVideoSize(nsIntSize(0, 0));
+  if (videoSize.width <= 0 || videoSize.height <= 0 || area.IsEmpty())
+    return;
+
+  gfxContext* ctx = static_cast<gfxContext*>(aRenderingContext.GetNativeGraphicData(nsIRenderingContext::NATIVE_THEBES_CONTEXT));
   nsPresContext* presContext = PresContext();
   gfxRect r = gfxRect(presContext->AppUnitsToGfxUnits(area.x), 
                       presContext->AppUnitsToGfxUnits(area.y), 
                       presContext->AppUnitsToGfxUnits(area.width), 
                       presContext->AppUnitsToGfxUnits(area.height));
 
-  nsHTMLVideoElement* element = static_cast<nsHTMLVideoElement*>(GetContent());
+  r = CorrectForAspectRatio(r, videoSize);
   element->Paint(ctx, r);
 }
 

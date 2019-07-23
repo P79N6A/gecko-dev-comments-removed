@@ -205,6 +205,9 @@ void nsMediaDecoder::Paint(gfxContext* aContext, const gfxRect& aRect)
 
   
   pat->SetMatrix(gfxMatrix().Scale(mRGBWidth/aRect.Width(), mRGBHeight/aRect.Height()));
+  
+  
+  pat->SetExtend(gfxPattern::EXTEND_PAD);
 
   
   aContext->NewPath();
