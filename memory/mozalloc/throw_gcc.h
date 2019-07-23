@@ -42,6 +42,7 @@
 #define mozilla_throw_gcc_h
 
 #include <stdio.h>              
+#include <string.h>             
 
 
 
