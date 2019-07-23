@@ -85,7 +85,7 @@ public:
         
         
         
-        DRAW_SUPPORTS_ALTERNATE_SCREEN = 0x20,
+        DRAW_SUPPORTS_ALTERNATE_SCREEN = 0x20
     };
 
     struct DrawOutput {
