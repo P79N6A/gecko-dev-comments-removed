@@ -645,6 +645,7 @@ protected:
   nsCOMPtr<mozIStorageStatement> mDBAutoCompleteQuery; 
   nsCOMPtr<mozIStorageStatement> mDBPreviousQuery; 
   nsCOMPtr<mozIStorageStatement> mDBAdaptiveQuery; 
+  nsCOMPtr<mozIStorageStatement> mDBKeywordQuery; 
   nsCOMPtr<mozIStorageStatement> mDBFeedbackIncrease;
 
   
@@ -667,6 +668,8 @@ protected:
   PRInt32 mAutoCompleteSearchTimeout;
   nsCOMPtr<nsITimer> mAutoCompleteTimer;
 
+  
+  nsString mOrigSearchString;
   
   nsString mCurrentSearchString;
   nsStringArray mCurrentSearchTokens;
@@ -693,12 +696,14 @@ protected:
   nsresult AutoCompleteFullHistorySearch(PRBool* aHasMoreResults);
   nsresult AutoCompletePreviousSearch();
   nsresult AutoCompleteAdaptiveSearch();
+  nsresult AutoCompleteKeywordSearch();
 
   
 
 
 
   enum QueryType {
+    QUERY_KEYWORD,
     QUERY_ADAPTIVE,
     QUERY_FULL
   };

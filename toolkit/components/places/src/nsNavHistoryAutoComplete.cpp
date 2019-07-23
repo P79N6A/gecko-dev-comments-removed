@@ -287,6 +287,24 @@ nsNavHistory::CreateAutoCompleteQueries()
   NS_ENSURE_SUCCESS(rv, rv);
 
   sql = NS_LITERAL_CSTRING(
+    "SELECT REPLACE(s.url, '%s', ?2) search_url, h.title, IFNULL(f.url, "
+      "(SELECT f.url "
+       "FROM moz_places r "
+       "JOIN moz_favicons f ON f.id = r.favicon_id "
+       "WHERE r.rev_host = s.rev_host "
+       "ORDER BY r.frecency DESC LIMIT 1)), "
+      "b.parent, b.title, NULL "
+    "FROM moz_keywords k "
+    "JOIN moz_bookmarks b ON b.keyword_id = k.id "
+    "JOIN moz_places s ON s.id = b.fk "
+    "LEFT OUTER JOIN moz_places h ON h.url = search_url "
+    "LEFT OUTER JOIN moz_favicons f ON f.id = h.favicon_id "
+    "WHERE LOWER(k.keyword) = LOWER(?1) "
+    "ORDER BY h.frecency DESC");
+  rv = mDBConn->CreateStatement(sql, getter_AddRefs(mDBKeywordQuery));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  sql = NS_LITERAL_CSTRING(
     
     "INSERT OR REPLACE INTO moz_inputhistory "
     
@@ -340,6 +358,12 @@ nsNavHistory::PerformAutoComplete()
   nsresult rv;
   
   if (!mCurrentChunkOffset) {
+    
+    if (mCurrentSearchTokens.Count()) {
+      rv = AutoCompleteKeywordSearch();
+      NS_ENSURE_SUCCESS(rv, rv);
+    }
+
     
     rv = AutoCompleteAdaptiveSearch();
     NS_ENSURE_SUCCESS(rv, rv);
@@ -445,9 +469,11 @@ nsNavHistory::StartSearch(const nsAString & aSearchString,
   nsAutoString prevSearchString(mCurrentSearchString);
 
   
-  ToLowerCase(aSearchString, mCurrentSearchString);
+  mOrigSearchString = aSearchString;
   
-  mCurrentSearchString.Trim(" \r\n\t\b");
+  mOrigSearchString.Trim(" \r\n\t\b");
+  
+  ToLowerCase(mOrigSearchString, mCurrentSearchString);
 
   mCurrentListener = aListener;
 
@@ -609,6 +635,34 @@ nsNavHistory::AddSearchToken(nsAutoString &aToken)
 }
 
 nsresult
+nsNavHistory::AutoCompleteKeywordSearch()
+{
+  mozStorageStatementScoper scope(mDBKeywordQuery);
+
+  
+  nsCAutoString params;
+  PRInt32 paramPos = mOrigSearchString.FindChar(' ') + 1;
+  
+  
+  NS_Escape(NS_ConvertUTF16toUTF8(Substring(mOrigSearchString, paramPos)),
+    params, url_XPAlphas);
+
+  
+  const nsAString &keyword = Substring(mOrigSearchString, 0,
+    paramPos ? paramPos - 1 : mOrigSearchString.Length());
+  nsresult rv = mDBKeywordQuery->BindStringParameter(0, keyword);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  rv = mDBKeywordQuery->BindUTF8StringParameter(1, params);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  rv = AutoCompleteProcessSearch(mDBKeywordQuery, QUERY_KEYWORD);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  return NS_OK;
+}
+
+nsresult
 nsNavHistory::AutoCompleteAdaptiveSearch()
 {
   mozStorageStatementScoper scope(mDBAdaptiveQuery);
@@ -734,6 +788,17 @@ nsNavHistory::AutoCompleteProcessSearch(mozIStorageStatement* aQuery,
 
       nsString style;
       switch (aType) {
+        case QUERY_KEYWORD: {
+          
+          
+          
+          if (entryTitle.IsEmpty())
+            style = NS_LITERAL_STRING("keyword");
+          else
+            title = entryTitle;
+
+          break;
+        }
         case QUERY_FULL: {
           
           if (aHasMoreResults)
@@ -776,10 +841,15 @@ nsNavHistory::AutoCompleteProcessSearch(mozIStorageStatement* aQuery,
 
       
       
-      style = showTags ? NS_LITERAL_STRING("tag") : (parentId &&
-        !mLivemarkFeedItemIds.Get(parentId, &dummy)) ||
-        mLivemarkFeedURIs.Get(escapedEntryURL, &dummy) ?
-        NS_LITERAL_STRING("bookmark") : NS_LITERAL_STRING("favicon");
+      if (style.IsEmpty()) {
+        if (showTags)
+          style = NS_LITERAL_STRING("tag");
+        else if ((parentId && !mLivemarkFeedItemIds.Get(parentId, &dummy)) ||
+                 mLivemarkFeedURIs.Get(escapedEntryURL, &dummy))
+          style = NS_LITERAL_STRING("bookmark");
+        else
+          style = NS_LITERAL_STRING("favicon");
+      }
 
       
       nsCAutoString faviconSpec;
