@@ -764,7 +764,7 @@ static void
 Blacklist(jsbytecode* pc)
 {
     AUDIT(blacklisted);
-    JS_ASSERT(*pc == JSOP_LOOP || *pc == JSOP_NOP);
+    JS_ASSERT(*pc == JSOP_TRACE || *pc == JSOP_NOP);
     *pc = JSOP_NOP;
 }
 
@@ -941,8 +941,8 @@ AttemptCompilation(JSContext *cx, JSTraceMonitor* tm, JSObject* globalObj, jsbyt
                    uint32 argc)
 {
     
-    JS_ASSERT(*(jsbytecode*)pc == JSOP_NOP || *(jsbytecode*)pc == JSOP_LOOP);
-    *(jsbytecode*)pc = JSOP_LOOP;
+    JS_ASSERT(*pc == JSOP_NOP || *pc == JSOP_TRACE);
+    *pc = JSOP_TRACE;
     ResetRecordingAttempts(cx, pc);
 
     
@@ -3978,7 +3978,8 @@ TraceRecorder::closeLoop(SlotMap& slotMap, VMSideExit* exit, TypeConsensus& cons
 
 
 
-    JS_ASSERT((*cx->fp->regs->pc == JSOP_LOOP || *cx->fp->regs->pc == JSOP_NOP) && !cx->fp->imacpc);
+    JS_ASSERT((*cx->fp->regs->pc == JSOP_TRACE || *cx->fp->regs->pc == JSOP_NOP) &&
+              !cx->fp->imacpc);
 
     if (callDepth != 0) {
         debug_only_print0(LC_TMTracer,
@@ -13290,7 +13291,7 @@ TraceRecorder::record_JSOP_HOLE()
 }
 
 JSRecordingStatus
-TraceRecorder::record_JSOP_LOOP()
+TraceRecorder::record_JSOP_TRACE()
 {
     return JSRS_CONTINUE;
 }
