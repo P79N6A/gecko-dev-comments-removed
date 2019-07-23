@@ -438,6 +438,9 @@ CSSLoaderImpl::RecycleParser(nsICSSParser* aParser)
   if (!gParsers->AppendObject(aParser)) {
     return NS_ERROR_FAILURE;
   }
+
+  
+  aParser->SetStyleSheet(nsnull);
   
   return NS_OK;
 }
@@ -1498,17 +1501,13 @@ CSSLoaderImpl::ParseSheet(nsIUnicharInputStream* aStream,
   }
 
   
-  
-  nsCOMPtr<nsICSSStyleSheet> dummySheet;
-  
   mParsingDatas.AppendElement(aLoadData);
   nsCOMPtr<nsIURI> sheetURI, baseURI;
   aLoadData->mSheet->GetSheetURI(getter_AddRefs(sheetURI));
   aLoadData->mSheet->GetBaseURI(getter_AddRefs(baseURI));
   rv = parser->Parse(aStream, sheetURI, baseURI,
                      aLoadData->mSheet->Principal(), aLoadData->mLineNumber,
-                     aLoadData->mAllowUnsafeRules,
-                     *getter_AddRefs(dummySheet));
+                     aLoadData->mAllowUnsafeRules);
   mParsingDatas.RemoveElementAt(mParsingDatas.Count() - 1);
   RecycleParser(parser);
 

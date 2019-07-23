@@ -57,8 +57,8 @@ class nsMediaList;
 class nsIPrincipal;
 
 #define NS_ICSS_PARSER_IID    \
-{ 0x2cb34728, 0x0f17, 0x4753, \
-  {0x8e, 0xad, 0xec, 0x73, 0xe5, 0x69, 0xcd, 0xcd} }
+{ 0xad4a3778, 0xdae0, 0x4640, \
+ { 0xb2, 0x5a, 0x24, 0xff, 0x09, 0xc3, 0x70, 0xef } }
 
 
 typedef void (*PR_CALLBACK RuleAppendFunc) (nsICSSRule* aRule, void* aData);
@@ -68,6 +68,7 @@ class nsICSSParser : public nsISupports {
 public:
   NS_DECLARE_STATIC_IID_ACCESSOR(NS_ICSS_PARSER_IID)
 
+  
   
   
   NS_IMETHOD SetStyleSheet(nsICSSStyleSheet* aSheet) = 0;
@@ -90,13 +91,24 @@ public:
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
   NS_IMETHOD Parse(nsIUnicharInputStream* aInput,
                    nsIURI*                aSheetURL,
                    nsIURI*                aBaseURI,
                    nsIPrincipal*          aSheetPrincipal,
                    PRUint32               aLineNumber,
-                   PRBool                 aAllowUnsafeRules,
-                   nsICSSStyleSheet*&     aResult) = 0;
+                   PRBool                 aAllowUnsafeRules) = 0;
 
   
   

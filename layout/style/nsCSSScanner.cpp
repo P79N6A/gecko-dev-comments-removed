@@ -190,7 +190,7 @@ nsCSSScanner::nsCSSScanner()
     BuildLexTable();
   }
   mPushback = mLocalPushback;
-  mPushbackSize = 4;
+  mPushbackSize = NS_ARRAY_LENGTH(mLocalPushback);
   
   
   
@@ -456,6 +456,16 @@ void nsCSSScanner::Close()
 {
   mInputStream = nsnull;
   mReadPointer = nsnull;
+
+  
+  mFileName.Truncate();
+  mURI = nsnull;
+  mError.Truncate();
+  if (mPushback != mLocalPushback) {
+    delete [] mPushback;
+    mPushback = mLocalPushback;
+    mPushbackSize = NS_ARRAY_LENGTH(mLocalPushback);
+  }
 }
 
 #ifdef CSS_REPORT_PARSE_ERRORS
