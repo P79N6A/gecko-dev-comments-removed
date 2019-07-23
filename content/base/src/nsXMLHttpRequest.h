@@ -165,8 +165,7 @@ class nsXMLHttpRequest : public nsXHREventTarget,
                          public nsIProgressEventSink,
                          public nsIInterfaceRequestor,
                          public nsSupportsWeakReference,
-                         public nsIJSNativeInitializer,
-                         public nsIXMLHttpRequestUploadGetter
+                         public nsIJSNativeInitializer
 {
 public:
   nsXMLHttpRequest();
@@ -180,16 +179,11 @@ public:
   
   NS_IMETHOD GetOnuploadprogress(nsIDOMEventListener** aOnuploadprogress);
   NS_IMETHOD SetOnuploadprogress(nsIDOMEventListener* aOnuploadprogress);
-  NS_IMETHOD GetOnreadystatechange(nsIDOMEventListener** aOnreadystatechange);
-  NS_IMETHOD SetOnreadystatechange(nsIDOMEventListener* aOnreadystatechange);
 
   NS_FORWARD_NSIXMLHTTPREQUESTEVENTTARGET(nsXHREventTarget::)
 
   
   NS_DECL_NSIDOMEVENTLISTENER
-
-  
-  NS_DECL_NSIXMLHTTPREQUESTUPLOADGETTER
 
   
   NS_IMETHOD Load(nsIDOMEvent* aEvent);
@@ -249,6 +243,8 @@ public:
 
   
   nsresult Init();
+
+  void SetRequestObserver(nsIRequestObserver* aObserver);
 
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(nsXMLHttpRequest,
                                            nsXHREventTarget)
@@ -345,6 +341,8 @@ protected:
   nsCOMPtr<nsIChannelEventSink> mChannelEventSink;
   nsCOMPtr<nsIProgressEventSink> mProgressEventSink;
 
+  nsIRequestObserver* mRequestObserver;
+
   PRUint32 mState;
 
   
@@ -357,6 +355,8 @@ protected:
   PRPackedBool mUploadComplete;
 
   PRPackedBool mErrorLoad;
+
+  PRPackedBool mFirstStartRequestSeen;
 };
 
 
