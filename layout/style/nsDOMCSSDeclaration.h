@@ -47,6 +47,7 @@ class nsCSSDeclaration;
 class nsICSSParser;
 class nsICSSLoader;
 class nsIURI;
+class nsIPrincipal;
 
 class CSS2PropertiesTearoff : public nsIDOMNSCSS2Properties
 {
@@ -103,8 +104,10 @@ protected:
   
   
   
+  
   virtual nsresult GetCSSParsingEnvironment(nsIURI** aSheetURI,
                                             nsIURI** aBaseURI,
+                                            nsIPrincipal** aSheetPrincipal,
                                             nsICSSLoader** aCSSLoader,
                                             nsICSSParser** aCSSParser) = 0;
 

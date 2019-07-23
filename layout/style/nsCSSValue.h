@@ -53,6 +53,7 @@
 
 class imgIRequest;
 class nsIDocument;
+class nsIPrincipal;
 
 enum nsCSSUnit {
   eCSSUnit_Null         = 0,      
@@ -377,37 +378,23 @@ public:
 
   struct URL {
     
-    URL(nsIURI* aURI, nsStringBuffer* aString, nsIURI* aReferrer)
-      : mURI(aURI),
-        mString(aString),
-        mReferrer(aReferrer),
-        mRefCnt(0)
-    {
-      mString->AddRef();
-      MOZ_COUNT_CTOR(nsCSSValue::URL);
-    }
+    
+    
 
-    ~URL()
-    {
-      mString->Release();
-      MOZ_COUNT_DTOR(nsCSSValue::URL);
-    }
+    
+    
+    URL(nsIURI* aURI, nsStringBuffer* aString, nsIURI* aReferrer,
+        nsIPrincipal* aOriginPrincipal) NS_HIDDEN;
 
-    PRBool operator==(const URL& aOther) const
-    {
-      PRBool eq;
-      return NS_strcmp(GetBufferValue(mString),
-                       GetBufferValue(aOther.mString)) == 0 &&
-             (mURI == aOther.mURI || 
-              (mURI && aOther.mURI &&
-               NS_SUCCEEDED(mURI->Equals(aOther.mURI, &eq)) &&
-               eq));
-    }
+    ~URL() NS_HIDDEN;
+
+    NS_HIDDEN_(PRBool) operator==(const URL& aOther) const;
 
     nsCOMPtr<nsIURI> mURI; 
     nsStringBuffer* mString; 
                              
     nsCOMPtr<nsIURI> mReferrer;
+    nsCOMPtr<nsIPrincipal> mOriginPrincipal;
 
     void AddRef() { ++mRefCnt; }
     void Release() { if (--mRefCnt == 0) delete this; }
@@ -421,7 +408,8 @@ public:
     
     
     Image(nsIURI* aURI, nsStringBuffer* aString, nsIURI* aReferrer,
-          nsIDocument* aDocument, PRBool aIsBGImage = PR_FALSE) NS_HIDDEN;
+          nsIPrincipal* aOriginPrincipal, nsIDocument* aDocument,
+          PRBool aIsBGImage = PR_FALSE) NS_HIDDEN;
     ~Image() NS_HIDDEN;
 
     

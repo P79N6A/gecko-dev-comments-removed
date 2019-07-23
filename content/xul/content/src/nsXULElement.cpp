@@ -829,6 +829,11 @@ nsXULElement::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
                     (!aBindingParent && aParent &&
                      aParent->GetBindingParent() == GetBindingParent()),
                     "Already have a binding parent.  Unbind first!");
+    
+    
+    
+    
+    
 
     if (!aBindingParent && aParent) {
         aBindingParent = aParent->GetBindingParent();
@@ -2706,6 +2711,10 @@ nsXULPrototypeElement::SetAttrAt(PRUint32 aPos, const nsAString& aValue,
 
         
         parser->ParseStyleAttribute(aValue, aDocumentURI, aDocumentURI,
+                                    
+                                    
+                                    mNodeInfo->NodeInfoManager()->
+                                      DocumentPrincipal(),
                                     getter_AddRefs(rule));
         if (rule) {
             mAttributes[aPos].mValue.SetTo(rule);
