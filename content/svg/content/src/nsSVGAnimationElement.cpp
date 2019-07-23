@@ -49,16 +49,29 @@
 NS_IMPL_ADDREF_INHERITED(nsSVGAnimationElement, nsSVGAnimationElementBase)
 NS_IMPL_RELEASE_INHERITED(nsSVGAnimationElement, nsSVGAnimationElementBase)
 
-NS_INTERFACE_MAP_BEGIN(nsSVGAnimationElement)
+NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(nsSVGAnimationElement)
   NS_INTERFACE_MAP_ENTRY(nsISMILAnimationElement)
   NS_INTERFACE_MAP_ENTRY(nsIDOMElementTimeControl)
 NS_INTERFACE_MAP_END_INHERITING(nsSVGAnimationElementBase)
+
+
+NS_IMPL_CYCLE_COLLECTION_CLASS(nsSVGAnimationElement)
+NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN_INHERITED(nsSVGAnimationElement,
+                                                nsSVGAnimationElementBase)
+  tmp->mHrefTarget.Unlink();
+NS_IMPL_CYCLE_COLLECTION_UNLINK_END
+
+NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INHERITED(nsSVGAnimationElement,
+                                                  nsSVGAnimationElementBase)
+  tmp->mHrefTarget.Traverse(&cb);
+NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
 
 
 
 nsSVGAnimationElement::nsSVGAnimationElement(nsINodeInfo *aNodeInfo)
   : nsSVGAnimationElementBase(aNodeInfo),
+    mHrefTarget(this),
     mTimedDocumentRoot(nsnull)
 {
 }
@@ -100,15 +113,11 @@ nsIContent*
 nsSVGAnimationElement::GetTargetElementContent()
 {
   if (HasAttr(kNameSpaceID_XLink, nsGkAtoms::href)) {
-    
-
-    
-    
-    
-    NS_NOTYETIMPLEMENTED("nsSVGAnimationElement::GetTargetElementContent for "
-                         "xlink:href-targeted animations");
-    return nsnull;
+    return mHrefTarget.get();
   }
+  NS_ABORT_IF_FALSE(!mHrefTarget.get(),
+                    "We shouldn't have an xlink:href target "
+                    "if we don't have an xlink:href attribute");
 
   
   return nsSVGUtils::GetParentElement(this);
@@ -223,6 +232,9 @@ nsSVGAnimationElement::BindToTree(nsIDocument* aDocument,
                                   nsIContent* aBindingParent,
                                   PRBool aCompileEventHandlers)
 {
+  NS_ABORT_IF_FALSE(!mHrefTarget.get(),
+                    "Shouldn't have href-target yet "
+                    "(or it should've been cleared)");
   nsresult rv = nsSVGAnimationElementBase::BindToTree(aDocument, aParent,
                                                       aBindingParent,
                                                       aCompileEventHandlers);
@@ -252,6 +264,17 @@ nsSVGAnimationElement::BindToTree(nsIDocument* aDocument,
     if (controller) {
       controller->RegisterAnimationElement(this);
     }
+    const nsAttrValue* href = mAttrsAndChildren.GetAttr(nsGkAtoms::href,
+                                                        kNameSpaceID_XLink);
+    if (href) {
+      nsAutoString hrefStr;
+      href->ToString(hrefStr);
+
+      
+      
+      
+      UpdateHrefTarget(aParent, hrefStr);
+    }
   }
 
   AnimationNeedsResample();
@@ -273,6 +296,8 @@ nsSVGAnimationElement::UnbindFromTree(PRBool aDeep, PRBool aNullParent)
   if (mTimedDocumentRoot) {
     mTimedDocumentRoot = nsnull;
   }
+
+  mHrefTarget.Unlink();
 
   AnimationNeedsResample();
 
@@ -319,8 +344,17 @@ nsSVGAnimationElement::ParseAttribute(PRInt32 aNamespaceID,
     }
   }
 
-  return nsSVGAnimationElementBase::ParseAttribute(aNamespaceID, aAttribute,
-                                                   aValue, aResult);
+  PRBool returnVal =
+    nsSVGAnimationElementBase::ParseAttribute(aNamespaceID, aAttribute,
+                                              aValue, aResult);
+  if (aNamespaceID == kNameSpaceID_XLink &&
+      aAttribute == nsGkAtoms::href &&
+      IsInDoc()) {
+    
+    
+    UpdateHrefTarget(this, aValue);
+  }
+  return returnVal;
 }
 
 nsresult
@@ -335,6 +369,10 @@ nsSVGAnimationElement::UnsetAttr(PRInt32 aNamespaceID,
     if (AnimationFunction().UnsetAttr(aAttribute) ||
         mTimedElement.UnsetAttr(aAttribute)) {
       AnimationNeedsResample();
+    }
+  } else if (aNamespaceID == kNameSpaceID_XLink) {
+    if (aAttribute == nsGkAtoms::href) {
+      mHrefTarget.Unlink();
     }
   }
 
@@ -394,4 +432,15 @@ nsSVGAnimationElement::EndElementAt(float offset)
   AnimationNeedsResample();
 
   return rv;
+}
+
+void
+nsSVGAnimationElement::UpdateHrefTarget(nsIContent* aNodeForContext,
+                                        const nsAString& aHrefStr)
+{
+  nsCOMPtr<nsIURI> targetURI;
+  nsCOMPtr<nsIURI> baseURI = GetBaseURI();
+  nsContentUtils::NewURIWithDocumentCharset(getter_AddRefs(targetURI),
+                                            aHrefStr, GetOwnerDoc(), baseURI);
+  mHrefTarget.Reset(aNodeForContext, targetURI);
 }

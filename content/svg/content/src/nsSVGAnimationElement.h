@@ -41,6 +41,7 @@
 
 #include "nsSVGElement.h"
 #include "nsAutoPtr.h"
+#include "nsReferencedElement.h"
 #include "nsIDOMSVGAnimationElement.h"
 #include "nsIDOMElementTimeControl.h"
 #include "nsISMILAnimationElement.h"
@@ -61,6 +62,9 @@ protected:
 public:
   
   NS_DECL_ISUPPORTS_INHERITED
+
+  NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(nsSVGAnimationElement,
+                                           nsSVGAnimationElementBase)
   NS_DECL_NSIDOMSVGANIMATIONELEMENT
   NS_DECL_NSIDOMELEMENTTIMECONTROL
 
@@ -91,6 +95,30 @@ public:
   virtual nsSMILTimeContainer* GetTimeContainer();
 
 protected:
+  void UpdateHrefTarget(nsIContent* aNodeForContext,
+                        const nsAString& aHrefStr);
+
+  class TargetReference : public nsReferencedElement {
+  public:
+    TargetReference(nsSVGAnimationElement* aAnimationElement) :
+      mAnimationElement(aAnimationElement) {}
+  protected:
+    
+    
+    
+    virtual void ContentChanged(nsIContent* aFrom, nsIContent* aTo) {
+      nsReferencedElement::ContentChanged(aFrom, aTo);
+      mAnimationElement->AnimationNeedsResample();
+    }
+
+    
+    
+    virtual PRBool IsPersistent() { return PR_TRUE; }
+  private:
+    nsSVGAnimationElement* const mAnimationElement;
+  };
+
+  TargetReference      mHrefTarget;
   nsSMILTimedElement   mTimedElement;
   nsSMILTimeContainer* mTimedDocumentRoot;
 };
