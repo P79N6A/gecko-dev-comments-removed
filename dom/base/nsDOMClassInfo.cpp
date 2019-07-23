@@ -1449,16 +1449,21 @@ const JSClass *nsDOMClassInfo::sXPCNativeWrapperClass = nsnull;
 
 static PRBool sDoSecurityCheckInAddProperty = PR_TRUE;
 
-const JSClass*
-NS_DOMClassInfo_GetXPCNativeWrapperClass()
-{
-  return nsDOMClassInfo::GetXPCNativeWrapperClass();
-}
 
-void
-NS_DOMClassInfo_SetXPCNativeWrapperClass(JSClass* aClass)
+
+
+static void
+FindObjectClass(JSObject* aGlobalObject)
 {
-  nsDOMClassInfo::SetXPCNativeWrapperClass(aClass);
+  NS_ASSERTION(!sObjectClass,
+               "Double set of sObjectClass");
+  JSObject *obj, *proto = aGlobalObject;
+  do {
+    obj = proto;
+    proto = STOBJ_GET_PROTO(obj);
+  } while (proto);
+
+  sObjectClass = STOBJ_GET_CLASS(obj);
 }
 
 static void
@@ -4154,6 +4159,15 @@ nsDOMClassInfo::PostCreatePrototype(JSContext * cx, JSObject * proto)
     return NS_OK;
   }
 
+  
+  
+  
+  if (!sObjectClass) {
+    FindObjectClass(proto);
+    NS_ASSERTION(sObjectClass && !strcmp(sObjectClass->name, "Object"),
+                 "Incorrect object class!");
+  }
+
   NS_ASSERTION(::JS_GetPrototype(cx, proto) &&
                JS_GET_CLASS(cx, ::JS_GetPrototype(cx, proto)) == sObjectClass,
                "Hmm, somebody did something evil?");
@@ -4399,21 +4413,6 @@ NS_IMETHODIMP
 nsWindowSH::PreCreate(nsISupports *nativeObj, JSContext *cx,
                       JSObject *globalObj, JSObject **parentObj)
 {
-  
-  
-
-  if (!sObjectClass) {
-    JSObject *obj, *proto = globalObj;
-    JSAutoRequest ar(cx);
-
-    do {
-      obj = proto;
-      proto = ::JS_GetPrototype(cx, obj);
-    } while (proto);
-
-    sObjectClass = JS_GET_CLASS(cx, obj);
-  }
-
   
   
   
@@ -5745,7 +5744,7 @@ ResolvePrototype(nsIXPConnect *aXPConnect, nsGlobalWindow *aWin, JSContext *cx,
 
     if (proto &&
         (!xpc_proto_proto ||
-         JS_GET_CLASS(cx, xpc_proto_proto) == sObjectClass)) {
+         JS_GET_CLASS(cx, xpc_proto_proto) == nsDOMClassInfo::GetObjectClass())) {
       if (!::JS_SetPrototype(cx, dot_prototype, proto)) {
         return NS_ERROR_UNEXPECTED;
       }
