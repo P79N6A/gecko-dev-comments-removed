@@ -249,7 +249,7 @@ private:
   
   
 
-  nsDOMEventRTTearoff(nsIContent *aContent);
+  nsDOMEventRTTearoff(nsINode *aNode);
 
   static nsDOMEventRTTearoff *mCachedEventTearoff[NS_EVENT_TEAROFF_CACHE_SIZE];
   static PRUint32 mCachedEventTearoffCount;
@@ -270,7 +270,7 @@ public:
 
 
 
-  static nsDOMEventRTTearoff *Create(nsIContent *aContent);
+  static nsDOMEventRTTearoff *Create(nsINode *aNode);
 
   
 
@@ -297,7 +297,7 @@ private:
 
 
 
-  nsCOMPtr<nsIContent> mContent;
+  nsCOMPtr<nsINode> mNode;
 };
 
 
@@ -426,7 +426,7 @@ public:
   virtual PRBool MayHaveFrame() const;
 
   virtual PRUint32 GetScriptTypeID() const;
-  virtual nsresult SetScriptTypeID(PRUint32 aLang);
+  NS_IMETHOD SetScriptTypeID(PRUint32 aLang);
 
   virtual void DestroyContent();
   virtual void SaveSubtreeState();
