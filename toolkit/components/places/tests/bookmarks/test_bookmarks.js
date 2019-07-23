@@ -293,6 +293,9 @@ function run_test() {
   do_check_eq(observer._itemChangedProperty, "title");
 
   
+  do_check_eq(bmsvc.getIdForItemAt(testRoot, 0), workFolder);
+
+  
   var oldParentCC = getChildCount(testRoot);
   bmsvc.moveItem(workFolder, homeFolder, bmsvc.DEFAULT_INDEX);
   do_check_eq(observer._itemMovedId, workFolder);
@@ -307,6 +310,13 @@ function run_test() {
 
   
   
+  do_check_neq(bmsvc.getIdForItemAt(testRoot, 0), workFolder);
+  
+  do_check_neq(bmsvc.getIdForItemAt(testRoot, -1), workFolder);
+  
+  do_check_eq(bmsvc.getIdForItemAt(homeFolder, 1), workFolder);
+  
+  do_check_eq(bmsvc.getIdForItemAt(homeFolder, -1), workFolder);
   
   do_check_eq(getChildCount(testRoot), oldParentCC-1);
 

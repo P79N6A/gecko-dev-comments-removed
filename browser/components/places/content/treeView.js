@@ -742,8 +742,16 @@ PlacesTreeView.prototype = {
     this._fixViewIndexOnRemove(aItem, aParent);
 
     
-    if (selectNext && this._visibleElements.length > oldViewIndex)
-      selection.rangedSelect(oldViewIndex, oldViewIndex, true);
+    if (!selectNext)
+      return;
+    
+    if (this._visibleElements.length > oldViewIndex)
+      selection.rangedSelect(oldViewIndex, oldViewIndex, true);    
+    else if (this._visibleElements.length > 0) {
+      
+      selection.rangedSelect(this._visibleElements.length - 1,
+                             this._visibleElements.length - 1, true);
+    }
   },
 
   
