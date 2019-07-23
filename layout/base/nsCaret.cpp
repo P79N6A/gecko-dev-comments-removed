@@ -48,6 +48,7 @@
 #include "nsIServiceManager.h"
 #include "nsFrameSelection.h"
 #include "nsIFrame.h"
+#include "nsIScrollableFrame.h"
 #include "nsIDOMNode.h"
 #include "nsIDOMRange.h"
 #include "nsIFontMetrics.h"
@@ -59,6 +60,7 @@
 #include "nsIRenderingContext.h"
 #include "nsIDeviceContext.h"
 #include "nsIView.h"
+#include "nsIScrollableView.h"
 #include "nsIViewManager.h"
 #include "nsPresContext.h"
 #include "nsILookAndFeel.h"
@@ -1031,6 +1033,34 @@ nsresult nsCaret::UpdateCaretRects(nsIFrame* aFrame, PRInt32 aFrameOffset)
 
   mCaretRect += framePos;
   mCaretRect.width = mCaretWidth;
+
+  
+  
+  nsIFrame *scrollFrame =
+    nsLayoutUtils::GetClosestFrameOfType(aFrame, nsGkAtoms::scrollFrame);
+  if (scrollFrame)
+  {
+    
+    nsIScrollableFrame *scrollable;
+    CallQueryInterface(scrollFrame, &scrollable);
+    nsIScrollableView *scrollView = scrollable->GetScrollableView();
+    nsIView *view;
+    scrollView->GetScrolledView(view);
+
+    
+    
+    
+    
+    nsPoint toScroll = aFrame->GetOffsetTo(scrollFrame) -
+      view->GetOffsetTo(scrollFrame->GetView());
+    nsRect caretInScroll = mCaretRect + toScroll;
+
+    
+    
+    nscoord overflow = caretInScroll.XMost() - view->GetBounds().width;
+    if (overflow > 0)
+      mCaretRect.x -= overflow;
+  }
 
   
   const nsStyleVisibility* vis = aFrame->GetStyleVisibility();
