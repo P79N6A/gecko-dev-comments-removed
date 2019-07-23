@@ -232,10 +232,12 @@ function viewSource(url)
           loadFromURL = false;
 
           
+          var shEntrySource = arg.QueryInterface(Ci.nsISHEntry);
           var shEntry = Cc["@mozilla.org/browser/session-history-entry;1"].createInstance(Ci.nsISHEntry);
           shEntry.setURI(makeURI(viewSrcUrl, null, null));
           shEntry.setTitle(viewSrcUrl);
           shEntry.loadType = Ci.nsIDocShellLoadInfo.loadHistory;
+          shEntry.cacheKey = shEntrySource.cacheKey;
           getBrowser().webNavigation.sessionHistory
                       .QueryInterface(Ci.nsISHistoryInternal)
                       .addEntry(shEntry, true);
