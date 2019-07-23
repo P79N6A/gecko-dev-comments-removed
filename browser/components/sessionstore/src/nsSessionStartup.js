@@ -110,7 +110,7 @@ SessionStartup.prototype = {
     
     
     var resumeFromCrash = this._prefBranch.getBoolPref("sessionstore.resume_from_crash");
-    if (resumeFromCrash || this._doResumeSession()) {
+    if ((resumeFromCrash || this._doResumeSession()) && this._sessionFile.exists()) {
       
       this._iniString = this._readFile(this._sessionFile);
       if (this._iniString) {
