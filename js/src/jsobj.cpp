@@ -2503,12 +2503,12 @@ js_NewObject(JSContext *cx, JSClass *clasp, JSObject *proto, JSObject *parent,
         }
     }
 
-    return js_NewObjectWithGivenProto(cx, clasp, proto, parent, objectSize);
+    return js_NewObjectWithGivenProto(cx, clasp, proto, parent, objectSize, 0);
 }
 
 JSObject *
 js_NewObjectWithGivenProto(JSContext *cx, JSClass *clasp, JSObject *proto,
-                           JSObject *parent, uintN objectSize)
+                           JSObject *parent, uintN objectSize, uintN flags)
 {
     JSObject *obj;
     JSObjectOps *ops;
@@ -2537,7 +2537,7 @@ js_NewObjectWithGivenProto(JSContext *cx, JSClass *clasp, JSObject *proto,
 
 
 
-    obj = (JSObject *) js_NewGCThing(cx, GCX_OBJECT, objectSize);
+    obj = (JSObject *) js_NewGCThing(cx, GCX_OBJECT | flags, objectSize);
     if (!obj)
         goto earlybad;
 
