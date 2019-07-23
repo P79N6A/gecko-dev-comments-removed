@@ -451,14 +451,18 @@ public:
 
   PRInt32 DestroyAnonymousColFrames(PRInt32 aNumFrames);
 
+  
+  
+  
   void AppendAnonymousColFrames(PRInt32 aNumColsToAdd);
 
-  void CreateAnonymousColFrames(nsTableColGroupFrame* aColGroupFrame,
+  
+  
+  
+  void AppendAnonymousColFrames(nsTableColGroupFrame* aColGroupFrame,
                                 PRInt32               aNumColsToAdd,
                                 nsTableColType        aColType,
-                                PRBool                aAddToColGroupAndTable,
-                                nsIFrame*             aPrevCol,
-                                nsIFrame**            aFirstNewFrame);
+                                PRBool                aAddToTable);
 
   void MatchCellMapToColCache(nsTableCellMap* aCellMap);
   

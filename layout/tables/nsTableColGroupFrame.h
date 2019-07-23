@@ -207,7 +207,7 @@ public:
 
   
 
-  nsFrameList& GetChildList();
+  nsFrameList& GetWritableChildList();
 
   
 
@@ -275,7 +275,7 @@ inline PRInt32 nsTableColGroupFrame::GetColCount() const
   return mColCount;
 }
 
-inline nsFrameList& nsTableColGroupFrame::GetChildList()
+inline nsFrameList& nsTableColGroupFrame::GetWritableChildList()
 {  
   return mFrames;
 }
