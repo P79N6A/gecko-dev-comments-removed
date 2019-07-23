@@ -1759,7 +1759,7 @@ nsXULPopupManager::KeyPress(nsIDOMEvent* aKeyEvent)
       ShowMenu(content, PR_TRUE, PR_FALSE);
     }
   }
-#if !defined(XP_MAC) && !defined(XP_MACOSX)
+#ifndef XP_MACOSX
   else if (theChar == NS_VK_F10) {
     
     

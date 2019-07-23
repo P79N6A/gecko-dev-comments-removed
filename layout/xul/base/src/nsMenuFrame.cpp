@@ -1075,7 +1075,7 @@ nsMenuFrame::BuildAcceleratorText()
   {
     
     
-#if defined(XP_MAC) || defined(XP_MACOSX)
+#ifdef XP_MACOSX
     accelKey = nsIDOMKeyEvent::DOM_VK_META;
 #else
     accelKey = nsIDOMKeyEvent::DOM_VK_CONTROL;

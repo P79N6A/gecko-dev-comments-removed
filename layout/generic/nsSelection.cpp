@@ -809,9 +809,6 @@ nsSelectionIterator::IsDone()
 
 
 
-#ifdef XP_MAC
-#pragma mark -
-#endif
 
 
 
@@ -1124,9 +1121,6 @@ nsFrameSelection::UndefineCaretBidiLevel()
 }
 #endif
 
-#ifdef XP_MAC
-#pragma mark -
-#endif
 
 #ifdef PRINT_RANGE
 void printRange(nsIDOMRange *aDomRange)
@@ -3156,7 +3150,7 @@ printf("HandleTableSelection: Mouse UP event. mDragSelectingCells=%d, mStartSele
       
       
       PRBool doMouseUpAction = PR_FALSE;
-#if defined(XP_MAC) || defined(XP_MACOSX)
+#ifdef XP_MACOSX
       doMouseUpAction = aMouseEvent->isMeta;
 #else
       doMouseUpAction = aMouseEvent->isControl;
@@ -3879,10 +3873,6 @@ nsFrameSelection::SetAncestorLimiter(nsIContent *aLimiter)
 
 
 
-
-#ifdef XP_MAC
-#pragma mark -
-#endif
 
 
 

@@ -450,9 +450,6 @@ void nsCaret::PaintCaret(nsDisplayListBuilder *aBuilder,
     aCtx->FillRect(GetHookRect() + aOffset);
 }
 
-#ifdef XP_MAC
-#pragma mark -
-#endif
 
 
 NS_IMETHODIMP nsCaret::NotifySelectionChanged(nsIDOMDocument *, nsISelection *aDomSel, PRInt16 aReason)
@@ -485,9 +482,6 @@ NS_IMETHODIMP nsCaret::NotifySelectionChanged(nsIDOMDocument *, nsISelection *aD
   return NS_OK;
 }
 
-#ifdef XP_MAC
-#pragma mark -
-#endif
 
 
 void nsCaret::KillTimer()
@@ -796,7 +790,7 @@ void nsCaret::GetViewForRendering(nsIFrame *caretFrame,
   
   
   if (coordType == eIMECoordinates) {
-#if defined(XP_MAC) || defined(XP_MACOSX) || defined(XP_WIN)
+#if defined(XP_MACOSX) || defined(XP_WIN)
    
    
    coordType = eTopLevelWindowCoordinates; 
@@ -1125,10 +1119,6 @@ void nsCaret::InvalidateRects(const nsRect &aRect, const nsRect &aHook,
   rect.UnionRect(aRect, aHook);
   aFrame->Invalidate(rect, PR_FALSE);
 }
-
-#ifdef XP_MAC
-#pragma mark -
-#endif
 
 
 

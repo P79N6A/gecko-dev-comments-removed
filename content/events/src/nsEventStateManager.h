@@ -61,7 +61,7 @@ class nsIFocusController;
 class imgIContainer;
 
 
-#if defined(XP_MAC) || defined(XP_MACOSX)
+#ifdef XP_MACOSX
 #define CLICK_HOLD_CONTEXT_MENUS 1
 #endif
 

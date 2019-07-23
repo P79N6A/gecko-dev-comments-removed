@@ -1550,7 +1550,7 @@ nsFrame::GetDataForTableSelection(nsFrameSelection *aFrameSelection,
   {  
     
     
-#if defined(XP_MAC) || defined(XP_MACOSX)
+#ifdef XP_MACOSX
     doTableSelection = aMouseEvent->isMeta || (aMouseEvent->isShift && selectingTableCells);
 #else
     doTableSelection = aMouseEvent->isControl || (aMouseEvent->isShift && selectingTableCells);
@@ -1786,7 +1786,7 @@ nsFrame::HandlePress(nsPresContext* aPresContext,
 
   nsMouseEvent *me = (nsMouseEvent *)aEvent;
 
-#if defined(XP_MAC) || defined(XP_MACOSX)
+#ifdef XP_MACOSX
   if (me->isControl)
     return NS_OK;
 #endif
@@ -1866,7 +1866,7 @@ nsFrame::HandlePress(nsPresContext* aPresContext,
 
   frameselection->SetMouseDownState(PR_TRUE);
 
-#if defined(XP_MAC) || defined(XP_MACOSX)
+#ifdef XP_MACOSX
   PRBool control = me->isMeta;
 #else
   PRBool control = me->isControl;

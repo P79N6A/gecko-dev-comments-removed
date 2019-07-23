@@ -109,12 +109,12 @@ void nsMenuBarListener::InitAccessKey()
 
   
   
-#if !(defined(XP_MAC) || defined(XP_MACOSX))
-  mAccessKey = nsIDOMKeyEvent::DOM_VK_ALT;
-  mAccessKeyMask = MODIFIER_ALT;
-#else
+#ifdef XP_MACOSX
   mAccessKey = 0;
   mAccessKeyMask = 0;
+#else
+  mAccessKey = nsIDOMKeyEvent::DOM_VK_ALT;
+  mAccessKeyMask = MODIFIER_ALT;
 #endif
 
   
@@ -249,7 +249,7 @@ nsMenuBarListener::KeyPress(nsIDOMEvent* aKeyEvent)
           retVal = NS_OK;       
         }
       }    
-#if !defined(XP_MAC) && !defined(XP_MACOSX)
+#ifndef XP_MACOSX
       
       else if (keyCode == NS_VK_F10) {
         if ((GetModifiers(keyEvent) & ~MODIFIER_CONTROL) == 0) {
@@ -262,7 +262,7 @@ nsMenuBarListener::KeyPress(nsIDOMEvent* aKeyEvent)
           return NS_OK; 
         }
       }
-#endif   
+#endif 
     } 
   }
 

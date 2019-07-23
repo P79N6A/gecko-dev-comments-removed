@@ -904,7 +904,7 @@ nsPrintEngine::GetCurrentPrintSettings(nsIPrintSettings * *aCurrentPrintSettings
 nsresult
 nsPrintEngine::CheckForPrinters(nsIPrintSettings* aPrintSettings)
 {
-#if defined(XP_MAC) || defined(XP_MACOSX)
+#ifdef XP_MACOSX
   
   return NS_OK;
 #else
