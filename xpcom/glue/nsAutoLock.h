@@ -109,13 +109,14 @@
 #include "nscore.h"
 #include "prlock.h"
 #include "prlog.h"
+#include "mozilla/AutoRestore.h"
 
 
 
 
 
 
-class NS_COM_GLUE nsAutoLockBase {
+class NS_COM_GLUE NS_STACK_CLASS nsAutoLockBase {
     friend class nsAutoUnlockBase;
 
 protected:
@@ -146,7 +147,7 @@ protected:
 
 
 
-class NS_COM_GLUE nsAutoUnlockBase {
+class NS_COM_GLUE NS_STACK_CLASS nsAutoUnlockBase {
 protected:
     nsAutoUnlockBase() {}
 
@@ -165,10 +166,11 @@ protected:
 
 
 
-class NS_COM_GLUE nsAutoLock : public nsAutoLockBase {
+class NS_COM_GLUE NS_STACK_CLASS nsAutoLock : public nsAutoLockBase {
 private:
     PRLock* mLock;
     PRBool mLocked;
+    MOZILLA_DECL_USE_GUARD_OBJECT_NOTIFIER
 
     
     
@@ -208,10 +210,11 @@ public:
 
 
 
-    nsAutoLock(PRLock* aLock)
+    nsAutoLock(PRLock* aLock MOZILLA_GUARD_OBJECT_NOTIFIER_PARAM)
         : nsAutoLockBase(aLock, eAutoLock),
           mLock(aLock),
           mLocked(PR_TRUE) {
+        MOZILLA_GUARD_OBJECT_NOTIFIER_INIT;
         PR_ASSERT(mLock);
 
         
@@ -250,16 +253,18 @@ public:
     }
 };
 
-class nsAutoUnlock : private nsAutoUnlockBase
+class NS_STACK_CLASS nsAutoUnlock : private nsAutoUnlockBase
 {
 private:
     PRLock *mLock;
+    MOZILLA_DECL_USE_GUARD_OBJECT_NOTIFIER
      
 public:
-    nsAutoUnlock(PRLock *lock) : 
+    nsAutoUnlock(PRLock *lock MOZILLA_GUARD_OBJECT_NOTIFIER_PARAM) : 
         nsAutoUnlockBase(lock),
         mLock(lock)
     {
+        MOZILLA_GUARD_OBJECT_NOTIFIER_INIT;
         PR_Unlock(mLock);
     }
 
@@ -272,7 +277,7 @@ public:
 #include "nsError.h"
 #include "nsDebug.h"
 
-class NS_COM_GLUE nsAutoMonitor : public nsAutoLockBase {
+class NS_COM_GLUE NS_STACK_CLASS nsAutoMonitor : public nsAutoLockBase {
 public:
 
     
@@ -295,10 +300,11 @@ public:
 
 
 
-    nsAutoMonitor(PRMonitor* mon)
+    nsAutoMonitor(PRMonitor* mon MOZILLA_GUARD_OBJECT_NOTIFIER_PARAM)
         : nsAutoLockBase((void*)mon, eAutoMonitor),
           mMonitor(mon), mLockCount(0)
     {
+        MOZILLA_GUARD_OBJECT_NOTIFIER_INIT;
         NS_ASSERTION(mMonitor, "null monitor");
         if (mMonitor) {
             PR_EnterMonitor(mMonitor);
@@ -361,6 +367,7 @@ public:
 private:
     PRMonitor*  mMonitor;
     PRInt32     mLockCount;
+    MOZILLA_DECL_USE_GUARD_OBJECT_NOTIFIER
 
     
     
@@ -386,12 +393,13 @@ private:
 #include "prcmon.h"
 #include "nsError.h"
 
-class NS_COM_GLUE nsAutoCMonitor : public nsAutoLockBase {
+class NS_COM_GLUE NS_STACK_CLASS nsAutoCMonitor : public nsAutoLockBase {
 public:
-    nsAutoCMonitor(void* lockObject)
+    nsAutoCMonitor(void* lockObject MOZILLA_GUARD_OBJECT_NOTIFIER_PARAM)
         : nsAutoLockBase(lockObject, eAutoCMonitor),
           mLockObject(lockObject), mLockCount(0)
     {
+        MOZILLA_GUARD_OBJECT_NOTIFIER_INIT;
         NS_ASSERTION(lockObject, "null lock object");
         PR_CEnterMonitor(mLockObject);
         mLockCount = 1;
@@ -428,6 +436,7 @@ public:
 private:
     void*   mLockObject;
     PRInt32 mLockCount;
+    MOZILLA_DECL_USE_GUARD_OBJECT_NOTIFIER
 
     
     
