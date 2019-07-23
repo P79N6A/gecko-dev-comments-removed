@@ -49,8 +49,6 @@
 
 
 
-#ifndef STANDALONE
-
 #include "nsWildCard.h"
 #include "nscore.h"
 #include "prmem.h"
@@ -75,52 +73,6 @@ nsRecyclingAllocator *gZlibAllocator = NULL;
 
 #include NEW_H
 #define ZIP_ARENABLOCKSIZE (1*1024)
-
-#else 
-
-#ifdef XP_WIN
-#include "windows.h"
-#endif
-
-#undef MOZILLA_CLIENT       // undoes prtypes damage in zlib.h
-#define ZFILE_CREATE  "wb"
-#define READTYPE  PRUint32
-#include "zlib.h"
-#undef PR_PUBLIC_API
-#include "zipstub.h"
-
-#ifdef XP_MAC
-#include <string.h>
-#include <stdlib.h>
-
-char * strdup(const char *src);
-char * strdup(const char *src)
-{
-    long len = strlen(src);
-    char *dup = (char *)malloc(len+1 * sizeof(char));
-    memcpy(dup, src, len+1);
-    return dup;
-}
-#endif
-
-#ifdef WINCE
-int remove(const char* inPath)
-{
-  unsigned short wPath[MAX_PATH];
-  MultiByteToWideChar(CP_ACP,
-                      0,
-                      inPath,
-                      -1,
-                      wPath,
-                      MAX_PATH);
-  
-  if(FALSE != DeleteFileW(wPath))
-    return 0;
-  return -1;
-}
-#endif
-
-#endif 
 
 #ifdef XP_UNIX
     #include <sys/types.h>
@@ -162,265 +114,6 @@ static PRUint32 HashName(const char* aName);
 static PRBool IsSymlink(unsigned char *ll);
 static nsresult ResolveSymlink(const char *path);
 #endif
-
-
-
-
-
-#ifdef STANDALONE
-
-
-
-
-
-
-
-
-
-
-
-PR_PUBLIC_API(PRInt32) ZIP_OpenArchive(const char * zipname, void** hZip)
-{
-  PRInt32 status;
-
-  
-  if (hZip == 0)
-    return ZIP_ERR_PARAM;
-
-  
-  *hZip = 0;
-
-  
-  nsZipArchive* zip = new nsZipArchive();
-  if (zip == 0)
-    return ZIP_ERR_MEMORY;
-
-  PRFileDesc * fd = PR_Open(zipname, PR_RDONLY, 0400);
-  if (!fd) {
-    delete zip;
-    return ZIP_ERR_DISK;
-  }
-
-  status = zip->OpenArchive(fd);
-  if (status == ZIP_OK)
-    *hZip = static_cast<void*>(zip);
-  else {
-    delete zip;
-    PR_Close(fd);
-  }
-
-  return status;
-}
-
-
-
-
-
-
-
-
-
-
-
-
-PR_PUBLIC_API(PRInt32) ZIP_TestArchive(void *hZip)
-{
-  
-  if (hZip == 0)
-    return ZIP_ERR_PARAM;
-
-  nsZipArchive* zip = static_cast<nsZipArchive*>(hZip);
-  if (zip->kMagic != ZIP_MAGIC)
-    return ZIP_ERR_PARAM;   
-
-  
-  return zip->Test(NULL);
-}
-
-
-
-
-
-
-
-
-
-PR_PUBLIC_API(PRInt32) ZIP_CloseArchive(void** hZip)
-{
-  
-  if (hZip == 0 || *hZip == 0)
-    return ZIP_ERR_PARAM;
-
-  nsZipArchive* zip = static_cast<nsZipArchive*>(*hZip);
-  if (zip->kMagic != ZIP_MAGIC)
-    return ZIP_ERR_PARAM;   
-
-  
-  *hZip = 0;
-  delete zip;
-
-  return ZIP_OK;
-}
-
-
-
-
-
-
-
-
-
-
-
-
-PR_PUBLIC_API(PRInt32) ZIP_ExtractFile(void* hZip, const char * filename, const char * outname)
-{
-  
-  if (hZip == 0)
-    return ZIP_ERR_PARAM;
-
-  nsZipArchive* zip = static_cast<nsZipArchive*>(hZip);
-  if (zip->kMagic != ZIP_MAGIC)
-    return ZIP_ERR_PARAM;   
-
-  
-  nsZipItem* item = zip->GetItem(filename);
-  if (!item)
-    return ZIP_ERR_FNF;
-
-  
-  if (item->isDirectory)
-    return ZIP_ERR_PARAM;
-
-  
-  PR_Delete(outname);
-                                                                    
-  PRFileDesc* fOut = PR_Open(outname, ZFILE_CREATE, item->mode);
-  if (!fOut)
-    return ZIP_ERR_DISK;
-
-#if defined(XP_UNIX) && defined(STANDALONE)
-  
-  mode_t msk = umask(0);
-  umask(msk);
-  chmod(outname, (item->mode | S_IRUSR) & ~msk);
-#endif
-
-  
-  return zip->ExtractFile(item, outname, fOut);
-}
-
-
-
-
-
-
-
-
-
-
-
-
-PR_PUBLIC_API(void*) ZIP_FindInit(void* hZip, const char * pattern)
-{
-  
-  if (hZip == 0)
-    return 0;
-
-  nsZipArchive* zip = static_cast<nsZipArchive*>(hZip);
-  if (zip->kMagic != ZIP_MAGIC)
-    return 0;   
-
-  
-  nsZipFind* find;
-  PRInt32 rv = zip->FindInit(pattern, &find);
-  if (rv != ZIP_OK)
-      find = NULL;
-
-  return find;
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-PR_PUBLIC_API(PRInt32) ZIP_FindNext(void* hFind, char * outbuf, PRUint16 bufsize)
-{
-  PRInt32 status;
-
-  
-  if (hFind == 0)
-    return ZIP_ERR_PARAM;
-
-  nsZipFind* find = static_cast<nsZipFind*>(hFind);
-  if (find->kMagic != ZIPFIND_MAGIC)
-    return ZIP_ERR_PARAM;   
-
-  
-  const char* itemName;
-  status = find->FindNext(&itemName);
-  if (status == ZIP_OK)
-  {
-    PRUint16 namelen = (PRUint16)PL_strlen(itemName);
-
-    if (bufsize > namelen)
-    {
-        PL_strcpy(outbuf, itemName);
-    }
-    else
-        status = ZIP_ERR_SMALLBUF;
-  }
-
-  return status;
-}
-
-
-
-
-
-
-
-
-
-
-PR_PUBLIC_API(PRInt32) ZIP_FindFree(void* hFind)
-{
-  
-  if (hFind == 0)
-    return ZIP_ERR_PARAM;
-
-  nsZipFind* find = static_cast<nsZipFind*>(hFind);
-  if (find->kMagic != ZIPFIND_MAGIC)
-    return ZIP_ERR_PARAM;   
-
-  
-  delete find;
-  return ZIP_OK;
-}
-
-#if defined XP_WIN
-void ProcessWindowsMessages()
-{
-  MSG msg;
-
-  while(PeekMessage(&msg, 0, 0, 0, PM_REMOVE))
-  {
-    TranslateMessage(&msg);
-    DispatchMessage(&msg);
-  }
-}
-#endif 
-
-#else 
 
 
 
@@ -493,12 +186,10 @@ zlibFree(void *opaque, void *ptr)
     free(ptr);
   return;
 }
-#endif 
 
 nsresult gZlibInit(z_stream *zs)
 {
   memset(zs, 0, sizeof(z_stream));
-#ifndef STANDALONE
   
   if (!gZlibAllocator) {
     gZlibAllocator = new nsRecyclingAllocator(NBUCKETS, NS_DEFAULT_RECYCLE_TIMEOUT, "libjar");
@@ -508,7 +199,6 @@ nsresult gZlibInit(z_stream *zs)
     zs->zfree = zlibFree;
     zs->opaque = gZlibAllocator;
   }
-#endif 
   int zerr = inflateInit2(zs, -MAX_WBITS);
   if (zerr != Z_OK) return ZIP_ERR_MEMORY;
 
@@ -528,10 +218,8 @@ nsresult nsZipArchive::OpenArchive(PRFileDesc * fd)
   if (!fd)
     return ZIP_ERR_PARAM;
 
-#ifndef STANDALONE
   
   PL_INIT_ARENA_POOL(&mArena, "ZipArena", ZIP_ARENABLOCKSIZE);
-#endif
 
   
   mFd = fd;
@@ -567,9 +255,6 @@ nsresult nsZipArchive::Test(const char *aEntryName)
       nsresult rv = ExtractFile(currItem, 0, 0);
       if (rv != ZIP_OK)
         return rv;
-#if defined STANDALONE && defined XP_WIN
-      ProcessWindowsMessages();
-#endif
     }
   }
 
@@ -581,7 +266,6 @@ nsresult nsZipArchive::Test(const char *aEntryName)
 
 nsresult nsZipArchive::CloseArchive()
 {
-#ifndef STANDALONE
   if (mFd) {
     PL_FinishArenaPool(&mArena);
   }
@@ -595,23 +279,7 @@ nsresult nsZipArchive::CloseArchive()
   
   for (int i = 0; i < ZIP_TABSIZE; i++) {
     mFiles[i] = 0;
-  }
-#else
-  
-  nsZipItem* pItem;
-  for (int i = 0; i < ZIP_TABSIZE; ++i)
-  {
-    pItem = mFiles[i];
-    while (pItem != 0)
-    {
-      mFiles[i] = pItem->next;
-      free(pItem);
-      pItem = mFiles[i];
-    }
-    mFiles[i] = 0;              
-  }
-#endif
-  
+  }  
   if (mFd) {
     PR_Close(mFd);
     mFd = 0;
@@ -783,12 +451,7 @@ nsresult nsZipFind::FindNext(const char ** aResult)
     else if (mRegExp)
       found = (NS_WildCardMatch(mItem->name, mPattern, PR_FALSE) == MATCH);
     else
-#if defined(STANDALONE) && defined(XP_MAC)
-      
-      found = (strncmp(mItem->name, mPattern, strlen(mPattern)) == 0);
-#else
       found = (PL_strcmp(mItem->name, mPattern) == 0);
-#endif
 
     if (found) {
       *aResult = mItem->name;
@@ -835,14 +498,10 @@ static nsresult ResolveSymlink(const char *path)
 nsZipItem* nsZipArchive::CreateZipItem(PRUint16 namelen)
 {
   
-#ifndef STANDALONE
   
   void *mem;
   PL_ARENA_ALLOCATE(mem, &mArena, sizeof(nsZipItem)+namelen);
   return (nsZipItem*)mem;
-#else
-  return (nsZipItem*)malloc(sizeof(nsZipItem)+namelen);
-#endif
 }
 
 
@@ -858,11 +517,7 @@ nsresult nsZipArchive::BuildFileList()
 
   
   PRInt32  pos = PR_Seek(mFd, 0, PR_SEEK_END);
-#ifndef STANDALONE
   if (pos <= 0)
-#else
-  if (pos || ((pos = ftell(mFd)) <= 0))
-#endif
     return ZIP_ERR_CORRUPT;
 
   PRBool bEndsigFound = PR_FALSE;
@@ -1272,9 +927,6 @@ nsresult nsZipArchive::InflateItem(const nsZipItem* aItem, PRFileDesc* outFD)
     else
       zerr = Z_STREAM_END;
 
-#if defined STANDALONE && defined XP_WIN
-    ProcessWindowsMessages();
-#endif
   } 
 
   
@@ -1314,9 +966,6 @@ cleanup:
 
 
 nsZipArchive::nsZipArchive() :
-#ifdef STANDALONE
-    kMagic(ZIP_MAGIC),
-#endif
     mFd(0),
     mBuiltSynthetics(PR_FALSE)
 {
@@ -1339,9 +988,6 @@ nsZipArchive::~nsZipArchive()
 
 
 nsZipFind::nsZipFind(nsZipArchive* aZip, char* aPattern, PRBool aRegExp) : 
-#ifdef STANDALONE
-  kMagic(ZIPFIND_MAGIC),
-#endif
   mArchive(aZip),
   mPattern(aPattern),
   mItem(0),

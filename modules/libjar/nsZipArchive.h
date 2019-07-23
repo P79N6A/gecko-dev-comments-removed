@@ -48,18 +48,9 @@
 
 #define ZIP_BUFLEN    (4 * 1024 - 1)
 
-#ifdef STANDALONE
-#define nsZipArchive nsZipArchiveStandalone
-
-#define ZIP_Seek(fd,p,m) (fseek((fd),(p),(m))==0)
-
-#else
-
 #define PL_ARENA_CONST_ALIGN_MASK 7
 #include "plarena.h"
 #define ZIP_Seek(fd,p,m) (PR_Seek((fd),((PROffset32)p),(m))==((PROffset32)p))
-
-#endif
 
 #include "zlib.h"
 
@@ -67,21 +58,7 @@ class nsZipFind;
 class nsZipReadState;
 class nsZipItemMetadata;
 
-#ifndef STANDALONE
 struct PRFileDesc;
-#endif
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -143,11 +120,6 @@ class nsZipArchive
   friend class nsZipFind;
 
 public:
-#ifdef STANDALONE
-  
-  const PRInt32 kMagic;
-#endif
-
   
   nsZipArchive();
 
@@ -225,9 +197,7 @@ private:
   
 
   nsZipItem*    mFiles[ZIP_TABSIZE];
-#ifndef STANDALONE
   PLArenaPool   mArena;
-#endif
 
   
   PRFileDesc    *mFd;
@@ -257,9 +227,6 @@ private:
 class nsZipFind
 {
 public:
-#ifdef STANDALONE
-  const PRInt32       kMagic;
-#endif
 
   nsZipFind(nsZipArchive* aZip, char* aPattern, PRBool regExp);
   ~nsZipFind();
