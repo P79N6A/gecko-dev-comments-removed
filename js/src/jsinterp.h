@@ -152,8 +152,13 @@ typedef struct JSInlineFrame {
     ((((jsuword)(pc) >> PROPERTY_CACHE_LOG2) ^ (jsuword)(pc) ^ (kshape)) &    \
      PROPERTY_CACHE_MASK)
 
+
+
+
+
+
 #define PROPERTY_CACHE_HASH_PC(pc,kshape)                                     \
-    PROPERTY_CACHE_HASH(pc, kshape)
+    PROPERTY_CACHE_HASH(pc, (kshape) << 1)
 
 #define PROPERTY_CACHE_HASH_ATOM(atom,obj,pobj)                               \
     PROPERTY_CACHE_HASH((jsuword)(atom) >> 2, OBJ_SCOPE(obj)->shape)
