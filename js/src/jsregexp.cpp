@@ -4284,18 +4284,9 @@ Regexp_p_test(JSContext* cx, JSObject* regexp, JSString* str)
     return *vp == JSVAL_TRUE;
 }
 
+JS_DEFINE_TRCINFO_1(regexp_test,
+    (3, (static, BOOL_FAIL, Regexp_p_test, CONTEXT, THIS, STRING,  1, 1)))
 
-
-
-
-
-
-
-JS_DEFINE_CALLINFO_3(static, INT32, Regexp_p_test, CONTEXT, OBJECT, STRING,  1, 1)
-
-static const JSTraceableNative regexp_test_trcinfo[] = {
-    { regexp_test,           &Regexp_p_test_ci,        "TC", "s",    FAIL_VOID }
-};
 #endif
 
 static JSFunctionSpec regexp_methods[] = {
