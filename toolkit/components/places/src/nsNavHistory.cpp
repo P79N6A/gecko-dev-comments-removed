@@ -5610,50 +5610,49 @@ nsNavHistory::Observe(nsISupports *aSubject, const char *aTopic,
   }
   else if (strcmp(aTopic, gIdleDaily) == 0) {
     
+    
+    
+    NS_ENSURE_TRUE(mDBConn, NS_OK);
+
+    
     (void)FixInvalidFrecencies();
 
-    if (mDBConn) {
-      
-      
-      
-      
-      
-      nsCOMPtr<mozIStorageStatement> decayFrecency;
-      nsresult rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING(
-        "UPDATE moz_places SET frecency = ROUND(frecency * .975) "
-        "WHERE frecency > 0"),
-        getter_AddRefs(decayFrecency));
-      NS_WARN_IF_FALSE(NS_SUCCEEDED(rv), "Failed to create decayFrecency");
+    
+    
+    
+    
+    
+    nsCOMPtr<mozIStorageStatement> decayFrecency;
+    nsresult rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING(
+      "UPDATE moz_places SET frecency = ROUND(frecency * .975) "
+      "WHERE frecency > 0"),
+      getter_AddRefs(decayFrecency));
+    NS_ENSURE_SUCCESS(rv, NS_OK);
 
-      
-      
-      nsCOMPtr<mozIStorageStatement> decayAdaptive;
-      rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING(
-        "UPDATE moz_inputhistory SET use_count = use_count * .975"),
-        getter_AddRefs(decayAdaptive));
-      NS_WARN_IF_FALSE(NS_SUCCEEDED(rv), "Failed to create decayAdaptive");
+    
+    
+    nsCOMPtr<mozIStorageStatement> decayAdaptive;
+    rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING(
+      "UPDATE moz_inputhistory SET use_count = use_count * .975"),
+      getter_AddRefs(decayAdaptive));
+    NS_ENSURE_SUCCESS(rv, NS_OK);
 
-      
-      nsCOMPtr<mozIStorageStatement> deleteAdaptive;
-      rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING(
-        "DELETE FROM moz_inputhistory WHERE use_count < .01"),
-        getter_AddRefs(deleteAdaptive));
-      NS_WARN_IF_FALSE(NS_SUCCEEDED(rv), "Failed to create deleteAdaptive");
+    
+    nsCOMPtr<mozIStorageStatement> deleteAdaptive;
+    rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING(
+      "DELETE FROM moz_inputhistory WHERE use_count < .01"),
+      getter_AddRefs(deleteAdaptive));
+    NS_ENSURE_SUCCESS(rv, NS_OK);
 
-      
-      if (decayFrecency && decayAdaptive && deleteAdaptive) {
-        nsCOMPtr<mozIStoragePendingStatement> ps;
-        mozIStorageStatement *stmts[] = {
-          decayFrecency,
-          decayAdaptive,
-          deleteAdaptive
-        };
-
-        rv = mDBConn->ExecuteAsync(stmts, NS_ARRAY_LENGTH(stmts), nsnull,
-                                    getter_AddRefs(ps));
-        NS_WARN_IF_FALSE(NS_SUCCEEDED(rv), "Failed to exec async idle stmts");
-      }
-    }
+    nsCOMPtr<mozIStoragePendingStatement> ps;
+    mozIStorageStatement *stmts[] = {
+      decayFrecency,
+      decayAdaptive,
+      deleteAdaptive
+    };
+    rv = mDBConn->ExecuteAsync(stmts, NS_ARRAY_LENGTH(stmts), nsnull,
+                                getter_AddRefs(ps));
+    NS_ENSURE_SUCCESS(rv, NS_OK);
   }
   else if (strcmp(aTopic, NS_PRIVATE_BROWSING_SWITCH_TOPIC) == 0) {
     if (NS_LITERAL_STRING(NS_PRIVATE_BROWSING_ENTER).Equals(aData)) {
