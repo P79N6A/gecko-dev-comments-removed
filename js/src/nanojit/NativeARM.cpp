@@ -1858,14 +1858,6 @@ Assembler::asm_branch(bool branchOnFalse, LInsp cond, NIns* targ)
     bool    fp_cond;
 
     
-    
-    
-    if ((condop == LIR_ov) && (cond->oprnd1()->isop(LIR_mul))) {
-        condop = LIR_eq;
-        branchOnFalse = !branchOnFalse;
-    }
-
-    
     switch (condop)
     {
         
@@ -1999,11 +1991,10 @@ void
 Assembler::asm_cond(LInsp ins)
 {
     Register r = prepResultReg(ins, AllowableFlagRegs);
-    LOpcode op = ins->opcode();
-    
-    switch(op)
+    switch(ins->opcode())
     {
         case LIR_eq:  SETEQ(r); break;
+        case LIR_ov:  SETVS(r); break;
         case LIR_lt:  SETLT(r); break;
         case LIR_le:  SETLE(r); break;
         case LIR_gt:  SETGT(r); break;
@@ -2012,17 +2003,6 @@ Assembler::asm_cond(LInsp ins)
         case LIR_ule: SETLS(r); break;
         case LIR_ugt: SETHI(r); break;
         case LIR_uge: SETHS(r); break;
-        case LIR_ov:
-            
-            
-            
-            
-            if (!ins->oprnd1()->isop(LIR_mul)) {
-                SETVS(r);
-            } else {
-                SETNE(r);
-            }
-            break;
         default:      NanoAssert(0);  break;
     }
     asm_cmp(ins);
@@ -2127,18 +2107,11 @@ Assembler::asm_arith(LInsp ins)
             
             
             
-
+            
             if ((ARM_ARCH > 5) || (rr != rb)) {
                 
                 
-                
-                
-                
-                
-                
-                
-                ALUr_shi(AL, cmp, 1, IP, IP, rr, ASR_imm, 31);
-                SMULL(rr, IP, rb, ra);
+                MUL(rr, rb, ra);
             } else {
                 
                 
@@ -2147,40 +2120,19 @@ Assembler::asm_arith(LInsp ins)
                 if (rr != ra) {
                     
                     
-                    
-                    
-                    ALUr_shi(AL, cmp, 1, IP, IP, rr, ASR_imm, 31);
-                    SMULL(rr, IP, ra, rb);
+                    MUL(rr, ra, rb);
                 } else {
                     
                     
-                    
-                    
-                    
-                    
-                    
-                    
-                    
-                    
-                    
-                    
-                    
-                    
-                    
-                    
-                    
-                    
-                    
-                    
-                    
 
+                    
+                    
+                    NanoAssert(ra != IP);
                     NanoAssert(rr != IP);
 
-                    ALUr_shi(AL, cmp, 1, IP, rr, rr, ASR_imm, 31);
-                    ALUr_shi(AL, mov, 1, IP, IP, IP, LSR_imm, 16);
-                    MUL(rr, IP, IP);
-                    ALUi(MI, rsb, 0, IP, IP, 0);
-                    ALUr(AL, mov, 1, IP, ra, ra);
+                    
+                    MUL(rr, IP, rb);
+                    MOV(IP, ra);
                 }
             }
             break;
@@ -2277,6 +2229,7 @@ Assembler::asm_cmov(LInsp ins)
     switch (condval->opcode()) {
         
         case LIR_eq:    MOVNE(rr, iffalsereg);  break;
+        case LIR_ov:    MOVVC(rr, iffalsereg);  break;
         case LIR_lt:    MOVGE(rr, iffalsereg);  break;
         case LIR_le:    MOVGT(rr, iffalsereg);  break;
         case LIR_gt:    MOVLE(rr, iffalsereg);  break;
@@ -2285,17 +2238,6 @@ Assembler::asm_cmov(LInsp ins)
         case LIR_ule:   MOVHI(rr, iffalsereg);  break;
         case LIR_ugt:   MOVLS(rr, iffalsereg);  break;
         case LIR_uge:   MOVLO(rr, iffalsereg);  break;
-        case LIR_ov:
-            
-            
-            
-            
-            if (!condval->oprnd1()->isop(LIR_mul)) {
-                MOVVC(rr, iffalsereg);
-            } else {
-                MOVEQ(rr, iffalsereg);
-            }
-            break;
         default: debug_only( NanoAssert(0) );   break;
     }
      findSpecificRegFor(iftrue, rr);
