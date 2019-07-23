@@ -2251,14 +2251,26 @@ nsWindow::Scroll(const nsIntPoint& aDelta,
     w->SetWindowClipRegion(configuration.mClipRegion, PR_TRUE);
   }
 
+  
+  HRGN updateRgn = ::CreateRectRgn(0, 0, 0, 0);
+  if (!updateRgn) {
+    
+    return;
+  }
+  HRGN destRgn = ::CreateRectRgn(0, 0, 0, 0);
+  if (!destRgn) {
+    
+    ::DeleteObject((HGDIOBJ)updateRgn);
+    return;
+  }
+
   DWORD ourThreadID = GetWindowThreadProcessId(mWnd, NULL);
 
   for (PRUint32 i = 0; i < aDestRects.Length(); ++i) {
+    const nsIntRect& destRect = aDestRects[i];
     nsIntRect affectedRect;
-    affectedRect.UnionRect(aDestRects[i], aDestRects[i] - aDelta);
-    
-    
-    UINT flags = SW_SCROLLCHILDREN | SW_INVALIDATE;
+    affectedRect.UnionRect(destRect, destRect - aDelta);
+    UINT flags = SW_SCROLLCHILDREN;
     
     
     for (nsWindow* w = static_cast<nsWindow*>(GetFirstChild()); w;
@@ -2331,8 +2343,30 @@ nsWindow::Scroll(const nsIntPoint& aDelta,
     }
 
     RECT clip = { affectedRect.x, affectedRect.y, affectedRect.XMost(), affectedRect.YMost() };
-    ::ScrollWindowEx(mWnd, aDelta.x, aDelta.y, &clip, &clip, NULL, NULL, flags);
+    ::ScrollWindowEx(mWnd, aDelta.x, aDelta.y, &clip, &clip, updateRgn, NULL, flags);
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    ::SetRectRgn(destRgn, destRect.x, destRect.y, destRect.XMost(), destRect.YMost());
+    ::CombineRgn(updateRgn, updateRgn, destRgn, RGN_AND);
+    ::InvalidateRgn(mWnd, updateRgn, FALSE);
   }
+
+  ::DeleteObject((HGDIOBJ)updateRgn);
+  ::DeleteObject((HGDIOBJ)destRgn);
 
   
   
