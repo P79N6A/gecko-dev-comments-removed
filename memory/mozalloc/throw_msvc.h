@@ -41,14 +41,12 @@
 #ifndef mozilla_throw_msvc_h
 #define mozilla_throw_msvc_h
 
-
-
-
-#ifdef _EXCEPTION_
-#  error "Unable to wrap _Throw(); CRT _Throw() already declared"
+#if defined(MOZ_MSVC_STL_WRAP__RAISE)
+#  include "msvc_raise_wrappers.h"
+#elif defined(MOZ_MSVC_STL_WRAP__Throw)
+#  include "msvc_throw_wrapper.h"
+#else
+#  error "Unknown STL wrapper tactic"
 #endif
-
-#define _Throw  mozilla_Throw
-#include <exception>
 
 #endif  
