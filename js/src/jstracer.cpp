@@ -3279,6 +3279,7 @@ TraceRecorder::cmp(LOpcode op, int flags)
     bool cond;
     LIns* l_ins = get(&l);
     LIns* r_ins = get(&r);
+    bool fp = false;
 
     
     
@@ -3310,6 +3311,8 @@ TraceRecorder::cmp(LOpcode op, int flags)
     } else if (isNumber(l) || isNumber(r)) {
         jsval tmp[2] = {l, r};
         JSAutoTempValueRooter tvr(cx, 2, tmp);
+        
+        fp = true;
 
         
         jsdouble lnum;
@@ -3373,7 +3376,7 @@ TraceRecorder::cmp(LOpcode op, int flags)
     
     if (!x) {
         
-        if (!isNumber(l) || !l_ins->isQuad()) {
+        if (!fp) {
             JS_ASSERT(op >= LIR_feq && op <= LIR_fge);
             op = LOpcode(op + (LIR_eq - LIR_feq));
         }
