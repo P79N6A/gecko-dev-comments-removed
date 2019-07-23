@@ -207,6 +207,8 @@ var gDownloadObserver = {
     case "dl-start":
       
       var dl = aSubject.QueryInterface(Components.interfaces.nsIDownload);
+      if (getDownload(dl.id))
+        return;
       gActiveDownloads.push(dl);
 
       
