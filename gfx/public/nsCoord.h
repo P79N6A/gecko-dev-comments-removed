@@ -285,9 +285,41 @@ inline nscoord NSToCoordFloor(float aValue)
   return nscoord(NS_floorf(aValue));
 }
 
+inline nscoord NSToCoordFloorClamped(float aValue)
+{
+#ifndef NS_COORD_IS_FLOAT
+  
+  if (aValue >= nscoord_MAX) {
+    NS_WARNING("Overflowed nscoord_MAX in conversion to nscoord");
+    return nscoord_MAX;
+  }
+  if (aValue <= nscoord_MIN) {
+    NS_WARNING("Overflowed nscoord_MIN in conversion to nscoord");
+    return nscoord_MIN;
+  }
+#endif
+  return NSToCoordFloor(aValue);
+}
+
 inline nscoord NSToCoordCeil(float aValue)
 {
   return nscoord(NS_ceilf(aValue));
+}
+
+inline nscoord NSToCoordCeilClamped(float aValue)
+{
+#ifndef NS_COORD_IS_FLOAT
+  
+  if (aValue >= nscoord_MAX) {
+    NS_WARNING("Overflowed nscoord_MAX in conversion to nscoord");
+    return nscoord_MAX;
+  }
+  if (aValue <= nscoord_MIN) {
+    NS_WARNING("Overflowed nscoord_MIN in conversion to nscoord");
+    return nscoord_MIN;
+  }
+#endif
+  return NSToCoordCeil(aValue);
 }
 
 inline nscoord NSToCoordRound(float aValue)
@@ -297,6 +329,22 @@ inline nscoord NSToCoordRound(float aValue)
 #else
   return nscoord(NS_floorf(aValue + 0.5f));
 #endif 
+}
+
+inline nscoord NSToCoordRoundWithClamp(float aValue)
+{
+#ifndef NS_COORD_IS_FLOAT
+  
+  if (aValue >= nscoord_MAX) {
+    NS_WARNING("Overflowed nscoord_MAX in conversion to nscoord");
+    return nscoord_MAX;
+  }
+  if (aValue <= nscoord_MIN) {
+    NS_WARNING("Overflowed nscoord_MIN in conversion to nscoord");
+    return nscoord_MIN;
+  }
+#endif
+  return NSToCoordRound(aValue);
 }
 
 
@@ -322,27 +370,7 @@ inline PRInt32 NSToIntRound(float aValue)
 
 inline nscoord NSFloatPixelsToAppUnits(float aPixels, float aAppUnitsPerPixel)
 {
-  float product = aPixels * aAppUnitsPerPixel;
-  nscoord result;
-
-#ifdef NS_COORD_IS_FLOAT
-  
-  result = NSToCoordRound(product);
-#else
-  
-  if (product >= nscoord_MAX) {
-    NS_WARNING("Overflowed nscoord_MAX in conversion to nscoord");
-    result = nscoord_MAX;
-  } else if (product <= nscoord_MIN) {
-    NS_WARNING("Overflowed nscoord_MIN in conversion to nscoord");
-    result = nscoord_MIN;
-  } else {
-    result = NSToCoordRound(product);
-  }
-#endif
-
-  VERIFY_COORD(result);
-  return result;
+  return NSToCoordRoundWithClamp(aPixels * aAppUnitsPerPixel);
 }
 
 inline nscoord NSIntPixelsToAppUnits(PRInt32 aPixels, PRInt32 aAppUnitsPerPixel)
