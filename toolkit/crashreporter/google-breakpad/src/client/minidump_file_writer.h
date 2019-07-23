@@ -228,7 +228,7 @@ class TypedMDRVA : public UntypedMDRVA {
   
   
   
-  bool CopyIndexAfterObject(unsigned int index, void *src, size_t size);
+  bool CopyIndexAfterObject(unsigned int index, const void *src, size_t size);
 
   
   bool Flush();

@@ -38,6 +38,7 @@
 #include "google_breakpad/processor/call_stack.h"
 #include "google_breakpad/processor/memory_region.h"
 #include "google_breakpad/processor/stack_frame_cpu.h"
+#include "processor/logging.h"
 
 namespace google_breakpad {
 
@@ -54,14 +55,19 @@ StackwalkerPPC::StackwalkerPPC(const SystemInfo *system_info,
     
     
     
+    BPLOG(ERROR) << "Memory out of range for stackwalking: " <<
+                    HexString(memory_->GetBase()) << "+" <<
+                    HexString(memory_->GetSize());
     memory_ = NULL;
   }
 }
 
 
 StackFrame* StackwalkerPPC::GetContextFrame() {
-  if (!context_ || !memory_)
+  if (!context_ || !memory_) {
+    BPLOG(ERROR) << "Can't get context frame without context or memory";
     return NULL;
+  }
 
   StackFramePPC *frame = new StackFramePPC();
 
@@ -78,8 +84,10 @@ StackFrame* StackwalkerPPC::GetContextFrame() {
 StackFrame* StackwalkerPPC::GetCallerFrame(
     const CallStack *stack,
     const vector< linked_ptr<StackFrameInfo> > &stack_frame_info) {
-  if (!memory_ || !stack)
+  if (!memory_ || !stack) {
+    BPLOG(ERROR) << "Can't get caller frame without memory or stack";
     return NULL;
+  }
 
   
   

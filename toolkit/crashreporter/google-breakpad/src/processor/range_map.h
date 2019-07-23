@@ -62,7 +62,6 @@ class RangeMap {
   
   
   
-  
   bool RetrieveRange(const AddressType &address, EntryType *entry,
                      AddressType *entry_base, AddressType *entry_size) const;
 

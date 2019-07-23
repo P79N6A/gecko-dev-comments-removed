@@ -104,6 +104,19 @@ void DynamicImage::CalculateMemoryInfo() {
   slide_ = 0;
 }
 
+void DynamicImage::Print() {
+  const char *path = GetFilePath();
+  if (!path) {
+    path = "(unknown)";
+  }
+  printf("%p: %s\n", GetLoadAddress(), path);
+  mach_header *header = GetMachHeader();
+  MachHeader(*header).Print();
+  printf("vmaddr\t\t: %p\n", reinterpret_cast<void*>(GetVMAddr()));
+  printf("vmsize\t\t: %d\n", GetVMSize());
+  printf("slide\t\t: %d\n", GetVMAddrSlide());
+}
+
 #pragma mark -
 
 
@@ -123,7 +136,7 @@ void DynamicImages::ReadImageInfoForTask() {
   
   
   struct nlist &list = l[0];
-  list.n_un.n_name = "_dyld_all_image_infos";
+  list.n_un.n_name = const_cast<char *>("_dyld_all_image_infos");
   nlist("/usr/lib/dyld", &list);
   
   if (list.n_value) {

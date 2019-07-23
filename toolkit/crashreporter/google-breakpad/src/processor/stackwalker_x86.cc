@@ -42,6 +42,7 @@
 #include "google_breakpad/processor/memory_region.h"
 #include "google_breakpad/processor/stack_frame_cpu.h"
 #include "processor/linked_ptr.h"
+#include "processor/logging.h"
 #include "processor/stack_frame_info.h"
 
 namespace google_breakpad {
@@ -58,14 +59,19 @@ StackwalkerX86::StackwalkerX86(const SystemInfo *system_info,
   if (memory_->GetBase() + memory_->GetSize() - 1 > 0xffffffff) {
     
     
+    BPLOG(ERROR) << "Memory out of range for stackwalking: " <<
+                    HexString(memory_->GetBase()) << "+" <<
+                    HexString(memory_->GetSize());
     memory_ = NULL;
   }
 }
 
 
 StackFrame* StackwalkerX86::GetContextFrame() {
-  if (!context_ || !memory_)
+  if (!context_ || !memory_) {
+    BPLOG(ERROR) << "Can't get context frame without context or memory";
     return NULL;
+  }
 
   StackFrameX86 *frame = new StackFrameX86();
 
@@ -82,8 +88,10 @@ StackFrame* StackwalkerX86::GetContextFrame() {
 StackFrame* StackwalkerX86::GetCallerFrame(
     const CallStack *stack,
     const vector< linked_ptr<StackFrameInfo> > &stack_frame_info) {
-  if (!memory_ || !stack)
+  if (!memory_ || !stack) {
+    BPLOG(ERROR) << "Can't get caller frame without memory or stack";
     return NULL;
+  }
 
   StackFrameX86 *last_frame = static_cast<StackFrameX86*>(
       stack->frames()->back());
@@ -241,11 +249,8 @@ StackFrame* StackwalkerX86::GetCallerFrame(
       
       
       
-      
-      
       program_string = "$eip .raSearchStart ^ = "
-                       "$esp .raSearchStart 4 + = "
-                       "$ebp $ebp =";
+                       "$esp .raSearchStart 4 + =";
       recover_ebp = false;
     }
   } else {
@@ -287,8 +292,7 @@ StackFrame* StackwalkerX86::GetCallerFrame(
   PostfixEvaluator<u_int32_t>::DictionaryValidityType dictionary_validity;
   if (!evaluator.Evaluate(program_string, &dictionary_validity) ||
       dictionary_validity.find("$eip") == dictionary_validity.end() ||
-      dictionary_validity.find("$esp") == dictionary_validity.end() ||
-      dictionary_validity.find("$ebp") == dictionary_validity.end()) {
+      dictionary_validity.find("$esp") == dictionary_validity.end()) {
     return NULL;
   }
 

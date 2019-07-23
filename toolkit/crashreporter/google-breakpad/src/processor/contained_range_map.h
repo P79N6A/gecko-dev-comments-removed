@@ -93,7 +93,6 @@ class ContainedRangeMap {
   
   
   
-  
   bool RetrieveRange(const AddressType &address, EntryType *entry) const;
 
   

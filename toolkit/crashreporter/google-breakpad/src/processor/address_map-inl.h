@@ -36,7 +36,10 @@
 #ifndef PROCESSOR_ADDRESS_MAP_INL_H__
 #define PROCESSOR_ADDRESS_MAP_INL_H__
 
+#include <cassert>
+
 #include "processor/address_map.h"
+#include "processor/logging.h"
 
 namespace google_breakpad {
 
@@ -45,8 +48,11 @@ bool AddressMap<AddressType, EntryType>::Store(const AddressType &address,
                                                const EntryType &entry) {
   
   
-  if (map_.find(address) != map_.end())
+  if (map_.find(address) != map_.end()) {
+    BPLOG(INFO) << "Store failed, address " << HexString(address) <<
+                   " is already present";
     return false;
+  }
 
   map_.insert(MapValue(address, entry));
   return true;
@@ -56,8 +62,8 @@ template<typename AddressType, typename EntryType>
 bool AddressMap<AddressType, EntryType>::Retrieve(
     const AddressType &address,
     EntryType *entry, AddressType *entry_address) const {
-  if (!entry)
-    return false;
+  BPLOG_IF(ERROR, !entry) << "AddressMap::Retrieve requires |entry|";
+  assert(entry);
 
   
   

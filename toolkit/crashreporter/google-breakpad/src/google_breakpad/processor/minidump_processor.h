@@ -64,12 +64,14 @@ class MinidumpProcessor {
   
   
   
-  static void GetCPUInfo(Minidump *dump, SystemInfo *info);
+  
+  static bool GetCPUInfo(Minidump *dump, SystemInfo *info);
 
   
   
   
-  static void GetOSInfo(Minidump *dump, SystemInfo *info);
+  
+  static bool GetOSInfo(Minidump *dump, SystemInfo *info);
 
   
   
