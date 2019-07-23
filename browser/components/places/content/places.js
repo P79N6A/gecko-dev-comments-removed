@@ -62,7 +62,7 @@ var PlacesOrganizer = {
     this._places.selectItems([itemId]);
     
     if (aQueryName == "AllBookmarks")
-      asContainer(this._places.selectedNode).containerOpen = true;
+      PlacesUtils.asContainer(this._places.selectedNode).containerOpen = true;
   },
 
   init: function PO_init() {
@@ -216,7 +216,7 @@ var PlacesOrganizer = {
       return;
 
     var node = this._places.selectedNode;
-    var queries = asQuery(node).getQueries();
+    var queries = PlacesUtils.asQuery(node).getQueries();
 
     
     var options = node.queryOptions.clone();
@@ -351,7 +351,7 @@ var PlacesOrganizer = {
 
 
   getCurrentOptions: function PO_getCurrentOptions() {
-    return asQuery(this._content.getResult().root).queryOptions;
+    return PlacesUtils.asQuery(this._content.getResult().root).queryOptions;
   },
 
   
@@ -359,7 +359,7 @@ var PlacesOrganizer = {
 
 
   getCurrentQueries: function PO_getCurrentQueries() {
-    return asQuery(this._content.getResult().root).getQueries();
+    return PlacesUtils.asQuery(this._content.getResult().root).getQueries();
   },
 
   

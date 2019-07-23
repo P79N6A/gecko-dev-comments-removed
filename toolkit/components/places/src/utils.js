@@ -48,17 +48,17 @@ var Cr = Components.results;
 var Cu = Components.utils;
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
-Cu.import("resource://gre/modules/Services.jsm");
-Cu.import("resource://gre/modules/NetUtil.jsm");
 
-const EXCLUDE_FROM_BACKUP_ANNO = "places/excludeFromBackup";
-const POST_DATA_ANNO = "bookmarkProperties/POSTData";
-const READ_ONLY_ANNO = "placesInternal/READ_ONLY";
-const LMANNO_FEEDURI = "livemark/feedURI";
-const LMANNO_SITEURI = "livemark/siteURI";
-const LMANNO_EXPIRATION = "livemark/expiration";
-const LMANNO_LOADFAILED = "livemark/loadfailed";
-const LMANNO_LOADING = "livemark/loading";
+XPCOMUtils.defineLazyGetter(this, "Services", function() {
+  Cu.import("resource://gre/modules/Services.jsm");
+  return Services;
+});
+
+XPCOMUtils.defineLazyGetter(this, "NetUtil", function() {
+  Cu.import("resource://gre/modules/NetUtil.jsm");
+  return NetUtil;
+});
+
 
 
 
@@ -85,10 +85,10 @@ function QI_node(aNode, aIID) {
   }
   return result;
 }
-function asVisit(aNode)    { return QI_node(aNode, Ci.nsINavHistoryVisitResultNode);    }
-function asFullVisit(aNode){ return QI_node(aNode, Ci.nsINavHistoryFullVisitResultNode);}
-function asContainer(aNode){ return QI_node(aNode, Ci.nsINavHistoryContainerResultNode);}
-function asQuery(aNode)    { return QI_node(aNode, Ci.nsINavHistoryQueryResultNode);    }
+function asVisit(aNode) QI_node(aNode, Ci.nsINavHistoryVisitResultNode);
+function asFullVisit(aNode) QI_node(aNode, Ci.nsINavHistoryFullVisitResultNode);
+function asContainer(aNode) QI_node(aNode, Ci.nsINavHistoryContainerResultNode);
+function asQuery(aNode) QI_node(aNode, Ci.nsINavHistoryQueryResultNode);
 
 var PlacesUtils = {
   
@@ -103,6 +103,21 @@ var PlacesUtils = {
   TYPE_HTML: "text/html",
   
   TYPE_UNICODE: "text/unicode",
+
+  EXCLUDE_FROM_BACKUP_ANNO: "places/excludeFromBackup",
+  GUID_ANNO: "placesInternal/GUID",
+  LMANNO_FEEDURI: "livemark/feedURI",
+  LMANNO_SITEURI: "livemark/siteURI",
+  LMANNO_EXPIRATION: "livemark/expiration",
+  LMANNO_LOADFAILED: "livemark/loadfailed",
+  LMANNO_LOADING: "livemark/loading",
+  POST_DATA_ANNO: "bookmarkProperties/POSTData",
+  READ_ONLY_ANNO: "placesInternal/READ_ONLY",
+
+  asVisit: function(aNode) asVisit(aNode),
+  asFullVisit: function(aNode) asFullVisit(aNode),
+  asContainer: function(aNode) asContainer(aNode),
+  asQuery: function(aNode) asQuery(aNode),
 
   
 
@@ -224,7 +239,7 @@ var PlacesUtils = {
     
     Services.obs.addObserver(this, "xpcom-shutdown", false);
 
-    var readOnly = this.annotations.getItemsWithAnnotation(READ_ONLY_ANNO);
+    var readOnly = this.annotations.getItemsWithAnnotation(this.READ_ONLY_ANNO);
     this.__defineGetter__("_readOnly", function() readOnly);
     return this._readOnly;
   },
@@ -242,13 +257,13 @@ var PlacesUtils = {
 
   
   onItemAnnotationSet: function(aItemId, aAnnotationName) {
-    if (aAnnotationName == READ_ONLY_ANNO &&
+    if (aAnnotationName == this.READ_ONLY_ANNO &&
         this._readOnly.indexOf(aItemId) == -1)
       this._readOnly.push(aItemId);
   },
   onItemAnnotationRemoved: function(aItemId, aAnnotationName) {
     var index = this._readOnly.indexOf(aItemId);
-    if (aAnnotationName == READ_ONLY_ANNO && index > -1)
+    if (aAnnotationName == this.READ_ONLY_ANNO && index > -1)
       delete this._readOnly[index];
   },
   onPageAnnotationSet: function(aUri, aAnnotationName) {},
@@ -370,7 +385,7 @@ var PlacesUtils = {
     
     
     if (this.__lookupGetter__("livemarks"))
-      return this.annotations.itemHasAnnotation(aItemId, LMANNO_FEEDURI);
+      return this.annotations.itemHasAnnotation(aItemId, this.LMANNO_FEEDURI);
     
     return this.livemarks.isLivemark(aItemId);
   },
@@ -439,17 +454,16 @@ var PlacesUtils = {
 
 
   wrapNode: function PU_wrapNode(aNode, aType, aOverrideURI, aForceCopy) {
-    let self = this;
-
     
     
     
     
     
     function convertNode(cNode) {
-      if (self.nodeIsFolder(cNode) && asQuery(cNode).queryOptions.excludeItems) {
-        let concreteId = self.getConcreteItemId(cNode);
-        return [self.getFolderContents(concreteId, false, true).root, true];
+      if (PlacesUtils.nodeIsFolder(cNode) &&
+          asQuery(cNode).queryOptions.excludeItems) {
+        let concreteId = PlacesUtils.getConcreteItemId(cNode);
+        return [PlacesUtils.getFolderContents(concreteId, false, true).root, true];
       }
 
       
@@ -468,7 +482,7 @@ var PlacesUtils = {
         };
 
         let [node, shouldClose] = convertNode(aNode);
-        self.serializeNodeAsJSONToOutputStream(node, writer, true, aForceCopy);
+        this.serializeNodeAsJSONToOutputStream(node, writer, true, aForceCopy);
         if (shouldClose)
           node.containerOpen = false;
 
@@ -476,11 +490,11 @@ var PlacesUtils = {
       }
       case this.TYPE_X_MOZ_URL: {
         function gatherDataUrl(bNode) {
-          if (self.nodeIsLivemarkContainer(bNode)) {
-            let siteURI = self.livemarks.getSiteURI(bNode.itemId).spec;
+          if (PlacesUtils.nodeIsLivemarkContainer(bNode)) {
+            let siteURI = PlacesUtils.livemarks.getSiteURI(bNode.itemId).spec;
             return siteURI + NEWLINE + bNode.title;
           }
-          if (self.nodeIsURI(bNode))
+          if (PlacesUtils.nodeIsURI(bNode))
             return (aOverrideURI || bNode.uri) + NEWLINE + bNode.title;
           
           return "";
@@ -505,11 +519,11 @@ var PlacesUtils = {
           }
           
           let escapedTitle = bNode.title ? htmlEscape(bNode.title) : "";
-          if (self.nodeIsLivemarkContainer(bNode)) {
-            let siteURI = self.livemarks.getSiteURI(bNode.itemId).spec;
+          if (PlacesUtils.nodeIsLivemarkContainer(bNode)) {
+            let siteURI = PlacesUtils.livemarks.getSiteURI(bNode.itemId).spec;
             return "<A HREF=\"" + siteURI + "\">" + escapedTitle + "</A>" + NEWLINE;
           }
-          if (self.nodeIsContainer(bNode)) {
+          if (PlacesUtils.nodeIsContainer(bNode)) {
             asContainer(bNode);
             let wasOpen = bNode.containerOpen;
             if (!wasOpen)
@@ -526,9 +540,9 @@ var PlacesUtils = {
             bNode.containerOpen = wasOpen;
             return childString + "</DL>" + NEWLINE;
           }
-          if (self.nodeIsURI(bNode))
+          if (PlacesUtils.nodeIsURI(bNode))
             return "<A HREF=\"" + bNode.uri + "\">" + escapedTitle + "</A>" + NEWLINE;
-          if (self.nodeIsSeparator(bNode))
+          if (PlacesUtils.nodeIsSeparator(bNode))
             return "<HR>" + NEWLINE;
           return "";
         }
@@ -544,9 +558,9 @@ var PlacesUtils = {
 
     
     function gatherDataText(bNode) {
-      if (self.nodeIsLivemarkContainer(bNode))
-        return self.livemarks.getSiteURI(bNode.itemId).spec;
-      if (self.nodeIsContainer(bNode)) {
+      if (PlacesUtils.nodeIsLivemarkContainer(bNode))
+        return PlacesUtils.livemarks.getSiteURI(bNode.itemId).spec;
+      if (PlacesUtils.nodeIsContainer(bNode)) {
         asContainer(bNode);
         let wasOpen = bNode.containerOpen;
         if (!wasOpen)
@@ -562,9 +576,9 @@ var PlacesUtils = {
         bNode.containerOpen = wasOpen;
         return childString;
       }
-      if (self.nodeIsURI(bNode))
+      if (PlacesUtils.nodeIsURI(bNode))
         return (aOverrideURI || bNode.uri);
-      if (self.nodeIsSeparator(bNode))
+      if (PlacesUtils.nodeIsSeparator(bNode))
         return "--------------------";
       return "";
     }
@@ -613,7 +627,7 @@ var PlacesUtils = {
             
             try {
               titleString = this._uri(uriString).QueryInterface(Ci.nsIURL)
-                              .fileName;
+                                .fileName;
             }
             catch (e) {}
           }
@@ -855,10 +869,10 @@ var PlacesUtils = {
   setPostDataForBookmark: function PU_setPostDataForBookmark(aBookmarkId, aPostData) {
     const annos = this.annotations;
     if (aPostData)
-      annos.setItemAnnotation(aBookmarkId, POST_DATA_ANNO, aPostData, 
+      annos.setItemAnnotation(aBookmarkId, this.POST_DATA_ANNO, aPostData, 
                               0, Ci.nsIAnnotationService.EXPIRE_NEVER);
-    else if (annos.itemHasAnnotation(aBookmarkId, POST_DATA_ANNO))
-      annos.removeItemAnnotation(aBookmarkId, POST_DATA_ANNO);
+    else if (annos.itemHasAnnotation(aBookmarkId, this.POST_DATA_ANNO))
+      annos.removeItemAnnotation(aBookmarkId, this.POST_DATA_ANNO);
   },
 
   
@@ -868,8 +882,8 @@ var PlacesUtils = {
 
   getPostDataForBookmark: function PU_getPostDataForBookmark(aBookmarkId) {
     const annos = this.annotations;
-    if (annos.itemHasAnnotation(aBookmarkId, POST_DATA_ANNO))
-      return annos.getItemAnnotation(aBookmarkId, POST_DATA_ANNO);
+    if (annos.itemHasAnnotation(aBookmarkId, this.POST_DATA_ANNO))
+      return annos.getItemAnnotation(aBookmarkId, this.POST_DATA_ANNO);
 
     return null;
   },
@@ -966,9 +980,9 @@ var PlacesUtils = {
     if (this.__lookupGetter__("livemarks")) {
       var feedSpec = aFeedURI.spec
       var annosvc = this.annotations;
-      var livemarks = annosvc.getItemsWithAnnotation(LMANNO_FEEDURI);
+      var livemarks = annosvc.getItemsWithAnnotation(this.LMANNO_FEEDURI);
       for (var i = 0; i < livemarks.length; i++) {
-        if (annosvc.getItemAnnotation(livemarks[i], LMANNO_FEEDURI) == feedSpec)
+        if (annosvc.getItemAnnotation(livemarks[i], this.LMANNO_FEEDURI) == feedSpec)
           return livemarks[i];
       }
     }
@@ -1126,38 +1140,38 @@ var PlacesUtils = {
     });
 
     var batch = {
-      _utils: this,
       nodes: nodes[0].children,
       runBatched: function restore_runBatched() {
         if (aReplace) {
           
           
-          var excludeItems = this._utils.annotations
-                                 .getItemsWithAnnotation(EXCLUDE_FROM_BACKUP_ANNO);
+          var excludeItems = PlacesUtils.annotations.getItemsWithAnnotation(
+            PlacesUtils.EXCLUDE_FROM_BACKUP_ANNO
+          );
           
           
           
-          var query = this._utils.history.getNewQuery();
-          query.setFolders([this._utils.placesRootId], 1);
-          var options = this._utils.history.getNewQueryOptions();
+          var query = PlacesUtils.history.getNewQuery();
+          query.setFolders([PlacesUtils.placesRootId], 1);
+          var options = PlacesUtils.history.getNewQueryOptions();
           options.expandQueries = false;
-          var root = this._utils.history.executeQuery(query, options).root;
+          var root = PlacesUtils.history.executeQuery(query, options).root;
           root.containerOpen = true;
           var childIds = [];
           for (var i = 0; i < root.childCount; i++) {
             var childId = root.getChild(i).itemId;
             if (excludeItems.indexOf(childId) == -1 &&
-                childId != this._utils.tagsFolderId)
+                childId != PlacesUtils.tagsFolderId)
               childIds.push(childId);
           }
           root.containerOpen = false;
 
           for (var i = 0; i < childIds.length; i++) {
             var rootItemId = childIds[i];
-            if (this._utils.isRootItem(rootItemId))
-              this._utils.bookmarks.removeFolderChildren(rootItemId);
+            if (PlacesUtils.isRootItem(rootItemId))
+              PlacesUtils.bookmarks.removeFolderChildren(rootItemId);
             else
-              this._utils.bookmarks.removeItem(rootItemId);
+              PlacesUtils.bookmarks.removeItem(rootItemId);
           }
         }
 
@@ -1199,7 +1213,7 @@ var PlacesUtils = {
           else
             this.importJSONNode(node, this.placesRootId, node.index);
 
-        }, this._utils);
+        }, PlacesUtils);
 
         
         searchIds.forEach(function(aId) {
@@ -1208,7 +1222,7 @@ var PlacesUtils = {
                                      folderIdMap);
           if (!uri.equals(oldURI))
             this.bookmarks.changeBookmarkURI(aId, uri);
-        }, this._utils);
+        }, PlacesUtils);
       }
     };
 
@@ -1253,15 +1267,15 @@ var PlacesUtils = {
           var siteURI = null;
           aData.annos = aData.annos.filter(function(aAnno) {
             switch (aAnno.name) {
-              case LMANNO_FEEDURI:
+              case this.LMANNO_FEEDURI:
                 feedURI = this._uri(aAnno.value);
                 return false;
-              case LMANNO_SITEURI:
+              case this.LMANNO_SITEURI:
                 siteURI = this._uri(aAnno.value);
                 return false;
-              case LMANNO_EXPIRATION:
-              case LMANNO_LOADING:
-              case LMANNO_LOADFAILED:
+              case this.LMANNO_EXPIRATION:
+              case this.LMANNO_LOADING:
+              case this.LMANNO_LOADFAILED:
                 return false;
               default:
                 return true;
@@ -1386,8 +1400,6 @@ var PlacesUtils = {
   function PU_serializeNodeAsJSONToOutputStream(aNode, aStream, aIsUICommand,
                                                 aResolveShortcuts,
                                                 aExcludeItems) {
-    var self = this;
-    
     function addGenericProperties(aPlacesNode, aJSNode) {
       aJSNode.title = aPlacesNode.title;
       aJSNode.id = aPlacesNode.itemId;
@@ -1405,14 +1417,14 @@ var PlacesUtils = {
         
         var annos = [];
         try {
-          annos = self.getAnnotationsForItem(aJSNode.id).filter(function(anno) {
+          annos = PlacesUtils.getAnnotationsForItem(aJSNode.id).filter(function(anno) {
             
             
             
             
-            if (anno.name == LMANNO_FEEDURI)
+            if (anno.name == PlacesUtils.LMANNO_FEEDURI)
               aJSNode.livemark = 1;
-            if (anno.name == READ_ONLY_ANNO && aResolveShortcuts) {
+            if (anno.name == PlacesUtils.READ_ONLY_ANNO && aResolveShortcuts) {
               
               return false;
             }
@@ -1426,11 +1438,11 @@ var PlacesUtils = {
     }
 
     function addURIProperties(aPlacesNode, aJSNode) {
-      aJSNode.type = self.TYPE_X_MOZ_PLACE;
+      aJSNode.type = PlacesUtils.TYPE_X_MOZ_PLACE;
       aJSNode.uri = aPlacesNode.uri;
       if (aJSNode.id && aJSNode.id != -1) {
         
-        var keyword = self.bookmarks.getKeywordForBookmark(aJSNode.id);
+        var keyword = PlacesUtils.bookmarks.getKeywordForBookmark(aJSNode.id);
         if (keyword)
           aJSNode.keyword = keyword;
       }
@@ -1440,14 +1452,14 @@ var PlacesUtils = {
         aJSNode.tags = tags;
 
       
-      var uri = self._uri(aPlacesNode.uri);
-      var lastCharset = self.history.getCharsetForURI(uri);
+      var uri = PlacesUtils._uri(aPlacesNode.uri);
+      var lastCharset = PlacesUtils.history.getCharsetForURI(uri);
       if (lastCharset)
         aJSNode.charset = lastCharset;
     }
 
     function addSeparatorProperties(aPlacesNode, aJSNode) {
-      aJSNode.type = self.TYPE_X_MOZ_PLACE_SEPARATOR;
+      aJSNode.type = PlacesUtils.TYPE_X_MOZ_PLACE_SEPARATOR;
     }
 
     function addContainerProperties(aPlacesNode, aJSNode) {
@@ -1456,38 +1468,38 @@ var PlacesUtils = {
         
         if (PlacesUtils.nodeIsQuery(aPlacesNode) ||
             (concreteId != aPlacesNode.itemId && !aResolveShortcuts)) {
-          aJSNode.type = self.TYPE_X_MOZ_PLACE;
+          aJSNode.type = PlacesUtils.TYPE_X_MOZ_PLACE;
           aJSNode.uri = aPlacesNode.uri;
           
           if (aIsUICommand)
             aJSNode.concreteId = concreteId;
         }
         else { 
-          aJSNode.type = self.TYPE_X_MOZ_PLACE_CONTAINER;
+          aJSNode.type = PlacesUtils.TYPE_X_MOZ_PLACE_CONTAINER;
 
           
-          if (aJSNode.id == self.placesRootId)
+          if (aJSNode.id == PlacesUtils.placesRootId)
             aJSNode.root = "placesRoot";
-          else if (aJSNode.id == self.bookmarksMenuFolderId)
+          else if (aJSNode.id == PlacesUtils.bookmarksMenuFolderId)
             aJSNode.root = "bookmarksMenuFolder";
-          else if (aJSNode.id == self.tagsFolderId)
+          else if (aJSNode.id == PlacesUtils.tagsFolderId)
             aJSNode.root = "tagsFolder";
-          else if (aJSNode.id == self.unfiledBookmarksFolderId)
+          else if (aJSNode.id == PlacesUtils.unfiledBookmarksFolderId)
             aJSNode.root = "unfiledBookmarksFolder";
-          else if (aJSNode.id == self.toolbarFolderId)
+          else if (aJSNode.id == PlacesUtils.toolbarFolderId)
             aJSNode.root = "toolbarFolder";
         }
       }
       else {
         
-        aJSNode.type = self.TYPE_X_MOZ_PLACE;
+        aJSNode.type = PlacesUtils.TYPE_X_MOZ_PLACE;
         aJSNode.uri = aPlacesNode.uri;
       }
     }
 
     function writeScalarNode(aStream, aNode) {
       
-      var jstr = self.toJSONString(aNode);
+      var jstr = PlacesUtils.toJSONString(aNode);
       
       aStream.write(jstr, jstr.length);
     }
@@ -1498,7 +1510,7 @@ var PlacesUtils = {
       var properties = [];
       for (let [name, value] in Iterator(aNode)) {
         if (name == "annos")
-          value = self.toJSONString(value);
+          value = PlacesUtils.toJSONString(value);
         else if (typeof value == "string")
           value = "\"" + value.replace(escJSONStringRegExp, '\\$1') + "\"";
         properties.push("\"" + name.replace(escJSONStringRegExp, '\\$1') + "\":" + value);
@@ -1543,37 +1555,37 @@ var PlacesUtils = {
       var parent = bNode.parent;
       var grandParent = parent ? parent.parent : null;
 
-      if (self.nodeIsURI(bNode)) {
+      if (PlacesUtils.nodeIsURI(bNode)) {
         
-        if (parent && parent.itemId == self.tagsFolderId)
+        if (parent && parent.itemId == PlacesUtils.tagsFolderId)
           return false;
         
         
         
         try {
-          self._uri(bNode.uri);
+          PlacesUtils._uri(bNode.uri);
         } catch (ex) {
           return false;
         }
         addURIProperties(bNode, node);
       }
-      else if (self.nodeIsContainer(bNode)) {
+      else if (PlacesUtils.nodeIsContainer(bNode)) {
         
-        if (grandParent && grandParent.itemId == self.tagsFolderId)
+        if (grandParent && grandParent.itemId == PlacesUtils.tagsFolderId)
           return false;
         addContainerProperties(bNode, node);
       }
-      else if (self.nodeIsSeparator(bNode)) {
+      else if (PlacesUtils.nodeIsSeparator(bNode)) {
         
         
-        if ((parent && parent.itemId == self.tagsFolderId) ||
-            (grandParent && grandParent.itemId == self.tagsFolderId))
+        if ((parent && parent.itemId == PlacesUtils.tagsFolderId) ||
+            (grandParent && grandParent.itemId == PlacesUtils.tagsFolderId))
           return false;
 
         addSeparatorProperties(bNode, node);
       }
 
-      if (!node.feedURI && node.type == self.TYPE_X_MOZ_PLACE_CONTAINER)
+      if (!node.feedURI && node.type == PlacesUtils.TYPE_X_MOZ_PLACE_CONTAINER)
         writeComplexNode(aStream, node, bNode);
       else
         writeScalarNode(aStream, node);
@@ -1845,7 +1857,7 @@ var PlacesUtils = {
 
       
       let excludeItems =
-        PlacesUtils.annotations.getItemsWithAnnotation(EXCLUDE_FROM_BACKUP_ANNO);
+        PlacesUtils.annotations.getItemsWithAnnotation(PlacesUtils.EXCLUDE_FROM_BACKUP_ANNO);
 
       
       let options = PlacesUtils.history.getNewQueryOptions();
@@ -1969,6 +1981,10 @@ XPCOMUtils.defineLazyServiceGetter(PlacesUtils, "tagging",
 XPCOMUtils.defineLazyServiceGetter(PlacesUtils, "livemarks",
                                    "@mozilla.org/browser/livemark-service;2",
                                    "nsILivemarkService");
+
+XPCOMUtils.defineLazyServiceGetter(PlacesUtils, "microsummaries",
+                                   "@mozilla.org/microsummary/service;1",
+                                   "nsIMicrosummaryService");
 
 XPCOMUtils.defineLazyGetter(PlacesUtils, "_bundle", function() {
   const PLACES_STRING_BUNDLE_URI = "chrome://places/locale/places.properties";
