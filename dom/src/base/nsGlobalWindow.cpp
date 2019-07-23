@@ -6888,14 +6888,17 @@ nsGlobalWindow::RunTimeout(nsTimeout *aTimeout)
       
       
       
-      PRTime nextInterval = (aTimeout ? timeout->mWhen : now) +
-        ((PRTime)timeout->mInterval * PR_USEC_PER_MSEC);
+      
+      
+      PRTime nextInterval = (PRTime)timeout->mInterval * PR_USEC_PER_MSEC;
+      if (!aTimeout || nextInterval + timeout->mWhen <= now)
+        nextInterval += now;
+      else
+        nextInterval += timeout->mWhen;
+
       PRTime delay = nextInterval - PR_Now();
 
       
-      
-      
-
       
       
       if (delay < (PRTime)(DOM_MIN_TIMEOUT_VALUE * PR_USEC_PER_MSEC)) {
