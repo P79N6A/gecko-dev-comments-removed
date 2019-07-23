@@ -71,7 +71,7 @@ namespace mozilla {
 
 
  
-class MonitorAutoExit
+class NS_STACK_CLASS MonitorAutoExit
 {
 public:
     
