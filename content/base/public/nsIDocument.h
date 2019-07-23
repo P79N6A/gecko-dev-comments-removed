@@ -97,8 +97,8 @@ class nsFrameLoader;
 
 
 #define NS_IDOCUMENT_IID      \
-    { 0x5f0203a8, 0xd926, 0x4adf, \
-      { 0xba, 0x96, 0xe6, 0xc3, 0xe6, 0xbb, 0x1b, 0xe5 } }
+  { 0xd5b1e3c5, 0x85dc, 0x403e, \
+    { 0xbb, 0x4a, 0x54, 0x66, 0xdc, 0xbe, 0x15, 0x69 } }
 
 
 #define NS_STYLESHEET_FROM_CATALOG                (1 << 0)
@@ -568,6 +568,11 @@ public:
   virtual nsIScriptGlobalObject*
     GetScriptHandlingObject(PRBool& aHasHadScriptHandlingObject) const = 0;
   virtual void SetScriptHandlingObject(nsIScriptGlobalObject* aScriptObject) = 0;
+
+  
+
+
+  virtual void ClearScriptHandlingObject() = 0;
 
   
 
