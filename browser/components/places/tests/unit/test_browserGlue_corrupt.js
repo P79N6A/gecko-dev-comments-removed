@@ -48,7 +48,7 @@ function run_test() {
 
   
   
-  create_JSON_backup("bookmarks.glue.json");;
+  create_JSON_backup("bookmarks.glue.json");
 
   
   let db = gProfD.clone();
