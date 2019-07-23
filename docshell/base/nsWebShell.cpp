@@ -822,43 +822,12 @@ nsWebShell::OnLinkClickSync(nsIContent *aContent,
     }
   }
 
-  nsCOMPtr<nsIDOMNode> node(do_QueryInterface(aContent));
-  NS_ENSURE_TRUE(node, NS_ERROR_UNEXPECTED);
-
-  PRBool inherit;
-  nsresult rv = URIInheritsSecurityContext(aURI, &inherit);
-  if (NS_FAILED(rv) || inherit) {
-    nsCOMPtr<nsIDocument> sourceDoc = aContent->GetDocument();
-
-    if (!sourceDoc) {
-      
-      
-      
-
-      return NS_OK;
-    }
-
-    nsCOMPtr<nsIPresShell> presShell;
-    GetPresShell(getter_AddRefs(presShell));
-    NS_ENSURE_TRUE(presShell, NS_ERROR_FAILURE);
-
-    if (presShell->GetDocument() != sourceDoc) {
-      
-      
-
-      return NS_OK;
-    }
-  }
-
   
   
   
   
   
-  nsCOMPtr<nsIDOMDocument> refererOwnerDoc;
-  node->GetOwnerDocument(getter_AddRefs(refererOwnerDoc));
-
-  nsCOMPtr<nsIDocument> refererDoc(do_QueryInterface(refererOwnerDoc));
+  nsCOMPtr<nsIDocument> refererDoc = aContent->GetOwnerDoc();
   NS_ENSURE_TRUE(refererDoc, NS_ERROR_UNEXPECTED);
 
   nsCOMPtr<nsIURI> referer = refererDoc->GetDocumentURI();
@@ -875,19 +844,20 @@ nsWebShell::OnLinkClickSync(nsIContent *aContent,
     anchor->GetType(typeHint);
   }
   
-  rv = InternalLoad(aURI,               
-                    referer,            
-                    aContent->NodePrincipal(), 
-                    INTERNAL_LOAD_FLAGS_NONE,
-                    target.get(),       
-                    NS_LossyConvertUTF16toASCII(typeHint).get(),
-                    aPostDataStream,    
-                    aHeadersDataStream, 
-                    LOAD_LINK,          
-                    nsnull,             
-                    PR_TRUE,            
-                    aDocShell,          
-                    aRequest);          
+  nsresult rv = InternalLoad(aURI,                      
+                             referer,                   
+                             aContent->NodePrincipal(), 
+                                                        
+                             INTERNAL_LOAD_FLAGS_NONE,
+                             target.get(),              
+                             NS_LossyConvertUTF16toASCII(typeHint).get(),
+                             aPostDataStream,           
+                             aHeadersDataStream,        
+                             LOAD_LINK,                 
+                             nsnull,                    
+                             PR_TRUE,                   
+                             aDocShell,                 
+                             aRequest);                 
   if (NS_SUCCEEDED(rv)) {
     DispatchPings(aContent, referer);
   }
