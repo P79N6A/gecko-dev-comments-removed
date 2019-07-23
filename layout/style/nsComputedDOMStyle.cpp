@@ -3078,8 +3078,7 @@ nsComputedDOMStyle::GetAbsoluteOffset(PRUint8 aSide, nsIDOMCSSValue** aValue)
       
       
       nsIFrame* scrollingChild = container->GetFirstChild(nsnull);
-      nsCOMPtr<nsIScrollableFrame> scrollFrame =
-        do_QueryInterface(scrollingChild);
+      nsIScrollableFrame *scrollFrame = do_QueryFrame(scrollingChild);
       if (scrollFrame) {
         scrollbarSizes = scrollFrame->GetActualScrollbarSizes();
       }

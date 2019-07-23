@@ -273,10 +273,8 @@ nsIFrameDebug::RootFrameList(nsPresContext* aPresContext, FILE* out, PRInt32 aIn
   if (nsnull != shell) {
     nsIFrame* frame = shell->FrameManager()->GetRootFrame();
     if(nsnull != frame) {
-      nsIFrameDebug* debugFrame;
-      nsresult rv;
-      rv = frame->QueryInterface(NS_GET_IID(nsIFrameDebug), (void**)&debugFrame);
-      if(NS_SUCCEEDED(rv))
+      nsIFrameDebug* debugFrame = do_QueryFrame(frame);
+      if (debugFrame)
         debugFrame->List(out, aIndent);
     }
   }
@@ -366,42 +364,12 @@ nsFrame::~nsFrame()
     mStyleContext->Release();
 }
 
-
-
-
-NS_IMETHODIMP
-nsFrame::QueryInterface(const nsIID& aIID, void** aInstancePtr)
-{
-  NS_PRECONDITION(aInstancePtr, "null out param");
-
+NS_QUERYFRAME_HEAD(nsFrame)
+  NS_QUERYFRAME_ENTRY(nsIFrame)
 #ifdef DEBUG
-  if (aIID.Equals(NS_GET_IID(nsIFrameDebug))) {
-    *aInstancePtr = static_cast<nsIFrameDebug*>(this);
-    return NS_OK;
-  }
+  NS_QUERYFRAME_ENTRY(nsIFrameDebug)
 #endif
-
-  if (aIID.Equals(NS_GET_IID(nsIFrame)) ||
-      aIID.Equals(NS_GET_IID(nsISupports))) {
-    *aInstancePtr = static_cast<nsIFrame*>(this);
-    return NS_OK;
-  }
-
-  *aInstancePtr = nsnull;
-  return NS_ERROR_NO_INTERFACE;
-}
-
-nsrefcnt nsFrame::AddRef(void)
-{
-  NS_WARNING("not supported for frames");
-  return 1;
-}
-
-nsrefcnt nsFrame::Release(void)
-{
-  NS_WARNING("not supported for frames");
-  return 1;
-}
+NS_QUERYFRAME_TAIL
 
 
 
@@ -1725,9 +1693,8 @@ nsFrame::GetDataForTableSelection(const nsFrameSelection *aFrameSelection,
   while (frame && NS_SUCCEEDED(result))
   {
     
-    nsITableCellLayout *cellElement;
-    result = (frame)->QueryInterface(NS_GET_IID(nsITableCellLayout), (void **)&cellElement);
-    if (NS_SUCCEEDED(result) && cellElement)
+    nsITableCellLayout *cellElement = do_QueryFrame(frame);
+    if (cellElement)
     {
       foundCell = PR_TRUE;
       
@@ -1739,9 +1706,8 @@ nsFrame::GetDataForTableSelection(const nsFrameSelection *aFrameSelection,
       
       
       
-      nsITableLayout *tableElement;
-      result = (frame)->QueryInterface(NS_GET_IID(nsITableLayout), (void **)&tableElement);
-      if (NS_SUCCEEDED(result) && tableElement)
+      nsITableLayout *tableElement = do_QueryFrame(frame);
+      if (tableElement)
       {
         foundTable = PR_TRUE;
         
@@ -4293,8 +4259,8 @@ nsFrame::GetSelectionController(nsPresContext *aPresContext, nsISelectionControl
 
   nsIFrame *frame = this;
   while (frame && (frame->GetStateBits() & NS_FRAME_INDEPENDENT_SELECTION)) {
-    nsITextControlFrame *tcf;
-    if (NS_SUCCEEDED(frame->QueryInterface(NS_GET_IID(nsITextControlFrame),(void**)&tcf))) {
+    nsITextControlFrame *tcf = do_QueryFrame(frame);
+    if (tcf) {
       NS_IF_ADDREF(*aSelCon = tcf->GetOwnedSelectionController());
       return NS_OK;
     }
@@ -4318,8 +4284,8 @@ nsIFrame::GetConstFrameSelection()
 {
   nsIFrame *frame = this;
   while (frame && (frame->GetStateBits() & NS_FRAME_INDEPENDENT_SELECTION)) {
-    nsITextControlFrame *tcf;
-    if (NS_SUCCEEDED(frame->QueryInterface(NS_GET_IID(nsITextControlFrame),(void**)&tcf))) {
+    nsITextControlFrame *tcf = do_QueryFrame(frame);
+    if (tcf) {
       return tcf->GetOwnedFrameSelection();
     }
     frame = frame->GetParent();
@@ -4407,9 +4373,8 @@ nsFrame::DumpBaseRegressionData(nsPresContext* aPresContext, FILE* out, PRInt32 
       }
       aIndent++;
       while (kid) {
-        nsIFrameDebug*  frameDebug;
-
-        if (NS_SUCCEEDED(kid->QueryInterface(NS_GET_IID(nsIFrameDebug), (void**)&frameDebug))) {
+        nsIFrameDebug* frameDebug = do_QueryFrame(kid);
+        if (kid) {
           frameDebug->DumpRegressionData(aPresContext, out, aIndent, aIncludeStyleData);
         }
         kid = kid->GetNextSibling();
@@ -4818,9 +4783,8 @@ FindBlockFrameOrBR(nsIFrame* aFrame, nsDirection aDirection)
 
   
   
-  nsIFormControlFrame* fcf; 
-  nsresult rv = aFrame->QueryInterface(NS_GET_IID(nsIFormControlFrame), (void**)&fcf);
-  if (NS_SUCCEEDED(rv))
+  nsIFormControlFrame* fcf = do_QueryFrame(aFrame);
+  if (fcf)
     return result;
   
   
@@ -6086,7 +6050,7 @@ nsIFrame::IsFocusable(PRInt32 *aTabIndex, PRBool aWithMouse)
         
         
         
-        nsCOMPtr<nsIScrollableFrame> scrollFrame = do_QueryInterface(this);
+        nsIScrollableFrame *scrollFrame = do_QueryFrame(this);
         if (scrollFrame) {
           nsMargin margin = scrollFrame->GetActualScrollbarSizes();
           if (margin.top || margin.right || margin.bottom || margin.left) {
@@ -7372,8 +7336,8 @@ void DR_State::DisplayFrameTypeInfo(nsIFrame* aFrame,
     }
     if(!strcmp(frameTypeInfo->mNameAbbrev, "unknown")) {
       nsAutoString  name;
-      nsIFrameDebug*  frameDebug;
-      if (NS_SUCCEEDED(aFrame->QueryInterface(NS_GET_IID(nsIFrameDebug), (void**)&frameDebug))) {
+      nsIFrameDebug* frameDebug = do_QueryFrame(aFrame);
+      if (frameDebug) {
        frameDebug->GetFrameName(name);
        printf("%s %p ", NS_LossyConvertUTF16toASCII(name).get(), (void*)aFrame);
       }

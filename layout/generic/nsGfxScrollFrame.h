@@ -66,8 +66,8 @@ class nsGfxScrollFrameInner : public nsIScrollPositionListener,
                               public nsIReflowCallback {
 public:
   NS_IMETHOD QueryInterface(REFNSIID aIID, void** aInstancePtr);
-  NS_IMETHOD_(nsrefcnt) AddRef(void);
-  NS_IMETHOD_(nsrefcnt) Release(void);
+  NS_IMETHOD_(nsrefcnt) AddRef(void) { return 2; }
+  NS_IMETHOD_(nsrefcnt) Release(void) { return 1; }
 
   nsGfxScrollFrameInner(nsContainerFrame* aOuter, PRBool aIsRoot,
                         PRBool aIsXUL);
@@ -248,7 +248,7 @@ class nsHTMLScrollFrame : public nsHTMLContainerFrame,
 public:
   friend nsIFrame* NS_NewHTMLScrollFrame(nsIPresShell* aPresShell, nsStyleContext* aContext, PRBool aIsRoot);
 
-  NS_DECL_ISUPPORTS
+  NS_DECL_QUERYFRAME
 
   
   
@@ -433,6 +433,8 @@ class nsXULScrollFrame : public nsBoxFrame,
                          public nsIAnonymousContentCreator,
                          public nsIStatefulFrame {
 public:
+  NS_DECL_QUERYFRAME
+
   friend nsIFrame* NS_NewXULScrollFrame(nsIPresShell* aPresShell, nsStyleContext* aContext, PRBool aIsRoot);
 
   
@@ -492,9 +494,6 @@ public:
 
   
   virtual nsresult CreateAnonymousContent(nsTArray<nsIContent*>& aElements);
-
-  
-  NS_DECL_ISUPPORTS
 
   virtual nsSize GetMinSize(nsBoxLayoutState& aBoxLayoutState);
   virtual nsSize GetPrefSize(nsBoxLayoutState& aBoxLayoutState);

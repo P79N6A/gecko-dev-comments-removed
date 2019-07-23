@@ -216,8 +216,7 @@ __try {
       else {
         
         
-        nsIScrollableFrame *scrollFrame = nsnull;
-        CallQueryInterface(frame, &scrollFrame);
+        nsIScrollableFrame *scrollFrame = do_QueryFrame(frame);
         if (scrollFrame) {
           hwnd = (HWND)scrollFrame->GetScrolledFrame()->GetWindow()->GetNativeData(NS_NATIVE_WINDOW);
           NS_ASSERTION(hwnd, "No window handle for window");

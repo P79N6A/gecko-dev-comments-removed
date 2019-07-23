@@ -186,19 +186,9 @@ NS_IMETHODIMP nsGfxButtonControlFrame::GetAccessible(nsIAccessible** aAccessible
 }
 #endif
 
-
-NS_IMETHODIMP
-nsGfxButtonControlFrame::QueryInterface(const nsIID& aIID, void** aInstancePtr)
-{
-  NS_PRECONDITION(aInstancePtr, "null out param");
-
-  if (aIID.Equals(NS_GET_IID(nsIAnonymousContentCreator))) {
-    *aInstancePtr = static_cast<nsIAnonymousContentCreator*>(this);
-    return NS_OK;
-  }
-
-  return nsHTMLButtonControlFrame::QueryInterface(aIID, aInstancePtr);
-}
+NS_QUERYFRAME_HEAD(nsGfxButtonControlFrame)
+  NS_QUERYFRAME_ENTRY(nsIAnonymousContentCreator)
+NS_QUERYFRAME_TAIL_INHERITING(nsHTMLButtonControlFrame)
 
 
 

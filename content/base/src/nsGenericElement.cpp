@@ -1117,12 +1117,9 @@ nsNSElementTearoff::GetScrollInfo(nsIScrollableView **aScrollableView,
   }
 
   
-  nsIScrollableFrame *scrollFrame = nsnull;
-  CallQueryInterface(frame, &scrollFrame);
-
+  nsIScrollableFrame *scrollFrame = do_QueryFrame(frame);
   if (!scrollFrame) {
-    nsIScrollableViewProvider *scrollProvider = nsnull;
-    CallQueryInterface(frame, &scrollProvider);
+    nsIScrollableViewProvider *scrollProvider = do_QueryFrame(frame);
     
     
     if (scrollProvider && frame->GetType() != nsGkAtoms::menuFrame) {
@@ -1151,7 +1148,7 @@ nsNSElementTearoff::GetScrollInfo(nsIScrollableView **aScrollableView,
           break;
         }
 
-        CallQueryInterface(frame, &scrollFrame);
+        scrollFrame = do_QueryFrame(frame);
       } while (!scrollFrame);
     }
 

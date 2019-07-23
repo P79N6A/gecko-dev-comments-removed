@@ -52,15 +52,10 @@
 
 class nsBoxLayoutState;
 
-
-#define NS_ISCROLLABLE_FRAME_IID    \
-{ 0xf285c180, 0x8492, 0x48d5, \
-{ 0xb1, 0xb5, 0x03, 0x28, 0x21, 0xc9, 0x72, 0x02 } }
-
 class nsIScrollableFrame : public nsIScrollableViewProvider {
 public:
 
-  NS_DECLARE_STATIC_IID_ACCESSOR(NS_ISCROLLABLE_FRAME_IID)
+  NS_DECLARE_FRAME_ACCESSOR(nsIScrollableFrame)
 
   
 
@@ -125,7 +120,5 @@ public:
 
   virtual void ScrollToRestoredPosition() = 0;
 };
-
-NS_DEFINE_STATIC_IID_ACCESSOR(nsIScrollableFrame, NS_ISCROLLABLE_FRAME_IID)
 
 #endif

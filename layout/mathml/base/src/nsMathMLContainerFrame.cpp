@@ -65,18 +65,13 @@
 #include "nsCSSFrameConstructor.h"
 #include "nsIReflowCallback.h"
 
-NS_DEFINE_CID(kInlineFrameCID, NS_INLINE_FRAME_CID);
 
 
 
 
-
-
-
-
-NS_IMPL_ADDREF_INHERITED(nsMathMLContainerFrame, nsMathMLFrame)
-NS_IMPL_RELEASE_INHERITED(nsMathMLContainerFrame, nsMathMLFrame)
-NS_IMPL_QUERY_INTERFACE_INHERITED1(nsMathMLContainerFrame, nsHTMLContainerFrame, nsMathMLFrame)
+NS_QUERYFRAME_HEAD(nsMathMLContainerFrame)
+  NS_QUERYFRAME_ENTRY(nsMathMLFrame)
+NS_QUERYFRAME_TAIL_INHERITING(nsHTMLContainerFrame)
 
 
 
@@ -215,8 +210,7 @@ nsMathMLContainerFrame::GetReflowAndBoundingMetricsFor(nsIFrame*            aFra
 
   if (aMathMLFrameType) {
     if (!IsForeignChild(aFrame)) {
-      nsIMathMLFrame* mathMLFrame;
-      CallQueryInterface(aFrame, &mathMLFrame);
+      nsIMathMLFrame* mathMLFrame = do_QueryFrame(aFrame);
       if (mathMLFrame) {
         *aMathMLFrameType = mathMLFrame->GetMathMLFrameType();
         return;
@@ -267,8 +261,7 @@ nsMathMLContainerFrame::GetPreferredStretchSize(nsIRenderingContext& aRenderingC
     nsIFrame* childFrame = GetFirstChild(nsnull);
     while (childFrame) {
       
-      nsIMathMLFrame* mathMLFrame;
-      childFrame->QueryInterface(NS_GET_IID(nsIMathMLFrame), (void**)&mathMLFrame);
+      nsIMathMLFrame* mathMLFrame = do_QueryFrame(childFrame);
       if (mathMLFrame) {
         nsEmbellishData embellishData;
         nsPresentationData presentationData;
@@ -280,8 +273,7 @@ nsMathMLContainerFrame::GetPreferredStretchSize(nsIRenderingContext& aRenderingC
           
           
           
-          nsIMathMLFrame* mathMLchildFrame;
-          presentationData.baseFrame->QueryInterface(NS_GET_IID(nsIMathMLFrame), (void**)&mathMLchildFrame);
+          nsIMathMLFrame* mathMLchildFrame = do_QueryFrame(presentationData.baseFrame);
           if (mathMLchildFrame) {
             mathMLFrame = mathMLchildFrame;
           }
@@ -359,8 +351,7 @@ nsMathMLContainerFrame::Stretch(nsIRenderingContext& aRenderingContext,
 
     nsIFrame* baseFrame = mPresentationData.baseFrame;
     if (baseFrame) {
-      nsIMathMLFrame* mathMLFrame;
-      baseFrame->QueryInterface(NS_GET_IID(nsIMathMLFrame), (void**)&mathMLFrame);
+      nsIMathMLFrame* mathMLFrame = do_QueryFrame(baseFrame);
       NS_ASSERTION(mathMLFrame, "Something is wrong somewhere");
       if (mathMLFrame) {
         PRBool stretchAll =
@@ -419,7 +410,7 @@ nsMathMLContainerFrame::Stretch(nsIRenderingContext& aRenderingContext,
           nsIFrame* childFrame = mFrames.FirstChild();
           while (childFrame) {
             if (childFrame != mPresentationData.baseFrame) {
-              childFrame->QueryInterface(NS_GET_IID(nsIMathMLFrame), (void**)&mathMLFrame);
+              mathMLFrame = do_QueryFrame(childFrame);
               if (mathMLFrame) {
                 
                 GetReflowAndBoundingMetricsFor(childFrame, 
@@ -534,8 +525,7 @@ nsMathMLContainerFrame::FinalizeReflow(nsIRenderingContext& aRenderingContext,
     
     
     
-    nsIMathMLFrame* mathMLFrame;
-    mParent->QueryInterface(NS_GET_IID(nsIMathMLFrame), (void**)&mathMLFrame);
+    nsIMathMLFrame* mathMLFrame = do_QueryFrame(mParent);
     if (mathMLFrame) {
       nsEmbellishData embellishData;
       nsPresentationData presentationData;
@@ -617,8 +607,7 @@ nsMathMLContainerFrame::PropagatePresentationDataFor(nsIFrame*       aFrame,
 {
   if (!aFrame || !aFlagsToUpdate)
     return;
-  nsIMathMLFrame* mathMLFrame;
-  aFrame->QueryInterface(NS_GET_IID(nsIMathMLFrame), (void**)&mathMLFrame);
+  nsIMathMLFrame* mathMLFrame = do_QueryFrame(aFrame);
   if (mathMLFrame) {
     
     mathMLFrame->UpdatePresentationData(aFlagsValues,
@@ -711,16 +700,14 @@ nsMathMLContainerFrame::RebuildAutomaticDataForChildren(nsIFrame* aParentFrame)
   
   nsIFrame* childFrame = aParentFrame->GetFirstChild(nsnull);
   while (childFrame) {
-    nsIMathMLFrame* childMathMLFrame;
-    childFrame->QueryInterface(NS_GET_IID(nsIMathMLFrame), (void**)&childMathMLFrame);
+    nsIMathMLFrame* childMathMLFrame = do_QueryFrame(childFrame);
     if (childMathMLFrame) {
       childMathMLFrame->InheritAutomaticData(aParentFrame);
     }
     RebuildAutomaticDataForChildren(childFrame);
     childFrame = childFrame->GetNextSibling();
   }
-  nsIMathMLFrame* mathMLFrame;
-  aParentFrame->QueryInterface(NS_GET_IID(nsIMathMLFrame), (void**)&mathMLFrame);
+  nsIMathMLFrame* mathMLFrame = do_QueryFrame(aParentFrame);
   if (mathMLFrame) {
     mathMLFrame->TransmitAutomaticData();
   }
@@ -741,8 +728,7 @@ nsMathMLContainerFrame::ReLayoutChildren(nsIFrame* aParentFrame,
        break;
 
     
-    nsIMathMLFrame* mathMLFrame;
-    frame->QueryInterface(NS_GET_IID(nsIMathMLFrame), (void**)&mathMLFrame);
+    nsIMathMLFrame* mathMLFrame = do_QueryFrame(frame);
     if (mathMLFrame)
       break;
 
@@ -910,8 +896,7 @@ nsMathMLContainerFrame::ReflowChild(nsIFrame*                aChildFrame,
   
 
 #ifdef DEBUG
-  nsInlineFrame* inlineFrame;
-  aChildFrame->QueryInterface(kInlineFrameCID, (void**)&inlineFrame);
+  nsInlineFrame* inlineFrame = do_QueryFrame(aChildFrame);
   NS_ASSERTION(!inlineFrame, "Inline frames should be wrapped in blocks");
 #endif
   
@@ -1007,8 +992,7 @@ nsMathMLContainerFrame::Reflow(nsPresContext*           aPresContext,
     
     childFrame = mFrames.FirstChild();
     while (childFrame) {
-      nsIMathMLFrame* mathMLFrame;
-      childFrame->QueryInterface(NS_GET_IID(nsIMathMLFrame), (void**)&mathMLFrame);
+      nsIMathMLFrame* mathMLFrame = do_QueryFrame(childFrame);
       if (mathMLFrame) {
         
         nsHTMLReflowMetrics childDesiredSize;

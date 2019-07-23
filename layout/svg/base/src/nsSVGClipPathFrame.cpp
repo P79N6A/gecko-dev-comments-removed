@@ -84,8 +84,7 @@ nsSVGClipPathFrame::ClipPaint(nsSVGRenderState* aContext,
 
   for (nsIFrame* kid = mFrames.FirstChild(); kid;
        kid = kid->GetNextSibling()) {
-    nsISVGChildFrame* SVGFrame = nsnull;
-    CallQueryInterface(kid, &SVGFrame);
+    nsISVGChildFrame* SVGFrame = do_QueryFrame(kid);
     if (SVGFrame) {
       
       SVGFrame->NotifySVGChanged(nsISVGChildFrame::SUPPRESS_INVALIDATION | 
@@ -121,8 +120,7 @@ nsSVGClipPathFrame::ClipHitTest(nsIFrame* aParent,
 
   for (nsIFrame* kid = mFrames.FirstChild(); kid;
        kid = kid->GetNextSibling()) {
-    nsISVGChildFrame* SVGFrame = nsnull;
-    CallQueryInterface(kid, &SVGFrame);
+    nsISVGChildFrame* SVGFrame = do_QueryFrame(kid);
     if (SVGFrame) {
       
       
@@ -143,9 +141,7 @@ nsSVGClipPathFrame::IsTrivial()
 
   for (nsIFrame* kid = mFrames.FirstChild(); kid;
        kid = kid->GetNextSibling()) {
-    nsISVGChildFrame *svgChild = nsnull;
-    CallQueryInterface(kid, &svgChild);
-
+    nsISVGChildFrame *svgChild = do_QueryFrame(kid);
     if (svgChild) {
       
       

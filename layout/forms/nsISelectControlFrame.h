@@ -39,23 +39,17 @@
 #ifndef nsISelectControlFrame_h___
 #define nsISelectControlFrame_h___
 
-#include "nsISupports.h"
-
-
-
-#define NS_ISELECTCONTROLFRAME_IID \
-{ 0xf8a1b329, 0xd0d8, 0x4bd5, \
- { 0xa9, 0xab, 0x08, 0xc3, 0xc0, 0xf2, 0xf1, 0x66 } }
+#include "nsQueryFrame.h"
 
 class nsIDOMHTMLOptionElement;
 
 
 
 
-class nsISelectControlFrame : public nsISupports {
-
+class nsISelectControlFrame
+{
 public:
-  NS_DECLARE_STATIC_IID_ACCESSOR(NS_ISELECTCONTROLFRAME_IID)
+  NS_DECLARE_FRAME_ACCESSOR(nsISelectControlFrame)
 
   
 
@@ -93,8 +87,5 @@ public:
   NS_IMETHOD OnSetSelectedIndex(PRInt32 aOldIndex, PRInt32 aNewIndex) = 0;
 
 };
-
-NS_DEFINE_STATIC_IID_ACCESSOR(nsISelectControlFrame,
-                              NS_ISELECTCONTROLFRAME_IID)
 
 #endif

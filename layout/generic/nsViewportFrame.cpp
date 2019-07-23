@@ -224,7 +224,7 @@ ViewportFrame::AdjustReflowStateForScrollbars(nsHTMLReflowState* aReflowState) c
 
   
   nsIFrame* kidFrame = mFrames.FirstChild();
-  nsCOMPtr<nsIScrollableFrame> scrollingFrame(do_QueryInterface(kidFrame));
+  nsIScrollableFrame *scrollingFrame = do_QueryFrame(kidFrame);
 
   if (scrollingFrame) {
     nsMargin scrollbars = scrollingFrame->GetActualScrollbarSizes();
