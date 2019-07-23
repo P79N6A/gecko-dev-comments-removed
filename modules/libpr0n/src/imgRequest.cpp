@@ -686,6 +686,9 @@ NS_IMETHODIMP imgRequest::OnStopDecode(imgIRequest *aRequest,
   
   if (NS_SUCCEEDED(aStatus))
     mImageStatus |= imgIRequest::STATUS_DECODE_COMPLETE;
+  
+  else
+    mImageStatus = imgIRequest::STATUS_ERROR;
 
   
   
