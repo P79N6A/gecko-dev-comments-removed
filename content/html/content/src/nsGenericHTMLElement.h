@@ -38,7 +38,7 @@
 #ifndef nsGenericHTMLElement_h___
 #define nsGenericHTMLElement_h___
 
-#include "nsGenericElement.h"
+#include "nsStyledElement.h"
 #include "nsIDOMHTMLElement.h"
 #include "nsINameSpaceManager.h"  
 #include "nsIFormControl.h"
@@ -70,15 +70,16 @@ struct nsRuleData;
 typedef void (*nsMapRuleToAttributesFunc)(const nsMappedAttributes* aAttributes, 
                                           nsRuleData* aData);
 
+typedef nsStyledElement nsGenericHTMLElementBase;
 
 
 
 
-class nsGenericHTMLElement : public nsGenericElement
+class nsGenericHTMLElement : public nsGenericHTMLElementBase
 {
 public:
   nsGenericHTMLElement(nsINodeInfo *aNodeInfo)
-    : nsGenericElement(aNodeInfo)
+    : nsGenericHTMLElementBase(aNodeInfo)
   {
   }
 
@@ -138,7 +139,11 @@ public:
   
   
   
-  nsresult GetStyle(nsIDOMCSSStyleDeclaration** aStyle);
+  
+  inline nsresult GetStyle(nsIDOMCSSStyleDeclaration** aStyle)
+  {
+    return nsGenericHTMLElementBase::GetStyle(aStyle);
+  }
   nsresult GetOffsetTop(PRInt32* aOffsetTop);
   nsresult GetOffsetLeft(PRInt32* aOffsetLeft);
   nsresult GetOffsetWidth(PRInt32* aOffsetWidth);
@@ -240,12 +245,7 @@ public:
 
   virtual void UpdateEditableState();
 
-  virtual const nsAttrValue* GetClasses() const;
-  virtual nsIAtom *GetIDAttributeName() const;
-  virtual nsIAtom *GetClassAttributeName() const;
   NS_IMETHOD WalkContentStyleRules(nsRuleWalker* aRuleWalker);
-  virtual nsICSSStyleRule* GetInlineStyleRule();
-  NS_IMETHOD SetInlineStyleRule(nsICSSStyleRule* aStyleRule, PRBool aNotify);
   already_AddRefed<nsIURI> GetBaseURI() const;
 
   virtual PRBool ParseAttribute(PRInt32 aNamespaceID,
@@ -369,24 +369,6 @@ public:
 
   static PRBool ParseScrollingValue(const nsAString& aString,
                                     nsAttrValue& aResult);
-
-  
-
-
-
-  nsresult  ReparseStyleAttribute(void);
-  
-
-
-
-
-
-
-
-  static void ParseStyleAttribute(nsIContent* aContent,
-                                  PRBool aCaseSensitive,
-                                  const nsAString& aValue,
-                                  nsAttrValue& aResult);
 
   
 

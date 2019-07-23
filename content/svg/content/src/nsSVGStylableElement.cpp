@@ -110,23 +110,7 @@ nsSVGStylableElement::GetClassName(nsIDOMSVGAnimatedString** aClassName)
 NS_IMETHODIMP
 nsSVGStylableElement::GetStyle(nsIDOMCSSStyleDeclaration** aStyle)
 {
-  nsDOMSlots *slots = GetDOMSlots();
-
-  if (!slots->mStyle) {
-    nsICSSOMFactory* cssOMFactory = nsnull;
-    
-    
-    nsresult rv = CallGetService(kCSSOMFactoryCID, &cssOMFactory);
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    rv = cssOMFactory->
-      CreateDOMCSSAttributeDeclaration(this, getter_AddRefs(slots->mStyle));
-    NS_ENSURE_SUCCESS(rv, rv);
-  }
-
-  NS_ADDREF(*aStyle = slots->mStyle);
-
-  return NS_OK;
+  return nsSVGStylableElementBase::GetStyle(aStyle);
 }
 
 
