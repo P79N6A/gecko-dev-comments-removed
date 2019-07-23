@@ -340,54 +340,60 @@ namespace nanojit
     LInsp LirReader::read()
     {
         NanoAssert(_i);
-        LInsp ret = _i;
+        LInsp cur = _i;
+        uintptr_t i = uintptr_t(cur);
+        LOpcode iop = ((LInsp)i)->opcode();
 
         
-        LOpcode iop = _i->opcode();
+        
+        
+        
+        
+        
+        
+        
+        
+        
         NanoAssert(iop != LIR_skip);
 
-        
-        
-        
-        
-        
-        switch (iop)
+        do
         {
-            default:
-                _i = (LInsp)(uintptr_t(_i) - insSizes[_i->opcode()]);
-                break;
+            
+            
+            
+            
+            switch (iop)
+            {
+                default:
+                    i -= insSizes[((LInsp)i)->opcode()];
+                    break;
 
-            case LIR_icall:
-            case LIR_fcall:
-            case LIR_qcall: {
-                
-                _i = (LInsp)(uintptr_t(_i) - sizeof(LInsC) - _i->argc()*sizeof(LInsp));
-                break;
+                case LIR_icall:
+                case LIR_fcall:
+                case LIR_qcall: {
+                    int argc = ((LInsp)i)->argc();
+                    i -= sizeof(LInsC);         
+                    i -= argc*sizeof(LInsp);    
+                    break;
+                }
+
+                case LIR_skip:
+                    
+                    NanoAssert(((LInsp)i)->prevLIns() != (LInsp)i);
+                    i = uintptr_t(((LInsp)i)->prevLIns());
+                    break;
+
+                case LIR_start:
+                    
+                    
+                    _i = 0;
+                    return cur;
             }
-
-#ifdef _DEBUG
-            case LIR_skip:
-                NanoAssert(0);
-                break;
-
-            case LIR_start:
-                
-                
-                
-                
-                
-                _i = 0;
-                return ret;
-#endif
+            iop = ((LInsp)i)->opcode();
         }
-
-        
-        while (LIR_skip == _i->opcode()) {
-            NanoAssert(_i->prevLIns() != _i);
-            _i = _i->prevLIns();
-        }
-
-        return ret;
+        while (LIR_skip == iop);
+        _i = (LInsp)i;
+        return cur;
     }
 
     bool LIns::isFloat() const {
