@@ -88,6 +88,16 @@
 #define URI_LENGTH_MAX 65536
 #define TITLE_LENGTH_MAX 4096
 
+namespace mozilla {
+namespace places {
+
+  enum HistoryStatementId {
+    DB_GET_PAGE_INFO = 0
+  };
+
+} 
+} 
+
 
 class mozIAnnotationService;
 class nsNavHistory;
@@ -370,7 +380,20 @@ public:
 
 
   bool canNotify() { return mCanNotify; }
- private:
+
+  mozIStorageStatement* GetStatementById(
+    enum mozilla::places::HistoryStatementId aStatementId
+  )
+  {
+    using namespace mozilla::places;
+    switch(aStatementId) {
+      case DB_GET_PAGE_INFO:
+        return mDBGetURLPageInfo;
+    }
+    return nsnull;
+  }
+
+private:
   ~nsNavHistory();
 
   
