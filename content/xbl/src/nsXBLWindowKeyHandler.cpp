@@ -220,11 +220,13 @@ BuildHandlerChain(nsIContent* aContent, nsXBLPrototypeHandler** aResult)
       
       
       
-      nsAutoString valKey, valChar;
+      nsAutoString valKey, valCharCode, valKeyCode;
       PRBool attrExists =
-               key->GetAttr(kNameSpaceID_None, nsGkAtoms::key, valKey) ||
-               key->GetAttr(kNameSpaceID_None, nsGkAtoms::charcode, valChar);
-      if (attrExists && valKey.IsEmpty() && valChar.IsEmpty())
+        key->GetAttr(kNameSpaceID_None, nsGkAtoms::key, valKey) ||
+        key->GetAttr(kNameSpaceID_None, nsGkAtoms::charcode, valCharCode) ||
+        key->GetAttr(kNameSpaceID_None, nsGkAtoms::keycode, valKeyCode);
+      if (attrExists &&
+          valKey.IsEmpty() && valCharCode.IsEmpty() && valKeyCode.IsEmpty())
         continue;
 
       nsXBLPrototypeHandler* handler = new nsXBLPrototypeHandler(key);
