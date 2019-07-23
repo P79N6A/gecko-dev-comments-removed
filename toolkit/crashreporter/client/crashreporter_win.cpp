@@ -712,7 +712,7 @@ static LRESULT CALLBACK EditSubclassProc(HWND hwnd, UINT uMsg, WPARAM wParam,
 
 
 static int ResizeControl(HWND hwndButton, RECT& rect, wstring text,
-                         bool shiftLeft, int extraPadding)
+                         bool shiftLeft, int userDefinedPadding)
 {
   HDC hdc = GetDC(hwndButton);
   HFONT hfont = (HFONT)SendMessage(hwndButton, WM_GETFONT, 0, 0);
@@ -728,11 +728,22 @@ static int ResizeControl(HWND hwndButton, RECT& rect, wstring text,
       
       && GetTextExtentPoint32(hdc, oldText, wcslen(oldText), &oldSize)) {
     
-    
-    sizeDiff = (size.cx - oldSize.cx) -
-      ((rect.right - rect.left) - extraPadding - oldSize.cx);
-    if (sizeDiff <= 0)
+
+
+
+
+
+
+
+    int textIncrease = size.cx - oldSize.cx;
+    if (textIncrease < 0)
       return 0;
+    int existingTextPadding;
+    if (userDefinedPadding == 0) 
+      existingTextPadding = (rect.right - rect.left) - oldSize.cx;
+    else 
+      existingTextPadding = userDefinedPadding;
+    sizeDiff = textIncrease + existingTextPadding;
 
     if (shiftLeft) {
       
