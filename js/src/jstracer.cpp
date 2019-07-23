@@ -1771,12 +1771,28 @@ js_ExecuteTree(JSContext* cx, Fragment* f, uintN& inlineCallCount)
     GuardRecord* lr = u.func(&state, NULL);
     cx->gcDontBlock = JS_FALSE;
 
-    for (int32 i = 0; i < lr->calldepth; i++)
+    
+
+
+    if (lr->exit->exitType == NESTED_EXIT)
+        lr = state.nestedExit;
+
+    
+
+
+
+    JS_ASSERT((lr->exit->exitType == NESTED_EXIT) ||
+              ((((FrameInfo*)state.rp) - callstack) == lr->exit->calldepth));
+    for (int32 i = 0; i < (((FrameInfo*)state.rp) - callstack); ++i)
         js_SynthesizeFrame(cx, callstack[i]);
+
+    
+
 
     SideExit* e = lr->exit;
     JSStackFrame* fp = cx->fp;
-    JS_ASSERT((e->sp_adj / sizeof(double)) + ti->entryNativeStackSlots >=
+    JS_ASSERT((e->sp_adj / sizeof(double)) + 
+              ((TreeInfo*)lr->from->root->vmprivate)->entryNativeStackSlots >=
               nativeStackSlots(cx, lr->calldepth, fp));
     fp->regs->sp += (e->sp_adj / sizeof(double)) + ti->entryNativeStackSlots -
                     nativeStackSlots(cx, lr->calldepth, fp);
@@ -1791,8 +1807,6 @@ js_ExecuteTree(JSContext* cx, Fragment* f, uintN& inlineCallCount)
            (rdtsc() - start));
 #endif
 
-    JS_ASSERT(lr->exit->exitType != NESTED_EXIT);
-    
     
     FlushNativeGlobalFrame(cx, e->numGlobalSlots, ti->globalSlots.data(), e->typeMap, global);
     JS_ASSERT(ti->globalSlots.length() >= e->numGlobalSlots);
