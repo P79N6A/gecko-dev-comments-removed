@@ -2181,7 +2181,9 @@ nsGenericHTMLElement::MapBackgroundInto(const nsMappedAttributes* aAttributes,
   if (!(aData->mSIDs & NS_STYLE_INHERIT_BIT(Background)))
     return;
 
-  if (aData->mColorData->mBackImage.GetUnit() == eCSSUnit_Null) {
+  nsPresContext* presContext = aData->mPresContext;
+  if (aData->mColorData->mBackImage.GetUnit() == eCSSUnit_Null &&
+      presContext->UseDocumentColors()) {
     
     const nsAttrValue* value = aAttributes->GetAttr(nsGkAtoms::background);
     if (value && value->Type() == nsAttrValue::eString) {
@@ -2193,7 +2195,7 @@ nsGenericHTMLElement::MapBackgroundInto(const nsMappedAttributes* aAttributes,
         
         
         
-        nsIDocument* doc = aData->mPresContext->Document();
+        nsIDocument* doc = presContext->Document();
         nsCOMPtr<nsIURI> uri;
         nsresult rv = nsContentUtils::NewURIWithDocumentCharset(
             getter_AddRefs(uri), spec, doc, doc->GetBaseURI());
@@ -2216,8 +2218,7 @@ nsGenericHTMLElement::MapBackgroundInto(const nsMappedAttributes* aAttributes,
           }
         }
       }
-      else if (aData->mPresContext->CompatibilityMode() ==
-               eCompatibility_NavQuirks) {
+      else if (presContext->CompatibilityMode() == eCompatibility_NavQuirks) {
         
         
         aData->mColorData->mBackImage.SetNoneValue();
@@ -2233,7 +2234,8 @@ nsGenericHTMLElement::MapBGColorInto(const nsMappedAttributes* aAttributes,
   if (!(aData->mSIDs & NS_STYLE_INHERIT_BIT(Background)))
     return;
 
-  if (aData->mColorData->mBackColor.GetUnit() == eCSSUnit_Null) {
+  if (aData->mColorData->mBackColor.GetUnit() == eCSSUnit_Null &&
+      aData->mPresContext->UseDocumentColors()) {
     const nsAttrValue* value = aAttributes->GetAttr(nsGkAtoms::bgcolor);
     nscolor color;
     if (value && value->GetColorValue(color)) {

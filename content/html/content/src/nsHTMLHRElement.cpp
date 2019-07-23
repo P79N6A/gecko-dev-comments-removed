@@ -295,7 +295,8 @@ MapAttributesIntoRule(const nsMappedAttributes* aAttributes,
     
     
     if (colorIsSet &&
-        aData->mColorData->mColor.GetUnit() == eCSSUnit_Null) {
+        aData->mColorData->mColor.GetUnit() == eCSSUnit_Null &&
+        aData->mPresContext->UseDocumentColors()) {
       aData->mColorData->mColor.SetColorValue(color);
     }
   }

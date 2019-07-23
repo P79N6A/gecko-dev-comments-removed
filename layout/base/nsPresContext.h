@@ -377,13 +377,13 @@ public:
 
   NS_HIDDEN_(void) SetContainer(nsISupports* aContainer);
 
-  virtual NS_HIDDEN_(already_AddRefed<nsISupports>) GetContainerExternal();
-  NS_HIDDEN_(already_AddRefed<nsISupports>) GetContainerInternal();
+  virtual NS_HIDDEN_(already_AddRefed<nsISupports>) GetContainerExternal() const;
+  NS_HIDDEN_(already_AddRefed<nsISupports>) GetContainerInternal() const;
 #ifdef _IMPL_NS_LAYOUT
-  already_AddRefed<nsISupports> GetContainer()
+  already_AddRefed<nsISupports> GetContainer() const
   { return GetContainerInternal(); }
 #else
-  already_AddRefed<nsISupports> GetContainer()
+  already_AddRefed<nsISupports> GetContainer() const
   { return GetContainerExternal(); }
 #endif
 
@@ -727,10 +727,15 @@ public:
                               mType == eContext_PrintPreview); }
 
   
-  PRBool IsChrome();
+  PRBool IsChrome() const;
 
   
   virtual PRBool HasAuthorSpecifiedBorderOrBackground(nsIFrame *aFrame) const;
+
+  
+  PRBool UseDocumentColors() const {
+    return GetCachedBoolPref(kPresContext_UseDocumentColors) || IsChrome();
+  }
 
 protected:
   friend class nsRunnableMethod<nsPresContext>;
@@ -985,4 +990,4 @@ private:
 #define DO_GLOBAL_REFLOW_COUNT(_name)
 #endif 
 
-#endif 
+#endif
