@@ -368,7 +368,11 @@ nsColumnSetFrame::GetMinWidth(nsIRenderingContext *aRenderingContext) {
     NS_ASSERTION(colStyle->mColumnCount > 0, "column-count and column-width can't both be auto");
     
     
+    colWidth = width;
     width *= colStyle->mColumnCount;
+    
+    
+    width = PR_MAX(width, colWidth);
   }
   
   
@@ -395,12 +399,15 @@ nsColumnSetFrame::GetPrefWidth(nsIRenderingContext *aRenderingContext) {
   }
 
   PRInt32 numColumns = colStyle->mColumnCount;
-   if (numColumns <= 0) {
+  if (numColumns <= 0) {
     
     numColumns = 1;
   }
-
-  return colWidth*numColumns + colGap*(numColumns - 1);
+  
+  nscoord width = colWidth*numColumns + colGap*(numColumns - 1);
+  
+  
+  return PR_MAX(width, colWidth);
 }
 
 PRBool
