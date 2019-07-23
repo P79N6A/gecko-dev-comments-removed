@@ -64,7 +64,7 @@ struct PRMJTime {
     JSInt8 tm_mday;             
     JSInt8 tm_mon;              
     JSInt8 tm_wday;             
-    JSInt16 tm_year;            
+    JSInt32 tm_year;            
     JSInt16 tm_yday;            
     JSInt8 tm_isdst;            
 };

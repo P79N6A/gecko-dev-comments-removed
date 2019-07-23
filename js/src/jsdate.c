@@ -1613,33 +1613,10 @@ date_toGMTString(JSContext *cx, uintN argc, jsval *vp)
 
 
 
-
-
 static void
-new_explode(jsdouble timeval, PRMJTime *split, JSBool findEquivalent)
+new_explode(jsdouble timeval, PRMJTime *split)
 {
     jsint year = YearFromTime(timeval);
-    int16 adjustedYear;
-
-    
-    if (year > 32767 || year < -32768) {
-        if (findEquivalent) {
-            
-
-
-
-            jsint cycles;
-#define CYCLE_YEARS 2800L
-            cycles = (year >= 0) ? year / CYCLE_YEARS
-                                 : -1 - (-1 - year) / CYCLE_YEARS;
-            adjustedYear = (int16)(year - cycles * CYCLE_YEARS);
-        } else {
-            
-            adjustedYear = (int16)((year > 0) ? 32767 : - 32768);
-        }
-    } else {
-        adjustedYear = (int16)year;
-    }
 
     split->tm_usec = (int32) msFromTime(timeval) * 1000;
     split->tm_sec = (int8) SecFromTime(timeval);
@@ -1648,7 +1625,7 @@ new_explode(jsdouble timeval, PRMJTime *split, JSBool findEquivalent)
     split->tm_mday = (int8) DateFromTime(timeval);
     split->tm_mon = (int8) MonthFromTime(timeval);
     split->tm_wday = (int8) WeekDay(timeval);
-    split->tm_year = (int16) adjustedYear;
+    split->tm_year = year;
     split->tm_yday = (int16) DayWithinYear(timeval, year);
 
     
@@ -1694,7 +1671,7 @@ date_format(JSContext *cx, jsdouble date, formatspec format, jsval *rval)
 
         
 
-        new_explode(date, &split, JS_TRUE);
+        new_explode(date, &split);
         if (PRMJ_FormatTime(tzbuf, sizeof tzbuf, "(%Z)", &split) != 0) {
 
             
@@ -1792,7 +1769,7 @@ date_toLocaleHelper(JSContext *cx, const char *format, jsval *vp)
     } else {
         intN result_len;
         jsdouble local = LocalTime(utctime);
-        new_explode(local, &split, JS_FALSE);
+        new_explode(local, &split);
 
         
         result_len = PRMJ_FormatTime(buf, sizeof buf, format, &split);
