@@ -472,6 +472,7 @@ nsGlyphTable::ElementAt(nsPresContext* aPresContext, nsMathMLChar* aChar, PRUint
   PRUint32 length = mGlyphCache.Length();
   if (aChar->mParent) {
     nsMathMLChar* child = aChar->mParent->mSibling;
+    
     while (child && (child != aChar)) {
       offset += 5; 
       child = child->mSibling;
@@ -483,7 +484,7 @@ nsGlyphTable::ElementAt(nsPresContext* aPresContext, nsMathMLChar* aChar, PRUint
   nsGlyphCode ch;
   ch.code = mGlyphCache.CharAt(index);
   ch.font = mGlyphCache.CharAt(index + 1) - '0'; 
-  return (ch == PRUnichar(0xFFFD)) ? kNullGlyph : ch;
+  return (ch.code == PRUnichar(0xFFFD)) ? kNullGlyph : ch;
 }
 
 PRBool
@@ -529,7 +530,8 @@ nsGlyphTable::Has(nsPresContext* aPresContext, PRUnichar aChar)
 PRBool
 nsGlyphTable::HasVariantsOf(nsPresContext* aPresContext, nsMathMLChar* aChar)
 {
-  return BigOf(aPresContext, aChar, 1) != 0;
+  
+  return BigOf(aPresContext, aChar, 1).Exists();
 }
 
 PRBool
@@ -546,9 +548,11 @@ nsGlyphTable::HasVariantsOf(nsPresContext* aPresContext, PRUnichar aChar)
 PRBool
 nsGlyphTable::HasPartsOf(nsPresContext* aPresContext, nsMathMLChar* aChar)
 {
-  return  GlueOf(aPresContext, aChar) || TopOf(aPresContext, aChar) ||
-          BottomOf(aPresContext, aChar) || MiddleOf(aPresContext, aChar) ||
-          IsComposite(aPresContext, aChar);
+  return GlueOf(aPresContext, aChar).Exists() ||
+    TopOf(aPresContext, aChar).Exists() ||
+    BottomOf(aPresContext, aChar).Exists() ||
+    MiddleOf(aPresContext, aChar).Exists() ||
+    IsComposite(aPresContext, aChar);
 }
 
 PRBool
@@ -1682,7 +1686,7 @@ nsMathMLChar::Stretch(nsPresContext*      aPresContext,
     glyphTable = static_cast<nsGlyphTable*>(tableList.ElementAt(t));
     
     size = 1; 
-    if (largeop && glyphTable->BigOf(aPresContext, this, 2)) {
+    if (largeop && glyphTable->BigOf(aPresContext, this, 2).Exists()) {
       size = 2;
     }
     glyphTable->GetPrimaryFontName(fontName);
@@ -1693,8 +1697,8 @@ nsMathMLChar::Stretch(nsPresContext*      aPresContext,
            NS_LossyConvertUTF16toASCII(fontName).get());
 #endif
     ch = glyphTable->BigOf(aPresContext, this, size++);
-    while (ch) {
-      NS_ASSERTION(ch != uchar, "glyph table incorrectly set -- duplicate found");
+    while (ch.Exists()) {
+      NS_ASSERTION(ch != startingGlyph, "glyph table incorrectly set -- duplicate found");
       rv = glyphTable->GetBoundingMetrics(aRenderingContext, theFont, ch, bm);
       if (NS_SUCCEEDED(rv)) {
         charSize = (isVertical)
@@ -1797,8 +1801,8 @@ nsMathMLChar::Stretch(nsPresContext*      aPresContext,
         case 3: ch = glue;                                     break;
       }
       
-      if (!ch) ch = glue;
-      if (!ch) { 
+      if (!ch.Exists()) ch = glue;
+      if (!ch.Exists()) { 
         bm.Clear();
       }
       else {
@@ -2199,7 +2203,7 @@ nsMathMLChar::PaintForeground(nsPresContext* aPresContext,
     SetFirstFamily(theFont, fontName);
     aRenderingContext.SetFont(theFont, nsnull);
     
-    if (mGlyph) {
+    if (mGlyph.Exists()) {
 
 
       mGlyphTable->DrawGlyph(aRenderingContext, theFont, mGlyph,
@@ -2264,8 +2268,8 @@ nsMathMLChar::PaintVertically(nsPresContext*      aPresContext,
       case 3: ch = glue;                                       break;
     }
     
-    if (!ch) ch = glue;
-    if (!ch) {
+    if (!ch.Exists()) ch = glue;
+    if (!ch.Exists()) {
       bm.Clear();  
     }
     else {
@@ -2305,7 +2309,7 @@ nsMathMLChar::PaintVertically(nsPresContext*      aPresContext,
   for (i = 0; i < 3; i++) {
     ch = chdata[i];
     
-    if (ch) {
+    if (ch.Exists()) {
 #ifdef SHOW_BORDERS
       
       aRenderingContext.SetColor(NS_RGB(0,0,0));
@@ -2330,7 +2334,7 @@ nsMathMLChar::PaintVertically(nsPresContext*      aPresContext,
 
   
   
-  if (!glue) { 
+  if (!glue.Exists()) { 
     
     
     
@@ -2339,21 +2343,21 @@ nsMathMLChar::PaintVertically(nsPresContext*      aPresContext,
     
     nscoord lbearing, rbearing;
     PRInt32 first = 0, last = 2;
-    if (chdata[1]) { 
+    if (chdata[1].Exists()) { 
       last = 1;
     }
     while (last <= 2) {
-      if (chdata[last]) {
+      if (chdata[last].Exists()) {
         lbearing = bmdata[last].leftBearing;
         rbearing = bmdata[last].rightBearing;
-        if (chdata[first]) {
+        if (chdata[first].Exists()) {
           if (lbearing < bmdata[first].leftBearing)
             lbearing = bmdata[first].leftBearing;
           if (rbearing > bmdata[first].rightBearing)
             rbearing = bmdata[first].rightBearing;
         }
       }
-      else if (chdata[first]) {
+      else if (chdata[first].Exists()) {
         lbearing = bmdata[first].leftBearing;
         rbearing = bmdata[first].rightBearing;
       }
@@ -2458,8 +2462,8 @@ nsMathMLChar::PaintHorizontally(nsPresContext*      aPresContext,
       case 3: ch = glue;                                       break;
     }
     
-    if (!ch) ch = glue;
-    if (!ch) {
+    if (!ch.Exists()) ch = glue;
+    if (!ch.Exists()) {
       bm.Clear();  
     }
     else {
@@ -2500,7 +2504,7 @@ nsMathMLChar::PaintHorizontally(nsPresContext*      aPresContext,
   for (i = 0; i < 3; i++) {
     ch = chdata[i];
     
-    if (ch) {
+    if (ch.Exists()) {
 #ifdef SHOW_BORDERS
       aRenderingContext.SetColor(NS_RGB(255,0,0));
       aRenderingContext.DrawRect(nsRect(start[i], dy - bmdata[i].ascent,
@@ -2525,7 +2529,7 @@ nsMathMLChar::PaintHorizontally(nsPresContext*      aPresContext,
 
   
   
-  if (!glue) { 
+  if (!glue.Exists()) { 
     
     
     
@@ -2533,21 +2537,21 @@ nsMathMLChar::PaintHorizontally(nsPresContext*      aPresContext,
     
     nscoord ascent, descent;
     PRInt32 first = 0, last = 2;
-    if (chdata[1]) { 
+    if (chdata[1].Exists()) { 
       last = 1;
     }
     while (last <= 2) {
-      if (chdata[last]) {
+      if (chdata[last].Exists()) {
         ascent = bmdata[last].ascent;
         descent = bmdata[last].descent;
-        if (chdata[first]) {
+        if (chdata[first].Exists()) {
           if (ascent > bmdata[first].ascent)
             ascent = bmdata[first].ascent;
           if (descent > bmdata[first].descent)
             descent = bmdata[first].descent;
         }
       }
-      else if (chdata[first]) {
+      else if (chdata[first].Exists()) {
         ascent = bmdata[first].ascent;
         descent = bmdata[first].descent;
       }

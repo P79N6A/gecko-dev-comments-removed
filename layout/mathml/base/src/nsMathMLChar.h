@@ -60,9 +60,17 @@ struct nsGlyphCode {
   PRUnichar code; 
   PRInt32   font;
 
-  
-  operator PRUnichar () {
-    return code;
+  PRBool Exists() const
+  {
+    return (code != 0);
+  }
+  PRBool operator==(const nsGlyphCode& other) const
+  {
+    return other.code == code && other.font == font;
+  }
+  PRBool operator!=(const nsGlyphCode& other) const
+  {
+    return ! operator==(other);
   }
 };
 
