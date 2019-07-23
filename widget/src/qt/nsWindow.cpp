@@ -743,7 +743,7 @@ nsWindow::Update()
     if (!mDrawingArea)
         return NS_OK;
 
-    mDrawingArea->update();
+    
     return NS_OK;
 }
 
