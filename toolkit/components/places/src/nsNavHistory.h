@@ -644,7 +644,7 @@ protected:
 
   
   PRInt64 mLastSessionID;
-  PRInt64 GetNewSessionID() { mLastSessionID ++; return mLastSessionID; }
+  PRInt64 GetNewSessionID();
 
 #ifdef MOZ_XUL
   
