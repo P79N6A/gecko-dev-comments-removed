@@ -169,13 +169,14 @@ TraceRecorder::TraceRecorder(JSContext* cx, Fragmento* fragmento)
     lir = cse_filter = new (&gc) CseFilter(lir, &gc);
     lir = expr_filter = new (&gc) ExprFilter(lir);
     lir->ins0(LIR_trace);
+    
+    LIns* data = lir_buf_writer->skip(nativeFrameSlots(entryFrame, entryRegs));
+    buildTypeMap(entryFrame, entryRegs, (char*)(fragment->vmprivate = data->payload()));
     fragment->param0 = lir->insImm8(LIR_param, Assembler::argRegs[0], 0);
-#ifdef DEBUG
-    lirbuf->names->addName(fragment->param0, "state");
-#endif
     fragment->param1 = lir->insImm8(LIR_param, Assembler::argRegs[1], 0);
     fragment->sp = lir->insLoadi(fragment->param0, offsetof(InterpState, sp));
 #ifdef DEBUG
+    lirbuf->names->addName(fragment->param0, "state");
     lirbuf->names->addName(fragment->sp, "sp");
 #endif
     
@@ -239,21 +240,15 @@ TraceRecorder::onFrame(void* p) const
 
 
 unsigned
-TraceRecorder::nativeFrameSlots(JSStackFrame* fp) const
+TraceRecorder::nativeFrameSlots(JSStackFrame* fp, JSFrameRegs& regs) const
 {
     unsigned size = 0;
     while (1) {
-        size += fp->argc + fp->nvars + (fp->regs->sp - fp->spbase);
+        size += fp->argc + fp->nvars + (regs.sp - fp->spbase);
         if (fp == entryFrame)
             return size;
         fp = fp->down;
     } 
-}
-
-unsigned
-TraceRecorder::nativeFrameSlots() const
-{
-    return nativeFrameSlots(cx->fp);
 }
 
 
@@ -273,7 +268,7 @@ TraceRecorder::nativeFrameOffset(void* p) const
         offset = (fp->argc + fp->nvars + unsigned((jsval*)p - &fp->spbase[0]));
     }
     if (fp != entryFrame) 
-        offset += nativeFrameSlots(fp->down);
+        offset += nativeFrameSlots(fp->down, *fp->regs);
     return offset * sizeof(double);
 }
 
@@ -288,22 +283,16 @@ static inline int gettag(jsval v)
 
 
 void
-TraceRecorder::buildTypeMap(JSStackFrame* fp, char* m) const
+TraceRecorder::buildTypeMap(JSStackFrame* fp, JSFrameRegs& regs, char* m) const
 {
     if (fp != entryFrame)
-        buildTypeMap(fp->down, m);
+        buildTypeMap(fp->down, *fp->down->regs, m);
     for (unsigned n = 0; n < fp->argc; ++n)
         *m++ = gettag(fp->argv[n]);
     for (unsigned n = 0; n < fp->nvars; ++n)
         *m++ = gettag(fp->vars[n]);
-    for (jsval* sp = fp->spbase; sp < fp->regs->sp; ++sp)
+    for (jsval* sp = fp->spbase; sp < regs.sp; ++sp)
         *m++ = gettag(*sp);
-}
-
-void
-TraceRecorder::buildTypeMap(char* m) const
-{
-    buildTypeMap(cx->fp, m);
 }
 
 
@@ -352,7 +341,7 @@ TraceRecorder::box_jsval(jsval* vp, int t, double* slot) const
 
 
 bool
-TraceRecorder::unbox(JSStackFrame* fp, char* m, double* native) const
+TraceRecorder::unbox(JSStackFrame* fp, JSFrameRegs& regs, char* m, double* native) const
 {
     jsval* vp;
     for (vp = fp->argv; vp < fp->argv + fp->argc; ++vp)
@@ -361,7 +350,7 @@ TraceRecorder::unbox(JSStackFrame* fp, char* m, double* native) const
     for (vp = fp->vars; vp < fp->vars + fp->nvars; ++vp)
         if (!unbox_jsval(*vp, (JSType)*m++, native++))
             return false;
-    for (vp = fp->spbase; vp < fp->regs->sp; ++vp)
+    for (vp = fp->spbase; vp < regs.sp; ++vp)
         if (!unbox_jsval(*vp, (JSType)*m++, native++))
             return false;
     return true;
@@ -370,7 +359,7 @@ TraceRecorder::unbox(JSStackFrame* fp, char* m, double* native) const
 
 
 bool
-TraceRecorder::box(JSStackFrame* fp, char* m, double* native) const
+TraceRecorder::box(JSStackFrame* fp, JSFrameRegs& regs, char* m, double* native) const
 {
     jsval* vp;
     for (vp = fp->argv; vp < fp->argv + fp->argc; ++vp)
@@ -379,7 +368,7 @@ TraceRecorder::box(JSStackFrame* fp, char* m, double* native) const
     for (vp = fp->vars; vp < fp->vars + fp->nvars; ++vp)
         if (!box_jsval(vp, (JSType)*m++, native++))
             return false;
-    for (vp = fp->spbase; vp < fp->regs->sp; ++vp)
+    for (vp = fp->spbase; vp < regs.sp; ++vp)
         if (!box_jsval(vp, (JSType)*m++, native++))
             return false;
     return true;
@@ -397,7 +386,7 @@ TraceRecorder::readstack(void* p, char *prefix, int index)
     if (prefix) {
         char name[16];
         JS_ASSERT(strlen(prefix) < 10);
-        JS_snprintf(name, sizeof name, "$%s%d", prefix, index);
+        JS_snprintf(name, 15, "$%s%d", prefix, index);
         lirbuf->names->addName(ins, name);
     }
 #endif
@@ -499,13 +488,6 @@ void
 TraceRecorder::mark()
 {
     markRegs = *cx->fp->regs;
-    memset(&exit, 0, sizeof(exit));
-#ifdef DEBUG    
-    exit.from = fragment;
-#endif    
-    exit.calldepth = calldepth();
-    exit.sp_adj = (markRegs.sp - entryRegs.sp) * sizeof(double);
-    exit.ip_adj = markRegs.pc - entryRegs.pc;
 }
 
 
@@ -517,12 +499,31 @@ TraceRecorder::recover()
     *cx->fp->regs = markRegs;
 }
 
+SideExit*
+TraceRecorder::snapshot()
+{
+    
+    LIns* data = lir_buf_writer->skip(nativeFrameSlots(cx->fp, markRegs));
+    buildTypeMap(cx->fp, markRegs, (char*)data->payload());
+    
+    
+    memset(&exit, 0, sizeof(exit));
+#ifdef DEBUG    
+    exit.from = fragment;
+#endif    
+    exit.calldepth = calldepth();
+    exit.sp_adj = (markRegs.sp - entryRegs.sp + 1) * sizeof(double);
+    exit.ip_adj = markRegs.pc - entryRegs.pc;
+    exit.f_adj = (int)data->payload();
+    return &exit;
+}
+
 void
 TraceRecorder::guard_0(bool expected, void* a)
 {
     lir->insGuard(expected ? LIR_xf : LIR_xt, 
             get(a), 
-            &exit);
+            snapshot());
 }
 
 void
@@ -530,7 +531,7 @@ TraceRecorder::guard_h(bool expected, void* a)
 {
     lir->insGuard(expected ? LIR_xf : LIR_xt, 
             lir->ins1(LIR_callh, get(a)), 
-            &exit);
+            snapshot());
 }
 
 void
@@ -539,7 +540,7 @@ TraceRecorder::guard_ov(bool expected, void* a)
 #if 0    
     lir->insGuard(expected ? LIR_xf : LIR_xt, 
             lir->ins1(LIR_ov, get(a)), 
-            &exit);
+            snapshot());
 #endif    
 }
 
@@ -548,7 +549,7 @@ TraceRecorder::guard_eq(bool expected, void* a, void* b)
 {
     lir->insGuard(expected ? LIR_xf : LIR_xt,
                   lir->ins2(LIR_eq, get(a), get(b)),
-                  &exit);
+                  snapshot());
 }
 
 void
@@ -556,35 +557,44 @@ TraceRecorder::guard_eqi(bool expected, void* a, int i)
 {
     lir->insGuard(expected ? LIR_xf : LIR_xt,
                   lir->ins2i(LIR_eq, get(a), i),
-                  &exit);
+                  snapshot());
 }
 
 void
 TraceRecorder::closeLoop(Fragmento* fragmento)
 {
     fragment->lastIns = lir->ins0(LIR_loop);
-    long long start = rdtsc();
+    
     compile(fragmento->assm(), fragment);
-    long long stop = rdtsc();
-    printf("compilation time: %.3lf million cycles\n", ((double)((stop - start)/1000))/1000.0);
-    unsigned slots = nativeFrameSlots();
-    char typemap[slots];
-    buildTypeMap(typemap);
     
     
-    double native[slots + 64];
-    unbox(cx->fp, typemap, native);
+    unsigned slots = nativeFrameSlots(entryFrame, entryRegs);
+    double native[slots];
+    unbox(cx->fp, markRegs, (char*)fragment->vmprivate, native);
+    
+    
+    
+    
+    
+    
     InterpState state;
-    state.ip = (FOpcodep)cx->fp->regs->pc;
+    state.ip = (FOpcodep)entryRegs.pc;
     state.sp = native;
     state.rp = NULL;
-    state.f = cx;
+    state.f = NULL;
     union { NIns *code; void* (FASTCALL *func)(InterpState*, Fragment*); } u;
+    
+    
     u.code = fragment->code();
     u.func(&state, NULL);
     
+    markRegs.sp = entryRegs.sp + (((double*)state.sp - native) - 1);
+    markRegs.pc = (jsbytecode*)state.ip;
     
-    box(cx->fp, typemap, native);
+    
+    
+    box(cx->fp, markRegs, (char*)state.f, native);
+    
     
     
 }
