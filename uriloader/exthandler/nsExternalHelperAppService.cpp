@@ -2068,8 +2068,25 @@ nsresult nsExternalAppHandler::OpenWithApplication()
   
   if (mStopRequestIssued)
   {
+    PRBool deleteTempFileOnExit;
+    nsCOMPtr<nsIPrefBranch> prefs(do_GetService(NS_PREFSERVICE_CONTRACTID));
+    if (!prefs || NS_FAILED(prefs->GetBoolPref(
+        "browser.helperApps.deleteTempFileOnExit", &deleteTempFileOnExit))) {
+      
+#if !defined(XP_MACOSX)
+      
+      
+      
+      deleteTempFileOnExit = PR_TRUE;
+#else
+      deleteTempFileOnExit = PR_FALSE;
+#endif
+    }
+
     
-    mFinalFileDestination->SetPermissions(0400);
+    
+    if (deleteTempFileOnExit)
+      mFinalFileDestination->SetPermissions(0400);
 
     rv = mMimeInfo->LaunchWithFile(mFinalFileDestination);        
     if (NS_FAILED(rv))
@@ -2080,30 +2097,9 @@ nsresult nsExternalAppHandler::OpenWithApplication()
       SendStatusChange(kLaunchError, rv, nsnull, path);
       Cancel(rv); 
     }
-    else
-    {
-      PRBool deleteTempFileOnExit;
-      nsresult result = NS_ERROR_NOT_AVAILABLE;  
-      nsCOMPtr<nsIPrefBranch> prefs(do_GetService(NS_PREFSERVICE_CONTRACTID));
-      if (prefs) {
-        result = prefs->GetBoolPref("browser.helperApps.deleteTempFileOnExit",
-                                    &deleteTempFileOnExit);
-      }
-      if (NS_FAILED(result)) {
-        
-#if !defined(XP_MACOSX)
-          
-          
-          
-        deleteTempFileOnExit = PR_TRUE;
-#else
-        deleteTempFileOnExit = PR_FALSE;
-#endif
-      }
-      if (deleteTempFileOnExit) {
-        NS_ASSERTION(gExtProtSvc, "Service gone away!?");
-        gExtProtSvc->DeleteTemporaryFileOnExit(mFinalFileDestination);
-      }
+    else if (deleteTempFileOnExit) {
+      NS_ASSERTION(gExtProtSvc, "Service gone away!?");
+      gExtProtSvc->DeleteTemporaryFileOnExit(mFinalFileDestination);
     }
   }
 
