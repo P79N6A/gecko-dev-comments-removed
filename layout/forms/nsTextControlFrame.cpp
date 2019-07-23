@@ -1942,15 +1942,22 @@ nsresult nsTextControlFrame::SetFormProperty(nsIAtom* aName, const nsAString& aV
   if (!mIsProcessing)
   {
     mIsProcessing = PR_TRUE;
-    
-    if (nsGkAtoms::value == aName) 
+    PRBool isUserInput = (nsGkAtoms::userInput == aName);
+    if (nsGkAtoms::value == aName || isUserInput) 
     {
+      PRBool fireChangeEvent = GetFireChangeEventState();
+      if (isUserInput) {
+        SetFireChangeEventState(PR_TRUE);
+      }
       if (mEditor && mUseEditor) {
         
         
         SetValueChanged(PR_TRUE);
       }
       nsresult rv = SetValue(aValue); 
+      if (isUserInput) {
+        SetFireChangeEventState(fireChangeEvent);
+      }
       NS_ENSURE_SUCCESS(rv, rv);
     }
     else if (nsGkAtoms::select == aName)
