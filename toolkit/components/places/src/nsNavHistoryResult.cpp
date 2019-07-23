@@ -2422,9 +2422,7 @@ nsNavHistoryQueryResultNode::OnVisit(nsIURI* aURI, PRInt64 aVisitId,
 
 NS_IMETHODIMP
 nsNavHistoryQueryResultNode::OnTitleChanged(nsIURI* aURI,
-                                            const nsAString& aPageTitle,
-                                            const nsAString& aUserTitle,
-                                            PRBool aIsUserTitleChanged)
+                                            const nsAString& aPageTitle)
 {
   if (mBatchInProgress)
     return NS_OK; 
@@ -3914,12 +3912,9 @@ nsNavHistoryResult::OnVisit(nsIURI* aURI, PRInt64 aVisitId, PRTime aTime,
 
 
 NS_IMETHODIMP
-nsNavHistoryResult::OnTitleChanged(nsIURI* aURI, const nsAString& aPageTitle,
-                                  const nsAString& aUserTitle,
-                                  PRBool aIsUserTitleChanged)
+nsNavHistoryResult::OnTitleChanged(nsIURI* aURI, const nsAString& aPageTitle)
 {
-  ENUMERATE_HISTORY_OBSERVERS(OnTitleChanged(aURI, aPageTitle, aUserTitle,
-                                             aIsUserTitleChanged));
+  ENUMERATE_HISTORY_OBSERVERS(OnTitleChanged(aURI, aPageTitle));
   return NS_OK;
 }
 

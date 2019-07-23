@@ -161,8 +161,6 @@ function run_test() {
   do_check_eq(title, "mozilla.com");
 
   
-
-  
   var options = histsvc.getNewQueryOptions();
   options.maxResults = 1;
   options.resultType = options.RESULTS_AS_URI
