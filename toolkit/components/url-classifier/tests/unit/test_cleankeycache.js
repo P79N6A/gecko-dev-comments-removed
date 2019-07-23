@@ -106,9 +106,12 @@ function testUpdate() {
 function run_test()
 {
   runTests([
+             
+             
+             
+             testUpdate,
              testCleanHostKeys,
              testDirtyHostKeys,
-             testUpdate,
   ]);
 }
 
