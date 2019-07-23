@@ -2147,7 +2147,7 @@ function BrowserOnCommand(event) {
             case 2 : 
               params.prefetchCert = true;
             case 1 : 
-              params.location = content.location.href;
+              params.location = errorDoc.location.href;
           }
         } catch (e) {
           Components.utils.reportError("Couldn't get ssl_override pref: " + e);
@@ -2158,7 +2158,7 @@ function BrowserOnCommand(event) {
         
         
         if (params.exceptionAdded)
-          content.location.reload();
+          errorDoc.location.reload();
       }
       else if (ot == errorDoc.getElementById('getMeOutOfHereButton')) {
         
