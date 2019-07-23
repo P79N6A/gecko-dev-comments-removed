@@ -266,6 +266,34 @@ LoginTest.checkStorageData(storage, [], [testuser1]);
 LoginTest.deleteFile(OUTDIR, "signons-427033-1.sqlite");
 
 
+
+
+
+
+
+
+
+testnum++;
+
+testdesc = "checking import of partially corrupted signons3.txt"
+
+testuser1.init("http://dummyhost.mozilla.org", "", null,
+               "dummydude", "itsasecret", "put_user_here", "put_pw_here");
+storage = LoginTest.initStorage(INDIR, "signons-500822-1.txt",
+                               OUTDIR, "signons-500822-1.sqlite");
+
+
+
+
+let matchData = Cc["@mozilla.org/hash-property-bag;1"].createInstance(Ci.nsIWritablePropertyBag2);
+matchData.setPropertyAsAString("hostname", "http://dummyhost.mozilla.org");
+matchData.setPropertyAsAString("usernameField", "put_user_here");
+logins = storage.searchLogins({}, matchData);
+do_check_eq(1, logins.length, "should match 1 login");
+
+LoginTest.deleteFile(OUTDIR, "signons-500822-1.sqlite");
+
+
 } catch (e) {
     throw "FAILED in test #" + testnum + " -- " + testdesc + ": " + e;
 }
