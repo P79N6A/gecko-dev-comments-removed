@@ -3749,7 +3749,14 @@ js_DefineNativeProperty(JSContext *cx, JSObject *obj, jsid id, jsval value,
 
 
 
-    js_PurgeScopeChain(cx, obj, id);
+
+
+
+
+    if (OBJ_IS_DELEGATE(cx, obj) && (attrs & (JSPROP_READONLY | JSPROP_SETTER)))
+        js_PurgePropertyCache(cx, &JS_PROPERTY_CACHE(cx));
+    else
+        js_PurgeScopeChain(cx, obj, id);
 
     
     JS_LOCK_OBJ(cx, obj);
