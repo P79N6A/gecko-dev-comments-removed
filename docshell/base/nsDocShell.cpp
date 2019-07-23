@@ -5103,8 +5103,9 @@ nsDocShell::OnStateChange(nsIWebProgress * aProgress, nsIRequest * aRequest,
                 SetCurrentURI(uri, aRequest, PR_TRUE);
                 
                 rv = PersistLayoutHistoryState();
-                if (mOSHE)
-                    SetHistoryEntry(&mOSHE, mLSHE);
+                
+                
+                SetHistoryEntry(&mOSHE, mLSHE);
             }
         
         }
