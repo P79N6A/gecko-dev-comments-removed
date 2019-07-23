@@ -49,15 +49,6 @@
 #include "nsIPresShell.h"
 #include "nsAbsoluteContainingBlock.h"
 
-class nsFixedContainingBlock : public nsAbsoluteContainingBlock {
-public:
-  nsFixedContainingBlock() { }          
-
-  virtual ~nsFixedContainingBlock() { } 
-
-  virtual nsIAtom* GetChildListName() const { return nsGkAtoms::fixedList; }
-};
-
 
 
 
@@ -68,7 +59,10 @@ class ViewportFrame : public nsContainerFrame {
 public:
   typedef nsContainerFrame Super;
 
-  ViewportFrame(nsStyleContext* aContext) : nsContainerFrame(aContext) {}
+  ViewportFrame(nsStyleContext* aContext)
+    : nsContainerFrame(aContext)
+    , mFixedContainer(nsGkAtoms::fixedList)
+  {}
   virtual ~ViewportFrame() { } 
 
   virtual void Destroy();
@@ -126,7 +120,9 @@ protected:
   nsPoint AdjustReflowStateForScrollbars(nsHTMLReflowState* aReflowState) const;
 
 protected:
-  nsFixedContainingBlock mFixedContainer;
+  
+  
+  nsAbsoluteContainingBlock mFixedContainer;
 };
 
 
