@@ -82,6 +82,7 @@
 #include "nsTArray.h"
 #include "nsINavBookmarksService.h"
 #include "nsMaybeWeakPtr.h"
+#include "nsCategoryCache.h"
 
 #include "nsNavHistoryExpire.h"
 #include "nsNavHistoryResult.h"
@@ -307,11 +308,7 @@ public:
   
   
   void SendPageChangedNotification(nsIURI* aURI, PRUint32 aWhat,
-                                   const nsAString& aValue)
-  {
-    ENUMERATE_WEAKARRAY(mObservers, nsINavHistoryObserver,
-                        OnPageChanged(aURI, aWhat, aValue));
-  }
+                                   const nsAString& aValue);
 
   
   PRTime GetNow();
@@ -831,6 +828,10 @@ protected:
   PRBool mInPrivateBrowsing;
 
   PRUint16 mDatabaseStatus;
+
+  
+  PRBool mCanFireNotifs;
+  nsCategoryCache<nsINavHistoryObserver> mCacheObservers;
 };
 
 

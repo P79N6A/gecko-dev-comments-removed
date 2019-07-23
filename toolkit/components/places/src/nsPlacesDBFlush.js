@@ -103,10 +103,6 @@ function nsPlacesDBFlush()
   }
 
   
-  this._bs = Cc["@mozilla.org/browser/nav-bookmarks-service;1"].
-             getService(Ci.nsINavBookmarksService);
-  this._bs.addObserver(this, false);
-
   this._os = Cc["@mozilla.org/observer-service;1"].
              getService(Ci.nsIObserverService);
   this._os.addObserver(this, kQuitApplication, false);
@@ -149,7 +145,6 @@ nsPlacesDBFlush.prototype = {
   observe: function DBFlush_observe(aSubject, aTopic, aData)
   {
     if (aTopic == kQuitApplication) {
-      this._bs.removeObserver(this);
       this._os.removeObserver(this, kQuitApplication);
       let (pb2 = this._prefs.QueryInterface(Ci.nsIPrefBranch2)) {
         pb2.removeObserver(kSyncPrefName, this);
@@ -226,10 +221,12 @@ nsPlacesDBFlush.prototype = {
 
   onItemAdded: function(aItemId, aParentId, aIndex)
   {
+    let bs = Cc["@mozilla.org/browser/nav-bookmarks-service;1"].
+               getService(Ci.nsINavBookmarksService);
+
     
     
-    if (!this._inBatchMode &&
-        this._bs.getItemType(aItemId) == this._bs.TYPE_BOOKMARK)
+    if (!this._inBatchMode && bs.getItemType(aItemId) == bs.TYPE_BOOKMARK)
       this._flushWithQueries([kQuerySyncPlacesId]);
   },
 
@@ -244,6 +241,24 @@ nsPlacesDBFlush.prototype = {
   onItemRemoved: function() { },
   onItemVisited: function() { },
   onItemMoved: function() { },
+
+  
+  
+
+  
+  
+  
+
+  
+  
+  
+  
+  onVisit: function(aURI, aVisitID, aTime, aSessionID, aReferringID, aTransitionType) { },
+  onTitleChanged: function(aURI, aPageTitle) { },
+  onDeleteURI: function(aURI) { },
+  onClearHistory: function() { },
+  onPageChanged: function(aURI, aWhat, aValue) { },
+  onPageExpired: function(aURI, aVisitTime, aWholeEntry) { },
 
   
   
@@ -458,13 +473,18 @@ nsPlacesDBFlush.prototype = {
   classDescription: "Used to synchronize the temporary and permanent tables of Places",
   classID: Components.ID("c1751cfc-e8f1-4ade-b0bb-f74edfb8ef6a"),
   contractID: "@mozilla.org/places/sync;1",
-  _xpcom_categories: [{
-    category: "profile-after-change",
-  }],
+
+  
+  
+  _xpcom_categories: [
+    { category: "bookmark-observers" },
+    { category: "history-observers" },
+  ],
 
   QueryInterface: XPCOMUtils.generateQI([
     Ci.nsIObserver,
     Ci.nsINavBookmarkObserver,
+    Ci.nsINavHistoryObserver,
     Ci.nsITimerCallback,
     Ci.mozIStorageStatementCallback,
   ])
