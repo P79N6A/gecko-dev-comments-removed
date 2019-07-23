@@ -98,12 +98,19 @@ nsSMILTimeContainer::Begin()
 void
 nsSMILTimeContainer::Pause(PRUint32 aType)
 {
+  PRBool didStartPause = PR_FALSE;
+
   if (!mPauseState && aType) {
     mPauseStart = GetParentTime();
     mNeedsPauseSample = PR_TRUE;
+    didStartPause = PR_TRUE;
   }
 
   mPauseState |= aType;
+
+  if (didStartPause) {
+    NotifyTimeChange();
+  }
 }
 
 void
@@ -117,6 +124,7 @@ nsSMILTimeContainer::Resume(PRUint32 aType)
   if (!mPauseState) {
     nsSMILTime extraOffset = GetParentTime() - mPauseStart;
     mParentOffset += extraOffset;
+    NotifyTimeChange();
   }
 }
 
@@ -153,6 +161,8 @@ nsSMILTimeContainer::SetCurrentTime(nsSMILTime aSeekTo)
   
   
   UpdateCurrentTime();
+
+  NotifyTimeChange();
 }
 
 nsSMILTime
@@ -162,6 +172,17 @@ nsSMILTimeContainer::GetParentTime() const
     return mParent->GetCurrentTime();
 
   return 0L;
+}
+
+void
+nsSMILTimeContainer::SyncPauseTime()
+{
+  if (IsPaused()) {
+    nsSMILTime parentTime = GetParentTime();
+    nsSMILTime extraOffset = parentTime - mPauseStart;
+    mParentOffset += extraOffset;
+    mPauseStart = parentTime;
+  }
 }
 
 void
@@ -262,8 +283,7 @@ void
 nsSMILTimeContainer::Traverse(nsCycleCollectionTraversalCallback* aCallback)
 {
   const MilestoneEntry* p = mMilestoneEntries.Elements();
-  const MilestoneEntry* const end = p + mMilestoneEntries.Length();
-  while (p != end) {
+  while (p < mMilestoneEntries.Elements() + mMilestoneEntries.Length()) {
     NS_CYCLE_COLLECTION_NOTE_EDGE_NAME(*aCallback, "mTimebase");
     aCallback->NoteXPCOMChild(p->mTimebase.get());
     ++p;
@@ -281,4 +301,30 @@ nsSMILTimeContainer::UpdateCurrentTime()
 {
   nsSMILTime now = IsPaused() ? mPauseStart : GetParentTime();
   mCurrentTime = now - mParentOffset;
+}
+
+void
+nsSMILTimeContainer::NotifyTimeChange()
+{
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  const MilestoneEntry* p = mMilestoneEntries.Elements();
+#if DEBUG
+  PRUint32 queueLength = mMilestoneEntries.Length();
+#endif
+  while (p < mMilestoneEntries.Elements() + mMilestoneEntries.Length()) {
+    nsISMILAnimationElement* elem = p->mTimebase.get();
+    elem->TimedElement().HandleContainerTimeChange();
+    NS_ABORT_IF_FALSE(queueLength == mMilestoneEntries.Length(),
+        "Call to HandleContainerTimeChange resulted in a change to the "
+        "queue of milestones");
+    ++p;
+  }
 }

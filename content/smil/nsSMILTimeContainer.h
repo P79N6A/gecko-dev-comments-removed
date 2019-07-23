@@ -152,6 +152,14 @@ public:
 
 
 
+
+
+  void SyncPauseTime();
+
+  
+
+
+
   void Sample();
 
   
@@ -244,6 +252,12 @@ protected:
 
 
   void UpdateCurrentTime();
+ 
+  
+
+
+
+  void NotifyTimeChange();
 
   
   nsSMILTimeContainer* mParent;

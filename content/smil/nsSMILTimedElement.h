@@ -137,8 +137,36 @@ public:
 
 
 
-  void AddInstanceTime(const nsSMILInstanceTime& aInstanceTime,
-                       PRBool aIsBegin);
+  void AddInstanceTime(nsSMILInstanceTime* aInstanceTime, PRBool aIsBegin);
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  void UpdateInstanceTime(nsSMILInstanceTime* aInstanceTime,
+                          nsSMILTimeValue& aUpdatedTime,
+                          const nsSMILInstanceTime* aDependentTime,
+                          PRBool aIsBegin);
+
+  
+
+
+
+
+
+
+
+
+  void RemoveInstanceTime(nsSMILInstanceTime* aInstanceTime, PRBool aIsBegin);
 
   
 
@@ -181,19 +209,19 @@ public:
 
 
 
+
+
+  void HandleContainerTimeChange();
+
+  
+
+
+
   void Reset();
 
   
 
 
-
-
-
-
-
-  void HardReset();
-
-  
 
 
 
@@ -211,7 +239,8 @@ public:
 
 
   PRBool SetAttr(nsIAtom* aAttribute, const nsAString& aValue,
-                 nsAttrValue& aResult, nsresult* aParseResult = nsnull);
+                 nsAttrValue& aResult, nsIContent* aContextNode,
+                 nsresult* aParseResult = nsnull);
 
   
 
@@ -228,15 +257,79 @@ public:
   
 
 
-  void BindToTree();
+
+
+
+
+
+
+  void AddDependent(nsSMILTimeValueSpec& aDependent);
+
+  
+
+
+
+
+
+  void RemoveDependent(const nsSMILTimeValueSpec& aDependent);
+
+  
+
+
+
+
+
+
+
+
+
+
+
+  PRBool IsTimeDependent(const nsSMILTimedElement& aOther) const;
+
+  
+
+
+
+
+
+
+
+
+  void BindToTree(nsIContent* aContextNode);
+
+  
+
+
+
+  void DissolveReferences() { Unlink(); }
+
+  
+  void Traverse(nsCycleCollectionTraversalCallback* aCallback);
+  void Unlink();
 
 protected:
   
+  typedef nsTArray<nsAutoPtr<nsSMILTimeValueSpec> > TimeValueSpecList;
+  typedef nsTArray<nsRefPtr<nsSMILInstanceTime> >   InstanceTimeList;
+
+  
+  class InstanceTimeComparator {
+    public:
+      PRBool Equals(const nsSMILInstanceTime* aElem1,
+                    const nsSMILInstanceTime* aElem2) const;
+      PRBool LessThan(const nsSMILInstanceTime* aElem1,
+                      const nsSMILInstanceTime* aElem2) const;
+  };
+
+  
   
   
 
-  nsresult          SetBeginSpec(const nsAString& aBeginSpec);
-  nsresult          SetEndSpec(const nsAString& aEndSpec);
+  nsresult          SetBeginSpec(const nsAString& aBeginSpec,
+                                 nsIContent* aContextNode);
+  nsresult          SetEndSpec(const nsAString& aEndSpec,
+                               nsIContent* aContextNode);
   nsresult          SetSimpleDuration(const nsAString& aDurSpec);
   nsresult          SetMin(const nsAString& aMinSpec);
   nsresult          SetMax(const nsAString& aMaxSpec);
@@ -255,7 +348,10 @@ protected:
   void              UnsetRepeatDur();
   void              UnsetFillMode();
 
-  nsresult          SetBeginOrEndSpec(const nsAString& aSpec, PRBool aIsBegin);
+  nsresult          SetBeginOrEndSpec(const nsAString& aSpec,
+                                      nsIContent* aContextNode,
+                                      PRBool aIsBegin);
+  void              ClearBeginOrEndSpecs(PRBool aIsBegin);
   void              DoSampleAt(nsSMILTime aContainerTime, PRBool aEndOnly);
 
   
@@ -263,26 +359,39 @@ protected:
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   nsresult          GetNextInterval(const nsSMILInterval* aPrevInterval,
+                                    const nsSMILInstanceTime* aFixedBeginTime,
                                     nsSMILInterval& aResult);
-  PRBool            GetNextGreater(const nsTArray<nsSMILInstanceTime>& aList,
-                                   const nsSMILTimeValue& aBase,
-                                   PRInt32& aPosition,
-                                   nsSMILTimeValue& aResult) const;
-  PRBool            GetNextGreaterOrEqual(
-                                   const nsTArray<nsSMILInstanceTime>& aList,
-                                   const nsSMILTimeValue& aBase,
-                                   PRInt32& aPosition,
-                                   nsSMILTimeValue& aResult) const;
+  nsSMILInstanceTime* GetNextGreater(const InstanceTimeList& aList,
+                                     const nsSMILTimeValue& aBase,
+                                     PRInt32& aPosition) const;
+  nsSMILInstanceTime* GetNextGreaterOrEqual(const InstanceTimeList& aList,
+                                            const nsSMILTimeValue& aBase,
+                                            PRInt32& aPosition) const;
   nsSMILTimeValue   CalcActiveEnd(const nsSMILTimeValue& aBegin,
                                   const nsSMILTimeValue& aEnd) const;
   nsSMILTimeValue   GetRepeatDuration() const;
   nsSMILTimeValue   ApplyMinAndMax(const nsSMILTimeValue& aDuration) const;
   nsSMILTime        ActiveTimeToSimpleTime(nsSMILTime aActiveTime,
                                            PRUint32& aRepeatIteration);
-  nsSMILTimeValue   CheckForEarlyEnd(
+  nsSMILInstanceTime* CheckForEarlyEnd(
                         const nsSMILTimeValue& aContainerTime) const;
-  void              UpdateCurrentInterval();
+  void              UpdateCurrentInterval(PRBool aForceChangeNotice = PR_FALSE);
   void              SampleSimpleTime(nsSMILTime aActiveTime);
   void              SampleFillValue();
   void              AddInstanceTimeFromCurrentTime(nsSMILTime aCurrentTime,
@@ -290,15 +399,18 @@ protected:
   void              RegisterMilestone();
   PRBool            GetNextMilestone(nsSMILMilestone& aNextMilestone) const;
 
-  
-  typedef nsTArray<nsRefPtr<nsSMILTimeValueSpec> >  SMILTimeValueSpecList;
+  void              NotifyNewInterval();
+  void              NotifyChangedInterval();
+  void              NotifyDeletedInterval();
+  const nsSMILInstanceTime* GetEffectiveBeginInstance() const;
 
   
   
   
-  nsISMILAnimationElement* mAnimationElement; 
-  SMILTimeValueSpecList mBeginSpecs;
-  SMILTimeValueSpecList mEndSpecs;
+  nsISMILAnimationElement*        mAnimationElement; 
+                                                     
+  TimeValueSpecList               mBeginSpecs; 
+  TimeValueSpecList               mEndSpecs; 
 
   nsSMILTimeValue                 mSimpleDur;
 
@@ -332,17 +444,28 @@ protected:
   
   
   PRPackedBool                    mBeginSpecSet;
-
   PRPackedBool                    mEndHasEventConditions;
 
-  nsTArray<nsSMILInstanceTime>    mBeginInstances;
-  nsTArray<nsSMILInstanceTime>    mEndInstances;
+  InstanceTimeList                mBeginInstances;
+  InstanceTimeList                mEndInstances;
+  PRUint32                        mInstanceSerialIndex;
 
   nsSMILAnimationFunction*        mClient;
   nsSMILInterval                  mCurrentInterval;
-  nsTArray<nsSMILInterval>        mOldIntervals;
+  nsSMILInterval                  mPrevInterval;
   nsSMILMilestone                 mPrevRegisteredMilestone;
   static const nsSMILMilestone    sMaxMilestone;
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  nsTArray<nsSMILTimeValueSpec*>  mTimeDependents;
 
   
 

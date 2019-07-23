@@ -88,6 +88,19 @@ public:
 
 
   void Reset(nsIContent* aFrom, nsIURI* aURI, PRBool aWatch = PR_TRUE);
+
+  
+
+
+
+
+
+
+
+
+  void ResetWithID(nsIContent* aFrom, const nsString& aID,
+                   PRBool aWatch = PR_TRUE);
+
   
 
 
