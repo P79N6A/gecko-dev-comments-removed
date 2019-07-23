@@ -4203,7 +4203,8 @@ nsBrowserStatusHandler.prototype =
     var locationObj = {};
     try {
       locationObj.host = location.host;
-      locationObj.hostname = location.hostname
+      locationObj.hostname = location.hostname;
+      locationObj.port = location.port;
     } catch (ex) {
       
       
@@ -6535,8 +6536,13 @@ IdentityHandler.prototype = {
       
       var tooltip = this._stringBundle.getFormattedString("identity.identified.verifier",
                                                           [iData.caOrg]);
+      
+      
+      
+      
+      
       if (this._overrideService.hasMatchingOverride(this._lastLocation.hostname, 
-                                                    this._lastLocation.port, 
+                                                    (this._lastLocation.port || 443),
                                                     iData.cert, {}, {}))
         tooltip = this._stringBundle.getString("identity.identified.verified_by_you");
     }
