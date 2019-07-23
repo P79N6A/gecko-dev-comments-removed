@@ -168,6 +168,9 @@ typedef long _off_t;
 typedef long off_t;
 
 
+typedef INT_PTR intptr_t; 
+
+
 #if !defined(_STAT_DEFINED)
 #define _STAT_DEFINED
 #define _S_IFDIR    0040000 /* stat, is a directory */
