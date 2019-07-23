@@ -67,8 +67,12 @@ public:
 
 
 
+
+
+
     gfxContext* Init(const gfxRect& aRect,
-                     const gfxIntSize& aBlurRadius);
+                     const gfxIntSize& aBlurRadius,
+                     const gfxRect* aDirtyRect);
 
     
 
@@ -116,6 +120,13 @@ protected:
 
 
     nsRefPtr<gfxImageSurface> mImageSurface;
+
+    
+
+
+
+    gfxRect mDirtyRect;
+    PRBool mHasDirtyRect;
 };
 
 #endif 

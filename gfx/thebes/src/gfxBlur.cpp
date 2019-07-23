@@ -54,18 +54,31 @@ gfxAlphaBoxBlur::~gfxAlphaBoxBlur()
 
 gfxContext*
 gfxAlphaBoxBlur::Init(const gfxRect& aRect,
-                      const gfxIntSize& aBlurRadius)
+                      const gfxIntSize& aBlurRadius,
+                      const gfxRect* aDirtyRect)
 {
     mBlurRadius = aBlurRadius;
 
     gfxRect rect(aRect);
-
     rect.Outset(aBlurRadius.height, aBlurRadius.width,
                 aBlurRadius.height, aBlurRadius.width);
     rect.RoundOut();
 
     if (rect.IsEmpty())
         return nsnull;
+
+    if (aDirtyRect) {
+        
+        
+        mHasDirtyRect = PR_TRUE;
+        mDirtyRect = *aDirtyRect;
+        gfxRect requiredBlurArea = mDirtyRect.Intersect(rect);
+        requiredBlurArea.Outset(aBlurRadius.height, aBlurRadius.width,
+                                aBlurRadius.height, aBlurRadius.width);
+        rect = requiredBlurArea.Intersect(rect);
+    } else {
+        mHasDirtyRect = PR_FALSE;
+    }
 
     
     
@@ -214,7 +227,18 @@ gfxAlphaBoxBlur::Paint(gfxContext* aDestinationCtx, const gfxPoint& offset)
         }
     }
 
-    aDestinationCtx->Mask(mImageSurface, offset);
+    
+    
+    if (mHasDirtyRect) {
+      aDestinationCtx->Save();
+      aDestinationCtx->NewPath();
+      aDestinationCtx->Rectangle(mDirtyRect);
+      aDestinationCtx->Clip();
+      aDestinationCtx->Mask(mImageSurface, offset);
+      aDestinationCtx->Restore();
+    } else {
+      aDestinationCtx->Mask(mImageSurface, offset);
+    }
 }
 
 static const gfxFloat GAUSSIAN_SCALE_FACTOR = 3 * sqrt(2 * M_PI) / 4;

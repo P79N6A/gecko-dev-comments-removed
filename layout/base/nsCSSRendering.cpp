@@ -2567,22 +2567,11 @@ nsContextBoxBlur::Init(const gfxRect& aRect, nscoord aBlurRadius,
 
   gfxRect dirtyRect = aDirtyRect;
   dirtyRect.ScaleInverse(aAppUnitsPerDevPixel);
-  gfxRect rectWithBlur = rect;
-  rectWithBlur.Outset(blurRadius);
-
-  
-  mRequiredShadowArea = dirtyRect.Intersect(rectWithBlur);
 
   mDestinationCtx = aDestinationCtx;
 
- 
- 
- 
- 
- 
- 
- 
-  mContext = blur.Init(mRequiredShadowArea, gfxIntSize(blurRadius, blurRadius));
+  
+  mContext = blur.Init(rect, gfxIntSize(blurRadius, blurRadius), &dirtyRect);
   return mContext;
 }
 
@@ -2592,12 +2581,7 @@ nsContextBoxBlur::DoPaint()
   if (mContext == mDestinationCtx)
     return;
 
-  mDestinationCtx->Save();
-  mDestinationCtx->NewPath();
-  mDestinationCtx->Rectangle(mRequiredShadowArea);
-  mDestinationCtx->Clip();
   blur.Paint(mDestinationCtx);
-  mDestinationCtx->Restore();
 }
 
 gfxContext*
