@@ -82,7 +82,9 @@ public:
                                 const nsAString& aSelectorValue,
                                 const nsStringComparator& aComparator);
                                 
-  static void EscapeCSSString(const nsString& aString, nsAString& aReturn);
+  
+  static void AppendEscapedCSSString(const nsString& aString,
+                                     nsAString& aResult);
 
   
 
