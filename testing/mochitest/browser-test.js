@@ -143,6 +143,16 @@ Tester.prototype = {
   },
 
   nextTest: function Tester_nextTest() {
+    if (this.currentTest) {
+      
+      
+      let testScope = this.currentTest.scope;
+      while (testScope.__cleanupFunctions.length > 0) {
+        let func = testScope.__cleanupFunctions.shift();
+        func.apply(testScope);
+      };
+    }
+
     
     
     
@@ -169,6 +179,15 @@ Tester.prototype = {
     this.currentTest.scope.EventUtils = this.EventUtils;
     this.currentTest.scope.SimpleTest = this.SimpleTest;
 
+    
+    var currentTestDirPath =
+      this.currentTest.path.substr(0, this.currentTest.path.lastIndexOf("/"));
+    var headPath = currentTestDirPath + "/head.js";
+    try {
+      this._scriptLoader.loadSubScript(headPath, this.currentTest.scope);
+    } catch (ex) {  }
+
+    
     try {
       this._scriptLoader.loadSubScript(this.currentTest.path,
                                        this.currentTest.scope);
@@ -276,12 +295,16 @@ function testScope(aTester, aTest) {
     }, Ci.nsIThread.DISPATCH_NORMAL);
   };
 
-  this.waitForExplicitFinish = function test_WFEF() {
+  this.waitForExplicitFinish = function test_waitForExplicitFinish() {
     self.__done = false;
   };
 
-  this.waitForFocus = function (callback, targetWindow) {
+  this.waitForFocus = function test_waitForFocus(callback, targetWindow) {
     self.SimpleTest.waitForFocus(callback, targetWindow);
+  };
+
+  this.registerCleanupFunction = function test_registerCleanupFunction(aFunction) {
+    self.__cleanupFunctions.push(aFunction);
   };
 
   this.finish = function test_finish() {
@@ -300,6 +323,7 @@ function testScope(aTester, aTest) {
 testScope.prototype = {
   __done: true,
   __waitTimer: null,
+  __cleanupFunctions: [],
 
   EventUtils: {},
   SimpleTest: {}
