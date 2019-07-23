@@ -6782,6 +6782,7 @@ TraceRecorder::getThis(LIns*& this_ins)
     }
 
     jsval& thisv = cx->fp->argv[-1];
+    JS_ASSERT(JSVAL_IS_OBJECT(thisv));
 
     
 
@@ -6790,7 +6791,8 @@ TraceRecorder::getThis(LIns*& this_ins)
 
 
 
-    if (JSVAL_IS_NULL(original)) {
+    if (JSVAL_IS_NULL(original) ||
+        guardClass(JSVAL_TO_OBJECT(original), get(&thisv), &js_CallClass, snapshot(BRANCH_EXIT))) {
         JS_ASSERT(!JSVAL_IS_PRIMITIVE(thisv));
         if (thisObj != globalObj)
             ABORT_TRACE("global object was wrapped while recording");
@@ -6804,7 +6806,6 @@ TraceRecorder::getThis(LIns*& this_ins)
 
 
 
-    JS_ASSERT(JSVAL_IS_OBJECT(thisv));
     JSObject* obj = js_GetWrappedObject(cx, JSVAL_TO_OBJECT(thisv));
     OBJ_TO_INNER_OBJECT(cx, obj);
     if (!obj)
