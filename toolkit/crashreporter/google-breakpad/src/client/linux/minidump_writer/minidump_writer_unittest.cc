@@ -32,19 +32,10 @@
 
 #include "client/linux/handler/exception_handler.h"
 #include "client/linux/minidump_writer/minidump_writer.h"
+#include "common/linux/eintr_wrapper.h"
 #include "breakpad_googletest_includes.h"
 
 using namespace google_breakpad;
-
-
-
-#define HANDLE_EINTR(x) ({ \
-  typeof(x) __eintr_result__; \
-  do { \
-    __eintr_result__ = x; \
-  } while (__eintr_result__ == -1 && errno == EINTR); \
-  __eintr_result__;\
-})
 
 namespace {
 typedef testing::Test MinidumpWriterTest;

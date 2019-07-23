@@ -35,6 +35,11 @@
 
 #include <signal.h>
 
+#include "client/linux/crash_generation/crash_generation_client.h"
+#include "processor/scoped_ptr.h"
+
+struct sigaction;
+
 namespace google_breakpad {
 
 
@@ -116,6 +121,18 @@ class ExceptionHandler {
                    FilterCallback filter, MinidumpCallback callback,
                    void *callback_context,
                    bool install_handler);
+
+  
+  
+  
+  
+  
+  ExceptionHandler(const std::string& dump_path,
+                   FilterCallback filter, MinidumpCallback callback,
+                   void* callback_context,
+                   bool install_handler,
+                   const int server_fd);
+
   ~ExceptionHandler();
 
   
@@ -149,7 +166,14 @@ class ExceptionHandler {
     struct _libc_fpstate float_state;
   };
 
+  
+  bool IsOutOfProcess() const {
+      return crash_generation_client_.get() != NULL;
+  }
+
  private:
+  void Init(const std::string &dump_path,
+            const int server_fd);
   bool InstallHandlers();
   void UninstallHandlers();
   void PreresolveSymbols();
@@ -165,6 +189,8 @@ class ExceptionHandler {
   const FilterCallback filter_;
   const MinidumpCallback callback_;
   void* const callback_context_;
+
+  scoped_ptr<CrashGenerationClient> crash_generation_client_;
 
   std::string dump_path_;
   std::string next_minidump_path_;
@@ -190,8 +216,7 @@ class ExceptionHandler {
   static pthread_mutex_t handler_stack_mutex_;
 
   
-  
-  std::vector<std::pair<int, void *> > old_handlers_;
+  std::vector<std::pair<int, struct sigaction *> > old_handlers_;
 };
 
 }  
