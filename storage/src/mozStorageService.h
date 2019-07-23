@@ -46,6 +46,7 @@
 #include "nsIFile.h"
 #include "nsIObserver.h"
 #include "nsIObserverService.h"
+#include "prlock.h"
 
 #include "mozIStorageService.h"
 
@@ -69,6 +70,12 @@ public:
 
 private:
     virtual ~mozStorageService();
+
+    
+
+
+
+    PRLock *mLock;
 protected:
     nsCOMPtr<nsIFile> mProfileStorageFile;
 

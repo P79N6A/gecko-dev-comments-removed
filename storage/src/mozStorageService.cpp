@@ -41,19 +41,56 @@
 
 #include "mozStorageService.h"
 #include "mozStorageConnection.h"
-#include "nsThreadUtils.h"
 #include "nsCRT.h"
 #include "plstr.h"
+#include "prinit.h"
+#include "nsAutoLock.h"
+#include "nsAutoPtr.h"
+#include "mozStorage.h"
 
 #include "sqlite3.h"
 
 NS_IMPL_THREADSAFE_ISUPPORTS1(mozStorageService, mozIStorageService)
+
+
+
+
+
+
+static PRLock *gSingletonLock;
+
+
+
+
+
+
+
+static
+PRStatus
+SingletonInit()
+{
+    gSingletonLock = PR_NewLock();
+    NS_ENSURE_TRUE(gSingletonLock, PR_FAILURE);
+    return PR_SUCCESS;
+}
 
 mozStorageService *mozStorageService::gStorageService = nsnull;
 
 mozStorageService *
 mozStorageService::GetSingleton()
 {
+    
+    
+    static PRCallOnceType sInitOnce;
+    PRStatus rc = PR_CallOnce(&sInitOnce, SingletonInit);
+    if (rc != PR_SUCCESS)
+        return nsnull;
+
+    
+    if (!gSingletonLock)
+        return nsnull;
+
+    nsAutoLock lock(gSingletonLock);
     if (gStorageService) {
         NS_ADDREF(gStorageService);
         return gStorageService;
@@ -72,14 +109,25 @@ mozStorageService::GetSingleton()
 mozStorageService::~mozStorageService()
 {
     gStorageService = nsnull;
+    PR_DestroyLock(mLock);
+    PR_DestroyLock(gSingletonLock);
+    gSingletonLock = nsnull;
 }
 
 nsresult
 mozStorageService::Init()
 {
+    mLock = PR_NewLock();
+    if (!mLock)
+        return NS_ERROR_OUT_OF_MEMORY;
+
     
     
-    sqlite3_enable_shared_cache(1);
+    
+    
+    int rc = sqlite3_enable_shared_cache(1);
+    if (rc != SQLITE_OK)
+        return ConvertResultCode(rc);
 
     return NS_OK;
 }
@@ -129,15 +177,16 @@ mozStorageService::OpenSpecialDatabase(const char *aStorageKey, mozIStorageConne
 NS_IMETHODIMP
 mozStorageService::OpenDatabase(nsIFile *aDatabaseFile, mozIStorageConnection **_retval)
 {
-    nsresult rv;
-
     mozStorageConnection *msc = new mozStorageConnection(this);
     if (!msc)
         return NS_ERROR_OUT_OF_MEMORY;
 
     
     
-    (void)msc->Initialize(aDatabaseFile);
+    {
+        nsAutoLock lock(mLock);
+        (void)msc->Initialize(aDatabaseFile);
+    }
     NS_ADDREF(*_retval = msc);
 
     return NS_OK;
@@ -147,9 +196,7 @@ mozStorageService::OpenDatabase(nsIFile *aDatabaseFile, mozIStorageConnection **
 NS_IMETHODIMP
 mozStorageService::OpenUnsharedDatabase(nsIFile *aDatabaseFile, mozIStorageConnection **_retval)
 {
-    nsresult rv;
-
-    mozStorageConnection *msc = new mozStorageConnection(this);
+    nsRefPtr<mozStorageConnection> msc = new mozStorageConnection(this);
     if (!msc)
         return NS_ERROR_OUT_OF_MEMORY;
 
@@ -161,9 +208,18 @@ mozStorageService::OpenUnsharedDatabase(nsIFile *aDatabaseFile, mozIStorageConne
     
     
     
-    sqlite3_enable_shared_cache(0);
-    (void)msc->Initialize(aDatabaseFile);
-    sqlite3_enable_shared_cache(1);
+    {
+        nsAutoLock lock(mLock);
+        int rc = sqlite3_enable_shared_cache(0);
+        if (rc != SQLITE_OK)
+            return ConvertResultCode(rc);
+
+        (void)msc->Initialize(aDatabaseFile);
+
+        rc = sqlite3_enable_shared_cache(1);
+        if (rc != SQLITE_OK)
+            return ConvertResultCode(rc);
+    }
     NS_ADDREF(*_retval = msc);
 
     return NS_OK;
