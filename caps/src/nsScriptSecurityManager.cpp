@@ -493,12 +493,6 @@ nsScriptSecurityManager::CheckObjectAccess(JSContext *cx, JSObject *obj,
     if (!ssm)
         return JS_FALSE;
 
-    nsCOMPtr<nsISupports> native;
-    nsresult rv =
-        sXPConnect->GetNativeOfJSObject(cx, obj,
-                                        NS_GET_IID(nsISupports),
-                                        getter_AddRefs(native));
-
     
     
     
@@ -511,13 +505,11 @@ nsScriptSecurityManager::CheckObjectAccess(JSContext *cx, JSObject *obj,
 
     
     
-    rv = ssm->CheckPropertyAccessImpl(( (mode & JSACC_WRITE) ?
-                                        nsIXPCSecurityManager::ACCESS_SET_PROPERTY :
-                                        nsIXPCSecurityManager::ACCESS_GET_PROPERTY ),
-                                      nsnull, cx, target, native, nsnull,
-                                      nsnull, JS_GET_CLASS(cx, obj)->name, id,
-                                      nsnull);
-
+    nsresult rv =
+        ssm->CheckPropertyAccess(cx, target, JS_GetClass(cx, obj)->name, id,
+                                 (mode & JSACC_WRITE) ?
+                                 nsIXPCSecurityManager::ACCESS_SET_PROPERTY :
+                                 nsIXPCSecurityManager::ACCESS_GET_PROPERTY);
 
     if (NS_FAILED(rv))
         return JS_FALSE; 
@@ -779,24 +771,14 @@ nsScriptSecurityManager::CheckPropertyAccessImpl(PRUint32 aAction,
     nsXPIDLCString objectSecurityLevel;
     if (checkedComponent)
     {
-        const nsIID* objIID = nsnull;
-        if (aCallContext) {
-            
-            
-            
-            
-            
-            nsCOMPtr<nsIXPConnectWrappedNative> wrapper;
-            nsCOMPtr<nsIInterfaceInfo> interfaceInfo;
-            rv = aCallContext->GetCalleeWrapper(getter_AddRefs(wrapper));
-            if (NS_SUCCEEDED(rv))
-                rv = wrapper->FindInterfaceWithMember(aProperty, getter_AddRefs(interfaceInfo));
-            if (NS_SUCCEEDED(rv))
-                rv = interfaceInfo->GetIIDShared(&objIID);
-        } else {
-            rv = NS_OK;
-        }
-
+        nsCOMPtr<nsIXPConnectWrappedNative> wrapper;
+        nsCOMPtr<nsIInterfaceInfo> interfaceInfo;
+        const nsIID* objIID;
+        rv = aCallContext->GetCalleeWrapper(getter_AddRefs(wrapper));
+        if (NS_SUCCEEDED(rv))
+            rv = wrapper->FindInterfaceWithMember(aProperty, getter_AddRefs(interfaceInfo));
+        if (NS_SUCCEEDED(rv))
+            rv = interfaceInfo->GetIIDShared(&objIID);
         if (NS_SUCCEEDED(rv))
         {
             switch (aAction)
