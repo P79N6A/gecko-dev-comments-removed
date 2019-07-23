@@ -223,6 +223,16 @@ gfxPlatform::Init()
     if (prefs)
         prefs->AddObserver(CMForceSRGBPrefName, gPlatform->overrideObserver, PR_TRUE);
 
+    
+
+    if (GetCMSMode() != eCMSMode_Off) {
+#ifdef DEBUG
+        cmsErrorAction(LCMS_ERROR_SHOW);
+#else
+        cmsErrorAction(LCMS_ERROR_IGNORE);
+#endif
+    }
+
     return NS_OK;
 }
 
@@ -569,12 +579,6 @@ cmsHPROFILE
 gfxPlatform::GetCMSOutputProfile()
 {
     if (!gCMSOutputProfile) {
-        
-#ifdef DEBUG_tor
-        cmsErrorAction(LCMS_ERROR_SHOW);
-#else
-        cmsErrorAction(LCMS_ERROR_IGNORE);
-#endif
 
         nsCOMPtr<nsIPrefBranch> prefs = do_GetService(NS_PREFSERVICE_CONTRACTID);
         if (prefs) {
