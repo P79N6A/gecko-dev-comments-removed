@@ -1036,7 +1036,6 @@ NS_IMETHODIMP nsXULComboboxAccessible::GetRole(PRUint32 *aRole)
 
 
 
-
 NS_IMETHODIMP
 nsXULComboboxAccessible::GetState(PRUint32 *aState, PRUint32 *aExtraState)
 {
@@ -1056,11 +1055,6 @@ nsXULComboboxAccessible::GetState(PRUint32 *aState, PRUint32 *aExtraState)
     }
     else {
       *aState |= nsIAccessibleStates::STATE_COLLAPSED;
-    }
-    PRBool isEditable;
-    menuList->GetEditable(&isEditable);
-    if (!isEditable) {
-      *aState |= nsIAccessibleStates::STATE_READONLY;
     }
   }
 

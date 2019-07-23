@@ -1075,7 +1075,6 @@ NS_IMETHODIMP nsHTMLComboboxAccessible::Shutdown()
 
 
 
-
 NS_IMETHODIMP
 nsHTMLComboboxAccessible::GetState(PRUint32 *aState, PRUint32 *aExtraState)
 {
@@ -1100,7 +1099,6 @@ nsHTMLComboboxAccessible::GetState(PRUint32 *aState, PRUint32 *aExtraState)
   }
 
   *aState |= nsIAccessibleStates::STATE_HASPOPUP |
-             nsIAccessibleStates::STATE_READONLY |
              nsIAccessibleStates::STATE_FOCUSABLE;
 
   return NS_OK;
