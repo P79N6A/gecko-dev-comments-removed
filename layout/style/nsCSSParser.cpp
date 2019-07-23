@@ -814,8 +814,7 @@ CSSParserImpl::ParseStyleAttribute(const nsAString& aAttributeValue,
   
   
   PRBool haveBraces;
-  if (mNavQuirkMode) {
-    GetToken(errorCode, PR_TRUE);
+  if (mNavQuirkMode && GetToken(errorCode, PR_TRUE)) {
     haveBraces = eCSSToken_Symbol == mToken.mType &&
                  '{' == mToken.mSymbol;
     UngetToken();
