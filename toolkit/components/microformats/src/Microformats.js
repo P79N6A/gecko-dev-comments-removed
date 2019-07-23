@@ -692,6 +692,38 @@ var Microformats = {
       } else {
         propnodes = Microformats.getElementsByClassName(mfnode, propname);
       }
+      for (let i=propnodes.length-1; i >= 0; i--) {
+        
+        
+        
+        var parentnode;
+        var node = propnodes[i];
+        var xpathExpression = "";
+        for (let j=0; j < Microformats.list.length; j++) {
+          
+          if ((mfname == "hCard") && ((Microformats.list[j] == "adr") || (Microformats.list[j] == "geo"))) {
+            continue;
+          }
+          if (Microformats[Microformats.list[j]].className) {
+            if (xpathExpression.length == 0) {
+              xpathExpression = "ancestor::*[";
+            } else {
+              xpathExpression += " or ";
+            }
+            xpathExpression += "contains(concat(' ', @class, ' '), ' " + Microformats[Microformats.list[j]].className + " ')";
+          }
+        }
+        xpathExpression += "][1]";
+        var xpathResult = (node.ownerDocument || node).evaluate(xpathExpression, node, null,  Components.interfaces.nsIDOMXPathResult.FIRST_ORDERED_NODE_TYPE, null);
+        if (xpathResult.singleNodeValue) {
+          xpathResult.singleNodeValue.microformat = mfname;
+          parentnode = xpathResult.singleNodeValue;
+        }
+        
+        if (parentnode != mfnode) {
+          propnodes.splice(i,1);
+        }
+      }
       if (propnodes.length > 0) {
         var resultArray = [];
         for (let i = 0; i < propnodes.length; i++) {
