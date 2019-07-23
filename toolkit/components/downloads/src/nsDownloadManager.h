@@ -243,12 +243,20 @@ private:
 
   PRUint32 mID;
   PRInt32 mPercentComplete;
+
+  
+
+
+
+
   PRUint64 mCurrBytes;
   PRUint64 mMaxBytes;
+
   PRTime mStartTime;
   PRTime mLastUpdate;
   PRBool mPaused;
   PRBool mWasResumed;
+  PRUint64 mResumedAt;
   double mSpeed;
 
   friend class nsDownloadManager;
