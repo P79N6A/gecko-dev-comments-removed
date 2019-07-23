@@ -236,20 +236,6 @@ struct NS_GFX nsIntRect {
   }
 
   
-  void Deflate(PRInt32 aDx, PRInt32 aDy) {
-    x += aDx;
-    y += aDy;
-    width -= aDx*2;
-    height -= aDy*2;
-  }
-  void Deflate(const nsIntMargin &aMargin) {
-    x += aMargin.left;
-    y += aMargin.top;
-    width -= (aMargin.left + aMargin.right);
-    height -= (aMargin.top + aMargin.bottom);
-  }
-
-  
   
   PRBool operator==(const nsIntRect& aRect) const {
     return (PRBool) ((IsEmpty() && aRect.IsEmpty()) ||

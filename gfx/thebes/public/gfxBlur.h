@@ -42,7 +42,6 @@
 #include "gfxImageSurface.h"
 #include "gfxRect.h"
 #include "gfxTypes.h"
-#include "nsRect.h"
 
 
 
@@ -71,14 +70,9 @@ public:
 
 
 
-
-
-
-
     gfxContext* Init(const gfxRect& aRect,
                      const gfxIntSize& aBlurRadius,
-                     const gfxRect* aDirtyRect,
-                     gfxRect* aSkipRect);
+                     const gfxRect* aDirtyRect);
 
     
 
@@ -132,15 +126,7 @@ protected:
 
 
     gfxRect mDirtyRect;
-    
-
-
-
-
-    nsIntRect mSkipRect;
-
-    PRPackedBool mHasDirtyRect;
-    PRPackedBool mHasSkipRect;
+    PRBool mHasDirtyRect;
 };
 
 #endif 
