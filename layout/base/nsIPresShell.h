@@ -356,7 +356,7 @@ public:
   };
   NS_IMETHOD FrameNeedsReflow(nsIFrame *aFrame,
                               IntrinsicDirty aIntrinsicDirty,
-                              nsFrameState aBitsToAdd) = 0;
+                              nsFrameState aBitToAdd) = 0;
 
   NS_IMETHOD CancelAllPendingReflows() = 0;
 
