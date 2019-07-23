@@ -1294,20 +1294,34 @@ nsObjectLoadingContent::GetFrame()
     do_QueryInterface(NS_STATIC_CAST(nsIImageLoadingContent*, this));
   NS_ASSERTION(thisContent, "must be a content");
 
-  nsIDocument* doc = thisContent->GetCurrentDoc();
-  if (!doc) {
-    return nsnull; 
-  }
+  PRBool flushed = PR_FALSE;
+  nsIFrame* frame;
+  do {
+    nsIDocument* doc = thisContent->GetCurrentDoc();
+    if (!doc) {
+      return nsnull; 
+    }
 
-  nsIPresShell* shell = doc->GetPrimaryShell();
-  if (!shell) {
-    return nsnull; 
-  }
+    nsIPresShell* shell = doc->GetPrimaryShell();
+    if (!shell) {
+      return nsnull; 
+    }
 
-  nsIFrame* frame = shell->GetPrimaryFrameFor(thisContent);
-  if (!frame) {
-    return nsnull;
-  }
+    frame = shell->GetPrimaryFrameFor(thisContent);
+    if (!frame) {
+      return nsnull;
+    }
+
+    if (flushed) {
+      break;
+    }
+    
+    
+    
+    doc->FlushPendingNotifications(Flush_ContentAndNotify);
+
+    flushed = PR_TRUE;
+  } while (1);
 
   nsIObjectFrame* objFrame;
   CallQueryInterface(frame, &objFrame);
