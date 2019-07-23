@@ -8027,10 +8027,11 @@ nsCSSFrameConstructor::ContentInserted(nsIContent*            aContainer,
       
       
       ChildIterator::Init(container, &first, &last);
-      if (container == aContainer && !last.XBLInvolved()) {
-        last.seek(aIndexInContainer);
-      } else {
+      if (last.XBLInvolved() || container != aContainer) {
         last.seek(aChild);
+      } else if (aIndexInContainer != -1) {
+        last.seek(aIndexInContainer);
+        NS_ASSERTION(*iter == aChild, "Someone screwed up the indexing");
       }
 
       prevSibling = FindPreviousSibling(first, last);
