@@ -37,6 +37,7 @@
 
 
 
+
 #ifndef nsExternalHelperAppService_h__
 #define nsExternalHelperAppService_h__
 
@@ -190,6 +191,16 @@ public:
 
 
   NS_HIDDEN_(PRBool) MIMETypeIsInDataSource(const char * aContentType);
+
+  
+
+
+
+  static NS_HIDDEN_(nsresult) GetWebProtocolHandlerURITemplate(const nsACString &aScheme,
+                                                               nsACString &aUriTemplate);
+
+  virtual NS_HIDDEN_(nsresult) OSProtocolHandlerExists(const char *aScheme,
+                                                       PRBool *aExists) = 0;
 
 protected:
   
@@ -511,5 +522,7 @@ protected:
 
   nsIRequest*  mRequest;
 };
+
+extern NS_HIDDEN_(nsExternalHelperAppService*) gExtProtSvc;
 
 #endif 

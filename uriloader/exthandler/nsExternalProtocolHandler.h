@@ -37,6 +37,7 @@
 
 
 
+
 #ifndef nsExternalProtocolHandler_h___
 #define nsExternalProtocolHandler_h___
 
@@ -61,7 +62,7 @@ public:
 
 protected:
   
-  PRBool HaveProtocolHandler(nsIURI * aURI);
+  PRBool HaveOSProtocolHandler(nsIURI * aURI);
 	nsCString	m_schemeName;
   nsCOMPtr<nsIExternalProtocolService> m_extProtService;
 };

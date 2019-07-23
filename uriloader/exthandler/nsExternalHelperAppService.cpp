@@ -39,6 +39,7 @@
 
 
 
+
 #include "nsExternalHelperAppService.h"
 #include "nsIURI.h"
 #include "nsIURL.h"
@@ -142,7 +143,7 @@ static NS_DEFINE_CID(kPluginManagerCID, NS_PLUGINMANAGER_CID);
 
 
 
-static nsExternalHelperAppService* sSrv;
+nsExternalHelperAppService* gExtProtSvc;
 
 
 
@@ -492,7 +493,7 @@ NS_IMPL_ISUPPORTS6(
 nsExternalHelperAppService::nsExternalHelperAppService()
 : mDataSourceInitialized(PR_FALSE)
 {
-  sSrv = this;
+  gExtProtSvc = this;
 }
 nsresult nsExternalHelperAppService::Init()
 {
@@ -514,7 +515,7 @@ nsresult nsExternalHelperAppService::Init()
 
 nsExternalHelperAppService::~nsExternalHelperAppService()
 {
-  sSrv = nsnull;
+  gExtProtSvc = nsnull;
 }
 
 nsresult nsExternalHelperAppService::InitDataSource()
@@ -1052,8 +1053,16 @@ NS_IMETHODIMP nsExternalHelperAppService::ExternalProtocolHandlerExists(const ch
                                                                         PRBool * aHandlerExists)
 {
   
-  *aHandlerExists = PR_FALSE;
-  return NS_ERROR_NOT_IMPLEMENTED;
+  nsCAutoString uriTemplate;
+  nsresult rv = GetWebProtocolHandlerURITemplate(
+    nsDependentCString(aProtocolScheme), uriTemplate);
+  if (NS_SUCCEEDED(rv)) {
+    *aHandlerExists = PR_TRUE;
+    return NS_OK;
+  }
+
+  
+  return OSProtocolHandlerExists(aProtocolScheme, aHandlerExists);
 }
 
 NS_IMETHODIMP nsExternalHelperAppService::IsExposedProtocol(const char * aProtocolScheme, PRBool * aResult)
@@ -1106,8 +1115,8 @@ class nsExternalLoadRequest : public nsRunnable {
       : mURI(uri), mPrompt(prompt) {}
 
     NS_IMETHOD Run() {
-      if (sSrv && sSrv->isExternalLoadOK(mURI, mPrompt))
-        sSrv->LoadUriInternal(mURI);
+      if (gExtProtSvc && gExtProtSvc->isExternalLoadOK(mURI, mPrompt))
+        gExtProtSvc->LoadUriInternal(mURI);
       return NS_OK;
     }
 
@@ -1366,6 +1375,42 @@ nsresult nsExternalHelperAppService::ExpungeTemporaryFiles()
   return NS_OK;
 }
 
+nsresult
+nsExternalHelperAppService::GetWebProtocolHandlerURITemplate(const nsACString &aScheme, 
+                                                             nsACString &aUriTemplate)
+{
+  nsresult rv;
+  nsCOMPtr<nsIPrefBranch> prefBranch = do_GetService(NS_PREFSERVICE_CONTRACTID,
+                                                     &rv);
+  NS_ENSURE_SUCCESS(rv, rv);
+    
+  
+  
+
+  
+  
+  
+  
+  nsCAutoString autoTemplatePref("network.protocol-handler.web.auto.");
+  autoTemplatePref += aScheme;
+    
+  nsCAutoString autoTemplate;
+  rv = prefBranch->GetCharPref(autoTemplatePref.get(), 
+                               getter_Copies(autoTemplate));
+  
+  if (NS_SUCCEEDED(rv)) {
+      aUriTemplate.Assign(autoTemplate);
+      return NS_OK;
+  }
+
+  
+  
+  
+  
+
+  return NS_ERROR_FAILURE;
+}
+ 
 
 NS_IMETHODIMP
 nsExternalHelperAppService::Observe(nsISupports *aSubject, const char *aTopic, const PRUnichar *someData )
@@ -1431,13 +1476,13 @@ nsExternalAppHandler::nsExternalAppHandler(nsIMIMEInfo * aMIMEInfo,
   
   EnsureSuggestedFileName();
 
-  sSrv->AddRef();
+  gExtProtSvc->AddRef();
 }
 
 nsExternalAppHandler::~nsExternalAppHandler()
 {
   
-  sSrv->Release();
+  gExtProtSvc->Release();
 }
 
 NS_IMETHODIMP nsExternalAppHandler::SetWebProgressListener(nsIWebProgressListener2 * aWebProgressListener)
@@ -1755,10 +1800,9 @@ NS_IMETHODIMP nsExternalAppHandler::OnStartRequest(nsIRequest *request, nsISuppo
             rv = encEnum->GetNext(encType);
             if (NS_SUCCEEDED(rv) && !encType.IsEmpty())
             {
-              NS_ASSERTION(sSrv, "Where did the service go?");
-              sSrv->ApplyDecodingForExtension(extension,
-                                              encType,
-                                              &applyConversion);
+              NS_ASSERTION(gExtProtSvc, "Where did the service go?");
+              gExtProtSvc->ApplyDecodingForExtension(extension, encType,
+                                                     &applyConversion);
             }
           }
         }
@@ -1791,8 +1835,8 @@ NS_IMETHODIMP nsExternalAppHandler::OnStartRequest(nsIRequest *request, nsISuppo
     
     
     
-    NS_ASSERTION(sSrv, "Service gone away!?");
-    if (!sSrv->MIMETypeIsInDataSource(MIMEType.get()))
+    NS_ASSERTION(gExtProtSvc, "Service gone away!?");
+    if (!gExtProtSvc->MIMETypeIsInDataSource(MIMEType.get()))
     {
       if (!GetNeverAskFlagFromPref(NEVER_ASK_FOR_SAVE_TO_DISK_PREF, MIMEType.get()))
       {
@@ -2148,7 +2192,7 @@ nsresult nsExternalAppHandler::ExecuteDesiredAction()
       if (NS_SUCCEEDED(rv) && action == nsIMIMEInfo::saveToDisk)
       {
         nsCOMPtr<nsILocalFile> destfile(do_QueryInterface(mFinalFileDestination));
-        sSrv->FixFilePermissions(destfile);
+        gExtProtSvc->FixFilePermissions(destfile);
       }
     }
     
@@ -2454,8 +2498,8 @@ nsresult nsExternalAppHandler::OpenWithApplication()
 #endif
       }
       if (deleteTempFileOnExit) {
-        NS_ASSERTION(sSrv, "Service gone away!?");
-        sSrv->DeleteTemporaryFileOnExit(mFinalFileDestination);
+        NS_ASSERTION(gExtProtSvc, "Service gone away!?");
+        gExtProtSvc->DeleteTemporaryFileOnExit(mFinalFileDestination);
       }
     }
   }

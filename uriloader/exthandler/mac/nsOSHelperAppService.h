@@ -56,7 +56,6 @@ public:
   virtual ~nsOSHelperAppService();
 
   
-  NS_IMETHOD ExternalProtocolHandlerExists(const char * aProtocolScheme, PRBool * aHandlerExists);
   NS_IMETHOD GetApplicationDescription(const nsACString& aScheme, nsAString& _retval);
   nsresult LoadUriInternal(nsIURI * aURL);
   
@@ -69,11 +68,13 @@ public:
   
   
   virtual nsresult GetFileTokenForPath(const PRUnichar * platformAppPath, nsIFile ** aFile);
-  
+
+  nsresult OSProtocolHandlerExists(const char * aScheme,
+                                   PRBool * aHandlerExists);
+
 protected:
   
   void UpdateCreatorInfo(nsIMIMEInfo * aMIMEInfo);
-
 };
 
 #endif 
