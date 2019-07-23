@@ -228,6 +228,12 @@ public:
 
 
 
+  void SetAccurateVisibleRegions() { mAccurateVisibleRegions = PR_TRUE; }
+  PRBool GetAccurateVisibleRegions() { return mAccurateVisibleRegions; }
+  
+
+
+
   void IgnorePaintSuppression() { mIsBackgroundOnly = PR_FALSE; }
   
 
@@ -334,6 +340,7 @@ private:
   PRPackedBool                   mIsBackgroundOnly;
   PRPackedBool                   mIsAtRootOfPseudoStackingContext;
   PRPackedBool                   mPaintAllFrames;
+  PRPackedBool                   mAccurateVisibleRegions;
 };
 
 class nsDisplayItem;
