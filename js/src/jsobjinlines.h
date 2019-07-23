@@ -42,7 +42,10 @@
 #define jsobjinlines_h___
 
 #include "jsobj.h"
+#include "jsiter.h"
 #include "jsscope.h"
+
+#include "jsscopeinlines.h"
 
 inline jsval
 JSObject::getSlotMT(JSContext *cx, uintN slot)
@@ -208,6 +211,164 @@ class AutoDescriptorArray : private AutoGCRooter
   private:
     PropertyDescriptorArray descriptors;
 };
+
+static inline bool
+InitScopeForObject(JSContext* cx, JSObject* obj, JSClass *clasp, JSObject* proto, JSObjectOps* ops)
+{
+    JS_ASSERT(ops->isNative());
+    JS_ASSERT(proto == obj->getProto());
+
+    
+    JSScope *scope = NULL;
+
+    if (proto && proto->isNative()) {
+        JS_LOCK_OBJ(cx, proto);
+        scope = proto->scope();
+        if (scope->canProvideEmptyScope(ops, clasp)) {
+            JSScope *emptyScope = scope->getEmptyScope(cx, clasp);
+            JS_UNLOCK_SCOPE(cx, scope);
+            if (!emptyScope)
+                goto bad;
+            scope = emptyScope;
+        } else {
+            JS_UNLOCK_SCOPE(cx, scope);
+            scope = NULL;
+        }
+    }
+
+    if (!scope) {
+        scope = JSScope::create(cx, ops, clasp, obj, js_GenerateShape(cx, false));
+        if (!scope)
+            goto bad;
+
+        
+        JS_ASSERT(scope->freeslot >= JSSLOT_PRIVATE);
+        if (scope->freeslot > JS_INITIAL_NSLOTS &&
+            !js_AllocSlots(cx, obj, scope->freeslot)) {
+            scope->destroy(cx);
+            goto bad;
+        }
+    }
+
+    obj->map = scope;
+    return true;
+
+  bad:
+    
+    JS_ASSERT(!obj->map);
+    return false;
+}
+
+static inline JSObject *
+NewObjectWithGivenProto(JSContext *cx, JSClass *clasp, JSObject *proto,
+                        JSObject *parent, size_t objectSize = 0)
+{
+#ifdef INCLUDE_MOZILLA_DTRACE
+    if (JAVASCRIPT_OBJECT_CREATE_START_ENABLED())
+        jsdtrace_object_create_start(cx->fp, clasp);
+#endif
+
+
+    JS_ASSERT_IF(clasp->flags & JSCLASS_IS_EXTENDED,
+                 ((JSExtendedClass *)clasp)->equality);
+
+    
+    JSObjectOps *ops = clasp->getObjectOps
+                       ? clasp->getObjectOps(cx, clasp)
+                       : &js_ObjectOps;
+
+    
+
+
+
+
+    JSObject* obj;
+    if (clasp == &js_FunctionClass && !objectSize) {
+        obj = (JSObject*) js_NewGCFunction(cx);
+#ifdef DEBUG
+        if (obj) {
+            memset((uint8 *) obj + sizeof(JSObject), JS_FREE_PATTERN,
+                   sizeof(JSFunction) - sizeof(JSObject));
+        }
+#endif
+    } else {
+        JS_ASSERT(!objectSize || objectSize == sizeof(JSObject));
+        obj = (clasp == &js_IteratorClass)
+            ? js_NewGCIter(cx)
+            : js_NewGCObject(cx);
+    }
+    if (!obj)
+        goto out;
+
+    
+
+
+
+    obj->init(clasp,
+              proto,
+              (!parent && proto) ? proto->getParent() : parent,
+              JSObject::defaultPrivate(clasp));
+
+    if (ops->isNative()) {
+        if (!InitScopeForObject(cx, obj, clasp, proto, ops)) {
+            obj = NULL;
+            goto out;
+        }
+    } else {
+        JS_ASSERT(ops->objectMap->ops == ops);
+        obj->map = const_cast<JSObjectMap *>(ops->objectMap);
+    }
+
+    
+
+
+
+    if (cx->debugHooks->objectHook && !JS_ON_TRACE(cx)) {
+        AutoValueRooter tvr(cx, obj);
+        AutoKeepAtoms keep(cx->runtime);
+        cx->debugHooks->objectHook(cx, obj, JS_TRUE,
+                                   cx->debugHooks->objectHookData);
+        cx->weakRoots.finalizableNewborns[FINALIZE_OBJECT] = obj;
+    }
+
+out:
+#ifdef INCLUDE_MOZILLA_DTRACE
+    if (JAVASCRIPT_OBJECT_CREATE_ENABLED())
+        jsdtrace_object_create(cx, clasp, obj);
+    if (JAVASCRIPT_OBJECT_CREATE_DONE_ENABLED())
+        jsdtrace_object_create_done(cx->fp, clasp);
+#endif
+    return obj;
+}
+
+static inline JSProtoKey
+GetClassProtoKey(JSClass *clasp)
+{
+    JSProtoKey key = JSCLASS_CACHED_PROTO_KEY(clasp);
+    if (key != JSProto_Null)
+        return key;
+    if (clasp->flags & JSCLASS_IS_ANONYMOUS)
+        return JSProto_Object;
+    return JSProto_Null;
+}
+
+static inline JSObject *
+NewObject(JSContext *cx, JSClass *clasp, JSObject *proto,
+          JSObject *parent, size_t objectSize = 0)
+{
+    
+    if (!proto) {
+        JSProtoKey protoKey = GetClassProtoKey(clasp);
+        if (!js_GetClassPrototype(cx, parent, protoKey, &proto, clasp))
+            return NULL;
+        if (!proto &&
+            !js_GetClassPrototype(cx, parent, JSProto_Object, &proto)) {
+            return NULL;
+        }
+    }
+
+    return NewObjectWithGivenProto(cx, clasp, proto, parent, objectSize);
+}
 
 }
 

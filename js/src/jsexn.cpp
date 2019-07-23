@@ -63,6 +63,8 @@
 #include "jsscript.h"
 #include "jsstaticcheck.h"
 
+#include "jsobjinlines.h"
+
 using namespace js;
 
 
@@ -702,7 +704,7 @@ Exception(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
                                                     rval)) {
             return JS_FALSE;
         }
-        obj = js_NewObject(cx, &js_ErrorClass, JSVAL_TO_OBJECT(*rval), NULL);
+        obj = NewObject(cx, &js_ErrorClass, JSVAL_TO_OBJECT(*rval), NULL);
         if (!obj)
             return JS_FALSE;
         *rval = OBJECT_TO_JSVAL(obj);
@@ -1001,9 +1003,9 @@ js_InitExceptionClasses(JSContext *cx, JSObject *obj)
         JSFunction *fun;
 
         
-        proto = js_NewObject(cx, &js_ErrorClass,
-                             (i != JSEXN_ERR) ? error_proto : obj_proto,
-                             obj);
+        proto = NewObject(cx, &js_ErrorClass,
+                          (i != JSEXN_ERR) ? error_proto : obj_proto,
+                          obj);
         if (!proto)
             return NULL;
         if (i == JSEXN_ERR) {
@@ -1157,7 +1159,7 @@ js_ErrorToException(JSContext *cx, const char *message, JSErrorReport *reportp,
         goto out;
     tv[0] = OBJECT_TO_JSVAL(errProto);
 
-    errObject = js_NewObject(cx, &js_ErrorClass, errProto, NULL);
+    errObject = NewObject(cx, &js_ErrorClass, errProto, NULL);
     if (!errObject) {
         ok = JS_FALSE;
         goto out;
