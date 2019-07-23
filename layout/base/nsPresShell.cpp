@@ -193,7 +193,7 @@
 #include "nsCSSFrameConstructor.h"
 #ifdef MOZ_XUL
 #include "nsMenuFrame.h"
-#include "nsITreeBoxObject.h"
+#include "nsTreeBodyFrame.h"
 #endif
 #include "nsIMenuParent.h"
 #include "nsPlaceholderFrame.h"
@@ -6504,9 +6504,10 @@ ReResolveMenusAndTrees(nsIFrame *aFrame, void *aClosure)
 {
   
   
-  nsCOMPtr<nsITreeBoxObject> treeBox(do_QueryInterface(aFrame));
-  if (treeBox)
-    treeBox->ClearStyleAndImageCaches();
+  nsTreeBodyFrame *treeBody = nsnull;
+  CallQueryInterface(aFrame, &treeBody);
+  if (treeBody)
+    treeBody->ClearStyleAndImageCaches();
 
   
   
