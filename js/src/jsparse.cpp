@@ -6091,7 +6091,10 @@ CompExprTransplanter::transplant(JSParseNode *pn)
 
       case PN_BINARY:
         transplant(pn->pn_left);
-        transplant(pn->pn_right);
+
+        
+        if (pn->pn_right != pn->pn_left)
+            transplant(pn->pn_right);
         break;
 
       case PN_UNARY:
