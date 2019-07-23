@@ -84,3 +84,11 @@ notification[type="critical"] .messageImage {
   -moz-border-radius: 100%;
   -moz-box-shadow: 0 0 3px 3px -moz-mac-focusring;
 }
+
+
+
+
+notification[type="info"] .text-link {
+  color: rgba(255,255,255,0.95)  !important;
+}
+
