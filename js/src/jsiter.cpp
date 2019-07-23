@@ -731,7 +731,7 @@ js_NewGenerator(JSContext *cx, JSStackFrame *fp)
 
     
     gen->frame.varobj = fp->varobj;
-    gen->frame.thisp = fp->thisp;
+    gen->frame.thisv = fp->thisv;
 
     
     gen->frame.script = fp->script;

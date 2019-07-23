@@ -2861,9 +2861,7 @@ js_TraceStackFrame(JSTracer *trc, JSStackFrame *fp)
     }
 
     
-    JS_ASSERT(JSVAL_IS_OBJECT((jsval)fp->thisp) ||
-              (fp->fun && JSFUN_THISP_FLAGS(fp->fun->flags)));
-    JS_CALL_VALUE_TRACER(trc, (jsval)fp->thisp, "this");
+    JS_CALL_VALUE_TRACER(trc, fp->thisv, "this");
 
     if (fp->argv) {
         JS_CALL_VALUE_TRACER(trc, fp->argv[-2], "callee");
