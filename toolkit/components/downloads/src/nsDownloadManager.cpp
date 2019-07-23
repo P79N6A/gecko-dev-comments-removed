@@ -1797,10 +1797,8 @@ nsDownload::OnProgressChange64(nsIWebProgress *aWebProgress,
 
     
     nsCOMPtr<nsIResumableChannel> resumableChannel(do_QueryInterface(aRequest));
-    if (resumableChannel) {
-      rv = resumableChannel->GetEntityID(mEntityID);
-      NS_ENSURE_SUCCESS(rv, rv);
-    }
+    if (resumableChannel)
+      (void)resumableChannel->GetEntityID(mEntityID);
 
     
     rv = SetState(nsIDownloadManager::DOWNLOAD_DOWNLOADING);
