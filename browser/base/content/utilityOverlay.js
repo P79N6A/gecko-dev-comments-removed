@@ -42,6 +42,8 @@
 
 
 
+var TAB_DROP_TYPE = "application/x-moz-tabbrowser-tab";
+
 var gBidiUI = false;
 
 function getBrowserURL()

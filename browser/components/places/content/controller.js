@@ -1335,6 +1335,19 @@ var PlacesControllerDragHelper = {
 
       var data = dt.mozGetDataAt(flavor, i);
 
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      if (flavor == TAB_DROP_TYPE)
+        continue;
+
       try {
         var dragged = PlacesUtils.unwrapNodes(data, flavor)[0];
       } catch (e) {
@@ -1363,6 +1376,7 @@ var PlacesControllerDragHelper = {
     return true;
   },
 
+  
   
 
 
@@ -1444,8 +1458,22 @@ var PlacesControllerDragHelper = {
         return false;
 
       var data = dt.mozGetDataAt(flavor, i);
-      
-      var unwrapped = PlacesUtils.unwrapNodes(data, flavor)[0];
+      var unwrapped;
+      if (flavor != TAB_DROP_TYPE) {
+        
+        unwrapped = PlacesUtils.unwrapNodes(data, flavor)[0];
+      }
+      else if (data instanceof XULElement && data.localName == "tab" &&
+               data.ownerDocument.defaultView instanceof ChromeWindow) {
+        var uri = data.linkedBrowser.currentURI;
+        var spec = uri ? uri.spec : "about:blank";
+        var title = data.label;
+        unwrapped = { uri: spec,
+                      title: data.label,
+                      type: PlacesUtils.TYPE_X_MOZ_URL};
+      }
+      else
+        throw("bogus data was passed as a tab")
 
       var index = insertionPoint.index;
 
@@ -1494,10 +1522,12 @@ var PlacesControllerDragHelper = {
                   PlacesUtils.TYPE_X_MOZ_PLACE_SEPARATOR,
                   PlacesUtils.TYPE_X_MOZ_PLACE],
 
+  
   GENERIC_VIEW_DROP_TYPES: [PlacesUtils.TYPE_X_MOZ_PLACE_CONTAINER,
                             PlacesUtils.TYPE_X_MOZ_PLACE_SEPARATOR,
                             PlacesUtils.TYPE_X_MOZ_PLACE,
                             PlacesUtils.TYPE_X_MOZ_URL,
+                            TAB_DROP_TYPE,
                             PlacesUtils.TYPE_UNICODE],
 
   
