@@ -1077,6 +1077,7 @@ nsCSSRendering::PaintBoxShadow(nsPresContext* aPresContext,
                     twipsPerPixel, &borderRadii);
 
   gfxRect frameGfxRect = RectToGfxRect(frameRect, twipsPerPixel);
+  frameGfxRect.Round();
   gfxRect dirtyGfxRect = RectToGfxRect(aDirtyRect, twipsPerPixel);
 
   for (PRUint32 i = styleBorder->mBoxShadow->Length(); i > 0; --i) {
@@ -1087,7 +1088,7 @@ nsCSSRendering::PaintBoxShadow(nsPresContext* aPresContext,
 
     gfxRect shadowRectPlusBlur = shadowRect;
     shadowRect.ScaleInverse(twipsPerPixel);
-    shadowRect.RoundOut();
+    shadowRect.Round();
 
     
     
