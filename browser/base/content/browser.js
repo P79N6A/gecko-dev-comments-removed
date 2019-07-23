@@ -3226,7 +3226,11 @@ function BrowserCustomizeToolbar()
   sheetFrame.hidden = false;
 
   
-  if (sheetFrame.getAttribute("src") != customizeURL)
+  
+  
+  if (sheetFrame.getAttribute("src") == customizeURL)
+    sheetFrame.contentWindow.location.reload()
+  else
     sheetFrame.setAttribute("src", customizeURL);
 
   
