@@ -138,6 +138,7 @@ public:
     eColor__moz_buttonhovertext,                             
     eColor__moz_menuhover,                                   
     eColor__moz_menuhovertext,                               
+    eColor__moz_menubartext,                                 
     eColor__moz_menubarhovertext,                            
     
     
