@@ -270,18 +270,16 @@ nsAuthSSPI::Init(const char *serviceName,
     
     
     if (username && password) {
-        if (domain) {
-            ai.Domain = const_cast<unsigned short*>(domain);
-            ai.DomainLength = wcslen(domain);
-        }
-        else {
-            ai.Domain = NULL;
-            ai.DomainLength = 0;
-        }
-        ai.User = const_cast<unsigned short*>(username);
-        ai.UserLength = wcslen(username);
-        ai.Password = const_cast<unsigned short*>(password);
-        ai.PasswordLength = wcslen(password);
+        
+        mUsername.Assign(username);
+        mPassword.Assign(password);
+        mDomain.Assign(domain);
+        ai.Domain = reinterpret_cast<unsigned short*>(mDomain.BeginWriting());
+        ai.DomainLength = mDomain.Length();
+        ai.User = reinterpret_cast<unsigned short*>(mUsername.BeginWriting());
+        ai.UserLength = mUsername.Length();
+        ai.Password = reinterpret_cast<unsigned short*>(mPassword.BeginWriting());
+        ai.PasswordLength = mPassword.Length();
         ai.Flags = SEC_WINNT_AUTH_IDENTITY_UNICODE;
         pai = &ai;
     }
