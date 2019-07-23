@@ -42,6 +42,7 @@
 
 #ifdef UNDER_CE
 #include <cmnintrin.h>
+extern "C" bool blx_lr_broken();
 #endif
 
 #if defined(AVMPLUS_LINUX)
@@ -116,12 +117,21 @@ Assembler::CountLeadingZeroes(uint32_t data)
     
     
     
+    
+    
+    
+    
     NanoAssert(ARM_ARCH >= 5);
 
 #if defined(__ARMCC__)
     
     leading_zeroes = __clz(data);
-#elif defined(__GNUC__)
+
+
+
+
+
+#elif defined(__GNUC__) && !(defined(ANDROID) && __ARM_ARCH__ <= 5) 
     
     __asm (
         "   clz     %0, %1  \n"
@@ -758,7 +768,7 @@ Assembler::asm_stkarg(LInsp arg, int stkd)
     if (argRes && (argRes->reg != UnknownReg)) {
         
         
-        if (!isQuad) {
+        if (!ARM_VFP || !isQuad) {
             NanoAssert(IsGpReg(argRes->reg));
 
             STR(argRes->reg, SP, stkd);
@@ -1116,7 +1126,7 @@ Assembler::asm_spill(Register rr, int d, bool pop, bool quad)
     (void) pop;
     (void) quad;
     if (d) {
-        if (IsFpReg(rr)) {
+        if (ARM_VFP && IsFpReg(rr)) {
             if (isS8(d >> 2)) {
                 FSTD(rr, FP, d);
             } else {
@@ -1254,12 +1264,14 @@ Assembler::asm_quad_nochk(Register rr, int32_t imm64_0, int32_t imm64_1)
     *(--_nIns) = (NIns) imm64_1;
     *(--_nIns) = (NIns) imm64_0;
 
-    JMP_nochk(_nIns+2);
+    B_nochk(_nIns+2);
 }
 
 void
 Assembler::asm_quad(LInsp ins)
 {
+    
+
     Reservation *   res = getresv(ins);
     int             d = disp(res);
     Register        rr = res->reg;
@@ -1280,12 +1292,14 @@ Assembler::asm_quad(LInsp ins)
         STR(IP, FP, d);
         asm_ld_imm(IP, ins->imm64_0());
     }
+
+    
 }
 
 void
 Assembler::asm_nongp_copy(Register r, Register s)
 {
-    if (IsFpReg(r) && IsFpReg(s)) {
+    if (ARM_VFP && IsFpReg(r) && IsFpReg(s)) {
         
         FCPYD(r, s);
     } else {
@@ -1385,7 +1399,7 @@ Assembler::asm_mmq(Register rd, int dd, Register rs, int ds)
 
 
 verbose_only(
-void Assembler::asm_inc_m32(uint32_t* pCtr)
+void Assembler::asm_inc_m32(uint32_t* )
 {
     
 }
@@ -1437,7 +1451,7 @@ Assembler::underrunProtect(int bytes)
         
         
         
-        JMP_nochk(target);
+        B_nochk(target);
     }
 }
 
@@ -1542,7 +1556,7 @@ Assembler::BLX(Register addr, bool chk )
     NanoAssert(IsGpReg(addr));
     
     
-    NanoAssert(addr != LR);
+    if (blx_lr_bug) { NanoAssert(addr != LR); }
 
     if (chk) {
         underrunProtect(4);
@@ -1562,7 +1576,7 @@ Assembler::BLX(Register addr, bool chk )
 void
 Assembler::asm_ldr_chk(Register d, Register b, int32_t off, bool chk)
 {
-    if (IsFpReg(d)) {
+    if (ARM_VFP && IsFpReg(d)) {
         FLDD_chk(d,b,off,chk);
         return;
     }
@@ -1590,6 +1604,7 @@ Assembler::asm_ldr_chk(Register d, Register b, int32_t off, bool chk)
         
         
 
+        NanoAssert(b != PC);
         NanoAssert(b != IP);
 
         if (chk) underrunProtect(4+LD32_size);
@@ -1896,11 +1911,15 @@ Assembler::asm_prep_fcall(Reservation*, LInsp)
     return UnknownReg;
 }
 
+
+
+
 NIns*
 Assembler::asm_branch(bool branchOnFalse, LInsp cond, NIns* targ)
 {
     LOpcode condop = cond->opcode();
     NanoAssert(cond->isCond());
+    NanoAssert(ARM_VFP || ((condop < LIR_feq) || (condop > LIR_fge)));
 
     
     
@@ -1954,7 +1973,7 @@ Assembler::asm_branch(bool branchOnFalse, LInsp cond, NIns* targ)
     
     NIns *at = _nIns;
 
-    if (fp_cond)
+    if (ARM_VFP && fp_cond)
         asm_fcmp(cond);
     else
         asm_cmp(cond);
@@ -2358,14 +2377,14 @@ Assembler::asm_ret(LIns *ins)
     }
     else {
         NanoAssert(ins->isop(LIR_fret));
-#ifdef NJ_ARM_VFP
-        Register reg = findRegFor(value, FpRegs);
-        FMRRD(R0, R1, reg);
-#else
-        NanoAssert(value->isop(LIR_qjoin));
-        findSpecificRegFor(value->oprnd1(), R0); 
-        findSpecificRegFor(value->oprnd2(), R1); 
-#endif
+        if (ARM_VFP) {
+            Register reg = findRegFor(value, FpRegs);
+            FMRRD(R0, R1, reg);
+        } else {
+            NanoAssert(value->isop(LIR_qjoin));
+            findSpecificRegFor(value->oprnd1(), R0); 
+            findSpecificRegFor(value->oprnd2(), R1); 
+        }
     }
 }
 
