@@ -20,6 +20,7 @@
 #
 # Contributor(s):
 #  Ehsan Akhgari <ehsan.akhgari@gmail.com> (Original Author)
+#  Simon BÃ¼nzli <zeniko@gmail.com>
 #
 # Alternatively, the contents of this file may be used under the terms of
 # either the GNU General Public License Version 2 or later (the "GPL"), or
@@ -400,7 +401,7 @@ PrivateBrowsingService.prototype = {
       }
       
       
-      catch (ex if ex == "User canceled Master Password entry") {}
+      catch (ex if ex.message.indexOf("User canceled Master Password entry") != -1) { }
 
       
       let disabledHosts = lm.getAllDisabledHosts({});
@@ -455,6 +456,9 @@ PrivateBrowsingService.prototype = {
         }
       }
     }
+
+    
+    this._obs.notifyObservers(null, "browser:purge-domain-data", aDomain);
   }
 };
 
