@@ -59,14 +59,14 @@
 #endif
 #endif
 
+#include <stdio.h>
+#include <stdarg.h>
 #include <string.h>
 
 #include "updater/resource.h"
 #include "updater/progressui.h"
 #include "updater/readstrings.h"
 #include "updater/errors.h"
-
-#include "TestHarness.h"
 
 #ifndef MAXPATHLEN
 # ifdef PATH_MAX
@@ -83,6 +83,37 @@
 #endif
 
 #define TEST_NAME "Updater ReadStrings"
+
+static int gFailCount = 0;
+
+
+
+
+
+
+void fail(const char* msg, ...)
+{
+  va_list ap;
+
+  printf("TEST-UNEXPECTED-FAIL | ");
+
+  va_start(ap, msg);
+  vprintf(msg, ap);
+  va_end(ap);
+
+  putchar('\n');
+  ++gFailCount;
+}
+
+
+
+
+
+
+void passed(const char* test)
+{
+  printf("TEST-PASS | %s\n", test);
+}
 
 int NS_main(int argc, NS_tchar **argv)
 {
