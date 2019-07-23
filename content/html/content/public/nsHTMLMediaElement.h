@@ -142,6 +142,11 @@ public:
   
   void UpdateMediaSize(nsIntSize size);
 
+  
+  
+  void Freeze();
+  void Thaw();
+
 protected:
   nsresult PickMediaElement(nsAString& aChosenMediaResource);
   virtual nsresult InitializeDecoder(nsAString& aChosenMediaResource);
@@ -213,4 +218,9 @@ protected:
   
   
   PRPackedBool mPlayingBeforeSeek;
+
+  
+  
+  
+  PRPackedBool mPausedBeforeFreeze;
 };
