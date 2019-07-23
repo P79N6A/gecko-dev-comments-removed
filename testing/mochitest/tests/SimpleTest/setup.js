@@ -43,6 +43,11 @@ TestRunner.logger = new Logger();
 var params = parseQueryString(location.search.substring(1), true);
 
 
+if (params.timeout) {
+  TestRunner.timeout = parseInt(params.timeout) * 1000;
+}
+
+
 var fileLevel =  params.fileLevel || null;
 var consoleLevel = params.consoleLevel || null;
 
