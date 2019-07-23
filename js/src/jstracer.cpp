@@ -1382,6 +1382,8 @@ TraceRecorder::emitTreeCall(Fragment* inner, GuardRecord* lr)
         lir->insStorei(lirbuf->rp, lirbuf->state, offsetof(InterpState, rp));
     }
     
+    lir->insStorei(lir->insImmPtr(lr), lirbuf->state, offsetof(InterpState, nestedExit));
+    
 
     guard(true, lir->ins2(LIR_eq, ret, lir->insImmPtr(lr)), NESTED_EXIT);
 }
