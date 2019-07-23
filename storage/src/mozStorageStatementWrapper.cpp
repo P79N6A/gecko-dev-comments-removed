@@ -452,8 +452,8 @@ mozStorageStatementWrapper::HasInstance(nsIXPConnectWrappedNative *wrapper, JSCo
 
 
 NS_IMETHODIMP
-mozStorageStatementWrapper::Trace(nsIXPConnectWrappedNative *wrapper,
-                                  JSTracer *trc, JSObject *obj)
+mozStorageStatementWrapper::Mark(nsIXPConnectWrappedNative *wrapper, JSContext * cx,
+                          JSObject * obj, void * arg, PRUint32 *_retval)
 {
     return NS_ERROR_NOT_IMPLEMENTED;
 }
@@ -720,8 +720,8 @@ mozStorageStatementRow::HasInstance(nsIXPConnectWrappedNative *wrapper, JSContex
 
 
 NS_IMETHODIMP
-mozStorageStatementRow::Trace(nsIXPConnectWrappedNative *wrapper,
-                              JSTracer * trc, JSObject * obj)
+mozStorageStatementRow::Mark(nsIXPConnectWrappedNative *wrapper, JSContext * cx,
+                             JSObject * obj, void * arg, PRUint32 *_retval)
 {
     return NS_ERROR_NOT_IMPLEMENTED;
 }
@@ -1003,8 +1003,8 @@ mozStorageStatementParams::HasInstance(nsIXPConnectWrappedNative *wrapper, JSCon
 
 
 NS_IMETHODIMP
-mozStorageStatementParams::Trace(nsIXPConnectWrappedNative *wrapper,
-                                JSTracer *trc, JSObject * obj)
+mozStorageStatementParams::Mark(nsIXPConnectWrappedNative *wrapper, JSContext * cx,
+                             JSObject * obj, void * arg, PRUint32 *_retval)
 {
     return NS_ERROR_NOT_IMPLEMENTED;
 }

@@ -94,6 +94,7 @@ NS_CYCLE_COLLECTION_CLASSNAME(XPCWrappedNative)::Traverse(nsISupports *s,
 
 
     
+    
 
     
     if(tmp->HasProto())

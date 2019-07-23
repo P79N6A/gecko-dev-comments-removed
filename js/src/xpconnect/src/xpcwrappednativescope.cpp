@@ -268,11 +268,9 @@ WrappedNativeJSGCThingMarker(JSDHashTable *table, JSDHashEntryHdr *hdr,
     XPCWrappedNative* wrapper = ((Native2WrappedNativeMap::Entry*)hdr)->value;
     if(wrapper->HasExternalReference())
     {
-        JSTracer* trc = (JSTracer *)arg;
-        JS_CALL_OBJECT_TRACER(trc, wrapper->GetFlatJSObject(),
-                              "XPCWrappedNative::mFlatJSObject");
+        JS_MarkGCThing((JSContext*)arg, wrapper->GetFlatJSObject(), 
+                       "XPCWrappedNative::mFlatJSObject", nsnull);
 
-        
         
         
         
@@ -285,30 +283,25 @@ WrappedNativeJSGCThingMarker(JSDHashTable *table, JSDHashEntryHdr *hdr,
 
 
 void
-XPCWrappedNativeScope::TraceJS(JSTracer* trc, XPCJSRuntime* rt)
-{
-    
-    for(XPCWrappedNativeScope* cur = gScopes; cur; cur = cur->mNext)
-    {
-        cur->mWrappedNativeMap->Enumerate(WrappedNativeJSGCThingMarker, trc);
-    }
-}
-
-
-void
 XPCWrappedNativeScope::FinishedMarkPhaseOfGC(JSContext* cx, XPCJSRuntime* rt)
 {
     
     XPCAutoLock lock(rt->GetMapLock());
 
-    TraceJS(JS_GetGCMarkingTracer(cx), rt);
+    XPCWrappedNativeScope* cur;
+    
+    
+    for(cur = gScopes; cur; cur = cur->mNext)
+    {
+        cur->mWrappedNativeMap->Enumerate(WrappedNativeJSGCThingMarker, cx);
+    }
 
     
     
     
 
     XPCWrappedNativeScope* prev = nsnull;
-    XPCWrappedNativeScope* cur = gScopes;
+    cur = gScopes;
 
     while(cur)
     {
