@@ -1083,12 +1083,24 @@ nsLayoutUtils::PaintFrame(nsIRenderingContext* aRenderingContext, nsIFrame* aFra
     }
   }
 
+  nsIAtom* frameType = aFrame->GetType();
   
   
-  
-  
-  
-  if (NS_SUCCEEDED(rv) && aFrame->GetType() != nsGkAtoms::pageFrame) {
+  if (frameType == nsGkAtoms::viewportFrame &&
+      aFrame->PresContext()->IsRootPaginatedDocument() &&
+      (aFrame->PresContext()->Type() == nsPresContext::eContext_PrintPreview ||
+       aFrame->PresContext()->Type() == nsPresContext::eContext_PageLayout)) {
+    nsRect bounds = nsRect(builder.ToReferenceFrame(aFrame),
+                           aFrame->GetSize());
+    rv = list.AppendNewToBottom(new (&builder) nsDisplaySolidColor(
+           aFrame, bounds, NS_RGB(115, 115, 115)));
+  } else if (frameType != nsGkAtoms::pageFrame) {
+    
+    
+    
+    
+    
+
     
     rv = aFrame->PresContext()->PresShell()->AddCanvasBackgroundColorItem(
            builder, list, aFrame, nsnull, aBackstop);
