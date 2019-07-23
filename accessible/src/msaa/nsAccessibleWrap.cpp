@@ -203,8 +203,13 @@ __try {
       if (widget) {
         hwnd = (HWND)widget->GetNativeData(NS_NATIVE_WINDOW);
         NS_ASSERTION(hwnd, "No window handle for window");
+
+        nsIViewManager* viewManager = view->GetViewManager();
+        if (!viewManager)
+          return E_UNEXPECTED;
+
         nsIView *rootView;
-        view->GetViewManager()->GetRootView(rootView);
+        viewManager->GetRootView(rootView);
         if (rootView == view) {
           
           
