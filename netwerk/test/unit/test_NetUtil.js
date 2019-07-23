@@ -164,9 +164,29 @@ function test_newURI()
   let ios = Cc["@mozilla.org/network/io-service;1"].getService(Ci.nsIIOService);
 
   
+  
   const TEST_URI = "http://mozilla.org";
   let iosURI = ios.newURI(TEST_URI, null, null);
   let NetUtilURI = NetUtil.newURI(TEST_URI);
+  do_check_true(iosURI.equals(NetUtilURI));
+
+  run_next_test();
+}
+
+function test_newURI_takes_nsIFile()
+{
+  let ios = Cc["@mozilla.org/network/io-service;1"].getService(Ci.nsIIOService);
+
+  
+  let file = Cc["@mozilla.org/file/directory_service;1"].
+             getService(Ci.nsIProperties).
+             get("TmpD", Ci.nsIFile);
+  file.append("NetUtil-test-file.tmp");
+
+  
+  
+  let iosURI = ios.newFileURI(file);
+  let NetUtilURI = NetUtil.newURI(file);
   do_check_true(iosURI.equals(NetUtilURI));
 
   run_next_test();
@@ -274,6 +294,7 @@ let tests = [
   test_async_write_file_nsISafeOutputStream,
   test_newURI_no_spec_throws,
   test_newURI,
+  test_newURI_takes_nsIFile,
   test_ioService,
   test_asyncFetch_no_channel,
   test_asyncFetch_no_callback,
@@ -287,7 +308,14 @@ function run_next_test()
   if (index < tests.length) {
     do_test_pending();
     print("Running the next test: " + tests[index].name);
-    tests[index++]();
+
+    
+    try {
+      tests[index++]();
+    }
+    catch (e) {
+      do_throw(e);
+    }
   }
 
   do_test_finished();

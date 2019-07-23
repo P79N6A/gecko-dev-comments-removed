@@ -183,18 +183,25 @@ const NetUtil = {
 
 
 
-    newURI: function NetUtil_newURI(aSpec, aOriginCharset, aBaseURI)
+
+
+
+    newURI: function NetUtil_newURI(aTarget, aOriginCharset, aBaseURI)
     {
-        if (!aSpec) {
+        if (!aTarget) {
             let exception = new Components.Exception(
-                "Must have a non-null spec",
+                "Must have a non-null string spec or nsIFile object",
                 Cr.NS_ERROR_INVALID_ARG,
                 Components.stack.caller
             );
             throw exception;
         }
 
-        return this.ioService.newURI(aSpec, aOriginCharset, aBaseURI);
+        if (aTarget instanceof Ci.nsIFile) {
+            return this.ioService.newFileURI(aTarget);
+        }
+
+        return this.ioService.newURI(aTarget, aOriginCharset, aBaseURI);
     },
 
     
