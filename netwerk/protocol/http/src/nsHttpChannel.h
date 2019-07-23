@@ -84,6 +84,7 @@
 #include "nsICancelable.h"
 #include "nsIProxiedChannel.h"
 #include "nsITraceableChannel.h"
+#include "nsIAuthPromptCallback.h"
 
 class nsHttpResponseHead;
 class nsAHttpConnection;
@@ -109,6 +110,7 @@ class nsHttpChannel : public nsHashPropertyBag
                     , public nsIProxiedChannel
                     , public nsITraceableChannel
                     , public nsIApplicationCacheChannel
+                    , public nsIAuthPromptCallback
 {
 public:
     NS_DECL_ISUPPORTS_INHERITED
@@ -130,6 +132,7 @@ public:
     NS_DECL_NSITRACEABLECHANNEL
     NS_DECL_NSIAPPLICATIONCACHECONTAINER
     NS_DECL_NSIAPPLICATIONCACHECHANNEL
+    NS_DECL_NSIAUTHPROMPTCALLBACK
 
     nsHttpChannel();
     virtual ~nsHttpChannel();
@@ -223,19 +226,38 @@ private:
     
     nsresult PrepareForAuthentication(PRBool proxyAuth);
     nsresult GenCredsAndSetEntry(nsIHttpAuthenticator *, PRBool proxyAuth, const char *scheme, const char *host, PRInt32 port, const char *dir, const char *realm, const char *challenge, const nsHttpAuthIdentity &ident, nsCOMPtr<nsISupports> &session, char **result);
-    nsresult GetCredentials(const char *challenges, PRBool proxyAuth, nsAFlatCString &creds);
-    nsresult GetCredentialsForChallenge(const char *challenge, const char *scheme,  PRBool proxyAuth, nsIHttpAuthenticator *auth, nsAFlatCString &creds);
     nsresult GetAuthenticator(const char *challenge, nsCString &scheme, nsIHttpAuthenticator **auth); 
     void     ParseRealm(const char *challenge, nsACString &realm);
     void     GetIdentityFromURI(PRUint32 authFlags, nsHttpAuthIdentity&);
+    
+
+
+
+
+
+    nsresult GetCredentials(const char *challenges, PRBool proxyAuth, nsAFlatCString &creds);
+    nsresult GetCredentialsForChallenge(const char *challenge, const char *scheme,  PRBool proxyAuth, nsIHttpAuthenticator *auth, nsAFlatCString &creds);
     nsresult PromptForIdentity(PRUint32 level, PRBool proxyAuth, const char *realm, const char *authType, PRUint32 authFlags, nsHttpAuthIdentity &);
+
     PRBool   ConfirmAuth(const nsString &bundleKey, PRBool doYesNoPrompt);
     void     CheckForSuperfluousAuth();
     void     SetAuthorizationHeader(nsHttpAuthCache *, nsHttpAtom header, const char *scheme, const char *host, PRInt32 port, const char *path, nsHttpAuthIdentity &ident);
     void     AddAuthorizationHeaders();
     nsresult GetCurrentPath(nsACString &);
+    
+
+
+
+
+    nsresult GetAuthorizationMembers(PRBool proxyAuth, nsCSubstring& scheme, const char*& host, PRInt32& port, nsCSubstring& path, nsHttpAuthIdentity*& ident, nsISupports**& continuationState);
     nsresult DoAuthRetry(nsAHttpConnection *);
     PRBool   MustValidateBasedOnQueryUrl();
+    
+
+
+
+
+    nsresult ContinueOnAuthAvailable(const nsCSubstring& creds);
 
 private:
     nsCOMPtr<nsIURI>                  mOriginalURI;
@@ -294,6 +316,19 @@ private:
     nsHttpAuthIdentity                mProxyIdent;
 
     
+    
+    
+    nsCOMPtr<nsICancelable>           mAsyncPromptAuthCancelable;
+    
+    
+    
+    nsCString                         mCurrentChallenge;
+    
+    
+    
+    nsCString                         mRemainingChallenges;
+
+    
     nsCString                         mEntityID;
     PRUint64                          mStartPos;
 
@@ -329,6 +364,9 @@ private:
     PRUint32                          mTransactionReplaced      : 1;
     PRUint32                          mUploadStreamHasHeaders   : 1;
     PRUint32                          mAuthRetryPending         : 1;
+    
+    
+    PRUint32                          mProxyAuth                : 1;
     PRUint32                          mSuppressDefensiveAuth    : 1;
     PRUint32                          mResuming                 : 1;
     PRUint32                          mInitedCacheEntry         : 1;
