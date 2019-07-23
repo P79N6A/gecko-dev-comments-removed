@@ -297,6 +297,8 @@ nsNativeAppSupportUnix::Start(PRBool *aRetVal)
 
   *aRetVal = PR_TRUE;
 
+#ifdef MOZ_X11
+
   PRLibrary *gnomeuiLib = PR_LoadLibrary("libgnomeui-2.so.0");
   if (!gnomeuiLib)
     return NS_OK;
@@ -316,6 +318,8 @@ nsNativeAppSupportUnix::Start(PRBool *aRetVal)
     return NS_OK;
   }
 
+#endif 
+
 #ifdef ACCESSIBILITY
   
   
@@ -325,7 +329,9 @@ nsNativeAppSupportUnix::Start(PRBool *aRetVal)
   setenv(accEnv, "0", 1);
 #endif
 
+#ifdef MOZ_X11
   gnome_program_init("Gecko", "1.0", libgnomeui_module_info_get(), gArgc, gArgv, NULL);
+#endif 
 
 #ifdef ACCESSIBILITY
   if (accOldValue) { 
@@ -339,6 +345,7 @@ nsNativeAppSupportUnix::Start(PRBool *aRetVal)
   
   
 
+#ifdef MOZ_X11
   gnome_client_request_interaction = (_gnome_client_request_interaction_fn)
     PR_FindFunctionSymbol(gnomeuiLib, "gnome_client_request_interaction");
   gnome_interaction_key_return = (_gnome_interaction_key_return_fn)
@@ -352,6 +359,7 @@ nsNativeAppSupportUnix::Start(PRBool *aRetVal)
   GnomeClient *client = gnome_master_client();
   g_signal_connect(client, "save-yourself", G_CALLBACK(save_yourself_cb), NULL);
   g_signal_connect(client, "die", G_CALLBACK(die_cb), NULL);
+#endif 
 
   return NS_OK;
 }
