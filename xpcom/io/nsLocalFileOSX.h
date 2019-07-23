@@ -89,10 +89,9 @@ protected:
     nsresult            SetBaseRef(CFURLRef aCFURLRef); 
     nsresult            UpdateTargetRef();
     
-    nsresult            GetFSRefInternal(FSRef& aFSSpec, PRBool bForceUpdateCache = PR_TRUE);
+    nsresult            GetFSRefInternal(FSRef& aFSSpec);
     nsresult            GetPathInternal(nsACString& path);  
-    nsresult            EqualsInternal(nsISupports* inFile,
-                                       PRBool aUpdateCache, PRBool *_retval);
+    nsresult            EqualsInternal(nsISupports* inFile, PRBool *_retval);
 
     nsresult            CopyInternal(nsIFile* newParentDir,
                                      const nsAString& newName,
@@ -106,9 +105,6 @@ protected:
     CFURLRef            mBaseRef;           
     CFURLRef            mTargetRef;         
 
-    FSRef               mCachedFSRef;
-    PRPackedBool        mCachedFSRefValid;
-    
     PRPackedBool        mFollowLinks;
     PRPackedBool        mFollowLinksDirty;
 
