@@ -6217,14 +6217,21 @@ nsCSSFrameConstructor::MaybeConstructLazily(Operation aOperation,
   nsIContent* content = aContainer;
   while (content &&
          !content->HasFlag(NODE_DESCENDANTS_NEED_FRAMES)) {
-    NS_ASSERTION(content->GetPrimaryFrame() &&
-                 (!content->HasFlag(NODE_NEEDS_FRAME) ||
-                  content->GetPrimaryFrame()->GetContent() != content),
+    NS_ASSERTION(content->GetPrimaryFrame() ||
+      (content->GetFlattenedTreeParent() &&
+       content->GetFlattenedTreeParent()->GetPrimaryFrame() &&
+       content->GetFlattenedTreeParent()->GetPrimaryFrame()->IsLeaf()),
+      
+      
+      "Ancestors of nodes with frames to be constructed lazily should have "
+      "frames");
+    NS_ASSERTION(!content->HasFlag(NODE_NEEDS_FRAME) ||
+                 content->GetPrimaryFrame()->GetContent() != content,
                  
                  
                  
                  "Ancestors of nodes with frames to be constructed lazily "
-                 "should have frames and not have NEEDS_FRAME bit set");
+                 "should not have NEEDS_FRAME bit set");
     content->SetFlags(NODE_DESCENDANTS_NEED_FRAMES);
     content = content->GetFlattenedTreeParent();
   }
