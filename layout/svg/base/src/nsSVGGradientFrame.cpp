@@ -328,18 +328,20 @@ nsSVGGradientFrame::SetupPaintServer(gfxContext *aContext,
                                      nsSVGGeometryFrame *aSource,
                                      float aGraphicOpacity)
 {
-  PRUint32 nStops = GetStopCount();
-
-  
-  
-  if (nStops == 0)
-    return PR_FALSE;
-
   
   gfxMatrix patternMatrix = GetGradientTransform(aSource);
 
   if (patternMatrix.IsSingular())
     return PR_FALSE;
+
+  PRUint32 nStops = GetStopCount();
+
+  
+  
+  if (nStops == 0) {
+    aContext->SetColor(gfxRGBA(0, 0, 0, 0));
+    return PR_TRUE;
+  }
 
   patternMatrix.Invert();
 
