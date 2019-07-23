@@ -126,6 +126,10 @@
 
 #include "gfxContext.h"
 
+#ifdef XP_WIN
+#include "gfxWindowsNativeDrawing.h"
+#endif
+
 
 #ifdef ACCESSIBILITY
 #include "nsIAccessibilityService.h"
@@ -1168,8 +1172,58 @@ nsObjectFrame::PrintPlugin(nsIRenderingContext& aRenderingContext,
 
   PR_LOG(nsObjectFrameLM, PR_LOG_DEBUG, ("plugin printing done, return code is %lx\n", (long)rv));
 
+#elif defined(XP_WIN)
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  gfxContext *ctx = aRenderingContext.ThebesContext();
+
+  ctx->Save();
+
+  ctx->NewPath();
+  ctx->Rectangle(gfxRect(window.x, window.y,
+                         window.width, window.height));
+  ctx->Clip();
+  ctx->PushGroup(gfxASurface::CONTENT_COLOR_ALPHA);
+
+  gfxWindowsNativeDrawing nativeDraw(ctx,
+                                     gfxRect(window.x, window.y,
+                                             window.width, window.height));
+  do {
+    HDC dc = nativeDraw.BeginNativeDrawing();
+    if (!dc)
+      return;
+
+    npprint.print.embedPrint.platformPrint = dc;
+    npprint.print.embedPrint.window = window;
+    
+    rv = pi->Print(&npprint);
+
+    nativeDraw.EndNativeDrawing();
+  } while (nativeDraw.ShouldRenderAgain());
+  nativeDraw.PaintToContext();
+
+  ctx->PopGroupToSource();
+  ctx->Paint();
+
+  ctx->Restore();
+
 #else
 
+  
   
   
   void* dc;
