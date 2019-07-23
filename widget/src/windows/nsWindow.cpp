@@ -404,11 +404,6 @@ nsWindow::nsWindow() : nsBaseWidget()
   mBrush                = ::CreateSolidBrush(NSRGB_2_COLOREF(mBackground));
   mForeground           = ::GetSysColor(COLOR_WINDOWTEXT);
 
-#ifdef WINCE_WINDOWS_MOBILE
-  mInvalidatedRegion = do_CreateInstance(kRegionCID);
-  mInvalidatedRegion->Init();
-#endif
-
 #if MOZ_WINSDK_TARGETVER >= MOZ_NTDDI_WIN7
   mTaskbarPreview = nsnull;
   mHasTaskbarIconBeenCreated = PR_FALSE;
@@ -2097,12 +2092,7 @@ NS_METHOD nsWindow::Invalidate(PRBool aIsSynchronous)
                          nsCAutoString("noname"),
                          (PRInt32) mWnd);
 #endif 
-#ifdef WINCE_WINDOWS_MOBILE
-    
-    RECT r;
-    GetClientRect(mWnd, &r);
-    AddRECTToRegion(r, mInvalidatedRegion);
-#endif
+
     VERIFY(::InvalidateRect(mWnd, NULL, FALSE));
 
     if (aIsSynchronous) {
@@ -2133,10 +2123,6 @@ NS_METHOD nsWindow::Invalidate(const nsIntRect & aRect, PRBool aIsSynchronous)
     rect.right  = aRect.x + aRect.width;
     rect.bottom = aRect.y + aRect.height;
 
-#ifdef WINCE_WINDOWS_MOBILE
-    
-    AddRECTToRegion(rect, mInvalidatedRegion);
-#endif
     VERIFY(::InvalidateRect(mWnd, &rect, FALSE));
 
     if (aIsSynchronous) {
@@ -6199,11 +6185,6 @@ HBRUSH nsWindow::OnControlColor()
 
 PRBool nsWindow::AutoErase(HDC dc)
 {
-#ifdef WINCE_WINDOWS_MOBILE
-  RECT wrect;
-  GetClipBox(dc, &wrect);
-  AddRECTToRegion(wrect, mInvalidatedRegion);
-#endif
   return PR_FALSE;
 }
 

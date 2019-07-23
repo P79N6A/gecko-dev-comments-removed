@@ -283,13 +283,16 @@ nsCOMPtr<nsIRegion> nsWindow::GetRegionToPaint(PRBool aForceFullRepaint,
   }
 #else
 # ifdef WINCE_WINDOWS_MOBILE
-  if (!mInvalidatedRegion->IsEmpty()) {  
-    
-    
-    paintRgnWin = mInvalidatedRegion.forget();
-    mInvalidatedRegion = do_CreateInstance(kRegionCID);
-    mInvalidatedRegion->Init(); 
-    return paintRgnWin;
+  paintRgn = ::CreateRectRgn(0, 0, 0, 0);
+  if (paintRgn != NULL) {
+    int result = GetUpdateRgn(mWnd, paintRgn, FALSE);
+    if (result == 1) {
+      POINT pt = {0,0};
+      ::MapWindowPoints(NULL, mWnd, &pt, 1);
+      ::OffsetRgn(paintRgn, pt.x, pt.y);
+    }
+    paintRgnWin = nsWindowGfx::ConvertHRGNToRegion(paintRgn);
+    ::DeleteObject(paintRgn);
   }
 # endif
   paintRgn = ::CreateRectRgn(ps.rcPaint.left, ps.rcPaint.top,
@@ -1044,23 +1047,17 @@ PRBool nsWindow::OnPaintImageDDraw16()
     r.bottom = rects->mRects[i].height + rects->mRects[i].y;
     RECT renderRect = r;
     SetLastError(0); 
-    if (MapWindowPoints(mWnd, 0, (LPPOINT)&renderRect, 2) || 0 == (hr = GetLastError()))
-      hr = glpDDPrimary->Blt(&renderRect, glpDDSecondary, &r, 0, NULL);
-#ifdef WINCE_WINDOWS_MOBILE
-    if (FAILED(hr))
-      
-      mInvalidatedRegion->Union(rects->mRects[i].x, rects->mRects[i].y,
-                                rects->mRects[i].width, rects->mRects[i].height);
-#endif
+    MapWindowPoints(mWnd, 0, (LPPOINT)&renderRect, 2);
+    hr = glpDDPrimary->Blt(&renderRect, glpDDSecondary, &r, 0, NULL);
+    if (FAILED(hr)) {
+      NS_ERROR("this blt should never fail!");
+      printf("#### %s blt failed: %08lx", __FUNCTION__, hr);
+    }
   }
   result = PR_TRUE;
 
 cleanup:
-#ifdef WINCE_WINDOWS_MOBILE
-  
-  if (!result)
-    mInvalidatedRegion->Union(*paintRgnWin.get());
-#endif
+  NS_ASSERTION(result == PR_TRUE, "fatal drawing error");
   ::EndPaint(mWnd, &ps);
   mPaintDC = nsnull;
   mPainting = PR_FALSE;
