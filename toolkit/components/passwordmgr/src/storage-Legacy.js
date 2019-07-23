@@ -57,6 +57,14 @@ LoginManagerStorage_legacy.prototype = {
         return this.__logService;
     },
 
+    __ioService: null, 
+    get _ioService() {
+        if (!this.__ioService)
+            this.__ioService = Cc["@mozilla.org/network/io-service;1"].
+                               getService(Ci.nsIIOService);
+        return this.__ioService;
+    },
+
     __decoderRing : null,  
     get _decoderRing() {
         if (!this.__decoderRing)
@@ -439,42 +447,226 @@ LoginManagerStorage_legacy.prototype = {
 
 
     _getSignonsFile : function() {
-        var importFile = null;
+        var destFile = null, importFile = null;
 
         
         var DIR_SERVICE = new Components.Constructor(
                 "@mozilla.org/file/directory_service;1", "nsIProperties");
         var pathname = (new DIR_SERVICE()).get("ProfD", Ci.nsIFile).path;
 
-
         
-        var filename = this._prefBranch.getCharPref("SignonFileName2");
+        
+        
+        var prefs = ["SignonFileName3", "SignonFileName2", "SignonFileName"];
+        for (var i = 0; i < prefs.length; i++) {
+            var prefName = prefs[i];
 
-        var file = Cc["@mozilla.org/file/local;1"].
-                   createInstance(Ci.nsILocalFile);
-        file.initWithPath(pathname);
-        file.append(filename);
+            var filename = this._prefBranch.getCharPref(prefName);
 
-        if (!file.exists()) {
-            this.log("SignonFilename2 file does not exist. file=" +
-                     filename + ", path=" + pathname);
+            this.log("Checking file " + filename + " (" + prefName + ")");
+
+            var file = Cc["@mozilla.org/file/local;1"].
+                       createInstance(Ci.nsILocalFile);
+            file.initWithPath(pathname);
+            file.append(filename);
 
             
-            var oldname = this._prefBranch.getCharPref("SignonFileName");
+            if (!destFile)
+                destFile = file;
+            else
+                importFile = file;
 
-            importFile = Cc["@mozilla.org/file/local;1"].
-                         createInstance(Ci.nsILocalFile);
-            importFile.initWithPath(pathname);
-            importFile.append(oldname);
-
-            if (!importFile.exists()) {
-                this.log("SignonFilename1 file does not exist. file=" +
-                        oldname + ", path=" + pathname);
-                importFile = null;
-            }
+            if (file.exists())
+                return [destFile, importFile];
         }
 
-        return [file, importFile];
+        
+        return [destFile, null];
+    },
+
+
+    
+
+
+
+
+
+
+    _upgrade_entry_to_2E : function (aLogin) {
+        var upgradedLogins = [aLogin];
+
+        
+
+
+
+
+
+
+
+
+
+
+
+
+
+        if (aLogin.hostname.indexOf("://") == -1) {
+            var oldHost = aLogin.hostname;
+
+            
+            try {
+                
+                
+                
+                var uri = this._ioService.newURI("http://" + aLogin.hostname,
+                                                 null, null);
+                var host = uri.host;
+                var port = uri.port;
+            } catch (e) {
+                this.log("2E upgrade: Can't parse hostname " + aLogin.hostname);
+                return upgradedLogins;
+            }
+
+            if (port == 80 || port == -1)
+                aLogin.hostname = "http://" + host;
+            else if (port == 443)
+                aLogin.hostname = "https://" + host;
+            else {
+                
+                
+                
+                
+                this.log("2E upgrade: Cloning login for " + aLogin.hostname);
+
+                aLogin.hostname = "http://" + host + ":" + port;
+
+                var extraLogin = Cc["@mozilla.org/login-manager/loginInfo;1"].
+                                 createInstance(Ci.nsILoginInfo);
+                extraLogin.init("https://" + host + ":" + port,
+                                null, aLogin.httpRealm,
+                                null, null, "", "");
+                
+                
+                extraLogin.wrappedJSObject.encryptedPassword = 
+                    aLogin.wrappedJSObject.encryptedPassword;
+                extraLogin.wrappedJSObject.encryptedUsername = 
+                    aLogin.wrappedJSObject.encryptedUsername;
+
+                if (extraLogin.httpRealm == "")
+                    extraLogin.httpRealm = extraLogin.hostname;
+                
+                upgradedLogins.push(extraLogin);
+            }
+
+            
+            
+            if (aLogin.httpRealm == "")
+                aLogin.httpRealm = aLogin.hostname;
+
+            this.log("2E upgrade: " + oldHost + " ---> " + aLogin.hostname);
+
+            return upgradedLogins;
+        }
+
+
+        
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        
+        var ioService = this._ioService;
+        var log = this.log;
+
+        function cleanupURL(aURL) {
+            var newURL, username = null;
+
+            try {
+                var uri = ioService.newURI(aURL, null, null);
+
+                var scheme = uri.scheme;
+                newURL = scheme + "://" + uri.host;
+
+                
+                
+                port = uri.port;
+                if (port != -1) {
+                    var handler = ioService.getProtocolHandler(scheme);
+                    if (port != handler.defaultPort)
+                        newURL += ":" + port;
+                }
+
+                
+                if (scheme != "http" && scheme != "https" && uri.username)
+                    username = uri.username;
+                
+            } catch (e) {
+                log("Can't cleanup URL: " + aURL);
+                newURL = aURL;
+            }
+
+            if (newURL != aURL)
+                log("2E upgrade: " + aURL + " ---> " + newURL);
+
+            return [newURL, username];
+        }
+
+        var isFormLogin = (aLogin.formSubmitURL ||
+                           aLogin.usernameField ||
+                           aLogin.passwordField);
+
+        var [hostname, username] = cleanupURL(aLogin.hostname);
+        aLogin.hostname = hostname;
+
+        
+        
+        
+        if (username && !isFormLogin) {
+            var [encUsername, userCanceled] = this._encrypt(username);
+            if (!userCanceled)
+                aLogin.wrappedJSObject.encryptedUsername = encUsername;
+        }
+
+
+        if (aLogin.formSubmitURL) {
+            [hostname, username] = cleanupURL(aLogin.formSubmitURL);
+            aLogin.formSubmitURL = hostname;
+            
+        }
+
+
+        
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        const isHTTP = /^https?:\/\//;
+        if (!isHTTP.test(aLogin.hostname) && !isFormLogin) {
+            aLogin.httpRealm = aLogin.hostname;
+            aLogin.formSubmitURL = null;
+            this.log("2E upgrade: set empty realm to " + aLogin.httpRealm);
+        }
+
+        return upgradedLogins;
     },
 
 
@@ -483,7 +675,7 @@ LoginManagerStorage_legacy.prototype = {
 
 
     _readFile : function () {
-        var oldFormat = false;
+        var formatVersion;
 
         this.log("Reading passwords from " + this._signonsFile.path);
 
@@ -503,7 +695,8 @@ LoginManagerStorage_legacy.prototype = {
 
         const STATE = { HEADER : 0, REJECT : 1, REALM : 2,
                         USERFIELD : 3, USERVALUE : 4,
-                        PASSFIELD : 5, PASSVALUE : 6, ACTIONURL : 7 };
+                        PASSFIELD : 5, PASSVALUE : 6, ACTIONURL : 7,
+                        FILLER : 8 };
         var parseState = STATE.HEADER;
 
         var nsLoginInfo = new Components.Constructor(
@@ -517,8 +710,12 @@ LoginManagerStorage_legacy.prototype = {
                 
                 case STATE.HEADER:
                     if (line.value == "#2c") {
-                        oldFormat = true;
-                    } else if (line.value != "#2d") {
+                        formatVersion = 0x2c;
+                    } else if (line.value == "#2d") {
+                        formatVersion = 0x2d;
+                    } else if (line.value == "#2e") {
+                        formatVersion = 0x2e;
+                    } else {
                         this.log("invalid file header (" + line.value + ")");
                         throw "invalid file header in signons file";
                         
@@ -548,7 +745,6 @@ LoginManagerStorage_legacy.prototype = {
                     
                     const realmFormat = /^(.+?)( \(.*\))?$/;
                     var matches = realmFormat.exec(hostrealm);
-
                     var hostname, httpRealm;
                     if (matches && matches.length == 3) {
                         hostname  = matches[1];
@@ -598,36 +794,69 @@ LoginManagerStorage_legacy.prototype = {
                 
                 case STATE.PASSVALUE:
                     entry.wrappedJSObject.encryptedPassword = line.value;
-                    if (oldFormat) {
-                        entry.formSubmitURL = "";
+
+                    
+                    
+                    if (formatVersion < 0x2d)
                         processEntry = true;
-                        parseState = STATE.USERFIELD;
-                    } else {
-                        parseState++;
-                    }
+
+                    parseState++;
                     break;
 
                 
                 case STATE.ACTIONURL:
                     var formSubmitURL = line.value;
-                    if (!formSubmitURL && entry.httpRealm)
+                    if (!formSubmitURL && entry.httpRealm != null)
                         entry.formSubmitURL = null;
                     else
                         entry.formSubmitURL = formSubmitURL;
-                    processEntry = true;
-                    parseState = STATE.USERFIELD;
+
+                    
+                    
+                    if (formatVersion < 0x2e)
+                        processEntry = true;
+
+                    parseState++;
                     break;
 
+                
+                case STATE.FILLER:
+                    
+                    
+                    entry.wrappedJSObject.filler = line.value;
+                    processEntry = true;
+
+                    parseState++;
+                    break;
             }
 
+            
+            
             if (processEntry) {
-                if (!this._logins[hostname])
-                    this._logins[hostname] = [];
+                if (formatVersion < 0x2d) {
+                    
+                    if (entry.httpRealm != null)
+                        entry.formSubmitURL = null;
+                    else
+                        entry.formSubmitURL = "";
+                }
 
-                this._logins[hostname].push(entry);
+                
+                
+                var entries = [entry];
+                if (formatVersion < 0x2e)
+                    entries = this._upgrade_entry_to_2E(entry);
+
+
+                for each (var e in entries) {
+                    if (!this._logins[e.hostname])
+                        this._logins[e.hostname] = [];
+                    this._logins[e.hostname].push(e);
+                }
 
                 entry = null;
                 processEntry = false;
+                parseState = STATE.USERFIELD;
             }
         } while (hasMore);
 
@@ -660,7 +889,7 @@ LoginManagerStorage_legacy.prototype = {
         outputStream.init(this._signonsFile, 0x02 | 0x08 | 0x20, 0600, null);
 
         
-        writeLine("#2d");
+        writeLine("#2e");
 
         
         for (var hostname in this._disabledHosts) {
@@ -742,6 +971,10 @@ LoginManagerStorage_legacy.prototype = {
                     (login.passwordField ?  login.passwordField : ""));
                 writeLine(encPassword);
                 writeLine((login.formSubmitURL ? login.formSubmitURL : ""));
+                if (login.wrappedJSObject.filler)
+                    writeLine(login.wrappedJSObject.filler);
+                else
+                    writeLine("---");
 
                 lastRealm = login.httpRealm;
             }

@@ -864,12 +864,21 @@ LoginManager.prototype = {
         try {
             var uri = this._ioService.newURI(uriString, null, null);
 
-            realm += uri.scheme;
-            realm += "://";
-            realm += uri.hostPort;
+            realm = uri.scheme + "://" + uri.host;
+
+            
+            
+            var port = uri.port;
+            if (port != -1) {
+                var handler = this._ioService.getProtocolHandler(uri.scheme);
+                if (port != handler.defaultPort)
+                    realm += ":" + port;
+            }
+
         } catch (e) {
             
             
+            this.log("Couldn't parse origin for " + uriString);
             realm = null;
         }
 

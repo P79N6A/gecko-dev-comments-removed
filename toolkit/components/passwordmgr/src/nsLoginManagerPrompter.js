@@ -196,8 +196,7 @@ LoginManagerPrompter.prototype = {
             if (notifyBox)
                 this._removeSaveLoginNotification(notifyBox);
 
-            var hostname, httpRealm;
-            [hostname, httpRealm] = this._GetAuthKey(aChannel, aAuthInfo);
+            var [hostname, httpRealm] = this._getAuthTarget(aChannel, aAuthInfo);
 
 
             
@@ -636,91 +635,77 @@ LoginManagerPrompter.prototype = {
 
 
     
-    
 
 
 
 
-    _GetRealPort : function (aURI) {
-        var port = aURI.port;
 
-        if (port != -1)
-            return port; 
-
-        
-        
+    _getFormattedHostname : function (aURI) {
         var scheme = aURI.scheme;
 
-        var ioService = Cc["@mozilla.org/network/io-service;1"].
-                        getService(Ci.nsIIOService);
+        var hostname = scheme + "://" + aURI.host;
 
-        var handler = ioService.getProtocolHandler(scheme);
-        port = handler.defaultPort;
+        
+        
+        port = aURI.port;
+        if (port != -1) {
+            var ioService = Cc["@mozilla.org/network/io-service;1"].
+                            getService(Ci.nsIIOService);
+            var handler = ioService.getProtocolHandler(scheme);
+            if (port != handler.defaultPort)
+                hostname += ":" + port;
+        }
 
-        return port;
+        return hostname;
     },
 
 
     
-    
-    _GetAuthHostPort : function (aChannel, aAuthInfo) {
+
+
+
+
+
+    _getAuthTarget : function (aChannel, aAuthInfo) {
+        var hostname, realm;
 
         
-        var flags = aAuthInfo.flags;
-
-        if (flags & (Ci.nsIAuthInformation.AUTH_PROXY)) {
-            
-            var proxied = aChannel.QueryInterface(Ci.nsIProxiedChannel);
-            if (!proxied)
+        
+        if (aAuthInfo.flags & Ci.nsIAuthInformation.AUTH_PROXY) {
+            this.log("getAuthTarget is for proxy auth");
+            if (!(aChannel instanceof Ci.nsIProxiedChannel))
                 throw "proxy auth needs nsIProxiedChannel";
 
-            var info = proxied.proxyInfo;
+            var info = aChannel.proxyInfo;
             if (!info)
                 throw "proxy auth needs nsIProxyInfo";
 
-            var idnhost = info.host;
-            var port    = info.port;
-
+            
+            
             var idnService = Cc["@mozilla.org/network/idn-service;1"].
                              getService(Ci.nsIIDNService);
-            host = idnService.convertUTF8toACE(idnhost);
-        } else {
-            var host = aChannel.URI.host;
-            var port = this._GetRealPort(aChannel.URI);
+            hostname = "moz-proxy://" +
+                        idnService.convertUTF8toACE(info.host) +
+                        ":" + info.port;
+            realm = aAuthInfo.realm;
+            if (!realm)
+                realm = hostname;
+
+            return [hostname, realm];
         }
 
-        return [host, port];
-    },
+        hostname = this._getFormattedHostname(aChannel.URI);
 
-
-    
-    
-    _GetAuthKey : function (aChannel, aAuthInfo) {
-        var key = "";
         
-        var http = aChannel.QueryInterface(Ci.nsIHttpChannel);
-        if (!http) {
-            key = aChannel.URI.prePath;
-            this.log("_GetAuthKey: got http channel, key is: " + key);
-            return key;
-        }
+        
+        
+        realm = aAuthInfo.realm;
+        if (!realm)
+            realm = hostname;
 
-        var [host, port] = this._GetAuthHostPort(aChannel, aAuthInfo);
-
-        var realm = aAuthInfo.realm;
-
-        key += host;
-        key += ':';
-        key += port;
-
-        this.log("_GetAuthKey got host: " + key + " and realm: " + realm);
-
-        return [key, realm];
+        return [hostname, realm];
     },
 
-
-    
-    
     
 
 

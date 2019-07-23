@@ -100,31 +100,30 @@ const LoginTest = {
     
 
 
-
     var i, j, found;
     for (i = 0; i < ref_disabledHosts.length; i++) {
+        found = false;
         for (j = 0; !found && j < stor_disabledHosts.length; j++) {
             found = (ref_disabledHosts[i] == stor_disabledHosts[j]);
         }
-        do_check_true(found || stor_disabledHosts.length == 0);
-    }
-    for (j = 0; j < stor_disabledHosts.length; j++) {
-        for (i = 0; !found && i < ref_disabledHosts.length; i++) {
-            found = (ref_disabledHosts[i] == stor_disabledHosts[j]);
-        }
-        do_check_true(found || stor_disabledHosts.length == 0);
+        do_check_true(found);
     }
 
     
 
 
-
     var ref, stor;
     for (i = 0; i < ref_logins.length; i++) {
+        found = false;
         for (j = 0; !found && j < stor_logins.length; j++) {
             found = ref_logins[i].equals(stor_logins[j]);
+            
+            
+            
+            if (ref_logins[i].formSubmitURL != stor_logins[j].formSubmitURL)
+                found = false;
         }
-        do_check_true(found || stor_logins.length == 0);
+        do_check_true(found);
     }
 
   }

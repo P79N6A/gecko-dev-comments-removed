@@ -148,28 +148,211 @@ do_check_eq(0, storage.countLogins("blah", "", ""));
 
 
 testnum++;
-testdesc = "Initialize with signons-08.txt (1000 disabled, 1000 logins)";
+testdesc = "Initialize with signons-08.txt (500 disabled, 500 logins)";
 
 LoginTest.initStorage(storage, INDIR, "signons-08.txt");
 
 var disabledHosts = [];
-for (var i = 1; i <= 1000; i++) {
+for (var i = 1; i <= 500; i++) {
     disabledHosts.push("http://host-" + i + ".site.com");
 }
 
-var logins = [];
-for (i = 1; i <= 500; i++) {
-    logins.push("http://dummyhost.site.org");
+var bulkLogin, logins = [];
+for (i = 1; i <= 250; i++) {
+    bulkLogin = new nsLoginInfo;
+    bulkLogin.init("http://dummyhost.site.org", "http://cgi.site.org", null,
+        "dummydude", "itsasecret", "usernameField-" + i, "passwordField-" + i);
+    logins.push(bulkLogin);
 }
-for (i = 1; i <= 500; i++) {
-    logins.push("http://dummyhost-" + i + ".site.org");
+for (i = 1; i <= 250; i++) {
+    bulkLogin = new nsLoginInfo;
+    bulkLogin.init("http://dummyhost-" + i + ".site.org", "http://cgi.site.org", null,
+        "dummydude", "itsasecret", "usernameField", "passwordField");
+    logins.push(bulkLogin);
 }
 LoginTest.checkStorageData(storage, disabledHosts, logins);
 
 
-do_check_eq(500, storage.countLogins("http://dummyhost.site.org", "", ""));
+do_check_eq(250, storage.countLogins("http://dummyhost.site.org", "", ""));
+do_check_eq(250, storage.countLogins("http://dummyhost.site.org", "", null));
+do_check_eq(0,   storage.countLogins("http://dummyhost.site.org", null, ""));
 
 do_check_eq(1, storage.countLogins("http://dummyhost-1.site.org", "", ""));
+do_check_eq(1, storage.countLogins("http://dummyhost-1.site.org", "", null));
+do_check_eq(0, storage.countLogins("http://dummyhost-1.site.org", null, ""));
+
+
+
+testnum++;
+testdesc = "Initialize with signons-2c-01.txt";
+
+
+
+
+
+LoginTest.initStorage(storage, INDIR, "signons-2c-01.txt");
+LoginTest.checkStorageData(storage, [], [testuser1]);
+
+
+testdesc = "Initialize with signons-2c-02.txt";
+var testuser3 = new nsLoginInfo;
+testuser3.init("http://dummyhost.mozilla.org", null, "Some Realm",
+    "dummydude", "itsasecret", "", "");
+LoginTest.initStorage(storage, INDIR, "signons-2c-02.txt");
+LoginTest.checkStorageData(storage, [], [testuser3]);
+
+
+
+testnum++;
+testdesc = "Initialize with signons-2c-03.txt";
+
+
+testuser3.init("http://dummyhost.mozilla.org", null,
+               "http://dummyhost.mozilla.org",
+               "dummydude", "itsasecret", "", "");
+LoginTest.initStorage(storage, INDIR, "signons-2c-03.txt");
+LoginTest.checkStorageData(storage, [], [testuser3]);
+
+
+testnum++;
+testdesc = "Initialize with signons-2d-01.txt";
+
+
+
+
+
+LoginTest.initStorage(storage, INDIR, "signons-2d-01.txt");
+LoginTest.checkStorageData(storage, [], [testuser1]);
+
+
+testdesc = "Initialize with signons-2d-02.txt";
+testuser3.init("http://dummyhost.mozilla.org", null, "Some Realm",
+    "dummydude", "itsasecret", "", "");
+LoginTest.initStorage(storage, INDIR, "signons-2d-02.txt");
+LoginTest.checkStorageData(storage, [], [testuser3]);
+
+
+
+testnum++;
+testdesc = "Initialize with signons-2d-03.txt";
+
+
+
+
+
+testuser1.init("http://dummyhost80.mozilla.org", null, "Some Realm",
+    "dummydude", "itsasecret", "", "");
+testuser2.init("https://dummyhost443.mozilla.org", null, "Some Realm",
+    "dummydude", "itsasecret", "", "");
+
+LoginTest.initStorage(storage, INDIR, "signons-2d-03.txt");
+LoginTest.checkStorageData(storage, [], [testuser1, testuser2]);
+
+
+
+testnum++;
+testdesc = "Initialize with signons-2d-04.txt";
+
+
+
+
+
+testuser1.init("http://dummyhost8080.mozilla.org:8080", null, "Some Realm",
+    "dummydude", "itsasecret", "", "");
+testuser2.init("https://dummyhost8080.mozilla.org:8080", null, "Some Realm",
+    "dummydude", "itsasecret", "", "");
+
+LoginTest.initStorage(storage, INDIR, "signons-2d-04.txt");
+LoginTest.checkStorageData(storage, [], [testuser1, testuser2]);
+
+
+
+testnum++;
+testdesc = "Initialize with signons-2d-05.txt";
+
+
+
+
+testuser1.init("http://dummyhost80.mozilla.org", null,
+               "http://dummyhost80.mozilla.org",
+               "dummydude", "itsasecret", "", "");
+testuser2.init("https://dummyhost443.mozilla.org", null,
+               "https://dummyhost443.mozilla.org",
+               "dummydude", "itsasecret", "", "");
+
+LoginTest.initStorage(storage, INDIR, "signons-2d-05.txt");
+LoginTest.checkStorageData(storage, [], [testuser1, testuser2]);
+
+
+
+testdesc = "Initialize with signons-2d-06.txt";
+testuser1.init("http://dummyhost8080.mozilla.org:8080", null,
+               "http://dummyhost8080.mozilla.org:8080",
+               "dummydude", "itsasecret", "", "");
+testuser2.init("https://dummyhost8080.mozilla.org:8080", null,
+               "https://dummyhost8080.mozilla.org:8080",
+               "dummydude", "itsasecret", "", "");
+
+LoginTest.initStorage(storage, INDIR, "signons-2d-06.txt");
+LoginTest.checkStorageData(storage, [], [testuser1, testuser2]);
+
+
+
+testnum++;
+testdesc = "Initialize with signons-2d-07.txt";
+
+
+
+
+testuser1.init("http://dummyhost80.mozilla.org",
+               "http://dummyhost80.mozilla.org", null,
+               "dummydude", "itsasecret", "put_user_here", "put_pw_here");
+testuser2.init("https://dummyhost443.mozilla.org",
+               "https://dummyhost443.mozilla.org", null,
+               "dummydude", "itsasecret", "put_user_here", "put_pw_here");
+
+testuser3.init("http://dummyhost8080.mozilla.org:8080",
+               "http://dummyhost8080.mozilla.org:8080", null,
+               "dummydude", "itsasecret", "put_user_here", "put_pw_here");
+LoginTest.initStorage(storage, INDIR, "signons-2d-07.txt");
+LoginTest.checkStorageData(storage, [], [testuser1, testuser2, testuser3]);
+
+
+
+testnum++;
+testdesc = "Initialize with signons-2d-08.txt";
+
+
+
+
+testuser1.init("ftp://protocol.mozilla.org", null,
+               "ftp://protocol.mozilla.org",
+               "dummydude", "itsasecret", "", "");
+testuser2.init("ftp://form.mozilla.org", "", null,
+               "dummydude", "itsasecret", "put_user_here", "put_pw_here");
+testuser3.init("ftp://form2.mozilla.org", "http://cgi.mozilla.org", null,
+               "dummydude", "itsasecret", "put_user_here", "put_pw_here");
+
+LoginTest.initStorage(storage, INDIR, "signons-2d-08.txt");
+LoginTest.checkStorageData(storage, [], [testuser1, testuser2, testuser3]);
+
+
+
+testnum++;
+testdesc = "Initialize with signons-2d-09.txt";
+
+
+
+
+
+
+testuser1.init("ftp://protocol.mozilla.org", null, "ftp://protocol.mozilla.org",
+               "urluser", "itsasecret", "", "");
+testuser2.init("ftp://form.mozilla.org", "", null,
+               "dummydude", "itsasecret", "put_user_here", "put_pw_here");
+LoginTest.initStorage(storage, INDIR, "signons-2d-09.txt");
+LoginTest.checkStorageData(storage, [], [testuser1, testuser2]);
+
 
 } catch (e) {
     throw "FAILED in test #" + testnum + " -- " + testdesc + ": " + e;
