@@ -1,10 +1,53 @@
-#ifndef MOZ_MEMORY_WINDOWS
-#  include <stdbool.h>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#ifndef _JEMALLOC_H_
+#define _JEMALLOC_H_
+
+
+#ifdef _MSC_VER
+#include <crtdefs.h>
 #else
-#  include <windows.h>
-#  ifndef bool
-#    define bool BOOL
-#  endif
+#include <stddef.h>
+#endif
+
+#ifndef __cplusplus
+
+#ifdef _MSC_VER
+#define bool unsigned char
+#else
+#include <stdbool.h>
+#endif
+#else
+extern "C" {
 #endif
 
 extern const char	*_malloc_options;
@@ -175,3 +218,13 @@ size_t	reserve_min_get(void);
 
 
 bool	reserve_min_set(size_t min);
+
+#ifdef __cplusplus
+} 
+#endif
+
+#ifndef __cplusplus
+#undef bool
+#endif
+
+#endif
