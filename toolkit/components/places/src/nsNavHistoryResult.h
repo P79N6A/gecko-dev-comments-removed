@@ -272,6 +272,13 @@ public:
 
   virtual void OnRemoving();
 
+  
+  
+  NS_IMETHOD OnItemChanged(PRInt64 aItemId,
+                           const nsACString &aProperty,
+                           PRBool aIsAnnotationProperty,
+                           const nsACString &aValue);
+
 public:
 
   nsNavHistoryResult* GetResult();
