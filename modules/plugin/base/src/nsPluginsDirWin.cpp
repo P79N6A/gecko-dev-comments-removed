@@ -165,39 +165,39 @@ static void FreeStringArray(PRUint32 variants, char ** array)
 
 
 
-
 PRBool nsPluginsDir::IsPluginFile(nsIFile* file)
 {
+  PRBool ret = PR_FALSE;
   nsCAutoString path;
   if (NS_FAILED(file->GetNativePath(path)))
     return PR_FALSE;
 
-  const char *cPath = path.get();
-
+  const char *pathname = path.get();
+  const char* filename;
+  char* extension;
+  PRUint32 len;
   
-  const char* filename = PL_strrchr(cPath, '\\');
+  filename = PL_strrchr(pathname, '\\');
   if (filename)
     ++filename;
   else
-    filename = cPath;
+    filename = pathname;
 
-  char* extension = PL_strrchr(filename, '.');
+  len = PL_strlen(filename);
+  
+  extension = PL_strrchr(filename, '.');
   if (extension)
     ++extension;
 
-  PRUint32 fullLength = PL_strlen(filename);
-  PRUint32 extLength = PL_strlen(extension);
-  if (fullLength >= 7 && extLength == 3) {
-    if (!PL_strncasecmp(filename, "np", 2) && !PL_strncasecmp(extension, "dll", 3)) {
+  if (len > 5) {
+    if (!PL_strncasecmp(filename, "np", 2) && !PL_strcasecmp(extension, "dll")) {
       
-      if (!PL_strncasecmp(filename, "npoji", 5) ||
-          !PL_strncasecmp(filename, "npjava", 6))
+      if (!PL_strncasecmp(filename, "npoji", 5))
         return PR_FALSE;
       return PR_TRUE;
     }
   }
-
-  return PR_FALSE;
+  return ret;
 }
 
 
@@ -239,11 +239,11 @@ nsresult nsPluginFile::LoadPlugin(PRLibrary* &outLibrary)
 
   BOOL restoreOrigDir = FALSE;
   char aOrigDir[MAX_PATH + 1];
-  DWORD dwCheck = ::GetCurrentDirectory(sizeof(aOrigDir), aOrigDir);
+  DWORD dwCheck = GetCurrentDirectoryA(sizeof(aOrigDir), aOrigDir);
   NS_ASSERTION(dwCheck <= MAX_PATH + 1, "Error in Loading plugin");
 
   if (dwCheck <= MAX_PATH + 1) {
-    restoreOrigDir = ::SetCurrentDirectory(pluginFolderPath);
+    restoreOrigDir = SetCurrentDirectoryA(pluginFolderPath);
     NS_ASSERTION(restoreOrigDir, "Error in Loading plugin");
   }
 #endif
@@ -252,7 +252,7 @@ nsresult nsPluginFile::LoadPlugin(PRLibrary* &outLibrary)
 
 #ifndef WINCE    
   if (restoreOrigDir) {
-    BOOL bCheck = ::SetCurrentDirectory(aOrigDir);
+    BOOL bCheck = SetCurrentDirectoryA(aOrigDir);
     NS_ASSERTION(bCheck, "Error in Loading plugin");
   }
 

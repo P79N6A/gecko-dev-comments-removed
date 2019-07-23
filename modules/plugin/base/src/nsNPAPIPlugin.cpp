@@ -420,7 +420,7 @@ nsNPAPIPlugin::CreatePlugin(const char* aFilePath, PRLibrary* aLibrary,
   
   
   
-  *aResult = new nsNPAPIPlugin(nsnull, aLibrary, nsnull);
+  *aResult = new nsNPAPIPlugin(nsnull, pluginLib, aLibrary, nsnull);
 
   if (*aResult == NULL)
     return NS_ERROR_OUT_OF_MEMORY;
@@ -648,7 +648,7 @@ nsNPAPIPlugin::Shutdown(void)
     if (fPluginRefNum > 0)
       ::CloseResFile(fPluginRefNum);
 #else
-    NS_TRY_SAFE_CALL_VOID(fShutdownEntry(), fLibrary, nsnull);
+    NS_TRY_SAFE_CALL_VOID(fShutdownEntry(), nsnull, nsnull);
 #endif
     fShutdownEntry = nsnull;
   }
