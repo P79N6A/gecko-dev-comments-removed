@@ -46,7 +46,7 @@
 #include "nsICacheService.h"
 #include "nsICacheSession.h"
 #include "nsIParser.h"
-
+#include "nsThreadUtils.h"
 
 PRLogModuleInfo * gWyciwygLog = nsnull;
 
@@ -305,7 +305,17 @@ nsWyciwygChannel::AsyncOpen(nsIStreamListener *listener, nsISupports *ctx)
 
   
   PRBool delayed = PR_FALSE;
-  nsresult rv = OpenCacheEntry(spec, nsICache::ACCESS_READ, &delayed);        
+  nsresult rv = OpenCacheEntry(spec, nsICache::ACCESS_READ, &delayed);
+  if (rv == NS_ERROR_CACHE_KEY_NOT_FOUND) {
+    nsCOMPtr<nsIRunnable> ev =
+      new nsRunnableMethod<nsWyciwygChannel>(this,
+                                             &nsWyciwygChannel::NotifyListener);
+    
+    
+    rv = NS_DispatchToCurrentThread(ev);
+    delayed = PR_TRUE;
+  }
+
   if (NS_FAILED(rv)) {
     LOG(("nsWyciwygChannel::OpenCacheEntry failed [rv=%x]\n", rv));
     return rv;
@@ -477,18 +487,7 @@ nsWyciwygChannel::OnCacheEntryAvailable(nsICacheEntryDescriptor * aCacheEntry, n
   if (NS_FAILED(rv)) {
     CloseCacheEntry(rv);
 
-    if (mListener) {
-      mListener->OnStartRequest(this, mListenerContext);
-      mListener->OnStopRequest(this, mListenerContext, mStatus);
-      mListener = 0;
-      mListenerContext = 0;
-    }
-
-    mIsPending = PR_FALSE;
-
-    
-    if (mLoadGroup)
-      mLoadGroup->RemoveRequest(this, nsnull, mStatus);
+    NotifyListener();
   }
 
   return NS_OK;
@@ -650,6 +649,24 @@ nsWyciwygChannel::WriteCharsetAndSourceToCache(PRInt32 aSource,
   nsCAutoString source;
   source.AppendInt(aSource);
   mCacheEntry->SetMetaDataElement("charset-source", source.get());
+}
+
+void
+nsWyciwygChannel::NotifyListener()
+{    
+  if (mListener) {
+    mListener->OnStartRequest(this, mListenerContext);
+    mListener->OnStopRequest(this, mListenerContext, mStatus);
+    mListener = 0;
+    mListenerContext = 0;
+  }
+
+  mIsPending = PR_FALSE;
+
+  
+  if (mLoadGroup) {
+    mLoadGroup->RemoveRequest(this, nsnull, mStatus);
+  }
 }
 
 
