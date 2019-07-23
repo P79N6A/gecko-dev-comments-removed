@@ -408,11 +408,14 @@ enum {
 
 
 
+
 #define SHR(_d,_r,_s) ALUr_shr(AL, mov, 1, _d, 0, _r, LSR_reg, _s)
 
 
 
-#define SHRi(_d,_r,_imm)  ALUr_shi(AL, mov, 1, _d, 0, _r, LSR_imm, _imm)
+
+#define SHRi(_d,_r,_imm)  ALUr_shi(AL, mov, 1, _d, 0, _r, LSR_imm, (_imm & 0x1f))
+
 
 
 
@@ -420,7 +423,9 @@ enum {
 
 
 
-#define SARi(_d,_r,_imm) ALUr_shi(AL, mov, 1, _d, 0, _r, ASR_imm, _imm)
+
+#define SARi(_d,_r,_imm) ALUr_shi(AL, mov, 1, _d, 0, _r, ASR_imm, (_imm & 0x1f))
+
 
 
 
@@ -428,7 +433,8 @@ enum {
 
 
 
-#define SHLi(_d, _r, _imm) ALUr_shi(AL, mov, 1, _d, 0, _r, LSL_imm, _imm)
+
+#define SHLi(_d, _r, _imm) ALUr_shi(AL, mov, 1, _d, 0, _r, LSL_imm, (_imm & 0x1f))
                     
 
 #define TEST(_l,_r)     ALUr(AL, tst, 1, 0, _l, _r)
