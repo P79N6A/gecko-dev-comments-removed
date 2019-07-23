@@ -4851,7 +4851,7 @@ PRBool nsWindow::ProcessMessage(UINT msg, WPARAM wParam, LPARAM lParam, LRESULT 
         
         
         
-        if ( !newWidth && !newHeight ) {
+        if ( !newWidth && !newHeight && IsIconic(mWnd)) {
           result = PR_FALSE;
           break;
         }
