@@ -213,8 +213,18 @@ public:
     { return GetPresShell()->FrameManager(); } 
 #endif
 
+  
+
+
+
+
+
   void RebuildAllStyleData(nsChangeHint aExtraHint);
-  void PostRebuildAllStyleDataEvent();
+  
+
+
+
+  void PostRebuildAllStyleDataEvent(nsChangeHint aExtraHint);
 
   void MediaFeatureValuesChanged(PRBool aCallerWillRebuildStyleData);
   void PostMediaFeatureValuesChangedEvent();

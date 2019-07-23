@@ -1445,13 +1445,13 @@ nsPresContext::RebuildAllStyleData(nsChangeHint aExtraHint)
 }
 
 void
-nsPresContext::PostRebuildAllStyleDataEvent()
+nsPresContext::PostRebuildAllStyleDataEvent(nsChangeHint aExtraHint)
 {
   if (!mShell) {
     
     return;
   }
-  mShell->FrameConstructor()->PostRebuildAllStyleDataEvent();
+  mShell->FrameConstructor()->PostRebuildAllStyleDataEvent(aExtraHint);
 }
 
 void
