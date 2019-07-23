@@ -697,9 +697,12 @@ NS_IMETHODIMP nsExternalHelperAppService::ExternalProtocolHandlerExists(const ch
   NS_ENSURE_SUCCESS(rv, rv);
 
   
-  nsCOMPtr<nsIHandlerApp> preferredApp;
-  handlerInfo->GetPreferredApplicationHandler(getter_AddRefs(preferredApp));
-  if (preferredApp) {
+  nsCOMPtr<nsIMutableArray> possibleHandlers;
+  handlerInfo->GetPossibleApplicationHandlers(getter_AddRefs(possibleHandlers));
+
+  PRUint32 length;
+  possibleHandlers->GetLength(&length);
+  if (length) {
     *aHandlerExists = PR_TRUE;
     return NS_OK;
   }
