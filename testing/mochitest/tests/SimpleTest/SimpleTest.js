@@ -217,6 +217,20 @@ SimpleTest.waitForExplicitFinish = function () {
     SimpleTest._stopOnLoad = false;
 };
 
+
+
+
+
+
+
+
+
+SimpleTest.requestLongerTimeout = function (factor) {
+    if (parentRunner) {
+        parentRunner.requestLongerTimeout(factor);
+    }
+}
+
 SimpleTest.waitForFocus_started = false;
 SimpleTest.waitForFocus_loaded = false;
 SimpleTest.waitForFocus_focused = false;
