@@ -2517,8 +2517,8 @@ nsWindow::OnWindowStateEvent(GtkWidget *aWidget, GdkEventWindowState *aEvent)
 
     
     
-    if (aEvent->changed_mask &
-        (GDK_WINDOW_STATE_ICONIFIED|GDK_WINDOW_STATE_MAXIMIZED) == 0) {
+    if ((aEvent->changed_mask
+         & (GDK_WINDOW_STATE_ICONIFIED|GDK_WINDOW_STATE_MAXIMIZED)) == 0) {
         return;
     }
 
@@ -4494,6 +4494,16 @@ leave_notify_event_cb(GtkWidget *widget,
                       GdkEventCrossing *event)
 {
     if (is_parent_grab_leave(event)) {
+        return TRUE;
+    }
+
+    
+    
+    gint x = gint(event->x_root);
+    gint y = gint(event->y_root);
+    GdkDisplay* display = gtk_widget_get_display(widget);
+    GdkWindow* winAtPt = gdk_display_get_window_at_pointer(display, &x, &y);
+    if (winAtPt == event->window) {
         return TRUE;
     }
 
