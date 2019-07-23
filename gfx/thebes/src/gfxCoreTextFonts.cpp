@@ -830,7 +830,7 @@ gfxCoreTextFontGroup::InitTextRun(gfxTextRun *aTextRun,
                     CFRelease(matchedCTFont);
             }
 
-            aTextRun->AddGlyphRun(matchedFont, runStart-aLayoutStart, matchedLength);
+            aTextRun->AddGlyphRun(matchedFont, runStart-aLayoutStart, (matchedLength > 0));
 
         } else {
             
@@ -1034,48 +1034,73 @@ gfxCoreTextFontGroup::SetGlyphsFromRun(gfxTextRun *aTextRun,
 
     while (glyphStart < numGlyphs) { 
 
-        
-        PRInt32 charEnd = charStart;
+        PRBool inOrder = PR_TRUE;
+        PRInt32 charEnd = glyphToChar[glyphStart] - stringRange.location;
         PRInt32 glyphEnd = glyphStart;
-        PRBool firstGlyphFound = PR_FALSE;
-
+        PRInt32 charLimit = isLTR ? stringRange.length : -1;
         do {
             
             
             
-
             
             
-            if (charEnd == glyphToChar[glyphStart] - stringRange.location)
-                firstGlyphFound = PR_TRUE;
-
-            
-            PRInt32 curGlyph = charToGlyph[charEnd];
             charEnd += direction;
-            if (curGlyph == NO_GLYPH)
-                continue; 
+            while (charEnd != charLimit && charToGlyph[charEnd] == NO_GLYPH) {
+                charEnd += direction;
+            }
 
-            glyphEnd = PR_MAX(glyphEnd, curGlyph + 1); 
+            
+            for (PRInt32 i = charStart; i != charEnd; i += direction) {
+                if (charToGlyph[i] != NO_GLYPH) {
+                    glyphEnd = PR_MAX(glyphEnd, charToGlyph[i] + 1); 
+                }
+            }
 
-        } while (!firstGlyphFound); 
+            if (glyphEnd == glyphStart + 1) {
+                
+                break;
+            }
 
-        
-        
-        
-        if (isLTR) {
-            while (glyphEnd < numGlyphs &&
-                   glyphToChar[glyphEnd] < charEnd + stringRange.location)
-                glyphEnd++;
-        } else {
-            while (glyphEnd < numGlyphs &&
-                   glyphToChar[glyphEnd] > charEnd + stringRange.location)
-                glyphEnd++;
-        }
+            if (glyphEnd == glyphStart) {
+                
+                continue;
+            }
+
+            
+            
+            
+            PRBool allGlyphsAreWithinCluster = PR_TRUE;
+            PRInt32 prevGlyphCharIndex = charStart;
+            for (PRInt32 i = glyphStart; i < glyphEnd; ++i) {
+                PRInt32 glyphCharIndex = glyphToChar[i] - stringRange.location;
+                if (isLTR) {
+                    if (glyphCharIndex < charStart || glyphCharIndex >= charEnd) {
+                        allGlyphsAreWithinCluster = PR_FALSE;
+                        break;
+                    }
+                    if (glyphCharIndex < prevGlyphCharIndex) {
+                        inOrder = PR_FALSE;
+                    }
+                    prevGlyphCharIndex = glyphCharIndex;
+                } else {
+                    if (glyphCharIndex > charStart || glyphCharIndex <= charEnd) {
+                        allGlyphsAreWithinCluster = PR_FALSE;
+                        break;
+                    }
+                    if (glyphCharIndex > prevGlyphCharIndex) {
+                        inOrder = PR_FALSE;
+                    }
+                    prevGlyphCharIndex = glyphCharIndex;
+                }
+            }
+            if (allGlyphsAreWithinCluster) {
+                break;
+            }
+        } while (charEnd != charLimit);
 
         NS_ASSERTION(glyphStart < glyphEnd, "character/glyph clump contains no glyphs!");
         NS_ASSERTION(charStart != charEnd, "character/glyph contains no characters!");
 
-        
         
         
         
@@ -1093,15 +1118,12 @@ gfxCoreTextFontGroup::SetGlyphsFromRun(gfxTextRun *aTextRun,
         }
 
         
-        if (baseCharIndex >= aLayoutStart + aLayoutLength || endCharIndex <= aLayoutStart) {
+        if (baseCharIndex < aLayoutStart || baseCharIndex >= aLayoutStart + aLayoutLength) {
             glyphStart = glyphEnd;
             charStart = charEnd;
             continue;
         }
-
         
-        
-        baseCharIndex = PR_MAX(baseCharIndex, aLayoutStart);
         endCharIndex = PR_MIN(endCharIndex, aLayoutStart + aLayoutLength);
 
         
@@ -1160,8 +1182,7 @@ gfxCoreTextFontGroup::SetGlyphsFromRun(gfxTextRun *aTextRun,
         
         while (++baseCharIndex != endCharIndex &&
             (baseCharIndex - aLayoutStart) < aLayoutLength) {
-            g.SetComplex(glyphsInClump > 1 ?
-                             PR_FALSE : aTextRun->IsClusterStart(baseCharIndex - aLayoutStart),
+            g.SetComplex(inOrder && aTextRun->IsClusterStart(baseCharIndex - aLayoutStart),
                          PR_FALSE, 0);
             aTextRun->SetGlyphs(baseCharIndex - aLayoutStart, g, nsnull);
         }
