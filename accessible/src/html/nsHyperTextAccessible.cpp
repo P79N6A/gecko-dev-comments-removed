@@ -735,6 +735,30 @@ nsHyperTextAccessible::HypertextOffsetsToDOMRange(PRInt32 aStartHTOffset,
   NS_ENSURE_ARG_POINTER(aEndOffset);
   *aEndOffset = -1;
 
+  
+  
+  if (aStartHTOffset == 0 && aEndHTOffset == 0) {
+    nsCOMPtr<nsIEditor> editor;
+    GetAssociatedEditor(getter_AddRefs(editor));
+    if (editor) {
+      PRBool isEmpty = PR_FALSE;
+      editor->GetDocumentIsEmpty(&isEmpty);
+      if (isEmpty) {
+        nsCOMPtr<nsIDOMElement> editorRootElm;
+        editor->GetRootElement(getter_AddRefs(editorRootElm));
+
+        nsCOMPtr<nsIDOMNode> editorRoot(do_QueryInterface(editorRootElm));
+        if (editorRoot) {
+          *aStartOffset = *aEndOffset = 0;
+          NS_ADDREF(*aStartNode = editorRoot);
+          NS_ADDREF(*aEndNode = editorRoot);
+
+          return NS_OK;
+        }
+      }
+    }
+  }
+
   nsCOMPtr<nsIAccessible> startAcc, endAcc;
   PRInt32 startOffset = aStartHTOffset, endOffset = aEndHTOffset;
   nsIFrame *startFrame = nsnull, *endFrame = nsnull;
