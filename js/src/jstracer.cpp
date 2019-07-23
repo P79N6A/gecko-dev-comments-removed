@@ -152,6 +152,9 @@ static const char tagChar[]  = "OIDISIBI";
 #define MAX_GLOBAL_SLOTS 4096
 
 
+#define MAX_TABLE_SWITCH 256
+
+
 #define MAX_INTERP_STACK_BYTES                                                \
     (MAX_NATIVE_STACK_SLOTS * sizeof(jsval) +                                 \
      MAX_CALL_STACK_ENTRIES * sizeof(JSInlineFrame) +                         \
@@ -8325,10 +8328,7 @@ TraceRecorder::tableswitch()
     }
 
     
-
-
-
-    if ((high + 1 - low) * sizeof(intptr_t*) + 128 > (unsigned) LARGEST_UNDERRUN_PROT)
+    if ((high + 1 - low) > MAX_TABLE_SWITCH)
         return InjectStatus(switchop());
 
     

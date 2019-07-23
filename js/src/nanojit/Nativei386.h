@@ -101,7 +101,7 @@ namespace nanojit
         
     const int NJ_ALIGN_STACK = 16;
 
-    const int32_t LARGEST_UNDERRUN_PROT = 3200;  
+    const int32_t LARGEST_UNDERRUN_PROT = 32;  
 
     typedef uint8_t NIns;
 
