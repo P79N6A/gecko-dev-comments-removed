@@ -130,13 +130,14 @@ nsMathMLmfracFrame::TransmitAutomaticData()
   
   
   
-  PRInt32 increment =
-     NS_MATHML_IS_DISPLAYSTYLE(mPresentationData.flags) ? 0 : 1;
-  mInnerScriptLevel = mPresentationData.scriptLevel + increment;
-  UpdatePresentationDataFromChildAt(0, -1, increment,
+  SetIncrementScriptLevel(0, !NS_MATHML_IS_DISPLAYSTYLE(mPresentationData.flags));
+  
+  
+
+  UpdatePresentationDataFromChildAt(0, -1,
     ~NS_MATHML_DISPLAYSTYLE,
      NS_MATHML_DISPLAYSTYLE);
-  UpdatePresentationDataFromChildAt(1,  1, 0,
+  UpdatePresentationDataFromChildAt(1,  1,
      NS_MATHML_COMPRESSED,
      NS_MATHML_COMPRESSED);
 
@@ -478,54 +479,8 @@ nsMathMLmfracFrame::AttributeChanged(PRInt32         aNameSpaceID,
 }
 
 NS_IMETHODIMP
-nsMathMLmfracFrame::UpdatePresentationData(PRInt32         aScriptLevelIncrement,
-                                           PRUint32        aFlagsValues,
-                                           PRUint32        aFlagsToUpdate)
-{
-  
-  
-  
-  
-
-  
-  
-  
-  
-  
-
-  if (NS_MATHML_IS_DISPLAYSTYLE(aFlagsToUpdate)) {
-    if (mInnerScriptLevel > mPresentationData.scriptLevel) {
-      
-      NS_ASSERTION(!NS_MATHML_IS_DISPLAYSTYLE(mPresentationData.flags), "out of sync");
-      if (NS_MATHML_IS_DISPLAYSTYLE(aFlagsValues)) {
-        
-        mInnerScriptLevel = mPresentationData.scriptLevel;
-        UpdatePresentationDataFromChildAt(0, -1, -1, 0, 0);
-      }
-    }
-    else {
-      
-      
-      
-      
-      NS_ASSERTION(NS_MATHML_IS_DISPLAYSTYLE(mPresentationData.flags), "out of sync");
-      if (!NS_MATHML_IS_DISPLAYSTYLE(aFlagsValues)) {
-        mInnerScriptLevel = mPresentationData.scriptLevel + 1;
-        UpdatePresentationDataFromChildAt(0, -1, 1, 0, 0);
-      }
-    }
-  }
-
-  mInnerScriptLevel += aScriptLevelIncrement;
-  return nsMathMLContainerFrame::
-    UpdatePresentationData(aScriptLevelIncrement, aFlagsValues,
-                           aFlagsToUpdate);
-}
-
-NS_IMETHODIMP
 nsMathMLmfracFrame::UpdatePresentationDataFromChildAt(PRInt32         aFirstIndex,
                                                       PRInt32         aLastIndex,
-                                                      PRInt32         aScriptLevelIncrement,
                                                       PRUint32        aFlagsValues,
                                                       PRUint32        aFlagsToUpdate)
 {
@@ -545,7 +500,7 @@ nsMathMLmfracFrame::UpdatePresentationDataFromChildAt(PRInt32         aFirstInde
 #endif
   return nsMathMLContainerFrame::
     UpdatePresentationDataFromChildAt(aFirstIndex, aLastIndex,
-      aScriptLevelIncrement, aFlagsValues, aFlagsToUpdate);
+      aFlagsValues, aFlagsToUpdate);
 }
 
 

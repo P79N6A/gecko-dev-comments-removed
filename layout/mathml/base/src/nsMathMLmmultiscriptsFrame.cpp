@@ -73,7 +73,7 @@ nsMathMLmmultiscriptsFrame::TransmitAutomaticData()
   
   
   
-  UpdatePresentationDataFromChildAt(1, -1, 1,
+  UpdatePresentationDataFromChildAt(1, -1,
     ~NS_MATHML_DISPLAYSTYLE, NS_MATHML_DISPLAYSTYLE);
 
   
@@ -106,7 +106,7 @@ nsMathMLmmultiscriptsFrame::TransmitAutomaticData()
   }
   for (PRInt32 i = subScriptFrames.Count() - 1; i >= 0; i--) {
     childFrame = (nsIFrame*)subScriptFrames[i];
-    PropagatePresentationDataFor(childFrame, 0,
+    PropagatePresentationDataFor(childFrame,
       NS_MATHML_COMPRESSED, NS_MATHML_COMPRESSED);
   }
 
@@ -158,7 +158,8 @@ nsMathMLmmultiscriptsFrame::Place(nsIRenderingContext& aRenderingContext,
   ProcessAttributes();
 
   
-  aRenderingContext.SetFont(GetStyleFont()->mFont, nsnull);
+  const nsStyleFont* font = GetStyleFont();
+  aRenderingContext.SetFont(font->mFont, nsnull);
   nsCOMPtr<nsIFontMetrics> fm;
   aRenderingContext.GetFontMetrics(*getter_AddRefs(fm));
 
@@ -217,7 +218,7 @@ nsMathMLmmultiscriptsFrame::Place(nsIRenderingContext& aRenderingContext,
   
   
   nscoord supScriptShift;
-  if ( mPresentationData.scriptLevel == 0 &&
+  if ( font->mScriptLevel == 0 &&
        NS_MATHML_IS_DISPLAYSTYLE(mPresentationData.flags) &&
       !NS_MATHML_IS_COMPRESSED(mPresentationData.flags)) {
     

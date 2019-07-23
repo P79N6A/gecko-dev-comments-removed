@@ -1835,6 +1835,7 @@ nsCSSFrameConstructor::nsCSSFrameConstructor(nsIDocument *aDocument,
   , mCountersDirty(PR_FALSE)
   , mInitialContainingBlockIsAbsPosContainer(PR_FALSE)
   , mIsDestroyingFrameTree(PR_FALSE)
+  , mRebuildAllStyleData(PR_FALSE)
 {
   if (!gGotXBLFormPrefs) {
     gGotXBLFormPrefs = PR_TRUE;
@@ -13168,6 +13169,39 @@ nsCSSFrameConstructor::ProcessOneRestyle(nsIContent* aContent,
 #define RESTYLE_ARRAY_STACKSIZE 128
 
 void
+nsCSSFrameConstructor::RebuildAllStyleData()
+{
+  mRebuildAllStyleData = PR_FALSE;
+
+  if (!mPresShell || !mPresShell->GetRootFrame())
+    return;
+
+  
+  
+  nsresult rv = mPresShell->StyleSet()->BeginReconstruct();
+  if (NS_FAILED(rv))
+    return;
+
+  
+  
+  
+  
+  
+  
+  nsStyleChangeList changeList;
+  mPresShell->FrameManager()->ComputeStyleChangeFor(mPresShell->GetRootFrame(),
+                                                    &changeList, nsChangeHint(0));
+  
+  ProcessRestyledFrames(changeList);
+  
+  
+  
+  
+  
+  mPresShell->StyleSet()->EndReconstruct();
+}
+
+void
 nsCSSFrameConstructor::ProcessPendingRestyles()
 {
   PRUint32 count = mPendingRestyles.Count();
@@ -13213,6 +13247,12 @@ nsCSSFrameConstructor::ProcessPendingRestyles()
 #ifdef DEBUG
   mPresShell->VerifyStyleTree();
 #endif
+
+  if (mRebuildAllStyleData) {
+    
+    
+    RebuildAllStyleData();
+  }
 }
 
 void
@@ -13248,6 +13288,14 @@ nsCSSFrameConstructor::PostRestyleEvent(nsIContent* aContent,
       mRestyleEvent = ev;
     }
   }
+}
+
+void
+nsCSSFrameConstructor::PostRebuildAllStyleDataEvent()
+{
+  mRebuildAllStyleData = PR_TRUE;
+  
+  mPresShell->ReconstructStyleDataInternal();
 }
 
 NS_IMETHODIMP nsCSSFrameConstructor::RestyleEvent::Run()

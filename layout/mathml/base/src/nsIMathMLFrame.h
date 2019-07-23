@@ -250,13 +250,8 @@ public:
 
 
 
-
-
-
-
   NS_IMETHOD
-  UpdatePresentationData(PRInt32         aScriptLevelIncrement,
-                         PRUint32        aFlagsValues,
+  UpdatePresentationData(PRUint32        aFlagsValues,
                          PRUint32        aWhichFlags) = 0;
 
  
@@ -284,48 +279,11 @@ public:
 
 
 
-
-
-
-
-
   NS_IMETHOD
   UpdatePresentationDataFromChildAt(PRInt32         aFirstIndex,
                                     PRInt32         aLastIndex,
-                                    PRInt32         aScriptLevelIncrement,
                                     PRUint32        aFlagsValues,
                                     PRUint32        aWhichFlags) = 0;
-
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  NS_IMETHOD
-  ReResolveScriptStyle(PRInt32 aParentScriptLevel) = 0;
 };
 
 
@@ -379,15 +337,10 @@ struct nsPresentationData {
   
   nsIFrame* mstyle;
 
-  
-  
-  PRInt32 scriptLevel;
-
   nsPresentationData() {
     flags = 0;
     baseFrame = nsnull;
     mstyle = nsnull;
-    scriptLevel = 0;
   }
 };
 
@@ -425,12 +378,6 @@ NS_DEFINE_STATIC_IID_ACCESSOR(nsIMathMLFrame, NS_IMATHMLFRAME_IID)
 
 
 
-
-#define NS_MATHML_EXPLICIT_SCRIPTLEVEL                0x00000010
-
-
-
-
 #define NS_MATHML_EXPLICIT_DISPLAYSTYLE               0x00000020
 
 
@@ -463,9 +410,6 @@ NS_DEFINE_STATIC_IID_ACCESSOR(nsIMathMLFrame, NS_IMATHMLFRAME_IID)
 
 #define NS_MATHML_HAS_EXPLICIT_DISPLAYSTYLE(_flags) \
   (NS_MATHML_EXPLICIT_DISPLAYSTYLE == ((_flags) & NS_MATHML_EXPLICIT_DISPLAYSTYLE))
-
-#define NS_MATHML_HAS_EXPLICIT_SCRIPTLEVEL(_flags) \
-  (NS_MATHML_EXPLICIT_SCRIPTLEVEL == ((_flags) & NS_MATHML_EXPLICIT_SCRIPTLEVEL))
 
 #define NS_MATHML_HAS_ERROR(_flags) \
   (NS_MATHML_ERROR == ((_flags) & NS_MATHML_ERROR))
