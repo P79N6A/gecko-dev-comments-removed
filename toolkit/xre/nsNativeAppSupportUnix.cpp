@@ -278,7 +278,22 @@ nsNativeAppSupportUnix::Start(PRBool *aRetVal)
   memset(&m_hw_state, 0, sizeof(osso_hw_state_t));
 
   
-  m_osso_context = osso_initialize(gAppData->name, 
+
+
+
+
+
+
+
+
+  nsCAutoString applicationName;
+  if(gAppData->vendor) {
+      applicationName.Append(gAppData->vendor);
+      applicationName.Append(".");
+  }
+  applicationName.Append(gAppData->name);
+
+  m_osso_context = osso_initialize(applicationName.get(), 
                                    gAppData->version ? gAppData->version : "1.0",
                                    PR_TRUE,
                                    nsnull);
