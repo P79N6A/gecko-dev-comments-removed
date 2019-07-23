@@ -1852,7 +1852,6 @@ nsObjectFrame::HandleEvent(nsPresContext* aPresContext,
     break;
     
   default:
-    
     rv = nsObjectFrameSuper::HandleEvent(aPresContext, anEvent, anEventStatus);
   }
 
