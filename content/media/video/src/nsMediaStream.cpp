@@ -72,7 +72,6 @@ public:
   virtual nsresult Seek(PRInt32 aWhence, PRInt64 aOffset);
   virtual PRInt64  Tell();
   virtual PRUint32 Available();
-  virtual float    DownloadRate();
   virtual void     Cancel();
   virtual nsIPrincipal* GetCurrentPrincipal();
   virtual void     Suspend();
@@ -201,12 +200,6 @@ PRUint32 nsDefaultStreamStrategy::Available()
   return count;
 }
 
-float nsDefaultStreamStrategy::DownloadRate()
-{
-  nsAutoLock lock(mLock);
-  return mListener ? mListener->BytesPerSecond() : NS_MEDIA_UNKNOWN_RATE;
-}
-
 void nsDefaultStreamStrategy::Cancel()
 {
   if (mListener)
@@ -247,7 +240,6 @@ public:
   virtual nsresult Seek(PRInt32 aWhence, PRInt64 aOffset);
   virtual PRInt64  Tell();
   virtual PRUint32 Available();
-  virtual float    DownloadRate();
   virtual nsIPrincipal* GetCurrentPrincipal();
   virtual void     Suspend();
   virtual void     Resume();
@@ -263,6 +255,36 @@ private:
 
   
   nsCOMPtr<nsIPrincipal> mPrincipal;
+};
+
+class LoadedEvent : public nsRunnable 
+{
+public:
+  LoadedEvent(nsMediaDecoder* aDecoder, PRInt64 aOffset, PRInt64 aSize) :
+    mOffset(aOffset), mSize(aSize), mDecoder(aDecoder)
+  {
+    MOZ_COUNT_CTOR(LoadedEvent);
+  }
+  ~LoadedEvent()
+  {
+    MOZ_COUNT_DTOR(LoadedEvent);
+  }
+
+  NS_IMETHOD Run() {
+    if (mOffset >= 0) {
+      mDecoder->NotifyDownloadSeeked(mOffset);
+    }
+    if (mSize > 0) {
+      mDecoder->NotifyBytesDownloaded(mSize);
+    }
+    mDecoder->NotifyDownloadEnded(NS_OK);
+    return NS_OK;
+  }
+
+private:
+  PRInt64                  mOffset;
+  PRInt64                  mSize;
+  nsRefPtr<nsMediaDecoder> mDecoder;
 };
 
 nsresult nsFileStreamStrategy::Open(nsIStreamListener** aStreamListener)
@@ -311,15 +333,6 @@ nsresult nsFileStreamStrategy::Open(nsIStreamListener** aStreamListener)
   }
 
   
-  
-  PRUint32 size;
-  rv = mInput->Available(&size);
-  if (NS_SUCCEEDED(rv)) {
-    mDecoder->SetTotalBytes(size);
-    mDecoder->UpdateBytesDownloaded(size);
-  }
-
-  
   nsCOMPtr<nsIScriptSecurityManager> secMan =
     do_GetService("@mozilla.org/scriptsecuritymanager;1");
   if (secMan) {
@@ -332,10 +345,19 @@ nsresult nsFileStreamStrategy::Open(nsIStreamListener** aStreamListener)
 
   
   
-  nsCOMPtr<nsIRunnable> event = 
-    NS_NEW_RUNNABLE_METHOD(nsMediaDecoder, mDecoder, ResourceLoaded); 
-  NS_DispatchToMainThread(event, NS_DISPATCH_NORMAL);
+  PRUint32 size;
+  rv = mInput->Available(&size);
+  if (NS_SUCCEEDED(rv)) {
+    mDecoder->SetTotalBytes(size);
+  }
+
   
+  
+  
+  mDecoder->NotifyBytesDownloaded(size);
+
+  nsCOMPtr<nsIRunnable> event = new LoadedEvent(mDecoder, -1, 0);
+  NS_DispatchToMainThread(event, NS_DISPATCH_NORMAL);
   return NS_OK;
 }
 
@@ -355,13 +377,35 @@ nsresult nsFileStreamStrategy::Close()
 nsresult nsFileStreamStrategy::Read(char* aBuffer, PRUint32 aCount, PRUint32* aBytes)
 {
   nsAutoLock lock(mLock);
-  return mInput ? mInput->Read(aBuffer, aCount, aBytes) : NS_ERROR_FAILURE;
+  if (!mInput)
+    return NS_ERROR_FAILURE;
+  return mInput->Read(aBuffer, aCount, aBytes);
 }
 
 nsresult nsFileStreamStrategy::Seek(PRInt32 aWhence, PRInt64 aOffset) 
 {  
-  nsAutoLock lock(mLock);
-  return mSeekable ? mSeekable->Seek(aWhence, aOffset) : NS_ERROR_FAILURE;
+  PRUint32 size = 0;
+  PRInt64 absoluteOffset = 0;
+  nsresult rv;
+  {
+    nsAutoLock lock(mLock);
+    if (!mSeekable)
+      return NS_ERROR_FAILURE;
+    rv = mSeekable->Seek(aWhence, aOffset);
+    if (NS_SUCCEEDED(rv)) {
+      mSeekable->Tell(&absoluteOffset);
+    }
+    mInput->Available(&size);
+  }
+
+  if (NS_SUCCEEDED(rv)) {
+    nsCOMPtr<nsIRunnable> event = new LoadedEvent(mDecoder, absoluteOffset, size);
+    
+    
+    NS_DispatchToMainThread(event, NS_DISPATCH_SYNC);
+  }
+
+  return rv;
 }
 
 PRInt64 nsFileStreamStrategy::Tell()
@@ -384,11 +428,6 @@ PRUint32 nsFileStreamStrategy::Available()
   PRUint32 count = 0;
   mInput->Available(&count);
   return count;
-}
-
-float nsFileStreamStrategy::DownloadRate()
-{
-  return NS_MEDIA_UNKNOWN_RATE;
 }
 
 nsIPrincipal* nsFileStreamStrategy::GetCurrentPrincipal()
@@ -425,7 +464,6 @@ public:
   virtual nsresult Seek(PRInt32 aWhence, PRInt64 aOffset);
   virtual PRInt64  Tell();
   virtual PRUint32 Available();
-  virtual float    DownloadRate();
   virtual void     Cancel();
   virtual nsIPrincipal* GetCurrentPrincipal();
   virtual void     Suspend();
@@ -494,7 +532,7 @@ nsresult nsHttpStreamStrategy::OpenInternal(nsIStreamListener **aStreamListener,
     *aStreamListener = nsnull;
   }
 
-  mListener = new nsChannelToPipeListener(mDecoder, aOffset != 0, aOffset);
+  mListener = new nsChannelToPipeListener(mDecoder, aOffset != 0);
   NS_ENSURE_TRUE(mListener, NS_ERROR_OUT_OF_MEMORY);
 
   nsresult rv = mListener->Init();
@@ -544,11 +582,10 @@ nsresult nsHttpStreamStrategy::OpenInternal(nsIStreamListener **aStreamListener,
   rv = mListener->GetInputStream(getter_AddRefs(mPipeInput));
   NS_ENSURE_SUCCESS(rv, rv);
 
-  mPosition = aOffset;
+  mDecoder->NotifyDownloadSeeked(aOffset);
 
   return NS_OK;
 }
-
 
 nsresult nsHttpStreamStrategy::Close()
 {
@@ -637,15 +674,14 @@ private:
   nsHttpStreamStrategy* mStrategy;
   nsMediaDecoder* mDecoder;
   nsIURI* mURI;
-  nsCOMPtr<nsIChannel> mChannel;
-  nsCOMPtr<nsChannelToPipeListener> mListener;
-  nsCOMPtr<nsIInputStream> mStream;
   PRInt64 mOffset;
   nsresult mResult;
 };
 
-nsresult nsHttpStreamStrategy::Seek(PRInt32 aWhence, PRInt64 aOffset) 
+nsresult nsHttpStreamStrategy::Seek(PRInt32 aWhence, PRInt64 aOffset)
 {
+  PRInt64 totalBytes = mDecoder->GetStatistics().mTotalBytes;
+
   {
     nsAutoLock lock(mLock);
     if (!mChannel || !mPipeInput) 
@@ -657,7 +693,7 @@ nsresult nsHttpStreamStrategy::Seek(PRInt32 aWhence, PRInt64 aOffset)
     
     
     if(aWhence == nsISeekableStream::NS_SEEK_END && aOffset == 0) {
-      if (mDecoder->GetTotalBytes() == -1)
+      if (totalBytes == -1)
         return NS_ERROR_FAILURE;
       
       mAtEOF = PR_TRUE;
@@ -671,12 +707,10 @@ nsresult nsHttpStreamStrategy::Seek(PRInt32 aWhence, PRInt64 aOffset)
     
     switch (aWhence) {
     case nsISeekableStream::NS_SEEK_END: {
-      PRInt32 length;
-      mChannel->GetContentLength(&length);
-      if (length == -1)
+      if (totalBytes == -1)
         return NS_ERROR_FAILURE;
       
-      aOffset -= length; 
+      aOffset += totalBytes; 
       aWhence = nsISeekableStream::NS_SEEK_SET;
       break;
     }
@@ -717,7 +751,7 @@ nsresult nsHttpStreamStrategy::Seek(PRInt32 aWhence, PRInt64 aOffset)
       
       
       
-      PRUint32 bytesRead = 0;
+      PRInt32 bytesRead = 0;
       PRUint32 bytes = 0;
       do {
         nsresult rv = mPipeInput->Read(data.get(),
@@ -728,6 +762,13 @@ nsresult nsHttpStreamStrategy::Seek(PRInt32 aWhence, PRInt64 aOffset)
         mPosition += bytes;
         bytesRead += bytes;
       } while (bytesRead != bytesAhead);
+
+      
+      
+      
+      
+      
+      
       return rv;
     }
   }
@@ -751,7 +792,7 @@ PRInt64 nsHttpStreamStrategy::Tell()
 {
   
   
-  return mAtEOF ? mDecoder->GetTotalBytes() : mPosition;
+  return mAtEOF ? mDecoder->GetStatistics().mTotalBytes : mPosition;
 }
 
 PRUint32 nsHttpStreamStrategy::Available()
@@ -766,14 +807,6 @@ PRUint32 nsHttpStreamStrategy::Available()
   PRUint32 count = 0;
   mPipeInput->Available(&count);
   return count;
-}
-
-float nsHttpStreamStrategy::DownloadRate()
-{
-  nsAutoLock lock(mLock);
-  if (!mListener)
-    return NS_MEDIA_UNKNOWN_RATE;
-  return mListener->BytesPerSecond();
 }
 
 void nsHttpStreamStrategy::Cancel()
@@ -806,8 +839,7 @@ void nsHttpStreamStrategy::Resume()
   mChannel->Resume();
 }
 
-nsMediaStream::nsMediaStream()  :
-  mPlaybackRateCount(0)
+nsMediaStream::nsMediaStream()
 {
   NS_ASSERTION(NS_IsMainThread(), 
 	       "nsMediaStream created on non-main thread");
@@ -847,9 +879,6 @@ nsresult nsMediaStream::Open(nsMediaDecoder* aDecoder, nsIURI* aURI,
   else
     mStreamStrategy = new nsDefaultStreamStrategy(aDecoder, channel, aURI);
 
-  mPlaybackRateCount = 0;
-  mPlaybackRateStart = PR_IntervalNow();
-
   return mStreamStrategy->Open(aListener);
 }
 
@@ -864,7 +893,9 @@ nsresult nsMediaStream::Close()
 nsresult nsMediaStream::Read(char* aBuffer, PRUint32 aCount, PRUint32* aBytes)
 {
   nsresult rv = mStreamStrategy->Read(aBuffer, aCount, aBytes);
-  mPlaybackRateCount += *aBytes;    
+  if (NS_SUCCEEDED(rv)) {
+    mStreamStrategy->Decoder()->NotifyBytesConsumed(*aBytes);
+  }
   return rv;
 }
 
@@ -881,18 +912,6 @@ PRInt64 nsMediaStream::Tell()
 PRUint32 nsMediaStream::Available()
 {
   return mStreamStrategy->Available();
-}
-
-float nsMediaStream::DownloadRate()
-{
-  return mStreamStrategy->DownloadRate();
-}
-
-float nsMediaStream::PlaybackRate()
-{
-  PRIntervalTime now = PR_IntervalNow();
-  PRUint32 interval = PR_IntervalToMilliseconds(now - mPlaybackRateStart);
-  return static_cast<float>(mPlaybackRateCount) * 1000 / interval;
 }
 
 void nsMediaStream::Cancel()

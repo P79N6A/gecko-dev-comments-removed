@@ -44,10 +44,6 @@
 #include "nsIStreamListener.h"
 #include "nsIPrincipal.h"
 
-
-
-#define NS_MEDIA_UNKNOWN_RATE -1.0
-
 class nsMediaDecoder;
 
 
@@ -71,16 +67,11 @@ class nsChannelToPipeListener : public nsIStreamListener
   
   
   nsChannelToPipeListener(nsMediaDecoder* aDecoder,
-                          PRBool aSeeking = PR_FALSE,
-                          PRInt64 aOffset = 0);
+                          PRBool aSeeking = PR_FALSE);
   nsresult Init();
   nsresult GetInputStream(nsIInputStream** aStream);
   void Stop();
   void Cancel();
-
-  
-  
-  double BytesPerSecond() const;
 
   nsIPrincipal* GetCurrentPrincipal();
 
@@ -89,22 +80,6 @@ private:
   nsCOMPtr<nsIOutputStream> mOutput;
   nsCOMPtr<nsIPrincipal> mPrincipal;
   nsRefPtr<nsMediaDecoder> mDecoder;
-
-  
-  
-  PRIntervalTime mIntervalStart;
-
-  
-  
-  PRIntervalTime mIntervalEnd;
-
-  
-  
-  
-  PRInt64 mOffset;
-
-  
-  PRInt64 mTotalBytes;
 
   
   PRPackedBool mSeeking;

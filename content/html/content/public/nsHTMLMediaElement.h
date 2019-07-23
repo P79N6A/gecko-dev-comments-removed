@@ -113,11 +113,6 @@ public:
 
   
   
-  
-  void CanPlayThrough();
-
-  
-  
   void SeekStarted();
 
   
@@ -133,6 +128,13 @@ public:
   nsresult DispatchProgressEvent(const nsAString& aName);
   nsresult DispatchAsyncSimpleEvent(const nsAString& aName);
   nsresult DispatchAsyncProgressEvent(const nsAString& aName);
+
+  
+  
+  
+  
+  
+  void UpdateReadyStateForData(PRBool aNextFrameAvailable);
 
   
   
