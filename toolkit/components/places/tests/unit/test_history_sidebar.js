@@ -206,6 +206,12 @@ function test_RESULTS_AS_DATE_QUERY() {
 
 function test_RESULTS_AS_SITE_QUERY() {
 
+  
+  var bmsvc = Cc["@mozilla.org/browser/nav-bookmarks-service;1"].
+              getService(Ci.nsINavBookmarksService);
+  bmsvc.insertBookmark(bmsvc.toolbarFolder, uri("http://foobar"),
+                       bmsvc.DEFAULT_INDEX, "");
+
   var options = histsvc.getNewQueryOptions();
   options.resultType = options.RESULTS_AS_SITE_QUERY;
   var query = histsvc.getNewQuery();
