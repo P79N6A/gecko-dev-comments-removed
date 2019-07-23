@@ -48,56 +48,6 @@
 namespace nanojit
 {
 #ifdef NJ_VERBOSE
-    class VerboseBlockReader: public LirFilter
-    {
-        Assembler *assm;
-        LirNameMap *names;
-        InsList block;
-        bool flushnext;
-    public:
-        VerboseBlockReader(Allocator& alloc, LirFilter *in, Assembler *a, LirNameMap *n)
-            : LirFilter(in), assm(a), names(n), block(alloc), flushnext(false)
-        {}
-
-        void flush() {
-            flushnext = false;
-            if (!block.isEmpty()) {
-                for (Seq<LIns*>* p = block.get(); p != NULL; p = p->tail)
-                    assm->outputf("    %s", names->formatIns(p->head));
-                block.clear();
-            }
-        }
-
-        void flush_add(LInsp i) {
-            flush();
-            block.add(i);
-        }
-
-        LInsp read() {
-            LInsp i = in->read();
-            if (i->isop(LIR_start)) {
-                flush();
-                return i;
-            }
-            if (i->isGuard()) {
-                flush_add(i);
-                if (i->oprnd1())
-                    block.add(i->oprnd1());
-            }
-            else if (i->isRet() || i->isBranch()) {
-                flush_add(i);
-            }
-            else {
-                if (flushnext)
-                    flush();
-                block.add(i);
-                if (i->isop(LIR_label))
-                    flushnext = true;
-            }
-            return i;
-        }
-    };
-
     
 
 
@@ -728,13 +678,6 @@ namespace nanojit
         prev = pp_after_sf2;
         })
 
-        
-        verbose_only(
-        VerboseBlockReader vbr(alloc, prev, this, frag->lirbuf->names);
-        if (_logc->lcbits & LC_Assembly)
-            prev = &vbr;
-        )
-
         _inExit = false;
 
         LabelStateMap labels(alloc);
@@ -1360,6 +1303,29 @@ namespace nanojit
                     evictScratchRegs();
 
                     asm_call(ins);
+                }
+            }
+
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            if (_logc->lcbits & LC_Assembly) {
+                outputf("    %s", _thisfrag->lirbuf->names->formatIns(ins));
+                
+                
+                if (ins->isGuard() && ins->oprnd1()) {
+                    outputf("    %s       # handled by the guard",
+                            _thisfrag->lirbuf->names->formatIns(ins->oprnd1()));
                 }
             }
 
