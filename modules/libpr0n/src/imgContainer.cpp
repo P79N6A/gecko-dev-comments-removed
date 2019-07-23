@@ -1204,7 +1204,7 @@ nsresult imgContainer::DoComposite(imgFrame** aFrameToUse,
         
         
         if (mAnim->lastCompositedFrameIndex != aNextFrameIndex - 1) {
-          if (isFullPrevFrame && !aPrevFrame->GetIsPaletted())
+          if (isFullPrevFrame && !aPrevFrame->GetIsPaletted()) {
             
             CopyFrameImage(aPrevFrame, mAnim->compositingFrame);
           } else {
@@ -1217,6 +1217,7 @@ nsresult imgContainer::DoComposite(imgFrame** aFrameToUse,
             DrawFrameTo(aPrevFrame, mAnim->compositingFrame, prevFrameRect);
           }
         }
+    }
   } else if (needToBlankComposite) {
     
     
