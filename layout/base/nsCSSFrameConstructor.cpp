@@ -5589,7 +5589,6 @@ IsRootBoxFrame(nsIFrame *aFrame)
 nsresult
 nsCSSFrameConstructor::ReconstructDocElementHierarchy()
 {
-  AUTO_LAYOUT_PHASE_ENTRY_POINT(mPresShell->GetPresContext(), FrameC);
   return RecreateFramesForContent(mPresShell->GetDocument()->GetRootContent());
 }
 
@@ -6298,7 +6297,10 @@ nsCSSFrameConstructor::ContentAppended(nsIContent*     aContainer,
     for (PRUint32 i = aNewIndexInContainer; i < count; ++i) {
       if (IsSpecialFramesetChild(aContainer->GetChildAt(i))) {
         
-        return RecreateFramesForContent(parentFrame->GetContent());
+        LAYOUT_PHASE_TEMP_EXIT();
+        nsresult rv = RecreateFramesForContent(parentFrame->GetContent());
+        LAYOUT_PHASE_TEMP_REENTER();
+        return rv;
       }
     }
   }
@@ -6309,8 +6311,12 @@ nsCSSFrameConstructor::ContentAppended(nsIContent*     aContainer,
   }
   
 #ifdef MOZ_MATHML
-  if (parentFrame->IsFrameOfType(nsIFrame::eMathML))
-    return RecreateFramesForContent(parentFrame->GetContent());
+  if (parentFrame->IsFrameOfType(nsIFrame::eMathML)) {
+    LAYOUT_PHASE_TEMP_EXIT();
+    nsresult rv = RecreateFramesForContent(parentFrame->GetContent());
+    LAYOUT_PHASE_TEMP_REENTER();
+    return rv;
+  }
 #endif
 
   
@@ -6638,7 +6644,10 @@ nsCSSFrameConstructor::ContentInserted(nsIContent*            aContainer,
   if (frameType == nsGkAtoms::frameSetFrame &&
       IsSpecialFramesetChild(aChild)) {
     
-    return RecreateFramesForContent(parentFrame->GetContent());
+    LAYOUT_PHASE_TEMP_EXIT();
+    nsresult rv = RecreateFramesForContent(parentFrame->GetContent());
+    LAYOUT_PHASE_TEMP_REENTER();
+    return rv;
   }
 
   if (frameType == nsGkAtoms::fieldSetFrame &&
@@ -6649,7 +6658,10 @@ nsCSSFrameConstructor::ContentInserted(nsIContent*            aContainer,
     
     
     
-    return RecreateFramesForContent(parentFrame->GetContent());
+    LAYOUT_PHASE_TEMP_EXIT();
+    nsresult rv = RecreateFramesForContent(parentFrame->GetContent());
+    LAYOUT_PHASE_TEMP_REENTER();
+    return rv;
   }
 
   
@@ -6658,8 +6670,12 @@ nsCSSFrameConstructor::ContentInserted(nsIContent*            aContainer,
   }
 
 #ifdef MOZ_MATHML
-  if (parentFrame->IsFrameOfType(nsIFrame::eMathML))
-    return RecreateFramesForContent(parentFrame->GetContent());
+  if (parentFrame->IsFrameOfType(nsIFrame::eMathML)) {
+    LAYOUT_PHASE_TEMP_EXIT();
+    nsresult rv = RecreateFramesForContent(parentFrame->GetContent());
+    LAYOUT_PHASE_TEMP_REENTER();
+    return rv;
+  }
 #endif
 
   nsFrameConstructorState state(mPresShell, mFixedContainingBlock,
@@ -7200,10 +7216,13 @@ nsCSSFrameConstructor::ContentRemoved(nsIContent* aContainer,
     InvalidateCanvasIfNeeded(mPresShell, aChild);
     
     
+    LAYOUT_PHASE_TEMP_EXIT();
     if (MaybeRecreateContainerForFrameRemoval(childFrame, &rv)) {
+      LAYOUT_PHASE_TEMP_REENTER();
       *aDidReconstruct = PR_TRUE;
       return rv;
     }
+    LAYOUT_PHASE_TEMP_REENTER();
 
     
     nsIFrame* parentFrame = childFrame->GetParent();
@@ -7213,7 +7232,10 @@ nsCSSFrameConstructor::ContentRemoved(nsIContent* aContainer,
         IsSpecialFramesetChild(aChild)) {
       
       *aDidReconstruct = PR_TRUE;
-      return RecreateFramesForContent(parentFrame->GetContent());
+      LAYOUT_PHASE_TEMP_EXIT();
+      nsresult rv = RecreateFramesForContent(parentFrame->GetContent());
+      LAYOUT_PHASE_TEMP_REENTER();
+      return rv;
     }
 
 #ifdef MOZ_MATHML
@@ -7224,7 +7246,10 @@ nsCSSFrameConstructor::ContentRemoved(nsIContent* aContainer,
          parentFrame->GetParent() : parentFrame;
     if (possibleMathMLAncestor->IsFrameOfType(nsIFrame::eMathML)) {
       *aDidReconstruct = PR_TRUE;
-      return RecreateFramesForContent(possibleMathMLAncestor->GetContent());
+      LAYOUT_PHASE_TEMP_EXIT();
+      nsresult rv = RecreateFramesForContent(possibleMathMLAncestor->GetContent());
+      LAYOUT_PHASE_TEMP_REENTER();
+      return rv;
     }
 #endif
 
@@ -7238,7 +7263,10 @@ nsCSSFrameConstructor::ContentRemoved(nsIContent* aContainer,
         aChild == AnyKidsNeedBlockParent(parentFrame->GetFirstChild(nsnull)) &&
         !AnyKidsNeedBlockParent(childFrame->GetNextSibling())) {
       *aDidReconstruct = PR_TRUE;
-      return RecreateFramesForContent(grandparentFrame->GetContent());
+      LAYOUT_PHASE_TEMP_EXIT();
+      nsresult rv = RecreateFramesForContent(grandparentFrame->GetContent());
+      LAYOUT_PHASE_TEMP_REENTER();
+      return rv;
     }
     
     
@@ -7375,12 +7403,16 @@ nsCSSFrameConstructor::ContentRemoved(nsIContent* aContainer,
       
       PRInt32 prevSiblingIndex = aIndexInContainer - 1;
       if (prevSiblingIndex > 0 && prevSiblingIndex < childCount - 1) {
+        LAYOUT_PHASE_TEMP_EXIT();
         ReframeTextIfNeeded(aContainer, prevSiblingIndex);
+        LAYOUT_PHASE_TEMP_REENTER();
       }
       
       
       if (aIndexInContainer > 0 && aIndexInContainer < childCount - 1) {
+        LAYOUT_PHASE_TEMP_EXIT();
         ReframeTextIfNeeded(aContainer, aIndexInContainer);
+        LAYOUT_PHASE_TEMP_REENTER();
       }
     }
 
@@ -7644,7 +7676,10 @@ nsCSSFrameConstructor::CharacterDataChanged(nsIContent* aContent,
     NS_ASSERTION(!frame || !frame->IsGeneratedContentFrame(),
                  "Bit should never be set on generated content");
 #endif
-    return RecreateFramesForContent(aContent);
+    LAYOUT_PHASE_TEMP_EXIT();
+    nsresult rv = RecreateFramesForContent(aContent);
+    LAYOUT_PHASE_TEMP_REENTER();
+    return rv;
   }
 
   
