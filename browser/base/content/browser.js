@@ -137,6 +137,10 @@ let gInitialPages = [
   "about:sessionrestore"
 ];
 
+#include browser-fullZoom.js
+#include browser-places.js
+#include browser-tabPreviews.js
+
 
 
 
@@ -6219,12 +6223,6 @@ var FeedHandler = {
     }
   }
 };
-
-#include browser-places.js
-
-#include browser-textZoom.js
-
-#include browser-tabPreviews.js
 
 
 
