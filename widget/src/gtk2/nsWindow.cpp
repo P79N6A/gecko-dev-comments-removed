@@ -1339,20 +1339,25 @@ nsWindow::SetIcon(const nsAString& aIconSpec)
     nsCStringArray iconList;
 
     
-
-    ResolveIconName(aIconSpec, NS_LITERAL_STRING(".xpm"),
-                    getter_AddRefs(iconFile));
-    if (iconFile) {
-        iconFile->GetNativePath(path);
-        iconList.AppendCString(path);
-    }
-
     
-    ResolveIconName(aIconSpec, NS_LITERAL_STRING("16.xpm"),
-                    getter_AddRefs(iconFile));
-    if (iconFile) {
-        iconFile->GetNativePath(path);
-        iconList.AppendCString(path);
+    
+
+    const char extensions[6][7] = { ".png", "16.png", "32.png", "48.png",
+                                    ".xpm", "16.xpm" };
+
+    for (PRUint32 i = 0; i < NS_ARRAY_LENGTH(extensions); i++) {
+        
+        if (i == NS_ARRAY_LENGTH(extensions) - 2 && iconList.Count())
+            break;
+
+        nsAutoString extension;
+        extension.AppendASCII(extensions[i]);
+
+        ResolveIconName(aIconSpec, extension, getter_AddRefs(iconFile));
+        if (iconFile) {
+            iconFile->GetNativePath(path);
+            iconList.AppendCString(path);
+        }
     }
 
     
@@ -3881,23 +3886,7 @@ nsWindow::SetWindowIconList(const nsCStringArray &aIconList)
 void
 nsWindow::SetDefaultIcon(void)
 {
-    
-    nsCOMPtr<nsILocalFile> iconFile;
-    ResolveIconName(NS_LITERAL_STRING("default"),
-                    NS_LITERAL_STRING(".xpm"),
-                    getter_AddRefs(iconFile));
-    if (!iconFile) {
-        NS_WARNING("default.xpm not found");
-        return;
-    }
-
-    nsCAutoString path;
-    iconFile->GetNativePath(path);
-
-    nsCStringArray iconList;
-    iconList.AppendCString(path);
-
-    SetWindowIconList(iconList);
+    SetIcon(NS_LITERAL_STRING("default"));
 }
 
 void
