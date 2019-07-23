@@ -1249,8 +1249,10 @@ nsBlockFrame::ComputeFinalSize(const nsHTMLReflowState& aReflowState,
 #endif
 
   
-  aMetrics.width = borderPadding.left + aReflowState.ComputedWidth() +
-    borderPadding.right;
+  aMetrics.width =
+    NSCoordSaturatingAdd(NSCoordSaturatingAdd(borderPadding.left,
+                                              aReflowState.ComputedWidth()), 
+                         borderPadding.right);
 
   
   
@@ -1321,7 +1323,11 @@ nsBlockFrame::ComputeFinalSize(const nsHTMLReflowState& aReflowState,
                     && computedHeightLeftOver ),
                  "overflow container must not have computedHeightLeftOver");
 
-    aMetrics.height = borderPadding.top + computedHeightLeftOver + borderPadding.bottom;
+    aMetrics.height =
+      NSCoordSaturatingAdd(NSCoordSaturatingAdd(borderPadding.top,
+                                                computedHeightLeftOver),
+                           borderPadding.bottom);
+
     if (NS_FRAME_IS_NOT_COMPLETE(aState.mReflowStatus)
         && aMetrics.height < aReflowState.availableHeight) {
       
