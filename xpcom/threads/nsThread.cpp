@@ -253,7 +253,25 @@ nsThread::ThreadFunc(void *arg)
   while (!self->ShuttingDown())
     NS_ProcessNextEvent(self);
 
-  NS_ProcessPendingEvents(self);
+  
+  
+  
+  
+  
+  while (PR_TRUE) {
+    {
+      nsAutoLock lock(self->mLock);
+      if (!self->mEvents->HasPendingEvent()) {
+        
+        
+        
+        
+        self->mEventsAreDoomed = PR_TRUE;
+        break;
+      }
+    }
+    NS_ProcessPendingEvents(self);
+  }
 
   
   nsThreadManager::get()->UnregisterCurrentThread(self);
@@ -275,6 +293,7 @@ nsThread::nsThread()
   , mRunningEvent(0)
   , mShutdownContext(nsnull)
   , mShutdownRequired(PR_FALSE)
+  , mEventsAreDoomed(PR_FALSE)
 {
 }
 
@@ -331,22 +350,24 @@ nsThread::InitCurrentThread()
   return NS_OK;
 }
 
-PRBool
+nsresult
 nsThread::PutEvent(nsIRunnable *event)
 {
-  PRBool rv;
   {
     nsAutoLock lock(mLock);
-    rv = mEvents->PutEvent(event);
+    if (mEventsAreDoomed) {
+      NS_WARNING("An event was posted to a thread that will never run it (rejected)");
+      return NS_ERROR_UNEXPECTED;
+    }
+    if (!mEvents->PutEvent(event))
+      return NS_ERROR_OUT_OF_MEMORY;
   }
-  if (!rv)
-    return PR_FALSE;
 
   nsCOMPtr<nsIThreadObserver> obs = GetObserver();
   if (obs)
     obs->OnDispatchedEvent(this);
 
-  return PR_TRUE;
+  return NS_OK;
 }
 
 
@@ -359,7 +380,6 @@ nsThread::Dispatch(nsIRunnable *event, PRUint32 flags)
 
   NS_ENSURE_ARG_POINTER(event);
 
-  PRBool dispatched;
   if (flags & DISPATCH_SYNC) {
     nsThread *thread = nsThreadManager::get()->GetCurrentThread();
     NS_ENSURE_STATE(thread);
@@ -372,19 +392,18 @@ nsThread::Dispatch(nsIRunnable *event, PRUint32 flags)
         new nsThreadSyncDispatch(thread, event);
     if (!wrapper)
       return NS_ERROR_OUT_OF_MEMORY;
-    dispatched = PutEvent(wrapper);
+    nsresult rv = PutEvent(wrapper);
+    
+    if (NS_FAILED(rv))
+      return rv;
 
     while (wrapper->IsPending())
       NS_ProcessNextEvent(thread);
-  } else {
-    NS_ASSERTION(flags == NS_DISPATCH_NORMAL, "unexpected dispatch flags");
-    dispatched = PutEvent(event);
+    return rv;
   }
 
-  if (NS_UNLIKELY(!dispatched))
-    return NS_ERROR_OUT_OF_MEMORY;
-
-  return NS_OK;
+  NS_ASSERTION(flags == NS_DISPATCH_NORMAL, "unexpected dispatch flags");
+  return PutEvent(event);
 }
 
 NS_IMETHODIMP
@@ -434,6 +453,7 @@ nsThread::Shutdown()
   nsCOMPtr<nsIRunnable> event = new nsThreadShutdownEvent(this, &context);
   if (!event)
     return NS_ERROR_OUT_OF_MEMORY;
+  
   PutEvent(event);
 
   

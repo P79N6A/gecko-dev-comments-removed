@@ -95,7 +95,7 @@ private:
   PRBool GetEvent(PRBool mayWait, nsIRunnable **event) {
     return mEvents->GetEvent(mayWait, event);
   }
-  PRBool PutEvent(nsIRunnable *event);
+  nsresult PutEvent(nsIRunnable *event);
 
   
   class nsChainedEventQueue {
@@ -113,6 +113,10 @@ private:
     }
 
     PRBool PutEvent(nsIRunnable *event);
+    
+    PRBool HasPendingEvent() {
+      return mQueue.HasPendingEvent();
+    }
 
     class nsChainedEventQueue *mNext;
   private:
@@ -140,6 +144,8 @@ private:
 
   PRPackedBool mShutdownRequired;
   PRPackedBool mShutdownPending;
+  
+  PRPackedBool mEventsAreDoomed;
 };
 
 
