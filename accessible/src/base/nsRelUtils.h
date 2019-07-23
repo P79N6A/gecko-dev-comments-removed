@@ -98,9 +98,13 @@ public:
 
 
 
+
+
+
   static nsresult AddTargetFromIDRefAttr(PRUint32 aRelationType,
                                          nsIAccessibleRelation **aRelation,
-                                         nsIContent *aContent, nsIAtom *aAttr);
+                                         nsIContent *aContent, nsIAtom *aAttr,
+                                         PRBool aMayBeAnon = PR_FALSE);
 
   
 

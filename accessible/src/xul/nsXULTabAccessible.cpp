@@ -149,7 +149,8 @@ nsXULTabAccessible::GetRelationByType(PRUint32 aRelationType,
   
   
   rv = nsRelUtils::AddTargetFromIDRefAttr(aRelationType, aRelation, content,
-                                          nsAccessibilityAtoms::linkedPanel);
+                                          nsAccessibilityAtoms::linkedPanel,
+                                          PR_TRUE);
   NS_ENSURE_SUCCESS(rv, rv);
 
   if (rv != NS_OK_NO_RELATION_TARGET)
