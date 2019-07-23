@@ -51,6 +51,7 @@
 
 #include "nsBaseWidget.h"
 #include "nsdefs.h"
+#include "nsIdleService.h"
 #include "nsToolkit.h"
 #include "nsString.h"
 #include "nsTArray.h"
@@ -361,6 +362,12 @@ protected:
   
 
 
+
+  void                    UserActivity();
+
+  
+
+
   virtual PRInt32         GetHeight(PRInt32 aProposedHeight);
   virtual LPCWSTR         WindowClass();
   virtual LPCWSTR         WindowPopupClass();
@@ -461,6 +468,8 @@ protected:
 #ifdef MOZ_IPC
   static PRUint32       sOOPPPluginFocusEvent;
 #endif
+
+  nsCOMPtr<nsIdleService> mIdleService;
 
   
   
