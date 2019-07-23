@@ -34,7 +34,7 @@
 
 
 
-#include <cstdio>
+#include <stdio.h>
 #include "nsStringAPI.h"
 
 #define CHECK(x) \
