@@ -160,7 +160,7 @@ SplitInlineAncestors(nsIFrame*     aFrame)
 
 
 
-static nsresult
+static void
 JoinInlineAncestors(nsIFrame* aFrame)
 {
   nsIFrame* frame = aFrame;
