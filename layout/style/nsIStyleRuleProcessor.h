@@ -86,7 +86,11 @@ struct RuleProcessorData {
   
   
   
-  PRInt32 GetNthIndex(PRBool aIsOfType, PRBool aIsFromEnd);
+  
+  
+  
+  PRInt32 GetNthIndex(PRBool aIsOfType, PRBool aIsFromEnd,
+                      PRBool aCheckEdgeOnly);
 
   nsPresContext*    mPresContext;
   nsIContent*       mContent;       
@@ -113,6 +117,7 @@ struct RuleProcessorData {
 protected:
   nsAutoString *mLanguage; 
 
+  
   
   
   
