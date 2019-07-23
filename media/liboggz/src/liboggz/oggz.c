@@ -662,7 +662,11 @@ oggz_content_type (OggzStreamContent content)
 
 
 
-  if (content < 0 || content >= OGGZ_CONTENT_UNKNOWN)
+  if (
+#ifdef ALLOW_SIGNED_ENUMS
+      content < OGGZ_CONTENT_THEORA ||
+#endif
+      content >= OGGZ_CONTENT_UNKNOWN)
     return NULL;
 
   return oggz_auto_codec_ident[content].content_type;

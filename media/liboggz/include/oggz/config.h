@@ -5,6 +5,9 @@
 
 
 
+
+
+
 #define HAVE_DLFCN_H 1
 
 
@@ -67,7 +70,7 @@
 #define OGGZ_OFF_MAX 0x7FFFFFFFFFFFFFFFLL
 
 
-
+#define OGG_H_CONST_CORRECT
 
 
 #define PACKAGE "liboggz"
@@ -106,7 +109,7 @@
 #define STDC_HEADERS 1
 
 
-#define VERSION "0.9.8"
+#define VERSION "0.9.9"
 
 
 

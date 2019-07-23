@@ -90,6 +90,8 @@ oggz_read_init (OGGZ * oggz)
 
   reader->current_unit = 0;
 
+  reader->current_page_bytes = 0;
+
   return oggz;
 }
 
@@ -187,26 +189,33 @@ oggz_read_get_next_page (OGGZ * oggz, ogg_page * og)
   oggz_off_t page_offset = 0, ret;
   int found = 0;
 
+  
+  oggz->offset += reader->current_page_bytes;
+
   do {
     more = ogg_sync_pageseek (&reader->ogg_sync, og);
 
     if (more == 0) {
+      
       page_offset = 0;
       return -2;
     } else if (more < 0) {
 #ifdef DEBUG_VERBOSE
       printf ("get_next_page: skipped %ld bytes\n", -more);
 #endif
-      page_offset -= more;
+      page_offset += (-more);
+      oggz->offset += (-more);
     } else {
 #ifdef DEBUG_VERBOSE
       printf ("get_next_page: page has %ld bytes\n", more);
 #endif
+      reader->current_page_bytes = more;
       found = 1;
     }
 
   } while (!found);
 
+#if 0 
   
   if (bytes > 0) {
     oggz->offset = oggz_io_tell (oggz) - bytes + page_offset;
@@ -218,6 +227,9 @@ oggz_read_get_next_page (OGGZ * oggz, ogg_page * og)
   }
 
   return ret;
+#else
+  return oggz->offset;
+#endif
 }
 
 typedef struct {
@@ -365,7 +377,9 @@ oggz_read_sync (OGGZ * oggz)
           printf ("oggz_read_sync: hole in the data\n");
 #endif
           
-          if (stream->packetno < 3) return OGGZ_ERR_HOLE_IN_DATA;
+
+
+          if (stream->packetno < 2) return OGGZ_ERR_HOLE_IN_DATA;
 
           
 
