@@ -1306,6 +1306,15 @@ public:
     return sRemovableScriptBlockerCount;
   }
 
+  
+
+
+
+
+
+  static nsresult ProcessViewportInfo(nsIDocument *aDocument,
+                                      const nsAString &viewportInfo);
+
 private:
 
   static PRBool InitializeEventTable();

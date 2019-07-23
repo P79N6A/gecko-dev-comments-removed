@@ -111,6 +111,8 @@ public:
                           nsString &aTitle, nsString &aMedia,
                           PRBool &aIsAlternate);
 
+  virtual nsresult ProcessMETATag(nsIContent* aContent);
+
 protected:
   
   
