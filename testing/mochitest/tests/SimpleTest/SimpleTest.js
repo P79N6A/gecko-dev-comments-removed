@@ -205,6 +205,21 @@ SimpleTest.waitForExplicitFinish = function () {
 
 
 
+SimpleTest.executeSoon = function(aFunc) {
+    var tm = Components.classes["@mozilla.org/thread-manager;1"]
+                       .getService(Components.interfaces.nsIThreadManager);
+
+    tm.mainThread.dispatch({
+        run: function() {
+            aFunc();
+        }
+    }, Components.interfaces.nsIThread.DISPATCH_NORMAL);
+}
+
+
+
+
+
 SimpleTest.talkToRunner = function () {
     if (parentRunner) {
         parentRunner.testFinished(document);
