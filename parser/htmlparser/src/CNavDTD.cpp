@@ -1981,6 +1981,12 @@ CNavDTD::HandleDocTypeDeclToken(CToken* aToken)
 
   IF_FREE(theNode, &mNodeAllocator);
 
+  
+  
+  if (NS_FAILED(result) && result != NS_ERROR_HTMLPARSER_BLOCK) {
+    IF_FREE(aToken, mTokenAllocator);
+  }
+
   MOZ_TIMER_DEBUGLOG(("Start: Parse Time: CNavDTD::HandleDocTypeDeclToken(), this=%p\n", this));
   START_TIMER();
 
