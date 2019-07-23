@@ -2290,9 +2290,18 @@ nsAccessible::GetFinalState(PRUint32 *aState, PRUint32 *aExtraState)
                       nsIAccessibleStates::EXT_STATE_SENSITIVE;
     }
 
-    if (*aState & (nsIAccessibleStates::STATE_COLLAPSED |
-                   nsIAccessibleStates::STATE_EXPANDED)) {
+    const PRUint32 kExpandCollapseStates =
+      nsIAccessibleStates::STATE_COLLAPSED | nsIAccessibleStates::STATE_EXPANDED;
+    if (*aState & kExpandCollapseStates) {
       *aExtraState |= nsIAccessibleStates::EXT_STATE_EXPANDABLE;
+      if ((*aState & kExpandCollapseStates) == kExpandCollapseStates) {
+        
+        
+        
+        
+        
+        *aExtraState &= ~nsIAccessibleStates::STATE_COLLAPSED;
+      } 
     }
   }
 
