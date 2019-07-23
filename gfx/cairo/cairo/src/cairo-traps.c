@@ -542,6 +542,14 @@ _cairo_traps_extract_region (cairo_traps_t      *traps,
 {
     int i;
 
+    
+
+
+    if (traps->num_traps > 200) {
+        *region = NULL;
+        return CAIRO_STATUS_SUCCESS;
+    }
+
     for (i = 0; i < traps->num_traps; i++)
 	if (!(traps->traps[i].left.p1.x == traps->traps[i].left.p2.x
 	      && traps->traps[i].right.p1.x == traps->traps[i].right.p2.x
