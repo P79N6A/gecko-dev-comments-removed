@@ -48,6 +48,9 @@
 #include "nsIServiceManager.h"
 #include "nsXPCOM.h"
 #include "nsISupportsPrimitives.h"
+#include "nsIIOService.h"
+#include "nsIFileURL.h"
+#include "nsNetUtil.h"
 #include "prlog.h"
 #include "nsVoidArray.h"
 #include "nsPrimitiveHelpers.h"
@@ -535,20 +538,27 @@ nsDragService::GetData(nsITransferable * aTransferable,
                                            &convertedText, &convertedTextLen);
 
                         if (convertedText) {
-                            nsDependentString fileUrl = nsDependentString(convertedText);
-                            if (StringBeginsWith(fileUrl, NS_LITERAL_STRING("file://")))
-                                fileUrl.Cut(0, strlen("file://"));
-
-                            nsCOMPtr<nsILocalFile> file;
-                            nsresult rv = NS_NewLocalFile(fileUrl, PR_TRUE, getter_AddRefs(file));
+                            nsCOMPtr<nsIIOService> ioService = do_GetIOService(&rv);
+                            nsCOMPtr<nsIURI> fileURI;
+                            nsresult rv = ioService->NewURI(NS_ConvertUTF16toUTF8(convertedText),
+                                                            nsnull, nsnull, getter_AddRefs(fileURI));
                             if (NS_SUCCEEDED(rv)) {
-                                
-                                
-                                
-                                aTransferable->SetTransferData(flavorStr, file,
-                                                               fileUrl.Length() * sizeof(PRUnichar));
-                                g_free(convertedText);
-                                return NS_OK;
+                                nsCOMPtr<nsIFileURL> fileURL = do_QueryInterface(fileURI, &rv);
+                                if (NS_SUCCEEDED(rv)) {
+                                    nsCOMPtr<nsIFile> file;
+                                    rv = fileURL->GetFile(getter_AddRefs(file));
+                                    if (NS_SUCCEEDED(rv)) {
+                                        
+                                        
+                                        
+                                        
+                                        
+                                        aTransferable->SetTransferData(flavorStr, file,
+                                                                       convertedTextLen);
+                                        g_free(convertedText);
+                                        return NS_OK;
+                                    }
+                                }
                             }
                             g_free(convertedText);
                         }
