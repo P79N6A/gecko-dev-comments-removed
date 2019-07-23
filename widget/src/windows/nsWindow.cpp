@@ -3685,7 +3685,7 @@ PRBool nsWindow::ProcessMessage(UINT msg, WPARAM &wParam, LPARAM &lParam,
   *aRetValue = 0;
   nsPaletteInfo palInfo;
 
-#if !defined (WINCE)
+#if !defined (WINCE_WINDOWS_MOBILE)
   static PRBool getWheelInfo = PR_TRUE;
 #endif
 
@@ -4317,7 +4317,7 @@ PRBool nsWindow::ProcessMessage(UINT msg, WPARAM &wParam, LPARAM &lParam,
     break;
 
     case WM_SETTINGCHANGE:
-#if !defined (WINCE)
+#if !defined (WINCE_WINDOWS_MOBILE)
       getWheelInfo = PR_TRUE;
 #endif
       OnSettingsChange(wParam, lParam);
@@ -4409,7 +4409,7 @@ PRBool nsWindow::ProcessMessage(UINT msg, WPARAM &wParam, LPARAM &lParam,
     break;
 #endif
 
-#if !defined(WINCE)
+#if !defined (WINCE_WINDOWS_MOBILE)
   case WM_MOUSEWHEEL:
   case WM_MOUSEHWHEEL:
     {
@@ -4873,7 +4873,7 @@ PRBool nsWindow::OnGesture(WPARAM wParam, LPARAM lParam)
 
 
 
-#if !defined(WINCE) 
+#if !defined (WINCE_WINDOWS_MOBILE)
 PRBool nsWindow::OnMouseWheel(UINT msg, WPARAM wParam, LPARAM lParam, PRBool& getWheelInfo, PRBool& result, LRESULT *aRetValue)
 {
   
