@@ -721,18 +721,23 @@ LoginManager.prototype = {
 
 
 
+    _isAutocompleteDisabled :  function (element) {
+        if (element && element.hasAttribute("autocomplete") &&
+            element.getAttribute("autocomplete").toLowerCase() == "off")
+            return true;
+
+        return false;
+    },
+
+    
+
+
+
+
+
 
 
     _onFormSubmit : function (form) {
-
-        
-        function autocompleteDisabled(element) {
-            if (element && element.hasAttribute("autocomplete") &&
-                element.getAttribute("autocomplete").toLowerCase() == "off")
-                return true;
-
-           return false;
-        };
 
         
         function getPrompter(aWindow) {
@@ -769,10 +774,10 @@ LoginManager.prototype = {
         
         
         
-        if (autocompleteDisabled(form) ||
-            autocompleteDisabled(usernameField) ||
-            autocompleteDisabled(newPasswordField) ||
-            autocompleteDisabled(oldPasswordField)) {
+        if (this._isAutocompleteDisabled(form) ||
+            this._isAutocompleteDisabled(usernameField) ||
+            this._isAutocompleteDisabled(newPasswordField) ||
+            this._isAutocompleteDisabled(oldPasswordField)) {
                 this.log("(form submission ignored -- autocomplete=off found)");
                 return;
         }
@@ -1014,7 +1019,20 @@ LoginManager.prototype = {
             if (usernameField)
                 this._attachToInput(usernameField);
 
-            if (autofillForm) {
+            
+            
+            
+            
+            var isFormDisabled = false;
+            if (this._isAutocompleteDisabled(form) ||
+                this._isAutocompleteDisabled(usernameField) ||
+                this._isAutocompleteDisabled(passwordField)) {
+
+                isFormDisabled = true;
+                this.log("form[" + i + "]: not filled, has autocomplete=off");
+            }
+
+            if (autofillForm && !isFormDisabled) {
 
                 if (usernameField && usernameField.value) {
                     
