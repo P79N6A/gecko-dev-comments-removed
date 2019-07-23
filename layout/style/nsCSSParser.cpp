@@ -1317,11 +1317,7 @@ CSSParserImpl::GetToken(PRBool aSkipWS)
 PRBool
 CSSParserImpl::GetURLInParens(nsString& aURL)
 {
-  if (!ExpectSymbol('(', PR_FALSE))
-    return PR_FALSE;
-
-  NS_ASSERTION(!mHavePushBack,
-               "ExpectSymbol returning success shouldn't leave pushback");
+  NS_ASSERTION(!mHavePushBack, "mustn't have pushback at this point");
   do {
     if (! mScanner.NextURL(mToken)) {
       return PR_FALSE;
@@ -1460,6 +1456,8 @@ CSSParserImpl::SkipAtRule()
       } else if (symbol == '[') {
         SkipUntil(']');
       }
+    } else if (eCSSToken_Function == mToken.mType) {
+      SkipUntil(')');
     }
   }
   return PR_TRUE;
@@ -2261,16 +2259,19 @@ CSSParserImpl::SkipUntilStack(nsAutoTArray<PRUnichar, 16>& aStack)
         if (stackTopIndex == 0) {
           break;
         }
+
+      
+      
+      
       } else if ('{' == symbol) {
-        
-        
-        
         aStack.AppendElement('}');
       } else if ('[' == symbol) {
         aStack.AppendElement(']');
       } else if ('(' == symbol) {
         aStack.AppendElement(')');
       }
+    } else if (eCSSToken_Function == tk->mType) {
+      aStack.AppendElement(')');
     }
   }
 }
@@ -2295,6 +2296,8 @@ CSSParserImpl::SkipUntilOneOf(const PRUnichar* aStopSymbolChars)
       } else if ('(' == symbol) {
         SkipUntil(')');
       }
+    } else if (eCSSToken_Function == tk->mType) {
+      SkipUntil(')');
     }
   }
 }
@@ -2340,6 +2343,8 @@ CSSParserImpl::SkipDeclaration(PRBool aCheckForBraces)
       } else if ('[' == symbol) {
         SkipUntil(']');
       }
+    } else if (eCSSToken_Function == tk->mType) {
+      SkipUntil(')');
     }
   }
   return PR_TRUE;
@@ -2368,8 +2373,10 @@ CSSParserImpl::SkipRuleSet(PRBool aInsideBraces)
       } else if ('[' == symbol) {
         SkipUntil(']');
       }
+    } else if (eCSSToken_Function == tk->mType) {
+      SkipUntil(')');
     }
-  }
+  } 
 }
 
 PRBool
@@ -3252,12 +3259,6 @@ CSSParserImpl::nsSelectorParsingStatus
 CSSParserImpl::ParseNegatedSimpleSelector(PRInt32&       aDataMask,
                                           nsCSSSelector& aSelector)
 {
-  
-  if (!ExpectSymbol('(', PR_FALSE)) {
-    REPORT_UNEXPECTED_TOKEN(PENegationBadArg);
-    return eSelectorParsingStatus_Error;
-  }
-
   if (! GetToken(PR_TRUE)) { 
     REPORT_UNEXPECTED_EOF(PENegationEOF);
     return eSelectorParsingStatus_Error;
@@ -3325,12 +3326,6 @@ CSSParserImpl::ParsePseudoClassWithIdentArg(nsCSSSelector& aSelector,
                                             nsIAtom*       aPseudo,
                                             nsCSSPseudoClasses::Type aType)
 {
-  
-  if (!ExpectSymbol('(', PR_FALSE)) {
-    REPORT_UNEXPECTED_TOKEN(PEPseudoClassNoArg);
-    return eSelectorParsingStatus_Error;
-  }
-
   if (! GetToken(PR_TRUE)) { 
     REPORT_UNEXPECTED_EOF(PEPseudoClassArgEOF);
     return eSelectorParsingStatus_Error;
@@ -3371,12 +3366,6 @@ CSSParserImpl::ParsePseudoClassWithNthPairArg(nsCSSSelector& aSelector,
 {
   PRInt32 numbers[2] = { 0, 0 };
   PRBool lookForB = PR_TRUE;
-
-  
-  if (!ExpectSymbol('(', PR_FALSE)) {
-    REPORT_UNEXPECTED_TOKEN(PEPseudoClassNoArg);
-    return eSelectorParsingStatus_Error;
-  }
 
   
   
@@ -3630,8 +3619,7 @@ CSSParserImpl::ParseColor(nsCSSValue& aValue)
         
         PRUint8 r, g, b;
         PRInt32 type = COLOR_TYPE_UNKNOWN;
-        if (ExpectSymbol('(', PR_FALSE) && 
-            ParseColorComponent(r, type, ',') &&
+        if (ParseColorComponent(r, type, ',') &&
             ParseColorComponent(g, type, ',') &&
             ParseColorComponent(b, type, ')')) {
           aValue.SetColorValue(NS_RGB(r,g,b));
@@ -3644,8 +3632,7 @@ CSSParserImpl::ParseColor(nsCSSValue& aValue)
         
         PRUint8 r, g, b, a;
         PRInt32 type = COLOR_TYPE_UNKNOWN;
-        if (ExpectSymbol('(', PR_FALSE) && 
-            ParseColorComponent(r, type, ',') &&
+        if (ParseColorComponent(r, type, ',') &&
             ParseColorComponent(g, type, ',') &&
             ParseColorComponent(b, type, ',') &&
             ParseColorOpacity(a)) {
@@ -3815,10 +3802,6 @@ CSSParserImpl::ParseHSLColor(nscolor& aColor,
                              char aStop)
 {
   float h, s, l;
-  if (!ExpectSymbol('(', PR_FALSE)) {
-    NS_ERROR("How did this get to be a function token?");
-    return PR_FALSE;
-  }
 
   
   if (!GetToken(PR_TRUE)) {
@@ -3932,26 +3915,24 @@ CSSParserImpl::ParseTreePseudoElement(nsPseudoClassList **aPseudoElementArgs)
   
   
   nsCSSSelector fakeSelector; 
-  if (ExpectSymbol('(', PR_FALSE)) {
-    while (!ExpectSymbol(')', PR_TRUE)) {
-      if (!GetToken(PR_TRUE)) {
-        return PR_FALSE;
-      }
-      if (eCSSToken_Ident == mToken.mType) {
-        nsCOMPtr<nsIAtom> pseudo = do_GetAtom(mToken.mIdent);
-        fakeSelector.AddPseudoClass(pseudo,
-                                    nsCSSPseudoClasses::ePseudoClass_NotPseudoClass);
-      }
-      else if (!mToken.IsSymbol(',')) {
-        SkipUntil(')');
-        return PR_FALSE;
-      }
+
+  while (!ExpectSymbol(')', PR_TRUE)) {
+    if (!GetToken(PR_TRUE)) {
+      return PR_FALSE;
     }
-    *aPseudoElementArgs = fakeSelector.mPseudoClassList;
-    fakeSelector.mPseudoClassList = nsnull;
-    return PR_TRUE;
+    if (eCSSToken_Ident == mToken.mType) {
+      nsCOMPtr<nsIAtom> pseudo = do_GetAtom(mToken.mIdent);
+      fakeSelector.AddPseudoClass(pseudo,
+                                  nsCSSPseudoClasses::ePseudoClass_NotPseudoClass);
+    }
+    else if (!mToken.IsSymbol(',')) {
+      SkipUntil(')');
+      return PR_FALSE;
+    }
   }
-  return PR_FALSE;
+  *aPseudoElementArgs = fakeSelector.mPseudoClassList;
+  fakeSelector.mPseudoClassList = nsnull;
+  return PR_TRUE;
 }
 #endif
 
@@ -4661,9 +4642,6 @@ CSSParserImpl::ParseCounter(nsCSSValue& aValue)
   nsCSSUnit unit = (mToken.mIdent.LowerCaseEqualsLiteral("counter") ?
                     eCSSUnit_Counter : eCSSUnit_Counters);
 
-  if (!ExpectSymbol('(', PR_FALSE))
-    return PR_FALSE;
-
   if (!GetNonCloseParenToken(PR_TRUE) ||
       eCSSToken_Ident != mToken.mType) {
     SkipUntil(')');
@@ -4722,67 +4700,67 @@ CSSParserImpl::ParseCounter(nsCSSValue& aValue)
 PRBool
 CSSParserImpl::ParseAttr(nsCSSValue& aValue)
 {
-  if (ExpectSymbol('(', PR_FALSE)) {
-    if (GetToken(PR_TRUE)) {
-      nsAutoString attr;
-      if (eCSSToken_Ident == mToken.mType) {  
-        nsAutoString  holdIdent(mToken.mIdent);
-        if (ExpectSymbol('|', PR_FALSE)) {  
-          PRInt32 nameSpaceID;
-          if (!GetNamespaceIdForPrefix(holdIdent, &nameSpaceID)) {
-            return PR_FALSE;
-          }
-          attr.AppendInt(nameSpaceID, 10);
-          attr.Append(PRUnichar('|'));
-          if (! GetToken(PR_FALSE)) {
-            REPORT_UNEXPECTED_EOF(PEAttributeNameEOF);
-            return PR_FALSE;
-          }
-          if (eCSSToken_Ident == mToken.mType) {
-            attr.Append(mToken.mIdent);
-          }
-          else {
-            REPORT_UNEXPECTED_TOKEN(PEAttributeNameExpected);
-            UngetToken();
-            return PR_FALSE;
-          }
-        }
-        else {  
-          attr = holdIdent;
-        }
+  if (!GetToken(PR_TRUE)) {
+    return PR_FALSE;
+  }
+
+  nsAutoString attr;
+  if (eCSSToken_Ident == mToken.mType) {  
+    nsAutoString  holdIdent(mToken.mIdent);
+    if (ExpectSymbol('|', PR_FALSE)) {  
+      PRInt32 nameSpaceID;
+      if (!GetNamespaceIdForPrefix(holdIdent, &nameSpaceID)) {
+        return PR_FALSE;
       }
-      else if (mToken.IsSymbol('*')) {  
-        
+      attr.AppendInt(nameSpaceID, 10);
+      attr.Append(PRUnichar('|'));
+      if (! GetToken(PR_FALSE)) {
+        REPORT_UNEXPECTED_EOF(PEAttributeNameEOF);
+        return PR_FALSE;
+      }
+      if (eCSSToken_Ident == mToken.mType) {
+        attr.Append(mToken.mIdent);
+      }
+      else {
         REPORT_UNEXPECTED_TOKEN(PEAttributeNameExpected);
         UngetToken();
         return PR_FALSE;
       }
-      else if (mToken.IsSymbol('|')) {  
-        if (! GetToken(PR_FALSE)) {
-          REPORT_UNEXPECTED_EOF(PEAttributeNameEOF);
-          return PR_FALSE;
-        }
-        if (eCSSToken_Ident == mToken.mType) {
-          attr.Append(mToken.mIdent);
-        }
-        else {
-          REPORT_UNEXPECTED_TOKEN(PEAttributeNameExpected);
-          UngetToken();
-          return PR_FALSE;
-        }
-      }
-      else {
-        REPORT_UNEXPECTED_TOKEN(PEAttributeNameOrNamespaceExpected);
-        UngetToken();
-        return PR_FALSE;
-      }
-      if (ExpectSymbol(')', PR_TRUE)) {
-        aValue.SetStringValue(attr, eCSSUnit_Attr);
-        return PR_TRUE;
-      }
+    }
+    else {  
+      attr = holdIdent;
     }
   }
-  return PR_FALSE;
+  else if (mToken.IsSymbol('*')) {  
+    
+    REPORT_UNEXPECTED_TOKEN(PEAttributeNameExpected);
+    UngetToken();
+    return PR_FALSE;
+  }
+  else if (mToken.IsSymbol('|')) {  
+    if (! GetToken(PR_FALSE)) {
+      REPORT_UNEXPECTED_EOF(PEAttributeNameEOF);
+      return PR_FALSE;
+    }
+    if (eCSSToken_Ident == mToken.mType) {
+      attr.Append(mToken.mIdent);
+    }
+    else {
+      REPORT_UNEXPECTED_TOKEN(PEAttributeNameExpected);
+      UngetToken();
+      return PR_FALSE;
+    }
+  }
+  else {
+    REPORT_UNEXPECTED_TOKEN(PEAttributeNameOrNamespaceExpected);
+    UngetToken();
+    return PR_FALSE;
+  }
+  if (!ExpectSymbol(')', PR_TRUE)) {
+    return PR_FALSE;
+  }
+  aValue.SetStringValue(attr, eCSSUnit_Attr);
+  return PR_TRUE;
 }
 
 PRBool
@@ -4833,9 +4811,6 @@ CSSParserImpl::ParseURL(nsCSSValue& aValue)
 PRBool
 CSSParserImpl::ParseImageRect(nsCSSValue& aImage)
 {
-  if (!ExpectSymbol('(', PR_TRUE))
-    return PR_FALSE;
-
   
   for (;;) {
     nsCSSValue newFunction;
@@ -4932,10 +4907,6 @@ PRBool
 CSSParserImpl::ParseGradient(nsCSSValue& aValue, PRBool aIsRadial,
                              PRBool aIsRepeating)
 {
-  if (!ExpectSymbol('(', PR_FALSE)) {
-    NS_ABORT_IF_FALSE(PR_FALSE, "function token without (");
-  }
-
   nsRefPtr<nsCSSValueGradient> cssGradient
     = new nsCSSValueGradient(aIsRadial, aIsRepeating);
 
@@ -7154,9 +7125,6 @@ CSSParserImpl::DoParseRect(nsCSSRect& aRect)
     }
   } else if ((eCSSToken_Function == mToken.mType) &&
              mToken.mIdent.LowerCaseEqualsLiteral("rect")) {
-    if (!ExpectSymbol('(', PR_TRUE)) {
-      return PR_FALSE;
-    }
     NS_FOR_CSS_SIDES(side) {
       if (! ParseVariant(aRect.*(nsCSSRect::sides[side]),
                          VARIANT_AL, nsnull)) {
@@ -7624,10 +7592,6 @@ CSSParserImpl::ParseFunction(const nsString &aFunction,
   nsString functionName(aFunction);
 
   
-  if (!ExpectSymbol('(', PR_TRUE))
-    return PR_FALSE;
-  
-  
 
 
   nsTArray<nsCSSValue> foundValues;
@@ -7995,8 +7959,6 @@ CSSParserImpl::ParseFontSrc(nsCSSValue& aValue)
       
 
       nsAutoString family;
-      if (!ExpectSymbol('(', PR_FALSE))
-        return PR_FALSE;
       if (!ParseOneFamily(family)) {
         SkipUntil(')');
         return PR_FALSE;
@@ -8052,14 +8014,13 @@ CSSParserImpl::ParseFontSrcFormat(nsTArray<nsCSSValue> & values)
     UngetToken();
     return PR_TRUE;
   }
-  if (!ExpectSymbol('(', PR_FALSE))
-    return PR_FALSE;
 
   do {
     if (!GetToken(PR_TRUE))
       return PR_FALSE; 
 
     if (mToken.mType != eCSSToken_String) {
+      UngetToken();
       SkipUntil(')');
       return PR_FALSE;
     }
@@ -8626,8 +8587,7 @@ CSSParserImpl::ParseTransitionTimingFunctionValues(nsCSSValue& aValue)
   }
 
   float x1, x2, y1, y2;
-  if (!ExpectSymbol('(', PR_FALSE) ||
-      !ParseTransitionTimingFunctionValueComponent(x1, ',') ||
+  if (!ParseTransitionTimingFunctionValueComponent(x1, ',') ||
       !ParseTransitionTimingFunctionValueComponent(y1, ',') ||
       !ParseTransitionTimingFunctionValueComponent(x2, ',') ||
       !ParseTransitionTimingFunctionValueComponent(y2, ')')) {
