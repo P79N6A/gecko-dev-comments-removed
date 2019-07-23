@@ -592,7 +592,8 @@ var PlacesUtils = {
           
           if (this._uri(uriString)) {
             nodes.push({ uri: uriString,
-                         title: titleString ? titleString : uriString });
+                         title: titleString ? titleString : uriString ,
+                         type: this.TYPE_X_MOZ_URL });
           }
         }
         break;
@@ -602,7 +603,9 @@ var PlacesUtils = {
           var uriString = parts[i];
           
           if (uriString != "" && this._uri(uriString))
-            nodes.push({ uri: uriString, title: uriString });
+            nodes.push({ uri: uriString,
+                         title: uriString,
+                         type: this.TYPE_X_MOZ_URL });
         }
         break;
       default:
