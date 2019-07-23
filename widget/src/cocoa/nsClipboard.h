@@ -41,6 +41,8 @@
 
 #include "nsBaseClipboard.h"
 
+#import <Cocoa/Cocoa.h>
+
 class nsITransferable;
 
 
@@ -53,6 +55,10 @@ public:
 
   
   NS_IMETHOD  HasDataMatchingFlavors(nsISupportsArray *aFlavorList, PRInt32 aWhichClipboard, PRBool *_retval);
+
+  
+  static NSDictionary* PasteboardDictFromTransferable(nsITransferable *aTransferable);
+  static nsresult CopyPasteboardDataToTransferable(NSPasteboard* aPasteboard, nsITransferable* aTransferable, PRUint32 aItemIndex);
 
 protected:
 
