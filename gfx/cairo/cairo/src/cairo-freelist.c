@@ -19,8 +19,9 @@
 
 
 
-#include <stdlib.h>
-#include <string.h>
+
+#include "cairoint.h"
+
 #include "cairo-freelist-private.h"
 
 void

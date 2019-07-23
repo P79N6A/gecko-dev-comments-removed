@@ -39,50 +39,12 @@
 #ifndef CAIRO_HASH_PRIVATE_H
 #define CAIRO_HASH_PRIVATE_H
 
+#include "cairo-types-private.h"
 
 
 
 
 
-typedef struct _cairo_hash_table cairo_hash_table_t;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-typedef struct _cairo_hash_entry {
-    unsigned long hash;
-} cairo_hash_entry_t;
 
 typedef cairo_bool_t
 (*cairo_hash_keys_equal_func_t) (const void *key_a, const void *key_b);

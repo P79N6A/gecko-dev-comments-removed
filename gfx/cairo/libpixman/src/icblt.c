@@ -22,6 +22,8 @@
 
 
 
+#include "pixmanint.h"
+
 #include "pixman-xserver-compat.h"
 
 #define InitializeShifts(sx,dx,ls,rs) { \
