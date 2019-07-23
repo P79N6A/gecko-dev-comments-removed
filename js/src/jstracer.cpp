@@ -242,6 +242,13 @@ static inline bool isInt32(jsval v)
     return JSDOUBLE_IS_INT(d, i);
 }
 
+
+static inline uint8 getPromotedType(jsval v) 
+{
+    return JSVAL_IS_INT(v) ? JSVAL_DOUBLE : JSVAL_TAG(v);
+}
+
+
 static inline uint8 getCoercedType(jsval v)
 {
     return isInt32(v) ? JSVAL_INT : (uint8) JSVAL_TAG(v);
@@ -369,11 +376,6 @@ static bool isPromote(LIns* i)
 static bool isconst(LIns* i, int32_t c)
 {
     return i->isconst() && i->constval() == c;
-}
-
-static bool isAnyConst(LIns* i)
-{
-    return i->isconst() || i->isconstq(); 
 }
 
 static bool overflowSafe(LIns* i)
@@ -3012,147 +3014,162 @@ TraceRecorder::incElem(jsint incr, bool pre)
     return true;
 }
 
+static bool
+evalCmp(LOpcode op, double result)
+{
+    bool cond;
+    switch (op) {
+      case LIR_feq:
+        cond = (result == 0);
+        break;
+      case LIR_flt:
+        cond = result < 0;
+        break;
+      case LIR_fgt:
+        cond = result > 0;
+        break;
+      case LIR_fle:
+        cond = result <= 0;
+        break;
+      case LIR_fge:
+        cond = result >= 0;
+        break;
+      default:
+        JS_NOT_REACHED("unexpected comparison op");
+        return false;
+    }
+    return cond;
+}
+
+static bool
+evalCmp(LOpcode op, double l, double r)
+{
+    return evalCmp(op, l - r);
+}
+
+static bool
+evalCmp(LOpcode op, JSString* l, JSString* r)
+{
+    if (op == LIR_feq)
+        return js_EqualStrings(l, r);
+    return evalCmp(op, js_CompareStrings(l, r));
+}
+
 bool
 TraceRecorder::cmp(LOpcode op, int flags)
 {
     jsval& r = stackval(-1);
     jsval& l = stackval(-2);
-    LIns* x;
+    LIns* x = NULL;
     bool negate = !!(flags & CMP_NEGATE);
     bool cond;
     LIns* l_ins = get(&l);
     LIns* r_ins = get(&r);
 
-    if (JSVAL_IS_STRING(l) && JSVAL_IS_STRING(r)) {
-        JS_ASSERT(!negate);
-        LIns* args[] = { r_ins, l_ins };
-        x = lir->ins1(LIR_i2f, lir->insCall(F_CompareStrings, args));
-        x = lir->ins2i(op, x, 0);
-        jsint result = js_CompareStrings(JSVAL_TO_STRING(l), JSVAL_TO_STRING(r));
-        switch (op) {
-          case LIR_flt:
-            cond = result < 0;
-            break;
-          case LIR_fgt:
-            cond = result > 0;
-            break;
-          case LIR_fle:
-            cond = result <= 0;
-            break;
-          case LIR_fge:
-            cond = result >= 0;
-            break;
-          default:
-            JS_NOT_REACHED("unexpected comparison op for strings");
-            return false;
-        }
-    } else if (isNumber(l) || isNumber(r)) {
+    
+    
+    
+    
+    if ((flags & CMP_STRICT) && getPromotedType(l) != getPromotedType(r)) {
+        x = INS_CONST(negate);
+        cond = negate;
+    } else if (JSVAL_IS_STRING(l) || JSVAL_IS_STRING(r)) {
         
         
         
-        
-        if ((flags & CMP_STRICT) && isNumber(l) != isNumber(r)) {
+        if ((JSVAL_IS_NULL(l) && l_ins->isconst()) ||
+            (JSVAL_IS_NULL(r) && r_ins->isconst()) ||
+            (JSVAL_TAG(l) == JSVAL_BOOLEAN || JSVAL_TAG(r) == JSVAL_BOOLEAN)) {
             x = INS_CONST(negate);
             cond = negate;
+        } else if (!JSVAL_IS_STRING(l) || !JSVAL_IS_STRING(r)) {
+            ABORT_TRACE("unsupported type for cmp vs string");
         } else {
-            jsval tmp[2] = {l, r};
-            JSAutoTempValueRooter tvr(cx, 2, tmp);
+            LIns* args[] = { r_ins, l_ins };
+            if (op == LIR_feq)
+                l_ins = lir->ins_eq0(lir->insCall(F_EqualStrings, args));
+            else
+                l_ins = lir->insCall(F_CompareStrings, args);
+            r_ins = lir->insImm(0);
+            cond = evalCmp(op, JSVAL_TO_STRING(l), JSVAL_TO_STRING(r));
+        }
+    } else if (isNumber(l) || isNumber(r)) {
+        jsval tmp[2] = {l, r};
+        JSAutoTempValueRooter tvr(cx, 2, tmp);
 
+        
+        jsdouble lnum;
+        jsdouble rnum;
+        LIns* args[] = { l_ins, cx_ins };
+        if (l == JSVAL_NULL && l_ins->isconst()) {
+            jsdpun u;
+            u.d = js_NaN;
+            l_ins = lir->insImmq(u.u64);
+        } else if (JSVAL_IS_STRING(l)) {
+            l_ins = lir->insCall(F_StringToNumber, args);
+        } else if (JSVAL_TAG(l) == JSVAL_BOOLEAN) {
             
-            jsdouble lnum;
-            jsdouble rnum;
-            LIns* args[] = { l_ins, cx_ins };
-            if (l == JSVAL_NULL) {
-                jsdpun u;
-                u.d = js_NaN;
-                l_ins = lir->insImmq(u.u64);
-            } else if (JSVAL_IS_STRING(l)) {
-                l_ins = lir->insCall(F_StringToNumber, args);
-            } else if (JSVAL_TAG(l) == JSVAL_BOOLEAN) {
-                
 
 
 
 
 
 
-                l_ins = lir->insCall(F_BooleanToNumber, args);
-            } else if (!isNumber(l)) {
-                ABORT_TRACE("unsupported LHS type for cmp vs number");
-            }
-            lnum = js_ValueToNumber(cx, &tmp[0]);
-
-            args[0] = r_ins;
-            args[1] = cx_ins;
-            if (r == JSVAL_NULL) {
-                jsdpun u;
-                u.d = js_NaN;
-                r_ins = lir->insImmq(u.u64);
-            } else if (JSVAL_IS_STRING(r)) {
-                r_ins = lir->insCall(F_StringToNumber, args);
-            } else if (JSVAL_TAG(r) == JSVAL_BOOLEAN) {
-                
-                r_ins = lir->insCall(F_BooleanToNumber, args);
-            } else if (!isNumber(r)) {
-                ABORT_TRACE("unsupported RHS type for cmp vs number");
-            }
-            rnum = js_ValueToNumber(cx, &tmp[1]);
-
-            x = lir->ins2(op, l_ins, r_ins);
-
-            if (negate)
-                x = lir->ins_eq0(x);
-            switch (op) {
-            case LIR_flt:
-                cond = lnum < rnum;
-                break;
-            case LIR_fgt:
-                cond = lnum > rnum;
-                break;
-            case LIR_fle:
-                cond = lnum <= rnum;
-                break;
-            case LIR_fge:
-                cond = lnum >= rnum;
-                break;
-            default:
-                JS_ASSERT(op == LIR_feq);
-                cond = (lnum == rnum) ^ negate;
-                break;
-            }
+            l_ins = lir->insCall(F_BooleanToNumber, args);
+        } else if (!isNumber(l)) {
+            ABORT_TRACE("unsupported LHS type for cmp vs number");
         }
+        lnum = js_ValueToNumber(cx, &tmp[0]);
+
+        args[0] = r_ins;
+        args[1] = cx_ins;
+        if (r == JSVAL_NULL) {
+            jsdpun u;
+            u.d = js_NaN;
+            r_ins = lir->insImmq(u.u64);
+        } else if (JSVAL_IS_STRING(r)) {
+            r_ins = lir->insCall(F_StringToNumber, args);
+        } else if (JSVAL_TAG(r) == JSVAL_BOOLEAN) {
+            
+            r_ins = lir->insCall(F_BooleanToNumber, args);
+        } else if (!isNumber(r)) {
+            ABORT_TRACE("unsupported RHS type for cmp vs number");
+        }
+        rnum = js_ValueToNumber(cx, &tmp[1]);
+        cond = evalCmp(op, lnum, rnum);
     } else if (JSVAL_IS_BOOLEAN(l) && JSVAL_IS_BOOLEAN(r)) {
-        x = lir->ins2(op, lir->ins1(LIR_i2f, get(&l)), lir->ins1(LIR_i2f, get(&r)));
-        if (negate)
-            x = lir->ins_eq0(x);
-
         
         
         
-        switch (op) {
-          case LIR_flt:
-            cond = l < r;
-            break;
-          case LIR_fgt:
-            cond = l > r;
-            break;
-          case LIR_fle:
-            cond = l <= r;
-            break;
-          case LIR_fge:
-            cond = l >= r;
-            break;
-          default:
-            JS_ASSERT(op == LIR_feq);
-            cond = (l == r) ^ negate;
-            break;
+        cond = evalCmp(op, l, r);
+    } else if (JSVAL_IS_OBJECT(l) && JSVAL_IS_OBJECT(r)) {
+        if (op != LIR_feq) {
+            negate = !(op == LIR_fle || op == LIR_fge);
+            op = LIR_feq;
         }
+        cond = (l == r); 
     } else {
         ABORT_TRACE("unsupported operand types for cmp");
     }
 
     
-    if (!isAnyConst(x)) {
+    if (!x) {
+        if (!l_ins->isQuad()) {
+            JS_ASSERT(!r_ins->isQuad());
+            JS_ASSERT(op >= LIR_feq && op <= LIR_fge);
+            op = LOpcode(op + (LIR_eq - LIR_feq));
+        } else {
+            JS_ASSERT(r_ins->isQuad());
+        }
+        x = lir->ins2(op, l_ins, r_ins);
+        if (negate) {
+            x = lir->ins_eq0(x);
+            cond = !cond;
+        }
+    }
+    
+    
+    if (!x->isconst()) {
         if (flags & CMP_CASE) {
             guard(cond, x, BRANCH_EXIT);
             return true;
@@ -3174,83 +3191,6 @@ TraceRecorder::cmp(LOpcode op, int flags)
 
     set(&l, x);
     return true;
-}
-
-
-
-
-bool
-TraceRecorder::equal(int flags)
-{
-    jsval& r = stackval(-1);
-    jsval& l = stackval(-2);
-    bool negate = !!(flags & CMP_NEGATE);
-
-    LIns* r_ins = get(&r);
-    LIns* l_ins = get(&l);
-
-    if (JSVAL_IS_STRING(l) && JSVAL_IS_STRING(r)) {
-        LIns* args[] = { r_ins, l_ins };
-        bool cond = js_EqualStrings(JSVAL_TO_STRING(l), JSVAL_TO_STRING(r)) ^ negate;
-        LIns* x = lir->ins_eq0(lir->insCall(F_EqualStrings, args));
-        if (!negate)
-            x = lir->ins_eq0(x);
-
-        
-        if (!isAnyConst(x)) {
-            if (flags & CMP_CASE) {
-                guard(cond, x, BRANCH_EXIT);
-                return true;
-            }
-
-            
-
-            if (flags & CMP_TRY_BRANCH_AFTER_COND) {
-                fuseIf(cx->fp->regs->pc + 1, cond, x);
-            }
-        } else if (flags & CMP_CASE) {
-            return true;
-        }
-
-        
-
-
-
-
-        set(&l, x);
-        return true;
-    }
-    if (JSVAL_IS_OBJECT(l) && JSVAL_IS_OBJECT(r)) {
-        bool cond = (l == r) ^ negate;
-        LIns* x = lir->ins2(LIR_eq, l_ins, r_ins);
-        if (negate)
-            x = lir->ins_eq0(x);
-
-        
-        if (!isAnyConst(x)) {
-            if (flags & CMP_CASE) {
-                guard(cond, x, BRANCH_EXIT);
-                return true;
-            }
-
-            
-
-            if (flags & CMP_TRY_BRANCH_AFTER_COND) {
-                fuseIf(cx->fp->regs->pc + 1, cond, x);
-            }
-        } else if (flags & CMP_CASE) {
-            return true;
-        }
-
-        
-
-
-
-
-        set(&l, x);
-        return true;
-    }
-    return cmp(LIR_feq, flags);
 }
 
 bool
@@ -3901,13 +3841,13 @@ TraceRecorder::record_JSOP_BITAND()
 bool
 TraceRecorder::record_JSOP_EQ()
 {
-    return equal(CMP_TRY_BRANCH_AFTER_COND);
+    return cmp(LIR_feq, CMP_TRY_BRANCH_AFTER_COND);
 }
 
 bool
 TraceRecorder::record_JSOP_NE()
 {
-    return equal(CMP_NEGATE | CMP_TRY_BRANCH_AFTER_COND);
+    return cmp(LIR_feq, CMP_NEGATE | CMP_TRY_BRANCH_AFTER_COND);
 }
 
 bool
@@ -5300,13 +5240,13 @@ TraceRecorder::record_JSOP_LOOKUPSWITCH()
 bool
 TraceRecorder::record_JSOP_STRICTEQ()
 {
-    return equal(CMP_STRICT);
+    return cmp(LIR_feq, CMP_STRICT);
 }
 
 bool
 TraceRecorder::record_JSOP_STRICTNE()
 {
-    return equal(CMP_STRICT | CMP_NEGATE);
+    return cmp(LIR_feq, CMP_STRICT | CMP_NEGATE);
 }
 
 bool
@@ -5755,7 +5695,7 @@ TraceRecorder::record_JSOP_CONDSWITCH()
 bool
 TraceRecorder::record_JSOP_CASE()
 {
-    return equal(CMP_CASE);
+    return cmp(LIR_feq, CMP_CASE);
 }
 
 bool
@@ -5952,7 +5892,7 @@ TraceRecorder::record_JSOP_GOSUBX()
 bool
 TraceRecorder::record_JSOP_CASEX()
 {
-    return equal(CMP_CASE);
+    return cmp(LIR_feq, CMP_CASE);
 }
 
 bool
