@@ -6610,24 +6610,32 @@ nsFrame::BoxReflow(nsBoxLayoutState&        aState,
       computedWidth = PR_MAX(computedWidth, 0);
       reflowState.SetComputedWidth(computedWidth);
     }
-    if (aHeight != NS_INTRINSICSIZE) {
-      nscoord computedHeight =
-        aHeight - reflowState.mComputedBorderPadding.TopBottom();
-      computedHeight = PR_MAX(computedHeight, 0);
-      reflowState.SetComputedHeight(computedHeight);
-    } else {
-      reflowState.SetComputedHeight(
-        ComputeSize(aRenderingContext, availSize, availSize.width,
-                    nsSize(reflowState.mComputedMargin.LeftRight(),
-                           reflowState.mComputedMargin.TopBottom()),
-                    nsSize(reflowState.mComputedBorderPadding.LeftRight() -
-                             reflowState.mComputedPadding.LeftRight(),
-                           reflowState.mComputedBorderPadding.TopBottom() -
-                             reflowState.mComputedPadding.TopBottom()),
-                    nsSize(reflowState.mComputedPadding.LeftRight(),
-                           reflowState.mComputedPadding.TopBottom()),
-                    PR_FALSE).height
-        );
+
+    
+    
+    
+    
+    
+    if (!IsFrameOfType(eBlockFrame)) {
+      if (aHeight != NS_INTRINSICSIZE) {
+        nscoord computedHeight =
+          aHeight - reflowState.mComputedBorderPadding.TopBottom();
+        computedHeight = PR_MAX(computedHeight, 0);
+        reflowState.SetComputedHeight(computedHeight);
+      } else {
+        reflowState.SetComputedHeight(
+          ComputeSize(aRenderingContext, availSize, availSize.width,
+                      nsSize(reflowState.mComputedMargin.LeftRight(),
+                             reflowState.mComputedMargin.TopBottom()),
+                      nsSize(reflowState.mComputedBorderPadding.LeftRight() -
+                               reflowState.mComputedPadding.LeftRight(),
+                             reflowState.mComputedBorderPadding.TopBottom() -
+                               reflowState.mComputedPadding.TopBottom()),
+                      nsSize(reflowState.mComputedPadding.LeftRight(),
+                               reflowState.mComputedPadding.TopBottom()),
+                      PR_FALSE).height
+          );
+      }
     }
 
     
@@ -6656,52 +6664,6 @@ nsFrame::BoxReflow(nsBoxLayoutState&        aState,
     Reflow(aPresContext, aDesiredSize, reflowState, status);
 
     NS_ASSERTION(NS_FRAME_IS_COMPLETE(status), "bad status");
-
-   
-
-    
-    
-    if (HasOverflowRect()) {
-      
-      
-      
-      
-      
-
-      
-
-      if (NS_STYLE_DIRECTION_LTR == GetStyleVisibility()->mDirection) {
-        
-        aDesiredSize.width = PR_MAX(aDesiredSize.width, 
-                                    aDesiredSize.mOverflowArea.XMost());
-      } else {
-        
-        nscoord leftmostValue = PR_MIN(0, aDesiredSize.mOverflowArea.x);
-        
-        
-        aDesiredSize.width = aDesiredSize.width - leftmostValue;
-      }
-      if (aDesiredSize.width <= aWidth) {
-        aDesiredSize.height = aDesiredSize.mOverflowArea.YMost();
-      } else {
-        nscoord computedWidth = aDesiredSize.width -
-          reflowState.mComputedBorderPadding.LeftRight();
-        computedWidth = PR_MAX(computedWidth, 0);
-        reflowState.SetComputedWidth(computedWidth);
-        reflowState.availableWidth = aDesiredSize.width;
-        DidReflow(aPresContext, &reflowState, NS_FRAME_REFLOW_FINISHED);
-        #ifdef DEBUG_REFLOW
-        nsAdaptorAddIndents();
-        nsAdaptorPrintReason(reflowState);
-        printf("\n");
-        #endif
-        AddStateBits(NS_FRAME_IS_DIRTY);
-        WillReflow(aPresContext);
-        Reflow(aPresContext, aDesiredSize, reflowState, status);
-        if (HasOverflowRect())
-          aDesiredSize.height = aDesiredSize.mOverflowArea.YMost();
-      }
-    }
 
     if (redrawAfterReflow) {
        nsRect r = GetRect();
