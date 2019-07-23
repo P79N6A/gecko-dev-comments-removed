@@ -2270,10 +2270,20 @@ nsWindow::Scroll(const nsIntPoint& aDelta,
           w->Invalidate(PR_FALSE);
         }
       }
+
+      
+      
+      
+      
+      
+      for (nsWindow* w = static_cast<nsWindow*>(GetFirstChild()); w;
+           w = static_cast<nsWindow*>(w->GetNextSibling())) {
+        if (w->mBounds.Intersects(affectedRect)) {
+          w->mBounds += aDelta;
+        }
+      }
     }
 
-    
-    
     RECT clip = { affectedRect.x, affectedRect.y, affectedRect.XMost(), affectedRect.YMost() };
     ::ScrollWindowEx(mWnd, aDelta.x, aDelta.y, &clip, &clip, NULL, NULL, flags);
   }
