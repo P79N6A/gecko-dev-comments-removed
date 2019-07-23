@@ -1179,7 +1179,8 @@ nsBindingManager::ContentAppended(nsIDocument* aDocument,
                                   PRInt32     aNewIndexInContainer)
 {
   
-  if (aNewIndexInContainer != -1 && mContentListTable.ops) {
+  if (aNewIndexInContainer != -1 &&
+      (mContentListTable.ops || mAnonymousNodesTable.ops)) {
     
     PRInt32 childCount = aContainer->GetChildCount();
 
@@ -1230,7 +1231,8 @@ nsBindingManager::ContentInserted(nsIDocument* aDocument,
                                   PRInt32 aIndexInContainer)
 {
   
-  if (aIndexInContainer != -1 && mContentListTable.ops) {
+  if (aIndexInContainer != -1 &&
+      (mContentListTable.ops || mAnonymousNodesTable.ops)) {
     
     nsCOMPtr<nsIContent> ins = GetNestedInsertionPoint(aContainer, aChild);
 
@@ -1304,7 +1306,8 @@ nsBindingManager::ContentRemoved(nsIDocument* aDocument,
                                      (aDocument, aContainer, aChild,
                                       aIndexInContainer));  
 
-  if (aIndexInContainer == -1 || !mContentListTable.ops)
+  if (aIndexInContainer == -1 ||
+      (!mContentListTable.ops && !mAnonymousNodesTable.ops))
     
     return;
 
