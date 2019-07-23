@@ -1074,6 +1074,7 @@ function FeedProcessor() {
   this._result = null;
   this._extensionHandler = null;
   this._xhtmlHandler = null;
+  this._haveSentResult = false;
   
   
   this._waiPrefixes = {};
@@ -1262,6 +1263,7 @@ FeedProcessor.prototype = {
   
   
   _sendResult: function FP_sendResult() {
+    this._haveSentResult = true;
     try {
       
       if (this._result.doc)
@@ -1331,7 +1333,8 @@ FeedProcessor.prototype = {
   fatalError: function FP_reportError() {
     this._result.bozo = true;
     
-    this._sendResult();
+    if (!this._haveSentResult)
+      this._sendResult();
   },
 
   
@@ -1341,7 +1344,8 @@ FeedProcessor.prototype = {
   },
 
   endDocument: function FP_endDocument() {
-    this._sendResult();
+    if (!this._haveSentResult)
+      this._sendResult();
   },
 
   
