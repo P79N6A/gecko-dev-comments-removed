@@ -1,7 +1,3 @@
-
-
-
-
 STUB_ENTRY(3)
 STUB_ENTRY(4)
 STUB_ENTRY(5)
