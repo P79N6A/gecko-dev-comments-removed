@@ -126,6 +126,7 @@
 
 #include "nsIDirectoryService.h"
 #include "nsDirectoryServiceDefs.h"
+#include "nsXULAppAPI.h"
 #include "nsAppDirectoryServiceDefs.h"
 #include "nsIFile.h"
 #include "nsPluginDirServiceProvider.h"
@@ -4473,7 +4474,9 @@ nsresult nsPluginHost::FindPlugins(PRBool aCreatePluginList, PRBool * aPluginsCh
   nsresult rv;
 
   
-  ReadPluginInfo();
+  
+  if (ReadPluginInfo() == NS_ERROR_NOT_AVAILABLE)
+    return NS_OK;
 
   nsCOMPtr<nsIComponentManager> compManager;
   NS_GetComponentManager(getter_AddRefs(compManager));
@@ -4792,8 +4795,16 @@ nsPluginHost::ReadPluginInfo()
   directoryService->Get(NS_APP_USER_PROFILE_50_DIR, NS_GET_IID(nsIFile),
                         getter_AddRefs(mPluginRegFile));
 
-  if (!mPluginRegFile)
-    return NS_ERROR_FAILURE;
+  if (!mPluginRegFile) {
+    
+    
+    directoryService->Get(NS_APP_PROFILE_DIR_STARTUP, NS_GET_IID(nsIFile),
+                          getter_AddRefs(mPluginRegFile));
+    if (!mPluginRegFile)
+      return NS_ERROR_FAILURE;
+    else
+      return NS_ERROR_NOT_AVAILABLE;
+  }
 
   PRFileDesc* fd = nsnull;
 
