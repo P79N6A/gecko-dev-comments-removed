@@ -125,9 +125,7 @@ public:
 
 
 
-
-  nsresult Resolve(nsPresContext* aPresContext,
-                   nsBlockFrame*   aBlockFrame,
+  nsresult Resolve(nsBlockFrame*   aBlockFrame,
                    nsIFrame*       aFirstChild,
                    PRBool          aIsVisualFormControl);
 
@@ -137,9 +135,7 @@ public:
 
 
 
-  void ReorderFrames(nsPresContext*      aPresContext,
-                     nsIRenderingContext* aRendContext,
-                     nsIFrame*            aFirstFrameOnLine,
+  void ReorderFrames(nsIFrame*            aFirstFrameOnLine,
                      PRInt32              aNumFramesOnLine);
 
   
@@ -280,17 +276,14 @@ private:
 
 
 
-  void CreateBlockBuffer(nsPresContext* aPresContext);
+  void CreateBlockBuffer();
 
   
 
 
 
 
-  nsresult InitLogicalArray(nsPresContext* aPresContext,
-                            nsIFrame*       aCurrentFrame,
-                            nsIFrame*       aNextInFlow,
-                            PRBool          aAddMarkers = PR_FALSE);
+  void InitLogicalArray(nsIFrame* aCurrentFrame);
 
   
 
@@ -365,10 +358,7 @@ private:
 
 
 
-  void RepositionInlineFrames(nsPresContext*      aPresContext,
-                              nsIRenderingContext* aRendContext,
-                              nsIFrame*            aFirstChild,
-                              PRBool               aReordered) const;
+  void RepositionInlineFrames(nsIFrame* aFirstChild) const;
   
   
 
@@ -385,9 +375,7 @@ private:
 
 
 
-
-  PRBool EnsureBidiContinuation(nsPresContext* aPresContext,
-                                nsIFrame*       aFrame,
+  PRBool EnsureBidiContinuation(nsIFrame*       aFrame,
                                 nsIFrame**      aNewFrame,
                                 PRInt32&        aFrameIndex);
 
@@ -407,9 +395,7 @@ private:
 
 
 
-
-  void RemoveBidiContinuation(nsPresContext* aPresContext,
-                              nsIFrame*       aFrame,
+  void RemoveBidiContinuation(nsIFrame*       aFrame,
                               PRInt32         aFirstIndex,
                               PRInt32         aLastIndex,
                               PRInt32&        aOffset) const;
