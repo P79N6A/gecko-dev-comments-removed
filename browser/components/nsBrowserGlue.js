@@ -547,8 +547,8 @@ BrowserGlue.prototype = {
       var bookmarksFile = null;
       if (restoreDefaultBookmarks) {
         
-        bookmarksFile = dirService.get("profDef", Ci.nsILocalFile)
-                                      .append("bookmarks.html");
+        bookmarksFile = dirService.get("profDef", Ci.nsILocalFile);
+        bookmarksFile.append("bookmarks.html");
       }
       else
         bookmarksFile = dirService.get("BMarks", Ci.nsILocalFile);
