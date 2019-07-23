@@ -42,7 +42,6 @@
 #include "nsIPref.h" 
 #include "nsNetCID.h"
 #include "nsEscape.h"
-static NS_DEFINE_CID(kStandardURLCID, NS_STANDARDURL_CID); 
 
 #define INCL_DOS
 #define INCL_DOSMISC

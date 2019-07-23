@@ -63,9 +63,6 @@
 #include "nsNativeUConvService.h"
 #endif
 
-static NS_DEFINE_CID(kStringBundleServiceCID, NS_STRINGBUNDLESERVICE_CID);
-static NS_DEFINE_CID(kCharsetAliasCID, NS_CHARSETALIAS_CID);
-
 
 #define NS_1BYTE_CODER_PATTERN "ISO-8859"
 #define NS_1BYTE_CODER_PATTERN_LEN 8
@@ -121,7 +118,7 @@ nsresult nsCharsetConverterManager::LoadExtensibleBundle(
   nsresult rv = NS_OK;
 
   nsCOMPtr<nsIStringBundleService> sbServ = 
-           do_GetService(kStringBundleServiceCID, &rv);
+           do_GetService(NS_STRINGBUNDLE_CONTRACTID, &rv);
   if (NS_FAILED(rv))
     return rv;
 
@@ -372,7 +369,7 @@ nsCharsetConverterManager::GetCharsetAlias(const char * aCharset,
   
   
   nsDependentCString charset(aCharset);
-  nsCOMPtr<nsICharsetAlias> csAlias( do_GetService(kCharsetAliasCID) );
+  nsCOMPtr<nsICharsetAlias> csAlias(do_GetService(NS_CHARSETALIAS_CONTRACTID));
   NS_ASSERTION(csAlias, "failed to get the CharsetAlias service");
   if (csAlias) {
     nsAutoString pref;
