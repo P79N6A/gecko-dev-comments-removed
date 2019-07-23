@@ -767,19 +767,30 @@ function invokerChecker(aEventType, aTarget)
 
 
 
-var gObserverService = null;
-
 var gA11yEventListeners = {};
 var gA11yEventApplicantsCount = 0;
 
 var gA11yEventObserver =
 {
+  
+  
+  observerService : null,
+
   observe: function observe(aSubject, aTopic, aData)
   {
     if (aTopic != "accessible-event")
       return;
 
-    var event = aSubject.QueryInterface(nsIAccessibleEvent);
+    var event;
+    try {
+      event = aSubject.QueryInterface(nsIAccessibleEvent);
+    } catch (ex) {
+      
+      
+      this.observerService.removeObserver(this, "accessible-event");
+      
+      throw "[accessible/events.js, gA11yEventObserver.observe] This is expected if a previous test has been aborted... Initial exception was: [ " + ex + " ]";
+    }
     var listenersArray = gA11yEventListeners[event.eventType];
 
     if (gA11yEventDumpID) { 
@@ -812,16 +823,17 @@ var gA11yEventObserver =
 
 function listenA11yEvents(aStartToListen)
 {
-  if (aStartToListen && !gObserverService) {
-    gObserverService = Components.classes["@mozilla.org/observer-service;1"].
-      getService(nsIObserverService);
+  if (aStartToListen && !gA11yEventObserver.observerService) {
+    gA11yEventObserver.observerService =
+        Components.classes["@mozilla.org/observer-service;1"].getService(nsIObserverService);
     
-    gObserverService.addObserver(gA11yEventObserver, "accessible-event",
-                                 false);
+    gA11yEventObserver.observerService
+                      .addObserver(gA11yEventObserver, "accessible-event", false);
   } else if (!gA11yEventApplicantsCount) {
-    gObserverService.removeObserver(gA11yEventObserver,
-                                    "accessible-event");
-    gObserverService = null;
+    gA11yEventObserver.observerService
+                      .removeObserver(gA11yEventObserver, "accessible-event");
+    
+    gA11yEventObserver.observerService = null;
   }
 }
 
