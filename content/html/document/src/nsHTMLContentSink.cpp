@@ -250,9 +250,6 @@ protected:
   SinkContext* mHeadContext;
   PRInt32 mNumOpenIFRAMES;
 
-  nsCOMPtr<nsIURI> mBaseHref;
-  nsCOMPtr<nsIAtom> mBaseTarget;
-
   
   PRInt32 mInsideNoXXXTag;
 
@@ -278,14 +275,6 @@ protected:
   void StartLayout(PRBool aIgnorePendingSheets);
 
   
-
-
-
-
-
-  void AddBaseTagInfo(nsIContent* aContent);
-
-  
   nsresult CloseHTML();
   nsresult OpenFrameset(const nsIParserNode& aNode);
   nsresult CloseFrameset();
@@ -293,7 +282,6 @@ protected:
   nsresult CloseBody();
   nsresult OpenForm(const nsIParserNode& aNode);
   nsresult CloseForm();
-  void ProcessBASEElement(nsGenericHTMLElement* aElement);
   nsresult ProcessLINKTag(const nsIParserNode& aNode);
 
   
@@ -788,39 +776,6 @@ SinkContext::OpenContainer(const nsIParserNode& aNode)
 
     ssle->SetEnableUpdates(PR_FALSE);
   }
-
-  
-  
-  
-  
-  switch (nodeType) {
-    
-    case eHTMLTag_a:
-    case eHTMLTag_map:
-
-    
-    case eHTMLTag_script:
-    
-    
-    case eHTMLTag_form:
-
-    
-    case eHTMLTag_object:
-
-    
-    case eHTMLTag_table:
-    case eHTMLTag_thead:
-    case eHTMLTag_tbody:
-    case eHTMLTag_tfoot:
-    case eHTMLTag_tr:
-    case eHTMLTag_td:
-    case eHTMLTag_th:
-      mSink->AddBaseTagInfo(content);
-
-      break;
-    default:
-      break;    
-  }
   
   rv = mSink->AddAttributes(aNode, content);
   MaybeSetForm(content, nodeType, mSink);
@@ -1047,28 +1002,8 @@ SinkContext::AddLeaf(const nsIParserNode& aNode)
         mSink->CreateContentObject(aNode, nodeType);
       NS_ENSURE_TRUE(content, NS_ERROR_OUT_OF_MEMORY);
 
-      
-      
-      
-      
-      switch (nodeType) {
-      case eHTMLTag_area:
-      case eHTMLTag_meta:
-      case eHTMLTag_img:
-      case eHTMLTag_frame:
-      case eHTMLTag_input:
-      case eHTMLTag_embed:
-        mSink->AddBaseTagInfo(content);
-        break;
-
-      
-      case eHTMLTag_form:
-        mSink->AddBaseTagInfo(content);
+      if (nodeType == eHTMLTag_form) {
         mSink->mCurrentForm = content;
-
-        break;
-      default:
-        break;
       }
 
       rv = mSink->AddAttributes(aNode, content);
@@ -1082,12 +1017,6 @@ SinkContext::AddLeaf(const nsIParserNode& aNode)
 
       
       switch (nodeType) {
-      case eHTMLTag_base:
-        if (!mSink->mInsideNoXXXTag) {
-          mSink->ProcessBASEElement(content);
-        }
-        break;
-
       case eHTMLTag_meta:
         
         
@@ -2630,28 +2559,6 @@ HTMLContentSink::StartLayout(PRBool aIgnorePendingSheets)
   nsContentSink::StartLayout(aIgnorePendingSheets);
 }
 
-void
-HTMLContentSink::AddBaseTagInfo(nsIContent* aContent)
-{
-  nsresult rv;
-  if (mBaseHref) {
-    rv = aContent->SetProperty(nsGkAtoms::htmlBaseHref, mBaseHref,
-                               nsPropertyTable::SupportsDtorFunc, PR_TRUE);
-    if (NS_SUCCEEDED(rv)) {
-      
-      NS_ADDREF(static_cast<nsIURI*>(mBaseHref));
-    }
-  }
-  if (mBaseTarget) {
-    rv = aContent->SetProperty(nsGkAtoms::htmlBaseTarget, mBaseTarget,
-                               nsPropertyTable::SupportsDtorFunc, PR_TRUE);
-    if (NS_SUCCEEDED(rv)) {
-      
-      NS_ADDREF(static_cast<nsIAtom*>(mBaseTarget));
-    }
-  }
-}
-
 nsresult
 HTMLContentSink::OpenHeadContext()
 {
@@ -2703,56 +2610,6 @@ HTMLContentSink::CloseHeadContext()
   }
 }
 
-void
-HTMLContentSink::ProcessBASEElement(nsGenericHTMLElement* aElement)
-{
-  
-  nsAutoString attrValue;
-  if (aElement->GetAttr(kNameSpaceID_None, nsGkAtoms::href, attrValue)) {
-    
-    nsresult rv;
-    nsCOMPtr<nsIURI> baseHrefURI;
-    rv = nsContentUtils::NewURIWithDocumentCharset(getter_AddRefs(baseHrefURI),
-                                                   attrValue, mDocument,
-                                                   nsnull);
-    if (NS_FAILED(rv))
-      return;
-
-    
-    if (!mBody) {
-      
-      
-      rv = mDocument->SetBaseURI(baseHrefURI);
-      if (NS_SUCCEEDED(rv)) {
-        mDocumentBaseURI = mDocument->GetBaseURI();
-      }
-    } else {
-      
-
-      nsIScriptSecurityManager *securityManager =
-        nsContentUtils::GetSecurityManager();
-
-      rv = securityManager->
-        CheckLoadURIWithPrincipal(mDocument->NodePrincipal(), baseHrefURI,
-                                  nsIScriptSecurityManager::STANDARD);
-      if (NS_SUCCEEDED(rv)) {
-        mBaseHref = baseHrefURI;
-      }
-    }
-  }
-
-  
-  if (aElement->GetAttr(kNameSpaceID_None, nsGkAtoms::target, attrValue)) {
-    if (!mBody) {
-      
-      mDocument->SetBaseTarget(attrValue);
-    } else {
-      
-      mBaseTarget = do_GetAtom(attrValue);
-    }
-  }
-}
-
 nsresult
 HTMLContentSink::ProcessLINKTag(const nsIParserNode& aNode)
 {
@@ -2781,7 +2638,6 @@ HTMLContentSink::ProcessLINKTag(const nsIParserNode& aNode)
 
     
     
-    AddBaseTagInfo(element);
     result = AddAttributes(aNode, element);
     if (NS_FAILED(result)) {
       return result;

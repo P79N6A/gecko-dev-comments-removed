@@ -428,6 +428,43 @@ nsHTMLSharedElement::IsAttributeMapped(const nsIAtom* aAttribute) const
   return nsGenericHTMLElement::IsAttributeMapped(aAttribute);
 }
 
+void
+SetBaseURIUsingFirstBaseWithHref(nsIContent* aHead, nsIContent* aMustMatch)
+{
+  NS_PRECONDITION(aHead && aHead->GetOwnerDoc() &&
+                  aHead->GetOwnerDoc()->GetHeadContent() == aHead,
+                  "Bad head");
+
+  nsIDocument* doc = aHead->GetOwnerDoc();
+
+  for (nsINode::ChildIterator iter(aHead); !iter.IsDone(); iter.Next()) {
+    nsIContent* child = iter;
+    if (child->NodeInfo()->Equals(nsGkAtoms::base, kNameSpaceID_XHTML) &&
+        child->HasAttr(kNameSpaceID_None, nsGkAtoms::href)) {
+      if (aMustMatch && child != aMustMatch) {
+        return;
+      }
+
+      
+      nsAutoString href;
+      child->GetAttr(kNameSpaceID_None, nsGkAtoms::href, href);
+
+      nsCOMPtr<nsIURI> newBaseURI;
+      nsContentUtils::NewURIWithDocumentCharset(
+        getter_AddRefs(newBaseURI), href, doc, doc->GetDocumentURI());
+
+      
+      nsresult rv = doc->SetBaseURI(newBaseURI);
+      if (NS_FAILED(rv)) {
+        doc->SetBaseURI(nsnull);
+      }
+      return;
+    }
+  }
+
+  doc->SetBaseURI(nsnull);
+}
+
 nsresult
 nsHTMLSharedElement::SetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
                              nsIAtom* aPrefix, const nsAString& aValue,
@@ -435,64 +472,22 @@ nsHTMLSharedElement::SetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
 {
   nsresult rv =  nsGenericHTMLElement::SetAttr(aNameSpaceID, aName, aPrefix,
                                                aValue, aNotify);
+  NS_ENSURE_SUCCESS(rv, rv);
 
   
   
   
-  if (NS_SUCCEEDED(rv) &&
-      mNodeInfo->Equals(nsGkAtoms::base, kNameSpaceID_XHTML) &&
+  nsIContent* head;
+  if (mNodeInfo->Equals(nsGkAtoms::base, kNameSpaceID_XHTML) &&
       aName == nsGkAtoms::href &&
       aNameSpaceID == kNameSpaceID_None &&
-      GetOwnerDoc() == GetCurrentDoc()) {
-
-    nsIDocument* doc = GetCurrentDoc();
-    NS_ENSURE_TRUE(doc, NS_OK);
-
-    
-    
-    
-    
-    
-    
-    
-    nsIContent* firstBase = doc->GetFirstBaseNodeWithHref();
-    if (!firstBase || this == firstBase ||
-        nsContentUtils::PositionIsBefore(this, firstBase)) {
-
-      return doc->SetFirstBaseNodeWithHref(this);
-    }
+      IsInDoc() &&
+      (head = GetParent()) &&
+      head == GetOwnerDoc()->GetHeadContent()) {
+    SetBaseURIUsingFirstBaseWithHref(head, this);
   }
 
-  return rv;
-}
-
-
-
-
-static nsIContent*
-FindBaseRecursive(nsINode * const elem)
-{
-  
-  
-  
-  
-
-  PRUint32 childCount;
-  nsIContent * const * child = elem->GetChildArray(&childCount);
-  nsIContent * const * end = child + childCount;
-  for ( ; child != end; child++) {
-    nsIContent *childElem = *child;
-
-    if (childElem->NodeInfo()->Equals(nsGkAtoms::base, kNameSpaceID_XHTML) &&
-        childElem->HasAttr(kNameSpaceID_None, nsGkAtoms::href))
-      return childElem;
-
-    nsIContent* base = FindBaseRecursive(childElem);
-    if (base)
-      return base;
-  }
-
-  return nsnull;
+  return NS_OK;
 }
 
 nsresult
@@ -500,31 +495,22 @@ nsHTMLSharedElement::UnsetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
                                PRBool aNotify)
 {
   nsresult rv = nsGenericHTMLElement::UnsetAttr(aNameSpaceID, aName, aNotify);
+  NS_ENSURE_SUCCESS(rv, rv);
 
   
   
   
-  if (NS_SUCCEEDED(rv) &&
-      mNodeInfo->Equals(nsGkAtoms::base, kNameSpaceID_XHTML) &&
+  nsIContent* head;
+  if (mNodeInfo->Equals(nsGkAtoms::base, kNameSpaceID_XHTML) &&
       aName == nsGkAtoms::href &&
       aNameSpaceID == kNameSpaceID_None &&
-      GetOwnerDoc() == GetCurrentDoc()) {
-
-    nsIDocument* doc = GetCurrentDoc();
-    NS_ENSURE_TRUE(doc, NS_OK);
-
-    
-    
-    if (this != doc->GetFirstBaseNodeWithHref())
-      return NS_OK;
-
-    
-    
-    nsIContent* newBaseNode = FindBaseRecursive(doc);
-    return doc->SetFirstBaseNodeWithHref(newBaseNode);
+      IsInDoc() &&
+      (head = GetParent()) &&
+      head == GetOwnerDoc()->GetHeadContent()) {
+    SetBaseURIUsingFirstBaseWithHref(head, nsnull);
   }
 
-  return rv;
+  return NS_OK;
 }
 
 nsresult
@@ -535,46 +521,46 @@ nsHTMLSharedElement::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
   nsresult rv = nsGenericHTMLElement::BindToTree(aDocument, aParent,
                                                  aBindingParent,
                                                  aCompileEventHandlers);
+  NS_ENSURE_SUCCESS(rv, rv);
 
   
   
-  if (NS_SUCCEEDED(rv) &&
-      mNodeInfo->Equals(nsGkAtoms::base, kNameSpaceID_XHTML) &&
+  if (mNodeInfo->Equals(nsGkAtoms::base, kNameSpaceID_XHTML) &&
       HasAttr(kNameSpaceID_None, nsGkAtoms::href) &&
-      aDocument) {
+      aDocument && aParent &&
+      aDocument->GetHeadContent() == aParent) {
 
-    
-    
-    nsINode* curBaseNode = aDocument->GetFirstBaseNodeWithHref();
-    if (!curBaseNode ||
-        nsContentUtils::PositionIsBefore(this, curBaseNode)) {
-
-      aDocument->SetFirstBaseNodeWithHref(this);
-    }
+    SetBaseURIUsingFirstBaseWithHref(aParent, this);
   }
 
-  return rv;
+  return NS_OK;
 }
 
 void
 nsHTMLSharedElement::UnbindFromTree(PRBool aDeep, PRBool aNullParent)
 {
-  nsCOMPtr<nsIDocument> doc = GetCurrentDoc();
+  nsIDocument* doc;
+  nsIContent* parent;
+  PRBool inHeadBase = mNodeInfo->Equals(nsGkAtoms::base, kNameSpaceID_XHTML) &&
+                      (doc = GetCurrentDoc()) &&
+                      (parent = GetParent()) &&
+                      parent->NodeInfo()->Equals(nsGkAtoms::head,
+                                                 kNameSpaceID_XHTML);
 
   nsGenericHTMLElement::UnbindFromTree(aDeep, aNullParent);
 
   
   
-  if (doc && mNodeInfo->Equals(nsGkAtoms::base, kNameSpaceID_XHTML)) {
-
+  if (inHeadBase) {
     
-    if (this != doc->GetFirstBaseNodeWithHref())
-      return;
-
     
-
-    nsIContent* newBaseNode = FindBaseRecursive(doc);
-    doc->SetFirstBaseNodeWithHref(newBaseNode);
+    nsIContent* head = doc->GetHeadContent();
+    if (head) {
+      SetBaseURIUsingFirstBaseWithHref(head, nsnull);
+    }
+    else {
+      doc->SetBaseURI(nsnull);
+    }
   }
 }
 

@@ -115,8 +115,8 @@ class Link;
 } 
 
 #define NS_IDOCUMENT_IID      \
-{ 0x17e1c0ce, 0x3883, 0x4efc, \
-  { 0xbf, 0xdf, 0x40, 0xa6, 0x26, 0x9f, 0xbd, 0x2c } }
+{ 0x4a0c9bfa, 0xef60, 0x4bb2, \
+  { 0x87, 0x5e, 0xac, 0xdb, 0xe8, 0xfe, 0xa1, 0xb5 } }
 
 
 #define NS_STYLESHEET_FROM_CATALOG                (1 << 0)
@@ -249,8 +249,7 @@ public:
   
 
 
-  virtual void GetBaseTarget(nsAString &aBaseTarget) const = 0;
-  virtual void SetBaseTarget(const nsAString &aBaseTarget) = 0;
+  virtual void GetBaseTarget(nsAString &aBaseTarget) = 0;
 
   
 
@@ -1327,24 +1326,6 @@ public:
 
 
   virtual PRInt32 GetDocumentState() = 0;
-
-  
-
-
-
-
-  virtual nsIContent* GetFirstBaseNodeWithHref() = 0;
-
-  
-
-
-
-
-
-
-
-
-  virtual nsresult SetFirstBaseNodeWithHref(nsIContent *node) = 0;
 
   virtual nsISupports* GetCurrentContentSink() = 0;
 

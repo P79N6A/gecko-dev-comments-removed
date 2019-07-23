@@ -449,8 +449,6 @@ nsHtml5Parser::ParseFragment(const nsAString& aSourceBuffer,
 
   Initialize(doc, uri, nsnull, nsnull);
 
-  
-  mExecutor->SetBaseUriFromDocument();
   mExecutor->SetParser(this);
   mExecutor->SetNodeInfoManager(doc->NodeInfoManager());
 
