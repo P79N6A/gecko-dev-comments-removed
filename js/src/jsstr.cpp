@@ -1343,10 +1343,15 @@ match_or_replace(JSContext *cx,
                 destroy(cx, data);
         }
     } else {
+        jsval savedObject = JSVAL_NULL;
+
         if (GET_MODE(data->flags) == MODE_REPLACE) {
             test = JS_TRUE;
         } else {
             
+
+
+
 
 
 
@@ -1364,12 +1369,16 @@ match_or_replace(JSContext *cx,
                   case JSOP_IFEQX:
                   case JSOP_IFNEX:
                     test = JS_TRUE;
+                    savedObject = *vp;
+                    JS_ASSERT(!JSVAL_IS_PRIMITIVE(savedObject));
                     break;
                   default:;
                 }
             }
         }
         ok = js_ExecuteRegExp(cx, re, str, &index, test, vp);
+        if (ok && !JSVAL_IS_NULL(savedObject) && *vp == JSVAL_TRUE)
+            *vp = savedObject;
     }
 
     DROP_REGEXP(cx, re);
@@ -1418,8 +1427,8 @@ match_glob(JSContext *cx, jsint count, GlobData *data)
     return OBJ_SET_PROPERTY(cx, arrayobj, INT_TO_JSID(count), &v);
 }
 
-JSBool
-js_StringMatchHelper(JSContext *cx, uintN argc, jsval *vp, jsbytecode *pc)
+static JSBool
+StringMatchHelper(JSContext *cx, uintN argc, jsval *vp, jsbytecode *pc)
 {
     JSTempValueRooter tvr;
     MatchData mdata;
@@ -1444,29 +1453,32 @@ str_match(JSContext *cx, uintN argc, jsval *vp)
 
     for (fp = js_GetTopStackFrame(cx); fp && !fp->regs; fp = fp->down)
         JS_ASSERT(!fp->script);
-    return js_StringMatchHelper(cx, argc, vp, fp ? fp->regs->pc : NULL);
+
+    
+    JSAutoTempValueRooter tvr(cx, vp[0]);
+    return StringMatchHelper(cx, argc, vp, fp ? fp->regs->pc : NULL);
 }
 
 #ifdef JS_TRACER
 static JSObject* FASTCALL
 String_p_match(JSContext* cx, JSString* str, jsbytecode *pc, JSObject* regexp)
 {
-    jsval vp[3] = { JSVAL_NULL, STRING_TO_JSVAL(str), OBJECT_TO_JSVAL(regexp) };
-    if (!js_StringMatchHelper(cx, 1, vp, pc))
+    
+    jsval vp[3] = { OBJECT_TO_JSVAL(regexp), STRING_TO_JSVAL(str), OBJECT_TO_JSVAL(regexp) };
+    if (!StringMatchHelper(cx, 1, vp, pc))
         return (JSObject*) JSVAL_TO_BOOLEAN(JSVAL_VOID);
-    JS_ASSERT(JSVAL_IS_NULL(vp[0]) ||
-              (!JSVAL_IS_PRIMITIVE(vp[0]) && OBJ_IS_ARRAY(cx, JSVAL_TO_OBJECT(vp[0]))));
+    JS_ASSERT(JSVAL_IS_OBJECT(vp[0]));
     return JSVAL_TO_OBJECT(vp[0]);
 }
 
 static JSObject* FASTCALL
 String_p_match_obj(JSContext* cx, JSObject* str, jsbytecode *pc, JSObject* regexp)
 {
-    jsval vp[3] = { JSVAL_NULL, OBJECT_TO_JSVAL(str), OBJECT_TO_JSVAL(regexp) };
-    if (!js_StringMatchHelper(cx, 1, vp, pc))
+    
+    jsval vp[3] = { OBJECT_TO_JSVAL(regexp), OBJECT_TO_JSVAL(str), OBJECT_TO_JSVAL(regexp) };
+    if (!StringMatchHelper(cx, 1, vp, pc))
         return (JSObject*) JSVAL_TO_BOOLEAN(JSVAL_VOID);
-    JS_ASSERT(JSVAL_IS_NULL(vp[0]) ||
-              (!JSVAL_IS_PRIMITIVE(vp[0]) && OBJ_IS_ARRAY(cx, JSVAL_TO_OBJECT(vp[0]))));
+    JS_ASSERT(JSVAL_IS_OBJECT(vp[0]));
     return JSVAL_TO_OBJECT(vp[0]);
 }
 #endif
