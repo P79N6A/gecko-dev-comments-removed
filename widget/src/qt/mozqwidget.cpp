@@ -15,6 +15,11 @@ bool MozQWidget::event(QEvent *e)
     nsEventStatus status = nsEventStatus_eIgnore;
     bool handled = true;
 
+    
+    
+    if (e->type() == QEvent::DeferredDelete)
+        return QObject::event(e);
+
     if (!mReceiver)
         return false;
 
