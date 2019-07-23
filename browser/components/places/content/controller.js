@@ -1300,9 +1300,10 @@ PlacesMenuDNDObserver.prototype = {
         end = this._view._endMarker;
     }
 
+    var popupFirstChildY = this._popup.firstChild.boxObject.y;
     for (var i = start; i < end; i++) {
       var xulNode = this._popup.childNodes[i];
-      var nodeY = xulNode.boxObject.y - this._popup.boxObject.y;
+      var nodeY = xulNode.boxObject.y - popupFirstChildY;
       var nodeHeight = xulNode.boxObject.height;
       if (xulNode.node &&
           PlacesUtils.nodeIsFolder(xulNode.node) &&
@@ -1310,14 +1311,14 @@ PlacesMenuDNDObserver.prototype = {
         
         
         
-        if (event.clientY < nodeY + (nodeHeight * 0.25)) {
+        if (event.layerY < nodeY + (nodeHeight * 0.25)) {
           
           dropPoint.ip = new InsertionPoint(resultNode.itemId, i - start,
                                             -1);
           dropPoint.beforeIndex = i;
           return dropPoint;
         }
-        else if (event.clientY < nodeY + (nodeHeight * 0.75)) {
+        else if (event.layerY < nodeY + (nodeHeight * 0.75)) {
           
           dropPoint.ip = new InsertionPoint(xulNode.node.itemId, -1, 1);
           dropPoint.beforeIndex = i;
@@ -1327,7 +1328,7 @@ PlacesMenuDNDObserver.prototype = {
       } else {
         
         
-        if (event.clientY < nodeY + (nodeHeight / 2)) {
+        if (event.layerY < nodeY + (nodeHeight / 2)) {
           
           dropPoint.ip = new InsertionPoint(resultNode.itemId, i - start, -1);
           dropPoint.beforeIndex = i;
