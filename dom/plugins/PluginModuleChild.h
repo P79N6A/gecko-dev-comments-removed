@@ -155,7 +155,7 @@ private:
     PRLibrary* mLibrary;
 
     
-#ifdef OS_LINUX
+#ifdef OS_POSIX
     NP_PLUGINUNIXINIT mInitializeFunc;
 #elif OS_WIN
     NP_PLUGININIT mInitializeFunc;
