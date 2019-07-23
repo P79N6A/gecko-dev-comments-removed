@@ -242,67 +242,6 @@ nsLocation::CheckURL(nsIURI* aURI, nsIDocShellLoadInfo** aLoadInfo)
   return NS_OK;
 }
 
-
-
-
-
-
-nsresult
-nsLocation::FindUsableBaseURI(nsIURI * aBaseURI, nsIDocShell * aParent,
-                              nsIURI ** aUsableURI)
-{
-  if (!aBaseURI || !aParent)
-    return NS_ERROR_FAILURE;
-  NS_ENSURE_ARG_POINTER(aUsableURI);
-
-  *aUsableURI = nsnull;
-  nsresult rv = NS_OK;    
-  nsCOMPtr<nsIDocShell> parentDS = aParent;
-  nsCOMPtr<nsIURI> baseURI = aBaseURI;
-  nsCOMPtr<nsIIOService> ioService =
-    do_GetService(NS_IOSERVICE_CONTRACTID, &rv);
-
-  while(NS_SUCCEEDED(rv) && baseURI) {
-    
-    
-    
-    
-    nsCAutoString scheme;
-    baseURI->GetScheme(scheme);
-    nsCOMPtr<nsIProtocolHandler> protocolHandler;
-    
-    ioService->GetProtocolHandler(scheme.get(), getter_AddRefs(protocolHandler));
-    if (!protocolHandler)
-      return NS_ERROR_FAILURE;
-    PRUint32 pFlags; 
-    protocolHandler->GetProtocolFlags(&pFlags);
-    if (!(pFlags & nsIProtocolHandler::URI_NORELATIVE)) {
-      *aUsableURI = baseURI;
-      NS_ADDREF(*aUsableURI);
-      return NS_OK;
-    }
-
-    
-    nsCOMPtr<nsIDocShellTreeItem> docShellAsTreeItem(do_QueryInterface(parentDS));
-    if (!docShellAsTreeItem)
-      return NS_ERROR_FAILURE;
-    nsCOMPtr<nsIDocShellTreeItem> parentDSTreeItem;
-    docShellAsTreeItem->GetSameTypeParent(getter_AddRefs(parentDSTreeItem));      
-    nsCOMPtr<nsIWebNavigation> webNav(do_QueryInterface(parentDSTreeItem));
-
-    
-    if (webNav) {
-      rv = webNav->GetCurrentURI(getter_AddRefs(baseURI));
-      parentDS = do_QueryInterface(parentDSTreeItem);
-    }
-    else
-      return NS_ERROR_FAILURE;
-  }  
-
-  return rv;
-}
-
-
 nsresult
 nsLocation::GetURI(nsIURI** aURI, PRBool aGetInnermostURI)
 {
@@ -603,22 +542,15 @@ nsLocation::SetHrefWithBase(const nsAString& aHref, nsIURI* aBase,
                             PRBool aReplace)
 {
   nsresult result;
-  nsCOMPtr<nsIURI> newUri, baseURI;
+  nsCOMPtr<nsIURI> newUri;
 
   nsCOMPtr<nsIDocShell> docShell(do_QueryReferent(mDocShell));
 
-  
-  result = FindUsableBaseURI(aBase,  docShell, getter_AddRefs(baseURI));
-  if (!baseURI)  {
-    
-    baseURI = aBase;
-  }
-
   nsCAutoString docCharset;
   if (NS_SUCCEEDED(GetDocumentCharacterSetForURI(aHref, docCharset)))
-    result = NS_NewURI(getter_AddRefs(newUri), aHref, docCharset.get(), baseURI);
+    result = NS_NewURI(getter_AddRefs(newUri), aHref, docCharset.get(), aBase);
   else
-    result = NS_NewURI(getter_AddRefs(newUri), aHref, nsnull, baseURI);
+    result = NS_NewURI(getter_AddRefs(newUri), aHref, nsnull, aBase);
 
   if (newUri) {
     
