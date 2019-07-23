@@ -62,9 +62,6 @@
 #include "nsEditProperty.h"
 #include "nsHTMLCSSUtils.h"
 
-#include "nsVoidArray.h"
-#include "nsTArray.h"
-
 #include "nsHTMLObjectResizer.h"
 #include "nsIHTMLAbsPosEditor.h"
 #include "nsIHTMLInlineTableEditor.h"
@@ -85,6 +82,7 @@ class nsIContentFilter;
 class nsIURL;
 class nsIRangeUtils;
 class nsILinkHandler;
+struct PropItem;
 
 
 
@@ -760,7 +758,7 @@ protected:
   nsCOMArray<nsICSSStyleSheet> mStyleSheets;
   
   
-  nsVoidArray mDefaultStyles;
+  nsTArray<PropItem*> mDefaultStyles;
 
    
    nsCOMPtr<nsITextServicesDocument> mTextServices;

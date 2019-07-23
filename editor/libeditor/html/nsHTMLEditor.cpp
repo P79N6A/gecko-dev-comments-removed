@@ -86,7 +86,6 @@
 #include "nsIRangeUtils.h"
 #include "nsISupportsArray.h"
 #include "nsContentUtils.h"
-#include "nsVoidArray.h"
 #include "nsIURL.h"
 #include "nsIComponentManager.h"
 #include "nsIServiceManager.h"
@@ -4339,9 +4338,10 @@ nsHTMLEditor::CollapseAdjacentTextNodes(nsIDOMRange *aInRange)
 {
   if (!aInRange) return NS_ERROR_NULL_POINTER;
   nsAutoTxnsConserveSelection dontSpazMySelection(this);
-  nsVoidArray textNodes;  
-                          
-                          
+  nsTArray<nsIDOMNode*> textNodes;
+  
+  
+  
 
 
   
@@ -4365,11 +4365,11 @@ nsHTMLEditor::CollapseAdjacentTextNodes(nsIDOMRange *aInRange)
 
   
   
-  while (textNodes.Count() > 1)
+  while (textNodes.Length() > 1)
   {
     
-    nsIDOMNode *leftTextNode = (nsIDOMNode *)(textNodes.ElementAt(0));
-    nsIDOMNode *rightTextNode = (nsIDOMNode *)(textNodes.ElementAt(1));
+    nsIDOMNode *leftTextNode = textNodes[0];
+    nsIDOMNode *rightTextNode = textNodes[1];
     NS_ASSERTION(leftTextNode && rightTextNode,"left or rightTextNode null in CollapseAdjacentTextNodes");
 
     

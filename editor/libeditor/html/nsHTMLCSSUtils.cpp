@@ -851,7 +851,7 @@ nsHTMLCSSUtils::GetCSSPropertyAtom(nsCSSEditableProperty aProperty, nsIAtom ** a
 
 
 void
-nsHTMLCSSUtils::BuildCSSDeclarations(nsVoidArray & aPropertyArray,
+nsHTMLCSSUtils::BuildCSSDeclarations(nsTArray<nsIAtom*> & aPropertyArray,
                                      nsTArray<nsString> & aValueArray,
                                      const CSSEquivTable * aEquivTable,
                                      const nsAString * aValue,
@@ -898,7 +898,7 @@ nsHTMLCSSUtils::GenerateCSSDeclarationsFromHTMLStyle(nsIDOMNode * aNode,
                                                      nsIAtom *aHTMLProperty,
                                                      const nsAString * aAttribute,
                                                      const nsAString * aValue,
-                                                     nsVoidArray & cssPropertyArray,
+                                                     nsTArray<nsIAtom*> & cssPropertyArray,
                                                      nsTArray<nsString> & cssValueArray,
                                                      PRBool aGetOrRemoveRequest)
 {
@@ -1001,17 +1001,17 @@ nsHTMLCSSUtils::SetCSSEquivalentToHTMLStyle(nsIDOMNode * aNode,
     
 
     
-    nsVoidArray cssPropertyArray;
+    nsTArray<nsIAtom*> cssPropertyArray;
     nsTArray<nsString> cssValueArray;
     GenerateCSSDeclarationsFromHTMLStyle(aNode, aHTMLProperty, aAttribute, aValue,
                                          cssPropertyArray, cssValueArray, PR_FALSE);
 
     
-    *aCount = cssPropertyArray.Count();
+    *aCount = cssPropertyArray.Length();
     PRInt32 index;
     for (index = 0; index < *aCount; index++) {
       nsCOMPtr<nsIDOMElement> theElement = do_QueryInterface(aNode);
-      res = SetCSSProperty(theElement, (nsIAtom *)cssPropertyArray.ElementAt(index),
+      res = SetCSSProperty(theElement, cssPropertyArray[index],
                            cssValueArray[index], aSuppressTransaction);
       if (NS_FAILED(res)) return res;
     }
@@ -1035,19 +1035,19 @@ nsHTMLCSSUtils::RemoveCSSEquivalentToHTMLStyle(nsIDOMNode * aNode,
     
 
     
-    nsVoidArray cssPropertyArray;
+    nsTArray<nsIAtom*> cssPropertyArray;
     nsTArray<nsString> cssValueArray;
     GenerateCSSDeclarationsFromHTMLStyle(aNode, aHTMLProperty, aAttribute, aValue,
                                          cssPropertyArray, cssValueArray, PR_TRUE);
 
     
-    count = cssPropertyArray.Count();
+    count = cssPropertyArray.Length();
     PRInt32 index;
     for (index = 0; index < count; index++) {
-      res = RemoveCSSProperty(theElement, 
-                      (nsIAtom *)cssPropertyArray.ElementAt(index), 
-                      cssValueArray[index],
-                      aSuppressTransaction);
+      res = RemoveCSSProperty(theElement,
+                              cssPropertyArray[index],
+                              cssValueArray[index],
+                              aSuppressTransaction);
       if (NS_FAILED(res)) return res;
     }
   }
@@ -1098,18 +1098,18 @@ nsHTMLCSSUtils::GetCSSEquivalentToHTMLInlineStyleSet(nsIDOMNode * aNode,
       res = GetDefaultViewCSS(theElement, getter_AddRefs(viewCSS));
       if (NS_FAILED(res)) return res;
     }
-    nsVoidArray cssPropertyArray;
+    nsTArray<nsIAtom*> cssPropertyArray;
     nsTArray<nsString> cssValueArray;
     
     
     GenerateCSSDeclarationsFromHTMLStyle(theElement, aHTMLProperty, aAttribute, nsnull,
                                          cssPropertyArray, cssValueArray, PR_TRUE);
-    PRInt32 count = cssPropertyArray.Count();
+    PRInt32 count = cssPropertyArray.Length();
     PRInt32 index;
     for (index = 0; index < count; index++) {
       nsAutoString valueString;
       
-      res = GetCSSInlinePropertyBase(theElement, (nsIAtom *)cssPropertyArray.ElementAt(index),
+      res = GetCSSInlinePropertyBase(theElement, cssPropertyArray[index],
                                      valueString, viewCSS, aStyleType);
       if (NS_FAILED(res)) return res;
       

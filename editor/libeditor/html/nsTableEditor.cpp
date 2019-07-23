@@ -59,7 +59,7 @@
 #include "nsITableLayout.h"     
 #include "nsHTMLEditor.h"
 #include "nsISelectionPrivate.h"  
-#include "nsVoidArray.h"
+#include "nsTArray.h"
 
 #include "nsEditorUtils.h"
 #include "nsTextEditUtils.h"
@@ -1335,8 +1335,8 @@ nsHTMLEditor::DeleteRow(nsIDOMElement *aTable, PRInt32 aRowIndex)
 
   
   
-  nsVoidArray spanCellList;
-  nsVoidArray newSpanList;
+  nsTArray<nsIDOMElement*> spanCellList;
+  nsTArray<PRInt32> newSpanList;
 
   
   
@@ -1363,8 +1363,8 @@ nsHTMLEditor::DeleteRow(nsIDOMElement *aTable, PRInt32 aRowIndex)
           
           
           
-          spanCellList.AppendElement((void*)cell.get());
-          newSpanList.AppendElement((void*)PR_MAX((aRowIndex - startRowIndex), actualRowSpan-1));
+          spanCellList.AppendElement(cell);
+          newSpanList.AppendElement(PR_MAX((aRowIndex - startRowIndex), actualRowSpan-1));
         }
       }
       else 
@@ -1403,20 +1403,12 @@ nsHTMLEditor::DeleteRow(nsIDOMElement *aTable, PRInt32 aRowIndex)
   }
 
   
-  nsIDOMElement *cellPtr;
-  PRInt32 newSpan;
-  PRInt32 count;
-  while ((count = spanCellList.Count()))
+  for (PRUint32 i = 0, n = spanCellList.Length(); i < n; i++)
   {
-    
-    count--; 
-    cellPtr = (nsIDOMElement*)spanCellList.ElementAt(count);
-    spanCellList.RemoveElementAt(count);
-    newSpan = NS_PTR_TO_INT32(newSpanList.ElementAt(count));
-    newSpanList.RemoveElementAt(count);
+    nsIDOMElement *cellPtr = spanCellList[i];
     if (cellPtr)
     {
-      res = SetRowSpan(cellPtr, newSpan);
+      res = SetRowSpan(cellPtr, newSpanList[i]);
       if (NS_FAILED(res)) return res;
     }
   }
@@ -2183,7 +2175,7 @@ nsHTMLEditor::JoinTableCells(PRBool aMergeNonContiguousContents)
     }
   
     
-    nsVoidArray deleteList;
+    nsTArray<nsIDOMElement*> deleteList;
 
     
     for (rowIndex = 0; rowIndex < rowCount; rowIndex++)
@@ -2229,7 +2221,7 @@ nsHTMLEditor::JoinTableCells(PRBool aMergeNonContiguousContents)
             if (NS_FAILED(res)) return res;
             
             
-            deleteList.AppendElement((void *)cell2.get());
+            deleteList.AppendElement(cell2.get());
           }
           else if (aMergeNonContiguousContents)
           {
@@ -2245,14 +2237,9 @@ nsHTMLEditor::JoinTableCells(PRBool aMergeNonContiguousContents)
     
     nsAutoRules beginRulesSniffing(this, kOpDeleteNode, nsIEditor::eNext);
 
-    nsIDOMElement *elementPtr;
-    PRInt32 count;
-    while ((count = deleteList.Count()))
+    for (PRUint32 i = 0, n = deleteList.Length(); i < n; i++)
     {
-      
-      count--; 
-      elementPtr = (nsIDOMElement*)deleteList.ElementAt(count);
-      deleteList.RemoveElementAt(count);
+      nsIDOMElement *elementPtr = deleteList[i];
       if (elementPtr)
       {
         nsCOMPtr<nsIDOMNode> node = do_QueryInterface(elementPtr);
@@ -3313,20 +3300,6 @@ nsHTMLEditor::GetSelectedOrParentTableElement(nsAString& aTagName,
   return res;
 }
 
-static PRBool IndexNotTested(nsVoidArray *aArray, PRInt32 aIndex)
-{
-  if (aArray)
-  {
-    PRInt32 count = aArray->Count();
-    for (PRInt32 i = 0; i < count; i++)
-    {
-      if(aIndex == NS_PTR_TO_INT32(aArray->ElementAt(i)))
-        return PR_FALSE;
-    }
-  }
-  return PR_TRUE;
-}
-
 NS_IMETHODIMP 
 nsHTMLEditor::GetSelectedCellsType(nsIDOMElement *aElement, PRUint32 *aSelectionType)
 {
@@ -3354,7 +3327,7 @@ nsHTMLEditor::GetSelectedCellsType(nsIDOMElement *aElement, PRUint32 *aSelection
   *aSelectionType = nsISelectionPrivate::TABLESELECTION_CELL;
 
   
-  nsVoidArray indexArray;
+  nsTArray<PRInt32> indexArray;
 
   PRBool allCellsInRowAreSelected = PR_FALSE;
   PRBool allCellsInColAreSelected = PR_FALSE;
@@ -3365,9 +3338,9 @@ nsHTMLEditor::GetSelectedCellsType(nsIDOMElement *aElement, PRUint32 *aSelection
     res = GetCellIndexes(selectedCell, &startRowIndex, &startColIndex);
     if(NS_FAILED(res)) return res;
     
-    if (IndexNotTested(&indexArray, startColIndex))
+    if (!indexArray.Contains(startColIndex))
     {
-      indexArray.AppendElement((void*)startColIndex);
+      indexArray.AppendElement(startColIndex);
       allCellsInRowAreSelected = AllCellsInRowSelected(table, startRowIndex, colCount);
       
       if (!allCellsInRowAreSelected) break;
@@ -3394,9 +3367,9 @@ nsHTMLEditor::GetSelectedCellsType(nsIDOMElement *aElement, PRUint32 *aSelection
     res = GetCellIndexes(selectedCell, &startRowIndex, &startColIndex);
     if(NS_FAILED(res)) return res;
   
-    if (IndexNotTested(&indexArray, startRowIndex))
+    if (!indexArray.Contains(startRowIndex))
     {
-      indexArray.AppendElement((void*)startColIndex);
+      indexArray.AppendElement(startColIndex);
       allCellsInColAreSelected = AllCellsInColumnSelected(table, startColIndex, rowCount);
       
       if (!allCellsInRowAreSelected) break;
