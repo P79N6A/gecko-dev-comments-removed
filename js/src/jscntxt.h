@@ -56,6 +56,7 @@
 #include "jspubtd.h"
 #include "jsregexp.h"
 #include "jsutil.h"
+#include "jsarray.h"
 
 JS_BEGIN_EXTERN_C
 
@@ -207,9 +208,10 @@ typedef struct InterpStruct InterpStruct;
 # define EVAL_CACHE_METER_LIST(_)   _(probe), _(hit), _(step), _(noscope)
 # define identity(x)                x
 
-struct JSEvalCacheMeter {
+
+typedef struct JSEvalCacheMeter {
     uint64 EVAL_CACHE_METER_LIST(identity);
-};
+} JSEvalCacheMeter;
 
 # undef identity
 #endif
@@ -954,6 +956,7 @@ struct JSContext {
 
     
     JSSharpObjectMap    sharpObjectMap;
+    JSHashTable         *busyArrayTable;
 
     
     JSArgumentFormatMap *argumentFormatMap;

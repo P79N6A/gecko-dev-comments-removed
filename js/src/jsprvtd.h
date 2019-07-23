@@ -135,6 +135,9 @@ typedef struct JSXMLArray           JSXMLArray;
 typedef struct JSXMLArrayCursor     JSXMLArrayCursor;
 
 
+template <class T> class JSTempVector;
+
+
 typedef enum JSTrapStatus {
     JSTRAP_ERROR,
     JSTRAP_CONTINUE,
