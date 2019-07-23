@@ -380,7 +380,7 @@ nsTableFrame::SetInitialChildList(nsIAtom*        aListName,
     InsertColGroups(0, mColGroups.FirstChild());
     AppendRowGroups(mFrames.FirstChild());
     
-    if (!aChildList && IsBorderCollapse()) {
+    if (IsBorderCollapse()) {
       nsRect damageArea(0, 0, GetColCount(), GetRowCount());
       SetBCDamageArea(damageArea);
     }
