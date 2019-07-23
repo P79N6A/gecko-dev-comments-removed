@@ -1,8 +1,7 @@
 function run_test() { 
   
   
-  var thisFile = do_get_file("xpcom/tests/unit/test_mac_bundle.js");
-  if (!thisFile instanceof Components.interfaces.nsILocalFileMac)
+  if (!("nsILocalFileMac" in Components.interfaces))
     return;
   
   
