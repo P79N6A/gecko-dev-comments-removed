@@ -188,6 +188,14 @@ FixedTableLayoutStrategy::ComputeColumnWidths(const nsHTMLReflowState& aReflowSt
 
     
     tableWidth -= spacing * (colCount + 1);
+    
+    
+    
+    
+    
+    
+    
+    nsTArray<nscoord> oldColWidths;
 
     
     
@@ -210,9 +218,11 @@ FixedTableLayoutStrategy::ComputeColumnWidths(const nsHTMLReflowState& aReflowSt
     for (PRInt32 col = 0; col < colCount; ++col) {
         nsTableColFrame *colFrame = mTableFrame->GetColFrame(col);
         if (!colFrame) {
+            oldColWidths.AppendElement(0);
             NS_ERROR("column frames out of sync with cell map");
             continue;
         }
+        oldColWidths.AppendElement(colFrame->GetFinalWidth());
         colFrame->ResetPrefPercent();
         const nsStyleCoord *styleWidth =
             &colFrame->GetStylePosition()->mWidth;
@@ -403,5 +413,16 @@ FixedTableLayoutStrategy::ComputeColumnWidths(const nsHTMLReflowState& aReflowSt
                 --colsLeft;
             }
         }
+    }
+    for (PRInt32 col = 0; col < colCount; ++col) {
+        nsTableColFrame *colFrame = mTableFrame->GetColFrame(col);
+        if (!colFrame) {
+            NS_ERROR("column frames out of sync with cell map");
+            continue;
+        }
+        if (oldColWidths.ElementAt(col) != colFrame->GetFinalWidth()) {
+            mTableFrame->DidResizeColumns();
+        }
+            break;
     }
 }
