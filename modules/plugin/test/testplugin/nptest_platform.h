@@ -126,12 +126,4 @@ void pluginDoInternalConsistencyCheck(InstanceData* instanceData, std::string& e
 
 std::string pluginGetClipboardText(InstanceData* instanceData);
 
-
-
-
-
-
-
-bool pluginCrashInNestedLoop(InstanceData* instanceData);
-
 #endif 
