@@ -263,7 +263,7 @@ class nsFastLoadFileReader
 {
   public:
     nsFastLoadFileReader(nsIFile *aFile)
-        : mCurrentDocumentMapEntry(nsnull), mFile(aFile), mFd(nsnull),
+        : mCurrentDocumentMapEntry(nsnull), mFile(aFile),
           mFileLen(0), mFilePos(0), mFileMap(nsnull), mFileData(nsnull)
     {
         MOZ_COUNT_CTOR(nsFastLoadFileReader);
@@ -396,7 +396,6 @@ class nsFastLoadFileReader
 
     friend class nsFastLoadFileUpdater;
     nsIFile *mFile;     
-    PRFileDesc *mFd;    
     PRUint32 mFileLen;  
     PRUint32 mFilePos;  
     PRFileMap *mFileMap;
