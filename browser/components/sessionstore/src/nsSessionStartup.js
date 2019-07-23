@@ -63,13 +63,12 @@
 
 
 
+
+
 const Cc = Components.classes;
 const Ci = Components.interfaces;
 const Cr = Components.results;
-
-const CID = Components.ID("{ec7a6c20-e081-11da-8ad9-0800200c9a66}");
-const CONTRACT_ID = "@mozilla.org/browser/sessionstartup;1";
-const CLASS_NAME = "Browser Session Startup Service";
+Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
 
 const STATE_RUNNING_STR = "running";
 
@@ -341,84 +340,24 @@ SessionStartup.prototype = {
     return null;
   },
 
+  
+  QueryInterface : XPCOMUtils.generateQI([Ci.nsIObserver,
+                                          Ci.nsISupportsWeakReference,
+                                          Ci.nsISessionStartup]),
+  classDescription: "Browser Session Startup Service",
+  classID:          Components.ID("{ec7a6c20-e081-11da-8ad9-0800200c9a66}"),
+  contractID:       "@mozilla.org/browser/sessionstartup;1",
 
-
-  QueryInterface: function(aIID) {
-    if (!aIID.equals(Ci.nsISupports) && !aIID.equals(Ci.nsIObserver) && 
-      !aIID.equals(Ci.nsISupportsWeakReference) && 
-      !aIID.equals(Ci.nsISessionStartup)) {
-      Components.returnCode = Cr.NS_ERROR_NO_INTERFACE;
-      return null;
-    }
+  
+  _xpcom_categories: [
     
-    return this;
-  }
+    { category: "app-startup", service: true }
+  ]
+
 };
 
 
-
-
-
-const SessionStartupModule = {
-
-  getClassObject: function(aCompMgr, aCID, aIID) {
-    if (aCID.equals(CID)) {
-      return SessionStartupFactory;
-    }
-    
-    Components.returnCode = Cr.NS_ERROR_NOT_REGISTERED;
-    return null;
-  },
-
-  registerSelf: function(aCompMgr, aFileSpec, aLocation, aType) {
-    aCompMgr.QueryInterface(Ci.nsIComponentRegistrar);
-    aCompMgr.registerFactoryLocation(CID, CLASS_NAME, CONTRACT_ID, aFileSpec, aLocation, aType);
-
-    var catMan = Cc["@mozilla.org/categorymanager;1"].
-                 getService(Ci.nsICategoryManager);
-    catMan.addCategoryEntry("app-startup", CLASS_NAME, "service," + CONTRACT_ID, true, true);
-  },
-
-  unregisterSelf: function(aCompMgr, aLocation, aType) {
-    aCompMgr.QueryInterface(Ci.nsIComponentRegistrar);
-    aCompMgr.unregisterFactoryLocation(CID, aLocation);
-
-    var catMan = Cc["@mozilla.org/categorymanager;1"].
-                 getService(Ci.nsICategoryManager);
-    catMan.deleteCategoryEntry( "app-startup", "service," + CONTRACT_ID, true);
-  },
-
-  canUnload: function(aCompMgr) {
-    return true;
-  }
+function NSGetModule(aCompMgr, aFileSpec) {
+  return XPCOMUtils.generateModule([SessionStartup]);
 }
 
-
-
-const SessionStartupFactory = {
-
-  createInstance: function(aOuter, aIID) {
-    if (aOuter != null) {
-      Components.returnCode = Cr.NS_ERROR_NO_AGGREGATION;
-      return null;
-    }
-    
-    return (new SessionStartup()).QueryInterface(aIID);
-  },
-
-  lockFactory: function(aLock) { },
-
-  QueryInterface: function(aIID) {
-    if (!aIID.equals(Ci.nsISupports) && !aIID.equals(Ci.nsIModule) &&
-        !aIID.equals(Ci.nsIFactory) && !aIID.equals(Ci.nsISessionStartup)) {
-      Components.returnCode = Cr.NS_ERROR_NO_INTERFACE;
-      return null;
-    }
-    
-    return this;
-  }
-};
-
-function NSGetModule(aComMgr, aFileSpec) {
-  return SessionStartupModule;
-}
