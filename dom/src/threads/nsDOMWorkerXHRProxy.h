@@ -64,7 +64,7 @@ class nsDOMWorkerXHRProxy : public nsRunnable,
                             public nsIDOMEventListener,
                             public nsIRequestObserver
 {
-
+  friend class nsDOMWorkerXHRAttachUploadListenersRunnable;
   friend class nsDOMWorkerXHREvent;
   friend class nsDOMWorkerXHR;
   friend class nsDOMWorkerXHRUpload;
@@ -179,6 +179,7 @@ protected:
   
   PRPackedBool mOwnedByXHR;
 
+  PRPackedBool mWantUploadListeners;
   PRPackedBool mCanceled;
 };
 
