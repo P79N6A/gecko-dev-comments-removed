@@ -6521,6 +6521,7 @@ nsDocument::RetrieveRelevantHeaders(nsIChannel *aChannel)
       "content-language",
       "content-disposition",
       "refresh",
+      "x-dns-prefetch-control",
       
       
       
