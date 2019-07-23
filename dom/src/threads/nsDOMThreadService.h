@@ -171,7 +171,7 @@ private:
   nsCOMPtr<nsIThreadPool> mThreadPool;
 
   
-  nsRefPtrHashtable<nsISupportsHashKey, nsDOMWorkerPool> mPools;
+  nsRefPtrHashtable<nsVoidPtrHashKey, nsDOMWorkerPool> mPools;
 
   
   
