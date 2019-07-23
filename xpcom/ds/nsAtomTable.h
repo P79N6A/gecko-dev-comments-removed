@@ -85,12 +85,6 @@ public:
 
   
   nsrefcnt GetRefCount() { return mRefCnt; }
-
-  
-  PRUint32 mLength;
-
-  
-  PRUnichar* mString;
 };
 
 
