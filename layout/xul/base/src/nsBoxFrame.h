@@ -60,7 +60,7 @@ class nsBoxLayoutState;
 
 
 #define NS_STATE_IS_COLLAPSED            0x10000000
-
+#define NS_STATE_BOX_WRAPS_KIDS_IN_BLOCK 0x20000000
 #define NS_STATE_EQUAL_SIZE              0x40000000
 
 
@@ -133,6 +133,8 @@ public:
 
   NS_IMETHOD  RemoveFrame(nsIAtom*        aListName,
                           nsIFrame*       aOldFrame);
+
+  virtual nsIFrame* GetContentInsertionFrame();
 
   NS_IMETHOD  SetInitialChildList(nsIAtom*        aListName,
                                   nsIFrame*       aChildList);

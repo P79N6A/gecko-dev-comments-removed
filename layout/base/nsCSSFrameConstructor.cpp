@@ -101,6 +101,7 @@
 #include "nsITheme.h"
 #include "nsContentCID.h"
 #include "nsContentUtils.h"
+#include "nsIScriptError.h"
 #include "nsIDocShell.h"
 #include "nsIDocShellTreeItem.h"
 #include "nsObjectFrame.h"
@@ -459,6 +460,43 @@ static PRBool
 IsInlineFrame(const nsIFrame* aFrame)
 {
   return aFrame->IsFrameOfType(nsIFrame::eLineParticipant);
+}
+
+
+
+
+
+static nsIContent*
+AnyKidsNeedBlockParent(nsIFrame *aFrameList)
+{
+  for (nsIFrame *k = aFrameList; k; k = k->GetNextSibling()) {
+    
+    
+    
+    if (k->IsFrameOfType(nsIFrame::eLineParticipant)) {
+      return k->GetContent();
+    }
+  }
+  return nsnull;
+}
+
+
+static void
+ReparentFrame(nsFrameManager* aFrameManager,
+              nsIFrame* aNewParentFrame,
+              nsIFrame* aFrame)
+{
+  aFrame->SetParent(aNewParentFrame);
+  aFrameManager->ReParentStyleContext(aFrame);
+  if (aFrame->GetStateBits() &
+      (NS_FRAME_HAS_VIEW | NS_FRAME_HAS_CHILD_WITH_VIEW)) {
+    
+    
+    NS_ASSERTION(aNewParentFrame->GetParent()->GetStateBits() &
+                   NS_FRAME_HAS_CHILD_WITH_VIEW,
+                 "aNewParentFrame's parent should have this bit set!");
+    aNewParentFrame->AddStateBits(NS_FRAME_HAS_CHILD_WITH_VIEW);
+  }
 }
 
 
@@ -6187,9 +6225,48 @@ nsCSSFrameConstructor::ConstructXULFrame(nsFrameConstructorState& aState,
       if (mDocument->BindingManager()->ShouldBuildChildFrames(aContent)) {
         rv = ProcessChildren(aState, aContent, newFrame, PR_FALSE,
                              childItems, PR_FALSE);
+        nsIContent *badKid;
+        if (newFrame->IsBoxFrame() &&
+            (badKid = AnyKidsNeedBlockParent(childItems.childList))) {
+          nsAutoString parentTag, kidTag;
+          aContent->Tag()->ToString(parentTag);
+          badKid->Tag()->ToString(kidTag);
+          const PRUnichar* params[] = { parentTag.get(), kidTag.get() };
+          nsContentUtils::ReportToConsole(nsContentUtils::eXUL_PROPERTIES,
+                                          "NeededToWrapXUL",
+                                          params, NS_ARRAY_LENGTH(params),
+                                          mDocument->GetDocumentURI(),
+                                          EmptyString(), 0, 0, 
+                                          nsIScriptError::warningFlag,
+                                          "FrameConstructor");
+
+          nsRefPtr<nsStyleContext> blockSC = mPresShell->StyleSet()->
+            ResolvePseudoStyleFor(aContent,
+                                  nsCSSAnonBoxes::mozXULAnonymousBlock,
+                                  aStyleContext);
+          nsIFrame *blockFrame = NS_NewBlockFrame(mPresShell, blockSC);
+          
+          
+          
+
+          InitAndRestoreFrame(aState, aContent, newFrame, nsnull,
+                              blockFrame, PR_FALSE);
+
+          NS_ASSERTION(!blockFrame->HasView(), "need to do view reparenting");
+          for (nsIFrame *f = childItems.childList; f; f = f->GetNextSibling()) {
+            ReparentFrame(aState.mFrameManager, blockFrame, f);
+          }
+
+          blockFrame->AppendFrames(nsnull, childItems.childList);
+          childItems = nsFrameItems();
+          childItems.AddChild(blockFrame);
+
+          newFrame->AddStateBits(NS_STATE_BOX_WRAPS_KIDS_IN_BLOCK);
+        }
       }
     }
       
+    
     CreateAnonymousFrames(aTag, aState, aContent, newFrame, PR_FALSE,
                           childItems);
 
@@ -6741,24 +6818,6 @@ nsCSSFrameConstructor::ResolveStyleContext(nsIFrame*         aParentFrame,
                  "comments and processing instructions");
 
     return styleSet->ResolveStyleForNonElement(parentStyleContext);
-  }
-}
-
-static void
-ReparentFrame(nsFrameManager* aFrameManager,
-              nsIFrame* aNewParentFrame,
-              nsIFrame* aFrame)
-{
-  aFrame->SetParent(aNewParentFrame);
-  aFrameManager->ReParentStyleContext(aFrame);
-  if (aFrame->GetStateBits() &
-      (NS_FRAME_HAS_VIEW | NS_FRAME_HAS_CHILD_WITH_VIEW)) {
-    
-    
-    NS_ASSERTION(aNewParentFrame->GetParent()->GetStateBits() &
-                   NS_FRAME_HAS_CHILD_WITH_VIEW,
-                 "aNewParentFrame's parent should have this bit set!");
-    aNewParentFrame->AddStateBits(NS_FRAME_HAS_CHILD_WITH_VIEW);
   }
 }
 
@@ -7475,8 +7534,7 @@ nsCSSFrameConstructor::ConstructSVGFrame(nsFrameConstructorState& aState,
       
       nsFrameConstructorSaveState saveState;
       aState.PushFloatContainingBlock(nsnull, saveState, PR_FALSE, PR_FALSE);
-      const nsStyleDisplay* disp = innerPseudoStyle->GetStyleDisplay();
-      rv = ConstructBlock(aState, disp, aContent,
+      rv = ConstructBlock(aState, innerPseudoStyle->GetStyleDisplay(), aContent,
                           newFrame, newFrame, innerPseudoStyle,
                           &blockFrame, childItems, PR_TRUE);
       
@@ -9579,6 +9637,18 @@ nsCSSFrameConstructor::ContentRemoved(nsIContent*     aContainer,
     if (possibleMathMLAncestor->IsFrameOfType(nsIFrame::eMathML))
       return RecreateFramesForContent(possibleMathMLAncestor->GetContent());
 #endif
+
+    
+    
+    
+    nsIFrame* grandparentFrame = parentFrame->GetParent();
+    if (grandparentFrame && grandparentFrame->IsBoxFrame() &&
+        (grandparentFrame->GetStateBits() & NS_STATE_BOX_WRAPS_KIDS_IN_BLOCK) &&
+        
+        aChild == AnyKidsNeedBlockParent(parentFrame->GetFirstChild(nsnull)) &&
+        !AnyKidsNeedBlockParent(childFrame->GetNextSibling())) {
+      return RecreateFramesForContent(grandparentFrame->GetContent());
+    }
     
     
     
@@ -12508,8 +12578,8 @@ nsCSSFrameConstructor::ConstructBlock(nsFrameConstructorState& aState,
   return rv;
 }
 
-PRBool
-nsCSSFrameConstructor::AreAllKidsInline(nsIFrame* aFrameList)
+static PRBool
+AreAllKidsInline(nsIFrame* aFrameList)
 {
   nsIFrame* kid = aFrameList;
   while (kid) {
@@ -12835,6 +12905,55 @@ nsCSSFrameConstructor::ProcessInlineChildren(nsFrameConstructorState& aState,
   return rv;
 }
 
+static void
+DestroyNewlyCreatedFrames(nsFrameConstructorState& aState,
+                          nsIFrame* aParentFrame,
+                          const nsFrameItems& aFrameList)
+{
+  
+  nsFrameManager *frameManager = aState.mFrameManager;
+
+  
+  
+  frameManager->ClearAllUndisplayedContentIn(aParentFrame->GetContent());
+
+  CleanupFrameReferences(frameManager, aFrameList.childList);
+  if (aState.mAbsoluteItems.childList) {
+    CleanupFrameReferences(frameManager, aState.mAbsoluteItems.childList);
+  }
+  if (aState.mFixedItems.childList) {
+    CleanupFrameReferences(frameManager, aState.mFixedItems.childList);
+  }
+  if (aState.mFloatedItems.childList) {
+    CleanupFrameReferences(frameManager, aState.mFloatedItems.childList);
+  }
+#ifdef MOZ_XUL
+  if (aState.mPopupItems.childList) {
+    CleanupFrameReferences(frameManager, aState.mPopupItems.childList);
+  }
+#endif
+  nsFrameList tmp(aFrameList.childList);
+  tmp.DestroyFrames();
+
+  tmp.SetFrames(aState.mAbsoluteItems.childList);
+  tmp.DestroyFrames();
+  aState.mAbsoluteItems.childList = nsnull;
+
+  tmp.SetFrames(aState.mFixedItems.childList);
+  tmp.DestroyFrames();
+  aState.mFixedItems.childList = nsnull;
+
+  tmp.SetFrames(aState.mFloatedItems.childList);
+  tmp.DestroyFrames();
+  aState.mFloatedItems.childList = nsnull;
+
+#ifdef MOZ_XUL
+  tmp.SetFrames(aState.mPopupItems.childList);
+  tmp.DestroyFrames();
+  aState.mPopupItems.childList = nsnull;
+#endif
+}
+
 PRBool
 nsCSSFrameConstructor::WipeContainingBlock(nsFrameConstructorState& aState,
                                            nsIFrame* aContainingBlock,
@@ -12848,6 +12967,18 @@ nsCSSFrameConstructor::WipeContainingBlock(nsFrameConstructorState& aState,
   }
   
   
+  
+
+  
+  
+  if (aFrame->IsBoxFrame() &&
+      !(aFrame->GetStateBits() & NS_STATE_BOX_WRAPS_KIDS_IN_BLOCK) &&
+      AnyKidsNeedBlockParent(aFrameList.childList)) {
+    DestroyNewlyCreatedFrames(aState, aFrame, aFrameList);
+    RecreateFramesForContent(aFrame->GetContent());
+    return PR_TRUE;
+  }
+
   
   
   
@@ -12910,48 +13041,7 @@ nsCSSFrameConstructor::WipeContainingBlock(nsFrameConstructorState& aState,
     }
   }
 
-  
-  nsFrameManager *frameManager = aState.mFrameManager;
-
-  
-  
-  frameManager->ClearAllUndisplayedContentIn(aFrame->GetContent());
-
-  CleanupFrameReferences(frameManager, aFrameList.childList);
-  if (aState.mAbsoluteItems.childList) {
-    CleanupFrameReferences(frameManager, aState.mAbsoluteItems.childList);
-  }
-  if (aState.mFixedItems.childList) {
-    CleanupFrameReferences(frameManager, aState.mFixedItems.childList);
-  }
-  if (aState.mFloatedItems.childList) {
-    CleanupFrameReferences(frameManager, aState.mFloatedItems.childList);
-  }
-#ifdef MOZ_XUL
-  if (aState.mPopupItems.childList) {
-    CleanupFrameReferences(frameManager, aState.mPopupItems.childList);
-  }
-#endif
-  nsFrameList tmp(aFrameList.childList);
-  tmp.DestroyFrames();
-
-  tmp.SetFrames(aState.mAbsoluteItems.childList);
-  tmp.DestroyFrames();
-  aState.mAbsoluteItems.childList = nsnull;
-
-  tmp.SetFrames(aState.mFixedItems.childList);
-  tmp.DestroyFrames();
-  aState.mFixedItems.childList = nsnull;
-
-  tmp.SetFrames(aState.mFloatedItems.childList);
-  tmp.DestroyFrames();
-  aState.mFloatedItems.childList = nsnull;
-
-#ifdef MOZ_XUL
-  tmp.SetFrames(aState.mPopupItems.childList);
-  tmp.DestroyFrames();
-  aState.mPopupItems.childList = nsnull;
-#endif
+  DestroyNewlyCreatedFrames(aState, aFrame, aFrameList);
 
   
   if (!aContainingBlock) {

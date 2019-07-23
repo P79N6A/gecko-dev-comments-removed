@@ -885,8 +885,6 @@ private:
                                  nsFrameItems&            aFrameItems,
                                  PRBool*                  aKidsAllInline);
 
-  PRBool AreAllKidsInline(nsIFrame* aFrameList);
-
   
   
   
