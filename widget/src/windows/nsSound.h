@@ -59,7 +59,7 @@ private:
   void PurgeLastSound();
 
 private:
-  PRUnichar* mLastSound;
+  PRUint8* mLastSound;
 };
 
 #endif 

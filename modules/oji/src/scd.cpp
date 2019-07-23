@@ -100,7 +100,7 @@ nsSymantecDebugManager::SetDebugAgentPassword(PRInt32 pwd)
 
         
     }
-    sem = OpenSemaphoreW(SEMAPHORE_MODIFY_STATE, FALSE, L"Netscape-Symantec Debugger");
+    sem = OpenSemaphore(SEMAPHORE_MODIFY_STATE, FALSE, "Netscape-Symantec Debugger");
     if (sem) {
         ReleaseSemaphore(sem, 1, NULL);
         CloseHandle(sem);
