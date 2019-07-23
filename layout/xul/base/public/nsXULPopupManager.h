@@ -79,7 +79,8 @@ class nsIDOMKeyEvent;
 enum nsPopupType {
   ePopupTypePanel,
   ePopupTypeMenu,
-  ePopupTypeTooltip
+  ePopupTypeTooltip,
+  ePopupTypeAny = 0xF000 
 };
 
 
@@ -482,6 +483,7 @@ public:
   PRBool IsPopupOpenForMenuParent(nsIMenuParent* aMenuParent);
 
   
+
 
 
 
