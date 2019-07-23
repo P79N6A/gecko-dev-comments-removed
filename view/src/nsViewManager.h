@@ -360,7 +360,8 @@ public:
 
 
 
-  PRBool CanScrollWithBitBlt(nsView* aView, nsPoint aDelta, nsRegion* aUpdateRegion);
+  void GetRegionsForBlit(nsView* aView, nsPoint aDelta,
+                         nsRegion* aBlitRegion, nsRegion* aRepaintRegion);
 
   nsresult CreateRegion(nsIRegion* *result);
 

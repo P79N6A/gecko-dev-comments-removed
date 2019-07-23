@@ -541,6 +541,134 @@ NS_IMETHODIMP nsScrollPortView::CanScroll(PRBool aHorizontal,
   return NS_OK;
 }
 
+
+
+
+
+
+
+static nsRegion
+ConvertToInnerPixelRegion(const nsRegion& aBlitRegion,
+                          nscoord aAppUnitsPerPixel,
+                          nsRegion* aRepaintRegion)
+{
+  
+  
+  
+  nsIntRect boundingBoxPixels =
+    aBlitRegion.GetBounds().ToOutsidePixels(aAppUnitsPerPixel);
+  nsRect boundingBox = boundingBoxPixels.ToAppUnits(aAppUnitsPerPixel);
+  nsRegion outside;
+  outside.Sub(boundingBox, aBlitRegion);
+
+  nsRegion outsidePixels;
+  nsRegion outsideAppUnits;
+  const nsRect* r;
+  for (nsRegionRectIterator iter(outside); (r = iter.Next());) {
+    nsIntRect pixRect = r->ToOutsidePixels(aAppUnitsPerPixel);
+    outsidePixels.Or(outsidePixels,
+                     nsRect(pixRect.x, pixRect.y, pixRect.width, pixRect.height));
+    outsideAppUnits.Or(outsideAppUnits,
+                       pixRect.ToAppUnits(aAppUnitsPerPixel));
+  }
+
+  nsRegion repaint;
+  repaint.And(aBlitRegion, outsideAppUnits);
+  aRepaintRegion->Or(*aRepaintRegion, repaint);
+
+  nsRegion result;
+  result.Sub(nsRect(boundingBoxPixels.x, boundingBoxPixels.y,
+                    boundingBoxPixels.width, boundingBoxPixels.height),
+             outsidePixels);
+  return result;
+}
+
+
+
+
+class RightEdgeComparator {
+public:
+  
+  PRBool Equals(const nsIntRect& aA, const nsIntRect& aB) const
+  {
+    return aA.XMost() == aB.XMost();
+  }
+  
+  PRBool LessThan(const nsIntRect& aA, const nsIntRect& aB) const
+  {
+    return aA.XMost() < aB.XMost();
+  }
+};
+
+
+
+
+static nsIntRect
+FlipRect(const nsIntRect& aRect, nsIntPoint aPixDelta)
+{
+  nsIntRect r = aRect;
+  if (aPixDelta.x < 0) {
+    r.x = -r.XMost();
+  }
+  if (aPixDelta.y < 0) {
+    r.y = -r.YMost();
+  }
+  return r;
+}
+
+
+
+
+
+static void
+SortBlitRectsForCopy(const nsRegion& aInnerPixRegion,
+                     nsIntPoint aPixDelta,
+                     nsTArray<nsIntRect>* aResult)
+{
+  nsTArray<nsIntRect> rects;
+
+  const nsRect* r;
+  for (nsRegionRectIterator iter(aInnerPixRegion); (r = iter.Next());) {
+    nsIntRect rect =
+      FlipRect(nsIntRect(r->x, r->y, r->width, r->height), aPixDelta);
+    rects.AppendElement(rect);
+  }
+  rects.Sort(RightEdgeComparator());
+
+  
+  
+  
+  while (!rects.IsEmpty()) {
+    PRInt32 i = rects.Length() - 1;
+    PRBool overlappedBelow;
+    do {
+      overlappedBelow = PR_FALSE;
+      const nsIntRect& rectI = rects[i];
+      
+      
+      for (PRInt32 j = i - 1; j >= 0; --j) {
+        if (rects[j].XMost() <= rectI.x) {
+          
+          break;
+        }
+        
+        if (rects[j].y >= rectI.y) {
+          
+          
+          i = j;
+          overlappedBelow = PR_TRUE;
+          break;
+        }
+      }
+    } while (overlappedBelow); 
+
+    
+    
+    aResult->AppendElement(FlipRect(rects[i], aPixDelta));
+    rects.RemoveElementAt(i);
+  }
+}
+
 void nsScrollPortView::Scroll(nsView *aScrolledView, nsPoint aTwipsDelta,
                               nsIntPoint aPixDelta, PRInt32 aP2A,
                               const nsTArray<nsIWidget::Configuration>& aConfigurations)
@@ -555,13 +683,8 @@ void nsScrollPortView::Scroll(nsView *aScrolledView, nsPoint aTwipsDelta,
     
     nsPoint nearestWidgetOffset;
     nsIWidget *nearestWidget = GetNearestWidget(&nearestWidgetOffset);
-    nsRegion updateRegion;
-    PRBool canBitBlit = nearestWidget &&
-                        mViewManager->CanScrollWithBitBlt(aScrolledView, aTwipsDelta, &updateRegion) &&
-                        nearestWidget->GetTransparencyMode() != eTransparencyTransparent;
-
-    if (!canBitBlit) {
-      
+    if (!nearestWidget ||
+        nearestWidget->GetTransparencyMode() == eTransparencyTransparent) {
       
       
       if (nearestWidget) {
@@ -575,45 +698,27 @@ void nsScrollPortView::Scroll(nsView *aScrolledView, nsPoint aTwipsDelta,
       
       mViewManager->UpdateView(this, NS_VMREFRESH_DEFERRED);
     } else {
+      nsRegion blitRegion;
+      nsRegion repaintRegion;
+      mViewManager->GetRegionsForBlit(aScrolledView, aTwipsDelta,
+                                      &blitRegion, &repaintRegion);
+      blitRegion.MoveBy(nearestWidgetOffset);
+      repaintRegion.MoveBy(nearestWidgetOffset);
+
       
       
       mViewManager->WillBitBlit(this, aTwipsDelta);
 
       
-      nsRect bounds(nsPoint(0,0), GetBounds().Size());
-      nsRegion regionToScroll;
-      regionToScroll.Sub(bounds, updateRegion);
-      
-      
-      regionToScroll.And(regionToScroll, bounds - aTwipsDelta);
-      
-      nsRegionRectIterator iter(regionToScroll);
-      nsRect biggestRect(0,0,0,0);
-      const nsRect* r;
-      for (r = iter.Next(); r; r = iter.Next()) {
-        if (PRInt64(r->width)*PRInt64(r->height) > PRInt64(biggestRect.width)*PRInt64(biggestRect.height)) {
-          biggestRect = *r;
-        }
-      }
-      
-      nsIntRect destScroll = (biggestRect + nearestWidgetOffset).ToInsidePixels(aP2A);
-      
-      
-      biggestRect = destScroll.ToAppUnits(aP2A) - nearestWidgetOffset;
-      
-      regionToScroll.Sub(regionToScroll, biggestRect);
-      updateRegion.Or(updateRegion, regionToScroll);
+      nsRegion innerPixRegion =
+        ConvertToInnerPixelRegion(blitRegion, aP2A, &repaintRegion);
+      nsTArray<nsIntRect> blitRects;
+      SortBlitRectsForCopy(innerPixRegion, aPixDelta, &blitRects);
 
-      
-      
-      nsRegion exposedArea;
-      exposedArea.Sub(bounds, bounds - aTwipsDelta);
-      updateRegion.Or(updateRegion, exposedArea);
-
-      nearestWidget->Scroll(aPixDelta, destScroll - aPixDelta,
-                            aConfigurations);
+      nearestWidget->Scroll(aPixDelta, blitRects, aConfigurations);
       AdjustChildWidgets(aScrolledView, nearestWidgetOffset, aP2A, PR_TRUE);
-      mViewManager->UpdateViewAfterScroll(this, updateRegion);
+      repaintRegion.MoveBy(-nearestWidgetOffset);
+      mViewManager->UpdateViewAfterScroll(this, repaintRegion);
     }
   }
 }

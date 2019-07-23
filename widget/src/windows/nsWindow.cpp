@@ -2169,7 +2169,8 @@ ClipRegionContainedInRect(const nsTArray<nsIntRect>& aClipRects,
 }
 
 void
-nsWindow::Scroll(const nsIntPoint& aDelta, const nsIntRect& aSource,
+nsWindow::Scroll(const nsIntPoint& aDelta,
+                 const nsTArray<nsIntRect>& aDestRects,
                  const nsTArray<Configuration>& aConfigurations)
 {
   
@@ -2191,43 +2192,58 @@ nsWindow::Scroll(const nsIntPoint& aDelta, const nsIntRect& aSource,
     w->SetWindowClipRegion(configuration.mClipRegion, PR_TRUE);
   }
 
-  
-  
-  nsIntRect affectedRect;
-  affectedRect.UnionRect(aSource, aSource + aDelta);
-  
-  
-  UINT flags = SW_SCROLLCHILDREN | SW_INVALIDATE;
-  for (nsWindow* w = static_cast<nsWindow*>(GetFirstChild()); w;
-       w = static_cast<nsWindow*>(w->GetNextSibling())) {
-    if (w->mBounds.Intersects(affectedRect) &&
-        !scrolledWidgets.GetEntry(w)) {
-      flags &= ~SW_SCROLLCHILDREN;
-      break;
-    }
-  }
-
-  if (flags & SW_SCROLLCHILDREN) {
-    for (PRUint32 i = 0; i < aConfigurations.Length(); ++i) {
-      const Configuration& configuration = aConfigurations[i];
-      nsWindow* w = static_cast<nsWindow*>(configuration.mChild);
-      
-      
-      
-      
-      
-      if (w->mBounds.Intersects(affectedRect) &&
-          !ClipRegionContainedInRect(configuration.mClipRegion,
-                                     affectedRect - (w->mBounds.TopLeft() + aDelta))) {
-        w->Invalidate(PR_FALSE);
+  for (PRUint32 i = 0; i < aDestRects.Length(); ++i) {
+    nsIntRect affectedRect;
+    affectedRect.UnionRect(aDestRects[i], aDestRects[i] - aDelta);
+    
+    
+    UINT flags = SW_SCROLLCHILDREN | SW_INVALIDATE;
+    
+    
+    for (nsWindow* w = static_cast<nsWindow*>(GetFirstChild()); w;
+         w = static_cast<nsWindow*>(w->GetNextSibling())) {
+      if (w->mBounds.Intersects(affectedRect)) {
+        
+        nsPtrHashKey<nsWindow>* entry = scrolledWidgets.GetEntry(w);
+        if (entry) {
+          
+          
+          
+          
+          scrolledWidgets.RawRemoveEntry(entry);
+        } else {
+          flags &= ~SW_SCROLLCHILDREN;
+          
+          
+          
+          
+          break;
+        }
       }
     }
-  }
 
-  
-  
-  RECT clip = { affectedRect.x, affectedRect.y, affectedRect.XMost(), affectedRect.YMost() };
-  ::ScrollWindowEx(mWnd, aDelta.x, aDelta.y, &clip, &clip, NULL, NULL, flags);
+    if (flags & SW_SCROLLCHILDREN) {
+      for (PRUint32 i = 0; i < aConfigurations.Length(); ++i) {
+        const Configuration& configuration = aConfigurations[i];
+        nsWindow* w = static_cast<nsWindow*>(configuration.mChild);
+        
+        
+        
+        
+        
+        if (w->mBounds.Intersects(affectedRect) &&
+            !ClipRegionContainedInRect(configuration.mClipRegion,
+                                       affectedRect - (w->mBounds.TopLeft() + aDelta))) {
+          w->Invalidate(PR_FALSE);
+        }
+      }
+    }
+
+    
+    
+    RECT clip = { affectedRect.x, affectedRect.y, affectedRect.XMost(), affectedRect.YMost() };
+    ::ScrollWindowEx(mWnd, aDelta.x, aDelta.y, &clip, &clip, NULL, NULL, flags);
+  }
 
   
   

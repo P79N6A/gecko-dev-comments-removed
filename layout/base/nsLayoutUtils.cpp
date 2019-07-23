@@ -1135,12 +1135,12 @@ nsLayoutUtils::PaintFrame(nsIRenderingContext* aRenderingContext, nsIFrame* aFra
 }
 
 static void
-AccumulateItemInRegion(nsRegion* aRegion, const nsRect& aAreaRect,
+AccumulateItemInRegion(nsRegion* aRegion, const nsRect& aUpdateRect,
                        const nsRect& aItemRect, const nsRect& aExclude,
                        nsDisplayItem* aItem)
 {
   nsRect damageRect;
-  if (damageRect.IntersectRect(aAreaRect, aItemRect)) {
+  if (damageRect.IntersectRect(aUpdateRect, aItemRect)) {
     nsRegion r;
     r.Sub(damageRect, aExclude);
 #ifdef DEBUG
@@ -1157,7 +1157,7 @@ AccumulateItemInRegion(nsRegion* aRegion, const nsRect& aAreaRect,
 
 static void
 AddItemsToRegion(nsDisplayListBuilder* aBuilder, nsDisplayList* aList,
-                 const nsRect& aRect, const nsRect& aClipRect, nsPoint aDelta,
+                 const nsRect& aUpdateRect, const nsRect& aClipRect, nsPoint aDelta,
                  nsRegion* aRegion)
 {
   for (nsDisplayItem* item = aList->GetBottom(); item; item = item->GetAbove()) {
@@ -1186,19 +1186,19 @@ AddItemsToRegion(nsDisplayListBuilder* aBuilder, nsDisplayList* aList,
 
           
           nsRegion clippedOutSource;
-          clippedOutSource.Sub(aRect, clip);
+          clippedOutSource.Sub(aUpdateRect - aDelta, clip);
           clippedOutSource.MoveBy(aDelta);
           aRegion->Or(*aRegion, clippedOutSource);
 
           
           nsRegion clippedOutDestination;
-          clippedOutDestination.Sub(aRect + aDelta, clip);
+          clippedOutDestination.Sub(aUpdateRect, clip);
           aRegion->Or(*aRegion, clippedOutDestination);
         }
-        AddItemsToRegion(aBuilder, sublist, aRect, clip, aDelta, aRegion);
+        AddItemsToRegion(aBuilder, sublist, aUpdateRect, clip, aDelta, aRegion);
       } else {
         
-        AddItemsToRegion(aBuilder, sublist, aRect, aClipRect, aDelta, aRegion);
+        AddItemsToRegion(aBuilder, sublist, aUpdateRect, aClipRect, aDelta, aRegion);
       }
     } else {
       nsRect r;
@@ -1210,7 +1210,7 @@ AddItemsToRegion(nsDisplayListBuilder* aBuilder, nsDisplayList* aList,
           if (item->IsVaryingRelativeToMovingFrame(aBuilder)) {
             
             
-            AccumulateItemInRegion(aRegion, aRect + aDelta, r, exclude, item);
+            AccumulateItemInRegion(aRegion, aUpdateRect, r, exclude, item);
           }
         } else {
           
@@ -1220,11 +1220,11 @@ AddItemsToRegion(nsDisplayListBuilder* aBuilder, nsDisplayList* aList,
             exclude.IntersectRect(r, r + aDelta);
           }
           
-          AccumulateItemInRegion(aRegion, aRect + aDelta, r, exclude, item);
+          AccumulateItemInRegion(aRegion, aUpdateRect, r, exclude, item);
           
           
           
-          AccumulateItemInRegion(aRegion, aRect + aDelta, r + aDelta,
+          AccumulateItemInRegion(aRegion, aUpdateRect, r + aDelta,
                                  exclude, item);
         }
       }
@@ -1236,7 +1236,8 @@ nsresult
 nsLayoutUtils::ComputeRepaintRegionForCopy(nsIFrame* aRootFrame,
                                            nsIFrame* aMovingFrame,
                                            nsPoint aDelta,
-                                           const nsRect& aCopyRect,
+                                           const nsRect& aUpdateRect,
+                                           nsRegion* aBlitRegion,
                                            nsRegion* aRepaintRegion)
 {
   NS_ASSERTION(aRootFrame != aMovingFrame,
@@ -1257,9 +1258,12 @@ nsLayoutUtils::ComputeRepaintRegionForCopy(nsIFrame* aRootFrame,
   
   
   nsRect rect;
-  rect.UnionRect(aCopyRect, aCopyRect + aDelta);
+  rect.UnionRect(aUpdateRect, aUpdateRect - aDelta);
   nsDisplayListBuilder builder(aRootFrame, PR_FALSE, PR_TRUE);
-  builder.SetMovingFrame(aMovingFrame, aDelta);
+  
+  
+  nsRegion visibleRegionOfMovingContent;
+  builder.SetMovingFrame(aMovingFrame, aDelta, &visibleRegionOfMovingContent);
   nsDisplayList list;
 
   builder.EnterPresShell(aRootFrame, rect);
@@ -1281,8 +1285,8 @@ nsLayoutUtils::ComputeRepaintRegionForCopy(nsIFrame* aRootFrame,
 
   
   
-  nsRegion visibleRegion(aCopyRect);
-  visibleRegion.Or(visibleRegion, aCopyRect + aDelta);
+  nsRegion visibleRegion(aUpdateRect);
+  visibleRegion.Or(visibleRegion, aUpdateRect - aDelta);
   list.OptimizeVisibility(&builder, &visibleRegion);
 
 #ifdef DEBUG
@@ -1302,9 +1306,16 @@ nsLayoutUtils::ComputeRepaintRegionForCopy(nsIFrame* aRootFrame,
   
   
   
-  AddItemsToRegion(&builder, &list, aCopyRect, rect, aDelta, aRepaintRegion);
+  AddItemsToRegion(&builder, &list, aUpdateRect, rect, aDelta, aRepaintRegion);
   
   list.DeleteAll();
+
+  
+  
+  
+  visibleRegionOfMovingContent.And(visibleRegionOfMovingContent, aUpdateRect);
+  aRepaintRegion->And(*aRepaintRegion, visibleRegionOfMovingContent);
+  aBlitRegion->Sub(visibleRegionOfMovingContent, *aRepaintRegion);
   return NS_OK;
 }
 

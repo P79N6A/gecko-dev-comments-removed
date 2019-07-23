@@ -534,10 +534,17 @@ public:
 
 
 
+
+
+
+
+
+
   static nsresult ComputeRepaintRegionForCopy(nsIFrame* aRootFrame,
                                               nsIFrame* aMovingFrame,
                                               nsPoint aDelta,
-                                              const nsRect& aCopyRect,
+                                              const nsRect& aUpdateRect,
+                                              nsRegion* aBlitRegion,
                                               nsRegion* aRepaintRegion);
 
   

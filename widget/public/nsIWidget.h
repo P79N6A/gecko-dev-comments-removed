@@ -102,10 +102,9 @@ typedef nsEventStatus (* EVENT_CALLBACK)(nsGUIEvent *event);
 #define NS_NATIVE_TSF_DISPLAY_ATTR_MGR 102
 #endif
 
-
 #define NS_IWIDGET_IID \
-{ 0xA16A3387, 0xA529, 0x439C, \
-  { 0xA1, 0x27, 0xA5, 0x89, 0x33, 0x51, 0xFD, 0x24 } }
+  { 0xb681539f, 0x5dac, 0x45af, \
+    { 0x8a, 0x25, 0xdf, 0xd7, 0x14, 0xe0, 0x9f, 0x43 } }
 
 
 
@@ -735,7 +734,14 @@ class nsIWidget : public nsISupports {
 
 
 
-    virtual void Scroll(const nsIntPoint& aDelta, const nsIntRect& aSource,
+
+
+
+
+
+
+    virtual void Scroll(const nsIntPoint& aDelta,
+                        const nsTArray<nsIntRect>& aDestRects,
                         const nsTArray<Configuration>& aReconfigureChildren) = 0;
 
     

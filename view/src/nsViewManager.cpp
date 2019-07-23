@@ -1514,35 +1514,35 @@ NS_IMETHODIMP nsViewManager::ResizeView(nsIView *aView, const nsRect &aRect, PRB
   return NS_OK;
 }
 
-static double GetArea(const nsRect& aRect)
-{
-  return double(aRect.width)*double(aRect.height);
-}
-
-PRBool nsViewManager::CanScrollWithBitBlt(nsView* aView, nsPoint aDelta,
-                                          nsRegion* aUpdateRegion)
+void nsViewManager::GetRegionsForBlit(nsView* aView, nsPoint aDelta,
+                                      nsRegion* aBlitRegion,
+                                      nsRegion* aRepaintRegion)
 {
   NS_ASSERTION(!IsPainting(),
                "View manager shouldn't be scrolling during a paint");
-  if (IsPainting() || !mObserver) {
-    return PR_FALSE; 
-  }
 
   nsView* displayRoot = GetDisplayRootFor(aView);
   nsPoint displayOffset = aView->GetParent()->GetOffsetTo(displayRoot);
   nsRect parentBounds = aView->GetParent()->GetDimensions() + displayOffset;
-  
-  
-  nsRect toScroll;
-  toScroll.IntersectRect(parentBounds + aDelta, parentBounds);
-  nsresult rv =
-    mObserver->ComputeRepaintRegionForCopy(displayRoot, aView, -aDelta, toScroll,
-                                           aUpdateRegion);
-  NS_ENSURE_SUCCESS(rv, PR_FALSE);
+  if (IsPainting() || !mObserver) {
+    
+    aBlitRegion->SetEmpty();
+    *aRepaintRegion = parentBounds;
+  } else {
+    nsresult rv =
+      mObserver->ComputeRepaintRegionForCopy(displayRoot, aView, -aDelta,
+                                             parentBounds,
+                                             aBlitRegion,
+                                             aRepaintRegion);
+    if (NS_FAILED(rv)) {
+      aBlitRegion->SetEmpty();
+      *aRepaintRegion = nsRegion(parentBounds);
+      return;
+    }
+  }
 
-  aUpdateRegion->MoveBy(-displayOffset);
-
-  return GetArea(aUpdateRegion->GetBounds()) < GetArea(parentBounds)/2;
+  aBlitRegion->MoveBy(-displayOffset);
+  aRepaintRegion->MoveBy(-displayOffset);
 }
 
 NS_IMETHODIMP nsViewManager::SetViewFloating(nsIView *aView, PRBool aFloating)

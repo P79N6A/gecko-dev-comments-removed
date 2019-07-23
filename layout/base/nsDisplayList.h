@@ -61,6 +61,7 @@ class nsRegion;
 class nsIRenderingContext;
 class nsIDeviceContext;
 class nsDisplayTableItem;
+class nsDisplayItem;
 
 
 
@@ -161,9 +162,14 @@ public:
 
 
 
-  void SetMovingFrame(nsIFrame* aMovingFrame, const nsPoint& aMoveDelta) {
+
+
+
+  void SetMovingFrame(nsIFrame* aMovingFrame, const nsPoint& aMoveDelta,
+                      nsRegion* aSaveVisibleRegionOfMovingContent) {
     mMovingFrame = aMovingFrame;
     mMoveDelta = aMoveDelta;
+    mSaveVisibleRegionOfMovingContent = aSaveVisibleRegionOfMovingContent;
   }
 
   
@@ -179,6 +185,14 @@ public:
 
 
   const nsPoint& GetMoveDelta() { return mMoveDelta; }
+  
+
+
+
+
+  void AccumulateVisibleRegionOfMovingContent(const nsRegion& aMovingContent,
+                                              const nsRegion& aVisibleRegion);
+
   
 
 
@@ -282,6 +296,15 @@ public:
 
 
 
+  void SubtractFromVisibleRegion(nsRegion* aVisibleRegion,
+                                 const nsRegion& aRegion);
+
+  
+
+
+
+
+
 
 
   void MarkFramesForDisplayList(nsIFrame* aDirtyFrame,
@@ -356,6 +379,7 @@ private:
   
   nsIFrame*                      mReferenceFrame;
   nsIFrame*                      mMovingFrame;
+  nsRegion*                      mSaveVisibleRegionOfMovingContent;
   nsIFrame*                      mIgnoreScrollFrame;
   nsPoint                        mMoveDelta; 
   PLArenaPool                    mPool;
