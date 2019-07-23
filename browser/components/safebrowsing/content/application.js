@@ -136,16 +136,28 @@ PROT_Application.prototype.getReportURL = function(name) {
 PROT_Application.prototype.newChannel = function(uri) {
   var ioService = Cc["@mozilla.org/network/io-service;1"]
                  .getService(Ci.nsIIOService);
+  var secMan = Cc["@mozilla.org/scriptsecuritymanager;1"]
+              .getService(Ci.nsIScriptSecurityManager);
+
   var childURI = ioService.newURI("chrome://browser/content/safebrowsing/blockedSite.xhtml",
                                   null, null);
   var channel = ioService.newChannelFromURI(childURI);
   channel.originalURI = uri;
+  
+  
+  var principal = secMan.getCodebasePrincipal(uri);
+  channel.owner = principal;
 
   return channel;
 }
 
 PROT_Application.prototype.getURIFlags = function(uri) {
-  return Ci.nsIAboutModule.ALLOW_SCRIPT;
+  
+  
+  
+  
+  return Ci.nsIAboutModule.ALLOW_SCRIPT |
+         Ci.nsIAboutModule.URI_SAFE_FOR_UNTRUSTED_CONTENT;
 }
 
 PROT_Application.prototype.QueryInterface = function(iid) {

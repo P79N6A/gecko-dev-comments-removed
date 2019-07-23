@@ -2785,8 +2785,10 @@ const DOMLinkHandler = {
             
             
             
-            const aboutNeterr = "about:neterror?";
-            if (targetDoc.documentURI.substr(0, aboutNeterr.length) != aboutNeterr ||
+            const aboutNeterr = /^about:neterror\?/;
+            const aboutBlocked = /^about:blocked\?/;
+            if (!(aboutNeterr.test(targetDoc.documentURI) ||
+                  aboutBlocked.test(targetDoc.documentURI)) ||
                 !uri.schemeIs("chrome")) {
               var ssm = Cc["@mozilla.org/scriptsecuritymanager;1"].
                         getService(Ci.nsIScriptSecurityManager);
