@@ -75,14 +75,16 @@ FormAutoComplete.prototype = {
         return this.__observerService;
     },
 
-    _prefBranch        : null,
-    _debug             : false, 
-    _enabled           : true,  
-    _agedWeight        : 2,
-    _bucketSize        : 5,
-    _maxTimeGroupings  : 25,
-    _timeGroupingSize  : 7 * 24 * 60 * 60 * 1000 * 1000,
-    _expireDays        : null,
+    _prefBranch         : null,
+    _debug              : false, 
+    _enabled            : true,  
+    _agedWeight         : 2,
+    _bucketSize         : 1,
+    _maxTimeGroupings   : 25,
+    _timeGroupingSize   : 7 * 24 * 60 * 60 * 1000 * 1000,
+    _expireDays         : null,
+    _boundaryWeight     : 25,
+    _prefixWeight       : 5,
 
     init : function() {
         
@@ -136,6 +138,12 @@ FormAutoComplete.prototype = {
                     case "bucketSize":
                         self._bucketSize = self._prefBranch.getIntPref(prefName);
                         break;
+                    case "boundaryWeight":
+                        self._boundaryWeight = self._prefBranch.getIntPref(prefName);
+                        break;
+                    case "prefixWeight":
+                        self._prefixWeight = self._prefBranch.getIntPref(prefName);
+                        break;
                     default:
                         self.log("Oops! Pref not handled, change ignored.");
                 }
@@ -169,41 +177,51 @@ FormAutoComplete.prototype = {
 
 
 
-    autoCompleteSearch : function (aInputName, aSearchString, aPreviousResult) {
+    autoCompleteSearch : function (aInputName, aUntrimmedSearchString, aPreviousResult) {
+        function sortBytotalScore (a, b) {
+            let x = a.totalScore;
+            let y = b.totalScore;
+            return ((x > y) ? -1 : ((x < y) ? 1 : 0));
+        }
+
         if (!this._enabled)
             return null;
 
-        this.log("AutoCompleteSearch invoked. Search is: " + aSearchString);
-
+        this.log("AutoCompleteSearch invoked. Search is: " + aUntrimmedSearchString);
+        let searchString = aUntrimmedSearchString.trim().toLowerCase();
         let result = null;
 
-        if (aPreviousResult &&
-                aSearchString.substr(0, aPreviousResult.searchString.length) == aPreviousResult.searchString) {
+        
+        
+        
+        if (aPreviousResult && aPreviousResult.searchString.trim().length > 1 &&
+            searchString.indexOf(aPreviousResult.searchString.trim().toLowerCase()) >= 0) {
             this.log("Using previous autocomplete result");
             result = aPreviousResult;
-            result.wrappedJSObject.searchString = aSearchString;
+            result.wrappedJSObject.searchString = aUntrimmedSearchString;
 
+            let searchTokens = searchString.split(/\s+/);
             
             
-            
-            
-            for (let i = result.matchCount - 1; i >= 0; i--) {
-                let match = result.getValueAt(i);
-
+            let entries = result.wrappedJSObject.entries;
+            let filteredEntries = [];
+            for (let i = 0; i < entries.length; i++) {
+                let entry = entries[i];
                 
                 
-                if (aSearchString.length > match.length ||
-                    aSearchString.toLowerCase() !=
-                        match.substr(0, aSearchString.length).toLowerCase())
-                {
-                    this.log("Removing autocomplete entry '" + match + "'");
-                    result.removeValueAt(i, false);
-                }
+                if(searchTokens.some(function (tok) entry.textLowerCase.indexOf(tok) < 0))
+                    continue;
+                this._calculateScore(entry, searchString, searchTokens);
+                this.log("Reusing autocomplete entry '" + entry.text +
+                         "' (" + entry.frecency +" / " + entry.totalScore + ")");
+                filteredEntries.push(entry);
             }
+            filteredEntries.sort(sortBytotalScore);
+            result.wrappedJSObject.entries = filteredEntries;
         } else {
             this.log("Creating new autocomplete search result.");
-            let entries = this.getAutoCompleteValues(aInputName, aSearchString);
-            result = new FormAutoCompleteResult(this._formHistory, entries, aInputName, aSearchString);
+            let entries = this.getAutoCompleteValues(aInputName, searchString);
+            result = new FormAutoCompleteResult(this._formHistory, entries, aInputName, aUntrimmedSearchString);
         }
 
         return result;
@@ -211,7 +229,48 @@ FormAutoComplete.prototype = {
 
     getAutoCompleteValues : function (fieldName, searchString) {
         let values = [];
+        let searchTokens;
+
+        let params = {
+            agedWeight:         this._agedWeight,
+            bucketSize:         this._bucketSize,
+            expiryDate:         1000 * (Date.now() - this._expireDays * 24 * 60 * 60 * 1000),
+            fieldname:          fieldName,
+            maxTimeGroupings:   this._maxTimeGroupings,
+            now:                Date.now() * 1000,          
+            timeGroupingSize:   this._timeGroupingSize
+        }
+
         
+        let where = ""
+        let boundaryCalc = "";
+        if (searchString.length > 1) {
+            searchTokens = searchString.split(/\s+/);
+
+            
+            boundaryCalc = "MAX(1, :prefixWeight * (value LIKE :valuePrefix ESCAPE '/') + (";
+            
+            
+            let tokenCalc = [];
+            for (let i = 0; i < searchTokens.length; i++) {
+                tokenCalc.push("(value LIKE :tokenBegin" + i + " ESCAPE '/') + " +
+                                "(value LIKE :tokenBoundary" + i + " ESCAPE '/')");
+                where += "AND (value LIKE :tokenContains" + i + " ESCAPE '/') ";
+            }
+            
+            
+            boundaryCalc += tokenCalc.join(" + ") + ") * :boundaryWeight)";
+            params.prefixWeight = this._prefixWeight;
+            params.boundaryWeight = this._boundaryWeight;
+        } else if (searchString.length == 1) {
+            where = "AND (value LIKE :valuePrefix ESCAPE '/') ";
+            boundaryCalc = "1";
+        } else {
+            where = "";
+            boundaryCalc = "1";
+        }
+        
+
 
 
 
@@ -226,21 +285,11 @@ FormAutoComplete.prototype = {
                         "MAX(1.0, :maxTimeGroupings - (:now - lastUsed) / :timeGroupingSize) * "+
                         "MAX(1.0, :agedWeight * (firstUsed < :expiryDate)) / " +
                         ":bucketSize "+
-                    ") AS frecency " +
+                    ", 3) AS frecency, " +
+                    boundaryCalc + " AS boundaryBonuses " +
                     "FROM moz_formhistory " +
-                    "WHERE fieldname=:fieldname AND value LIKE :valuePrefix ESCAPE '/' " +
-                    "ORDER BY frecency DESC, UPPER(value) ASC";
-
-        let params = {
-            agedWeight:         this._agedWeight,
-            bucketSize:         this._bucketSize,
-            expiryDate:         1000 * (Date.now() - this._expireDays * 24 * 60 * 60 * 1000),
-            fieldname:          fieldName,
-            maxTimeGroupings:   this._maxTimeGroupings,
-            now:                Date.now() * 1000,          
-            timeGroupingSize:   this._timeGroupingSize,
-            valuePrefix:        null                        
-        }
+                    "WHERE fieldname=:fieldname " + where +
+                    "ORDER BY ROUND(frecency * boundaryBonuses) DESC, UPPER(value) ASC";
 
         let stmt;
         try {
@@ -248,10 +297,29 @@ FormAutoComplete.prototype = {
 
             
             
-            stmt.params.valuePrefix = stmt.escapeStringForLIKE(searchString, "/") + "%";
+            if (searchString.length >= 1)
+                stmt.params.valuePrefix = stmt.escapeStringForLIKE(searchString, "/") + "%";
+            if (searchString.length > 1) {
+                for (let i = 0; i < searchTokens.length; i++) {
+                    let escapedToken = stmt.escapeStringForLIKE(searchTokens[i], "/");
+                    stmt.params["tokenBegin" + i] = escapedToken + "%";
+                    stmt.params["tokenBoundary" + i] =  "% " + escapedToken + "%";
+                    stmt.params["tokenContains" + i] = "%" + escapedToken + "%";
+                }
+            } else {
+                
+                
+            }
 
-            while (stmt.step())
-                values.push(stmt.row.value);
+            while (stmt.step()) {
+                let entry = {
+                    text:           stmt.row.value,
+                    textLowerCase:  stmt.row.value.toLowerCase(),
+                    frecency:       stmt.row.frecency,
+                    totalScore:     Math.round(stmt.row.frecency * stmt.row.boundaryBonuses)
+                }
+                values.push(entry);
+            }
 
         } catch (e) {
             this.log("getValues failed: " + e.name + " : " + e.message);
@@ -290,6 +358,31 @@ FormAutoComplete.prototype = {
             return prefsBranch.getIntPref("browser.formfill.expire_days");
         else
             return prefsBranch.getIntPref("browser.history_expire_days");
+    },
+
+    
+
+
+
+
+
+
+
+
+    _calculateScore : function (entry, aSearchString, searchTokens) {
+        let boundaryCalc = 0;
+        
+        for each (let token in searchTokens) {
+            boundaryCalc += (entry.textLowerCase.indexOf(token) == 0);
+            boundaryCalc += (entry.textLowerCase.indexOf(" " + token) >= 0);
+        }
+        boundaryCalc = boundaryCalc * this._boundaryWeight;
+        
+        
+        boundaryCalc += this._prefixWeight *
+                        (entry.textLowerCase.
+                         indexOf(aSearchString) == 0);
+        entry.totalScore = Math.round(entry.frecency * Math.max(1, boundaryCalc));
     }
 
 }; 
@@ -303,11 +396,6 @@ function FormAutoCompleteResult (formHistory, entries, fieldName, searchString) 
     this.entries = entries;
     this.fieldName = fieldName;
     this.searchString = searchString;
-
-    if (entries.length > 0) {
-        this.searchResult = Ci.nsIAutoCompleteResult.RESULT_SUCCESS;
-        this.defaultIndex = 0;
-    }
 }
 
 FormAutoCompleteResult.prototype = {
@@ -332,16 +420,25 @@ FormAutoCompleteResult.prototype = {
 
     
     searchString : null,
-    searchResult : Ci.nsIAutoCompleteResult.RESULT_NOMATCH,
-    defaultIndex : -1,
     errorDescription : "",
+    get defaultIndex() {
+        if (entries.length == 0)
+            return -1;
+        else
+            return 0;
+    },
+    get searchResult() {
+        if (this.entries.length == 0)
+            return Ci.nsIAutoCompleteResult.RESULT_NOMATCH;
+        return Ci.nsIAutoCompleteResult.RESULT_SUCCESS;
+    },
     get matchCount() {
         return this.entries.length;
     },
 
     getValueAt : function (index) {
         this._checkIndexBounds(index);
-        return this.entries[index];
+        return this.entries[index].text;
     },
 
     getCommentAt : function (index) {
@@ -364,11 +461,8 @@ FormAutoCompleteResult.prototype = {
 
         let [removedEntry] = this.entries.splice(index, 1);
 
-        if (this.defaultIndex > this.entries.length)
-            this.defaultIndex--;
-
         if (removeFromDB)
-            this.formHistory.removeEntry(this.fieldName, removedEntry);
+            this.formHistory.removeEntry(this.fieldName, removedEntry.text);
     }
 };
 
