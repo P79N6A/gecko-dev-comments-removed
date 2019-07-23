@@ -481,14 +481,19 @@ static PRBool IsSpaceCombiningSequenceTail(const nsTextFragment* aFrag, PRUint32
 
 
 static PRBool IsCSSWordSpacingSpace(const nsTextFragment* aFrag,
-                                    PRUint32 aPos)
+                                    PRUint32 aPos, const nsStyleText* aStyleText)
 {
   NS_ASSERTION(aPos < aFrag->GetLength(), "No text for IsSpace!");
 
   PRUnichar ch = aFrag->CharAt(aPos);
-  if (ch == ' ' || ch == CH_CJKSP)
+  switch (ch) {
+  case ' ':
+  case CH_NBSP:
     return !IsSpaceCombiningSequenceTail(aFrag, aPos + 1);
-  return ch == '\t' || ch == '\f' || ch == '\n';
+  case '\t': return !aStyleText->WhiteSpaceIsSignificant();
+  case '\n': return !aStyleText->NewlineIsSignificant();
+  default: return PR_FALSE;
+  }
 }
 
 
@@ -2327,7 +2332,8 @@ PropertyProvider::GetSpacingInternal(PRUint32 aStart, PRUint32 aLength,
           
           aSpacing[runOffsetInSubstring + i].mAfter += mLetterSpacing;
         }
-        if (IsCSSWordSpacingSpace(mFrag, i + run.GetOriginalOffset())) {
+        if (IsCSSWordSpacingSpace(mFrag, i + run.GetOriginalOffset(),
+                                  mTextStyle)) {
           
           
           iter.SetSkippedOffset(run.GetSkippedOffset() + i);
