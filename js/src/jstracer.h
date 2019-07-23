@@ -710,6 +710,7 @@ struct InterpState
     VMSideExit*    lastTreeCallGuard;   
                                         
     void*          rpAtLastTreeCall;    
+    VMSideExit*    outermostTreeExitGuard; 
     TreeInfo*      outermostTree;       
     double*        stackBase;           
     FrameInfo**    callstackBase;       
