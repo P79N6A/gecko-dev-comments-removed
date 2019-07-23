@@ -61,6 +61,9 @@ const CHECK_INTERVAL = 15 * 1000;
 
 const GENERATOR_INTERVAL = 7 * 86400; 
 
+
+const DEFAULT_UPDATE_INTERVAL_MINUTES = 30;
+
 const MICSUM_NS = "http://www.mozilla.org/microsummaries/0.1";
 const XSLT_NS = "http://www.w3.org/1999/XSL/Transform";
 
@@ -70,13 +73,14 @@ const ANNO_STATIC_TITLE      = "bookmarks/staticTitle";
 const ANNO_CONTENT_TYPE      = "bookmarks/contentType";
 
 const MAX_SUMMARY_LENGTH = 4096;
+const MAX_GENERATOR_NAME_LENGTH = 60;
+const MIN_GENERATOR_NAME_LENGTH = 6;
 
 const USER_MICROSUMMARY_GENS_DIR = "microsummary-generators";
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 
-__defineGetter__("NetUtil", function() {
-  delete this.NetUtil;
+XPCOMUtils.defineLazyGetter(this, "NetUtil", function() {
   Cu.import("resource://gre/modules/NetUtil.jsm");
   return NetUtil;
 });
@@ -84,51 +88,40 @@ __defineGetter__("NetUtil", function() {
 XPCOMUtils.defineLazyServiceGetter(this, "gObsSvc",
                                    "@mozilla.org/observer-service;1",
                                    "nsIObserverService");
+XPCOMUtils.defineLazyServiceGetter(this, "gPrefBranch",
+                                   "@mozilla.org/preferences-service;1",
+                                   "nsIPrefBranch");
 
 function MicrosummaryService() {
   gObsSvc.addObserver(this, "xpcom-shutdown", true);
+
+  this._ans = Cc["@mozilla.org/browser/annotation-service;1"].
+              getService(Ci.nsIAnnotationService);
   this._ans.addObserver(this, false);
-
-  Cc["@mozilla.org/preferences-service;1"].
-    getService(Ci.nsIPrefService).
-    getBranch("browser.microsummary.").
-    QueryInterface(Ci.nsIPrefBranch2).
-    addObserver("", this, true);
-
+  Cc["@mozilla.org/preferences-service;1"].getService(Ci.nsIPrefService).
+                                           getBranch("browser.microsummary.").
+                                           QueryInterface(Ci.nsIPrefBranch2).
+                                           addObserver("", this, true);
   this._initTimers();
   this._cacheLocalGenerators();
 }
-
 MicrosummaryService.prototype = {
-  
   get _bms() {
     var svc = Cc["@mozilla.org/browser/nav-bookmarks-service;1"].
               getService(Ci.nsINavBookmarksService);
     this.__defineGetter__("_bms", function() svc);
     return this._bms;
   },
-
-  
-  get _ans() {
-    var svc = Cc["@mozilla.org/browser/annotation-service;1"].
-              getService(Ci.nsIAnnotationService);
-    this.__defineGetter__("_ans", function() svc);
-    return this._ans;
-  },
-
-  
-  __dirs: null,
   get _dirs() {
-    if (!this.__dirs)
-      this.__dirs = Cc["@mozilla.org/file/directory_service;1"].
-                    getService(Ci.nsIProperties);
-    return this.__dirs;
+    var svc = Cc["@mozilla.org/file/directory_service;1"].
+              getService(Ci.nsIProperties);
+    this.__defineGetter__("_dirs", function() svc);
+    return this._dirs;
   },
-
   
   get _updateInterval() {
-    var updateInterval =
-      getPref("browser.microsummary.updateInterval", 30);
+    var updateInterval = getPref("browser.microsummary.updateInterval",
+                                 DEFAULT_UPDATE_INTERVAL_MINUTES);
     
     return Math.max(updateInterval, 1) * 60 * 1000;
   },
@@ -167,12 +160,14 @@ MicrosummaryService.prototype = {
         break;
     }
   },
-
+  
   
   notify: function MSS_notify(timer) {
-    this._updateGenerators();
+    if (timer == this._timer)
+      this._updateMicrosummaries();
+    else
+      this._updateGenerators();
   },
-
   _initTimers: function MSS__initTimers() {
     if (this._timer)
       this._timer.cancel();
@@ -182,29 +177,26 @@ MicrosummaryService.prototype = {
 
     
     this._timer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
-    var callback = {
-      _svc: this,
-      notify: function(timer) { this._svc._updateMicrosummaries() }
-    };
-    this._timer.initWithCallback(callback,
-                                 CHECK_INTERVAL,
+    this._timer.initWithCallback(this, CHECK_INTERVAL,
                                  this._timer.TYPE_REPEATING_SLACK);
   },
-  
+
   _destroy: function MSS__destroy() {
     gObsSvc.removeObserver(this, "xpcom-shutdown", true);
     this._ans.removeObserver(this);
+    Cc["@mozilla.org/preferences-service;1"].getService(Ci.nsIPrefService).
+                                             getBranch("browser.microsummary.").
+                                             QueryInterface(Ci.nsIPrefBranch2).
+                                             removeObserver("", this);
     this._timer.cancel();
     this._timer = null;
   },
 
   _updateMicrosummaries: function MSS__updateMicrosummaries() {
-    var bookmarks = this._bookmarks;
-
     var now = Date.now();
     var updateInterval = this._updateInterval;
-    for ( var i = 0; i < bookmarks.length; i++ ) {
-      var bookmarkID = bookmarks[i];
+    for (let i = 0; i < this._bookmarks.length; i++) {
+      var bookmarkID = this._bookmarks[i];
 
       
       if (this._ans.itemHasAnnotation(bookmarkID, ANNO_MICSUM_EXPIRATION) &&
@@ -231,11 +223,10 @@ MicrosummaryService.prototype = {
     var update = getPref("browser.microsummary.updateGenerators", true);
     if (!generators || !update)
       return;
-
-    for (let uri in generators)
+    for (let uri in generators) {
       generators[uri].update();
+    }
   },
-
   _updateMicrosummary: function MSS__updateMicrosummary(bookmarkID, microsummary) {
     var title = this._bms.getItemTitle(bookmarkID);
 
@@ -270,7 +261,6 @@ MicrosummaryService.prototype = {
   
 
 
-
   _cacheLocalGenerators: function MSS__cacheLocalGenerators() {
     
     var msDir = this._dirs.get("ProfDS", Ci.nsIFile);
@@ -280,7 +270,6 @@ MicrosummaryService.prototype = {
   },
 
   
-
 
 
 
@@ -309,17 +298,19 @@ MicrosummaryService.prototype = {
 
 
 
-
   _cacheLocalGeneratorFile: function MSS__cacheLocalGeneratorFile(file) {
     var uri = NetUtil.ioService.newFileURI(file);
 
     var t = this;
     var callback =
       function MSS_cacheLocalGeneratorCallback(resource) {
-        try     { t._handleLocalGenerator(resource) }
-        finally { resource.destroy() }
+        try {
+          t._handleLocalGenerator(resource);
+        }
+        finally {
+          resource.destroy();
+        }
       };
-
     var resource = new MicrosummaryResource(uri);
     resource.load(callback);
   },
@@ -352,11 +343,9 @@ MicrosummaryService.prototype = {
 
   getGenerator: function MSS_getGenerator(generatorURI) {
     return this._localGenerators[generatorURI.spec] ||
-      new MicrosummaryGenerator(generatorURI);
+           new MicrosummaryGenerator(generatorURI);
   },
-
   
-
 
 
 
@@ -367,10 +356,13 @@ MicrosummaryService.prototype = {
     var t = this;
     var callback =
       function MSS_addGeneratorCallback(resource) {
-        try     { t._handleNewGenerator(resource) }
-        finally { resource.destroy() }
+        try {
+          t._handleNewGenerator(resource);
+        }
+        finally {
+          resource.destroy();
+        }
       };
-
     var resource = new MicrosummaryResource(generatorURI);
     resource.load(callback);
   },
@@ -392,7 +384,6 @@ MicrosummaryService.prototype = {
   },
  
   
-
 
 
 
@@ -462,17 +453,14 @@ MicrosummaryService.prototype = {
 
 
 
-
   getMicrosummaries: function MSS_getMicrosummaries(pageURI, bookmarkID) {
     var microsummaries = new MicrosummarySet();
 
     if (!getPref("browser.microsummary.enabled", true))
       return microsummaries;
-
     
-    for (var genURISpec in this._localGenerators) {
+    for (let genURISpec in this._localGenerators) {
       var generator = this._localGenerators[genURISpec];
-
       if (generator.appliesToURI(pageURI)) {
         var microsummary = new Microsummary(pageURI, generator);
 
@@ -497,17 +485,24 @@ MicrosummaryService.prototype = {
     
     var resource = getLoadedMicrosummaryResource(pageURI);
     if (resource) {
-      try     { microsummaries.extractFromPage(resource) }
-      finally { resource.destroy() }
+      try {
+        microsummaries.extractFromPage(resource);
+      }
+      finally {
+        resource.destroy();
+      }
     }
     else {
       
       
       var callback = function MSS_extractFromPageCallback(resource) {
-        try     { microsummaries.extractFromPage(resource) }
-        finally { resource.destroy() }
+        try {
+          microsummaries.extractFromPage(resource);
+        }
+        finally {
+          resource.destroy();
+        }
       };
-
       try {
         resource = new MicrosummaryResource(pageURI);
         resource.load(callback);
@@ -535,13 +530,9 @@ MicrosummaryService.prototype = {
 
 
 
-
   _changeField: function MSS__changeField(fieldName, oldValue, newValue) {
-    var bookmarks = this._bookmarks;
-
-    for ( var i = 0; i < bookmarks.length; i++ ) {
-      var bookmarkID = bookmarks[i];
-
+    for (let i = 0; i < this._bookmarks.length; i++) {
+      var bookmarkID = this._bookmarks[i];
       if (this._ans.itemHasAnnotation(bookmarkID, fieldName) &&
           this._ans.getItemAnnotation(bookmarkID, fieldName) == oldValue)
         this._setAnnotation(bookmarkID, fieldName, newValue);
@@ -549,7 +540,6 @@ MicrosummaryService.prototype = {
   },
 
   
-
 
 
 
@@ -581,13 +571,11 @@ MicrosummaryService.prototype = {
 
 
 
-
   getBookmarks: function MSS_getBookmarks() {
     return new ArrayEnumerator(this._bookmarks);
   },
 
   
-
 
 
 
@@ -619,14 +607,12 @@ MicrosummaryService.prototype = {
 
 
 
-
   createMicrosummary: function MSS_createMicrosummary(pageURI, generatorURI) {
     var generator = this.getGenerator(generatorURI);
     return new Microsummary(pageURI, generator);
   },
 
   
-
 
 
 
@@ -645,7 +631,6 @@ MicrosummaryService.prototype = {
   },
 
   
-
 
 
 
@@ -677,13 +662,11 @@ MicrosummaryService.prototype = {
 
 
 
-
   hasMicrosummary: function MSS_hasMicrosummary(aBookmarkId) {
     return (this._bookmarks.indexOf(aBookmarkId) != -1);
   },
 
   
-
 
 
 
@@ -709,7 +692,6 @@ MicrosummaryService.prototype = {
   },
 
   
-
 
 
 
@@ -821,25 +803,20 @@ function Microsummary(aPageURI, aGenerator) {
   this._updateInterval = null;
   this._needsRemoval = false;
 }
-
 Microsummary.prototype = {
-  
-  __mss: null,
   get _mss() {
-    if (!this.__mss)
-      this.__mss = Cc["@mozilla.org/microsummary/service;1"].
-                   getService(Ci.nsIMicrosummaryService);
-    return this.__mss;
+    var svc = Cc["@mozilla.org/microsummary/service;1"].
+              getService(Ci.nsIMicrosummaryService);
+    this.__defineGetter__("_mss", function() svc);
+    return this._mss;
   },
-
   
   QueryInterface: XPCOMUtils.generateQI([Ci.nsIMicrosummary]),
 
   
   get content() {
     
-    if (!this._content &&
-        this.generator.loaded &&
+    if (!this._content && this.generator.loaded &&
         (this.pageContent || !this.generator.needsPageContent)) {
       this._content = this.generator.generateMicrosummary(this.pageContent);
       this._updateInterval = this.generator.calculateUpdateInterval(this.pageContent);
@@ -852,21 +829,14 @@ Microsummary.prototype = {
     
     return this._content;
   },
-
-  get generator()            { return this._generator },
-  set generator(newValue)    { return this._generator = newValue },
-
-  get pageURI() { return this._pageURI },
-
+  get generator() this._generator,
+  set generator(newValue) this._generator = newValue,
+  get pageURI() this._pageURI,
   equals: function(aOther) {
-    if (this._generator &&
-        this._pageURI.equals(aOther.pageURI) &&
-        this._generator.equals(aOther.generator))
-      return true;
-
-    return false;
+    return this._generator &&
+           this._pageURI.equals(aOther.pageURI) &&
+           this._generator.equals(aOther.generator);
   },
-
   get pageContent() {
     if (!this._pageContent) {
       
@@ -876,18 +846,13 @@ Microsummary.prototype = {
         resource.destroy();
       }
     }
-
     return this._pageContent;
   },
-  set pageContent(newValue) { return this._pageContent = newValue },
-
-  get updateInterval()         { return this._updateInterval; },
-  set updateInterval(newValue) { return this._updateInterval = newValue; },
-
-  get needsRemoval() { return this._needsRemoval; },
-
+  set pageContent(newValue) this._pageContent = newValue,
+  get updateInterval() this._updateInterval,
+  set updateInterval(newValue) this._updateInterval = newValue,
+  get needsRemoval() this._needsRemoval,
   
-
   addObserver: function MS_addObserver(observer) {
     
     
@@ -896,17 +861,11 @@ Microsummary.prototype = {
   },
   
   removeObserver: function MS_removeObserver(observer) {
-    
-    
-  
-    
-    
     if (this._observers.indexOf(observer) != -1)
       this._observers.splice(this._observers.indexOf(observer), 1);
   },
 
   
-
 
 
 
@@ -923,13 +882,11 @@ Microsummary.prototype = {
         t._needsRemoval = true;
         LOG("server indicated " + resource.uri.spec + " is gone. flagging for removal");
       }
-
       resource.destroy();
-
-      for (let i = 0; i < t._observers.length; i++)
+      for (let i = 0; i < t._observers.length; i++) {
         t._observers[i].onError(t);
+      }
     };
-
     
     
     if (!this.generator.loaded) {
@@ -950,8 +907,12 @@ Microsummary.prototype = {
       LOG("generator not yet loaded; downloading it");
       var generatorCallback =
         function MS_generatorCallback(resource) {
-          try     { t._handleGeneratorLoad(resource) }
-          finally { resource.destroy() }
+          try {
+            t._handleGeneratorLoad(resource);
+          }
+          finally {
+            resource.destroy();
+          }
         };
       var resource = new MicrosummaryResource(this.generator.uri);
       resource.load(generatorCallback, errorCallback);
@@ -964,8 +925,12 @@ Microsummary.prototype = {
       LOG("page content not yet loaded; downloading it");
       var pageCallback =
         function MS_pageCallback(resource) {
-          try     { t._handlePageLoad(resource) }
-          finally { resource.destroy() }
+          try {
+            t._handlePageLoad(resource);
+          }
+          finally {
+            resource.destroy();
+          }
         };
       var resource = new MicrosummaryResource(this.pageURI);
       resource.load(pageCallback, errorCallback);
@@ -979,9 +944,9 @@ Microsummary.prototype = {
     this._content = this.generator.generateMicrosummary(this.pageContent);
     this._updateInterval = this.generator.calculateUpdateInterval(this.pageContent);
     this.pageContent = null;
-    for ( var i = 0; i < this._observers.length; i++ )
+    for (let i = 0; i < this._observers.length; i++) {
       this._observers[i].onContentLoaded(this);
-
+    }
     LOG("generated microsummary: " + this.content);
   },
 
@@ -1013,24 +978,28 @@ Microsummary.prototype = {
 
 
 
-
   _reinstallMissingGenerator: function MS__reinstallMissingGenerator() {
     LOG("attempting to reinstall missing generator " + this.generator.uri.spec);
 
     var t = this;
-
     var loadCallback =
       function MS_missingGeneratorLoadCallback(resource) {
-        try     { t._handleMissingGeneratorLoad(resource) }
-        finally { resource.destroy() }
+        try {
+          t._handleMissingGeneratorLoad(resource);
+        }
+        finally {
+          resource.destroy();
+        }
       };
-
     var errorCallback =
       function MS_missingGeneratorErrorCallback(resource) {
-        try     { t._handleMissingGeneratorError(resource) }
-        finally { resource.destroy() }
+        try {
+          t._handleMissingGeneratorError(resource);
+        }
+        finally {
+          resource.destroy();
+        }
       };
-
     try {
       
       var sourceURL = this.generator.uri.path.replace(/^source:/, "");
@@ -1046,7 +1015,6 @@ Microsummary.prototype = {
   },
 
   
-
 
 
 
@@ -1075,19 +1043,17 @@ Microsummary.prototype = {
       
       if (!this.generator.loaded)
         throw("supposedly installed, but not in cache " + this.generator.uri.spec);
+
+      LOG("reinstall succeeded; resuming update " + this.generator.uri.spec);
+      this.update();
     }
     catch(ex) {
       Cu.reportError(ex);
       this._handleMissingGeneratorError(resource);
-      return;
     }
-  
-    LOG("reinstall succeeded; resuming update " + this.generator.uri.spec);
-    this.update();
   },
 
   
-
 
 
 
@@ -1135,14 +1101,12 @@ MicrosummaryGenerator.prototype = {
   
   
   
-  get uri() { return this._uri || this.localURI },
-
+  get uri() this._uri || this.localURI,
   
   
-  get localURI() { return this._localURI },
-  get name() { return this._name },
-  get loaded() { return this._loaded },
-
+  get localURI() this._localURI,
+  get name() this._name,
+  get loaded() this._loaded,
   equals: function(aOther) {
     
     return aOther.uri.equals(this.uri);
@@ -1160,13 +1124,10 @@ MicrosummaryGenerator.prototype = {
 
 
 
-
   appliesToURI: function(uri) {
     var applies = false;
-
-    for ( var i = 0 ; i < this._rules.length ; i++ ) {
+    for (let i = 0; i < this._rules.length; i++) {
       var rule = this._rules[i];
-
       switch (rule.type) {
       case "include":
         if (rule.regexp.test(uri.spec))
@@ -1231,10 +1192,9 @@ MicrosummaryGenerator.prototype = {
     
     if (this.localURI && generatorNode.hasAttribute("uri"))
       this._uri = NetUtil.newURI(generatorNode.getAttribute("uri"), null, null);
-
     function getFirstChildByTagName(tagName, parentNode, namespace) {
       var nodeList = parentNode.getElementsByTagNameNS(namespace, tagName);
-      for (var i = 0; i < nodeList.length; i++) {
+      for (let i = 0; i < nodeList.length; i++) {
         
         if (nodeList[i].parentNode == parentNode)
           return nodeList[i];
@@ -1249,7 +1209,7 @@ MicrosummaryGenerator.prototype = {
     var pages = getFirstChildByTagName("pages", generatorNode, MICSUM_NS);
     if (pages) {
       
-      for ( var i = 0; i < pages.childNodes.length ; i++ ) {
+      for (let i = 0; i < pages.childNodes.length ; i++) {
         var node = pages.childNodes[i];
         if (node.nodeType != node.ELEMENT_NODE ||
             node.namespaceURI != MICSUM_NS ||
@@ -1273,10 +1233,9 @@ MicrosummaryGenerator.prototype = {
       this._unconditionalUpdateInterval =
         update.hasAttribute("interval") ?
         _parseInterval(update.getAttribute("interval")) : null;
-
       
       this._updateIntervals = new Array();
-      for (i = 0; i < update.childNodes.length; i++) {
+      for (let i = 0; i < update.childNodes.length; i++) {
         node = update.childNodes[i];
         if (node.nodeType != node.ELEMENT_NODE || node.namespaceURI != MICSUM_NS ||
             node.nodeName != "condition")
@@ -1301,11 +1260,8 @@ MicrosummaryGenerator.prototype = {
 
     this._loaded = true;
   },
-
   generateMicrosummary: function MSD_generateMicrosummary(pageContent) {
-
     var content;
-
     if (this._content)
       content = this._content;
     else if (this._template)
@@ -1324,8 +1280,7 @@ MicrosummaryGenerator.prototype = {
   calculateUpdateInterval: function MSD_calculateUpdateInterval(doc) {
     if (this._content || !this._updateIntervals || !doc)
       return null;
-
-    for (var i = 0; i < this._updateIntervals.length; i++) {
+    for (let i = 0; i < this._updateIntervals.length; i++) {
       try {
         if (doc.evaluate(this._updateIntervals[i].expression, doc, null,
                          Ci.nsIDOMXPathResult.BOOLEAN_TYPE, null).booleanValue)
@@ -1377,8 +1332,12 @@ MicrosummaryGenerator.prototype = {
                      createInstance(Ci.nsIDOMSerializer);
     serializer.serializeToStream(xmlDefinition, outputStream, null);
     if (outputStream instanceof Ci.nsISafeOutputStream) {
-      try       { outputStream.finish() }
-      catch (e) { outputStream.close()  }
+      try {
+        outputStream.finish();
+      }
+      catch (e) {
+        outputStream.close();
+      }
     }
     else
       outputStream.close();
@@ -1426,8 +1385,12 @@ MicrosummaryGenerator.prototype = {
   _performUpdate: function MSD__performUpdate(uri) {
     var t = this;
     var loadCallback = function(resource) {
-      try     { t._handleUpdateLoad(resource) }
-      finally { resource.destroy() }
+      try {
+        t._handleUpdateLoad(resource);
+      }
+      finally {
+        resource.destroy();
+      }
     };
     var errorCallback = function(resource) {
       resource.destroy();
@@ -1462,8 +1425,6 @@ MicrosummaryGenerator.prototype = {
 
 
 
-
-
 function MicrosummarySet() {
   this._observers = [];
   this._elements = [];
@@ -1472,45 +1433,38 @@ function MicrosummarySet() {
 MicrosummarySet.prototype = {
   QueryInterface: XPCOMUtils.generateQI([Ci.nsIMicrosummarySet,
                                          Ci.nsIMicrosummaryObserver]),
-
   
-
   onContentLoaded: function MSSet_onContentLoaded(microsummary) {
-    for ( var i = 0; i < this._observers.length; i++ )
+    for (let i = 0; i < this._observers.length; i++) {
       this._observers[i].onContentLoaded(microsummary);
+    }
   },
-
   onError: function MSSet_onError(microsummary) {
-    for ( var i = 0; i < this._observers.length; i++ )
+    for (let i = 0; i < this._observers.length; i++) {
       this._observers[i].onError(microsummary);
+    }
   },
-
   
-
   addObserver: function MSSet_addObserver(observer) {
     if (this._observers.length == 0) {
-      for ( var i = 0 ; i < this._elements.length ; i++ )
+      for (let i = 0; i < this._elements.length; i++) {
         this._elements[i].addObserver(this);
+      }
     }
-
     
     
     if (this._observers.indexOf(observer) == -1)
       this._observers.push(observer);
   },
-  
+
   removeObserver: function MSSet_removeObserver(observer) {
-    
-    
-  
-    
-    
     if (this._observers.indexOf(observer) != -1)
       this._observers.splice(this._observers.indexOf(observer), 1);
-    
+
     if (this._observers.length == 0) {
-      for ( var i = 0 ; i < this._elements.length ; i++ )
+      for (let i = 0; i < this._elements.length; i++) {
         this._elements[i].removeObserver(this);
+      }
     }
   },
 
@@ -1520,23 +1474,18 @@ MicrosummarySet.prototype = {
 
     
     
-
     var links = resource.content.getElementsByTagName("link");
-    for ( var i = 0; i < links.length; i++ ) {
+    for (let i = 0; i < links.length; i++) {
       var link = links[i];
-
-      if(!link.hasAttribute("rel"))
+      if (!link.hasAttribute("rel"))
         continue;
-
       var relAttr = link.getAttribute("rel");
 
       
       
       var linkTypes = relAttr.split(/\s+/);
-      if (!linkTypes.some( function(v) { return v.toLowerCase() == "microsummary"; }))
+      if (!linkTypes.some(function(v) {return v.toLowerCase() == "microsummary";}))
         continue;
-
-
       
       var linkTitle = link.getAttribute("title");
 
@@ -1564,7 +1513,7 @@ MicrosummarySet.prototype = {
 
 
   hasItemForMicrosummary: function MSSet_hasItemForMicrosummary(aMicrosummary) {
-    for (var i = 0; i < this._elements.length; i++) {
+    for (let i = 0; i < this._elements.length; i++) {
       if (this._elements[i].equals(aMicrosummary))
         return true;
     }
@@ -1581,12 +1530,11 @@ MicrosummarySet.prototype = {
       this._elements.push(element);
       element.addObserver(this);
     }
-
     
-    for ( var i = 0; i < this._observers.length; i++ )
+    for (let i = 0; i < this._observers.length; i++) {
       this._observers[i].onElementAppended(element);
+    }
   },
-
   Enumerate: function MSSet_Enumerate() {
     return new ArrayEnumerator(this._elements);
   }
@@ -1602,7 +1550,7 @@ MicrosummarySet.prototype = {
 
 function ArrayEnumerator(aItems) {
   if (aItems) {
-    for (var i = 0; i < aItems.length; ++i) {
+    for (let i = 0; i < aItems.length; ++i) {
       if (!aItems[i])
         aItems.splice(i--, 1);
     }
@@ -1663,7 +1611,6 @@ function LOG(aText) {
 
 
 
-
 function MicrosummaryResource(uri) {
   
   
@@ -1687,33 +1634,17 @@ function MicrosummaryResource(uri) {
   
   this._iframe = null;
 }
-
 MicrosummaryResource.prototype = {
-  get uri() {
-    return this._uri;
-  },
-
-  get content() {
-    return this._content;
-  },
-
-  get contentType() {
-    return this._contentType;
-  },
-
-  get isXML() {
-    return this._isXML;
-  },
-
-  get status()        { return this._status },
-  set status(aStatus) { this._status = aStatus },
-
-  get method()        { return this._method },
-  set method(aMethod) { this._method = aMethod },
-
-  get lastMod()     { return this._lastMod },
-  set lastMod(aMod) { this._lastMod = aMod },
-
+  get uri() this._uri,
+  get content() this._content,
+  get contentType() this._contentType,
+  get isXML() this._isXML,
+  get status() this._status,
+  set status(aStatus) this._status = aStatus,
+  get method() this._method,
+  set method(aMethod) this._method = aMethod,
+  get lastMod() this._lastMod,
+  set lastMod(aMod) this._lastMod = aMod,
   
   
   
@@ -1726,13 +1657,10 @@ MicrosummaryResource.prototype = {
                Ci.nsIProgressEventSink,
                Ci.nsIInterfaceRequestor,
                Ci.nsISupports],
-
   
-
   QueryInterface: function MSR_QueryInterface(iid) {
-    if (!this.interfaces.some( function(v) { return iid.equals(v) } ))
+    if (!this.interfaces.some(function(v) {return iid.equals(v);}))
       throw Cr.NS_ERROR_NO_INTERFACE;
-
     
     
     
@@ -1746,7 +1674,6 @@ MicrosummaryResource.prototype = {
     }
   },
 
-  
   
   getInterface: function MSR_getInterface(iid) {
     return this.QueryInterface(iid);
@@ -1770,10 +1697,9 @@ MicrosummaryResource.prototype = {
   
   
   
-  get _authFailed()         { return this.__authFailed; },
-  set _authFailed(newValue) { return this.__authFailed = newValue },
+  get _authFailed() this.__authFailed,
+  set _authFailed(newValue) this.__authFailed = newValue,
 
-  
   
   getAuthPrompt: function(aPromptReason, aIID) {
     this._authFailed = true;
@@ -1783,9 +1709,7 @@ MicrosummaryResource.prototype = {
   
   
   
-
   
-
   get authPrompt() {
     var resource = this;
     return {
@@ -1804,9 +1728,7 @@ MicrosummaryResource.prototype = {
       }
     };
   },
-
   
-
   get prompt() {
     var resource = this;
     return {
@@ -1848,14 +1770,10 @@ MicrosummaryResource.prototype = {
   
   
   
-
   
-
   onProgress: function(aRequest, aContext, aProgress, aProgressMax) {},
   onStatus: function(aRequest, aContext, aStatus, aStatusArg) {},
-
   
-
 
 
 
@@ -1878,7 +1796,6 @@ MicrosummaryResource.prototype = {
 
 
 
-
   destroy: function MSR_destroy() {
     this._uri = null;
     this._content = null;
@@ -1894,7 +1811,6 @@ MicrosummaryResource.prototype = {
   },
 
   
-
 
 
 
@@ -1926,20 +1842,32 @@ MicrosummaryResource.prototype = {
           
           
           LOG(this._self.uri.spec + " load failed; HTTP status: " + this._self.status);
-          try     { this._self._handleError(event) }
-          finally { this._self = null }
+          try {
+            this._self._handleError(event);
+          }
+          finally {
+            this._self = null;
+          }
         }
         else if (event.target.channel.contentType == "multipart/x-mixed-replace") {
           
           
           LOG(this._self.uri.spec + " load failed; contains multipart content");
-          try     { this._self._handleError(event) }
-          finally { this._self = null }
+          try {
+            this._self._handleError(event);
+          }
+          finally {
+            this._self = null;
+          }
         }
         else {
           LOG(this._self.uri.spec + " load succeeded; invoking callback");
-          try     { this._self._handleLoad(event) }
-          finally { this._self = null }
+          try {
+            this._self._handleLoad(event);
+          }
+          finally {
+            this._self = null;
+          }
         }
       }
     };
@@ -1949,13 +1877,15 @@ MicrosummaryResource.prototype = {
       handleEvent: function MSR_errorHandler_handleEvent(event) {
         if (this._self._loadTimer)
           this._self._loadTimer.cancel();
-
         LOG(this._self.uri.spec + " load failed");
-        try     { this._self._handleError(event) }
-        finally { this._self = null }
+        try {
+          this._self._handleError(event);
+        }
+        finally {
+          this._self = null;
+        }
       }
     };
-
     
     
     
@@ -1965,8 +1895,12 @@ MicrosummaryResource.prototype = {
       observe: function MSR_timerObserver_observe() {
         LOG("timeout loading microsummary resource " + this._self.uri.spec + ", aborting request");
         request.abort();
-        try     { this._self.destroy() }
-        finally { this._self = null }
+        try {
+          this._self.destroy();
+        }
+        finally {
+          this._self = null;
+        }
       }
     };
     this._loadTimer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
@@ -2035,12 +1969,16 @@ MicrosummaryResource.prototype = {
 
   _handleError: function MSR__handleError(event) {
     
-    try     { if (this._errorCallback) this._errorCallback(this) } 
-    finally { this.destroy() }
+    try {
+      if (this._errorCallback)
+        this._errorCallback(this);
+    }
+    finally {
+      this.destroy();
+    }
   },
 
   
-
 
 
 
@@ -2094,8 +2032,12 @@ MicrosummaryResource.prototype = {
       _self: this,
       handleEvent: function MSR_parseHandler_handleEvent(event) {
         event.target.removeEventListener("DOMContentLoaded", this, false);
-        try     { this._self._handleParse(event) }
-        finally { this._self = null }
+        try {
+          this._self._handleParse(event);
+        }
+        finally {
+          this._self = null;
+        }
       }
     };
  
@@ -2140,7 +2082,6 @@ MicrosummaryResource.prototype = {
 
 
 
-
   _handleParse: function MSR__handleParse(event) {
     
 
@@ -2161,7 +2102,6 @@ MicrosummaryResource.prototype = {
 
 
 
-
 function getLoadedMicrosummaryResource(uri) {
   var mediator = Cc["@mozilla.org/appshell/window-mediator;1"].
                  getService(Ci.nsIWindowMediator);
@@ -2169,11 +2109,12 @@ function getLoadedMicrosummaryResource(uri) {
   
   
   var windows = mediator.getEnumerator("navigator:browser");
-
   while (windows.hasMoreElements()) {
     var win = windows.getNext();
+    if (win.closed)
+      continue;
     var tabBrowser = win.document.getElementById("content");
-    for ( var i = 0; i < tabBrowser.browsers.length; i++ ) {
+    for (let i = 0; i < tabBrowser.browsers.length; i++) {
       var browser = tabBrowser.browsers[i];
       if (uri.equals(browser.currentURI)) {
         var resource = new MicrosummaryResource(uri);
@@ -2195,18 +2136,16 @@ function getLoadedMicrosummaryResource(uri) {
 
 function getPref(prefName, defaultValue) {
   try {
-    var prefBranch = Cc["@mozilla.org/preferences-service;1"].
-                     getService(Ci.nsIPrefBranch);
-    var type = prefBranch.getPrefType(prefName);
+    var type = gPrefBranch.getPrefType(prefName);
     switch (type) {
-      case prefBranch.PREF_BOOL:
-        return prefBranch.getBoolPref(prefName);
-      case prefBranch.PREF_INT:
-        return prefBranch.getIntPref(prefName);
+      case gPrefBranch.PREF_BOOL:
+        return gPrefBranch.getBoolPref(prefName);
+      case gPrefBranch.PREF_INT:
+        return gPrefBranch.getIntPref(prefName);
     }
   }
-  catch (ex) {  }
-  
+  catch (ex) {}
+
   return defaultValue;
 }
 
@@ -2215,36 +2154,17 @@ function getPref(prefName, defaultValue) {
 
 
 
-
-
-
-
-
 function sanitizeName(aName) {
-  const chars = "-abcdefghijklmnopqrstuvwxyz0123456789";
-  const maxLength = 60;
-
   var name = aName.toLowerCase();
-  name = name.replace(/ /g, "-");
-  
-  
-  
-  var filteredName = "";
-  for ( var i = 0 ; i < name.length ; i++ )
-    if (chars.indexOf(name[i]) != -1)
-      filteredName += name[i];
-  name = filteredName;
+  name = name.replace(/\s+/g, "-");
+  name = name.replace(/[^-a-z0-9]/g, "");
 
-  if (!name) {
-    
-    for (var i = 0; i < 8; ++i)
-      name += chars.charAt(Math.round(Math.random() * (chars.length - 1)));
-  }
+  
+  if (name.length < MIN_GENERATOR_NAME_LENGTH)
+    name = Math.random().toString(36).substr(2);
 
-  if (name.length > maxLength)
-    name = name.substring(0, maxLength);
-
-  return name;
+  
+  return name.substring(0, MAX_GENERATOR_NAME_LENGTH);
 }
 
 function NSGetModule(compMgr, fileSpec) {
