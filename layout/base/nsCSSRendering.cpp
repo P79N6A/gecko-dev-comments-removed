@@ -3916,7 +3916,14 @@ nsCSSRendering::PaintBackgroundWithSC(nsPresContext* aPresContext,
     if (sourceRect.XMost() <= tileWidth && sourceRect.YMost() <= tileHeight) {
       
       
-      nsLayoutUtils::DrawImage(&aRenderingContext, image, absTileRect, drawRect);
+      
+      
+      
+      nsRect destRect; 
+      destRect.IntersectRect(absTileRect, bgClipArea);
+      nsRect subimageRect = destRect - aBorderArea.TopLeft() - tileRect.TopLeft();
+      nsLayoutUtils::DrawImage(&aRenderingContext, image,
+              destRect, drawRect, &subimageRect);
     } else {
       aRenderingContext.DrawTile(image, absTileRect.x, absTileRect.y, &drawRect);
     }
