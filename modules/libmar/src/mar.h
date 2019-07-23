@@ -40,7 +40,13 @@
 #define MAR_H__
 
 
+#ifndef WINCE
 #include "prtypes.h"
+#else
+typedef int PRInt32;
+typedef unsigned int PRUint32;
+typedef wchar_t PRUnichar;
+#endif
 
 #ifdef __cplusplus
 extern "C" {
