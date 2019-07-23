@@ -77,25 +77,38 @@ public:
   nsUrlClassifierUtils();
   ~nsUrlClassifierUtils() {}
 
-  nsresult Init();
-
   NS_DECL_ISUPPORTS
   NS_DECL_NSIURLCLASSIFIERUTILS
 
-  
-  
-  
-  
-  
-  
-  PRBool SpecialEncode(const nsACString & url, nsACString & _retval);
+  nsresult Init();
 
+  nsresult CanonicalizeHostname(const nsACString & hostname,
+                                nsACString & _retval);
+  nsresult CanonicalizePath(const nsACString & url, nsACString & _retval);
+
+  
+  
+  
+  
+  
+  
+  PRBool SpecialEncode(const nsACString & url,
+                       PRBool foldSlashes,
+                       nsACString & _retval);
+
+  void ParseIPAddress(const nsACString & host, nsACString & _retval);
+  void CanonicalNum(const nsACString & num,
+                    PRUint32 bytes,
+                    PRBool allowOctal,
+                    nsACString & _retval);
 private:
   
   nsUrlClassifierUtils(const nsUrlClassifierUtils&);
 
   
   PRBool ShouldURLEscape(const unsigned char c) const;
+
+  void CleanupHostname(const nsACString & host, nsACString & _retval);
 
   nsAutoPtr<Charmap> mEscapeCharmap;
 };

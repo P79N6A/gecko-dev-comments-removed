@@ -79,10 +79,8 @@ var safebrowsing = {
     
     
     
-    phishWarden.registerWhiteTable("goog-white-domain");
-    phishWarden.registerWhiteTable("goog-white-url");
-    phishWarden.registerBlackTable("goog-black-url");
-    phishWarden.registerBlackTable("goog-black-enchash");
+    phishWarden.registerWhiteTable("goog-white-exp");
+    phishWarden.registerBlackTable("goog-phish-sha128");
 
     
     phishWarden.maybeToggleUpdateChecking();
