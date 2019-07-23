@@ -840,7 +840,8 @@ nsProgressDialog.prototype = {
                              .getService( Components.interfaces.nsIStringBundleService )
                                .createBundle( "chrome://global/locale/nsProgressDialog.properties");
         }
-        return this.mBundle.formatStringFromName( propertyId, strings, len );
+        return len ? this.mBundle.formatStringFromName( propertyId, strings, len )
+                   : this.mBundle.getStringFromName( propertyId );
     },
 
     
