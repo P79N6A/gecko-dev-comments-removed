@@ -1092,16 +1092,21 @@ fun_resolve(JSContext *cx, JSObject *obj, jsval id, uintN flags,
     JSString *str;
     JSAtom *prototypeAtom;
 
+    
+
+
+
+
+
+    if (flags & (JSRESOLVE_ASSIGNING | JSRESOLVE_HIDDEN))
+        return JS_TRUE;
+
     if (!JSVAL_IS_STRING(id))
         return JS_TRUE;
 
     
     fun = (JSFunction *)JS_GetInstancePrivate(cx, obj, &js_FunctionClass, NULL);
     if (!fun || !fun->object)
-        return JS_TRUE;
-
-    
-    if (flags & JSRESOLVE_ASSIGNING)
         return JS_TRUE;
 
     
