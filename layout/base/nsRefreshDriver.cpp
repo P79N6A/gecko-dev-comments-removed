@@ -44,6 +44,7 @@
 #include "nsPresContext.h"
 #include "nsComponentManagerUtils.h"
 #include "prlog.h"
+#include "nsAutoPtr.h"
 
 
 
@@ -194,10 +195,22 @@ nsRefreshDriver::Notify(nsITimer *aTimer)
     return NS_OK;
   }
 
+  
+
+
+
+
+
   for (PRUint32 i = 0; i < NS_ARRAY_LENGTH(mObservers); ++i) {
     ObserverArray::EndLimitedIterator etor(mObservers[i]);
     while (etor.HasMore()) {
-      etor.GetNext()->WillRefresh(mMostRecentRefresh);
+      nsRefPtr<nsARefreshObserver> obs = etor.GetNext();
+      obs->WillRefresh(mMostRecentRefresh);
+      
+      if (!mPresContext || !mPresContext->GetPresShell()) {
+        StopTimer();
+        return NS_OK;
+      }
     }
     if (i == 0) {
       
