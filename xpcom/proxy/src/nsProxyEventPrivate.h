@@ -114,7 +114,15 @@ public:
     nsIEventTarget*     GetTarget() const { return mTarget; }
     PRInt32             GetProxyType() const { return mProxyType; }
 
+    
+    
+    nsrefcnt LockedAddRef();
+    nsrefcnt LockedRelease();
+
+    
+    
     nsresult LockedFind(REFNSIID iid, void **aResult);
+
     void LockedRemove(nsProxyEventObject* aObject);
 
     friend class nsProxyObjectManager;
@@ -176,6 +184,8 @@ public:
                        already_AddRefed<nsISomeInterface> aRealInterface,
                        nsresult *rv);
 
+    
+    nsrefcnt LockedAddRef();
     friend class nsProxyObject;
 
 private:
@@ -278,9 +288,9 @@ public:
 
     nsresult GetClass(REFNSIID aIID, nsProxyEventClass **aResult);
 
-    void Remove(nsProxyObject* aProxy);
+    void LockedRemove(nsProxyObject* aProxy);
 
-    PRMonitor*   GetMonitor() const { return mProxyCreationMonitor; }
+    PRLock* GetLock() const { return mProxyCreationLock; }
 
 #ifdef PR_LOGGING
     static PRLogModuleInfo *sLog;
@@ -292,7 +302,7 @@ private:
     static nsProxyObjectManager* mInstance;
     nsHashtable  mProxyObjectMap;
     nsClassHashtable<nsIDHashKey, nsProxyEventClass> mProxyClassMap;
-    PRMonitor   *mProxyCreationMonitor;
+    PRLock *mProxyCreationLock;
 };
 
 #define NS_XPCOMPROXY_CLASSNAME "nsProxyObjectManager"

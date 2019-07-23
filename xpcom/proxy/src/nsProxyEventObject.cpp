@@ -70,8 +70,6 @@ nsProxyEventObject::~nsProxyEventObject()
     
     
 
-    mProxyObject->LockedRemove(this);
-
     
     
     
@@ -82,30 +80,41 @@ nsProxyEventObject::~nsProxyEventObject()
 
 
 
-NS_IMPL_THREADSAFE_ADDREF(nsProxyEventObject)
+NS_IMETHODIMP_(nsrefcnt)
+nsProxyEventObject::AddRef()
+{
+    nsAutoLock lock(nsProxyObjectManager::GetInstance()->GetLock());
+    return LockedAddRef();
+}
+
+nsrefcnt
+nsProxyEventObject::LockedAddRef()
+{
+    ++mRefCnt;
+    NS_LOG_ADDREF(this, mRefCnt, "nsProxyEventObject", sizeof(nsProxyEventObject));
+    return mRefCnt;
+}
 
 NS_IMETHODIMP_(nsrefcnt)
 nsProxyEventObject::Release(void)
 {
-    nsAutoMonitor mon(nsProxyObjectManager::GetInstance()->GetMonitor());
+    {
+        nsAutoLock lock(nsProxyObjectManager::GetInstance()->GetLock());
+        NS_PRECONDITION(0 != mRefCnt, "dup release");
 
-    nsrefcnt count;
-    NS_PRECONDITION(0 != mRefCnt, "dup release");
-    
-    
-    count = PR_AtomicDecrement((PRInt32 *)&mRefCnt);
-    NS_LOG_RELEASE(this, count, "nsProxyEventObject");
-    if (0 == count) {
-        mRefCnt = 1; 
-        
-        
-        
-        
-        
-        NS_DELETEXPCOM(this);
-        return 0;
+        --mRefCnt;
+        NS_LOG_RELEASE(this, mRefCnt, "nsProxyEventObject");
+
+        if (mRefCnt)
+            return mRefCnt;
+
+        mProxyObject->LockedRemove(this);
     }
-    return count;
+
+    
+    
+    NS_DELETEXPCOM(this);
+    return 0;
 }
 
 NS_IMETHODIMP
