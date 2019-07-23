@@ -43,13 +43,13 @@
 
 #include "nsMenuBaseX.h"
 #include "nsMenuGroupOwnerX.h"
+#include "nsChangeObserver.h"
 #include "nsINativeMenuService.h"
 #include "nsAutoPtr.h"
 #include "nsString.h"
 
 class nsMenuX;
 class nsMenuItemX;
-class nsChangeObserver;
 class nsIWidget;
 class nsIContent;
 class nsIDocument;
@@ -106,7 +106,7 @@ public:
 
 
 
-class nsMenuBarX : public nsMenuGroupOwnerX
+class nsMenuBarX : public nsMenuGroupOwnerX, public nsChangeObserver
 {
 public:
   nsMenuBarX();
@@ -120,6 +120,9 @@ public:
   nsCOMPtr<nsIContent> mAboutItemContent;
   nsCOMPtr<nsIContent> mPrefItemContent;
   nsCOMPtr<nsIContent> mQuitItemContent;
+
+  
+  NS_DECL_CHANGEOBSERVER
 
   
   void*             NativeData()     {return (void*)mNativeMenu;}
