@@ -45,8 +45,15 @@
 #include "nsIZipReader.h"
 #include "nsAutoPtr.h"
 
-#define ZIP_ATTRS_FILE 0
-#define ZIP_ATTRS_DIRECTORY 16
+
+#define ZIP_ATTRS_FILE 0x80000000
+
+#define ZIP_ATTRS_DIRECTORY 0x40000010
+#define PERMISSIONS_FILE 0644
+#define PERMISSIONS_DIR 0755
+
+
+#define ZIP_ATTRS(p, a) ((p & 0xfff) << 16) | a
 
 class nsZipHeader : public nsIZipEntry
 {
@@ -61,8 +68,8 @@ public:
         mEAttr(0),
         mOffset(0),
         mFieldLength(0),
-        mVersionMade(20),
-        mVersionNeeded(20),
+        mVersionMade(0x0300 + 23), 
+        mVersionNeeded(20), 
         mFlags(0),
         mMethod(0),
         mTime(0),
