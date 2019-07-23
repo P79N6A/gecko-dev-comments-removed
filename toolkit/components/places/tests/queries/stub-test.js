@@ -43,12 +43,15 @@
 
 
  
- bmsvc.createFolder(bmsvc.placesRoot, "Folder 1", bmsvc.DEFAULT_INDEX);
- var folder1Id = bmsvc.getChildFolder(bmsvc.placesRoot, "Folder 1");
+ PlacesUtils.bookmarks.createFolder(PlacesUtils.placesRootId, "Folder 1",
+                                    PlacesUtils.bookmarks.DEFAULT_INDEX);
+ var folder1Id = PlacesUtils.bookmarks.getChildFolder(PlacesUtils.placesRootId,
+                                                      "Folder 1");
 
  
- bmsvc.createFolder(folder1Id, "Folder 1a", bmsvc.DEFAULT_INDEX);
- var folder1aId = bmsvc.getChildFolder(folder1Id, "Folder 1a");
+ PlacesUtils.bookmarks.createFolder(folder1Id, "Folder 1a",
+                                    PlacesUtils.bookmarks.DEFAULT_INDEX);
+ var folder1aId = PlacesUtils.bookmarks.getChildFolder(folder1Id, "Folder 1a");
  
 
 
@@ -90,15 +93,15 @@ function run_test() {
   populateDB(testData);
 
   
-  var query = histsvc.getNewQuery();
+  var query = PlacesUtils.history.getNewQuery();
   
   
   
-  var options = histsvc.getNewQueryOptions();
+  var options = PlacesUtils.history.getNewQueryOptions();
   
 
   
-  var result = histsvc.executeQuery(query, options);
+  var result = PlacesUtils.history.executeQuery(query, options);
   var root = result.root;
   root.containerOpen = true;
   
@@ -130,7 +133,7 @@ function run_test() {
     }
   };
 
-  histsvc.runInBatchMode(updateBatch, null);
+  PlacesUtils.history.runInBatchMode(updateBatch, null);
 
   
   root.containerOpen = false;

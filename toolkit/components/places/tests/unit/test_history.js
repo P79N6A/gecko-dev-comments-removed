@@ -226,7 +226,7 @@ function run_test() {
 
   
   var file = do_get_file("history.dat");
-  var histFile = dirSvc.get("ProfD", Ci.nsIFile);
+  var histFile = Services.dirsvc.get("ProfD", Ci.nsIFile);
   file.copyTo(histFile, "history.dat");
   histFile.append("history.dat");
   do_check_true(histFile.exists());

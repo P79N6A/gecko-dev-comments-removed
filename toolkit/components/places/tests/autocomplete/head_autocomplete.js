@@ -35,21 +35,26 @@
 
 
 
+const Ci = Components.interfaces;
+const Cc = Components.classes;
+const Cr = Components.results;
+const Cu = Components.utils;
+
+Cu.import("resource://gre/modules/Services.jsm");
+
+
+let (commonFile = do_get_file("../head_common.js", false)) {
+  let uri = Services.io.newFileURI(commonFile);
+  Services.scriptloader.loadSubScript(uri.spec, this);
+}
 
 
 
 
 
-Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
 
-const TRANSITION_LINK = Ci.nsINavHistoryService.TRANSITION_LINK;
-const TRANSITION_TYPED = Ci.nsINavHistoryService.TRANSITION_TYPED;
-const TRANSITION_BOOKMARK = Ci.nsINavHistoryService.TRANSITION_BOOKMARK;
-const TRANSITION_EMBED = Ci.nsINavHistoryService.TRANSITION_EMBED;
-const TRANSITION_FRAMED_LINK = Ci.nsINavHistoryService.TRANSITION_FRAMED_LINK;
-const TRANSITION_REDIRECT_PERMANENT = Ci.nsINavHistoryService.TRANSITION_REDIRECT_PERMANENT;
-const TRANSITION_REDIRECT_TEMPORARY = Ci.nsINavHistoryService.TRANSITION_REDIRECT_TEMPORARY;
-const TRANSITION_DOWNLOAD = Ci.nsINavHistoryService.TRANSITION_DOWNLOAD;
+
+
 
 let current_test = 0;
 
@@ -72,12 +77,14 @@ AutoCompleteInput.prototype = {
   setSelectedIndex: function() {},
   get searchCount() { return this.searches.length; },
   getSearchAt: function(aIndex) this.searches[aIndex],
-  QueryInterface: XPCOMUtils.generateQI([Ci.nsIAutoCompleteInput, Ci.nsIAutoCompletePopup])
+  QueryInterface: XPCOMUtils.generateQI([
+    Ci.nsIAutoCompleteInput,
+    Ci.nsIAutoCompletePopup,
+  ])
 };
 
-function toURI(aSpec)
-{
-  return iosvc.newURI(aSpec, null, null);
+function toURI(aSpec) {
+  return uri(aSpec);
 }
 
 let appendTags = true;
@@ -188,72 +195,6 @@ let gDate = new Date(Date.now() - 1000 * 60 * 60) * 1000;
 
 let gPages = [];
 
-
-
-
-
-function DBConn()
-{
-  let db = Cc["@mozilla.org/browser/nav-history-service;1"].
-           getService(Ci.nsPIPlacesDatabase).
-           DBConnection;
-  if (db.connectionReady)
-    return db;
-
-  
-  let file = dirSvc.get('ProfD', Ci.nsIFile);
-  file.append("places.sqlite");
-  let storageService = Cc["@mozilla.org/storage/service;1"].
-                       getService(Ci.mozIStorageService);
-  try {
-    var dbConn = storageService.openDatabase(file);
-  } catch (ex) {
-    return null;
-  }
-  return dbConn;
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-function setPageTitle(aURI, aTitle) {
-  let dbConn = DBConn();
-  
-  let stmt = dbConn.createStatement(
-    "SELECT id FROM moz_places_view WHERE url = :url");
-  stmt.params.url = aURI.spec;
-  try {
-    if (!stmt.executeStep()) {
-      do_throw("Unable to find page " + aURIString);
-      return;
-    }
-  }
-  finally {
-    stmt.finalize();
-  }
-
-  
-  stmt = dbConn.createStatement(
-    "UPDATE moz_places_view SET title = :title WHERE url = :url");
-  stmt.params.title = aTitle;
-  stmt.params.url = aURI.spec;
-  try {
-    stmt.execute();
-  }
-  finally {
-    stmt.finalize();
-  }
-}
 
 
 

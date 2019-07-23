@@ -44,26 +44,26 @@
 var testData = [
   
   { isInQuery: true, isFolder: true, title: "Folder 1",
-    parentFolder: bmsvc.toolbarFolder },
+    parentFolder: PlacesUtils.toolbarFolderId },
 
   
   { isInQuery: false, isFolder: true, title: "Folder 2 RO",
-    parentFolder: bmsvc.toolbarFolder, readOnly: true }
+    parentFolder: PlacesUtils.toolbarFolderId, readOnly: true }
 ];
 
 function run_test() {
   populateDB(testData);
 
-  var query = histsvc.getNewQuery();
-  query.setFolders([bmsvc.toolbarFolder], 1);
+  var query = PlacesUtils.history.getNewQuery();
+  query.setFolders([PlacesUtils.toolbarFolderId], 1);
 
   
-  var options = histsvc.getNewQueryOptions();
+  var options = PlacesUtils.history.getNewQueryOptions();
   options.excludeQueries = true;
   options.excludeReadOnlyFolders = true;
 
   
-  var result = histsvc.executeQuery(query, options);
+  var result = PlacesUtils.history.executeQuery(query, options);
   var root = result.root;
   displayResultSet(root);
   

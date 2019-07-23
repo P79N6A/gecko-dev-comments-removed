@@ -104,7 +104,7 @@ function run_test() {
   
   var bookmarksFileOld = do_get_file("bookmarks.preplaces.html");
   
-  var bookmarksFileNew = dirSvc.get("ProfD", Ci.nsILocalFile);
+  var bookmarksFileNew = Services.dirsvc.get("ProfD", Ci.nsILocalFile);
   bookmarksFileNew.append("bookmarks.exported.html");
 
   
