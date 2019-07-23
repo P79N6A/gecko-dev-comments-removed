@@ -52,57 +52,23 @@
 
 NS_IMPL_THREADSAFE_ISUPPORTS1(mozStorageService, mozIStorageService)
 
-
-
-
-
-
-static PRLock *gSingletonLock;
-
-
-
-
-
-
-
-static
-PRStatus
-SingletonInit()
-{
-    gSingletonLock = PR_NewLock();
-    NS_ENSURE_TRUE(gSingletonLock, PR_FAILURE);
-    return PR_SUCCESS;
-}
-
 mozStorageService *mozStorageService::gStorageService = nsnull;
 
 mozStorageService *
 mozStorageService::GetSingleton()
 {
-    
-    
-    static PRCallOnceType sInitOnce;
-    PRStatus rc = PR_CallOnce(&sInitOnce, SingletonInit);
-    if (rc != PR_SUCCESS)
-        return nsnull;
-
-    
-    if (!gSingletonLock)
-        return nsnull;
-
-    nsAutoLock lock(gSingletonLock);
     if (gStorageService) {
         NS_ADDREF(gStorageService);
         return gStorageService;
     }
-    
+
     gStorageService = new mozStorageService();
     if (gStorageService) {
         NS_ADDREF(gStorageService);
         if (NS_FAILED(gStorageService->Init()))
             NS_RELEASE(gStorageService);
     }
-    
+
     return gStorageService;
 }
 
@@ -110,8 +76,6 @@ mozStorageService::~mozStorageService()
 {
     gStorageService = nsnull;
     PR_DestroyLock(mLock);
-    PR_DestroyLock(gSingletonLock);
-    gSingletonLock = nsnull;
 }
 
 nsresult
