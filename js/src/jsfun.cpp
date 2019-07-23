@@ -1343,11 +1343,19 @@ fun_getProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 
       case FUN_CALLER:
         if (fp && fp->down && fp->down->fun) {
+            JSFunction *caller = fp->down->fun;
             
-            if (FUN_ESCAPE_HAZARD(fp->down->fun)) {
-                JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL,
-                                     JSMSG_OPTIMIZED_CLOSURE_LEAK);
-                return JS_FALSE;
+
+
+
+
+
+            if (FUN_ESCAPE_HAZARD(caller)) {
+                JSObject *wrapper = WrapEscapingClosure(cx, fp, FUN_OBJECT(caller), caller);
+                if (!wrapper)
+                    return JS_FALSE;
+                *vp = OBJECT_TO_JSVAL(wrapper);
+                return JS_TRUE;
             }
 
             *vp = OBJECT_TO_JSVAL(fp->down->callee);
