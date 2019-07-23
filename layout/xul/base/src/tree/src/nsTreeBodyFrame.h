@@ -123,12 +123,14 @@ public:
   NS_IMETHOD DidSetStyleContext();
 
   friend nsIFrame* NS_NewTreeBodyFrame(nsIPresShell* aPresShell);
+  friend class nsTreeColumn;
 
   struct ScrollParts {
     nsIScrollbarFrame* mVScrollbar;
     nsIContent*        mVScrollbarContent;
     nsIScrollbarFrame* mHScrollbar;
     nsIContent*        mHScrollbarContent;
+    nsIFrame*          mColumnsFrame;
     nsIScrollableView* mColumnsScrollableView;
   };
 
@@ -444,6 +446,9 @@ protected:
   
   
   nscoord mHorzWidth;
+  
+  
+  nscoord mAdjustWidth;
 
   
   nsRect mInnerBox;
