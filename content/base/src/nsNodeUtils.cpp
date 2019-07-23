@@ -516,6 +516,20 @@ nsNodeUtils::CloneAndAdopt(nsINode *aNode, PRBool aClone, PRBool aDeep,
   nsINodeInfo *nodeInfo = aNode->mNodeInfo;
   nsCOMPtr<nsINodeInfo> newNodeInfo;
   if (nodeInfoManager) {
+
+    
+    
+    nsIDocument* newDoc = nodeInfoManager->GetDocument();
+    nsIDocument* currentDoc = aNode->GetOwnerDoc();
+    NS_ENSURE_STATE(newDoc && currentDoc);
+    PRBool hasHadScriptHandlingObject = PR_FALSE;
+    if (!newDoc->GetScriptHandlingObject(hasHadScriptHandlingObject) &&
+        !hasHadScriptHandlingObject) {
+      NS_ENSURE_STATE(nsContentUtils::IsChromeDoc(currentDoc) ||
+                      (!currentDoc->GetScriptHandlingObject(hasHadScriptHandlingObject) &&
+                       !hasHadScriptHandlingObject));
+    }
+
     newNodeInfo = nodeInfoManager->GetNodeInfo(nodeInfo->NameAtom(),
                                                nodeInfo->GetPrefixAtom(),
                                                nodeInfo->NamespaceID());

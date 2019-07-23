@@ -6829,6 +6829,18 @@ nsNodeSH::PreCreate(nsISupports *nativeObj, JSContext *cx, JSObject *globalObj,
     return NS_OK;
   }
 
+  
+  
+  
+  
+  
+  
+  
+  PRBool hasHadScriptHandlingObject = PR_FALSE;
+  NS_ENSURE_STATE(doc->GetScriptHandlingObject(hasHadScriptHandlingObject) ||
+                  hasHadScriptHandlingObject ||
+                  IsPrivilegedScript());
+
   nsISupports *native_parent;
 
   if (node->IsNodeOfType(nsINode::eELEMENT | nsINode::eXUL)) {
