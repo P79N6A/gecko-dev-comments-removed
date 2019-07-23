@@ -83,10 +83,15 @@ function test() {
         is(browserWindowsCount(), 2, "Two windows should exist at this point");
 
         
-        
-        executeSoon(function() {
+        var fm = Cc["@mozilla.org/focus-manager;1"].getService(Ci.nsIFocusManager);
+        if (window == fm.activeWindow) {
           ss.setBrowserState(oldState);
-        });
+        } else {
+          window.addEventListener("activate", function () {
+            window.removeEventListener("activate", arguments.callee, false);
+            ss.setBrowserState(oldState);
+          }, false);
+        }
       }
       else {
         is(browserWindowsCount(), 1, "Only one window should exist after cleanup");
