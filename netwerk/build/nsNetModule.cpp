@@ -173,6 +173,15 @@ NS_GENERIC_FACTORY_SINGLETON_CONSTRUCTOR(nsCookieService, nsCookieService::GetSi
 
 
 
+#ifdef NECKO_WIFI
+
+#include "nsWifiMonitor.h"
+NS_GENERIC_FACTORY_CONSTRUCTOR(nsWifiMonitor)
+
+#endif
+
+
+
 
 
 
@@ -1088,6 +1097,15 @@ static const nsModuleComponentInfo gNetModuleInfo[] = {
       NS_COOKIESERVICE_CID,
       NS_COOKIESERVICE_CONTRACTID,
       nsCookieServiceConstructor
+    },
+#endif
+
+#ifdef NECKO_WIFI
+    {
+      NS_WIFI_MONITOR_CLASSNAME,
+      NS_WIFI_MONITOR_COMPONENT_CID,
+      NS_WIFI_MONITOR_CONTRACTID,
+      nsWifiMonitorConstructor
     },
 #endif
 
