@@ -411,7 +411,6 @@ SyncFrameViewGeometryDependentProperties(nsPresContext*  aPresContext,
   if (isCanvas) {
     nsIView* rootView;
     vm->GetRootView(rootView);
-    nsIView* rootParent = rootView->GetParent();
 
     nsIDocument *doc = aPresContext->PresShell()->GetDocument();
     if (doc) {
@@ -786,7 +785,7 @@ nsContainerFrame::FinishReflowChild(nsIFrame*                 aKidFrame,
 
 void
 nsContainerFrame::DeleteNextInFlowChild(nsPresContext* aPresContext,
-                                        nsIFrame*       aNextInFlow)
+                                        nsIFrame*      aNextInFlow)
 {
   nsIFrame* prevInFlow = aNextInFlow->GetPrevInFlow();
   NS_PRECONDITION(prevInFlow, "bad prev-in-flow");
@@ -834,6 +833,9 @@ nsContainerFrame::DeleteNextInFlowChild(nsPresContext* aPresContext,
   NS_POSTCONDITION(!prevInFlow->GetNextInFlow(), "non null next-in-flow");
 }
 
+
+
+
 nsIFrame*
 nsContainerFrame::GetOverflowFrames(nsPresContext* aPresContext,
                                     PRBool          aRemoveProperty) const
@@ -861,6 +863,9 @@ DestroyOverflowFrames(void*           aFrame,
     frames.DestroyFrames();
   }
 }
+
+
+
 
 nsresult
 nsContainerFrame::SetOverflowFrames(nsPresContext* aPresContext,

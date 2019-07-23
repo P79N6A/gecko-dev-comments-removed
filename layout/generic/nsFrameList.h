@@ -46,6 +46,7 @@
 
 
 
+
 class nsFrameList {
 public:
   nsFrameList() {
@@ -71,6 +72,8 @@ public:
 #endif
   }
 
+  
+  
   void AppendFrames(nsIFrame* aParent, nsIFrame* aFrameList);
 
   void AppendFrames(nsIFrame* aParent, nsFrameList& aFrameList) {
@@ -85,8 +88,10 @@ public:
   
   
   
+  
   PRBool RemoveFrame(nsIFrame* aFrame, nsIFrame* aPrevSiblingHint = nsnull);
 
+  
   
   
   
@@ -97,10 +102,17 @@ public:
   
   PRBool DestroyFrame(nsIFrame* aFrame);
 
+  
+  
+  
+  
   void InsertFrame(nsIFrame* aParent,
                    nsIFrame* aPrevSibling,
                    nsIFrame* aNewFrame);
 
+  
+  
+  
   void InsertFrames(nsIFrame* aParent,
                     nsIFrame* aPrevSibling,
                     nsIFrame* aFrameList);

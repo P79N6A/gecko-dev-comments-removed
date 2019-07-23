@@ -1126,6 +1126,8 @@ nsBlockFrame::Reflow(nsPresContext*          aPresContext,
                                    &childBounds);
 
     
+
+    
     aMetrics.mOverflowArea.UnionRect(aMetrics.mOverflowArea, childBounds);
   }
 

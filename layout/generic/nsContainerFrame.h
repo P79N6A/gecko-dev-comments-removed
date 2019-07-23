@@ -151,7 +151,7 @@ public:
 
 
   nsresult ReflowChild(nsIFrame*                aKidFrame,
-                       nsPresContext*          aPresContext,
+                       nsPresContext*           aPresContext,
                        nsHTMLReflowMetrics&     aDesiredSize,
                        const nsHTMLReflowState& aReflowState,
                        nscoord                  aX,
@@ -177,7 +177,7 @@ public:
 
 
   static nsresult FinishReflowChild(nsIFrame*                 aKidFrame,
-                                    nsPresContext*           aPresContext,
+                                    nsPresContext*            aPresContext,
                                     const nsHTMLReflowState*  aReflowState,
                                     nsHTMLReflowMetrics&      aDesiredSize,
                                     nscoord                   aX,
@@ -221,13 +221,13 @@ protected:
   
 
 
-  nsIFrame* GetOverflowFrames(nsPresContext* aPresContext,
+  nsIFrame* GetOverflowFrames(nsPresContext*  aPresContext,
                               PRBool          aRemoveProperty) const;
 
   
 
 
-  nsresult SetOverflowFrames(nsPresContext* aPresContext,
+  nsresult SetOverflowFrames(nsPresContext*  aPresContext,
                              nsIFrame*       aOverflowFrames);
 
   
@@ -255,7 +255,7 @@ protected:
 
 
 
-  void PushChildren(nsPresContext* aPresContext,
+  void PushChildren(nsPresContext*  aPresContext,
                     nsIFrame*       aFromChild,
                     nsIFrame*       aPrevSibling);
 

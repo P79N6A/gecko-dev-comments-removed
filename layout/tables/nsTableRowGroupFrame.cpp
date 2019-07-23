@@ -1305,10 +1305,6 @@ nsTableRowGroupFrame::Reflow(nsPresContext*          aPresContext,
   
   aDesiredSize.width = aReflowState.availableWidth;
 
-  
-  if (GetNextInFlow()) {
-    aStatus |= NS_FRAME_NOT_COMPLETE;
-  }
   aDesiredSize.mOverflowArea.UnionRect(aDesiredSize.mOverflowArea, nsRect(0, 0, aDesiredSize.width,
 	                                                                      aDesiredSize.height)); 
   FinishAndStoreOverflow(&aDesiredSize);
