@@ -582,7 +582,6 @@ nsSVGOuterSVGFrame::Paint(nsIRenderingContext& aRenderingContext,
     
     
     nsIFrame* frame = this;
-    nsPresContext* presContext = PresContext();
     PRUint32 flags = 0;
     while (PR_TRUE) {
       nsIFrame* next = nsLayoutUtils::GetCrossDocParentFrame(frame);

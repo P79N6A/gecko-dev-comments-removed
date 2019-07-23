@@ -133,13 +133,6 @@ public:
   NS_IMETHOD_(PRBool) IsDisplayContainer() { return PR_TRUE; }
   NS_IMETHOD_(PRBool) HasValidCoveredRect() { return PR_TRUE; }
 
-  
-  
-
-
-
-  nsPoint TransformPointFromOuter(nsPoint aPt);
-
   gfxMatrix GetCanvasTM();
 
   
@@ -150,8 +143,10 @@ protected:
   void DoReflow();
   void RequestReflow(nsIPresShell::IntrinsicDirty aType);
   void UpdateGraphic();
-  already_AddRefed<nsIDOMSVGMatrix> GetUnZoomedTMIncludingOffset();
-  nsresult TransformPointFromOuterPx(const nsPoint &aIn, nsPoint* aOut);
+
+  
+  
+  gfxMatrix GetCanvasTMForChildren();
   void InvalidateDirtyRect(nsSVGOuterSVGFrame* aOuter,
                            const nsRect& aRect, PRUint32 aFlags);
   void FlushDirtyRegion();
