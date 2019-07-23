@@ -271,6 +271,11 @@ public:
 
   PRBool IsInDropDownMode() const;
 
+  
+
+
+  static void Shutdown();
+
 #ifdef ACCESSIBILITY
   
 
@@ -442,6 +447,7 @@ protected:
   nsRefPtr<nsListEventListener> mEventListener;
 
   static nsListControlFrame * mFocused;
+  static nsString * sIncrementalString;
   
 #ifdef DO_REFLOW_COUNTER
   PRInt32 mReflowId;

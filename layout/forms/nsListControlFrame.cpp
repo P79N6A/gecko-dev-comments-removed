@@ -97,6 +97,7 @@ const PRInt32 kNothingSelected          = -1;
 
 
 nsListControlFrame * nsListControlFrame::mFocused = nsnull;
+nsString * nsListControlFrame::sIncrementalString = nsnull;
 
 
 #define INCREMENTAL_SEARCH_KEYPRESS_TIME 1000
@@ -2452,8 +2453,17 @@ nsListControlFrame::AdjustIndexForDisabledOpt(PRInt32 aStartIndex,
 nsAString& 
 nsListControlFrame::GetIncrementalString()
 { 
-  static nsString incrementalString;
-  return incrementalString; 
+  if (sIncrementalString == nsnull)
+    sIncrementalString = new nsString();
+
+  return *sIncrementalString;
+}
+
+void
+nsListControlFrame::Shutdown()
+{
+  delete sIncrementalString;
+  sIncrementalString = nsnull;
 }
 
 void
