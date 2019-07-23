@@ -188,6 +188,53 @@ tests.push(test);
 
 
 
+function rangeInit(expectedRangeHeader)
+{
+  return function setupRangeRequest(ch)
+  {
+    ch.setRequestHeader("Range", expectedRangeHeader, false);
+  };
+}
+
+function checkRangeResult(ch, cx)
+{
+  try
+  {
+    var val = ch.getResponseHeader("Content-Range");
+  }
+  catch (e) {  }
+  if (val !== undefined)
+  {
+    do_throw("should not have gotten a Content-Range header, but got one " +
+             "with this value: " + val);
+  }
+  do_check_eq(200, ch.responseStatus);
+  do_check_eq("OK", ch.responseStatusText);
+}
+
+test = new Test(BASE + "/range-checker.sjs",
+                rangeInit("not-a-bytes-equals-specifier"),
+                checkRangeResult, null);
+tests.push(test);
+test = new Test(BASE + "/range-checker.sjs",
+                rangeInit("bytes=-"),
+                checkRangeResult, null);
+tests.push(test);
+test = new Test(BASE + "/range-checker.sjs",
+                rangeInit("bytes=1000000-"),
+                checkRangeResult, null);
+tests.push(test);
+test = new Test(BASE + "/range-checker.sjs",
+                rangeInit("bytes=1-4"),
+                checkRangeResult, null);
+tests.push(test);
+test = new Test(BASE + "/range-checker.sjs",
+                rangeInit("bytes=-4"),
+                checkRangeResult, null);
+tests.push(test);
+
+
+
 
 
 function setupFileMapping(ch)
