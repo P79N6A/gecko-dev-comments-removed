@@ -167,6 +167,13 @@
 #define SHUTDOWN_COLLECTIONS(params) DEFAULT_SHUTDOWN_COLLECTIONS
 #endif
 
+#define CC_RUNTIME_ABORT_IF_FALSE(_expr, _msg)                                \
+  PR_BEGIN_MACRO                                                              \
+    if (!(_expr)) {                                                           \
+      NS_DebugBreak(NS_DEBUG_ABORT, _msg, #_expr, __FILE__, __LINE__);        \
+    }                                                                         \
+  PR_END_MACRO
+
 
 
 
@@ -376,6 +383,7 @@ public:
             { return mPointer != aOther.mPointer; }
 
     private:
+        friend class EdgePool;
         PtrInfoOrBlock *mPointer;
     };
 
@@ -413,6 +421,7 @@ public:
         Block **mNextBlockPtr;
     };
 
+    void CheckIterator(Iterator &aIterator);
 };
 
 #ifdef DEBUG_CC
@@ -619,6 +628,8 @@ public:
         
         PtrInfo *mNext, *mBlockEnd, *&mLast;
     };
+
+    void CheckPtrInfo(PtrInfo *aPtrInfo);
 
 private:
     Block *mBlocks;
@@ -1222,6 +1233,48 @@ GraphWalker::WalkFromRoots(GCGraph& aGraph)
 }
 
 void
+EdgePool::CheckIterator(Iterator &aIterator)
+{
+    PtrInfoOrBlock *iteratorPos = aIterator.mPointer;
+    CC_RUNTIME_ABORT_IF_FALSE(iteratorPos, "Iterator's pos is null.");
+
+    PtrInfoOrBlock *start = &mSentinelAndBlocks[0];
+    size_t sentinelOffset = 0;
+    PtrInfoOrBlock *end;
+    Block *nextBlockPtr;
+    do {
+        end = start + sentinelOffset;
+        nextBlockPtr = (end + 1)->block;
+        
+        if (iteratorPos >= start && iteratorPos <= end)
+            break;
+        sentinelOffset = Block::BlockSize - 2;
+    } while ((start = nextBlockPtr ? nextBlockPtr->Start() : nsnull));
+    CC_RUNTIME_ABORT_IF_FALSE(start, "Iterator doesn't point into EdgePool.");
+
+    
+    CC_RUNTIME_ABORT_IF_FALSE(iteratorPos->ptrInfo || iteratorPos == end,
+                              "iteratorPos points to null, but it's not a "
+                              "sentinel!");
+}
+
+void
+NodePool::CheckPtrInfo(PtrInfo *aPtrInfo)
+{
+    
+    CC_RUNTIME_ABORT_IF_FALSE(aPtrInfo, "Pointer is null.");
+
+    
+    Block *block = mBlocks;
+    do {
+        if(aPtrInfo >= &block->mEntries[0] &&
+           aPtrInfo <= &block->mEntries[BlockSize - 1])
+           break;
+    } while ((block = block->mNext));
+    CC_RUNTIME_ABORT_IF_FALSE(block, "Pointer is outside blocks.");
+}
+
+void
 GraphWalker::DoWalk(nsDeque &aQueue)
 {
     
@@ -1232,6 +1285,8 @@ GraphWalker::DoWalk(nsDeque &aQueue)
     while (aQueue.GetSize() > 0) {
         PtrInfo *pi = static_cast<PtrInfo*>(aQueue.PopFront());
 
+        sCollector->mGraph.mNodes.CheckPtrInfo(pi);
+
         debugInfo.mCurrentPI = pi;
         if (this->ShouldVisitNode(pi)) {
             this->VisitNode(pi);
@@ -1241,6 +1296,7 @@ GraphWalker::DoWalk(nsDeque &aQueue)
             for (EdgePool::Iterator child = pi->mFirstChild,
                                 child_end = pi->mLastChild;
                  child != child_end; ++child, debugInfo.mCurrentChild = child) {
+                sCollector->mGraph.mEdges.CheckIterator(child);
                 aQueue.Push(*child);
             }
         }
