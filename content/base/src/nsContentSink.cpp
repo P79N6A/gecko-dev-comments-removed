@@ -269,14 +269,20 @@ nsContentSink::StyleSheetLoaded(nsICSSStyleSheet* aSheet,
     NS_ASSERTION(mPendingSheetCount > 0, "How'd that happen?");
     --mPendingSheetCount;
 
-    if (mPendingSheetCount == 0 && mDeferredLayoutStart) {
-      
-      
-      
-      
-      
-      
-      StartLayout(PR_FALSE);
+    if (mPendingSheetCount == 0 &&
+        (mDeferredLayoutStart || mDeferredFlushTags)) {
+      if (mDeferredFlushTags) {
+        FlushTags();
+      }
+      if (mDeferredLayoutStart) {
+        
+        
+        
+        
+        
+        
+        StartLayout(PR_FALSE);
+      }
 
       
       TryToScrollToRef();
@@ -1019,7 +1025,7 @@ nsContentSink::StartLayout(PRBool aIgnorePendingSheets)
   
   mDeferredLayoutStart = PR_TRUE;
 
-  if (!aIgnorePendingSheets && mPendingSheetCount > 0) {
+  if (!aIgnorePendingSheets && WaitForPendingSheets()) {
     
     return;
   }
@@ -1172,11 +1178,16 @@ nsContentSink::Notify(nsITimer *timer)
   }
 #endif
 
-  FlushTags();
+  if (WaitForPendingSheets()) {
+    mDeferredFlushTags = PR_TRUE;
+  } else {
+    FlushTags();
 
-  
-  
-  TryToScrollToRef();
+    
+    
+    TryToScrollToRef();
+  }
+
   mNotificationTimer = nsnull;
   MOZ_TIMER_DEBUGLOG(("Stop: nsHTMLContentSink::Notify()\n"));
   MOZ_TIMER_STOP(mWatch);
@@ -1188,6 +1199,11 @@ nsContentSink::IsTimeToNotify()
 {
   if (!mNotifyOnTimer || !mLayoutStarted || !mBackoffCount ||
       mInMonolithicContainer) {
+    return PR_FALSE;
+  }
+
+  if (WaitForPendingSheets()) {
+    mDeferredFlushTags = PR_TRUE;
     return PR_FALSE;
   }
 
@@ -1213,7 +1229,9 @@ nsContentSink::WillInterruptImpl()
   SINK_TRACE(gContentSinkLogModuleInfo, SINK_TRACE_CALLS,
              ("nsContentSink::WillInterrupt: this=%p", this));
 #ifndef SINK_NO_INCREMENTAL
-  if (mNotifyOnTimer && mLayoutStarted) {
+  if (WaitForPendingSheets()) {
+    mDeferredFlushTags = PR_TRUE;
+  } else if (mNotifyOnTimer && mLayoutStarted) {
     if (mBackoffCount && !mInMonolithicContainer) {
       PRInt64 now = PR_Now();
       PRInt64 interval = GetNotificationInterval();

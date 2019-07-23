@@ -211,6 +211,10 @@ protected:
 
   void TryToScrollToRef();
 
+  
+  
+  PRBool WaitForPendingSheets() { return mPendingSheetCount > 0; }
+
 private:
   
   
@@ -276,7 +280,9 @@ protected:
   PRUint8 mHaveOfflineResources : 1;
   
   PRUint8 mSaveOfflineResources : 1;
-
+  
+  PRUint8 mDeferredFlushTags : 1;
+  
   
   PRUint32 mDelayTimerStart;
 

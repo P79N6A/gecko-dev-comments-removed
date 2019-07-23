@@ -183,6 +183,7 @@ protected:
                                PRBool aInterruptable);
 
   nsIContent*      mDocElement;
+  nsCOMPtr<nsIContent> mCurrentHead;  
   PRUnichar*       mText;
 
   XMLContentSinkState mState;

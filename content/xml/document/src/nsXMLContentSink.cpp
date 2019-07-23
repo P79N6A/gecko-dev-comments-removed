@@ -1066,17 +1066,24 @@ nsXMLContentSink::HandleStartElement(const PRUnichar *aName,
 
   
   
-  if (nodeInfo->NamespaceID() == kNameSpaceID_XHTML &&
-      (nodeInfo->NameAtom() == nsGkAtoms::input ||
-       nodeInfo->NameAtom() == nsGkAtoms::button)) {
-    content->DoneCreatingElement();
+  if (nodeInfo->NamespaceID() == kNameSpaceID_XHTML) {
+    if (nodeInfo->NameAtom() == nsGkAtoms::input ||
+        nodeInfo->NameAtom() == nsGkAtoms::button) {
+      content->DoneCreatingElement();
+    } else if (nodeInfo->NameAtom() == nsGkAtoms::head && !mCurrentHead) {
+      mCurrentHead = content;
+    }
   }
 
   if (IsMonolithicContainer(nodeInfo)) {
     mInMonolithicContainer++;
   }
 
-  MaybeStartLayout(PR_FALSE);
+  if (content != mDocElement && !mCurrentHead) {
+    
+    
+    MaybeStartLayout(PR_FALSE);
+  }
 
   return aInterruptable && NS_SUCCEEDED(result) ? DidProcessATokenImpl() :
                                                   result;
@@ -1122,10 +1129,17 @@ nsXMLContentSink::HandleEndElement(const PRUnichar *aName,
 
   result = CloseElement(content);
 
+  if (mCurrentHead == content) {
+    mCurrentHead = nsnull;
+  }
+  
   if (mDocElement == content) {
     
     
     mState = eXMLContentSinkState_InEpilog;
+
+    
+    MaybeStartLayout(PR_FALSE);
   }
 
   PRInt32 stackLen = mContentStack.Length();
@@ -1591,6 +1605,7 @@ nsXMLContentSink::FlushPendingNotifications(mozFlushType aType)
 nsresult
 nsXMLContentSink::FlushTags()
 {
+  mDeferredFlushTags = PR_FALSE;
   PRBool oldBeganUpdate = mBeganUpdate;
   PRUint32 oldUpdates = mUpdatesInNotification;
 
