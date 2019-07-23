@@ -254,30 +254,6 @@ Oracle::isStackSlotUndemotable(JSScript* script, jsbytecode* ip, unsigned slot) 
     return _dontDemote.get(hash);
 }
 
-
-
-static unsigned
-nativeStackSlots(unsigned callDepth, JSStackFrame* fp)
-{
-    unsigned slots = 0;
-    for (;;) {
-        unsigned operands = fp->regs->sp - StackBase(fp);
-        JS_ASSERT(operands <= fp->script->nslots - fp->script->nfixed);
-        slots += operands;
-        if (fp->callee)
-            slots += fp->script->nfixed;
-        if (callDepth-- == 0) {
-            if (fp->callee) {
-                unsigned nargs = JS_MAX(fp->fun->nargs, fp->argc);
-                slots += 1 + nargs;
-            }
-            return slots;
-        }
-        fp = fp->down;
-    }
-    JS_NOT_REACHED("nativeStackSlots");
-}
-
 static LIns* demote(LirWriter *out, LInsp i)
 {
     if (i->isCall())
@@ -564,6 +540,42 @@ public:
     JS_END_MACRO
 
 
+
+static unsigned
+nativeStackSlots(JSContext *cx, unsigned callDepth, JSStackFrame* fp)
+{
+    unsigned slots = 0;
+#if defined _DEBUG
+    unsigned int origCallDepth = callDepth;
+#endif
+    for (;;) {
+        unsigned operands = fp->regs->sp - StackBase(fp);
+        JS_ASSERT(operands <= fp->script->nslots - fp->script->nfixed);
+        slots += operands;
+        if (fp->callee)
+            slots += fp->script->nfixed;
+        if (callDepth-- == 0) {
+            if (fp->callee) {
+                unsigned nargs = JS_MAX(fp->fun->nargs, fp->argc);
+                slots += 1 + nargs;
+            }
+#if defined _DEBUG
+            unsigned int m = 0;
+            FORALL_SLOTS_IN_PENDING_FRAMES(cx, origCallDepth, m++);
+            JS_ASSERT(m == slots);
+#endif
+            return slots;
+        }
+        JSStackFrame* fp2 = fp;
+        fp = fp->down;
+        int missing = fp2->fun->nargs - fp2->argc;
+        if (missing > 0)
+            slots += missing;
+    }
+    JS_NOT_REACHED("nativeStackSlots");
+}
+
+
 void
 TypeMap::captureGlobalTypes(JSContext* cx, SlotList& slots)
 {
@@ -584,7 +596,7 @@ TypeMap::captureGlobalTypes(JSContext* cx, SlotList& slots)
 void 
 TypeMap::captureStackTypes(JSContext* cx, unsigned callDepth)
 {
-    setLength(nativeStackSlots(callDepth, cx->fp));
+    setLength(nativeStackSlots(cx, callDepth, cx->fp));
     uint8* map = data();
     uint8* m = map;
     FORALL_SLOTS_IN_PENDING_FRAMES(cx, callDepth,
@@ -1156,7 +1168,7 @@ TraceRecorder::snapshot(ExitType exitType)
     if (exitType == BRANCH_EXIT && js_IsLoopExit(cx, fp->script, fp->regs->pc))
         exitType = LOOP_EXIT;
     
-    unsigned stackSlots = nativeStackSlots(callDepth, fp);
+    unsigned stackSlots = nativeStackSlots(cx, callDepth, fp);
     
 
     trackNativeStackUse(stackSlots + 1);
@@ -1586,7 +1598,7 @@ js_RecordTree(JSContext* cx, JSTraceMonitor* tm, Fragment* f)
     
     
     unsigned entryNativeStackSlots = ti->stackTypeMap.length();
-    JS_ASSERT(entryNativeStackSlots == nativeStackSlots(0, cx->fp));
+    JS_ASSERT(entryNativeStackSlots == nativeStackSlots(cx, 0, cx->fp));
     ti->entryNativeStackSlots = entryNativeStackSlots;
     ti->nativeStackBase = (entryNativeStackSlots -
             (cx->fp->regs->sp - StackBase(cx->fp))) * sizeof(double);
@@ -1765,9 +1777,9 @@ js_ExecuteTree(JSContext* cx, Fragment* f, uintN& inlineCallCount)
     SideExit* e = lr->exit;
     JSStackFrame* fp = cx->fp;
     JS_ASSERT((e->sp_adj / sizeof(double)) + ti->entryNativeStackSlots >=
-              nativeStackSlots(lr->calldepth, fp));
+              nativeStackSlots(cx, lr->calldepth, fp));
     fp->regs->sp += (e->sp_adj / sizeof(double)) + ti->entryNativeStackSlots -
-                    nativeStackSlots(lr->calldepth, fp);
+                    nativeStackSlots(cx, lr->calldepth, fp);
     fp->regs->pc = (jsbytecode*)lr->from->root->ip + e->ip_adj;
 
 #if defined(DEBUG) && defined(NANOJIT_IA32)
@@ -3678,8 +3690,21 @@ TraceRecorder::prop(JSObject* obj, LIns* obj_ins, uint32& slot, LIns*& v_ins)
 
     
     uint32 setflags = (cs.format & (JOF_SET | JOF_INCDEC));
-    if (setflags && obj2 != obj)
-        ABORT_TRACE("JOF_SET opcode hit prototype chain");
+    LIns* dslots_ins = NULL;
+    if (obj2 != obj) {
+        if (setflags)
+            ABORT_TRACE("JOF_SET opcode hit prototype chain");
+
+        
+
+
+
+
+        while (obj != obj2) {
+            obj_ins = stobj_get_slot(obj_ins, JSSLOT_PROTO, dslots_ins);
+            obj = STOBJ_GET_PROTO(obj);
+        }
+    }
 
     
     if (PCVAL_IS_SPROP(pcval)) {
@@ -3713,7 +3738,6 @@ TraceRecorder::prop(JSObject* obj, LIns* obj_ins, uint32& slot, LIns*& v_ins)
         slot = PCVAL_TO_SLOT(pcval);
     }
 
-    LIns* dslots_ins = NULL;
     v_ins = stobj_get_slot(obj_ins, slot, dslots_ins);
     if (!unbox_jsval(STOBJ_GET_SLOT(obj, slot), v_ins))
         ABORT_TRACE("unboxing");
