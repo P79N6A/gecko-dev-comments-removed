@@ -35,6 +35,8 @@
 
 
 
+
+
 #ifndef GFX_TEXT_RUN_WORD_CACHE_H
 #define GFX_TEXT_RUN_WORD_CACHE_H
 
@@ -48,12 +50,18 @@ class THEBES_API gfxTextRunWordCache {
 public:
     enum {
       TEXT_IN_CACHE = 0x10000000,
+
+      
+
+
+
+      TEXT_TRAILING_ARABICCHAR = 0x20000000,
       
 
 
 
 
-      TEXT_INCOMING_ARABICCHAR = 0x10000000
+      TEXT_INCOMING_ARABICCHAR = 0x40000000
     };
 
     

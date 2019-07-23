@@ -79,9 +79,12 @@ public:
     
     
     
-    TEXT_HAS_TRAILING_BREAK  = 0x4000000,
-    TEXT_TRAILING_ARABICCHAR = 0x8000000,
-    TEXT_INCOMING_ARABICCHAR = 0x10000000
+    TEXT_HAS_TRAILING_BREAK  = 0x4000000
+
+    
+    
+    
+    
   };
 
   
