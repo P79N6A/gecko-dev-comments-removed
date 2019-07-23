@@ -330,8 +330,8 @@ nsAccessibleWrap::get_accDescription(VARIANT varChild,
   nsresult rv = xpAccessible->GroupPosition(&groupLevel, &similarItemsInGroup,
                                             &positionInGroup);
   if (NS_SUCCEEDED(rv)) {
-    if (positionInGroup != -1 && similarItemsInGroup != -1) {
-      if (groupLevel != -1) {
+    if (positionInGroup > 0) {
+      if (groupLevel > 0) {
         
         
         
@@ -367,18 +367,18 @@ nsAccessibleWrap::get_accDescription(VARIANT varChild,
         if (numChildren) {
           nsTextFormatter::ssprintf(description,
                                     NS_LITERAL_STRING("L%d, %d of %d with %d").get(),
-                                    groupLevel, positionInGroup + 1,
+                                    groupLevel, positionInGroup,
                                     similarItemsInGroup + 1, numChildren);
         } else {
           nsTextFormatter::ssprintf(description,
                                     NS_LITERAL_STRING("L%d, %d of %d").get(),
-                                    groupLevel, positionInGroup + 1,
+                                    groupLevel, positionInGroup,
                                     similarItemsInGroup + 1);
         }
       } else { 
         nsTextFormatter::ssprintf(description,
                                   NS_LITERAL_STRING("%d of %d").get(),
-                                  positionInGroup + 1, similarItemsInGroup + 1);
+                                  positionInGroup, similarItemsInGroup + 1);
       }
 
       *pszDescription = ::SysAllocString(description.get());
