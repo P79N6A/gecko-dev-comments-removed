@@ -100,6 +100,21 @@ void SaveSettings()
                      "Crash Reporter", settings, true);
 }
 
+
+
+
+
+
+
+static void FindCACertificateFile()
+{
+  string path = gArgv[0];
+  path += ".crt";
+  if (UIFileExists(path)) {
+    gCACertificateFile = path;
+  }
+}
+
 void SendReport()
 {
   
@@ -116,6 +131,8 @@ void SendReport()
 #ifdef MOZ_ENABLE_GCONF
   LoadProxyinfo();
 #endif
+
+  FindCACertificateFile();
 
   
   GError* err;
