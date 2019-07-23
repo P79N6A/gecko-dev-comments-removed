@@ -1282,6 +1282,26 @@ Register
 Assembler::asm_prep_fcall(Reservation*, LInsp)
 {
     
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     return UnknownReg;
 }
 
