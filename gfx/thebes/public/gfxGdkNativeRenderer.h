@@ -35,11 +35,11 @@
 
 
 
-#ifndef GFXXLIBNATIVERENDER_H_
-#define GFXXLIBNATIVERENDER_H_
+#ifndef GFXGDKNATIVERENDER_H_
+#define GFXGDKNATIVERENDER_H_
 
 #include "gfxColor.h"
-#include <X11/Xlib.h>
+#include <gdk/gdk.h>
 
 class gfxASurface;
 class gfxContext;
@@ -50,7 +50,7 @@ class gfxContext;
 
 
 
-class THEBES_API gfxXlibNativeRenderer {
+class THEBES_API gfxGdkNativeRenderer {
 public:
     
 
@@ -60,10 +60,8 @@ public:
 
 
 
-    virtual nsresult NativeDraw(Screen* screen, Drawable drawable,
-                                Visual* visual, Colormap colormap,
-                                short offsetX, short offsetY,
-                                XRectangle* clipRects, PRUint32 numClipRects) = 0;
+    virtual nsresult NativeDraw(GdkDrawable * drawable, short offsetX, 
+            short offsetY, GdkRectangle * clipRects, PRUint32 numClipRects) = 0;
   
     enum {
         
@@ -105,7 +103,7 @@ public:
 
 
 
-    nsresult Draw(Display* dpy, gfxContext* ctx, int width, int height,
+    nsresult Draw(gfxContext* ctx, int width, int height,
                   PRUint32 flags, DrawOutput* output);
 };
 
