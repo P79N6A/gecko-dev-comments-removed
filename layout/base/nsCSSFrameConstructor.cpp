@@ -5454,6 +5454,9 @@ nsCSSFrameConstructor::ReconstructDocElementHierarchy()
   return ReconstructDocElementHierarchyInternal();
 }
 
+static void
+InvalidateCanvasIfNeeded(nsIPresShell* presShell, nsIContent* node);
+
 nsresult
 nsCSSFrameConstructor::ReconstructDocElementHierarchyInternal()
 {
@@ -5470,6 +5473,9 @@ nsCSSFrameConstructor::ReconstructDocElementHierarchyInternal()
     nsIContent *rootContent = mDocument->GetRootContent();
     
     if (rootContent) {
+      
+      InvalidateCanvasIfNeeded(mPresShell, rootContent);
+
       nsFrameConstructorState state(mPresShell, mFixedContainingBlock,
                                     nsnull, nsnull, mTempFrameTreeState);
 
@@ -5968,9 +5974,6 @@ GetAdjustedParentFrame(nsIFrame*       aParentFrame,
   return (newParent) ? newParent : aParentFrame;
 }
 
-static void
-InvalidateCanvasIfNeeded(nsIFrame* aFrame);
-
 static PRBool
 IsSpecialFramesetChild(nsIContent* aContent)
 {
@@ -6175,31 +6178,23 @@ nsCSSFrameConstructor::ContentAppended(nsIContent*     aContainer,
     return NS_OK;
   }
 
-  if (NS_FAILED(CreateNeededTablePseudos(items, parentFrame))) {
-    
-    return NS_OK;
-  }
-
-  
-  
   nsFrameItems frameItems;
-  nsFrameItems captionItems;
+  ConstructFramesFromItemList(state, items, parentFrame, frameItems);
 
-  for (FCItemIterator iter(items); !iter.IsDone(); iter.Next()) {
-    nsresult rv =
-      ConstructFramesFromItem(state, iter, parentFrame, frameItems);
-    if (NS_FAILED(rv)) {
-      break;
-    }
-
+  for (PRUint32 i = aNewIndexInContainer, count = aContainer->GetChildCount();
+       i < count;
+       ++i) {
     
     
     
     
-    if (frameItems.lastChild)
-      InvalidateCanvasIfNeeded(frameItems.lastChild);
+    
+    InvalidateCanvasIfNeeded(mPresShell, aContainer->GetChildAt(i));
   }
 
+  
+  
+  nsFrameItems captionItems;
   if (nsGkAtoms::tableFrame == frameType) {
     
     
@@ -6389,7 +6384,7 @@ nsCSSFrameConstructor::ContentInserted(nsIContent*            aContainer,
                        "Unexpected child of document element containing block");
           mDocElementContainingBlock->AppendFrames(nsnull, docElementFrame);
         }
-        InvalidateCanvasIfNeeded(docElementFrame);
+        InvalidateCanvasIfNeeded(mPresShell, aChild);
 #ifdef DEBUG
         if (gReallyNoisyContentUpdates) {
           nsIFrameDebug* fdbg = do_QueryFrame(docElementFrame);
@@ -6596,20 +6591,13 @@ nsCSSFrameConstructor::ContentInserted(nsIContent*            aContainer,
     return NS_OK;
 
 
-  if (NS_FAILED(CreateNeededTablePseudos(items, parentFrame))) {
-    
-    return NS_OK;
-  }
-
-  
   
   
   nsFrameItems frameItems, captionItems;
-  for (FCItemIterator iter(items); !iter.IsDone(); iter.Next()) {
-    ConstructFramesFromItem(state, iter, parentFrame, frameItems);
-  }
+  ConstructFramesFromItemList(state, items, parentFrame, frameItems);
+
   if (frameItems.childList) {
-    InvalidateCanvasIfNeeded(frameItems.childList);
+    InvalidateCanvasIfNeeded(mPresShell, aChild);
     
     if (nsGkAtoms::tableCaptionFrame == frameItems.childList->GetType()) {
       NS_ASSERTION(frameItems.childList == frameItems.lastChild ,
@@ -7030,7 +7018,7 @@ nsCSSFrameConstructor::ContentRemoved(nsIContent* aContainer,
 #endif 
 
   if (childFrame) {
-    InvalidateCanvasIfNeeded(childFrame);
+    InvalidateCanvasIfNeeded(mPresShell, aChild);
     
     
     
@@ -7351,14 +7339,14 @@ ApplyRenderingChangeToTree(nsPresContext* aPresContext,
 
  
 static void
-InvalidateCanvasIfNeeded(nsIFrame* aFrame)
+InvalidateCanvasIfNeeded(nsIPresShell* presShell, nsIContent* node)
 {
-  NS_ASSERTION(aFrame, "Must have frame!");
+  NS_PRECONDITION(presShell->GetRootFrame(), "What happened here?");
+  NS_PRECONDITION(presShell->GetPresContext(), "Say what?");
 
   
   
   
-  nsIContent* node = aFrame->GetContent();
   nsIContent* parent = node->GetParent();
   if (parent) {
     
@@ -7379,29 +7367,15 @@ InvalidateCanvasIfNeeded(nsIFrame* aFrame)
   
   
   
-  nsIFrame *ancestor = aFrame;
-  const nsStyleBackground *bg;
-  nsPresContext* presContext = aFrame->PresContext();
-  while (!nsCSSRendering::FindBackground(presContext, ancestor, &bg)) {
-    ancestor = ancestor->GetParent();
-    NS_ASSERTION(ancestor, "canvas must paint");
-  }
 
-  if (ancestor->GetType() == nsGkAtoms::canvasFrame) {
-    
-    
-    ancestor = ancestor->GetParent();
-  }
+  
+  
 
-  if (ancestor != aFrame) {
-    
-    
-
-    nsIViewManager::UpdateViewBatch batch(presContext->GetPresShell()->GetViewManager());
-    ApplyRenderingChangeToTree(presContext, ancestor,
-                               nsChangeHint_RepaintFrame);
-    batch.EndUpdateViewBatch(NS_VMREFRESH_DEFERRED);
-  }
+  nsIViewManager::UpdateViewBatch batch(presShell->GetViewManager());
+  ApplyRenderingChangeToTree(presShell->GetPresContext(),
+                             presShell->GetRootFrame(),
+                             nsChangeHint_RepaintFrame);
+  batch.EndUpdateViewBatch(NS_VMREFRESH_DEFERRED);
 }
 
 nsresult
