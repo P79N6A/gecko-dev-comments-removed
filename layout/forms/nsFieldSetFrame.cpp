@@ -186,7 +186,6 @@ public:
                             HitTestState* aState);
   virtual void Paint(nsDisplayListBuilder* aBuilder, nsIRenderingContext* aCtx,
      const nsRect& aDirtyRect);
-  virtual nsRect GetBounds(nsDisplayListBuilder* aBuilder);
   NS_DISPLAY_DECL_NAME("FieldSetBorderBackground")
 };
 
@@ -197,12 +196,6 @@ nsIFrame* nsDisplayFieldSetBorderBackground::HitTest(nsDisplayListBuilder* aBuil
   
   
   return mFrame;
-}
-
-nsRect
-nsDisplayFieldSetBorderBackground::GetBounds(nsDisplayListBuilder* aBuilder)
-{
-  return mFrame->GetOverflowRect() + aBuilder->ToReferenceFrame(mFrame);
 }
 
 void
@@ -222,9 +215,13 @@ nsFieldSetFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
   
   
   if (IsVisibleForPainting(aBuilder)) {
-    
-    
     nsresult rv = aLists.BorderBackground()->AppendNewToTop(new (aBuilder)
+        nsDisplayBoxShadow(this));
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    
+    
+    rv = aLists.BorderBackground()->AppendNewToTop(new (aBuilder)
         nsDisplayFieldSetBorderBackground(this));
     NS_ENSURE_SUCCESS(rv, rv);
   
@@ -278,9 +275,6 @@ nsFieldSetFrame::PaintBorderBackground(nsIRenderingContext& aRenderingContext,
     yoff = (mLegendRect.height - topBorder)/2;
       
   nsRect rect(aPt.x, aPt.y + yoff, mRect.width, mRect.height - yoff);
-
-  nsCSSRendering::PaintBoxShadow(presContext, aRenderingContext, this,
-                                 rect.TopLeft(), aDirtyRect);
 
   nsCSSRendering::PaintBackground(presContext, aRenderingContext, this,
                                   aDirtyRect, rect, PR_TRUE);
