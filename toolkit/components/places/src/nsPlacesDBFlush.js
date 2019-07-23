@@ -200,7 +200,10 @@ nsPlacesDBFlush.prototype = {
       statements.push(this._getSyncTableStatement(aTableNames[i]));
 
     
-    this._db.executeAsync(statements, statements.length, this);
+    
+    
+    
+    statements.forEach(function(stmt) stmt.executeAsync(this), this);
 
     
     statements.forEach(function(stmt) stmt.finalize());
