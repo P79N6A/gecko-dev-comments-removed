@@ -106,7 +106,8 @@ body[dir="rtl"] #brand {
 
 
 :root.blacklist #errorTitle, :root.blacklist #errorLongContent,
-:root.blacklist #errorShortDesc, :root.blacklist #errorLongDesc {
+:root.blacklist #errorShortDesc, :root.blacklist #errorLongDesc,
+:root.blacklist a {
   background-color: #722; 
   color: white;
 }
