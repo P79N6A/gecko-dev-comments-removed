@@ -443,7 +443,7 @@ public:
   PRBool     Matches(const nsAString& aTopic);
 
 protected:
-  nsAutoString mTopic; 
+  nsString mTopic;
   nsVoidArray* mObservers[NS_HTML_TAG_MAX + 1];
   friend class nsMatchesTopic;
 };
