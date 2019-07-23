@@ -130,6 +130,11 @@ pref("accessibility.warn_on_browsewithcaret", true);
 
 pref("accessibility.tabfocus", 7);
 pref("accessibility.tabfocus_applies_to_xul", false);
+
+
+
+pref("ui.scrollToClick", 0);
+
 #else
 
 pref("accessibility.tabfocus_applies_to_xul", true);

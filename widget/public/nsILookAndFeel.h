@@ -225,7 +225,15 @@ public:
 
 
 
-    eMetric_AlertNotificationOrigin
+    eMetric_AlertNotificationOrigin,
+
+    
+
+
+
+
+
+    eMetric_ScrollToClick
   } nsMetricID;
 
   enum {
