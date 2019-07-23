@@ -51,7 +51,6 @@ class nsIScriptGlobalObjectOwner;
 class nsIArray;
 class nsScriptErrorEvent;
 class nsIScriptGlobalObject;
-enum nsEventStatus;
 struct JSObject; 
 
 
