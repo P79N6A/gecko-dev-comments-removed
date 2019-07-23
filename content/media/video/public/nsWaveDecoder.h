@@ -220,6 +220,9 @@ class nsWaveDecoder : public nsMediaDecoder
   
   void UpdateReadyStateForData();
 
+  
+  virtual void MoveLoadsToBackground();
+
 private:
   
   void SeekingStarted();

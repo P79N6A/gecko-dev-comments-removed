@@ -223,6 +223,13 @@ class nsMediaDecoder : public nsIObserver
   
   nsHTMLMediaElement* GetMediaElement();
 
+  
+  
+  
+  
+  
+  virtual void MoveLoadsToBackground()=0;
+
 protected:
 
   

@@ -372,6 +372,9 @@ class nsOggDecoder : public nsMediaDecoder
   
   virtual void Resume();
 
+  
+  virtual void MoveLoadsToBackground();
+
 protected:
 
   

@@ -42,6 +42,7 @@
 #include "nsThreadUtils.h"
 #include "nsIDOMRange.h"
 #include "nsCycleCollectionParticipant.h"
+#include "nsILoadGroup.h"
 
 
 
@@ -228,6 +229,11 @@ public:
 
   PRUint32 GetCurrentLoadID() { return mCurrentLoadID; }
 
+  
+
+
+
+  already_AddRefed<nsILoadGroup> GetDocumentLoadGroup();
 
 protected:
   class MediaLoadListener;
@@ -307,6 +313,10 @@ protected:
 
   nsRefPtr<nsMediaDecoder> mDecoder;
 
+  
+  
+  
+  
   nsCOMPtr<nsIChannel> mChannel;
 
   

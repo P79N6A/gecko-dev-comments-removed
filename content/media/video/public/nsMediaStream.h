@@ -198,6 +198,10 @@ public:
   virtual nsresult Seek(PRInt32 aWhence, PRInt64 aOffset) = 0;
   
   virtual PRInt64 Tell() = 0;
+  
+  
+  
+  void MoveLoadsToBackground();
 
   
   
@@ -243,7 +247,8 @@ protected:
   nsMediaStream(nsMediaDecoder* aDecoder, nsIChannel* aChannel, nsIURI* aURI) :
     mDecoder(aDecoder),
     mChannel(aChannel),
-    mURI(aURI)
+    mURI(aURI),
+    mLoadInBackground(PR_FALSE)
   {
     MOZ_COUNT_CTOR(nsMediaStream);
   }
@@ -268,6 +273,10 @@ protected:
   
   
   nsCOMPtr<nsIURI> mURI;
+
+  
+  
+  PRPackedBool mLoadInBackground;
 };
 
 
