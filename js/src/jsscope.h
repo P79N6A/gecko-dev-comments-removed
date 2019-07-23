@@ -673,10 +673,6 @@ JSScope::extend(JSContext *cx, JSScopeProperty *sprop)
 
 
 
-
-
-
-
 inline bool
 JSScope::methodReadBarrier(JSContext *cx, JSScopeProperty *sprop, jsval *vp)
 {
@@ -684,7 +680,6 @@ JSScope::methodReadBarrier(JSContext *cx, JSScopeProperty *sprop, jsval *vp)
     JS_ASSERT(has(sprop));
     JS_ASSERT(sprop->isMethod());
     JS_ASSERT(sprop->methodValue() == *vp);
-
     JS_ASSERT(object->getClass() == &js_ObjectClass);
 
     JSObject *funobj = JSVAL_TO_OBJECT(*vp);
