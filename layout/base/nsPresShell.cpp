@@ -901,6 +901,9 @@ public:
   NS_IMETHOD Paint(nsIView *aView,
                    nsIRenderingContext* aRenderingContext,
                    const nsRegion& aDirtyRegion);
+  NS_IMETHOD PaintDefaultBackground(nsIView *aView,
+                                    nsIRenderingContext* aRenderingContext,
+                                    const nsRect& aDirtyRect);
   NS_IMETHOD ComputeRepaintRegionForCopy(nsIView*      aRootView,
                                          nsIView*      aMovingView,
                                          nsPoint       aDelta,
@@ -5380,65 +5383,61 @@ PresShell::Paint(nsIView*             aView,
   
   
   
-  
-  
-
-  PRBool needTransparency = PR_FALSE;
-  nscolor backgroundColor = mPresContext->DefaultBackgroundColor();
-  for (nsIView *view = aView; view; view = view->GetParent()) {
-    if (view->HasWidget() &&
-        view->GetWidget()->GetTransparencyMode() != eTransparencyOpaque) {
-      needTransparency = PR_TRUE;
-      break;
-    }
-  }
-
-  
-  
-  
-  
-  
-  
-  
-  
-  nscolor viewDefaultColor = NS_RGBA(0,0,0,0);
-  if (mViewManager)
-    mViewManager->GetDefaultBackgroundColor(&viewDefaultColor);
-
-  
-  
-  nsIFrame* frame = static_cast<nsIFrame*>(aView->GetClientData());
-  if (!frame) {
-    if (!needTransparency) {
-      backgroundColor = NS_ComposeColors(backgroundColor, viewDefaultColor);
-      aRenderingContext->SetColor(backgroundColor);
-      aRenderingContext->FillRect(aDirtyRegion.GetBounds());
-    }
-    return NS_OK;
-  }
-
-  
-  
-  
-  
   nsIFrame* rootFrame = FrameConstructor()->GetRootElementStyleFrame();
   if (rootFrame) {
     const nsStyleBackground* bgStyle =
       nsCSSRendering::FindRootFrameBackground(rootFrame);
-    
-    
-    
-    
-    backgroundColor = NS_ComposeColors(backgroundColor,
-                                       bgStyle->mBackgroundColor);
-    mViewManager->SetDefaultBackgroundColor(backgroundColor);
-  } else {
-    backgroundColor = NS_ComposeColors(backgroundColor, viewDefaultColor);
+    mCanvasBackgroundColor = bgStyle->mBackgroundColor;
   }
 
-  nsLayoutUtils::PaintFrame(aRenderingContext, frame, aDirtyRegion,
-                            needTransparency ? NS_RGBA(0,0,0,0)
-                            : backgroundColor);
+  
+  nscolor bgcolor;
+  nsIWidget* widget = aView->GetNearestWidget(nsnull);
+  if (widget && widget->GetTransparencyMode() != eTransparencyOpaque) {
+    
+    
+    bgcolor = NS_RGBA(0,0,0,0);
+  } else {
+    
+    
+    
+    
+    
+    
+    bgcolor = NS_ComposeColors(mPresContext->DefaultBackgroundColor(),
+                               mCanvasBackgroundColor);
+  }
+
+  nsIFrame* frame = static_cast<nsIFrame*>(aView->GetClientData());
+  if (frame) {
+    nsLayoutUtils::PaintFrame(aRenderingContext, frame, aDirtyRegion, bgcolor);
+  } else {
+    aRenderingContext->SetColor(bgcolor);
+    aRenderingContext->FillRect(aDirtyRegion.GetBounds());
+  }
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+PresShell::PaintDefaultBackground(nsIView*             aView,
+                                  nsIRenderingContext* aRenderingContext,
+                                  const nsRect&       aDirtyRect)
+{
+  AUTO_LAYOUT_PHASE_ENTRY_POINT(GetPresContext(), Paint);
+
+  NS_ASSERTION(!mIsDestroying, "painting a destroyed PresShell");
+  NS_ASSERTION(aView, "null view");
+
+  
+  
+  
+  
+  
+  nscolor bgcolor = NS_ComposeColors(mPresContext->DefaultBackgroundColor(),
+                                     mCanvasBackgroundColor);
+
+  aRenderingContext->SetColor(bgcolor);
+  aRenderingContext->FillRect(aDirtyRect);
   return NS_OK;
 }
 

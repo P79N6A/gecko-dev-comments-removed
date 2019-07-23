@@ -102,9 +102,9 @@ typedef short SelectionType;
 typedef PRUint32 nsFrameState;
 
 
-#define NS_IPRESSHELL_IID \
-{ 0x780d34b0, 0xc3, 0x4bbd, \
-  { 0xb5, 0x7d, 0xc6, 0x0, 0xaa, 0xf5, 0x36, 0x13 } }
+#define NS_IPRESSHELL_IID     \
+{ 0x445e6184, 0x5e7e, 0x4a9b, \
+  { 0x97, 0xf7, 0xc9, 0x39, 0x1e, 0x67, 0x73, 0xd2 } }
 
 
 #define NS_PRESSHELL_SCROLL_TOP      0
@@ -781,6 +781,15 @@ public:
 
   NS_IMETHOD DisableNonTestMouseEvents(PRBool aDisable) = 0;
 
+  
+
+
+
+
+
+  void SetCanvasBackground(nscolor aColor) { mCanvasBackgroundColor = aColor; }
+  nscolor GetCanvasBackground() { return mCanvasBackgroundColor; }
+
 protected:
   
   
@@ -819,6 +828,9 @@ protected:
 
   
   nsWeakFrame*              mWeakFrames;
+
+  
+  nscolor                   mCanvasBackgroundColor;
 };
 
 

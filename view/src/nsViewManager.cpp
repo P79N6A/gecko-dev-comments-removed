@@ -180,7 +180,6 @@ nsViewManager::nsViewManager()
   }
   
   
-  mDefaultBackgroundColor = NS_RGBA(0, 0, 0, 0);
   mHasPendingUpdates = PR_FALSE;
   mRecursiveRefreshPending = PR_FALSE;
   mUpdateBatchFlags = 0;
@@ -530,44 +529,6 @@ void nsViewManager::Refresh(nsView *aView, nsIRenderingContext *aContext,
   MOZ_TIMER_PRINT(mWatch);
 #endif
 
-}
-
-
-void nsViewManager::DefaultRefresh(nsView* aView,
-                                   nsIRenderingContext *aContext,
-                                   const nsRect* aRect)
-{
-  NS_PRECONDITION(aView, "Must have a view to work with!");
-
-  
-  nsIWidget* widget = aView->GetNearestWidget(nsnull);
-  if (!widget || widget->GetTransparencyMode() != eTransparencyOpaque)
-    return;
-
-  nsCOMPtr<nsIRenderingContext> context = aContext;
-  if (!context)
-    context = CreateRenderingContext(*aView);
-
-  
-  
-  if (!context) {
-    NS_WARNING("nsViewManager: No rendering context for DefaultRefresh");
-    return;
-  }
-
-  nscolor bgcolor = mDefaultBackgroundColor;
-  
-  
-  if (bgcolor == NS_RGBA(0,0,0,0)) {
-    NS_WARNING("nsViewManager: DefaultRefresh called with no background set");
-    bgcolor = NS_RGB(255,255,255);
-  }
-
-  NS_ASSERTION(NS_GET_A(bgcolor) == 255,
-               "nsViewManager: non-opaque background color snuck in");
-
-  context->SetColor(bgcolor);
-  context->FillRect(*aRect);
 }
 
 void nsViewManager::AddCoveringWidgetsToOpaqueRegion(nsRegion &aRgn, nsIDeviceContext* aContext,
@@ -1135,10 +1096,24 @@ NS_IMETHODIMP nsViewManager::DispatchEvent(nsGUIEvent *aEvent, nsEventStatus *aS
         } else {
           
           
+          
           nsIntRect damIntRect;
-          region->GetBoundingBox(&damIntRect.x, &damIntRect.y, &damIntRect.width, &damIntRect.height);
-          nsRect damRect = nsIntRect::ToAppUnits(damIntRect, mContext->AppUnitsPerDevPixel());
-          DefaultRefresh(view, event->renderingContext, &damRect);
+          region->GetBoundingBox(&damIntRect.x, &damIntRect.y,
+                                 &damIntRect.width, &damIntRect.height);
+          nsRect damRect =
+            nsIntRect::ToAppUnits(damIntRect, mContext->AppUnitsPerDevPixel());
+
+          nsIWidget* widget = view->GetNearestWidget(nsnull);
+          if (widget && widget->GetTransparencyMode() == eTransparencyOpaque) {
+            nsCOMPtr<nsIRenderingContext> context = event->renderingContext;
+            if (!context)
+              context = CreateRenderingContext(*view);
+
+            if (context)
+              mObserver->PaintDefaultBackground(view, context, damRect);
+            else
+              NS_WARNING("nsViewManager: no rc for default refresh");
+          }
         
           
           
@@ -1163,7 +1138,7 @@ NS_IMETHODIMP nsViewManager::DispatchEvent(nsGUIEvent *aEvent, nsEventStatus *aS
           
           
           
-          
+
           UpdateView(view, damRect, NS_VMREFRESH_NO_SYNC);
         }
 
@@ -2230,22 +2205,6 @@ nsViewManager::ProcessInvalidateEvent()
     PostInvalidateEvent();
   }
 }
-
-NS_IMETHODIMP
-nsViewManager::SetDefaultBackgroundColor(nscolor aColor)
-{
-  NS_ASSERTION(NS_GET_A(aColor) == 255, "default background must be opaque");
-  mDefaultBackgroundColor = aColor;
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsViewManager::GetDefaultBackgroundColor(nscolor* aColor)
-{
-  *aColor = mDefaultBackgroundColor;
-  return NS_OK;
-}
-
 
 NS_IMETHODIMP
 nsViewManager::GetLastUserEventTime(PRUint32& aTime)

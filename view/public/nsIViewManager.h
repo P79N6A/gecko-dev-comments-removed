@@ -40,7 +40,6 @@
 
 #include "nscore.h"
 #include "nsIView.h"
-#include "nsColor.h"
 #include "nsEvent.h"
 #include "nsIRenderingContext.h"
 
@@ -62,8 +61,8 @@ enum nsRectVisibility {
 
 
 #define NS_IVIEWMANAGER_IID   \
-{ 0xde2a2d24, 0x9753, 0x4488, \
-  { 0x9f, 0xdc, 0xdd, 0x0a, 0xcc, 0xb4, 0x84, 0xf7 } }
+{ 0xfa490965, 0xebd0, 0x4203, \
+  { 0x83, 0x6c, 0x51, 0xc4, 0x2d, 0x01, 0xfe, 0xdb } }
 
 class nsIViewManager : public nsISupports
 {
@@ -440,22 +439,6 @@ public:
 
 
   NS_IMETHOD IsPainting(PRBool& aIsPainting)=0;
-
-  
-
-
-
-
-
-
-  NS_IMETHOD SetDefaultBackgroundColor(nscolor aColor)=0;
-
-  
-
-
-
-
-  NS_IMETHOD GetDefaultBackgroundColor(nscolor* aColor)=0;
 
   
 

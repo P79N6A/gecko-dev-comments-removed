@@ -6493,8 +6493,6 @@ nsDocShell::SetupNewViewer(nsIContentViewer * aNewViewer)
     }
 
     nscolor bgcolor = NS_RGBA(0, 0, 0, 0);
-    PRBool bgSet = PR_FALSE;
-
     
     nsCOMPtr<nsIContentViewer> kungfuDeathGrip = mContentViewer;
     if (mContentViewer) {
@@ -6512,13 +6510,7 @@ nsDocShell::SetupNewViewer(nsIContentViewer * aNewViewer)
             docviewer->GetPresShell(getter_AddRefs(shell));
 
             if (shell) {
-                nsIViewManager* vm = shell->GetViewManager();
-
-                if (vm) {
-                    vm->GetDefaultBackgroundColor(&bgcolor);
-                    
-                    bgSet = NS_GET_A(bgcolor) != 0;
-                }
+                bgcolor = shell->GetCanvasBackground();
             }
         }
 
@@ -6579,23 +6571,18 @@ nsDocShell::SetupNewViewer(nsIContentViewer * aNewViewer)
         focusController->SetSuppressFocus(PR_FALSE,
                                           "Win32-Only Link Traversal Issue");
 
-    if (bgSet && widget) {
-        
-        
-        nsCOMPtr<nsIDocumentViewer> docviewer =
-            do_QueryInterface(mContentViewer);
 
-        if (docviewer) {
-            nsCOMPtr<nsIPresShell> shell;
-            docviewer->GetPresShell(getter_AddRefs(shell));
+    
+    
+    nsCOMPtr<nsIDocumentViewer> docviewer =
+        do_QueryInterface(mContentViewer);
 
-            if (shell) {
-                nsIViewManager* vm = shell->GetViewManager();
+    if (docviewer) {
+        nsCOMPtr<nsIPresShell> shell;
+        docviewer->GetPresShell(getter_AddRefs(shell));
 
-                if (vm) {
-                    vm->SetDefaultBackgroundColor(bgcolor);
-                }
-            }
+        if (shell) {
+            shell->SetCanvasBackground(bgcolor);
         }
     }
 
