@@ -2334,7 +2334,11 @@ nsAccessible::GetState(PRUint32 *aState, PRUint32 *aExtraState)
       *aExtraState |= nsIAccessibleStates::EXT_STATE_HORIZONTAL;
     }
   }
-
+  
+  
+  if (*aExtraState & nsIAccessibleStates::EXT_STATE_EDITABLE)
+    *aState &= ~nsIAccessibleStates::STATE_READONLY;
+ 
   return NS_OK;
 }
 
@@ -2353,6 +2357,7 @@ nsAccessible::GetARIAState(PRUint32 *aState)
   }
 
   if (mRoleMapEntry) {
+    
     
     *aState &= ~nsIAccessibleStates::STATE_READONLY;
 
@@ -2385,6 +2390,7 @@ nsAccessible::GetARIAState(PRUint32 *aState)
   if (!mRoleMapEntry)
     return NS_OK;
 
+  
   *aState |= mRoleMapEntry->state;
   if (MappedAttrState(content, aState, &mRoleMapEntry->attributeMap1) &&
       MappedAttrState(content, aState, &mRoleMapEntry->attributeMap2) &&
