@@ -75,25 +75,42 @@ const int netCharType[256] =
 
 static char* nsEscapeCount(
     const char * str,
-    PRInt32 len,
     nsEscapeMask flags,
-    PRInt32* out_len)
+    size_t* out_len)
 
 {
 	if (!str)
 		return 0;
 
-    int i, extra = 0;
+    size_t i, len = 0, charsToEscape = 0;
     static const char hexChars[] = "0123456789ABCDEF";
 
 	register const unsigned char* src = (const unsigned char *) str;
-    for (i = 0; i < len; i++)
+    while (*src)
 	{
+        len++;
         if (!IS_OK(*src++))
-            extra += 2; 
+            charsToEscape++;
 	}
 
-	char* result = (char *)nsMemory::Alloc(len + extra + 1);
+    
+    
+    
+    size_t dstSize = len + 1 + charsToEscape;
+    if (dstSize <= len)
+	return 0;
+    dstSize += charsToEscape;
+    if (dstSize < len)
+	return 0;
+
+    
+    
+    
+    
+    if (dstSize > PR_UINT32_MAX)
+        return 0;
+
+	char* result = (char *)nsMemory::Alloc(dstSize);
     if (!result)
         return 0;
 
@@ -144,7 +161,7 @@ NS_COM char* nsEscape(const char * str, nsEscapeMask flags)
 {
     if(!str)
         return NULL;
-    return nsEscapeCount(str, (PRInt32)strlen(str), flags, NULL);
+    return nsEscapeCount(str, flags, NULL);
 }
 
 
