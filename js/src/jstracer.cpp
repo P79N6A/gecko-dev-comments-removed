@@ -1474,8 +1474,17 @@ js_ContinueRecording(JSContext* cx, TraceRecorder* r, jsbytecode* oldpc, uintN& 
     }
 #endif  
     if (r->isLoopHeader(cx)) { 
+        Fragmento* fragmento = JS_TRACE_MONITOR(cx).fragmento;
+        if (fragmento->assm()->error()) {
+            
+            r->blacklist();
+            
+            if (fragmento->assm()->error() == OutOMem)
+                js_FlushJITCache(cx);
+            return false; 
+        }
         AUDIT(traceCompleted);
-        r->closeLoop(JS_TRACE_MONITOR(cx).fragmento);
+        r->closeLoop(fragmento);
         js_DeleteRecorder(cx);
         return false; 
     }
