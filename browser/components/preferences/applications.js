@@ -982,6 +982,10 @@ var gApplicationsPane = {
       self._rebuildVisibleTypes();
       self._sortVisibleTypes();
       self._rebuildView();
+
+      
+      Cc["@mozilla.org/observer-service;1"].getService(Ci.nsIObserverService).
+      notifyObservers(window, "app-handler-pane-loaded", null);
     }
     setTimeout(_delayedPaneLoad, 0, this);
   },
