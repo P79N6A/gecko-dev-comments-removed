@@ -46,7 +46,7 @@ namespace nanojit
 {
     inline RegisterMask rmask(Register r)
     {
-        return 1 << r;
+        return RegisterMask(1) << r;
     }
 
     class RegAlloc
