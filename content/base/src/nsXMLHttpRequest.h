@@ -288,6 +288,7 @@ protected:
   nsCOMArray<nsIDOMEventListener> mProgressEventListeners;
   nsCOMArray<nsIDOMEventListener> mUploadProgressEventListeners;
   nsCOMArray<nsIDOMEventListener> mReadystatechangeEventListeners;
+
   
   nsCOMPtr<nsIScriptContext> mScriptContext;
   nsCOMPtr<nsPIDOMWindow>    mOwner; 

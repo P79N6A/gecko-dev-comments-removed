@@ -558,6 +558,9 @@ nsXMLHttpRequest::~nsXMLHttpRequest()
   nsLayoutStatics::Release();
 }
 
+
+
+
 nsresult
 nsXMLHttpRequest::Init()
 {
@@ -576,27 +579,54 @@ nsXMLHttpRequest::Init()
     return NS_OK;
   }
 
-  nsIScriptContext* context = GetScriptContextFromJSContext(cx);
-  if (!context) {
-    return NS_OK;
-  }
   nsIScriptSecurityManager *secMan = nsContentUtils::GetSecurityManager();
   nsCOMPtr<nsIPrincipal> subjectPrincipal;
   if (secMan) {
     secMan->GetSubjectPrincipal(getter_AddRefs(subjectPrincipal));
   }
   NS_ENSURE_STATE(subjectPrincipal);
-
-  mScriptContext = context;
   mPrincipal = subjectPrincipal;
-  nsCOMPtr<nsPIDOMWindow> window =
-    do_QueryInterface(context->GetGlobalObject());
-  if (window) {
-    mOwner = window->GetCurrentInnerWindow();
+
+  nsIScriptContext* context = GetScriptContextFromJSContext(cx);
+  if (context) {
+    mScriptContext = context;
+    nsCOMPtr<nsPIDOMWindow> window =
+      do_QueryInterface(context->GetGlobalObject());
+    if (window) {
+      mOwner = window->GetCurrentInnerWindow();
+    }
   }
 
   return NS_OK;
 }
+
+
+
+NS_IMETHODIMP
+nsXMLHttpRequest::Init(nsIPrincipal* aPrincipal,
+                       nsIScriptContext* aScriptContext,
+                       nsPIDOMWindow* aOwnerWindow)
+{
+  NS_ENSURE_ARG_POINTER(aPrincipal);
+
+  
+  
+  
+
+  mPrincipal = aPrincipal;
+  mScriptContext = aScriptContext;
+  if (aOwnerWindow) {
+    mOwner = aOwnerWindow->GetCurrentInnerWindow();
+  }
+  else {
+    mOwner = nsnull;
+  }
+
+  return NS_OK;
+}
+
+
+
 
 NS_IMETHODIMP
 nsXMLHttpRequest::Initialize(nsISupports* aOwner, JSContext* cx, JSObject* obj,
@@ -1342,18 +1372,25 @@ nsXMLHttpRequest::GetCurrentHttpChannel()
   return httpChannel;
 }
 
+inline PRBool
+IsSystemPrincipal(nsIPrincipal* aPrincipal)
+{
+  PRBool isSystem = PR_FALSE;
+  nsContentUtils::GetSecurityManager()->
+    IsSystemPrincipal(aPrincipal, &isSystem);
+  return isSystem;
+}
+
 static PRBool
 IsSameOrigin(nsIPrincipal* aPrincipal, nsIChannel* aChannel)
 {
-  if (!aPrincipal) {
-    
-    
-    return PR_TRUE;
-  }
+  NS_ASSERTION(!IsSystemPrincipal(aPrincipal), "Shouldn't get here!");
 
   nsCOMPtr<nsIURI> codebase;
   nsresult rv = aPrincipal->GetURI(getter_AddRefs(codebase));
   NS_ENSURE_SUCCESS(rv, PR_FALSE);
+
+  NS_ASSERTION(codebase, "Principal must have a URI!");
 
   nsCOMPtr<nsIURI> channelURI;
   rv = aChannel->GetURI(getter_AddRefs(channelURI));
@@ -1412,6 +1449,8 @@ nsXMLHttpRequest::OpenRequest(const nsACString& method,
 {
   NS_ENSURE_ARG(!method.IsEmpty());
   NS_ENSURE_ARG(!url.IsEmpty());
+
+  NS_ENSURE_TRUE(mPrincipal, NS_ERROR_NOT_INITIALIZED);
 
   
   
@@ -1513,12 +1552,14 @@ nsXMLHttpRequest::OpenRequest(const nsACString& method,
   if (NS_FAILED(rv)) return rv;
 
   
-  if (!(mState & XML_HTTP_REQUEST_XSITEENABLED) &&
-      !IsSameOrigin(mPrincipal, mChannel)) {
+  if (IsSystemPrincipal(mPrincipal)) {
+    
+    mState |= XML_HTTP_REQUEST_XSITEENABLED;
+  }
+  else if (!(mState & XML_HTTP_REQUEST_XSITEENABLED) &&
+           !IsSameOrigin(mPrincipal, mChannel)) {
     mState |= XML_HTTP_REQUEST_USE_XSITE_AC;
   }
-
-  
 
   nsCOMPtr<nsIHttpChannel> httpChannel(do_QueryInterface(mChannel));
   if (httpChannel) {
@@ -2037,6 +2078,8 @@ nsXMLHttpRequest::SendAsBinary(const nsAString &aBody)
 NS_IMETHODIMP
 nsXMLHttpRequest::Send(nsIVariant *aBody)
 {
+  NS_ENSURE_TRUE(mPrincipal, NS_ERROR_NOT_INITIALIZED);
+
   nsresult rv = CheckInnerWindowCorrectness();
   NS_ENSURE_SUCCESS(rv, rv);
 
@@ -2062,12 +2105,10 @@ nsXMLHttpRequest::Send(nsIVariant *aBody)
   if (httpChannel) {
     httpChannel->GetRequestMethod(method); 
 
-    if (mPrincipal) {
-      nsCOMPtr<nsIURI> codebase;
-      mPrincipal->GetURI(getter_AddRefs(codebase));
+    nsCOMPtr<nsIURI> codebase;
+    mPrincipal->GetURI(getter_AddRefs(codebase));
 
-      httpChannel->SetReferrer(codebase);
-    }
+    httpChannel->SetReferrer(codebase);
   }
 
   if (aBody && httpChannel && !method.EqualsLiteral("GET")) {
