@@ -1052,7 +1052,7 @@ js_Invoke(JSContext *cx, uintN argc, jsval *vp, uintN flags)
     JSNative native;
     JSFunction *fun;
     JSScript *script;
-    uintN nslots, i;
+    uintN nslots, i, skip;
     uint32 rootedArgsFlag;
     JSInterpreterHook hook;
     void *hookData;
@@ -1145,7 +1145,7 @@ have_fun:
         } else if (!JSVAL_IS_OBJECT(vp[1])) {
             JS_ASSERT(!(flags & JSINVOKE_CONSTRUCT));
             if (PRIMITIVE_THIS_TEST(fun, vp[1]))
-                goto start_call;
+                goto init_slots;
         }
     }
 
@@ -1171,25 +1171,7 @@ have_fun:
         }
     }
 
-  start_call:
-    if (native && fun && (fun->flags & JSFUN_FAST_NATIVE)) {
-#ifdef DEBUG_NOT_THROWING
-        JSBool alreadyThrowing = cx->throwing;
-#endif
-        JS_ASSERT(nslots == 0);
-#if JS_HAS_LVALUE_RETURN
-        
-        cx->rval2set = JS_FALSE;
-#endif
-        ok = ((JSFastNative) native)(cx, argc, vp);
-        JS_RUNTIME_METER(cx->runtime, nativeCalls);
-#ifdef DEBUG_NOT_THROWING
-        if (ok && !alreadyThrowing)
-            ASSERT_NOT_THROWING(cx);
-#endif
-        goto out2;
-    }
-
+  init_slots:
     argv = vp + 2;
     sp = argv + argc;
 
@@ -1218,6 +1200,35 @@ have_fun:
         do {
             *sp++ = JSVAL_VOID;
         } while (--i != 0);
+    }
+
+    if (native && fun && (fun->flags & JSFUN_FAST_NATIVE)) {
+        JSTempValueRooter tvr;
+#ifdef DEBUG_NOT_THROWING
+        JSBool alreadyThrowing = cx->throwing;
+#endif
+#if JS_HAS_LVALUE_RETURN
+        
+        cx->rval2set = JS_FALSE;
+#endif
+        
+        skip = rootedArgsFlag ? 2 + argc : 0;
+        JS_PUSH_TEMP_ROOT(cx, 2 + argc + nslots - skip, argv - 2 + skip, &tvr);
+        ok = ((JSFastNative) native)(cx, argc, argv - 2);
+
+        
+
+
+
+        *vp = argv[-2];
+        JS_POP_TEMP_ROOT(cx, &tvr);
+
+        JS_RUNTIME_METER(cx->runtime, nativeCalls);
+#ifdef DEBUG_NOT_THROWING
+        if (ok && !alreadyThrowing)
+            ASSERT_NOT_THROWING(cx);
+#endif
+        goto out2;
     }
 
     
@@ -1566,6 +1577,113 @@ out:
 #endif
     return ok;
 }
+
+#if JS_HAS_EXPORT_IMPORT
+
+
+
+JS_STATIC_INTERPRET JSBool
+js_ImportProperty(JSContext *cx, JSObject *obj, jsid id)
+{
+    JSBool ok;
+    JSIdArray *ida;
+    JSProperty *prop;
+    JSObject *obj2, *target, *funobj, *closure;
+    uintN attrs;
+    jsint i;
+    jsval value;
+
+    if (JSVAL_IS_VOID(id)) {
+        ida = JS_Enumerate(cx, obj);
+        if (!ida)
+            return JS_FALSE;
+        ok = JS_TRUE;
+        if (ida->length == 0)
+            goto out;
+    } else {
+        ida = NULL;
+        if (!OBJ_LOOKUP_PROPERTY(cx, obj, id, &obj2, &prop))
+            return JS_FALSE;
+        if (!prop) {
+            js_ReportValueError(cx, JSMSG_NOT_DEFINED,
+                                JSDVG_IGNORE_STACK, ID_TO_VALUE(id), NULL);
+            return JS_FALSE;
+        }
+        ok = OBJ_GET_ATTRIBUTES(cx, obj, id, prop, &attrs);
+        OBJ_DROP_PROPERTY(cx, obj2, prop);
+        if (!ok)
+            return JS_FALSE;
+        if (!(attrs & JSPROP_EXPORTED)) {
+            js_ReportValueError(cx, JSMSG_NOT_EXPORTED,
+                                JSDVG_IGNORE_STACK, ID_TO_VALUE(id), NULL);
+            return JS_FALSE;
+        }
+    }
+
+    target = cx->fp->varobj;
+    i = 0;
+    do {
+        if (ida) {
+            id = ida->vector[i];
+            ok = OBJ_GET_ATTRIBUTES(cx, obj, id, NULL, &attrs);
+            if (!ok)
+                goto out;
+            if (!(attrs & JSPROP_EXPORTED))
+                continue;
+        }
+        ok = OBJ_CHECK_ACCESS(cx, obj, id, JSACC_IMPORT, &value, &attrs);
+        if (!ok)
+            goto out;
+        if (VALUE_IS_FUNCTION(cx, value)) {
+            funobj = JSVAL_TO_OBJECT(value);
+            closure = js_CloneFunctionObject(cx,
+                                             GET_FUNCTION_PRIVATE(cx, funobj),
+                                             obj);
+            if (!closure) {
+                ok = JS_FALSE;
+                goto out;
+            }
+            value = OBJECT_TO_JSVAL(closure);
+        }
+
+        
+
+
+
+
+
+
+
+
+        if (OBJ_GET_CLASS(cx, target) == &js_CallClass) {
+            ok = OBJ_LOOKUP_PROPERTY(cx, target, id, &obj2, &prop);
+            if (!ok)
+                goto out;
+        } else {
+            prop = NULL;
+        }
+        if (prop && target == obj2) {
+            ok = OBJ_SET_PROPERTY(cx, target, id, &value);
+        } else {
+            ok = OBJ_DEFINE_PROPERTY(cx, target, id, value,
+                                     JS_PropertyStub, JS_PropertyStub,
+                                     attrs & ~(JSPROP_EXPORTED |
+                                               JSPROP_GETTER |
+                                               JSPROP_SETTER),
+                                     NULL);
+        }
+        if (prop)
+            OBJ_DROP_PROPERTY(cx, obj2, prop);
+        if (!ok)
+            goto out;
+    } while (ida && ++i < ida->length);
+
+out:
+    if (ida)
+        JS_DestroyIdArray(cx, ida);
+    return ok;
+}
+#endif 
 
 JSBool
 js_CheckRedeclaration(JSContext *cx, JSObject *obj, jsid id, uintN attrs,
@@ -2403,6 +2521,7 @@ JS_STATIC_ASSERT(JSOP_INTERRUPT == 0);
 
 JS_STATIC_ASSERT(JSOP_NAME_LENGTH == JSOP_CALLNAME_LENGTH);
 JS_STATIC_ASSERT(JSOP_GETGVAR_LENGTH == JSOP_CALLGVAR_LENGTH);
+JS_STATIC_ASSERT(JSOP_GETVAR_LENGTH == JSOP_CALLVAR_LENGTH);
 JS_STATIC_ASSERT(JSOP_GETARG_LENGTH == JSOP_CALLARG_LENGTH);
 JS_STATIC_ASSERT(JSOP_GETLOCAL_LENGTH == JSOP_CALLLOCAL_LENGTH);
 JS_STATIC_ASSERT(JSOP_XMLNAME_LENGTH == JSOP_CALLXMLNAME_LENGTH);
@@ -2459,6 +2578,9 @@ js_Interpret(JSContext *cx)
 #else
     register uint32 switchMask;
     uintN switchOp;
+#endif
+#if JS_HAS_EXPORT_IMPORT
+    JSIdArray *ida;
 #endif
     jsint low, high, off, npairs;
     JSBool match;
@@ -3048,6 +3170,7 @@ js_Interpret(JSContext *cx)
             
 
           BEGIN_CASE(JSOP_FORARG)
+          BEGIN_CASE(JSOP_FORVAR)
           BEGIN_CASE(JSOP_FORCONST)
           BEGIN_CASE(JSOP_FORLOCAL)
             
@@ -3091,6 +3214,7 @@ js_Interpret(JSContext *cx)
                 break;
 
               case JSOP_FORLOCAL:
+              case JSOP_FORVAR:
                 slot = GET_SLOTNO(regs.pc);
                 JS_ASSERT(slot < fp->script->nslots);
                 vp = &fp->slots[slot];
@@ -3974,11 +4098,15 @@ js_Interpret(JSContext *cx)
             goto do_int_fast_incop;
 
           BEGIN_CASE(JSOP_DECLOCAL)
+          BEGIN_CASE(JSOP_DECVAR)
             incr = -2; incr2 = -2; goto do_local_incop;
           BEGIN_CASE(JSOP_LOCALDEC)
+          BEGIN_CASE(JSOP_VARDEC)
             incr = -2; incr2 =  0; goto do_local_incop;
           BEGIN_CASE(JSOP_INCLOCAL)
+          BEGIN_CASE(JSOP_INCVAR)
             incr =  2; incr2 =  2; goto do_local_incop;
+          BEGIN_CASE(JSOP_VARINC)
           BEGIN_CASE(JSOP_LOCALINC)
             incr =  2; incr2 =  0;
 
@@ -4096,6 +4224,7 @@ js_Interpret(JSContext *cx)
             goto do_getprop_body;
 
           BEGIN_CASE(JSOP_GETLOCALPROP)
+          BEGIN_CASE(JSOP_GETVARPROP)
             i = SLOTNO_LEN;
             slot = GET_SLOTNO(regs.pc);
             JS_ASSERT(slot < script->nslots);
@@ -4778,8 +4907,24 @@ js_Interpret(JSContext *cx)
 
                 if (fun->flags & JSFUN_FAST_NATIVE) {
                     JS_ASSERT(fun->u.n.extra == 0);
+                    if (argc < fun->u.n.minargs) {
+                        uintN nargs;
+
+                        
+
+
+
+                        nargs = fun->u.n.minargs - argc;
+                        if (regs.sp + nargs > fp->slots + script->nslots)
+                            goto do_invoke;
+                        do {
+                            PUSH(JSVAL_VOID);
+                        } while (--nargs != 0);
+                    }
+
                     JS_ASSERT(JSVAL_IS_OBJECT(vp[1]) ||
                               PRIMITIVE_THIS_TEST(fun, vp[1]));
+
                     ok = ((JSFastNative) fun->u.n.native)(cx, argc, vp);
 #ifdef INCLUDE_MOZILLA_DTRACE
                     if (VALUE_IS_FUNCTION(cx, lval)) {
@@ -4796,6 +4941,7 @@ js_Interpret(JSContext *cx)
                 }
             }
 
+          do_invoke:
             ok = js_Invoke(cx, argc, vp, 0);
 #ifdef INCLUDE_MOZILLA_DTRACE
             
@@ -5254,6 +5400,79 @@ js_Interpret(JSContext *cx)
                   : GET_JUMPX_OFFSET(pc2);
           END_VARLEN_CASE
 
+#if JS_HAS_EXPORT_IMPORT
+          BEGIN_CASE(JSOP_EXPORTALL)
+            obj = fp->varobj;
+            ida = JS_Enumerate(cx, obj);
+            if (!ida)
+                goto error;
+            ok = JS_TRUE;
+            for (i = 0; i != ida->length; i++) {
+                id = ida->vector[i];
+                ok = OBJ_LOOKUP_PROPERTY(cx, obj, id, &obj2, &prop);
+                if (!ok)
+                    break;
+                if (!prop)
+                    continue;
+                ok = OBJ_GET_ATTRIBUTES(cx, obj, id, prop, &attrs);
+                if (ok) {
+                    attrs |= JSPROP_EXPORTED;
+                    ok = OBJ_SET_ATTRIBUTES(cx, obj, id, prop, &attrs);
+                }
+                OBJ_DROP_PROPERTY(cx, obj2, prop);
+                if (!ok)
+                    break;
+            }
+            JS_ASSERT(ok == (i == ida->length));
+            JS_DestroyIdArray(cx, ida);
+            if (!ok)
+                goto error;
+          END_CASE(JSOP_EXPORTALL)
+
+          BEGIN_CASE(JSOP_EXPORTNAME)
+            LOAD_ATOM(0);
+            id = ATOM_TO_JSID(atom);
+            obj = fp->varobj;
+            if (!OBJ_LOOKUP_PROPERTY(cx, obj, id, &obj2, &prop))
+                goto error;
+            if (!prop) {
+                if (!OBJ_DEFINE_PROPERTY(cx, obj, id, JSVAL_VOID,
+                                         JS_PropertyStub, JS_PropertyStub,
+                                         JSPROP_EXPORTED, NULL)) {
+                    goto error;
+                }
+            } else {
+                ok = OBJ_GET_ATTRIBUTES(cx, obj, id, prop, &attrs);
+                if (ok) {
+                    attrs |= JSPROP_EXPORTED;
+                    ok = OBJ_SET_ATTRIBUTES(cx, obj, id, prop, &attrs);
+                }
+                OBJ_DROP_PROPERTY(cx, obj2, prop);
+                if (!ok)
+                    goto error;
+            }
+          END_CASE(JSOP_EXPORTNAME)
+
+          BEGIN_CASE(JSOP_IMPORTALL)
+            id = (jsid) JSVAL_VOID;
+            PROPERTY_OP(-1, js_ImportProperty(cx, obj, id));
+            regs.sp--;
+          END_CASE(JSOP_IMPORTALL)
+
+          BEGIN_CASE(JSOP_IMPORTPROP)
+            
+            LOAD_ATOM(0);
+            id = ATOM_TO_JSID(atom);
+            PROPERTY_OP(-1, js_ImportProperty(cx, obj, id));
+            regs.sp--;
+          END_CASE(JSOP_IMPORTPROP)
+
+          BEGIN_CASE(JSOP_IMPORTELEM)
+            ELEMENT_OP(-1, js_ImportProperty(cx, obj, id));
+            regs.sp -= 2;
+          END_CASE(JSOP_IMPORTELEM)
+#endif 
+
           BEGIN_CASE(JSOP_TRAP)
           {
             JSTrapStatus status;
@@ -5321,25 +5540,28 @@ js_Interpret(JSContext *cx)
           END_SET_CASE(JSOP_SETARG)
 
           BEGIN_CASE(JSOP_GETLOCAL)
+          BEGIN_CASE(JSOP_GETVAR)
             slot = GET_SLOTNO(regs.pc);
             JS_ASSERT(slot < script->nslots);
             PUSH_OPND(fp->slots[slot]);
-          END_CASE(JSOP_GETLOCAL)
+          END_CASE(JSOP_GETVAR)
 
           BEGIN_CASE(JSOP_CALLLOCAL)
+          BEGIN_CASE(JSOP_CALLVAR)
             slot = GET_SLOTNO(regs.pc);
             JS_ASSERT(slot < script->nslots);
             PUSH_OPND(fp->slots[slot]);
             PUSH_OPND(JSVAL_NULL);
-          END_CASE(JSOP_CALLLOCAL)
+          END_CASE(JSOP_GETVAR)
 
           BEGIN_CASE(JSOP_SETLOCAL)
+          BEGIN_CASE(JSOP_SETVAR)
             slot = GET_SLOTNO(regs.pc);
             JS_ASSERT(slot < script->nslots);
             vp = &fp->slots[slot];
             GC_POKE(cx, *vp);
             *vp = FETCH_OPND(-1);
-          END_SET_CASE(JSOP_SETLOCAL)
+          END_SET_CASE(JSOP_SETVAR)
 
           BEGIN_CASE(JSOP_GETGVAR)
           BEGIN_CASE(JSOP_CALLGVAR)
@@ -6595,22 +6817,8 @@ js_Interpret(JSContext *cx)
           L_JSOP_DEFXMLNS:
 # endif
 
-          L_JSOP_UNUSED75:
-          L_JSOP_UNUSED76:
-          L_JSOP_UNUSED77:
-          L_JSOP_UNUSED78:
-          L_JSOP_UNUSED79:
           L_JSOP_UNUSED186:
-          L_JSOP_UNUSED201:
-          L_JSOP_UNUSED202:
-          L_JSOP_UNUSED203:
-          L_JSOP_UNUSED204:
-          L_JSOP_UNUSED205:
-          L_JSOP_UNUSED206:
-          L_JSOP_UNUSED207:
           L_JSOP_UNUSED213:
-          L_JSOP_UNUSED219:
-          L_JSOP_UNUSED226:
 
 #else 
           default:

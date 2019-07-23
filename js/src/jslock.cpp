@@ -405,20 +405,18 @@ js_FinishSharingTitle(JSContext *cx, JSTitle *title)
     scope = (JSScope *)map;
 
     obj = scope->object;
-    if (obj) {
-        nslots = scope->map.freeslot;
-        for (i = 0; i != nslots; ++i) {
-            v = STOBJ_GET_SLOT(obj, i);
-            if (JSVAL_IS_STRING(v) &&
-                !js_MakeStringImmutable(cx, JSVAL_TO_STRING(v))) {
-                
+    nslots = scope->map.freeslot;
+    for (i = 0; i != nslots; ++i) {
+        v = STOBJ_GET_SLOT(obj, i);
+        if (JSVAL_IS_STRING(v) &&
+            !js_MakeStringImmutable(cx, JSVAL_TO_STRING(v))) {
+            
 
 
 
 
 
-                STOBJ_SET_SLOT(obj, i, JSVAL_VOID);
-            }
+            STOBJ_SET_SLOT(obj, i, JSVAL_VOID);
         }
     }
 

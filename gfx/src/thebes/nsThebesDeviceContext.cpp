@@ -227,6 +227,7 @@ nsThebesDeviceContext::SetDPI()
 
         
         dpi = 96;
+
 #elif defined(MOZ_WIDGET_QT)
 		
         dpi = 96;
@@ -245,8 +246,14 @@ nsThebesDeviceContext::SetDPI()
         
         
         
-        mAppUnitsPerDevNotScaledPixel = PR_MAX(1, AppUnitsPerCSSPixel() /
-                                        PR_MAX(1, dpi / 96));
+        PRUint32 roundedDPIScaleFactor = (dpi + 48)/96;
+#ifdef MOZ_WIDGET_GTK2
+        
+        
+        roundedDPIScaleFactor = dpi/96;
+#endif
+        mAppUnitsPerDevNotScaledPixel =
+          PR_MAX(1, AppUnitsPerCSSPixel() / PR_MAX(1, roundedDPIScaleFactor));
     } else {
         
 
