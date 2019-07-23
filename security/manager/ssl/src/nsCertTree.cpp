@@ -35,6 +35,7 @@
 
 
 
+
 #include "nsNSSComponent.h" 
 #include "nsCertTree.h"
 #include "nsITreeColumns.h"
@@ -51,11 +52,17 @@
 #include "nsArrayUtils.h"
 #include "nsISupportsPrimitives.h"
 #include "nsXPCOMCID.h"
+#include "nsTHashtable.h"
+#include "nsHashKeys.h"
+
 
 #include "prlog.h"
 #ifdef PR_LOGGING
 extern PRLogModuleInfo* gPIPNSSLog;
 #endif
+
+#include "nsNSSCleaner.h"
+NSSCleanupAutoPtrClass(CERTCertificate, CERT_DestroyCertificate)
 
 static NS_DEFINE_CID(kNSSComponentCID, NS_NSSCOMPONENT_CID);
 
@@ -130,7 +137,48 @@ static PLDHashTableOps gMapOps = {
   CompareCacheInitEntry
 };
 
+NS_IMPL_ISUPPORTS0(nsCertAddonInfo)
+NS_IMPL_ISUPPORTS1(nsCertTreeDispInfo, nsICertTreeItem)
 
+nsCertTreeDispInfo::nsCertTreeDispInfo()
+:mAddonInfo(nsnull)
+,mTypeOfEntry(direct_db)
+,mOverrideBits(nsCertOverride::ob_None)
+{
+}
+
+nsCertTreeDispInfo::nsCertTreeDispInfo(nsCertTreeDispInfo &other)
+{
+  mAddonInfo = other.mAddonInfo;
+  mTypeOfEntry = other.mTypeOfEntry;
+  mHostWithPort = other.mHostWithPort;
+  mOverrideBits = other.mOverrideBits;
+}
+
+nsCertTreeDispInfo::~nsCertTreeDispInfo()
+{
+}
+
+NS_IMETHODIMP
+nsCertTreeDispInfo::GetCert(nsIX509Cert **_cert)
+{
+  NS_ENSURE_ARG(_cert);
+  if (mAddonInfo) {
+    *_cert = mAddonInfo->mCert.get();
+    NS_IF_ADDREF(*_cert);
+  }
+  else {
+    *_cert = nsnull;
+  }
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsCertTreeDispInfo::GetHostPort(nsAString &aHostPort)
+{
+  aHostPort = mHostWithPort;
+  return NS_OK;
+}
 
 NS_IMPL_ISUPPORTS2(nsCertTree, nsICertTree, nsITreeView)
 
@@ -138,6 +186,7 @@ nsCertTree::nsCertTree() : mTreeArray(NULL)
 {
   mCompareCache.ops = nsnull;
   mNSSComponent = do_GetService(kNSSComponentCID);
+  mOverrideService = do_GetService("@mozilla.org/security/certoverride;1");
   mCellText = nsnull;
 }
 
@@ -169,20 +218,7 @@ nsCertTree::~nsCertTree()
 void
 nsCertTree::FreeCertArray()
 {
-  if (mCertArray) {
-    PRUint32 count;
-    nsresult rv = mCertArray->Count(&count);
-    if (NS_FAILED(rv))
-    {
-      NS_ASSERTION(0, "Count failed");
-      return;
-    }
-    PRInt32 i;
-    for (i = count - 1; i >= 0; i--)
-    {
-      mCertArray->RemoveElementAt(i);
-    }
-  }
+  mDispInfo.Clear();
 }
 
 CompareCacheHashEntry *
@@ -208,16 +244,19 @@ PRInt32
 nsCertTree::CountOrganizations()
 {
   PRUint32 i, certCount;
-  nsresult rv = mCertArray->Count(&certCount);
-  if (NS_FAILED(rv)) return -1;
+  certCount = mDispInfo.Length();
   if (certCount == 0) return 0;
-  nsCOMPtr<nsISupports> isupport = dont_AddRef(mCertArray->ElementAt(0));
-  nsCOMPtr<nsIX509Cert> orgCert = do_QueryInterface(isupport);
+  nsCOMPtr<nsIX509Cert> orgCert = nsnull;
+  if (mDispInfo.ElementAt(0)->mAddonInfo) {
+    orgCert = mDispInfo.ElementAt(0)->mAddonInfo->mCert;
+  }
   nsCOMPtr<nsIX509Cert> nextCert = nsnull;
   PRInt32 orgCount = 1;
   for (i=1; i<certCount; i++) {
-    isupport = dont_AddRef(mCertArray->ElementAt(i));
-    nextCert = do_QueryInterface(isupport);
+    nextCert = nsnull;
+    if (mDispInfo.ElementAt(i)->mAddonInfo) {
+      nextCert = mDispInfo.ElementAt(i)->mAddonInfo->mCert;
+    }
     
     if (CmpBy(&mCompareCache, orgCert, nextCert, sort_IssuerOrg, sort_None, sort_None) != 0) {
       orgCert = nextCert;
@@ -255,8 +294,25 @@ nsCertTree::GetThreadDescAtIndex(PRInt32 index)
 nsIX509Cert *
 nsCertTree::GetCertAtIndex(PRInt32 index, PRInt32 *outAbsoluteCertOffset)
 {
-  int i, idx = 0, cIndex = 0, nc;
+  nsRefPtr<nsCertTreeDispInfo> certdi =
+    getter_AddRefs(GetDispInfoAtIndex(index, outAbsoluteCertOffset));
+  if (!certdi)
+    return nsnull;
+
   nsIX509Cert *rawPtr = nsnull;
+  if (certdi->mAddonInfo) {
+    rawPtr = certdi->mAddonInfo->mCert;
+    NS_IF_ADDREF(rawPtr);
+  }
+  return rawPtr;
+}
+
+
+nsCertTreeDispInfo *
+nsCertTree::GetDispInfoAtIndex(PRInt32 index, 
+                               PRInt32 *outAbsoluteCertOffset)
+{
+  int i, idx = 0, cIndex = 0, nc;
   if (index < 0) return nsnull;
   
   for (i=0; i<mNumOrgs; i++) {
@@ -267,11 +323,12 @@ nsCertTree::GetCertAtIndex(PRInt32 index, PRInt32 *outAbsoluteCertOffset)
       PRInt32 certIndex = cIndex + index - idx;
       if (outAbsoluteCertOffset)
         *outAbsoluteCertOffset = certIndex;
-      nsCOMPtr<nsISupports> isupport = 
-                             dont_AddRef(mCertArray->ElementAt(certIndex));
-      nsCOMPtr<nsIX509Cert> cert = do_QueryInterface(isupport);
-      rawPtr = cert;
-      NS_IF_ADDREF(rawPtr);
+      nsRefPtr<nsCertTreeDispInfo> certdi = mDispInfo.ElementAt(certIndex);
+      if (certdi) {
+        nsCertTreeDispInfo *raw = certdi.get();
+        NS_IF_ADDREF(raw);
+        return raw;
+      }
       break;
     }
     if (mTreeArray[i].open)
@@ -279,7 +336,7 @@ nsCertTree::GetCertAtIndex(PRInt32 index, PRInt32 *outAbsoluteCertOffset)
     cIndex += mTreeArray[i].numChildren;
     if (idx > index) break;
   }
-  return rawPtr;
+  return nsnull;
 }
 
 nsCertTree::nsCertCompareFunc
@@ -299,72 +356,313 @@ nsCertTree::GetCompareFuncFromCertType(PRUint32 aType)
   }
 }
 
-PRBool
+struct nsCertAndArrayAndPositionAndCounterAndTracker
+{
+  nsRefPtr<nsCertAddonInfo> certai;
+  nsTArray< nsRefPtr<nsCertTreeDispInfo> > *array;
+  int position;
+  int counter;
+  nsTHashtable<nsCStringHashKey> *tracker;
+};
+
+
+
+
+
+
+
+
+PR_STATIC_CALLBACK(void)
+MatchingCertOverridesCallback(const nsCertOverride &aSettings,
+                              void *aUserData)
+{
+  nsCertAndArrayAndPositionAndCounterAndTracker *cap = 
+    (nsCertAndArrayAndPositionAndCounterAndTracker*)aUserData;
+  if (!cap)
+    return;
+
+  nsCertTreeDispInfo *certdi = new nsCertTreeDispInfo;
+  if (certdi) {
+    if (cap->certai)
+      cap->certai->mUsageCount++;
+    certdi->mAddonInfo = cap->certai;
+    certdi->mTypeOfEntry = nsCertTreeDispInfo::host_port_override;
+    certdi->mHostWithPort = NS_ConvertUTF8toUTF16(aSettings.mHostWithPortUTF8);
+    certdi->mOverrideBits = aSettings.mOverrideBits;
+    NS_IF_ADDREF(certdi);
+    cap->array->InsertElementAt(cap->position, certdi);
+    cap->position++;
+    cap->counter++;
+  }
+
+  
+  
+  cap->tracker->RemoveEntry(aSettings.mHostWithPortUTF8);
+}
+
+
+
+PR_STATIC_CALLBACK(void)
+CollectAllHostPortOverridesCallback(const nsCertOverride &aSettings,
+                                    void *aUserData)
+{
+  nsTHashtable<nsCStringHashKey> *collectorTable =
+    (nsTHashtable<nsCStringHashKey> *)aUserData;
+  if (!collectorTable)
+    return;
+
+  collectorTable->PutEntry(aSettings.mHostWithPortUTF8);
+}
+
+struct nsArrayAndPositionAndCounterAndTracker
+{
+  nsTArray< nsRefPtr<nsCertTreeDispInfo> > *array;
+  int position;
+  int counter;
+  nsTHashtable<nsCStringHashKey> *tracker;
+};
+
+
+
+PR_STATIC_CALLBACK(void)
+AddRemaningHostPortOverridesCallback(const nsCertOverride &aSettings,
+                                     void *aUserData)
+{
+  nsArrayAndPositionAndCounterAndTracker *cap = 
+    (nsArrayAndPositionAndCounterAndTracker*)aUserData;
+  if (!cap)
+    return;
+
+  if (!cap->tracker->GetEntry(aSettings.mHostWithPortUTF8))
+    return;
+
+  
+  
+
+  nsCertTreeDispInfo *certdi = new nsCertTreeDispInfo;
+  if (certdi) {
+    certdi->mAddonInfo = nsnull;
+    certdi->mTypeOfEntry = nsCertTreeDispInfo::host_port_override;
+    certdi->mHostWithPort = NS_ConvertUTF8toUTF16(aSettings.mHostWithPortUTF8);
+    certdi->mOverrideBits = aSettings.mOverrideBits;
+    NS_IF_ADDREF(certdi);
+    cap->array->InsertElementAt(cap->position, certdi);
+    cap->position++;
+    cap->counter++;
+  }
+}
+
+nsresult
 nsCertTree::GetCertsByTypeFromCertList(CERTCertList *aCertList,
-                                       PRUint32 aType,
+                                       PRUint32 aWantedType,
                                        nsCertCompareFunc  aCertCmpFn,
-                                       void *aCertCmpFnArg,
-                                       nsISupportsArray **_certs)
+                                       void *aCertCmpFnArg)
 {
   PR_LOG(gPIPNSSLog, PR_LOG_DEBUG, ("GetCertsByTypeFromCertList"));
   if (!aCertList)
-    return PR_FALSE;
-  nsCOMPtr<nsISupportsArray> certarray;
-  nsresult rv = NS_NewISupportsArray(getter_AddRefs(certarray));
-  if (NS_FAILED(rv)) return PR_FALSE;
+    return NS_ERROR_FAILURE;
+
+  nsCertOverrideService *cos = 
+    reinterpret_cast<nsCertOverrideService*>(mOverrideService.get());
+  if (!cos)
+    return NS_ERROR_FAILURE;
+
+  nsTHashtable<nsCStringHashKey> allHostPortOverrideKeys;
+  if (!allHostPortOverrideKeys.Init())
+    return NS_ERROR_OUT_OF_MEMORY;
+
+  if (aWantedType == nsIX509Cert::SERVER_CERT) {
+    cos->EnumerateCertOverrides(nsnull, 
+                                CollectAllHostPortOverridesCallback, 
+                                &allHostPortOverrideKeys);
+  }
+
   CERTCertListNode *node;
   int count = 0;
   for (node = CERT_LIST_HEAD(aCertList);
        !CERT_LIST_END(node, aCertList);
        node = CERT_LIST_NEXT(node)) {
-    if (aType == nsIX509Cert2::ANY_CERT || getCertType(node->cert) == aType) {
-      nsCOMPtr<nsIX509Cert> pipCert = new nsNSSCertificate(node->cert);
-      if (pipCert) {
-        int i;
-        for (i = 0; i < count; ++i) {
-          nsCOMPtr<nsIX509Cert> cert = do_QueryElementAt(certarray, i);
-          if ((*aCertCmpFn)(aCertCmpFnArg, pipCert, cert) < 0) {
-            break;
-          }
+
+    PRBool wantThisCert = (aWantedType == nsIX509Cert2::ANY_CERT);
+    PRBool wantThisCertIfNoOverrides = PR_FALSE;
+    PRBool wantThisCertIfHaveOverrides = PR_FALSE;
+    PRBool addOverrides = PR_FALSE;
+
+    if (!wantThisCert) {
+      PRUint32 thisCertType = getCertType(node->cert);
+
+      
+      
+      
+      
+      
+      
+      
+      
+      
+
+      if (aWantedType == nsIX509Cert::SERVER_CERT
+          && thisCertType == nsIX509Cert::UNKNOWN_CERT) {
+        
+        
+        
+        addOverrides = PR_TRUE;
+      }
+      else
+      if (aWantedType == nsIX509Cert::UNKNOWN_CERT
+          && thisCertType == nsIX509Cert::UNKNOWN_CERT) {
+        
+        
+        
+        wantThisCertIfNoOverrides = PR_TRUE;
+      }
+      else
+      if (aWantedType == nsIX509Cert::SERVER_CERT
+          && thisCertType == nsIX509Cert::SERVER_CERT) {
+        
+        
+        wantThisCert = PR_TRUE;
+        
+        
+        addOverrides = PR_TRUE;
+      }
+      else
+      if (aWantedType == nsIX509Cert::SERVER_CERT
+          && thisCertType == nsIX509Cert::EMAIL_CERT) {
+        
+        
+        
+        
+        
+        
+        addOverrides = PR_TRUE;
+      }
+      else
+      if (aWantedType == nsIX509Cert::EMAIL_CERT
+          && thisCertType == nsIX509Cert::EMAIL_CERT) {
+        
+        
+        
+        
+        
+        
+        wantThisCertIfNoOverrides = PR_TRUE;
+      }
+      else
+      if (thisCertType == aWantedType) {
+        wantThisCert = PR_TRUE;
+      }
+    }
+
+    nsCOMPtr<nsIX509Cert> pipCert = new nsNSSCertificate(node->cert);
+    if (!pipCert)
+      return NS_ERROR_OUT_OF_MEMORY;
+
+    if (wantThisCertIfNoOverrides || wantThisCertIfHaveOverrides) {
+      PRUint32 ocount = 0;
+      nsresult rv = mOverrideService->IsCertUsedForOverrides(pipCert, &ocount);
+
+      if (wantThisCertIfNoOverrides) {
+        if (NS_FAILED(rv) || ocount == 0) {
+          
+          wantThisCert = PR_TRUE;
         }
-        certarray->InsertElementAt(pipCert, i);
+      }
+
+      if (wantThisCertIfHaveOverrides) {
+        if (NS_SUCCEEDED(rv) && ocount > 0) {
+          
+          wantThisCert = PR_TRUE;
+        }
+      }
+    }
+
+    nsRefPtr<nsCertAddonInfo> certai = new nsCertAddonInfo;
+    if (!certai)
+      return NS_ERROR_OUT_OF_MEMORY;
+
+    certai->mCert = pipCert;
+    certai->mUsageCount = 0;
+
+    if (wantThisCert || addOverrides) {
+      int InsertPosition = 0;
+      for (; InsertPosition < count; ++InsertPosition) {
+        nsCOMPtr<nsIX509Cert> cert = nsnull;
+        nsRefPtr<nsCertTreeDispInfo> elem = mDispInfo.ElementAt(InsertPosition);
+        if (elem->mAddonInfo) {
+          cert = mDispInfo.ElementAt(InsertPosition)->mAddonInfo->mCert;
+        }
+        if ((*aCertCmpFn)(aCertCmpFnArg, pipCert, cert) < 0) {
+          break;
+        }
+      }
+      if (wantThisCert) {
+        nsCertTreeDispInfo *certdi = new nsCertTreeDispInfo;
+        if (!certdi)
+          return NS_ERROR_OUT_OF_MEMORY;
+
+        certdi->mAddonInfo = certai;
+        certai->mUsageCount++;
+        certdi->mTypeOfEntry = nsCertTreeDispInfo::direct_db;
+        
+        certdi->mOverrideBits = nsCertOverride::ob_None;
+        NS_IF_ADDREF(certdi);
+        mDispInfo.InsertElementAt(InsertPosition, certdi);
         ++count;
+        ++InsertPosition;
+      }
+      if (addOverrides && cos) {
+        nsCertAndArrayAndPositionAndCounterAndTracker cap;
+        cap.certai = certai;
+        cap.array = &mDispInfo;
+        cap.position = InsertPosition;
+        cap.counter = 0;
+        cap.tracker = &allHostPortOverrideKeys;
+
+        cos->EnumerateCertOverrides(pipCert, MatchingCertOverridesCallback, &cap);
+        count += cap.counter;
       }
     }
   }
-  *_certs = certarray;
-  NS_ADDREF(*_certs);
-  return PR_TRUE;
+
+  if (aWantedType == nsIX509Cert::SERVER_CERT) {
+    nsArrayAndPositionAndCounterAndTracker cap;
+    cap.array = &mDispInfo;
+    cap.position = 0;
+    cap.counter = 0;
+    cap.tracker = &allHostPortOverrideKeys;
+    cos->EnumerateCertOverrides(nsnull, AddRemaningHostPortOverridesCallback, &cap);
+  }
+
+  return NS_OK;
 }
 
-PRBool 
+nsresult 
 nsCertTree::GetCertsByType(PRUint32           aType,
                            nsCertCompareFunc  aCertCmpFn,
-                           void              *aCertCmpFnArg,
-                           nsISupportsArray **_certs)
+                           void              *aCertCmpFnArg)
 {
   nsNSSShutDownPreventionLock locker;
   CERTCertList *certList = NULL;
   nsCOMPtr<nsIInterfaceRequestor> cxt = new PipUIContext();
   certList = PK11_ListCerts(PK11CertListUnique, cxt);
-  PRBool rv = GetCertsByTypeFromCertList(certList, aType, aCertCmpFn, aCertCmpFnArg, _certs);
+  nsresult rv = GetCertsByTypeFromCertList(certList, aType, aCertCmpFn, aCertCmpFnArg);
   if (certList)
     CERT_DestroyCertList(certList);
   return rv;
 }
 
-PRBool 
+nsresult 
 nsCertTree::GetCertsByTypeFromCache(nsINSSCertCache   *aCache,
                                     PRUint32           aType,
                                     nsCertCompareFunc  aCertCmpFn,
-                                    void              *aCertCmpFnArg,
-                                    nsISupportsArray **_certs)
+                                    void              *aCertCmpFnArg)
 {
   NS_ENSURE_ARG_POINTER(aCache);
   CERTCertList *certList = reinterpret_cast<CERTCertList*>(aCache->GetCachedCerts());
   if (!certList)
     return NS_ERROR_FAILURE;
-  return GetCertsByTypeFromCertList(certList, aType, aCertCmpFn, aCertCmpFnArg, _certs);
+  return GetCertsByTypeFromCertList(certList, aType, aCertCmpFn, aCertCmpFnArg);
 }
 
 
@@ -384,8 +682,7 @@ nsCertTree::LoadCertsFromCache(nsINSSCertCache *aCache, PRUint32 aType)
   if (NS_FAILED(rv)) return rv;
 
   rv = GetCertsByTypeFromCache(aCache, aType, 
-                               GetCompareFuncFromCertType(aType), &mCompareCache,
-                               getter_AddRefs(mCertArray));
+                               GetCompareFuncFromCertType(aType), &mCompareCache);
   if (NS_FAILED(rv)) return rv;
   return UpdateUIContents();
 }
@@ -403,8 +700,7 @@ nsCertTree::LoadCerts(PRUint32 aType)
   if (NS_FAILED(rv)) return rv;
 
   rv = GetCertsByType(aType, 
-                      GetCompareFuncFromCertType(aType), &mCompareCache,
-                      getter_AddRefs(mCertArray));
+                      GetCompareFuncFromCertType(aType), &mCompareCache);
   if (NS_FAILED(rv)) return rv;
   return UpdateUIContents();
 }
@@ -412,9 +708,7 @@ nsCertTree::LoadCerts(PRUint32 aType)
 nsresult
 nsCertTree::UpdateUIContents()
 {
-  PRUint32 count;
-  nsresult rv = mCertArray->Count(&count);
-  if (NS_FAILED(rv)) return rv;
+  PRUint32 count = mDispInfo.Length();
   mNumOrgs = CountOrganizations();
   mTreeArray = new treeArrayEl[mNumOrgs];
   if (!mTreeArray)
@@ -422,28 +716,41 @@ nsCertTree::UpdateUIContents()
 
   mCellText = do_CreateInstance(NS_ARRAY_CONTRACTID);
 
+if (count) {
   PRUint32 j = 0;
-  nsCOMPtr<nsISupports> isupport = dont_AddRef(mCertArray->ElementAt(j));
-  nsCOMPtr<nsIX509Cert> orgCert = do_QueryInterface(isupport);
+  nsCOMPtr<nsIX509Cert> orgCert = nsnull;
+  if (mDispInfo.ElementAt(j)->mAddonInfo) {
+    orgCert = mDispInfo.ElementAt(j)->mAddonInfo->mCert;
+  }
   for (PRInt32 i=0; i<mNumOrgs; i++) {
     nsString &orgNameRef = mTreeArray[i].orgName;
-    orgCert->GetIssuerOrganization(orgNameRef);
-    if (orgNameRef.IsEmpty())
-      orgCert->GetCommonName(orgNameRef);
+    if (!orgCert) {
+      mNSSComponent->GetPIPNSSBundleString("CertOrgUnknown", orgNameRef);
+    }
+    else {
+      orgCert->GetIssuerOrganization(orgNameRef);
+      if (orgNameRef.IsEmpty())
+        orgCert->GetCommonName(orgNameRef);
+    }
     mTreeArray[i].open = PR_TRUE;
     mTreeArray[i].certIndex = j;
     mTreeArray[i].numChildren = 1;
     if (++j >= count) break;
-    isupport = dont_AddRef(mCertArray->ElementAt(j));
-    nsCOMPtr<nsIX509Cert> nextCert = do_QueryInterface(isupport);
+    nsCOMPtr<nsIX509Cert> nextCert = nsnull;
+    if (mDispInfo.ElementAt(j)->mAddonInfo) {
+      nextCert = mDispInfo.ElementAt(j)->mAddonInfo->mCert;
+    }
     while (0 == CmpBy(&mCompareCache, orgCert, nextCert, sort_IssuerOrg, sort_None, sort_None)) {
       mTreeArray[i].numChildren++;
       if (++j >= count) break;
-      isupport = dont_AddRef(mCertArray->ElementAt(j));
-      nextCert = do_QueryInterface(isupport);
+      nextCert = nsnull;
+      if (mDispInfo.ElementAt(j)->mAddonInfo) {
+        nextCert = mDispInfo.ElementAt(j)->mAddonInfo->mCert;
+      }
     }
     orgCert = nextCert;
   }
+}
   if (mTree) {
     mTree->BeginUpdateBatch();
     mTree->RowCountChanged(0, -mNumRows);
@@ -455,9 +762,15 @@ nsCertTree::UpdateUIContents()
 }
 
 NS_IMETHODIMP 
-nsCertTree::RemoveCert(PRUint32 index)
+nsCertTree::DeleteEntryObject(PRUint32 index)
 {
-  if (!mCertArray || !mTreeArray || index < 0) {
+  if (!mTreeArray || index < 0) {
+    return NS_ERROR_FAILURE;
+  }
+
+  nsCOMPtr<nsIX509CertDB> certdb = 
+    do_GetService("@mozilla.org/security/x509certdb;1");
+  if (!certdb) {
     return NS_ERROR_FAILURE;
   }
 
@@ -471,9 +784,66 @@ nsCertTree::RemoveCert(PRUint32 index)
     nc = (mTreeArray[i].open) ? mTreeArray[i].numChildren : 0;
     if (index < idx + nc) { 
       PRInt32 certIndex = cIndex + index - idx;
-      nsCOMPtr<nsISupports> isupport = dont_AddRef(mCertArray->ElementAt(certIndex));
-      RemoveCacheEntry(isupport);
-      mCertArray->RemoveElementAt(certIndex);
+
+      nsRefPtr<nsCertTreeDispInfo> certdi = mDispInfo.ElementAt(certIndex);
+      nsCOMPtr<nsIX509Cert> cert = nsnull;
+      if (certdi->mAddonInfo) {
+        cert = certdi->mAddonInfo->mCert;
+      }
+      PRBool canRemoveEntry = PR_FALSE;
+
+      if (certdi->mTypeOfEntry == nsCertTreeDispInfo::host_port_override) {
+        mOverrideService->ClearValidityOverride(certdi->mHostWithPort);
+        if (certdi->mAddonInfo) {
+          certdi->mAddonInfo->mUsageCount--;
+          if (certdi->mAddonInfo->mUsageCount == 0) {
+            
+            
+            
+            
+            canRemoveEntry = PR_TRUE;
+          }
+        } 
+      }
+      else {
+        if (certdi->mAddonInfo->mUsageCount > 1) {
+          
+          
+          
+
+          CERTCertificate *nsscert = nsnull;
+          CERTCertificateCleaner nsscertCleaner(nsscert);
+
+          nsCOMPtr<nsIX509Cert2> cert2 = do_QueryInterface(cert);
+          if (cert2) {
+            nsscert = cert2->GetCert();
+          }
+
+          if (nsscert) {
+            CERTCertTrust trust;
+            memset((void*)&trust, 0, sizeof(trust));
+          
+            SECStatus srv = CERT_DecodeTrustString(&trust, ""); 
+            if (srv == SECSuccess) {
+              CERT_ChangeCertTrust(CERT_GetDefaultCertDB(), nsscert, &trust);
+            }
+          }
+        }
+        else {
+          canRemoveEntry = PR_TRUE;
+        }
+      }
+
+      nsCertTreeDispInfo *certdi2 = mDispInfo.ElementAt(certIndex);
+      mDispInfo.RemoveElementAt(certIndex);
+      NS_IF_RELEASE(certdi2);
+      certdi2 = 0;
+
+      if (canRemoveEntry) {
+        RemoveCacheEntry(cert);
+        certdb->DeleteCertificate(cert);
+      }
+
       delete [] mTreeArray;
       mTreeArray = nsnull;
       return UpdateUIContents();
@@ -499,11 +869,35 @@ nsCertTree::GetCert(PRUint32 aIndex, nsIX509Cert **_cert)
 {
   NS_ENSURE_ARG(_cert);
   *_cert = GetCertAtIndex(aIndex);
-  
-  
-    
-    
-  
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsCertTree::GetTreeItem(PRUint32 aIndex, nsICertTreeItem **_treeitem)
+{
+  NS_ENSURE_ARG(_treeitem);
+
+  nsRefPtr<nsCertTreeDispInfo> certdi = 
+    getter_AddRefs(GetDispInfoAtIndex(aIndex));
+  if (!certdi)
+    return NS_ERROR_FAILURE;
+
+  *_treeitem = certdi;
+  NS_IF_ADDREF(*_treeitem);
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsCertTree::IsHostPortOverride(PRUint32 aIndex, PRBool *_retval)
+{
+  NS_ENSURE_ARG(_retval);
+
+  nsRefPtr<nsCertTreeDispInfo> certdi = 
+    getter_AddRefs(GetDispInfoAtIndex(aIndex));
+  if (!certdi)
+    return NS_ERROR_FAILURE;
+
+  *_retval = (certdi->mTypeOfEntry == nsCertTreeDispInfo::host_port_override);
   return NS_OK;
 }
 
@@ -719,7 +1113,15 @@ nsCertTree::GetCellText(PRInt32 row, nsITreeColumn* col,
   }
 
   PRInt32 absoluteCertOffset;
-  nsCOMPtr<nsIX509Cert> cert = dont_AddRef(GetCertAtIndex(row, &absoluteCertOffset));
+  nsRefPtr<nsCertTreeDispInfo> certdi = 
+    getter_AddRefs(GetDispInfoAtIndex(row, &absoluteCertOffset));
+  if (!certdi)
+    return NS_ERROR_FAILURE;
+
+  nsCOMPtr<nsIX509Cert> cert = nsnull;
+  if (certdi->mAddonInfo) {
+    cert = certdi->mAddonInfo->mCert;
+  }
 
   PRInt32 colIndex;
   col->GetIndex(&colIndex);
@@ -736,34 +1138,38 @@ nsCertTree::GetCellText(PRInt32 row, nsITreeColumn* col,
     }
   }
 
-  if (cert == nsnull) return NS_ERROR_FAILURE;
   if (NS_LITERAL_STRING("certcol").Equals(colID)) {
-    rv = cert->GetCommonName(_retval);
-    if (NS_FAILED(rv) || _retval.IsEmpty()) {
-      
-      
-      nsAutoString nick;
-      rv = cert->GetNickname(nick);
-      
-      nsAString::const_iterator start, end, end2;
-      nick.BeginReading(start);
-      nick.EndReading(end);
-      end2 = end;
-
-      if (FindInReadable(NS_LITERAL_STRING(":"), start, end)) {
+    if (!cert) {
+      mNSSComponent->GetPIPNSSBundleString("CertNotStored", _retval);
+    }
+    else {
+      rv = cert->GetCommonName(_retval);
+      if (NS_FAILED(rv) || _retval.IsEmpty()) {
         
         
-        _retval = Substring(end, end2);
-      }
-      else {
-        _retval = nick;
+        nsAutoString nick;
+        rv = cert->GetNickname(nick);
+        
+        nsAString::const_iterator start, end, end2;
+        nick.BeginReading(start);
+        nick.EndReading(end);
+        end2 = end;
+  
+        if (FindInReadable(NS_LITERAL_STRING(":"), start, end)) {
+          
+          
+          _retval = Substring(end, end2);
+        }
+        else {
+          _retval = nick;
+        }
       }
     }
-  } else if (NS_LITERAL_STRING("tokencol").Equals(colID)) {
+  } else if (NS_LITERAL_STRING("tokencol").Equals(colID) && cert) {
     rv = cert->GetTokenName(_retval);
-  } else if (NS_LITERAL_STRING("emailcol").Equals(colID)) {
+  } else if (NS_LITERAL_STRING("emailcol").Equals(colID) && cert) {
     rv = cert->GetEmailAddress(_retval);
-  } else if (NS_LITERAL_STRING("purposecol").Equals(colID) && mNSSComponent) {
+  } else if (NS_LITERAL_STRING("purposecol").Equals(colID) && mNSSComponent && cert) {
     PRUint32 verified;
 
     nsAutoString theUsages;
@@ -801,23 +1207,41 @@ nsCertTree::GetCellText(PRInt32 row, nsITreeColumn* col,
         rv = mNSSComponent->GetPIPNSSBundleString("VerifyUnknown", _retval);
         break;
     }
-  } else if (NS_LITERAL_STRING("issuedcol").Equals(colID)) {
+  } else if (NS_LITERAL_STRING("issuedcol").Equals(colID) && cert) {
     nsCOMPtr<nsIX509CertValidity> validity;
 
     rv = cert->GetValidity(getter_AddRefs(validity));
     if (NS_SUCCEEDED(rv)) {
       validity->GetNotBeforeLocalDay(_retval);
     }
-  } else if (NS_LITERAL_STRING("expiredcol").Equals(colID)) {
+  } else if (NS_LITERAL_STRING("expiredcol").Equals(colID) && cert) {
     nsCOMPtr<nsIX509CertValidity> validity;
 
     rv = cert->GetValidity(getter_AddRefs(validity));
     if (NS_SUCCEEDED(rv)) {
       validity->GetNotAfterLocalDay(_retval);
     }
-  } else if (NS_LITERAL_STRING("serialnumcol").Equals(colID)) {
+  } else if (NS_LITERAL_STRING("serialnumcol").Equals(colID) && cert) {
     rv = cert->GetSerialNumber(_retval);
-  } else if (NS_LITERAL_STRING("typecol").Equals(colID)) {
+
+
+  } else if (NS_LITERAL_STRING("overridetypecol").Equals(colID)) {
+    
+    nsCertOverride::OverrideBits ob = nsCertOverride::ob_Untrusted;
+    if (certdi->mTypeOfEntry == nsCertTreeDispInfo::host_port_override) {
+      ob = certdi->mOverrideBits;
+    }
+    nsCAutoString temp;
+    nsCertOverride::convertBitsToString(ob, temp);
+    _retval = NS_ConvertUTF8toUTF16(temp);
+  } else if (NS_LITERAL_STRING("sitecol").Equals(colID)) {
+    if (certdi->mTypeOfEntry == nsCertTreeDispInfo::host_port_override) {
+      _retval = certdi->mHostWithPort;
+    }
+    else {
+      _retval = NS_LITERAL_STRING("*");
+    }
+  } else if (NS_LITERAL_STRING("typecol").Equals(colID) && cert) {
     nsCOMPtr<nsIX509Cert2> pipCert = do_QueryInterface(cert);
     PRUint32 type = nsIX509Cert::UNKNOWN_CERT;
 
@@ -972,7 +1396,7 @@ nsCertTree::dumpMap()
       nsAutoString td(el->orgName);
       PR_LOG(gPIPNSSLog, PR_LOG_DEBUG, ("thread desc[%d]: %s", i, NS_LossyConvertUTF16toASCII(td).get()));
     }
-    nsCOMPtr<nsIX509Cert> ct = dont_AddRef(GetCertAtIndex(i));
+    nsCOMPtr<nsIX509Cert> ct = getter_AddRefs(GetCertAtIndex(i));
     if (ct != nsnull) {
       PRUnichar *goo;
       ct->GetCommonName(&goo);
@@ -1105,10 +1529,23 @@ PRInt32
 nsCertTree::CmpBy(void *cache, nsIX509Cert *a, nsIX509Cert *b, 
                   sortCriterion c0, sortCriterion c1, sortCriterion c2)
 {
-  NS_ENSURE_TRUE( (cache!=0 && a!=0 && b!=0), 0 );
+  
+  
+  
+  
+  
+  
 
-  if (a == b)
+  if (!a && !b)
     return 0;
+
+  if (!a)
+    return -1;
+
+  if (!b)
+    return 1;
+
+  NS_ENSURE_TRUE( (cache!=0 && a!=0 && b!=0), 0 );
 
   CompareCacheHashEntry *ace = getCacheEntry(cache, a);
   CompareCacheHashEntry *bce = getCacheEntry(cache, b);

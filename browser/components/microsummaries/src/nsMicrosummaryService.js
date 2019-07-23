@@ -1767,8 +1767,7 @@ MicrosummaryResource.prototype = {
   
   
   
-  interfaces: [Ci.nsIBadCertListener,
-               Ci.nsIAuthPromptProvider,
+  interfaces: [Ci.nsIAuthPromptProvider,
                Ci.nsIAuthPrompt,
                Ci.nsIPrompt,
                Ci.nsIProgressEventSink,
@@ -1798,25 +1797,6 @@ MicrosummaryResource.prototype = {
   
   getInterface: function MSR_getInterface(iid) {
     return this.QueryInterface(iid);
-  },
-
-  
-
-  
-  
-  confirmUnknownIssuer: function MSR_confirmUnknownIssuer(socketInfo, cert, certAddType) {
-    return false;
-  },
-
-  confirmMismatchDomain: function MSR_confirmMismatchDomain(socketInfo, targetURL, cert) {
-    return false;
-  },
-
-  confirmCertExpired: function MSR_confirmCertExpired(socketInfo, cert) {
-    return false;
-  },
-
-  notifyCrlNextupdate: function MSR_notifyCrlNextupdate(socketInfo, targetURL, cert) {
   },
 
   
