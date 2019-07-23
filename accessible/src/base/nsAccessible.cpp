@@ -1878,7 +1878,7 @@ nsresult nsAccessible::GetHTMLName(nsAString& aLabel, PRBool aCanAggregateSubtre
   if (aCanAggregateSubtree) {
     
     nsresult rv = AppendFlatStringFromSubtree(content, &aLabel);
-    if (NS_SUCCEEDED(rv)) {
+    if (NS_SUCCEEDED(rv) && !aLabel.IsEmpty()) {
       return NS_OK;
     }
   }
