@@ -796,7 +796,9 @@ GetAttributeSet(nsIAccessible* aAccessible)
     
     if (attributes) {
         
-        if (State(aAccessible) & nsIAccessibleStates::STATE_HASPOPUP) {
+        PRUint32 state;
+        aAccessible->GetFinalState(&state);
+        if (state & nsIAccessibleStates::STATE_HASPOPUP) {
           
           nsAutoString oldValueUnused;
           attributes->SetStringProperty(NS_LITERAL_CSTRING("haspopup"), NS_LITERAL_STRING("true"),
