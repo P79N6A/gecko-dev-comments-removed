@@ -1,0 +1,975 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#include "nsCompatibility.h"
+#include "nsScriptLoader.h"
+#include "nsNetUtil.h"
+#include "nsIStyleSheetLinkingElement.h"
+#include "nsICharsetConverterManager.h"
+
+#include "nsHtml5DocumentMode.h"
+#include "nsHtml5Tokenizer.h"
+#include "nsHtml5UTF16Buffer.h"
+#include "nsHtml5TreeBuilder.h"
+
+#include "nsHtml5Parser.h"
+
+static NS_DEFINE_CID(kHtml5ParserCID, NS_HTML5_PARSER_CID);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+class nsHtml5ParserContinueEvent : public nsRunnable
+{
+public:
+  nsRefPtr<nsHtml5Parser> mParser;
+
+  nsHtml5ParserContinueEvent(nsHtml5Parser* aParser)
+    : mParser(aParser)
+  {}
+
+  NS_IMETHODIMP Run()
+  {
+    mParser->HandleParserContinueEvent(this);
+    return NS_OK;
+  }
+};
+
+
+
+NS_IMPL_ISUPPORTS_INHERITED3(nsHtml5Parser, nsContentSink, nsIParser, nsIStreamListener, nsIContentSink)
+
+
+
+
+nsHtml5Parser::nsHtml5Parser()
+  : mRequest(nsnull),
+    mObserver(nsnull),
+    mUnicodeDecoder(nsnull),
+    mFirstBuffer(new nsHtml5UTF16Buffer(NS_HTML5_PARSER_READ_BUFFER_SIZE)), 
+    mLastBuffer(mFirstBuffer),
+    mTreeBuilder(new nsHtml5TreeBuilder(this)),
+    mTokenizer(new nsHtml5Tokenizer(mTreeBuilder, this))
+{
+  
+}
+
+nsHtml5Parser::~nsHtml5Parser()
+{
+  while (mFirstBuffer->next) {
+    nsHtml5UTF16Buffer* oldBuf = mFirstBuffer;
+    mFirstBuffer = mFirstBuffer->next;
+    delete oldBuf;
+  }
+  delete mFirstBuffer;
+  
+  delete mTokenizer;
+  delete mTreeBuilder;
+}
+
+NS_IMETHODIMP_(void) 
+nsHtml5Parser::SetContentSink(nsIContentSink* aSink)
+{
+  NS_ASSERTION((aSink == static_cast<nsIContentSink*> (this)), "Attempt to set a foreign sink.");
+}
+
+NS_IMETHODIMP_(nsIContentSink*)
+nsHtml5Parser::GetContentSink(void)
+{
+  return static_cast<nsIContentSink*> (this);
+}
+
+NS_IMETHODIMP_(void) 
+nsHtml5Parser::GetCommand(nsCString& aCommand)
+{
+  aCommand.Assign("loadAsData");
+}
+
+NS_IMETHODIMP_(void) 
+nsHtml5Parser::SetCommand(const char* aCommand)
+{
+  NS_ASSERTION((!strcmp(aCommand, "view")), "Parser command was not view");
+}
+
+NS_IMETHODIMP_(void) 
+nsHtml5Parser::SetCommand(eParserCommands aParserCommand)
+{
+  NS_ASSERTION((aParserCommand == eViewNormal), "Parser command was not eViewNormal.");
+}
+
+NS_IMETHODIMP_(void)
+nsHtml5Parser::SetDocumentCharset(const nsACString& aCharset, PRInt32 aCharsetSource)
+{
+  mCharset = aCharset;
+  mCharsetSource = aCharsetSource;
+}
+
+NS_IMETHODIMP_(void)
+nsHtml5Parser::SetParserFilter(nsIParserFilter* aFilter)
+{
+  NS_ASSERTION(PR_TRUE, "Attempt to set a parser filter on HTML5 parser.");
+}
+
+NS_IMETHODIMP
+nsHtml5Parser::GetChannel(nsIChannel** aChannel)
+{
+  return CallQueryInterface(mRequest, aChannel);
+}
+
+NS_IMETHODIMP
+nsHtml5Parser::GetDTD(nsIDTD** aDTD)
+{
+  *aDTD = nsnull;
+  return NS_OK;
+}
+    
+NS_IMETHODIMP
+nsHtml5Parser::ContinueParsing()
+{
+  mBlocked = PR_FALSE;
+  return ContinueInterruptedParsing();
+}
+
+NS_IMETHODIMP
+nsHtml5Parser::ContinueInterruptedParsing()
+{
+  
+  
+  
+  
+  
+  nsCOMPtr<nsIParser> kungFuDeathGrip(this);
+
+  
+  
+  ParseUntilSuspend();
+
+  return NS_OK;
+}
+
+
+
+
+NS_IMETHODIMP_(void)
+nsHtml5Parser::BlockParser()
+{
+  NS_PRECONDITION((!mFragmentMode), "Must not block in fragment mode.");
+  mBlocked = PR_TRUE;
+}
+
+NS_IMETHODIMP_(void)
+nsHtml5Parser::UnblockParser()
+{
+  mBlocked = PR_FALSE;
+}
+
+NS_IMETHODIMP_(PRBool)
+nsHtml5Parser::IsParserEnabled()
+{
+  return !mBlocked;
+}
+
+NS_IMETHODIMP_(PRBool)
+nsHtml5Parser::IsComplete()
+{
+  
+  
+  return (mLifeCycle == TERMINATED);
+}
+
+NS_IMETHODIMP
+nsHtml5Parser::Parse(nsIURI* aURL, 
+                     nsIRequestObserver* aObserver,
+                     void* aKey, 
+                     nsDTDMode aMode) 
+{
+  mObserver = aObserver;
+  mRootContextKey = aKey;
+  NS_ASSERTION((mLifeCycle == NOT_STARTED), "Tried to start parse without initializing the parser properly.");
+  mTokenizer->start();
+  mLifeCycle = PARSING;
+  mParser = this;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsHtml5Parser::Parse(const nsAString& aSourceBuffer,
+                     void* aKey,
+                     const nsACString& aContentType, 
+                     PRBool aLastCall,
+                     nsDTDMode aMode) 
+{
+  NS_PRECONDITION((!mFragmentMode), "Document.write called in fragment mode!");
+  
+  switch (mLifeCycle) {
+    case TERMINATED:
+      return NS_OK;
+    case NOT_STARTED:
+      mTokenizer->start();
+      mLifeCycle = PARSING;
+      mParser = this;
+      break;
+    default:
+      break;
+  }
+  
+  if (aLastCall && aSourceBuffer.IsEmpty() && aKey == GetRootContextKey()) {
+    
+    mLifeCycle = STREAM_ENDING;
+    MaybePostContinueEvent();
+    return NS_OK;
+  }
+
+  
+  
+  
+  
+  
+  nsCOMPtr<nsIParser> kungFuDeathGrip(this);
+  
+  if (!aSourceBuffer.IsEmpty()) {
+    nsHtml5UTF16Buffer* buffer = new nsHtml5UTF16Buffer(aSourceBuffer.Length());
+    memcpy(buffer->getBuffer(), aSourceBuffer.BeginReading(), aSourceBuffer.Length() * sizeof(PRUnichar));
+    buffer->setEnd(aSourceBuffer.Length());
+    if (!mBlocked) {
+      WillResumeImpl();
+      WillProcessTokensImpl();
+      while (buffer->hasMore()) {
+        buffer->adjust(mLastWasCR);
+        mLastWasCR = PR_FALSE;
+        if (buffer->hasMore()) {
+          mLastWasCR = mTokenizer->tokenizeBuffer(buffer);
+          if (mScriptElement) {
+            ExecuteScript();
+          }
+          if (mNeedsCharsetSwitch) {
+            
+            delete buffer;
+            WillInterruptImpl();
+            return NS_OK;
+          } else if (mBlocked) {
+            
+            WillInterruptImpl();
+            break;
+          } else {
+            
+            continue;
+          }
+        }
+      }
+    }
+    if (buffer->hasMore()) {
+      nsHtml5UTF16Buffer* prevSearchBuf = nsnull;
+      nsHtml5UTF16Buffer* searchBuf = mFirstBuffer;
+      if (aKey) { 
+        while (searchBuf != mLastBuffer) {
+          if (searchBuf->key == aKey) {
+            buffer->next = searchBuf;
+            if (prevSearchBuf) {
+              prevSearchBuf->next = buffer;
+            } else {
+              mFirstBuffer = buffer;
+            }
+            break;
+          }
+          prevSearchBuf = searchBuf;
+          searchBuf = searchBuf->next;
+        }
+      }
+      if (searchBuf == mLastBuffer || !aKey) {
+        
+        
+        nsHtml5UTF16Buffer* keyHolder = new nsHtml5UTF16Buffer(aKey);
+        keyHolder->next = mFirstBuffer;
+        buffer->next = keyHolder;
+        mFirstBuffer = buffer;
+      }
+      MaybePostContinueEvent();
+    } else {
+      delete buffer;
+    }
+  }
+  return NS_OK;
+}
+
+
+
+
+NS_IMETHODIMP_(void *)
+nsHtml5Parser::GetRootContextKey()
+{
+  return mRootContextKey;
+}
+
+NS_IMETHODIMP
+nsHtml5Parser::Terminate(void)
+{
+  
+  
+  if (mTerminated) {
+    return NS_OK;
+  }
+  
+  
+  
+  nsCOMPtr<nsIParser> kungFuDeathGrip(this);
+  
+  
+  
+  CancelParsingEvents();
+
+  return DidBuildModel(); 
+}
+
+NS_IMETHODIMP
+nsHtml5Parser::ParseFragment(const nsAString& aSourceBuffer,
+                             void* aKey,
+                             nsTArray<nsString>& aTagStack,
+                             PRBool aXMLMode,
+                             const nsACString& aContentType,
+                             nsDTDMode aMode)
+{
+  return NS_ERROR_NOT_IMPLEMENTED;
+}
+
+NS_IMETHODIMP
+nsHtml5Parser::BuildModel(void)
+{
+  
+  ParseUntilSuspend();
+  return NS_OK;
+}
+
+
+
+
+NS_IMETHODIMP_(nsDTDMode)
+nsHtml5Parser::GetParseMode(void)
+{
+  NS_NOTREACHED("No one is supposed to call GetParseMode!");
+  return eDTDMode_unknown;
+}
+
+NS_IMETHODIMP
+nsHtml5Parser::CancelParsingEvents()
+{
+  mContinueEvent = nsnull;
+  return NS_OK;
+}
+
+void
+nsHtml5Parser::Reset()
+{
+  NS_NOTREACHED("Can't reset.");
+}
+    
+
+
+
+
+nsresult
+nsHtml5Parser::OnStartRequest(nsIRequest* aRequest, nsISupports* aContext)
+{
+  NS_PRECONDITION(eNone == mStreamListenerState,
+                  "Parser's nsIStreamListener API was not setup "
+                  "correctly in constructor.");
+  if (mObserver) {
+    mObserver->OnStartRequest(aRequest, aContext);
+  }
+  
+  
+  mStreamListenerState = eOnStart;
+  mRequest = aRequest;
+
+  nsresult rv = NS_OK;
+
+
+
+
+
+
+
+
+
+
+
+  nsCOMPtr<nsICharsetConverterManager> convManager = do_GetService(NS_CHARSETCONVERTERMANAGER_CONTRACTID, &rv);
+  NS_ENSURE_SUCCESS(rv, rv);
+  rv = convManager->GetUnicodeDecoder(mCharset.get(), getter_AddRefs(mUnicodeDecoder));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  return rv;
+}
+
+
+
+
+
+nsresult
+nsHtml5Parser::OnStopRequest(nsIRequest* aRequest, nsISupports* aContext,
+                        nsresult status)
+{
+  NS_ASSERTION((mRequest == aRequest), "Got Stop on wrong stream.");
+  nsresult rv = NS_OK;
+
+  mLifeCycle = STREAM_ENDING;
+
+
+    
+    
+    
+    
+
+
+
+
+
+
+
+  mStreamListenerState = eOnStop;
+
+  ParseUntilSuspend();
+
+  
+  
+
+  
+  
+  if (mObserver) {
+    mObserver->OnStopRequest(aRequest, aContext, status);
+  }
+
+
+
+
+
+
+
+
+
+
+
+  return rv;
+}
+
+
+
+
+
+
+
+
+
+
+static NS_METHOD
+ParserWriteFunc(nsIInputStream* aInStream,
+                void* aHtml5Parser,
+                const char* aFromSegment,
+                PRUint32 aToOffset,
+                PRUint32 aCount,
+                PRUint32* aWriteCount)
+{
+  nsHtml5Parser* parser = static_cast<nsHtml5Parser*> (aHtml5Parser);
+  return parser->WriteStreamBytes(aFromSegment, aCount, aWriteCount);
+}
+
+nsresult
+nsHtml5Parser::OnDataAvailable(nsIRequest* aRequest, 
+                               nsISupports* aContext,
+                               nsIInputStream* aInStream, 
+                               PRUint32 aSourceOffset,
+                               PRUint32 aLength)
+{
+  NS_PRECONDITION((eOnStart == mStreamListenerState ||
+                   eOnDataAvail == mStreamListenerState),
+            "Error: OnStartRequest() must be called before OnDataAvailable()");
+  NS_ASSERTION((mRequest == aRequest), "Got data on wrong stream.");
+  PRUint32 totalRead;
+  nsresult rv = aInStream->ReadSegments(ParserWriteFunc, static_cast<void*> (this), aLength, &totalRead);
+  NS_ASSERTION((totalRead == aLength), "ReadSegments read the wrong number of bytes.");
+  ParseUntilSuspend();
+  return rv;
+}
+
+
+
+void
+nsHtml5Parser::internalEncodingDeclaration(nsString* aEncoding)
+{
+  
+}
+
+
+
+void 
+nsHtml5Parser::documentMode(nsHtml5DocumentMode m)
+{
+#if 0
+  nsCompatibility mode = eCompatibility_NavQuirks;
+  switch (m) {
+    case STANDARDS_MODE:
+      mode = eCompatibility_FullStandards;
+      break;
+    case ALMOST_STANDARDS_MODE:
+      mode = eCompatibility_AlmostStandards;
+      break;
+    case QUIRKS_MODE:
+      mode = eCompatibility_NavQuirks;
+      break;
+  }
+  nsCOMPtr<nsIHTMLDocument> htmlDocument = do_QueryInterface(mDocument);
+  NS_ASSERTION(htmlDocument, "Document didn't QI into HTML document.");
+  if (htmlDocument) {
+    htmlDocument->SetCompatibilityMode(mode);  
+  }
+#endif
+}
+
+
+
+NS_IMETHODIMP
+nsHtml5Parser::WillTokenize()
+{
+  NS_NOTREACHED("No one shuld call this");
+  return NS_ERROR_NOT_IMPLEMENTED;
+}
+
+NS_IMETHODIMP
+nsHtml5Parser::WillBuildModel()
+{
+  NS_NOTREACHED("No one shuld call this");
+  return NS_ERROR_NOT_IMPLEMENTED;
+}
+
+
+
+NS_IMETHODIMP
+nsHtml5Parser::DidBuildModel()
+{
+  NS_ASSERTION((mLifeCycle == STREAM_ENDING), "Bad life cycle.");
+  mTokenizer->eof();
+  mTokenizer->end();
+  mLifeCycle = TERMINATED;
+  
+  DidBuildModelImpl();
+
+  mDocument->ScriptLoader()->RemoveObserver(this);
+
+  StartLayout(PR_FALSE);
+
+  ScrollToRef();
+
+  mDocument->RemoveObserver(this);
+
+  mDocument->EndLoad();
+
+  DropParserAndPerfHint();
+
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsHtml5Parser::WillInterrupt()
+{
+  return WillInterruptImpl();
+}
+
+NS_IMETHODIMP
+nsHtml5Parser::WillResume()
+{
+  NS_NOTREACHED("No one should call this.");
+  return NS_ERROR_NOT_IMPLEMENTED;
+}
+
+NS_IMETHODIMP
+nsHtml5Parser::SetParser(nsIParser* aParser)
+{
+  NS_NOTREACHED("No one should be setting a parser on the HTML5 pseudosink.");
+  return NS_ERROR_NOT_IMPLEMENTED;
+}
+
+void
+nsHtml5Parser::FlushPendingNotifications(mozFlushType aType)
+{
+  
+  
+  if (!mInNotification) {
+    mTreeBuilder->Flush();
+    if (aType >= Flush_Layout) {
+      
+      
+      StartLayout(PR_TRUE);
+    }
+  }
+}
+
+NS_IMETHODIMP
+nsHtml5Parser::SetDocumentCharset(nsACString& aCharset)
+{
+  
+  
+  if (mDocument) {
+    mDocument->SetDocumentCharacterSet(aCharset);
+  }
+  
+  return NS_OK;
+}
+
+nsISupports*
+nsHtml5Parser::GetTarget()
+{
+  return mDocument;
+}
+
+
+
+void
+nsHtml5Parser::HandleParserContinueEvent(nsHtml5ParserContinueEvent* ev)
+{
+  
+  if (mContinueEvent != ev)
+    return;
+
+  mContinueEvent = nsnull;
+
+  ContinueInterruptedParsing();  
+}
+
+NS_IMETHODIMP
+nsHtml5Parser::WriteStreamBytes(const char* aFromSegment,
+                                PRUint32 aCount,
+                                PRUint32* aWriteCount)
+{
+  
+  if (mLastBuffer->getEnd() == NS_HTML5_PARSER_READ_BUFFER_SIZE) {
+      mLastBuffer = (mLastBuffer->next = new nsHtml5UTF16Buffer(NS_HTML5_PARSER_READ_BUFFER_SIZE));
+  }  
+  PRInt32 totalByteCount = 0;
+
+  for (;;) {
+    PRInt32 end = mLastBuffer->getEnd();
+    PRInt32 byteCount = aCount - totalByteCount;
+    PRInt32 utf16Count = NS_HTML5_PARSER_READ_BUFFER_SIZE - end;
+
+    nsresult convResult = mUnicodeDecoder->Convert(aFromSegment, &byteCount, mLastBuffer->getBuffer() + end, &utf16Count);  
+  
+    mLastBuffer->setEnd(end + utf16Count);
+    totalByteCount += byteCount;
+    aFromSegment += byteCount;
+    
+    NS_ASSERTION((mLastBuffer->getEnd() <= NS_HTML5_PARSER_READ_BUFFER_SIZE), "The Unicode decoder wrote too much data.");
+  
+    if (convResult == NS_PARTIAL_MORE_OUTPUT) {
+      mLastBuffer = (mLastBuffer->next = new nsHtml5UTF16Buffer(NS_HTML5_PARSER_READ_BUFFER_SIZE));
+      NS_ASSERTION(((PRUint32)totalByteCount < aCount), "The Unicode has consumed too many bytes.");
+    } else {
+      NS_ASSERTION(((PRUint32)totalByteCount == aCount), "The Unicode decoder consumed the wrong number of bytes.");
+      *aWriteCount = totalByteCount;
+      return NS_OK;      
+    }
+  }
+}
+
+void
+nsHtml5Parser::ParseUntilSuspend()
+{
+  NS_PRECONDITION((!mNeedsCharsetSwitch), "ParseUntilSuspend called when charset switch needed.");
+
+  if (mBlocked) {
+    return;
+  }
+  
+  WillResumeImpl();
+  WillProcessTokensImpl();
+  
+  mSuspending = PR_FALSE;
+  for (;;) {
+    if (!mFirstBuffer->hasMore()) {
+      if (mFirstBuffer == mLastBuffer) {
+        switch (mLifeCycle) {
+          case PARSING:
+            
+            mFirstBuffer->setStart(0);
+            mFirstBuffer->setEnd(0);
+            return; 
+          case STREAM_ENDING:
+            DidBuildModel();
+            return; 
+          default:
+            NS_NOTREACHED("ParseUntilSuspended should only be called in PARSING and STREAM_ENDING life cycle states.");
+            return;          
+        }
+      } else {
+        nsHtml5UTF16Buffer* oldBuf = mFirstBuffer;
+        mFirstBuffer = mFirstBuffer->next;
+        delete oldBuf;
+        continue;
+      }
+    }
+    
+    mFirstBuffer->adjust(mLastWasCR);
+    mLastWasCR = PR_FALSE;
+    if (mFirstBuffer->hasMore()) {
+      mLastWasCR = mTokenizer->tokenizeBuffer(mFirstBuffer);
+      if (mScriptElement) {
+        ExecuteScript();
+      }
+      if (mNeedsCharsetSwitch) {
+        
+        return;
+      }
+      if (mBlocked) {
+        NS_ASSERTION((!mFragmentMode), "Script blocked the parser but we are in the fragment mode.");
+        WillInterruptImpl();
+        return;
+      }
+      if (mSuspending && !mFragmentMode) {
+        
+        MaybePostContinueEvent();
+        WillInterruptImpl();
+        return;
+      }
+      continue;
+    } else {
+      continue;
+    }
+  }
+}
+
+
+
+
+
+
+
+void
+nsHtml5Parser::ExecuteScript()
+{
+  NS_PRECONDITION(mScriptElement, "Trying to run a script without having one!");
+ 
+   
+  
+  
+  
+  
+  nsresult rv = mScriptElement->DoneAddingChildren(PR_TRUE);
+
+  
+  
+  if (rv == NS_ERROR_HTMLPARSER_BLOCK) {
+    nsCOMPtr<nsIScriptElement> sele = do_QueryInterface(mScriptElement);
+    mScriptElements.AppendObject(sele);
+    BlockParser();
+  }
+  mScriptElement = nsnull;
+}
+
+void
+nsHtml5Parser::MaybePostContinueEvent()
+{
+  NS_PRECONDITION((mLifeCycle != TERMINATED), "Tried to post continue event when the parser is done.");
+  if (mContinueEvent) {
+    return; 
+  }
+  if (mStreamListenerState == eOnStart || mStreamListenerState == eOnDataAvail) {
+    return; 
+  }
+  
+  
+  
+  nsCOMPtr<nsIRunnable> event = new nsHtml5ParserContinueEvent(this);
+  if (NS_FAILED(NS_DispatchToCurrentThread(event))) {
+      NS_WARNING("failed to dispatch parser continuation event");
+  } else {
+      mContinueEvent = event;
+  }
+}
+
+void
+nsHtml5Parser::Suspend()
+{
+  mSuspending = PR_TRUE;
+}
+
+
+void
+nsHtml5Parser::Cleanup()
+{
+}
+
+nsresult
+nsHtml5Parser::Initialize(nsIDocument* aDoc,
+                          nsIURI* aURI,
+                          nsISupports* aContainer,
+                          nsIChannel* aChannel)
+{
+  MOZ_TIMER_DEBUGLOG(("Reset and start: nsXMLContentSink::Init(), this=%p\n",
+                      this));
+  MOZ_TIMER_RESET(mWatch);
+  MOZ_TIMER_START(mWatch);
+	
+  nsresult rv = nsContentSink::Init(aDoc, aURI, aContainer, aChannel);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  aDoc->AddObserver(this);
+
+  MOZ_TIMER_DEBUGLOG(("Stop: nsXMLContentSink::Init()\n"));
+  MOZ_TIMER_STOP(mWatch);
+  return NS_OK;
+}
+
+nsresult
+nsHtml5Parser::ProcessBASETag(nsIContent* aContent)
+{
+  NS_ASSERTION(aContent, "missing base-element");
+
+  nsresult rv = NS_OK;
+
+  if (mDocument) {
+    nsAutoString value;
+  
+    if (aContent->GetAttr(kNameSpaceID_None, nsHtml5Atoms::target, value)) {
+      mDocument->SetBaseTarget(value);
+    }
+
+    if (aContent->GetAttr(kNameSpaceID_None, nsHtml5Atoms::href, value)) {
+      nsCOMPtr<nsIURI> baseURI;
+      rv = NS_NewURI(getter_AddRefs(baseURI), value);
+      if (NS_SUCCEEDED(rv)) {
+        rv = mDocument->SetBaseURI(baseURI); 
+        if (NS_SUCCEEDED(rv)) {
+          mDocumentBaseURI = mDocument->GetBaseURI();
+        }
+      }
+    }
+  }
+
+  return rv;
+}
+
+void
+nsHtml5Parser::UpdateStyleSheet(nsIContent* aElement)
+{
+  nsCOMPtr<nsIStyleSheetLinkingElement> ssle(do_QueryInterface(aElement));
+  if (ssle) {
+    ssle->SetEnableUpdates(PR_TRUE);
+    PRBool willNotify;
+    PRBool isAlternate;
+    nsresult result = ssle->UpdateStyleSheet(this, &willNotify, &isAlternate);
+    if (NS_SUCCEEDED(result) && willNotify && !isAlternate) {
+      ++mPendingSheetCount;
+      mScriptLoader->AddExecuteBlocker();
+    }
+  }
+}
+
+void
+nsHtml5Parser::SetScriptElement(nsIContent* aScript)
+{
+  mScriptElement = aScript;
+}
+
+void 
+nsHtml5Parser::UpdateChildCounts()
+{
+  
+}
+
+nsresult
+nsHtml5Parser::FlushTags()
+{
+    mTreeBuilder->Flush(); 
+    return NS_OK; 
+}
+
+

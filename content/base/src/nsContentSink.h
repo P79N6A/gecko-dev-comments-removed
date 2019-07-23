@@ -55,7 +55,6 @@
 #include "nsGkAtoms.h"
 #include "nsTHashtable.h"
 #include "nsHashKeys.h"
-#include "nsTArray.h"
 #include "nsITimer.h"
 #include "nsStubDocumentObserver.h"
 #include "nsIParserService.h"
@@ -107,6 +106,10 @@ extern PRLogModuleInfo* gContentSinkLogModuleInfo;
 
 #define NS_DELAY_FOR_WINDOW_CREATION  500000
 
+
+
+#define NS_MAX_TOKENS_DEFLECTED_IN_LOW_FREQ_MODE 200
+
 class nsContentSink : public nsICSSLoaderObserver,
                       public nsIScriptLoaderObserver,
                       public nsSupportsWeakReference,
@@ -128,15 +131,13 @@ class nsContentSink : public nsICSSLoaderObserver,
   virtual nsresult ProcessMETATag(nsIContent* aContent);
 
   
-  NS_HIDDEN_(nsresult) WillParseImpl(void);
   NS_HIDDEN_(nsresult) WillInterruptImpl(void);
   NS_HIDDEN_(nsresult) WillResumeImpl(void);
   NS_HIDDEN_(nsresult) DidProcessATokenImpl(void);
   NS_HIDDEN_(void) WillBuildModelImpl(void);
   NS_HIDDEN_(void) DidBuildModelImpl(void);
-  NS_HIDDEN_(PRBool) ReadyToCallDidBuildModelImpl(PRBool aTerminated);
   NS_HIDDEN_(void) DropParserAndPerfHint(void);
-  PRBool IsScriptExecutingImpl();
+  NS_HIDDEN_(nsresult) WillProcessTokensImpl(void);
 
   void NotifyAppend(nsIContent* aContent, PRUint32 aStartIndex);
 
@@ -145,6 +146,8 @@ class nsContentSink : public nsICSSLoaderObserver,
   virtual void EndUpdate(nsIDocument *aDocument, nsUpdateType aUpdateType);
 
   virtual void UpdateChildCounts() = 0;
+
+  PRBool IsTimeToNotify();
 
 protected:
   nsContentSink();
@@ -166,10 +169,7 @@ protected:
     
     
     
-    CACHE_SELECTION_RELOAD = 2,
-
-    
-    CACHE_SELECTION_RESELECT_WITHOUT_MANIFEST = 3
+    CACHE_SELECTION_RELOAD = 2
   };
 
   nsresult Init(nsIDocument* aDoc, nsIURI* aURI,
@@ -195,10 +195,6 @@ protected:
                     PRBool aExplicit);
 
   
-  
-  void PrefetchDNS(const nsAString &aHref);
-
-  
   nsresult GetChannelCacheKey(nsIChannel* aChannel, nsACString& aCacheKey);
 
   
@@ -217,8 +213,11 @@ protected:
   
   
   
+  
+  
   nsresult SelectDocAppCache(nsIApplicationCache *aLoadApplicationCache,
                              nsIURI *aManifestURI,
+                             PRBool aIsTopDocument,
                              PRBool aFetchedWithHTTPGetOrEquiv,
                              CacheSelectionAction *aAction);
 
@@ -237,7 +236,10 @@ protected:
   
   
   
+  
+  
   nsresult SelectDocAppCacheNoManifest(nsIApplicationCache *aLoadApplicationCache,
+                                       PRBool aIsTopDocument,
                                        nsIURI **aManifestURI,
                                        CacheSelectionAction *aAction);
 
@@ -255,10 +257,9 @@ protected:
   
   
   
+public:
   void StartLayout(PRBool aIgnorePendingSheets);
-
-  PRBool IsTimeToNotify();
-
+protected:
   void
   FavorPerformanceHint(PRBool perfOverStarvation, PRUint32 starvationDelay);
 
@@ -269,6 +270,15 @@ protected:
     }
 
     return mNotificationInterval;
+  }
+
+  inline PRInt32 GetMaxTokenProcessingTime()
+  {
+    if (mDynamicLowerValue) {
+      return 3000;
+    }
+
+    return mMaxTokenProcessingTime;
   }
 
   
@@ -290,6 +300,7 @@ protected:
 
   void ContinueInterruptedParsingAsync();
   void ContinueInterruptedParsingIfEnabled();
+  void ContinueInterruptedParsing();
 
   nsCOMPtr<nsIDocument>         mDocument;
   nsCOMPtr<nsIParser>           mParser;
@@ -318,6 +329,12 @@ protected:
   nsCOMPtr<nsITimer> mNotificationTimer;
 
   
+  
+  
+  
+  PRUint8 mDeflectedCount;
+
+  
   PRPackedBool mNotifyOnTimer;
 
   
@@ -334,49 +351,14 @@ protected:
   
   PRUint8 mDeferredFlushTags : 1;
   
-  PRUint8 mDidGetReadyToCallDidBuildModelCall : 1;
   
-  
-  
-  PRUint8 mIsDocumentObserver : 1;
-  
-  
-  
-  
+  PRUint32 mDelayTimerStart;
 
   
-  
-  PRUint32 mDeflectedCount;
+  PRInt32 mMaxTokenProcessingTime;
 
   
-  PRInt32 mInteractiveDeflectCount;
-  PRInt32 mPerfDeflectCount;
-
-  
-  
-  
-  PRInt32 mPendingEventMode;
-
-  
-  PRInt32 mEventProbeRate;
-
-  
-  PRBool mHasPendingEvent;
-
-  
-  PRInt32 mCurrentParseEndTime;
-
-  
-  PRInt32 mInteractiveParseTime;
-  PRInt32 mPerfParseTime;
-
-  
-  PRInt32 mInteractiveTime;
-  
-  PRInt32 mInitialPerfTime;
-
-  
-  PRBool mEnablePerfMode;
+  PRInt32 mDynamicIntervalSwitchThreshold;
 
   PRInt32 mBeginLoadTime;
 
