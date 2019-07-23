@@ -1131,6 +1131,7 @@ str_lastIndexOf(JSContext *cx, uintN argc, jsval *vp)
 
 
 typedef struct GlobData {
+    jsbytecode  *pc;            
     uintN       flags;          
     uintN       optarg;         
     JSString    *str;           
@@ -1235,19 +1236,13 @@ match_or_replace(JSContext *cx,
 
 
 
-            JSStackFrame *fp;
 
-            
-            for (fp = cx->fp; fp && !fp->regs; fp = fp->down)
-                JS_ASSERT(!fp->script);
 
-            
             test = JS_FALSE;
-            if (fp) {
-                JS_ASSERT(*fp->regs->pc == JSOP_CALL ||
-                          *fp->regs->pc == JSOP_NEW);
-                JS_ASSERT(js_CodeSpec[*fp->regs->pc].length == 3);
-                switch (fp->regs->pc[3]) {
+            if (data->pc) {
+                JS_ASSERT(*data->pc == JSOP_CALL || *data->pc == JSOP_NEW);
+                JS_ASSERT(js_CodeSpec[*data->pc].length == 3);
+                switch (data->pc[3]) {
                   case JSOP_POP:
                   case JSOP_IFEQ:
                   case JSOP_IFNE:
@@ -1307,13 +1302,14 @@ match_glob(JSContext *cx, jsint count, GlobData *data)
 }
 
 JSBool
-js_str_match(JSContext *cx, uintN argc, jsval *vp)
+js_StringMatchHelper(JSContext *cx, uintN argc, jsval *vp, jsbytecode *pc)
 {
     JSTempValueRooter tvr;
     MatchData mdata;
     JSBool ok;
 
     JS_PUSH_SINGLE_TEMP_ROOT(cx, JSVAL_NULL, &tvr);
+    mdata.base.pc = pc;
     mdata.base.flags = MODE_MATCH;
     mdata.base.optarg = 1;
     mdata.arrayval = &tvr.u.value;
@@ -1322,6 +1318,16 @@ js_str_match(JSContext *cx, uintN argc, jsval *vp)
         *vp = *mdata.arrayval;
     JS_POP_TEMP_ROOT(cx, &tvr);
     return ok;
+}
+
+JSBool
+js_str_match(JSContext *cx, uintN argc, jsval *vp)
+{
+    JSStackFrame *fp;
+
+    for (fp = cx->fp; fp && !fp->regs; fp = fp->down)
+        JS_ASSERT(!fp->script);
+    return js_StringMatchHelper(cx, argc, vp, fp ? fp->regs->pc : NULL);
 }
 
 static JSBool

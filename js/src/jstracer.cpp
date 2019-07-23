@@ -482,12 +482,9 @@ public:
         jsval* vpstop;                                                        \
         if (fp->callee) {                                                     \
             if (depth == 0) {                                                 \
-                SET_VPNAME("callee");                                         \
-                vp = &fp->argv[-2];                                           \
-                { code; }                                                     \
                 SET_VPNAME("this");                                           \
                 vp = &fp->argv[-1];                                           \
-                { code; }                                                     \
+                code;                                                         \
                 SET_VPNAME("argv");                                           \
                 unsigned nargs = JS_MAX(fp->fun->nargs, fp->argc);            \
                 vp = &fp->argv[0]; vpstop = &fp->argv[nargs];                 \
@@ -560,7 +557,7 @@ nativeStackSlots(JSContext *cx, unsigned callDepth, JSStackFrame* fp)
         if (callDepth-- == 0) {
             if (fp->callee) {
                 unsigned nargs = JS_MAX(fp->fun->nargs, fp->argc);
-                slots += 2 + nargs;
+                slots += 1 + nargs;
             }
 #if defined _DEBUG
             unsigned int m = 0;
@@ -749,9 +746,9 @@ done:
         if (fp->callee) {
             if (fsp == fstack) {
                 unsigned nargs = JS_MAX(fp->fun->nargs, fp->argc);
-                if (size_t(p - &fp->argv[-2]) < 2 + nargs)
-                    RETURN(offset + size_t(p - &fp->argv[-2]) * sizeof(double));
-                offset += (2 + nargs) * sizeof(double);
+                if (size_t(p - &fp->argv[-1]) < nargs + 1)
+                    RETURN(offset + size_t(p - &fp->argv[-1]) * sizeof(double));
+                offset += (nargs + 1) * sizeof(double);
             }
             if (size_t(p - &fp->slots[0]) < fp->script->nfixed)
                 RETURN(offset + size_t(p - &fp->slots[0]) * sizeof(double));
@@ -1357,25 +1354,22 @@ TraceRecorder::emitTreeCall(Fragment* inner, GuardRecord* lr)
 
         ptrdiff_t sp_adj = nativeStackOffset(&cx->fp->argv[-2]);
         
+
+        sp_adj -= treeInfo->nativeStackBase;
+        sp_adj += ti->nativeStackBase;
+        
         ptrdiff_t rp_adj = callDepth * sizeof(FrameInfo);
         
 
-        debug_only(printf("sp_adj=%d outer=%d inner=%d\n",
-                   sp_adj, treeInfo->nativeStackBase, ti->nativeStackBase));
-        LIns* sp_top = lir->ins2i(LIR_add, lirbuf->sp, 
-                - treeInfo->nativeStackBase 
-                + sp_adj 
-                + ti->maxNativeStackSlots * sizeof(double)); 
+        LIns* sp_top = lir->ins2i(LIR_add, lirbuf->sp, sp_adj + 
+                ti->maxNativeStackSlots * sizeof(double));
         guard(true, lir->ins2(LIR_lt, sp_top, eos_ins), OOM_EXIT);
         
         LIns* rp_top = lir->ins2i(LIR_add, lirbuf->rp, rp_adj + 
                 ti->maxCallDepth * sizeof(FrameInfo));
         guard(true, lir->ins2(LIR_lt, rp_top, eor_ins), OOM_EXIT);
         
-        lir->insStorei(inner_sp = lir->ins2i(LIR_add, lirbuf->sp, 
-                - treeInfo->nativeStackBase 
-                + sp_adj 
-                + ti->nativeStackBase),  
+        lir->insStorei(inner_sp = lir->ins2i(LIR_add, lirbuf->sp, sp_adj), 
                 lirbuf->state, offsetof(InterpState, sp));
         lir->insStorei(lir->ins2i(LIR_add, lirbuf->rp, rp_adj),
                 lirbuf->state, offsetof(InterpState, rp));
@@ -1800,7 +1794,7 @@ js_ExecuteTree(JSContext* cx, Fragment* f, uintN& inlineCallCount)
 
                 unsigned slots = FlushNativeStackFrame(cx, calldepth, 
                         lr->exit->typeMap + lr->exit->numGlobalSlots,
-                        stack, &cx->fp->argv[-2]);
+                        stack, &cx->fp->argv[-1]);
                 callstack += calldepth;
                 inlineCallCount += calldepth;
                 stack += slots;
@@ -2177,9 +2171,6 @@ TraceRecorder::cmp(LOpcode op, bool negate)
             return false;
         }
     } else if (isNumber(l) || isNumber(r)) {
-        jsval tmp[2] = {l, r};
-        JSAutoTempValueRooter tvr(cx, 2, tmp);
-
         
         LIns* l_ins = get(&l);
         LIns* r_ins = get(&r);
@@ -2200,7 +2191,7 @@ TraceRecorder::cmp(LOpcode op, bool negate)
         } else if (!isNumber(l)) {
             ABORT_TRACE("unsupported LHS type for cmp vs number");
         }
-        lnum = js_ValueToNumber(cx, &tmp[0]);
+        lnum = js_ValueToNumber(cx, &l);
 
         args[0] = get(&r);
         if (JSVAL_IS_STRING(r)) {
@@ -2211,10 +2202,9 @@ TraceRecorder::cmp(LOpcode op, bool negate)
         } else if (!isNumber(r)) {
             ABORT_TRACE("unsupported RHS type for cmp vs number");
         }
-        rnum = js_ValueToNumber(cx, &tmp[1]);
+        rnum = js_ValueToNumber(cx, &r);
 
         x = lir->ins2(op, l_ins, r_ins);
-
         if (negate)
             x = lir->ins_eq0(x);
         switch (op) {
@@ -2711,7 +2701,7 @@ TraceRecorder::clearFrameSlotsFromCache()
     jsval* vp;
     jsval* vpstop;
     if (fp->callee) {
-        vp = &fp->argv[-2];
+        vp = &fp->argv[-1];
         vpstop = &fp->argv[JS_MAX(fp->fun->nargs,fp->argc)];
         while (vp < vpstop)
             nativeFrameTracker.set(vp++, (LIns*)0);
@@ -3518,7 +3508,8 @@ js_math_floor(JSContext* cx, uintN argc, jsval* vp);
 bool
 TraceRecorder::record_JSOP_CALL()
 {
-    uintN argc = GET_ARGC(cx->fp->regs->pc);
+    jsbytecode *pc = cx->fp->regs->pc;
+    uintN argc = GET_ARGC(pc);
     jsval& fval = stackval(0 - (argc + 2));
 
     
@@ -3561,7 +3552,7 @@ TraceRecorder::record_JSOP_CALL()
         { js_str_fromCharCode,         F_String_fromCharCode,  "C",   "i",    FAIL_NULL,   NULL },
         { js_str_charCodeAt,           F_String_p_charCodeAt,  "T",   "i",    FAIL_NEG,    NULL },
         { js_str_charAt,               F_String_getelem,       "TC",  "i",    FAIL_NULL,   NULL },
-        { js_str_match,                F_String_p_match,       "TC",  "r",    FAIL_VOID,   NULL },
+        { js_str_match,                F_String_p_match,       "PTC", "r",    FAIL_VOID,   NULL },
         { js_str_replace,              F_String_p_replace_str3,"TC","sss",    FAIL_NULL,   NULL },
         { js_str_replace,              F_String_p_replace_str, "TC", "sr",    FAIL_NULL,   NULL },
         { js_str_replace,              F_String_p_replace_fun, "TC", "fr",    FAIL_NULL,   NULL },
@@ -3591,7 +3582,7 @@ TraceRecorder::record_JSOP_CALL()
         char argtype;
 
 #if defined _DEBUG
-        memset(args, 0xCD, sizeof(args));	
+        memset(args, 0xCD, sizeof(args));
 #endif
 
         jsval& thisval = stackval(0 - (argc + 1));
@@ -3611,6 +3602,8 @@ TraceRecorder::record_JSOP_CALL()
             *argp = thisval_ins;                                               \
         } else if (argtype == 'R') {                                           \
             *argp = lir->insImmPtr((void*)cx->runtime);                        \
+        } else if (argtype == 'P') {                                           \
+            *argp = lir->insImmPtr(pc);                                        \
         } else {                                                               \
             JS_NOT_REACHED("unknown prefix arg type");                         \
         }                                                                      \
@@ -3618,6 +3611,9 @@ TraceRecorder::record_JSOP_CALL()
     JS_END_MACRO
 
         switch (prefixc) {
+          case 3:
+            HANDLE_PREFIX(2);
+            
           case 2:
             HANDLE_PREFIX(1);
             
