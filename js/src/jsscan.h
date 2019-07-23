@@ -247,38 +247,60 @@ struct JSToken {
 #define t_atom2         u.p.atom2
 #define t_dval          u.dval
 
-typedef struct JSTokenBuf {
-    jschar              *base;          
-    jschar              *limit;         
-    jschar              *ptr;           
-} JSTokenBuf;
-
 #define JS_LINE_LIMIT   256             /* logical line buffer size limit --
                                            physical line length is unlimited */
 #define NTOKENS         4               /* 1 current + 2 lookahead, rounded */
 #define NTOKENS_MASK    (NTOKENS-1)     /* to power of 2 to avoid divmod by 3 */
 
-struct JSTokenStream {
-    JSToken             tokens[NTOKENS];
-    uintN               cursor;         
-    uintN               lookahead;      
-    uintN               lineno;         
-    uintN               ungetpos;       
-    jschar              ungetbuf[6];    
-    uintN               flags;          
-    uint32              linelen;        
-    uint32              linepos;        
-    JSTokenBuf          linebuf;        
-    JSTokenBuf          userbuf;        
-    const char          *filename;      
-    FILE                *file;          
-    JSSourceHandler     listener;       
-    void                *listenerData;  
-    void                *listenerTSData;
-    jschar              *saveEOL;       
 
-    JSCharBuffer        tokenbuf;       
+enum JSTokenStreamFlags
+{
+    TSF_ERROR = 0x01,           
+    TSF_EOF = 0x02,             
+    TSF_NEWLINES = 0x04,        
+    TSF_OPERAND = 0x08,         
+    TSF_NLFLAG = 0x20,          
+    TSF_CRFLAG = 0x40,          
+    TSF_DIRTYLINE = 0x80,       
+    TSF_OWNFILENAME = 0x100,    
+    TSF_XMLTAGMODE = 0x200,     
+    TSF_XMLTEXTMODE = 0x400,    
+    TSF_XMLONLYMODE = 0x800,    
 
+    
+    TSF_UNEXPECTED_EOF = 0x1000,
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    TSF_IN_HTML_COMMENT = 0x2000,
+
+    
+    TSF_KEYWORD_IS_NAME = 0x4000,
+
+    
+    TSF_STRICT_MODE_CODE = 0x8000
+};
+
+class JSTokenStream
+{
+  public:
     
 
 
@@ -295,58 +317,139 @@ struct JSTokenStream {
 
 
 
-    bool init(JSContext *, const jschar *base, size_t length,
-              FILE *fp, const char *filename, uintN lineno);
-
-    void close(JSContext *);
+    bool init(const jschar *base, size_t length, FILE *fp, const char *filename, uintN lineno);
+    void close();
     ~JSTokenStream() {}
+
+    
+    JSContext *getContext() const { return cx; }
+    bool onCurrentLine(const JSTokenPos &pos) const { return lineno == pos.end.lineno; }
+    const JSToken &currentToken() const { return tokens[cursor]; }
+    const JSToken &getTokenAt(size_t index) const {
+        JS_ASSERT(index < NTOKENS);
+        return tokens[index];
+    }
+    const JSCharBuffer &getTokenbuf() const { return tokenbuf; }
+    const char *getFilename() const { return filename; }
+    uintN getLineno() const { return lineno; }
+
+    
+    JSToken *mutableCurrentToken() { return &tokens[cursor]; }
+    bool reportCompileErrorNumberVA(JSParseNode *pn, uintN flags, uintN errorNumber, va_list ap);
+
+    JSTokenType getToken() {
+        
+        while (lookahead != 0) {
+            JS_ASSERT(!(flags & TSF_XMLTEXTMODE));
+            lookahead--;
+            cursor = (cursor + 1) & NTOKENS_MASK;
+            JSTokenType tt = currentToken().type;
+            if (tt != TOK_EOL || (flags & TSF_NEWLINES))
+                return tt;
+        }
+
+        
+        if (flags & TSF_ERROR)
+            return TOK_ERROR;
+        
+        return getTokenInternal();
+    }
+
+    JSToken *getMutableTokenAt(size_t index) {
+        JS_ASSERT(index < NTOKENS);
+        return &tokens[index];
+    }
+
+    void ungetToken() {
+        JS_ASSERT(lookahead < NTOKENS_MASK);
+        lookahead++;
+        cursor = (cursor - 1) & NTOKENS_MASK;
+    }
+
+    JSTokenType peekToken() {
+        if (lookahead != 0) {
+            return tokens[(cursor + lookahead) & NTOKENS_MASK].type;
+        }
+        JSTokenType tt = getToken();
+        ungetToken();
+        return tt;
+    }
+
+    JSTokenType peekTokenSameLine() {
+        if (!onCurrentLine(currentToken().pos))
+            return TOK_EOL;
+        flags |= TSF_NEWLINES;
+        JSTokenType tt = peekToken();
+        flags &= ~TSF_NEWLINES;
+        return tt;
+    }
+
+    JSBool matchToken(JSTokenType tt) {
+        if (getToken() == tt)
+            return JS_TRUE;
+        ungetToken();
+        return JS_FALSE;
+    }
+
+  private:
+    typedef struct JSTokenBuf {
+        jschar              *base;      
+        jschar              *limit;     
+        jschar              *ptr;       
+    } JSTokenBuf;
+
+    JSTokenType getTokenInternal();     
+    int32 getChar();
+    void ungetChar(int32 c);
+    JSToken *newToken(ptrdiff_t adjust);
+    int32 getUnicodeEscape();
+    JSBool peekChars(intN n, jschar *cp);
+    JSBool getXMLEntity();
+
+    JSBool matchChar(int32 expect) {
+        int32 c = getChar();
+        if (c == expect)
+            return JS_TRUE;
+        ungetChar(c);
+        return JS_FALSE;
+    }
+
+    int32 peekChar() {
+        int32 c = getChar();
+        ungetChar(c);
+        return c;
+    }
+
+    void skipChars(intN n) {
+        while (--n >= 0)
+            getChar();
+    }
+
+    JSContext           * const cx;
+    JSToken             tokens[NTOKENS];
+    uintN               cursor;         
+    uintN               lookahead;      
+
+    uintN               lineno;         
+    uintN               ungetpos;       
+    jschar              ungetbuf[6];    
+  public:
+    uintN               flags;          
+  private:
+    uint32              linelen;        
+    uint32              linepos;        
+    JSTokenBuf          linebuf;        
+
+    JSTokenBuf          userbuf;        
+    const char          *filename;      
+    FILE                *file;          
+    JSSourceHandler     listener;       
+    void                *listenerData;  
+    void                *listenerTSData;
+    jschar              *saveEOL;       
+
+    JSCharBuffer        tokenbuf;       
 };
-
-#define CURRENT_TOKEN(ts)       ((ts)->tokens[(ts)->cursor])
-#define ON_CURRENT_LINE(ts,pos) ((ts)->lineno == (pos).end.lineno)
-
-
-#define TSF_ERROR       0x01            /* fatal error while compiling */
-#define TSF_EOF         0x02            /* hit end of file */
-#define TSF_NEWLINES    0x04            /* tokenize newlines */
-#define TSF_OPERAND     0x08            /* looking for operand, not operator */
-#define TSF_NLFLAG      0x20            /* last linebuf ended with \n */
-#define TSF_CRFLAG      0x40            /* linebuf would have ended with \r */
-#define TSF_DIRTYLINE   0x80            /* non-whitespace since start of line */
-#define TSF_OWNFILENAME 0x100           /* ts->filename is malloc'd */
-#define TSF_XMLTAGMODE  0x200           /* scanning within an XML tag in E4X */
-#define TSF_XMLTEXTMODE 0x400           /* scanning XMLText terminal from E4X */
-#define TSF_XMLONLYMODE 0x800           /* don't scan {expr} within text/tag */
-
-
-#define TSF_UNEXPECTED_EOF 0x1000
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#define TSF_IN_HTML_COMMENT 0x2000
-
-
-#define TSF_KEYWORD_IS_NAME 0x4000
-
-
-#define TSF_STRICT_MODE_CODE 0x8000
 
 
 #define LINE_SEPARATOR  0x2028
@@ -417,29 +520,48 @@ js_ReportStrictModeError(JSContext *cx, JSTokenStream *ts, JSTreeContext *tc,
 
 
 
-extern JSTokenType
-js_PeekToken(JSContext *cx, JSTokenStream *ts);
+static inline JSTokenType
+js_PeekToken(JSContext *cx, JSTokenStream *ts)
+{
+    JS_ASSERT(cx == ts->getContext());
+    return ts->peekToken();
+}
 
-extern JSTokenType
-js_PeekTokenSameLine(JSContext *cx, JSTokenStream *ts);
-
-
-
-
-extern JSTokenType
-js_GetToken(JSContext *cx, JSTokenStream *ts);
-
-
-
-
-extern void
-js_UngetToken(JSTokenStream *ts);
+static inline JSTokenType
+js_PeekTokenSameLine(JSContext *cx, JSTokenStream *ts)
+{
+    JS_ASSERT(cx == ts->getContext());
+    return ts->peekTokenSameLine();
+}
 
 
 
 
-extern JSBool
-js_MatchToken(JSContext *cx, JSTokenStream *ts, JSTokenType tt);
+static inline JSTokenType
+js_GetToken(JSContext *cx, JSTokenStream *ts)
+{
+    JS_ASSERT(cx == ts->getContext());
+    return ts->getToken();
+}
+
+
+
+
+static inline void
+js_UngetToken(JSTokenStream *ts)
+{
+    ts->ungetToken();
+}
+
+
+
+
+static inline JSBool
+js_MatchToken(JSContext *cx, JSTokenStream *ts, JSTokenType tt)
+{
+    JS_ASSERT(cx == ts->getContext());
+    return ts->matchToken(tt);
+}
 
 JS_END_EXTERN_C
 
