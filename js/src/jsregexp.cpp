@@ -2083,7 +2083,13 @@ class CharSet {
     bool full() { return charEnd == charBuf + BufSize; }
 
     
-    void addChar(jschar c) { JS_ASSERT(!full()); *charEnd++ = c; }
+    bool addChar(jschar c)
+    {
+        if (full())
+            return false;
+        *charEnd++ = c;
+        return true;
+    }
 
     enum Class {
         LineTerms  = 1 << 0,  
@@ -2249,8 +2255,7 @@ enumerateNextChars(JSContext *cx, RENode *node, CharSet &set)
 
       
       case REOP_FLAT:
-        set.addChar(node->u.flat.chr);
-        return true;
+        return set.addChar(node->u.flat.chr);
 
       
       case REOP_EMPTY:
