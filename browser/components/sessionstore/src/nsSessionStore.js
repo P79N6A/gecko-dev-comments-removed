@@ -768,6 +768,11 @@ SessionStoreService.prototype = {
         tabs.push(tabData);
         continue;
       }
+      else if (browser.parentNode.__SS_data && browser.parentNode.__SS_data._tab) {
+        
+        tabs.push(browser.parentNode.__SS_data);
+        continue;
+      }
       var history = null;
       
       try {
@@ -1267,12 +1272,21 @@ SessionStoreService.prototype = {
     }
     
     
-    
     for (t = 0; t < aTabs.length; t++) {
+      if (!aTabs[t].entries || !aTabs[t].entries[0])
+        continue; 
+      
       var tab = aTabs[t]._tab;
+      var browser = tabbrowser.getBrowserForTab(tab);
+      browser.stop(); 
+      
       tab.setAttribute("busy", "true");
       tabbrowser.updateIcon(tab);
       tabbrowser.setTabTitleLoading(tab);
+      
+      
+      
+      browser.parentNode.__SS_data = aTabs[t];
     }
     
     
@@ -1909,6 +1923,9 @@ SessionStoreService.prototype = {
       else if (typeof aObj == "object") {
         parts.push("{");
         for (var key in aObj) {
+          if (key == "_tab")
+            continue; 
+          
           jsonIfy(key.toString());
           parts.push(":");
           jsonIfy(aObj[key]);
