@@ -11347,6 +11347,30 @@ nsDocShell::OnLeaveLink()
   return rv;
 }
 
+NS_IMETHODIMP
+nsDocShell::GetLinkState(nsIURI* aLinkURI, nsLinkState& aState)
+{
+  if (!aLinkURI) {
+    
+    aState = eLinkState_NotLink;
+    return NS_OK;
+  }
+    
+  aState = eLinkState_Unvisited;
+
+  
+  if (!mGlobalHistory)
+    return NS_OK;
+
+  PRBool isVisited;
+  NS_ENSURE_SUCCESS(mGlobalHistory->IsVisited(aLinkURI, &isVisited),
+                    NS_ERROR_FAILURE);
+  if (isVisited)
+    aState = eLinkState_Visited;
+  
+  return NS_OK;
+}
+
 
 
 

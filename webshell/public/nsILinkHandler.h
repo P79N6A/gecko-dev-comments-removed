@@ -48,7 +48,7 @@ class nsGUIEvent;
 
 
 #define NS_ILINKHANDLER_IID \
- { 0x71627c30, 0xd3c5, 0x4ad0,{0xb5, 0x33, 0x6e, 0x01, 0x91, 0xf2, 0x79, 0x32}}
+ { 0x514bc565, 0x8d38, 0x4dde,{0xb4, 0xeb, 0xe7, 0xb5, 0x01, 0x2b, 0xf4, 0x64}}
 
 
 
@@ -112,6 +112,12 @@ public:
 
 
   NS_IMETHOD OnLeaveLink() = 0;
+      
+
+  
+
+
+  NS_IMETHOD GetLinkState(nsIURI* aLinkURI, nsLinkState& aState) = 0;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsILinkHandler, NS_ILINKHANDLER_IID)
