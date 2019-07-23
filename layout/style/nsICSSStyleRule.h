@@ -52,6 +52,7 @@
 #include "nsCSSProps.h"
 #include "nsCSSValue.h"
 #include "nsIAtom.h"
+#include "nsCSSPseudoElements.h"
 
 class nsIAtom;
 class nsCSSDeclaration;
@@ -200,6 +201,15 @@ private:
 
 public:
   
+  nsCSSPseudoElements::Type PseudoType() const {
+    return static_cast<nsCSSPseudoElements::Type>(mPseudoType);
+  }
+  void SetPseudoType(nsCSSPseudoElements::Type aType) {
+    NS_ASSERTION(aType > PR_INT16_MIN && aType < PR_INT16_MAX, "Out of bounds");
+    mPseudoType = static_cast<PRInt16>(aType);
+  }
+
+  
   
   
   
@@ -214,7 +224,9 @@ public:
   nsCSSSelector*  mNext;
   PRInt32         mNameSpace;
   PRUnichar       mOperator;
-private: 
+private:
+  
+  PRInt16        mPseudoType;
   
   nsCSSSelector(const nsCSSSelector& aCopy);
   nsCSSSelector& operator=(const nsCSSSelector& aCopy); 
