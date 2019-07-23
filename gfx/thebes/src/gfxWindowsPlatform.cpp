@@ -56,7 +56,6 @@
 #include "gfxUserFontSet.h"
 
 #include <string>
-#include <time.h>
 
 #include "lcms.h"
 
@@ -639,11 +638,10 @@ static void MakeUniqueFontName(PRUnichar aName[LF_FACESIZE])
 {
     static PRUint32 fontCount = 0;
     ++fontCount;
-    PRUint32 time = (PRUint32) _time32(nsnull);
 
     char buf[LF_FACESIZE];
 
-    sprintf(buf, "mozfont%8.8x%8.8x", time, fontCount);  
+    sprintf(buf, "mozfont%8.8x%8.8x", ::GetTickCount(), fontCount);  
 
     nsCAutoString fontName(buf);
 
@@ -671,17 +669,17 @@ typedef struct
 
 LONG WINAPI TTLoadEmbeddedFont
 (
-    __out HANDLE*   phFontReference,            
+    HANDLE*  phFontReference,           
                                         
-    __in ULONG    ulFlags,                  
-    __out ULONG*    pulPrivStatus,          
-    __in ULONG     ulPrivs,                 
-    __out ULONG*    pulStatus,              
-    __in READEMBEDPROC lpfnReadFromStream,  
-    __in LPVOID    lpvReadStream,           
-    __in_opt LPWSTR    szWinFamilyName,         
-    __in_opt LPSTR    szMacFamilyName,          
-    __in_opt TTLOADINFO* pTTLoadInfo                
+    ULONG    ulFlags,                   
+    ULONG*   pulPrivStatus,             
+    ULONG    ulPrivs,                   
+    ULONG*   pulStatus,                 
+    READEMBEDPROC lpfnReadFromStream,   
+    LPVOID   lpvReadStream,             
+    LPWSTR   szWinFamilyName,           
+    LPSTR    szMacFamilyName,           
+    TTLOADINFO* pTTLoadInfo             
 );
 
 #endif 
