@@ -945,8 +945,6 @@ NS_IMETHODIMP nsViewManager::DispatchEvent(nsGUIEvent *aEvent,
 
             
             
-            
-            
             nsRefPtr<nsViewManager> rootVM = RootViewManager();
 
             nsCOMPtr<nsIWidget> widget;
@@ -971,7 +969,7 @@ NS_IMETHODIMP nsViewManager::DispatchEvent(nsGUIEvent *aEvent,
                 
                 
                 UpdateViewBatch batch(this);
-                observer->WillPaint();
+                rootVM->CallWillPaintOnObservers();
                 batch.EndUpdateViewBatch(NS_VMREFRESH_NO_SYNC);
 
                 
@@ -1988,22 +1986,9 @@ nsViewManager::FlushPendingInvalidates()
     PRBool refreshEnabled = mRefreshEnabled;
     mRefreshEnabled = PR_FALSE;
     ++mUpdateBatchCnt;
-    
-    PRInt32 index;
-    for (index = 0; index < mVMCount; index++) {
-      nsViewManager* vm = (nsViewManager*)gViewManagers->ElementAt(index);
-      if (vm->RootViewManager() == this) {
-        
-        nsIViewObserver* observer = vm->GetViewObserver();
-        if (observer) {
-          observer->WillPaint();
-          NS_ASSERTION(mUpdateBatchCnt == 1,
-                       "Observer did not end view batch?");
-        }
-      }
-    }
-    
+    CallWillPaintOnObservers();
     --mUpdateBatchCnt;
+
     
     
     if (!mRefreshEnabled) {
@@ -2014,6 +1999,30 @@ nsViewManager::FlushPendingInvalidates()
   if (mHasPendingUpdates) {
     ProcessPendingUpdates(mRootView, PR_TRUE);
     mHasPendingUpdates = PR_FALSE;
+  }
+}
+
+void
+nsViewManager::CallWillPaintOnObservers()
+{
+  NS_PRECONDITION(IsRootVM(), "Must be root VM for this to be called!\n");
+  NS_PRECONDITION(mUpdateBatchCnt > 0, "Must be in an update batch!");
+
+#ifdef DEBUG
+  PRInt32 savedUpdateBatchCnt = mUpdateBatchCnt;
+#endif
+  PRInt32 index;
+  for (index = 0; index < mVMCount; index++) {
+    nsViewManager* vm = (nsViewManager*)gViewManagers->ElementAt(index);
+    if (vm->RootViewManager() == this) {
+      
+      nsCOMPtr<nsIViewObserver> obs = vm->GetViewObserver();
+      if (obs) {
+        obs->WillPaint();
+        NS_ASSERTION(mUpdateBatchCnt == savedUpdateBatchCnt,
+                     "Observer did not end view batch?");
+      }
+    }
   }
 }
 
