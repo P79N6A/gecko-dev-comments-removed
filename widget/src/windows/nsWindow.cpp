@@ -5173,8 +5173,9 @@ PRBool nsWindow::OnMouseWheel(UINT msg, WPARAM wParam, LPARAM lParam, PRBool& ge
 
   
   
-  if (!HandleScrollingPlugins(msg, wParam, lParam, result))
-    return result; 
+  PRBool quit;
+  if (!HandleScrollingPlugins(msg, wParam, lParam, result, aRetValue, quit))
+    return quit; 
 
   
   
@@ -5908,12 +5909,15 @@ void nsWindow::OnSettingsChange(WPARAM wParam, LPARAM lParam)
 
 
 
+
 PRBool nsWindow::HandleScrollingPlugins(UINT aMsg, WPARAM aWParam,
-                                        LPARAM aLParam, PRBool& aHandled)
+                                        LPARAM aLParam, PRBool& aHandled,
+                                        LRESULT* aRetValue,
+                                        PRBool& aQuitProcessing)
 {
   
   
-  aHandled = PR_FALSE; 
+  aQuitProcessing = PR_FALSE; 
   POINT point;
   DWORD dwPoints = ::GetMessagePos();
   point.x = GET_X_LPARAM(dwPoints);
@@ -6006,9 +6010,8 @@ PRBool nsWindow::HandleScrollingPlugins(UINT aMsg, WPARAM aWParam,
     return PR_FALSE;
   if (destWnd != mWnd) {
     if (destWindow) {
-      LRESULT aRetValue;
-      destWindow->ProcessMessage(aMsg, aWParam, aLParam, &aRetValue);
-      aHandled = PR_TRUE;
+      aHandled = destWindow->ProcessMessage(aMsg, aWParam, aLParam, aRetValue);
+      aQuitProcessing = PR_TRUE;
       return PR_FALSE; 
     }
   #ifdef DEBUG
@@ -6025,10 +6028,11 @@ PRBool nsWindow::OnScroll(UINT aMsg, WPARAM aWParam, LPARAM aLParam)
   {
     
     
+    PRBool quit, result;
+    LRESULT retVal;
 
-    PRBool result;
-    if (!HandleScrollingPlugins(aMsg, aWParam, aLParam, result))
-      return result;  
+    if (!HandleScrollingPlugins(aMsg, aWParam, aLParam, result, &retVal, quit))
+      return quit;  
 
     nsMouseScrollEvent scrollevent(PR_TRUE, NS_MOUSE_SCROLL, this);
     scrollevent.scrollFlags = (aMsg == WM_VSCROLL) 
