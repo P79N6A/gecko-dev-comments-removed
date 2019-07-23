@@ -1,9 +1,10 @@
+if (Cc === undefined) {
+  var Cc = Components.classes;
+  var Ci = Components.interfaces;
+}
 window.addEventListener("load", testOnLoad, false);
 
 function testOnLoad() {
-  const Cc = Components.classes;
-  const Ci = Components.interfaces;
-
   
   var prefs = Cc["@mozilla.org/preferences-service;1"].
               getService(Ci.nsIPrefBranch);
