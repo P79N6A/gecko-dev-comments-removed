@@ -64,10 +64,7 @@ public:
 
   
   NS_IMETHOD DuplicatePrivateData();
-#ifdef MOZ_IPC
-  virtual void Serialize(IPC::Message* aMsg, PRBool aSerializeInterfaceType);
-  virtual PRBool Deserialize(const IPC::Message* aMsg, void** aIter);
-#endif
+  
   
   NS_IMETHOD GetCompositionReply(nsTextEventReply** aReply);
   
