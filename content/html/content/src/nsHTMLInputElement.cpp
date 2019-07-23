@@ -2823,7 +2823,7 @@ nsHTMLInputElement::AddedToRadioGroup(PRBool aNotify)
   
   
   
-  PRBool checkedChanged = PR_FALSE;
+  PRBool checkedChanged = GET_BOOLBIT(mBitField, BF_CHECKED_CHANGED);
   nsCOMPtr<nsIRadioVisitor> visitor;
   nsresult rv = NS_GetRadioGetCheckedChangedVisitor(&checkedChanged, this,
                                            getter_AddRefs(visitor));
