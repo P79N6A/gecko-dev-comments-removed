@@ -92,29 +92,11 @@ class nsAudioStream
   
   void Drain();
 
-  
-  void Pause();
-
-  
-  void Resume();
-
-  
-  
-  double GetTime();
-
  private:
   double mVolume;
   void* mAudioHandle;
   int mRate;
   int mChannels;
-
-  
-  PRInt64 mSavedPauseBytes;
-  PRInt64 mPauseBytes;
-
-  float mStartTime;
-  float mPauseTime;
-  PRInt64 mSamplesBuffered;
 
   SampleFormat mFormat;
 
@@ -123,7 +105,5 @@ class nsAudioStream
   
   
   nsTArray<short> mBufferOverflow;
-
-  PRPackedBool mPaused;
 };
 #endif

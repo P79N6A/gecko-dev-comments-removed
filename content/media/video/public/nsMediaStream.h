@@ -88,7 +88,6 @@ public:
   virtual nsresult Read(char* aBuffer, PRUint32 aCount, PRUint32* aBytes) = 0;
   virtual nsresult Seek(PRInt32 aWhence, PRInt64 aOffset) = 0;
   virtual PRInt64  Tell() = 0;
-  virtual PRUint32 Available() = 0;
   virtual void     Cancel() { }
   virtual nsIPrincipal* GetCurrentPrincipal() = 0;
   virtual void     Suspend() = 0;
@@ -171,10 +170,6 @@ class nsMediaStream
   
   
   PRInt64 Tell();
-
-  
-  
-  PRUint32 Available();
 
   
   

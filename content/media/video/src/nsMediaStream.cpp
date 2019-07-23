@@ -71,7 +71,6 @@ public:
   virtual nsresult Read(char* aBuffer, PRUint32 aCount, PRUint32* aBytes);
   virtual nsresult Seek(PRInt32 aWhence, PRInt64 aOffset);
   virtual PRInt64  Tell();
-  virtual PRUint32 Available();
   virtual void     Cancel();
   virtual nsIPrincipal* GetCurrentPrincipal();
   virtual void     Suspend();
@@ -186,20 +185,6 @@ PRInt64 nsDefaultStreamStrategy::Tell()
   return mPosition;
 }
 
-PRUint32 nsDefaultStreamStrategy::Available()
-{
-  
-  
-  
-  nsAutoLock lock(mLock);
-  if (!mPipeInput)
-    return 0;
-
-  PRUint32 count = 0;
-  mPipeInput->Available(&count);
-  return count;
-}
-
 void nsDefaultStreamStrategy::Cancel()
 {
   if (mListener)
@@ -239,7 +224,6 @@ public:
   virtual nsresult Read(char* aBuffer, PRUint32 aCount, PRUint32* aBytes);
   virtual nsresult Seek(PRInt32 aWhence, PRInt64 aOffset);
   virtual PRInt64  Tell();
-  virtual PRUint32 Available();
   virtual nsIPrincipal* GetCurrentPrincipal();
   virtual void     Suspend();
   virtual void     Resume();
@@ -419,17 +403,6 @@ PRInt64 nsFileStreamStrategy::Tell()
   return offset;
 }
 
-PRUint32 nsFileStreamStrategy::Available()
-{
-  nsAutoLock lock(mLock);
-  if (!mInput)
-    return 0;
-
-  PRUint32 count = 0;
-  mInput->Available(&count);
-  return count;
-}
-
 nsIPrincipal* nsFileStreamStrategy::GetCurrentPrincipal()
 {
   return mPrincipal;
@@ -463,7 +436,6 @@ public:
   virtual nsresult Read(char* aBuffer, PRUint32 aCount, PRUint32* aBytes);
   virtual nsresult Seek(PRInt32 aWhence, PRInt64 aOffset);
   virtual PRInt64  Tell();
-  virtual PRUint32 Available();
   virtual void     Cancel();
   virtual nsIPrincipal* GetCurrentPrincipal();
   virtual void     Suspend();
@@ -769,6 +741,7 @@ nsresult nsHttpStreamStrategy::Seek(PRInt32 aWhence, PRInt64 aOffset)
       
       
       
+      mDecoder->NotifyBytesConsumed(bytesRead);
       return rv;
     }
   }
@@ -793,20 +766,6 @@ PRInt64 nsHttpStreamStrategy::Tell()
   
   
   return mAtEOF ? mDecoder->GetStatistics().mTotalBytes : mPosition;
-}
-
-PRUint32 nsHttpStreamStrategy::Available()
-{
-  
-  
-  
-  nsAutoLock lock(mLock);
-  if (!mPipeInput)
-    return 0;
-
-  PRUint32 count = 0;
-  mPipeInput->Available(&count);
-  return count;
 }
 
 void nsHttpStreamStrategy::Cancel()
@@ -907,11 +866,6 @@ nsresult nsMediaStream::Seek(PRInt32 aWhence, PRInt64 aOffset)
 PRInt64 nsMediaStream::Tell()
 {
   return mStreamStrategy->Tell();
-}
-
-PRUint32 nsMediaStream::Available()
-{
-  return mStreamStrategy->Available();
 }
 
 void nsMediaStream::Cancel()

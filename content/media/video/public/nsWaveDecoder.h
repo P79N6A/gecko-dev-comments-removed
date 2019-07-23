@@ -200,6 +200,8 @@ class nsWaveDecoder : public nsMediaDecoder
 
   virtual void SetTotalBytes(PRInt64 aBytes);
 
+  void PlaybackPositionChanged();
+
   
   
   virtual void SetDuration(PRInt64 aDuration);
@@ -267,6 +269,12 @@ private:
   
   
   float mTimeOffset;
+
+  
+  
+  
+  
+  float mCurrentTime;
 
   
   

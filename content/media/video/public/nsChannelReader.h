@@ -68,10 +68,6 @@ public:
   void Cancel();
 
   
-  
-  PRUint32 Available();
-
-  
   void Suspend();
 
   
