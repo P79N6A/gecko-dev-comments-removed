@@ -413,12 +413,6 @@ js_DestroyContext(JSContext *cx, JSDestroyContextMode mode)
 
 
 
-        js_FinishDeflatedStringCache(rt);
-
-        
-
-
-
 
         free(rt->unitStrings);
         rt->unitStrings = NULL;
