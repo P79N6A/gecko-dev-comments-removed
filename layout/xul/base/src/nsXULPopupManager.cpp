@@ -201,8 +201,9 @@ nsXULPopupManager::GetSubmenuWidgetChain(nsISupportsArray **_retval)
     
     
     
-    nsMenuChainItem* parent= item->GetParent();
-    if (parent && item->Frame()->PopupType() != parent->Frame()->PopupType())
+    nsMenuChainItem* parent = item->GetParent();
+    if (!parent || item->Frame()->PopupType() != parent->Frame()->PopupType() ||
+                   item->IsContextMenu() != parent->IsContextMenu())
       break;
     item = parent;
   }
