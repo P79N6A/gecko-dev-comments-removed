@@ -744,7 +744,7 @@ nsXULContentBuilder::BuildContentFromTemplate(nsIContent *aTemplateNode,
                 
                 
                 rv = BuildContentFromTemplate(tmplKid, aResourceNode, realKid, PR_FALSE,
-                                              aIsSelfReference, aChild, PR_FALSE, aMatch,
+                                              PR_FALSE, aChild, PR_FALSE, aMatch,
                                               nsnull ,
                                               nsnull );
                 if (NS_FAILED(rv)) return rv;
