@@ -103,7 +103,6 @@ PluginInstanceChild::PluginInstanceChild(const NPPluginFuncs* aPluginIface,
     , mPluginParentHWND(0)
     , mNestedEventHook(0)
     , mNestedEventLevelDepth(0)
-    , mNestedEventState(false)
     , mCachedWinlessPluginHWND(0)
     , mWinlessPopupSurrogateHWND(0)
     , mWinlessThrottleOldWndProc(0)
@@ -1114,7 +1113,7 @@ PluginInstanceChild::NestedInputEventHook(int nCode,
     if (nCode >= 0) {
         NS_ASSERTION(gTempChildPointer, "Never should be null here!");
         gTempChildPointer->ResetNestedEventHook();
-        gTempChildPointer->InternalCallSetNestedEventState(true);
+        gTempChildPointer->SendProcessNativeEventsInRPCCall();
 
         gTempChildPointer = NULL;
     }
@@ -1146,18 +1145,6 @@ PluginInstanceChild::ResetNestedEventHook()
     if (mNestedEventHook)
         UnhookWindowsHookEx(mNestedEventHook);
     mNestedEventHook = NULL;
-}
-
-void
-PluginInstanceChild::InternalCallSetNestedEventState(bool aState)
-{
-    if (aState != mNestedEventState) {
-        PLUGIN_LOG_DEBUG(
-            ("PluginInstanceChild::InternalCallSetNestedEventState(%i)",
-            (int)aState));
-        mNestedEventState = aState;
-        SendSetNestedEventState(mNestedEventState);
-    }
 }
 
 
@@ -1375,7 +1362,6 @@ PluginInstanceChild::WinlessHandleEvent(NPEvent& event)
     NS_ASSERTION(!(mNestedEventLevelDepth < 0), "mNestedEventLevelDepth < 0?");
     if (mNestedEventLevelDepth <= 0) {
         ResetNestedEventHook();
-        InternalCallSetNestedEventState(false);
     }
     return handled;
 }

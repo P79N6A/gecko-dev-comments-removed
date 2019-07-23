@@ -95,6 +95,42 @@ public:
         sIsPumpingMessages = aIsPumping;
     }
 
+#ifdef OS_WIN
+    struct NS_STACK_CLASS SyncStackFrame
+    {
+        SyncStackFrame(SyncChannel* channel, bool rpc);
+        ~SyncStackFrame();
+
+        bool mRPC;
+        bool mSpinNestedEvents;
+        SyncChannel* mChannel;
+
+        
+        SyncStackFrame* mPrev;
+
+        
+        SyncStackFrame* mStaticPrev;
+    };
+    friend struct SyncChannel::SyncStackFrame;
+
+    static bool IsSpinLoopActive() {
+        for (SyncStackFrame* frame = sStaticTopFrame;
+             frame;
+             frame = frame->mPrev) {
+            if (frame->mSpinNestedEvents)
+                return true;
+        }
+        return false;
+    }
+
+protected:
+    
+    SyncStackFrame* mTopFrame;
+
+    
+    static SyncStackFrame* sStaticTopFrame;
+#endif 
+
 protected:
     
     bool ProcessingSyncMessage() const {
