@@ -10333,17 +10333,16 @@ TraceRecorder::newArray(JSObject* ctor, uint32 argc, jsval* argv, jsval* rval)
     CHECK_STATUS(getClassPrototype(ctor, proto_ins));
 
     LIns *arr_ins;
-    if (argc == 0 || (argc == 1 && JSVAL_IS_NUMBER(argv[0]))) {
+    if (argc == 0) {
         
         LIns *args[] = { proto_ins, cx_ins };
         arr_ins = lir->insCall(&js_NewEmptyArray_ci, args);
         guard(false, lir->ins_peq0(arr_ins), OOM_EXIT);
-        if (argc == 1) {
-            
-            lir->insStorei(f2i(get(argv)), 
-                           arr_ins,
-                           offsetof(JSObject, fslots) + JSSLOT_ARRAY_LENGTH * sizeof(jsval));
-        }
+    } else if (argc == 1 && JSVAL_IS_NUMBER(argv[0])) {
+        
+        LIns *args[] = { f2i(get(argv)), proto_ins, cx_ins }; 
+        arr_ins = lir->insCall(&js_NewEmptyArrayWithLength_ci, args);
+        guard(false, lir->ins_peq0(arr_ins), OOM_EXIT);
     } else {
         
         LIns *args[] = { INS_CONST(argc), proto_ins, cx_ins };
