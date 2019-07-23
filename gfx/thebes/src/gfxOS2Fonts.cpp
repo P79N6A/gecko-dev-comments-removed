@@ -538,10 +538,8 @@ void gfxOS2FontGroup::CreateGlyphRunsFT(gfxTextRun *aTextRun, const PRUint8 *aUT
         if (ch == 0) {
             
             aTextRun->SetMissingGlyph(utf16Offset, 0);
-        } else if (ch < 0x10000 && IsInvisibleChar(PRUnichar(ch))) {
-            
-            aTextRun->SetCharacterGlyph(utf16Offset, g.SetMissing());
         } else {
+            NS_ASSERTION(!IsInvalidChar(ch), "Invalid char detected");
             FT_UInt gid = FT_Get_Char_Index(face, ch); 
             PRInt32 advance = 0;
             if (gid == font->GetSpaceGlyph()) {
