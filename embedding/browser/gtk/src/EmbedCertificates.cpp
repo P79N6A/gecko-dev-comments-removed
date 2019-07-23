@@ -137,10 +137,11 @@ EmbedCertificates::ConfirmDownloadCACert(nsIInterfaceRequestor *ctx,
                                     PRUint32 *_trust,
                                     PRBool *_retval)
 {
-  *_retval = PR_TRUE;
-  *_trust |= nsIX509CertDB::TRUSTED_SSL;
-  *_trust |= nsIX509CertDB::TRUSTED_EMAIL;
-  *_trust |= nsIX509CertDB::TRUSTED_OBJSIGN;
+  
+  
+  
+  *_retval = PR_FALSE;
+  *_trust = nsIX509CertDB::UNTRUSTED;
   return NS_OK;
 }
 
@@ -244,7 +245,10 @@ EmbedCertificates::DisplayProtectedAuth(
 NS_IMETHODIMP
 EmbedCertificates::ConfirmKeyEscrow(nsIX509Cert *escrowAuthority, PRBool *_retval)
 {
-  *_retval = PR_TRUE;
+  
+  
+  
+  *_retval = PR_FALSE;
   return NS_OK;
 }
 
