@@ -51,8 +51,11 @@ nsSMILCompositor::KeyEquals(KeyTypePointer aKey) const
 nsSMILCompositor::HashKey(KeyTypePointer aKey)
 {
   
-  return NS_PTR_TO_UINT32(aKey->mElement.get()) >> 4 +
-    NS_PTR_TO_INT32(aKey->mAttributeName.get()) +
+  
+  
+  
+  return (NS_PTR_TO_UINT32(aKey->mElement.get()) >> 2) +
+    NS_PTR_TO_UINT32(aKey->mAttributeName.get()) +
     (aKey->mIsCSS ? 1 : 0);
 }
 
