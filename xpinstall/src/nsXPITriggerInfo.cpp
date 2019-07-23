@@ -49,6 +49,7 @@
 #include "nsIJSContextStack.h"
 #include "nsIScriptSecurityManager.h"
 #include "nsICryptoHash.h"
+#include "nsIX509Cert.h"
 
 
 
@@ -153,10 +154,17 @@ nsXPITriggerItem::SetPrincipal(nsIPrincipal* aPrincipal)
     PRBool hasCert;
     aPrincipal->GetHasCertificate(&hasCert);
     if (hasCert) {
+        nsCOMPtr<nsISupports> certificate;
+        aPrincipal->GetCertificate(getter_AddRefs(certificate));
+
+        nsCOMPtr<nsIX509Cert> x509 = do_QueryInterface(certificate);
+        if (x509) {
+            x509->GetCommonName(mCertName);
+            if (mCertName.Length() > 0)
+                return;
+        }
+
         nsCAutoString prettyName;
-        
-        
-        
         aPrincipal->GetPrettyName(prettyName);
         CopyUTF8toUTF16(prettyName, mCertName);
     }
