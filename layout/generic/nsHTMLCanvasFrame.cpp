@@ -100,6 +100,12 @@ nsHTMLCanvasFrame::GetPrefWidth(nsIRenderingContext *aRenderingContext)
 }
 
  nsSize
+nsHTMLCanvasFrame::GetIntrinsicRatio()
+{
+  return GetCanvasSize();
+}
+
+ nsSize
 nsHTMLCanvasFrame::ComputeSize(nsIRenderingContext *aRenderingContext,
                                nsSize aCBSize, nscoord aAvailableWidth,
                                nsSize aMargin, nsSize aBorder, nsSize aPadding,

@@ -102,8 +102,8 @@ typedef class nsIFrame nsIBox;
 
 
 #define NS_IFRAME_IID \
-{ 0x902aaa17, 0x6433, 0x4d96, \
-  { 0x86, 0xb3, 0xfe, 0x1f, 0x4a, 0xf4, 0x11, 0x59 } }
+{ 0x4c0cfb5b, 0x864d, 0x46c5, \
+  { 0xad, 0x78, 0xb1, 0xb4, 0xde, 0x35, 0xa4, 0xc3 } }
 
 
 
@@ -1185,6 +1185,17 @@ public:
   };
   virtual IntrinsicWidthOffsetData
     IntrinsicWidthOffsets(nsIRenderingContext* aRenderingContext) = 0;
+
+  
+
+
+
+
+
+
+
+
+  virtual nsSize GetIntrinsicRatio() = 0;
 
   
 
