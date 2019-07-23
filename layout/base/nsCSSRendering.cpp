@@ -2766,15 +2766,6 @@ nsCSSRendering::PaintBorder(nsPresContext* aPresContext,
   }
 
   
-  
-  
-  
-  
-  if (innerRect.Contains(aDirtyRect)) {
-    return;
-  }
-
-  
 
   
   nscoord twipsPerPixel = aPresContext->DevPixelsToAppUnits(1);
