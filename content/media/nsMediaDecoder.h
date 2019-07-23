@@ -111,6 +111,7 @@ public:
   
   
   
+  
   virtual nsresult Load(nsIURI* aURI,
                         nsIChannel* aChannel,
                         nsIStreamListener **aListener) = 0;

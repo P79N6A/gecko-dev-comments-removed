@@ -57,11 +57,7 @@ public:
 
 
 
-
-
-
-  nsresult Init(nsMediaDecoder* aDecoder, nsIURI* aURI, nsIChannel* aChannel,
-                nsIStreamListener** aStreamListener);
+  void Init(nsMediaStream* aStream);
 
   nsMediaStream* Stream() { return mStream; }
 

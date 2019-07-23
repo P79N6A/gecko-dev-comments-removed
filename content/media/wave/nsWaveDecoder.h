@@ -146,6 +146,8 @@ class nsWaveDecoder : public nsMediaDecoder
   nsWaveDecoder();
   ~nsWaveDecoder();
 
+  virtual PRBool Init(nsHTMLMediaElement* aElement);
+
   virtual void GetCurrentURI(nsIURI** aURI);
   virtual already_AddRefed<nsIPrincipal> GetCurrentPrincipal();
 
@@ -273,9 +275,6 @@ private:
   
   float mEndedDuration;
   PRPackedBool mEnded;
-
-  
-  PRPackedBool mNotifyOnShutdown;
 
   
   PRPackedBool mSeekable;
