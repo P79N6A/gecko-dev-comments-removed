@@ -1114,12 +1114,12 @@ GeolocationPrompt.prototype = {
 
         var checkbox = newBar.ownerDocument.createElementNS(XULNS, "checkbox");
         checkbox.className = "rememberChoice";
-        checkbox.setAttribute("label", "Remember for this site"); 
+        checkbox.setAttribute("label", browserBundle.GetStringFromName("geolocation.remember"));
         newBar.appendChild(checkbox);
 
         var link = newBar.ownerDocument.createElementNS(XULNS, "label");
         link.className = "text-link";
-        link.setAttribute("value", "Learn More..."); 
+        link.setAttribute("value", browserBundle.GetStringFromName("geolocation.learnMore"));
 
         var formatter = Cc["@mozilla.org/toolkit/URLFormatterService;1"].getService(Ci.nsIURLFormatter);
         link.href = formatter.formatURLPref("browser.geolocation.warning.infoURL");
