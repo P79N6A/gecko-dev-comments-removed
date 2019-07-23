@@ -451,6 +451,7 @@ js_EnterSharpObject(JSContext *cx, JSObject *obj, JSIdArray **idap,
         map->table = table;
         JS_KEEP_ATOMS(cx->runtime);
     }
+    
 
     
     ida = NULL;
@@ -2884,10 +2885,9 @@ js_NewObjectWithGivenProto(JSContext *cx, JSClass *clasp, JSObject *proto,
 
     if (cx->debugHooks->objectHook && !JS_ON_TRACE(cx)) {
         AutoValueRooter tvr(cx, obj);
-        JS_KEEP_ATOMS(cx->runtime);
+        AutoKeepAtoms keep(cx->runtime);
         cx->debugHooks->objectHook(cx, obj, JS_TRUE,
                                    cx->debugHooks->objectHookData);
-        JS_UNKEEP_ATOMS(cx->runtime);
         cx->weakRoots.finalizableNewborns[FINALIZE_OBJECT] = obj;
     }
 
@@ -4601,10 +4601,11 @@ js_LookupPropertyWithFlags(JSContext *cx, JSObject *obj, jsid id, uintN flags,
                            : NULL;
                     JS_UNLOCK_OBJ(cx, obj);
 
-                    
-                    JS_KEEP_ATOMS(cx->runtime);
-                    ok = newresolve(cx, obj, ID_TO_VALUE(id), flags, &obj2);
-                    JS_UNKEEP_ATOMS(cx->runtime);
+                    {
+                        
+                        AutoKeepAtoms keep(cx->runtime);
+                        ok = newresolve(cx, obj, ID_TO_VALUE(id), flags, &obj2);
+                    }
                     if (!ok)
                         goto cleanup;
 

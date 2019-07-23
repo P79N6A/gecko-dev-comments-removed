@@ -1187,7 +1187,7 @@ js_AddRootRT(JSRuntime *rt, void *rp, const char *name)
 
 
 
-    JS_LOCK_GC(rt);
+    AutoLockGC lock(rt);
     js_WaitForGC(rt);
     rhe = (JSGCRootHashEntry *)
           JS_DHashTableOperate(&rt->gcRootsHash, rp, JS_DHASH_ADD);
@@ -1198,7 +1198,6 @@ js_AddRootRT(JSRuntime *rt, void *rp, const char *name)
     } else {
         ok = JS_FALSE;
     }
-    JS_UNLOCK_GC(rt);
     return ok;
 }
 
@@ -1209,11 +1208,10 @@ js_RemoveRoot(JSRuntime *rt, void *rp)
 
 
 
-    JS_LOCK_GC(rt);
+    AutoLockGC lock(rt);
     js_WaitForGC(rt);
     (void) JS_DHashTableOperate(&rt->gcRootsHash, rp, JS_DHASH_REMOVE);
     rt->gcPoke = JS_TRUE;
-    JS_UNLOCK_GC(rt);
     return JS_TRUE;
 }
 
@@ -1325,30 +1323,19 @@ js_gcroot_mapper(JSDHashTable *table, JSDHashEntryHdr *hdr, uint32 number,
 uint32
 js_MapGCRoots(JSRuntime *rt, JSGCRootMapFun map, void *data)
 {
-    GCRootMapArgs args;
-    uint32 rv;
-
-    args.map = map;
-    args.data = data;
-    JS_LOCK_GC(rt);
-    rv = JS_DHashTableEnumerate(&rt->gcRootsHash, js_gcroot_mapper, &args);
-    JS_UNLOCK_GC(rt);
-    return rv;
+    GCRootMapArgs args = {map, data};
+    AutoLockGC lock(rt);
+    return JS_DHashTableEnumerate(&rt->gcRootsHash, js_gcroot_mapper, &args);
 }
 
 JSBool
 js_RegisterCloseableIterator(JSContext *cx, JSObject *obj)
 {
-    JSRuntime *rt;
-    JSBool ok;
-
-    rt = cx->runtime;
+    JSRuntime *rt = cx->runtime;
     JS_ASSERT(!rt->gcRunning);
 
-    JS_LOCK_GC(rt);
-    ok = rt->gcIteratorTable.append(obj);
-    JS_UNLOCK_GC(rt);
-    return ok;
+    AutoLockGC lock(rt);
+    return rt->gcIteratorTable.append(obj);
 }
 
 static void
@@ -1447,77 +1434,75 @@ RefillFinalizableFreeList(JSContext *cx, unsigned thingKind)
 {
     JS_ASSERT(!GetGCFreeLists(cx)->finalizables[thingKind]);
     JSRuntime *rt = cx->runtime;
-    JS_LOCK_GC(rt);
-    JS_ASSERT(!rt->gcRunning);
-    if (rt->gcRunning) {
-        METER(rt->gcStats.finalfail++);
-        JS_UNLOCK_GC(rt);
-        return NULL;
-    }
-
-    bool canGC = !JS_ON_TRACE(cx) && !JS_THREAD_DATA(cx)->waiveGCQuota;
-    bool doGC = canGC && IsGCThresholdReached(rt);
-    JSGCArenaList *arenaList = &rt->gcArenaList[thingKind];
+    JSGCArenaList *arenaList;
     JSGCArena *a;
-    for (;;) {
-        if (doGC) {
-            
 
-
-
-
-
-
-
-            js_GC(cx, GC_LAST_DITCH);
-            METER(cx->runtime->gcStats.arenaStats[thingKind].retry++);
-            canGC = false;
-
-            
-
-
-
-
-            JSGCThing *freeList = GetGCFreeLists(cx)->finalizables[thingKind];
-            if (freeList) {
-                JS_UNLOCK_GC(rt);
-                return freeList;
-            }
-        }
-
-        while ((a = arenaList->cursor) != NULL) {
-            arenaList->cursor = a->info.prev;
-            JSGCThing *freeList = a->info.freeList;
-            if (freeList) {
-                a->info.freeList = NULL;
-                JS_UNLOCK_GC(rt);
-                return freeList;
-            }
-        }
-
-        a = NewGCArena(cx);
-        if (a)
-            break;
-        if (!canGC) {
-            METER(cx->runtime->gcStats.arenaStats[thingKind].fail++);
-            JS_UNLOCK_GC(rt);
+    {
+        AutoLockGC lock(rt);
+        JS_ASSERT(!rt->gcRunning);
+        if (rt->gcRunning) {
+            METER(rt->gcStats.finalfail++);
             return NULL;
         }
-        doGC = true;
+
+        bool canGC = !JS_ON_TRACE(cx) && !JS_THREAD_DATA(cx)->waiveGCQuota;
+        bool doGC = canGC && IsGCThresholdReached(rt);
+        arenaList = &rt->gcArenaList[thingKind];
+        for (;;) {
+            if (doGC) {
+                
+
+
+
+
+
+
+
+                js_GC(cx, GC_LAST_DITCH);
+                METER(cx->runtime->gcStats.arenaStats[thingKind].retry++);
+                canGC = false;
+
+                
+
+
+
+
+                JSGCThing *freeList = GetGCFreeLists(cx)->finalizables[thingKind];
+                if (freeList)
+                    return freeList;
+            }
+
+            while ((a = arenaList->cursor) != NULL) {
+                arenaList->cursor = a->info.prev;
+                JSGCThing *freeList = a->info.freeList;
+                if (freeList) {
+                    a->info.freeList = NULL;
+                    return freeList;
+                }
+            }
+
+            a = NewGCArena(cx);
+            if (a)
+                break;
+            if (!canGC) {
+                METER(cx->runtime->gcStats.arenaStats[thingKind].fail++);
+                return NULL;
+            }
+            doGC = true;
+        }
+
+        
+
+
+
+
+        a->info.list = arenaList;
+        a->info.prev = arenaList->head;
+        a->clearPrevUnmarked();
+        a->info.freeList = NULL;
+        a->info.unmarkedChildren = 0;
+        arenaList->head = a;
     }
-
-    
-
-
-
-
-    a->info.list = arenaList;
-    a->info.prev = arenaList->head;
-    a->clearPrevUnmarked();
-    a->info.freeList = NULL;
-    a->info.unmarkedChildren = 0;
-    arenaList->head = a;
-    JS_UNLOCK_GC(rt);
 
     a->clearMarkBitmap();
     return MakeNewArenaFreeList(a, arenaList->thingSize);
@@ -1818,7 +1803,7 @@ js_LockGCThingRT(JSRuntime *rt, void *thing)
     if (!thing)
         return true;
 
-    JS_LOCK_GC(rt);
+    AutoLockGC lock(rt);
     JSGCLockHashEntry *lhe = (JSGCLockHashEntry *)
                              JS_DHashTableOperate(&rt->gcLocksHash, thing,
                                                   JS_DHASH_ADD);
@@ -1833,7 +1818,6 @@ js_LockGCThingRT(JSRuntime *rt, void *thing)
         }
         METER(rt->gcStats.lock++);
     }
-    JS_UNLOCK_GC(rt);
     return ok;
 }
 
@@ -1843,7 +1827,7 @@ js_UnlockGCThingRT(JSRuntime *rt, void *thing)
     if (!thing)
         return;
 
-    JS_LOCK_GC(rt);
+    AutoLockGC lock(rt);
     JSGCLockHashEntry *lhe = (JSGCLockHashEntry *)
                              JS_DHashTableOperate(&rt->gcLocksHash, thing,
                                                   JS_DHASH_LOOKUP);
@@ -1853,7 +1837,6 @@ js_UnlockGCThingRT(JSRuntime *rt, void *thing)
             JS_DHashTableOperate(&rt->gcLocksHash, thing, JS_DHASH_REMOVE);
         METER(rt->gcStats.unlock++);
     }
-    JS_UNLOCK_GC(rt);
 }
 
 JS_PUBLIC_API(void)
@@ -3151,15 +3134,8 @@ FireGCBegin(JSContext *cx, JSGCInvocationKind gckind)
 
 
     if (gckind != GC_SET_SLOT_REQUEST && callback) {
-        JSBool ok;
-
-        if (gckind & GC_LOCK_HELD)
-            JS_UNLOCK_GC(rt);
-        ok = callback(cx, JSGC_BEGIN);
-        if (gckind & GC_LOCK_HELD)
-            JS_LOCK_GC(rt);
-        if (!ok && gckind != GC_LAST_CONTEXT)
-            return false;
+        Conditionally<AutoUnlockGC> unlockIf(gckind & GC_LOCK_HELD, rt);
+        return callback(cx, JSGC_BEGIN) || gckind == GC_LAST_CONTEXT;
     }
     return true;
 }
@@ -3196,14 +3172,10 @@ FireGCEnd(JSContext *cx, JSGCInvocationKind gckind)
 
 
             AutoSaveWeakRoots save(cx);
-
-            JS_KEEP_ATOMS(rt);
-            JS_UNLOCK_GC(rt);
+            AutoKeepAtoms keep(rt);
+            AutoUnlockGC unlock(rt);
 
             (void) callback(cx, JSGC_END);
-
-            JS_LOCK_GC(rt);
-            JS_UNKEEP_ATOMS(rt);
         }
     }
     return true;
@@ -3300,9 +3272,8 @@ js_GC(JSContext *cx, JSGCInvocationKind gckind)
 
 
 
-                    JS_UNLOCK_GC(rt);
+                    AutoUnlockGC unlock(rt);
                     LeaveTrace(cx);
-                    JS_LOCK_GC(rt);
                 }
 #endif
                 rt->requestCount -= requestDebit;
@@ -3320,8 +3291,7 @@ js_GC(JSContext *cx, JSGCInvocationKind gckind)
 
 
 
-                if (gckind & GC_KEEP_ATOMS)
-                    JS_KEEP_ATOMS(rt);
+                Conditionally<AutoKeepAtoms> keepIf(gckind & GC_KEEP_ATOMS, rt);
 
                 
 
@@ -3333,8 +3303,6 @@ js_GC(JSContext *cx, JSGCInvocationKind gckind)
                 } while (rt->gcLevel > 0);
 
                 cx->thread->gcWaiting = false;
-                if (gckind & GC_KEEP_ATOMS)
-                    JS_UNKEEP_ATOMS(rt);
                 rt->requestCount += requestDebit;
             }
         }
@@ -3407,10 +3375,9 @@ js_GC(JSContext *cx, JSGCInvocationKind gckind)
 
         while ((ssr = rt->setSlotRequests) != NULL) {
             rt->setSlotRequests = ssr->next;
-            JS_UNLOCK_GC(rt);
+            AutoUnlockGC unlock(rt);
             ssr->next = NULL;
             ProcessSetSlotRequest(cx, ssr);
-            JS_LOCK_GC(rt);
         }
 
         

@@ -169,9 +169,6 @@ JSCompiler::init(const jschar *base, size_t length,
         JS_ARENA_RELEASE(&cx->tempPool, tempPoolMark);
         return false;
     }
-
-    
-    JS_KEEP_ATOMS(cx->runtime);
     return true;
 }
 
@@ -181,7 +178,6 @@ JSCompiler::~JSCompiler()
 
     if (principals)
         JSPRINCIPALS_DROP(cx, principals);
-    JS_UNKEEP_ATOMS(cx->runtime);
     tokenStream.close();
     JS_ARENA_RELEASE(&cx->tempPool, tempPoolMark);
 }
