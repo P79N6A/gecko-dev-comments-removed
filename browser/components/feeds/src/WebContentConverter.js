@@ -401,6 +401,18 @@ WebContentConverterRegistrar.prototype = {
   registerProtocolHandler: 
   function WCCR_registerProtocolHandler(aProtocol, aURIString, aTitle, aContentWindow) {
     LOG("registerProtocolHandler(" + aProtocol + "," + aURIString + "," + aTitle + ")");
+
+    if (Cc["@mozilla.org/privatebrowsing;1"].
+        getService(Ci.nsIPrivateBrowsingService).
+        privateBrowsingEnabled) {
+      
+      
+      
+      Cc["@mozilla.org/consoleservice;1"].
+      getService(Ci.nsIConsoleService).
+      logStringMessage("Web page denied access to register a protocol handler inside private browsing mode");
+      return;
+    }
     
     
     
