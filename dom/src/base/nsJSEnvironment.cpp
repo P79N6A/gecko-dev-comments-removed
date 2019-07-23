@@ -2082,6 +2082,11 @@ nsJSContext::Deserialize(nsIObjectInputStream* aStream,
         nsMemory::Free(data);
     NS_ASSERTION(aResult.getScriptTypeID()==JAVASCRIPT,
                  "Expecting JS script object holder");
+
+    
+    
+    NS_ENSURE_SUCCESS(rv, rv);
+    
     return aResult.set(result);
 }
 
