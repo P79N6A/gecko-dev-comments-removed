@@ -118,6 +118,17 @@ function run_test() {
   do_check_eq(handlerInfo.defaultDescription, "");
 
   
+  var haveDefaultHandlersVersion = false;
+  try { 
+    
+    
+    
+    
+    
+    rootPrefBranch.getCharPref("gecko.handlerService.defaultHandlersVersion");
+    haveDefaultHandlersVersion = true;
+  } catch (ex) {}
+
   const kExternalWarningDefault = 
     "network.protocol-handler.warn-external-default";
   prefSvc.setBoolPref(kExternalWarningDefault, true);
@@ -150,27 +161,38 @@ function run_test() {
   
   prefSvc.setBoolPref(kExternalWarningPrefPrefix + "mailto", false);
   protoInfo = protoSvc.getProtocolHandlerInfo("mailto");
-  do_check_eq(1, protoInfo.possibleApplicationHandlers.length);
+  if (haveDefaultHandlersVersion)
+    do_check_eq(1, protoInfo.possibleApplicationHandlers.length);
+  else
+    do_check_eq(0, protoInfo.possibleApplicationHandlers.length);
   do_check_false(protoInfo.alwaysAskBeforeHandling);
 
   
   prefSvc.setBoolPref(kExternalWarningPrefPrefix + "mailto", true);
   protoInfo = protoSvc.getProtocolHandlerInfo("mailto");
-  do_check_eq(1, protoInfo.possibleApplicationHandlers.length);
-  
-  
-  
-  
-  do_check_false(protoInfo.alwaysAskBeforeHandling);
-  
-  
-  
-  prefSvc.setBoolPref(kExternalWarningPrefPrefix + "mailto", false);
-  protoInfo.alwaysAskBeforeHandling = true;
-  handlerSvc.store(protoInfo);
-  protoInfo = protoSvc.getProtocolHandlerInfo("mailto");
-  do_check_eq(1, protoInfo.possibleApplicationHandlers.length);
-  do_check_true(protoInfo.alwaysAskBeforeHandling);
+  if (haveDefaultHandlersVersion) {
+    do_check_eq(1, protoInfo.possibleApplicationHandlers.length);
+    
+    
+    
+    
+    do_check_false(protoInfo.alwaysAskBeforeHandling);
+  } else {
+    do_check_eq(0, protoInfo.possibleApplicationHandlers.length);
+    do_check_true(protoInfo.alwaysAskBeforeHandling);
+  }
+
+  if (haveDefaultHandlersVersion) {
+    
+    
+    
+    prefSvc.setBoolPref(kExternalWarningPrefPrefix + "mailto", false);
+    protoInfo.alwaysAskBeforeHandling = true;
+    handlerSvc.store(protoInfo);
+    protoInfo = protoSvc.getProtocolHandlerInfo("mailto");
+    do_check_eq(1, protoInfo.possibleApplicationHandlers.length);
+    do_check_true(protoInfo.alwaysAskBeforeHandling);
+  }
 
 
   
@@ -205,16 +227,10 @@ function run_test() {
   var handlerInfo2 = mimeSvc.getFromTypeAndExtension("nonexistent/type2", null);
   handlerSvc.store(handlerInfo2);
   var handlerTypes = ["nonexistent/type", "nonexistent/type2"];
-  try { 
-    
-    
-    
-    
-    
-    rootPrefBranch.getCharPref("gecko.handlerService.defaultHandlersVersion");
+  if (haveDefaultHandlersVersion) {
     handlerTypes.push("webcal");
     handlerTypes.push("mailto");
-  } catch (ex) {}   
+  }
   var handlers = handlerSvc.enumerate();
   while (handlers.hasMoreElements()) {
     var handler = handlers.getNext().QueryInterface(Ci.nsIHandlerInfo);
