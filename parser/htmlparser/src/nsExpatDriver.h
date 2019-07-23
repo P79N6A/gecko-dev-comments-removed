@@ -145,6 +145,7 @@ private:
   PRPackedBool     mInCData;
   PRPackedBool     mInInternalSubset;
   PRPackedBool     mInExternalDTD;
+  PRPackedBool     mMadeFinalCallToExpat;
 
   
   

@@ -397,6 +397,7 @@ nsExpatDriver::nsExpatDriver()
     mInCData(PR_FALSE),
     mInInternalSubset(PR_FALSE),
     mInExternalDTD(PR_FALSE),
+    mMadeFinalCallToExpat(PR_FALSE),
     mIsFinalChunk(PR_FALSE),
     mInternalState(NS_OK),
     mExpatBuffered(0),
@@ -1071,20 +1072,13 @@ nsExpatDriver::ConsumeToken(nsScanner& aScanner, PRBool& aFlushTokens)
          ("Remaining in expat's buffer: %i, remaining in scanner: %i.",
           mExpatBuffered, Distance(start, end)));
 
-  PRBool flush = mIsFinalChunk;
-
   
   
   
-  while (start != end || flush ||
+  while (start != end || (mIsFinalChunk && !mMadeFinalCallToExpat) ||
          (BlockedOrInterrupted() && mExpatBuffered > 0)) {
     PRBool noMoreBuffers = start == end && mIsFinalChunk;
     PRBool blocked = BlockedOrInterrupted();
-
-    
-    
-    
-    flush = blocked && noMoreBuffers;
 
     const PRUnichar *buffer;
     PRUint32 length;
@@ -1094,6 +1088,7 @@ nsExpatDriver::ConsumeToken(nsScanner& aScanner, PRBool& aFlushTokens)
       buffer = nsnull;
       length = 0;
 
+#if defined(PR_LOGGING) || defined (DEBUG)
       if (blocked) {
         PR_LOG(gExpatDriverLog, PR_LOG_DEBUG,
                ("Resuming Expat, will parse data remaining in Expat's "
@@ -1110,6 +1105,7 @@ nsExpatDriver::ConsumeToken(nsScanner& aScanner, PRBool& aFlushTokens)
                 NS_ConvertUTF16toUTF8(currentExpatPosition.get(),
                                       mExpatBuffered).get()));
       }
+#endif
     }
     else {
       buffer = start.get();
@@ -1163,6 +1159,10 @@ nsExpatDriver::ConsumeToken(nsScanner& aScanner, PRBool& aFlushTokens)
       aScanner.Mark();
 
       return mInternalState;
+    }
+
+    if (noMoreBuffers && mExpatBuffered == 0) {
+      mMadeFinalCallToExpat = PR_TRUE;
     }
 
     if (NS_FAILED(mInternalState)) {
