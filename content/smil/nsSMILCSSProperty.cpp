@@ -243,11 +243,11 @@ nsSMILCSSProperty::IsPropertyAnimatable(nsCSSProperty aPropID)
     
     
     
-    
+    case eCSSProperty_fill_opacity:
     
     
     case eCSSProperty_flood_color:
-    
+    case eCSSProperty_flood_opacity:
     
     case eCSSProperty_font_size:
     
@@ -262,16 +262,16 @@ nsSMILCSSProperty::IsPropertyAnimatable(nsCSSProperty aPropID)
     
     
     
-    
+    case eCSSProperty_opacity:
     
     
     case eCSSProperty_stop_color:
-    
+    case eCSSProperty_stop_opacity:
     case eCSSProperty_stroke_dashoffset:
     
     
-    
-    
+    case eCSSProperty_stroke_miterlimit:
+    case eCSSProperty_stroke_opacity:
     case eCSSProperty_stroke_width:
     
     
