@@ -501,13 +501,18 @@ extend(AnimTestcaseFromTo, AnimTestcaseFrom);
 
 
 
+
+
+
+
 function AnimTestcaseFromBy(aFrom, aBy, aComputedValMap, aSkipReason)
 {
   this.from           = aFrom;
   this.by             = aBy;
   this.computedValMap = aComputedValMap;
   this.skipReason     = aSkipReason;
-  if (this.computedValMap && !this.computedValMap.toComp) {
+  if (this.computedValMap &&
+      !this.computedValMap.noEffect && !this.computedValMap.toComp) {
     ok(false, "AnimTestcaseFromBy needs expected computed final value");
   }
 }
@@ -527,7 +532,7 @@ AnimTestcaseFromBy.prototype =
   },
   buildSeekList : function(aAnimAttr, aBaseVal, aTimeData, aIsFreeze)
   {
-    if (!aAnimAttr.isAdditive) {
+    if (!aAnimAttr.isAdditive || this.computedValMap.noEffect) {
       return this.buildSeekListStatic(aAnimAttr, aBaseVal, aTimeData,
                                       "defined as non-additive in SVG spec");
     }
