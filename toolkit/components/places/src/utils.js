@@ -1732,6 +1732,17 @@ var PlacesUtils = {
   
 
 
+
+
+
+  archiveBookmarksFile:
+  function PU_archiveBookmarksFile(aMaxBackups, aForceBackup) {
+    this.backups.create(aMaxBackups, aForceBackup);
+  },
+
+  
+
+
   backups: {
 
     get _filenamesRegex() {
