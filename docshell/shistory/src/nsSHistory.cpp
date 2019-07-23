@@ -330,7 +330,6 @@ nsSHistory::AddEntry(nsISHEntry * aSHEntry, PRBool aPersist)
   
   
   
-  PRInt32 oldIndex = mIndex;
   mLength = (++mIndex + 1);
 
   
@@ -341,8 +340,6 @@ nsSHistory::AddEntry(nsISHEntry * aSHEntry, PRBool aPersist)
   if ((gHistoryMaxSize >= 0) && (mLength > gHistoryMaxSize))
     PurgeHistory(mLength-gHistoryMaxSize);
   
-  
-  EvictWindowContentViewers(oldIndex, mIndex);
   return NS_OK;
 }
 
@@ -586,6 +583,9 @@ nsSHistory::PurgeHistory(PRInt32 aEntries)
     mIndex = -1;
   }
 
+  if (mRootDocShell)
+    mRootDocShell->HistoryPurged(cnt);
+
   return NS_OK;
 }
 
@@ -655,8 +655,10 @@ nsSHistory::GetListener(nsISHistoryListener ** aListener)
 }
 
 NS_IMETHODIMP
-nsSHistory::EvictContentViewers()
+nsSHistory::EvictContentViewers(PRInt32 aPreviousIndex, PRInt32 aIndex)
 {
+  
+  EvictWindowContentViewers(aPreviousIndex, aIndex);
   
   EvictGlobalContentViewer();
   return NS_OK;
@@ -1124,15 +1126,6 @@ nsSHistory::LoadURI(const PRUnichar* aURI,
 NS_IMETHODIMP
 nsSHistory::GotoIndex(PRInt32 aIndex)
 {
- 
-  if (mIndex > -1 && PR_ABS(aIndex - mIndex) > gHistoryMaxViewers) {
-    
-    
-    nsCOMPtr<nsISHEntry> currentEntry;
-    nsresult rv = GetEntryAtIndex(mIndex, PR_FALSE, getter_AddRefs(currentEntry));
-    if (NS_SUCCEEDED(rv) && currentEntry)
-      currentEntry->SetSaveContentViewerFlag(PR_FALSE);
-  }
   return LoadEntry(aIndex, nsIDocShellLoadInfo::loadHistory, HIST_CMD_GOTOINDEX);
 }
 
@@ -1228,17 +1221,7 @@ nsSHistory::LoadEntry(PRInt32 aIndex, long aLoadType, PRUint32 aHistCmd)
   }
 
   
-  nsresult rv = InitiateLoad(nextEntry, docShell, aLoadType);
-
-  if (NS_SUCCEEDED(rv)) {
-    
-    nextEntry->SetSaveContentViewerFlag(PR_TRUE);
-    
-    
-    EvictWindowContentViewers(mIndex, mRequestedIndex);
-  }
-
-  return rv;
+  return InitiateLoad(nextEntry, docShell, aLoadType);
 }
 
 
