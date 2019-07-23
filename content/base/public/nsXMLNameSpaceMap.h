@@ -64,7 +64,7 @@ public:
 
 
 
-  static NS_HIDDEN_(nsXMLNameSpaceMap*) Create();
+  static NS_HIDDEN_(nsXMLNameSpaceMap*) Create(PRBool aForXML);
 
   
 
