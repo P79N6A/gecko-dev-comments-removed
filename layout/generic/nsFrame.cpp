@@ -5686,10 +5686,8 @@ nsFrame::GetParentStyleContextFrame(nsPresContext* aPresContext,
 
 
 
-static nsresult
-GetIBSpecialSiblingForAnonymousBlock(nsPresContext* aPresContext,
-                                     nsIFrame* aFrame,
-                                     nsIFrame** aSpecialSibling)
+static nsIFrame*
+GetIBSpecialSiblingForAnonymousBlock(nsIFrame* aFrame)
 {
   NS_PRECONDITION(aFrame, "Must have a non-null frame!");
   NS_ASSERTION(aFrame->GetStateBits() & NS_FRAME_IS_SPECIAL,
@@ -5699,33 +5697,21 @@ GetIBSpecialSiblingForAnonymousBlock(nsPresContext* aPresContext,
   if (type != nsCSSAnonBoxes::mozAnonymousBlock &&
       type != nsCSSAnonBoxes::mozAnonymousPositionedBlock) {
     
-    *aSpecialSibling = nsnull;
-    return NS_OK;
+    return nsnull;
   }
 
   
   
-  aFrame = aFrame->GetFirstInFlow();
+  aFrame = aFrame->GetFirstContinuation();
 
   
 
 
 
-
-  nsresult rv;
-  nsIFrame *specialSibling = static_cast<nsIFrame*>
-                                        (aPresContext->PropertyTable()->GetProperty(aFrame,
-                               nsGkAtoms::IBSplitSpecialPrevSibling, &rv));
-
-  if (NS_PROPTABLE_PROP_NOT_THERE == rv) {
-    *aSpecialSibling = nsnull;
-    rv = NS_OK;
-  } else if (NS_SUCCEEDED(rv)) {
-    NS_ASSERTION(specialSibling, "null special sibling");
-    *aSpecialSibling = specialSibling;
-  }
-
-  return rv;
+  nsIFrame *specialSibling =
+    static_cast<nsIFrame*>(aFrame->GetProperty(nsGkAtoms::IBSplitSpecialPrevSibling));
+  NS_ASSERTION(specialSibling, "Broken frame tree?");
+  return specialSibling;
 }
 
 
@@ -5784,16 +5770,7 @@ nsFrame::CorrectStyleParentFrame(nsIFrame* aProspectiveParent,
   nsIFrame* parent = aProspectiveParent;
   do {
     if (parent->GetStateBits() & NS_FRAME_IS_SPECIAL) {
-      nsIFrame* sibling;
-      nsresult rv =
-        GetIBSpecialSiblingForAnonymousBlock(parent->PresContext(), parent, &sibling);
-      if (NS_FAILED(rv)) {
-        
-        
-        
-        NS_NOTREACHED("Shouldn't get here");
-        return aProspectiveParent;
-      }
+      nsIFrame* sibling = GetIBSpecialSiblingForAnonymousBlock(parent);
 
       if (sibling) {
         
@@ -5850,15 +5827,8 @@ nsFrame::DoGetParentStyleContextFrame(nsPresContext* aPresContext,
 
 
 
-
     if (mState & NS_FRAME_IS_SPECIAL) {
-      nsresult rv =
-        GetIBSpecialSiblingForAnonymousBlock(aPresContext, this, aProviderFrame);
-      if (NS_FAILED(rv)) {
-        NS_NOTREACHED("Shouldn't get here");
-        *aProviderFrame = nsnull;
-        return rv;
-      }
+      *aProviderFrame = GetIBSpecialSiblingForAnonymousBlock(this);
 
       if (*aProviderFrame) {
         return NS_OK;

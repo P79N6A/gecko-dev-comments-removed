@@ -1101,7 +1101,7 @@ nsFrameManager::ReParentStyleContext(nsIFrame* aFrame)
         
         
         if ((aFrame->GetStateBits() & NS_FRAME_IS_SPECIAL) &&
-            !aFrame->GetPrevInFlow()) {
+            !aFrame->GetPrevContinuation()) {
           nsIFrame* sib = static_cast<nsIFrame*>(aFrame->GetProperty(nsGkAtoms::IBSplitSpecialSibling));
           if (sib) {
             ReParentStyleContext(sib);
