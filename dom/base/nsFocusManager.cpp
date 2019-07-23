@@ -1378,8 +1378,10 @@ nsFocusManager::Blur(nsPIDOMWindow* aWindowToClear,
 
     
     
+    
     nsCOMPtr<nsIDocument> doc = do_QueryInterface(window->GetExtantDocument());
-    SendFocusOrBlurEvent(NS_BLUR_CONTENT, presShell, doc, doc, 1);
+    if (doc)
+      SendFocusOrBlurEvent(NS_BLUR_CONTENT, presShell, doc, doc, 1);
     if (mFocusedWindow == nsnull)
       SendFocusOrBlurEvent(NS_BLUR_CONTENT, presShell, doc, window, 1);
 
@@ -1418,6 +1420,8 @@ nsFocusManager::Focus(nsPIDOMWindow* aWindow,
   
   
   nsCOMPtr<nsIDocShell> docShell = aWindow->GetDocShell();
+  if (!docShell)
+    return;
 
   nsCOMPtr<nsIPresShell> presShell;
   docShell->GetPresShell(getter_AddRefs(presShell));
@@ -1481,8 +1485,9 @@ nsFocusManager::Focus(nsPIDOMWindow* aWindow,
   
   if (aIsNewDocument) {
     nsCOMPtr<nsIDocument> doc = do_QueryInterface(aWindow->GetExtantDocument());
-    SendFocusOrBlurEvent(NS_FOCUS_CONTENT, presShell, doc,
-                         doc, aFlags & FOCUSMETHOD_MASK);
+    if (doc)
+      SendFocusOrBlurEvent(NS_FOCUS_CONTENT, presShell, doc,
+                           doc, aFlags & FOCUSMETHOD_MASK);
     if (mFocusedWindow == aWindow && mFocusedContent == nsnull)
       SendFocusOrBlurEvent(NS_FOCUS_CONTENT, presShell, doc,
                            aWindow, aFlags & FOCUSMETHOD_MASK);
@@ -1572,7 +1577,7 @@ nsFocusManager::SendFocusOrBlurEvent(PRUint32 aType,
   
   
   
-  if (aFocusMethod && aDocument->EventHandlingSuppressed()) {
+  if (aFocusMethod && aDocument && aDocument->EventHandlingSuppressed()) {
     for (PRUint32 i = mDelayedBlurFocusEvents.Length(); i > 0; --i) {
       
       if (mDelayedBlurFocusEvents[i - 1].mType == aType &&
