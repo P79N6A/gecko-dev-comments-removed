@@ -147,8 +147,6 @@ struct JSAtomMap {
 struct JSAtomState {
     JSDHashTable        stringAtoms;    
     JSDHashTable        doubleAtoms;    
-    uint32              tablegen;       
-
 #ifdef JS_THREADSAFE
     JSThinLock          lock;
 #endif
