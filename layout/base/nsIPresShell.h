@@ -104,8 +104,8 @@ typedef PRUint32 nsFrameState;
 
 
 #define NS_IPRESSHELL_IID \
-{ 0xd93b931b, 0xd5ef, 0x4d3c, \
-  { 0xab, 0x99, 0x44, 0x41, 0x76, 0x96, 0x34, 0x64 } }
+{ 0x4BE324F2, 0xFB22, 0x47CD, \
+  { 0xA6, 0x53, 0x19, 0xC7, 0x0E, 0xE5, 0x5E, 0x3F } }
 
 
 #define NS_PRESSHELL_SCROLL_TOP      0
@@ -497,7 +497,13 @@ public:
   
 
 
-  virtual already_AddRefed<nsICaret> SetCaret(nsICaret *aNewCaret) = 0;
+  virtual void SetCaret(nsICaret *aNewCaret) = 0;
+
+  
+
+
+
+  virtual void RestoreCaret() = 0;
 
   
 
