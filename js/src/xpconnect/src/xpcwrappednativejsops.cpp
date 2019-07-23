@@ -736,9 +736,7 @@ XPC_GetIdentityObject(JSContext *cx, JSObject *obj)
     XPCWrappedNative *wrapper;
 
     if(XPCNativeWrapper::IsNativeWrapper(obj))
-        
-        
-        wrapper = XPCNativeWrapper::SafeGetWrappedNative(obj);
+        wrapper = XPCNativeWrapper::GetWrappedNative(obj);
     else
         wrapper = XPCWrappedNative::GetWrappedNativeOfJSObject(cx, obj);
 
