@@ -122,12 +122,6 @@ typedef struct _cairo_quorem64 {
 } cairo_quorem64_t;
 
 
-#if HAVE___UINT128_T && !HAVE_UINT128_T
-typedef __uint128_t uint128_t;
-typedef __int128_t int128_t;
-#define HAVE_UINT128_T 1
-#endif
-
 #if !HAVE_UINT128_T
 
 typedef struct cairo_uint128 {

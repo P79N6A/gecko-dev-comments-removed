@@ -36,8 +36,6 @@
 
 #include "cairoint.h"
 
-#include "cairo-slope-private.h"
-
 cairo_bool_t
 _cairo_spline_init (cairo_spline_t *spline,
 		    cairo_spline_add_point_func_t add_point_func,
@@ -128,6 +126,8 @@ _cairo_spline_error_squared (const cairo_spline_knots_t *knots)
 
 
 
+
+
     bdx = _cairo_fixed_to_double (knots->b.x - knots->a.x);
     bdy = _cairo_fixed_to_double (knots->b.y - knots->a.y);
 
@@ -135,13 +135,6 @@ _cairo_spline_error_squared (const cairo_spline_knots_t *knots)
     cdy = _cairo_fixed_to_double (knots->c.y - knots->a.y);
 
     if (knots->a.x != knots->d.x || knots->a.y != knots->d.y) {
-	
-
-
-
-
-
-
 	double dx, dy, u, v;
 
 	dx = _cairo_fixed_to_double (knots->d.x - knots->a.x);

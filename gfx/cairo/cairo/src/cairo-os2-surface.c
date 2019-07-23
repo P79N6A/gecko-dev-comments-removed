@@ -716,18 +716,26 @@ _cairo_os2_surface_release_dest_image (void                    *abstract_surface
     DosReleaseMutexSem (local_os2_surface->hmtx_use_private_fields);
 }
 
-static cairo_bool_t
+static cairo_int_status_t
 _cairo_os2_surface_get_extents (void                    *abstract_surface,
                                 cairo_rectangle_int_t   *rectangle)
 {
     cairo_os2_surface_t *local_os2_surface;
+
+    local_os2_surface = (cairo_os2_surface_t *) abstract_surface;
+    if ((!local_os2_surface) ||
+        (local_os2_surface->base.backend != &cairo_os2_surface_backend))
+    {
+        
+        return _cairo_error (CAIRO_STATUS_SURFACE_TYPE_MISMATCH);
+    }
 
     rectangle->x = 0;
     rectangle->y = 0;
     rectangle->width  = local_os2_surface->bitmap_info.cx;
     rectangle->height = local_os2_surface->bitmap_info.cy;
 
-    return TRUE;
+    return CAIRO_STATUS_SUCCESS;
 }
 
 
@@ -1311,6 +1319,8 @@ static const cairo_surface_backend_t cairo_os2_surface_backend = {
     _cairo_os2_surface_release_source_image,
     _cairo_os2_surface_acquire_dest_image,
     _cairo_os2_surface_release_dest_image,
+    NULL, 
+    NULL, 
     NULL, 
     NULL, 
     NULL, 
