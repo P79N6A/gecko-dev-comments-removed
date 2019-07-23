@@ -286,8 +286,8 @@ PlacesController.prototype = {
       
       var nodeItemId = nodes[i].itemId;
       if (!aIsMoveCommand &&
-           PlacesUtils.nodeIsFolder(nodes[i]) && 
-           (nodeItemId == PlacesUtils.toolbarFolderId || 
+           PlacesUtils.nodeIsFolder(nodes[i]) &&
+           (nodeItemId == PlacesUtils.toolbarFolderId ||
             nodeItemId == PlacesUtils.unfiledBookmarksFolderId ||
             nodeItemId == PlacesUtils.bookmarksMenuFolderId))
         return false;
