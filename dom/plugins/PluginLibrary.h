@@ -43,20 +43,12 @@
 #include "npapi.h"
 #include "nscore.h"
 
-class nsNPAPIPlugin;
-
 namespace mozilla {
 
 class PluginLibrary
 {
 public:
   virtual ~PluginLibrary() { }
-
-  
-
-
-
-  virtual void SetPlugin(nsNPAPIPlugin* plugin) = 0;
 
   virtual bool HasRequiredFunctions() = 0;
 
