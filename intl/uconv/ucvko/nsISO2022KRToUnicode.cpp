@@ -52,12 +52,17 @@ NS_IMETHODIMP nsISO2022KRToUnicode::Convert(const char * aSrc, PRInt32 * aSrcLen
   {
     switch(mState)
     {
-      case mState_ASCII:
+      case mState_Init:
         if(0x1b == *src) {
-            mLastLegalState = mState;
-            mState = mState_ESC;
-        } 
-        else if(0x0e == *src) { 
+          mLastLegalState = mState_ASCII;
+          mState = mState_ESC;
+          break;
+        }
+        mState = mState_ASCII;
+        
+
+      case mState_ASCII:
+        if(0x0e == *src) { 
           mState = mState_KSX1001_1992;
           mRunLength = 0;
         } 
@@ -104,11 +109,6 @@ NS_IMETHODIMP nsISO2022KRToUnicode::Convert(const char * aSrc, PRInt32 * aSrcLen
         mState = mLastLegalState;
         if('C' == *src) {
           mState = mState_ASCII;
-          if (mRunLength == 0) {
-            if(dest+1 >= destEnd)
-              goto error1;
-            *dest++ = 0xFFFD;
-          }
           mRunLength = 0;
         } 
         else  {
@@ -207,7 +207,7 @@ NS_IMETHODIMP nsISO2022KRToUnicode::Convert(const char * aSrc, PRInt32 * aSrcLen
     } 
     src++;
     if ( *src == 0x0a || *src == 0x0d )   
-      mState = mState_ASCII;
+      mState = mState_Init;
    }
    *aDestLen = dest - aDest;
    return NS_OK;
