@@ -247,6 +247,9 @@ js_TraceRuntime(JSTracer *trc, JSBool allAtoms);
 extern JS_REQUIRES_STACK JS_FRIEND_API(void)
 js_TraceContext(JSTracer *trc, JSContext *acx);
 
+extern void
+js_PurgeTraceMonitor(JSContext *cx, JSTraceMonitor *tm);
+
 
 
 
@@ -339,6 +342,9 @@ extern const JSGCFreeListSet js_GCEmptyFreeListSet;
 
 extern void
 js_RevokeGCLocalFreeLists(JSContext *cx);
+
+extern void
+js_DestroyScriptsToGC(JSContext *cx, JSThreadData *data);
 
 struct JSWeakRoots {
     
