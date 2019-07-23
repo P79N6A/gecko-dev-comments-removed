@@ -272,7 +272,15 @@ struct JSTreeContext {
 
 
 
-#define TCF_DECL_DESTRUCTURING    0x10000
+#define TCF_DECL_DESTRUCTURING  0x10000
+
+
+
+
+
+
+
+#define TCF_NEED_MUTABLE_SCRIPT 0x20000
 
 
 

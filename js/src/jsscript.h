@@ -172,6 +172,33 @@ struct JSScript {
     inline JSFunction *getFunction(size_t index);
 
     inline JSObject *getRegExp(size_t index);
+
+    
+
+
+
+
+
+
+    inline bool isEmpty() const;
+
+    
+
+
+
+    static JSScript *emptyScript() {
+        return const_cast<JSScript *>(&emptyScriptConst);
+    }
+
+  private:
+    
+
+
+
+
+
+
+    static const JSScript emptyScriptConst;
 };
 
 #define SHARP_NSLOTS            2       /* [#array, #depth] slots if the script
@@ -320,8 +347,16 @@ js_GetOpcode(JSContext *cx, JSScript *script, jsbytecode *pc)
 
 
 
+
+
+
+
+
+
+
 extern JSBool
-js_XDRScript(JSXDRState *xdr, JSScript **scriptp, JSBool *magic);
+js_XDRScript(JSXDRState *xdr, JSScript **scriptp, bool needMutableScript,
+             JSBool *hasMagic);
 
 JS_END_EXTERN_C
 

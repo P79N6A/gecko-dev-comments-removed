@@ -745,6 +745,12 @@ struct JSRuntime {
     double              lengthSquaredSum;
     double              strdepLengthSum;
     double              strdepLengthSquaredSum;
+
+    
+    jsrefcount          liveScripts;
+    jsrefcount          totalScripts;
+    jsrefcount          liveEmptyScripts;
+    jsrefcount          totalEmptyScripts;
 #endif 
 
 #ifdef JS_SCOPE_DEPTH_METER
