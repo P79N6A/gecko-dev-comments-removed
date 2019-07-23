@@ -397,8 +397,8 @@ protected:
 
   
   
-  void DecodeToFrame(nsAutoMonitor& aMonitor,
-                     float aSeekTime);
+  PRBool DecodeToFrame(nsAutoMonitor& aMonitor,
+                       float aSeekTime);
 
   
   
@@ -1315,8 +1315,8 @@ nsresult nsOggDecodeStateMachine::Seek(float aTime, nsChannelReader* aReader)
   return (rv < 0) ? NS_ERROR_FAILURE : NS_OK;
 }
 
-void nsOggDecodeStateMachine::DecodeToFrame(nsAutoMonitor& aMonitor,
-                                            float aTime)
+PRBool nsOggDecodeStateMachine::DecodeToFrame(nsAutoMonitor& aMonitor,
+                                              float aTime)
 {
   
   float target = aTime - mCallbackPeriod / 2.0;
@@ -1356,7 +1356,7 @@ void nsOggDecodeStateMachine::DecodeToFrame(nsAutoMonitor& aMonitor,
 
   if (mState == DECODER_STATE_SHUTDOWN) {
     delete frame;
-    return;
+    return PR_TRUE;
   }
 
   NS_ASSERTION(frame != nsnull, "No frame after decode!");
@@ -1380,6 +1380,8 @@ void nsOggDecodeStateMachine::DecodeToFrame(nsAutoMonitor& aMonitor,
     UpdatePlaybackPosition(frame->mDecodedFrameTime);
     PlayVideo(frame);
   }
+
+  return r == E_OGGPLAY_OK;
 }
 
 void nsOggDecodeStateMachine::StopStepDecodeThread(nsAutoMonitor* aMonitor)
@@ -1411,8 +1413,8 @@ nsresult nsOggDecodeStateMachine::Run()
   nsChannelReader* reader = mDecoder->GetReader();
   NS_ENSURE_TRUE(reader, NS_ERROR_NULL_POINTER);
   while (PR_TRUE) {
-   nsAutoMonitor mon(mDecoder->GetMonitor());
-   switch(mState) {
+    nsAutoMonitor mon(mDecoder->GetMonitor());
+    switch(mState) {
     case DECODER_STATE_SHUTDOWN:
       if (mPlaying) {
         StopPlayback();
@@ -1557,7 +1559,7 @@ nsresult nsOggDecodeStateMachine::Run()
           PRPackedBool reliable;
           double playbackRate = mDecoder->ComputePlaybackRate(&reliable);
           mBufferingEndOffset = mDecoder->mDecoderPosition +
-              BUFFERING_RATE(playbackRate) * BUFFERING_WAIT;
+            BUFFERING_RATE(playbackRate) * BUFFERING_WAIT;
           mState = DECODER_STATE_BUFFERING;
           if (mPlaying) {
             PausePlayback();
@@ -1621,8 +1623,9 @@ nsresult nsOggDecodeStateMachine::Run()
         if (mState == DECODER_STATE_SHUTDOWN)
           continue;
 
+        PRBool atEnd = PR_FALSE;
         if (NS_SUCCEEDED(res)) {
-          DecodeToFrame(mon, seekTime);
+          atEnd = DecodeToFrame(mon, seekTime);
           
           
           
@@ -1631,29 +1634,34 @@ nsresult nsOggDecodeStateMachine::Run()
             continue;
           }
 
-          OggPlayErrorCode r;
-          
-          do {
-            mon.Exit();
-            r = DecodeFrame();
-            mon.Enter();
-          } while (mState != DECODER_STATE_SHUTDOWN && r == E_OGGPLAY_TIMEOUT);
-          HandleDecodeErrors(r);
-          if (mState == DECODER_STATE_SHUTDOWN)
-            continue;
+          if (!atEnd) {
+            OggPlayErrorCode r;
+            
+            do {
+              mon.Exit();
+              r = DecodeFrame();
+              mon.Enter();
+            } while (mState != DECODER_STATE_SHUTDOWN && r == E_OGGPLAY_TIMEOUT);
+            HandleDecodeErrors(r);
+            if (mState == DECODER_STATE_SHUTDOWN)
+              continue;
+            atEnd = r == E_OGGPLAY_OK;
+          }
           QueueDecodedFrames();
         }
 
         
         
         
-        LOG(PR_LOG_DEBUG, ("%p Changed state from SEEKING (to %f) to DECODING", mDecoder, seekTime));
-        mState = DECODER_STATE_DECODING;
         nsCOMPtr<nsIRunnable> stopEvent;
-        if (mDecodedFrames.GetCount() > 1) {
+        if (!atEnd && mDecodedFrames.GetCount() > 1) {
+          LOG(PR_LOG_DEBUG, ("%p Changed state from SEEKING (to %f) to DECODING",
+                             mDecoder, seekTime));
           stopEvent = NS_NEW_RUNNABLE_METHOD(nsOggDecoder, mDecoder, SeekingStopped);
           mState = DECODER_STATE_DECODING;
         } else {
+          LOG(PR_LOG_DEBUG, ("%p Changed state from SEEKING (to %f) to COMPLETED",
+                             mDecoder, seekTime));
           stopEvent = NS_NEW_RUNNABLE_METHOD(nsOggDecoder, mDecoder, SeekingStoppedAtEnd);
           mState = DECODER_STATE_COMPLETED;
         }
