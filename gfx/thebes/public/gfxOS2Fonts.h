@@ -115,10 +115,8 @@ public:
     }
 
 protected:
-    
     void InitTextRun(gfxTextRun *aTextRun, const PRUint8 *aUTF8Text,
-                     PRUint32 aUTF8Length, PRUint32 aUTF8HeaderLength,
-                     const PRUnichar *aUTF16Text, PRUint32 aUTF16Length);
+                     PRUint32 aUTF8Length, PRUint32 aUTF8HeaderLength);
     void CreateGlyphRunsFT(gfxTextRun *aTextRun, const PRUint8 *aUTF8,
                            PRUint32 aUTF8Length);
     static PRBool FontCallback(const nsAString& aFontName,
