@@ -37,5 +37,4 @@
 
 
 
-
 gTestsuite = 'ecma_3';

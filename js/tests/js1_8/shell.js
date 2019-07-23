@@ -37,8 +37,6 @@
 
 
 
-
-
 gTestsuite = 'js1_8';
 
 
