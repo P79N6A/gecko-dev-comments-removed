@@ -1065,9 +1065,9 @@ public:
 
 
 
-  static PRBool FrameIsInFirstPartOfIBSplit(const nsIFrame* aFrame) {
+  static PRBool FrameIsNonFirstInIBSplit(const nsIFrame* aFrame) {
     return (aFrame->GetStateBits() & NS_FRAME_IS_SPECIAL) &&
-      !aFrame->GetFirstContinuation()->
+      aFrame->GetFirstContinuation()->
         GetProperty(nsGkAtoms::IBSplitSpecialPrevSibling);
   }
 
@@ -1075,9 +1075,9 @@ public:
 
 
 
-  static PRBool FrameIsInLastPartOfIBSplit(const nsIFrame* aFrame) {
+  static PRBool FrameIsNonLastInIBSplit(const nsIFrame* aFrame) {
     return (aFrame->GetStateBits() & NS_FRAME_IS_SPECIAL) &&
-      !aFrame->GetFirstContinuation()->
+      aFrame->GetFirstContinuation()->
         GetProperty(nsGkAtoms::IBSplitSpecialSibling);
   }
 

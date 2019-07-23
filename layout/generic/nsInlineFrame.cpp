@@ -436,7 +436,7 @@ nsInlineFrame::ReflowFrames(nsPresContext* aPresContext,
   
   
   if (!GetPrevContinuation() &&
-      !nsLayoutUtils::FrameIsInLastPartOfIBSplit(this)) {
+      !nsLayoutUtils::FrameIsNonFirstInIBSplit(this)) {
     leftEdge = ltr ? aReflowState.mComputedBorderPadding.left
                    : aReflowState.mComputedBorderPadding.right;
   }
@@ -586,8 +586,9 @@ nsInlineFrame::ReflowFrames(nsPresContext* aPresContext,
 
   
   
+  
   if (!GetPrevContinuation() &&
-      !nsLayoutUtils::FrameIsInLastPartOfIBSplit(this)) {
+      !nsLayoutUtils::FrameIsNonFirstInIBSplit(this)) {
     aMetrics.width += ltr ? aReflowState.mComputedBorderPadding.left
                           : aReflowState.mComputedBorderPadding.right;
   }
@@ -598,9 +599,10 @@ nsInlineFrame::ReflowFrames(nsPresContext* aPresContext,
 
 
 
+
   if (NS_FRAME_IS_COMPLETE(aStatus) &&
       !GetLastInFlow()->GetNextContinuation() &&
-      !nsLayoutUtils::FrameIsInFirstPartOfIBSplit(this)) {
+      !nsLayoutUtils::FrameIsNonLastInIBSplit(this)) {
     aMetrics.width += ltr ? aReflowState.mComputedBorderPadding.right
                           : aReflowState.mComputedBorderPadding.left;
   }
@@ -841,11 +843,12 @@ nsInlineFrame::GetSkipSides() const
     PRIntn endBit = (1 << (ltr ? NS_SIDE_RIGHT : NS_SIDE_LEFT));
     if (((startBit | endBit) & skip) != (startBit | endBit)) {
       
-      if (nsLayoutUtils::FrameIsInFirstPartOfIBSplit(this)) {
+      
+      nsIFrame* firstContinuation = GetFirstContinuation();
+      if (nsLayoutUtils::FrameIsNonLastInIBSplit(firstContinuation)) {
         skip |= endBit;
-      } else {
-        NS_ASSERTION(nsLayoutUtils::FrameIsInLastPartOfIBSplit(this),
-                     "How did that happen?");
+      }
+      if (nsLayoutUtils::FrameIsNonFirstInIBSplit(firstContinuation)) {
         skip |= startBit;
       }
     }

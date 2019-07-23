@@ -1089,7 +1089,7 @@ nsLineLayout::ApplyStartMargin(PerFrameData* pfd,
   
   
   if (pfd->mFrame->GetPrevContinuation() ||
-      nsLayoutUtils::FrameIsInLastPartOfIBSplit(pfd->mFrame)) {
+      nsLayoutUtils::FrameIsNonFirstInIBSplit(pfd->mFrame)) {
     
     
     if (ltr)
@@ -1170,9 +1170,10 @@ nsLineLayout::CanPlaceFrame(PerFrameData* pfd,
 
 
 
+
     if ((NS_FRAME_IS_NOT_COMPLETE(aStatus) ||
          pfd->mFrame->GetLastInFlow()->GetNextContinuation() ||
-         nsLayoutUtils::FrameIsInFirstPartOfIBSplit(pfd->mFrame))
+         nsLayoutUtils::FrameIsNonLastInIBSplit(pfd->mFrame))
         && !pfd->GetFlag(PFD_ISLETTERFRAME)) {
       if (ltr)
         pfd->mMargin.right = 0;

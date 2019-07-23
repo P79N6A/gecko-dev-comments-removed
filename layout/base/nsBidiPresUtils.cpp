@@ -920,16 +920,17 @@ nsBidiPresUtils::IsLeftOrRightMost(nsIFrame*              aFrame,
       (aFrame->GetStateBits() & NS_FRAME_IS_SPECIAL)) {
     
     
-    if (nsLayoutUtils::FrameIsInFirstPartOfIBSplit(aFrame)) {
+    
+    nsIFrame* firstContinuation = aFrame->GetFirstContinuation();
+    if (nsLayoutUtils::FrameIsNonLastInIBSplit(firstContinuation)) {
       
       if (isLTR) {
         aIsRightMost = PR_FALSE;
       } else {
         aIsLeftMost = PR_FALSE;
       }
-    } else {
-      NS_ASSERTION(nsLayoutUtils::FrameIsInLastPartOfIBSplit(aFrame),
-                   "How did that happen?");
+    }
+    if (nsLayoutUtils::FrameIsNonFirstInIBSplit(firstContinuation)) {
       
       if (isLTR) {
         aIsLeftMost = PR_FALSE;
@@ -1062,7 +1063,7 @@ nsBidiPresUtils::RepositionInlineFrames(nsIFrame* aFirstChild) const
   
   nsMargin margin = aFirstChild->GetUsedMargin();
   if (!aFirstChild->GetPrevContinuation() &&
-      !nsLayoutUtils::FrameIsInLastPartOfIBSplit(aFirstChild))
+      !nsLayoutUtils::FrameIsNonFirstInIBSplit(aFirstChild))
     leftSpace = isLTR ? margin.left : margin.right;
 
   nscoord left = aFirstChild->GetPosition().x - leftSpace;
