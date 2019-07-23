@@ -1101,8 +1101,14 @@ extern JS_PUBLIC_API(JSBool)
 JS_IsAboutToBeFinalized(JSContext *cx, void *thing);
 
 typedef enum JSGCParamKey {
-    JSGC_MAX_BYTES        = 0,  
-    JSGC_MAX_MALLOC_BYTES = 1   
+    
+    JSGC_MAX_BYTES          = 0,
+
+    
+    JSGC_MAX_MALLOC_BYTES   = 1,
+
+    
+    JSGC_STACKPOOL_LIFESPAN = 2
 } JSGCParamKey;
 
 extern JS_PUBLIC_API(void)
