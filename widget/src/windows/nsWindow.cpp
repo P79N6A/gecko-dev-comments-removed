@@ -7945,6 +7945,9 @@ nsWindow :: DealWithPopups ( HWND inWnd, UINT inMsg, WPARAM inWParam, LPARAM inL
 #endif
       if ( rollup ) {
         
+        
+        PRBool consumeRollupEvent = gRollupConsumeRollupEvent;
+        
         gRollupListener->Rollup(inMsg == WM_LBUTTONDOWN ? &mLastRollup : nsnull);
 
         
@@ -7956,7 +7959,7 @@ nsWindow :: DealWithPopups ( HWND inWnd, UINT inMsg, WPARAM inWParam, LPARAM inL
         
         
         
-        if (gRollupConsumeRollupEvent && inMsg != WM_RBUTTONDOWN) {
+        if (consumeRollupEvent && inMsg != WM_RBUTTONDOWN) {
           *outResult = TRUE;
           return TRUE;
         }
