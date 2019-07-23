@@ -71,7 +71,7 @@ function end_test() {
 
 function getStatusText(aErrCode) {
   try {
-    return gUpdateBundle.GetStringFromName("checker_error-" + aErrCode);
+    return gUpdateBundle.GetStringFromName("check_error-" + aErrCode);
   }
   catch (e) {
   }

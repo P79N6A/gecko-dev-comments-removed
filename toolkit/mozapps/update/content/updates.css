@@ -18,8 +18,8 @@ link > label {
 
 
 
-license {
-  -moz-binding: url("chrome://mozapps/content/update/updates.xml#license");
+remotecontent {
+  -moz-binding: url("chrome://mozapps/content/update/updates.xml#remotecontent");
   display: -moz-deck;
 }
 
