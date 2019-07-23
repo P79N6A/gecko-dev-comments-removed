@@ -37,6 +37,7 @@
 
 
 
+
 #include "nsLocalHandlerApp.h"
 
 
@@ -65,6 +66,31 @@ NS_IMETHODIMP nsLocalHandlerApp::SetName(const nsAString & aName)
 
   return NS_OK;
 }
+
+NS_IMETHODIMP
+nsLocalHandlerApp::Equals(nsIHandlerApp *aHandlerApp, PRBool *_retval)
+{
+  NS_ENSURE_ARG_POINTER(aHandlerApp);
+
+  
+  nsCOMPtr <nsILocalHandlerApp> localHandlerApp = do_QueryInterface(aHandlerApp);
+  if (!localHandlerApp) {
+    *_retval = PR_FALSE;
+    return NS_OK;
+  }
+
+  
+  
+  nsCOMPtr<nsIFile> executable;
+  nsresult rv = localHandlerApp->GetExecutable(getter_AddRefs(executable));
+  if (NS_FAILED(rv) || !executable || !mExecutable) {
+    *_retval = PR_FALSE;
+    return NS_OK;
+  }
+
+  return executable->Equals(mExecutable, _retval);
+}
+
 
 
 

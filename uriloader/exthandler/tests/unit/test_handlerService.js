@@ -75,20 +75,6 @@ function run_test() {
   webHandler.name = "Web Handler";
   webHandler.uriTemplate = "http://www.example.com/?%s";
 
-
-  
-  
-
-  function checkLocalHandlersAreEquivalent(handler1, handler2) {
-    do_check_eq(handler1.name, handler2.name);
-    do_check_eq(handler1.executable.path, handler2.executable.path);
-  }
-
-  function checkWebHandlersAreEquivalent(handler1, handler2) {
-    do_check_eq(handler1.name, handler2.name);
-    do_check_eq(handler1.uriTemplate, handler2.uriTemplate);
-  }
-
   
   
   
@@ -114,6 +100,7 @@ function run_test() {
   
   do_check_eq(handlerInfo.preferredAction, Ci.nsIHandlerInfo.saveToDisk);
   do_check_eq(handlerInfo.preferredApplicationHandler, null);
+  do_check_eq(handlerInfo.possibleApplicationHandlers.length, 0);
   do_check_true(handlerInfo.alwaysAskBeforeHandling);
 
   
@@ -243,8 +230,10 @@ function run_test() {
   webPossibleHandler.QueryInterface(Ci.nsIWebHandlerApp);
 
   
-  checkLocalHandlersAreEquivalent(localPossibleHandler, localHandler);
-  checkWebHandlersAreEquivalent(webPossibleHandler, webHandler);
+  do_check_eq(localPossibleHandler.name, localHandler.name);
+  do_check_true(localPossibleHandler.equals(localHandler));
+  do_check_eq(webPossibleHandler.name, webHandler.name);
+  do_check_true(webPossibleHandler.equals(webHandler));
 
   
   
@@ -255,11 +244,10 @@ function run_test() {
   do_check_eq(possibleHandlersInfo.possibleApplicationHandlers.length, 1);
 
   
-  checkWebHandlersAreEquivalent(possibleHandlersInfo.
-                                  possibleApplicationHandlers.
-                                  queryElementAt(0, Ci.nsIHandlerApp).
-                                  QueryInterface(Ci.nsIWebHandlerApp),
-                                webHandler);
+  webPossibleHandler = possibleHandlersInfo.possibleApplicationHandlers.
+                       queryElementAt(0, Ci.nsIWebHandlerApp);
+  do_check_eq(webPossibleHandler.name, webHandler.name);
+  do_check_true(webPossibleHandler.equals(webHandler));
 
   
   

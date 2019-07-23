@@ -69,10 +69,7 @@
 #include "nsIChannel.h"
 #include "nsITimer.h"
 
-#ifdef MOZ_RDF
-#include "nsIRDFDataSource.h"
-#include "nsIRDFResource.h"
-#endif
+#include "nsIHandlerService.h"
 #include "nsCOMPtr.h"
 #include "nsIObserver.h"
 #include "nsCOMArray.h"
@@ -81,7 +78,6 @@
 
 class nsExternalAppHandler;
 class nsIMIMEInfo;
-class nsIRDFService;
 class nsITransfer;
 class nsIDOMWindowInternal;
 
@@ -107,13 +103,6 @@ public:
 
   nsExternalHelperAppService();
   virtual ~nsExternalHelperAppService();
-  
-
-
-
-
-
-  NS_HIDDEN_(nsresult) InitDataSource();
 
   
 
@@ -121,64 +110,6 @@ public:
 
   NS_HIDDEN_(nsresult) Init();
  
-  
-
-
-
-
-
-
-  NS_HIDDEN_(nsresult) FillMIMEInfoForMimeTypeFromDS(
-    const nsACString& aContentType, nsIMIMEInfo * aMIMEInfo);
-
-  
-
-
-
-
-
-
-  NS_HIDDEN_(nsresult) FillProtoInfoForSchemeFromDS(
-    const nsACString& aScheme, nsIHandlerInfo * aMIMEInfo);
-
-#ifdef MOZ_RDF
-  
-
-
-
-
-
-
-
-
-
-  NS_HIDDEN_(nsresult) FillHandlerInfoForTypeFromDS(
-    nsIRDFResource *aTypeNodeResource, const nsCAutoString& aType,
-    nsIRDFService *aRDFService, const char *aTypeNodePrefix, 
-    nsIHandlerInfo * aHandlerInfo);
-#endif
-    
-  
-
-
-
-
-
-
-
-
-  NS_HIDDEN_(nsresult) FillMIMEInfoForExtensionFromDS(
-    const nsACString& aFileExtension, nsIMIMEInfo * aMIMEInfo);
-
-  
-
-
-
-
-
-  NS_HIDDEN_(PRBool) GetTypeFromDS(const nsACString& aFileExtension,
-                                   nsACString& aType);
-
   
 
 
@@ -225,82 +156,10 @@ public:
   virtual nsresult GetFileTokenForPath(const PRUnichar * platformAppPath,
                                        nsIFile ** aFile);
 
-  
-
-
-
-  NS_HIDDEN_(PRBool) MIMETypeIsInDataSource(const char * aContentType);
-
   virtual NS_HIDDEN_(nsresult) OSProtocolHandlerExists(const char *aScheme,
                                                        PRBool *aExists) = 0;
 
 protected:
-  
-
-
-
-#ifdef MOZ_RDF
-  nsCOMPtr<nsIRDFDataSource> mOverRideDataSource;
-
-  nsCOMPtr<nsIRDFResource> kNC_Description;
-  nsCOMPtr<nsIRDFResource> kNC_Value;
-  nsCOMPtr<nsIRDFResource> kNC_FileExtensions;
-  nsCOMPtr<nsIRDFResource> kNC_Path;
-  nsCOMPtr<nsIRDFResource> kNC_UseSystemDefault;
-  nsCOMPtr<nsIRDFResource> kNC_SaveToDisk;
-  nsCOMPtr<nsIRDFResource> kNC_AlwaysAsk;
-  nsCOMPtr<nsIRDFResource> kNC_HandleInternal;
-  nsCOMPtr<nsIRDFResource> kNC_PrettyName;
-  nsCOMPtr<nsIRDFResource> kNC_UriTemplate;
-  nsCOMPtr<nsIRDFResource> kNC_PossibleApplication;
-#endif
-
-  
-
-
-  PRBool mDataSourceInitialized;
-
-  
-
-
-
-
-#ifdef MOZ_RDF
-  NS_HIDDEN_(nsresult) FillMIMEExtensionProperties(
-    nsIRDFResource * aContentTypeNodeResource, nsIRDFService * aRDFService,
-    nsIMIMEInfo * aMIMEInfo);
-  
-  
-
-
-  NS_HIDDEN_(nsresult) FillContentHandlerProperties(const char * aContentType,
-                                                    const char * aNodePrefix,
-                                                    nsIRDFService * aRDFService,
-                                                    nsIHandlerInfo * aHandler);
-
-  
-
-
-
-
-  NS_HIDDEN_(nsresult) FillLiteralValueFromTarget(nsIRDFResource * aSource,
-                                                  nsIRDFResource * aProperty,
-                                                  const PRUnichar ** aLiteralValue);
-
-  
-
-
-  NS_HIDDEN_(nsresult) FillHandlerAppFromSource(nsIRDFResource * aSource,
-                                                nsIHandlerApp ** aHandlerApp);
-
-  
-
-
-
-  NS_HIDDEN_(nsresult) FillPossibleAppsFromSource(nsIRDFResource * aSource,
-                                                  nsIMutableArray * aPossibleApps);
-#endif
-
   
 
 

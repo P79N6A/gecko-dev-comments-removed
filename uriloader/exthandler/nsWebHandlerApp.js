@@ -35,12 +35,14 @@
 
 
 
+
 Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
 
 
 
 
 const Ci = Components.interfaces;
+const Cr = Components.results;
 
 
 
@@ -67,6 +69,19 @@ nsWebHandlerApp.prototype = {
 
   set name(aName) {
     this._name = aName;
+  },
+
+  equals: function(aHandlerApp) {
+    if (!aHandlerApp)
+      throw Cr.NS_ERROR_NULL_POINTER;
+
+    if (aHandlerApp instanceof Ci.nsIWebHandlerApp &&
+        aHandlerApp.uriTemplate &&
+        this.uriTemplate &&
+        aHandlerApp.uriTemplate == this.uriTemplate)
+      return true;
+
+    return false;
   },
 
   

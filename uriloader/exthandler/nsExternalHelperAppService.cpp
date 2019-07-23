@@ -69,13 +69,7 @@
 #include "nsIMutableArray.h"
 
 
-#ifdef MOZ_RDF
-#include "nsRDFCID.h"
-#include "rdf.h"
-#include "nsIRDFService.h"
-#include "nsIRDFRemoteDataSource.h"
-#include "nsHelperAppRDF.h"
-#endif 
+#include "nsIHandlerService.h"
 #include "nsIMIMEInfo.h"
 #include "nsIRefreshURI.h" 
 #include "nsIDocumentLoader.h" 
@@ -140,9 +134,6 @@ static const char NEVER_ASK_PREF_BRANCH[] = "browser.helperApps.neverAsk.";
 static const char NEVER_ASK_FOR_SAVE_TO_DISK_PREF[] = "saveToDisk";
 static const char NEVER_ASK_FOR_OPEN_FILE_PREF[]    = "openFile";
 
-#ifdef MOZ_RDF
-static NS_DEFINE_CID(kRDFServiceCID, NS_RDFSERVICE_CID);
-#endif
 static NS_DEFINE_CID(kPluginManagerCID, NS_PLUGINMANAGER_CID);
 
 
@@ -496,7 +487,6 @@ NS_IMPL_ISUPPORTS6(
   nsISupportsWeakReference)
 
 nsExternalHelperAppService::nsExternalHelperAppService()
-: mDataSourceInitialized(PR_FALSE)
 {
   gExtProtSvc = this;
 }
@@ -521,71 +511,6 @@ nsresult nsExternalHelperAppService::Init()
 nsExternalHelperAppService::~nsExternalHelperAppService()
 {
   gExtProtSvc = nsnull;
-}
-
-nsresult nsExternalHelperAppService::InitDataSource()
-{
-#ifdef MOZ_RDF
-  nsresult rv = NS_OK;
-
-  
-  if (mDataSourceInitialized)
-    return NS_OK;
-
-  nsCOMPtr<nsIRDFService> rdf = do_GetService(kRDFServiceCID, &rv);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  
-  
-  
-  
-  nsCOMPtr<nsIFile> mimeTypesFile;
-  rv = NS_GetSpecialDirectory(NS_APP_USER_MIMETYPES_50_FILE, getter_AddRefs(mimeTypesFile));
-  NS_ENSURE_SUCCESS(rv, rv);
-  
-  
-  nsCAutoString urlSpec;
-  rv = NS_GetURLSpecFromFile(mimeTypesFile, urlSpec);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  
-  rv = rdf->GetDataSourceBlocking( urlSpec.get(), getter_AddRefs( mOverRideDataSource ) );
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  
-  if (!kNC_Description)
-  {
-    rdf->GetResource(NS_LITERAL_CSTRING(NC_RDF_DESCRIPTION),
-                     getter_AddRefs(kNC_Description));
-    rdf->GetResource(NS_LITERAL_CSTRING(NC_RDF_VALUE),
-                     getter_AddRefs(kNC_Value));
-    rdf->GetResource(NS_LITERAL_CSTRING(NC_RDF_FILEEXTENSIONS),
-                     getter_AddRefs(kNC_FileExtensions));
-    rdf->GetResource(NS_LITERAL_CSTRING(NC_RDF_PATH),
-                     getter_AddRefs(kNC_Path));
-    rdf->GetResource(NS_LITERAL_CSTRING(NC_RDF_SAVETODISK),
-                     getter_AddRefs(kNC_SaveToDisk));
-    rdf->GetResource(NS_LITERAL_CSTRING(NC_RDF_USESYSTEMDEFAULT),
-                     getter_AddRefs(kNC_UseSystemDefault));
-    rdf->GetResource(NS_LITERAL_CSTRING(NC_RDF_HANDLEINTERNAL),
-                     getter_AddRefs(kNC_HandleInternal));
-    rdf->GetResource(NS_LITERAL_CSTRING(NC_RDF_ALWAYSASK),
-                     getter_AddRefs(kNC_AlwaysAsk));  
-    rdf->GetResource(NS_LITERAL_CSTRING(NC_RDF_POSSIBLEAPPLICATION),
-                     getter_AddRefs(kNC_PossibleApplication));
-    rdf->GetResource(NS_LITERAL_CSTRING(NC_RDF_PRETTYNAME),
-                     getter_AddRefs(kNC_PrettyName));
-    rdf->GetResource(NS_LITERAL_CSTRING(NC_RDF_URITEMPLATE),
-                     getter_AddRefs(kNC_UriTemplate));
-     
-  }
-  
-  mDataSourceInitialized = PR_TRUE;
-
-  return rv;
-#else
-  return NS_ERROR_NOT_AVAILABLE;
-#endif
 }
 
 NS_IMETHODIMP nsExternalHelperAppService::DoContent(const nsACString& aMimeContentType,
@@ -723,446 +648,6 @@ NS_IMETHODIMP nsExternalHelperAppService::ApplyDecodingForExtension(const nsACSt
     }
   }
   return NS_OK;
-}
-
-#ifdef MOZ_RDF
-nsresult nsExternalHelperAppService::FillMIMEExtensionProperties(
-  nsIRDFResource * aContentTypeNodeResource, nsIRDFService * aRDFService,
-  nsIMIMEInfo * aMIMEInfo)
-{
-  nsresult rv = NS_OK;
-  nsCOMPtr<nsIRDFNode> target;
-  nsCOMPtr<nsIRDFLiteral> literal;
-  const PRUnichar * stringValue;
-  
-  rv = InitDataSource();
-  if (NS_FAILED(rv)) return NS_OK;
-
-  
-  nsCOMPtr<nsISimpleEnumerator> fileExtensions;
-  mOverRideDataSource->GetTargets(aContentTypeNodeResource, kNC_FileExtensions, PR_TRUE, getter_AddRefs(fileExtensions));
-
-  PRBool hasMoreElements = PR_FALSE;
-  nsCAutoString fileExtension; 
-  nsCOMPtr<nsISupports> element;
-
-  if (fileExtensions)
-  {
-    fileExtensions->HasMoreElements(&hasMoreElements);
-    while (hasMoreElements)
-    { 
-      fileExtensions->GetNext(getter_AddRefs(element));
-      if (element)
-      {
-        literal = do_QueryInterface(element);
-        if (!literal) return NS_ERROR_FAILURE;
-
-        literal->GetValueConst(&stringValue);
-        CopyUTF16toUTF8(stringValue, fileExtension);
-        if (!fileExtension.IsEmpty())
-          aMIMEInfo->AppendExtension(fileExtension);
-      }
-  
-      fileExtensions->HasMoreElements(&hasMoreElements);
-    } 
-  }
-
-  return rv;
-}
-
-nsresult nsExternalHelperAppService::FillLiteralValueFromTarget(
-  nsIRDFResource * aSource, nsIRDFResource * aProperty,
-  const PRUnichar ** aLiteralValue)
-{
-  nsresult rv = NS_OK;
-  nsCOMPtr<nsIRDFLiteral> literal;
-  nsCOMPtr<nsIRDFNode> target;
-
-  *aLiteralValue = nsnull;
-  rv = InitDataSource();
-  if (NS_FAILED(rv)) return rv;
-
-  mOverRideDataSource->GetTarget(aSource, aProperty, PR_TRUE, getter_AddRefs(target));
-  if (target)
-  {
-    literal = do_QueryInterface(target);    
-    if (!literal)
-      return NS_ERROR_FAILURE;
-    literal->GetValueConst(aLiteralValue);
-  }
-  else
-    rv = NS_ERROR_FAILURE;
-
-  return rv;
-}
-
-nsresult nsExternalHelperAppService::FillHandlerAppFromSource(
-  nsIRDFResource * aSource, nsIHandlerApp ** aHandlerApp)
-{
-  nsresult rv = NS_OK;
-
-  const PRUnichar * appName = nsnull;
-  FillLiteralValueFromTarget(aSource, kNC_PrettyName, &appName);
-
-  
-  const PRUnichar * path = nsnull;
-  FillLiteralValueFromTarget(aSource, kNC_Path, &path);
-  if (path && path[0])
-  {
-    nsCOMPtr<nsIFile> application;
-    GetFileTokenForPath(path, getter_AddRefs(application));
-    if (application) {
-      nsLocalHandlerApp *handlerApp(new nsLocalHandlerApp(appName, application));
-      if (!handlerApp) { 
-        return NS_ERROR_OUT_OF_MEMORY;
-      }
-      NS_ADDREF(*aHandlerApp = handlerApp);
-    }
-  } else {
-    
-    
-    const PRUnichar * uriTemplate = nsnull;
-    FillLiteralValueFromTarget(aSource, kNC_UriTemplate, &uriTemplate);
-    if (uriTemplate && uriTemplate[0]) {
-      nsCOMPtr<nsIWebHandlerApp> handlerApp =
-        do_CreateInstance(NS_WEBHANDLERAPP_CONTRACTID, &rv);
-      NS_ENSURE_SUCCESS(rv, rv);
-
-      handlerApp->SetName(nsDependentString(appName));
-      handlerApp->SetUriTemplate(NS_ConvertUTF16toUTF8(uriTemplate));
-
-      NS_ADDREF(*aHandlerApp = handlerApp);
-    } else {
-      return NS_ERROR_FAILURE; 
-    }
-  }
-
-  return rv;
-}
-
-nsresult nsExternalHelperAppService::FillPossibleAppsFromSource(
-  nsIRDFResource * aSource, nsIMutableArray * aPossibleApps)
-{
-  nsresult rv = NS_OK;
-
-  rv = InitDataSource();
-  if (NS_FAILED(rv)) return rv;
-
-  nsCOMPtr<nsISimpleEnumerator> possibleAppResources;
-  rv = mOverRideDataSource->GetTargets(aSource, kNC_PossibleApplication, PR_TRUE,
-                                       getter_AddRefs(possibleAppResources));
-  if (NS_FAILED(rv)) return rv;
-
-  PRBool more;
-  nsCOMPtr<nsISupports> supports;
-  while (NS_SUCCEEDED(possibleAppResources->HasMoreElements(&more)) && more) {
-    rv = possibleAppResources->GetNext(getter_AddRefs(supports));
-    if (NS_FAILED(rv)) return rv;
-
-    nsCOMPtr<nsIRDFResource> possibleAppResource = do_QueryInterface(supports);
-
-    if (possibleAppResource) {
-      nsCOMPtr<nsIHandlerApp> possibleApp;
-      rv = FillHandlerAppFromSource(possibleAppResource, getter_AddRefs(possibleApp));
-      
-      
-      if (NS_FAILED(rv)) continue;
-
-      rv = aPossibleApps->AppendElement(possibleApp, PR_FALSE);
-      if (NS_FAILED(rv)) return rv;
-    }
-  }
-
-  return NS_OK;
-}
-
-
-nsresult nsExternalHelperAppService::FillContentHandlerProperties(
-  const char * aContentType, const char * aTypeNodePrefix,
-  nsIRDFService * aRDFService, nsIHandlerInfo * aHandlerInfo)
-{
-  nsCOMPtr<nsIRDFNode> target;
-  nsCOMPtr<nsIRDFLiteral> literal;
-  const PRUnichar * stringValue = nsnull;
-  nsresult rv = NS_OK;
-
-  rv = InitDataSource();
-  if (NS_FAILED(rv)) return rv;
-
-  nsCAutoString contentTypeHandlerNodeName(aTypeNodePrefix);
-  contentTypeHandlerNodeName.Append(NC_HANDLER_SUFFIX);
-  contentTypeHandlerNodeName.Append(aContentType);
-
-  nsCOMPtr<nsIRDFResource> contentTypeHandlerNodeResource;
-  aRDFService->GetResource(contentTypeHandlerNodeName, getter_AddRefs(contentTypeHandlerNodeResource));
-  NS_ENSURE_TRUE(contentTypeHandlerNodeResource, NS_ERROR_FAILURE); 
-
-  
-  aHandlerInfo->SetPreferredAction(nsIHandlerInfo::useHelperApp);
-
-  
-  FillLiteralValueFromTarget(contentTypeHandlerNodeResource,kNC_SaveToDisk, &stringValue);
-  NS_NAMED_LITERAL_STRING(trueString, "true");
-  NS_NAMED_LITERAL_STRING(falseString, "false");
-  if (stringValue && trueString.Equals(stringValue))
-       aHandlerInfo->SetPreferredAction(nsIHandlerInfo::saveToDisk);
-
-  
-  FillLiteralValueFromTarget(contentTypeHandlerNodeResource,kNC_UseSystemDefault, &stringValue);
-  if (stringValue && trueString.Equals(stringValue))
-      aHandlerInfo->SetPreferredAction(nsIHandlerInfo::useSystemDefault);
-
-  
-  FillLiteralValueFromTarget(contentTypeHandlerNodeResource,kNC_HandleInternal, &stringValue);
-  if (stringValue && trueString.Equals(stringValue))
-       aHandlerInfo->SetPreferredAction(nsIHandlerInfo::handleInternally);
-  
-  
-  FillLiteralValueFromTarget(contentTypeHandlerNodeResource,kNC_AlwaysAsk, &stringValue);
-  
-  
-  aHandlerInfo->SetAlwaysAskBeforeHandling(!stringValue ||
-                                           !falseString.Equals(stringValue));
-
-
-  
-
-  
-  aHandlerInfo->SetPreferredApplicationHandler(nsnull);
-
-  
-  nsCAutoString externalAppNodeName(aTypeNodePrefix);
-  externalAppNodeName.AppendLiteral(NC_EXTERNALAPP_SUFFIX);
-  externalAppNodeName.Append(aContentType);
-  nsCOMPtr<nsIRDFResource> externalAppNodeResource;
-  aRDFService->GetResource(externalAppNodeName, getter_AddRefs(externalAppNodeResource));
-
-  if (externalAppNodeResource)
-  {
-    nsCOMPtr<nsIHandlerApp> preferredApp;
-    rv = FillHandlerAppFromSource(externalAppNodeResource, getter_AddRefs(preferredApp));
-
-    if (NS_SUCCEEDED(rv))
-      aHandlerInfo->SetPreferredApplicationHandler(preferredApp);
-  }
-
-  
-  nsCOMPtr<nsIMutableArray> possibleApps;
-  rv = aHandlerInfo->GetPossibleApplicationHandlers(getter_AddRefs(possibleApps));
-  if (NS_FAILED(rv)) return rv;
-
-  
-  possibleApps->Clear();
-
-  rv = FillPossibleAppsFromSource(contentTypeHandlerNodeResource, possibleApps);
-
-  return rv;
-}
-#endif 
-
-PRBool nsExternalHelperAppService::MIMETypeIsInDataSource(const char * aContentType)
-{
-#ifdef MOZ_RDF
-  nsresult rv = InitDataSource();
-  if (NS_FAILED(rv)) return PR_FALSE;
-  
-  if (mOverRideDataSource)
-  {
-    
-    nsCOMPtr<nsIRDFService> rdf = do_GetService(kRDFServiceCID, &rv);
-    if (NS_FAILED(rv)) return PR_FALSE;
-    
-    
-    nsCAutoString contentTypeNodeName(NC_CONTENT_NODE_PREFIX);
-    nsCAutoString contentType(aContentType);
-    ToLowerCase(contentType);
-    contentTypeNodeName.Append(contentType);
-    
-    
-    nsCOMPtr<nsIRDFResource> contentTypeNodeResource;
-    rv = rdf->GetResource(contentTypeNodeName, getter_AddRefs(contentTypeNodeResource));
-    if (NS_FAILED(rv)) return PR_FALSE;
-    
-    
-    nsCOMPtr<nsIRDFLiteral> mimeLiteral;
-    NS_ConvertUTF8toUTF16 mimeType(contentType);
-    rv = rdf->GetLiteral( mimeType.get(), getter_AddRefs( mimeLiteral ) );
-    if (NS_FAILED(rv)) return PR_FALSE;
-    
-    PRBool exists = PR_FALSE;
-    rv = mOverRideDataSource->HasAssertion(contentTypeNodeResource, kNC_Value, mimeLiteral, PR_TRUE, &exists );
-    
-    if (NS_SUCCEEDED(rv) && exists) return PR_TRUE;
-  }
-#endif
-  return PR_FALSE;
-}
-
-nsresult nsExternalHelperAppService::FillMIMEInfoForMimeTypeFromDS(
-  const nsACString& aContentType, nsIMIMEInfo * aMIMEInfo)
-{
-#ifdef MOZ_RDF
-  NS_ENSURE_ARG_POINTER(aMIMEInfo);
-  nsresult rv = InitDataSource();
-  if (NS_FAILED(rv)) return rv;
-
-  
-  if (!mOverRideDataSource)
-    return NS_ERROR_FAILURE;
-
-  
-  nsCOMPtr<nsIRDFService> rdf = do_GetService(kRDFServiceCID, &rv);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  
-  nsCAutoString typeNodeName(NC_CONTENT_NODE_PREFIX);
-  nsCAutoString type(aContentType);
-  ToLowerCase(type);
-  typeNodeName.Append(type);
-
-  
-  nsCOMPtr<nsIRDFResource> typeNodeResource;
-  rv = rdf->GetResource(typeNodeName, getter_AddRefs(typeNodeResource));
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  
-  rv = FillMIMEExtensionProperties(typeNodeResource, rdf, aMIMEInfo);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  return FillHandlerInfoForTypeFromDS(typeNodeResource.get(), type, rdf, 
-                                      NC_CONTENT_NODE_PREFIX, aMIMEInfo); 
-#else
-  return NS_ERROR_NOT_AVAILABLE;
-#endif
-}
-
-nsresult nsExternalHelperAppService::FillProtoInfoForSchemeFromDS(
-    const nsACString& aType, nsIHandlerInfo * aHandlerInfo)
-{
-#ifdef MOZ_RDF
-  NS_ENSURE_ARG_POINTER(aHandlerInfo);
-  nsresult rv = InitDataSource();
-  if (NS_FAILED(rv)) return rv;
-
-  
-  if (!mOverRideDataSource)
-    return NS_ERROR_FAILURE;
-
-  
-  nsCOMPtr<nsIRDFService> rdf = do_GetService(kRDFServiceCID, &rv);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  
-  nsCAutoString typeNodeName(NC_SCHEME_NODE_PREFIX);
-  nsCAutoString type(aType);
-  ToLowerCase(type);
-  typeNodeName.Append(type);
-
-  
-  nsCOMPtr<nsIRDFResource> typeNodeResource;
-  rv = rdf->GetResource(typeNodeName, getter_AddRefs(typeNodeResource));
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  return FillHandlerInfoForTypeFromDS(typeNodeResource.get(), type, rdf,
-                                      NC_SCHEME_NODE_PREFIX, aHandlerInfo);
-#else
-  return NS_ERROR_NOT_AVAILABLE;
-#endif
-}
-
-#ifdef MOZ_RDF
-nsresult nsExternalHelperAppService::FillHandlerInfoForTypeFromDS(
-  nsIRDFResource *aTypeNodeResource, const nsCAutoString &aType, 
-  nsIRDFService *rdf, const char *aTypeNodePrefix,
-  nsIHandlerInfo * aHandlerInfo)
-{
-
-  
-  
-  
-  nsCOMPtr<nsIRDFLiteral> typeLiteral;
-  NS_ConvertUTF8toUTF16 UTF16Type(aType);
-  nsresult rv = rdf->GetLiteral( UTF16Type.get(), 
-                                 getter_AddRefs( typeLiteral ) );
-  NS_ENSURE_SUCCESS(rv, rv);
-  
-  PRBool exists = PR_FALSE;
-  rv = mOverRideDataSource->HasAssertion(aTypeNodeResource, kNC_Value,
-                                         typeLiteral, PR_TRUE, &exists );
-  if (NS_SUCCEEDED(rv) && exists)
-  {
-     
-
-     
-     const PRUnichar *stringValue;
-     FillLiteralValueFromTarget(aTypeNodeResource, kNC_Description, 
-                                &stringValue);
-     if (stringValue && *stringValue)
-       aHandlerInfo->SetDescription(nsDependentString(stringValue));
-
-     rv = FillContentHandlerProperties(aType.get(), aTypeNodePrefix,
-                                       rdf, aHandlerInfo);
-
-  } 
-  
-  else if (NS_SUCCEEDED(rv)) {
-    rv = NS_ERROR_NOT_AVAILABLE;
-  }
-
-  return rv;
-}
-#endif 
-
-nsresult nsExternalHelperAppService::FillMIMEInfoForExtensionFromDS(
-  const nsACString& aFileExtension, nsIMIMEInfo * aMIMEInfo)
-{
-  nsCAutoString type;
-  PRBool found = GetTypeFromDS(aFileExtension, type);
-  if (!found)
-    return NS_ERROR_NOT_AVAILABLE;
-
-  return FillMIMEInfoForMimeTypeFromDS(type, aMIMEInfo);
-}
-
-PRBool nsExternalHelperAppService::GetTypeFromDS(const nsACString& aExtension,
-                                                 nsACString& aType)
-{
-#ifdef MOZ_RDF
-  nsresult rv = InitDataSource();
-  if (NS_FAILED(rv))
-    return PR_FALSE;
-
-  
-  if (!mOverRideDataSource)
-    return PR_FALSE;
-
-  
-  nsCOMPtr<nsIRDFService> rdf = do_GetService(kRDFServiceCID, &rv);
-  NS_ENSURE_SUCCESS(rv, PR_FALSE);
-
-  NS_ConvertUTF8toUTF16 extension(aExtension);
-  ToLowerCase(extension);
-  nsCOMPtr<nsIRDFLiteral> extensionLiteral;
-  rv = rdf->GetLiteral(extension.get(), getter_AddRefs(extensionLiteral));
-  NS_ENSURE_SUCCESS(rv, PR_FALSE);
-
-  nsCOMPtr<nsIRDFResource> contentTypeNodeResource;
-  rv = mOverRideDataSource->GetSource(kNC_FileExtensions,
-                                      extensionLiteral,
-                                      PR_TRUE,
-                                      getter_AddRefs(contentTypeNodeResource));
-  nsCAutoString contentTypeStr;
-  if (NS_SUCCEEDED(rv) && contentTypeNodeResource)
-  {
-    const PRUnichar* contentType = nsnull;
-    rv = FillLiteralValueFromTarget(contentTypeNodeResource, kNC_Value, &contentType);
-    if (contentType) {
-      LossyCopyUTF16toASCII(contentType, aType);
-      return PR_TRUE;
-    }
-  }  
-#endif 
-  return PR_FALSE;
 }
 
 nsresult nsExternalHelperAppService::GetFileTokenForPath(const PRUnichar * aPlatformAppPath,
@@ -1413,8 +898,12 @@ nsExternalHelperAppService::GetProtocolHandlerInfo(const nsACString &aScheme,
     return NS_ERROR_FAILURE;
   }
 
-  nsresult rv = FillProtoInfoForSchemeFromDS(aScheme, *aHandlerInfo);     
-  if (NS_ERROR_NOT_AVAILABLE == rv) {
+  nsresult rv = NS_ERROR_FAILURE;
+  nsCOMPtr<nsIHandlerService> handlerSvc = do_GetService(NS_HANDLERSERVICE_CONTRACTID);
+  if (handlerSvc)
+    rv = handlerSvc->FillHandlerInfo(*aHandlerInfo, EmptyCString());
+
+  if (NS_FAILED(rv)) {
     
     
     
@@ -1427,9 +916,6 @@ nsExternalHelperAppService::GetProtocolHandlerInfo(const nsACString &aScheme,
       (*aHandlerInfo)->SetPreferredAction(nsIHandlerInfo::useSystemDefault);
     else
       (*aHandlerInfo)->SetPreferredAction(nsIHandlerInfo::alwaysAsk);
-  } else if (NS_FAILED(rv)) {
-    NS_RELEASE(*aHandlerInfo);
-    return rv;
   }
 
   return NS_OK;
@@ -1441,13 +927,6 @@ nsExternalHelperAppService::Observe(nsISupports *aSubject, const char *aTopic, c
 {
   if (!strcmp(aTopic, "profile-before-change")) {
     ExpungeTemporaryFiles();
-#ifdef MOZ_RDF
-    nsCOMPtr <nsIRDFRemoteDataSource> flushableDataSource = do_QueryInterface(mOverRideDataSource);
-    if (flushableDataSource)
-      flushableDataSource->Flush();
-    mOverRideDataSource = nsnull;
-    mDataSourceInitialized = PR_FALSE;
-#endif
   }
   return NS_OK;
 }
@@ -1860,7 +1339,12 @@ NS_IMETHODIMP nsExternalAppHandler::OnStartRequest(nsIRequest *request, nsISuppo
     
     
     NS_ASSERTION(gExtProtSvc, "Service gone away!?");
-    if (!gExtProtSvc->MIMETypeIsInDataSource(MIMEType.get()))
+
+    PRBool mimeTypeIsInDatastore = PR_FALSE;
+    nsCOMPtr<nsIHandlerService> handlerSvc = do_GetService(NS_HANDLERSERVICE_CONTRACTID);
+    if (handlerSvc)
+      handlerSvc->Exists(mMimeInfo, &mimeTypeIsInDatastore);
+    if (!handlerSvc || !mimeTypeIsInDatastore)
     {
       if (!GetNeverAskFlagFromPref(NEVER_ASK_FOR_SAVE_TO_DISK_PREF, MIMEType.get()))
       {
@@ -2776,17 +2260,24 @@ NS_IMETHODIMP nsExternalHelperAppService::GetFromTypeAndExtension(const nsACStri
   
   
   
-  nsresult rv = FillMIMEInfoForMimeTypeFromDS(typeToUse, *_retval);
-  found = found || NS_SUCCEEDED(rv);
+  nsresult rv;
+  nsCOMPtr<nsIHandlerService> handlerSvc = do_GetService(NS_HANDLERSERVICE_CONTRACTID);
+  if (handlerSvc) {
+    rv = handlerSvc->FillHandlerInfo(*_retval, EmptyCString());
+    LOG(("Data source: Via type: retval 0x%08x\n", rv));
+    found = found || NS_SUCCEEDED(rv);
 
-  LOG(("Data source: Via type: retval 0x%08x\n", rv));
-
-  if (!found || NS_FAILED(rv)) {
-    
-    if (!aFileExt.IsEmpty()) {
-      rv = FillMIMEInfoForExtensionFromDS(aFileExt, *_retval);
-      LOG(("Data source: Via ext: retval 0x%08x\n", rv));
-      found = found || NS_SUCCEEDED(rv);
+    if (!found || NS_FAILED(rv)) {
+      
+      if (!aFileExt.IsEmpty()) {
+        nsCAutoString overrideType;
+        rv = handlerSvc->GetTypeFromExtension(aFileExt, overrideType);
+        if (NS_SUCCEEDED(rv)) {
+          rv = handlerSvc->FillHandlerInfo(*_retval, overrideType);
+          LOG(("Data source: Via ext: retval 0x%08x\n", rv));
+          found = found || NS_SUCCEEDED(rv);
+        }
+      }
     }
   }
 
@@ -2857,11 +2348,14 @@ NS_IMETHODIMP nsExternalHelperAppService::GetTypeFromExtension(const nsACString&
   }
 
   
-  PRBool found = GetTypeFromDS(aFileExt, aContentType);
-  if (found)
+  nsCOMPtr<nsIHandlerService> handlerSvc = do_GetService(NS_HANDLERSERVICE_CONTRACTID);
+  if (handlerSvc)
+    rv = handlerSvc->GetTypeFromExtension(aFileExt, aContentType);
+  if (NS_SUCCEEDED(rv))
     return NS_OK;
 
   
+  PRBool found = PR_FALSE;
   nsCOMPtr<nsIMIMEInfo> mi = GetMIMEInfoFromOS(EmptyCString(), aFileExt, &found);
   if (mi && found)
     return mi->GetMIMEType(aContentType);

@@ -56,6 +56,10 @@ const NC_PROTOCOL_SCHEMES   = NC_NS + "Protocol-Schemes";
 
 
 const NC_VALUE              = NC_NS + "value";
+const NC_DESCRIPTION        = NC_NS + "description";
+
+
+const NC_FILE_EXTENSIONS    = NC_NS + "fileExtensions";
 
 
 const NC_HANDLER_INFO       = NC_NS + "handlerProp";
@@ -89,7 +93,9 @@ const NC_URI_TEMPLATE       = NC_NS + "uriTemplate";
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 
 
-function HandlerService() {}
+function HandlerService() {
+  this._init();
+}
 
 HandlerService.prototype = {
   
@@ -103,6 +109,49 @@ HandlerService.prototype = {
 
   
   
+  
+  _init: function HS__init() {
+    
+    
+    this._observerSvc.addObserver(this, "profile-before-change", false);
+
+    
+    
+    this._observerSvc.addObserver(this, "xpcom-shutdown", false);
+  },
+
+  _destroy: function HS__destroy() {
+    this._observerSvc.removeObserver(this, "profile-before-change");
+    this._observerSvc.removeObserver(this, "xpcom-shutdown");
+
+    
+    
+  },
+
+  _onProfileChange: function HS__onProfileChange() {
+    
+    
+    this.__ds = null;
+  },
+
+
+  
+  
+  
+  observe: function HS__observe(subject, topic, data) {
+    switch(topic) {
+      case "profile-before-change":
+        this._onProfileChange();
+        break;
+      case "xpcom-shutdown":
+        this._destroy();
+        break;
+    }
+  },
+
+
+  
+  
 
   enumerate: function HS_enumerate() {
     var handlers = Cc["@mozilla.org/array;1"].
@@ -110,6 +159,60 @@ HandlerService.prototype = {
     this._appendHandlers(handlers, CLASS_MIMEINFO);
     this._appendHandlers(handlers, CLASS_PROTOCOLINFO);
     return handlers.enumerate();
+  },
+
+  fillHandlerInfo: function HS_fillHandlerInfo(aHandlerInfo, aOverrideType) {
+    var type = aOverrideType || aHandlerInfo.type;
+    var typeID = this._getTypeID(this._getClass(aHandlerInfo), type);
+
+    
+    
+    
+    if (!this._hasValue(typeID, NC_VALUE))
+      throw Cr.NS_ERROR_NOT_AVAILABLE;
+
+    
+    if (this._hasValue(typeID, NC_DESCRIPTION))
+      aHandlerInfo.description = this._getValue(typeID, NC_DESCRIPTION);
+
+    
+    
+    
+    
+    var infoID = this._getInfoID(this._getClass(aHandlerInfo), type);
+
+    aHandlerInfo.preferredAction = this._retrievePreferredAction(infoID);
+
+    var preferredHandlerID =
+      this._getPreferredHandlerID(this._getClass(aHandlerInfo), type);
+
+    
+    
+    
+    
+    
+    aHandlerInfo.preferredApplicationHandler =
+      this._retrieveHandlerApp(preferredHandlerID);
+
+    
+    this._fillPossibleHandlers(infoID,
+                               aHandlerInfo.possibleApplicationHandlers,
+                               aHandlerInfo.preferredApplicationHandler);
+
+    
+    
+    
+    
+    
+    aHandlerInfo.alwaysAskBeforeHandling =
+      !this._hasValue(infoID, NC_ALWAYS_ASK) ||
+      this._getValue(infoID, NC_ALWAYS_ASK) != "false";
+
+    
+    
+    if (aHandlerInfo instanceof Ci.nsIMIMEInfo)
+      for each (let fileExtension in this._retrieveFileExtensions(typeID))
+        aHandlerInfo.appendExtension(fileExtension);
   },
 
   store: function HS_store(aHandlerInfo) {
@@ -130,14 +233,20 @@ HandlerService.prototype = {
       this._ds.Flush();
   },
 
+  exists: function HS_exists(aHandlerInfo) {
+    var typeID = this._getTypeID(this._getClass(aHandlerInfo), aHandlerInfo.type);
+    return this._hasLiteralAssertion(typeID, NC_VALUE, aHandlerInfo.type);
+  },
+
   remove: function HS_remove(aHandlerInfo) {
-    var preferredHandlerID = this._getPreferredHandlerID(aHandlerInfo);
+    var preferredHandlerID =
+      this._getPreferredHandlerID(this._getClass(aHandlerInfo), aHandlerInfo.type);
     this._removeAssertions(preferredHandlerID);
 
-    var infoID = this._getInfoID(aHandlerInfo);
+    var infoID = this._getInfoID(this._getClass(aHandlerInfo), aHandlerInfo.type);
     this._removeAssertions(infoID);
 
-    var typeID = this._getTypeID(aHandlerInfo);
+    var typeID = this._getTypeID(this._getClass(aHandlerInfo), aHandlerInfo.type);
     this._removeAssertions(typeID);
 
     
@@ -156,12 +265,180 @@ HandlerService.prototype = {
       this._ds.Flush();
   },
 
+  getTypeFromExtension: function HS_getTypeFromExtension(aFileExtension) {
+    var fileExtension = aFileExtension.toLowerCase();
+    var typeID;
+
+    if (this._existsLiteralTarget(NC_FILE_EXTENSIONS, fileExtension))
+      typeID = this._getSourceForLiteral(NC_FILE_EXTENSIONS, fileExtension);
+
+    if (typeID && this._hasValue(typeID, NC_VALUE)) {
+      let type = this._getValue(typeID, NC_VALUE);
+      if (type == "")
+        throw Cr.NS_ERROR_FAILURE;
+      return type;
+    }
+
+    throw Cr.NS_ERROR_NOT_AVAILABLE;
+  },
+
+
+  
+  
+
+  
+
+
+
+
+
+
+  _retrievePreferredAction: function HS__retrievePreferredAction(aInfoID) {
+    if (this._getValue(aInfoID, NC_SAVE_TO_DISK) == "true")
+      return Ci.nsIHandlerInfo.saveToDisk;
+    
+    if (this._getValue(aInfoID, NC_USE_SYSTEM_DEFAULT) == "true")
+      return Ci.nsIHandlerInfo.useSystemDefault;
+    
+    if (this._getValue(aInfoID, NC_HANDLE_INTERNALLY) == "true")
+      return Ci.nsIHandlerInfo.handleInternal;
+
+    return Ci.nsIHandlerInfo.useHelperApp;
+  },
+
+  
+
+
+
+
+
+
+  _fillPossibleHandlers: function HS__fillPossibleHandlers(aInfoID,
+                                                           aPossibleHandlers,
+                                                           aPreferredHandler) {
+    
+    
+    
+    
+    if (aPreferredHandler)
+      aPossibleHandlers.appendElement(aPreferredHandler, false);
+
+    var possibleHandlerTargets = this._getTargets(aInfoID, NC_POSSIBLE_APP);
+
+    while (possibleHandlerTargets.hasMoreElements()) {
+      let possibleHandlerTarget = possibleHandlerTargets.getNext();
+      if (!(possibleHandlerTarget instanceof Ci.nsIRDFResource))
+        continue;
+
+      let possibleHandlerID = possibleHandlerTarget.ValueUTF8;
+      let possibleHandler = this._retrieveHandlerApp(possibleHandlerID);
+      if (possibleHandler && (!aPreferredHandler ||
+                              !possibleHandler.equals(aPreferredHandler)))
+        aPossibleHandlers.appendElement(possibleHandler, false);
+    }
+  },
+
+  
+
+
+
+
+
+
+  _retrieveHandlerApp: function HS__retrieveHandlerApp(aHandlerAppID) {
+    var handlerApp;
+
+    
+    if (this._hasValue(aHandlerAppID, NC_PATH)) {
+      let executable =
+        this._getFileWithPath(this._getValue(aHandlerAppID, NC_PATH));
+      if (!executable)
+        return null;
+
+      handlerApp = Cc["@mozilla.org/uriloader/local-handler-app;1"].
+                   createInstance(Ci.nsILocalHandlerApp);
+      handlerApp.executable = executable;
+    }
+    else if (this._hasValue(aHandlerAppID, NC_URI_TEMPLATE)) {
+      let uriTemplate = this._getValue(aHandlerAppID, NC_URI_TEMPLATE);
+      if (!uriTemplate)
+        return null;
+
+      handlerApp = Cc["@mozilla.org/uriloader/web-handler-app;1"].
+                   createInstance(Ci.nsIWebHandlerApp);
+      handlerApp.uriTemplate = uriTemplate;
+    }
+    else
+      return null;
+
+    handlerApp.name = this._getValue(aHandlerAppID, NC_PRETTY_NAME);
+
+    return handlerApp;
+  },
+
+  
+
+
+
+
+  _retrieveFileExtensions: function HS__retrieveFileExtensions(aTypeID) {
+    var fileExtensions = [];
+
+    var fileExtensionTargets = this._getTargets(aTypeID, NC_FILE_EXTENSIONS);
+
+    while (fileExtensionTargets.hasMoreElements()) {
+      let fileExtensionTarget = fileExtensionTargets.getNext();
+      if (fileExtensionTarget instanceof Ci.nsIRDFLiteral &&
+          fileExtensionTarget.Value != "")
+        fileExtensions.push(fileExtensionTarget.Value);
+    }
+
+    return fileExtensions;
+  },
+
+  
+
+
+
+
+
+
+
+
+
+  _getFileWithPath: function HS__getFileWithPath(aPath) {
+    var file = Cc["@mozilla.org/file/local;1"].createInstance(Ci.nsILocalFile);
+
+    try {
+      file.initWithPath(aPath);
+
+      if (file.exists())
+        return file;
+    }
+    catch(ex) {
+      
+      
+      
+
+      file = this._dirSvc.get("XCurProcD", Ci.nsIFile);
+
+      try {
+        file.append(aPath);
+        if (file.exists())
+          return file;
+      }
+      catch(ex) {}
+    }
+
+    return null;
+  },
+
 
   
   
 
   _storePreferredAction: function HS__storePreferredAction(aHandlerInfo) {
-    var infoID = this._getInfoID(aHandlerInfo);
+    var infoID = this._getInfoID(this._getClass(aHandlerInfo), aHandlerInfo.type);
 
     switch(aHandlerInfo.preferredAction) {
       case Ci.nsIHandlerInfo.saveToDisk:
@@ -196,8 +473,10 @@ HandlerService.prototype = {
   },
 
   _storePreferredHandler: function HS__storePreferredHandler(aHandlerInfo) {
-    var infoID = this._getInfoID(aHandlerInfo);
-    var handlerID = this._getPreferredHandlerID(aHandlerInfo);
+    var infoID = this._getInfoID(this._getClass(aHandlerInfo), aHandlerInfo.type);
+    var handlerID =
+      this._getPreferredHandlerID(this._getClass(aHandlerInfo), aHandlerInfo.type);
+
     var handler = aHandlerInfo.preferredApplicationHandler;
 
     if (handler) {
@@ -228,7 +507,7 @@ HandlerService.prototype = {
 
 
   _storePossibleHandlers: function HS__storePossibleHandlers(aHandlerInfo) {
-    var infoID = this._getInfoID(aHandlerInfo);
+    var infoID = this._getInfoID(this._getClass(aHandlerInfo), aHandlerInfo.type);
 
     
     
@@ -238,7 +517,7 @@ HandlerService.prototype = {
     while (currentHandlerTargets.hasMoreElements()) {
       let handlerApp = currentHandlerTargets.getNext();
       if (handlerApp instanceof Ci.nsIRDFResource) {
-        let handlerAppID = handlerApp.Value;
+        let handlerAppID = handlerApp.ValueUTF8;
         currentHandlerApps[handlerAppID] = true;
       }
     }
@@ -250,7 +529,7 @@ HandlerService.prototype = {
       let handlerApp =
         newHandlerApps.getNext().QueryInterface(Ci.nsIHandlerApp);
       let handlerAppID = this._getPossibleHandlerAppID(handlerApp);
-      if (!this._hasResourceTarget(infoID, NC_POSSIBLE_APP, handlerAppID)) {
+      if (!this._hasResourceAssertion(infoID, NC_POSSIBLE_APP, handlerAppID)) {
         this._storeHandlerApp(handlerAppID, handlerApp);
         this._addResourceTarget(infoID, NC_POSSIBLE_APP, handlerAppID);
       }
@@ -303,7 +582,7 @@ HandlerService.prototype = {
   },
 
   _storeAlwaysAsk: function HS__storeAlwaysAsk(aHandlerInfo) {
-    var infoID = this._getInfoID(aHandlerInfo);
+    var infoID = this._getInfoID(this._getClass(aHandlerInfo), aHandlerInfo.type);
     this._setLiteral(infoID,
                      NC_ALWAYS_ASK,
                      aHandlerInfo.alwaysAskBeforeHandling ? "true" : "false");
@@ -312,6 +591,26 @@ HandlerService.prototype = {
 
   
   
+
+  
+  __observerSvc: null,
+  get _observerSvc() {
+    if (!this.__observerSvc)
+      this.__observerSvc =
+        Cc["@mozilla.org/observer-service;1"].
+        getService(Ci.nsIObserverService);
+    return this.__observerSvc;
+  },
+
+  
+  __dirSvc: null,
+  get _dirSvc() {
+    if (!this.__dirSvc)
+      this.__dirSvc =
+        Cc["@mozilla.org/file/directory_service;1"].
+        getService(Ci.nsIProperties);
+    return this.__dirSvc;
+  },
 
   
   __mimeSvc: null,
@@ -355,9 +654,7 @@ HandlerService.prototype = {
   __ds: null,
   get _ds() {
     if (!this.__ds) {
-      var fileLocator = Cc["@mozilla.org/file/directory_service;1"].
-                        getService(Ci.nsIProperties);
-      var file = fileLocator.get("UMimTyp", Ci.nsIFile);
+      var file = this._dirSvc.get("UMimTyp", Ci.nsIFile);
       
       var ioService = Cc["@mozilla.org/network/io-service;1"].
                       getService(Ci.nsIIOService);
@@ -401,28 +698,9 @@ HandlerService.prototype = {
 
 
 
-  _getTypeID: function HS__getTypeID(aHandlerInfo) {
-    return "urn:" + this._getClass(aHandlerInfo) + ":" + aHandlerInfo.type;
-  },
 
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  _getInfoID: function HS__getInfoID(aHandlerInfo) {
-    return "urn:" + this._getClass(aHandlerInfo) + ":handler:" +
-           aHandlerInfo.type;
+  _getTypeID: function HS__getTypeID(aClass, aType) {
+    return "urn:" + aClass + ":" + aType;
   },
 
   
@@ -441,13 +719,33 @@ HandlerService.prototype = {
 
 
 
+  _getInfoID: function HS__getInfoID(aClass, aType) {
+    return "urn:" + aClass + ":handler:" + aType;
+  },
+
+  
 
 
 
 
-  _getPreferredHandlerID: function HS__getPreferredHandlerID(aHandlerInfo) {
-    return "urn:" + this._getClass(aHandlerInfo) + ":externalApplication:" +
-           aHandlerInfo.type;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  _getPreferredHandlerID: function HS__getPreferredHandlerID(aClass, aType) {
+    return "urn:" + aClass + ":externalApplication:" + aType;
   },
 
   
@@ -487,10 +785,6 @@ HandlerService.prototype = {
 
 
   _ensureAndGetTypeList: function HS__ensureAndGetTypeList(aClass) {
-    
-    
-    
-
     var source = this._rdf.GetResource("urn:" + aClass + "s");
     var property =
       this._rdf.GetResource(aClass == CLASS_MIMEINFO ? NC_MIME_TYPES
@@ -531,7 +825,7 @@ HandlerService.prototype = {
 
     
     
-    var typeID = this._getTypeID(aHandlerInfo);
+    var typeID = this._getTypeID(this._getClass(aHandlerInfo), aHandlerInfo.type);
     var type = this._rdf.GetResource(typeID);
     if (typeList.IndexOf(type) != -1)
       return;
@@ -541,7 +835,7 @@ HandlerService.prototype = {
     this._setLiteral(typeID, NC_VALUE, aHandlerInfo.type);
     
     
-    var infoID = this._getInfoID(aHandlerInfo);
+    var infoID = this._getInfoID(this._getClass(aHandlerInfo), aHandlerInfo.type);
     this._setLiteral(infoID, NC_ALWAYS_ASK, "false");
     this._setResource(typeID, NC_HANDLER_INFO, infoID);
     
@@ -553,7 +847,8 @@ HandlerService.prototype = {
     
     
     
-    var preferredHandlerID = this._getPreferredHandlerID(aHandlerInfo);
+    var preferredHandlerID =
+      this._getPreferredHandlerID(this._getClass(aHandlerInfo), aHandlerInfo.type);
     this._setLiteral(preferredHandlerID, NC_PATH, "");
     this._setResource(infoID, NC_PREFERRED_APP, preferredHandlerID);
   },
@@ -586,13 +881,26 @@ HandlerService.prototype = {
         continue;
 
       var handler;
-      if (typeList.Resource.Value == "urn:mimetypes:root")
+      if (typeList.Resource.ValueUTF8 == "urn:mimetypes:root")
         handler = this._mimeSvc.getFromTypeAndExtension(type, null);
       else
         handler = this._protocolSvc.getProtocolHandlerInfo(type);
 
       aHandlers.appendElement(handler, false);
     }
+  },
+
+  
+
+
+
+
+
+
+  _hasValue: function HS__hasValue(sourceURI, propertyURI) {
+    var source = this._rdf.GetResource(sourceURI);
+    var property = this._rdf.GetResource(propertyURI);
+    return this._ds.hasArcOut(source, property);
   },
 
   
@@ -715,17 +1023,66 @@ HandlerService.prototype = {
 
 
 
-
-
-
-
-  _hasResourceTarget: function HS__hasResourceTarget(sourceURI, propertyURI,
-                                                     targetURI) {
+  _hasResourceAssertion: function HS__hasResourceAssertion(sourceURI,
+                                                           propertyURI,
+                                                           targetURI) {
     var source = this._rdf.GetResource(sourceURI);
     var property = this._rdf.GetResource(propertyURI);
     var target = this._rdf.GetResource(targetURI);
 
     return this._ds.HasAssertion(source, property, target, true);
+  },
+
+  
+
+
+
+
+
+
+
+
+  _hasLiteralAssertion: function HS__hasLiteralAssertion(sourceURI,
+                                                         propertyURI,
+                                                         value) {
+    var source = this._rdf.GetResource(sourceURI);
+    var property = this._rdf.GetResource(propertyURI);
+    var target = this._rdf.GetLiteral(value);
+
+    return this._ds.HasAssertion(source, property, target, true);
+  },
+
+  
+
+
+
+
+
+
+
+
+  _existsLiteralTarget: function HS__existsLiteralTarget(propertyURI, value) {
+    var property = this._rdf.GetResource(propertyURI);
+    var target = this._rdf.GetLiteral(value);
+
+    return this._ds.hasArcIn(target, property);
+  },
+
+  
+
+
+
+
+
+  _getSourceForLiteral: function HS__getSourceForLiteral(propertyURI, value) {
+    var property = this._rdf.GetResource(propertyURI);
+    var target = this._rdf.GetLiteral(value);
+
+    var source = this._ds.GetSource(property, target, true);
+    if (source)
+      return source.ValueUTF8;
+
+    return null;
   },
 
   
@@ -779,59 +1136,8 @@ HandlerService.prototype = {
       var target = this._ds.GetTarget(source, property, true);
       this._ds.Unassert(source, property, target);
     }
-  },
-
-
-  
-  
-
-  
-  
-
-  
-
-
-
-
-
-
-  _getAppPref: function _getAppPref(aPrefName, aDefaultValue) {
-    try {
-      var prefBranch = Cc["@mozilla.org/preferences-service;1"].
-                       getService(Ci.nsIPrefBranch);
-      switch (prefBranch.getPrefType(aPrefName)) {
-        case prefBranch.PREF_STRING:
-          return prefBranch.getCharPref(aPrefName);
-
-        case prefBranch.PREF_INT:
-          return prefBranch.getIntPref(aPrefName);
-
-        case prefBranch.PREF_BOOL:
-          return prefBranch.getBoolPref(aPrefName);
-      }
-    }
-    catch (ex) {  }
-    
-    return aDefaultValue;
-  },
-
-  
-  __consoleSvc: null,
-  get _consoleSvc() {
-    if (!this.__consoleSvc)
-      this.__consoleSvc = Cc["@mozilla.org/consoleservice;1"].
-                          getService(Ci.nsIConsoleService);
-    return this.__consoleSvc;
-  },
-
-  _log: function _log(aMessage) {
-    if (!this._getAppPref("browser.contentHandling.log", false))
-      return;
-
-    aMessage = "*** HandlerService: " + aMessage;
-    dump(aMessage + "\n");
-    this._consoleSvc.logStringMessage(aMessage);
   }
+
 };
 
 
