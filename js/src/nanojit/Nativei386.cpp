@@ -699,6 +699,12 @@ namespace nanojit
         JMP(exit);
     }
 
+    void Assembler::asm_jtbl(LIns* ins, NIns** table)
+    {
+        Register indexreg = findRegFor(ins->oprnd1(), GpRegs);
+        JMP_indexed(indexreg, 2, table);
+    }
+
     
     
     

@@ -1304,6 +1304,29 @@ namespace nanojit
     void Assembler::nFragExit(LIns*) {
         TODO(nFragExit);
     }
+
+    void Assembler::asm_jtbl(LIns* ins, NIns** native_table)
+    {
+        
+        
+        Register indexreg = findRegFor(ins->oprnd1(), GpRegs);
+#ifdef NANOJIT_64BIT
+        underrunProtect(9*4);
+        BCTR(0);                                
+        MTCTR(R2);                              
+        LDX(R2, R2, R0);                        
+        SLDI(R0, indexreg, 3);                  
+        asm_li64(R2, uint64_t(native_table));   
+#else 
+        underrunProtect(6*4);
+        BCTR(0);                                
+        MTCTR(R2);                              
+        LWZX(R2, R2, R0);                       
+        SLWI(R0, indexreg, 2);                  
+        asm_li(R2, int32_t(native_table));      
+#endif 
+    }
+
 } 
 
 #endif 

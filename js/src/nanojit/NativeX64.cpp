@@ -99,6 +99,8 @@ namespace nanojit
     
     
     
+    
+    
 
     
     const RegisterMask BaseRegs = GpRegs & ~rmask(R12);
@@ -111,6 +113,13 @@ namespace nanojit
     static inline uint64_t rexrb(uint64_t op, Register r, Register b) {
         int shift = 64 - 8*oplen(op);
         uint64_t rex = ((op >> shift) & 255) | ((r&8)>>1) | ((b&8)>>3);
+        return rex != 0x40 ? op | rex << shift : op - 1;
+    }
+
+    
+    static inline uint64_t rexrxb(uint64_t op, Register r, Register x, Register b) {
+        int shift = 64 - 8*oplen(op);
+        uint64_t rex = ((op >> shift) & 255) | ((r&8)>>1) | ((x&8)>>2) | ((b&8)>>3);
         return rex != 0x40 ? op | rex << shift : op - 1;
     }
 
@@ -135,6 +144,11 @@ namespace nanojit
     
     static inline uint64_t mod_rr(uint64_t op, Register r, Register b) {
         return op | uint64_t((r&7)<<3 | (b&7))<<56;
+    }
+
+    
+    static inline uint64_t mod_rxb(uint64_t op, Register r, Register x, Register b) {
+        return op | uint64_t((r&7)<<3)<<48 | uint64_t((x&7)<<3|(b&7))<<56;
     }
 
     static inline uint64_t mod_disp32(uint64_t op, Register r, Register b, int32_t d) {
@@ -185,6 +199,11 @@ namespace nanojit
     void Assembler::emit32(uint64_t op, int64_t v) {
         NanoAssert(isS32(v));
         emit(op | uint64_t(uint32_t(v))<<32);
+    }
+
+    
+    void Assembler::emitrxb(uint64_t op, Register r, Register x, Register b) {
+        emit(rexrxb(mod_rxb(op, r, x, b), r, x, b));
     }
 
     
@@ -242,6 +261,14 @@ namespace nanojit
         *((int32_t*)(_nIns -= 4)) = imm;
         _nvprof("x86-bytes", 4);
         emitrr(op, r, b);
+    }
+
+    void Assembler::emitrxb_imm(uint64_t op, Register r, Register x, Register b, int32_t imm) {
+        NanoAssert(IsGpReg(r) && IsGpReg(x) && IsGpReg(b));
+        underrunProtect(4+8); 
+        *((int32_t*)(_nIns -= 4)) = imm;
+        _nvprof("x86-bytes", 4);
+        emitrxb(op, r, x, b);
     }
 
     
@@ -1105,6 +1132,12 @@ namespace nanojit
             return;
         }
         underrunProtect(8+8); 
+        if (isS32(int64_t(v)-int64_t(_nIns))) {
+            
+            int32_t d = int32_t(int64_t(v)-int64_t(_nIns));
+            emitrm(X64_learip, r, d, (Register)0);
+            return;
+        }
         ((uint64_t*)_nIns)[-1] = v;
         _nIns -= 8;
         _nvprof("x64-bytes", 8);
@@ -1436,6 +1469,26 @@ namespace nanojit
         
     }
     )
+
+    void Assembler::asm_jtbl(LIns* ins, NIns** table)
+    {
+        
+        
+        Register indexreg = findRegFor(ins->oprnd1(), GpRegs & ~rmask(R12));
+        if (isS32((intptr_t)table)) {
+            
+            
+            emitrxb_imm(X64_jmpx, (Register)0, indexreg, (Register)5, (int32_t)(uintptr_t)table);
+        } else {
+            
+            Register tablereg = registerAlloc(GpRegs & ~(rmask(indexreg)|rmask(R13)));
+            _allocator.addFree(tablereg);
+            
+            emitxb(X64_jmpxb, indexreg, tablereg);
+            
+            emit_quad(tablereg, (uint64_t)table);
+        }
+    }
 
 } 
 
