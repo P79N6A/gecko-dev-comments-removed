@@ -698,15 +698,25 @@ nsHTMLReflowState::ComputeRelativeOffsets(const nsHTMLReflowState* cbrs,
   }
 }
 
-nsIFrame*
-nsHTMLReflowState::GetNearestContainingBlock(nsIFrame* aFrame, nscoord& aCBLeftEdge,
-                                             nscoord& aCBWidth)
+inline PRBool
+IsAnonBlockPseudo(nsIAtom *aPseudo)
 {
-  for (aFrame = aFrame->GetParent(); aFrame && !aFrame->IsContainingBlock();
-       aFrame = aFrame->GetParent())
-    ;
+  return aPseudo == nsCSSAnonBoxes::mozAnonymousBlock ||
+         aPseudo == nsCSSAnonBoxes::mozAnonymousPositionedBlock;
+}
 
-  NS_ASSERTION(aFrame, "Must find containing block somewhere");
+nsIFrame*
+nsHTMLReflowState::GetHypotheticalBoxContainer(nsIFrame* aFrame,
+                                               nscoord& aCBLeftEdge,
+                                               nscoord& aCBWidth)
+{
+  do {
+    aFrame = aFrame->GetParent();
+    NS_ASSERTION(aFrame, "Must find containing block somewhere");
+  } while (!(aFrame->IsContainingBlock() ||
+             (aFrame->IsFrameOfType(nsIFrame::eBlockFrame) &&
+              IsAnonBlockPseudo(aFrame->GetStyleContext()->GetPseudoType()))));
+
   NS_ASSERTION(aFrame != frame, "How did that happen?");
 
   
@@ -738,6 +748,16 @@ nsHTMLReflowState::GetNearestContainingBlock(nsIFrame* aFrame, nscoord& aCBLeftE
   }
 
   return aFrame;
+}
+
+static nsIFrame*
+GetNearestContainingBlock(nsIFrame *aFrame)
+{
+  nsIFrame *cb = aFrame;
+  do {
+    cb = cb->GetParent();
+  } while (!cb->IsContainingBlock());
+  return cb;
 }
 
 
@@ -1113,18 +1133,18 @@ nsHTMLReflowState::InitAbsoluteConstraints(nsPresContext* aPresContext,
 
   
   
-  nscoord cbLeftEdge, cbWidth;
-  nsIFrame* cbFrame = GetNearestContainingBlock(placeholderFrame, cbLeftEdge,
-                                                cbWidth);
-  
-  
-  
   
   nsHypotheticalBox hypotheticalBox;
   if (((eStyleUnit_Auto == mStylePosition->mOffset.GetLeftUnit()) &&
        (eStyleUnit_Auto == mStylePosition->mOffset.GetRightUnit())) ||
       ((eStyleUnit_Auto == mStylePosition->mOffset.GetTopUnit()) &&
        (eStyleUnit_Auto == mStylePosition->mOffset.GetBottomUnit()))) {
+    
+    
+    nscoord cbLeftEdge, cbWidth;
+    nsIFrame* cbFrame = GetHypotheticalBoxContainer(placeholderFrame,
+                                                    cbLeftEdge,
+                                                    cbWidth);
 
     CalculateHypotheticalBox(aPresContext, placeholderFrame, cbFrame,
                              cbLeftEdge, cbWidth, cbrs, hypotheticalBox);
@@ -1155,7 +1175,8 @@ nsHTMLReflowState::InitAbsoluteConstraints(nsPresContext* aPresContext,
   if (leftIsAuto && rightIsAuto) {
     
     
-    if (NS_STYLE_DIRECTION_LTR == cbFrame->GetStyleVisibility()->mDirection) {
+    if (NS_STYLE_DIRECTION_LTR == GetNearestContainingBlock(placeholderFrame)
+                                    ->GetStyleVisibility()->mDirection) {
       NS_ASSERTION(hypotheticalBox.mLeftIsExact, "should always have "
                    "exact value on containing block's start side");
       mComputedOffsets.left = hypotheticalBox.mLeft;

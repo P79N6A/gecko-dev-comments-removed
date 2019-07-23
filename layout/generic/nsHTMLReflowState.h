@@ -465,8 +465,10 @@ protected:
   
   
   
-  nsIFrame* GetNearestContainingBlock(nsIFrame* aFrame, nscoord& aCBLeftEdge,
-                                      nscoord& aCBWidth);
+  
+  nsIFrame* GetHypotheticalBoxContainer(nsIFrame* aFrame,
+                                        nscoord& aCBLeftEdge,
+                                        nscoord& aCBWidth);
 
   void CalculateHypotheticalBox(nsPresContext*    aPresContext,
                                 nsIFrame*         aPlaceholderFrame,
