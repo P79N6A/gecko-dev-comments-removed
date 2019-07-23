@@ -253,7 +253,7 @@ nsHTMLEditor::DeleteRefToAnonymousNode(nsIDOMElement* aElement,
           
           
           nsCOMPtr<nsIDOMDocument> domDocument;
-          nsresult res = GetDocument(getter_AddRefs(domDocument));
+          GetDocument(getter_AddRefs(domDocument));
           nsCOMPtr<nsIDocument> document = do_QueryInterface(domDocument);
           if (document)
             docObserver->BeginUpdate(document, UPDATE_CONTENT_MODEL);

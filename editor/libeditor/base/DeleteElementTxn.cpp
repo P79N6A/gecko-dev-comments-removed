@@ -113,7 +113,7 @@ NS_IMETHODIMP DeleteElementTxn::DoTransaction(void)
 #endif
 
   
-  nsresult result = mElement->GetNextSibling(getter_AddRefs(mRefNode));  
+  mElement->GetNextSibling(getter_AddRefs(mRefNode));  
 
   
   
