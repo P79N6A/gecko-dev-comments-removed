@@ -60,6 +60,9 @@
 
 #include "imgIContainer.h"
 #include "nsIInterfaceRequestorUtils.h"
+#include "BasicLayers.h"
+
+using namespace mozilla::layers;
 
 nsDisplayListBuilder::nsDisplayListBuilder(nsIFrame* aReferenceFrame,
     PRBool aIsForEvents, PRBool aBuildCaret)
@@ -401,20 +404,430 @@ nsDisplayList::ComputeVisibility(nsDisplayListBuilder* aBuilder,
     movingContentVisibleRegionBeforeMove,
     movingContentVisibleRegionAfterMove);
 
+  mIsOpaque = aVisibleRegion->IsEmpty();
 #ifdef DEBUG
   mDidComputeVisibility = PR_TRUE;
 #endif
 }
+
+namespace {
+
+
+
+
+
+
+class ClippedItemIterator {
+public:
+  ClippedItemIterator(const nsDisplayList* aList)
+  {
+    DescendIntoList(aList, nsnull, nsnull);
+    AdvanceToItem();
+  }
+  PRBool IsDone()
+  {
+    return mStack.IsEmpty();
+  }
+  void Next()
+  {
+    State* top = StackTop();
+    top->mItem = top->mItem->GetAbove();
+    AdvanceToItem();
+  }
+  
+  
+  const gfxRect* GetEffectiveClipRect()
+  {
+    State* top = StackTop();
+    return top->mHasClipRect ? &top->mEffectiveClipRect : nsnull;
+  }
+  nsDisplayItem* Item()
+  {
+    return StackTop()->mItem;
+  }
+
+private:
+  
+  
+  struct State {
+    
+    nsDisplayItem* mItem;
+    
+    gfxRect mEffectiveClipRect;
+    PRPackedBool mHasClipRect;
+  };
+
+  State* StackTop()
+  {
+    return &mStack[mStack.Length() - 1];
+  }
+  void DescendIntoList(const nsDisplayList* aList,
+                       nsPresContext* aPresContext,
+                       const nsRect* aClipRect)
+  {
+    State* state = mStack.AppendElement();
+    if (!state)
+      return;
+    if (mStack.Length() >= 2) {
+      *state = mStack[mStack.Length() - 2];
+    } else {
+      state->mHasClipRect = PR_FALSE;
+    }
+    state->mItem = aList->GetBottom();
+    if (aClipRect) {
+      gfxRect r(aClipRect->x, aClipRect->y, aClipRect->width, aClipRect->height);
+      r.ScaleInverse(aPresContext->AppUnitsPerDevPixel());
+      if (state->mHasClipRect) {
+        state->mEffectiveClipRect = state->mEffectiveClipRect.Intersect(r);
+      } else {
+        state->mEffectiveClipRect = r;
+        state->mHasClipRect = PR_TRUE;
+      }
+    }
+  }
+  
+  void AdvanceToItem()
+  {
+    while (!mStack.IsEmpty()) {
+      State* top = StackTop();
+      if (!top->mItem) {
+        mStack.SetLength(mStack.Length() - 1);
+        if (!mStack.IsEmpty()) {
+          top = StackTop();
+          top->mItem = top->mItem->GetAbove();
+        }
+        continue;
+      }
+      if (top->mItem->GetType() != nsDisplayItem::TYPE_CLIP)
+        return;
+      nsDisplayClip* clipItem = static_cast<nsDisplayClip*>(top->mItem);
+      nsRect clip = clipItem->GetClipRect();
+      DescendIntoList(clipItem->GetList(),
+                      clipItem->GetClippingFrame()->PresContext(),
+                      &clip);
+    }
+  }
+
+  nsAutoTArray<State,10> mStack;
+};
+}
+
+
+
+
+
+
+
+
+
+static nsDisplayList::ItemGroup*
+AddToItemGroup(nsDisplayListBuilder* aBuilder,
+               nsDisplayList::ItemGroup* aGroup, nsDisplayItem* aItem,
+               const gfxRect* aClipRect) {
+  NS_ASSERTION(!aGroup->mNextItemsForLayer,
+               "aGroup must be the last group in the chain");
+
+  if (!aGroup->mStartItem) {
+    aGroup->mStartItem = aItem;
+    aGroup->mEndItem = aItem->GetAbove();
+    aGroup->mHasClipRect = aClipRect != nsnull;
+    if (aClipRect) {
+      aGroup->mClipRect = *aClipRect;
+    }
+    return aGroup;
+  }
+
+  if (aGroup->mEndItem == aItem &&
+      (aGroup->mHasClipRect
+       ? (aClipRect && aGroup->mClipRect == *aClipRect)
+       : !aClipRect))  {
+    aGroup->mEndItem = aItem->GetAbove();
+    return aGroup;
+  }
+
+  nsDisplayList::ItemGroup* itemGroup =
+    new (aBuilder) nsDisplayList::ItemGroup();
+  if (!itemGroup)
+    return aGroup;
+  aGroup->mNextItemsForLayer = itemGroup;
+  return AddToItemGroup(aBuilder, itemGroup, aItem, aClipRect);
+}
+
+
+
+
+
+static nsDisplayList::ItemGroup*
+CreateEmptyThebesLayer(nsDisplayListBuilder* aBuilder,
+                       LayerManager* aManager,
+                       nsTArray<nsDisplayList::LayerItems>* aLayers) {
+  nsDisplayList::ItemGroup* itemGroup =
+    new (aBuilder) nsDisplayList::ItemGroup();
+  if (!itemGroup)
+    return nsnull;
+  nsRefPtr<ThebesLayer> thebesLayer =
+    aManager->CreateThebesLayer();
+  if (!thebesLayer)
+    return nsnull;
+  nsDisplayList::LayerItems* layerItems =
+    aLayers->AppendElement(nsDisplayList::LayerItems(itemGroup));
+  layerItems->mThebesLayer = thebesLayer;
+  layerItems->mLayer = thebesLayer.forget();
+  return itemGroup;
+}
+
+
+
+
+
+
+
+
+
+
+void nsDisplayList::BuildLayers(nsDisplayListBuilder* aBuilder,
+                                LayerManager* aManager,
+                                nsTArray<LayerItems>* aLayers) const {
+  NS_ASSERTION(aLayers->IsEmpty(), "aLayers must be initially empty");
+
+  
+  
+  
+  
+  
+  
+  ItemGroup* firstThebesLayerItems =
+    CreateEmptyThebesLayer(aBuilder, aManager, aLayers);
+  if (!firstThebesLayerItems)
+    return;
+  
+  
+  
+  ItemGroup* lastThebesLayerItems = firstThebesLayerItems;
+  
+  
+  nsRegion areaAboveFirstThebesLayer;
+
+  for (ClippedItemIterator iter(this); !iter.IsDone(); iter.Next()) {
+    nsDisplayItem* item = iter.Item();
+    const gfxRect* clipRect = iter.GetEffectiveClipRect();
+    
+    nsRefPtr<Layer> layer = item->BuildLayer(aBuilder, aManager);
+    nsRect bounds = item->GetBounds(aBuilder);
+    
+    
+    LayerItems* layerItems = nsnull;
+    if (layer) {
+      
+      
+      ItemGroup* itemGroup = new (aBuilder) ItemGroup();
+      if (itemGroup) {
+        AddToItemGroup(aBuilder, itemGroup, item, clipRect);
+        layerItems = aLayers->AppendElement(LayerItems(itemGroup));
+        if (layerItems) {
+          if (itemGroup->mHasClipRect) {
+            gfxRect r = itemGroup->mClipRect;
+            r.Round();
+            nsIntRect intRect(r.X(), r.Y(), r.Width(), r.Height());
+            layer->IntersectClipRect(intRect);
+          }
+          layerItems->mLayer = layer.forget();
+        }
+      }
+      
+      areaAboveFirstThebesLayer.Or(areaAboveFirstThebesLayer, bounds);
+      lastThebesLayerItems = nsnull;
+    } else {
+      
+      
+      
+      
+      if (!areaAboveFirstThebesLayer.Intersects(bounds)) {
+        firstThebesLayerItems =
+          AddToItemGroup(aBuilder, firstThebesLayerItems, item, clipRect);
+        layerItems = &aLayers->ElementAt(0);
+      } else if (lastThebesLayerItems) {
+        
+        lastThebesLayerItems =
+          AddToItemGroup(aBuilder, lastThebesLayerItems, item, clipRect);
+        
+        areaAboveFirstThebesLayer.Or(areaAboveFirstThebesLayer, bounds);
+        layerItems = &aLayers->ElementAt(aLayers->Length() - 1);
+      } else {
+        
+        ItemGroup* itemGroup =
+          CreateEmptyThebesLayer(aBuilder, aManager, aLayers);
+        if (itemGroup) {
+          lastThebesLayerItems =
+            AddToItemGroup(aBuilder, itemGroup, item, clipRect);
+          NS_ASSERTION(lastThebesLayerItems == itemGroup,
+                       "AddToItemGroup shouldn't create a new group if the "
+                       "initial group is empty");
+          
+          areaAboveFirstThebesLayer.Or(areaAboveFirstThebesLayer, bounds);
+        }
+      }
+    }
+
+    if (layerItems) {
+      
+      
+      nscoord appUnitsPerDevPixel =
+        item->GetUnderlyingFrame()->PresContext()->AppUnitsPerDevPixel();
+      layerItems->mVisibleRect.UnionRect(layerItems->mVisibleRect,
+        item->mVisibleRect.ToOutsidePixels(appUnitsPerDevPixel));
+      layerItems->mLayer->SetVisibleRegion(nsIntRegion(layerItems->mVisibleRect));
+    }
+  }
+
+  if (!firstThebesLayerItems->mStartItem) {
+    
+    aLayers->RemoveElementAt(0);
+  }
+}
+
+
+
+
+
+
+already_AddRefed<Layer>
+nsDisplayList::BuildLayer(nsDisplayListBuilder* aBuilder,
+                          LayerManager* aManager,
+                          nsTArray<LayerItems>* aLayers) const {
+  BuildLayers(aBuilder, aManager, aLayers);
+
+  nsRefPtr<Layer> layer;
+  if (aLayers->Length() == 1) {
+    
+    layer = aLayers->ElementAt(0).mLayer;
+  } else {
+    
+    nsRefPtr<ContainerLayer> container =
+      aManager->CreateContainerLayer();
+    if (!container)
+      return nsnull;
+    
+    Layer* lastChild = nsnull;
+    nsIntRect visibleRect;
+    for (PRUint32 i = 0; i < aLayers->Length(); ++i) {
+      LayerItems* layerItems = &aLayers->ElementAt(i);
+      visibleRect.UnionRect(visibleRect, layerItems->mVisibleRect);
+      Layer* child = layerItems->mLayer;
+      container->InsertAfter(child, lastChild);
+      lastChild = child;
+    }
+    container->SetVisibleRegion(nsIntRegion(visibleRect));
+    layer = container.forget();
+  }
+  layer->SetIsOpaqueContent(mIsOpaque);
+  return layer.forget();
+}
+
+
+
+
+
 
 void nsDisplayList::Paint(nsDisplayListBuilder* aBuilder,
                           nsIRenderingContext* aCtx) const {
   NS_ASSERTION(mDidComputeVisibility,
                "Must call ComputeVisibility before calling Paint");
 
-  for (nsDisplayItem* i = GetBottom(); i != nsnull; i = i->GetAbove()) {
-    i->Paint(aBuilder, aCtx);
-  }
+  
+  
+  nsRefPtr<LayerManager> layerManager = new BasicLayerManager();
+  if (!layerManager)
+    return;
+  layerManager->BeginTransactionWithTarget(aCtx->ThebesContext());
+
+  nsAutoTArray<LayerItems,10> layers;
+  nsRefPtr<Layer> root = BuildLayer(aBuilder, layerManager, &layers);
+  if (!root)
+    return;
+
+  layerManager->SetRoot(root);
+  layerManager->EndConstruction();
+  PaintThebesLayers(aBuilder, layers);
+  layerManager->EndTransaction();
+
   nsCSSRendering::DidPaint();
+}
+
+void
+nsDisplayList::PaintThebesLayers(nsDisplayListBuilder* aBuilder,
+                                 const nsTArray<LayerItems>& aLayers) const
+{
+  for (PRUint32 i = 0; i < aLayers.Length(); ++i) {
+    ThebesLayer* thebesLayer = aLayers[i].mThebesLayer;
+    if (!thebesLayer) {
+      
+      
+      aLayers[i].mItems->mStartItem->PaintThebesLayers(aBuilder);
+      continue;
+    }
+
+    
+    nsIntRegion toDraw;
+    gfxContext* ctx = thebesLayer->BeginDrawing(&toDraw);
+    if (!ctx)
+      continue;
+    
+    
+    
+    
+    
+
+    
+    
+    
+    
+    
+    nsRefPtr<nsIRenderingContext> rc;
+    nsPresContext* lastPresContext = nsnull;
+    gfxRect currentClip;
+    PRBool setClipRect = PR_FALSE;
+    NS_ASSERTION(aLayers[i].mItems, "No empty layers allowed");
+    for (ItemGroup* group = aLayers[i].mItems; group;
+         group = group->mNextItemsForLayer) {
+      
+      
+      if (setClipRect != group->mHasClipRect ||
+          (group->mHasClipRect && group->mClipRect != currentClip)) {
+        if (setClipRect) {
+          ctx->Restore();
+        }
+        setClipRect = group->mHasClipRect;
+        if (setClipRect) {
+          ctx->Save();
+          ctx->NewPath();
+          ctx->Rectangle(group->mClipRect, PR_TRUE);
+          ctx->Clip();
+          currentClip = group->mClipRect;
+        }
+      }
+      NS_ASSERTION(group->mStartItem, "No empty groups allowed");
+      for (nsDisplayItem* item = group->mStartItem; item != group->mEndItem;
+           item = item->GetAbove()) {
+        nsPresContext* presContext = item->GetUnderlyingFrame()->PresContext();
+        if (presContext != lastPresContext) {
+          
+          
+          nsresult rv =
+            presContext->DeviceContext()->CreateRenderingContextInstance(*getter_AddRefs(rc));
+          if (NS_FAILED(rv))
+            break;
+          rc->Init(presContext->DeviceContext(), ctx);
+          lastPresContext = presContext;
+        }
+        item->Paint(aBuilder, rc);
+      }
+    }
+    if (setClipRect) {
+      ctx->Restore();
+    }
+    thebesLayer->EndDrawing();
+  }
 }
 
 PRUint32 nsDisplayList::Count() const {
@@ -996,7 +1409,7 @@ PRBool nsDisplayWrapList::IsVaryingRelativeToMovingFrame(nsDisplayListBuilder* a
 
 void nsDisplayWrapList::Paint(nsDisplayListBuilder* aBuilder,
                               nsIRenderingContext* aCtx) {
-  mList.Paint(aBuilder, aCtx);
+  NS_ERROR("nsDisplayWrapList should have been flattened away for painting");
 }
 
 static nsresult
@@ -1071,7 +1484,7 @@ nsresult nsDisplayWrapper::WrapListsInPlace(nsDisplayListBuilder* aBuilder,
 }
 
 nsDisplayOpacity::nsDisplayOpacity(nsIFrame* aFrame, nsDisplayList* aList)
-    : nsDisplayWrapList(aFrame, aList), mNeedAlpha(PR_TRUE) {
+    : nsDisplayWrapList(aFrame, aList) {
   MOZ_COUNT_CTOR(nsDisplayOpacity);
 }
 
@@ -1087,37 +1500,22 @@ PRBool nsDisplayOpacity::IsOpaque(nsDisplayListBuilder* aBuilder) {
   return PR_FALSE;
 }
 
-void nsDisplayOpacity::Paint(nsDisplayListBuilder* aBuilder,
-                             nsIRenderingContext* aCtx)
-{
-  float opacity = mFrame->GetStyleDisplay()->mOpacity;
 
-  nsCOMPtr<nsIDeviceContext> devCtx;
-  aCtx->GetDeviceContext(*getter_AddRefs(devCtx));
+already_AddRefed<Layer>
+nsDisplayOpacity::BuildLayer(nsDisplayListBuilder* aBuilder,
+                             LayerManager* aManager) {
+  nsRefPtr<Layer> layer =
+    mList.BuildLayer(aBuilder, aManager, &mChildLayers);
+  if (!layer)
+    return nsnull;
 
-  gfxContext* ctx = aCtx->ThebesContext();
+  layer->SetOpacity(mFrame->GetStyleDisplay()->mOpacity*layer->GetOpacity());
+  return layer.forget();
+}
 
-  ctx->Save();
-
-  ctx->NewPath();
-  gfxRect r(mVisibleRect.x, mVisibleRect.y,
-            mVisibleRect.width, mVisibleRect.height);
-  r.ScaleInverse(devCtx->AppUnitsPerDevPixel());
-  ctx->Rectangle(r, PR_TRUE);
-  ctx->Clip();
-
-  if (mNeedAlpha)
-    ctx->PushGroup(gfxASurface::CONTENT_COLOR_ALPHA);
-  else
-    ctx->PushGroup(gfxASurface::CONTENT_COLOR);
-
-  nsDisplayWrapList::Paint(aBuilder, aCtx);
-
-  ctx->PopGroupToSource();
-  ctx->SetOperator(gfxContext::OPERATOR_OVER);
-  ctx->Paint(opacity);
-
-  ctx->Restore();
+void
+nsDisplayOpacity::PaintThebesLayers(nsDisplayListBuilder* aBuilder) {
+  mList.PaintThebesLayers(aBuilder, mChildLayers);
 }
 
 PRBool nsDisplayOpacity::ComputeVisibility(nsDisplayListBuilder* aBuilder,
@@ -1131,23 +1529,16 @@ PRBool nsDisplayOpacity::ComputeVisibility(nsDisplayListBuilder* aBuilder,
   
   
   
-  nsRegion visibleUnderChildren = *aVisibleRegion;
+  nsRect bounds = GetBounds(aBuilder);
+  nsRegion visibleUnderChildren;
+  visibleUnderChildren.And(*aVisibleRegion, bounds);
   nsRegion visibleUnderChildrenBeforeMove;
   if (aVisibleRegionBeforeMove) {
-    visibleUnderChildrenBeforeMove = *aVisibleRegionBeforeMove;
+    visibleUnderChildrenBeforeMove.And(*aVisibleRegionBeforeMove, bounds);
   }
-  PRBool anyVisibleChildren =
+  return
     nsDisplayWrapList::ComputeVisibility(aBuilder, &visibleUnderChildren,
       aVisibleRegionBeforeMove ? &visibleUnderChildrenBeforeMove : nsnull);
-  if (!anyVisibleChildren)
-    return PR_FALSE;
-
-  
-  
-  
-  mNeedAlpha = aVisibleRegionBeforeMove ||
-    visibleUnderChildren.Intersects(mVisibleRect);
-  return PR_TRUE;
 }
 
 PRBool nsDisplayOpacity::TryMerge(nsDisplayListBuilder* aBuilder, nsDisplayItem* aItem) {
@@ -1190,10 +1581,7 @@ nsDisplayClip::~nsDisplayClip() {
 
 void nsDisplayClip::Paint(nsDisplayListBuilder* aBuilder,
                           nsIRenderingContext* aCtx) {
-  aCtx->PushState();
-  aCtx->SetClipRect(mClip, nsClipCombine_kIntersect);
-  nsDisplayWrapList::Paint(aBuilder, aCtx);
-  aCtx->PopState();
+  NS_ERROR("nsDisplayClip should have been flattened away for painting");
 }
 
 PRBool nsDisplayClip::ComputeVisibility(nsDisplayListBuilder* aBuilder,
@@ -1441,7 +1829,7 @@ void nsDisplayTransform::Paint(nsDisplayListBuilder *aBuilder,
 
   
     
-  mStoredList.Paint(aBuilder, aCtx);
+  mStoredList.GetList()->Paint(aBuilder, aCtx);
 
   
 }

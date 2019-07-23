@@ -52,6 +52,7 @@
 #include "nsISelection.h"
 #include "nsCaret.h"
 #include "plarena.h"
+#include "Layers.h"
 
 #include <stdlib.h>
 
@@ -455,6 +456,9 @@ protected:
 
 class nsDisplayItem : public nsDisplayItemLink {
 public:
+  typedef mozilla::layers::Layer Layer;
+  typedef mozilla::layers::LayerManager LayerManager;
+
   
   
   nsDisplayItem(nsIFrame* aFrame) : mFrame(aFrame) {}
@@ -548,6 +552,28 @@ public:
 
 
   virtual void Paint(nsDisplayListBuilder* aBuilder, nsIRenderingContext* aCtx) {}
+  
+
+
+
+
+
+
+
+
+
+
+
+  virtual already_AddRefed<Layer> BuildLayer(nsDisplayListBuilder* aBuilder,
+                                             LayerManager* aManager)
+  { return nsnull; }
+  
+
+
+
+  virtual void PaintThebesLayers(nsDisplayListBuilder* aBuilder)
+  {
+  }
 
   
 
@@ -635,10 +661,16 @@ protected:
 
 class nsDisplayList {
 public:
+  typedef mozilla::layers::Layer Layer;
+  typedef mozilla::layers::LayerManager LayerManager;
+  typedef mozilla::layers::ThebesLayer ThebesLayer;
+
   
 
 
-  nsDisplayList() {
+  nsDisplayList() :
+    mIsOpaque(PR_FALSE)
+  {
     mTop = &mSentinel;
     mSentinel.mAbove = nsnull;
 #ifdef DEBUG
@@ -797,9 +829,18 @@ public:
 
 
 
+
   void ComputeVisibility(nsDisplayListBuilder* aBuilder,
                          nsRegion* aVisibleRegion,
                          nsRegion* aVisibleRegionBeforeMove);
+  
+
+
+
+  PRBool IsOpaque() const {
+    NS_ASSERTION(mDidComputeVisibility, "Need to have called ComputeVisibility");
+    return mIsOpaque;
+  }
   
 
 
@@ -821,6 +862,80 @@ public:
   nsIFrame* HitTest(nsDisplayListBuilder* aBuilder, nsPoint aPt,
                     nsDisplayItem::HitTestState* aState) const;
 
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  struct ItemGroup {
+    
+    nsDisplayItem* mStartItem;
+    nsDisplayItem* mEndItem;
+    ItemGroup* mNextItemsForLayer;
+    
+    gfxRect mClipRect;
+    PRPackedBool mHasClipRect;
+
+    ItemGroup() : mStartItem(nsnull), mEndItem(nsnull),
+      mNextItemsForLayer(nsnull), mHasClipRect(PR_FALSE) {}
+
+    void* operator new(size_t aSize,
+                       nsDisplayListBuilder* aBuilder) CPP_THROW_NEW {
+      return aBuilder->Allocate(aSize);
+    }
+  };
+  
+
+
+
+  struct LayerItems {
+    nsRefPtr<Layer> mLayer;
+    
+    ThebesLayer* mThebesLayer;
+    ItemGroup* mItems;
+    
+    nsIntRect mVisibleRect;
+
+    LayerItems(ItemGroup* aItems) :
+      mThebesLayer(nsnull), mItems(aItems)
+    {
+    }
+  };
+  
+
+
+
+
+
+
+
+  void BuildLayers(nsDisplayListBuilder* aBuilder,
+                   LayerManager* aManager,
+                   nsTArray<LayerItems>* aLayers) const;
+  
+
+
+
+
+
+
+  already_AddRefed<Layer> BuildLayer(nsDisplayListBuilder* aBuilder,
+                                     LayerManager* aManager,
+                                     nsTArray<LayerItems>* aLayers) const;
+  
+
+
+  void PaintThebesLayers(nsDisplayListBuilder* aBuilder,
+                         const nsTArray<LayerItems>& aLayers) const;
+
 private:
   
   
@@ -835,6 +950,10 @@ private:
   nsDisplayItemLink  mSentinel;
   nsDisplayItemLink* mTop;
 
+  
+  
+  
+  PRPackedBool mIsOpaque;
 #ifdef DEBUG
   PRPackedBool mDidComputeVisibility;
 #endif
@@ -1384,7 +1503,9 @@ public:
   
   virtual Type GetType() { return TYPE_OPACITY; }
   virtual PRBool IsOpaque(nsDisplayListBuilder* aBuilder);
-  virtual void Paint(nsDisplayListBuilder* aBuilder, nsIRenderingContext* aCtx);
+  virtual already_AddRefed<Layer> BuildLayer(nsDisplayListBuilder* aBuilder,
+                                             LayerManager* aManager);
+  virtual void PaintThebesLayers(nsDisplayListBuilder* aBuilder);
   virtual PRBool ComputeVisibility(nsDisplayListBuilder* aBuilder,
                                    nsRegion* aVisibleRegion,
                                    nsRegion* aVisibleRegionBeforeMove);  
@@ -1392,12 +1513,7 @@ public:
   NS_DISPLAY_DECL_NAME("Opacity")
 
 private:
-  
-
-
-
-
-  PRPackedBool mNeedAlpha;
+  nsTArray<nsDisplayList::LayerItems> mChildLayers;
 };
 
 
