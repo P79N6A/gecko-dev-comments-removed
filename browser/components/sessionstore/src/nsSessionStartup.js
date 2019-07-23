@@ -101,39 +101,40 @@ SessionStartup.prototype = {
     
     var dirService = Cc["@mozilla.org/file/directory_service;1"].
                      getService(Ci.nsIProperties);
-    this._sessionFile = dirService.get("ProfD", Ci.nsILocalFile);
-    this._sessionFile.append("sessionstore.js");
+    let sessionFile = dirService.get("ProfD", Ci.nsILocalFile);
+    sessionFile.append("sessionstore.js");
+    
+    let doResumeSession = this._prefBranch.getBoolPref("sessionstore.resume_session_once") ||
+                          this._prefBranch.getIntPref("startup.page") == 3;
     
     
     var resumeFromCrash = this._prefBranch.getBoolPref("sessionstore.resume_from_crash");
-    if ((resumeFromCrash || this._doResumeSession()) && this._sessionFile.exists()) {
-      
-      this._iniString = this._readStateFile(this._sessionFile);
-      if (this._iniString) {
-        try {
-          
-          var s = new Components.utils.Sandbox("about:blank");
-          var initialState = Components.utils.evalInSandbox(this._iniString, s);
-
-          
-          this._lastSessionCrashed =
-            initialState.session && initialState.session.state &&
-            initialState.session.state == STATE_RUNNING_STR;
-        
-        }
-        catch (ex) { debug("The session file is invalid: " + ex); } 
-      }
-    }
-
+    if (!resumeFromCrash && !doResumeSession || !sessionFile.exists())
+      return;
     
-    if (this._iniString) {
-      if (this._lastSessionCrashed && this._doRecoverSession())
-        this._sessionType = Ci.nsISessionStartup.RECOVER_SESSION;
-      else if (!this._lastSessionCrashed && this._doResumeSession())
-        this._sessionType = Ci.nsISessionStartup.RESUME_SESSION;
-      else
-        this._iniString = null; 
+    
+    this._iniString = this._readStateFile(sessionFile);
+    if (!this._iniString)
+      return;
+    
+    try {
+      
+      var s = new Components.utils.Sandbox("about:blank");
+      var initialState = Components.utils.evalInSandbox(this._iniString, s);
     }
+    catch (ex) { debug("The session file is invalid: " + ex); } 
+    
+    let lastSessionCrashed =
+      initialState && initialState.session && initialState.session.state &&
+      initialState.session.state == STATE_RUNNING_STR;
+    
+    
+    if (lastSessionCrashed && resumeFromCrash && this._doRecoverSession())
+      this._sessionType = Ci.nsISessionStartup.RECOVER_SESSION;
+    else if (!lastSessionCrashed && doResumeSession)
+      this._sessionType = Ci.nsISessionStartup.RESUME_SESSION;
+    else
+      this._iniString = null; 
 
     if (this._sessionType != Ci.nsISessionStartup.NO_SESSION) {
       
@@ -240,21 +241,8 @@ SessionStartup.prototype = {
 
 
 
-  _doResumeSession: function sss_doResumeSession() {
-    return this._prefBranch.getIntPref("startup.page") == 3 || 
-      this._prefBranch.getBoolPref("sessionstore.resume_session_once");
-  },
-
-  
-
-
-
 
   _doRecoverSession: function sss_doRecoverSession() {
-    
-    if (!this._prefBranch.getBoolPref("sessionstore.resume_from_crash"))
-      return false;
-
     
     var recover = true;
 
@@ -360,7 +348,7 @@ SessionStartup.prototype = {
       
       return content.replace(/\r\n?/g, "\n");
     }
-    catch (ex) { } 
+    catch (ex) { Components.utils.reportError(ex); }
     
     return null;
   },
@@ -381,8 +369,5 @@ SessionStartup.prototype = {
 
 };
 
-
-function NSGetModule(aCompMgr, aFileSpec) {
-  return XPCOMUtils.generateModule([SessionStartup]);
-}
-
+function NSGetModule(aCompMgr, aFileSpec)
+  XPCOMUtils.generateModule([SessionStartup]);

@@ -150,9 +150,6 @@ SessionStoreService.prototype = {
   
   _dirtyWindows: {},
 
-  
-  _dirty: false,
-
 
 
   
@@ -196,7 +193,7 @@ SessionStoreService.prototype = {
     this._sessionFileBackup = this._sessionFile.clone();
     this._sessionFile.append("sessionstore.js");
     this._sessionFileBackup.append("sessionstore.bak");
-   
+
     
     var iniString;
     try {
@@ -212,22 +209,21 @@ SessionStoreService.prototype = {
         
         this._initialState = this._safeEval(iniString);
         
-        this._lastSessionCrashed =
+        
+        let lastSessionCrashed =
           this._initialState.session && this._initialState.session.state &&
           this._initialState.session.state == STATE_RUNNING_STR;
+        if (lastSessionCrashed) {
+          try {
+            this._writeFile(this._sessionFileBackup, iniString);
+          }
+          catch (ex) { } 
+        }
         
         
         delete this._initialState.windows[0].hidden;
       }
       catch (ex) { debug("The session file is invalid: " + ex); }
-    }
-    
-    
-    if (this._lastSessionCrashed) {
-      try {
-        this._writeFile(this._sessionFileBackup, iniString);
-      }
-      catch (ex) { } 
     }
 
     
@@ -285,7 +281,6 @@ SessionStoreService.prototype = {
         this._collectWindowData(aWindow);
       });
       this._dirtyWindows = [];
-      this._dirty = false;
       break;
     case "quit-application-granted":
       
@@ -1294,13 +1289,15 @@ SessionStoreService.prototype = {
 
 
 
-  _getCurrentState: function sss_getCurrentState() {
+
+
+  _getCurrentState: function sss_getCurrentState(aUpdateAll) {
     var activeWindow = this._getMostRecentBrowserWindow();
     
     if (this._loadState == STATE_RUNNING) {
       
       this._forEachBrowserWindow(function(aWindow) {
-        if (this._dirty || this._dirtyWindows[aWindow.__SSi] || aWindow == activeWindow) {
+        if (aUpdateAll || this._dirtyWindows[aWindow.__SSi] || aWindow == activeWindow) {
           this._collectWindowData(aWindow);
         }
         else { 
@@ -1308,7 +1305,6 @@ SessionStoreService.prototype = {
         }
       }, this);
       this._dirtyWindows = [];
-      this._dirty = false;
     }
     
     
@@ -1970,8 +1966,7 @@ SessionStoreService.prototype = {
     if (!this._resume_from_crash && this._loadState == STATE_RUNNING)
       return;
     
-    this._dirty = aUpdateAll;
-    var oState = this._getCurrentState();
+    var oState = this._getCurrentState(aUpdateAll);
     oState.session = { state: ((this._loadState == STATE_RUNNING) ? STATE_RUNNING_STR : STATE_STOPPED_STR) };
     
     var stateString = Cc["@mozilla.org/supports-string;1"].
