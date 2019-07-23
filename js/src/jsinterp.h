@@ -49,6 +49,11 @@
 
 JS_BEGIN_EXTERN_C
 
+typedef struct JSFrameRegs {
+    jsbytecode      *pc;            
+    jsval           *sp;            
+} JSFrameRegs;
+
 
 
 
@@ -60,8 +65,7 @@ JS_BEGIN_EXTERN_C
 
 
 struct JSStackFrame {
-    jsval           *sp;            
-    jsbytecode      *pc;            
+    JSFrameRegs     *regs;
     jsval           *spbase;        
     JSObject        *callobj;       
     JSObject        *argsobj;       
@@ -91,7 +95,7 @@ struct JSStackFrame {
 
 typedef struct JSInlineFrame {
     JSStackFrame    frame;          
-    jsval           *rvp;           
+    JSFrameRegs     callerRegs;     
     void            *mark;          
     void            *hookData;      
     JSVersion       callerVersion;  
