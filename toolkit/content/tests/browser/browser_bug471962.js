@@ -132,52 +132,93 @@ function test()
 
   
 
-  var downloadManager = Cc["@mozilla.org/download-manager;1"].
-                        getService(Ci.nsIDownloadManager);
+  var originalTransferFactory;
+  var mockTransferFactory;
+  var downloadIsSuccessful = true;
 
-  var downloadListener = {
-    QueryInterface: XPCOMUtils.generateQI([Ci.nsIDownloadProgressListener]),
-    document: null,
-    onDownloadStateChange: function(aState, aDownload) {
-      switch (aDownload.state) {
+  const kDownloadCID = "{e3fa9d0a-1dd1-11b2-bdef-8c720b597445}";
+  const kTransferContractID = "@mozilla.org/transfer;1";
+  const kDownloadClassName = "Download";
+
+  function registerMockTransferFactory() {
+    
+    
+    var mockTransfer = {
+      QueryInterface: XPCOMUtils.generateQI([Ci.nsIWebProgressListener,
+                                             Ci.nsIWebProgressListener2,
+                                             Ci.nsITransfer]),
+
+      
+
+      onStateChange: function(aWebProgress, aRequest, aStateFlags, aStatus) {
         
-        case Ci.nsIDownloadManager.DOWNLOAD_FINISHED:
-          onDownloadFinished(true);
-          break;
+        if (aStatus != Cr.NS_OK)
+          downloadIsSuccessful = false;
 
         
-        case Ci.nsIDownloadManager.DOWNLOAD_DIRTY:
-        case Ci.nsIDownloadManager.DOWNLOAD_FAILED:
-        case Ci.nsIDownloadManager.DOWNLOAD_CANCELED:
-          onDownloadFinished(false);
-          break;
+        if ((aStateFlags & Ci.nsIWebProgressListener.STATE_STOP) &&
+            (aStateFlags & Ci.nsIWebProgressListener.STATE_IS_NETWORK))
+          
+          onDownloadFinished(downloadIsSuccessful);
+      },
+      onProgressChange: function(aWebProgress, aRequest, aCurSelfProgress,
+       aMaxSelfProgress, aCurTotalProgress, aMaxTotalProgress) { },
+      onLocationChange: function(aWebProgress, aRequest, aLocation) { },
+      onStatusChange: function(aWebProgress, aRequest, aStatus, aMessage) {
+        
+        if (aStatus != Cr.NS_OK)
+          downloadIsSuccessful = false;
+      },
+      onSecurityChange: function(aWebProgress, aRequest, aState) { },
+
+      
+
+      onProgressChange64: function(aWebProgress, aRequest, aCurSelfProgress,
+       aMaxSelfProgress, aCurTotalProgress, aMaxTotalProgress) { },
+      onRefreshAttempted: function(aWebProgress, aRefreshURI, aMillis,
+       aSameURI) { },
+
+      
+
+      init: function(aSource, aTarget, aDisplayName, aMIMEInfo, aStartTime,
+       aTempFile, aCancelable) { }
+    };
+
+    mockTransferFactory = {
+      createInstance: function(aOuter, aIid) {
+        if (aOuter != null)
+          throw Cr.NS_ERROR_NO_AGGREGATION;
+        return mockTransfer.QueryInterface(aIid);
       }
-    },
-    onStateChange: function(aWebProgress, aRequest, aState, aStatus,
-     aDownload) { },
-    onProgressChange: function(aWebProgress, aRequest, aCurSelfProgress,
-     aMaxSelfProgress, aCurTotalProgress, aMaxTotalProgress, aDownload) { },
-    onSecurityChange: function(aWebProgress, aRequest, aState) { }
+    };
+
+    
+    originalTransferFactory = Cm.getClassObject(Cc[kTransferContractID],
+                                                Ci.nsIFactory);
+
+    
+    componentRegistrar.registerFactory(
+      Components.ID(kDownloadCID),
+      "Mock Transfer Implementation",
+      kTransferContractID,
+      mockTransferFactory
+    );
   }
 
-  
-
-  var mainPrefBranch = Cc["@mozilla.org/preferences-service;1"].
-                       getService(Ci.nsIPrefBranch);
-
-  const kShowWhenStartingPref = "browser.download.manager.showWhenStarting";
-  const kRetentionPref = "browser.download.manager.retention";
-
-  function tweakDownloadManagerPrefs() {
+  function unregisterMockTransferFactory() {
     
-    mainPrefBranch.setBoolPref(kShowWhenStartingPref, false);
-    
-    mainPrefBranch.setIntPref(kRetentionPref, 0);
-  }
+    componentRegistrar.unregisterFactory(
+      Components.ID(kDownloadCID),
+      mockTransferFactory
+    );
 
-  function restoreDownloadManagerPrefs() {
-    mainPrefBranch.clearUserPref(kShowWhenStartingPref);
-    mainPrefBranch.clearUserPref(kRetentionPref);
+    
+    componentRegistrar.registerFactory(
+      Components.ID(kDownloadCID),
+      kDownloadClassName,
+      kTransferContractID,
+      originalTransferFactory
+    );
   }
 
   
@@ -230,28 +271,22 @@ function test()
     destFile.append("testsave_bug471962.html");
 
     
-    downloadManager.addListener(downloadListener);
-
-    
-    tweakDownloadManagerPrefs();
-
     
     
     
     registerMockFilePickerFactory();
+    registerMockTransferFactory();
     var docToSave = innerFrame.contentDocument;
     
     internalSave(docToSave.location.href, docToSave, null, null,
                  docToSave.contentType, false, null, null,
                  docToSave.referrer ? makeURI(docToSave.referrer) : null,
                  false, null);
+    unregisterMockTransferFactory();
     unregisterMockFilePickerFactory();
   }
 
   function onDownloadFinished(aSuccess) {
-    downloadManager.removeListener(downloadListener);
-    restoreDownloadManagerPrefs();
-
     
     if (!aSuccess) {
       ok(false, "Unexpected failure, the inner frame couldn't be saved!");
