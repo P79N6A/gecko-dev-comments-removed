@@ -57,7 +57,6 @@ public:
 struct PRLibrary;
 
 struct nsPluginInfo {
-	PRUint32 fPluginInfoSize;	
 	char* fName;				
 	char* fDescription;			
 	PRUint32 fVariantCount;

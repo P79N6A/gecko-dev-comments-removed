@@ -4867,13 +4867,11 @@ nsresult nsPluginHostImpl::ScanPluginsDirectory(nsIFile * pluginsDir,
 #endif
 
       
-      nsPluginInfo info = { sizeof(info) };
+      nsPluginInfo info;
+      memset(&info, 0, sizeof(info));
       nsresult res = pluginFile.GetPluginInfo(info);
-      if (NS_FAILED(res))
-        continue;
-
       
-      if (!info.fMimeTypeArray) {
+      if (NS_FAILED(res) || !info.fMimeTypeArray) {
         pluginFile.FreePluginInfo(info);
         continue;
       }

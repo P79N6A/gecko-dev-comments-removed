@@ -375,10 +375,7 @@ private:
 nsresult nsPluginFile::GetPluginInfo(nsPluginInfo& info)
 {
   
-  memset(&info.fName, 0, sizeof(info) - sizeof(PRUint32));
-
-  if (info.fPluginInfoSize < sizeof(nsPluginInfo))
-    return NS_ERROR_FAILURE;
+  memset(&info, 0, sizeof(info));
 
   
 
@@ -493,9 +490,6 @@ nsresult nsPluginFile::GetPluginInfo(nsPluginInfo& info)
   }
 
   
-  
-
-  
   int variantCount = info.fVariantCount;
   info.fMimeTypeArray = static_cast<char**>(NS_Alloc(variantCount * sizeof(char*)));
   if (!info.fMimeTypeArray)
@@ -529,22 +523,20 @@ nsresult nsPluginFile::GetPluginInfo(nsPluginInfo& info)
 
 nsresult nsPluginFile::FreePluginInfo(nsPluginInfo& info)
 {
-  if (info.fPluginInfoSize <= sizeof(nsPluginInfo)) {
-    NS_Free(info.fName);
-    NS_Free(info.fDescription);
-    int variantCount = info.fVariantCount;
-    for (int i = 0; i < variantCount; i++) {
-      NS_Free(info.fMimeTypeArray[i]);
-      NS_Free(info.fExtensionArray[i]);
-      NS_Free(info.fMimeDescriptionArray[i]);
-    }
-    NS_Free(info.fMimeTypeArray);
-    NS_Free(info.fMimeDescriptionArray);
-    NS_Free(info.fExtensionArray);
-    NS_Free(info.fFileName);
-    NS_Free(info.fFullPath);
-    NS_Free(info.fVersion);
+  NS_Free(info.fName);
+  NS_Free(info.fDescription);
+  int variantCount = info.fVariantCount;
+  for (int i = 0; i < variantCount; i++) {
+    NS_Free(info.fMimeTypeArray[i]);
+    NS_Free(info.fExtensionArray[i]);
+    NS_Free(info.fMimeDescriptionArray[i]);
   }
+  NS_Free(info.fMimeTypeArray);
+  NS_Free(info.fMimeDescriptionArray);
+  NS_Free(info.fExtensionArray);
+  NS_Free(info.fFileName);
+  NS_Free(info.fFullPath);
+  NS_Free(info.fVersion);
 
   return NS_OK;
 }
