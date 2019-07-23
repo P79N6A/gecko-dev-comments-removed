@@ -36,8 +36,6 @@
 
 
 
-Components.utils.import("resource://gre/modules/utils.js");
-
 const DEFAULT_INDEX = PlacesUtils.bookmarks.DEFAULT_INDEX;
 
 function run_test() {

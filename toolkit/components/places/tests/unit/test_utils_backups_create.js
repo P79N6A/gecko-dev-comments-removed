@@ -41,8 +41,6 @@
 
 
 
-Components.utils.import("resource://gre/modules/utils.js");
-
 const PREFIX = "bookmarks-";
 
 const LOCALIZED_PREFIX = "segnalibri-";

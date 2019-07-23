@@ -37,8 +37,6 @@
 
 
 
-Components.utils.import("resource://gre/modules/utils.js");
-
 const EXCLUDE_FROM_BACKUP_ANNO = "places/excludeFromBackup";
 
 const PLACES_ROOTS_COUNT  = 4;

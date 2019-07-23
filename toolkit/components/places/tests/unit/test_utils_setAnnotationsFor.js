@@ -41,8 +41,6 @@
 
 
 
-Components.utils.import("resource://gre/modules/utils.js");
-
 var hs = PlacesUtils.history;
 var bs = PlacesUtils.bookmarks;
 var as = PlacesUtils.annotations;

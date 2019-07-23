@@ -37,8 +37,6 @@
 
 
 
-Components.utils.import("resource://gre/modules/utils.js");
-
 
 
 

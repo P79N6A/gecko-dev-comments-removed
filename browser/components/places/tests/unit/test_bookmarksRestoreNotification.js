@@ -353,9 +353,6 @@ var successAndFailedObserver = {
 
 var currTestIndex = -1;
 
-
-Components.utils.import("resource://gre/modules/utils.js");
-
 var bmsvc = Cc["@mozilla.org/browser/nav-bookmarks-service;1"].
             getService(Ci.nsINavBookmarksService);
 

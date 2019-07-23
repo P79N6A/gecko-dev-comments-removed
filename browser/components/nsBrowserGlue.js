@@ -764,7 +764,7 @@ BrowserGlue.prototype = {
     
     if (importBookmarks && !restoreDefaultBookmarks && !importBookmarksHTML) {
       
-      Cu.import("resource://gre/modules/utils.js");
+      Cu.import("resource://gre/modules/PlacesUtils.jsm");
       var bookmarksBackupFile = PlacesUtils.backups.getMostRecent("json");
       if (bookmarksBackupFile) {
         
@@ -894,7 +894,7 @@ BrowserGlue.prototype = {
 
 
   _backupBookmarks: function BG__backupBookmarks() {
-    Cu.import("resource://gre/modules/utils.js");
+    Cu.import("resource://gre/modules/PlacesUtils.jsm");
 
     let lastBackupFile = PlacesUtils.backups.getMostRecent();
 
