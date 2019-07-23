@@ -36,37 +36,27 @@
 
 
 
+
 #include "nsCOMPtr.h"
 #include "nsReadableUtils.h"
 #include "nsUnicharUtils.h"
 #include "nsIDOMHTMLAnchorElement.h"
 #include "nsIDOMNSHTMLAnchorElement2.h"
-#include "nsIDOMEventTarget.h"
-#include "nsIHTMLDocument.h"
 #include "nsGenericHTMLElement.h"
 #include "nsILink.h"
 #include "nsGkAtoms.h"
-#include "nsStyleConsts.h"
+#include "nsIPresShell.h"
+#include "nsIDocument.h"
 #include "nsPresContext.h"
 #include "nsIEventStateManager.h"
-#include "nsIURL.h"
-#include "nsIEventStateManager.h"
-#include "nsIDOMEvent.h"
-#include "nsNetUtil.h"
-#include "nsCRT.h"
 
 
 #include "nsIContentIterator.h"
 #include "nsIDOMText.h"
-#include "nsIEnumerator.h"
-
-#include "nsCOMPtr.h"
-#include "nsIPresShell.h"
-#include "nsIDocument.h"
 
 #include "nsHTMLDNSPrefetch.h"
 
-nsresult NS_NewContentIterator(nsIContentIterator** aInstancePtrResult);
+nsresult NS_NewPreContentIterator(nsIContentIterator** aInstancePtrResult);
 
 class nsHTMLAnchorElement : public nsGenericHTMLElement,
                             public nsIDOMHTMLAnchorElement,
@@ -378,7 +368,7 @@ nsHTMLAnchorElement::GetText(nsAString& aText)
   
   
   nsCOMPtr<nsIContentIterator> iter;
-  nsresult rv = NS_NewContentIterator(getter_AddRefs(iter));
+  nsresult rv = NS_NewPreContentIterator(getter_AddRefs(iter));
   NS_ENSURE_SUCCESS(rv, rv);
 
   
@@ -386,11 +376,9 @@ nsHTMLAnchorElement::GetText(nsAString& aText)
 
   
   
-  
   iter->Last();
-  iter->Prev();
 
-  while(!iter->IsDone()) {
+  while (!iter->IsDone()) {
     nsCOMPtr<nsIDOMText> textNode(do_QueryInterface(iter->GetCurrentNode()));
     if(textNode) {
       
