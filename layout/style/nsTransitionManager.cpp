@@ -383,13 +383,13 @@ nsTransitionManager::StyleContextChanged(nsIContent *aElement,
   
   
   const nsStyleDisplay *disp = aNewStyleContext->GetStyleDisplay();
-  const nsStyleDisplay *oldDisp = aOldStyleContext->GetStyleDisplay();
-  if (disp->mTransitionPropertyCount == 1 &&
-      oldDisp->mTransitionPropertyCount == 1 &&
+  nsCSSPseudoElements::Type pseudoType = aNewStyleContext->GetPseudoType();
+  ElementTransitions *et =
+      GetElementTransitions(aElement, pseudoType, PR_FALSE);
+  if (!et &&
+      disp->mTransitionPropertyCount == 1 &&
       disp->mTransitions[0].GetDelay() == 0.0f &&
-      disp->mTransitions[0].GetDuration() == 0.0f &&
-      oldDisp->mTransitions[0].GetProperty() ==
-        disp->mTransitions[0].GetProperty()) {
+      disp->mTransitions[0].GetDuration() == 0.0f) {
     return nsnull;
   }      
 
@@ -398,7 +398,6 @@ nsTransitionManager::StyleContextChanged(nsIContent *aElement,
     return nsnull;
   }
   
-  nsCSSPseudoElements::Type pseudoType = aNewStyleContext->GetPseudoType();
   if (pseudoType != nsCSSPseudoElements::ePseudo_NotPseudoElement &&
       pseudoType != nsCSSPseudoElements::ePseudo_before &&
       pseudoType != nsCSSPseudoElements::ePseudo_after) {
@@ -418,8 +417,6 @@ nsTransitionManager::StyleContextChanged(nsIContent *aElement,
   
   PRBool startedAny = PR_FALSE;
   nsCSSPropertySet whichStarted;
-  ElementTransitions *et =
-    GetElementTransitions(aElement, pseudoType, PR_FALSE);
   for (PRUint32 i = disp->mTransitionPropertyCount; i-- != 0; ) {
     const nsTransition& t = disp->mTransitions[i];
     
@@ -457,39 +454,54 @@ nsTransitionManager::StyleContextChanged(nsIContent *aElement,
 
   
   
-  if (et && disp->mTransitions[0].GetProperty() !=
-            eCSSPropertyExtra_all_properties) {
+  
+  
+  
+  if (et) {
+    PRBool checkProperties =
+      disp->mTransitions[0].GetProperty() != eCSSPropertyExtra_all_properties;
     nsCSSPropertySet allTransitionProperties;
-    for (PRUint32 i = disp->mTransitionPropertyCount; i-- != 0; ) {
-      const nsTransition& t = disp->mTransitions[i];
-      
-      
-      nsCSSProperty property = t.GetProperty();
-      if (property == eCSSPropertyExtra_no_properties ||
-          property == eCSSProperty_UNKNOWN) {
+    if (checkProperties) {
+      for (PRUint32 i = disp->mTransitionPropertyCount; i-- != 0; ) {
+        const nsTransition& t = disp->mTransitions[i];
         
-      } else if (property == eCSSPropertyExtra_all_properties) {
-        for (nsCSSProperty p = nsCSSProperty(0); 
-             p < eCSSProperty_COUNT_no_shorthands;
-             p = nsCSSProperty(p + 1)) {
-          allTransitionProperties.AddProperty(p);
+        
+        nsCSSProperty property = t.GetProperty();
+        if (property == eCSSPropertyExtra_no_properties ||
+            property == eCSSProperty_UNKNOWN) {
+          
+        } else if (property == eCSSPropertyExtra_all_properties) {
+          for (nsCSSProperty p = nsCSSProperty(0); 
+               p < eCSSProperty_COUNT_no_shorthands;
+               p = nsCSSProperty(p + 1)) {
+            allTransitionProperties.AddProperty(p);
+          }
+        } else if (nsCSSProps::IsShorthand(property)) {
+          CSSPROPS_FOR_SHORTHAND_SUBPROPERTIES(subprop, property) {
+            allTransitionProperties.AddProperty(*subprop);
+          }
+        } else {
+          allTransitionProperties.AddProperty(property);
         }
-      } else if (nsCSSProps::IsShorthand(property)) {
-        CSSPROPS_FOR_SHORTHAND_SUBPROPERTIES(subprop, property) {
-          allTransitionProperties.AddProperty(*subprop);
-        }
-      } else {
-        allTransitionProperties.AddProperty(property);
       }
     }
 
     nsTArray<ElementPropertyTransition> &pts = et->mPropertyTransitions;
     PRUint32 i = pts.Length();
     NS_ABORT_IF_FALSE(i != 0, "empty transitions list?");
+    nsStyleAnimation::Value currentValue;
     do {
       --i;
       ElementPropertyTransition &pt = pts[i];
-      if (!allTransitionProperties.HasProperty(pt.mProperty)) {
+          
+      if ((checkProperties &&
+           !allTransitionProperties.HasProperty(pt.mProperty)) ||
+          
+          
+          !TransExtractComputedValue(pt.mProperty, aNewStyleContext,
+                                     currentValue) ||
+          currentValue != pt.mEndValue) {
+        
         pts.RemoveElementAt(i);
       }
     } while (i != 0);
