@@ -333,10 +333,6 @@ class nsOggDecoder : public nsMediaDecoder
 
   
   
-  void NetworkError();
-
-  
-  
   virtual PRBool IsSeeking() const;
 
   
