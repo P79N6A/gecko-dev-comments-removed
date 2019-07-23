@@ -186,12 +186,12 @@ isStaticAtom(nsIAtom* atom)
   
   
   
-  return atom->AddRef() == 2 &
-         atom->AddRef() == 2 &
-         atom->AddRef() == 2 &
-         atom->Release() == 1 &
-         atom->Release() == 1 &
-         atom->Release() == 1;
+  return (atom->AddRef() == 2) &
+         (atom->AddRef() == 2) &
+         (atom->AddRef() == 2) &
+         (atom->Release() == 1) &
+         (atom->Release() == 1) &
+         (atom->Release() == 1);
 }
 
 PRBool
