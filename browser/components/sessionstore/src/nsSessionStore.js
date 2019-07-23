@@ -452,6 +452,10 @@ SessionStoreService.prototype = {
       return;
     }
     
+    if (this.windowToFocus && this.windowToFocus == aWindow) {
+      delete this.windowToFocus;
+    }
+    
     var tabbrowser = aWindow.getBrowser();
     var tabpanels = tabbrowser.mPanelContainer;
 
@@ -1176,17 +1180,15 @@ SessionStoreService.prototype = {
     this._updateCookies(total);
     
     
-    var ix = activeWindow ? windows.indexOf(activeWindow.__SSi || "") : -1;
-    if (ix > 0) {
-      total.unshift(total.splice(ix, 1)[0]);
-    }
-
-    
     if (total.length == 0 && this._lastWindowClosed) {
       total.push(this._lastWindowClosed);
     }
-    
-    return { windows: total };
+    if (activeWindow) {
+      this.activeWindowSSiCache = activeWindow.__SSi || "";
+    }
+    ix = this.activeWindowSSiCache ? windows.indexOf(this.activeWindowSSiCache) : -1;
+
+    return { windows: total, selectedWindow: ix + 1 };
   },
 
   
@@ -1227,7 +1229,12 @@ SessionStoreService.prototype = {
 
 
 
-  restoreWindow: function sss_restoreWindow(aWindow, aState, aOverwriteTabs) {
+
+
+  restoreWindow: function sss_restoreWindow(aWindow, aState, aOverwriteTabs, aFollowUp) {
+    if (!aFollowUp) {
+      this.windowToFocus = aWindow;
+    }
     
     if (aWindow && (!aWindow.__SSi || !this._windows[aWindow.__SSi]))
       this.onLoad(aWindow);
@@ -1244,15 +1251,20 @@ SessionStoreService.prototype = {
     }
     
     var winData;
+    if (!aState.selectedWindow) {
+      aState.selectedWindow = 0;
+    }
     
     
     for (var w = 1; w < root.windows.length; w++) {
       winData = root.windows[w];
       if (winData && winData.tabs && winData.tabs[0]) {
-        this._openWindowWithState({ windows: [winData], opener: aWindow });
+        var window = this._openWindowWithState({ windows: [winData] });
+        if (w == aState.selectedWindow - 1) {
+          this.windowToFocus = window;
+        }
       }
     }
-    
     winData = root.windows[0];
     if (!winData.tabs) {
       winData.tabs = [];
@@ -1276,7 +1288,7 @@ SessionStoreService.prototype = {
     }
     
     if (aOverwriteTabs) {
-      this.restoreWindowFeatures(aWindow, winData, root.opener || null);
+      this.restoreWindowFeatures(aWindow, winData);
     }
     if (winData.cookies) {
       this.restoreCookies(winData.cookies);
@@ -1591,9 +1603,7 @@ SessionStoreService.prototype = {
 
 
 
-
-
-  restoreWindowFeatures: function sss_restoreWindowFeatures(aWindow, aWinData, aOpener) {
+  restoreWindowFeatures: function sss_restoreWindowFeatures(aWindow, aWinData) {
     var hidden = (aWinData.hidden)?aWinData.hidden.split(","):[];
     WINDOW_HIDEABLE_FEATURES.forEach(function(aItem) {
       aWindow[aItem].visible = hidden.indexOf(aItem) == -1;
@@ -1601,7 +1611,7 @@ SessionStoreService.prototype = {
     
     var _this = this;
     aWindow.setTimeout(function() {
-      _this.restoreDimensions_proxy.apply(_this, [aWindow, aOpener, aWinData.width || 0, 
+      _this.restoreDimensions.apply(_this, [aWindow, aWinData.width || 0, 
         aWinData.height || 0, "screenX" in aWinData ? aWinData.screenX : NaN,
         "screenY" in aWinData ? aWinData.screenY : NaN,
         aWinData.sizemode || "", aWinData.sidebar || ""]);
@@ -1623,9 +1633,7 @@ SessionStoreService.prototype = {
 
 
 
-
-
-  restoreDimensions_proxy: function sss_restoreDimensions_proxy(aWindow, aOpener, aWidth, aHeight, aLeft, aTop, aSizeMode, aSidebar) {
+  restoreDimensions: function sss_restoreDimensions(aWindow, aWidth, aHeight, aLeft, aTop, aSizeMode, aSidebar) {
     var win = aWindow;
     var _this = this;
     function win_(aName) { return _this._getWindowDimension(win, aName); }
@@ -1649,8 +1657,8 @@ SessionStoreService.prototype = {
     }
     
     
-    if (aOpener) {
-      aOpener.focus();
+    if (this.windowToFocus) {
+      this.windowToFocus.focus();
     }
   },
 
@@ -1818,6 +1826,8 @@ SessionStoreService.prototype = {
       _this.restoreWindow(aEvent.currentTarget, aEvent.currentTarget.__SS_state, true, true);
       delete aEvent.currentTarget.__SS_state;
     }, true);
+    
+    return window;
   },
 
   
