@@ -635,7 +635,7 @@ gfxWindowsFont::ComputeMetrics()
     
     
     
-    if (GetTextExtentPoint32(dc, "0", 1, &size))
+    if (GetExtentPoint32(dc, "0", 1, &size))
         mMetrics->zeroOrAveCharWidth = ROUND(size.cx);
     else
         mMetrics->zeroOrAveCharWidth = mMetrics->aveCharWidth;
