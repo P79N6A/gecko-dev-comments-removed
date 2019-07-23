@@ -589,6 +589,10 @@ protected:
   
   
   nsresult CreateLookupIndexes();
+
+  nsresult PerformVacuumIfIdle();
+  nsCOMPtr<nsITimer> mVacuumTimer;
+  static void VacuumTimerCallback(nsITimer* aTimer, void* aClosure);
 };
 
 
