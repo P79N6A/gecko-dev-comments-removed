@@ -306,15 +306,6 @@ public:
   }
 
   
-  void SetInvalidateTextRuns(PRBool aOn) {
-    NS_ASSERTION((PR_FALSE==aOn || PR_TRUE==aOn), "somebody is playing fast and loose with bools and bits!");
-    mFlags.mInvalidateTextRuns = aOn;
-  }
-  PRBool GetInvalidateTextRuns() const {
-    return mFlags.mInvalidateTextRuns;
-  }
-
-  
   void DisableResizeReflowOptimization() {
     mFlags.mResizeReflowOptimizationDisabled = PR_TRUE;
   }
@@ -496,7 +487,6 @@ public:
     PRUint32 mBlock : 1;
     PRUint32 mImpactedByFloat : 1;
     PRUint32 mLineWrapped: 1;
-    PRUint32 mInvalidateTextRuns : 1;
     PRUint32 mResizeReflowOptimizationDisabled: 1;  
     PRUint32 mEmptyCacheValid: 1;
     PRUint32 mEmptyCacheState: 1;
