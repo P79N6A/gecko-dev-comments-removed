@@ -38,6 +38,7 @@
 
 
 
+
 #include "nsAutoPtr.h"
 #include "nsCOMPtr.h"
 #include "mozIStorageService.h"
@@ -131,7 +132,7 @@ static const PRLogModuleInfo *gUrlClassifierDbServiceLog = nsnull;
 
 
 
-#define IMPLEMENTATION_VERSION 6
+#define IMPLEMENTATION_VERSION 7
 
 #define MAX_HOST_COMPONENTS 5
 #define MAX_PATH_COMPONENTS 4
@@ -2639,10 +2640,8 @@ nsUrlClassifierDBServiceWorker::SubChunk(PRUint32 tableId,
 
   LOG(("Subbing %d entries in chunk %d in table %d", entries.Length(), chunkNum, tableId));
 
-  nsAutoTArray<nsUrlClassifierEntry, 5> existingEntries;
-  nsUrlClassifierDomainHash lastKey;
-
   for (PRUint32 i = 0; i < entries.Length(); i++) {
+    nsAutoTArray<nsUrlClassifierEntry, 5> existingEntries;
     nsUrlClassifierEntry& thisEntry = entries[i];
 
     HandlePendingLookups();
@@ -2651,15 +2650,10 @@ nsUrlClassifierDBServiceWorker::SubChunk(PRUint32 tableId,
     PRBool haveAdds = (mCachedAddChunks.BinaryIndexOf(thisEntry.mAddChunkId) !=
                        mCachedAddChunks.NoIndex);
 
-    if (i == 0 || lastKey != thisEntry.mKey) {
-      existingEntries.Clear();
-      lastKey = thisEntry.mKey;
-
-      if (haveAdds) {
-        rv = mMainStore.ReadAddEntries(thisEntry.mKey, thisEntry.mTableId,
-                                       thisEntry.mAddChunkId, existingEntries);
-        NS_ENSURE_SUCCESS(rv, rv);
-      }
+    if (haveAdds) {
+      rv = mMainStore.ReadAddEntries(thisEntry.mKey, thisEntry.mTableId,
+                                     thisEntry.mAddChunkId, existingEntries);
+      NS_ENSURE_SUCCESS(rv, rv);
     }
 
     for (PRUint32 j = 0; j < existingEntries.Length(); j++) {
