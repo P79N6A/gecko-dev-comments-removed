@@ -53,6 +53,12 @@
 
 #include "nsNativeCharsetUtils.h"
 
+#ifndef SND_PURGE
+
+
+#define SND_PURGE 0
+#endif
+
 NS_IMPL_ISUPPORTS2(nsSound, nsISound, nsIStreamLoaderObserver)
 
 
@@ -69,7 +75,7 @@ nsSound::~nsSound()
 void nsSound::PurgeLastSound() {
   if (mLastSound) {
     
-    ::PlaySound(nsnull, nsnull, SND_PURGE); 
+    ::PlaySound(nsnull, nsnull, SND_PURGE);
 
     
     free(mLastSound);
@@ -154,7 +160,7 @@ NS_IMETHODIMP nsSound::Init()
   
   
   
-  ::PlaySound(nsnull, nsnull, SND_PURGE); 
+  ::PlaySound(nsnull, nsnull, SND_PURGE);
 
   return NS_OK;
 }
