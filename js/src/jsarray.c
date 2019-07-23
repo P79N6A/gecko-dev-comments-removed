@@ -848,7 +848,7 @@ slowarray_enumerate(JSContext *cx, JSObject *obj, JSIterateOp enum_op,
                     jsval *statep, jsid *idp)
 {
     
-    if (JSVAL_IS_BOOLEAN(*statep)) {
+    if (enum_op != JSENUMERATE_INIT && JSVAL_IS_BOOLEAN(*statep)) {
         jsid lastIndex = INT_TO_JSID(JSVAL_TO_BOOLEAN(*statep));
 
         
