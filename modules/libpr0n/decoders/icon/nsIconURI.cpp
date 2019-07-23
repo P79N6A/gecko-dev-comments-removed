@@ -305,15 +305,7 @@ nsMozIconURI::SetSpec(const nsACString &aSpec)
         rv = ioService->NewURI(mDummyFilePath, nsnull, nsnull, getter_AddRefs(tmpURI));
         if (NS_SUCCEEDED(rv) && tmpURI)
         {
-          nsCAutoString filespec;
-          tmpURI->GetSpec(filespec);
-          if ( strncmp("file:////", filespec.get(), 9) &&
-               strncmp("file:///%", filespec.get(), 9) )
-          {
-            
-            
-            mFileIcon = tmpURI;
-          }
+          mFileIcon = tmpURI;
         }
       }
       if (!sizeString.IsEmpty())
