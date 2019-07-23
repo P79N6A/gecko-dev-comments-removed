@@ -44,9 +44,10 @@
 #include "nsHyperTextAccessible.h"
 #include "CAccessibleText.h"
 #include "CAccessibleEditableText.h"
+#include "CAccessibleHyperText.h"
 
 class nsHyperTextAccessibleWrap : public nsHyperTextAccessible,
-                                  public CAccessibleText,
+                                  public CAccessibleHypertext,
                                   public CAccessibleEditableText
 {
 public:
