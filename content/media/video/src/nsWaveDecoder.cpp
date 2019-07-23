@@ -606,7 +606,13 @@ nsWaveStateMachine::Run()
         monitor.Exit();
         mAudioStream->Drain();
         monitor.Enter();
+        mTimeOffset = mAudioStream->GetTime();
       }
+
+      
+      
+      
+      CloseAudioStream();
 
       if (mState != STATE_SHUTDOWN) {
         nsCOMPtr<nsIRunnable> event =
