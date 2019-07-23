@@ -153,7 +153,9 @@ class nsComboButtonListener: public nsIDOMMouseListener
   nsComboboxControlFrame* mComboBox;
 };
 
-NS_IMPL_ISUPPORTS1(nsComboButtonListener, nsIDOMMouseListener)
+NS_IMPL_ISUPPORTS2(nsComboButtonListener,
+                   nsIDOMMouseListener,
+                   nsIDOMEventListener)
 
 
 nsComboboxControlFrame * nsComboboxControlFrame::mFocused = nsnull;
