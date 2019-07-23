@@ -66,10 +66,10 @@ typedef enum JSStmtType {
     STMT_LABEL,                 
     STMT_IF,                    
     STMT_ELSE,                  
-    STMT_SWITCH,                
     STMT_BODY,                  
 
     STMT_BLOCK,                 
+    STMT_SWITCH,                
     STMT_WITH,                  
     STMT_CATCH,                 
     STMT_TRY,                   
@@ -82,6 +82,8 @@ typedef enum JSStmtType {
 } JSStmtType;
 
 #define STMT_TYPE_IN_RANGE(t,b,e) ((uint)((t) - (b)) <= (uintN)((e) - (b)))
+
+
 
 
 
