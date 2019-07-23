@@ -192,11 +192,22 @@ NS_IMPL_ISUPPORTS_INHERITED1(nsPluginDocument, nsMediaDocument,
 void
 nsPluginDocument::SetScriptGlobalObject(nsIScriptGlobalObject* aScriptGlobalObject)
 {
-  if (!aScriptGlobalObject) {
+  
+  
+  nsMediaDocument::SetScriptGlobalObject(aScriptGlobalObject);
+
+  if (aScriptGlobalObject) {
+    if (!mPluginContent) {
+      
+#ifdef DEBUG
+      nsresult rv =
+#endif
+        CreateSyntheticPluginDocument();
+      NS_ASSERTION(NS_SUCCEEDED(rv), "failed to create synthetic document");
+    }
+  } else {
     mStreamListener = nsnull;
   }
-
-  nsMediaDocument::SetScriptGlobalObject(aScriptGlobalObject);
 }
 
 
@@ -218,6 +229,17 @@ nsPluginDocument::StartDocumentLoad(const char*         aCommand,
                                     PRBool              aReset,
                                     nsIContentSink*     aSink)
 {
+  
+  
+  nsCOMPtr<nsIDocShellTreeItem> dsti (do_QueryInterface(aContainer));
+  if (dsti) {
+    PRBool isMsgPane = PR_FALSE;
+    dsti->NameEquals(NS_LITERAL_STRING("messagepane").get(), &isMsgPane);
+    if (isMsgPane) {
+      return NS_ERROR_FAILURE;
+    }
+  }
+
   nsresult rv =
     nsMediaDocument::StartDocumentLoad(aCommand, aChannel, aLoadGroup,
                                        aContainer, aDocListener, aReset,
@@ -227,12 +249,6 @@ nsPluginDocument::StartDocumentLoad(const char*         aCommand,
   }
 
   rv = aChannel->GetContentType(mMimeType);
-  if (NS_FAILED(rv)) {
-    return rv;
-  }
-
-  
-  rv = CreateSyntheticPluginDocument();
   if (NS_FAILED(rv)) {
     return rv;
   }
@@ -250,16 +266,8 @@ nsPluginDocument::StartDocumentLoad(const char*         aCommand,
 nsresult
 nsPluginDocument::CreateSyntheticPluginDocument()
 {
-  
-  
-  nsCOMPtr<nsIDocShellTreeItem> dsti (do_QueryReferent(mDocumentContainer));
-  if (dsti) {
-    PRBool isMsgPane = PR_FALSE;
-    dsti->NameEquals(NS_LITERAL_STRING("messagepane").get(), &isMsgPane);
-    if (isMsgPane) {
-      return NS_ERROR_FAILURE;
-    }
-  }
+  NS_ASSERTION(!GetPrimaryShell() || !GetPrimaryShell->DidInitialReflow(),
+               "Creating synthetic plugin document content too late");
 
   
   nsresult rv = nsMediaDocument::CreateSyntheticDocument();
