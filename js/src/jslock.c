@@ -44,7 +44,6 @@
 
 #include "jsstddef.h"
 #include <stdlib.h>
-#include <string.h>
 #include "jspubtd.h"
 #include "jsutil.h" 
 #include "jstypes.h"
@@ -52,7 +51,6 @@
 #include "jscntxt.h"
 #include "jsdtoa.h"
 #include "jsgc.h"
-#include "jsfun.h"      
 #include "jslock.h"
 #include "jsscope.h"
 #include "jsstr.h"
@@ -87,40 +85,18 @@ js_UnlockGlobal(void *id)
 
 #if defined(_WIN32) && defined(_M_IX86)
 #pragma warning( disable : 4035 )
-JS_BEGIN_EXTERN_C
-extern long __cdecl
-_InterlockedCompareExchange(long *volatile dest, long exchange, long comp);
-JS_END_EXTERN_C
-#pragma intrinsic(_InterlockedCompareExchange)
 
 static JS_INLINE int
-js_CompareAndSwapHelper(jsword *w, jsword ov, jsword nv)
+js_CompareAndSwap(jsword *w, jsword ov, jsword nv)
 {
-    _InterlockedCompareExchange(w, nv, ov);
     __asm {
+        mov eax, ov
+        mov ecx, nv
+        mov ebx, w
+        lock cmpxchg [ebx], ecx
         sete al
+        and eax, 1h
     }
-}
-
-static JS_INLINE int
-js_CompareAndSwap(jsword *w, jsword ov, jsword nv)
-{
-    return (js_CompareAndSwapHelper(w, ov, nv) & 1);
-}
-
-#elif defined(XP_MACOSX) || defined(DARWIN)
-
-#include <libkern/OSAtomic.h>
-
-static JS_INLINE int
-js_CompareAndSwap(jsword *w, jsword ov, jsword nv)
-{
-    
-#if JS_BYTES_PER_WORD == 8 && JS_BYTES_PER_LONG != 8
-    return OSAtomicCompareAndSwap64Barrier(ov, nv, (int64_t*) w);
-#else
-    return OSAtomicCompareAndSwap32Barrier(ov, nv, (int32_t*) w);
-#endif
 }
 
 #elif defined(__GNUC__) && defined(__i386__)
@@ -141,6 +117,44 @@ js_CompareAndSwap(jsword *w, jsword ov, jsword nv)
                           : "cc", "memory");
     return (int)res;
 }
+
+#elif (defined(__USLC__) || defined(_SCO_DS)) && defined(i386)
+
+
+
+asm int
+js_CompareAndSwap(jsword *w, jsword ov, jsword nv)
+{
+%ureg w, nv;
+	movl	ov,%eax
+	lock
+	cmpxchgl nv,(w)
+	sete	%al
+	andl	$1,%eax
+%ureg w;  mem ov, nv;
+	movl	ov,%eax
+	movl	nv,%ecx
+	lock
+	cmpxchgl %ecx,(w)
+	sete	%al
+	andl	$1,%eax
+%ureg nv;
+	movl	ov,%eax
+	movl	w,%edx
+	lock
+	cmpxchgl nv,(%edx)
+	sete	%al
+	andl	$1,%eax
+%mem w, ov, nv;
+	movl	ov,%eax
+	movl	nv,%ecx
+	movl	w,%edx
+	lock
+	cmpxchgl %ecx,(%edx)
+	sete	%al
+	andl	$1,%eax
+}
+#pragma asm full_optimization js_CompareAndSwap
 
 #elif defined(SOLARIS) && defined(sparc) && defined(ULTRA_SPARC)
 
@@ -281,17 +295,17 @@ js_unlog_scope(JSScope *scope)
 
 
 static JSBool
-WillDeadlock(JSTitle *title, JSContext *cx)
+WillDeadlock(JSScope *scope, JSContext *cx)
 {
     JSContext *ownercx;
 
     do {
-        ownercx = title->ownercx;
+        ownercx = scope->ownercx;
         if (ownercx == cx) {
             JS_RUNTIME_METER(cx->runtime, deadlocksAvoided);
             return JS_TRUE;
         }
-    } while (ownercx && (title = ownercx->titleToShare) != NULL);
+    } while (ownercx && (scope = ownercx->scopeToShare) != NULL);
     return JS_FALSE;
 }
 
@@ -305,24 +319,47 @@ WillDeadlock(JSTitle *title, JSContext *cx)
 
 
 static void
-ShareTitle(JSContext *cx, JSTitle *title)
+ShareScope(JSContext *cx, JSScope *scope)
 {
     JSRuntime *rt;
-    JSTitle **todop;
+    JSScope **todop;
 
     rt = cx->runtime;
-    if (title->u.link) {
-        for (todop = &rt->titleSharingTodo; *todop != title;
+    if (scope->u.link) {
+        for (todop = &rt->scopeSharingTodo; *todop != scope;
              todop = &(*todop)->u.link) {
-            JS_ASSERT(*todop != NO_TITLE_SHARING_TODO);
+            JS_ASSERT(*todop != NO_SCOPE_SHARING_TODO);
         }
-        *todop = title->u.link;
-        title->u.link = NULL;       
-        JS_NOTIFY_ALL_CONDVAR(rt->titleSharingDone);
+        *todop = scope->u.link;
+        scope->u.link = NULL;       
+        JS_NOTIFY_ALL_CONDVAR(rt->scopeSharingDone);
     }
-    js_InitLock(&title->lock);
-    title->u.count = 0;
-    js_FinishSharingTitle(cx, title);
+    js_InitLock(&scope->lock);
+    if (scope == rt->setSlotScope) {
+        
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        scope->lock.owner = CX_THINLOCK_ID(scope->ownercx);
+#ifdef NSPR_LOCK
+        JS_ACQUIRE_LOCK((JSLock*)scope->lock.fat);
+#endif
+        scope->u.count = 1;
+    } else {
+        scope->u.count = 0;
+    }
+    js_FinishSharingScope(cx, scope);
 }
 
 
@@ -338,26 +375,35 @@ ShareTitle(JSContext *cx, JSTitle *title)
 
 
 
-void
-js_FinishSharingTitle(JSContext *cx, JSTitle *title)
+static JSBool
+MakeStringImmutable(JSContext *cx, JSString *str)
 {
-    JSObjectMap *map;
-    JSScope *scope;
+    uint8 *flagp;
+
+    flagp = js_GetGCThingFlags(str);
+    if (*flagp & GCF_MUTABLE) {
+        if (JSSTRING_IS_DEPENDENT(str) && !js_UndependString(cx, str)) {
+            JS_RUNTIME_METER(cx->runtime, badUndependStrings);
+            return JS_FALSE;
+        }
+        *flagp &= ~GCF_MUTABLE;
+    }
+    return JS_TRUE;
+}
+
+void
+js_FinishSharingScope(JSContext *cx, JSScope *scope)
+{
     JSObject *obj;
     uint32 nslots, i;
     jsval v;
 
-    map = TITLE_TO_MAP(title);
-    if (!MAP_IS_NATIVE(map))
-        return;
-    scope = (JSScope *)map;
-
     obj = scope->object;
-    nslots = scope->map.freeslot;
+    nslots = LOCKED_OBJ_NSLOTS(obj);
     for (i = 0; i != nslots; ++i) {
         v = STOBJ_GET_SLOT(obj, i);
         if (JSVAL_IS_STRING(v) &&
-            !js_MakeStringImmutable(cx, JSVAL_TO_STRING(v))) {
+            !MakeStringImmutable(cx, JSVAL_TO_STRING(v))) {
             
 
 
@@ -368,8 +414,8 @@ js_FinishSharingTitle(JSContext *cx, JSTitle *title)
         }
     }
 
-    title->ownercx = NULL;  
-    JS_RUNTIME_METER(cx->runtime, sharedTitles);
+    scope->ownercx = NULL;  
+    JS_RUNTIME_METER(cx->runtime, sharedScopes);
 }
 
 
@@ -381,7 +427,7 @@ js_FinishSharingTitle(JSContext *cx, JSTitle *title)
 
 
 static JSBool
-ClaimTitle(JSTitle *title, JSContext *cx)
+ClaimScope(JSScope *scope, JSContext *cx)
 {
     JSRuntime *rt;
     JSContext *ownercx;
@@ -393,7 +439,7 @@ ClaimTitle(JSTitle *title, JSContext *cx)
     JS_LOCK_GC(rt);
 
     
-    while ((ownercx = title->ownercx) != NULL) {
+    while ((ownercx = scope->ownercx) != NULL) {
         
 
 
@@ -408,18 +454,29 @@ ClaimTitle(JSTitle *title, JSContext *cx)
 
 
 
-        if (!title->u.link &&
+        if (!scope->u.link &&
             (!js_ValidContextPointer(rt, ownercx) ||
              !ownercx->requestDepth ||
              ownercx->thread == cx->thread)) {
-            JS_ASSERT(title->u.count == 0);
-            title->ownercx = cx;
+            JS_ASSERT(scope->u.count == 0);
+            scope->ownercx = cx;
             JS_UNLOCK_GC(rt);
-            JS_RUNTIME_METER(rt, claimedTitles);
+            JS_RUNTIME_METER(rt, claimedScopes);
             return JS_TRUE;
         }
 
         
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -437,9 +494,9 @@ ClaimTitle(JSTitle *title, JSContext *cx)
 
 
         if (rt->gcThread == cx->thread ||
-            (ownercx->titleToShare &&
-             WillDeadlock(ownercx->titleToShare, cx))) {
-            ShareTitle(cx, title);
+            (ownercx->scopeToShare &&
+             WillDeadlock(ownercx->scopeToShare, cx))) {
+            ShareScope(cx, scope);
             break;
         }
 
@@ -448,10 +505,10 @@ ClaimTitle(JSTitle *title, JSContext *cx)
 
 
 
-        if (!title->u.link) {
-            title->u.link = rt->titleSharingTodo;
-            rt->titleSharingTodo = title;
-            js_HoldObjectMap(cx, TITLE_TO_MAP(title));
+        if (!scope->u.link) {
+            scope->u.link = rt->scopeSharingTodo;
+            rt->scopeSharingTodo = scope;
+            js_HoldObjectMap(cx, &scope->map);
         }
 
         
@@ -480,8 +537,8 @@ ClaimTitle(JSTitle *title, JSContext *cx)
 
 
 
-        cx->titleToShare = title;
-        stat = PR_WaitCondVar(rt->titleSharingDone, PR_INTERVAL_NO_TIMEOUT);
+        cx->scopeToShare = scope;
+        stat = PR_WaitCondVar(rt->scopeSharingDone, PR_INTERVAL_NO_TIMEOUT);
         JS_ASSERT(stat != PR_FAILURE);
 
         
@@ -510,7 +567,7 @@ ClaimTitle(JSTitle *title, JSContext *cx)
 
 
 
-        cx->titleToShare = NULL;
+        cx->scopeToShare = NULL;
     }
 
     JS_UNLOCK_GC(rt);
@@ -523,7 +580,6 @@ js_GetSlotThreadSafe(JSContext *cx, JSObject *obj, uint32 slot)
 {
     jsval v;
     JSScope *scope;
-    JSTitle *title;
 #ifndef NSPR_LOCK
     JSThinLock *tl;
     jsword me;
@@ -547,8 +603,7 @@ js_GetSlotThreadSafe(JSContext *cx, JSObject *obj, uint32 slot)
 
 
     scope = OBJ_SCOPE(obj);
-    title = &scope->title;
-    JS_ASSERT(title->ownercx != cx);
+    JS_ASSERT(scope->ownercx != cx);
     JS_ASSERT(slot < obj->map->freeslot);
 
     
@@ -559,12 +614,12 @@ js_GetSlotThreadSafe(JSContext *cx, JSObject *obj, uint32 slot)
 
     if (CX_THREAD_IS_RUNNING_GC(cx) ||
         (SCOPE_IS_SEALED(scope) && scope->object == obj) ||
-        (title->ownercx && ClaimTitle(title, cx))) {
+        (scope->ownercx && ClaimScope(scope, cx))) {
         return STOBJ_GET_SLOT(obj, slot);
     }
 
 #ifndef NSPR_LOCK
-    tl = &title->lock;
+    tl = &scope->lock;
     me = CX_THINLOCK_ID(cx);
     JS_ASSERT(CURRENT_THREAD_IS_ME(me));
     if (js_CompareAndSwap(&tl->owner, 0, me)) {
@@ -578,9 +633,9 @@ js_GetSlotThreadSafe(JSContext *cx, JSObject *obj, uint32 slot)
             v = STOBJ_GET_SLOT(obj, slot);
             if (!js_CompareAndSwap(&tl->owner, me, 0)) {
                 
-                JS_ASSERT(title->ownercx != cx);
+                JS_ASSERT(scope->ownercx != cx);
                 LOGIT(scope, '1');
-                title->u.count = 1;
+                scope->u.count = 1;
                 js_UnlockObj(cx, obj);
             }
             return v;
@@ -605,16 +660,15 @@ js_GetSlotThreadSafe(JSContext *cx, JSObject *obj, uint32 slot)
 
 
 
-    title = &OBJ_SCOPE(obj)->title;
-    if (title->ownercx != cx)
-        js_UnlockTitle(cx, title);
+    scope = OBJ_SCOPE(obj);
+    if (scope->ownercx != cx)
+        js_UnlockScope(cx, scope);
     return v;
 }
 
 void
 js_SetSlotThreadSafe(JSContext *cx, JSObject *obj, uint32 slot, jsval v)
 {
-    JSTitle *title;
     JSScope *scope;
 #ifndef NSPR_LOCK
     JSThinLock *tl;
@@ -623,7 +677,7 @@ js_SetSlotThreadSafe(JSContext *cx, JSObject *obj, uint32 slot, jsval v)
 
     
     if (JSVAL_IS_STRING(v) &&
-        !js_MakeStringImmutable(cx, JSVAL_TO_STRING(v))) {
+        !MakeStringImmutable(cx, JSVAL_TO_STRING(v))) {
         
         v = JSVAL_NULL;
     }
@@ -642,8 +696,7 @@ js_SetSlotThreadSafe(JSContext *cx, JSObject *obj, uint32 slot, jsval v)
 
 
     scope = OBJ_SCOPE(obj);
-    title = &scope->title;
-    JS_ASSERT(title->ownercx != cx);
+    JS_ASSERT(scope->ownercx != cx);
     JS_ASSERT(slot < obj->map->freeslot);
 
     
@@ -654,23 +707,23 @@ js_SetSlotThreadSafe(JSContext *cx, JSObject *obj, uint32 slot, jsval v)
 
     if (CX_THREAD_IS_RUNNING_GC(cx) ||
         (SCOPE_IS_SEALED(scope) && scope->object == obj) ||
-        (title->ownercx && ClaimTitle(title, cx))) {
-        LOCKED_OBJ_WRITE_BARRIER(cx, obj, slot, v);
+        (scope->ownercx && ClaimScope(scope, cx))) {
+        STOBJ_SET_SLOT(obj, slot, v);
         return;
     }
 
 #ifndef NSPR_LOCK
-    tl = &title->lock;
+    tl = &scope->lock;
     me = CX_THINLOCK_ID(cx);
     JS_ASSERT(CURRENT_THREAD_IS_ME(me));
     if (js_CompareAndSwap(&tl->owner, 0, me)) {
         if (scope == OBJ_SCOPE(obj)) {
-            LOCKED_OBJ_WRITE_BARRIER(cx, obj, slot, v);
+            STOBJ_SET_SLOT(obj, slot, v);
             if (!js_CompareAndSwap(&tl->owner, me, 0)) {
                 
-                JS_ASSERT(title->ownercx != cx);
+                JS_ASSERT(scope->ownercx != cx);
                 LOGIT(scope, '1');
-                title->u.count = 1;
+                scope->u.count = 1;
                 js_UnlockObj(cx, obj);
             }
             return;
@@ -679,20 +732,24 @@ js_SetSlotThreadSafe(JSContext *cx, JSObject *obj, uint32 slot, jsval v)
             js_Dequeue(tl);
     }
     else if (Thin_RemoveWait(ReadWord(tl->owner)) == me) {
-        LOCKED_OBJ_WRITE_BARRIER(cx, obj, slot, v);
+        STOBJ_SET_SLOT(obj, slot, v);
         return;
     }
 #endif
 
     js_LockObj(cx, obj);
-    LOCKED_OBJ_WRITE_BARRIER(cx, obj, slot, v);
+    STOBJ_SET_SLOT(obj, slot, v);
 
     
 
 
-    title = &OBJ_SCOPE(obj)->title;
-    if (title->ownercx != cx)
-        js_UnlockTitle(cx, title);
+
+
+
+
+    scope = OBJ_SCOPE(obj);
+    if (scope->ownercx != cx)
+        js_UnlockScope(cx, scope);
 }
 
 #ifndef NSPR_LOCK
@@ -1002,9 +1059,10 @@ js_Unlock(JSThinLock *tl, jsword me)
 
 
 
-    if (js_CompareAndSwap(&tl->owner, me, 0))
+    if (tl->owner == me) {
+        tl->owner = 0;
         return;
-
+    }
     JS_ASSERT(Thin_GetWait(tl->owner));
     if (Thin_RemoveWait(ReadWord(tl->owner)) == me)
         js_Dequeue(tl);
@@ -1035,40 +1093,40 @@ js_UnlockRuntime(JSRuntime *rt)
 }
 
 void
-js_LockTitle(JSContext *cx, JSTitle *title)
+js_LockScope(JSContext *cx, JSScope *scope)
 {
     jsword me = CX_THINLOCK_ID(cx);
 
     JS_ASSERT(CURRENT_THREAD_IS_ME(me));
-    JS_ASSERT(title->ownercx != cx);
+    JS_ASSERT(scope->ownercx != cx);
     if (CX_THREAD_IS_RUNNING_GC(cx))
         return;
-    if (title->ownercx && ClaimTitle(title, cx))
+    if (scope->ownercx && ClaimScope(scope, cx))
         return;
 
-    if (Thin_RemoveWait(ReadWord(title->lock.owner)) == me) {
-        JS_ASSERT(title->u.count > 0);
+    if (Thin_RemoveWait(ReadWord(scope->lock.owner)) == me) {
+        JS_ASSERT(scope->u.count > 0);
         LOGIT(scope, '+');
-        title->u.count++;
+        scope->u.count++;
     } else {
-        JSThinLock *tl = &title->lock;
+        JSThinLock *tl = &scope->lock;
         JS_LOCK0(tl, me);
-        JS_ASSERT(title->u.count == 0);
+        JS_ASSERT(scope->u.count == 0);
         LOGIT(scope, '1');
-        title->u.count = 1;
+        scope->u.count = 1;
     }
 }
 
 void
-js_UnlockTitle(JSContext *cx, JSTitle *title)
+js_UnlockScope(JSContext *cx, JSScope *scope)
 {
     jsword me = CX_THINLOCK_ID(cx);
 
     
     if (CX_THREAD_IS_RUNNING_GC(cx))
         return;
-    if (cx->lockedSealedTitle == title) {
-        cx->lockedSealedTitle = NULL;
+    if (cx->lockedSealedScope == scope) {
+        cx->lockedSealedScope = NULL;
         return;
     }
 
@@ -1086,21 +1144,21 @@ js_UnlockTitle(JSContext *cx, JSTitle *title)
 
 
 
-    if (title->ownercx) {
-        JS_ASSERT(title->u.count == 0);
-        JS_ASSERT(title->lock.owner == 0);
-        title->ownercx = cx;
+    if (scope->ownercx) {
+        JS_ASSERT(scope->u.count == 0);
+        JS_ASSERT(scope->lock.owner == 0);
+        scope->ownercx = cx;
         return;
     }
 
-    JS_ASSERT(title->u.count > 0);
-    if (Thin_RemoveWait(ReadWord(title->lock.owner)) != me) {
+    JS_ASSERT(scope->u.count > 0);
+    if (Thin_RemoveWait(ReadWord(scope->lock.owner)) != me) {
         JS_ASSERT(0);   
         return;
     }
     LOGIT(scope, '-');
-    if (--title->u.count == 0) {
-        JSThinLock *tl = &title->lock;
+    if (--scope->u.count == 0) {
+        JSThinLock *tl = &scope->lock;
         JS_UNLOCK0(tl, me);
     }
 }
@@ -1110,20 +1168,20 @@ js_UnlockTitle(JSContext *cx, JSTitle *title)
 
 
 void
-js_TransferTitle(JSContext *cx, JSTitle *oldtitle, JSTitle *newtitle)
+js_TransferScopeLock(JSContext *cx, JSScope *oldscope, JSScope *newscope)
 {
     jsword me;
     JSThinLock *tl;
 
-    JS_ASSERT(JS_IS_TITLE_LOCKED(cx, newtitle));
+    JS_ASSERT(JS_IS_SCOPE_LOCKED(cx, newscope));
 
     
 
 
 
-    if (!oldtitle)
+    if (!oldscope)
         return;
-    JS_ASSERT(JS_IS_TITLE_LOCKED(cx, oldtitle));
+    JS_ASSERT(JS_IS_SCOPE_LOCKED(cx, oldscope));
 
     
 
@@ -1139,21 +1197,21 @@ js_TransferTitle(JSContext *cx, JSTitle *oldtitle, JSTitle *newtitle)
 
 
 
-    JS_ASSERT(cx->lockedSealedTitle != newtitle);
-    if (cx->lockedSealedTitle == oldtitle) {
-        JS_ASSERT(newtitle->ownercx == cx ||
-                  (!newtitle->ownercx && newtitle->u.count == 1));
-        cx->lockedSealedTitle = NULL;
+    JS_ASSERT(cx->lockedSealedScope != newscope);
+    if (cx->lockedSealedScope == oldscope) {
+        JS_ASSERT(newscope->ownercx == cx ||
+                  (!newscope->ownercx && newscope->u.count == 1));
+        cx->lockedSealedScope = NULL;
         return;
     }
 
     
 
 
-    if (oldtitle->ownercx) {
-        JS_ASSERT(oldtitle->ownercx == cx);
-        JS_ASSERT(newtitle->ownercx == cx ||
-                  (!newtitle->ownercx && newtitle->u.count == 1));
+    if (oldscope->ownercx) {
+        JS_ASSERT(oldscope->ownercx == cx);
+        JS_ASSERT(newscope->ownercx == cx ||
+                  (!newscope->ownercx && newscope->u.count == 1));
         return;
     }
 
@@ -1163,17 +1221,17 @@ js_TransferTitle(JSContext *cx, JSTitle *oldtitle, JSTitle *newtitle)
 
 
 
-    if (newtitle->ownercx != cx) {
-        JS_ASSERT(!newtitle->ownercx);
-        newtitle->u.count = oldtitle->u.count;
+    if (newscope->ownercx != cx) {
+        JS_ASSERT(!newscope->ownercx);
+        newscope->u.count = oldscope->u.count;
     }
 
     
 
 
     LOGIT(oldscope, '0');
-    oldtitle->u.count = 0;
-    tl = &oldtitle->lock;
+    oldscope->u.count = 0;
+    tl = &oldscope->lock;
     me = CX_THINLOCK_ID(cx);
     JS_UNLOCK0(tl, me);
 }
@@ -1182,7 +1240,6 @@ void
 js_LockObj(JSContext *cx, JSObject *obj)
 {
     JSScope *scope;
-    JSTitle *title;
 
     JS_ASSERT(OBJ_IS_NATIVE(obj));
 
@@ -1196,21 +1253,20 @@ js_LockObj(JSContext *cx, JSObject *obj)
 
     for (;;) {
         scope = OBJ_SCOPE(obj);
-        title = &scope->title;
         if (SCOPE_IS_SEALED(scope) && scope->object == obj &&
-            !cx->lockedSealedTitle) {
-            cx->lockedSealedTitle = title;
+            !cx->lockedSealedScope) {
+            cx->lockedSealedScope = scope;
             return;
         }
 
-        js_LockTitle(cx, title);
+        js_LockScope(cx, scope);
 
         
         if (scope == OBJ_SCOPE(obj))
             return;
 
         
-        js_UnlockTitle(cx, title);
+        js_UnlockScope(cx, scope);
     }
 }
 
@@ -1218,38 +1274,7 @@ void
 js_UnlockObj(JSContext *cx, JSObject *obj)
 {
     JS_ASSERT(OBJ_IS_NATIVE(obj));
-    js_UnlockTitle(cx, &OBJ_SCOPE(obj)->title);
-}
-
-void
-js_InitTitle(JSContext *cx, JSTitle *title)
-{
-#ifdef JS_THREADSAFE
-    title->ownercx = cx;
-    memset(&title->lock, 0, sizeof title->lock);
-
-    
-
-
-
-    title->u.link = NULL;
-
-#ifdef JS_DEBUG_TITLE_LOCKS
-    title->file[0] = title->file[1] = title->file[2] = title->file[3] = NULL;
-    title->line[0] = title->line[1] = title->line[2] = title->line[3] = 0;
-#endif
-#endif
-}
-
-void
-js_FinishTitle(JSContext *cx, JSTitle *title)
-{
-#ifdef JS_THREADSAFE
-    
-    JS_ASSERT(title->u.count == 0);
-    title->ownercx = cx;
-    js_FinishLock(&title->lock);
-#endif
+    js_UnlockScope(cx, OBJ_SCOPE(obj));
 }
 
 #ifdef DEBUG
@@ -1265,45 +1290,31 @@ js_IsObjLocked(JSContext *cx, JSObject *obj)
 {
     JSScope *scope = OBJ_SCOPE(obj);
 
-    return MAP_IS_NATIVE(&scope->map) && js_IsTitleLocked(cx, &scope->title);
+    return MAP_IS_NATIVE(&scope->map) && js_IsScopeLocked(cx, scope);
 }
 
 JSBool
-js_IsTitleLocked(JSContext *cx, JSTitle *title)
+js_IsScopeLocked(JSContext *cx, JSScope *scope)
 {
     
     if (CX_THREAD_IS_RUNNING_GC(cx))
         return JS_TRUE;
 
     
-    if (cx->lockedSealedTitle == title)
+    if (cx->lockedSealedScope == scope)
         return JS_TRUE;
 
     
 
 
 
-    if (title->ownercx) {
-        JS_ASSERT(title->ownercx == cx || title->ownercx->thread == cx->thread);
+    if (scope->ownercx) {
+        JS_ASSERT(scope->ownercx == cx || scope->ownercx->thread == cx->thread);
         return JS_TRUE;
     }
     return js_CurrentThreadId() ==
-           ((JSThread *)Thin_RemoveWait(ReadWord(title->lock.owner)))->id;
+           ((JSThread *)Thin_RemoveWait(ReadWord(scope->lock.owner)))->id;
 }
 
-#ifdef JS_DEBUG_TITLE_LOCKS
-void
-js_SetScopeInfo(JSScope *scope, const char *file, int line)
-{
-    JSTitle *title = &scope->title;
-    if (!title->ownercx) {
-        jsrefcount count = title->u.count;
-        JS_ASSERT_IF(!SCOPE_IS_SEALED(scope), count > 0);
-        JS_ASSERT(count <= 4);
-        title->file[count - 1] = file;
-        title->line[count - 1] = line;
-    }
-}
-#endif 
 #endif 
 #endif 

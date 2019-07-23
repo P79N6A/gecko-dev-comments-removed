@@ -57,9 +57,7 @@
 #include "jsfun.h"
 #include "jsinterp.h"
 #include "jsnum.h"
-#include "jsobj.h"
 #include "jsopcode.h"
-#include "jsscope.h"
 #include "jsscript.h"
 
 
@@ -277,10 +275,13 @@ InitExnPrivate(JSContext *cx, JSObject *exnObject, JSString *message,
     valueCount = 0;
     for (fp = cx->fp; fp; fp = fp->down) {
         if (fp->fun && fp->argv) {
-            v = JSVAL_NULL;
-            if (checkAccess &&
-                !checkAccess(cx, fp->callee, callerid, JSACC_READ, &v)) {
-                break;
+            if (checkAccess) {
+                v = fp->argv[-2];
+                if (!JSVAL_IS_PRIMITIVE(v) &&
+                    !checkAccess(cx, JSVAL_TO_OBJECT(v), callerid,
+                                 JSACC_READ, &v )) {
+                    break;
+                }
             }
             valueCount += fp->argc;
         }
@@ -296,7 +297,7 @@ InitExnPrivate(JSContext *cx, JSObject *exnObject, JSString *message,
     overflow |= (valueCount > ((size_t)-1 - size) / sizeof(jsval));
     size += valueCount * sizeof(jsval);
     if (overflow) {
-        js_ReportAllocationOverflow(cx);
+        JS_ReportOutOfMemory(cx);
         return JS_FALSE;
     }
     priv = (JSExnPrivate *)JS_malloc(cx, size);
@@ -332,15 +333,15 @@ InitExnPrivate(JSContext *cx, JSObject *exnObject, JSString *message,
         elem->filename = NULL;
         if (fp->script) {
             elem->filename = fp->script->filename;
-            if (fp->regs)
-                elem->ulineno = js_PCToLineNumber(cx, fp->script, fp->regs->pc);
+            if (fp->pc)
+                elem->ulineno = js_PCToLineNumber(cx, fp->script, fp->pc);
         }
         ++elem;
     }
     JS_ASSERT(priv->stackElems + stackDepth == elem);
     JS_ASSERT(GetStackTraceValueBuffer(priv) + valueCount == values);
 
-    STOBJ_SET_SLOT(exnObject, JSSLOT_PRIVATE, PRIVATE_TO_JSVAL(priv));
+    OBJ_SET_SLOT(cx, exnObject, JSSLOT_PRIVATE, PRIVATE_TO_JSVAL(priv));
 
     if (report) {
         
@@ -638,10 +639,7 @@ StackTraceToString(JSContext *cx, JSExnPrivate *priv)
 #define APPEND_STRING_TO_STACK(str)                                           \
     JS_BEGIN_MACRO                                                            \
         JSString *str_ = str;                                                 \
-        jschar *chars_;                                                       \
-        size_t length_;                                                       \
-                                                                              \
-        JSSTRING_CHARS_AND_LENGTH(str_, chars_, length_);                     \
+        size_t length_ = JSSTRING_LENGTH(str_);                               \
         if (length_ > stackmax - stacklen) {                                  \
             void *ptr_;                                                       \
             if (stackmax >= STACK_LENGTH_LIMIT ||                             \
@@ -654,7 +652,7 @@ StackTraceToString(JSContext *cx, JSExnPrivate *priv)
                 goto bad;                                                     \
             stackbuf = (jschar *) ptr_;                                       \
         }                                                                     \
-        js_strncpy(stackbuf + stacklen, chars_, length_);                     \
+        js_strncpy(stackbuf + stacklen, JSSTRING_CHARS(str_), length_);       \
         stacklen += length_;                                                  \
     JS_END_MACRO
 
@@ -706,7 +704,7 @@ StackTraceToString(JSContext *cx, JSExnPrivate *priv)
     }
 
     stackbuf[stacklen] = 0;
-    str = js_NewString(cx, stackbuf, stacklen);
+    str = js_NewString(cx, stackbuf, stacklen, 0);
     if (str)
         return str;
 
@@ -750,7 +748,7 @@ Exception(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
                                            .classPrototypeAtom),
                               rval))
             return JS_FALSE;
-        obj = js_NewObject(cx, &js_ErrorClass, JSVAL_TO_OBJECT(*rval), NULL, 0);
+        obj = js_NewObject(cx, &js_ErrorClass, JSVAL_TO_OBJECT(*rval), NULL);
         if (!obj)
             return JS_FALSE;
         *rval = OBJECT_TO_JSVAL(obj);
@@ -761,7 +759,7 @@ Exception(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 
 
     if (OBJ_GET_CLASS(cx, obj) == &js_ErrorClass)
-        STOBJ_SET_SLOT(obj, JSSLOT_PRIVATE, JSVAL_VOID);
+        OBJ_SET_SLOT(cx, obj, JSSLOT_PRIVATE, JSVAL_VOID);
 
     
     if (argc != 0) {
@@ -793,15 +791,12 @@ Exception(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 
     
     if (argc > 2) {
-        lineno = js_ValueToECMAUint32(cx, &argv[2]);
-        if (JSVAL_IS_NULL(argv[2]))
+        if (!js_ValueToECMAUint32(cx, argv[2], &lineno))
             return JS_FALSE;
     } else {
         if (!fp)
             fp = JS_GetScriptedCaller(cx, NULL);
-        lineno = (fp && fp->regs)
-                 ? js_PCToLineNumber(cx, fp->script, fp->regs->pc)
-                 : 0;
+        lineno = (fp && fp->pc) ? js_PCToLineNumber(cx, fp->script, fp->pc) : 0;
     }
 
     return (OBJ_GET_CLASS(cx, obj) != &js_ErrorClass) ||
@@ -816,23 +811,20 @@ Exception(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 
 
 static JSBool
-exn_toString(JSContext *cx, uintN argc, jsval *vp)
+exn_toString(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
-    JSObject *obj;
     jsval v;
     JSString *name, *message, *result;
     jschar *chars, *cp;
     size_t name_length, message_length, length;
 
-    obj = JS_THIS_OBJECT(cx, vp);
-    if (!obj ||
-        !OBJ_GET_PROPERTY(cx, obj,
+    if (!OBJ_GET_PROPERTY(cx, obj,
                           ATOM_TO_JSID(cx->runtime->atomState.nameAtom),
                           &v)) {
         return JS_FALSE;
     }
     name = JSVAL_IS_STRING(v) ? JSVAL_TO_STRING(v) : cx->runtime->emptyString;
-    *vp = STRING_TO_JSVAL(name);
+    *rval = STRING_TO_JSVAL(name);
 
     if (!JS_GetProperty(cx, obj, js_message_str, &v))
         return JS_FALSE;
@@ -856,7 +848,7 @@ exn_toString(JSContext *cx, uintN argc, jsval *vp)
         cp += message_length;
         *cp = 0;
 
-        result = js_NewString(cx, chars, length);
+        result = js_NewString(cx, chars, length, 0);
         if (!result) {
             JS_free(cx, chars);
             return JS_FALSE;
@@ -865,7 +857,7 @@ exn_toString(JSContext *cx, uintN argc, jsval *vp)
         result = name;
     }
 
-    *vp = STRING_TO_JSVAL(result);
+    *rval = STRING_TO_JSVAL(result);
     return JS_TRUE;
 }
 
@@ -874,58 +866,47 @@ exn_toString(JSContext *cx, uintN argc, jsval *vp)
 
 
 static JSBool
-exn_toSource(JSContext *cx, uintN argc, jsval *vp)
+exn_toSource(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
-    JSObject *obj;
+    jsval *vp;
     JSString *name, *message, *filename, *lineno_as_str, *result;
-    jsval localroots[3] = {JSVAL_NULL, JSVAL_NULL, JSVAL_NULL};
-    JSTempValueRooter tvr;
-    JSBool ok;
     uint32 lineno;
     size_t lineno_length, name_length, message_length, filename_length, length;
     jschar *chars, *cp;
 
-    obj = JS_THIS_OBJECT(cx, vp);
-    if (!obj ||
-        !OBJ_GET_PROPERTY(cx, obj,
+    vp = argv + argc;   
+
+    if (!OBJ_GET_PROPERTY(cx, obj,
                           ATOM_TO_JSID(cx->runtime->atomState.nameAtom),
-                          vp)) {
+                          rval)) {
         return JS_FALSE;
     }
-    name = js_ValueToString(cx, *vp);
+    name = js_ValueToString(cx, *rval);
     if (!name)
         return JS_FALSE;
-    *vp = STRING_TO_JSVAL(name);
+    *rval = STRING_TO_JSVAL(name);
 
-    
-    JS_PUSH_TEMP_ROOT(cx, 3, localroots, &tvr);
+    if (!JS_GetProperty(cx, obj, js_message_str, &vp[0]) ||
+        !(message = js_ValueToSource(cx, vp[0]))) {
+        return JS_FALSE;
+    }
+    vp[0] = STRING_TO_JSVAL(message);
 
-    ok = JS_GetProperty(cx, obj, js_message_str, &localroots[0]) &&
-         (message = js_ValueToSource(cx, localroots[0]));
-    if (!ok)
-        goto out;
-    localroots[0] = STRING_TO_JSVAL(message);
+    if (!JS_GetProperty(cx, obj, js_fileName_str, &vp[1]) ||
+        !(filename = js_ValueToSource(cx, vp[1]))) {
+        return JS_FALSE;
+    }
+    vp[1] = STRING_TO_JSVAL(filename);
 
-    ok = JS_GetProperty(cx, obj, js_fileName_str, &localroots[1]) &&
-         (filename = js_ValueToSource(cx, localroots[1]));
-    if (!ok)
-        goto out;
-    localroots[1] = STRING_TO_JSVAL(filename);
-
-    ok = JS_GetProperty(cx, obj, js_lineNumber_str, &localroots[2]);
-    if (!ok)
-        goto out;
-    lineno = js_ValueToECMAUint32 (cx, &localroots[2]);
-    ok = !JSVAL_IS_NULL(localroots[2]);
-    if (!ok)
-        goto out;
+    if (!JS_GetProperty(cx, obj, js_lineNumber_str, &vp[2]) ||
+        !js_ValueToECMAUint32 (cx, vp[2], &lineno)) {
+        return JS_FALSE;
+    }
 
     if (lineno != 0) {
-        lineno_as_str = js_ValueToString(cx, localroots[2]);
-        if (!lineno_as_str) {
-            ok = JS_FALSE;
-            goto out;
-        }
+        lineno_as_str = js_ValueToString(cx, vp[2]);
+        if (!lineno_as_str)
+            return JS_FALSE;
         lineno_length = JSSTRING_LENGTH(lineno_as_str);
     } else {
         lineno_as_str = NULL;
@@ -956,10 +937,8 @@ exn_toSource(JSContext *cx, uintN argc, jsval *vp)
     }
 
     cp = chars = (jschar *) JS_malloc(cx, (length + 1) * sizeof(jschar));
-    if (!chars) {
-        ok = JS_FALSE;
-        goto out;
-    }
+    if (!chars)
+        return JS_FALSE;
 
     *cp++ = '('; *cp++ = 'n'; *cp++ = 'e'; *cp++ = 'w'; *cp++ = ' ';
     js_strncpy(cp, JSSTRING_CHARS(name), name_length);
@@ -993,27 +972,22 @@ exn_toSource(JSContext *cx, uintN argc, jsval *vp)
 
     *cp++ = ')'; *cp++ = ')'; *cp = 0;
 
-    result = js_NewString(cx, chars, length);
+    result = js_NewString(cx, chars, length, 0);
     if (!result) {
         JS_free(cx, chars);
-        ok = JS_FALSE;
-        goto out;
+        return JS_FALSE;
     }
-    *vp = STRING_TO_JSVAL(result);
-    ok = JS_TRUE;
-
-out:
-    JS_POP_TEMP_ROOT(cx, &tvr);
-    return ok;
+    *rval = STRING_TO_JSVAL(result);
+    return JS_TRUE;
 }
 #endif
 
 static JSFunctionSpec exception_methods[] = {
 #if JS_HAS_TOSOURCE
-    JS_FN(js_toSource_str,   exn_toSource,           0,0,0),
+    {js_toSource_str,   exn_toSource,           0,0,3},
 #endif
-    JS_FN(js_toString_str,   exn_toString,           0,0,0),
-    JS_FS_END
+    {js_toString_str,   exn_toString,           0,0,0},
+    {0,0,0,0,0}
 };
 
 JSObject *
@@ -1044,6 +1018,7 @@ js_InitExceptionClasses(JSContext *cx, JSObject *obj)
     for (i = 0; exceptions[i].name != 0; i++) {
         JSAtom *atom;
         JSFunction *fun;
+        JSObject *funobj;
         JSString *nameString;
         int protoIndex = exceptions[i].protoIndex;
 
@@ -1052,12 +1027,12 @@ js_InitExceptionClasses(JSContext *cx, JSObject *obj)
                                  (protoIndex != JSEXN_NONE)
                                  ? protos[protoIndex]
                                  : obj_proto,
-                                 obj, 0);
+                                 obj);
         if (!protos[i])
             break;
 
         
-        STOBJ_SET_SLOT(protos[i], JSSLOT_PRIVATE, JSVAL_VOID);
+        OBJ_SET_SLOT(cx, protos[i], JSSLOT_PRIVATE, JSVAL_VOID);
 
         
         atom = cx->runtime->atomState.classAtoms[exceptions[i].key];
@@ -1066,10 +1041,13 @@ js_InitExceptionClasses(JSContext *cx, JSObject *obj)
             break;
 
         
-        fun->u.n.clasp = &js_ErrorClass;
+        fun->clasp = &js_ErrorClass;
 
         
-        if (!js_SetClassPrototype(cx, FUN_OBJECT(fun), protos[i],
+        funobj = fun->object;
+
+        
+        if (!js_SetClassPrototype(cx, funobj, protos[i],
                                   JSPROP_READONLY | JSPROP_PERMANENT)) {
             break;
         }
@@ -1088,7 +1066,7 @@ js_InitExceptionClasses(JSContext *cx, JSObject *obj)
         }
 
         
-        if (!js_SetClassObject(cx, obj, exceptions[i].key, FUN_OBJECT(fun)))
+        if (!js_SetClassObject(cx, obj, exceptions[i].key, funobj))
             break;
     }
 
@@ -1206,7 +1184,7 @@ js_ErrorToException(JSContext *cx, const char *message, JSErrorReport *reportp)
 
     
     memset(tv, 0, sizeof tv);
-    JS_PUSH_TEMP_ROOT(cx, JS_ARRAY_LENGTH(tv), tv, &tvr);
+    JS_PUSH_TEMP_ROOT(cx, sizeof tv / sizeof tv[0], tv, &tvr);
 
     
 
@@ -1219,7 +1197,7 @@ js_ErrorToException(JSContext *cx, const char *message, JSErrorReport *reportp)
         goto out;
     tv[0] = OBJECT_TO_JSVAL(errProto);
 
-    errObject = js_NewObject(cx, &js_ErrorClass, errProto, NULL, 0);
+    errObject = js_NewObject(cx, &js_ErrorClass, errProto, NULL);
     if (!errObject) {
         ok = JS_FALSE;
         goto out;
@@ -1261,7 +1239,7 @@ js_ReportUncaughtException(JSContext *cx)
 {
     jsval exn;
     JSObject *exnObject;
-    jsval roots[5];
+    jsval vp[5];
     JSTempValueRooter tvr;
     JSErrorReport *reportp, report;
     JSString *str;
@@ -1274,8 +1252,8 @@ js_ReportUncaughtException(JSContext *cx)
     if (!JS_GetPendingException(cx, &exn))
         return JS_FALSE;
 
-    memset(roots, 0, sizeof roots);
-    JS_PUSH_TEMP_ROOT(cx, JS_ARRAY_LENGTH(roots), roots, &tvr);
+    memset(vp, 0, sizeof vp);
+    JS_PUSH_TEMP_ROOT(cx, JS_ARRAY_LENGTH(vp), vp, &tvr);
 
     
 
@@ -1287,7 +1265,7 @@ js_ReportUncaughtException(JSContext *cx)
         exnObject = NULL;
     } else {
         exnObject = JSVAL_TO_OBJECT(exn);
-        roots[0] = exn;
+        vp[0] = exn;
     }
 
     JS_ClearPendingException(cx);
@@ -1298,7 +1276,7 @@ js_ReportUncaughtException(JSContext *cx)
     if (!str) {
         bytes = "unknown (can't convert to string)";
     } else {
-        roots[1] = STRING_TO_JSVAL(str);
+        vp[1] = STRING_TO_JSVAL(str);
         bytes = js_GetStringBytes(cx, str);
         if (!bytes) {
             ok = JS_FALSE;
@@ -1313,21 +1291,21 @@ js_ReportUncaughtException(JSContext *cx)
         const char *filename;
         uint32 lineno;
 
-        ok = JS_GetProperty(cx, exnObject, js_message_str, &roots[2]);
+        ok = JS_GetProperty(cx, exnObject, js_message_str, &vp[2]);
         if (!ok)
             goto out;
-        if (JSVAL_IS_STRING(roots[2])) {
-            bytes = js_GetStringBytes(cx, JSVAL_TO_STRING(roots[2]));
+        if (JSVAL_IS_STRING(vp[2])) {
+            bytes = js_GetStringBytes(cx, JSVAL_TO_STRING(vp[2]));
             if (!bytes) {
                 ok = JS_FALSE;
                 goto out;
             }
         }
 
-        ok = JS_GetProperty(cx, exnObject, js_fileName_str, &roots[3]);
+        ok = JS_GetProperty(cx, exnObject, js_fileName_str, &vp[3]);
         if (!ok)
             goto out;
-        str = js_ValueToString(cx, roots[3]);
+        str = js_ValueToString(cx, vp[3]);
         if (!str) {
             ok = JS_FALSE;
             goto out;
@@ -1338,11 +1316,10 @@ js_ReportUncaughtException(JSContext *cx)
             goto out;
         }
 
-        ok = JS_GetProperty(cx, exnObject, js_lineNumber_str, &roots[4]);
+        ok = JS_GetProperty(cx, exnObject, js_lineNumber_str, &vp[4]);
         if (!ok)
             goto out;
-        lineno = js_ValueToECMAUint32 (cx, &roots[4]);
-        ok = !JSVAL_IS_NULL(roots[4]);
+        ok = js_ValueToECMAUint32 (cx, vp[4], &lineno);
         if (!ok)
             goto out;
 
@@ -1358,11 +1335,7 @@ js_ReportUncaughtException(JSContext *cx)
     } else {
         
         reportp->flags |= JSREPORT_EXCEPTION;
-
-        
-        JS_SetPendingException(cx, exn);
         js_ReportErrorAgain(cx, bytes, reportp);
-        JS_ClearPendingException(cx);
     }
 
 out:
