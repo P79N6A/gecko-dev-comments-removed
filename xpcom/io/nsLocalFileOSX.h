@@ -43,6 +43,8 @@
 #include "nsString.h"
 #include "nsIHashable.h"
 
+class nsDirEnumerator;
+
 
 #if defined(HAVE_STAT64) && defined(HAVE_LSTAT64) && (MAC_OS_X_VERSION_MIN_REQUIRED > MAC_OS_X_VERSION_10_4)
 #define STAT stat64
@@ -69,6 +71,8 @@
 class NS_COM nsLocalFile : public nsILocalFileMac,
                            public nsIHashable
 {
+  friend class nsDirEnumerator;
+    
 public:
   NS_DEFINE_STATIC_CID_ACCESSOR(NS_LOCAL_FILE_CID)
 
