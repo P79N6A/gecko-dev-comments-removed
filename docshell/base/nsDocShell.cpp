@@ -5502,12 +5502,15 @@ nsDocShell::ReattachEditorToWindow(nsISHEntry *aSHEntry)
 }
 
 void
-nsDocShell::DetachEditorFromWindow(nsISHEntry *aSHEntry)
+nsDocShell::DetachEditorFromWindow()
 {
-    if (!mEditorData)
+    if (!mEditorData || mEditorData->WaitingForLoad()) {
+        
+        
         return;
+    }
 
-    NS_ASSERTION(!aSHEntry || !aSHEntry->HasDetachedEditor(),
+    NS_ASSERTION(!mOSHE || !mOSHE->HasDetachedEditor(),
                  "Detaching editor when it's already detached.");
 
     nsresult res = mEditorData->DetachFromWindow();
@@ -5515,8 +5518,8 @@ nsDocShell::DetachEditorFromWindow(nsISHEntry *aSHEntry)
 
     if (NS_SUCCEEDED(res)) {
         
-        if (aSHEntry)
-            aSHEntry->SetEditorData(mEditorData.forget());
+        if (mOSHE)
+            mOSHE->SetEditorData(mEditorData.forget());
         else
             mEditorData = nsnull;
     }
@@ -5529,13 +5532,6 @@ nsDocShell::DetachEditorFromWindow(nsISHEntry *aSHEntry)
                      "Window is still editable after detaching editor.");
     }
 #endif 
-
-}
-
-void
-nsDocShell::DetachEditorFromWindow()
-{
-    DetachEditorFromWindow(mOSHE);
 }
 
 nsresult
