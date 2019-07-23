@@ -106,6 +106,9 @@ namespace nanojit
         uint32_t        _highWaterMark;                 
         LIns*           _entries[ NJ_MAX_STACK_ENTRY ]; 
 
+        #ifdef _DEBUG
+        static LIns* const BAD_ENTRY;
+        #endif
 
         bool isEmptyRange(uint32_t start, uint32_t nStackSlots) const;
         static uint32_t nStackSlotsFor(LIns* ins);
@@ -119,6 +122,7 @@ namespace nanojit
         uint32_t reserveEntry(LIns* ins); 
         
         #ifdef _DEBUG
+        void validate(); 
         bool isValidEntry(uint32_t idx, LIns* ins) const; 
         void checkForResourceConsistency(const RegAlloc& regs) const;
         void checkForResourceLeaks() const;
@@ -446,7 +450,7 @@ namespace nanojit
     inline int32_t disp(LIns* ins)
     {
         
-        return stack_direction(4 * int32_t(ins->getArIndex()));
+        return -4 * int32_t(ins->getArIndex());
     }
 }
 #endif 
