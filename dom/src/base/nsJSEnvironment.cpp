@@ -1202,11 +1202,6 @@ nsJSContext::nsJSContext(JSRuntime *aRuntime) : mGCOnDestruction(PR_TRUE)
 
   mDefaultJSOptions = JSOPTION_PRIVATE_IS_NSISUPPORTS | JSOPTION_ANONFUNFIX;
 
-  
-  
-  
-  nsContentUtils::XPConnect()->SyncJSContexts();
-
   mContext = ::JS_NewContext(aRuntime, gStackSize);
   if (mContext) {
     ::JS_SetContextPrivate(mContext, static_cast<nsIScriptContext *>(this));

@@ -739,9 +739,7 @@ XPCWrapper::NativeToString(JSContext *cx, XPCWrappedNative *wrappedNative,
 {
   
   
-  XPCJSRuntime *rt = nsXPConnect::GetRuntime();
-  if (!rt)
-    return JS_FALSE;
+  XPCJSRuntime *rt = nsXPConnect::GetRuntimeInstance();
 
   jsid id = rt->GetStringID(XPCJSRuntime::IDX_TO_STRING);
   jsval idAsVal;

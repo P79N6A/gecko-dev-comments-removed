@@ -580,11 +580,6 @@ NS_IMETHODIMP nsJSSh::Init()
     return NS_ERROR_FAILURE;
   }
 
-  
-  
-  
-  xpc->SyncJSContexts();
-  
   nsCOMPtr<nsIJSRuntimeService> rtsvc = do_GetService("@mozilla.org/js/xpc/RuntimeService;1");
   
   if (!rtsvc) {
@@ -667,7 +662,6 @@ NS_IMETHODIMP nsJSSh::Cleanup()
   }
 
   JS_DestroyContext(mJSContext);
-  xpc->SyncJSContexts();
   return NS_OK;
 }
 

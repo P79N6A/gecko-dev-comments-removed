@@ -660,7 +660,7 @@ XPC_NW_Finalize(JSContext *cx, JSObject *obj)
 {
   
   
-  XPCJSRuntime *rt = nsXPConnect::GetRuntime();
+  XPCJSRuntime *rt = nsXPConnect::GetRuntimeInstance();
 
   {
     

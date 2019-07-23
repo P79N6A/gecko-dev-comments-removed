@@ -124,20 +124,7 @@ XPCCallContext::XPCCallContext(XPCContext::LangType callerLanguage,
         mContextPopRequired = JS_TRUE;
     }
 
-    
-    
-    
-    mXPCContext = mThreadData->GetRecentXPCContext(mJSContext);
-
-    if(!mXPCContext)
-    {
-        if(!(mXPCContext = nsXPConnect::GetContext(mJSContext, mXPC)))
-            return;
-
-        
-        mThreadData->SetRecentContext(mJSContext, mXPCContext);
-    }
-
+    mXPCContext = XPCContext::GetXPCContext(mJSContext);
     mPrevCallerLanguage = mXPCContext->SetCallingLangType(mCallerLanguage);
 
     
@@ -352,7 +339,6 @@ XPCCallContext::~XPCCallContext()
                          "JSContext still in threadjscontextstack!");
         
             JS_DestroyContext(mJSContext);
-            mXPC->SyncJSContexts();
         }
         else
         {

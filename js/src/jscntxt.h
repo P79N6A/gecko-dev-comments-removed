@@ -853,6 +853,7 @@ struct JSContext {
 
     
     void                *data;
+    void                *data2;
 
     
     JSStackFrame        *dormantFrameChain; 

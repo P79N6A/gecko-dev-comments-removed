@@ -159,9 +159,7 @@ XPCWrappedNativeScope::XPCWrappedNativeScope(XPCCallContext& ccx,
         gScopes = this;
 
         
-        mContext = mRuntime->GetContextMap()->Find(ccx.GetJSContext());
-        NS_ASSERTION(mContext, "Context map is not synchronized");
-
+        mContext = XPCContext::GetXPCContext(ccx.GetJSContext());
         mContext->AddScope(this);
     }
 
@@ -493,9 +491,7 @@ XPCWrappedNativeScope::FinishedMarkPhaseOfGC(JSContext* cx, XPCJSRuntime* rt)
 void
 XPCWrappedNativeScope::FinishedFinalizationPhaseOfGC(JSContext* cx)
 {
-    XPCJSRuntime* rt = nsXPConnect::GetRuntime();
-    if(!rt)
-        return;
+    XPCJSRuntime* rt = nsXPConnect::GetRuntimeInstance();
 
     
     
