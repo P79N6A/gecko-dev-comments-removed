@@ -904,7 +904,7 @@ nsBlockFrame::Reflow(nsPresContext*           aPresContext,
   
   PRBool needSpaceManager = nsBlockFrame::BlockNeedsSpaceManager(this);
   if (needSpaceManager)
-    autoSpaceManager.CreateSpaceManagerFor(aPresContext, this);
+    autoSpaceManager.CreateSpaceManager(aPresContext);
 
   
   

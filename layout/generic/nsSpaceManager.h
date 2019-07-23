@@ -144,26 +144,16 @@ struct nsBandData {
 
 
 
+
 class nsSpaceManager {
 public:
-  nsSpaceManager(nsIPresShell* aPresShell, nsIFrame* aFrame);
+  nsSpaceManager(nsIPresShell* aPresShell);
   ~nsSpaceManager();
 
   void* operator new(size_t aSize) CPP_THROW_NEW;
   void operator delete(void* aPtr, size_t aSize);
 
   static void Shutdown();
-
-  
-
-
-
-
-
-
-
-  nsIFrame* GetFrame() const { return mFrame; }
-
   
 
 
@@ -177,15 +167,6 @@ public:
 
 
   void GetTranslation(nscoord& aX, nscoord& aY) const { aX = mX; aY = mY; }
-
-  
-
-
-
-
-
-  PRBool XMost(nscoord& aXMost) const;
-
   
 
 
@@ -273,11 +254,6 @@ public:
     
     friend class nsSpaceManager;
   };
-
-  
-
-
-  void ClearRegions();
 
   PRBool HasAnyFloats() { return mFrameInfoMap != nsnull; }
 
@@ -419,7 +395,6 @@ public:
   };
 
 protected:
-  nsIFrame* const mFrame;     
   nscoord         mX, mY;     
   BandList        mBandList;  
   nscoord         mLowestTop;  
@@ -446,7 +421,6 @@ protected:
   void       DestroyFrameInfo(FrameInfo*);
 
   void       ClearFrameInfo();
-  void       ClearBandRects();
 
   BandRect*  GetNextBand(const BandRect* aBandRect) const;
   BandRect*  GetPrevBand(const BandRect* aBandRect) const;
@@ -508,8 +482,7 @@ public:
 
 
   nsresult
-  CreateSpaceManagerFor(nsPresContext *aPresContext,
-                        nsIFrame *aFrame);
+  CreateSpaceManager(nsPresContext *aPresContext);
 
 #ifdef DEBUG
   
