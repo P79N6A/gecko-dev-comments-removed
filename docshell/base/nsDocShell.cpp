@@ -6247,7 +6247,7 @@ nsDocShell::CanSavePresentation(PRUint32 aLoadType,
     
     PRBool canSaveState;
     mOSHE->GetSaveLayoutStateFlag(&canSaveState);
-    if (canSaveState == PR_FALSE)
+    if (!canSaveState)
         return PR_FALSE;
 
     
@@ -9516,7 +9516,7 @@ nsDocShell::AddToSessionHistory(nsIURI * aURI, nsIChannel * aChannel,
          
         }
     }
-    if (expired == PR_TRUE)
+    if (expired)
         entry->SetExpirationStatus(PR_TRUE);
 
 

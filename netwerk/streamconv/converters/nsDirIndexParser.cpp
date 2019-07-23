@@ -315,7 +315,7 @@ nsDirIndexParser::ParseData(nsIDirIndex *aIdx, char* aDataStr) {
         }
       }
       
-      if (success == PR_FALSE) {
+      if (!success) {
         
         
         

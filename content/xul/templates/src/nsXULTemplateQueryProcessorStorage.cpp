@@ -96,7 +96,7 @@ nsXULTemplateResultSetStorage::HasMoreElements(PRBool *aResult)
     
     
     
-    if (*aResult == PR_FALSE) {
+    if (!*aResult) {
         mStatement = nsnull;
     }
     return NS_OK;

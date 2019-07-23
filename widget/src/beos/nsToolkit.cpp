@@ -168,7 +168,7 @@ void nsToolkit::CreateUIThread()
                                    0);
 
     
-    while(gThreadState == PR_FALSE)
+    while(!gThreadState)
     {
       PR_Wait(monitor, PR_INTERVAL_NO_TIMEOUT);
     }

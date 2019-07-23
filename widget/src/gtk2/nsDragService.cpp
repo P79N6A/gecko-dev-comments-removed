@@ -836,7 +836,7 @@ nsDragService::IsDataFlavorSupported(const char *aDataFlavor,
             *_retval = PR_TRUE;
         }
         
-        if (*_retval == PR_FALSE && 
+        if (!*_retval && 
             name &&
             (strcmp(name, gTextUriListType) == 0) &&
             (strcmp(aDataFlavor, kURLMime) == 0)) {
@@ -846,7 +846,7 @@ nsDragService::IsDataFlavorSupported(const char *aDataFlavor,
             *_retval = PR_TRUE;
         }
         
-        if (*_retval == PR_FALSE && 
+        if (!*_retval && 
             name &&
             (strcmp(name, gMozUrlType) == 0) &&
             (strcmp(aDataFlavor, kURLMime) == 0)) {
@@ -856,7 +856,7 @@ nsDragService::IsDataFlavorSupported(const char *aDataFlavor,
             *_retval = PR_TRUE;
         }
         
-        if (*_retval == PR_FALSE && 
+        if (!*_retval && 
             name &&
             (strcmp(name, kTextMime) == 0) &&
             ((strcmp(aDataFlavor, kUnicodeMime) == 0) ||

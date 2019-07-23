@@ -321,7 +321,7 @@ void nsXMLEventsManager::AddListeners(nsIDocument* aDocument)
   for (int i = 0; i < mIncomplete.Count(); ++i) {
     cur = mIncomplete[i];
     
-    if (nsXMLEventsListener::InitXMLEventsListener(aDocument, this, cur) == PR_TRUE)
+    if (nsXMLEventsListener::InitXMLEventsListener(aDocument, this, cur))
       --i;
   }
 }

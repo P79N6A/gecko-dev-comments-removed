@@ -679,7 +679,7 @@ NS_METHOD nsWindow::Show(PRBool bState)
 	
 	
 	
-	if (bState == PR_FALSE)
+	if (!bState)
 	{
 		if (mView->Window() && !mView->Window()->IsHidden())
 			mView->Window()->Hide();
@@ -1094,7 +1094,7 @@ NS_METHOD nsWindow::SetFocus(PRBool aRaise)
 	if (mView && mView->LockLooper())
 	{
 		if (mView->Window() && 
-		    aRaise == PR_TRUE &&
+		    aRaise &&
 		    eWindowType_popup != mWindowType && 
 			  !mView->Window()->IsActive() && 
 			  gLastActiveWindow != mView->Window())

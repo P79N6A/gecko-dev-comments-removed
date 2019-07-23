@@ -85,7 +85,7 @@ nsHTTPCompressConv::~nsHTTPCompressConv()
 
     
     
-    if ((mStreamInitialized == PR_TRUE) && (mStreamEnded == PR_FALSE))
+    if (mStreamInitialized && !mStreamEnded)
         inflateEnd (&d_stream);
 }
 

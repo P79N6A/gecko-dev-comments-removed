@@ -1453,7 +1453,7 @@ nsListControlFrame::DoneAddingChildren(PRBool aIsDone)
     
     
     
-    if (mIsAllFramesHere == PR_FALSE) {
+    if (!mIsAllFramesHere) {
       
       if (CheckIfAllFramesHere()) {
         mHasBeenInitialized = PR_TRUE;
