@@ -54,11 +54,11 @@
 
 
 struct FontSearch {
-    FontSearch(const PRUint32 aCharacter, gfxAtsuiFont *aFont) :
+    FontSearch(const PRUint32 aCharacter, gfxFont *aFont) :
         ch(aCharacter), fontToMatch(aFont), matchRank(0) {
     }
     const PRUint32 ch;
-    gfxAtsuiFont *fontToMatch;
+    gfxFont *fontToMatch;
     PRInt32 matchRank;
     nsRefPtr<MacOSFontEntry> bestMatch;
 };
@@ -67,66 +67,49 @@ class MacOSFamilyEntry;
 class gfxQuartzFontCache;
 
 
-class MacOSFontEntry
+class MacOSFontEntry : public gfxFontEntry
 {
 public:
-    THEBES_INLINE_DECL_REFCOUNTING(MacOSFontEntry)
-
     friend class gfxQuartzFontCache;
 
     
     MacOSFontEntry(const nsAString& aPostscriptName, PRInt32 aAppleWeight, PRUint32 aTraits, 
                     MacOSFamilyEntry *aFamily);
 
-    const nsString& Name() { return mPostscriptName; }
     const nsString& FamilyName();
-    PRInt32 Weight() { return mWeight; }
+
     PRUint32 Traits() { return mTraits; }
     
-    PRBool IsFixedPitch();
-    PRBool IsItalicStyle();
-    PRBool IsBold();
-
     ATSUFontID GetFontID();
     nsresult ReadCMAP();
-    inline PRBool TestCharacterMap(PRUint32 aCh) {
-        if ( !mCmapInitialized ) ReadCMAP();
-        return mCharacterMap.test(aCh);
-    }
 
     MacOSFamilyEntry* FamilyEntry() { return mFamily; }
 protected:
-    nsString mPostscriptName;
-    PRInt32 mWeight; 
     PRUint32 mTraits;
     MacOSFamilyEntry *mFamily;
 
-    ATSUFontID mATSUFontID;
-    gfxSparseBitSet mCharacterMap;
-    
-    PRPackedBool mCmapInitialized;
     PRPackedBool mATSUIDInitialized;
+    ATSUFontID mATSUFontID;
 };
 
 
 class AddOtherFamilyNameFunctor;
 
 
-class MacOSFamilyEntry
+class MacOSFamilyEntry : public gfxFontFamily
 {
 public:
-    THEBES_INLINE_DECL_REFCOUNTING(MacOSFamilyEntry)
 
     friend class gfxQuartzFontCache;
 
+    
     MacOSFamilyEntry(nsString &aName) :
-        mName(aName), mOtherFamilyNamesInitialized(PR_FALSE), mHasOtherFamilyNames(PR_FALSE),
+        gfxFontFamily(aName), mOtherFamilyNamesInitialized(PR_FALSE), mHasOtherFamilyNames(PR_FALSE),
         mIsBadUnderlineFontFamily(PR_FALSE)
     {}
   
     virtual ~MacOSFamilyEntry() {}
         
-    const nsString& Name() { return mName; }
     virtual void LocalizedName(nsAString& aLocalizedName);
     virtual PRBool HasOtherFamilyNames();
     
@@ -167,13 +150,11 @@ protected:
     
     
     
-    PRBool FindFontsWithTraits(MacOSFontEntry* aFontsForWeights[], PRUint32 aPosTraitsMask, 
+    PRBool FindFontsWithTraits(gfxFontEntry* aFontsForWeights[], PRUint32 aPosTraitsMask, 
                                 PRUint32 aNegTraitsMask);
 
-    
-    MacOSFontEntry* FindFontWeight(MacOSFontEntry* aFontsForWeights[], const gfxFontStyle* aStyle, PRBool& aNeedsBold);
-    
-    nsString mName;  
+    PRBool FindWeightsForStyle(gfxFontEntry* aFontsForWeights[], const gfxFontStyle& aFontStyle);
+
     nsTArray<nsRefPtr<MacOSFontEntry> >  mAvailableFonts;
     PRPackedBool mOtherFamilyNamesInitialized;
     PRPackedBool mHasOtherFamilyNames;
@@ -226,7 +207,7 @@ public:
 
     void GetFontFamilyList(nsTArray<nsRefPtr<MacOSFamilyEntry> >& aFamilyArray);
 
-    MacOSFontEntry* FindFontForChar(const PRUint32 aCh, gfxAtsuiFont *aPrevFont);
+    MacOSFontEntry* FindFontForChar(const PRUint32 aCh, gfxFont *aPrevFont);
 
     MacOSFamilyEntry* FindFamily(const nsAString& aFamily);
     

@@ -36,6 +36,7 @@
 
 
 
+
 #ifndef GFX_FONT_H
 #define GFX_FONT_H
 
@@ -43,6 +44,7 @@
 #include "gfxTypes.h"
 #include "nsString.h"
 #include "gfxPoint.h"
+#include "gfxFontUtils.h"
 #include "nsTArray.h"
 #include "nsTHashtable.h"
 #include "nsHashKeys.h"
@@ -90,7 +92,7 @@ struct THEBES_API gfxFontStyle {
     
     
     PRPackedBool familyNameQuirks : 1;
-    
+
     
     
     
@@ -137,6 +139,89 @@ struct THEBES_API gfxFontStyle {
             (sizeAdjust == other.sizeAdjust);
     }
 };
+
+
+class gfxFontEntry {
+public:
+    THEBES_INLINE_DECL_REFCOUNTING(gfxFontEntry)
+
+    gfxFontEntry(const nsAString& aName) : 
+        mName(aName), mCmapInitialized(PR_FALSE)
+    { }
+
+    gfxFontEntry(const gfxFontEntry& aEntry) : 
+        mName(aEntry.mName), mItalic(aEntry.mItalic), mFixedPitch(aEntry.mFixedPitch),
+        mUnicodeFont(aEntry.mUnicodeFont), mSymbolFont(aEntry.mSymbolFont), mTrueType(aEntry.mTrueType),
+        mIsType1(aEntry.mIsType1), mWeight(aEntry.mWeight), mCmapInitialized(aEntry.mCmapInitialized),
+        mCharacterMap(aEntry.mCharacterMap)
+    { }
+
+    virtual ~gfxFontEntry();
+
+    
+    const nsString& Name() const { return mName; }
+
+    PRInt32 Weight() { return mWeight; }
+
+    PRBool IsFixedPitch() { return mFixedPitch; }
+    PRBool IsItalic() { return mItalic; }
+    PRBool IsBold() { return mWeight >= 6; } 
+
+    inline PRBool HasCharacter(PRUint32 ch) {
+        if (mCharacterMap.test(ch))
+            return PR_TRUE;
+            
+        return TestCharacterMap(ch);
+    }
+
+    virtual PRBool TestCharacterMap(PRUint32 aCh);
+    virtual nsresult ReadCMAP() { return 0; }
+
+    nsString mName;
+
+    PRPackedBool     mItalic      : 1;
+    PRPackedBool     mFixedPitch  : 1;
+
+    PRPackedBool     mUnicodeFont : 1;
+    PRPackedBool     mSymbolFont  : 1;
+    PRPackedBool     mTrueType    : 1;
+    PRPackedBool     mIsType1     : 1;
+
+    PRUint16         mWeight;
+
+    PRPackedBool     mCmapInitialized;
+    gfxSparseBitSet  mCharacterMap;
+};
+
+
+class gfxFontFamily {
+public:
+    THEBES_INLINE_DECL_REFCOUNTING(gfxFontFamily)
+
+    gfxFontFamily(const nsAString& aName) :
+        mName(aName) { }
+
+    virtual ~gfxFontFamily() { }
+
+    const nsString& Name() { return mName; }
+
+    
+    gfxFontEntry *FindFontForStyle(const gfxFontStyle& aFontStyle, PRBool& aNeedsBold);
+
+protected:
+    
+    virtual PRBool FindWeightsForStyle(gfxFontEntry* aFontsForWeights[], const gfxFontStyle& aFontStyle) { return PR_FALSE; }
+
+    nsString mName;
+};
+
+struct gfxTextRange {
+    gfxTextRange(PRUint32 aStart,  PRUint32 aEnd) : start(aStart), end(aEnd) { }
+    PRUint32 Length() const { return end - start; }
+    nsRefPtr<gfxFont> font;
+    PRUint32 start, end;
+};
+
 
 
 
@@ -383,10 +468,10 @@ protected:
     nsAutoRefCnt mRefCnt;
 
 public:
-    gfxFont(const nsAString &aName, const gfxFontStyle *aFontGroup);
+    gfxFont(gfxFontEntry *aFontEntry, const gfxFontStyle *aFontStyle);
     virtual ~gfxFont();
 
-    const nsString& GetName() const { return mName; }
+    const nsString& GetName() const { return mFontEntry->Name(); }
     const gfxFontStyle *GetStyle() const { return &mStyle; }
 
     virtual nsString GetUniqueName() = 0;
@@ -548,16 +633,25 @@ public:
     PRBool IsSyntheticBold() { return mSyntheticBoldOffset != 0; }
     PRUint32 GetSyntheticBoldOffset() { return mSyntheticBoldOffset; }
     
+    gfxFontEntry *GetFontEntry() { return mFontEntry.get(); }
+    PRBool HasCharacter(PRUint32 ch) {
+        if (!mIsValid)
+            return PR_FALSE;
+        return mFontEntry->HasCharacter(ch); 
+    }
+
 protected:
+    nsRefPtr<gfxFontEntry> mFontEntry;
+
     
-    nsString                   mName;
+    PRPackedBool               mIsValid;
     nsExpirationState          mExpirationState;
     gfxFontStyle               mStyle;
     nsAutoTArray<gfxGlyphExtents*,1> mGlyphExtentsArray;
 
     
     PRUint32                   mSyntheticBoldOffset;  
-    
+
     
     
     void SanitizeMetrics(gfxFont::Metrics *aMetrics, PRBool aIsBadUnderlineFont);
@@ -1487,6 +1581,15 @@ public:
         return mUnderlineOffset;
     }
 
+    already_AddRefed<gfxFont> FindFontForChar(PRUint32 ch, PRUint32 prevCh, PRUint32 nextCh, gfxFont *aPrevMatchedFont);
+
+    virtual already_AddRefed<gfxFont> WhichPrefFontSupportsChar(PRUint32 aCh) { return nsnull; }
+
+    virtual already_AddRefed<gfxFont> WhichSystemFontSupportsChar(PRUint32 aCh) { return nsnull; }
+
+    void ComputeRanges(nsTArray<gfxTextRange>& mRanges, const PRUnichar *aString, PRUint32 begin, PRUint32 end);
+
+
 protected:
     nsString mFamilies;
     gfxFontStyle mStyle;
@@ -1514,5 +1617,16 @@ protected:
                                       void *closure);
 
     static PRBool FontResolverProc(const nsAString& aName, void *aClosure);
+
+    inline gfxFont* WhichFontSupportsChar(nsTArray< nsRefPtr<gfxFont> >& aFontList, PRUint32 aCh) {
+        PRUint32 len = aFontList.Length();
+        for (PRUint32 i = 0; i < len; i++) {
+            gfxFont* font = aFontList.ElementAt(i).get();
+            if (font && font->HasCharacter(aCh))
+                return font;
+        }
+        return nsnull;
+    }
+
 };
 #endif
