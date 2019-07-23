@@ -386,6 +386,7 @@ gfxQtFont::gfxQtFont(const nsAString &aName,
         : gfxFont(aName, aFontStyle),
         mQFont(nsnull),
         mCairoFont(nsnull),
+        mFontFace(nsnull),
         mHasSpaceGlyph(PR_FALSE),
         mSpaceGlyph(0),
         mHasMetrics(PR_FALSE),
@@ -588,28 +589,126 @@ PRUint32 gfxQtFont::GetSpaceGlyph ()
     return mSpaceGlyph;
 }
 
+static const PRInt8 nFcWeight = 2; 
+static const int fcWeight[] = {
+    
+    
+    
+    
+    FC_WEIGHT_REGULAR, 
+    
+    
+    FC_WEIGHT_BOLD,
+    
+    
+};
+
+
+cairo_font_face_t *gfxQtFont::CairoFontFace(QFont *aFont)
+{
+#ifdef DEBUG_thebes_2
+    printf("gfxOS2Font[%#x]::CairoFontFace()\n", (unsigned)this);
+#endif
+    if (!mFontFace) {
+#ifdef DEBUG_thebes
+        printf("gfxOS2Font[%#x]::CairoFontFace(): create it for %s, %f\n",
+               (unsigned)this, NS_LossyConvertUTF16toASCII(mName).get(), GetStyle()->size);
+#endif
+        if (aFont) {
+            FT_Face ftFace = aFont->freetypeFace();
+            mFontFace = cairo_ft_font_face_create_for_ft_face( ftFace, 0 );
+            if (mFontFace)
+                return mFontFace;
+        }
+
+        FcPattern *fcPattern = FcPatternCreate();
+
+        
+        
+        FcPatternAddString(fcPattern, FC_FAMILY,
+                           (FcChar8 *)NS_LossyConvertUTF16toASCII(mName).get());
+
+
+        
+        
+        
+        
+        PRInt8 weight, offset;
+        GetStyle()->ComputeWeightAndOffset(&weight, &offset);
+        
+        
+        
+        PRInt16 fcW = 40 * weight - 80; 
+        
+        PRInt8 i = 0;
+        while (i < nFcWeight && fcWeight[i] < fcW) {
+            i++;
+        }
+        
+        i += offset;
+        if (i < 0) {
+            i = 0;
+        } else if (i >= nFcWeight) {
+            i = nFcWeight - 1;
+        }
+        fcW = fcWeight[i];
+
+        
+        FcPatternAddInteger(fcPattern, FC_WEIGHT, fcW);
+
+        PRUint8 fcProperty;
+        
+        switch (GetStyle()->style) {
+        case FONT_STYLE_ITALIC:
+            fcProperty = FC_SLANT_ITALIC;
+            break;
+        case FONT_STYLE_OBLIQUE:
+            fcProperty = FC_SLANT_OBLIQUE;
+            break;
+        case FONT_STYLE_NORMAL:
+        default:
+            fcProperty = FC_SLANT_ROMAN;
+        }
+        FcPatternAddInteger(fcPattern, FC_SLANT, fcProperty);
+
+        
+        FcPatternAddDouble(fcPattern, FC_PIXEL_SIZE,
+                           mAdjustedSize ? mAdjustedSize : GetStyle()->size);
+
+        
+        FcResult fcRes;
+        FcPattern *fcMatch = FcFontMatch(NULL, fcPattern, &fcRes);
+        FcPatternDestroy(fcPattern);
+        if (mName == NS_LITERAL_STRING("Workplace Sans") && fcW >= FC_WEIGHT_DEMIBOLD) {
+            
+            
+            FcPatternAddBool(fcMatch, FC_EMBOLDEN, FcTrue);
+        }
+        
+        mFontFace = cairo_ft_font_face_create_for_pattern(fcMatch);
+        FcPatternDestroy(fcMatch);
+    }
+
+    NS_ASSERTION(mFontFace, "Failed to make font face");
+    return mFontFace;
+}
 
 cairo_scaled_font_t*
 gfxQtFont::CreateScaledFont(cairo_t *aCR, cairo_matrix_t *aCTM, QFont &aQFont)
 {
-    FT_Face ftFace = aQFont.freetypeFace();
-
     double size = mAdjustedSize ? mAdjustedSize : GetStyle()->size;
     cairo_matrix_t fontMatrix;
     cairo_matrix_init_scale(&fontMatrix, size, size);
     cairo_font_options_t *fontOptions = cairo_font_options_create();
 
-    cairo_font_face_t *cairoFontFace = 
-                cairo_ft_font_face_create_for_ft_face( ftFace, 0 );
-
     cairo_scaled_font_t* scaledFont = 
-                cairo_scaled_font_create( cairoFontFace, 
+                cairo_scaled_font_create( CairoFontFace(&aQFont),
+
                                           &fontMatrix,
                                           aCTM,
                                           fontOptions);
 
     cairo_font_options_destroy(fontOptions);
-    cairo_font_face_destroy(cairoFontFace);
 
     return scaledFont;
 }
