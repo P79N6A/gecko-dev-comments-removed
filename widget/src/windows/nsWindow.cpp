@@ -1370,6 +1370,8 @@ nsWindow::StandardWindowCreate(nsIWidget *aParent,
     
     if (aParent)
       extendedStyle = WS_EX_TOOLWINDOW;
+    else
+      parent = NULL;
   } else if (nsnull != aInitData) {
     
     if (aInitData->clipChildren) {
