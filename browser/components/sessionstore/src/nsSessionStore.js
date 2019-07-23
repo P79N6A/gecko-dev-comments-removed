@@ -1768,6 +1768,26 @@ SessionStoreService.prototype = {
     }
     
     
+    let tabScrollBoxObject = tabbrowser.tabContainer.mTabstrip.scrollBoxObject;
+    let tabBoxObject = aTabs[0].boxObject;
+    let maxVisibleTabs = Math.ceil(tabScrollBoxObject.width / tabBoxObject.width);
+
+    
+    if (maxVisibleTabs < aTabs.length && aSelectTab > 1) {
+      let firstVisibleTab = 0;
+      if (aTabs.length - maxVisibleTabs > aSelectTab) {
+        
+        firstVisibleTab = aSelectTab - 1;
+      } else {
+        
+        firstVisibleTab = aTabs.length - maxVisibleTabs;
+      }
+      aTabs = aTabs.splice(firstVisibleTab, maxVisibleTabs).concat(aTabs);
+      aTabData = aTabData.splice(firstVisibleTab, maxVisibleTabs).concat(aTabData);
+      aSelectTab -= firstVisibleTab;
+    }
+
+    
     if (aSelectTab-- && aTabs[aSelectTab]) {
         aTabs.unshift(aTabs.splice(aSelectTab, 1)[0]);
         aTabData.unshift(aTabData.splice(aSelectTab, 1)[0]);
