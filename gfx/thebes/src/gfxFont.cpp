@@ -175,7 +175,7 @@ gfxFontCache::DestroyFont(gfxFont *aFont)
 }
 
 gfxFont::gfxFont(const nsAString &aName, const gfxFontStyle *aFontStyle) :
-    mName(aName), mStyle(*aFontStyle)
+    mName(aName), mStyle(*aFontStyle), mSyntheticBoldOffset(0)
 {
 #ifdef DEBUG_TEXT_RUN_STORAGE_METRICS
     ++gFontCount;
@@ -225,7 +225,6 @@ struct GlyphBuffer {
 #undef GLYPH_BUFFER_SIZE
 };
 
-
 void
 gfxFont::Draw(gfxTextRun *aTextRun, PRUint32 aStart, PRUint32 aEnd,
               gfxContext *aContext, PRBool aDrawToPath, gfxPoint *aPt,
@@ -239,6 +238,7 @@ gfxFont::Draw(gfxTextRun *aTextRun, PRUint32 aStart, PRUint32 aEnd,
     const double devUnitsPerAppUnit = 1.0/double(appUnitsPerDevUnit);
     PRBool isRTL = aTextRun->IsRightToLeft();
     double direction = aTextRun->GetDirection();
+    double synBoldDevUnitOffset = direction * (double) mSyntheticBoldOffset;  
     PRUint32 i;
     
     double x = aPt->x;
@@ -274,6 +274,16 @@ gfxFont::Draw(gfxTextRun *aTextRun, PRUint32 aStart, PRUint32 aEnd,
             } else {
                 x += advance;
             }
+            
+            
+            if (mSyntheticBoldOffset) {
+                cairo_glyph_t *doubleglyph;
+                doubleglyph = glyphs.AppendGlyph();
+                doubleglyph->index = glyph->index;
+                doubleglyph->x = glyph->x + synBoldDevUnitOffset;
+                doubleglyph->y = glyph->y;
+            }
+            
             glyphs.Flush(cr, aDrawToPath);
         } else {
             PRUint32 j;
@@ -301,6 +311,16 @@ gfxFont::Draw(gfxTextRun *aTextRun, PRUint32 aStart, PRUint32 aEnd,
                     if (isRTL) {
                         glyph->x -= ToDeviceUnits(advance, devUnitsPerAppUnit);
                     }
+
+                    
+                    if (mSyntheticBoldOffset) {
+                        cairo_glyph_t *doubleglyph;
+                        doubleglyph = glyphs.AppendGlyph();
+                        doubleglyph->index = glyph->index;
+                        doubleglyph->x = glyph->x + synBoldDevUnitOffset;
+                        doubleglyph->y = glyph->y;
+                    }
+
                     glyphs.Flush(cr, aDrawToPath);
                 }
                 x += direction*advance;
@@ -1310,6 +1330,120 @@ gfxTextRun::DrawPartialLigature(gfxFont *aFont, gfxContext *aCtx, PRUint32 aStar
     aPt->x += direction*data.mPartWidth;
 }
 
+
+static PRBool
+HasSyntheticBold(gfxTextRun *aRun, PRUint32 aStart, PRUint32 aLength)
+{
+    gfxTextRun::GlyphRunIterator iter(aRun, aStart, aLength);
+    while (iter.NextRun()) {
+        gfxFont *font = iter.GetGlyphRun()->mFont;
+        if (font && font->IsSyntheticBold()) {
+            return PR_TRUE;
+        }
+    }
+
+    return PR_FALSE;
+}
+
+
+
+static PRBool
+HasNonOpaqueColor(gfxContext *aContext, gfxRGBA& aCurrentColor)
+{
+    if (aContext->GetColor(aCurrentColor)) {
+        if (aCurrentColor.a < 1.0 && aCurrentColor.a > 0.0) {
+            return PR_TRUE;
+        }
+    }
+        
+    return PR_FALSE;
+}
+
+
+struct BufferAlphaColor {
+    BufferAlphaColor(gfxContext *aContext)
+        : mContext(aContext)
+    {
+    
+    }
+    
+    ~BufferAlphaColor() {}
+    
+    void PushSolidColor(const gfxRect& aBounds, const gfxRGBA& aAlphaColor, PRUint32 appsPerDevUnit)
+    {
+        mContext->Save();
+        mContext->NewPath();
+        mContext->Rectangle(gfxRect(aBounds.X() / appsPerDevUnit,
+                    aBounds.Y() / appsPerDevUnit,
+                    aBounds.Width() / appsPerDevUnit,
+                    aBounds.Height() / appsPerDevUnit), PR_TRUE);
+        mContext->Clip();
+        mContext->SetColor(gfxRGBA(aAlphaColor.r, aAlphaColor.g, aAlphaColor.b));
+        mContext->PushGroup(gfxASurface::CONTENT_COLOR_ALPHA);
+        mAlpha = aAlphaColor.a;
+    }
+    
+    void PopAlpha()
+    {
+        
+        mContext->PopGroupToSource();
+        mContext->SetOperator(gfxContext::OPERATOR_OVER);
+        mContext->Paint(mAlpha);
+        mContext->Restore();
+    }
+
+    gfxContext *mContext;
+    gfxFloat mAlpha;
+};
+
+void
+gfxTextRun::AdjustAdvancesForSyntheticBold(PRUint32 aStart, PRUint32 aLength)
+{
+    const PRUint32 appUnitsPerDevUnit = GetAppUnitsPerDevUnit();
+    PRBool isRTL = IsRightToLeft();
+
+    GlyphRunIterator iter(this, aStart, aLength);
+    while (iter.NextRun()) {
+        gfxFont *font = iter.GetGlyphRun()->mFont;
+        if (font->IsSyntheticBold()) {
+            PRUint32 synAppUnitOffset = font->GetSyntheticBoldOffset() * appUnitsPerDevUnit;
+            PRUint32 start = iter.GetStringStart();
+            PRUint32 end = iter.GetStringEnd();
+            PRUint32 i;
+            
+            
+            for (i = start; i < end; ++i) {
+                gfxTextRun::CompressedGlyph *glyphData = &mCharacterGlyphs[i];
+                
+                if (glyphData->IsSimpleGlyph()) {
+                    
+                    PRUint32 advance = glyphData->GetSimpleAdvance() + synAppUnitOffset;
+                    if (CompressedGlyph::IsSimpleAdvance(advance)) {
+                        glyphData->SetSimpleGlyph(advance, glyphData->GetSimpleGlyph());
+                    } else {
+                        
+                        PRUint32 glyphIndex = glyphData->GetSimpleGlyph();
+                        glyphData->SetComplex(PR_TRUE, PR_TRUE, 1);
+                        DetailedGlyph detail = {glyphIndex, advance, 0, 0};
+                        SetGlyphs(i, *glyphData, &detail);
+                    }
+                } else {
+                    
+                    PRUint32 detailedLength = glyphData->GetGlyphCount();
+                    if (detailedLength && mDetailedGlyphs) {
+                        gfxTextRun::DetailedGlyph *details = mDetailedGlyphs[i].get();
+                        if (!details) continue;
+                        if (isRTL)
+                            details[0].mAdvance += synAppUnitOffset;
+                        else
+                            details[detailedLength - 1].mAdvance += synAppUnitOffset;
+                    }
+                }
+            }
+        }
+    }
+}
+
 void
 gfxTextRun::Draw(gfxContext *aContext, gfxPoint aPt,
                  PRUint32 aStart, PRUint32 aLength, const gfxRect *aDirtyRect,
@@ -1320,6 +1454,19 @@ gfxTextRun::Draw(gfxContext *aContext, gfxPoint aPt,
     gfxFloat direction = GetDirection();
     gfxPoint pt = aPt;
 
+    
+    BufferAlphaColor syntheticBoldBuffer(aContext);
+    gfxRGBA currentColor;
+    PRBool needToRestore = PR_FALSE;
+    
+    if (HasNonOpaqueColor(aContext, currentColor) && HasSyntheticBold(this, aStart, aLength)) {
+        needToRestore = PR_TRUE;
+        
+        gfxTextRun::Metrics metrics = MeasureText(aStart, aLength, PR_FALSE, aContext, aProvider);
+        metrics.mBoundingBox.MoveBy(aPt);
+        syntheticBoldBuffer.PushSolidColor(metrics.mBoundingBox, currentColor, GetAppUnitsPerDevUnit());
+    }
+    
     GlyphRunIterator iter(this, aStart, aLength);
     while (iter.NextRun()) {
         gfxFont *font = iter.GetGlyphRun()->mFont;
@@ -1328,11 +1475,16 @@ gfxTextRun::Draw(gfxContext *aContext, gfxPoint aPt,
         PRUint32 ligatureRunStart = start;
         PRUint32 ligatureRunEnd = end;
         ShrinkToLigatureBoundaries(&ligatureRunStart, &ligatureRunEnd);
-
+        
         DrawPartialLigature(font, aContext, start, ligatureRunStart, aDirtyRect, &pt, aProvider);
         DrawGlyphs(font, aContext, PR_FALSE, &pt, ligatureRunStart,
                    ligatureRunEnd, aProvider, ligatureRunStart, ligatureRunEnd);
         DrawPartialLigature(font, aContext, ligatureRunEnd, end, aDirtyRect, &pt, aProvider);
+    }
+
+    
+    if (needToRestore) {
+        syntheticBoldBuffer.PopAlpha();
     }
 
     if (aAdvanceWidth) {
@@ -1610,7 +1762,7 @@ gfxTextRun::BreakAndMeasureText(PRUint32 aStart, PRUint32 aMaxLength,
 
     if (aMetrics) {
         *aMetrics = MeasureText(aStart, charsFit - trimmableChars,
-    	    aTightBoundingBox, aRefContext, aProvider);
+            aTightBoundingBox, aRefContext, aProvider);
     }
     if (aTrimWhitespace) {
         *aTrimWhitespace = trimmableAdvance;

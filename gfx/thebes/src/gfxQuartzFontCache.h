@@ -139,7 +139,8 @@ public:
     
     
     
-    MacOSFontEntry* FindFont(const gfxFontStyle* aStyle);
+    
+    MacOSFontEntry* FindFont(const gfxFontStyle* aStyle, PRBool& aNeedsBold);
     
     
     
@@ -163,7 +164,7 @@ protected:
                                 PRUint32 aNegTraitsMask);
 
     
-    MacOSFontEntry* FindFontWeight(MacOSFontEntry* aFontsForWeights[], const gfxFontStyle* aStyle);
+    MacOSFontEntry* FindFontWeight(MacOSFontEntry* aFontsForWeights[], const gfxFontStyle* aStyle, PRBool& aNeedsBold);
     
     nsString mName;  
     nsTArray<nsRefPtr<MacOSFontEntry> >  mAvailableFonts;
@@ -221,9 +222,9 @@ public:
 
     MacOSFamilyEntry* FindFamily(const nsAString& aFamily);
     
-    MacOSFontEntry* FindFontForFamily(const nsAString& aFamily, const gfxFontStyle* aStyle);
+    MacOSFontEntry* FindFontForFamily(const nsAString& aFamily, const gfxFontStyle* aStyle, PRBool& aNeedsBold);
     
-    MacOSFontEntry* GetDefaultFont(const gfxFontStyle* aStyle);
+    MacOSFontEntry* GetDefaultFont(const gfxFontStyle* aStyle, PRBool& aNeedsBold);
 
     static PRInt32 AppleWeightToCSSWeight(PRInt32 aAppleWeight);
     

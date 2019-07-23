@@ -542,6 +542,9 @@ public:
     
     virtual PRBool SetupCairoFont(gfxContext *aContext) = 0;
 
+    PRBool IsSyntheticBold() { return mSyntheticBoldOffset != 0; }
+    PRUint32 GetSyntheticBoldOffset() { return mSyntheticBoldOffset; }
+    
 protected:
     
     nsString                   mName;
@@ -549,6 +552,9 @@ protected:
     gfxFontStyle               mStyle;
     nsAutoTArray<gfxGlyphExtents*,1> mGlyphExtentsArray;
 
+    
+    PRUint32                   mSyntheticBoldOffset;  
+    
     
     
     void SanitizeMetrics(gfxFont::Metrics *aMetrics, PRBool aIsBadUnderlineFont);
@@ -1275,6 +1281,9 @@ public:
     
     void Dump(FILE* aOutput);
 #endif
+
+    
+    void AdjustAdvancesForSyntheticBold(PRUint32 aStart, PRUint32 aLength);
 
 protected:
     
