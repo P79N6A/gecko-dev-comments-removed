@@ -96,10 +96,10 @@ public:
                                     nsIFrame*       aOldParentFrame,
                                     nsIFrame*       aNewParentFrame);
 
-  static nsresult ReparentFrameViewList(nsPresContext* aPresContext,
-                                        nsIFrame*       aChildFrameList,
-                                        nsIFrame*       aOldParentFrame,
-                                        nsIFrame*       aNewParentFrame);
+  static nsresult ReparentFrameViewList(nsPresContext*     aPresContext,
+                                        const nsFrameList& aChildFrameList,
+                                        nsIFrame*          aOldParentFrame,
+                                        nsIFrame*          aNewParentFrame);
 
   
 
