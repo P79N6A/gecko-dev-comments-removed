@@ -37,20 +37,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-var env = Components.classes["@mozilla.org/process/environment;1"]
-                    .getService(Components.interfaces.nsIEnvironment);
-env.set("XPCOM_DEBUG_BREAK", "stack");
-
-
 gPrefs.setBoolPref("extensions.checkUpdateSecurity", false);
 
 
@@ -468,7 +454,4 @@ function run_test_pt4() {
   do_test_finished();
 
   testserver.stop();
-
-  
-  env.set("XPCOM_DEBUG_BREAK", "abort");
 }
