@@ -122,6 +122,7 @@ nsJAR::nsJAR(): mManifestData(nsnull, nsnull, DeleteManifestEntry, nsnull, 10),
                 mReleaseTime(PR_INTERVAL_NO_TIMEOUT), 
                 mCache(nsnull), 
                 mLock(nsnull),
+                mMtime(0),
                 mTotalItemsInManifest(0)
 {
 }
@@ -166,6 +167,8 @@ nsJAR::Open(nsIFile* zipFile)
   if (mLock) return NS_ERROR_FAILURE; 
 
   mZipFile = zipFile;
+  nsresult rv = zipFile->GetLastModifiedTime(&mMtime);
+  if (NS_FAILED(rv)) return rv;
 
   mLock = PR_NewLock();
   NS_ENSURE_TRUE(mLock, NS_ERROR_OUT_OF_MEMORY);
@@ -173,7 +176,7 @@ nsJAR::Open(nsIFile* zipFile)
   PRFileDesc *fd = OpenFile();
   NS_ENSURE_TRUE(fd, NS_ERROR_FAILURE);
 
-  nsresult rv = mZip.OpenArchive(fd);
+  rv = mZip.OpenArchive(fd);
   if (NS_FAILED(rv)) Close();
 
   return rv;
@@ -337,9 +340,19 @@ nsJAR::GetInputStreamWithSpec(const nsACString& aJarDirSpec,
 
   nsresult rv = NS_OK;
   if (!item || item->isDirectory) {
-    rv = jis->InitDirectory(this, aJarDirSpec, aEntryName);
+    rv = jis->InitDirectory(&mZip, aJarDirSpec, aEntryName);
   } else {
-    rv = jis->InitFile(mZip.GetFD(item), item);
+    
+    
+    
+    PRFileDesc *fd = nsnull;
+    fd = OpenFile();
+    if (fd) {
+      rv = jis->InitFile(&mZip, item, fd);
+      
+    } else {
+      rv = NS_ERROR_FAILURE;
+    }
   }
   if (NS_FAILED(rv)) {
     NS_RELEASE(*result);
@@ -1100,9 +1113,13 @@ nsZipReaderCache::GetZip(nsIFile* zipFile, nsIZipReader* *result)
   rv = zipFile->GetNativePath(path);
   if (NS_FAILED(rv)) return rv;
 
+  PRInt64 Mtime;
+  rv = zipFile->GetLastModifiedTime(&Mtime);
+  if (NS_FAILED(rv)) return rv;
+
   nsCStringKey key(path);
   nsJAR* zip = static_cast<nsJAR*>(static_cast<nsIZipReader*>(mZips.Get(&key))); 
-  if (zip) {
+  if (zip && Mtime == zip->GetMtime()) {
 #ifdef ZIP_CACHE_HIT_RATE
     mZipCacheHits++;
 #endif
