@@ -538,7 +538,18 @@ public:
 
 
   static PRBool IsInnerSVG(nsIContent* aContent);
-    
+
+  
+
+
+
+
+
+
+
+  static PRBool NumberFromString(const nsAString& aString, float* aValue,
+                                 PRBool aAllowPercentages = PR_FALSE);
+
 private:
   
   static gfxASurface *mThebesComputationalSurface;

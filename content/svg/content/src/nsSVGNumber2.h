@@ -42,6 +42,12 @@
 #include "nsSVGElement.h"
 #include "nsDOMError.h"
 
+#ifdef MOZ_SMIL
+#include "nsISMILAttr.h"
+class nsSMILValue;
+class nsISMILType;
+#endif 
+
 class nsSVGNumber2
 {
 
@@ -49,6 +55,7 @@ public:
   void Init(PRUint8 aAttrEnum = 0xff, float aValue = 0) {
     mAnimVal = mBaseVal = aValue;
     mAttrEnum = aAttrEnum;
+    mIsAnimated = PR_FALSE;
   }
 
   nsresult SetBaseValueString(const nsAString& aValue,
@@ -59,19 +66,28 @@ public:
   void SetBaseValue(float aValue, nsSVGElement *aSVGElement, PRBool aDoSetAttr);
   float GetBaseValue() const
     { return mBaseVal; }
+  void SetAnimValue(float aValue, nsSVGElement *aSVGElement);
   float GetAnimValue(nsSVGElement *aSVGElement) const
   {
+  #ifdef MOZ_SMIL
+    aSVGElement->FlushAnimations();
+  #endif
     return mAnimVal;
   }
 
   nsresult ToDOMAnimatedNumber(nsIDOMSVGAnimatedNumber **aResult,
                                nsSVGElement* aSVGElement);
+#ifdef MOZ_SMIL
+  
+  nsISMILAttr* ToSMILAttr(nsSVGElement* aSVGElement);
+#endif 
 
 private:
 
   float mAnimVal;
   float mBaseVal;
   PRUint8 mAttrEnum; 
+  PRPackedBool mIsAnimated;
 
   struct DOMAnimatedNumber : public nsIDOMSVGAnimatedNumber
   {
@@ -97,5 +113,28 @@ private:
 
   };
 
+#ifdef MOZ_SMIL
+  struct SMILNumber : public nsISMILAttr
+  {
+  public:
+    SMILNumber(nsSVGNumber2* aVal, nsSVGElement* aSVGElement)
+    : mVal(aVal), mSVGElement(aSVGElement) {}
+
+    
+    
+    
+    nsSVGNumber2* mVal;
+    nsSVGElement* mSVGElement;
+
+    
+    virtual nsresult ValueFromString(const nsAString& aStr,
+                                     const nsISMILAnimationElement* aSrcElement,
+                                     nsSMILValue& aValue) const;
+    virtual nsSMILValue GetBaseValue() const;
+    virtual void ClearAnimValue();
+    virtual nsresult SetAnimValue(const nsSMILValue& aValue);
+  };
+#endif 
 };
+
 #endif 

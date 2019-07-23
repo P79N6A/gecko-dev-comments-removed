@@ -217,6 +217,7 @@ protected:
 
   
   virtual LengthAttributesInfo GetLengthInfo();
+  virtual void DidAnimateNumber(PRUint8 aAttrEnum);
 
   
   enum { X, Y, WIDTH, HEIGHT };

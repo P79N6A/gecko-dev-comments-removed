@@ -1271,6 +1271,19 @@ nsSVGElement::DidChangeNumber(PRUint8 aAttrEnum, PRBool aDoSetAttr)
 }
 
 void
+nsSVGElement::DidAnimateNumber(PRUint8 aAttrEnum)
+{
+  nsIFrame* frame = GetPrimaryFrame();
+
+  if (frame) {
+    NumberAttributesInfo info = GetNumberInfo();
+    frame->AttributeChanged(kNameSpaceID_None,
+                            *info.mNumberInfo[aAttrEnum].mName,
+                            nsIDOMMutationEvent::MODIFICATION);
+  }
+}
+
+void
 nsSVGElement::GetAnimatedNumberValues(float *aFirst, ...)
 {
   NumberAttributesInfo info = GetNumberInfo();
@@ -1669,6 +1682,24 @@ nsSVGElement::GetAnimatedAttr(const nsIAtom* aName)
   for (PRUint32 i = 0; i < info.mLengthCount; i++) {
     if (aName == *info.mLengthInfo[i].mName) {
       return info.mLengths[i].ToSMILAttr(this);
+    }
+  }
+
+  
+  {
+    NumberAttributesInfo info = GetNumberInfo();
+    for (PRUint32 i = 0; i < info.mNumberCount; i++) {
+      
+      
+      
+      
+      
+      
+      
+      
+      if (aName == *info.mNumberInfo[i].mName) {
+        return info.mNumbers[i].ToSMILAttr(this);
+      }
     }
   }
 
