@@ -232,6 +232,11 @@ var FullZoom = {
     this._removePref();
   },
 
+  setSettingValue: function () {
+    var value = this._cps.getPref(gBrowser.currentURI, this.name);
+    this._applyPrefToSetting(value);
+  },
+
   
 
 
@@ -250,6 +255,9 @@ var FullZoom = {
 
 
   _applyPrefToSetting: function (aValue) {
+    if (gInPrintPreviewMode)
+      return;
+
     
     
     try {
@@ -264,6 +272,9 @@ var FullZoom = {
   },
 
   _applySettingToPref: function () {
+    if (gInPrintPreviewMode)
+      return;
+
     var fullZoom = ZoomManager.fullZoom;
     this._cps.setPref(gBrowser.currentURI, this.name, fullZoom);
   },
