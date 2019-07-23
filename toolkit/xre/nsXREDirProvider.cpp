@@ -982,9 +982,6 @@ nsXREDirProvider::GetProfileDir(nsIFile* *aResult)
 nsresult
 nsXREDirProvider::GetUserDataDirectoryHome(nsILocalFile** aFile, PRBool aLocal)
 {
-  if (!gAppData)
-    return NS_ERROR_FAILURE;
-
   
   nsresult rv;
   nsCOMPtr<nsILocalFile> localDir;
@@ -1027,6 +1024,8 @@ nsXREDirProvider::GetUserDataDirectoryHome(nsILocalFile** aFile, PRBool aLocal)
 #if 0 
   
   
+  if (!gAppData)
+    return NS_ERROR_FAILURE;
   nsDependentCString envVar(nsDependentCString(gAppData->name));
   envVar.Append("_HOME");
   char *pHome = getenv(envVar.get());
