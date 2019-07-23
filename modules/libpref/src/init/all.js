@@ -2833,6 +2833,9 @@ pref("gfx.color_management.mode", 0);
 #endif
 
 
+pref("mozilla.widget.render-mode", -1);
+
+
 pref("geo.enabled", true);
 
 
