@@ -104,30 +104,32 @@ XPCWrapper::Enumerate(JSContext *cx, JSObject *wrapperObj, JSObject *innerObj)
   
   
 
-  JSIdArray *ida = JS_Enumerate(cx, innerObj);
-  if (!ida) {
-    return JS_FALSE;
-  }
-
   JSBool ok = JS_TRUE;
 
-  for (jsint i = 0, n = ida->length; i < n; i++) {
-    JSObject *pobj;
-    JSProperty *prop;
-
-    
-    
-    ok = OBJ_LOOKUP_PROPERTY(cx, wrapperObj, ida->vector[i], &pobj, &prop);
-    if (!ok) {
-      break;
+  do {
+    JSIdArray *ida = JS_Enumerate(cx, innerObj);
+    if (!ida) {
+      return JS_FALSE;
     }
 
-    if (prop) {
-      OBJ_DROP_PROPERTY(cx, pobj, prop);
-    }
-  }
+    for (jsint i = 0, n = ida->length; i < n; i++) {
+      JSObject *pobj;
+      JSProperty *prop;
 
-  JS_DestroyIdArray(cx, ida);
+      
+      
+      ok = OBJ_LOOKUP_PROPERTY(cx, wrapperObj, ida->vector[i], &pobj, &prop);
+      if (!ok) {
+        break;
+      }
+
+      if (prop) {
+        OBJ_DROP_PROPERTY(cx, pobj, prop);
+      }
+    }
+
+    JS_DestroyIdArray(cx, ida);
+  } while (ok && (innerObj = JS_GetPrototype(cx, innerObj)) != nsnull);
 
   return ok;
 }
