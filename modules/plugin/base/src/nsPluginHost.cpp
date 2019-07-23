@@ -464,7 +464,6 @@ public:
   nsIPluginInstance *GetPluginInstance() { return mInstance; }
 
 private:
-  nsresult SetUpCache(nsIURI* aURL); 
   nsresult SetUpStreamListener(nsIRequest* request, nsIURI* aURL);
   nsresult SetupPluginCacheFile(nsIChannel* channel);
 
@@ -1507,14 +1506,6 @@ NS_IMETHODIMP nsPluginStreamListenerPeer::OnStopRequest(nsIRequest *request,
     mPluginStreamInfo->SetStreamComplete(PR_TRUE);
 
   return NS_OK;
-}
-
-
-nsresult nsPluginStreamListenerPeer::SetUpCache(nsIURI* aURL)
-{
-  nsPluginCacheListener* cacheListener = new nsPluginCacheListener(this);
-  
-  return NS_OpenURI(cacheListener, nsnull, aURL, nsnull);
 }
 
 nsresult nsPluginStreamListenerPeer::SetUpStreamListener(nsIRequest *request,
