@@ -170,9 +170,9 @@ public:
         mListLength = 0;
     }
   
-      PRInt32 GetOriginalCharCount() const { return mCharCount; }
+    PRInt32 GetOriginalCharCount() const { return mCharCount; }
 
-      friend class gfxSkipCharsIterator;
+    friend class gfxSkipCharsIterator;
 
 private:
     struct Shortcut {
@@ -195,6 +195,10 @@ private:
     PRUint32                 mListLength;
     PRUint32                 mCharCount;
 };
+
+
+
+
 
 
 
