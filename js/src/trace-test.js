@@ -65,24 +65,26 @@ function getelem(a)
 }
 test("getelem", getelem(a), 3486);
 
-globalName = 907;
-function name()
-{
-  var a = 0;
-  for (var i = 0; i < 100; i++)
-    a = globalName;
-  return a;
-}
-test("undeclared globals from function", name(), 907);
 
-var globalInt = 0;
-for (var i = 0; i < 500; i++)
-  globalInt = globalName + i;
-test("get undeclared global at top level", globalInt, globalName + 499);
 
-for (var i = 0; i < 500; i++)
-  globalInt = i;
-test("setting global variable", globalInt, 499);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 function arith()
 {
