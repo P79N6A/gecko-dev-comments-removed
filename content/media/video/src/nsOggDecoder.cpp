@@ -297,7 +297,6 @@ public:
 
   
   
-  float GetVolume();
   void SetVolume(float aVolume);
 
   
@@ -818,12 +817,6 @@ void nsOggDecodeStateMachine::ClearPositionChangeFlag()
   mPositionChangeQueued = PR_FALSE;
 }
 
-float nsOggDecodeStateMachine::GetVolume()
-{
-  
-  return mVolume;
-}
-
 void nsOggDecodeStateMachine::SetVolume(float volume)
 {
   
@@ -1262,12 +1255,6 @@ void nsOggDecoder::Pause()
   }
 
   ChangeState(PLAY_STATE_PAUSED);
-}
-
-float nsOggDecoder::GetVolume()
-{
-  nsAutoMonitor mon(mMonitor);
-  return mDecodeStateMachine ? mDecodeStateMachine->GetVolume() : mInitialVolume;
 }
 
 void nsOggDecoder::SetVolume(float volume)

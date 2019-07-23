@@ -312,7 +312,7 @@ protected:
   nsMediaReadyState mReadyState;
 
   
-  float mMutedVolume;
+  float mVolume;
 
   
   

@@ -98,10 +98,6 @@ class nsMediaDecoder : public nsIObserver
   virtual void Pause() = 0;
 
   
-  
-  virtual float GetVolume() = 0;
-
-  
   virtual void SetVolume(float volume) = 0;
 
   

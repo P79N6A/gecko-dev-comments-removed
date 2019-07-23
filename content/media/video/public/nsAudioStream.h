@@ -83,10 +83,6 @@ class nsAudioStream
 
   
   
-  float GetVolume();
-
-  
-  
   void SetVolume(float aVolume);
 
   

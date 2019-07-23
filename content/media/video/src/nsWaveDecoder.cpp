@@ -119,10 +119,6 @@ public:
 
   
   
-  float GetVolume();
-
-  
-  
   void SetVolume(float aVolume);
 
   
@@ -410,16 +406,6 @@ nsWaveStateMachine::Play()
   } else {
     ChangeState(STATE_PLAYING);
   }
-}
-
-float
-nsWaveStateMachine::GetVolume()
-{
-  float volume = mInitialVolume;
-  if (mAudioStream) {
-    volume = mAudioStream->GetVolume();
-  }
-  return volume;
 }
 
 void
@@ -1298,15 +1284,6 @@ nsWaveDecoder::Pause()
   if (mPlaybackStateMachine) {
     mPlaybackStateMachine->Pause();
   }
-}
-
-float
-nsWaveDecoder::GetVolume()
-{
-  if (!mPlaybackStateMachine) {
-    return mInitialVolume;
-  }
-  return mPlaybackStateMachine->GetVolume();
 }
 
 void

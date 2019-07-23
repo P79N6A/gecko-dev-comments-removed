@@ -156,9 +156,6 @@ class nsWaveDecoder : public nsMediaDecoder
   virtual float GetDuration();
 
   
-  virtual float GetVolume();
-
-  
   virtual void SetVolume(float aVolume);
 
   virtual nsresult Play();
