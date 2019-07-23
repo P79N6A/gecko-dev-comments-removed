@@ -286,7 +286,7 @@ nsFileView::~nsFileView()
 {
   PRInt32 count = mCurrentFilters.Count();
   for (PRInt32 i = 0; i < count; ++i)
-    PR_Free(mCurrentFilters[i]);
+    NS_Free(mCurrentFilters[i]);
 }
 
 nsresult
@@ -458,28 +458,47 @@ nsFileView::SetDirectory(nsIFile* aDirectory)
 }
 
 NS_IMETHODIMP
-nsFileView::SetFilter(const PRUnichar* aFilterString)
+nsFileView::SetFilter(const nsAString& aFilterString)
 {
   PRInt32 filterCount = mCurrentFilters.Count();
   for (PRInt32 i = 0; i < filterCount; ++i)
-    PR_Free(mCurrentFilters[i]);
+    NS_Free(mCurrentFilters[i]);
   mCurrentFilters.Clear();
-  
-  const PRUnichar* chr, *aPos = aFilterString;
-  for (chr = aFilterString; *chr; ++chr) {
-    if (*chr == ';') {
-      PRUnichar* aNewString = nsCRT::strndup(aPos, (chr - aPos));
-      mCurrentFilters.AppendElement(aNewString);
 
-      
-      chr += 2;
-      aPos = chr;
+  nsAString::const_iterator start, iter, end;
+  aFilterString.BeginReading(iter);
+  aFilterString.EndReading(end);
+
+  while (PR_TRUE) {
+    
+    while (iter != end && (*iter == ';' || *iter == ' '))
+      ++iter;
+
+    if (iter == end)
+      break;
+
+    start = iter; 
+
+    
+    ++iter;
+
+    
+    while (iter != end && (*iter != ';' && *iter != ' '))
+      ++iter;
+
+    PRUnichar* filter = ToNewUnicode(Substring(start, iter));
+    if (!filter)
+      return NS_ERROR_OUT_OF_MEMORY;
+
+    if (!mCurrentFilters.AppendElement(filter)) {
+      NS_Free(filter);
+      return NS_ERROR_OUT_OF_MEMORY;
     }
-  }
 
-  if ((aPos < chr) && *aPos) {
-    PRUnichar* aNewString = nsCRT::strndup(aPos, (chr - aPos));
-    mCurrentFilters.AppendElement(aNewString);
+    if (iter == end)
+      break;
+
+    ++iter; 
   }
 
   if (mTree) {
