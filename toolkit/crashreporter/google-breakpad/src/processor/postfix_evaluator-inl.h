@@ -34,6 +34,8 @@
 
 
 
+
+
 #ifndef PROCESSOR_POSTFIX_EVALUATOR_INL_H__
 #define PROCESSOR_POSTFIX_EVALUATOR_INL_H__
 
@@ -64,11 +66,9 @@ class AutoStackClearer {
 
 
 template<typename ValueType>
-bool PostfixEvaluator<ValueType>::Evaluate(const string &expression,
-                                           DictionaryValidityType *assigned) {
-  
-  AutoStackClearer clearer(&stack_);
-
+bool PostfixEvaluator<ValueType>::EvaluateInternal(
+    const string &expression,
+    DictionaryValidityType *assigned) {
   
   istringstream stream(expression);
   string token;
@@ -194,13 +194,46 @@ bool PostfixEvaluator<ValueType>::Evaluate(const string &expression,
     }
   }
 
-  
-  
-  
-  BPLOG_IF(ERROR, !stack_.empty()) << "Incomplete execution: " << expression;
-  return stack_.empty();
+  return true;
 }
 
+template<typename ValueType>
+bool PostfixEvaluator<ValueType>::Evaluate(const string &expression,
+                                           DictionaryValidityType *assigned) {
+  
+  AutoStackClearer clearer(&stack_);
+
+  if (!EvaluateInternal(expression, assigned))
+    return false;
+
+  
+  
+  
+  if (stack_.empty())
+    return true;
+    
+  BPLOG(ERROR) << "Incomplete execution: " << expression;
+  return false;
+}
+
+template<typename ValueType>
+bool PostfixEvaluator<ValueType>::EvaluateForValue(const string &expression,
+                                                   ValueType *result) {
+  
+  AutoStackClearer clearer(&stack_);
+
+  if (!EvaluateInternal(expression, NULL))
+    return false;
+
+  
+  if (stack_.size() != 1) {
+    BPLOG(ERROR) << "Expression yielded bad number of results: "
+                 << "'" << expression << "'";
+    return false;
+  } 
+
+  return PopValue(result);
+}
 
 template<typename ValueType>
 typename PostfixEvaluator<ValueType>::PopResult
@@ -217,12 +250,26 @@ PostfixEvaluator<ValueType>::PopValueOrIdentifier(
   
   
   
+  
+  
+  
+  
+  
   istringstream token_stream(token);
   ValueType literal;
+  bool negative;
+  if (token_stream.peek() == '-') {
+    negative = true;
+    token_stream.get();
+  } else {
+    negative = false;
+  }
   if (token_stream >> literal && token_stream.peek() == EOF) {
     if (value) {
       *value = literal;
     }
+    if (negative)
+      *value = -*value;
     return POP_RESULT_VALUE;
   } else {
     if (identifier) {

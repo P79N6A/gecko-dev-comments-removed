@@ -29,6 +29,12 @@
 
 
 
+
+
+
+
+
+
 #ifndef COMMON_LINUX_MODULE_H__
 #define COMMON_LINUX_MODULE_H__
 
@@ -65,12 +71,12 @@ class Module {
   
   struct File {
     
-    string name_;
+    string name;
 
     
     
     
-    int source_id_;
+    int source_id;
   };
 
   
@@ -78,21 +84,21 @@ class Module {
     
     
     static bool CompareByAddress(const Function *x, const Function *y) {
-      return x->address_ < y->address_;
+      return x->address < y->address;
     }
 
     
-    string name_;
+    string name;
     
     
-    Address address_, size_;
+    Address address, size;
 
     
-    Address parameter_size_;
+    Address parameter_size;
 
     
     
-    vector<Line> lines_;
+    vector<Line> lines;
   };
 
   
@@ -100,12 +106,41 @@ class Module {
     
     
     static bool CompareByAddress(const Module::Line &x, const Module::Line &y) {
-      return x.address_ < y.address_;
+      return x.address < y.address;
     }
 
-    Address address_, size_;    
-    File *file_;                
-    int number_;                
+    Address address, size;    
+    File *file;                
+    int number;                
+  };
+
+  
+  
+  
+  
+  typedef map<string, string> RuleMap;
+
+  
+  
+  typedef map<Address, RuleMap> RuleChangeMap;
+  
+  
+  
+  
+  struct StackFrameEntry {
+    
+    
+    Address address, size;
+
+    
+    
+    RuleMap initial_rules;
+
+    
+    
+    
+    
+    RuleChangeMap rule_changes;
   };
     
   
@@ -137,8 +172,46 @@ class Module {
   
   
   
+  void AddStackFrameEntry(StackFrameEntry *stack_frame_entry);
+
+  
+  
+  
+  
   File *FindFile(const string &name);
   File *FindFile(const char *name);
+
+  
+  
+  File *FindExistingFile(const string &name);
+
+  
+  
+  
+  
+  
+  void GetFunctions(vector<Function *> *vec, vector<Function *>::iterator i);
+
+  
+  
+  
+  
+  
+  void GetFiles(vector<File *> *vec);
+
+  
+  
+  
+  
+  
+  void GetStackFrameEntries(vector<StackFrameEntry *> *vec);
+
+  
+  
+  
+  
+  
+  void AssignSourceIds();
 
   
   
@@ -154,14 +227,12 @@ private:
 
   
   
-  
-  
-  
-  void AssignSourceIds();
+  static bool ReportError();
 
   
   
-  static bool ReportError();
+  
+  static bool WriteRuleMap(const RuleMap &rule_map, FILE *stream);
 
   
   string name_, os_, architecture_, id_;
@@ -186,6 +257,10 @@ private:
   
   FileByNameMap files_;                 
   vector<Function *> functions_;        
+
+  
+  
+  vector<StackFrameEntry *> stack_frame_entries_;
 };
 
 } 

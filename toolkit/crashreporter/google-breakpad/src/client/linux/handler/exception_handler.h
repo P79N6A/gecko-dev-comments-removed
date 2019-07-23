@@ -34,6 +34,7 @@
 #include <string>
 
 #include <signal.h>
+#include <stdio.h>
 
 #include "client/linux/crash_generation/crash_generation_client.h"
 #include "processor/scoped_ptr.h"
@@ -41,6 +42,8 @@
 struct sigaction;
 
 namespace google_breakpad {
+
+class ExceptionHandler;
 
 
 
@@ -163,7 +166,10 @@ class ExceptionHandler {
     siginfo_t siginfo;
     pid_t tid;  
     struct ucontext context;
+#if !defined(__ARM_EABI__)
+    
     struct _libc_fpstate float_state;
+#endif
   };
 
   

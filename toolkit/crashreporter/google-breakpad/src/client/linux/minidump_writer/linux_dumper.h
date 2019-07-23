@@ -44,7 +44,7 @@ namespace google_breakpad {
 typedef typeof(((struct user*) 0)->u_debugreg[0]) debugreg_t;
 
 
-#if defined(__i386)
+#if defined(__i386) || defined(__ARM_EABI__)
 typedef Elf32_auxv_t elf_aux_entry;
 #elif defined(__x86_64__)
 typedef Elf64_auxv_t elf_aux_entry;
@@ -64,16 +64,20 @@ struct ThreadInfo {
   const void* stack;  
   size_t stack_len;  
 
-  user_regs_struct regs;
-  user_fpregs_struct fpregs;
-#if defined(__i386)
-  user_fpxregs_struct fpxregs;
-#endif
 
 #if defined(__i386) || defined(__x86_64)
-
+  user_regs_struct regs;
+  user_fpregs_struct fpregs;
   static const unsigned kNumDebugRegisters = 8;
   debugreg_t dregs[8];
+#if defined(__i386)
+  user_fpxregs_struct fpxregs;
+#endif  
+
+#elif defined(__ARM_EABI__)
+  
+  struct user_regs regs;
+  struct user_fpregs fpregs;
 #endif
 };
 
@@ -141,7 +145,7 @@ class LinuxDumper {
 
   mutable PageAllocator allocator_;
 
-  bool threads_suspened_;
+  bool threads_suspended_;
   wasteful_vector<pid_t> threads_;  
   wasteful_vector<MappingInfo*> mappings_;  
 };

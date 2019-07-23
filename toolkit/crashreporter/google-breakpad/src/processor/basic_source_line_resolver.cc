@@ -46,7 +46,8 @@
 #include "google_breakpad/processor/stack_frame.h"
 #include "processor/linked_ptr.h"
 #include "processor/scoped_ptr.h"
-#include "processor/stack_frame_info.h"
+#include "processor/windows_frame_info.h"
+#include "processor/cfi_frame_info.h"
 
 using std::map;
 using std::vector;
@@ -115,10 +116,20 @@ class BasicSourceLineResolver::Module {
 
   
   
+  void LookupAddress(StackFrame *frame) const;
+
   
   
   
-  StackFrameInfo* LookupAddress(StackFrame *frame) const;
+  
+  
+  WindowsFrameInfo *FindWindowsFrameInfo(const StackFrame *frame) const;
+
+  
+  
+  
+  
+  CFIFrameInfo *FindCFIFrameInfo(const StackFrame *frame) const;
 
  private:
   friend class BasicSourceLineResolver;
@@ -128,14 +139,14 @@ class BasicSourceLineResolver::Module {
   
   
   
-  enum StackInfoTypes {
-    STACK_INFO_FPO = 0,
-    STACK_INFO_TRAP,  
-    STACK_INFO_TSS,   
-    STACK_INFO_STANDARD,
-    STACK_INFO_FRAME_DATA,
-    STACK_INFO_LAST,  
-    STACK_INFO_UNKNOWN = -1
+  enum WindowsFrameInfoTypes {
+    WINDOWS_FRAME_INFO_FPO = 0,
+    WINDOWS_FRAME_INFO_TRAP,  
+    WINDOWS_FRAME_INFO_TSS,   
+    WINDOWS_FRAME_INFO_STANDARD,
+    WINDOWS_FRAME_INFO_FRAME_DATA,
+    WINDOWS_FRAME_INFO_LAST,  
+    WINDOWS_FRAME_INFO_UNKNOWN = -1
   };
 
   
@@ -164,7 +175,18 @@ class BasicSourceLineResolver::Module {
   bool ParsePublicSymbol(char *public_line);
 
   
+  
   bool ParseStackInfo(char *stack_info_line);
+
+  
+  bool ParseWindowsFrameInfo(char *stack_info_line);
+
+  
+  bool ParseCFIFrameInfo(char *stack_info_line);
+
+  
+  
+  bool ParseCFIRuleSet(const string &rule_set, CFIFrameInfo *frame_info) const;
 
   string name_;
   FileMap files_;
@@ -175,8 +197,26 @@ class BasicSourceLineResolver::Module {
   
   
   
-  ContainedRangeMap< MemAddr, linked_ptr<StackFrameInfo> >
-      stack_info_[STACK_INFO_LAST];
+  ContainedRangeMap< MemAddr, linked_ptr<WindowsFrameInfo> >
+      windows_frame_info_[WINDOWS_FRAME_INFO_LAST];
+
+  
+  
+  
+  
+  
+
+  
+  
+  
+  RangeMap<MemAddr, string> cfi_initial_rules_;
+
+  
+  
+  
+  
+  
+  map<MemAddr, string> cfi_delta_rules_;
 };
 
 BasicSourceLineResolver::BasicSourceLineResolver() : modules_(new ModuleMap) {
@@ -236,12 +276,32 @@ bool BasicSourceLineResolver::HasModule(const string &module_name) const {
   return modules_->find(module_name) != modules_->end();
 }
 
-StackFrameInfo* BasicSourceLineResolver::FillSourceLineInfo(
-    StackFrame *frame) const {
+void BasicSourceLineResolver::FillSourceLineInfo(StackFrame *frame) const {
   if (frame->module) {
     ModuleMap::const_iterator it = modules_->find(frame->module->code_file());
     if (it != modules_->end()) {
-      return it->second->LookupAddress(frame);
+      it->second->LookupAddress(frame);
+    }
+  }
+}
+
+WindowsFrameInfo *BasicSourceLineResolver::FindWindowsFrameInfo(
+    const StackFrame *frame) const {
+  if (frame->module) {
+    ModuleMap::const_iterator it = modules_->find(frame->module->code_file());
+    if (it != modules_->end()) {
+      return it->second->FindWindowsFrameInfo(frame);
+    }
+  }
+  return NULL;
+}
+
+CFIFrameInfo *BasicSourceLineResolver::FindCFIFrameInfo(
+    const StackFrame *frame) const {
+  if (frame->module) {
+    ModuleMap::const_iterator it = modules_->find(frame->module->code_file());
+    if (it != modules_->end()) {
+      return it->second->FindCFIFrameInfo(frame);
     }
   }
   return NULL;
@@ -380,7 +440,7 @@ bool BasicSourceLineResolver::Module::LoadMap(const string &map_file) {
     return false;
   }
 
-  BPLOG(ERROR) << "Opening " << map_file;
+  BPLOG(INFO) << "Opening " << map_file;
 
   FILE *f = fopen(map_file.c_str(), "rt");
   if (!f) {
@@ -413,42 +473,15 @@ bool BasicSourceLineResolver::Module::LoadMap(const string &map_file) {
   return LoadMapFromBuffer(map_buffer);
 }
 
-StackFrameInfo* BasicSourceLineResolver::Module::LookupAddress(
-    StackFrame *frame) const {
+void BasicSourceLineResolver::Module::LookupAddress(StackFrame *frame) const {
   MemAddr address = frame->instruction - frame->module->base_address();
 
-  linked_ptr<StackFrameInfo> retrieved_info;
   
   
   
   
   
   
-  if (!stack_info_[STACK_INFO_FRAME_DATA].RetrieveRange(address,
-                                                        &retrieved_info)) {
-    stack_info_[STACK_INFO_FPO].RetrieveRange(address, &retrieved_info);
-  }
-
-  scoped_ptr<StackFrameInfo> frame_info;
-  if (retrieved_info.get()) {
-    frame_info.reset(new StackFrameInfo());
-    frame_info->CopyFrom(*retrieved_info.get());
-  }
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  int parameter_size = 0;
   linked_ptr<Function> func;
   linked_ptr<PublicSymbol> public_symbol;
   MemAddr function_base;
@@ -456,9 +489,7 @@ StackFrameInfo* BasicSourceLineResolver::Module::LookupAddress(
   MemAddr public_address;
   if (functions_.RetrieveNearestRange(address, &func,
                                       &function_base, &function_size) &&
-      address >= function_base && address < function_base + function_size) {
-    parameter_size = func->parameter_size;
-
+      address >= function_base && address - function_base < function_size) {
     frame->function_name = func->name;
     frame->function_base = frame->module->base_address() + function_base;
 
@@ -474,27 +505,99 @@ StackFrameInfo* BasicSourceLineResolver::Module::LookupAddress(
     }
   } else if (public_symbols_.Retrieve(address,
                                       &public_symbol, &public_address) &&
-             (!func.get() || public_address > function_base + function_size)) {
-    parameter_size = public_symbol->parameter_size;
-
+             (!func.get() || public_address > function_base)) {
     frame->function_name = public_symbol->name;
     frame->function_base = frame->module->base_address() + public_address;
-  } else {
-    
-    return frame_info.release();
+  }
+}
+
+WindowsFrameInfo *BasicSourceLineResolver::Module::FindWindowsFrameInfo(
+    const StackFrame *frame) const {
+  MemAddr address = frame->instruction - frame->module->base_address();
+  scoped_ptr<WindowsFrameInfo> result(new WindowsFrameInfo());
+
+  
+  
+  
+  
+  
+  linked_ptr<WindowsFrameInfo> frame_info;
+  if ((windows_frame_info_[WINDOWS_FRAME_INFO_FRAME_DATA]
+       .RetrieveRange(address, &frame_info))
+      || (windows_frame_info_[WINDOWS_FRAME_INFO_FPO]
+          .RetrieveRange(address, &frame_info))) {
+    result->CopyFrom(*frame_info.get());
+    return result.release();
   }
 
-  if (!frame_info.get()) {
-    
-    
-    
-    
-    frame_info.reset(new StackFrameInfo());
-    frame_info->parameter_size = parameter_size;
-    frame_info->valid |= StackFrameInfo::VALID_PARAMETER_SIZE;
+  
+  
+  
+  
+  
+  
+  
+  linked_ptr<Function> function;
+  MemAddr function_base, function_size;
+  if (functions_.RetrieveNearestRange(address, &function,
+                                      &function_base, &function_size) && 
+      address >= function_base && address - function_base < function_size) {
+    result->parameter_size = function->parameter_size;
+    result->valid |= WindowsFrameInfo::VALID_PARAMETER_SIZE;
+    return result.release();
   }
 
-  return frame_info.release();
+  
+  
+  linked_ptr<PublicSymbol> public_symbol;
+  MemAddr public_address;
+  if (public_symbols_.Retrieve(address, &public_symbol, &public_address) &&
+      (!function.get() || public_address > function_base)) {
+    result->parameter_size = public_symbol->parameter_size;
+  }
+  
+  return NULL;
+}
+
+CFIFrameInfo *BasicSourceLineResolver::Module::FindCFIFrameInfo(
+    const StackFrame *frame) const {
+  MemAddr address = frame->instruction - frame->module->base_address();
+  MemAddr initial_base, initial_size;
+  string initial_rules;
+
+  
+  
+  
+  
+  if (!cfi_initial_rules_.RetrieveRange(address, &initial_rules,
+                                        &initial_base, &initial_size)) {
+    return NULL;
+  }
+
+  
+  
+  scoped_ptr<CFIFrameInfo> rules(new CFIFrameInfo());
+  if (!ParseCFIRuleSet(initial_rules, rules.get()))
+    return NULL;
+
+  
+  map<MemAddr, string>::const_iterator delta =
+    cfi_delta_rules_.lower_bound(initial_base);
+
+  
+  while (delta != cfi_delta_rules_.end() && delta->first <= address) {
+    ParseCFIRuleSet(delta->second, rules.get());
+    delta++;
+  }
+
+  return rules.release();
+}
+
+bool BasicSourceLineResolver::Module::ParseCFIRuleSet(
+    const string &rule_set, CFIFrameInfo *frame_info) const {
+  CFIFrameInfoParseHandler handler(frame_info);
+  CFIRuleParser parser(&handler);
+  return parser.Parse(rule_set);
 }
 
 
@@ -617,48 +720,60 @@ bool BasicSourceLineResolver::Module::ParsePublicSymbol(char *public_line) {
 
 bool BasicSourceLineResolver::Module::ParseStackInfo(char *stack_info_line) {
   
-  
-  
-  
-  
-  
-  
-  
-  
-  
-
-  
   stack_info_line += 6;
 
-  vector<char*> tokens;
-  if (!Tokenize(stack_info_line, 12, &tokens))
-    return false;
+  
+  
+  while (*stack_info_line == ' ')
+    stack_info_line++;
+  const char *platform = stack_info_line;
+  while (!strchr(" \r\n", *stack_info_line))
+    stack_info_line++;
+  *stack_info_line++ = '\0';
 
   
-  const char *platform = tokens[0];
-  if (strcmp(platform, "WIN") != 0)
+  if (strcmp(platform, "WIN") == 0)
+    return ParseWindowsFrameInfo(stack_info_line);
+
+  
+  else if (strcmp(platform, "CFI") == 0)
+    return ParseCFIFrameInfo(stack_info_line);
+
+  
+  else
+    return false;
+}
+
+bool BasicSourceLineResolver::Module::ParseWindowsFrameInfo(
+    char *stack_info_line) {
+  
+  
+  
+
+  vector<char*> tokens;
+  if (!Tokenize(stack_info_line, 11, &tokens))
     return false;
 
-  int type = strtol(tokens[1], NULL, 16);
-  if (type < 0 || type > STACK_INFO_LAST - 1)
+  int type = strtol(tokens[0], NULL, 16);
+  if (type < 0 || type > WINDOWS_FRAME_INFO_LAST - 1)
     return false;
 
-  u_int64_t rva                 = strtoull(tokens[2],  NULL, 16);
-  u_int64_t code_size           = strtoull(tokens[3],  NULL, 16);
-  u_int32_t prolog_size         =  strtoul(tokens[4],  NULL, 16);
-  u_int32_t epilog_size         =  strtoul(tokens[5],  NULL, 16);
-  u_int32_t parameter_size      =  strtoul(tokens[6],  NULL, 16);
-  u_int32_t saved_register_size =  strtoul(tokens[7],  NULL, 16);
-  u_int32_t local_size          =  strtoul(tokens[8],  NULL, 16);
-  u_int32_t max_stack_size      =  strtoul(tokens[9],  NULL, 16);
-  int has_program_string        =  strtoul(tokens[10], NULL, 16);
+  u_int64_t rva                 = strtoull(tokens[1], NULL, 16);
+  u_int64_t code_size           = strtoull(tokens[2], NULL, 16);
+  u_int32_t prolog_size         =  strtoul(tokens[3], NULL, 16);
+  u_int32_t epilog_size         =  strtoul(tokens[4], NULL, 16);
+  u_int32_t parameter_size      =  strtoul(tokens[5], NULL, 16);
+  u_int32_t saved_register_size =  strtoul(tokens[6], NULL, 16);
+  u_int32_t local_size          =  strtoul(tokens[7], NULL, 16);
+  u_int32_t max_stack_size      =  strtoul(tokens[8], NULL, 16);
+  int has_program_string        =  strtoul(tokens[9], NULL, 16);
 
   const char *program_string = "";
   int allocates_base_pointer = 0;
   if (has_program_string) {
-    program_string = tokens[11];
+    program_string = tokens[10];
   } else {
-    allocates_base_pointer = strtoul(tokens[11], NULL, 16);
+    allocates_base_pointer = strtoul(tokens[10], NULL, 16);
   }
 
   
@@ -681,8 +796,8 @@ bool BasicSourceLineResolver::Module::ParseStackInfo(char *stack_info_line) {
   
   
 
-  linked_ptr<StackFrameInfo> stack_frame_info(
-      new StackFrameInfo(prolog_size,
+  linked_ptr<WindowsFrameInfo> stack_frame_info(
+      new WindowsFrameInfo(prolog_size,
                          epilog_size,
                          parameter_size,
                          saved_register_size,
@@ -690,8 +805,43 @@ bool BasicSourceLineResolver::Module::ParseStackInfo(char *stack_info_line) {
                          max_stack_size,
                          allocates_base_pointer,
                          program_string));
-  stack_info_[type].StoreRange(rva, code_size, stack_frame_info);
+  windows_frame_info_[type].StoreRange(rva, code_size, stack_frame_info);
 
+  return true;
+}
+
+bool BasicSourceLineResolver::Module::ParseCFIFrameInfo(
+    char *stack_info_line) {
+  char *cursor;
+
+  
+  char *init_or_address = strtok_r(stack_info_line, " \r\n", &cursor);
+  if (!init_or_address)
+    return false;
+
+  if (strcmp(init_or_address, "INIT") == 0) {
+    
+    char *address_field = strtok_r(NULL, " \r\n", &cursor);
+    if (!address_field) return false;
+    
+    char *size_field = strtok_r(NULL, " \r\n", &cursor);
+    if (!size_field) return false;
+
+    char *initial_rules = strtok_r(NULL, "\r\n", &cursor);
+    if (!initial_rules) return false;
+
+    MemAddr address = strtoul(address_field, NULL, 16);
+    MemAddr size    = strtoul(size_field,    NULL, 16);
+    cfi_initial_rules_.StoreRange(address, size, initial_rules);
+    return true;
+  }
+
+  
+  char *address_field = init_or_address;
+  char *delta_rules = strtok_r(NULL, "\r\n", &cursor);
+  if (!delta_rules) return false;
+  MemAddr address = strtoul(address_field, NULL, 16);
+  cfi_delta_rules_[address] = delta_rules;
   return true;
 }
 

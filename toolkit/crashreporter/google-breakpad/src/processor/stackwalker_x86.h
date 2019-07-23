@@ -35,6 +35,8 @@
 
 
 
+
+
 #ifndef PROCESSOR_STACKWALKER_X86_H__
 #define PROCESSOR_STACKWALKER_X86_H__
 
@@ -42,6 +44,8 @@
 #include "google_breakpad/common/breakpad_types.h"
 #include "google_breakpad/common/minidump_format.h"
 #include "google_breakpad/processor/stackwalker.h"
+#include "google_breakpad/processor/stack_frame_cpu.h"
+#include "src/processor/cfi_frame_info.h"
 
 namespace google_breakpad {
 
@@ -63,12 +67,34 @@ class StackwalkerX86 : public Stackwalker {
 
  private:
   
+  typedef SimpleCFIWalker<u_int32_t, MDRawContextX86> CFIWalker;
+
   
   
-  virtual StackFrame* GetContextFrame();
-  virtual StackFrame* GetCallerFrame(
-      const CallStack *stack,
-      const vector< linked_ptr<StackFrameInfo> > &stack_frame_info);
+  
+  
+  virtual StackFrame *GetContextFrame();
+  virtual StackFrame *GetCallerFrame(const CallStack *stack);
+
+  
+  
+  
+  StackFrameX86 *GetCallerByWindowsFrameInfo(
+      const vector<StackFrame*> &frames,
+      WindowsFrameInfo *windows_frame_info);
+
+  
+  
+  
+  StackFrameX86 *GetCallerByCFIFrameInfo(const vector<StackFrame*> &frames,
+                                         CFIFrameInfo *cfi_frame_info);
+
+  
+  
+  
+  
+  
+  StackFrameX86 *GetCallerByEBPAtBase(const vector<StackFrame*> &frames);
 
   
   
@@ -80,12 +106,18 @@ class StackwalkerX86 : public Stackwalker {
   
   
   bool ScanForReturnAddress(u_int32_t location_start,
-                            u_int32_t &location_found,
-                            u_int32_t &eip_found);
+                            u_int32_t *location_found,
+                            u_int32_t *eip_found);
 
   
   
   const MDRawContextX86 *context_;
+
+  
+  static const CFIWalker::RegisterSet cfi_register_map_[];
+
+  
+  const CFIWalker cfi_walker_;
 };
 
 

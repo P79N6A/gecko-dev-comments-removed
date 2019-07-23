@@ -42,6 +42,8 @@
 #include "google_breakpad/common/breakpad_types.h"
 #include "google_breakpad/common/minidump_format.h"
 #include "google_breakpad/processor/stackwalker.h"
+#include "google_breakpad/processor/stack_frame_cpu.h"
+#include "processor/cfi_frame_info.h"
 
 namespace google_breakpad {
 
@@ -62,15 +64,28 @@ class StackwalkerAMD64 : public Stackwalker {
 
  private:
   
+  typedef SimpleCFIWalker<u_int64_t, MDRawContextAMD64> CFIWalker;
+
+  
   
   virtual StackFrame* GetContextFrame();
-  virtual StackFrame* GetCallerFrame(
-      const CallStack *stack,
-      const vector< linked_ptr<StackFrameInfo> > &stack_frame_info);
+  virtual StackFrame* GetCallerFrame(const CallStack *stack);
+
+  
+  
+  
+  StackFrameAMD64 *GetCallerByCFIFrameInfo(const vector<StackFrame *> &frames,
+                                           CFIFrameInfo *cfi_frame_info);
 
   
   
   const MDRawContextAMD64 *context_;
+
+  
+  static const CFIWalker::RegisterSet cfi_register_map_[];
+
+  
+  const CFIWalker cfi_walker_;
 };
 
 

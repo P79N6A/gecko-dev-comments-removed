@@ -26,11 +26,14 @@
 
 
 
+
+
 #ifndef COMMON_DWARF_BYTEREADER_H__
 #define COMMON_DWARF_BYTEREADER_H__
 
 #include <string>
 #include "common/dwarf/types.h"
+#include "common/dwarf/dwarf2enums.h"
 
 namespace dwarf2reader {
 
@@ -44,26 +47,15 @@ enum Endianness {
 
 
 
-
-
 class ByteReader {
  public:
-  explicit ByteReader(enum Endianness endian);
+  
+  
+  
+  
+  
+  explicit ByteReader(enum Endianness endianness);
   virtual ~ByteReader();
-
-  
-  
-  void SetAddressSize(uint8 size);
-
-  
-  
-  void SetOffsetSize(uint8 size);
-
-  
-  uint8 OffsetSize() const { return offset_size_; }
-
-  
-  uint8 AddressSize() const { return address_size_; }
 
   
   
@@ -73,6 +65,7 @@ class ByteReader {
   
   uint16 ReadTwoBytes(const char* buffer) const;
 
+  
   
   
   
@@ -87,12 +80,102 @@ class ByteReader {
   
   
   
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
   uint64 ReadUnsignedLEB128(const char* buffer, size_t* len) const;
 
   
   
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
   int64 ReadSignedLEB128(const char* buffer, size_t* len) const;
 
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  void SetAddressSize(uint8 size);
+
+  
+  
+  uint8 AddressSize() const { return address_size_; }
+
+  
+  
+  
+  uint64 ReadAddress(const char* buffer) const;
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  uint64 ReadInitialLength(const char* start, size_t* len);
+
+  
+  
   
   
   
@@ -101,8 +184,97 @@ class ByteReader {
   
   
   
+  uint8 OffsetSize() const { return offset_size_; }
+
   
-  uint64 ReadAddress(const char* buffer) const;
+  
+  
+  
+  
+  void SetOffsetSize(uint8 size);
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+
+  
+  
+  
+  
+  
+  void SetCFIDataBase(uint64 section_base, const char *buffer_base);
+
+  
+  
+  void SetTextBase(uint64 text_base);
+
+  
+  
+  
+  
+  
+  void SetDataBase(uint64 data_base);
+
+  
+  
+  
+  
+  void SetFunctionBase(uint64 function_base);
+
+  
+  
+  void ClearFunctionBase();
+
+  
+  bool ValidEncoding(DwarfPointerEncoding encoding) const;
+
+  
+  
+  
+  bool UsableEncoding(DwarfPointerEncoding encoding) const;
+
+  
+  
+  
+  
+  
+  
+  
+  
+  uint64 ReadEncodedPointer(const char *buffer, DwarfPointerEncoding encoding,
+                            size_t *len) const;
 
  private:
 
@@ -125,6 +297,12 @@ class ByteReader {
   Endianness endian_;
   uint8 address_size_;
   uint8 offset_size_;
+
+  
+  bool have_section_base_, have_text_base_, have_data_base_;
+  bool have_function_base_;
+  uint64 section_base_, text_base_, data_base_, function_base_;
+  const char *buffer_base_;
 };
 
 }  

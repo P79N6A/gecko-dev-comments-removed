@@ -47,7 +47,6 @@
 #include "processor/linked_ptr.h"
 #include "processor/logging.h"
 #include "processor/scoped_ptr.h"
-#include "processor/stack_frame_info.h"
 #include "processor/stackwalker_ppc.h"
 #include "processor/stackwalker_sparc.h"
 #include "processor/stackwalker_x86.h"
@@ -65,8 +64,8 @@ Stackwalker::Stackwalker(const SystemInfo *system_info,
     : system_info_(system_info),
       memory_(memory),
       modules_(modules),
-      supplier_(supplier),
-      resolver_(resolver) {
+      resolver_(resolver),
+      supplier_(supplier) {
 }
 
 
@@ -74,11 +73,6 @@ bool Stackwalker::Walk(CallStack *stack) {
   BPLOG_IF(ERROR, !stack) << "Stackwalker::Walk requires |stack|";
   assert(stack);
   stack->Clear();
-
-  
-  
-  
-  vector< linked_ptr<StackFrameInfo> > stack_frame_info;
 
   
   
@@ -91,8 +85,6 @@ bool Stackwalker::Walk(CallStack *stack) {
     
     
 
-    linked_ptr<StackFrameInfo> frame_info;
-
     
     if (modules_) {
       const CodeModule *module =
@@ -101,6 +93,8 @@ bool Stackwalker::Walk(CallStack *stack) {
         frame->module = module;
         if (resolver_ &&
             !resolver_->HasModule(frame->module->code_file()) &&
+            no_symbol_modules_.find(
+                module->code_file()) == no_symbol_modules_.end() &&
             supplier_) {
           string symbol_data, symbol_file;
           SymbolSupplier::SymbolResult symbol_result =
@@ -113,12 +107,13 @@ bool Stackwalker::Walk(CallStack *stack) {
                                                   symbol_data);
               break;
             case SymbolSupplier::NOT_FOUND:
+              no_symbol_modules_.insert(module->code_file());
               break;  
             case SymbolSupplier::INTERRUPT:
               return false;
           }
         }
-        frame_info.reset(resolver_->FillSourceLineInfo(frame.get()));
+        resolver_->FillSourceLineInfo(frame.get());
       }
     }
 
@@ -127,11 +122,7 @@ bool Stackwalker::Walk(CallStack *stack) {
     stack->frames_.push_back(frame.release());
 
     
-    stack_frame_info.push_back(frame_info);
-    frame_info.reset(NULL);
-
-    
-    frame.reset(GetCallerFrame(stack, stack_frame_info));
+    frame.reset(GetCallerFrame(stack));
   }
 
   return true;

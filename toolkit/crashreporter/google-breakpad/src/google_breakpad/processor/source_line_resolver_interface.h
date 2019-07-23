@@ -29,6 +29,8 @@
 
 
 
+
+
 #ifndef GOOGLE_BREAKPAD_PROCESSOR_SOURCE_LINE_RESOLVER_INTERFACE_H__
 #define GOOGLE_BREAKPAD_PROCESSOR_SOURCE_LINE_RESOLVER_INTERFACE_H__
 
@@ -40,7 +42,8 @@ namespace google_breakpad {
 using std::string;
 
 struct StackFrame;
-struct StackFrameInfo;
+struct WindowsFrameInfo;
+struct CFIFrameInfo;
 
 class SourceLineResolverInterface {
  public:
@@ -66,11 +69,21 @@ class SourceLineResolverInterface {
   
   
   
+  virtual void FillSourceLineInfo(StackFrame *frame) const = 0;
+
   
   
   
   
-  virtual StackFrameInfo* FillSourceLineInfo(StackFrame *frame) const = 0;
+  
+  virtual WindowsFrameInfo *FindWindowsFrameInfo(const StackFrame *frame) 
+    const = 0; 
+
+  
+  
+  
+  
+  virtual CFIFrameInfo *FindCFIFrameInfo(const StackFrame *frame) const = 0;
 
  protected:
   

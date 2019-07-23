@@ -36,17 +36,46 @@
 
 #include "processor/postfix_evaluator-inl.h"
 
-#include "processor/stackwalker_x86.h"
 #include "google_breakpad/processor/call_stack.h"
 #include "google_breakpad/processor/code_modules.h"
 #include "google_breakpad/processor/memory_region.h"
+#include "google_breakpad/processor/source_line_resolver_interface.h"
 #include "google_breakpad/processor/stack_frame_cpu.h"
-#include "processor/linked_ptr.h"
 #include "processor/logging.h"
-#include "processor/stack_frame_info.h"
+#include "processor/scoped_ptr.h"
+#include "processor/stackwalker_x86.h"
+#include "processor/windows_frame_info.h"
+#include "processor/cfi_frame_info.h"
 
 namespace google_breakpad {
 
+
+const StackwalkerX86::CFIWalker::RegisterSet
+StackwalkerX86::cfi_register_map_[] = {
+  
+  
+  
+  
+  
+  { "$eip", ".ra",  false,
+    StackFrameX86::CONTEXT_VALID_EIP, &MDRawContextX86::eip },
+  { "$esp", ".cfa", false,
+    StackFrameX86::CONTEXT_VALID_ESP, &MDRawContextX86::esp },
+  { "$ebp", NULL,   true,
+    StackFrameX86::CONTEXT_VALID_EBP, &MDRawContextX86::ebp },
+  { "$eax", NULL,   false,
+    StackFrameX86::CONTEXT_VALID_EAX, &MDRawContextX86::eax },
+  { "$ebx", NULL,   true,
+    StackFrameX86::CONTEXT_VALID_EBX, &MDRawContextX86::ebx },
+  { "$ecx", NULL,   false,
+    StackFrameX86::CONTEXT_VALID_ECX, &MDRawContextX86::ecx },
+  { "$edx", NULL,   false,
+    StackFrameX86::CONTEXT_VALID_EDX, &MDRawContextX86::edx },
+  { "$esi", NULL,   true,
+    StackFrameX86::CONTEXT_VALID_ESI, &MDRawContextX86::esi },
+  { "$edi", NULL,   true,
+    StackFrameX86::CONTEXT_VALID_EDI, &MDRawContextX86::edi },
+};
 
 StackwalkerX86::StackwalkerX86(const SystemInfo *system_info,
                                const MDRawContextX86 *context,
@@ -55,7 +84,9 @@ StackwalkerX86::StackwalkerX86(const SystemInfo *system_info,
                                SymbolSupplier *supplier,
                                SourceLineResolverInterface *resolver)
     : Stackwalker(system_info, memory, modules, supplier, resolver),
-      context_(context) {
+      context_(context),
+      cfi_walker_(cfi_register_map_,
+                  (sizeof(cfi_register_map_) / sizeof(cfi_register_map_[0]))) {
   if (memory_->GetBase() + memory_->GetSize() - 1 > 0xffffffff) {
     
     
@@ -66,8 +97,16 @@ StackwalkerX86::StackwalkerX86(const SystemInfo *system_info,
   }
 }
 
+StackFrameX86::~StackFrameX86() {
+  if (windows_frame_info)
+    delete windows_frame_info;
+  windows_frame_info = NULL;
+  if (cfi_frame_info)
+    delete cfi_frame_info;
+  cfi_frame_info = NULL;
+}
 
-StackFrame* StackwalkerX86::GetContextFrame() {
+StackFrame *StackwalkerX86::GetContextFrame() {
   if (!context_ || !memory_) {
     BPLOG(ERROR) << "Can't get context frame without context or memory";
     return NULL;
@@ -85,18 +124,22 @@ StackFrame* StackwalkerX86::GetContextFrame() {
   return frame;
 }
 
-
-StackFrame* StackwalkerX86::GetCallerFrame(
-    const CallStack *stack,
-    const vector< linked_ptr<StackFrameInfo> > &stack_frame_info) {
-  if (!memory_ || !stack) {
-    BPLOG(ERROR) << "Can't get caller frame without memory or stack";
-    return NULL;
-  }
+StackFrameX86 *StackwalkerX86::GetCallerByWindowsFrameInfo(
+    const vector<StackFrame *> &frames,
+    WindowsFrameInfo *last_frame_info) {
   StackFrameX86::FrameTrust trust = StackFrameX86::FRAME_TRUST_NONE;
-  StackFrameX86 *last_frame = static_cast<StackFrameX86*>(
-      stack->frames()->back());
-  StackFrameInfo *last_frame_info = stack_frame_info.back().get();
+
+  StackFrameX86 *last_frame = static_cast<StackFrameX86 *>(frames.back());
+
+  
+  
+  last_frame->windows_frame_info = last_frame_info;
+
+  
+  
+  
+  if (last_frame_info->valid != WindowsFrameInfo::VALID_ALL)
+    return NULL;
 
   
   
@@ -130,13 +173,16 @@ StackFrame* StackwalkerX86::GetCallerFrame(
   
   
 
-  int frames_already_walked = stack_frame_info.size();
   u_int32_t last_frame_callee_parameter_size = 0;
+  int frames_already_walked = frames.size();
   if (frames_already_walked >= 2) {
-    StackFrameInfo *last_frame_callee_info =
-        stack_frame_info[frames_already_walked - 2].get();
+    const StackFrameX86 *last_frame_callee
+        = static_cast<StackFrameX86 *>(frames[frames_already_walked - 2]);
+    WindowsFrameInfo *last_frame_callee_info
+        = last_frame_callee->windows_frame_info;
     if (last_frame_callee_info &&
-        last_frame_callee_info->valid & StackFrameInfo::VALID_PARAMETER_SIZE) {
+        (last_frame_callee_info->valid
+         & WindowsFrameInfo::VALID_PARAMETER_SIZE)) {
       last_frame_callee_parameter_size =
           last_frame_callee_info->parameter_size;
     }
@@ -145,32 +191,24 @@ StackFrame* StackwalkerX86::GetCallerFrame(
   
   
   
-  
-  
-  
   PostfixEvaluator<u_int32_t>::DictionaryType dictionary;
+  
   dictionary["$ebp"] = last_frame->context.ebp;
   dictionary["$esp"] = last_frame->context.esp;
+  
+  
+  
+  
+  
   dictionary[".cbCalleeParams"] = last_frame_callee_parameter_size;
+  dictionary[".cbSavedRegs"] = last_frame_info->saved_register_size;
+  dictionary[".cbLocals"] = last_frame_info->local_size;
+  dictionary[".raSearchStart"] = last_frame->context.esp +
+                                 last_frame_callee_parameter_size +
+                                 last_frame_info->local_size +
+                                 last_frame_info->saved_register_size;
+  dictionary[".cbParams"] = last_frame_info->parameter_size;
 
-  if (last_frame_info && last_frame_info->valid == StackFrameInfo::VALID_ALL) {
-    
-    dictionary[".cbSavedRegs"] = last_frame_info->saved_register_size;
-    dictionary[".cbLocals"] = last_frame_info->local_size;
-    dictionary[".raSearchStart"] = last_frame->context.esp +
-                                   last_frame_callee_parameter_size +
-                                   last_frame_info->local_size +
-                                   last_frame_info->saved_register_size;
-  }
-  if (last_frame_info &&
-      last_frame_info->valid & StackFrameInfo::VALID_PARAMETER_SIZE) {
-    
-    
-    dictionary[".cbParams"] = last_frame_info->parameter_size;
-  }
-
-  
-  
   
   
   
@@ -179,82 +217,55 @@ StackFrame* StackwalkerX86::GetCallerFrame(
   
   
   string program_string;
-  bool traditional_frame = true;
   bool recover_ebp = true;
-  if (last_frame_info && last_frame_info->valid == StackFrameInfo::VALID_ALL) {
+
+  trust = StackFrameX86::FRAME_TRUST_CFI;
+  if (!last_frame_info->program_string.empty()) {
     
-    traditional_frame = false;
-    trust = StackFrameX86::FRAME_TRUST_CFI;
-    if (!last_frame_info->program_string.empty()) {
-      
-      
-      
-      
-      
-      program_string = last_frame_info->program_string;
-    } else if (last_frame_info->allocates_base_pointer) {
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      program_string = "$eip .raSearchStart ^ = "
-                       "$ebp $esp .cbCalleeParams + .cbSavedRegs + 8 - ^ = "
-                       "$esp .raSearchStart 4 + =";
-    } else {
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      program_string = "$eip .raSearchStart ^ = "
-                       "$esp .raSearchStart 4 + =";
-      recover_ebp = false;
-    }
+    
+    
+    
+    
+    program_string = last_frame_info->program_string;
+  } else if (last_frame_info->allocates_base_pointer) {
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    program_string = "$eip .raSearchStart ^ = "
+        "$ebp $esp .cbCalleeParams + .cbSavedRegs + 8 - ^ = "
+        "$esp .raSearchStart 4 + =";
   } else {
     
     
@@ -275,17 +286,9 @@ StackFrame* StackwalkerX86::GetCallerFrame(
     
     
     
-    
-    
-    
-    
-    
-    
-    
-    trust = StackFrameX86::FRAME_TRUST_FP;
-    program_string = "$eip $ebp 4 + ^ = "
-                     "$esp $ebp 8 + = "
-                     "$ebp $ebp ^ =";
+    program_string = "$eip .raSearchStart ^ = "
+        "$esp .raSearchStart 4 + =";
+    recover_ebp = false;
   }
 
   
@@ -304,7 +307,7 @@ StackFrame* StackwalkerX86::GetCallerFrame(
     
     u_int32_t location_start = last_frame->context.esp;
     u_int32_t location, eip;
-    if (!ScanForReturnAddress(location_start, location, eip)) {
+    if (!ScanForReturnAddress(location_start, &location, &eip)) {
       
       
       return NULL;
@@ -325,8 +328,7 @@ StackFrame* StackwalkerX86::GetCallerFrame(
   
   
   
-  if (!traditional_frame &&
-      (dictionary["$eip"] != 0 || dictionary["$ebp"] != 0)) {
+  if (dictionary["$eip"] != 0 || dictionary["$ebp"] != 0) {
     int offset = 0;
 
     
@@ -347,7 +349,7 @@ StackFrame* StackwalkerX86::GetCallerFrame(
       
       u_int32_t location_start = dictionary[".raSearchStart"] + 4;
       u_int32_t location;
-      if (ScanForReturnAddress(location_start, location, eip)) {
+      if (ScanForReturnAddress(location_start, &location, &eip)) {
         
         
         
@@ -390,13 +392,6 @@ StackFrame* StackwalkerX86::GetCallerFrame(
 
   
   
-  if (dictionary["$eip"] == 0 ||
-      dictionary["$esp"] <= last_frame->context.esp) {
-    return NULL;
-  }
-
-  
-  
   StackFrameX86 *frame = new StackFrameX86();
 
   frame->trust = trust;
@@ -423,6 +418,41 @@ StackFrame* StackwalkerX86::GetCallerFrame(
     frame->context_validity |= StackFrameX86::CONTEXT_VALID_EDI;
   }
 
+  return frame;
+}
+
+StackFrameX86 *StackwalkerX86::GetCallerByCFIFrameInfo(
+    const vector<StackFrame*> &frames,
+    CFIFrameInfo *cfi_frame_info) {
+  StackFrameX86 *last_frame = static_cast<StackFrameX86*>(frames.back());
+  last_frame->cfi_frame_info = cfi_frame_info;
+
+  scoped_ptr<StackFrameX86> frame(new StackFrameX86());
+  if (!cfi_walker_
+      .FindCallerRegisters(*memory_, *cfi_frame_info,
+                           last_frame->context, last_frame->context_validity,
+                           &frame->context, &frame->context_validity))
+    return NULL;
+  
+  
+  static const int essentials = (StackFrameX86::CONTEXT_VALID_EIP
+                                 | StackFrameX86::CONTEXT_VALID_ESP
+                                 | StackFrameX86::CONTEXT_VALID_EBP);
+  if ((frame->context_validity & essentials) != essentials)
+    return NULL;
+
+  frame->trust = StackFrameX86::FRAME_TRUST_CFI;
+
+  return frame.release();
+}
+
+StackFrameX86 *StackwalkerX86::GetCallerByEBPAtBase(
+    const vector<StackFrame *> &frames) {
+  StackFrameX86::FrameTrust trust;
+  StackFrameX86 *last_frame = static_cast<StackFrameX86 *>(frames.back());
+  u_int32_t last_esp = last_frame->context.esp;
+  u_int32_t last_ebp = last_frame->context.ebp;
+
   
   
   
@@ -431,14 +461,121 @@ StackFrame* StackwalkerX86::GetCallerFrame(
   
   
   
-  frame->instruction = frame->context.eip - 1;
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+
+  u_int32_t caller_eip, caller_esp, caller_ebp;
+
+  if (memory_->GetMemoryAtAddress(last_ebp + 4, &caller_eip) &&
+      memory_->GetMemoryAtAddress(last_ebp, &caller_ebp)) {
+    caller_esp = last_ebp + 8;
+    trust = StackFrameX86::FRAME_TRUST_FP;
+  } else {
+    
+    
+    
+    
+    
+    if (!ScanForReturnAddress(last_esp, &caller_esp, &caller_eip)) {
+      
+      
+      return false;
+    }
+
+    
+    
+    
+    caller_esp += 4;
+    caller_ebp = last_ebp;
+
+    trust = StackFrameX86::FRAME_TRUST_SCAN;
+  }
+
+  
+  
+  StackFrameX86 *frame = new StackFrameX86();
+
+  frame->trust = trust;
+  frame->context = last_frame->context;
+  frame->context.eip = caller_eip;
+  frame->context.esp = caller_esp;
+  frame->context.ebp = caller_ebp;
+  frame->context_validity = StackFrameX86::CONTEXT_VALID_EIP |
+                            StackFrameX86::CONTEXT_VALID_ESP |
+                            StackFrameX86::CONTEXT_VALID_EBP;
 
   return frame;
 }
 
+StackFrame *StackwalkerX86::GetCallerFrame(const CallStack *stack) {
+  if (!memory_ || !stack) {
+    BPLOG(ERROR) << "Can't get caller frame without memory or stack";
+    return NULL;
+  }
+
+  const vector<StackFrame *> &frames = *stack->frames();
+  StackFrameX86 *last_frame = static_cast<StackFrameX86 *>(frames.back());
+  scoped_ptr<StackFrameX86> new_frame;
+
+  
+  WindowsFrameInfo *windows_frame_info
+      = resolver_->FindWindowsFrameInfo(last_frame);
+  if (windows_frame_info)
+    new_frame.reset(GetCallerByWindowsFrameInfo(frames, windows_frame_info));
+
+  
+  if (!new_frame.get()) {
+    CFIFrameInfo *cfi_frame_info = resolver_->FindCFIFrameInfo(last_frame);
+    if (cfi_frame_info)
+      new_frame.reset(GetCallerByCFIFrameInfo(frames, cfi_frame_info));
+  }
+
+  
+  if (!new_frame.get())
+    new_frame.reset(GetCallerByEBPAtBase(frames));
+
+  
+  if (!new_frame.get())
+    return NULL;
+  
+  
+  if (new_frame->context.eip == 0)
+    return NULL;
+
+  
+  
+  
+  if (new_frame->context.esp <= last_frame->context.esp)
+    return NULL;
+
+  
+  
+  
+  
+  
+  
+  
+  
+  new_frame->instruction = new_frame->context.eip - 1;
+
+  return new_frame.release();
+}
+
 bool StackwalkerX86::ScanForReturnAddress(u_int32_t location_start,
-                                          u_int32_t &location_found,
-                                          u_int32_t &eip_found) {
+                                          u_int32_t *location_found,
+                                          u_int32_t *eip_found) {
   const int kRASearchWords = 15;
   for (u_int32_t location = location_start;
        location <= location_start + kRASearchWords * 4;
@@ -450,8 +587,8 @@ bool StackwalkerX86::ScanForReturnAddress(u_int32_t location_start,
     if (modules_ && modules_->GetModuleForAddress(eip) &&
         InstructionAddressSeemsValid(eip)) {
 
-      eip_found = eip;
-      location_found = location;
+      *eip_found = eip;
+      *location_found = location;
       return true;
     }
   }

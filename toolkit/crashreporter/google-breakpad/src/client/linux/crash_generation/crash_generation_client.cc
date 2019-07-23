@@ -27,6 +27,7 @@
 
 
 
+#include <stdio.h>
 #include <sys/socket.h>
 #include <sys/types.h>
 
@@ -44,7 +45,6 @@ CrashGenerationClient::RequestDump(const void* blob, size_t blob_size)
 {
   int fds[2];
   sys_socketpair(AF_UNIX, SOCK_STREAM, 0, fds);
-
   static const unsigned kControlMsgSize = CMSG_SPACE(sizeof(int));
 
   struct kernel_msghdr msg;

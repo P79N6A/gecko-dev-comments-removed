@@ -81,9 +81,7 @@ StackFrame* StackwalkerPPC::GetContextFrame() {
 }
 
 
-StackFrame* StackwalkerPPC::GetCallerFrame(
-    const CallStack *stack,
-    const vector< linked_ptr<StackFrameInfo> > &stack_frame_info) {
+StackFrame* StackwalkerPPC::GetCallerFrame(const CallStack *stack) {
   if (!memory_ || !stack) {
     BPLOG(ERROR) << "Can't get caller frame without memory or stack";
     return NULL;

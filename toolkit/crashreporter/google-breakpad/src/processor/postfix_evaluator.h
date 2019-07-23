@@ -62,6 +62,8 @@
 
 
 
+
+
 #ifndef PROCESSOR_POSTFIX_EVALUATOR_H__
 #define PROCESSOR_POSTFIX_EVALUATOR_H__
 
@@ -90,7 +92,7 @@ class PostfixEvaluator {
   
   
   
-  PostfixEvaluator(DictionaryType *dictionary, MemoryRegion *memory)
+  PostfixEvaluator(DictionaryType *dictionary, const MemoryRegion *memory)
       : dictionary_(dictionary), memory_(memory), stack_() {}
 
   
@@ -101,6 +103,12 @@ class PostfixEvaluator {
   
   
   bool Evaluate(const string &expression, DictionaryValidityType *assigned);
+
+  
+  
+  
+  
+  bool EvaluateForValue(const string &expression, ValueType *result);
 
   DictionaryType* dictionary() const { return dictionary_; }
 
@@ -140,11 +148,17 @@ class PostfixEvaluator {
   
   
   
+  bool EvaluateInternal(const string &expression,
+                        DictionaryValidityType *assigned);
+
+  
+  
+  
   DictionaryType *dictionary_;
 
   
   
-  MemoryRegion *memory_;
+  const MemoryRegion *memory_;
 
   
   

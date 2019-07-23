@@ -242,22 +242,22 @@ class MinidumpMemoryRegion : public MinidumpObject,
   
   
   
-  const u_int8_t* GetMemory();
+  const u_int8_t* GetMemory() const;
 
   
-  u_int64_t GetBase();
+  u_int64_t GetBase() const;
 
   
-  u_int32_t GetSize();
+  u_int32_t GetSize() const;
 
   
   void FreeMemory();
 
   
-  bool GetMemoryAtAddress(u_int64_t address, u_int8_t*  value);
-  bool GetMemoryAtAddress(u_int64_t address, u_int16_t* value);
-  bool GetMemoryAtAddress(u_int64_t address, u_int32_t* value);
-  bool GetMemoryAtAddress(u_int64_t address, u_int64_t* value);
+  bool GetMemoryAtAddress(u_int64_t address, u_int8_t*  value) const;
+  bool GetMemoryAtAddress(u_int64_t address, u_int16_t* value) const;
+  bool GetMemoryAtAddress(u_int64_t address, u_int32_t* value) const;
+  bool GetMemoryAtAddress(u_int64_t address, u_int64_t* value) const;
 
   
   void Print();
@@ -274,7 +274,7 @@ class MinidumpMemoryRegion : public MinidumpObject,
 
   
   template<typename T> bool GetMemoryAtAddressInternal(u_int64_t address,
-                                                       T*        value);
+                                                       T*        value) const;
 
   
   
@@ -285,7 +285,7 @@ class MinidumpMemoryRegion : public MinidumpObject,
   MDMemoryDescriptor* descriptor_;
 
   
-  vector<u_int8_t>*   memory_;
+  mutable vector<u_int8_t>* memory_;
 };
 
 

@@ -63,16 +63,8 @@ class StackwalkerSPARC : public Stackwalker {
  private:
   
   
-  
-  
-  
-  
-  
-  
   virtual StackFrame* GetContextFrame();
-  virtual StackFrame* GetCallerFrame(
-      const CallStack *stack,
-      const vector< linked_ptr<StackFrameInfo> > &stack_frame_info);
+  virtual StackFrame* GetCallerFrame(const CallStack *stack);
 
   
   

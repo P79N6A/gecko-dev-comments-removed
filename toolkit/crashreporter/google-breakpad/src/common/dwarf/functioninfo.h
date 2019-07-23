@@ -96,9 +96,9 @@ class CULineInfoHandler: public LineInfoHandler {
   
   
   
-  virtual void AddLine(uint64 address, uint32 file_num, uint32 line_num,
-                       uint32 column_num);
-
+  
+  virtual void AddLine(uint64 address, uint64 length,
+                       uint32 file_num, uint32 line_num, uint32 column_num);
 
  private:
   LineMap* linemap_;
@@ -145,6 +145,16 @@ class CUFunctionInfoHandler: public Dwarf2Handler {
                                         enum DwarfAttribute attr,
                                         enum DwarfForm form,
                                         uint64 data);
+
+  
+  
+  
+  
+  
+  virtual void ProcessAttributeReference(uint64 offset,
+                                         enum DwarfAttribute attr,
+                                         enum DwarfForm form,
+                                         uint64 data);
 
   
   

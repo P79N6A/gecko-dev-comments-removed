@@ -42,25 +42,6 @@
 
 namespace dwarf2reader {
 
-
-
-
-uint64 GetAbsoluteOffset(uint64 offset,
-                         enum DwarfForm form,
-                         uint64 compilation_unit_base) {
-  switch (form) {
-    case DW_FORM_ref1:
-    case DW_FORM_ref2:
-    case DW_FORM_ref4:
-    case DW_FORM_ref8:
-    case DW_FORM_ref_udata:
-      return offset + compilation_unit_base;
-    case DW_FORM_ref_addr:
-    default:
-      return offset;
-  }
-}
-
 CULineInfoHandler::CULineInfoHandler(vector<SourceFileInfo>* files,
                                      vector<string>* dirs,
                                      LineMap* linemap):linemap_(linemap),
@@ -108,7 +89,7 @@ void CULineInfoHandler::DefineFile(const string& name,
   }
 }
 
-void CULineInfoHandler::AddLine(uint64 address, uint32 file_num,
+void CULineInfoHandler::AddLine(uint64 address, uint64 length, uint32 file_num,
                                 uint32 line_num, uint32 column_num) {
   if (file_num < files_->size()) {
     linemap_->insert(make_pair(address, make_pair(files_->at(file_num).name.c_str(),
@@ -198,6 +179,18 @@ void CUFunctionInfoHandler::ProcessAttributeUnsigned(uint64 offset,
       case DW_AT_decl_file:
         current_function_info_->file = files_->at(data).name;
         break;
+      default:
+        break;
+    }
+  }
+}
+
+void CUFunctionInfoHandler::ProcessAttributeReference(uint64 offset,
+                                                      enum DwarfAttribute attr,
+                                                      enum DwarfForm form,
+                                                      uint64 data) {
+  if (current_function_info_) {
+    switch (attr) {
       case DW_AT_specification: {
         
         
@@ -205,14 +198,13 @@ void CUFunctionInfoHandler::ProcessAttributeUnsigned(uint64 offset,
         
         
         
-        uint64 abs_offset = GetAbsoluteOffset(data, form, current_compilation_unit_offset_);
-        FunctionMap::iterator iter = offset_to_funcinfo_->find(abs_offset);
+        FunctionMap::iterator iter = offset_to_funcinfo_->find(data);
         if (iter != offset_to_funcinfo_->end()) {
           current_function_info_->name = iter->second->name;
           current_function_info_->mangled_name = iter->second->mangled_name;
         } else {
           
-          fprintf(stderr, "Error: DW_AT_specification was seen before the referenced DIE! (Looking for DIE at offset %08llx, in DIE at offset %08llx)\n", abs_offset, offset);
+          fprintf(stderr, "Error: DW_AT_specification was seen before the referenced DIE! (Looking for DIE at offset %08llx, in DIE at offset %08llx)\n", data, offset);
         }
         break;
       }

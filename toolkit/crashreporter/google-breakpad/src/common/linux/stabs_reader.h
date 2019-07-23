@@ -36,6 +36,13 @@
 
 
 
+
+
+
+
+
+
+
 #ifndef COMMON_LINUX_STABS_READER_H__
 #define COMMON_LINUX_STABS_READER_H__
 
@@ -93,6 +100,13 @@ class StabsReader {
   size_t stabstr_size_;
 
   StabsHandler *handler_;
+
+  
+  size_t string_offset_;
+
+  
+  
+  size_t next_cu_string_offset_;
 
   
   const struct nlist *symbol_;

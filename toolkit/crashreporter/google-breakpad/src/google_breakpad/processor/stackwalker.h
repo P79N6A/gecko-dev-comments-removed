@@ -41,23 +41,23 @@
 #ifndef GOOGLE_BREAKPAD_PROCESSOR_STACKWALKER_H__
 #define GOOGLE_BREAKPAD_PROCESSOR_STACKWALKER_H__
 
-#include <vector>
+#include <set>
+#include <string>
 #include "google_breakpad/common/breakpad_types.h"
 
 namespace google_breakpad {
 
 class CallStack;
+class CodeModule;
 class CodeModules;
-template<typename T> class linked_ptr;
 class MemoryRegion;
 class MinidumpContext;
 class SourceLineResolverInterface;
 struct StackFrame;
-struct StackFrameInfo;
 class SymbolSupplier;
 class SystemInfo;
 
-using std::vector;
+using std::set;
 
 
 class Stackwalker {
@@ -118,6 +118,10 @@ class Stackwalker {
   
   const CodeModules *modules_;
 
+ protected:
+  
+  SourceLineResolverInterface *resolver_;
+
  private:
   
   
@@ -133,15 +137,15 @@ class Stackwalker {
   
   
   
-  virtual StackFrame* GetCallerFrame(
-      const CallStack *stack,
-      const vector< linked_ptr<StackFrameInfo> > &stack_frame_info) = 0;
+  virtual StackFrame* GetCallerFrame(const CallStack *stack) = 0;
 
   
   SymbolSupplier *supplier_;
 
   
-  SourceLineResolverInterface *resolver_;
+  
+  
+  set<std::string> no_symbol_modules_;
 };
 
 

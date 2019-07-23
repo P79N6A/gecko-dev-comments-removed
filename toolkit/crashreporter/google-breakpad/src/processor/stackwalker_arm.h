@@ -35,6 +35,8 @@
 
 
 
+
+
 #ifndef PROCESSOR_STACKWALKER_ARM_H__
 #define PROCESSOR_STACKWALKER_ARM_H__
 
@@ -60,17 +62,25 @@ class StackwalkerARM : public Stackwalker {
                  SymbolSupplier *supplier,
                  SourceLineResolverInterface *resolver);
 
+  
+  
+  
+  void SetContextFrameValidity(int valid) { context_frame_validity_ = valid; }
+
  private:
   
   
   virtual StackFrame* GetContextFrame();
-  virtual StackFrame* GetCallerFrame(
-      const CallStack *stack,
-      const vector< linked_ptr<StackFrameInfo> > &stack_frame_info);
+  virtual StackFrame* GetCallerFrame(const CallStack *stack);
 
   
   
   const MDRawContextARM *context_;
+
+  
+  
+  
+  int context_frame_validity_;
 };
 
 
