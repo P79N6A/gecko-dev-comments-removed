@@ -406,6 +406,8 @@ gfxQtFont::gfxQtFont(const nsAString &aName,
         style = QFont::StyleNormal;
     }
 
+
+
     PRInt16 weight = QFont::Normal;
     switch (GetStyle()->weight) {
     case NS_STYLE_FONT_WEIGHT_NORMAL:
@@ -413,7 +415,7 @@ gfxQtFont::gfxQtFont(const nsAString &aName,
     case NS_STYLE_FONT_WEIGHT_BOLD:
         weight = QFont::Bold;
     case NS_STYLE_FONT_WEIGHT_BOLDER:
-        weight = QFont::Black;
+        weight = QFont::DemiBold;
     case NS_STYLE_FONT_WEIGHT_LIGHTER:
         weight = QFont::Light;
     default:
@@ -449,7 +451,6 @@ gfxQtFont::GetMetrics()
 
     mMetrics.emHeight = GetStyle()->size;
 
-    FT_UInt gid; 
     QFontMetrics fontMetrics( *mQFont );
     FT_Face face = mQFont->freetypeFace();
 
@@ -460,19 +461,10 @@ gfxQtFont::GetMetrics()
         return mMetrics;
     }
 
-    double emUnit = 1.0 * face->units_per_EM;
-    double yScale = face->size->metrics.y_ppem / emUnit;
-
-    
-    gid = FT_Get_Char_Index(face, ' ');
-    
-    
-    
-    FT_Load_Glyph(face, gid, FT_LOAD_DEFAULT);
     
     mMetrics.spaceWidth = fontMetrics.width( QChar(' ') );
     
-    mSpaceGlyph = gid;
+    mSpaceGlyph = GetSpaceGlyph();
 
     mMetrics.xHeight = fontMetrics.xHeight();
     mMetrics.aveCharWidth = fontMetrics.averageCharWidth();
@@ -482,7 +474,8 @@ gfxQtFont::GetMetrics()
         gfxFloat aspect = mMetrics.xHeight / GetStyle()->size;
         mAdjustedSize = GetStyle()->GetAdjustedSize(aspect);
         mMetrics.emHeight = mAdjustedSize;
-    }
+    } else 
+        mMetrics.emHeight = fontMetrics.height();
 
     if (face) {
         mMetrics.maxAdvance = face->size->metrics.max_advance / 64.0; 
@@ -505,8 +498,7 @@ gfxQtFont::GetMetrics()
         } else {
             mMetrics.subscriptOffset = mMetrics.xHeight;
         }
-    } else
-    {
+    } else {
         mMetrics.superscriptOffset = mMetrics.xHeight;
         mMetrics.subscriptOffset = mMetrics.xHeight;
     }
@@ -520,11 +512,12 @@ gfxQtFont::GetMetrics()
     mMetrics.underlineSize = fontMetrics.lineWidth();
 
     
-    mMetrics.emAscent        = face->ascender * yScale;
-    mMetrics.emDescent       = -face->descender * yScale;
-    mMetrics.maxHeight       = face->height * yScale;
     mMetrics.maxAscent       = fontMetrics.ascent();
-    mMetrics.maxDescent = fontMetrics.descent();
+    mMetrics.maxDescent      = fontMetrics.descent();
+    mMetrics.emAscent        = mMetrics.maxAscent;
+    mMetrics.emDescent       = mMetrics.maxDescent;
+    mMetrics.maxHeight       = mMetrics.maxAscent + mMetrics.maxDescent;
+
     mMetrics.maxAdvance = fontMetrics.maxWidth();
     
     double lineHeight = mMetrics.maxAscent + mMetrics.maxDescent;
@@ -583,6 +576,7 @@ PRUint32 gfxQtFont::GetSpaceGlyph ()
         FT_UInt gid = 0; 
         FT_Face face = mQFont->freetypeFace();
         gid = FT_Get_Char_Index(face, ' ');
+        FT_Load_Glyph(face, gid, FT_LOAD_DEFAULT);
         mSpaceGlyph = gid;
         mHasSpaceGlyph = PR_TRUE;
     }
@@ -716,7 +710,6 @@ gfxQtFont::CreateScaledFont(cairo_t *aCR, cairo_matrix_t *aCTM, QFont &aQFont)
 PRBool
 gfxQtFont::SetupCairoFont(gfxContext *aContext)
 {
-
     cairo_t *cr = aContext->GetCairo();
     cairo_matrix_t currentCTM;
     cairo_get_matrix(cr, &currentCTM);
