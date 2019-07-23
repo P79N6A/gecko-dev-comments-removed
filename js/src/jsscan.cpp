@@ -814,6 +814,8 @@ GetXMLEntity(JSContext *cx, JSTokenStream *ts)
     
     offset = PTRDIFF(ts->tokenbuf.ptr, ts->tokenbuf.base, jschar);
     FastAppendChar(&ts->tokenbuf, '&');
+    if (!STRING_BUFFER_OK(&ts->tokenbuf))
+        return JS_FALSE;
     while ((c = GetChar(ts)) != ';') {
         if (c == EOF || c == '\n') {
             js_ReportCompileErrorNumber(cx, ts, NULL, JSREPORT_ERROR,
@@ -821,6 +823,8 @@ GetXMLEntity(JSContext *cx, JSTokenStream *ts)
             return JS_FALSE;
         }
         FastAppendChar(&ts->tokenbuf, (jschar) c);
+        if (!STRING_BUFFER_OK(&ts->tokenbuf))
+            return JS_FALSE;
     }
 
     
@@ -906,6 +910,8 @@ badncr:
     msg = JSMSG_BAD_XML_NCR;
 bad:
     
+    JS_ASSERT(STRING_BUFFER_OK(&ts->tokenbuf));
+    JS_ASSERT(PTRDIFF(ts->tokenbuf.ptr, bp, jschar) >= 1);
     bytes = js_DeflateString(cx, bp + 1,
                              PTRDIFF(ts->tokenbuf.ptr, bp, jschar) - 1);
     if (bytes) {
