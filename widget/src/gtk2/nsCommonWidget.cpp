@@ -149,17 +149,12 @@ nsCommonWidget::DispatchEvent(nsGUIEvent *aEvent,
     aStatus = nsEventStatus_eIgnore;
 
     
-    NS_ADDREF(aEvent->widget);
-
-    
     if (mEventCallback)
         aStatus = (* mEventCallback)(aEvent);
 
     
     if ((aStatus != nsEventStatus_eIgnore) && mEventListener)
         aStatus = mEventListener->ProcessEvent(*aEvent);
-
-    NS_IF_RELEASE(aEvent->widget);
 
     return NS_OK;
 }
