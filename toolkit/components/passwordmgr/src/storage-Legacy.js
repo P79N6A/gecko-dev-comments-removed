@@ -583,6 +583,14 @@ LoginManagerStorage_legacy.prototype = {
             var oldHost = aLogin.hostname;
 
             
+            
+            
+            if (!/:\d+$/.test(aLogin.hostname)) {
+                this.log("2E upgrade: no port, skipping " + aLogin.hostname);
+                return upgradedLogins;
+            }
+
+            
             try {
                 
                 
