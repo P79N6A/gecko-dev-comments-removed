@@ -933,7 +933,7 @@ nsresult nsOggPlayStateMachine::Run()
           AdvanceFrame();
         }
 
-        if (HasAudio()) {
+        if (mAudioStream) {
           
           
           
@@ -1125,16 +1125,9 @@ PRInt64
 nsOggPlayStateMachine::GetAudioClock()
 {
   NS_ASSERTION(IsThread(mDecoder->mStateMachineThread), "Should be on state machine thread.");
-  if (!HasAudio())
+  if (!mAudioStream || !HasAudio())
     return -1;
-  PRInt64 t;
-  {
-    MonitorAutoExit exitMon(mDecoder->GetMonitor());
-    MonitorAutoEnter audioMon(mAudioMonitor);
-    if (!mAudioStream)
-      return -1;
-    t = mAudioStream->GetPosition();
-  }
+  PRInt64 t = mAudioStream->GetPosition();
   return (t == -1) ? -1 : t + mAudioStartTime;
 }
 
