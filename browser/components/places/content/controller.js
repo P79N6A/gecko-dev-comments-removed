@@ -119,34 +119,6 @@ PlacesController.prototype = {
     case "placesCmd_open:window":
     case "placesCmd_open:tab":
       return this._view.selectedURINode;
-    case "placesCmd_open:tabs":
-      
-      
-      
-      var node = this._view.selectedNode;
-      if (!node)
-        return false;
-
-      if (this._view.hasSingleSelection && PlacesUtils.nodeIsFolder(node)) {
-        var contents = PlacesUtils.getFolderContents(node.itemId, false, false).root;
-        for (var i = 0; i < contents.childCount; ++i) {
-          var child = contents.getChild(i);
-          if (PlacesUtils.nodeIsURI(child))
-            return true;
-        }
-      }
-      else {
-        var oneLinkIsSelected = false;
-        var nodes = this._view.getSelectionNodes();
-        for (var i = 0; i < nodes.length; ++i) {
-          if (PlacesUtils.nodeIsURI(nodes[i])) {
-            if (oneLinkIsSelected)
-              return true;
-            oneLinkIsSelected = true;
-          }
-        }
-      }
-      return false;
     case "placesCmd_new:folder":
     case "placesCmd_new:livemark":
       return this._canInsert() &&
@@ -274,9 +246,6 @@ PlacesController.prototype = {
       break;
     case "placesCmd_open:tab":
       this.openSelectedNodeIn("tab");
-      break;
-    case "placesCmd_open:tabs":
-      this.openLinksInTabs();
       break;
     case "placesCmd_new:folder":
       this.newItem("folder");
@@ -670,6 +639,21 @@ PlacesController.prototype = {
       }
     }
 
+    
+    if (anyVisible) {
+      var openContainerInTabsItem = document.getElementById("placesContext_openContainer:tabs");
+      if (!openContainerInTabsItem.hidden) {
+        openContainerInTabsItem.disabled =
+          PlacesUtils.getURLsForContainerNode(this._view.selectedNode)
+                     .length == 0;
+      }
+      else {
+        
+        var openLinksInTabsItem = document.getElementById("placesContext_openLinks:tabs");
+        openLinksInTabsItem.disabled = openLinksInTabsItem.hidden;
+      }
+    }
+
     return anyVisible;
   },
 
@@ -830,102 +814,12 @@ PlacesController.prototype = {
   
 
 
-
-
-
-
-
-  openLinksInTabs: function PC_openLinksInTabs() {
+  openSelectionInTabs: function PC_openLinksInTabs(aEvent) {
     var node = this._view.selectedNode;
-    if (this._view.hasSingleSelection && PlacesUtils.nodeIsFolder(node)) {
-      
-      var doReplace = getBoolPref("browser.tabs.loadFolderAndReplace");
-      var loadInBackground = getBoolPref("browser.tabs.loadBookmarksInBackground");
-      
-
-      
-      var browserWindow = getTopWin();
-      var browser = browserWindow.getBrowser();
-      var tabPanels = browser.browsers;
-      var tabCount = tabPanels.length;
-      var firstIndex;
-      
-      
-      if (doReplace)
-        firstIndex = 0;
-      
-      else {
-        for (firstIndex = tabCount - 1; firstIndex >= 0; --firstIndex) {
-          var br = browser.browsers[firstIndex];
-          if (br.currentURI.spec != "about:blank" ||
-              br.webProgress.isLoadingDocument)
-            break;
-        }
-        ++firstIndex;
-      }
-
-      
-      var index = firstIndex;
-      var urlsToOpen = [];
-      var contents = PlacesUtils.getFolderContents(node.itemId, false, false).root;
-      for (var i = 0; i < contents.childCount; ++i) {
-        var child = contents.getChild(i);
-        if (PlacesUtils.nodeIsURI(child))
-          urlsToOpen.push(child.uri);
-      }
-
-      if (!this._confirmOpenTabs(urlsToOpen.length))
-        return;
-
-      for (var i = 0; i < urlsToOpen.length; ++i) {
-        if (index < tabCount)
-          tabPanels[index].loadURI(urlsToOpen[i]);
-        
-        else
-          browser.addTab(urlsToOpen[i]);
-        ++index;
-      }
-
-      
-      if (index == firstIndex)
-        return;
-
-      
-      if (!loadInBackground || doReplace) {
-        
-        
-        
-        function selectNewForegroundTab(browser, tab) {
-          browser.selectedTab = tab;
-        }
-        var tabs = browser.mTabContainer.childNodes;
-        setTimeout(selectNewForegroundTab, 0, browser, tabs[firstIndex]);
-      }
-
-      
-      
-      for (var i = tabCount - 1; i >= index; --i)
-        browser.removeTab(tabs[i]);
-
-      
-      browserWindow.content.focus();
-    }
-    else {
-      var urlsToOpen = [];
-      var nodes = this._view.getSelectionNodes();
-
-      for (var i = 0; i < nodes.length; ++i) {
-        if (PlacesUtils.nodeIsURI(nodes[i]))
-          urlsToOpen.push(nodes[i].uri);
-      }
-
-      if (!this._confirmOpenTabs(urlsToOpen.length))
-        return;
-
-      for (var i = 0; i < urlsToOpen.length; ++i) {
-        getTopWin().openNewTabWith(urlsToOpen[i], null, null);
-      }
-    }
+    if (this._view.hasSingleSelection && PlacesUtils.nodeIsContainer(node))
+      PlacesUtils.openContainerNodeInTabs(this._view.selectedNode, aEvent);
+    else
+      PlacesUtils.openURINodesInTabs(this._view.getSelectionNodes(), aEvent);
   },
 
   
@@ -1488,7 +1382,6 @@ function goUpdatePlacesCommands() {
   goUpdateCommand("placesCmd_open");
   goUpdateCommand("placesCmd_open:window");
   goUpdateCommand("placesCmd_open:tab");
-  goUpdateCommand("placesCmd_open:tabs");
   goUpdateCommand("placesCmd_new:folder");
   goUpdateCommand("placesCmd_new:bookmark");
   goUpdateCommand("placesCmd_new:livemark");

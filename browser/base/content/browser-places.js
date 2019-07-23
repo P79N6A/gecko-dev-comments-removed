@@ -390,7 +390,7 @@ var BookmarksEventHandler = {
       
       
       if (!view.controller.rootNodeIsSelected())
-        view.controller.openLinksInTabs();
+        view.controller.openSelectionInTabs(aEvent);
     }
     else
       this.onCommand(aEvent);
@@ -430,12 +430,10 @@ var BookmarksEventHandler = {
     
 
     var target = aEvent.originalTarget;
-    if (target.hasAttribute("openInTabs"))
-      PlacesUtils.getViewForNode(target).controller.openLinksInTabs();
-    else if (target.hasAttribute("siteURI"))
+    if (target.hasAttribute("siteURI"))
       openUILink(target.getAttribute("siteURI"), aEvent);
     
-    else
+    else if (!target.hasAttribute("openInTabs"))
       PlacesUtils.getViewForNode(target)
                  .controller
                  .openSelectedNodeWithEvent(aEvent);
@@ -498,6 +496,9 @@ var BookmarksEventHandler = {
         if (hasMultipleEntries) {
           var openInTabs = document.createElement("menuitem");
           openInTabs.setAttribute("openInTabs", "true");
+          openInTabs.setAttribute("onclick", "checkForMiddleClick(this, event)");
+          openInTabs.setAttribute("oncommand",
+                                  "PlacesUtils.openContainerNodeInTabs(this.parentNode.getResultNode(), event);");
           openInTabs.setAttribute("label",
                      gNavigatorBundle.getString("menuOpenAllInTabs.label"));
           target.appendChild(openInTabs);
