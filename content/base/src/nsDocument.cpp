@@ -2852,6 +2852,8 @@ void
 nsDocument::EndLoad()
 {
   
+  
+  
   if (mParser) {
     mWeakSink = do_GetWeakReference(mParser->GetContentSink());
     mParser = nsnull;
