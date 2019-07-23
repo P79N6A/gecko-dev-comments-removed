@@ -107,9 +107,9 @@ extern "C" {
 
 
 
-#define SQLITE_VERSION        "3.6.22"
-#define SQLITE_VERSION_NUMBER 3006022
-#define SQLITE_SOURCE_ID      "2010-01-05 15:30:36 28d0d7710761114a44a1a3a425a6883c661f06e7"
+#define SQLITE_VERSION        "3.6.23"
+#define SQLITE_VERSION_NUMBER 3006023
+#define SQLITE_SOURCE_ID      "2010-03-09 19:31:43 4ae453ea7be69018d8c16eb8dabe05617397dc4d"
 
 
 
@@ -145,6 +145,33 @@ SQLITE_API SQLITE_EXTERN const char sqlite3_version[];
 SQLITE_API const char *sqlite3_libversion(void);
 SQLITE_API const char *sqlite3_sourceid(void);
 SQLITE_API int sqlite3_libversion_number(void);
+
+#ifndef SQLITE_OMIT_COMPILEOPTION_DIAGS
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+SQLITE_API int sqlite3_compileoption_used(const char *zOptName);
+SQLITE_API const char *sqlite3_compileoption_get(int N);
+#endif 
 
 
 
@@ -437,6 +464,7 @@ SQLITE_API int sqlite3_exec(
 #define SQLITE_OPEN_CREATE           0x00000004  /* Ok for sqlite3_open_v2() */
 #define SQLITE_OPEN_DELETEONCLOSE    0x00000008  /* VFS only */
 #define SQLITE_OPEN_EXCLUSIVE        0x00000010  /* VFS only */
+#define SQLITE_OPEN_AUTOPROXY        0x00000020  /* VFS only */
 #define SQLITE_OPEN_MAIN_DB          0x00000100  /* VFS only */
 #define SQLITE_OPEN_TEMP_DB          0x00000200  /* VFS only */
 #define SQLITE_OPEN_TRANSIENT_DB     0x00000400  /* VFS only */
@@ -945,7 +973,6 @@ SQLITE_API int sqlite3_os_end(void);
 
 
 
-
 SQLITE_API SQLITE_EXPERIMENTAL int sqlite3_config(int, ...);
 
 
@@ -1259,6 +1286,7 @@ struct sqlite3_mem_methods {
 #define SQLITE_CONFIG_LOOKASIDE    13  /* int int */
 #define SQLITE_CONFIG_PCACHE       14  /* sqlite3_pcache_methods* */
 #define SQLITE_CONFIG_GETPCACHE    15  /* sqlite3_pcache_methods* */
+#define SQLITE_CONFIG_LOG          16  /* xFunc, void* */
 
 
 
@@ -3661,6 +3689,7 @@ SQLITE_API int sqlite3_collation_needed16(
   void(*)(void*,sqlite3*,int eTextRep,const void*)
 );
 
+#if SQLITE_HAS_CODEC
 
 
 
@@ -3685,6 +3714,25 @@ SQLITE_API int sqlite3_rekey(
   sqlite3 *db,                   
   const void *pKey, int nKey     
 );
+
+
+
+
+
+SQLITE_API void sqlite3_activate_see(
+  const char *zPassPhrase        
+);
+#endif
+
+#ifdef SQLITE_ENABLE_CEROD
+
+
+
+
+SQLITE_API void sqlite3_activate_cerod(
+  const char *zPassPhrase        
+);
+#endif
 
 
 
@@ -5646,6 +5694,30 @@ SQLITE_API int sqlite3_unlock_notify(
 
 
 SQLITE_API int sqlite3_strnicmp(const char *, const char *, int);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+SQLITE_API void sqlite3_log(int iErrCode, const char *zFormat, ...);
 
 
 
