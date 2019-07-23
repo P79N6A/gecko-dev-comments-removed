@@ -220,9 +220,11 @@ nsEffectiveTLDService::GetEffectiveTLDLength(const nsACString &aHostname,
 {
   
   
+  
   PRInt32 nameLength = aHostname.Length();
+  PRInt32 trailingDotOffset = (nameLength && aHostname.Last() == '.' ? 1 : 0);
   PRInt32 defaultTLDLength;
-  PRInt32 dotLoc = FindEarlierDot(aHostname, nameLength - 1);
+  PRInt32 dotLoc = FindEarlierDot(aHostname, nameLength - 1 - trailingDotOffset);
   if (dotLoc < 0) {
     defaultTLDLength = nameLength;
   }
@@ -240,7 +242,7 @@ nsEffectiveTLDService::GetEffectiveTLDLength(const nsACString &aHostname,
 
   
   SubdomainNode *node = &sSubdomainTreeHead;
-  dotLoc = nameLength;
+  dotLoc = nameLength - trailingDotOffset;
   while (dotLoc > 0) {
     PRInt32 nextDotLoc = FindEarlierDot(normHostname, dotLoc - 1);
     const nsCSubstring &subname = Substring(normHostname, nextDotLoc + 1,
