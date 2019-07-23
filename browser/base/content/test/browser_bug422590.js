@@ -65,14 +65,11 @@ function testCustomize(aWindow, aCallback) {
 }
 
 function closeToolbarCustomization(aWindow, aCTWindow) {
-  var osString = Components.classes["@mozilla.org/xre/app-info;1"].
-                 getService(Components.interfaces.nsIXULRuntime).OS;
-
   
   
   aCTWindow.finishToolbarCustomization();
 
   
-  if (osString != "Darwin")
+  if (!gCustomizeSheet)
     aCTWindow.close();
 }
