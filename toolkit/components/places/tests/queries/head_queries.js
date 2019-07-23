@@ -239,6 +239,9 @@ function populateDB(aArray) {
                                                      qdata.contractId,
                                                      qdata.index);
       }
+
+      if (qdata.isSeparator)
+        PlacesUtils.bookmarks.insertSeparator(qdata.parentFolder, qdata.index);
     } catch (ex) {
       
       LOG("Problem with this URI: " + data.uri);
@@ -307,6 +310,7 @@ function queryData(obj) {
   this.keyword = obj.keyword ? obj.keyword : "";
   this.visitCount = obj.visitCount ? obj.visitCount : 0;
   this.readOnly = obj.readOnly ? obj.readOnly : false;
+  this.isSeparator = obj.hasOwnProperty("isSeparator") && obj.isSeparator;
 
   
   
@@ -339,12 +343,12 @@ function compareArrayToResult(aArray, aRoot) {
     if (aArray[i].isInQuery) {
       var child = aRoot.getChild(inQueryIndex);
       LOG("testing testData[" + i + "] vs result[" + inQueryIndex + "]");
-      if(!aArray[i].isFolder) {
+      if (!aArray[i].isFolder && !aArray[i].isSeparator) {
         LOG("testing testData[" + aArray[i].uri + "] vs result[" + child.uri + "]");
         if (aArray[i].uri != child.uri)
           do_throw("Expected " + aArray[i].uri + " found " + child.uri);
       }
-      if (aArray[i].title != child.title)
+      if (!aArray[i].isSeparator && aArray[i].title != child.title)
         do_throw("Expected " + aArray[i].title + " found " + child.title);
       if (aArray[i].hasOwnProperty("lastVisit") &&
           aArray[i].lastVisit != child.time)

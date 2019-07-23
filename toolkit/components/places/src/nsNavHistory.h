@@ -267,7 +267,7 @@ public:
 
   
   
-  nsresult RowToResult(mozIStorageStatement* aRow,
+  nsresult RowToResult(mozIStorageValueArray* aRow,
                        nsNavHistoryQueryOptions* aOptions,
                        nsNavHistoryResultNode** aResult);
   nsresult QueryRowToResult(PRInt64 aItemId, const nsACString& aURI,

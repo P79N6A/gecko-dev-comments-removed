@@ -39,6 +39,7 @@
 
 
 
+
 #include <stdio.h>
 #include "nsNavHistory.h"
 #include "nsNavBookmarks.h"
@@ -55,7 +56,6 @@
 #include "prprf.h"
 
 #include "nsIDynamicContainer.h"
-#include "mozStorageHelper.h"
 #include "nsCycleCollectionParticipant.h"
 #include "nsIClassInfo.h"
 #include "nsIProgrammingLanguage.h"
@@ -391,12 +391,13 @@ nsNavHistoryResultNode::GetGeneratingOptions()
     return nsnull;
   }
 
+  
+  
+  
   nsNavHistoryContainerResultNode* cur = mParent;
   while (cur) {
-    if (cur->IsFolder())
-      return cur->GetAsFolder()->mOptions;
-    else if (cur->IsQuery())
-      return cur->GetAsQuery()->mOptions;
+    if (cur->IsContainer())
+      return cur->GetAsContainer()->mOptions;
     cur = cur->mParent;
   }
 
@@ -466,7 +467,8 @@ nsNavHistoryContainerResultNode::nsNavHistoryContainerResultNode(
   mExpanded(PR_FALSE),
   mChildrenReadOnly(aReadOnly),
   mOptions(aOptions),
-  mDynamicContainerType(aDynamicContainerType)
+  mDynamicContainerType(aDynamicContainerType),
+  mAsyncCanceledState(NOT_CANCELED)
 {
 }
 
@@ -482,7 +484,8 @@ nsNavHistoryContainerResultNode::nsNavHistoryContainerResultNode(
   mExpanded(PR_FALSE),
   mChildrenReadOnly(aReadOnly),
   mOptions(aOptions),
-  mDynamicContainerType(aDynamicContainerType)
+  mDynamicContainerType(aDynamicContainerType),
+  mAsyncCanceledState(NOT_CANCELED)
 {
 }
 
@@ -545,10 +548,68 @@ nsNavHistoryContainerResultNode::GetContainerOpen(PRBool *aContainerOpen)
 NS_IMETHODIMP
 nsNavHistoryContainerResultNode::SetContainerOpen(PRBool aContainerOpen)
 {
-  if (mExpanded && !aContainerOpen)
-    CloseContainer(PR_FALSE);
-  else if (!mExpanded && aContainerOpen)
-    OpenContainer();
+  if (aContainerOpen) {
+    if (!mExpanded) {
+      nsNavHistoryQueryOptions* options = GetGeneratingOptions();
+      if (options && options->AsyncEnabled())
+        OpenContainerAsync();
+      else
+        OpenContainer();
+    }
+  }
+  else {
+    if (mExpanded)
+      CloseContainer();
+    else if (mAsyncPendingStmt)
+      CancelAsyncOpen(PR_FALSE);
+  }
+
+  return NS_OK;
+}
+
+
+
+
+
+
+
+
+
+
+nsresult
+nsNavHistoryContainerResultNode::NotifyOnStateChange(PRUint16 aOldState)
+{
+  nsNavHistoryResult* result = GetResult();
+  NS_ENSURE_STATE(result);
+
+  nsresult rv;
+  PRUint16 currState;
+  rv = GetState(&currState);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  NOTIFY_RESULT_OBSERVERS(result,
+                          ContainerStateChanged(this, aOldState, currState));
+
+  
+  if (currState == STATE_OPENED)
+    NOTIFY_RESULT_OBSERVERS(result, ContainerOpened(this));
+  else if (currState == STATE_CLOSED)
+    NOTIFY_RESULT_OBSERVERS(result, ContainerClosed(this));
+
+  return NS_OK;
+}
+
+
+NS_IMETHODIMP
+nsNavHistoryContainerResultNode::GetState(PRUint16* _state)
+{
+  NS_ENSURE_ARG_POINTER(_state);
+
+  *_state = mExpanded ? STATE_OPENED :
+            mAsyncPendingStmt ? STATE_LOADING :
+            STATE_CLOSED;
+
   return NS_OK;
 }
 
@@ -560,12 +621,13 @@ nsNavHistoryContainerResultNode::SetContainerOpen(PRBool aContainerOpen)
 nsresult
 nsNavHistoryContainerResultNode::OpenContainer()
 {
-  NS_ASSERTION(!mExpanded, "Container must be expanded to close it");
+  NS_ASSERTION(!mExpanded, "Container must not be expanded to open it");
   mExpanded = PR_TRUE;
+
+  nsresult rv;
 
   if (IsDynamicContainer()) {
     
-    nsresult rv;
     nsCOMPtr<nsIDynamicContainer> svc = do_GetService(mDynamicContainerType.get(), &rv);
     if (NS_SUCCEEDED(rv)) {
       svc->OnContainerNodeOpening(this, GetGeneratingOptions());
@@ -579,8 +641,9 @@ nsNavHistoryContainerResultNode::OpenContainer()
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
-  nsNavHistoryResult* result = GetResult();
-  NOTIFY_RESULT_OBSERVERS(result, ContainerOpened(this));
+  rv = NotifyOnStateChange(STATE_CLOSED);
+  NS_ENSURE_SUCCESS(rv, rv);
+
   return NS_OK;
 }
 
@@ -594,33 +657,48 @@ nsNavHistoryContainerResultNode::OpenContainer()
 nsresult
 nsNavHistoryContainerResultNode::CloseContainer(PRBool aSuppressNotifications)
 {
-  NS_ASSERTION(mExpanded, "Container must be expanded to close it");
-
-  
-  for (PRInt32 i = 0; i < mChildren.Count(); ++i) {
-    if (mChildren[i]->IsContainer() &&
-        mChildren[i]->GetAsContainer()->mExpanded)
-      mChildren[i]->GetAsContainer()->CloseContainer(PR_TRUE);
-  }
-
-  mExpanded = PR_FALSE;
+  NS_ASSERTION((mExpanded && !mAsyncPendingStmt) ||
+               (!mExpanded && mAsyncPendingStmt),
+               "Container must be expanded or loading to close it");
 
   nsresult rv;
-  if (IsDynamicContainer()) {
+  PRUint16 oldState;
+  rv = GetState(&oldState);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  if (mExpanded) {
     
-    nsCOMPtr<nsIDynamicContainer> svc =
-      do_GetService(mDynamicContainerType.get(), &rv);
-    if (NS_SUCCEEDED(rv))
-      svc->OnContainerNodeClosed(this);
+    for (PRInt32 i = 0; i < mChildren.Count(); ++i) {
+      if (mChildren[i]->IsContainer() &&
+          mChildren[i]->GetAsContainer()->mExpanded)
+        mChildren[i]->GetAsContainer()->CloseContainer(PR_TRUE);
+    }
+
+    mExpanded = PR_FALSE;
+
+    if (IsDynamicContainer()) {
+      
+      nsCOMPtr<nsIDynamicContainer> svc =
+        do_GetService(mDynamicContainerType.get());
+      if (svc)
+        svc->OnContainerNodeClosed(this);
+    }
   }
 
-  nsNavHistoryResult* result = GetResult();
-  if (!aSuppressNotifications)
-    NOTIFY_RESULT_OBSERVERS(result, ContainerClosed(TO_CONTAINER(this)));
+  
+  
+  mAsyncPendingStmt = nsnull;
+
+  if (!aSuppressNotifications) {
+    rv = NotifyOnStateChange(oldState);
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
 
   
   
   
+  nsNavHistoryResult* result = GetResult();
+  NS_ENSURE_STATE(result);
   if (result->mRootNode == this) {
     result->StopObserving();
     
@@ -633,6 +711,39 @@ nsNavHistoryContainerResultNode::CloseContainer(PRBool aSuppressNotifications)
   }
 
   return NS_OK;
+}
+
+
+
+
+
+nsresult
+nsNavHistoryContainerResultNode::OpenContainerAsync()
+{
+  return NS_ERROR_NOT_IMPLEMENTED;
+}
+
+
+
+
+
+
+
+
+
+
+
+void
+nsNavHistoryContainerResultNode::CancelAsyncOpen(PRBool aRestart)
+{
+  NS_ASSERTION(mAsyncPendingStmt, "Async execution canceled but not pending");
+
+  mAsyncCanceledState = aRestart ? CANCELED_RESTART_NEEDED : CANCELED;
+
+  
+  
+  
+  (void)mAsyncPendingStmt->Cancel();
 }
 
 
@@ -2258,15 +2369,19 @@ nsNavHistoryQueryResultNode::OpenContainer()
 {
   NS_ASSERTION(!mExpanded, "Container must be closed to open it");
   mExpanded = PR_TRUE;
+
+  nsresult rv;
+
   if (!CanExpand())
     return NS_OK;
   if (!mContentsValid) {
-    nsresult rv = FillChildren();
+    rv = FillChildren();
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
-  nsNavHistoryResult* result = GetResult();
-  NOTIFY_RESULT_OBSERVERS(result, ContainerOpened(TO_CONTAINER(this)));
+  rv = NotifyOnStateChange(STATE_CLOSED);
+  NS_ENSURE_SUCCESS(rv, rv);
+
   return NS_OK;
 }
 
@@ -3172,8 +3287,33 @@ nsNavHistoryFolderResultNode::OpenContainer()
   }
   mExpanded = PR_TRUE;
 
-  nsNavHistoryResult* result = GetResult();
-  NOTIFY_RESULT_OBSERVERS(result, ContainerOpened(TO_CONTAINER(this)));
+  rv = NotifyOnStateChange(STATE_CLOSED);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  return NS_OK;
+}
+
+
+
+
+
+nsresult
+nsNavHistoryFolderResultNode::OpenContainerAsync()
+{
+  NS_ASSERTION(!mExpanded, "Container already expanded when opening it");
+
+  
+  
+  
+  if (mContentsValid)
+    return OpenContainer();
+
+  nsresult rv = FillChildrenAsync();
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  rv = NotifyOnStateChange(STATE_CLOSED);
+  NS_ENSURE_SUCCESS(rv, rv);
+
   return NS_OK;
 }
 
@@ -3328,6 +3468,17 @@ nsNavHistoryFolderResultNode::FillChildren()
   
   
 
+  return OnChildrenFilled();
+}
+
+
+
+
+
+
+nsresult
+nsNavHistoryFolderResultNode::OnChildrenFilled()
+{
   
   
   FillStats();
@@ -3357,12 +3508,146 @@ nsNavHistoryFolderResultNode::FillChildren()
   }
 
   
-  nsNavHistoryResult* result = GetResult();
-  NS_ENSURE_STATE(result);
-  result->AddBookmarkFolderObserver(this, mItemId);
-  mIsRegisteredFolderObserver = PR_TRUE;
+  EnsureRegisteredAsFolderObserver();
 
   mContentsValid = PR_TRUE;
+  return NS_OK;
+}
+
+
+
+
+
+
+void
+nsNavHistoryFolderResultNode::EnsureRegisteredAsFolderObserver()
+{
+  if (!mIsRegisteredFolderObserver && mResult) {
+    mResult->AddBookmarkFolderObserver(this, mItemId);
+    mIsRegisteredFolderObserver = PR_TRUE;
+  }
+}
+
+
+
+
+
+
+
+
+nsresult
+nsNavHistoryFolderResultNode::FillChildrenAsync()
+{
+  NS_ASSERTION(!mContentsValid, "FillChildrenAsync when contents are valid");
+  NS_ASSERTION(mChildren.Count() == 0, "FillChildrenAsync when children exist");
+
+  
+  
+  mAsyncBookmarkIndex = -1;
+
+  nsNavBookmarks* bmSvc = nsNavBookmarks::GetBookmarksService();
+  NS_ENSURE_TRUE(bmSvc, NS_ERROR_OUT_OF_MEMORY);
+  nsresult rv =
+    bmSvc->QueryFolderChildrenAsync(this, mItemId,
+                                    getter_AddRefs(mAsyncPendingStmt));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  
+  EnsureRegisteredAsFolderObserver();
+
+  return NS_OK;
+}
+
+
+
+
+
+
+
+
+
+NS_IMETHODIMP
+nsNavHistoryFolderResultNode::HandleResult(mozIStorageResultSet* aResultSet)
+{
+  NS_ENSURE_ARG_POINTER(aResultSet);
+
+  nsNavBookmarks* bmSvc = nsNavBookmarks::GetBookmarksService();
+  if (!bmSvc) {
+    CancelAsyncOpen(PR_FALSE);
+    return NS_ERROR_OUT_OF_MEMORY;
+  }
+
+  
+  nsCOMPtr<mozIStorageRow> row;
+  while (NS_SUCCEEDED(aResultSet->GetNextRow(getter_AddRefs(row))) && row) {
+    nsresult rv = bmSvc->ProcessFolderNodeRow(row, mOptions, &mChildren,
+                                              mAsyncBookmarkIndex);
+    if (NS_FAILED(rv)) {
+      CancelAsyncOpen(PR_FALSE);
+      return rv;
+    }
+  }
+
+  return NS_OK;
+}
+
+
+
+
+
+
+
+
+
+NS_IMETHODIMP
+nsNavHistoryFolderResultNode::HandleCompletion(PRUint16 aReason)
+{
+  if (aReason == mozIStorageStatementCallback::REASON_FINISHED &&
+      mAsyncCanceledState == NOT_CANCELED) {
+    
+
+    nsresult rv = OnChildrenFilled();
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    if (IsDynamicContainer()) {
+      
+      
+      nsCOMPtr<nsIDynamicContainer> svc =
+        do_GetService(mDynamicContainerType.get(), &rv);
+      if (NS_SUCCEEDED(rv)) {
+        svc->OnContainerNodeOpening(
+          static_cast<nsNavHistoryContainerResultNode*>(this), mOptions);
+      }
+      else {
+        NS_WARNING("Unable to get dynamic container for ");
+        NS_WARNING(mDynamicContainerType.get());
+      }
+    }
+
+    mExpanded = PR_TRUE;
+    mAsyncPendingStmt = nsnull;
+
+    
+    rv = NotifyOnStateChange(STATE_LOADING);
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
+
+  else if (mAsyncCanceledState == CANCELED_RESTART_NEEDED) {
+    
+    mAsyncCanceledState = NOT_CANCELED;
+    ClearChildren(PR_FALSE);
+    FillChildrenAsync();
+  }
+
+  else {
+    
+    
+    mAsyncCanceledState = NOT_CANCELED;
+    ClearChildren(PR_TRUE);
+    CloseContainer();
+  }
+
   return NS_OK;
 }
 
@@ -3374,11 +3659,10 @@ nsNavHistoryFolderResultNode::ClearChildren(PRBool unregister)
     mChildren[i]->OnRemoving();
   mChildren.Clear();
 
-  if (unregister && mContentsValid) {
-    if (mResult) {
-      mResult->RemoveBookmarkFolderObserver(this, mItemId);
-      mIsRegisteredFolderObserver = PR_FALSE;
-    }
+  PRBool needsUnregister = unregister && (mContentsValid || mAsyncPendingStmt);
+  if (needsUnregister && mResult && mIsRegisteredFolderObserver) {
+    mResult->RemoveBookmarkFolderObserver(this, mItemId);
+    mIsRegisteredFolderObserver = PR_FALSE;
   }
   mContentsValid = PR_FALSE;
 }
@@ -3489,6 +3773,16 @@ nsNavHistoryFolderResultNode::FindChildById(PRInt64 aItemId,
 }
 
 
+
+
+
+#define RESTART_AND_RETURN_IF_ASYNC_PENDING() \
+  if (mAsyncPendingStmt) { \
+    CancelAsyncOpen(PR_TRUE); \
+    return NS_OK; \
+  }
+
+
 NS_IMETHODIMP
 nsNavHistoryFolderResultNode::OnBeginUpdateBatch()
 {
@@ -3528,6 +3822,8 @@ nsNavHistoryFolderResultNode::OnItemAdded(PRInt64 aItemId,
     }
     aIndex = mChildren.Count();
   }
+
+  RESTART_AND_RETURN_IF_ASYNC_PENDING();
 
   nsNavBookmarks* bookmarks = nsNavBookmarks::GetBookmarksService();
   NS_ENSURE_TRUE(bookmarks, NS_ERROR_OUT_OF_MEMORY);
@@ -3614,6 +3910,8 @@ nsNavHistoryFolderResultNode::OnItemRemoved(PRInt64 aItemId,
     return NS_OK;
 
   NS_ASSERTION(aParentFolder == mItemId, "Got wrong bookmark update");
+
+  RESTART_AND_RETURN_IF_ASYNC_PENDING();
 
   PRBool excludeItems = (mResult && mResult->mRootNode->mOptions->ExcludeItems()) ||
                         (mParent && mParent->mOptions->ExcludeItems()) ||
@@ -3750,6 +4048,8 @@ nsNavHistoryFolderResultNode::OnItemChanged(PRInt64 aItemId,
     }
   }
 
+  RESTART_AND_RETURN_IF_ASYNC_PENDING();
+
   return nsNavHistoryResultNode::OnItemChanged(aItemId, aProperty,
                                                aIsAnnotationProperty,
                                                aNewValue,
@@ -3769,6 +4069,9 @@ nsNavHistoryFolderResultNode::OnItemVisited(PRInt64 aItemId,
                         mOptions->ExcludeItems();
   if (excludeItems)
     return NS_OK; 
+
+  RESTART_AND_RETURN_IF_ASYNC_PENDING();
+
   if (!StartIncrementalUpdate())
     return NS_OK;
 
@@ -3820,6 +4123,9 @@ nsNavHistoryFolderResultNode::OnItemMoved(PRInt64 aItemId, PRInt64 aOldParent,
 {
   NS_ASSERTION(aOldParent == mItemId || aNewParent == mItemId,
                "Got a bookmark message that doesn't belong to us");
+
+  RESTART_AND_RETURN_IF_ASYNC_PENDING();
+
   if (!StartIncrementalUpdate())
     return NS_OK; 
 

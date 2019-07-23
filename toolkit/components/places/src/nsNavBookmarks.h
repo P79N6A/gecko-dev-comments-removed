@@ -38,6 +38,7 @@
 
 
 
+
 #ifndef nsNavBookmarks_h_
 #define nsNavBookmarks_h_
 
@@ -107,6 +108,39 @@ public:
   nsresult QueryFolderChildren(PRInt64 aFolderId,
                                nsNavHistoryQueryOptions* aOptions,
                                nsCOMArray<nsNavHistoryResultNode>* children);
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  nsresult ProcessFolderNodeRow(mozIStorageValueArray* aRow,
+                                nsNavHistoryQueryOptions* aOptions,
+                                nsCOMArray<nsNavHistoryResultNode>* aChildren,
+                                PRInt32& aCurrentIndex);
+
+  
+
+
+
+
+
+
+
+
+  nsresult QueryFolderChildrenAsync(nsNavHistoryFolderResultNode* aNode,
+                                    PRInt64 aFolderId,
+                                    mozIStoragePendingStatement** _pendingStmt);
 
   
   
