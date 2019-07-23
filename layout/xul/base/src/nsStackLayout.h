@@ -67,7 +67,12 @@ public:
   virtual nsSize GetMinSize(nsIBox* aBox, nsBoxLayoutState& aBoxLayoutState);
   virtual nsSize GetMaxSize(nsIBox* aBox, nsBoxLayoutState& aBoxLayoutState);
   virtual nscoord GetAscent(nsIBox* aBox, nsBoxLayoutState& aBoxLayoutState);
-  static PRBool AddOffset(nsBoxLayoutState& aState, nsIBox* aChild, nsSize& aSize);
+
+  
+  
+  
+  
+  static PRUint8 GetOffset(nsBoxLayoutState& aState, nsIBox* aChild, nsMargin& aMargin);
 
 private:
   static nsIBoxLayout* gInstance;
