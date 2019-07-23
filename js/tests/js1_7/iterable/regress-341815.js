@@ -79,7 +79,8 @@ function test()
   }
  
   print('done');
-  reportCompare(expect, actual, summary);
+
+  setTimeout('checkTest()', 10000);
 
   exitFunc ('test');
 }
@@ -87,12 +88,25 @@ function test()
 function init()
 {
   
-  setTimeout('runtest()', 5000);
+  setTimeout('test()', 5000);
 }
 
-function runtest()
+var lastialert = 0;
+
+function checkTest()
 {
-  test();
+  
+  
+  
+  
+
+  if (ialert != lastialert)
+  {
+    lastialert = ialert;
+    setTimeout('checkTest()', 10000);
+    return;
+  }
+
   reportCompare(expect, actual, summary);
   gDelayTestDriverEnd = false;
   jsTestDriverEnd();
