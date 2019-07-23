@@ -148,12 +148,6 @@ nsSVGTransformList::GetConsolidationMatrix(nsIDOMSVGTransformList *transforms)
 
 
 
-NS_CLASSINFO_MAP_BEGIN(SVGTransformList)
-  NS_CLASSINFO_MAP_ENTRY(nsIDOMSVGTransformList)
-NS_CLASSINFO_MAP_END
-
-
-
 
 NS_IMPL_ADDREF(nsSVGTransformList)
 NS_IMPL_RELEASE(nsSVGTransformList)
