@@ -676,7 +676,6 @@ private:
 
   PRPackedBool mChangesDuringBatching;
   PRPackedBool mNotifyFrames;
-  PRPackedBool mIsEditor;
   PRPackedBool mDragSelectingCells;
   PRPackedBool mMouseDownState;   
   PRPackedBool mMouseDoubleDownState; 
