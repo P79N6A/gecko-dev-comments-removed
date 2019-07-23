@@ -45,13 +45,11 @@
 #include "nsIDOMNode.h"
 #include "nsIContent.h"
 #include "nsContentUtils.h"
-#include "nsIWidget.h"
 #include "nsIPresShell.h"
 #include "nsIEventStateManager.h"
 #include "nsIFrame.h"
 #include "nsLayoutUtils.h"
 #include "nsIScrollableFrame.h"
-#include "nsIViewManager.h"
 
 nsDOMUIEvent::nsDOMUIEvent(nsPresContext* aPresContext, nsGUIEvent* aEvent)
   : nsDOMEvent(aPresContext, aEvent ?
@@ -154,89 +152,13 @@ nsPoint nsDOMUIEvent::GetClientPoint() {
     return nsPoint(0, 0);
   }
 
-  
-  nsCOMPtr<nsIWidget> docWidget;
-  nsIPresShell *presShell = mPresContext->GetPresShell();
-  if (presShell) {
-    nsIViewManager* vm = presShell->GetViewManager();
-    if (vm) {
-      vm->GetWidget(getter_AddRefs(docWidget));
-    }
-  }
+  nsPoint pt(0, 0);
+  nsIFrame* rootFrame = mPresContext->PresShell()->GetRootFrame();
+  if (rootFrame)
+    pt = nsLayoutUtils::GetEventCoordinatesRelativeTo(mEvent, rootFrame);
 
-  nsCOMPtr<nsIWidget> eventWidget = ((nsGUIEvent*)mEvent)->widget;
-  if (!eventWidget || !docWidget)
-    return mClientPoint;
-
-  nsPoint pt = mEvent->refPoint;
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  nsIWidget* eventParent = eventWidget;
-  for (;;) {
-    nsIWidget* t = eventParent->GetParent();
-    if (!t)
-      break;
-    eventParent = t;
-  }
-
-  nsIWidget* docParent = docWidget;
-  for (;;) {
-    nsIWidget* t = docParent->GetParent();
-    if (!t)
-      break;
-    docParent = t;
-  }
-
-  if (docParent != eventParent)
-    return pt;
-  
-  while (eventWidget && docWidget != eventWidget) {
-    nsWindowType windowType;
-    eventWidget->GetWindowType(windowType);
-    if (windowType == eWindowType_popup)
-      break;
-
-    nsRect bounds;
-    eventWidget->GetBounds(bounds);
-    pt += bounds.TopLeft();
-    eventWidget = eventWidget->GetParent();
-  }
-  
-  if (eventWidget != docWidget) {
-    
-    
-    
-    
-    while (docWidget && docWidget != eventWidget) {
-      nsWindowType windowType;
-      docWidget->GetWindowType(windowType);
-      if (windowType == eWindowType_popup) {
-        
-        
-        NS_NOTREACHED("doc widget and event widget are in different popups. That's dumb.");
-        break;
-      }
-      
-      nsRect bounds;
-      docWidget->GetBounds(bounds);
-      pt -= bounds.TopLeft();
-      docWidget = docWidget->GetParent();
-    }
-  }
-  
-  return nsPoint(nsPresContext::AppUnitsToIntCSSPixels(mPresContext->DevPixelsToAppUnits(pt.x)),
-                 nsPresContext::AppUnitsToIntCSSPixels(mPresContext->DevPixelsToAppUnits(pt.y)));
+  return nsPoint(nsPresContext::AppUnitsToIntCSSPixels(pt.x),
+                 nsPresContext::AppUnitsToIntCSSPixels(pt.y));
 }
 
 NS_IMETHODIMP
