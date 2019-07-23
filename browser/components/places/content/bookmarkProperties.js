@@ -90,6 +90,7 @@
 
 
 const LAST_USED_ANNO = "bookmarkPropertiesDialog/lastUsed";
+const STATIC_TITLE_ANNO = "bookmarks/staticTitle";
 
 
 const MAX_FOLDER_ITEM_IN_MENU_LIST = 5;
@@ -552,7 +553,14 @@ var BookmarkPropertiesPanel = {
   _initNamePicker: function BPP_initNamePicker() {
     var userEnteredNameField = this._element("userEnteredName");
     var namePicker = this._element("namePicker");
-    userEnteredNameField.label = this._itemTitle;
+    const annos = PlacesUtils.annotations;
+
+    if (annos.itemHasAnnotation(this._bookmarkId, STATIC_TITLE_ANNO)) {
+      userEnteredNameField.label = annos.getItemAnnotation(this._bookmarkId,
+                                                           STATIC_TITLE_ANNO);
+    }
+    else
+      userEnteredNameField.label = this._itemTitle;
 
     
     if (this._itemType != BOOKMARK_ITEM || !this._bookmarkURI) {
