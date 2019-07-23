@@ -3111,6 +3111,16 @@ nsGenericHTMLElement::RemoveFocus(nsPresContext *aPresContext)
 PRBool
 nsGenericHTMLElement::IsFocusable(PRInt32 *aTabIndex)
 {
+  nsIDocument *doc = GetCurrentDoc();
+  if (!doc || doc->HasFlag(NODE_IS_EDITABLE)) {
+    
+    if (aTabIndex) {
+      *aTabIndex = -1;
+    }
+
+    return PR_FALSE;
+  }
+
   PRInt32 tabIndex = 0;   
   GetTabIndex(&tabIndex);
 
