@@ -509,10 +509,24 @@ nsAutoCompleteController::HandleKeyNavigation(PRUint32 aKey, PRBool *_retval)
     if (isOpen) {
       PRInt32 selectedIndex;
       popup->GetSelectedIndex(&selectedIndex);
+      PRBool shouldComplete;
+      mInput->GetCompleteDefaultIndex(&shouldComplete);
       if (selectedIndex >= 0) {
         
         nsAutoString value;
         if (NS_SUCCEEDED(GetResultValueAt(selectedIndex, PR_TRUE, value))) {
+          input->SetTextValue(value);
+          input->SelectTextRange(value.Length(), value.Length());
+        }
+      }
+      else if (shouldComplete) {
+        
+        
+        
+        
+        
+        nsAutoString value;
+        if (NS_SUCCEEDED(GetDefaultCompleteValue(selectedIndex, PR_FALSE, value))) {
           input->SetTextValue(value);
           input->SelectTextRange(value.Length(), value.Length());
         }
@@ -1348,20 +1362,67 @@ nsAutoCompleteController::CompleteDefaultIndex(PRInt32 aSearchIndex)
   if (!shouldComplete)
     return NS_OK;
 
-  nsIAutoCompleteResult *result = mResults.SafeObjectAt(aSearchIndex);
+  nsAutoString resultValue;
+  if (NS_SUCCEEDED(GetDefaultCompleteValue(aSearchIndex, PR_TRUE, resultValue)))
+    CompleteValue(resultValue);
+
+  mDefaultIndexCompleted = PR_TRUE;
+
+  return NS_OK;
+}
+
+nsresult
+nsAutoCompleteController::GetDefaultCompleteValue(PRInt32 aSearchIndex,
+                                                  PRBool aPreserveCasing,
+                                                  nsAString &_retval)
+{
+  PRInt32 defaultIndex = -1;
+  PRInt32 index = aSearchIndex;
+  if (index < 0) {
+    PRUint32 count = mResults.Count();
+    for (PRUint32 i = 0; i < count; ++i) {
+      nsIAutoCompleteResult *result = mResults[i];
+      if (result && NS_SUCCEEDED(result->GetDefaultIndex(&defaultIndex)) &&
+          defaultIndex >= 0) {
+        index = i;
+        break;
+      }
+    }
+  }
+  NS_ENSURE_TRUE(index >= 0, NS_ERROR_FAILURE);
+
+  nsIAutoCompleteResult *result = mResults.SafeObjectAt(index);
   NS_ENSURE_TRUE(result != nsnull, NS_ERROR_FAILURE);
 
-  
-  
-  PRInt32 defaultIndex;
-  result->GetDefaultIndex(&defaultIndex);
-  NS_ENSURE_TRUE(defaultIndex >= 0, NS_OK);
+  if (defaultIndex < 0) {
+    
+    
+    result->GetDefaultIndex(&defaultIndex);
+  }
+  NS_ENSURE_TRUE(defaultIndex >= 0, NS_ERROR_FAILURE);
 
   nsAutoString resultValue;
   result->GetValueAt(defaultIndex, resultValue);
-  CompleteValue(resultValue);
-
-  mDefaultIndexCompleted = PR_TRUE;
+  if (aPreserveCasing &&
+      StringBeginsWith(resultValue, mSearchString,
+                       nsCaseInsensitiveStringComparator())) {
+    
+    
+    
+    
+    
+    
+    
+    nsAutoString casedResultValue;
+    casedResultValue.Assign(mSearchString);
+    
+    casedResultValue.Append(Substring(resultValue,
+                                      mSearchString.Length(),
+                                      resultValue.Length()));
+    _retval = casedResultValue;
+  }
+  else
+    _retval = resultValue;
 
   return NS_OK;
 }
