@@ -39,7 +39,8 @@
 const DATA = "ZIP WRITER TEST DATA";
 const FILENAME = "test.txt";
 const CRC = 0xe6164331;
-const time = Date.now();
+
+const time = 1199145600000; 
 
 function run_test()
 {

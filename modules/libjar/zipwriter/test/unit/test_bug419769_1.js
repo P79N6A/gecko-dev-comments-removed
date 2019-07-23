@@ -39,7 +39,8 @@
 const DATA = "";
 const FILENAME = "test.txt";
 const CRC = 0x00000000;
-const time = Date.now();
+
+const time = 1199145600000; 
 
 function testpass(source)
 {
