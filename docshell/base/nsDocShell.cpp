@@ -7467,7 +7467,8 @@ nsDocShell::CheckClassifier(nsIChannel *aChannel)
 
     classifier->SetChannel(aChannel);
     nsresult rv = classifier->Run();
-    if (rv == NS_ERROR_FACTORY_NOT_REGISTERED) {
+    if (rv == NS_ERROR_FACTORY_NOT_REGISTERED ||
+        rv == NS_ERROR_NOT_AVAILABLE) {
         
         return NS_OK;
     }
