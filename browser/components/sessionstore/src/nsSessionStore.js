@@ -547,13 +547,11 @@ SessionStoreService.prototype = {
     }
     
     
-    this._saveWindowHistory(aWindow);
-    this._updateTextAndScrollData(aWindow);
+    var tabState = this._collectTabData(aTab);
+    this._updateTextAndScrollDataForTab(aWindow, aTab.linkedBrowser, tabState);
     
     
-    var tabState = this._windows[aWindow.__SSi].tabs[aTab._tPos];
-    if (tabState && (tabState.entries.length > 1 ||
-        tabState.entries[0].url != "about:blank")) {
+    if (tabState.entries.length > 1 || tabState.entries[0].url != "about:blank") {
       this._windows[aWindow.__SSi]._closedTabs.unshift({
         state: tabState,
         title: aTab.getAttribute("label"),
@@ -787,80 +785,81 @@ SessionStoreService.prototype = {
 
   _saveWindowHistory: function sss_saveWindowHistory(aWindow) {
     var tabbrowser = aWindow.getBrowser();
-    var browsers = tabbrowser.browsers;
-    var tabs = this._windows[aWindow.__SSi].tabs = [];
-    this._windows[aWindow.__SSi].selected = 0;
+    var tabs = tabbrowser.mTabs;
+    var tabsData = this._windows[aWindow.__SSi].tabs = [];
     
-    for (var i = 0; i < browsers.length; i++) {
-      var tabData = { entries: [], index: 0 };
-      
-      var browser = browsers[i];
-      if (!browser || !browser.currentURI) {
-        
-        tabs.push(tabData);
-        continue;
-      }
-      else if (browser.parentNode.__SS_data && browser.parentNode.__SS_data._tab) {
-        
-        tabs.push(browser.parentNode.__SS_data);
-        continue;
-      }
+    for (var i = 0; i < tabs.length; i++)
+      tabsData.push(this._collectTabData(tabs[i]));
+    
+    this._windows[aWindow.__SSi].selected = tabbrowser.mTabBox.selectedIndex + 1;
+  },
 
-      var history = null;
-      try {
-        history = browser.sessionHistory;
-      }
-      catch (ex) { } 
-      
-      if (history && browser.parentNode.__SS_data && browser.parentNode.__SS_data.entries[history.index]) {
-        tabData = browser.parentNode.__SS_data;
-        tabData.index = history.index + 1;
-      }
-      else if (history && history.count > 0) {
-        for (var j = 0; j < history.count; j++) {
-          tabData.entries.push(this._serializeHistoryEntry(history.getEntryAtIndex(j, false)));
-        }
-        tabData.index = history.index + 1;
-        
-        browser.parentNode.__SS_data = tabData;
-      }
-      else {
-        tabData.entries[0] = { url: browser.currentURI.spec };
-        tabData.index = 1;
-      }
+  
 
-      tabData.zoom = browser.markupDocumentViewer.textZoom;
+
+
+
+
+  _collectTabData: function sss_collectTabData(aTab) {
+    var tabData = { entries: [], index: 0 };
+    var browser = aTab.linkedBrowser;
+    
+    if (!browser || !browser.currentURI)
       
-      var disallow = [];
-      for (let i = 0; i < CAPABILITIES.length; i++) {
-        if (!browser.docShell["allow" + CAPABILITIES[i]])
-          disallow.push(CAPABILITIES[i]); 
-      }
-      if (disallow.length != 0)
-        tabData.disallow = disallow.join(",");
-      else if (tabData.disallow)
-        delete tabData.disallow;
+      return tabData;
+    else if (browser.parentNode.__SS_data && browser.parentNode.__SS_data._tab)
       
-      if (this.xulAttributes.length != 0) {
-        var xulattr = Array.filter(tabbrowser.mTabs[i].attributes, function(aAttr) {
-          return (this.xulAttributes.indexOf(aAttr.name) > -1);
-        }, this).map(function(aAttr) {
-          return aAttr.name + "=" + encodeURI(aAttr.value);
-        });
-        tabData.xultab = xulattr.join(" ");
-      }
-      
-      if (tabbrowser.mTabs[i].__SS_extdata)
-        tabData.extData = tabbrowser.mTabs[i].__SS_extdata;
-      else if (tabData.extData)
-        delete tabData.extData;
-      
-      tabs.push(tabData);
-      
-      if (browser == tabbrowser.selectedBrowser) {
-        this._windows[aWindow.__SSi].selected = i + 1;
-      }
+      return browser.parentNode.__SS_data;
+    
+    var history = null;
+    try {
+      history = browser.sessionHistory;
     }
+    catch (ex) { } 
+    
+    if (history && browser.parentNode.__SS_data &&
+        browser.parentNode.__SS_data.entries[history.index]) {
+      tabData = browser.parentNode.__SS_data;
+      tabData.index = history.index + 1;
+    }
+    else if (history && history.count > 0) {
+      for (var j = 0; j < history.count; j++)
+        tabData.entries.push(this._serializeHistoryEntry(history.getEntryAtIndex(j, false)));
+      tabData.index = history.index + 1;
+      
+      browser.parentNode.__SS_data = tabData;
+    }
+    else {
+      tabData.entries[0] = { url: browser.currentURI.spec };
+      tabData.index = 1;
+    }
+    
+    tabData.zoom = browser.markupDocumentViewer.textZoom;
+    
+    var disallow = [];
+    for (var i = 0; i < CAPABILITIES.length; i++)
+      if (!browser.docShell["allow" + CAPABILITIES[i]])
+        disallow.push(CAPABILITIES[i]);
+    if (disallow.length > 0)
+      tabData.disallow = disallow.join(",");
+    else if (tabData.disallow)
+      delete tabData.disallow;
+    
+    if (this.xulAttributes.length > 0) {
+      var xulattr = Array.filter(aTab.attributes, function(aAttr) {
+        return this.xulAttributes.indexOf(aAttr.name) > -1;
+      }, this).map(function(aAttr) {
+        return aAttr.name + "=" + encodeURI(aAttr.value);
+      });
+      tabData.xultab = xulattr.join(" ");
+    }
+    
+    if (aTab.__SS_extdata)
+      tabData.extData = aTab.__SS_extdata;
+    else if (tabData.extData)
+      delete tabData.extData;
+    
+    return tabData;
   },
 
   
@@ -1025,57 +1024,84 @@ SessionStoreService.prototype = {
 
 
   _updateTextAndScrollData: function sss_updateTextAndScrollData(aWindow) {
-    var _this = this;
-    function updateRecursively(aContent, aData) {
-      for (var i = 0; i < aContent.frames.length; i++) {
-        if (aData.children && aData.children[i]) {
-          updateRecursively(aContent.frames[i], aData.children[i]);
-        }
-      }
-      
-      var isHTTPS = _this._getURIFromString((aContent.parent || aContent).
-                                        document.location.href).schemeIs("https");
-      if ((aContent.document.designMode || "") == "on" && _this._checkPrivacyLevel(isHTTPS)) {
-        if (aData.innerHTML == undefined) {
-          
-          aContent.addEventListener("keypress", function(aEvent) { _this.saveStateDelayed(aWindow, 3000); }, true);
-        }
-        aData.innerHTML = aContent.document.body.innerHTML;
-      }
-      aData.scroll = aContent.scrollX + "," + aContent.scrollY;
-    }
-    
-    Array.forEach(aWindow.getBrowser().browsers, function(aBrowser, aIx) {
+    var browsers = aWindow.getBrowser().browsers;
+    for (var i = 0; i < browsers.length; i++) {
       try {
-        var tabData = this._windows[aWindow.__SSi].tabs[aIx];
+        var tabData = this._windows[aWindow.__SSi].tabs[i];
         if (tabData.entries.length == 0 ||
-            aBrowser.parentNode.__SS_data && aBrowser.parentNode.__SS_data._tab)
-          return; 
-        
-        var text = [];
-        if (aBrowser.parentNode.__SS_text && this._checkPrivacyLevel(aBrowser.currentURI.schemeIs("https"))) {
-          for (var ix = aBrowser.parentNode.__SS_text.length - 1; ix >= 0; ix--) {
-            var data = aBrowser.parentNode.__SS_text[ix];
-            if (!data.cache) {
-              
-              data.cache = encodeURI(data.element.value);
-            }
-            text.push(data.id + "=" + data.cache);
-          }
-        }
-        if (aBrowser.currentURI.spec == "about:config") {
-          text = ["#textbox=" + encodeURI(aBrowser.contentDocument.getElementById("textbox").wrappedJSObject.value)];
-        }
-        if (text.length != 0)
-          tabData.text = text.join(" ");
-        else if (tabData.text)
-          delete tabData.text;
-        
-        updateRecursively(aBrowser.contentWindow, tabData.entries[tabData.index - 1]);
+            browsers[i].parentNode.__SS_data && browsers[i].parentNode.__SS_data._tab)
+          continue; 
+        this._updateTextAndScrollDataForTab(aWindow, browsers[i], tabData);
       }
       catch (ex) { debug(ex); } 
-    }, this);
+    }
   },
+
+  
+
+
+
+
+
+
+
+
+
+  _updateTextAndScrollDataForTab:
+    function sss_updateTextAndScrollDataForTab(aWindow, aBrowser, aTabData) {
+    var text = [];
+    if (aBrowser.parentNode.__SS_text &&
+        this._checkPrivacyLevel(aBrowser.currentURI.schemeIs("https"))) {
+      for (var ix = aBrowser.parentNode.__SS_text.length - 1; ix >= 0; ix--) {
+        var data = aBrowser.parentNode.__SS_text[ix];
+        if (!data.cache)
+          
+          data.cache = encodeURI(data.element.value);
+        text.push(data.id + "=" + data.cache);
+      }
+    }
+    if (aBrowser.currentURI.spec == "about:config")
+      text = ["#textbox=" + encodeURI(aBrowser.contentDocument.getElementById("textbox").
+                                               wrappedJSObject.value)];
+    if (text.length > 0)
+      aTabData.text = text.join(" ");
+    else if (aTabData.text)
+      delete aTabData.text;
+    
+    this._updateTextAndScrollDataForFrame(aWindow, aBrowser.contentWindow,
+                                          aTabData.entries[aTabData.index - 1]);
+  },
+
+  
+
+
+
+
+
+
+
+
+
+  _updateTextAndScrollDataForFrame:
+    function sss_updateTextAndScrollDataForFrame(aWindow, aContent, aData) {
+    for (var i = 0; i < aContent.frames.length; i++) {
+      if (aData.children && aData.children[i])
+        this._updateTextAndScrollDataForFrame(aWindow, aContent.frames[i], aData.children[i]);
+    }
+    
+    var isHTTPS = this._getURIFromString((aContent.parent || aContent).
+                                         document.location.href).schemeIs("https");
+    if ((aContent.document.designMode || "") == "on" && this._checkPrivacyLevel(isHTTPS)) {
+      if (aData.innerHTML === undefined) {
+        
+        var _this = this;
+        aContent.addEventListener("keypress", function(aEvent) {
+          _this.saveStateDelayed(aWindow, 3000); }, true);
+      }
+      aData.innerHTML = aContent.document.body.innerHTML;
+    }
+    aData.scroll = aContent.scrollX + "," + aContent.scrollY;
+   },
 
   
 
