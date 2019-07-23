@@ -204,23 +204,21 @@ ProcessSerialNumberDER(SECItem         *serialItem,
 
 static nsresult
 GetDefaultOIDFormat(SECItem *oid,
+                    nsINSSComponent *nssComponent,
                     nsAString &outString,
-		    char separator)
+                    char separator)
 {
   char buf[300];
-  unsigned int len;
-  int written;
+  unsigned int len = 0;
+  int written, invalidCount = 0;
     
-  unsigned long val  = oid->data[0];
-  unsigned int  i    = val % 40;
-  val /= 40;
-  written = PR_snprintf(buf, 300, "%lu%c%u", val, separator, i);
-  if (written < 0)
-    return NS_ERROR_FAILURE;	
-  len = written;
+  unsigned int i;
+  unsigned long val  = 0;
+  PRBool invalid = PR_FALSE;
+  PRBool first = PR_TRUE;
 
   val = 0;
-  for (i = 1; i < oid->len; ++i) {
+  for (i = 0; i < oid->len; ++i) {
     
     
     
@@ -231,16 +229,64 @@ GetDefaultOIDFormat(SECItem *oid,
 
     j = oid->data[i];
     val = (val << 7) | (j & 0x7f);
-    if (j & 0x80)
-      continue;
-    written = PR_snprintf(&buf[len], sizeof(buf)-len, "%c%lu", 
-			  separator, val);
+    if (j & 0x80) {
+      
+      
+      
+      
+      
+      
+      
+      if (val == 0 || (val >= (1 << (32-7))) || (i == oid->len-1)) {
+        invalid = PR_TRUE;
+      }
+
+      if (i < oid->len-1)
+        continue;
+    }
+
+    if (!invalid) {
+      if (first) {
+        unsigned long one = PR_MIN(val/40, 2); 
+        unsigned long two = val - (one * 40);
+
+        written = PR_snprintf(&buf[len], sizeof(buf)-len, "%lu%c%lu", 
+			      one, separator, two);
+      }
+      else {
+        written = PR_snprintf(&buf[len], sizeof(buf)-len, "%c%lu", 
+			      separator, val);
+      }
+    }
+    else {
+      nsAutoString unknownText;
+      nssComponent->GetPIPNSSBundleString("CertUnknown", 
+                                          unknownText);
+      if (first) {
+        written = PR_snprintf(&buf[len], sizeof(buf)-len, "%s",
+                              NS_ConvertUTF16toUTF8(unknownText).get());
+      }
+      else {
+        written = PR_snprintf(&buf[len], sizeof(buf)-len, "%c%s",
+                              separator, 
+                              NS_ConvertUTF16toUTF8(unknownText).get());
+      }
+
+      if (++invalidCount > 3) {
+        
+        
+        break;
+      }
+    }
+
     if (written < 0)
       return NS_ERROR_FAILURE;
 
     len += written;
     NS_ASSERTION(len < sizeof(buf), "OID data to big to display in 300 chars.");
     val = 0;      
+    invalid = PR_FALSE;
+    first = PR_FALSE;
   }
 
   CopyASCIItoUTF16(buf, outString);
@@ -600,7 +646,7 @@ GetOIDText(SECItem *oid, nsINSSComponent *nssComponent, nsAString &text)
     rv = nssComponent->GetPIPNSSBundleString(bundlekey, text);
   } else {
     nsAutoString text2;
-    rv = GetDefaultOIDFormat(oid, text2, ' ');
+    rv = GetDefaultOIDFormat(oid, nssComponent, text2, ' ');
     if (NS_FAILED(rv))
       return rv;
 
@@ -834,14 +880,14 @@ ProcessExtKeyUsage(SECItem  *extData,
     
     nsAutoString oidname;
     oid = *oids;
-    rv = GetDefaultOIDFormat(oid, oidname, '_');
+    rv = GetDefaultOIDFormat(oid, nssComponent, oidname, '_');
     if (NS_FAILED(rv))
       return rv;
     nsAutoString bundlekey = NS_LITERAL_STRING("CertDumpEKU_")+ oidname;
     NS_ConvertUTF16toUTF8 bk_ascii(bundlekey);
     
     rv = nssComponent->GetPIPNSSBundleString(bk_ascii.get(), local);
-    nsresult rv2 = GetDefaultOIDFormat(oid, oidname, '.');
+    nsresult rv2 = GetDefaultOIDFormat(oid, nssComponent, oidname, '.');
     if (NS_FAILED(rv2))
       return rv2;
     if (NS_SUCCEEDED(rv)) {
@@ -1066,7 +1112,7 @@ ProcessGeneralName(PRArenaPool *arena,
 	  ProcessRawBytes(nssComponent, &current->name.OthName.name, value);
 	}
     } else {
-      rv = GetDefaultOIDFormat(&current->name.OthName.oid, key, ' ');
+      rv = GetDefaultOIDFormat(&current->name.OthName.oid, nssComponent, key, ' ');
       if (NS_FAILED(rv))
 	goto finish;
       ProcessRawBytes(nssComponent, &current->name.OthName.name, value);
@@ -1126,7 +1172,7 @@ ProcessGeneralName(PRArenaPool *arena,
     }
   case certRegisterID:
     nssComponent->GetPIPNSSBundleString("CertDumpRegisterID", key);
-    rv = GetDefaultOIDFormat(&current->name.other, value, '.');
+    rv = GetDefaultOIDFormat(&current->name.other, nssComponent, value, '.');
     if (NS_FAILED(rv))
       goto finish;
     break;
@@ -1356,7 +1402,7 @@ ProcessCertificatePolicies(SECItem  *extData,
       text.Append(local);
       break;
     default:
-      GetDefaultOIDFormat(&policyInfo->policyID, local, '.');
+      GetDefaultOIDFormat(&policyInfo->policyID, nssComponent, local, '.');
       text.Append(local);
     }
 
@@ -1407,7 +1453,7 @@ ProcessCertificatePolicies(SECItem  *extData,
 				 text, nssComponent);
 	  break;
 	default:
-	  GetDefaultOIDFormat(&policyQualifier->qualifierID, local, '.');
+	  GetDefaultOIDFormat(&policyQualifier->qualifierID, nssComponent, local, '.');
 	  text.Append(local);
 	  text.Append(NS_LITERAL_STRING(": "));
 	  ProcessRawBytes(nssComponent, &policyQualifier->qualifierValue, text);
@@ -1545,7 +1591,7 @@ ProcessAuthInfoAccess(SECItem  *extData,
       nssComponent->GetPIPNSSBundleString("CertDumpCAIssuers", local);
       break;
     default:
-      rv = GetDefaultOIDFormat(&desc->method, local, '.');
+      rv = GetDefaultOIDFormat(&desc->method, nssComponent, local, '.');
       if (NS_FAILED(rv))
 	goto finish;
     }
