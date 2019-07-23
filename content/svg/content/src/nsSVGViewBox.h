@@ -73,7 +73,8 @@ public:
   void SetBaseValue(float aX, float aY, float aWidth, float aHeight,
                     nsSVGElement *aSVGElement, PRBool aDoSetAttr);
 
-  const nsSVGViewBoxRect& GetAnimValue(nsSVGElement *aSVGElement) const;
+  const nsSVGViewBoxRect& GetAnimValue() const
+    { return mAnimVal ? *mAnimVal : mBaseVal; }
   void SetAnimValue(float aX, float aY, float aWidth, float aHeight,
                     nsSVGElement *aSVGElement);
 
@@ -132,14 +133,40 @@ private:
     nsSVGViewBox* mVal; 
     nsRefPtr<nsSVGElement> mSVGElement;
 
+    
+    
     NS_IMETHOD GetX(float *aX)
-      { *aX = mVal->GetAnimValue(mSVGElement).x; return NS_OK; }
+    {
+#ifdef MOZ_SMIL
+      mSVGElement->FlushAnimations();
+#endif
+      *aX = mVal->GetAnimValue().x;
+      return NS_OK;
+    }
     NS_IMETHOD GetY(float *aY)
-      { *aY = mVal->GetAnimValue(mSVGElement).y; return NS_OK; }
+    {
+#ifdef MOZ_SMIL
+      mSVGElement->FlushAnimations();
+#endif
+      *aY = mVal->GetAnimValue().y;
+      return NS_OK;
+    }
     NS_IMETHOD GetWidth(float *aWidth)
-      { *aWidth = mVal->GetAnimValue(mSVGElement).width; return NS_OK; }
+    {
+#ifdef MOZ_SMIL
+      mSVGElement->FlushAnimations();
+#endif
+      *aWidth = mVal->GetAnimValue().width;
+      return NS_OK;
+    }
     NS_IMETHOD GetHeight(float *aHeight)
-      { *aHeight = mVal->GetAnimValue(mSVGElement).height; return NS_OK; }
+    {
+#ifdef MOZ_SMIL
+      mSVGElement->FlushAnimations();
+#endif
+      *aHeight = mVal->GetAnimValue().height;
+      return NS_OK;
+    }
 
     NS_IMETHOD SetX(float aX)
       { return NS_ERROR_DOM_NO_MODIFICATION_ALLOWED_ERR; }
