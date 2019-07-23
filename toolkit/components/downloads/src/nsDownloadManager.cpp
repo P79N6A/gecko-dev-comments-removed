@@ -716,6 +716,27 @@ nsDownloadManager::RestoreDatabaseState()
   rv = stmt->Execute();
   NS_ENSURE_SUCCESS(rv, rv);
 
+  
+  
+  rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING(
+    "UPDATE moz_downloads "
+    "SET autoResume = ?1 "
+    "WHERE state = ?2 "
+      "AND autoResume = ?3"),
+    getter_AddRefs(stmt));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  i = 0;
+  rv = stmt->BindInt32Parameter(i++, nsDownload::DONT_RESUME);
+  NS_ENSURE_SUCCESS(rv, rv);
+  rv = stmt->BindInt32Parameter(i++, nsIDownloadManager::DOWNLOAD_FINISHED);
+  NS_ENSURE_SUCCESS(rv, rv);
+  rv = stmt->BindInt32Parameter(i++, nsDownload::AUTO_RESUME);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  rv = stmt->Execute();
+  NS_ENSURE_SUCCESS(rv, rv);
+
   return NS_OK;
 }
 
@@ -2317,6 +2338,9 @@ nsDownload::Finalize()
 
   
   (void)mDownloadManager->mCurrentDownloads.RemoveObject(this);
+
+  
+  mAutoResume = DONT_RESUME;
 }
 
 nsresult
