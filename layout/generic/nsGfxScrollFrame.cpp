@@ -2497,6 +2497,9 @@ nsXULScrollFrame::LayoutScrollArea(nsBoxLayoutState& aState,
                             mInner.mScrollPort.Size());
   PRInt32 flags = NS_FRAME_NO_MOVE_VIEW;
 
+  nsRect originalRect = mInner.mScrolledFrame->GetRect();
+  nsRect originalOverflow = mInner.mScrolledFrame->GetOverflowRect();
+
   nsSize minSize = mInner.mScrolledFrame->GetMinSize(aState);
   
   if (minSize.height > childRect.height)
@@ -2521,6 +2524,28 @@ nsXULScrollFrame::LayoutScrollArea(nsBoxLayoutState& aState,
     
     mInner.mScrolledFrame->SetBounds(aState, childRect);
     mInner.mScrolledFrame->ClearOverflowRect();
+  }
+
+  nsRect finalRect = mInner.mScrolledFrame->GetRect();
+  nsRect finalOverflow = mInner.mScrolledFrame->GetOverflowRect();
+  
+  
+  
+  if (originalRect.TopLeft() != finalRect.TopLeft() ||
+      originalOverflow.TopLeft() != finalOverflow.TopLeft())
+  {
+    
+    
+    mInner.mScrolledFrame->Invalidate(
+      originalOverflow + originalRect.TopLeft() - finalRect.TopLeft());
+    mInner.mScrolledFrame->Invalidate(finalOverflow);
+  } else if (!originalOverflow.IsExactEqual(finalOverflow)) {
+    
+    
+    mInner.mScrolledFrame->CheckInvalidateSizeChange(
+      originalRect, originalOverflow, finalRect.Size());
+    mInner.mScrolledFrame->InvalidateRectDifference(
+      originalOverflow, finalOverflow);
   }
 
   aState.SetLayoutFlags(oldflags);
