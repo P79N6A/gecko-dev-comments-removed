@@ -83,6 +83,10 @@ public:
 
   PRBool Matches(nsIContent* aContent, PRUint32 aIndex);
 
+  
+  
+  void UnbindDefaultContent();
+
 protected:
   nsAutoRefCnt mRefCnt;
   nsIContent* mParentElement;            

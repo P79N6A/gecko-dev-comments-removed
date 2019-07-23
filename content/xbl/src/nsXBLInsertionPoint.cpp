@@ -114,3 +114,24 @@ nsXBLInsertionPoint::Matches(nsIContent* aContent, PRUint32 aIndex)
 {
   return (aContent == mParentElement && mIndex != -1 && ((PRInt32)aIndex) == mIndex);
 }
+
+void
+nsXBLInsertionPoint::UnbindDefaultContent()
+{
+  if (!mDefaultContent) {
+    return;
+  }
+
+  
+  nsCOMPtr<nsIContent> defContent = mDefaultContent;
+
+  
+  
+  
+  PRUint32 childCount = mDefaultContent->GetChildCount();
+  for (PRUint32 i = 0; i < childCount; i++) {
+    defContent->GetChildAt(i)->UnbindFromTree();
+  }
+
+  defContent->UnbindFromTree();
+}
