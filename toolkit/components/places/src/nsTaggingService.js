@@ -538,9 +538,8 @@ TagAutoCompleteSearch.prototype = {
         if (self._stopped)
           yield false;
         
-        var pattern = new RegExp("(^" + searchResults[i] + "$|" + searchResults[i] + "(,|;))");
         if (searchResults[i].indexOf(searchString) == 0 &&
-            !pattern.test(before)) {
+            comments.indexOf(searchResults[i]) == -1) {
           results.push(before + searchResults[i]);
           comments.push(searchResults[i]);
         }
@@ -576,6 +575,9 @@ TagAutoCompleteSearch.prototype = {
     }
     driveGenerator();
   },
+
+  
+
 
   notify: function PTACS_notify(timer) {
     if (this._callback) 

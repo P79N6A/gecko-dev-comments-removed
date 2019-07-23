@@ -161,7 +161,7 @@ var tests = [
 
 
 function run_test() {
-  tagssvc.tagURI(uri1, ["bar", "baz", "boo"]);
+  tagssvc.tagURI(uri1, ["bar", "baz", "boo", "*nix"]);
 
   tests[0]();
 }
