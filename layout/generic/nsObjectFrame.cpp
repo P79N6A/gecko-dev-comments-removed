@@ -4115,7 +4115,7 @@ void nsPluginInstanceOwner::Paint(const nsRect& aDirtyRect, HPS aHPS)
 
   nsPluginWindow * window;
   GetWindow(window);
-  nsIntRect relDirtyRect = nsRect::ToOutsidePixels(aDirtyRect, mOwner->PresContext()->AppUnitsPerDevicePixel());
+  nsIntRect relDirtyRect = nsRect::ToOutsidePixels(aDirtyRect, mOwner->PresContext()->AppUnitsPerDevPixel());
 
   
   
