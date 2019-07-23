@@ -38,6 +38,7 @@
 
 const Cc = Components.classes;
 const Ci = Components.interfaces;
+const Cr = Components.results;
 
 Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
 
@@ -81,6 +82,11 @@ LoginManagerPromptFactory.prototype = {
 
 
 
+
+
+
+
+
 function LoginManagerPrompter() {}
 
 LoginManagerPrompter.prototype = {
@@ -88,8 +94,9 @@ LoginManagerPrompter.prototype = {
     classDescription : "LoginManagerPrompter",
     contractID : "@mozilla.org/login-manager/prompter;1",
     classID : Components.ID("{8aa66d77-1bbb-45a6-991e-b8f47751c291}"),
-    QueryInterface : XPCOMUtils.generateQI(
-                        [Ci.nsIAuthPrompt2, Ci.nsILoginManagerPrompter]),
+    QueryInterface : XPCOMUtils.generateQI([Ci.nsIAuthPrompt,
+                                            Ci.nsIAuthPrompt2,
+                                            Ci.nsILoginManagerPrompter]),
 
     _window        : null,
     _debug         : false, 
@@ -150,6 +157,15 @@ LoginManagerPrompter.prototype = {
     },
 
 
+    __ioService: null, 
+    get _ioService() {
+        if (!this.__ioService)
+            this.__ioService = Cc["@mozilla.org/network/io-service;1"].
+                               getService(Ci.nsIIOService);
+        return this.__ioService;
+    },
+
+
     
 
 
@@ -161,6 +177,163 @@ LoginManagerPrompter.prototype = {
 
         dump("Pwmgr Prompter: " + message + "\n");
         this._logService.logStringMessage("Pwmgr Prompter: " + message);
+    },
+
+
+
+
+    
+
+
+    
+
+
+
+
+
+    prompt : function (aDialogTitle, aText, aPasswordRealm,
+                       aSavePassword, aDefaultText, aResult) {
+        if (aSavePassword != Ci.nsIAuthPrompt.SAVE_PASSWORD_NEVER)
+            throw Components.results.NS_ERROR_NOT_IMPLEMENTED;
+
+        this.log("===== prompt() called =====");
+
+        if (aDefaultText) {
+            aResult.value = aDefaultText;
+        }
+
+        return this._promptService.prompt(this._window,
+               aDialogTitle, aText, aResult, null, {});
+    },
+
+
+    
+
+
+
+
+
+    promptUsernameAndPassword : function (aDialogTitle, aText, aPasswordRealm,
+                                         aSavePassword, aUsername, aPassword) {
+        if (aSavePassword == Ci.nsIAuthPrompt.SAVE_PASSWORD_FOR_SESSION)
+            throw Components.results.NS_ERROR_NOT_IMPLEMENTED;
+
+        var checkBox = { value : false };
+        var checkBoxLabel = null;
+        var hostname = this._getFormattedHostname(aPasswordRealm);
+
+        this.log("===== promptUsernameAndPassword() called =====");
+
+        var canRememberLogin = (aSavePassword ==
+                                Ci.nsIAuthPrompt.SAVE_PASSWORD_PERMANENTLY) &&
+                               this._pwmgr.getLoginSavingEnabled(hostname);
+
+        
+        if (canRememberLogin)
+            checkBoxLabel = this._getLocalizedString("rememberPassword");
+
+        if (!aUsername.value && !aPassword.value) {
+            
+            var foundLogins = this._pwmgr.findLogins({}, hostname, null,
+
+                                                     aPasswordRealm);
+
+            
+            
+            if (foundLogins.length > 0) {
+                
+                
+                aUsername.value = foundLogins[0].username;
+                aPassword.value = foundLogins[0].password;
+            }
+        }
+
+        var ok = this._promptService.promptUsernameAndPassword(this._window,
+                    aDialogTitle, aText, aUsername, aPassword,
+                    checkBoxLabel, checkBox);
+
+        if (ok && checkBox.value) {
+            var newLogin = Cc["@mozilla.org/login-manager/loginInfo;1"].
+                           createInstance(Ci.nsILoginInfo);
+            newLogin.init(hostname, null, aPasswordRealm,
+                          aUsername.value, aPassword.value,
+                          "", "");
+
+            this.log("New login seen for " + aPasswordRealm);
+
+            this._pwmgr.addLogin(newLogin);
+        }
+
+        return ok;
+    },
+
+
+    
+
+
+
+
+
+
+
+
+
+    promptPassword : function (aDialogTitle, aText, aPasswordRealm,
+                                         aSavePassword, aPassword) {
+        if (aSavePassword == Ci.nsIAuthPrompt.SAVE_PASSWORD_FOR_SESSION)
+            throw Components.results.NS_ERROR_NOT_IMPLEMENTED;
+
+        var checkBox = { value : false };
+        var checkBoxLabel = null;
+        var [hostname, username, pathname] = this._decomposeURI(aPasswordRealm);
+        var newRealm = hostname + pathname;
+
+        this.log("===== promptPassword called() =====");
+
+        var canRememberLogin = (aSavePassword ==
+                                Ci.nsIAuthPrompt.SAVE_PASSWORD_PERMANENTLY) &&
+                               this._pwmgr.getLoginSavingEnabled(hostname);
+
+        
+        if (canRememberLogin)
+            checkBoxLabel = this._getLocalizedString("rememberPassword");
+
+        if (!aPassword.value) {
+            
+            var foundLogins = this._pwmgr.findLogins({}, hostname, null,
+
+                                                     newRealm);
+
+            var i;
+            
+            
+            
+            
+            for (i = 0; i < foundLogins.length; ++i) {
+                if (foundLogins[i].username == username) {
+                    aPassword.value = foundLogins[i].password;
+                    
+                    return true;
+                }
+            }
+        }
+
+        var ok = this._promptService.promptPassword(this._window, aDialogTitle,
+                                                    aText, aPassword,
+                                                    checkBoxLabel, checkBox);
+
+        if (ok && checkBox.value) {
+            var newLogin = Cc["@mozilla.org/login-manager/loginInfo;1"].
+                           createInstance(Ci.nsILoginInfo);
+            newLogin.init(hostname, null, newRealm, username,
+                          aPassword.value, "", "");
+
+            this.log("New login seen for " + newRealm);
+
+            this._pwmgr.addLogin(newLogin);
+        }
+
+        return ok;
     },
 
 
@@ -739,18 +912,24 @@ LoginManagerPrompter.prototype = {
 
 
 
+
+
     _getFormattedHostname : function (aURI) {
-        var scheme = aURI.scheme;
+        var uri;
+        if (aURI instanceof Ci.nsIURI) {
+            uri = aURI;
+        } else {
+            uri = this._ioService.newURI(aURI, null, null);
+        }
+        var scheme = uri.scheme;
 
-        var hostname = scheme + "://" + aURI.host;
+        var hostname = scheme + "://" + uri.host;
 
         
         
-        port = aURI.port;
+        port = uri.port;
         if (port != -1) {
-            var ioService = Cc["@mozilla.org/network/io-service;1"].
-                            getService(Ci.nsIIOService);
-            var handler = ioService.getProtocolHandler(scheme);
+            var handler = this._ioService.getProtocolHandler(scheme);
             if (port != handler.defaultPort)
                 hostname += ":" + port;
         }
@@ -758,6 +937,19 @@ LoginManagerPrompter.prototype = {
         return hostname;
     },
 
+    
+
+
+
+    _decomposeURI: function (aURIString) {
+        var uri = this._ioService.newURI(aURIString, null, null);
+        var pathname = "";
+
+        if (uri.path != "/")
+            pathname = uri.path;
+
+        return [this._getFormattedHostname(uri), uri.username, pathname];
+    },
 
     
 
