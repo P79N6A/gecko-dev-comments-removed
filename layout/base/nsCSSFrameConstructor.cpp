@@ -9674,6 +9674,8 @@ nsCSSFrameConstructor::CharacterDataChanged(nsIContent* aContent,
 nsresult
 nsCSSFrameConstructor::ProcessRestyledFrames(nsStyleChangeList& aChangeList)
 {
+  NS_ASSERTION(!nsContentUtils::IsSafeToRunScript(),
+               "Someone forgot a script blocker");
   PRInt32 count = aChangeList.Count();
   if (!count)
     return NS_OK;
@@ -13261,6 +13263,11 @@ nsCSSFrameConstructor::RebuildAllStyleData(nsChangeHint aExtraHint)
     return;
   }
 
+  nsAutoScriptBlocker scriptBlocker;
+
+  
+  nsIViewManager::UpdateViewBatch batch(mPresShell->GetViewManager());
+
   
   
   nsCOMPtr<nsIPresShell> kungFuDeathGrip(mPresShell);
@@ -13268,8 +13275,10 @@ nsCSSFrameConstructor::RebuildAllStyleData(nsChangeHint aExtraHint)
   
   
   nsresult rv = mPresShell->StyleSet()->BeginReconstruct();
-  if (NS_FAILED(rv))
+  if (NS_FAILED(rv)) {
+    batch.EndUpdateViewBatch(NS_VMREFRESH_NO_SYNC);
     return;
+  }
 
   
   
@@ -13290,6 +13299,7 @@ nsCSSFrameConstructor::RebuildAllStyleData(nsChangeHint aExtraHint)
   
   
   mPresShell->StyleSet()->EndReconstruct();
+  batch.EndUpdateViewBatch(NS_VMREFRESH_NO_SYNC);
 }
 
 void
@@ -13450,8 +13460,10 @@ nsCSSFrameConstructor::LazyGenerateChildrenEvent::Run()
       nsFrameConstructorState state(mPresShell, nsnull, nsnull, nsnull);
       nsresult rv = fc->ProcessChildren(state, mContent, frame->GetStyleContext(),
                                         frame, PR_FALSE, childItems, PR_FALSE);
-      if (NS_FAILED(rv))
+      if (NS_FAILED(rv)) {
+        fc->EndUpdate();
         return rv;
+      }
 
       frame->SetInitialChildList(nsnull, childItems.childList);
 

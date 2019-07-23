@@ -433,8 +433,6 @@ nsHTMLScriptElement::Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const
   NS_ENSURE_SUCCESS(rv, rv);
 
   
-  
-  
   it->mIsEvaluated = mIsEvaluated;
   it->mLineNumber = mLineNumber;
   it->mMalformed = mMalformed;
