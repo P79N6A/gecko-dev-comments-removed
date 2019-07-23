@@ -144,17 +144,22 @@ function submitSuccess(ret, link, dump, extra) {
     
   }
 
-  
-  
-  let CrashID = ret.CrashID;
-  link.firstChild.textContent = CrashID;
-  link.setAttribute("id", CrashID);
-  link.removeEventListener("click", submitPendingReport, true);
-
-  if (reportURL) {
-    link.setAttribute("href", reportURL + CrashID);
+  if (link) {
     
-    window.location.href = reportURL + CrashID;
+    
+    let CrashID = ret.CrashID;
+    link.firstChild.textContent = CrashID;
+    link.setAttribute("id", CrashID);
+    link.removeEventListener("click", submitPendingReport, true);
+
+    if (reportURL) {
+      link.setAttribute("href", reportURL + CrashID);
+      
+      window.location.href = reportURL + CrashID;
+    }
+  }
+  else {
+    window.close();
   }
 }
 
@@ -194,7 +199,8 @@ function submitForm(iframe, dump, extra, link)
       if(aFlag & STATE_STOP) {
         iframe.docShell.removeProgressListener(myListener);
         myListener = null;
-        link.className = "";
+	if (link)
+          link.className = "";
 
         
         
@@ -233,12 +239,15 @@ function createAndSubmitForm(id, link) {
     return false;
   let iframe = document.createElementNS("http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul", "iframe");
   iframe.setAttribute("type", "content");
-  iframe.onload = function() {
+
+  function loadHandler() {
     if (iframe.contentWindow.location == "about:blank")
       return;
-    iframe.onload = null;
+    iframe.removeEventListener("load", loadHandler, true);
     submitForm(iframe, dump, extra, link);
-  };
+  }      
+
+  iframe.addEventListener("load", loadHandler, true);
   document.body.appendChild(iframe);
   iframe.webNavigation.loadURI("chrome://global/content/crash-submit-form.xhtml", 0, null, null, null);
   return true;
