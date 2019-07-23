@@ -44,12 +44,12 @@ PlacesTreeView.prototype = {
             getAtom(aString);
   },
 
-  __containerAtom: null,
-  get _containerAtom() {
-    if (!this.__containerAtom)
-      this.__containerAtom = this._makeAtom("container");
+  __separatorAtom: null,
+  get _separatorAtom() {
+    if (!this.__separatorAtom)
+      this.__separatorAtom = this._makeAtom("separator");
 
-    return this.__containerAtom;
+    return this.__separatorAtom;
   },
 
   __sessionStartAtom: null,
@@ -783,10 +783,6 @@ PlacesTreeView.prototype = {
     var node = this._visibleElements[aRow];
 
     
-    if (PlacesUtils.nodeIsContainer(node))
-      aProperties.AppendElement(this._containerAtom);
-
-    
     if (!this._showSessions)
       return;
 
@@ -802,7 +798,17 @@ PlacesTreeView.prototype = {
     }
   },
 
-  getCellProperties: function(aRow, aColumn, aProperties) { },
+  getCellProperties: function PTV_getCellProperties(aRow, aColumn, aProperties) {
+    if (aColumn.id != "title")
+      return;
+
+    this._ensureValidRow(aRow);
+    var node = this._visibleElements[aRow];
+
+    if (PlacesUtils.nodeIsSeparator(node))
+      aProperties.AppendElement(this._separatorAtom);
+  },
+
   getColumnProperties: function(aColumn, aProperties) { },
 
   isContainer: function PTV_isContainer(aRow) {
