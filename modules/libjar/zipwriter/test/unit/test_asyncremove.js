@@ -61,10 +61,6 @@ var observer = {
 function run_test()
 {
   
-  do_check_true(true);
-  return;
-
-  
   var testzip = do_get_file(DATA_DIR + "test.zip");
   testzip.copyTo(tmpDir, tmpFile.leafName);
 
