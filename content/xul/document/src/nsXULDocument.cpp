@@ -2006,8 +2006,6 @@ nsXULDocument::StartLayout(void)
         if (! docShell)
             return NS_ERROR_UNEXPECTED;
 
-        nsRect r = cx->GetVisibleArea();
-
         
         
         
@@ -2029,7 +2027,11 @@ nsXULDocument::StartLayout(void)
         }
 
         mMayStartLayout = PR_TRUE;
+
         
+        
+        
+        nsRect r = cx->GetVisibleArea();
         
         
         nsCOMPtr<nsIPresShell> shellGrip = shell;
