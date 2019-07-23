@@ -147,6 +147,9 @@ nsObserverService::RemoveObserver(nsIObserver* anObserver, const char* aTopic)
     if (!observerList)
         return NS_ERROR_FAILURE;
 
+    
+
+    nsCOMPtr<nsIObserver> kungFuDeathGrip(anObserver);
     return observerList->RemoveObserver(anObserver);
 }
 
