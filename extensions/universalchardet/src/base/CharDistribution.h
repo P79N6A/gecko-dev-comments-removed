@@ -71,7 +71,7 @@ public:
   }
 
   
-  float GetConfidence();
+  float GetConfidence(PRBool aIsPreferredLanguage);
 
   
   void      Reset(void) 

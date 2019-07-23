@@ -49,12 +49,13 @@
 #define MINIMUM_DATA_THRESHOLD  4
 
 
-float CharDistributionAnalysis::GetConfidence()
+float CharDistributionAnalysis::GetConfidence(PRBool aIsPreferredLanguage)
 { 
   
   
   
-  if (mTotalChars <= 0 || mFreqChars <= MINIMUM_DATA_THRESHOLD)
+  if (mTotalChars <= 0 ||
+      !aIsPreferredLanguage && mFreqChars <= MINIMUM_DATA_THRESHOLD)
     return SURE_NO;
 
   if (mTotalChars != mFreqChars) {
