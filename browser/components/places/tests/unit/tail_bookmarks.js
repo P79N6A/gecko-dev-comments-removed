@@ -38,4 +38,4 @@
 
 
 
-clearDB();
+cleanUp();

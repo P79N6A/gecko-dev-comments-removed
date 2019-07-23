@@ -83,13 +83,19 @@ function uri(spec) {
   return iosvc.newURI(spec, null, null);
 }
 
-
-function clearDB() {
+function cleanUp() {
   try {
+    
     var file = dirSvc.get('ProfD', Ci.nsIFile);
     file.append("places.sqlite");
     if (file.exists())
       file.remove(false);
+
+    
+    file = firSvc.get('ProfD', Ci.nsIFile);
+    file.append("bookmarks.exported.html");
+    if (file.exists())
+      file.remove(false);
   } catch(ex) { dump("Exception: " + ex); }
 }
-clearDB();
+cleanUp();

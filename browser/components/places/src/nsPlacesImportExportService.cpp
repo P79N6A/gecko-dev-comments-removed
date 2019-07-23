@@ -132,6 +132,7 @@ static NS_DEFINE_CID(kParserCID, NS_PARSER_CID);
 
 
 
+
 #if defined(XP_WIN) || defined(XP_OS2)
 #define NS_LINEBREAK "\015\012"
 #else
@@ -828,10 +829,10 @@ BookmarkContentSink::HandleLinkBegin(const nsIParserNode& node)
     return;
 
   
+  PRInt64 parent;
   if (frame.mPreviousId > 0) {
-    PRInt32 index;
-    rv = mBookmarksService->GetItemIndex(frame.mPreviousId, &index);
-    if (NS_FAILED(rv))
+    rv = mBookmarksService->GetFolderIdForItem(frame.mPreviousId, &parent);
+    if (NS_FAILED(rv) || frame.mContainerID != parent)
       frame.mPreviousId = 0;
   }
 
@@ -913,15 +914,41 @@ BookmarkContentSink::HandleLinkEnd()
     
     
     
+
+    
     if (frame.mPreviousId > 0) {
-      
-      rv = mLivemarkService->SetSiteURI(frame.mPreviousId, frame.mPreviousLink);
-      NS_ASSERTION(NS_SUCCEEDED(rv), "SetSiteURI failed!");
-      rv = mLivemarkService->SetFeedURI(frame.mPreviousId, frame.mPreviousFeed);
-      NS_ASSERTION(NS_SUCCEEDED(rv), "SetFeedURI failed!");
-      rv = mBookmarksService->SetItemTitle(frame.mPreviousId, frame.mPreviousText);
-      NS_ASSERTION(NS_SUCCEEDED(rv), "SetItemTitle failed!");
-    } else {
+      PRInt64 parent;
+      nsresult rv = mBookmarksService->GetFolderIdForItem(frame.mPreviousId, &parent);
+      if (NS_FAILED(rv) || parent != frame.mContainerID) {
+        frame.mPreviousId = 0;
+      }
+    }
+
+    PRBool isLivemark = PR_FALSE;
+    if (frame.mPreviousId > 0) {
+      mLivemarkService->IsLivemark(frame.mPreviousId, &isLivemark);
+      if (isLivemark) {
+        
+#ifdef DEBUG_IMPORT
+        PrintNesting();
+        printf("Updating livemark '%s' %lld\n",
+               NS_ConvertUTF16toUTF8(frame.mPreviousText).get(), frame.mPreviousId);
+#endif
+        rv = mLivemarkService->SetSiteURI(frame.mPreviousId, frame.mPreviousLink);
+        NS_ASSERTION(NS_SUCCEEDED(rv), "SetSiteURI failed!");
+        rv = mLivemarkService->SetFeedURI(frame.mPreviousId, frame.mPreviousFeed);
+        NS_ASSERTION(NS_SUCCEEDED(rv), "SetFeedURI failed!");
+        rv = mBookmarksService->SetItemTitle(frame.mPreviousId, frame.mPreviousText);
+        NS_ASSERTION(NS_SUCCEEDED(rv), "SetItemTitle failed!");
+      }
+    }
+
+    if (!isLivemark) {
+#ifdef DEBUG_IMPORT
+      PrintNesting();
+      printf("Creating livemark '%s' %lld\n",
+             NS_ConvertUTF16toUTF8(frame.mPreviousText).get(), frame.mPreviousId);
+#endif
       if (mIsImportDefaults) {
         rv = mLivemarkService->CreateLivemarkFolderOnly(mBookmarksService,
                                                    frame.mContainerID,
@@ -941,11 +968,6 @@ BookmarkContentSink::HandleLinkEnd()
         NS_ASSERTION(NS_SUCCEEDED(rv), "CreateLivemark failed!");
       }
     }
-#ifdef DEBUG_IMPORT
-    PrintNesting();
-    printf("Creating livemark '%s'\n",
-           NS_ConvertUTF16toUTF8(frame.mPreviousText).get());
-#endif
   }
   else if (frame.mPreviousLink) {
 #ifdef DEBUG_IMPORT
@@ -963,31 +985,62 @@ BookmarkContentSink::HandleLinkEnd()
 
 
 void
-BookmarkContentSink::HandleSeparator(const nsIParserNode& node)
+BookmarkContentSink::HandleSeparator(const nsIParserNode& aNode)
 {
   BookmarkImportFrame& frame = CurFrame();
 
   
+
   
+  PRInt64 id = 0;
+  nsAutoString idAttr;
+  PRInt32 attrCount = aNode.GetAttributeCount();
+  for (PRInt32 i = 0; i < attrCount; i ++) {
+    const nsAString& key = aNode.GetKeyAt(i);
+    if (key.LowerCaseEqualsLiteral(KEY_ID_LOWER)) {
+      idAttr = aNode.GetValueAt(i);
+    }
+  }
+
+  idAttr.Trim(kWhitespace);
+  id = ConvertImportedIdToInternalId(NS_ConvertUTF16toUTF8(idAttr));
+
   
-  if (frame.mLastContainerType != BookmarkImportFrame::Container_Toolbar) {
+  if (id > 0) {
+    PRInt64 parent;
+    nsresult rv = mBookmarksService->GetFolderIdForItem(id, &parent);
+    if (NS_FAILED(rv) || parent != frame.mContainerID) {
+      id = 0;
+    }
+  }
+
+  if (id > 0) {
+    PRUint16 type;
+    nsresult rv = mBookmarksService->GetItemType(id, &type);
+    if (NS_FAILED(rv) || type != mBookmarksService->TYPE_SEPARATOR) {
+      id = 0;
+    }
+  }
+
+  if (id == 0) {
     
+
 #ifdef DEBUG_IMPORT
     PrintNesting();
     printf("--------\n");
 #endif
+
     PRInt64 itemId;
     mBookmarksService->InsertSeparator(frame.mContainerID,
                                        mBookmarksService->DEFAULT_INDEX,
                                        &itemId);
-
     
     nsAutoString name;
-    PRInt32 attrCount = node.GetAttributeCount();
+    PRInt32 attrCount = aNode.GetAttributeCount();
     for (PRInt32 i = 0; i < attrCount; i ++) {
-      const nsAString& key = node.GetKeyAt(i);
+      const nsAString& key = aNode.GetKeyAt(i);
       if (key.LowerCaseEqualsLiteral(KEY_NAME_LOWER))
-        name = node.GetValueAt(i);
+        name = aNode.GetValueAt(i);
     }
     name.Trim(kWhitespace);
 
@@ -1013,6 +1066,16 @@ BookmarkContentSink::NewFrame()
   CurFrame().ConsumeHeading(&containerName, &containerType, &ourID);
 
   PRBool updateFolder = PR_FALSE;
+
+  if (ourID > 0) {
+    
+    PRInt64 ourParentId;
+    rv = mBookmarksService->GetFolderIdForItem(ourID, &ourParentId);
+    if (NS_FAILED(rv) || ourParentId != CurFrame().mContainerID) {
+      ourID = 0;
+    }
+  }
+
   if (ourID == 0) {
     switch (containerType) {
       case BookmarkImportFrame::Container_Normal:
@@ -1858,6 +1921,16 @@ nsPlacesImportExportService::WriteSeparator(nsINavHistoryResultNode* aItem,
   rv = aItem->GetItemId(&itemId);
   NS_ENSURE_SUCCESS(rv, rv);
 
+  
+  rv = aOutput->Write(kIdAttribute, sizeof(kIdAttribute)-1, &dummy);
+  NS_ENSURE_SUCCESS(rv, rv);
+  nsCAutoString id;
+  id.AppendInt(itemId);
+  rv = aOutput->Write(id.get(), id.Length(), &dummy);
+  NS_ENSURE_SUCCESS(rv, rv);
+  rv = aOutput->Write(kQuoteStr, sizeof(kQuoteStr)-1, &dummy);
+  NS_ENSURE_SUCCESS(rv, rv);
+
   nsAutoString title;
   rv = mBookmarksService->GetItemTitle(itemId, title);
   if (NS_SUCCEEDED(rv) && !title.IsEmpty()) {
@@ -1939,9 +2012,6 @@ nsPlacesImportExportService::WriteContainerContents(PRInt64 aFolder, const nsACS
   
   rv = query->SetFolders(&aFolder, 1);
   NS_ENSURE_SUCCESS(rv, rv);
-  
-  rv = query->SetOnlyBookmarked(PR_TRUE);
-  NS_ENSURE_SUCCESS(rv, rv);
 
   
   const PRUint16 groupMode = nsINavHistoryQueryOptions::GROUP_BY_FOLDER;
@@ -2006,19 +2076,19 @@ nsPlacesImportExportService::WriteContainerContents(PRInt64 aFolder, const nsACS
 
 
 NS_IMETHODIMP
-nsPlacesImportExportService::ImportHTMLFromFile(nsILocalFile* aFile)
+nsPlacesImportExportService::ImportHTMLFromFile(nsILocalFile* aFile, PRBool aIsInitialImport)
 {
   
-  return ImportHTMLFromFileInternal(aFile, PR_FALSE, 0, PR_FALSE);
+  return ImportHTMLFromFileInternal(aFile, PR_FALSE, 0, aIsInitialImport);
 }
 
 
 
 NS_IMETHODIMP
-nsPlacesImportExportService::ImportHTMLFromFileToFolder(nsILocalFile* aFile, PRInt64 aFolderId)
+nsPlacesImportExportService::ImportHTMLFromFileToFolder(nsILocalFile* aFile, PRInt64 aFolderId, PRBool aIsInitialImport)
 {
   
-  return ImportHTMLFromFileInternal(aFile, PR_FALSE, aFolderId, PR_FALSE);
+  return ImportHTMLFromFileInternal(aFile, PR_FALSE, aFolderId, aIsInitialImport);
 }
 
 nsresult
@@ -2036,6 +2106,14 @@ nsPlacesImportExportService::ImportHTMLFromFileInternal(nsILocalFile* aFile,
   file->GetPath(path);
   printf("\nImporting %s\n", NS_ConvertUTF16toUTF8(path).get());
 #endif
+
+  
+  PRBool exists;
+  rv = file->Exists(&exists);
+  NS_ENSURE_SUCCESS(rv, rv);
+  if (!exists) {
+    return NS_ERROR_INVALID_ARG;
+  }
 
   
   mBookmarksService->BeginUpdateBatch();
@@ -2115,6 +2193,11 @@ nsPlacesImportExportService::ExportHTMLToFile(nsILocalFile* aBookmarksFile)
   if (!aBookmarksFile)
     return NS_ERROR_NULL_POINTER;
 
+#ifdef DEBUG_EXPORT
+  aBookmarksFile->GetPath(path);
+  printf("\nExporting %s\n", NS_ConvertUTF16toUTF8(path).get());
+#endif
+
   nsresult rv = EnsureServiceState();
   NS_ENSURE_SUCCESS(rv, rv);
 
@@ -2168,10 +2251,6 @@ nsPlacesImportExportService::ExportHTMLToFile(nsILocalFile* aBookmarksFile)
   
   nsCAutoString indent;
   indent.Assign(kIndent);
-
-  
-  rv = WriteContainer(mPlacesRoot, indent, strm);
-  NS_ENSURE_SUCCESS(rv, rv);
 
   
   rv = WriteContainerContents(mBookmarksRoot, EmptyCString(), strm);
