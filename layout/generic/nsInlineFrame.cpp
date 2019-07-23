@@ -303,6 +303,19 @@ nsInlineFrame::ReparentFloatsForInlineChild(nsIFrame* aOurLineContainer,
   }
 }
 
+static void
+ReParentChildListStyle(nsPresContext* aPresContext,
+                       const nsFrameList::Slice& aFrames,
+                       nsIFrame* aParentFrame)
+{
+  nsFrameManager *frameManager = aPresContext->FrameManager();
+
+  for (nsFrameList::Enumerator e(aFrames); !e.AtEnd(); e.Next()) {
+    NS_ASSERTION(e.get()->GetParent() == aParentFrame, "Bogus parentage");
+    frameManager->ReParentStyleContext(e.get());
+  }
+}
+
 NS_IMETHODIMP
 nsInlineFrame::Reflow(nsPresContext*          aPresContext,
                       nsHTMLReflowMetrics&     aMetrics,
@@ -353,7 +366,16 @@ nsInlineFrame::Reflow(nsPresContext*          aPresContext,
         }
         
         
-        mFrames.InsertFrames(this, nsnull, *prevOverflowFrames);
+        const nsFrameList::Slice& newFrames =
+          mFrames.InsertFrames(this, nsnull, *prevOverflowFrames);
+        
+        
+        
+        
+        
+        if (aReflowState.mLineLayout->GetInFirstLine()) {
+          ReParentChildListStyle(aPresContext, newFrames, this);
+        }
       }
     }
   }
@@ -455,6 +477,8 @@ nsInlineFrame::ReflowFrames(nsPresContext* aPresContext,
   aStatus = NS_FRAME_COMPLETE;
 
   nsLineLayout* lineLayout = aReflowState.mLineLayout;
+  PRBool inFirstLine = aReflowState.mLineLayout->GetInFirstLine();
+  nsFrameManager* frameManager = aPresContext->FrameManager();
   PRBool ltr = (NS_STYLE_DIRECTION_LTR == aReflowState.mStyleVisibility->mDirection);
   nscoord leftEdge = 0;
   
@@ -497,6 +521,9 @@ nsInlineFrame::ReflowFrames(nsPresContext* aPresContext,
         ReparentFloatsForInlineChild(irs.mLineContainer, frame, PR_FALSE);
       }
       frame->SetParent(this);
+      if (inFirstLine) {
+        frameManager->ReParentStyleContext(frame);
+      }
       
       
       
@@ -512,6 +539,9 @@ nsInlineFrame::ReflowFrames(nsPresContext* aPresContext,
           ReparentFloatsForInlineChild(irs.mLineContainer, nextInFlow, PR_FALSE);
         }
         nextInFlow->SetParent(this);
+        if (inFirstLine) {
+          frameManager->ReParentStyleContext(nextInFlow);
+        }
       }
 
       
@@ -528,6 +558,9 @@ nsInlineFrame::ReflowFrames(nsPresContext* aPresContext,
                          "unexpected frame type");
             if (mFrames.ContainsFrame(nextInFlow)) {
               nextInFlow->SetParent(this);
+              if (inFirstLine) {
+                frameManager->ReParentStyleContext(nextInFlow);
+              }
             }
             else {
 #ifdef DEBUG              
@@ -710,6 +743,9 @@ nsInlineFrame::ReflowInlineFrame(nsPresContext* aPresContext,
           }
           for (nsIFrame* f = aFrame->GetNextSibling(); f; f = f->GetNextSibling()) {
             f->SetParent(this);
+            if (lineLayout->GetInFirstLine()) {
+              aPresContext->FrameManager()->ReParentStyleContext(f);
+            }
           }
         }
       }
@@ -926,19 +962,6 @@ NS_IMETHODIMP nsInlineFrame::GetAccessible(nsIAccessible** aAccessible)
 
 
 
-
-static void
-ReParentChildListStyle(nsPresContext* aPresContext,
-                       const nsFrameList::Slice& aFrames,
-                       nsIFrame* aParentFrame)
-{
-  nsFrameManager *frameManager = aPresContext->FrameManager();
-
-  for (nsFrameList::Enumerator e(aFrames); !e.AtEnd(); e.Next()) {
-    NS_ASSERTION(e.get()->GetParent() == aParentFrame, "Bogus parentage");
-    frameManager->ReParentStyleContext(e.get());
-  }
-}
 
 nsIFrame*
 NS_NewFirstLineFrame(nsIPresShell* aPresShell, nsStyleContext* aContext)
