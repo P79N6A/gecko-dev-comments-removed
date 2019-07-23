@@ -223,6 +223,18 @@ protected:
   
   
   float mFramerate;
+
+  
+  
+  
+  
+  PRPackedBool mShuttingDown;
+
+  
+  
+  
+  
+  PRPackedBool mStopping;
 };
 
 #endif
