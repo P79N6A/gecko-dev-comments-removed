@@ -183,6 +183,7 @@ pref("browser.tabs.maxOpenBeforeWarn", 15);
 
 pref("browser.tabs.loadGroup", 1);
 
+pref("toolkit.scrollbox.smoothScroll", true);
 pref("toolkit.scrollbox.scrollIncrement", 20);
 pref("toolkit.scrollbox.clickToScroll.scrollDelay", 150);
 
