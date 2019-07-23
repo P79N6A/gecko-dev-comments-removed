@@ -643,9 +643,8 @@ nsSMILAnimationController::GetTargetIdentifierForAnimation(
   
   PRBool isCSS;
   if (attributeType == eSMILTargetAttrType_auto) {
-    nsAutoString attributeNameStr;
-    attributeName->ToString(attributeNameStr);
-    nsCSSProperty prop = nsCSSProps::LookupProperty(attributeNameStr);
+    nsCSSProperty prop =
+      nsCSSProps::LookupProperty(nsDependentAtomString(attributeName));
     isCSS = nsSMILCSSProperty::IsPropertyAnimatable(prop);
   } else {
     isCSS = (attributeType == eSMILTargetAttrType_CSS);

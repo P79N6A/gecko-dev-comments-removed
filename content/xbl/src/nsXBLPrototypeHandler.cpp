@@ -260,11 +260,8 @@ nsXBLPrototypeHandler::ExecuteHandler(nsPIDOMEventTarget* aTarget,
 
   
   
-  nsAutoString onEvent(NS_LITERAL_STRING("onxbl"));
-  nsAutoString str;
-  mEventName->ToString(str);
-  onEvent += str;
-  nsCOMPtr<nsIAtom> onEventAtom = do_GetAtom(onEvent);
+  nsCOMPtr<nsIAtom> onEventAtom = do_GetAtom(NS_LITERAL_STRING("onxbl") +
+                                             nsDependentAtomString(mEventName));
 
   
   PRUint32 stID = nsIProgrammingLanguage::JAVASCRIPT;
@@ -442,10 +439,7 @@ nsXBLPrototypeHandler::DispatchXBLCommand(nsPIDOMEventTarget* aTarget, nsIDOMEve
   else
     controller = GetController(aTarget); 
 
-  nsAutoString type;
-  mEventName->ToString(type);
-
-  if (type.EqualsLiteral("keypress") &&
+  if (mEventName == nsGkAtoms::keypress &&
       mDetail == nsIDOMKeyEvent::DOM_VK_SPACE &&
       mMisc == 1) {
     

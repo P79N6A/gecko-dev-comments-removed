@@ -98,7 +98,7 @@ public:
   
   
   void RemoveAttrAt(PRUint32 aPos, nsAttrValue& aValue);
-  const nsAttrName* GetExistingAttrNameFromQName(const nsACString& aName) const;
+  const nsAttrName* GetExistingAttrNameFromQName(const nsAString& aName) const;
   PRInt32 IndexOfAttr(nsIAtom* aLocalName, PRInt32 aNamespaceID) const;
   
 

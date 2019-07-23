@@ -9113,9 +9113,7 @@ nsCSSFrameConstructor::ProcessChildren(nsFrameConstructorState& aState,
     
     
     nsIContent *badKid = AnyKidsNeedBlockParent(aFrameItems.FirstChild());
-    nsAutoString parentTag, kidTag;
-    aContent->Tag()->ToString(parentTag);
-    badKid->Tag()->ToString(kidTag);
+    nsDependentAtomString parentTag(aContent->Tag()), kidTag(badKid->Tag());
     const PRUnichar* params[] = { parentTag.get(), kidTag.get() };
     nsStyleContext *frameStyleContext = aFrame->GetStyleContext();
     const nsStyleDisplay *display = frameStyleContext->GetStyleDisplay();

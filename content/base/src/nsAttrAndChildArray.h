@@ -114,8 +114,7 @@ public:
   
   const nsAttrName* GetSafeAttrNameAt(PRUint32 aPos) const;
 
-  
-  const nsAttrName* GetExistingAttrNameFromQName(const nsACString& aName) const;
+  const nsAttrName* GetExistingAttrNameFromQName(const nsAString& aName) const;
   PRInt32 IndexOfAttr(nsIAtom* aLocalName, PRInt32 aNamespaceID = kNameSpaceID_None) const;
 
   nsresult SetAndTakeMappedAttr(nsIAtom* aLocalName, nsAttrValue& aValue,
