@@ -464,7 +464,10 @@ nsTableRowGroupFrame::ReflowChildren(nsPresContext*         aPresContext,
           
           ((nsTableRowFrame*)kidFrame)->DidResize();
           
-          if (aReflowState.tableFrame->IsAutoHeight()) {
+          const nsStylePosition *stylePos = GetStylePosition();
+          nsStyleUnit unit = stylePos->mHeight.GetUnit();
+          if (aReflowState.tableFrame->IsAutoHeight() &&
+              unit != eStyleUnit_Coord) {
             
             
             nsRect kidRect(0, aReflowState.y,
