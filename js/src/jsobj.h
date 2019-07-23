@@ -718,9 +718,6 @@ js_DefineProperty(JSContext *cx, JSObject *obj, jsid id, jsval value,
 
 const uintN JSDNP_CACHE_RESULT = 1; 
 const uintN JSDNP_DONT_PURGE   = 2; 
-const uintN JSDNP_SET_METHOD   = 4; 
-
-
 
 extern JSBool
 js_DefineNativeProperty(JSContext *cx, JSObject *obj, jsid id, jsval value,
@@ -797,33 +794,23 @@ js_FindVariableScope(JSContext *cx, JSFunction **funp);
 
 
 
-
-
-const uintN JSGET_CACHE_RESULT   = 1; 
-const uintN JSGET_METHOD_BARRIER = 2; 
-
-
-
-
-
-
-
 extern JSBool
 js_NativeGet(JSContext *cx, JSObject *obj, JSObject *pobj,
-             JSScopeProperty *sprop, uintN getHow, jsval *vp);
+             JSScopeProperty *sprop, jsval *vp);
 
 extern JSBool
 js_NativeSet(JSContext *cx, JSObject *obj, JSScopeProperty *sprop, jsval *vp);
 
 extern JSBool
-js_GetPropertyHelper(JSContext *cx, JSObject *obj, jsid id, uintN getHow,
+js_GetPropertyHelper(JSContext *cx, JSObject *obj, jsid id, JSBool cacheResult,
                      jsval *vp);
 
 extern JSBool
 js_GetProperty(JSContext *cx, JSObject *obj, jsid id, jsval *vp);
 
 extern JSBool
-js_GetMethod(JSContext *cx, JSObject *obj, jsid id, uintN getHow, jsval *vp);
+js_GetMethod(JSContext *cx, JSObject *obj, jsid id, JSBool cacheResult,
+             jsval *vp);
 
 
 
@@ -833,7 +820,7 @@ extern JS_FRIEND_API(JSBool)
 js_CheckUndeclaredVarAssignment(JSContext *cx);
 
 extern JSBool
-js_SetPropertyHelper(JSContext *cx, JSObject *obj, jsid id, uintN defineHow,
+js_SetPropertyHelper(JSContext *cx, JSObject *obj, jsid id, JSBool cacheResult,
                      jsval *vp);
 
 extern JSBool
