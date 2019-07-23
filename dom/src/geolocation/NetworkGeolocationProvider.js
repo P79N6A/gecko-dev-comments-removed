@@ -13,7 +13,6 @@ function LOG(aMsg) {
     
 }
 
-
 function getAccessTokenForURL(url)
 {
     
@@ -165,6 +164,17 @@ WifiGeoPositionProvider.prototype = {
         if (this.timer != null) {
             this.timer.cancel();
             this.timer = null;
+        }
+
+        
+        
+        
+        
+        
+        let prefService = Cc["@mozilla.org/preferences-service;1"].getService(Ci.nsIPrefBranch);
+        if (prefService.getIntPref("network.cookie.lifetimePolicy") != 0) {
+            let branch = prefService.getBranch("geo.wifi.access_token.");
+            branch.deleteBranch("");
         }
 
         let os = Cc["@mozilla.org/observer-service;1"].getService(Ci.nsIObserverService);
