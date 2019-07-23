@@ -129,7 +129,6 @@ nsMathMLTokenFrame::Reflow(nsPresContext*          aPresContext,
   aDesiredSize.mBoundingMetrics.Clear();
 
   nsSize availSize(aReflowState.ComputedWidth(), aReflowState.ComputedHeight());
-  PRInt32 count = 0;
   nsIFrame* childFrame = GetFirstChild(nsnull);
   while (childFrame) {
     
@@ -150,12 +149,8 @@ nsMathMLTokenFrame::Reflow(nsPresContext*          aPresContext,
     childFrame->SetRect(nsRect(0, childDesiredSize.ascent,
                                childDesiredSize.width, childDesiredSize.height));
     
-    if (0 == count)
-      aDesiredSize.mBoundingMetrics  = childDesiredSize.mBoundingMetrics;
-    else
-      aDesiredSize.mBoundingMetrics += childDesiredSize.mBoundingMetrics;
+    aDesiredSize.mBoundingMetrics += childDesiredSize.mBoundingMetrics;
 
-    count++;
     childFrame = childFrame->GetNextSibling();
   }
 
