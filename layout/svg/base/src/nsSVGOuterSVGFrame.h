@@ -110,7 +110,7 @@ public:
 
   
   nsresult InvalidateRect(nsRect aRect);
-  nsresult IsRedrawSuspended(PRBool* isSuspended);
+  PRBool IsRedrawSuspended();
 
   
   NS_IMETHOD SuspendRedraw();
