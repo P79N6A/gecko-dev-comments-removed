@@ -232,6 +232,9 @@ private:
     (static_cast<nsSliderFrame*>(aData))->Notify();
   }
  
+  nsPoint mDestinationPoint;
+  nsRefPtr<nsSliderMediator> mMediator;
+
   float mRatio;
 
   nscoord mDragStart;
@@ -240,8 +243,6 @@ private:
   PRInt32 mCurPos;
 
   nscoord mChange;
-  nsPoint mDestinationPoint;
-  nsRefPtr<nsSliderMediator> mMediator;
 
   
   

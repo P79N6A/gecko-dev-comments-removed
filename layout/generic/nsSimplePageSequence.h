@@ -149,28 +149,30 @@ protected:
   void SetPageNumberFormat(PRUnichar * aFormatStr, PRBool aForPageNumOnly);
 
   nsMargin mMargin;
-  PRBool   mIsPrintingSelection;
 
   
-  PRInt32      mPageNum;
-  PRInt32      mTotalPages;
-  nsIFrame *   mCurrentPageFrame;
-  PRPackedBool mDoingPageRange;
-  PRInt32      mPrintRangeType;
-  PRInt32      mFromPageNum;
-  PRInt32      mToPageNum;
-  PRPackedBool mPrintThisPage;
+  nsCOMPtr<nsIDateTimeFormat> mDateFormatter;
 
   nsSize       mSize;
   nsSharedPageData* mPageData; 
+
+  
+  nsIFrame *   mCurrentPageFrame;
+  PRInt32      mPageNum;
+  PRInt32      mTotalPages;
+  PRInt32      mPrintRangeType;
+  PRInt32      mFromPageNum;
+  PRInt32      mToPageNum;
 
   
   nscoord      mSelectionHeight;
   nscoord      mYSelOffset;
 
   
-  nsCOMPtr<nsIDateTimeFormat> mDateFormatter;
+  PRPackedBool mPrintThisPage;
+  PRPackedBool mDoingPageRange;
 
+  PRPackedBool mIsPrintingSelection;
 };
 
 #endif 

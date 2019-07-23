@@ -164,16 +164,16 @@ protected:
   virtual nscoord GetIntrinsicWidth();
   virtual nscoord GetIntrinsicHeight();
 
+  
+  
+  PRInt32 mPrevNeighbor;
+  PRInt32 mNextNeighbor;
+  nscolor mColor;
   PRInt32 mWidth;
   PRPackedBool mVertical;
   PRPackedBool mVisibility;
   PRPackedBool mVisibilityOverride;
-  nscolor mColor;
-  
-  
-  PRInt32 mPrevNeighbor; 
-  PRInt32 mNextNeighbor;
-  PRBool mCanResize;
+  PRPackedBool mCanResize;
   friend class nsHTMLFramesetFrame;
 };
 

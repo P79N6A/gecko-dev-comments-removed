@@ -299,6 +299,18 @@ protected:
   nsTableColFrame(nsStyleContext* aContext);
   ~nsTableColFrame();
 
+  nscoord mMinCoord;
+  nscoord mPrefCoord;
+  nscoord mSpanMinCoord; 
+  nscoord mSpanPrefCoord; 
+  float mPrefPercent;
+  float mSpanPrefPercent; 
+  
+  
+  
+  
+  nscoord mFinalWidth;
+
   
   
   
@@ -312,17 +324,6 @@ protected:
   BCPixelSize mBottomContBorderWidth;
 
   PRPackedBool mHasSpecifiedCoord;
-  nscoord mMinCoord;
-  nscoord mPrefCoord;
-  nscoord mSpanMinCoord; 
-  nscoord mSpanPrefCoord; 
-  float mPrefPercent;
-  float mSpanPrefPercent; 
-  
-  
-  
-  
-  nscoord mFinalWidth;
 };
 
 inline PRInt32 nsTableColFrame::GetColIndex() const

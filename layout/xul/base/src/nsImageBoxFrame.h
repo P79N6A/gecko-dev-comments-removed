@@ -138,18 +138,17 @@ protected:
 
 private:
 
+  nsRect mSubRect; 
+  nsSize mIntrinsicSize;
+  nsSize mImageSize;
+
   nsCOMPtr<imgIRequest> mImageRequest;
   nsCOMPtr<imgIDecoderObserver> mListener;
 
-  PRPackedBool mUseSrcAttr; 
-  PRPackedBool mSuppressStyleCheck;
-  
-  nsRect mSubRect; 
-
-  nsSize mIntrinsicSize;
   PRInt32 mLoadFlags;
 
-  nsSize mImageSize;
+  PRPackedBool mUseSrcAttr; 
+  PRPackedBool mSuppressStyleCheck;
 }; 
 
 #endif 

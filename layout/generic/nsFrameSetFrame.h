@@ -80,11 +80,11 @@ enum nsFrameborder {
 };
 
 struct nsFramesetDrag {
-  PRBool               mVertical;  
+  nsHTMLFramesetFrame* mSource;    
   PRInt32              mIndex;     
   PRInt32              mChange;    
-  nsHTMLFramesetFrame* mSource;    
-  PRBool               mActive;
+  PRPackedBool         mVertical;  
+  PRPackedBool         mActive;
 
   nsFramesetDrag();
   nsFramesetDrag(PRBool               aVertical, 
@@ -238,34 +238,31 @@ protected:
 
   static int FrameResizePrefCallback(const char* aPref, void* aClosure);
 
-  PRInt32          mNumRows;
+  nsFramesetDrag   mDrag;
+  nsBorderColor    mEdgeColors;
+  nsHTMLFramesetBorderFrame* mDragger;
+  nsHTMLFramesetFrame* mTopLevelFrameset;
+  nsHTMLFramesetBorderFrame** mVerBorders;  
+  nsHTMLFramesetBorderFrame** mHorBorders;  
+  PRInt32*         mChildTypes; 
+  nsFrameborder*   mChildFrameborder; 
+  nsBorderColor*   mChildBorderColors;
   nscoord*         mRowSizes;  
-  PRInt32          mNumCols;
   nscoord*         mColSizes;  
+  nsIntPoint       mFirstDragPoint;
+  PRInt32          mNumRows;
+  PRInt32          mNumCols;
   PRInt32          mNonBorderChildCount; 
   PRInt32          mNonBlankChildCount; 
   PRInt32          mEdgeVisibility;
-  nsBorderColor    mEdgeColors;
   nsFrameborder    mParentFrameborder;
   nscolor          mParentBorderColor;
   PRInt32          mParentBorderWidth;
-
-  nsHTMLFramesetBorderFrame* mDragger;
-  nsFramesetDrag   mDrag;
-  nsIntPoint       mFirstDragPoint;
   PRInt32          mPrevNeighborOrigSize; 
   PRInt32          mNextNeighborOrigSize;
   PRInt32          mMinDrag;
   PRInt32          mChildCount;
-  nsHTMLFramesetFrame* mTopLevelFrameset;
-  nsHTMLFramesetBorderFrame** mVerBorders;  
-  nsHTMLFramesetBorderFrame** mHorBorders;  
-
-  PRInt32*         mChildTypes; 
-  nsFrameborder*   mChildFrameborder; 
-  nsBorderColor*   mChildBorderColors;
-  
-  PRBool mForceFrameResizability;
+  PRBool           mForceFrameResizability;
 };
 
 #endif

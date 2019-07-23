@@ -493,70 +493,6 @@ protected:
 #endif
 
 protected: 
-  
-  nsCOMPtr<nsITreeBoxObject> mTreeBoxObject;
-
-  
-  nsRefPtr<nsTreeColumns> mColumns;
-
-  
-  
-  nsCOMPtr<nsITreeView> mView;    
-
-  
-  
-  
-  
-  nsTreeStyleCache mStyleCache;
-
-  
-  
-  
-  
-  nsDataHashtable<nsStringHashKey, nsTreeImageCacheEntry> mImageCache;
-
-  
-  
-  
-  PRInt32 mTopRowIndex;
-  PRInt32 mPageLength;
-
-  
-  nscoord mHorzPosition;
-  
-  
-  nscoord mHorzWidth;
-  
-  
-  nscoord mAdjustWidth;
-
-  
-  nsRect mInnerBox;
-  PRInt32 mRowHeight;
-  PRInt32 mIndentation;
-  nscoord mStringWidth;
-
-  
-  nsCOMPtr<nsISupportsArray> mScratchArray;
-
-  
-  PRPackedBool mFocused;
-
-  
-  PRPackedBool mHasFixedRowCount;
-
-  PRPackedBool mVerticalOverflow;
-  PRPackedBool mHorizontalOverflow;
-
-  PRPackedBool mReflowCallbackPosted;
-
-  PRInt32 mUpdateBatchNest;
-
-  
-  PRInt32 mRowCount;
-
-  
-  PRInt32 mMouseOverRow;
 
   class Slots {
     public:
@@ -598,6 +534,71 @@ protected:
   Slots* mSlots;
 
   nsRevocableEventPtr<ScrollEvent> mScrollEvent;
+
+  
+  nsCOMPtr<nsITreeBoxObject> mTreeBoxObject;
+
+  
+  nsRefPtr<nsTreeColumns> mColumns;
+
+  
+  
+  nsCOMPtr<nsITreeView> mView;
+
+  
+  
+  
+  
+  nsTreeStyleCache mStyleCache;
+
+  
+  
+  
+  
+  nsDataHashtable<nsStringHashKey, nsTreeImageCacheEntry> mImageCache;
+
+  
+  nsCOMPtr<nsISupportsArray> mScratchArray;
+
+  
+  
+  
+  PRInt32 mTopRowIndex;
+  PRInt32 mPageLength;
+
+  
+  nscoord mHorzPosition;
+  
+  
+  nscoord mHorzWidth;
+  
+  
+  nscoord mAdjustWidth;
+
+  
+  nsRect mInnerBox; 
+  PRInt32 mRowHeight;
+  PRInt32 mIndentation;
+  nscoord mStringWidth;
+
+  PRInt32 mUpdateBatchNest;
+
+  
+  PRInt32 mRowCount;
+
+  
+  PRInt32 mMouseOverRow;
+
+  
+  PRPackedBool mFocused;
+
+  
+  PRPackedBool mHasFixedRowCount;
+
+  PRPackedBool mVerticalOverflow;
+  PRPackedBool mHorizontalOverflow;
+
+  PRPackedBool mReflowCallbackPosted;
 }; 
 
 #endif

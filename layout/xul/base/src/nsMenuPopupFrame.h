@@ -330,6 +330,8 @@ protected:
   
   void MoveToAttributePosition();
 
+  nsString     mIncrementalString;  
+
   
   
   nsCOMPtr<nsIContent> mAnchorContent;
@@ -337,8 +339,13 @@ protected:
   nsMenuFrame* mCurrentMenu; 
 
   
-  PRInt8 mPopupAlignment;
-  PRInt8 mPopupAnchor;
+  
+  
+  
+  
+  
+  
+  nsSize mPrefSize;
 
   
   
@@ -350,6 +357,10 @@ protected:
   nsPopupType mPopupType; 
   nsPopupState mPopupState; 
 
+  
+  PRInt8 mPopupAlignment;
+  PRInt8 mPopupAnchor;
+
   PRPackedBool mIsOpenChanged; 
   PRPackedBool mIsContextMenu; 
   
@@ -360,17 +371,6 @@ protected:
   PRPackedBool mShouldAutoPosition; 
   PRPackedBool mConsumeRollupEvent; 
   PRPackedBool mInContentShell; 
-
-  nsString     mIncrementalString;  
-
-  
-  
-  
-  
-  
-  
-  
-  nsSize mPrefSize;
 
   static PRInt8 sDefaultLevelParent;
 }; 
