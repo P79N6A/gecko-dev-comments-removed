@@ -905,6 +905,15 @@ nsFrameManager::DebugVerifyStyleTree(nsIFrame* aFrame)
 nsresult
 nsFrameManager::ReParentStyleContext(nsIFrame* aFrame)
 {
+  if (nsGkAtoms::placeholderFrame == aFrame->GetType()) {
+    
+    nsIFrame* outOfFlow =
+      nsPlaceholderFrame::GetRealFrameForPlaceholder(aFrame);
+    NS_ASSERTION(outOfFlow, "no out-of-flow frame");
+
+    ReParentStyleContext(outOfFlow);
+  }
+
   
   
   nsStyleContext* oldContext = aFrame->GetStyleContext();
@@ -938,6 +947,16 @@ nsFrameManager::ReParentStyleContext(nsIFrame* aFrame)
                                                  newParentContext);
     if (newContext) {
       if (newContext != oldContext) {
+        
+        
+        nsChangeHint styleChange = oldContext->CalcStyleDifference(newContext);
+        
+        
+        
+        
+        NS_ASSERTION(!(styleChange & nsChangeHint_ReconstructFrame),
+                     "Our frame tree is likely to be bogus!");
+        
         PRInt32 listIndex = 0;
         nsIAtom* childList = nsnull;
         nsIFrame* child;
@@ -948,26 +967,21 @@ nsFrameManager::ReParentStyleContext(nsIFrame* aFrame)
           child = aFrame->GetFirstChild(childList);
           while (child) {
             
-            if (!(child->GetStateBits() & NS_FRAME_OUT_OF_FLOW)
-                 || (child->GetStateBits() & NS_FRAME_IS_OVERFLOW_CONTAINER)) {
+            if ((!(child->GetStateBits() & NS_FRAME_OUT_OF_FLOW) ||
+                 (child->GetStateBits() & NS_FRAME_IS_OVERFLOW_CONTAINER)) &&
+                child != providerChild) {
+#ifdef DEBUG
               if (nsGkAtoms::placeholderFrame == child->GetType()) {
-                
                 nsIFrame* outOfFlowFrame =
                   nsPlaceholderFrame::GetRealFrameForPlaceholder(child);
                 NS_ASSERTION(outOfFlowFrame, "no out-of-flow frame");
 
                 NS_ASSERTION(outOfFlowFrame != providerChild,
                              "Out of flow provider?");
-
-                ReParentStyleContext(outOfFlowFrame);
-
-                
-                ReParentStyleContext(child);
               }
-              else if (child != providerChild) {
-                
-                ReParentStyleContext(child);
-              }
+#endif
+
+              ReParentStyleContext(child);
             }
 
             child = child->GetNextSibling();
@@ -1001,6 +1015,21 @@ nsFrameManager::ReParentStyleContext(nsIFrame* aFrame)
                                                               oldExtraContext,
                                                               newContext);
             if (newExtraContext) {
+              if (newExtraContext != oldExtraContext) {
+                
+                
+                
+                styleChange =
+                  oldExtraContext->CalcStyleDifference(newExtraContext);
+                
+                
+                
+                
+                
+                NS_ASSERTION(!(styleChange & nsChangeHint_ReconstructFrame),
+                             "Our frame tree is likely to be bogus!");
+              }
+              
               aFrame->SetAdditionalStyleContext(contextIndex, newExtraContext);
             }
           }
