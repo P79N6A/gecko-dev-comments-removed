@@ -1571,9 +1571,6 @@ ProcessAsyncMessages()
         AsyncQueueLast = nsnull;
       AsyncQueueFirst = message->mNext;
       nsMemory::Free(message);
-
-      
-      sqlite3ApiExit(nsnull, 0);
     }
     
     
