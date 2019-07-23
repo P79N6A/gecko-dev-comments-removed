@@ -65,15 +65,6 @@ LoginManager.prototype = {
     },
 
 
-    __promptService : null, 
-    get _promptService() {
-        if (!this.__promptService)
-            this.__promptService = Cc["@mozilla.org/embedcomp/prompt-service;1"]
-                                        .getService(Ci.nsIPromptService2);
-        return this.__promptService;
-    },
-
-
     __ioService: null, 
     get _ioService() {
         if (!this.__ioService)
@@ -90,36 +81,6 @@ LoginManager.prototype = {
                                 "@mozilla.org/satchel/form-fill-controller;1"]
                                     .getService(Ci.nsIFormFillController);
         return this.__formFillService;
-    },
-
-
-    __strBundle : null, 
-    get _strBundle() {
-        if (!this.__strBundle) {
-            var bunService = Cc["@mozilla.org/intl/stringbundle;1"]
-                                    .getService(Ci.nsIStringBundleService);
-            this.__strBundle = bunService.createBundle(
-                        "chrome://passwordmgr/locale/passwordmgr.properties");
-            if (!this.__strBundle)
-                throw "String bundle for Login Manager not present!";
-        }
-
-        return this.__strBundle;
-    },
-
-
-    __brandBundle : null, 
-    get _brandBundle() {
-        if (!this.__brandBundle) {
-            var bunService = Cc["@mozilla.org/intl/stringbundle;1"]
-                                    .getService(Ci.nsIStringBundleService);
-            this.__brandBundle = bunService.createBundle(
-                        "chrome://branding/locale/brand.properties");
-            if (!this.__brandBundle)
-                throw "Branding string bundle not present!";
-        }
-
-        return this.__brandBundle;
     },
 
 
@@ -763,11 +724,17 @@ LoginManager.prototype = {
             return (found ? existingLogin : null);
         }
 
+        function getPrompter(aWindow) {
+            var prompterSvc = Cc["@mozilla.org/login-manager/prompter;1"].
+                            createInstance(Ci.nsILoginManagerPrompter);
+            prompterSvc.init(aWindow);
+            return prompterSvc;
+        }
 
 
 
         var doc = form.ownerDocument;
-        var win = doc.window;
+        var win = doc.defaultView;
 
         
         if (!this._remember)
@@ -830,15 +797,17 @@ LoginManager.prototype = {
             if (logins.length == 0) {
                 this.log("(no logins for this host -- pwchange ignored)");
                 return;
-            } else if (logins.length == 1) {
-                username = logins[0].username;
-                ok = this._promptToChangePassword(win, username)
-            } else {
-                var usernames = [];
-                logins.forEach(function(l) { usernames.push(l.username); });
+            }
 
-                [ok, username] = this._promptToChangePasswordWithUsernames(
-                                                                win, usernames);
+            var prompter = getPrompter(win);
+
+            if (logins.length == 1) {
+                username = logins[0].username;
+                ok = prompter.promptToChangePassword(username);
+            } else {
+                var usernames = logins.map(function (l) l.username);
+                [ok, username] = prompter.promptToChangePasswordWithUsernames(
+                                                                usernames);
             }
 
             if (!ok)
@@ -885,18 +854,8 @@ LoginManager.prototype = {
 
 
         
-        var userChoice = this._promptToSaveLogin(win);
-
-        if (userChoice == 2) {
-            this.log("Disabling " + hostname + " logins by user request.");
-            this.setLoginSavingEnabled(hostname, false);
-        } else if (userChoice == 0) {
-            this.log("Saving login for " + hostname);
-            this.addLogin(formLogin);
-        } else {
-            
-            this.log("Ignoring login.");
-        }
+        prompter = getPrompter(win);
+        prompter.promptToSavePassword(formLogin);
     },
 
 
@@ -1093,143 +1052,7 @@ LoginManager.prototype = {
 
         this.log("Found a matching login, filling in password.");
         passwordField.value = match.password;
-    },
-
-
-
-
-
-
-    
-
-
-
-
-    
-
-
-
-
-
-
-
-
-
-
-    _promptToSaveLogin : function (aWindow) {
-        const buttonFlags = Ci.nsIPrompt.BUTTON_POS_1_DEFAULT +
-            (Ci.nsIPrompt.BUTTON_TITLE_IS_STRING * Ci.nsIPrompt.BUTTON_POS_0) +
-            (Ci.nsIPrompt.BUTTON_TITLE_IS_STRING * Ci.nsIPrompt.BUTTON_POS_1) +
-            (Ci.nsIPrompt.BUTTON_TITLE_IS_STRING * Ci.nsIPrompt.BUTTON_POS_2);
-
-        var brandShortName =
-                this._brandBundle.GetStringFromName("brandShortName");
-
-        var dialogText         = this._getLocalizedString(
-                                        "savePasswordText", [brandShortName]);
-        var dialogTitle        = this._getLocalizedString(
-                                        "savePasswordTitle");
-        var neverButtonText    = this._getLocalizedString(
-                                        "neverForSiteButtonText");
-        var rememberButtonText = this._getLocalizedString(
-                                        "rememberButtonText");
-        var notNowButtonText   = this._getLocalizedString(
-                                        "notNowButtonText");
-
-        this.log("Prompting user to save/ignore login");
-        var result = this._promptService.confirmEx(aWindow,
-                                            dialogTitle, dialogText,
-                                            buttonFlags, rememberButtonText,
-                                            notNowButtonText, neverButtonText,
-                                            null, {});
-        return result;
-    },
-
-
-    
-
-
-
-
-
-
-
-
-
-
-    _promptToChangePassword : function (aWindow, username) {
-        const buttonFlags = Ci.nsIPrompt.STD_YES_NO_BUTTONS;
-
-        var dialogText  = this._getLocalizedString(
-                                    "passwordChangeText", [username]);
-        var dialogTitle = this._getLocalizedString(
-                                    "passwordChangeTitle");
-
-        
-        var result = this._promptService.confirmEx(aWindow,
-                                dialogTitle, dialogText, buttonFlags,
-                                null, null, null,
-                                null, {});
-        return !result;
-    },
-
-
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    _promptToChangePasswordWithUsernames : function (aWindow, usernames) {
-        const buttonFlags = Ci.nsIPrompt.STD_YES_NO_BUTTONS;
-
-        var dialogText  = this._getLocalizedString("userSelectText");
-        var dialogTitle = this._getLocalizedString("passwordChangeTitle");
-        var selectedUser = null, selectedIndex = { value: null };
-
-        
-        
-        var ok = this._promptService.select(aWindow,
-                                dialogTitle, dialogText,
-                                usernames.length, usernames,
-                                selectedIndex);
-        if (ok)
-            selectedUser = usernames[selectedIndex.value];
-
-        return [ok, selectedUser];
-    },
-
-
-    
-
-
-
-
-
-
-
-
-
-
-
- 
-    _getLocalizedString : function (key, formatArgs) {
-        if (formatArgs)
-            return this._strBundle.formatStringFromName(
-                                        key, formatArgs, formatArgs.length);
-        else
-            return this._strBundle.GetStringFromName(key);
     }
-
 }; 
 
 
