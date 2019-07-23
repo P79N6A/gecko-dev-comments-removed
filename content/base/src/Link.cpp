@@ -78,6 +78,14 @@ Link::GetLinkState() const
 void
 Link::SetLinkState(nsLinkState aState)
 {
+  
+  
+  
+  if (aState == eLinkState_Unknown) {
+    ResetLinkState();
+    return;
+  }
+
   NS_ASSERTION(mRegistered,
                "Setting the link state of an unregistered Link!");
   NS_ASSERTION(mLinkState != aState,
