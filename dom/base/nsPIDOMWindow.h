@@ -404,7 +404,6 @@ public:
   
 
 
-
   virtual void InitJavaProperties() = 0;
 
   virtual void* GetCachedXBLPrototypeHandler(nsXBLPrototypeHandler* aKey) = 0;

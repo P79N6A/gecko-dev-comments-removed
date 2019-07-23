@@ -1155,7 +1155,6 @@ js_Invoke(JSContext *cx, uintN argc, jsval *vp, uintN flags)
 
 
 
-
         if ((ops == &js_ObjectOps) ? clasp->call : ops->call) {
             ok = clasp->convert(cx, funobj, JSTYPE_FUNCTION, &v);
             if (!ok)

@@ -9475,7 +9475,6 @@ nsHTMLPluginObjElementSH::SetupProtoChain(nsIXPConnectWrappedNative *wrapper,
   
   
   
-  
 
   return NS_OK;
 }
