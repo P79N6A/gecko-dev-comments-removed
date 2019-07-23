@@ -1958,34 +1958,28 @@ class _FindFriends(ipdl.ast.Visitor):
         self.mytype = None              
         self.vtype = None               
         self.friends = set()            
-        self.visited = set()            
 
     def findFriends(self, ptype):
         self.mytype = ptype
-        self.walkUpTheProtocolTree(ptype)
-        self.walkDownTheProtocolTree(ptype)
+        toplevel = self.findToplevel(ptype)
+        self.walkDownTheProtocolTree(toplevel)
         return self.friends
 
     
-    def walkUpTheProtocolTree(self, ptype):
-        if not ptype.isManaged():
-            return
-        mtype = ptype.manager
-        self.visit(mtype)
-        self.walkUpTheProtocolTree(mtype)
+    def findToplevel(self, ptype):
+        if ptype.isToplevel():
+            return ptype
+        return self.findToplevel(ptype.manager)
 
     def walkDownTheProtocolTree(self, ptype):
-        if not ptype.isManager():
-            return
+        if ptype != self.mytype:
+            
+            self.visit(ptype)
         for mtype in ptype.manages:
-            self.visit(mtype)
             self.walkDownTheProtocolTree(mtype)
 
     def visit(self, ptype):
-        if ptype in self.visited:
-            return
-        self.visited.add(ptype)
-
+        
         savedptype = self.vtype
         self.vtype = ptype
         ptype._p.accept(self)
