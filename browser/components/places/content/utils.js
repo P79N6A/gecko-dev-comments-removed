@@ -257,8 +257,9 @@ var PlacesUIUtils = {
 
         
         
-        if (aIndex > -1)
-          index = aIndex + i;
+        
+        if (aIndex != PlacesUtils.bookmarks.DEFAULT_INDEX)
+          index = i;
 
         if (node.type == PlacesUtils.TYPE_X_MOZ_PLACE_CONTAINER) {
           if (node.livemark && node.annos) 
