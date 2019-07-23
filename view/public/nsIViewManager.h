@@ -59,10 +59,9 @@ enum nsRectVisibility {
   nsRectVisibility_kZeroAreaRect
 }; 
 
-
 #define NS_IVIEWMANAGER_IID   \
-  { 0x98f676da, 0xeb1a, 0x467d, \
-    { 0x9c, 0x0e, 0x0d, 0x64, 0xc2, 0xc8, 0x8d, 0x85 } }
+  { 0x50c0a18c, 0x3e39, 0x4606, \
+    { 0x85, 0x77, 0xe7, 0x3a, 0xcc, 0xb4, 0x66, 0xc9 } }
 
 class nsIViewManager : public nsISupports
 {
@@ -423,6 +422,12 @@ public:
 
 
   NS_IMETHOD GetWidget(nsIWidget **aWidget) = 0;
+
+  
+
+
+
+  NS_IMETHOD GetRootWidget(nsIWidget **aWidget) = 0;
 
   
 
