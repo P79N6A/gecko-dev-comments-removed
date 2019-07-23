@@ -53,7 +53,7 @@
 
 #include "nsAutoPtr.h"
 
-#include "mozilla/plugins/PPluginModuleProtocolChild.h"
+#include "mozilla/plugins/PPluginModuleChild.h"
 #include "mozilla/plugins/PluginInstanceChild.h"
 
 
@@ -93,13 +93,13 @@ namespace mozilla {
 namespace plugins {
 
 
-class PluginModuleChild : public PPluginModuleProtocolChild
+class PluginModuleChild : public PPluginModuleChild
 {
 protected:
     
     virtual nsresult AnswerNP_Initialize(NPError* rv);
 
-    virtual PPluginInstanceProtocolChild*
+    virtual PPluginInstanceChild*
     PPluginInstanceConstructor(const nsCString& aMimeType,
                                const uint16_t& aMode,
                                const nsTArray<nsCString>& aNames,
@@ -107,7 +107,7 @@ protected:
                                NPError* rv);
 
     virtual nsresult
-    PPluginInstanceDestructor(PPluginInstanceProtocolChild* actor,
+    PPluginInstanceDestructor(PPluginInstanceChild* actor,
                               NPError* rv);
 
 public:
