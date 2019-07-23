@@ -210,18 +210,12 @@ js_NewParsedObjectBox(JSContext *cx, JSParseContext *pc, JSObject *obj)
 
 
 
-
-
-
     JS_ASSERT(obj);
     JS_ARENA_ALLOCATE_TYPE(pob, JSParsedObjectBox, &cx->tempPool);
     if (!pob) {
         js_ReportOutOfScriptQuota(cx);
         return NULL;
     }
-#ifdef DEBUG
-    pc->lastAllocMark = JS_ARENA_MARK(&cx->tempPool);
-#endif
     pob->traceLink = pc->traceListHead;
     pob->emitLink = NULL;
     pob->object = obj;
@@ -272,9 +266,6 @@ NewOrRecycledNode(JSContext *cx, JSTreeContext *tc)
         JS_ARENA_ALLOCATE_TYPE(pn, JSParseNode, &cx->tempPool);
         if (!pn)
             js_ReportOutOfScriptQuota(cx);
-#ifdef DEBUG
-        tc->parseContext->lastAllocMark = JS_ARENA_MARK(&cx->tempPool);
-#endif
     } else {
         tc->parseContext->nodeList = pn->pn_next;
 

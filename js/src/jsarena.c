@@ -514,31 +514,3 @@ JS_DumpArenaStats(FILE *fp)
     }
 }
 #endif 
-
-#ifdef DEBUG
-
-JSBool
-js_GuardedArenaMark(JSArenaPool *pool, void *mark, void *guardMark)
-{
-    JSArena *a;
-
-    a = pool->current;
-    if (JS_ARENA_MARK_MATCH(a, mark)) {
-        return !JS_ARENA_MARK_MATCH(a, guardMark) ||
-               (uint8 *)guardMark <= (uint8 *)mark;
-    }
-
-    for (a = &pool->first; !JS_ARENA_MARK_MATCH(a, guardMark); a = a->next) {
-        if (JS_ARENA_MARK_MATCH(a, mark))
-            return JS_FALSE;
-    }
-
-    
-
-
-
-    return !JS_ARENA_MARK_MATCH(a, mark) ||
-           (uint8 *)guardMark <= (uint8 *)mark;
-}
-
-#endif

@@ -445,14 +445,6 @@ struct JSParseContext {
     JSParsedObjectBox   *traceListHead; 
 
     JSTempValueRooter   tempRoot;       
-#ifdef DEBUG
-    
-
-
-
-
-    void                *lastAllocMark;
-#endif
 };
 
 

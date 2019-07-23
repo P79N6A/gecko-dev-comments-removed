@@ -320,18 +320,6 @@ JS_DumpArenaStats(FILE *fp);
 
 #endif 
 
-#ifdef DEBUG
-
-
-
-
-
-
-extern JSBool
-js_GuardedArenaMark(JSArenaPool *pool, void *mark, void *guardMark);
-
-#endif
-
 JS_END_EXTERN_C
 
 #endif 
