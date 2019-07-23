@@ -251,6 +251,11 @@ nsColumnSetFrame::PaintColumnRule(nsIRenderingContext* aCtx,
   border.SetBorderStyle(NS_SIDE_LEFT, ruleStyle);
   border.SetBorderColor(NS_SIDE_LEFT, ruleColor);
 
+  
+  
+  nsRect contentRect = GetContentRect() - GetRect().TopLeft() + aPt;
+  nsSize ruleSize(ruleWidth, contentRect.height);
+
   while (nextSibling) {
     
     nsIFrame* leftSibling = isRTL ? nextSibling : child;
@@ -261,12 +266,9 @@ nsColumnSetFrame::PaintColumnRule(nsIRenderingContext* aCtx,
     nsPoint edgeOfLeftSibling = leftSibling->GetRect().TopRight() + aPt;
     nsPoint edgeOfRightSibling = rightSibling->GetRect().TopLeft() + aPt;
     nsPoint linePt((edgeOfLeftSibling.x + edgeOfRightSibling.x - ruleWidth) / 2,
-                   edgeOfLeftSibling.y);
+                   contentRect.y);
 
-    nscoord minimumHeight = PR_MIN(nsLayoutUtils::CalculateContentBottom(child),
-                                   nsLayoutUtils::CalculateContentBottom(nextSibling));
-    nsRect lineRect(linePt, nsSize(ruleWidth, minimumHeight));
-
+    nsRect lineRect(linePt, ruleSize);
     nsCSSRendering::PaintBorder(presContext, *aCtx, this, aDirtyRect,
                                 lineRect, border, GetStyleContext(),
                                 
