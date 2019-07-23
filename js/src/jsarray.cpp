@@ -1552,7 +1552,11 @@ array_toString_sub(JSContext *cx, JSObject *obj, JSBool locale,
         goto done;
 
   done:
-    JS_HashTableRawRemove(table, hep, he);
+    
+
+
+
+    JS_HashTableRemove(table, obj);
     return ok;
 }
 
