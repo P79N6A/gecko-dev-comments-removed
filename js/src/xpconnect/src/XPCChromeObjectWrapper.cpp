@@ -260,7 +260,7 @@ XPC_COW_RewrapForChrome(JSContext *cx, JSObject *wrapperObj, jsval *vp)
       !nsXPCWrappedJSClass::IsWrappedJS(wn->Native())) {
     
     
-    return XPCNativeWrapperCtor(cx, obj, 1, vp, vp);
+    return XPCNativeWrapperCtor(cx, nsnull, 1, vp, vp);
   }
 
   return XPC_SJOW_Construct(cx, obj, 1, vp, vp);
