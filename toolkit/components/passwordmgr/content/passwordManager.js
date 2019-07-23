@@ -169,10 +169,9 @@ function DeleteAllSignons() {
   
   var dummy = { value: false };
   if (prompter.confirmEx(window,
-                         null,
+                         kSignonBundle.getString("removeAllPasswordsTitle"),
                          kSignonBundle.getString("removeAllPasswordsPrompt"),
-                         prompter.BUTTON_TITLE_YES * prompter.BUTTON_POS_0 +
-                         prompter.BUTTON_TITLE_NO * prompter.BUTTON_POS_1,
+                         prompter.STD_YES_NO_BUTTONS + prompter.BUTTON_POS_1_DEFAULT,
                          null, null, null, null, dummy) == 1) 
     return;
 
