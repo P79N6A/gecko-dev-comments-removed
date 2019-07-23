@@ -309,7 +309,7 @@ class Message : public Pickle {
 
 enum SpecialRoutingIDs {
   
-  MSG_ROUTING_NONE = -2,
+  MSG_ROUTING_NONE = kint32min,
 
   
   MSG_ROUTING_CONTROL = kint32max,
