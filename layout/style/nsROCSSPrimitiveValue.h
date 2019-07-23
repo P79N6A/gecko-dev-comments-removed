@@ -47,6 +47,7 @@
 #include "nsReadableUtils.h"
 #include "nsIURI.h"
 #include "nsIAtom.h"
+#include "nsCSSKeywords.h"
 
 #include "nsCOMPtr.h"
 #include "nsDOMError.h"
@@ -67,6 +68,8 @@ public:
   
   nsROCSSPrimitiveValue(PRInt32 aAppUnitsPerInch);
   virtual ~nsROCSSPrimitiveValue();
+
+  
 
   void SetNumber(float aValue)
   {
@@ -116,6 +119,12 @@ public:
     mType = CSS_IDENT;
   }
 
+  
+  void SetIdent(nsCSSKeyword aKeyword)
+  {
+    SetIdent(nsCSSKeywords::GetStringValue(aKeyword));
+  }
+
   void SetIdent(const nsACString& aString)
   {
     Reset();
@@ -128,24 +137,26 @@ public:
     }
   }
 
-  void SetString(const nsACString& aString)
+  
+  void SetString(const nsACString& aString, PRUint16 aType = CSS_STRING)
   {
     Reset();
     mValue.mString = ToNewUnicode(aString);
     if (mValue.mString) {
-      mType = CSS_STRING;
+      mType = aType;
     } else {
       
       mType = CSS_UNKNOWN;
     }
   }
 
-  void SetString(const nsAString& aString)
+  
+  void SetString(const nsAString& aString, PRUint16 aType = CSS_STRING)
   {
     Reset();
     mValue.mString = ToNewUnicode(aString);
     if (mValue.mString) {
-      mType = CSS_STRING;
+      mType = aType;
     } else {
       
       mType = CSS_UNKNOWN;
@@ -196,6 +207,8 @@ public:
         NS_RELEASE(mValue.mAtom);
         break;
       case CSS_STRING:
+      case CSS_ATTR:
+      case CSS_COUNTER: 
         NS_ASSERTION(mValue.mString, "Null string should never happen");
         nsMemory::Free(mValue.mString);
         mValue.mString = nsnull;
@@ -226,7 +239,7 @@ private:
     nsIDOMRect*     mRect;
     PRUnichar*      mString;
     nsIURI*         mURI;
-    nsIAtom*        mAtom;
+    nsIAtom*        mAtom; 
   } mValue;
   
   PRInt32 mAppUnitsPerInch;
