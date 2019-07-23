@@ -443,8 +443,7 @@ NS_IMETHODIMP imgContainer::Notify(nsITimer *timer)
   
   
   if (mAnim->doneDecoding || 
-      (numFrames == 2 && nextFrameIndex < 2) ||
-      (numFrames > 2 && nextFrameIndex < mAnim->currentDecodingFrameIndex)) {
+      (nextFrameIndex < mAnim->currentDecodingFrameIndex)) {
     if (numFrames == nextFrameIndex) {
       
 
@@ -472,8 +471,7 @@ NS_IMETHODIMP imgContainer::Notify(nsITimer *timer)
     }
     nextFrame->GetTimeout(&timeout);
 
-  } else if ((numFrames == 2 && nextFrameIndex == 2) ||
-             (numFrames > 2 && nextFrameIndex == mAnim->currentDecodingFrameIndex)) {
+  } else if (nextFrameIndex == mAnim->currentDecodingFrameIndex) {
     
     
     mAnim->timer->SetDelay(100);
