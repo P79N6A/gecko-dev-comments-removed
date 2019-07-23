@@ -4767,6 +4767,29 @@ nsWindow::SynthesizeNativeKeyEvent(PRInt32 aNativeKeyboardLayout,
 #endif
 }
 
+nsresult
+nsWindow::SynthesizeNativeMouseEvent(nsIntPoint aPoint,
+                                     PRUint32 aNativeMessage,
+                                     PRUint32 aModifierFlags)
+{
+#ifndef WINCE 
+  RECT r;
+  ::GetWindowRect(mWnd, &r);
+  ::SetCursorPos(r.left + aPoint.x, r.top + aPoint.y);
+
+  INPUT input;
+  memset(&input, 0, sizeof(input));
+
+  input.type = INPUT_MOUSE;
+  input.mi.dwFlags = aNativeMessage;
+  ::SendInput(1, &input, sizeof(INPUT));
+
+  return NS_OK;
+#else
+  return NS_ERROR_NOT_IMPLEMENTED;
+#endif
+}
+
 
 
 
