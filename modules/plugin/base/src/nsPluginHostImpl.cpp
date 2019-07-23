@@ -1970,6 +1970,7 @@ nsPluginStreamListenerPeer::SetupPluginCacheFile(nsIChannel* channel)
       return rv;
 
     
+    filename.Insert(NS_LITERAL_CSTRING("plugin-"), 0);
     rv = pluginTmp->AppendNative(filename);
     if (NS_FAILED(rv))
       return rv;
