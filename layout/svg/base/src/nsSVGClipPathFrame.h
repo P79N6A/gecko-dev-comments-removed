@@ -69,6 +69,8 @@ public:
   
   PRBool IsTrivial();
 
+  PRBool IsValid();
+
 #ifdef DEBUG
   NS_IMETHOD Init(nsIContent*      aContent,
                   nsIFrame*        aParent,
