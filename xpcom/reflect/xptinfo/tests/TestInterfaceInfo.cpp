@@ -38,7 +38,7 @@
 
 
 #include "nscore.h"
-
+#include "nsID.h"
 #include "nsISupports.h"
 #include "nsIInterfaceInfo.h"
 #include "nsIInterfaceInfoManager.h"
