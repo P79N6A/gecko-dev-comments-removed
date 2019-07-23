@@ -1,0 +1,52 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+const Cc = Components.classes;
+const Ci = Components.interfaces;
+
+function run_test() {
+  var file = do_get_file("js/src/xpconnect/tests/unit/bug451678_subscript.js");
+  var ios = Cc["@mozilla.org/network/io-service;1"]
+              .getService(Ci.nsIIOService);
+  var uri = ios.newFileURI(file);
+  var scriptLoader = Cc["@mozilla.org/moz/jssubscript-loader;1"]
+                       .getService(Ci.mozIJSSubScriptLoader);
+  var srvScope = {};
+  scriptLoader.loadSubScript(uri.spec, srvScope);
+  do_check_true('makeTags' in srvScope && srvScope.makeTags instanceof Function);
+}
