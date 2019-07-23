@@ -103,9 +103,10 @@ typedef short SelectionType;
 typedef PRUint32 nsFrameState;
 
 
+
 #define NS_IPRESSHELL_IID \
-{ 0x228a7d67, 0x811b, 0x4d75, \
-  { 0x85, 0xc0, 0x1e, 0xe2, 0x2c, 0x0d, 0x2a, 0xf0 } }
+{ 0x23e048f6, 0x49bb, 0x4ac4, \
+  { 0xb9, 0x00, 0xc6, 0x38, 0x65, 0x36, 0x3a, 0xd3 } }
 
 
 #define NS_PRESSHELL_SCROLL_TOP      0
@@ -385,6 +386,8 @@ public:
 
   NS_IMETHOD RecreateFramesFor(nsIContent* aContent) = 0;
 
+  void PostRecreateFramesFor(nsIContent* aContent);
+  
   
 
 
