@@ -2097,6 +2097,11 @@ function losslessDecodeURI(aURI) {
 
   
   
+  value = value.replace(/[\v\x0c\x1c\x1d\x1e\x1f\u00ad\u200b\ufeff\u2028\u2029]/g,
+                        encodeURIComponent);
+
+  
+  
   value = value.replace(/[\u200e\u200f\u202a\u202b\u202c\u202d\u202e]/g,
                         encodeURIComponent);
   return value;
