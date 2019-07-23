@@ -215,46 +215,49 @@ LoginManagerPrompter.prototype = {
 
     promptUsernameAndPassword : function (aDialogTitle, aText, aPasswordRealm,
                                          aSavePassword, aUsername, aPassword) {
+        this.log("===== promptUsernameAndPassword() called =====");
+
         if (aSavePassword == Ci.nsIAuthPrompt.SAVE_PASSWORD_FOR_SESSION)
             throw Components.results.NS_ERROR_NOT_IMPLEMENTED;
 
         var selectedLogin = null;
         var checkBox = { value : false };
         var checkBoxLabel = null;
-        var hostname = this._getFormattedHostname(aPasswordRealm);
-
-        this.log("===== promptUsernameAndPassword() called =====");
-
-        var canRememberLogin = (aSavePassword ==
-                                Ci.nsIAuthPrompt.SAVE_PASSWORD_PERMANENTLY) &&
-                               this._pwmgr.getLoginSavingEnabled(hostname);
+        var [hostname, realm, unused] = this._getRealmInfo(aPasswordRealm);
 
         
-        if (canRememberLogin)
-            checkBoxLabel = this._getLocalizedString("rememberPassword");
+        if (hostname) {
+            var canRememberLogin = (aSavePassword ==
+                                    Ci.nsIAuthPrompt.SAVE_PASSWORD_PERMANENTLY) &&
+                                   this._pwmgr.getLoginSavingEnabled(hostname);
 
-        
-        var foundLogins = this._pwmgr.findLogins({}, hostname, null,
-                                                 aPasswordRealm);
+            
+            if (canRememberLogin)
+                checkBoxLabel = this._getLocalizedString("rememberPassword");
 
-        
-        
-        if (foundLogins.length > 0) {
-            selectedLogin = foundLogins[0];
+            
+            var foundLogins = this._pwmgr.findLogins({}, hostname, null,
+                                                     realm);
 
             
             
-            
-            if (aUsername.value)
-                selectedLogin = this._repickSelectedLogin(foundLogins,
-                                                          aUsername.value);
+            if (foundLogins.length > 0) {
+                selectedLogin = foundLogins[0];
 
-            if (selectedLogin) {
-                checkBox.value = true;
-                aUsername.value = selectedLogin.username;
                 
-                if (!aPassword.value)
-                    aPassword.value = selectedLogin.password;
+                
+                
+                if (aUsername.value)
+                    selectedLogin = this._repickSelectedLogin(foundLogins,
+                                                              aUsername.value);
+
+                if (selectedLogin) {
+                    checkBox.value = true;
+                    aUsername.value = selectedLogin.username;
+                    
+                    if (!aPassword.value)
+                        aPassword.value = selectedLogin.password;
+                }
             }
         }
 
@@ -262,14 +265,12 @@ LoginManagerPrompter.prototype = {
                     aDialogTitle, aText, aUsername, aPassword,
                     checkBoxLabel, checkBox);
 
-        if (!ok || !checkBox.value)
+        if (!ok || !checkBox.value || !hostname)
             return ok;
-
 
         var newLogin = Cc["@mozilla.org/login-manager/loginInfo;1"].
                        createInstance(Ci.nsILoginInfo);
-        newLogin.init(hostname, null, aPasswordRealm,
-                      aUsername.value, aPassword.value,
+        newLogin.init(hostname, null, realm, aUsername.value, aPassword.value,
                       "", "");
 
         
@@ -281,11 +282,11 @@ LoginManagerPrompter.prototype = {
         
         if (!selectedLogin) {
             
-            this.log("New login seen for " + aPasswordRealm);
+            this.log("New login seen for " + realm);
             this._pwmgr.addLogin(newLogin);
         } else if (aPassword.value != selectedLogin.password) {
             
-            this.log("Updating password for  " + aPasswordRealm);
+            this.log("Updating password for  " + realm);
             this._pwmgr.modifyLogin(selectedLogin, newLogin);
         } else {
             this.log("Login unchanged, no further action needed.");
@@ -306,54 +307,56 @@ LoginManagerPrompter.prototype = {
 
 
     promptPassword : function (aDialogTitle, aText, aPasswordRealm,
-                                         aSavePassword, aPassword) {
+                               aSavePassword, aPassword) {
+        this.log("===== promptPassword called() =====");
+
         if (aSavePassword == Ci.nsIAuthPrompt.SAVE_PASSWORD_FOR_SESSION)
             throw Components.results.NS_ERROR_NOT_IMPLEMENTED;
 
         var checkBox = { value : false };
         var checkBoxLabel = null;
-        var [hostname, username, pathname] = this._decomposeURI(aPasswordRealm);
-        var newRealm = hostname + pathname;
-
-        this.log("===== promptPassword called() =====");
-
-        var canRememberLogin = (aSavePassword ==
-                                Ci.nsIAuthPrompt.SAVE_PASSWORD_PERMANENTLY) &&
-                               this._pwmgr.getLoginSavingEnabled(hostname);
+        var [hostname, realm, username] = this._getRealmInfo(aPasswordRealm);
 
         
-        if (canRememberLogin)
-            checkBoxLabel = this._getLocalizedString("rememberPassword");
-
-        if (!aPassword.value) {
-            
-            var foundLogins = this._pwmgr.findLogins({}, hostname, null,
-                                                     newRealm);
-
-            
-            
-            
-            
-            for (var i = 0; i < foundLogins.length; ++i) {
-                if (foundLogins[i].username == username) {
-                    aPassword.value = foundLogins[i].password;
-                    
-                    return true;
-                }
-            }
+        if (hostname) {
+          var canRememberLogin = (aSavePassword ==
+                                  Ci.nsIAuthPrompt.SAVE_PASSWORD_PERMANENTLY) &&
+                                 this._pwmgr.getLoginSavingEnabled(hostname);
+  
+          
+          if (canRememberLogin)
+              checkBoxLabel = this._getLocalizedString("rememberPassword");
+  
+          if (!aPassword.value) {
+              
+              var foundLogins = this._pwmgr.findLogins({}, hostname, null,
+                                                       realm);
+  
+              
+              
+              
+              
+              for (var i = 0; i < foundLogins.length; ++i) {
+                  if (foundLogins[i].username == username) {
+                      aPassword.value = foundLogins[i].password;
+                      
+                      return true;
+                  }
+              }
+          }
         }
 
         var ok = this._promptService.promptPassword(this._window, aDialogTitle,
                                                     aText, aPassword,
                                                     checkBoxLabel, checkBox);
 
-        if (ok && checkBox.value) {
+        if (ok && checkBox.value && hostname) {
             var newLogin = Cc["@mozilla.org/login-manager/loginInfo;1"].
                            createInstance(Ci.nsILoginInfo);
-            newLogin.init(hostname, null, newRealm, username,
+            newLogin.init(hostname, null, realm, username,
                           aPassword.value, "", "");
 
-            this.log("New login seen for " + newRealm);
+            this.log("New login seen for " + realm);
 
             this._pwmgr.addLogin(newLogin);
         }
@@ -361,8 +364,36 @@ LoginManagerPrompter.prototype = {
         return ok;
     },
 
+    
 
 
+    
+
+
+
+
+
+
+
+
+
+
+
+    _getRealmInfo : function (aRealmString) {
+        var httpRealm = /^.+ \(.+\)$/;
+        if (httpRealm.test(aRealmString))
+            return [null, null, null];
+
+        var uri = this._ioService.newURI(aRealmString, null, null);
+        var pathname = "";
+
+        if (uri.path != "/")
+            pathname = uri.path;
+
+        var formattedHostname = this._getFormattedHostname(uri);
+
+        return [formattedHostname, formattedHostname + pathname, uri.username];
+    },
 
     
 
@@ -975,20 +1006,6 @@ LoginManagerPrompter.prototype = {
         }
 
         return hostname;
-    },
-
-    
-
-
-
-    _decomposeURI: function (aURIString) {
-        var uri = this._ioService.newURI(aURIString, null, null);
-        var pathname = "";
-
-        if (uri.path != "/")
-            pathname = uri.path;
-
-        return [this._getFormattedHostname(uri), uri.username, pathname];
     },
 
     
