@@ -93,8 +93,8 @@ NS_IMETHODIMP nsXPCToolsCompiler::CompileFile(nsILocalFile *aFile, PRBool strict
         return NS_ERROR_FAILURE;
 
     
-    nsCOMPtr<nsIXPCNativeCallContext> callContext;
-    xpc->GetCurrentNativeCallContext(getter_AddRefs(callContext));
+    nsAXPCNativeCallContext *callContext = nsnull;
+    xpc->GetCurrentNativeCallContext(&callContext);
     if(!callContext)
         return NS_ERROR_FAILURE;
 
