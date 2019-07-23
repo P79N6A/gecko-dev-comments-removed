@@ -266,10 +266,12 @@ nsWindowsShellService::IsDefaultBrowser(PRBool aStartupCheck,
 
   nsAutoString appLongPath(exePath);
 
+#ifndef WINCE
   
   
   if (!::GetShortPathNameW(exePath, exePath, sizeof(exePath)))
     return NS_ERROR_FAILURE;
+#endif
 
   nsAutoString appShortPath(exePath);
   ToUpperCase(appShortPath);
@@ -597,7 +599,7 @@ nsWindowsShellService::SetDesktopBackground(nsIDOMElement* aElement,
       ::RegSetValueExW(key, L"WallpaperStyle",
                        0, REG_SZ, (const BYTE *)style, size);
       ::SystemParametersInfoW(SPI_SETDESKWALLPAPER, 0, (PVOID)path.get(),
-                              SPIF_UPDATEINIFILE | SPIF_SENDWININICHANGE);
+                              SPIF_UPDATEINIFILE | SPIF_SENDCHANGE);
       
       ::RegCloseKey(key);
     }
