@@ -8430,6 +8430,14 @@ nsCSSFrameConstructor::MaybeRecreateContainerForFrameRemoval(nsIFrame* aFrame,
     return PR_TRUE;
   }
 
+  nsIContent* content = aFrame->GetContent();
+  if (content && content->IsRootOfNativeAnonymousSubtree()) {
+    
+    
+    *aResult = RecreateFramesForContent(content->GetParent(), PR_FALSE);
+    return PR_TRUE;
+  }
+
   
   nsIFrame* inFlowFrame =
     (aFrame->GetStateBits() & NS_FRAME_OUT_OF_FLOW) ?
