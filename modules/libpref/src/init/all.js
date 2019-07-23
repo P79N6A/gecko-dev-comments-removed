@@ -553,22 +553,22 @@ pref("network.http.proxy.keep-alive", true);
 pref("network.http.keep-alive.timeout", 300);
 
 
-pref("network.http.max-connections", 24);
+pref("network.http.max-connections", 30);
 
 
 
 
-pref("network.http.max-connections-per-server", 8);
+pref("network.http.max-connections-per-server", 15);
 
 
 
 
-pref("network.http.max-persistent-connections-per-server", 2);
+pref("network.http.max-persistent-connections-per-server", 6);
 
 
 
 
-pref("network.http.max-persistent-connections-per-proxy", 4);
+pref("network.http.max-persistent-connections-per-proxy", 8);
 
 
 
