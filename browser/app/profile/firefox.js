@@ -659,12 +659,6 @@ pref("places.frecency.unvisitedTypedBonus", 200);
 pref("browser.ssl_override_behavior", 1);
 
 
-
-
-
-pref("browser.identity.ssl_domain_display", 0);
-
-
 pref("editor.singleLine.pasteNewlines", 2);
 
 
