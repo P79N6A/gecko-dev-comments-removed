@@ -741,8 +741,7 @@ nsWindowWatcher::OpenWindowJSInternal(nsIDOMWindow *aParent,
 
   if (windowNeedsName)
     newDocShellItem->SetName(nameSpecified &&
-                             !name.LowerCaseEqualsLiteral("_blank") &&
-                             !name.LowerCaseEqualsLiteral("_new") ?
+                             !name.LowerCaseEqualsLiteral("_blank") ?
                              name.get() : nsnull);
 
 
