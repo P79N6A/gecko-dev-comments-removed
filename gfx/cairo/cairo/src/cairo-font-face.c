@@ -38,6 +38,7 @@
 
 
 
+#define _BSD_SOURCE
 #include "cairoint.h"
 
 

@@ -22,6 +22,7 @@
 
 
 
+
 #ifdef HAVE_CONFIG_H
 #include <config.h>
 #endif
@@ -1688,7 +1689,8 @@ pixman_image_composite (pixman_op_t      op,
         && !srcTransform && !maskTransform
         && !maskAlphaMap && !srcAlphaMap && !dstAlphaMap
         && (pSrc->common.filter != PIXMAN_FILTER_CONVOLUTION)
-        && (!pMask || pMask->common.filter != PIXMAN_FILTER_CONVOLUTION)
+        && (pSrc->common.repeat != PIXMAN_REPEAT_PAD)
+        && (!pMask || (pMask->common.filter != PIXMAN_FILTER_CONVOLUTION && pMask->common.repeat != PIXMAN_REPEAT_PAD))
 	&& !pSrc->common.read_func && !pSrc->common.write_func
 	&& !(pMask && pMask->common.read_func) && !(pMask && pMask->common.write_func)
 	&& !pDst->common.read_func && !pDst->common.write_func)
@@ -1768,7 +1770,7 @@ pixman_image_composite (pixman_op_t      op,
 	    srcRepeat = FALSE;
 
 	if (maskTransform)
-	    maskTransform = FALSE;
+	    maskRepeat = FALSE;
     }
 
     pixman_walk_composite_region (op, pSrc, pMask, pDst, xSrc, ySrc,

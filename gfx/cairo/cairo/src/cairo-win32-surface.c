@@ -388,7 +388,17 @@ _cairo_win32_surface_create_similar_internal (void	    *abstract_src,
 
     
 
-    if (force_dib || src->is_dib || (content & CAIRO_CONTENT_ALPHA)) {
+
+
+
+    if (src->is_dib ||
+	(content & CAIRO_CONTENT_ALPHA) ||
+	src->base.backend->type == CAIRO_SURFACE_TYPE_WIN32_PRINTING)
+    {
+	force_dib = TRUE;
+    }
+
+    if (force_dib) {
 	new_surf = (cairo_win32_surface_t*)
 	    _cairo_win32_surface_create_for_dc (src->dc, format, width, height);
     } else {

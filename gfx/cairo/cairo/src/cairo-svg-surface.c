@@ -39,6 +39,7 @@
 
 
 
+#define _BSD_SOURCE
 #include "cairoint.h"
 #include "cairo-svg.h"
 #include "cairo-svg-surface-private.h"
