@@ -216,6 +216,32 @@ ThrowException(nsresult ex, JSContext *cx)
   return JS_FALSE;
 }
 
+static inline
+JSBool
+EnsureLegalActivity(JSContext *cx, JSObject *obj)
+{
+  jsval flags;
+
+  ::JS_GetReservedSlot(cx, obj, 0, &flags);
+  if (HAS_FLAGS(flags, FLAG_EXPLICIT)) {
+    
+    return JS_TRUE;
+  }
+
+  JSStackFrame *frame = nsnull;
+  uint32 fileFlags = JS_GetTopScriptFilenameFlags(cx, NULL);
+  if (!JS_FrameIterator(cx, &frame) ||
+      fileFlags == JSFILENAME_NULL ||
+      (fileFlags & JSFILENAME_SYSTEM)) {
+    
+    return JS_TRUE;
+  }
+
+  
+  
+  return ThrowException(NS_ERROR_XPC_SECURITY_MANAGER_VETO, cx);
+}
+
 static JSBool
 WrapFunction(JSContext* cx, JSObject* funobj, jsval *rval)
 {
@@ -265,12 +291,17 @@ XPC_NW_AddProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 
   
   
-  return RewrapIfDeepWrapper(cx, obj, *vp, vp);
+  return EnsureLegalActivity(cx, obj) &&
+         RewrapIfDeepWrapper(cx, obj, *vp, vp);
 }
 
 JS_STATIC_DLL_CALLBACK(JSBool)
 XPC_NW_DelProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 {
+  if (!EnsureLegalActivity(cx, obj)) {
+    return JS_FALSE;
+  }
+
   XPC_NW_BYPASS_BASE(cx, obj,
     
     
@@ -412,6 +443,10 @@ XPC_NW_GetOrSetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp,
     if (!obj) {
       return ThrowException(NS_ERROR_UNEXPECTED, cx);
     }
+  }
+
+  if (!EnsureLegalActivity(cx, obj)) {
+    return JS_FALSE;
   }
 
   XPCWrappedNative *wrappedNative =
@@ -623,6 +658,10 @@ XPC_NW_Enumerate(JSContext *cx, JSObject *obj)
   
   
 
+  if (!EnsureLegalActivity(cx, obj)) {
+    return JS_FALSE;
+  }
+
   XPCWrappedNative *wn = XPCNativeWrapper::GetWrappedNative(cx, obj);
   if (!wn) {
     return JS_TRUE;
@@ -680,6 +719,10 @@ XPC_NW_NewResolve(JSContext *cx, JSObject *obj, jsval id, uintN flags,
   if (id == GetRTStringByIndex(cx, XPCJSRuntime::IDX_WRAPPED_JSOBJECT) ||
       id == GetRTStringByIndex(cx, XPCJSRuntime::IDX_TO_STRING)) {
     return JS_TRUE;
+  }
+
+  if (!EnsureLegalActivity(cx, obj)) {
+    return JS_FALSE;
   }
 
   
@@ -893,8 +936,11 @@ XPC_NW_NewResolve(JSContext *cx, JSObject *obj, jsval id, uintN flags,
 JS_STATIC_DLL_CALLBACK(JSBool)
 XPC_NW_Convert(JSContext *cx, JSObject *obj, JSType type, jsval *vp)
 {
-  XPC_NW_BYPASS(cx, obj, convert, (cx, obj, type, vp));
+  if (!EnsureLegalActivity(cx, obj)) {
+    return JS_FALSE;
+  }
 
+  XPC_NW_BYPASS(cx, obj, convert, (cx, obj, type, vp));
   return JS_TRUE;
 }
 
@@ -1254,6 +1300,10 @@ XPC_NW_toString(JSContext *cx, JSObject *obj, uintN argc, jsval *argv,
     if (!obj) {
       return ThrowException(NS_ERROR_UNEXPECTED, cx);
     }
+  }
+
+  if (!EnsureLegalActivity(cx, obj)) {
+    return JS_FALSE;
   }
 
   
