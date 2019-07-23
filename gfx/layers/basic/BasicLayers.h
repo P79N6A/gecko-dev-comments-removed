@@ -41,6 +41,8 @@
 #include "Layers.h"
 
 #include "gfxContext.h"
+#include "nsAutoRef.h"
+#include "nsThreadUtils.h"
 
 namespace mozilla {
 namespace layers {
@@ -83,6 +85,8 @@ public:
 
   virtual already_AddRefed<ThebesLayer> CreateThebesLayer();
   virtual already_AddRefed<ContainerLayer> CreateContainerLayer();
+  virtual already_AddRefed<ImageLayer> CreateImageLayer();
+  virtual already_AddRefed<ImageContainer> CreateImageContainer();
 
 #ifdef DEBUG
   PRBool InConstruction() { return mPhase == PHASE_CONSTRUCTION; }
@@ -126,5 +130,55 @@ private:
 
 }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+class nsMainThreadSurfaceRef;
+
+NS_SPECIALIZE_TEMPLATE
+class nsAutoRefTraits<nsMainThreadSurfaceRef> {
+public:
+  typedef gfxASurface* RawRef;
+
+  
+
+
+  class SurfaceReleaser : public nsRunnable {
+  public:
+    SurfaceReleaser(RawRef aRef) : mRef(aRef) {}
+    NS_IMETHOD Run() {
+      mRef->Release();
+      return NS_OK;
+    }
+    RawRef mRef;
+  };
+
+  static RawRef Void() { return nsnull; }
+  static void Release(RawRef aRawRef)
+  {
+    if (NS_IsMainThread()) {
+      aRawRef->Release();
+      return;
+    }
+    nsCOMPtr<nsIRunnable> runnable = new SurfaceReleaser(aRawRef);
+    NS_DispatchToMainThread(runnable);
+  }
+  static void AddRef(RawRef aRawRef)
+  {
+    NS_ASSERTION(NS_IsMainThread(),
+                 "Can only add a reference on the main thread");
+    aRawRef->AddRef();
+  }
+};
 
 #endif 

@@ -53,6 +53,8 @@ namespace layers {
 class Layer;
 class ThebesLayer;
 class ContainerLayer;
+class ImageLayer;
+class ImageContainer;
 
 
 
@@ -150,6 +152,16 @@ public:
 
 
   virtual already_AddRefed<ContainerLayer> CreateContainerLayer() = 0;
+  
+
+
+
+  virtual already_AddRefed<ImageLayer> CreateImageLayer() = 0;
+
+  
+
+
+  virtual already_AddRefed<ImageContainer> CreateImageContainer() = 0;
 };
 
 
