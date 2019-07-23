@@ -291,6 +291,10 @@ nsNSSComponent::nsNSSComponent()
   mCrlTimerLock = nsnull;
   mObserversRegistered = PR_FALSE;
 
+  
+  
+  memset(&mIdentityInfoCallOnce, 0, sizeof(PRCallOnceType));
+
   nsSSLIOLayerHelpers::Init();
   
   NS_ASSERTION( (0 == mInstanceCount), "nsNSSComponent is a singleton, but instantiated multiple times!");
@@ -1678,6 +1682,8 @@ nsNSSComponent::ShutdownNSS()
     else {
       PR_LOG(gPIPNSSLog, PR_LOG_DEBUG, ("NSS shutdown =====>> OK <<=====\n"));
     }
+
+    CleanupIdentityInfo();
   }
 
   return rv;
