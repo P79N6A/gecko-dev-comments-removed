@@ -110,6 +110,12 @@ mozStorageService::XPConnect()
 
 mozStorageService::~mozStorageService()
 {
+    
+    
+    int rc = sqlite3_shutdown();
+    if (rc != SQLITE_OK)
+        NS_WARNING("sqlite3 did not shutdown cleanly.");
+    
     gStorageService = nsnull;
     PR_DestroyLock(mLock);
 
@@ -123,12 +129,27 @@ mozStorageService::Init()
     mLock = PR_NewLock();
     if (!mLock)
         return NS_ERROR_OUT_OF_MEMORY;
+    
+    
+    
+    
+    int rc = sqlite3_config(SQLITE_CONFIG_MEMSTATUS, 0);
+    if (rc != SQLITE_OK)
+        return ConvertResultCode(rc);
+    
+    
+    
+    
+    rc = sqlite3_initialize();
+    if (rc != SQLITE_OK)
+        return ConvertResultCode(rc);
 
     
     
     
     
-    int rc = sqlite3_enable_shared_cache(1);
+    
+    rc = sqlite3_enable_shared_cache(1);
     if (rc != SQLITE_OK)
         return ConvertResultCode(rc);
 
