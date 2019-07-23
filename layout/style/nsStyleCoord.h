@@ -50,6 +50,7 @@ enum nsStyleUnit {
   eStyleUnit_Null         = 0,      
   eStyleUnit_Normal       = 1,      
   eStyleUnit_Auto         = 2,      
+  eStyleUnit_None         = 3,      
   eStyleUnit_Percent      = 10,     
   eStyleUnit_Factor       = 11,     
   eStyleUnit_Coord        = 20,     
@@ -97,6 +98,7 @@ public:
   void  SetFactorValue(float aValue);
   void  SetNormalValue(void);
   void  SetAutoValue(void);
+  void  SetNoneValue(void);
   void  SetUnionValue(const nsStyleUnion& aValue, nsStyleUnit aUnit);
 
   void  AppendToString(nsString& aBuffer) const;
