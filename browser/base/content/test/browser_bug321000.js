@@ -9,6 +9,8 @@ function testPaste(name, element, expected) {
   element.focus();
   listener.expected = expected;
   listener.name = name;
+  
+  
   EventUtils.synthesizeKey("v", { accelKey: true });
 }
 
@@ -41,9 +43,43 @@ function test() {
   Components.classes["@mozilla.org/widget/clipboardhelper;1"]
             .getService(Components.interfaces.nsIClipboardHelper)
             .copyString(kTestString);
-  testPaste('urlbar strips newlines and surrounding whitespace', 
-            kUrlBarElm,
-            kTestString.replace(/\s*\n\s*/g,''));
+
+  
+  
+  setTimeout(poll_clipboard, 100);
+}
+
+var runCount = 0;
+function poll_clipboard() {
+  
+  if (++runCount > 50) {
+    
+    ok(false, "Timed out while polling clipboard for pasted data");
+    
+    finish_test();
+    return;
+  }
+
+  var clip = Components.classes["@mozilla.org/widget/clipboard;1"].
+             getService(Components.interfaces.nsIClipboard);
+  var trans = Components.classes["@mozilla.org/widget/transferable;1"].
+              createInstance(Components.interfaces.nsITransferable);
+  trans.addDataFlavor("text/unicode");
+  var str = new Object();
+  try {
+    
+    clip.getData(trans,clip.kGlobalClipboard);
+    trans.getTransferData("text/unicode",str,{});
+    str = str.value.QueryInterface(Components.interfaces.nsISupportsString);
+  } catch (ex) {}
+
+  if (kTestString == str) {
+    testPaste('urlbar strips newlines and surrounding whitespace',
+              kUrlBarElm,
+              kTestString.replace(/\s*\n\s*/g,''));
+  }
+  else
+    setTimeout(poll_clipboard, 100);
 }
 
 function continue_test() {
@@ -55,6 +91,11 @@ function continue_test() {
 function finish_test() {
   kUrlBarElm.removeEventListener("input", listener, true);
   kSearchBarElm.removeEventListener("input", listener, true);
+  
+  
+  Components.classes["@mozilla.org/widget/clipboardhelper;1"]
+            .getService(Components.interfaces.nsIClipboardHelper)
+            .copyString("");
   
   kUrlBarElm.value="";
   kSearchBarElm.value="";
