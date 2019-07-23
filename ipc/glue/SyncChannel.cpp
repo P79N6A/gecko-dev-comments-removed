@@ -54,6 +54,9 @@ struct RunnableMethodTraits<mozilla::ipc::SyncChannel>
 namespace mozilla {
 namespace ipc {
 
+
+typedef mozilla::ipc::SyncChannel::Listener Listener;
+
 bool
 SyncChannel::Send(Message* msg, Message* reply)
 {

@@ -55,6 +55,8 @@ namespace mozilla {
 namespace ipc {
 
 
+typedef mozilla::ipc::RPCChannel::Listener Listener;
+
 bool
 RPCChannel::Call(Message* msg, Message* reply)
 {

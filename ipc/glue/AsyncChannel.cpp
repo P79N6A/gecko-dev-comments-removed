@@ -53,6 +53,8 @@ namespace mozilla {
 namespace ipc {
 
 
+typedef mozilla::ipc::AsyncChannel::Listener Listener;
+
 bool
 AsyncChannel::Open(Transport* aTransport, MessageLoop* aIOLoop)
 {
