@@ -134,11 +134,6 @@ public:
                        const nsAString& aVersion,
                        PRBool* aReturn);
 
-  nsresult LookupPrefix(const nsAString& aNamespaceURI,
-                        nsAString& aPrefix);
-  nsresult LookupNamespaceURI(const nsAString& aNamespacePrefix,
-                              nsAString& aNamespaceURI);
-
   
   nsresult GetData(nsAString& aData) const;
   nsresult SetData(const nsAString& aData);
@@ -273,6 +268,13 @@ public:
   NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS(nsGenericDOMDataNode)
 
 protected:
+  virtual mozilla::dom::Element* GetNameSpaceElement()
+  {
+    nsINode *parent = GetNodeParent();
+
+    return parent->IsElement() ? parent->AsElement() : nsnull;
+  }
+
   
 
 

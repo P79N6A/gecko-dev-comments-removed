@@ -906,6 +906,11 @@ public:
                                             PRBool aNotify) = 0;
 #endif 
 
+  nsresult LookupNamespaceURI(const nsAString& aNamespacePrefix,
+                              nsAString& aNamespaceURI) const;
+
+  nsIAtom* LookupPrefix(const nsAString& aNamespaceURI);
+
 private:
   
 

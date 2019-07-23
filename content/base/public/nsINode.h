@@ -1005,6 +1005,16 @@ public:
     return static_cast<nsIVariant*>(GetProperty(DOM_USER_DATA, key));
   }
 
+  void LookupPrefix(const nsAString& aNamespaceURI, nsAString& aPrefix);
+  PRBool IsDefaultNamespace(const nsAString& aNamespaceURI)
+  {
+    nsAutoString defaultNamespace;
+    LookupNamespaceURI(EmptyString(), defaultNamespace);
+    return aNamespaceURI.Equals(defaultNamespace);
+  }
+  void LookupNamespaceURI(const nsAString& aNamespacePrefix,
+                          nsAString& aNamespaceURI);
+
 protected:
 
   
@@ -1080,6 +1090,14 @@ protected:
   virtual nsresult ReplaceOrInsertBefore(PRBool aReplace, nsINode* aNewChild,
                                          nsINode* aRefChild);
   nsresult RemoveChild(nsIDOMNode* aOldChild, nsIDOMNode** aReturn);
+
+  
+
+
+
+
+
+  virtual mozilla::dom::Element* GetNameSpaceElement() = 0;
 
   nsCOMPtr<nsINodeInfo> mNodeInfo;
 

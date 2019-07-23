@@ -883,6 +883,11 @@ protected:
 
   nsIFrame* GetStyledFrame();
 
+  virtual mozilla::dom::Element* GetNameSpaceElement()
+  {
+    return this;
+  }
+
 public:
   
   
