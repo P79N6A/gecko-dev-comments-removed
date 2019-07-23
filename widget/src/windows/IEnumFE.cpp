@@ -35,289 +35,171 @@
 
 
 
+
 #include "IEnumFE.h"
-#include <stdio.h>
-#include "nsISupports.h"
+#include "nsAlgorithm.h"
 
-
-
-
-
-
-
-
-
-
-CEnumFormatEtc::CEnumFormatEtc(ULONG aNumFEs, LPFORMATETC aFEList)
+CEnumFormatEtc::CEnumFormatEtc() :
+  mRefCnt(0),
+  mCurrentIdx(0)
 {
-  UINT        i;
+}
 
-  mRefCnt     = 0;
 
-  mCurrentInx = 0;
-  mNumFEs     = aNumFEs;
-  mMaxNumFEs  = aNumFEs;
-  mFEList     = new FORMATETC[(UINT)aNumFEs];
+CEnumFormatEtc::CEnumFormatEtc(nsTArray<FormatEtc>& aArray) :
+  mRefCnt(0),
+  mCurrentIdx(0)
+{
+  
+  mFormatList.AppendElements(aArray);
+}
 
-  if (NULL!=mFEList) {
-    for (i=0; i < aNumFEs; i++) {
-      mFEList[i] = aFEList[i];
-    }
-  }
-
+CEnumFormatEtc::~CEnumFormatEtc()
+{
 }
 
 
 
-
-
-
-
-
-
-
-CEnumFormatEtc::CEnumFormatEtc(ULONG aMaxFE)
+STDMETHODIMP
+CEnumFormatEtc::QueryInterface(REFIID riid, LPVOID *ppv)
 {
-  mRefCnt     = 0;
+  *ppv = NULL;
 
-  mCurrentInx = 0;
-  mNumFEs     = 0;
-  mMaxNumFEs  = aMaxFE;
-  mFEList     = new FORMATETC[(UINT)aMaxFE];
+  if (IsEqualIID(riid, IID_IUnknown) ||
+      IsEqualIID(riid, IID_IEnumFORMATETC))
+      *ppv = (LPVOID)this;
+
+  if (*ppv == NULL)
+      return E_NOINTERFACE;
+
+  
+  ((LPUNKNOWN)*ppv)->AddRef();
+  return S_OK;
 }
 
-
-
-CEnumFormatEtc::~CEnumFormatEtc(void)
-{
-  if (NULL != mFEList) {
-    delete [] mFEList;
-  }
-
-}
-
-
-void CEnumFormatEtc::AddFE(LPFORMATETC aFE)
-{
-  mFEList[mNumFEs++] = *aFE;
-}
-
-
-bool CEnumFormatEtc::InsertFEAt(LPFORMATETC aFE, ULONG aIndex)
-{
-  if (NULL==aFE || aIndex >= mNumFEs) return FALSE;
-
-  UINT i;
-  if (mNumFEs == mMaxNumFEs) {
-    
-    
-    LPFORMATETC newFEList = (LPFORMATETC) new FORMATETC[(UINT) mNumFEs + 1];
-    for (i = 0; i < mNumFEs - 1; ++i) {
-      newFEList[i] = mFEList[i];
-    }
-    delete [] mFEList;
-    mFEList = newFEList;
-    ++mMaxNumFEs;
-  }  
-  
-  
-  
-  
-  for (i = mNumFEs; i > aIndex; --i) {
-    mFEList[i] = mFEList[i - 1];
-  }
-  mFEList[aIndex] = *aFE;
-  ++mNumFEs;
-
-  return TRUE;
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-STDMETHODIMP CEnumFormatEtc::QueryInterface(REFIID riid, LPVOID *ppv)
-{
-  *ppv=NULL;
-
-  
-
-
-
-
-  if (IsEqualIID(riid, IID_IUnknown)
-      || IsEqualIID(riid, IID_IEnumFORMATETC))
-      *ppv=(LPVOID)this;
-
-  
-  if (NULL!=*ppv)
-      {
-      ((LPUNKNOWN)*ppv)->AddRef();
-      return NOERROR;
-      }
-
-  return ResultFromScode(E_NOINTERFACE);
-}
-
-STDMETHODIMP_(ULONG) CEnumFormatEtc::AddRef(void)
+STDMETHODIMP_(ULONG)
+CEnumFormatEtc::AddRef()
 {
   ++mRefCnt;
   NS_LOG_ADDREF(this, mRefCnt, "CEnumFormatEtc",sizeof(*this));
-#ifdef DEBUG
-  
-#endif
   return mRefCnt;
 }
 
-STDMETHODIMP_(ULONG) CEnumFormatEtc::Release(void)
+STDMETHODIMP_(ULONG)
+CEnumFormatEtc::Release()
 {
-  ULONG cRefT;
+  PRUint32 refReturn;
 
-  cRefT = --mRefCnt;
+  refReturn = --mRefCnt;
   NS_LOG_RELEASE(this, mRefCnt, "CEnumFormatEtc");
 
-  if (0L == mRefCnt)
+  if (mRefCnt == 0)
       delete this;
 
-#ifdef DEBUG
+  return refReturn;
+}
+
+
+
+STDMETHODIMP
+CEnumFormatEtc::Next(ULONG aMaxToFetch, FORMATETC *aResult, ULONG *aNumFetched)
+{
   
-#endif
-  return cRefT;
-}
+  
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-STDMETHODIMP CEnumFormatEtc::Next(ULONG cFE, LPFORMATETC pFE, ULONG * pulFE)
-{
-  ULONG               cReturn=0L;
-
-  if (NULL==mFEList)
-      return ResultFromScode(S_FALSE);
-
-  if (NULL==pulFE)
-      {
-      if (1L!=cFE)
-          return ResultFromScode(E_POINTER);
-      }
-  else
-      *pulFE=0L;
-
-  if (NULL==pFE || mCurrentInx >= mNumFEs)
-      return ResultFromScode(S_FALSE);
-
-  while (mCurrentInx < mNumFEs && cFE > 0)
-      {
-      *pFE++=mFEList[mCurrentInx++];
-      cReturn++;
-      cFE--;
-      }
-
-  if (NULL!=pulFE)
-      *pulFE=cReturn;
-
-  return NOERROR;
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-STDMETHODIMP CEnumFormatEtc::Skip(ULONG cSkip)
-{
-  if (((mCurrentInx+cSkip) >= mNumFEs) || NULL==mFEList)
-      return ResultFromScode(S_FALSE);
-
-  mCurrentInx+=cSkip;
-  return NOERROR;
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-STDMETHODIMP CEnumFormatEtc::Reset(void)
-{
-  mCurrentInx=0;
-  return NOERROR;
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-STDMETHODIMP CEnumFormatEtc::Clone(LPENUMFORMATETC *ppEnum)
-{
-  LPCEnumFormatEtc    pNew;
-
-  *ppEnum=NULL;
+  if (aNumFetched)
+      *aNumFetched = 0;
 
   
-  pNew = new CEnumFormatEtc(mNumFEs, mFEList);
+  if (!aNumFetched && aMaxToFetch > 1)
+      return S_FALSE;
 
-  if (NULL==pNew)
-      return ResultFromScode(E_OUTOFMEMORY);
+  if (!aResult)
+      return S_FALSE;
 
-  pNew->AddRef();
-  pNew->mCurrentInx=mCurrentInx;
+  
+  if (mCurrentIdx >= mFormatList.Length())
+      return S_FALSE;
 
-  *ppEnum=pNew;
-  return NOERROR;
+  PRInt32 left = mFormatList.Length() - mCurrentIdx;
+
+  if (!left || !aMaxToFetch)
+      return S_FALSE;
+
+  PRInt32 count = NS_MIN(static_cast<PRInt32>(aMaxToFetch), left);
+
+  PRUint32 idx = 0;
+  while (count > 0) {
+      
+      mFormatList[mCurrentIdx++].CopyOut(&aResult[idx++]);
+      count--;
+  }
+
+  if (aNumFetched)
+      *aNumFetched = idx-1;
+
+  return S_OK;
+}
+
+STDMETHODIMP
+CEnumFormatEtc::Skip(ULONG aSkipNum)
+{
+  
+  
+
+  if ((mCurrentIdx + aSkipNum) >= mFormatList.Length())
+      return S_FALSE;
+
+  mCurrentIdx += aSkipNum;
+
+  return S_OK;
+}
+
+STDMETHODIMP
+CEnumFormatEtc::Reset(void)
+{
+  mCurrentIdx = 0;
+  return S_OK;
+}
+
+STDMETHODIMP
+CEnumFormatEtc::Clone(LPENUMFORMATETC *aResult)
+{
+  
+
+  if (!aResult)
+      return E_INVALIDARG;
+
+  CEnumFormatEtc * pEnumObj = new CEnumFormatEtc(mFormatList);
+
+  if (!pEnumObj)
+      return E_OUTOFMEMORY;
+
+  pEnumObj->AddRef();
+  pEnumObj->SetIndex(mCurrentIdx);
+
+  *aResult = pEnumObj;
+
+  return S_OK;
+}
+
+
+
+void
+CEnumFormatEtc::AddFormatEtc(LPFORMATETC aFormat)
+{
+  if (!aFormat)
+      return;
+  FormatEtc * etc = mFormatList.AppendElement();
+  
+  if (etc)
+      etc->CopyIn(aFormat);
+}
+
+
+
+void
+CEnumFormatEtc::SetIndex(PRUint32 aIdx)
+{
+  mCurrentIdx = aIdx;
 }

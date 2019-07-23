@@ -380,7 +380,7 @@ nsDataObj::nsDataObj(nsIURI * uri)
   : m_cRef(0), mTransferable(nsnull),
     mIsAsyncMode(FALSE), mIsInOperation(FALSE)
 {
-  m_enumFE = new CEnumFormatEtc(32);
+  m_enumFE = new CEnumFormatEtc();
   m_enumFE->AddRef();
 
   if (uri) {
@@ -701,7 +701,7 @@ nsDataObj::FindFORMATETC(FORMATETC *pfe, LPDATAENTRY *ppde, BOOL fAdd)
     *ppde = pde;
     ZeroMemory(&pde->stgm, sizeof(STGMEDIUM));
 
-    m_enumFE->AddFE(pfe);
+    m_enumFE->AddFormatEtc(pfe);
     mDataEntryList.AppendElement(pde);
 
     return S_OK;
@@ -1655,7 +1655,7 @@ void nsDataObj::AddDataFlavor(const char* aDataFlavor, LPFORMATETC aFE)
   
   
   mDataFlavors.AppendElement(aDataFlavor);
-  m_enumFE->AddFE(aFE);
+  m_enumFE->AddFormatEtc(aFE);
 }
 
 
