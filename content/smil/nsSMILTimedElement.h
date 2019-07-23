@@ -45,6 +45,8 @@
 #include "nsSMILRepeatCount.h"
 #include "nsSMILTypes.h"
 #include "nsTArray.h"
+#include "nsTHashtable.h"
+#include "nsHashKeys.h"
 #include "nsAutoPtr.h"
 #include "nsAttrValue.h"
 
@@ -271,7 +273,7 @@ public:
 
 
 
-  void RemoveDependent(const nsSMILTimeValueSpec& aDependent);
+  void RemoveDependent(nsSMILTimeValueSpec& aDependent);
 
   
 
@@ -312,6 +314,8 @@ protected:
   
   typedef nsTArray<nsAutoPtr<nsSMILTimeValueSpec> > TimeValueSpecList;
   typedef nsTArray<nsRefPtr<nsSMILInstanceTime> >   InstanceTimeList;
+  typedef nsPtrHashKey<nsSMILTimeValueSpec> TimeValueSpecPtrKey;
+  typedef nsTHashtable<TimeValueSpecPtrKey> TimeValueSpecHashSet;
 
   
   class InstanceTimeComparator {
@@ -320,6 +324,11 @@ protected:
                     const nsSMILInstanceTime* aElem2) const;
       PRBool LessThan(const nsSMILInstanceTime* aElem1,
                       const nsSMILInstanceTime* aElem2) const;
+  };
+
+  struct NotifyTimeDependentsParams {
+    nsSMILInterval*      mCurrentInterval;
+    nsSMILTimeContainer* mTimeContainer;
   };
 
   
@@ -405,6 +414,17 @@ protected:
   const nsSMILInstanceTime* GetEffectiveBeginInstance() const;
 
   
+  PR_STATIC_CALLBACK(PLDHashOperator) NotifyNewIntervalCallback(
+      TimeValueSpecPtrKey* aKey, void* aData);
+  PR_STATIC_CALLBACK(PLDHashOperator) NotifyChangedIntervalCallback(
+      TimeValueSpecPtrKey* aKey, void* aData);
+  PR_STATIC_CALLBACK(PLDHashOperator) NotifyDeletedIntervalCallback(
+      TimeValueSpecPtrKey* aKey, void* );
+  static inline void SanityCheckTimeDependentCallbackArgs(
+      TimeValueSpecPtrKey* aKey, NotifyTimeDependentsParams* aParams,
+      PRBool aExpectingParams);
+
+  
   
   
   nsISMILAnimationElement*        mAnimationElement; 
@@ -461,11 +481,7 @@ protected:
   
   
   
-  
-  
-  
-  
-  nsTArray<nsSMILTimeValueSpec*>  mTimeDependents;
+  TimeValueSpecHashSet mTimeDependents;
 
   
 
