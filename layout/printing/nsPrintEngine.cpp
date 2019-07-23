@@ -1865,6 +1865,27 @@ nsPrintEngine::ReflowPrintObject(nsPrintObject * aPO)
   }
 
   
+  
+  
+  
+  
+  
+  
+  PRBool canCreateScrollbars = PR_FALSE;
+  nsIView* parentView;
+  
+  if (frame) {
+    nsIView* view = frame->GetView();
+    NS_ENSURE_TRUE(view, NS_ERROR_FAILURE);
+    view = view->GetFirstChild();
+    NS_ENSURE_TRUE(view, NS_ERROR_FAILURE);
+    parentView = view;
+  } else {
+    canCreateScrollbars = PR_TRUE;
+    parentView = nsnull;
+  }
+
+  
   aPO->mPresContext = new nsPresContext(aPO->mDocument,
                                         mIsCreatingPrintPreview ?
                                          nsPresContext::eContext_PrintPreview:
@@ -1906,27 +1927,6 @@ nsPrintEngine::ReflowPrintObject(nsPrintObject * aPO)
 
   PR_PL(("In DV::ReflowPrintObject PO: %p (%9s) Setting w,h to %d,%d\n", aPO,
          gFrameTypesStr[aPO->mFrameType], adjSize.width, adjSize.height));
-
-  
-  
-  
-  
-  
-  
-  
-  PRBool canCreateScrollbars = PR_FALSE;
-  nsIView* parentView;
-  
-  if (frame) {
-    nsIView* view = frame->GetView();
-    NS_ENSURE_TRUE(view, NS_ERROR_FAILURE);
-    view = view->GetFirstChild();
-    NS_ENSURE_TRUE(view, NS_ERROR_FAILURE);
-    parentView = view;
-  } else {
-    canCreateScrollbars = PR_TRUE;
-    parentView = nsnull;
-  }
 
   
   nsRect tbounds = nsRect(nsPoint(0, 0), adjSize);
