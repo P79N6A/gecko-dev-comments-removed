@@ -89,16 +89,6 @@
 #include "nsNativeCharsetUtils.h"
 #include "nsTraceRefcntImpl.h"
 
-
-
-#if defined(VMS)
-    #define FILE_STRCMP strcasecmp
-    #define FILE_STRNCMP strncasecmp
-#else
-    #define FILE_STRCMP strcmp
-    #define FILE_STRNCMP strncmp
-#endif
-
 #define ENSURE_STAT_CACHE()                     \
     PR_BEGIN_MACRO                              \
         if (!FillStatCache())                   \
@@ -1407,13 +1397,14 @@ nsLocalFile::Equals(nsIFile *inFile, PRBool *_retval)
     NS_ENSURE_ARG_POINTER(_retval);
     *_retval = PR_FALSE;
 
-    nsresult rv;
     nsCAutoString inPath;
-
-    if (NS_FAILED(rv = inFile->GetNativePath(inPath)))
+    nsresult rv = inFile->GetNativePath(inPath);
+    if (NS_FAILED(rv))
         return rv;
 
-    *_retval = !FILE_STRCMP(inPath.get(), mPath.get());
+    
+    
+    *_retval = !strcmp(inPath.get(), mPath.get());
     return NS_OK;
 }
 
@@ -1433,7 +1424,7 @@ nsLocalFile::Contains(nsIFile *inFile, PRBool recur, PRBool *_retval)
     *_retval = PR_FALSE;
 
     ssize_t len = mPath.Length();
-    if (FILE_STRNCMP(mPath.get(), inPath.get(), len) == 0) {
+    if (strncmp(mPath.get(), inPath.get(), len) == 0) {
         
         
         if (inPath[len] == '/')

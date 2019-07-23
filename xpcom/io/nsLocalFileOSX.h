@@ -100,7 +100,6 @@ protected:
 
   nsresult GetFSRefInternal(FSRef& aFSRef);
   nsresult GetPathInternal(nsACString& path); 
-  nsresult EqualsInternal(nsISupports* inFile, PRBool *_retval);
   nsresult CopyInternal(nsIFile* newParentDir,
                         const nsAString& newName,
                         PRBool followLinks);
