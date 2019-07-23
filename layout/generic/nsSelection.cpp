@@ -2735,10 +2735,10 @@ nsFrameSelection::UnselectCells(nsIContent *aTableContent,
   if (!tableLayout)
     return NS_ERROR_FAILURE;
 
-  PRInt32 minRowIndex = PR_MIN(aStartRowIndex, aEndRowIndex);
-  PRInt32 maxRowIndex = PR_MAX(aStartRowIndex, aEndRowIndex);
-  PRInt32 minColIndex = PR_MIN(aStartColumnIndex, aEndColumnIndex);
-  PRInt32 maxColIndex = PR_MAX(aStartColumnIndex, aEndColumnIndex);
+  PRInt32 minRowIndex = NS_MIN(aStartRowIndex, aEndRowIndex);
+  PRInt32 maxRowIndex = NS_MAX(aStartRowIndex, aEndRowIndex);
+  PRInt32 minColIndex = NS_MIN(aStartColumnIndex, aEndColumnIndex);
+  PRInt32 maxColIndex = NS_MAX(aStartColumnIndex, aEndColumnIndex);
 
   
   nsCOMPtr<nsIRange> range = GetFirstCellRange();
@@ -4413,8 +4413,8 @@ nsTypedSelection::LookUpSelection(nsIContent *aContent, PRInt32 aContentOffset,
       if (startOffset < (aContentOffset + aContentLength)  &&
           endOffset > aContentOffset) {
         
-        start = PR_MAX(0, startOffset - aContentOffset);
-        end = PR_MIN(aContentLength, endOffset - aContentOffset);
+        start = NS_MAX(0, startOffset - aContentOffset);
+        end = NS_MIN(aContentLength, endOffset - aContentOffset);
       }
       
       
@@ -4422,7 +4422,7 @@ nsTypedSelection::LookUpSelection(nsIContent *aContent, PRInt32 aContentOffset,
       if (startOffset < (aContentOffset + aContentLength)) {
         
         
-        start = PR_MAX(0, startOffset - aContentOffset);
+        start = NS_MAX(0, startOffset - aContentOffset);
         end = aContentLength;
       }
     } else if (endNode == aContent) {
@@ -4430,7 +4430,7 @@ nsTypedSelection::LookUpSelection(nsIContent *aContent, PRInt32 aContentOffset,
         
         
         start = 0;
-        end = PR_MIN(aContentLength, endOffset - aContentOffset);
+        end = NS_MIN(aContentLength, endOffset - aContentOffset);
       }
     } else {
       
@@ -6350,7 +6350,7 @@ nsTypedSelection::SelectionLanguageChange(PRBool aLangRTL)
     
     
     if ((level != levelBefore) && (level != levelAfter))
-      level = PR_MIN(levelBefore, levelAfter);
+      level = NS_MIN(levelBefore, levelAfter);
     if ((level & 1) == aLangRTL)
       mFrameSelection->SetCaretBidiLevel(level);
     else

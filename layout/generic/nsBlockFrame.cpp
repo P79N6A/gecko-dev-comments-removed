@@ -863,11 +863,11 @@ CalculateContainingBlockSizeForAbsolutes(const nsHTMLReflowState& aReflowState,
       
       
       if (aLastRS->ComputedWidth() != NS_UNCONSTRAINEDSIZE) {
-        cbSize.width = PR_MAX(0,
+        cbSize.width = NS_MAX(0,
           aLastRS->ComputedWidth() + aLastRS->mComputedPadding.LeftRight() - scrollbars.LeftRight());
       }
       if (aLastRS->ComputedHeight() != NS_UNCONSTRAINEDSIZE) {
-        cbSize.height = PR_MAX(0,
+        cbSize.height = NS_MAX(0,
           aLastRS->ComputedHeight() + aLastRS->mComputedPadding.TopBottom() - scrollbars.TopBottom());
       }
     }
@@ -1267,7 +1267,7 @@ nsBlockFrame::ComputeFinalSize(const nsHTMLReflowState& aReflowState,
     {
       
       bottomEdgeOfChildren =
-        PR_MIN(bottomEdgeOfChildren + aState.mPrevBottomMargin.get(),
+        NS_MIN(bottomEdgeOfChildren + aState.mPrevBottomMargin.get(),
                aState.mReflowState.availableHeight);
     }
   }
@@ -1276,7 +1276,7 @@ nsBlockFrame::ComputeFinalSize(const nsHTMLReflowState& aReflowState,
     
     nscoord floatHeight =
       aState.ClearFloats(bottomEdgeOfChildren, NS_STYLE_CLEAR_LEFT_AND_RIGHT);
-    bottomEdgeOfChildren = PR_MAX(bottomEdgeOfChildren, floatHeight);
+    bottomEdgeOfChildren = NS_MAX(bottomEdgeOfChildren, floatHeight);
   }
 
   
@@ -1293,7 +1293,7 @@ nsBlockFrame::ComputeFinalSize(const nsHTMLReflowState& aReflowState,
       
       computedHeightLeftOver += aReflowState.mComputedBorderPadding.top;
       
-      computedHeightLeftOver = PR_MAX(0, computedHeightLeftOver);
+      computedHeightLeftOver = NS_MAX(0, computedHeightLeftOver);
     }
     NS_ASSERTION(!( IS_TRUE_OVERFLOW_CONTAINER(this)
                     && computedHeightLeftOver ),
@@ -1316,7 +1316,7 @@ nsBlockFrame::ComputeFinalSize(const nsHTMLReflowState& aReflowState,
         
         
         
-        aMetrics.height = PR_MAX(aReflowState.availableHeight,
+        aMetrics.height = NS_MAX(aReflowState.availableHeight,
                                  aState.mY + nonCarriedOutVerticalMargin);
         NS_FRAME_SET_INCOMPLETE(aState.mReflowStatus);
         if (!GetNextInFlow())
@@ -1328,10 +1328,10 @@ nsBlockFrame::ComputeFinalSize(const nsHTMLReflowState& aReflowState,
       
       
       
-      aMetrics.height = PR_MAX(aReflowState.availableHeight,
+      aMetrics.height = NS_MAX(aReflowState.availableHeight,
                                aState.mY + nonCarriedOutVerticalMargin);
       
-      aMetrics.height = PR_MIN(aMetrics.height,
+      aMetrics.height = NS_MIN(aMetrics.height,
                                borderPadding.top + computedHeightLeftOver);
       
       
@@ -1358,7 +1358,7 @@ nsBlockFrame::ComputeFinalSize(const nsHTMLReflowState& aReflowState,
   else {
     NS_ASSERTION(aReflowState.availableHeight != NS_UNCONSTRAINEDSIZE,
       "Shouldn't be incomplete if availableHeight is UNCONSTRAINED.");
-    aMetrics.height = PR_MAX(aState.mY, aReflowState.availableHeight);
+    aMetrics.height = NS_MAX(aState.mY, aReflowState.availableHeight);
     if (aReflowState.availableHeight == NS_UNCONSTRAINEDSIZE)
       
       aMetrics.height = aState.mY;
@@ -1373,7 +1373,7 @@ nsBlockFrame::ComputeFinalSize(const nsHTMLReflowState& aReflowState,
   }
 
   
-  aMetrics.height = PR_MAX(0, aMetrics.height);
+  aMetrics.height = NS_MAX(0, aMetrics.height);
   *aBottomEdgeOfChildren = bottomEdgeOfChildren;
 
 #ifdef DEBUG_blocks
@@ -1431,7 +1431,7 @@ nsBlockFrame::ComputeCombinedArea(const nsHTMLReflowState& aReflowState,
       
       bottomEdgeOfContents += aReflowState.mComputedPadding.bottom;
     }
-    area.height = PR_MAX(area.YMost(), bottomEdgeOfContents) - area.y;
+    area.height = NS_MAX(area.YMost(), bottomEdgeOfContents) - area.y;
   }
 #ifdef NOISY_COMBINED_AREA
   ListTag(stdout);
@@ -2232,8 +2232,8 @@ nsBlockFrame::ReflowDirtyLines(nsBlockReflowState& aState)
         nsLayoutUtils::GetCenteredFontBaseline(fm, aState.mMinLineHeight);
       nscoord minDescent = aState.mMinLineHeight - minAscent;
 
-      aState.mY += PR_MAX(minAscent, metrics.ascent) +
-                   PR_MAX(minDescent, metrics.height - metrics.ascent);
+      aState.mY += NS_MAX(minAscent, metrics.ascent) +
+                   NS_MAX(minDescent, metrics.height - metrics.ascent);
 
       nscoord offset = minAscent - metrics.ascent;
       if (offset > 0) {
@@ -4078,7 +4078,7 @@ nsBlockFrame::PlaceLine(nsBlockReflowState& aState,
   nsRect oldFloatAvailableSpace(aFloatAvailableSpace);
   
   
-  aAvailableSpaceHeight = PR_MAX(aAvailableSpaceHeight, aLine->mBounds.height);
+  aAvailableSpaceHeight = NS_MAX(aAvailableSpaceHeight, aLine->mBounds.height);
   aFloatAvailableSpace = 
     aState.GetFloatAvailableSpaceForHeight(aLine->mBounds.y,
                                            aAvailableSpaceHeight,
@@ -5538,7 +5538,7 @@ nsBlockFrame::AdjustFloatAvailableSpace(nsBlockReflowState& aState,
   nscoord contentYOffset = aState.mY - aState.BorderPadding().top;
   nscoord availHeight = NS_UNCONSTRAINEDSIZE == aState.mContentArea.height
                         ? NS_UNCONSTRAINEDSIZE
-                        : PR_MAX(0, aState.mContentArea.height - contentYOffset);
+                        : NS_MAX(0, aState.mContentArea.height - contentYOffset);
 
 #ifdef DISABLE_FLOAT_BREAKING_IN_COLUMNS
   if (availHeight != NS_UNCONSTRAINEDSIZE &&
@@ -6586,7 +6586,7 @@ nsBlockFrame::ReflowBullet(nsBlockReflowState& aState,
     
     
     
-    x = PR_MIN(rs.ComputedWidth(), floatAvailSpace.XMost())
+    x = NS_MIN(rs.ComputedWidth(), floatAvailSpace.XMost())
         + rs.mComputedBorderPadding.LeftRight()
         + reflowState.mComputedMargin.left;
   }
@@ -6788,8 +6788,8 @@ nsBlockFrame::WidthToClearPastFloats(nsBlockReflowState& aState,
       
       
       
-      result.marginLeft  = PR_MIN(tableMargin.left,  captionMargin.left);
-      result.marginRight = PR_MIN(tableMargin.right, captionMargin.right);
+      result.marginLeft  = NS_MIN(tableMargin.left,  captionMargin.left);
+      result.marginRight = NS_MIN(tableMargin.right, captionMargin.right);
     } else {
       NS_ASSERTION(captionSide == NS_STYLE_CAPTION_SIDE_LEFT ||
                    captionSide == NS_STYLE_CAPTION_SIDE_RIGHT,

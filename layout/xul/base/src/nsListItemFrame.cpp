@@ -65,7 +65,7 @@ nsListItemFrame::GetPrefSize(nsBoxLayoutState& aState)
 
   
   
-  size.height = PR_MAX(mRect.height, size.height);
+  size.height = NS_MAX(mRect.height, size.height);
   return size;
 }
 

@@ -55,6 +55,7 @@
 #include "nsHTMLReflowMetrics.h"
 #include "gfxMatrix.h"
 #include "nsFrameList.h"
+#include "nsAlgorithm.h"
 
 
 
@@ -1050,8 +1051,8 @@ public:
     PRInt32 secondaryOffset;
     
     
-    PRInt32 StartOffset() { return PR_MIN(offset, secondaryOffset); }
-    PRInt32 EndOffset() { return PR_MAX(offset, secondaryOffset); }
+    PRInt32 StartOffset() { return NS_MIN(offset, secondaryOffset); }
+    PRInt32 EndOffset() { return NS_MAX(offset, secondaryOffset); }
     
     
     

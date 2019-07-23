@@ -2034,7 +2034,7 @@ nsRuleNode::SetDefaultOnRoot(const nsStyleStructID aSID, nsStyleContext* aContex
           mPresContext->GetCachedIntPref(kPresContext_MinimumFontSize);
 
         if (minimumFontSize > 0 && !mPresContext->IsChrome()) {
-          fontData->mFont.size = PR_MAX(fontData->mSize, minimumFontSize);
+          fontData->mFont.size = NS_MAX(fontData->mSize, minimumFontSize);
         }
         else {
           fontData->mFont.size = fontData->mSize;
@@ -2502,12 +2502,12 @@ ComputeScriptLevelSize(const nsStyleFont* aFont, const nsStyleFont* aParentFont,
   
   
   *aUnconstrainedSize =
-    NSToCoordRound(PR_MIN(aParentFont->mScriptUnconstrainedSize*scriptLevelScale,
-                          nscoord_MAX));
+    NSToCoordRound(NS_MIN(aParentFont->mScriptUnconstrainedSize*scriptLevelScale,
+                          double(nscoord_MAX)));
   
   nscoord scriptLevelSize =
-    NSToCoordRound(PR_MIN(aParentFont->mSize*scriptLevelScale,
-                          nscoord_MAX));
+    NSToCoordRound(NS_MIN(aParentFont->mSize*scriptLevelScale,
+                          double(nscoord_MAX)));
   if (scriptLevelScale <= 1.0) {
     if (aParentFont->mSize <= minScriptSize) {
       
@@ -2516,12 +2516,12 @@ ComputeScriptLevelSize(const nsStyleFont* aFont, const nsStyleFont* aParentFont,
       return aParentFont->mSize;
     }
     
-    return PR_MAX(minScriptSize, scriptLevelSize);
+    return NS_MAX(minScriptSize, scriptLevelSize);
   } else {
     
     NS_ASSERTION(*aUnconstrainedSize <= scriptLevelSize, "How can this ever happen?");
     
-    return PR_MIN(scriptLevelSize, PR_MAX(*aUnconstrainedSize, minScriptSize));
+    return NS_MIN(scriptLevelSize, NS_MAX(*aUnconstrainedSize, minScriptSize));
   }
 }
 #endif
@@ -2724,7 +2724,7 @@ nsRuleNode::SetFont(nsPresContext* aPresContext, nsStyleContext* aContext,
       case eSystemFont_List:
         
         systemFont.size = 
-          PR_MAX(defaultVariableFont->size - aPresContext->PointsToAppUnits(2), 0);
+          NS_MAX(defaultVariableFont->size - aPresContext->PointsToAppUnits(2), 0);
         break;
     }
 #endif
@@ -5642,7 +5642,7 @@ nsRuleNode::ComputeColumnData(void* aStartStruct,
   } else if (eCSSUnit_Integer == columnData.mColumnCount.GetUnit()) {
     column->mColumnCount = columnData.mColumnCount.GetIntValue();
     
-    column->mColumnCount = PR_MIN(column->mColumnCount, 1000);
+    column->mColumnCount = NS_MIN(column->mColumnCount, 1000U);
   } else if (eCSSUnit_Inherit == columnData.mColumnCount.GetUnit()) {
     canStoreInRuleTree = PR_FALSE;
     column->mColumnCount = parent->mColumnCount;

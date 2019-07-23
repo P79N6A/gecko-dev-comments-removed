@@ -1161,7 +1161,7 @@ DocumentViewerImpl::PermitUnload(PRBool *aPermitUnload)
 
       
       
-      PRInt32 len = PR_MIN(text.Length(), 1024);
+      PRInt32 len = NS_MIN(text.Length(), 1024U);
 
       nsAutoString msg;
       if (len == 0) {

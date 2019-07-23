@@ -1666,7 +1666,7 @@ nsPrintEngine::SetupToPrintContent()
     
     if (mPrt->mShrinkRatio < 0.998f) {
       
-      mPrt->mShrinkRatio = PR_MAX(mPrt->mShrinkRatio, 0.60f);
+      mPrt->mShrinkRatio = NS_MAX(mPrt->mShrinkRatio, 0.60f);
 
       for (PRUint32 i=0;i<mPrt->mPrintDocList.Length();i++) {
         nsPrintObject* po = mPrt->mPrintDocList.ElementAt(i);
@@ -2234,13 +2234,13 @@ nsPrintEngine::DoPrint(nsPrintObject * aPO)
                 if (startRect.y < 0) {
                   
                   
-                  startRect.height = PR_MAX(0, startRect.YMost());
+                  startRect.height = NS_MAX(0, startRect.YMost());
                   startRect.y = 0;
                 }
                 if (endRect.y < 0) {
                   
                   
-                  endRect.height = PR_MAX(0, endRect.YMost());
+                  endRect.height = NS_MAX(0, endRect.YMost());
                   endRect.y = 0;
                 }
                 NS_ASSERTION(endRect.y >= startRect.y,

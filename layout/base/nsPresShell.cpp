@@ -5334,9 +5334,9 @@ PresShell::ClipListToRange(nsDisplayListBuilder *aBuilder,
           frame->GetOffsets(frameStartOffset, frameEndOffset);
 
           PRInt32 hilightStart =
-            atStart ? PR_MAX(aRange->StartOffset(), frameStartOffset) : frameStartOffset;
+            atStart ? NS_MAX(aRange->StartOffset(), frameStartOffset) : frameStartOffset;
           PRInt32 hilightEnd =
-            atEnd ? PR_MIN(aRange->EndOffset(), frameEndOffset) : frameEndOffset;
+            atEnd ? NS_MIN(aRange->EndOffset(), frameEndOffset) : frameEndOffset;
           if (hilightStart < hilightEnd) {
             
             nsPoint startPoint, endPoint;
@@ -5348,9 +5348,9 @@ PresShell::ClipListToRange(nsDisplayListBuilder *aBuilder,
             
             
             nsRect textRect(aBuilder->ToReferenceFrame(frame), frame->GetSize());
-            nscoord x = PR_MIN(startPoint.x, endPoint.x);
+            nscoord x = NS_MIN(startPoint.x, endPoint.x);
             textRect.x += x;
-            textRect.width = PR_MAX(startPoint.x, endPoint.x) - x;
+            textRect.width = NS_MAX(startPoint.x, endPoint.x) - x;
             surfaceRect.UnionRect(surfaceRect, textRect);
 
             
@@ -5494,9 +5494,9 @@ PresShell::PaintRangePaintInfo(nsTArray<nsAutoPtr<RangePaintInfo> >* aItems,
     
     
     if (pixelArea.width > maxWidth)
-      scale = PR_MIN(scale, float(maxWidth) / pixelArea.width);
+      scale = NS_MIN(scale, float(maxWidth) / pixelArea.width);
     if (pixelArea.height > maxHeight)
-      scale = PR_MIN(scale, float(maxHeight) / pixelArea.height);
+      scale = NS_MIN(scale, float(maxHeight) / pixelArea.height);
 
     pixelArea.width = NSToIntFloor(float(pixelArea.width) * scale);
     pixelArea.height = NSToIntFloor(float(pixelArea.height) * scale);
@@ -7198,7 +7198,7 @@ PresShell::DoReflow(nsIFrame* target, PRBool aInterruptible)
   if (size.height != NS_UNCONSTRAINEDSIZE) {
     nscoord computedHeight =
       size.height - reflowState.mComputedBorderPadding.TopBottom();
-    computedHeight = PR_MAX(computedHeight, 0);
+    computedHeight = NS_MAX(computedHeight, 0);
     reflowState.SetComputedHeight(computedHeight);
   }
   NS_ASSERTION(reflowState.ComputedWidth() ==

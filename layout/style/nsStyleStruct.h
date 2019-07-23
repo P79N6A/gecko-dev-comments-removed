@@ -65,6 +65,7 @@
 #include "nsIURI.h"
 #include "nsCSSValue.h"
 #include "nsStyleTransformMatrix.h"
+#include "nsAlgorithm.h"
 
 class nsIFrame;
 class imgIRequest;
@@ -666,14 +667,14 @@ class nsCSSShadowArray {
 
 
 #define NS_ROUND_BORDER_TO_PIXELS(l,tpp) \
-  ((l) == 0) ? 0 : PR_MAX((tpp), (l) / (tpp) * (tpp))
+  ((l) == 0) ? 0 : NS_MAX((tpp), (l) / (tpp) * (tpp))
 
 
 
 #define NS_ROUND_OFFSET_TO_PIXELS(l,tpp) \
   (((l) == 0) ? 0 : \
-    ((l) > 0) ? PR_MAX( (tpp), ((l) + ((tpp) / 2)) / (tpp) * (tpp)) : \
-                PR_MIN(-(tpp), ((l) - ((tpp) / 2)) / (tpp) * (tpp)))
+    ((l) > 0) ? NS_MAX( (tpp), ((l) + ((tpp) / 2)) / (tpp) * (tpp)) : \
+                NS_MIN(-(tpp), ((l) - ((tpp) / 2)) / (tpp) * (tpp)))
 
 
 static PRBool IsVisibleBorderStyle(PRUint8 aStyle)

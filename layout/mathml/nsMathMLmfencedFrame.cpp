@@ -386,7 +386,7 @@ nsMathMLmfencedFrame::doReflow(nsPresContext*          aPresContext,
 
   
   if (firstChild) { 
-    nscoord delta = PR_MAX(containerSize.ascent - axisHeight, 
+    nscoord delta = NS_MAX(containerSize.ascent - axisHeight, 
                            containerSize.descent + axisHeight);
     containerSize.ascent = delta + axisHeight;
     containerSize.descent = delta - axisHeight;

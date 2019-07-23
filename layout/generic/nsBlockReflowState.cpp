@@ -125,7 +125,7 @@ nsBlockReflowState::nsBlockReflowState(const nsHTMLReflowState& aReflowState,
     
     
     mBottomEdge = aReflowState.availableHeight - borderPadding.bottom;
-    mContentArea.height = PR_MAX(0, mBottomEdge - borderPadding.top);
+    mContentArea.height = NS_MAX(0, mBottomEdge - borderPadding.top);
   }
   else {
     
@@ -212,16 +212,16 @@ nsBlockReflowState::ComputeReplacedBlockOffsetsForFloats(nsIFrame* aFrame,
                  "unexpected aReplacedWidth");
 
     nscoord leftFloatXOffset = aFloatAvailableSpace.x;
-    leftOffset = PR_MAX(leftFloatXOffset, os.mComputedMargin.left) -
+    leftOffset = NS_MAX(leftFloatXOffset, os.mComputedMargin.left) -
                  (aReplacedWidth ? aReplacedWidth->marginLeft
                                  : os.mComputedMargin.left);
-    leftOffset = PR_MAX(leftOffset, 0); 
+    leftOffset = NS_MAX(leftOffset, 0); 
     nscoord rightFloatXOffset =
       mContentArea.width - aFloatAvailableSpace.XMost();
-    rightOffset = PR_MAX(rightFloatXOffset, os.mComputedMargin.right) -
+    rightOffset = NS_MAX(rightFloatXOffset, os.mComputedMargin.right) -
                   (aReplacedWidth ? aReplacedWidth->marginRight
                                   : os.mComputedMargin.right);
-    rightOffset = PR_MAX(rightOffset, 0); 
+    rightOffset = NS_MAX(rightOffset, 0); 
   }
   aLeftResult = leftOffset;
   aRightResult = rightOffset;
@@ -244,7 +244,7 @@ nsBlockReflowState::ComputeBlockAvailSpace(nsIFrame* aFrame,
   aResult.y = mY;
   aResult.height = GetFlag(BRS_UNCONSTRAINEDHEIGHT)
     ? NS_UNCONSTRAINEDSIZE
-    : PR_MAX(0, mReflowState.availableHeight - mY);
+    : NS_MAX(0, mReflowState.availableHeight - mY);
   
   
   
@@ -920,7 +920,7 @@ nsBlockReflowState::FlowAndPlaceFloat(nsIFrame*       aFloat,
   
   if (NS_FRAME_IS_NOT_COMPLETE(aReflowStatus) &&
       (NS_UNCONSTRAINEDSIZE != mContentArea.height)) {
-    region.height = PR_MAX(region.height, mContentArea.height - floatY);
+    region.height = NS_MAX(region.height, mContentArea.height - floatY);
   }
   nsresult rv =
   
@@ -1046,10 +1046,10 @@ nsBlockReflowState::ClearFloats(nscoord aY, PRUint8 aBreakType,
         nsBlockFrame::WidthToClearPastFloats(*this, floatAvailableSpace.mRect,
                                              aReplacedBlock);
       if (!floatAvailableSpace.mHasFloats ||
-          PR_MAX(floatAvailableSpace.mRect.x, replacedWidth.marginLeft) +
+          NS_MAX(floatAvailableSpace.mRect.x, replacedWidth.marginLeft) +
             replacedWidth.borderBoxWidth +
-            PR_MAX(mContentArea.width -
-                     PR_MIN(mContentArea.width,
+            NS_MAX(mContentArea.width -
+                     NS_MIN(mContentArea.width,
                             floatAvailableSpace.mRect.XMost()),
                    replacedWidth.marginRight) <=
           mContentArea.width) {

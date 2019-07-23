@@ -638,10 +638,10 @@ nsSubDocumentFrame::ReflowFinished()
       
       
       innerSize.width  -= usedBorderPadding.LeftRight();
-      innerSize.width = PR_MAX(innerSize.width, 0);
+      innerSize.width = NS_MAX(innerSize.width, 0);
       
       innerSize.height -= usedBorderPadding.TopBottom();
-      innerSize.height = PR_MAX(innerSize.height, 0);
+      innerSize.height = NS_MAX(innerSize.height, 0);
     }  
 
     PRInt32 cx = presContext->AppUnitsToDevPixels(innerSize.width);

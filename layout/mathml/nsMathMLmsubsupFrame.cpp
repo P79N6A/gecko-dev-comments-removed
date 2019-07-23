@@ -142,7 +142,7 @@ nsMathMLmsubsupFrame::PlaceSubSupScript(nsPresContext*      aPresContext,
 {
   
   nscoord onePixel = nsPresContext::CSSPixelsToAppUnits(1);
-  aScriptSpace = PR_MAX(onePixel, aScriptSpace);
+  aScriptSpace = NS_MAX(onePixel, aScriptSpace);
 
   
   
@@ -212,14 +212,14 @@ nsMathMLmsubsupFrame::PlaceSubSupScript(nsPresContext*      aPresContext,
   if (0 < aUserSubScriptShift) {
     
     float scaler = ((float) subScriptShift2) / subScriptShift1;
-    subScriptShift1 = PR_MAX(subScriptShift1, aUserSubScriptShift);
+    subScriptShift1 = NS_MAX(subScriptShift1, aUserSubScriptShift);
     subScriptShift2 = NSToCoordRound(scaler * subScriptShift1);
   }
 
   
   
   nscoord subScriptShift =
-    PR_MAX(minSubScriptShift,PR_MAX(subScriptShift1,subScriptShift2));
+    NS_MAX(minSubScriptShift,NS_MAX(subScriptShift1,subScriptShift2));
 
   
   
@@ -244,7 +244,7 @@ nsMathMLmsubsupFrame::PlaceSubSupScript(nsPresContext*      aPresContext,
     
     float scaler2 = ((float) supScriptShift2) / supScriptShift1;
     float scaler3 = ((float) supScriptShift3) / supScriptShift1;
-    supScriptShift1 = PR_MAX(supScriptShift1, aUserSupScriptShift);
+    supScriptShift1 = NS_MAX(supScriptShift1, aUserSupScriptShift);
     supScriptShift2 = NSToCoordRound(scaler2 * supScriptShift1);
     supScriptShift3 = NSToCoordRound(scaler3 * supScriptShift1);
   }
@@ -272,7 +272,7 @@ nsMathMLmsubsupFrame::PlaceSubSupScript(nsPresContext*      aPresContext,
   
   
   supScriptShift =
-    PR_MAX(minSupScriptShift,PR_MAX(supScriptShift,minShiftFromXHeight));
+    NS_MAX(minSupScriptShift,NS_MAX(supScriptShift,minShiftFromXHeight));
 
   
   
@@ -304,9 +304,9 @@ nsMathMLmsubsupFrame::PlaceSubSupScript(nsPresContext*      aPresContext,
   
   nsBoundingMetrics boundingMetrics;
   boundingMetrics.ascent =
-    PR_MAX(bmBase.ascent, (bmSupScript.ascent + supScriptShift));
+    NS_MAX(bmBase.ascent, (bmSupScript.ascent + supScriptShift));
   boundingMetrics.descent =
-   PR_MAX(bmBase.descent, (bmSubScript.descent + subScriptShift));
+   NS_MAX(bmBase.descent, (bmSubScript.descent + subScriptShift));
 
   
   
@@ -316,20 +316,20 @@ nsMathMLmsubsupFrame::PlaceSubSupScript(nsPresContext*      aPresContext,
   GetItalicCorrection(bmBase, italicCorrection);
   italicCorrection += onePixel;
   boundingMetrics.width = bmBase.width + aScriptSpace +
-    PR_MAX((italicCorrection + bmSupScript.width), bmSubScript.width);
+    NS_MAX((italicCorrection + bmSupScript.width), bmSubScript.width);
   boundingMetrics.leftBearing = bmBase.leftBearing;
   boundingMetrics.rightBearing = bmBase.width +
-    PR_MAX((italicCorrection + bmSupScript.rightBearing), bmSubScript.rightBearing);
+    NS_MAX((italicCorrection + bmSupScript.rightBearing), bmSubScript.rightBearing);
   aFrame->SetBoundingMetrics(boundingMetrics);
 
   
   aDesiredSize.ascent =
-    PR_MAX(baseSize.ascent, 
-       PR_MAX(subScriptSize.ascent - subScriptShift,
+    NS_MAX(baseSize.ascent, 
+       NS_MAX(subScriptSize.ascent - subScriptShift,
               supScriptSize.ascent + supScriptShift));
   aDesiredSize.height = aDesiredSize.ascent +
-    PR_MAX(baseSize.height - baseSize.ascent,
-       PR_MAX(subScriptSize.height - subScriptSize.ascent + subScriptShift, 
+    NS_MAX(baseSize.height - baseSize.ascent,
+       NS_MAX(subScriptSize.height - subScriptSize.ascent + subScriptShift, 
               supScriptSize.height - subScriptSize.ascent - supScriptShift));
   aDesiredSize.width = boundingMetrics.width;
   aDesiredSize.mBoundingMetrics = boundingMetrics;

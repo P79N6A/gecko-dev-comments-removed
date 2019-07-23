@@ -458,7 +458,7 @@ nsComboboxControlFrame::ReflowDropdown(nsPresContext*  aPresContext,
   nscoord forcedWidth = aReflowState.ComputedWidth() +
     aReflowState.mComputedBorderPadding.LeftRight() -
     kidReflowState.mComputedBorderPadding.LeftRight();
-  kidReflowState.SetComputedWidth(PR_MAX(kidReflowState.ComputedWidth(),
+  kidReflowState.SetComputedWidth(NS_MAX(kidReflowState.ComputedWidth(),
                                          forcedWidth));
 
   
@@ -583,7 +583,7 @@ nsComboboxControlFrame::GetIntrinsicWidth(nsIRenderingContext* aRenderingContext
                                                      scrollbarWidth,
                                                      nscoord_MAX);
   
-    displayWidth = PR_MAX(dropdownContentWidth, displayWidth);
+    displayWidth = NS_MAX(dropdownContentWidth, displayWidth);
   }
 
   

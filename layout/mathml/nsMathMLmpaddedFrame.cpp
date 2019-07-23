@@ -451,7 +451,7 @@ nsMathMLmpaddedFrame::Place(nsIRenderingContext& aRenderingContext,
   if (mLeftSpaceSign != NS_MATHML_SIGN_INVALID ||
       mWidthSign != NS_MATHML_SIGN_INVALID) { 
     
-    mBoundingMetrics.width = PR_MAX(0, lspace + width);
+    mBoundingMetrics.width = NS_MAX(0, lspace + width);
     mBoundingMetrics.rightBearing = mBoundingMetrics.width;
   }
 

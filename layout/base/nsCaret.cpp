@@ -193,7 +193,7 @@ nsCaret::Metrics nsCaret::ComputeMetrics(nsIFrame* aFrame, PRInt32 aOffset, nsco
     caretWidth += nsPresContext::CSSPixelsToAppUnits(1);
   }
   nscoord bidiIndicatorSize = nsPresContext::CSSPixelsToAppUnits(kMinBidiIndicatorPixels);
-  bidiIndicatorSize = PR_MAX(caretWidth, bidiIndicatorSize);
+  bidiIndicatorSize = NS_MAX(caretWidth, bidiIndicatorSize);
 
   
   
@@ -789,8 +789,8 @@ nsCaret::GetCaretFrameForNodeOffset(nsIContent*             aContentNode,
 
         if ((levelBefore != levelAfter) || (aBidiLevel != levelBefore))
         {
-          aBidiLevel = PR_MAX(aBidiLevel, PR_MIN(levelBefore, levelAfter));                                  
-          aBidiLevel = PR_MIN(aBidiLevel, PR_MAX(levelBefore, levelAfter));                                  
+          aBidiLevel = NS_MAX(aBidiLevel, NS_MIN(levelBefore, levelAfter));                                  
+          aBidiLevel = NS_MIN(aBidiLevel, NS_MAX(levelBefore, levelAfter));                                  
           if (aBidiLevel == levelBefore                                                                      
               || (aBidiLevel > levelBefore && aBidiLevel < levelAfter && !((aBidiLevel ^ levelBefore) & 1))    
               || (aBidiLevel < levelBefore && aBidiLevel > levelAfter && !((aBidiLevel ^ levelBefore) & 1)))  

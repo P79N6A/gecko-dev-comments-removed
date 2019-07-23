@@ -405,15 +405,15 @@ nsSliderFrame::DoLayout(nsBoxLayoutState& aState)
   PRInt32 maxPos = GetMaxPosition(scrollbar);
   PRInt32 pageIncrement = GetPageIncrement(scrollbar);
 
-  maxPos = PR_MAX(minPos, maxPos);
-  curPos = PR_MAX(minPos, PR_MIN(curPos, maxPos));
+  maxPos = NS_MAX(minPos, maxPos);
+  curPos = NS_MAX(minPos, NS_MIN(curPos, maxPos));
 
   nscoord& availableLength = IsHorizontal() ? clientRect.width : clientRect.height;
   nscoord& thumbLength = IsHorizontal() ? thumbSize.width : thumbSize.height;
 
   if ((pageIncrement + maxPos - minPos) > 0 && thumbBox->GetFlex(aState) > 0) {
     float ratio = float(pageIncrement) / float(maxPos - minPos + pageIncrement);
-    thumbLength = PR_MAX(thumbLength, NSToCoordRound(availableLength * ratio));
+    thumbLength = NS_MAX(thumbLength, NSToCoordRound(availableLength * ratio));
   }
 
   
@@ -687,8 +687,8 @@ nsSliderFrame::CurrentPositionChanged(nsPresContext* aPresContext,
   PRInt32 minPos = GetMinPosition(scrollbar);
   PRInt32 maxPos = GetMaxPosition(scrollbar);
 
-  maxPos = PR_MAX(minPos, maxPos);
-  curPos = PR_MAX(minPos, PR_MIN(curPos, maxPos));
+  maxPos = NS_MAX(minPos, maxPos);
+  curPos = NS_MAX(minPos, NS_MIN(curPos, maxPos));
 
   
   nsIFrame* thumbFrame = mFrames.FirstChild();

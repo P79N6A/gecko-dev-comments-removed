@@ -591,7 +591,7 @@ void nsTableCellFrame::VerticallyAlignChild(nscoord aMaxAscent)
       kidYTop = (height - childHeight - bottomInset + topInset) / 2;
   }
   
-  kidYTop = PR_MAX(0, kidYTop);
+  kidYTop = NS_MAX(0, kidYTop);
 
   if (kidYTop != kidRect.y) {
     

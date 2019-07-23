@@ -319,12 +319,12 @@ nsHTMLButtonControlFrame::ReflowButtonContents(nsPresContext* aPresContext,
     NS_ASSERTION(extraright >=0, "How'd that happen?");
     
     
-    extraleft = PR_MIN(extraleft, aReflowState.mComputedPadding.left);
-    extraright = PR_MIN(extraright, aReflowState.mComputedPadding.right);
+    extraleft = NS_MIN(extraleft, aReflowState.mComputedPadding.left);
+    extraright = NS_MIN(extraright, aReflowState.mComputedPadding.right);
     xoffset -= extraleft;
     availSize.width += extraleft + extraright;
   }
-  availSize.width = PR_MAX(availSize.width,0);
+  availSize.width = NS_MAX(availSize.width,0);
   
   nsHTMLReflowState reflowState(aPresContext, aReflowState, aFirstKid,
                                 availSize);
@@ -338,7 +338,7 @@ nsHTMLButtonControlFrame::ReflowButtonContents(nsPresContext* aPresContext,
   
   nscoord minInternalHeight = aReflowState.mComputedMinHeight -
     aReflowState.mComputedBorderPadding.TopBottom();
-  minInternalHeight = PR_MAX(minInternalHeight, 0);
+  minInternalHeight = NS_MAX(minInternalHeight, 0);
 
   
   nscoord yoff = 0;

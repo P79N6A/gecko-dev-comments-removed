@@ -65,7 +65,7 @@ PaintCheckMark(nsIFrame* aFrame,
                                     
 
   
-  nscoord paintScale = PR_MIN(rect.width, rect.height) / checkSize;
+  nscoord paintScale = NS_MIN(rect.width, rect.height) / checkSize;
   nsPoint paintCenter(rect.x + rect.width  / 2,
                       rect.y + rect.height / 2);
 
