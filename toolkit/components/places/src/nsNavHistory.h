@@ -241,10 +241,7 @@ public:
 
   nsIStringBundle* GetBundle()
     { return mBundle; }
-  nsILocale* GetLocale()
-    { return mLocale; }
-  nsICollation* GetCollation()
-    { return mCollation; }
+  nsICollation* GetCollation();
   nsIDateTimeFormat* GetDateFormatter()
     { return mDateFormatter; }
   void GetStringFromName(const PRUnichar* aName, nsACString& aResult);
@@ -613,7 +610,6 @@ protected:
 
   
   nsCOMPtr<nsIStringBundle> mBundle;
-  nsCOMPtr<nsILocale> mLocale;
   nsCOMPtr<nsICollation> mCollation;
   nsCOMPtr<nsIDateTimeFormat> mDateFormatter;
 
