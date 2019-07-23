@@ -3218,7 +3218,7 @@ AddonInstall.prototype = {
   cancel: function AI_cancel() {
     switch (this.state) {
     case AddonManager.STATE_DOWNLOADING:
-      break;
+      this.channel.cancel(Cr.NS_BINDING_ABORTED);
     case AddonManager.STATE_AVAILABLE:
     case AddonManager.STATE_DOWNLOADED:
       LOG("Cancelling download of " + this.sourceURL.spec);
@@ -3327,6 +3327,11 @@ AddonInstall.prototype = {
     }
   },
 
+  observe: function AI_observe(subject, topic, data) {
+    
+    this.cancel();
+  },
+
   
 
 
@@ -3378,15 +3383,17 @@ AddonInstall.prototype = {
       let listener = Cc["@mozilla.org/network/stream-listener-tee;1"].
                      createInstance(Ci.nsIStreamListenerTee);
       listener.init(this, this.stream);
-      let channel = NetUtil.newChannel(this.sourceURL);
+      this.channel = NetUtil.newChannel(this.sourceURL);
       if (this.loadGroup)
-        channel.loadGroup = this.loadGroup;
+        this.channel.loadGroup = this.loadGroup;
+
+      Services.obs.addObserver(this, "network:offline-about-to-go-offline", false);
 
       
       
       if (!this.hash)
-        channel.notificationCallbacks = new BadCertHandler();
-      channel.asyncOpen(listener, null);
+        this.channel.notificationCallbacks = new BadCertHandler();
+      this.channel.asyncOpen(listener, null);
     }
     catch (e) {
       WARN("Failed to start download: " + e);
@@ -3442,6 +3449,13 @@ AddonInstall.prototype = {
 
   onStopRequest: function AI_onStopRequest(request, context, status) {
     this.stream.close();
+    this.channel = null;
+    Services.obs.removeObserver(this, "network:offline-about-to-go-offline");
+
+    
+    if (status == Cr.NS_BINDING_ABORTED)
+      return;
+
     LOG("Download of " + this.sourceURL.spec + " completed.");
 
     if (Components.isSuccessCode(status)) {
