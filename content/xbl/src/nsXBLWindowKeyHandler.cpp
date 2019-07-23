@@ -360,8 +360,7 @@ nsXBLWindowKeyHandler::WalkHandlers(nsIDOMKeyEvent* aKeyEvent, nsIAtom* aEventTy
 
   WalkHandlersInternal(aKeyEvent, aEventType, mHandler);
 
-  nsINativeKeyBindings *nativeBindings;
-  if (isEditor && (nativeBindings = GetEditorKeyBindings())) {
+  if (isEditor && GetEditorKeyBindings()) {
     nsNativeKeyEvent nativeEvent;
     
     nsCOMPtr<nsIControllers> controllers;
