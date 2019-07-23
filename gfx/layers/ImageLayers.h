@@ -249,8 +249,6 @@ public:
 
 
 
-
-
   virtual void SetData(const Data& aData) = 0;
 
 protected:
