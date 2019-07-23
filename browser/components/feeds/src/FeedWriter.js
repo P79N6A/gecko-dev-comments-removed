@@ -130,7 +130,8 @@ FeedWriter.prototype = {
                  getService(Ci.nsIScriptSecurityManager);    
     const flags = Ci.nsIScriptSecurityManager.DISALLOW_INHERIT_PRINCIPAL;
     try {
-      secman.checkLoadURIStr(this._window.location.href, uri, flags);
+      secman.checkLoadURIStrWithPrincipal(this._feedPrincipal, uri, flags);
+      
       
       
       element.setAttribute(attribute, uri);
@@ -776,6 +777,7 @@ FeedWriter.prototype = {
   _window: null,
   _document: null,
   _feedURI: null,
+  _feedPrincipal: null,
 
   
   init: function FW_init(aWindow) {
@@ -789,6 +791,10 @@ FeedWriter.prototype = {
 
     this._window = window;
     this._document = window.document;
+
+    var secman = Cc["@mozilla.org/scriptsecuritymanager;1"].
+                 getService(Ci.nsIScriptSecurityManager);
+    this._feedPrincipal = secman.getCodebasePrincipal(this._feedURI);
 
     LOG("Subscribe Preview: feed uri = " + this._window.location.href);
 
