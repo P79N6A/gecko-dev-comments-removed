@@ -214,6 +214,9 @@ DownloadProgressListener.prototype =
     }
     
     download.setAttribute("status", status);
+
+    
+    onUpdateProgress();
   },
   onLocationChange: function(aWebProgress, aRequest, aLocation, aDownload)
   {

@@ -352,11 +352,14 @@ function onUpdateProgress()
   
   var mean = 0;
   var base = 0;
-  var dls = gDonloadManager.activeDownloads;
+  var numActiveDownloads = 0;
+  var dls = gDownloadManager.activeDownloads;
   while (dls.hasMoreElements()) {
     let dl = dls.getNext();
+    dl.QueryInterface(Ci.nsIDownload);
     mean += dl.amountTransferred;
     base += dl.size;
+    numActiveDownloads++;
   }
 
   
@@ -368,7 +371,6 @@ function onUpdateProgress()
   }
 
   
-  var numActiveDownloads = gDownloadManager.activeDownloads;
   if (mean != gLastComputedMean || gLastActiveDownloads != numActiveDownloads) {
     gLastComputedMean = mean;
     gLastActiveDownloads = numActiveDownloads;
