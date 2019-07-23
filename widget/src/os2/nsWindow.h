@@ -249,7 +249,7 @@ protected:
    PRUint32  mDragStatus;     
    HPOINTER  mCssCursorHPtr;  
    nsCOMPtr<imgIContainer> mCssCursorImg;  
-   nsIntRect mUnclippedBounds; 
+   HWND      mClipWnd;        
 
    HWND      GetParentHWND() const;
    HWND      GetHWND() const   { return mWnd; }
@@ -302,6 +302,9 @@ protected:
    HBITMAP CreateBitmapRGB(PRUint8* aImageData, PRUint32 aWidth, PRUint32 aHeight);
    HBITMAP CreateTransparencyMask(gfxASurface::gfxImageFormat format,
                                   PRUint8* aImageData, PRUint32 aWidth, PRUint32 aHeight);
+
+   void SetPluginClipRegion(const Configuration& aConfiguration);
+   HWND GetPluginClipWindow(HWND aParentWnd);
 
    
    enum {

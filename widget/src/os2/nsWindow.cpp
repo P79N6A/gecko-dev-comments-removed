@@ -213,7 +213,7 @@ nsWindow::nsWindow() : nsBaseWidget()
     mDragHps            = 0;
     mDragStatus         = 0;
     mCssCursorHPtr      = 0;
-    mUnclippedBounds    = nsIntRect(0,0,0,0);
+    mClipWnd            = 0;
 
     mIsTopWidgetWindow = PR_FALSE;
     mThebesSurface = nsnull;
@@ -887,7 +887,6 @@ void nsWindow::RealDoCreate( HWND              hwndP,
    
    mBounds = aRect;
    mBounds.height = aRect.height;
-   mUnclippedBounds = mBounds;
    mEventCallback = aHandleEventFunction;
 
    if( mParent)
@@ -1954,56 +1953,151 @@ void nsWindow::FreeNativeData(void * data, PRUint32 aDataType)
 
 
 
-
-
-
-
-
 nsresult
 nsWindow::ConfigureChildren(const nsTArray<Configuration>& aConfigurations)
 {
-  
   for (PRUint32 i = 0; i < aConfigurations.Length(); ++i) {
     const Configuration& configuration = aConfigurations[i];
     nsWindow* w = static_cast<nsWindow*>(configuration.mChild);
     NS_ASSERTION(w->GetParent() == this,
                  "Configured widget is not a child");
+    w->SetPluginClipRegion(configuration);
+  }
+  return NS_OK;
+}
 
-    
-    const nsTArray<nsIntRect>& rects = configuration.mClipRegion;
-    nsIntRect r;
-    for (PRUint32 j = 0; j < rects.Length(); ++j) {
-      r.UnionRect(r, rects[j]);
-    }
 
-    
-    
-    
-    
-    w->Resize(configuration.mBounds.x + r.x, configuration.mBounds.y + r.y,
-              r.width, r.height, PR_FALSE);
 
-    
-    
-    
-    
-    HWND hwnd = WinQueryWindow( w->mWnd, QW_TOP);
-    WinSetWindowPos(hwnd, 0,
-                    -r.x, r.height + r.y - configuration.mBounds.height,
-                    configuration.mBounds.width, configuration.mBounds.height,
-                    SWP_MOVE | SWP_SIZE);
 
-    
-    
-    w->Show(!configuration.mClipRegion.IsEmpty());
-    w->StoreWindowClipRegion(configuration.mClipRegion);
 
-    
-    
-    w->mUnclippedBounds = configuration.mBounds;
+
+
+
+
+
+
+
+void nsWindow::SetPluginClipRegion(const Configuration& aConfiguration)
+{
+  NS_ASSERTION((mParent && mParent->mWnd), "Child window has no parent");
+
+  
+  if (!StoreWindowClipRegion(aConfiguration.mClipRegion) &&
+      mBounds == aConfiguration.mBounds) {
+    return;
   }
 
-  return NS_OK;
+  
+  
+  mBounds.MoveTo(aConfiguration.mBounds.TopLeft());
+
+  
+  HWND hClip = GetPluginClipWindow(mParent->mWnd);
+  NS_ASSERTION(hClip, "No clipping window for plugin");
+  if (!hClip) {
+    return;
+  }
+
+  
+  const nsTArray<nsIntRect>& rects = aConfiguration.mClipRegion;
+  nsIntRect r;
+  for (PRUint32 i = 0; i < rects.Length(); ++i) {
+    r.UnionRect(r, rects[i]);
+  }
+
+  
+  SWP    swp;
+  POINTL ptl;
+  WinQueryWindowPos(hClip, &swp);
+  ptl.x = aConfiguration.mBounds.x + r.x;
+  ptl.y = mParent->mBounds.height
+          - (aConfiguration.mBounds.y + r.y + r.height);
+
+  ULONG  clipFlags = 0;
+  if (swp.x != ptl.x || swp.y != ptl.y) {
+    clipFlags |= SWP_MOVE;
+  }
+  if (swp.cx != r.width || swp.cy != r.height) {
+    clipFlags |= SWP_SIZE;
+  }
+  if (clipFlags) {
+    WinSetWindowPos(hClip, 0, ptl.x, ptl.y, r.width, r.height, clipFlags);
+  }
+
+  
+  
+  
+  WinQueryWindowPos(mWnd, &swp);
+  ptl.x = -r.x;
+  ptl.y = r.height + r.y - aConfiguration.mBounds.height;
+
+  ULONG  wndFlags = 0;
+  if (swp.x != ptl.x || swp.y != ptl.y) {
+    wndFlags |= SWP_MOVE;
+  }
+  if (mBounds.Size() != aConfiguration.mBounds.Size()) {
+    wndFlags |= SWP_SIZE;
+  }
+  if (wndFlags) {
+    WinSetWindowPos(mWnd, 0, ptl.x, ptl.y,
+                    aConfiguration.mBounds.width,
+                    aConfiguration.mBounds.height, wndFlags);
+  }
+
+  
+  
+  if (wndFlags & SWP_SIZE) {
+    HWND hChild = WinQueryWindow(mWnd, QW_TOP);
+    if (hChild) {
+      WinSetWindowPos(hChild, 0, 0, 0, 
+                      aConfiguration.mBounds.width,
+                      aConfiguration.mBounds.height,
+                      SWP_MOVE | SWP_SIZE);
+    }
+  }
+
+  
+  
+  if (clipFlags & SWP_SIZE) {
+    WinInvalidateRect(mWnd, 0, TRUE);
+    WinUpdateWindow(mWnd);
+  }
+}
+
+
+
+
+
+
+
+HWND nsWindow::GetPluginClipWindow(HWND aParentWnd)
+{
+  static PRBool registered = FALSE;
+
+  if (mClipWnd) {
+    return mClipWnd;
+  }
+
+  
+  if (!registered) {
+    registered = WinRegisterClass(0, "nsClipWnd", 0, 0, 4);
+    if (!registered) {
+      return 0;
+    }
+  }
+
+  
+  mClipWnd = WinCreateWindow(aParentWnd, "nsClipWnd", "",
+                             WS_VISIBLE | WS_CLIPCHILDREN | WS_CLIPSIBLINGS,
+                             0, 0, 0, 0, 0, mWnd, 0, 0, 0);
+  if (mClipWnd) {
+    if (!WinSetParent(mWnd, mClipWnd, FALSE)) {
+      WinDestroyWindow(mClipWnd);
+      mClipWnd = 0;
+    }
+  }
+
+  return mClipWnd;
 }
 
 
@@ -2031,8 +2125,6 @@ nsWindow::Scroll(const nsIntPoint& aDelta,
 {
   
   
-  
-  
   nsTHashtable<nsPtrHashKey<nsWindow> > scrolledWidgets;
   scrolledWidgets.Init();
   for (PRUint32 i = 0; i < aConfigurations.Length(); ++i) {
@@ -2040,7 +2132,7 @@ nsWindow::Scroll(const nsIntPoint& aDelta,
     nsWindow* w = static_cast<nsWindow*>(configuration.mChild);
     NS_ASSERTION(w->GetParent() == this,
                  "Configured widget is not a child");
-    if (configuration.mBounds == w->mUnclippedBounds + aDelta) {
+    if (configuration.mBounds == w->mBounds + aDelta) {
       scrolledWidgets.PutEntry(w);
     }
   }
