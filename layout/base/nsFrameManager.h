@@ -163,7 +163,7 @@ public:
   
   
   
-  NS_HIDDEN_(nsReStyleHint) HasAttributeDependentStyle(nsIContent *aContent,
+  NS_HIDDEN_(nsRestyleHint) HasAttributeDependentStyle(nsIContent *aContent,
                                                        nsIAtom *aAttribute,
                                                        PRInt32 aModType,
                                                        PRBool aAttrHasChanged);

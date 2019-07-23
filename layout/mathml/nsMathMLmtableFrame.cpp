@@ -525,7 +525,7 @@ nsMathMLmtableOuterFrame::AttributeChanged(PRInt32  aNameSpaceID,
 
   
   presContext->PresShell()->FrameConstructor()->
-    PostRestyleEvent(mContent, eReStyle_Self, nsChangeHint_ReflowFrame);
+    PostRestyleEvent(mContent, eRestyle_Self, nsChangeHint_ReflowFrame);
 
   return NS_OK;
 }
@@ -704,7 +704,7 @@ nsMathMLmtableFrame::RestyleTable()
 
   
   PresContext()->PresShell()->FrameConstructor()->
-    PostRestyleEvent(mContent, eReStyle_Self, nsChangeHint_ReflowFrame);
+    PostRestyleEvent(mContent, eRestyle_Self, nsChangeHint_ReflowFrame);
 }
 
 
@@ -764,7 +764,7 @@ nsMathMLmtrFrame::AttributeChanged(PRInt32  aNameSpaceID,
 
   
   presContext->PresShell()->FrameConstructor()->
-    PostRestyleEvent(mContent, eReStyle_Self, nsChangeHint_ReflowFrame);
+    PostRestyleEvent(mContent, eRestyle_Self, nsChangeHint_ReflowFrame);
 
   return NS_OK;
 }

@@ -286,7 +286,7 @@ nsHTMLStyleSheet::RulesMatching(ElementRuleProcessorData* aData)
 }
 
 
-nsReStyleHint
+nsRestyleHint
 nsHTMLStyleSheet::HasStateDependentStyle(StateRuleProcessorData* aData)
 {
   if (aData->mIsHTMLContent &&
@@ -295,10 +295,10 @@ nsHTMLStyleSheet::HasStateDependentStyle(StateRuleProcessorData* aData)
       ((mActiveRule && (aData->mStateMask & NS_EVENT_STATE_ACTIVE)) ||
        (mLinkRule && (aData->mStateMask & NS_EVENT_STATE_VISITED)) ||
        (mVisitedRule && (aData->mStateMask & NS_EVENT_STATE_VISITED)))) {
-    return eReStyle_Self;
+    return eRestyle_Self;
   }
   
-  return nsReStyleHint(0);
+  return nsRestyleHint(0);
 }
 
 PRBool
@@ -307,12 +307,12 @@ nsHTMLStyleSheet::HasDocumentStateDependentStyle(StateRuleProcessorData* aData)
   return PR_FALSE;
 }
 
-nsReStyleHint
+nsRestyleHint
 nsHTMLStyleSheet::HasAttributeDependentStyle(AttributeRuleProcessorData* aData)
 {
   
   if (!aData->mAttrHasChanged) {
-    return nsReStyleHint(0);
+    return nsRestyleHint(0);
   }
 
   
@@ -326,7 +326,7 @@ nsHTMLStyleSheet::HasAttributeDependentStyle(AttributeRuleProcessorData* aData)
       content &&
       content->IsHTML() &&
       aData->mContentTag == nsGkAtoms::a) {
-    return eReStyle_Self;
+    return eRestyle_Self;
   }
 
   
@@ -334,10 +334,10 @@ nsHTMLStyleSheet::HasAttributeDependentStyle(AttributeRuleProcessorData* aData)
 
   
   if (content && content->IsAttributeMapped(aData->mAttribute)) {
-    return eReStyle_Self;
+    return eRestyle_Self;
   }
 
-  return nsReStyleHint(0);
+  return nsRestyleHint(0);
 }
 
 NS_IMETHODIMP
