@@ -1215,6 +1215,7 @@ nsresult nsExternalAppHandler::SetUpTempFile(nsIChannel * aChannel)
   nsCAutoString ext;
   mMimeInfo->GetPrimaryExtension(ext);
   if (!ext.IsEmpty()) {
+    ext.ReplaceChar(FILE_PATH_SEPARATOR FILE_ILLEGAL_CHARACTERS, '_');
     if (ext.First() != '.')
       tempLeafName.Append('.');
     tempLeafName.Append(ext);
@@ -1229,8 +1230,10 @@ nsresult nsExternalAppHandler::SetUpTempFile(nsIChannel * aChannel)
   NS_ENSURE_SUCCESS(rv, rv);
 
   
-  dummyFile->Append(NS_ConvertUTF8toUTF16(tempLeafName));
-  dummyFile->CreateUnique(nsIFile::NORMAL_FILE_TYPE, 0600);
+  rv = dummyFile->Append(NS_ConvertUTF8toUTF16(tempLeafName));
+  NS_ENSURE_SUCCESS(rv, rv);
+  rv = dummyFile->CreateUnique(nsIFile::NORMAL_FILE_TYPE, 0600);
+  NS_ENSURE_SUCCESS(rv, rv);
 
   
   dummyFile->IsExecutable(&mTempFileIsExecutable);
@@ -1241,9 +1244,11 @@ nsresult nsExternalAppHandler::SetUpTempFile(nsIChannel * aChannel)
   
   tempLeafName.Append(NS_LITERAL_CSTRING(".part"));
 
-  mTempFile->Append(NS_ConvertUTF8toUTF16(tempLeafName));
+  rv = mTempFile->Append(NS_ConvertUTF8toUTF16(tempLeafName));
   
-  mTempFile->CreateUnique(nsIFile::NORMAL_FILE_TYPE, 0600);
+  NS_ENSURE_SUCCESS(rv, rv);
+  rv = mTempFile->CreateUnique(nsIFile::NORMAL_FILE_TYPE, 0600);
+  NS_ENSURE_SUCCESS(rv, rv);
 
 #ifndef XP_WIN
   
