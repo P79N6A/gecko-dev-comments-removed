@@ -128,6 +128,13 @@ enum nsWindowType {
   eWindowType_sheet
 };
 
+enum nsPopupType {
+  ePopupTypePanel,
+  ePopupTypeMenu,
+  ePopupTypeTooltip,
+  ePopupTypeAny = 0xF000 
+};
+
 enum nsBorderStyle
 {
   
@@ -238,7 +245,8 @@ struct nsWidgetInitData {
       mWindowType(eWindowType_child),
       mBorderStyle(eBorderStyle_default),
       mContentType(eContentTypeInherit),
-      mUnicode(PR_TRUE)
+      mUnicode(PR_TRUE),
+      mPopupHint(ePopupTypePanel)
   {
   }
 
@@ -249,6 +257,7 @@ struct nsWidgetInitData {
   nsBorderStyle mBorderStyle;
   nsContentType mContentType;  
   PRPackedBool mUnicode;
+  nsPopupType mPopupHint;
 };
 
 
