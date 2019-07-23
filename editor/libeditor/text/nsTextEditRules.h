@@ -197,15 +197,12 @@ protected:
                                      nsIEditor::EDirection aAction,
                                      PRBool               *aCancel);
 
-  nsIDOMNode *GetBody();
-
   
   nsPlaintextEditor   *mEditor;        
   nsString             mPasswordText;  
   nsString             mPasswordIMEText;  
   PRUint32             mPasswordIMEIndex;
   nsCOMPtr<nsIDOMNode> mBogusNode;     
-  nsCOMPtr<nsIDOMNode> mBody;          
   nsCOMPtr<nsIDOMNode> mCachedSelectionNode;    
   PRInt32              mCachedSelectionOffset;  
   PRUint32             mFlags;

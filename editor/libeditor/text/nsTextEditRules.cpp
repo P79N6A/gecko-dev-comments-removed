@@ -134,7 +134,7 @@ nsTextEditRules::Init(nsPlaintextEditor *aEditor, PRUint32 aFlags)
   NS_ASSERTION(selection, "editor cannot get selection");
 
   
-  GetBody();
+  nsIDOMNode *body = mEditor->GetRoot();
 
   
   
@@ -148,15 +148,15 @@ nsTextEditRules::Init(nsPlaintextEditor *aEditor, PRUint32 aFlags)
     if (NS_FAILED(res)) return res;
   }
 
-  if (mBody)
+  if (body)
   {
     
     nsCOMPtr<nsIDOMRange> wholeDoc =
       do_CreateInstance("@mozilla.org/content/range;1");
     if (!wholeDoc) return NS_ERROR_NULL_POINTER;
-    wholeDoc->SetStart(mBody,0);
+    wholeDoc->SetStart(body,0);
     nsCOMPtr<nsIDOMNodeList> list;
-    res = mBody->GetChildNodes(getter_AddRefs(list));
+    res = body->GetChildNodes(getter_AddRefs(list));
     if (NS_FAILED(res)) return res;
     if (!list) return NS_ERROR_FAILURE;
 
@@ -164,7 +164,7 @@ nsTextEditRules::Init(nsPlaintextEditor *aEditor, PRUint32 aFlags)
     res = list->GetLength(&listCount);
     if (NS_FAILED(res)) return res;
 
-    res = wholeDoc->SetEnd(mBody, listCount);
+    res = wholeDoc->SetEnd(body, listCount);
     if (NS_FAILED(res)) return res;
 
     
@@ -992,9 +992,11 @@ nsTextEditRules::WillDeleteSelection(nsISelection *aSelection,
       
       if (nextNode && (aCollapsedAction == nsIEditor::eNext) && nsTextEditUtils::IsBreak(nextNode))
       {
-        if (!GetBody()) return NS_ERROR_NULL_POINTER;
+        nsIDOMNode *body = mEditor->GetRoot();
+        if (!body)
+          return NS_ERROR_NULL_POINTER;
         nsCOMPtr<nsIDOMNode> lastChild;
-        res = mBody->GetLastChild(getter_AddRefs(lastChild));
+        res = body->GetLastChild(getter_AddRefs(lastChild));
         if (lastChild == nextNode)
         {
           *aCancel = PR_TRUE;
@@ -1251,9 +1253,11 @@ nsTextEditRules::CreateTrailingBRIfNeeded()
   
   if (mFlags & nsIPlaintextEditor::eEditorSingleLineMask)
     return NS_OK;
-  if (!GetBody()) return NS_ERROR_NULL_POINTER;
+  nsIDOMNode *body = mEditor->GetRoot();
+  if (!body)
+    return NS_ERROR_NULL_POINTER;
   nsCOMPtr<nsIDOMNode> lastChild;
-  nsresult res = mBody->GetLastChild(getter_AddRefs(lastChild));
+  nsresult res = body->GetLastChild(getter_AddRefs(lastChild));
   
   if (NS_FAILED(res)) return res;  
   if (!lastChild) return NS_ERROR_NULL_POINTER;
@@ -1262,10 +1266,10 @@ nsTextEditRules::CreateTrailingBRIfNeeded()
   {
     nsAutoTxnsConserveSelection dontSpazMySelection(mEditor);
     PRUint32 rootLen;
-    res = mEditor->GetLengthOfDOMNode(mBody, rootLen);
+    res = mEditor->GetLengthOfDOMNode(body, rootLen);
     if (NS_FAILED(res)) return res; 
     nsCOMPtr<nsIDOMNode> unused;
-    res = CreateMozBR(mBody, rootLen, address_of(unused));
+    res = CreateMozBR(body, rootLen, address_of(unused));
   }
   return res;
 }
@@ -1279,8 +1283,9 @@ nsTextEditRules::CreateBogusNodeIfNeeded(nsISelection *aSelection)
 
   
   nsAutoRules beginRulesSniffing(mEditor, nsEditor::kOpIgnore, nsIEditor::eNone);
-  
-  if (!GetBody())
+
+  nsIDOMNode* body = mEditor->GetRoot();
+  if (!body)
   {
     
     
@@ -1293,11 +1298,11 @@ nsTextEditRules::CreateBogusNodeIfNeeded(nsISelection *aSelection)
   
   PRBool needsBogusContent=PR_TRUE;
   nsCOMPtr<nsIDOMNode> bodyChild;
-  nsresult res = mBody->GetFirstChild(getter_AddRefs(bodyChild));        
+  nsresult res = body->GetFirstChild(getter_AddRefs(bodyChild));        
   while ((NS_SUCCEEDED(res)) && bodyChild)
   { 
     if (mEditor->IsMozEditorBogusNode(bodyChild) ||
-        !mEditor->IsEditable(mBody) ||
+        !mEditor->IsEditable(body) ||
         mEditor->IsEditable(bodyChild))
     {
       needsBogusContent = PR_FALSE;
@@ -1324,11 +1329,11 @@ nsTextEditRules::CreateBogusNodeIfNeeded(nsISelection *aSelection)
                              kMOZEditorBogusNodeValue );
     
     
-    res = mEditor->InsertNode(mBogusNode, mBody, 0);
+    res = mEditor->InsertNode(mBogusNode, body, 0);
     if (NS_FAILED(res)) return res;
 
     
-    aSelection->Collapse(mBody, 0);
+    aSelection->Collapse(body, 0);
   }
   return res;
 }
@@ -1465,16 +1470,4 @@ nsTextEditRules::CreateMozBR(nsIDOMNode *inParent, PRInt32 inOffset, nsCOMPtr<ns
     if (NS_FAILED(res)) return res;
   }
   return res;
-}
-
-nsIDOMNode *
-nsTextEditRules::GetBody()
-{
-  if (!mBody)
-  {
-    
-    mBody = mEditor->GetRoot();
-  }
-
-  return mBody;
 }

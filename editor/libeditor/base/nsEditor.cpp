@@ -217,7 +217,8 @@ nsEditor::~nsEditor()
   NS_IF_RELEASE(mViewManager);
 }
 
-NS_IMPL_ISUPPORTS4(nsEditor, nsIEditor, nsIEditorIMESupport, nsISupportsWeakReference, nsIPhonetic)
+NS_IMPL_ISUPPORTS5(nsEditor, nsIEditor, nsIEditorIMESupport,
+                   nsISupportsWeakReference, nsIPhonetic, nsIMutationObserver)
 
 #ifdef XP_MAC
 #pragma mark -
@@ -243,6 +244,9 @@ nsEditor::Init(nsIDOMDocument *aDoc, nsIPresShell* aPresShell, nsIContent *aRoot
   
   if (aRoot)
     mRootElement = do_QueryInterface(aRoot);
+
+  nsCOMPtr<nsINode> document = do_QueryInterface(aDoc);
+  document->AddMutationObserver(this);
 
   
   
@@ -518,6 +522,10 @@ nsEditor::PreDestroy()
 
   
   NotifyDocumentListeners(eDocumentToBeDestroyed);
+
+  nsCOMPtr<nsINode> document = do_QueryReferent(mDocWeak);
+  if (document)
+    document->RemoveMutationObserver(this);
 
   
   RemoveEventListeners();
@@ -2279,6 +2287,45 @@ nsEditor::GetQueryCaretRect(nsQueryCaretRectEventReply* aReply)
 #endif
 
 
+
+void
+nsEditor::ContentAppended(nsIDocument *aDocument, nsIContent* aContainer,
+                          PRInt32 aNewIndexInContainer)
+{
+  ContentInserted(aDocument, aContainer, nsnull, aNewIndexInContainer);
+}
+
+void
+nsEditor::ContentInserted(nsIDocument *aDocument, nsIContent* aContainer,
+                          nsIContent* aChild, PRInt32 aIndexInContainer)
+{
+  
+  
+  if (!mRootElement)
+  {
+    
+    
+    
+    RemoveEventListeners();
+    BeginningOfDocument();
+    InstallEventListeners();
+    SyncRealTimeSpell();
+  }
+}
+
+void
+nsEditor::ContentRemoved(nsIDocument *aDocument, nsIContent* aContainer,
+                         nsIContent* aChild, PRInt32 aIndexInContainer)
+{
+  nsCOMPtr<nsIDOMHTMLElement> elem = do_QueryInterface(aChild);
+  if (elem == mRootElement)
+  {
+    RemoveEventListeners();
+    mRootElement = nsnull;
+    mEventTarget = nsnull;
+    InstallEventListeners();
+  }
+}
 
 NS_IMETHODIMP 
 nsEditor::GetRootElement(nsIDOMElement **aRootElement)
