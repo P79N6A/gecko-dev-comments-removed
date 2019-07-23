@@ -1,0 +1,63 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+@namespace url("http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul");
+
+
+
+splitter {
+  -moz-appearance: splitter;
+  cursor: ew-resize;
+
+}
+
+
+
+splitter[orient="vertical"] {
+  cursor: ns-resize;
+}
+
+
+
+grippy {
+  display: none;
+}

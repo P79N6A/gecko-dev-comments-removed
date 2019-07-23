@@ -184,6 +184,10 @@ typedef enum {
   MOZ_GTK_RADIOMENUITEM,
   MOZ_GTK_MENUSEPARATOR,
   
+  MOZ_GTK_SPLITTER_HORIZONTAL,
+  
+  MOZ_GTK_SPLITTER_VERTICAL,
+  
   MOZ_GTK_WINDOW
 } GtkThemeWidgetType;
 
@@ -334,6 +338,15 @@ gint moz_gtk_get_expander_size(gint* size);
 
 
 gint moz_gtk_get_menu_separator_height(gint* size);
+
+
+
+
+
+
+
+
+gint moz_gtk_splitter_get_metrics(gint orientation, gint* size);
 
 
 
