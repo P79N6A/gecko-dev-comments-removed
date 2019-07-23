@@ -67,7 +67,7 @@ static const cairo_t _cairo_nil = {
 
 
 
-#define CAIRO_STATUS_LAST_STATUS CAIRO_STATUS_INVALID_INDEX
+#define CAIRO_STATUS_LAST_STATUS CAIRO_STATUS_TEMP_FILE_ERROR
 
 
 
@@ -3019,6 +3019,9 @@ cairo_text_path  (cairo_t *cr, const char *utf8)
     if (cr->status)
 	return;
 
+    if (utf8 == NULL)
+	return;
+
     cairo_get_current_point (cr, &x, &y);
 
     status = _cairo_gstate_text_to_glyphs (cr->gstate, utf8,
@@ -3074,6 +3077,9 @@ cairo_glyph_path (cairo_t *cr, const cairo_glyph_t *glyphs, int num_glyphs)
     cairo_status_t status;
 
     if (cr->status)
+	return;
+
+    if (num_glyphs == 0)
 	return;
 
     status = _cairo_gstate_glyph_path (cr->gstate,
@@ -3340,6 +3346,8 @@ cairo_get_target (cairo_t *cr)
 
 
 
+
+
 cairo_surface_t *
 cairo_get_group_target (cairo_t *cr)
 {
@@ -3551,6 +3559,8 @@ cairo_status_to_string (cairo_status_t status)
 	return "invalid index passed to getter";
     case CAIRO_STATUS_CLIP_NOT_REPRESENTABLE:
         return "clip region not representable in desired format";
+    case CAIRO_STATUS_TEMP_FILE_ERROR:
+	return "error creating or writing to a temporary file";
     }
 
     return "<unknown error status>";

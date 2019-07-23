@@ -130,7 +130,6 @@ SourcePictureClassify (source_image_t *pict,
 
 
 
-
 #define YV12_Y(line)		\
     ((uint8_t *) ((bits) + (stride) * (line)))
 

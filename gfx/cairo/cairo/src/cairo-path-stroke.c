@@ -205,6 +205,22 @@ _cairo_stroker_face_clockwise (cairo_stroke_face_t *in, cairo_stroke_face_t *out
     return _cairo_slope_clockwise (&in_slope, &out_slope);
 }
 
+
+
+
+
+
+
+static int
+_cairo_slope_compare_sgn (double dx1, double dy1, double dx2, double dy2)
+{
+    double  c = (dx1 * dy2 - dx2 * dy1);
+
+    if (c > 0) return 1;
+    if (c < 0) return -1;
+    return 0;
+}
+
 static cairo_status_t
 _cairo_stroker_join (cairo_stroker_t *stroker, cairo_stroke_face_t *in, cairo_stroke_face_t *out)
 {
@@ -272,9 +288,6 @@ _cairo_stroker_join (cairo_stroker_t *stroker, cairo_stroke_face_t *in, cairo_st
 	double	in_dot_out = ((-in->usr_vector.x * out->usr_vector.x)+
 			      (-in->usr_vector.y * out->usr_vector.y));
 	double	ml = stroker->style->miter_limit;
-	double tolerance_squared = stroker->tolerance * stroker->tolerance;
-	double line_width_squared = (stroker->style->line_width *
-				     stroker->style->line_width);
 
 	
 
@@ -333,83 +346,16 @@ _cairo_stroker_join (cairo_stroker_t *stroker, cairo_stroke_face_t *in, cairo_st
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-	if ((2 <= ml * ml * (1 - in_dot_out)) &&
-	    ((8 * (tolerance_squared / line_width_squared + 0.5)) <
-	     4 / (1 - in_dot_out) + (1 - in_dot_out))
-	    )
+	if (2 <= ml * ml * (1 - in_dot_out))
 	{
 	    double		x1, y1, x2, y2;
 	    double		mx, my;
 	    double		dx1, dx2, dy1, dy2;
 	    cairo_point_t	outer;
 	    cairo_point_t	quad[4];
+	    double		ix, iy;
+	    double		fdx1, fdy1, fdx2, fdy2;
+	    double		mdx, mdy;
 
 	    
 
@@ -449,15 +395,44 @@ _cairo_stroker_join (cairo_stroker_t *stroker, cairo_stroke_face_t *in, cairo_st
 	    
 
 
-	    outer.x = _cairo_fixed_from_double (mx);
-	    outer.y = _cairo_fixed_from_double (my);
 
-	    quad[0] = in->point;
-	    quad[1] = *inpt;
-	    quad[2] = outer;
-	    quad[3] = *outpt;
 
-	    return _cairo_traps_tessellate_convex_quad (stroker->traps, quad);
+
+
+
+
+	    ix = _cairo_fixed_to_double (in->point.x);
+	    iy = _cairo_fixed_to_double (in->point.y);
+
+	    
+	    fdx1 = x1 - ix; fdy1 = y1 - iy;
+
+	    
+	    fdx2 = x2 - ix; fdy2 = y2 - iy;
+
+	    
+	    mdx = mx - ix; mdy = my - iy;
+
+	    
+
+
+
+	    if (_cairo_slope_compare_sgn (fdx1, fdy1, mdx, mdy) !=
+		_cairo_slope_compare_sgn (fdx2, fdy2, mdx, mdy))
+	    {
+		
+
+
+		outer.x = _cairo_fixed_from_double (mx);
+		outer.y = _cairo_fixed_from_double (my);
+
+		quad[0] = in->point;
+		quad[1] = *inpt;
+		quad[2] = outer;
+		quad[3] = *outpt;
+
+		return _cairo_traps_tessellate_convex_quad (stroker->traps, quad);
+	    }
 	}
 	
     }

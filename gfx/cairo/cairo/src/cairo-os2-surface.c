@@ -135,6 +135,74 @@ cairo_os2_fini (void)
 
 
     _heapshrink ();
+#else
+    
+
+
+    _heapmin ();
+#endif
+}
+
+
+
+
+
+
+
+
+
+void *_buffer_alloc (size_t a, size_t b, const unsigned int size)
+{
+    
+
+
+    size_t nbytes = b &&
+                    a >= INT32_MAX / b ? 0 : size &&
+                    a*b >= INT32_MAX / size ? 0 : a * b * size;
+    void *buffer = NULL;
+#ifdef OS2_USE_PLATFORM_ALLOC
+    APIRET rc = NO_ERROR;
+
+    rc = DosAllocMem ((PPVOID)&buffer,
+                      nbytes,
+#ifdef OS2_HIGH_MEMORY           
+                      OBJ_ANY |  
+#endif
+                      PAG_READ | PAG_WRITE | PAG_COMMIT);
+    if (rc != NO_ERROR) {
+        
+
+
+
+        if (rc != ERROR_NOT_ENOUGH_MEMORY && buffer) {
+            DosFreeMem (buffer);
+        }
+        return NULL;
+    }
+#else
+    buffer = malloc (nbytes);
+#endif
+
+    
+
+
+    
+
+
+
+    return buffer;
+}
+
+
+
+
+
+void _buffer_free (void *buffer)
+{
+#ifdef OS2_USE_PLATFORM_ALLOC
+    DosFreeMem (buffer);
+#else
+    free (buffer);
 #endif
 }
 
@@ -296,9 +364,9 @@ _cairo_os2_surface_blit_pixels (cairo_os2_surface_t *surface,
         ULONG ulPixels;
 
         
-        pchPixBuf = (unsigned char *) _cairo_malloc_abc (surface->bitmap_info.cy,
-						      surface->bitmap_info.cx,
-						      3);
+        pchPixBuf = (unsigned char *) _buffer_alloc (surface->bitmap_info.cy,
+                                                     surface->bitmap_info.cx,
+                                                     3);
         pchPixSource = surface->pixels; 
         pBufStart = pchPixBuf; 
 
@@ -330,7 +398,7 @@ _cairo_os2_surface_blit_pixels (cairo_os2_surface_t *surface,
                           ROP_SRCCOPY,
                           BBO_IGNORE);
 
-        free (pchPixBuf);
+        _buffer_free (pchPixBuf);
     }
 
     
@@ -714,7 +782,7 @@ cairo_os2_surface_create (HPS hps_client_window,
     local_os2_surface->bitmap_info.cBitCount = 32;
 
     
-    local_os2_surface->pixels = (unsigned char *) _cairo_malloc_abc (height, width, 4);
+    local_os2_surface->pixels = (unsigned char *) _buffer_alloc (height, width, 4);
     if (!(local_os2_surface->pixels)) {
         
         DosCloseEventSem (local_os2_surface->hev_pixel_array_came_back);
@@ -723,13 +791,6 @@ cairo_os2_surface_create (HPS hps_client_window,
         _cairo_error (CAIRO_STATUS_NO_MEMORY);
         return (cairo_surface_t *) &_cairo_surface_nil;
     }
-
-    
-
-
-    
-
-
 
     
     local_os2_surface->image_surface = (cairo_image_surface_t *)
@@ -741,7 +802,7 @@ cairo_os2_surface_create (HPS hps_client_window,
 
     if (local_os2_surface->image_surface->base.status) {
         
-        free (local_os2_surface->pixels);
+        _buffer_free (local_os2_surface->pixels);
         DosCloseEventSem (local_os2_surface->hev_pixel_array_came_back);
         DosCloseMutexSem (local_os2_surface->hmtx_use_private_fields);
         free (local_os2_surface);
@@ -784,20 +845,13 @@ cairo_os2_surface_set_size (cairo_surface_t *surface,
     }
 
     
-    pchNewPixels = (unsigned char *) _cairo_malloc_abc (new_height, new_width, 4);
+    pchNewPixels = (unsigned char *) _buffer_alloc (new_height, new_width, 4);
     if (!pchNewPixels) {
         
 
 
         return _cairo_error (CAIRO_STATUS_NO_MEMORY);
     }
-
-    
-
-
-    
-
-
 
     
     pNewImageSurface = (cairo_image_surface_t *)
@@ -811,7 +865,7 @@ cairo_os2_surface_set_size (cairo_surface_t *surface,
         
 
 
-        free (pchNewPixels);
+        _buffer_free (pchNewPixels);
         return _cairo_error (CAIRO_STATUS_NO_MEMORY);
     }
 
@@ -823,7 +877,7 @@ cairo_os2_surface_set_size (cairo_surface_t *surface,
 
 
         cairo_surface_destroy ((cairo_surface_t *) pNewImageSurface);
-        free (pchNewPixels);
+        _buffer_free (pchNewPixels);
         return _cairo_error (CAIRO_STATUS_NO_MEMORY);
     }
 
@@ -839,7 +893,7 @@ cairo_os2_surface_set_size (cairo_surface_t *surface,
         if (rc != NO_ERROR) {
             
             cairo_surface_destroy ((cairo_surface_t *) pNewImageSurface);
-            free (pchNewPixels);
+            _buffer_free (pchNewPixels);
             return _cairo_error (CAIRO_STATUS_NO_MEMORY);
         }
         
@@ -850,7 +904,7 @@ cairo_os2_surface_set_size (cairo_surface_t *surface,
 
 
             cairo_surface_destroy ((cairo_surface_t *) pNewImageSurface);
-            free (pchNewPixels);
+            _buffer_free (pchNewPixels);
             return _cairo_error (CAIRO_STATUS_NO_MEMORY);
         }
     }
@@ -858,7 +912,7 @@ cairo_os2_surface_set_size (cairo_surface_t *surface,
     
     cairo_surface_destroy ((cairo_surface_t *) (local_os2_surface->image_surface));
     
-    free (local_os2_surface->pixels);
+    _buffer_free (local_os2_surface->pixels);
     
     local_os2_surface->image_surface = pNewImageSurface;
     
@@ -957,7 +1011,7 @@ _cairo_os2_surface_finish (void *abstract_surface)
     
     cairo_surface_destroy ((cairo_surface_t *) (local_os2_surface->image_surface));
     
-    free (local_os2_surface->pixels);
+    _buffer_free (local_os2_surface->pixels);
     DosCloseMutexSem (local_os2_surface->hmtx_use_private_fields);
     DosCloseEventSem (local_os2_surface->hev_pixel_array_came_back);
 

@@ -210,6 +210,7 @@ typedef struct _cairo_user_data_key {
 
 
 
+
 typedef enum _cairo_status {
     CAIRO_STATUS_SUCCESS = 0,
     CAIRO_STATUS_NO_MEMORY,
@@ -233,7 +234,9 @@ typedef enum _cairo_status {
     CAIRO_STATUS_INVALID_DASH,
     CAIRO_STATUS_INVALID_DSC_COMMENT,
     CAIRO_STATUS_INVALID_INDEX,
-    CAIRO_STATUS_CLIP_NOT_REPRESENTABLE
+    CAIRO_STATUS_CLIP_NOT_REPRESENTABLE,
+    CAIRO_STATUS_TEMP_FILE_ERROR
+    
 } cairo_status_t;
 
 
