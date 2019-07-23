@@ -1746,6 +1746,7 @@ CNavDTD::HandleSavedTokens(PRInt32 anIndex)
           
           
           
+          
           nsDeque temp;
           for (PRInt32 j = 0; j < attrCount; ++j) {
             CToken* theAttrToken = (CToken*)mMisplacedContent.PopFront();
