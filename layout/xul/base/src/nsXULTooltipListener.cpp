@@ -308,8 +308,8 @@ nsXULTooltipListener::AddTooltipSupport(nsIContent* aNode)
     return NS_ERROR_NULL_POINTER;
 
   nsCOMPtr<nsIDOMEventTarget> evtTarget(do_QueryInterface(aNode));
-  evtTarget->AddEventListener(NS_LITERAL_STRING("mouseout"), (nsIDOMMouseListener*)this, PR_FALSE);
-  evtTarget->AddEventListener(NS_LITERAL_STRING("mousemove"), (nsIDOMMouseListener*)this, PR_FALSE);
+  evtTarget->AddEventListener(NS_LITERAL_STRING("mouseout"), static_cast<nsIDOMMouseListener*>(this), PR_FALSE);
+  evtTarget->AddEventListener(NS_LITERAL_STRING("mousemove"), static_cast<nsIDOMMouseListener*>(this), PR_FALSE);
   
   return NS_OK;
 }
@@ -321,8 +321,8 @@ nsXULTooltipListener::RemoveTooltipSupport(nsIContent* aNode)
     return NS_ERROR_NULL_POINTER;
 
   nsCOMPtr<nsIDOMEventTarget> evtTarget(do_QueryInterface(aNode));
-  evtTarget->RemoveEventListener(NS_LITERAL_STRING("mouseout"), (nsIDOMMouseListener*)this, PR_FALSE);
-  evtTarget->RemoveEventListener(NS_LITERAL_STRING("mousemove"), (nsIDOMMouseListener*)this, PR_FALSE);
+  evtTarget->RemoveEventListener(NS_LITERAL_STRING("mouseout"), static_cast<nsIDOMMouseListener*>(this), PR_FALSE);
+  evtTarget->RemoveEventListener(NS_LITERAL_STRING("mousemove"), static_cast<nsIDOMMouseListener*>(this), PR_FALSE);
 
   return NS_OK;
 }
@@ -430,20 +430,20 @@ nsXULTooltipListener::ShowTooltip()
       
       nsCOMPtr<nsIDOMEventTarget> evtTarget(do_QueryInterface(currentTooltip));
       evtTarget->AddEventListener(NS_LITERAL_STRING("popuphiding"), 
-                                  (nsIDOMMouseListener*)this, PR_FALSE);
+                                  static_cast<nsIDOMMouseListener*>(this), PR_FALSE);
 
       
       nsIDocument* doc = sourceNode->GetDocument();
       if (doc) {
         evtTarget = do_QueryInterface(doc);
         evtTarget->AddEventListener(NS_LITERAL_STRING("DOMMouseScroll"), 
-                                    (nsIDOMMouseListener*)this, PR_TRUE);
+                                    static_cast<nsIDOMMouseListener*>(this), PR_TRUE);
         evtTarget->AddEventListener(NS_LITERAL_STRING("mousedown"), 
-                                    (nsIDOMMouseListener*)this, PR_TRUE);
+                                    static_cast<nsIDOMMouseListener*>(this), PR_TRUE);
         evtTarget->AddEventListener(NS_LITERAL_STRING("mouseup"), 
-                                    (nsIDOMMouseListener*)this, PR_TRUE);                                    
+                                    static_cast<nsIDOMMouseListener*>(this), PR_TRUE);                                    
         evtTarget->AddEventListener(NS_LITERAL_STRING("keydown"), 
-                                    (nsIDOMMouseListener*)this, PR_TRUE);
+                                    static_cast<nsIDOMMouseListener*>(this), PR_TRUE);
       }
       mSourceNode = nsnull;
     }
@@ -689,10 +689,10 @@ nsXULTooltipListener::DestroyTooltip()
 
       
       nsCOMPtr<nsIDOMEventTarget> evtTarget(do_QueryInterface(doc));
-      evtTarget->RemoveEventListener(NS_LITERAL_STRING("DOMMouseScroll"), (nsIDOMMouseListener*)this, PR_TRUE);
-      evtTarget->RemoveEventListener(NS_LITERAL_STRING("mousedown"), (nsIDOMMouseListener*)this, PR_TRUE);
-      evtTarget->RemoveEventListener(NS_LITERAL_STRING("mouseup"), (nsIDOMMouseListener*)this, PR_TRUE);
-      evtTarget->RemoveEventListener(NS_LITERAL_STRING("keydown"), (nsIDOMMouseListener*)this, PR_TRUE);
+      evtTarget->RemoveEventListener(NS_LITERAL_STRING("DOMMouseScroll"), static_cast<nsIDOMMouseListener*>(this), PR_TRUE);
+      evtTarget->RemoveEventListener(NS_LITERAL_STRING("mousedown"), static_cast<nsIDOMMouseListener*>(this), PR_TRUE);
+      evtTarget->RemoveEventListener(NS_LITERAL_STRING("mouseup"), static_cast<nsIDOMMouseListener*>(this), PR_TRUE);
+      evtTarget->RemoveEventListener(NS_LITERAL_STRING("keydown"), static_cast<nsIDOMMouseListener*>(this), PR_TRUE);
     }
 
     
@@ -702,7 +702,7 @@ nsXULTooltipListener::DestroyTooltip()
     
     mCurrentTooltip = nsnull;
 
-    evtTarget->RemoveEventListener(NS_LITERAL_STRING("popuphiding"), (nsIDOMMouseListener*)this, PR_FALSE);
+    evtTarget->RemoveEventListener(NS_LITERAL_STRING("popuphiding"), static_cast<nsIDOMMouseListener*>(this), PR_FALSE);
   }
   
   
