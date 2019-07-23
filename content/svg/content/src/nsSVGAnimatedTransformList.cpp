@@ -38,62 +38,15 @@
 
 #include "nsSVGAnimatedTransformList.h"
 #include "nsSVGTransformList.h"
-#include "nsSVGValue.h"
-#include "nsWeakReference.h"
 #include "nsContentUtils.h"
 
 
 
 
-class nsSVGAnimatedTransformList : public nsIDOMSVGAnimatedTransformList,
-                                   public nsSVGValue,
-                                   public nsISVGValueObserver
-{  
-protected:
-  friend nsresult
-  NS_NewSVGAnimatedTransformList(nsIDOMSVGAnimatedTransformList** result,
-                                 nsIDOMSVGTransformList* baseVal);
-
-  nsSVGAnimatedTransformList();
-  ~nsSVGAnimatedTransformList();
-  void Init(nsIDOMSVGTransformList* baseVal);
-  
-public:
-  
-  NS_DECL_ISUPPORTS
-
-  
-  NS_DECL_NSIDOMSVGANIMATEDTRANSFORMLIST
-
-  
-  NS_IMETHOD SetValueString(const nsAString& aValue);
-  NS_IMETHOD GetValueString(nsAString& aValue);
-
-  
-  NS_IMETHOD WillModifySVGObservable(nsISVGValue* observable,
-                                     modificationType aModType);
-  NS_IMETHOD DidModifySVGObservable (nsISVGValue* observable,
-                                     modificationType aModType);
-  
-  
-  
-  
-protected:
-  nsCOMPtr<nsIDOMSVGTransformList> mBaseVal;
-};
-
-
-
-
-
-nsSVGAnimatedTransformList::nsSVGAnimatedTransformList()
-{
-}
-
 nsSVGAnimatedTransformList::~nsSVGAnimatedTransformList()
 {
   if (!mBaseVal) return;
-    nsCOMPtr<nsISVGValue> val = do_QueryInterface(mBaseVal);
+  nsCOMPtr<nsISVGValue> val = do_QueryInterface(mBaseVal);
   if (!val) return;
   val->RemoveObserver(this);
 }
@@ -146,7 +99,7 @@ nsSVGAnimatedTransformList::GetValueString(nsAString& aValue)
 
 
 NS_IMETHODIMP
-nsSVGAnimatedTransformList::GetBaseVal(nsIDOMSVGTransformList * *aBaseVal)
+nsSVGAnimatedTransformList::GetBaseVal(nsIDOMSVGTransformList** aBaseVal)
 {
   *aBaseVal = mBaseVal;
   NS_ADDREF(*aBaseVal);
@@ -155,9 +108,9 @@ nsSVGAnimatedTransformList::GetBaseVal(nsIDOMSVGTransformList * *aBaseVal)
 
 
 NS_IMETHODIMP
-nsSVGAnimatedTransformList::GetAnimVal(nsIDOMSVGTransformList * *aAnimVal)
+nsSVGAnimatedTransformList::GetAnimVal(nsIDOMSVGTransformList** aAnimVal)
 {
-  *aAnimVal = mBaseVal;
+  *aAnimVal = mAnimVal ? mAnimVal : mBaseVal;
   NS_ADDREF(*aAnimVal);
   return NS_OK;
 }

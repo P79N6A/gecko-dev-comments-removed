@@ -292,8 +292,9 @@ nsSMILAnimationFunction::ComposeResult(const nsISMILAttr& aSMILAttr,
   }
 
   
-  if (!IsAdditive() || NS_FAILED(aResult.Add(result)))
+  if (!IsAdditive() || NS_FAILED(aResult.SandwichAdd(result))) {
     aResult = result;
+  }
 }
 
 PRInt8

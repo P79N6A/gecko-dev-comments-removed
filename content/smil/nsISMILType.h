@@ -72,6 +72,7 @@ class nsSMILValue;
 
 
 
+
 class nsISMILType
 {
 public:
@@ -143,6 +144,30 @@ public:
   virtual nsresult Add(nsSMILValue& aDest,
                        const nsSMILValue& aValueToAdd,
                        PRUint32 aCount) const = 0;
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  virtual nsresult SandwichAdd(nsSMILValue& aDest,
+                               const nsSMILValue& aValueToAdd) const
+  {
+    return Add(aDest, aValueToAdd, 1);
+  }
 
   
 
