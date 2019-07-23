@@ -685,7 +685,7 @@ Assembler::asm_restore(LInsp i, Reservation *resv, Register r)
         
         
         if (!resv->arIndex)
-            i->clearResv();
+            i->resv()->clear();
         asm_ld_imm(r, i->imm32());
 #endif
     } else {
