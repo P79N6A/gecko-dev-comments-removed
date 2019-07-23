@@ -248,7 +248,8 @@ protected:
                  nsPresContext*      aPresContext,
                  nsIRenderingContext& aRenderingContext,
                  const nsRect&        aDirtyRect,
-                 nscoord&             aCurrX);
+                 nscoord&             aCurrX,
+                 PRBool               aTextRTL);
 
   
   void PaintCheckbox(PRInt32              aRowIndex, 
