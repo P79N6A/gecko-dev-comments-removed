@@ -4366,61 +4366,28 @@ nsNavHistory::AddPageWithVisit(nsIURI *aURI,
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
-  return NS_OK;  
+  return NS_OK;
 }
 
 nsresult
 nsNavHistory::RemoveDuplicateURIs()
 {
-  nsCOMPtr<mozIStorageStatement> statement;
-  nsresult rv = mDBConn->CreateStatement(
-      NS_LITERAL_CSTRING("SELECT id, url FROM moz_places ORDER BY url"),
-      getter_AddRefs(statement));
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  nsTArray<PRInt64> duplicates;
-  nsCAutoString lastURI;
-  PRBool hasMore;
-  while (NS_SUCCEEDED(statement->ExecuteStep(&hasMore)) && hasMore) {
-    nsCAutoString uri;
-    statement->GetUTF8String(1, uri);
-    if (uri.Equals(lastURI)) {
-      duplicates.AppendElement(statement->AsInt64(0));
-    } else {
-      lastURI = uri;
-    }
-  }
+  
+  mozStorageTransaction transaction(mDBConn, PR_FALSE);
 
   
-  rv = mDBConn->CreateStatement(
-      NS_LITERAL_CSTRING("DELETE FROM moz_places WHERE id = ?1"),
-      getter_AddRefs(statement));
+  nsresult rv = mDBConn->ExecuteSimpleSQL(
+      NS_LITERAL_CSTRING("DELETE FROM moz_historyvisits WHERE place_id IN "
+      "(SELECT id FROM moz_places GROUP BY url HAVING( COUNT(url) > 1))"));
   NS_ENSURE_SUCCESS(rv, rv);
 
-  nsCOMPtr<mozIStorageStatement> visitDelete;
-  rv = mDBConn->CreateStatement(
-      NS_LITERAL_CSTRING("DELETE FROM moz_historyvisits WHERE place_id = ?1"),
-      getter_AddRefs(visitDelete));
+  
+  rv = mDBConn->ExecuteSimpleSQL(
+      NS_LITERAL_CSTRING("DELETE FROM moz_places WHERE id IN "
+      "(SELECT id FROM moz_places GROUP BY url HAVING( COUNT(url) > 1))"));
   NS_ENSURE_SUCCESS(rv, rv);
 
-  for (PRUint32 i = 0; i < duplicates.Length(); ++i) {
-    PRInt64 id = duplicates[i];
-    {
-      mozStorageStatementScoper scope(statement);
-      rv = statement->BindInt64Parameter(0, id);
-      NS_ENSURE_SUCCESS(rv, rv);
-      rv = statement->Execute();
-      NS_ENSURE_SUCCESS(rv, rv);
-    }
-    {
-      mozStorageStatementScoper scope(visitDelete);
-      rv = visitDelete->BindInt64Parameter(0, id);
-      NS_ENSURE_SUCCESS(rv, rv);
-      rv = visitDelete->Execute();
-      NS_ENSURE_SUCCESS(rv, rv);
-    }
-  }
-  return NS_OK;
+  return transaction.Commit();
 }
 
 
