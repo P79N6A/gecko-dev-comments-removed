@@ -158,6 +158,7 @@ nsHtml5TreeBuilder::shallowClone(nsIContent* aElement)
   nsINode* clone;
   aElement->Clone(aElement->NodeInfo(), &clone);
   
+  NS_ASSERTION(clone->IsNodeOfType(nsINode::eCONTENT), "Cloning an element didn't yield a content node.");
   return static_cast<nsIContent*>(clone);
 }
 
@@ -361,7 +362,6 @@ nsHtml5TreeBuilder::elementPopped(PRInt32 aNamespace, nsIAtom* aName, nsIContent
   }
   
   if (aName == nsHtml5Atoms::script) {
-
     requestSuspension();
     parser->SetScriptElement(aElement);
     return;
