@@ -2622,15 +2622,9 @@ SECStatus nsNSS_SSLGetClientAuthData(void* arg, PRFileDesc* socket,
     nsresult rv;
     NS_DEFINE_CID(nssComponentCID, NS_NSSCOMPONENT_CID);
     nsCOMPtr<nsINSSComponent> nssComponent(do_GetService(nssComponentCID, &rv));
-    
-    
-    
-    
-    
-    
-    nsClientAuthRememberService *cars = nsnull;
+    nsRefPtr<nsClientAuthRememberService> cars;
     if (nssComponent) {
-      nssComponent->GetClientAuthRememberService(&cars);
+      nssComponent->GetClientAuthRememberService(getter_AddRefs(cars));
     }
 
     PRBool hasRemembered = PR_FALSE;
