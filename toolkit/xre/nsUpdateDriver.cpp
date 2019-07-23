@@ -275,49 +275,50 @@ SetStatus(nsILocalFile *statusFile, const char *status)
 }
 
 static PRBool
+CopyFileIntoUpdateDir(nsIFile *parentDir, const char *leafName, nsIFile *updateDir)
+{
+  nsDependentCString leaf(leafName);
+  nsCOMPtr<nsIFile> file;
+
+  
+  nsresult rv = updateDir->Clone(getter_AddRefs(file));
+  if (NS_FAILED(rv))
+    return PR_FALSE;
+  rv = file->AppendNative(leaf);
+  if (NS_FAILED(rv))
+    return PR_FALSE;
+  file->Remove(PR_FALSE);
+
+  
+  rv = parentDir->Clone(getter_AddRefs(file));
+  if (NS_FAILED(rv))
+    return PR_FALSE;
+  rv = file->AppendNative(leaf);
+  if (NS_FAILED(rv))
+    return PR_FALSE;
+  rv = file->CopyToNative(updateDir, EmptyCString());
+  if (NS_FAILED(rv))
+    return PR_FALSE;
+
+  return PR_TRUE;
+}
+
+static PRBool
 CopyUpdaterIntoUpdateDir(nsIFile *greDir, nsIFile *appDir, nsIFile *updateDir,
                          nsCOMPtr<nsIFile> &updater)
 {
   
-  const char *filesToMove[] = {
 #if defined(XP_MACOSX)
-    kUpdaterApp,
+  if (!CopyFileIntoUpdateDir(greDir, kUpdaterApp, updateDir))
+    return PR_FALSE;
 #else
-    kUpdaterINI,
-    kUpdaterBin,
+  if (!CopyFileIntoUpdateDir(greDir, kUpdaterBin, updateDir))
+    return PR_FALSE;
 #endif
-    nsnull
-  };
+  CopyFileIntoUpdateDir(appDir, kUpdaterINI, updateDir);
 
-  nsresult rv;
-
-  for (const char **leafName = filesToMove; *leafName; ++leafName) {
-    nsDependentCString leaf(*leafName);
-    nsCOMPtr<nsIFile> file;
-
-    
-    rv = updateDir->Clone(getter_AddRefs(file));
-    if (NS_FAILED(rv))
-      return PR_FALSE;
-    rv = file->AppendNative(leaf);
-    if (NS_FAILED(rv))
-      return PR_FALSE;
-    file->Remove(PR_FALSE);
-
-    
-    rv = greDir->Clone(getter_AddRefs(file));
-    if (NS_FAILED(rv))
-      return PR_FALSE;
-    rv = file->AppendNative(leaf);
-    if (NS_FAILED(rv))
-      return PR_FALSE;
-    rv = file->CopyToNative(updateDir, EmptyCString());
-    if (*leafName != kUpdaterINI && NS_FAILED(rv))
-      return PR_FALSE;
-  }
   
-  
-  rv = updateDir->Clone(getter_AddRefs(updater));
+  nsresult rv = updateDir->Clone(getter_AddRefs(updater));
   if (NS_FAILED(rv))
     return PR_FALSE;
 #if defined(XP_MACOSX)
