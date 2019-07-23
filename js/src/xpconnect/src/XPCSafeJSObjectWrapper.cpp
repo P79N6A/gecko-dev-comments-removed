@@ -691,8 +691,9 @@ XPC_SJOW_CheckAccess(JSContext *cx, JSObject *obj, jsval id,
   }
 
   
-  if (cx->runtime->checkObjectAccess &&
-      !cx->runtime->checkObjectAccess(cx, obj, id, mode, vp)) {
+  JSSecurityCallbacks *callbacks = JS_GetSecurityCallbacks(cx);
+  if (callbacks && callbacks->checkObjectAccess &&
+      !callbacks->checkObjectAccess(cx, obj, id, mode, vp)) {
     return JS_FALSE;
   }
 
@@ -703,8 +704,8 @@ XPC_SJOW_CheckAccess(JSContext *cx, JSObject *obj, jsval id,
 
   
   
-  if (cx->runtime->checkObjectAccess &&
-      !cx->runtime->checkObjectAccess(cx, unsafeObj, id, mode, vp)) {
+  if (callbacks && callbacks->checkObjectAccess &&
+      !callbacks->checkObjectAccess(cx, unsafeObj, id, mode, vp)) {
     return JS_FALSE;
   }
 
