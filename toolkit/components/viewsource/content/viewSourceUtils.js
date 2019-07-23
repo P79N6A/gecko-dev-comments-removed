@@ -137,7 +137,10 @@ var gViewSourceUtils = {
         } else {
           
           
-          var webShell = Components.classes["@mozilla.org/webshell;1"].createInstance();
+          
+          
+          
+          var webShell = Components.classes["@mozilla.org/docshell;1"].createInstance();
           this.viewSourceProgressListener.webShell = webShell;
           var progress = webShell.QueryInterface(this.mnsIWebProgress);
           progress.addProgressListener(this.viewSourceProgressListener,

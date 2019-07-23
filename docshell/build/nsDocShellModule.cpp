@@ -42,7 +42,7 @@
 
 #include "nsDocShellCID.h"
 
-#include "nsWebShell.h"
+#include "nsDocShell.h"
 #include "nsDefaultURIFixup.h"
 #include "nsWebNavigationInfo.h"
 
@@ -100,7 +100,7 @@ Shutdown(nsIModule* aSelf)
 }
 
 
-NS_GENERIC_FACTORY_CONSTRUCTOR_INIT(nsWebShell, Init)
+NS_GENERIC_FACTORY_CONSTRUCTOR_INIT(nsDocShell, Init)
 NS_GENERIC_FACTORY_CONSTRUCTOR(nsDefaultURIFixup)
 NS_GENERIC_FACTORY_CONSTRUCTOR_INIT(nsWebNavigationInfo, Init)
 NS_GENERIC_FACTORY_CONSTRUCTOR(nsClassifierCallback)
@@ -132,19 +132,12 @@ NS_GENERIC_FACTORY_CONSTRUCTOR(nsSHistory)
 
 NS_GENERIC_FACTORY_CONSTRUCTOR(nsDownloadHistory)
 
-
-
-
-
-
-
-
 static const nsModuleComponentInfo gDocShellModuleInfo[] = {
   
-    { "WebShell", 
-      NS_WEB_SHELL_CID,
-      "@mozilla.org/webshell;1",
-      nsWebShellConstructor
+    { "DocShell", 
+      NS_DOCSHELL_CID,
+      "@mozilla.org/docshell;1",
+      nsDocShellConstructor
     },
     { "Default keyword fixup", 
       NS_DEFAULTURIFIXUP_CID,

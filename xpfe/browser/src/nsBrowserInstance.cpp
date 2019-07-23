@@ -85,8 +85,6 @@
 
 #include "nsIAppStartup.h"
 
-#include "nsDocShellCID.h"
-
 #include "nsIObserverService.h"
 
 #include "nsILocalFile.h"
@@ -405,7 +403,7 @@ nsBrowserInstance::ReinitializeContentVariables()
       if (docShellAsItem) {
         nsXPIDLString name;
         docShellAsItem->GetName(getter_Copies(name));
-        printf("Attaching to Content WebShell [%s]\n", NS_LossyConvertUTF16toASCII(name).get());
+        printf("Attaching to Content DocShell [%s]\n", NS_LossyConvertUTF16toASCII(name).get());
       }
     }
   }
@@ -514,6 +512,7 @@ nsBrowserInstance::SetWebShellWindow(nsIDOMWindowInternal* aWin)
       do_QueryInterface(win->GetDocShell());
 
     if (docShellAsItem) {
+      
       
       nsXPIDLString name;
       docShellAsItem->GetName(getter_Copies(name));

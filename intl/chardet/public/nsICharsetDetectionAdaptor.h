@@ -62,7 +62,7 @@ public:
 
 
 
-  NS_IMETHOD Init(nsIWebShellServices* aWebShell, nsICharsetDetector *aDetector, 
+  NS_IMETHOD Init(nsIWebShellServices* aDocShell, nsICharsetDetector *aDetector, 
                   nsIDocument* aDocument, nsIParser* aParser, 
                   const char* aCharset, const char* aCommand=nsnull) = 0;
 };

@@ -808,7 +808,7 @@ nsFrameLoader::EnsureDocShell()
     do_GetInterface(doc->GetScriptGlobalObject());
 
   
-  mDocShell = do_CreateInstance("@mozilla.org/webshell;1");
+  mDocShell = do_CreateInstance("@mozilla.org/docshell;1");
   NS_ENSURE_TRUE(mDocShell, NS_ERROR_FAILURE);
 
   

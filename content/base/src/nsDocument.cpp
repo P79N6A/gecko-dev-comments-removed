@@ -1988,6 +1988,9 @@ nsDocument::ResetToURI(nsIURI *aURI, nsILoadGroup *aLoadGroup,
     
     
     
+
+    
+    
   }
 
   mLastModified.Truncate();
