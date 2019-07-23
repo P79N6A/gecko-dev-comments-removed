@@ -2415,12 +2415,6 @@ nsDocShell::SetItemType(PRInt32 aItemType)
     
     mAllowAuth = mItemType == typeContent; 
 
-    nsRefPtr<nsPresContext> presContext = nsnull;
-    GetPresContext(getter_AddRefs(presContext));
-    if (presContext) {
-        presContext->UpdateIsChromeCache();
-    }
-
     return NS_OK;
 }
 

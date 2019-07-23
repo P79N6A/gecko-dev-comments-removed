@@ -810,17 +810,7 @@ public:
                               mType == eContext_PrintPreview); }
 
   
-  PRBool IsChrome() const { return mIsChrome; }
-
-  virtual void UpdateIsChromeCacheExternal();
-  void UpdateIsChromeCacheInternal();
-#ifdef _IMPL_NS_LAYOUT
-  void UpdateIsChromeCache()
-  { UpdateIsChromeCacheInternal(); }
-#else
-  void UpdateIsChromeCache()
-  { UpdateIsChromeCacheExternal(); }
-#endif
+  PRBool IsChrome() const;
 
   
   virtual PRBool HasAuthorSpecifiedRules(nsIFrame *aFrame, PRUint32 ruleTypeMask) const;
@@ -1124,9 +1114,6 @@ protected:
 
   unsigned              mProcessingRestyles : 1;
   unsigned              mProcessingAnimationStyleChange : 1;
-
-  
-  unsigned              mIsChrome : 1;
 
 #ifdef DEBUG
   PRBool                mInitialized;
