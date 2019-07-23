@@ -189,7 +189,6 @@ enum nsDOMClassInfoID {
   
   eDOMClassInfo_Crypto_id,
   eDOMClassInfo_CRMFObject_id,
-  eDOMClassInfo_Pkcs11_id,
   
   
   eDOMClassInfo_TreeWalker_id,
