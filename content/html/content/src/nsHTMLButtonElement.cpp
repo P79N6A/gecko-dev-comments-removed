@@ -434,7 +434,9 @@ nsHTMLButtonElement::PostHandleEvent(nsEventChainPostVisitor& aVisitor)
                          nsMouseEvent::eRightButton) {
               
               
-              aVisitor.mDOMEvent->StopPropagation();
+              if (aVisitor.mDOMEvent) {
+                aVisitor.mDOMEvent->StopPropagation();
+              }
             }
           }
         }
