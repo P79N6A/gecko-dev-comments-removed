@@ -283,6 +283,7 @@ public:
 
 private:
   struct FrameConstructionItem;
+  class FrameConstructionItemList;
 
   nsresult ReconstructDocElementHierarchyInternal();
 
@@ -330,7 +331,7 @@ private:
   void AddFrameConstructionItems(nsFrameConstructorState& aState,
                                  nsIContent*              aContent,
                                  nsIFrame*                aParentFrame,
-                                 nsTArray<FrameConstructionItem>& aItems);
+                                 FrameConstructionItemList& aItems);
 
   nsresult ConstructDocElementFrame(nsFrameConstructorState& aState,
                                     nsIContent*              aDocElement,
@@ -392,7 +393,7 @@ private:
                                   nsIContent*              aContent,
                                   nsStyleContext*          aStyleContext,
                                   nsIAtom*                 aPseudoElement,
-                                  nsTArray<FrameConstructionItem>& aItems);
+                                  FrameConstructionItemList& aItems);
 
   
   
@@ -728,6 +729,63 @@ private:
                   PRUint32 aDataLength);
 
   
+  class FrameConstructionItemList {
+  public:
+    FrameConstructionItemList() :
+      mInlineCount(0),
+      mLineParticipantCount(0)
+    {}
+
+    PRBool IsEmpty() const { return mItems.Length() == 0; }
+    PRBool AnyItemsNeedBlockParent() const { return mLineParticipantCount != 0; }
+    PRBool AreAllItemsInline() const { return mInlineCount == mItems.Length(); }
+    PRBool IsStartInline() const {
+      NS_ASSERTION(!IsEmpty(), "Someone forgot to check IsEmpty()");
+      return mItems[0].mHasInlineEnds;
+    }
+    PRBool IsEndInline() const {
+      NS_ASSERTION(!IsEmpty(), "Someone forgot to check IsEmpty()");
+      return mItems[mItems.Length() - 1].mHasInlineEnds;
+    }
+
+    FrameConstructionItem* AppendItem() {
+      return mItems.AppendElement();
+    }
+
+    void InlineItemAdded() { ++mInlineCount; }
+    void LineParticipantItemAdded() { ++mLineParticipantCount; }
+
+    class Iterator;
+    friend class Iterator;
+    class Iterator {
+    public:
+      Iterator(FrameConstructionItemList& list) :
+        mList(list.mItems),
+        mPosition(0),
+        mLimit(mList.Length())
+      {}
+
+      operator FrameConstructionItem& () { return mList[mPosition]; }
+      PRBool IsDone() const { return mPosition == mLimit; }
+      void Next() {
+        NS_ASSERTION(mPosition < mLimit, "Should have checked IsDone()!");
+        ++mPosition;
+      }
+    private:
+      nsTArray<FrameConstructionItem> & mList;
+      PRUint32 mPosition;
+      PRUint32 mLimit;
+    };
+
+  private:
+    nsTArray<FrameConstructionItem> mItems;
+    PRUint32 mInlineCount;
+    PRUint32 mLineParticipantCount;
+  };
+
+  typedef FrameConstructionItemList::Iterator FCItemIterator;
+
+  
 
 
 
@@ -772,9 +830,7 @@ private:
 
     
     
-    
-    
-    nsTArray<FrameConstructionItem> mChildItems;
+    FrameConstructionItemList mChildItems;
 
   private:
     FrameConstructionItem(const FrameConstructionItem& aOther); 
@@ -866,7 +922,7 @@ private:
 
   void AddPageBreakItem(nsIContent* aContent,
                         nsStyleContext* aMainStyleContext,
-                        nsTArray<FrameConstructionItem>& aItems);
+                        FrameConstructionItemList& aItems);
 
   
   
@@ -923,7 +979,7 @@ private:
                                          PRInt32                  aNameSpaceID,
                                          nsStyleContext*          aStyleContext,
                                          PRUint32                 aFlags,
-                                         nsTArray<FrameConstructionItem>& aItems);
+                                         FrameConstructionItemList& aItems);
 
   
   nsresult ConstructFramesFromItem(nsFrameConstructorState& aState,
@@ -1248,13 +1304,10 @@ private:
 
 
 
-
-  nsresult ConstructFramesFromItemSublist(nsFrameConstructorState& aState,
-                                          nsTArray<FrameConstructionItem>& aItems,
-                                          PRUint32 aStart,
-                                          PRUint32 aEnd,
-                                          nsIFrame* aParentFrame,
-                                          nsFrameItems& aFrameItems);
+  nsresult ConstructFramesFromItemList(nsFrameConstructorState& aState,
+                                       FrameConstructionItemList& aItems,
+                                       nsIFrame* aParentFrame,
+                                       nsFrameItems& aFrameItems);
 
   
   
@@ -1268,7 +1321,7 @@ private:
   PRBool WipeContainingBlock(nsFrameConstructorState& aState,
                              nsIFrame*                aContainingBlock,
                              nsIFrame*                aFrame,
-                             const nsTArray<FrameConstructionItem>& aItems,
+                             const FrameConstructionItemList& aItems,
                              PRBool                   aIsAppend,
                              nsIFrame*                aPrevSibling);
 
@@ -1418,16 +1471,6 @@ private:
     NS_PRECONDITION(mUpdateCount != 0, "Instant counter updates are bad news");
     mCountersDirty = PR_TRUE;
   }
-
-  
-
-
-  static PRBool AnyItemsNeedBlockParent(const nsTArray<FrameConstructionItem>& aItems);
-
-  
-
-
-  static PRBool AreAllItemsInline(const nsTArray<FrameConstructionItem>& aItems);
 
 public:
   struct RestyleData;
