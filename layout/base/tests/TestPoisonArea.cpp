@@ -304,34 +304,41 @@ ReservePoisonArea()
     return result;
   } else {
     
+    uintptr_t candidate = (0xF0DEAFFF & ~(PAGESIZE-1));
+    void *result = ReserveRegion(candidate, false);
+    if (result == (void *)candidate) {
+      
+      printf("INFO | poison area allocated at 0x%.*"PRIxPTR
+             " (preferred addr)\n", SIZxPTR, (uintptr_t)result);
+      return candidate;
+    }
+
     
-    uintptr_t candidate = (0xF0DEAFFF & ~(uintptr_t)(PAGESIZE-1));
-    uintptr_t step = PAGESIZE;
-    intptr_t direction = +1;
-    uintptr_t limit = candidate + 1024*PAGESIZE;
-    while (candidate < limit) {
-      void *result = ReserveRegion(candidate, false);
-      if (result == (void *)candidate) {
-        
-        printf("INFO | poison area allocated at 0x%.*"PRIxPTR"\n",
-               SIZxPTR, (uintptr_t)result);
-        return candidate;
+    
+    if (ProbeRegion(candidate)) {
+      
+      if (result != MAP_FAILED)
+        ReleaseRegion(result);
+      printf("INFO | poison area assumed at 0x%.*"PRIxPTR
+             " (preferred addr)\n", SIZxPTR, candidate);
+      return candidate;
+    }
 
-      } else {
-        if (result != MAP_FAILED)
-          ReleaseRegion(result);
+    
+    
+    if (result != MAP_FAILED) {
+      printf("INFO | poison area allocated at 0x%.*"PRIxPTR
+             " (consolation prize)\n", SIZxPTR, (uintptr_t)result);
+      return (uintptr_t)result;
+    }
 
-        if (ProbeRegion(candidate)) {
-          
-          printf("INFO | poison area probed at 0x%.*"PRIxPTR" | %s\n",
-                 SIZxPTR, candidate, LastErrMsg());
-          return candidate;
-        }
-      }
-
-      candidate += step*direction;
-      step = step + PAGESIZE;
-      direction = -direction;
+    
+    
+    result = ReserveRegion(0, false);
+    if (result != MAP_FAILED) {
+      printf("INFO | poison area allocated at 0x%.*"PRIxPTR
+             " (fallback)\n", SIZxPTR, (uintptr_t)result);
+      return (uintptr_t)result;
     }
 
     printf("ERROR | no usable poison area found\n");

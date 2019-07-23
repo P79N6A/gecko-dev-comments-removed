@@ -181,32 +181,37 @@ ARENA_POISON_init()
 
   } else {
     
-    
     PRUword candidate = (0xF0DEAFFF & ~(rgnsize-1));
-    PRUword step = rgnsize;
-    int direction = +1;
-    PRUword limit = candidate + 1024*rgnsize;
-    while (candidate < limit) {
-      void *result = ReserveRegion(candidate, rgnsize);
-      if (result == (void *)candidate) {
-        
-        ARENA_POISON = candidate + rgnsize/2 - 1;
-        return PR_SUCCESS;
+    void *result = ReserveRegion(candidate, rgnsize);
+    if (result == (void *)candidate) {
+      
+      ARENA_POISON = candidate + rgnsize/2 - 1;
+      return PR_SUCCESS;
+    }
 
-      } else {
-        if (result != RESERVE_FAILED)
-          ReleaseRegion(result, rgnsize);
+    
+    
+    if (ProbeRegion(candidate, rgnsize)) {
+      
+      ARENA_POISON = candidate + rgnsize/2 - 1;
+      if (result != RESERVE_FAILED)
+        ReleaseRegion(result, rgnsize);
+      return PR_SUCCESS;
+    }
 
-        if (ProbeRegion(candidate, rgnsize)) {
-          
-          ARENA_POISON = candidate + rgnsize/2 - 1;
-          return PR_SUCCESS;
-        }
-      }
+    
+    
+    if (result != RESERVE_FAILED) {
+      ARENA_POISON = PRUword(result) + rgnsize/2 - 1;
+      return PR_SUCCESS;
+    }
 
-      candidate += step*direction;
-      step = step + rgnsize;
-      direction = -direction;
+    
+    
+    result = ReserveRegion(0, rgnsize);
+    if (result != RESERVE_FAILED) {
+      ARENA_POISON = PRUword(result) + rgnsize/2 - 1;
+      return PR_SUCCESS;
     }
 
     NS_RUNTIMEABORT("no usable poison region identified");
