@@ -173,6 +173,19 @@ public:
     InitOffsets(aContainingBlockWidth);
   }
 
+#ifdef DEBUG
+  
+  
+  static void* DisplayInitOffsetsEnter(nsIFrame* aFrame,
+                                       nsCSSOffsetState* aState,
+                                       nscoord aCBWidth,
+                                       const nsMargin* aBorder,
+                                       const nsMargin* aPadding);
+  static void DisplayInitOffsetsExit(nsIFrame* aFrame,
+                                     nsCSSOffsetState* aState,
+                                     void* aValue);
+#endif
+
 private:
   
   
@@ -455,7 +468,26 @@ public:
   PRBool WillReflowAgainForClearance() const {
     return mDiscoveredClearance && *mDiscoveredClearance;
   }
+
+#ifdef DEBUG
   
+  
+  static void* DisplayInitConstraintsEnter(nsIFrame* aFrame,
+                                           nsHTMLReflowState* aState,
+                                           nscoord aCBWidth,
+                                           nscoord aCBHeight,
+                                           const nsMargin* aBorder,
+                                           const nsMargin* aPadding);
+  static void DisplayInitConstraintsExit(nsIFrame* aFrame,
+                                         nsHTMLReflowState* aState,
+                                         void* aValue);
+  static void* DisplayInitFrameTypeEnter(nsIFrame* aFrame,
+                                         nsHTMLReflowState* aState);
+  static void DisplayInitFrameTypeExit(nsIFrame* aFrame,
+                                       nsHTMLReflowState* aState,
+                                       void* aValue);
+#endif
+
 protected:
   void InitFrameType();
   void InitCBReflowState();

@@ -517,6 +517,9 @@ nsHTMLReflowState::InitFrameType()
   
   nsIFrame* frameToTest =
     frame->GetType() == nsGkAtoms::tableFrame ? frame->GetParent() : frame;
+
+  DISPLAY_INIT_TYPE(frameToTest, this);
+
   NS_ASSERTION(frameToTest->GetStyleDisplay()->IsAbsolutelyPositioned() ==
                  disp->IsAbsolutelyPositioned(),
                "Unexpected position style");
@@ -1642,6 +1645,10 @@ nsHTMLReflowState::InitConstraints(nsPresContext* aPresContext,
                                    const nsMargin* aBorder,
                                    const nsMargin* aPadding)
 {
+  DISPLAY_INIT_CONSTRAINTS(frame, this,
+                           aContainingBlockWidth, aContainingBlockHeight,
+                           aBorder, aPadding);
+
   
   FrameProperties props(aPresContext->PropertyTable(), frame);
   props.Delete(nsIFrame::UsedBorderProperty());
@@ -1682,11 +1689,6 @@ nsHTMLReflowState::InitConstraints(nsPresContext* aPresContext,
       ComputeContainingBlockRectangle(aPresContext, cbrs, aContainingBlockWidth, 
                                       aContainingBlockHeight);
     }
-
-#if 0
-    nsFrame::ListTag(stdout, frame); printf(": cb=");
-    nsFrame::ListTag(stdout, cbrs->frame); printf(" size=%d,%d\n", aContainingBlockWidth, aContainingBlockHeight);
-#endif
 
     
     
@@ -1868,6 +1870,8 @@ nsCSSOffsetState::InitOffsets(nscoord aContainingBlockWidth,
                               const nsMargin *aBorder,
                               const nsMargin *aPadding)
 {
+  DISPLAY_INIT_OFFSETS(frame, this, aContainingBlockWidth, aBorder, aPadding);
+
   
   
   
