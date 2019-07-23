@@ -51,7 +51,7 @@
 
 
 
-#if defined (XP_WIN) && ! defined (WINCE)
+#ifdef XP_WIN
 #undef GetClassName
 #undef GetObject
 #endif
