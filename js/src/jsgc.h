@@ -167,8 +167,17 @@ struct JSGCThing {
 
 
 
-extern void *
-js_NewGCThing(JSContext *cx, uintN flags, size_t nbytes);
+extern JSObject*
+js_NewGCObject(JSContext *cx, uintN flags);
+
+extern JSString*
+js_NewGCString(JSContext *cx, uintN flags);
+
+extern JSFunction*
+js_NewGCFunction(JSContext *cx, uintN flags);
+
+extern JSXML*
+js_NewGCXML(JSContext *cx, uintN flags);
 
 
 

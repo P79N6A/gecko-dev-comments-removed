@@ -2297,7 +2297,7 @@ class RegExpNativeCompiler {
         return pos;
     }
 
-#if defined(AVMPLUS_ARM) || defined(AVMPLUS_SPARC)
+#ifdef AVMPLUS_ARM
 
 
 
@@ -4324,6 +4324,19 @@ out:
 
 
 
+#define REGEXP_PROP_ATTRS     (JSPROP_PERMANENT | JSPROP_SHARED)
+#define RO_REGEXP_PROP_ATTRS  (REGEXP_PROP_ATTRS | JSPROP_READONLY)
+
+static JSPropertySpec regexp_props[] = {
+    {"source",     REGEXP_SOURCE,      RO_REGEXP_PROP_ATTRS,0,0},
+    {"global",     REGEXP_GLOBAL,      RO_REGEXP_PROP_ATTRS,0,0},
+    {"ignoreCase", REGEXP_IGNORE_CASE, RO_REGEXP_PROP_ATTRS,0,0},
+    {"lastIndex",  REGEXP_LAST_INDEX,  REGEXP_PROP_ATTRS,0,0},
+    {"multiline",  REGEXP_MULTILINE,   RO_REGEXP_PROP_ATTRS,0,0},
+    {"sticky",     REGEXP_STICKY,      RO_REGEXP_PROP_ATTRS,0,0},
+    {0,0,0,0,0}
+};
+
 static JSBool
 regexp_getProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 {
@@ -4391,25 +4404,6 @@ regexp_setProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
     }
     return ok;
 }
-
-#define REGEXP_PROP_ATTRS     (JSPROP_PERMANENT | JSPROP_SHARED)
-#define RO_REGEXP_PROP_ATTRS  (REGEXP_PROP_ATTRS | JSPROP_READONLY)
-
-#define G regexp_getProperty
-#define S regexp_setProperty
-
-static JSPropertySpec regexp_props[] = {
-    {"source",     REGEXP_SOURCE,      RO_REGEXP_PROP_ATTRS,G,S},
-    {"global",     REGEXP_GLOBAL,      RO_REGEXP_PROP_ATTRS,G,S},
-    {"ignoreCase", REGEXP_IGNORE_CASE, RO_REGEXP_PROP_ATTRS,G,S},
-    {"lastIndex",  REGEXP_LAST_INDEX,  REGEXP_PROP_ATTRS,G,S},
-    {"multiline",  REGEXP_MULTILINE,   RO_REGEXP_PROP_ATTRS,G,S},
-    {"sticky",     REGEXP_STICKY,      RO_REGEXP_PROP_ATTRS,G,S},
-    {0,0,0,0,0}
-};
-
-#undef G
-#undef S
 
 
 
@@ -4650,7 +4644,7 @@ js_XDRRegExpObject(JSXDRState *xdr, JSObject **objp)
         return JS_FALSE;
     }
     if (xdr->mode == JSXDR_DECODE) {
-        obj = js_NewObject(xdr->cx, &js_RegExpClass, NULL, NULL, 0);
+        obj = js_NewObject(xdr->cx, &js_RegExpClass, NULL, NULL);
         if (!obj)
             return JS_FALSE;
         STOBJ_CLEAR_PARENT(obj);
@@ -4689,7 +4683,7 @@ JSClass js_RegExpClass = {
     JSCLASS_HAS_PRIVATE | JSCLASS_HAS_RESERVED_SLOTS(1) |
     JSCLASS_MARK_IS_TRACE | JSCLASS_HAS_CACHED_PROTO(JSProto_RegExp),
     JS_PropertyStub,    JS_PropertyStub,
-    JS_PropertyStub,    JS_PropertyStub,
+    regexp_getProperty, regexp_setProperty,
     JS_EnumerateStub,   JS_ResolveStub,
     JS_ConvertStub,     regexp_finalize,
     NULL,               NULL,
@@ -5018,7 +5012,7 @@ RegExp(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
         }
 
         
-        obj = js_NewObject(cx, &js_RegExpClass, NULL, NULL, 0);
+        obj = js_NewObject(cx, &js_RegExpClass, NULL, NULL);
         if (!obj)
             return JS_FALSE;
 
@@ -5074,7 +5068,7 @@ js_NewRegExpObject(JSContext *cx, JSTokenStream *ts,
     re = js_NewRegExp(cx, ts,  str, flags, JS_FALSE);
     if (!re)
         return NULL;
-    obj = js_NewObject(cx, &js_RegExpClass, NULL, NULL, 0);
+    obj = js_NewObject(cx, &js_RegExpClass, NULL, NULL);
     if (!obj || !JS_SetPrivate(cx, obj, re)) {
         js_DestroyRegExp(cx, re);
         obj = NULL;
@@ -5091,7 +5085,7 @@ js_CloneRegExpObject(JSContext *cx, JSObject *obj, JSObject *parent)
     JSRegExp *re;
 
     JS_ASSERT(OBJ_GET_CLASS(cx, obj) == &js_RegExpClass);
-    clone = js_NewObject(cx, &js_RegExpClass, NULL, parent, 0);
+    clone = js_NewObject(cx, &js_RegExpClass, NULL, parent);
     if (!clone)
         return NULL;
     re = (JSRegExp *) JS_GetPrivate(cx, obj);

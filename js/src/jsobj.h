@@ -529,18 +529,15 @@ extern JSBool
 js_GetClassId(JSContext *cx, JSClass *clasp, jsid *idp);
 
 extern JSObject *
-js_NewObject(JSContext *cx, JSClass *clasp, JSObject *proto, JSObject *parent,
-             uintN objectSize);
-
-
-
+js_NewObject(JSContext *cx, JSClass *clasp, JSObject *proto,
+             JSObject *parent, size_t objectSize = 0);
 
 
 
 
 extern JSObject *
 js_NewObjectWithGivenProto(JSContext *cx, JSClass *clasp, JSObject *proto,
-                           JSObject *parent, uintN objectSize);
+                           JSObject *parent, size_t objectSize = 0);
 
 
 
