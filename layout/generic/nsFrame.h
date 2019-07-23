@@ -542,11 +542,6 @@ protected:
 
   
 
-                 
-  PRBool HasBorder() const;
-
-  
-
 
 
 

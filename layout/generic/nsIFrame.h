@@ -727,6 +727,17 @@ public:
 
   
 
+                 
+  PRBool HasBorder() const
+  {
+    
+    
+    return (GetUsedBorder() != nsMargin(0,0,0,0) ||
+            GetStyleBorder()->IsBorderImageLoaded());
+  }
+
+  
+
 
   nsIFrame* GetParent() const { return mParent; }
   NS_IMETHOD SetParent(const nsIFrame* aParent) { mParent = (nsIFrame*)aParent; return NS_OK; }
