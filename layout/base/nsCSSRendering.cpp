@@ -262,6 +262,66 @@ protected:
   }
 };
 
+
+static void DrawBorderImage(nsPresContext* aPresContext,
+                            nsIRenderingContext& aRenderingContext,
+                            nsIFrame* aForFrame,
+                            const nsRect& aBorderArea,
+                            const nsStyleBorder& aBorderStyle);
+
+static void DrawBorderImageSide(gfxContext *aThebesContext,
+                                nsIDeviceContext* aDeviceContext,
+                                imgIContainer* aImage,
+                                gfxRect& aDestRect,
+                                gfxSize& aInterSize,
+                                gfxRect& aSourceRect,
+                                PRUint8 aHFillType,
+                                PRUint8 aVFillType);
+
+static void PaintBackgroundColor(nsPresContext* aPresContext,
+                                 nsIRenderingContext& aRenderingContext,
+                                 nsIFrame* aForFrame,
+                                 const nsRect& aBgClipArea,
+                                 const nsStyleBackground& aColor,
+                                 const nsStyleBorder& aBorder,
+                                 PRBool aCanPaintNonWhite);
+
+static void PaintRoundedBackground(nsPresContext* aPresContext,
+                                   nsIRenderingContext& aRenderingContext,
+                                   nsIFrame* aForFrame,
+                                   const nsRect& aBorderArea,
+                                   const nsStyleBackground& aColor,
+                                   const nsStyleBorder& aBorder,
+                                   nscoord aTheRadius[4],
+                                   PRBool aCanPaintNonWhite);
+
+static nscolor MakeBevelColor(PRIntn whichSide, PRUint8 style,
+                              nscolor aBackgroundColor,
+                              nscolor aBorderColor);
+
+static void DrawLine(nsIRenderingContext& aContext, 
+                     nscoord aX1, nscoord aY1, nscoord aX2, nscoord aY2,
+                     nsRect* aGap);
+
+static void FillPolygon(nsIRenderingContext& aContext, 
+                        const nsPoint aPoints[],
+                        PRInt32 aNumPoints,
+                        nsRect* aGap);
+
+static gfxRect GetTextDecorationRectInternal(const gfxPoint& aPt,
+                                             const gfxSize& aLineSize,
+                                             const gfxFloat aAscent,
+                                             const gfxFloat aOffset,
+                                             const PRUint8 aDecoration,
+                                             const PRUint8 aStyle);
+
+
+static PRBool GetBorderRadiusTwips(const nsStyleSides& aBorderRadius,
+                                   const nscoord& aFrameWidth,
+                                   PRInt32 aTwipsRadii[4]);
+
+
+
 static InlineBackgroundData* gInlineBGData = nsnull;
 
 
@@ -284,9 +344,10 @@ void nsCSSRendering::Shutdown()
 
 
 
-void nsCSSRendering::DrawLine (nsIRenderingContext& aContext, 
-                               nscoord aX1, nscoord aY1, nscoord aX2, nscoord aY2,
-                               nsRect* aGap)
+
+static void
+DrawLine (nsIRenderingContext& aContext, 
+          nscoord aX1, nscoord aY1, nscoord aX2, nscoord aY2, nsRect* aGap)
 {
   if (nsnull == aGap) {
     aContext.DrawLine(aX1, aY1, aX2, aY2);
@@ -310,12 +371,11 @@ void nsCSSRendering::DrawLine (nsIRenderingContext& aContext,
 
 
 
-void nsCSSRendering::FillPolygon (nsIRenderingContext& aContext, 
-                                  const nsPoint aPoints[],
-                                  PRInt32 aNumPoints,
-                                  nsRect* aGap)
-{
 
+static void
+FillPolygon (nsIRenderingContext& aContext, const nsPoint aPoints[],
+             PRInt32 aNumPoints, nsRect* aGap)
+{
   if (nsnull == aGap) {
     aContext.FillPolygon(aPoints, aNumPoints);
   } else if (4 == aNumPoints) {
@@ -369,9 +429,9 @@ void nsCSSRendering::FillPolygon (nsIRenderingContext& aContext,
 
 
 
-nscolor nsCSSRendering::MakeBevelColor(PRIntn whichSide, PRUint8 style,
-                                       nscolor aBackgroundColor,
-                                       nscolor aBorderColor)
+static nscolor
+MakeBevelColor(PRIntn whichSide, PRUint8 style,
+               nscolor aBackgroundColor, nscolor aBorderColor)
 {
 
   nscolor colors[2];
@@ -1125,10 +1185,9 @@ nsCSSRendering::DidPaint()
   gInlineBGData->Reset();
 }
 
- PRBool
-nsCSSRendering::GetBorderRadiusTwips(const nsStyleSides& aBorderRadius,
-                                     const nscoord& aFrameWidth,
-                                     nscoord aTwipsRadii[4])
+static PRBool
+GetBorderRadiusTwips(const nsStyleSides& aBorderRadius,
+                     const nscoord& aFrameWidth, nscoord aTwipsRadii[4])
 {
   nsStyleCoord bordStyleRadius[4];
   PRBool result = PR_FALSE;
@@ -1919,12 +1978,11 @@ nsCSSRendering::PaintBackgroundWithSC(nsPresContext* aPresContext,
 
 }
 
-void
-nsCSSRendering::DrawBorderImage(nsPresContext* aPresContext,
-                                nsIRenderingContext& aRenderingContext,
-                                nsIFrame* aForFrame,
-                                const nsRect& aBorderArea,
-                                const nsStyleBorder& aBorderStyle)
+static void
+DrawBorderImage(nsPresContext* aPresContext,
+                nsIRenderingContext& aRenderingContext,
+                nsIFrame* aForFrame, const nsRect& aBorderArea,
+                const nsStyleBorder& aBorderStyle)
 {
     float percent;
     nsStyleCoord borderImageSplit[4];
@@ -2182,15 +2240,15 @@ nsCSSRendering::DrawBorderImage(nsPresContext* aPresContext,
     thebesCtx->Restore();
 }
 
-void
-nsCSSRendering::DrawBorderImageSide(gfxContext *aThebesContext,
-                                    nsIDeviceContext* aDeviceContext,
-                                    imgIContainer* aImage,
-                                    gfxRect& aDestRect,
-                                    gfxSize& aInterSize,
-                                    gfxRect& aSourceRect,
-                                    PRUint8 aHFillType,
-                                    PRUint8 aVFillType)
+static void
+DrawBorderImageSide(gfxContext *aThebesContext,
+                    nsIDeviceContext* aDeviceContext,
+                    imgIContainer* aImage,
+                    gfxRect& aDestRect,
+                    gfxSize& aInterSize,
+                    gfxRect& aSourceRect,
+                    PRUint8 aHFillType,
+                    PRUint8 aVFillType)
 {
   if (aDestRect.size.width < 1.0 || aDestRect.size.height < 1.0 ||
       aSourceRect.size.width < 1.0 || aSourceRect.size.height < 1.0) {
@@ -2308,14 +2366,14 @@ nsCSSRendering::DrawBorderImageSide(gfxContext *aThebesContext,
   aThebesContext->Restore();
 }
 
-void
-nsCSSRendering::PaintBackgroundColor(nsPresContext* aPresContext,
-                                     nsIRenderingContext& aRenderingContext,
-                                     nsIFrame* aForFrame,
-                                     const nsRect& aBgClipArea,
-                                     const nsStyleBackground& aColor,
-                                     const nsStyleBorder& aBorder,
-                                     PRBool aCanPaintNonWhite)
+static void
+PaintBackgroundColor(nsPresContext* aPresContext,
+                     nsIRenderingContext& aRenderingContext,
+                     nsIFrame* aForFrame,
+                     const nsRect& aBgClipArea,
+                     const nsStyleBackground& aColor,
+                     const nsStyleBorder& aBorder,
+                     PRBool aCanPaintNonWhite)
 {
   
   
@@ -2354,19 +2412,15 @@ nsCSSRendering::PaintBackgroundColor(nsPresContext* aPresContext,
   aRenderingContext.FillRect(bgClipArea);
 }
 
-
-
-
-
-void
-nsCSSRendering::PaintRoundedBackground(nsPresContext* aPresContext,
-                                       nsIRenderingContext& aRenderingContext,
-                                       nsIFrame* aForFrame,
-                                       const nsRect& aBgClipArea,
-                                       const nsStyleBackground& aColor,
-                                       const nsStyleBorder& aBorder,
-                                       nscoord aTheRadius[4],
-                                       PRBool aCanPaintNonWhite)
+static void
+PaintRoundedBackground(nsPresContext* aPresContext,
+                       nsIRenderingContext& aRenderingContext,
+                       nsIFrame* aForFrame,
+                       const nsRect& aBgClipArea,
+                       const nsStyleBackground& aColor,
+                       const nsStyleBorder& aBorder,
+                       nscoord aTheRadius[4],
+                       PRBool aCanPaintNonWhite)
 {
   gfxContext *ctx = aRenderingContext.ThebesContext();
 
@@ -2918,13 +2972,13 @@ nsCSSRendering::GetTextDecorationRect(nsPresContext* aPresContext,
   return r;
 }
 
-gfxRect
-nsCSSRendering::GetTextDecorationRectInternal(const gfxPoint& aPt,
-                                              const gfxSize& aLineSize,
-                                              const gfxFloat aAscent,
-                                              const gfxFloat aOffset,
-                                              const PRUint8 aDecoration,
-                                              const PRUint8 aStyle)
+static gfxRect
+GetTextDecorationRectInternal(const gfxPoint& aPt,
+                              const gfxSize& aLineSize,
+                              const gfxFloat aAscent,
+                              const gfxFloat aOffset,
+                              const PRUint8 aDecoration,
+                              const PRUint8 aStyle)
 {
   gfxRect r;
   r.pos.x = NS_floor(aPt.x + 0.5);

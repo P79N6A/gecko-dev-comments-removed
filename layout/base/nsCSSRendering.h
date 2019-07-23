@@ -48,8 +48,7 @@ struct nsPoint;
 class nsStyleContext;
 class nsPresContext;
 
-class nsCSSRendering {
-public:
+struct nsCSSRendering {
   
 
 
@@ -169,16 +168,17 @@ public:
   static void DidPaint();
 
   
-  static void DrawTableBorderSegment(nsIRenderingContext&     aContext,
-                                     PRUint8                  aBorderStyle,  
-                                     nscolor                  aBorderColor,
+  
+  static void DrawTableBorderSegment(nsIRenderingContext& aContext,
+                                     PRUint8              aBorderStyle,  
+                                     nscolor              aBorderColor,
                                      const nsStyleBackground* aBGColor,
-                                     const nsRect&            aBorderRect,
-                                     PRInt32                  aAppUnitsPerCSSPixel,
-                                     PRUint8                  aStartBevelSide = 0,
-                                     nscoord                  aStartBevelOffset = 0,
-                                     PRUint8                  aEndBevelSide = 0,
-                                     nscoord                  aEndBevelOffset = 0);
+                                     const nsRect&        aBorderRect,
+                                     PRInt32              aAppUnitsPerCSSPixel,
+                                     PRUint8              aStartBevelSide = 0,
+                                     nscoord              aStartBevelOffset = 0,
+                                     PRUint8              aEndBevelSide = 0,
+                                     nscoord              aEndBevelOffset = 0);
   
 
 
@@ -251,65 +251,6 @@ public:
                                       const gfxFloat aOffset,
                                       const PRUint8 aDecoration,
                                       const PRUint8 aStyle);
-
-protected:
-
-  static void DrawBorderImage(nsPresContext* aPresContext,
-                              nsIRenderingContext& aRenderingContext,
-                              nsIFrame* aForFrame,
-                              const nsRect& aBorderArea,
-                              const nsStyleBorder& aBorderStyle);
-
-  static void DrawBorderImageSide(gfxContext *aThebesContext,
-                                  nsIDeviceContext* aDeviceContext,
-                                  imgIContainer* aImage,
-                                  gfxRect& aDestRect,
-                                  gfxSize& aInterSize,
-                                  gfxRect& aSourceRect,
-                                  PRUint8 aHFillType,
-                                  PRUint8 aVFillType);
-
-  static void PaintBackgroundColor(nsPresContext* aPresContext,
-                                   nsIRenderingContext& aRenderingContext,
-                                   nsIFrame* aForFrame,
-                                   const nsRect& aBgClipArea,
-                                   const nsStyleBackground& aColor,
-                                   const nsStyleBorder& aBorder,
-                                   PRBool aCanPaintNonWhite);
-
-  static void PaintRoundedBackground(nsPresContext* aPresContext,
-                                     nsIRenderingContext& aRenderingContext,
-                                     nsIFrame* aForFrame,
-                                     const nsRect& aBorderArea,
-                                     const nsStyleBackground& aColor,
-                                     const nsStyleBorder& aBorder,
-                                     nscoord aTheRadius[4],
-                                     PRBool aCanPaintNonWhite);
-
-  static nscolor MakeBevelColor(PRIntn whichSide, PRUint8 style,
-                                nscolor aBackgroundColor,
-                                nscolor aBorderColor);
-
-  static void DrawLine (nsIRenderingContext& aContext, 
-                        nscoord aX1, nscoord aY1, nscoord aX2, nscoord aY2,
-                        nsRect* aGap);
-
-  static void FillPolygon (nsIRenderingContext& aContext, 
-                           const nsPoint aPoints[],
-                           PRInt32 aNumPoints,
-                           nsRect* aGap);
-
-  static gfxRect GetTextDecorationRectInternal(const gfxPoint& aPt,
-                                               const gfxSize& aLineSize,
-                                               const gfxFloat aAscent,
-                                               const gfxFloat aOffset,
-                                               const PRUint8 aDecoration,
-                                               const PRUint8 aStyle);
-
-  
-  static PRBool GetBorderRadiusTwips(const nsStyleSides& aBorderRadius,
-                                     const nscoord& aFrameWidth,
-                                     PRInt32 aTwipsRadii[4]);
 };
 
 
@@ -358,8 +299,15 @@ public:
 
 
 
-  gfxContext* Init(const gfxRect& aRect, nscoord aBlurRadius, PRInt32 aAppUnitsPerDevPixel,
-                   gfxContext* aDestinationCtx);
+
+
+
+
+
+
+
+  gfxContext* Init(const gfxRect& aRect, nscoord aBlurRadius,
+                   PRInt32 aAppUnitsPerDevPixel, gfxContext* aDestinationCtx);
 
   
 
