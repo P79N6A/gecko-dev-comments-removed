@@ -127,8 +127,8 @@ typedef struct CapturingContentInfo {
 } CapturingContentInfo;
 
 #define NS_IPRESSHELL_IID     \
-{ 0x94c34e88, 0x2da3, 0x49d4, \
-  { 0xa5, 0x35, 0x51, 0xa4, 0x16, 0x92, 0xa5, 0x79 } }
+{ 0xc8f0b83e, 0x7457, 0x4367, \
+  { 0xa9, 0x82, 0xe1, 0xfa, 0x11, 0xf9, 0x60, 0xbc } }
 
 
 #define NS_PRESSHELL_SCROLL_TOP      0
@@ -235,9 +235,9 @@ public:
 
   nsIDocument* GetDocument() const { return mDocument; }
 
-  nsPresContext* GetPresContext() { return mPresContext; }
+  nsPresContext* GetPresContext() const { return mPresContext; }
 
-  nsIViewManager* GetViewManager() { return mViewManager; }
+  nsIViewManager* GetViewManager() const { return mViewManager; }
 
 #ifdef _IMPL_NS_LAYOUT
   nsStyleSet*  StyleSet() { return mStyleSet; }
@@ -428,7 +428,7 @@ public:
   
 
 
-  NS_IMETHOD RecreateFramesFor(nsIContent* aContent) = 0;
+  virtual NS_HIDDEN_(nsresult) RecreateFramesFor(nsIContent* aContent) = 0;
 
   void PostRecreateFramesFor(nsIContent* aContent);
   void RestyleForAnimation(nsIContent* aContent);
@@ -438,7 +438,7 @@ public:
 
 
 
-  virtual NS_HIDDEN_(PRBool) IsSafeToFlush() = 0;
+  virtual NS_HIDDEN_(PRBool) IsSafeToFlush() const = 0;
 
   
 
@@ -455,27 +455,17 @@ public:
 
 
 
-  NS_IMETHOD PostReflowCallback(nsIReflowCallback* aCallback) = 0;
-  NS_IMETHOD CancelReflowCallback(nsIReflowCallback* aCallback) = 0;
+  virtual NS_HIDDEN_(nsresult) PostReflowCallback(nsIReflowCallback* aCallback) = 0;
+  virtual NS_HIDDEN_(void) CancelReflowCallback(nsIReflowCallback* aCallback) = 0;
 
-  NS_IMETHOD ClearFrameRefs(nsIFrame* aFrame) = 0;
-
-  
-
-
-
-  NS_IMETHOD CreateRenderingContext(nsIFrame *aFrame,
-                                    nsIRenderingContext** aContext) = 0;
+  virtual NS_HIDDEN_(void) ClearFrameRefs(nsIFrame* aFrame) = 0;
 
   
 
 
 
-
-
-
-
-  NS_IMETHOD GoToAnchor(const nsAString& aAnchorName, PRBool aScroll) = 0;
+  virtual NS_HIDDEN_(nsresult) CreateRenderingContext(nsIFrame *aFrame,
+                                                      nsIRenderingContext** aContext) = 0;
 
   
 
@@ -485,7 +475,17 @@ public:
 
 
 
-  NS_IMETHOD ScrollToAnchor() = 0;
+  virtual NS_HIDDEN_(nsresult) GoToAnchor(const nsAString& aAnchorName, PRBool aScroll) = 0;
+
+  
+
+
+
+
+
+
+
+  virtual NS_HIDDEN_(nsresult) ScrollToAnchor() = 0;
 
   
 
@@ -516,9 +516,9 @@ public:
 
 
 
-  NS_IMETHOD ScrollContentIntoView(nsIContent* aContent,
-                                   PRIntn      aVPercent,
-                                   PRIntn      aHPercent) = 0;
+  virtual NS_HIDDEN_(nsresult) ScrollContentIntoView(nsIContent* aContent,
+                                                     PRIntn      aVPercent,
+                                                     PRIntn      aHPercent) = 0;
 
   enum {
     SCROLL_FIRST_ANCESTOR_ONLY = 0x01,
@@ -568,31 +568,31 @@ public:
 
 
 
-  NS_IMETHOD SetIgnoreFrameDestruction(PRBool aIgnore) = 0;
+  virtual NS_HIDDEN_(void) SetIgnoreFrameDestruction(PRBool aIgnore) = 0;
 
   
 
 
 
 
-  NS_IMETHOD NotifyDestroyingFrame(nsIFrame* aFrame) = 0;
+  virtual NS_HIDDEN_(void) NotifyDestroyingFrame(nsIFrame* aFrame) = 0;
 
   
 
 
-  NS_IMETHOD GetLinkLocation(nsIDOMNode* aNode, nsAString& aLocation) = 0;
+  virtual NS_HIDDEN_(nsresult) GetLinkLocation(nsIDOMNode* aNode, nsAString& aLocation) = 0;
 
   
 
 
-  NS_IMETHOD GetCaret(nsCaret **aOutCaret) = 0;
+  virtual NS_HIDDEN_(already_AddRefed<nsCaret>) GetCaret() = 0;
 
   
 
 
 
 
-  NS_IMETHOD_(void) MaybeInvalidateCaretPosition() = 0;
+  virtual NS_HIDDEN_(void) MaybeInvalidateCaretPosition() = 0;
 
   
 
@@ -652,41 +652,41 @@ public:
   
 
 
-  NS_IMETHOD GetEventTargetFrame(nsIFrame** aFrame) = 0;
+  virtual NS_HIDDEN_(nsIFrame*) GetEventTargetFrame() = 0;
 
   
 
 
-  NS_IMETHOD GetEventTargetContent(nsEvent* aEvent, nsIContent** aContent) = 0;
-
-  
-
-
-
-  NS_IMETHOD CaptureHistoryState(nsILayoutHistoryState** aLayoutHistoryState, PRBool aLeavingPage = PR_FALSE) = 0;
+  virtual NS_HIDDEN_(already_AddRefed<nsIContent>) GetEventTargetContent(nsEvent* aEvent) = 0;
 
   
 
 
 
-  NS_IMETHOD IsReflowLocked(PRBool* aIsLocked) = 0;  
+  virtual NS_HIDDEN_(nsresult) CaptureHistoryState(nsILayoutHistoryState** aLayoutHistoryState, PRBool aLeavingPage = PR_FALSE) = 0;
+
+  
+
+
+
+  virtual NS_HIDDEN_(PRBool) IsReflowLocked() const = 0;
 
   
 
 
 
 
-  NS_IMETHOD IsPaintingSuppressed(PRBool* aResult)=0;
+  virtual NS_HIDDEN_(PRBool) IsPaintingSuppressed() const = 0;
 
   
 
 
-  NS_IMETHOD UnsuppressPainting() = 0;
+  virtual NS_HIDDEN_(void) UnsuppressPainting() = 0;
 
   
 
 
-  NS_IMETHOD DisableThemeSupport() = 0;
+  virtual NS_HIDDEN_(void) DisableThemeSupport() = 0;
 
   
 

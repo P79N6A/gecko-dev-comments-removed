@@ -1576,8 +1576,7 @@ nsPlaintextEditor::SetCompositionString(const nsAString& aCompositionString, nsI
   nsresult result = GetSelection(getter_AddRefs(selection));
   if (NS_FAILED(result)) return result;
 
-  nsRefPtr<nsCaret> caretP;
-  ps->GetCaret(getter_AddRefs(caretP));
+  nsRefPtr<nsCaret> caretP = ps->GetCaret();
 
   
   
