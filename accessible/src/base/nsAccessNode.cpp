@@ -685,12 +685,8 @@ already_AddRefed<nsIDOMNode> nsAccessNode::GetCurrentFocus()
   }
   nsCOMPtr<nsIDOMElement> focusedElement;
   focusController->GetFocusedElement(getter_AddRefs(focusedElement));
-  if (!focusedElement) {
-    return nsnull;
-  }
   nsIDOMNode *focusedNode;
-  focusedElement->QueryInterface(NS_GET_IID(nsIDOMNode), (void**)&focusedNode);
-  if (!focusedNode) {
+  if (!focusedElement) {
     
     nsCOMPtr<nsIDOMWindowInternal> focusedWinInternal;
     focusController->GetFocusedWindow(getter_AddRefs(focusedWinInternal));
@@ -700,5 +696,9 @@ already_AddRefed<nsIDOMNode> nsAccessNode::GetCurrentFocus()
       focusedDOMDocument->QueryInterface(NS_GET_IID(nsIDOMNode), (void**)&focusedNode);
     }
   }
+  else {
+    focusedElement->QueryInterface(NS_GET_IID(nsIDOMNode), (void**)&focusedNode);
+  }
+
   return focusedNode;
 }

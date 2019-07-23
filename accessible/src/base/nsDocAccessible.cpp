@@ -202,7 +202,13 @@ nsDocAccessible::GetState(PRUint32 *aState, PRUint32 *aExtraState)
   
   nsAccessible::GetState(aState, aExtraState);
 
-  *aState |= nsIAccessibleStates::STATE_FOCUSABLE;
+  nsCOMPtr<nsIXULDocument> xulDoc(do_QueryInterface(mDocument));
+  if (!xulDoc) {
+    
+    
+    
+    *aState |= nsIAccessibleStates::STATE_FOCUSABLE;
+  }
 
   if (!mIsContentLoaded) {
     *aState |= nsIAccessibleStates::STATE_BUSY;

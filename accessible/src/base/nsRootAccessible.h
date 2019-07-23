@@ -90,10 +90,19 @@ class nsRootAccessible : public nsDocAccessibleWrap,
     
     NS_DECLARE_STATIC_IID_ACCESSOR(NS_ROOTACCESSIBLE_IMPL_CID)
 
-    void FireAccessibleFocusEvent(nsIAccessible *focusAccessible,
-                                  nsIDOMNode *focusNode,
-                                  nsIDOMEvent *aFocusEvent,
-                                  PRBool aForceEvent = PR_FALSE);
+    
+
+
+
+
+
+
+
+
+    PRBool FireAccessibleFocusEvent(nsIAccessible *aFocusAccessible,
+                                    nsIDOMNode *aFocusNode,
+                                    nsIDOMEvent *aFocusEvent,
+                                    PRBool aForceEvent = PR_FALSE);
 
   private:
     nsCOMPtr<nsITimer> mFireFocusTimer;

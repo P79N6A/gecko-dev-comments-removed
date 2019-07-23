@@ -179,8 +179,8 @@ nsresult nsRootAccessibleWrap::HandleEventWithTarget(nsIDOMEvent *aEvent,
                 privAcc->FireToolkitEvent(nsIAccessibleEvent::EVENT_FOCUS, radioAcc, nsnull);
             }
         }
-        else {
-            FireAccessibleFocusEvent(accessible, aTargetNode, aEvent);
+        else if (!FireAccessibleFocusEvent(accessible, aTargetNode, aEvent)) {
+            accessible = nsnull;  
         }
         if (accessible) {
             
