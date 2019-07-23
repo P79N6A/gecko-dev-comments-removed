@@ -1385,7 +1385,6 @@ nsBindingManager::ContentAppended(nsIDocument* aDocument,
 
       if (nodeList && isAnonymousContentList) {
         
-        
         nsAnonymousContentList* contentList =
           static_cast<nsAnonymousContentList*>(nodeList.get());
 
@@ -1424,13 +1423,33 @@ nsBindingManager::ContentInserted(nsIDocument* aDocument,
   }
 }
 
+static void
+RemoveChildFromInsertionPoint(nsAnonymousContentList* aInsertionPointList,
+                              nsIContent* aChild,
+                              PRBool aRemoveFromPseudoPoints)
+{
+  
+  
+  
+  
+  
+  PRInt32 count = aInsertionPointList->GetInsertionPointCount();
+  for (PRInt32 i = 0; i < count; i++) {
+    nsXBLInsertionPoint* point =
+      aInsertionPointList->GetInsertionPointAt(i);
+    if ((point->GetInsertionIndex() == -1) == aRemoveFromPseudoPoints) {
+      point->RemoveChild(aChild);
+    }
+  }
+}
+
 void
 nsBindingManager::ContentRemoved(nsIDocument* aDocument,
                                  nsIContent* aContainer,
                                  nsIContent* aChild,
                                  PRInt32 aIndexInContainer)
 {
-  if (aIndexInContainer != -1 &&
+  if (aContainer && aIndexInContainer != -1 &&
       (mContentListTable.ops || mAnonymousNodesTable.ops)) {
     
     nsCOMPtr<nsIContent> point = GetNestedInsertionPoint(aContainer, aChild);
@@ -1443,17 +1462,26 @@ nsBindingManager::ContentRemoved(nsIDocument* aDocument,
       
       if (nodeList && isAnonymousContentList) {
         
-        nsAnonymousContentList* contentList = static_cast<nsAnonymousContentList*>(static_cast<nsIDOMNodeList*>(nodeList));
-        PRInt32 count = contentList->GetInsertionPointCount();
-        for (PRInt32 i =0; i < count; i++) {
-          nsXBLInsertionPoint* point = contentList->GetInsertionPointAt(i);
-          if (point->GetInsertionIndex() != -1) {
-            point->RemoveChild(aChild);
-          }
-        }
+        RemoveChildFromInsertionPoint(static_cast<nsAnonymousContentList*>
+                                        (static_cast<nsIDOMNodeList*>
+                                                    (nodeList)),
+                                      aChild,
+                                      PR_FALSE);
         SetInsertionParent(aChild, nsnull);
       }
-    }  
+    }
+
+    
+    
+    
+    if (mContentListTable.ops) {
+      nsAnonymousContentList* insertionPointList =
+        static_cast<nsAnonymousContentList*>(LookupObject(mContentListTable,
+                                                          aContainer));
+      if (insertionPointList) {
+        RemoveChildFromInsertionPoint(insertionPointList, aChild, PR_TRUE);
+      }
+    }
   }
 }
 
@@ -1534,7 +1562,7 @@ nsBindingManager::HandleChildInsertion(nsIContent* aContainer,
 {
   NS_PRECONDITION(aChild, "Must have child");
   NS_PRECONDITION(!aContainer ||
-                  aContainer->IndexOf(aChild) == aIndexInContainer,
+                  PRUint32(aContainer->IndexOf(aChild)) == aIndexInContainer,
                   "Child not at the right index?");
 
   nsIContent* ins = GetNestedInsertionPoint(aContainer, aChild);
@@ -1546,6 +1574,8 @@ nsBindingManager::HandleChildInsertion(nsIContent* aContainer,
                              &isAnonymousContentList);
 
     if (nodeList && isAnonymousContentList) {
+      
+      
       
       
       nsAnonymousContentList* contentList =
