@@ -1111,28 +1111,23 @@ js_StartRecorder(JSContext* cx, GuardRecord* anchor, Fragment* f, uint8* typeMap
 static bool
 js_IsLoopExit(JSContext* cx, JSScript* script, jsbytecode* pc)
 {
-    
-    jssrcnote* sn = js_GetSrcNote(script, pc);
-    JSSrcNoteType type = sn ? SN_TYPE(sn) : SRC_NULL;
-
     switch (*pc) {
+      case JSOP_LT:
+      case JSOP_GT:
+      case JSOP_LE:
+      case JSOP_GE:
+      case JSOP_NE:
+      case JSOP_EQ:
+        JS_ASSERT(js_CodeSpec[*pc].length == 1);
+        pc++;
+        
       case JSOP_IFEQ:
-      case JSOP_IFEQX:
-        
-        return type != SRC_IF && type != SRC_IF_ELSE && type != SRC_COND;
-
       case JSOP_IFNE:
-      case JSOP_IFNEX:
-        
-        return true;
-
-      case JSOP_GOTO:
-      case JSOP_GOTOX:
-        
-        return type == SRC_BREAK2LABEL || type == SRC_HIDDEN;
-
-      default:
-        return true;
+        ptrdiff_t offset = GET_JUMP_OFFSET(pc);
+        if (offset < 0)
+            return true;
+         break;
+      default:;
     }
     return false;
 }
