@@ -1098,23 +1098,32 @@ ComputeSizeFromParts(nsPresContext* aPresContext,
                      PRUint32     aHint)
 {
   enum {first, middle, last, glue};
-  float flex[] = {0.901f, 0.901f, 0.901f};
   
-  if (aGlyphs[glue] == aGlyphs[middle]) flex[middle] = 0.0f;
-  if (aGlyphs[glue] == aGlyphs[first]) flex[first] = 0.0f;
-  if (aGlyphs[glue] == aGlyphs[last]) flex[last] = 0.0f;
-
-  
-  nscoord computedSize = nscoord(flex[first] * aSizes[first] +
-                                 flex[middle] * aSizes[middle] +
-                                 flex[last] * aSizes[last]);
-
-  if (computedSize <= aTargetSize) {
-    
-    return aTargetSize;
+  nscoord sum = 0;
+  for (PRInt32 i = first; i <= last; i++) {
+    if (aGlyphs[i] != aGlyphs[glue]) {
+      sum += aSizes[i];
+    }
   }
+
   
-  return computedSize;
+  const float flex = 0.901f;
+  nscoord minSize = NSToCoordRound(flex * sum);
+
+  if (minSize > aTargetSize)
+    return minSize; 
+
+  
+  
+  const PRInt32 maxGlyphs = 1000;
+  
+  
+  nscoord maxSize = sum + maxGlyphs * aSizes[glue];
+  if (maxSize < aTargetSize)
+    return maxSize; 
+
+  
+  return aTargetSize;
 }
 
 
@@ -1350,8 +1359,13 @@ nsMathMLChar::TryParts(nsPresContext*       aPresContext,
     
     if (!ch.Exists()) ch = glue;
     nsBoundingMetrics bm;
-    
-    if (ch.Exists()) {
+    chdata[i] = ch;
+    if (!ch.Exists()) {
+      
+      
+      sizedata[i] = aTargetSize;
+    }
+    else {
       SetFontFamily(aRenderingContext, font, aGlyphTable, ch, aFamily);
       nsresult rv = aRenderingContext.GetBoundingMetrics(&ch.code, 1, bm);
       if (NS_FAILED(rv)) {
@@ -1363,11 +1377,10 @@ nsMathMLChar::TryParts(nsPresContext*       aPresContext,
       
       
       
+      bmdata[i] = bm;
+      sizedata[i] = isVertical ? bm.ascent + bm.descent
+                               : bm.rightBearing - bm.leftBearing;
     }
-    chdata[i] = ch;
-    bmdata[i] = bm;
-    sizedata[i] = isVertical ? bm.ascent + bm.descent
-                             : bm.rightBearing - bm.leftBearing;
   }
 
   
@@ -2198,16 +2211,23 @@ nsMathMLChar::PaintVertically(nsPresContext*      aPresContext,
       last++;
     }
   }
-  else { 
+  else if (bmdata[3].ascent + bmdata[3].descent > 0) {
+    
     nscoord overlap;
     nsCOMPtr<nsIFontMetrics> fm;
     aRenderingContext.GetFontMetrics(*getter_AddRefs(fm));
     nsMathMLFrame::GetRuleThickness(fm, overlap);
     overlap = 2 * PR_MAX(overlap, onePixel);
+    
     while (overlap > 0 && bmdata[3].ascent + bmdata[3].descent <= 2*overlap + onePixel)
       overlap -= onePixel;
 
     if (overlap > 0) {
+      
+      
+      
+      
+      
       
       
       bmdata[3].ascent -= overlap;
@@ -2235,11 +2255,6 @@ nsMathMLChar::PaintVertically(nsPresContext*      aPresContext,
           bm = bmdata[3]; 
           stride += bm.ascent;
         }
-        
-        NS_ASSERTION(1000 != count, "something is probably wrong somewhere");
-        if (stride < onePixel || 1000 == count) {
-          return NS_ERROR_UNEXPECTED;
-        }
         dy += stride;
         aRenderingContext.DrawString(&glue.code, 1, dx, dy);
       }
@@ -2252,6 +2267,12 @@ nsMathMLChar::PaintVertically(nsPresContext*      aPresContext,
 #endif
     }
   }
+#ifdef DEBUG
+  else { 
+    NS_ASSERTION(end[0] >= start[1] && end[1] >= start[2],
+                 "gap between parts with no glue");
+  }
+#endif
   return NS_OK;
 }
 
@@ -2393,12 +2414,14 @@ nsMathMLChar::PaintHorizontally(nsPresContext*      aPresContext,
       last++;
     }
   }
-  else { 
+  else if (bmdata[3].rightBearing - bmdata[3].leftBearing > 0) {
+    
     nscoord overlap;
     nsCOMPtr<nsIFontMetrics> fm;
     aRenderingContext.GetFontMetrics(*getter_AddRefs(fm));
     nsMathMLFrame::GetRuleThickness(fm, overlap);
     overlap = 2 * PR_MAX(overlap, onePixel);
+    
     while (overlap > 0 && bmdata[3].rightBearing - bmdata[3].leftBearing <= 2*overlap + onePixel)
       overlap -= onePixel;
 
@@ -2430,11 +2453,6 @@ nsMathMLChar::PaintHorizontally(nsPresContext*      aPresContext,
           bm = bmdata[3]; 
           stride -= bm.leftBearing;
         }
-        
-        NS_ASSERTION(1000 != count, "something is probably wrong somewhere");
-        if (stride < onePixel || 1000 == count) {
-          return NS_ERROR_UNEXPECTED;
-        }
         dx += stride;
         aRenderingContext.DrawString(&glue.code, 1, dx, dy);
       }
@@ -2447,5 +2465,11 @@ nsMathMLChar::PaintHorizontally(nsPresContext*      aPresContext,
 #endif
     }
   }
+#ifdef DEBUG
+  else { 
+    NS_ASSERTION(end[0] >= start[1] && end[1] >= start[2],
+                 "gap between parts with no glue");
+  }
+#endif
   return NS_OK;
 }
