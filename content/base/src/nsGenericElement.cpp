@@ -2786,6 +2786,8 @@ nsGenericElement::doPreHandleEvent(nsIContent* aContent,
 {
   
   aVisitor.mCanHandle = PR_TRUE;
+  aVisitor.mMayHaveListenerManager =
+    aContent->HasFlag(NODE_HAS_LISTENERMANAGER);
 
   
   
