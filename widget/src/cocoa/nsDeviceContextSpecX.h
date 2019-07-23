@@ -40,7 +40,6 @@
 #define nsDeviceContextSpecX_h_
 
 #include "nsIDeviceContextSpec.h"
-#include "nsIPrintingContext.h"
 
 #include <PMApplication.h>
 
@@ -71,30 +70,10 @@ public:
 
 
 
-
-
-
     NS_IMETHOD Init(nsIWidget *aWidget, nsIPrintSettings* aPS, PRBool aIsPrintPreview);
-    NS_IMETHOD Init(nsIPrintSettings* aPS, PRBool aIsPrintPreview);
-
     
+    void GetPageRect(double* aTop, double* aLeft, double* aBottom, double* aRight);
 
-
-
-
-
-    NS_IMETHOD PrintManagerOpen(PRBool* aIsOpen);
-
-    
-
-
-
-
-    NS_IMETHOD ClosePrintManager();
-
-    NS_IMETHOD GetPrinterResolution(double* aResolution);
-    
-    NS_IMETHOD GetPageRect(double* aTop, double* aLeft, double* aBottom, double* aRight);
 protected:
 
 
@@ -107,7 +86,6 @@ protected:
     PMPrintSession    mPrintSession;              
     PMPageFormat      mPageFormat;                
     PMPrintSettings   mPrintSettings;             
-    PRBool            mBeganPrinting;
 };
 
 #endif 
