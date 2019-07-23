@@ -247,6 +247,14 @@ JS_STATIC_ASSERT(sizeof(JSObject) % sizeof(JSGCThing) == 0);
 
 
 
+JS_STATIC_ASSERT(GC_FREELIST_INDEX(sizeof(JSFunction)) !=
+                 GC_FREELIST_INDEX(sizeof(JSObject)));
+
+
+
+
+
+
 typedef struct JSPtrTableInfo {
     uint16      minCapacity;
     uint16      linearGrowthThreshold;
@@ -532,7 +540,7 @@ static GCFinalizeOp gc_finalizers[GCX_NTYPES] = {
     (GCFinalizeOp) js_FinalizeString,           
     (GCFinalizeOp) js_FinalizeDouble,           
     (GCFinalizeOp) js_FinalizeString,           
-    (GCFinalizeOp) js_FinalizeFunction,         
+    NULL,                                       
     (GCFinalizeOp) js_FinalizeXMLNamespace,     
     (GCFinalizeOp) js_FinalizeXMLQName,         
     (GCFinalizeOp) js_FinalizeXML,              
@@ -1914,17 +1922,6 @@ gc_dump_thing(JSContext *cx, JSGCThing *thing, FILE *fp)
         fprintf(fp, "object %8p %s", privateThing, className);
         break;
       }
-      case GCX_FUNCTION:
-      {
-        JSFunction *fun = (JSFunction *)thing;
-
-        fprintf(fp, "function");
-        if (fun->atom && ATOM_IS_STRING(fun->atom)) {
-            fputc(' ', fp);
-            js_FileEscapedString(fp, ATOM_TO_STRING(fun->atom), 0);
-        }
-        break;
-      }
 #if JS_HAS_XML_SUPPORT
       case GCX_NAMESPACE:
       {
@@ -1960,6 +1957,9 @@ gc_dump_thing(JSContext *cx, JSGCThing *thing, FILE *fp)
 #endif
       case GCX_DOUBLE:
         fprintf(fp, "double %g", *(jsdouble *)thing);
+        break;
+      case GCX_PRIVATE:
+        fprintf(fp, "private %8p", (void *)thing);
         break;
       default:
         fputs("string ", fp);
@@ -2204,12 +2204,6 @@ MarkGCThingChildren(JSContext *cx, void *thing, uint8 *flagp,
         goto start;
 #endif
 
-      case GCX_FUNCTION:
-        if (RECURSION_TOO_DEEP())
-            goto add_to_unscanned_bag;
-        js_MarkFunction(cx, (JSFunction *)thing);
-        break;
-
 #if JS_HAS_XML_SUPPORT
       case GCX_NAMESPACE:
         if (RECURSION_TOO_DEEP())
@@ -2441,7 +2435,6 @@ ScanDelayedChildren(JSContext *cx)
 
                 switch (*flagp & GCF_TYPEMASK) {
                   case GCX_OBJECT:
-                  case GCX_FUNCTION:
 # if JS_HAS_XML_SUPPORT
                   case GCX_NAMESPACE:
                   case GCX_QNAME:
@@ -3069,13 +3062,16 @@ restart:
 
 
 
+
+
+
+
     for (i = 0; i < GC_NUM_FREELISTS; i++) {
         arenaList = &rt->gcArenaList[i == 0
                                      ? GC_FREELIST_INDEX(sizeof(JSObject))
                                      : i == GC_FREELIST_INDEX(sizeof(JSObject))
                                      ? 0
                                      : i];
-        arenaList = &rt->gcArenaList[i];
         nbytes = arenaList->thingSize;
         limit = arenaList->lastLimit;
         for (a = arenaList->last; a; a = a->prev) {

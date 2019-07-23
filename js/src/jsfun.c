@@ -969,36 +969,6 @@ static JSPropertySpec function_props[] = {
     {0,0,0,0,0}
 };
 
-void
-js_MarkFunction(JSContext *cx, JSFunction *fun)
-{
-    if (0) {
-        
-
-
-
-
-
-        if (fun->object)
-            GC_MARK(cx, fun->object, "object");
-    }
-    if (fun->atom)
-        GC_MARK_ATOM(cx, fun->atom);
-    if (FUN_INTERPRETED(fun) && fun->u.i.script)
-        js_MarkScript(cx, fun->u.i.script);
-}
-
-void
-js_FinalizeFunction(JSContext *cx, JSFunction *fun)
-{
-    
-
-
-
-    if (FUN_INTERPRETED(fun) && fun->u.i.script)
-        js_DestroyScript(cx, fun->u.i.script);
-}
-
 static JSBool
 fun_getProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 {
@@ -1208,6 +1178,36 @@ fun_convert(JSContext *cx, JSObject *obj, JSType type, jsval *vp)
         return JS_TRUE;
       default:
         return js_TryValueOf(cx, obj, type, vp);
+    }
+}
+
+static void
+fun_finalize(JSContext *cx, JSObject *obj)
+{
+    JSFunction *fun;
+    JSScript *script;
+
+    
+    fun = (JSFunction *) JS_GetPrivate(cx, obj);
+    if (!fun)
+        return;
+
+    if (fun->object == obj)
+        fun->object = NULL;
+
+    
+
+
+
+
+
+
+    if (FUN_INTERPRETED(fun) && fun->u.i.script &&
+        js_IsAboutToBeFinalized(cx, fun))
+    {
+        script = fun->u.i.script;
+        fun->u.i.script = NULL;
+        js_DestroyScript(cx, script);
     }
 }
 
@@ -1444,8 +1444,13 @@ fun_mark(JSContext *cx, JSObject *obj, void *arg)
     JSFunction *fun;
 
     fun = (JSFunction *) JS_GetPrivate(cx, obj);
-    if (fun)
+    if (fun) {
         GC_MARK(cx, fun, "private");
+        if (fun->atom)
+            GC_MARK_ATOM(cx, fun->atom);
+        if (FUN_INTERPRETED(fun) && fun->u.i.script)
+            js_MarkScript(cx, fun->u.i.script);
+    }
     return 0;
 }
 
@@ -1470,7 +1475,7 @@ JS_FRIEND_DATA(JSClass) js_FunctionClass = {
     JS_PropertyStub,  JS_PropertyStub,
     fun_getProperty,  JS_PropertyStub,
     fun_enumerate,    (JSResolveOp)fun_resolve,
-    fun_convert,      JS_FinalizeStub,
+    fun_convert,      fun_finalize,
     NULL,             NULL,
     NULL,             NULL,
     fun_xdrObject,    fun_hasInstance,
@@ -2123,7 +2128,7 @@ js_NewFunction(JSContext *cx, JSObject *funobj, JSNative native, uintN nargs,
 
 
 
-    fun = (JSFunction *) js_NewGCThing(cx, GCX_FUNCTION, sizeof(JSFunction));
+    fun = (JSFunction *) js_NewGCThing(cx, GCX_PRIVATE, sizeof(JSFunction));
     if (!fun)
         goto out;
 
