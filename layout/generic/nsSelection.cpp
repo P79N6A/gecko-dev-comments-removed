@@ -381,7 +381,7 @@ private:
 };
 
 
-class nsSelectionBatcher
+class NS_STACK_CLASS NS_FINAL_CLASS nsSelectionBatcher
 {
 private:
   nsCOMPtr<nsISelectionPrivate> mSelection;
@@ -390,7 +390,7 @@ public:
   {
     if (mSelection) mSelection->StartBatchChanges();
   }
-  virtual ~nsSelectionBatcher() 
+  ~nsSelectionBatcher() 
   { 
     if (mSelection) mSelection->EndBatchChanges();
   }

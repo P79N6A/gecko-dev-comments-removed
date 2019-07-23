@@ -204,7 +204,7 @@ NS_NewCaret(nsICaret** aInstancePtrResult);
 
 
 
-class StCaretHider
+class NS_STACK_CLASS StCaretHider
 {
 public:
                StCaretHider(nsICaret* aSelCon)

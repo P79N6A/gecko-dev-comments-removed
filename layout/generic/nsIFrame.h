@@ -945,7 +945,7 @@ public:
   
   
   
-  struct ContentOffsets {
+  struct NS_STACK_CLASS ContentOffsets {
     nsCOMPtr<nsIContent> content;
     PRBool IsNull() { return !content; }
     PRInt32 offset;
@@ -978,7 +978,7 @@ public:
 
 
 
-  struct Cursor {
+  struct NS_STACK_CLASS Cursor {
     nsCOMPtr<imgIContainer> mContainer;
     PRInt32                 mCursor;
     PRBool                  mHaveHotspot;

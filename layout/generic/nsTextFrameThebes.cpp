@@ -1977,7 +1977,7 @@ static PRBool IsInBounds(const gfxSkipCharsIterator& aStart, PRInt32 aContentLen
 }
 #endif
 
-class PropertyProvider : public gfxTextRun::PropertyProvider {
+class NS_STACK_CLASS PropertyProvider : public gfxTextRun::PropertyProvider {
 public:
   
 
@@ -4710,7 +4710,7 @@ nsTextFrame::PeekOffsetNoAmount(PRBool aForward, PRInt32* aOffset)
 
 
 
-class ClusterIterator {
+class NS_STACK_CLASS ClusterIterator {
 public:
   ClusterIterator(nsTextFrame* aTextFrame, PRInt32 aPosition, PRInt32 aDirection,
                   nsString& aContext);

@@ -117,7 +117,7 @@ class nsDisplayTableItem;
 
 
 
-class nsDisplayListBuilder {
+class NS_STACK_CLASS nsDisplayListBuilder {
 public:
   
 

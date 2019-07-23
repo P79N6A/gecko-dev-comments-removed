@@ -52,7 +52,7 @@
 
 
 
-class ChildIterator
+class NS_STACK_CLASS ChildIterator
 {
 protected:
   nsCOMPtr<nsIContent> mContent;

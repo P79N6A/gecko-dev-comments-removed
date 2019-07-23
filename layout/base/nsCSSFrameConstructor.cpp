@@ -1127,7 +1127,7 @@ private:
 
 
 
-class nsFrameConstructorState {
+class NS_STACK_CLASS nsFrameConstructorState {
 public:
   nsPresContext            *mPresContext;
   nsIPresShell             *mPresShell;
@@ -1731,7 +1731,7 @@ MoveChildrenTo(nsFrameManager*          aFrameManager,
 
 
 
-struct nsAutoEnqueueBinding
+struct NS_STACK_CLASS nsAutoEnqueueBinding
 {
   nsAutoEnqueueBinding(nsIDocument* aDocument) :
     mDocument(aDocument)

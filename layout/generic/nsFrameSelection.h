@@ -77,7 +77,7 @@ enum EWordMovementType { eStartWord, eEndWord, eDefaultBehavior };
 
 
 
-struct nsPeekOffsetStruct
+struct NS_STACK_CLASS nsPeekOffsetStruct
 {
   void SetData(nsSelectionAmount aAmount,
                nsDirection aDirection,
