@@ -82,7 +82,7 @@ oggplay_seek(OggPlay *me, ogg_int64_t milliseconds) {
 
 
 
-  trash = malloc(sizeof(OggPlaySeekTrash));
+  trash = calloc(sizeof(OggPlaySeekTrash), 1);
 
   
 

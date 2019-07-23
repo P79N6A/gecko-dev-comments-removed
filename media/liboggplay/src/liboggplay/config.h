@@ -74,7 +74,7 @@
 #define STDC_HEADERS 1
 
 
-#define VERSION "0.0.1.svn"
+#define VERSION "0.0.1"
 
 
 
