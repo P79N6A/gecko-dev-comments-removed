@@ -185,10 +185,7 @@ public:
 
 
 
-
-
-
-  nsresult Reset(PRBool* aTrailingBreak);
+  nsresult Reset() { return FlushCurrentWord(); }
 
 private:
   
