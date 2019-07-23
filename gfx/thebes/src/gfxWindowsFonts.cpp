@@ -1533,12 +1533,20 @@ public:
             PRUnichar str[1] = { (PRUnichar)ch };
             WORD glyph[1];
 
+            PRBool hasGlyph = PR_FALSE;
+            if (aFontEntry->mIsType1) {
+                
+                DWORD ret = GetGlyphIndicesW(dc, str, 1, glyph, GGI_MARK_NONEXISTING_GLYPHS);
+                if (ret != GDI_ERROR && glyph[0] != 0xFFFF)
+                    hasGlyph = PR_TRUE;
+            } else {
             
             HRESULT rv = ScriptGetCMap(dc, font->ScriptCache(), str, 1, 0, glyph);
+                if (rv == S_OK)
+                    hasGlyph = PR_TRUE;
+            }
 
-            ReleaseDC(NULL, dc);
-
-            if (rv == S_OK) {
+            if (hasGlyph) {
                 aFontEntry->mCharacterMap.set(ch);
                 return PR_TRUE;
             }
