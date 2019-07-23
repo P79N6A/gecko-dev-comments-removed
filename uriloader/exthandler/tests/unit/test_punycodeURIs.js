@@ -40,6 +40,10 @@ const kTestURI = "http://\u65e5\u672c\u8a93.jp/";
 const kExpectedURI = "http://xn--wgv71a309e.jp/";
 const kOutputFile = "result.txt";
 
+
+const kMaxCheckExistAttempts = 30; 
+var gCheckExistsAttempts = 0;
+
 function checkFile() {
   
   var tempFile = Components.classes["@mozilla.org/file/local;1"].
@@ -47,8 +51,16 @@ function checkFile() {
   tempFile = do_get_cwd();
   tempFile.append(kOutputFile);
 
-  if (!tempFile.exists())
-    do_throw("Expected File " + tempFile.path + " does not exist");
+  if (!tempFile.exists()) {
+    if (gCheckExistsAttempts >= kMaxCheckExistAttempts) {
+      do_throw("Expected File " + tempFile.path + " does not exist after " +
+	       kMaxCheckExistAttempts + " seconds");
+    }
+    else {
+      
+      do_timeout(1000, "checkFile()");
+    }
+  }
 
   
   var fstream = Components.classes["@mozilla.org/network/file-input-stream;1"].
