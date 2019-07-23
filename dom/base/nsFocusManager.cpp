@@ -713,6 +713,9 @@ nsFocusManager::WindowLowered(nsIDOMWindow* aWindow)
     return NS_OK;
 
   
+  nsIPresShell::SetCapturingContent(nsnull, 0);
+
+  
   
   window->ActivateOrDeactivate(PR_FALSE);
 

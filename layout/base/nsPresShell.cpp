@@ -6125,31 +6125,44 @@ PresShell::HandleEvent(nsIView         *aView,
 
     PRBool captureRetarget = PR_FALSE;
     if (capturingContent) {
-      captureRetarget = gCaptureInfo.mRetargetToElement;
-      if (!captureRetarget) {
-        
-        
-        NS_ASSERTION(capturingContent->GetCurrentDoc() == GetDocument(),
-                     "Unexpected document");
-        nsIFrame* captureFrame = capturingContent->GetPrimaryFrame();
-        if (captureFrame) {
-          if (capturingContent->Tag() == nsGkAtoms::select &&
-              capturingContent->IsHTML()) {
+      
+      
+      
+      
+      PRBool vis;
+      nsCOMPtr<nsISupports> supports = mPresContext->GetContainer();
+      nsCOMPtr<nsIBaseWindow> baseWin(do_QueryInterface(supports));
+      if (baseWin && NS_SUCCEEDED(baseWin->GetVisibility(&vis)) && vis) {
+        captureRetarget = gCaptureInfo.mRetargetToElement;
+        if (!captureRetarget) {
+          
+          
+          NS_ASSERTION(capturingContent->GetCurrentDoc() == GetDocument(),
+                       "Unexpected document");
+          nsIFrame* captureFrame = capturingContent->GetPrimaryFrame();
+          if (captureFrame) {
+            if (capturingContent->Tag() == nsGkAtoms::select &&
+                capturingContent->IsHTML()) {
+              
+              
+              nsIFrame* childFrame = captureFrame->GetChildList(nsGkAtoms::selectPopupList).FirstChild();
+              if (childFrame) {
+                captureFrame = childFrame;
+              }
+            }
+
             
             
-            nsIFrame* childFrame = captureFrame->GetChildList(nsGkAtoms::selectPopupList).FirstChild();
-            if (childFrame) {
-              captureFrame = childFrame;
+            nsIScrollableFrame* scrollFrame = do_QueryFrame(captureFrame);
+            if (scrollFrame) {
+              frame = scrollFrame->GetScrolledFrame();
             }
           }
-
-          
-          
-          nsIScrollableFrame* scrollFrame = do_QueryFrame(captureFrame);
-          if (scrollFrame) {
-            frame = scrollFrame->GetScrolledFrame();
-          }
         }
+      }
+      else {
+        ClearMouseCapture(nsnull);
+        capturingContent = nsnull;
       }
     }
 
