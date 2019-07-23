@@ -37,6 +37,7 @@
 
 
 
+
 #include "nsIFrame.h"
 
 #include <QApplication>
@@ -75,6 +76,7 @@ nsNativeThemeQt::nsNativeThemeQt()
 {
     combo = new QComboBox((QWidget *)0);
     combo->resize(0, 0);
+    mNoBackgroundPalette.setColor(QPalette::Window, Qt::transparent);
     ThemeChanged();
 }
 
@@ -101,10 +103,10 @@ nsNativeThemeQt::DrawWidgetBackground(nsIRenderingContext* aContext,
                                       const nsRect& aRect,
                                       const nsRect& aClipRect)
 {
-
-
     gfxContext* context = aContext->ThebesContext();
     nsRefPtr<gfxASurface> surface = context->CurrentSurface();
+
+    context->UpdateSurfaceClip();
 
     if (surface->GetType() != gfxASurface::SurfaceTypeQPainter)
         return NS_ERROR_NOT_IMPLEMENTED;
@@ -112,12 +114,12 @@ nsNativeThemeQt::DrawWidgetBackground(nsIRenderingContext* aContext,
     gfxQPainterSurface* qSurface = (gfxQPainterSurface*) (surface.get());
     QPainter* qPainter = qSurface->GetQPainter();
 
+    NS_ASSERTION(qPainter, "Where'd my QPainter go?");
 
-    if (!qPainter)
+    if (qPainter == nsnull)
         return NS_OK;
 
     QStyle* style = qApp->style();
-
 
     qPainter->save();
 
@@ -138,175 +140,114 @@ nsNativeThemeQt::DrawWidgetBackground(nsIRenderingContext* aContext,
     QRect r = qRectInPixels(aRect, p2a);
     QRect cr = qRectInPixels(aClipRect, p2a);
 
-
-
-
-
-    QStyle::PrimitiveElement pe = QStyle::PE_CustomBase;
-
-    QStyle::ControlElement ce = QStyle::CE_CustomBase;
-
-    QStyle::State eventFlags = QStyle::State_None;
-    
-
-
-
-    PRInt32 eventState = GetContentState(aFrame, aWidgetType);
-
-
-    if (eventState & NS_EVENT_STATE_HOVER) {
-
-        eventFlags |= QStyle::State_MouseOver;
-    }
-    if (eventState & NS_EVENT_STATE_FOCUS) {
-
-        eventFlags |= QStyle::State_HasFocus;
-    }
-    if (eventState & NS_EVENT_STATE_ACTIVE) {
-
-        eventFlags |= QStyle::State_DownArrow;
-    }
+    QStyle::State extraFlags = QStyle::State_None;
 
     switch (aWidgetType) {
     case NS_THEME_RADIO:
-    case NS_THEME_RADIO_SMALL: {
-
-
-        ce = QStyle::CE_RadioButton;
-
-        QStyleOptionButton option;
-
-        ButtonStyle(aFrame, r, &option, eventFlags);
-
-        style->drawControl(ce, &option, qPainter, NULL);
-        break;
-    }
+    case NS_THEME_RADIO_SMALL: 
     case NS_THEME_CHECKBOX:
     case NS_THEME_CHECKBOX_SMALL: {
+        QStyleOptionButton opt;
+        InitButtonStyle (aWidgetType, aFrame, r, opt);
 
+        if (aWidgetType == NS_THEME_CHECKBOX ||
+            aWidgetType == NS_THEME_CHECKBOX_SMALL)
+        {
+            style->drawPrimitive (QStyle::PE_IndicatorCheckBox, &opt, qPainter);
+        } else {
+            style->drawPrimitive (QStyle::PE_IndicatorRadioButton, &opt, qPainter);
+        }
+        break;
+    }
+    case NS_THEME_BUTTON:
+    case NS_THEME_BUTTON_BEVEL: {
+        QStyleOptionButton opt;
+        InitButtonStyle (aWidgetType, aFrame, r, opt);
 
-        ce = QStyle::CE_CheckBox;
-
-        QStyleOptionButton option;
-
-        ButtonStyle(aFrame, r, &option, eventFlags);
-
-        style->drawControl(ce, &option, qPainter, NULL);
+        if (aWidgetType == NS_THEME_BUTTON) {
+            style->drawPrimitive(QStyle::PE_PanelButtonCommand, &opt, qPainter);
+            if (IsDefaultButton(aFrame))
+                style->drawPrimitive(QStyle::PE_FrameDefaultButton, &opt, qPainter);
+        } else {
+            style->drawPrimitive(QStyle::PE_PanelButtonBevel, &opt, qPainter);
+            style->drawPrimitive(QStyle::PE_FrameButtonBevel, &opt, qPainter);
+        }
         break;
     }
     case NS_THEME_SCROLLBAR: {
-
         qPainter->fillRect(r, qApp->palette().brush(QPalette::Active, QPalette::Background));
         break;
     }
     case NS_THEME_SCROLLBAR_TRACK_HORIZONTAL: {
-
         qPainter->fillRect(r, qApp->palette().brush(QPalette::Active, QPalette::Background));
         break;
     }
     case NS_THEME_SCROLLBAR_TRACK_VERTICAL: {
-
         qPainter->fillRect(r, qApp->palette().brush(QPalette::Active, QPalette::Background));
         break;
     }
-    case NS_THEME_SCROLLBAR_BUTTON_LEFT: {
-
-        eventFlags |= QStyle::State_Horizontal;
-    }
-    
+    case NS_THEME_SCROLLBAR_BUTTON_LEFT:
+        extraFlags |= QStyle::State_Horizontal;
+        
     case NS_THEME_SCROLLBAR_BUTTON_UP: {
-
-        
-        ce = QStyle::CE_ScrollBarSubLine;
-        
         QStyleOption option;
+        InitPlainStyle(aWidgetType, aFrame, r, option, extraFlags);
 
-        PlainStyle(aFrame, r, &option, eventFlags);
-
-        style->drawControl(ce, &option, qPainter, NULL);
+        style->drawControl(QStyle::CE_ScrollBarSubLine, &option, qPainter, NULL);
         break;
     }
-    case NS_THEME_SCROLLBAR_BUTTON_RIGHT: {
-
-        eventFlags |= QStyle::State_Horizontal;
-    }
-    
+    case NS_THEME_SCROLLBAR_BUTTON_RIGHT:
+        extraFlags |= QStyle::State_Horizontal;
+        
     case NS_THEME_SCROLLBAR_BUTTON_DOWN: {
-
-        
-        ce = QStyle::CE_ScrollBarAddLine;
-        
         QStyleOption option;
+        InitPlainStyle(aWidgetType, aFrame, r, option, extraFlags);
 
-        PlainStyle(aFrame, r, &option, eventFlags);
+        style->drawControl(QStyle::CE_ScrollBarAddLine, &option, qPainter, NULL);
 
-        style->drawControl(ce, &option, qPainter, NULL);
         break;
     }
     
     
-    case NS_THEME_SCROLLBAR_THUMB_HORIZONTAL: {
-
-        eventFlags |= QStyle::State_Horizontal;
-    }
-    
+    case NS_THEME_SCROLLBAR_THUMB_HORIZONTAL:
+        extraFlags |= QStyle::State_Horizontal;
+        
     case NS_THEME_SCROLLBAR_THUMB_VERTICAL: {
-
-        
-        ce = QStyle::CE_ScrollBarSlider;
-        
         QStyleOption option;
+        InitPlainStyle(aWidgetType, aFrame, r, option, extraFlags);
 
-        PlainStyle(aFrame, r, &option, eventFlags);
-
-        style->drawControl(ce, &option, qPainter, NULL);
-        break;
-    }
-    case NS_THEME_BUTTON_BEVEL:
-
-
-
-        break;
-    case NS_THEME_BUTTON: {
-
-
-        ce = QStyle::CE_PushButton;
-
-        eventFlags |= QStyle::State_Raised;
-
-        QStyleOptionButton option;
-        
-        ButtonStyle(aFrame, r, &option, eventFlags);
-        
-        style->drawControl(ce, &option, qPainter, NULL);
-        break;
+        style->drawControl(QStyle::CE_ScrollBarSlider, &option, qPainter, NULL);
     }
     case NS_THEME_DROPDOWN:
-
 
         break;
     case NS_THEME_DROPDOWN_BUTTON:
 
 
 
-
         break;
     case NS_THEME_DROPDOWN_TEXT:
     case NS_THEME_DROPDOWN_TEXTFIELD:
-
         break;
     case NS_THEME_TEXTFIELD:
     case NS_THEME_TEXTFIELD_MULTILINE:
     case NS_THEME_LISTBOX: {
+        QStyleOption panelOpt;
+        QStyleOptionFrameV2 frameOpt;
 
-        
-        pe = QStyle::PE_PanelLineEdit;
+        if (!IsDisabled(aFrame)) {
+            panelOpt.state |= QStyle::State_Enabled;
+            frameOpt.state |= QStyle::State_Enabled;
+        }
+    
+        panelOpt.rect = r;
 
-        QStyleOptionFrameV2 option;
+        frameOpt.rect = r;
+        frameOpt.features = QStyleOptionFrameV2::Flat;
+        frameOpt.palette = mNoBackgroundPalette;
 
-        FrameStyle(aFrame, r, &option, eventFlags);
-
-        style->drawPrimitive(pe, &option, qPainter, NULL);
+        style->drawPrimitive(QStyle::PE_PanelLineEdit, &panelOpt, qPainter, NULL);
+        style->drawPrimitive(QStyle::PE_FrameLineEdit, &frameOpt, qPainter, NULL);
         break;
     }
     default:
@@ -379,7 +320,7 @@ nsNativeThemeQt::GetMinimumWidgetSize(nsIRenderingContext* aContext, nsIFrame* a
 
         QStyleOptionButton option;
 
-        ButtonStyle(aFrame, qRect, &option);
+        InitButtonStyle(aWidgetType, aFrame, qRect, option);
 
         QRect rect = s->subElementRect(
             (aWidgetType == NS_THEME_CHECKBOX || aWidgetType == NS_THEME_CHECKBOX_SMALL ) ?
@@ -399,7 +340,7 @@ nsNativeThemeQt::GetMinimumWidgetSize(nsIRenderingContext* aContext, nsIFrame* a
 
         QStyleOptionButton option;
 
-        ButtonStyle(aFrame, qRect, &option);
+        InitButtonStyle(aWidgetType, aFrame, qRect, option);
 
         QRect rect = s->subElementRect(
             QStyle::SE_PushButtonFocusRect,
@@ -557,66 +498,64 @@ nsNativeThemeQt::ThemeNeedsComboboxDropmarker()
     return PR_FALSE;
 }
 
-
-
 void
-nsNativeThemeQt::ButtonStyle(nsIFrame* aFrame,
-                             QRect aRect,
-                             QStyleOptionButton* aOption,
-                             QStyle::State optFlags )
+nsNativeThemeQt::InitButtonStyle(PRUint8 aWidgetType,
+                                 nsIFrame* aFrame,
+                                 QRect rect,
+                                 QStyleOptionButton &opt)
 {
-    QStyle::State flags = IsDisabled(aFrame) ?
-        QStyle::State_None :
-        QStyle::State_Enabled;
+    PRInt32 eventState = GetContentState(aFrame, aWidgetType);
 
-    flags |= IsChecked(aFrame) ?
-        QStyle::State_On :
-        QStyle::State_Off;
+    opt.rect = rect;
+    opt.palette = mNoBackgroundPalette;
 
-    flags |= optFlags;
+    PRBool disabled = IsDisabled(aFrame);
 
-    (*aOption).direction = QApplication::layoutDirection();
-    (*aOption).rect = aRect;
-    (*aOption).type = QStyleOption::SO_Button;
-    (*aOption).state = flags;
-    (*aOption).features = QStyleOptionButton::None;
+    if (!disabled)
+        opt.state |= QStyle::State_Enabled;
+    if (eventState & NS_EVENT_STATE_HOVER)
+        opt.state |= QStyle::State_MouseOver;
+    if (eventState & NS_EVENT_STATE_FOCUS)
+        opt.state |= QStyle::State_HasFocus;
+    if (!disabled && eventState & NS_EVENT_STATE_ACTIVE)
+        
+        opt.state |= QStyle::State_Sunken;
+
+    switch (aWidgetType) {
+    case NS_THEME_RADIO:
+    case NS_THEME_RADIO_SMALL:
+    case NS_THEME_CHECKBOX:
+    case NS_THEME_CHECKBOX_SMALL:
+        if (IsChecked(aFrame))
+            opt.state |= QStyle::State_On;
+        else
+            opt.state |= QStyle::State_Off;
+
+        break;
+    default:
+        if (!(eventState & NS_EVENT_STATE_ACTIVE))
+            opt.state |= QStyle::State_Raised;
+        break;
+    }
 }
 
 void
-nsNativeThemeQt::FrameStyle(nsIFrame* aFrame,
-                            QRect aRect,
-                            QStyleOptionFrameV2* aOption,
-                            QStyle::State optFlags )
+nsNativeThemeQt::InitPlainStyle(PRUint8 aWidgetType,
+                                nsIFrame* aFrame,
+                                QRect rect,
+                                QStyleOption &opt,
+                                QStyle::State extraFlags)
 {
-    QStyle::State flags = IsDisabled(aFrame) ?
-        QStyle::State_None :
-        QStyle::State_Enabled;
-    
-    flags |= optFlags;
+    PRInt32 eventState = GetContentState(aFrame, aWidgetType);
 
-    (*aOption).direction = QApplication::layoutDirection();
-    (*aOption).rect = aRect;
-    (*aOption).type = QStyleOption::SO_Frame;
-    (*aOption).state = flags;
-    (*aOption).lineWidth = 1;
-    (*aOption).midLineWidth = 1;
-    (*aOption).features = QStyleOptionFrameV2::Flat;
-}
+    opt.rect = rect;
 
-void
-nsNativeThemeQt::PlainStyle(nsIFrame* aFrame,
-                            QRect aRect,
-                            QStyleOption* aOption,
-                            QStyle::State optFlags )
-{
-    QStyle::State flags = IsDisabled(aFrame) ?
-        QStyle::State_None :
-        QStyle::State_Enabled;
-    
-    flags |= optFlags;
+    if (!IsDisabled(aFrame))
+        opt.state |= QStyle::State_Enabled;
+    if (eventState & NS_EVENT_STATE_HOVER)
+        opt.state |= QStyle::State_MouseOver;
+    if (eventState & NS_EVENT_STATE_FOCUS)
+        opt.state |= QStyle::State_HasFocus;
 
-    (*aOption).direction = QApplication::layoutDirection();
-    (*aOption).rect = aRect;
-    (*aOption).type = QStyleOption::SO_Default;
-    (*aOption).state = flags;
+    opt.state |= extraFlags;
 }
