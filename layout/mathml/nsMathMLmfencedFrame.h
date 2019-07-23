@@ -37,6 +37,7 @@
 
 
 
+
 #ifndef nsMathMLmfencedFrame_h___
 #define nsMathMLmfencedFrame_h___
 
@@ -91,27 +92,6 @@ public:
   
   virtual nscoord
   FixInterFrameSpacing(nsHTMLReflowMetrics& aDesiredSize);
-
-  
-  
-  static nsresult
-  doReflow(nsPresContext*          aPresContext,
-           const nsHTMLReflowState& aReflowState,
-           nsHTMLReflowMetrics&     aDesiredSize,
-           nsReflowStatus&          aStatus,
-           nsMathMLContainerFrame*  aForFrame,
-           nsMathMLChar*            aOpenChar,
-           nsMathMLChar*            aCloseChar,
-           nsMathMLChar*            aSeparatorsChar,
-           PRInt32                  aSeparatorsCount);
-
-  static nscoord
-  doGetIntrinsicWidth(nsIRenderingContext*    aRenderingContext,
-                      nsMathMLContainerFrame* aForFrame,
-                      nsMathMLChar*           aOpenChar,
-                      nsMathMLChar*           aCloseChar,
-                      nsMathMLChar*           aSeparatorsChar,
-                      PRInt32                 aSeparatorsCount);
 
   
   static nsresult
