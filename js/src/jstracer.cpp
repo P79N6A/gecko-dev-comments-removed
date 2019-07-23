@@ -5407,8 +5407,40 @@ ExecuteTree(JSContext* cx, Fragment* f, uintN& inlineCallCount,
 
     JS_ASSERT(f->root == f && f->code() && f->vmprivate);
 
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    JSObject* parent;
+    JSObject* child = cx->fp->scopeChain;
+    while ((parent = OBJ_GET_PARENT(cx, child)) != NULL) {
+        if (!js_IsCacheableNonGlobalScope(child)) {
+            debug_only_print0(LC_TMTracer,"Blacklist: non-cacheable object on scope chain.\n");
+            Blacklist((jsbytecode*) f->root->ip);
+            return NULL;
+        }
+        child = parent;
+    }
+    JSObject* globalObj = child;
+    if (!(OBJ_GET_CLASS(cx, globalObj)->flags & JSCLASS_IS_GLOBAL)) {
+        debug_only_print0(LC_TMTracer, "Blacklist: non-global at root of scope chain.\n");
+        Blacklist((jsbytecode*) f->root->ip);
+        return NULL;
+    }
+
     JSTraceMonitor* tm = &JS_TRACE_MONITOR(cx);
-    JSObject* globalObj = JS_GetGlobalForObject(cx, cx->fp->scopeChain);
     TreeInfo* ti = (TreeInfo*)f->vmprivate;
     unsigned ngslots = ti->globalSlots->length();
     uint16* gslots = ti->globalSlots->data();

@@ -722,6 +722,28 @@ js_LookupPropertyWithFlags(JSContext *cx, JSObject *obj, jsid id, uintN flags,
 
 
 
+
+
+
+static inline bool
+js_IsCacheableNonGlobalScope(JSObject *obj)
+{
+    extern JS_FRIEND_DATA(JSClass) js_CallClass;
+    extern JS_FRIEND_DATA(JSClass) js_DeclEnvClass;
+    JS_ASSERT(STOBJ_GET_PARENT(obj));
+
+    JSClass *clasp = STOBJ_GET_CLASS(obj);
+    bool cacheable = (clasp == &js_CallClass ||
+                      clasp == &js_BlockClass ||
+                      clasp == &js_DeclEnvClass);
+
+    JS_ASSERT_IF(cacheable, obj->map->ops->lookupProperty == js_LookupProperty);
+    return cacheable;
+}
+
+
+
+
 extern JSPropCacheEntry *
 js_FindPropertyHelper(JSContext *cx, jsid id, JSBool cacheResult,
                       JSObject **objp, JSObject **pobjp, JSProperty **propp);
