@@ -204,8 +204,12 @@ nsSVGOuterSVGFrame::Reflow(nsPresContext*          aPresContext,
     
     
     
+    
+    
     aDesiredSize.width = mRect.width;
     aDesiredSize.height = mRect.height;
+    aDesiredSize.mOverflowArea.SetRect(0, 0, mRect.width, mRect.height);
+    FinishAndStoreOverflow(&aDesiredSize);
     aStatus = NS_FRAME_COMPLETE;
     return NS_OK;
   }
@@ -247,6 +251,11 @@ nsSVGOuterSVGFrame::Reflow(nsPresContext*          aPresContext,
     nsPresContext::CSSPixelsToAppUnits(svgElem->mViewportHeight);
 
   
+
+  
+  
+  aDesiredSize.mOverflowArea.SetRect(0, 0, aDesiredSize.width, aDesiredSize.height);
+  FinishAndStoreOverflow(&aDesiredSize);
 
   aStatus = NS_FRAME_COMPLETE;
   NS_FRAME_SET_TRUNCATION(aStatus, aReflowState, aDesiredSize);
