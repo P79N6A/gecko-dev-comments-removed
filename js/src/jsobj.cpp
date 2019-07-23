@@ -139,8 +139,8 @@ static JSPropertySpec object_props[] = {
                                                   obj_getSlot,  obj_setSlot},
     {js_parent_str,JSSLOT_PARENT,JSPROP_READONLY|JSPROP_PERMANENT|JSPROP_SHARED,
                                                   obj_getSlot,  obj_setSlot},
-    {js_count_str, 0,            JSPROP_PERMANENT|JSPROP_SHARED,
-                                                  obj_getCount, obj_getCount},
+    {js_count_str, 0,            JSPROP_READONLY|JSPROP_PERMANENT|JSPROP_SHARED,
+                                                  obj_getCount, NULL},
     {0,0,0,0,0}
 };
 
@@ -1318,15 +1318,14 @@ js_obj_eval(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
         fp->flags |= JSFRAME_EVAL;
     } while ((fp = fp->down) != caller);
 
-    script = js_CompileScript(cx, scopeobj, principals,
-                              TCF_COMPILE_N_GO |
-                              TCF_PUT_STATIC_DEPTH(caller->script->staticDepth + 1),
+    script = js_CompileScript(cx, scopeobj, principals, TCF_COMPILE_N_GO,
                               JSSTRING_CHARS(str), JSSTRING_LENGTH(str),
                               NULL, file, line);
     if (!script) {
         ok = JS_FALSE;
         goto out;
     }
+    script->staticDepth = caller->script->staticDepth + 1;
 
     if (argc < 2) {
         
