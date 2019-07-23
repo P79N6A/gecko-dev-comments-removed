@@ -2633,7 +2633,7 @@ nsWindow::createQWidget(QWidget *parent, nsWidgetInitData *aInitData)
     
     
     mDrawingarea->setAttribute(Qt::WA_NoSystemBackground);
-    mDrawingarea->setAttribute(Qt::WA_PaintOnScreen);
+
 
     return mDrawingarea;
 }
