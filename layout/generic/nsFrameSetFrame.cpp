@@ -1019,7 +1019,12 @@ nsHTMLFramesetFrame::Reflow(nsPresContext*          aPresContext,
   ourContent->GetColSpec(&cols, &colSpecs);
   
   
-  NS_ENSURE_STATE(mNumRows == rows && mNumCols == cols);
+  if (mNumRows != rows || mNumCols != cols) {
+    aStatus = NS_FRAME_COMPLETE;
+    mDrag.UnSet();
+    NS_FRAME_SET_TRUNCATION(aStatus, aReflowState, aDesiredSize);
+    return NS_OK;
+  }
 
   if (!mDrag.mActive) {
     CalculateRowCol(aPresContext, width, mNumCols, colSpecs, mColSizes);
