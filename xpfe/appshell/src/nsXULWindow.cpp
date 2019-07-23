@@ -440,7 +440,7 @@ NS_IMETHODIMP nsXULWindow::Create()
 
 NS_IMETHODIMP nsXULWindow::Destroy()
 {
-  if(!mWindow)
+  if (!mWindow)
      return NS_OK;
 
   nsCOMPtr<nsIAppShellService> appShell(do_GetService(NS_APPSHELLSERVICE_CONTRACTID));
@@ -518,19 +518,19 @@ NS_IMETHODIMP nsXULWindow::Destroy()
   mContentShells.Clear();
   mPrimaryContentShell = nsnull;
 
-  if(mContentTreeOwner) {
+  if (mContentTreeOwner) {
     mContentTreeOwner->XULWindow(nsnull);
     NS_RELEASE(mContentTreeOwner);
   }
-  if(mPrimaryContentTreeOwner) {
+  if (mPrimaryContentTreeOwner) {
     mPrimaryContentTreeOwner->XULWindow(nsnull);
     NS_RELEASE(mPrimaryContentTreeOwner);
   }
-  if(mChromeTreeOwner) {
+  if (mChromeTreeOwner) {
     mChromeTreeOwner->XULWindow(nsnull);
     NS_RELEASE(mChromeTreeOwner);
   }
-  if(mWindow) {
+  if (mWindow) {
     mWindow->SetClientData(0); 
     mWindow = nsnull;
   }
@@ -622,20 +622,20 @@ NS_IMETHODIMP nsXULWindow::GetPositionAndSize(PRInt32* x, PRInt32* y, PRInt32* c
 
   mWindow->GetScreenBounds(rect);
 
-  if(x)
+  if (x)
     *x = rect.x;
-  if(y)
+  if (y)
     *y = rect.y;
-  if(cx)
+  if (cx)
     *cx = rect.width;
-  if(cy)
+  if (cy)
     *cy = rect.height;
 
   return NS_OK;
 }
 
-NS_IMETHODIMP nsXULWindow::Center(nsIXULWindow *aRelative, PRBool aScreen, PRBool aAlert) {
-
+NS_IMETHODIMP nsXULWindow::Center(nsIXULWindow *aRelative, PRBool aScreen, PRBool aAlert)
+{
   PRInt32  left, top, width, height,
            ourWidth, ourHeight;
   PRBool   screenCoordinates =  PR_FALSE,
@@ -866,7 +866,7 @@ NS_IMETHODIMP nsXULWindow::SetTitle(const PRUnichar* aTitle)
 
   
   nsCOMPtr<nsIWindowMediator> windowMediator(do_GetService(NS_WINDOWMEDIATOR_CONTRACTID));
-  if(!windowMediator)
+  if (!windowMediator)
     return NS_OK;
 
   windowMediator->UpdateWindowTitle(static_cast<nsIXULWindow*>(this), aTitle);
@@ -964,12 +964,12 @@ void nsXULWindow::OnChromeLoaded()
     LoadWindowClassFromXUL();
     LoadIconFromXUL();
     LoadSizeFromXUL();
-    if(mIntrinsicallySized) {
+    if (mIntrinsicallySized) {
       
       nsCOMPtr<nsIContentViewer> cv;
       mDocShell->GetContentViewer(getter_AddRefs(cv));
       nsCOMPtr<nsIMarkupDocumentViewer> markupViewer(do_QueryInterface(cv));
-      if(markupViewer)
+      if (markupViewer)
         markupViewer->SizeToContent();
     }
 
@@ -991,7 +991,7 @@ void nsXULWindow::OnChromeLoaded()
     if (mCenterAfterLoad && !positionSet)
       Center(parentWindow, parentWindow ? PR_FALSE : PR_TRUE, PR_FALSE);
 
-    if(mShowAfterLoad)
+    if (mShowAfterLoad)
       SetVisibility(PR_TRUE);
   }
   mPersistentAttributesMask |= PAD_POSITION | PAD_SIZE | PAD_MISC;
@@ -1420,7 +1420,7 @@ NS_IMETHODIMP nsXULWindow::SavePersistentAttributes()
 
   nsCOMPtr<nsIDOMElement> docShellElement;
   GetWindowDOMElement(getter_AddRefs(docShellElement));
-  if(!docShellElement)
+  if (!docShellElement)
     return NS_ERROR_FAILURE;
 
   nsAutoString   persistString;
@@ -1464,14 +1464,14 @@ NS_IMETHODIMP nsXULWindow::SavePersistentAttributes()
   
   if ((mPersistentAttributesDirty & PAD_POSITION) &&
       sizeMode == nsSizeMode_Normal) {
-    if(persistString.Find("screenX") >= 0) {
+    if (persistString.Find("screenX") >= 0) {
       PR_snprintf(sizeBuf, sizeof(sizeBuf), "%ld", (long)x);
       sizeString.AssignWithConversion(sizeBuf);
       docShellElement->SetAttribute(SCREENX_ATTRIBUTE, sizeString);
       if (ownerXULDoc) 
         ownerXULDoc->Persist(windowElementId, SCREENX_ATTRIBUTE);
     }
-    if(persistString.Find("screenY") >= 0) {
+    if (persistString.Find("screenY") >= 0) {
       PR_snprintf(sizeBuf, sizeof(sizeBuf), "%ld", (long)y);
       sizeString.AssignWithConversion(sizeBuf);
       docShellElement->SetAttribute(SCREENY_ATTRIBUTE, sizeString);
@@ -1482,14 +1482,14 @@ NS_IMETHODIMP nsXULWindow::SavePersistentAttributes()
 
   if ((mPersistentAttributesDirty & PAD_SIZE) &&
       sizeMode == nsSizeMode_Normal) {
-    if(persistString.Find("width") >= 0) {
+    if (persistString.Find("width") >= 0) {
       PR_snprintf(sizeBuf, sizeof(sizeBuf), "%ld", (long)cx);
       sizeString.AssignWithConversion(sizeBuf);
       docShellElement->SetAttribute(WIDTH_ATTRIBUTE, sizeString);
       if (ownerXULDoc)
         ownerXULDoc->Persist(windowElementId, WIDTH_ATTRIBUTE);
     }
-    if(persistString.Find("height") >= 0) {
+    if (persistString.Find("height") >= 0) {
       PR_snprintf(sizeBuf, sizeof(sizeBuf), "%ld", (long)cy);
       sizeString.AssignWithConversion(sizeBuf);
       docShellElement->SetAttribute(HEIGHT_ATTRIBUTE, sizeString);
@@ -1575,17 +1575,17 @@ NS_IMETHODIMP nsXULWindow::GetDOMElementById(char* aID, nsIDOMElement** aDOMElem
   nsCOMPtr<nsIContentViewer> cv;
 
   mDocShell->GetContentViewer(getter_AddRefs(cv));
-  if(!cv)
+  if (!cv)
     return NS_ERROR_FAILURE;
 
   nsCOMPtr<nsIDocumentViewer> docv(do_QueryInterface(cv));
-  if(!docv)   
+  if (!docv)   
     return NS_ERROR_FAILURE;
 
   nsCOMPtr<nsIDocument> doc;
   docv->GetDocument(getter_AddRefs(doc));
   nsCOMPtr<nsIDOMDocument> domdoc(do_QueryInterface(doc));
-  if(!domdoc) 
+  if (!domdoc) 
     return NS_ERROR_FAILURE;
 
   NS_ENSURE_SUCCESS(domdoc->GetElementById(NS_ConvertASCIItoUTF16(aID), aDOMElement), NS_ERROR_FAILURE);
@@ -1758,7 +1758,7 @@ NS_IMETHODIMP nsXULWindow::CreateNewChromeWindow(PRInt32 aChromeFlags,
   
   
   nsCOMPtr<nsIXULWindow> parent;
-  if(aChromeFlags & nsIWebBrowserChrome::CHROME_DEPENDENT)
+  if (aChromeFlags & nsIWebBrowserChrome::CHROME_DEPENDENT)
     parent = this;
 
   nsCOMPtr<nsIXULWindow> newWindow;
@@ -1862,12 +1862,11 @@ void nsXULWindow::EnableParent(PRBool aEnable)
 }
 
 
-PRBool nsXULWindow::ConstrainToZLevel(
-                      PRBool      aImmediate,
-                      nsWindowZ  *aPlacement,
-                      nsIWidget  *aReqBelow,
-                      nsIWidget **aActualBelow) {
-
+PRBool nsXULWindow::ConstrainToZLevel(PRBool      aImmediate,
+                                      nsWindowZ  *aPlacement,
+                                      nsIWidget  *aReqBelow,
+                                      nsIWidget **aActualBelow)
+{
 #if 0
   
 
@@ -1879,7 +1878,7 @@ PRBool nsXULWindow::ConstrainToZLevel(
 #endif
 
   nsCOMPtr<nsIWindowMediator> mediator(do_GetService(NS_WINDOWMEDIATOR_CONTRACTID));
-  if(!mediator)
+  if (!mediator)
     return PR_FALSE;
 
   PRBool         altered;
@@ -1900,7 +1899,6 @@ PRBool nsXULWindow::ConstrainToZLevel(
 
   if (NS_SUCCEEDED(mediator->CalculateZPosition(us, position, aReqBelow,
                                &newPosition, aActualBelow, &altered))) {
-
     
 
 
@@ -1909,8 +1907,7 @@ PRBool nsXULWindow::ConstrainToZLevel(
     if (altered &&
         (position == nsIWindowMediator::zLevelTop ||
          position == nsIWindowMediator::zLevelBelow && aReqBelow == 0))
-
-      PlaceWindowLayersBehind(zLevel+1, nsIXULWindow::highestZ, 0);
+      PlaceWindowLayersBehind(zLevel + 1, nsIXULWindow::highestZ, 0);
 
     if (*aPlacement != nsWindowZBottom &&
         position == nsIWindowMediator::zLevelBottom)
@@ -1964,12 +1961,12 @@ PRBool nsXULWindow::ConstrainToZLevel(
 
 void nsXULWindow::PlaceWindowLayersBehind(PRUint32 aLowLevel,
                                           PRUint32 aHighLevel,
-                                          nsIXULWindow *aBehind) {
-
+                                          nsIXULWindow *aBehind)
+{
   
 
   nsCOMPtr<nsIWindowMediator> mediator(do_GetService(NS_WINDOWMEDIATOR_CONTRACTID));
-  if(!mediator)
+  if (!mediator)
     return;
 
   nsCOMPtr<nsISimpleEnumerator> windowEnumerator;
