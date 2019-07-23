@@ -53,14 +53,11 @@ public:
   ~nsIdleServiceOS2();
 
   
-  bool PollIdleTime(PRUint32 *aIdleTime);
+  NS_IMETHOD GetIdleTime(PRUint32 *aIdleTime);
 
 private:
   HMODULE mHMod; 
   PRBool mInitialized; 
-
-protected:
-  bool UsePollMode();
 };
 
 #endif 

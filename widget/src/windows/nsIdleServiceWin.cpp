@@ -41,33 +41,35 @@
 #include "nsIdleServiceWin.h"
 #include <windows.h>
 
-NS_IMPL_ISUPPORTS2(nsIdleServiceWin, nsIIdleService, nsIdleService)
 
-bool
-nsIdleServiceWin::PollIdleTime(PRUint32 *aIdleTime)
+#ifdef WINCE
+
+
+
+
+extern PRUint32 gLastInputEventTime;
+#endif
+
+
+NS_IMPL_ISUPPORTS1(nsIdleServiceWin, nsIIdleService)
+
+NS_IMETHODIMP
+nsIdleServiceWin::GetIdleTime(PRUint32 *aTimeDiff)
 {
 #ifndef WINCE
     LASTINPUTINFO inputInfo;
     inputInfo.cbSize = sizeof(inputInfo);
     if (!::GetLastInputInfo(&inputInfo))
-        return false;
+        return NS_ERROR_FAILURE;
 
-    *aIdleTime = SAFE_COMPARE_EVEN_WITH_WRAPPING(GetTickCount(), inputInfo.dwTime);
-
-    return true;
+    *aTimeDiff = SAFE_COMPARE_EVEN_WITH_WRAPPING(GetTickCount(), inputInfo.dwTime);
 #else
     
-    return false;
-#endif
-}
-
-bool
-nsIdleServiceWin::UsePollMode()
-{
-#ifndef WINCE
-    return true;
-#else
     
-    return false;
+    PRUint32 nowTime = PR_IntervalToMicroseconds(PR_IntervalNow());
+
+    *aTimeDiff = SAFE_COMPARE_EVEN_WITH_WRAPPING(nowTime, gLastInputEventTime) / 1000;
 #endif
+
+    return NS_OK;
 }

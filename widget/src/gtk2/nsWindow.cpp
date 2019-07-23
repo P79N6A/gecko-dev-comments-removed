@@ -266,13 +266,14 @@ static PRBool gdk_keyboard_get_modmap_masks(Display*  aDisplay,
 
 static nsresult    initialize_prefs        (void);
 
-static void
-UpdateLastInputEventTime()
-{
-  nsCOMPtr<nsIdleService> idleService = do_GetService("@mozilla.org/widget/idleservice;1");
-  if (idleService) {
-    idleService->ResetIdleTimeOut();
-  }
+PRUint32        gLastInputEventTime = 0;
+
+static void UpdateLastInputEventTime() {
+  gLastInputEventTime = PR_IntervalToMicroseconds(PR_IntervalNow());
+  nsCOMPtr<nsIIdleService> idleService = do_GetService("@mozilla.org/widget/idleservice;1");
+  nsIdleService* is = static_cast<nsIdleService*>(idleService.get());
+  if (is)
+    is->IdleTimeWasModified();
 }
 
 
@@ -460,6 +461,9 @@ nsWindow::nsWindow()
 
         gBufferPixmapUsageCount++;
     }
+
+    
+    gLastInputEventTime = PR_IntervalToMicroseconds(PR_IntervalNow());
 }
 
 nsWindow::~nsWindow()

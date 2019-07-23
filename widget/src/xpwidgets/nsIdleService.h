@@ -38,7 +38,6 @@
 
 
 
-
 #ifndef nsIdleService_h__
 #define nsIdleService_h__
 
@@ -47,170 +46,43 @@
 #include "nsITimer.h"
 #include "nsTArray.h"
 #include "nsIObserver.h"
-#include "nsIIdleService.h"
-
-
 
 
 
 class IdleListener {
 public:
-  nsCOMPtr<nsIObserver> observer;
-  PRUint32 reqIdleTime;
-  bool isIdle;
+    nsCOMPtr<nsIObserver> observer;
+    PRUint32 reqIdleTime;
+    PRBool isIdle;
 
-  IdleListener(nsIObserver* obs, PRUint32 reqIT, bool aIsIdle = false) :
-    observer(obs), reqIdleTime(reqIT), isIdle(aIsIdle) {}
-  ~IdleListener() {}
-};
-
-
-class nsIdleService;
-
-
-
-
-class nsIdleServiceDaily : public nsIObserver
-{
-public:
-  NS_DECL_ISUPPORTS
-  NS_DECL_NSIOBSERVER
-
-  
-
-
-
-
-
-
-  void Init(nsIdleService *aIdleService);
-
-  
-
-
-
-  void Shutdown();
-
-private:
-  
-
-
-
-  nsIdleService *mIdleService;
-
-  
-
-
-
-  nsCOMPtr<nsITimer> mTimer;
-
-  
-
-
-  static void DailyCallback(nsITimer* aTimer, void* aClosure);
+    IdleListener(nsIObserver* obs, PRUint32 reqIT, PRBool aIsIdle = PR_FALSE) :
+        observer(obs), reqIdleTime(reqIT), isIdle(aIsIdle) {}
+    ~IdleListener() {}
 };
 
 class nsIdleService : public nsIIdleService
 {
 public:
-  nsIdleService();
+    nsIdleService();
 
-  
-  NS_IMETHOD AddIdleObserver(nsIObserver* aObserver, PRUint32 aIdleTime);
-  NS_IMETHOD RemoveIdleObserver(nsIObserver* aObserver, PRUint32 aIdleTime);
-  NS_IMETHOD GetIdleTime(PRUint32* idleTime);
+    
+    
+    NS_IMETHOD AddIdleObserver(nsIObserver* aObserver, PRUint32 aIdleTime);
+    NS_IMETHOD RemoveIdleObserver(nsIObserver* aObserver, PRUint32 aIdleTime);
 
-  void ResetIdleTimeOut();
+    static void IdleTimerCallback(nsITimer* aTimer, void* aClosure);
+    
+    void IdleTimeWasModified();
 
 protected:
-  ~nsIdleService();
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  virtual bool PollIdleTime(PRUint32* aIdleTime);
-
-  
-
-
-
-
-  virtual bool UsePollMode();
-
-  
-
-
-
-
-
-  void CheckAwayState(bool aNoTimeReset);
+    void CheckAwayState();
+    ~nsIdleService();
 
 private:
-  
-
-
-
-
-
-
-  void StartTimer(PRUint32 aDelay);
-
-  
-
-
-
-  void StopTimer();
-
-  
-
-
-
-  nsCOMPtr<nsITimer> mTimer;
-
-  
-
-
-  nsTArray<IdleListener> mArrayListeners;
-
-  
-
-
-  nsCOMPtr<nsIdleServiceDaily> mDailyIdle;
-
-  
-
-
-
-
-
-  PRUint32 mLastIdleReset;
-
-  
-
-
-
-
-
-
-  PRUint32 mLastHandledActivity;
-
-  
-
-
-  static void IdleTimerCallback(nsITimer* aTimer, void* aClosure);
+    void StartTimer(PRUint32 aDelay);
+    void StopTimer();
+    nsCOMPtr<nsITimer> mTimer;
+    nsTArray<IdleListener> mArrayListeners;
 };
 
 #endif 
