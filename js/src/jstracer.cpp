@@ -1935,14 +1935,37 @@ skip:
                 JS_ASSERT(HAS_FUNCTION_CLASS(JSVAL_TO_OBJECT(fp->argv[-2])));
                 JS_ASSERT(GET_FUNCTION_PRIVATE(cx, JSVAL_TO_OBJECT(fp->argv[-2])) ==
                           GET_FUNCTION_PRIVATE(cx, fp->callee));
+                JS_ASSERT(GET_FUNCTION_PRIVATE(cx, fp->callee) == fp->fun);
                 fp->callee = JSVAL_TO_OBJECT(fp->argv[-2]);
+
                 
 
 
 
 
-                if (!fp->scopeChain)
+                if (!fp->scopeChain) {
                     fp->scopeChain = OBJ_GET_PARENT(cx, fp->callee);
+                    if (fp->fun->flags & JSFUN_HEAVYWEIGHT) {
+                        
+
+
+
+
+
+
+                        void* hookData = ((JSInlineFrame*)fp)->hookData;
+                        ((JSInlineFrame*)fp)->hookData = NULL;
+                        JS_ASSERT(!JS_TRACE_MONITOR(cx).useReservedObjects);
+                        JS_TRACE_MONITOR(cx).useReservedObjects = JS_TRUE;
+#ifdef DEBUG
+                        JSObject *obj =
+#endif
+                            js_GetCallObject(cx, fp);
+                        JS_ASSERT(obj);
+                        JS_TRACE_MONITOR(cx).useReservedObjects = JS_FALSE;
+                        ((JSInlineFrame*)fp)->hookData = hookData;
+                    }
+                }
                 fp->thisp = JSVAL_TO_OBJECT(fp->argv[-1]);
                 if (fp->flags & JSFRAME_CONSTRUCTING) 
                     fp->flags |= JSFRAME_COMPUTED_THIS;
@@ -3609,33 +3632,13 @@ js_SynthesizeFrame(JSContext* cx, const FrameInfo& fi)
     fp->regs = &newifp->callerRegs;
     fp = cx->fp = &newifp->frame;
 
-    if (fun->flags & JSFUN_HEAVYWEIGHT) {
-        
-
-
-
-
-
-
-        newifp->hookData = NULL;
-        JS_ASSERT(!JS_TRACE_MONITOR(cx).useReservedObjects);
-        JS_TRACE_MONITOR(cx).useReservedObjects = JS_TRUE;
-#ifdef DEBUG
-        JSObject *obj =
-#endif
-            js_GetCallObject(cx, &newifp->frame);
-        JS_ASSERT(obj);
-        JS_TRACE_MONITOR(cx).useReservedObjects = JS_FALSE;
-    }
-
     
 
 
 
     JSInterpreterHook hook = cx->debugHooks->callHook;
     if (hook) {
-        newifp->hookData = hook(cx, &newifp->frame, JS_TRUE, 0,
-                                cx->debugHooks->callHookData);
+        newifp->hookData = hook(cx, fp, JS_TRUE, 0, cx->debugHooks->callHookData);
     } else {
         newifp->hookData = NULL;
     }
