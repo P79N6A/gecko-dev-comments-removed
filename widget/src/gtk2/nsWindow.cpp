@@ -938,14 +938,39 @@ nsWindow::SetModal(PRBool aModal)
     return NS_OK;
 }
 
+
 NS_IMETHODIMP
-nsWindow::IsVisible(PRBool & aState)
+nsWindow::IsVisible(PRBool& aState)
 {
-    aState = mIsVisible;
-    if (mIsTopLevel && mShell) {
-        aState = GTK_WIDGET_VISIBLE(mShell);
-    }
+    aState = mIsShown;
     return NS_OK;
+}
+
+
+PRBool
+nsWindow::CanBeSeen()
+{
+    
+    
+    
+    
+    if (!mIsShown || !mIsVisible)
+        return PR_FALSE;
+
+    GtkWidget *topWidget = nsnull;
+    GetToplevelWidget(&topWidget);
+
+    
+    
+    
+    
+    
+    mIsVisible =
+        topWidget &&
+        !(gdk_window_get_state(topWidget->window) &
+          (GDK_WINDOW_STATE_ICONIFIED|GDK_WINDOW_STATE_WITHDRAWN));
+        
+    return mIsVisible;
 }
 
 NS_IMETHODIMP
@@ -1670,8 +1695,10 @@ nsWindow::Validate()
 NS_IMETHODIMP
 nsWindow::Invalidate(PRBool aIsSynchronous)
 {
-    GdkRectangle rect;
+    if (!mDrawingarea || !CanBeSeen())
+        return NS_OK;
 
+    GdkRectangle rect;
     rect.x = mBounds.x;
     rect.y = mBounds.y;
     rect.width = mBounds.width;
@@ -1679,9 +1706,6 @@ nsWindow::Invalidate(PRBool aIsSynchronous)
 
     LOGDRAW(("Invalidate (all) [%p]: %d %d %d %d\n", (void *)this,
              rect.x, rect.y, rect.width, rect.height));
-
-    if (!mDrawingarea)
-        return NS_OK;
 
     gdk_window_invalidate_rect(mDrawingarea->inner_window,
                                &rect, FALSE);
@@ -1695,8 +1719,10 @@ NS_IMETHODIMP
 nsWindow::Invalidate(const nsIntRect &aRect,
                      PRBool           aIsSynchronous)
 {
-    GdkRectangle rect;
+    if (!mDrawingarea || !CanBeSeen())
+        return NS_OK;
 
+    GdkRectangle rect;
     rect.x = aRect.x;
     rect.y = aRect.y;
     rect.width = aRect.width;
@@ -1704,9 +1730,6 @@ nsWindow::Invalidate(const nsIntRect &aRect,
 
     LOGDRAW(("Invalidate (rect) [%p]: %d %d %d %d (sync: %d)\n", (void *)this,
              rect.x, rect.y, rect.width, rect.height, aIsSynchronous));
-
-    if (!mDrawingarea)
-        return NS_OK;
 
     gdk_window_invalidate_rect(mDrawingarea->inner_window,
                                &rect, FALSE);
@@ -4643,9 +4666,7 @@ nsWindow::GrabPointer(void)
     
     
     
-    PRBool visibility = PR_TRUE;
-    IsVisible(visibility);
-    if (!visibility) {
+    if (!CanBeSeen()) {
         LOG(("GrabPointer: window not visible\n"));
         mRetryPointerGrab = PR_TRUE;
         return;
@@ -4682,9 +4703,7 @@ nsWindow::GrabKeyboard(void)
     
     
     
-    PRBool visibility = PR_TRUE;
-    IsVisible(visibility);
-    if (!visibility) {
+    if (!CanBeSeen()) {
         LOG(("GrabKeyboard: window not visible\n"));
         mRetryKeyboardGrab = PR_TRUE;
         return;
