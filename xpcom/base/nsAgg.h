@@ -39,6 +39,8 @@
 #define nsAgg_h___
 
 #include "nsISupports.h"
+#include "nsCycleCollectionParticipant.h"
+
 
 
 
@@ -46,7 +48,13 @@
 
 #define NS_DECL_AGGREGATED                                                  \
     NS_DECL_ISUPPORTS                                                       \
-                                                                            \
+    NS_DECL_AGGREGATED_HELPER
+
+#define NS_DECL_CYCLE_COLLECTING_AGGREGATED                                 \
+    NS_DECL_CYCLE_COLLECTING_ISUPPORTS                                      \
+    NS_DECL_AGGREGATED_HELPER
+
+#define NS_DECL_AGGREGATED_HELPER                                           \
 public:                                                                     \
                                                                             \
     /**                                                                     \
@@ -59,6 +67,11 @@ public:                                                                     \
      * @return the nsISupports pointer of the inner object                  \
      */                                                                     \
     nsISupports* InnerObject(void) { return &fAggregated; }                 \
+                                                                            \
+    /**                                                                     \
+     * Returns PR_TRUE if this object is part of an aggregated object.      \
+     */                                                                     \
+    PRBool IsPartOfAggregated(void) { return fOuter != InnerObject(); }     \
                                                                             \
 private:                                                                    \
                                                                             \
@@ -85,6 +98,27 @@ private:                                                                    \
                                                                             \
 public:                                                                     \
 
+#define NS_DECL_AGGREGATED_CYCLE_COLLECTION_CLASS(_class)                   \
+class NS_CYCLE_COLLECTION_INNERCLASS                                        \
+ : public nsCycleCollectionParticipant                                      \
+{                                                                           \
+public:                                                                     \
+  NS_IMETHOD Unlink(nsISupports *p);                                        \
+  NS_IMETHOD Traverse(nsISupports *p,                                       \
+                      nsCycleCollectionTraversalCallback &cb);              \
+  NS_IMETHOD_(void) UnmarkPurple(nsISupports *p)                            \
+  {                                                                         \
+    Downcast(p)->UnmarkPurple();                                            \
+  }                                                                         \
+  static _class* Downcast(nsISupports* s)                                   \
+  {                                                                         \
+    return (_class*)((char*)(s) - offsetof(_class, fAggregated));           \
+  }                                                                         \
+  static nsISupports* Upcast(_class *p)                                     \
+  {                                                                         \
+    return p->InnerObject();                                                \
+  }                                                                         \
+};                                                           
 
 
 #define NS_INIT_AGGREGATED(outer)                                           \
@@ -95,30 +129,8 @@ public:                                                                     \
 
 
 #define NS_IMPL_AGGREGATED(_class)                                          \
-NS_IMETHODIMP                                                               \
-_class::QueryInterface(const nsIID& aIID, void** aInstancePtr)              \
-{                                                                           \
-    return fOuter->QueryInterface(aIID, aInstancePtr);                      \
-}                                                                           \
                                                                             \
-NS_IMETHODIMP_(nsrefcnt)                                                    \
-_class::AddRef(void)                                                        \
-{                                                                           \
-    return fOuter->AddRef();                                                \
-}                                                                           \
-                                                                            \
-NS_IMETHODIMP_(nsrefcnt)                                                    \
-_class::Release(void)                                                       \
-{                                                                           \
-    return fOuter->Release();                                               \
-}                                                                           \
-                                                                            \
-NS_IMETHODIMP                                                               \
-_class::Internal::QueryInterface(const nsIID& aIID, void** aInstancePtr)    \
-{                                                                           \
-    _class* agg = (_class*)((char*)(this) - offsetof(_class, fAggregated)); \
-    return agg->AggregatedQueryInterface(aIID, aInstancePtr);               \
-}                                                                           \
+NS_IMPL_AGGREGATED_HELPER(_class)                                           \
                                                                             \
 NS_IMETHODIMP_(nsrefcnt)                                                    \
 _class::Internal::AddRef(void)                                              \
@@ -145,10 +157,122 @@ _class::Internal::Release(void)                                             \
     return agg->mRefCnt;                                                    \
 }                                                                           \
 
+#define NS_IMPL_CYCLE_COLLECTING_AGGREGATED(_class)                         \
+                                                                            \
+NS_IMPL_AGGREGATED_HELPER(_class)                                           \
+                                                                            \
+NS_IMETHODIMP_(nsrefcnt)                                                    \
+_class::Internal::AddRef(void)                                              \
+{                                                                           \
+    _class* agg = NS_CYCLE_COLLECTION_CLASSNAME(_class)::Downcast(this);    \
+    NS_PRECONDITION(PRInt32(agg->mRefCnt) >= 0, "illegal refcnt");          \
+    NS_CheckThreadSafe(agg->_mOwningThread.GetThread(),                     \
+                       #_class " not thread-safe");                         \
+    nsrefcnt count = agg->mRefCnt.incr(this);                               \
+    NS_LOG_ADDREF(this, count, #_class, sizeof(*agg));                      \
+    return count;                                                           \
+}                                                                           \
+                                                                            \
+NS_IMETHODIMP_(nsrefcnt)                                                    \
+_class::Internal::Release(void)                                             \
+{                                                                           \
+    _class* agg = NS_CYCLE_COLLECTION_CLASSNAME(_class)::Downcast(this);    \
+    NS_PRECONDITION(0 != agg->mRefCnt, "dup release");                      \
+    NS_CheckThreadSafe(agg->_mOwningThread.GetThread(),                     \
+                       #_class " not thread-safe");                         \
+    nsrefcnt count = agg->mRefCnt.decr(this);                               \
+    NS_LOG_RELEASE(this, count, #_class);                                   \
+    if (count == 0) {                                                       \
+        agg->mRefCnt.stabilizeForDeletion(this);                            \
+        NS_DELETEXPCOM(agg);                                                \
+        return 0;                                                           \
+    }                                                                       \
+    return count;                                                           \
+}
+
+#define NS_IMPL_AGGREGATED_HELPER(_class)                                   \
+NS_IMETHODIMP                                                               \
+_class::QueryInterface(const nsIID& aIID, void** aInstancePtr)              \
+{                                                                           \
+    return fOuter->QueryInterface(aIID, aInstancePtr);                      \
+}                                                                           \
+                                                                            \
+NS_IMETHODIMP_(nsrefcnt)                                                    \
+_class::AddRef(void)                                                        \
+{                                                                           \
+    return fOuter->AddRef();                                                \
+}                                                                           \
+                                                                            \
+NS_IMETHODIMP_(nsrefcnt)                                                    \
+_class::Release(void)                                                       \
+{                                                                           \
+    return fOuter->Release();                                               \
+}                                                                           \
+                                                                            \
+NS_IMETHODIMP                                                               \
+_class::Internal::QueryInterface(const nsIID& aIID, void** aInstancePtr)    \
+{                                                                           \
+    _class* agg = (_class*)((char*)(this) - offsetof(_class, fAggregated)); \
+    return agg->AggregatedQueryInterface(aIID, aInstancePtr);               \
+}                                                                           \
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#define NS_AGGREGATED_CYCLECOLLECTIONPARTICIPANT_IID                        \
+{                                                                           \
+    0x32889b7e,                                                             \
+    0xe4fe,                                                                 \
+    0x43f4,                                                                 \
+    { 0x85, 0x31, 0xb5, 0x28, 0x23, 0xa2, 0xe9, 0xfc }                      \
+}
+
+
+
+
+class nsAggregatedCycleCollectionParticipant
+{
+public:
+    NS_DECLARE_STATIC_IID_ACCESSOR(NS_AGGREGATED_CYCLECOLLECTIONPARTICIPANT_IID)
+};
+
+NS_DEFINE_STATIC_IID_ACCESSOR(nsAggregatedCycleCollectionParticipant, 
+                              NS_AGGREGATED_CYCLECOLLECTIONPARTICIPANT_IID)
+
 
 
 #define NS_INTERFACE_MAP_BEGIN_AGGREGATED(_class)                           \
   NS_IMPL_AGGREGATED_QUERY_HEAD(_class)
+
+#define NS_INTERFACE_MAP_ENTRY_CYCLE_COLLECTION_AGGREGATED(_class)          \
+  NS_IMPL_QUERY_CYCLE_COLLECTION(_class)
+
+#define NS_INTERFACE_MAP_ENTRIES_CYCLE_COLLECTION_AGGREGATED(_class)        \
+  NS_INTERFACE_MAP_ENTRY_CYCLE_COLLECTION_AGGREGATED(_class)                \
+  NS_INTERFACE_MAP_ENTRY_CYCLE_COLLECTION_ISUPPORTS(_class)
 
 #define NS_IMPL_AGGREGATED_QUERY_HEAD(_class)                               \
 nsresult                                                                    \
@@ -162,6 +286,25 @@ _class::AggregatedQueryInterface(REFNSIID aIID, void** aInstancePtr)        \
   if ( aIID.Equals(NS_GET_IID(nsISupports)) )                               \
     foundInterface = InnerObject();                                         \
   else
+
+#define NS_IMPL_AGGREGATED_QUERY_CYCLE_COLLECTION(_class)                   \
+  if (aIID.Equals(IsPartOfAggregated() ?                                    \
+                  NS_GET_IID(nsCycleCollectionParticipant) :                \
+                  NS_GET_IID(nsAggregatedCycleCollectionParticipant)))      \
+    foundInterface = & NS_CYCLE_COLLECTION_NAME(_class);                    \
+  else
+
+#define NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_AGGREGATED(_class)          \
+  NS_IMETHODIMP                                                             \
+  NS_CYCLE_COLLECTION_CLASSNAME(_class)::Traverse                           \
+                         (nsISupports *p,                                   \
+                          nsCycleCollectionTraversalCallback &cb)           \
+  {                                                                         \
+    NS_ASSERTION(CheckForRightISupports(p),                                 \
+                 "not the nsISupports pointer we expect");                  \
+    _class *tmp = NS_STATIC_CAST(_class*, Downcast(p));                     \
+    if (!tmp->IsPartOfAggregated())                                         \
+        NS_IMPL_CYCLE_COLLECTION_DESCRIBE(_class)
 
 #define NS_GENERIC_AGGREGATED_CONSTRUCTOR(_InstanceClass)                   \
 static NS_METHOD                                                            \
@@ -211,4 +354,4 @@ _InstanceClass##Constructor(nsISupports *aOuter, REFNSIID aIID,             \
     return rv;                                                              \
 }                                                                           \
 
-#endif 
+#endif

@@ -1,44 +1,44 @@
-/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
-/* ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is mozilla.org code.
- *
- * The Initial Developer of the Original Code is
- *   Vladimir Vukicevic <vladimir@pobox.com>
- * Portions created by the Initial Developer are Copyright (C) 2004
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either the GNU General Public License Version 2 or later (the "GPL"), or
- * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
 
-/*
- * See bug 235665,
- * also http://www.axel-hecht.de/mozwiki/ProxyDataSource
- */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #include "nsCOMPtr.h"
 #include "nsIComponentManager.h"
@@ -59,15 +59,15 @@ nsForwardProxyDataSource::Init(void)
 {
     nsresult rv;
 
-    // do we need to initialize our globals?
+    
     nsCOMPtr<nsIRDFService> rdf = do_GetService("@mozilla.org/rdf/rdf-service;1");
     if (!rdf) {
         NS_WARNING ("unable to get RDF service");
         return NS_ERROR_FAILURE;
     }
 
-    // per-instance members: this might eventually be different per-DS,
-    // so it's not static
+    
+    
     rv = rdf->GetResource(NS_LITERAL_CSTRING(DEVMO_NAMESPACE_URI_PREFIX "forward-proxy#forward-proxy"),
                           getter_AddRefs(mProxyProperty));
     
@@ -83,16 +83,16 @@ nsForwardProxyDataSource::~nsForwardProxyDataSource()
 {
 }
 
-//
-// our two methods for munging sources
-// note that the only two possible return values are NS_OK and NS_RDF_NO_VALUE
-//
-// This implementation only supports a single forward proxy arc,
-// though the extension for multiple proxy arcs would be
-// straightforward and is planned for the future.  (In other words,
-// right now, only GetTarget will ever be used on the proxy property,
-// not GetTargets.)  See bug 254959.
-//
+
+
+
+
+
+
+
+
+
+
 
 nsresult
 nsForwardProxyDataSource::GetProxyResource(nsIRDFResource *aSource, nsIRDFResource **aResult)
@@ -132,68 +132,39 @@ nsForwardProxyDataSource::GetRealSource(nsIRDFResource *aSource, nsIRDFResource 
     return NS_OK;
 }
 
-//----------------------------------------------------------------------
-//
-// nsISupports interface
-//
 
-NS_IMPL_ADDREF(nsForwardProxyDataSource)
 
-//
-// Use a custom Release() for the same reasons one is used in the
-// Composite DS; we have circular relationships with our child DS.
 
-NS_IMETHODIMP_(nsrefcnt)
-nsForwardProxyDataSource::Release()
-{
-    NS_PRECONDITION(PRInt32(mRefCnt) > 0, "duplicate release");
-    nsrefcnt count = --mRefCnt;
 
-    if (count == 0) {
-        NS_LOG_RELEASE(this, count, "nsForwardProxyDataSource");
-        mRefCnt = 1;
-        NS_DELETEXPCOM(this);
-        return 0;
-    }
-    else if (mDS && (PRInt32(count) == 1)) {
-        // if the count is 1, the only ref is from our nested data
-        // source, which holds on to us as an observer.
 
-        // We must add 1 here because otherwise the nested releases
-        // on this object will enter this same code path.
-        ++mRefCnt;
+NS_IMPL_CYCLE_COLLECTION_CLASS(nsForwardProxyDataSource)
+NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(nsForwardProxyDataSource)
+    NS_IMPL_CYCLE_COLLECTION_UNLINK_NSCOMARRAY(mObservers)
+NS_IMPL_CYCLE_COLLECTION_UNLINK_END
+NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(nsForwardProxyDataSource)
+    NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMPTR(mDS)
+    NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMARRAY(mObservers)
+NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
-        mDS->RemoveObserver(this);
-        mDS = nsnull;
-
-        // In CompositeDataSource, there's a comment here that we call
-        // ourselves again instead of just doing a delete in case
-        // something might have added a ref count in the meantime.
-        // However, if that happens, this object will be in an
-        // inconsistent state, because we'll have removed the Observer
-        // from mDS.  Hence the assertion.
-        NS_ASSERTION(mRefCnt >= 1, "bad mRefCnt");
-        return Release();
-    }
-    else {
-        NS_LOG_RELEASE(this, count, "nsForwardProxyDataSource");
-        return count;
-    }
-}
+NS_IMPL_CYCLE_COLLECTING_ADDREF_AMBIGUOUS(nsForwardProxyDataSource,
+                                          nsIRDFInferDataSource)
+NS_IMPL_CYCLE_COLLECTING_RELEASE_AMBIGUOUS(nsForwardProxyDataSource,
+                                           nsIRDFInferDataSource)
 
 NS_INTERFACE_MAP_BEGIN(nsForwardProxyDataSource)
     NS_INTERFACE_MAP_ENTRY(nsIRDFInferDataSource)
     NS_INTERFACE_MAP_ENTRY_AMBIGUOUS(nsIRDFDataSource, nsIRDFInferDataSource)
     NS_INTERFACE_MAP_ENTRY_AMBIGUOUS(nsISupports, nsIRDFInferDataSource)
     NS_INTERFACE_MAP_ENTRY(nsIRDFObserver)
+    NS_INTERFACE_MAP_ENTRIES_CYCLE_COLLECTION(nsForwardProxyDataSource)
 NS_INTERFACE_MAP_END
 
-//----------------------------------------------------------------------
-//
-// nsIRDFDataSource interface
-//
 
-// methods which need no proxying
+
+
+
+
+
 
 NS_IMETHODIMP
 nsForwardProxyDataSource::GetURI(char* *uri)
@@ -314,9 +285,9 @@ nsForwardProxyDataSource::EndUpdateBatch()
     return mDS->EndUpdateBatch();
 }
 
-//
-// methods which need proxying
-//
+
+
+
 
 NS_IMETHODIMP
 nsForwardProxyDataSource::GetTarget(nsIRDFResource* aSource,
@@ -461,8 +432,8 @@ nsForwardProxyDataSource::GetAllCmds(nsIRDFResource* aSource,
     return rv;
 }
 
-// helper method for munging an array of sources into an array of the
-// sources plus their proxy resources.
+
+
 
 nsresult
 nsForwardProxyDataSource::GetProxyResourcesArray (nsISupportsArray* aSources,
@@ -484,9 +455,9 @@ nsForwardProxyDataSource::GetProxyResourcesArray (nsISupportsArray* aSources,
         return NS_OK;
     }
 
-    // go through the aSources array, looking for things which
-    // have aggregate resources -- if they're found, append them
-    // to a new array
+    
+    
+    
     for (PRUint32 i = 0; i < sourcesCount; i++) {
         rv = aSources->QueryElementAt(i, NS_GET_IID(nsIRDFResource),
                                       getter_AddRefs(source));
@@ -547,7 +518,7 @@ nsForwardProxyDataSource::DoCommand(nsISupportsArray* aSources,
 }
 
 
-// Observer bits
+
 
 NS_IMETHODIMP
 nsForwardProxyDataSource::AddObserver(nsIRDFObserver* aObserver)
@@ -577,12 +548,12 @@ nsForwardProxyDataSource::RemoveObserver(nsIRDFObserver* aObserver)
     return NS_OK;
 }
 
-//
-// nsIRDFObserver impl
-//
 
-// if a given notification source is a proxied resource, we generate
-// notifications for the real source as well.
+
+
+
+
+
 
 NS_IMETHODIMP
 nsForwardProxyDataSource::OnAssert(nsIRDFDataSource* aDataSource,
@@ -719,9 +690,9 @@ nsForwardProxyDataSource::OnEndUpdateBatch(nsIRDFDataSource* aDataSource)
     return NS_OK;
 }
 
-//
-// nsIRDFInferDataSource
-//
+
+
+
 
 NS_IMETHODIMP
 nsForwardProxyDataSource::SetBaseDataSource(nsIRDFDataSource *aDataSource)
