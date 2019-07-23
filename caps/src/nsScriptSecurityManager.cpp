@@ -107,9 +107,8 @@ PRBool nsScriptSecurityManager::sStrictFileOriginPolicy = PR_TRUE;
 
 
 
-static const JSClass *sXPCWrappedNativeJSClass;
-static JSGetObjectOps sXPCWrappedNativeGetObjOps1;
-static JSGetObjectOps sXPCWrappedNativeGetObjOps2;
+static JSEqualityOp sXPCWrappedNativeEqualityOps;
+static JSEqualityOp sXPCSlimWrapperEqualityOps;
 
 
 
@@ -2313,36 +2312,22 @@ nsScriptSecurityManager::doGetObjectPrincipal(JSObject *aObj
 
         
         
-        if (jsClass == sXPCWrappedNativeJSClass ||
-            jsClass->getObjectOps == sXPCWrappedNativeGetObjOps1 ||
-            jsClass->getObjectOps == sXPCWrappedNativeGetObjOps2) {
-            nsIXPConnectWrappedNative *xpcWrapper =
-                (nsIXPConnectWrappedNative *)caps_GetJSPrivate(aObj);
-
-            if (xpcWrapper) {
+        
+        JSEqualityOp op =
+            (jsClass->flags & JSCLASS_IS_EXTENDED) ?
+            reinterpret_cast<const JSExtendedClass*>(jsClass)->equality :
+            nsnull;
+        if (op == sXPCWrappedNativeEqualityOps ||
+            op == sXPCSlimWrapperEqualityOps) {
+            result = sXPConnect->GetPrincipal(aObj,
 #ifdef DEBUG
-                if (aAllowShortCircuit) {
+                                              aAllowShortCircuit
+#else
+                                              PR_TRUE
 #endif
-                    result = xpcWrapper->GetObjectPrincipal();
-
-                    if (result) {
-                        break;
-                    }
-#ifdef DEBUG
-                }
-#endif
-
-                
-                
-                nsCOMPtr<nsIScriptObjectPrincipal> objPrin =
-                    do_QueryWrappedNative(xpcWrapper);
-                if (objPrin) {
-                    result = objPrin->GetPrincipal();
-
-                    if (result) {
-                        break;
-                    }
-                }
+                                              );
+            if (result) {
+                break;
             }
         } else if (!(~jsClass->flags & (JSCLASS_HAS_PRIVATE |
                                         JSCLASS_PRIVATE_IS_NSISUPPORTS))) {
@@ -3309,9 +3294,8 @@ nsresult nsScriptSecurityManager::Init()
     JS_SetRuntimeSecurityCallbacks(sRuntime, &securityCallbacks);
     NS_ASSERTION(!oldcallbacks, "Someone else set security callbacks!");
 
-    sXPConnect->GetXPCWrappedNativeJSClassInfo(&sXPCWrappedNativeJSClass,
-                                               &sXPCWrappedNativeGetObjOps1,
-                                               &sXPCWrappedNativeGetObjOps2);
+    sXPConnect->GetXPCWrappedNativeJSClassInfo(&sXPCWrappedNativeEqualityOps,
+                                               &sXPCSlimWrapperEqualityOps);
     return NS_OK;
 }
 

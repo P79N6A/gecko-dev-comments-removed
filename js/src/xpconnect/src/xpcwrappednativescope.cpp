@@ -205,7 +205,7 @@ XPCWrappedNativeScope::SetComponents(nsXPCComponents* aComponents)
 
 JSClass XPC_WN_NoHelper_Proto_JSClass = {
     "XPC_WN_NoHelper_Proto_JSClass",
-    JSCLASS_HAS_PRIVATE,            
+    WRAPPER_SLOTS,                  
 
     
     JS_PropertyStub,                
@@ -720,6 +720,9 @@ GetScopeOfObject(JSObject* obj)
 {
     nsISupports* supports;
     JSClass* clazz = STOBJ_GET_CLASS(obj);
+
+    if(IS_SLIM_WRAPPER_CLASS(clazz))
+        return GetSlimWrapperProto(obj)->GetScope();
 
     if(!IS_WRAPPER_CLASS(clazz) ||
        !(supports = (nsISupports*) xpc_GetJSPrivate(obj)))

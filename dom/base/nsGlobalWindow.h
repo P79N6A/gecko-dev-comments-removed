@@ -361,10 +361,14 @@ public:
   
   nsGlobalWindow(nsGlobalWindow *aOuterWindow);
 
-  static nsGlobalWindow *FromWrapper(nsIXPConnectWrappedNative *wrapper)
+  static nsGlobalWindow *FromSupports(nsISupports *supports)
   {
     
-    return (nsGlobalWindow *)(nsIScriptGlobalObject *)wrapper->Native();
+    return (nsGlobalWindow *)(nsIScriptGlobalObject *)supports;
+  }
+  static nsGlobalWindow *FromWrapper(nsIXPConnectWrappedNative *wrapper)
+  {
+    return FromSupports(wrapper->Native());
   }
 
   nsIScriptContext *GetContextInternal()
