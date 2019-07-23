@@ -147,7 +147,17 @@ gfxMatrix nsStyleTransformMatrix::GetThebesMatrix(const nsRect& aBounds,
 
 
 
-  return gfxMatrix(mMain[0], mMain[1], mMain[2], mMain[3],
+
+
+
+
+
+
+
+
+
+
+  return gfxMatrix(mMain[0], mMain[2], mMain[1], mMain[3],
                    NSAppUnitsToFloatPixels(GetXTranslation(aBounds), aScale),
                    NSAppUnitsToFloatPixels(GetYTranslation(aBounds), aScale));
 }
@@ -172,16 +182,18 @@ nsStyleTransformMatrix::operator *= (const nsStyleTransformMatrix &aOther)
 
 
 
-  newMatrix[0] = aOther.mMain[0] * mMain[0] + aOther.mMain[1] * mMain[2];
-  newMatrix[1] = aOther.mMain[0] * mMain[1] + aOther.mMain[1] * mMain[3];
-  newMatrix[2] = aOther.mMain[2] * mMain[0] + aOther.mMain[3] * mMain[2];
-  newMatrix[3] = aOther.mMain[2] * mMain[1] + aOther.mMain[3] * mMain[3];
+  newMatrix[0] = mMain[0] * aOther.mMain[0] + mMain[1] * aOther.mMain[2];
+  newMatrix[1] = mMain[0] * aOther.mMain[1] + mMain[1] * aOther.mMain[3];
+  newMatrix[2] = mMain[2] * aOther.mMain[0] + mMain[3] * aOther.mMain[2];
+  newMatrix[3] = mMain[2] * aOther.mMain[1] + mMain[3] * aOther.mMain[3];
   newDelta[0] =
-    NSCoordMultiply(aOther.mDelta[0], mMain[0]) +
-    NSCoordMultiply(aOther.mDelta[1], mMain[2]) + mDelta[0];
+    NSCoordMultiply(mDelta[0], aOther.mMain[0]) +
+    NSCoordMultiply(mDelta[1], aOther.mMain[2]) +
+    aOther.mDelta[0];
   newDelta[1] =
-    NSCoordMultiply(aOther.mDelta[0], mMain[1]) +
-    NSCoordMultiply(aOther.mDelta[1], mMain[3]) + mDelta[1];
+    NSCoordMultiply(mDelta[0], aOther.mMain[1]) +
+    NSCoordMultiply(mDelta[1], aOther.mMain[3]) +
+    aOther.mDelta[1];
 
   
 
@@ -193,10 +205,10 @@ nsStyleTransformMatrix::operator *= (const nsStyleTransformMatrix &aOther)
 
 
 
-  newX[0] = mMain[0] * aOther.mX[0] + mMain[2] * aOther.mX[1] + mX[0];
-  newX[1] = mMain[1] * aOther.mX[0] + mMain[3] * aOther.mX[1] + mX[1];
-  newY[0] = mMain[0] * aOther.mY[0] + mMain[2] * aOther.mY[1] + mY[0];
-  newY[1] = mMain[1] * aOther.mY[0] + mMain[3] * aOther.mY[1] + mY[1];
+  newX[0] = aOther.mMain[0] * mX[0] + aOther.mMain[2] * mX[1] + aOther.mX[0];
+  newX[1] = aOther.mMain[1] * mX[0] + aOther.mMain[3] * mX[1] + aOther.mX[1];
+  newY[0] = aOther.mMain[0] * mY[0] + aOther.mMain[2] * mY[1] + aOther.mY[0];
+  newY[1] = aOther.mMain[1] * mY[0] + aOther.mMain[3] * mY[1] + aOther.mY[1];
 
   
   for (PRInt32 index = 0; index < 4; ++index)
@@ -395,8 +407,8 @@ static void ProcessSkewHelper(float aXAngle, float aYAngle, float aMain[4])
 
 
 
-  aMain[2] = SafeTangent(aXAngle);
-  aMain[1] = SafeTangent(aYAngle);
+  aMain[1] = SafeTangent(aXAngle);
+  aMain[2] = SafeTangent(aYAngle);
 }
 
 
@@ -435,13 +447,17 @@ static void ProcessRotate(float aMain[4], const nsCSSValue::Array* aData)
 
 
 
+
+
+
+
   float theta = CSSToRadians(aData->Item(1));
   float cosTheta = cos(theta);
   float sinTheta = sin(theta);
 
   aMain[0] = cosTheta;
-  aMain[1] = sinTheta;
-  aMain[2] = -sinTheta;
+  aMain[1] = -sinTheta;
+  aMain[2] = sinTheta;
   aMain[3] = cosTheta;
 }
 
