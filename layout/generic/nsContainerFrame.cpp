@@ -488,32 +488,59 @@ SyncFrameViewGeometryDependentProperties(nsPresContext*  aPresContext,
                                          nsIView*         aView,
                                          PRUint32         aFlags)
 {
+#ifdef MOZ_XUL
   nsIViewManager* vm = aView->GetViewManager();
 
   PRBool isCanvas;
   const nsStyleBackground* bg;
   nsCSSRendering::FindBackground(aPresContext, aFrame, &bg, &isCanvas);
 
-  if (isCanvas) {
-    nsIView* rootView;
-    vm->GetRootView(rootView);
+  if (!isCanvas)
+    return;
 
-    if (aView->HasWidget() && aView == rootView &&
-        IsTopLevelWidget(aPresContext)) {
-      
-      
-      
-      
-      nsTransparencyMode mode = nsLayoutUtils::GetFrameTransparency(aFrame);
-      nsIFrame *rootFrame = aPresContext->PresShell()->FrameConstructor()->GetRootElementStyleFrame();
-      if(rootFrame && NS_THEME_WIN_GLASS == rootFrame->GetStyleDisplay()->mAppearance)
-        mode = eTransparencyGlass;
-      nsIWidget* widget = aView->GetWidget();
-      widget->SetTransparencyMode(mode);
-      if (rootFrame)
-        widget->SetWindowShadowStyle(rootFrame->GetStyleUIReset()->mWindowShadow);
-    }
+  nsIView* rootView;
+  vm->GetRootView(rootView);
+
+  if (!aView->HasWidget() || aView != rootView ||
+      !IsTopLevelWidget(aPresContext))
+    return;
+
+  nsIContent* rootContent = aPresContext->Document()->GetRootContent();
+  if (!rootContent || !rootContent->IsNodeOfType(nsINode::eXUL)) {
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    return;
   }
+
+  
+  
+  
+  
+  nsTransparencyMode mode = nsLayoutUtils::GetFrameTransparency(aFrame);
+  nsIFrame *rootFrame = aPresContext->PresShell()->FrameConstructor()->GetRootElementStyleFrame();
+  if (rootFrame &&
+      NS_THEME_WIN_GLASS == rootFrame->GetStyleDisplay()->mAppearance) {
+    mode = eTransparencyGlass;
+  }
+  nsIWidget* widget = aView->GetWidget();
+  widget->SetTransparencyMode(mode);
+  if (rootFrame) {
+    widget->SetWindowShadowStyle(rootFrame->GetStyleUIReset()->mWindowShadow);
+  }
+#endif
 }
 
 void
