@@ -46,6 +46,7 @@
 #include "nsIDOMSVGLocatable.h"
 #include "nsIDOMSVGZoomAndPan.h"
 #include "nsIDOMSVGMatrix.h"
+#include "nsIDOMSVGPoint.h"
 #include "nsSVGLength2.h"
 #include "nsSVGEnum.h"
 #include "nsSVGViewBox.h"
@@ -60,6 +61,52 @@ class nsSMILTimeContainer;
    static_cast<nsSVGSVGElement*>(base.get()) : nsnull)
 
 typedef nsSVGStylableElement nsSVGSVGElementBase;
+
+class nsSVGSVGElement;
+
+class nsSVGTranslatePoint {
+public:
+  nsSVGTranslatePoint(float aX, float aY) :
+    mX(aX), mY(aY) {}
+
+  void SetX(float aX)
+    { mX = aX; }
+  void SetY(float aY)
+    { mY = aY; }
+  float GetX() const
+    { return mX; }
+  float GetY() const
+    { return mY; }
+
+  nsresult ToDOMVal(nsSVGSVGElement *aElement, nsIDOMSVGPoint **aResult);
+
+private:
+
+  struct DOMVal : public nsIDOMSVGPoint {
+    NS_DECL_CYCLE_COLLECTING_ISUPPORTS
+    NS_DECL_CYCLE_COLLECTION_CLASS(DOMVal)
+
+    DOMVal(nsSVGTranslatePoint* aVal, nsSVGSVGElement *aElement)
+      : mVal(aVal), mElement(aElement) {}
+
+    NS_IMETHOD GetX(float *aValue)
+      { *aValue = mVal->GetX(); return NS_OK; }
+    NS_IMETHOD GetY(float *aValue)
+      { *aValue = mVal->GetY(); return NS_OK; }
+
+    NS_IMETHOD SetX(float aValue);
+    NS_IMETHOD SetY(float aValue);
+
+    NS_IMETHOD MatrixTransform(nsIDOMSVGMatrix *matrix,
+                               nsIDOMSVGPoint **_retval);
+
+    nsSVGTranslatePoint *mVal; 
+    nsRefPtr<nsSVGSVGElement> mElement;
+  };
+
+  float mX;
+  float mY;
+};
 
 class svgFloatSize {
 public:
@@ -88,7 +135,6 @@ protected:
                                       nsINodeInfo *aNodeInfo,
                                       PRBool aFromParser);
   nsSVGSVGElement(nsINodeInfo* aNodeInfo, PRBool aFromParser);
-  nsresult Init();
   
 public:
 
@@ -103,9 +149,6 @@ public:
   NS_FORWARD_NSIDOMNODE(nsSVGSVGElementBase::)
   NS_FORWARD_NSIDOMELEMENT(nsSVGSVGElementBase::)
   NS_FORWARD_NSIDOMSVGELEMENT(nsSVGSVGElementBase::)
-
-  
-  nsresult GetCurrentScaleNumber(nsIDOMSVGNumber **aResult);
 
   
 
@@ -124,15 +167,14 @@ public:
   
 
 
-
-  void RecordCurrentScaleTranslate();
+  const nsSVGTranslatePoint& GetCurrentTranslate() { return mCurrentTranslate; }
+  float GetCurrentScale() { return mCurrentScale; }
 
   
 
 
 
-  float GetPreviousTranslate_x() { return mPreviousTranslate_x; }
-  float GetPreviousTranslate_y() { return mPreviousTranslate_y; }
+  const nsSVGTranslatePoint& GetPreviousTranslate() { return mPreviousTranslate; }
   float GetPreviousScale() { return mPreviousScale; }
 
 #ifdef MOZ_SMIL
@@ -144,12 +186,6 @@ public:
 #ifdef MOZ_SMIL
   virtual nsresult PreHandleEvent(nsEventChainPreVisitor& aVisitor);
 #endif 
-
-  
-  NS_IMETHOD WillModifySVGObservable(nsISVGValue* observable,
-                                     nsISVGValue::modificationType aModType);
-  NS_IMETHOD DidModifySVGObservable (nsISVGValue* observable,
-                                     nsISVGValue::modificationType aModType);
 
   
   virtual void DidChangeLength(PRUint8 aAttrEnum, PRBool aDoSetAttr);
@@ -255,13 +291,11 @@ protected:
   
   
   
-  nsCOMPtr<nsIDOMSVGPoint>          mCurrentTranslate;
-  nsCOMPtr<nsIDOMSVGNumber>         mCurrentScale;
-  float                             mPreviousTranslate_x;
-  float                             mPreviousTranslate_y;
+  nsSVGTranslatePoint               mCurrentTranslate;
+  float                             mCurrentScale;
+  nsSVGTranslatePoint               mPreviousTranslate;
   float                             mPreviousScale;
   PRInt32                           mRedrawSuspendCount;
-  PRPackedBool                      mDispatchEvent;
 
 #ifdef MOZ_SMIL
   

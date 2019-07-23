@@ -149,6 +149,7 @@ nsSVGOuterSVGFrame::nsSVGOuterSVGFrame(nsStyleContext* aContext)
 #ifdef XP_MACOSX
     , mEnableBitmapFallback(PR_FALSE)
 #endif
+    , mIsRootContent(PR_FALSE)
 {
 }
 
@@ -170,9 +171,7 @@ nsSVGOuterSVGFrame::Init(nsIContent* aContent,
   if (doc) {
     
     if (doc->GetRootContent() == mContent) {
-      nsSVGSVGElement *SVGElement = static_cast<nsSVGSVGElement*>(mContent);
-      SVGElement->GetCurrentTranslate(getter_AddRefs(mCurrentTranslate));
-      SVGElement->GetCurrentScaleNumber(getter_AddRefs(mCurrentScale));
+      mIsRootContent = PR_TRUE;
     }
     
     
@@ -774,16 +773,14 @@ nsSVGOuterSVGFrame::GetCanvasTM()
 
     
     
-    if (mCurrentScale &&
-        mCurrentTranslate) {
+    if (mIsRootContent) {
       nsCOMPtr<nsIDOMSVGMatrix> zoomPanMatrix;
       nsCOMPtr<nsIDOMSVGMatrix> temp;
-      float scale, x, y;
-      mCurrentScale->GetValue(&scale);
-      mCurrentTranslate->GetX(&x);
-      mCurrentTranslate->GetY(&y);
+      float scale = svgElement->GetCurrentScale();
+      const nsSVGTranslatePoint& translate = svgElement->GetCurrentTranslate();
+
       svgElement->CreateSVGMatrix(getter_AddRefs(zoomPanMatrix));
-      zoomPanMatrix->Translate(x, y, getter_AddRefs(temp));
+      zoomPanMatrix->Translate(translate.GetX(), translate.GetY(), getter_AddRefs(temp));
       temp->Scale(scale, getter_AddRefs(zoomPanMatrix));
       zoomPanMatrix->Multiply(mCanvasTM, getter_AddRefs(temp));
       temp.swap(mCanvasTM);
