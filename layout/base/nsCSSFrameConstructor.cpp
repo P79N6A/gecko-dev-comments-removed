@@ -5433,7 +5433,14 @@ nsCSSFrameConstructor::AddFrameConstructionItemsInternal(nsFrameConstructorState
     aItems.InlineItemAdded();
   }
 
-  if (bits & FCDATA_IS_LINE_PARTICIPANT) {
+  
+  
+  
+  
+  if ((bits & FCDATA_IS_LINE_PARTICIPANT) &&
+      ((bits & FCDATA_DISALLOW_OUT_OF_FLOW) ||
+       !aState.GetGeometricParent(display, nsnull))) {
+    item->mIsLineParticipant = PR_TRUE;
     aItems.LineParticipantItemAdded();
   }
 }
@@ -11550,7 +11557,7 @@ AdjustCountsForItem(FrameConstructionItem* aItem, PRInt32 aDelta)
   if (aItem->mIsAllInline) {
     mInlineCount += aDelta;
   }
-  if (aItem->mFCData->mBits & FCDATA_IS_LINE_PARTICIPANT) {
+  if (aItem->mIsLineParticipant) {
     mLineParticipantCount += aDelta;
   }
   mDesiredParentCounts[aItem->DesiredParentType()] += aDelta;
