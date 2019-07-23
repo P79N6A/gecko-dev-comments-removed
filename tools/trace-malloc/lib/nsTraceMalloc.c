@@ -46,7 +46,6 @@
 
 
 
-
 #include <errno.h>
 #include <fcntl.h>
 #include <stdio.h>
@@ -69,9 +68,9 @@
 #include "nscore.h"
 #include "prinit.h"
 #include "prthread.h"
+#include "nsStackWalk.h"
 
 #ifdef XP_WIN32
-#include "nsStackFrameWin.h"
 #include <sys/timeb.h>
 #include <sys/stat.h>
 
@@ -85,10 +84,6 @@
 #ifdef XP_UNIX
 #define WRITE_FLAGS "w"
 
-#ifdef MOZ_DEMANGLE_SYMBOLS
-char *nsDemangle(const char *);
-#endif
-
 #ifdef WRAP_SYSTEM_INCLUDES
 #pragma GCC visibility push(default)
 #endif
@@ -101,136 +96,6 @@ extern __ptr_t __libc_valloc(size_t);
 #ifdef WRAP_SYSTEM_INCLUDES
 #pragma GCC visibility pop
 #endif
-
-
-#define __USE_GNU 1
-#include <dlfcn.h>
-
-#if 1
-#define my_dladdr dladdr
-#else
-
-#include <bfd.h>
-#include <elf.h>        
-#include <link.h>
-
-extern struct link_map *_dl_loaded;
-
-static int my_dladdr(const void *address, Dl_info *info)
-{
-    const ElfW(Addr) addr = (ElfW(Addr)) address;
-    struct link_map *lib, *matchlib;
-    unsigned int n, size;
-    bfd *abfd;
-    PTR minisyms;
-    long nsyms;
-    bfd_byte *mini, *endmini;
-    asymbol *sym, *storage;
-    bfd_vma target, symaddr;
-    static const char *sname;
-
-    
-    matchlib = NULL;
-    for (lib = _dl_loaded; lib; lib = lib->l_next) {
-        if (lib->l_addr != 0 &&         
-            lib->l_addr <= addr &&
-            (!matchlib || matchlib->l_addr < lib->l_addr)) {
-            matchlib = lib;
-        }
-    }
-    if (!matchlib)
-        return 0;
-
-    
-
-
-
-    n = (size_t) matchlib->l_phnum;
-    if (n > 0) {
-        do {
-            --n;
-        } while (matchlib->l_phdr[n].p_type != PT_LOAD);
-        if (addr >= (matchlib->l_addr +
-                     matchlib->l_phdr[n].p_vaddr +
-                     matchlib->l_phdr[n].p_memsz)) {
-            
-            return 0;
-        }
-    }
-
-    
-
-
-
-    info->dli_fname = matchlib->l_name;
-    info->dli_fbase = (void*) matchlib->l_addr;
-    info->dli_sname = NULL;
-    info->dli_saddr = NULL;
-
-    
-    const char target[] = 
-#if defined(__i386)
-        "elf32-i386"
-#elif defined(__x86_64__)
-        "elf64-x86-64"
-#else 
-#error Unknown architecture
-#endif
-        ;
-    abfd = bfd_openr(matchlib->l_name, target);
-    if (!abfd)
-        return 0;
-    if (!bfd_check_format(abfd, bfd_object)) {
-        printf("%s is not an object file, according to libbfd.\n",
-               matchlib->l_name);
-        return 0;
-    }
-    nsyms = bfd_read_minisymbols(abfd, 0, &minisyms, &size);
-    if (nsyms < 0) {
-        bfd_close(abfd);
-        return 0;
-    }
-
-    if (nsyms > 0) {
-        storage = bfd_make_empty_symbol(abfd);
-        if (!storage) {
-            bfd_close(abfd);
-            return 0;
-        }
-        target = (bfd_vma) addr - (bfd_vma) matchlib->l_addr;
-        endmini = (bfd_byte*) minisyms + nsyms * size;
-
-        for (mini = (bfd_byte*) minisyms; mini < endmini; mini += size) {
-            sym = bfd_minisymbol_to_symbol(abfd, 0, (const PTR)mini, storage);
-            if (!sym) {
-                bfd_close(abfd);
-                return 0;
-            }
-            if (sym->flags & (BSF_GLOBAL | BSF_LOCAL | BSF_WEAK)) {
-                symaddr = sym->value + sym->section->vma;
-                if (symaddr == 0 || symaddr > target)
-                    continue;
-                if (!info->dli_sname || info->dli_saddr < (void*) symaddr) {
-                    info->dli_sname = sym->name;
-                    info->dli_saddr = (void*) symaddr;
-                }
-            }
-        }
-
-        
-        if (info->dli_sname) {
-            if (sname)
-                __libc_free((void*) sname);
-            sname = strdup(info->dli_sname);
-            if (!sname)
-                return 0;
-            info->dli_sname = sname;
-        }
-    }
-    bfd_close(abfd);
-    return 1;
-}
-#endif 
 
 #else  
 
@@ -330,6 +195,13 @@ static int tracing_enabled = 1;
     PR_END_MACRO
 
 
+typedef struct stack_buffer_info {
+    void **buffer;
+    size_t size;
+    size_t entries;
+} stack_buffer_info;
+
+
 
 
 
@@ -373,6 +245,9 @@ struct tm_thread {
 
 
     uint32 suppress_tracing;
+
+    
+    stack_buffer_info backtrace_buf;
 };
 
 static TM_TLS_INDEX_TYPE tls_index;
@@ -389,6 +264,9 @@ free_tm_thread(void *priv)
 
     if (t->in_heap) {
         t->suppress_tracing = 1;
+        if (t->backtrace_buf.buffer)
+            __libc_free(t->backtrace_buf.buffer);
+
         __libc_free(t);
     }
 }
@@ -412,10 +290,14 @@ get_tm_thread(void)
 
 
         stack_tm_thread.suppress_tracing = 1;
+        stack_tm_thread.backtrace_buf.buffer = NULL;
+        stack_tm_thread.backtrace_buf.size = 0;
+        stack_tm_thread.backtrace_buf.entries = 0;
         TM_SET_TLS_DATA(tls_index, &stack_tm_thread);
 
         t = (tm_thread*) __libc_malloc(sizeof(tm_thread));
         t->suppress_tracing = 0;
+        t->backtrace_buf = stack_tm_thread.backtrace_buf;
         TM_SET_TLS_DATA(tls_index, t);
 
         PR_ASSERT(stack_tm_thread.suppress_tracing == 1); 
@@ -634,8 +516,8 @@ struct callsite {
     void*       pc;
     uint32      serial;
     lfd_set     lfdset;
-    char        *name;
-    const char  *library;
+    const char  *name;    
+    const char  *library; 
     int         offset;
     callsite    *parent;
     callsite    *siblings;
@@ -740,426 +622,22 @@ static PLHashTable *filenames = NULL;
 
 static PLHashTable *methods = NULL;
 
-#ifdef XP_WIN32
-
-
-
-
-#define  MAX_STACKFRAMES 512
-#define  MAX_UNMANGLED_NAME_LEN 256
-
-static callsite *calltree(int skip)
+static callsite *calltree(void **stack, size_t num_stack_entries)
 {
     logfile *fp = logfp;
-    HANDLE myProcess;
-    HANDLE myThread;
-    CONTEXT context;
-    int ok, maxstack, offset;
-    int getSymRes = 0;
-    STACKFRAME frame[MAX_STACKFRAMES];
-    uint32 library_serial, method_serial;
-    int framenum;
     void *pc;
-    uint32 depth, nkids;
-    callsite *parent, **csp, *tmp;
-    callsite *site = NULL;
-    char *demangledname;
-    const char *library;
-    IMAGEHLP_MODULE imagehelp;
-    char buf[sizeof(IMAGEHLP_SYMBOL) + 512];
-    PIMAGEHLP_SYMBOL symbol;
-    char *method, *slash;
-    PLHashNumber hash;
-    PLHashEntry **hep, *he;
-    lfdset_entry *le;
-    char* noname = "noname";
-    IMAGEHLP_LINE imagehelpLine;
-    const char* filename = NULL;
-    uint32 linenumber = 0;
-    uint32 filename_serial = 0;
-
-    imagehelp.SizeOfStruct = sizeof(imagehelp);
-    framenum = 0;
-    myProcess = GetCurrentProcess();
-    myThread = GetCurrentThread();
-
-    ok = EnsureSymInitialized();
-    if (! ok)
-        return 0;
-
-    
-
-
-
-
-    context.ContextFlags = CONTEXT_FULL;
-    ok = GetThreadContext(myThread, &context);
-    if (! ok)
-        return 0;
-
-    
-    memset(&(frame[0]), 0, sizeof(frame[0]));
-    frame[0].AddrPC.Offset    = context.Eip;
-    frame[0].AddrPC.Mode      = AddrModeFlat;
-    frame[0].AddrStack.Offset = context.Esp;
-    frame[0].AddrStack.Mode   = AddrModeFlat;
-    frame[0].AddrFrame.Offset = context.Ebp;
-    frame[0].AddrFrame.Mode   = AddrModeFlat;
-    for (;framenum < MAX_STACKFRAMES;) {
-        PIMAGEHLP_SYMBOL symbol = (PIMAGEHLP_SYMBOL) buf;
-        if (framenum)
-            memcpy(&(frame[framenum]),&(frame[framenum-1]),sizeof(STACKFRAME));
-
-        ok = _StackWalk(IMAGE_FILE_MACHINE_I386,
-                        myProcess,
-                        myThread,
-                        &(frame[framenum]),
-                        &context,
-                        0,                      
-                        _SymFunctionTableAccess,
-                        _SymGetModuleBase,      
-                        0);                     
-
-        if (!ok)
-            break;
-        if (skip) {
-            
-            skip--;
-            continue;
-        }
-        if (frame[framenum].AddrPC.Offset == 0)
-            break;
-
-        framenum++;
-
-        
-
-
-        if (framenum >= MAX_STACKFRAMES)
-            break;
-    }
-
-    
-
-
-
-    TM_ENTER_LOCK();
-
-    depth = framenum;
-    maxstack = (depth > tmstats.calltree_maxstack);
-    if (maxstack)
-        tmstats.calltree_maxstack = depth;
-
-    
-    parent = &calltree_root;
-    while (0 < framenum) {
-        DWORD displacement;
-
-        pc = frame[--framenum].AddrPC.Offset;
-
-        csp = &parent->kids;
-        while ((site = *csp) != NULL) {
-            if (site->pc == pc) {
-                tmstats.calltree_kidhits++;
-
-                
-                *csp = site->siblings;
-                site->siblings = parent->kids;
-                parent->kids = site;
-
-                
-                if (!LFD_TEST(fp->lfd, &site->lfdset)) {
-                    
-
-
-
-
-
-                    break;
-                }
-
-                
-                goto upward;
-            }
-            tmstats.calltree_kidsteps++;
-            csp = &site->siblings;
-        }
-
-        if (!site) {
-            tmstats.calltree_kidmisses++;
-
-            
-            for (site = parent; site; site = site->parent) {
-                if (site->pc == pc) {
-                    tmstats.callsite_recurrences++;
-                    last_callsite_recurrence = site;
-                    goto upward;
-                }
-            }
-        }
-
-        
-
-
-
-
-        memset(&imagehelpLine, 0, sizeof(imagehelpLine));
-        if (!SymGetModuleInfoEspecial(myProcess,
-                               frame[framenum].AddrPC.Offset,
-                               &imagehelp, &imagehelpLine)) {
-            library = noname;
-            filename = noname;
-            linenumber = 0;
-        } else {
-            library = imagehelp.ModuleName;
-            filename = imagehelpLine.FileName;
-            linenumber = imagehelpLine.LineNumber;
-
-            if ('\0' == filename) {
-                filename = noname;
-                linenumber = 0;
-            }
-        }
-
-        
-        library_serial = 0;
-        if (library) {
-           if (!libraries) {
-                libraries = PL_NewHashTable(100, PL_HashString,
-                                            PL_CompareStrings, PL_CompareValues,
-                                            &lfdset_hashallocops, NULL);
-                if (!libraries) {
-                    tmstats.btmalloc_failures++;
-                    goto fail;
-                }
-            }
-            hash = PL_HashString(library);
-            hep = PL_HashTableRawLookup(libraries, hash, library);
-            he = *hep;
-            library = strdup(library); 
-            if (he) {
-                library_serial = (uint32) NS_PTR_TO_INT32(he->value);
-                le = (lfdset_entry *) he;
-                if (LFD_TEST(fp->lfd, &le->lfdset)) {
-                    
-                    le = NULL;
-                }
-            } else {
-
-                if (library) {
-                    library_serial = ++library_serial_generator;
-                    he = PL_HashTableRawAdd(libraries, hep, hash, library,
-                                            (void*) library_serial);
-                }
-                if (!he) {
-                    tmstats.btmalloc_failures++;
-                    goto fail;
-                }
-                le = (lfdset_entry *) he;
-            }
-            if (le) {
-                
-                slash = strrchr(library, '/');
-                if (slash)
-                    library = slash + 1;
-                log_event1(fp, TM_EVENT_LIBRARY, library_serial);
-                log_string(fp, library);
-                LFD_SET(fp->lfd, &le->lfdset);
-            }
-        }
-
-        
-        filename_serial = 0;
-        if (filename) {
-            if (!filenames) {
-                filenames = PL_NewHashTable(100, PL_HashString,
-                                            PL_CompareStrings, PL_CompareValues,
-                                            &lfdset_hashallocops, NULL);
-                if (!filenames) {
-                    tmstats.btmalloc_failures++;
-                    goto fail;
-                }
-            }
-            hash = PL_HashString(filename);
-            hep = PL_HashTableRawLookup(filenames, hash, filename);
-            he = *hep;
-            if (he) {
-                filename_serial = (uint32) NS_PTR_TO_INT32(he->value);
-                le = (lfdset_entry *) he;
-                if (LFD_TEST(fp->lfd, &le->lfdset)) {
-                    
-                    le = NULL;
-                }
-            } else {
-                filename = strdup(filename);
-                if (filename) {
-                    filename_serial = ++filename_serial_generator;
-                    he = PL_HashTableRawAdd(filenames, hep, hash, filename,
-                                            (void*) filename_serial);
-                }
-                if (!he) {
-                    tmstats.btmalloc_failures++;
-                    goto fail;
-                }
-                le = (lfdset_entry *) he;
-            }
-            if (le) {
-                
-                log_event1(fp, TM_EVENT_FILENAME, filename_serial);
-                log_filename(fp, filename);
-                LFD_SET(fp->lfd, &le->lfdset);
-            }
-        }
-
-        symbol = (PIMAGEHLP_SYMBOL) buf;
-        symbol->SizeOfStruct = sizeof(IMAGEHLP_SYMBOL);
-        symbol->MaxNameLength = sizeof(buf) - sizeof(IMAGEHLP_SYMBOL);
-        symbol->Name[symbol->MaxNameLength] = '\0';
-
-        getSymRes = _SymGetSymFromAddr(myProcess,
-                                frame[framenum].AddrPC.Offset,
-                                &displacement,
-                                symbol);
-
-        
-        if (0 != getSymRes) {
-            demangledname = (char *)malloc(MAX_UNMANGLED_NAME_LEN);
-            if (!_SymUnDName(symbol,demangledname,MAX_UNMANGLED_NAME_LEN)) {
-                free(demangledname);
-                goto fail;
-            }
-            method = demangledname;
-            offset = (char*)pc - (char*)(symbol->Address);
-        }
-        else {
-            method = noname;
-            offset = pc;
-        }
-
-        
-        method_serial = 0;
-        if (!methods) {
-            methods = PL_NewHashTable(10000, PL_HashString,
-                                      PL_CompareStrings, PL_CompareValues,
-                                      &lfdset_hashallocops, NULL);
-            if (!methods) {
-                tmstats.btmalloc_failures++;
-                if (method != noname) {
-                    free((void*) method);
-                }
-                goto fail;
-            }
-        }
-        hash = PL_HashString(method);
-        hep = PL_HashTableRawLookup(methods, hash, method);
-        he = *hep;
-        if (he) {
-            method_serial = (uint32) NS_PTR_TO_INT32(he->value);
-            if (method != noname) {
-                free((void*) method);
-            }
-            method = (char *) he->key;
-            le = (lfdset_entry *) he;
-            if (LFD_TEST(fp->lfd, &le->lfdset)) {
-                
-                le = NULL;
-            }
-        } else {
-            method_serial = ++method_serial_generator;
-            he = PL_HashTableRawAdd(methods, hep, hash, method,
-                                    (void*) method_serial);
-            if (!he) {
-                tmstats.btmalloc_failures++;
-                if (method != noname) {
-                    free((void*) method);
-                }
-                goto fail;
-            }
-            le = (lfdset_entry *) he;
-        }
-        if (le) {
-            log_event4(fp, TM_EVENT_METHOD, method_serial, library_serial,
-                       filename_serial, linenumber);
-            log_string(fp, method);
-            LFD_SET(fp->lfd, &le->lfdset);
-        }
-
-        
-        if (!site) {
-            site = malloc(sizeof(callsite));
-            if (!site) {
-                tmstats.btmalloc_failures++;
-                goto fail;
-            }
-
-            
-            if (!parent->kids)
-                tmstats.calltree_parents++;
-            nkids = 1;
-            for (tmp = parent->kids; tmp; tmp = tmp->siblings)
-                nkids++;
-            if (nkids > tmstats.calltree_maxkids) {
-                tmstats.calltree_maxkids = nkids;
-                calltree_maxkids_parent = parent;
-            }
-
-            
-            site->pc = pc;
-            site->serial = ++callsite_serial_generator;
-            LFD_ZERO(&site->lfdset);
-            site->name = method;
-            site->offset = offset;
-            site->parent = parent;
-            site->siblings = parent->kids;
-            site->library = library;
-            parent->kids = site;
-            site->kids = NULL;
-        }
-
-        
-        log_event4(fp, TM_EVENT_CALLSITE, site->serial, parent->serial,
-                   method_serial, offset);
-        LFD_SET(fp->lfd, &site->lfdset);
-
-      upward:
-        parent = site;
-    }
-
-    if (maxstack)
-        calltree_maxstack_top = site;
-    depth = 0;
-    for (tmp = site; tmp; tmp = tmp->parent)
-        depth++;
-    if (depth > tmstats.calltree_maxdepth)
-        tmstats.calltree_maxdepth = depth;
-
-    TM_EXIT_LOCK();
-    return site;
-
-  fail:
-    TM_EXIT_LOCK();
-    return NULL;
-}
-
-#else 
-
-static callsite *calltree(void **bp)
-{
-    logfile *fp = logfp;
-    void **bpup, **bpdown, *pc;
-    uint32 depth, nkids;
+    uint32 nkids;
     callsite *parent, *site, **csp, *tmp;
-    Dl_info info;
-    int ok, len, maxstack, offset;
-    uint32 library_serial, method_serial;
-    const char *library, *symbol;
-    char *method, *slash;
+    int maxstack;
+    uint32 library_serial, method_serial, filename_serial;
+    const char *library, *method, *filename;
+    char *slash;
     PLHashNumber hash;
     PLHashEntry **hep, *he;
     lfdset_entry *le;
-    uint32 filename_serial;
-    uint32 linenumber;
-    const char* filename;
+    size_t stack_index;
+    nsCodeAddressDetails details;
+    nsresult rv;
 
     
 
@@ -1168,26 +646,19 @@ static callsite *calltree(void **bp)
 
     TM_ENTER_LOCK();
 
-    
-    bpup = NULL;
-    for (depth = 0; ; depth++) {
-        bpdown = (void**) bp[0];
-        bp[0] = (void*) bpup;
-        if ((void**) bpdown[0] < bpdown)
-            break;
-        bpup = bp;
-        bp = bpdown;
+    maxstack = (num_stack_entries > tmstats.calltree_maxstack);
+    if (maxstack) {
+        
+        tmstats.calltree_maxstack = num_stack_entries;
+        tmstats.calltree_maxdepth = num_stack_entries;
     }
-    maxstack = (depth > tmstats.calltree_maxstack);
-    if (maxstack)
-        tmstats.calltree_maxstack = depth;
 
     
     parent = &calltree_root;
+    stack_index = num_stack_entries;
     do {
-        bpup = (void**) bp[0];
-        bp[0] = (void*) bpdown;
-        pc = bp[1];
+        --stack_index;
+        pc = stack[stack_index];
 
         csp = &parent->kids;
         while ((site = *csp) != NULL) {
@@ -1234,7 +705,6 @@ static callsite *calltree(void **bp)
 
 
 
-        info.dli_fname = info.dli_sname = NULL;
 
         
 
@@ -1249,24 +719,17 @@ static callsite *calltree(void **bp)
 
 
         TM_EXIT_LOCK();
-        ok = my_dladdr((void*) pc, &info);
+        rv = NS_DescribeCodeAddress(pc, &details);
         TM_ENTER_LOCK();
-        if (ok < 0) {
+        if (NS_FAILED(rv)) {
             tmstats.dladdr_failures++;
             goto fail;
         }
 
         
-
-
-
-        filename = "noname";
-        linenumber = 0;
-
-        
         library_serial = 0;
-        library = info.dli_fname;
-        if (library) {
+        library = NULL;
+        if (details.library[0]) {
             if (!libraries) {
                 libraries = PL_NewHashTable(100, PL_HashString,
                                             PL_CompareStrings, PL_CompareValues,
@@ -1276,10 +739,11 @@ static callsite *calltree(void **bp)
                     goto fail;
                 }
             }
-            hash = PL_HashString(library);
-            hep = PL_HashTableRawLookup(libraries, hash, library);
+            hash = PL_HashString(details.library);
+            hep = PL_HashTableRawLookup(libraries, hash, details.library);
             he = *hep;
             if (he) {
+                library = (char*) he->key;
                 library_serial = (uint32) NS_PTR_TO_INT32(he->value);
                 le = (lfdset_entry *) he;
                 if (LFD_TEST(fp->lfd, &le->lfdset)) {
@@ -1287,7 +751,7 @@ static callsite *calltree(void **bp)
                     le = NULL;
                 }
             } else {
-                library = strdup(library);
+                library = strdup(details.library);
                 if (library) {
                     library_serial = ++library_serial_generator;
                     he = PL_HashTableRawAdd(libraries, hep, hash, library,
@@ -1302,75 +766,60 @@ static callsite *calltree(void **bp)
             if (le) {
                 
                 slash = strrchr(library, '/');
-                if (slash)
-                    library = slash + 1;
                 log_event1(fp, TM_EVENT_LIBRARY, library_serial);
-                log_string(fp, library);
+                log_string(fp, slash ? slash + 1 : library);
                 LFD_SET(fp->lfd, &le->lfdset);
             }
         }
 
         
+
+
         filename_serial = 0;
-        if (filename) {
+        filename = details.filename[0] ? details.filename : "noname";
+        if (!filenames) {
+            filenames = PL_NewHashTable(100, PL_HashString,
+                                        PL_CompareStrings, PL_CompareValues,
+                                        &lfdset_hashallocops, NULL);
             if (!filenames) {
-                filenames = PL_NewHashTable(100, PL_HashString,
-                                            PL_CompareStrings, PL_CompareValues,
-                                            &lfdset_hashallocops, NULL);
-                if (!filenames) {
-                    tmstats.btmalloc_failures++;
-                    goto fail;
-                }
+                tmstats.btmalloc_failures++;
+                return NULL;
             }
-            hash = PL_HashString(filename);
-            hep = PL_HashTableRawLookup(filenames, hash, filename);
-            he = *hep;
-            if (he) {
-                filename_serial = (uint32) NS_PTR_TO_INT32(he->value);
-                le = (lfdset_entry *) he;
-                if (LFD_TEST(fp->lfd, &le->lfdset)) {
-                    
-                    le = NULL;
-                }
-            } else {
-                if (filename) {
-                    filename_serial = ++filename_serial_generator;
-                    he = PL_HashTableRawAdd(filenames, hep, hash, filename,
-                                            (void*) filename_serial);
-                }
-                if (!he) {
-                    tmstats.btmalloc_failures++;
-                    goto fail;
-                }
-                le = (lfdset_entry *) he;
-            }
-            if (le) {
+        }
+        hash = PL_HashString(filename);
+        hep = PL_HashTableRawLookup(filenames, hash, filename);
+        he = *hep;
+        if (he) {
+            filename = (char*) he->key;
+            filename_serial = (uint32) NS_PTR_TO_INT32(he->value);
+            le = (lfdset_entry *) he;
+            if (LFD_TEST(fp->lfd, &le->lfdset)) {
                 
-                log_event1(fp, TM_EVENT_FILENAME, filename_serial);
-                log_filename(fp, filename);
-                LFD_SET(fp->lfd, &le->lfdset);
+                le = NULL;
             }
+        } else {
+            filename = strdup(filename);
+            if (filename) {
+                filename_serial = ++filename_serial_generator;
+                he = PL_HashTableRawAdd(filenames, hep, hash, filename,
+                                        (void*) filename_serial);
+            }
+            if (!he) {
+                tmstats.btmalloc_failures++;
+                return NULL;
+            }
+            le = (lfdset_entry *) he;
+        }
+        if (le) {
+            
+            log_event1(fp, TM_EVENT_FILENAME, filename_serial);
+            log_filename(fp, filename);
+            LFD_SET(fp->lfd, &le->lfdset);
         }
 
-        
-        symbol = info.dli_sname;
-        offset = (char*)pc - (char*)info.dli_saddr;
-        method = NULL;
-#ifdef MOZ_DEMANGLE_SYMBOLS
-        if (symbol && (len = strlen(symbol)) != 0) {
-            method = nsDemangle(symbol);
-        }
-#endif
-        if (!method) {
-            method = symbol
-                     ? strdup(symbol)
-                     : PR_smprintf("%s+%X",
-                                   info.dli_fname ? info.dli_fname : "main",
-                                   (char*)pc - (char*)info.dli_fbase);
-        }
-        if (!method) {
-            tmstats.btmalloc_failures++;
-            goto fail;
+        if (!details.function[0]) {
+            PR_snprintf(details.function, sizeof(details.function),
+                        "%s+%X", library ? library : "main", details.loffset);
         }
 
         
@@ -1381,36 +830,36 @@ static callsite *calltree(void **bp)
                                       &lfdset_hashallocops, NULL);
             if (!methods) {
                 tmstats.btmalloc_failures++;
-                free((void*) method);
                 goto fail;
             }
         }
-        hash = PL_HashString(method);
-        hep = PL_HashTableRawLookup(methods, hash, method);
+        hash = PL_HashString(details.function);
+        hep = PL_HashTableRawLookup(methods, hash, details.function);
         he = *hep;
         if (he) {
+            method = (char*) he->key;
             method_serial = (uint32) NS_PTR_TO_INT32(he->value);
-            free((void*) method);
-            method = (char *) he->key;
             le = (lfdset_entry *) he;
             if (LFD_TEST(fp->lfd, &le->lfdset)) {
                 
                 le = NULL;
             }
         } else {
-            method_serial = ++method_serial_generator;
-            he = PL_HashTableRawAdd(methods, hep, hash, method,
-                                    (void*) method_serial);
+            method = strdup(details.function);
+            if (method) {
+                method_serial = ++method_serial_generator;
+                he = PL_HashTableRawAdd(methods, hep, hash, method,
+                                        (void*) method_serial);
+            }
             if (!he) {
                 tmstats.btmalloc_failures++;
-                free((void*) method);
-                goto fail;
+                return NULL;
             }
             le = (lfdset_entry *) he;
         }
         if (le) {
             log_event4(fp, TM_EVENT_METHOD, method_serial, library_serial,
-                       filename_serial, linenumber);
+                       filename_serial, details.lineno);
             log_string(fp, method);
             LFD_SET(fp->lfd, &le->lfdset);
         }
@@ -1439,8 +888,8 @@ static callsite *calltree(void **bp)
             site->serial = ++callsite_serial_generator;
             LFD_ZERO(&site->lfdset);
             site->name = method;
-            site->library = info.dli_fname;
-            site->offset = (char*)pc - (char*)info.dli_fbase;
+            site->library = library;
+            site->offset = details.loffset;
             site->parent = parent;
             site->siblings = parent->kids;
             parent->kids = site;
@@ -1449,22 +898,15 @@ static callsite *calltree(void **bp)
 
         
         log_event4(fp, TM_EVENT_CALLSITE, site->serial, parent->serial,
-                   method_serial, offset);
+                   method_serial, details.foffset);
         LFD_SET(fp->lfd, &site->lfdset);
 
       upward:
         parent = site;
-        bpdown = bp;
-        bp = bpup;
-    } while (bp);
+    } while (stack_index > 0);
 
     if (maxstack)
         calltree_maxstack_top = site;
-    depth = 0;
-    for (tmp = site; tmp; tmp = tmp->parent)
-        depth++;
-    if (depth > tmstats.calltree_maxdepth)
-        tmstats.calltree_maxdepth = depth;
 
     TM_EXIT_LOCK();
 
@@ -1474,68 +916,79 @@ static callsite *calltree(void **bp)
     return NULL;
 }
 
-#endif
+
+
+
+PR_STATIC_CALLBACK(void)
+stack_callback(void *pc, void *closure)
+{
+    stack_buffer_info *info = (stack_buffer_info*) closure;
+
+    
+
+
+
+    if (info->entries < info->size)
+        info->buffer[info->entries] = pc;
+    ++info->entries;
+}
 
 
 
 
-
-#ifdef XP_WIN32
 
 callsite *
 backtrace(tm_thread *t, int skip)
 {
     callsite *site;
+    stack_buffer_info *info = &t->backtrace_buf;
+    void ** new_stack_buffer;
+    size_t new_stack_buffer_size;
 
     t->suppress_tracing++;
 
-    site = calltree(skip);
+    
 
-    TM_ENTER_LOCK();
-    tmstats.backtrace_calls++;
-    if (!site) {
-        tmstats.backtrace_failures++;
+
+
+
+
+
+
+    
+    
+    info->entries = 0;
+    NS_StackWalk(stack_callback, skip, info);
+
+    
+
+
+
+
+
+    if (info->entries > info->size) {
+        new_stack_buffer_size = 2 * info->entries;
+        new_stack_buffer = __libc_realloc(info->buffer,
+                               new_stack_buffer_size * sizeof(void*));
+        if (!new_stack_buffer)
+            return NULL;
+        info->buffer = new_stack_buffer;
+        info->size = new_stack_buffer_size;
+
         
-    }
-    TM_EXIT_LOCK();
-    t->suppress_tracing--;
-    return site;
-}
+        info->entries = 0;
+        NS_StackWalk(stack_callback, skip, info);
 
-#else 
-
-callsite *
-backtrace(tm_thread *t, int skip)
-{
-    void **bp, **bpdown;
-    callsite *site, **key;
-    PLHashNumber hash;
-    PLHashEntry **hep, *he;
-    int i, n;
-
-    t->suppress_tracing++;
-
-    
-#if defined(__i386) 
-    __asm__( "movl %%ebp, %0" : "=g"(bp));
-#elif defined(__x86_64__)
-    __asm__( "movq %%rbp, %0" : "=g"(bp));
-#else
-    
-
-
-
-
-    bp = (void**) __builtin_frame_address(0);
-#endif
-    while (--skip >= 0) {
-        bpdown = (void**) bp[0];
-        if (bpdown < bp)
-            break;
-        bp = bpdown;
+        PR_ASSERT(info->entries * 2 == new_stack_buffer_size); 
     }
 
-    site = calltree(bp);
+    if (info->entries == 0) {
+        t->suppress_tracing--;
+        return NULL;
+    }
+
+    site = calltree(info->buffer, info->entries);
+
     TM_ENTER_LOCK();
     tmstats.backtrace_calls++;
     if (!site) {
@@ -1543,13 +996,10 @@ backtrace(tm_thread *t, int skip)
         PR_ASSERT(tmstats.backtrace_failures < 100);
     }
     TM_EXIT_LOCK();
+
     t->suppress_tracing--;
     return site;
 }
-
-
-#endif 
-
 
 typedef struct allocation {
     PLHashEntry entry;
@@ -2498,7 +1948,7 @@ MallocCallback(void *ptr, size_t size, PRUint32 start, PRUint32 end)
     if (!tracing_enabled || (t = get_tm_thread())->suppress_tracing != 0)
         return;
 
-    site = backtrace(t, 4);
+    site = backtrace(t, 2);
 
     t->suppress_tracing++;
     TM_ENTER_LOCK();
@@ -2533,7 +1983,7 @@ CallocCallback(void *ptr, size_t count, size_t size, PRUint32 start, PRUint32 en
     if (!tracing_enabled || (t = get_tm_thread())->suppress_tracing != 0)
         return;
 
-    site = backtrace(t, 1);
+    site = backtrace(t, 2);
 
     t->suppress_tracing++;
     TM_ENTER_LOCK();
@@ -2571,7 +2021,7 @@ ReallocCallback(void * oldptr, void *ptr, size_t size, PRUint32 start, PRUint32 
     if (!tracing_enabled || (t = get_tm_thread())->suppress_tracing != 0)
         return;
 
-    site = backtrace(t, 1);
+    site = backtrace(t, 2);
 
     t->suppress_tracing++;
     TM_ENTER_LOCK();
