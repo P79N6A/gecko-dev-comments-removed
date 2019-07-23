@@ -1115,24 +1115,6 @@ nsBlockFrame::Reflow(nsPresContext*           aPresContext,
                                    overflowContainerBounds);
 
   
-#ifdef DEBUG
-  PRInt32 verifyReflowFlags = nsIPresShell::GetVerifyReflowFlags();
-  if (VERIFY_REFLOW_INCLUDE_SPACE_MANAGER & verifyReflowFlags)
-  {
-    
-    nsIPresShell *shell = aPresContext->GetPresShell();
-    if (shell) {
-      nsHTMLReflowState&  reflowState = (nsHTMLReflowState&)aReflowState;
-      rv = SetProperty(nsGkAtoms::spaceManagerProperty,
-                       reflowState.mSpaceManager,
-                       nsnull );
-
-      autoSpaceManager.DebugOrphanSpaceManager();
-    }
-  }
-#endif
-
-  
   
   
   

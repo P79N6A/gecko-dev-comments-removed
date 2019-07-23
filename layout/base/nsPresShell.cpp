@@ -137,7 +137,6 @@
 #include "nsIFrameDebug.h"
 #endif
   
-#include "nsSpaceManager.h"
 #include "prenv.h"
 #include "nsIAttribute.h"
 #include "nsIGlobalHistory2.h"
@@ -257,7 +256,6 @@ static const VerifyReflowFlags gFlags[] = {
   { "list-commands",         VERIFY_REFLOW_DUMP_COMMANDS },
   { "noisy-commands",        VERIFY_REFLOW_NOISY_RC },
   { "really-noisy-commands", VERIFY_REFLOW_REALLY_NOISY_RC },
-  { "space-manager",         VERIFY_REFLOW_INCLUDE_SPACE_MANAGER },
   { "resize",                VERIFY_REFLOW_DURING_RESIZE_REFLOW },
 };
 
@@ -6793,101 +6791,6 @@ CompareTrees(nsPresContext* aFirstPresContext, nsIFrame* aFirstFrame,
         }
 
         
-        
-        nsSpaceManager *sm1 = static_cast<nsSpaceManager*>
-                                         (k1->GetProperty(nsGkAtoms::spaceManagerProperty));
-
-        
-        nsSpaceManager *sm2 = static_cast<nsSpaceManager*>
-                                         (k2->GetProperty(nsGkAtoms::spaceManagerProperty));
-
-        
-        if (((nsnull == sm1) && (nsnull != sm2)) ||
-            ((nsnull != sm1) && (nsnull == sm2))) {   
-          ok = PR_FALSE;
-          LogVerifyMessage(k1, k2, "space managers are not matched\n");
-        }
-        else if (sm1 && sm2) {  
-          
-          nscoord yMost1, yMost2;
-          nsresult smresult = sm1->YMost(yMost1);
-          if (NS_ERROR_ABORT != smresult)
-          {
-            NS_ASSERTION(NS_SUCCEEDED(smresult), "bad result");
-            smresult = sm2->YMost(yMost2);
-            NS_ASSERTION(NS_SUCCEEDED(smresult), "bad result");
-            if (yMost1 != yMost2) {
-              LogVerifyMessage(k1, k2, "yMost of space managers differs\n");
-            }
-            
-            PRInt32 yIncrement = yMost1/100;
-            if (0==yIncrement) {
-              yIncrement = 1;   
-            }
-            nscoord yOffset = 0;
-            for ( ; ok && yOffset < yMost1; yOffset += yIncrement)
-            {
-              nscoord small=5, large=100;
-              nsBandData band1, band2;
-              nsBandTrapezoid trap1[20], trap2[20];
-              band1.mSize = band2.mSize = 20;
-              band1.mTrapezoids = trap1;  
-              band2.mTrapezoids = trap2;
-              sm1->GetBandData(yOffset, nsSize(small,small), band1);
-              sm2->GetBandData(yOffset, nsSize(small,small), band2);
-              if (band1.mCount != band2.mCount) 
-              { 
-                LogVerifyMessage(k1, k2, "band.mCount of space managers differs\n");
-                printf("count1= %d, count2=%d, yOffset = %d, size=%d\n",
-                        band1.mCount, band2.mCount, yOffset, small);
-                ok = PR_FALSE;
-                      
-              }
-              else   
-              { 
-                PRInt32 trapIndex=0;
-                for ( ;trapIndex<band1.mCount; trapIndex++)
-                {
-                  PRBool match = (trap1[trapIndex].EqualGeometry(trap2[trapIndex])) && 
-                    ((trap1[trapIndex].mFrames!=nsnull) == (trap2[trapIndex].mFrames!=nsnull));
-                  if (!match)
-                  {
-                    LogVerifyMessage(k1, k2, "band.mTrapezoids of space managers differs\n");
-                    printf ("index %d\n", trapIndex);
-                  }
-                }
-              }
-              
-              sm1->GetBandData(yOffset, nsSize(large,large), band1);
-              sm2->GetBandData(yOffset, nsSize(large,large), band2);
-              if (band1.mCount != band2.mCount) 
-              { 
-                LogVerifyMessage(k1, k2, "band.mCount of space managers differs\n");
-                printf("count1= %d, count2=%d, yOffset = %d, size=%d\n",
-                        band1.mCount, band2.mCount, yOffset, small);
-                ok = PR_FALSE;
-                      
-              }
-              else   
-              { 
-                PRInt32 trapIndex=0;
-                for ( ; trapIndex<band1.mCount; trapIndex++)
-                {
-                  PRBool match = (trap1[trapIndex].EqualGeometry(trap2[trapIndex])) && 
-                    ((trap1[trapIndex].mFrames!=nsnull) == (trap2[trapIndex].mFrames!=nsnull));
-                  if (!match)
-                  {
-                    LogVerifyMessage(k1, k2, "band.mTrapezoids of space managers differs\n");
-                    printf ("index %d\n", trapIndex);
-                  }
-                }
-              }
-            }
-          }
-        }
-
-
-
 
         
         if (!CompareTrees(aFirstPresContext, k1, aSecondPresContext, k2)) {
