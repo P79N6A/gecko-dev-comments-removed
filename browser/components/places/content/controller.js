@@ -104,7 +104,7 @@ PlacesController.prototype = {
     case "cmd_copy":
       return this._view.hasSelection;
     case "cmd_paste":
-      return this._canInsert() && this._canPaste();
+      return this._canInsert() && this._isClipboardDataPasteable();
     case "cmd_selectAll":
       if (this._view.selType != "single") {
         var result = this._view.getResult();
@@ -381,7 +381,7 @@ PlacesController.prototype = {
     }
     return false;
   },
-
+  
   
 
 
@@ -389,46 +389,45 @@ PlacesController.prototype = {
 
 
 
-  _canPaste: function PC__canPaste() {
-    var types = this._view.peerDropTypes;
-    var flavors = 
-        Cc["@mozilla.org/supports-array;1"].
-        createInstance(Ci.nsISupportsArray);
-    for (var i = 0; i < types.length; ++i) {
-      var cstring = 
-          Cc["@mozilla.org/supports-cstring;1"].
-          createInstance(Ci.nsISupportsCString);
-      cstring.data = types[i];
+
+  _isClipboardDataPasteable: function PC__isClipboardDataPasteable() {
+    
+    
+    
+    var placeTypes = [PlacesUtils.TYPE_X_MOZ_PLACE_CONTAINER,
+                      PlacesUtils.TYPE_X_MOZ_PLACE_SEPARATOR,
+                      PlacesUtils.TYPE_X_MOZ_PLACE];
+    var flavors = Cc["@mozilla.org/supports-array;1"].
+                    createInstance(Ci.nsISupportsArray);
+    for (var i = 0; i < placeTypes.length; ++i) {
+      var cstring = Cc["@mozilla.org/supports-cstring;1"].
+                      createInstance(Ci.nsISupportsCString);
+      cstring.data = placeTypes[i];
       flavors.AppendElement(cstring);
     }
-
-    var clipboard = 
-        Cc["@mozilla.org/widget/clipboard;1"].getService(Ci.nsIClipboard);
-    var hasClipboardData = clipboard.hasDataMatchingFlavors(flavors, 
+    var clipboard = Cc["@mozilla.org/widget/clipboard;1"].
+                      getService(Ci.nsIClipboard);
+    var hasPlacesData = clipboard.hasDataMatchingFlavors(flavors,
                                             Ci.nsIClipboard.kGlobalClipboard);
-    if (!hasClipboardData)
-      return false;
+    if (hasPlacesData)
+      return this._view.insertionPoint != null;
+      
+    
+    
+    var xferable = Cc["@mozilla.org/widget/transferable;1"].
+                     createInstance(Ci.nsITransferable);
 
-    
-    
-    
-    
-
-    var xferable = 
-        Cc["@mozilla.org/widget/transferable;1"].
-        createInstance(Ci.nsITransferable);
-
-    for (var j = 0; j < types.length; ++j) {
-      xferable.addDataFlavor(types[j]);
-    }
+    xferable.addDataFlavor(PlacesUtils.TYPE_X_MOZ_URL);
+    xferable.addDataFlavor(PlacesUtils.TYPE_UNICODE);
     clipboard.getData(xferable, Ci.nsIClipboard.kGlobalClipboard);
-
+    
     try {
       
       var data = { }, type = { };
       xferable.getAnyTransferData(type, data, { });
       data = data.value.QueryInterface(Ci.nsISupportsString).data;
-      if (this._view.peerDropTypes.indexOf(type.value) == -1)
+      if (type.value != PlacesUtils.TYPE_X_MOZ_URL &&
+          type.value != PlacesUtils.TYPE_UNICODE)
         return false;
 
       
@@ -437,11 +436,8 @@ PlacesController.prototype = {
     }
     catch (e) {
       
-      
-      
       return false;
     }
-    return false;
   },
 
   
