@@ -30,6 +30,12 @@ void addLinkArgs(int k, int s, int *i, int *j, char** args, char** argv) {
   args[(*i)++] = "/MAP";
   args[(*i)++] = "/MAPINFO:EXPORTS";
 
+  if (getenv("LOCK_DLLS") != NULL) {
+    
+    args[(*i)++] = "/SECTION:.text,\!P";
+    args[(*i)++] = "/SECTION:.rdata,\!P";
+  }
+
 #ifdef HAVE_SHUNT   
   if(getenv("NO_SHUNT") == NULL) {
     args[(*i)++] = "/LIBPATH:\"" SHUNT_LIB "\"";
