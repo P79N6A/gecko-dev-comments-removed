@@ -226,22 +226,6 @@ namespace avmplus {
         unsigned int arm_arch;
 # endif
 
-        
-        
-# if defined (NJ_FORCE_NO_ARM_THUMB)
-        static const bool arm_thumb = false;
-# else
-        bool arm_thumb;
-# endif
-
-        
-        
-# if defined (NJ_FORCE_NO_ARM_THUMB2)
-        static const bool arm_thumb2 = false;
-# else
-        bool arm_thumb2;
-# endif
-
 #endif
 
 #if defined (NJ_FORCE_SOFTFLOAT)

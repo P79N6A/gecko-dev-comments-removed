@@ -1947,7 +1947,10 @@ Assembler::asm_ld_imm(Register d, int32_t imm, bool chk )
     
     
     
-    if (config.arm_thumb2 && (d != PC)) {
+    
+    
+    
+    if (config.arm_arch >= 7 && (d != PC)) {
         
         uint32_t    high_h = (uint32_t)imm >> 16;
         uint32_t    low_h = imm & 0xffff;
