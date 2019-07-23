@@ -57,6 +57,11 @@ public:
   virtual ~nsHTMLWin32ObjectOwnerAccessible() {}
 
   
+  NS_IMETHOD GetFirstChild(nsIAccessible **aFirstChild);
+  NS_IMETHOD GetLastChild(nsIAccessible **aLastChild);
+  NS_IMETHOD GetChildCount(PRInt32 *aChildCount);  
+
+  
   virtual nsresult Shutdown();
 
   
@@ -64,10 +69,6 @@ public:
   virtual nsresult GetStateInternal(PRUint32 *aState, PRUint32 *aExtraState);
 
 protected:
-
-  
-  virtual void CacheChildren();
-
   void* mHwnd;
   nsCOMPtr<nsIAccessible> mNativeAccessible;
 };

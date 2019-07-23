@@ -413,7 +413,7 @@ public:
   
 
 
-  static PRUint32 GetSensibleColumnCount(nsITreeBoxObject *aTree);
+  static PRUint32 GetSensiblecolumnCount(nsITreeBoxObject *aTree);
 
   
 

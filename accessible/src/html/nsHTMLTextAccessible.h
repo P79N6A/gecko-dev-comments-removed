@@ -106,6 +106,7 @@ public:
 
   
   NS_IMETHOD GetName(nsAString& aName);
+  NS_IMETHOD GetParent(nsIAccessible **aParent);
 
   
   virtual nsresult Shutdown();
@@ -115,8 +116,6 @@ public:
   virtual nsresult GetStateInternal(PRUint32 *aState, PRUint32 *aExtraState);
   virtual nsresult AppendTextTo(nsAString& aText, PRUint32 aStartOffset,
                                 PRUint32 aLength);
-
-  virtual nsIAccessible* GetParent();
 
 protected:
   
@@ -162,10 +161,8 @@ public:
   virtual nsresult GetStateInternal(PRUint32 *aState, PRUint32 *aExtraState);
 
 protected:
-  
-  virtual void CacheChildren();
+  void CacheChildren();  
 
-private:
   nsRefPtr<nsHTMLListBulletAccessible> mBulletAccessible;
 };
 

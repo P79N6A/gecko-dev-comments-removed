@@ -86,9 +86,6 @@
 
 
 
-
-
-
 NS_IMPL_QUERY_HEAD(nsRootAccessible)
 NS_IMPL_QUERY_BODY(nsIDOMEventListener)
 if (aIID.Equals(NS_GET_IID(nsRootAccessible)))
@@ -107,12 +104,12 @@ nsRootAccessible::nsRootAccessible(nsIDOMNode *aDOMNode, nsIWeakReference* aShel
 {
 }
 
+
+
+
 nsRootAccessible::~nsRootAccessible()
 {
 }
-
-
-
 
 
 NS_IMETHODIMP
@@ -133,6 +130,21 @@ nsRootAccessible::GetName(nsAString& aName)
 
   nsCOMPtr<nsIDOMNSDocument> document(do_QueryInterface(mDocument));
   return document->GetTitle(aName);
+}
+
+
+NS_IMETHODIMP nsRootAccessible::GetParent(nsIAccessible * *aParent) 
+{
+  NS_ENSURE_ARG_POINTER(aParent);
+  *aParent = nsnull;
+
+  if (!mParent) {
+    nsRefPtr<nsApplicationAccessibleWrap> root = GetApplicationAccessible();
+    mParent = root;
+  }
+
+  NS_IF_ADDREF(*aParent = mParent);
+  return NS_OK;
 }
 
 
@@ -159,7 +171,6 @@ nsRootAccessible::GetRoleInternal(PRUint32 *aRole)
 
   return nsDocAccessibleWrap::GetRoleInternal(aRole);
 }
-
 
 #ifdef MOZ_XUL
 PRUint32 nsRootAccessible::GetChromeFlags()
@@ -572,7 +583,6 @@ void nsRootAccessible::FireCurrentFocusEvent()
 
 
 
-
 NS_IMETHODIMP nsRootAccessible::HandleEvent(nsIDOMEvent* aEvent)
 {
   
@@ -584,8 +594,6 @@ NS_IMETHODIMP nsRootAccessible::HandleEvent(nsIDOMEvent* aEvent)
   
   return HandleEventWithTarget(aEvent, targetNode);
 }
-
-
 
 nsresult nsRootAccessible::HandleEventWithTarget(nsIDOMEvent* aEvent,
                                                  nsIDOMNode* aTargetNode)
@@ -938,9 +946,6 @@ void nsRootAccessible::FireFocusCallback(nsITimer *aTimer, void *aClosure)
   rootAccessible->FireCurrentFocusEvent();
 }
 
-
-
-
 nsresult
 nsRootAccessible::Init()
 {
@@ -974,7 +979,6 @@ nsRootAccessible::Shutdown()
 
   return nsDocAccessibleWrap::Shutdown();
 }
-
 
 already_AddRefed<nsIDocShellTreeItem>
 nsRootAccessible::GetContentDocShell(nsIDocShellTreeItem *aStart)
@@ -1032,7 +1036,6 @@ nsRootAccessible::GetContentDocShell(nsIDocShellTreeItem *aStart)
   return nsnull;
 }
 
-
 NS_IMETHODIMP
 nsRootAccessible::GetRelationByType(PRUint32 aRelationType,
                                     nsIAccessibleRelation **aRelation)
@@ -1059,20 +1062,6 @@ nsRootAccessible::GetRelationByType(PRUint32 aRelationType,
   return NS_OK;
 }
 
-
-
-
-nsIAccessible*
-nsRootAccessible::GetParent()
-{
-  
-  
-  return mParent;
-}
-
-
-
-
 void
 nsRootAccessible::FireDocLoadEvents(PRUint32 aEventType)
 {
@@ -1094,9 +1083,6 @@ nsRootAccessible::FireDocLoadEvents(PRUint32 aEventType)
   mIsContentLoaded = (aEventType == nsIAccessibleEvent::EVENT_DOCUMENT_LOAD_COMPLETE ||
                       aEventType == nsIAccessibleEvent::EVENT_DOCUMENT_LOAD_STOPPED);
 }
-
-
-
 
 nsresult
 nsRootAccessible::HandlePopupShownEvent(nsIAccessible *aAccessible)

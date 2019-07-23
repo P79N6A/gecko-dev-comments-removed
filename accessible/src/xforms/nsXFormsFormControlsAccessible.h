@@ -211,10 +211,7 @@ public:
 
   
   virtual nsresult GetRoleInternal(PRUint32 *aRole);
-
-protected:
-  
-  virtual void CacheChildren();
+  void CacheChildren();
 };
 
 
@@ -230,10 +227,7 @@ public:
 
   
   virtual nsresult GetRoleInternal(PRUint32 *aRole);
-
-protected:
-  
-  virtual void CacheChildren();
+  void CacheChildren();
 };
 
 

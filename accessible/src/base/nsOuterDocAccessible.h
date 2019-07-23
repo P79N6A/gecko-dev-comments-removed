@@ -42,13 +42,7 @@
 #include "nsAccessibleWrap.h"
 #include "nsIAccessible.h"
 
-
-
-
-
-
-
-
+class nsIWeakReference;
 
 class nsOuterDocAccessible : public nsAccessibleWrap
 {
@@ -76,7 +70,7 @@ public:
 
 protected:
   
-  virtual void CacheChildren();
+  void CacheChildren();
 };
 
 #endif  

@@ -455,27 +455,47 @@ NS_IMPL_ISUPPORTS_INHERITED2(nsHTMLTableAccessible, nsAccessible,
 
 
 
-void
-nsHTMLTableAccessible::CacheChildren()
+void nsHTMLTableAccessible::CacheChildren()
 {
-  nsAccessible::CacheChildren();
-
+  if (!mWeakShell) {
+    
+    mAccChildCount = eChildCountUninitialized;
+    return;
+  }
   
-  PRInt32 length = mChildren.Count();
-  for (PRInt32 idx = 0; idx < length; idx++) {
-    
-    
-    
+  if (mAccChildCount == eChildCountUninitialized) {
+    nsAccessible::CacheChildren();
+    nsCOMPtr<nsIAccessible> captionAccessible;
+    while (NextChild(captionAccessible)) {
+      if (nsAccUtils::Role(captionAccessible) == nsIAccessibleRole::ROLE_CAPTION) {
+        nsCOMPtr<nsIAccessible> captionParentAccessible;
+        captionAccessible->GetParent(getter_AddRefs(captionParentAccessible));
+        if (captionParentAccessible != this) {
+          NS_WARNING("Should not happen: parser ensures caption is the table's child, not the tbody's");
+          return;
+        }
+        nsCOMPtr<nsIAccessible> beforeCaptionAccessible;
+        captionAccessible->GetPreviousSibling(getter_AddRefs(beforeCaptionAccessible));
+        if (beforeCaptionAccessible) {
+          
+          nsRefPtr<nsAccessible> acc =
+            nsAccUtils::QueryAccessible(beforeCaptionAccessible);
 
-    nsIAccessible* child = mChildren.ObjectAt(idx);
-    if (nsAccUtils::Role(child) == nsIAccessibleRole::ROLE_CAPTION) {
-      if (idx == 0)
+          nsCOMPtr<nsIAccessible> afterCaptionAccessible;
+          captionAccessible->GetNextSibling(getter_AddRefs(afterCaptionAccessible));
+          acc->SetNextSibling(afterCaptionAccessible);
+
+          GetFirstChild(getter_AddRefs(afterCaptionAccessible));
+          SetFirstChild(captionAccessible);
+
+          acc = nsAccUtils::QueryAccessible(captionAccessible);
+          acc->SetNextSibling(afterCaptionAccessible);        
+        }
+        
+        
+        
         break;
-
-      nsCOMPtr<nsIAccessible> tmp = mChildren.ObjectAt(0);
-      mChildren.ReplaceObjectAt(child, 0);
-      mChildren.ReplaceObjectAt(tmp, idx);
-      break;
+      }
     }
   }
 }

@@ -236,6 +236,15 @@ nsXULTabBoxAccessible::GetRoleInternal(PRUint32 *aRole)
   return NS_OK;
 }
 
+#ifdef NEVER
+
+NS_IMETHODIMP nsXULTabBoxAccessible::GetChildCount(PRInt32 *_retval)
+{
+  *_retval = 2;
+  return NS_OK;
+}
+#endif
+
 
 
 

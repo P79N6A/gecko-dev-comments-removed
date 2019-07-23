@@ -73,6 +73,12 @@ public:
 
   
   NS_IMETHOD GetValue(nsAString& aValue);
+
+  NS_IMETHOD GetFirstChild(nsIAccessible **aFirstChild);
+  NS_IMETHOD GetLastChild(nsIAccessible **aLastChild);
+  NS_IMETHOD GetChildCount(PRInt32 *aChildCount);
+  NS_IMETHOD GetChildAt(PRInt32 aChildIndex, nsIAccessible **aChild);
+
   NS_IMETHOD GetFocusedChild(nsIAccessible **aFocusedChild);
 
   
@@ -88,10 +94,6 @@ public:
   virtual nsresult GetChildAtPoint(PRInt32 aX, PRInt32 aY,
                                    PRBool aDeepestChild,
                                    nsIAccessible **aChild);
-
-  virtual nsIAccessible* GetChildAt(PRUint32 aIndex);
-  virtual PRInt32 GetChildCount();
-  virtual PRInt32 GetIndexOf(nsIAccessible *aChild);
 
   
 
@@ -176,6 +178,10 @@ public:
   NS_IMETHOD GetUniqueID(void **aUniqueID);
 
   
+  NS_IMETHOD GetParent(nsIAccessible **aParent);
+  NS_IMETHOD GetNextSibling(nsIAccessible **aNextSibling);
+  NS_IMETHOD GetPreviousSibling(nsIAccessible **aPreviousSibling);
+
   NS_IMETHOD GetFocusedChild(nsIAccessible **aFocusedChild);
 
   NS_IMETHOD GetBounds(PRInt32 *aX, PRInt32 *aY,
@@ -198,15 +204,9 @@ public:
   
   virtual nsresult GetAttributesInternal(nsIPersistentProperties *aAttributes);
   virtual nsresult GetStateInternal(PRUint32 *aState, PRUint32 *aExtraState);
-  virtual nsIAccessible* GetParent();
 
   
   NS_DECLARE_STATIC_IID_ACCESSOR(NS_XULTREEITEMBASEACCESSIBLE_IMPL_CID)
-
-  
-
-
-  PRInt32 GetRowIndex() const { return mRow; }
 
   
 
@@ -226,8 +226,6 @@ protected:
 
   
   virtual void DispatchClickEvent(nsIContent *aContent, PRUint32 aActionIndex);
-  virtual nsIAccessible* GetSiblingAtOffset(PRInt32 aOffset,
-                                            nsresult* aError = nsnull);
 
   
 
@@ -255,6 +253,11 @@ public:
                           nsIAccessible *aParent, nsITreeBoxObject *aTree,
                           nsITreeView *aTreeView, PRInt32 aRow);
 
+  
+  NS_IMETHOD GetFirstChild(nsIAccessible **aFirstChild);
+  NS_IMETHOD GetLastChild(nsIAccessible **aLastChild);
+  NS_IMETHOD GetChildCount(PRInt32 *aChildCount);
+
   NS_IMETHOD GetName(nsAString& aName);
 
   
@@ -269,11 +272,6 @@ public:
   virtual void RowInvalidated(PRInt32 aStartColIdx, PRInt32 aEndColIdx);
 
 protected:
-
-  
-  virtual void CacheChildren();
-
-  
   nsCOMPtr<nsITreeColumn> mColumn;
   nsString mCachedName;
 };
@@ -287,10 +285,8 @@ class nsXULTreeColumnsAccessible : public nsXULColumnsAccessible
 public:
   nsXULTreeColumnsAccessible(nsIDOMNode* aDOMNode, nsIWeakReference* aShell);
 
-protected:
-
   
-  nsIAccessible* GetSiblingAtOffset(PRInt32 aOffset, nsresult* aError = nsnull);
+  NS_IMETHOD GetNextSibling(nsIAccessible **aNextSibling);
 };
 
 #endif
