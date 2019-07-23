@@ -80,6 +80,11 @@ static cmsHTRANSFORM gCMSRGBTransform = nsnull;
 static cmsHTRANSFORM gCMSInverseRGBTransform = nsnull;
 static cmsHTRANSFORM gCMSRGBATransform = nsnull;
 
+static const char *CMPrefName = "gfx.color_management.mode";
+static const char *CMPrefNameOld = "gfx.color_management.enabled";
+static const char *CMIntentPrefName = "gfx.color_management.rendering_intent";
+static void MigratePrefs();
+
 
 
 static const char *gPrefLangNames[] = {
@@ -172,6 +177,9 @@ gfxPlatform::Init()
         Shutdown();
         return rv;
     }
+
+    
+    MigratePrefs();
 
     return NS_OK;
 }
@@ -450,23 +458,25 @@ gfxPlatform::AppendPrefLang(eFontPrefLang aPrefLangs[], PRUint32& aLen, eFontPre
     }
 }
 
-PRBool
-gfxPlatform::IsCMSEnabled()
+eCMSMode
+gfxPlatform::GetCMSMode()
 {
-    static PRBool sEnabled = -1;
-    if (sEnabled == -1) {
-        sEnabled = PR_TRUE;
+    static eCMSMode sMode = eCMSMode_Off;
+    static PRBool initialized = PR_FALSE;
+
+    if (initialized == PR_FALSE) {
+        initialized = PR_TRUE;
         nsCOMPtr<nsIPrefBranch> prefs = do_GetService(NS_PREFSERVICE_CONTRACTID);
         if (prefs) {
-            PRBool enabled;
+            PRInt32 mode;
             nsresult rv =
-                prefs->GetBoolPref("gfx.color_management.enabled", &enabled);
-            if (NS_SUCCEEDED(rv)) {
-                sEnabled = enabled;
+                prefs->GetIntPref(CMPrefName, &mode);
+            if (NS_SUCCEEDED(rv) && (mode >= 0) && (mode < eCMSMode_AllCount)) {
+                sMode = static_cast<eCMSMode>(mode);
             }
         }
     }
-    return sEnabled;
+    return sMode;
 }
 
 
@@ -486,8 +496,7 @@ gfxPlatform::GetRenderingIntent()
         nsCOMPtr<nsIPrefBranch> prefs = do_GetService(NS_PREFSERVICE_CONTRACTID);
         if (prefs) {
             PRInt32 pIntent;
-            nsresult rv = prefs->GetIntPref("gfx.color_management.rendering_intent", 
-                                            &pIntent);
+            nsresult rv = prefs->GetIntPref(CMIntentPrefName, &pIntent);
             if (NS_SUCCEEDED(rv)) {
               
                 
@@ -618,4 +627,28 @@ gfxPlatform::GetCMSRGBATransform()
     }
 
     return gCMSRGBATransform;
+}
+
+static void MigratePrefs()
+{
+
+    
+
+    nsCOMPtr<nsIPrefBranch> prefs = do_GetService(NS_PREFSERVICE_CONTRACTID);
+    if (!prefs)
+        return;
+
+    
+
+    PRBool hasOldCMPref;
+    nsresult rv =
+        prefs->PrefHasUserValue(CMPrefNameOld, &hasOldCMPref);
+    if (NS_SUCCEEDED(rv) && (hasOldCMPref == PR_TRUE)) {
+        PRBool CMWasEnabled;
+        rv = prefs->GetBoolPref(CMPrefNameOld, &CMWasEnabled);
+        if (NS_SUCCEEDED(rv) && (CMWasEnabled == PR_TRUE))
+            prefs->SetIntPref(CMPrefName, eCMSMode_All);
+        prefs->ClearUserPref(CMPrefNameOld);
+    }
+
 }
