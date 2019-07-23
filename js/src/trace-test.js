@@ -1941,6 +1941,14 @@ testBug466128.expected = true;
 test(testBug466128);
 
 
+function testBug465688() {
+    for each (let d in [-0x80000000, -0x80000000]) - -d;
+    return true;
+}
+testBug465688.expected = true;
+test(testBug465688);
+
+
 
 
 
