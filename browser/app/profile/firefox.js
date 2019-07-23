@@ -379,14 +379,6 @@ pref("alerts.totalOpenTime", 4000);
 pref("browser.xul.error_pages.enabled", true);
 
 
-pref("signon.rememberSignons",              true);
-pref("signon.expireMasterPassword",         false);
-pref("signon.SignonFileName",               "signons.txt"); 
-pref("signon.SignonFileName2",              "signons2.txt");
-pref("signon.autofillForms",                true);
-pref("signon.debug",                        false); 
-
-
 pref("network.protocol-handler.external.mailto", true); 
 pref("network.protocol-handler.external.news", true);   
 pref("network.protocol-handler.external.snews", true);  
