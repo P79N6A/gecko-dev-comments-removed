@@ -207,7 +207,7 @@ class nsScanner {
 
 
 
-      void Mark(void);
+      PRInt32 Mark(void);
 
       
 
@@ -338,8 +338,11 @@ class nsScanner {
       PRInt32         mFirstNonWhitespacePosition;
       PRInt32         mCharsetSource;
       nsCString       mCharset;
-      nsIUnicodeDecoder *mUnicodeDecoder;
+      nsCOMPtr<nsIUnicodeDecoder> mUnicodeDecoder;
       nsParser        *mParser;
+
+  private:
+      nsScanner &operator =(const nsScanner &); 
 };
 
 #endif
