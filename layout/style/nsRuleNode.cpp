@@ -1716,18 +1716,14 @@ nsRuleNode::SetDefaultOnRoot(const nsStyleStructID aSID, nsStyleContext* aContex
 
 
 
-
-
 void
 nsRuleNode::AdjustLogicalBoxProp(nsStyleContext* aContext,
                                  const nsCSSValue& aLTRSource,
                                  const nsCSSValue& aRTLSource,
                                  const nsCSSValue& aLTRLogicalValue,
                                  const nsCSSValue& aRTLLogicalValue,
-                                 const nsStyleSides& aParentRect,
-                                 nsStyleSides& aRect,
                                  PRUint8 aSide,
-                                 PRInt32 aMask,
+                                 nsCSSRect& aValueRect,
                                  PRBool& aInherited)
 {
   PRBool LTRlogical = aLTRSource.GetUnit() == eCSSUnit_Enumerated &&
@@ -1741,19 +1737,12 @@ nsRuleNode::AdjustLogicalBoxProp(nsStyleContext* aContext,
     aInherited = PR_TRUE;
     PRUint8 dir = aContext->GetStyleVisibility()->mDirection;
 
-    nsStyleCoord parentCoord;
-    nsStyleCoord coord;
-    aParentRect.Get(aSide, parentCoord);
     if (dir == NS_STYLE_DIRECTION_LTR) {
-      if (LTRlogical &&
-          SetCoord(aLTRLogicalValue, coord, parentCoord, aMask, aContext,
-                   mPresContext, aInherited))
-        aRect.Set(aSide, coord);
+      if (LTRlogical)
+        aValueRect.*(nsCSSRect::sides[aSide]) = aLTRLogicalValue;
     } else {
-      if (RTLlogical &&
-          SetCoord(aRTLLogicalValue, coord, parentCoord, aMask, aContext,
-                   mPresContext, aInherited))
-        aRect.Set(aSide, coord);
+      if (RTLlogical)
+        aValueRect.*(nsCSSRect::sides[aSide]) = aRTLLogicalValue;
     }
   }
 }
@@ -3262,27 +3251,25 @@ nsRuleNode::ComputeMarginData(nsStyleStruct* aStartStruct,
   
   nsStyleCoord  coord;
   nsStyleCoord  parentCoord;
+  nsCSSRect ourMargin(marginData.mMargin);
+  AdjustLogicalBoxProp(aContext,
+                       marginData.mMarginLeftLTRSource,
+                       marginData.mMarginLeftRTLSource,
+                       marginData.mMarginStart, marginData.mMarginEnd,
+                       NS_SIDE_LEFT, ourMargin, inherited);
+  AdjustLogicalBoxProp(aContext,
+                       marginData.mMarginRightLTRSource,
+                       marginData.mMarginRightRTLSource,
+                       marginData.mMarginEnd, marginData.mMarginStart,
+                       NS_SIDE_RIGHT, ourMargin, inherited);
   NS_FOR_CSS_SIDES(side) {
     parentMargin->mMargin.Get(side, parentCoord);
-    if (SetCoord(marginData.mMargin.*(nsCSSRect::sides[side]),
+    if (SetCoord(ourMargin.*(nsCSSRect::sides[side]),
                  coord, parentCoord, SETCOORD_LPAH,
                  aContext, mPresContext, inherited)) {
       margin->mMargin.Set(side, coord);
     }
   }
-
-  AdjustLogicalBoxProp(aContext,
-                       marginData.mMarginLeftLTRSource,
-                       marginData.mMarginLeftRTLSource,
-                       marginData.mMarginStart, marginData.mMarginEnd,
-                       parentMargin->mMargin, margin->mMargin,
-                       NS_SIDE_LEFT, SETCOORD_LPAH, inherited);
-  AdjustLogicalBoxProp(aContext,
-                       marginData.mMarginRightLTRSource,
-                       marginData.mMarginRightRTLSource,
-                       marginData.mMarginEnd, marginData.mMarginStart,
-                       parentMargin->mMargin, margin->mMargin,
-                       NS_SIDE_RIGHT, SETCOORD_LPAH, inherited);
 
   margin->RecalcData();
   COMPUTE_END_RESET(Margin, margin)
@@ -3301,9 +3288,22 @@ nsRuleNode::ComputeBorderData(nsStyleStruct* aStartStruct,
   
   nsStyleCoord  coord;
   nsStyleCoord  parentCoord;
+  nsCSSRect ourBorderWidth(marginData.mBorderWidth);
+  AdjustLogicalBoxProp(aContext,
+                       marginData.mBorderLeftWidthLTRSource,
+                       marginData.mBorderLeftWidthRTLSource,
+                       marginData.mBorderStartWidth,
+                       marginData.mBorderEndWidth,
+                       NS_SIDE_LEFT, ourBorderWidth, inherited);
+  AdjustLogicalBoxProp(aContext,
+                       marginData.mBorderRightWidthLTRSource,
+                       marginData.mBorderRightWidthRTLSource,
+                       marginData.mBorderEndWidth,
+                       marginData.mBorderStartWidth,
+                       NS_SIDE_RIGHT, ourBorderWidth, inherited);
   { 
     NS_FOR_CSS_SIDES(side) {
-      const nsCSSValue &value = marginData.mBorderWidth.*(nsCSSRect::sides[side]);
+      const nsCSSValue &value = ourBorderWidth.*(nsCSSRect::sides[side]);
       NS_ASSERTION(eCSSUnit_Percent != value.GetUnit(),
                    "Percentage borders not implemented yet "
                    "If implementing, make sure to fix all consumers of "
@@ -3344,7 +3344,17 @@ nsRuleNode::ComputeBorderData(nsStyleStruct* aStartStruct,
   }
 
   
-  const nsCSSRect& ourStyle = marginData.mBorderStyle;
+  nsCSSRect ourStyle(marginData.mBorderStyle);
+  AdjustLogicalBoxProp(aContext,
+                       marginData.mBorderLeftStyleLTRSource,
+                       marginData.mBorderLeftStyleRTLSource,
+                       marginData.mBorderStartStyle, marginData.mBorderEndStyle,
+                       NS_SIDE_LEFT, ourStyle, inherited);
+  AdjustLogicalBoxProp(aContext,
+                       marginData.mBorderRightStyleLTRSource,
+                       marginData.mBorderRightStyleRTLSource,
+                       marginData.mBorderEndStyle, marginData.mBorderStartStyle,
+                       NS_SIDE_RIGHT, ourStyle, inherited);
   { 
     NS_FOR_CSS_SIDES(side) {
       const nsCSSValue &value = ourStyle.*(nsCSSRect::sides[side]);
@@ -3388,10 +3398,19 @@ nsRuleNode::ComputeBorderData(nsStyleStruct* aStartStruct,
   }
 
   
-  const nsCSSRect& ourBorderColor = marginData.mBorderColor;
+  nsCSSRect ourBorderColor(marginData.mBorderColor);
   PRBool transparent;
   PRBool foreground;
-
+  AdjustLogicalBoxProp(aContext,
+                       marginData.mBorderLeftColorLTRSource,
+                       marginData.mBorderLeftColorRTLSource,
+                       marginData.mBorderStartColor, marginData.mBorderEndColor,
+                       NS_SIDE_LEFT, ourBorderColor, inherited);
+  AdjustLogicalBoxProp(aContext,
+                       marginData.mBorderRightColorLTRSource,
+                       marginData.mBorderRightColorRTLSource,
+                       marginData.mBorderEndColor, marginData.mBorderStartColor,
+                       NS_SIDE_RIGHT, ourBorderColor, inherited);
   { 
     NS_FOR_CSS_SIDES(side) {
       const nsCSSValue &value = ourBorderColor.*(nsCSSRect::sides[side]);
@@ -3466,27 +3485,25 @@ nsRuleNode::ComputePaddingData(nsStyleStruct* aStartStruct,
   
   nsStyleCoord  coord;
   nsStyleCoord  parentCoord;
+  nsCSSRect ourPadding(marginData.mPadding);
+  AdjustLogicalBoxProp(aContext,
+                       marginData.mPaddingLeftLTRSource,
+                       marginData.mPaddingLeftRTLSource,
+                       marginData.mPaddingStart, marginData.mPaddingEnd,
+                       NS_SIDE_LEFT, ourPadding, inherited);
+  AdjustLogicalBoxProp(aContext,
+                       marginData.mPaddingRightLTRSource,
+                       marginData.mPaddingRightRTLSource,
+                       marginData.mPaddingEnd, marginData.mPaddingStart,
+                       NS_SIDE_RIGHT, ourPadding, inherited);
   NS_FOR_CSS_SIDES(side) {
     parentPadding->mPadding.Get(side, parentCoord);
-    if (SetCoord(marginData.mPadding.*(nsCSSRect::sides[side]),
+    if (SetCoord(ourPadding.*(nsCSSRect::sides[side]),
                  coord, parentCoord, SETCOORD_LPH,
                  aContext, mPresContext, inherited)) {
       padding->mPadding.Set(side, coord);
     }
   }
-
-  AdjustLogicalBoxProp(aContext,
-                       marginData.mPaddingLeftLTRSource,
-                       marginData.mPaddingLeftRTLSource,
-                       marginData.mPaddingStart, marginData.mPaddingEnd,
-                       parentPadding->mPadding, padding->mPadding,
-                       NS_SIDE_LEFT, SETCOORD_LPH, inherited);
-  AdjustLogicalBoxProp(aContext,
-                       marginData.mPaddingRightLTRSource,
-                       marginData.mPaddingRightRTLSource,
-                       marginData.mPaddingEnd, marginData.mPaddingStart,
-                       parentPadding->mPadding, padding->mPadding,
-                       NS_SIDE_RIGHT, SETCOORD_LPH, inherited);
 
   padding->RecalcData();
   COMPUTE_END_RESET(Padding, padding)
