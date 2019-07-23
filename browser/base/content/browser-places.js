@@ -594,6 +594,12 @@ var PlacesCommandHook = {
 
 
 var HistoryMenu = {
+  get _ss() {
+    delete this._ss;
+    return this._ss = Components.classes["@mozilla.org/browser/sessionstore;1"].
+                      getService(Components.interfaces.nsISessionStore);
+  },
+
   
 
 
@@ -610,7 +616,9 @@ var HistoryMenu = {
       resultNode.containerOpen = false;
 
     
+    
     this.toggleRecentlyClosedTabs();
+    this.toggleRecentlyClosedWindows();
   }
 };
 

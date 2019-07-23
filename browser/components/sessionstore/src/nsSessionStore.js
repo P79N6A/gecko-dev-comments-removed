@@ -51,6 +51,7 @@
 
 
 
+
 const Cc = Components.classes;
 const Ci = Components.interfaces;
 const Cr = Components.results;
@@ -147,8 +148,7 @@ SessionStoreService.prototype = {
   _windows: {},
 
   
-  
-  _lastClosedWindows: null,
+  _closedWindows: [],
 
   
   _dirtyWindows: {},
@@ -204,6 +204,7 @@ SessionStoreService.prototype = {
     
     
     this._prefBranch.addObserver("sessionstore.max_tabs_undo", this, true);
+    this._prefBranch.addObserver("sessionstore.max_windows_undo", this, true);
     
     
     this._sessionhistory_max_entries =
@@ -345,7 +346,8 @@ SessionStoreService.prototype = {
         else
           delete this._windows[ix];
       }
-      this._lastClosedWindows = null;
+      
+      this._closedWindows = [];
       this._clearDisk();
       
       var win = this._getMostRecentBrowserWindow();
@@ -377,6 +379,35 @@ SessionStoreService.prototype = {
             closedTabs.splice(i, 1);
         }
       }
+      
+      
+      for (let ix = this._closedWindows.length - 1; ix >= 0; ix--) {
+        let closedTabs = this._closedWindows[ix]._closedTabs;
+        let openTabs = this._closedWindows[ix].tabs;
+        let openTabCount = openTabs.length;
+        for (let i = closedTabs.length - 1; i >= 0; i--)
+          if (closedTabs[i].state.entries.some(containsDomain, this))
+            closedTabs.splice(i, 1);
+        for (let j = openTabs.length - 1; j >= 0; j--) {
+          if (openTabs[j].entries.some(containsDomain, this)) {
+            openTabs.splice(j, 1);
+            if (this._closedWindows[ix].selected > j)
+              this._closedWindows[ix].selected--;
+          }
+        }
+        if (openTabs.length == 0) {
+          this._closedWindows.splice(ix, 1);
+        }
+        else if (openTabs.length != openTabCount) {
+          
+          let selectedTab = openTabs[this._closedWindows[ix].selected - 1];
+          
+          let activeIndex = (selectedTab.index || selectedTab.entries.length) - 1;
+          if (activeIndex >= selectedTab.entries.length)
+            activeIndex = selectedTab.entries.length - 1;
+          this._closedWindows[ix].title = selectedTab.entries[activeIndex].title;
+        }
+      }
       if (this._loadState == STATE_RUNNING)
         this.saveState(true);
       break;
@@ -388,6 +419,9 @@ SessionStoreService.prototype = {
         for (let ix in this._windows) {
           this._windows[ix]._closedTabs.splice(this._prefBranch.getIntPref("sessionstore.max_tabs_undo"));
         }
+        break;
+      case "sessionstore.max_windows_undo":
+        this._capClosedWindows();
         break;
       case "sessionstore.interval":
         this._interval = this._prefBranch.getIntPref("sessionstore.interval");
@@ -597,17 +631,16 @@ SessionStoreService.prototype = {
       
       this._collectWindowData(aWindow);
       
-      
-      
-      if (!this._lastClosedWindows || !winData.isPopup)
-        this._lastClosedWindows = [winData];
-      else
-        this._lastClosedWindows.push(winData);
-      
       if (isFullyLoaded) {
-        winData.title = aWindow.content.document.title;
-        this._updateCookies(this._lastClosedWindows);
+        winData.title = aWindow.content.document.title || tabbrowser.selectedTab.label;
+        winData.title = this._replaceLoadingTitle(winData.title, tabbrowser,
+                                                  tabbrowser.selectedTab);
+        this._updateCookies([winData]);
       }
+      
+      
+      this._closedWindows.unshift(winData);
+      this._capClosedWindows();
       
       
       delete this._windows[aWindow.__SSi];
@@ -700,11 +733,7 @@ SessionStoreService.prototype = {
     if (tabState.entries.length > 0) {
       let tabTitle = aTab.label;
       let tabbrowser = aWindow.gBrowser;
-      
-      if (tabTitle == tabbrowser.mStringBundle.getString("tabs.loading")) {
-        tabbrowser.setTabTitle(aTab);
-        [tabTitle, aTab.label] = [aTab.label, tabTitle];
-      }
+      tabTitle = this._replaceLoadingTitle(tabTitle, tabbrowser, aTab);
       
       this._windows[aWindow.__SSi]._closedTabs.unshift({
         state: tabState,
@@ -807,6 +836,9 @@ SessionStoreService.prototype = {
         aWindow.close();
       }
     });
+
+    
+    this._closedWindows = [];
 
     
     this.restoreWindow(window, state, true);
@@ -928,6 +960,28 @@ SessionStoreService.prototype = {
     
     
     closedTabs.splice(aIndex, 1);
+  },
+
+  getClosedWindowCount: function sss_getClosedWindowCount() {
+    return this._closedWindows.length;
+  },
+
+  getClosedWindowData: function sss_getClosedWindowData() {
+    return this._toJSONString(this._closedWindows);
+  },
+
+  undoCloseWindow: function sss_undoCloseWindow(aIndex) {
+    
+    aIndex = aIndex || 0;
+
+    if (!aIndex in this._closedWindows)
+      throw (Components.returnCode = Cr.NS_ERROR_INVALID_ARG);
+
+    
+    let state = { windows: this._closedWindows.splice(aIndex, 1) };
+    let window = this._openWindowWithState(state);
+    this.windowToFocus = window;
+    return window;
   },
 
   getWindowValue: function sss_getWindowValue(aWindow, aKey) {
@@ -1568,12 +1622,17 @@ SessionStoreService.prototype = {
       }
     }
 
+    
+    let lastClosedWindowsCopy = this._closedWindows.slice();
+
 #ifndef XP_MACOSX
     
-    if (nonPopupCount == 0 && this._lastClosedWindows) {
+    if (nonPopupCount == 0 && lastClosedWindowsCopy.length > 0) {
       
       
-      total = this._lastClosedWindows.concat(total);
+      do {
+        total.unshift(lastClosedWindowsCopy.shift())
+      } while (total[0].isPopup)
     }
 #endif
 
@@ -1582,7 +1641,7 @@ SessionStoreService.prototype = {
     }
     ix = this.activeWindowSSiCache ? windows.indexOf(this.activeWindowSSiCache) : -1;
 
-    return { windows: total, selectedWindow: ix + 1 };
+    return { windows: total, selectedWindow: ix + 1, _closedWindows: lastClosedWindowsCopy };
   },
 
   
@@ -1651,7 +1710,10 @@ SessionStoreService.prototype = {
       this._notifyIfAllWindowsRestored();
       return;
     }
-    
+
+    if (root._closedWindows)
+      this._closedWindows = root._closedWindows;
+
     var winData;
     if (!aState.selectedWindow) {
       aState.selectedWindow = 0;
@@ -2648,6 +2710,44 @@ SessionStoreService.prototype = {
 
   _isWindowLoaded: function sss_isWindowLoaded(aWindow) {
     return !aWindow.__SS_restoreID;
+  },
+
+  
+
+
+
+
+
+
+
+  _replaceLoadingTitle : function sss_replaceLoadingTitle(aString, aTabbrowser, aTab) {
+    if (aString == aTabbrowser.mStringBundle.getString("tabs.loading")) {
+      aTabbrowser.setTabTitle(aTab);
+      [aString, aTab.label] = [aTab.label, aString];
+    }
+    return aString;
+  },
+
+  
+
+
+
+
+  _capClosedWindows : function sss_capClosedWindows() {
+    let maxWindowsUndo = this._prefBranch.getIntPref("sessionstore.max_windows_undo");
+    if (this._closedWindows.length <= maxWindowsUndo)
+      return;
+    let spliceTo = maxWindowsUndo;
+#ifndef XP_MACOSX
+    let normalWindowIndex = 0;
+    
+    while (normalWindowIndex < this._closedWindows.length &&
+           this._closedWindows[normalWindowIndex].isPopup)
+      normalWindowIndex++;
+    if (normalWindowIndex >= maxWindowsUndo)
+      spliceTo = normalWindowIndex + 1;
+#endif
+    this._closedWindows.splice(spliceTo);
   },
 
 
