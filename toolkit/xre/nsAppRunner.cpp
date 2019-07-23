@@ -2537,6 +2537,9 @@ XRE_main(int argc, char* argv[], const nsXREAppData* aAppData)
       PR_SetEnv(expr);
     
   }
+
+  
+  PR_SetEnv("NO_AT_BRIDGE=1");
 #endif
 
 #ifndef WINCE
