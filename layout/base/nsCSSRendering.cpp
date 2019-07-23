@@ -278,6 +278,14 @@ static void DrawBorderImageSide(gfxContext *aThebesContext,
                                 PRUint8 aHFillType,
                                 PRUint8 aVFillType);
 
+static void PaintBackgroundColor(nsPresContext* aPresContext,
+                                 nsIRenderingContext& aRenderingContext,
+                                 nsIFrame* aForFrame,
+                                 const nsRect& aBgClipArea,
+                                 const nsStyleBackground& aColor,
+                                 const nsStyleBorder& aBorder,
+                                 PRBool aCanPaintNonWhite);
+
 static nscolor MakeBevelColor(PRIntn whichSide, PRUint8 style,
                               nscolor aBackgroundColor,
                               nscolor aBorderColor);
@@ -1238,7 +1246,8 @@ IsSolidBorderEdge(const nsStyleBorder& aBorder, PRUint32 aSide)
 static PRBool
 IsSolidBorder(const nsStyleBorder& aBorder)
 {
-  if (aBorder.mBorderColors)
+  if (aBorder.mBorderColors ||
+      nsLayoutUtils::HasNonZeroCorner(aBorder.mBorderRadius))
     return PR_FALSE;
   for (PRUint32 i = 0; i < 4; ++i) {
     if (!IsSolidBorderEdge(aBorder, i))
@@ -1261,14 +1270,20 @@ nsCSSRendering::PaintBackgroundWithSC(nsPresContext* aPresContext,
   NS_PRECONDITION(aForFrame,
                   "Frame is expected to be provided to PaintBackground");
 
-  
+  PRBool canDrawBackgroundImage = PR_TRUE;
+  PRBool canDrawBackgroundColor = PR_TRUE;
+
+  if (aUsePrintSettings) {
+    canDrawBackgroundImage = aPresContext->GetBackgroundImageDraw();
+    canDrawBackgroundColor = aPresContext->GetBackgroundColorDraw();
+  }
+
   
   
   const nsStyleDisplay* displayData = aForFrame->GetStyleDisplay();
   if (displayData->mAppearance) {
     nsITheme *theme = aPresContext->GetTheme();
-    if (theme && theme->ThemeSupportsWidget(aPresContext, aForFrame,
-                                            displayData->mAppearance)) {
+    if (theme && theme->ThemeSupportsWidget(aPresContext, aForFrame, displayData->mAppearance)) {
       nsRect dirty;
       dirty.IntersectRect(aDirtyRect, aBorderArea);
       theme->DrawWidgetBackground(&aRenderingContext, aForFrame, 
@@ -1278,152 +1293,41 @@ nsCSSRendering::PaintBackgroundWithSC(nsPresContext* aPresContext,
   }
 
   
-  
-  PRBool drawBackgroundImage = PR_TRUE;
-  PRBool drawBackgroundColor = PR_TRUE;
-
-  if (aUsePrintSettings) {
-    drawBackgroundImage = aPresContext->GetBackgroundImageDraw();
-    drawBackgroundColor = aPresContext->GetBackgroundColorDraw();
-  }
-
-  if ((aColor.mBackgroundFlags & NS_STYLE_BG_IMAGE_NONE) ||
-      !aColor.mBackgroundImage) {
-    NS_ASSERTION((aColor.mBackgroundFlags & NS_STYLE_BG_IMAGE_NONE) &&
-                 !aColor.mBackgroundImage, "background flags/image mismatch");
-    drawBackgroundImage = PR_FALSE;
-  }
-
-  
-  
-  
-  
-  nscolor bgColor;
-  if (drawBackgroundColor) {
-    bgColor = aColor.mBackgroundColor;
-    if (NS_GET_A(bgColor) == 0)
-      drawBackgroundColor = PR_FALSE;
-  } else {
-    bgColor = NS_RGB(255, 255, 255);
-    if (drawBackgroundImage || NS_GET_A(aColor.mBackgroundColor) > 0)
-      drawBackgroundColor = PR_TRUE;
-  }
-
-  
-  
-  
-  if (!drawBackgroundImage && !drawBackgroundColor)
-    return;
-
-  
-  gfxContext *ctx = aRenderingContext.ThebesContext();
-  nscoord appUnitsPerPixel = aPresContext->AppUnitsPerDevPixel();
-
-  
-  nsRect bgArea;
-  gfxCornerSizes bgRadii;
-  PRBool haveRoundedCorners;
-  PRBool radiiAreOuter = PR_TRUE;
-  {
-    nscoord radii[8];
-    haveRoundedCorners =
-      GetBorderRadiusTwips(aBorder.mBorderRadius, aForFrame->GetSize().width,
-                           radii);
-    if (haveRoundedCorners)
-      ComputePixelRadii(radii, aBorderArea, aForFrame->GetSkipSides(),
-                        appUnitsPerPixel, &bgRadii);
-  }
-  
-  
-  
-  
-  
-  
-  
-  bgArea = aBorderArea;
-  if (aColor.mBackgroundClip != NS_STYLE_BG_CLIP_BORDER ||
-      IsSolidBorder(aBorder)) {
-    nsMargin border = aForFrame->GetUsedBorder();
-    aForFrame->ApplySkipSides(border);
-    bgArea.Deflate(border);
-    if (haveRoundedCorners) {
-      gfxCornerSizes outerRadii = bgRadii;
-      gfxFloat borderSizes[4] = {
-        border.top / appUnitsPerPixel, border.right / appUnitsPerPixel,
-        border.bottom / appUnitsPerPixel, border.left / appUnitsPerPixel
-      };
-      nsCSSBorderRenderer::ComputeInnerRadii(outerRadii, borderSizes,
-                                             &bgRadii);
-      radiiAreOuter = PR_FALSE;
-    }
-  }
-
-  
-  
-  
-  
-  
-  
-  
-  
-
   nsRect bgClipArea;
-  if (aBGClipRect)
+  if (aBGClipRect) {
     bgClipArea = *aBGClipRect;
-  else
-    bgClipArea = bgArea;
-
-  nsRect dirtyRect;
-  dirtyRect.IntersectRect(bgClipArea, aDirtyRect);
-
-  if (dirtyRect.IsEmpty())
-    return;
-
-  
-  gfxRect dirtyRectGfx(RectToGfxRect(dirtyRect, appUnitsPerPixel));
-  dirtyRectGfx.Round();
-  dirtyRectGfx.Condition();
-  if (dirtyRectGfx.IsEmpty()) {
-    NS_WARNING("converted dirty rect should not be empty");
-    return;
   }
-
-  
-  
-  
-  
-  
-  
-
-  gfxContextAutoSaveRestore autoSR;
-  if (haveRoundedCorners && !aBGClipRect) {
-    gfxRect bgAreaGfx(RectToGfxRect(bgArea, appUnitsPerPixel));
-    bgAreaGfx.Round();
-    bgAreaGfx.Condition();
-    if (bgAreaGfx.IsEmpty()) {
-      NS_WARNING("converted background area should not be empty");
-      return;
+  else {
+    
+    bgClipArea = aBorderArea;
+    
+    
+    if (aColor.mBackgroundClip != NS_STYLE_BG_CLIP_BORDER ||
+        IsSolidBorder(aBorder)) {
+      nsMargin border = aForFrame->GetUsedBorder();
+      aForFrame->ApplySkipSides(border);
+      bgClipArea.Deflate(border);
     }
-
-    autoSR.SetContext(ctx);
-    ctx->NewPath();
-    ctx->RoundedRectangle(bgAreaGfx, bgRadii, radiiAreOuter);
-    ctx->Clip();
   }
 
-  
-  if (drawBackgroundColor)
-    ctx->SetColor(gfxRGBA(bgColor));
+  gfxContext *ctx = aRenderingContext.ThebesContext();
 
   
   
-  
-  if (!drawBackgroundImage) {
-    ctx->NewPath();
-    ctx->Rectangle(dirtyRectGfx);
-    ctx->Fill();
+  nsRect dirtyRect;
+  if (!dirtyRect.IntersectRect(bgClipArea, aDirtyRect)) {
+    
     return;
   }
+
+  
+  if (!aColor.mBackgroundImage || !canDrawBackgroundImage) {
+    PaintBackgroundColor(aPresContext, aRenderingContext, aForFrame, bgClipArea,
+                         aColor, aBorder, canDrawBackgroundColor);
+    return;
+  }
+
+  
 
   
   imgIRequest *req = aPresContext->LoadImage(aColor.mBackgroundImage,
@@ -1433,15 +1337,9 @@ nsCSSRendering::PaintBackgroundWithSC(nsPresContext* aPresContext,
   if (req)
     req->GetImageStatus(&status);
 
-  
-  if (!req ||
-      !(status & imgIRequest::STATUS_FRAME_COMPLETE) ||
-      !(status & imgIRequest::STATUS_SIZE_AVAILABLE)) {
-    if (drawBackgroundColor) {
-      ctx->NewPath();
-      ctx->Rectangle(dirtyRectGfx);
-      ctx->Fill();
-    }
+  if (!req || !(status & imgIRequest::STATUS_FRAME_COMPLETE) || !(status & imgIRequest::STATUS_SIZE_AVAILABLE)) {
+    PaintBackgroundColor(aPresContext, aRenderingContext, aForFrame, bgClipArea,
+                         aColor, aBorder, canDrawBackgroundColor);
     return;
   }
 
@@ -1504,50 +1402,46 @@ nsCSSRendering::PaintBackgroundWithSC(nsPresContext* aPresContext,
     }
   }
 
+  PRBool  needBackgroundColor = NS_GET_A(aColor.mBackgroundColor) > 0;
   PRIntn  repeat = aColor.mBackgroundRepeat;
+
   switch (repeat) {
     case NS_STYLE_BG_REPEAT_X:
       break;
     case NS_STYLE_BG_REPEAT_Y:
       break;
     case NS_STYLE_BG_REPEAT_XY:
-      if (drawBackgroundColor) {
+      if (needBackgroundColor) {
         
         
         nsCOMPtr<gfxIImageFrame> gfxImgFrame;
         image->GetCurrentFrame(getter_AddRefs(gfxImgFrame));
         if (gfxImgFrame) {
-          gfxImgFrame->GetNeedsBackground(&drawBackgroundColor);
-          if (!drawBackgroundColor) {
-            
-            
-            
-            nsSize iSize;
-            image->GetWidth(&iSize.width);
-            image->GetHeight(&iSize.height);
-            nsRect iframeRect;
-            gfxImgFrame->GetRect(iframeRect);
-            if (iSize.width != iframeRect.width ||
-                iSize.height != iframeRect.height) {
-              drawBackgroundColor = PR_TRUE;
-            }
+          gfxImgFrame->GetNeedsBackground(&needBackgroundColor);
+
+          
+          nsSize iSize;
+          image->GetWidth(&iSize.width);
+          image->GetHeight(&iSize.height);
+          nsRect iframeRect;
+          gfxImgFrame->GetRect(iframeRect);
+          if (iSize.width != iframeRect.width ||
+              iSize.height != iframeRect.height) {
+            needBackgroundColor = PR_TRUE;
           }
         }
       }
       break;
     case NS_STYLE_BG_REPEAT_OFF:
     default:
-      NS_ASSERTION(repeat == NS_STYLE_BG_REPEAT_OFF,
-                   "unknown background-repeat value");
+      NS_ASSERTION(repeat == NS_STYLE_BG_REPEAT_OFF, "unknown background-repeat value");
       break;
   }
 
   
-  
-  if (drawBackgroundColor) {
-    ctx->NewPath();
-    ctx->Rectangle(dirtyRectGfx);
-    ctx->Fill();
+  if (needBackgroundColor) {
+    PaintBackgroundColor(aPresContext, aRenderingContext, aForFrame, bgClipArea,
+                         aColor, aBorder, canDrawBackgroundColor);
   }
 
   
@@ -1604,6 +1498,28 @@ nsCSSRendering::PaintBackgroundWithSC(nsPresContext* aPresContext,
     anchor += bgOriginRect.TopLeft();
   }
 
+  ctx->Save();
+
+  nscoord borderRadii[8];
+  PRBool haveRadius = GetBorderRadiusTwips(aBorder.mBorderRadius,
+                                           aForFrame->GetSize().width,
+                                           borderRadii);
+  if (haveRadius) {
+    nscoord appUnitsPerPixel = aPresContext->DevPixelsToAppUnits(1);
+    gfxCornerSizes radii;
+    ComputePixelRadii(borderRadii, bgClipArea,
+                      aForFrame ? aForFrame->GetSkipSides() : 0,
+                      appUnitsPerPixel, &radii);
+
+    gfxRect oRect(RectToGfxRect(bgClipArea, appUnitsPerPixel));
+    oRect.Round();
+    oRect.Condition();
+
+    ctx->NewPath();
+    ctx->RoundedRectangle(oRect, radii);
+    ctx->Clip();
+  }
+
   nsRect destArea(imageTopLeft + aBorderArea.TopLeft(), imageSize);
   nsRect fillArea = destArea;
   if (repeat & NS_STYLE_BG_REPEAT_X) {
@@ -1618,6 +1534,8 @@ nsCSSRendering::PaintBackgroundWithSC(nsPresContext* aPresContext,
 
   nsLayoutUtils::DrawImage(&aRenderingContext, image,
       destArea, fillArea, anchor + aBorderArea.TopLeft(), dirtyRect);
+
+  ctx->Restore();
 }
 
 static void
@@ -2010,6 +1928,78 @@ DrawBorderImageSide(gfxContext *aThebesContext,
   aThebesContext->Fill();
   aThebesContext->Restore();
 }
+
+static void
+PaintBackgroundColor(nsPresContext* aPresContext,
+                     nsIRenderingContext& aRenderingContext,
+                     nsIFrame* aForFrame,
+                     const nsRect& aBgClipArea,
+                     const nsStyleBackground& aColor,
+                     const nsStyleBorder& aBorder,
+                     PRBool aCanPaintNonWhite)
+{
+  
+  
+  
+  
+  if (NS_GET_A(aColor.mBackgroundColor) == 0 &&
+      (aCanPaintNonWhite || aColor.IsTransparent())) {
+    
+    return;
+  }
+
+  nscolor color = aColor.mBackgroundColor;
+  if (!aCanPaintNonWhite) {
+    color = NS_RGB(255, 255, 255);
+  }
+  aRenderingContext.SetColor(color);
+
+  if (!nsLayoutUtils::HasNonZeroCorner(aBorder.mBorderRadius)) {
+    aRenderingContext.FillRect(aBgClipArea);
+    return;
+  }
+
+  gfxContext *ctx = aRenderingContext.ThebesContext();
+
+  
+  nscoord appUnitsPerPixel = aPresContext->AppUnitsPerDevPixel();
+
+  nscoord borderRadii[8];
+  GetBorderRadiusTwips(aBorder.mBorderRadius, aForFrame->GetSize().width,
+                       borderRadii);
+
+  
+  gfxRect oRect(RectToGfxRect(aBgClipArea, appUnitsPerPixel));
+  oRect.Round();
+  oRect.Condition();
+  if (oRect.IsEmpty())
+    return;
+
+  
+  gfxCornerSizes radii;
+  ComputePixelRadii(borderRadii, aBgClipArea,
+                    aForFrame ? aForFrame->GetSkipSides() : 0,
+                    appUnitsPerPixel, &radii);
+
+  
+  
+  
+  
+  
+  
+  
+  for (int i = 0; i < 4; i++) {
+    if (radii[i].width > 0.0)
+      radii[i].width += 1.0;
+    if (radii[i].height > 0.0)
+      radii[i].height += 1.0;
+  }
+
+  ctx->NewPath();
+  ctx->RoundedRectangle(oRect, radii);
+  ctx->Fill();
+}
+
 
 
 

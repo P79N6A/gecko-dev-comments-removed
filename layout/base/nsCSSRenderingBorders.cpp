@@ -100,6 +100,10 @@ static void ComputeBorderCornerDimensions(const gfxRect& aOuterRect,
                                           const gfxCornerSizes& aRadii,
                                           gfxCornerSizes *aDimsResult);
 
+static void ComputeInnerRadii(const gfxCornerSizes& radii,
+                              const gfxFloat *borderSizes,
+                              gfxCornerSizes *innerRadii);
+
 
 #define NEXT_SIDE(_s) (((_s) + 1) & 3)
 #define PREV_SIDE(_s) (((_s) + 3) & 3)
@@ -197,10 +201,10 @@ nsCSSBorderRenderer::nsCSSBorderRenderer(PRInt32 aAppUnitsPerPixel,
   mNoBorderRadius = AllCornersZeroSize(mBorderRadii);
 }
 
- void
-nsCSSBorderRenderer::ComputeInnerRadii(const gfxCornerSizes& aRadii,
-                                       const gfxFloat *aBorderSizes,
-                                       gfxCornerSizes *aInnerRadiiRet)
+void
+ComputeInnerRadii(const gfxCornerSizes& aRadii,
+                  const gfxFloat *aBorderSizes,
+                  gfxCornerSizes *aInnerRadiiRet)
 {
   gfxCornerSizes& iRadii = *aInnerRadiiRet;
 
