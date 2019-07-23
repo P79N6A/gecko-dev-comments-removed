@@ -391,7 +391,7 @@ JSScope::changeTable(JSContext *cx, int change)
     table = newtable;
 
     
-    cx->runtime->gcMallocBytes += nbytes;
+    cx->updateMallocCounter(nbytes);
 
     
     for (oldspp = oldtable; oldsize != 0; oldspp++) {
