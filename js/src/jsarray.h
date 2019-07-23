@@ -58,7 +58,13 @@ js_IdIsIndex(jsval id, jsuint *indexp);
 
 extern JSClass js_ArrayClass, js_SlowArrayClass;
 
-#define OBJ_IS_DENSE_ARRAY(cx,obj)  (OBJ_GET_CLASS(cx, obj) == &js_ArrayClass)
+static JS_INLINE JSBool
+js_IsDenseArray(JSObject *obj)
+{
+    return STOBJ_GET_CLASS(obj) == &js_ArrayClass;
+}
+
+#define OBJ_IS_DENSE_ARRAY(cx, obj) js_IsDenseArray(obj)
 
 #define OBJ_IS_ARRAY(cx,obj)    (OBJ_IS_DENSE_ARRAY(cx, obj) ||               \
                                  OBJ_GET_CLASS(cx, obj) == &js_SlowArrayClass)
@@ -109,14 +115,14 @@ js_MakeArraySlow(JSContext *cx, JSObject *obj);
 static JS_INLINE uint32
 js_DenseArrayCapacity(JSObject *obj)
 {
-    JS_ASSERT(OBJ_IS_DENSE_ARRAY(BOGUS_CX, obj));
+    JS_ASSERT(js_IsDenseArray(obj));
     return obj->dslots ? (uint32) obj->dslots[-1] : 0;
 }
 
 static JS_INLINE void
 js_SetDenseArrayCapacity(JSObject *obj, uint32 capacity)
 {
-    JS_ASSERT(OBJ_IS_DENSE_ARRAY(BOGUS_CX, obj));
+    JS_ASSERT(js_IsDenseArray(obj));
     JS_ASSERT(obj->dslots);
     obj->dslots[-1] = (jsval) capacity;
 }
@@ -184,44 +190,9 @@ js_ArrayCompPush(JSContext *cx, JSObject *obj, jsval v);
 
 
 
-
-
-
-
-
-
-
-
-
-
-
 JS_FRIEND_API(JSBool)
-js_ArrayToJSUint8Buffer(JSContext *cx, JSObject *obj, jsuint offset, jsuint count,
-                        JSUint8 *dest);
-
-JS_FRIEND_API(JSBool)
-js_ArrayToJSUint16Buffer(JSContext *cx, JSObject *obj, jsuint offset, jsuint count,
-                         JSUint16 *dest);
-
-JS_FRIEND_API(JSBool)
-js_ArrayToJSUint32Buffer(JSContext *cx, JSObject *obj, jsuint offset, jsuint count,
-                         JSUint32 *dest);
-
-JS_FRIEND_API(JSBool)
-js_ArrayToJSInt8Buffer(JSContext *cx, JSObject *obj, jsuint offset, jsuint count,
-                       JSInt8 *dest);
-
-JS_FRIEND_API(JSBool)
-js_ArrayToJSInt16Buffer(JSContext *cx, JSObject *obj, jsuint offset, jsuint count,
-                        JSInt16 *dest);
-
-JS_FRIEND_API(JSBool)
-js_ArrayToJSInt32Buffer(JSContext *cx, JSObject *obj, jsuint offset, jsuint count,
-                        JSInt32 *dest);
-
-JS_FRIEND_API(JSBool)
-js_ArrayToJSDoubleBuffer(JSContext *cx, JSObject *obj, jsuint offset, jsuint count,
-                         jsdouble *dest);
+js_CoerceArrayToCanvasImageData(JSObject *obj, jsuint offset, jsuint count,
+                                JSUint8 *dest);
 
 JSBool
 js_PrototypeHasIndexedProperties(JSContext *cx, JSObject *obj);
