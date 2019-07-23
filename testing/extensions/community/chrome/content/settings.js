@@ -85,11 +85,6 @@ var qaPrefsWindow = {
 };
 
 
-
-window.addEventListener('load', function() {
-	$('qa_tabrow').addEventListener('select', qaPrefsWindow.onSwitchTab, false);
-}, false);
-
 var qaSetup = {
 	didSubmitForm : 0,
 	
