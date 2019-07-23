@@ -597,10 +597,13 @@ function addImage(url, type, alt, elem, isBg)
 function grabAll(elem)
 {
   
-  var ComputedStyle = elem.ownerDocument.defaultView.getComputedStyle(elem, "");
-  var url = ComputedStyle && ComputedStyle.getPropertyCSSValue("background-image");
-  if (url && url.primitiveType == CSSPrimitiveValue.CSS_URI)
-    addImage(url.getStringValue(), gStrings.mediaBGImg, gStrings.notSet, elem, true);
+  var computedStyle = elem.ownerDocument.defaultView.getComputedStyle(elem, "");
+  if (computedStyle) {
+    Array.forEach(computedStyle.getPropertyCSSValue("background-image"), function (url) {
+      if (url.primitiveType == CSSPrimitiveValue.CSS_URI)
+        addImage(url.getStringValue(), gStrings.mediaBGImg, gStrings.notSet, elem, true);
+    });
+  }
 
   
   if (elem instanceof HTMLImageElement)
