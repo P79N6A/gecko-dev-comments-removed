@@ -947,6 +947,7 @@ function BrowserStartup() {
     else if (window.arguments.length >= 3) {
       loadURI(uriToLoad, window.arguments[2], window.arguments[3] || null,
               window.arguments[4] || false);
+      content.focus();
     }
     
     
