@@ -3556,7 +3556,7 @@ TraceRecorder::test_property_cache(JSObject* obj, LIns* obj_ins, JSObject*& obj2
 
             
             pcval = PCVAL_NULL;
-            return true;
+            ABORT_TRACE("failed to find property");
         }
 
         OBJ_DROP_PROPERTY(cx, obj2, prop);
