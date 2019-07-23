@@ -494,7 +494,7 @@ private:
   
   
   
-  nsresult ConstructDocElementFrame(nsIContent*              aDocElement,
+  nsresult ConstructDocElementFrame(mozilla::dom::Element*   aDocElement,
                                     nsILayoutHistoryState*   aFrameState,
                                     nsIFrame**               aNewFrame);
 

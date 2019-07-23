@@ -6253,8 +6253,7 @@ PresShell::HandlePositionedEvent(nsIView*       aView,
       
       
       
-      while (targetElement &&
-             !targetElement->IsNodeOfType(nsINode::eELEMENT)) {
+      while (targetElement && !targetElement->IsElement()) {
         targetElement = targetElement->GetParent();
       }
 
