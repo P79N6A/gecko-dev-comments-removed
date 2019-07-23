@@ -542,24 +542,29 @@ BrowserGlue.prototype = {
       
       var dirService = Cc["@mozilla.org/file/directory_service;1"].
                        getService(Ci.nsIProperties);
-      var bookmarksFile = dirService.get("BMarks", Ci.nsILocalFile);
 
-      
-      if (restoreDefaultBookmarks || !bookmarksFile.exists()) {
+      var bookmarksFile = null;
+      if (restoreDefaultBookmarks) {
         
-        bookmarksFile = dirService.get("profDef", Ci.nsILocalFile);
-        bookmarksFile.append("bookmarks.html");
+        bookmarksFile = dirService.get("profDef", Ci.nsILocalFile)
+                                      .append("bookmarks.html");
       }
+      else
+        bookmarksFile = dirService.get("BMarks", Ci.nsILocalFile);
 
-      
-      try {
-        var importer = Cc["@mozilla.org/browser/places/import-export-service;1"].
-                       getService(Ci.nsIPlacesImportExportService);
-        importer.importHTMLFromFile(bookmarksFile, true );
-      } catch (err) {
+      if (bookmarksFile.exists()) {
         
-        Cu.reportError(err);
+        try {
+          var importer = Cc["@mozilla.org/browser/places/import-export-service;1"].
+                         getService(Ci.nsIPlacesImportExportService);
+          importer.importHTMLFromFile(bookmarksFile, true );
+        } catch (err) {
+          
+          Cu.reportError("Bookmarks.html file could be corrupt. " + err);
+        }
       }
+      else
+        Cu.reportError("Unable to find bookmarks.html file.");
 
       
       if (importBookmarksHTML)
