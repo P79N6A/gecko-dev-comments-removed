@@ -202,12 +202,11 @@ var gEngineManagerDialog = {
       
       if (eduplicate || bduplicate) {
         var dtitle = strings.getString("duplicateTitle");
-        var bookmark = strings.getString("duplicateBookmark");
-        var dmsg = strings.getFormattedString("duplicateMsg",
-                                         [(bduplicate) ? bookmark : '"' +
-                                          engine.name + '"']);
+        var bmsg = strings.getString("duplicateBookmarkMsg");
+        var emsg = strings.getFormattedString("duplicateEngineMsg",
+                                              [engine.name]);
 
-        prompt.alert(window, dtitle, dmsg);
+        prompt.alert(window, dtitle, (eduplicate) ? emsg : bmsg);
       } else {
         gEngineView._engineStore.changeEngine(selectedEngine, "alias",
                                               alias.value);
