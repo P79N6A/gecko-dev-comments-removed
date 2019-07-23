@@ -378,6 +378,14 @@ Abort(const char *aMsg)
   
   Break(aMsg);
 #endif
+
+  
+  
+  gAssertionCount += *((PRInt32 *) 0); 
+                                       
+
+  
+  PR_ProcessExit(127);
 }
 
 

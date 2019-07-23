@@ -189,6 +189,20 @@
 
 
 
+
+
+
+
+
+#define NS_RUNTIMEABORT(msg)                                    \
+  NS_DebugBreak(NS_DEBUG_ABORT, msg, nsnull, __FILE__, __LINE__)
+
+
+
+
+
+
+
 #define NS_ENSURE_TRUE(x, ret)                                \
   PR_BEGIN_MACRO                                              \
     if (NS_UNLIKELY(!(x))) {                                  \
