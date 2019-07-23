@@ -1129,8 +1129,7 @@ nsMenuPopupFrame::SetPopupPosition(nsIFrame* aAnchorFrame)
 
 
         if ( (screenViewLocY + mRect.height) > screenBottomTwips ) {
-          
-          PRInt32 moveDistY = (screenViewLocY + mRect.height) - screenHeightTwips;
+          PRInt32 moveDistY = (screenViewLocY + mRect.height) - screenBottomTwips;
           if ( screenViewLocY - moveDistY < screenTopTwips )
             moveDistY = screenViewLocY - screenTopTwips;          
           screenViewLocY -= moveDistY;
