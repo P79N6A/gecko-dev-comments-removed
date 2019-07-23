@@ -1242,36 +1242,29 @@ JS_EvaluateUCInStackFrame(JSContext *cx, JSStackFrame *fp,
                           jsval *rval)
 {
     JSObject *scobj;
-    JSScript *script, *oldscript;
-    JSStackFrame **disp, *displaySave;
+    JSScript *script;
     JSBool ok;
 
     scobj = JS_GetFrameScopeChain(cx, fp);
     if (!scobj)
         return JS_FALSE;
 
-    oldscript = fp->script;
+    
+
+
+
+
+
     script = js_CompileScript(cx, scobj, fp, JS_StackFramePrincipals(cx, fp),
                               TCF_COMPILE_N_GO |
-                              TCF_PUT_STATIC_DEPTH(oldscript->staticDepth + 1),
+                              TCF_PUT_STATIC_DEPTH(JS_DISPLAY_SIZE),
                               chars, length, NULL,
                               filename, lineno);
     if (!script)
         return JS_FALSE;
 
-    
-    if (oldscript->staticDepth < JS_DISPLAY_SIZE) {
-        disp = &cx->display[oldscript->staticDepth];
-        displaySave = *disp;
-        *disp = fp;
-    } else {
-        disp = NULL;
-        displaySave = NULL;
-    }
     ok = js_Execute(cx, scobj, script, fp, JSFRAME_DEBUGGER | JSFRAME_EVAL,
                     rval);
-    if (disp)
-        *disp = displaySave;
     js_DestroyScript(cx, script);
     return ok;
 }
