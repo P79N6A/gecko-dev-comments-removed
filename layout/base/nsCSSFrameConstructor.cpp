@@ -500,8 +500,8 @@ SetFrameIsSpecial(nsIFrame* aFrame, nsIFrame* aSpecialSibling)
 
   if (aSpecialSibling) {
     
-    NS_ASSERTION(!aFrame->GetPrevInFlow(),
-                 "assigning special sibling to other than first-in-flow!");
+    NS_ASSERTION(!aFrame->GetPrevContinuation(),
+                 "assigning special sibling to other than first continuation!");
 
     
     

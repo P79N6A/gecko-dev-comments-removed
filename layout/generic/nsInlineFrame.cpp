@@ -37,6 +37,7 @@
 
 
 
+
 #include "nsCOMPtr.h"
 #include "nsInlineFrame.h"
 #include "nsBlockFrame.h"
@@ -410,7 +411,10 @@ nsInlineFrame::ReflowFrames(nsPresContext* aPresContext,
   nsLineLayout* lineLayout = aReflowState.mLineLayout;
   PRBool ltr = (NS_STYLE_DIRECTION_LTR == aReflowState.mStyleVisibility->mDirection);
   nscoord leftEdge = 0;
-  if (nsnull == GetPrevContinuation()) {
+  
+  
+  if (!GetPrevContinuation() &&
+      !nsLayoutUtils::FrameIsInLastPartOfIBSplit(this)) {
     leftEdge = ltr ? aReflowState.mComputedBorderPadding.left
                    : aReflowState.mComputedBorderPadding.right;
   }
@@ -558,11 +562,27 @@ nsInlineFrame::ReflowFrames(nsPresContext* aPresContext,
   aMetrics.width = lineLayout->EndSpan(this);
 
   
-  if (nsnull == GetPrevContinuation()) {
+
+  
+  
+  if (!GetPrevContinuation() &&
+      !nsLayoutUtils::FrameIsInLastPartOfIBSplit(this)) {
     aMetrics.width += ltr ? aReflowState.mComputedBorderPadding.left
                           : aReflowState.mComputedBorderPadding.right;
   }
-  if (NS_FRAME_IS_COMPLETE(aStatus) && (!GetNextContinuation() || GetNextInFlow())) {
+
+  
+
+
+
+
+
+
+
+
+  if (NS_FRAME_IS_COMPLETE(aStatus) &&
+      (!GetNextContinuation() || GetNextInFlow()) &&
+      !nsLayoutUtils::FrameIsInFirstPartOfIBSplit(this)) {
     aMetrics.width += ltr ? aReflowState.mComputedBorderPadding.right
                           : aReflowState.mComputedBorderPadding.left;
   }
@@ -791,6 +811,28 @@ nsInlineFrame::GetSkipSides() const
       
     }
   }
+
+  if (GetStateBits() & NS_FRAME_IS_SPECIAL) {
+    
+    
+    
+    
+    
+    PRBool ltr = (NS_STYLE_DIRECTION_LTR == GetStyleVisibility()->mDirection);
+    PRIntn startBit = (1 << (ltr ? NS_SIDE_LEFT : NS_SIDE_RIGHT));
+    PRIntn endBit = (1 << (ltr ? NS_SIDE_RIGHT : NS_SIDE_LEFT));
+    if (((startBit | endBit) & skip) != (startBit | endBit)) {
+      
+      if (nsLayoutUtils::FrameIsInFirstPartOfIBSplit(this)) {
+        skip |= endBit;
+      } else {
+        NS_ASSERTION(nsLayoutUtils::FrameIsInLastPartOfIBSplit(this),
+                     "How did that happen?");
+        skip |= startBit;
+      }
+    }
+  }
+
   return skip;
 }
 

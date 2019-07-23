@@ -1004,6 +1004,26 @@ public:
 
 
   static nsTextFragment* GetTextFragmentForPrinting(const nsIFrame* aFrame);
+
+  
+
+
+
+  static PRBool FrameIsInFirstPartOfIBSplit(const nsIFrame* aFrame) {
+    return (aFrame->GetStateBits() & NS_FRAME_IS_SPECIAL) &&
+      !aFrame->GetFirstContinuation()->
+        GetProperty(nsGkAtoms::IBSplitSpecialPrevSibling);
+  }
+
+  
+
+
+
+  static PRBool FrameIsInLastPartOfIBSplit(const nsIFrame* aFrame) {
+    return (aFrame->GetStateBits() & NS_FRAME_IS_SPECIAL) &&
+      !aFrame->GetFirstContinuation()->
+        GetProperty(nsGkAtoms::IBSplitSpecialSibling);
+  }
 };
 
 class nsAutoDisableGetUsedXAssertions

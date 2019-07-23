@@ -1090,7 +1090,12 @@ nsLineLayout::ApplyStartMargin(PerFrameData* pfd,
   PRBool ltr = (NS_STYLE_DIRECTION_LTR == aReflowState.mStyleVisibility->mDirection);
 
   
-  if (pfd->mFrame->GetPrevContinuation()) {
+  
+  
+  
+  
+  if (pfd->mFrame->GetPrevContinuation() ||
+      nsLayoutUtils::FrameIsInLastPartOfIBSplit(pfd->mFrame)) {
     
     
     if (ltr)
@@ -1156,11 +1161,23 @@ nsLineLayout::CanPlaceFrame(PerFrameData* pfd,
     
     PRBool ltr = (NS_STYLE_DIRECTION_LTR == aReflowState.mStyleVisibility->mDirection);
 
-    if ((NS_FRAME_IS_NOT_COMPLETE(aStatus) || (pfd->mFrame->GetNextContinuation() && !pfd->mFrame->GetNextInFlow())) 
+    
+
+
+
+
+
+
+
+
+
+
+
+
+    if ((NS_FRAME_IS_NOT_COMPLETE(aStatus) ||
+         (pfd->mFrame->GetNextContinuation() && !pfd->mFrame->GetNextInFlow()) ||
+         nsLayoutUtils::FrameIsInFirstPartOfIBSplit(pfd->mFrame))
         && !pfd->GetFlag(PFD_ISLETTERFRAME)) {
-      
-      
-      
       if (ltr)
         pfd->mMargin.right = 0;
       else
