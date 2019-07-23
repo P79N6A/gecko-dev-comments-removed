@@ -66,7 +66,16 @@ nsHTMLLinkAccessible::GetName(nsAString& aName)
     return NS_ERROR_FAILURE;
 
   nsCOMPtr<nsIContent> content(do_QueryInterface(mDOMNode));
-  return AppendFlatStringFromSubtree(content, &aName);
+  nsresult rv = AppendFlatStringFromSubtree(content, &aName);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  if (aName.IsEmpty()) {
+    
+    
+    return GetHTMLName(aName, PR_FALSE);
+  }
+
+  return NS_OK;
 }
 
 NS_IMETHODIMP
