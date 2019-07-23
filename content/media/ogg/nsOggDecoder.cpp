@@ -75,7 +75,9 @@ static PRLogModuleInfo* gOggDecoderLog;
 
 
 
-#define OGGPLAY_BUFFER_SIZE 20
+
+
+#define OGGPLAY_BUFFER_SIZE 5
 
 
 
