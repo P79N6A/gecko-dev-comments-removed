@@ -46,6 +46,7 @@
 #include "nsIObserver.h"
 #include "nsWeakReference.h"
 #include "nsTHashtable.h"
+#include "nsTArray.h"
 #include "nsCRT.h"
 
 #define MOZ_PERSONALDICTIONARY_CONTRACTID "@mozilla.org/spellchecker/personaldictionary;1"
@@ -101,7 +102,7 @@ public:
   nsresult Init();
 
 protected:
-  nsStringArray  mDictionary;  
+  nsTArray<nsString>  mDictionary;  
   PRBool         mDirty;       
   nsTHashtable<nsUniCharEntry> mDictionaryTable;
   nsTHashtable<nsUniCharEntry> mIgnoreTable;

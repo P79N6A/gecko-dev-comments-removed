@@ -220,7 +220,7 @@ public:
       mCharCache(0)
   {
     MOZ_COUNT_CTOR(nsGlyphTable);
-    mFontName.AppendString(aPrimaryFontName);
+    mFontName.AppendElement(aPrimaryFontName);
   }
 
   ~nsGlyphTable() 
@@ -230,12 +230,12 @@ public:
 
   const nsAString& PrimaryFontName() const
   {
-    return *mFontName.StringAt(0);
+    return mFontName[0];
   }
 
   const nsAString& FontNameFor(const nsGlyphCode& aGlyphCode) const
   {
-    return *mFontName.StringAt(aGlyphCode.font);
+    return mFontName[aGlyphCode.font];
   }
 
   
@@ -286,7 +286,7 @@ private:
   
   
   
-  nsStringArray mFontName; 
+  nsTArray<nsString> mFontName; 
                                
   
   PRInt32 mState;
@@ -320,11 +320,11 @@ nsGlyphTable::ElementAt(nsPresContext* aPresContext, nsMathMLChar* aChar, PRUint
   if (mState == NS_TABLE_STATE_ERROR) return kNullGlyph;
   
   if (mState == NS_TABLE_STATE_EMPTY) {
-    nsresult rv = LoadProperties(*mFontName[0], mGlyphProperties);
+    nsresult rv = LoadProperties(mFontName[0], mGlyphProperties);
 #ifdef NS_DEBUG
     nsCAutoString uriStr;
     uriStr.AssignLiteral("resource://gre/res/fonts/mathfont");
-    LossyAppendUTF16toASCII(*mFontName[0], uriStr);
+    LossyAppendUTF16toASCII(mFontName[0], uriStr);
     uriStr.StripWhitespace(); 
     uriStr.AppendLiteral(".properties");
     printf("Loading %s ... %s\n",
@@ -346,7 +346,7 @@ nsGlyphTable::ElementAt(nsPresContext* aPresContext, nsMathMLChar* aChar, PRUint
       rv = mGlyphProperties->GetStringProperty(key, value);
       if (NS_FAILED(rv)) break;
       Clean(value);
-      mFontName.AppendString(value); 
+      mFontName.AppendElement(value); 
     }
   }
 
@@ -410,14 +410,12 @@ nsGlyphTable::ElementAt(nsPresContext* aPresContext, nsMathMLChar* aChar, PRUint
         ++i;
         font = value[i] - '0';
         ++i;
-        if (font >= mFontName.Count()) {
+        if (font >= mFontName.Length()) {
           NS_ERROR("Non-existant font referenced in glyph table");
           return kNullGlyph;
         }
         
-        nsAutoString fontName;
-        mFontName.StringAt(font, fontName);
-        if (!fontName.Length() || !CheckFontExistence(aPresContext, fontName)) {
+        if (!mFontName[font].Length() || !CheckFontExistence(aPresContext, mFontName[font])) {
           return kNullGlyph;
         }
       }
@@ -1568,7 +1566,6 @@ nsMathMLChar::StretchInternal(nsPresContext*           aPresContext,
   
   
   
-  nsAutoString fontName;
   nsFont font = mStyleContext->GetParent()->GetStyleFont()->mFont;
 
   
@@ -2092,7 +2089,6 @@ nsMathMLChar::PaintForeground(nsPresContext* aPresContext,
   }
   aRenderingContext.SetColor(fgColor);
 
-  nsAutoString fontName;
   nsFont theFont(styleContext->GetStyleFont()->mFont);
   if (! mFamily.IsEmpty()) {
     theFont.name = mFamily;

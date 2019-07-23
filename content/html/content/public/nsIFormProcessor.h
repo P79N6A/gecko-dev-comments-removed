@@ -49,9 +49,9 @@
 #include "prtypes.h"
 
 #include "nsIDOMHTMLInputElement.h"
+#include "nsTArray.h"
 
 class nsString;
-class nsStringArray;
 
 
 #define NS_FORMPROCESSOR_CID \
@@ -103,7 +103,7 @@ public:
 
 
   NS_IMETHOD ProvideContent(const nsAString& aFormType, 
-                            nsStringArray& aContent,
+                            nsTArray<nsString>& aContent,
                             nsAString& aAttribute) = 0;
 
 };
