@@ -234,19 +234,33 @@ js_TraceContext(JSTracer *trc, JSContext *acx);
 
 typedef enum JSGCInvocationKind {
     
-    GC_NORMAL,
+    GC_NORMAL           = 0,
 
     
 
 
 
-    GC_LAST_CONTEXT,
+    GC_LAST_CONTEXT     = 1,
 
     
 
 
 
-    GC_LAST_DITCH
+
+    GC_LOCK_HELD        = 2,
+    GC_KEEP_ATOMS       = GC_LOCK_HELD,
+
+    
+
+
+
+    GC_SET_SLOT_REQUEST = GC_LOCK_HELD | 0,
+
+    
+
+
+
+    GC_LAST_DITCH       = GC_LOCK_HELD | 1
 } JSGCInvocationKind;
 
 extern void

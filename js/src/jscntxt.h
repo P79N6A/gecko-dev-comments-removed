@@ -163,6 +163,16 @@ typedef struct JSPropertyTreeEntry {
 
 typedef struct JSNativeIteratorState JSNativeIteratorState;
 
+typedef struct JSSetSlotRequest JSSetSlotRequest;
+
+struct JSSetSlotRequest {
+    JSObject            *obj;           
+    JSObject            *pobj;          
+    uint16              slot;           
+    uint16              errnum;         
+    JSSetSlotRequest    *next;          
+};
+
 struct JSRuntime {
     
     JSRuntimeState      state;
@@ -222,6 +232,14 @@ struct JSRuntime {
     void                *gcExtraRootsData;
 
     
+
+
+
+
+
+    JSSetSlotRequest    *setSlotRequests;
+
+    
     JSBool              rngInitialized;
     int64               rngMultiplier;
     int64               rngAddend;
@@ -278,12 +296,6 @@ struct JSRuntime {
 
     
     PRCondVar           *stateChange;
-
-    
-    PRLock              *setSlotLock;
-    PRCondVar           *setSlotDone;
-    JSBool              setSlotBusy;
-    JSScope             *setSlotScope;  
 
     
 
