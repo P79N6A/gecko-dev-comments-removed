@@ -108,7 +108,7 @@ SessionStartup.prototype = {
     var resumeFromCrash = this._prefBranch.getBoolPref("sessionstore.resume_from_crash");
     if ((resumeFromCrash || this._doResumeSession()) && this._sessionFile.exists()) {
       
-      this._iniString = this._readFile(this._sessionFile);
+      this._iniString = this._readStateFile(this._sessionFile);
       if (this._iniString) {
         try {
           
@@ -321,6 +321,25 @@ SessionStartup.prototype = {
   },
 
 
+
+  
+
+
+
+
+
+
+  _readStateFile: function sss_readStateFile(aFile) {
+    var stateString = Cc["@mozilla.org/supports-string;1"].
+                        createInstance(Ci.nsISupportsString);
+    stateString.data = this._readFile(aFile) || "";
+    
+    var observerService = Cc["@mozilla.org/observer-service;1"].
+                          getService(Ci.nsIObserverService);
+    observerService.notifyObservers(stateString, "sessionstore-state-read", "");
+    
+    return stateString.data;
+  },
 
   
 
