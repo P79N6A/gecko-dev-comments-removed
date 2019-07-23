@@ -244,6 +244,12 @@ menuitem.bookmark-item {
 
 
 
+.query-item[container] {
+  list-style-image: url("chrome://browser/skin/places/query.png");
+}
+
+
+
 .toolbarbutton-1 {
   -moz-box-orient: vertical;
   min-width: 0;
