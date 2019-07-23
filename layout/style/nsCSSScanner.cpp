@@ -36,6 +36,7 @@
 
 
 
+#include <math.h>
 
 
 
@@ -1071,12 +1072,40 @@ nsCSSScanner::ParseAtKeyword(PRInt32 aChar, nsCSSToken& aToken)
 PRBool
 nsCSSScanner::ParseNumber(PRInt32 c, nsCSSToken& aToken)
 {
-  nsString& ident = aToken.mIdent;
-  ident.SetLength(0);
+  NS_PRECONDITION(c == '.' || c == '+' || c == '-' || IsDigit(c),
+                  "Why did we get called?");
   PRBool gotDot = (c == '.');
   aToken.mHasSign = (c == '+' || c == '-');
-  if (c != '+') {
-    ident.Append(PRUnichar(c));
+
+  
+  PRInt32 sign = c == '-' ? -1 : 1;
+  
+  
+  
+  
+  double intPart = 0;
+  
+  
+  
+  
+  double fracPart = 0;
+  
+  
+  
+  float divisor = 1;
+  
+  
+  
+  
+  PRInt32 exponent = 0;
+  
+  PRInt32 expSign = 1;
+  
+  if (gotDot) {
+    divisor = 10;
+  } else if (!aToken.mHasSign) {
+    
+    intPart += (c - '0');
   }
 
   
@@ -1087,26 +1116,26 @@ nsCSSScanner::ParseNumber(PRInt32 c, nsCSSToken& aToken)
     if (!gotDot  && !gotE && (c == '.') &&
         IsDigit(Peek())) {
       gotDot = PR_TRUE;
+      divisor = 10;
 #ifdef MOZ_SVG
     } else if (!gotE && (c == 'e' || c == 'E')) {
       if (!IsSVGMode()) {
         break;
       }
       PRInt32 nextChar = Peek();
-      PRInt32 sign = 0;
+      PRInt32 expSignChar = 0;
       if (nextChar == '-' || nextChar == '+') {
-        sign = Read();
+        expSignChar = Read();
         nextChar = Peek();
       }
       if (IsDigit(nextChar)) {
         gotE = PR_TRUE;
-        if (sign) {
-          ident.Append(PRUnichar(c));
-          c = sign;
+        if (expSignChar == '-') {
+          expSign = -1;
         }
       } else {
-        if (sign) {
-          Pushback(sign);
+        if (expSignChar) {
+          Pushback(expSignChar);
         }
         break;
       }
@@ -1114,22 +1143,41 @@ nsCSSScanner::ParseNumber(PRInt32 c, nsCSSToken& aToken)
     } else if (!IsDigit(c)) {
       break;
     }
-    ident.Append(PRUnichar(c));
+    
+    else if (gotE) {
+      exponent = 10*exponent + (c - '0');
+    } else if (gotDot) {
+      fracPart += (c - '0') / divisor;
+      divisor *= 10;
+    } else {
+      intPart = 10*intPart + (c - '0');
+    }
   }
 
-  
   nsCSSTokenType type = eCSSToken_Number;
-  PRInt32 ec;
-  float value = ident.ToFloat(&ec);
 
   
   
   aToken.mIntegerValid = PR_FALSE;
-  if (!gotDot && !gotE) {
-    aToken.mInteger = ident.ToInteger(&ec);
+
+  
+  float value = float(sign * (intPart + fracPart));
+  if (gotE) {
+    
+    
+    
+    value *= pow(10.0, double(expSign * exponent));
+  } else if (!gotDot) {
+    if (intPart > PR_INT32_MAX) {
+      
+      intPart = PR_INT32_MAX;
+    }
+    aToken.mInteger = PRInt32(sign * intPart);
     aToken.mIntegerValid = PR_TRUE;
   }
-  ident.SetLength(0);
+
+  nsString& ident = aToken.mIdent;
+  ident.Truncate();
 
   
   if (c >= 0) {
