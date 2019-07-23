@@ -526,6 +526,22 @@ nsHttpServer.prototype =
   },
 
   
+  
+  
+  getState: function(k)
+  {
+    return this._handler._getState(k);
+  },
+
+  
+  
+  
+  setState: function(k, v)
+  {
+    return this._handler._setState(k, v);
+  },
+
+  
 
   
   
@@ -1938,6 +1954,11 @@ function ServerHandler(server)
 
 
   this._indexHandler = defaultIndexHandler;
+
+  
+
+
+  this._state = {};
 }
 ServerHandler.prototype =
 {
@@ -2351,6 +2372,12 @@ ServerHandler.prototype =
         var s = Cu.Sandbox(gGlobalObject);
         s.importFunction(dump, "dump");
 
+        
+        
+        var self = this;
+        s.importFunction(function getState(k) { return self._getState(k); });
+        s.importFunction(function setState(k, v) { self._setState(k, v); });
+
         try
         {
           
@@ -2422,6 +2449,39 @@ ServerHandler.prototype =
       
       maybeAddHeaders(file, metadata, response);
     }
+  },
+
+  
+
+
+
+
+
+
+
+
+  _getState: function(k)
+  {
+    NS_ASSERT(typeof k == "string");
+    var state = this._state;
+    if (k in state)
+      return state[k];
+    return state[k] = "";
+  },
+
+  
+
+
+
+
+
+
+
+
+  _setState: function(k, v)
+  {
+    NS_ASSERT(typeof v == "string");
+    this._state[k] = String(v);
   },
 
   
