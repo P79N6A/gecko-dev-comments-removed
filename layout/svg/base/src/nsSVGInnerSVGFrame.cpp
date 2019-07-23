@@ -101,7 +101,8 @@ nsSVGInnerSVGFrame::PaintSVG(nsSVGRenderState *aContext,
     if (!GetMatrixPropagation()) {
       NS_NewSVGMatrix(getter_AddRefs(clipTransform));
     } else {
-      clipTransform = static_cast<nsSVGContainerFrame*>(mParent)->GetCanvasTM();
+      nsSVGContainerFrame *parent = static_cast<nsSVGContainerFrame*>(mParent);
+      clipTransform = NS_NewSVGMatrix(parent->GetCanvasTM());
     }
 
     if (clipTransform) {
@@ -171,7 +172,7 @@ nsSVGInnerSVGFrame::GetFrameForPoint(const nsPoint &aPoint)
 
     nsSVGContainerFrame *parent = static_cast<nsSVGContainerFrame*>
                                              (mParent);
-    clipTransform = parent->GetCanvasTM();
+    clipTransform = NS_NewSVGMatrix(parent->GetCanvasTM());
 
     if (!nsSVGUtils::HitTestRect(clipTransform,
                                  clipX, clipY, clipWidth, clipHeight,
@@ -243,48 +244,19 @@ nsSVGInnerSVGFrame::NotifyViewportChange()
 
 
 
-already_AddRefed<nsIDOMSVGMatrix>
+gfxMatrix
 nsSVGInnerSVGFrame::GetCanvasTM()
 {
-  if (!GetMatrixPropagation()) {
-    nsIDOMSVGMatrix *retval;
-    NS_NewSVGMatrix(&retval);
-    return retval;
-  }
-
-  
-
   if (!mCanvasTM) {
-    
     NS_ASSERTION(mParent, "null parent");
-    nsSVGContainerFrame *containerFrame = static_cast<nsSVGContainerFrame*>
-                                                     (mParent);
-    nsCOMPtr<nsIDOMSVGMatrix> parentTM = containerFrame->GetCanvasTM();
-    NS_ASSERTION(parentTM, "null TM");
 
-    
-    float x, y;
-    nsSVGSVGElement *svg = static_cast<nsSVGSVGElement*>(mContent);
-    svg->GetAnimatedLengthValues(&x, &y, nsnull);
+    nsSVGContainerFrame *parent = static_cast<nsSVGContainerFrame*>(mParent);
+    nsSVGSVGElement *content = static_cast<nsSVGSVGElement*>(mContent);
 
-    nsCOMPtr<nsIDOMSVGMatrix> xyTM;
-    parentTM->Translate(x, y, getter_AddRefs(xyTM));
+    gfxMatrix tm = content->PrependLocalTransformTo(parent->GetCanvasTM());
 
-    
-    nsCOMPtr<nsIDOMSVGMatrix> viewBoxTM;
-    nsSVGSVGElement *svgElement = static_cast<nsSVGSVGElement*>(mContent);
-    nsresult res =
-      svgElement->GetViewboxToViewportTransform(getter_AddRefs(viewBoxTM));
-    if (NS_SUCCEEDED(res) && viewBoxTM) {
-      xyTM->Multiply(viewBoxTM, getter_AddRefs(mCanvasTM));
-    } else {
-      NS_WARNING("We should propagate the fact that the viewBox is invalid.");
-      mCanvasTM = xyTM;
-    }
-  }    
-
-  nsIDOMSVGMatrix* retval = mCanvasTM.get();
-  NS_IF_ADDREF(retval);
-  return retval;
+    mCanvasTM = NS_NewSVGMatrix(tm);
+  }
+  return nsSVGUtils::ConvertSVGMatrixToThebes(mCanvasTM);
 }
 

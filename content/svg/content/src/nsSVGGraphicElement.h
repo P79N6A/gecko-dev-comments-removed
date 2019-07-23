@@ -43,6 +43,7 @@
 #include "nsIDOMSVGLocatable.h"
 #include "nsIDOMSVGTransformable.h"
 #include "nsIDOMSVGAnimTransformList.h"
+#include "gfxMatrix.h"
 
 typedef nsSVGStylableElement nsSVGGraphicElementBase;
 
@@ -61,8 +62,7 @@ public:
   
   NS_IMETHOD_(PRBool) IsAttributeMapped(const nsIAtom* aAttribute) const;
 
-  
-  already_AddRefed<nsIDOMSVGMatrix> GetLocalTransformMatrix();
+  virtual gfxMatrix PrependLocalTransformTo(const gfxMatrix &aMatrix);
 
 protected:
   

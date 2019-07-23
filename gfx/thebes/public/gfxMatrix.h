@@ -153,6 +153,13 @@ public:
     
 
 
+
+
+    const gfxMatrix& PreMultiply(const gfxMatrix& m);
+
+    
+
+
     gfxPoint Transform(const gfxPoint& point) const;
 
 

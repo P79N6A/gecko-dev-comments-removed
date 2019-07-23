@@ -139,6 +139,12 @@ public:
   
   nsSVGSVGElement* GetCtx();
 
+  
+
+
+
+  virtual gfxMatrix PrependLocalTransformTo(const gfxMatrix &aMatrix);
+
   virtual void DidChangeLength(PRUint8 aAttrEnum, PRBool aDoSetAttr);
   virtual void DidChangeNumber(PRUint8 aAttrEnum, PRBool aDoSetAttr);
   virtual void DidChangeInteger(PRUint8 aAttrEnum, PRBool aDoSetAttr);

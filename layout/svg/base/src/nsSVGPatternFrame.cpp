@@ -139,26 +139,21 @@ nsSVGPatternFrame::GetType() const
 
 
 
-already_AddRefed<nsIDOMSVGMatrix>
+gfxMatrix
 nsSVGPatternFrame::GetCanvasTM()
 {
-  nsIDOMSVGMatrix *rCTM;
-
   if (mCTM) {
-    rCTM = mCTM;
-    NS_IF_ADDREF(rCTM);
-  } else {
-    
-    if (mSource) {
-      
-      mSource->GetCanvasTM(&rCTM);
-    } else {
-      
-      
-      NS_NewSVGMatrix(&rCTM);
-    }
+    return nsSVGUtils::ConvertSVGMatrixToThebes(mCTM);
   }
-  return rCTM;
+
+  
+  if (mSource) {
+    
+    return mSource->GetCanvasTM();
+  }
+
+  
+  return gfxMatrix();
 }
 
 nsresult
@@ -658,7 +653,7 @@ nsSVGPatternFrame::GetCallerGeometry(nsIDOMSVGMatrix **aCTM,
   }
 
   
-  aSource->GetCanvasTM(aCTM);
+  *aCTM = NS_NewSVGMatrix(aSource->GetCanvasTM()).get();
 
   
   

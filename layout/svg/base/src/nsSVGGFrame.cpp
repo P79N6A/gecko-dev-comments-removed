@@ -87,37 +87,20 @@ nsSVGGFrame::NotifySVGChanged(PRUint32 aFlags)
   nsSVGGFrameBase::NotifySVGChanged(aFlags);
 }
 
-already_AddRefed<nsIDOMSVGMatrix>
+gfxMatrix
 nsSVGGFrame::GetCanvasTM()
 {
-  if (!GetMatrixPropagation()) {
-    nsIDOMSVGMatrix *retval;
-    NS_NewSVGMatrix(&retval);
-    return retval;
-  }
-
   if (!mCanvasTM) {
-    
     NS_ASSERTION(mParent, "null parent");
-    nsSVGContainerFrame *containerFrame = static_cast<nsSVGContainerFrame*>
-                                                     (mParent);
-    nsCOMPtr<nsIDOMSVGMatrix> parentTM = containerFrame->GetCanvasTM();
-    NS_ASSERTION(parentTM, "null TM");
 
-    
-    nsSVGGraphicElement *element =
-      static_cast<nsSVGGraphicElement*>(mContent);
-    nsCOMPtr<nsIDOMSVGMatrix> localTM = element->GetLocalTransformMatrix();
+    nsSVGContainerFrame *parent = static_cast<nsSVGContainerFrame*>(mParent);
+    nsSVGGraphicElement *content = static_cast<nsSVGGraphicElement*>(mContent);
 
-    if (localTM)
-      parentTM->Multiply(localTM, getter_AddRefs(mCanvasTM));
-    else
-      mCanvasTM = parentTM;
+    gfxMatrix tm = content->PrependLocalTransformTo(parent->GetCanvasTM());
+
+    mCanvasTM = NS_NewSVGMatrix(tm);
   }
-
-  nsIDOMSVGMatrix* retval = mCanvasTM.get();
-  NS_IF_ADDREF(retval);
-  return retval;
+  return nsSVGUtils::ConvertSVGMatrixToThebes(mCanvasTM);
 }
 
 NS_IMETHODIMP

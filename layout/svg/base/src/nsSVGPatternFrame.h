@@ -76,7 +76,7 @@ public:
 
 public:
   
-  virtual already_AddRefed<nsIDOMSVGMatrix> GetCanvasTM();
+  virtual gfxMatrix GetCanvasTM();
 
   
   virtual void DidSetStyleContext(nsStyleContext* aOldStyleContext);

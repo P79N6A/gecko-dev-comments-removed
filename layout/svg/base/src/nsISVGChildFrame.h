@@ -43,6 +43,8 @@
 #include "nsQueryFrame.h"
 #include "nsCOMPtr.h"
 #include "nsRect.h"
+#include "gfxRect.h"
+#include "gfxMatrix.h"
 
 class gfxContext;
 class nsPresContext;
@@ -98,7 +100,24 @@ public:
   virtual PRBool GetMatrixPropagation()=0;
 
   
-  NS_IMETHOD GetBBox(nsIDOMSVGRect **_retval)=0; 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  virtual gfxRect GetBBoxContribution(const gfxMatrix &aToBBoxUserspace) = 0;
 
   
   NS_IMETHOD_(PRBool) IsDisplayContainer()=0;

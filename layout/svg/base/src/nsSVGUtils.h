@@ -46,6 +46,8 @@
 #include "nsRect.h"
 #include "gfxContext.h"
 #include "nsIRenderingContext.h"
+#include "gfxRect.h"
+#include "gfxMatrix.h"
 
 class nsIDocument;
 class nsPresContext;
@@ -273,11 +275,6 @@ public:
   
 
 
-  static nsresult GetBBox(nsFrameList *aFrames, nsIDOMSVGRect **_retval);
-
-  
-
-
 
 
 
@@ -377,7 +374,7 @@ public:
 
 
 
-  static already_AddRefed<nsIDOMSVGMatrix> GetCanvasTM(nsIFrame *aFrame);
+  static gfxMatrix GetCanvasTM(nsIFrame* aFrame);
 
   
 

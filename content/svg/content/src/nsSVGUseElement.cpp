@@ -457,6 +457,18 @@ nsSVGUseElement::UnlinkSource()
 
 
 
+ gfxMatrix
+nsSVGUseElement::PrependLocalTransformTo(const gfxMatrix &aMatrix)
+{
+  
+  gfxMatrix matrix = nsSVGUseElementBase::PrependLocalTransformTo(aMatrix);
+
+  
+  float x, y;
+  GetAnimatedLengthValues(&x, &y, nsnull);
+  return matrix.PreMultiply(gfxMatrix().Translate(gfxPoint(x, y)));
+}
+
 void
 nsSVGUseElement::DidChangeLength(PRUint8 aAttrEnum, PRBool aDoSetAttr)
 {
