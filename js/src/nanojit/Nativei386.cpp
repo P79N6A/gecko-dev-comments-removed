@@ -1196,7 +1196,7 @@ namespace nanojit
 
 
 			if (rL == NULL || rL->reg == UnknownReg)
-				rleft = getBaseReg(lhs, d, rmask(rr));
+				rleft = findSpecificRegFor(lhs, rr);
 			else
 				rleft = rL->reg;
 
