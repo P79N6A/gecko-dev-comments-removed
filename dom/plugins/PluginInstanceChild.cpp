@@ -1422,8 +1422,8 @@ PluginInstanceChild::SharedSurfacePaint(NPEvent& evcopy)
               }
 
               
-              ::FillRect(mSharedSurfaceDib.GetHDC(), pRect, (HBRUSH)GetStockObject(WHITE_BRUSH));
               UpdatePaintClipRect(pRect);
+              ::FillRect(mSharedSurfaceDib.GetHDC(), pRect, (HBRUSH)GetStockObject(WHITE_BRUSH));
               evcopy.wParam = WPARAM(mSharedSurfaceDib.GetHDC());
               if (!mPluginIface->event(&mData, reinterpret_cast<void*>(&evcopy))) {
                   mAlphaExtract.doublePass = RENDER_NATIVE;
@@ -1452,6 +1452,7 @@ PluginInstanceChild::SharedSurfacePaint(NPEvent& evcopy)
         break;
         case RENDER_BACK_TWO:
               
+              UpdatePaintClipRect(pRect);
               ::BitBlt(mSharedSurfaceDib.GetHDC(),
                        pRect->left,
                        pRect->top,
