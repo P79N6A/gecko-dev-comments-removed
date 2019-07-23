@@ -130,11 +130,10 @@ function run_test()
   makeFilePicker = function() fp;
 
   
-  getStringBundle = function() {
-    return {
-      GetStringFromName: function() ""
-    };
-  }
+  delete ContentAreaUtils.stringBundle;
+  ContentAreaUtils.stringBundle = {
+    GetStringFromName: function() ""
+  };
 
   
   validateFileName = function(foo) foo;
