@@ -744,10 +744,6 @@ LoginManager.prototype = {
                              usernameField.value, "",
                              usernameField.name,  "");
 
-            
-            
-            
-
             var logins = pwmgr.findLogins({}, hostname, formSubmitURL, null);
             var existingLogin;
             var found = logins.some(function(l) {
