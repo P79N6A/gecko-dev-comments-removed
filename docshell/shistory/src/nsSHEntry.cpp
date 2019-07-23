@@ -51,9 +51,48 @@
 #include "nsIDOMDocument.h"
 #include "nsAutoPtr.h"
 #include "nsThreadUtils.h"
+#include "nsIWebNavigation.h"
+#include "nsISHistory.h"
+#include "nsISHistoryInternal.h"
 
 
+#define CONTENT_VIEWER_TIMEOUT_SECONDS 30*60
+
+typedef nsExpirationTracker<nsSHEntry,3> HistoryTrackerBase;
+class HistoryTracker : public HistoryTrackerBase {
+public:
+  
+  HistoryTracker() : HistoryTrackerBase((CONTENT_VIEWER_TIMEOUT_SECONDS/2)*1000) {}
+  
+protected:
+  virtual void NotifyExpired(nsSHEntry* aObj) {
+    RemoveObject(aObj);
+    aObj->Expire();
+  }
+};
+
+static HistoryTracker *gHistoryTracker = nsnull;
 static PRUint32 gEntryID = 0;
+
+nsresult nsSHEntry::Startup()
+{
+  gHistoryTracker = new HistoryTracker();
+  return gHistoryTracker ? NS_OK : NS_ERROR_OUT_OF_MEMORY;
+}
+
+void nsSHEntry::Shutdown()
+{
+  delete gHistoryTracker;
+  gHistoryTracker = nsnull;
+}
+
+static void StopTrackingEntry(nsSHEntry *aEntry)
+{
+  if (aEntry->GetExpirationState()->IsTracked()) {
+    gHistoryTracker->RemoveObject(aEntry);
+  }
+}
+
 
 
 
@@ -109,6 +148,8 @@ ClearParentPtr(nsISHEntry* aEntry, void* )
 
 nsSHEntry::~nsSHEntry()
 {
+  StopTrackingEntry(this);
+
   
   
   mChildren.EnumerateForwards(ClearParentPtr, nsnull);
@@ -193,6 +234,8 @@ nsSHEntry::SetContentViewer(nsIContentViewer *aViewer)
       mDocument->SetShellsHidden(PR_TRUE);
       mDocument->AddMutationObserver(this);
     }
+    
+    gHistoryTracker->AddObject(this);
   }
 
   return NS_OK;
@@ -637,12 +680,38 @@ nsSHEntry::DropPresentationState()
   if (mContentViewer)
     mContentViewer->ClearHistoryEntry();
 
+  StopTrackingEntry(this);
   mContentViewer = nsnull;
   mSticky = PR_TRUE;
   mWindowState = nsnull;
   mViewerBounds.SetRect(0, 0, 0, 0);
   mChildShells.Clear();
   mRefreshURIList = nsnull;
+}
+
+void
+nsSHEntry::Expire()
+{
+  
+  
+  if (!mContentViewer)
+    return;
+  nsCOMPtr<nsISupports> container;
+  mContentViewer->GetContainer(getter_AddRefs(container));
+  nsCOMPtr<nsIDocShellTreeItem> treeItem = do_QueryInterface(container);
+  if (!treeItem)
+    return;
+  
+  
+  nsCOMPtr<nsIDocShellTreeItem> root;
+  treeItem->GetSameTypeRootTreeItem(getter_AddRefs(root));
+  nsCOMPtr<nsIWebNavigation> webNav = do_QueryInterface(root);
+  nsCOMPtr<nsISHistory> history;
+  webNav->GetSessionHistory(getter_AddRefs(history));
+  nsCOMPtr<nsISHistoryInternal> historyInt = do_QueryInterface(history);
+  if (!historyInt)
+    return;
+  historyInt->EvictExpiredContentViewerForEntry(this);
 }
 
 
