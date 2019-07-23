@@ -2714,17 +2714,19 @@ gfxTextRun::SanitizeGlyphRuns()
     
     
     
-    PRInt32 i, last = mGlyphRuns.Length() - 1;
-    for (i = last; i >= 0; --i) {
+    PRInt32 i, lastRunIndex = mGlyphRuns.Length() - 1;
+    for (i = lastRunIndex; i >= 0; --i) {
         GlyphRun& run = mGlyphRuns[i];
         while (mCharacterGlyphs[run.mCharacterOffset].IsLigatureContinuation() &&
                run.mCharacterOffset < mCharacterCount) {
             run.mCharacterOffset++;
         }
         
-        if ((i < last && run.mCharacterOffset >= mGlyphRuns[i+1].mCharacterOffset) ||
-            (i == last && run.mCharacterOffset == mCharacterCount)) {
+        if ((i < lastRunIndex &&
+             run.mCharacterOffset >= mGlyphRuns[i+1].mCharacterOffset) ||
+            (i == lastRunIndex && run.mCharacterOffset == mCharacterCount)) {
             mGlyphRuns.RemoveElementAt(i);
+            --lastRunIndex;
         }
     }
 }
