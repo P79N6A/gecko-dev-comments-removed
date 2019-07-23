@@ -418,7 +418,7 @@ nsChromeProtocolHandler::AllowPort(PRInt32 port, const char *scheme, PRBool *_re
 NS_IMETHODIMP
 nsChromeProtocolHandler::GetProtocolFlags(PRUint32 *result)
 {
-    *result = URI_STD | URI_IS_UI_RESOURCE | URI_IS_LOCAL_RESOURCE;
+    *result = URI_STD | URI_IS_UI_RESOURCE;
     return NS_OK;
 }
 
@@ -465,7 +465,7 @@ nsChromeProtocolHandler::NewChannel(nsIURI* aURI,
 
     NS_ENSURE_ARG_POINTER(aURI);
     NS_PRECONDITION(aResult, "Null out param");
-
+    
 #ifdef DEBUG
     
     nsresult debug_rv;
@@ -555,6 +555,38 @@ nsChromeProtocolHandler::NewChannel(nsIURI* aURI,
         if (NS_FAILED(rv)) return rv;
 
         
+        nsCOMPtr<nsIFileChannel> fileChan
+            (do_QueryInterface(result));
+        if (fileChan) {
+#ifdef DEBUG
+            nsCOMPtr<nsIFile> file;
+            fileChan->GetFile(getter_AddRefs(file));
+
+            PRBool exists = PR_FALSE;
+            file->Exists(&exists);
+            if (!exists) {
+                nsCAutoString path;
+                file->GetNativePath(path);
+                printf("Chrome file doesn't exist: %s\n", path.get());
+            }
+#endif
+        }
+        else {
+            nsCOMPtr<nsIJARChannel> jarChan
+                (do_QueryInterface(result));
+            if (!jarChan) {
+                nsRefPtr<nsCachedChromeChannel> cachedChannel;
+                if (NS_FAILED(CallQueryInterface(result.get(),
+                        static_cast<nsCachedChromeChannel**>(
+                            getter_AddRefs(cachedChannel))))) {
+                    NS_WARNING("Remote chrome not allowed! Only file:, resource:, jar:, and cached chrome channels are valid.\n");
+                    result = nsnull;
+                    return NS_ERROR_FAILURE;
+                }
+            }
+        }
+
+        
         
         rv = result->SetOriginalURI(aURI);
         if (NS_FAILED(rv)) return rv;
@@ -595,15 +627,24 @@ nsChromeProtocolHandler::NewChannel(nsIURI* aURI,
             if (objectOutput) {
                 nsCOMPtr<nsIFile> file;
 
-                nsCOMPtr<nsIURI> uri;
-                result->GetURI(getter_AddRefs(uri));
-                uri = NS_GetInnermostURI(uri);
+                if (fileChan) {
+                    fileChan->GetFile(getter_AddRefs(file));
+                } else {
+                    nsCOMPtr<nsIURI> uri;
+                    result->GetURI(getter_AddRefs(uri));
 
-                
-                
-                nsCOMPtr<nsIFileURL> fileURL(do_QueryInterface(uri));
-                if (fileURL)
-                    fileURL->GetFile(getter_AddRefs(file));
+                    
+                    
+                    nsCOMPtr<nsIJARURI> jarURI;
+                    while ((jarURI = do_QueryInterface(uri)) != nsnull)
+                        jarURI->GetJARFile(getter_AddRefs(uri));
+
+                    
+                    
+                    nsCOMPtr<nsIFileURL> fileURL(do_QueryInterface(uri));
+                    if (fileURL)
+                        fileURL->GetFile(getter_AddRefs(file));
+                }
 
                 if (file) {
                     rv = fastLoadServ->AddDependency(file);
