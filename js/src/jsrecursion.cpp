@@ -600,7 +600,7 @@ TraceRecorder::downRecursion()
     lirbuf->rp = lir->ins2(LIR_piadd, lirbuf->rp, lir->insImmWord(sizeof(FrameInfo*)));
     lir->insStorei(lirbuf->rp, lirbuf->state, offsetof(InterpState, rp));
     --callDepth;
-    clearFrameSlotsFromCache();
+    clearFrameSlotsFromTracker(nativeFrameTracker);
 
     
 
