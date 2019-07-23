@@ -1446,6 +1446,13 @@ nsNSSComponent::InitializeNSS(PRBool showWarningBox)
   PR_LOG(gPIPNSSLog, PR_LOG_DEBUG, ("nsNSSComponent::InitializeNSS\n"));
 
   
+  
+  PR_STATIC_ASSERT(nsINSSErrorsService::NSS_SEC_ERROR_BASE == SEC_ERROR_BASE
+                   && nsINSSErrorsService::NSS_SEC_ERROR_LIMIT == SEC_ERROR_LIMIT
+                   && nsINSSErrorsService::NSS_SSL_ERROR_BASE == SSL_ERROR_BASE
+                   && nsINSSErrorsService::NSS_SSL_ERROR_LIMIT == SSL_ERROR_LIMIT);
+
+  
 
   enum { problem_none, problem_no_rw, problem_no_security_at_all }
     which_nss_problem = problem_none;
