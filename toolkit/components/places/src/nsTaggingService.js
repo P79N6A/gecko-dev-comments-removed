@@ -119,9 +119,14 @@ TaggingService.prototype = {
 
 
 
-  _createTag: function TS__createTag(aName) {
-    return this._bms.createFolder(this._bms.tagsFolder, aName,
-                                  this._bms.DEFAULT_INDEX);
+  _createTag: function TS__createTag(aTagName) {
+    var newFolderId = this._bms.createFolder(this._bms.tagsFolder, aTagName,
+                                             this._bms.DEFAULT_INDEX);
+    
+    
+    this._tagFolders[newFolderId] = aTagName;
+
+    return newFolderId;
   },
 
   
@@ -391,11 +396,29 @@ TaggingService.prototype = {
   onEndUpdateBatch: function() {
     this._inBatch = false;
   },
+
   onItemAdded: function(aItemId, aFolderId, aIndex) {
-    if (aFolderId == this._bms.tagsFolder &&
-        this._bms.getItemType(aItemId) == this._bms.TYPE_FOLDER)
-      this._tagFolders[aItemId] = this._bms.getItemTitle(aItemId);
+    
+    if (aFolderId != this._bms.tagsFolder)
+      return;
+
+    
+    
+    
+    
+    
+    var self = this;
+    var tm = Cc["@mozilla.org/thread-manager;1"].
+             getService(Ci.nsIThreadManager);
+    tm.mainThread.dispatch({
+      run: function() {
+        if (!self._tagFolders[aItemId] &&
+            self._bms.getItemType(aItemId) == self._bms.TYPE_FOLDER)
+          self._tagFolders[aItemId] = self._bms.getItemTitle(aItemId);
+      }
+    }, Ci.nsIThread.DISPATCH_NORMAL);
   },
+
   onBeforeItemRemoved: function(aItemId) {
     
     
@@ -405,6 +428,7 @@ TaggingService.prototype = {
     }
     catch (e) {}
   },
+
   onItemRemoved: function(aItemId, aFolderId, aIndex) {
     var itemURI = this._itemsInRemoval[aItemId];
     delete this._itemsInRemoval[aItemId];
@@ -424,11 +448,14 @@ TaggingService.prototype = {
         this.untagURI(itemURI, tagIds);
     }
   },
+
   onItemChanged: function(aItemId, aProperty, aIsAnnotationProperty, aValue) {
-    if (this._tagFolders[aItemId])
+    if (aProperty == "title" && this._tagFolders[aItemId])
       this._tagFolders[aItemId] = this._bms.getItemTitle(aItemId);
   },
+
   onItemVisited: function(aItemId, aVisitID, time) {},
+
   onItemMoved: function(aItemId, aOldParent, aOldIndex, aNewParent, aNewIndex) {
     if (this._tagFolders[aItemId] && this._bms.tagFolder == aOldParent &&
         this._bms.tagFolder != aNewParent)
