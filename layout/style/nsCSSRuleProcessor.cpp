@@ -925,7 +925,7 @@ RuleProcessorData::RuleProcessorData(nsPresContext* aPresContext,
 {
   MOZ_COUNT_CTOR(RuleProcessorData);
 
-  NS_ASSERTION(!aContent || aContent->IsNodeOfType(nsINode::eELEMENT),
+  NS_ASSERTION(aContent && aContent->IsNodeOfType(nsINode::eELEMENT),
                "non-element leaked into SelectorMatches");
 
   mNthIndices[0][0] = -2;
@@ -945,40 +945,29 @@ RuleProcessorData::RuleProcessorData(nsPresContext* aPresContext,
     mCompatMode = aContent->GetOwnerDoc()->GetCompatibilityMode();
   }
 
-  if (NS_LIKELY(aContent)) {
-    NS_ASSERTION(aContent->GetOwnerDoc(), "Document-less node here?");
+  NS_ASSERTION(aContent->GetOwnerDoc(), "Document-less node here?");
     
-    
-    mContentTag = aContent->Tag();
-    mParentContent = aContent->GetParent();
+  
+  mContentTag = aContent->Tag();
+  mParentContent = aContent->GetParent();
 
+  
+  mHasAttributes = aContent->GetAttrCount() > 0;
+  if (mHasAttributes) {
     
-    mHasAttributes = aContent->GetAttrCount() > 0;
-    if (mHasAttributes) {
-      
-      mContentID = aContent->GetID();
-      mClasses = aContent->GetClasses();
-    } else {
-      mContentID = nsnull;
-      mClasses = nsnull;
-    }
-
-    
-    mNameSpaceID = aContent->GetNameSpaceID();
-
-    
-    mIsHTMLContent = (mNameSpaceID == kNameSpaceID_XHTML);
-    mIsHTML = mIsHTMLContent && aContent->IsInHTMLDocument();
+    mContentID = aContent->GetID();
+    mClasses = aContent->GetClasses();
   } else {
-    mContentTag = nsnull;
-    mParentContent = nsnull;
     mContentID = nsnull;
     mClasses = nsnull;
-    mHasAttributes = PR_FALSE;
-    mNameSpaceID = kNameSpaceID_Unknown;
-    mIsHTMLContent = PR_FALSE;
-    mIsHTML = PR_FALSE;
   }
+
+  
+  mNameSpaceID = aContent->GetNameSpaceID();
+
+  
+  mIsHTMLContent = (mNameSpaceID == kNameSpaceID_XHTML);
+  mIsHTML = mIsHTMLContent && aContent->IsInHTMLDocument();
 
   
   
@@ -1053,13 +1042,11 @@ RuleProcessorData::ContentState()
   if (!mGotContentState) {
     mGotContentState = PR_TRUE;
     mContentState = 0;
-    if (mContent) {
-      if (mPresContext) {
-        mPresContext->EventStateManager()->GetContentState(mContent,
-                                                           mContentState);
-      } else {
-        mContentState = mContent->IntrinsicState();
-      }
+    if (mPresContext) {
+      mPresContext->EventStateManager()->GetContentState(mContent,
+                                                         mContentState);
+    } else {
+      mContentState = mContent->IntrinsicState();
     }
   }
   return mContentState;
@@ -1072,32 +1059,30 @@ RuleProcessorData::IsLink()
     mGotLinkInfo = PR_TRUE;
     mLinkState = eLinkState_Unknown;
     mIsLink = PR_FALSE;
-    if (mContent) {
+    
+    
+    
+    nsILinkHandler* linkHandler =
+      mPresContext ? mPresContext->GetLinkHandler() : nsnull;
+    if (mIsHTMLContent && mHasAttributes) {
       
-      
-      
-      nsILinkHandler* linkHandler =
-        mPresContext ? mPresContext->GetLinkHandler() : nsnull;
-      if (mIsHTMLContent && mHasAttributes) {
-        
-        if (nsStyleUtil::IsHTMLLink(mContent, linkHandler, &mLinkState)) {
-          mIsLink = PR_TRUE;
-        }
-      }
-
-      
-      
-      
-      if(!mIsLink &&
-         mHasAttributes && 
-         !(mIsHTMLContent || mContent->IsXUL()) && 
-         nsStyleUtil::IsLink(mContent, linkHandler, &mLinkState)) {
+      if (nsStyleUtil::IsHTMLLink(mContent, linkHandler, &mLinkState)) {
         mIsLink = PR_TRUE;
       }
+    }
 
-      if (mLinkState == eLinkState_Visited && !gSupportVisitedPseudo) {
-        mLinkState = eLinkState_Unvisited;
-      }
+    
+    
+    
+    if(!mIsLink &&
+       mHasAttributes && 
+       !(mIsHTMLContent || mContent->IsXUL()) && 
+       nsStyleUtil::IsLink(mContent, linkHandler, &mLinkState)) {
+      mIsLink = PR_TRUE;
+    }
+
+    if (mLinkState == eLinkState_Visited && !gSupportVisitedPseudo) {
+      mLinkState = eLinkState_Unvisited;
     }
   }
   return mIsLink;
@@ -1569,7 +1554,6 @@ static PRBool SelectorMatches(RuleProcessorData &data,
     }
     else if (nsCSSPseudoClasses::root == pseudoClass->mAtom) {
       result = (data.mParentContent == nsnull &&
-                data.mContent &&
                 data.mContent ==
                   data.mContent->GetOwnerDoc()->GetRootContent());
     }
@@ -1577,7 +1561,7 @@ static PRBool SelectorMatches(RuleProcessorData &data,
       
       
       
-      result = (data.mScopedRoot && data.mScopedRoot == data.mContent);
+      result = (data.mScopedRoot == data.mContent);
     }
     else if (nsCSSPseudoClasses::lang == pseudoClass->mAtom) {
       NS_ASSERTION(nsnull != pseudoClass->u.mString, "null lang parameter");
@@ -1593,7 +1577,7 @@ static PRBool SelectorMatches(RuleProcessorData &data,
                                     nsDependentString(pseudoClass->u.mString), 
                                     nsCaseInsensitiveStringComparator());
         }
-        else if (data.mContent) {
+        else {
           nsIDocument* doc = data.mContent->GetDocument();
           if (doc) {
             
@@ -1732,8 +1716,7 @@ static PRBool SelectorMatches(RuleProcessorData &data,
       result = data.mIsHTML;
     }
     else if (nsCSSPseudoClasses::mozLocaleDir == pseudoClass->mAtom) {
-      nsIDocument* doc = data.mContent ? data.mContent->GetDocument() :
-                                         data.mPresContext->Document();
+      nsIDocument* doc = data.mContent->GetDocument();
 
       if (doc) {
         PRBool docIsRTL = doc && doc->IsDocumentRightToLeft();
@@ -1753,7 +1736,7 @@ static PRBool SelectorMatches(RuleProcessorData &data,
       }
     }
     else if (nsCSSPseudoClasses::mozLWTheme == pseudoClass->mAtom) {
-      nsIDocument* doc = data.mContent ? data.mContent->GetOwnerDoc() : nsnull;
+      nsIDocument* doc = data.mContent->GetOwnerDoc();
 
       if (doc) {
         result = doc->GetDocumentLWTheme() > nsIDocument::Doc_Theme_None;
@@ -1763,7 +1746,7 @@ static PRBool SelectorMatches(RuleProcessorData &data,
       }
     }
     else if (nsCSSPseudoClasses::mozLWThemeBrightText == pseudoClass->mAtom) {
-      nsIDocument* doc = data.mContent ? data.mContent->GetOwnerDoc() : nsnull;
+      nsIDocument* doc = data.mContent->GetOwnerDoc();
 
       if (doc) {
         result = doc->GetDocumentLWTheme() == nsIDocument::Doc_Theme_Bright;
@@ -1773,7 +1756,7 @@ static PRBool SelectorMatches(RuleProcessorData &data,
       }
     }
     else if (nsCSSPseudoClasses::mozLWThemeDarkText == pseudoClass->mAtom) {
-      nsIDocument* doc = data.mContent ? data.mContent->GetOwnerDoc() : nsnull;
+      nsIDocument* doc = data.mContent->GetOwnerDoc();
 
       if (doc) {
         result = doc->GetDocumentLWTheme() == nsIDocument::Doc_Theme_Dark;
@@ -1827,8 +1810,6 @@ static PRBool SelectorMatches(RuleProcessorData &data,
       
       return PR_FALSE;
     } else {
-      NS_ASSERTION(data.mContent,
-                   "Must have content if data.mHasAttributes is true!");
       result = PR_TRUE;
       nsAttrSelector* attr = aSelector->mAttrList;
       nsIAtom* matchAttribute;
@@ -2160,9 +2141,8 @@ static void PseudoEnumFunc(nsICSSStyleRule* aRule, nsCSSSelector* aSelector,
 NS_IMETHODIMP
 nsCSSRuleProcessor::RulesMatching(PseudoRuleProcessorData* aData)
 {
-  NS_PRECONDITION(!aData->mContent ||
-                  aData->mContent->IsNodeOfType(nsINode::eELEMENT),
-                  "content (if present) must be element");
+  NS_PRECONDITION(aData->mContent->IsNodeOfType(nsINode::eELEMENT),
+                  "content must be element");
 
   RuleCascadeData* cascade = GetRuleCascade(aData->mPresContext);
 
