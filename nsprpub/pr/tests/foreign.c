@@ -66,7 +66,7 @@
 #include <stdlib.h>
 
 static enum {
-    thread_nspr, thread_pthread, thread_uithread, thread_sproc, thread_win32
+    thread_nspr, thread_pthread, thread_sproc, thread_win32
 } thread_provider;
 
 typedef void (*StartFn)(void*);
@@ -88,18 +88,6 @@ static int _debug_on = 0;
 #include <pthread.h>
 #include "md/_pth.h"
 static void *pthread_start(void *arg)
-{
-    StartFn start = ((StartObject*)arg)->start;
-    void *data = ((StartObject*)arg)->arg;
-    PR_Free(arg);
-    start(data);
-    return NULL;
-}  
-#endif 
-
-#if defined(SOLARIS) && defined(_PR_GLOBAL_THREADS_ONLY)
-#include <thread.h>
-static void *uithread_start(void *arg)
 {
     StartFn start = ((StartObject*)arg)->start;
     void *data = ((StartObject*)arg)->arg;
@@ -174,29 +162,6 @@ static PRStatus CreateThread(StartFn start, void *arg)
 
             rv = _PT_PTHREAD_CREATE(&id, tattr, pthread_start, start_object);
             (void)_PT_PTHREAD_ATTR_DESTROY(&tattr);
-            return (0 == rv) ? PR_SUCCESS : PR_FAILURE;
-        }
-#else
-        PR_SetError(PR_NOT_IMPLEMENTED_ERROR, 0);
-        rv = PR_FAILURE;
-        break;
-#endif 
-
-    case thread_uithread:
-#if defined(SOLARIS) && defined(_PR_GLOBAL_THREADS_ONLY)
-        {
-            int rv;
-            thread_t id;
-            long flags;
-            StartObject *start_object;
-            start_object = PR_NEW(StartObject);
-            PR_ASSERT(NULL != start_object);
-            start_object->start = start;
-            start_object->arg = arg;
-
-            flags = THR_DETACHED;
-
-            rv = thr_create(NULL, NULL, uithread_start, start_object, flags, &id);
             return (0 == rv) ? PR_SUCCESS : PR_FAILURE;
         }
 #else
@@ -371,8 +336,6 @@ PRIntn main(PRIntn argc, char **argv)
 	thread_provider = thread_win32;
 #elif defined(_PR_PTHREADS)
 	thread_provider = thread_pthread;
-#elif defined(SOLARIS) && defined(_PR_GLOBAL_THREADS_ONLY)
-	thread_provider = thread_uithread;
 #elif defined(IRIX)
 	thread_provider = thread_sproc;
 #else

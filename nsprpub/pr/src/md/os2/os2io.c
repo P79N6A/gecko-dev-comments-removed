@@ -41,38 +41,14 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "primpl.h"
 #include "prio.h"
 #include <ctype.h>
 #include <string.h>
-#ifdef XP_OS2_VACPP
-#include <direct.h>
-#else
 #include <limits.h>
 #include <dirent.h>
 #include <fcntl.h>
 #include <io.h>
-#endif
 
 struct _MDLock               _pr_ioq_lock;
 

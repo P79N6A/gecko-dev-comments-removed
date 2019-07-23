@@ -70,7 +70,8 @@
 #include <netinet/in_systm.h>  
 #endif
 
-#if defined(XP_UNIX) || defined(OS2) || (defined(XP_BEOS) && defined(BONE_VERSION))
+#if (defined(XP_UNIX) && !defined(SYMBIAN)) \
+    || defined(OS2) || (defined(XP_BEOS) && defined(BONE_VERSION))
 #include <netinet/tcp.h>  
 #endif
 

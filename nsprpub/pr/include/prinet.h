@@ -56,6 +56,12 @@
 
 
 
+
+
+
+
+
+
 #ifndef prinet_h__
 #define prinet_h__
 
@@ -102,6 +108,13 @@ struct sockaddr_dl;
 #endif
 
 #elif defined(WIN32)
+
+
+
+
+
+
+
 
 
 

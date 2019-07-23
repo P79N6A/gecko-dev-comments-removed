@@ -456,7 +456,7 @@ static void pt_poll_now_with_select(pt_Continuation *op)
 
 				rv = select(op->arg1.osfd + 1, rdp, wrp, NULL, &tv);
 
-				if (self->state & PT_THREAD_ABORTED)
+				if (_PT_THREAD_INTERRUPTED(self))
 				{
 					self->state &= ~PT_THREAD_ABORTED;
 					op->result.code = -1;
@@ -517,7 +517,7 @@ static void pt_poll_now_with_select(pt_Continuation *op)
 				tv.tv_usec = (msecs % PR_MSEC_PER_SEC) * PR_USEC_PER_MSEC;
 				rv = select(op->arg1.osfd + 1, rdp, wrp, NULL, &tv);
 
-				if (self->state & PT_THREAD_ABORTED)
+				if (_PT_THREAD_INTERRUPTED(self))
 				{
 					self->state &= ~PT_THREAD_ABORTED;
 					op->result.code = -1;
@@ -598,7 +598,7 @@ static void pt_poll_now(pt_Continuation *op)
 
 				rv = poll(&tmp_pfd, 1, msecs);
 				
-				if (self->state & PT_THREAD_ABORTED)
+				if (_PT_THREAD_INTERRUPTED(self))
 				{
 					self->state &= ~PT_THREAD_ABORTED;
 					op->result.code = -1;
@@ -656,7 +656,7 @@ static void pt_poll_now(pt_Continuation *op)
 				}
 				rv = poll(&tmp_pfd, 1, msecs);
 				
-				if (self->state & PT_THREAD_ABORTED)
+				if (_PT_THREAD_INTERRUPTED(self))
 				{
 					self->state &= ~PT_THREAD_ABORTED;
 					op->result.code = -1;

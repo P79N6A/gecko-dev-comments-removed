@@ -37,18 +37,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
 #include "primpl.h"
 #include "prenv.h"
 #include "prprf.h"
@@ -544,23 +532,6 @@ PR_IMPLEMENT(void) PR_Abort(void)
     abort();
 }
 
-#if defined(XP_OS2)
-
-
-
-
-
-
-#if defined(XP_OS2_VACPP)
-#include <builtin.h>
-static void DebugBreak(void) { _interrupt(3); }
-#elif defined(XP_OS2_EMX)
-static void DebugBreak(void) { asm("int $3"); }
-#else
-static void DebugBreak(void) { }
-#endif
-#endif 
-
 PR_IMPLEMENT(void) PR_Assert(const char *s, const char *file, PRIntn ln)
 {
     PR_LogPrint("Assertion failure: %s, at %s:%d\n", s, file, ln);
@@ -570,8 +541,11 @@ PR_IMPLEMENT(void) PR_Assert(const char *s, const char *file, PRIntn ln)
 #ifdef XP_MAC
     dprintf("Assertion failure: %s, at %s:%d\n", s, file, ln);
 #endif
-#if defined(WIN32) || defined(XP_OS2)
+#ifdef WIN32
     DebugBreak();
+#endif
+#ifdef XP_OS2
+    asm("int $3");
 #endif
 #ifndef XP_MAC
     abort();

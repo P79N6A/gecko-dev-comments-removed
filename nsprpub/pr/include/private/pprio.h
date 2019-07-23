@@ -68,6 +68,18 @@ NSPR_API(const PRIOMethods*)    PR_GetPipeMethods(void);
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
 NSPR_API(PROsfd)       PR_FileDesc2NativeHandle(PRFileDesc *);
 NSPR_API(void)         PR_ChangeFileDescNativeHandle(PRFileDesc *, PROsfd);
 NSPR_API(PRFileDesc*)  PR_AllocFileDesc(PROsfd osfd,

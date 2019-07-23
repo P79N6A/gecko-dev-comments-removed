@@ -74,9 +74,11 @@
 
 
 
+
+
 #include <sys/time.h>
 #include <sys/types.h>
-#if defined(AIX)  
+#if defined(AIX) || defined(SYMBIAN)
 #include <sys/select.h>
 #endif
 

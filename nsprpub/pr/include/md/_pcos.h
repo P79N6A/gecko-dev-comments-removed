@@ -56,7 +56,7 @@
 
 
 PR_BEGIN_EXTERN_C
-#ifndef XP_OS2_EMX
+#ifndef XP_OS2
 extern char *optarg;
 extern int optind;
 extern int getopt(int argc, char **argv, char *spec);
@@ -69,7 +69,7 @@ PR_END_EXTERN_C
 
 
 
-#ifdef XP_OS2_EMX
+#ifdef XP_OS2
 #include <sys/types.h>
 #endif
 #include <sys/stat.h>

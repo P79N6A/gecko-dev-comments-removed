@@ -439,6 +439,20 @@ PRInt32 _MD_writev(
     PRThread *me = _PR_MD_CURRENT_THREAD();
     PRInt32 index, amount = 0;
     PRInt32 osfd = fd->secret->md.osfd;
+    struct iovec osiov[PR_MAX_IOVECTOR_SIZE];
+
+    
+    PR_ASSERT(iov_size <= PR_MAX_IOVECTOR_SIZE);
+
+    
+
+
+
+
+    for (index = 0; index < iov_size; index++) {
+        osiov[index].iov_base = iov[index].iov_base;
+        osiov[index].iov_len = iov[index].iov_len;
+    }
 
     
 
@@ -453,7 +467,7 @@ PRInt32 _MD_writev(
         }
     }
 
-    while ((rv = writev(osfd, (const struct iovec*)iov, iov_size)) == -1) {
+    while ((rv = writev(osfd, osiov, iov_size)) == -1) {
         err = _MD_ERRNO();
         if ((err == EAGAIN) || (err == EWOULDBLOCK))    {
             if (fd->secret->nonblocking) {

@@ -39,9 +39,7 @@
 
 
 
-#ifdef XP_OS2_EMX
- #include <sys/time.h> 
-#endif
+#include <sys/time.h> 
 
 #include "primpl.h"
 

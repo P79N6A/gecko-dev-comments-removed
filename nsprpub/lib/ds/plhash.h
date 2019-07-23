@@ -52,14 +52,7 @@ typedef PRUint32 PLHashNumber;
 typedef PLHashNumber (PR_CALLBACK *PLHashFunction)(const void *key);
 typedef PRIntn (PR_CALLBACK *PLHashComparator)(const void *v1, const void *v2);
 
-#if defined(XP_OS2_VACPP) && defined(VACPP_FLIP) 
-PR_END_EXTERN_C                                  
-#endif
 typedef PRIntn (PR_CALLBACK *PLHashEnumerator)(PLHashEntry *he, PRIntn i, void *arg);
-
-#if defined(XP_OS2_VACPP) && defined(VACPP_FLIP)
-PR_BEGIN_EXTERN_C
-#endif
 
 
 #define HT_ENUMERATE_NEXT       0       /* continue enumerating entries */
