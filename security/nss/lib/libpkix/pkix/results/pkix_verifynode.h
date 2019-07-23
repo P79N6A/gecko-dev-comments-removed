@@ -1,0 +1,102 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#ifndef _PKIX_VERIFYNODE_H
+#define _PKIX_VERIFYNODE_H
+
+#include "pkix_tools.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+
+
+struct PKIX_VerifyNodeStruct {
+    PKIX_PL_Cert *verifyCert;
+    PKIX_List *children;                
+    PKIX_UInt32 depth;
+    PKIX_Error *error;
+};
+
+PKIX_Error *
+pkix_SingleVerifyNode_ToString(
+        PKIX_VerifyNode *node,
+        PKIX_PL_String **pString,
+        void *plContext);
+
+PKIX_Error *
+pkix_VerifyNode_Create(
+        PKIX_PL_Cert *verifyCert,
+        PKIX_UInt32 depth,
+        PKIX_Error *error,
+        PKIX_VerifyNode **pObject,
+        void *plContext);
+
+PKIX_Error *
+pkix_VerifyNode_AddToChain(
+        PKIX_VerifyNode *parentNode,
+        PKIX_VerifyNode *child,
+        void *plContext);
+
+PKIX_Error *
+pkix_VerifyNode_AddToTree(
+        PKIX_VerifyNode *parentNode,
+        PKIX_VerifyNode *child,
+        void *plContext);
+
+PKIX_Error *
+pkix_VerifyNode_SetError(
+        PKIX_VerifyNode *node,
+        PKIX_Error *error,
+        void *plContext);
+
+PKIX_Error *
+pkix_VerifyNode_RegisterSelf(
+        void *plContext);
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif

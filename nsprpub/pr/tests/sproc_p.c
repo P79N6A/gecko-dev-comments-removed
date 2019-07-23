@@ -1,0 +1,101 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#include "prinit.h"
+#include <stdio.h>
+
+#if !defined(IRIX)
+
+int main()
+{
+    printf("This test applies to IRIX only.\n");
+    return 0;
+}
+
+#else  
+
+#include "prthread.h"
+#include <sys/types.h>
+#include <unistd.h>
+
+void NeverStops(void *unused)
+{
+    int i = 0;
+
+    printf("The child sproc has pid %d.\n", getpid());
+    printf("The child sproc won't stop on its own.\n");
+    fflush(stdout);
+
+    
+    while (1) {
+	i++;
+    }
+}
+
+int main()
+{
+    int *p = 0;
+
+    PR_Init(PR_USER_THREAD, PR_PRIORITY_NORMAL, 0);
+
+    printf("The parent sproc has pid %d.\n", getpid());
+    printf("The parent sproc will first create a child sproc.\n");
+    printf("Then the parent sproc will get a segmentation fault and die.\n");
+    printf("The child sproc should be killed after the parent sproc dies.\n");
+    printf("Use 'ps' to make sure this is so.\n");
+    fflush(stdout);
+
+    PR_CreateThread(PR_USER_THREAD, NeverStops, NULL,
+	    PR_PRIORITY_NORMAL, PR_GLOBAL_THREAD, PR_UNJOINABLE_THREAD, 0);
+
+    
+    *p = 0;
+    return 0;
+}
+
+#endif 

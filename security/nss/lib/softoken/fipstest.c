@@ -1,0 +1,1992 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#include "softoken.h"   
+                        
+                        
+#include "seccomon.h"   
+#include "lowkeyi.h"    
+#include "pkcs11.h"     
+#include "secerr.h"
+
+#ifdef NSS_ENABLE_ECC
+#include "ec.h"         
+#endif
+
+
+
+#define FIPS_RC2_KEY_LENGTH                      5  /*  40-bits */
+#define FIPS_RC2_ENCRYPT_LENGTH                  8  /*  64-bits */
+#define FIPS_RC2_DECRYPT_LENGTH                  8  /*  64-bits */
+
+
+
+#define FIPS_RC4_KEY_LENGTH                      5  /*  40-bits */
+#define FIPS_RC4_ENCRYPT_LENGTH                  8  /*  64-bits */
+#define FIPS_RC4_DECRYPT_LENGTH                  8  /*  64-bits */
+
+
+
+#define FIPS_DES_ENCRYPT_LENGTH                  8  /*  64-bits */
+#define FIPS_DES_DECRYPT_LENGTH                  8  /*  64-bits */
+
+
+
+#define FIPS_DES3_ENCRYPT_LENGTH                 8  /*  64-bits */
+#define FIPS_DES3_DECRYPT_LENGTH                 8  /*  64-bits */
+
+
+
+#define FIPS_AES_BLOCK_SIZE                     16  /* 128-bits */
+#define FIPS_AES_ENCRYPT_LENGTH                 16  /* 128-bits */
+#define FIPS_AES_DECRYPT_LENGTH                 16  /* 128-bits */
+#define FIPS_AES_128_KEY_SIZE                   16  /* 128-bits */
+#define FIPS_AES_192_KEY_SIZE                   24  /* 192-bits */
+#define FIPS_AES_256_KEY_SIZE                   32  /* 256-bits */
+
+
+
+#define FIPS_KNOWN_HASH_MESSAGE_LENGTH          64  /* 512-bits */
+
+
+
+#define FIPS_RSA_TYPE                           siBuffer
+#define FIPS_RSA_PUBLIC_EXPONENT_LENGTH           3 /*   24-bits */
+#define FIPS_RSA_PRIVATE_VERSION_LENGTH           1 /*    8-bits */
+#define FIPS_RSA_MESSAGE_LENGTH                 128 /* 1024-bits */
+#define FIPS_RSA_COEFFICIENT_LENGTH              64 /*  512-bits */
+#define FIPS_RSA_PRIME0_LENGTH                   64 /*  512-bits */
+#define FIPS_RSA_PRIME1_LENGTH                   64 /*  512-bits */
+#define FIPS_RSA_EXPONENT0_LENGTH                64 /*  512-bits */
+#define FIPS_RSA_EXPONENT1_LENGTH                64 /*  512-bits */
+#define FIPS_RSA_PRIVATE_EXPONENT_LENGTH        128 /* 1024-bits */
+#define FIPS_RSA_ENCRYPT_LENGTH                 128 /* 1024-bits */
+#define FIPS_RSA_DECRYPT_LENGTH                 128 /* 1024-bits */
+#define FIPS_RSA_SIGNATURE_LENGTH               128 /* 1024-bits */
+#define FIPS_RSA_MODULUS_LENGTH                 128 /* 1024-bits */
+
+
+
+#define FIPS_DSA_TYPE                           siBuffer
+#define FIPS_DSA_DIGEST_LENGTH                  20 /*  160-bits */
+#define FIPS_DSA_SUBPRIME_LENGTH                20 /*  160-bits */
+#define FIPS_DSA_SIGNATURE_LENGTH               40 /*  320-bits */
+#define FIPS_DSA_PRIME_LENGTH                  128 /* 1024-bits */
+#define FIPS_DSA_BASE_LENGTH                   128 /* 1024-bits */
+
+
+#define FIPS_RNG_XKEY_LENGTH                    32  /* 256-bits */
+
+static CK_RV
+sftk_fips_RC2_PowerUpSelfTest( void )
+{
+    
+    static const PRUint8 rc2_known_key[] = { "RSARC" };
+
+    
+    static const PRUint8 rc2_cbc_known_initialization_vector[] = {"Security"};
+
+    
+    static const PRUint8 rc2_ecb_known_plaintext[] = {"Netscape"};
+    static const PRUint8 rc2_cbc_known_plaintext[] = {"Netscape"};
+
+    
+    static const PRUint8 rc2_ecb_known_ciphertext[] = {
+				  0x1a,0x71,0x33,0x54,0x8d,0x5c,0xd2,0x30};
+    static const PRUint8 rc2_cbc_known_ciphertext[] = {
+				  0xff,0x41,0xdb,0x94,0x8a,0x4c,0x33,0xb3};
+
+    
+    PRUint8        rc2_computed_ciphertext[FIPS_RC2_ENCRYPT_LENGTH];
+    PRUint8        rc2_computed_plaintext[FIPS_RC2_DECRYPT_LENGTH];
+    RC2Context *   rc2_context;
+    unsigned int   rc2_bytes_encrypted;
+    unsigned int   rc2_bytes_decrypted;
+    SECStatus      rc2_status;
+
+
+    
+    
+    
+
+    rc2_context = RC2_CreateContext( rc2_known_key, FIPS_RC2_KEY_LENGTH,
+                                     NULL, NSS_RC2,
+                                     FIPS_RC2_KEY_LENGTH );
+
+    if( rc2_context == NULL )
+        return( CKR_HOST_MEMORY );
+
+    rc2_status = RC2_Encrypt( rc2_context, rc2_computed_ciphertext,
+                              &rc2_bytes_encrypted, FIPS_RC2_ENCRYPT_LENGTH,
+                              rc2_ecb_known_plaintext,
+                              FIPS_RC2_DECRYPT_LENGTH );
+
+    RC2_DestroyContext( rc2_context, PR_TRUE );
+
+    if( ( rc2_status != SECSuccess ) ||
+        ( rc2_bytes_encrypted != FIPS_RC2_ENCRYPT_LENGTH ) ||
+        ( PORT_Memcmp( rc2_computed_ciphertext, rc2_ecb_known_ciphertext,
+                       FIPS_RC2_ENCRYPT_LENGTH ) != 0 ) )
+        return( CKR_DEVICE_ERROR );
+
+
+    
+    
+    
+
+    rc2_context = RC2_CreateContext( rc2_known_key, FIPS_RC2_KEY_LENGTH,
+                                     NULL, NSS_RC2,
+                                     FIPS_RC2_KEY_LENGTH );
+
+    if( rc2_context == NULL )
+        return( CKR_HOST_MEMORY );
+
+    rc2_status = RC2_Decrypt( rc2_context, rc2_computed_plaintext,
+                              &rc2_bytes_decrypted, FIPS_RC2_DECRYPT_LENGTH,
+                              rc2_ecb_known_ciphertext,
+                              FIPS_RC2_ENCRYPT_LENGTH );
+
+    RC2_DestroyContext( rc2_context, PR_TRUE );
+
+    if( ( rc2_status != SECSuccess ) ||
+        ( rc2_bytes_decrypted != FIPS_RC2_DECRYPT_LENGTH ) ||
+        ( PORT_Memcmp( rc2_computed_plaintext, rc2_ecb_known_plaintext,
+                       FIPS_RC2_DECRYPT_LENGTH ) != 0 ) )
+        return( CKR_DEVICE_ERROR );
+
+
+    
+    
+    
+
+    rc2_context = RC2_CreateContext( rc2_known_key, FIPS_RC2_KEY_LENGTH,
+                                     rc2_cbc_known_initialization_vector,
+                                     NSS_RC2_CBC, FIPS_RC2_KEY_LENGTH );
+
+    if( rc2_context == NULL )
+        return( CKR_HOST_MEMORY );
+
+    rc2_status = RC2_Encrypt( rc2_context, rc2_computed_ciphertext,
+                              &rc2_bytes_encrypted, FIPS_RC2_ENCRYPT_LENGTH,
+                              rc2_cbc_known_plaintext,
+                              FIPS_RC2_DECRYPT_LENGTH );
+
+    RC2_DestroyContext( rc2_context, PR_TRUE );
+
+    if( ( rc2_status != SECSuccess ) ||
+        ( rc2_bytes_encrypted != FIPS_RC2_ENCRYPT_LENGTH ) ||
+        ( PORT_Memcmp( rc2_computed_ciphertext, rc2_cbc_known_ciphertext,
+                       FIPS_RC2_ENCRYPT_LENGTH ) != 0 ) )
+        return( CKR_DEVICE_ERROR );
+
+
+    
+    
+    
+
+    rc2_context = RC2_CreateContext( rc2_known_key, FIPS_RC2_KEY_LENGTH,
+                                     rc2_cbc_known_initialization_vector,
+                                     NSS_RC2_CBC, FIPS_RC2_KEY_LENGTH );
+
+    if( rc2_context == NULL )
+        return( CKR_HOST_MEMORY );
+
+    rc2_status = RC2_Decrypt( rc2_context, rc2_computed_plaintext,
+                              &rc2_bytes_decrypted, FIPS_RC2_DECRYPT_LENGTH,
+                              rc2_cbc_known_ciphertext,
+                              FIPS_RC2_ENCRYPT_LENGTH );
+
+    RC2_DestroyContext( rc2_context, PR_TRUE );
+
+    if( ( rc2_status != SECSuccess ) ||
+        ( rc2_bytes_decrypted != FIPS_RC2_DECRYPT_LENGTH ) ||
+        ( PORT_Memcmp( rc2_computed_plaintext, rc2_ecb_known_plaintext,
+                       FIPS_RC2_DECRYPT_LENGTH ) != 0 ) )
+        return( CKR_DEVICE_ERROR );
+
+    return( CKR_OK );
+}
+
+
+static CK_RV
+sftk_fips_RC4_PowerUpSelfTest( void )
+{
+    
+    static const PRUint8 rc4_known_key[] = { "RSARC" };
+
+    
+    static const PRUint8 rc4_known_plaintext[] = { "Netscape" };
+
+    
+    static const PRUint8 rc4_known_ciphertext[] = {
+				0x29,0x33,0xc7,0x9a,0x9d,0x6c,0x09,0xdd};
+
+    
+    PRUint8        rc4_computed_ciphertext[FIPS_RC4_ENCRYPT_LENGTH];
+    PRUint8        rc4_computed_plaintext[FIPS_RC4_DECRYPT_LENGTH];
+    RC4Context *   rc4_context;
+    unsigned int   rc4_bytes_encrypted;
+    unsigned int   rc4_bytes_decrypted;
+    SECStatus      rc4_status;
+
+
+    
+    
+    
+
+    rc4_context = RC4_CreateContext( rc4_known_key, FIPS_RC4_KEY_LENGTH );
+
+    if( rc4_context == NULL )
+        return( CKR_HOST_MEMORY );
+
+    rc4_status = RC4_Encrypt( rc4_context, rc4_computed_ciphertext,
+                              &rc4_bytes_encrypted, FIPS_RC4_ENCRYPT_LENGTH,
+                              rc4_known_plaintext, FIPS_RC4_DECRYPT_LENGTH );
+
+    RC4_DestroyContext( rc4_context, PR_TRUE );
+
+    if( ( rc4_status != SECSuccess ) ||
+        ( rc4_bytes_encrypted != FIPS_RC4_ENCRYPT_LENGTH ) ||
+        ( PORT_Memcmp( rc4_computed_ciphertext, rc4_known_ciphertext,
+                       FIPS_RC4_ENCRYPT_LENGTH ) != 0 ) )
+        return( CKR_DEVICE_ERROR );
+
+
+    
+    
+    
+
+    rc4_context = RC4_CreateContext( rc4_known_key, FIPS_RC4_KEY_LENGTH );
+
+    if( rc4_context == NULL )
+        return( CKR_HOST_MEMORY );
+
+    rc4_status = RC4_Decrypt( rc4_context, rc4_computed_plaintext,
+                              &rc4_bytes_decrypted, FIPS_RC4_DECRYPT_LENGTH,
+                              rc4_known_ciphertext, FIPS_RC4_ENCRYPT_LENGTH );
+
+    RC4_DestroyContext( rc4_context, PR_TRUE );
+
+    if( ( rc4_status != SECSuccess ) ||
+        ( rc4_bytes_decrypted != FIPS_RC4_DECRYPT_LENGTH ) ||
+        ( PORT_Memcmp( rc4_computed_plaintext, rc4_known_plaintext,
+                       FIPS_RC4_DECRYPT_LENGTH ) != 0 ) )
+        return( CKR_DEVICE_ERROR );
+
+    return( CKR_OK );
+}
+
+
+static CK_RV
+sftk_fips_DES_PowerUpSelfTest( void )
+{
+    
+    static const PRUint8 des_known_key[] = { "ANSI DES" };
+
+    
+    static const PRUint8 des_cbc_known_initialization_vector[] = { "Security" };
+
+    
+    static const PRUint8 des_ecb_known_plaintext[] = { "Netscape" };
+    static const PRUint8 des_cbc_known_plaintext[] = { "Netscape" };
+
+    
+    static const PRUint8 des_ecb_known_ciphertext[] = {
+			       0x26,0x14,0xe9,0xc3,0x28,0x80,0x50,0xb0};
+    static const PRUint8 des_cbc_known_ciphertext[]  = {
+			       0x5e,0x95,0x94,0x5d,0x76,0xa2,0xd3,0x7d};
+
+    
+    PRUint8        des_computed_ciphertext[FIPS_DES_ENCRYPT_LENGTH];
+    PRUint8        des_computed_plaintext[FIPS_DES_DECRYPT_LENGTH];
+    DESContext *   des_context;
+    unsigned int   des_bytes_encrypted;
+    unsigned int   des_bytes_decrypted;
+    SECStatus      des_status;
+
+
+    
+    
+    
+
+    des_context = DES_CreateContext( des_known_key, NULL, NSS_DES, PR_TRUE );
+
+    if( des_context == NULL )
+        return( CKR_HOST_MEMORY );
+
+    des_status = DES_Encrypt( des_context, des_computed_ciphertext,
+                              &des_bytes_encrypted, FIPS_DES_ENCRYPT_LENGTH,
+                              des_ecb_known_plaintext,
+                              FIPS_DES_DECRYPT_LENGTH );
+
+    DES_DestroyContext( des_context, PR_TRUE );
+
+    if( ( des_status != SECSuccess ) ||
+        ( des_bytes_encrypted != FIPS_DES_ENCRYPT_LENGTH ) ||
+        ( PORT_Memcmp( des_computed_ciphertext, des_ecb_known_ciphertext,
+                       FIPS_DES_ENCRYPT_LENGTH ) != 0 ) )
+        return( CKR_DEVICE_ERROR );
+
+
+    
+    
+    
+
+    des_context = DES_CreateContext( des_known_key, NULL, NSS_DES, PR_FALSE );
+
+    if( des_context == NULL )
+        return( CKR_HOST_MEMORY );
+
+    des_status = DES_Decrypt( des_context, des_computed_plaintext,
+                              &des_bytes_decrypted, FIPS_DES_DECRYPT_LENGTH,
+                              des_ecb_known_ciphertext,
+                              FIPS_DES_ENCRYPT_LENGTH );
+
+    DES_DestroyContext( des_context, PR_TRUE );
+
+    if( ( des_status != SECSuccess ) ||
+        ( des_bytes_decrypted != FIPS_DES_DECRYPT_LENGTH ) ||
+        ( PORT_Memcmp( des_computed_plaintext, des_ecb_known_plaintext,
+                       FIPS_DES_DECRYPT_LENGTH ) != 0 ) )
+        return( CKR_DEVICE_ERROR );
+
+
+    
+    
+    
+
+    des_context = DES_CreateContext( des_known_key,
+                                     des_cbc_known_initialization_vector,
+                                     NSS_DES_CBC, PR_TRUE );
+
+    if( des_context == NULL )
+        return( CKR_HOST_MEMORY );
+
+    des_status = DES_Encrypt( des_context, des_computed_ciphertext,
+                              &des_bytes_encrypted, FIPS_DES_ENCRYPT_LENGTH,
+                              des_cbc_known_plaintext,
+                              FIPS_DES_DECRYPT_LENGTH );
+
+    DES_DestroyContext( des_context, PR_TRUE );
+
+    if( ( des_status != SECSuccess ) ||
+        ( des_bytes_encrypted != FIPS_DES_ENCRYPT_LENGTH ) ||
+        ( PORT_Memcmp( des_computed_ciphertext, des_cbc_known_ciphertext,
+                       FIPS_DES_ENCRYPT_LENGTH ) != 0 ) )
+        return( CKR_DEVICE_ERROR );
+
+
+    
+    
+    
+
+    des_context = DES_CreateContext( des_known_key,
+                                     des_cbc_known_initialization_vector,
+                                     NSS_DES_CBC, PR_FALSE );
+
+    if( des_context == NULL )
+        return( CKR_HOST_MEMORY );
+
+    des_status = DES_Decrypt( des_context, des_computed_plaintext,
+                              &des_bytes_decrypted, FIPS_DES_DECRYPT_LENGTH,
+                              des_cbc_known_ciphertext,
+                              FIPS_DES_ENCRYPT_LENGTH );
+
+    DES_DestroyContext( des_context, PR_TRUE );
+
+    if( ( des_status != SECSuccess ) ||
+        ( des_bytes_decrypted != FIPS_DES_DECRYPT_LENGTH ) ||
+        ( PORT_Memcmp( des_computed_plaintext, des_cbc_known_plaintext,
+                       FIPS_DES_DECRYPT_LENGTH ) != 0 ) )
+        return( CKR_DEVICE_ERROR );
+
+    return( CKR_OK );
+}
+
+
+static CK_RV
+sftk_fips_DES3_PowerUpSelfTest( void )
+{
+    
+    static const PRUint8 des3_known_key[] = { "ANSI Triple-DES Key Data" };
+
+    
+    static const PRUint8 des3_cbc_known_initialization_vector[] = { "Security" };
+
+    
+    static const PRUint8 des3_ecb_known_plaintext[] = { "Netscape" };
+    static const PRUint8 des3_cbc_known_plaintext[] = { "Netscape" };
+
+    
+    static const PRUint8 des3_ecb_known_ciphertext[] = {
+			   0x55,0x8e,0xad,0x3c,0xee,0x49,0x69,0xbe};
+    static const PRUint8 des3_cbc_known_ciphertext[] = {
+			   0x43,0xdc,0x6a,0xc1,0xaf,0xa6,0x32,0xf5};
+
+    
+    PRUint8        des3_computed_ciphertext[FIPS_DES3_ENCRYPT_LENGTH];
+    PRUint8        des3_computed_plaintext[FIPS_DES3_DECRYPT_LENGTH];
+    DESContext *   des3_context;
+    unsigned int   des3_bytes_encrypted;
+    unsigned int   des3_bytes_decrypted;
+    SECStatus      des3_status;
+
+
+    
+    
+    
+
+    des3_context = DES_CreateContext( des3_known_key, NULL,
+                                     NSS_DES_EDE3, PR_TRUE );
+
+    if( des3_context == NULL )
+        return( CKR_HOST_MEMORY );
+
+    des3_status = DES_Encrypt( des3_context, des3_computed_ciphertext,
+                               &des3_bytes_encrypted, FIPS_DES3_ENCRYPT_LENGTH,
+                               des3_ecb_known_plaintext,
+                               FIPS_DES3_DECRYPT_LENGTH );
+
+    DES_DestroyContext( des3_context, PR_TRUE );
+
+    if( ( des3_status != SECSuccess ) ||
+        ( des3_bytes_encrypted != FIPS_DES3_ENCRYPT_LENGTH ) ||
+        ( PORT_Memcmp( des3_computed_ciphertext, des3_ecb_known_ciphertext,
+                       FIPS_DES3_ENCRYPT_LENGTH ) != 0 ) )
+        return( CKR_DEVICE_ERROR );
+
+
+    
+    
+    
+
+    des3_context = DES_CreateContext( des3_known_key, NULL,
+                                     NSS_DES_EDE3, PR_FALSE );
+
+    if( des3_context == NULL )
+        return( CKR_HOST_MEMORY );
+
+    des3_status = DES_Decrypt( des3_context, des3_computed_plaintext,
+                               &des3_bytes_decrypted, FIPS_DES3_DECRYPT_LENGTH,
+                               des3_ecb_known_ciphertext,
+                               FIPS_DES3_ENCRYPT_LENGTH );
+
+    DES_DestroyContext( des3_context, PR_TRUE );
+
+    if( ( des3_status != SECSuccess ) ||
+        ( des3_bytes_decrypted != FIPS_DES3_DECRYPT_LENGTH ) ||
+        ( PORT_Memcmp( des3_computed_plaintext, des3_ecb_known_plaintext,
+                       FIPS_DES3_DECRYPT_LENGTH ) != 0 ) )
+        return( CKR_DEVICE_ERROR );
+
+
+    
+    
+    
+
+    des3_context = DES_CreateContext( des3_known_key,
+                                      des3_cbc_known_initialization_vector,
+                                      NSS_DES_EDE3_CBC, PR_TRUE );
+
+    if( des3_context == NULL )
+        return( CKR_HOST_MEMORY );
+
+    des3_status = DES_Encrypt( des3_context, des3_computed_ciphertext,
+                               &des3_bytes_encrypted, FIPS_DES3_ENCRYPT_LENGTH,
+                               des3_cbc_known_plaintext,
+                               FIPS_DES3_DECRYPT_LENGTH );
+
+    DES_DestroyContext( des3_context, PR_TRUE );
+
+    if( ( des3_status != SECSuccess ) ||
+        ( des3_bytes_encrypted != FIPS_DES3_ENCRYPT_LENGTH ) ||
+        ( PORT_Memcmp( des3_computed_ciphertext, des3_cbc_known_ciphertext,
+                       FIPS_DES3_ENCRYPT_LENGTH ) != 0 ) )
+        return( CKR_DEVICE_ERROR );
+
+
+    
+    
+    
+
+    des3_context = DES_CreateContext( des3_known_key,
+                                      des3_cbc_known_initialization_vector,
+                                      NSS_DES_EDE3_CBC, PR_FALSE );
+
+    if( des3_context == NULL )
+        return( CKR_HOST_MEMORY );
+
+    des3_status = DES_Decrypt( des3_context, des3_computed_plaintext,
+                               &des3_bytes_decrypted, FIPS_DES3_DECRYPT_LENGTH,
+                               des3_cbc_known_ciphertext,
+                               FIPS_DES3_ENCRYPT_LENGTH );
+
+    DES_DestroyContext( des3_context, PR_TRUE );
+
+    if( ( des3_status != SECSuccess ) ||
+        ( des3_bytes_decrypted != FIPS_DES3_DECRYPT_LENGTH ) ||
+        ( PORT_Memcmp( des3_computed_plaintext, des3_cbc_known_plaintext,
+                       FIPS_DES3_DECRYPT_LENGTH ) != 0 ) )
+        return( CKR_DEVICE_ERROR );
+
+    return( CKR_OK );
+}
+
+
+
+static CK_RV
+sftk_fips_AES_PowerUpSelfTest( int aes_key_size )
+{
+    
+    static const PRUint8 aes_known_key[] = 
+        { "AES-128 RIJNDAELLEADNJIR 821-SEA" };
+
+    
+    static const PRUint8 aes_cbc_known_initialization_vector[] = 
+        { "SecurityytiruceS" };
+
+    
+    static const PRUint8 aes_known_plaintext[] = { "NetscapeepacsteN" };
+
+    
+    static const PRUint8 aes_ecb128_known_ciphertext[] = {
+        0x3c,0xa5,0x96,0xf3,0x34,0x6a,0x96,0xc1,
+        0x03,0x88,0x16,0x7b,0x20,0xbf,0x35,0x47 };
+
+    static const PRUint8 aes_cbc128_known_ciphertext[]  = {
+        0xcf,0x15,0x1d,0x4f,0x96,0xe4,0x4f,0x63,
+        0x15,0x54,0x14,0x1d,0x4e,0xd8,0xd5,0xea };
+
+    
+    static const PRUint8 aes_ecb192_known_ciphertext[] = { 
+        0xa0,0x18,0x62,0xed,0x88,0x19,0xcb,0x62,
+        0x88,0x1d,0x4d,0xfe,0x84,0x02,0x89,0x0e };
+
+    static const PRUint8 aes_cbc192_known_ciphertext[]  = { 
+        0x83,0xf7,0xa4,0x76,0xd1,0x6f,0x07,0xbe,
+        0x07,0xbc,0x43,0x2f,0x6d,0xad,0x29,0xe1 };
+
+    
+    static const PRUint8 aes_ecb256_known_ciphertext[] = { 
+        0xdb,0xa6,0x52,0x01,0x8a,0x70,0xae,0x66,
+        0x3a,0x99,0xd8,0x95,0x7f,0xfb,0x01,0x67 };
+    
+    static const PRUint8 aes_cbc256_known_ciphertext[]  = { 
+        0x37,0xea,0x07,0x06,0x31,0x1c,0x59,0x27,
+        0xc5,0xc5,0x68,0x71,0x6e,0x34,0x40,0x16 };
+
+    const PRUint8 *aes_ecb_known_ciphertext =
+        ( aes_key_size == FIPS_AES_128_KEY_SIZE) ? aes_ecb128_known_ciphertext :
+        ( aes_key_size == FIPS_AES_192_KEY_SIZE) ? aes_ecb192_known_ciphertext :
+                                aes_ecb256_known_ciphertext;
+
+    const PRUint8 *aes_cbc_known_ciphertext =
+        ( aes_key_size == FIPS_AES_128_KEY_SIZE) ? aes_cbc128_known_ciphertext :
+        ( aes_key_size == FIPS_AES_192_KEY_SIZE) ? aes_cbc192_known_ciphertext :
+                                aes_cbc256_known_ciphertext;
+
+    
+    PRUint8        aes_computed_ciphertext[FIPS_AES_ENCRYPT_LENGTH];
+    PRUint8        aes_computed_plaintext[FIPS_AES_DECRYPT_LENGTH];
+    AESContext *   aes_context;
+    unsigned int   aes_bytes_encrypted;
+    unsigned int   aes_bytes_decrypted;
+    SECStatus      aes_status;
+
+    
+    if ((aes_key_size != FIPS_AES_128_KEY_SIZE) && 
+        (aes_key_size != FIPS_AES_192_KEY_SIZE) && 
+        (aes_key_size != FIPS_AES_256_KEY_SIZE)) 
+            return( CKR_DEVICE_ERROR );
+
+    
+    
+    
+
+    aes_context = AES_CreateContext( aes_known_key, NULL, NSS_AES, PR_TRUE,
+                                     aes_key_size, FIPS_AES_BLOCK_SIZE );
+
+    if( aes_context == NULL )
+        return( CKR_HOST_MEMORY );
+
+    aes_status = AES_Encrypt( aes_context, aes_computed_ciphertext,
+                              &aes_bytes_encrypted, FIPS_AES_ENCRYPT_LENGTH,
+                              aes_known_plaintext,
+                              FIPS_AES_DECRYPT_LENGTH );
+    
+    AES_DestroyContext( aes_context, PR_TRUE );
+
+    if( ( aes_status != SECSuccess ) ||
+        ( aes_bytes_encrypted != FIPS_AES_ENCRYPT_LENGTH ) ||
+        ( PORT_Memcmp( aes_computed_ciphertext, aes_ecb_known_ciphertext,
+                       FIPS_AES_ENCRYPT_LENGTH ) != 0 ) )
+        return( CKR_DEVICE_ERROR );
+
+
+    
+    
+    
+
+    aes_context = AES_CreateContext( aes_known_key, NULL, NSS_AES, PR_FALSE,
+                                     aes_key_size, FIPS_AES_BLOCK_SIZE );
+
+    if( aes_context == NULL )
+        return( CKR_HOST_MEMORY );
+
+    aes_status = AES_Decrypt( aes_context, aes_computed_plaintext,
+                              &aes_bytes_decrypted, FIPS_AES_DECRYPT_LENGTH,
+                              aes_ecb_known_ciphertext,
+                              FIPS_AES_ENCRYPT_LENGTH );
+
+    AES_DestroyContext( aes_context, PR_TRUE );
+
+    if( ( aes_status != SECSuccess ) ||         
+        ( aes_bytes_decrypted != FIPS_AES_DECRYPT_LENGTH ) ||
+        ( PORT_Memcmp( aes_computed_plaintext, aes_known_plaintext,
+                       FIPS_AES_DECRYPT_LENGTH ) != 0 ) )
+        return( CKR_DEVICE_ERROR );
+
+
+    
+    
+    
+
+    aes_context = AES_CreateContext( aes_known_key,
+                                     aes_cbc_known_initialization_vector,
+                                     NSS_AES_CBC, PR_TRUE, aes_key_size, 
+                                     FIPS_AES_BLOCK_SIZE );
+
+    if( aes_context == NULL )
+        return( CKR_HOST_MEMORY );
+
+    aes_status = AES_Encrypt( aes_context, aes_computed_ciphertext,
+                              &aes_bytes_encrypted, FIPS_AES_ENCRYPT_LENGTH,
+                              aes_known_plaintext,
+                              FIPS_AES_DECRYPT_LENGTH );
+
+    AES_DestroyContext( aes_context, PR_TRUE );
+
+    if( ( aes_status != SECSuccess ) ||
+        ( aes_bytes_encrypted != FIPS_AES_ENCRYPT_LENGTH ) ||
+        ( PORT_Memcmp( aes_computed_ciphertext, aes_cbc_known_ciphertext,
+                       FIPS_AES_ENCRYPT_LENGTH ) != 0 ) )
+        return( CKR_DEVICE_ERROR );
+
+
+    
+    
+    
+
+    aes_context = AES_CreateContext( aes_known_key,
+                                     aes_cbc_known_initialization_vector,
+                                     NSS_AES_CBC, PR_FALSE, aes_key_size, 
+                                     FIPS_AES_BLOCK_SIZE );
+
+    if( aes_context == NULL )
+        return( CKR_HOST_MEMORY );
+
+    aes_status = AES_Decrypt( aes_context, aes_computed_plaintext,
+                              &aes_bytes_decrypted, FIPS_AES_DECRYPT_LENGTH,
+                              aes_cbc_known_ciphertext,
+                              FIPS_AES_ENCRYPT_LENGTH );
+
+    AES_DestroyContext( aes_context, PR_TRUE );
+
+    if( ( aes_status != SECSuccess ) ||
+        ( aes_bytes_decrypted != FIPS_AES_DECRYPT_LENGTH ) ||
+        ( PORT_Memcmp( aes_computed_plaintext, aes_known_plaintext,
+                       FIPS_AES_DECRYPT_LENGTH ) != 0 ) )
+        return( CKR_DEVICE_ERROR );
+
+    return( CKR_OK );
+}
+
+
+static const PRUint8 known_hash_message[] = {
+  "The test message for the MD2, MD5, and SHA-1 hashing algorithms." };
+
+
+static CK_RV
+sftk_fips_MD2_PowerUpSelfTest( void )
+{
+    
+    static const PRUint8 md2_known_digest[]  = {
+                                   0x41,0x5a,0x12,0xb2,0x3f,0x28,0x97,0x17,
+                                   0x0c,0x71,0x4e,0xcc,0x40,0xc8,0x1d,0x1b};
+
+    
+    MD2Context * md2_context;
+    unsigned int md2_bytes_hashed;
+    PRUint8      md2_computed_digest[MD2_LENGTH];
+
+
+    
+    
+    
+
+    md2_context = MD2_NewContext();
+
+    if( md2_context == NULL )
+        return( CKR_HOST_MEMORY );
+
+    MD2_Begin( md2_context );
+
+    MD2_Update( md2_context, known_hash_message,
+                FIPS_KNOWN_HASH_MESSAGE_LENGTH );
+
+    MD2_End( md2_context, md2_computed_digest, &md2_bytes_hashed, MD2_LENGTH );
+
+    MD2_DestroyContext( md2_context , PR_TRUE );
+    
+    if( ( md2_bytes_hashed != MD2_LENGTH ) ||
+        ( PORT_Memcmp( md2_computed_digest, md2_known_digest,
+                       MD2_LENGTH ) != 0 ) )
+        return( CKR_DEVICE_ERROR );
+
+    return( CKR_OK );
+}
+
+
+static CK_RV
+sftk_fips_MD5_PowerUpSelfTest( void )
+{
+    
+    static const PRUint8 md5_known_digest[]  = {
+				   0x25,0xc8,0xc0,0x10,0xc5,0x6e,0x68,0x28,
+				   0x28,0xa4,0xa5,0xd2,0x98,0x9a,0xea,0x2d};
+
+    
+    PRUint8        md5_computed_digest[MD5_LENGTH];
+    SECStatus      md5_status;
+
+
+    
+    
+    
+
+    md5_status = MD5_HashBuf( md5_computed_digest, known_hash_message,
+                              FIPS_KNOWN_HASH_MESSAGE_LENGTH );
+
+    if( ( md5_status != SECSuccess ) ||
+        ( PORT_Memcmp( md5_computed_digest, md5_known_digest,
+                       MD5_LENGTH ) != 0 ) )
+        return( CKR_DEVICE_ERROR );
+
+    return( CKR_OK );
+}
+
+
+
+
+static SECStatus
+sftk_fips_HMAC(unsigned char *hmac_computed,
+               const PRUint8 *secret_key,
+               unsigned int secret_key_length,
+               const PRUint8 *message,
+               unsigned int message_length,
+               HASH_HashType hashAlg )
+{
+    SECStatus hmac_status = SECFailure;
+    HMACContext *cx = NULL;
+    SECHashObject *hashObj = NULL;
+    unsigned int bytes_hashed = 0;
+
+    hashObj = (SECHashObject *) HASH_GetRawHashObject(hashAlg);
+ 
+    if (!hashObj) 
+        return( SECFailure );
+
+    cx = HMAC_Create(hashObj, secret_key, 
+                     secret_key_length, 
+                     PR_TRUE);  
+
+    if (cx == NULL) 
+        return( SECFailure );
+
+    HMAC_Begin(cx);
+    HMAC_Update(cx, message, message_length);
+    hmac_status = HMAC_Finish(cx, hmac_computed, &bytes_hashed, 
+                              hashObj->length);
+
+    HMAC_Destroy(cx, PR_TRUE);
+
+    return( hmac_status );
+}
+
+static CK_RV
+sftk_fips_HMAC_PowerUpSelfTest( void )
+{
+    static const PRUint8 HMAC_known_secret_key[] = {
+                         "Firefox and ThunderBird are awesome!"};
+
+    static const PRUint8 HMAC_known_secret_key_length 
+                         = sizeof HMAC_known_secret_key;
+
+    
+    static const PRUint8 known_SHA1_hmac[] = {
+        0xd5, 0x85, 0xf6, 0x5b, 0x39, 0xfa, 0xb9, 0x05, 
+        0x3b, 0x57, 0x1d, 0x61, 0xe7, 0xb8, 0x84, 0x1e, 
+        0x5d, 0x0e, 0x1e, 0x11};
+
+    
+    static const PRUint8 known_SHA256_hmac[] = {
+        0x05, 0x75, 0x9a, 0x9e, 0x70, 0x5e, 0xe7, 0x44, 
+        0xe2, 0x46, 0x4b, 0x92, 0x22, 0x14, 0x22, 0xe0, 
+        0x1b, 0x92, 0x8a, 0x0c, 0xfe, 0xf5, 0x49, 0xe9, 
+        0xa7, 0x1b, 0x56, 0x7d, 0x1d, 0x29, 0x40, 0x48};        
+
+    
+    static const PRUint8 known_SHA384_hmac[] = {
+        0xcd, 0x56, 0x14, 0xec, 0x05, 0x53, 0x06, 0x2b,
+        0x7e, 0x9c, 0x8a, 0x18, 0x5e, 0xea, 0xf3, 0x91,
+        0x33, 0xfb, 0x64, 0xf6, 0xe3, 0x9f, 0x89, 0x0b,
+        0xaf, 0xbe, 0x83, 0x4d, 0x3f, 0x3c, 0x43, 0x4d,
+        0x4a, 0x0c, 0x56, 0x98, 0xf8, 0xca, 0xb4, 0xaa,
+        0x9a, 0xf4, 0x0a, 0xaf, 0x4f, 0x69, 0xca, 0x87};
+
+    
+    static const PRUint8 known_SHA512_hmac[] = {
+        0xf6, 0x0e, 0x97, 0x12, 0x00, 0x67, 0x6e, 0xb9,
+        0x0c, 0xb2, 0x63, 0xf0, 0x60, 0xac, 0x75, 0x62,
+        0x70, 0x95, 0x2a, 0x52, 0x22, 0xee, 0xdd, 0xd2,
+        0x71, 0xb1, 0xe8, 0x26, 0x33, 0xd3, 0x13, 0x27,
+        0xcb, 0xff, 0x44, 0xef, 0x87, 0x97, 0x16, 0xfb,
+        0xd3, 0x0b, 0x48, 0xbe, 0x12, 0x4e, 0xda, 0xb1,
+        0x89, 0x90, 0xfb, 0x06, 0x0c, 0xbe, 0xe5, 0xc4,
+        0xff, 0x24, 0x37, 0x3d, 0xc7, 0xe4, 0xe4, 0x37};
+
+    SECStatus    hmac_status;
+    PRUint8      hmac_computed[HASH_LENGTH_MAX]; 
+
+    
+    
+    
+
+    hmac_status = sftk_fips_HMAC(hmac_computed, 
+                                 HMAC_known_secret_key,
+                                 HMAC_known_secret_key_length,
+                                 known_hash_message,
+                                 FIPS_KNOWN_HASH_MESSAGE_LENGTH,
+                                 HASH_AlgSHA1); 
+
+    if( ( hmac_status != SECSuccess ) || 
+        ( PORT_Memcmp( hmac_computed, known_SHA1_hmac,
+                       SHA1_LENGTH ) != 0 ) )
+        return( CKR_DEVICE_ERROR );
+
+    
+    
+    
+
+    hmac_status = sftk_fips_HMAC(hmac_computed, 
+                                 HMAC_known_secret_key,
+                                 HMAC_known_secret_key_length,
+                                 known_hash_message,
+                                 FIPS_KNOWN_HASH_MESSAGE_LENGTH,
+                                 HASH_AlgSHA256); 
+
+    if( ( hmac_status != SECSuccess ) || 
+        ( PORT_Memcmp( hmac_computed, known_SHA256_hmac,
+                       SHA256_LENGTH ) != 0 ) )
+        return( CKR_DEVICE_ERROR );
+
+    
+    
+    
+
+    hmac_status = sftk_fips_HMAC(hmac_computed,
+                                 HMAC_known_secret_key,
+                                 HMAC_known_secret_key_length,
+                                 known_hash_message,
+                                 FIPS_KNOWN_HASH_MESSAGE_LENGTH,
+                                 HASH_AlgSHA384);
+
+    if( ( hmac_status != SECSuccess ) ||
+        ( PORT_Memcmp( hmac_computed, known_SHA384_hmac,
+                       SHA384_LENGTH ) != 0 ) )
+        return( CKR_DEVICE_ERROR );
+
+    
+    
+    
+
+    hmac_status = sftk_fips_HMAC(hmac_computed,
+                                 HMAC_known_secret_key,
+                                 HMAC_known_secret_key_length,
+                                 known_hash_message,
+                                 FIPS_KNOWN_HASH_MESSAGE_LENGTH,
+                                 HASH_AlgSHA512);
+
+    if( ( hmac_status != SECSuccess ) ||
+        ( PORT_Memcmp( hmac_computed, known_SHA512_hmac,
+                       SHA512_LENGTH ) != 0 ) )
+        return( CKR_DEVICE_ERROR );
+
+    return( CKR_OK );
+}
+
+static CK_RV
+sftk_fips_SHA_PowerUpSelfTest( void )
+{
+    
+    static const PRUint8 sha1_known_digest[] = {
+			       0x0a,0x6d,0x07,0xba,0x1e,0xbd,0x8a,0x1b,
+			       0x72,0xf6,0xc7,0x22,0xf1,0x27,0x9f,0xf0,
+			       0xe0,0x68,0x47,0x7a};
+
+    
+    static const PRUint8 sha256_known_digest[] = {
+        0x38,0xa9,0xc1,0xf0,0x35,0xf6,0x5d,0x61,
+        0x11,0xd4,0x0b,0xdc,0xce,0x35,0x14,0x8d,
+        0xf2,0xdd,0xaf,0xaf,0xcf,0xb7,0x87,0xe9,
+        0x96,0xa5,0xd2,0x83,0x62,0x46,0x56,0x79};
+ 
+    
+    static const PRUint8 sha384_known_digest[] = {
+        0x11,0xfe,0x1c,0x00,0x89,0x48,0xde,0xb3,
+        0x99,0xee,0x1c,0x18,0xb4,0x10,0xfb,0xfe,
+        0xe3,0xa8,0x2c,0xf3,0x04,0xb0,0x2f,0xc8,
+        0xa3,0xc4,0x5e,0xea,0x7e,0x60,0x48,0x7b,
+        0xce,0x2c,0x62,0xf7,0xbc,0xa7,0xe8,0xa3,
+        0xcf,0x24,0xce,0x9c,0xe2,0x8b,0x09,0x72};
+
+    
+    static const PRUint8 sha512_known_digest[] = {
+        0xc8,0xb3,0x27,0xf9,0x0b,0x24,0xc8,0xbf,
+        0x4c,0xba,0x33,0x54,0xf2,0x31,0xbf,0xdb,
+        0xab,0xfd,0xb3,0x15,0xd7,0xfa,0x48,0x99,
+        0x07,0x60,0x0f,0x57,0x41,0x1a,0xdd,0x28,
+        0x12,0x55,0x25,0xac,0xba,0x3a,0x99,0x12,
+        0x2c,0x7a,0x8f,0x75,0x3a,0xe1,0x06,0x6f,
+        0x30,0x31,0xc9,0x33,0xc6,0x1b,0x90,0x1a,
+        0x6c,0x98,0x9a,0x87,0xd0,0xb2,0xf8,0x07};
+
+    
+    PRUint8        sha_computed_digest[HASH_LENGTH_MAX];
+    SECStatus      sha_status;
+
+    
+    
+    
+
+    sha_status = SHA1_HashBuf( sha_computed_digest, known_hash_message,
+                                FIPS_KNOWN_HASH_MESSAGE_LENGTH );
+ 
+    if( ( sha_status != SECSuccess ) ||
+        ( PORT_Memcmp( sha_computed_digest, sha1_known_digest,
+                       SHA1_LENGTH ) != 0 ) )
+        return( CKR_DEVICE_ERROR );
+
+    
+    
+    
+
+    sha_status = SHA256_HashBuf( sha_computed_digest, known_hash_message,
+                                FIPS_KNOWN_HASH_MESSAGE_LENGTH );
+
+    if( ( sha_status != SECSuccess ) ||
+        ( PORT_Memcmp( sha_computed_digest, sha256_known_digest,
+                       SHA256_LENGTH ) != 0 ) )
+        return( CKR_DEVICE_ERROR );
+
+    
+    
+    
+
+    sha_status = SHA384_HashBuf( sha_computed_digest, known_hash_message,
+                                FIPS_KNOWN_HASH_MESSAGE_LENGTH );
+
+    if( ( sha_status != SECSuccess ) ||
+        ( PORT_Memcmp( sha_computed_digest, sha384_known_digest,
+                       SHA384_LENGTH ) != 0 ) )
+        return( CKR_DEVICE_ERROR );
+
+    
+    
+    
+
+    sha_status = SHA512_HashBuf( sha_computed_digest, known_hash_message,
+                                FIPS_KNOWN_HASH_MESSAGE_LENGTH );
+
+    if( ( sha_status != SECSuccess ) ||
+        ( PORT_Memcmp( sha_computed_digest, sha512_known_digest,
+                       SHA512_LENGTH ) != 0 ) )
+        return( CKR_DEVICE_ERROR );
+
+    return( CKR_OK );
+}
+
+
+
+
+static SECStatus
+sftk_fips_RSA_PowerUpSigSelfTest (HASH_HashType  shaAlg,
+                                  NSSLOWKEYPublicKey *rsa_public_key,
+                                  NSSLOWKEYPrivateKey *rsa_private_key,
+                                  const unsigned char *rsa_known_msg,
+                                  const unsigned int rsa_kmsg_length,
+                                  const unsigned char *rsa_known_signature)
+{
+    SECOidTag      shaOid;   
+    unsigned char  sha[HASH_LENGTH_MAX];    
+    unsigned int   shaLength = 0;           
+    unsigned int   rsa_bytes_signed;
+    unsigned char  rsa_computed_signature[FIPS_RSA_SIGNATURE_LENGTH];
+    SECStatus      rv;
+
+    if (shaAlg == HASH_AlgSHA1) {
+        if (SHA1_HashBuf(sha, rsa_known_msg, rsa_kmsg_length)
+                            != SECSuccess) {
+             goto loser;
+        }
+        shaLength = SHA1_LENGTH;
+        shaOid = SEC_OID_SHA1;
+    } else if (shaAlg == HASH_AlgSHA256) {
+        if (SHA256_HashBuf(sha, rsa_known_msg, rsa_kmsg_length)
+                            != SECSuccess) {
+             goto loser;
+        }
+        shaLength = SHA256_LENGTH;
+        shaOid = SEC_OID_SHA256;
+    } else if (shaAlg == HASH_AlgSHA384) {
+        if (SHA384_HashBuf(sha, rsa_known_msg, rsa_kmsg_length)
+                            != SECSuccess) {
+             goto loser;
+        }
+        shaLength = SHA384_LENGTH;
+        shaOid = SEC_OID_SHA384;
+    } else if (shaAlg == HASH_AlgSHA512) {
+        if (SHA512_HashBuf(sha, rsa_known_msg, rsa_kmsg_length)
+                            != SECSuccess) {
+             goto loser;
+        }
+        shaLength = SHA512_LENGTH;
+        shaOid = SEC_OID_SHA512;
+    } else {
+        goto loser;
+    }
+
+    
+    
+    
+
+    
+    rv = RSA_HashSign( shaOid,
+                       rsa_private_key,
+                       rsa_computed_signature,
+                       &rsa_bytes_signed,
+                       FIPS_RSA_SIGNATURE_LENGTH,
+                       sha,
+                       shaLength);
+
+    if( ( rv != SECSuccess ) ||
+        ( rsa_bytes_signed != FIPS_RSA_SIGNATURE_LENGTH ) ||
+        ( PORT_Memcmp( rsa_computed_signature, rsa_known_signature,
+                       FIPS_RSA_SIGNATURE_LENGTH ) != 0 ) ) {
+        goto loser;
+    }
+
+    
+    
+    
+
+    
+    rv = RSA_HashCheckSign( shaOid,
+                            rsa_public_key,
+                            rsa_computed_signature,
+                            rsa_bytes_signed,
+                            sha,
+                            shaLength);
+
+    if( rv != SECSuccess ) {
+         goto loser;
+    }
+    return( SECSuccess );
+
+loser:
+
+    return( SECFailure );
+
+}
+
+static CK_RV
+sftk_fips_RSA_PowerUpSelfTest( void )
+{
+    
+    static const PRUint8 rsa_modulus[FIPS_RSA_MODULUS_LENGTH] = {
+                               0xd5, 0x84, 0x95, 0x07, 0xf4, 0xd0, 0x1f, 0x82,
+                               0xf3, 0x79, 0xf4, 0x99, 0x48, 0x10, 0xe1, 0x71,
+                               0xa5, 0x62, 0x22, 0xa3, 0x4b, 0x00, 0xe3, 0x5b,
+                               0x3a, 0xcc, 0x10, 0x83, 0xe0, 0xaf, 0x61, 0x13,
+                               0x54, 0x6a, 0xa2, 0x6a, 0x2c, 0x5e, 0xb3, 0xcc,
+                               0xa3, 0x71, 0x9a, 0xb2, 0x3e, 0x78, 0xec, 0xb5,
+                               0x0e, 0x6e, 0x31, 0x3b, 0x77, 0x1f, 0x6e, 0x94,
+                               0x41, 0x60, 0xd5, 0x6e, 0xd9, 0xc6, 0xf9, 0x29,
+                               0xc3, 0x40, 0x36, 0x25, 0xdb, 0xea, 0x0b, 0x07,
+                               0xae, 0x76, 0xfd, 0x99, 0x29, 0xf4, 0x22, 0xc1,
+                               0x1a, 0x8f, 0x05, 0xfe, 0x98, 0x09, 0x07, 0x05,
+                               0xc2, 0x0f, 0x0b, 0x11, 0x83, 0x39, 0xca, 0xc7,
+                               0x43, 0x63, 0xff, 0x33, 0x80, 0xe7, 0xc3, 0x78,
+                               0xae, 0xf1, 0x73, 0x52, 0x98, 0x1d, 0xde, 0x5c,
+                               0x53, 0x6e, 0x01, 0x73, 0x0d, 0x12, 0x7e, 0x77,
+                               0x03, 0xf1, 0xef, 0x1b, 0xc8, 0xa8, 0x0f, 0x97};
+
+    
+    static const PRUint8 rsa_public_exponent[FIPS_RSA_PUBLIC_EXPONENT_LENGTH] 
+                                                       = { 0x01, 0x00, 0x01 };
+    
+    
+    
+    
+    
+    
+    
+    static const PRUint8 rsa_version[] = { 0x00 };
+
+    static const PRUint8 rsa_private_exponent[FIPS_RSA_PRIVATE_EXPONENT_LENGTH]
+                           = { 0x85, 0x27, 0x47, 0x61, 0x4c, 0xd4, 0xb5, 0xb2,
+                               0x0e, 0x70, 0x91, 0x8f, 0x3d, 0x97, 0xf9, 0x5f,
+                               0xcc, 0x09, 0x65, 0x1c, 0x7c, 0x5b, 0xb3, 0x6d,
+                               0x63, 0x3f, 0x7b, 0x55, 0x22, 0xbb, 0x7c, 0x48,
+                               0x77, 0xae, 0x80, 0x56, 0xc2, 0x10, 0xd5, 0x03,
+                               0xdb, 0x31, 0xaf, 0x8d, 0x54, 0xd4, 0x48, 0x99,
+                               0xa8, 0xc4, 0x23, 0x43, 0xb8, 0x48, 0x0b, 0xc7,
+                               0xbc, 0xf5, 0xcc, 0x64, 0x72, 0xbf, 0x59, 0x06,
+                               0x04, 0x1c, 0x32, 0xf5, 0x14, 0x2e, 0x6e, 0xe2,
+                               0x0f, 0x5c, 0xde, 0x36, 0x3c, 0x6e, 0x7c, 0x4d,
+                               0xcc, 0xd3, 0x00, 0x6e, 0xe5, 0x45, 0x46, 0xef,
+                               0x4d, 0x25, 0x46, 0x6d, 0x7f, 0xed, 0xbb, 0x4f,
+                               0x4d, 0x9f, 0xda, 0x87, 0x47, 0x8f, 0x74, 0x44,
+                               0xb7, 0xbe, 0x9d, 0xf5, 0xdd, 0xd2, 0x4c, 0xa5,
+                               0xab, 0x74, 0xe5, 0x29, 0xa1, 0xd2, 0x45, 0x3b,
+                               0x33, 0xde, 0xd5, 0xae, 0xf7, 0x03, 0x10, 0x21};
+
+    static const PRUint8 rsa_prime0[FIPS_RSA_PRIME0_LENGTH]   = {
+                               0xf9, 0x74, 0x8f, 0x16, 0x02, 0x6b, 0xa0, 0xee,
+                               0x7f, 0x28, 0x97, 0x91, 0xdc, 0xec, 0xc0, 0x7c,
+                               0x49, 0xc2, 0x85, 0x76, 0xee, 0x66, 0x74, 0x2d,
+                               0x1a, 0xb8, 0xf7, 0x2f, 0x11, 0x5b, 0x36, 0xd8,
+                               0x46, 0x33, 0x3b, 0xd8, 0xf3, 0x2d, 0xa1, 0x03,
+                               0x83, 0x2b, 0xec, 0x35, 0x43, 0x32, 0xff, 0xdd,
+                               0x81, 0x7c, 0xfd, 0x65, 0x13, 0x04, 0x7c, 0xfc,
+                               0x03, 0x97, 0xf0, 0xd5, 0x62, 0xdc, 0x0d, 0xbf};
+    static const PRUint8 rsa_prime1[FIPS_RSA_PRIME1_LENGTH]   = {
+                               0xdb, 0x1e, 0xa7, 0x3d, 0xe7, 0xfa, 0x8b, 0x04,
+                               0x83, 0x48, 0xf3, 0xa5, 0x31, 0x9d, 0x35, 0x5e,
+                               0x4d, 0x54, 0x77, 0xcc, 0x84, 0x09, 0xf3, 0x11,
+                               0x0d, 0x54, 0xed, 0x85, 0x39, 0xa9, 0xca, 0xa8,
+                               0xea, 0xae, 0x19, 0x9c, 0x75, 0xdb, 0x88, 0xb8,
+                               0x04, 0x8d, 0x54, 0xc6, 0xa4, 0x80, 0xf8, 0x93,
+                               0xf0, 0xdb, 0x19, 0xef, 0xd7, 0x87, 0x8a, 0x8f,
+                               0x5a, 0x09, 0x2e, 0x54, 0xf3, 0x45, 0x24, 0x29};
+    static const PRUint8 rsa_exponent0[FIPS_RSA_EXPONENT0_LENGTH] = {
+                               0x6a, 0xd1, 0x25, 0x80, 0x18, 0x33, 0x3c, 0x2b,
+                               0x44, 0x19, 0xfe, 0xa5, 0x40, 0x03, 0xc4, 0xfc,
+                               0xb3, 0x9c, 0xef, 0x07, 0x99, 0x58, 0x17, 0xc1,
+                               0x44, 0xa3, 0x15, 0x7d, 0x7b, 0x22, 0x22, 0xdf,
+                               0x03, 0x58, 0x66, 0xf5, 0x24, 0x54, 0x52, 0x91,
+                               0x2d, 0x76, 0xfe, 0x63, 0x64, 0x4e, 0x0f, 0x50,
+                               0x2b, 0x65, 0x79, 0x1f, 0xf1, 0xbf, 0xc7, 0x41,
+                               0x26, 0xcc, 0xc6, 0x1c, 0xa9, 0x83, 0x6f, 0x03};
+    static const PRUint8 rsa_exponent1[FIPS_RSA_EXPONENT1_LENGTH] = {
+                               0x12, 0x84, 0x1a, 0x99, 0xce, 0x9a, 0x8b, 0x58,
+                               0xcc, 0x47, 0x43, 0xdf, 0x77, 0xbb, 0xd3, 0x20,
+                               0xae, 0xe4, 0x2e, 0x63, 0x67, 0xdc, 0xf7, 0x5f,
+                               0x3f, 0x83, 0x27, 0xb7, 0x14, 0x52, 0x56, 0xbf,
+                               0xc3, 0x65, 0x06, 0xe1, 0x03, 0xcc, 0x93, 0x57,
+                               0x09, 0x7b, 0x6f, 0xe8, 0x81, 0x4a, 0x2c, 0xb7,
+                               0x43, 0xa9, 0x20, 0x1d, 0xf6, 0x56, 0x8b, 0xcc,
+                               0xe5, 0x4c, 0xd5, 0x4f, 0x74, 0x67, 0x29, 0x51};
+    static const PRUint8 rsa_coefficient[FIPS_RSA_COEFFICIENT_LENGTH] = {
+                               0x23, 0xab, 0xf4, 0x03, 0x2f, 0x29, 0x95, 0x74,
+                               0xac, 0x1a, 0x33, 0x96, 0x62, 0xed, 0xf7, 0xf6,
+                               0xae, 0x07, 0x2a, 0x2e, 0xe8, 0xab, 0xfb, 0x1e,
+                               0xb9, 0xb2, 0x88, 0x1e, 0x85, 0x05, 0x42, 0x64,
+                               0x03, 0xb2, 0x8b, 0xc1, 0x81, 0x75, 0xd7, 0xba,
+                               0xaa, 0xd4, 0x31, 0x3c, 0x8a, 0x96, 0x23, 0x9d,
+                               0x3f, 0x06, 0x3e, 0x44, 0xa9, 0x62, 0x2f, 0x61,
+                               0x5a, 0x51, 0x82, 0x2c, 0x04, 0x85, 0x73, 0xd1};
+
+    
+    static const PRUint8 rsa_known_plaintext_msg[FIPS_RSA_MESSAGE_LENGTH] = {
+                                         "Known plaintext message utilized" 
+                                         "for RSA Encryption &  Decryption"
+                                         "block, SHA1, SHA256, SHA384  and"
+                                         "SHA512 RSA Signature KAT tests."};
+
+    
+    static const PRUint8 rsa_known_ciphertext[] = {
+                               0x1e, 0x7e, 0x12, 0xbb, 0x15, 0x62, 0xd0, 0x23,
+                               0x53, 0x4c, 0x51, 0x97, 0x77, 0x06, 0xa0, 0xbb,
+                               0x26, 0x99, 0x9a, 0x8f, 0x39, 0xad, 0x88, 0x5c,
+                               0xc4, 0xce, 0x33, 0x40, 0x94, 0x92, 0xb4, 0x0e,
+                               0xab, 0x71, 0xa9, 0x5d, 0x9a, 0x37, 0xe3, 0x9a,
+                               0x24, 0x95, 0x13, 0xea, 0x0f, 0xbb, 0xf7, 0xff,
+                               0xdf, 0x31, 0x33, 0x23, 0x1d, 0xce, 0x26, 0x9e,
+                               0xd1, 0xde, 0x98, 0x40, 0xde, 0x57, 0x86, 0x12,
+                               0xf1, 0xe6, 0x5a, 0x3f, 0x08, 0x02, 0x81, 0x85,
+                               0xe0, 0xd9, 0xad, 0x3c, 0x8c, 0x71, 0xf8, 0xcf,
+                               0x0a, 0x98, 0xc5, 0x08, 0xdc, 0xc4, 0xca, 0x8c,
+                               0x23, 0x1b, 0x4d, 0x9b, 0xb5, 0x13, 0x44, 0xe1,
+                               0x5f, 0xf9, 0x30, 0x80, 0x25, 0xe0, 0x1e, 0x94,
+                               0xa3, 0x0c, 0xdc, 0x82, 0x2e, 0xfb, 0x30, 0xbe,
+                               0x89, 0xba, 0x76, 0xb6, 0x23, 0xf7, 0xda, 0x7c,
+                               0xca, 0xe6, 0x02, 0xbd, 0x92, 0xce, 0x64, 0xfc};
+
+    
+    static const PRUint8 rsa_known_sha1_signature[] = {
+                               0xd2, 0xa4, 0xe0, 0x2b, 0xc7, 0x03, 0x7f, 0xc6,
+                               0x06, 0x9e, 0xa2, 0x82, 0x19, 0xe9, 0x2b, 0xaf,
+                               0xe3, 0x48, 0x88, 0xc1, 0xf3, 0xb5, 0x0d, 0xe4,
+                               0x52, 0x9e, 0xad, 0xd5, 0x58, 0xb5, 0x9f, 0xe8,
+                               0x40, 0xe9, 0xb7, 0x2e, 0xc6, 0x71, 0x58, 0x56,
+                               0x04, 0xac, 0xb0, 0xf3, 0x3a, 0x42, 0x38, 0x08,
+                               0xc4, 0x43, 0x39, 0xba, 0x19, 0xce, 0xb1, 0x99,
+                               0xf1, 0x8d, 0x89, 0xd8, 0x50, 0x07, 0x14, 0x3d,
+                               0xcf, 0xd0, 0xb6, 0x79, 0xde, 0x9c, 0x89, 0x32,
+                               0xb0, 0x73, 0x3f, 0xed, 0x03, 0x0b, 0xdf, 0x6d,
+                               0x7e, 0xc9, 0x1c, 0x39, 0xe8, 0x2b, 0x16, 0x09,
+                               0xbb, 0x5f, 0x99, 0x2f, 0xeb, 0xf3, 0x37, 0x73,
+                               0x0d, 0x0e, 0xcc, 0x95, 0xad, 0x90, 0x80, 0x03,
+                               0x1d, 0x80, 0x55, 0x37, 0xa1, 0x2a, 0x71, 0x76,
+                               0x23, 0x87, 0x8c, 0x9b, 0x41, 0x07, 0xc6, 0x3d,
+                               0xc6, 0xa3, 0x7d, 0x1b, 0xff, 0x4e, 0x11, 0x19};
+
+    
+    static const PRUint8 rsa_known_sha256_signature[] = {
+                               0x27, 0x35, 0xdd, 0xc4, 0xf8, 0xe2, 0x0b, 0xa3,
+                               0xef, 0x63, 0x57, 0x3b, 0xe1, 0x58, 0x9a, 0xbc,
+                               0x20, 0x9c, 0x25, 0x12, 0x01, 0xbf, 0xbb, 0x29,
+                               0x80, 0x1a, 0xb1, 0x37, 0x9c, 0xcd, 0x67, 0xc7,
+                               0x0d, 0xf8, 0x64, 0x10, 0x9f, 0xe2, 0xa1, 0x9b,
+                               0x21, 0x90, 0xcc, 0xda, 0x8b, 0x76, 0x5e, 0x79,
+                               0x00, 0x9d, 0x58, 0x8b, 0x8a, 0xb3, 0xc3, 0xb5,
+                               0xf1, 0x54, 0xc5, 0x8c, 0x72, 0xba, 0xde, 0x51,
+                               0x3c, 0x6b, 0x94, 0xd6, 0xf3, 0x1b, 0xa2, 0x53,
+                               0xe6, 0x1a, 0x46, 0x1d, 0x7f, 0x14, 0x86, 0xcc,
+                               0xa6, 0x30, 0x92, 0x96, 0xc0, 0x96, 0x24, 0xf0,
+                               0x42, 0x53, 0x4c, 0xdd, 0x27, 0xdf, 0x1d, 0x2e,
+                               0x8b, 0x83, 0xbe, 0xed, 0x85, 0x1d, 0x50, 0x46,
+                               0xa3, 0x7d, 0x20, 0xea, 0x3e, 0x91, 0xfb, 0xf6,
+                               0x86, 0x51, 0xfd, 0x8c, 0xe5, 0x31, 0xe6, 0x7e,
+                               0x60, 0x08, 0x0e, 0xec, 0xa6, 0xea, 0x24, 0x8d};
+
+    
+    static const PRUint8 rsa_known_sha384_signature[] = {
+                               0x0b, 0x03, 0x94, 0x4f, 0x94, 0x78, 0x9b, 0x96,
+                               0x76, 0xeb, 0x72, 0x58, 0xe1, 0xc5, 0xc7, 0x5f,
+                               0x85, 0x01, 0xa8, 0xc4, 0xf6, 0x1a, 0xb5, 0x2c,
+                               0xd1, 0xd8, 0x87, 0xde, 0x3a, 0x9c, 0x9f, 0x57,
+                               0x81, 0x2a, 0x1e, 0x23, 0x07, 0x70, 0xb0, 0xf9,
+                               0x28, 0x3d, 0xfa, 0xe5, 0x2e, 0x1b, 0x9a, 0x72,
+                               0xc3, 0x74, 0xb3, 0x42, 0x1c, 0x9a, 0x13, 0xdc,
+                               0xc9, 0xd6, 0xd5, 0x88, 0xc9, 0x9c, 0x46, 0xf1,
+                               0x0c, 0xa6, 0xf7, 0xd8, 0x06, 0xa3, 0x1b, 0xdf,
+                               0x55, 0xb3, 0x1b, 0x7b, 0x58, 0x1d, 0xff, 0x19,
+                               0xc7, 0xe0, 0xdd, 0x59, 0xac, 0x2f, 0x78, 0x71,
+                               0xe7, 0xe0, 0x17, 0xa3, 0x1c, 0x5c, 0x92, 0xef,
+                               0xb6, 0x75, 0xed, 0xbe, 0x18, 0x39, 0x6b, 0xd7,
+                               0xc9, 0x08, 0x62, 0x55, 0x62, 0xac, 0x5d, 0xa1,
+                               0x9b, 0xd5, 0xb8, 0x98, 0x15, 0xc0, 0xf5, 0x41,
+                               0x85, 0x44, 0x96, 0xca, 0x10, 0xdc, 0x57, 0x21};
+
+    
+    static const PRUint8 rsa_known_sha512_signature[] = {
+                               0xa5, 0xd0, 0x80, 0x04, 0x22, 0xfc, 0x80, 0x73,
+                               0x7d, 0x46, 0xc8, 0x7b, 0xac, 0x44, 0x7b, 0xe6,
+                               0x07, 0xe5, 0x61, 0x4c, 0x33, 0x7f, 0x6f, 0x46,
+                               0x7c, 0x30, 0xe3, 0x75, 0x59, 0x4b, 0x42, 0xf3,
+                               0x9f, 0x35, 0x3c, 0x10, 0x56, 0xdb, 0xd2, 0x69,
+                               0x43, 0xcb, 0x77, 0xe9, 0x7d, 0xcd, 0x07, 0x43,
+                               0xc5, 0xd4, 0x0c, 0x9d, 0xf5, 0x92, 0xbd, 0x0e,
+                               0x3b, 0xb7, 0x68, 0x88, 0x84, 0xca, 0xae, 0x0d,
+                               0xab, 0x71, 0x10, 0xad, 0xab, 0x27, 0xe4, 0xa3,
+                               0x24, 0x41, 0xeb, 0x1c, 0xa6, 0x5f, 0xf1, 0x85,
+                               0xd0, 0xf6, 0x22, 0x74, 0x3d, 0x81, 0xbe, 0xdd,
+                               0x1b, 0x2a, 0x4c, 0xd1, 0x6c, 0xb5, 0x6d, 0x7a,
+                               0xbb, 0x99, 0x69, 0x01, 0xa6, 0xc0, 0x98, 0xfa,
+                               0x97, 0xa3, 0xd1, 0xb0, 0xdf, 0x09, 0xe3, 0x3d,
+                               0x88, 0xee, 0x90, 0xf3, 0x10, 0x41, 0x0f, 0x06,
+                               0x31, 0xe9, 0x60, 0x2d, 0xbf, 0x63, 0x7b, 0xf8};
+
+    static const RSAPublicKey    bl_public_key = { NULL,
+      { FIPS_RSA_TYPE, (unsigned char *)rsa_modulus,         
+                                        FIPS_RSA_MODULUS_LENGTH },
+      { FIPS_RSA_TYPE, (unsigned char *)rsa_public_exponent, 
+                                        FIPS_RSA_PUBLIC_EXPONENT_LENGTH }
+    };
+    static const RSAPrivateKey   bl_private_key = { NULL,
+      { FIPS_RSA_TYPE, (unsigned char *)rsa_version,          
+                                        FIPS_RSA_PRIVATE_VERSION_LENGTH },
+      { FIPS_RSA_TYPE, (unsigned char *)rsa_modulus,          
+                                        FIPS_RSA_MODULUS_LENGTH },
+      { FIPS_RSA_TYPE, (unsigned char *)rsa_public_exponent,  
+                                        FIPS_RSA_PUBLIC_EXPONENT_LENGTH },
+      { FIPS_RSA_TYPE, (unsigned char *)rsa_private_exponent, 
+                                        FIPS_RSA_PRIVATE_EXPONENT_LENGTH },
+      { FIPS_RSA_TYPE, (unsigned char *)rsa_prime0,           
+                                        FIPS_RSA_PRIME0_LENGTH },
+      { FIPS_RSA_TYPE, (unsigned char *)rsa_prime1,           
+                                        FIPS_RSA_PRIME1_LENGTH },
+      { FIPS_RSA_TYPE, (unsigned char *)rsa_exponent0,        
+                                        FIPS_RSA_EXPONENT0_LENGTH },
+      { FIPS_RSA_TYPE, (unsigned char *)rsa_exponent1,        
+                                        FIPS_RSA_EXPONENT1_LENGTH },
+      { FIPS_RSA_TYPE, (unsigned char *)rsa_coefficient,      
+                                        FIPS_RSA_COEFFICIENT_LENGTH }
+    };
+
+    
+#ifdef CREATE_TEMP_ARENAS
+    PLArenaPool *         rsa_public_arena;
+    PLArenaPool *         rsa_private_arena;
+#endif
+    NSSLOWKEYPublicKey *  rsa_public_key;
+    NSSLOWKEYPrivateKey * rsa_private_key;
+    SECStatus             rsa_status;
+
+    NSSLOWKEYPublicKey    low_public_key   = { NULL, NSSLOWKEYRSAKey, };
+    NSSLOWKEYPrivateKey   low_private_key  = { NULL, NSSLOWKEYRSAKey, };
+    PRUint8               rsa_computed_ciphertext[FIPS_RSA_ENCRYPT_LENGTH];
+    PRUint8               rsa_computed_plaintext[FIPS_RSA_DECRYPT_LENGTH];
+
+    
+    
+    
+
+    low_public_key.u.rsa  = bl_public_key;
+    low_private_key.u.rsa = bl_private_key;
+
+    rsa_public_key  = &low_public_key;
+    rsa_private_key = &low_private_key;
+
+#ifdef CREATE_TEMP_ARENAS
+    
+    rsa_public_arena = PORT_NewArena( NSS_SOFTOKEN_DEFAULT_CHUNKSIZE );
+
+    if( rsa_public_arena == NULL ) {
+        PORT_SetError( SEC_ERROR_NO_MEMORY );
+        return( CKR_HOST_MEMORY );
+    }
+
+    
+    rsa_private_arena = PORT_NewArena( NSS_SOFTOKEN_DEFAULT_CHUNKSIZE );
+
+    if( rsa_private_arena == NULL ) {
+        PORT_FreeArena( rsa_public_arena, PR_TRUE );
+        PORT_SetError( SEC_ERROR_NO_MEMORY );
+        return( CKR_HOST_MEMORY );
+    }
+
+    rsa_public_key->arena = rsa_public_arena;
+    rsa_private_key->arena = rsa_private_arena;
+#endif
+
+    
+    
+    
+
+    
+    rsa_status = RSA_PublicKeyOp(&rsa_public_key->u.rsa,
+                                 rsa_computed_ciphertext,
+                                 rsa_known_plaintext_msg);
+
+    if( ( rsa_status != SECSuccess ) ||
+        ( PORT_Memcmp( rsa_computed_ciphertext, rsa_known_ciphertext,
+                       FIPS_RSA_ENCRYPT_LENGTH ) != 0 ) )
+        goto rsa_loser;
+
+    
+    
+    
+
+    
+    rsa_status = RSA_PrivateKeyOp(&rsa_private_key->u.rsa,
+                                  rsa_computed_plaintext,
+                                  rsa_known_ciphertext);
+
+    if( ( rsa_status != SECSuccess ) ||
+        ( PORT_Memcmp( rsa_computed_plaintext, rsa_known_plaintext_msg,
+                       FIPS_RSA_DECRYPT_LENGTH ) != 0 ) )
+        goto rsa_loser;
+
+    rsa_status = sftk_fips_RSA_PowerUpSigSelfTest (HASH_AlgSHA1,
+                           rsa_public_key, rsa_private_key,
+                           rsa_known_plaintext_msg, FIPS_RSA_MESSAGE_LENGTH, 
+                           rsa_known_sha1_signature);
+    if( rsa_status != SECSuccess )
+        goto rsa_loser;
+
+    rsa_status = sftk_fips_RSA_PowerUpSigSelfTest (HASH_AlgSHA256,
+                           rsa_public_key, rsa_private_key,
+                           rsa_known_plaintext_msg, FIPS_RSA_MESSAGE_LENGTH,
+                           rsa_known_sha256_signature);
+    if( rsa_status != SECSuccess )
+        goto rsa_loser;
+
+    rsa_status = sftk_fips_RSA_PowerUpSigSelfTest (HASH_AlgSHA384,
+                           rsa_public_key, rsa_private_key,
+                           rsa_known_plaintext_msg, FIPS_RSA_MESSAGE_LENGTH,
+                           rsa_known_sha384_signature);
+    if( rsa_status != SECSuccess )
+        goto rsa_loser;
+
+    rsa_status = sftk_fips_RSA_PowerUpSigSelfTest (HASH_AlgSHA512,
+                           rsa_public_key, rsa_private_key,
+                           rsa_known_plaintext_msg, FIPS_RSA_MESSAGE_LENGTH,
+                           rsa_known_sha512_signature);
+    if( rsa_status != SECSuccess )
+        goto rsa_loser;
+
+    
+    nsslowkey_DestroyPublicKey( rsa_public_key );
+    nsslowkey_DestroyPrivateKey( rsa_private_key );
+
+    return( CKR_OK );
+
+rsa_loser:
+
+    nsslowkey_DestroyPublicKey( rsa_public_key );
+    nsslowkey_DestroyPrivateKey( rsa_private_key );
+
+    return( CKR_DEVICE_ERROR );
+}
+
+#ifdef NSS_ENABLE_ECC
+
+static CK_RV
+sftk_fips_ECDSA_Test(const PRUint8 *encodedParams, 
+                     unsigned int encodedParamsLen,
+                     const PRUint8 *knownSignature, 
+                     unsigned int knownSignatureLen) {
+
+    
+    static const PRUint8 ecdsa_Known_Seed[] = {
+                            0x6a, 0x9b, 0xf6, 0xf7, 0xce, 0xed, 0x79, 0x11,
+                            0xf0, 0xc7, 0xc8, 0x9a, 0xa5, 0xd1, 0x57, 0xb1,
+                            0x7b, 0x5a, 0x3b, 0x76, 0x4e, 0x7b, 0x7c, 0xbc,
+                            0xf2, 0x76, 0x1c, 0x1c, 0x7f, 0xc5, 0x53, 0x2f};
+
+    static const PRUint8 msg[] = {
+                            "Firefox and ThunderBird are awesome!"};
+
+    unsigned char sha1[SHA1_LENGTH];  
+    unsigned char sig[2*MAX_ECKEY_LEN];
+    SECItem signature, digest;
+    SECItem encodedparams;
+    ECParams *ecparams = NULL;
+    ECPrivateKey *ecdsa_private_key = NULL;
+    ECPublicKey ecdsa_public_key;
+    SECStatus ecdsaStatus = SECSuccess;
+
+    
+    encodedparams.type = siBuffer;
+    encodedparams.data = (unsigned char *) encodedParams;
+    encodedparams.len = encodedParamsLen;
+    
+    if (EC_DecodeParams(&encodedparams, &ecparams) != SECSuccess) {
+        return( CKR_DEVICE_ERROR );
+    }
+
+    
+
+
+
+
+    ecdsaStatus = EC_NewKeyFromSeed(ecparams, &ecdsa_private_key, 
+                                   ecdsa_Known_Seed, 
+                                   sizeof(ecdsa_Known_Seed));
+    
+    PORT_FreeArena(ecparams->arena, PR_FALSE);
+    ecparams = NULL;
+    if (ecdsaStatus != SECSuccess) {
+        return ( CKR_DEVICE_ERROR );    
+    }
+
+    
+    ecdsaStatus = EC_CopyParams(ecdsa_private_key->ecParams.arena, 
+                                &ecdsa_public_key.ecParams,
+                                &ecdsa_private_key->ecParams);
+    if (ecdsaStatus != SECSuccess) {
+        goto loser;
+    }
+    ecdsa_public_key.publicValue = ecdsa_private_key->publicValue;
+
+    
+    ecdsaStatus = EC_ValidatePublicKey(&ecdsa_public_key.ecParams, 
+                                       &ecdsa_public_key.publicValue);
+    if (ecdsaStatus != SECSuccess) {
+        goto loser;
+    }
+
+    
+    ecdsaStatus = EC_ValidatePublicKey(&ecdsa_private_key->ecParams, 
+                                       &ecdsa_private_key->publicValue);
+    if (ecdsaStatus != SECSuccess) {
+        goto loser;
+    }
+
+    
+    
+    
+    
+    ecdsaStatus = SHA1_HashBuf(sha1, msg, sizeof msg);
+    if (ecdsaStatus != SECSuccess) {
+        goto loser;
+    }
+    digest.type = siBuffer;
+    digest.data = sha1;
+    digest.len = SHA1_LENGTH;
+    
+    memset(sig, 0, sizeof sig);
+    signature.type = siBuffer;
+    signature.data = sig;
+    signature.len = sizeof sig;
+    
+    ecdsaStatus = ECDSA_SignDigestWithSeed(ecdsa_private_key, &signature, 
+                         &digest, ecdsa_Known_Seed, sizeof ecdsa_Known_Seed);
+    if (ecdsaStatus != SECSuccess) {
+        goto loser;
+    }
+
+    if( ( signature.len != knownSignatureLen ) ||
+        ( PORT_Memcmp( signature.data, knownSignature,
+                    knownSignatureLen ) != 0 ) ) {
+        ecdsaStatus = SECFailure;
+        goto loser;
+    }
+    
+    
+    
+    
+
+    
+    ecdsaStatus = ECDSA_VerifyDigest(&ecdsa_public_key, &signature, &digest);
+
+loser:
+    
+    if (ecdsa_private_key != NULL) {
+        PORT_FreeArena(ecdsa_private_key->ecParams.arena, PR_FALSE);
+    }
+
+    if (ecdsaStatus != SECSuccess) {
+        return CKR_DEVICE_ERROR ;
+    }
+    return( CKR_OK );
+}
+
+static CK_RV
+sftk_fips_ECDSA_PowerUpSelfTest() {
+
+   
+    static const PRUint8 ecdsa_known_P256_EncodedParams[] = {
+                            0x06,0x08,0x2a,0x86,0x48,0xce,0x3d,0x03,
+                            0x01,0x07};
+
+    static const PRUint8 ecdsa_known_P256_signature[] = {
+                            0x07,0xb1,0xcb,0x57,0x20,0xa7,0x10,0xd6, 
+                            0x9d,0x37,0x4b,0x1c,0xdc,0x35,0x90,0xff, 
+                            0x1a,0x2d,0x98,0x95,0x1b,0x2f,0xeb,0x7f, 
+                            0xbb,0x81,0xca,0xc0,0x69,0x75,0xea,0xc5,
+                            0x59,0x6a,0x62,0x49,0x3d,0x50,0xc9,0xe1, 
+                            0x27,0x3b,0xff,0x9b,0x13,0x66,0x67,0xdd, 
+                            0x7d,0xd1,0x0d,0x2d,0x7c,0x44,0x04,0x1b, 
+                            0x16,0x21,0x12,0xc5,0xcb,0xbd,0x9e,0x75};
+
+#ifdef NSS_ECC_MORE_THAN_SUITE_B
+    
+    static const PRUint8 ecdsa_known_K283_EncodedParams[] = {
+                            0x06,0x05,0x2b,0x81,0x04,0x00,0x10};
+                         
+    static const PRUint8 ecdsa_known_K283_signature[] = {
+                            0x00,0x45,0x88,0xc0,0x79,0x09,0x07,0xd1, 
+                            0x4e,0x88,0xe6,0xd5,0x2f,0x22,0x04,0x74, 
+                            0x35,0x24,0x65,0xe8,0x15,0xde,0x90,0x66, 
+                            0x94,0x70,0xdd,0x3a,0x14,0x70,0x02,0xd1,
+                            0xef,0x86,0xbd,0x15,0x00,0xd9,0xdc,0xfc, 
+                            0x87,0x2e,0x7c,0x99,0xe2,0xe3,0x79,0xb8, 
+                            0xd9,0x10,0x49,0x78,0x4b,0x59,0x8b,0x05, 
+                            0x77,0xec,0x6c,0xe8,0x35,0xe6,0x2e,0xa9,
+                            0xf9,0x77,0x1f,0x71,0x86,0xa5,0x4a,0xd0};
+#endif
+
+    CK_RV crv;
+
+    
+    crv = sftk_fips_ECDSA_Test(ecdsa_known_P256_EncodedParams,
+                               sizeof ecdsa_known_P256_EncodedParams,
+                               ecdsa_known_P256_signature,
+                               sizeof ecdsa_known_P256_signature );
+    if (crv != CKR_OK) {
+        return( CKR_DEVICE_ERROR );
+    }
+
+#ifdef NSS_ECC_MORE_THAN_SUITE_B
+    
+    crv = sftk_fips_ECDSA_Test(ecdsa_known_K283_EncodedParams,
+                               sizeof ecdsa_known_K283_EncodedParams,
+                               ecdsa_known_K283_signature,
+                               sizeof ecdsa_known_K283_signature );
+    if (crv != CKR_OK) {
+        return( CKR_DEVICE_ERROR );
+    }
+#endif
+
+    return( CKR_OK );
+}
+
+#endif    
+
+static CK_RV
+sftk_fips_DSA_PowerUpSelfTest( void )
+{
+    
+    static const PRUint8 dsa_P[] = {
+         0x80,0xb0,0xd1,0x9d,0x6e,0xa4,0xf3,0x28, 
+         0x9f,0x24,0xa9,0x8a,0x49,0xd0,0x0c,0x63, 
+         0xe8,0x59,0x04,0xf9,0x89,0x4a,0x5e,0xc0, 
+         0x6d,0xd2,0x67,0x6b,0x37,0x81,0x83,0x0c,
+         0xfe,0x3a,0x8a,0xfd,0xa0,0x3b,0x08,0x91, 
+         0x1c,0xcb,0xb5,0x63,0xb0,0x1c,0x70,0xd0, 
+         0xae,0xe1,0x60,0x2e,0x12,0xeb,0x54,0xc7, 
+         0xcf,0xc6,0xcc,0xae,0x97,0x52,0x32,0x63,
+         0xd3,0xeb,0x55,0xea,0x2f,0x4c,0xd5,0xd7, 
+         0x3f,0xda,0xec,0x49,0x27,0x0b,0x14,0x56, 
+         0xc5,0x09,0xbe,0x4d,0x09,0x15,0x75,0x2b, 
+         0xa3,0x42,0x0d,0x03,0x71,0xdf,0x0f,0xf4,
+         0x0e,0xe9,0x0c,0x46,0x93,0x3d,0x3f,0xa6, 
+         0x6c,0xdb,0xca,0xe5,0xac,0x96,0xc8,0x64, 
+         0x5c,0xec,0x4b,0x35,0x65,0xfc,0xfb,0x5a, 
+         0x1b,0x04,0x1b,0xa1,0x0e,0xfd,0x88,0x15};
+        
+    static const PRUint8 dsa_Q[] = {
+         0xad,0x22,0x59,0xdf,0xe5,0xec,0x4c,0x6e, 
+         0xf9,0x43,0xf0,0x4b,0x2d,0x50,0x51,0xc6, 
+         0x91,0x99,0x8b,0xcf};
+        
+    static const PRUint8 dsa_G[] = {
+         0x78,0x6e,0xa9,0xd8,0xcd,0x4a,0x85,0xa4, 
+         0x45,0xb6,0x6e,0x5d,0x21,0x50,0x61,0xf6, 
+         0x5f,0xdf,0x5c,0x7a,0xde,0x0d,0x19,0xd3, 
+         0xc1,0x3b,0x14,0xcc,0x8e,0xed,0xdb,0x17,
+         0xb6,0xca,0xba,0x86,0xa9,0xea,0x51,0x2d, 
+         0xc1,0xa9,0x16,0xda,0xf8,0x7b,0x59,0x8a, 
+         0xdf,0xcb,0xa4,0x67,0x00,0x44,0xea,0x24, 
+         0x73,0xe5,0xcb,0x4b,0xaf,0x2a,0x31,0x25,
+         0x22,0x28,0x3f,0x16,0x10,0x82,0xf7,0xeb, 
+         0x94,0x0d,0xdd,0x09,0x22,0x14,0x08,0x79, 
+         0xba,0x11,0x0b,0xf1,0xff,0x2d,0x67,0xac, 
+         0xeb,0xb6,0x55,0x51,0x69,0x97,0xa7,0x25,
+         0x6b,0x9c,0xa0,0x9b,0xd5,0x08,0x9b,0x27, 
+         0x42,0x1c,0x7a,0x69,0x57,0xe6,0x2e,0xed, 
+         0xa9,0x5b,0x25,0xe8,0x1f,0xd2,0xed,0x1f, 
+         0xdf,0xe7,0x80,0x17,0xba,0x0d,0x4d,0x38};
+
+    
+    
+    static const PRUint8 dsa_known_random_key_block[] = {
+                                                      "Mozilla Rules World!"};
+    static const PRUint8 dsa_known_random_signature_block[] = {
+                                                      "Random DSA Signature"};
+
+    
+    static const PRUint8 dsa_known_digest[] = { "DSA Signature Digest" };
+
+    
+    static const PRUint8 dsa_known_signature[] = {
+        0x25,0x7c,0x3a,0x79,0x32,0x45,0xb7,0x32, 
+        0x70,0xca,0x62,0x63,0x2b,0xf6,0x29,0x2c, 
+        0x22,0x2a,0x03,0xce,0x48,0x15,0x11,0x72, 
+        0x7b,0x7e,0xf5,0x7a,0xf3,0x10,0x3b,0xde,
+        0x34,0xc1,0x9e,0xd7,0x27,0x9e,0x77,0x38};
+
+    
+    DSAPrivateKey *        dsa_private_key;
+    SECStatus              dsa_status;
+    SECItem                dsa_signature_item;
+    SECItem                dsa_digest_item;
+    DSAPublicKey           dsa_public_key;
+    PRUint8                dsa_computed_signature[FIPS_DSA_SIGNATURE_LENGTH];
+    static const PQGParams dsa_pqg = { NULL,
+			    { FIPS_DSA_TYPE, (unsigned char *)dsa_P, FIPS_DSA_PRIME_LENGTH },
+			    { FIPS_DSA_TYPE, (unsigned char *)dsa_Q, FIPS_DSA_SUBPRIME_LENGTH },
+			    { FIPS_DSA_TYPE, (unsigned char *)dsa_G, FIPS_DSA_BASE_LENGTH }};
+
+    
+    
+    
+
+    
+    dsa_status = DSA_NewKeyFromSeed(&dsa_pqg, dsa_known_random_key_block,
+                                    &dsa_private_key);
+
+    if( dsa_status != SECSuccess )
+        return( CKR_HOST_MEMORY );
+
+    
+    dsa_public_key.params      = dsa_private_key->params;
+    dsa_public_key.publicValue = dsa_private_key->publicValue;
+
+    
+    
+    
+
+    dsa_signature_item.data = dsa_computed_signature;
+    dsa_signature_item.len  = sizeof dsa_computed_signature;
+
+    dsa_digest_item.data    = (unsigned char *)dsa_known_digest;
+    dsa_digest_item.len     = SHA1_LENGTH;
+
+    
+    dsa_status = DSA_SignDigestWithSeed( dsa_private_key, 
+                                         &dsa_signature_item,
+                                         &dsa_digest_item,
+                                         dsa_known_random_signature_block );
+
+    if( ( dsa_status != SECSuccess ) ||
+        ( dsa_signature_item.len != FIPS_DSA_SIGNATURE_LENGTH ) ||
+        ( PORT_Memcmp( dsa_computed_signature, dsa_known_signature,
+                       FIPS_DSA_SIGNATURE_LENGTH ) != 0 ) ) {
+        dsa_status = SECFailure;
+    } else {
+
+    
+    
+    
+
+    
+    dsa_status = DSA_VerifyDigest( &dsa_public_key, 
+                                   &dsa_signature_item,
+                                   &dsa_digest_item);
+    }
+
+    PORT_FreeArena(dsa_private_key->params.arena, PR_TRUE);
+    
+
+    
+    if( dsa_status != SECSuccess )
+        return( CKR_DEVICE_ERROR );
+
+    return( CKR_OK );
+
+
+}
+
+static CK_RV
+sftk_fips_RNG_PowerUpSelfTest( void )
+{
+   static const PRUint8 XKeyValue[] = {
+                     0x8d,0xf2,0xa4,0x94,0x49,0x22,0x76,0xaa,
+                     0x3d,0x25,0x75,0x9b,0xb0,0x68,0x69,0xcb,
+                     0xea,0xc0,0xd8,0x3a,0xfb,0x8d,0x0c,0xf7,
+                     0xcb,0xb8,0x32,0x4f,0x0d,0x78,0x82,0xe5};
+   static const PRUint8 XSeed[] = {
+                     0xea,0xc0,0xd8,0x3a,0xfb,0x8d,0x0c,0xf7,
+                     0xcb,0xb8,0x32,0x4f,0x0d,0x78,0x82,0xe5,
+                     0xd0,0x76,0x2f,0xc5,0xb7,0x21,0x0e,0xaf,
+                     0xc2,0xe9,0xad,0xac,0x32,0xab,0x7a,0xac};
+   static const PRUint8 Q[] = {   
+                     0x85,0x89,0x9c,0x77,0xa3,0x79,0xff,0x1a,
+                     0x86,0x6f,0x2f,0x3e,0x2e,0xf9,0x8c,0x9c,
+                     0x9d,0xef,0xeb,0xed};
+   static const PRUint8 rng_known_GENX[] = {
+                     0x65,0x48,0xe3,0xca,0xac,0x64,0x2d,0xf7,
+                     0x7b,0xd3,0x4e,0x79,0xc9,0x7d,0xa6,0xa8,
+                     0xa2,0xc2,0x1f,0x8f,0xe9,0xb9,0xd3,0xa1,
+                     0x3f,0xf7,0x0c,0xcd,0xa6,0xca,0xbf,0xce,
+                     0x84,0x0e,0xb6,0xf1,0x0d,0xbe,0xa9,0xa3};
+   static const PRUint8 rng_known_DSAX[] = {
+                     0x7a,0x86,0xf1,0x7f,0xbd,0x4e,0x6e,0xd9,
+                     0x0a,0x26,0x21,0xd0,0x19,0xcb,0x86,0x73,
+                     0x10,0x1f,0x60,0xd7};
+
+   SECStatus rng_status = SECSuccess;
+   PRUint8 GENX[2*SHA1_LENGTH];
+   PRUint8 DSAX[FIPS_DSA_SUBPRIME_LENGTH];
+   PRUint8 XKey[FIPS_RNG_XKEY_LENGTH];
+  
+   PORT_Memcpy (XKey, XKeyValue, FIPS_RNG_XKEY_LENGTH);
+   
+   
+   
+   
+   rng_status = FIPS186Change_GenerateX(XKey, XSeed, GENX);
+
+   
+   if( ( rng_status != SECSuccess ) ||
+       ( PORT_Memcmp( GENX, rng_known_GENX,
+                      (2*SHA1_LENGTH) ) != 0 ) )
+       return( CKR_DEVICE_ERROR );
+
+   
+   
+   
+
+   rng_status = FIPS186Change_ReduceModQForDSA(GENX, Q, DSAX);
+
+   
+   if( ( rng_status != SECSuccess ) ||
+       ( PORT_Memcmp( DSAX, rng_known_DSAX,
+                      (FIPS_DSA_SUBPRIME_LENGTH) ) != 0 ) )
+       return( CKR_DEVICE_ERROR );
+       
+   return( CKR_OK ); 
+}
+
+static CK_RV
+sftk_fipsSoftwareIntegrityTest(void)
+{
+    CK_RV crv = CKR_OK;
+
+    
+    if( !BLAPI_VerifySelf( NULL ) || 
+	!BLAPI_SHVerify( SOFTOKEN_LIB_NAME, (PRFuncPtr) sftk_fips_HMAC ) ) {
+	crv = CKR_DEVICE_ERROR; 
+    }
+    return crv;
+}
+
+CK_RV
+sftk_fipsPowerUpSelfTest( void )
+{
+    CK_RV rv;
+
+    
+    rv = sftk_fips_RC2_PowerUpSelfTest();
+
+    if( rv != CKR_OK )
+        return rv;
+
+    
+    rv = sftk_fips_RC4_PowerUpSelfTest();
+
+    if( rv != CKR_OK )
+        return rv;
+
+    
+    rv = sftk_fips_DES_PowerUpSelfTest();
+
+    if( rv != CKR_OK )
+        return rv;
+
+    
+    rv = sftk_fips_DES3_PowerUpSelfTest();
+
+    if( rv != CKR_OK )
+        return rv;
+ 
+    
+    rv = sftk_fips_AES_PowerUpSelfTest(FIPS_AES_128_KEY_SIZE);
+
+    if( rv != CKR_OK )
+        return rv;
+
+    
+    rv = sftk_fips_AES_PowerUpSelfTest(FIPS_AES_192_KEY_SIZE);
+
+    if( rv != CKR_OK )
+        return rv;
+
+    
+    rv = sftk_fips_AES_PowerUpSelfTest(FIPS_AES_256_KEY_SIZE);
+
+    if( rv != CKR_OK )
+        return rv;
+
+    
+    rv = sftk_fips_MD2_PowerUpSelfTest();
+
+    if( rv != CKR_OK )
+        return rv;
+
+    
+    rv = sftk_fips_MD5_PowerUpSelfTest();
+
+    if( rv != CKR_OK )
+        return rv;
+
+    
+    rv = sftk_fips_SHA_PowerUpSelfTest();
+
+    if( rv != CKR_OK )
+        return rv;
+
+    
+    rv = sftk_fips_HMAC_PowerUpSelfTest();
+ 
+    if( rv != CKR_OK )
+        return rv;
+
+    
+    rv = sftk_fips_RSA_PowerUpSelfTest();
+
+    if( rv != CKR_OK )
+        return rv;
+
+    
+    rv = sftk_fips_DSA_PowerUpSelfTest();
+
+    if( rv != CKR_OK )
+        return rv;
+
+    
+    rv = sftk_fips_RNG_PowerUpSelfTest();
+
+    if( rv != CKR_OK )
+        return rv;
+    
+#ifdef NSS_ENABLE_ECC
+    
+    rv = sftk_fips_ECDSA_PowerUpSelfTest();
+
+    if( rv != CKR_OK )
+        return rv;
+#endif
+
+    
+    rv = sftk_fipsSoftwareIntegrityTest();
+
+    if( rv != CKR_OK )
+        return rv;
+
+    
+    return( CKR_OK );
+}
+

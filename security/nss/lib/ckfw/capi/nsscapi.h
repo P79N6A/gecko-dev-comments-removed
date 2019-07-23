@@ -1,0 +1,75 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#ifndef NSSCAPI_H
+#define NSSCAPI_H
+
+
+
+
+
+
+
+
+
+
+
+#define NSS_CKCAPI_CRYPTOKI_VERSION_MAJOR 2
+#define NSS_CKCAPI_CRYPTOKI_VERSION_MINOR 20
+
+
+
+
+
+
+
+
+#define NSS_CKCAPI_LIBRARY_VERSION_MAJOR 1
+#define NSS_CKCAPI_LIBRARY_VERSION_MINOR 1
+#define NSS_CKCAPI_LIBRARY_VERSION "1.1"
+
+
+#define NSS_CKCAPI_HARDWARE_VERSION_MAJOR 1
+#define NSS_CKCAPI_HARDWARE_VERSION_MINOR 0
+
+
+
+#define NSS_CKCAPI_FIRMWARE_VERSION_MAJOR 1
+#define NSS_CKCAPI_FIRMWARE_VERSION_MINOR 0
+
+#endif 

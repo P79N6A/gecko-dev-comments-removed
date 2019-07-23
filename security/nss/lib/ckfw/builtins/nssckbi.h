@@ -1,0 +1,90 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#ifndef NSSCKBI_H
+#define NSSCKBI_H
+
+
+
+
+
+
+
+
+
+
+
+#define NSS_BUILTINS_CRYPTOKI_VERSION_MAJOR 2
+#define NSS_BUILTINS_CRYPTOKI_VERSION_MINOR 20
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#define NSS_BUILTINS_LIBRARY_VERSION_MAJOR 1
+#define NSS_BUILTINS_LIBRARY_VERSION_MINOR 70
+#define NSS_BUILTINS_LIBRARY_VERSION "1.70"
+
+
+#define NSS_BUILTINS_HARDWARE_VERSION_MAJOR 1
+#define NSS_BUILTINS_HARDWARE_VERSION_MINOR 0
+
+
+
+#define NSS_BUILTINS_FIRMWARE_VERSION_MAJOR 1
+#define NSS_BUILTINS_FIRMWARE_VERSION_MINOR 0
+
+#endif 

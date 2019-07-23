@@ -1,0 +1,1059 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#ifdef DEBUG
+static const char CVS_ID[] = "@(#) $RCSfile: object.c,v $ $Revision: 1.15 $ $Date: 2007/12/12 00:41:37 $";
+#endif 
+
+
+
+
+
+
+
+#ifndef CK_T
+#include "ck.h"
+#endif 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+struct NSSCKFWObjectStr {
+  NSSCKFWMutex *mutex; 
+  NSSArena *arena;
+  NSSCKMDObject *mdObject;
+  NSSCKMDSession *mdSession;
+  NSSCKFWSession *fwSession;
+  NSSCKMDToken *mdToken;
+  NSSCKFWToken *fwToken;
+  NSSCKMDInstance *mdInstance;
+  NSSCKFWInstance *fwInstance;
+  CK_OBJECT_HANDLE hObject;
+};
+
+#ifdef DEBUG
+
+
+
+
+
+
+
+
+
+
+
+static CK_RV
+object_add_pointer
+(
+  const NSSCKFWObject *fwObject
+)
+{
+  return CKR_OK;
+}
+
+static CK_RV
+object_remove_pointer
+(
+  const NSSCKFWObject *fwObject
+)
+{
+  return CKR_OK;
+}
+
+NSS_IMPLEMENT CK_RV
+nssCKFWObject_verifyPointer
+(
+  const NSSCKFWObject *fwObject
+)
+{
+  return CKR_OK;
+}
+
+#endif 
+
+
+
+
+
+
+NSS_IMPLEMENT NSSCKFWObject *
+nssCKFWObject_Create
+(
+  NSSArena *arena,
+  NSSCKMDObject *mdObject,
+  NSSCKFWSession *fwSession,
+  NSSCKFWToken *fwToken,
+  NSSCKFWInstance *fwInstance,
+  CK_RV *pError
+)
+{
+  NSSCKFWObject *fwObject;
+  nssCKFWHash *mdObjectHash;
+
+#ifdef NSSDEBUG
+  if( (CK_RV *)NULL == pError ) {
+    return (NSSCKFWObject *)NULL;
+  }
+
+  if( PR_SUCCESS != nssArena_verifyPointer(arena) ) {
+    *pError = CKR_ARGUMENTS_BAD;
+    return (NSSCKFWObject *)NULL;
+  }
+#endif 
+
+  if( (NSSCKFWToken *)NULL == fwToken ) {
+    *pError = CKR_ARGUMENTS_BAD;
+    return (NSSCKFWObject *)NULL;
+  }
+  mdObjectHash = nssCKFWToken_GetMDObjectHash(fwToken);
+  if( (nssCKFWHash *)NULL == mdObjectHash ) {
+    *pError = CKR_GENERAL_ERROR;
+    return (NSSCKFWObject *)NULL;
+  }
+
+  if( nssCKFWHash_Exists(mdObjectHash, mdObject) ) {
+    fwObject = nssCKFWHash_Lookup(mdObjectHash, mdObject);
+    return fwObject;
+  }
+
+  fwObject = nss_ZNEW(arena, NSSCKFWObject);
+  if( (NSSCKFWObject *)NULL == fwObject ) {
+    *pError = CKR_HOST_MEMORY;
+    return (NSSCKFWObject *)NULL;
+  }
+
+  fwObject->arena = arena;
+  fwObject->mdObject = mdObject;
+  fwObject->fwSession = fwSession;
+
+  if( (NSSCKFWSession *)NULL != fwSession ) {
+    fwObject->mdSession = nssCKFWSession_GetMDSession(fwSession);
+  }
+
+  fwObject->fwToken = fwToken;
+  fwObject->mdToken = nssCKFWToken_GetMDToken(fwToken);
+  fwObject->fwInstance = fwInstance;
+  fwObject->mdInstance = nssCKFWInstance_GetMDInstance(fwInstance);
+  fwObject->mutex = nssCKFWInstance_CreateMutex(fwInstance, arena, pError);
+  if( (NSSCKFWMutex *)NULL == fwObject->mutex ) {
+    if( CKR_OK == *pError ) {
+      *pError = CKR_GENERAL_ERROR;
+    }
+    return (NSSCKFWObject *)NULL;
+  }
+
+  *pError = nssCKFWHash_Add(mdObjectHash, mdObject, fwObject);
+  if( CKR_OK != *pError ) {
+    nss_ZFreeIf(fwObject);
+    return (NSSCKFWObject *)NULL;
+  }
+
+#ifdef DEBUG
+  *pError = object_add_pointer(fwObject);
+  if( CKR_OK != *pError ) {
+    nssCKFWHash_Remove(mdObjectHash, mdObject);
+    nss_ZFreeIf(fwObject);
+    return (NSSCKFWObject *)NULL;
+  }
+#endif 
+
+  *pError = CKR_OK;
+  return fwObject;
+}
+
+
+
+
+
+NSS_IMPLEMENT void
+nssCKFWObject_Finalize
+(
+  NSSCKFWObject *fwObject,
+  PRBool removeFromHash
+)
+{
+  nssCKFWHash *mdObjectHash;
+
+#ifdef NSSDEBUG
+  if( CKR_OK != nssCKFWObject_verifyPointer(fwObject) ) {
+    return;
+  }
+#endif 
+
+  (void)nssCKFWMutex_Destroy(fwObject->mutex);
+
+  if( (void *)NULL != (void *)fwObject->mdObject->Finalize ) {
+    fwObject->mdObject->Finalize(fwObject->mdObject, fwObject,
+      fwObject->mdSession, fwObject->fwSession, fwObject->mdToken,
+      fwObject->fwToken, fwObject->mdInstance, fwObject->fwInstance);
+  }
+
+  if (removeFromHash) {
+    mdObjectHash = nssCKFWToken_GetMDObjectHash(fwObject->fwToken);
+    if( (nssCKFWHash *)NULL != mdObjectHash ) {
+      nssCKFWHash_Remove(mdObjectHash, fwObject->mdObject);
+    }
+ }
+
+  if (fwObject->fwSession) {
+    nssCKFWSession_DeregisterSessionObject(fwObject->fwSession, fwObject);
+  }
+  nss_ZFreeIf(fwObject);
+
+#ifdef DEBUG
+  (void)object_remove_pointer(fwObject);
+#endif 
+
+  return;
+}
+
+
+
+
+
+NSS_IMPLEMENT void
+nssCKFWObject_Destroy
+(
+  NSSCKFWObject *fwObject
+)
+{
+  nssCKFWHash *mdObjectHash;
+
+#ifdef NSSDEBUG
+  if( CKR_OK != nssCKFWObject_verifyPointer(fwObject) ) {
+    return;
+  }
+#endif 
+
+  (void)nssCKFWMutex_Destroy(fwObject->mutex);
+
+  if( (void *)NULL != (void *)fwObject->mdObject->Destroy ) {
+    fwObject->mdObject->Destroy(fwObject->mdObject, fwObject,
+      fwObject->mdSession, fwObject->fwSession, fwObject->mdToken,
+      fwObject->fwToken, fwObject->mdInstance, fwObject->fwInstance);
+  }
+
+  mdObjectHash = nssCKFWToken_GetMDObjectHash(fwObject->fwToken);
+  if( (nssCKFWHash *)NULL != mdObjectHash ) {
+    nssCKFWHash_Remove(mdObjectHash, fwObject->mdObject);
+  }
+
+  if (fwObject->fwSession) {
+    nssCKFWSession_DeregisterSessionObject(fwObject->fwSession, fwObject);
+  }
+  nss_ZFreeIf(fwObject);
+
+#ifdef DEBUG
+  (void)object_remove_pointer(fwObject);
+#endif 
+
+  return;
+}
+
+
+
+
+
+NSS_IMPLEMENT NSSCKMDObject *
+nssCKFWObject_GetMDObject
+(
+  NSSCKFWObject *fwObject
+)
+{
+#ifdef NSSDEBUG
+  if( CKR_OK != nssCKFWObject_verifyPointer(fwObject) ) {
+    return (NSSCKMDObject *)NULL;
+  }
+#endif 
+
+  return fwObject->mdObject;
+}
+
+
+
+
+
+NSS_IMPLEMENT NSSArena *
+nssCKFWObject_GetArena
+(
+  NSSCKFWObject *fwObject,
+  CK_RV *pError
+)
+{
+#ifdef NSSDEBUG
+  if( (CK_RV *)NULL == pError ) {
+    return (NSSArena *)NULL;
+  }
+
+  *pError = nssCKFWObject_verifyPointer(fwObject);
+  if( CKR_OK != *pError ) {
+    return (NSSArena *)NULL;
+  }
+#endif 
+
+  return fwObject->arena;
+}
+
+
+
+
+
+NSS_IMPLEMENT CK_RV
+nssCKFWObject_SetHandle
+(
+  NSSCKFWObject *fwObject,
+  CK_OBJECT_HANDLE hObject
+)
+{
+#ifdef NSSDEBUG
+  CK_RV error = CKR_OK;
+#endif 
+
+#ifdef NSSDEBUG
+  error = nssCKFWObject_verifyPointer(fwObject);
+  if( CKR_OK != error ) {
+    return error;
+  }
+#endif 
+
+  if( (CK_OBJECT_HANDLE)0 != fwObject->hObject ) {
+    return CKR_GENERAL_ERROR;
+  }
+
+  fwObject->hObject = hObject;
+
+  return CKR_OK;
+}
+
+
+
+
+
+NSS_IMPLEMENT CK_OBJECT_HANDLE
+nssCKFWObject_GetHandle
+(
+  NSSCKFWObject *fwObject
+)
+{
+#ifdef NSSDEBUG
+  if( CKR_OK != nssCKFWObject_verifyPointer(fwObject) ) {
+    return (CK_OBJECT_HANDLE)0;
+  }
+#endif 
+
+  return fwObject->hObject;
+}
+
+
+
+
+
+NSS_IMPLEMENT CK_BBOOL
+nssCKFWObject_IsTokenObject
+(
+  NSSCKFWObject *fwObject
+)
+{
+  CK_BBOOL b = CK_FALSE;
+
+#ifdef NSSDEBUG
+  if( CKR_OK != nssCKFWObject_verifyPointer(fwObject) ) {
+    return CK_FALSE;
+  }
+#endif 
+
+  if( (void *)NULL == (void *)fwObject->mdObject->IsTokenObject ) {
+    NSSItem item;
+    NSSItem *pItem;
+    CK_RV rv = CKR_OK;
+
+    item.data = (void *)&b;
+    item.size = sizeof(b);
+
+    pItem = nssCKFWObject_GetAttribute(fwObject, CKA_TOKEN, &item, 
+      (NSSArena *)NULL, &rv);
+    if( (NSSItem *)NULL == pItem ) {
+      
+      b = CK_FALSE;
+      goto done;
+    }
+
+    goto done;
+  }
+
+  b = fwObject->mdObject->IsTokenObject(fwObject->mdObject, fwObject, 
+    fwObject->mdSession, fwObject->fwSession, fwObject->mdToken,
+    fwObject->fwToken, fwObject->mdInstance, fwObject->fwInstance);
+
+ done:
+  return b;
+}
+
+
+
+
+
+NSS_IMPLEMENT CK_ULONG
+nssCKFWObject_GetAttributeCount
+(
+  NSSCKFWObject *fwObject,
+  CK_RV *pError
+)
+{
+  CK_ULONG rv;
+
+#ifdef NSSDEBUG
+  if( (CK_RV *)NULL == pError ) {
+    return (CK_ULONG)0;
+  }
+
+  *pError = nssCKFWObject_verifyPointer(fwObject);
+  if( CKR_OK != *pError ) {
+    return (CK_ULONG)0;
+  }
+#endif 
+
+  if( (void *)NULL == (void *)fwObject->mdObject->GetAttributeCount ) {
+    *pError = CKR_GENERAL_ERROR;
+    return (CK_ULONG)0;
+  }
+
+  *pError = nssCKFWMutex_Lock(fwObject->mutex);
+  if( CKR_OK != *pError ) {
+    return (CK_ULONG)0;
+  }
+
+  rv = fwObject->mdObject->GetAttributeCount(fwObject->mdObject, fwObject,
+    fwObject->mdSession, fwObject->fwSession, fwObject->mdToken, 
+    fwObject->fwToken, fwObject->mdInstance, fwObject->fwInstance,
+    pError);
+
+  (void)nssCKFWMutex_Unlock(fwObject->mutex);
+  return rv;
+}
+
+
+
+
+
+NSS_IMPLEMENT CK_RV
+nssCKFWObject_GetAttributeTypes
+(
+  NSSCKFWObject *fwObject,
+  CK_ATTRIBUTE_TYPE_PTR typeArray,
+  CK_ULONG ulCount
+)
+{
+  CK_RV error = CKR_OK;
+
+#ifdef NSSDEBUG
+  error = nssCKFWObject_verifyPointer(fwObject);
+  if( CKR_OK != error ) {
+    return error;
+  }
+
+  if( (CK_ATTRIBUTE_TYPE_PTR)NULL == typeArray ) {
+    return CKR_ARGUMENTS_BAD;
+  }
+#endif 
+
+  if( (void *)NULL == (void *)fwObject->mdObject->GetAttributeTypes ) {
+    return CKR_GENERAL_ERROR;
+  }
+
+  error = nssCKFWMutex_Lock(fwObject->mutex);
+  if( CKR_OK != error ) {
+    return error;
+  }
+
+  error = fwObject->mdObject->GetAttributeTypes(fwObject->mdObject, fwObject,
+    fwObject->mdSession, fwObject->fwSession, fwObject->mdToken, 
+    fwObject->fwToken, fwObject->mdInstance, fwObject->fwInstance,
+    typeArray, ulCount);
+
+  (void)nssCKFWMutex_Unlock(fwObject->mutex);
+  return error;
+}
+
+
+
+
+
+NSS_IMPLEMENT CK_ULONG
+nssCKFWObject_GetAttributeSize
+(
+  NSSCKFWObject *fwObject,
+  CK_ATTRIBUTE_TYPE attribute,
+  CK_RV *pError
+)
+{
+  CK_ULONG rv;
+
+#ifdef NSSDEBUG
+  if( (CK_RV *)NULL == pError ) {
+    return (CK_ULONG)0;
+  }
+
+  *pError = nssCKFWObject_verifyPointer(fwObject);
+  if( CKR_OK != *pError ) {
+    return (CK_ULONG)0;
+  }
+#endif 
+
+  if( (void *)NULL == (void *)fwObject->mdObject->GetAttributeSize ) {
+    *pError = CKR_GENERAL_ERROR;
+    return (CK_ULONG )0;
+  }
+
+  *pError = nssCKFWMutex_Lock(fwObject->mutex);
+  if( CKR_OK != *pError ) {
+    return (CK_ULONG)0;
+  }
+
+  rv = fwObject->mdObject->GetAttributeSize(fwObject->mdObject, fwObject,
+    fwObject->mdSession, fwObject->fwSession, fwObject->mdToken, 
+    fwObject->fwToken, fwObject->mdInstance, fwObject->fwInstance,
+    attribute, pError);
+
+  (void)nssCKFWMutex_Unlock(fwObject->mutex);
+  return rv;
+}
+
+
+
+
+
+
+
+
+
+
+
+NSS_IMPLEMENT NSSItem *
+nssCKFWObject_GetAttribute
+(
+  NSSCKFWObject *fwObject,
+  CK_ATTRIBUTE_TYPE attribute,
+  NSSItem *itemOpt,
+  NSSArena *arenaOpt,
+  CK_RV *pError
+)
+{
+  NSSItem *rv = (NSSItem *)NULL;
+  NSSCKFWItem mdItem;
+
+#ifdef NSSDEBUG
+  if( (CK_RV *)NULL == pError ) {
+    return (NSSItem *)NULL;
+  }
+
+  *pError = nssCKFWObject_verifyPointer(fwObject);
+  if( CKR_OK != *pError ) {
+    return (NSSItem *)NULL;
+  }
+#endif 
+
+  if( (void *)NULL == (void *)fwObject->mdObject->GetAttribute ) {
+    *pError = CKR_GENERAL_ERROR;
+    return (NSSItem *)NULL;
+  }
+
+  *pError = nssCKFWMutex_Lock(fwObject->mutex);
+  if( CKR_OK != *pError ) {
+    return (NSSItem *)NULL;
+  }
+
+  mdItem = fwObject->mdObject->GetAttribute(fwObject->mdObject, fwObject,
+    fwObject->mdSession, fwObject->fwSession, fwObject->mdToken, 
+    fwObject->fwToken, fwObject->mdInstance, fwObject->fwInstance,
+    attribute, pError);
+
+  if( (NSSItem *)NULL == mdItem.item ) {
+    if( CKR_OK == *pError ) {
+      *pError = CKR_GENERAL_ERROR;
+    }
+
+    goto done;
+  }
+
+  if( (NSSItem *)NULL == itemOpt ) {
+    rv = nss_ZNEW(arenaOpt, NSSItem);
+    if( (NSSItem *)NULL == rv ) {
+      *pError = CKR_HOST_MEMORY;
+      goto done;
+    }
+  } else {
+    rv = itemOpt;
+  }
+
+  if( (void *)NULL == rv->data ) {
+    rv->size = mdItem.item->size;
+    rv->data = nss_ZAlloc(arenaOpt, rv->size);
+    if( (void *)NULL == rv->data ) {
+      *pError = CKR_HOST_MEMORY;
+      if( (NSSItem *)NULL == itemOpt ) {
+        nss_ZFreeIf(rv);
+      }
+      rv = (NSSItem *)NULL;
+      goto done;
+    }
+  } else {
+    if( rv->size >= mdItem.item->size ) {
+      rv->size = mdItem.item->size;
+    } else {
+      *pError = CKR_BUFFER_TOO_SMALL;
+      
+      
+      rv = (NSSItem *)NULL;
+      goto done;
+    }
+  }
+
+  (void)nsslibc_memcpy(rv->data, mdItem.item->data, rv->size);
+
+  if (PR_TRUE == mdItem.needsFreeing) {
+    PR_ASSERT(fwObject->mdObject->FreeAttribute);
+    if (fwObject->mdObject->FreeAttribute) {
+      *pError = fwObject->mdObject->FreeAttribute(&mdItem);
+    }
+  }
+
+ done:
+  (void)nssCKFWMutex_Unlock(fwObject->mutex);
+  return rv;
+}
+
+
+
+
+
+NSS_IMPLEMENT CK_RV
+nssCKFWObject_SetAttribute
+(
+  NSSCKFWObject *fwObject,
+  NSSCKFWSession *fwSession,
+  CK_ATTRIBUTE_TYPE attribute,
+  NSSItem *value
+)
+{
+  CK_RV error = CKR_OK;
+
+#ifdef NSSDEBUG
+  error = nssCKFWObject_verifyPointer(fwObject);
+  if( CKR_OK != error ) {
+    return error;
+  }
+#endif 
+
+  if( CKA_TOKEN == attribute ) {
+    
+
+
+
+
+    CK_ATTRIBUTE a;
+    NSSCKFWObject *newFwObject;
+    NSSCKFWObject swab;
+
+    a.type = CKA_TOKEN;
+    a.pValue = value->data;
+    a.ulValueLen = value->size;
+
+    newFwObject = nssCKFWSession_CopyObject(fwSession, fwObject,
+                    &a, 1, &error);
+    if( (NSSCKFWObject *)NULL == newFwObject ) {
+      if( CKR_OK == error ) {
+        error = CKR_GENERAL_ERROR;
+      }
+      return error;
+    }
+
+    
+
+
+
+    error = nssCKFWMutex_Lock(fwObject->mutex);
+    if( CKR_OK != error ) {
+      nssCKFWObject_Destroy(newFwObject);
+      return error;
+    }
+
+    error = nssCKFWMutex_Lock(newFwObject->mutex);
+    if( CKR_OK != error ) {
+      nssCKFWMutex_Unlock(fwObject->mutex);
+      nssCKFWObject_Destroy(newFwObject);
+      return error;
+    }
+
+    
+
+
+
+    swab = *fwObject;
+    *fwObject = *newFwObject;
+    *newFwObject = swab;
+
+    
+    swab.mutex = fwObject->mutex;
+    fwObject->mutex = newFwObject->mutex;
+    newFwObject->mutex = swab.mutex;
+
+    (void)nssCKFWMutex_Unlock(newFwObject->mutex);
+    (void)nssCKFWMutex_Unlock(fwObject->mutex);
+
+    
+
+
+
+    if( CK_FALSE == *(CK_BBOOL *)value->data ) {
+      
+
+
+
+      nssCKFWSession_RegisterSessionObject(fwSession, fwObject);
+    } else {
+      
+
+
+
+      if (fwObject->fwSession) {
+        nssCKFWSession_DeregisterSessionObject(fwObject->fwSession, fwObject);
+      }
+    }
+
+    
+
+
+    nssCKFWObject_Destroy(newFwObject);
+
+    return CKR_OK;
+  } else {
+    
+
+
+    if( (void *)NULL == (void *)fwObject->mdObject->SetAttribute ) {
+      
+      return CKR_ATTRIBUTE_READ_ONLY;
+    }
+
+    error = nssCKFWMutex_Lock(fwObject->mutex);
+    if( CKR_OK != error ) {
+      return error;
+    }
+
+    error = fwObject->mdObject->SetAttribute(fwObject->mdObject, fwObject,
+      fwObject->mdSession, fwObject->fwSession, fwObject->mdToken, 
+      fwObject->fwToken, fwObject->mdInstance, fwObject->fwInstance,
+      attribute, value);
+
+    (void)nssCKFWMutex_Unlock(fwObject->mutex);
+
+    return error;
+  }
+}
+
+
+
+
+
+NSS_IMPLEMENT CK_ULONG
+nssCKFWObject_GetObjectSize
+(
+  NSSCKFWObject *fwObject,
+  CK_RV *pError
+)
+{
+  CK_ULONG rv;
+
+#ifdef NSSDEBUG
+  if( (CK_RV *)NULL == pError ) {
+    return (CK_ULONG)0;
+  }
+
+  *pError = nssCKFWObject_verifyPointer(fwObject);
+  if( CKR_OK != *pError ) {
+    return (CK_ULONG)0;
+  }
+#endif 
+
+  if( (void *)NULL == (void *)fwObject->mdObject->GetObjectSize ) {
+    *pError = CKR_INFORMATION_SENSITIVE;
+    return (CK_ULONG)0;
+  }
+
+  *pError = nssCKFWMutex_Lock(fwObject->mutex);
+  if( CKR_OK != *pError ) {
+    return (CK_ULONG)0;
+  }
+
+  rv = fwObject->mdObject->GetObjectSize(fwObject->mdObject, fwObject,
+    fwObject->mdSession, fwObject->fwSession, fwObject->mdToken, 
+    fwObject->fwToken, fwObject->mdInstance, fwObject->fwInstance,
+    pError);
+
+  (void)nssCKFWMutex_Unlock(fwObject->mutex);
+  return rv;
+}
+
+
+
+
+
+NSS_IMPLEMENT NSSCKMDObject *
+NSSCKFWObject_GetMDObject
+(
+  NSSCKFWObject *fwObject
+)
+{
+#ifdef DEBUG
+  if( CKR_OK != nssCKFWObject_verifyPointer(fwObject) ) {
+    return (NSSCKMDObject *)NULL;
+  }
+#endif 
+
+  return nssCKFWObject_GetMDObject(fwObject);
+}
+
+
+
+
+
+NSS_IMPLEMENT NSSArena *
+NSSCKFWObject_GetArena
+(
+  NSSCKFWObject *fwObject,
+  CK_RV *pError
+)
+{
+#ifdef DEBUG
+  if( (CK_RV *)NULL == pError ) {
+    return (NSSArena *)NULL;
+  }
+
+  *pError = nssCKFWObject_verifyPointer(fwObject);
+  if( CKR_OK != *pError ) {
+    return (NSSArena *)NULL;
+  }
+#endif 
+
+  return nssCKFWObject_GetArena(fwObject, pError);
+}
+
+
+
+
+
+NSS_IMPLEMENT CK_BBOOL
+NSSCKFWObject_IsTokenObject
+(
+  NSSCKFWObject *fwObject
+)
+{
+#ifdef DEBUG
+  if( CKR_OK != nssCKFWObject_verifyPointer(fwObject) ) {
+    return CK_FALSE;
+  }
+#endif 
+
+  return nssCKFWObject_IsTokenObject(fwObject);
+}
+
+
+
+
+
+NSS_IMPLEMENT CK_ULONG
+NSSCKFWObject_GetAttributeCount
+(
+  NSSCKFWObject *fwObject,
+  CK_RV *pError
+)
+{
+#ifdef DEBUG
+  if( (CK_RV *)NULL == pError ) {
+    return (CK_ULONG)0;
+  }
+
+  *pError = nssCKFWObject_verifyPointer(fwObject);
+  if( CKR_OK != *pError ) {
+    return (CK_ULONG)0;
+  }
+#endif 
+
+  return nssCKFWObject_GetAttributeCount(fwObject, pError);
+}
+
+
+
+
+
+NSS_IMPLEMENT CK_RV
+NSSCKFWObject_GetAttributeTypes
+(
+  NSSCKFWObject *fwObject,
+  CK_ATTRIBUTE_TYPE_PTR typeArray,
+  CK_ULONG ulCount
+)
+{
+#ifdef DEBUG
+  CK_RV error = CKR_OK;
+
+  error = nssCKFWObject_verifyPointer(fwObject);
+  if( CKR_OK != error ) {
+    return error;
+  }
+
+  if( (CK_ATTRIBUTE_TYPE_PTR)NULL == typeArray ) {
+    return CKR_ARGUMENTS_BAD;
+  }
+#endif 
+
+  return nssCKFWObject_GetAttributeTypes(fwObject, typeArray, ulCount);
+}
+
+
+
+
+
+NSS_IMPLEMENT CK_ULONG
+NSSCKFWObject_GetAttributeSize
+(
+  NSSCKFWObject *fwObject,
+  CK_ATTRIBUTE_TYPE attribute,
+  CK_RV *pError
+)
+{
+#ifdef DEBUG
+  if( (CK_RV *)NULL == pError ) {
+    return (CK_ULONG)0;
+  }
+
+  *pError = nssCKFWObject_verifyPointer(fwObject);
+  if( CKR_OK != *pError ) {
+    return (CK_ULONG)0;
+  }
+#endif 
+
+  return nssCKFWObject_GetAttributeSize(fwObject, attribute, pError);
+}
+
+
+
+
+
+NSS_IMPLEMENT NSSItem *
+NSSCKFWObject_GetAttribute
+(
+  NSSCKFWObject *fwObject,
+  CK_ATTRIBUTE_TYPE attribute,
+  NSSItem *itemOpt,
+  NSSArena *arenaOpt,
+  CK_RV *pError
+)
+{
+#ifdef DEBUG
+  if( (CK_RV *)NULL == pError ) {
+    return (NSSItem *)NULL;
+  }
+
+  *pError = nssCKFWObject_verifyPointer(fwObject);
+  if( CKR_OK != *pError ) {
+    return (NSSItem *)NULL;
+  }
+#endif 
+
+  return nssCKFWObject_GetAttribute(fwObject, attribute, itemOpt, arenaOpt, pError);
+}
+
+
+
+
+
+NSS_IMPLEMENT CK_ULONG
+NSSCKFWObject_GetObjectSize
+(
+  NSSCKFWObject *fwObject,
+  CK_RV *pError
+)
+{
+#ifdef DEBUG
+  if( (CK_RV *)NULL == pError ) {
+    return (CK_ULONG)0;
+  }
+
+  *pError = nssCKFWObject_verifyPointer(fwObject);
+  if( CKR_OK != *pError ) {
+    return (CK_ULONG)0;
+  }
+#endif 
+
+  return nssCKFWObject_GetObjectSize(fwObject, pError);
+}

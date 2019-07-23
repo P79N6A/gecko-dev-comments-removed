@@ -1,0 +1,77 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#ifndef _CERTUTIL_H
+#define	_CERTUTIL_H
+
+extern SECKEYPrivateKey *
+CERTUTIL_GeneratePrivateKey(KeyType keytype,
+                            PK11SlotInfo *slot, 
+                            int rsasize,
+                            int publicExponent,
+                            char *noise,
+                            SECKEYPublicKey **pubkeyp,
+                            char *pqgFile,
+                            secuPWData *pwdata);
+
+extern char *progName;
+
+enum certutilExtns {
+    ext_keyUsage = 0,
+    ext_basicConstraint,
+    ext_authorityKeyID,
+    ext_CRLDistPts,
+    ext_NSCertType,
+    ext_extKeyUsage,
+    ext_authInfoAcc,
+    ext_subjInfoAcc,
+    ext_certPolicies,
+    ext_policyMappings,
+    ext_policyConstr,
+    ext_inhibitAnyPolicy,
+    ext_subjectKeyID,
+    ext_End
+};
+
+typedef PRBool certutilExtnList[ext_End];
+
+extern SECStatus
+AddExtensions(void *extHandle, const char *emailAddrs, const char *dnsNames,
+              certutilExtnList extList);
+
+#endif	
+

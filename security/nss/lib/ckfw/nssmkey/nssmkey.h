@@ -1,0 +1,75 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#ifndef NSSMKEY_H
+#define NSSMKEY_H
+
+
+
+
+
+
+
+
+
+
+
+#define NSS_CKMK_CRYPTOKI_VERSION_MAJOR 2
+#define NSS_CKMK_CRYPTOKI_VERSION_MINOR 20
+
+
+
+
+
+
+
+
+#define NSS_CKMK_LIBRARY_VERSION_MAJOR 1
+#define NSS_CKMK_LIBRARY_VERSION_MINOR 1
+#define NSS_CKMK_LIBRARY_VERSION "1.1"
+
+
+#define NSS_CKMK_HARDWARE_VERSION_MAJOR 1
+#define NSS_CKMK_HARDWARE_VERSION_MINOR 0
+
+
+
+#define NSS_CKMK_FIRMWARE_VERSION_MAJOR 1
+#define NSS_CKMK_FIRMWARE_VERSION_MINOR 0
+
+#endif 

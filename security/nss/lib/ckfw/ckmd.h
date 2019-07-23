@@ -1,0 +1,68 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#ifndef CKMD_H
+#define CKMD_H
+
+#ifdef DEBUG
+static const char CKMD_CVS_ID[] = "@(#) $RCSfile: ckmd.h,v $ $Revision: 1.3 $ $Date: 2005/01/20 02:25:45 $";
+#endif 
+
+
+
+
+
+
+NSS_EXTERN NSSCKMDObject *
+nssCKMDSessionObject_Create
+(
+  NSSCKFWToken *fwToken,
+  NSSArena *arena,
+  CK_ATTRIBUTE_PTR attributes,
+  CK_ULONG ulCount,
+  CK_RV *pError
+);
+
+NSS_EXTERN NSSCKMDFindObjects *
+nssCKMDFindSessionObjects_Create
+(
+  NSSCKFWToken *fwToken,
+  CK_ATTRIBUTE_PTR pTemplate,
+  CK_ULONG ulCount,
+  CK_RV *pError
+);
+
+#endif 

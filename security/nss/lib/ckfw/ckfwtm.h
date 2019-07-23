@@ -1,0 +1,59 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#ifndef CKFWTM_H
+#define CKFWTM_H
+
+#ifdef DEBUG
+static const char CKFWTM_CVS_ID[] = "@(#) $RCSfile: ckfwtm.h,v $ $Revision: 1.3 $ $Date: 2005/01/20 02:25:45 $";
+#endif 
+
+
+
+
+
+
+
+#ifndef NSSBASET_H
+#include "nssbaset.h"
+#endif 
+
+struct nssCKFWHashStr;
+typedef struct nssCKFWHashStr nssCKFWHash;
+
+typedef void (PR_CALLBACK *nssCKFWHashIterator)(const void *key, void *value, void *closure);
+
+#endif 

@@ -1,0 +1,187 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#ifndef _P12T_H_
+#define _P12T_H_
+
+#include "secoid.h"
+#include "key.h"
+#include "pkcs11.h"
+#include "secpkcs7.h"
+#include "secdig.h"	
+#include "pkcs12t.h"
+
+#define SEC_PKCS12_VERSION	3
+
+
+typedef struct sec_PKCS12PFXItemStr sec_PKCS12PFXItem;
+typedef struct sec_PKCS12MacDataStr sec_PKCS12MacData;
+typedef struct sec_PKCS12AuthenticatedSafeStr sec_PKCS12AuthenticatedSafe;
+typedef struct sec_PKCS12SafeContentsStr sec_PKCS12SafeContents;
+typedef struct sec_PKCS12SafeBagStr sec_PKCS12SafeBag;
+typedef struct sec_PKCS12PKCS8ShroudedKeyBagStr sec_PKCS12PKCS8ShroudedKeyBag;
+typedef struct sec_PKCS12CertBagStr sec_PKCS12CertBag;
+typedef struct sec_PKCS12CRLBagStr sec_PKCS12CRLBag;
+typedef struct sec_PKCS12SecretBag sec_PKCS12SecretBag;
+typedef struct sec_PKCS12AttributeStr sec_PKCS12Attribute;
+
+struct sec_PKCS12CertBagStr {
+    
+    SECItem bagID;
+
+    
+    union {
+	SECItem x509Cert;
+	SECItem SDSICert;
+    } value;
+};
+
+struct sec_PKCS12CRLBagStr {
+    
+    SECItem bagID;
+
+    
+    union {
+	SECItem x509CRL;
+    } value;
+};
+
+struct sec_PKCS12SecretBag {
+    
+    SECItem secretType;
+
+    
+    SECItem secretContent;
+};
+
+struct sec_PKCS12AttributeStr {
+    SECItem attrType;
+    SECItem **attrValue;
+};
+
+struct sec_PKCS12SafeBagStr {
+
+    
+    SECItem safeBagType;
+
+    
+    union {
+	SECKEYPrivateKeyInfo *pkcs8KeyBag;
+	SECKEYEncryptedPrivateKeyInfo *pkcs8ShroudedKeyBag;
+	sec_PKCS12CertBag *certBag;
+	sec_PKCS12CRLBag *crlBag;
+	sec_PKCS12SecretBag *secretBag;
+	sec_PKCS12SafeContents *safeContents;
+    } safeBagContent;
+
+    sec_PKCS12Attribute **attribs;
+
+    
+    SECOidData *bagTypeTag;
+    PRArenaPool *arena;
+    unsigned int nAttribs;
+
+    
+    PRBool problem, noInstall, validated, hasKey, unused, installed;
+    int error;
+
+    PRBool swapUnicodeBytes;
+    PK11SlotInfo *slot;
+    SECItem *pwitem;
+    PRBool oldBagType;
+    SECPKCS12TargetTokenCAs tokenCAs;
+};
+    
+struct sec_PKCS12SafeContentsStr {
+    sec_PKCS12SafeBag **safeBags;
+    SECItem **encodedSafeBags;
+    
+    
+    PRArenaPool *arena;
+    unsigned int bagCount;
+};
+
+struct sec_PKCS12MacDataStr {
+    SGNDigestInfo safeMac;
+    SECItem macSalt;
+    SECItem iter;
+};
+
+struct sec_PKCS12PFXItemStr {
+
+    SECItem version;
+
+    
+
+
+    SEC_PKCS7ContentInfo *authSafe;
+    SECItem encodedAuthSafe;
+
+    
+    sec_PKCS12MacData macData;
+    SECItem encodedMacData;
+};
+
+struct sec_PKCS12AuthenticatedSafeStr {
+    
+
+
+    SEC_PKCS7ContentInfo **safes;
+    SECItem **encodedSafes;
+
+    
+    unsigned int safeCount;
+    SECItem dummySafe;
+};
+
+extern const SEC_ASN1Template sec_PKCS12PFXItemTemplate[];
+extern const SEC_ASN1Template sec_PKCS12MacDataTemplate[];
+extern const SEC_ASN1Template sec_PKCS12AuthenticatedSafeTemplate[];
+extern const SEC_ASN1Template sec_PKCS12SafeContentsTemplate[];
+extern const SEC_ASN1Template sec_PKCS12SafeContentsDecodeTemplate[];
+extern const SEC_ASN1Template sec_PKCS12NestedSafeContentsDecodeTemplate[];
+extern const SEC_ASN1Template sec_PKCS12CertBagTemplate[];
+extern const SEC_ASN1Template sec_PKCS12CRLBagTemplate[];
+extern const SEC_ASN1Template sec_PKCS12SecretBagTemplate[];
+extern const SEC_ASN1Template sec_PKCS12PointerToCertBagTemplate[];
+extern const SEC_ASN1Template sec_PKCS12PointerToCRLBagTemplate[];
+extern const SEC_ASN1Template sec_PKCS12PointerToSecretBagTemplate[];
+extern const SEC_ASN1Template sec_PKCS12PointerToSafeContentsTemplate[];
+extern const SEC_ASN1Template sec_PKCS12AttributeTemplate[];
+extern const SEC_ASN1Template sec_PKCS12PointerToContentInfoTemplate[];
+extern const SEC_ASN1Template sec_PKCS12SafeBagTemplate[];
+
+#endif

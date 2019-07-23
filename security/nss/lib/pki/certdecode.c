@@ -1,0 +1,101 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#ifdef DEBUG
+static const char CVS_ID[] = "@(#) $RCSfile: certdecode.c,v $ $Revision: 1.17 $ $Date: 2007/11/16 05:29:27 $";
+#endif 
+
+#ifndef PKIT_H
+#include "pkit.h"
+#endif 
+
+#ifndef PKIM_H
+#include "pkim.h"
+#endif 
+
+
+NSS_EXTERN nssDecodedCert *
+nssDecodedPKIXCertificate_Create (
+  NSSArena *arenaOpt,
+  NSSDER *encoding
+);
+
+NSS_IMPLEMENT PRStatus
+nssDecodedPKIXCertificate_Destroy (
+  nssDecodedCert *dc
+);
+
+NSS_IMPLEMENT nssDecodedCert *
+nssDecodedCert_Create (
+  NSSArena *arenaOpt,
+  NSSDER *encoding,
+  NSSCertificateType type
+)
+{
+    nssDecodedCert *rvDC = NULL;
+    switch(type) {
+    case NSSCertificateType_PKIX:
+	rvDC = nssDecodedPKIXCertificate_Create(arenaOpt, encoding);
+	break;
+    default:
+#if 0
+	nss_SetError(NSS_ERROR_INVALID_ARGUMENT);
+#endif
+	return (nssDecodedCert *)NULL;
+    }
+    return rvDC;
+}
+
+NSS_IMPLEMENT PRStatus
+nssDecodedCert_Destroy (
+  nssDecodedCert *dc
+)
+{
+    if (!dc) {
+	return PR_FAILURE;
+    }
+    switch(dc->type) {
+    case NSSCertificateType_PKIX:
+	return nssDecodedPKIXCertificate_Destroy(dc);
+    default:
+#if 0
+	nss_SetError(NSS_ERROR_INVALID_ARGUMENT);
+#endif
+	break;
+    }
+    return PR_FAILURE;
+}
+
