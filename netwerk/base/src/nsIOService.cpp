@@ -167,7 +167,6 @@ nsIOService::nsIOService()
     , mOfflineForProfileChange(PR_FALSE)
     , mSettingOffline(PR_FALSE)
     , mSetOfflineValue(PR_FALSE)
-    , mShutdown(PR_FALSE)
     , mManageOfflineStatus(PR_TRUE)
     , mChannelEventSinks(NS_CHANNEL_EVENT_SINK_CATEGORY)
     , mContentSniffers(NS_CONTENT_SNIFFER_CATEGORY)
@@ -620,11 +619,6 @@ nsIOService::SetOffline(PRBool offline)
 {
     
     
-    if (mShutdown && !offline)
-        return NS_ERROR_NOT_AVAILABLE;
-
-    
-    
     
     
     mSetOfflineValue = offline;
@@ -840,11 +834,6 @@ nsIOService::Observe(nsISupports *subject,
         } 
     }
     else if (!strcmp(topic, NS_XPCOM_SHUTDOWN_OBSERVER_ID)) {
-        
-        
-        
-        mShutdown = PR_TRUE;
-
         SetOffline(PR_TRUE);
 
         
@@ -961,9 +950,6 @@ nsIOService::TrackNetworkLinkStatusForOffline()
                  "Don't call this unless we're managing the offline status");
     if (!mNetworkLinkService)
         return NS_ERROR_FAILURE;
-
-    if (mShutdown)
-        return NS_ERROR_NOT_AVAILABLE;
   
     
     if (mSocketTransportService) {
