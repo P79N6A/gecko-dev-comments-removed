@@ -48,8 +48,6 @@ var inspector;
 
 
 
-const kSearchRegURL        = "resource:///res/inspector/search-registry.rdf";
-
 const kClipboardHelperCID  = "@mozilla.org/widget/clipboardhelper;1";
 const kPromptServiceCID    = "@mozilla.org/embedcomp/prompt-service;1";
 const nsIWebNavigation     = Components.interfaces.nsIWebNavigation;
@@ -103,26 +101,21 @@ InspectorApp.prototype =
   
   
 
-  mSearchService: null,
   mShowBrowser: false,
   mClipboardHelper: null,
   mPromptService: null,
   
   get document() { return this.mDocPanel.viewer.subject },
-  get searchRegistry() { return this.mSearchService },
   get panelset() { return this.mPanelSet; },
   
   initialize: function(aTarget, aURI)
   {
     this.mInitTarget = aTarget;
     
-    
-
     var el = document.getElementById("bxBrowser");
     el.addEventListener("pageshow", BrowserPageShowListener, true);
 
     this.setBrowser(false, true);
-    
 
     this.mClipboardHelper = XPCU.getService(kClipboardHelperCID, "nsIClipboardHelper");
     this.mPromptService = XPCU.getService(kPromptServiceCID, "nsIPromptService");
@@ -232,20 +225,6 @@ InspectorApp.prototype =
     cmd.setAttribute("checked", aValue);
   },
 
-  toggleSearch: function(aToggleSplitter)
-  {
-    this.setSearch(!this.mShowSearch, aToggleSplitter);
-  },
-
-  setSearch: function(aValue, aToggleSplitter)
-  {
-    this.mShowSearch = aValue;
-    if (aToggleSplitter)
-      this.openSplitter("Search", aValue);
-    var cmd = document.getElementById("cmdToggleSearch");
-    cmd.setAttribute("checked", aValue);
-  },
-
   openSplitter: function(aName, aTruth)
   {
     var splitter = document.getElementById("spl" + aName);
@@ -254,93 +233,6 @@ InspectorApp.prototype =
     else
       splitter.close();
   },
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
   exit: function()
   {
@@ -506,17 +398,6 @@ InspectorApp.prototype =
   get progress() { return document.getElementById("pmStatus").value; },
   set progress(aPct) { document.getElementById("pmStatus").value = aPct; },
 
-
-
-
-
-
-
-
-
-
-
-
   
   
 
@@ -536,66 +417,6 @@ InspectorApp.prototype =
     this.mPendingURL = null;
     this.mPendingNoSave = null;
   },
-
-  
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
   
   
@@ -665,8 +486,6 @@ InspectorApp.prototype =
   {
     if (aSplitter.id == "splBrowser") {
       this.setBrowser(aSplitter.isOpened, false);
-    } else if (aSplitter.id == "splSearch") {
-      this.setSearch(aSplitter.isOpened, false);
     }
   },
   
