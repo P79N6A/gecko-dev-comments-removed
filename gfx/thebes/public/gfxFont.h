@@ -44,12 +44,16 @@
 #include "nsString.h"
 #include "gfxPoint.h"
 #include "nsTArray.h"
+#include "nsTHashtable.h"
+#include "nsHashKeys.h"
 #include "gfxSkipChars.h"
 #include "gfxRect.h"
+#include "nsExpirationTracker.h"
 
 class gfxContext;
 class gfxTextRun;
 class nsIAtom;
+class gfxFont;
 class gfxFontGroup;
 typedef struct _cairo cairo_t;
 
@@ -74,6 +78,7 @@ struct THEBES_API gfxFontStyle {
                  const nsACString& aLangGroup,
                  float aSizeAdjust, PRPackedBool aSystemFont,
                  PRPackedBool aFamilyNameQuirks);
+    gfxFontStyle(const gfxFontStyle& aStyle);
 
     
     PRUint8 style : 7;
@@ -113,6 +118,12 @@ struct THEBES_API gfxFontStyle {
     
     float sizeAdjust;
 
+    PLDHashNumber Hash() const {
+        return ((style + (systemFont << 7) + (familyNameQuirks << 8) +
+            (weight << 9)) + PRUint32(size*1000) + PRUint32(sizeAdjust*1000)) ^
+            HashString(langGroup);
+    }
+
     void ComputeWeightAndOffset(PRInt8 *outBaseWeight,
                                 PRInt8 *outOffset) const;
 
@@ -120,10 +131,8 @@ struct THEBES_API gfxFontStyle {
         return (size == other.size) &&
             (style == other.style) &&
             (systemFont == other.systemFont) &&
-            (variant == other.variant) &&
             (familyNameQuirks == other.familyNameQuirks) &&
             (weight == other.weight) &&
-            (decorations == other.decorations) &&
             (langGroup.Equals(other.langGroup)) &&
             (sizeAdjust == other.sizeAdjust);
     }
@@ -132,15 +141,134 @@ struct THEBES_API gfxFontStyle {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+class THEBES_API gfxFontCache : public nsExpirationTracker<gfxFont,3> {
+public:
+    enum { TIMEOUT_SECONDS = 1 }; 
+    gfxFontCache()
+        : nsExpirationTracker<gfxFont,3>(TIMEOUT_SECONDS*1000) { mFonts.Init(); }
+    ~gfxFontCache() {
+        
+        AgeAllGenerations();
+        
+        
+        NS_ASSERTION(mFonts.Count() == 0,
+                     "Fonts still alive while shutting down gfxFontCache");
+        
+        
+        
+    }
+
+    
+
+
+
+    static gfxFontCache* GetCache() {
+        return gGlobalCache;
+    }
+
+    static nsresult Init();
+    
+    static void Shutdown();
+
+    
+    
+    already_AddRefed<gfxFont> Lookup(const nsAString &aName,
+                                     const gfxFontStyle *aFontGroup);
+    
+    
+    
+    
+    void AddNew(gfxFont *aFont);
+
+    
+    
+    
+    void NotifyReleased(gfxFont *aFont);
+
+    
+    
+    virtual void NotifyExpired(gfxFont *aFont);
+
+protected:
+    void DestroyFont(gfxFont *aFont);
+
+    static gfxFontCache *gGlobalCache;
+
+    struct Key {
+        const nsAString&    mString;
+        const gfxFontStyle* mStyle;
+        Key(const nsAString& aString, const gfxFontStyle* aStyle)
+            : mString(aString), mStyle(aStyle) {}
+    };
+
+    class HashEntry : public PLDHashEntryHdr {
+    public:
+        typedef const Key& KeyType;
+        typedef const Key* KeyTypePointer;
+
+        
+        
+        HashEntry(KeyTypePointer aStr) : mFont(nsnull) { }
+        HashEntry(const HashEntry& toCopy) : mFont(toCopy.mFont) { }
+        ~HashEntry() { }
+
+        PRBool KeyEquals(const KeyTypePointer aKey) const;
+        static KeyTypePointer KeyToPointer(KeyType aKey) { return &aKey; }
+        static PLDHashNumber HashKey(const KeyTypePointer aKey) {
+            return HashString(aKey->mString) ^ aKey->mStyle->Hash();
+        }
+        enum { ALLOW_MEMMOVE = PR_TRUE };
+
+        gfxFont* mFont;
+    };
+
+    nsTHashtable<HashEntry> mFonts;
+};
+
+
 class THEBES_API gfxFont {
-    THEBES_INLINE_DECL_REFCOUNTING(gfxFont)
+public:
+    nsrefcnt AddRef(void) {
+        NS_PRECONDITION(PRInt32(mRefCnt) >= 0, "illegal refcnt");
+        ++mRefCnt;
+        NS_LOG_ADDREF(this, mRefCnt, "gfxFont", sizeof(*this));
+        return mRefCnt;
+    }
+    nsrefcnt Release(void) {
+        NS_PRECONDITION(0 != mRefCnt, "dup release");
+        --mRefCnt;
+        NS_LOG_RELEASE(this, mRefCnt, "gfxFont");
+        if (mRefCnt == 0) {
+            
+            
+            gfxFontCache::GetCache()->NotifyReleased(this);
+            return 0;
+        }
+        return mRefCnt;
+    }
+
+    PRInt32 GetRefCount() { return mRefCnt; }
+
+protected:
+    nsAutoRefCnt mRefCnt;
 
 public:
     gfxFont(const nsAString &aName, const gfxFontStyle *aFontGroup);
     virtual ~gfxFont() {}
 
     const nsString& GetName() const { return mName; }
-    const gfxFontStyle *GetStyle() const { return mStyle; }
+    const gfxFontStyle *GetStyle() const { return &mStyle; }
 
     virtual nsString GetUniqueName() = 0;
 
@@ -283,14 +411,17 @@ public:
                                    PRUint32 aStart, PRUint32 aLength)
     { return PR_FALSE; }
 
+    
+    nsExpirationState *GetExpirationState() { return &mExpirationState; }
+
 protected:
     
-    nsString mName;
+    nsString          mName;
+    nsExpirationState mExpirationState;
+    gfxFontStyle      mStyle;
 
     
     virtual void SetupCairoFont(cairo_t *aCR) = 0;
-
-    const gfxFontStyle *mStyle;
 };
 
 class THEBES_API gfxTextRunFactory {
