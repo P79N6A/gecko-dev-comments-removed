@@ -2903,12 +2903,19 @@ static void LayoutAndInvalidate(nsBoxLayoutState& aState,
   
   
   
+  
+  
+  
+  
+  
   PRBool rectChanged = aBox->GetRect() != aRect;
-  if (rectChanged)
-    aBox->Invalidate(aBox->GetOverflowRect());
+  if (rectChanged) {
+    aBox->GetParent()->Invalidate(aBox->GetOverflowRect() + aBox->GetPosition());
+  }
   nsBoxFrame::LayoutChildAt(aState, aBox, aRect);
-  if (rectChanged)
-    aBox->Invalidate(aBox->GetOverflowRect());
+  if (rectChanged) {
+    aBox->GetParent()->Invalidate(aBox->GetOverflowRect() + aBox->GetPosition());
+  }
 }
 
 static void AdjustScrollbarRect(nsIFrame* aFrame, nsPresContext* aPresContext,
