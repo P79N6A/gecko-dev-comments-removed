@@ -338,6 +338,7 @@ struct VMSideExit : public nanojit::SideExit
     uint32 numStackSlots;
     uint32 numStackSlotsBelowCurrentFrame;
     ExitType exitType;
+    uintN lookupFlags;
 
     
 

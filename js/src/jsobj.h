@@ -639,6 +639,8 @@ js_DefineProperty(JSContext *cx, JSObject *obj, jsid id, jsval value,
                   JSPropertyOp getter, JSPropertyOp setter, uintN attrs,
                   JSProperty **propp);
 
+#ifdef __cplusplus 
+
 
 
 
@@ -650,6 +652,7 @@ js_DefineNativeProperty(JSContext *cx, JSObject *obj, jsid id, jsval value,
                         JSPropertyOp getter, JSPropertyOp setter, uintN attrs,
                         uintN flags, intN shortid, JSProperty **propp,
                         uintN defineHow = 0);
+#endif
 
 
 
@@ -860,6 +863,9 @@ JS_FRIEND_API(void) js_DumpId(jsid id);
 JS_FRIEND_API(void) js_DumpObject(JSObject *obj);
 JS_FRIEND_API(void) js_DumpStackFrame(JSStackFrame *fp);
 #endif
+
+extern uintN
+js_InferFlags(JSContext *cx, uintN defaultFlags);
 
 JS_END_EXTERN_C
 
