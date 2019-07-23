@@ -124,6 +124,10 @@ typedef uint32 JSIntervalTime;
 extern JS_FRIEND_API(JSIntervalTime)
 js_IntervalNow();
 
+
+JSBool
+js_Date(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval);
+
 JS_END_EXTERN_C
 
 #endif 

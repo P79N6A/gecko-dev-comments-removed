@@ -914,6 +914,10 @@ JS_FRIEND_API(void) js_DumpStackFrame(JSStackFrame *fp);
 extern uintN
 js_InferFlags(JSContext *cx, uintN defaultFlags);
 
+
+JSBool
+js_Object(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval);
+
 JS_END_EXTERN_C
 
 #endif 

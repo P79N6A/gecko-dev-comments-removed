@@ -207,6 +207,10 @@ JSBool
 js_GetDenseArrayElementValue(JSContext *cx, JSObject *obj, JSProperty *prop,
                              jsval *vp);
 
+
+JSBool
+js_Array(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval);
+
 JS_END_EXTERN_C
 
 #endif 
