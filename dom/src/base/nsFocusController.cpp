@@ -297,15 +297,14 @@ nsFocusController::MoveFocus(PRBool aForward, nsIDOMElement* aElt)
     }
   }
 
-  if (!doc)
+  if (!doc) {
     
-    return NS_OK;
+    return NS_ERROR_FAILURE;
+  }
 
-
-  
   nsIPresShell *shell = doc->GetPrimaryShell();
   if (!shell)
-    return NS_OK;
+    return NS_ERROR_FAILURE;
 
   
   shell->FlushPendingNotifications(Flush_Frames);
@@ -314,9 +313,7 @@ nsFocusController::MoveFocus(PRBool aForward, nsIDOMElement* aElt)
   nsCOMPtr<nsPresContext> presContext = shell->GetPresContext();
 
   
-  presContext->EventStateManager()->ShiftFocus(aForward, content);
-
-  return NS_OK;
+  return presContext->EventStateManager()->ShiftFocus(aForward, content);
 }
 
 
