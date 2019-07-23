@@ -2737,6 +2737,34 @@ nsCxPusher::Push(nsPIDOMEventTarget *aCurrentTarget)
 }
 
 PRBool
+nsCxPusher::RePush(nsPIDOMEventTarget *aCurrentTarget)
+{
+  if (!mPushedSomething) {
+    return Push(aCurrentTarget);
+  }
+
+  if (aCurrentTarget) {
+    nsresult rv;
+    nsIScriptContext* scx =
+      aCurrentTarget->GetContextForEventHandlers(&rv);
+    if (NS_FAILED(rv)) {
+      Pop();
+      return PR_FALSE;
+    }
+
+    
+    
+    if (scx && scx == mScx &&
+        scx->GetNativeContext()) {
+      return PR_TRUE;
+    }
+  }
+
+  Pop();
+  return Push(aCurrentTarget);
+}
+
+PRBool
 nsCxPusher::Push(JSContext *cx)
 {
   if (mPushedSomething) {

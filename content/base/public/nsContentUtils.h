@@ -1492,6 +1492,9 @@ public:
   PRBool Push(nsPIDOMEventTarget *aCurrentTarget);
   
   
+  PRBool RePush(nsPIDOMEventTarget *aCurrentTarget);
+  
+  
   PRBool Push(JSContext *cx);
   
   PRBool PushNull();
