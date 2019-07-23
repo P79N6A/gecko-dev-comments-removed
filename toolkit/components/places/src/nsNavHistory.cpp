@@ -2536,10 +2536,11 @@ nsNavHistory::FixInvalidFrecenciesForExcludedPlaces()
         "UNION "
         
         "SELECT b.fk FROM moz_bookmarks b "
-        "JOIN moz_items_annos a ON a.item_id = b.id "
+        "JOIN moz_bookmarks bp ON bp.id = b.parent "
+        "JOIN moz_items_annos a ON a.item_id = bp.id "
         "JOIN moz_anno_attributes n ON n.id = a.anno_attribute_id "
         "WHERE n.name = ?1 "
-        "AND fk IN( "
+        "AND b.fk IN( "
           "SELECT id FROM moz_places WHERE visit_count = 0 AND frecency < 0 "
           "UNION ALL "
           "SELECT id FROM moz_places_temp WHERE visit_count = 0 AND frecency < 0 "
@@ -4398,7 +4399,6 @@ nsNavHistory::RemovePagesInternal(const nsCString& aPlaceIdsQueryString)
     ")"));
   NS_ENSURE_SUCCESS(rv, rv);
 
-  
   
   
   
