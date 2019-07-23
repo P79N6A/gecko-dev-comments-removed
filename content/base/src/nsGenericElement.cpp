@@ -3218,7 +3218,11 @@ nsGenericElement::doReplaceOrInsertBefore(PRBool aReplace,
     if (oldParent) {
       PRInt32 removeIndex = oldParent->IndexOf(newContent);
 
-      if (removeIndex < 0) {
+      if (removeIndex < 0 ||
+          !nsContentUtils::IsInSameAnonymousTree(container, newContent)) {
+        
+        
+        
         
         return NS_ERROR_DOM_NOT_SUPPORTED_ERR;
       }
