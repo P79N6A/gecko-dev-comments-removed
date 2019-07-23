@@ -51,12 +51,40 @@ class nsINode;
 
 
 
+
+
 struct CharacterDataChangeInfo
 {
+  
+
+
   PRBool mAppend;
+
+  
+
+
   PRUint32 mChangeStart;
+
+  
+
+
+
+
   PRUint32 mChangeEnd;
+
+  
+
+
+
   PRUint32 mReplaceLength;
+
+  
+
+
+
+
+
+
 };
 
 
