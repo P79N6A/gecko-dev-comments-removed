@@ -1601,10 +1601,12 @@ pref("network.dns.disableIPv6", true);
 # XP_MACOSX
 #endif
 
-#if XP_OS2
+#ifdef XP_OS2
 
 pref("ui.key.menuAccessKeyFocuses", true);
 pref("layout.css.dpi", -1); 
+
+pref("font.alias-list", "sans,sans-serif,serif,monospace");
 
 
 
@@ -1787,7 +1789,7 @@ pref("network.dns.disableIPv6", true);
 # OS2
 #endif
 
-#if XP_BEOS
+#ifdef XP_BEOS
 
 pref("layout.css.dpi", -1); 
 
