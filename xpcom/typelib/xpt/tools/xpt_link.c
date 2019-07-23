@@ -374,11 +374,56 @@ main(int argc, char **argv)
                             IDE_array[i].name) == 0 && 
             compare_strings(IDE_array[i-1].name_space, 
                              IDE_array[i].name_space) == 0) {
+            int to_delete = -1;
             
-            
+
+
 
 
             if (!IDE_array[i-1].interface_descriptor) {
+                if (!IDE_array[i].interface_descriptor) {
+                    
+                    if (compare_IDE_with_zero(&IDE_array[i])) {
+                        
+                        to_delete = i;
+                    } else if (compare_IDE_with_zero(&IDE_array[i - 1])) {
+                        to_delete = i - 1;
+                    } else if(compare_IIDs(&IDE_array[i-1].iid, &IDE_array[i].iid) == 0) {
+                        
+                        to_delete = i;
+                    } else {
+                        
+                        char *ns = IDE_array[i].name_space;
+                        fprintf(stderr,
+                        "ERROR: found duplicate unresolved interfaces "
+                        "%s%s%s\n",
+                        ns ? ns : "", ns ? "::" : "", IDE_array[i].name);
+                        return 1;
+                    }
+                }
+                else {
+                    
+                    to_delete = i - 1;
+                }
+            } else if (!IDE_array[i].interface_descriptor ||
+                       (compare_IIDs(&IDE_array[i-1].iid, &IDE_array[i].iid) == 0)) {
+                to_delete = i;
+            } else {
+                
+
+                char *ns = IDE_array[i].name_space;
+                fprintf(stderr,
+                        "ERROR: found duplicate definitions of interface "
+                        "%s%s%s with iids \n",
+                        ns ? ns : "", ns ? "::" : "", IDE_array[i].name);
+                print_IID(&IDE_array[i].iid, stderr);
+                fprintf(stderr, " and ");
+                print_IID(&IDE_array[i-1].iid, stderr);
+                fprintf(stderr, "\n");
+                return 1;
+            }
+
+            if (to_delete == (i - 1)) {
                 
 
                 if (!shrink_IDE_array(IDE_array, 
@@ -399,44 +444,35 @@ main(int argc, char **argv)
 
 
                 trueNumberOfInterfaces--;
-            } else {
-                if (!IDE_array[i].interface_descriptor ||
-                    (compare_IIDs(&IDE_array[i-1].iid, &IDE_array[i].iid) == 0))
-                {
-                    
+            } else if (to_delete == i) {
+                
 
-                    if (!shrink_IDE_array(IDE_array, 
-                                          i, 
-                                          trueNumberOfInterfaces)) {
-                        perror("FAILED: shrink_IDE_array");
-                        return 1;
-                    }
-                    
-
-
-
-
-                    update_fix_array(arena, fix_array, i, 
-                                     totalNumberOfInterfaces, i-1);
-                    
-
-
-
-                    trueNumberOfInterfaces--;
-                } else {
-                    
-
-                    char *ns = IDE_array[i].name_space;
-                    fprintf(stderr,
-                            "ERROR: found duplicate definitions of interface "
-                            "%s%s%s with iids \n",
-                            ns ? ns : "", ns ? "::" : "", IDE_array[i].name);
-                    print_IID(&IDE_array[i].iid, stderr);
-                    fprintf(stderr, " and ");
-                    print_IID(&IDE_array[i-1].iid, stderr);
-                    fprintf(stderr, "\n");
+                if (!shrink_IDE_array(IDE_array, 
+                                      i, 
+                                      trueNumberOfInterfaces)) {
+                    perror("FAILED: shrink_IDE_array");
                     return 1;
                 }
+                
+
+
+
+
+                update_fix_array(arena, fix_array, i, 
+                                 totalNumberOfInterfaces, i-1);
+                
+
+
+
+                trueNumberOfInterfaces--;
+            } else {
+                
+                char *ns = IDE_array[i].name_space;
+                fprintf(stderr,
+                        "ERROR: duplicate interfaces, don't know what to do "
+                        "%s%s%s\n",
+                        ns ? ns : "", ns ? "::" : "", IDE_array[i].name);
+                return 1;
             }
         } else {
             
