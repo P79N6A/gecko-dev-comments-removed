@@ -1495,6 +1495,57 @@ nsParser::CancelParsingEvents()
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#define PREFER_LATTER_ERROR_CODE(EXPR1, EXPR2, RV) {                          \
+  nsresult RV##__temp = EXPR1;                                                \
+  RV = EXPR2;                                                                 \
+  if (NS_FAILED(RV)) {                                                        \
+    RV = RV##__temp;                                                          \
+  }                                                                           \
+}
+
+
+
+
+
+
+
+
 nsresult
 nsParser::WillBuildModel(nsString& aFilename)
 {
@@ -1525,7 +1576,16 @@ nsParser::WillBuildModel(nsString& aFilename)
   nsresult rv = mParserContext->GetTokenizer(mDTD, mSink, tokenizer);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  return mDTD->WillBuildModel(*mParserContext, tokenizer, mSink);
+  rv = mDTD->WillBuildModel(*mParserContext, tokenizer, mSink);
+  nsresult sinkResult = mSink->WillBuildModel(mDTD->GetMode());
+  
+  
+  
+  
+  
+  
+  
+  return NS_FAILED(sinkResult) ? sinkResult : rv;
 }
 
 
@@ -1545,7 +1605,16 @@ nsParser::DidBuildModel(nsresult anErrorCode)
       PRBool terminated = mInternalState == NS_ERROR_HTMLPARSER_STOPPARSING;
       if (mDTD && mSink &&
           mSink->ReadyToCallDidBuildModel(terminated)) {
-        result = mDTD->DidBuildModel(anErrorCode,PR_TRUE,this,mSink);
+        nsresult dtdResult =  mDTD->DidBuildModel(anErrorCode,this,mSink),
+                sinkResult = mSink->DidBuildModel();
+        
+        
+        
+        
+        
+        
+        
+        result = NS_FAILED(sinkResult) ? sinkResult : dtdResult;
       }
 
       

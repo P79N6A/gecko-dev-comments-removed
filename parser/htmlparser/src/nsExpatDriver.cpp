@@ -1294,7 +1294,7 @@ nsExpatDriver::WillBuildModel(const CParserContext& aParserContext,
   
   aParserContext.mScanner->OverrideReplacementCharacter(0xffff);
 
-  return aSink->WillBuildModel(GetMode());
+  return mInternalState;
 }
 
 NS_IMETHODIMP
@@ -1308,21 +1308,14 @@ nsExpatDriver::BuildModel(nsIParser* aParser,
 
 NS_IMETHODIMP
 nsExpatDriver::DidBuildModel(nsresult anErrorCode,
-                             PRBool aNotifySink,
                              nsIParser* aParser,
                              nsIContentSink* aSink)
 {
   
   
-  nsresult result = NS_OK;
-  if (mSink) {
-    result = aSink->DidBuildModel();
-    mSink = nsnull;
-  }
-
+  mSink = nsnull;
   mExtendedSink = nsnull;
-
-  return result;
+  return NS_OK;
 }
 
 NS_IMETHODIMP

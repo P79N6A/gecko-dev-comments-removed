@@ -206,22 +206,15 @@ CNavDTD::WillBuildModel(const CParserContext& aParserContext,
   mBodyContext->SetNodeAllocator(&mNodeAllocator);
 
   if (!aParserContext.mPrevContext && aSink) {
-    STOP_TIMER();
-    MOZ_TIMER_DEBUGLOG(("Stop: Parse Time: CNavDTD::WillBuildModel(), this=%p\n", this));
-    
-    result = aSink->WillBuildModel(GetMode());
-    
-    MOZ_TIMER_DEBUGLOG(("Start: Parse Time: CNavDTD::WillBuildModel(), this=%p\n", this));
-    START_TIMER();
 
-    if (NS_SUCCEEDED(result) && !mSink) {
+    if (!mSink) {
       mSink = do_QueryInterface(aSink, &result);
       if (NS_FAILED(result)) {
         mFlags |= NS_DTD_FLAG_STOP_PARSING;
         return result;
       }
     }
-    
+
     
     
     
@@ -369,7 +362,6 @@ CNavDTD::BuildNeglectedTarget(eHTMLTags aTarget,
 
 nsresult
 CNavDTD::DidBuildModel(nsresult anErrorCode,
-                       PRBool aNotifySink,
                        nsIParser* aParser,
                        nsIContentSink* aSink)
 {
@@ -378,7 +370,7 @@ CNavDTD::DidBuildModel(nsresult anErrorCode,
   }
 
   nsresult result = NS_OK;
-  if (aParser && aNotifySink) {
+  if (aParser) {
     if (NS_OK == anErrorCode) {
       if (!(mFlags & NS_DTD_FLAG_HAS_MAIN_CONTAINER)) {
         
@@ -422,11 +414,7 @@ CNavDTD::DidBuildModel(nsresult anErrorCode,
       mFlags &= ~NS_DTD_FLAG_ENABLE_RESIDUAL_STYLE;
       while (mBodyContext->GetCount() > 0) { 
         result = CloseContainersTo(mBodyContext->Last(), PR_FALSE);
-        if (NS_FAILED(result)) {
-          
-          aSink->DidBuildModel();
-          return result;
-        }
+        NS_ENSURE_SUCCESS(result, result);
       } 
     } else {
       
@@ -448,8 +436,7 @@ CNavDTD::DidBuildModel(nsresult anErrorCode,
     }
   }
 
-  
-  return aSink->DidBuildModel(); 
+  return result;
 }
 
 NS_IMETHODIMP_(void) 
