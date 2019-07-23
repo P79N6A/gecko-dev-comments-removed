@@ -5694,6 +5694,7 @@ nsTypedSelection::GetRangeAt(PRInt32 aIndex, nsIDOMRange** aReturn)
 NS_IMETHODIMP
 nsTypedSelection::CopyRangeToAnchorFocus(nsIDOMRange *aRange)
 {
+  NS_ENSURE_STATE(mAnchorFocusRange);
   nsCOMPtr<nsIDOMNode> startNode;
   nsCOMPtr<nsIDOMNode> endNode;
   PRInt32 startOffset;
