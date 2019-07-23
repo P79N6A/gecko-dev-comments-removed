@@ -2381,6 +2381,8 @@ JS_STATIC_ASSERT(!CAN_DO_FAST_INC_DEC(INT_TO_JSVAL(JSVAL_INT_MAX)));
 
 #endif
 
+#define MAX_INLINE_CALL_COUNT 3000
+
 
 
 
@@ -4615,6 +4617,12 @@ interrupt:
                     jsval *newsp;
                     JSInlineFrame *newifp;
                     JSInterpreterHook hook;
+
+                    
+                    if (inlineCallCount == MAX_INLINE_CALL_COUNT) {
+                        js_ReportOverRecursed(cx);
+                        goto error;
+                    }
 
                     
                     nframeslots = JS_HOWMANY(sizeof(JSInlineFrame),
