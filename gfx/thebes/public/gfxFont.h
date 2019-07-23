@@ -429,9 +429,11 @@ public:
     
     
     enum {
-        USER_TEXT_FLAGS     = 0xFFFF0000,
+        CACHE_TEXT_FLAGS    = 0xF0000000,
+        USER_TEXT_FLAGS     = 0x0FFF0000,
         PLATFORM_TEXT_FLAGS = 0x0000F000,
         TEXTRUN_TEXT_FLAGS  = 0x00000FFF,
+        SETTABLE_FLAGS      = CACHE_TEXT_FLAGS | USER_TEXT_FLAGS,
       
         
 
@@ -795,12 +797,12 @@ public:
     void SetUserData(void *aUserData) { mUserData = aUserData; }
     PRUint32 GetFlags() const { return mFlags; }
     void SetFlagBits(PRUint32 aFlags) {
-      NS_ASSERTION(!(aFlags & ~gfxTextRunFactory::USER_TEXT_FLAGS),
+      NS_ASSERTION(!(aFlags & ~gfxTextRunFactory::SETTABLE_FLAGS),
                    "Only user flags should be mutable");
       mFlags |= aFlags;
     }
     void ClearFlagBits(PRUint32 aFlags) {
-      NS_ASSERTION(!(aFlags & ~gfxTextRunFactory::USER_TEXT_FLAGS),
+      NS_ASSERTION(!(aFlags & ~gfxTextRunFactory::SETTABLE_FLAGS),
                    "Only user flags should be mutable");
       mFlags &= ~aFlags;
     }
@@ -1170,8 +1172,7 @@ public:
     
 
 
-
-    static PRBool IsInvisibleChar(PRUnichar ch) {
+    static PRBool IsInvalidChar(PRUnichar ch) {
         return ch == '\t' || ch == '\r' || ch == '\n';
     }
 

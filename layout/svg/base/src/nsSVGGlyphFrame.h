@@ -44,6 +44,7 @@
 #include "nsISVGChildFrame.h"
 #include "gfxContext.h"
 #include "gfxFont.h"
+#include "gfxTextRunCache.h"
 
 struct nsSVGCharacterPosition;
 class nsSVGTextFrame;
@@ -179,15 +180,16 @@ protected:
                                 nsSVGCharacterPosition **cp);
 
     gfxContext *GetContext() { return mCT; }
-    gfxTextRun *GetTextRun() { return mTextRun; }
+    gfxTextRun *GetTextRun() { return mTextRun.get(); }
 
   private:
     void Init(nsSVGGlyphFrame *aSource, const nsString &aText);
 
-    nsRefPtr<gfxContext> mCT;
-    nsAutoPtr<gfxTextRun> mTextRun;
+    nsRefPtr<gfxContext>         mCT;
+    gfxTextRunCache::AutoTextRun mTextRun;
   };
 
+  
   gfxTextRun *GetTextRun(gfxContext *aCtx,
                          const nsString &aText);
 

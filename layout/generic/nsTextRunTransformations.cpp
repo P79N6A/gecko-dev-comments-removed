@@ -191,41 +191,6 @@ CountGlyphs(const gfxTextRun::DetailedGlyph* aDetails) {
 
 
 
-static void
-AppendTextRun(gfxTextRun* aDest, gfxTextRun* aSrc, PRUint32 aOffset)
-{
-  PRUint32 numGlyphRuns;
-  const gfxTextRun::GlyphRun* glyphRuns = aSrc->GetGlyphRuns(&numGlyphRuns);
-  PRUint32 j;
-  PRUint32 offset = aOffset;
-  for (j = 0; j < numGlyphRuns; ++j) {
-    PRUint32 runOffset = glyphRuns[j].mCharacterOffset;
-    PRUint32 len =
-      (j + 1 < numGlyphRuns ? glyphRuns[j + 1].mCharacterOffset : aSrc->GetLength()) -
-      runOffset;
-    nsresult rv = aDest->AddGlyphRun(glyphRuns[j].mFont, offset);
-    if (NS_FAILED(rv))
-      return;
-
-    PRUint32 k;
-    for (k = 0; k < len; ++k) {
-      gfxTextRun::CompressedGlyph g = aSrc->GetCharacterGlyphs()[runOffset + k];
-      if (g.IsComplexCluster()) {
-        const gfxTextRun::DetailedGlyph* details = aSrc->GetDetailedGlyphs(runOffset + k);
-        aDest->SetDetailedGlyphs(offset, details, CountGlyphs(details));
-      } else {
-        aDest->SetCharacterGlyph(offset, g);
-      }
-      ++offset;
-    }
-  }
-  NS_ASSERTION(offset - aOffset == aSrc->GetLength(),
-               "Something went wrong in our length calculations...");
-}
-
-
-
-
 
 
 
@@ -317,7 +282,7 @@ GetParametersForInner(nsTransformedTextRun* aTextRun, PRUint32* aFlags,
 {
   gfxTextRunFactory::Parameters params =
     { aRefContext, nsnull, nsnull,
-      nsnull, nsnull, PRUint32(aTextRun->GetAppUnitsPerDevUnit())
+      nsnull, nsnull, aTextRun->GetAppUnitsPerDevUnit()
     };
   *aFlags = aTextRun->GetFlags() & ~gfxFontGroup::TEXT_IS_PERSISTENT;
   return params;
@@ -341,17 +306,14 @@ nsFontVariantTextRunFactory::RebuildTextRun(nsTransformedTextRun* aTextRun,
   PRUint32 flags;
   gfxTextRunFactory::Parameters innerParams =
       GetParametersForInner(aTextRun, &flags, aRefContext);
-  
-  flags |= gfxFontGroup::TEXT_IS_PERSISTENT;
 
   PRUint32 length = aTextRun->GetLength();
   const PRUnichar* str = aTextRun->GetTextUnicode();
   nsRefPtr<nsStyleContext>* styles = aTextRun->mStyles.Elements();
   
-  nsAutoPtr<gfxTextRun> inner;
-  
-  inner = fontGroup->MakeTextRun(str, length, &innerParams, flags);
-  if (!inner)
+  gfxTextRunCache::AutoTextRun inner(
+      gfxTextRunCache::MakeTextRun(str, length, fontGroup, &innerParams, flags));
+  if (!inner.get())
     return;
 
   nsCaseTransformTextRunFactory uppercaseFactory(nsnull, PR_TRUE);
@@ -392,16 +354,21 @@ nsFontVariantTextRunFactory::RebuildTextRun(nsTransformedTextRun* aTextRun,
     }
 
     if ((i == length || runIsLowercase != isLowercase) && runStart < i) {
-      nsAutoPtr<gfxTextRun> child;
+      nsAutoPtr<gfxTextRun> transformedChild;
+      gfxTextRunCache::AutoTextRun cachedChild;
+      gfxTextRun* child;
       
       innerParams.mInitialBreaks = lineBreakBeforeArray.Elements();
       innerParams.mInitialBreakCount = lineBreakBeforeArray.Length();
       if (runIsLowercase) {
-        child = uppercaseFactory.MakeTextRun(str + runStart, i - runStart,
+        transformedChild = uppercaseFactory.MakeTextRun(str + runStart, i - runStart,
             &innerParams, smallFont, flags, styleArray.Elements(), PR_FALSE);
+        child = transformedChild;
       } else {
-        child = fontGroup->
-            MakeTextRun(str + runStart, i - runStart, &innerParams, flags);
+        cachedChild =
+          gfxTextRunCache::MakeTextRun(str + runStart, i - runStart, fontGroup,
+              &innerParams, flags);
+        child = cachedChild.get();
       }
       if (!child)
         return;
@@ -411,7 +378,7 @@ nsFontVariantTextRunFactory::RebuildTextRun(nsTransformedTextRun* aTextRun,
                    "lost some break-before values?");
       child->SetPotentialLineBreaks(0, canBreakBeforeArray.Length(),
           canBreakBeforeArray.Elements(), aRefContext);
-      AppendTextRun(aTextRun, child, runStart);
+      aTextRun->CopyGlyphDataFrom(child, 0, child->GetLength(), runStart, PR_FALSE);
 
       runStart = i;
       styleArray.Clear();
@@ -518,20 +485,22 @@ nsCaseTransformTextRunFactory::RebuildTextRun(nsTransformedTextRun* aTextRun,
       GetParametersForInner(aTextRun, &flags, aRefContext);
   gfxFontGroup* fontGroup = aTextRun->GetFontGroup();
 
-  nsAutoPtr<gfxTextRun> child;
+  nsAutoPtr<gfxTextRun> transformedChild;
+  gfxTextRunCache::AutoTextRun cachedChild;
+  gfxTextRun* child;
   
   innerParams.mInitialBreaks = lineBreakBeforeArray.Elements();
   innerParams.mInitialBreakCount = lineBreakBeforeArray.Length();
-  
-  flags |= gfxFontGroup::TEXT_IS_PERSISTENT;
   if (mInnerTransformingTextRunFactory) {
-    child = mInnerTransformingTextRunFactory->MakeTextRun(
+    transformedChild = mInnerTransformingTextRunFactory->MakeTextRun(
         convertedString.BeginReading(), convertedString.Length(),
         &innerParams, fontGroup, flags, styleArray.Elements(), PR_FALSE);
+    child = transformedChild.get();
   } else {
-    child = fontGroup->MakeTextRun(
-        convertedString.BeginReading(), convertedString.Length(), &innerParams,
-        flags);
+    cachedChild = gfxTextRunCache::MakeTextRun(
+        convertedString.BeginReading(), convertedString.Length(), fontGroup,
+        &innerParams, flags);
+    child = cachedChild.get();
   }
   if (!child)
     return;
