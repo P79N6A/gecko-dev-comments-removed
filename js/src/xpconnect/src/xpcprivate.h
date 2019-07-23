@@ -1118,8 +1118,10 @@ private:
 
 
 extern JSExtendedClass XPC_WN_NoHelper_JSClass;
-extern JSClass XPC_WN_NoMods_Proto_JSClass;
-extern JSClass XPC_WN_ModsAllowed_Proto_JSClass;
+extern JSClass XPC_WN_NoMods_WithCall_Proto_JSClass;
+extern JSClass XPC_WN_NoMods_NoCall_Proto_JSClass;
+extern JSClass XPC_WN_ModsAllowed_WithCall_Proto_JSClass;
+extern JSClass XPC_WN_ModsAllowed_NoCall_Proto_JSClass;
 extern JSClass XPC_WN_Tearoff_JSClass;
 
 extern JSObjectOps * JS_DLL_CALLBACK
@@ -1139,9 +1141,14 @@ XPC_WN_GetterSetter(JSContext *cx, JSObject *obj,
 extern JSBool
 xpc_InitWrappedNativeJSOps();
 
+
+
+
 #define IS_PROTO_CLASS(clazz)                                                 \
-          ((clazz) == &XPC_WN_NoMods_Proto_JSClass ||                         \
-           (clazz) == &XPC_WN_ModsAllowed_Proto_JSClass)
+          ((clazz) == &XPC_WN_NoMods_WithCall_Proto_JSClass ||                \
+           (clazz) == &XPC_WN_NoMods_NoCall_Proto_JSClass ||                  \
+           (clazz) == &XPC_WN_ModsAllowed_WithCall_Proto_JSClass ||           \
+           (clazz) == &XPC_WN_ModsAllowed_NoCall_Proto_JSClass)
 
 
 extern void

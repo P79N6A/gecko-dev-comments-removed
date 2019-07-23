@@ -777,9 +777,10 @@ XPC_WN_Equality(JSContext *cx, JSObject *obj, jsval v, JSBool *bp)
         if(NS_FAILED(rv))
             return Throw(rv, cx);
 
-        if (!*bp && !JSVAL_IS_PRIMITIVE(v) &&
+        if(!*bp && !JSVAL_IS_PRIMITIVE(v) &&
             IsXPCSafeJSObjectWrapperClass(JS_GET_CLASS(cx,
-                                                       JSVAL_TO_OBJECT(v)))) {
+                                                       JSVAL_TO_OBJECT(v))))
+        {
             v = OBJECT_TO_JSVAL(XPC_SJOW_GetUnsafeObject(cx,
                                                          JSVAL_TO_OBJECT(v)));
 
@@ -1185,6 +1186,14 @@ JS_STATIC_DLL_CALLBACK(JSBool)
 XPC_WN_JSOp_Enumerate(JSContext *cx, JSObject *obj, JSIterateOp enum_op,
                       jsval *statep, jsid *idp)
 {
+    if(!IS_WRAPPER_CLASS(JS_GET_CLASS(cx, obj)))
+    {
+        
+        
+
+        return js_ObjectOps.enumerate(cx, obj, enum_op, statep, idp);
+    }
+
     XPCCallContext ccx(JS_CALLER, cx, obj);
     XPCWrappedNative* wrapper = ccx.GetWrapper();
     THROW_AND_RETURN_IF_BAD_WRAPPER(cx, wrapper);
@@ -1254,6 +1263,10 @@ XPC_WN_JSOp_Enumerate(JSContext *cx, JSObject *obj, JSIterateOp enum_op,
 JS_STATIC_DLL_CALLBACK(void)
 XPC_WN_JSOp_Clear(JSContext *cx, JSObject *obj)
 {
+    
+    
+    
+
     
     
     XPCWrappedNative *wrapper =
@@ -1505,9 +1518,13 @@ JS_STATIC_DLL_CALLBACK(JSBool)
 XPC_WN_Shared_Proto_Enumerate(JSContext *cx, JSObject *obj)
 {
     NS_ASSERTION(
-        JS_InstanceOf(cx, obj, &XPC_WN_ModsAllowed_Proto_JSClass, nsnull) ||
-        JS_InstanceOf(cx, obj, &XPC_WN_NoMods_Proto_JSClass, nsnull),
-                 "bad proto");
+        JS_InstanceOf(cx, obj, &XPC_WN_ModsAllowed_WithCall_Proto_JSClass,
+                      nsnull) ||
+        JS_InstanceOf(cx, obj, &XPC_WN_ModsAllowed_NoCall_Proto_JSClass,
+                      nsnull) ||
+        JS_InstanceOf(cx, obj, &XPC_WN_NoMods_WithCall_Proto_JSClass, nsnull) ||
+        JS_InstanceOf(cx, obj, &XPC_WN_NoMods_NoCall_Proto_JSClass, nsnull),
+        "bad proto");
     XPCWrappedNativeProto* self = (XPCWrappedNativeProto*) JS_GetPrivate(cx, obj);
     if(!self)
         return JS_FALSE;
@@ -1575,7 +1592,10 @@ XPC_WN_ModsAllowed_Proto_Resolve(JSContext *cx, JSObject *obj, jsval idval)
     CHECK_IDVAL(cx, idval);
 
     NS_ASSERTION(
-        JS_InstanceOf(cx, obj, &XPC_WN_ModsAllowed_Proto_JSClass, nsnull),
+        JS_InstanceOf(cx, obj, &XPC_WN_ModsAllowed_WithCall_Proto_JSClass,
+                      nsnull) ||
+        JS_InstanceOf(cx, obj, &XPC_WN_ModsAllowed_NoCall_Proto_JSClass,
+                      nsnull),
                  "bad proto");
 
     XPCWrappedNativeProto* self = (XPCWrappedNativeProto*) JS_GetPrivate(cx, obj);
@@ -1598,8 +1618,29 @@ XPC_WN_ModsAllowed_Proto_Resolve(JSContext *cx, JSObject *obj, jsval idval)
 }
 
 
-JSClass XPC_WN_ModsAllowed_Proto_JSClass = {
-    "XPC_WN_ModsAllowed_Proto_JSClass", 
+
+
+
+
+JSObjectOps * JS_DLL_CALLBACK
+XPC_WN_Proto_GetObjectOps(JSContext *cx, JSClass *clazz)
+{
+    
+    
+
+    if(clazz == &XPC_WN_ModsAllowed_WithCall_Proto_JSClass ||
+       clazz == &XPC_WN_NoMods_WithCall_Proto_JSClass)
+        return &XPC_WN_WithCall_JSOps;
+
+    NS_ASSERTION(clazz == &XPC_WN_ModsAllowed_NoCall_Proto_JSClass ||
+                 clazz == &XPC_WN_NoMods_NoCall_Proto_JSClass,
+                 "bad proto");
+
+    return &XPC_WN_NoCall_JSOps;
+}
+
+JSClass XPC_WN_ModsAllowed_WithCall_Proto_JSClass = {
+    "XPC_WN_ModsAllowed_WithCall_Proto_JSClass", 
     JSCLASS_HAS_PRIVATE | JSCLASS_MARK_IS_TRACE, 
 
     
@@ -1613,7 +1654,38 @@ JSClass XPC_WN_ModsAllowed_Proto_JSClass = {
     XPC_WN_Shared_Proto_Finalize,          
 
     
+    XPC_WN_Proto_GetObjectOps,      
     nsnull,                         
+    nsnull,                         
+    nsnull,                         
+    nsnull,                         
+    nsnull,                         
+    JS_CLASS_TRACE(XPC_WN_Shared_Proto_Trace), 
+    nsnull                          
+};
+
+JSObjectOps * JS_DLL_CALLBACK
+XPC_WN_ModsAllowedProto_NoCall_GetObjectOps(JSContext *cx, JSClass *clazz)
+{
+    return &XPC_WN_NoCall_JSOps;
+}
+
+JSClass XPC_WN_ModsAllowed_NoCall_Proto_JSClass = {
+    "XPC_WN_ModsAllowed_NoCall_Proto_JSClass", 
+    JSCLASS_HAS_PRIVATE | JSCLASS_MARK_IS_TRACE, 
+
+    
+    JS_PropertyStub,                
+    JS_PropertyStub,                
+    JS_PropertyStub,                
+    JS_PropertyStub,                
+    XPC_WN_Shared_Proto_Enumerate,         
+    XPC_WN_ModsAllowed_Proto_Resolve,      
+    XPC_WN_Shared_Proto_Convert,           
+    XPC_WN_Shared_Proto_Finalize,          
+
+    
+    XPC_WN_Proto_GetObjectOps,      
     nsnull,                         
     nsnull,                         
     nsnull,                         
@@ -1631,7 +1703,8 @@ XPC_WN_OnlyIWrite_Proto_PropertyStub(JSContext *cx, JSObject *obj, jsval idval, 
     CHECK_IDVAL(cx, idval);
 
     NS_ASSERTION(
-        JS_InstanceOf(cx, obj, &XPC_WN_NoMods_Proto_JSClass, nsnull),
+        JS_InstanceOf(cx, obj, &XPC_WN_NoMods_WithCall_Proto_JSClass, nsnull) ||
+        JS_InstanceOf(cx, obj, &XPC_WN_NoMods_NoCall_Proto_JSClass, nsnull),
                  "bad proto");
 
     XPCWrappedNativeProto* self = (XPCWrappedNativeProto*) JS_GetPrivate(cx, obj);
@@ -1655,7 +1728,8 @@ XPC_WN_NoMods_Proto_Resolve(JSContext *cx, JSObject *obj, jsval idval)
     CHECK_IDVAL(cx, idval);
 
     NS_ASSERTION(
-        JS_InstanceOf(cx, obj, &XPC_WN_NoMods_Proto_JSClass, nsnull),
+        JS_InstanceOf(cx, obj, &XPC_WN_NoMods_WithCall_Proto_JSClass, nsnull) ||
+        JS_InstanceOf(cx, obj, &XPC_WN_NoMods_NoCall_Proto_JSClass, nsnull),
                  "bad proto");
 
     XPCWrappedNativeProto* self = (XPCWrappedNativeProto*) JS_GetPrivate(cx, obj);
@@ -1679,8 +1753,8 @@ XPC_WN_NoMods_Proto_Resolve(JSContext *cx, JSObject *obj, jsval idval)
                                  enumFlag, nsnull);
 }
 
-JSClass XPC_WN_NoMods_Proto_JSClass = {
-    "XPC_WN_NoMods_Proto_JSClass",      
+JSClass XPC_WN_NoMods_WithCall_Proto_JSClass = {
+    "XPC_WN_NoMods_WithCall_Proto_JSClass",      
     JSCLASS_HAS_PRIVATE | JSCLASS_MARK_IS_TRACE, 
 
     
@@ -1694,7 +1768,32 @@ JSClass XPC_WN_NoMods_Proto_JSClass = {
     XPC_WN_Shared_Proto_Finalize,          
 
     
+    XPC_WN_Proto_GetObjectOps,      
     nsnull,                         
+    nsnull,                         
+    nsnull,                         
+    nsnull,                         
+    nsnull,                         
+    JS_CLASS_TRACE(XPC_WN_Shared_Proto_Trace), 
+    nsnull                          
+};
+
+JSClass XPC_WN_NoMods_NoCall_Proto_JSClass = {
+    "XPC_WN_NoMods_NoCall_Proto_JSClass",      
+    JSCLASS_HAS_PRIVATE | JSCLASS_MARK_IS_TRACE, 
+
+    
+    XPC_WN_OnlyIWrite_Proto_PropertyStub,  
+    XPC_WN_CannotModifyPropertyStub,       
+    JS_PropertyStub,                       
+    XPC_WN_OnlyIWrite_Proto_PropertyStub,  
+    XPC_WN_Shared_Proto_Enumerate,         
+    XPC_WN_NoMods_Proto_Resolve,           
+    XPC_WN_Shared_Proto_Convert,           
+    XPC_WN_Shared_Proto_Finalize,          
+
+    
+    XPC_WN_Proto_GetObjectOps,      
     nsnull,                         
     nsnull,                         
     nsnull,                         
