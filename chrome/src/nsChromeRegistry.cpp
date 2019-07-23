@@ -38,6 +38,7 @@
 
 
 
+
 #include "nsChromeRegistry.h"
 
 #include <string.h>
@@ -2234,16 +2235,15 @@ nsChromeRegistry::ProcessManifestBuffer(char *buf, PRInt32 length,
 
       if (platform)
         entry->flags |= PackageEntry::PLATFORM_PACKAGE;
-      if (xpcNativeWrappers) {
+      if (xpcNativeWrappers)
         entry->flags |= PackageEntry::XPCNATIVEWRAPPERS;
-        if (xpc) {
-          nsCAutoString urlp("chrome://");
-          urlp.Append(package);
-          urlp.Append('/');
+      if (xpc) {
+        nsCAutoString urlp("chrome://");
+        urlp.Append(package);
+        urlp.Append('/');
 
-          rv = xpc->FlagSystemFilenamePrefix(urlp.get());
-          NS_ENSURE_SUCCESS(rv, rv);
-        }
+        rv = xpc->FlagSystemFilenamePrefix(urlp.get(), xpcNativeWrappers);
+        NS_ENSURE_SUCCESS(rv, rv);
       }
     }
     else if (!strcmp(token, "locale")) {

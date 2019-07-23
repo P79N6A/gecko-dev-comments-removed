@@ -1230,7 +1230,7 @@ mozJSComponentLoader::GlobalForLocation(nsILocalFile *aComponent,
     
     
     
-    xpc->FlagSystemFilenamePrefix(nativePath.get());
+    xpc->FlagSystemFilenamePrefix(nativePath.get(), PR_TRUE);
 
 #ifdef DEBUG_shaver_off
     fprintf(stderr, "mJCL: compiled JS component %s\n",

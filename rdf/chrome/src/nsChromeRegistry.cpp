@@ -38,6 +38,7 @@
 
 
 
+
 #include <string.h>
 #include "nsArrayEnumerator.h"
 #include "nsCOMPtr.h"
@@ -2976,7 +2977,7 @@ nsChromeRegistry::FlagXPCNativeWrappers()
         uri.AssignLiteral("chrome://");
         uri.Append(source + sizeof urn - 1);
         uri.Append('/');
-        rv = xpc->FlagSystemFilenamePrefix(uri.get());
+        rv = xpc->FlagSystemFilenamePrefix(uri.get(), PR_TRUE);
         NS_ENSURE_SUCCESS(rv, rv);
       }
     }

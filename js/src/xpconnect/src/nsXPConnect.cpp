@@ -2188,8 +2188,10 @@ nsXPConnect::JSToVariant(JSContext* ctx, jsval value, nsIVariant** _retval)
 }
 
 
+
 NS_IMETHODIMP 
-nsXPConnect::FlagSystemFilenamePrefix(const char *aFilenamePrefix)
+nsXPConnect::FlagSystemFilenamePrefix(const char *aFilenamePrefix,
+                                      PRBool aWantNativeWrappers)
 {
     NS_PRECONDITION(aFilenamePrefix, "bad param");
 
@@ -2202,7 +2204,10 @@ nsXPConnect::FlagSystemFilenamePrefix(const char *aFilenamePrefix)
     if(NS_FAILED(rv))
         return rv;
 
-    if(!JS_FlagScriptFilenamePrefix(rt, aFilenamePrefix, JSFILENAME_SYSTEM))
+    uint32 flags = JSFILENAME_SYSTEM;
+    if(aWantNativeWrappers)
+        flags |= JSFILENAME_PROTECTED;
+    if(!JS_FlagScriptFilenamePrefix(rt, aFilenamePrefix, flags))
         return NS_ERROR_OUT_OF_MEMORY;
     return NS_OK;
 }
