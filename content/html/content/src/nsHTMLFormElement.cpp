@@ -297,44 +297,6 @@ protected:
                          nsISupports** aReturn);
 
   
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  void ResetDefaultSubmitElement(PRBool aNotify,
-                                 PRBool aPrevDefaultInElements,
-                                 PRUint32 aPrevDefaultIndex);
-  
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  nsIFormControl* FindDefaultSubmit(PRBool aPrevDefaultInElements,
-                                    PRUint32 aPrevDefaultIndex) const;
-
-  
   
   
   
@@ -367,6 +329,12 @@ protected:
 
   
   nsIFormControl* mDefaultSubmitElement;
+
+  
+  nsIFormControl* mFirstSubmitInElements;
+
+  
+  nsIFormControl* mFirstSubmitNotInElements;
 
 protected:
   
@@ -522,7 +490,9 @@ nsHTMLFormElement::nsHTMLFormElement(nsINodeInfo *aNodeInfo)
     mSubmitInitiatedFromUserInput(PR_FALSE),
     mPendingSubmission(nsnull),
     mSubmittingRequest(nsnull),
-    mDefaultSubmitElement(nsnull)
+    mDefaultSubmitElement(nsnull),
+    mFirstSubmitInElements(nsnull),
+    mFirstSubmitNotInElements(nsnull)
 {
 }
 
@@ -1314,28 +1284,47 @@ nsHTMLFormElement::AddElement(nsIFormControl* aChild,
   if (aChild->IsSubmitControl()) {
     
     
+
+    nsIFormControl** firstSubmitSlot =
+      childInElements ? &mFirstSubmitInElements : &mFirstSubmitNotInElements;
     
     
     
     
     
-    nsIFormControl* oldControl = mDefaultSubmitElement;
-    if (!mDefaultSubmitElement ||
-        ((!lastElement ||
-          ShouldBeInElements(mDefaultSubmitElement) != childInElements) &&
-         CompareFormControlPosition(aChild, mDefaultSubmitElement, this) < 0)) {
-      mDefaultSubmitElement = aChild;
+    
+    
+    
+    
+    nsIFormControl* oldDefaultSubmit = mDefaultSubmitElement;
+    if (!*firstSubmitSlot ||
+        (!lastElement &&
+         CompareFormControlPosition(aChild, *firstSubmitSlot, this) < 0)) {
+      NS_ASSERTION(*firstSubmitSlot == mDefaultSubmitElement ||
+                   mDefaultSubmitElement,
+                   "How can we have a null mDefaultSubmitElement but a "
+                   "first-submit slot in one of the lists?");
+      if (*firstSubmitSlot == mDefaultSubmitElement ||
+          CompareFormControlPosition(aChild,
+                                     mDefaultSubmitElement, this) < 0) {
+        mDefaultSubmitElement = aChild;
+      }
+      *firstSubmitSlot = aChild;
     }
+    NS_POSTCONDITION(mDefaultSubmitElement == mFirstSubmitInElements ||
+                     mDefaultSubmitElement == mFirstSubmitNotInElements,
+                     "What happened here?");
 
     
     
     
     
-    if (aNotify && oldControl != mDefaultSubmitElement) {
+    if (aNotify && oldDefaultSubmit &&
+        oldDefaultSubmit != mDefaultSubmitElement) {
       nsIDocument* document = GetCurrentDoc();
       if (document) {
         MOZ_AUTO_DOC_UPDATE(document, UPDATE_CONTENT_STATE, PR_TRUE);
-        nsCOMPtr<nsIContent> oldElement(do_QueryInterface(oldControl));
+        nsCOMPtr<nsIContent> oldElement(do_QueryInterface(oldDefaultSubmit));
         document->ContentStatesChanged(oldElement, nsnull,
                                        NS_EVENT_STATE_DEFAULT);
       }
@@ -1380,84 +1369,61 @@ nsHTMLFormElement::RemoveElement(nsIFormControl* aChild,
 
   controls.RemoveElementAt(index);
 
+  
+  nsIFormControl** firstSubmitSlot =
+    childInElements ? &mFirstSubmitInElements : &mFirstSubmitNotInElements;
+  if (aChild == *firstSubmitSlot) {
+    *firstSubmitSlot = nsnull;
+
+    
+    PRUint32 length = controls.Length();
+    for (PRUint32 i = index; i < length; ++i) {
+      nsIFormControl* currentControl = controls[i];
+      if (currentControl->IsSubmitControl()) {
+        *firstSubmitSlot = currentControl;
+        break;
+      }
+    }
+  }
+
   if (aChild == mDefaultSubmitElement) {
     
-    ResetDefaultSubmitElement(aNotify, childInElements, index );
+    if (!mFirstSubmitNotInElements) {
+      mDefaultSubmitElement = mFirstSubmitInElements;
+    } else if (!mFirstSubmitInElements) {
+      mDefaultSubmitElement = mFirstSubmitNotInElements;
+    } else {
+      NS_ASSERTION(mFirstSubmitInElements != mFirstSubmitNotInElements,
+                   "How did that happen?");
+      
+      mDefaultSubmitElement =
+        CompareFormControlPosition(mFirstSubmitInElements,
+                                   mFirstSubmitNotInElements, this) < 0 ?
+          mFirstSubmitInElements : mFirstSubmitNotInElements;
+    }
+
+    NS_POSTCONDITION(mDefaultSubmitElement == mFirstSubmitInElements ||
+                     mDefaultSubmitElement == mFirstSubmitNotInElements,
+                     "What happened here?");
+
+    
+    
+    
+    
+    if (aNotify && mDefaultSubmitElement) {
+      NS_ASSERTION(mDefaultSubmitElement != aChild,
+                   "Notifying but elements haven't changed.");
+      nsIDocument* document = GetCurrentDoc();
+      if (document) {
+        MOZ_AUTO_DOC_UPDATE(document, UPDATE_CONTENT_STATE, PR_TRUE);
+        nsCOMPtr<nsIContent> newElement(do_QueryInterface(mDefaultSubmitElement));
+        document->ContentStatesChanged(newElement, nsnull,
+                                       NS_EVENT_STATE_DEFAULT);
+      }
+    }
   }
 
   return rv;
-}
-
-void
-nsHTMLFormElement::ResetDefaultSubmitElement(PRBool aNotify,
-                                             PRBool aPrevDefaultInElements,
-                                             PRUint32 aPrevDefaultIndex)
-{
-  nsIFormControl* oldDefaultSubmit = mDefaultSubmitElement;
-  mDefaultSubmitElement = FindDefaultSubmit(aPrevDefaultInElements,
-                                            aPrevDefaultIndex);
-
-  
-  
-  
-  
-  if (aNotify && (oldDefaultSubmit || mDefaultSubmitElement)) {
-    NS_ASSERTION(mDefaultSubmitElement != oldDefaultSubmit,
-                 "Notifying but elements haven't changed.");
-    nsIDocument* document = GetCurrentDoc();
-    if (document) {
-      MOZ_AUTO_DOC_UPDATE(document, UPDATE_CONTENT_STATE, PR_TRUE);
-      nsCOMPtr<nsIContent> newElement(do_QueryInterface(mDefaultSubmitElement));
-      document->ContentStatesChanged(newElement, nsnull,
-                                     NS_EVENT_STATE_DEFAULT);
-    }
-  }
- }
-
-nsIFormControl*
-nsHTMLFormElement::FindDefaultSubmit(PRBool aPrevDefaultInElements,
-                                     PRUint32 aPrevDefaultIndex) const
-{
-  nsIFormControl* defaultSubmit = nsnull;
-
-  
-  
-  PRUint32 length = mControls->mElements.Length();
-
-  
-  
-  
-  
-  PRUint32 i = aPrevDefaultInElements ? aPrevDefaultIndex : 0;
-  for (; i < length; ++i) {
-    nsIFormControl* currentControl = mControls->mElements[i];
-
-    if (currentControl->IsSubmitControl()) {
-      defaultSubmit = currentControl;
-      break;
-    }
-  }
-
-  
-  
-  
-  
-  
-  length = mControls->mNotInElements.Length();
-  i = !aPrevDefaultInElements ? aPrevDefaultIndex : 0;
-  for (; i < length; ++i) {
-    nsIFormControl* currControl = mControls->mNotInElements[i];
-
-    if (currControl->IsSubmitControl()) {
-      if (!defaultSubmit ||
-          CompareFormControlPosition(currControl, defaultSubmit,
-                                     NS_CONST_CAST(nsHTMLFormElement*, this)) < 0) {
-        defaultSubmit = currControl;
-      }
-      break;
-    }
-  }
-  return defaultSubmit;
 }
 
 NS_IMETHODIMP
@@ -1632,6 +1598,10 @@ nsHTMLFormElement::GetSortedControls(nsTArray<nsIFormControl*>& aControls) const
 NS_IMETHODIMP_(nsIFormControl*)
 nsHTMLFormElement::GetDefaultSubmitElement() const
 {
+  NS_PRECONDITION(mDefaultSubmitElement == mFirstSubmitInElements ||
+                  mDefaultSubmitElement == mFirstSubmitNotInElements,
+                  "What happened here?");
+  
   return mDefaultSubmitElement;
 }
 
