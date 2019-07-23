@@ -1157,6 +1157,10 @@ static nsresult SplitDataNode(nsIDOMCharacterData* aStartNode,
 
 nsresult nsRange::CutContents(nsIDOMDocumentFragment** aFragment)
 { 
+  if (aFragment) {
+    *aFragment = nsnull;
+  }
+
   if (IsDetached())
     return NS_ERROR_DOM_INVALID_STATE_ERR;
 
@@ -1196,7 +1200,11 @@ nsresult nsRange::CutContents(nsIDOMDocumentFragment** aFragment)
   if (iter.IsDone())
   {
     
-    return CollapseRangeAfterDelete(this);
+    rv = CollapseRangeAfterDelete(this);
+    if (NS_SUCCEEDED(rv) && aFragment) {
+      NS_ADDREF(*aFragment = retval);
+    }
+    return rv;
   }
 
   
@@ -1355,11 +1363,11 @@ nsresult nsRange::CutContents(nsIDOMDocumentFragment** aFragment)
   
   
 
-  if (aFragment) {
+  rv = CollapseRangeAfterDelete(this);
+  if (NS_SUCCEEDED(rv) && aFragment) {
     NS_ADDREF(*aFragment = retval);
   }
-
-  return CollapseRangeAfterDelete(this);
+  return rv;
 }
 
 nsresult nsRange::DeleteContents()
