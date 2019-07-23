@@ -1304,13 +1304,6 @@ XPCConvert::JSObject2NativeInterface(XPCCallContext& ccx,
         if(wrappedNative)
         {
             iface = wrappedNative->GetIdentityObject();
-            
-            if(wrappedNative->GetIID().Equals(*iid))
-            {
-                NS_ADDREF(iface);
-                *dest = iface;
-                return JS_TRUE;
-            }
             return NS_SUCCEEDED(iface->QueryInterface(*iid, dest));
         }
         
