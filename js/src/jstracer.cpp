@@ -7027,25 +7027,20 @@ TraceRecorder::record_SetPropHit(JSPropCacheEntry* entry, JSScopeProperty* sprop
         LIns* r_ins = get(&r);
 
         if (JSVAL_IS_OBJECT(r)) {
-            LIns* exit = snapshot(MISMATCH_EXIT);
-            if (VALUE_IS_FUNCTION(cx, r)) {
-                
+            
+
+
+
+            if (VALUE_IS_FUNCTION(cx, r))
+                ABORT_TRACE("potential rebranding of the global object");
+
+            
 
 
 
 
-
-
-                guard(true, lir->ins2(LIR_eq, get(&STOBJ_GET_SLOT(obj, slot)), r_ins), exit);
-            } else {
-                
-
-
-
-
-                guardClass(obj, obj_ins, &js_FunctionClass, exit);
-                set(&STOBJ_GET_SLOT(obj, slot), r_ins);
-            }
+            guardClass(obj, obj_ins, &js_FunctionClass, snapshot(MISMATCH_EXIT));
+            set(&STOBJ_GET_SLOT(obj, slot), r_ins);
         } else {
             set(&STOBJ_GET_SLOT(obj, slot), r_ins);
         }
