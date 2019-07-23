@@ -3991,6 +3991,8 @@ nsBrowserStatusHandler.prototype =
         
         PlacesStarButton.updateState();
       }
+
+      FullZoom.onLocationChange(aLocationURI);
     }
     UpdateBackForwardCommands(gBrowser.webNavigation);
 
@@ -4013,15 +4015,6 @@ nsBrowserStatusHandler.prototype =
     } 
     else
       this.asyncUpdateUI();
-
-    
-    
-    try {
-      FullZoom.onLocationChange(aLocationURI);
-    }
-    catch(ex) {
-      Components.utils.reportError(ex);
-    }
   },
   
   asyncUpdateUI : function () {

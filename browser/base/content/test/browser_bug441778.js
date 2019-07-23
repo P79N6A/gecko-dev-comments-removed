@@ -1,0 +1,105 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Cu.import("resource://gre/modules/XPCOMUtils.jsm");
+
+
+
+
+
+
+let testPage = 'data:text/html,<body><iframe id="a" src=""></iframe></body>';
+
+function test() {
+  waitForExplicitFinish();
+
+  
+  
+  
+  let zoomLevel;
+
+  
+  let testTab = gBrowser.addTab();
+  gBrowser.selectedTab = testTab;
+  let testBrowser = gBrowser.getBrowserForTab(testTab);
+
+  let finishTest = function() {
+    testBrowser.removeProgressListener(progressListener);
+    is(ZoomManager.zoom, zoomLevel, "zoom is retained after sub-document load");
+    gBrowser.removeCurrentTab();
+    finish();
+  };
+
+  let progressListener = {
+    QueryInterface: XPCOMUtils.generateQI([Ci.nsIWebProgressListener,
+                                           Ci.nsISupportsWeakReference]),
+    onStateChange: function() {},
+    onProgressChange: function() {},
+    onLocationChange: function() {
+      window.setTimeout(finishTest, 0);
+    },
+    onStatusChange: function() {},
+    onSecurityChange: function() {}
+  };
+
+  let continueTest = function() {
+    
+    testBrowser.removeEventListener("load", continueTest, true);
+
+    
+    
+    FullZoom.enlarge();
+    zoomLevel = ZoomManager.zoom;
+
+    
+    
+    testBrowser.addProgressListener(progressListener);
+
+    
+    content.document.getElementById("a").src = "http://test2.example.org/";
+  };
+
+  
+  
+  
+  
+  let continueListener = function() { window.setTimeout(continueTest, 0) };
+  testBrowser.addEventListener("load", continueListener, true);
+
+  
+  testBrowser.contentWindow.location = testPage;
+}
