@@ -87,13 +87,13 @@ const kNone  = "none";
 function _onInputKeyPress (event, callback) {
 
   
+  if (!PrefObserver['enabled'])
+    return;
+
+  
   
   
   var key = event.which || event.keyCode;
-
-  
-  if (!PrefObserver['enabled'])
-    return;
 
   if (key != PrefObserver['keyCodeDown']  &&
       key != PrefObserver['keyCodeRight'] &&
@@ -109,6 +109,13 @@ function _onInputKeyPress (event, callback) {
     return;
 
   if (!event.crtlKey && PrefObserver['modifierCtrl'])
+    return;
+
+  
+  
+  if (!event.keyCode && 
+      (key == Ci.nsIDOMKeyEvent.DOM_VK_LEFT  || key == Ci.nsIDOMKeyEvent.DOM_VK_DOWN ||
+       key == Ci.nsIDOMKeyEvent.DOM_VK_RIGHT || key == Ci.nsIDOMKeyEvent.DOM_VK_UP))
     return;
 
   var target = event.target;
