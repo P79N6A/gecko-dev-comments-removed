@@ -396,6 +396,34 @@ private:
 
 
 
+  nsresult ConstructTable(nsFrameConstructorState& aState,
+                          nsIContent*              aContent,
+                          nsIFrame*                aParentFrame,
+                          nsIAtom*                 aTag,
+                          PRInt32                  aNameSpaceID,
+                          nsStyleContext*          aStyleContext,
+                          const nsStyleDisplay*    aDisplay,
+                          nsFrameItems&            aFrameItems,
+                          nsIFrame**               aNewFrame);
+  
+  
+
+
+
+  nsresult ConstructTablePart(nsFrameConstructorState& aState,
+                              nsIContent*              aContent,
+                              nsIFrame*                aParentFrame,
+                              nsIAtom*                 aTag,
+                              PRInt32                  aNameSpaceID,
+                              nsStyleContext*          aStyleContext,
+                              const nsStyleDisplay*    aDisplay,
+                              nsFrameItems&            aFrameItems,
+                              nsIFrame**               aNewFrame);
+  
+  
+
+
+
 
 
 
@@ -558,11 +586,13 @@ private:
 
 
 
+
   typedef nsresult
     (nsCSSFrameConstructor::* FrameFullConstructor)(nsFrameConstructorState& aState,
                                                     nsIContent* aContent,
                                                     nsIFrame* aParentFrame,
                                                     nsIAtom* aTag,
+                                                    PRInt32 aNameSpaceID,
                                                     nsStyleContext* aStyleContext,
                                                     const nsStyleDisplay* aStyleDisplay,
                                                     nsFrameItems& aFrameItems,
@@ -624,6 +654,10 @@ private:
 
 
 #define FCDATA_DISALLOW_GENERATED_CONTENT 0x800
+  
+
+
+#define FCDATA_IS_TABLE_PART 0x1000
 
   
 
@@ -706,7 +740,6 @@ private:
 
 
 
-
   
   
   
@@ -740,6 +773,7 @@ private:
                                 nsIContent*              aContent,
                                 nsIFrame*                aParentFrame,
                                 nsIAtom*                 aTag,
+                                PRInt32                  aNameSpaceID,
                                 nsStyleContext*          aStyleContext,
                                 const nsStyleDisplay*    aStyleDisplay,
                                 nsFrameItems&            aFrameItems,
@@ -751,6 +785,7 @@ private:
                                 nsIContent*              aContent,
                                 nsIFrame*                aParentFrame,
                                 nsIAtom*                 aTag,
+                                PRInt32                  aNameSpaceID,
                                 nsStyleContext*          aStyleContext,
                                 const nsStyleDisplay*    aStyleDisplay,
                                 nsFrameItems&            aFrameItems,
@@ -762,6 +797,7 @@ private:
                                   nsIContent*              aContent,
                                   nsIFrame*                aParentFrame,
                                   nsIAtom*                 aTag,
+                                  PRInt32                  aNameSpaceID,
                                   nsStyleContext*          aStyleContext,
                                   const nsStyleDisplay*    aStyleDisplay,
                                   nsFrameItems&            aFrameItems,
@@ -925,21 +961,43 @@ private:
                                           nsIContent* aContent,
                                           nsIFrame* aParentFrame,
                                           nsIAtom* aTag,
+                                          PRInt32 aNameSpaceID,
                                           nsStyleContext* aStyleContext,
                                           const nsStyleDisplay* aStyleDisplay,
                                           nsFrameItems& aFrameItems,
                                           nsIFrame** aNewFrame);
 #endif
 
-  nsresult ConstructFrameByDisplayType(nsFrameConstructorState& aState,
-                                       const nsStyleDisplay*    aDisplay,
+  
+
+  const FrameConstructionData*
+    FindDisplayData(const nsStyleDisplay* aDisplay, nsIContent* aContent);
+
+  
+
+
+  nsresult ConstructScrollableBlock(nsFrameConstructorState& aState,
+                                    nsIContent*              aContent,
+                                    nsIFrame*                aParentFrame,
+                                    nsIAtom*                 aTag,
+                                    PRInt32                  aNameSpaceID,
+                                    nsStyleContext*          aStyleContext,
+                                    const nsStyleDisplay*    aDisplay,
+                                    nsFrameItems&            aFrameItems,
+                                    nsIFrame**               aNewFrame);
+
+  
+
+
+  nsresult ConstructNonScrollableBlock(nsFrameConstructorState& aState,
                                        nsIContent*              aContent,
-                                       PRInt32                  aNameSpaceID,
-                                       nsIAtom*                 aTag,
                                        nsIFrame*                aParentFrame,
+                                       nsIAtom*                 aTag,
+                                       PRInt32                  aNameSpaceID,
                                        nsStyleContext*          aStyleContext,
+                                       const nsStyleDisplay*    aDisplay,
                                        nsFrameItems&            aFrameItems,
-                                       PRBool                   aHasPseudoParent);
+                                       nsIFrame**               aNewFrame);
 
   
 
@@ -1115,12 +1173,14 @@ private:
                           PRBool                   aAbsPosContainer);
 
   nsresult ConstructInline(nsFrameConstructorState& aState,
-                           const nsStyleDisplay*    aDisplay,
                            nsIContent*              aContent,
                            nsIFrame*                aParentFrame,
+                           nsIAtom*                 aTag,
+                           PRInt32                  aNameSpaceID,
                            nsStyleContext*          aStyleContext,
-                           PRBool                   aIsPositioned,
-                           nsIFrame*                aNewFrame);
+                           const nsStyleDisplay*    aDisplay,
+                           nsFrameItems&            aFrameItems,
+                           nsIFrame**               aNewFrame);
 
   
 
