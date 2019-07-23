@@ -50,17 +50,17 @@
 
 
 #organizeButton {
-  list-style-image: url("chrome://browser/skin/wrench.png");
+  list-style-image: url("chrome://browser/skin/places/organize.png");
 }
 
 
 #viewMenu {
-  list-style-image: url("chrome://browser/skin/wrench.png");
+  list-style-image: url("chrome://browser/skin/places/view.png");
 }
 
 
 #maintenanceButton {
-  list-style-image: url("chrome://browser/skin/wrench.png");
+  list-style-image: url("chrome://browser/skin/places/importAndBackup.png");
 }
 
 

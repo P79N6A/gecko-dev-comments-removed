@@ -918,6 +918,10 @@ PlacesTreeView.prototype = {
       }
       else if (nodeType == Ci.nsINavHistoryResultNode.RESULT_TYPE_SEPARATOR)
         properties.push(this._getAtomFor("separator"));
+      else if (itemId != -1) { 
+        if (PlacesUtils.nodeIsLivemarkContainer(node.parent))
+          properties.push(this._getAtomFor("livemarkItem"));
+      }
 
       this._visibleElements[aRow].properties = properties;
     }
@@ -1114,18 +1118,10 @@ PlacesTreeView.prototype = {
       return "";
 
     var node = this._visibleElements[aRow].node;
-
-    
-    
-    
-    if (PlacesUtils.nodeIsSeparator(node) ||
-        (PlacesUtils.nodeIsContainer(node) && !node.icon))
-      return "";
-
-    
-    
-    var icon = node.icon || PlacesUtils.favicons.defaultFavicon;
-    return icon ? icon.spec : "";
+    var icon = node.icon;
+    if (icon)
+      return icon.spec;
+    return "";
   },
 
   getProgressMode: function(aRow, aColumn) { },

@@ -56,21 +56,6 @@
 }
 
 
-#organizeButton {
-  list-style-image: url("moz-icon://stock/gtk-properties?size=button");
-}
-
-
-#viewMenu {
-  list-style-image: url("moz-icon://stock/gtk-sort-ascending?size=button");
-}
-
-
-#maintenanceButton {
-  list-style-image: url("moz-icon://stock/gtk-revert-to-saved?size=button");
-}
-
-
 #placesView {
   background-color: Window;
 }
