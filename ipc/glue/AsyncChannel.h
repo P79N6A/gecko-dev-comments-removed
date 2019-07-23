@@ -158,6 +158,7 @@ protected:
     CondVar mCvar;
     MessageLoop* mIOLoop;       
     MessageLoop* mWorkerLoop;   
+    bool mChild;                
 };
 
 
