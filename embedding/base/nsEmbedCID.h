@@ -84,18 +84,6 @@
 
 
 
-
-#define NS_NONBLOCKINGALERTSERVICE_CONTRACTID \
- "@mozilla.org/embedcomp/nbalert-service;1"
-
-
-
-
-
-
-
-
-
 #define NS_PWMGR_AUTHPROMPTFACTORY \
  "@mozilla.org/passwordmanager/authpromptfactory;1"
 
