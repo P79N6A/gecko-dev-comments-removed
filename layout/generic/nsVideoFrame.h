@@ -67,7 +67,7 @@ public:
                    const nsRect& aDirtyRect, nsPoint aPt);
                               
   
-  nsSize GetVideoSize();
+  nsSize GetIntrinsicSize(nsIRenderingContext *aRenderingContext);
   virtual nsSize GetIntrinsicRatio();
   virtual nsSize ComputeSize(nsIRenderingContext *aRenderingContext,
                              nsSize aCBSize, nscoord aAvailableWidth,
@@ -101,6 +101,10 @@ public:
 #endif
 
 protected:
+  
+  
+  PRBool HasVideoData();
+
   virtual ~nsVideoFrame();
 
   nsMargin mBorderPadding;
