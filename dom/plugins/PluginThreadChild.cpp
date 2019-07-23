@@ -104,5 +104,16 @@ PluginThreadChild::CleanUp()
     MozillaChildThread::CleanUp();
 }
 
+
+void
+PluginThreadChild::AppendNotesToCrashReport(const nsCString& aNotes)
+{
+    AssertPluginThread();
+
+    if (gInstance) {
+        gInstance->mPlugin.SendAppendNotesToCrashReport(aNotes);
+    }
+}
+
 } 
 } 

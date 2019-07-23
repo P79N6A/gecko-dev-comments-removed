@@ -240,6 +240,7 @@ protected:
 #endif
 
 extern void InstallSignalHandlers(const char *ProgramName);
+#include "nsX11ErrorHandler.h"
 
 #define FILE_COMPATIBILITY_INFO NS_LITERAL_CSTRING("compatibility.ini")
 
@@ -3133,6 +3134,10 @@ XRE_main(int argc, char* argv[], const nsXREAppData* aAppData)
 
     gtk_widget_set_default_colormap(gdk_rgb_get_colormap());
 #endif 
+#ifdef MOZ_X11
+    
+    InstallX11ErrorHandler();
+#endif
 
     
 #ifdef MOZ_JPROF
