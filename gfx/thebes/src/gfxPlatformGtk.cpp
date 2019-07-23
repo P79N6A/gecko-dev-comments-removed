@@ -549,7 +549,9 @@ gfxPlatformGtk::InitDisplayCaps()
                 if (StringEndsWith(buffer, NS_LITERAL_CSTRING("RX-51"))) {
                     gfxPlatform::sDPI = 265; 
                 }
-                else if (StringEndsWith(buffer, NS_LITERAL_CSTRING("RX-48"))) {
+                else if (StringEndsWith(buffer, NS_LITERAL_CSTRING("RX-44")) ||
+                         StringEndsWith(buffer, NS_LITERAL_CSTRING("RX-48")) ||
+                         StringEndsWith(buffer, NS_LITERAL_CSTRING("RX-34"))) {
                     gfxPlatform::sDPI = 225; 
                 }
             }
