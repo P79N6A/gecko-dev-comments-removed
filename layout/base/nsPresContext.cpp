@@ -569,6 +569,11 @@ nsPresContext::GetDocumentColorPreferences()
                            mBackgroundColor);
   }
 
+  
+  
+  mBackgroundColor = NS_ComposeColors(NS_RGB(0xFF, 0xFF, 0xFF),
+                                      mBackgroundColor);
+
   mUseDocumentColors = !useAccessibilityTheme &&
     nsContentUtils::GetBoolPref("browser.display.use_document_colors",
                                 mUseDocumentColors);

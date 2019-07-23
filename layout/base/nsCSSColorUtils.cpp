@@ -38,6 +38,7 @@
 
 
 #include "nsCSSColorUtils.h"
+#include "nsDebug.h"
 #include <math.h>
 
 
@@ -189,6 +190,12 @@ int NS_GetBrightness(PRUint8 aRed, PRUint8 aGreen, PRUint8 aBlue)
 
 PRInt32 NS_GetLuminosity(nscolor aColor)
 {
+  
+  
+  
+  NS_ASSERTION(NS_GET_A(aColor) == 255,
+               "impossible to compute luminosity of a non-opaque color");
+  
   return (NS_GET_R(aColor) * RED_LUMINOSITY +
           NS_GET_G(aColor) * GREEN_LUMINOSITY +
           NS_GET_B(aColor) * BLUE_LUMINOSITY);
