@@ -347,16 +347,13 @@ protected:
 
   nsRefPtr<gfxASurface> mTempThebesSurface;
 
-  PRPackedBool          mDestructorCalled;
   PRPackedBool          mVisible;
-
   PRPackedBool          mDrawing;
-
   PRPackedBool          mLiveResizeInProgress;
   PRPackedBool          mIsPluginView; 
   PRPackedBool          mPluginDrawing;
   PRPackedBool          mPluginIsCG; 
-  
+
   nsPluginPort          mPluginPort;
 };
 
