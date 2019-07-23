@@ -49,7 +49,7 @@ class nsIDOMEvent;
 class nsPIDOMEventTarget;
 class nsIScriptGlobalObject;
 class nsEventTargetChainItem;
-
+template<class E> class nsCOMArray;
 
 
 
@@ -232,12 +232,17 @@ public:
 
 
 
+
+
+
+
   static nsresult Dispatch(nsISupports* aTarget,
                            nsPresContext* aPresContext,
                            nsEvent* aEvent,
                            nsIDOMEvent* aDOMEvent = nsnull,
                            nsEventStatus* aEventStatus = nsnull,
-                           nsDispatchingCallback* aCallback = nsnull);
+                           nsDispatchingCallback* aCallback = nsnull,
+                           nsCOMArray<nsPIDOMEventTarget>* aTargets = nsnull);
 
   
 
