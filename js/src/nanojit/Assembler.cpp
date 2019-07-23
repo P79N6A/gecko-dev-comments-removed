@@ -184,7 +184,7 @@ namespace nanojit
             _activation.entry[i] = 0;
     }
 
-     void Assembler::registerResetAll()
+    void Assembler::registerResetAll()
     {
         nRegisterResetAll(_allocator);
 
