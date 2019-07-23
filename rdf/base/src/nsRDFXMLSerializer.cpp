@@ -48,7 +48,7 @@
 #include "nsIServiceManager.h"
 #include "nsString.h"
 #include "nsXPIDLString.h"
-#include "nsVoidArray.h"
+#include "nsTArray.h"
 #include "rdf.h"
 #include "rdfutil.h"
 
@@ -642,7 +642,7 @@ nsRDFXMLSerializer::SerializeDescription(nsIOutputStream* aStream,
 
     
     
-    nsAutoVoidArray visited;
+    nsAutoTArray<nsIRDFResource*, 8> visited;
     PRInt32 skipped = 0;
 
     nsCOMPtr<nsISimpleEnumerator> arcs;
@@ -673,7 +673,7 @@ nsRDFXMLSerializer::SerializeDescription(nsIOutputStream* aStream,
                 continue;
 
             
-            if (visited.IndexOf(property.get()) >= 0)
+            if (visited.Contains(property.get()))
                 continue;
 
             visited.AppendElement(property.get());
@@ -719,7 +719,7 @@ nsRDFXMLSerializer::SerializeDescription(nsIOutputStream* aStream,
 
                 
                 
-                if (visited.IndexOf(property.get()) >= 0)
+                if (visited.Contains(property.get()))
                     continue;
 
                 visited.AppendElement(property.get());
