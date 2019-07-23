@@ -451,15 +451,27 @@ XPC_COW_RewrapForChrome(JSContext *cx, JSObject *wrapperObj, jsval *vp)
   }
 
   XPCWrappedNative *wn;
+  JSBool ok;
+
+  
+  
+  JSStackFrame *fp = JS_SaveFrameChain(cx);
+
   if (IS_WN_WRAPPER(obj) &&
       (wn = (XPCWrappedNative*)xpc_GetJSPrivate(obj)) &&
       !nsXPCWrappedJSClass::IsWrappedJS(wn->Native())) {
     
     
-    return XPCNativeWrapper::CreateExplicitWrapper(cx, wn, JS_TRUE, vp);
+    ok = XPCNativeWrapper::CreateExplicitWrapper(cx, wn, JS_TRUE, vp);
+  } else {
+    
+    ok = XPCSafeJSObjectWrapper::WrapObject(cx, GetWrappedObject(cx, wrapperObj),
+                                            *vp, vp);
   }
 
-  return XPCSafeJSObjectWrapper::WrapObject(cx, obj, *vp, vp);
+  JS_RestoreFrameChain(cx, fp);
+
+  return ok;
 }
 
 JSBool
