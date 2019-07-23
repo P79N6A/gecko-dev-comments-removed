@@ -1719,6 +1719,7 @@ nsBlockFrame::ReflowDirtyLines(nsBlockReflowState& aState)
   PRBool keepGoing = PR_TRUE;
   PRBool repositionViews = PR_FALSE; 
   PRBool foundAnyClears = PR_FALSE;
+  PRBool willReflowAgain = PR_FALSE;
 
 #ifdef DEBUG
   if (gNoisyReflow) {
@@ -1844,7 +1845,7 @@ nsBlockFrame::ReflowDirtyLines(nsBlockReflowState& aState)
 
     
     
-    if (line->IsDirty()) {
+    if (line->IsDirty() && !willReflowAgain) {
       lastLineMovedUp = PR_TRUE;
 
       PRBool maybeReflowingForFirstTime =
@@ -1861,7 +1862,13 @@ nsBlockFrame::ReflowDirtyLines(nsBlockReflowState& aState)
       
       rv = ReflowLine(aState, line, &keepGoing);
       NS_ENSURE_SUCCESS(rv, rv);
-      
+
+      if (aState.mReflowState.mDiscoveredClearance &&
+          *aState.mReflowState.mDiscoveredClearance) {
+        line->MarkDirty();
+        willReflowAgain = PR_TRUE;
+      }
+
       if (line->HasFloats()) {
         reflowedFloat = PR_TRUE;
       }
@@ -1989,7 +1996,7 @@ nsBlockFrame::ReflowDirtyLines(nsBlockReflowState& aState)
   
   
   
-  PRBool skipPull = PR_FALSE;
+  PRBool skipPull = willReflowAgain;
   if (aState.mNextInFlow &&
       (aState.mReflowState.mFlags.mNextInFlowUntouched &&
        !lastLineMovedUp && 
@@ -2828,6 +2835,7 @@ nsBlockFrame::ReflowBlockFrame(nsBlockReflowState& aState,
       }
       
       
+      return NS_OK;
     }
   }
   if (treatWithClearance) {
@@ -6623,6 +6631,11 @@ nsBlockFrame::CheckFloats(nsBlockReflowState& aState)
 {
 #ifdef DEBUG
   
+  
+  
+  PRBool anyLineDirty = PR_FALSE;
+
+  
   nsAutoVoidArray lineFloats;
   for (line_iterator line = begin_lines(), line_end = end_lines();
        line != line_end; ++line) {
@@ -6633,6 +6646,9 @@ nsBlockFrame::CheckFloats(nsBlockReflowState& aState)
         lineFloats.AppendElement(floatFrame);
         fc = fc->Next();
       }
+    }
+    if (line->IsDirty()) {
+      anyLineDirty = PR_TRUE;
     }
   }
   
@@ -6647,7 +6663,7 @@ nsBlockFrame::CheckFloats(nsBlockReflowState& aState)
     ++i;
   }
 
-  if (!equal || lineFloats.Count() != storedFloats.Count()) {
+  if ((!equal || lineFloats.Count() != storedFloats.Count()) && !anyLineDirty) {
     NS_WARNING("nsBlockFrame::CheckFloats: Explicit float list is out of sync with float cache");
 #if defined(DEBUG_roc)
     nsIFrameDebug::RootFrameList(PresContext(), stdout, 0);
