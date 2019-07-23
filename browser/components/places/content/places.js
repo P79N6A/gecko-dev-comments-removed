@@ -87,10 +87,11 @@ var PlacesOrganizer = {
     window.addEventListener("AppCommand", this, true);
 #ifdef XP_MACOSX
     
+    
     var findMenuItem = document.getElementById("menu_find");
-    findMenuItem.setAttribute("command", "OrganizerCommand_find:current");
+    findMenuItem.setAttribute("command", "OrganizerCommand_find:all");
     var findKey = document.getElementById("key_find");
-    findKey.setAttribute("command", "OrganizerCommand_find:current");
+    findKey.setAttribute("command", "OrganizerCommand_find:all");
 
     
     var elements = ["cmd_handleBackspace", "cmd_handleShiftBackspace"];
@@ -200,7 +201,11 @@ var PlacesOrganizer = {
 
 
 
-  _cachedLeftPaneSelectedNode: null,
+
+
+
+
+  _cachedLeftPaneSelectedURI: null,
   onPlaceSelected: function PO_onPlaceSelected(resetSearchBox) {
     
     if (!this._places.hasSelection)
@@ -212,34 +217,33 @@ var PlacesOrganizer = {
     
     var options = node.queryOptions.clone();
     options.excludeItems = false;
-    var placeURI = PlacesUtils.history.queriesToQueryString(queries, queries.length, options);
+    var placeURI = PlacesUtils.history.queriesToQueryString(queries,
+                                                            queries.length,
+                                                            options);
 
     
     
     
     if (this._content.place != placeURI || !resetSearchBox) {
       this._content.place = placeURI;
-
-      
+      PlacesSearchBox.hideSearchUI();
       this.location = node.uri;
     }
 
     
-    PlacesSearchBox.hideSearchUI();
-
     
     
     
     
     
-    
-    if (node == this._cachedLeftPaneSelectedNode)
+    if (node.uri == this._cachedLeftPaneSelectedURI)
       return;
-    this._cachedLeftPaneSelectedNode = node;
+    this._cachedLeftPaneSelectedURI = node.uri;
 
-    if (resetSearchBox)
-      PlacesSearchBox.searchFilter.reset();
+    
+    
 
+    PlacesSearchBox.searchFilter.reset();
     this._setSearchScopeForNode(node);
     if (this._places.treeBoxObject.focused)
       this._fillDetailsPane([node]);
@@ -251,52 +255,31 @@ var PlacesOrganizer = {
 
 
   _setSearchScopeForNode: function PO__setScopeForNode(aNode) {
-    var scopeBarFolder = document.getElementById("scopeBarFolder");
     var itemId = aNode.itemId;
     if (PlacesUtils.nodeIsHistoryContainer(aNode) ||
         itemId == PlacesUIUtils.leftPaneQueries["History"]) {
-      scopeBarFolder.disabled = true;
-      var folders = [];
-      var filterCollection = "history";
-      var scopeButton = "scopeBarHistory";
+      PlacesQueryBuilder.setScope("history");
     }
-    else if (PlacesUtils.nodeIsFolder(aNode) &&
-             itemId != PlacesUIUtils.leftPaneQueries["AllBookmarks"] &&
-             itemId != PlacesUIUtils.leftPaneQueries["Tags"] &&
-             aNode.parent.itemId != PlacesUIUtils.leftPaneQueries["Tags"]) {
+    
+    else
+      PlacesQueryBuilder.setScope("bookmarks");
+
+    
+    var folderButton = document.getElementById("scopeBarFolder");
+    folderButton.disabled = !PlacesUtils.nodeIsFolder(aNode) ||
+                            itemId == PlacesUIUtils.allBookmarksFolderId;
+    if (!folderButton.disabled) {
       
-      scopeBarFolder.disabled = false;
-      var folders = [PlacesUtils.getConcreteItemId(aNode)];
-      var filterCollection = "collection";
-      var scopeButton = "scopeBarFolder";
-    }
-    else {
+
       
-      scopeBarFolder.disabled = true;
-      var folders = [];
-      var filterCollection = "bookmarks";
-      var scopeButton = "scopeBarAll";
+      
+      
+      
+      var cmd = document.getElementById("OrganizerCommand_find:current");
+      var label = PlacesUIUtils.getFormattedString("findInPrefix",
+                                                   [aNode.title]);
+      cmd.setAttribute("label", label);
     }
-
-    
-    PlacesSearchBox.folders = folders;
-    PlacesSearchBox.filterCollection = filterCollection;
-
-    
-    var scopeBar = document.getElementById("organizerScopeBar");
-    var child = scopeBar.firstChild;
-    while (child) {
-      if (child.getAttribute("id") != scopeButton)
-        child.removeAttribute("checked");
-      else
-        child.setAttribute("checked", "true");
-      child = child.nextSibling;
-    }
-
-    
-    var findCommand = document.getElementById("OrganizerCommand_find:current");
-    var findLabel = PlacesUIUtils.getFormattedString("findInPrefix", [aNode.title]);
-    findCommand.setAttribute("label", findLabel);
   },
 
   
@@ -892,6 +875,8 @@ var PlacesSearchBox = {
     var currentOptions = PO.getCurrentOptions();
     var content = PO._content;
 
+    
+    
     switch (PlacesSearchBox.filterCollection) {
     case "collection":
       content.applyFilter(filterString, this.folders);
@@ -904,10 +889,7 @@ var PlacesSearchBox = {
       
       
       currentOptions.resultType = currentOptions.RESULT_TYPE_URI;
-      content.applyFilter(filterString,
-                          [PlacesUtils.bookmarksMenuFolderId,
-                           PlacesUtils.toolbarFolderId,
-                           PlacesUtils.unfiledBookmarksFolderId]);
+      content.applyFilter(filterString, this.folders);
       break;
     case "history":
       if (currentOptions.queryType != Ci.nsINavHistoryQueryOptions.QUERY_TYPE_HISTORY) {
@@ -920,8 +902,8 @@ var PlacesSearchBox = {
       else
         content.applyFilter(filterString);
       break;
-    case "all":
-      content.applyFilter(filterString);
+    default:
+      throw "Invalid filterCollection on search";
       break;
     }
 
@@ -935,7 +917,7 @@ var PlacesSearchBox = {
 
 
   findAll: function PSB_findAll() {
-    this.filterCollection = "all";
+    PlacesQueryBuilder.setScope("bookmarks");
     this.focus();
   },
 
@@ -943,7 +925,7 @@ var PlacesSearchBox = {
 
 
   findCurrent: function PSB_findCurrent() {
-    this.filterCollection = "collection";
+    PlacesQueryBuilder.setScope("collection");
     this.focus();
   },
 
@@ -973,8 +955,6 @@ var PlacesSearchBox = {
       return collectionName;
 
     this.searchFilter.setAttribute("collection", collectionName);
-    if (this.searchFilter.value)
-      return collectionName; 
 
     var newGrayText = null;
     if (collectionName == "collection")
@@ -1497,45 +1477,80 @@ var PlacesQueryBuilder = {
   },
 #endif
 
+  
+
+
+
+
   onScopeSelected: function PQB_onScopeSelected(aButton) {
-    var id = aButton.getAttribute("id");
-    
-    var bar = document.getElementById("organizerScopeBar");
-    var child = bar.firstChild;
-    while (child) {
-      if (child.getAttribute("id") != id)
-        child.removeAttribute("checked");
-      else
-        child.setAttribute("checked", "true");
-      child = child.nextSibling;
+    switch (aButton.id) {
+    case "scopeBarHistory":
+      this.setScope("history");
+      break;
+    case "scopeBarFolder":
+      this.setScope("collection");
+      break;
+    case "scopeBarAll":
+      this.setScope("bookmarks");
+      break;
+    default:
+      throw "Invalid search scope button ID";
+      break;
     }
+  },
 
+  
+
+
+
+
+
+
+
+  setScope: function PQB_setScope(aScope) {
     
+    var filterCollection;
     var folders = [];
-    switch (id) {
-      case "scopeBarHistory":
-        PlacesSearchBox.filterCollection = "history";
+    var scopeButtonId;
+    switch (aScope) {
+    case "history":
+      filterCollection = "history";
+      scopeButtonId = "scopeBarHistory";
+      break;
+    case "collection":
+      
+      
+      
+      if (!document.getElementById("scopeBarFolder").disabled) {
+        filterCollection = "collection";
+        scopeButtonId = "scopeBarFolder";
+        folders.push(PlacesUtils.getConcreteItemId(
+                       PlacesOrganizer._places.selectedNode));
         break;
-      case "scopeBarFolder":
-        var selectedFolder = PlacesOrganizer._places.selectedNode.itemId;
-        
-        
-        if (selectedFolder != PlacesUIUtils.allBookmarksFolderId) {
-          PlacesSearchBox.filterCollection = "collection";
-          folders.push(PlacesUtils.getConcreteItemId(
-                         PlacesOrganizer._places.selectedNode));
-          break;
-        }
-      default: 
-        PlacesSearchBox.filterCollection = "bookmarks";
-        folders.push(PlacesUtils.bookmarksMenuFolderId,
-                     PlacesUtils.toolbarFolderId,
-                     PlacesUtils.unfiledBookmarksFolderId);
+      }
+      
+      
+    case "bookmarks":
+      filterCollection = "bookmarks";
+      scopeButtonId = "scopeBarAll";
+      folders.push(PlacesUtils.bookmarksMenuFolderId,
+                   PlacesUtils.toolbarFolderId,
+                   PlacesUtils.unfiledBookmarksFolderId);
+      break;
+    default:
+      throw "Invalid search scope";
+      break;
     }
 
     
+    document.getElementById(scopeButtonId).checked = true;
+
+    
+    PlacesSearchBox.filterCollection = filterCollection;
     PlacesSearchBox.folders = folders;
-    PlacesSearchBox.search(PlacesSearchBox.searchFilter.value);
+    var searchStr = PlacesSearchBox.searchFilter.value;
+    if (searchStr)
+      PlacesSearchBox.search(searchStr);
   }
 };
 
