@@ -672,7 +672,7 @@ js_watch_set(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
                       : wp->setter(cx, obj, userid, vp));
                 if (injectFrame) {
                     
-                    ok = frame.putActivationObjects(cx);
+                    ok &= frame.putActivationObjects(cx);
                     cx->fp = frame.down;
                     if (argv != smallv)
                         cx->free(argv);
