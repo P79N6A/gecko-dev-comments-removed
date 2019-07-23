@@ -564,7 +564,12 @@ public:
   static void GetFirstLeaf(nsPresContext* aPresContext, nsIFrame **aFrame);
 
   
-  static PRInt32 GetLineNumber(nsIFrame *aFrame, nsIFrame** aContainingBlock = nsnull);
+  
+  
+  
+  static PRInt32 GetLineNumber(nsIFrame *aFrame,
+                               PRBool aLockScroll,
+                               nsIFrame** aContainingBlock = nsnull);
 
 protected:
 
