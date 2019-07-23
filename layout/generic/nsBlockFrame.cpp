@@ -4739,6 +4739,11 @@ nsBlockFrame::AddFrames(nsIFrame* aFrameList,
   
   nsIFrame* newFrame = aFrameList;
   while (newFrame) {
+    NS_ASSERTION(newFrame->GetType() != nsGkAtoms::placeholderFrame ||
+                 (!newFrame->GetStyleDisplay()->IsAbsolutelyPositioned() &&
+                  !newFrame->GetStyleDisplay()->IsFloating()),
+                 "Placeholders should not float or be positioned");
+
     PRBool isBlock = newFrame->GetStyleDisplay()->IsBlockOutside();
 
     
