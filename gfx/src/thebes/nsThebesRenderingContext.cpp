@@ -520,7 +520,7 @@ nsThebesRenderingContext::DrawRect(nscoord aX, nscoord aY, nscoord aWidth, nscoo
 
 
 
-#define CAIRO_COORD_MAX (16384.0)
+#define CAIRO_COORD_MAX (8388608.0)
 
 static PRBool
 ConditionRect(gfxRect& r) {
