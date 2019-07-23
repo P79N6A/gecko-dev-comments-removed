@@ -161,17 +161,7 @@ FeedConverter.prototype = {
 
 
   _sniffed: false,
-  
-  
 
-
-  canConvert: function FC_canConvert(sourceType, destinationType) {
-    
-    return destinationType == TYPE_ANY && ((sourceType == TYPE_MAYBE_FEED) ||
-                                           (sourceType == TYPE_MAYBE_VIDEO) ||
-                                           (sourceType == TYPE_MAYBE_AUDIO));
-  },
-  
   
 
 
@@ -362,7 +352,7 @@ FeedConverter.prototype = {
   
 
 
-  onStopRequest: function FC_onStopReqeust(request, context, status) {
+  onStopRequest: function FC_onStopRequest(request, context, status) {
     if (this._processor)
       this._processor.onStopRequest(request, context, status);
   },
