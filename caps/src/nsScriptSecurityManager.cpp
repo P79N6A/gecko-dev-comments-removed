@@ -1708,8 +1708,7 @@ nsScriptSecurityManager::CanExecuteScripts(JSContext* cx,
             if (NS_FAILED(rv)) return rv;
             if (appType == nsIDocShell::APP_TYPE_MAIL) 
             {
-                
-                *result = PR_FALSE; 
+                *result = mIsMailJavaScriptEnabled;
             }
         }
     }
@@ -3786,7 +3785,8 @@ nsScriptSecurityManager::ScriptSecurityPrefChanged()
 
     rv = mSecurityPref->SecurityGetBoolPref(sJSMailEnabledPrefName, &temp);
     
-    mIsMailJavaScriptEnabled = NS_SUCCEEDED(rv) && temp;
+    
+    mIsMailJavaScriptEnabled = PR_FALSE; 
 
     rv = mSecurityPref->SecurityGetBoolPref(sFileOriginPolicyPrefName, &temp);
     sStrictFileOriginPolicy = NS_SUCCEEDED(rv) && temp;
