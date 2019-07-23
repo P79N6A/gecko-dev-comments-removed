@@ -39,7 +39,7 @@
 #include "nsRootAccessible.h"
 #include "nsAccessibilityAtoms.h"
 #include "nsAccessibleEventData.h"
-#include "nsIAccessibilityService.h"
+#include "nsAccessibilityService.h"
 #include "nsIMutableArray.h"
 #include "nsICommandManager.h"
 #include "nsIDocShell.h"
@@ -670,7 +670,7 @@ nsDocAccessible::Shutdown()
   
   
   
-  if (!gIsShuttingDownApp)
+  if (!nsAccessibilityService::gIsShutdown)
     gGlobalDocAccessibleCache.Remove(static_cast<void*>(kungFuDeathGripDoc));
 
   return NS_OK;

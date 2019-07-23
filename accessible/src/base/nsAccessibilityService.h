@@ -84,6 +84,16 @@ public:
 
   static nsresult GetAccessibilityService(nsIAccessibilityService** aResult);
 
+  
+
+
+  static nsIAccessibilityService* GetAccessibilityService();
+
+  
+
+
+  static PRBool gIsShutdown;
+
 private:
   
 

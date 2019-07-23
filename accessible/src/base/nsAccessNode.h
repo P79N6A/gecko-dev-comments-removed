@@ -174,21 +174,21 @@ protected:
     
 
 
-    static void NotifyA11yInitOrShutdown();
+    static void NotifyA11yInitOrShutdown(PRBool aIsInit);
 
     
     static nsIStringBundle *gStringBundle;
     static nsIStringBundle *gKeyStringBundle;
     static nsITimer *gDoCommandTimer;
+#ifdef DEBUG
     static PRBool gIsAccessibilityActive;
-    static PRBool gIsShuttingDownApp;
+#endif
     static PRBool gIsCacheDisabled;
     static PRBool gIsFormFillEnabled;
 
     static nsAccessNodeHashtable gGlobalDocAccessibleCache;
 
 private:
-  static nsIAccessibilityService *sAccService;
   static nsApplicationAccessibleWrap *gApplicationAccessible;
 };
 
