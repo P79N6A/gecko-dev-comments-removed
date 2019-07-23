@@ -621,7 +621,7 @@ nsHTMLSelectOptionAccessible::GetState(PRUint32 *aState, PRUint32 *aExtraState)
   
   
   nsresult rv = nsAccessible::GetState(aState, aExtraState);
-  NS_ENSURE_TRUE(rv, rv);
+  NS_ENSURE_SUCCESS(rv, rv);
   if (!mDOMNode)
     return NS_OK;
 
