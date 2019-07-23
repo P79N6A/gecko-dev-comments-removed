@@ -725,3 +725,6 @@ pref("editor.singleLine.pasteNewlines", 2);
 
 
 pref("breakpad.reportURL", "http://crash-stats.mozilla.com/report/index/");
+
+
+pref("app.support.baseURL", "http://support.mozilla.com/1/%APP%/%VERSION%/%OS%/%LOCALE%/");

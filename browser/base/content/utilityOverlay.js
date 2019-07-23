@@ -673,3 +673,25 @@ function getOfflineAppUsage(host)
   return usage;
 }
 
+
+function openHelpLink(aHelpTopic, aCalledFromModal) {
+  var url = Components.classes["@mozilla.org/toolkit/URLFormatterService;1"]
+                      .getService(Components.interfaces.nsIURLFormatter)
+                      .formatURLPref("app.support.baseURL");
+  url += aHelpTopic;
+
+  var where = aCalledFromModal ? "window" : "tab";
+  openUILinkIn(url, where);
+}
+
+function openPrefsHelp() {
+  var prefs = Components.classes["@mozilla.org/preferences-service;1"]
+                        .getService(Components.interfaces.nsIPrefBranch2);
+
+  
+  
+  var instantApply = prefs.getBoolPref("browser.preferences.instantApply");
+
+  var helpTopic = document.getElementsByTagName("prefwindow")[0].currentPane.helpTopic;
+  openHelpLink(helpTopic, !instantApply);
+}
