@@ -824,6 +824,12 @@ public:
   
   void UserFontSetUpdated();
 
+  
+  
+  
+  
+  PRBool EnsureSafeToHandOutCSSRules();
+
   PRBool MayHavePaintEventListener();
   void NotifyInvalidation(const nsRect& aRect, PRUint32 aFlags);
   void FireDOMPaintEvent();
