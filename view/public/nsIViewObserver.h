@@ -48,8 +48,8 @@ class nsGUIEvent;
 
 
 #define NS_IVIEWOBSERVER_IID  \
-{ 0x8d7ae493, 0x1eb1, 0x4d38, \
-  { 0x89, 0xda, 0x9e, 0xee, 0xaa, 0x29, 0xfd, 0x79 } }
+{ 0x52b3b616, 0x23a9, 0x4516, \
+  { 0xa8, 0xd3, 0x45, 0x2b, 0x41, 0x26, 0xeb, 0x2b } }
 
 class nsIViewObserver : public nsISupports
 {
@@ -150,13 +150,6 @@ public:
 
   NS_IMETHOD_(void) DispatchSynthMouseMove(nsGUIEvent *aEvent,
                                            PRBool aFlushOnHoverChange) = 0;
-
-  
-
-
-
-  NS_IMETHOD_(void) ClearMouseCapture(nsIView* aView) = 0;
-
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsIViewObserver, NS_IVIEWOBSERVER_IID)

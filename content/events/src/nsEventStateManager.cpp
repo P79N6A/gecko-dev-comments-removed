@@ -2743,7 +2743,17 @@ nsEventStateManager::PostHandleEvent(nsPresContext* aPresContext,
           !mNormalLMouseEventInProcess) {
         
         
-        nsIPresShell::SetCapturingContent(nsnull, 0);
+        if (aView) {
+          nsIViewManager* viewMan = aView->GetViewManager();
+          if (viewMan) {
+            nsIView* grabbingView;
+            viewMan->GetMouseEventGrabber(grabbingView);
+            if (grabbingView == aView) {
+              PRBool result;
+              viewMan->GrabMouseEvents(nsnull, result);
+            }
+          }
+        }
         break;
       }
 
@@ -2848,9 +2858,17 @@ nsEventStateManager::PostHandleEvent(nsPresContext* aPresContext,
         ret =
           CheckForAndDispatchClick(presContext, (nsMouseEvent*)aEvent, aStatus);
       }
-
       nsIPresShell *shell = presContext->GetPresShell();
       if (shell) {
+        nsIViewManager* viewMan = shell->GetViewManager();
+        if (viewMan) {
+          nsIView* grabbingView = nsnull;
+          viewMan->GetMouseEventGrabber(grabbingView);
+          if (grabbingView == aView) {
+            PRBool result;
+            viewMan->GrabMouseEvents(nsnull, result);
+          }
+        }
         nsCOMPtr<nsFrameSelection> frameSelection = shell->FrameSelection();
         frameSelection->SetMouseDownState(PR_FALSE);
       }

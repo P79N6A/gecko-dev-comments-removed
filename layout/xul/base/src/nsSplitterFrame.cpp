@@ -55,6 +55,9 @@
 #include "nsIDOMMouseListener.h"
 #include "nsIDOMMouseMotionListener.h"
 #include "nsIDOMEventTarget.h"
+#include "nsIView.h"
+#include "nsIViewManager.h"
+#include "nsIScrollableView.h"
 #include "nsIDOMMouseEvent.h"
 #include "nsIPresShell.h"
 #include "nsFrameList.h"
@@ -144,6 +147,8 @@ public:
   ResizeType GetResizeAfter();
   State GetState();
 
+  
+  
   void Reverse(nsSplitterInfo*& aIndexes, PRInt32 aCount);
   PRBool SupportsCollapseDirection(CollapseDirection aDirection);
 
@@ -162,6 +167,7 @@ public:
   PRInt32 mChildInfosAfterCount;
   State mState;
   nscoord mSplitterPos;
+  nscoord mSplitterViewPos;
   PRBool mDragging;
 
 };
@@ -345,6 +351,9 @@ nsSplitterFrame::Init(nsIContent*      aContent,
   nsresult  rv = nsBoxFrame::Init(aContent, aParent, aPrevInFlow);
   NS_ENSURE_SUCCESS(rv, rv);
 
+  rv = nsHTMLContainerFrame::CreateViewForFrame(this, PR_TRUE);
+  NS_ENSURE_SUCCESS(rv, rv);
+
   mInner->mState = nsSplitterFrameInner::Open;
   mInner->AddListener(PresContext());
   mInner->mParentBox = nsnull;
@@ -463,7 +472,7 @@ nsSplitterFrameInner::MouseUp(nsPresContext* aPresContext, nsGUIEvent* aEvent)
   if (mDragging && mOuter) {
     AdjustChildren(aPresContext);
     AddListener(aPresContext);
-    nsIPresShell::SetCapturingContent(nsnull, 0); 
+    mOuter->CaptureMouse(aPresContext, PR_FALSE);
     mDragging = PR_FALSE;
     State newState = GetState(); 
     
@@ -577,6 +586,20 @@ nsSplitterFrameInner::MouseDrag(nsPresContext* aPresContext, nsGUIEvent* aEvent)
       AdjustChildren(aPresContext);
     }
 
+    
+    
+
+
+
+
+
+
+    
+
+
+
+
+
     mDidDrag = PR_TRUE;
   }
 }
@@ -604,13 +627,62 @@ nsSplitterFrameInner::RemoveListener()
                              NS_GET_IID(nsIDOMMouseMotionListener));
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 nsresult
 nsSplitterFrameInner::MouseUp(nsIDOMEvent* aMouseEvent)
 {  
   NS_ENSURE_TRUE(mOuter, NS_OK);
   mPressed = PR_FALSE;
 
-  nsIPresShell::SetCapturingContent(nsnull, 0);
+  mOuter->CaptureMouse(mOuter->PresContext(), PR_FALSE);
 
   return NS_OK;
 }
@@ -771,22 +843,26 @@ nsSplitterFrameInner::MouseDown(nsIDOMEvent* aMouseEvent)
   if (resizeAfter == Grow)
      mChildInfosAfterCount = 0;
 
+  nsRect vr = mOuter->GetView()->GetBounds();
+
   PRInt32 c;
   nsPoint pt = nsLayoutUtils::GetDOMEventCoordinatesRelativeTo(mouseEvent,
                                                                mParentBox);
   if (isHorizontal) {
      c = pt.x;
      mSplitterPos = mOuter->mRect.x;
+     mSplitterViewPos = vr.x;
   } else {
      c = pt.y;
      mSplitterPos = mOuter->mRect.y;
+     mSplitterViewPos = vr.y;
   }
 
   mDragStart = c;
 
   
 
-  nsIPresShell::SetCapturingContent(mOuter->GetContent(), CAPTURE_IGNOREALLOWED);
+  mOuter->CaptureMouse(outerPresContext, PR_TRUE);
 
   return NS_OK;
 }

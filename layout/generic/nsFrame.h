@@ -202,6 +202,14 @@ public:
                                         PRInt8 aOutSideLimit
                                         );
 
+  
+
+
+
+
+
+  static nsIFrame* GetNearestCapturingFrame(nsIFrame* aFrame);
+
   NS_IMETHOD  CharacterDataChanged(CharacterDataChangeInfo* aInfo);
   NS_IMETHOD  AttributeChanged(PRInt32         aNameSpaceID,
                                nsIAtom*        aAttribute,
@@ -393,6 +401,10 @@ public:
   
   void ConsiderChildOverflow(nsRect&   aOverflowArea,
                              nsIFrame* aChildFrame);
+
+  
+  NS_IMETHOD CaptureMouse(nsPresContext* aPresContext, PRBool aGrabMouseEvents);
+  PRBool   IsMouseCaptured(nsPresContext* aPresContext);
 
   virtual const void* GetStyleDataExternal(nsStyleStructID aSID) const;
 

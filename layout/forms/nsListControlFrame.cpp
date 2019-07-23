@@ -1031,23 +1031,28 @@ nsListControlFrame::CaptureMouseEvents(PRBool aGrabMouseEvents)
   if (NS_UNLIKELY(!view))
     return;
 
-  if (aGrabMouseEvents) {
-    nsIPresShell::SetCapturingContent(mContent, CAPTURE_IGNOREALLOWED);
-  } else {
-    nsIContent* capturingContent = nsIPresShell::GetCapturingContent();
-
-    PRBool dropDownIsHidden = PR_FALSE;
-    if (IsInDropDownMode()) {
-      dropDownIsHidden = !mComboboxFrame->IsDroppedDown();
-    }
-    if (capturingContent == mContent || dropDownIsHidden) {
-      
-      
-      
-      
-      
-      
-      nsIPresShell::SetCapturingContent(nsnull, 0);
+  nsIViewManager* viewMan = view->GetViewManager();
+  if (viewMan) {
+    PRBool result;
+    
+    if (aGrabMouseEvents) {
+      viewMan->GrabMouseEvents(view, result);
+    } else {
+      nsIView* curGrabber;
+      viewMan->GetMouseEventGrabber(curGrabber);
+      PRBool dropDownIsHidden = PR_FALSE;
+      if (IsInDropDownMode()) {
+        dropDownIsHidden = !mComboboxFrame->IsDroppedDown();
+      }
+      if (curGrabber == view || dropDownIsHidden) {
+        
+        
+        
+        
+        
+        
+        viewMan->GrabMouseEvents(nsnull, result);
+      }
     }
   }
 }
@@ -2115,7 +2120,11 @@ nsListControlFrame::GetIndexFromDOMEvent(nsIDOMEvent* aMouseEvent,
   if (IgnoreMouseEventForSelection(aMouseEvent))
     return NS_ERROR_FAILURE;
 
-  if (nsIPresShell::GetCapturingContent() != mContent) {
+  nsIView* view = GetScrolledFrame()->GetView();
+  nsIViewManager* viewMan = view->GetViewManager();
+  nsIView* curGrabber;
+  viewMan->GetMouseEventGrabber(curGrabber);
+  if (curGrabber != view) {
     
     nsPoint pt = nsLayoutUtils::GetDOMEventCoordinatesRelativeTo(aMouseEvent, this);
     nsRect borderInnerEdge = GetScrollableView()->View()->GetBounds();

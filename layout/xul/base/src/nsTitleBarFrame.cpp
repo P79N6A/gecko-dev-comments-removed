@@ -48,6 +48,7 @@
 #include "nsPresContext.h"
 #include "nsIDocShellTreeItem.h"
 #include "nsPIDOMWindow.h"
+#include "nsIViewManager.h"
 #include "nsGUIEvent.h"
 #include "nsEventDispatcher.h"
 #include "nsDisplayList.h"
@@ -68,6 +69,20 @@ nsTitleBarFrame::nsTitleBarFrame(nsIPresShell* aPresShell, nsStyleContext* aCont
 :nsBoxFrame(aPresShell, aContext, PR_FALSE)
 {
   mTrackingMouseMove = PR_FALSE;
+}
+
+
+
+NS_IMETHODIMP
+nsTitleBarFrame::Init(nsIContent*      aContent,
+                      nsIFrame*        aParent,
+                      nsIFrame*        asPrevInFlow)
+{
+  nsresult rv = nsBoxFrame::Init(aContent, aParent, asPrevInFlow);
+
+  CreateViewForFrame(PresContext(), this, GetStyleContext(), PR_TRUE);
+
+  return rv;
 }
 
 NS_IMETHODIMP
@@ -114,7 +129,7 @@ nsTitleBarFrame::HandleEvent(nsPresContext* aPresContext,
              mTrackingMouseMove = PR_TRUE;
 
              
-             nsIPresShell::SetCapturingContent(GetContent(), CAPTURE_IGNOREALLOWED);
+             CaptureMouseEvents(aPresContext,PR_TRUE);
 
              
              mLastPoint = aEvent->refPoint;
@@ -137,7 +152,7 @@ nsTitleBarFrame::HandleEvent(nsPresContext* aPresContext,
          mTrackingMouseMove = PR_FALSE;
 
          
-         nsIPresShell::SetCapturingContent(nsnull, 0);
+         CaptureMouseEvents(aPresContext,PR_FALSE);
 
          *aEventStatus = nsEventStatus_eConsumeNoDefault;
          doDefault = PR_FALSE;
@@ -194,6 +209,35 @@ nsTitleBarFrame::HandleEvent(nsPresContext* aPresContext,
   else
     return NS_OK;
 }
+
+NS_IMETHODIMP
+nsTitleBarFrame::CaptureMouseEvents(nsPresContext* aPresContext,PRBool aGrabMouseEvents)
+{
+  
+  nsIView* view = GetView();
+  PRBool result;
+
+  if (view) {
+    nsIViewManager* viewMan = view->GetViewManager();
+    if (viewMan) {
+      
+      if (aGrabMouseEvents) {
+        viewMan->GrabMouseEvents(view,result);
+        
+        
+      } else {
+        viewMan->GrabMouseEvents(nsnull,result);
+        
+        
+      }
+    }
+  }
+
+  return NS_OK;
+
+}
+
+
 
 void
 nsTitleBarFrame::MouseClicked(nsPresContext* aPresContext, nsGUIEvent* aEvent)

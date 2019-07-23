@@ -412,21 +412,14 @@ protected:
 };
 
 
-
-
-
 class nsAutoHandlingUserInputStatePusher
 {
 public:
-  nsAutoHandlingUserInputStatePusher(PRBool aIsHandlingUserInput, PRBool aIsMouseDown)
-    : mIsHandlingUserInput(aIsHandlingUserInput), mIsMouseDown(aIsMouseDown)
+  nsAutoHandlingUserInputStatePusher(PRBool aIsHandlingUserInput)
+    : mIsHandlingUserInput(aIsHandlingUserInput)
   {
     if (aIsHandlingUserInput) {
       nsEventStateManager::StartHandlingUserInput();
-      if (aIsMouseDown) {
-        nsIPresShell::SetCapturingContent(nsnull, 0);
-        nsIPresShell::AllowMouseCapture(PR_TRUE);
-      }
     }
   }
 
@@ -434,15 +427,11 @@ public:
   {
     if (mIsHandlingUserInput) {
       nsEventStateManager::StopHandlingUserInput();
-      if (mIsMouseDown) {
-        nsIPresShell::AllowMouseCapture(PR_FALSE);
-      }
     }
   }
 
 protected:
   PRBool mIsHandlingUserInput;
-  PRBool mIsMouseDown;
 
 private:
   

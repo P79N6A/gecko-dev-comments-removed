@@ -228,11 +228,19 @@ nsBaseDragService::InvokeDragSession(nsIDOMNode *aDOMNode,
   
   
   
-  nsCOMPtr<nsIDocument> doc = do_QueryInterface(mSourceDocument);
-  if (doc) {
-    nsCOMPtr<nsIViewObserver> viewObserver = do_QueryInterface(doc->GetPrimaryShell());
-    if (viewObserver) {
-      viewObserver->ClearMouseCapture(nsnull);
+  
+  nsCOMPtr<nsIContent> contentNode = do_QueryInterface(aDOMNode);
+  if (contentNode) {
+    nsIDocument* doc = contentNode->GetCurrentDoc();
+    if (doc) {
+      nsIPresShell* presShell = doc->GetPrimaryShell();
+      if (presShell) {
+        nsIViewManager* vm = presShell->GetViewManager();
+        if (vm) {
+          PRBool notUsed;
+          vm->GrabMouseEvents(nsnull, notUsed);
+        }
+      }
     }
   }
 

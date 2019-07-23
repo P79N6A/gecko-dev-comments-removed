@@ -107,10 +107,9 @@ struct CharacterDataChangeInfo;
 
 typedef class nsIFrame nsIBox;
 
-
 #define NS_IFRAME_IID \
-  { 0x87f5b42a, 0x507d, 0x4707, \
-    { 0x97, 0x6c, 0x46, 0x81, 0x98, 0x67, 0xbc, 0x63 } }
+  { 0x7e9018b5, 0x5405, 0x4e2b, \
+    { 0x87, 0x67, 0xe2, 0xb4, 0xb1, 0x3e, 0xc1, 0x69 } }
 
 
 
@@ -1736,6 +1735,14 @@ public:
   
 
 
+
+
+
+  virtual nsIView* GetMouseCapturer() const { return nsnull; }
+
+  
+
+
   void InvalidateWithFlags(const nsRect& aDamageRect, PRUint32 aFlags);
 
   
@@ -1946,6 +1953,14 @@ public:
 
   
 
+
+  
+
+
+
+
+
+  NS_IMETHOD CaptureMouse(nsPresContext* aPresContext, PRBool aGrabMouseEvents) = 0;
 
   
 
