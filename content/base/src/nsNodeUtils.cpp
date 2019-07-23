@@ -468,58 +468,6 @@ nsNodeUtils::CloneNodeImpl(nsINode *aNode, PRBool aDeep, nsIDOMNode **aResult)
   return NS_OK;
 }
 
-class AdoptFuncData {
-public:
-  AdoptFuncData(nsGenericElement *aElement,
-                nsNodeInfoManager *aNewNodeInfoManager, JSContext *aCx,
-                JSObject *aOldScope, JSObject *aNewScope,
-                nsCOMArray<nsINode> &aNodesWithProperties)
-    : mElement(aElement),
-      mNewNodeInfoManager(aNewNodeInfoManager),
-      mCx(aCx),
-      mOldScope(aOldScope),
-      mNewScope(aNewScope),
-      mNodesWithProperties(aNodesWithProperties)
-  {
-  }
-
-  nsGenericElement *mElement;
-  nsNodeInfoManager *mNewNodeInfoManager;
-  JSContext *mCx;
-  JSObject *mOldScope;
-  JSObject *mNewScope;
-  nsCOMArray<nsINode> &mNodesWithProperties;
-};
-
-PLDHashOperator
-AdoptFunc(nsAttrHashKey::KeyType aKey, nsIDOMNode *aData, void* aUserArg)
-{
-  nsCOMPtr<nsIAttribute> attr = do_QueryInterface(aData);
-  NS_ASSERTION(attr, "non-nsIAttribute somehow made it into the hashmap?!");
-
-  AdoptFuncData *data = static_cast<AdoptFuncData*>(aUserArg);
-
-  
-  
-  PRBool clone = data->mElement != nsnull;
-  nsCOMPtr<nsINode> node;
-  nsresult rv = nsNodeUtils::CloneAndAdopt(attr, clone, PR_TRUE,
-                                           data->mNewNodeInfoManager,
-                                           data->mCx, data->mOldScope,
-                                           data->mNewScope,
-                                           data->mNodesWithProperties,
-                                           nsnull, getter_AddRefs(node));
-
-  if (NS_SUCCEEDED(rv) && clone) {
-    nsCOMPtr<nsIDOMAttr> dummy, attribute = do_QueryInterface(node, &rv);
-    if (NS_SUCCEEDED(rv)) {
-      rv = data->mElement->SetAttributeNode(attribute, getter_AddRefs(dummy));
-    }
-  }
-
-  return NS_SUCCEEDED(rv) ? PL_DHASH_NEXT : PL_DHASH_STOP;
-}
-
 
 nsresult
 nsNodeUtils::CloneAndAdopt(nsINode *aNode, PRBool aClone, PRBool aDeep,
@@ -657,22 +605,10 @@ nsNodeUtils::CloneAndAdopt(nsINode *aNode, PRBool aClone, PRBool aDeep,
     }
   }
 
-  if (elem) {
-    
-    const nsDOMAttributeMap *map = elem->GetAttributeMap();
-    if (map) {
-      
-      
-      
-      nsGenericElement* elemClone =
-        aClone ? static_cast<nsGenericElement*>(clone.get()) : nsnull;
-      AdoptFuncData data(elemClone, nodeInfoManager, aCx, aOldScope, aNewScope,
-                         aNodesWithProperties);
-
-      PRUint32 count = map->Enumerate(AdoptFunc, &data);
-      NS_ENSURE_TRUE(count == map->Count(), NS_ERROR_FAILURE);
-    }
-  }
+  
+  
+  
+  
 
   
   
