@@ -413,6 +413,7 @@ protected:
   void PostScrollEvent();
   void FireScrollEvent();
 
+#ifdef ACCESSIBILITY
   
 
 
@@ -423,6 +424,24 @@ protected:
 
 
   void FireRowCountChangedEvent(PRInt32 aIndex, PRInt32 aCount);
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+  void FireInvalidateEvent(PRInt32 aStartRow, PRInt32 aEndRow,
+                           nsITreeColumn *aStartCol, nsITreeColumn *aEndCol);
+#endif
 
 protected: 
   
