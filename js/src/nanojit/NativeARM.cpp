@@ -1322,25 +1322,6 @@ Assembler::nativePageSetup()
 }
 
 
-
-void
-Assembler::recordStartingInstructionPointer()
-{
-    _startingIns = _nIns;
-    _startingSlot = _nSlot;
-    NanoAssert(samepage(_nIns,_nSlot));
-}
-
-
-
-void
-Assembler::resetInstructionPointer()
-{
-    _nIns = _startingIns;
-    _nSlot = _startingSlot;
-    NanoAssert(samepage(_nIns,_nSlot));
-}
-
 void
 Assembler::underrunProtect(int bytes)
 {
