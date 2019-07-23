@@ -311,7 +311,6 @@ pref("browser.microsummary.updateGenerators", true);
 
 pref("browser.search.suggest.enabled", true);
 
-pref("browser.history.showSessions", false);
 pref("browser.sessionhistory.max_entries", 50);
 pref("browser.history_expire_days", 180);
 pref("browser.history_expire_days_min", 90);
@@ -364,10 +363,6 @@ pref("browser.ctrlTab.previews", false);
 pref("browser.ctrlTab.recentlyUsedLimit", 7);
 
 
-pref("browser.bookmarks.sort.direction", "descending");
-pref("browser.bookmarks.sort.resource", "rdf:http://home.netscape.com/NC-rdf#Name");
-
-
 
 
 pref("browser.bookmarks.autoExportHTML",          false);
@@ -376,7 +371,7 @@ pref("browser.bookmarks.autoExportHTML",          false);
 
 
 
-pref("browser.bookmarks.max_backups",             5);
+pref("browser.bookmarks.max_backups",             10);
 
 
 pref("dom.disable_open_during_load",              true);
