@@ -165,6 +165,17 @@ js_ConcatStrings(JSContext *cx, JSString *left, JSString *right)
     js_strncpy(s + ln, rs, rn);
     n = ln + rn;
     s[n] = 0;
+
+#ifdef JS_TRACER
+    
+
+
+
+
+    if (n > JSSTRING_LENGTH_MASK && JS_ON_TRACE(cx) && !cx->bailExit)
+        return NULL;
+#endif
+
     str = js_NewString(cx, s, n);
     if (!str) {
         
