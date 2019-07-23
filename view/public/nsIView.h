@@ -47,6 +47,7 @@ class nsIViewManager;
 class nsIScrollableView;
 class nsViewManager;
 class nsView;
+class nsWeakView;
 
 
 
@@ -60,8 +61,8 @@ enum nsViewVisibility {
 
 
 #define NS_IVIEW_IID    \
-{ 0x6610ae89, 0x3909, 0x422f, \
-{ 0xa2, 0x27, 0xed, 0xe6, 0x7b, 0x97, 0xbc, 0xd1 } }
+{ 0x1b0215f7, 0xf5d1, 0x4574, \
+  { 0x9a, 0xb9, 0xab, 0xdc, 0xce, 0xdd, 0xb8, 0x2e } }
 
 
 #define NS_VIEW_FLAGS_PUBLIC              0x00FF
@@ -81,6 +82,10 @@ enum nsViewVisibility {
 
 
 #define NS_VIEW_FLAG_TOPMOST              0x0010
+
+
+
+#define NS_VIEW_DISOWNS_WIDGET             0x0020
 
 struct nsViewZIndex {
   PRBool mIsAuto;
@@ -304,7 +309,7 @@ public:
 
 
   void DisownWidget() {
-    mWidgetDisowned = PR_TRUE;
+    mVFlags |= NS_VIEW_DISOWNS_WIDGET;
   }
 
 #ifdef DEBUG
@@ -324,7 +329,9 @@ public:
 
   virtual PRBool ExternalIsRoot() const;
 
+  void SetDeletionObserver(nsWeakView* aDeletionObserver);
 protected:
+  friend class nsWeakView;
   nsViewManager     *mViewManager;
   nsView            *mParent;
   nsIWidget         *mWindow;
@@ -337,11 +344,54 @@ protected:
   nsRect            mDimBounds; 
   float             mOpacity;
   PRUint32          mVFlags;
-  PRBool            mWidgetDisowned;
+  nsWeakView*       mDeletionObserver;
 
   virtual ~nsIView() {}
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsIView, NS_IVIEW_IID)
+
+
+class nsWeakView
+{
+public:
+  nsWeakView(nsIView* aView) : mPrev(nsnull), mView(aView)
+  {
+    if (mView) {
+      mView->SetDeletionObserver(this);
+    }
+  }
+
+  ~nsWeakView()
+  {
+    if (mView) {
+      NS_ASSERTION(mView->mDeletionObserver == this,
+                   "nsWeakViews deleted in wrong order!");
+      
+      mView->SetDeletionObserver(nsnull);
+      
+      mView->SetDeletionObserver(mPrev);
+    }
+  }
+
+  PRBool IsAlive() { return !!mView; }
+
+  nsIView* GetView() { return mView; }
+
+  void SetPrevious(nsWeakView* aWeakView) { mPrev = aWeakView; }
+
+  void Clear()
+  {
+    if (mPrev) {
+      mPrev->Clear();
+    }
+    mView = nsnull;
+  }
+private:
+  static void* operator new(size_t) CPP_THROW_NEW { return 0; }
+  static void operator delete(void*, size_t) {}
+  nsWeakView* mPrev;
+  nsIView*    mView;
+};
 
 #endif

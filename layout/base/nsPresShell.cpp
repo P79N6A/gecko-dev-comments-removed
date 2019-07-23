@@ -5776,6 +5776,7 @@ PresShell::HandleEventInternal(nsEvent* aEvent, nsIView *aView,
     
     aEvent->target = nsnull;
 
+    nsWeakView weakView(aView);
     
     
     rv = manager->PreHandleEvent(mPresContext, aEvent, mCurrentEventFrame,
@@ -5809,7 +5810,8 @@ PresShell::HandleEventInternal(nsEvent* aEvent, nsIView *aView,
       
       if (NS_SUCCEEDED(rv)) {
         rv = manager->PostHandleEvent(mPresContext, aEvent,
-                                      GetCurrentEventFrame(), aStatus, aView);
+                                      GetCurrentEventFrame(), aStatus,
+                                      weakView.GetView());
       }
     }
   }
