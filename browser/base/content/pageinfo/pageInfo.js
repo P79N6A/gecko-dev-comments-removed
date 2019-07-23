@@ -875,15 +875,15 @@ function makePreview(row)
 
   
   if (!mimeType && /^data:/.test(url)) {
-    var dataMimeType = /^data:(image\/.*);/.exec(url);
+    let dataMimeType = /^data:(image\/[^;,]+)/i.exec(url);
     if (dataMimeType)
-      mimeType = dataMimeType[1];
+      mimeType = dataMimeType[1].toLowerCase();
   }
 
   var imageType;
   if (mimeType) {
     
-    var imageMimeType = /^image\/(.*)/.exec(mimeType);
+    let imageMimeType = /^image\/(.*)/i.exec(mimeType);
     if (imageMimeType) {
       imageType = imageMimeType[1].toUpperCase();
       if (numFrames > 1)
