@@ -373,7 +373,7 @@ protected:
 
 
 
-  void DidReflowChildren(nsIFrame* aFirst, nsIFrame* aStop = nsnull);
+  static void DidReflowChildren(nsIFrame* aFirst, nsIFrame* aStop = nsnull);
 
 private:
   class RowChildFrameIterator;
