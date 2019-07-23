@@ -1574,7 +1574,7 @@ nsXPCWrappedJSClass::CallMethod(nsXPCWrappedJS* wrapper, uint16 methodIndex,
             }
         }
 
-        if(param.IsOut())
+        if(param.IsOut() || param.IsDipper())
         {
             
             JSObject* out_obj = NewOutObject(cx, obj);
