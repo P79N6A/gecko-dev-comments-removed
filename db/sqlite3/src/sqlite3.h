@@ -88,21 +88,8 @@ extern "C" {
 
 
 
-
-
-
-
-
-#define SQLITE_VERSION         "3.5.7"
-#define SQLITE_VERSION_NUMBER  3005007
-
-
-
-
-
-
-
-
+#define SQLITE_VERSION         "3.5.4.1"
+#define SQLITE_VERSION_NUMBER 3005004
 
 
 
@@ -147,10 +134,6 @@ int sqlite3_libversion_number(void);
 
 
 
-
-
-
-
 int sqlite3_threadsafe(void);
 
 
@@ -165,14 +148,7 @@ int sqlite3_threadsafe(void);
 
 
 
-
 typedef struct sqlite3 sqlite3;
-
-
-
-
-
-
 
 
 
@@ -208,25 +184,6 @@ typedef sqlite_uint64 sqlite3_uint64;
 #ifdef SQLITE_OMIT_FLOATING_POINT
 # define double sqlite3_int64
 #endif
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -315,43 +272,6 @@ typedef int (*sqlite3_callback)(void*,int,char**, char**);
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 int sqlite3_exec(
   sqlite3*,                                  
   const char *sql,                           
@@ -359,6 +279,12 @@ int sqlite3_exec(
   void *,                                    
   char **errmsg                              
 );
+
+
+
+
+
+
 
 
 
@@ -399,14 +325,6 @@ int sqlite3_exec(
 #define SQLITE_NOTADB      26   /* File opened that is not a database file */
 #define SQLITE_ROW         100  /* sqlite3_step() has another row ready */
 #define SQLITE_DONE        101  /* sqlite3_step() has finished executing */
-
-
-
-
-
-
-
-
 
 
 
@@ -843,29 +761,7 @@ struct sqlite3_vfs {
 
 
 
-
-
 int sqlite3_extended_result_codes(sqlite3*, int onoff);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -941,47 +837,7 @@ sqlite3_int64 sqlite3_last_insert_rowid(sqlite3*);
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 int sqlite3_changes(sqlite3*);
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -1035,31 +891,7 @@ int sqlite3_total_changes(sqlite3*);
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 void sqlite3_interrupt(sqlite3*);
-
-
-
-
-
-
-
-
-
 
 
 
@@ -1161,36 +993,7 @@ int sqlite3_complete16(const void *sql);
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
 int sqlite3_busy_handler(sqlite3*, int(*)(void*,int), void*);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -1260,78 +1063,15 @@ int sqlite3_busy_timeout(sqlite3*, int ms);
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 int sqlite3_get_table(
-  sqlite3*,             
-  const char *sql,      
-  char ***pResult,      
-  int *nrow,            
-  int *ncolumn,         
-  char **errmsg         
+  sqlite3*,              
+  const char *sql,       
+  char ***resultp,       
+  int *nrow,             
+  int *ncolumn,          
+  char **errmsg          
 );
 void sqlite3_free_table(char **result);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -1502,58 +1242,6 @@ char *sqlite3_snprintf(int,char*,const char*, ...);
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 void *sqlite3_malloc(int);
 void *sqlite3_realloc(void*, int);
 void sqlite3_free(void*);
@@ -1585,59 +1273,8 @@ void sqlite3_free(void*);
 
 
 
-
-
 sqlite3_int64 sqlite3_memory_used(void);
 sqlite3_int64 sqlite3_memory_highwater(int resetFlag);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -1739,28 +1376,6 @@ int sqlite3_set_authorizer(
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #define SQLITE_CREATE_INDEX          1   /* Index Name      Table Name      */
 #define SQLITE_CREATE_TABLE          2   /* Table Name      NULL            */
 #define SQLITE_CREATE_TEMP_INDEX     3   /* Index Name      Table Name      */
@@ -1793,35 +1408,6 @@ int sqlite3_set_authorizer(
 #define SQLITE_DROP_VTABLE          30   /* Table Name      Module Name     */
 #define SQLITE_FUNCTION             31   /* Function Name   NULL            */
 #define SQLITE_COPY                  0   /* No longer used */
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -1893,80 +1479,7 @@ void *sqlite3_profile(sqlite3*,
 
 
 
-
-
-
-
-
-
-
-
-
-
 void sqlite3_progress_handler(sqlite3*, int, int(*)(void*), void*);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -2089,17 +1602,6 @@ int sqlite3_open_v2(
 
 
 
-
-
-
-
-
-
-
-
-
-
-
 int sqlite3_errcode(sqlite3 *db);
 const char *sqlite3_errmsg(sqlite3*);
 const void *sqlite3_errmsg16(sqlite3*);
@@ -2127,41 +1629,7 @@ const void *sqlite3_errmsg16(sqlite3*);
 
 
 
-
 typedef struct sqlite3_stmt sqlite3_stmt;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -2282,14 +1750,6 @@ int sqlite3_prepare16_v2(
 
 
 
-
-
-
-
-
-
-
-
 const char *sqlite3_sql(sqlite3_stmt *pStmt);
 
 
@@ -2311,80 +1771,6 @@ typedef struct Mem sqlite3_value;
 
 
 typedef struct sqlite3_context sqlite3_context;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -2492,25 +1878,7 @@ int sqlite3_bind_zeroblob(sqlite3_stmt*, int, int n);
 
 
 
-
-
-
-
-
 int sqlite3_bind_parameter_count(sqlite3_stmt*);
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -2541,19 +1909,6 @@ const char *sqlite3_bind_parameter_name(sqlite3_stmt*, int);
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
 int sqlite3_bind_parameter_index(sqlite3_stmt*, const char *zName);
 
 
@@ -2564,20 +1919,7 @@ int sqlite3_bind_parameter_index(sqlite3_stmt*, const char *zName);
 
 
 
-
-
-
-
-
-
 int sqlite3_clear_bindings(sqlite3_stmt*);
-
-
-
-
-
-
-
 
 
 
@@ -2610,105 +1952,8 @@ int sqlite3_column_count(sqlite3_stmt *pStmt);
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 const char *sqlite3_column_name(sqlite3_stmt*, int N);
 const void *sqlite3_column_name16(sqlite3_stmt*, int N);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -2785,57 +2030,8 @@ const void *sqlite3_column_origin_name16(sqlite3_stmt*,int);
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-const char *sqlite3_column_decltype(sqlite3_stmt*,int);
+const char *sqlite3_column_decltype(sqlite3_stmt *, int i);
 const void *sqlite3_column_decltype16(sqlite3_stmt*,int);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -2923,13 +2119,7 @@ int sqlite3_step(sqlite3_stmt*);
 
 
 
-
-
-
-
-
 int sqlite3_data_count(sqlite3_stmt *pStmt);
-
 
 
 
@@ -3107,63 +2297,6 @@ int sqlite3_data_count(sqlite3_stmt *pStmt);
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 const void *sqlite3_column_blob(sqlite3_stmt*, int iCol);
 int sqlite3_column_bytes(sqlite3_stmt*, int iCol);
 int sqlite3_column_bytes16(sqlite3_stmt*, int iCol);
@@ -3193,32 +2326,7 @@ sqlite3_value *sqlite3_column_value(sqlite3_stmt*, int iCol);
 
 
 
-
-
-
-
-
-
-
-
-
-
 int sqlite3_finalize(sqlite3_stmt *pStmt);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -3290,83 +2398,22 @@ int sqlite3_reset(sqlite3_stmt *pStmt);
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 int sqlite3_create_function(
-  sqlite3 *db,
+  sqlite3 *,
   const char *zFunctionName,
   int nArg,
   int eTextRep,
-  void *pApp,
+  void*,
   void (*xFunc)(sqlite3_context*,int,sqlite3_value**),
   void (*xStep)(sqlite3_context*,int,sqlite3_value**),
   void (*xFinal)(sqlite3_context*)
 );
 int sqlite3_create_function16(
-  sqlite3 *db,
+  sqlite3*,
   const void *zFunctionName,
   int nArg,
   int eTextRep,
-  void *pApp,
+  void*,
   void (*xFunc)(sqlite3_context*,int,sqlite3_value**),
   void (*xStep)(sqlite3_context*,int,sqlite3_value**),
   void (*xFinal)(sqlite3_context*)
@@ -3400,68 +2447,6 @@ int sqlite3_transfer_bindings(sqlite3_stmt*, sqlite3_stmt*);
 int sqlite3_global_recover(void);
 void sqlite3_thread_cleanup(void);
 int sqlite3_memory_alarm(void(*)(void*,sqlite3_int64,int),void*,sqlite3_int64);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -3546,27 +2531,6 @@ int sqlite3_value_numeric_type(sqlite3_value*);
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 void *sqlite3_aggregate_context(sqlite3_context*, int nBytes);
 
 
@@ -3581,46 +2545,7 @@ void *sqlite3_aggregate_context(sqlite3_context*, int nBytes);
 
 
 
-
-
-
-
-
-
-
-
 void *sqlite3_user_data(sqlite3_context*);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -3784,111 +2709,12 @@ typedef void (*sqlite3_destructor_type)(void*);
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 void sqlite3_result_blob(sqlite3_context*, const void*, int, void(*)(void*));
 void sqlite3_result_double(sqlite3_context*, double);
 void sqlite3_result_error(sqlite3_context*, const char*, int);
 void sqlite3_result_error16(sqlite3_context*, const void*, int);
 void sqlite3_result_error_toobig(sqlite3_context*);
 void sqlite3_result_error_nomem(sqlite3_context*);
-void sqlite3_result_error_code(sqlite3_context*, int);
 void sqlite3_result_int(sqlite3_context*, int);
 void sqlite3_result_int64(sqlite3_context*, sqlite3_int64);
 void sqlite3_result_null(sqlite3_context*);
@@ -3898,49 +2724,6 @@ void sqlite3_result_text16le(sqlite3_context*, const void*, int,void(*)(void*));
 void sqlite3_result_text16be(sqlite3_context*, const void*, int,void(*)(void*));
 void sqlite3_result_value(sqlite3_context*, sqlite3_value*);
 void sqlite3_result_zeroblob(sqlite3_context*, int n);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -4044,25 +2827,6 @@ int sqlite3_create_collation16(
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 int sqlite3_collation_needed(
   sqlite3*, 
   void*, 
@@ -4098,17 +2862,6 @@ int sqlite3_rekey(
   sqlite3 *db,                   
   const void *pKey, int nKey     
 );
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -4163,29 +2916,7 @@ SQLITE_EXTERN char *sqlite3_temp_directory;
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 int sqlite3_get_autocommit(sqlite3*);
-
-
-
-
-
-
 
 
 
@@ -4232,76 +2963,8 @@ sqlite3 *sqlite3_db_handle(sqlite3_stmt*);
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 void *sqlite3_commit_hook(sqlite3*, int(*)(void*), void*);
 void *sqlite3_rollback_hook(sqlite3*, void(*)(void *), void*);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -4372,17 +3035,6 @@ void *sqlite3_update_hook(
 
 
 
-
-
-
-
-
-
-
-
-
-
-
 int sqlite3_enable_shared_cache(int);
 
 
@@ -4396,44 +3048,7 @@ int sqlite3_enable_shared_cache(int);
 
 
 
-
-
-
-
-
-
-
-
-
-
 int sqlite3_release_memory(int);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -4660,9 +3275,6 @@ typedef struct sqlite3_module sqlite3_module;
 
 
 
-
-
-
 struct sqlite3_module {
   int iVersion;
   int (*xCreate)(sqlite3*, void *pAux,
@@ -4693,9 +3305,6 @@ struct sqlite3_module {
 
   int (*xRename)(sqlite3_vtab *pVtab, const char *zNew);
 };
-
-
-
 
 
 
@@ -4783,16 +3392,12 @@ struct sqlite3_index_info {
 
 
 
-
-
 int sqlite3_create_module(
   sqlite3 *db,               
   const char *zName,         
   const sqlite3_module *,    
   void *                     
 );
-
-
 
 
 
@@ -4806,9 +3411,6 @@ int sqlite3_create_module_v2(
   void *,                    
   void(*xDestroy)(void*)     
 );
-
-
-
 
 
 
@@ -4843,10 +3445,6 @@ struct sqlite3_vtab {
 
 
 
-
-
-
-
 struct sqlite3_vtab_cursor {
   sqlite3_vtab *pVtab;      
   
@@ -4857,11 +3455,7 @@ struct sqlite3_vtab_cursor {
 
 
 
-
-
 int sqlite3_declare_vtab(sqlite3*, const char *zCreateTable);
-
-
 
 
 
@@ -4904,28 +3498,7 @@ int sqlite3_overload_function(sqlite3*, const char *zFuncName, int nArg);
 
 
 
-
 typedef struct sqlite3_blob sqlite3_blob;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -4979,31 +3552,7 @@ int sqlite3_blob_open(
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 int sqlite3_blob_close(sqlite3_blob *);
-
-
-
-
-
-
 
 
 
@@ -5029,63 +3578,7 @@ int sqlite3_blob_bytes(sqlite3_blob *);
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-int sqlite3_blob_read(sqlite3_blob *, void *Z, int N, int iOffset);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+int sqlite3_blob_read(sqlite3_blob *, void *z, int n, int iOffset);
 
 
 
@@ -5110,33 +3603,6 @@ int sqlite3_blob_read(sqlite3_blob *, void *Z, int N, int iOffset);
 
 
 int sqlite3_blob_write(sqlite3_blob *, const void *z, int n, int iOffset);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -5359,45 +3825,6 @@ int sqlite3_mutex_notheld(sqlite3_mutex*);
 
 
 int sqlite3_file_control(sqlite3*, const char *zDbName, int op, void*);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-int sqlite3_test_control(int op, ...);
-
-
-
-
-
-
-
-
-
-
-
-
-#define SQLITE_TESTCTRL_FAULT_CONFIG             1
-#define SQLITE_TESTCTRL_FAULT_FAILURES           2
-#define SQLITE_TESTCTRL_FAULT_BENIGN_FAILURES    3
-#define SQLITE_TESTCTRL_FAULT_PENDING            4
-
-
-
-
 
 
 
