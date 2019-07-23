@@ -74,22 +74,6 @@ function test_random_download()
 }
 
 
-function test_dm_getDownload()
-{
-  
-  try {
-    var dl = dm.getDownload(1);
-  
-    do_check_eq("CVS-Contributor-Form.pdf", dl.displayName);
-  } catch (e) {
-    
-    
-  
-    do_check_eq(Cr.NS_ERROR_FILE_UNRECOGNIZED_PATH, e.result);
-  }
-}
-
-
 function test_dm_cleanup()
 {
   dm.cleanUp();
@@ -103,8 +87,7 @@ function test_dm_cleanup()
   stmt.reset();
 }
 
-var tests = [test_count_entries, test_random_download, test_dm_getDownload,
-             test_dm_cleanup];
+var tests = [test_count_entries, test_random_download, test_dm_cleanup];
 
 function run_test()
 {
