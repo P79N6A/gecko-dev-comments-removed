@@ -9750,8 +9750,10 @@ TraceRecorder::setProp(jsval &l, JSPropCacheEntry* entry, JSScopeProperty* sprop
         ABORT_TRACE("can't trace JavaScript function setter");
 
     
-    JS_ASSERT(!(sprop->attrs & JSPROP_GETTER)); 
-    JS_ASSERT(!(sprop->attrs & JSPROP_READONLY));
+    if (sprop->attrs & JSPROP_GETTER)
+        ABORT_TRACE("can't assign to property with script getter but no setter");
+    if (sprop->attrs & JSPROP_READONLY)
+        ABORT_TRACE("can't assign to readonly property");
 
     JS_ASSERT(!JSVAL_IS_PRIMITIVE(l));
     JSObject* obj = JSVAL_TO_OBJECT(l);
