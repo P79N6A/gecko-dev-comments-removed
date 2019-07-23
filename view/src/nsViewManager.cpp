@@ -451,6 +451,7 @@ void nsViewManager::Refresh(nsView *aView, nsIRenderingContext *aContext,
   }  
 
   {
+    nsAutoScriptBlocker scriptBlocker;
     SetPainting(PR_TRUE);
 
     nsCOMPtr<nsIRenderingContext> localcx;
@@ -897,12 +898,6 @@ NS_IMETHODIMP nsViewManager::DispatchEvent(nsGUIEvent *aEvent,
     case NS_PAINT:
       {
         nsPaintEvent *event = static_cast<nsPaintEvent*>(aEvent);
-
-        
-        
-        
-        
-        nsAutoScriptBlocker scriptBlocker;
 
         if (!aView || !mContext)
           break;
