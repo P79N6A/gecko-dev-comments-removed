@@ -8155,34 +8155,26 @@ nsHTMLDocumentSH::GetProperty(nsIXPConnectWrappedNative *wrapper,
                               jsval *vp, PRBool *_retval)
 {
   
-  
-  nsresult rv = nsDocumentSH::GetProperty(wrapper, cx, obj, id, vp, _retval);
-  if (!*_retval) {
-    return rv;
-  }
+  if (!ObjectIsNativeWrapper(cx, obj)) {
+    nsCOMPtr<nsISupports> result;
 
-  
-  if (ObjectIsNativeWrapper(cx, obj)) {
-    return rv;
-  }
-  
-  nsCOMPtr<nsISupports> result;
+    JSAutoRequest ar(cx);
 
-  JSAutoRequest ar(cx);
+    nsresult rv = ResolveImpl(cx, wrapper, id, getter_AddRefs(result));
+    NS_ENSURE_SUCCESS(rv, rv);
 
-  rv = ResolveImpl(cx, wrapper, id, getter_AddRefs(result));
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  if (result) {
-    nsCOMPtr<nsIXPConnectJSObjectHolder> holder;
-    rv = WrapNative(cx, obj, result, NS_GET_IID(nsISupports), vp,
-                    getter_AddRefs(holder));
-    if (NS_SUCCEEDED(rv)) {
-      rv = NS_SUCCESS_I_DID_SOMETHING;
+    if (result) {
+      nsCOMPtr<nsIXPConnectJSObjectHolder> holder;
+      rv = WrapNative(cx, obj, result, NS_GET_IID(nsISupports), vp,
+                      getter_AddRefs(holder));
+      if (NS_SUCCEEDED(rv)) {
+        rv = NS_SUCCESS_I_DID_SOMETHING;
+      }
+      return rv;
     }
   }
 
-  return rv;
+  return nsDocumentSH::GetProperty(wrapper, cx, obj, id, vp, _retval);
 }
 
 
@@ -8322,25 +8314,23 @@ nsHTMLFormElementSH::GetProperty(nsIXPConnectWrappedNative *wrapper,
         return NS_FAILED(rv) ? rv : NS_SUCCESS_I_DID_SOMETHING;
       }
     }
+  } else {
+    PRInt32 n = GetArrayIndexFromId(cx, id);
 
-    return NS_OK; 
-  }
+    if (n >= 0) {
+      nsCOMPtr<nsIFormControl> control;
+      form->GetElementAt(n, getter_AddRefs(control));
 
-  PRInt32 n = GetArrayIndexFromId(cx, id);
-
-  if (n >= 0) {
-    nsCOMPtr<nsIFormControl> control;
-    form->GetElementAt(n, getter_AddRefs(control));
-
-    if (control) {
-      nsCOMPtr<nsIXPConnectJSObjectHolder> holder;
-      nsresult rv = WrapNative(cx, obj, control, NS_GET_IID(nsISupports), vp,
-                               getter_AddRefs(holder));
-      return NS_FAILED(rv) ? rv : NS_SUCCESS_I_DID_SOMETHING;
+      if (control) {
+        nsCOMPtr<nsIXPConnectJSObjectHolder> holder;
+        nsresult rv = WrapNative(cx, obj, control, NS_GET_IID(nsISupports), vp,
+                                 getter_AddRefs(holder));
+        return NS_FAILED(rv) ? rv : NS_SUCCESS_I_DID_SOMETHING;
+      }
     }
   }
 
-  return NS_OK;
+  return nsHTMLElementSH::GetProperty(wrapper, cx, obj, id, vp, _retval);;
 }
 
 NS_IMETHODIMP
@@ -8449,10 +8439,11 @@ nsHTMLSelectElementSH::GetProperty(nsIXPConnectWrappedNative *wrapper,
       if (NS_SUCCEEDED(rv)) {
         rv = NS_SUCCESS_I_DID_SOMETHING;
       }
+      return rv;
     }
   }
 
-  return rv;
+  return nsHTMLElementSH::GetProperty(wrapper, cx, obj, id, vp, _retval);;
 }
 
 
@@ -8734,7 +8725,7 @@ nsHTMLPluginObjElementSH::GetProperty(nsIXPConnectWrappedNative *wrapper,
     return *_retval ? NS_SUCCESS_I_DID_SOMETHING : NS_ERROR_FAILURE;
   }
 
-  return NS_OK;
+  return nsHTMLElementSH::GetProperty(wrapper, cx, obj, id, vp, _retval);;
 }
 
 NS_IMETHODIMP
