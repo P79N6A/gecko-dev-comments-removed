@@ -790,6 +790,7 @@ typedef struct
 #endif
 
 #define SHGetSpecialFolderPathW SHGetSpecialFolderPath
+#define SHGetFileInfoW SHGetFileInfo
 
 
 
