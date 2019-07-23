@@ -138,6 +138,10 @@ nsXULTooltipListener::MouseOut(nsIDOMEvent* aMouseEvent)
 {
   
   
+  mCachedMouseEvent = nsnull;
+
+  
+  
   
   nsCOMPtr<nsIContent> currentTooltip = do_QueryReferent(mCurrentTooltip);
   if (mTooltipTimer && !currentTooltip) {
