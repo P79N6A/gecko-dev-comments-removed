@@ -971,6 +971,11 @@ var gCSSProperties = {
 		domProp: "lineHeight",
 		inherited: true,
 		type: CSS_TYPE_LONGHAND,
+		
+
+
+
+		prerequisites: { "font-size": "19px", "font-size-adjust": "none" },
 		initial_values: [ "normal" ],
 		other_values: [ "1.0", "1", "1em", "27px" ],
 		invalid_values: []
