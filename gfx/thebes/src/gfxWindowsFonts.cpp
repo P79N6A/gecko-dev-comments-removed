@@ -1176,7 +1176,7 @@ public:
                     
                     
                     if (mString[offset] == UNICODE_ZWSP) {
-                        aRun->SetCharacterGlyph(runOffset, g.IsMissing());
+                        aRun->SetCharacterGlyph(runOffset, g.SetMissing());
                     } else {
                         aRun->SetMissingGlyph(runOffset, mString[offset]);
                     }
