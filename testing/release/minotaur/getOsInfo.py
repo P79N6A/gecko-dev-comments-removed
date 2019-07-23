@@ -32,18 +32,26 @@
 
 
 
+import re
 from optparse import OptionParser
 import platform
 
+cygwinmatch = re.compile(".*cygwin.*", re.I)
+
 def getPlatform():
-  print platform.system()
+  
+  
+  if platform.system() == "Microsoft" or cygwinmatch.search(platform.system()):
+    print "Windows"
+  else:
+    print platform.system()
 
 def getFxName(os):
   if os == "Darwin":
     print "firefox-bin"
   elif os == "Linux":
     print "firefox"
-  elif os == "Windows":
+  else:
     print "firefox.exe"
 
 def main(os, fxname):

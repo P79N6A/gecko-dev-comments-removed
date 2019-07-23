@@ -34,12 +34,15 @@
 
 from optparse import OptionParser
 from checkBookmarks import bookmarkParser
-from logAppender import LogAppender
+from logAppender import LogAppender, stderrCatcher
+import sys
 
 
 def main(left, right, log):
   
   lw = LogAppender(log)
+  
+  sys.stderr = stderrCatcher(lw)
 
   
   leftParser = bookmarkParser()

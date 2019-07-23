@@ -36,9 +36,23 @@
 
 
 
+
+
+
+
+
+class stderrCatcher:
+  def __init__(self, logappender=0):
+    self.lf = logappender
+  def write(self, stuff):
+    if self.lf:
+      self.lf.onStdError(stuff)
+
 class LogAppender:
   def __init__(self, file):
     self.logFile = open(file, "a")
+  def onStdError(self, str):
+    self.logFile.write("STDERR:" + str + "\n")
   def writeLog(self, str):
     self.logFile.write(str + "\n")
     return str
