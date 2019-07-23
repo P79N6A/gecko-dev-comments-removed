@@ -482,6 +482,16 @@ TraceRecorder::~TraceRecorder()
 }
 
 
+inline LIns*
+TraceRecorder::addName(LIns* ins, const char* name)
+{
+#ifdef DEBUG
+    lirbuf->names->addName(ins, name);
+#endif
+    return ins;
+}
+
+
 unsigned
 TraceRecorder::getCallDepth() const
 {
@@ -850,15 +860,6 @@ TraceRecorder::guard(bool expected, LIns* cond)
     return lir->insGuard(expected ? LIR_xf : LIR_xt,
                          cond,
                          snapshot());
-}
-
-LIns*
-TraceRecorder::addName(LIns* ins, const char* name)
-{
-#ifdef DEBUG
-    lirbuf->names->addName(ins, name);
-#endif
-    return ins;
 }
 
 bool
