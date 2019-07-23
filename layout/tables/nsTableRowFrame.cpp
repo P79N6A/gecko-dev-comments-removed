@@ -164,9 +164,6 @@ nsTableRowFrame::Init(nsIContent*      aContent,
   
   rv = nsHTMLContainerFrame::Init(aContent, aParent, aPrevInFlow);
 
-  
-  mState |= NS_FRAME_EXCLUDE_IGNORABLE_WHITESPACE;
-
   if (aPrevInFlow) {
     
     nsTableRowFrame* rowFrame = (nsTableRowFrame*)aPrevInFlow;

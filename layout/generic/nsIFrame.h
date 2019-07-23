@@ -231,12 +231,7 @@ enum {
   
   NS_FRAME_IS_SPECIAL =                         0x00008000,
 
-  
-  
-  
-  
-  
-  NS_FRAME_EXCLUDE_IGNORABLE_WHITESPACE =       0x00010000,
+  NS_FRAME_THIS_BIT_BELONGS_TO_ROC_DO_NOT_USE_OR_I_WILL_HUNT_YOU_DOWN = 0x00010000,
 
 #ifdef IBMBIDI
   
@@ -1582,6 +1577,10 @@ public:
     eXULBox =                           1 << 7,
     eCanContainOverflowContainers =     1 << 8,
     eBlockFrame =                       1 << 9,
+    
+    
+    
+    eExcludesIgnorableWhitespace =      1 << 10,
 
     
     

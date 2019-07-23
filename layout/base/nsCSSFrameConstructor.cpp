@@ -4084,11 +4084,8 @@ NeedFrameFor(nsIFrame*   aParentFrame,
              nsIContent* aChildContent) 
 {
   
-  if ((NS_FRAME_EXCLUDE_IGNORABLE_WHITESPACE & aParentFrame->GetStateBits())
-      && TextIsOnlyWhitespace(aChildContent)) {
-    return PR_FALSE;
-  }
-  return PR_TRUE;
+  return !aParentFrame->IsFrameOfType(nsIFrame::eExcludesIgnorableWhitespace) ||
+         !TextIsOnlyWhitespace(aChildContent);
 }
 
 const nsStyleDisplay* 
@@ -6863,7 +6860,6 @@ nsCSSFrameConstructor::ConstructMathMLFrame(nsFrameConstructorState& aState,
     return NS_OK;
 
   nsresult  rv = NS_OK;
-  PRBool    ignoreInterTagWhitespace = PR_TRUE;
 
   NS_ASSERTION(aTag != nsnull, "null MathML tag");
   if (aTag == nsnull)
@@ -6941,10 +6937,8 @@ nsCSSFrameConstructor::ConstructMathMLFrame(nsFrameConstructorState& aState,
   
   
   if (newFrame) {
-    
-    if (ignoreInterTagWhitespace) {
-      newFrame->AddStateBits(NS_FRAME_EXCLUDE_IGNORABLE_WHITESPACE);
-    }
+    NS_ASSERTION(newFrame->IsFrameOfType(nsIFrame::eExcludesIgnorableWhitespace),
+                 "Ignorable whitespace should be excluded");
 
     
     

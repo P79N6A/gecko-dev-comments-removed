@@ -489,22 +489,6 @@ NS_NewTableColGroupFrame(nsIPresShell* aPresShell, nsStyleContext* aContext)
   return new (aPresShell) nsTableColGroupFrame(aContext);
 }
 
-NS_IMETHODIMP
-nsTableColGroupFrame::Init(nsIContent*      aContent,
-                           nsIFrame*        aParent,
-                           nsIFrame*        aPrevInFlow)
-{
-  nsresult  rv;
-
-  
-  rv = nsHTMLContainerFrame::Init(aContent, aParent, aPrevInFlow);
-
-  
-  mState |= NS_FRAME_EXCLUDE_IGNORABLE_WHITESPACE;
-
-  return rv;
-}
-
 nsIAtom*
 nsTableColGroupFrame::GetType() const
 {

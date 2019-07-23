@@ -200,13 +200,6 @@ nsBoxFrame::Init(nsIContent*      aContent,
   nsresult  rv = nsContainerFrame::Init(aContent, aParent, aPrevInFlow);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  
-  
-  
-  
-  
-  mState |= NS_FRAME_EXCLUDE_IGNORABLE_WHITESPACE;
-
   MarkIntrinsicWidthsDirty();
 
   

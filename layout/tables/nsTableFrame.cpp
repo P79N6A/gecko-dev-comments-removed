@@ -223,9 +223,6 @@ nsTableFrame::Init(nsIContent*      aContent,
   rv = nsHTMLContainerFrame::Init(aContent, aParent, aPrevInFlow);
 
   
-  mState |= NS_FRAME_EXCLUDE_IGNORABLE_WHITESPACE;
-
-  
   const nsStyleTableBorder* tableStyle = GetStyleTableBorder();
   PRBool borderCollapse = (NS_STYLE_BORDER_COLLAPSE == tableStyle->mBorderCollapse);
   SetBorderCollapse(borderCollapse);

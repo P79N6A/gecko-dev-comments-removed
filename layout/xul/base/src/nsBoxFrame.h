@@ -149,8 +149,15 @@ public:
     
     
     
+    
+
+    
+    
+    
+    
     return nsContainerFrame::IsFrameOfType(aFlags &
-      ~(nsIFrame::eReplaced | nsIFrame::eReplacedContainsBlock | eXULBox));
+      ~(nsIFrame::eReplaced | nsIFrame::eReplacedContainsBlock | eXULBox |
+        nsIFrame::eExcludesIgnorableWhitespace));
   }
 
 #ifdef DEBUG

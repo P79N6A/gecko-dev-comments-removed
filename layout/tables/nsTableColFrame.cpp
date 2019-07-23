@@ -172,20 +172,6 @@ NS_NewTableColFrame(nsIPresShell* aPresShell, nsStyleContext* aContext)
   return new (aPresShell) nsTableColFrame(aContext);
 }
 
-NS_IMETHODIMP
-nsTableColFrame::Init(nsIContent*      aContent,
-                      nsIFrame*        aParent,
-                      nsIFrame*        aPrevInFlow)
-{
-  
-  nsresult rv = nsSplittableFrame::Init(aContent, aParent, aPrevInFlow);
-
-  
-  mState |= NS_FRAME_EXCLUDE_IGNORABLE_WHITESPACE;
-
-  return rv;
-}
-
 nsTableColFrame*  
 nsTableColFrame::GetNextCol() const
 {
