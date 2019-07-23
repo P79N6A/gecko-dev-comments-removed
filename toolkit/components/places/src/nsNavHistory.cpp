@@ -3657,6 +3657,13 @@ nsNavHistory::AddVisitChain(nsIURI* aURI, PRTime aTime,
     
     
     
+    PRBool referrerIsSame;
+    if (NS_SUCCEEDED(aURI->Equals(aReferrer, &referrerIsSame)) && referrerIsSame)
+      return NS_OK;
+
+    
+    
+    
     
     
     
@@ -3680,7 +3687,8 @@ nsNavHistory::AddVisitChain(nsIURI* aURI, PRTime aTime,
     visitTime = PR_Now();
 
     
-    if (! FindLastVisit(aReferrer, &referringVisit, aSessionID)) {
+    
+    if (!FindLastVisit(aReferrer, &referringVisit, aSessionID)) {
       
       *aSessionID = GetNewSessionID();
     }
