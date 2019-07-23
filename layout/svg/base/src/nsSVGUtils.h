@@ -348,14 +348,6 @@ public:
   HitTestChildren(nsIFrame *aFrame, const nsPoint &aPoint);
 
   
-  static void
-  AddObserver(nsISupports *aObserver, nsISupports *aTarget);
-
-  
-  static void
-  RemoveObserver(nsISupports *aObserver, nsISupports *aTarget);
-
-  
 
 
 
