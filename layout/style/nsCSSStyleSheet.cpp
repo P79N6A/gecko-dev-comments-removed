@@ -1481,6 +1481,10 @@ nsCSSStyleSheet::EnsureUniqueInner()
   }
   mInner->RemoveSheet(this);
   mInner = clone;
+
+  
+  ClearRuleCascades();
+
   return eUniqueInner_ClonedInner;
 }
 
