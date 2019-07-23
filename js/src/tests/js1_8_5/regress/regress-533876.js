@@ -16,5 +16,7 @@ try {
 
 delete eval;  
 gc();
-var f = eval("function () { return /x/; }");
+var f = eval("(function () { return /x/; })");
 x.watch('x', f);  
+
+reportCompare("ok", "ok", "bug 533876");
