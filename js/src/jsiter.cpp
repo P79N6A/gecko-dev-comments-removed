@@ -206,15 +206,10 @@ Iterator(JSContext *cx, JSObject *iterobj, uintN argc, jsval *argv, jsval *rval)
     flags = keyonly ? 0 : JSITER_FOREACH;
 
     if (JS_IsConstructing(cx)) {
-        
-        if (!JSVAL_IS_PRIMITIVE(argv[0])) {
-            obj = JSVAL_TO_OBJECT(argv[0]);
-        } else {
-            obj = js_ValueToNonNullObject(cx, argv[0]);
-            if (!obj)
-                return JS_FALSE;
-            argv[0] = OBJECT_TO_JSVAL(obj);
-        }
+        obj = js_ValueToNonNullObject(cx, argv[0]);
+        if (!obj)
+            return false;
+        argv[0] = OBJECT_TO_JSVAL(obj);
         return InitNativeIterator(cx, iterobj, obj, flags);
     }
 
@@ -363,11 +358,12 @@ js_ValueToIterator(JSContext *cx, uintN flags, jsval *vp)
 
     AutoValueRooter tvr(cx);
 
-    
     if (!JSVAL_IS_PRIMITIVE(*vp)) {
+        
         obj = JSVAL_TO_OBJECT(*vp);
     } else {
         
+
 
 
 
