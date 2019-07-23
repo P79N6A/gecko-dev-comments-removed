@@ -2586,8 +2586,10 @@ nsJSContext::InitContext(nsIScriptGlobalObject *aGlobalObject)
 
     
     
-    if (!nsDOMClassInfo::GetXPCNativeWrapperClass()) {
-      nsDOMClassInfo::SetXPCNativeWrapperClass(xpc->GetNativeWrapperClass());
+    if (!nsDOMClassInfo::GetXPCNativeWrapperGetPropertyOp()) {
+      JSPropertyOp getProperty;
+      xpc->GetNativeWrapperGetPropertyOp(&getProperty);
+      nsDOMClassInfo::SetXPCNativeWrapperGetPropertyOp(getProperty);
     }
   } else {
     
