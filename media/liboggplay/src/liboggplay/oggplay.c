@@ -757,17 +757,15 @@ read_more_data:
         me->active_tracks = 0;
 
         if (info != NULL) {
+          
+          OggPlayCallbackInfo *p = info[0];
+          for (i = 0; i < me->num_tracks; i++) {
+            p->stream_info = OGGPLAY_STREAM_LAST_DATA;
+            p++;
+          }
+
           me->callback (me, num_records, info, me->callback_user_ptr);
           oggplay_callback_info_destroy(me, info);
-        }
-
-        
-
-
-
-
-        if (me->buffer != NULL && !me->shutdown) {
-          oggplay_buffer_set_last_data(me, me->buffer);
         }
 
         
