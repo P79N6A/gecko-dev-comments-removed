@@ -589,10 +589,8 @@ input[type="submit"] {
 
 input,
 input[disabled] {
-  padding: 0px 1px 0px 1px;
   font-size: 11px;
   margin: 1px 1px 1px 1px;
-  background-color: -moz-field;
 }
 
 select {
@@ -633,8 +631,6 @@ select > input[type="button"]:active {
   border: none !important;
 }
 
-option[disabled],
-optgroup[disabled],
 select[disabled] {
   color: GrayText !important;
 }
@@ -646,15 +642,11 @@ input[type="image"] {
 
 input[type="checkbox"] {
   -moz-appearance: checkbox-small;
-  width: 15px;
-  height: 15px;
   margin: 1px 2px 0px 3px;
 }
 
 input[type="radio"] {
   -moz-appearance: radio-small;
-  width: 15px;
-  height: 16px;
   margin: 1px 2px -3px 3px;
 }
 
@@ -664,16 +656,6 @@ button[disabled],
 button:active:hover,
 button[disabled]:active {
   -moz-appearance: none;
-}
-
-
-input[type="image"][disabled] {
-  background-color: transparent;
-}
-
-
-input[type="file"] > input[type="button"]:active:hover {
-  font-size: inherit;
 }
 
 %endif
