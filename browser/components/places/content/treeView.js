@@ -905,6 +905,11 @@ PlacesTreeView.prototype = {
   },
 
   set result(val) {
+    
+    
+    
+    
+    
     if (this._result != val) {
       this._result = val;
       this._finishInit();
