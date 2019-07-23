@@ -83,7 +83,8 @@ public:
   
   NS_IMETHOD SetMatrixPropagation(PRBool aPropagate);
   NS_IMETHOD SetOverrideCTM(nsIDOMSVGMatrix *aCTM);
-  
+  virtual already_AddRefed<nsIDOMSVGMatrix> GetOverrideCTM();
+
   
   virtual already_AddRefed<nsIDOMSVGMatrix> GetCanvasTM();
   

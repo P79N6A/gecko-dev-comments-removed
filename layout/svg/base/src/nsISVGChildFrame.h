@@ -51,7 +51,8 @@ class nsSVGRenderState;
 struct nsRect;
 
 #define NS_ISVGCHILDFRAME_IID \
-{ 0x154fa60f, 0xc605, 0x49c7, { 0x88, 0xc4, 0xc5, 0xb4, 0xdc, 0x12, 0x47, 0xeb } }
+{ 0x93560e72, 0x6818, 0x4218, \
+ { 0xa1, 0xe9, 0xf3, 0xb9, 0x63, 0x6a, 0xff, 0xc2 } }
 
 class nsISVGChildFrame : public nsISupports {
 public:
@@ -88,6 +89,7 @@ public:
   
   
   NS_IMETHOD SetOverrideCTM(nsIDOMSVGMatrix *aCTM)=0;
+  virtual already_AddRefed<nsIDOMSVGMatrix> GetOverrideCTM()=0;
 
   
   NS_IMETHOD GetBBox(nsIDOMSVGRect **_retval)=0; 
