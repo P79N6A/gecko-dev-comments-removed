@@ -68,6 +68,40 @@ def getPlatform():
   else:
     return platform.system()
 
+
+
+
+def rmdirRecursive(dir):
+  """This is a replacement for shutil.rmtree that works better under
+  windows. Thanks to Bear at the OSAF for the code."""
+  if not os.path.exists(dir):
+      return
+
+  if os.path.islink(dir):
+      os.remove(dir)
+      return
+
+  
+  os.chmod(dir, 0700)
+
+  for name in os.listdir(dir):
+      full_name = os.path.join(dir, name)
+      
+      
+      if os.name == 'nt':
+          if not os.access(full_name, os.W_OK):
+              
+              
+              
+              os.chmod(full_name, 0600)
+
+      if os.path.isdir(full_name):
+          rmdirRecursive(full_name)
+      else:
+          os.chmod(full_name, 0700)
+          os.remove(full_name)
+  os.rmdir(dir)
+
 class MozUninstaller:
   def __init__(self, **kwargs):
     debug("uninstall constructor")
@@ -92,7 +126,7 @@ class MozUninstaller:
         os.rmdir(self.dest)
       except OSError:
         
-        self.rmdirRecursive(self.dest)
+        rmdirRecursive(self.dest)
 
 
   def doWindowsUninstall(self):
@@ -136,42 +170,6 @@ class MozUninstaller:
         proc = subprocess.Popen(args, shell=True)
         proc.wait()
     time.sleep(10)
-
-  
-  
-  
-  def rmdirRecursive(self, dir):
-    """This is a replacement for shutil.rmtree that works better under
-    windows. Thanks to Bear at the OSAF for the code."""
-    if not os.path.exists(dir):
-        return
-
-    if os.path.islink(dir):
-        os.remove(dir)
-        return
-
-    
-    os.chmod(dir, 0700)
-
-    for name in os.listdir(dir):
-        full_name = os.path.join(dir, name)
-        
-        
-        if os.name == 'nt':
-            if not os.access(full_name, os.W_OK):
-                
-                
-                
-                os.chmod(full_name, 0600)
-
-        if os.path.isdir(full_name):
-            self.rmdirRecursive(full_name)
-        else:
-            os.chmod(full_name, 0700)
-            os.remove(full_name)
-    os.rmdir(dir)
-
-
 
 class MozInstaller:
   def __init__(self, **kwargs):
@@ -279,7 +277,8 @@ if __name__ == "__main__":
                     metavar="PRODUCT")
   parser.add_option("-o", "--Operation", dest="op",
                     help="The operation you would like the script to perform.\
-                         Should be either install (i) or uninstall (u)",
+                         Should be either install (i) or uninstall (u) or delete\
+                          (d) to recursively delete the directory specified in dest",
                     metavar="OP")
 
   (options, args) = parser.parse_args()
@@ -291,3 +290,5 @@ if __name__ == "__main__":
   elif string.upper(options.op) == "UNINSTALL" or string.upper(options.op) == "U":
     uninstaller = MozUninstaller(dest = options.dest, branch = options.branch,
                                  productName = options.product)
+  elif string.upper(options.op) == "DELETE" or string.upper(options.op) == "D":
+    rmdirRecursive(options.dest)
