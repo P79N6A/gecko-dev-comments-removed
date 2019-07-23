@@ -69,6 +69,9 @@ nsPNGEncoder::~nsPNGEncoder()
     PR_Free(mImageBuffer);
     mImageBuffer = nsnull;
   }
+  
+  if (mPNG)
+    png_destroy_write_struct(&mPNG, &mPNGinfo);
 }
 
 
@@ -216,6 +219,10 @@ NS_IMETHODIMP nsPNGEncoder::AddImageFrame(const PRUint8* aData,
     return NS_ERROR_NOT_INITIALIZED;
 
   
+  if (!mPNG)
+    return NS_BASE_STREAM_CLOSED;
+
+  
   if (aInputFormat != INPUT_FORMAT_RGB &&
       aInputFormat != INPUT_FORMAT_RGBA &&
       aInputFormat != INPUT_FORMAT_HOSTARGB)
@@ -295,6 +302,10 @@ NS_IMETHODIMP nsPNGEncoder::EndImageEncode()
   
   if (mImageBuffer == nsnull)
     return NS_ERROR_NOT_INITIALIZED;
+
+  
+  if (!mPNG)
+    return NS_BASE_STREAM_CLOSED;
 
   
   if (setjmp(png_jmpbuf(mPNG))) {
