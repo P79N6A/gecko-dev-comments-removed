@@ -243,12 +243,17 @@ NS_IMETHODIMP nsSVGPathSegList::ReplaceItem(nsIDOMSVGPathSeg *newItem,
 {
   NS_ENSURE_NATIVE_PATH_SEG(newItem, _retval);
 
+  
+  nsSVGPathSeg* newItemSeg = static_cast<nsSVGPathSeg*>(newItem);
+  RemoveFromCurrentList(newItemSeg);
+
   if (index >= static_cast<PRUint32>(mSegments.Count())) {
     return NS_ERROR_DOM_INDEX_SIZE_ERR;
   }
 
-  InsertElementAt(static_cast<nsSVGPathSeg*>(newItem), index);
-  RemoveElementAt(index+1);
+  
+  InsertElementAt(newItemSeg, index);
+  RemoveFromCurrentList(static_cast<nsSVGPathSeg*>(mSegments.ObjectAt(index+1)));
   NS_ADDREF(*_retval = newItem);
 
   return NS_OK;
@@ -372,7 +377,6 @@ nsSVGPathSegList::RemoveFromCurrentList(nsSVGPathSeg* aSeg)
     if (ix != -1) { 
       otherSegList->RemoveElementAt(ix); 
     }
-    aSeg->SetCurrentList(nsnull);
   }
 }
 
