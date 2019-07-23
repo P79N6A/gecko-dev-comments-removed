@@ -1979,8 +1979,13 @@ nsDownload::OnProgressChange64(nsIWebProgress *aWebProgress,
     
     nsresult rv;
     nsCOMPtr<nsIChannel> channel(do_QueryInterface(aRequest));
+    nsCOMPtr<nsIURI> referrer = mReferrer;
     if (channel)
       (void)NS_GetReferrerFromChannel(channel, getter_AddRefs(mReferrer));
+
+    
+    if (!mReferrer)
+      mReferrer = referrer;
 
     
     
