@@ -336,7 +336,7 @@ struct JSSetSlotRequest {
     JSObject            *obj;           
     JSObject            *pobj;          
     uint16              slot;           
-    uint16              errnum;         
+    JSPackedBool        cycle;          
     JSSetSlotRequest    *next;          
 };
 
