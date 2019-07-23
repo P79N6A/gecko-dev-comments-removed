@@ -1074,7 +1074,6 @@ js_String_p_charCodeAt0_int(JSString* str)
 
 
 
-
 JS_DEFINE_CALLINFO_1(extern, INT32, js_String_p_charCodeAt0_int, STRING,        1, 1)
 JS_DEFINE_CALLINFO_2(extern, INT32, js_String_p_charCodeAt_int,  STRING, INT32, 1, 1)
 #endif
