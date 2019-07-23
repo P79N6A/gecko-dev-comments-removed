@@ -428,12 +428,21 @@ nsNavHistory::AutoCompleteProcessSearch(mozIStorageStatement* aQuery,
   nsFaviconService* faviconService = nsFaviconService::GetFaviconService();
   NS_ENSURE_TRUE(faviconService, NS_ERROR_OUT_OF_MEMORY);
 
+  
+  const nsString &javascriptColon = NS_LITERAL_STRING("javascript:");
+  PRBool filterJavascript = mAutoCompleteFilterJavascript &&
+    mCurrentSearchString.Find(javascriptColon) != 0;
+
   PRBool hasMore = PR_FALSE;
   
   while (NS_SUCCEEDED(aQuery->ExecuteStep(&hasMore)) && hasMore) {
     nsAutoString escapedEntryURL;
     nsresult rv = aQuery->GetString(kAutoCompleteIndex_URL, escapedEntryURL);
     NS_ENSURE_SUCCESS(rv, rv);
+
+    
+    if (filterJavascript && escapedEntryURL.Find(javascriptColon) == 0)
+      continue;
 
     
     

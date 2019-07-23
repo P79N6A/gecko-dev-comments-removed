@@ -211,6 +211,7 @@ pref("browser.urlbar.doubleClickSelectsAll", false);
 #endif
 pref("browser.urlbar.autoFill", false);
 pref("browser.urlbar.matchOnlyTyped", false);
+pref("browser.urlbar.filter.javascript", true);
 
 
 pref("browser.urlbar.maxRichResults", 25);
