@@ -2241,45 +2241,45 @@ nsGlobalWindow::PostHandleEvent(nsEventChainPostVisitor& aVisitor)
     
     
     nsCOMPtr<nsIWidget> mainWidget = GetMainWidget();
-    if (mainWidget) {
-      
-      
-      nsCOMPtr<nsIWidget> topLevelWidget = mainWidget->GetSheetWindowParent();
-      if (!topLevelWidget)
-        topLevelWidget = mainWidget;
+    NS_ENSURE_TRUE(mainWidget, nsnull);
 
-      
-      nsCOMPtr<nsIDOMWindowInternal> topLevelWindow;
-      if (topLevelWidget == mainWidget) {
-        topLevelWindow = static_cast<nsIDOMWindowInternal *>(this);
-      } else {
-        
-        
-        
-        
-        void* clientData;
-        topLevelWidget->GetClientData(clientData); 
-        nsISupports* data = static_cast<nsISupports*>(clientData);
-        nsCOMPtr<nsIInterfaceRequestor> req(do_QueryInterface(data));
-        topLevelWindow = do_GetInterface(req);
-      }
+    
+    
+    nsCOMPtr<nsIWidget> topLevelWidget = mainWidget->GetSheetWindowParent();
+    if (!topLevelWidget)
+      topLevelWidget = mainWidget;
 
-      if (topLevelWindow) {
-        
-        
-        nsCOMPtr<nsIDOMDocument> domDoc;
-        topLevelWindow->GetDocument(getter_AddRefs(domDoc));
-        nsCOMPtr<nsIDocument> doc(do_QueryInterface(domDoc));
-        nsCOMPtr<nsIDOMXULDocument> xulDoc(do_QueryInterface(doc));
-        nsCOMPtr<nsIDOMChromeWindow> chromeWin = do_QueryInterface(topLevelWindow);
-        if (xulDoc && chromeWin) {
-          nsCOMPtr<nsIContent> rootElem = doc->GetRootContent();
-          if (aVisitor.mEvent->message == NS_ACTIVATE)
-            rootElem->SetAttr(kNameSpaceID_None, nsGkAtoms::active,
-                              NS_LITERAL_STRING("true"), PR_TRUE);
-          else
-            rootElem->UnsetAttr(kNameSpaceID_None, nsGkAtoms::active, PR_TRUE);
-        }
+    
+    nsCOMPtr<nsIDOMWindowInternal> topLevelWindow;
+    if (topLevelWidget == mainWidget) {
+      topLevelWindow = static_cast<nsIDOMWindowInternal *>(this);
+    } else {
+      
+      
+      
+      
+      void* clientData;
+      topLevelWidget->GetClientData(clientData); 
+      nsISupports* data = static_cast<nsISupports*>(clientData);
+      nsCOMPtr<nsIInterfaceRequestor> req(do_QueryInterface(data));
+      topLevelWindow = do_GetInterface(req);
+    }
+
+    if (topLevelWindow) {
+      
+      
+      nsCOMPtr<nsIDOMDocument> domDoc;
+      topLevelWindow->GetDocument(getter_AddRefs(domDoc));
+      nsCOMPtr<nsIDocument> doc(do_QueryInterface(domDoc));
+      nsCOMPtr<nsIDOMXULDocument> xulDoc(do_QueryInterface(doc));
+      nsCOMPtr<nsIDOMChromeWindow> chromeWin = do_QueryInterface(topLevelWindow);
+      if (xulDoc && chromeWin) {
+        nsCOMPtr<nsIContent> rootElem = doc->GetRootContent();
+        if (aVisitor.mEvent->message == NS_ACTIVATE)
+          rootElem->SetAttr(kNameSpaceID_None, nsGkAtoms::active,
+                            NS_LITERAL_STRING("true"), PR_TRUE);
+        else
+          rootElem->UnsetAttr(kNameSpaceID_None, nsGkAtoms::active, PR_TRUE);
       }
     }
   }
