@@ -73,6 +73,7 @@ const SRCEVT_BACKGROUND       = 2;
 var gConsole    = null;
 var gPref       = null;
 var gLogEnabled = false;
+var gUpdatesFoundPageId;
 
 
 
@@ -525,9 +526,10 @@ var gUpdates = {
 
 
   get updatesFoundPageId() {
-    delete this.updatesFoundPageId;
-    return this.updatesFoundPageId = this.update.billboardURL ? "updatesfoundbillboard"
-                                                              : "updatesfoundbasic";
+    if (gUpdatesFoundPageId)
+      return gUpdatesFoundPageId;
+    return gUpdatesFoundPageId = this.update.billboardURL ? "updatesfoundbillboard"
+                                                          : "updatesfoundbasic";
   },
 
   
@@ -596,6 +598,9 @@ var gCheckingPage = {
       if (gUpdates.update) {
         LOG("gCheckingPage", "onCheckComplete - update found");
         if (!aus.canApplyUpdates) {
+          
+          
+          gUpdates.never();
           gUpdates.wiz.goTo("manualUpdate");
           return;
         }
@@ -837,10 +842,6 @@ var gManualUpdatePage = {
     manualUpdateLinkLabel.value = manualURL;
     manualUpdateLinkLabel.setAttribute("url", manualURL);
 
-    
-    
-    gUpdates.never();
-
     gUpdates.setButtons(null, null, "okButton", true);
     gUpdates.wiz.getButton("finish").focus();
   }
@@ -929,6 +930,9 @@ var gUpdatesFoundBillboardPage = {
       return;
 
     var remoteContent = document.getElementById("updateMoreInfoContent");
+    remoteContent.addEventListener("load",
+                                   gUpdatesFoundBillboardPage.onBillboardLoad,
+                                   false);
     
     
     
@@ -957,6 +961,25 @@ var gUpdatesFoundBillboardPage = {
     gPref.deleteBranch(PREF_APP_UPDATE_NEVER_BRANCH);
 
     this._billboardLoaded = true;
+  },
+
+  
+
+
+  onBillboardLoad: function(aEvent) {
+    var remoteContent = document.getElementById("updateMoreInfoContent");
+    
+    var state = remoteContent.getAttribute("state");
+    if (state == "loading" || !aEvent.originalTarget.isSameNode(remoteContent))
+      return;
+
+    remoteContent.removeEventListener("load", gUpdatesFoundBillboardPage.onBillboardLoad, false);
+    if (state == "error") {
+      gUpdatesFoundPageId = "updatesfoundbasic";
+      var next = gUpdates.wiz.getPageById("updatesfoundbillboard").getAttribute("next");
+      gUpdates.wiz.getPageById(gUpdates.updatesFoundPageId).setAttribute("next", next);
+      gUpdates.wiz.goTo(gUpdates.updatesFoundPageId);
+    }
   },
 
   onExtra1: function() {
@@ -1028,20 +1051,24 @@ var gLicensePage = {
   
 
 
-  onLicenseLoad: function() {
+  onLicenseLoad: function(aEvent) {
     var licenseContent = document.getElementById("licenseContent");
     
     
     
     var state = licenseContent.getAttribute("state");
-    if (state == "loading")
+    if (state == "loading" || !aEvent.originalTarget.isSameNode(licenseContent))
       return;
 
     licenseContent.removeEventListener("load", gLicensePage.onLicenseLoad, false);
 
-    var errorLoading = (state == "error");
-    document.getElementById("acceptDeclineLicense").disabled = errorLoading;
-    gLicensePage._licenseLoaded = !errorLoading;
+    if (state == "error") {
+      gUpdates.wiz.goTo("manualUpdate");
+      return;
+    }
+
+    gLicensePage._licenseLoaded = true;
+    document.getElementById("acceptDeclineLicense").disabled = false;
     gUpdates.wiz.getButton("extra1").disabled = false;
   },
 
