@@ -211,6 +211,8 @@ function ReadTopManifest(aFileURL)
     ReadManifest(url);
 }
 
+
+
 function ReadManifest(aURL)
 {
     var listURL = aURL.QueryInterface(CI.nsIFileURL);
