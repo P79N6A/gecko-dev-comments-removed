@@ -115,6 +115,17 @@ public:
   
 
 
+
+
+
+
+
+
+  void checkAndNotify(nsIURI *aPageURI, nsIURI *aFaviconURI);
+
+  
+
+
   nsresult FinalizeStatements();
 
   NS_DECL_ISUPPORTS

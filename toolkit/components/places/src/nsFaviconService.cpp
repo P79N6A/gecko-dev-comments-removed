@@ -64,15 +64,13 @@
 #include "nsReadableUtils.h"
 #include "nsStreamUtils.h"
 #include "nsStringStream.h"
-#include "mozStorageHelper.h"
 #include "plbase64.h"
 #include "nsPlacesTables.h"
-#include "mozIStoragePendingStatement.h"
-#include "mozIStorageStatementCallback.h"
-#include "mozIStorageError.h"
 #include "nsPlacesTables.h"
 #include "nsIPrefService.h"
 #include "Helpers.h"
+
+#include "mozilla/storage.h"
 
 
 #include "imgITools.h"
@@ -111,8 +109,8 @@ class FaviconLoadListener : public nsIStreamListener,
                             public nsIChannelEventSink
 {
 public:
-  FaviconLoadListener(nsFaviconService* aFaviconService,
-                      nsIURI* aPageURI, nsIURI* aFaviconURI,
+  FaviconLoadListener(nsIURI* aPageURI,
+                      nsIURI* aFaviconURI,
                       nsIChannel* aChannel);
 
   NS_DECL_ISUPPORTS
@@ -124,7 +122,6 @@ public:
 private:
   ~FaviconLoadListener();
 
-  nsRefPtr<nsFaviconService> mFaviconService;
   nsCOMPtr<nsIChannel> mChannel;
   nsCOMPtr<nsIURI> mPageURI;
   nsCOMPtr<nsIURI> mFaviconURI;
@@ -218,6 +215,108 @@ GetEffectivePageForFavicon(nsIURI *aPageURI,
   
   return pageURI.forget();
 }
+
+
+
+
+
+class FaviconExpirationGetter : public AsyncStatementCallback
+{
+public:
+  NS_DECL_ISUPPORTS
+
+  FaviconExpirationGetter(nsIURI *aPageURI,
+                          nsIURI *aFaviconURI,
+                          bool aForceReload) :
+    mPageURI(aPageURI)
+  , mFaviconURI(aFaviconURI)
+  , mForceReload(aForceReload)
+  , mHasData(false)
+  , mExpiration(0)
+  {
+  }
+
+  
+
+
+
+  NS_IMETHOD checkAndLoad(mozIStorageStatement *aStatement)
+  {
+    mozStorageStatementScoper scoper(aStatement);
+    nsresult rv = BindStatementURI(aStatement, 0, mFaviconURI);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    nsCOMPtr<mozIStoragePendingStatement> ps;
+    rv = aStatement->ExecuteAsync(this, getter_AddRefs(ps));
+    NS_ENSURE_SUCCESS(rv, rv);
+    
+    scoper.Abandon();
+    return NS_OK;
+  }
+
+  NS_IMETHOD HandleResult(mozIStorageResultSet *aResultSet)
+  {
+    nsCOMPtr<mozIStorageRow> row;
+    nsresult rv = aResultSet->GetNextRow(getter_AddRefs(row));
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    PRInt32 dataSize = 0;
+    (void)row->GetInt32(1, &dataSize);
+    mHasData = dataSize > 0;
+    (void)row->GetInt64(2, &mExpiration);
+
+    return NS_OK;
+  }
+
+  NS_IMETHOD HandleCompletion(PRUint16 aReason)
+  {
+    if (aReason != mozIStorageStatementCallback::REASON_FINISHED)
+      return NS_OK;
+
+    
+    
+    
+    
+    
+    
+    if (mHasData && PR_Now() < mExpiration && !mForceReload) {
+      
+      
+      nsFaviconService *fs = nsFaviconService::GetFaviconService();
+      NS_ENSURE_TRUE(fs, NS_ERROR_OUT_OF_MEMORY);
+      fs->checkAndNotify(mPageURI, mFaviconURI);
+      return NS_OK;
+    }
+
+    nsCOMPtr<nsIChannel> channel;
+    nsresult rv = NS_NewChannel(getter_AddRefs(channel), mFaviconURI);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    nsCOMPtr<nsIStreamListener> listener =
+      new FaviconLoadListener(mPageURI, mFaviconURI, channel);
+    NS_ENSURE_TRUE(listener, NS_ERROR_OUT_OF_MEMORY);
+    nsCOMPtr<nsIInterfaceRequestor> listenerRequestor =
+      do_QueryInterface(listener, &rv);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    rv = channel->SetNotificationCallbacks(listenerRequestor);
+    NS_ENSURE_SUCCESS(rv, rv);
+    rv = channel->AsyncOpen(listener, nsnull);
+    NS_ENSURE_SUCCESS(rv, rv);
+    return NS_OK;
+  }
+private:
+  nsCOMPtr<nsIURI> mPageURI;
+  nsCOMPtr<nsIURI> mFaviconURI;
+  const bool mForceReload;
+  bool mHasData;
+  PRTime mExpiration;
+};
+
+NS_IMPL_ISUPPORTS1(
+  FaviconExpirationGetter,
+  mozIStorageStatementCallback
+);
 
 } 
 
@@ -614,70 +713,11 @@ nsFaviconService::DoSetAndLoadFaviconForPage(nsIURI* aPageURI,
   nsCOMPtr<nsIURI> page = GetEffectivePageForFavicon(aPageURI, aFaviconURI);
   NS_ENSURE_TRUE(page, NS_OK);
 
-  
-  
-  
-  
-  
-  PRBool hasData = PR_FALSE;
-  PRTime expiration = 0;
-  {
-    mozStorageStatementScoper scoper(mDBGetIconInfo);
-    rv = BindStatementURI(mDBGetIconInfo, 0, aFaviconURI);
-    NS_ENSURE_SUCCESS(rv, rv);
+  nsRefPtr<FaviconExpirationGetter> dataGetter =
+    new FaviconExpirationGetter(page, aFaviconURI, !!aForceReload);
+  NS_ENSURE_TRUE(dataGetter, NS_ERROR_OUT_OF_MEMORY);
 
-    PRBool hasMatch;
-    rv = mDBGetIconInfo->ExecuteStep(&hasMatch);
-    NS_ENSURE_SUCCESS(rv, rv);
-    if (hasMatch) {
-      PRInt32 dataSize;
-      mDBGetIconInfo->GetInt32(1, &dataSize);
-      hasData = dataSize > 0;
-      mDBGetIconInfo->GetInt64(2, &expiration);
-    }
-  }
-
-  
-  
-  PRTime now = PR_Now();
-  if (hasData && now < expiration && !aForceReload) {
-    
-
-    
-    
-    
-    
-    nsCOMPtr<nsIURI> oldFavicon;
-    PRBool faviconsEqual;
-    if (NS_SUCCEEDED(GetFaviconForPage(page, getter_AddRefs(oldFavicon))) &&
-        NS_SUCCEEDED(aFaviconURI->Equals(oldFavicon, &faviconsEqual)) &&
-        faviconsEqual)
-      return NS_OK; 
-
-    
-    rv = SetFaviconUrlForPageInternal(page, aFaviconURI, &hasData);
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    SendFaviconNotifications(page, aFaviconURI);
-    UpdateBookmarkRedirectFavicon(page, aFaviconURI);
-    return NS_OK;
-  }
-
-  nsCOMPtr<nsIChannel> channel;
-  rv = NS_NewChannel(getter_AddRefs(channel), aFaviconURI);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  nsCOMPtr<nsIStreamListener> listener =
-    new FaviconLoadListener(this, page, aFaviconURI, channel);
-  NS_ENSURE_TRUE(listener, NS_ERROR_OUT_OF_MEMORY);
-  nsCOMPtr<nsIInterfaceRequestor> listenerRequestor =
-    do_QueryInterface(listener, &rv);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  rv = channel->SetNotificationCallbacks(listenerRequestor);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  rv = channel->AsyncOpen(listener, nsnull);
+  rv = dataGetter->checkAndLoad(mDBGetIconInfo);
   NS_ENSURE_SUCCESS(rv, rv);
 
   
@@ -1126,6 +1166,33 @@ nsFaviconService::GetFaviconDataAsync(nsIURI* aFaviconURI,
   return mDBGetData->ExecuteAsync(aCallback, getter_AddRefs(pendingStatement));
 }
 
+void
+nsFaviconService::checkAndNotify(nsIURI *aPageURI,
+                                 nsIURI *aFaviconURI)
+{
+  
+  
+  
+  
+  nsCOMPtr<nsIURI> oldFavicon;
+  PRBool faviconsEqual;
+  if (NS_SUCCEEDED(GetFaviconForPage(aPageURI, getter_AddRefs(oldFavicon))) &&
+      NS_SUCCEEDED(aFaviconURI->Equals(oldFavicon, &faviconsEqual)) &&
+      faviconsEqual)
+    return; 
+
+  
+  PRBool hasData;
+  nsresult rv = SetFaviconUrlForPageInternal(aPageURI, aFaviconURI, &hasData);
+  if (NS_FAILED(rv))
+    return;
+
+  if (hasData) {
+    SendFaviconNotifications(aPageURI, aFaviconURI);
+    UpdateBookmarkRedirectFavicon(aPageURI, aFaviconURI);
+  }
+}
+
 
 
 
@@ -1135,10 +1202,9 @@ NS_IMPL_ISUPPORTS4(FaviconLoadListener,
                    nsIInterfaceRequestor,
                    nsIChannelEventSink)
 
-FaviconLoadListener::FaviconLoadListener(nsFaviconService* aFaviconService,
-                                         nsIURI* aPageURI, nsIURI* aFaviconURI,
+FaviconLoadListener::FaviconLoadListener(nsIURI* aPageURI,
+                                         nsIURI* aFaviconURI,
                                          nsIChannel* aChannel) :
-  mFaviconService(aFaviconService),
   mChannel(aChannel),
   mPageURI(aPageURI),
   mFaviconURI(aFaviconURI)
@@ -1159,9 +1225,12 @@ NS_IMETHODIMP
 FaviconLoadListener::OnStopRequest(nsIRequest *aRequest, nsISupports *aContext,
                                  nsresult aStatusCode)
 {
+  nsFaviconService *fs = nsFaviconService::GetFaviconService();
+  NS_ENSURE_TRUE(fs, NS_ERROR_UNEXPECTED);
+
   if (NS_FAILED(aStatusCode) || mData.Length() == 0) {
     
-    mFaviconService->AddFailedFavicon(mFaviconURI);
+    fs->AddFailedFavicon(mFaviconURI);
     return NS_OK;
   }
 
@@ -1203,7 +1272,7 @@ FaviconLoadListener::OnStopRequest(nsIRequest *aRequest, nsISupports *aContext,
 
   if (mimeType.IsEmpty()) {
     
-    mFaviconService->AddFailedFavicon(mFaviconURI);
+    fs->AddFailedFavicon(mFaviconURI);
     return NS_OK;
   }
 
@@ -1229,26 +1298,26 @@ FaviconLoadListener::OnStopRequest(nsIRequest *aRequest, nsISupports *aContext,
   if (expiration < 0)
     expiration = PR_Now() + MAX_FAVICON_EXPIRATION;
 
-  mozStorageTransaction transaction(mFaviconService->mDBConn, PR_FALSE);
+  mozStorageTransaction transaction(fs->mDBConn, PR_FALSE);
   
   
   
-  (void) mFaviconService->SetFaviconData(mFaviconURI,
-               reinterpret_cast<PRUint8*>(const_cast<char*>(mData.get())),
-               mData.Length(), mimeType, expiration);
+  (void)fs->SetFaviconData(mFaviconURI,
+                           reinterpret_cast<PRUint8*>(const_cast<char*>(mData.get())),
+                           mData.Length(), mimeType, expiration);
 
   
   PRBool hasData;
-  rv = mFaviconService->SetFaviconUrlForPageInternal(mPageURI, mFaviconURI,
+  rv = fs->SetFaviconUrlForPageInternal(mPageURI, mFaviconURI,
                                                      &hasData);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  mFaviconService->UpdateBookmarkRedirectFavicon(mPageURI, mFaviconURI);
+  fs->UpdateBookmarkRedirectFavicon(mPageURI, mFaviconURI);
 
   rv = transaction.Commit();
   NS_ENSURE_SUCCESS(rv, rv);
 
-  mFaviconService->SendFaviconNotifications(mPageURI, mFaviconURI);
+  fs->SendFaviconNotifications(mPageURI, mFaviconURI);
   return NS_OK;
 }
 
