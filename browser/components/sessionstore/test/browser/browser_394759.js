@@ -63,7 +63,7 @@ function test() {
         newWin.gBrowser.removeEventListener("load", arguments.callee, true);
 
         executeSoon(function() {
-          newWin.gBrowser.addTab();
+          newWin.gBrowser.addTab().linkedBrowser.stop();
           executeSoon(function() {
             
             ss.setWindowValue(newWin, uniqueKey, uniqueValue);
