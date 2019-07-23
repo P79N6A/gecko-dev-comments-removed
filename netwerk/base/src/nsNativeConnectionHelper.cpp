@@ -37,7 +37,11 @@
 
 
 #include "nsNativeConnectionHelper.h"
+#ifdef WINCE
+#include "nsAutodialWinCE.h"
+#else
 #include "nsAutodialWin.h"
+#endif
 #include "nsIOService.h"
 
 
