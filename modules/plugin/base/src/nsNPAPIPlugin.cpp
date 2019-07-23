@@ -1912,13 +1912,6 @@ _getvalue(NPP npp, NPNVariable variable, void *result)
     return NPERR_NO_ERROR;
   }
 
-  case NPNVserviceManager:
-  case NPNVDOMElement:
-  case NPNVDOMWindow: {
-    
-    return NPERR_GENERIC_ERROR;
-  }
-
   case NPNVToolkit: {
 #ifdef MOZ_WIDGET_GTK2
     *((NPNToolkitType*)result) = NPNVGtk2;
@@ -2000,6 +1993,41 @@ _getvalue(NPP npp, NPNVariable variable, void *result)
   }
 #endif
 
+  
+  
+  
+#ifdef WINCE
+  case NPNVDOMWindow: {
+    nsNPAPIPluginInstance *inst = (nsNPAPIPluginInstance *)npp->ndata;
+    NS_ENSURE_TRUE(inst, NPERR_GENERIC_ERROR);
+
+    nsIDOMWindow *domWindow = inst->GetDOMWindow().get();
+
+    if (domWindow) {
+      
+      (*(nsIDOMWindow**)result) = domWindow;
+      return NPERR_NO_ERROR;
+    }
+
+    return NPERR_GENERIC_ERROR;
+  }
+
+  case NPNVDOMElement: {
+    nsNPAPIPluginInstance *inst = (nsNPAPIPluginInstance *) npp->ndata;
+    NS_ENSURE_TRUE(inst, NPERR_GENERIC_ERROR);
+
+    nsCOMPtr<nsIDOMElement> e;
+    inst->GetDOMElement(getter_AddRefs(e));
+    if (e) {
+      NS_ADDREF(*(nsIDOMElement**)result = e.get());
+      return NPERR_NO_ERROR;
+    }
+
+    return NPERR_GENERIC_ERROR;
+  }
+#endif 
+
+  case NPNVserviceManager: 
   default:
     return NPERR_GENERIC_ERROR;
   }
