@@ -44,7 +44,6 @@
 #include "nsIFormControl.h"
 #include "nsIDOMNSHTMLFrameElement.h"
 #include "nsFrameLoader.h"
-#include "nsGkAtoms.h"
 
 class nsIDOMAttr;
 class nsIDOMEventListener;
@@ -166,8 +165,6 @@ public:
   NS_IMETHOD SetTabIndex(PRInt32 aTabIndex);
   NS_IMETHOD GetSpellcheck(PRBool* aSpellcheck);
   NS_IMETHOD SetSpellcheck(PRBool aSpellcheck);
-  nsresult GetContentEditable(nsAString &aContentEditable);
-  nsresult SetContentEditable(const nsAString &aContentEditable);
 
   
 
@@ -199,16 +196,6 @@ public:
   virtual nsresult BindToTree(nsIDocument* aDocument, nsIContent* aParent,
                               nsIContent* aBindingParent,
                               PRBool aCompileEventHandlers);
-  virtual void UnbindFromTree(PRBool aDeep = PR_TRUE,
-                              PRBool aNullParent = PR_TRUE);
-  nsresult SetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
-                   const nsAString& aValue, PRBool aNotify)
-  {
-    return SetAttr(aNameSpaceID, aName, nsnull, aValue, aNotify);
-  }
-  virtual nsresult SetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
-                           nsIAtom* aPrefix, const nsAString& aValue,
-                           PRBool aNotify);
   virtual nsresult UnsetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
                              PRBool aNotify);
   virtual PRBool IsNodeOfType(PRUint32 aFlags) const;
@@ -237,8 +224,6 @@ public:
     return mAttrsAndChildren.GetAttr(aAttr);
   }
   virtual nsMapRuleToAttributesFunc GetAttributeMappingFunction() const;
-
-  virtual void UpdateEditableState();
 
   virtual const nsAttrValue* GetClasses() const;
   virtual nsIAtom *GetIDAttributeName() const;
@@ -783,50 +768,6 @@ protected:
 
 
   static void SyncEditorsOnSubtree(nsIContent* content);
-
-  enum ContentEditableTristate {
-    eInherit = -1,
-    eFalse = 0,
-    eTrue = 1
-  };
-
-  
-
-
-
-
-
-  NS_HIDDEN_(ContentEditableTristate) GetContentEditableValue() const
-  {
-    static const nsIContent::AttrValuesArray values[] =
-      { &nsGkAtoms::_false, &nsGkAtoms::_true, &nsGkAtoms::_empty, nsnull };
-
-    PRInt32 value = FindAttrValueIn(kNameSpaceID_None,
-                                    nsGkAtoms::contenteditable, values,
-                                    eIgnoreCase);
-
-    return value > 0 ? eTrue : (value == 0 ? eFalse : eInherit);
-  }
-
-private:
-  
-
-
-
-
-
-
-  PRBool IsEditableRoot() const;
-
-  
-
-
-
-
-
-  nsIContent* FindEditableRoot();
-
-  void ChangeEditableState(PRInt32 aChange);
 };
 
 
@@ -876,7 +817,6 @@ public:
   virtual nsresult UnsetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
                              PRBool aNotify);
   virtual PRUint32 GetDesiredIMEState();
-  virtual PRInt32 IntrinsicState() const;
 
 protected:
   
@@ -898,7 +838,7 @@ protected:
 
   PRBool CanBeDisabled() const;
 
-  void UpdateEditableFormControlState();
+  virtual PRInt32 IntrinsicState() const;
 
   void SetFocusAndScrollIntoView(nsPresContext* aPresContext);
 

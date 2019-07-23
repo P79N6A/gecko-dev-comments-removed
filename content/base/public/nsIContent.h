@@ -63,8 +63,9 @@ class nsIDocShell;
 
 
 #define NS_ICONTENT_IID       \
-{ 0x36b375cb, 0xf01e, 0x4c18, \
-  { 0xbf, 0x9e, 0xba, 0xad, 0x77, 0x1d, 0xce, 0x22 } }
+{ 0xb6408b0, 0x20c6, 0x4d60, \
+  { 0xb7, 0x2f, 0x90, 0xb7, 0x7a, 0x9d, 0xb9, 0xb6 } }
+
 
 
 class nsIContent_base : public nsINode {
@@ -714,8 +715,11 @@ public:
 
   
   
-  virtual PRInt32 IntrinsicState() const;
-
+  virtual PRInt32 IntrinsicState() const
+  {
+    return 0;
+  }
+    
   
 
 
@@ -786,12 +790,6 @@ public:
 
   virtual nsIAtom *GetClassAttributeName() const = 0;
 
-  
-
-
-
-
-  virtual void UpdateEditableState();
 
 #ifdef DEBUG
   

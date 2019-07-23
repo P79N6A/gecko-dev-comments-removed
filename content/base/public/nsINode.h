@@ -89,13 +89,11 @@ class nsNodeSupportsWeakRefTearoff;
 
 #define NODE_MAY_BE_IN_BINDING_MNGR  0x00000080U
 
-#define NODE_IS_EDITABLE             0x00000100U
+
+#define NODE_SCRIPT_TYPE_OFFSET                8
 
 
-#define NODE_SCRIPT_TYPE_OFFSET                9
-
-
-#define NODE_TYPE_SPECIFIC_BITS_OFFSET       0x0d
+#define NODE_TYPE_SPECIFIC_BITS_OFFSET       0x0c
 
 
 
@@ -107,8 +105,8 @@ class nsNodeSupportsWeakRefTearoff;
 
 
 #define NS_INODE_IID \
-{ 0xd3e63f80, 0x9e98, 0x47d7, \
-  { 0xac, 0x8d, 0xad, 0x6f, 0x20, 0x6c, 0xe7, 0xc6 } }
+{ 0x22ab1440, 0xa6ee, 0x4da7, \
+  { 0xbc, 0x3b, 0x94, 0x2e, 0x56, 0x0d, 0xdc, 0xe0 } }
 
 
 class nsINode_base : public nsPIDOMEventTarget {
@@ -596,16 +594,6 @@ public:
     PtrBits* flags = HasSlots() ? &FlagsAsSlots()->mFlags :
                                   &mFlagsOrSlots;
     *flags &= ~aFlagsToUnset;
-  }
-
-  void SetEditableFlag(PRBool aEditable)
-  {
-    if (aEditable) {
-      SetFlags(NODE_IS_EDITABLE);
-    }
-    else {
-      UnsetFlags(NODE_IS_EDITABLE);
-    }
   }
 
 protected:

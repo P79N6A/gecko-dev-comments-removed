@@ -584,10 +584,14 @@ nsCaret::DrawAtPositionWithHint(nsIDOMNode*             aNode,
                                            &theFrame, &theFrameOffset);
   if (NS_FAILED(rv) || !theFrame)
     return PR_FALSE;
-
+  
   
   const nsStyleUserInterface* userinterface = theFrame->GetStyleUserInterface();
-  if ((userinterface->mUserModify == NS_STYLE_USER_MODIFY_READ_ONLY) ||
+  if (
+#ifdef SUPPORT_USER_MODIFY
+        
+      (userinterface->mUserModify == NS_STYLE_USER_MODIFY_READ_ONLY) ||
+#endif          
       (userinterface->mUserInput == NS_STYLE_USER_INPUT_NONE) ||
       (userinterface->mUserInput == NS_STYLE_USER_INPUT_DISABLED))
   {
