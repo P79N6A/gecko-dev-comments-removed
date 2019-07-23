@@ -77,9 +77,6 @@
 #include "nsBidiPresUtils.h"
 #endif 
 
-
-#define ELLIPSIS PRUnichar(0x2026)
-
 #define CROP_LEFT   "left"
 #define CROP_RIGHT  "right"
 #define CROP_CENTER "center"
@@ -627,14 +624,15 @@ nsTextBoxFrame::CalculateTitleForWidth(nsPresContext*      aPresContext,
         return;  
     }
 
+    const nsDependentString kEllipsis = nsContentUtils::GetLocalizedEllipsis();
     
-    mCroppedTitle.Assign(ELLIPSIS);
+    mCroppedTitle.Assign(kEllipsis);
 
     
     
     nscoord ellipsisWidth;
     aRenderingContext.SetTextRunRTL(PR_FALSE);
-    aRenderingContext.GetWidth(ELLIPSIS, ellipsisWidth);
+    aRenderingContext.GetWidth(kEllipsis, ellipsisWidth);
 
     if (ellipsisWidth > aWidth) {
         mCroppedTitle.SetLength(0);
@@ -773,11 +771,7 @@ nsTextBoxFrame::CalculateTitleForWidth(nsPresContext*      aPresContext,
                 rightPos--;
             }
 
-            
-            nsAutoString ellipsisString;
-            ellipsisString.Assign(ELLIPSIS);
-
-            mCroppedTitle = leftString + ellipsisString + rightString;
+            mCroppedTitle = leftString + kEllipsis + rightString;
         }
         break;
     }
@@ -785,6 +779,8 @@ nsTextBoxFrame::CalculateTitleForWidth(nsPresContext*      aPresContext,
     mTitleWidth = nsLayoutUtils::GetStringWidth(this, &aRenderingContext,
                                                 mCroppedTitle.get(), mCroppedTitle.Length());
 }
+
+#define OLD_ELLIPSIS NS_LITERAL_STRING("...")
 
 
 
@@ -819,7 +815,19 @@ nsTextBoxFrame::UpdateAccessTitle()
         return;
     }
 
-    PRInt32 offset = mTitle.RFind("...");
+    const nsDependentString kEllipsis = nsContentUtils::GetLocalizedEllipsis();
+    PRInt32 offset = mTitle.RFind(kEllipsis);
+    if (offset == kNotFound) {
+        
+        if (!kEllipsis.Equals(OLD_ELLIPSIS))
+            offset = mTitle.RFind(OLD_ELLIPSIS);
+        if (offset == kNotFound) {
+            
+            nsAutoString defaultEllipsis(PRUnichar(0x2026));
+            if (!kEllipsis.Equals(defaultEllipsis))
+                offset = mTitle.RFind(defaultEllipsis);
+        }
+    }
     if (offset == kNotFound) {
         offset = (PRInt32)mTitle.Length();
         if (mTitle.Last() == PRUnichar(':'))
