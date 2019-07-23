@@ -561,9 +561,13 @@ nsImageFrame::OnDataAvailable(imgIRequest *aRequest,
   }
   
   
+  
+  nsRect r = SourceRectToDest(*aRect);
+
+  
   if (HandleIconLoads(aRequest, PR_FALSE)) {
     
-    Invalidate(*aRect, PR_FALSE);
+    Invalidate(r, PR_FALSE);
     return NS_OK;
   }
 
@@ -585,9 +589,6 @@ nsImageFrame::OnDataAvailable(imgIRequest *aRequest,
     }
   }
 
-  
-  
-  nsRect r = SourceRectToDest(*aRect);
 #ifdef DEBUG_decode
   printf("Source rect (%d,%d,%d,%d) -> invalidate dest rect (%d,%d,%d,%d)\n",
          aRect->x, aRect->y, aRect->width, aRect->height,
