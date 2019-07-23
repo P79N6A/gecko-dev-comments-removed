@@ -103,7 +103,7 @@ static const PRUint32 gWinEventMap[] = {
   IA2_EVENT_TEXT_UPDATED,                            
   IA2_EVENT_TEXT_SELECTION_CHANGED,                  
   IA2_EVENT_VISIBLE_DATA_CHANGED,                    
-  IA2_EVENT_COLUMN_CHANGED,                          
+  IA2_EVENT_TEXT_COLUMN_CHANGED,                     
   IA2_EVENT_SECTION_CHANGED,                         
   IA2_EVENT_TABLE_CAPTION_CHANGED,                   
   IA2_EVENT_TABLE_MODEL_CHANGED,                     
@@ -136,7 +136,6 @@ static const PRUint32 gWinEventMap[] = {
   IA2_EVENT_HYPERTEXT_NLINKS_CHANGED,                
   IA2_EVENT_OBJECT_ATTRIBUTE_CHANGED,                
   IA2_EVENT_PAGE_CHANGED,                            
-  IA2_EVENT_ROLE_CHANGED,                            
   kEVENT_WIN_UNKNOWN,                                
   kEVENT_LAST_ENTRY                                  
 };
