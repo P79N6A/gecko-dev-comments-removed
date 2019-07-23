@@ -115,7 +115,11 @@ function LoadSignons() {
 
   
   signonsTree.treeBoxObject.view = signonsTreeView;
-  SignonColumnSort('hostname');
+  
+  
+  
+  lastSignonSortAscending = !lastSignonSortAscending;
+  SignonColumnSort(lastSignonSortColumn);
 
   
   var element = document.getElementById("removeAllSignons");
@@ -238,15 +242,37 @@ function HandleSignonKeyPress(e) {
   }
 }
 
-var lastSignonSortColumn = "";
-var lastSignonSortAscending = false;
+function getColumnByName(column) {
+  switch (column) {
+    case "hostname":
+      return document.getElementById("siteCol");
+    case "username":
+      return document.getElementById("userCol");
+    case "password":
+      return document.getElementById("passwordCol");
+  }
+}
+
+var lastSignonSortColumn = "hostname";
+var lastSignonSortAscending = true;
 
 function SignonColumnSort(column) {
+  
+  var lastSortedCol = getColumnByName(lastSignonSortColumn);
+  lastSortedCol.removeAttribute("sortDirection");
+
+  
   lastSignonSortAscending =
     SortTree(signonsTree, signonsTreeView,
                  signonsTreeView._filterSet.length ? signonsTreeView._filterSet : signons,
                  column, lastSignonSortColumn, lastSignonSortAscending);
   lastSignonSortColumn = column;
+
+  
+  
+  var sortedCol = getColumnByName(column);
+  sortedCol.setAttribute("sortDirection", lastSignonSortAscending ?
+                                          "ascending" : "descending");
 }
 
 function SignonClearFilter() {
@@ -258,8 +284,6 @@ function SignonClearFilter() {
   signonsTreeView._filterSet = [];
 
   
-  lastSignonSortColumn = "";
-  lastSignonSortAscending = false;
   LoadSignons();
 
   
