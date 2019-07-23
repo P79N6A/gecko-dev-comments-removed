@@ -157,6 +157,9 @@ protected:
   nsresult StartInvalidating(double aFramerate);
 
   
+  void StopInvalidating();
+
+  
   nsresult StartProgress();
 
   

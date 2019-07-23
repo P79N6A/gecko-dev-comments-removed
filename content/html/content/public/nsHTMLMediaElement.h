@@ -101,6 +101,11 @@ public:
 
   
   
+  
+  void CanPlayThrough();
+
+  
+  
   void Paint(gfxContext* aContext, const gfxRect& aRect);
 
   
@@ -109,13 +114,13 @@ public:
   nsresult DispatchAsyncSimpleEvent(const nsAString& aName);
   nsresult DispatchAsyncProgressEvent(const nsAString& aName);
 
-protected:
-  nsresult PickMediaElement(nsAString& aChosenMediaResource);
-  virtual nsresult InitializeDecoder(nsAString& aChosenMediaResource);
-
   
   
   void ChangeReadyState(nsMediaReadyState aState);
+
+protected:
+  nsresult PickMediaElement(nsAString& aChosenMediaResource);
+  virtual nsresult InitializeDecoder(nsAString& aChosenMediaResource);
 
   nsRefPtr<nsVideoDecoder> mDecoder;
 
