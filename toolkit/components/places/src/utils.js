@@ -48,6 +48,9 @@ var EXPORTED_SYMBOLS = ["PlacesUtils"];
 var Ci = Components.interfaces;
 var Cc = Components.classes;
 var Cr = Components.results;
+var Cu = Components.utils;
+
+Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 
 const EXCLUDE_FROM_BACKUP_ANNO = "places/excludeFromBackup";
 const POST_DATA_ANNO = "bookmarkProperties/POSTData";
@@ -263,12 +266,69 @@ var PlacesUtils = {
 
 
 
+
+
+
+
+
+
+
+  get _readOnly() {
+    
+    this.annotations.addObserver(this, false);
+
+    
+    const os = Cc["@mozilla.org/observer-service;1"].
+               getService(Ci.nsIObserverService);
+    os.addObserver(this, "xpcom-shutdown", false);
+
+    var readOnly = this.annotations.getItemsWithAnnotation(READ_ONLY_ANNO, {});
+    this.__defineGetter__("_readOnly", function() readOnly);
+    return this._readOnly;
+  },
+
+  QueryInterface: XPCOMUtils.generateQI([Ci.nsIAnnotationObserver,
+                                         Ci.nsIObserver]),
+
+  
+  observe: function PU_observe(aSubject, aTopic, aData) {
+    if (aTopic == "xpcom-shutdown") {
+      this.annotations.removeObserver(this);
+      const os = Cc["@mozilla.org/observer-service;1"].
+                 getService(Ci.nsIObserverService);
+      os.removeObserver(this, "xpcom-shutdown");
+    }
+  },
+
+  
+  onItemAnnotationSet: function(aItemId, aAnnotationName) {
+    if (aAnnotationName == READ_ONLY_ANNO &&
+        this._readOnly.indexOf(aItemId) == -1)
+      this._readOnly.push(aItemId);
+  },
+  onItemAnnotationRemoved: function(aItemId, aAnnotationName) {
+    var index = this._readOnly.indexOf(aItemId);
+    if (aAnnotationName == READ_ONLY_ANNO && index > -1)
+      delete this._readOnly[index];
+  },
+  onPageAnnotationSet: function(aUri, aAnnotationName) {},
+  onPageAnnotationRemoved: function(aUri, aAnnotationName) {},
+
+  
+
+
+
+
+
+
   nodeIsReadOnly: function PU_nodeIsReadOnly(aNode) {
-    if (this.nodeIsFolder(aNode) || this.nodeIsDynamicContainer(aNode))
-      return this.bookmarks.getFolderReadonly(this.getConcreteItemId(aNode));
-    if (this.nodeIsQuery(aNode) &&
-        asQuery(aNode).queryOptions.resultType !=
-          Ci.nsINavHistoryQueryOptions.RESULTS_AS_TAG_CONTENTS)
+    if (this.nodeIsFolder(aNode) || this.nodeIsDynamicContainer(aNode)) {
+      if (this._readOnly.indexOf(aNode.itemId) != -1)
+        return true;
+    }
+    else if (this.nodeIsQuery(aNode) &&
+             asQuery(aNode).queryOptions.resultType !=
+             Ci.nsINavHistoryQueryOptions.RESULTS_AS_TAG_CONTENTS)
       return aNode.childrenReadOnly;
     return false;
   },
