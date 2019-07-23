@@ -52,6 +52,16 @@ assertEq(called, true);
 var toSource = Object.prototype.toSource || function() { };
 toSource.call(o); 
 
+var called = false;
+var o =
+  Object.defineProperty({}, "foo",
+                        { get: function() { return 17; },
+                          set: function(v) { called = true; } });
+
+assertEq(o.foo, 17);
+o.foo = 42;
+assertEq(called, true);
+
 
 
 
