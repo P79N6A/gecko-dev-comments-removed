@@ -2294,8 +2294,10 @@ TraceRecorder::test_property_cache(JSObject* obj, LIns* obj_ins, JSObject*& obj2
             }
 
             LIns* shape_ins = addName(lir->insLoadi(map_ins, offsetof(JSScope, shape)), "shape");
-            guard(true, addName(lir->ins2i(LIR_eq, shape_ins, PCVCAP_SHAPE(entry->vcap)),
-                  "guard(vcap_shape)"), MISMATCH_EXIT);
+            guard(true,
+                  addName(lir->ins2i(LIR_eq, shape_ins, PCVCAP_SHAPE(entry->vcap)),
+                          "guard(vcap_shape)"),
+                  MISMATCH_EXIT);
         }
     }
 
@@ -2705,6 +2707,7 @@ TraceRecorder::record_JSOP_BITAND()
     return binary(LIR_and);
 }
 
+
 bool
 TraceRecorder::record_JSOP_EQ()
 {
@@ -2745,6 +2748,7 @@ TraceRecorder::record_JSOP_EQ()
     }
     return cmp(LIR_feq);
 }
+
 
 bool
 TraceRecorder::record_JSOP_NE()
@@ -3721,12 +3725,18 @@ TraceRecorder::record_JSOP_LOOKUPSWITCH()
 bool
 TraceRecorder::record_JSOP_STRICTEQ()
 {
+    
+    
+    
     return record_JSOP_EQ();
 }
 
 bool
 TraceRecorder::record_JSOP_STRICTNE()
 {
+    
+    
+    
     return record_JSOP_NE();
 }
 
@@ -3957,40 +3967,7 @@ TraceRecorder::forInProlog(JSObject*& iterobj, LIns*& iterobj_ins)
 }
 
 bool
-TraceRecorder::record_JSOP_ENDITER()
-{
-    LIns* args[] = { stack(-1), cx_ins };
-    LIns* ok_ins = lir->insCall(F_CloseIterator, args);
-    guard(false, lir->ins_eq0(ok_ins), MISMATCH_EXIT);
-    return true;
-}
-
-bool
-TraceRecorder::record_JSOP_FORNAME()
-{
-    return false;
-}
-
-bool
-TraceRecorder::record_JSOP_FORPROP()
-{
-    return false;
-}
-
-bool
-TraceRecorder::record_JSOP_FORELEM()
-{
-    return false;
-}
-
-bool
-TraceRecorder::record_JSOP_FORARG()
-{
-    return false;
-}
-
-bool
-TraceRecorder::record_JSOP_FORLOCAL()
+TraceRecorder::forInOp(LIns*& id_ins)
 {
     JSObject* iterobj;
     LIns* iterobj_ins;
@@ -4003,6 +3980,7 @@ TraceRecorder::record_JSOP_FORLOCAL()
     
     
     int flag = 0;
+    id_ins = NULL;
 
     guard(false, addName(lir->ins_eq0(stateval_ins), "guard(non-null iter state"), MISMATCH_EXIT);
     if (stateval == JSVAL_NULL)
@@ -4029,22 +4007,88 @@ TraceRecorder::record_JSOP_FORLOCAL()
     cursor_ins = lir->ins2i(LIR_sub, cursor_ins, 1);
     lir->insStorei(cursor_ins, state_ins, offsetof(JSNativeEnumerator, cursor));
 
-    LIns* ids_ins; 
-    LIns* id_addr_ins;
-
-    ids_ins = lir->ins2i(LIR_add, state_ins, offsetof(JSNativeEnumerator, ids));
-    id_addr_ins = lir->ins2(LIR_add, ids_ins,
+    LIns* ids_ins = lir->ins2i(LIR_add, state_ins, offsetof(JSNativeEnumerator, ids));
+    LIns* id_addr_ins = lir->ins2(LIR_add, ids_ins,
                                   lir->ins2i(LIR_lsh, cursor_ins, (sizeof(jsid) == 4) ? 2 : 3));
 
-    LIns* id_ins; 
-
-    id_ins = lir->insLoadi(id_addr_ins, 0);
-    var(GET_SLOTNO(cx->fp->regs->pc), id_ins);
 
     
     flag = 1;
+    id_ins = lir->insLoadi(id_addr_ins, 0);
 done:
     stack(0, lir->insImm(flag));
+    return true;
+}
+
+bool
+TraceRecorder::record_JSOP_ENDITER()
+{
+    LIns* args[] = { stack(-1), cx_ins };
+    LIns* ok_ins = lir->insCall(F_CloseIterator, args);
+    guard(false, lir->ins_eq0(ok_ins), MISMATCH_EXIT);
+    return true;
+}
+
+bool
+TraceRecorder::record_JSOP_FORNAME()
+{
+    LIns* id_ins; 
+    if (!forInOp(id_ins))
+        return false;
+    if (!id_ins)
+        return true;
+
+    JSObject* obj = cx->fp->scopeChain;
+    if (obj != globalObj)
+        return false;
+
+    LIns* obj_ins = lir->insLoadi(lir->insLoadi(cx_ins, offsetof(JSContext, fp)),
+                                  offsetof(JSStackFrame, scopeChain));
+
+    uint32 slot;
+    if (!test_property_cache_direct_slot(obj, obj_ins, slot))
+        return false;
+    if (slot == SPROP_INVALID_SLOT)
+        ABORT_TRACE("JSOP_FORNAME can't find named property");
+
+    if (!lazilyImportGlobalSlot(slot))
+        ABORT_TRACE("lazy import of global slot failed");
+
+    set(&STOBJ_GET_SLOT(obj, slot), id_ins);
+    return true;
+}
+
+bool
+TraceRecorder::record_JSOP_FORPROP()
+{
+    return false;
+}
+
+bool
+TraceRecorder::record_JSOP_FORELEM()
+{
+    return false;
+}
+
+bool
+TraceRecorder::record_JSOP_FORARG()
+{
+    LIns* id_ins; 
+    if (!forInOp(id_ins))
+        return false;
+    if (id_ins)
+        arg(GET_ARGNO(cx->fp->regs->pc), id_ins);
+    return true;
+}
+
+bool
+TraceRecorder::record_JSOP_FORLOCAL()
+{
+    LIns* id_ins; 
+    if (!forInOp(id_ins))
+        return false;
+    if (id_ins)
+        var(GET_SLOTNO(cx->fp->regs->pc), id_ins);
     return true;
 }
 
@@ -4084,9 +4128,7 @@ TraceRecorder::record_JSOP_SETNAME()
 {
     jsval& r = stackval(-1);
     jsval& l = stackval(-2);
-
-    if (JSVAL_IS_PRIMITIVE(l))
-        return false;
+    JS_ASSERT(!JSVAL_IS_PRIMITIVE(l));
 
     
 
