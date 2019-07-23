@@ -35,13 +35,8 @@
 
 
 
-
-
-
-
-
-#ifndef _NPAPI_H_
-#define _NPAPI_H_
+#ifndef npapi_h_
+#define npapi_h_
 
 #ifdef __OS2__
 #pragma pack(1)
@@ -125,17 +120,13 @@
 
 
 
-
-
 #define NP_INFO_ProductVersion      1
 #define NP_INFO_MIMEType            2
 #define NP_INFO_FileOpenName        3
 #define NP_INFO_FileExtents         4
 
-
 #define NP_INFO_FileDescription     5
 #define NP_INFO_ProductName         6
-
 
 #define NP_INFO_CompanyName         7
 #define NP_INFO_FileVersion         8
@@ -425,6 +416,7 @@ typedef struct _NPFullPrint
 {
   NPBool pluginPrinted;
   NPBool printOne;     
+
   void* platformPrint; 
 } NPFullPrint;
 
@@ -467,6 +459,7 @@ typedef void*  NPEvent;
 #endif 
 
 #ifdef XP_MACOSX
+
 typedef void* NPRegion;
 #ifndef NP_NO_QUICKDRAW
 typedef RgnHandle NPQDRegion;
@@ -478,17 +471,13 @@ typedef HRGN NPRegion;
 typedef Region NPRegion;
 #else
 typedef void *NPRegion;
-#endif 
+#endif
 
 #ifdef XP_MACOSX
-
-
-
-
 typedef struct NP_Port
 {
-  CGrafPtr port; 
-  int32_t portx;   
+  CGrafPtr port;
+  int32_t portx; 
   int32_t porty;
 } NP_Port;
 
@@ -497,9 +486,6 @@ typedef struct NP_CGContext
   CGContextRef context;
   WindowRef window;
 } NP_CGContext;
-
-
-
 
 
 enum NPEventType {
@@ -517,6 +503,7 @@ enum NPEventType {
 #define loseFocusEvent    (osEvt + 17)
 #define adjustCursorEvent (osEvt + 18)
 #endif
+
 #endif 
 
 
@@ -596,14 +583,10 @@ enum NPEventType {
 
 
 
-#if defined(_WINDOWS) && !defined(WIN32)
-#define NP_LOADDS  _loadds
-#else
 #if defined(__OS2__)
 #define NP_LOADDS _System
 #else
 #define NP_LOADDS
-#endif
 #endif
 
 #ifdef __cplusplus
@@ -612,11 +595,9 @@ extern "C" {
 
 
 
-
-
 #ifdef XP_UNIX
 char* NPP_GetMIMEDescription(void);
-#endif 
+#endif
 
 NPError NP_LOADDS NPP_Initialize(void);
 void    NP_LOADDS NPP_Shutdown(void);
@@ -646,46 +627,48 @@ NPError NP_LOADDS NPP_GetValue(NPP instance, NPPVariable variable, void *value);
 NPError NP_LOADDS NPP_SetValue(NPP instance, NPNVariable variable, void *value);
 
 
-
-
-void    NP_LOADDS NPN_Version(int* plugin_major, int* plugin_minor,
-                              int* netscape_major, int* netscape_minor);
-NPError NP_LOADDS NPN_GetURLNotify(NPP instance, const char* url,
-                                   const char* target, void* notifyData);
-NPError NP_LOADDS NPN_GetURL(NPP instance, const char* url,
-                             const char* target);
-NPError NP_LOADDS NPN_PostURLNotify(NPP instance, const char* url,
-                                    const char* target, uint32_t len,
-                                    const char* buf, NPBool file,
-                                    void* notifyData);
-NPError NP_LOADDS NPN_PostURL(NPP instance, const char* url,
-                              const char* target, uint32_t len,
-                              const char* buf, NPBool file);
-NPError NP_LOADDS NPN_RequestRead(NPStream* stream, NPByteRange* rangeList);
-NPError NP_LOADDS NPN_NewStream(NPP instance, NPMIMEType type,
+void        NP_LOADDS NPN_Version(int* plugin_major, int* plugin_minor,
+                                  int* netscape_major, int* netscape_minor);
+NPError     NP_LOADDS NPN_GetURLNotify(NPP instance, const char* url,
+                                       const char* target, void* notifyData);
+NPError     NP_LOADDS NPN_GetURL(NPP instance, const char* url,
+                                 const char* target);
+NPError     NP_LOADDS NPN_PostURLNotify(NPP instance, const char* url,
+                                        const char* target, uint32_t len,
+                                        const char* buf, NPBool file,
+                                        void* notifyData);
+NPError     NP_LOADDS NPN_PostURL(NPP instance, const char* url,
+                                  const char* target, uint32_t len,
+                                  const char* buf, NPBool file);
+NPError     NP_LOADDS NPN_RequestRead(NPStream* stream, NPByteRange* rangeList);
+NPError     NP_LOADDS NPN_NewStream(NPP instance, NPMIMEType type,
                                 const char* target, NPStream** stream);
-int32_t NP_LOADDS NPN_Write(NPP instance, NPStream* stream, int32_t len, void* buffer);
-NPError NP_LOADDS NPN_DestroyStream(NPP instance, NPStream* stream, NPReason reason);
-void    NP_LOADDS NPN_Status(NPP instance, const char* message);
+int32_t     NP_LOADDS NPN_Write(NPP instance, NPStream* stream, int32_t len,
+                                void* buffer);
+NPError     NP_LOADDS NPN_DestroyStream(NPP instance, NPStream* stream,
+                                        NPReason reason);
+void        NP_LOADDS NPN_Status(NPP instance, const char* message);
 const char* NP_LOADDS NPN_UserAgent(NPP instance);
-void*   NP_LOADDS NPN_MemAlloc(uint32_t size);
-void    NP_LOADDS NPN_MemFree(void* ptr);
-uint32_t NP_LOADDS NPN_MemFlush(uint32_t size);
-void    NP_LOADDS NPN_ReloadPlugins(NPBool reloadPages);
+void*       NP_LOADDS NPN_MemAlloc(uint32_t size);
+void        NP_LOADDS NPN_MemFree(void* ptr);
+uint32_t    NP_LOADDS NPN_MemFlush(uint32_t size);
+void        NP_LOADDS NPN_ReloadPlugins(NPBool reloadPages);
 #ifdef OJI
-JRIEnv* NP_LOADDS NPN_GetJavaEnv(void);
-jref    NP_LOADDS NPN_GetJavaPeer(NPP instance);
+JRIEnv*     NP_LOADDS NPN_GetJavaEnv(void);
+jref        NP_LOADDS NPN_GetJavaPeer(NPP instance);
 #endif
-NPError NP_LOADDS NPN_GetValue(NPP instance, NPNVariable variable, void *value);
-NPError NP_LOADDS NPN_SetValue(NPP instance, NPPVariable variable, void *value);
-void    NP_LOADDS NPN_InvalidateRect(NPP instance, NPRect *invalidRect);
-void    NP_LOADDS NPN_InvalidateRegion(NPP instance, NPRegion invalidRegion);
-void    NP_LOADDS NPN_ForceRedraw(NPP instance);
-void    NP_LOADDS NPN_PushPopupsEnabledState(NPP instance, NPBool enabled);
-void    NP_LOADDS NPN_PopPopupsEnabledState(NPP instance);
-void    NP_LOADDS NPN_PluginThreadAsyncCall(NPP instance,
-                                            void (*func) (void *),
-                                            void *userData);
+NPError     NP_LOADDS NPN_GetValue(NPP instance, NPNVariable variable,
+                                   void *value);
+NPError     NP_LOADDS NPN_SetValue(NPP instance, NPPVariable variable,
+                                   void *value);
+void        NP_LOADDS NPN_InvalidateRect(NPP instance, NPRect *invalidRect);
+void        NP_LOADDS NPN_InvalidateRegion(NPP instance,
+                                           NPRegion invalidRegion);
+void        NP_LOADDS NPN_ForceRedraw(NPP instance);
+void        NP_LOADDS NPN_PushPopupsEnabledState(NPP instance, NPBool enabled);
+void        NP_LOADDS NPN_PopPopupsEnabledState(NPP instance);
+void        NP_LOADDS NPN_PluginThreadAsyncCall(NPP instance,
+                                                void (*func) (void *), void *userData);
 
 #ifdef __cplusplus
 }  

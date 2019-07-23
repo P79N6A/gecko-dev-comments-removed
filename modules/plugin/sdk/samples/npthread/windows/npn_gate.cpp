@@ -36,7 +36,7 @@
 
 
 #include "npapi.h"
-#include "npupp.h"
+#include "npfunctions.h"
 #include "dbg.h"
 
 extern NPNetscapeFuncs NPNFuncs;
