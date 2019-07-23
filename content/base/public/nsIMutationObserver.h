@@ -98,6 +98,9 @@ struct CharacterDataChangeInfo
 
 
 
+
+
+
 class nsIMutationObserver : public nsISupports
 {
 public:
