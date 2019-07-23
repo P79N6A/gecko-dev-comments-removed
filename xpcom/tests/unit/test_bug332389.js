@@ -12,13 +12,7 @@ function run_test() {
       terminated = true;
       break;
     }
-    try {
-      f = f.parent;
-    }
-    catch (e) {
-      
-      f = null;
-    }
+    f = f.parent;
   }
 
   do_check_true(terminated);

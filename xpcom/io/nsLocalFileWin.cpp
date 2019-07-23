@@ -2191,9 +2191,13 @@ nsLocalFile::GetParent(nsIFile * *aParent)
 
     NS_ENSURE_ARG_POINTER(aParent);
 
-    nsAutoString parentPath(mWorkingPath);
+    
+    if (mWorkingPath.Length() == 2) {
+        *aParent = nsnull;
+        return NS_OK;
+    }
 
-    PRInt32 offset = parentPath.RFindChar(PRUnichar('\\'));
+    PRInt32 offset = mWorkingPath.RFindChar(PRUnichar('\\'));
     
     
     
@@ -2201,10 +2205,14 @@ nsLocalFile::GetParent(nsIFile * *aParent)
     if (offset == kNotFound)
       return NS_ERROR_FILE_UNRECOGNIZED_PATH;
 
-    if (offset == 1 && parentPath[0] == L'\\') {
+    
+    if (offset == 1 && mWorkingPath[0] == L'\\') {
         *aParent = nsnull;
         return NS_OK;
     }
+
+    nsAutoString parentPath(mWorkingPath);
+
     if (offset > 0)
         parentPath.Truncate(offset);
     else
