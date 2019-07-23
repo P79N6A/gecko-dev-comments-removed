@@ -1213,13 +1213,13 @@ private:
   PRBool AdjustContextMenuKeyEvent(nsMouseEvent* aEvent);
 
   
-  PRBool PrepareToUseCaretPosition(nsIWidget* aEventWidget, nsPoint& aTargetPt);
+  PRBool PrepareToUseCaretPosition(nsIWidget* aEventWidget, nsIntPoint& aTargetPt);
 
   
   
   void GetCurrentItemAndPositionForElement(nsIDOMElement *aCurrentEl,
                                            nsIContent **aTargetToUse,
-                                           nsPoint& aTargetPt);
+                                           nsIntPoint& aTargetPt);
 
   void FireResizeEvent();
   nsRevocableEventPtr<nsRunnableMethod<PresShell> > mResizeEvent;
@@ -6015,7 +6015,7 @@ PresShell::AdjustContextMenuKeyEvent(nsMouseEvent* aEvent)
   aEvent->refPoint.y = 0;
 
   
-  nsPoint caretPoint;
+  nsIntPoint caretPoint;
   
   
   if (PrepareToUseCaretPosition(aEvent->widget, caretPoint)) {
