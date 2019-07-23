@@ -1655,6 +1655,11 @@ SessionStoreService.prototype = {
     var newTabCount = winData.tabs.length;
     let tabs = [];
     
+    
+    
+    if (aOverwriteTabs && tabbrowser.selectedTab._tPos >= newTabCount)
+      tabbrowser.moveTabTo(tabbrowser.selectedTab, newTabCount - 1);
+    
     for (var t = 0; t < newTabCount; t++) {
       tabs.push(t < openTabCount ? tabbrowser.mTabs[t] : tabbrowser.addTab());
       
