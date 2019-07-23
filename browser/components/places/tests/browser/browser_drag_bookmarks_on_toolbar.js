@@ -90,6 +90,8 @@ function synthesizeDragWithDirection(aElement, aExpectedDragData, aDirection) {
     event.stopPropagation();
   }
 
+  var prevent = function(aEvent) {aEvent.preventDefault();}
+
   var xIncrement = 0;
   var yIncrement = 0;
 
@@ -127,10 +129,15 @@ function synthesizeDragWithDirection(aElement, aExpectedDragData, aDirection) {
                              { type: "mousemove" });
   ok(trapped, "A dragstart event has been trapped.");
   gBookmarksToolbar.removeEventListener("dragstart", trapDrag, false);
+
+  
+  
+  aElement.addEventListener("click", prevent, false);
   EventUtils.synthesizeMouse(aElement,
                              startingPoint.x + xIncrement * 9,
                              startingPoint.y + yIncrement * 9,
                              { type: "mouseup" });
+  aElement.removeEventListener("click", prevent, false);
 
   
   if (aElement.localName == "menu" && aElement.open)
@@ -202,11 +209,6 @@ var gTests = [
   {
     desc: "Drag a bookmark on toolbar",
     run: function() {
-      
-      
-      
-      return;
-
       
       var itemId = PlacesUtils.bookmarks
                               .insertBookmark(PlacesUtils.toolbarFolderId,
