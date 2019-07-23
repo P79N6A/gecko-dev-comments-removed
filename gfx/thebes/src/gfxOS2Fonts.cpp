@@ -99,6 +99,12 @@ const gfxFont::Metrics& gfxOS2Font::GetMetrics()
 
         FT_UInt gid; 
         FT_Face face = cairo_ft_scaled_font_lock_face(CairoScaledFont());
+        if (!face) {
+            
+            
+            
+            return *mMetrics;
+        }
 
         double emUnit = 1.0 * face->units_per_EM;
         double xScale = face->size->metrics.x_ppem / emUnit;
@@ -337,7 +343,7 @@ cairo_scaled_font_t *gfxOS2Font::CairoScaledFont()
     }
 
     NS_ASSERTION(cairo_scaled_font_status(mScaledFont) == CAIRO_STATUS_SUCCESS,
-		 "Failed to make scaled font");
+                 "Failed to make scaled font");
     return mScaledFont;
 }
 
