@@ -190,12 +190,13 @@ function getRemoteUpdateString(aPatches, aType, aName, aDisplayVersion,
                                aAppVersion, aPlatformVersion, aBuildID,
                                aDetailsURL, aBillboardURL, aLicenseURL,
                                aShowPrompt, aShowNeverForVersion, aShowSurvey,
-                               aExtra1, aVersion, aExtensionVersion) {
+                               aVersion, aExtensionVersion, aCustom1,
+                               aCustom2) {
   return  getUpdateString(aType, aName, aDisplayVersion, aAppVersion,
                           aPlatformVersion, aBuildID, aDetailsURL,
                           aBillboardURL, aLicenseURL, aShowPrompt,
-                          aShowNeverForVersion, aShowSurvey, aExtra1, aVersion,
-                          aExtensionVersion) + ">\n" +
+                          aShowNeverForVersion, aShowSurvey, aVersion,
+                          aExtensionVersion, aCustom1, aCustom2) + ">\n" +
               aPatches + 
          "  </update>\n";
 }
@@ -255,8 +256,8 @@ function getLocalUpdateString(aPatches, aType, aName, aDisplayVersion,
                               aServiceURL, aInstallDate, aStatusText,
                               aIsCompleteUpdate, aChannel, aForegroundDownload,
                               aShowPrompt, aShowNeverForVersion, aShowSurvey,
-                              aExtra1, aVersion, aExtensionVersion,
-                              aPreviousAppVersion) {
+                              aVersion, aExtensionVersion, aPreviousAppVersion,
+                              aCustom1, aCustom2) {
   var serviceURL = aServiceURL ? aServiceURL : "http://test_service/";
   var installDate = aInstallDate ? aInstallDate : "1238441400314";
   var statusText = aStatusText ? aStatusText : "Install Pending";
@@ -268,7 +269,8 @@ function getLocalUpdateString(aPatches, aType, aName, aDisplayVersion,
   return getUpdateString(aType, aName, aDisplayVersion, aAppVersion,
                          aPlatformVersion, aBuildID, aDetailsURL, aBillboardURL,
                          aLicenseURL, aShowPrompt, aShowNeverForVersion,
-                         aShowSurvey, aExtra1, aVersion, aExtensionVersion) +
+                         aShowSurvey, aVersion, aExtensionVersion, aCustom1,
+                         aCustom2) +
                    " " +
                    previousAppVersion +
                    "serviceURL=\"" + serviceURL + "\" " +
@@ -355,10 +357,15 @@ function getLocalPatchString(aType, aURL, aHashFunction, aHashValue, aSize,
 
 
 
+
+
+
+
 function getUpdateString(aType, aName, aDisplayVersion, aAppVersion,
                          aPlatformVersion, aBuildID, aDetailsURL, aBillboardURL,
                          aLicenseURL, aShowPrompt, aShowNeverForVersion,
-                         aShowSurvey, aExtra1, aVersion, aExtensionVersion) {
+                         aShowSurvey, aVersion, aExtensionVersion, aCustom1,
+                         aCustom2) {
   var type = aType ? aType : "major";
   var name = aName ? aName : "App Update Test";
   var displayVersion = "";
@@ -390,7 +397,8 @@ function getUpdateString(aType, aName, aDisplayVersion, aAppVersion,
   var showPrompt = aShowPrompt ? "showPrompt=\"" + aShowPrompt + "\" " : "";
   var showNeverForVersion = aShowNeverForVersion ? "showNeverForVersion=\"" + aShowNeverForVersion + "\" " : "";
   var showSurvey = aShowSurvey ? "showSurvey=\"" + aShowSurvey + "\" " : "";
-  var extra1 = aExtra1 ? "extra1=\"" + aExtra1 + "\" " : "";
+  var custom1 = aCustom1 ? aCustom1 + " " : "";
+  var custom2 = aCustom2 ? aCustom2 + " " : "";
   return "  <update type=\"" + type + "\" " +
                    "name=\"" + name + "\" " +
                    displayVersion +
@@ -398,14 +406,15 @@ function getUpdateString(aType, aName, aDisplayVersion, aAppVersion,
                    appVersion +
                    extensionVersion +
                    platformVersion +
-                   "buildID=\"" + buildID + "\" " +
                    detailsURL +
                    billboardURL +
                    licenseURL +
                    showPrompt +
                    showNeverForVersion +
                    showSurvey +
-                   extra1;
+                   custom1 +
+                   custom2 +
+                   "buildID=\"" + buildID + "\"";
 }
 
 
