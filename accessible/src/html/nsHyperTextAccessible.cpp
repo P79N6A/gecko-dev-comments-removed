@@ -1107,32 +1107,7 @@ NS_IMETHODIMP nsHyperTextAccessible::GetRangeExtents(PRInt32 aStartOffset, PRInt
   *aWidth = boundsRect.width;
   *aHeight = boundsRect.height;
 
-  if (aCoordType == nsIAccessibleCoordinateType::COORDTYPE_WINDOW_RELATIVE) {
-    
-    nsCOMPtr<nsIPresShell> shell = GetPresShell();
-    NS_ENSURE_TRUE(shell, NS_ERROR_FAILURE);
-    nsCOMPtr<nsIDocument> doc = shell->GetDocument();
-    nsCOMPtr<nsIDOMDocumentView> docView(do_QueryInterface(doc));
-    NS_ENSURE_TRUE(docView, NS_ERROR_FAILURE);
-
-    nsCOMPtr<nsIDOMAbstractView> abstractView;
-    docView->GetDefaultView(getter_AddRefs(abstractView));
-    NS_ENSURE_TRUE(abstractView, NS_ERROR_FAILURE);
-
-    nsCOMPtr<nsIDOMWindowInternal> windowInter(do_QueryInterface(abstractView));
-    NS_ENSURE_TRUE(windowInter, NS_ERROR_FAILURE);
-
-    PRInt32 screenX, screenY;
-    if (NS_FAILED(windowInter->GetScreenX(&screenX)) ||
-        NS_FAILED(windowInter->GetScreenY(&screenY))) {
-      return NS_ERROR_FAILURE;
-    }
-    *aX -= screenX;
-    *aY -= screenY;
-  }
-  
-
-  return NS_OK;
+  return nsAccUtils::ConvertScreenCoordsTo(aX, aY, aCoordType, this);
 }
 
 
@@ -1154,32 +1129,18 @@ nsHyperTextAccessible::GetOffsetAtPoint(PRInt32 aX, PRInt32 aY,
   }
   nsIntRect frameScreenRect = hyperFrame->GetScreenRectExternal();
 
-  if (aCoordType == nsIAccessibleCoordinateType::COORDTYPE_WINDOW_RELATIVE) {
-    nsCOMPtr<nsIDocument> doc = shell->GetDocument();
-    nsCOMPtr<nsIDOMDocumentView> docView(do_QueryInterface(doc));
-    NS_ENSURE_TRUE(docView, NS_ERROR_FAILURE);
+  nsIntPoint coords;
+  nsresult rv = nsAccUtils::ConvertToScreenCoords(aX, aY, aCoordType,
+                                                  this, &coords);
+  NS_ENSURE_SUCCESS(rv, rv);
 
-    nsCOMPtr<nsIDOMAbstractView> abstractView;
-    docView->GetDefaultView(getter_AddRefs(abstractView));
-    NS_ENSURE_TRUE(abstractView, NS_ERROR_FAILURE);
-
-    nsCOMPtr<nsIDOMWindowInternal> windowInter(do_QueryInterface(abstractView));
-    NS_ENSURE_TRUE(windowInter, NS_ERROR_FAILURE);
-
-    PRInt32 windowX, windowY;
-    if (NS_FAILED(windowInter->GetScreenX(&windowX)) ||
-        NS_FAILED(windowInter->GetScreenY(&windowY))) {
-      return NS_ERROR_FAILURE;
-    }
-    aX += windowX;
-    aY += windowY;
-  }
   
   
-  if (!frameScreenRect.Contains(aX, aY)) {
+  if (!frameScreenRect.Contains(coords.x, coords.y)) {
     return NS_OK;   
   }
-  nsPoint pointInHyperText(aX - frameScreenRect.x, aY - frameScreenRect.y);
+  nsPoint pointInHyperText(coords.x - frameScreenRect.x,
+                           coords.y - frameScreenRect.y);
   nsPresContext *context = GetPresContext();
   NS_ENSURE_TRUE(context, NS_ERROR_FAILURE);
   pointInHyperText.x = context->DevPixelsToAppUnits(pointInHyperText.x);

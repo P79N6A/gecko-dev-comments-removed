@@ -219,7 +219,36 @@ public:
 
 
 
+
+
+
+
+
+
+  static nsresult ConvertScreenCoordsTo(PRInt32 *aX, PRInt32 *aY,
+                                        PRUint32 aCoordinateType,
+                                        nsIAccessNode *aAccessNode);
+
+  
+
+
+
+
   static nsIntPoint GetScreenCoordsForWindow(nsIDOMNode *aNode);
+
+  
+
+
+
+
+  static nsIntPoint GetScreenCoordsForWindow(nsIAccessNode *aAccessNode);
+
+  
+
+
+
+
+  static nsIntPoint GetScreenCoordsForParent(nsIAccessNode *aAccessNode);
 
   
 
