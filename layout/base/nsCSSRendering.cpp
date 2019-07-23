@@ -71,9 +71,7 @@
 #include "nsLayoutUtils.h"
 #include "nsINameSpaceManager.h"
 
-#ifdef MOZ_CAIRO_GFX
 #include "gfxContext.h"
-#endif
 
 #define BORDER_FULL    0        //entire side
 #define BORDER_INSIDE  1        //inside half
@@ -82,6 +80,13 @@
 
 #define DOT_LENGTH  1           //square
 #define DASH_LENGTH 3           //3 times longer than dot
+
+
+#define SIDE_BIT_TOP (1 << NS_SIDE_TOP)
+#define SIDE_BIT_RIGHT (1 << NS_SIDE_RIGHT)
+#define SIDE_BIT_BOTTOM (1 << NS_SIDE_BOTTOM)
+#define SIDE_BIT_LEFT (1 << NS_SIDE_LEFT)
+#define SIDE_BITS_ALL (SIDE_BIT_TOP|SIDE_BIT_RIGHT|SIDE_BIT_BOTTOM|SIDE_BIT_LEFT)
 
 
 
@@ -363,286 +368,6 @@ nscolor nsCSSRendering::MakeBevelColor(PRIntn whichSide, PRUint8 style,
 
 #define ACTUAL_THICKNESS(outside, inside, frac, tpp) \
   (NSToCoordRound(((outside) - (inside)) * (frac) / (tpp)) * (tpp))
-
-
-
-
-
-
-
-
-PRIntn nsCSSRendering::MakeSide(nsPoint aPoints[],
-                                nsIRenderingContext& aContext,
-                                PRIntn aWhichSide,
-                                const nsRect& aOutside, const nsRect& aInside,
-                                PRIntn aSkipSides,
-                                PRIntn aBorderPart, float aBorderFrac,
-                                nscoord aTwipsPerPixel)
-{
-  nscoord outsideEdge, insideEdge, outsideTL, insideTL, outsideBR, insideBR;
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-
-  switch (aWhichSide) {
-  case NS_SIDE_TOP:
-    
-    outsideEdge = aOutside.y;
-    insideEdge = aInside.y;
-    outsideTL = aOutside.x;
-    insideTL = aInside.x;
-    insideBR = aInside.XMost();
-    outsideBR = aOutside.XMost();
-    break;
-
-  case NS_SIDE_BOTTOM:
-    
-    outsideEdge = aOutside.YMost();
-    insideEdge = aInside.YMost();
-    outsideTL = aOutside.x;
-    insideTL = aInside.x;
-    insideBR = aInside.XMost();
-    outsideBR = aOutside.XMost();
-    break;
-
-  case NS_SIDE_LEFT:
-    
-    outsideEdge = aOutside.x;
-    insideEdge = aInside.x;
-    outsideTL = aOutside.y;
-    insideTL = aInside.y;
-    insideBR = aInside.YMost();
-    outsideBR = aOutside.YMost();
-    break;
-
-  default:
-    NS_ASSERTION(aWhichSide == NS_SIDE_RIGHT, "aWhichSide is not a valid side");
-    
-    outsideEdge = aOutside.XMost();
-    insideEdge = aInside.XMost();
-    outsideTL = aOutside.y;
-    insideTL = aInside.y;
-    insideBR = aInside.YMost();
-    outsideBR = aOutside.YMost();
-    break;
-  }
-
-  
-
-  if ( (aWhichSide == NS_SIDE_TOP) || (aWhichSide == NS_SIDE_BOTTOM) ) {
-    
-    if ((1<<NS_SIDE_LEFT) & aSkipSides) {
-      insideTL = outsideTL;
-    }
-    if ((1<<NS_SIDE_RIGHT) & aSkipSides) {
-      insideBR = outsideBR;
-    }
-  } else {
-    
-    if ((1<<NS_SIDE_TOP) & aSkipSides) {
-      insideTL = outsideTL;
-    }
-    if ((1<<NS_SIDE_BOTTOM) & aSkipSides) {
-      insideBR = outsideBR;
-    }
-  }
-
-  nscoord fullThickness;
-  if (aWhichSide == NS_SIDE_TOP || aWhichSide == NS_SIDE_LEFT)
-    fullThickness = insideEdge - outsideEdge;
-  else
-    fullThickness = outsideEdge - insideEdge;
-  if (fullThickness != 0)
-    fullThickness = NS_MAX(fullThickness, aTwipsPerPixel);
-
-  nscoord thickness = fullThickness;
-  if (aBorderFrac != 1.0f && fullThickness != 0) {
-    thickness = aTwipsPerPixel *
-      NS_MAX(NSToCoordRound(fullThickness * aBorderFrac / aTwipsPerPixel), 1);
-    if ((aWhichSide == NS_SIDE_TOP) || (aWhichSide == NS_SIDE_LEFT)) {
-      if (aBorderPart == BORDER_INSIDE)
-        outsideEdge = insideEdge - thickness;
-      else if (aBorderPart == BORDER_OUTSIDE)
-        insideEdge = outsideEdge + thickness;
-    } else {
-      if (aBorderPart == BORDER_INSIDE)
-        outsideEdge = insideEdge + thickness;
-      else if (aBorderPart == BORDER_OUTSIDE)
-        insideEdge = outsideEdge - thickness;
-    }
-
-    float actualFrac = (float)thickness / (float)fullThickness;
-    if (aBorderPart == BORDER_INSIDE) {
-      outsideTL = insideTL +
-        ACTUAL_THICKNESS(outsideTL, insideTL, actualFrac, aTwipsPerPixel);
-      outsideBR = insideBR +
-        ACTUAL_THICKNESS(outsideBR, insideBR, actualFrac, aTwipsPerPixel);
-    } else if (aBorderPart == BORDER_OUTSIDE) {
-      insideTL = outsideTL -
-        ACTUAL_THICKNESS(outsideTL, insideTL, actualFrac, aTwipsPerPixel);
-      insideBR = outsideBR -
-        ACTUAL_THICKNESS(outsideBR, insideBR, actualFrac, aTwipsPerPixel);
-    }
-  }
-
-  
-  aTwipsPerPixel += aTwipsPerPixel >> 2;
-
-  
-  
-  
-  if ( !((thickness >= aTwipsPerPixel) || (aBorderPart != BORDER_FULL)) &&
-       ((aWhichSide == NS_SIDE_BOTTOM) || (aWhichSide == NS_SIDE_RIGHT))) {
-    outsideEdge = insideEdge;
-    }
-
-  
-  PRIntn np = 0;
-  if ((aWhichSide == NS_SIDE_TOP) || (aWhichSide == NS_SIDE_BOTTOM)) {
-    
-    aPoints[np++].MoveTo(outsideTL,outsideEdge);
-    aPoints[np++].MoveTo(outsideBR,outsideEdge);
-    
-    
-    
-    
-    
-    
-    if ((thickness >= aTwipsPerPixel) || (aBorderPart != BORDER_FULL)) {
-      aPoints[np++].MoveTo(insideBR,insideEdge);
-      aPoints[np++].MoveTo(insideTL,insideEdge);
-    }
-  } else {
-    
-    
-    if ((thickness >= aTwipsPerPixel) || (aBorderPart != BORDER_FULL))  {
-      aPoints[np++].MoveTo(insideEdge,insideBR);
-      aPoints[np++].MoveTo(insideEdge,insideTL);
-    }
-    aPoints[np++].MoveTo(outsideEdge,outsideTL);
-    aPoints[np++].MoveTo(outsideEdge,outsideBR);
-  }
-  return np;
-}
-
-void nsCSSRendering::DrawSide(nsIRenderingContext& aContext,
-                              PRIntn whichSide,
-                              const PRUint8 borderStyle,  
-                              const nscolor borderColor,
-                              const nscolor aBackgroundColor,
-                              const nsRect& borderOutside,
-                              const nsRect& borderInside,
-                              PRIntn aSkipSides,
-                              nscoord twipsPerPixel,
-                              nsRect* aGap)
-{
-  nsPoint theSide[MAX_POLY_POINTS];
-  nscolor theColor = borderColor; 
-  PRUint8 theStyle = borderStyle; 
-  PRInt32 np;
-  switch (theStyle) {
-  case NS_STYLE_BORDER_STYLE_NONE:
-  case NS_STYLE_BORDER_STYLE_HIDDEN:
-    return;
-
-  case NS_STYLE_BORDER_STYLE_DOTTED:    
-  case NS_STYLE_BORDER_STYLE_DASHED:    
-    break; 
-
-  case NS_STYLE_BORDER_STYLE_GROOVE:
-  case NS_STYLE_BORDER_STYLE_RIDGE:
-    np = MakeSide (theSide, aContext, whichSide, borderOutside, borderInside, aSkipSides,
-                   BORDER_INSIDE, 0.5f, twipsPerPixel);
-    aContext.SetColor ( MakeBevelColor (whichSide, 
-                                        ((theStyle == NS_STYLE_BORDER_STYLE_RIDGE) ?
-                                         NS_STYLE_BORDER_STYLE_GROOVE :
-                                         NS_STYLE_BORDER_STYLE_RIDGE), 
-                                         aBackgroundColor, theColor));
-    if (2 == np) {
-      
-      DrawLine (aContext, theSide[0].x, theSide[0].y, theSide[1].x, theSide[1].y, aGap);
-    } else {
-      
-      FillPolygon (aContext, theSide, np, aGap);
-    }
-    np = MakeSide (theSide, aContext, whichSide, borderOutside, borderInside,aSkipSides,
-                   BORDER_OUTSIDE, 0.5f, twipsPerPixel);
-    aContext.SetColor ( MakeBevelColor (whichSide, theStyle, aBackgroundColor, 
-                                        theColor));
-    if (2 == np) {
-      
-      DrawLine (aContext, theSide[0].x, theSide[0].y, theSide[1].x, theSide[1].y, aGap);
-    } else {
-      
-      FillPolygon (aContext, theSide, np, aGap);
-    }
-    break;
-
-  case NS_STYLE_BORDER_STYLE_AUTO:
-  case NS_STYLE_BORDER_STYLE_SOLID:
-    np = MakeSide (theSide, aContext, whichSide, borderOutside, borderInside,aSkipSides,
-                   BORDER_FULL, 1.0f, twipsPerPixel);
-    aContext.SetColor (borderColor);  
-    if (2 == np) {
-      
-      DrawLine (aContext, theSide[0].x, theSide[0].y, theSide[1].x, theSide[1].y, aGap);
-    } else {
-      
-      FillPolygon (aContext, theSide, np, aGap);
-    }
-    break;
-
-  case NS_STYLE_BORDER_STYLE_DOUBLE:
-    np = MakeSide (theSide, aContext, whichSide, borderOutside, borderInside,aSkipSides,
-                   BORDER_INSIDE, 0.333333f, twipsPerPixel);
-    aContext.SetColor (borderColor);
-    if (2 == np) {
-      
-      DrawLine (aContext, theSide[0].x, theSide[0].y, theSide[1].x, theSide[1].y, aGap);
-    } else {
-      
-      FillPolygon (aContext, theSide, np, aGap);
-   }
-    np = MakeSide (theSide, aContext, whichSide, borderOutside, borderInside,aSkipSides,
-                   BORDER_OUTSIDE, 0.333333f, twipsPerPixel);
-    if (2 == np) {
-      
-      DrawLine (aContext, theSide[0].x, theSide[0].y, theSide[1].x, theSide[1].y, aGap);
-    } else {
-      
-      FillPolygon (aContext, theSide, np, aGap);
-    }
-    break;
-
-  case NS_STYLE_BORDER_STYLE_OUTSET:
-  case NS_STYLE_BORDER_STYLE_INSET:
-    np = MakeSide (theSide, aContext, whichSide, borderOutside, borderInside,aSkipSides,
-                   BORDER_FULL, 1.0f, twipsPerPixel);
-    aContext.SetColor ( MakeBevelColor (whichSide, theStyle, aBackgroundColor, 
-                                        theColor));
-    if (2 == np) {
-      
-      DrawLine (aContext, theSide[0].x, theSide[0].y, theSide[1].x, theSide[1].y, aGap);
-    } else {
-      
-      FillPolygon (aContext, theSide, np, aGap);
-    }
-    break;
-  }
-}
 
 
 
@@ -1103,425 +828,6 @@ PRBool  skippedSide = PR_FALSE;
   }
 }
 
-
-
-
-
-
-
-
-
-
-
-void nsCSSRendering::DrawDashedSegments(nsIRenderingContext& aContext,
-                                        const nsRect& aBounds,
-                                        nsBorderEdges * aBorderEdges,
-                                        PRIntn aSkipSides,
-                        nsRect* aGap)
-{
-PRIntn dashLength;
-nsRect dashRect, currRect;
-
-PRBool  bSolid = PR_TRUE;
-float   over = 0.0f;
-PRBool  skippedSide = PR_FALSE;
-PRIntn  whichSide=0;
-
-
-  
-  
-  nsBorderEdge * segment =  (nsBorderEdge *)(aBorderEdges->mEdges[whichSide].ElementAt(0));
-  PRUint8 style = segment->mStyle;  
-  for ( ; whichSide < 4; whichSide++) 
-  {
-    if ((1<<whichSide) & aSkipSides) {
-      
-      skippedSide = PR_TRUE;
-      continue;
-    }
-    nscoord x=0;  nscoord y=0;
-    PRInt32 i;
-    PRInt32 segmentCount = aBorderEdges->mEdges[whichSide].Count();
-    nsBorderEdges * neighborBorderEdges=nsnull;
-    PRIntn neighborEdgeCount=0; 
-    for (i=0; i<segmentCount; i++)
-    {
-      bSolid=PR_TRUE;
-      over = 0.0f;
-      segment =  (nsBorderEdge *)(aBorderEdges->mEdges[whichSide].ElementAt(i));
-      style = segment->mStyle;
-
-      
-      if (style == NS_STYLE_BORDER_STYLE_DASHED) {
-        dashLength = DASH_LENGTH;
-      } else {
-        dashLength = DOT_LENGTH;
-      }
-
-      aContext.SetColor(segment->mColor);  
-      switch (whichSide) {
-      case NS_SIDE_LEFT:
-      { 
-        nsBorderEdge * topEdge =  (nsBorderEdge *)(aBorderEdges->mEdges[NS_SIDE_TOP].ElementAt(0));
-        if (0==y)
-        { 
-          y = aBorderEdges->mMaxBorderWidth.top - topEdge->mWidth;
-          if (PR_TRUE==aBorderEdges->mOutsideEdge)
-            y += topEdge->mWidth;
-        }
-        
-        x = aBounds.x + (aBorderEdges->mMaxBorderWidth.left - segment->mWidth);
-        nscoord height = segment->mLength;
-        
-        nsRect borderOutside(x, y, aBounds.width, height);
-        y += segment->mLength;  
-        if ((style == NS_STYLE_BORDER_STYLE_DASHED) ||
-            (style == NS_STYLE_BORDER_STYLE_DOTTED))
-        {
-          nsRect borderInside(borderOutside);
-          nsMargin outsideMargin(segment->mWidth, 0, 0, 0);
-          borderInside.Deflate(outsideMargin);
-          nscoord totalLength = segment->mLength; 
-          
-          
-          if (PR_TRUE==aBorderEdges->mOutsideEdge)
-          {
-            if (segment->mInsideNeighbor == neighborBorderEdges)
-            {
-              neighborEdgeCount++;
-            }
-            else 
-            {
-              neighborBorderEdges = segment->mInsideNeighbor;
-              neighborEdgeCount=0;
-            }
-            nsBorderEdge * neighborLeft = (nsBorderEdge *)(segment->mInsideNeighbor->mEdges[NS_SIDE_LEFT].ElementAt(neighborEdgeCount));
-            totalLength = neighborLeft->mLength;
-          }
-          dashRect.width = borderInside.x - borderOutside.x;
-          dashRect.height = nscoord(dashRect.width * dashLength);
-          dashRect.x = borderOutside.x;
-          dashRect.y = borderOutside.y + (totalLength/2) - dashRect.height;
-          if ((PR_TRUE==aBorderEdges->mOutsideEdge) && (0!=i))
-            dashRect.y -= topEdge->mWidth;  
-          if (0)
-          {
-            printf("  L: totalLength = %d, borderOutside.y = %d, midpoint %d, dashRect.y = %d\n", 
-            totalLength, borderOutside.y, borderOutside.y +(totalLength/2), dashRect.y); 
-          }
-          currRect = dashRect;
-
-          
-          
-
-          
-          while (currRect.YMost() > borderInside.y) {
-            
-            if (currRect.y < borderInside.y) {
-              over = float(borderInside.y - dashRect.y) /
-                float(dashRect.height);
-              currRect.height = currRect.height - (borderInside.y - currRect.y);
-              currRect.y = borderInside.y;
-            }
-
-            
-            if (0)
-            {
-              printf("DASHED LEFT: xywh in loop currRect = %d %d %d %d %s\n", 
-                   currRect.x, currRect.y, currRect.width, currRect.height, bSolid?"TRUE":"FALSE");
-            }
-            if (bSolid) {
-              aContext.FillRect(currRect);
-            }
-
-            
-            if (over == 0.0f) {
-              bSolid = PRBool(!bSolid);
-            }
-            dashRect.y = dashRect.y - currRect.height;
-            currRect = dashRect;
-          }
-
-          
-          dashRect.y = borderOutside.y + (totalLength/2) + dashRect.height;
-          if ((PR_TRUE==aBorderEdges->mOutsideEdge) && (0!=i))
-            dashRect.y -= topEdge->mWidth;
-          currRect = dashRect;
-          bSolid=PR_TRUE;
-          over = 0.0f;
-          while (currRect.YMost() < borderInside.YMost()) {
-            
-            if (currRect.y < borderInside.y) {
-              over = float(borderInside.y - dashRect.y) /
-                float(dashRect.height);
-              currRect.height = currRect.height - (borderInside.y - currRect.y);
-              currRect.y = borderInside.y;
-            }
-
-            
-            if (0)
-            {
-              printf("DASHED LEFT: xywh in loop currRect = %d %d %d %d %s\n", 
-                   currRect.x, currRect.y, currRect.width, currRect.height, bSolid?"TRUE":"FALSE");
-            }
-            if (bSolid) {
-              aContext.FillRect(currRect);
-            }
-
-            
-            if (over == 0.0f) {
-              bSolid = PRBool(!bSolid);
-            }
-            dashRect.y = dashRect.y + currRect.height;
-            currRect = dashRect;
-          }
-        }
-      }
-      break;
-
-      case NS_SIDE_TOP:
-      { 
-        if (0==x)
-        {
-          nsBorderEdge * leftEdge =  (nsBorderEdge *)(aBorderEdges->mEdges[NS_SIDE_LEFT].ElementAt(0));
-          x = aBorderEdges->mMaxBorderWidth.left - leftEdge->mWidth;
-        }
-        y = aBounds.y;
-        if (PR_TRUE==aBorderEdges->mOutsideEdge) 
-          y += aBorderEdges->mMaxBorderWidth.top - segment->mWidth;
-        nsRect borderOutside(x, y, segment->mLength, aBounds.height);
-        x += segment->mLength;
-        if ((style == NS_STYLE_BORDER_STYLE_DASHED) ||
-            (style == NS_STYLE_BORDER_STYLE_DOTTED))
-        {
-          nsRect borderInside(borderOutside);
-          nsBorderEdge * neighbor;
-          
-          
-          
-          if (PR_TRUE==aBorderEdges->mOutsideEdge && segment->mInsideNeighbor)
-            neighbor = (nsBorderEdge *)(segment->mInsideNeighbor->mEdges[NS_SIDE_LEFT].ElementAt(0));
-          else
-            neighbor = (nsBorderEdge *)(aBorderEdges->mEdges[NS_SIDE_LEFT].ElementAt(0));
-          nsMargin outsideMargin(neighbor->mWidth, segment->mWidth, 0, segment->mWidth);
-          borderInside.Deflate(outsideMargin);
-          nscoord firstRectWidth = 0;
-          if (PR_TRUE==aBorderEdges->mOutsideEdge && 0==i)
-          {
-            firstRectWidth = borderInside.x - borderOutside.x;
-            aContext.FillRect(borderOutside.x, borderOutside.y,
-                              firstRectWidth,
-                              borderInside.y - borderOutside.y);
-          }
-
-          dashRect.height = borderInside.y - borderOutside.y;
-          dashRect.width = dashRect.height * dashLength;
-          dashRect.x = borderOutside.x + firstRectWidth;
-          dashRect.y = borderOutside.y;
-          currRect = dashRect;
-
-          while (currRect.x < borderInside.XMost()) {
-            
-            if (currRect.XMost() > borderInside.XMost()) {
-              over = float(dashRect.XMost() - borderInside.XMost()) /
-                float(dashRect.width);
-              currRect.width = currRect.width -
-                (currRect.XMost() - borderInside.XMost());
-            }
-
-            
-            if (bSolid) {
-              aContext.FillRect(currRect);
-            }
-
-            
-            if (over == 0.0f) {
-              bSolid = PRBool(!bSolid);
-            }
-            dashRect.x = dashRect.x + currRect.width;
-            currRect = dashRect;
-          }
-        }
-      }
-      break;
-
-      case NS_SIDE_RIGHT:
-      { 
-        nsBorderEdge * topEdge =  (nsBorderEdge *)
-            (aBorderEdges->mEdges[NS_SIDE_TOP].ElementAt(aBorderEdges->mEdges[NS_SIDE_TOP].Count()-1));
-        if (0==y)
-        {
-          y = aBorderEdges->mMaxBorderWidth.top - topEdge->mWidth;
-          if (PR_TRUE==aBorderEdges->mOutsideEdge)
-            y += topEdge->mWidth;
-        }
-        nscoord width;
-        if (PR_TRUE==aBorderEdges->mOutsideEdge)
-        {
-          width = aBounds.width - aBorderEdges->mMaxBorderWidth.right;
-          width += segment->mWidth;
-        }
-        else
-        {
-          width = aBounds.width;
-        }
-        nscoord height = segment->mLength;
-        nsRect borderOutside(aBounds.x, y, width, height);
-        y += segment->mLength;
-        if ((style == NS_STYLE_BORDER_STYLE_DASHED) ||
-            (style == NS_STYLE_BORDER_STYLE_DOTTED))
-        {
-          nsRect borderInside(borderOutside);
-          nsMargin outsideMargin(segment->mWidth, 0, (segment->mWidth), 0);
-          borderInside.Deflate(outsideMargin);
-          nscoord totalLength = segment->mLength;
-          if (PR_TRUE==aBorderEdges->mOutsideEdge)
-          {
-            if (segment->mInsideNeighbor == neighborBorderEdges)
-            {
-              neighborEdgeCount++;
-            }
-            else 
-            {
-              neighborBorderEdges = segment->mInsideNeighbor;
-              neighborEdgeCount=0;
-            }
-            nsBorderEdge * neighborRight = (nsBorderEdge *)(segment->mInsideNeighbor->mEdges[NS_SIDE_RIGHT].ElementAt(neighborEdgeCount));
-            totalLength = neighborRight->mLength;
-          }
-          dashRect.width = borderOutside.XMost() - borderInside.XMost();
-          dashRect.height = nscoord(dashRect.width * dashLength);
-          dashRect.x = borderInside.XMost();
-          dashRect.y = borderOutside.y + (totalLength/2) - dashRect.height;
-          if ((PR_TRUE==aBorderEdges->mOutsideEdge) && (0!=i))
-            dashRect.y -= topEdge->mWidth;
-          currRect = dashRect;
-
-          
-          while (currRect.YMost() > borderInside.y) {
-            
-            if (currRect.y < borderInside.y) {
-              over = float(borderInside.y - dashRect.y) /
-                float(dashRect.height);
-              currRect.height = currRect.height - (borderInside.y - currRect.y);
-              currRect.y = borderInside.y;
-            }
-
-            
-            if (bSolid) {
-              aContext.FillRect(currRect);
-            }
-
-            
-            if (over == 0.0f) {
-              bSolid = PRBool(!bSolid);
-            }
-            dashRect.y = dashRect.y - currRect.height;
-            currRect = dashRect;
-          }
-
-          
-          dashRect.y = borderOutside.y + (totalLength/2) + dashRect.height;
-          if ((PR_TRUE==aBorderEdges->mOutsideEdge) && (0!=i))
-            dashRect.y -= topEdge->mWidth;
-          currRect = dashRect;
-          bSolid=PR_TRUE;
-          over = 0.0f;
-          while (currRect.YMost() < borderInside.YMost()) {
-            
-            if (currRect.y < borderInside.y) {
-              over = float(borderInside.y - dashRect.y) /
-                float(dashRect.height);
-              currRect.height = currRect.height - (borderInside.y - currRect.y);
-              currRect.y = borderInside.y;
-            }
-
-            
-            if (bSolid) {
-              aContext.FillRect(currRect);
-            }
-
-            
-            if (over == 0.0f) {
-              bSolid = PRBool(!bSolid);
-            }
-            dashRect.y = dashRect.y + currRect.height;
-            currRect = dashRect;
-          }
-
-        }
-      }
-      break;
-
-      case NS_SIDE_BOTTOM:
-      {  
-        if (0==x)
-        {
-          nsBorderEdge * leftEdge =  (nsBorderEdge *)
-            (aBorderEdges->mEdges[NS_SIDE_LEFT].ElementAt(aBorderEdges->mEdges[NS_SIDE_LEFT].Count()-1));
-          x = aBorderEdges->mMaxBorderWidth.left - leftEdge->mWidth;
-        }
-        y = aBounds.y;
-        if (PR_TRUE==aBorderEdges->mOutsideEdge) 
-          y -= aBorderEdges->mMaxBorderWidth.bottom - segment->mWidth;
-        nsRect borderOutside(x, y, segment->mLength, aBounds.height);
-        x += segment->mLength;
-        if ((style == NS_STYLE_BORDER_STYLE_DASHED) ||
-            (style == NS_STYLE_BORDER_STYLE_DOTTED))
-        {
-          nsRect borderInside(borderOutside);
-          nsBorderEdge * neighbor;
-          if (PR_TRUE==aBorderEdges->mOutsideEdge)
-            neighbor = (nsBorderEdge *)(segment->mInsideNeighbor->mEdges[NS_SIDE_LEFT].ElementAt(0));
-          else
-            neighbor = (nsBorderEdge *)(aBorderEdges->mEdges[NS_SIDE_LEFT].ElementAt(0));
-          nsMargin outsideMargin(neighbor->mWidth, segment->mWidth, 0, segment->mWidth);
-          borderInside.Deflate(outsideMargin);
-          nscoord firstRectWidth = 0;
-          if (PR_TRUE==aBorderEdges->mOutsideEdge  &&  0==i)
-          {
-            firstRectWidth = borderInside.x - borderOutside.x;
-            aContext.FillRect(borderOutside.x, borderInside.YMost(),
-                              firstRectWidth,
-                              borderOutside.YMost() - borderInside.YMost());
-          }
-
-          dashRect.height = borderOutside.YMost() - borderInside.YMost();
-          dashRect.width = nscoord(dashRect.height * dashLength);
-          dashRect.x = borderOutside.x + firstRectWidth;
-          dashRect.y = borderInside.YMost();
-          currRect = dashRect;
-
-          while (currRect.x < borderInside.XMost()) {
-            
-            if (currRect.XMost() > borderInside.XMost()) {
-              over = float(dashRect.XMost() - borderInside.XMost()) / 
-                float(dashRect.width);
-              currRect.width = currRect.width -
-                (currRect.XMost() - borderInside.XMost());
-            }
-
-            
-            if (bSolid) {
-              aContext.FillRect(currRect);
-            }
-
-            
-            if (over == 0.0f) {
-              bSolid = PRBool(!bSolid);
-            }
-            dashRect.x = dashRect.x + currRect.width;
-            currRect = dashRect;
-          }
-        }
-      }
-      break;
-      }
-    }
-    skippedSide = PR_FALSE;
-  }
-}
-
 nscolor
 nsCSSRendering::TransformColor(nscolor  aMapColor,PRBool aNoBackGround)
 {
@@ -1568,25 +874,1039 @@ PRBool GetBorderColor(const nsStyleColor* aColor, const nsStyleBorder& aBorder, 
 }
 
 
-void nsCSSRendering::PaintBorder(nsPresContext* aPresContext,
-                                 nsIRenderingContext& aRenderingContext,
-                                 nsIFrame* aForFrame,
-                                 const nsRect& aDirtyRect,
-                                 const nsRect& aBorderArea,
-                                 const nsStyleBorder& aBorderStyle,
-                                 nsStyleContext* aStyleContext,
-                                 PRIntn aSkipSides,
-                                 nsRect* aGap,
-                                 nscoord aHardBorderSize,
-                                 PRBool  aShouldIgnoreRounded)
+
+
+
+#undef DEBUG_NEW_BORDERS
+
+#ifdef DEBUG_NEW_BORDERS
+#include <stdarg.h>
+
+static inline void S(const gfxPoint& p) {
+  fprintf (stderr, "[%f,%f]", p.x, p.y);
+}
+
+static inline void S(const gfxSize& s) {
+  fprintf (stderr, "[%f %f]", s.width, s.height);
+}
+
+static inline void S(const gfxRect& r) {
+  fprintf (stderr, "[%f %f %f %f]", r.pos.x, r.pos.y, r.size.width, r.size.height);
+}
+
+static inline void S(const gfxFloat f) {
+  fprintf (stderr, "%f", f);
+}
+
+static inline void S(const char *s) {
+  fprintf (stderr, "%s", s);
+}
+
+static inline void SN(const char *s = nsnull) {
+  if (s)
+    fprintf (stderr, "%s", s);
+  fprintf (stderr, "\n");
+  fflush (stderr);
+}
+
+static inline void SF(const char *fmt, ...) {
+  va_list vl;
+  va_start(vl, fmt);
+  vfprintf (stderr, fmt, vl);
+  va_end(vl);
+}
+#else
+static inline void S(const gfxPoint& p) {}
+static inline void S(const gfxSize& s) {}
+static inline void S(const gfxRect& r) {}
+static inline void S(const gfxFloat f) {}
+static inline void S(const char *s) {}
+static inline void SN(const char *s = nsnull) {}
+static inline void SF(const char *fmt, ...) {}
+#endif
+
+
+
+
+
+
+
+
+
+
+
+
+static PRBool
+ShouldDoSeparateSides (const nsStyleBorder& aBorderStyle,
+                       const nsStyleColor *aOurColor)
 {
-  PRIntn              cnt;
+  PRUint8 firstSideStyle;
+  nscolor firstSideColor;
+  nscolor sideColor;
+  nsBorderColors* compositeColors = nsnull;
+
+  static PRUint8 sideOrder[] = { NS_SIDE_BOTTOM, NS_SIDE_LEFT, NS_SIDE_TOP, NS_SIDE_RIGHT };
+
+  for (PRInt32 i = 0; i < 4; i++) {
+    PRUint8 side = sideOrder[i];
+    PRUint8 borderRenderStyle = aBorderStyle.GetBorderStyle(side);
+
+    
+    
+    if (borderRenderStyle != NS_STYLE_BORDER_STYLE_SOLID &&
+        borderRenderStyle != NS_STYLE_BORDER_STYLE_DOUBLE)
+      return PR_TRUE;
+
+    if (i == 0)
+      firstSideStyle = borderRenderStyle;
+    else if (borderRenderStyle != firstSideStyle)
+      return PR_TRUE;
+
+    if (GetBorderColor(aOurColor, aBorderStyle, side, sideColor, &compositeColors)) {
+      
+      if (compositeColors)
+        return PR_TRUE;
+
+      
+      if (i == 0)
+        firstSideColor = sideColor;
+      else if (sideColor != firstSideColor)
+        return PR_TRUE;
+    }
+  }
+
+  return PR_FALSE;
+}
+
+#define C_TL 0
+#define C_TR 1
+#define C_BR 2
+#define C_BL 3
+
+#ifndef NS_PI
+#define NS_PI 3.14159265358979323846
+#endif
+
+
+
+static gfxFloat
+SideLength(gfxRect& oRect,
+           gfxRect& lRect,
+           PRUint8 side,
+           gfxFloat *radii)
+{
+  if (radii == nsnull) {
+    if (side == NS_SIDE_TOP || side == NS_SIDE_BOTTOM)
+      return oRect.size.width;
+
+    return oRect.size.height;
+  } else {
+    
+    
+    if (side == NS_SIDE_TOP || side == NS_SIDE_BOTTOM)
+      return oRect.size.width;
+
+    return oRect.size.height;
+  }
+}
+
+
+
+
+
+static void
+DoAllSidesBorderPath(gfxContext *ctx,
+                     gfxRect& lRect,
+                     gfxFloat *radii)
+{
+  ctx->NewPath();
+
+  
+  if (radii == nsnull) {
+    ctx->Rectangle(lRect);
+  } else {
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+
+    
+    
+    
+    
+
+    gfxMatrix mat = ctx->CurrentMatrix();
+    ctx->Translate(lRect.pos);
+
+    ctx->MoveTo(gfxPoint(radii[C_TL], 0.0));
+
+    ctx->LineTo(gfxPoint(lRect.size.width - radii[C_TR], 0.0));
+
+    if (radii[C_TR]) {
+      ctx->Arc(gfxPoint(lRect.size.width - radii[C_TR], radii[C_TR]),
+               radii[C_TR],
+               3.0 * NS_PI / 2.0, 0.0);
+    }
+
+    ctx->LineTo(gfxPoint(lRect.size.width, lRect.size.height - radii[C_BR]));
+
+    if (radii[C_BR]) {
+      ctx->Arc(gfxPoint(lRect.size.width - radii[C_BR], lRect.size.height - radii[C_BR]),
+               radii[C_BR],
+               0.0, NS_PI / 2.0);
+    }
+
+    ctx->LineTo(gfxPoint(radii[C_BL], lRect.size.height));
+
+    if (radii[C_BL]) {
+      ctx->Arc(gfxPoint(radii[C_BL], lRect.size.height - radii[C_BL]),
+               radii[C_BL],
+               NS_PI / 2.0,
+               NS_PI);
+    }
+
+    ctx->LineTo(gfxPoint(0.0, 0.0 + radii[C_TL]));
+
+    if (radii[C_TL]) {
+      ctx->Arc(gfxPoint(radii[C_TL], radii[C_TL]),
+               radii[C_TL],
+               NS_PI,
+               3.0 * NS_PI / 2.0);
+    }
+
+    
+    
+
+    ctx->SetMatrix(mat);
+  }
+}
+
+
+static void
+DoSingleSideBorderPath(gfxContext *ctx,
+                       gfxRect& oRect,
+                       gfxRect& lRect,
+                       gfxFloat *radii,
+                       PRInt8 whichSide)
+{
+  
+  
+  
+  
+
+  
+  
+
+  
+  
+
+  ctx->NewPath();
+
+  if (whichSide == NS_SIDE_TOP) {
+    ctx->MoveTo(gfxPoint(oRect.pos.x, lRect.pos.y));
+    ctx->LineTo(gfxPoint(oRect.pos.x + oRect.size.width, lRect.pos.y));
+  } else if (whichSide == NS_SIDE_RIGHT) {
+    ctx->MoveTo(gfxPoint(lRect.pos.x + lRect.size.width, oRect.pos.y));
+    ctx->LineTo(gfxPoint(lRect.pos.x + lRect.size.width, oRect.pos.y + oRect.size.height));
+  } else if (whichSide == NS_SIDE_BOTTOM) {
+    ctx->MoveTo(gfxPoint(oRect.pos.x + oRect.size.width,  lRect.pos.y + lRect.size.height));
+    ctx->LineTo(gfxPoint(oRect.pos.x, lRect.pos.y + lRect.size.height));
+  } else if (whichSide == NS_SIDE_LEFT) {
+    ctx->MoveTo(gfxPoint(lRect.pos.x, oRect.pos.y + oRect.size.height));
+    ctx->LineTo(gfxPoint(lRect.pos.x, oRect.pos.y));
+  }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+typedef enum {
+  
+  
+  SIDE_CLIP_TRAPEZOID,
+
+  
+  
+  
+  
+  
+  
+  
+  
+  SIDE_CLIP_TRAPEZOID_FULL,
+
+  
+  
+  
+  SIDE_CLIP_RECTANGLE
+} SideClipType;
+
+static void
+DoSideClipPath(gfxContext *ctx,
+               gfxRect& iRect,
+               gfxRect& oRect,
+               gfxRect& lRect,
+               PRUint8 whichSide,
+               const nsStyleBorder& borderStyle,
+               const PRInt16 *borderRadii)
+{
+  
+  
+  
+  
+  
+  
+  
+  
+  
+
+  gfxPoint start[2];
+  gfxPoint end[2];
+
+  PRUint8 style = borderStyle.GetBorderStyle(whichSide);
+  PRUint8 startAdjacentStyle = borderStyle.GetBorderStyle(((whichSide - 1) + 4) % 4);
+  PRUint8 endAdjacentStyle = borderStyle.GetBorderStyle((whichSide + 1) % 4);
+
+  PRBool isDashed =
+    (style == NS_STYLE_BORDER_STYLE_DASHED || style == NS_STYLE_BORDER_STYLE_DOTTED);
+  PRBool startIsDashed =
+    (startAdjacentStyle == NS_STYLE_BORDER_STYLE_DASHED || startAdjacentStyle == NS_STYLE_BORDER_STYLE_DOTTED);
+  PRBool endIsDashed =
+    (endAdjacentStyle == NS_STYLE_BORDER_STYLE_DASHED || endAdjacentStyle == NS_STYLE_BORDER_STYLE_DOTTED);
+
+  PRBool startHasRadius = PR_FALSE;
+  PRBool endHasRadius = PR_FALSE;
+
+  SideClipType startType = SIDE_CLIP_TRAPEZOID;
+  SideClipType endType = SIDE_CLIP_TRAPEZOID;
+
+  if (borderRadii) {
+    startHasRadius = borderRadii[whichSide] != 0;
+    endHasRadius = borderRadii[(whichSide+1) % 4] != 0;
+  }
+
+  if (startHasRadius) {
+    startType = SIDE_CLIP_TRAPEZOID_FULL;
+  } else if (startIsDashed && isDashed) {
+    startType = SIDE_CLIP_RECTANGLE;
+  }
+
+  if (endHasRadius) {
+    endType = SIDE_CLIP_TRAPEZOID_FULL;
+  } else if (endIsDashed && isDashed) {
+    endType = SIDE_CLIP_RECTANGLE;
+  }
+
+  if (startType == SIDE_CLIP_TRAPEZOID ||
+      startType == SIDE_CLIP_TRAPEZOID_FULL)
+  {
+    switch (whichSide) {
+      case NS_SIDE_TOP:
+        start[0] = oRect.TopLeft();
+        start[1] = iRect.TopLeft();
+        break;
+
+      case NS_SIDE_RIGHT:
+        start[0] = oRect.TopRight();
+        start[1] = iRect.TopRight();
+        break;
+
+      case NS_SIDE_BOTTOM:
+        start[0] = oRect.BottomRight();
+        start[1] = iRect.BottomRight();
+        break;
+
+      case NS_SIDE_LEFT:
+        start[0] = oRect.BottomLeft();
+        start[1] = iRect.BottomLeft();
+        break;
+    }
+
+    if (startType == SIDE_CLIP_TRAPEZOID_FULL) {
+      gfxFloat mx = iRect.pos.x + iRect.size.width / 2.0;
+      gfxFloat my = iRect.pos.y + iRect.size.height / 2.0;
+
+      gfxPoint ps, pc;
+
+      ps = start[1] - start[0];
+      if (ps.x == 0.0 && ps.y == 0.0) {
+        
+      } else if (ps.x == 0.0) {
+        start[1] = start[0] + gfxSize(ps.y, ps.y);
+      } else if (ps.y == 0.0) {
+        start[1] = start[0] + gfxSize(ps.x, ps.x);
+      } else {
+        gfxFloat k = PR_MIN((mx - start[0].x) / ps.x,
+                            (my - start[0].y) / ps.y);
+        start[1] = start[0] + ps * k;
+      }
+    }
+  } else if (startType == SIDE_CLIP_RECTANGLE) {
+    switch (whichSide) {
+      case NS_SIDE_TOP:
+        start[0] = oRect.TopLeft();
+        start[1] = gfxPoint(start[0].x, iRect.TopLeft().y);
+        break;
+
+      case NS_SIDE_RIGHT:
+        start[0] = oRect.TopRight();
+        start[1] = gfxPoint(iRect.TopRight().x, start[0].y);
+        break;
+
+      case NS_SIDE_BOTTOM:
+        start[0] = oRect.BottomRight();
+        start[1] = gfxPoint(start[0].x, iRect.BottomRight().y);
+        break;
+
+      case NS_SIDE_LEFT:
+        start[0] = oRect.BottomLeft();
+        start[1] = gfxPoint(iRect.BottomLeft().x, start[0].y);
+        break;
+    }
+  }
+
+  if (endType == SIDE_CLIP_TRAPEZOID ||
+      endType == SIDE_CLIP_TRAPEZOID_FULL)
+  {
+    switch (whichSide) {
+      case NS_SIDE_TOP:
+        end[0] = oRect.TopRight();
+        end[1] = iRect.TopRight();
+        break;
+
+      case NS_SIDE_RIGHT:
+        end[0] = oRect.BottomRight();
+        end[1] = iRect.BottomRight();
+        break;
+
+      case NS_SIDE_BOTTOM:
+        end[0] = oRect.BottomLeft();
+        end[1] = iRect.BottomLeft();
+        break;
+
+      case NS_SIDE_LEFT:
+        end[0] = oRect.TopLeft();
+        end[1] = iRect.TopLeft();
+        break;
+    }
+
+    if (endType == SIDE_CLIP_TRAPEZOID_FULL) {
+      gfxFloat mx = iRect.pos.x + iRect.size.width / 2.0;
+      gfxFloat my = iRect.pos.y + iRect.size.height / 2.0;
+
+      gfxPoint ps, pc;
+
+      ps = end[1] - end[0];
+      if (ps.x == 0.0 && ps.y == 0.0) {
+        
+      } else if (ps.x == 0.0) {
+        end[1] = end[0] + gfxSize(ps.y, ps.y);
+      } else if (ps.y == 0.0) {
+        end[1] = end[0] + gfxSize(ps.x, ps.x);
+      } else {
+        gfxFloat k = PR_MIN((mx - end[0].x) / ps.x,
+                            (my - end[0].y) / ps.y);
+        end[1] = end[0] + ps * k;
+      }
+    }
+  } else if (startType == SIDE_CLIP_RECTANGLE) {
+    switch (whichSide) {
+      case NS_SIDE_TOP:
+        end[0] = gfxPoint(iRect.TopRight().x, oRect.TopRight().y);
+        end[1] = iRect.TopRight();
+        break;
+
+      case NS_SIDE_RIGHT:
+        end[0] = gfxPoint(oRect.BottomRight().x, iRect.BottomRight().y);
+        end[1] = iRect.BottomRight();
+        break;
+
+      case NS_SIDE_BOTTOM:
+        end[0] = gfxPoint(iRect.BottomLeft().x, oRect.BottomLeft().y);
+        end[1] = iRect.BottomLeft();
+        break;
+
+      case NS_SIDE_LEFT:
+        end[0] = gfxPoint(oRect.TopLeft().x, iRect.TopLeft().y);
+        end[1] = iRect.TopLeft();
+        break;
+    }
+  }
+
+  ctx->NewPath();
+  ctx->MoveTo(start[0]);
+  ctx->LineTo(end[0]);
+  ctx->LineTo(end[1]);
+  ctx->LineTo(start[1]);
+  ctx->ClosePath();
+}
+
+typedef enum {
+  BorderColorStyleNone,
+  BorderColorStyleSolid,
+  BorderColorStyleLight,
+  BorderColorStyleDark
+} BorderColorStyle;
+
+static void
+MakeBorderColor(gfxRGBA& color, const gfxRGBA& backgroundColor, BorderColorStyle bpat)
+{
+  nscolor colors[2];
+
+  switch (bpat) {
+    case BorderColorStyleNone:
+      color.r = 0.0;
+      color.g = 0.0;
+      color.b = 0.0;
+      color.a = 0.0;
+      break;
+
+    case BorderColorStyleSolid:
+      break;
+
+    case BorderColorStyleLight:
+      NS_GetSpecial3DColors(colors, backgroundColor.Packed(), color.Packed());
+      color.r = NS_GET_R(colors[1]) / 255.0;
+      color.g = NS_GET_G(colors[1]) / 255.0;
+      color.b = NS_GET_B(colors[1]) / 255.0;
+      color.a = 1.0;
+      break;
+
+    case BorderColorStyleDark:
+      NS_GetSpecial3DColors(colors, backgroundColor.Packed(), color.Packed());
+      color.r = NS_GET_R(colors[0]) / 255.0;
+      color.g = NS_GET_G(colors[0]) / 255.0;
+      color.b = NS_GET_B(colors[0]) / 255.0;
+      color.a = 1.0;
+      break;
+  }
+}
+
+static void
+ComputeColorForLine(PRUint32 lineIndex,
+                    PRUint32 borderWidth,
+                    BorderColorStyle* borderColorStyle,
+                    PRUint32 borderColorStyleCount,
+                    nsBorderColors* borderColors,
+                    PRUint32 borderColorCount,
+                    nscolor borderColor,
+                    nscolor backgroundColor,
+                    gfxRGBA& outColor)
+{
+  NS_ASSERTION(lineIndex < borderColorStyleCount, "Invalid lineIndex given");
+
+  if (borderColors) {
+    if (lineIndex >= borderColorCount) {
+      
+      
+
+      
+      lineIndex = borderColorCount - 1;
+    }
+
+    while (lineIndex--)
+      borderColors = borderColors->mNext;
+
+    if (borderColors->mTransparent)
+      outColor.r = outColor.g = outColor.b = outColor.a = 0.0;
+    else
+      outColor = gfxRGBA(borderColors->mColor);
+
+    return;
+  }
+
+  outColor = gfxRGBA(borderColor);
+
+  MakeBorderColor(outColor, gfxRGBA(backgroundColor), borderColorStyle[lineIndex]);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+static void
+DrawBorderSides(gfxContext *ctx,
+                PRUint32 borderWidth,
+                PRUint8 borderRenderStyle,
+                nscolor borderRenderColor,
+                nsBorderColors *compositeColors,
+                gfxRect& iRect,
+                gfxRect& oRect,
+                gfxRect& lRect,
+                nscolor fgColor,
+                nscolor bgColor,
+                PRBool doSeparateSides,
+                PRUint8 side,
+                nscoord twipsPerPixel,
+                PRInt16 *borderRadii)
+{
+  PRBool dashedRendering = PR_FALSE;
+  gfxFloat dash[2];
+  gfxFloat radii[4];
+  gfxFloat *radiiPtr = nsnull;
+  gfxFloat dashWidth;
+
+  PRUint32 borderColorStyleCount = 0;
+  BorderColorStyle borderColorStyleTopLeft[3], borderColorStyleBottomRight[3];
+  BorderColorStyle *borderColorStyle = nsnull;
+  PRUint32 compositeColorCount = 0;
+
+  PRBool useSpecialDotDashSeparateSides = doSeparateSides;
+
+  if (borderRadii) {
+    for (int i = 0; i < 4; i++) {
+      radii[i] = gfxFloat(borderRadii[i]) / twipsPerPixel;
+    }
+
+    radiiPtr = &radii[0];
+  }
+
+  
+  
+  if (radiiPtr)
+    useSpecialDotDashSeparateSides = PR_FALSE;
+
+  
+  
+  
+
+  if (!compositeColors) {
+    
+    
+    
+    if (borderWidth == 1) {
+      if (borderRenderStyle == NS_STYLE_BORDER_STYLE_RIDGE ||
+          borderRenderStyle == NS_STYLE_BORDER_STYLE_GROOVE ||
+          borderRenderStyle == NS_STYLE_BORDER_STYLE_DOUBLE)
+        borderRenderStyle = NS_STYLE_BORDER_STYLE_SOLID;
+    }
+
+    switch (borderRenderStyle) {
+      case NS_STYLE_BORDER_STYLE_SOLID:
+      case NS_STYLE_BORDER_STYLE_DASHED:
+      case NS_STYLE_BORDER_STYLE_DOTTED:
+        borderColorStyleTopLeft[0] = BorderColorStyleSolid;
+        borderColorStyleBottomRight[0] = BorderColorStyleSolid;
+        borderColorStyleCount = 1;
+
+        
+        
+        
+        
+        if (borderRenderStyle == NS_STYLE_BORDER_STYLE_DASHED) {
+          dashWidth = gfxFloat(borderWidth * DOT_LENGTH * DASH_LENGTH);
+          dashedRendering = PR_TRUE;
+
+          dash[0] = dashWidth;
+          dash[1] = dashWidth;
+        } else if (borderRenderStyle == NS_STYLE_BORDER_STYLE_DOTTED) {
+          dashWidth = gfxFloat(borderWidth * DOT_LENGTH);
+          dashedRendering = PR_TRUE;
+
+          
+          if (borderWidth > 2) {
+            dash[0] = 0;
+            dash[1] = dashWidth * 2;
+
+            ctx->SetLineCap(gfxContext::LINE_CAP_ROUND);
+          } else {
+            dash[0] = dashWidth;
+            dash[1] = dashWidth;
+          }
+        }
+
+        if (dashedRendering) {
+          gfxFloat dashOffset = 0.0;
+          gfxFloat sideLen = SideLength(oRect, lRect, side, radiiPtr);
+          gfxFloat sideOffset = 0.0;
+
+          
+          
+          
+          
+          
+#if 0
+          if (sideLen > dashWidth) {
+            gfxFloat rep = sideLen / (dashWidth * 2.0);
+            gfxFloat rem = sideLen - dashWidth * 2.0 * floor(rep);
+            gfxFloat offsetrem = sideOffset - floor(sideOffset / (dashWidth * 2.0)) * (dashWidth * 20);
+
+            if (rem < dashWidth) {
+              
+              dashOffset = (dashWidth - (dashWidth + rem)) / 2.0;
+            } else {
+              
+              dashOffset = (dashWidth + (dashWidth - rem)) / 2.0;
+            }
+
+            
+            dashOffset = floor(dashOffset * borderWidth) / borderWidth;
+          }
+#else
+          if (sideLen > dashWidth) {
+            gfxFloat rep = sideLen / (dashWidth * 2.0);
+            gfxFloat rem = sideLen - dashWidth * 2.0 * floor(rep);
+
+            if (rem < dashWidth) {
+              
+              dashOffset = dashWidth - (rem / 2.0);
+            } else {
+              
+              dashOffset = rem / 2.0;
+            }
+
+            dashOffset = floor(dashOffset);
+          }
+#endif
+
+          SF("sideLen: %f dashWidth: %f dashOffset: %f final: %f\n", sideLen, dashWidth, dashOffset, (borderWidth & 1) ? dashOffset-0.5 : dashOffset);
+          ctx->SetDash(dash, 2, dashOffset );
+        }
+
+        break;
+
+      case NS_STYLE_BORDER_STYLE_GROOVE:
+        borderColorStyleTopLeft[0] = BorderColorStyleDark;
+        borderColorStyleTopLeft[1] = BorderColorStyleLight;
+
+        borderColorStyleBottomRight[0] = BorderColorStyleLight;
+        borderColorStyleBottomRight[1] = BorderColorStyleDark;
+
+        borderColorStyleCount = 2;
+        break;
+
+      case NS_STYLE_BORDER_STYLE_RIDGE:
+        borderColorStyleTopLeft[0] = BorderColorStyleLight;
+        borderColorStyleTopLeft[1] = BorderColorStyleDark;
+
+        borderColorStyleBottomRight[0] = BorderColorStyleDark;
+        borderColorStyleBottomRight[1] = BorderColorStyleLight;
+
+        borderColorStyleCount = 2;
+        break;
+
+      case NS_STYLE_BORDER_STYLE_DOUBLE:
+        borderColorStyleTopLeft[0] = BorderColorStyleSolid;
+        borderColorStyleTopLeft[1] = BorderColorStyleNone;
+        borderColorStyleTopLeft[2] = BorderColorStyleSolid;
+
+        borderColorStyleBottomRight[0] = BorderColorStyleSolid;
+        borderColorStyleBottomRight[1] = BorderColorStyleNone;
+        borderColorStyleBottomRight[2] = BorderColorStyleSolid;
+
+        borderColorStyleCount = 3;
+        break;
+
+      case NS_STYLE_BORDER_STYLE_INSET:
+        borderColorStyleTopLeft[0] = BorderColorStyleDark;
+        borderColorStyleBottomRight[0] = BorderColorStyleLight;
+
+        borderColorStyleCount = 1;
+        break;
+
+      case NS_STYLE_BORDER_STYLE_OUTSET:
+        borderColorStyleTopLeft[0] = BorderColorStyleLight;
+        borderColorStyleBottomRight[0] = BorderColorStyleDark;
+
+        borderColorStyleCount = 1;
+        break;
+
+      default:
+        break;
+    }
+
+    if (side == NS_SIDE_BOTTOM || side == NS_SIDE_RIGHT)
+      borderColorStyle = borderColorStyleBottomRight;
+    else
+      borderColorStyle = borderColorStyleTopLeft;
+  } else {
+    
+    
+    
+    borderColorStyle = new BorderColorStyle[borderWidth];
+    borderColorStyleCount = borderWidth;
+
+    nsBorderColors *tmp = compositeColors;
+    do {
+      compositeColorCount++;
+      tmp = tmp->mNext;
+    } while (tmp);
+
+    for (unsigned int i = 0; i < borderColorStyleCount; i++) {
+      borderColorStyle[i] = BorderColorStyleSolid;
+    }
+  }
+
+  SF("borderWidth: %d lRect: ", borderWidth), S(lRect), SN(), SF(" borderColorStyleCount: %d special: %d\n", borderColorStyleCount, useSpecialDotDashSeparateSides);
+
+  
+  
+  
+  
+  
+
+  if (compositeColorCount == 0) {
+    if (borderColorStyleCount == 1) {
+      gfxRGBA color;
+      ComputeColorForLine(0, borderWidth,
+                          borderColorStyle, borderColorStyleCount,
+                          compositeColors, compositeColorCount,
+                          borderRenderColor, bgColor, color);
+
+      ctx->SetLineWidth(borderWidth);
+      ctx->SetColor(color);
+
+      SF("borderColorStyle: %d color: %f %f %f %f\n", borderColorStyle[0], color.r, color.g, color.b, color.a);
+
+      
+      
+      
+      if (useSpecialDotDashSeparateSides)
+        DoSingleSideBorderPath(ctx, oRect, lRect, radiiPtr, side);
+      else
+        DoAllSidesBorderPath(ctx, lRect, radiiPtr);
+
+      ctx->Stroke();
+    } else if (borderColorStyleCount == 2) {
+      
+
+      PRInt32 outerBorderWidth, innerBorderWidth;
+      outerBorderWidth = (borderWidth / 2) + (borderWidth % 2);
+      innerBorderWidth = (borderWidth / 2);
+
+      gfxRGBA color;
+      gfxRect sRect;
+
+      
+      if (outerBorderWidth != 0 && borderColorStyle[1] != BorderColorStyleNone) {
+        ComputeColorForLine(0, borderWidth,
+                            borderColorStyle, borderColorStyleCount,
+                            compositeColors, compositeColorCount,
+                            borderRenderColor, bgColor, color);
+
+        sRect = lRect;
+        sRect.pos.x -= innerBorderWidth / 2.0;
+        sRect.pos.y -= innerBorderWidth / 2.0;
+        sRect.size.width += innerBorderWidth;
+        sRect.size.height += innerBorderWidth;
+
+        ctx->SetLineWidth(outerBorderWidth);
+        ctx->SetColor(color);
+        DoAllSidesBorderPath(ctx, sRect, radiiPtr);
+        ctx->Stroke();
+      }
+
+      
+      if (innerBorderWidth != 0 && borderColorStyle[0] != BorderColorStyleNone) {
+        ComputeColorForLine(1, borderWidth,
+                            borderColorStyle, borderColorStyleCount,
+                            compositeColors, compositeColorCount,
+                            borderRenderColor, bgColor, color);
+
+        sRect = lRect;
+        sRect.pos.x += outerBorderWidth / 2.0;
+        sRect.pos.y += outerBorderWidth / 2.0;
+        sRect.size.width -= outerBorderWidth;
+        sRect.size.height -= outerBorderWidth;
+
+        ctx->SetLineWidth(innerBorderWidth);
+        ctx->SetColor(color);
+        DoAllSidesBorderPath(ctx, sRect, radiiPtr);
+
+        ctx->Stroke();
+      }
+    } else if (borderColorStyleCount == 3) {
+      
+      
+
+      PRInt32 outerBorderWidth, middleBorderWidth, innerBorderWidth;
+
+      if (borderWidth == 1) {
+        outerBorderWidth = 1;
+        middleBorderWidth = innerBorderWidth = 0;
+      } else {
+        PRInt32 rest = borderWidth % 3;
+        outerBorderWidth = innerBorderWidth = middleBorderWidth = (borderWidth - rest) / 3;
+        if (rest == 1) {
+          middleBorderWidth++;
+        } else if (rest == 2) {
+          outerBorderWidth++;
+          innerBorderWidth++;
+        }
+      }
+
+      gfxRGBA color;
+      gfxRect sRect;
+
+      
+      if (outerBorderWidth != 0 && borderColorStyle[2] != BorderColorStyleNone) {
+        ComputeColorForLine(0, borderWidth,
+                            borderColorStyle, borderColorStyleCount,
+                            compositeColors, compositeColorCount,
+                            borderRenderColor, bgColor, color);
+
+        sRect = lRect;
+        sRect.pos.x -= (innerBorderWidth + middleBorderWidth) / 2.0;
+        sRect.pos.y -= (innerBorderWidth + middleBorderWidth) / 2.0;
+        sRect.size.width += (innerBorderWidth + middleBorderWidth);
+        sRect.size.height += (innerBorderWidth + middleBorderWidth);
+
+        ctx->SetLineWidth(outerBorderWidth);
+        ctx->SetColor(color);
+        DoAllSidesBorderPath(ctx, sRect, radiiPtr);
+        ctx->Stroke();
+      }
+
+      
+      if (middleBorderWidth != 0 && borderColorStyle[1] != BorderColorStyleNone) {
+        ComputeColorForLine(1, borderWidth,
+                            borderColorStyle, borderColorStyleCount,
+                            compositeColors, compositeColorCount,
+                            borderRenderColor, bgColor, color);
+
+        
+        
+        
+        sRect = lRect;
+
+        ctx->SetLineWidth(middleBorderWidth);
+        ctx->SetColor(color);
+        DoAllSidesBorderPath(ctx, sRect, radiiPtr);
+        ctx->Stroke();
+      }
+
+      
+      if (innerBorderWidth != 0 && borderColorStyle[0] != BorderColorStyleNone) {
+        ComputeColorForLine(2, borderWidth,
+                            borderColorStyle, borderColorStyleCount,
+                            compositeColors, compositeColorCount,
+                            borderRenderColor, bgColor, color);
+
+        sRect = lRect;
+        sRect.pos.x += (outerBorderWidth + middleBorderWidth) / 2.0;
+        sRect.pos.y += (outerBorderWidth + middleBorderWidth) / 2.0;
+        sRect.size.width -= (outerBorderWidth + middleBorderWidth);
+        sRect.size.height -= (outerBorderWidth + middleBorderWidth);
+
+        ctx->SetLineWidth(innerBorderWidth);
+        ctx->SetColor(color);
+        DoAllSidesBorderPath(ctx, sRect, radiiPtr);
+        ctx->Stroke();
+      }
+    } else {
+      
+      
+      
+      NS_ERROR("Non-border-colors case with borderColorStyleCount < 1 or > 3; what happened?");
+    }
+  } else {
+    
+    
+    gfxRect sRect = oRect;
+
+    
+    
+    sRect.pos.x += 0.5;
+    sRect.pos.y += 0.5;
+    sRect.size.width -= 1.0;
+    sRect.size.height -= 1.0;
+
+    for (PRUint32 i = 0; i < borderColorStyleCount; i++) {
+      gfxRGBA lineColor;
+
+      ComputeColorForLine(i, borderWidth,
+                          borderColorStyle, borderColorStyleCount,
+                          compositeColors, compositeColorCount,
+                          borderRenderColor, bgColor, lineColor);
+
+      ctx->SetLineWidth(1.0);
+      ctx->SetColor(lineColor);
+      DoAllSidesBorderPath(ctx, sRect, radiiPtr);
+      ctx->Stroke();
+
+      sRect.pos.x += 1.0;
+      sRect.pos.y += 1.0;
+      sRect.size.width -= 2.0;
+      sRect.size.height -= 2.0;
+    }
+  }
+
+  if (compositeColors) {
+    delete [] borderColorStyle;
+  }
+
+#if 0
+  ctx->SetOperator(gfxContext::OPERATOR_OVER);
+  
+  
+  ctx->SetLineWidth(1.0);
+  ctx->SetDash(nsnull, 0, 0.0);
+  ctx->SetColor(gfxRGBA(1.0, 0.0, 0.0, 1.0));
+  ctx->NewPath();
+  ctx->Rectangle(oRect);
+  ctx->Stroke();
+  ctx->NewPath();
+  ctx->Rectangle(iRect);
+  ctx->Stroke();
+#endif
+}
+
+void
+nsCSSRendering::PaintBorder(nsPresContext* aPresContext,
+                            nsIRenderingContext& aRenderingContext,
+                            nsIFrame* aForFrame,
+                            const nsRect& aDirtyRect,
+                            const nsRect& aBorderArea,
+                            const nsStyleBorder& aBorderStyle,
+                            nsStyleContext* aStyleContext,
+                            PRIntn aSkipSides,
+                            nsRect* aGap,
+                            nscoord aHardBorderSize,
+                            PRBool  aShouldIgnoreRounded)
+{
   nsMargin            border;
   nsStyleCoord        bordStyleRadius[4];
-  PRInt16             borderRadii[4],i;
+  PRInt16             borderRadii[4], i;
   float               percent;
   nsCompatibility     compatMode = aPresContext->CompatibilityMode();
-  PRBool              forceSolid;
+  PRBool              haveBorderRadius = PR_FALSE;
+
+  SN("++ PaintBorder");
 
   
   
@@ -1597,26 +1917,26 @@ void nsCSSRendering::PaintBorder(nsPresContext* aPresContext,
     if (theme && theme->ThemeSupportsWidget(aPresContext, aForFrame, displayData->mAppearance))
       return; 
   }
+
   
   const nsStyleColor* ourColor = aStyleContext->GetStyleColor();
 
   
   
-  const nsStyleBackground* bgColor = 
-    nsCSSRendering::FindNonTransparentBackground(aStyleContext, 
-                                            compatMode == eCompatibility_NavQuirks ? PR_TRUE : PR_FALSE); 
+  const nsStyleBackground* bgColor = nsCSSRendering::FindNonTransparentBackground
+    (aStyleContext, compatMode == eCompatibility_NavQuirks ? PR_TRUE : PR_FALSE);
 
   if (aHardBorderSize > 0) {
     border.SizeTo(aHardBorderSize, aHardBorderSize, aHardBorderSize, aHardBorderSize);
   } else {
     border = aBorderStyle.GetBorder();
   }
+
   if ((0 == border.left) && (0 == border.right) &&
       (0 == border.top) && (0 == border.bottom)) {
     
     return;
   }
-
 
   
   aBorderStyle.mBorderRadius.GetTop(bordStyleRadius[0]);      
@@ -1624,41 +1944,50 @@ void nsCSSRendering::PaintBorder(nsPresContext* aPresContext,
   aBorderStyle.mBorderRadius.GetBottom(bordStyleRadius[2]);   
   aBorderStyle.mBorderRadius.GetLeft(bordStyleRadius[3]);     
 
-  for(i=0;i<4;i++) {
+  
+  for(i = 0; i < 4; i++) {
     borderRadii[i] = 0;
-    switch ( bordStyleRadius[i].GetUnit()) {
-    case eStyleUnit_Percent:
-      percent = bordStyleRadius[i].GetPercentValue();
-      borderRadii[i] = (nscoord)(percent * aForFrame->GetSize().width);
-      break;
-    case eStyleUnit_Coord:
-      borderRadii[i] = bordStyleRadius[i].GetCoordValue();
-      break;
-    default:
-      break;
+
+    switch (bordStyleRadius[i].GetUnit()) {
+      case eStyleUnit_Percent:
+        percent = bordStyleRadius[i].GetPercentValue();
+        borderRadii[i] = (nscoord)(percent * aForFrame->GetSize().width);
+        break;
+
+      case eStyleUnit_Coord:
+        borderRadii[i] = bordStyleRadius[i].GetCoordValue();
+        break;
+
+      default:
+        break;
     }
+
+    if (borderRadii[i])
+      haveBorderRadius = PR_TRUE;
   }
 
   
-  
-  for(i=0;i<4;i++){
-    if(borderRadii[i] > 0 && !aBorderStyle.mBorderColors){
-      PaintRoundedBorder(aPresContext,aRenderingContext,aForFrame,aDirtyRect,aBorderArea,&aBorderStyle,nsnull,aStyleContext,aSkipSides,borderRadii,aGap,PR_FALSE);
-      return;
-    }
-  }
+  if (border.top == 0) aSkipSides |= SIDE_BIT_TOP;
+  if (border.right == 0) aSkipSides |= SIDE_BIT_RIGHT;
+  if (border.bottom == 0) aSkipSides |= SIDE_BIT_BOTTOM;
+  if (border.left == 0) aSkipSides |= SIDE_BIT_LEFT;
+
+  if (aSkipSides & SIDE_BIT_TOP) border.top = 0;
+  if (aSkipSides & SIDE_BIT_RIGHT) border.right = 0;
+  if (aSkipSides & SIDE_BIT_BOTTOM) border.bottom = 0;
+  if (aSkipSides & SIDE_BIT_LEFT) border.left = 0;
 
   
-  if (0 == border.top) aSkipSides |= (1 << NS_SIDE_TOP);
-  if (0 == border.right) aSkipSides |= (1 << NS_SIDE_RIGHT);
-  if (0 == border.bottom) aSkipSides |= (1 << NS_SIDE_BOTTOM);
-  if (0 == border.left) aSkipSides |= (1 << NS_SIDE_LEFT);
-
-  
-  nsRect outerRect(aBorderArea);
-  nsRect innerRect(outerRect);
+  nsRect outerRect(aBorderArea), innerRect(aBorderArea);
   innerRect.Deflate(border);
 
+  SF(" innerRect: %d %d %d %d\n", innerRect.x, innerRect.y, innerRect.width, innerRect.height);
+  SF(" outerRect: %d %d %d %d\n", outerRect.x, outerRect.y, outerRect.width, outerRect.height);
+
+  
+  
+  
+  
   if (border.left + border.right > aBorderArea.width) {
     innerRect.x = outerRect.x;
     innerRect.width = outerRect.width;
@@ -1668,362 +1997,265 @@ void nsCSSRendering::PaintBorder(nsPresContext* aPresContext,
     innerRect.height = outerRect.height;
   }
 
-
-
+  
+  
+  
   
   
   if (innerRect.Contains(aDirtyRect)) {
     return;
   }
- 
-  
-  for (cnt = 0; cnt < 4; cnt++) {
-    if ((aBorderStyle.GetBorderStyle(cnt) == NS_STYLE_BORDER_STYLE_DOTTED) || 
-        (aBorderStyle.GetBorderStyle(cnt) == NS_STYLE_BORDER_STYLE_DASHED))  {
-      break;
-    }
-  }
-  if (cnt < 4) {
-    DrawDashedSides(cnt, aRenderingContext,aDirtyRect, ourColor, &aBorderStyle,nsnull, PR_FALSE,
-                    outerRect, innerRect, aSkipSides, aGap);
-  }
 
   
   
-  nsRect compositeInnerRect(innerRect);
-  nsRect compositeOuterRect(outerRect);
+  
+  
+  
+  if (haveBorderRadius) {
+    borderRadii[0] = PR_MIN(borderRadii[0], (innerRect.width + border.left) / 2);
+    borderRadii[0] = PR_MIN(borderRadii[0], (innerRect.height + border.top) / 2);
+
+    borderRadii[1] = PR_MIN(borderRadii[1], (innerRect.width + border.right) / 2);
+    borderRadii[1] = PR_MIN(borderRadii[1], (innerRect.height + border.top) / 2);
+
+    borderRadii[2] = PR_MIN(borderRadii[2], (innerRect.width + border.right) / 2);
+    borderRadii[2] = PR_MIN(borderRadii[2], (innerRect.height + border.bottom) / 2);
+
+    borderRadii[3] = PR_MIN(borderRadii[3], (innerRect.width + border.left) / 2);
+    borderRadii[3] = PR_MIN(borderRadii[3], (innerRect.height + border.bottom) / 2);
+  }
 
   
-  if (!aDirtyRect.Contains(outerRect)) {
-    
-    if (innerRect.y < aDirtyRect.y) {
-      aSkipSides |= (1 << NS_SIDE_TOP);
-      PRUint32 shortenBy =
-        PR_MIN(innerRect.height, aDirtyRect.y - innerRect.y);
-      innerRect.y += shortenBy;
-      innerRect.height -= shortenBy;
-      outerRect.y += shortenBy;
-      outerRect.height -= shortenBy;
-    }
-    if (aDirtyRect.YMost() < innerRect.YMost()) {
-      aSkipSides |= (1 << NS_SIDE_BOTTOM);
-      PRUint32 shortenBy =
-        PR_MIN(innerRect.height, innerRect.YMost() - aDirtyRect.YMost());
-      innerRect.height -= shortenBy;
-      outerRect.height -= shortenBy;
-    }
-    if (innerRect.x < aDirtyRect.x) {
-      aSkipSides |= (1 << NS_SIDE_LEFT);
-      PRUint32 shortenBy =
-        PR_MIN(innerRect.width, aDirtyRect.x - innerRect.x);
-      innerRect.x += shortenBy;
-      innerRect.width -= shortenBy;
-      outerRect.x += shortenBy;
-      outerRect.width -= shortenBy;
-    }
-    if (aDirtyRect.XMost() < innerRect.XMost()) {
-      aSkipSides |= (1 << NS_SIDE_RIGHT);
-      PRUint32 shortenBy =
-        PR_MIN(innerRect.width, innerRect.XMost() - aDirtyRect.XMost());
-      innerRect.width -= shortenBy;
-      outerRect.width -= shortenBy;
-    }
-  }
+
   
   nscoord twipsPerPixel = aPresContext->DevPixelsToAppUnits(1);
 
   static PRUint8 sideOrder[] = { NS_SIDE_BOTTOM, NS_SIDE_LEFT, NS_SIDE_TOP, NS_SIDE_RIGHT };
-  nscolor sideColor;
-  nsBorderColors* compositeColors = nsnull;
 
-#ifdef MOZ_CAIRO_GFX
-  gfxContext *ctx = (gfxContext*) aRenderingContext.GetNativeGraphicData(nsIRenderingContext::NATIVE_THEBES_CONTEXT);
-  gfxContext::AntialiasMode oldMode = ctx->CurrentAntialiasMode();
-  ctx->SetAntialiasMode(gfxContext::MODE_ALIASED);
-#endif
+  nsRefPtr<gfxContext> ctx = (gfxContext*)
+    aRenderingContext.GetNativeGraphicData(nsIRenderingContext::NATIVE_THEBES_CONTEXT);
 
-  for (cnt = 0; cnt < 4; cnt++) {
-    PRUint8 side = sideOrder[cnt];
-
-    
-    
-    if (aBorderStyle.GetBorderStyle(side) == NS_STYLE_BORDER_STYLE_DOUBLE ||
-        aBorderStyle.GetBorderStyle(side) == NS_STYLE_BORDER_STYLE_GROOVE ||
-        aBorderStyle.GetBorderStyle(side) == NS_STYLE_BORDER_STYLE_RIDGE) {
-      nscoord widths[] = { border.top, border.right, border.bottom, border.left };
-      forceSolid = (widths[side]/twipsPerPixel < 2);
-    } else 
-      forceSolid = PR_FALSE;
-
-    if (0 == (aSkipSides & (1<<side))) {
-      if (GetBorderColor(ourColor, aBorderStyle, side, sideColor, &compositeColors)) {
-        if (compositeColors)
-          DrawCompositeSide(aRenderingContext, side, compositeColors, compositeOuterRect, 
-                            compositeInnerRect, borderRadii, twipsPerPixel, aGap);
-        else
-          DrawSide(aRenderingContext, side,
-                   forceSolid ? NS_STYLE_BORDER_STYLE_SOLID : aBorderStyle.GetBorderStyle(side),
-                   sideColor,
-                   bgColor->mBackgroundColor,
-                   outerRect,innerRect, aSkipSides,
-                   twipsPerPixel, aGap);
-      }
-    }
-  }
-
-#ifdef MOZ_CAIRO_GFX
-  ctx->SetAntialiasMode(oldMode);
-#endif
-}
-
-void nsCSSRendering::DrawCompositeSide(nsIRenderingContext& aRenderingContext,
-                                       PRIntn aWhichSide,
-                                       nsBorderColors* aCompositeColors,
-                                       const nsRect& aOuterRect,
-                                       const nsRect& aInnerRect,
-                                       PRInt16* aBorderRadii,
-                                       nscoord twipsPerPixel,
-                                       nsRect* aGap)
-
-{
-  
-  
-  nsRect currOuterRect(aOuterRect);
+  PRBool doSeparateSides = PR_FALSE;
 
   
   
   
-  
-  
-  
-  
-
-  
-  
-  nscoord shrinkage, startRadius, endRadius;
-  if (aWhichSide == NS_SIDE_TOP) {
-    shrinkage = aInnerRect.y - aOuterRect.y;
-    startRadius = aBorderRadii[0];
-    endRadius = aBorderRadii[1];
-  } else if (aWhichSide == NS_SIDE_BOTTOM) {
-    shrinkage = (aOuterRect.height+aOuterRect.y) - (aInnerRect.height+aInnerRect.y);
-    startRadius = aBorderRadii[3];
-    endRadius = aBorderRadii[2];
-  } else if (aWhichSide == NS_SIDE_RIGHT) {
-    shrinkage = (aOuterRect.width+aOuterRect.x) - (aInnerRect.width+aInnerRect.x);
-    startRadius = aBorderRadii[1];
-    endRadius = aBorderRadii[2];
+  if (aSkipSides ||
+      border.left != border.right ||
+      border.left != border.top ||
+      border.left != border.bottom)
+  {
+    doSeparateSides = PR_TRUE;
   } else {
-    NS_ASSERTION(aWhichSide == NS_SIDE_LEFT, "incorrect aWhichSide");
-    shrinkage = aInnerRect.x - aOuterRect.x;
-    startRadius = aBorderRadii[0];
-    endRadius = aBorderRadii[3];
+    doSeparateSides = ShouldDoSeparateSides (aBorderStyle, ourColor);
   }
 
-  while (shrinkage > 0) {
-    nscoord xshrink = 0;
-    nscoord yshrink = 0;
-    nscoord widthshrink = 0;
-    nscoord heightshrink = 0;
+  SF("doSeparateSides: %d skipsides: t:%d l:%d r:%d b:%d\n", doSeparateSides,
+     (aSkipSides & SIDE_BIT_TOP) ? 1 : 0,
+     (aSkipSides & SIDE_BIT_LEFT) ? 1 : 0,
+     (aSkipSides & SIDE_BIT_RIGHT) ? 1 : 0,
+     (aSkipSides & SIDE_BIT_BOTTOM) ? 1 : 0);
 
-    if (startRadius || endRadius) {
-      if (aWhichSide == NS_SIDE_TOP || aWhichSide == NS_SIDE_BOTTOM) {
-        xshrink = startRadius;
-        widthshrink = startRadius + endRadius;
-      }
-      else if (aWhichSide == NS_SIDE_LEFT || aWhichSide == NS_SIDE_RIGHT) {
-        yshrink = startRadius-1;
-        heightshrink = yshrink + endRadius;
-      }
-    }
+  
+  gfxRect oRect(gfxFloat(outerRect.x) / twipsPerPixel,
+                gfxFloat(outerRect.y) / twipsPerPixel,
+                gfxFloat(outerRect.width) / twipsPerPixel,
+                gfxFloat(outerRect.height) / twipsPerPixel);
 
-    
-    nsRect newOuterRect(currOuterRect);
-    newOuterRect.x += xshrink;
-    newOuterRect.y += yshrink;
-    newOuterRect.width -= widthshrink;
-    newOuterRect.height -= heightshrink;
+  
+  gfxRect iRect(gfxFloat(innerRect.x) / twipsPerPixel,
+                gfxFloat(innerRect.y) / twipsPerPixel,
+                gfxFloat(innerRect.width) / twipsPerPixel,
+                gfxFloat(innerRect.height) / twipsPerPixel);
 
-    nsRect borderInside(currOuterRect);
-    
-    
-    
-    if (aInnerRect.x > borderInside.x) { 
-      borderInside.x += twipsPerPixel;
-      borderInside.width -= twipsPerPixel;
-    }
-    if (borderInside.x+borderInside.width > aInnerRect.x+aInnerRect.width) 
-      borderInside.width -= twipsPerPixel;
-    
-    if (aInnerRect.y > borderInside.y) { 
-      borderInside.y += twipsPerPixel;
-      borderInside.height -= twipsPerPixel;
-    }
-    if (borderInside.y+borderInside.height > aInnerRect.y+aInnerRect.height) 
-      borderInside.height -= twipsPerPixel;
 
-    if (!aCompositeColors->mTransparent) {
-      nsPoint theSide[MAX_POLY_POINTS];
-      PRInt32 np = MakeSide(theSide, aRenderingContext, aWhichSide, newOuterRect, borderInside, 0,
-                            BORDER_FULL, 1.0f, twipsPerPixel);
-      NS_ASSERTION(np == 2, "Composite border should always be single pixel!");
-      aRenderingContext.SetColor(aCompositeColors->mColor);
-      DrawLine(aRenderingContext, theSide[0].x, theSide[0].y, theSide[1].x, theSide[1].y, aGap);
-    
-      if (aWhichSide == NS_SIDE_TOP) {
-        if (startRadius) {
-          
-          nscoord distance = (startRadius+twipsPerPixel)/2;
-          nscoord remainder = distance%twipsPerPixel;
-          if (remainder) 
-            distance += twipsPerPixel - remainder;
-          DrawLine(aRenderingContext,
-                   currOuterRect.x+startRadius,
-                   currOuterRect.y, 
-                   currOuterRect.x+startRadius-distance,
-                   currOuterRect.y+distance,
-                   aGap);
-        }
-        if (endRadius) {
-          
-          nscoord distance = (endRadius+twipsPerPixel)/2;
-          nscoord remainder = distance%twipsPerPixel;
-          if (remainder) 
-            distance += twipsPerPixel - remainder;
-          DrawLine(aRenderingContext,
-                   currOuterRect.x+currOuterRect.width-endRadius-twipsPerPixel,
-                   currOuterRect.y, 
-                   currOuterRect.x+currOuterRect.width-endRadius-twipsPerPixel+distance,
-                   currOuterRect.y+distance,
-                   aGap);
-        }
-      }
-      else if (aWhichSide == NS_SIDE_BOTTOM) {
-        if (startRadius) {
-          
-          nscoord distance = (startRadius+twipsPerPixel)/2;
-          nscoord remainder = distance%twipsPerPixel;
-          if (remainder) 
-            distance += twipsPerPixel - remainder;
-          DrawLine(aRenderingContext,
-                   currOuterRect.x+startRadius, 
-                   currOuterRect.y+currOuterRect.height-twipsPerPixel,
-                   currOuterRect.x+startRadius-distance, 
-                   currOuterRect.y+currOuterRect.height-twipsPerPixel-distance,
-                   aGap);
-        }
-        if (endRadius) {
-          
-          nscoord distance = (endRadius+twipsPerPixel)/2;
-          nscoord remainder = distance%twipsPerPixel;
-          if (remainder) 
-            distance += twipsPerPixel - remainder;
-          DrawLine(aRenderingContext,
-                   currOuterRect.x+currOuterRect.width-endRadius-twipsPerPixel, 
-                   currOuterRect.y+currOuterRect.height-twipsPerPixel, 
-                   currOuterRect.x+currOuterRect.width-endRadius-twipsPerPixel+distance, 
-                   currOuterRect.y+currOuterRect.height-twipsPerPixel-distance,
-                   aGap);
-        }
-      }
-      else if (aWhichSide == NS_SIDE_LEFT) {
-        if (startRadius) {
-          
-          nscoord distance = (startRadius-twipsPerPixel)/2;
-          nscoord remainder = distance%twipsPerPixel;
-          if (remainder)
-            distance -= remainder;
-          DrawLine(aRenderingContext,
-                   currOuterRect.x+distance,
-                   currOuterRect.y+startRadius-distance, 
-                   currOuterRect.x,
-                   currOuterRect.y+startRadius,
-                   aGap);
-        }
-        if (endRadius) {
-          
-          nscoord distance = (endRadius-twipsPerPixel)/2;
-          nscoord remainder = distance%twipsPerPixel;
-          if (remainder)
-            distance -= remainder;
-          DrawLine(aRenderingContext,
-                   currOuterRect.x+distance,
-                   currOuterRect.y+currOuterRect.height-twipsPerPixel-endRadius+distance,
-                   currOuterRect.x,
-                   currOuterRect.y+currOuterRect.height-twipsPerPixel-endRadius,
-                   aGap);
-        }
-      }
-      else if (aWhichSide == NS_SIDE_RIGHT) {
-       if (startRadius) {
-          
-          nscoord distance = (startRadius-twipsPerPixel)/2;
-          nscoord remainder = distance%twipsPerPixel;
-          if (remainder)
-            distance -= remainder;
-          DrawLine(aRenderingContext,
-                   currOuterRect.x+currOuterRect.width-twipsPerPixel-distance,
-                   currOuterRect.y+startRadius-distance, 
-                   currOuterRect.x+currOuterRect.width-twipsPerPixel,
-                   currOuterRect.y+startRadius,
-                   aGap);
-        }
-        if (endRadius) {
-          
-          nscoord distance = (endRadius-twipsPerPixel)/2;
-          nscoord remainder = distance%twipsPerPixel;
-          if (remainder)
-            distance -= remainder;
-          DrawLine(aRenderingContext,
-                   currOuterRect.x+currOuterRect.width-twipsPerPixel-distance, 
-                   currOuterRect.y+currOuterRect.height-twipsPerPixel-endRadius+distance,
-                   currOuterRect.x+currOuterRect.width-twipsPerPixel, 
-                   currOuterRect.y+currOuterRect.height-twipsPerPixel-endRadius,
-                   aGap);
-        }
-      }
-    }
-    
-    if (aCompositeColors->mNext)
-      aCompositeColors = aCompositeColors->mNext;
+  
+  
+  
+  oRect.Round();
+  iRect.Round();
 
-    currOuterRect = borderInside;
-    shrinkage -= twipsPerPixel;
-    
-    startRadius -= twipsPerPixel;
-    if (startRadius < 0) startRadius = 0;
-    endRadius -= twipsPerPixel;
-    if (endRadius < 0) endRadius = 0;
+  
+  
+  gfxRect lRect(oRect.pos.x + border.left / (2.0 * twipsPerPixel),
+                oRect.pos.y + border.top / (2.0 * twipsPerPixel),
+                oRect.size.width - (border.left + border.right) / (2.0 * twipsPerPixel),
+                oRect.size.height - (border.top + border.bottom) / (2.0 * twipsPerPixel));
+
+
+  S(" oRect: "), S(oRect), SN();
+  S(" iRect: "), S(iRect), SN();
+  S(" lRect: "), S(lRect), SN();
+
+  ctx->Save();
+
+#if 0
+  
+  ctx->Save();
+  ctx->Rectangle(iRect);
+  ctx->Clip();
+  ctx->NewPath();
+
+  ctx->Rectangle(oRect);
+  ctx->SetColor(gfxRGBA(1.0, 0.0, 0.0, 0.5));
+  ctx->Fill();
+  ctx->Restore();
+#endif
+
+  
+  
+  
+  
+  gfxMatrix mat = ctx->CurrentMatrix();
+  if (!mat.HasNonTranslation()) {
+    mat.x0 = floor(mat.x0 + 0.5);
+    mat.y0 = floor(mat.y0 + 0.5);
+    ctx->SetMatrix(mat);
   }
+
+  
+  
+  if (doSeparateSides) {
+    
+    ctx->NewPath();
+    ctx->Rectangle(oRect);
+
+    if (aGap) {
+      gfxRect gapRect(gfxFloat(aGap->x) / twipsPerPixel,
+                      gfxFloat(aGap->y) / twipsPerPixel,
+                      gfxFloat(aGap->width) / twipsPerPixel,
+                      gfxFloat(aGap->height) / twipsPerPixel);
+      ctx->Rectangle(gapRect);
+      ctx->SetFillRule(gfxContext::FILL_RULE_EVEN_ODD);
+      ctx->Clip();
+      ctx->SetFillRule(gfxContext::FILL_RULE_WINDING);
+    } else {
+      ctx->Clip();
+    }
+
+    
+    
+    ctx->PushGroup(gfxASurface::CONTENT_COLOR_ALPHA);
+    ctx->SetOperator(gfxContext::OPERATOR_ADD);
+  } else if (aGap) {
+    gfxRect gapRect(gfxFloat(aGap->x) / twipsPerPixel,
+                    gfxFloat(aGap->y) / twipsPerPixel,
+                    gfxFloat(aGap->width) / twipsPerPixel,
+                    gfxFloat(aGap->height) / twipsPerPixel);
+    ctx->Rectangle(gapRect);
+    ctx->SetFillRule(gfxContext::FILL_RULE_EVEN_ODD);
+    ctx->Clip();
+    ctx->SetFillRule(gfxContext::FILL_RULE_WINDING);
+  }
+
+  
+  
+  
+  
+  int numSides = doSeparateSides ? 4 : 1;
+  for (PRInt32 i = 0; i < numSides; i++) {
+    PRUint8 side = sideOrder[i];
+
+    
+    if (doSeparateSides) {
+      if (aSkipSides & (1 << side))
+        continue;
+
+      ctx->Save();
+
+      PRUint8 style = aBorderStyle.GetBorderStyle(side);
+
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      DoSideClipPath(ctx, iRect, oRect, lRect, side, aBorderStyle, borderRadii);
+      ctx->Clip();
+    }
+
+    
+    
+    
+    
+
+    nscolor borderRenderColor;
+    PRBool transparent, foreground;
+    nsBorderColors *compositeColors = nsnull;
+
+    aBorderStyle.GetBorderColor(side, borderRenderColor, transparent, foreground);
+    aBorderStyle.GetCompositeColors(side, &compositeColors);
+
+    if (!transparent || compositeColors) {
+      if (foreground)
+        borderRenderColor = ourColor->mColor;
+
+      PRUint32 borderWidth = border.side(side) / twipsPerPixel;
+      NS_ASSERTION(borderWidth * twipsPerPixel == border.side(side), "Border size from style system was not an integer number of pixels!");
+      DrawBorderSides(ctx,
+                      borderWidth,
+                      aBorderStyle.GetBorderStyle(side),
+                      borderRenderColor,
+                      compositeColors,
+                      iRect, oRect, lRect,
+                      ourColor->mColor, bgColor->mBackgroundColor,
+                      doSeparateSides, side,
+                      twipsPerPixel,
+                      haveBorderRadius ? borderRadii : nsnull);
+    }
+
+    if (doSeparateSides)
+      ctx->Restore();
+  }
+
+  if (doSeparateSides) {
+    ctx->PopGroupToSource();
+    ctx->Paint();
+  }
+
+  ctx->Restore();
+
+  SN();
 }
 
-
-void nsCSSRendering::PaintOutline(nsPresContext* aPresContext,
-                                 nsIRenderingContext& aRenderingContext,
-                                 nsIFrame* aForFrame,
-                                 const nsRect& aDirtyRect,
-                                 const nsRect& aBorderArea,
-                                 const nsStyleBorder& aBorderStyle,
-                                 const nsStyleOutline& aOutlineStyle,
-                                 nsStyleContext* aStyleContext,
-                                 PRIntn aSkipSides,
-                                 nsRect* aGap)
+void
+nsCSSRendering::PaintOutline(nsPresContext* aPresContext,
+                             nsIRenderingContext& aRenderingContext,
+                             nsIFrame* aForFrame,
+                             const nsRect& aDirtyRect,
+                             const nsRect& aBorderArea,
+                             const nsStyleBorder& aBorderStyle,
+                             const nsStyleOutline& aOutlineStyle,
+                             nsStyleContext* aStyleContext,
+                             nsRect* aGap)
 {
-nsStyleCoord        bordStyleRadius[4];
-PRInt16             borderRadii[4],i;
-float               percent;
-const nsStyleBackground* bgColor = nsCSSRendering::FindNonTransparentBackground(aStyleContext);
-nscoord width, offset;
+  nsStyleCoord        bordStyleRadius[4];
+  PRInt16             borderRadii[4],i;
+
+  PRBool haveBorderRadius = PR_FALSE;
 
   
   const nsStyleColor* ourColor = aStyleContext->GetStyleColor();
 
+  nscoord width, offset;
+  float percent;
+
   aOutlineStyle.GetOutlineWidth(width);
 
-  if (0 == width) {
+  if (width == 0) {
     
     return;
   }
+
+  const nsStyleBackground* bgColor = nsCSSRendering::FindNonTransparentBackground
+    (aStyleContext, PR_FALSE);
 
   
   aOutlineStyle.mOutlineRadius.GetTop(bordStyleRadius[0]);      
@@ -2031,19 +2263,26 @@ nscoord width, offset;
   aOutlineStyle.mOutlineRadius.GetBottom(bordStyleRadius[2]);   
   aOutlineStyle.mOutlineRadius.GetLeft(bordStyleRadius[3]);     
 
-  for(i=0;i<4;i++) {
+  
+  for (i = 0; i < 4; i++) {
     borderRadii[i] = 0;
-    switch ( bordStyleRadius[i].GetUnit()) {
-    case eStyleUnit_Percent:
-      percent = bordStyleRadius[i].GetPercentValue();
-      borderRadii[i] = (nscoord)(percent * aBorderArea.width);
-      break;
-    case eStyleUnit_Coord:
-      borderRadii[i] = bordStyleRadius[i].GetCoordValue();
-      break;
-    default:
-      break;
+
+    switch (bordStyleRadius[i].GetUnit()) {
+      case eStyleUnit_Percent:
+        percent = bordStyleRadius[i].GetPercentValue();
+        borderRadii[i] = (nscoord)(percent * aBorderArea.width);
+        break;
+
+      case eStyleUnit_Coord:
+        borderRadii[i] = bordStyleRadius[i].GetCoordValue();
+        break;
+
+      default:
+        break;
     }
+
+    if (borderRadii[i])
+      haveBorderRadius = PR_TRUE;
   }
 
   nsRect overflowArea = aForFrame->GetOverflowRect();
@@ -2067,227 +2306,189 @@ nscoord width, offset;
   }
 
   
-  for(i=0;i<4;i++){
-    if(borderRadii[i] > 0){
-      PaintRoundedBorder(aPresContext, aRenderingContext, aForFrame, aDirtyRect,
-                         outside, nsnull, &aOutlineStyle, aStyleContext, 
-                         aSkipSides, borderRadii, aGap, PR_TRUE);
-      return;
-    }
-  }
-
-
-  PRUint8 outlineStyle = aOutlineStyle.GetOutlineStyle();
   
-  if ((outlineStyle == NS_STYLE_BORDER_STYLE_DOTTED) || 
-      (outlineStyle == NS_STYLE_BORDER_STYLE_DASHED))  {
-    DrawDashedSides(0, aRenderingContext, aDirtyRect, ourColor, nsnull, &aOutlineStyle, PR_TRUE,
-                    outside, inside, aSkipSides, aGap);
+  
+  
+  
+  if (inside.Contains(aDirtyRect)) {
     return;
   }
 
   
+  
+  
+  
+  
+  if (haveBorderRadius) {
+    borderRadii[0] = PR_MIN(borderRadii[0], (inside.width + width) / 2);
+    borderRadii[0] = PR_MIN(borderRadii[0], (inside.height + width) / 2);
 
-  PRInt32 appUnitsPerPixel = aPresContext->DevPixelsToAppUnits(1);
+    borderRadii[1] = PR_MIN(borderRadii[1], (inside.width + width) / 2);
+    borderRadii[1] = PR_MIN(borderRadii[1], (inside.height + width) / 2);
+
+    borderRadii[2] = PR_MIN(borderRadii[2], (inside.width + width) / 2);
+    borderRadii[2] = PR_MIN(borderRadii[2], (inside.height + width) / 2);
+
+    borderRadii[3] = PR_MIN(borderRadii[3], (inside.width + width) / 2);
+    borderRadii[3] = PR_MIN(borderRadii[3], (inside.height + width) / 2);
+  }
+
+  
+  nscoord twipsPerPixel = aPresContext->DevPixelsToAppUnits(1);
+
+  gfxRect oRect(gfxFloat(outside.x) / twipsPerPixel,
+                gfxFloat(outside.y) / twipsPerPixel,
+                gfxFloat(outside.width) / twipsPerPixel,
+                gfxFloat(outside.height) / twipsPerPixel);
+
+  gfxRect iRect(gfxFloat(inside.x) / twipsPerPixel,
+                gfxFloat(inside.y) / twipsPerPixel,
+                gfxFloat(inside.width) / twipsPerPixel,
+                gfxFloat(inside.height) / twipsPerPixel);
+
+  oRect.Round();
+  iRect.Round();
+
+  
+  
+  gfxRect lRect(oRect.pos.x + width / (2.0 * twipsPerPixel),
+                oRect.pos.y + width / (2.0 * twipsPerPixel),
+                oRect.size.width - (2*width) / (2.0 * twipsPerPixel),
+                oRect.size.height - (2*width) / (2.0 * twipsPerPixel));
 
   
   
   nscolor outlineColor(ourColor->mColor);
-  PRBool  canDraw = PR_FALSE;
-#ifdef GFX_HAS_INVERT
-  PRBool  modeChanged=PR_FALSE;
-#endif
 
   
-  if (aOutlineStyle.GetOutlineInitialColor()) {
-    canDraw = PR_TRUE;
-#ifdef GFX_HAS_INVERT
-    if( NS_SUCCEEDED(aRenderingContext.SetPenMode(nsPenMode_kInvert)) ) {
-      modeChanged=PR_TRUE;
-    }
-#endif
-  } else {
-    canDraw = aOutlineStyle.GetOutlineColor(outlineColor);
-  }
+  nsRefPtr<gfxContext> ctx = (gfxContext*)
+    aRenderingContext.GetNativeGraphicData(nsIRenderingContext::NATIVE_THEBES_CONTEXT);
 
-  if (PR_TRUE == canDraw) {
-    DrawSide(aRenderingContext, NS_SIDE_BOTTOM,
-             outlineStyle,
-             outlineColor,
-             bgColor->mBackgroundColor, outside, inside, aSkipSides,
-             appUnitsPerPixel, aGap);
-
-    DrawSide(aRenderingContext, NS_SIDE_LEFT,
-             outlineStyle, 
-             outlineColor,
-             bgColor->mBackgroundColor,outside, inside,aSkipSides,
-             appUnitsPerPixel, aGap);
-
-    DrawSide(aRenderingContext, NS_SIDE_TOP,
-             outlineStyle,
-             outlineColor,
-             bgColor->mBackgroundColor,outside, inside,aSkipSides,
-             appUnitsPerPixel, aGap);
-
-    DrawSide(aRenderingContext, NS_SIDE_RIGHT,
-             outlineStyle,
-             outlineColor,
-             bgColor->mBackgroundColor,outside, inside,aSkipSides,
-             appUnitsPerPixel, aGap);
-#ifdef GFX_HAS_INVERT
-    if(modeChanged ) {
-      aRenderingContext.SetPenMode(nsPenMode_kNone);
-    }
-#endif
-  }
-}
-
-
-
-
-
-
-
-
-
-
-
-void nsCSSRendering::PaintBorderEdges(nsPresContext* aPresContext,
-                                      nsIRenderingContext& aRenderingContext,
-                                      nsIFrame* aForFrame,
-                                      const nsRect& aDirtyRect,
-                                      const nsRect& aBorderArea,
-                                      nsBorderEdges * aBorderEdges,
-                                      nsStyleContext* aStyleContext,
-                                      PRIntn aSkipSides,
-                                      nsRect* aGap)
-{
-  const nsStyleBackground* bgColor = nsCSSRendering::FindNonTransparentBackground(aStyleContext);
-  
-  if (nsnull==aBorderEdges) {  
+  PRUint8 outlineStyle = aOutlineStyle.GetOutlineStyle();
+  if (!aOutlineStyle.GetOutlineColor(outlineColor))
     return;
+
+  ctx->Save();
+
+  
+  
+  
+  
+  gfxMatrix mat = ctx->CurrentMatrix();
+  if (!mat.HasNonTranslation()) {
+    mat.x0 = floor(mat.x0 + 0.5);
+    mat.y0 = floor(mat.y0 + 0.5);
+    ctx->SetMatrix(mat);
+  }
+
+  PRBool doSeparateSides = PR_FALSE;
+  if (outlineStyle == NS_STYLE_BORDER_STYLE_DASHED ||
+      outlineStyle == NS_STYLE_BORDER_STYLE_DOTTED)
+  {
+    doSeparateSides = PR_TRUE;
   }
 
   
-  if (0 == aBorderEdges->mMaxBorderWidth.top) 
-    aSkipSides |= (1 << NS_SIDE_TOP);
-  if (0 == aBorderEdges->mMaxBorderWidth.right) 
-    aSkipSides |= (1 << NS_SIDE_RIGHT);
-  if (0 == aBorderEdges->mMaxBorderWidth.bottom) 
-    aSkipSides |= (1 << NS_SIDE_BOTTOM);
-  if (0 == aBorderEdges->mMaxBorderWidth.left) 
-    aSkipSides |= (1 << NS_SIDE_LEFT);
+  
+  if (doSeparateSides) {
+    
+    ctx->NewPath();
+    ctx->Rectangle(oRect);
+
+    if (aGap) {
+      gfxRect gapRect(gfxFloat(aGap->x) / twipsPerPixel,
+                      gfxFloat(aGap->y) / twipsPerPixel,
+                      gfxFloat(aGap->width) / twipsPerPixel,
+                      gfxFloat(aGap->height) / twipsPerPixel);
+      ctx->Rectangle(gapRect);
+      ctx->SetFillRule(gfxContext::FILL_RULE_EVEN_ODD);
+      ctx->Clip();
+      ctx->SetFillRule(gfxContext::FILL_RULE_WINDING);
+    } else {
+      ctx->Clip();
+    }
+
+    
+    
+    ctx->PushGroup(gfxASurface::CONTENT_COLOR_ALPHA);
+    ctx->SetOperator(gfxContext::OPERATOR_ADD);
+  } else if (aGap) {
+    gfxRect gapRect(gfxFloat(aGap->x) / twipsPerPixel,
+                    gfxFloat(aGap->y) / twipsPerPixel,
+                    gfxFloat(aGap->width) / twipsPerPixel,
+                    gfxFloat(aGap->height) / twipsPerPixel);
+    ctx->Rectangle(gapRect);
+    ctx->SetFillRule(gfxContext::FILL_RULE_EVEN_ODD);
+    ctx->Clip();
+    ctx->SetFillRule(gfxContext::FILL_RULE_WINDING);
+  }
 
   
-  DrawDashedSegments(aRenderingContext, aBorderArea, aBorderEdges, aSkipSides, aGap);
-
   
-  nscoord appUnitsPerPixel = nsPresContext::AppUnitsPerCSSPixel();
+  
+  
 
-  if (0 == (aSkipSides & (1<<NS_SIDE_TOP))) {
-    PRInt32 segmentCount = aBorderEdges->mEdges[NS_SIDE_TOP].Count();
-    PRInt32 i;
-    nsBorderEdge * leftEdge =  (nsBorderEdge *)(aBorderEdges->mEdges[NS_SIDE_LEFT].ElementAt(0));
-    nscoord x = aBorderEdges->mMaxBorderWidth.left - leftEdge->mWidth;
-    for (i=0; i<segmentCount; i++)
-    {
-      nsBorderEdge * borderEdge =  (nsBorderEdge *)(aBorderEdges->mEdges[NS_SIDE_TOP].ElementAt(i));
-      nscoord y = aBorderArea.y;
-      if (PR_TRUE==aBorderEdges->mOutsideEdge) 
-        y += aBorderEdges->mMaxBorderWidth.top - borderEdge->mWidth;
-      nsRect inside(x, y, borderEdge->mLength, aBorderArea.height);
-      x += borderEdge->mLength;
-      nsRect outside(inside);
-      nsMargin outsideMargin(0, borderEdge->mWidth, 0, 0);
-      outside.Deflate(outsideMargin);
-      DrawSide(aRenderingContext, NS_SIDE_TOP,
-               borderEdge->mStyle,
-               borderEdge->mColor,
-               bgColor->mBackgroundColor,
-               inside, outside,aSkipSides,
-               appUnitsPerPixel, aGap);
+  static PRUint8 sideOrder[] = { NS_SIDE_BOTTOM, NS_SIDE_LEFT, NS_SIDE_TOP, NS_SIDE_RIGHT };
+
+  int numSides = doSeparateSides ? 4 : 1;
+  for (PRInt32 i = 0; i < numSides; i++) {
+    PRUint8 side = sideOrder[i];
+
+    
+    if (doSeparateSides) {
+      ctx->Save();
+
+      PRUint8 style = outlineStyle;
+
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      DoSideClipPath(ctx, iRect, oRect, lRect, side, aBorderStyle, borderRadii);
+      ctx->Clip();
     }
+
+    
+    
+    
+    
+
+    PRUint32 outlineWidth = NSToCoordRound(float(gfxFloat(width) / twipsPerPixel));
+    DrawBorderSides(ctx,
+                    outlineWidth,
+                    outlineStyle,
+                    outlineColor,
+                    nsnull,
+                    iRect, oRect, lRect,
+                    outlineColor, bgColor->mBackgroundColor,
+                    doSeparateSides, side,
+                    twipsPerPixel,
+                    haveBorderRadius ? borderRadii : nsnull);
+
+    if (doSeparateSides)
+      ctx->Restore();
   }
-  if (0 == (aSkipSides & (1<<NS_SIDE_LEFT))) {
-    PRInt32 segmentCount = aBorderEdges->mEdges[NS_SIDE_LEFT].Count();
-    PRInt32 i;
-    nsBorderEdge * topEdge =  (nsBorderEdge *)(aBorderEdges->mEdges[NS_SIDE_TOP].ElementAt(0));
-    nscoord y = aBorderEdges->mMaxBorderWidth.top - topEdge->mWidth;
-    for (i=0; i<segmentCount; i++)
-    {
-      nsBorderEdge * borderEdge =  (nsBorderEdge *)(aBorderEdges->mEdges[NS_SIDE_LEFT].ElementAt(i));
-      nscoord x = aBorderArea.x + (aBorderEdges->mMaxBorderWidth.left - borderEdge->mWidth);
-      nsRect inside(x, y, aBorderArea.width, borderEdge->mLength);
-      y += borderEdge->mLength;
-      nsRect outside(inside);
-      nsMargin outsideMargin(borderEdge->mWidth, 0, 0, 0);
-      outside.Deflate(outsideMargin);
-      DrawSide(aRenderingContext, NS_SIDE_LEFT,
-               borderEdge->mStyle,
-               borderEdge->mColor,
-               bgColor->mBackgroundColor,
-               inside, outside, aSkipSides,
-               appUnitsPerPixel, aGap);
-    }
+
+  if (doSeparateSides) {
+    ctx->PopGroupToSource();
+    ctx->Paint();
   }
-  if (0 == (aSkipSides & (1<<NS_SIDE_BOTTOM))) {
-    PRInt32 segmentCount = aBorderEdges->mEdges[NS_SIDE_BOTTOM].Count();
-    PRInt32 i;
-    nsBorderEdge * leftEdge =  (nsBorderEdge *)
-      (aBorderEdges->mEdges[NS_SIDE_LEFT].ElementAt(aBorderEdges->mEdges[NS_SIDE_LEFT].Count()-1));
-    nscoord x = aBorderEdges->mMaxBorderWidth.left - leftEdge->mWidth;
-    for (i=0; i<segmentCount; i++)
-    {
-      nsBorderEdge * borderEdge =  (nsBorderEdge *)(aBorderEdges->mEdges[NS_SIDE_BOTTOM].ElementAt(i));
-      nscoord y = aBorderArea.y;
-      if (PR_TRUE==aBorderEdges->mOutsideEdge) 
-        y -= (aBorderEdges->mMaxBorderWidth.bottom - borderEdge->mWidth);
-      nsRect inside(x, y, borderEdge->mLength, aBorderArea.height);
-      x += borderEdge->mLength;
-      nsRect outside(inside);
-      nsMargin outsideMargin(0, 0, 0, borderEdge->mWidth);
-      outside.Deflate(outsideMargin);
-      DrawSide(aRenderingContext, NS_SIDE_BOTTOM,
-               borderEdge->mStyle,
-               borderEdge->mColor,
-               bgColor->mBackgroundColor,
-               inside, outside,aSkipSides,
-               appUnitsPerPixel, aGap);
-    }
-  }
-  if (0 == (aSkipSides & (1<<NS_SIDE_RIGHT))) {
-    PRInt32 segmentCount = aBorderEdges->mEdges[NS_SIDE_RIGHT].Count();
-    PRInt32 i;
-    nsBorderEdge * topEdge =  (nsBorderEdge *)
-      (aBorderEdges->mEdges[NS_SIDE_TOP].ElementAt(aBorderEdges->mEdges[NS_SIDE_TOP].Count()-1));
-    nscoord y = aBorderEdges->mMaxBorderWidth.top - topEdge->mWidth;
-    for (i=0; i<segmentCount; i++)
-    {
-      nsBorderEdge * borderEdge =  (nsBorderEdge *)(aBorderEdges->mEdges[NS_SIDE_RIGHT].ElementAt(i));
-      nscoord width;
-      if (PR_TRUE==aBorderEdges->mOutsideEdge)
-      {
-        width = aBorderArea.width - aBorderEdges->mMaxBorderWidth.right;
-        width += borderEdge->mWidth;
-      }
-      else
-      {
-        width = aBorderArea.width;
-      }
-      nsRect inside(aBorderArea.x, y, width, borderEdge->mLength);
-      y += borderEdge->mLength;
-      nsRect outside(inside);
-      nsMargin outsideMargin(0, 0, (borderEdge->mWidth), 0);
-      outside.Deflate(outsideMargin);
-      DrawSide(aRenderingContext, NS_SIDE_RIGHT,
-               borderEdge->mStyle,
-               borderEdge->mColor,
-               bgColor->mBackgroundColor,
-               inside, outside,aSkipSides,
-               appUnitsPerPixel, aGap);
-    }
-  }
+
+  ctx->Restore();
+
+  SN();
 }
+
+
+
 
 
 
@@ -3383,317 +3584,6 @@ nsCSSRendering::PaintRoundedBackground(nsPresContext* aPresContext,
   GetPath(thePath,polyPath,&curIndex,eOutside,c1Index);
 
   aRenderingContext.FillPolygon(polyPath,curIndex); 
-}
-
-
-
-
-
-
-void 
-nsCSSRendering::PaintRoundedBorder(nsPresContext* aPresContext,
-                                 nsIRenderingContext& aRenderingContext,
-                                 nsIFrame* aForFrame,
-                                 const nsRect& aDirtyRect,
-                                 const nsRect& aBorderArea,
-                                 const nsStyleBorder* aBorderStyle,
-                                 const nsStyleOutline* aOutlineStyle,
-                                 nsStyleContext* aStyleContext,
-                                 PRIntn aSkipSides,
-                                 PRInt16 aBorderRadius[4],
-                                 nsRect* aGap,
-                                 PRBool aIsOutline)
-{
-  RoundedRect   outerPath;
-  QBCurve       UL,LL,UR,LR;
-  QBCurve       IUL,ILL,IUR,ILR;
-  QBCurve       cr1,cr2,cr3,cr4;
-  QBCurve       Icr1,Icr2,Icr3,Icr4;
-  nsFloatPoint  thePath[MAXPATHSIZE];
-  PRInt16       np;
-  nsMargin      border;
-
-  NS_ASSERTION((aIsOutline && aOutlineStyle) || (!aIsOutline && aBorderStyle), "null params not allowed");
-  if (!aIsOutline) {
-    border = aBorderStyle->GetBorder();
-    if ((0 == border.left) && (0 == border.right) &&
-        (0 == border.top) && (0 == border.bottom)) {
-      return;
-    }
-  } else {
-    nscoord width;
-    if (!aOutlineStyle->GetOutlineWidth(width)) {
-      return;
-    }
-    border.left   = width;
-    border.right  = width;
-    border.top    = width;
-    border.bottom = width;
-  }
-
-  
-  nscoord appUnitsPerPixel = aPresContext->DevPixelsToAppUnits(1);
-  nscoord quarterPixel = appUnitsPerPixel / 4;
-
-  outerPath.Set(aBorderArea.x, aBorderArea.y, aBorderArea.width,
-                aBorderArea.height, aBorderRadius, appUnitsPerPixel);
-  outerPath.GetRoundedBorders(UL,UR,LL,LR);
-  outerPath.CalcInsetCurves(IUL,IUR,ILL,ILR,border);
-
-  
-  UL.MidPointDivide(&cr1,&cr2);
-  UR.MidPointDivide(&cr3,&cr4);
-  IUL.MidPointDivide(&Icr1,&Icr2);
-  IUR.MidPointDivide(&Icr3,&Icr4);
-  if(0!=border.top){
-    np=0;
-    thePath[np++].MoveTo(cr2.mAnc1.x,cr2.mAnc1.y);
-    thePath[np++].MoveTo(cr2.mCon.x, cr2.mCon.y);
-    thePath[np++].MoveTo(cr2.mAnc2.x, cr2.mAnc2.y);
-    thePath[np++].MoveTo(cr3.mAnc1.x, cr3.mAnc1.y);
-    thePath[np++].MoveTo(cr3.mCon.x, cr3.mCon.y);
-    thePath[np++].MoveTo(cr3.mAnc2.x, cr3.mAnc2.y);
- 
-    thePath[np++].MoveTo(Icr3.mAnc2.x,Icr3.mAnc2.y);
-    thePath[np++].MoveTo(Icr3.mCon.x, Icr3.mCon.y);
-    thePath[np++].MoveTo(Icr3.mAnc1.x, Icr3.mAnc1.y);
-    thePath[np++].MoveTo(Icr2.mAnc2.x, Icr2.mAnc2.y);
-    thePath[np++].MoveTo(Icr2.mCon.x, Icr2.mCon.y);
-    thePath[np++].MoveTo(Icr2.mAnc1.x, Icr2.mAnc1.y);
-    RenderSide(thePath, aRenderingContext, aBorderStyle, aOutlineStyle,
-               aStyleContext, NS_SIDE_TOP, border, quarterPixel, aIsOutline);
-  }
-  
-  LR.MidPointDivide(&cr2,&cr3);
-  ILR.MidPointDivide(&Icr2,&Icr3);
-  if(0!=border.right){
-    np=0;
-    thePath[np++].MoveTo(cr4.mAnc1.x,cr4.mAnc1.y);
-    thePath[np++].MoveTo(cr4.mCon.x, cr4.mCon.y);
-    thePath[np++].MoveTo(cr4.mAnc2.x,cr4.mAnc2.y);
-    thePath[np++].MoveTo(cr2.mAnc1.x,cr2.mAnc1.y);
-    thePath[np++].MoveTo(cr2.mCon.x, cr2.mCon.y);
-    thePath[np++].MoveTo(cr2.mAnc2.x,cr2.mAnc2.y);
-
-    thePath[np++].MoveTo(Icr2.mAnc2.x,Icr2.mAnc2.y);
-    thePath[np++].MoveTo(Icr2.mCon.x, Icr2.mCon.y);
-    thePath[np++].MoveTo(Icr2.mAnc1.x,Icr2.mAnc1.y);
-    thePath[np++].MoveTo(Icr4.mAnc2.x,Icr4.mAnc2.y);
-    thePath[np++].MoveTo(Icr4.mCon.x, Icr4.mCon.y);
-    thePath[np++].MoveTo(Icr4.mAnc1.x,Icr4.mAnc1.y);
-    RenderSide(thePath, aRenderingContext, aBorderStyle, aOutlineStyle,
-               aStyleContext, NS_SIDE_RIGHT, border, quarterPixel, aIsOutline);
-  }
-
-  
-  LL.MidPointDivide(&cr2,&cr4);
-  ILL.MidPointDivide(&Icr2,&Icr4);
-  if(0!=border.bottom){
-    np=0;
-    thePath[np++].MoveTo(cr3.mAnc1.x,cr3.mAnc1.y);
-    thePath[np++].MoveTo(cr3.mCon.x, cr3.mCon.y);
-    thePath[np++].MoveTo(cr3.mAnc2.x, cr3.mAnc2.y);
-    thePath[np++].MoveTo(cr2.mAnc1.x, cr2.mAnc1.y);
-    thePath[np++].MoveTo(cr2.mCon.x, cr2.mCon.y);
-    thePath[np++].MoveTo(cr2.mAnc2.x, cr2.mAnc2.y);
-
-    thePath[np++].MoveTo(Icr2.mAnc2.x,Icr2.mAnc2.y);
-    thePath[np++].MoveTo(Icr2.mCon.x, Icr2.mCon.y);
-    thePath[np++].MoveTo(Icr2.mAnc1.x, Icr2.mAnc1.y);
-    thePath[np++].MoveTo(Icr3.mAnc2.x, Icr3.mAnc2.y);
-    thePath[np++].MoveTo(Icr3.mCon.x, Icr3.mCon.y);
-    thePath[np++].MoveTo(Icr3.mAnc1.x, Icr3.mAnc1.y);
-    RenderSide(thePath, aRenderingContext, aBorderStyle, aOutlineStyle,
-               aStyleContext, NS_SIDE_BOTTOM, border, quarterPixel, aIsOutline);
-  }
-  
-  if(0==border.left)
-    return;
-  np=0;
-  thePath[np++].MoveTo(cr4.mAnc1.x,cr4.mAnc1.y);
-  thePath[np++].MoveTo(cr4.mCon.x, cr4.mCon.y);
-  thePath[np++].MoveTo(cr4.mAnc2.x, cr4.mAnc2.y);
-  thePath[np++].MoveTo(cr1.mAnc1.x, cr1.mAnc1.y);
-  thePath[np++].MoveTo(cr1.mCon.x, cr1.mCon.y);
-  thePath[np++].MoveTo(cr1.mAnc2.x, cr1.mAnc2.y);
-
-
-  thePath[np++].MoveTo(Icr1.mAnc2.x,Icr1.mAnc2.y);
-  thePath[np++].MoveTo(Icr1.mCon.x, Icr1.mCon.y);
-  thePath[np++].MoveTo(Icr1.mAnc1.x, Icr1.mAnc1.y);
-  thePath[np++].MoveTo(Icr4.mAnc2.x, Icr4.mAnc2.y);
-  thePath[np++].MoveTo(Icr4.mCon.x, Icr4.mCon.y);
-  thePath[np++].MoveTo(Icr4.mAnc1.x, Icr4.mAnc1.y);
-
-  RenderSide(thePath, aRenderingContext, aBorderStyle, aOutlineStyle,
-             aStyleContext, NS_SIDE_LEFT, border, quarterPixel, aIsOutline);
-}
-
-
-
-
-
-
-void 
-nsCSSRendering::RenderSide(nsFloatPoint aPoints[],nsIRenderingContext& aRenderingContext,
-                        const nsStyleBorder* aBorderStyle,const nsStyleOutline* aOutlineStyle,nsStyleContext* aStyleContext,
-                        PRUint8 aSide,nsMargin  &aBorThick,nscoord aTwipsPerPixel,
-                        PRBool aIsOutline)
-{
-  QBCurve   thecurve;
-  nscolor   sideColor = NS_RGB(0,0,0);
-  static nsPoint   polypath[MAXPOLYPATHSIZE];
-  PRInt32   curIndex,c1Index,c2Index,junk;
-  PRInt8    border_Style;
-  PRInt16   thickness;
-
-  
-  const nsStyleColor* ourColor = aStyleContext->GetStyleColor();
-
-  NS_ASSERTION((aIsOutline && aOutlineStyle) || (!aIsOutline && aBorderStyle), "null params not allowed");
-  
-  if (!aIsOutline) {
-    if (!GetBorderColor(ourColor, *aBorderStyle, aSide, sideColor)) {
-      return;
-    }
-  } else {
-    aOutlineStyle->GetOutlineColor(sideColor);
-  }
-  aRenderingContext.SetColor ( sideColor );
-
-  thickness = 0;
-  switch(aSide){
-    case  NS_SIDE_LEFT:
-      thickness = aBorThick.left;
-      break;
-    case  NS_SIDE_TOP:
-      thickness = aBorThick.top;
-      break;
-    case  NS_SIDE_RIGHT:
-      thickness = aBorThick.right;
-      break;
-    case  NS_SIDE_BOTTOM:
-      thickness = aBorThick.bottom;
-      break;
-  }
-
-  
-  if (thickness<=aTwipsPerPixel) {
-    
-    thecurve.SetPoints(aPoints[0].x,aPoints[0].y,aPoints[1].x,aPoints[1].y,aPoints[2].x,aPoints[2].y);
-    thecurve.SubDivide((nsIRenderingContext*)&aRenderingContext,nsnull,nsnull);
-    aRenderingContext.DrawLine((nscoord)aPoints[2].x,(nscoord)aPoints[2].y,(nscoord)aPoints[3].x,(nscoord)aPoints[3].y);
-    thecurve.SetPoints(aPoints[3].x,aPoints[3].y,aPoints[4].x,aPoints[4].y,aPoints[5].x,aPoints[5].y);
-    thecurve.SubDivide((nsIRenderingContext*)&aRenderingContext,nsnull,nsnull);
-  } else {
-    
-    if (!aIsOutline) {
-      border_Style = aBorderStyle->GetBorderStyle(aSide);
-    } else {
-      border_Style = aOutlineStyle->GetOutlineStyle();
-    }
-    switch (border_Style){
-      case NS_STYLE_BORDER_STYLE_OUTSET:
-      case NS_STYLE_BORDER_STYLE_INSET:
-        {
-          const nsStyleBackground* bgColor = nsCSSRendering::FindNonTransparentBackground(aStyleContext);
-          aRenderingContext.SetColor(MakeBevelColor(aSide, border_Style,
-                                       bgColor->mBackgroundColor, sideColor));
-        }
-      case NS_STYLE_BORDER_STYLE_DOTTED:
-      case NS_STYLE_BORDER_STYLE_DASHED:
-        
-        
-        
-        
-      case NS_STYLE_BORDER_STYLE_AUTO:
-      case NS_STYLE_BORDER_STYLE_SOLID:
-        polypath[0].x = NSToCoordRound(aPoints[0].x);
-        polypath[0].y = NSToCoordRound(aPoints[0].y);
-        curIndex = 1;
-        GetPath(aPoints,polypath,&curIndex,eOutside,c1Index);
-        c2Index = curIndex;
-        if (curIndex >= MAXPOLYPATHSIZE)
-          return;
-        polypath[curIndex].x = NSToCoordRound(aPoints[6].x);
-        polypath[curIndex].y = NSToCoordRound(aPoints[6].y);
-        curIndex++;
-        GetPath(aPoints,polypath,&curIndex,eInside,junk);
-        if (curIndex >= MAXPOLYPATHSIZE)
-          return;
-        polypath[curIndex].x = NSToCoordRound(aPoints[0].x);
-        polypath[curIndex].y = NSToCoordRound(aPoints[0].y);
-        curIndex++;
-        aRenderingContext.FillPolygon(polypath,curIndex);
-
-       break;
-      case NS_STYLE_BORDER_STYLE_DOUBLE:
-        polypath[0].x = NSToCoordRound(aPoints[0].x);
-        polypath[0].y = NSToCoordRound(aPoints[0].y);
-        curIndex = 1;
-        GetPath(aPoints,polypath,&curIndex,eOutside,c1Index);
-        aRenderingContext.DrawPolyline(polypath,curIndex);
-        polypath[0].x = NSToCoordRound(aPoints[6].x);
-        polypath[0].y = NSToCoordRound(aPoints[6].y);
-        curIndex = 1;
-        GetPath(aPoints,polypath,&curIndex,eInside,c1Index);
-        aRenderingContext.DrawPolyline(polypath,curIndex);
-        break;
-      case NS_STYLE_BORDER_STYLE_NONE:
-      case NS_STYLE_BORDER_STYLE_HIDDEN:
-        break;
-      case NS_STYLE_BORDER_STYLE_RIDGE:
-      case NS_STYLE_BORDER_STYLE_GROOVE:
-        {
-        const nsStyleBackground* bgColor = nsCSSRendering::FindNonTransparentBackground(aStyleContext);
-        aRenderingContext.SetColor(MakeBevelColor(aSide, border_Style,
-                                     bgColor->mBackgroundColor,sideColor));
-
-        polypath[0].x = NSToCoordRound(aPoints[0].x);
-        polypath[0].y = NSToCoordRound(aPoints[0].y);
-        curIndex = 1;
-        GetPath(aPoints,polypath,&curIndex,eOutside,c1Index);
-        if (curIndex >= MAXPOLYPATHSIZE)
-          return;
-        polypath[curIndex].x = NSToCoordRound((aPoints[5].x + aPoints[6].x)/2.0f);
-        polypath[curIndex].y = NSToCoordRound((aPoints[5].y + aPoints[6].y)/2.0f);
-        curIndex++;
-        GetPath(aPoints,polypath,&curIndex,eCalcRev,c1Index,.5);
-        if (curIndex >= MAXPOLYPATHSIZE)
-          return;
-        polypath[curIndex].x = NSToCoordRound(aPoints[0].x);
-        polypath[curIndex].y = NSToCoordRound(aPoints[0].y);
-        curIndex++;
-        aRenderingContext.FillPolygon(polypath,curIndex);
-
-        aRenderingContext.SetColor ( MakeBevelColor (aSide, 
-                                                ((border_Style == NS_STYLE_BORDER_STYLE_RIDGE) ?
-                                                NS_STYLE_BORDER_STYLE_GROOVE :
-                                                NS_STYLE_BORDER_STYLE_RIDGE), 
-                                                bgColor->mBackgroundColor,sideColor));
-       
-        polypath[0].x = NSToCoordRound((aPoints[0].x + aPoints[11].x)/2.0f);
-        polypath[0].y = NSToCoordRound((aPoints[0].y + aPoints[11].y)/2.0f);
-        curIndex = 1;
-        GetPath(aPoints,polypath,&curIndex,eCalc,c1Index,.5);
-        if (curIndex >= MAXPOLYPATHSIZE)
-          return;
-        polypath[curIndex].x = NSToCoordRound(aPoints[6].x) ;
-        polypath[curIndex].y = NSToCoordRound(aPoints[6].y);
-        curIndex++;
-        GetPath(aPoints,polypath,&curIndex,eInside,c1Index);
-        if (curIndex >= MAXPOLYPATHSIZE)
-          return;
-        polypath[curIndex].x = NSToCoordRound(aPoints[0].x);
-        polypath[curIndex].y = NSToCoordRound(aPoints[0].y);
-        curIndex++;
-        aRenderingContext.FillPolygon(polypath,curIndex);
-        }
-        break;
-      default:
-        break;
-    }
-  }
 }
 
 

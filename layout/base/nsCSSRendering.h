@@ -93,30 +93,7 @@ public:
                           const nsStyleBorder& aBorderStyle,
                           const nsStyleOutline& aOutlineStyle,
                           nsStyleContext* aStyleContext,
-                          PRIntn aSkipSides,
                           nsRect* aGap = 0);
-
-  
-
-
-
-
-
-
-
-
-
-
-  static void PaintBorderEdges(nsPresContext* aPresContext,
-                               nsIRenderingContext& aRenderingContext,
-                               nsIFrame* aForFrame,
-                               const nsRect& aDirtyRect,
-                               const nsRect& aBorderArea,
-                               nsBorderEdges * aBorderEdges,
-                               nsStyleContext* aStyleContext,
-                               PRIntn aSkipSides,
-                               nsRect* aGap = 0);
-
 
   
 
@@ -203,15 +180,6 @@ public:
                               nsRect* aGap);
 
   
-  
-  
-  static void DrawDashedSegments(nsIRenderingContext& aContext,
-                                 const nsRect& aBounds,
-                                 nsBorderEdges * aBorderEdges,
-                                 PRIntn aSkipSides,
-                                 nsRect* aGap);
-
-  
   static void DrawTableBorderSegment(nsIRenderingContext&     aContext,
                                      PRUint8                  aBorderStyle,  
                                      nscolor                  aBorderColor,
@@ -231,29 +199,6 @@ public:
   static nscolor TransformColor(nscolor  aMapColor,PRBool aNoBackGround);
 
 protected:
-  
-
-
-
-
-
-
-  static void PaintRoundedBorder(nsPresContext* aPresContext,
-                          nsIRenderingContext& aRenderingContext,
-                          nsIFrame* aForFrame,
-                          const nsRect& aDirtyRect,
-                          const nsRect& aBorderArea,
-                          const nsStyleBorder* aBorderStyle,
-                          const nsStyleOutline* aOutlineStyle,
-                          nsStyleContext* aStyleContext,
-                          PRIntn aSkipSides,
-                          PRInt16 aBorderRadius[4],nsRect* aGap = 0,
-                          PRBool aIsOutline=PR_FALSE);
-
-  static void RenderSide(nsFloatPoint aPoints[],nsIRenderingContext& aRenderingContext,
-                        const nsStyleBorder* aBorderStyle,const nsStyleOutline* aOutlineStyle,nsStyleContext* aStyleContext,
-                        PRUint8 aSide,nsMargin  &aBorThick,nscoord aTwipsPerPixel,
-                        PRBool aIsOutline=PR_FALSE);
 
   static void PaintBackgroundColor(nsPresContext* aPresContext,
                                    nsIRenderingContext& aRenderingContext,
@@ -276,35 +221,6 @@ protected:
   static nscolor MakeBevelColor(PRIntn whichSide, PRUint8 style,
                                 nscolor aBackgroundColor,
                                 nscolor aBorderColor);
-
-  static PRIntn MakeSide(nsPoint aPoints[],
-                         nsIRenderingContext& aContext,
-                         PRIntn whichSide,
-                         const nsRect& outside, const nsRect& inside,
-                         PRIntn aSkipSides,
-                         PRIntn borderPart, float borderFrac,
-                         nscoord twipsPerPixel);
-
-  static void DrawSide(nsIRenderingContext& aContext,
-                       PRIntn whichSide,
-                       const PRUint8 borderStyle,
-                       const nscolor borderColor,
-                       const nscolor aBackgroundColor, 
-                       const nsRect& borderOutside,
-                       const nsRect& borderInside,
-                       PRIntn aSkipSides,
-                       nscoord twipsPerPixel,
-                       nsRect* aGap = 0);
-
-
-  static void DrawCompositeSide(nsIRenderingContext& aContext,
-                                PRIntn aWhichSide,
-                                nsBorderColors* aCompositeColors,
-                                const nsRect& aOuterRect,
-                                const nsRect& aInnerRect,
-                                PRInt16* aBorderRadii,
-                                nscoord aTwipsPerPixel,
-                                nsRect* aGap);
 
   static void DrawLine (nsIRenderingContext& aContext, 
                         nscoord aX1, nscoord aY1, nscoord aX2, nscoord aY2,
