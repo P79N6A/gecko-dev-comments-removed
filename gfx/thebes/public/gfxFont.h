@@ -1113,6 +1113,11 @@ public:
         PRPackedBool mPartIsEndOfLigature;
     };
 
+#ifdef DEBUG
+    
+    PRUint32 mCachedWords;
+#endif
+
 private:
     
 
