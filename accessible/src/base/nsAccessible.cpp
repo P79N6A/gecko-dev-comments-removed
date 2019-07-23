@@ -1948,7 +1948,15 @@ NS_IMETHODIMP nsAccessible::GetFinalRole(PRUint32 *aRole)
 
     
     
-    if (*aRole == nsIAccessibleRole::ROLE_PUSHBUTTON) {
+    if (*aRole == nsIAccessibleRole::ROLE_ENTRY) {
+      nsCOMPtr<nsIContent> content = do_QueryInterface(mDOMNode);
+      if (content && content->AttrValueIs(kNameSpaceID_None, nsAccessibilityAtoms::aria_secret,
+                                          nsAccessibilityAtoms::_true, eCaseMatters)) {
+        
+        *aRole = nsIAccessibleRole::ROLE_PASSWORD_TEXT;
+      }
+    }
+    else if (*aRole == nsIAccessibleRole::ROLE_PUSHBUTTON) {
       nsCOMPtr<nsIContent> content = do_QueryInterface(mDOMNode);
       if (content) {
         if (content->HasAttr(kNameSpaceID_None, nsAccessibilityAtoms::aria_pressed)) {
