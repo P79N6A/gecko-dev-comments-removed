@@ -709,6 +709,8 @@ var PlacesUtils = {
 
 
 
+
+
   
 
 
@@ -821,7 +823,7 @@ var PlacesUtils = {
     else
       info.hiddenRows.push("keyword");
 
-    return this._showBookmarkDialog(info, true);
+    this._showBookmarkDialog(info, true);
   },
 
   
@@ -912,7 +914,7 @@ var PlacesUtils = {
       if (!aShowPicker)
         info.hiddenRows.push("folder picker");
     }
-    return this._showBookmarkDialog(info, true);
+    this._showBookmarkDialog(info, true);
   },
 
   
@@ -933,7 +935,7 @@ var PlacesUtils = {
       hiddenRows: ["description"],
       URIList: aURIList
     };
-    return this._showBookmarkDialog(info, true);
+    this._showBookmarkDialog(info, true);
   },
 
   
@@ -1013,14 +1015,26 @@ var PlacesUtils = {
 
 
 
+
+
+
+
+
   _showBookmarkDialog: function PU__showBookmarkDialog(aInfo, aMinimalUI) {
     var dialogURL = aMinimalUI ?
                     "chrome://browser/content/places/bookmarkPageDialog.xul" :
                     "chrome://browser/content/places/bookmarkProperties.xul";
 
-    window.openDialog(dialogURL, "",
-                      "width=600,height=400,chrome,dependent,modal,resizable",
-                      aInfo);
+    var features;
+    if (aMinimalUI)
+#ifdef XP_MACOSX
+      features = "centerscreen,chrome,dialog,resizable,modal";
+#else
+      features = "centerscreen,chrome,dialog,resizable,dependent";
+#endif
+    else
+      features = "centerscreen,chrome,modal,resizable=no";
+    window.openDialog(dialogURL, "",  features, aInfo);
     return ("performed" in aInfo && aInfo.performed);
   },
 
