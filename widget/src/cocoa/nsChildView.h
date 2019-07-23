@@ -70,6 +70,7 @@ class nsChildView;
 class nsCocoaWindow;
 union nsPluginPort;
 
+#ifndef NP_NO_CARBON
 enum {
   
   
@@ -90,6 +91,7 @@ enum {
 
 
 extern "C" long TSMProcessRawKeyEvent(EventRef carbonEvent);
+#endif 
 
 @interface NSEvent (Undocumented)
 
@@ -151,11 +153,13 @@ extern "C" long TSMProcessRawKeyEvent(EventRef carbonEvent);
   
   
   nsIDragService* mDragService;
-  
+
+#ifndef NP_NO_CARBON
   
   
   
   TSMDocumentID mPluginTSMDoc;
+#endif
 
   
   
