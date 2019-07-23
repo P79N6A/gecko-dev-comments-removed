@@ -41,9 +41,17 @@
 
 #include "nsString.h"
 #include "nsTArray.h"
+#include "nsCOMPtr.h"
+#include "nsIAtom.h"
 
-class nsIAtom;
-class nsNameSpaceEntry;
+struct nsNameSpaceEntry
+{
+  nsNameSpaceEntry(nsIAtom *aPrefix)
+    : prefix(aPrefix) {}
+
+  nsCOMPtr<nsIAtom> prefix;
+  PRInt32 nameSpaceID;
+};
 
 
 
@@ -96,7 +104,7 @@ public:
 private:
   nsXMLNameSpaceMap() NS_HIDDEN;  
 
-  nsTArray<nsNameSpaceEntry*> mNameSpaces;
+  nsTArray<nsNameSpaceEntry> mNameSpaces;
 };
 
 #endif

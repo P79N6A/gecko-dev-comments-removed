@@ -170,7 +170,7 @@ class nsHTMLContentSerializer : public nsXMLContentSerializer {
   };
 
   
-  nsAutoTArray<olState*, 8> mOLStateStack;
+  nsAutoTArray<olState, 8> mOLStateStack;
 };
 
 nsresult

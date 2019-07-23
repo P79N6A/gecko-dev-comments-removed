@@ -64,12 +64,6 @@
 #include "nsContentUtils.h"
 #include "nsAttrName.h"
 
-struct NameSpaceDecl {
-  nsString mPrefix;
-  nsString mURI;
-  nsIDOMElement* mOwner;
-};
-
 nsresult NS_NewXMLContentSerializer(nsIContentSerializer** aSerializer)
 {
   nsXMLContentSerializer* it = new nsXMLContentSerializer();
@@ -337,7 +331,7 @@ nsXMLContentSerializer::PushNameSpaceDecl(const nsAString& aPrefix,
                                           const nsAString& aURI,
                                           nsIDOMElement* aOwner)
 {
-  NameSpaceDecl* decl = new NameSpaceDecl();
+  NameSpaceDecl* decl = mNameSpaceStack.AppendElement();
   if (!decl) return NS_ERROR_OUT_OF_MEMORY;
 
   decl->mPrefix.Assign(aPrefix);
@@ -345,8 +339,6 @@ nsXMLContentSerializer::PushNameSpaceDecl(const nsAString& aPrefix,
   
   
   decl->mOwner = aOwner;
-
-  mNameSpaceStack.AppendElement(decl);
   return NS_OK;
 }
 
@@ -357,12 +349,10 @@ nsXMLContentSerializer::PopNameSpaceDeclsFor(nsIDOMElement* aOwner)
 
   count = mNameSpaceStack.Length();
   for (index = count - 1; index >= 0; index--) {
-    NameSpaceDecl* decl = mNameSpaceStack.ElementAt(index);
-    if (decl->mOwner != aOwner) {
+    if (mNameSpaceStack[index].mOwner != aOwner) {
       break;
     }
     mNameSpaceStack.RemoveElementAt(index);
-    delete decl;
   }
 }
 
@@ -414,13 +404,13 @@ nsXMLContentSerializer::ConfirmPrefix(nsAString& aPrefix,
   PRInt32 count = mNameSpaceStack.Length();
   PRInt32 index = count - 1;
   while (index >= 0) {
-    NameSpaceDecl* decl = mNameSpaceStack.ElementAt(index);
+    NameSpaceDecl& decl = mNameSpaceStack.ElementAt(index);
     
-    if (aPrefix.Equals(decl->mPrefix)) {
+    if (aPrefix.Equals(decl.mPrefix)) {
 
       
       
-      if (!haveSeenOurPrefix && aURI.Equals(decl->mURI)) {
+      if (!haveSeenOurPrefix && aURI.Equals(decl.mURI)) {
         
         
         uriMatch = PR_TRUE;
@@ -440,7 +430,7 @@ nsXMLContentSerializer::ConfirmPrefix(nsAString& aPrefix,
       
       
       
-      if (!aPrefix.IsEmpty() || decl->mOwner == aElement) {
+      if (!aPrefix.IsEmpty() || decl.mOwner == aElement) {
         NS_ASSERTION(!aURI.IsEmpty(),
                      "Not allowed to add a xmlns attribute with an empty "
                      "namespace name unless it declares the default "
@@ -458,19 +448,18 @@ nsXMLContentSerializer::ConfirmPrefix(nsAString& aPrefix,
     }
     
     
-    if (!uriMatch && aURI.Equals(decl->mURI)) {
+    if (!uriMatch && aURI.Equals(decl.mURI)) {
       
       
       PRBool prefixOK = PR_TRUE;
       PRInt32 index2;
       for (index2 = count-1; index2 > index && prefixOK; --index2) {
-        NameSpaceDecl* decl2 = mNameSpaceStack.ElementAt(index2);
-        prefixOK = (decl2->mPrefix != decl->mPrefix);
+        prefixOK = (mNameSpaceStack[index2].mPrefix != decl.mPrefix);
       }
       
       if (prefixOK) {
         uriMatch = PR_TRUE;
-        closestURIMatch.Assign(decl->mPrefix);
+        closestURIMatch.Assign(decl.mPrefix);
       }
     }
     
