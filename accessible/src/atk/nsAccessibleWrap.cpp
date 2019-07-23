@@ -804,6 +804,12 @@ GetAttributeSet(nsIAccessible* aAccessible)
           attributes->SetStringProperty(NS_LITERAL_CSTRING("haspopup"), NS_LITERAL_STRING("true"),
                                         oldValueUnused);
         }
+        if (state & nsIAccessibleStates::STATE_CHECKABLE) {
+          
+          nsAutoString oldValueUnused;
+          attributes->SetStringProperty(NS_LITERAL_CSTRING("checkable"), NS_LITERAL_STRING("true"),
+                                        oldValueUnused);
+        }
 
         nsCOMPtr<nsISimpleEnumerator> propEnum;
         nsresult rv = attributes->Enumerate(getter_AddRefs(propEnum));
