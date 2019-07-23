@@ -624,8 +624,14 @@ nsresult nsHyperTextAccessible::DOMPointToHypertextOffset(nsIDOMNode* aNode, PRI
   return NS_OK;
 }
 
-PRInt32 nsHyperTextAccessible::GetRelativeOffset(nsIPresShell *aPresShell, nsIFrame *aFromFrame, PRInt32 aFromOffset,
-                                                 nsSelectionAmount aAmount, nsDirection aDirection, PRBool aNeedsStart)
+PRInt32
+nsHyperTextAccessible::GetRelativeOffset(nsIPresShell *aPresShell,
+                                         nsIFrame *aFromFrame,
+                                         PRInt32 aFromOffset,
+                                         nsIAccessible *aFromAccessible,
+                                         nsSelectionAmount aAmount,
+                                         nsDirection aDirection,
+                                         PRBool aNeedsStart)
 {
   const PRBool kIsJumpLinesOk = PR_TRUE;          
   const PRBool kIsScrollViewAStop = PR_FALSE;     
@@ -640,9 +646,18 @@ PRInt32 nsHyperTextAccessible::GetRelativeOffset(nsIPresShell *aPresShell, nsIFr
   
   nsPeekOffsetStruct pos;
 
-  PRInt32 contentOffset;
-  nsresult rv = RenderedToContentOffset(aFromFrame, aFromOffset, &contentOffset);
-  NS_ENSURE_SUCCESS(rv, -1);
+  nsresult rv;
+  PRInt32 contentOffset = aFromOffset;
+  if (IsText(aFromAccessible)) {
+    nsCOMPtr<nsPIAccessNode> accessNode(do_QueryInterface(aFromAccessible));
+    NS_ASSERTION(accessNode, "nsIAccessible doesn't support nsPIAccessNode");
+
+    nsIFrame *frame = accessNode->GetFrame();
+    NS_ENSURE_TRUE(frame, -1);
+
+    rv = RenderedToContentOffset(frame, aFromOffset, &contentOffset);
+    NS_ENSURE_SUCCESS(rv, -1);
+  }
 
   pos.SetData(aAmount, aDirection, contentOffset,
               0, kIsJumpLinesOk, kIsScrollViewAStop, kIsKeyboardSelect, kIsVisualBidi,
@@ -740,7 +755,10 @@ nsresult nsHyperTextAccessible::GetTextHelper(EGetTextType aType, nsAccessibleTe
     ++ endOffset;
   }
   
-  nsIFrame *startFrame = GetPosAndText(startOffset, endOffset);
+  nsCOMPtr<nsIAccessible> startAcc;
+  nsIFrame *startFrame = GetPosAndText(startOffset, endOffset, nsnull, nsnull,
+                                       nsnull, getter_AddRefs(startAcc));
+
   if (!startFrame) {
     PRInt32 textLength;
     GetCharacterCount(&textLength);
@@ -809,8 +827,9 @@ nsresult nsHyperTextAccessible::GetTextHelper(EGetTextType aType, nsAccessibleTe
     finalStartOffset = aOffset;
   }
   else {
-    finalStartOffset = GetRelativeOffset(presShell, startFrame,  startOffset,
-                                         amount, eDirPrevious, needsStart);
+    finalStartOffset = GetRelativeOffset(presShell, startFrame, startOffset,
+                                         startAcc, amount, eDirPrevious,
+                                         needsStart);
     NS_ENSURE_TRUE(finalStartOffset >= 0, NS_ERROR_FAILURE);
   }
 
@@ -822,12 +841,14 @@ nsresult nsHyperTextAccessible::GetTextHelper(EGetTextType aType, nsAccessibleTe
     
     
     startOffset = endOffset = finalStartOffset;
-    nsIFrame *endFrame = GetPosAndText(startOffset, endOffset);
+    nsCOMPtr<nsIAccessible> endAcc;
+    nsIFrame *endFrame = GetPosAndText(startOffset, endOffset, nsnull, nsnull,
+                                       nsnull, getter_AddRefs(endAcc));
     if (!endFrame) {
       return NS_ERROR_FAILURE;
     }
-    finalEndOffset = GetRelativeOffset(presShell, endFrame, endOffset, amount,
-                                       eDirNext, needsStart);
+    finalEndOffset = GetRelativeOffset(presShell, endFrame, endOffset, endAcc,
+                                       amount, eDirNext, needsStart);
     NS_ENSURE_TRUE(endOffset >= 0, NS_ERROR_FAILURE);
     if (finalEndOffset == aOffset) {
       

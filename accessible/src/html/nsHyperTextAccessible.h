@@ -140,8 +140,14 @@ protected:
 
 
 
-  PRInt32 GetRelativeOffset(nsIPresShell *aPresShell, nsIFrame *aFromFrame, PRInt32 aFromOffset,
-                            nsSelectionAmount aAmount, nsDirection aDirection, PRBool aNeedsStart);
+
+
+
+
+  PRInt32 GetRelativeOffset(nsIPresShell *aPresShell, nsIFrame *aFromFrame,
+                            PRInt32 aFromOffset, nsIAccessible *aFromAccessible,
+                            nsSelectionAmount aAmount, nsDirection aDirection,
+                            PRBool aNeedsStart);
 
   
 
