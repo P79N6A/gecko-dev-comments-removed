@@ -500,6 +500,10 @@ void imgRequestProxy::OnStopRequest(nsIRequest *request, nsISupports *ctxt,
   GetName(name);
   LOG_FUNC_WITH_PARAM(gImgLog, "imgRequestProxy::OnStopRequest", "name", name.get());
 #endif
+  
+  
+  
+  nsCOMPtr<imgIRequest> kungFuDeathGrip(this);
 
   if (mListener) {
     
