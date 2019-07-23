@@ -559,7 +559,10 @@ nsContextMenu.prototype = {
                                 .getInterface(Ci.nsIWebNavigation)
                                 .QueryInterface(Ci.nsIInterfaceRequestor)
                                 .getInterface(Ci.nsIEditingSession);
-        isEditable = editingSession.windowIsEditable(win);
+        if (editingSession.windowIsEditable(win) &&
+            this.getComputedStyle(this.target, "-moz-user-modify") == "read-write") {
+          isEditable = true;
+        }
       }
       catch(ex) {
         
@@ -587,9 +590,9 @@ nsContextMenu.prototype = {
 
   
   getComputedStyle: function(aElem, aProp) {
-    return elem.ownerDocument
-               .defaultView
-               .getComputedStyle(aElem, "").getPropertyValue(prop);
+    return aElem.ownerDocument
+                .defaultView
+                .getComputedStyle(aElem, "").getPropertyValue(aProp);
   },
 
   
