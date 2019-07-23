@@ -1,0 +1,196 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+const TOPIC_EXPIRATION_FINISHED = "places-expiration-finished";
+
+let os = Cc["@mozilla.org/observer-service;1"].
+         getService(Ci.nsIObserverService);
+let hs = Cc["@mozilla.org/browser/nav-history-service;1"].
+         getService(Ci.nsINavHistoryService);
+let bs = Cc["@mozilla.org/browser/nav-bookmarks-service;1"].
+         getService(Ci.nsINavBookmarksService);
+let as = Cc["@mozilla.org/browser/annotation-service;1"].
+         getService(Ci.nsIAnnotationService);
+
+
+
+
+
+
+
+
+
+
+
+let now = Date.now();
+function add_old_anno(aIdentifier, aName, aValue, aExpirePolicy,
+                      aAgeInDays, aLastModifiedAgeInDays) {
+  let expireDate = (now - (aAgeInDays * 86400 * 1000)) * 1000;
+  let lastModifiedDate = 0;
+  if (aLastModifiedAgeInDays)
+    lastModifiedDate = (now - (aLastModifiedAgeInDays * 86400 * 1000)) * 1000;
+
+  let dbConn = DBConn();
+  let sql;
+  if (typeof(aIdentifier) == "number") {
+    
+    as.setItemAnnotation(aIdentifier, aName, aValue, 0, aExpirePolicy);
+    
+    sql = "UPDATE moz_items_annos SET dateAdded = :expire_date, lastModified = :last_modified " +
+          "WHERE id = (SELECT id FROM moz_items_annos " +
+                      "WHERE item_id = :id " +
+                      "ORDER BY dateAdded DESC LIMIT 1)";
+  }
+  else if (aIdentifier instanceof Ci.nsIURI){
+    
+    as.setPageAnnotation(aIdentifier, aName, aValue, 0, aExpirePolicy);
+    
+    sql = "UPDATE moz_annos SET dateAdded = :expire_date, lastModified = :last_modified " +
+          "WHERE id = (SELECT a.id FROM moz_annos a " +
+                      "LEFT JOIN moz_places_view h on h.id = a.place_id " +
+                      "WHERE h.url = :id " +
+                      "ORDER BY a.dateAdded DESC LIMIT 1)";
+  }
+  else
+    do_throw("Wrong identifier type");
+
+  let stmt = dbConn.createStatement(sql);
+  stmt.params.id = (typeof(aIdentifier) == "number") ? aIdentifier
+                                                     : aIdentifier.spec;
+  stmt.params.expire_date = expireDate;
+  stmt.params.last_modified = lastModifiedDate;
+  try {
+    stmt.executeStep();
+  }
+  finally {
+    stmt.finalize();
+  }
+}
+
+function run_test() {
+  
+  setInterval(3600); 
+
+  
+  setMaxPages(0);
+
+  
+  for (let i = 0; i < 5; i++) {
+    let pageURI = uri("http://item_anno." + i + ".mozilla.org/");
+    
+    hs.addVisit(pageURI, now++, null, hs.TRANSITION_TYPED, false, 0);
+    let id = bs.insertBookmark(bs.unfiledBookmarksFolder, pageURI,
+                               bs.DEFAULT_INDEX, null);
+    
+    as.setItemAnnotation(id, "persist", "test", 0, as.EXPIRE_NEVER);
+    
+    as.setPageAnnotation(pageURI, "persist", "test", 0, as.EXPIRE_NEVER);
+    
+    as.setItemAnnotation(id, "expire_session", "test", 0, as.EXPIRE_SESSION);
+    as.setPageAnnotation(pageURI, "expire_session", "test", 0, as.EXPIRE_SESSION);
+    
+    add_old_anno(id, "expire_days", "test", as.EXPIRE_DAYS, 8);
+    add_old_anno(id, "expire_weeks", "test", as.EXPIRE_WEEKS, 31);
+    add_old_anno(id, "expire_months", "test", as.EXPIRE_MONTHS, 181);
+    add_old_anno(pageURI, "expire_days", "test", as.EXPIRE_DAYS, 8);
+    add_old_anno(pageURI, "expire_weeks", "test", as.EXPIRE_WEEKS, 31);
+    add_old_anno(pageURI, "expire_months", "test", as.EXPIRE_MONTHS, 181);
+  }
+
+  
+  let now = Date.now() * 1000;
+  for (let i = 0; i < 5; i++) {
+    
+    
+    let pageURI = uri("http://page_anno." + i + ".mozilla.org/");
+    hs.addVisit(pageURI, now++, null, hs.TRANSITION_TYPED, false, 0);
+    as.setPageAnnotation(pageURI, "expire", "test", 0, as.EXPIRE_NEVER);
+    as.setPageAnnotation(pageURI, "expire_session", "test", 0, as.EXPIRE_SESSION);
+    add_old_anno(pageURI, "expire_days", "test", as.EXPIRE_DAYS, 8);
+    add_old_anno(pageURI, "expire_weeks", "test", as.EXPIRE_WEEKS, 31);
+    add_old_anno(pageURI, "expire_months", "test", as.EXPIRE_MONTHS, 181);
+  }
+
+  
+  observer = {
+    observe: function(aSubject, aTopic, aData) {
+      os.removeObserver(observer, TOPIC_EXPIRATION_FINISHED);
+
+      ["expire_days", "expire_weeks", "expire_months", "expire_session",
+       "expire"].forEach(function(aAnno) {
+        let pages = as.getPagesWithAnnotation(aAnno);
+        do_check_eq(pages.length, 0);
+      });
+
+      ["expire_days", "expire_weeks", "expire_months", "expire_session",
+       "expire"].forEach(function(aAnno) {
+        let items = as.getItemsWithAnnotation(aAnno);
+        do_check_eq(items.length, 0);
+      });
+
+      ["persist"].forEach(function(aAnno) {
+        let pages = as.getPagesWithAnnotation(aAnno);
+        do_check_eq(pages.length, 5);
+      });
+
+      ["persist"].forEach(function(aAnno) {
+        let items = as.getItemsWithAnnotation(aAnno);
+        do_check_eq(items.length, 5);
+        items.forEach(function(aItemId) {
+          
+          bs.getItemIndex(aItemId);
+        });
+      });
+
+      do_test_finished();
+    }
+  };
+  os.addObserver(observer, TOPIC_EXPIRATION_FINISHED, false);
+
+  
+  hs.QueryInterface(Ci.nsIBrowserHistory).removeAllPages();
+  do_test_pending();
+}
