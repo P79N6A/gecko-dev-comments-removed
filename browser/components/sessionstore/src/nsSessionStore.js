@@ -117,6 +117,12 @@ function debug(aMsg) {
                                      .logStringMessage(aMsg);
 }
 
+__defineGetter__("NetUtil", function() {
+  delete this.NetUtil;
+  Cu.import("resource://gre/modules/NetUtil.jsm");
+  return NetUtil;
+});
+
 
 
 function SessionStoreService() {
@@ -194,11 +200,11 @@ SessionStoreService.prototype = {
                        getService(Ci.nsIPrefService).getBranch("browser.");
     this._prefBranch.QueryInterface(Ci.nsIPrefBranch2);
 
-    var observerService = Cc["@mozilla.org/observer-service;1"].
-                          getService(Ci.nsIObserverService);
+    this._observerService = Cc["@mozilla.org/observer-service;1"].
+                            getService(Ci.nsIObserverService);
 
     OBSERVING.forEach(function(aTopic) {
-      observerService.addObserver(this, aTopic, true);
+      this._observerService.addObserver(this, aTopic, true);
     }, this);
 
     var pbs = Cc["@mozilla.org/privatebrowsing;1"].
@@ -595,9 +601,7 @@ SessionStoreService.prototype = {
       }
       else {
         
-        var observerService = Cc["@mozilla.org/observer-service;1"].
-                              getService(Ci.nsIObserverService);
-        observerService.notifyObservers(null, NOTIFY_WINDOWS_RESTORED, "");
+        this._observerService.notifyObservers(null, NOTIFY_WINDOWS_RESTORED, "");
         
         
         this._lastSaveTime -= this._interval;
@@ -2525,9 +2529,8 @@ SessionStoreService.prototype = {
     
     stateString.data = "(" + this._toJSONString(aStateObj) + ")";
 
-    var observerService = Cc["@mozilla.org/observer-service;1"].
-                          getService(Ci.nsIObserverService);
-    observerService.notifyObservers(stateString, "sessionstore-state-write", "");
+    this._observerService.notifyObservers(stateString,
+                                          "sessionstore-state-write", "");
 
     
     if (stateString.data)
@@ -2801,9 +2804,7 @@ SessionStoreService.prototype = {
       this._restoreCount--;
       if (this._restoreCount == 0) {
         
-        var observerService = Cc["@mozilla.org/observer-service;1"].
-                              getService(Ci.nsIObserverService);
-        observerService.notifyObservers(null, NOTIFY_WINDOWS_RESTORED, "");
+        this._observerService.notifyObservers(null, NOTIFY_WINDOWS_RESTORED, "");
       }
     }
   },
@@ -2867,24 +2868,25 @@ SessionStoreService.prototype = {
 
   _writeFile: function sss_writeFile(aFile, aData) {
     
-    var stream = Cc["@mozilla.org/network/safe-file-output-stream;1"].
-                 createInstance(Ci.nsIFileOutputStream);
-    stream.init(aFile, 0x02 | 0x08 | 0x20, 0600, 0);
+    var ostream = Cc["@mozilla.org/network/safe-file-output-stream;1"].
+                  createInstance(Ci.nsIFileOutputStream);
+    ostream.init(aFile, 0x02 | 0x08 | 0x20, 0600, 0);
 
     
     var converter = Cc["@mozilla.org/intl/scriptableunicodeconverter"].
                     createInstance(Ci.nsIScriptableUnicodeConverter);
     converter.charset = "UTF-8";
-    var convertedData = converter.ConvertFromUnicode(aData);
-    convertedData += converter.Finish();
 
     
-    stream.write(convertedData, convertedData.length);
-    if (stream instanceof Ci.nsISafeOutputStream) {
-      stream.finish();
-    } else {
-      stream.close();
-    }
+    var istream = converter.convertToInputStream(aData);
+    var self = this;
+    NetUtil.asyncCopy(istream, ostream, function(rc) {
+      if (Components.isSuccessCode(rc)) {
+        self._observerService.notifyObservers(null,
+                                              "sessionstore-state-write-complete",
+                                              "");
+      }
+    });
   }
 };
 
