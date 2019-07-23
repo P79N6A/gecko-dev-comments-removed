@@ -387,15 +387,25 @@ nsObjectLoadingContent::OnStartRequest(nsIRequest *aRequest, nsISupports *aConte
     channelType = APPLICATION_OCTET_STREAM;
     chan->SetContentType(channelType);
   }
+
   
-  if (mContentType.IsEmpty() ||
-      !channelType.EqualsASCII(APPLICATION_OCTET_STREAM)) {
-    mContentType = channelType;
-  } else {
+  
+  
+  
+  
+  
+
+  if ((channelType.EqualsASCII(APPLICATION_OCTET_STREAM) && 
+       !mContentType.IsEmpty()) ||
+      (IsSupportedPlugin(mContentType) && 
+       GetTypeOfContent(mContentType) == eType_Plugin)) {
     
     
     
+
     chan->SetContentType(mContentType);
+  } else {
+    mContentType = channelType;
   }
 
   
