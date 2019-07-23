@@ -30,22 +30,66 @@ const RELATION_SUBWINDOW_OF = nsIAccessibleRelation.RELATION_SUBWINDOW_OF;
 
 
 
-function testRelation(aIdentifier, aRelType, aRelatedIdentifier)
+function testRelation(aIdentifier, aRelType, aRelatedIdentifiers)
 {
-  var actualRelatedAcc = getRelatedAccessible(aIdentifier, aRelType);
+  var relation = getRelationByType(aIdentifier, aRelType);
 
   var relDescr = getRelationErrorMsg(aIdentifier, aRelType);
-  if (!actualRelatedAcc && !aRelatedIdentifier) {
-    ok(true, "No" + relDescr);
+  var relDescrStart = getRelationErrorMsg(aIdentifier, aRelType, true);
+
+  if (!relation || !relation.targetsCount) {
+    if (!aRelatedIdentifiers) {
+      ok(true, "No" + relDescr);
+      return;
+    }
+
+    var msg = relDescrStart + "has no expected targets: '" +
+      prettyName(aRelatedIdentifiers) + "'";
+
+    ok(false, msg);
+    return;
+
+  } else if (!aRelatedIdentifiers) {
+    ok(false, "There are unexpected targets of " + relDescr);
     return;
   }
 
-  var relatedAcc = getAccessible(aRelatedIdentifier);
-  if (!relatedAcc)
+  var relatedIds = (aRelatedIdentifiers instanceof Array) ?
+  aRelatedIdentifiers : [aRelatedIdentifiers];
+
+  var targets = [];
+   for (var idx = 0; idx < relatedIds.length; idx++)
+     targets.push(getAccessible(relatedIds[idx]));
+
+  if (targets.length != relatedIds.length)
     return;
 
-  is(actualRelatedAcc, relatedAcc,
-      aRelatedIdentifier + " is not a target of" + relDescr);
+  var actualTargets = relation.getTargets();
+
+  
+  for (var idx = 0; idx < targets.length; idx++) {
+    var isFound = false;
+    var enumerate = actualTargets.enumerate();
+    while (enumerate.hasMoreElements()) {
+      var relatedAcc = enumerate.getNext().QueryInterface(nsIAccessible);
+      if (targets[idx] == relatedAcc) {
+        isFound = true;
+        break;
+      }
+    }
+
+    ok(isFound, relatedIds[idx] + " is not a target of" + relDescr);
+  }
+
+  
+  var enumerate = actualTargets.enumerate();
+  while (enumerate.hasMoreElements()) {
+    var relatedAcc = enumerate.getNext().QueryInterface(nsIAccessible);
+    for (var idx = 0; idx < targets.length && relatedAcc != targets[idx]; idx++);
+
+    if (idx == targets.length)
+      ok(false, "There is unexpected target" + prettyName(relatedAcc) + "of" + relDescr);
+  }
 }
 
 
@@ -55,28 +99,31 @@ function testRelation(aIdentifier, aRelType, aRelatedIdentifier)
 
 
 
-
-function getRelatedAccessible(aIdentifier, aRelType)
+function getRelationByType(aIdentifier, aRelType)
 {
   var acc = getAccessible(aIdentifier);
   if (!acc)
     return;
 
-  var relatedAcc = null;
+  var relation = null;
   try {
-    relatedAcc = acc.getAccessibleRelated(aRelType);
+    relation = acc.getRelationByType(aRelType);
   } catch (e) {
     ok(false, "Can't get" + getRelationErrorMsg(aIdentifier, aRelType));
   }
 
-  return relatedAcc;
+  return relation;
 }
 
 
 
 
-function getRelationErrorMsg(aIdentifier, aRelType)
+function getRelationErrorMsg(aIdentifier, aRelType, aIsStartSentence)
 {
   var relStr = relationTypeToString(aRelType);
-  return " relation of '" + relStr + "' type for " + aIdentifier + ".";
+  var msg = aIsStartSentence ? "Relation of '" : " relation of '";
+  msg += relStr + "' type for '" + prettyName(aIdentifier) + "'";
+  msg += aIsStartSentence ? " " : ".";
+
+  return msg;
 }

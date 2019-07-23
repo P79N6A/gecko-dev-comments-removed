@@ -619,28 +619,17 @@ nsHTMLGroupboxAccessible::GetNameInternal(nsAString& aName)
 }
 
 NS_IMETHODIMP
-nsHTMLGroupboxAccessible::GetAccessibleRelated(PRUint32 aRelationType,
-                                               nsIAccessible **aRelated)
+nsHTMLGroupboxAccessible::GetRelationByType(PRUint32 aRelationType,
+                                            nsIAccessibleRelation **aRelation)
 {
-  if (!mDOMNode) {
-    return NS_ERROR_FAILURE;
-  }
-  NS_ENSURE_ARG_POINTER(aRelated);
-
-  *aRelated = nsnull;
-
-  nsresult rv = nsHyperTextAccessibleWrap::GetAccessibleRelated(aRelationType, aRelated);
-  if (NS_FAILED(rv) || *aRelated) {
-    
-    return rv;
-  }
+  nsresult rv = nsHyperTextAccessibleWrap::GetRelationByType(aRelationType,
+                                                             aRelation);
+  NS_ENSURE_SUCCESS(rv, rv);
 
   if (aRelationType == nsIAccessibleRelation::RELATION_LABELLED_BY) {
     
-    nsCOMPtr<nsIDOMNode> legendNode = do_QueryInterface(GetLegend());
-    if (legendNode) {
-      GetAccService()->GetAccessibleInWeakShell(legendNode, mWeakShell, aRelated);
-    }
+    return nsRelUtils::
+      AddTargetFromContent(aRelationType, aRelation, GetLegend());
   }
 
   return NS_OK;
@@ -652,31 +641,28 @@ nsHyperTextAccessibleWrap(aNode, aShell)
 }
 
 NS_IMETHODIMP
-nsHTMLLegendAccessible::GetAccessibleRelated(PRUint32 aRelationType,
-                                             nsIAccessible **aRelated)
+nsHTMLLegendAccessible::GetRelationByType(PRUint32 aRelationType,
+                                          nsIAccessibleRelation **aRelation)
 {
-  *aRelated = nsnull;
-
-  nsresult rv = nsHyperTextAccessibleWrap::GetAccessibleRelated(aRelationType, aRelated);
-  if (NS_FAILED(rv) || *aRelated) {
-    
-    return rv;
-  }
+  nsresult rv = nsHyperTextAccessibleWrap::
+    GetRelationByType(aRelationType, aRelation);
+  NS_ENSURE_SUCCESS(rv, rv);
 
   if (aRelationType == nsIAccessibleRelation::RELATION_LABEL_FOR) {
     
-    nsCOMPtr<nsIContent> content = do_QueryInterface(mDOMNode);
-    if (!content) {
-      return NS_ERROR_FAILURE;  
-    }
     nsCOMPtr<nsIAccessible> groupboxAccessible = GetParent();
     if (nsAccUtils::Role(groupboxAccessible) == nsIAccessibleRole::ROLE_GROUPING) {
-      nsCOMPtr<nsIAccessible> testLabelAccessible;
-      groupboxAccessible->GetAccessibleRelated(nsIAccessibleRelation::RELATION_LABELLED_BY,
-                                               getter_AddRefs(testLabelAccessible));
+      
+      
+      nsCOMPtr<nsIAccessible> testLabelAccessible =
+        nsRelUtils::GetRelatedAccessible(groupboxAccessible,
+                                         nsIAccessibleRelation::RELATION_LABELLED_BY);
+
       if (testLabelAccessible == this) {
         
-        NS_ADDREF(*aRelated = groupboxAccessible);
+        
+        return nsRelUtils::
+          AddTarget(aRelationType, aRelation, groupboxAccessible);
       }
     }
   }

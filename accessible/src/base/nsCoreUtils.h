@@ -45,6 +45,7 @@
 #include "nsIContent.h"
 #include "nsIFrame.h"
 #include "nsIDocShellTreeItem.h"
+#include "nsIArray.h"
 #include "nsPoint.h"
 
 class nsCoreUtils
@@ -232,6 +233,17 @@ public:
 
   static void GetLanguageFor(nsIContent *aContent, nsIContent *aRootContent,
                              nsAString& aLanguage);
+
+  
+
+
+
+
+
+
+
+  static void GetElementsByIDRefsAttr(nsIContent *aContent, nsIAtom *aAttr,
+                                      nsIArray **aRefElements);
 
   
 

@@ -286,6 +286,22 @@ function relationTypeToString(aRelationType)
 
 
 
+function prettyName(aIdentifier)
+{
+  if (aIdentifier instanceof nsIAccessible) {
+    var acc = getAccessible(aIdentifier, [nsIAccessNode]);
+    return getNodePrettyName(acc.DOMNode);
+  }
+
+  if (aIdentifier instanceof nsIDOMNode)
+    return getNodePrettyName(aIdentifier);
+
+  return " '" + aIdentifier + "' ";
+}
+
+
+
+
 
 
 
@@ -297,3 +313,11 @@ function initialize()
 }
 
 addLoadEvent(initialize);
+
+function getNodePrettyName(aNode)
+{
+  if (aNode.nodeType == nsIDOMNode.ELEMENT_NODE && aNode.hasAttribute("id"))
+    return " '" + aNode.getAttribute("id") + "' ";
+
+  return " '" + aNode.localName + " node' ";
+}

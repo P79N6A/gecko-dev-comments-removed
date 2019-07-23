@@ -1,0 +1,160 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#include "nsRelUtils.h"
+
+#include "nsAccessNode.h"
+
+#include "nsIDOMDocument.h"
+#include "nsIDOMElement.h"
+
+#include "nsAutoPtr.h"
+#include "nsArrayUtils.h"
+
+already_AddRefed<nsIAccessible>
+nsRelUtils::GetRelatedAccessible(nsIAccessible *aAccessible,
+                                 PRUint32 aRelationType)
+{
+  nsCOMPtr<nsIAccessibleRelation> relation;
+  nsresult rv = aAccessible->GetRelationByType(aRelationType,
+                                               getter_AddRefs(relation));
+  if (NS_FAILED(rv) || !relation)
+    return nsnull;
+
+  nsIAccessible *targetAccessible = nsnull;
+  rv = relation->GetTarget(0, &targetAccessible);
+  return targetAccessible;
+}
+
+nsresult
+nsRelUtils::AddTarget(PRUint32 aRelationType, nsIAccessibleRelation **aRelation,
+                      nsIAccessible *aTarget)
+{
+  if (!aTarget)
+    return NS_OK_NO_RELATION_TARGET;
+
+  if (*aRelation) {
+    nsRefPtr<nsAccessibleRelation> relation = QueryAccRelation(*aRelation);
+    return relation->AddTarget(aTarget);
+  }
+
+  *aRelation = new nsAccessibleRelationWrap(aRelationType, aTarget);
+  NS_ENSURE_TRUE(*aRelation, NS_ERROR_OUT_OF_MEMORY);
+
+  NS_ADDREF(*aRelation);
+  return NS_OK;
+}
+
+nsresult
+nsRelUtils::AddTargetFromContent(PRUint32 aRelationType,
+                                 nsIAccessibleRelation **aRelation,
+                                 nsIContent *aContent)
+{
+  if (!aContent)
+    return NS_OK_NO_RELATION_TARGET;
+
+  nsCOMPtr<nsIAccessibilityService> accService = nsAccessNode::GetAccService();
+  nsCOMPtr<nsIDOMNode> node(do_QueryInterface(aContent));
+
+  nsCOMPtr<nsIAccessible> accessible;
+  accService->GetAccessibleFor(node, getter_AddRefs(accessible));
+  return AddTarget(aRelationType, aRelation, accessible);
+}
+
+nsresult
+nsRelUtils::AddTargetFromIDRefAttr(PRUint32 aRelationType,
+                                   nsIAccessibleRelation **aRelation,
+                                   nsIContent *aContent, nsIAtom *aAttr)
+{
+  nsAutoString id;
+  if (!aContent->GetAttr(kNameSpaceID_None, aAttr, id))
+    return NS_OK_NO_RELATION_TARGET;
+
+  nsCOMPtr<nsIDOMDocument> document =
+    do_QueryInterface(aContent->GetOwnerDoc());
+  NS_ASSERTION(document, "The given node is not in document!");
+  if (!document)
+    return NS_OK_NO_RELATION_TARGET;
+
+  nsCOMPtr<nsIDOMElement> refElm;
+  document->GetElementById(id, getter_AddRefs(refElm));
+
+  nsCOMPtr<nsIContent> refContent(do_QueryInterface(refElm));
+  return AddTargetFromContent(aRelationType, aRelation, refContent);
+}
+
+nsresult
+nsRelUtils::AddTargetFromIDRefsAttr(PRUint32 aRelationType,
+                                    nsIAccessibleRelation **aRelation,
+                                    nsIContent *aContent, nsIAtom *aAttr)
+{
+  nsCOMPtr<nsIArray> refElms;
+  nsCoreUtils::GetElementsByIDRefsAttr(aContent, aAttr, getter_AddRefs(refElms));
+
+  if (!refElms)
+    return NS_OK_NO_RELATION_TARGET;
+
+  PRUint32 count = 0;
+  nsresult rv = refElms->GetLength(&count);
+  if (NS_FAILED(rv) || count == 0)
+    return NS_OK_NO_RELATION_TARGET;
+
+  nsCOMPtr<nsIContent> content;
+  for (PRUint32 idx = 0; idx < count; idx++) {
+    content = do_QueryElementAt(refElms, idx, &rv);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    rv = AddTargetFromContent(aRelationType, aRelation, content);
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
+
+  return NS_OK;
+}
+
+nsresult
+nsRelUtils::AddTargetFromNeighbour(PRUint32 aRelationType,
+                                   nsIAccessibleRelation **aRelation,
+                                   nsIContent *aContent,
+                                   nsIAtom *aNeighboutAttr,
+                                   nsIAtom *aNeighboutTagName)
+{
+  return AddTargetFromContent(
+    aRelationType, aRelation,
+    nsCoreUtils::FindNeighbourPointingToNode(aContent, aNeighboutAttr,
+                                             aNeighboutTagName));
+}
