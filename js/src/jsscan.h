@@ -176,6 +176,39 @@ js_InitStringBuffer(JSStringBuffer *sb);
 extern void
 js_FinishStringBuffer(JSStringBuffer *sb);
 
+static inline void
+js_RewindStringBuffer(JSStringBuffer *sb)
+{
+    JS_ASSERT(STRING_BUFFER_OK(sb));
+    sb->ptr = sb->base;
+}
+
+#define ENSURE_STRING_BUFFER(sb,n) \
+    ((sb)->ptr + (n) <= (sb)->limit || sb->grow(sb, n))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+static inline void
+js_FastAppendChar(JSStringBuffer *sb, jschar c)
+{
+    JS_ASSERT(STRING_BUFFER_OK(sb));
+    if (!ENSURE_STRING_BUFFER(sb, 1))
+        return;
+    *sb->ptr++ = c;
+}
+
 extern void
 js_AppendChar(JSStringBuffer *sb, jschar c);
 
