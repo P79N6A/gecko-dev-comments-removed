@@ -123,19 +123,16 @@ nsDiskCacheEvictor::VisitRecord(nsDiskCacheRecord *  mapRecord)
     
     if (mClientID) {
         
-        nsDiskCacheEntry *   diskEntry = nsnull;
-        nsresult  rv = mCacheMap->ReadDiskCacheEntry(mapRecord, &diskEntry);
-        if (NS_FAILED(rv))  
+        nsDiskCacheEntry * diskEntry = mCacheMap->ReadDiskCacheEntry(mapRecord);
+        if (!diskEntry)
             return kVisitNextRecord;  
     
         
         if ((diskEntry->mKeySize <= mClientIDSize) ||
             (diskEntry->Key()[mClientIDSize] != ':') ||
             (memcmp(diskEntry->Key(), mClientID, mClientIDSize) != 0)) {
-            delete [] (char *)diskEntry;
             return kVisitNextRecord;  
         }
-        delete [] (char *)diskEntry;
     }
     
     nsDiskCacheBinding * binding = mBindery->FindActiveBinding(mapRecord->HashNumber());
@@ -399,9 +396,7 @@ nsCacheEntry *
 nsDiskCacheDevice::FindEntry(nsCString * key, PRBool *collision)
 {
     if (!Initialized())  return nsnull;  
-    nsresult                rv;
     nsDiskCacheRecord       record;
-    nsCacheEntry *          entry   = nsnull;
     nsDiskCacheBinding *    binding = nsnull;
     PLDHashNumber           hashNumber = nsDiskCache::Hash(key->get());
 
@@ -415,22 +410,19 @@ nsDiskCacheDevice::FindEntry(nsCString * key, PRBool *collision)
 #endif
     
     
-    rv = mCacheMap.FindRecord(hashNumber, &record);
+    nsresult rv = mCacheMap.FindRecord(hashNumber, &record);
     if (NS_FAILED(rv))  return nsnull;  
     
-    nsDiskCacheEntry * diskEntry;
-    rv = mCacheMap.ReadDiskCacheEntry(&record, &diskEntry);
-    if (NS_FAILED(rv))  return nsnull;
+    nsDiskCacheEntry * diskEntry = mCacheMap.ReadDiskCacheEntry(&record);
+    if (!diskEntry) return nsnull;
     
     
-    if (strcmp(diskEntry->Key(), key->get()) == 0) {
-        entry = diskEntry->CreateCacheEntry(this);
-    } else {
+    if (strcmp(diskEntry->Key(), key->get()) != 0) {
         *collision = PR_TRUE;
+        return nsnull;
     }
-    delete [] (char *)diskEntry;
     
-    
+    nsCacheEntry * entry = diskEntry->CreateCacheEntry(this);
     if (!entry)  return nsnull;
     
     binding = mBindery.CreateBinding(entry, &record);
@@ -729,9 +721,8 @@ public:
         
         
         
-        nsDiskCacheEntry * diskEntry;
-        nsresult rv = mCacheMap->ReadDiskCacheEntry(mapRecord, &diskEntry);
-        if (NS_FAILED(rv)) {
+        nsDiskCacheEntry * diskEntry = mCacheMap->ReadDiskCacheEntry(mapRecord);
+        if (!diskEntry) {
             return kVisitNextRecord;
         }
 
@@ -743,8 +734,7 @@ public:
         nsCOMPtr<nsICacheEntryInfo> ref(entryInfo);
         
         PRBool  keepGoing;
-        rv = mVisitor->VisitEntry(DISK_CACHE_DEVICE_ID, entryInfo, &keepGoing);
-        delete [] (char *)diskEntry;
+        (void)mVisitor->VisitEntry(DISK_CACHE_DEVICE_ID, entryInfo, &keepGoing);
         return keepGoing ? kVisitNextRecord : kStopVisitingRecords;
     }
  
