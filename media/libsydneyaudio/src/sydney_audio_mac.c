@@ -260,9 +260,14 @@ sa_stream_destroy(sa_stream_t *s) {
     return SA_SUCCESS;
   }
 
-  pthread_mutex_lock(&s->mutex);
-
   
+
+
+
+
+
+
+
 
 
   int result = SA_SUCCESS;
@@ -277,8 +282,6 @@ sa_stream_destroy(sa_stream_t *s) {
       result = SA_ERROR_SYSTEM;
     }
   }
-
-  pthread_mutex_unlock(&s->mutex);
 
   
 
@@ -546,9 +549,14 @@ sa_stream_pause(sa_stream_t *s) {
     return SA_ERROR_NO_INIT;
   }
 
-  pthread_mutex_lock(&s->mutex);
+  
+
+
+
+
+
   AudioOutputUnitStop(s->output_unit);
-  pthread_mutex_unlock(&s->mutex);
+
   return SA_SUCCESS;
 }
 
@@ -561,15 +569,21 @@ sa_stream_resume(sa_stream_t *s) {
   }
 
   pthread_mutex_lock(&s->mutex);
-
   
 
 
 
   s->bytes_played = 0;
+  pthread_mutex_unlock(&s->mutex);
+
+  
+
+
+
+
+
   AudioOutputUnitStart(s->output_unit);
 
-  pthread_mutex_unlock(&s->mutex);
   return SA_SUCCESS;
 }
 

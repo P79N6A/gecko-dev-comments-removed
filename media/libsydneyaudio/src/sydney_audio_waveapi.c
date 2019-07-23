@@ -223,6 +223,8 @@ int sa_stream_destroy(sa_stream_t *s) {
   
   status = closeAudio(s);
 
+  free(s);
+
   return status;
 }
 
