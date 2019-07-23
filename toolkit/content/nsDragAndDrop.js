@@ -587,6 +587,63 @@ var nsDragAndDrop = {
       if ("canDrop" in aDragDropObserver)
         this.mDragSession.canDrop &= aDragDropObserver.canDrop(aEvent, this.mDragSession);
       return true;
-    } 
+    },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+  dragDropSecurityCheck: function (aEvent, aDragSession, aDraggedText)
+    {
+      var sourceDoc = aDragSession.sourceDocument;
+      if (!sourceDoc)
+        return;
+
+      
+      
+      
+      
+      
+      
+      
+
+      aDraggedText = aDraggedText.replace(/^\s*|\s*$/g, '');
+
+      var uri;
+
+      try {
+        uri = Components.classes["@mozilla.org/network/io-service;1"]
+                        .getService(Components.interfaces.nsIIOService)
+                        .newURI(aDraggedText, null, null);
+      } catch (e) {
+      }
+
+      if (!uri)
+        return;
+
+      
+      const nsIScriptSecurityManager = Components.interfaces
+                                                 .nsIScriptSecurityManager;
+      var secMan = Components.classes["@mozilla.org/scriptsecuritymanager;1"]
+                             .getService(nsIScriptSecurityManager);
+
+      try {
+        secMan.checkLoadURIStr(sourceDoc.documentURI, aDraggedText,
+                               nsIScriptSecurityManager.STANDARD);
+      } catch (e) {
+        
+        aEvent.stopPropagation();
+
+        throw "Drop of " + aDraggedText + " denied.";
+      }
+    }
 };
 
