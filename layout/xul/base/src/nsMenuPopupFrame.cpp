@@ -156,6 +156,7 @@ nsMenuPopupFrame::Init(nsIContent*      aContent,
                        nsIFrame*        aPrevInFlow)
 {
   nsresult rv = nsBoxFrame::Init(aContent, aParent, aPrevInFlow);
+  NS_ENSURE_SUCCESS(rv, rv);
 
   
   mTimerMediator = new nsMenuPopupTimerMediator(this);
@@ -171,7 +172,8 @@ nsMenuPopupFrame::Init(nsIContent*      aContent,
     GetMetric(nsILookAndFeel::eMetric_MenusCanOverlapOSBar, tempBool);
   mMenuCanOverlapOSBar = tempBool;
 
-  CreateViewForFrame(presContext, this, GetStyleContext(), PR_TRUE);
+  rv = CreateViewForFrame(presContext, this, GetStyleContext(), PR_TRUE);
+  NS_ENSURE_SUCCESS(rv, rv);
 
   
   
