@@ -79,9 +79,10 @@ var PlacesOrganizer = {
 
 #ifdef XP_MACOSX
     
-    var findCommand = document.getElementById("cmd_find");
-    findCommand.setAttribute("oncommand", "PlacesSearchBox.findCurrent();");
-    findCommand.removeAttribute("disabled");
+    var findMenuItem = document.getElementById("menu_find");
+    findMenuItem.setAttribute("command", "OrganizerCommand_find:current");
+    var findKey = document.getElementById("key_find");
+    findKey.setAttribute("command", "OrganizerCommand_find:current");
 
     
     var elements = ["cmd_handleBackspace", "cmd_handleShiftBackspace"];
