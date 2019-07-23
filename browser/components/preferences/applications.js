@@ -175,6 +175,7 @@ HandlerInfoWrapper.prototype = {
   
   wrappedHandlerInfo: null,
 
+
   
   
 
@@ -192,20 +193,6 @@ HandlerInfoWrapper.prototype = {
 
   element: function(aID) {
     return document.getElementById(aID);
-  },
-
-
-  
-  
-
-  QueryInterface: function(aIID) {
-    if (aIID.equals(Ci.nsIHandlerInfo) ||
-        aIID.equals(Ci.nsISupports) ||
-        (aIID.equals(Ci.nsIMIMEInfo) &&
-         this.wrappedHandlerInfo instanceof Ci.nsIMIMEInfo))
-      return this;
-
-    throw Cr.NS_ERROR_NO_INTERFACE;
   },
 
 
@@ -1172,7 +1159,7 @@ var gApplicationsPane = {
     
     
     
-    if ((handlerInfo instanceof Ci.nsIMIMEInfo) &&
+    if ((handlerInfo.wrappedHandlerInfo instanceof Ci.nsIMIMEInfo) &&
         handlerInfo.type != TYPE_MAYBE_FEED &&
         !handlerInfo.handledOnlyByPlugin) {
       let menuItem = document.createElementNS(kXULNS, "menuitem");
