@@ -7535,8 +7535,7 @@ nsNavHistory::CalculateFrecencyInternal(PRInt64 aPlaceId,
           break;
         default:
           
-          if (visitType)
-            NS_WARNING("new transition but no weight for frecency");
+          NS_WARN_IF_FALSE(!visitType, "new transition but no weight for frecency");
           bonus = mDefaultVisitBonus;
           break;
       }
