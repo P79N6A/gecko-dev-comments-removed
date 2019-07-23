@@ -280,6 +280,9 @@ char* nsInstallFileOpItem::toString()
   nsCAutoString srcPath;
   nsCAutoString dstPath;
 
+  if (!resultCString)
+    return nsnull;
+
     
   *resultCString = nsnull;
   switch(mCommand)
