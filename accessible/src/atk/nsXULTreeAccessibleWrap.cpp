@@ -64,7 +64,7 @@ NS_IMETHODIMP nsXULTreeAccessibleWrap::GetChildCount(PRInt32 *aAccChildCount)
   
   nsAccessible::GetChildCount(aAccChildCount);
 
-  if (*aAccChildCount != eChildCountUninitialized) {
+  if (*aAccChildCount != 0 && *aAccChildCount != eChildCountUninitialized) {
     
     
     PRInt32 rowCount, colCount = 1;
