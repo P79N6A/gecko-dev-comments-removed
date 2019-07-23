@@ -148,7 +148,7 @@ class nsWaveDecoder : public nsMediaDecoder
 
   virtual PRBool Init(nsHTMLMediaElement* aElement);
 
-  virtual void GetCurrentURI(nsIURI** aURI);
+  virtual nsMediaStream* GetCurrentStream();
   virtual already_AddRefed<nsIPrincipal> GetCurrentPrincipal();
 
   
@@ -176,7 +176,7 @@ class nsWaveDecoder : public nsMediaDecoder
 
   
   
-  virtual nsresult Load(nsIURI* aURI, nsIChannel* aChannel, nsIStreamListener** aStreamListener);
+  virtual nsresult Load(nsIChannel* aChannel, nsIStreamListener** aStreamListener);
 
   
   
@@ -249,9 +249,6 @@ private:
 
   
   float mInitialVolume;
-
-  
-  nsCOMPtr<nsIURI> mURI;
 
   
   nsCOMPtr<nsIThread> mPlaybackThread;

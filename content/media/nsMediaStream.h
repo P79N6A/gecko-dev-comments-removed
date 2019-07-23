@@ -152,6 +152,8 @@ public:
   
   nsMediaDecoder* Decoder() { return mDecoder; }
   
+  nsIURI* URI() { return mURI; }
+  
   
   
   virtual nsresult Close() = 0;

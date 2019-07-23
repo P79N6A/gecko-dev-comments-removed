@@ -55,6 +55,7 @@ extern PRLogModuleInfo* gVideoDecoderLog;
 #endif
 
 class nsHTMLMediaElement;
+class nsMediaStream;
 
 
 
@@ -77,7 +78,8 @@ public:
   virtual PRBool Init(nsHTMLMediaElement* aElement);
 
   
-  virtual void GetCurrentURI(nsIURI** aURI) = 0;
+  
+  virtual nsMediaStream* GetCurrentStream() = 0;
 
   
   virtual already_AddRefed<nsIPrincipal> GetCurrentPrincipal() = 0;
@@ -111,9 +113,7 @@ public:
   
   
   
-  
-  virtual nsresult Load(nsIURI* aURI,
-                        nsIChannel* aChannel,
+  virtual nsresult Load(nsIChannel* aChannel,
                         nsIStreamListener **aListener) = 0;
 
   
