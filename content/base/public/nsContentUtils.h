@@ -1015,6 +1015,39 @@ public:
 
 
   static void NotifyInstalledMenuKeyboardListener(PRBool aInstalling);
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  static nsresult CheckSecurityBeforeLoad(nsIURI* aURIToLoad,
+                                          nsIPrincipal* aLoadingPrincipal,
+                                          PRUint32 aCheckLoadFlags,
+                                          PRBool aAllowData,
+                                          PRUint32 aContentPolicyType,
+                                          nsISupports* aContext,
+                                          const nsACString& aMimeGuess = EmptyCString(),
+                                          nsISupports* aExtra = nsnull);
+
 private:
 
   static PRBool InitializeEventTable();

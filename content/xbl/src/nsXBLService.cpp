@@ -523,19 +523,6 @@ nsXBLService::LoadBindings(nsIContent* aContent, nsIURI* aURL, PRBool aAugmentFl
   }
 
   
-  nsIURI *docURI = document->GetDocumentURI();
-  PRBool isChrome = PR_FALSE;
-  rv = docURI->SchemeIs("chrome", &isChrome);
-
-  
-  if (NS_FAILED(rv) || !isChrome) {
-    rv = nsContentUtils::GetSecurityManager()->
-      CheckLoadURIWithPrincipal(document->NodePrincipal(), aURL,
-                                nsIScriptSecurityManager::ALLOW_CHROME);
-    if (NS_FAILED(rv))
-      return rv;
-  }
-
   
   
   
@@ -543,21 +530,13 @@ nsXBLService::LoadBindings(nsIContent* aContent, nsIURI* aURL, PRBool aAugmentFl
   
   
   
-  PRInt16 decision = nsIContentPolicy::ACCEPT;
-  rv = NS_CheckContentLoadPolicy(nsIContentPolicy::TYPE_OTHER,
-                                 aURL,
-                                 docURI,
-                                 document,        
-                                 EmptyCString(),  
-                                 nsnull,          
-                                 &decision,
-                                 nsContentUtils::GetContentPolicy());
-
-  if (NS_SUCCEEDED(rv) && !NS_CP_ACCEPTED(decision))
-    rv = NS_ERROR_NOT_AVAILABLE;
-
-  if (NS_FAILED(rv))
-    return rv;
+  rv = nsContentUtils::CheckSecurityBeforeLoad(aURL,
+                                               document->NodePrincipal(),
+                                               nsIScriptSecurityManager::ALLOW_CHROME,
+                                               PR_TRUE,
+                                               nsIContentPolicy::TYPE_OTHER,
+                                               document);
+  NS_ENSURE_SUCCESS(rv, rv);
 
   PRBool ready;
   nsRefPtr<nsXBLBinding> newBinding;
@@ -986,7 +965,16 @@ nsXBLService::LoadBindingDocumentInfo(nsIContent* aBoundElement,
 {
   NS_PRECONDITION(aBindingURI, "Must have a binding URI");
   
-  nsresult rv = NS_OK;
+  nsresult rv;
+  if (aBoundDocument) {
+    rv = nsContentUtils::
+      CheckSecurityBeforeLoad(aBindingURI, aBoundDocument->NodePrincipal(),
+                              nsIScriptSecurityManager::ALLOW_CHROME,
+                              PR_TRUE,
+                              nsIContentPolicy::TYPE_OTHER,
+                              aBoundDocument);
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
 
   *aResult = nsnull;
   nsCOMPtr<nsIXBLDocumentInfo> info;
@@ -1097,6 +1085,43 @@ nsXBLService::LoadBindingDocumentInfo(nsIContent* aBoundElement,
   return NS_OK;
 }
 
+class nsSameOriginChecker : public nsIChannelEventSink,
+                            public nsIInterfaceRequestor
+{
+  NS_DECL_ISUPPORTS
+  NS_DECL_NSICHANNELEVENTSINK
+  NS_DECL_NSIINTERFACEREQUESTOR
+};
+
+NS_IMPL_ISUPPORTS2(nsSameOriginChecker,
+                   nsIChannelEventSink,
+                   nsIInterfaceRequestor)
+
+NS_IMETHODIMP
+nsSameOriginChecker::OnChannelRedirect(nsIChannel *aOldChannel,
+                                       nsIChannel *aNewChannel,
+                                       PRUint32    aFlags)
+{
+    NS_PRECONDITION(aNewChannel, "Redirecting to null channel?");
+
+    nsCOMPtr<nsIURI> oldURI;
+    nsresult rv = aOldChannel->GetURI(getter_AddRefs(oldURI)); 
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    nsCOMPtr<nsIURI> newURI;
+    rv = aNewChannel->GetURI(getter_AddRefs(newURI)); 
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    return nsContentUtils::GetSecurityManager()->
+      CheckSameOriginURI(oldURI, newURI);
+}
+
+NS_IMETHODIMP
+nsSameOriginChecker::GetInterface(const nsIID & aIID, void **aResult)
+{
+    return QueryInterface(aIID, aResult);
+}
+
 nsresult
 nsXBLService::FetchBindingDocument(nsIContent* aBoundElement, nsIDocument* aBoundDocument,
                                    nsIURI* aDocumentURI, nsIURI* aBindingURI, 
@@ -1130,6 +1155,11 @@ nsXBLService::FetchBindingDocument(nsIContent* aBoundElement, nsIDocument* aBoun
   nsCOMPtr<nsIChannel> channel;
   rv = NS_NewChannel(getter_AddRefs(channel), aDocumentURI, nsnull, loadGroup);
   NS_ENSURE_SUCCESS(rv, rv);
+
+  nsCOMPtr<nsIInterfaceRequestor> sameOriginChecker = new nsSameOriginChecker;
+  NS_ENSURE_TRUE(sameOriginChecker, NS_ERROR_OUT_OF_MEMORY);
+
+  channel->SetNotificationCallbacks(sameOriginChecker);
 
   nsCOMPtr<nsIStreamListener> listener;
   rv = doc->StartDocumentLoad("loadAsInteractiveData",
