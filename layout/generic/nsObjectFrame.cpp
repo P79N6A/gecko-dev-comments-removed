@@ -2398,20 +2398,12 @@ NS_IMETHODIMP nsPluginInstanceOwner::InvalidateRect(nsPluginRect *invalidRect)
   nsresult rv = NS_ERROR_FAILURE;
 
   if (mOwner && invalidRect && mWidgetVisible) {
-    
-    nsIView* view = mOwner->GetView();
-
-    if (view) {
-      nsPresContext* presContext = mOwner->PresContext();
-
-      nsRect rect(presContext->DevPixelsToAppUnits(invalidRect->left),
-            presContext->DevPixelsToAppUnits(invalidRect->top),
-            presContext->DevPixelsToAppUnits(invalidRect->right - invalidRect->left),
-            presContext->DevPixelsToAppUnits(invalidRect->bottom - invalidRect->top));
-
-      
-      view->GetViewManager()->UpdateView(view, rect, NS_VMREFRESH_NO_SYNC);
-    }
+    nsPresContext* presContext = mOwner->PresContext();
+    nsRect rect(presContext->DevPixelsToAppUnits(invalidRect->left),
+                presContext->DevPixelsToAppUnits(invalidRect->top),
+                presContext->DevPixelsToAppUnits(invalidRect->right - invalidRect->left),
+                presContext->DevPixelsToAppUnits(invalidRect->bottom - invalidRect->top));
+    mOwner->Invalidate(rect);
   }
 
   return rv;
