@@ -140,11 +140,11 @@ const NetUtil = {
 
 
 
-    asyncFetch: function NetUtil_asyncOpen(aChannel, aCallback)
+    asyncFetch: function NetUtil_asyncOpen(aSource, aCallback)
     {
-        if (!aChannel || !aCallback) {
+        if (!aSource || !aCallback) {
             let exception = new Components.Exception(
-                "Must have a channel and a callback",
+                "Must have a source and a callback",
                 Cr.NS_ERROR_INVALID_ARG,
                 Components.stack.caller
             );
@@ -168,7 +168,12 @@ const NetUtil = {
             }
         });
 
-        aChannel.asyncOpen(listener, null);
+        let channel = aSource;
+        if (!(channel instanceof Ci.nsIChannel)) {
+            channel = this.newChannel(aSource);
+        }
+
+        channel.asyncOpen(listener, null);
     },
 
     
