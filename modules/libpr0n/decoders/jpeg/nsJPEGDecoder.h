@@ -91,13 +91,12 @@ public:
   nsJPEGDecoder();
   virtual ~nsJPEGDecoder();
 
-  nsresult  ProcessData(const char *data, PRUint32 count, PRUint32 *writeCount);
-
 protected:
   PRBool OutputScanlines();
 
 public:
   nsCOMPtr<imgIContainer> mImage;
+  nsCOMPtr<imgILoad> mImageLoad;
   nsCOMPtr<gfxIImageFrame> mFrame;
 
   nsCOMPtr<imgIDecoderObserver> mObserver;
@@ -106,12 +105,12 @@ public:
   struct jpeg_source_mgr mSourceMgr;
   decoder_error_mgr mErr;
   jstate mState;
-  nsresult mError;
 
   PRUint32 mBytesToSkip;
 
-  const JOCTET *mSegment;   
-  PRUint32 mSegmentLen;     
+  JOCTET *mBuffer;
+  PRUint32 mBufferLen;  
+  PRUint32 mBufferSize; 
 
   JOCTET *mBackBuffer;
   PRUint32 mBackBufferLen; 
@@ -125,6 +124,10 @@ public:
   cmsHTRANSFORM mTransform;
 
   PRPackedBool mReading;
+
+private:
+
+  nsresult AddToTmpAccumulateBuffer(JOCTET *src, PRUint32 len);
 };
 
 #endif 
