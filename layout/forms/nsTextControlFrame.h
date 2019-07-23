@@ -256,7 +256,7 @@ protected:
           mWeakFrame.GetFrame()->PresContext()->GetPresShell();
         PRBool observes = shell->ObservesNativeAnonMutationsForPrint();
         shell->ObserveNativeAnonMutationsForPrint(PR_TRUE);
-        mFrame->EnsureEditorInitialized();
+        mFrame->EnsureEditorInitializedInternal();
         shell->ObserveNativeAnonMutationsForPrint(observes);
       }
       return NS_OK;
@@ -344,6 +344,11 @@ private:
   nsresult HidePlaceholder();
   nsresult SetPlaceholderClass(PRBool aVisible, PRBool aNotify);
   nsresult UpdatePlaceholderText(PRBool aNotify); 
+
+  
+  
+  
+  virtual nsresult EnsureEditorInitializedInternal();
 
 private:
   nsCOMPtr<nsIContent> mValueDiv;
