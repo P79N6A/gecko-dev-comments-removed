@@ -5706,6 +5706,15 @@ nsresult PresShell::AddCanvasBackgroundColorItem(nsDisplayListBuilder& aBuilder,
                                                  nsRect*               aBounds,
                                                  nscolor               aBackstopColor)
 {
+  
+  
+  
+  
+  
+  
+  if (!nsCSSRendering::IsCanvasFrame(aFrame))
+    return NS_OK;
+
   nscolor bgcolor = NS_ComposeColors(aBackstopColor, mCanvasBackgroundColor);
   nsRect bounds = aBounds == nsnull ?
     nsRect(aBuilder.ToReferenceFrame(aFrame), aFrame->GetSize()) : *aBounds;
