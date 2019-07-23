@@ -281,7 +281,6 @@ nsHttpHandler::Init()
     if (mObserverService) {
         mObserverService->AddObserver(this, "profile-change-net-teardown", PR_TRUE);
         mObserverService->AddObserver(this, "profile-change-net-restore", PR_TRUE);
-        mObserverService->AddObserver(this, "session-logout", PR_TRUE);
         mObserverService->AddObserver(this, NS_XPCOM_SHUTDOWN_OBSERVER_ID, PR_TRUE);
     }
  
@@ -1705,14 +1704,6 @@ nsHttpHandler::Observe(nsISupports *subject,
         
         if (mConnMgr)
             mConnMgr->Shutdown();
-
-        
-        
-        mSessionStartTime = NowInSeconds();
-    }
-    else if (strcmp(topic, "session-logout") == 0) {
-        
-        mAuthCache.ClearAll();
 
         
         
