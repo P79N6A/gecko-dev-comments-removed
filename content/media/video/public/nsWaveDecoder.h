@@ -255,6 +255,13 @@ private:
   
   
   
+  
+  
+  float mTimeOffset;
+
+  
+  
+  
   float mEndedCurrentTime;
   float mEndedDuration;
 
