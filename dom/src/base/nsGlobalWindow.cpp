@@ -6899,7 +6899,8 @@ nsGlobalWindow::SetTimeoutOrInterval(PRBool aIsInterval, PRInt32 *aReturn)
     
     
 
-    if (callerInner->GetOuterWindow() == this) {
+    if (callerInner->GetOuterWindow() == this &&
+        callerInner->IsInnerWindow()) {
       return callerInner->SetTimeoutOrInterval(aIsInterval, aReturn);
     }
 
