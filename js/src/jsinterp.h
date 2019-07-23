@@ -555,7 +555,7 @@ js_InternNonIntElementId(JSContext *cx, JSObject *obj, jsval idval, jsid *idp);
 
 
 
-extern jsval
+extern jsval&
 js_GetUpvar(JSContext *cx, uintN level, uintN cookie);
 
 
