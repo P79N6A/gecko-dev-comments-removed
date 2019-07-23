@@ -175,6 +175,13 @@ public:
 
   nsresult GetPhonetic(nsAString& aPhonetic);
 
+  
+
+
+
+
+  virtual nsresult EnsureEditorInitialized();
+
 
 
   virtual nsIAtom* GetType() const;
@@ -248,7 +255,7 @@ protected:
           mWeakFrame.GetFrame()->PresContext()->GetPresShell();
         PRBool observes = shell->ObservesNativeAnonMutationsForPrint();
         shell->ObserveNativeAnonMutationsForPrint(PR_TRUE);
-        mFrame->DelayedEditorInit();
+        mFrame->EnsureEditorInitialized();
         shell->ObserveNativeAnonMutationsForPrint(observes);
       }
       return NS_OK;
@@ -259,10 +266,6 @@ protected:
     nsTextControlFrame* mFrame;
   };
 
-  
-  
-  void DelayedEditorInit();
-
   nsresult DOMPointToOffset(nsIDOMNode* aNode, PRInt32 aNodeOffset, PRInt32 *aResult);
   nsresult OffsetToDOMPoint(PRInt32 aOffset, nsIDOMNode** aResult, PRInt32* aPosition);
 
@@ -272,12 +275,6 @@ protected:
 
 
   PRBool IsScrollable() const;
-  
-
-
-
-
-  nsresult InitEditor();
   
 
 
