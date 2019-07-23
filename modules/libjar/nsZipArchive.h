@@ -39,6 +39,7 @@
 
 
 
+
 #ifndef nsZipArchive_h_
 #define nsZipArchive_h_
 
@@ -53,6 +54,7 @@
 #define ZIP_Seek(fd,p,m) (PR_Seek((fd),((PROffset32)p),(m))==((PROffset32)p))
 
 #include "zlib.h"
+#include "nsAutoPtr.h"
 
 class nsZipFind;
 class nsZipReadState;
@@ -111,6 +113,8 @@ struct nsZipItem
   char        name[1]; 
 };
 
+class nsZipHandle;
+class nsSeekableZipHandle;
 
 
 
@@ -189,9 +193,7 @@ public:
   
 
 
-
-
-  nsresult  SeekToItem(nsZipItem* aItem, PRFileDesc* aFd);
+  nsZipHandle* GetFD(nsZipItem* aItem);
 
 private:
   
@@ -200,11 +202,17 @@ private:
   PLArenaPool   mArena;
 
   
-  PRFileDesc    *mFd;
+
+
+
+
+  bool MaybeReadItem(nsZipItem* aItem);
 
   
   PRPackedBool  mBuiltSynthetics;
 
+  
+  nsRefPtr<nsZipHandle> mFd;
   
   
   nsZipArchive& operator=(const nsZipArchive& rhs); 
@@ -214,8 +222,92 @@ private:
   nsresult          BuildFileList();
   nsresult          BuildSynthetics();
 
-  nsresult  CopyItemToDisk(PRUint32 size, PRUint32 crc, PRFileDesc* outFD);
-  nsresult  InflateItem(const nsZipItem* aItem, PRFileDesc* outFD);
+  nsresult  CopyItemToDisk(PRUint32 size, PRUint32 crc, nsSeekableZipHandle &fd, PRFileDesc* outFD);
+  nsresult  InflateItem(const nsZipItem* aItem, nsSeekableZipHandle &fd, PRFileDesc* outFD);
+};
+
+class nsZipHandle {
+friend class nsZipArchive;
+friend class nsSeekableZipHandle;
+public:
+  static nsresult Init(PRFileDesc *fd, nsZipHandle **ret NS_OUTPARAM);
+
+  
+
+
+
+
+  PRInt32 Read(PRUint32 aPosition, void *aBuffer, PRUint32 aCount);
+
+  nsrefcnt AddRef(void);
+  nsrefcnt Release(void);
+
+protected:
+  PRFileDesc *mFd; 
+  PRUint8 *mFileData; 
+  PRUint32 mLen; 
+
+private:
+  nsZipHandle();
+  ~nsZipHandle();
+
+  PRFileMap *mMap; 
+  nsrefcnt mRefCnt; 
+};
+
+
+
+
+class nsSeekableZipHandle {
+  
+public:
+  nsSeekableZipHandle()
+    : mOffset(0)
+    , mRemaining(0)
+  {
+  }
+
+  
+
+
+
+  bool Open(nsZipHandle *aHandle, PRUint32 aOffset, PRUint32 aLength) {
+    NS_ABORT_IF_FALSE (aHandle, "Argument must not be NULL");
+    if (aOffset > aHandle->mLen)
+      return false;
+    mFd = aHandle;
+    mOffset = aOffset;
+    mRemaining = aLength;
+    return true;
+  }
+
+  
+  void Close()
+  {
+    mFd = NULL;
+  }
+
+  
+
+
+
+  PRInt32 Read(void *aBuffer, PRUint32 aCount)
+  {
+    if (!mFd.get())
+      return -1;
+    aCount = PR_MIN(mRemaining, aCount);
+    PRInt32 ret = mFd->Read(mOffset, aBuffer, aCount);
+    if (ret > 0) {
+      mOffset += ret;
+      mRemaining -= ret;
+    }
+    return ret;
+  }
+
+private:
+  nsRefPtr<nsZipHandle> mFd; 
+  PRUint32 mOffset; 
+  PRUint32 mRemaining; 
 };
 
 
