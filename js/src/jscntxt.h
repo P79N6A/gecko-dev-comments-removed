@@ -523,24 +523,14 @@ typedef struct JSLocalRootStack {
 
 
 
+#define JSTVU_SINGLE        (-1)    /* u.value or u.<gcthing> is single jsval
+                                       or GC-thing */
+#define JSTVU_TRACE         (-2)    
 
-
-
-
-#define JSTVU_SINGLE        (-1)
-#define JSTVU_TRACE         (-2)
-#define JSTVU_SPROP         (-3)
-#define JSTVU_WEAK_ROOTS    (-4)
-#define JSTVU_PARSE_CONTEXT (-5)
-#define JSTVU_SCRIPT        (-6)
-
-
-
-
-
-
-
-
+#define JSTVU_SPROP         (-3)    /* u.sprop roots property tree node */
+#define JSTVU_WEAK_ROOTS    (-4)    /* u.weakRoots points to saved weak roots */
+#define JSTVU_PARSE_CONTEXT (-5)    /* u.parseContext roots JSParseContext* */
+#define JSTVU_SCRIPT        (-6)    /* u.script roots JSScript* */
 
 
 
@@ -555,57 +545,15 @@ typedef struct JSLocalRootStack {
 
 
 JS_STATIC_ASSERT(sizeof(JSTempValueUnion) == sizeof(jsval));
-JS_STATIC_ASSERT(sizeof(JSTempValueUnion) == sizeof(JSObject *));
+JS_STATIC_ASSERT(sizeof(JSTempValueUnion) == sizeof(void *));
 
-#define JS_PUSH_TEMP_ROOT_COMMON(cx,tvr)                                      \
+#define JS_PUSH_TEMP_ROOT_COMMON(cx,x,tvr,cnt,kind)                           \
     JS_BEGIN_MACRO                                                            \
         JS_ASSERT((cx)->tempValueRooters != (tvr));                           \
+        (tvr)->count = (cnt);                                                 \
+        (tvr)->u.kind = (x);                                                  \
         (tvr)->down = (cx)->tempValueRooters;                                 \
         (cx)->tempValueRooters = (tvr);                                       \
-    JS_END_MACRO
-
-#define JS_PUSH_SINGLE_TEMP_ROOT(cx,val,tvr)                                  \
-    JS_BEGIN_MACRO                                                            \
-        (tvr)->count = JSTVU_SINGLE;                                          \
-        (tvr)->u.value = val;                                                 \
-        JS_PUSH_TEMP_ROOT_COMMON(cx, tvr);                                    \
-    JS_END_MACRO
-
-#define JS_PUSH_TEMP_ROOT(cx,cnt,arr,tvr)                                     \
-    JS_BEGIN_MACRO                                                            \
-        JS_ASSERT((int)(cnt) >= 0);                                           \
-        (tvr)->count = (ptrdiff_t)(cnt);                                      \
-        (tvr)->u.array = (arr);                                               \
-        JS_PUSH_TEMP_ROOT_COMMON(cx, tvr);                                    \
-    JS_END_MACRO
-
-#define JS_PUSH_TEMP_ROOT_TRACE(cx,trace_,tvr)                                \
-    JS_BEGIN_MACRO                                                            \
-        (tvr)->count = JSTVU_TRACE;                                           \
-        (tvr)->u.trace = (trace_);                                            \
-        JS_PUSH_TEMP_ROOT_COMMON(cx, tvr);                                    \
-    JS_END_MACRO
-
-#define JS_PUSH_TEMP_ROOT_OBJECT(cx,obj,tvr)                                  \
-    JS_BEGIN_MACRO                                                            \
-        (tvr)->count = JSTVU_SINGLE;                                          \
-        (tvr)->u.object = (obj);                                              \
-        JS_PUSH_TEMP_ROOT_COMMON(cx, tvr);                                    \
-    JS_END_MACRO
-
-#define JS_PUSH_TEMP_ROOT_STRING(cx,str,tvr)                                  \
-    JS_BEGIN_MACRO                                                            \
-        (tvr)->count = JSTVU_SINGLE;                                          \
-        (tvr)->u.string = (str);                                              \
-        JS_PUSH_TEMP_ROOT_COMMON(cx, tvr);                                    \
-    JS_END_MACRO
-
-#define JS_PUSH_TEMP_ROOT_GCTHING(cx,thing,tvr)                               \
-    JS_BEGIN_MACRO                                                            \
-        JS_ASSERT(JSVAL_IS_OBJECT((jsval)thing));                             \
-        (tvr)->count = JSTVU_SINGLE;                                          \
-        (tvr)->u.gcthing = (thing);                                           \
-        JS_PUSH_TEMP_ROOT_COMMON(cx, tvr);                                    \
     JS_END_MACRO
 
 #define JS_POP_TEMP_ROOT(cx,tvr)                                              \
@@ -614,41 +562,44 @@ JS_STATIC_ASSERT(sizeof(JSTempValueUnion) == sizeof(JSObject *));
         (cx)->tempValueRooters = (tvr)->down;                                 \
     JS_END_MACRO
 
-#define JS_TEMP_ROOT_EVAL(cx,cnt,val,expr)                                    \
+#define JS_PUSH_TEMP_ROOT(cx,cnt,arr,tvr)                                     \
     JS_BEGIN_MACRO                                                            \
-        JSTempValueRooter tvr;                                                \
-        JS_PUSH_TEMP_ROOT(cx, cnt, val, &tvr);                                \
-        (expr);                                                               \
-        JS_POP_TEMP_ROOT(cx, &tvr);                                           \
+        JS_ASSERT((int)(cnt) >= 0);                                           \
+        JS_PUSH_TEMP_ROOT_COMMON(cx, arr, tvr, (ptrdiff_t) (cnt), array);     \
     JS_END_MACRO
+
+#define JS_PUSH_SINGLE_TEMP_ROOT(cx,val,tvr)                                  \
+    JS_PUSH_TEMP_ROOT_COMMON(cx, val, tvr, JSTVU_SINGLE, value)
+
+#define JS_PUSH_TEMP_ROOT_OBJECT(cx,obj,tvr)                                  \
+    JS_PUSH_TEMP_ROOT_COMMON(cx, obj, tvr, JSTVU_SINGLE, object)
+
+#define JS_PUSH_TEMP_ROOT_STRING(cx,str,tvr)                                  \
+    JS_PUSH_TEMP_ROOT_COMMON(cx, str, tvr, JSTVU_SINGLE, string)
+
+#define JS_PUSH_TEMP_ROOT_FUNCTION(cx,fun,tvr)                                \
+    JS_PUSH_TEMP_ROOT_COMMON(cx, fun, tvr, JSTVU_SINGLE, function)
+
+#define JS_PUSH_TEMP_ROOT_QNAME(cx,qn,tvr)                                    \
+    JS_PUSH_TEMP_ROOT_COMMON(cx, qn, tvr, JSTVU_SINGLE, qname)
+
+#define JS_PUSH_TEMP_ROOT_XML(cx,xml_,tvr)                                    \
+    JS_PUSH_TEMP_ROOT_COMMON(cx, xml_, tvr, JSTVU_SINGLE, xml)
+
+#define JS_PUSH_TEMP_ROOT_TRACE(cx,trace_,tvr)                                \
+    JS_PUSH_TEMP_ROOT_COMMON(cx, trace_, tvr, JSTVU_TRACE, trace)
 
 #define JS_PUSH_TEMP_ROOT_SPROP(cx,sprop_,tvr)                                \
-    JS_BEGIN_MACRO                                                            \
-        (tvr)->count = JSTVU_SPROP;                                           \
-        (tvr)->u.sprop = (sprop_);                                            \
-        JS_PUSH_TEMP_ROOT_COMMON(cx, tvr);                                    \
-    JS_END_MACRO
+    JS_PUSH_TEMP_ROOT_COMMON(cx, sprop_, tvr, JSTVU_SPROP, sprop)
 
 #define JS_PUSH_TEMP_ROOT_WEAK_COPY(cx,weakRoots_,tvr)                        \
-    JS_BEGIN_MACRO                                                            \
-        (tvr)->count = JSTVU_WEAK_ROOTS;                                      \
-        (tvr)->u.weakRoots = (weakRoots_);                                    \
-        JS_PUSH_TEMP_ROOT_COMMON(cx, tvr);                                    \
-    JS_END_MACRO
+    JS_PUSH_TEMP_ROOT_COMMON(cx, weakRoots_, tvr, JSTVU_WEAK_ROOTS, weakRoots)
 
 #define JS_PUSH_TEMP_ROOT_PARSE_CONTEXT(cx,pc,tvr)                            \
-    JS_BEGIN_MACRO                                                            \
-        (tvr)->count = JSTVU_PARSE_CONTEXT;                                   \
-        (tvr)->u.parseContext = (pc);                                         \
-        JS_PUSH_TEMP_ROOT_COMMON(cx, tvr);                                    \
-    JS_END_MACRO
+    JS_PUSH_TEMP_ROOT_COMMON(cx, pc, tvr, JSTVU_PARSE_CONTEXT, parseContext)
 
 #define JS_PUSH_TEMP_ROOT_SCRIPT(cx,script_,tvr)                              \
-    JS_BEGIN_MACRO                                                            \
-        (tvr)->count = JSTVU_SCRIPT;                                          \
-        (tvr)->u.script = (script_);                                          \
-        JS_PUSH_TEMP_ROOT_COMMON(cx, tvr);                                    \
-    JS_END_MACRO
+    JS_PUSH_TEMP_ROOT_COMMON(cx, script_, tvr, JSTVU_SCRIPT, script)
 
 struct JSContext {
     
