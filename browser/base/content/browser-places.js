@@ -174,6 +174,13 @@ var StarUI = {
 
     this._blockCommands(); 
 
+    
+    
+    var rows = this._element("editBookmarkPanelGrid").lastChild;
+    var header = this._element("editBookmarkPanelHeader");
+    rows.insertBefore(header, rows.firstChild);
+    header.hidden = false;
+
     var bundle = this._element("bundle_browser");
 
     
