@@ -74,6 +74,16 @@ LoginManagerStorage_legacy.prototype = {
         return this.__decoderRing;
     },
 
+    __utfConverter : null, 
+    get _utfConverter() {
+        if (!this.__utfConverter) {
+            this.__utfConverter = Cc["@mozilla.org/intl/scriptableunicodeconverter"].
+                                  createInstance(Ci.nsIScriptableUnicodeConverter);
+            this.__utfConverter.charset = "UTF-8";
+        }
+        return this.__utfConverter;
+    },
+
     __profileDir: null,  
     get _profileDir() {
         if (!this.__profileDir) {
@@ -852,6 +862,7 @@ LoginManagerStorage_legacy.prototype = {
 
         do {
             var hasMore = lineStream.readLine(line);
+            line.value = this._utfConverter.ConvertToUnicode(line.value);
 
             switch (parseState) {
                 
@@ -1021,7 +1032,10 @@ LoginManagerStorage_legacy.prototype = {
 
 
     _writeFile : function () {
+        var converter = this._utfConverter;
         function writeLine(data) {
+            data = converter.ConvertFromUnicode(data);
+            data += converter.Finish();
             data += "\r\n";
             outputStream.write(data, data.length);
         }
@@ -1243,11 +1257,8 @@ LoginManagerStorage_legacy.prototype = {
         var cipherText = null, userCanceled = false;
 
         try {
-            var converter = Cc["@mozilla.org/intl/scriptableunicodeconverter"].
-                            createInstance(Ci.nsIScriptableUnicodeConverter);
-            converter.charset = "UTF-8";
-            var plainOctet = converter.ConvertFromUnicode(plainText);
-            plainOctet += converter.Finish();
+            var plainOctet = this._utfConverter.ConvertFromUnicode(plainText);
+            plainOctet += this._utfConverter.Finish();
             cipherText = this._decoderRing.encryptString(plainOctet);
         } catch (e) {
             this.log("Failed to encrypt string. (" + e.name + ")");
@@ -1288,10 +1299,7 @@ LoginManagerStorage_legacy.prototype = {
             } else {
                 plainOctet = this._decoderRing.decryptString(cipherText);
             }
-            var converter = Cc["@mozilla.org/intl/scriptableunicodeconverter"].
-                            createInstance(Ci.nsIScriptableUnicodeConverter);
-            converter.charset = "UTF-8";
-            plainText = converter.ConvertToUnicode(plainOctet);
+            plainText = this._utfConverter.ConvertToUnicode(plainOctet);
         } catch (e) {
             this.log("Failed to decrypt string: " + cipherText +
                 " (" + e.name + ")");
