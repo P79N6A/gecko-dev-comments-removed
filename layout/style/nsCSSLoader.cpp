@@ -1008,62 +1008,84 @@ CSSLoaderImpl::CreateSheet(nsIURI* aURI,
       
       mCompleteSheets.Get(&key, getter_AddRefs(sheet));
       LOG(("  From completed: %p", sheet.get()));
+    }
     
+    if (sheet) {
+#ifdef DEBUG
       
-      if (!sheet && !aSyncLoad) {
-        aSheetState = eSheetLoading;
+      
+      PRBool complete = PR_FALSE;
+      sheet->GetComplete(complete);
+      NS_ASSERTION(complete,
+                   "Sheet thinks it's not complete while we think it is");
+#endif
+      
+      PRBool modified = PR_TRUE;
+      sheet->IsModified(&modified);
+      if (modified) {
+        LOG(("  Not cloning completed sheet %p because it's been modified",
+             sheet.get()));
+        sheet = nsnull;
+      }
+    }
+
+    
+    if (!sheet && !aSyncLoad) {
+      aSheetState = eSheetLoading;
+      SheetLoadData* loadData = nsnull;
+      nsURIAndPrincipalHashKey key(aURI, aLoaderPrincipal);      
+      mLoadingDatas.Get(&key, &loadData);
+      if (loadData) {
+        sheet = loadData->mSheet;
+        LOG(("  From loading: %p", sheet.get()));
+
+#ifdef DEBUG
+        PRBool debugEqual;
+        NS_ASSERTION((!aLoaderPrincipal && !loadData->mLoaderPrincipal) ||
+                     (aLoaderPrincipal && loadData->mLoaderPrincipal &&
+                      NS_SUCCEEDED(aLoaderPrincipal->
+                                   Equals(loadData->mLoaderPrincipal,
+                                          &debugEqual)) && debugEqual),
+                     "Principals should be the same");
+#endif
+      }
+
+      
+      if (!sheet) {
+        aSheetState = eSheetPending;
         SheetLoadData* loadData = nsnull;
-        mLoadingDatas.Get(&key, &loadData);
+        mPendingDatas.Get(&key, &loadData);
         if (loadData) {
           sheet = loadData->mSheet;
-          LOG(("  From loading: %p", sheet.get()));
+          LOG(("  From pending: %p", sheet.get()));
 
 #ifdef DEBUG
           PRBool debugEqual;
           NS_ASSERTION((!aLoaderPrincipal && !loadData->mLoaderPrincipal) ||
                        (aLoaderPrincipal && loadData->mLoaderPrincipal &&
                         NS_SUCCEEDED(aLoaderPrincipal->
-                                       Equals(loadData->mLoaderPrincipal,
-                                              &debugEqual)) && debugEqual),
+                                     Equals(loadData->mLoaderPrincipal,
+                                            &debugEqual)) && debugEqual),
                        "Principals should be the same");
 #endif
-        }
-
-        
-        if (!sheet) {
-          aSheetState = eSheetPending;
-          SheetLoadData* loadData = nsnull;
-          mPendingDatas.Get(&key, &loadData);
-          if (loadData) {
-            sheet = loadData->mSheet;
-            LOG(("  From pending: %p", sheet.get()));
-
-#ifdef DEBUG
-            PRBool debugEqual;
-            NS_ASSERTION((!aLoaderPrincipal && !loadData->mLoaderPrincipal) ||
-                         (aLoaderPrincipal && loadData->mLoaderPrincipal &&
-                          NS_SUCCEEDED(aLoaderPrincipal->
-                                         Equals(loadData->mLoaderPrincipal,
-                                                &debugEqual)) && debugEqual),
-                         "Principals should be the same");
-#endif
-          }
         }
       }
     }
 
     if (sheet) {
       
+#ifdef DEBUG
       PRBool modified = PR_TRUE;
       sheet->IsModified(&modified);
       PRBool complete = PR_FALSE;
       sheet->GetComplete(complete);
-      if (!modified || !complete) {
-        
-        sheet->Clone(nsnull, nsnull, nsnull, nsnull, aSheet);
-        NS_ASSERTION(complete || aSheetState != eSheetComplete,
-                     "Sheet thinks it's not complete while we think it is");
-      }
+      NS_ASSERTION(!modified || !complete,
+                   "Unexpected modified complete sheet");
+      NS_ASSERTION(complete || aSheetState != eSheetComplete,
+                   "Sheet thinks it's not complete while we think it is");
+#endif
+      rv = sheet->Clone(nsnull, nsnull, nsnull, nsnull, aSheet);
+      NS_ENSURE_SUCCESS(rv, rv);
     }
   }
 
