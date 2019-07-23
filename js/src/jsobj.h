@@ -641,11 +641,17 @@ js_DefineProperty(JSContext *cx, JSObject *obj, jsid id, jsval value,
 
 #ifdef __cplusplus 
 
+
+
+
+const uintN JSDNP_CACHE_RESULT = 1; 
+const uintN JSDNP_DONT_PURGE   = 2; 
+
 extern JSBool
 js_DefineNativeProperty(JSContext *cx, JSObject *obj, jsid id, jsval value,
                         JSPropertyOp getter, JSPropertyOp setter, uintN attrs,
                         uintN flags, intN shortid, JSProperty **propp,
-                        JSBool cacheResult = JS_FALSE);
+                        uintN defineHow = 0);
 #endif
 
 
