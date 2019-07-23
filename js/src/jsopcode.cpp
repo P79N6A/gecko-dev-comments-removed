@@ -2526,7 +2526,12 @@ Decompile(SprintStack *ss, jsbytecode *pc, intN nb, JSOp nextop)
 
                   case SRC_HIDDEN:
                     
+
+
+
                     todo = -2;
+                    if (lastop == JSOP_UNBRAND)
+                        (void) POP_STR();
                     break;
 
                   case SRC_DECL:
