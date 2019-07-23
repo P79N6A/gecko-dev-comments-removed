@@ -127,7 +127,7 @@
 *|*::-moz-anonymous-block, *|*::-moz-anonymous-positioned-block {
   
   outline: inherit;
-  -moz-outline-offset: inherit;
+  outline-offset: inherit;
   clip-path: inherit;
   filter: inherit;
   mask: inherit;
