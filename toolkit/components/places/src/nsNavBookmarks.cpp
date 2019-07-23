@@ -1269,6 +1269,9 @@ nsNavBookmarks::GetParentAndIndexOfFolder(PRInt64 aFolder, PRInt64* aParent,
 NS_IMETHODIMP
 nsNavBookmarks::RemoveFolder(PRInt64 aFolder)
 {
+  mozIStorageConnection *dbConn = DBConn();
+  mozStorageTransaction transaction(dbConn, PR_FALSE);
+
   
   nsAnnotationService* annosvc = nsAnnotationService::GetAnnotationService();
   NS_ENSURE_TRUE(annosvc, NS_ERROR_OUT_OF_MEMORY);
@@ -1309,9 +1312,6 @@ nsNavBookmarks::RemoveFolder(PRInt64 aFolder)
 
   
   RemoveFolderChildren(aFolder);
-
-  mozIStorageConnection *dbConn = DBConn();
-  mozStorageTransaction transaction(dbConn, PR_FALSE);
 
   
   nsCAutoString buffer;
