@@ -522,7 +522,8 @@ nsFocusController::SetSuppressFocus(PRBool aSuppressFocus, const char* aReason)
     
   }
   else 
-    NS_ASSERTION(PR_FALSE, "Attempt to decrement focus controller's suppression when no suppression active!\n");
+    
+    return NS_OK;
 
   
   
