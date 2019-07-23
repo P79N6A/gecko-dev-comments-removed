@@ -1165,6 +1165,7 @@ function stepListBuilder(aNumItems) {
     
     if (!gStmt.executeStep()) {
       
+      updateClearListButton();
       setTimeout(function() Cc["@mozilla.org/observer-service;1"].
         getService(Ci.nsIObserverService).
         notifyObservers(window, "download-manager-ui-done", null), 0);
