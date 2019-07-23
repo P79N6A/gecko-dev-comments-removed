@@ -113,6 +113,7 @@
 #include "nsTArray.h"
 #include "nsBaseHashtable.h"
 #include "nsHashKeys.h"
+#include "nsWrapperCache.h"
 
 #include "nsIXPCScriptNotify.h"  
 
@@ -2764,6 +2765,7 @@ public:
                                            nsISupports* src,
                                            const nsID* iid,
                                            XPCNativeInterface* Interface,
+                                           nsWrapperCache *cache,
                                            JSObject* scope,
                                            PRBool allowNativeWrapper,
                                            PRBool isGlobal,
