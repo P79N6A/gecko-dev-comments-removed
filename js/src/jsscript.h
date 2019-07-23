@@ -100,6 +100,7 @@ struct JSScript {
 
     uint8           trynotesOffset; 
 
+    uint8           flags;      
     jsbytecode      *main;      
     JSAtomMap       atomMap;    
     const char      *filename;  
@@ -111,6 +112,9 @@ struct JSScript {
     JSThread        *owner;     
 #endif
 };
+
+#define JSSF_NO_SCRIPT_RVAL     0x01    /* no need for result value of last
+                                           expression statement */
 
 static inline uintN
 StackDepth(JSScript *script)
