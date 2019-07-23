@@ -1344,9 +1344,6 @@ main(int argc, char **argv, char **envp)
         nsRefPtr<FullTrustSecMan> secman = new FullTrustSecMan();
         xpc->SetSecurityManagerForJSContext(cx, secman, 0xFFFF);
 
-        
-        
-
 #ifndef XPCONNECT_STANDALONE
         
         
