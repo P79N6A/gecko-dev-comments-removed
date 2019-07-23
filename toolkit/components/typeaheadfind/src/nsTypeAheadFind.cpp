@@ -112,8 +112,9 @@ static NS_DEFINE_CID(kFrameTraversalCID, NS_FRAMETRAVERSAL_CID);
 #define NS_FIND_CONTRACTID "@mozilla.org/embedcomp/rangefind;1"
 
 nsTypeAheadFind::nsTypeAheadFind():
-  mLinksOnlyPref(PR_FALSE), mStartLinksOnlyPref(PR_FALSE),
-  mLinksOnly(PR_FALSE), mCaretBrowsingOn(PR_FALSE), mLastFindLength(0),
+  mStartLinksOnlyPref(PR_FALSE),
+  mCaretBrowsingOn(PR_FALSE),
+  mLastFindLength(0),
   mIsSoundInitialized(PR_FALSE)
 {
 }
@@ -159,9 +160,6 @@ nsTypeAheadFind::PrefsReset()
 {
   nsCOMPtr<nsIPrefBranch> prefBranch(do_GetService(NS_PREFSERVICE_CONTRACTID));
   NS_ENSURE_TRUE(prefBranch, NS_ERROR_FAILURE);
-
-  prefBranch->GetBoolPref("accessibility.typeaheadfind.linksonly",
-                          &mLinksOnlyPref);
 
   prefBranch->GetBoolPref("accessibility.typeaheadfind.startlinksonly",
                           &mStartLinksOnlyPref);
@@ -900,11 +898,10 @@ nsTypeAheadFind::FindAgain(PRBool aFindBackwards, PRBool aLinksOnly,
 {
   *aResult = FIND_NOTFOUND;
 
-  mLinksOnly = aLinksOnly;
   if (!mTypeAheadBuffer.IsEmpty())
     
     
-    FindItNow(nsnull, mLinksOnly, PR_FALSE, aFindBackwards, aResult);
+    FindItNow(nsnull, aLinksOnly, PR_FALSE, aFindBackwards, aResult);
 
   return NS_OK;
 }
@@ -977,8 +974,6 @@ nsTypeAheadFind::Find(const nsAString& aSearchString, PRBool aLinksOnly,
     }
   }
 
-  mLinksOnly = aLinksOnly;  
-
 #ifdef XP_WIN
   
   
@@ -994,11 +989,6 @@ nsTypeAheadFind::Find(const nsAString& aSearchString, PRBool aLinksOnly,
 
   
   if (bufferLength == 0) {
-    
-    
-    if (!mLinksOnly)
-      mLinksOnly = mLinksOnlyPref;
- 
     
     
     
@@ -1029,7 +1019,7 @@ nsTypeAheadFind::Find(const nsAString& aSearchString, PRBool aLinksOnly,
   
   
   
-  nsresult rv = FindItNow(nsnull, mLinksOnly, isFirstVisiblePreferred,
+  nsresult rv = FindItNow(nsnull, aLinksOnly, isFirstVisiblePreferred,
                           PR_FALSE, aResult);
 
   
