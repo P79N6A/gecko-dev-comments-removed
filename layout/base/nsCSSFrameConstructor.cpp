@@ -6482,12 +6482,24 @@ nsCSSFrameConstructor::ContentInserted(nsIContent*            aContainer,
 
   nsIContent* container = parentFrame->GetContent();
 
-  if (parentFrame->GetType() == nsGkAtoms::frameSetFrame &&
+  nsIAtom* frameType = parentFrame->GetType();
+  if (frameType == nsGkAtoms::frameSetFrame &&
       IsSpecialFramesetChild(aChild)) {
     
     return RecreateFramesForContent(parentFrame->GetContent());
   }
-  
+
+  if (frameType == nsGkAtoms::fieldSetFrame &&
+      aChild->Tag() == nsGkAtoms::legend) {
+    
+    
+    
+    
+    
+    
+    return RecreateFramesForContent(parentFrame->GetContent());
+  }
+
   
   if (parentFrame->IsLeaf()) {
     return NS_OK;
@@ -8700,6 +8712,14 @@ nsCSSFrameConstructor::MaybeRecreateContainerForFrameRemoval(nsIFrame* aFrame,
 #endif
 
     *aResult = ReframeContainingBlock(aFrame);
+    return PR_TRUE;
+  }
+
+  if (aFrame->GetType() == nsGkAtoms::legendFrame &&
+      aFrame->GetParent()->GetType() == nsGkAtoms::fieldSetFrame) {
+    
+    
+    *aResult = RecreateFramesForContent(aFrame->GetParent()->GetContent());
     return PR_TRUE;
   }
 
