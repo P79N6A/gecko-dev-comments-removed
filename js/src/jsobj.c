@@ -2874,7 +2874,7 @@ js_FinalizeObject(JSContext *cx, JSObject *obj)
     }
 
     
-    GC_AWARE_GET_CLASS(cx, obj)->finalize(cx, obj);
+    STOBJ_GET_CLASS(obj)->finalize(cx, obj);
 
 #ifdef INCLUDE_MOZILLA_DTRACE
     if (JAVASCRIPT_OBJECT_FINALIZE_ENABLED())
