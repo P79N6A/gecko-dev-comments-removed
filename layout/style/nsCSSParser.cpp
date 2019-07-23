@@ -7897,10 +7897,14 @@ CSSParserImpl::ParseFontSrc(nsCSSValue& aValue)
       nsAutoString family;
       if (!ExpectSymbol('(', PR_FALSE))
         return PR_FALSE;
-      if (!ParseOneFamily(family))
+      if (!ParseOneFamily(family)) {
+        SkipUntil(')');
         return PR_FALSE;
-      if (!ExpectSymbol(')', PR_TRUE))
+      }
+      if (!ExpectSymbol(')', PR_TRUE)) {
+        SkipUntil(')');
         return PR_FALSE;
+      }
 
       
       
