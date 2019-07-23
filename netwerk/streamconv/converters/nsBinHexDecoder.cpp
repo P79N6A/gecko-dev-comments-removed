@@ -204,7 +204,7 @@ nsresult nsBinHexDecoder::ProcessNextState(nsIRequest * aRequest, nsISupports * 
       
       
       mName.SetLength(c & 63);
-      if (mName.Length() != c & 63) {
+      if (mName.Length() != (c & 63)) {
         
         mState = BINHEX_STATE_DONE;
       }
