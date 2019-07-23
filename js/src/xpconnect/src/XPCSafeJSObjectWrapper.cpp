@@ -956,9 +956,21 @@ XPC_SJOW_Equality(JSContext *cx, JSObject *obj, jsval v, JSBool *bp)
     JSObject *other = JSVAL_TO_OBJECT(v);
     JSObject *otherUnsafe = GetUnsafeObject(other);
 
-    *bp = (obj == other || unsafeObj == other ||
-           (unsafeObj && unsafeObj == otherUnsafe) ||
-           XPC_GetIdentityObject(cx, obj) == XPC_GetIdentityObject(cx, other));
+    
+    
+    
+    
+    
+    
+    if (obj == other || unsafeObj == other ||
+        (unsafeObj && unsafeObj == otherUnsafe)) {
+      *bp = JS_TRUE;
+    } else {
+      nsISupports *objIdentity = XPC_GetIdentityObject(cx, obj);
+      nsISupports *otherIdentity = XPC_GetIdentityObject(cx, other);
+
+      *bp = objIdentity && objIdentity == otherIdentity;
+    }
   }
 
   return JS_TRUE;
