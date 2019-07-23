@@ -83,6 +83,7 @@
 #include "nsCRT.h"
 #include "nsILocalFile.h"
 #include "nsDataHashtable.h"
+#include "prprf.h"
 
 #if defined(MOZ_IPC)
 using google_breakpad::CrashGenerationServer;
@@ -165,7 +166,7 @@ static CrashGenerationServer* crashServer;
 
 
 static const char kNullNotifyPipe[] = "-";
-static nsCString* childCrashNotifyPipe;
+static char* childCrashNotifyPipe;
 
 #  elif defined(XP_LINUX)
 static int serverSocketFd = -1;
@@ -1008,15 +1009,13 @@ OOPInit()
 
 #if defined(XP_WIN)
   
-  
-  childCrashNotifyPipe = 
-    new nsCString("\\\\.\\pipe\\gecko-crash-server-pipe.");
-  long pid = static_cast<long>(::GetCurrentProcessId());
-  childCrashNotifyPipe->AppendInt(pid);
+  childCrashNotifyPipe =
+    PR_smprintf("\\\\.\\pipe\\gecko-crash-server-pipe.%i",
+                static_cast<int>(::GetCurrentProcessId()));
 
   const std::wstring dumpPath = gExceptionHandler->dump_path();
   crashServer = new CrashGenerationServer(
-    NS_ConvertASCIItoUTF16(*childCrashNotifyPipe).BeginReading(),
+    NS_ConvertASCIItoUTF16(childCrashNotifyPipe).get(),
     NULL,                       
     NULL, NULL,                 
     OnChildProcessDumpRequested, NULL,
@@ -1044,16 +1043,16 @@ OOPInit()
 
 #if defined(XP_WIN)
 
-nsCString
+const char*
 GetChildNotificationPipe()
 {
   if (!GetEnabled())
-    return nsDependentCString(kNullNotifyPipe);
+    return kNullNotifyPipe;
 
   if (!OOPInitialized())
     OOPInit();
 
-  return *childCrashNotifyPipe;
+  return childCrashNotifyPipe;
 }
 
 
