@@ -1150,7 +1150,7 @@ namespace nanojit
 
     NIns* Assembler::genPrologue() {
         
-        uint32_t stackNeeded = max_stk_used + _activation.highwatermark * 4;
+        uint32_t stackNeeded = max_stk_used + _activation.tos * 4;
 
         uint32_t stackPushed =
             sizeof(void*) + 

@@ -68,7 +68,6 @@ namespace nanojit
     {
         LIns*           entry[ NJ_MAX_STACK_ENTRY ];    
         uint32_t        tos;                            
-        uint32_t        highwatermark;                  
         uint32_t        lowwatermark;                   
     };
 

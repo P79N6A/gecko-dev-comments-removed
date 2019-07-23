@@ -471,7 +471,7 @@ Assembler::genPrologue()
 
     
     
-    uint32_t stackNeeded = max_out_args + STACK_GRANULARITY * _activation.highwatermark;
+    uint32_t stackNeeded = max_out_args + STACK_GRANULARITY * _activation.tos;
     uint32_t savingCount = 2;
 
     uint32_t savingMask = rmask(FP) | rmask(LR);
