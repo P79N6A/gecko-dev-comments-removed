@@ -1470,13 +1470,13 @@ nsXPCWrappedJSClass::CallMethod(nsXPCWrappedJS* wrapper, uint16 methodIndex,
                     {
                         
                         
-                        ccx.SetCallee((JSObject*)getter);
+                        ccx.SetCallee(JS_FUNC_TO_DATA_PTR(JSObject*, getter));
                     }
                     else if(XPT_MD_IS_SETTER(info->flags) && (attrs & JSPROP_SETTER))
                     {
                         
                         
-                        ccx.SetCallee((JSObject*)setter);
+                        ccx.SetCallee(JS_FUNC_TO_DATA_PTR(JSObject*, setter));
                     }
                 }
             }
