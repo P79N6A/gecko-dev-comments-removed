@@ -1198,7 +1198,7 @@ var PlacesUIUtils = {
     }
 
     
-    let items = as.getItemsWithAnnotation(ORGANIZER_FOLDER_ANNO, {});
+    let items = as.getItemsWithAnnotation(ORGANIZER_FOLDER_ANNO);
     if (items.length > 1) {
       
       
@@ -1223,7 +1223,7 @@ var PlacesUIUtils = {
       delete this.leftPaneQueries;
       this.leftPaneQueries = {};
 
-      let items = as.getItemsWithAnnotation(ORGANIZER_QUERY_ANNO, {});
+      let items = as.getItemsWithAnnotation(ORGANIZER_QUERY_ANNO);
       
       let queriesCount = 0;
       for(let i = 0; i < items.length; i++) {
