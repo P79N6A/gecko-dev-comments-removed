@@ -43,6 +43,7 @@
 #include "nsIDOMClientRectList.h"
 #include "nsCOMArray.h"
 #include "nsRect.h"
+#include "nsCOMPtr.h"
 
 class nsPresContext;
 
@@ -75,6 +76,28 @@ public:
   NS_DECL_NSIDOMCLIENTRECTLIST
   
   void Append(nsIDOMClientRect* aElement) { mArray.AppendObject(aElement); }
+
+  nsIDOMClientRect* GetItemAt(PRUint32 aIndex)
+  {
+    return mArray.SafeObjectAt(aIndex);
+  }
+
+  static nsClientRectList* FromSupports(nsISupports* aSupports)
+  {
+#ifdef DEBUG
+    {
+      nsCOMPtr<nsIDOMClientRectList> list_qi = do_QueryInterface(aSupports);
+
+      
+      
+      
+      NS_ASSERTION(list_qi == static_cast<nsIDOMClientRectList*>(aSupports),
+                   "Uh, fix QI!");
+    }
+#endif
+
+    return static_cast<nsClientRectList*>(aSupports);
+  }
 
 protected:
   virtual ~nsClientRectList() {}

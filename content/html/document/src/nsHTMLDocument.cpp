@@ -98,7 +98,6 @@
 #include "nsIDOMHTMLBodyElement.h"
 #include "nsINameSpaceManager.h"
 #include "nsGenericHTMLElement.h"
-#include "nsGenericDOMNodeList.h"
 #include "nsICSSLoader.h"
 #include "nsIHttpChannel.h"
 #include "nsIFile.h"

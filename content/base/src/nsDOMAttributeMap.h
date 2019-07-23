@@ -48,6 +48,7 @@
 #include "nsInterfaceHashtable.h"
 #include "nsCycleCollectionParticipant.h"
 #include "prbit.h"
+#include "nsIDOMNode.h"
 
 class nsIAtom;
 class nsIContent;
@@ -169,6 +170,25 @@ public:
 
   PRUint32 Enumerate(AttrCache::EnumReadFunction aFunc, void *aUserArg) const;
 
+  nsIDOMNode* GetItemAt(PRUint32 aIndex, nsresult *rv);
+
+  static nsDOMAttributeMap* FromSupports(nsISupports* aSupports)
+  {
+#ifdef DEBUG
+    {
+      nsCOMPtr<nsIDOMNamedNodeMap> map_qi = do_QueryInterface(aSupports);
+
+      
+      
+      
+      NS_ASSERTION(map_qi == static_cast<nsIDOMNamedNodeMap*>(aSupports),
+                   "Uh, fix QI!");
+    }
+#endif
+
+    return static_cast<nsDOMAttributeMap*>(aSupports);
+  }
+
   NS_DECL_CYCLE_COLLECTION_CLASS(nsDOMAttributeMap)
 
 private:
@@ -201,8 +221,25 @@ private:
 
 
   nsresult GetAttribute(nsINodeInfo*     aNodeInfo,
-                        nsIDOMNode**     aReturn,
-                        PRBool aRemove = PR_FALSE);
+                        nsIDOMNode**     aReturn)
+  {
+    *aReturn = GetAttribute(aNodeInfo);
+    if (!*aReturn) {
+      return NS_ERROR_OUT_OF_MEMORY;
+    }
+
+    NS_ADDREF(*aReturn);
+
+    return NS_OK;
+  }
+
+  nsIDOMNode* GetAttribute(nsINodeInfo*     aNodeInfo);
+
+  
+
+
+  nsresult RemoveAttribute(nsINodeInfo*     aNodeInfo,
+                           nsIDOMNode**     aReturn);
 };
 
 

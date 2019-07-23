@@ -144,6 +144,25 @@ public:
   NS_DECL_ISUPPORTS
   NS_DECL_NSITREECOLUMNS
 
+  nsITreeColumn* GetColumnAt(PRInt32 aIndex);
+
+  static nsTreeColumns* FromSupports(nsISupports* aSupports)
+  {
+#ifdef DEBUG
+    {
+      nsCOMPtr<nsITreeColumns> columns_qi = do_QueryInterface(aSupports);
+
+      
+      
+      
+      NS_ASSERTION(columns_qi == static_cast<nsITreeColumns*>(aSupports),
+                   "Uh, fix QI!");
+    }
+#endif
+
+    return static_cast<nsTreeColumns*>(aSupports);
+  }
+
   friend class nsTreeBodyFrame;
 protected:
   void SetTree(nsITreeBoxObject* aTree) { mTree = aTree; }
