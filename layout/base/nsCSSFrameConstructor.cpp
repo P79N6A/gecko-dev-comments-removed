@@ -9140,30 +9140,35 @@ nsCSSFrameConstructor::ContentInserted(nsIContent*            aContainer,
   nsIFrame* newFrame = frameItems.childList;
   if (NS_SUCCEEDED(rv) && newFrame) {
     NS_ASSERTION(!captionItems.childList, "leaking caption frames");
+    if (!prevSibling) {
+      
+      
+      nsIFrame* firstChild = parentFrame->GetFirstChild(nsnull);
+
+      if (firstChild &&
+          nsLayoutUtils::IsGeneratedContentFor(aContainer, firstChild,
+                                               nsCSSPseudoElements::before)) {
+        
+        prevSibling = firstChild->GetLastContinuation();
+        nsIFrame* newParent = prevSibling->GetParent();
+        if (newParent != parentFrame) {
+          nsHTMLContainerFrame::ReparentFrameViewList(state.mPresContext,
+                                                      newFrame, parentFrame,
+                                                      newParent);
+          parentFrame = newParent;
+        }
+        
+        
+        
+        
+        isAppend = PR_FALSE;
+      }
+    }
+
     
     if (isAppend) {
       AppendFrames(state, aContainer, parentFrame, newFrame, appendAfterFrame);
-    }
-    else {
-      if (!prevSibling) {
-        
-        
-        nsIFrame* firstChild = parentFrame->GetFirstChild(nsnull);
-
-        if (firstChild &&
-            nsLayoutUtils::IsGeneratedContentFor(aContainer, firstChild,
-                                                 nsCSSPseudoElements::before)) {
-          
-          prevSibling = firstChild->GetLastContinuation();
-          nsIFrame* newParent = prevSibling->GetParent();
-          if (newParent != parentFrame) {
-            nsHTMLContainerFrame::ReparentFrameViewList(state.mPresContext,
-                                                        newFrame, parentFrame,
-                                                        newParent);
-            parentFrame = newParent;
-          }
-        }
-      }
+    } else {
       state.mFrameManager->InsertFrames(parentFrame,
                                         nsnull, prevSibling, newFrame);
     }
