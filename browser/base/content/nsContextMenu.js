@@ -145,17 +145,63 @@ nsContextMenu.prototype = {
     }
 
     
+    
+    var onPlainTextLink = false;
     if (this.isTextSelected) {
       
-      var someText = document.commandDispatcher.focusedWindow
-                             .getSelection().toString();
-      try {
-       var uri = makeURI(someText);
+      let selection =  document.commandDispatcher.focusedWindow
+                               .getSelection();
+      let linkText = selection.toString().trim();
+      let uri;
+      if (/^(?:https?|ftp):/i.test(linkText)) {
+        try {
+          uri = makeURI(linkText);
+        } catch (ex) {}
       }
-      catch (ex) { }
- 
-      var onPlainTextLink = false;
-      if (uri && /^(https?|ftp)$/i.test(uri.scheme) && uri.host) {
+      
+      else if (/^(?:\w+\.)+\D\S*$/.test(linkText)) {
+        
+        
+        
+
+        
+        
+        let beginRange = selection.getRangeAt(0);
+        let delimitedAtStart = /^\s/.test(beginRange);
+        if (!delimitedAtStart) {
+          let container = beginRange.startContainer;
+          let offset = beginRange.startOffset;
+          if (container.nodeType == Node.TEXT_NODE && offset > 0)
+            delimitedAtStart = /\W/.test(container.textContent[offset - 1]);
+          else
+            delimitedAtStart = true;
+        }
+
+        let delimitedAtEnd = false;
+        if (delimitedAtStart) {
+          let endRange = selection.getRangeAt(selection.rangeCount - 1);
+          delimitedAtEnd = /\s$/.test(endRange);
+          if (!delimitedAtEnd) {
+            let container = endRange.endContainer;
+            let offset = endRange.endOffset;
+            if (container.nodeType == Node.TEXT_NODE &&
+                offset < container.textContent.length)
+              delimitedAtEnd = /\W/.test(container.textContent[offset]);
+            else
+              delimitedAtEnd = true;
+          }
+        }
+
+        if (delimitedAtStart && delimitedAtEnd) {
+          let uriFixup = Cc["@mozilla.org/docshell/urifixup;1"]
+                           .getService(Ci.nsIURIFixup);
+          try {
+            uri = uriFixup.createFixupURI(linkText, uriFixup.FIXUP_FLAG_NONE);
+          } catch (ex) {}
+        }
+      }
+
+      if (uri && uri.host) {
         this.linkURI = uri;
         this.linkURL = this.linkURI.spec;
         onPlainTextLink = true;
