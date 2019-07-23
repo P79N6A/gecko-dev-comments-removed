@@ -90,8 +90,7 @@ function disableAddons() {
   
   var prefB = Components.classes["@mozilla.org/preferences-service;1"]
                         .getService(Components.interfaces.nsIPrefBranch);
-  if (prefB.prefHasUserValue("general.skins.selectedSkin"))
-    prefB.clearUserPref("general.skins.selectedSkin");
+  prefB.clearUserPref("general.skins.selectedSkin");
 
   
   var phs = Components.classes["@mozilla.org/plugin/host;1"]

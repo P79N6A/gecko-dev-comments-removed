@@ -87,11 +87,6 @@ function run_test()
                          .replace(/%CUSTOM2%/, "custom_parameter_2");
 
   
-  var origURL = null;
-  try {
-    origURL = prefs.getCharPref("extensions.update.url");
-  }
-  catch (e) {}
   gPrefs.setCharPref("extensions.update.url", gTestURL);
 
   
@@ -99,10 +94,7 @@ function run_test()
 
   do_check_true(gSeenExpectedURL);
 
-  if (origURL)
-    gPrefs.setCharPref("extensions.update.url", origURL);
-  else
-    gPrefs.clearUserPref("extensions.update.url");
+  gPrefs.clearUserPref("extensions.update.url");
 
   shutdownTest();
 }
