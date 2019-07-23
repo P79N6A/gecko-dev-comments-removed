@@ -48,6 +48,11 @@
 
 JS_BEGIN_EXTERN_C
 
+
+
+
+
+
 #define JSITER_ENUMERATE  0x1   /* for-in compatible hidden default iterator */
 #define JSITER_FOREACH    0x2   /* return [key, value] pair rather than key */
 #define JSITER_KEYVALUE   0x4   /* destructuring for-in wants [key, value] */

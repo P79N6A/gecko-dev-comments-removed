@@ -302,6 +302,7 @@ struct JSParseNode {
             JSParseNode *left;
             JSParseNode *right;
             jsval       val;            
+            uintN       iflags;         
         } binary;
         struct {                        
             JSParseNode *kid;
@@ -346,6 +347,7 @@ struct JSParseNode {
 #define pn_left         pn_u.binary.left
 #define pn_right        pn_u.binary.right
 #define pn_val          pn_u.binary.val
+#define pn_iflags       pn_u.binary.iflags
 #define pn_kid          pn_u.unary.kid
 #define pn_num          pn_u.unary.num
 #define pn_hidden       pn_u.unary.hidden

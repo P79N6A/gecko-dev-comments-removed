@@ -167,7 +167,12 @@ typedef struct JSPropertyTreeEntry {
 
 
 
-typedef struct JSNativeIteratorState JSNativeIteratorState;
+struct JSNativeEnumerator {
+    jsint               next_index;     
+    JSIdArray           *ida;           
+    JSNativeEnumerator  *next;          
+    JSNativeEnumerator  **prevp;
+};
 
 typedef struct JSSetSlotRequest JSSetSlotRequest;
 
@@ -382,7 +387,7 @@ struct JSRuntime {
 
 
 
-    JSNativeIteratorState *nativeIteratorStates;
+    JSNativeEnumerator  *nativeEnumerators;
 
 #ifndef JS_THREADSAFE
     
