@@ -77,6 +77,26 @@ extern PRLogModuleInfo* gBuiltinDecoderLog;
 
 #define AUDIO_FRAME_RATE 25.0
 
+
+
+
+
+
+
+
+
+static const PRUint32 LOW_AUDIO_MS = 100;
+
+
+
+
+
+
+
+
+
+static const PRUint32 LOW_VIDEO_FRAMES = 1;
+
 nsOggPlayStateMachine::nsOggPlayStateMachine(nsBuiltinDecoder* aDecoder) :
   mDecoder(aDecoder),
   mState(DECODER_STATE_DECODING_METADATA),
@@ -131,11 +151,6 @@ void nsOggPlayStateMachine::DecodeLoop()
 
   
   
-  
-  const unsigned videoKeyframeSkipThreshold = 1;
-
-  
-  
   const unsigned videoPumpThreshold = 5;
 
   
@@ -147,11 +162,6 @@ void nsOggPlayStateMachine::DecodeLoop()
   
   
   const unsigned audioPumpThresholdMs = 250;
-
-  
-  
-  
-  const unsigned lowAudioThresholdMs = 100;
 
   
   
@@ -190,7 +200,7 @@ void nsOggPlayStateMachine::DecodeLoop()
     }
     if (!videoPump &&
         videoPlaying &&
-        videoQueueSize < videoKeyframeSkipThreshold)
+        videoQueueSize < LOW_VIDEO_FRAMES)
     {
       skipToNextKeyframe = PR_TRUE;
     }
@@ -218,7 +228,7 @@ void nsOggPlayStateMachine::DecodeLoop()
     if (audioPump && audioDecoded > audioPumpThresholdMs) {
       audioPump = PR_FALSE;
     }
-    if (!audioPump && audioPlaying && audioDecoded < lowAudioThresholdMs) {
+    if (!audioPump && audioPlaying && audioDecoded < LOW_AUDIO_MS) {
       skipToNextKeyframe = PR_TRUE;
     }
 
@@ -755,7 +765,10 @@ nsresult nsOggPlayStateMachine::Run()
         if (mBufferExhausted &&
             mDecoder->GetState() == nsBuiltinDecoder::PLAY_STATE_PLAYING &&
             !mDecoder->GetCurrentStream()->IsDataCachedToEndOfStream(mDecoder->mDecoderPosition) &&
-            !mDecoder->GetCurrentStream()->IsSuspendedByCache()) {
+            !mDecoder->GetCurrentStream()->IsSuspendedByCache() &&
+            ((HasAudio() && mReader->mAudioQueue.Duration() < LOW_AUDIO_MS) ||
+             (HasVideo() && mReader->mVideoQueue.GetSize() < LOW_VIDEO_FRAMES)))
+        {
           
           
           
