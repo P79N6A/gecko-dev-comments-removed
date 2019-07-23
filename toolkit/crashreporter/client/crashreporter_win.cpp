@@ -95,12 +95,14 @@ static set<UINT> gAttachedBottom;
 
 
 static const UINT kDefaultAttachedBottom[] = {
-  IDC_VIEWREPORTCHECK,
-  IDC_VIEWREPORTTEXT,
-  IDC_SUBMITCRASHCHECK,
+  IDC_SUBMITREPORTCHECK,
+  IDC_VIEWREPORTBUTTON,
+  IDC_COMMENTTEXT,
   IDC_INCLUDEURLCHECK,
   IDC_EMAILMECHECK,
   IDC_EMAILTEXT,
+  IDC_PROGRESSTEXT,
+  IDC_THROBBER,
   IDC_CLOSEBUTTON,
   IDC_RESTARTBUTTON,
 };
@@ -271,13 +273,8 @@ static void GetRelativeRect(HWND hwnd, HWND hwndParent, RECT* r)
 static void SetDlgItemVisible(HWND hwndDlg, UINT item, bool visible)
 {
   HWND hwnd = GetDlgItem(hwndDlg, item);
-  LONG style = GetWindowLong(hwnd, GWL_STYLE);
-  if (visible)
-    style |= WS_VISIBLE;
-  else
-    style &= ~WS_VISIBLE;
 
-  SetWindowLong(hwnd, GWL_STYLE, style);
+  ShowWindow(hwnd, visible ? SW_SHOW : SW_HIDE);
 }
 
 static void SetDlgItemDisabled(HWND hwndDlg, UINT item, bool disabled)
@@ -375,6 +372,21 @@ static void MaybeSendReport(HWND hwndDlg)
     return;
   }
 
+  
+  EnableWindow(GetDlgItem(hwndDlg, IDC_SUBMITREPORTCHECK), false);
+  EnableWindow(GetDlgItem(hwndDlg, IDC_VIEWREPORTBUTTON), false);
+  EnableWindow(GetDlgItem(hwndDlg, IDC_COMMENTTEXT), false);
+  EnableWindow(GetDlgItem(hwndDlg, IDC_INCLUDEURLCHECK), false);
+  EnableWindow(GetDlgItem(hwndDlg, IDC_EMAILMECHECK), false);
+  EnableWindow(GetDlgItem(hwndDlg, IDC_EMAILTEXT), false);
+  EnableWindow(GetDlgItem(hwndDlg, IDC_CLOSEBUTTON), false);
+  EnableWindow(GetDlgItem(hwndDlg, IDC_RESTARTBUTTON), false);
+
+  SetDlgItemText(hwndDlg, IDC_PROGRESSTEXT, Str(ST_REPORTDURINGSUBMIT).c_str());
+  
+  
+  Animate_Play(GetDlgItem(hwndDlg, IDC_THROBBER), 0, -1, -1);
+  SetDlgItemVisible(hwndDlg, IDC_THROBBER, true);
   gThreadHandle = NULL;
   gSendData.hDlg = hwndDlg;
   gSendData.queryParameters = gQueryParameters;
@@ -425,32 +437,6 @@ static void ShowReportInfo(HWND hwndDlg)
   SetDlgItemText(hwndDlg, IDC_VIEWREPORTTEXT, description.c_str());
 }
 
-static void ShowHideReport(HWND hwndDlg)
-{
-  
-  
-  gAttachedBottom.erase(IDC_VIEWREPORTCHECK);
-  gAttachedBottom.erase(IDC_VIEWREPORTTEXT);
-
-  RECT r;
-  HWND hwnd = GetDlgItem(hwndDlg, IDC_VIEWREPORTTEXT);
-
-  GetWindowRect(hwnd, &r);
-  int diff = (r.bottom - r.top) + 10;
-  if (IsDlgButtonChecked(hwndDlg, IDC_VIEWREPORTCHECK)) {
-    SetDlgItemVisible(hwndDlg, IDC_VIEWREPORTTEXT, true);
-  } else {
-    SetDlgItemVisible(hwndDlg, IDC_VIEWREPORTTEXT, false);
-    diff = -diff;
-  }
-
-  StretchDialog(hwndDlg, diff);
-
-  
-  gAttachedBottom.insert(IDC_VIEWREPORTCHECK);
-  gAttachedBottom.insert(IDC_VIEWREPORTTEXT);
-}
-
 static void UpdateURL(HWND hwndDlg)
 {
   if (IsDlgButtonChecked(hwndDlg, IDC_INCLUDEURLCHECK)) {
@@ -466,9 +452,171 @@ static void UpdateEmail(HWND hwndDlg)
     wchar_t email[MAX_EMAIL_LENGTH];
     GetDlgItemText(hwndDlg, IDC_EMAILTEXT, email, sizeof(email));
     gQueryParameters[L"Email"] = email;
+    EnableWindow(GetDlgItem(hwndDlg, IDC_EMAILTEXT), true);
   } else {
     gQueryParameters.erase(L"Email");
+    EnableWindow(GetDlgItem(hwndDlg, IDC_EMAILTEXT), false);
   }
+}
+
+static void UpdateComment(HWND hwndDlg)
+{
+  wchar_t comment[MAX_COMMENT_LENGTH + 1];
+  GetDlgItemText(hwndDlg, IDC_COMMENTTEXT, comment, sizeof(comment));
+  if (wcslen(comment) > 0)
+    gQueryParameters[L"Comments"] = comment;
+  else
+    gQueryParameters.erase(L"Comments");
+}
+
+
+
+
+static BOOL CALLBACK ViewReportDialogProc(HWND hwndDlg, UINT message,
+                                          WPARAM wParam, LPARAM lParam)
+{
+  switch (message) {
+  case WM_INITDIALOG: {
+    SetWindowText(hwndDlg, Str(ST_VIEWREPORTTITLE).c_str());    
+    SetDlgItemText(hwndDlg, IDOK, Str(ST_OK).c_str());
+    SendDlgItemMessage(hwndDlg, IDC_VIEWREPORTTEXT,
+                       EM_SETTARGETDEVICE, (WPARAM)NULL, 0);
+    ShowReportInfo(hwndDlg);
+    SetFocus(GetDlgItem(hwndDlg, IDOK));
+    return FALSE;
+  }
+
+  case WM_COMMAND: {
+    if (HIWORD(wParam) == BN_CLICKED && LOWORD(wParam) == IDOK)
+      EndDialog(hwndDlg, 0);
+    return FALSE;
+  }
+  }
+  return FALSE;
+}
+
+
+
+static inline int BytesInUTF8(wchar_t* str)
+{
+  
+  
+  return WideCharToMultiByte(CP_UTF8, 0, str, -1, NULL, 0, NULL, NULL) - 1;
+}
+
+
+
+
+static int NewTextLength(HWND hwndEdit, wchar_t* insert)
+{
+  wchar_t current[MAX_COMMENT_LENGTH + 1];
+
+  GetWindowText(hwndEdit, current, MAX_COMMENT_LENGTH + 1);
+  DWORD selStart, selEnd;
+  SendMessage(hwndEdit, EM_GETSEL, (WPARAM)&selStart, (LPARAM)&selEnd);
+
+  int selectionLength = 0;
+  if (selEnd - selStart > 0) {
+    wchar_t selection[MAX_COMMENT_LENGTH + 1];
+    wcsncpy_s(selection, current + selStart, selEnd - selStart);
+    selection[selEnd - selStart] = '\0';
+    selectionLength = BytesInUTF8(selection);
+  }
+
+  
+  
+  return BytesInUTF8(current) + BytesInUTF8(insert) - selectionLength;
+}
+
+
+static LRESULT CALLBACK EditSubclassProc(HWND hwnd, UINT uMsg, WPARAM wParam,
+                                         LPARAM lParam)
+{
+  static WNDPROC super = NULL;
+
+  if (super == NULL)
+    super = (WNDPROC)GetWindowLongPtr(hwnd, GWLP_USERDATA);
+
+  switch (uMsg) {
+  case WM_PAINT: {
+    HDC hdc;
+    PAINTSTRUCT ps;
+    RECT r;
+    wchar_t windowText[1024];
+
+    GetWindowText(hwnd, windowText, 1024);
+    
+    if (GetFocus() == hwnd || windowText[0] != '\0')
+      return CallWindowProc(super, hwnd, uMsg, wParam, lParam);
+    
+    GetClientRect(hwnd, &r);
+    hdc = BeginPaint(hwnd, &ps);
+    FillRect(hdc, &r, GetSysColorBrush(IsWindowEnabled(hwnd)
+                                       ? COLOR_WINDOW : COLOR_BTNFACE));
+    SetTextColor(hdc, GetSysColor(COLOR_GRAYTEXT));
+    SelectObject(hdc, (HFONT)GetStockObject(DEFAULT_GUI_FONT));
+    SetBkMode(hdc, TRANSPARENT);
+    wchar_t* txt = (wchar_t*)GetProp(hwnd, L"PROP_GRAYTEXT");
+    
+    CallWindowProc(super, hwnd, EM_GETRECT, 0, (LPARAM)&r);
+    if (txt)
+      DrawText(hdc, txt, wcslen(txt), &r,
+               DT_EDITCONTROL | DT_NOPREFIX | DT_WORDBREAK | DT_INTERNAL);
+    EndPaint(hwnd, &ps);
+    return 0;
+  }
+
+    
+    
+  case WM_CHAR: {
+    
+    if (wParam & (1<<24) || wParam & (1<<29) ||
+        (wParam < ' ' && wParam != '\n'))
+      break;
+  
+    wchar_t ch[2] = { (wchar_t)wParam, 0 };
+    if (NewTextLength(hwnd, ch) > MAX_COMMENT_LENGTH)
+      return 0;
+
+    break;
+  }
+
+  case WM_PASTE: {
+    if (IsClipboardFormatAvailable(CF_UNICODETEXT) &&
+        OpenClipboard(hwnd)) {
+      HGLOBAL hg = GetClipboardData(CF_UNICODETEXT); 
+      wchar_t* pastedText = (wchar_t*)GlobalLock(hg);
+      int newSize = 0;
+
+      if (pastedText)
+        newSize = NewTextLength(hwnd, pastedText);
+
+      GlobalUnlock(hg);
+      CloseClipboard();
+
+      if (newSize > MAX_COMMENT_LENGTH)
+        return 0;
+    }
+    break;
+  }
+
+  case WM_SETFOCUS:
+  case WM_KILLFOCUS: {
+    RECT r;
+    GetClientRect(hwnd, &r);
+    InvalidateRect(hwnd, &r, TRUE);
+    break;
+  }
+
+  case WM_DESTROY: {
+    
+    HGLOBAL hData = RemoveProp(hwnd, L"PROP_GRAYTEXT");
+    if (hData)
+      GlobalFree(hData);
+  }
+  }
+
+  return CallWindowProc(super, hwnd, uMsg, wParam, lParam);
 }
 
 static BOOL CALLBACK CrashReporterDialogProc(HWND hwndDlg, UINT message,
@@ -486,6 +634,10 @@ static BOOL CALLBACK CrashReporterDialogProc(HWND hwndDlg, UINT message,
     sHeight = r.bottom - r.top;
 
     SetWindowText(hwndDlg, Str(ST_CRASHREPORTERTITLE).c_str());
+    HICON hIcon = LoadIcon(GetModuleHandle(NULL),
+                           MAKEINTRESOURCE(IDI_MAINICON));
+    SendMessage(hwndDlg, WM_SETICON, ICON_SMALL, (LPARAM)hIcon);
+    SendMessage(hwndDlg, WM_SETICON, ICON_BIG, (LPARAM)hIcon);
 
     SendDlgItemMessage(hwndDlg, IDC_DESCRIPTIONTEXT,
                        EM_SETEVENTMASK, (WPARAM)NULL,
@@ -510,24 +662,33 @@ static BOOL CALLBACK CrashReporterDialogProc(HWND hwndDlg, UINT message,
 
     
     RECT viewRect;
-    HWND hwndView = GetDlgItem(hwndDlg, IDC_VIEWREPORTCHECK);
+    HWND hwndView = GetDlgItem(hwndDlg, IDC_VIEWREPORTBUTTON);
     GetRelativeRect(hwndView, hwndDlg, &viewRect);
     HDC hdc = GetDC(hwndView);
     const wstring viewButtonText = Str(ST_VIEWREPORT);
-    SIZE size;
+    wchar_t oldViewButtonText[1024];
+
+    GetDlgItemText(hwndDlg, IDC_VIEWREPORTBUTTON, oldViewButtonText, 1024);
+    SIZE size, oldSize;
+
     if (GetTextExtentPoint32(hdc, viewButtonText.c_str(),
-                             viewButtonText.length(), &size)) {
+                             viewButtonText.length(), &size) &&
+        
+        GetTextExtentPoint32(hdc, oldViewButtonText,
+                             wcslen(oldViewButtonText), &oldSize)) {
       
-      int sizeDiff = size.cx - (viewRect.right - viewRect.left);
-      viewRect.right += sizeDiff;
-      MoveWindow(hwndView, viewRect.left, viewRect.top,
-                 viewRect.right - viewRect.left,
-                 viewRect.bottom - viewRect.top,
-                 TRUE);
+      int sizeDiff = size.cx - oldSize.cx;
+
+      
+      if (sizeDiff > 0) {
+        viewRect.right += sizeDiff;
+        MoveWindow(hwndView, viewRect.left, viewRect.top,
+                   viewRect.right - viewRect.left,
+                   viewRect.bottom - viewRect.top,
+                   TRUE);
+      }
     }
-    SetDlgItemText(hwndDlg, IDC_VIEWREPORTCHECK, viewButtonText.c_str());
-    SendDlgItemMessage(hwndDlg, IDC_VIEWREPORTTEXT,
-                       EM_SETTARGETDEVICE, (WPARAM)NULL, 0);
+    SetDlgItemText(hwndDlg, IDC_VIEWREPORTBUTTON, viewButtonText.c_str());
 
 
     SetDlgItemText(hwndDlg, IDC_SUBMITREPORTCHECK,
@@ -536,12 +697,28 @@ static BOOL CALLBACK CrashReporterDialogProc(HWND hwndDlg, UINT message,
                      SUBMIT_REPORT_VALUE, &enabled) &&
         !enabled) {
       CheckDlgButton(hwndDlg, IDC_SUBMITREPORTCHECK, BST_UNCHECKED);
+      EnableWindow(GetDlgItem(hwndDlg, IDC_VIEWREPORTBUTTON), enabled);
+      EnableWindow(GetDlgItem(hwndDlg, IDC_COMMENTTEXT), enabled);
       EnableWindow(GetDlgItem(hwndDlg, IDC_INCLUDEURLCHECK), enabled);
       EnableWindow(GetDlgItem(hwndDlg, IDC_EMAILMECHECK), enabled);
       EnableWindow(GetDlgItem(hwndDlg, IDC_EMAILTEXT), enabled);
+      SetDlgItemVisible(hwndDlg, IDC_PROGRESSTEXT, enabled);
     } else {
       CheckDlgButton(hwndDlg, IDC_SUBMITREPORTCHECK, BST_CHECKED);
     }
+
+
+    HWND hwndComment = GetDlgItem(hwndDlg, IDC_COMMENTTEXT);
+    WNDPROC OldWndProc = (WNDPROC)SetWindowLongPtr(hwndComment,
+                                                   GWLP_WNDPROC,
+                                                   (LONG_PTR)EditSubclassProc);
+
+    
+    SetWindowLongPtr(hwndComment, GWLP_USERDATA, (LONG_PTR)OldWndProc);
+    wstring commentGrayText = Str(ST_COMMENTGRAYTEXT);
+    wchar_t* hMem = (wchar_t*)GlobalAlloc(GPTR, (commentGrayText.length() + 1)*sizeof(wchar_t));
+    wcscpy(hMem, commentGrayText.c_str());
+    SetProp(hwndComment, L"PROP_GRAYTEXT", hMem);
 
     SetDlgItemText(hwndDlg, IDC_INCLUDEURLCHECK, Str(ST_CHECKURL).c_str());
     
@@ -565,7 +742,19 @@ static BOOL CALLBACK CrashReporterDialogProc(HWND hwndDlg, UINT message,
       SetDlgItemText(hwndDlg, IDC_EMAILTEXT, email.c_str());
     }
 
-    SetDlgItemText(hwndDlg, IDC_CLOSEBUTTON, Str(ST_CLOSE).c_str());
+    
+    HWND hwndEmail = GetDlgItem(hwndDlg, IDC_EMAILTEXT);
+    OldWndProc = (WNDPROC)SetWindowLongPtr(hwndEmail,
+                                           GWLP_WNDPROC,
+                                           (LONG_PTR)EditSubclassProc);
+    SetWindowLongPtr(hwndEmail, GWLP_USERDATA, (LONG_PTR)OldWndProc);
+    wstring emailGrayText = Str(ST_EMAILGRAYTEXT);
+    hMem = (wchar_t*)GlobalAlloc(GPTR, (emailGrayText.length() + 1)*sizeof(wchar_t));
+    wcscpy(hMem, emailGrayText.c_str());
+    SetProp(hwndEmail, L"PROP_GRAYTEXT", hMem);
+
+    SetDlgItemText(hwndDlg, IDC_PROGRESSTEXT, Str(ST_REPORTPRESUBMIT).c_str());
+    SetDlgItemText(hwndDlg, IDC_CLOSEBUTTON, Str(ST_QUIT).c_str());
 
     RECT closeRect;
     HWND hwndClose = GetDlgItem(hwndDlg, IDC_CLOSEBUTTON);
@@ -616,22 +805,25 @@ static BOOL CALLBACK CrashReporterDialogProc(HWND hwndDlg, UINT message,
 
       SetDlgItemVisible(hwndDlg, IDC_INCLUDEURLCHECK, false);
 
-      gAttachedBottom.erase(IDC_VIEWREPORTCHECK);
-      gAttachedBottom.erase(IDC_VIEWREPORTTEXT);
+      gAttachedBottom.erase(IDC_VIEWREPORTBUTTON);
       gAttachedBottom.erase(IDC_SUBMITREPORTCHECK);
+      gAttachedBottom.erase(IDC_COMMENTTEXT);
 
       StretchDialog(hwndDlg, urlCheckRect.top - emailCheckRect.top);
 
-      gAttachedBottom.insert(IDC_VIEWREPORTCHECK);
-      gAttachedBottom.insert(IDC_VIEWREPORTTEXT);
+      gAttachedBottom.insert(IDC_VIEWREPORTBUTTON);
       gAttachedBottom.insert(IDC_SUBMITREPORTCHECK);
+      gAttachedBottom.insert(IDC_COMMENTTEXT);
     }
+
+    
+    Animate_Open(GetDlgItem(hwndDlg, IDC_THROBBER),
+                 MAKEINTRESOURCE(IDR_THROBBER));
 
     UpdateURL(hwndDlg);
     UpdateEmail(hwndDlg);
-    ShowReportInfo(hwndDlg);
 
-    SetFocus(GetDlgItem(hwndDlg, IDC_EMAILTEXT));
+    SetFocus(GetDlgItem(hwndDlg, IDC_SUBMITREPORTCHECK));
     return FALSE;
   }
   case WM_SIZE: {
@@ -662,33 +854,31 @@ static BOOL CALLBACK CrashReporterDialogProc(HWND hwndDlg, UINT message,
   case WM_COMMAND: {
     if (HIWORD(wParam) == BN_CLICKED) {
       switch(LOWORD(wParam)) {
-      case IDC_VIEWREPORTCHECK:
-        ShowHideReport(hwndDlg);
+      case IDC_VIEWREPORTBUTTON:
+        DialogBoxParam(NULL, MAKEINTRESOURCE(IDD_VIEWREPORTDIALOG), hwndDlg,
+                       (DLGPROC)ViewReportDialogProc, 0);
         break;
       case IDC_SUBMITREPORTCHECK:
         enabled = (IsDlgButtonChecked(hwndDlg, IDC_SUBMITREPORTCHECK) != 0);
+        EnableWindow(GetDlgItem(hwndDlg, IDC_VIEWREPORTBUTTON), enabled);
+        EnableWindow(GetDlgItem(hwndDlg, IDC_COMMENTTEXT), enabled);
         EnableWindow(GetDlgItem(hwndDlg, IDC_INCLUDEURLCHECK), enabled);
         EnableWindow(GetDlgItem(hwndDlg, IDC_EMAILMECHECK), enabled);
-        EnableWindow(GetDlgItem(hwndDlg, IDC_EMAILTEXT), enabled);
+        EnableWindow(GetDlgItem(hwndDlg, IDC_EMAILTEXT),
+                     enabled && (IsDlgButtonChecked(hwndDlg, IDC_EMAILMECHECK)
+                                 != 0));
+        SetDlgItemVisible(hwndDlg, IDC_PROGRESSTEXT, enabled);
         break;
       case IDC_INCLUDEURLCHECK:
         UpdateURL(hwndDlg);
-        ShowReportInfo(hwndDlg);
         break;
       case IDC_EMAILMECHECK:
         UpdateEmail(hwndDlg);
-        ShowReportInfo(hwndDlg);
         break;
       case IDC_CLOSEBUTTON:
-        
-        
-        ShowWindow(hwndDlg, SW_HIDE);
-        MaybeSendReport(hwndDlg);
+        EndCrashReporterDialog(hwndDlg, 0);
         break;
       case IDC_RESTARTBUTTON:
-        
-        
-        ShowWindow(hwndDlg, SW_HIDE);
         RestartApplication();
         MaybeSendReport(hwndDlg);
         break;
@@ -696,13 +886,10 @@ static BOOL CALLBACK CrashReporterDialogProc(HWND hwndDlg, UINT message,
     } else if (HIWORD(wParam) == EN_CHANGE) {
       switch(LOWORD(wParam)) {
       case IDC_EMAILTEXT:
-        wchar_t email[MAX_EMAIL_LENGTH];
-        if (GetDlgItemText(hwndDlg, IDC_EMAILTEXT, email, sizeof(email)) > 0)
-          CheckDlgButton(hwndDlg, IDC_EMAILMECHECK, BST_CHECKED);
-        else
-          CheckDlgButton(hwndDlg, IDC_EMAILMECHECK, BST_UNCHECKED);
         UpdateEmail(hwndDlg);
-        ShowReportInfo(hwndDlg);
+        break;
+      case IDC_COMMENTTEXT:
+        UpdateComment(hwndDlg);
       }
     }
 
@@ -712,15 +899,41 @@ static BOOL CALLBACK CrashReporterDialogProc(HWND hwndDlg, UINT message,
     WaitForSingleObject(gThreadHandle, INFINITE);
     success = (wParam == 1);
     SendCompleted(success, WideToUTF8(gSendData.serverResponse));
-    if (!success) {
-      MessageBox(hwndDlg,
-                 Str(ST_SUBMITFAILED).c_str(),
-                 Str(ST_CRASHREPORTERTITLE).c_str(),
-                 MB_OK | MB_ICONERROR);
-    }
-    EndCrashReporterDialog(hwndDlg, success ? 1 : 0);
+    
+    Animate_Stop(GetDlgItem(hwndDlg, IDC_THROBBER));
+    SetDlgItemVisible(hwndDlg, IDC_THROBBER, false);
+
+    SetDlgItemText(hwndDlg, IDC_PROGRESSTEXT,
+                   success ?
+                   Str(ST_REPORTSUBMITSUCCESS).c_str() :
+                   Str(ST_SUBMITFAILED).c_str());
+    
+    SetTimer(hwndDlg, success ? 1 : 0, 5000, NULL);
+    
     return TRUE;
   }
+
+  case WM_LBUTTONDOWN: {
+    HWND hwndEmail = GetDlgItem(hwndDlg, IDC_EMAILTEXT);
+    POINT p = { LOWORD(lParam), HIWORD(lParam) };
+    
+    
+    if (ChildWindowFromPoint(hwndDlg, p) == hwndEmail &&
+        !IsWindowEnabled(hwndEmail) &&
+        IsDlgButtonChecked(hwndDlg, IDC_SUBMITREPORTCHECK) != 0) {
+      CheckDlgButton(hwndDlg, IDC_EMAILMECHECK, BST_CHECKED);
+      UpdateEmail(hwndDlg);
+      SetFocus(hwndEmail);
+    }
+    break;
+  }
+
+  case WM_TIMER: {
+    
+    EndCrashReporterDialog(hwndDlg, wParam);
+    return FALSE;
+  }
+
   case WM_CLOSE: {
     EndCrashReporterDialog(hwndDlg, 0);
     return FALSE;
@@ -796,6 +1009,7 @@ bool UIInit()
   }
 
   DoInitCommonControls();
+
   return true;
 }
 
