@@ -129,7 +129,7 @@ function test() {
   let state = { entries: [{ url: testURL }], extData: { key: value } };
 
   
-  tab_A = gBrowser.addTab(testURL);
+  let tab_A = gBrowser.addTab(testURL);
   ss.setTabState(tab_A, state.toSource());
   tab_A.linkedBrowser.addEventListener("load", function(aEvent) {
     this.removeEventListener("load", arguments.callee, true);
@@ -166,7 +166,7 @@ function test() {
       let state1 = { entries: [{ url: testURL2 }], extData: { key1: value1 } };
 
       
-      tab_B = gBrowser.addTab(testURL2);
+      let tab_B = gBrowser.addTab(testURL2);
       ss.setTabState(tab_B, state1.toSource());
       tab_B.linkedBrowser.addEventListener("load", function(aEvent) {
         this.removeEventListener("load", arguments.callee, true);
