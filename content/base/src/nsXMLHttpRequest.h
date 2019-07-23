@@ -405,7 +405,15 @@ protected:
     nsCString mHeaders;
   };
 
+  
   nsCString mResponseBody;
+
+  
+  
+  
+  
+  
+  nsString mResponseBodyUnicode;
 
   nsCString mOverrideMimeType;
 
