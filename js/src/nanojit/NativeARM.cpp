@@ -128,7 +128,7 @@ Assembler::nFragExit(LInsp guard)
         JMP_far(_epilogue);
 
         
-        lr->jmpToTarget = _nIns;
+        lr->jmp = _nIns;
     }
 
     
@@ -1223,24 +1223,14 @@ Assembler::asm_cmp(LIns *cond)
 void
 Assembler::asm_loop(LInsp ins, NInsList& loopJumps)
 {
-    GuardRecord* guard = ins->record();
-    SideExit* exit = guard->exit;
-
     
 
-    
-    
-    asm_exit(ins);
-
-    
     JMP_far(0);
-
     loopJumps.add(_nIns);
-    guard->jmpToStub = _nIns;
 
     
     
-    if (exit->target != _thisfrag)
+    if (ins->record()->exit->target != _thisfrag)
         MR(SP,FP);
 }
 

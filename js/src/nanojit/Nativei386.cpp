@@ -170,7 +170,7 @@ namespace nanojit
         Fragment *frag = exit->target;
         GuardRecord *lr = 0;
 		bool destKnown = (frag && frag->fragEntry);
-		if (destKnown && !trees && !guard->isop(LIR_loop))
+		if (destKnown && !trees)
 		{
 			
 			JMP(frag->fragEntry);
@@ -185,11 +185,11 @@ namespace nanojit
             underrunProtect(14);
             _nIns -= 8;
             *(intptr_t *)_nIns = intptr_t(_epilogue);
-            lr->jmpToTarget = _nIns;
+            lr->jmp = _nIns;
             JMPm_nochk(0);
 #else
             JMP_long(_epilogue);
-            lr->jmpToTarget = _nIns;
+            lr->jmp = _nIns;
 #endif
 		}
 		
@@ -963,22 +963,12 @@ namespace nanojit
 
 	void Assembler::asm_loop(LInsp ins, NInsList& loopJumps)
 	{
-		GuardRecord* guard = ins->record();
-		SideExit* exit = guard->exit;
-
-		
-		
-		asm_exit(ins);
-
-		
 		JMP_long(0);
-
         loopJumps.add(_nIns);
-		guard->jmpToStub = _nIns;
 
 		
 		
-		if (exit->target != _thisfrag)
+	    if (ins->record()->exit->target != _thisfrag)
 	        MR(SP,FP);
 	}	
 
