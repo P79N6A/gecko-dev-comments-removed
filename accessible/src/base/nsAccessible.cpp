@@ -884,7 +884,7 @@ PRBool nsAccessible::IsVisible(PRBool *aIsOffscreen)
   
   
   
-  *aIsOffscreen = PR_FALSE;
+  *aIsOffscreen = PR_TRUE;
 
   const PRUint16 kMinPixels  = 12;
    
@@ -950,32 +950,29 @@ PRBool nsAccessible::IsVisible(PRBool *aIsOffscreen)
     }
   }
 
-  if (rectVisibility != nsRectVisibility_kZeroAreaRect) {
-    
-    
-    
-    
-    
-    
-    if (rectVisibility != nsRectVisibility_kVisible) {
-      *aIsOffscreen = PR_TRUE;
-    }
-    
-    if (!mDOMNode) {
-      return PR_FALSE;
-    }
-    nsCOMPtr<nsIDOMDocument> domDoc;
-    mDOMNode->GetOwnerDocument(getter_AddRefs(domDoc));
-    NS_ENSURE_TRUE(domDoc, NS_ERROR_FAILURE);
-
-    nsCOMPtr<nsIDocument> doc(do_QueryInterface(domDoc));
-    NS_ENSURE_TRUE(doc, NS_ERROR_FAILURE);
-
-    return CheckVisibilityInParentChain(doc, containingView);
+  if (rectVisibility == nsRectVisibility_kZeroAreaRect || !mDOMNode) {
+    return PR_FALSE;   
+  }
+  
+  
+  
+  
+  
+  
+  
+  
+  nsCOMPtr<nsIDOMDocument> domDoc;
+  mDOMNode->GetOwnerDocument(getter_AddRefs(domDoc));
+  nsCOMPtr<nsIDocument> doc(do_QueryInterface(domDoc));
+  if (!doc)  {
+    return PR_FALSE;
   }
 
-  *aIsOffscreen = PR_TRUE; 
-  return PR_FALSE;
+  PRBool isVisible = CheckVisibilityInParentChain(doc, containingView);
+  if (isVisible && rectVisibility == nsRectVisibility_kVisible) {
+    *aIsOffscreen = PR_FALSE;
+  }
+  return isVisible;
 }
 
 NS_IMETHODIMP
