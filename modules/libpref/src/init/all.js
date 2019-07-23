@@ -522,6 +522,11 @@ pref("dom.storage.enabled", true);
 pref("dom.storage.default_quota",      5120);
 
 
+#ifndef XP_WIN
+pref("content.sink.pending_event_mode", 0);
+#endif
+
+
 
 
 
