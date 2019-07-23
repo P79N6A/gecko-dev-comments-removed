@@ -162,7 +162,7 @@ public:
                                nsIPrincipal* aOriginPrincipal);
 
   nsresult AddToAttachedQueue(nsXBLBinding* aBinding);
-  void ProcessAttachedQueue();
+  void ProcessAttachedQueue(PRUint32 aSkipSize = 0);
 
   void ExecuteDetachedHandlers();
 
@@ -287,7 +287,7 @@ protected:
   
   nsBindingList mAttachedStack;
   PRPackedBool mProcessingAttachedStack;
-  PRPackedBool mProcessOnEndUpdate;
+  PRUint32 mAttachedStackSizeOnOutermost;
 
   
   friend class nsRunnableMethod<nsBindingManager>;
