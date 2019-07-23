@@ -1311,6 +1311,12 @@ nsDownloadManager::GetDefaultDownloadsDirectory(nsILocalFile **aResult)
   rv = infoService->GetPropertyAsInt32(osVersion, &version);
   NS_ENSURE_SUCCESS(rv, rv);
   if (version < 6) { 
+    
+    rv = dirService->Get(NS_WIN_PERSONAL_DIR,
+                         NS_GET_IID(nsILocalFile),
+                         getter_AddRefs(downloadDir));
+    NS_ENSURE_SUCCESS(rv, rv);
+
     rv = downloadDir->Append(folderName);
     NS_ENSURE_SUCCESS(rv, rv);
 
