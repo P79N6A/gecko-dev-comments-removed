@@ -75,6 +75,7 @@
 #include "nsIDOMSVGAElement.h"
 #include "nsIDOMSVGElement.h"
 #include "nsIDOMSVGTitleElement.h"
+#include "nsIDOMSVGForeignObjectElem.h"
 #endif
 #include "nsIDOMEvent.h"
 #include "nsIDOMMouseEvent.h"
@@ -988,6 +989,36 @@ DefaultTooltipTextProvider::DefaultTooltipTextProvider()
     mTag_window       = do_GetAtom("window");   
 }
 
+#ifdef MOZ_SVG
+
+
+
+
+
+
+
+
+static PRBool
+UseSVGTitle(nsIDOMElement *currElement)
+{
+  nsCOMPtr<nsIDOMSVGElement> svgContent(do_QueryInterface(currElement));
+  if (!svgContent)
+    return PR_FALSE;
+
+  nsCOMPtr<nsIDOMNode> parent;
+  currElement->GetParentNode(getter_AddRefs(parent));
+  if (!parent)
+    return PR_FALSE;
+
+  nsCOMPtr<nsIDOMSVGForeignObjectElement> parentFOContent(do_QueryInterface(parent));
+  if (parentFOContent)
+    return PR_FALSE;
+
+  nsCOMPtr<nsIDOMSVGElement> parentSVGContent(do_QueryInterface(parent));
+  return (parentSVGContent != nsnull);
+}
+
+#endif
 
 NS_IMETHODIMP
 DefaultTooltipTextProvider::GetNodeText(nsIDOMNode *aNode, PRUnichar **aText,
@@ -998,6 +1029,7 @@ DefaultTooltipTextProvider::GetNodeText(nsIDOMNode *aNode, PRUnichar **aText,
     
   nsString outText;
 
+  PRBool lookingForSVGTitle = PR_TRUE;
   PRBool found = PR_FALSE;
   nsCOMPtr<nsIDOMNode> current ( aNode );
   while ( !found && current ) {
@@ -1037,8 +1069,10 @@ DefaultTooltipTextProvider::GetNodeText(nsIDOMNode *aNode, PRUnichar **aText,
             }
 #ifdef MOZ_SVG
             else {
-              nsCOMPtr<nsIDOMSVGElement> svgContent(do_QueryInterface(currElement));
-              if (svgContent) {
+              if (lookingForSVGTitle) {
+                lookingForSVGTitle = UseSVGTitle(currElement);
+              }
+              if (lookingForSVGTitle) {
                 nsCOMPtr<nsIDOMNodeList>childNodes;
                 aNode->GetChildNodes(getter_AddRefs(childNodes));
                 PRUint32 childNodeCount;
