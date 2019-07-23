@@ -86,15 +86,10 @@ public:
   PRBool ThemeDrawsFocusForWidget(nsPresContext* aPresContext, nsIFrame* aFrame, PRUint8 aWidgetType);
   PRBool ThemeNeedsComboboxDropmarker();
 
-protected:
-
-  
-  static const int kAquaDropdownLeftEndcap = 9;
-  static const int kAquaDropwdonRightEndcap = 20; 
+protected:  
 
   nsresult GetSystemColor(PRUint8 aWidgetType, nsILookAndFeel::nsColorID& aColorID);
   nsresult GetSystemFont(PRUint8 aWidgetType, nsSystemFontID& aFont);
-
 
   
   void DrawFrame (CGContextRef context, HIThemeFrameKind inKind,
