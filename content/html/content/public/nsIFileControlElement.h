@@ -40,7 +40,11 @@
 #define nsIFileControlElement_h___
 
 #include "nsISupports.h"
-class nsAString;
+#include "nsTArray.h"
+#include "nsString.h"
+#include "nsCOMArray.h"
+
+class nsIFile;
 
 
 #define NS_IFILECONTROLELEMENT_IID \
@@ -59,12 +63,21 @@ public:
   
 
 
-  virtual void GetFileName(nsAString& aFileName) = 0;
+
+
+
+  virtual void GetDisplayFileName(nsAString& aFileName) = 0;
 
   
 
 
-  virtual void SetFileName(const nsAString& aFileName) = 0;
+  virtual void SetFileNames(const nsTArray<nsString>& aFileNames) = 0;
+
+  
+
+
+
+  virtual void GetFileArray(nsCOMArray<nsIFile>& aFiles) = 0;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsIFileControlElement,
