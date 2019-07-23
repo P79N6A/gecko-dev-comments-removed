@@ -177,6 +177,7 @@ static gboolean expose_event_cb           (GtkWidget *widget,
                                            GdkEventExpose *event);
 static gboolean configure_event_cb        (GtkWidget *widget,
                                            GdkEventConfigure *event);
+static void     container_unrealize_cb    (GtkWidget *widget);
 static void     size_allocate_cb          (GtkWidget *widget,
                                            GtkAllocation *allocation);
 static gboolean delete_event_cb           (GtkWidget *widget,
@@ -354,6 +355,8 @@ PRBool gDisableNativeTheme = PR_FALSE;
 
 
 static PRBool gForce24bpp = PR_FALSE;
+
+static GtkWidget *gInvisibleContainer = NULL;
 
 nsWindow::nsWindow()
 {
@@ -642,6 +645,79 @@ nsWindow::Create(nsNativeWidget aParent,
     return rv;
 }
 
+static GtkWidget*
+EnsureInvisibleContainer()
+{
+    if (!gInvisibleContainer) {
+        
+        
+        
+        
+        GtkWidget* window = gtk_window_new(GTK_WINDOW_POPUP);
+        gInvisibleContainer = moz_container_new();
+        gtk_container_add(GTK_CONTAINER(window), gInvisibleContainer);
+        gtk_widget_realize(gInvisibleContainer);
+
+    }
+    return gInvisibleContainer;
+}
+
+static void
+CheckDestroyInvisibleContainer()
+{
+    NS_PRECONDITION(gInvisibleContainer, "oh, no");
+
+    if (!gdk_window_peek_children(gInvisibleContainer->window)) {
+        
+        
+        gtk_widget_destroy(gInvisibleContainer->parent);
+        gInvisibleContainer = NULL;
+    }
+}
+
+
+
+
+
+
+static void
+SetWidgetForHierarchy(GdkWindow *aWindow,
+                      GtkWidget *aOldWidget,
+                      GtkWidget *aNewWidget)
+{
+    gpointer data;
+    gdk_window_get_user_data(aWindow, &data);
+
+    if (data != aOldWidget) {
+        if (!GTK_IS_WIDGET(data))
+            return;
+
+        GtkWidget* widget = static_cast<GtkWidget*>(data);
+        if (widget->parent != aOldWidget)
+            return;
+
+        
+        
+        if (aNewWidget) {
+            gtk_widget_reparent(widget, aNewWidget);
+        } else {
+            
+            
+            gtk_widget_destroy(widget);
+        }
+
+        return;
+    }
+
+    for (GList *list = gdk_window_peek_children(aWindow);
+         list;
+         list = list->next) {
+        SetWidgetForHierarchy(GDK_WINDOW(list->data), aOldWidget, aNewWidget);
+    }
+
+    gdk_window_set_user_data(aWindow, aNewWidget);
+}
+
 NS_IMETHODIMP
 nsWindow::Destroy(void)
 {
@@ -724,6 +800,24 @@ nsWindow::Destroy(void)
         mDragLeaveTimer = nsnull;
     }
 
+    GtkWidget *owningWidget = GetMozContainerWidget();
+    if (mShell) {
+        gtk_widget_destroy(mShell);
+        mShell = nsnull;
+        mContainer = nsnull;
+    }
+    else if (mContainer) {
+        gtk_widget_destroy(GTK_WIDGET(mContainer));
+        mContainer = nsnull;
+    }
+    else if (owningWidget) {
+        
+        
+        
+        
+        SetWidgetForHierarchy(mDrawingarea->clip_window, owningWidget, NULL);
+    }
+
     if (mDrawingarea) {
         g_object_set_data(G_OBJECT(mDrawingarea->clip_window),
                           "nsWindow", NULL);
@@ -735,18 +829,15 @@ nsWindow::Destroy(void)
         g_object_set_data(G_OBJECT(mDrawingarea->inner_window),
                           "mozdrawingarea", NULL);
 
+        NS_ASSERTION(!get_gtk_widget_for_gdk_window(mDrawingarea->inner_window),
+                     "widget reference not removed");
+
         g_object_unref(mDrawingarea);
         mDrawingarea = nsnull;
     }
 
-    if (mShell) {
-        gtk_widget_destroy(mShell);
-        mShell = nsnull;
-        mContainer = nsnull;
-    }
-    else if (mContainer) {
-        gtk_widget_destroy(GTK_WIDGET(mContainer));
-        mContainer = nsnull;
+    if (gInvisibleContainer && owningWidget == gInvisibleContainer) {
+        CheckDestroyInvisibleContainer();
     }
 
     OnDestroy();
@@ -769,29 +860,63 @@ nsWindow::GetParent(void)
 NS_IMETHODIMP
 nsWindow::SetParent(nsIWidget *aNewParent)
 {
-    NS_ENSURE_ARG_POINTER(aNewParent);
-
-    GdkWindow* newParentWindow =
-        static_cast<GdkWindow*>(aNewParent->GetNativeData(NS_NATIVE_WINDOW));
-    NS_ASSERTION(newParentWindow, "Parent widget has a null native window handle");
-
-    if (!mShell && mDrawingarea) {
-#ifdef DEBUG
-        if (!mContainer) {
-            
-            gpointer old_container;
-            gdk_window_get_user_data(mDrawingarea->inner_window,
-                                     &old_container);
-            gpointer new_container;
-            gdk_window_get_user_data(newParentWindow, &new_container);
-            NS_ASSERTION(old_container == new_container,
-                         "FIXME: Wrong MozContainer on MozDrawingarea");
-        }
-#endif
-        moz_drawingarea_reparent(mDrawingarea, newParentWindow);
-    } else {
+    if (mContainer || !mDrawingarea || !mParent) {
         NS_NOTREACHED("nsWindow::SetParent - reparenting a non-child window");
+        return NS_ERROR_NOT_IMPLEMENTED;
     }
+
+    
+    nsCOMPtr<nsIWidget> kungFuDeathGrip = this;
+    mParent->RemoveChild(this);
+
+    mParent = aNewParent;
+
+    GtkWidget* oldContainer = GetMozContainerWidget();
+    if (!oldContainer) {
+        
+        
+        NS_ABORT_IF_FALSE(GDK_WINDOW_OBJECT(mDrawingarea->inner_window)->destroyed,
+                          "live GdkWindow with no widget");
+        return NS_OK;
+    }
+
+    NS_ABORT_IF_FALSE(!GDK_WINDOW_OBJECT(mDrawingarea->inner_window)->destroyed,
+                      "destroyed GdkWindow with widget");
+
+    GdkWindow* newParentWindow = NULL;
+    GtkWidget* newContainer = NULL;
+    if (aNewParent) {
+        newParentWindow = static_cast<GdkWindow*>
+            (aNewParent->GetNativeData(NS_NATIVE_WINDOW));
+        if (newParentWindow) {
+            newContainer = get_gtk_widget_for_gdk_window(newParentWindow);
+        }
+    } else {
+        
+        
+        
+        
+        newContainer = EnsureInvisibleContainer();
+        newParentWindow = newContainer->window;
+    }
+
+    if (!newContainer) {
+        
+        NS_ABORT_IF_FALSE(!newParentWindow ||
+                          GDK_WINDOW_OBJECT(newParentWindow)->destroyed,
+                          "live GdkWindow with no widget");
+        Destroy();
+    } else {
+        if (newContainer != oldContainer) {
+            NS_ABORT_IF_FALSE(!GDK_WINDOW_OBJECT(newParentWindow)->destroyed,
+                              "destroyed GdkWindow with widget");
+            SetWidgetForHierarchy(mDrawingarea->clip_window, oldContainer,
+                                  newContainer);
+        }
+
+        moz_drawingarea_reparent(mDrawingarea, newParentWindow);
+    }
+
     return NS_OK;
 }
 
@@ -2334,6 +2459,21 @@ nsWindow::OnConfigureEvent(GtkWidget *aWidget, GdkEventConfigure *aEvent)
     DispatchEvent(&event, status);
 
     return FALSE;
+}
+
+void
+nsWindow::OnContainerUnrealize(GtkWidget *aWidget)
+{
+    
+    
+    
+
+    NS_ASSERTION(mContainer == MOZ_CONTAINER(aWidget),
+                 "unexpected \"unrealize\" signal");
+
+    if (mDrawingarea) {
+        SetWidgetForHierarchy(mDrawingarea->clip_window, aWidget, NULL);
+    }
 }
 
 void
@@ -3907,6 +4047,8 @@ nsWindow::NativeCreate(nsIWidget        *aParent,
     }
 
     if (mContainer) {
+        g_signal_connect(G_OBJECT(mContainer), "unrealize",
+                         G_CALLBACK(container_unrealize_cb), NULL);
         g_signal_connect_after(G_OBJECT(mContainer), "size_allocate",
                                G_CALLBACK(size_allocate_cb), NULL);
         g_signal_connect(G_OBJECT(mContainer), "expose_event",
@@ -5222,6 +5364,17 @@ configure_event_cb(GtkWidget *widget,
         return FALSE;
 
     return window->OnConfigureEvent(widget, event);
+}
+
+
+void
+container_unrealize_cb (GtkWidget *widget)
+{
+    nsRefPtr<nsWindow> window = get_window_for_gtk_widget(widget);
+    if (!window)
+        return;
+
+    window->OnContainerUnrealize(widget);
 }
 
 

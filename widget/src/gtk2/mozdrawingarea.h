@@ -65,6 +65,8 @@ typedef struct _MozDrawingareaClass MozDrawingareaClass;
 struct _MozDrawingarea
 {
     GObject         parent_instance;
+    
+
     GdkWindow      *clip_window;
     GdkWindow      *inner_window;
 };
