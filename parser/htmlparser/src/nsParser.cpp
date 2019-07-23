@@ -1617,6 +1617,11 @@ nsParser::DidBuildModel(nsresult anErrorCode)
 
       
       mParserContext->mRequest = 0;
+
+      if (mSpeculativeScriptThread) {
+        mSpeculativeScriptThread->Terminate();
+        mSpeculativeScriptThread = nsnull;
+      }
     }
   }
 
