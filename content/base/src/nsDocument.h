@@ -93,8 +93,6 @@
 #include "nsCycleCollectionParticipant.h"
 #include "nsContentList.h"
 #include "nsGkAtoms.h"
-#include "nsIApplicationCache.h"
-#include "nsIApplicationCacheContainer.h"
 
 
 #include "nsHTMLStyleSheet.h"
@@ -410,7 +408,6 @@ class nsDocument : public nsIDocument,
                    public nsIScriptObjectPrincipal,
                    public nsIRadioGroupContainer,
                    public nsIDOMNodeSelector,
-                   public nsIApplicationCacheContainer,
                    public nsStubMutationObserver
 {
 public:
@@ -761,9 +758,6 @@ public:
   
   virtual nsIPrincipal* GetPrincipal();
 
-  
-  NS_DECL_NSIAPPLICATIONCACHECONTAINER
-
   virtual nsresult Init();
   
   virtual nsresult AddXMLEventsContent(nsIContent * aXMLEventsElement);
@@ -1032,10 +1026,6 @@ protected:
 
   
   PRUint32 mUpdateNestLevel;
-
-  
-  
-  nsCOMPtr<nsIApplicationCache> mApplicationCache;
 
 private:
   friend class nsUnblockOnloadEvent;
