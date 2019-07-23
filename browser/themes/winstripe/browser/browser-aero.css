@@ -32,5 +32,13 @@
 
 
 #identity-popup[chromedir="ltr"] {
-  margin-left: 6px;
+  -moz-margin-start: 5px;
+}
+
+
+
+#identity-popup:-moz-system-metric(windows-default-theme),
+#editBookmarkPanel:-moz-system-metric(windows-default-theme) {
+  -moz-appearance: tooltip;
+  color: InfoText;
 }
