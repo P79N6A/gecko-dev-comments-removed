@@ -224,18 +224,6 @@ nsSMILCSSProperty::IsPropertyAnimatable(nsCSSProperty aPropID)
       return PR_FALSE;
 
     
-    case eCSSProperty_cursor:
-    case eCSSProperty_stroke_dasharray:
-      
-      return PR_FALSE;
-
-    
-    case eCSSProperty_fill:
-    case eCSSProperty_stroke:
-      return PR_TRUE;
-
-    
-    
     
     
     
@@ -244,8 +232,10 @@ nsSMILCSSProperty::IsPropertyAnimatable(nsCSSProperty aPropID)
     case eCSSProperty_color:
     case eCSSProperty_color_interpolation:
     case eCSSProperty_color_interpolation_filters:
+    
     case eCSSProperty_display:
     case eCSSProperty_dominant_baseline:
+    case eCSSProperty_fill:
     case eCSSProperty_fill_opacity:
     case eCSSProperty_fill_rule:
     
@@ -270,6 +260,8 @@ nsSMILCSSProperty::IsPropertyAnimatable(nsCSSProperty aPropID)
     case eCSSProperty_shape_rendering:
     case eCSSProperty_stop_color:
     case eCSSProperty_stop_opacity:
+    case eCSSProperty_stroke:
+    case eCSSProperty_stroke_dasharray:
     case eCSSProperty_stroke_dashoffset:
     case eCSSProperty_stroke_linecap:
     case eCSSProperty_stroke_linejoin:

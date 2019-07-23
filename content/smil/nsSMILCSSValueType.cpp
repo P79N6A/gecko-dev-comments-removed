@@ -209,8 +209,13 @@ nsSMILCSSValueType::Add(nsSMILValue& aDest, const nsSMILValue& aValueToAdd,
   }
 
   
-  if (destWrapper->mPropID == eCSSProperty_font_size_adjust) {
-    return NS_ERROR_FAILURE;
+  
+  switch(valueToAddWrapper->mPropID) {
+    case eCSSProperty_font_size_adjust:
+    case eCSSProperty_stroke_dasharray:
+      return NS_ERROR_FAILURE;
+    default:
+      break;
   }
   return nsStyleAnimation::Add(destWrapper->mPropID, destWrapper->mCSSValue,
                                *realValueToAdd, aCount) ?

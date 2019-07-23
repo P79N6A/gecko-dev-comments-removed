@@ -96,5 +96,12 @@ var gFromByBundles =
     new AnimTestcaseFromBy("1", "1", { midComp: "1.5", toComp: "2" }),
     new AnimTestcaseFromBy("20.1", "-10", { midComp: "15.1", toComp: "10.1" }),
   ]),
+  new TestcaseBundle(gPropList.stroke_dasharray, [
+    
+    
+    new AnimTestcaseFromBy("none", "5"),
+    new AnimTestcaseFromBy("10", "5"),
+    new AnimTestcaseFromBy("1", "2, 3"),
+  ]),
   new TestcaseBundle(gPropList.stroke_width,   _fromByTestLists.lengthPx),
 ];
