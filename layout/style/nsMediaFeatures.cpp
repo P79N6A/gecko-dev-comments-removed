@@ -195,11 +195,6 @@ GetColor(nsPresContext* aPresContext, nsCSSValue& aResult)
     dx->GetDepth(depth);
     
     
-    if (depth == 32) {
-        depth = 24;
-    }
-    
-    
     
     depth /= 3;
     aResult.SetIntValue(PRInt32(depth), eCSSUnit_Integer);

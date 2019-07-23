@@ -147,7 +147,14 @@ nsScreenWin :: GetPixelDepth(PRInt32 *aPixelDepth)
   HDC hDCScreen = ::GetDC(nsnull);
   NS_ASSERTION(hDCScreen,"GetDC Failure");
 
-  *aPixelDepth = ::GetDeviceCaps(hDCScreen, BITSPIXEL);
+  PRInt32 depth = ::GetDeviceCaps(hDCScreen, BITSPIXEL);
+  if (depth == 32) {
+    
+    
+    
+    depth = 24;
+  }
+  *aPixelDepth = depth;
 
   ::ReleaseDC(nsnull, hDCScreen);
   return NS_OK;
