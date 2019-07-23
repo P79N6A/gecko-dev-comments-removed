@@ -999,7 +999,13 @@ Assembler::asm_store32(LIns *value, int dr, LIns *base)
         ra = rA->reg;
         rb = rB->reg;
     }
-    STR(ra, rb, dr);
+
+    if (!isS12(dr)) {
+        STR(ra, IP, 0);
+        asm_add_imm(IP, rb, dr);
+    } else {
+        STR(ra, rb, dr);
+    }
 }
 
 void
@@ -1461,13 +1467,15 @@ Assembler::BranchWithLink(NIns* addr)
     
     
     if (isS24(offs>>2)) {
+        
+        
+        intptr_t offs2 = (offs>>2) & 0xffffff;
 
         if (((intptr_t)addr & 1) == 0) {
             
 
             
-            NanoAssert( ((offs>>2) & ~0xffffff) == 0);
-            *(--_nIns) = (NIns)( (COND_AL) | (0xB<<24) | (offs>>2) );
+            *(--_nIns) = (NIns)( (COND_AL) | (0xB<<24) | (offs2) );
             asm_output("bl %p", (void*)addr);
         } else {
             
@@ -1476,8 +1484,7 @@ Assembler::BranchWithLink(NIns* addr)
             uint32_t    H = (offs & 0x2) << 23;
 
             
-            NanoAssert( ((offs>>2) & ~0xffffff) == 0);
-            *(--_nIns) = (NIns)( (0xF << 28) | (0x5<<25) | (H) | (offs>>2) );
+            *(--_nIns) = (NIns)( (0xF << 28) | (0x5<<25) | (H) | (offs2) );
             asm_output("blx %p", (void*)addr);
         }
     } else {
