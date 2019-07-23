@@ -522,15 +522,17 @@ IsBody(nsIContent *aContent)
           aContent->IsNodeOfType(nsINode::eHTML));
 }
 
-static PRBool
-IsOffsetParent(nsIContent *aContent)
-{
-  nsINodeInfo *ni = aContent->NodeInfo();
+static PRBool IS_TABLE_CELL(nsIAtom* frameType) {
+  return nsGkAtoms::tableCellFrame == frameType ||
+    nsGkAtoms::bcTableCellFrame == frameType;
+}
 
-  return ((ni->Equals(nsGkAtoms::td) ||
-           ni->Equals(nsGkAtoms::table) ||
-           ni->Equals(nsGkAtoms::th)) &&
-          aContent->IsNodeOfType(nsINode::eHTML));
+static PRBool
+IsOffsetParent(nsIFrame* aFrame)
+{
+  nsIAtom* frameType = aFrame->GetType();
+  return (IS_TABLE_CELL(frameType) ||
+          frameType == nsGkAtoms::tableFrame);
 }
 
 void
@@ -579,7 +581,8 @@ nsGenericHTMLElement::GetOffsetRect(nsRect& aRect, nsIContent** aOffsetParent)
 
       
       
-      if (!isAbsolutelyPositioned) {
+      PRBool isOffsetParent = IsOffsetParent(parent);
+      if (!isAbsolutelyPositioned && !isOffsetParent) {
         origin += parent->GetPositionIgnoringScrolling();
       }
 
@@ -592,7 +595,7 @@ nsGenericHTMLElement::GetOffsetRect(nsRect& aRect, nsIContent** aOffsetParent)
         
         
         
-        if ((!isPositioned && IsOffsetParent(content)) || IsBody(content)) {
+        if ((!isPositioned && isOffsetParent) || IsBody(content)) {
           *aOffsetParent = content;
           NS_ADDREF(*aOffsetParent);
           break;
@@ -1009,7 +1012,7 @@ nsGenericHTMLElement::GetClientAreaRect()
        frame->IsFrameOfType(nsIFrame::eReplaced))) {
     
     
-    return frame->GetPaddingRect();
+    return frame->GetPaddingRect() - frame->GetPositionIgnoringScrolling();
   }
 
   return nsRect(0, 0, 0, 0);
