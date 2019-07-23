@@ -709,10 +709,6 @@ nsHTMLDocument::StartDocumentLoad(const char* aCommand,
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
-  nsCOMPtr<nsIDocShell> docShell(do_QueryInterface(aContainer));
-
-  nsCOMPtr<nsIDocumentCharsetInfo> dcInfo;
-  docShell->GetDocumentCharsetInfo(getter_AddRefs(dcInfo));
   PRInt32 textType = GET_BIDI_OPTION_TEXTTYPE(GetBidiOptions());
 
   
@@ -722,11 +718,17 @@ nsHTMLDocument::StartDocumentLoad(const char* aCommand,
   
   
   
+  nsCOMPtr<nsIDocShell> docShell(do_QueryInterface(aContainer));
+
+  
+  NS_ENSURE_TRUE(docShell || IsXHTML(), NS_ERROR_FAILURE);
+
   nsCOMPtr<nsIDocShellTreeItem> docShellAsItem(do_QueryInterface(docShell));
-  NS_ENSURE_TRUE(docShellAsItem, NS_ERROR_FAILURE);
 
   nsCOMPtr<nsIDocShellTreeItem> parentAsItem;
-  docShellAsItem->GetSameTypeParent(getter_AddRefs(parentAsItem));
+  if (docShellAsItem) {
+    docShellAsItem->GetSameTypeParent(getter_AddRefs(parentAsItem));
+  }
 
   nsCOMPtr<nsIDocShell> parent(do_QueryInterface(parentAsItem));
   nsCOMPtr<nsIDocument> parentDocument;
@@ -747,7 +749,9 @@ nsHTMLDocument::StartDocumentLoad(const char* aCommand,
   nsCOMPtr<nsIMarkupDocumentViewer> muCV;
   PRBool muCVIsParent = PR_FALSE;
   nsCOMPtr<nsIContentViewer> cv;
-  docShell->GetContentViewer(getter_AddRefs(cv));
+  if (docShell) {
+    docShell->GetContentViewer(getter_AddRefs(cv));
+  }
   if (cv) {
      muCV = do_QueryInterface(cv);
   } else {
@@ -784,6 +788,11 @@ nsHTMLDocument::StartDocumentLoad(const char* aCommand,
     parserCharsetSource = charsetSource;
     parserCharset = charset;
   } else {
+    NS_ASSERTION(docShell && docShellAsItem, "Unexpected null value");
+    
+    nsCOMPtr<nsIDocumentCharsetInfo> dcInfo;
+    docShell->GetDocumentCharsetInfo(getter_AddRefs(dcInfo));
+
     charsetSource = kCharsetUninitialized;
     wyciwygChannel = do_QueryInterface(aChannel);
 
