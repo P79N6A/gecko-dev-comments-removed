@@ -50,6 +50,7 @@
 #ifdef SOLARIS
 #include <alloca.h>
 #endif
+#include <limits.h>
 
 #include "nanojit/nanojit.h"
 #include "jsarray.h"            
@@ -91,22 +92,27 @@ static const char tagChar[]  = "OIDISIBI";
 
 
 
+
+
 #define HOTLOOP 2
+
+
+#define BL_ATTEMPTS 7
+
+
+#define BL_BACKOFF 32
 
 
 #define HOTEXIT 1
 
 
+#define MAXEXIT 3
+
+
+#define MAXPEERS 9
+
+
 #define MAX_CALLDEPTH 10
-
-
-#define MAX_MISMATCH 20
-
-
-#define MAX_INNER_RECORD_BLACKLIST  -16
-
-
-#define INITIAL_BLACKLIST_LEVEL 5
 
 
 #define MAX_NATIVE_STACK_SLOTS 1024
@@ -240,11 +246,6 @@ bool js_verboseDebug = getenv("TRACEMONKEY") && strstr(getenv("TRACEMONKEY"), "v
 
 
 static Oracle oracle;
-
-
-
-void
-js_BlacklistPC(JSTraceMonitor* tm, Fragment* frag, uint32 globalShape);
 
 Tracker::Tracker()
 {
@@ -427,54 +428,27 @@ Oracle::Oracle()
 }
 
 
-int32_t
-Oracle::getHits(const void* ip)
+inline int32_t&
+Oracle::hits(const jsbytecode* ip)
 {
-    size_t h = hitHash(ip);
-    uint32_t hc = hits[h];
-    uint32_t bl = blacklistLevels[h];
-
-    
-    if (bl > 30)
-        bl = 30;
-    hc &= 0x7fffffff;
-
-    return hc - (bl ? (1<<bl) : 0);
+    return _hits[hitHash(ip)];
 }
 
 
-int32_t
-Oracle::hit(const void* ip)
+inline void
+Oracle::blacklist(const jsbytecode* ip)
 {
-    size_t h = hitHash(ip);
-    if (hits[h] < 0xffffffff)
-        hits[h]++;
-
-    return getHits(ip);
+    int32_t& h = hits(ip);
+    h = INT_MIN;
 }
 
 
-void
-Oracle::resetHits(const void* ip)
+inline void
+Oracle::backoff(const jsbytecode* ip)
 {
-    size_t h = hitHash(ip);
-    if (hits[h] > 0)
-        hits[h]--;
-    if (blacklistLevels[h] > 0)
-        blacklistLevels[h]--;
+    int32_t& h = hits(ip);
+    h = -BL_BACKOFF;
 }
-
-
-void
-Oracle::blacklist(const void* ip)
-{
-    size_t h = hitHash(ip);
-    if (blacklistLevels[h] == 0)
-        blacklistLevels[h] = INITIAL_BLACKLIST_LEVEL;
-    else if (blacklistLevels[h] < 0xffffffff)
-        blacklistLevels[h]++;
-}
-
 
 
 JS_REQUIRES_STACK void
@@ -508,8 +482,7 @@ Oracle::isStackSlotUndemotable(JSContext* cx, unsigned slot) const
 void
 Oracle::clearHitCounts()
 {
-    memset(hits, 0, sizeof(hits));
-    memset(blacklistLevels, 0, sizeof(blacklistLevels));
+    memset(_hits, 0, sizeof(_hits));
 }
 
 void
@@ -517,6 +490,23 @@ Oracle::clearDemotability()
 {
     _stackDontDemote.reset();
     _globalDontDemote.reset();
+}
+
+static void
+js_Blacklist(Fragment* tree)
+{
+    oracle.blacklist((const jsbytecode*)tree->ip);
+}
+
+static void
+js_Backoff(Fragment* tree, const jsbytecode* where)
+{
+    JS_ASSERT(tree->root == tree);
+    if (++tree->recordAttempts > BL_ATTEMPTS) {
+        oracle.blacklist((const jsbytecode*)tree->ip);
+        return;
+    }
+    oracle.backoff((const jsbytecode*)tree->ip);
 }
 
 static inline size_t
@@ -1185,7 +1175,7 @@ js_TrashTree(JSContext* cx, Fragment* f);
 JS_REQUIRES_STACK
 TraceRecorder::TraceRecorder(JSContext* cx, VMSideExit* _anchor, Fragment* _fragment,
         TreeInfo* ti, unsigned stackSlots, unsigned ngslots, uint8* typeMap,
-        VMSideExit* innermostNestedGuard, Fragment* outerToBlacklist)
+        VMSideExit* innermostNestedGuard)
 {
     JS_ASSERT(!_fragment->vmprivate && ti);
 
@@ -1202,13 +1192,10 @@ TraceRecorder::TraceRecorder(JSContext* cx, VMSideExit* _anchor, Fragment* _frag
     this->trashSelf = false;
     this->global_dslots = this->globalObj->dslots;
     this->terminate = false;
-    this->outerToBlacklist = outerToBlacklist;
     this->wasRootFragment = _fragment == _fragment->root;
 
     debug_only_v(printf("recording starting from %s:%u@%u\n",
-                        cx->fp->script->filename,
-                        js_FramePCToLineNumber(cx, cx->fp),
-                        FramePCOffset(cx->fp));)
+                        ti->treeFileName, ti->treeLineNumber, ti->treePCOffset);)
     debug_only_v(printf("globalObj=%p, shape=%d\n", (void*)this->globalObj, OBJ_SHAPE(this->globalObj));)
 
     lir = lir_buf_writer = new (&gc) LirBufWriter(lirbuf);
@@ -1589,7 +1576,7 @@ NativeToValue(JSContext* cx, jsval& v, uint8 type, double* slot)
       case JSVAL_BOXED:
         v = *(jsval*)slot;
         JS_ASSERT(v != JSVAL_ERROR_COOKIE); 
-        debug_only_v(printf("box<%p> ", (void*)v));
+        debug_only_v(printf("box<%lx> ", v));
         break;
       case JSVAL_TNULL:
         JS_ASSERT(*(JSObject**)slot == NULL);
@@ -2451,8 +2438,8 @@ TraceRecorder::compile(JSTraceMonitor* tm)
 {
     Fragmento* fragmento = tm->fragmento;
     if (treeInfo->maxNativeStackSlots >= MAX_NATIVE_STACK_SLOTS) {
-        debug_only_v(printf("Trace rejected: excessive stack use.\n"));
-        js_BlacklistPC(tm, fragment, treeInfo->globalShape);
+        debug_only_v(printf("Blacklist: excessive stack use.\n"));
+        js_Blacklist(fragment);
         return;
     }
     if (anchor && anchor->exitType != CASE_EXIT)
@@ -2465,7 +2452,8 @@ TraceRecorder::compile(JSTraceMonitor* tm)
     if (fragmento->assm()->error() == nanojit::OutOMem)
         return;
     if (fragmento->assm()->error() != nanojit::None) {
-        js_BlacklistPC(tm, fragment, treeInfo->globalShape);
+        debug_only_v(printf("Blacklisted: error during compilation\n");)
+        js_Blacklist(fragment);
         return;
     }
     if (anchor) {
@@ -2527,8 +2515,8 @@ TraceRecorder::closeLoop(JSTraceMonitor* tm, bool& demote)
     exit = (VMSideExit*)((GuardRecord*)exitIns->payload())->exit;
 
     if (callDepth != 0) {
-        debug_only_v(printf("Stack depth mismatch, possible recursion\n");)
-        js_BlacklistPC(tm, fragment, treeInfo->globalShape);
+        debug_only_v(printf("Blacklisted: stack depth mismatch, possible recursion.\n");)
+        js_Blacklist(fragment);
         trashSelf = true;
         return false;
     }
@@ -2696,8 +2684,8 @@ TraceRecorder::endLoop(JSTraceMonitor* tm)
     LIns* exitIns = snapshot(LOOP_EXIT);
 
     if (callDepth != 0) {
-        debug_only_v(printf("Stack depth mismatch, possible recursion\n");)
-        js_BlacklistPC(tm, fragment, treeInfo->globalShape);
+        debug_only_v(printf("Blacklisted: stack depth mismatch, possible recursion.\n");)
+        js_Blacklist(fragment);
         trashSelf = true;
         return;
     }
@@ -3018,7 +3006,7 @@ js_StartRecorder(JSContext* cx, VMSideExit* anchor, Fragment* f, TreeInfo* ti,
     
     tm->recorder = new (&gc) TraceRecorder(cx, anchor, f, ti,
                                            stackSlots, ngslots, typeMap,
-                                           expectedInnerExit, outer);
+                                           expectedInnerExit);
     if (cx->throwing) {
         js_AbortRecording(cx, "setting up recorder failed");
         return false;
@@ -3257,7 +3245,6 @@ js_RecordTree(JSContext* cx, JSTraceMonitor* tm, Fragment* f, Fragment* outer,
         return false;
     }
 
-    f->recordAttempts++;
     f->root = f;
     f->lirbuf = tm->lirbuf;
 
@@ -3287,6 +3274,9 @@ js_RecordTree(JSContext* cx, JSTraceMonitor* tm, Fragment* f, Fragment* outer,
         JS_ASSERT(ti_other);
         JS_ASSERT(!ti->typeMap.matches(ti_other->typeMap));
     }
+    ti->treeFileName = cx->fp->script->filename;
+    ti->treeLineNumber = js_FramePCToLineNumber(cx, cx->fp);
+    ti->treePCOffset = FramePCOffset(cx->fp);
     #endif
 
     
@@ -3435,9 +3425,10 @@ js_AttemptToExtendTree(JSContext* cx, VMSideExit* anchor, VMSideExit* exitedFrom
         c->root = f;
     }
 
-    debug_only_v(printf("trying to attach another branch to the tree (hits = %d)\n", oracle.getHits(c->ip));)
+    debug_only_v(printf("trying to attach another branch to the tree (hits = %d)\n", c->hits());)
 
-    if (oracle.hit(c->ip) >= HOTEXIT) {
+    int32& hits = c->hits();
+    if (hits++ >= HOTEXIT && hits <= HOTEXIT+MAXEXIT) {
         
         c->lirbuf = f->lirbuf;
         unsigned stackSlots;
@@ -3473,9 +3464,6 @@ js_AttemptToExtendTree(JSContext* cx, VMSideExit* anchor, VMSideExit* exitedFrom
 static JS_REQUIRES_STACK VMSideExit*
 js_ExecuteTree(JSContext* cx, Fragment* f, uintN& inlineCallCount,
                VMSideExit** innermostNestedGuardp);
-
-static JS_REQUIRES_STACK Fragment*
-js_FindVMCompatiblePeer(JSContext* cx, Fragment* f);
 
 static JS_REQUIRES_STACK bool
 js_CloseLoop(JSContext* cx)
@@ -3534,7 +3522,6 @@ js_RecordLoopEdge(JSContext* cx, TraceRecorder* r, uintN& inlineCallCount)
         return js_CloseLoop(cx);
     
     Fragment* f = getLoop(&JS_TRACE_MONITOR(cx), cx->fp->regs->pc, ti->globalShape);
-    Fragment* peer_root = f;
     if (nesting_enabled && f) {
 
         
@@ -3575,10 +3562,7 @@ js_RecordLoopEdge(JSContext* cx, TraceRecorder* r, uintN& inlineCallCount)
             if (old == NULL)
                 old = tm->recorder->getFragment();
             js_AbortRecording(cx, "No compatible inner tree");
-            if (!f && oracle.hit(peer_root->ip) < MAX_INNER_RECORD_BLACKLIST)
-                return false;
-            if (old->recordAttempts < MAX_MISMATCH)
-                oracle.resetHits(old->ip);
+
             f = empty;
             if (!f) {
                 f = getAnchor(tm, cx->fp->regs->pc, globalShape);
@@ -3612,13 +3596,11 @@ js_RecordLoopEdge(JSContext* cx, TraceRecorder* r, uintN& inlineCallCount)
             
             old = getLoop(tm, tm->recorder->getFragment()->root->ip, ti->globalShape);
             js_AbortRecording(cx, "Inner tree is trying to stabilize, abort outer recording");
-            oracle.resetHits(old->ip);
             return js_AttemptToStabilizeTree(cx, lr, old);
         case BRANCH_EXIT:
             
             old = getLoop(tm, tm->recorder->getFragment()->root->ip, ti->globalShape);
             js_AbortRecording(cx, "Inner tree is trying to grow, abort outer recording");
-            oracle.resetHits(old->ip);
             return js_AttemptToExtendTree(cx, lr, NULL, old);
         default:
             debug_only_v(printf("exit_type=%d\n", lr->exitType);)
@@ -3799,15 +3781,18 @@ check_fail:
 
 
 
+
 static JS_REQUIRES_STACK Fragment*
-js_FindVMCompatiblePeer(JSContext* cx, Fragment* f)
+js_FindVMCompatiblePeer(JSContext* cx, Fragment* f, uintN& count)
 {
+    count = 0;
     for (; f != NULL; f = f->peer) {
         if (f->vmprivate == NULL)
             continue;
         debug_only_v(printf("checking vm types %p (ip: %p): ", (void*)f, f->ip);)
         if (js_CheckEntryTypes(cx, (TreeInfo*)f->vmprivate))
             return f;
+        ++count;
     }
     return NULL;
 }
@@ -4185,11 +4170,9 @@ js_MonitorLoopEdge(JSContext* cx, uintN& inlineCallCount)
     
     jsbytecode* pc = cx->fp->regs->pc;
 
-    if (oracle.getHits(pc) >= 0 &&
-        oracle.getHits(pc)+1 < HOTLOOP) {
-        oracle.hit(pc);
+    
+    if (oracle.hits(pc)++ < HOTLOOP)
         return false;
-    }
 
     Fragment* f = getLoop(tm, pc, globalShape);
     if (!f)
@@ -4203,24 +4186,27 @@ js_MonitorLoopEdge(JSContext* cx, uintN& inlineCallCount)
     
 
     if (!f->code() && !f->peer) {
-monitor_loop:
-        if (oracle.hit(pc) >= HOTLOOP) {
-            
-
-            return js_RecordTree(cx, tm, f->first, NULL, globalShape, globalSlots);
-        }
+    record:
         
-        return false;
+
+        return js_RecordTree(cx, tm, f->first, NULL, globalShape, globalSlots);
     }
 
-    debug_only_v(printf("Looking for compat peer %d@%d, from %p (ip: %p, hits=%d)\n",
+    debug_only_v(printf("Looking for compat peer %d@%d, from %p (ip: %p)\n",
                         js_FramePCToLineNumber(cx, cx->fp),
-                        FramePCOffset(cx->fp),
-                        (void*)f, f->ip, oracle.getHits(f->ip));)
-    Fragment* match = js_FindVMCompatiblePeer(cx, f);
-    
-    if (!match)
-        goto monitor_loop;
+                        FramePCOffset(cx->fp), f, f->ip);)
+
+    uintN count;
+    Fragment* match = js_FindVMCompatiblePeer(cx, f, count);
+    if (!match) {
+        if (count < MAXPEERS)
+            goto record;
+        
+
+        debug_only_v(printf("Blacklisted: too many peer trees.\n");)
+        js_Blacklist(f);
+        return false;
+    }
 
     VMSideExit* lr = NULL;
     VMSideExit* innermostNestedGuard = NULL;
@@ -4357,15 +4343,6 @@ TraceRecorder::monitorRecording(JSContext* cx, TraceRecorder* tr, JSOp op)
     return JSMRS_STOP;
 }
 
-
-void
-js_BlacklistPC(JSTraceMonitor* tm, Fragment* frag, uint32 globalShape)
-{
-    if (frag->kind == LoopTrace)
-        frag = getLoop(tm, frag->ip, globalShape);
-    oracle.blacklist(frag->ip);
-}
-
 JS_REQUIRES_STACK void
 js_AbortRecording(JSContext* cx, const char* reason)
 {
@@ -4374,25 +4351,26 @@ js_AbortRecording(JSContext* cx, const char* reason)
     AUDIT(recorderAborted);
 
     
-    JSStackFrame* fp = cx->fp;
-    if (fp) {
-        debug_only_v(printf("Abort recording (line %d, pc %d): %s.\n",
-                            js_FramePCToLineNumber(cx, fp),
-                            FramePCOffset(fp),
-                            reason);)
-    }
     Fragment* f = tm->recorder->getFragment();
     if (!f) {
         js_DeleteRecorder(cx);
         return;
     }
     JS_ASSERT(!f->vmprivate);
-    uint32 globalShape = tm->recorder->getTreeInfo()->globalShape;
-    js_BlacklistPC(tm, f, globalShape);
-    Fragment* outer = tm->recorder->getOuterToBlacklist();
-    
-    if (outer != NULL && outer->recordAttempts >= 2)
-        js_BlacklistPC(tm, outer, globalShape);
+
+#ifdef DEBUG
+    TreeInfo* ti = tm->recorder->getTreeInfo();
+    debug_only_v(printf("Abort recording of tree %s:%d@%d at %s:%d@%d: %s.\n",
+                        ti->treeFileName,
+                        ti->treeLineNumber,
+                        ti->treePCOffset,
+                        cx->fp->script->filename,
+                        js_FramePCToLineNumber(cx, cx->fp),
+                        FramePCOffset(cx->fp),
+                        reason);)
+#endif
+
+    js_Backoff(f->root, cx->fp->regs->pc);
 
     
 
@@ -5268,39 +5246,28 @@ TraceRecorder::equalityHelper(jsval l, jsval r, LIns* l_ins, LIns* r_ins,
         fp = true;
     } else {
         if (JSVAL_TAG(l) == JSVAL_BOOLEAN) {
-            bool isVoid = JSVAL_IS_VOID(l);
-            guard(isVoid,
-                  lir->ins2(LIR_eq, l_ins, INS_CONST(JSVAL_TO_PSEUDO_BOOLEAN(JSVAL_VOID))),
-                  BRANCH_EXIT);
-            if (!isVoid) {
-                args[0] = l_ins, args[1] = cx_ins;
-                l_ins = lir->insCall(&js_BooleanOrUndefinedToNumber_ci, args);
-                l = (l == JSVAL_VOID)
-                    ? DOUBLE_TO_JSVAL(cx->runtime->jsNaN)
-                    : INT_TO_JSVAL(l == JSVAL_TRUE);
-                return equalityHelper(l, r, l_ins, r_ins, negate,
-                                      tryBranchAfterCond, rval);
-            }
-        } else if (JSVAL_TAG(r) == JSVAL_BOOLEAN) {
-            bool isVoid = JSVAL_IS_VOID(r);
-            guard(isVoid,
-                  lir->ins2(LIR_eq, r_ins, INS_CONST(JSVAL_TO_PSEUDO_BOOLEAN(JSVAL_VOID))),
-                  BRANCH_EXIT);
-            if (!isVoid) {
-                args[0] = r_ins, args[1] = cx_ins;
-                r_ins = lir->insCall(&js_BooleanOrUndefinedToNumber_ci, args);
-                r = (r == JSVAL_VOID)
-                    ? DOUBLE_TO_JSVAL(cx->runtime->jsNaN)
-                    : INT_TO_JSVAL(r == JSVAL_TRUE);
-                return equalityHelper(l, r, l_ins, r_ins, negate,
-                                      tryBranchAfterCond, rval);
-            }
-        } else {
-            if ((JSVAL_IS_STRING(l) || isNumber(l)) && !JSVAL_IS_PRIMITIVE(r))
-                return call_imacro(equality_imacros.any_obj);
-            if (!JSVAL_IS_PRIMITIVE(l) && (JSVAL_IS_STRING(r) || isNumber(r)))
-                return call_imacro(equality_imacros.obj_any);
+            args[0] = l_ins, args[1] = cx_ins;
+            l_ins = lir->insCall(&js_BooleanOrUndefinedToNumber_ci, args);
+            l = (l == JSVAL_VOID)
+                ? DOUBLE_TO_JSVAL(cx->runtime->jsNaN)
+                : INT_TO_JSVAL(l == JSVAL_TRUE);
+            return equalityHelper(l, r, l_ins, r_ins, negate,
+                                  tryBranchAfterCond, rval);
         }
+        if (JSVAL_TAG(r) == JSVAL_BOOLEAN) {
+            args[0] = r_ins, args[1] = cx_ins;
+            r_ins = lir->insCall(&js_BooleanOrUndefinedToNumber_ci, args);
+            r = (r == JSVAL_VOID)
+                ? DOUBLE_TO_JSVAL(cx->runtime->jsNaN)
+                : INT_TO_JSVAL(r == JSVAL_TRUE);
+            return equalityHelper(l, r, l_ins, r_ins, negate,
+                                  tryBranchAfterCond, rval);
+        }
+
+        if ((JSVAL_IS_STRING(l) || isNumber(l)) && !JSVAL_IS_PRIMITIVE(r))
+            return call_imacro(equality_imacros.any_obj);
+        if (!JSVAL_IS_PRIMITIVE(l) && (JSVAL_IS_STRING(r) || isNumber(r)))
+            return call_imacro(equality_imacros.obj_any);
 
         l_ins = lir->insImm(0);
         r_ins = lir->insImm(1);
@@ -5940,9 +5907,9 @@ JS_REQUIRES_STACK bool
 TraceRecorder::guardDenseArrayIndex(JSObject* obj, jsint idx, LIns* obj_ins,
                                     LIns* dslots_ins, LIns* idx_ins, ExitType exitType)
 {
-    jsuint capacity = js_DenseArrayCapacity(obj);
+    jsuint length = ARRAY_DENSE_LENGTH(obj);
 
-    bool cond = (jsuint(idx) < jsuint(obj->fslots[JSSLOT_ARRAY_LENGTH]) && jsuint(idx) < capacity);
+    bool cond = (jsuint(idx) < jsuint(obj->fslots[JSSLOT_ARRAY_LENGTH]) && jsuint(idx) < length);
     if (cond) {
         
         LIns* exit = guard(true,
@@ -7167,7 +7134,7 @@ TraceRecorder::record_JSOP_GETELEM()
         idx = ID_TO_VALUE(id);
         jsuint index;
         if (js_IdIsIndex(idx, &index) && guardDenseArray(obj, obj_ins, BRANCH_EXIT)) {
-            v = (index >= js_DenseArrayCapacity(obj)) ? JSVAL_HOLE : obj->dslots[index];
+            v = (index >= ARRAY_DENSE_LENGTH(obj)) ? JSVAL_HOLE : obj->dslots[index];
             if (v == JSVAL_HOLE)
                 ABORT_TRACE("can't see through hole in dense array");
         } else {
