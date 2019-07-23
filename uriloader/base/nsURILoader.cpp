@@ -277,62 +277,7 @@ NS_IMETHODIMP nsDocumentOpenInfo::OnStartRequest(nsIRequest *request, nsISupport
     return NS_OK;
   }
 
-  if (httpChannel && mContentType.IsEmpty()) {
-    
-    
-    nsCAutoString contentTypeHdr;
-    httpChannel->GetResponseHeader(NS_LITERAL_CSTRING("Content-Type"),
-                                   contentTypeHdr);
-    nsCAutoString contentType;
-    httpChannel->GetContentType(contentType);
-    
-    
-    
-    
-    
-    
-    
-    if (contentType.EqualsLiteral("text/plain") &&
-        (contentTypeHdr.EqualsLiteral("text/plain") ||
-         contentTypeHdr.Equals(
-             NS_LITERAL_CSTRING("text/plain; charset=ISO-8859-1")) ||
-         contentTypeHdr.Equals(
-             NS_LITERAL_CSTRING("text/plain; charset=iso-8859-1")))) {
-      
-      
-      
-      nsCAutoString contentEncoding;
-      httpChannel->GetResponseHeader(NS_LITERAL_CSTRING("Content-Encoding"),
-                                     contentEncoding);
-      if (contentEncoding.IsEmpty()) {
-        
-        
-        
-        
-        
-        
-        LOG(("  Possibly bogus text/plain; trying to sniff for real type"));
-        rv = ConvertData(request, m_contentListener,
-                         NS_LITERAL_CSTRING(APPLICATION_MAYBE_TEXT),
-                         NS_LITERAL_CSTRING("*/*"));
-        if (NS_FAILED(rv)) {
-          
-          
-          
-          m_targetStreamListener = nsnull;
-        }
-        else {
-          LOG((APPLICATION_MAYBE_TEXT " converter taking over now"));
-        }
-      }
-    }
-  }
-
-  
-  
-  if (!m_targetStreamListener) {
-    rv = DispatchContent(request, aCtxt);
-  }
+  rv = DispatchContent(request, aCtxt);
 
   LOG(("  After dispatch, m_targetStreamListener: 0x%p, rv: 0x%08X", m_targetStreamListener.get(), rv));
 

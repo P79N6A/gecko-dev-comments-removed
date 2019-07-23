@@ -75,6 +75,7 @@
 #include "nsThreadUtils.h"
 #include "nsNetUtil.h"
 #include "nsPresShellIterator.h"
+#include "nsMimeTypes.h"
 
 
 #include "nsFrameLoader.h"
@@ -373,8 +374,24 @@ nsObjectLoadingContent::OnStartRequest(nsIRequest *aRequest, nsISupports *aConte
   
   AutoFallback fallback(this, &rv);
 
-  rv = chan->GetContentType(mContentType);
+  nsCString channelType;
+  rv = chan->GetContentType(channelType);
   NS_ENSURE_SUCCESS(rv, rv);
+
+  if (channelType.EqualsASCII(APPLICATION_GUESS_FROM_EXT)) {
+    channelType = APPLICATION_OCTET_STREAM;
+    chan->SetContentType(channelType);
+  }
+  
+  if (mContentType.IsEmpty() ||
+      !channelType.EqualsASCII(APPLICATION_OCTET_STREAM)) {
+    mContentType = channelType;
+  } else {
+    
+    
+    
+    chan->SetContentType(mContentType);
+  }
 
   
   
@@ -1071,7 +1088,8 @@ nsObjectLoadingContent::LoadObject(nsIURI* aURI,
 
   nsCOMPtr<nsILoadGroup> group = doc->GetDocumentLoadGroup();
   nsCOMPtr<nsIChannel> chan;
-  rv = NS_NewChannel(getter_AddRefs(chan), aURI, nsnull, group, this);
+  rv = NS_NewChannel(getter_AddRefs(chan), aURI, nsnull, group, this,
+                     nsIChannel::LOAD_CALL_CONTENT_SNIFFERS);
   NS_ENSURE_SUCCESS(rv, rv);
 
   

@@ -789,6 +789,14 @@
 
 
 
+#define NS_BINARYDETECTOR_CONTRACTID \
+    "@mozilla.org/network/binary-detector;1"
+
+
+
+
+
+
 #define NS_NETWORK_LINK_SERVICE_CLASSNAME "Network Link Status"
 #define NS_NETWORK_LINK_SERVICE_CID    \
   { 0x75a500a2,                                        \
