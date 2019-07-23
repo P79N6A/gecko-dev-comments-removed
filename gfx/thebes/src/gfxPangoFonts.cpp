@@ -56,6 +56,8 @@
 #include "gfxContext.h"
 #include "gfxPlatformGtk.h"
 #include "gfxPangoFonts.h"
+#include "gfxFT2FontBase.h"
+#include "gfxFT2Utils.h"
 #include "gfxFontconfigUtils.h"
 #include "gfxUserFontSet.h"
 
@@ -125,21 +127,6 @@ public:
 #ifndef FC_FULLNAME
 #define FC_FULLNAME "fullname"
 #endif
-
-
-
-
-#define FLOAT_FROM_26_6(x) ((x) / 64.0)
-#define FLOAT_FROM_16_16(x) ((x) / 65536.0)
-#define ROUND_26_6_TO_INT(x) ((x) >= 0 ?  ((32 + (x)) >> 6) \
-                                       : -((32 - (x)) >> 6))
-
-static inline FT_Long
-ScaleRoundDesignUnits(FT_Short aDesignMetric, FT_Fixed aScale)
-{
-    FT_Long fixed26dot6 = FT_MulFix(aDesignMetric, aScale);
-    return ROUND_26_6_TO_INT(fixed26dot6);
-}
 
 static PRFuncPtr
 FindFunctionSymbol(const char *name)
@@ -519,83 +506,45 @@ gfxDownloadedFcFontEntry::GetPangoCoverage()
 
 
 
-class gfxFcFont : public gfxFont {
+class gfxFcFont : public gfxFT2FontBase {
 public:
     virtual ~gfxFcFont ();
     static already_AddRefed<gfxFcFont> GetOrMakeFont(FcPattern *aPattern);
 
-    virtual const gfxFont::Metrics& GetMetrics();
-
-    virtual nsString GetUniqueName();
-
-    
-    virtual PRUint32 GetSpaceGlyph() {
-        NS_ASSERTION(GetStyle()->size != 0,
-                     "forgot to short-circuit a text run with zero-sized font?");
-        GetMetrics();
-        return mSpaceGlyph;
-    }
-
-    cairo_scaled_font_t *CairoScaledFont() { return mCairoFont; }
-    PRUint32 GetGlyph(PRUint32 aCharCode);
-    void GetGlyphExtents(PRUint32 aGlyph, cairo_text_extents_t* aExtents);
-
 protected:
-    cairo_scaled_font_t *mCairoFont;
-
-    PRUint32 mSpaceGlyph;
-    Metrics mMetrics;
-    PRPackedBool mHasMetrics;
-
     gfxFcFont(cairo_scaled_font_t *aCairoFont,
               gfxFontEntry *aFontEntry, const gfxFontStyle *aFontStyle);
-
-    virtual PRBool SetupCairoFont(gfxContext *aContext);
 
     
     static cairo_user_data_key_t sGfxFontKey;
 };
 
-class LockedFTFace {
+class gfxFcLockedFace : public gfxFT2LockedFace {
 public:
-    LockedFTFace(gfxFcFont *aFont)
-        : mGfxFont(aFont),
-          mFace(cairo_ft_scaled_font_lock_face(aFont->CairoScaledFont()))
-    {
-    }
-
-    ~LockedFTFace()
-    {
-        if (mFace) {
-            cairo_ft_scaled_font_unlock_face(mGfxFont->CairoScaledFont());
-        }
-    }
-
-    FT_Face get()
-    {
-        return mFace;
-    }
-
-    
-
-
-
-
-    PRUint32 GetGlyph(PRUint32 aCharCode);
-
-    void GetMetrics(gfxFont::Metrics* aMetrics, PRUint32* aSpaceGlyph);
-
-private:
-    
-
-
-
-
-    PRUint32 GetCharExtents(char aChar, cairo_text_extents_t* aExtents);
-
-    nsRefPtr<gfxFcFont> mGfxFont;
-    FT_Face mFace;
+    gfxFcLockedFace(gfxFT2FontBase *aFont) : gfxFT2LockedFace(aFont) {};
+    ~gfxFcLockedFace() {};
+    virtual PRUint32 GetGlyph(PRUint32 aCharCode);
 };
+
+PRUint32
+gfxFcLockedFace::GetGlyph(PRUint32 aCharCode)
+{
+    if (NS_UNLIKELY(!mFace))
+        return 0;
+
+    
+    
+    
+    
+    
+    
+    
+    if (!mFace->charmap || mFace->charmap->encoding != FT_ENCODING_UNICODE) {
+        FT_Select_Charmap(mFace, FT_ENCODING_UNICODE);
+    }
+
+    return FcFreeTypeCharIndex(mFace, aCharCode);
+}
 
 
 
@@ -2107,18 +2056,14 @@ cairo_user_data_key_t gfxFcFont::sGfxFontKey;
 gfxFcFont::gfxFcFont(cairo_scaled_font_t *aCairoFont,
                      gfxFontEntry *aFontEntry,
                      const gfxFontStyle *aFontStyle)
-    : gfxFont(aFontEntry, aFontStyle),
-      mCairoFont(aCairoFont),
-      mHasMetrics(PR_FALSE)
+    : gfxFT2FontBase(aCairoFont, aFontEntry, aFontStyle)
 {
-    cairo_scaled_font_reference(mCairoFont);
-    cairo_scaled_font_set_user_data(mCairoFont, &sGfxFontKey, this, NULL);
+    cairo_scaled_font_set_user_data(mScaledFont, &sGfxFontKey, this, NULL);
 }
 
 gfxFcFont::~gfxFcFont()
 {
-    cairo_scaled_font_set_user_data(mCairoFont, &sGfxFontKey, NULL, NULL);
-    cairo_scaled_font_destroy(mCairoFont);
+    cairo_scaled_font_set_user_data(mScaledFont, &sGfxFontKey, NULL, NULL);
 }
 
  void
@@ -2211,7 +2156,7 @@ GetFTLibrary()
         if (!font)
             return NULL;
 
-        LockedFTFace face(font);
+        gfxFcLockedFace face(font);
         if (!face.get())
             return NULL;
 
@@ -2400,400 +2345,6 @@ gfxPangoFontGroup::GetBaseFontSet()
     mFontSets.AppendElement(FontSetByLangEntry(pangoLang, fontSet));
 
     return fontSet;
-}
-
-PRUint32
-gfxFcFont::GetGlyph(PRUint32 aCharCode)
-{
-    
-    
-    
-
-    cairo_font_face_t *face =
-        cairo_scaled_font_get_font_face(CairoScaledFont());
-
-    if (cairo_font_face_status(face) != CAIRO_STATUS_SUCCESS)
-        return 0;
-
-    
-    
-    
-    
-    
-
-    struct CmapCacheSlot {
-        PRUint32 mCharCode;
-        PRUint32 mGlyphIndex;
-    };
-    const PRUint32 kNumSlots = 256;
-    static cairo_user_data_key_t sCmapCacheKey;
-
-    CmapCacheSlot *slots = static_cast<CmapCacheSlot*>
-        (cairo_font_face_get_user_data(face, &sCmapCacheKey));
-
-    if (!slots) {
-        
-        
-        
-        
-        slots = static_cast<CmapCacheSlot*>
-            (calloc(kNumSlots, sizeof(CmapCacheSlot)));
-        if (!slots)
-            return 0;
-
-        cairo_status_t status =
-            cairo_font_face_set_user_data(face, &sCmapCacheKey, slots, free);
-        if (status != CAIRO_STATUS_SUCCESS) { 
-            free(slots);
-            return 0;
-        }
-
-        
-        
-        
-        
-        slots[0].mCharCode = 1;
-    }
-
-    CmapCacheSlot *slot = &slots[aCharCode % kNumSlots];
-    if (slot->mCharCode != aCharCode) {
-        slot->mCharCode = aCharCode;
-        slot->mGlyphIndex = LockedFTFace(this).GetGlyph(aCharCode);
-    }
-
-    return slot->mGlyphIndex;
-}
-
-void
-gfxFcFont::GetGlyphExtents(PRUint32 aGlyph, cairo_text_extents_t* aExtents)
-{
-    NS_PRECONDITION(aExtents != NULL, "aExtents must not be NULL");
-
-    cairo_glyph_t glyphs[1];
-    glyphs[0].index = aGlyph;
-    glyphs[0].x = 0.0;
-    glyphs[0].y = 0.0;
-    
-    
-    
-    
-    
-    cairo_scaled_font_glyph_extents(CairoScaledFont(), glyphs, 1, aExtents);
-}
-
-PRUint32
-LockedFTFace::GetGlyph(PRUint32 aCharCode)
-{
-    if (NS_UNLIKELY(!mFace))
-        return 0;
-
-    
-    
-    
-    
-    
-    
-    
-    if (!mFace->charmap || mFace->charmap->encoding != FT_ENCODING_UNICODE) {
-        FT_Select_Charmap(mFace, FT_ENCODING_UNICODE);
-    }
-
-    return FcFreeTypeCharIndex(mFace, aCharCode);
-}
-
-PRUint32
-LockedFTFace::GetCharExtents(char aChar,
-                             cairo_text_extents_t* aExtents)
-{
-    NS_PRECONDITION(aExtents != NULL, "aExtents must not be NULL");
-
-    if (!mFace)
-        return 0;
-
-    FT_UInt gid = mGfxFont->GetGlyph(aChar);
-    if (gid) {
-        mGfxFont->GetGlyphExtents(gid, aExtents);
-    }
-
-    return gid;
-}
-
-
-
-
-
-
-
-
-
-static void
-SnapLineToPixels(gfxFloat& aOffset, gfxFloat& aSize)
-{
-    gfxFloat snappedSize = PR_MAX(NS_floor(aSize + 0.5), 1.0);
-    
-    gfxFloat offset = aOffset - 0.5 * (aSize - snappedSize);
-    
-    aOffset = NS_floor(offset + 0.5);
-    aSize = snappedSize;
-}
-
-void
-LockedFTFace::GetMetrics(gfxFont::Metrics* aMetrics, PRUint32* aSpaceGlyph)
-{
-    NS_PRECONDITION(aMetrics != NULL, "aMetrics must not be NULL");
-    NS_PRECONDITION(aSpaceGlyph != NULL, "aSpaceGlyph must not be NULL");
-
-    if (NS_UNLIKELY(!mFace)) {
-        
-        
-        aMetrics->emHeight = mGfxFont->GetStyle()->size;
-        aMetrics->emAscent = 0.8 * aMetrics->emHeight;
-        aMetrics->emDescent = 0.2 * aMetrics->emHeight;
-        aMetrics->maxAscent = aMetrics->emAscent;
-        aMetrics->maxDescent = aMetrics->maxDescent;
-        aMetrics->maxHeight = aMetrics->emHeight;
-        aMetrics->internalLeading = 0.0;
-        aMetrics->externalLeading = 0.2 * aMetrics->emHeight;
-        aSpaceGlyph = 0;
-        aMetrics->spaceWidth = 0.5 * aMetrics->emHeight;
-        aMetrics->maxAdvance = aMetrics->spaceWidth;
-        aMetrics->aveCharWidth = aMetrics->spaceWidth;
-        aMetrics->zeroOrAveCharWidth = aMetrics->spaceWidth;
-        aMetrics->xHeight = 0.5 * aMetrics->emHeight;
-        aMetrics->underlineSize = aMetrics->emHeight / 14.0;
-        aMetrics->underlineOffset = -aMetrics->underlineSize;
-        aMetrics->strikeoutOffset = 0.25 * aMetrics->emHeight;
-        aMetrics->strikeoutSize = aMetrics->underlineSize;
-        aMetrics->superscriptOffset = aMetrics->xHeight;
-        aMetrics->subscriptOffset = aMetrics->xHeight;
-
-        return;
-    }
-
-    const FT_Size_Metrics& ftMetrics = mFace->size->metrics;
-
-    gfxFloat emHeight;
-    
-    gfxFloat yScale;
-    if (FT_IS_SCALABLE(mFace)) {
-        
-        
-        
-        
-        
-        
-        
-        yScale = FLOAT_FROM_26_6(FLOAT_FROM_16_16(ftMetrics.y_scale));
-        emHeight = mFace->units_per_EM * yScale;
-    } else { 
-        
-        
-        gfxFloat emUnit = mFace->units_per_EM;
-        emHeight = ftMetrics.y_ppem;
-        yScale = emHeight / emUnit;
-    }
-
-    TT_OS2 *os2 =
-        static_cast<TT_OS2*>(FT_Get_Sfnt_Table(mFace, ft_sfnt_os2));
-
-    aMetrics->maxAscent = FLOAT_FROM_26_6(ftMetrics.ascender);
-    aMetrics->maxDescent = -FLOAT_FROM_26_6(ftMetrics.descender);
-    aMetrics->maxAdvance = FLOAT_FROM_26_6(ftMetrics.max_advance);
-
-    gfxFloat lineHeight;
-    if (os2 && os2->sTypoAscender) {
-        aMetrics->emAscent = os2->sTypoAscender * yScale;
-        aMetrics->emDescent = -os2->sTypoDescender * yScale;
-        FT_Short typoHeight =
-            os2->sTypoAscender - os2->sTypoDescender + os2->sTypoLineGap;
-        lineHeight = typoHeight * yScale;
-
-        
-        
-        if (aMetrics->emAscent > aMetrics->maxAscent)
-            aMetrics->maxAscent = aMetrics->emAscent;
-        if (aMetrics->emDescent > aMetrics->maxDescent)
-            aMetrics->maxDescent = aMetrics->emDescent;
-    } else {
-        aMetrics->emAscent = aMetrics->maxAscent;
-        aMetrics->emDescent = aMetrics->maxDescent;
-        lineHeight = FLOAT_FROM_26_6(ftMetrics.height);
-    }
-
-    cairo_text_extents_t extents;
-    *aSpaceGlyph = GetCharExtents(' ', &extents);
-    if (*aSpaceGlyph) {
-        aMetrics->spaceWidth = extents.x_advance;
-    } else {
-        aMetrics->spaceWidth = aMetrics->maxAdvance; 
-    }
-
-    aMetrics->zeroOrAveCharWidth = 0.0;
-    if (GetCharExtents('0', &extents)) {
-        aMetrics->zeroOrAveCharWidth = extents.x_advance;
-    }
-
-    
-    
-    
-    
-    if (GetCharExtents('x', &extents) && extents.y_bearing < 0.0) {
-        aMetrics->xHeight = -extents.y_bearing;
-        aMetrics->aveCharWidth = extents.x_advance;
-    } else {
-        if (os2 && os2->sxHeight) {
-            aMetrics->xHeight = os2->sxHeight * yScale;
-        } else {
-            
-            
-            
-            aMetrics->xHeight = 0.5 * emHeight;
-        }
-        aMetrics->aveCharWidth = 0.0; 
-    }
-    
-    
-    if (os2 && os2->xAvgCharWidth) {
-        
-        
-        gfxFloat avgCharWidth =
-            ScaleRoundDesignUnits(os2->xAvgCharWidth, ftMetrics.x_scale);
-        aMetrics->aveCharWidth =
-            PR_MAX(aMetrics->aveCharWidth, avgCharWidth);
-    }
-    aMetrics->aveCharWidth =
-        PR_MAX(aMetrics->aveCharWidth, aMetrics->zeroOrAveCharWidth);
-    if (aMetrics->aveCharWidth == 0.0) {
-        aMetrics->aveCharWidth = aMetrics->spaceWidth;
-    }
-    if (aMetrics->zeroOrAveCharWidth == 0.0) {
-        aMetrics->zeroOrAveCharWidth = aMetrics->aveCharWidth;
-    }
-    
-    aMetrics->maxAdvance =
-        PR_MAX(aMetrics->maxAdvance, aMetrics->aveCharWidth);
-
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    if (mFace->underline_position && mFace->underline_thickness) {
-        aMetrics->underlineSize = mFace->underline_thickness * yScale;
-        TT_Postscript *post = static_cast<TT_Postscript*>
-            (FT_Get_Sfnt_Table(mFace, ft_sfnt_post));
-        if (post && post->underlinePosition) {
-            aMetrics->underlineOffset = post->underlinePosition * yScale;
-        } else {
-            aMetrics->underlineOffset = mFace->underline_position * yScale
-                + 0.5 * aMetrics->underlineSize;
-        }
-    } else { 
-        
-        aMetrics->underlineSize = emHeight / 14.0;
-        aMetrics->underlineOffset = -aMetrics->underlineSize;
-    }
-
-    if (os2 && os2->yStrikeoutSize && os2->yStrikeoutPosition) {
-        aMetrics->strikeoutSize = os2->yStrikeoutSize * yScale;
-        aMetrics->strikeoutOffset = os2->yStrikeoutPosition * yScale;
-    } else { 
-        aMetrics->strikeoutSize = aMetrics->underlineSize;
-        
-        aMetrics->strikeoutOffset = emHeight * 409.0 / 2048.0
-            + 0.5 * aMetrics->strikeoutSize;
-    }
-    SnapLineToPixels(aMetrics->strikeoutOffset, aMetrics->strikeoutSize);
-
-    if (os2 && os2->ySuperscriptYOffset) {
-        gfxFloat val = ScaleRoundDesignUnits(os2->ySuperscriptYOffset,
-                                             ftMetrics.y_scale);
-        aMetrics->superscriptOffset = PR_MAX(1.0, val);
-    } else {
-        aMetrics->superscriptOffset = aMetrics->xHeight;
-    }
-    
-    if (os2 && os2->ySubscriptYOffset) {
-        gfxFloat val = ScaleRoundDesignUnits(os2->ySubscriptYOffset,
-                                             ftMetrics.y_scale);
-        
-        val = fabs(val);
-        aMetrics->subscriptOffset = PR_MAX(1.0, val);
-    } else {
-        aMetrics->subscriptOffset = aMetrics->xHeight;
-    }
-
-    aMetrics->maxHeight = aMetrics->maxAscent + aMetrics->maxDescent;
-
-    
-    
-    
-    
-    
-    
-    aMetrics->emHeight = NS_floor(emHeight + 0.5);
-
-    
-    
-    aMetrics->internalLeading =
-        NS_floor(aMetrics->maxHeight - aMetrics->emHeight + 0.5);
-
-    
-    
-    lineHeight = NS_floor(PR_MAX(lineHeight, aMetrics->maxHeight) + 0.5);
-    aMetrics->externalLeading =
-        lineHeight - aMetrics->internalLeading - aMetrics->emHeight;
-
-    
-    gfxFloat sum = aMetrics->emAscent + aMetrics->emDescent;
-    aMetrics->emAscent = sum > 0.0 ?
-        aMetrics->emAscent * aMetrics->emHeight / sum : 0.0;
-    aMetrics->emDescent = aMetrics->emHeight - aMetrics->emAscent;
-}
-
-const gfxFont::Metrics&
-gfxFcFont::GetMetrics()
-{
-    if (mHasMetrics)
-        return mMetrics;
-
-    if (NS_UNLIKELY(GetStyle()->size <= 0.0)) {
-        new(&mMetrics) gfxFont::Metrics(); 
-        mSpaceGlyph = 0;
-    } else {
-        LockedFTFace(this).GetMetrics(&mMetrics, &mSpaceGlyph);
-    }
-
-    SanitizeMetrics(&mMetrics, PR_FALSE);
-
-#if 0
-    
-    
-
-    fprintf (stderr, "Font: %s\n", NS_ConvertUTF16toUTF8(GetName()).get());
-    fprintf (stderr, "    emHeight: %f emAscent: %f emDescent: %f\n", mMetrics.emHeight, mMetrics.emAscent, mMetrics.emDescent);
-    fprintf (stderr, "    maxAscent: %f maxDescent: %f\n", mMetrics.maxAscent, mMetrics.maxDescent);
-    fprintf (stderr, "    internalLeading: %f externalLeading: %f\n", mMetrics.externalLeading, mMetrics.internalLeading);
-    fprintf (stderr, "    spaceWidth: %f aveCharWidth: %f xHeight: %f\n", mMetrics.spaceWidth, mMetrics.aveCharWidth, mMetrics.xHeight);
-    fprintf (stderr, "    uOff: %f uSize: %f stOff: %f stSize: %f suOff: %f suSize: %f\n", mMetrics.underlineOffset, mMetrics.underlineSize, mMetrics.strikeoutOffset, mMetrics.strikeoutSize, mMetrics.superscriptOffset, mMetrics.subscriptOffset);
-#endif
-
-    mHasMetrics = PR_TRUE;
-    return mMetrics;
-}
-
-nsString
-gfxFcFont::GetUniqueName()
-{
-    return GetName();
 }
 
 
@@ -3111,47 +2662,6 @@ CreateScaledFont(FcPattern *aPattern)
     NS_ASSERTION(cairo_scaled_font_status(scaledFont) == CAIRO_STATUS_SUCCESS,
                  "Failed to create scaled font");
     return scaledFont;
-}
-
-PRBool
-gfxFcFont::SetupCairoFont(gfxContext *aContext)
-{
-    cairo_t *cr = aContext->GetCairo();
-
-    
-    
-    
-    
-    
-    
-    cairo_scaled_font_t *cairoFont = CairoScaledFont();
-
-    if (cairo_scaled_font_status(cairoFont) != CAIRO_STATUS_SUCCESS) {
-        
-        
-        return PR_FALSE;
-    }
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    cairo_set_scaled_font(cr, cairoFont);
-    return PR_TRUE;
 }
 
 static void
