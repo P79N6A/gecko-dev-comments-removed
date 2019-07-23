@@ -55,15 +55,15 @@ JS_BEGIN_EXTERN_C
 
 
 
-
-
 #if defined(__arm) || defined(__arm32__) || defined(__arm26__) || defined(__arm__)
-#define CPU_IS_ARM
+#if !defined(__VFP_FP__)
+#define FPU_IS_ARM_FPA
+#endif
 #endif
 
 typedef union jsdpun {
     struct {
-#if defined(IS_LITTLE_ENDIAN) && !defined(CPU_IS_ARM)
+#if defined(IS_LITTLE_ENDIAN) && !defined(FPU_IS_ARM_FPA)
         uint32 lo, hi;
 #else
         uint32 hi, lo;
@@ -92,7 +92,7 @@ typedef union jsdpun {
 
 
 
-#if defined(IS_LITTLE_ENDIAN) && !defined(CPU_IS_ARM)
+#if defined(IS_LITTLE_ENDIAN) && !defined(FPU_IS_ARM_FPA)
 #define JSDOUBLE_HI32(x)        (((uint32 *)&(x))[1])
 #define JSDOUBLE_LO32(x)        (((uint32 *)&(x))[0])
 #else
