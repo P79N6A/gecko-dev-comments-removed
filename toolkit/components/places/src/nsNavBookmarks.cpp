@@ -2066,6 +2066,8 @@ nsNavBookmarks::QueryFolderChildren(PRInt64 aFolderId,
   PRBool results;
 
   nsCOMPtr<nsNavHistoryQueryOptions> options = do_QueryInterface(aOptions, &rv);
+  NS_ENSURE_SUCCESS(rv, rv);
+
   PRInt32 index = -1;
   while (NS_SUCCEEDED(mDBGetChildren->ExecuteStep(&results)) && results) {
 
@@ -2093,8 +2095,7 @@ nsNavBookmarks::QueryFolderChildren(PRInt64 aFolderId,
         continue;
       }
     } else if (itemType == TYPE_FOLDER || itemType == TYPE_DYNAMIC_CONTAINER) {
-      if (itemType == TYPE_DYNAMIC_CONTAINER ||
-          (itemType == TYPE_FOLDER && options->ExcludeReadOnlyFolders())) {
+      if (options->ExcludeReadOnlyFolders()) {
         
         PRBool readOnly = PR_FALSE;
         GetFolderReadonly(id, &readOnly);

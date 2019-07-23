@@ -36,13 +36,17 @@
 
 
 
-var histsvc = Cc["@mozilla.org/browser/nav-history-service;1"].
-              getService(Ci.nsINavHistoryService);
-var bmsvc = Cc["@mozilla.org/browser/nav-bookmarks-service;1"].
-            getService(Ci.nsINavBookmarksService);
-var annosvc = Cc["@mozilla.org/browser/annotation-service;1"].
-              getService(Ci.nsIAnnotationService);
 
+ try {
+  var histsvc = Cc["@mozilla.org/browser/nav-history-service;1"].
+                getService(Ci.nsINavHistoryService);
+  var bmsvc = Cc["@mozilla.org/browser/nav-bookmarks-service;1"].
+              getService(Ci.nsINavBookmarksService);
+  var annosvc = Cc["@mozilla.org/browser/annotation-service;1"].
+                getService(Ci.nsIAnnotationService);
+} catch (ex) {
+  do_throw("Could not get services\n");
+}
 
 function run_test() {
   
@@ -84,4 +88,17 @@ function run_test() {
   
   bmsvc.insertBookmark(exposedFolder, uri("http://uri2.tld"), bmsvc.DEFAULT_INDEX, "");
   do_check_eq(folder.childCount, 2);
+
+  
+  
+  bmsvc.setFolderReadonly(remoteContainer, true);
+  options = histsvc.getNewQueryOptions();
+  query = histsvc.getNewQuery();
+  query.setFolders([testRoot], 1);
+  result = histsvc.executeQuery(query, options);
+  rootNode = result.root;
+  rootNode.containerOpen = true;
+  do_check_eq(rootNode.childCount, 2);
+  do_check_eq(rootNode.getChild(1).title, "remote container sample");
+  rootNode.containerOpen = false;
 }
