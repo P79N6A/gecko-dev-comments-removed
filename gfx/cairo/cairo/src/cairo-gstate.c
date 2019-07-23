@@ -1686,8 +1686,12 @@ _cairo_gstate_show_text_glyphs (cairo_gstate_t		   *gstate,
 
 
 
+
+
+
+    int path_fill_threshold = gstate->target->backend->fill ? 256 : 10240;
     if (cairo_surface_has_show_text_glyphs (gstate->target) ||
-	_cairo_scaled_font_get_max_scale (gstate->scaled_font) <= 10240) {
+	_cairo_scaled_font_get_max_scale (gstate->scaled_font) <= path_fill_threshold) {
 	status = _cairo_surface_show_text_glyphs (gstate->target,
 						  gstate->op,
 						  source_pattern,
