@@ -130,6 +130,17 @@ public:
 
 
 
+
+  static PRBool DispatchMouseEvent(PRUint32 aEventType,
+                                   nsIPresShell *aPresShell,
+                                   nsIContent *aContent);
+
+  
+
+
+
+
+
   static PRUint32 GetAccessKeyFor(nsIContent *aContent);
 
   
