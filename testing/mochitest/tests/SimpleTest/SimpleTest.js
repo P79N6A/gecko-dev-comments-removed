@@ -36,7 +36,7 @@ SimpleTest._stopOnLoad = true;
 SimpleTest.ok = function (condition, name, diag) {
     var test = {'result': !!condition, 'name': name, 'diag': diag || ""};
     if (SimpleTest._logEnabled)
-        SimpleTest._logResult(test, "PASS", "FAIL");
+        SimpleTest._logResult(test, "TEST-PASS", "TEST-UNEXPECTED-FAIL");
     SimpleTest._tests.push(test);
 };
 
@@ -58,30 +58,31 @@ SimpleTest.isnot = function (a, b, name) {
 SimpleTest.todo = function(condition, name, diag) {
   var test = {'result': !!condition, 'name': name, 'diag': diag || "", todo: true};
   if (SimpleTest._logEnabled)
-      SimpleTest._logResult(test, "TODO WORKED?", "TODO");
+      SimpleTest._logResult(test, "TEST-UNEXPECTED-PASS", "TEST-KNOWN-FAIL");
   SimpleTest._tests.push(test);
-}
+};
 
 SimpleTest._logResult = function(test, passString, failString) {
   var msg = test.result ? passString : failString;
-  msg += " | " + test.name;
-  var url = "";
+  msg += " | ";
   if (parentRunner.currentTestURL)
-    url = " | " + parentRunner.currentTestURL;
-
+    msg += parentRunner.currentTestURL;
+  msg += " | " + test.name;
+  var diag = "";
+  if (test.diag)
+    diag = " - " + test.diag;
   if (test.result) {
       if (test.todo)
-          parentRunner.logger.error(msg + url)
+          parentRunner.logger.error(msg + diag);
       else
           parentRunner.logger.log(msg);
   } else {
-      msg += " | " + test.diag;
       if (test.todo)
-          parentRunner.logger.log(msg)
+          parentRunner.logger.log(msg);
       else
-          parentRunner.logger.error(msg + url);
+          parentRunner.logger.error(msg + diag);
   }
-}
+};
 
 
 
@@ -111,7 +112,7 @@ SimpleTest.report = function () {
             var cls, msg;
             if (test.todo && !test.result) {
                 todo++;
-                cls = "test_todo"
+                cls = "test_todo";
                 msg = "todo - " + test.name + " " + test.diag;
             } else if (test.result &&!test.todo) {
                 passed++;
@@ -379,7 +380,7 @@ SimpleTest._formatStack = function (stack) {
 
     out += vars[0] + ' = ' + vals[0] + SimpleTest.LF;
     out += vars[1] + ' = ' + vals[1] + SimpleTest.LF;
-    
+
     return '    ' + out;
 };
 
