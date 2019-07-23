@@ -2958,7 +2958,7 @@ js_DefineProperty(JSContext *cx, JSObject *obj, jsid id, jsval value,
             }                                                                 \
             if (*(vp) != nominal_) {                                          \
                 if (SPROP_HAS_VALID_SLOT(sprop, scope))                       \
-                    LOCKED_OBJ_SET_SLOT(obj, (sprop)->slot, *(vp));           \
+                    LOCKED_OBJ_WRITE_BARRIER(cx, obj, (sprop)->slot, *(vp));  \
             }                                                                 \
         }                                                                     \
     JS_END_MACRO
@@ -3053,7 +3053,7 @@ js_DefineNativeProperty(JSContext *cx, JSObject *obj, jsid id, jsval value,
 
     
     if (SPROP_HAS_VALID_SLOT(sprop, scope))
-        LOCKED_OBJ_SET_SLOT(obj, sprop->slot, value);
+        LOCKED_OBJ_WRITE_BARRIER(cx, obj, sprop->slot, value);
 
     
     ADD_PROPERTY_HELPER(cx, clasp, obj, scope, sprop, &value,
