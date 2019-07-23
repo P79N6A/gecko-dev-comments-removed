@@ -7116,16 +7116,14 @@ js_Interpret(JSContext *cx)
   error:
     if (fp->imacpc && cx->throwing) {
         
-        if (*fp->imacpc == JSOP_NEXTITER) {
+        if (*fp->imacpc == JSOP_NEXTITER && js_ValueIsStopIteration(cx->exception)) {
             
             JS_ASSERT(*regs.pc == JSOP_CALL || *regs.pc == JSOP_DUP || *regs.pc == JSOP_TRUE);
-            if (js_ValueIsStopIteration(cx->exception)) {
-                cx->throwing = JS_FALSE;
-                cx->exception = JSVAL_VOID;
-                regs.sp[-1] = JSVAL_HOLE;
-                PUSH(JSVAL_FALSE);
-                goto end_imacro;
-            }
+            cx->throwing = JS_FALSE;
+            cx->exception = JSVAL_VOID;
+            regs.sp[-1] = JSVAL_HOLE;
+            PUSH(JSVAL_FALSE);
+            goto end_imacro;
         }
 
         
