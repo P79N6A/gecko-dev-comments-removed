@@ -3414,8 +3414,6 @@ nsNavHistory::OnIdle()
 #if 0
     
     
-    
-    
     rv = mDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING("VACUUM;"));
     NS_ENSURE_SUCCESS(rv, rv);
 #endif
