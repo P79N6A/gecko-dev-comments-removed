@@ -1538,6 +1538,7 @@ private:
                                  nsFrameItems&            aResult);
 
   nsresult CreateLetterFrame(nsIFrame*                aBlockFrame,
+                             nsIFrame*                aBlockContinuation,
                              nsIContent*              aTextContent,
                              nsIFrame*                aParentFrame,
                              nsFrameItems&            aResult);
@@ -1546,13 +1547,36 @@ private:
                                         nsIFrame*     aBlockFrame,
                                         nsFrameItems& aBlockFrames);
 
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   nsresult WrapFramesInFirstLetterFrame(nsIFrame*     aBlockFrame,
+                                        nsIFrame*     aBlockContinuation,
                                         nsIFrame*     aParentFrame,
                                         nsIFrame*     aParentFrameList,
                                         nsIFrame**    aModifiedParent,
                                         nsIFrame**    aTextFrame,
                                         nsIFrame**    aPrevFrame,
-                                        nsFrameItems& aLetterFrame,
+                                        nsFrameItems& aLetterFrames,
                                         PRBool*       aStopLooking);
 
   nsresult RecoverLetterFrames(nsIFrame* aBlockFrame);
