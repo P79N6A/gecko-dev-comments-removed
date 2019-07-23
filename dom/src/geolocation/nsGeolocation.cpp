@@ -148,6 +148,22 @@ nsGeolocationRequest::~nsGeolocationRequest()
 {
 }
 
+nsresult
+nsGeolocationRequest::Init()
+{
+  
+
+  
+  nsRefPtr<nsGeolocationService> geoService = nsGeolocationService::GetInstance();
+  if (!geoService->HasGeolocationProvider()) {
+    NotifyError(NS_GEO_ERROR_CODE_LOCATION_PROVIDER_ERROR);
+    return NS_ERROR_FAILURE;;
+  }
+
+  return NS_OK;
+}
+
+
 NS_INTERFACE_MAP_BEGIN(nsGeolocationRequest)
   NS_INTERFACE_MAP_ENTRY_AMBIGUOUS(nsISupports, nsIGeolocationRequest)
   NS_INTERFACE_MAP_ENTRY(nsIGeolocationRequest)
@@ -402,6 +418,7 @@ NS_IMPL_THREADSAFE_ADDREF(nsGeolocationService)
 NS_IMPL_THREADSAFE_RELEASE(nsGeolocationService)
 
 nsGeolocationService::nsGeolocationService()
+ : mProviderStarted(PR_FALSE)
 {
   nsCOMPtr<nsIObserverService> obs = do_GetService("@mozilla.org/observer-service;1");
   if (obs) {
@@ -409,6 +426,15 @@ nsGeolocationService::nsGeolocationService()
   }
 
   mTimeout = nsContentUtils::GetIntPref("geo.timeout", 6000);
+
+  mProvider = do_GetService(NS_GEOLOCATION_PROVIDER_CONTRACTID);
+  
+  
+#ifdef NS_MAEMO_LOCATION
+  if (!mProvider)
+    mProvider = new MaemoLocationProvider();
+#endif
+
 }
 
 nsGeolocationService::~nsGeolocationService()
@@ -482,38 +508,36 @@ nsGeolocationService::IsDeviceReady()
   return ready;
 }
 
+PRBool
+nsGeolocationService::HasGeolocationProvider()
+{
+  return (mProvider != nsnull);
+}
+
 nsresult
 nsGeolocationService::StartDevice()
 {
   if (!mProvider)
-  {
-    
-    mProvider = do_GetService(NS_GEOLOCATION_PROVIDER_CONTRACTID);
+    return NS_ERROR_NOT_AVAILABLE;
+  
+  if (!mProviderStarted) {
 
-    
-#ifdef NS_MAEMO_LOCATION
-    if (!mProvider)
-    {
-      
-      mProvider = new MaemoLocationProvider();
-    }
-#endif
-
-    if (!mProvider)
-      return NS_ERROR_NOT_AVAILABLE;
-    
     
     nsresult rv = mProvider->Startup();
     if (NS_FAILED(rv)) 
       return NS_ERROR_NOT_AVAILABLE;
- 
+  
     
     mProvider->Watch(this);
+
     
+    mProviderStarted = PR_TRUE;
+
     
     
     
     SetDisconnectTimer();
+
   }
 
   return NS_OK;
@@ -537,7 +561,7 @@ nsGeolocationService::StopDevice()
 {
   if (mProvider) {
     mProvider->Shutdown();
-    mProvider = nsnull;
+    mProviderStarted = PR_FALSE;
   }
 
   if(mDisconnectTimer) {
@@ -709,6 +733,9 @@ nsGeolocation::GetCurrentPosition(nsIDOMGeoPositionCallback *callback,
   if (!request)
     return NS_ERROR_OUT_OF_MEMORY;
 
+  if (NS_FAILED(request->Init()))
+    return NS_OK;
+
   prompt->Prompt(request);
 
   
@@ -725,10 +752,13 @@ nsGeolocation::WatchPosition(nsIDOMGeoPositionCallback *aCallback,
   nsCOMPtr<nsIGeolocationPrompt> prompt = do_GetService(NS_GEOLOCATION_PROMPT_CONTRACTID);
   if (prompt == nsnull)
     return NS_ERROR_NOT_AVAILABLE;
-    
+
   nsRefPtr<nsGeolocationRequest> request = new nsGeolocationRequest(this, aCallback, aErrorCallback, aOptions);
   if (!request)
     return NS_ERROR_OUT_OF_MEMORY;
+
+  if (NS_FAILED(request->Init()))
+    return NS_OK;
 
   prompt->Prompt(request);
 

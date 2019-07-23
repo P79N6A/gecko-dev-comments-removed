@@ -74,6 +74,7 @@ class nsGeolocationRequest : public nsIGeolocationRequest, public nsITimerCallba
                        nsIDOMGeoPositionCallback* callback,
                        nsIDOMGeoPositionErrorCallback* errorCallback,
                        nsIDOMGeoPositionOptions* options);
+  nsresult Init();
   void Shutdown();
 
   void SendLocation(nsIDOMGeoPosition* location);
@@ -146,6 +147,9 @@ public:
   PRBool   IsDeviceReady();
 
   
+  PRBool   HasGeolocationProvider();
+
+  
   nsresult StartDevice();
 
   
@@ -168,6 +172,9 @@ private:
 
   
   nsCOMPtr<nsIGeolocationProvider> mProvider;
+
+  
+  PRBool mProviderStarted;
 
   
   
