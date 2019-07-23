@@ -1101,9 +1101,10 @@ nsJSContext::DOMOperationCallback(JSContext *cx)
     }
   }
 
-  PRInt32 buttonPressed = 1; 
+  PRInt32 buttonPressed = 0; 
   PRBool neverShowDlgChk = PR_FALSE;
-  PRUint32 buttonFlags = (nsIPrompt::BUTTON_TITLE_IS_STRING *
+  PRUint32 buttonFlags = nsIPrompt::BUTTON_POS_1_DEFAULT +
+                         (nsIPrompt::BUTTON_TITLE_IS_STRING *
                           (nsIPrompt::BUTTON_POS_0 + nsIPrompt::BUTTON_POS_1));
 
   
@@ -1114,13 +1115,13 @@ nsJSContext::DOMOperationCallback(JSContext *cx)
   ::JS_SetOperationCallback(cx, nsnull);
 
   
-  rv = prompt->ConfirmEx(title, msg, buttonFlags, stopButton, waitButton,
+  rv = prompt->ConfirmEx(title, msg, buttonFlags, waitButton, stopButton,
                          debugButton, neverShowDlg, &neverShowDlgChk,
                          &buttonPressed);
 
   ::JS_SetOperationCallback(cx, DOMOperationCallback);
 
-  if (NS_FAILED(rv) || (buttonPressed == 1)) {
+  if (NS_FAILED(rv) || (buttonPressed == 0)) {
     
 
     if (neverShowDlgChk) {
