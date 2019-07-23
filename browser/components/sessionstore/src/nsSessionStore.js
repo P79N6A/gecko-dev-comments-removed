@@ -1295,9 +1295,7 @@ SessionStoreService.prototype = {
         try {
           let key = storage.key(j);
           let item = storage.getItem(key);
-          data[key] = { value: item.value };
-          if (uri.schemeIs("https") && item.secure)
-            data[key].secure = true;
+          data[key] = item;
         }
         catch (ex) {  }
       }
@@ -2108,9 +2106,7 @@ SessionStoreService.prototype = {
       let storage = aDocShell.getSessionStorageForURI(uri);
       for (let key in aStorageData[url]) {
         try {
-          storage.setItem(key, aStorageData[url][key].value);
-          if (uri.schemeIs("https"))
-            storage.getItem(key).secure = aStorageData[url][key].secure || false;
+          storage.setItem(key, aStorageData[url][key]);
         }
         catch (ex) { Cu.reportError(ex); } 
       }
