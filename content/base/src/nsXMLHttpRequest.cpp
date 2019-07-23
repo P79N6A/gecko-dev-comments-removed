@@ -503,30 +503,6 @@ nsACProxyListener::GetInterface(const nsIID & aIID, void **aResult)
 
 
 
-class nsResumeTimeoutsRunnable : public nsIRunnable
-{
-public:
-  NS_DECL_ISUPPORTS
-
-  nsResumeTimeoutsRunnable(nsPIDOMWindow* aWindow)
-  : mWindow(aWindow)
-  {
-    NS_ASSERTION(aWindow, "Null pointer!");
-  }
-
-  NS_IMETHOD Run() {
-    return mWindow->ResumeTimeouts();
-  }
-
-private:
-  nsCOMPtr<nsPIDOMWindow> mWindow;
-};
-
-NS_IMPL_THREADSAFE_ISUPPORTS1(nsResumeTimeoutsRunnable, nsIRunnable)
-
-
-
-
 
 
 
@@ -2813,7 +2789,9 @@ nsXMLHttpRequest::Send(nsIVariant *aBody)
         nsCOMPtr<nsPIDOMWindow> suspendedWindow(do_QueryInterface(topWindow));
         if (suspendedWindow) {
           suspendedWindow->SuspendTimeouts();
-          resumeTimeoutRunnable = new nsResumeTimeoutsRunnable(suspendedWindow);
+          resumeTimeoutRunnable = NS_NEW_RUNNABLE_METHOD(nsPIDOMWindow,
+                                                         suspendedWindow.get(),
+                                                         ResumeTimeouts);
         }
       }
     }
