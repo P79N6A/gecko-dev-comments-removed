@@ -151,6 +151,7 @@ public:
 
     static int GetFcSlant(const gfxFontStyle& aFontStyle);
     
+    
     static int FcWeightForBaseWeight(PRInt8 aBaseWeight);
 
     static PRBool GetFullnameFromFamilyAndStyle(FcPattern *aFont,
