@@ -1,7 +1,7 @@
 
 
 
-function check_lcms_has_assembly()
+function check_qcms_has_assembly()
 {
     
     
@@ -25,4 +25,4 @@ function check_lcms_has_assembly()
     return false;
 }
 
-var lcms_has_assembly = check_lcms_has_assembly();
+var qcms_has_assembly = check_qcms_has_assembly();
