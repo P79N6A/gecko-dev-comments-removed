@@ -615,35 +615,6 @@ CViewSourceHTML::GetMode() const
 
 
 
-NS_IMETHODIMP CViewSourceHTML::WillResumeParse(nsIContentSink* aSink){
-  nsresult result = NS_OK;
-  if(mSink) {
-    result = mSink->WillResume();
-  }
-  return result;
-}
-
-
-
-
-
-
-
-NS_IMETHODIMP CViewSourceHTML::WillInterruptParse(nsIContentSink* aSink){
-  nsresult result = NS_OK;
-  if(mSink) {
-    result = mSink->WillInterrupt();
-  }
-  return result;
-}
-
-
-
-
-
-
-
-
 void CViewSourceHTML::SetVerification(PRBool aEnabled)
 {
 }

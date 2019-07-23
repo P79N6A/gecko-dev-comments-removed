@@ -134,22 +134,6 @@ public:
 
 
 
-    NS_IMETHOD WillResumeParse(nsIContentSink* aSink) = 0;
-
-    
-
-
-
-
-
-    NS_IMETHOD WillInterruptParse(nsIContentSink* aSink) = 0;
-
-    
-
-
-
-
-
 
 
 
@@ -193,8 +177,6 @@ NS_DEFINE_STATIC_IID_ACCESSOR(nsIDTD, NS_IDTD_IID)
     NS_IMETHOD DidBuildModel(nsresult anErrorCode,PRBool aNotifySink,nsIParser* aParser,nsIContentSink* aSink);\
     NS_IMETHOD BuildModel(nsIParser* aParser,nsITokenizer* aTokenizer,nsITokenObserver* anObserver,nsIContentSink* aSink);\
     NS_IMETHOD HandleToken(CToken* aToken,nsIParser* aParser);\
-    NS_IMETHOD WillResumeParse(nsIContentSink* aSink = 0);\
-    NS_IMETHOD WillInterruptParse(nsIContentSink* aSink = 0);\
     NS_IMETHOD_(PRBool) CanContain(PRInt32 aParent,PRInt32 aChild) const;\
     NS_IMETHOD_(PRBool) IsContainer(PRInt32 aTag) const;\
     NS_IMETHOD_(void)  Terminate();\

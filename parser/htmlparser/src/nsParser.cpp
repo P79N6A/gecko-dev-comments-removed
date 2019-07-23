@@ -2228,7 +2228,7 @@ nsParser::ResumeParse(PRBool allowIteration, PRBool aIsFinalChunk,
     }
 
     if (mDTD) {
-      mDTD->WillResumeParse(mSink);
+      mSink->WillResume();
       PRBool theIterationIsOk = PR_TRUE;
 
       while (result == NS_OK && theIterationIsOk) {
@@ -2265,10 +2265,7 @@ nsParser::ResumeParse(PRBool allowIteration, PRBool aIsFinalChunk,
         
         
         if (NS_ERROR_HTMLPARSER_BLOCK == result) {
-          if (mDTD) {
-            mDTD->WillInterruptParse(mSink);
-          }
-
+          mSink->WillInterrupt();
           if (mFlags & NS_PARSER_FLAG_PARSER_ENABLED) {
             
             BlockParser();
@@ -2332,9 +2329,7 @@ nsParser::ResumeParse(PRBool allowIteration, PRBool aIsFinalChunk,
         if (theTokenizerResult == kEOF ||
             result == NS_ERROR_HTMLPARSER_INTERRUPTED) {
           result = (result == NS_ERROR_HTMLPARSER_INTERRUPTED) ? NS_OK : result;
-          if (mDTD) {
-            mDTD->WillInterruptParse(mSink);
-          }
+          mSink->WillInterrupt();
         }
       }
     } else {
