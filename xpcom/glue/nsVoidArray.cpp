@@ -736,10 +736,17 @@ nsStringArray::operator=(const nsStringArray& other)
   nsVoidArray::operator=(other);
 
   
-  for (PRInt32 i = Count() - 1; i >= 0; --i)
+  PRInt32 count = Count();
+  for (PRInt32 i = 0; i < count; ++i)
   {
     nsString* oldString = static_cast<nsString*>(other.ElementAt(i));
-    mImpl->mArray[i] = new nsString(*oldString);
+    nsString* newString = new nsString(*oldString);
+    if (!newString)
+    {
+      mImpl->mCount = i;
+      return *this;
+    }
+    mImpl->mArray[i] = newString;
   }
 
   return *this;
@@ -789,10 +796,11 @@ PRBool
 nsStringArray::InsertStringAt(const nsAString& aString, PRInt32 aIndex)
 {
   nsString* string = new nsString(aString);
+  if (!string)
+    return PR_FALSE;
   if (nsVoidArray::InsertElementAt(string, aIndex))
-  {
     return PR_TRUE;
-  }
+
   delete string;
   return PR_FALSE;
 }
@@ -923,23 +931,42 @@ nsCStringArray::nsCStringArray(void)
 
 
 
-void
+PRBool
 nsCStringArray::ParseString(const char* string, const char* delimiter)
 {
   if (string && *string && delimiter && *delimiter) {
     char *rest = strdup(string);
+    if (!rest)
+      return PR_FALSE;
     char *newStr = rest;
     char *token = NS_strtok(delimiter, &newStr);
 
+    PRInt32 count = Count();
     while (token) {
       if (*token) {
         
-        AppendElement(new nsCString(token));
+        nsCString *cstring = new nsCString(token);
+        if (cstring && !AppendElement(cstring)) {
+          
+          
+          delete cstring;
+          cstring = nsnull;
+        }
+        if (!cstring) {
+          
+          
+          
+          
+          RemoveElementsAt(count, Count() - count);
+          free(rest);
+          return PR_FALSE;
+        }
       }
       token = NS_strtok(delimiter, &newStr);
     }
     free(rest);
   }
+  return PR_TRUE;
 }
 
 nsCStringArray::nsCStringArray(PRInt32 aCount)
@@ -959,10 +986,17 @@ nsCStringArray::operator=(const nsCStringArray& other)
   nsVoidArray::operator=(other);
 
   
-  for (PRInt32 i = Count() - 1; i >= 0; --i)
+  PRInt32 count = Count();
+  for (PRInt32 i = 0; i < count; ++i)
   {
     nsCString* oldString = static_cast<nsCString*>(other.ElementAt(i));
-    mImpl->mArray[i] = new nsCString(*oldString);
+    nsCString* newString = new nsCString(*oldString);
+    if (!newString)
+    {
+      mImpl->mCount = i;
+      return *this;
+    }
+    mImpl->mArray[i] = newString;
   }
 
   return *this;
@@ -1034,10 +1068,11 @@ PRBool
 nsCStringArray::InsertCStringAt(const nsACString& aCString, PRInt32 aIndex)
 {
   nsCString* string = new nsCString(aCString);
+  if (!string)
+    return PR_FALSE;
   if (nsVoidArray::InsertElementAt(string, aIndex))
-  {
     return PR_TRUE;
-  }
+
   delete string;
   return PR_FALSE;
 }

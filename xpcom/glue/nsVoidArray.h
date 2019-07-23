@@ -275,7 +275,7 @@ public:
   
   
   
-  void ParseString(const char* string, const char* delimiter);
+  PRBool ParseString(const char* string, const char* delimiter);
 
   PRInt32 Count(void) const {
     return nsVoidArray::Count();
