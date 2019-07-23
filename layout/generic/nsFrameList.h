@@ -137,7 +137,10 @@ public:
 
 
 
-  PRBool DestroyFrame(nsIFrame* aFrame);
+
+
+
+  PRBool DestroyFrame(nsIFrame* aFrame, nsIFrame* aPrevSiblingHint = nsnull);
 
   
 
