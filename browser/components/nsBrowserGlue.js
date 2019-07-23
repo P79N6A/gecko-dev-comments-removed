@@ -359,7 +359,7 @@ BrowserGlue.prototype = {
 #ifndef WINCE
     
     let temp = {};
-    Cu.import("resource://gre/modules/wintaskbar/jumpLists.jsm", temp);
+    Cu.import("resource://gre/modules/WindowsJumpLists.jsm", temp);
     temp.WinTaskbarJumpList.startup();
 #endif
 #endif
