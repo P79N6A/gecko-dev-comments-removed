@@ -11344,26 +11344,6 @@ TraceRecorder::setProp(jsval &l, PropertyCacheEntry* entry, JSScopeProperty* spr
 }
 
 JS_REQUIRES_STACK RecordingStatus
-TraceRecorder::setUpwardTrackedVar(jsval* stackVp, jsval v, LIns* v_ins)
-{
-    TraceType stackT = determineSlotType(stackVp);
-    TraceType otherT = getCoercedType(v);
-
-    bool promote = true;
-
-    if (stackT != otherT) {
-        if (stackT == TT_DOUBLE && otherT == TT_INT32 && isPromoteInt(v_ins))
-            promote = false;
-        else
-            RETURN_STOP("can't trace this upvar mutation");
-    }
-
-    set(stackVp, v_ins, promote);
-
-    return RECORD_CONTINUE;
-}
-
-JS_REQUIRES_STACK RecordingStatus
 TraceRecorder::setCallProp(JSObject *callobj, LIns *callobj_ins, JSScopeProperty *sprop,
                            LIns *v_ins, jsval v)
 {
@@ -11374,14 +11354,14 @@ TraceRecorder::setCallProp(JSObject *callobj, LIns *callobj_ins, JSScopeProperty
             JS_ASSERT(sprop->hasShortID());
             uintN slot = uint16(sprop->shortid);
             jsval *vp2 = &fp->argv[slot];
-            CHECK_STATUS(setUpwardTrackedVar(vp2, v, v_ins));
+            set(vp2, v_ins);
             return RECORD_CONTINUE;
         }
         if (sprop->setterOp() == SetCallVar) {
             JS_ASSERT(sprop->hasShortID());
             uintN slot = uint16(sprop->shortid);
             jsval *vp2 = &fp->slots[slot];
-            CHECK_STATUS(setUpwardTrackedVar(vp2, v, v_ins));
+            set(vp2, v_ins);
             return RECORD_CONTINUE;
         }
         RETURN_STOP("can't trace special CallClass setter");
@@ -13037,29 +13017,31 @@ TraceRecorder::denseArrayElement(jsval& oval, jsval& ival, jsval*& vp, LIns*& v_
         }
 
         
-        LIns* br2 = lir->insBranch(LIR_jf,
-                                   lir->ins2(LIR_pult,
-                                             pidx_ins,
-                                             stobj_get_fslot(obj_ins, JSObject::JSSLOT_ARRAY_LENGTH)),
-                                   NULL);
+        LIns* length = stobj_get_fslot(obj_ins, JSObject::JSSLOT_ARRAY_LENGTH);
+        if (pidx_ins != length) {
+            LIns* br2 = lir->insBranch(LIR_jf,
+                                       lir->ins2(LIR_pult, pidx_ins, length),
+                                       NULL);
 
-        
-        LIns* br3 = lir->insBranch(LIR_jt, lir->ins_peq0(dslots_ins), NULL);
+            
+            LIns* br3 = lir->insBranch(LIR_jt, lir->ins_peq0(dslots_ins), NULL);
 
-        
-        LIns* br4 = lir->insBranch(LIR_jf,
-                                   lir->ins2(LIR_pult,
-                                             pidx_ins,
-                                             lir->insLoad(LIR_ldp, dslots_ins,
-                                                          -(int)sizeof(jsval), ACC_OTHER)),
-                                   NULL);
-        lir->insGuard(LIR_x, NULL, createGuardRecord(exit));
-        LIns* label = lir->ins0(LIR_label);
-        if (br1)
-            br1->setTarget(label);
-        br2->setTarget(label);
-        br3->setTarget(label);
-        br4->setTarget(label);
+            
+            LIns* br4 = lir->insBranch(LIR_jf,
+                                       lir->ins2(LIR_pult,
+                                                 pidx_ins,
+                                                 lir->insLoad(LIR_ldp, dslots_ins,
+                                                              -(int)sizeof(jsval), ACC_OTHER)),
+                                       NULL);
+
+            lir->insGuard(LIR_x, NULL, createGuardRecord(exit));
+            LIns* label = lir->ins0(LIR_label);
+            if (br1)
+                br1->setTarget(label);
+            br2->setTarget(label);
+            br3->setTarget(label);
+            br4->setTarget(label);
+        }
 
         CHECK_STATUS(guardPrototypeHasNoIndexedProperties(obj, obj_ins, MISMATCH_EXIT));
 
