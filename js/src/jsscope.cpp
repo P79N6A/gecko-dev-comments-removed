@@ -1218,6 +1218,10 @@ js_AddScopeProperty(JSContext *cx, JSScope *scope, jsid id,
 
 
 
+
+
+
+
                 do {
                     if (spvec[i]->parent == sprop) {
                         sprop = spvec[i];
