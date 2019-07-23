@@ -118,19 +118,24 @@ RequestInfoHashInitEntry(PLDHashTable *table, PLDHashEntryHdr *entry,
 }
 
 
-NS_SPECIALIZE_TEMPLATE
-class nsDefaultComparator <class nsDocLoader::nsListenerInfo, nsIWebProgressListener*> {
-  public:
-    PRBool Equals(const nsDocLoader::nsListenerInfo& aInfo,
-                  nsIWebProgressListener* const& aListener) const {
-      nsCOMPtr<nsIWebProgressListener> listener =
-                                       do_QueryReferent(aInfo.mWeakListener);
-      return aListener == listener;
-    }
+struct nsListenerInfo {
+  nsListenerInfo(nsIWeakReference *aListener, unsigned long aNotifyMask) 
+    : mWeakListener(aListener),
+      mNotifyMask(aNotifyMask)
+  {
+  }
+
+  
+  nsWeakPtr mWeakListener;
+
+  
+  unsigned long mNotifyMask;
 };
+
 
 nsDocLoader::nsDocLoader()
   : mParent(nsnull),
+    mListenerInfoList(8),
     mIsLoadingDocument(PR_FALSE),
     mIsRestoringDocument(PR_FALSE),
     mIsFlushingLayout(PR_FALSE)
@@ -288,16 +293,16 @@ NS_IMETHODIMP
 nsDocLoader::Stop(void)
 {
   nsresult rv = NS_OK;
-  PRUint32 count, i;
+  PRInt32 count, i;
 
   PR_LOG(gDocLoaderLog, PR_LOG_DEBUG, 
          ("DocLoader:%p: Stop() called\n", this));
 
-  count = mChildList.Length();
+  count = mChildList.Count();
 
   nsCOMPtr<nsIDocumentLoader> loader;
   for (i=0; i < count; i++) {
-    loader = mChildList[i];
+    loader = ChildAt(i);
 
     if (loader) {
       (void) loader->Stop();
@@ -364,12 +369,12 @@ nsDocLoader::IsBusy()
   }
 
   
-  PRUint32 count, i;
+  PRInt32 count, i;
 
-  count = mChildList.Length();
+  count = mChildList.Count();
 
   for (i=0; i < count; i++) {
-    nsIDocumentLoader* loader = mChildList[i];
+    nsIDocumentLoader* loader = ChildAt(i);
 
     
     
@@ -416,6 +421,15 @@ nsDocLoader::Destroy()
   
   ClearRequestInfoHash();
 
+  
+  PRInt32 count = mListenerInfoList.Count();
+  for(PRInt32 i = 0; i < count; i++) {
+    nsListenerInfo *info =
+      static_cast<nsListenerInfo*>(mListenerInfoList.ElementAt(i));
+
+    delete info;
+  }
+
   mListenerInfoList.Clear();
   mListenerInfoList.Compact();
 
@@ -430,15 +444,15 @@ nsDocLoader::Destroy()
 void
 nsDocLoader::DestroyChildren()
 {
-  PRUint32 i, count;
+  PRInt32 i, count;
   
-  count = mChildList.Length();
+  count = mChildList.Count();
   
   
   
   for (i=0; i < count; i++)
   {
-    nsIDocumentLoader* loader = mChildList[i];
+    nsIDocumentLoader* loader = ChildAt(i);
 
     if (loader) {
       
@@ -883,9 +897,12 @@ void nsDocLoader::doStopDocumentLoad(nsIRequest *request,
 
 NS_IMETHODIMP
 nsDocLoader::AddProgressListener(nsIWebProgressListener *aListener,
-                                 PRUint32 aNotifyMask)
+                                     PRUint32 aNotifyMask)
 {
-  if (mListenerInfoList.Contains(aListener)) {
+  nsresult rv;
+
+  nsListenerInfo* info = GetListenerInfo(aListener);
+  if (info) {
     
     return NS_ERROR_FAILURE;
   }
@@ -895,14 +912,29 @@ nsDocLoader::AddProgressListener(nsIWebProgressListener *aListener,
     return NS_ERROR_INVALID_ARG;
   }
 
-  return mListenerInfoList.AppendElement(nsListenerInfo(listener, aNotifyMask)) ?
-         NS_OK : NS_ERROR_OUT_OF_MEMORY;
+  info = new nsListenerInfo(listener, aNotifyMask);
+  if (!info) {
+    return NS_ERROR_OUT_OF_MEMORY;
+  }
+
+  rv = mListenerInfoList.AppendElement(info) ? NS_OK : NS_ERROR_FAILURE;
+  return rv;
 }
 
 NS_IMETHODIMP
 nsDocLoader::RemoveProgressListener(nsIWebProgressListener *aListener)
 {
-  return mListenerInfoList.RemoveElement(aListener) ? NS_OK : NS_ERROR_FAILURE;
+  nsresult rv;
+
+  nsListenerInfo* info = GetListenerInfo(aListener);
+  if (info) {
+    rv = mListenerInfoList.RemoveElement(info) ? NS_OK : NS_ERROR_FAILURE;
+    delete info;
+  } else {
+    
+    rv = NS_ERROR_FAILURE;
+  }
+  return rv;
 }
 
 NS_IMETHODIMP
@@ -923,12 +955,12 @@ PRInt64 nsDocLoader::GetMaxTotalProgress()
 {
   nsInt64 newMaxTotal = 0;
 
-  PRUint32 count = mChildList.Length();
+  PRInt32 count = mChildList.Count();
   nsCOMPtr<nsIWebProgress> webProgress;
-  for (PRUint32 i=0; i < count; i++) 
+  for (PRInt32 i=0; i < count; i++) 
   {
     nsInt64 individualProgress = 0;
-    nsIDocumentLoader* docloader = mChildList[i];
+    nsIDocumentLoader* docloader = ChildAt(i);
     if (docloader)
     {
       
@@ -1124,19 +1156,27 @@ void nsDocLoader::FireOnProgressChange(nsDocLoader *aLoadInitiator,
 #endif 
 
   
-  nsCOMPtr<nsIWebProgressListener> listener;
-  ListenerArray::BackwardIterator iter(mListenerInfoList);
 
-  while (iter.HasMore()) {
-    nsListenerInfo &info = iter.GetNext();
-    if (!(info.mNotifyMask & nsIWebProgress::NOTIFY_PROGRESS)) {
+
+
+
+
+  nsCOMPtr<nsIWebProgressListener> listener;
+  PRInt32 count = mListenerInfoList.Count();
+
+  while (--count >= 0) {
+    nsListenerInfo *info;
+
+    info = static_cast<nsListenerInfo*>(mListenerInfoList.SafeElementAt(count));
+    if (!info || !(info->mNotifyMask & nsIWebProgress::NOTIFY_PROGRESS)) {
       continue;
     }
 
-    listener = do_QueryReferent(info.mWeakListener);
+    listener = do_QueryReferent(info->mWeakListener);
     if (!listener) {
       
-      RemoveEmptyListeners();
+      mListenerInfoList.RemoveElementAt(count);
+      delete info;
       continue;
     }
 
@@ -1145,6 +1185,7 @@ void nsDocLoader::FireOnProgressChange(nsDocLoader *aLoadInitiator,
                                PRInt32(aProgress), PRInt32(aProgressMax),
                                PRInt32(aTotalProgress), PRInt32(aMaxTotalProgress));
   }
+
   mListenerInfoList.Compact();
 
   
@@ -1191,24 +1232,33 @@ void nsDocLoader::FireOnStateChange(nsIWebProgress *aProgress,
   NS_ASSERTION(aRequest, "Firing OnStateChange(...) notification with a NULL request!");
 
   
-  nsCOMPtr<nsIWebProgressListener> listener;
-  ListenerArray::BackwardIterator iter(mListenerInfoList);
 
-  while (iter.HasMore()) {
-    nsListenerInfo &info = iter.GetNext();
-    if (!(info.mNotifyMask & (aStateFlags >>16))) {
+
+
+
+
+  nsCOMPtr<nsIWebProgressListener> listener;
+  PRInt32 count = mListenerInfoList.Count();
+
+  while (--count >= 0) {
+    nsListenerInfo *info;
+
+    info = static_cast<nsListenerInfo*>(mListenerInfoList.SafeElementAt(count));
+    if (!info || !(info->mNotifyMask & (aStateFlags >>16))) {
       continue;
     }
 
-    listener = do_QueryReferent(info.mWeakListener);
+    listener = do_QueryReferent(info->mWeakListener);
     if (!listener) {
       
-      RemoveEmptyListeners();
+      mListenerInfoList.RemoveElementAt(count);
+      delete info;
       continue;
     }
 
     listener->OnStateChange(aProgress, aRequest, aStateFlags, aStatus);
   }
+
   mListenerInfoList.Compact();
 
   
@@ -1225,24 +1275,33 @@ nsDocLoader::FireOnLocationChange(nsIWebProgress* aWebProgress,
                                   nsIURI *aUri)
 {
   
-  nsCOMPtr<nsIWebProgressListener> listener;
-  ListenerArray::BackwardIterator iter(mListenerInfoList);
 
-  while (iter.HasMore()) {
-    nsListenerInfo &info = iter.GetNext();
-    if (!(info.mNotifyMask & nsIWebProgress::NOTIFY_LOCATION)) {
+
+
+
+
+  nsCOMPtr<nsIWebProgressListener> listener;
+  PRInt32 count = mListenerInfoList.Count();
+
+  while (--count >= 0) {
+    nsListenerInfo *info;
+
+    info = static_cast<nsListenerInfo*>(mListenerInfoList.SafeElementAt(count));
+    if (!info || !(info->mNotifyMask & nsIWebProgress::NOTIFY_LOCATION)) {
       continue;
     }
 
-    listener = do_QueryReferent(info.mWeakListener);
+    listener = do_QueryReferent(info->mWeakListener);
     if (!listener) {
       
-      RemoveEmptyListeners();
+      mListenerInfoList.RemoveElementAt(count);
+      delete info;
       continue;
     }
 
     listener->OnLocationChange(aWebProgress, aRequest, aUri);
   }
+
   mListenerInfoList.Compact();
 
   
@@ -1258,26 +1317,34 @@ nsDocLoader::FireOnStatusChange(nsIWebProgress* aWebProgress,
                                 const PRUnichar* aMessage)
 {
   
-  nsCOMPtr<nsIWebProgressListener> listener;
-  ListenerArray::BackwardIterator iter(mListenerInfoList);
 
-  while (iter.HasMore()) {
-    nsListenerInfo &info = iter.GetNext();
-    if (!(info.mNotifyMask & nsIWebProgress::NOTIFY_STATUS)) {
+
+
+
+
+  nsCOMPtr<nsIWebProgressListener> listener;
+  PRInt32 count = mListenerInfoList.Count();
+
+  while (--count >= 0) {
+    nsListenerInfo *info;
+
+    info = static_cast<nsListenerInfo*>(mListenerInfoList.SafeElementAt(count));
+    if (!info || !(info->mNotifyMask & nsIWebProgress::NOTIFY_STATUS)) {
       continue;
     }
 
-    listener = do_QueryReferent(info.mWeakListener);
+    listener = do_QueryReferent(info->mWeakListener);
     if (!listener) {
       
-      RemoveEmptyListeners();
+      mListenerInfoList.RemoveElementAt(count);
+      delete info;
       continue;
     }
 
     listener->OnStatusChange(aWebProgress, aRequest, aStatus, aMessage);
   }
   mListenerInfoList.Compact();
-
+  
   
   if (mParent) {
     mParent->FireOnStatusChange(aWebProgress, aRequest, aStatus, aMessage);
@@ -1296,25 +1363,31 @@ nsDocLoader::RefreshAttempted(nsIWebProgress* aWebProgress,
 
 
 
-  PRBool allowRefresh = PR_TRUE;
-  ListenerArray::BackwardIterator iter(mListenerInfoList);
 
-  while (iter.HasMore()) {
-    nsListenerInfo &info = iter.GetNext();
-    if (!(info.mNotifyMask & nsIWebProgress::NOTIFY_REFRESH)) {
+
+
+  PRBool allowRefresh = PR_TRUE;
+  PRInt32 count = mListenerInfoList.Count();
+
+  while (--count >= 0) {
+    nsListenerInfo *info;
+
+    info = static_cast<nsListenerInfo*>(mListenerInfoList.SafeElementAt(count));
+    if (!info || !(info->mNotifyMask & nsIWebProgress::NOTIFY_REFRESH)) {
       continue;
     }
 
     nsCOMPtr<nsIWebProgressListener> listener =
-      do_QueryReferent(info.mWeakListener);
+      do_QueryReferent(info->mWeakListener);
     if (!listener) {
       
-      RemoveEmptyListeners();
+      mListenerInfoList.RemoveElementAt(count);
+      delete info;
       continue;
     }
 
     nsCOMPtr<nsIWebProgressListener2> listener2 =
-      do_QueryReferent(info.mWeakListener);
+      do_QueryReferent(info->mWeakListener);
     if (!listener2)
       continue;
 
@@ -1326,6 +1399,7 @@ nsDocLoader::RefreshAttempted(nsIWebProgress* aWebProgress,
 
     allowRefresh = allowRefresh && listenerAllowedRefresh;
   }
+
   mListenerInfoList.Compact();
 
   
@@ -1335,6 +1409,27 @@ nsDocLoader::RefreshAttempted(nsIWebProgress* aWebProgress,
   }
 
   return allowRefresh;
+}
+
+nsListenerInfo * 
+nsDocLoader::GetListenerInfo(nsIWebProgressListener *aListener)
+{
+  PRInt32 i, count;
+  nsListenerInfo *info;
+
+  nsCOMPtr<nsISupports> listener1 = do_QueryInterface(aListener);
+  count = mListenerInfoList.Count();
+  for (i=0; i<count; i++) {
+    info = static_cast<nsListenerInfo*>(mListenerInfoList.SafeElementAt(i));
+
+    NS_ASSERTION(info, "There should NEVER be a null listener in the list");
+    if (info) {
+      nsCOMPtr<nsISupports> listener2 = do_QueryReferent(info->mWeakListener);
+      if (listener1 == listener2)
+        return info;
+    }
+  }
+  return nsnull;
 }
 
 nsresult nsDocLoader::AddRequestInfo(nsIRequest *aRequest)
@@ -1388,17 +1483,6 @@ void nsDocLoader::ClearRequestInfoHash(void)
 
   PL_DHashTableEnumerate(&mRequestInfoHash, RemoveInfoCallback, nsnull);
 }
-
-
-
-
-
-
-void nsDocLoader::RemoveEmptyListeners()
-{
-  while(mListenerInfoList.RemoveElement((nsIWebProgressListener*)nsnull)) {}
-}
-
 
 
 static PLDHashOperator
@@ -1471,24 +1555,33 @@ NS_IMETHODIMP nsDocLoader::OnSecurityChange(nsISupports * aContext,
   nsIWebProgress* webProgress = static_cast<nsIWebProgress*>(this);
 
   
-  nsCOMPtr<nsIWebProgressListener> listener;
-  ListenerArray::BackwardIterator iter(mListenerInfoList);
 
-  while (iter.HasMore()) {
-    nsListenerInfo &info = iter.GetNext();
-    if (!(info.mNotifyMask & nsIWebProgress::NOTIFY_SECURITY)) {
+
+
+
+
+  nsCOMPtr<nsIWebProgressListener> listener;
+  PRInt32 count = mListenerInfoList.Count();
+
+  while (--count >= 0) {
+    nsListenerInfo *info;
+
+    info = static_cast<nsListenerInfo*>(mListenerInfoList.SafeElementAt(count));
+    if (!info || !(info->mNotifyMask & nsIWebProgress::NOTIFY_SECURITY)) {
       continue;
     }
 
-    listener = do_QueryReferent(info.mWeakListener);
+    listener = do_QueryReferent(info->mWeakListener);
     if (!listener) {
       
-      RemoveEmptyListeners();
+      mListenerInfoList.RemoveElementAt(count);
+      delete info;
       continue;
     }
 
     listener->OnSecurityChange(webProgress, request, aState);
   }
+
   mListenerInfoList.Compact();
 
   
@@ -1526,11 +1619,11 @@ NS_IMETHODIMP nsDocLoader::SetPriority(PRInt32 aPriority)
   if (p)
     p->SetPriority(aPriority);
 
-  PRUint32 count = mChildList.Length();
+  PRInt32 count = mChildList.Count();
 
   nsDocLoader *loader;
-  for (PRUint32 i=0; i < count; i++) {
-    loader = static_cast<nsDocLoader*>(mChildList[i]);
+  for (PRInt32 i=0; i < count; i++) {
+    loader = static_cast<nsDocLoader*>(ChildAt(i));
     if (loader) {
       loader->SetPriority(aPriority);
     }
@@ -1548,11 +1641,11 @@ NS_IMETHODIMP nsDocLoader::AdjustPriority(PRInt32 aDelta)
   if (p)
     p->AdjustPriority(aDelta);
 
-  PRUint32 count = mChildList.Length();
+  PRInt32 count = mChildList.Count();
 
   nsDocLoader *loader;
-  for (PRUint32 i=0; i < count; i++) {
-    loader = static_cast<nsDocLoader*>(mChildList[i]);
+  for (PRInt32 i=0; i < count; i++) {
+    loader = static_cast<nsDocLoader*>(ChildAt(i));
     if (loader) {
       loader->AdjustPriority(aDelta);
     }

@@ -39,6 +39,7 @@
 #include "nsMorkReader.h"
 #include "prio.h"
 #include "nsNetUtil.h"
+#include "nsVoidArray.h"
 
 
 class nsCLineString : public nsFixedCString

@@ -185,13 +185,7 @@ class nsAutoTObserverArray : protected nsTObserverArray_base {
     
     template<class Item>
     PRBool PrependElementUnlessExists(const Item& item) {
-      if (Contains(item))
-        return PR_TRUE;
-      if (mArray.InsertElementAt(0, item) != nsnull) {
-        AdjustIterators(0, 1);
-        return PR_TRUE;
-      }
-      return PR_FALSE;
+      return Contains(item) || mArray.InsertElementAt(0, item) != nsnull;
     }
 
     
@@ -247,11 +241,6 @@ class nsAutoTObserverArray : protected nsTObserverArray_base {
     void Clear() {
       mArray.Clear();
       ClearIterators();
-    }
-
-    
-    void Compact() {
-      mArray.Compact();
     }
 
     
@@ -353,38 +342,6 @@ class nsAutoTObserverArray : protected nsTObserverArray_base {
 
       private:
         ForwardIterator mEnd;
-    };
-
-    
-    
-    
-    
-    
-    
-    
-    class BackwardIterator : protected Iterator {
-      public:
-        typedef nsAutoTObserverArray<T, N> array_type;
-        typedef Iterator                   base_type;
-
-        BackwardIterator(const array_type& aArray)
-          : Iterator(aArray.Length(), aArray) {
-        }
-
-        
-        
-        
-        PRBool HasMore() const {
-          return base_type::mPosition > 0;
-        }
-
-        
-        
-        
-        elem_type& GetNext() {
-          NS_ASSERTION(HasMore(), "iterating beyond start of array");
-          return base_type::mArray.ElementAt(--base_type::mPosition);
-        }
     };
 
   protected:
