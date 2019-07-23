@@ -1139,7 +1139,7 @@ PRBool nsXULWindow::LoadSizeFromXUL()
   if (NS_SUCCEEDED(rv)) {
     temp = sizeString.ToInteger(&errorCode);
     if (NS_SUCCEEDED(errorCode) && temp > 0) {
-      specWidth = CSSToDevPixels(PR_MAX(temp, 100), appPerDev);
+      specWidth = CSSToDevPixels(NS_MAX(temp, 100), appPerDev);
       gotSize = PR_TRUE;
     }
   }
@@ -1147,7 +1147,7 @@ PRBool nsXULWindow::LoadSizeFromXUL()
   if (NS_SUCCEEDED(rv)) {
     temp = sizeString.ToInteger(&errorCode);
     if (NS_SUCCEEDED(errorCode) && temp > 0) {
-      specHeight = CSSToDevPixels(PR_MAX(temp, 100), appPerDev);
+      specHeight = CSSToDevPixels(NS_MAX(temp, 100), appPerDev);
       gotSize = PR_TRUE;
     }
   }
@@ -1691,8 +1691,8 @@ NS_IMETHODIMP nsXULWindow::SizeShellTo(nsIDocShellTreeItem* aShellItem,
     
     
     
-    winCX = PR_MAX(winCX + widthDelta, aCX);
-    winCY = PR_MAX(winCY + heightDelta, aCY);
+    winCX = NS_MAX(winCX + widthDelta, aCX);
+    winCY = NS_MAX(winCY + heightDelta, aCY);
     SetSize(winCX, winCY, PR_TRUE);
   }
 
