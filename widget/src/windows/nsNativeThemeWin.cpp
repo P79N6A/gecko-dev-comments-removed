@@ -1521,7 +1521,20 @@ nsNativeThemeWin::GetMinimumWidgetSize(nsIRenderingContext* aContext, nsIFrame* 
 
   if (aWidgetType == NS_THEME_SCALE_THUMB_HORIZONTAL ||
       aWidgetType == NS_THEME_SCALE_THUMB_VERTICAL) {
-      *aIsOverridable = PR_FALSE;
+    *aIsOverridable = PR_FALSE;
+    
+    
+    if (GetWindowsVersion() >= VISTA_VERSION) {
+      if (aWidgetType == NS_THEME_SCALE_THUMB_HORIZONTAL) {
+        aResult->width = 12;
+        aResult->height = 20;
+      }
+      else {
+        aResult->width = 20;
+        aResult->height = 12;
+      }
+      return NS_OK;
+    }
   }
   else if (aWidgetType == NS_THEME_TOOLBAR_SEPARATOR) {
     
