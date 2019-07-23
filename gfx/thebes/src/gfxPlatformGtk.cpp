@@ -36,6 +36,7 @@
 
 
 
+
 #ifdef MOZ_PANGO
 #define PANGO_ENABLE_BACKEND
 #define PANGO_ENABLE_ENGINE
@@ -61,6 +62,7 @@
 #ifdef MOZ_X11
 #include <gdk/gdkx.h>
 #include "gfxXlibSurface.h"
+#include "cairo-xlib.h"
 #endif 
 
 #ifdef MOZ_DFB
@@ -90,8 +92,6 @@
 PRInt32 gfxPlatformGtk::sDPI = -1;
 gfxFontconfigUtils *gfxPlatformGtk::sFontconfigUtils = nsnull;
 
-static cairo_user_data_key_t cairo_gdk_drawable_key;
-
 #ifndef MOZ_PANGO
 typedef nsDataHashtable<nsStringHashKey, nsRefPtr<FontFamily> > FontTable;
 static FontTable *gPlatformFonts = NULL;
@@ -99,12 +99,11 @@ static FontTable *gPlatformFontAliases = NULL;
 static FT_Library gPlatformFTLibrary = NULL;
 #endif
 
-
-static cairo_user_data_key_t cairo_gdk_pixmap_key;
-static void do_gdk_pixmap_unref (void *data)
+static cairo_user_data_key_t cairo_gdk_drawable_key;
+static void do_gdk_drawable_unref (void *data)
 {
-    GdkPixmap *pmap = (GdkPixmap*)data;
-    gdk_pixmap_unref (pmap);
+    GdkDrawable *d = (GdkDrawable*) data;
+    g_object_unref (d);
 }
 
 gfxPlatformGtk::gfxPlatformGtk()
@@ -212,17 +211,16 @@ gfxPlatformGtk::CreateOffscreenSurface(const gfxIntSize& size,
             if (newSurface && newSurface->CairoStatus() == 0) {
                 
                 
-                newSurface->SetData(&cairo_gdk_pixmap_key,
-                                    pixmap,
-                                    do_gdk_pixmap_unref);
-            SetGdkDrawable(newSurface, GDK_DRAWABLE(pixmap));
+                SetGdkDrawable(newSurface, GDK_DRAWABLE(pixmap));
             } else {
                 
                 
-                if (pixmap)
-                    gdk_pixmap_unref(pixmap);
                 newSurface = nsnull;
             }
+
+            
+            if (pixmap)
+                g_object_unref(pixmap);
         }
 
         if (!newSurface) {
@@ -722,11 +720,61 @@ gfxPlatformGtk::SetGdkDrawable(gfxASurface *target,
     if (target->CairoStatus())
         return;
 
+    gdk_drawable_ref(drawable);
+
     cairo_surface_set_user_data (target->CairoSurface(),
                                  &cairo_gdk_drawable_key,
                                  drawable,
-                                 NULL);
+                                 do_gdk_drawable_unref);
 }
+
+#ifdef MOZ_X11
+
+static GdkColormap *
+LookupGdkColormapForVisual(const Screen* screen, const Visual* visual)
+{
+    Display* dpy = DisplayOfScreen(screen);
+    GdkDisplay* gdkDpy = gdk_x11_lookup_xdisplay(dpy);
+    if (!gdkDpy)
+        return NULL;
+
+    
+    gint screen_num = 0;
+    for (int s = 0; s < ScreenCount(dpy); ++s) {
+        if (ScreenOfDisplay(dpy, s) == screen) {
+            screen_num = s;
+            break;
+        }
+    }
+    GdkScreen* gdkScreen = gdk_display_get_screen(gdkDpy, screen_num);
+
+    
+    if (visual ==
+        GDK_VISUAL_XVISUAL(gdk_screen_get_system_visual(gdkScreen)))
+        return gdk_screen_get_system_colormap(gdkScreen);    
+
+    
+    
+    
+    
+    
+    
+    
+    if (visual ==
+        GDK_VISUAL_XVISUAL(gdk_screen_get_rgb_visual(gdkScreen)))
+        return gdk_screen_get_rgb_colormap(gdkScreen);
+
+    
+    
+    
+    
+    if (visual ==
+        GDK_VISUAL_XVISUAL(gdk_screen_get_rgba_visual(gdkScreen)))
+        return gdk_screen_get_rgba_colormap(gdkScreen);
+
+    return NULL;
+}
+#endif
 
 GdkDrawable *
 gfxPlatformGtk::GetGdkDrawable(gfxASurface *target)
@@ -734,6 +782,47 @@ gfxPlatformGtk::GetGdkDrawable(gfxASurface *target)
     if (target->CairoStatus())
         return nsnull;
 
-    return (GdkDrawable*) cairo_surface_get_user_data (target->CairoSurface(),
-                                                       &cairo_gdk_drawable_key);
+    GdkDrawable *result;
+
+    result = (GdkDrawable*) cairo_surface_get_user_data (target->CairoSurface(),
+                                                         &cairo_gdk_drawable_key);
+    if (result)
+        return result;
+
+#ifdef MOZ_X11
+    if (target->GetType() == gfxASurface::SurfaceTypeXlib) {
+        gfxXlibSurface *xs = (gfxXlibSurface*) target;
+
+        
+        result = (GdkDrawable*) gdk_xid_table_lookup(xs->XDrawable());
+        if (result) {
+            SetGdkDrawable(target, result);
+            return result;
+        }
+
+        
+        
+        
+        Screen *screen = cairo_xlib_surface_get_screen(xs->CairoSurface());
+        Visual *visual = cairo_xlib_surface_get_visual(xs->CairoSurface());
+        GdkColormap *cmap = LookupGdkColormapForVisual(screen, visual);
+        if (cmap == None)
+            return nsnull;
+
+        result = (GdkDrawable*) gdk_pixmap_foreign_new_for_display
+            (gdk_display_get_default(), xs->XDrawable());
+        if (result) {
+            gdk_drawable_set_colormap(result, cmap);
+
+            SetGdkDrawable(target, result);
+            
+            
+            
+            g_object_unref(result);
+            return result;
+        }
+    }
+#endif
+
+    return nsnull;
 }

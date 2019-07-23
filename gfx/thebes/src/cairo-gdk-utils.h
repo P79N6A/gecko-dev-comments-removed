@@ -56,7 +56,7 @@ CAIRO_BEGIN_DECLS
 
 typedef cairo_bool_t (* cairo_gdk_drawing_callback)
     (void *closure,
-     GdkDrawable * drawable,
+     cairo_surface_t *surface,
      short offset_x, short offset_y,
      GdkRectangle * clip_rects, unsigned int num_rects);
 
@@ -136,7 +136,6 @@ typedef enum {
 
 
 void cairo_draw_with_gdk (cairo_t *cr,
-                          GdkDrawable * drawable,
                           cairo_gdk_drawing_callback callback,
                           void * closure,
                           unsigned int width, unsigned int height,

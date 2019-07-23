@@ -35,6 +35,7 @@
 
 
 
+
 #include "gfxGdkNativeRenderer.h"
 #include "gfxContext.h"
 
@@ -50,11 +51,17 @@ typedef struct {
 
 static cairo_bool_t
 NativeRendering(void *closure,
-                GdkDrawable * drawable,
+                cairo_surface_t *surface,
                 short offset_x, short offset_y,
                 GdkRectangle * rectangles, unsigned int num_rects)
 {
     NativeRenderingClosure* cl = (NativeRenderingClosure*)closure;
+    nsRefPtr<gfxASurface> gfxSurface = gfxASurface::Wrap(surface);
+    GdkDrawable *drawable =
+        gfxPlatformGtk::GetPlatform()->GetGdkDrawable(gfxSurface);
+    if (!drawable)
+        return 0;
+
     nsresult rv = cl->mRenderer->
         NativeDraw(drawable, offset_x, offset_y,
                    rectangles, num_rects);
@@ -96,7 +103,6 @@ gfxGdkNativeRenderer::Draw(gfxContext* ctx, int width, int height,
         cairoFlags |= CAIRO_GDK_DRAWING_SUPPORTS_NONDEFAULT_VISUAL;
     }
     cairo_draw_with_gdk(ctx->GetCairo(),
-                        gfxPlatformGtk::GetPlatform()->GetGdkDrawable(ctx->OriginalSurface()),
                         NativeRendering, 
                         &closure, width, height,
                         (flags & DRAW_IS_OPAQUE) ? CAIRO_GDK_DRAWING_OPAQUE : CAIRO_GDK_DRAWING_TRANSPARENT,
