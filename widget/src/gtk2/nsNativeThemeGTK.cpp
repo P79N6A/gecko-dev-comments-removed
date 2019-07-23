@@ -120,6 +120,14 @@ nsNativeThemeGTK::RefreshWidgetWindow(nsIFrame* aFrame)
   vm->UpdateAllViews(NS_VMREFRESH_NO_SYNC);
 }
 
+static PRBool IsFrameContentNodeOfType(nsIFrame *aFrame, PRUint32 aFlags)
+{
+  nsIContent *content = aFrame ? nsnull : aFrame->GetContent();
+  if (!content)
+    return false;
+  return content->IsNodeOfType(aFlags);
+}
+
 static PRBool IsWidgetTypeDisabled(PRUint8* aDisabledVector, PRUint8 aWidgetType) {
   return (aDisabledVector[aWidgetType >> 3] & (1 << (aWidgetType & 7))) != 0;
 }
@@ -191,8 +199,7 @@ nsNativeThemeGTK::GetGtkWidgetAndState(PRUint8 aWidgetType, nsIFrame* aFrame,
                      aWidgetType == NS_THEME_RADIO_LABEL)) {
 
         nsIAtom* atom = nsnull;
-        nsIContent *content = aFrame->GetContent();
-        if (content->IsNodeOfType(nsINode::eXUL)) {
+        if (IsFrameContentNodeOfType(aFrame, nsINode::eXUL)) {
           if (aWidgetType == NS_THEME_CHECKBOX_LABEL ||
               aWidgetType == NS_THEME_RADIO_LABEL) {
             
@@ -212,7 +219,7 @@ nsNativeThemeGTK::GetGtkWidgetAndState(PRUint8 aWidgetType, nsIFrame* aFrame,
           }
         } else {
           if (aWidgetFlags) {
-            nsCOMPtr<nsIDOMHTMLInputElement> inputElt(do_QueryInterface(content));
+            nsCOMPtr<nsIDOMHTMLInputElement> inputElt(do_QueryInterface(aFrame->GetContent()));
             *aWidgetFlags = 0;
             if (inputElt) {
               PRBool isHTMLChecked;
@@ -240,7 +247,7 @@ nsNativeThemeGTK::GetGtkWidgetAndState(PRUint8 aWidgetType, nsIFrame* aFrame,
       aState->canDefault = FALSE; 
       aState->depressed = FALSE;
 
-      if (aFrame->GetContent()->IsNodeOfType(nsINode::eXUL)) {
+      if (IsFrameContentNodeOfType(aFrame, nsINode::eXUL)) {
         
         
         
@@ -324,9 +331,12 @@ nsNativeThemeGTK::GetGtkWidgetAndState(PRUint8 aWidgetType, nsIFrame* aFrame,
         
           if (aWidgetType == NS_THEME_CHECKMENUITEM ||
               aWidgetType == NS_THEME_RADIOMENUITEM) {
-            *aWidgetFlags = aFrame && aFrame->GetContent()->
-              AttrValueIs(kNameSpaceID_None, nsWidgetAtoms::checked,
-                          nsWidgetAtoms::_true, eIgnoreCase);
+            *aWidgetFlags = 0;
+            if (aFrame && aFrame->GetContent()) {
+              *aWidgetFlags = aFrame->GetContent()->
+                AttrValueIs(kNameSpaceID_None, nsWidgetAtoms::checked,
+                            nsWidgetAtoms::_true, eIgnoreCase);
+            }
           }
         }
 
@@ -486,8 +496,7 @@ nsNativeThemeGTK::GetGtkWidgetAndState(PRUint8 aWidgetType, nsIFrame* aFrame,
   case NS_THEME_DROPDOWN:
     aGtkWidgetType = MOZ_GTK_DROPDOWN;
     if (aWidgetFlags)
-        *aWidgetFlags = aFrame && aFrame->GetContent()->
-                                        IsNodeOfType(nsINode::eHTML);
+        *aWidgetFlags = IsFrameContentNodeOfType(aFrame, nsINode::eHTML);
     break;
   case NS_THEME_DROPDOWN_TEXT:
     return PR_FALSE; 
@@ -847,8 +856,7 @@ nsNativeThemeGTK::GetWidgetBorder(nsIDeviceContext* aContext, nsIFrame* aFrame,
                                nsnull))
         moz_gtk_get_widget_border(gtkWidgetType, &aResult->left, &aResult->top,
                                   &aResult->right, &aResult->bottom, direction,
-                                  aFrame && aFrame->GetContent()->
-                                        IsNodeOfType(nsINode::eHTML));
+                                  IsFrameContentNodeOfType(aFrame, nsINode::eHTML));
     }
   }
   return NS_OK;
@@ -1281,7 +1289,7 @@ nsNativeThemeGTK::ThemeSupportsWidget(nsPresContext* aPresContext,
   case NS_THEME_DROPDOWN_BUTTON:
     
     
-    return (!aFrame || aFrame->GetContent()->IsNodeOfType(nsINode::eXUL)) &&
+    return (!aFrame || IsFrameContentNodeOfType(aFrame, nsINode::eXUL)) &&
            !IsWidgetStyled(aPresContext, aFrame, aWidgetType);
 
   }
