@@ -309,6 +309,7 @@ class nsHtml5Parser : public nsIParser,
   private:
     void ExecuteScript();
     void MaybePostContinueEvent();
+    nsresult PerformCharsetSwitch();
     
 
 
@@ -343,6 +344,7 @@ class nsHtml5Parser : public nsIParser,
     
     PRInt32                      mCharsetSource;
     nsCString                    mCharset;
+    nsCString                    mPendingCharset;
     nsCOMPtr<nsIUnicodeDecoder>  mUnicodeDecoder;
         
     

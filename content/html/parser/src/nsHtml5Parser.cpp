@@ -43,6 +43,9 @@
 #include "nsNetUtil.h"
 #include "nsIStyleSheetLinkingElement.h"
 #include "nsICharsetConverterManager.h"
+#include "nsICharsetAlias.h"
+#include "nsIWebShellServices.h"
+#include "nsIDocShell.h"
 
 #include "nsHtml5DocumentMode.h"
 #include "nsHtml5Tokenizer.h"
@@ -51,6 +54,7 @@
 
 #include "nsHtml5Parser.h"
 
+static NS_DEFINE_CID(kCharsetAliasCID, NS_CHARSETALIAS_CID);
 static NS_DEFINE_CID(kHtml5ParserCID, NS_HTML5_PARSER_CID);
 
 
@@ -501,8 +505,10 @@ nsHtml5Parser::OnStopRequest(nsIRequest* aRequest, nsISupports* aContext,
 {
   NS_ASSERTION((mRequest == aRequest), "Got Stop on wrong stream.");
   nsresult rv = NS_OK;
-
-  mLifeCycle = STREAM_ENDING;
+  
+  if (mLifeCycle < STREAM_ENDING) {
+    mLifeCycle = STREAM_ENDING;
+  }
 
 
     
@@ -586,7 +592,42 @@ nsHtml5Parser::OnDataAvailable(nsIRequest* aRequest,
 void
 nsHtml5Parser::internalEncodingDeclaration(nsString* aEncoding)
 {
+  if (mCharsetSource >= kCharsetFromMetaTag) { 
+    return;
+  }
+  nsresult res = NS_OK;
+  nsCOMPtr<nsICharsetAlias> calias(do_GetService(kCharsetAliasCID, &res));
+  if (NS_FAILED(res)) {
+    return;
+  }
+
+  nsCAutoString newEncoding;
+  CopyUTF16toUTF8(*aEncoding, newEncoding);
+  PRBool eq;
+  res = calias->Equals(newEncoding, mCharset, &eq);
+  if (NS_FAILED(res)) {
+    return;
+  }
+  if (eq) {
+    mCharsetSource = kCharsetFromMetaTag; 
+    return;
+  }
   
+
+  
+  nsCOMPtr<nsIHttpChannel> httpChannel(do_QueryInterface(mRequest,&res));
+    if (NS_SUCCEEDED(res)) {
+      nsCAutoString method;
+      httpChannel->GetRequestMethod(method);
+      if (!method.EqualsLiteral("GET")) {
+        return; 
+        
+        
+    }
+  }
+  
+  mNeedsCharsetSwitch = PR_TRUE;
+  mPendingCharset.Assign(newEncoding);
 }
 
 
@@ -764,8 +805,7 @@ void
 nsHtml5Parser::ParseUntilSuspend()
 {
   NS_PRECONDITION((!mNeedsCharsetSwitch), "ParseUntilSuspend called when charset switch needed.");
-
-  if (mBlocked) {
+  if (mBlocked || (mLifeCycle == TERMINATED)) {
     return;
   }
   
@@ -796,6 +836,9 @@ nsHtml5Parser::ParseUntilSuspend()
         continue;
       }
     }
+    if (mBlocked || (mLifeCycle == TERMINATED)) {
+      return;
+    }
     
     mFirstBuffer->adjust(mLastWasCR);
     mLastWasCR = PR_FALSE;
@@ -805,8 +848,12 @@ nsHtml5Parser::ParseUntilSuspend()
         ExecuteScript();
       }
       if (mNeedsCharsetSwitch) {
-        
-        return;
+        if (PerformCharsetSwitch() == NS_ERROR_HTMLPARSER_STOPPARSING) {
+          return;        
+        } else {
+          
+          mNeedsCharsetSwitch = PR_FALSE;
+        }
       }
       if (mBlocked) {
         NS_ASSERTION((!mFragmentMode), "Script blocked the parser but we are in the fragment mode.");
@@ -824,6 +871,35 @@ nsHtml5Parser::ParseUntilSuspend()
       continue;
     }
   }
+}
+
+nsresult
+nsHtml5Parser::PerformCharsetSwitch()
+{
+  
+  nsresult rv = NS_OK;
+  nsCOMPtr<nsIWebShellServices> wss = do_QueryInterface(mDocShell);
+  if (!wss) {
+    return NS_ERROR_HTMLPARSER_CONTINUE;
+  }
+#ifndef DONT_INFORM_WEBSHELL
+  
+  if (NS_FAILED( rv = wss->SetRendering(PR_FALSE) )) {
+    
+  } else if (NS_FAILED(rv = wss->StopDocumentLoad())) {
+    rv = wss->SetRendering(PR_TRUE); 
+  } else if (NS_FAILED(rv = wss->ReloadDocument(mPendingCharset.get(), kCharsetFromMetaTag))) {
+    rv = wss->SetRendering(PR_TRUE); 
+  } else {
+    rv = NS_ERROR_HTMLPARSER_STOPPARSING; 
+  }
+#endif
+
+   
+  if (rv != NS_ERROR_HTMLPARSER_STOPPARSING) 
+    rv = NS_ERROR_HTMLPARSER_CONTINUE;
+
+  return rv;
 }
 
 

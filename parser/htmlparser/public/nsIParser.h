@@ -55,9 +55,8 @@
 
 
 #define NS_IPARSER_IID \
-{ 0x506527cc, 0xd832, 0x420b, \
-  { 0xba, 0x3a, 0x80, 0xc0, 0x5a, 0xa1, 0x05, 0xf4 } }
-
+{ 0x3007e9c0, 0x4d3e, 0x4c80, \
+  { 0x8c, 0xae, 0xfb, 0xb4, 0x72, 0x3d, 0x88, 0xf2 } }
 
 
 #define NS_IDEBUG_DUMP_CONTENT_IID \
@@ -95,16 +94,17 @@ enum eParserDocType {
 #define kCharsetFromCache               4
 #define kCharsetFromParentFrame         5
 #define kCharsetFromBookmarks           6
-#define kCharsetFromAutoDetection       7
-#define kCharsetFromHintPrevDoc         8
-#define kCharsetFromMetaTag             9
-#define kCharsetFromByteOrderMark      10
-#define kCharsetFromChannel            11 
-#define kCharsetFromOtherComponent     12
+#define kCharsetFromAutoDetection       7 
+#define kCharsetFromHintPrevDoc         8 
+#define kCharsetFromMetaPrescan         9 // this one and above: HTML5 Tentative
+#define kCharsetFromMetaTag            10 // this one and below: HTML5 Confident
+#define kCharsetFromByteOrderMark      11
+#define kCharsetFromChannel            12 
+#define kCharsetFromOtherComponent     13
 
-#define kCharsetFromParentForced       13
-#define kCharsetFromUserForced         14
-#define kCharsetFromPreviousLoading    15
+#define kCharsetFromParentForced       14
+#define kCharsetFromUserForced         15
+#define kCharsetFromPreviousLoading    16
 
 enum eStreamState {eNone,eOnStart,eOnDataAvail,eOnStop};
 
@@ -266,6 +266,15 @@ class nsIParser : public nsISupports {
 
     NS_IMETHOD BuildModel(void) = 0;
 
+
+    
+
+
+
+
+
+    NS_IMETHOD_(nsDTDMode) GetParseMode(void) = 0;
+
     
 
 
@@ -284,7 +293,14 @@ class nsIParser : public nsISupports {
 
 
 
-    virtual PRBool CanInterrupt() = 0;
+
+    virtual void ScriptExecuting() = 0;
+
+    
+
+
+
+    virtual void ScriptDidExecute() = 0;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsIParser, NS_IPARSER_IID)
