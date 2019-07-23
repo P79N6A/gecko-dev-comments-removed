@@ -1049,27 +1049,36 @@ SetupClusterBoundaries(gfxTextRun* aTextRun, const gchar *aUTF8, PRUint32 aUTF8L
     if (!buffer.AppendElements(aUTF8Length + 1))
         return;
 
-    pango_break(aUTF8, aUTF8Length, aAnalysis,
-                buffer.Elements(), buffer.Length());
-
     const gchar *p = aUTF8;
     const gchar *end = aUTF8 + aUTF8Length;
-    const PangoLogAttr *attr = buffer.Elements();
     gfxTextRun::CompressedGlyph g;
+
     while (p < end) {
-        if (!attr->is_cursor_position) {
-            aTextRun->SetCharacterGlyph(aUTF16Offset, g.SetClusterContinuation());
-        }
-        ++aUTF16Offset;
-        
-        gunichar ch = g_utf8_get_char(p);
-        NS_ASSERTION(!IS_SURROGATE(ch), "Shouldn't have surrogates in UTF8");
-        if (ch >= 0x10000) {
+        PangoLogAttr *attr = buffer.Elements();
+        pango_break(p, end - p, aAnalysis, attr, buffer.Length());
+
+        while (p < end) {
+            if (!attr->is_cursor_position) {
+                aTextRun->SetCharacterGlyph(aUTF16Offset, g.SetClusterContinuation());
+            }
             ++aUTF16Offset;
-        }
         
-        p = g_utf8_next_char(p);
-        ++attr;
+            gunichar ch = g_utf8_get_char(p);
+            NS_ASSERTION(!IS_SURROGATE(ch), "Shouldn't have surrogates in UTF8");
+            if (ch >= 0x10000) {
+                ++aUTF16Offset;
+            }
+            
+            p = g_utf8_next_char(p);
+            ++attr;
+
+            if (ch == 0) {
+                
+                
+                
+                break;
+            }
+        }
     }
 }
 
