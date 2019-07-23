@@ -950,8 +950,10 @@ private:
 
   
   
+  
+  
   PRBool IsValidSibling(nsIFrame*              aParentFrame,
-                        const nsIFrame&        aSibling,
+                        nsIFrame*              aSibling,
                         PRUint8                aSiblingDisplay,
                         nsIContent&            aContent,
                         PRUint8&               aDisplay);
