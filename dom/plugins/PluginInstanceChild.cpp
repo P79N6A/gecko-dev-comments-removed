@@ -59,6 +59,7 @@ using mozilla::gfx::SharedDIB;
 
 #include <windows.h>
 
+#define NS_OOPP_DOUBLEPASS_MSGID TEXT("MozDoublePassMsg")
 #endif
 
 PluginInstanceChild::PluginInstanceChild(const NPPluginFuncs* aPluginIface) :
@@ -77,6 +78,10 @@ PluginInstanceChild::PluginInstanceChild(const NPPluginFuncs* aPluginIface) :
 #  ifdef MOZ_WIDGET_GTK2
         mWsInfo.display = GDK_DISPLAY();
 #  endif
+#endif
+#if defined(OS_WIN)
+    memset(&mAlphaExtract, 0, sizeof(mAlphaExtract));
+    mAlphaExtract.doublePassEvent = ::RegisterWindowMessage(NS_OOPP_DOUBLEPASS_MSGID);
 #endif
     }
 
@@ -343,8 +348,20 @@ PluginInstanceChild::AnswerNPP_HandleEvent(const NPRemoteEvent& event,
 
 #ifdef OS_WIN
     
-    if (NPWindowTypeDrawable == mWindow.type && WM_PAINT == evcopy.event)
-        SharedSurfaceBeforePaint(evcopy);
+    if (mWindow.type == NPWindowTypeDrawable) {
+       if (evcopy.event == WM_PAINT) {
+          *handled = SharedSurfacePaint(evcopy);
+          return true;
+       }
+       else if (evcopy.event == mAlphaExtract.doublePassEvent) {
+            
+            
+            
+            mAlphaExtract.doublePass = RENDER_BACK_ONE;
+            *handled = true;
+            return true;
+       }
+    }
 #endif
 
     *handled = mPluginIface->event(&mData, reinterpret_cast<void*>(&evcopy));
@@ -675,6 +692,9 @@ PluginInstanceChild::SharedSurfaceSetWindow(const NPRemoteWindow& aWindow,
         if (NS_FAILED(mSharedSurfaceDib.Attach((SharedDIB::Handle)aWindow.surfaceHandle,
                                                aWindow.width, aWindow.height, 32)))
           return false;
+        
+        
+        AlphaExtractCacheRelease();
     }
       
     
@@ -694,20 +714,137 @@ void
 PluginInstanceChild::SharedSurfaceRelease()
 {
     mSharedSurfaceDib.Close();
+    AlphaExtractCacheRelease();
+}
+
+
+
+ 
+bool
+PluginInstanceChild::AlphaExtractCacheSetup()
+{
+    AlphaExtractCacheRelease();
+
+    mAlphaExtract.hdc = ::CreateCompatibleDC(NULL);
+
+    if (!mAlphaExtract.hdc)
+        return false;
+
+    BITMAPINFOHEADER bmih;
+    memset((void*)&bmih, 0, sizeof(BITMAPINFOHEADER));
+    bmih.biSize        = sizeof(BITMAPINFOHEADER);
+    bmih.biWidth       = mWindow.width;
+    bmih.biHeight      = mWindow.height;
+    bmih.biPlanes      = 1;
+    bmih.biBitCount    = 32;
+    bmih.biCompression = BI_RGB;
+
+    void* ppvBits = nsnull;
+    mAlphaExtract.bmp = ::CreateDIBSection(mAlphaExtract.hdc,
+                                           (BITMAPINFO*)&bmih,
+                                           DIB_RGB_COLORS,
+                                           (void**)&ppvBits,
+                                           NULL,
+                                           (unsigned long)sizeof(BITMAPINFOHEADER));
+    if (!mAlphaExtract.bmp)
+      return false;
+
+    DeleteObject(::SelectObject(mAlphaExtract.hdc, mAlphaExtract.bmp));
+    return true;
 }
 
 void
-PluginInstanceChild::SharedSurfaceBeforePaint(NPEvent& evcopy)
+PluginInstanceChild::AlphaExtractCacheRelease()
 {
-    
-    RECT* pRect = reinterpret_cast<RECT*>(evcopy.lParam);
-    if (pRect) {
-      HRGN clip = ::CreateRectRgnIndirect(pRect);
-      ::SelectClipRgn(mSharedSurfaceDib.GetHDC(), clip);
-      ::DeleteObject(clip);
+    if (mAlphaExtract.bmp)
+        ::DeleteObject(mAlphaExtract.bmp);
+
+    if (mAlphaExtract.hdc)
+        ::DeleteObject(mAlphaExtract.hdc);
+
+    mAlphaExtract.bmp = NULL;
+    mAlphaExtract.hdc = NULL;
+}
+
+void
+PluginInstanceChild::UpdatePaintClipRect(RECT* aRect)
+{
+    if (aRect) {
+        
+        HRGN clip = ::CreateRectRgnIndirect(aRect);
+        ::SelectClipRgn(mSharedSurfaceDib.GetHDC(), clip);
+        ::DeleteObject(clip);
     }
-    
-    evcopy.wParam = WPARAM(mSharedSurfaceDib.GetHDC());
+}
+
+int16_t
+PluginInstanceChild::SharedSurfacePaint(NPEvent& evcopy)
+{
+    RECT* pRect = reinterpret_cast<RECT*>(evcopy.lParam);
+
+    switch(mAlphaExtract.doublePass) {
+        case RENDER_NATIVE:
+            
+            UpdatePaintClipRect(pRect);
+            evcopy.wParam = WPARAM(mSharedSurfaceDib.GetHDC());
+            return mPluginIface->event(&mData, reinterpret_cast<void*>(&evcopy));
+        break;
+        case RENDER_BACK_ONE:
+              
+              
+              
+              
+              
+              if (!mAlphaExtract.bmp && !AlphaExtractCacheSetup()) {
+                  mAlphaExtract.doublePass = RENDER_NATIVE;
+                  return false;
+              }
+
+              
+              ::FillRect(mSharedSurfaceDib.GetHDC(), pRect, (HBRUSH)GetStockObject(WHITE_BRUSH));
+              UpdatePaintClipRect(pRect);
+              evcopy.wParam = WPARAM(mSharedSurfaceDib.GetHDC());
+              if (!mPluginIface->event(&mData, reinterpret_cast<void*>(&evcopy))) {
+                  mAlphaExtract.doublePass = RENDER_NATIVE;
+                  return false;
+              }
+
+              
+              
+              ::BitBlt(mAlphaExtract.hdc,
+                       pRect->left,
+                       pRect->top,
+                       pRect->right - pRect->left,
+                       pRect->bottom - pRect->top,
+                       mSharedSurfaceDib.GetHDC(),
+                       pRect->left,
+                       pRect->top,
+                       SRCCOPY);
+
+              ::FillRect(mSharedSurfaceDib.GetHDC(), pRect, (HBRUSH)GetStockObject(BLACK_BRUSH));
+              if (!mPluginIface->event(&mData, reinterpret_cast<void*>(&evcopy))) {
+                  mAlphaExtract.doublePass = RENDER_NATIVE;
+                  return false;
+              }
+              mAlphaExtract.doublePass = RENDER_BACK_TWO;
+              return true;
+        break;
+        case RENDER_BACK_TWO:
+              
+              ::BitBlt(mSharedSurfaceDib.GetHDC(),
+                       pRect->left,
+                       pRect->top,
+                       pRect->right - pRect->left,
+                       pRect->bottom - pRect->top,
+                       mAlphaExtract.hdc,
+                       pRect->left,
+                       pRect->top,
+                       SRCCOPY);
+              mAlphaExtract.doublePass = RENDER_NATIVE;
+              return true;
+        break;
+    }
+    return false;
 }
 
 #endif 

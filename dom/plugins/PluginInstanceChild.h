@@ -198,15 +198,29 @@ private:
 private:
     
     bool SharedSurfaceSetWindow(const NPRemoteWindow& aWindow, NPError* rv);
-    void SharedSurfaceBeforePaint(NPEvent& evcopy);
+    int16_t SharedSurfacePaint(NPEvent& evcopy);
     void SharedSurfaceRelease();
+    bool AlphaExtractCacheSetup();
+    void AlphaExtractCacheRelease();
+    void UpdatePaintClipRect(RECT* aRect);
 
 private:
+    enum {
+      RENDER_NATIVE,
+      RENDER_BACK_ONE,
+      RENDER_BACK_TWO 
+    };
     gfx::SharedDIBWin mSharedSurfaceDib;
-#endif 
+    struct {
+      PRUint32        doublePassEvent;
+      PRUint16        doublePass;
+      HDC             hdc;
+      HBITMAP         bmp;
+    } mAlphaExtract;
+#endif
 };
 
 } 
 } 
 
-#endif 
+#endif

@@ -51,7 +51,7 @@ struct NPRemoteEvent
 {
     NPEvent event;
     union {
-        NPRect rect;
+        RECT rect;
         WINDOWPOS windowpos;
     } lParamData;
 };
@@ -89,7 +89,7 @@ struct ParamTraits<mozilla::plugins::NPRemoteEvent>
             case WM_PAINT:
                 
                 
-                paramCopy.lParamData.rect = *(reinterpret_cast<NPRect*>(paramCopy.event.lParam));
+                paramCopy.lParamData.rect = *(reinterpret_cast<RECT*>(paramCopy.event.lParam));
                 break;
 
             
@@ -127,8 +127,12 @@ struct ParamTraits<mozilla::plugins::NPRemoteEvent>
             case WM_KILLFOCUS:
                 break;
 
-            
             default:
+                
+                if (paramCopy.event.event >= 0xC000 && paramCopy.event.event <= 0xFFFF)
+                    break;
+
+                
                 return;
         }
 

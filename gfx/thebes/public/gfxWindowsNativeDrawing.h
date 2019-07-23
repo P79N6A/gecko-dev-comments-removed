@@ -112,6 +112,9 @@ public:
     PRBool ShouldRenderAgain();
 
     
+    PRBool IsDoublePass();
+
+    
     void PaintToContext();
 
 private:
