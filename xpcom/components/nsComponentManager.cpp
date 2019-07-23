@@ -2983,11 +2983,15 @@ nsComponentManagerImpl::LoadLeftoverComponents(
 
     LoaderType curLoader = GetLoaderCount();
 
-    for (PRInt32 i = aLeftovers.Count() - 1; i >= 0; --i) {
+    for (PRInt32 i = 0; i < aLeftovers.Count(); ) {
         nsresult rv = AutoRegisterComponent(aLeftovers[i], aDeferred,
                                             minLoader);
-        if (NS_SUCCEEDED(rv))
+        if (NS_SUCCEEDED(rv)) {
             aLeftovers.RemoveObjectAt(i);
+        }
+        else {
+            ++i;
+        }
     }
     if (aLeftovers.Count())
         
@@ -3179,9 +3183,15 @@ nsComponentManagerImpl::AutoRegister(nsIFile *aSpec)
     nsCOMArray<nsILocalFile> leftovers;
     nsTArray<DeferredModule> deferred;
 
-    if (!aSpec)
+    if (!aSpec) {
         mStaticModuleLoader.EnumerateModules(RegisterStaticModule,
                                              deferred);
+
+        
+        
+        
+        GetAllLoaders();
+    }
 
     LoaderType curLoader = GetLoaderCount();
 
