@@ -442,10 +442,7 @@ public:
 
 
 
-
-  virtual nsresult RemoveChildAt(PRUint32 aIndex, 
-                                 PRBool aNotify, 
-                                 PRBool aMutationEvent = PR_TRUE) = 0;
+  virtual nsresult RemoveChildAt(PRUint32 aIndex, PRBool aNotify) = 0;
 
   
 

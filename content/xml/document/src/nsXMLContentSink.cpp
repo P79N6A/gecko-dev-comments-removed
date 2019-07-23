@@ -1432,6 +1432,33 @@ nsXMLContentSink::ParsePIData(const nsString &aData, nsString &aHref,
   return PR_TRUE;
 }
 
+
+
+
+
+
+
+
+nsresult
+nsXMLContentSink::ProcessMETATag(nsIContent *aContent) {
+
+  
+  nsContentSink::ProcessMETATag(aContent);
+
+  nsresult rv = NS_OK;
+
+  
+
+  if (aContent->AttrValueIs(kNameSpaceID_None, nsGkAtoms::name,
+                            nsGkAtoms::viewport, eIgnoreCase)) {
+    nsAutoString value;
+    aContent->GetAttr(kNameSpaceID_None, nsGkAtoms::content, value);
+    rv = nsContentUtils::ProcessViewportInfo(mDocument, value);
+  }
+
+  return rv;
+}
+
 NS_IMETHODIMP
 nsXMLContentSink::HandleXMLDeclaration(const PRUnichar *aVersion,
                                        const PRUnichar *aEncoding,
