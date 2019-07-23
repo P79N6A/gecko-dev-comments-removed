@@ -561,6 +561,17 @@ struct JSThreadData {
 
 
 
+    struct {
+        jsdouble d;
+        jsint    base;
+        JSString *s;        
+    } dtoaCache;
+
+    
+
+
+
+
 #define NATIVE_ENUM_CACHE_LOG2  8
 #define NATIVE_ENUM_CACHE_MASK  JS_BITMASK(NATIVE_ENUM_CACHE_LOG2)
 #define NATIVE_ENUM_CACHE_SIZE  JS_BIT(NATIVE_ENUM_CACHE_LOG2)
