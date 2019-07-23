@@ -1893,6 +1893,14 @@ function testBug465261() {
 testBug465261.expected = true;
 test(testBug465261);
 
+function testBug465272() {
+    var a = new Array(5);
+    for (j=0;j<5;++j) a[j] = "" + ((5) - 2);
+    return a.join(",");
+}
+testBug465272.expected = "3,3,3,3,3"
+test(testBug465272);
+
 
 
 
