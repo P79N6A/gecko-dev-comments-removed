@@ -74,6 +74,16 @@ var tests = [testLinkVistedObserver];
 
 function run_test()
 {
+  
+  
+  try {
+    Cc["@mozilla.org/browser/global-history;2"].
+      getService(Ci.nsIGlobalHistory2);
+  }
+  catch (ex) {
+    return;
+  }
+
   for (var i = 0; i < tests.length; i++)
     tests[i]();
 
