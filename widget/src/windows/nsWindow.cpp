@@ -5534,7 +5534,9 @@ DWORD nsWindow::WindowStyle()
 
     case eWindowType_popup:
       if (mTransparencyMode == eTransparencyGlass) {
-        style = WS_OVERLAPPED;
+        
+
+        style = WS_POPUP | WS_THICKFRAME;
       } else {
         style = WS_OVERLAPPED | WS_POPUP;
       }
