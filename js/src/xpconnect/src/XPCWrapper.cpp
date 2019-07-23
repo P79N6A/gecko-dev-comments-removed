@@ -449,6 +449,8 @@ XPCWrapper::ResolveNativeProperty(JSContext *cx, JSObject *wrapperObj,
   
   jsval v;
   uintN attrs = JSPROP_ENUMERATE;
+  JSPropertyOp getter = nsnull;
+  JSPropertyOp setter = nsnull;
 
   if (member->IsConstant()) {
     if (!member->GetConstantValue(ccx, iface, &v)) {
@@ -489,6 +491,13 @@ XPCWrapper::ResolveNativeProperty(JSContext *cx, JSObject *wrapperObj,
     
     
     
+    
+    getter = setter = JS_PropertyStub;
+
+    
+    
+    
+    
     JS_SetReservedSlot(cx, JSVAL_TO_OBJECT(v), eAllAccessSlot, JSVAL_TRUE);
   }
 
@@ -504,7 +513,7 @@ XPCWrapper::ResolveNativeProperty(JSContext *cx, JSObject *wrapperObj,
   }
 
   if (!::JS_DefineUCProperty(cx, wrapperObj, ::JS_GetStringChars(str),
-                            ::JS_GetStringLength(str), v, nsnull, nsnull,
+                            ::JS_GetStringLength(str), v, getter, setter,
                             attrs)) {
     return JS_FALSE;
   }
