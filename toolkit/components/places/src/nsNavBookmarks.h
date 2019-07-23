@@ -260,6 +260,14 @@ private:
                               PRInt64 *_retval);
 
   
+
+
+
+
+  nsresult GetBookmarkIdsForURITArray(nsIURI *aURI,
+                                      nsTArray<PRInt64> &aResult);
+
+  
   nsCOMPtr<mozIStorageStatement> mDBGetChildren;
   static const PRInt32 kGetChildrenIndex_Position;
   static const PRInt32 kGetChildrenIndex_Type;
