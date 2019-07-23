@@ -2754,6 +2754,9 @@ nsDocument::DispatchContentLoadedEvents()
   
   
   
+  
+  
+  
   nsContentUtils::DispatchTrustedEvent(this, static_cast<nsIDocument*>(this),
                                        NS_LITERAL_STRING("DOMContentLoaded"),
                                        PR_TRUE, PR_TRUE);
@@ -2846,6 +2849,8 @@ nsDocument::DispatchContentLoadedEvents()
       tmp->GetSameTypeParent(getter_AddRefs(docShellParent));
     }
   }
+
+  UnblockOnload(PR_TRUE);
 }
 
 void
@@ -2861,8 +2866,10 @@ nsDocument::EndLoad()
   
   NS_DOCUMENT_NOTIFY_OBSERVERS(EndLoad, (this));
 
-  DispatchContentLoadedEvents();
-  UnblockOnload(PR_TRUE);
+  nsRefPtr<nsIRunnable> ev =
+    new nsRunnableMethod<nsDocument>(this,
+                                     &nsDocument::DispatchContentLoadedEvents);
+  NS_DispatchToCurrentThread(ev);
 }
 
 void

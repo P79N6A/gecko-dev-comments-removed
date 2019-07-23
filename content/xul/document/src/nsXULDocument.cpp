@@ -3088,12 +3088,10 @@ nsXULDocument::DoneWalking()
 
         NS_DOCUMENT_NOTIFY_OBSERVERS(EndLoad, (this));
 
+        
+        
         DispatchContentLoadedEvents();
 
-        
-        
-        UnblockOnload(PR_TRUE);
-        
         mInitialLayoutComplete = PR_TRUE;
 
         
