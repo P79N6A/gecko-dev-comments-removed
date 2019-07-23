@@ -443,43 +443,43 @@ static inline void
 prim_dcmp_eq(JSContext* cx, bool ifnan, jsdouble& a, jsdouble& b, JSBool& r)
 {
     interp_prim_dcmp_eq(cx, ifnan, a, b, r);
-    recorder(cx)->binary(LIR_eq, &a, &b, &r); 
+    recorder(cx)->binary(LIR_feq, &a, &b, &r); 
 }
 
 static inline void
 prim_dcmp_ne(JSContext *cx, bool ifnan, jsdouble& a, jsdouble& b, JSBool& r)
 {
     interp_prim_dcmp_ne(cx, ifnan, a, b, r);
-    recorder(cx)->binary(LIR_eq, &a, &b, &r); 
-    recorder(cx)->binary0(LIR_eq, &r, &r);    
+    recorder(cx)->binary(LIR_feq, &a, &b, &r); 
+    recorder(cx)->binary0(LIR_eq, &r, &r);     
 }
 
 static inline void
 prim_dcmp_lt(JSContext* cx, bool ifnan, jsdouble& a, jsdouble& b, JSBool& r)
 {
     interp_prim_dcmp_lt(cx, ifnan, a, b, r);
-    recorder(cx)->binary(LIR_lt, &a, &b, &r); 
+    recorder(cx)->binary(LIR_flt, &a, &b, &r); 
 }
 
 static inline void
 prim_dcmp_le(JSContext* cx, bool ifnan, jsdouble& a, jsdouble& b, JSBool& r)
 {
     interp_prim_dcmp_le(cx, ifnan, a, b, r);
-    recorder(cx)->binary(LIR_le, &a, &b, &r); 
+    recorder(cx)->binary(LIR_fle, &a, &b, &r); 
 }
 
 static inline void
 prim_dcmp_gt(JSContext* cx, bool ifnan, jsdouble& a, jsdouble& b, JSBool& r)
 {
     interp_prim_dcmp_gt(cx, ifnan, a, b, r);
-    recorder(cx)->binary(LIR_gt, &a, &b, &r); 
+    recorder(cx)->binary(LIR_fgt, &a, &b, &r); 
 }
 
 static inline void
 prim_dcmp_ge(JSContext* cx, bool ifnan, jsdouble& a, jsdouble& b, JSBool& r)
 {
     interp_prim_dcmp_ge(cx, ifnan, a, b, r);
-    recorder(cx)->binary(LIR_ge, &a, &b, &r); 
+    recorder(cx)->binary(LIR_fge, &a, &b, &r); 
 }
 
 static inline void
