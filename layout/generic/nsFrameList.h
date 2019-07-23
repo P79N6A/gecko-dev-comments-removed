@@ -416,6 +416,11 @@ public:
       mPrev(aOther.mPrev)
     {}
 
+    
+
+
+    inline FrameLinkEnumerator(const nsFrameList& aList, nsIFrame* aPrevFrame);
+
     void operator=(const FrameLinkEnumerator& aOther) {
       NS_PRECONDITION(&List() == &aOther.List(), "Different lists?");
       mFrame = aOther.mFrame;
