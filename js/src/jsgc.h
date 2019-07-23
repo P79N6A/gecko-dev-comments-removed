@@ -342,6 +342,22 @@ struct JSWeakRoots {
 JS_STATIC_ASSERT(JSVAL_NULL == 0);
 #define JS_CLEAR_WEAK_ROOTS(wr) (memset((wr), 0, sizeof(JSWeakRoots)))
 
+
+
+
+
+
+
+
+
+
+
+extern JSBool
+js_AddAsGCBytes(JSContext *cx, size_t sz);
+
+extern void
+js_RemoveAsGCBytes(JSRuntime* rt, size_t sz);
+
 #ifdef DEBUG_notme
 #define JS_GCMETER 1
 #endif

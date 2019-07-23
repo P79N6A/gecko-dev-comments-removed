@@ -417,6 +417,27 @@ struct JSRuntime {
 
 
 
+#define NATIVE_ENUM_CACHE_LOG2  8
+#define NATIVE_ENUM_CACHE_MASK  JS_BITMASK(NATIVE_ENUM_CACHE_LOG2)
+#define NATIVE_ENUM_CACHE_SIZE  JS_BIT(NATIVE_ENUM_CACHE_LOG2)
+
+#define NATIVE_ENUM_CACHE_HASH(shape)                                         \
+    ((((shape) >> NATIVE_ENUM_CACHE_LOG2) ^ (shape)) & NATIVE_ENUM_CACHE_MASK)
+
+    jsuword             nativeEnumCache[NATIVE_ENUM_CACHE_SIZE];
+
+   
+
+
+
+
+#ifdef JS_DUMP_ENUM_CACHE_STATS
+    int32               nativeEnumProbes;
+    int32               nativeEnumMisses;
+# define ENUM_CACHE_METER(name)     JS_ATOMIC_INCREMENT(&cx->runtime->name)
+#else
+# define ENUM_CACHE_METER(name)     ((void) 0)
+#endif
 
 #if defined DEBUG || defined JS_DUMP_PROPTREE_STATS
     

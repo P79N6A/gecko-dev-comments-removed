@@ -4170,14 +4170,39 @@ out:
 
 
 
-struct JSNativeEnumerator {
-    uint32              cursor;         
 
-    uint32              length;         
-    JSNativeEnumerator  *next;          
-    JSNativeEnumerator  **prevp;
-    jsid                ids[1];         
+
+
+
+
+
+
+
+struct JSNativeEnumerator {
+    
+
+
+
+
+
+    jsword                  cursor;
+
+    uint32                  length;     
+    uint32                  shape;      
+    JSNativeEnumerator      *next;      
+    jsid                    ids[1];     
 };
+
+
+JS_STATIC_ASSERT((jsuword) SHAPE_OVERFLOW_BIT <=
+                 ((jsuword) 1 << (JS_BITS_PER_WORD - 1)));
+
+static inline size_t
+NativeEnumeratorSize(uint32 length)
+{
+    JS_ASSERT(length != 0);
+    return offsetof(JSNativeEnumerator, ids) + (size_t) length * sizeof(jsid);
+}
 
 
 
@@ -4191,10 +4216,13 @@ js_Enumerate(JSContext *cx, JSObject *obj, JSIterateOp enum_op,
     JSClass *clasp;
     JSEnumerateOp enumerate;
     JSNativeEnumerator *ne;
-    uint32 length;
+    uint32 length, shape;
+    size_t allocated;
     JSScope *scope;
+    jsuword *cachep, oldcache;
     JSScopeProperty *sprop;
     jsid *ids;
+    jsword newcursor;
 
     clasp = OBJ_GET_CLASS(cx, obj);
     enumerate = clasp->enumerate;
@@ -4216,8 +4244,11 @@ js_Enumerate(JSContext *cx, JSObject *obj, JSIterateOp enum_op,
 
 
 
+
+
         ne = NULL;
         length = 0;
+        allocated = (size_t) 0;
         JS_LOCK_OBJ(cx, obj);
         scope = OBJ_SCOPE(obj);
         do {
@@ -4226,10 +4257,48 @@ js_Enumerate(JSContext *cx, JSObject *obj, JSIterateOp enum_op,
 
 
 
-            if (scope->object != obj)
+            if (scope->object != obj) {
+#ifdef __GNUC__
+                cachep = NULL;  
+#endif
                 break;
+            }
+
+            ENUM_CACHE_METER(nativeEnumProbes);
+            shape = scope->shape;
+            JS_ASSERT(shape < SHAPE_OVERFLOW_BIT);
+            cachep = &cx->runtime->
+                     nativeEnumCache[NATIVE_ENUM_CACHE_HASH(shape)];
+            oldcache = *cachep;
+            if (oldcache & (jsuword) 1) {
+                if ((uint32) (oldcache >> 1) == shape) {
+                    
+                    break;
+                }
+            } else if (oldcache != (jsuword) 0) {
+                
+
+
+
+
+                ne = (JSNativeEnumerator *) *cachep;
+                JS_ASSERT(ne->length >= 1);
+                if (ne->shape == shape) {
+                    
+
+
+
+                    length = ne->length;
+                    if (js_CompareAndSwap(&ne->cursor, 0, length))
+                        break;
+                    length = 0;
+                }
+                ne = NULL;
+            }
+            ENUM_CACHE_METER(nativeEnumMisses);
 
             
+            JS_ASSERT(length == 0);
             for (sprop = SCOPE_LAST_PROP(scope); sprop; sprop = sprop->parent) {
                 if ((sprop->attrs & JSPROP_ENUMERATE) &&
                     !(sprop->flags & SPROP_IS_ALIAS) &&
@@ -4238,18 +4307,21 @@ js_Enumerate(JSContext *cx, JSObject *obj, JSIterateOp enum_op,
                     length++;
                 }
             }
-            if (length == 0)
+            if (length == 0) {
+                
+                *cachep = ((jsuword) shape << 1) | (jsuword) 1;
                 break;
+            }
 
-            ne = (JSNativeEnumerator *)
-                 JS_malloc(cx, offsetof(JSNativeEnumerator, ids) +
-                           length * sizeof(jsid));
+            allocated = NativeEnumeratorSize(length);
+            ne = (JSNativeEnumerator *) JS_malloc(cx, allocated);
             if (!ne) {
                 JS_UNLOCK_SCOPE(cx, scope);
                 return JS_FALSE;
             }
             ne->cursor = length;
             ne->length = length;
+            ne->shape = shape;
             ids = ne->ids;
             for (sprop = SCOPE_LAST_PROP(scope); sprop; sprop = sprop->parent) {
                 if ((sprop->attrs & JSPROP_ENUMERATE) &&
@@ -4264,45 +4336,58 @@ js_Enumerate(JSContext *cx, JSObject *obj, JSIterateOp enum_op,
         } while (0);
         JS_UNLOCK_SCOPE(cx, scope);
 
-        if (idp)
-            *idp = INT_TO_JSVAL(length);
         if (!ne) {
             JS_ASSERT(length == 0);
+            JS_ASSERT(allocated == 0);
             *statep = JSVAL_ZERO;
         } else {
             JS_ASSERT(length != 0);
-            JS_LOCK_GC(cx->runtime);
-            ne->next = cx->runtime->nativeEnumerators;
-            if (ne->next)
-                ne->next->prevp = &ne->next;
-            ne->prevp = &cx->runtime->nativeEnumerators;
-            *ne->prevp = ne;
-            JS_UNLOCK_GC(cx->runtime);
+            JS_ASSERT(ne->cursor == length);
+            if (allocated != 0) {
+                JS_LOCK_GC(cx->runtime);
+                if (!js_AddAsGCBytes(cx, allocated)) {
+                    
+                    JS_free(cx, ne);
+                    return JS_FALSE;
+                }
+                ne->next = cx->runtime->nativeEnumerators;
+                cx->runtime->nativeEnumerators = ne;
+                JS_ASSERT(((jsuword) ne & (jsuword) 1) == (jsuword) 0);
+                *cachep = (jsuword) ne;
+                JS_UNLOCK_GC(cx->runtime);
+            }
             *statep = PRIVATE_TO_JSVAL(ne);
         }
+        if (idp)
+            *idp = INT_TO_JSVAL(length);
         break;
 
       case JSENUMERATE_NEXT:
       case JSENUMERATE_DESTROY:
-        if (*statep != JSVAL_ZERO) {
-            ne = (JSNativeEnumerator *) JSVAL_TO_PRIVATE(*statep);
-            JS_ASSERT(ne->length >= 1);
-            if (ne->cursor != 0 && enum_op == JSENUMERATE_NEXT) {
-                *idp = ne->ids[--ne->cursor];
-                break;
-            }
-            JS_LOCK_GC(cx->runtime);
-            JS_ASSERT(cx->runtime->nativeEnumerators);
-            JS_ASSERT(*ne->prevp == ne);
-            if (ne->next) {
-                JS_ASSERT(ne->next->prevp == &ne->next);
-                ne->next->prevp = ne->prevp;
-            }
-            *ne->prevp = ne->next;
-            JS_UNLOCK_GC(cx->runtime);
-            JS_free(cx, ne);
+        if (*statep == JSVAL_ZERO) {
+            *statep = JSVAL_NULL;
+            break;
         }
-        *statep = JSVAL_NULL;
+        ne = (JSNativeEnumerator *) JSVAL_TO_PRIVATE(*statep);
+        JS_ASSERT(ne->length >= 1);
+        JS_ASSERT(ne->cursor >= 1);
+
+        
+
+
+
+
+
+        if (enum_op == JSENUMERATE_NEXT) {
+            newcursor = ne->cursor - 1;
+            *idp = ne->ids[newcursor];
+            ne->cursor = newcursor;
+            if (newcursor == 0)
+                *statep = JSVAL_ZERO;
+        } else {
+            
+            ne->cursor = 0;
+        }
         break;
     }
     return JS_TRUE;
@@ -4311,15 +4396,41 @@ js_Enumerate(JSContext *cx, JSObject *obj, JSIterateOp enum_op,
 void
 js_TraceNativeEnumerators(JSTracer *trc)
 {
-    JSNativeEnumerator *ne;
+    JSRuntime *rt;
+    JSNativeEnumerator **nep, *ne;
     jsid *cursor, *end;
 
-    for (ne = trc->context->runtime->nativeEnumerators; ne; ne = ne->next) {
-        JS_ASSERT(ne->length >= 1);
-        JS_ASSERT(*ne->prevp == ne);
-        end = ne->ids + ne->length;
-        for (cursor = ne->ids; cursor != end; ++cursor)
-            TRACE_ID(trc, *cursor);
+    
+
+
+
+    rt = trc->context->runtime;
+    if (IS_GC_MARKING_TRACER(trc)) {
+        memset(&rt->nativeEnumCache, 0, sizeof rt->nativeEnumCache);
+#ifdef JS_DUMP_ENUM_CACHE_STATS
+        printf("nativeEnumCache hit rate %g%%\n",
+               100.0 * (rt->nativeEnumProbes - rt->nativeEnumMisses) /
+               rt->nativeEnumProbes);
+#endif
+    }
+
+    nep = &rt->nativeEnumerators;
+    while ((ne = *nep) != NULL) {
+        JS_ASSERT(ne->length != 0);
+        if (ne->cursor != 0) {
+            
+            cursor = ne->ids;
+            end = cursor + ne->length;
+            do {
+                TRACE_ID(trc, *cursor);
+            } while (++cursor != end);
+        } else if (IS_GC_MARKING_TRACER(trc)) {
+            js_RemoveAsGCBytes(rt, NativeEnumeratorSize(ne->length));
+            *nep = ne->next;
+            JS_free(trc->context, ne);
+            continue;
+        }
+        nep = &ne->next;
     }
 }
 
