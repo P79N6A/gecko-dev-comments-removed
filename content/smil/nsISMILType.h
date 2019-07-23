@@ -88,8 +88,7 @@ protected:
 
 
 
-
-  virtual nsresult Init(nsSMILValue& aValue) const = 0;
+  virtual void Init(nsSMILValue& aValue) const = 0;
 
   
 
