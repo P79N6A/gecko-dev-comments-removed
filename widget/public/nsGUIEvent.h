@@ -171,6 +171,8 @@ class nsHashKey;
 
 #define NS_SETZLEVEL                    (NS_WINDOW_START + 9)
 
+#define NS_WILL_PAINT                   (NS_WINDOW_START + 29)
+
 #define NS_PAINT                        (NS_WINDOW_START + 30)
 
 #define NS_KEY_PRESS                    (NS_WINDOW_START + 31)
