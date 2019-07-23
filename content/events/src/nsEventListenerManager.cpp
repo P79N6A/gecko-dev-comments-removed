@@ -342,9 +342,7 @@ PRUint32 nsEventListenerManager::mInstanceCount = 0;
 PRUint32 nsEventListenerManager::sCreatedCount = 0;
 
 nsEventListenerManager::nsEventListenerManager() :
-  mTarget(nsnull),
-  mMayHaveMutationListeners(PR_FALSE),
-  mNoListenerForEvent(NS_EVENT_TYPE_NULL)
+  mTarget(nsnull)
 {
   ++mInstanceCount;
   ++sCreatedCount;
@@ -430,6 +428,27 @@ nsEventListenerManager::GetTypeDataForEventName(nsIAtom* aName)
   return nsnull;
 }
 
+nsPIDOMWindow*
+nsEventListenerManager::GetInnerWindowForTarget()
+{
+  nsCOMPtr<nsINode> node = do_QueryInterface(mTarget);
+  if (node) {
+    
+    
+    nsIDocument* document = node->GetOwnerDoc();
+    if (document)
+      return document->GetInnerWindow();
+  }
+
+  nsCOMPtr<nsPIDOMWindow> window = do_QueryInterface(mTarget);
+  if (window) {
+    NS_ASSERTION(window->IsInnerWindow(), "Target should not be an outer window");
+    return window;
+  }
+
+  return nsnull;
+}
+
 nsresult
 nsEventListenerManager::AddEventListener(nsIDOMEventListener *aListener,
                                          PRUint32 aType,
@@ -497,29 +516,19 @@ nsEventListenerManager::AddEventListener(nsIDOMEventListener *aListener,
   ls->mHandlerIsString = PR_FALSE;
   ls->mTypeData = aTypeData;
 
-  
-  
-  if (aType >= NS_MUTATION_START && aType <= NS_MUTATION_END) {
+  if (aType == NS_AFTERPAINT) {
+    mMayHavePaintEventListener = PR_TRUE;
+    nsPIDOMWindow* window = GetInnerWindowForTarget();
+    if (window) {
+      window->SetHasPaintEventListener();
+    }
+  } else if (aType >= NS_MUTATION_START && aType <= NS_MUTATION_END) {
+    
+    
     mMayHaveMutationListeners = PR_TRUE;
     
-    nsCOMPtr<nsPIDOMWindow> window;
-    nsCOMPtr<nsIDocument> document;
-    nsCOMPtr<nsINode> node(do_QueryInterface(mTarget));
-    if (node) {
-      
-      
-      document = node->GetOwnerDoc();
-      if (document) {
-        window = document->GetInnerWindow();
-      }
-    }
-
-    if (!window) {
-      window = do_QueryInterface(mTarget);
-    }
+    nsPIDOMWindow* window = GetInnerWindowForTarget();
     if (window) {
-      NS_ASSERTION(window->IsInnerWindow(),
-                   "Setting mutation listener bits on outer window?");
       
       
       window->SetMutationListeners((aType == NS_MUTATION_SUBTREEMODIFIED) ?

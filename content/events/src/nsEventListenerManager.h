@@ -191,14 +191,10 @@ protected:
                          nsIPresShell *aPresShell, nsPoint& aTargetPt);
   nsresult GetDOM2EventGroup(nsIDOMEventGroup** aGroup);
   PRBool ListenerCanHandle(nsListenerStruct* aLs, nsEvent* aEvent);
+  nsPIDOMWindow* GetInnerWindowForTarget();
 
   nsAutoTObserverArray<nsListenerStruct, 2> mListeners;
   nsISupports*                              mTarget;  
-  PRUint32                                  mMayHaveMutationListeners : 1;
-  
-  
-  
-  PRUint32                                  mNoListenerForEvent : 31;
   nsCOMPtr<nsIAtom>                         mNoListenerForEventAtom;
 
   static PRUint32                           mInstanceCount;
