@@ -600,6 +600,8 @@ nsImageLoadingContent::LoadImage(nsIURI* aNewURI,
                                  nsLoadFlags aLoadFlags)
 {
   if (!mLoadingEnabled) {
+    
+    
     FireEvent(NS_LITERAL_STRING("error"));
     return NS_OK;
   }

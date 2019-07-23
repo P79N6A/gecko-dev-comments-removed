@@ -553,9 +553,14 @@ nsHTMLImageElement::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
 
   if (HasAttr(kNameSpaceID_None, nsGkAtoms::src)) {
     ClearBrokenState();
-    nsContentUtils::AddScriptRunner(
-      new nsRunnableMethod<nsHTMLImageElement>(this,
-                                               &nsHTMLImageElement::MaybeLoadImage));
+    
+    
+    
+    if (LoadingEnabled()) {
+      nsContentUtils::AddScriptRunner(
+        new nsRunnableMethod<nsHTMLImageElement>(this,
+                                                 &nsHTMLImageElement::MaybeLoadImage));
+    }
   }
 
   return rv;
