@@ -282,8 +282,19 @@ protected:
 
 
 
+  nsresult InitializeDecoderAsClone(nsMediaDecoder* aOriginal); 
+
+  
+
+
+
   nsresult InitializeDecoderForChannel(nsIChannel *aChannel,
                                        nsIStreamListener **aListener);
+
+  
+
+
+  nsresult FinishDecoderSetup();
 
   
 

@@ -167,6 +167,10 @@ public:
   virtual void Resume() = 0;
   
   virtual already_AddRefed<nsIPrincipal> GetCurrentPrincipal() = 0;
+  
+  
+  
+  virtual nsMediaStream* CloneData(nsMediaDecoder* aDecoder) = 0;
 
   
   
@@ -323,6 +327,7 @@ public:
   virtual already_AddRefed<nsIPrincipal> GetCurrentPrincipal();
   
   PRBool IsClosed() const { return mCacheStream.IsClosed(); }
+  virtual nsMediaStream* CloneData(nsMediaDecoder* aDecoder);
 
   
   virtual void     SetReadMode(nsMediaCacheStream::ReadMode aMode);
@@ -373,6 +378,7 @@ protected:
   
   
   nsresult OpenChannel(nsIStreamListener** aStreamListener);
+  nsresult RecreateChannel();
   void SetupChannelHeaders();
   
   void CloseChannel();
