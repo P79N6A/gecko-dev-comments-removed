@@ -246,12 +246,21 @@ function SetClickAndHoldHandlers()
                           true);  
   }
 
-  var backButton = document.getElementById("back-button");
-  if (backButton)
+  
+  
+  if (document.getElementById("unified-back-forward-button"))  {
+    var popup = document.getElementById("back-forward-dropmarker")
+                       .firstChild.cloneNode(true);
+    var backButton = document.getElementById("back-button");
+    backButton.setAttribute("type", "menu");
+    backButton.appendChild(popup);
     _addClickAndHoldListenersOnElement(backButton);
-  var forwardButton = document.getElementById("forward-button");
-  if (forwardButton)
+    var forwardButton = document.getElementById("forward-button");
+    popup = popup.cloneNode(true);
+    forwardButton.setAttribute("type", "menu");
+    forwardButton.appendChild(popup);    
     _addClickAndHoldListenersOnElement(forwardButton);
+  }
 }
 #endif
 
