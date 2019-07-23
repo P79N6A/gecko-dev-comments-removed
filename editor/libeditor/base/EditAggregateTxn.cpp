@@ -41,26 +41,18 @@
 EditAggregateTxn::EditAggregateTxn()
   : EditTxn()
 {
-  nsresult res = NS_NewISupportsArray(getter_AddRefs(mChildren));
-  NS_POSTCONDITION(NS_SUCCEEDED(res), "EditAggregateTxn failed in constructor");
 }
 
 NS_IMETHODIMP EditAggregateTxn::DoTransaction(void)
 {
   nsresult result=NS_OK;  
-  if (mChildren)
+  for (PRUint32 i = 0, length = mChildren.Length(); i < length; ++i)
   {
-    PRInt32 i;
-    PRUint32 count;
-    mChildren->Count(&count);
-    for (i=0; i<((PRInt32)count); i++)
-    {
-      nsCOMPtr<nsITransaction> txn (do_QueryElementAt(mChildren, i));
-      if (!txn) { return NS_ERROR_NULL_POINTER; }
-      result = txn->DoTransaction();
-      if (NS_FAILED(result))
-        break;
-    }  
+    nsITransaction *txn = mChildren[i];
+    if (!txn) { return NS_ERROR_NULL_POINTER; }
+    result = txn->DoTransaction();
+    if (NS_FAILED(result))
+      break;
   }
   return result;
 }
@@ -68,20 +60,14 @@ NS_IMETHODIMP EditAggregateTxn::DoTransaction(void)
 NS_IMETHODIMP EditAggregateTxn::UndoTransaction(void)
 {
   nsresult result=NS_OK;  
-  if (mChildren)
+  
+  for (PRUint32 i = mChildren.Length(); i-- != 0; )
   {
-    PRInt32 i;
-    PRUint32 count;
-    mChildren->Count(&count);
-    
-    for (i=count-1; i>=0; i--)
-    {
-      nsCOMPtr<nsITransaction> txn (do_QueryElementAt(mChildren, i));
-      if (!txn) { return NS_ERROR_NULL_POINTER; }
-      result = txn->UndoTransaction();
-      if (NS_FAILED(result))
-        break;
-    }  
+    nsITransaction *txn = mChildren[i];
+    if (!txn) { return NS_ERROR_NULL_POINTER; }
+    result = txn->UndoTransaction();
+    if (NS_FAILED(result))
+      break;
   }
   return result;
 }
@@ -89,19 +75,13 @@ NS_IMETHODIMP EditAggregateTxn::UndoTransaction(void)
 NS_IMETHODIMP EditAggregateTxn::RedoTransaction(void)
 {
   nsresult result=NS_OK;  
-  if (mChildren)
+  for (PRUint32 i = 0, length = mChildren.Length(); i < length; ++i)
   {
-    PRInt32 i;
-    PRUint32 count;
-    mChildren->Count(&count);
-    for (i=0; i<((PRInt32)count); i++)
-    {
-      nsCOMPtr<nsITransaction> txn (do_QueryElementAt(mChildren, i));
-      if (!txn) { return NS_ERROR_NULL_POINTER; }
-      result = txn->RedoTransaction();
-      if (NS_FAILED(result))
-        break;
-    }  
+    nsITransaction *txn = mChildren[i];
+    if (!txn) { return NS_ERROR_NULL_POINTER; }
+    result = txn->RedoTransaction();
+    if (NS_FAILED(result))
+      break;
   }
   return result;
 }
@@ -111,18 +91,13 @@ NS_IMETHODIMP EditAggregateTxn::Merge(nsITransaction *aTransaction, PRBool *aDid
   nsresult result=NS_OK;  
   if (aDidMerge)
     *aDidMerge = PR_FALSE;
-  if (mChildren)
+  
+  
+  if (mChildren.Length() > 0)
   {
-    PRInt32 i=0;
-    PRUint32 count;
-    mChildren->Count(&count);
-    NS_ASSERTION(count>0, "bad count");
-    if (0<count)
-    {
-      nsCOMPtr<nsITransaction> txn (do_QueryElementAt(mChildren, i));
-      if (!txn) { return NS_ERROR_NULL_POINTER; }
-      result = txn->Merge(aTransaction, aDidMerge);
-    }
+    nsITransaction *txn = mChildren[0];
+    if (!txn) { return NS_ERROR_NULL_POINTER; }
+    result = txn->Merge(aTransaction, aDidMerge);
   }
   return result;
 }
@@ -143,15 +118,17 @@ NS_IMETHODIMP EditAggregateTxn::GetTxnDescription(nsAString& aString)
 
 NS_IMETHODIMP EditAggregateTxn::AppendChild(EditTxn *aTxn)
 {
-  if (mChildren && aTxn)
-  {
-    
-    nsCOMPtr<nsISupports> isupports;
-    aTxn->QueryInterface(NS_GET_IID(nsISupports), getter_AddRefs(isupports));
-    mChildren->AppendElement(isupports);
-    return NS_OK;
+  if (!aTxn) {
+    return NS_ERROR_NULL_POINTER;
   }
-  return NS_ERROR_NULL_POINTER;
+
+  nsRefPtr<EditTxn> *slot = mChildren.AppendElement();
+  if (!slot) {
+    return NS_ERROR_OUT_OF_MEMORY;
+  }
+
+  *slot = aTxn;
+  return NS_OK;
 }
 
 NS_IMETHODIMP EditAggregateTxn::GetCount(PRUint32 *aCount)
@@ -159,10 +136,7 @@ NS_IMETHODIMP EditAggregateTxn::GetCount(PRUint32 *aCount)
   if (!aCount) {
     return NS_ERROR_NULL_POINTER;
   }
-  *aCount=0;
-  if (mChildren) {
-    mChildren->Count(aCount);
-  }
+  *aCount = mChildren.Length();
   return NS_OK;
 }
 
@@ -170,26 +144,21 @@ NS_IMETHODIMP EditAggregateTxn::GetTxnAt(PRInt32 aIndex, EditTxn **aTxn)
 {
   
   NS_PRECONDITION(aTxn, "null out param");
-  NS_PRECONDITION(mChildren, "bad internal state");
 
   if (!aTxn) {
     return NS_ERROR_NULL_POINTER;
   }
   *aTxn = nsnull; 
-  if (!mChildren) {
-    return NS_ERROR_UNEXPECTED;
-  }
-
   
-  PRUint32 txnCount;
-  mChildren->Count(&txnCount);
+  PRUint32 txnCount = mChildren.Length();
   if (0>aIndex || ((PRInt32)txnCount)<=aIndex) {
     return NS_ERROR_UNEXPECTED;
   }
   
-  mChildren->QueryElementAt(aIndex, EditTxn::GetCID(), (void**)aTxn);
+  *aTxn = mChildren[aIndex];
   if (!*aTxn)
     return NS_ERROR_UNEXPECTED;
+  NS_ADDREF(*aTxn);
   return NS_OK;
 }
 
