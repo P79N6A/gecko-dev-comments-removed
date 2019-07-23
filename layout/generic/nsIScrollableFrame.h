@@ -85,7 +85,9 @@ public:
 
 
   virtual nsMargin GetDesiredScrollbarSizes(nsBoxLayoutState* aState) = 0;
-
+  virtual nsMargin GetDesiredScrollbarSizes(nsPresContext* aPresContext,
+                                            nsIRenderingContext* aRC) = 0;
+  
   
 
 

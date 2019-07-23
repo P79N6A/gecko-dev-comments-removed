@@ -6198,6 +6198,7 @@ nsFrame::BoxReflow(nsBoxLayoutState&        aState,
     
     reflowState.parentReflowState = &parentReflowState;
     reflowState.mCBReflowState = &parentReflowState;
+    reflowState.mReflowDepth = aState.GetReflowDepth();
 
     
     
