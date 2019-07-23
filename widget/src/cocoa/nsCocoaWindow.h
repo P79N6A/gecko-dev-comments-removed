@@ -66,7 +66,7 @@ typedef struct _nsCocoaWindowList {
 
 
 
-- (void)_setWindowNumber:(int)aNumber;
+- (void)_setWindowNumber:(NSInteger)aNumber;
 
 
 
