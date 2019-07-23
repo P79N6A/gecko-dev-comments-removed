@@ -190,15 +190,28 @@ var num_places_entries = 8;
 
 
 function check_placesItem_Count(){
+  
   var options = histsvc.getNewQueryOptions();
   options.includeHidden = true;
+  options.queryType = Ci.nsINavHistoryQueryOptions.QUERY_TYPE_BOOKMARKS;
   var query = histsvc.getNewQuery();
   var result = histsvc.executeQuery(query, options);
   var root = result.root;
   root.containerOpen = true;
   var cc = root.childCount;
-  do_check_eq(cc,num_places_entries);
   root.containerOpen = false;
+
+  
+  options.queryType = Ci.nsINavHistoryQueryOptions.QUERY_TYPE_HISTORY;
+  query = histsvc.getNewQuery();
+  result = histsvc.executeQuery(query, options);
+  root = result.root;
+  root.containerOpen = true;
+  cc += root.childCount;
+  root.containerOpen = false;
+
+  
+  do_check_eq(cc,num_places_entries);
 }
 
 
@@ -239,7 +252,7 @@ function is_bookmark_A_altered(){
   var query  = histsvc.getNewQuery();
   query.setFolders([bmsvc.bookmarksMenuFolder],1);
 
-  var result = histsvc.executeQuery(query,options);
+  var result = histsvc.executeQuery(query, options);
   var root = result.root;
 
   root.containerOpen = true;
@@ -257,10 +270,94 @@ function run_test() {
   
   var pb = get_PBSvc();
 
-  if(pb){ 
+  if(pb) { 
+    start_sync(); 
+
+    
+    var os = Cc["@mozilla.org/observer-service;1"].
+             getService(Ci.nsIObserverService);
+    const kSyncFinished = "places-sync-finished";
+    do_test_pending();
+
     var prefBranch = Cc["@mozilla.org/preferences-service;1"].
                      getService(Ci.nsIPrefBranch);
     prefBranch.setBoolPref("browser.privatebrowsing.keep_current_session", true);
+
+    var bookmark_A_URI = ios.newURI("http://google.com/", null, null);
+    var bookmark_B_URI = ios.newURI("http://bugzilla.mozilla.org/", null, null);
+    var onBookmarkAAdded = {
+      observe: function (aSubject, aTopic, aData) {
+        os.removeObserver(this, kSyncFinished);
+
+        check_placesItem_Count();
+
+        
+        do_check_true(bmsvc.isBookmarked(bookmark_A_URI));
+        do_check_eq("google",bmsvc.getKeywordForURI(bookmark_A_URI));
+
+        
+        pb.privateBrowsingEnabled = true;
+
+        
+        for each(var visited_uri in visited_URIs)
+          do_check_false(bhist.isVisited(uri(visited_uri)));
+
+        
+        do_check_false(is_bookmark_A_altered());
+
+        
+        
+        fill_history_nonvisitedURI();
+        for each(var nonvisited_uri in nonvisited_URIs) {
+          do_check_false(uri_in_db(uri(nonvisited_uri)));
+          do_check_false(bhist.isVisited(uri(nonvisited_uri)));
+        }
+
+        
+        
+        
+        check_placesItem_Count();
+
+        
+        do_check_true(bmsvc.isBookmarked(bookmark_A_URI));
+        do_check_eq("google",bmsvc.getKeywordForURI(bookmark_A_URI));
+
+        os.addObserver(onBookmarkBAdded, kSyncFinished, false);
+
+        
+        myBookmarks[1] = create_bookmark(bookmark_B_URI,"title 2", "bugzilla");
+      }
+    };
+    var onBookmarkBAdded = {
+      observe: function (aSubject, aTopic, aData) {
+        os.removeObserver(this, kSyncFinished);
+
+        
+        
+        num_places_entries = 9; 
+        check_placesItem_Count();
+
+        
+        pb.privateBrowsingEnabled = false;
+
+        
+        do_check_true(bmsvc.isBookmarked(bookmark_B_URI));
+        do_check_eq("bugzilla",bmsvc.getKeywordForURI(bookmark_B_URI));
+
+        
+        do_check_true(bmsvc.isBookmarked(bookmark_A_URI));
+        do_check_eq("google",bmsvc.getKeywordForURI(bookmark_A_URI));
+
+        
+        for each(var visited_uri in visited_URIs) {
+          do_check_true(uri_in_db(uri(visited_uri)));
+          do_check_true(bhist.isVisited(uri(visited_uri)));
+        }
+
+        prefBranch.clearUserPref("browser.privatebrowsing.keep_current_session");
+        finish_test();
+      }
+    };
 
     
     do_check_false(histsvc.hasHistoryEntries);
@@ -271,8 +368,9 @@ function run_test() {
     
     do_check_true(histsvc.hasHistoryEntries);
 
+    os.addObserver(onBookmarkAAdded, kSyncFinished, false);
+
     
-    var bookmark_A_URI = ios.newURI("http://google.com/", null, null);
     myBookmarks[0] = create_bookmark(bookmark_A_URI,"title 1", "google");
 
     
@@ -280,66 +378,5 @@ function run_test() {
       do_check_true(bhist.isVisited(uri(visited_uri)));
       do_check_true(uri_in_db(uri(visited_uri)));
     }
-
-    check_placesItem_Count();
-
-    
-    do_check_true(bmsvc.isBookmarked(bookmark_A_URI));
-    do_check_eq("google",bmsvc.getKeywordForURI(bookmark_A_URI));
-
-    
-    pb.privateBrowsingEnabled = true;
-
-    
-    for each(var visited_uri in visited_URIs)
-      do_check_false(bhist.isVisited(uri(visited_uri)));
-
-    
-    do_check_false(is_bookmark_A_altered());
-
-    
-    
-    fill_history_nonvisitedURI();
-    for each(var nonvisited_uri in nonvisited_URIs) {
-      do_check_false(uri_in_db(uri(nonvisited_uri)));
-      do_check_false(bhist.isVisited(uri(nonvisited_uri)));
-    }
-
-    
-    
-    
-    check_placesItem_Count();
-
-    
-    do_check_true(bmsvc.isBookmarked(bookmark_A_URI));
-    do_check_eq("google",bmsvc.getKeywordForURI(bookmark_A_URI));
-
-    
-    var bookmark_B_URI = ios.newURI("http://bugzilla.mozilla.org/", null, null);
-    myBookmarks[1] = create_bookmark(bookmark_B_URI,"title 2", "bugzilla");
-
-    
-    
-    num_places_entries = 9; 
-    check_placesItem_Count();
-
-    
-    pb.privateBrowsingEnabled = false;
-
-    
-    do_check_true(bmsvc.isBookmarked(bookmark_B_URI));
-    do_check_eq("bugzilla",bmsvc.getKeywordForURI(bookmark_B_URI));
-
-    
-    do_check_true(bmsvc.isBookmarked(bookmark_A_URI));
-    do_check_eq("google",bmsvc.getKeywordForURI(bookmark_A_URI));
-
-    
-    for each(var visited_uri in visited_URIs) {
-      do_check_true(uri_in_db(uri(visited_uri)));
-      do_check_true(bhist.isVisited(uri(visited_uri)));
-    }
-
-    prefBranch.clearUserPref("browser.privatebrowsing.keep_current_session");
   }
 }
