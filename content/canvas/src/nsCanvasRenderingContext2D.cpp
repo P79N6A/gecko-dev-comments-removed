@@ -55,15 +55,9 @@
 #include "nsIPresShell.h"
 #include "nsIVariant.h"
 
-#include "imgIRequest.h"
-#include "imgIContainer.h"
-#include "gfxIImageFrame.h"
 #include "nsIDOMHTMLCanvasElement.h"
 #include "nsICanvasElement.h"
-#include "nsIDOMHTMLImageElement.h"
-#include "nsIImageLoadingContent.h"
 #include "nsIInterfaceRequestorUtils.h"
-#include "nsIImage.h"
 #include "nsIFrame.h"
 #include "nsDOMError.h"
 #include "nsIScriptError.h"
@@ -110,16 +104,14 @@
 
 #include "nsBidiPresUtils.h"
 
-#ifdef MOZ_MEDIA
-#include "nsHTMLVideoElement.h"
-#endif
+#include "CanvasUtils.h"
+
+using namespace mozilla;
 
 #ifndef M_PI
 #define M_PI		3.14159265358979323846
 #define M_PI_2		1.57079632679489661923
 #endif
-
-static PRBool CheckSaneSubrectSize (PRInt32 x, PRInt32 y, PRInt32 w, PRInt32 h, PRInt32 realWidth, PRInt32 realHeight);
 
 
 
@@ -360,14 +352,6 @@ protected:
 
     void ApplyStyle(Style aWhichStyle, PRBool aUseGlobalAlpha = PR_TRUE);
     
-    
-    
-    
-    
-    
-    void DoDrawImageSecurityCheck(nsIPrincipal* aPrincipal,
-                                  PRBool forceWriteOnly);
-
     
     PRInt32 mWidth, mHeight;
     PRPackedBool mValid;
@@ -615,14 +599,6 @@ protected:
                                        jsval aValue);
 
     
-    nsresult ThebesSurfaceFromElement(nsIDOMElement *imgElt,
-                                      PRBool forceCopy,
-                                      gfxASurface **aSurface,
-                                      PRInt32 *widthOut, PRInt32 *heightOut,
-                                      nsIPrincipal **prinOut,
-                                      PRBool *forceWriteOnlyOut);
-
-    
     void GetAppUnitsValues(PRUint32 *perDevPixel, PRUint32 *perCSSPixel) {
         
         PRUint32 devPixel = 60;
@@ -792,43 +768,6 @@ nsCanvasRenderingContext2D::DirtyAllStyles()
 }
 
 void
-nsCanvasRenderingContext2D::DoDrawImageSecurityCheck(nsIPrincipal* aPrincipal,
-                                                     PRBool forceWriteOnly)
-{
-    
-    if (!mCanvasElement) {
-        NS_WARNING("DoDrawImageSecurityCheck called without canvas element!");
-        return;
-    }
-
-    if (mCanvasElement->IsWriteOnly())
-        return;
-
-    
-    if (forceWriteOnly) {
-        mCanvasElement->SetWriteOnly();
-        return;
-    }
-
-    if (aPrincipal == nsnull)
-        return;
-
-    nsCOMPtr<nsINode> elem = do_QueryInterface(mCanvasElement);
-    if (elem) { 
-        PRBool subsumes;
-        nsresult rv =
-            elem->NodePrincipal()->Subsumes(aPrincipal, &subsumes);
-            
-        if (NS_SUCCEEDED(rv) && subsumes) {
-            
-            return;
-        }
-    }
-
-    mCanvasElement->SetWriteOnly();
-}
-
-void
 nsCanvasRenderingContext2D::ApplyStyle(Style aWhichStyle,
                                        PRBool aUseGlobalAlpha)
 {
@@ -850,8 +789,9 @@ nsCanvasRenderingContext2D::ApplyStyle(Style aWhichStyle,
         if (!mCanvasElement)
             return;
 
-        DoDrawImageSecurityCheck(pattern->Principal(),
-                                 pattern->GetForceWriteOnly());
+        CanvasUtils::DoDrawImageSecurityCheck(mCanvasElement,
+                                              pattern->Principal(),
+                                              pattern->GetForceWriteOnly());
 
         gfxPattern* gpat = pattern->GetPattern();
 
@@ -1333,7 +1273,6 @@ nsCanvasRenderingContext2D::CreatePattern(nsIDOMHTMLElement *image,
                                           const nsAString& repeat,
                                           nsIDOMCanvasPattern **_retval)
 {
-    nsresult rv;
     gfxPattern::GraphicsExtend extend;
 
     if (repeat.IsEmpty() || repeat.EqualsLiteral("repeat")) {
@@ -1351,22 +1290,17 @@ nsCanvasRenderingContext2D::CreatePattern(nsIDOMHTMLElement *image,
         return NS_ERROR_DOM_SYNTAX_ERR;
     }
 
-    PRInt32 imgWidth, imgHeight;
-    nsCOMPtr<nsIPrincipal> principal;
-    PRBool forceWriteOnly = PR_FALSE;
-    nsRefPtr<gfxASurface> imgsurf;
-    rv = ThebesSurfaceFromElement(image, PR_TRUE,
-                                  getter_AddRefs(imgsurf), &imgWidth, &imgHeight,
-                                  getter_AddRefs(principal), &forceWriteOnly);
-    if (NS_FAILED(rv))
-        return rv;
+    nsLayoutUtils::SurfaceFromElementResult res =
+        nsLayoutUtils::SurfaceFromElement(image, nsLayoutUtils::SFE_WANT_NEW_SURFACE);
+    if (!res.mSurface)
+        return NS_ERROR_NOT_AVAILABLE;
 
-    nsRefPtr<gfxPattern> thebespat = new gfxPattern(imgsurf);
+    nsRefPtr<gfxPattern> thebespat = new gfxPattern(res.mSurface);
 
     thebespat->SetExtend(extend);
 
-    nsRefPtr<nsCanvasPattern> pat = new nsCanvasPattern(thebespat, principal,
-                                                        forceWriteOnly);
+    nsRefPtr<nsCanvasPattern> pat = new nsCanvasPattern(thebespat, res.mPrincipal,
+                                                        res.mIsWriteOnly);
     if (!pat)
         return NS_ERROR_OUT_OF_MEMORY;
 
@@ -2959,22 +2893,33 @@ nsCanvasRenderingContext2D::DrawImage()
                                  ctx, argv[0]))
         return NS_ERROR_DOM_TYPE_MISMATCH_ERR;
 
-    PRInt32 imgWidth, imgHeight;
-    nsCOMPtr<nsIPrincipal> principal;
-    PRBool forceWriteOnly = PR_FALSE;
     gfxMatrix matrix;
     nsRefPtr<gfxPattern> pattern;
     nsRefPtr<gfxPath> path;
-    nsRefPtr<gfxASurface> imgsurf;
 #ifdef WINCE
     nsRefPtr<gfxASurface> currentSurface;
 #endif
-    rv = ThebesSurfaceFromElement(imgElt, PR_FALSE,
-                                  getter_AddRefs(imgsurf), &imgWidth, &imgHeight,
-                                  getter_AddRefs(principal), &forceWriteOnly);
-    if (NS_FAILED(rv))
-        return rv;
-    DoDrawImageSecurityCheck(principal, forceWriteOnly);
+    nsLayoutUtils::SurfaceFromElementResult res =
+        nsLayoutUtils::SurfaceFromElement(imgElt);
+    if (!res.mSurface)
+        return NS_ERROR_NOT_AVAILABLE;
+
+#ifndef WINCE
+    
+    
+    if (res.mSurface == mSurface) {
+        res = nsLayoutUtils::SurfaceFromElement(imgElt, nsLayoutUtils::SFE_WANT_NEW_SURFACE);
+        if (!res.mSurface)
+            return NS_ERROR_NOT_AVAILABLE;
+    }
+#endif
+
+    nsRefPtr<gfxASurface> imgsurf = res.mSurface;
+    nsCOMPtr<nsIPrincipal> principal = res.mPrincipal;
+    gfxIntSize imgSize = res.mSize;
+    PRBool forceWriteOnly = res.mIsWriteOnly;
+
+    CanvasUtils::DoDrawImageSecurityCheck(mCanvasElement, principal, forceWriteOnly);
 
     gfxContextPathAutoSaveRestore pathSR(mThebes, PR_FALSE);
 
@@ -2987,16 +2932,16 @@ nsCanvasRenderingContext2D::DrawImage()
         GET_ARG(&dx, argv[1]);
         GET_ARG(&dy, argv[2]);
         sx = sy = 0.0;
-        dw = sw = (double) imgWidth;
-        dh = sh = (double) imgHeight;
+        dw = sw = (double) imgSize.width;
+        dh = sh = (double) imgSize.height;
     } else if (argc == 5) {
         GET_ARG(&dx, argv[1]);
         GET_ARG(&dy, argv[2]);
         GET_ARG(&dw, argv[3]);
         GET_ARG(&dh, argv[4]);
         sx = sy = 0.0;
-        sw = (double) imgWidth;
-        sh = (double) imgHeight;
+        sw = (double) imgSize.width;
+        sh = (double) imgSize.height;
     } else if (argc == 9) {
         GET_ARG(&sx, argv[1]);
         GET_ARG(&sy, argv[2]);
@@ -3027,8 +2972,8 @@ nsCanvasRenderingContext2D::DrawImage()
 
     
     if (sx < 0.0 || sy < 0.0 ||
-        sw < 0.0 || sw > (double) imgWidth ||
-        sh < 0.0 || sh > (double) imgHeight ||
+        sw < 0.0 || sw > (double) imgSize.width ||
+        sh < 0.0 || sh > (double) imgSize.height ||
         dw < 0.0 || dh < 0.0)
     {
         
@@ -3261,192 +3206,6 @@ nsCanvasRenderingContext2D::ConvertJSValToXPCObject(nsISupports** aSupports, REF
 
 
 
-
-
-
-
-
-nsresult
-nsCanvasRenderingContext2D::ThebesSurfaceFromElement(nsIDOMElement *imgElt,
-                                                     PRBool forceCopy,
-                                                     gfxASurface **aSurface,
-                                                     PRInt32 *widthOut,
-                                                     PRInt32 *heightOut,
-                                                     nsIPrincipal **prinOut,
-                                                     PRBool *forceWriteOnlyOut)
-{
-    nsresult rv;
-
-    nsCOMPtr<nsINode> node = do_QueryInterface(imgElt);
-
-    
-    nsCOMPtr<nsICanvasElement> canvas = do_QueryInterface(imgElt);
-    if (node && canvas) {
-        PRUint32 w, h;
-        rv = canvas->GetSize(&w, &h);
-        NS_ENSURE_SUCCESS(rv, rv);
-
-        nsRefPtr<gfxASurface> sourceSurface;
-
-        if (!forceCopy && canvas->CountContexts() == 1) {
-            nsICanvasRenderingContextInternal *srcCanvas = canvas->GetContextAtIndex(0);
-            rv = srcCanvas->GetThebesSurface(getter_AddRefs(sourceSurface));
-#ifndef WINCE
-            
-            
-            if (sourceSurface == mSurface || NS_FAILED(rv))
-#else
-            
-            if (NS_FAILED(rv))
-#endif
-                sourceSurface = nsnull;
-        }
-
-        if (sourceSurface == nsnull) {
-            nsRefPtr<gfxASurface> surf =
-                gfxPlatform::GetPlatform()->CreateOffscreenSurface
-                (gfxIntSize(w, h), gfxASurface::ImageFormatARGB32);
-            nsRefPtr<gfxContext> ctx = new gfxContext(surf);
-            rv = canvas->RenderContexts(ctx, gfxPattern::FILTER_NEAREST);
-            if (NS_FAILED(rv))
-                return rv;
-            sourceSurface = surf;
-        }
-
-        *aSurface = sourceSurface.forget().get();
-        *widthOut = w;
-        *heightOut = h;
-
-        NS_ADDREF(*prinOut = node->NodePrincipal());
-        *forceWriteOnlyOut = canvas->IsWriteOnly();
-
-        return NS_OK;
-    }
-
-#ifdef MOZ_MEDIA
-    
-    nsCOMPtr<nsIDOMHTMLVideoElement> ve = do_QueryInterface(imgElt);
-    if (node && ve) {
-        nsHTMLVideoElement *video = static_cast<nsHTMLVideoElement*>(ve.get());
-
-        
-        nsCOMPtr<nsIPrincipal> principal = video->GetCurrentPrincipal();
-        if (!principal)
-            return NS_ERROR_DOM_SECURITY_ERR;
-
-        PRUint32 videoWidth, videoHeight;
-        rv = video->GetVideoWidth(&videoWidth);
-        rv |= video->GetVideoHeight(&videoHeight);
-        if (NS_FAILED(rv))
-            return NS_ERROR_NOT_AVAILABLE;
-
-        nsRefPtr<gfxASurface> surf =
-            gfxPlatform::GetPlatform()->CreateOffscreenSurface
-                (gfxIntSize(videoWidth, videoHeight), gfxASurface::ImageFormatARGB32);
-        nsRefPtr<gfxContext> ctx = new gfxContext(surf);
-
-        ctx->SetOperator(gfxContext::OPERATOR_SOURCE);
-
-        video->Paint(ctx, gfxPattern::FILTER_NEAREST, gfxRect(0, 0, videoWidth, videoHeight));
-
-        *aSurface = surf.forget().get();
-        *widthOut = videoWidth;
-        *heightOut = videoHeight;
-
-        *prinOut = principal.forget().get();
-        *forceWriteOnlyOut = PR_FALSE;
-
-        return NS_OK;
-    }
-#endif
-
-    
-    nsCOMPtr<imgIContainer> imgContainer;
-    nsCOMPtr<nsIImageLoadingContent> imageLoader = do_QueryInterface(imgElt);
-
-    if (!imageLoader)
-        return NS_ERROR_NOT_AVAILABLE;
-
-    nsCOMPtr<imgIRequest> imgRequest;
-    rv = imageLoader->GetRequest(nsIImageLoadingContent::CURRENT_REQUEST,
-                                 getter_AddRefs(imgRequest));
-    NS_ENSURE_SUCCESS(rv, rv);
-    if (!imgRequest)
-        
-        return NS_ERROR_NOT_AVAILABLE;
-
-    PRUint32 status;
-    imgRequest->GetImageStatus(&status);
-    if ((status & imgIRequest::STATUS_LOAD_COMPLETE) == 0)
-        return NS_ERROR_NOT_AVAILABLE;
-
-    
-    
-    
-    nsCOMPtr<nsIURI> uri;
-    rv = imgRequest->GetURI(getter_AddRefs(uri));
-    NS_ENSURE_SUCCESS(rv, NS_ERROR_DOM_SECURITY_ERR);
-
-    PRBool isDataURI = PR_FALSE;
-    rv = uri->SchemeIs("data", &isDataURI);
-    NS_ENSURE_SUCCESS(rv, NS_ERROR_DOM_SECURITY_ERR);
-    
-    
-    
-    if (isDataURI) {
-        *prinOut = nsnull;
-    } else {
-        rv = imgRequest->GetImagePrincipal(prinOut);
-        NS_ENSURE_SUCCESS(rv, rv);
-        NS_ENSURE_TRUE(*prinOut, NS_ERROR_DOM_SECURITY_ERR);
-    }
-
-    *forceWriteOnlyOut = PR_FALSE;
-
-    rv = imgRequest->GetImage(getter_AddRefs(imgContainer));
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    if (!imgContainer)
-        return NS_ERROR_NOT_AVAILABLE;
-
-    nsCOMPtr<gfxIImageFrame> frame;
-    rv = imgContainer->GetCurrentFrame(getter_AddRefs(frame));
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    nsCOMPtr<nsIImage> img(do_GetInterface(frame));
-
-    PRInt32 imgWidth, imgHeight;
-    rv = frame->GetWidth(&imgWidth);
-    rv |= frame->GetHeight(&imgHeight);
-    if (NS_FAILED(rv))
-        return NS_ERROR_FAILURE;
-
-    if (widthOut)
-        *widthOut = imgWidth;
-    if (heightOut)
-        *heightOut = imgHeight;
-
-    nsRefPtr<gfxPattern> gfxpattern;
-    img->GetPattern(getter_AddRefs(gfxpattern));
-    nsRefPtr<gfxASurface> gfxsurf = gfxpattern->GetSurface();
-
-    if (!gfxsurf) {
-        gfxsurf = new gfxImageSurface (gfxIntSize(imgWidth, imgHeight), gfxASurface::ImageFormatARGB32);
-        nsRefPtr<gfxContext> ctx = new gfxContext(gfxsurf);
-
-        ctx->SetOperator(gfxContext::OPERATOR_SOURCE);
-        ctx->SetPattern(gfxpattern);
-        ctx->Paint();
-    }
-
-    *aSurface = gfxsurf.forget().get();
-
-    return NS_OK;
-}
-
-
-
-
 PRBool
 CheckSaneSubrectSize (PRInt32 x, PRInt32 y, PRInt32 w, PRInt32 h, PRInt32 realWidth, PRInt32 realHeight)
 {
@@ -3614,7 +3373,7 @@ nsCanvasRenderingContext2D::GetImageData()
     if (!JS_ConvertArguments (ctx, argc, argv, "jjjj", &x, &y, &w, &h))
         return NS_ERROR_DOM_SYNTAX_ERR;
 
-    if (!CheckSaneSubrectSize (x, y, w, h, mWidth, mHeight))
+    if (!CanvasUtils::CheckSaneSubrectSize (x, y, w, h, mWidth, mHeight))
         return NS_ERROR_DOM_SYNTAX_ERR;
 
     nsAutoArrayPtr<PRUint8> surfaceData (new (std::nothrow) PRUint8[w * h * 4]);
@@ -3802,7 +3561,7 @@ nsCanvasRenderingContext2D::PutImageData()
         return NS_ERROR_DOM_SYNTAX_ERR;
     dataArray = JSVAL_TO_OBJECT(v);
 
-    if (!CheckSaneSubrectSize (x, y, w, h, mWidth, mHeight))
+    if (!CanvasUtils::CheckSaneSubrectSize (x, y, w, h, mWidth, mHeight))
         return NS_ERROR_DOM_SYNTAX_ERR;
 
     jsuint arrayLen;
@@ -3972,7 +3731,7 @@ nsCanvasRenderingContext2D::CreateImageData()
 
     
     PRUint32 len0 = w * h;
-    if (len0 / w != h)
+    if (len0 / w != (PRUint32) h)
         return NS_ERROR_DOM_INDEX_SIZE_ERR;
     PRUint32 len = len0 * 4;
     if (len / 4 != len0)

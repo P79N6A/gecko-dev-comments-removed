@@ -1033,6 +1033,45 @@ public:
       !aFrame->GetFirstContinuation()->
         GetProperty(nsGkAtoms::IBSplitSpecialSibling);
   }
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  enum {
+    
+    SFE_WANT_NEW_SURFACE   = 1 << 0,
+    
+    SFE_WANT_IMAGE_SURFACE = 1 << 1
+  };
+
+  struct SurfaceFromElementResult {
+    
+    nsRefPtr<gfxASurface> mSurface;
+    
+    gfxIntSize mSize;
+    
+    nsCOMPtr<nsIPrincipal> mPrincipal;
+    
+    PRBool mIsWriteOnly;
+  };
+
+  static SurfaceFromElementResult SurfaceFromElement(nsIDOMElement *aElement,
+                                                     PRUint32 aSurfaceFlags = 0);
 };
 
 class nsAutoDisableGetUsedXAssertions

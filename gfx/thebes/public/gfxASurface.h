@@ -46,6 +46,8 @@ typedef struct _cairo_user_data_key cairo_user_data_key_t;
 
 typedef void (*thebes_destroy_func_t) (void *data);
 
+class gfxImageSurface;
+
 
 
 
