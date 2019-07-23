@@ -1769,6 +1769,10 @@ TraceRecorder::closeLoop(Fragmento* fragmento)
         fragment->lastIns = lir->insGuard(LIR_x, lir->insImm(1), exit);
     }
     compile(fragmento);
+
+    debug_only_v(printf("recording completed at %s:%u@%u\n", cx->fp->script->filename,
+                        js_PCToLineNumber(cx, cx->fp->script, cx->fp->regs->pc),
+                        cx->fp->regs->pc - cx->fp->script->code););
 }
 
 
@@ -2383,37 +2387,44 @@ js_ExecuteTree(JSContext* cx, Fragment** treep, uintN& inlineCallCount,
     
 
 
-    int slots;
-    if (lr->exit->exitType == NESTED_EXIT) {
+
+
+
+
+
+    FrameInfo* rp = (FrameInfo*)state.rp;
+    if (lr->exit->exitType == NESTED_EXIT)
+        rp += lr->calldepth;
+    while (callstack < rp) {
         
 
+        js_SynthesizeFrame(cx, *callstack);
+        int slots = FlushNativeStackFrame(cx, 1, callstack->typemap, stack, cx->fp);
+#ifdef DEBUG
+        JSStackFrame* fp = cx->fp;
+        debug_only_v(printf("synthesized deep frame for %s:%u@%u, slots=%d\n",
+                            fp->script->filename, js_PCToLineNumber(cx, fp->script, fp->regs->pc),
+                            fp->regs->pc - fp->script->code, slots);)
+#endif        
+        if (slots < 0)
+            return NULL;
+        
+
+        ++inlineCallCount;
+        ++callstack;
+        stack += slots;
+    }
+    
+    
+
+
+    if (lr->exit->exitType == NESTED_EXIT) {
         do {
             if (innermostNestedGuardp)
                 *innermostNestedGuardp = lr;
-            debug_only_v(printf("processing tree call guard %p, calldepth=%d\n",
-                                lr, lr->calldepth);)
-            unsigned calldepth = lr->calldepth;
-            if (calldepth > 0) {
-                
-
-                for (unsigned i = 0; i < calldepth; ++i)
-                    js_SynthesizeFrame(cx, callstack[i]);
-                
-
-                slots = FlushNativeStackFrame(cx, calldepth,
-                                              lr->exit->typeMap + lr->exit->numGlobalSlots,
-                                              stack, cx->fp);
-                if (slots < 0)
-                    return NULL;
-                callstack += calldepth;
-                inlineCallCount += calldepth;
-                stack += slots;
-            }
             JS_ASSERT(lr->guard->oprnd1()->oprnd2()->isconstp());
             lr = (GuardRecord*)lr->guard->oprnd1()->oprnd2()->constvalp();
         } while (lr->exit->exitType == NESTED_EXIT);
-        
-        
         lr = state.nestedExit;
         JS_ASSERT(lr);
     }
@@ -2424,10 +2435,18 @@ js_ExecuteTree(JSContext* cx, Fragment** treep, uintN& inlineCallCount,
 
     
 
+    JS_ASSERT(rp == callstack);
     unsigned calldepth = lr->calldepth;
     unsigned calldepth_slots = 0;
-    for (unsigned n = 0; n < calldepth; ++n)
+    for (unsigned n = 0; n < calldepth; ++n) {
         calldepth_slots += js_SynthesizeFrame(cx, callstack[n]);
+#ifdef DEBUG        
+        JSStackFrame* fp = cx->fp;
+        debug_only_v(printf("synthesized shallow frame for %s:%u@%u\n",
+                            fp->script->filename, js_PCToLineNumber(cx, fp->script, fp->regs->pc),
+                            fp->regs->pc - fp->script->code);)
+#endif        
+    }
 
     
 
@@ -2449,13 +2468,14 @@ js_ExecuteTree(JSContext* cx, Fragment** treep, uintN& inlineCallCount,
 #endif
 
     debug_only_v(printf("leaving trace at %s:%u@%u, op=%s, lr=%p, exitType=%d, sp=%d, ip=%p, "
-                        "cycles=%llu\n",
+                        "calldepth=%d, cycles=%llu\n",
                         fp->script->filename, js_PCToLineNumber(cx, fp->script, fp->regs->pc),
                         fp->regs->pc - fp->script->code,
                         js_CodeName[*fp->regs->pc],
                         lr,
                         lr->exit->exitType,
                         fp->regs->sp - StackBase(fp), lr->jmp,
+                        calldepth,
                         cycles));
 
     
@@ -2472,7 +2492,7 @@ js_ExecuteTree(JSContext* cx, Fragment** treep, uintN& inlineCallCount,
     JS_ASSERT(exit_gslots == tm->globalTypeMap->length());
 
     
-    slots = FlushNativeGlobalFrame(cx, exit_gslots, gslots, globalTypeMap, global);
+    int slots = FlushNativeGlobalFrame(cx, exit_gslots, gslots, globalTypeMap, global);
     if (slots < 0)
         return NULL;
     JS_ASSERT(globalFrameSize == STOBJ_NSLOTS(globalObj));
@@ -4639,6 +4659,8 @@ TraceRecorder::interpretedFunctionCall(jsval& fval, JSFunction* fun, uintN argc,
                    callDepth * sizeof(FrameInfo) + offsetof(FrameInfo, callee));
     lir->insStorei(INS_CONSTPTR(fi.callpc), lirbuf->rp,
                    callDepth * sizeof(FrameInfo) + offsetof(FrameInfo, callpc));
+    lir->insStorei(INS_CONSTPTR(fi.typemap), lirbuf->rp,
+                   callDepth * sizeof(FrameInfo) + offsetof(FrameInfo, typemap));
     lir->insStorei(INS_CONST(fi.word), lirbuf->rp,
                    callDepth * sizeof(FrameInfo) + offsetof(FrameInfo, word));
 
