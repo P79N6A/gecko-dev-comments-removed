@@ -47,7 +47,6 @@
 #include "nsIServiceManager.h"
 #include "nsIXBLDocumentInfo.h"
 #include "nsIDOMNode.h"
-#include "nsXBLPrototypeBinding.h"
 
 nsresult
 nsXBLProtoImpl::InstallImplementation(nsXBLPrototypeBinding* aBinding, nsIContent* aBoundElement)
@@ -56,7 +55,7 @@ nsXBLProtoImpl::InstallImplementation(nsXBLPrototypeBinding* aBinding, nsIConten
   
   
   
-  if (!mMembers && !mFields)  
+  if (!mMembers)  
     return NS_OK; 
 
   
@@ -213,37 +212,6 @@ nsXBLProtoImpl::Traverse(nsCycleCollectionTraversalCallback &cb) const
   for (member = mMembers; member; member = member->GetNext()) {
     member->Traverse(cb);
   }
-}
-
-nsXBLProtoImplField*
-nsXBLProtoImpl::FindField(const nsString& aFieldName) const
-{
-  for (nsXBLProtoImplField* f = mFields; f; f = f->GetNext()) {
-    if (aFieldName.Equals(f->GetName())) {
-      return f;
-    }
-  }
-
-  return nsnull;
-}
-
-PRBool
-nsXBLProtoImpl::ResolveAllFields(JSContext *cx, JSObject *obj) const
-{
-  for (nsXBLProtoImplField* f = mFields; f; f = f->GetNext()) {
-    
-    
-    
-    nsDependentString name(f->GetName());
-    jsval dummy;
-    if (!::JS_LookupUCProperty(cx, obj,
-                               reinterpret_cast<const jschar*>(name.get()),
-                               name.Length(), &dummy)) {
-      return PR_FALSE;
-    }
-  }
-
-  return PR_TRUE;
 }
 
 void

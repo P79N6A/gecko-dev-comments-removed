@@ -134,10 +134,6 @@ public:
 
   
   
-  PRBool ResolveAllFields(JSContext *cx, JSObject *obj) const;
-
-  
-  
   nsresult GetInsertionPointsFor(nsIContent* aParent,
                                  nsInsertionPointList** aResult);
 
@@ -159,10 +155,15 @@ public:
 
   static nsresult DoInitJSClass(JSContext *cx, JSObject *global, JSObject *obj,
                                 const nsAFlatCString& aClassName,
-                                nsXBLPrototypeBinding* aProtoBinding,
                                 void **aClassObject);
 
   PRBool AllowScripts();  
+
+
+protected:
+  nsresult InitClass(const nsCString& aClassName, nsIScriptContext* aContext,
+                     nsIDocument* aDocument, void** aScriptObject,
+                     void** aClassObject);
 
 
 protected:
