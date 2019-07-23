@@ -1,3 +1,6 @@
+
+
+
 #ifndef mozilla_tabs_TabTypes_h
 #define mozilla_tabs_TabTypes_h
 

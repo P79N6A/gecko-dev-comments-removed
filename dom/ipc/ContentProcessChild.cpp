@@ -40,6 +40,7 @@
 #include "TabChild.h"
 
 #include "mozilla/ipc/TestShellChild.h"
+#include "mozilla/net/NeckoChild.h"
 
 #include "nsXULAppAPI.h"
 
@@ -47,6 +48,7 @@
 #include "base/task.h"
 
 using namespace mozilla::ipc;
+using namespace mozilla::net;
 
 namespace mozilla {
 namespace dom {
@@ -106,6 +108,19 @@ nsresult
 ContentProcessChild::PTestShellDestructor(PTestShellChild* shell)
 {
     mTestShells.RemoveElement(shell);
+    return NS_OK;
+}
+
+PNeckoChild* 
+ContentProcessChild::PNeckoConstructor()
+{
+    return new NeckoChild();
+}
+
+nsresult 
+ContentProcessChild::PNeckoDestructor(PNeckoChild* necko)
+{
+    delete necko;
     return NS_OK;
 }
 

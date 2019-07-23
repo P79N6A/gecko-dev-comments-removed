@@ -60,11 +60,15 @@ public:
         return sSingleton;
     }
 
-    virtual PIFrameEmbeddingChild* PIFrameEmbeddingConstructor(const MagicWindowHandle& hwnd);
+    virtual PIFrameEmbeddingChild* PIFrameEmbeddingConstructor(
+            const MagicWindowHandle& hwnd);
     virtual nsresult PIFrameEmbeddingDestructor(PIFrameEmbeddingChild*);
 
     virtual PTestShellChild* PTestShellConstructor();
     virtual nsresult PTestShellDestructor(PTestShellChild*);
+
+    virtual PNeckoChild* PNeckoConstructor();
+    virtual nsresult PNeckoDestructor(PNeckoChild*);
 
     void Quit();
     virtual nsresult RecvQuit();

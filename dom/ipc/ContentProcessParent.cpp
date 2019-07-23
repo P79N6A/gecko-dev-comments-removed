@@ -42,6 +42,7 @@
 
 #include "TabParent.h"
 #include "mozilla/ipc/TestShellParent.h"
+#include "mozilla/net/NeckoParent.h"
 
 #include "nsIObserverService.h"
 
@@ -51,6 +52,7 @@
 #include "nsThreadUtils.h"
 
 using namespace mozilla::ipc;
+using namespace mozilla::net;
 using mozilla::MonitorAutoEnter;
 
 namespace {
@@ -141,7 +143,8 @@ ContentProcessParent::OnWaitableEventSignaled(base::WaitableEvent *event)
 }
 
 PIFrameEmbeddingParent*
-ContentProcessParent::PIFrameEmbeddingConstructor(const MagicWindowHandle& parentWidget)
+ContentProcessParent::PIFrameEmbeddingConstructor(
+        const MagicWindowHandle& parentWidget)
 {
     return new TabParent();
 }
@@ -164,6 +167,19 @@ ContentProcessParent::PTestShellDestructor(PTestShellParent* shell)
 {
   delete shell;
   return NS_OK;
+}
+
+PNeckoParent* 
+ContentProcessParent::PNeckoConstructor()
+{
+    return new NeckoParent();
+}
+
+nsresult 
+ContentProcessParent::PNeckoDestructor(PNeckoParent* necko)
+{
+    delete necko;
+    return NS_OK;
 }
 
 } 
