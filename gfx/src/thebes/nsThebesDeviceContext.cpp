@@ -49,20 +49,15 @@
 
 #ifdef MOZ_ENABLE_GTK2
 
-#include <cstdlib>
-
-#include <cmath>
+#include <stdlib.h>
 
 #include <gtk/gtk.h>
 #include <gdk/gdk.h>
-
+#include <gdk/gdkx.h>
 #include "nsFont.h"
 
 #include <pango/pango.h>
-#ifdef MOZ_X11
-#include <gdk/gdkx.h>
 #include <pango/pangox.h>
-#endif 
 #include <pango/pango-fontmap.h>
 #endif 
 
@@ -91,11 +86,14 @@ static nsSystemFontsBeOS *gSystemFonts = nsnull;
 #include "gfxQuartzSurface.h"
 #include "gfxImageSurface.h"
 static nsSystemFontsMac *gSystemFonts = nsnull;
+#elif defined(MOZ_WIDGET_QT)
+#include "nsSystemFontsQt.h"
+static nsSystemFontsQt *gSystemFonts = nsnull;
 #else
 #error Need to declare gSystemFonts!
 #endif
 
-#if defined(MOZ_ENABLE_GTK2) && defined(MOZ_X11)
+#ifdef MOZ_ENABLE_GTK2
 extern "C" {
 static int x11_error_handler (Display *dpy, XErrorEvent *err) {
     NS_ASSERTION(PR_FALSE, "X Error");
@@ -175,9 +173,8 @@ nsThebesDeviceContext::SetDPI()
         }
 
 #if defined(MOZ_ENABLE_GTK2)
-        GdkScreen *screen = gdk_screen_get_default();
-        gtk_settings_get_for_screen(screen); 
-        PRInt32 OSVal = PRInt32(round(gdk_screen_get_resolution(screen)));
+        float screenWidthIn = float(::gdk_screen_width_mm()) / 25.4f;
+        PRInt32 OSVal = NSToCoordRound(float(::gdk_screen_width()) / screenWidthIn);
 
         if (prefDPI == 0) 
             dpi = OSVal;
@@ -227,7 +224,9 @@ nsThebesDeviceContext::SetDPI()
 
         
         dpi = 96;
-
+#elif defined(MOZ_WIDGET_QT)
+		
+        dpi = 96;
 #else
 #error undefined platform dpi
 #endif
@@ -243,14 +242,8 @@ nsThebesDeviceContext::SetDPI()
         
         
         
-        PRUint32 roundedDPIScaleFactor = (dpi + 48)/96;
-#ifdef MOZ_WIDGET_GTK2
-        
-        
-        roundedDPIScaleFactor = dpi/96;
-#endif
-        mAppUnitsPerDevNotScaledPixel =
-          PR_MAX(1, AppUnitsPerCSSPixel() / PR_MAX(1, roundedDPIScaleFactor));
+        mAppUnitsPerDevNotScaledPixel = PR_MAX(1, AppUnitsPerCSSPixel() /
+                                        PR_MAX(1, dpi / 96));
     } else {
         
 
@@ -274,7 +267,7 @@ nsThebesDeviceContext::Init(nsNativeWidget aWidget)
     SetDPI();
 
 
-#if defined(MOZ_ENABLE_GTK2) && defined(MOZ_X11)
+#ifdef MOZ_ENABLE_GTK2
     if (getenv ("MOZ_X_SYNC")) {
         PR_LOG (gThebesGFXLog, PR_LOG_DEBUG, ("+++ Enabling XSynchronize\n"));
         XSynchronize (gdk_x11_get_default_xdisplay(), True);
@@ -396,6 +389,8 @@ nsThebesDeviceContext::GetSystemFont(nsSystemFontID aID, nsFont *aFont) const
         gSystemFonts = new nsSystemFontsBeOS();
 #elif XP_MACOSX
         gSystemFonts = new nsSystemFontsMac();
+#elif defined(MOZ_WIDGET_QT)
+        gSystemFonts = new nsSystemFontsQt();
 #else
 #error Need to know how to create gSystemFonts, fix me!
 #endif
