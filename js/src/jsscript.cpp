@@ -41,6 +41,7 @@
 
 
 
+#include "jsstddef.h"
 #include <string.h>
 #include "jstypes.h"
 #include "jsutil.h" 
@@ -452,7 +453,7 @@ js_XDRScript(JSXDRState *xdr, JSScript **scriptp, JSBool *hasMagic)
 
     if (xdr->mode == JSXDR_ENCODE) {
         length = script->length;
-        prologLength = script->main - script->code;
+        prologLength = PTRDIFF(script->main, script->code, jsbytecode);
         JS_ASSERT((int16)script->version != JSVERSION_UNKNOWN);
         version = (uint32)script->version | (script->nfixed << 16);
         lineno = (uint32)script->lineno;
@@ -464,7 +465,7 @@ js_XDRScript(JSXDRState *xdr, JSScript **scriptp, JSBool *hasMagic)
         notes = SCRIPT_NOTES(script);
         for (sn = notes; !SN_IS_TERMINATOR(sn); sn = SN_NEXT(sn))
             continue;
-        nsrcnotes = sn - notes;
+        nsrcnotes = PTRDIFF(sn, notes, jssrcnote);
         nsrcnotes++;            
 
         if (script->objectsOffset != 0)
@@ -1686,7 +1687,7 @@ js_GetSrcNoteCached(JSContext *cx, JSScript *script, jsbytecode *pc)
     uintN nsrcnotes;
 
 
-    target = pc - script->code;
+    target = PTRDIFF(pc, script->code, jsbytecode);
     if ((uint32)target >= script->length)
         return NULL;
 
@@ -1755,6 +1756,7 @@ js_FramePCToLineNumber(JSContext *cx, JSStackFrame *fp)
 uintN
 js_PCToLineNumber(JSContext *cx, JSScript *script, jsbytecode *pc)
 {
+    JSOp op;
     JSFunction *fun;
     uintN lineno;
     ptrdiff_t offset, target;
@@ -1769,8 +1771,9 @@ js_PCToLineNumber(JSContext *cx, JSScript *script, jsbytecode *pc)
 
 
 
-    if (js_CodeSpec[*pc].format & JOF_INDEXBASE)
-        pc += js_CodeSpec[*pc].length;
+    op = js_GetOpcode(cx, script, pc);
+    if (js_CodeSpec[op].format & JOF_INDEXBASE)
+        pc += js_CodeSpec[op].length;
     if (*pc == JSOP_DEFFUN) {
         GET_FUNCTION_FROM_BYTECODE(script, pc, 0, fun);
         return fun->u.i.script->lineno;
@@ -1783,7 +1786,7 @@ js_PCToLineNumber(JSContext *cx, JSScript *script, jsbytecode *pc)
 
     lineno = script->lineno;
     offset = 0;
-    target = pc - script->code;
+    target = PTRDIFF(pc, script->code, jsbytecode);
     for (sn = SCRIPT_NOTES(script); !SN_IS_TERMINATOR(sn); sn = SN_NEXT(sn)) {
         offset += SN_DELTA(sn);
         type = (JSSrcNoteType) SN_TYPE(sn);

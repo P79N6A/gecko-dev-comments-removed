@@ -41,6 +41,7 @@
 
 
 
+#include "jsstddef.h"
 #include <stdio.h>
 #include <string.h>
 #include <math.h>
@@ -189,7 +190,7 @@ js_FillPropertyCache(JSContext *cx, JSObject *obj, jsuword kshape,
 
 
 
-    op = (JSOp) *pc;
+    op = js_GetOpcode(cx, cx->fp->script, pc);
     cs = &js_CodeSpec[op];
 
     do {
@@ -318,7 +319,7 @@ js_FullTestPropertyCache(JSContext *cx, jsbytecode *pc,
     JS_ASSERT(uintN((cx->fp->imacpc ? cx->fp->imacpc : pc) - cx->fp->script->code)
               < cx->fp->script->length);
 
-    op = (JSOp) *pc;
+    op = js_GetOpcode(cx, cx->fp->script, pc);
     cs = &js_CodeSpec[op];
     if (op == JSOP_LENGTH) {
         atom = cx->runtime->atomState.lengthAtom;
@@ -349,7 +350,7 @@ js_FullTestPropertyCache(JSContext *cx, jsbytecode *pc,
                 entry->kshape,
                 OBJ_SHAPE(obj));
                 js_Disassemble1(cx, cx->fp->script, pc,
-                                pc - cx->fp->script->code,
+                                PTRDIFF(pc, cx->fp->script->code, jsbytecode),
                                 JS_FALSE, stderr);
 #endif
 
@@ -855,18 +856,16 @@ ComputeThis(JSContext *cx, JSBool lazy, jsval *argv)
             return js_ComputeGlobalThis(cx, lazy, argv);
         }
 
-        OBJ_TO_OUTER_OBJECT(cx, thisp);
-        if (!thisp)
-            return NULL;
-        argv[-1] = OBJECT_TO_JSVAL(thisp);
-
         if (thisp->map->ops->thisObject) {
             
             thisp = thisp->map->ops->thisObject(cx, thisp);
             if (!thisp)
                 return NULL;
-            argv[-1] = OBJECT_TO_JSVAL(thisp);
-       }
+        }
+        OBJ_TO_OUTER_OBJECT(cx, thisp);
+        if (!thisp)
+            return NULL;
+        argv[-1] = OBJECT_TO_JSVAL(thisp);
     }
     return thisp;
 }
@@ -2059,7 +2058,7 @@ js_TraceOpcode(JSContext *cx, jsint len)
     fprintf(tracefp, "%4u: ",
             js_PCToLineNumber(cx, fp->script, fp->imacpc ? fp->imacpc : regs->pc));
     js_Disassemble1(cx, fp->script, regs->pc,
-                    regs->pc - fp->script->code,
+                    PTRDIFF(regs->pc, fp->script->code, jsbytecode),
                     JS_FALSE, tracefp);
     op = (JSOp) *regs->pc;
     nuses = js_CodeSpec[op].nuses;
@@ -3079,7 +3078,8 @@ js_Interpret(JSContext *cx)
                 inlineCallCount--;
                 if (JS_LIKELY(ok)) {
                     TRACE_0(LeaveFrame);
-                    JS_ASSERT(js_CodeSpec[*regs.pc].length == JSOP_CALL_LENGTH);
+                    JS_ASSERT(js_CodeSpec[js_GetOpcode(cx, script, regs.pc)].length
+                              == JSOP_CALL_LENGTH);
                     len = JSOP_CALL_LENGTH;
                     DO_NEXT_OP(len);
                 }
@@ -3404,7 +3404,7 @@ js_Interpret(JSContext *cx)
             GET_ATOM_FROM_BYTECODE(script, regs.pc, pcoff, atom_);            \
         else                                                                  \
             atom_ = rt->atomState.lengthAtom;                                 \
-        if (JOF_OPMODE(*regs.pc) == JOF_NAME) {                               \
+        if (JOF_OPMODE(op) == JOF_NAME) {                                     \
             ok = js_FindProperty(cx, ATOM_TO_JSID(atom_), &obj_, &pobj_,      \
                                  &prop_);                                     \
         } else {                                                              \
@@ -5075,7 +5075,7 @@ js_Interpret(JSContext *cx)
             if (!ok)
                 goto error;
             if (!cx->rval2set) {
-                op2 = (JSOp) regs.pc[JSOP_SETCALL_LENGTH];
+                op2 = js_GetOpcode(cx, script, regs.pc + JSOP_SETCALL_LENGTH);
                 if (op2 != JSOP_DELELEM) {
                     JS_ASSERT(!(js_CodeSpec[op2].format & JOF_DEL));
                     JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL,
@@ -5137,7 +5137,7 @@ js_Interpret(JSContext *cx)
             if (!prop) {
                 
                 endpc = script->code + script->length;
-                op2 = (JSOp) regs.pc[JSOP_NAME_LENGTH];
+                op2 = js_GetOpcode(cx, script, regs.pc + JSOP_NAME_LENGTH);
                 if (op2 == JSOP_TYPEOF) {
                     PUSH_OPND(JSVAL_VOID);
                     len = JSOP_NAME_LENGTH;
@@ -6292,7 +6292,7 @@ js_Interpret(JSContext *cx)
                 JS_ASSERT(OBJ_IS_ARRAY(cx, obj));
                 JS_ASSERT(JSID_IS_INT(id));
                 JS_ASSERT((jsuint) JSID_TO_INT(id) < ARRAY_INIT_LIMIT);
-                if ((JSOp) regs.pc[JSOP_INITELEM_LENGTH] == JSOP_ENDINIT &&
+                if (js_GetOpcode(cx, script, regs.pc + JSOP_INITELEM_LENGTH) == JSOP_ENDINIT &&
                     !js_SetLengthProperty(cx, obj, (jsuint) (JSID_TO_INT(id) + 1))) {
                     goto error;
                 }
@@ -6350,14 +6350,14 @@ js_Interpret(JSContext *cx)
 
           BEGIN_CASE(JSOP_GOSUB)
             PUSH(JSVAL_FALSE);
-            i = (regs.pc - script->main) + JSOP_GOSUB_LENGTH;
+            i = PTRDIFF(regs.pc, script->main, jsbytecode) + JSOP_GOSUB_LENGTH;
             PUSH(INT_TO_JSVAL(i));
             len = GET_JUMP_OFFSET(regs.pc);
           END_VARLEN_CASE
 
           BEGIN_CASE(JSOP_GOSUBX)
             PUSH(JSVAL_FALSE);
-            i = (regs.pc - script->main) + JSOP_GOSUBX_LENGTH;
+            i = PTRDIFF(regs.pc, script->main, jsbytecode) + JSOP_GOSUBX_LENGTH;
             len = GET_JUMPX_OFFSET(regs.pc);
             PUSH(INT_TO_JSVAL(i));
           END_VARLEN_CASE
@@ -7041,7 +7041,7 @@ js_Interpret(JSContext *cx)
 
             switch (tn->kind) {
               case JSTRY_CATCH:
-                JS_ASSERT(*regs.pc == JSOP_ENTERBLOCK);
+                JS_ASSERT(js_GetOpcode(cx, fp->script, regs.pc) == JSOP_ENTERBLOCK);
 
 #if JS_HAS_GENERATORS
                 
@@ -7076,7 +7076,7 @@ js_Interpret(JSContext *cx)
 
 
 
-                JS_ASSERT(*regs.pc == JSOP_ENDITER);
+                JS_ASSERT(js_GetOpcode(cx, fp->script, regs.pc) == JSOP_ENDITER);
                 regs.sp[-1] = cx->exception;
                 cx->throwing = JS_FALSE;
                 ok = js_CloseIterator(cx, regs.sp[-2]);

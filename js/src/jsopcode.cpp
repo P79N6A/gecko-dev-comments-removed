@@ -41,6 +41,7 @@
 
 
 
+#include "jsstddef.h"
 #ifdef HAVE_MEMORY_H
 #include <memory.h>
 #endif
@@ -137,9 +138,7 @@ js_GetIndexFromBytecode(JSContext *cx, JSScript *script, jsbytecode *pc,
     JSOp op;
     uintN span, base;
 
-    op = (JSOp)*pc;
-    if (op == JSOP_TRAP)
-        op = JS_GetTrapOpcode(cx, script, pc);
+    op = js_GetOpcode(cx, script, pc);
     JS_ASSERT(js_CodeSpec[op].length >= 1 + pcoff + UINT16_LEN);
 
     
@@ -234,7 +233,7 @@ js_Disassemble(JSContext *cx, JSScript *script, JSBool lines, FILE *fp)
         if (pc == script->main)
             fputs("main:\n", fp);
         len = js_Disassemble1(cx, script, pc,
-                              pc - script->code,
+                              PTRDIFF(pc, script->code, jsbytecode),
                               lines, fp);
         if (!len)
             return JS_FALSE;
@@ -617,7 +616,7 @@ QuoteString(Sprinter *sp, JSString *str, uint32 quote)
             if (t == z)
                 break;
         }
-        len = t - s;
+        len = PTRDIFF(t, s, jschar);
 
         
         if (!SprintEnsureBuffer(sp, len))
@@ -2677,7 +2676,7 @@ Decompile(SprintStack *ss, jsbytecode *pc, intN nb, JSOp nextop)
 
                     len = js_GetSrcNoteOffset(sn, 0);
                     if (len) {
-                        len -= pc - pc2;
+                        len -= PTRDIFF(pc, pc2, jsbytecode);
                         LOCAL_ASSERT_OUT(len > 0);
                         js_printf(jp, " if ");
                         ok = Decompile(ss, pc, len, JSOP_NOP) != NULL;
@@ -3255,7 +3254,7 @@ Decompile(SprintStack *ss, jsbytecode *pc, intN nb, JSOp nextop)
                     return NULL;
                 done = pc + GetJumpOffset(pc, pc);
                 pc += len;
-                len = done - pc;
+                len = PTRDIFF(done, pc, jsbytecode);
                 if (!Decompile(ss, pc, len, op)) {
                     JS_free(cx, (char *)lval);
                     return NULL;
@@ -5137,7 +5136,7 @@ DecompileExpression(JSContext *cx, JSScript *script, JSFunction *fun,
         break;
       default:;
     }
-    len = end - begin;
+    len = PTRDIFF(end, begin, jsbytecode);
     if (len <= 0) {
         name = FAILED_EXPRESSION_DECOMPILER;
         goto out;
@@ -5210,9 +5209,7 @@ ReconstructPCStack(JSContext *cx, JSScript *script, jsbytecode *target,
     LOCAL_ASSERT(script->main <= target && target < script->code + script->length);
     pcdepth = 0;
     for (pc = script->main; pc < target; pc += oplen) {
-        op = (JSOp) *pc;
-        if (op == JSOP_TRAP)
-            op = JS_GetTrapOpcode(cx, script, pc);
+        op = js_GetOpcode(cx, script, pc);
         cs = &js_CodeSpec[op];
         oplen = cs->length;
         if (oplen < 0)
@@ -5232,7 +5229,7 @@ ReconstructPCStack(JSContext *cx, JSScript *script, jsbytecode *target,
             jmpoff = js_GetSrcNoteOffset(sn, 0);
             if (pc + jmpoff < target) {
                 pc += jmpoff;
-                op = (JSOp) *pc;
+                op = js_GetOpcode(cx, script, pc);
                 JS_ASSERT(op == JSOP_GOTO || op == JSOP_GOTOX);
                 cs = &js_CodeSpec[op];
                 oplen = cs->length;
