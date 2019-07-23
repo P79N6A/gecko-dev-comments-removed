@@ -740,4 +740,32 @@ private:
     nsRefPtr<gfxPath> mPath;
 };
 
+
+
+
+
+
+class THEBES_API gfxContextMatrixAutoSaveRestore
+{
+public:
+    gfxContextMatrixAutoSaveRestore(gfxContext *aContext) :
+        mContext(aContext), mMatrix(aContext->CurrentMatrix())
+    {
+    }
+
+    ~gfxContextMatrixAutoSaveRestore()
+    {
+        mContext->SetMatrix(mMatrix);
+    }
+
+    const gfxMatrix& Matrix()
+    {
+        return mMatrix;
+    }
+
+private:
+    gfxContext *mContext;
+    gfxMatrix   mMatrix;
+};
+
 #endif 
