@@ -171,11 +171,17 @@ PrivateBrowsingService.prototype = {
 
         let browser = Cc["@mozilla.org/appshell/window-mediator;1"].
                       getService(Ci.nsIWindowMediator).
-                      getMostRecentWindow("navigator:browser").gBrowser;
+                      getMostRecentWindow("navigator:browser");
+
         
         
-        browser.addTab();
-        browser.removeTab(browser.tabContainer.firstChild);
+        if (browser) {
+          
+          
+          browser = browser.gBrowser;
+          browser.addTab();
+          browser.removeTab(browser.tabContainer.firstChild);
+        }
       }
     }
     else
