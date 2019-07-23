@@ -451,7 +451,8 @@ namespace nanojit
 
 
 
-    void Assembler::XORPS(        R r)  { emitrr(X64_xorps,   r,r); asm_output("xorps %s, %s",   RQ(r),RQ(r)); }
+    void Assembler::XORPS(        R r)  { emitrr(X64_xorps,    r,r); asm_output("xorps %s, %s",   RQ(r),RQ(r)); }
+    void Assembler::XORPS(   R l, R r)  { emitrr(X64_xorps,    l,r); asm_output("xorps %s, %s",   RQ(l),RQ(r)); }
     void Assembler::DIVSD(   R l, R r)  { emitprr(X64_divsd,   l,r); asm_output("divsd %s, %s",   RQ(l),RQ(r)); }
     void Assembler::MULSD(   R l, R r)  { emitprr(X64_mulsd,   l,r); asm_output("mulsd %s, %s",   RQ(l),RQ(r)); }
     void Assembler::ADDSD(   R l, R r)  { emitprr(X64_addsd,   l,r); asm_output("addsd %s, %s",   RQ(l),RQ(r)); }
@@ -804,7 +805,7 @@ namespace nanojit
 
     
     void Assembler::asm_arith(LIns *ins) {
-        Register rr, ra, rb;
+        Register rr, ra, rb = UnspecifiedReg;   
 
         switch (ins->opcode()) {
         case LIR_lsh: case LIR_qilsh:
@@ -895,8 +896,7 @@ namespace nanojit
         ArgSize sizes[MAXARGS];
         int argc = call->get_sizes(sizes);
 
-        bool indirect = call->isIndirect();
-        if (!indirect) {
+        if (!call->isIndirect()) {
             verbose_only(if (_logc->lcbits & LC_Assembly)
                 outputf("        %p:", _nIns);
             )
@@ -908,16 +908,21 @@ namespace nanojit
                 CALLRAX();
                 asm_quad(RAX, (uint64_t)target, true);
             }
+            
+            freeResourcesOf(ins);
         } else {
             
             
             
-            asm_regarg(ARGSIZE_P, ins->arg(--argc), RAX);
             CALLRAX();
-        }
 
-        
-        freeResourcesOf(ins);
+            
+            freeResourcesOf(ins);
+
+            
+            
+            asm_regarg(ARGSIZE_P, ins->arg(--argc), RAX);
+        }
 
     #ifdef _WIN64
         int stk_used = 32; 
@@ -1380,15 +1385,13 @@ namespace nanojit
         }
         else {
             int d = findMemFor(ins);
-            if (ins->isF64()) {
-                NanoAssert(IsFpReg(r));
+            if (IsFpReg(r)) {
+                NanoAssert(ins->isF64());
                 MOVSDRM(r, d, FP);
-            } else if (ins->isI64()) {
-                NanoAssert(IsGpReg(r));
+            } else if (ins->isN64()) {
                 MOVQRM(r, d, FP);
             } else {
                 NanoAssert(ins->isI32());
-                NanoAssert(IsGpReg(r));
                 MOVLRM(r, d, FP);
             }
         }
@@ -1689,6 +1692,8 @@ namespace nanojit
     
     
     void Assembler::endOpRegs(LIns* ins, Register rr, Register ra) {
+        (void) rr; 
+
         LIns* a = ins->oprnd1();
 
         
@@ -1706,29 +1711,35 @@ namespace nanojit
 
     void Assembler::asm_fneg(LIns *ins) {
         Register rr, ra;
-        if (isS32((uintptr_t)negateMask) || isTargetWithinS32((NIns*)negateMask)) {
-            beginOp1Regs(ins, FpRegs, rr, ra);
-            if (isS32((uintptr_t)negateMask)) {
-                
-                XORPSA(rr, (int32_t)(uintptr_t)negateMask);
-            } else {
-                
-                XORPSM(rr, (NIns*)negateMask);
-            }
-            if (ra != rr)
-                asm_nongp_copy(rr,ra);
-            endOpRegs(ins, rr, ra);
-
+        beginOp1Regs(ins, FpRegs, rr, ra);
+        if (isS32((uintptr_t)negateMask)) {
+            
+            XORPSA(rr, (int32_t)(uintptr_t)negateMask);
+        } else if (isTargetWithinS32((NIns*)negateMask)) {
+            
+            XORPSM(rr, (NIns*)negateMask);
         } else {
             
             
             
-            rr = prepareResultReg(ins, GpRegs);
-            ra = findRegFor(ins->oprnd1(), GpRegs & ~rmask(rr));
-            XORQRR(rr, ra);                                     
-            asm_quad(rr, negateMask[0], true); 
-            freeResourcesOf(ins);
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            Register rt = registerAllocTmp(FpRegs & ~(rmask(ra)|rmask(rr)));
+            Register gt = registerAllocTmp(GpRegs);
+            XORPS(rr, rt);
+            MOVQXR(rt, gt);
+            asm_quad(gt, negateMask[0], true);
         }
+        if (ra != rr)
+            asm_nongp_copy(rr,ra);
+        endOpRegs(ins, rr, ra);
     }
 
     void Assembler::asm_spill(Register rr, int d, bool , bool quad) {
