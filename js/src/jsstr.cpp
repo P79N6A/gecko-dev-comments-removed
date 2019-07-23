@@ -51,7 +51,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include "jstypes.h"
-#include "jsstdint.h"
 #include "jsutil.h" 
 #include "jshash.h" 
 #include "jsprf.h"
@@ -608,21 +607,7 @@ str_resolve(JSContext *cx, JSObject *obj, jsval id, uintN flags,
     JSString *str, *str1;
     jsint slot;
 
-    if (flags & JSRESOLVE_ASSIGNING)
-        return JS_TRUE;
-
-    if (id == ATOM_KEY(cx->runtime->atomState.lengthAtom)) {
-        v = OBJ_GET_SLOT(cx, obj, JSSLOT_PRIVATE);
-        str = JSVAL_TO_STRING(v);
-        if (!OBJ_DEFINE_PROPERTY(cx, obj, id, INT_TO_JSVAL(17), NULL, NULL,
-                                 JSPROP_READONLY | JSPROP_PERMANENT | JSPROP_SHARED, NULL)) {
-            return JS_FALSE;
-        }
-        *objp = obj;
-        return JS_TRUE;
-    }
-
-    if (!JSVAL_IS_INT(id))
+    if (!JSVAL_IS_INT(id) || (flags & JSRESOLVE_ASSIGNING))
         return JS_TRUE;
 
     v = OBJ_GET_SLOT(cx, obj, JSSLOT_PRIVATE);
@@ -1196,41 +1181,29 @@ str_lastIndexOf(JSContext *cx, uintN argc, jsval *vp)
     text = JSSTRING_CHARS(str);
     textlen = (jsint) JSSTRING_LENGTH(str);
 
-    if (argc != 0 && JSVAL_IS_STRING(vp[2])) {
-        str2 = JSVAL_TO_STRING(vp[2]);
-    } else {
-        str2 = ArgToRootedString(cx, argc, vp, 0);
-        if (!str2)
-            return JS_FALSE;
-    }
+    str2 = ArgToRootedString(cx, argc, vp, 0);
+    if (!str2)
+        return JS_FALSE;
     pat = JSSTRING_CHARS(str2);
     patlen = (jsint) JSSTRING_LENGTH(str2);
 
-    i = textlen - patlen; 
-    if (i < 0) {
-        *vp = INT_TO_JSVAL(-1);
-        return JS_TRUE;
-    }
-
     if (argc > 1) {
-        if (JSVAL_IS_INT(vp[3])) {
-            j = JSVAL_TO_INT(vp[3]);
-            if (j <= 0)
-                i = 0;
-            else if (j < i)
-                i = j;
+        d = js_ValueToNumber(cx, &vp[3]);
+        if (JSVAL_IS_NULL(vp[3]))
+            return JS_FALSE;
+        if (JSDOUBLE_IS_NaN(d)) {
+            i = textlen;
         } else {
-            d = js_ValueToNumber(cx, &vp[3]);
-            if (JSVAL_IS_NULL(vp[3]))
-                return JS_FALSE;
-            if (!JSDOUBLE_IS_NaN(d)) {
-                d = js_DoubleToInteger(d);
-                if (d <= 0)
-                    i = 0;
-                else if (d < i)
-                    i = (jsint)d;
-            }
+            d = js_DoubleToInteger(d);
+            if (d < 0)
+                i = 0;
+            else if (d > textlen)
+                i = textlen;
+            else
+                i = (jsint)d;
         }
+    } else {
+        i = textlen;
     }
 
     if (patlen == 0) {
@@ -1241,7 +1214,7 @@ str_lastIndexOf(JSContext *cx, uintN argc, jsval *vp)
     j = 0;
     while (i >= 0) {
         
-        if (text[i + j] == pat[j]) {
+        if (i + j < textlen && text[i + j] == pat[j]) {
             if (++j == patlen)
                 break;
         } else {
@@ -2874,6 +2847,13 @@ js_InitStringClass(JSContext *cx, JSObject *obj)
         return NULL;
     STOBJ_SET_SLOT(proto, JSSLOT_PRIVATE,
                    STRING_TO_JSVAL(cx->runtime->emptyString));
+    if (!js_DefineNativeProperty(cx, proto, ATOM_TO_JSID(cx->runtime->atomState.lengthAtom),
+                                 JSVAL_VOID, NULL, NULL,
+                                 JSPROP_READONLY | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0,
+                                 NULL)) {
+        return JS_FALSE;
+    }
+
     return proto;
 }
 
