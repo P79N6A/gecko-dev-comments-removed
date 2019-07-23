@@ -36,6 +36,7 @@
 
 
 
+
 #include "nsIDOMHTMLOptionElement.h"
 #include "nsIDOMNSHTMLOptionElement.h"
 #include "nsIOptionElement.h"
@@ -407,24 +408,26 @@ nsHTMLOptionElement::Initialize(JSContext* aContext,
   if (argc > 0) {
     
     JSString* jsstr = JS_ValueToString(aContext, argv[0]);
-    if (jsstr) {
-      
-      nsCOMPtr<nsIContent> textContent;
-      result = NS_NewTextNode(getter_AddRefs(textContent),
-                              mNodeInfo->NodeInfoManager());
-      if (NS_FAILED(result)) {
-        return result;
-      }
+    if (!jsstr) {
+      return NS_ERROR_FAILURE;
+    }
 
-      textContent->SetText(reinterpret_cast<const PRUnichar*>
-                                           (JS_GetStringChars(jsstr)),
-                           JS_GetStringLength(jsstr),
-                           PR_FALSE);
-      
-      result = AppendChildTo(textContent, PR_FALSE);
-      if (NS_FAILED(result)) {
-        return result;
-      }
+    
+    nsCOMPtr<nsIContent> textContent;
+    result = NS_NewTextNode(getter_AddRefs(textContent),
+                            mNodeInfo->NodeInfoManager());
+    if (NS_FAILED(result)) {
+      return result;
+    }
+
+    textContent->SetText(reinterpret_cast<const PRUnichar*>
+                                         (JS_GetStringChars(jsstr)),
+                         JS_GetStringLength(jsstr),
+                         PR_FALSE);
+    
+    result = AppendChildTo(textContent, PR_FALSE);
+    if (NS_FAILED(result)) {
+      return result;
     }
 
     if (argc > 1) {
