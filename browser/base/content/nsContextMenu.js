@@ -39,6 +39,7 @@
 #   Pamela Greene <pamg.bugs@gmail.com>
 #   Michael Ventnor <ventnors_dogs234@yahoo.com.au>
 #   Simon BÃ¼nzli <zeniko@gmail.com>
+#   Gijs Kruitbosch <gijskruitbosch@gmail.com>
 #
 # Alternatively, the contents of this file may be used under the terms of
 # either the GNU General Public License Version 2 or later (the "GPL"), or
@@ -62,6 +63,7 @@ function nsContextMenu(aXulMenu, aBrowser) {
   this.onKeywordField    = false;
   this.onImage           = false;
   this.onLoadedImage     = false;
+  this.onCanvas          = false;
   this.onLink            = false;
   this.onMailtoLink      = false;
   this.onSaveableLink    = false;
@@ -127,7 +129,7 @@ nsContextMenu.prototype = {
 
   initNavigationItems: function CM_initNavigationItems() {
     var shouldShow = !(this.isContentSelected || this.onLink || this.onImage ||
-                       this.onTextInput);
+                       this.onCanvas || this.onTextInput);
     this.showItem("context-back", shouldShow);
     this.showItem("context-forward", shouldShow);
     this.showItem("context-reload", shouldShow);
@@ -139,8 +141,8 @@ nsContextMenu.prototype = {
   },
 
   initSaveItems: function CM_initSaveItems() {
-    var shouldShow = !(this.inDirList || this.isContentSelected ||
-                       this.onTextInput || this.onLink || this.onImage);
+    var shouldShow = !(this.inDirList || this.onTextInput || this.onLink ||
+                       this.isContentSelected || this.onImage || this.onCanvas);
     this.showItem("context-savepage", shouldShow);
     this.showItem("context-sendpage", shouldShow);
 
@@ -149,7 +151,8 @@ nsContextMenu.prototype = {
     this.showItem("context-sendlink", this.onSaveableLink);
 
     
-    this.showItem("context-saveimage", this.onLoadedImage);
+    this.showItem("context-saveimage", this.onLoadedImage || this.onCanvas);
+    
     this.showItem("context-sendimage", this.onImage);
   },
 
@@ -187,8 +190,9 @@ nsContextMenu.prototype = {
     }
 
     
-    this.showItem("context-viewimage",
-                  this.onImage && (!this.onStandaloneImage || this.inFrame));
+    
+    this.showItem("context-viewimage", (this.onImage &&
+                  (!this.onStandaloneImage || this.inFrame)) || this.onCanvas);
 
     
     this.showItem("context-viewbgimage", shouldShow);
@@ -346,6 +350,7 @@ nsContextMenu.prototype = {
     this.onImage           = false;
     this.onLoadedImage     = false;
     this.onStandaloneImage = false;
+    this.onCanvas          = false;
     this.onMetaDataItem    = false;
     this.onTextInput       = false;
     this.onKeywordField    = false;
@@ -389,6 +394,9 @@ nsContextMenu.prototype = {
         this.imageURL = this.target.currentURI.spec;
         if (this.target.ownerDocument instanceof ImageDocument)
           this.onStandaloneImage = true;
+      }
+      else if (this.target instanceof HTMLCanvasElement) {
+        this.onCanvas = true;
       }
       else if (this.target instanceof HTMLInputElement ) {
         this.onTextInput = this.isTargetATextBox(this.target);
@@ -778,9 +786,16 @@ nsContextMenu.prototype = {
   
   saveImage: function() {
     var doc =  this.target.ownerDocument;
-    urlSecurityCheck(this.imageURL, doc.nodePrincipal);
-    saveImageURL(this.imageURL, null, "SaveImageTitle", false,
-                 false, doc.documentURIObject);
+    if (this.onCanvas) {
+      
+      saveImageURL(this.target.toDataURL(), "canvas.png", "SaveImageTitle",
+                   true, false, doc.documentURIObject);
+    }
+    else {
+      urlSecurityCheck(this.imageURL, doc.nodePrincipal);
+      saveImageURL(this.imageURL, null, "SaveImageTitle", false,
+                   false, doc.documentURIObject);
+    }
   },
 
   sendImage: function() {
