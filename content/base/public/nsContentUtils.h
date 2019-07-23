@@ -55,9 +55,6 @@
 #include "nsDataHashtable.h"
 #include "nsIScriptRuntime.h"
 #include "nsIScriptGlobalObject.h"
-#include "nsIDOMEvent.h"
-
-struct nsNativeKeyEvent; 
 
 class nsIDOMScriptObjectFactory;
 class nsIXPConnect;
@@ -1128,13 +1125,6 @@ public:
 
 
   static const nsDependentString GetLocalizedEllipsis();
-  
-   
-
-  static nsEvent* GetNativeEvent(nsIDOMEvent* aDOMEvent);
-  static PRBool DOMEventToNativeKeyEvent(nsIDOMEvent* aDOMEvent,
-                                         nsNativeKeyEvent* aNativeEvent,
-                                         PRBool aGetCharCode);
 
 private:
 
