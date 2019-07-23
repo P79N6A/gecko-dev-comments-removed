@@ -261,6 +261,16 @@ public:
 
   NS_HIDDEN_(nscolor) GetVisitedDependentColor(nsCSSProperty aProperty);
 
+  
+
+
+
+
+
+
+  static nscolor CombineVisitedColors(nscolor *aColors,
+                                      PRBool aLinkIsVisited);
+
 #ifdef DEBUG
   NS_HIDDEN_(void) List(FILE* out, PRInt32 aIndent);
 #endif
