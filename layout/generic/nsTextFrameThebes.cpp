@@ -97,6 +97,7 @@
 #include "nsContentUtils.h"
 #include "nsLineBreaker.h"
 #include "nsIWordBreaker.h"
+#include "nsGenericDOMDataNode.h"
 
 #include "nsILineIterator.h"
 
@@ -3415,6 +3416,8 @@ nsTextFrame::Init(nsIContent*      aContent,
   }
 
   
+  aContent->UnsetFlags(NS_CREATE_FRAME_IF_NON_WHITESPACE);
+  
   
   return nsFrame::Init(aContent, aParent, aPrevInFlow);
 }
@@ -3422,6 +3425,7 @@ nsTextFrame::Init(nsIContent*      aContent,
 void
 nsTextFrame::Destroy()
 {
+  
   
   
   ClearTextRun();

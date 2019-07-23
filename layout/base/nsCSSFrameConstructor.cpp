@@ -2377,7 +2377,8 @@ NeedFrameFor(nsIFrame*   aParentFrame,
     return PR_TRUE;
   }
 
-  aChildContent->SetFlags(FRAMETREE_DEPENDS_ON_CHARS);
+  aChildContent->SetFlags(NS_CREATE_FRAME_IF_NON_WHITESPACE |
+                          NS_REFRAME_IF_WHITESPACE);
   return !aChildContent->TextIsOnlyWhitespace();
 }
 
@@ -5530,6 +5531,7 @@ nsCSSFrameConstructor::ConstructFramesFromItem(nsFrameConstructorState& aState,
     
     
     
+    
     if (AtLineBoundary(aIter) &&
         !styleContext->GetStyleText()->NewlineIsSignificant() &&
         aIter.List()->ParentHasNoXBLChildren() &&
@@ -6147,17 +6149,14 @@ nsCSSFrameConstructor::AddTextItemIfNeeded(nsFrameConstructorState& aState,
                "child index out of range");
   nsIContent* content = aParentContent->GetChildAt(aContentIndex);
   if (!content->IsNodeOfType(nsINode::eTEXT) ||
-      !content->HasFlag(FRAMETREE_DEPENDS_ON_CHARS)) {
+      !content->HasFlag(NS_CREATE_FRAME_IF_NON_WHITESPACE)) {
     
     
     
     return;
   }
-  if (mPresShell->GetPrimaryFrameFor(content)) {
-    
-    return;
-  }
-
+  NS_ASSERTION(!mPresShell->GetPrimaryFrameFor(content),
+               "Text node has a frame and NS_CREATE_FRAME_IF_NON_WHITESPACE");
   AddFrameConstructionItems(aState, content, aContentIndex, aParentFrame, aItems);
 }
 
@@ -6170,16 +6169,14 @@ nsCSSFrameConstructor::ReframeTextIfNeeded(nsIContent* aParentContent,
                "child index out of range");
   nsIContent* content = aParentContent->GetChildAt(aContentIndex);
   if (!content->IsNodeOfType(nsINode::eTEXT) ||
-      !content->HasFlag(FRAMETREE_DEPENDS_ON_CHARS)) {
+      !content->HasFlag(NS_CREATE_FRAME_IF_NON_WHITESPACE)) {
     
     
     
     return;
   }
-  if (mPresShell->GetPrimaryFrameFor(content)) {
-    
-    return;
-  }
+  NS_ASSERTION(!mPresShell->GetPrimaryFrameFor(content),
+               "Text node has a frame and NS_CREATE_FRAME_IF_NON_WHITESPACE");
   ContentInserted(aParentContent, content, aContentIndex, nsnull);
 }
 
@@ -7631,7 +7628,10 @@ nsCSSFrameConstructor::CharacterDataChanged(nsIContent* aContent,
   AUTO_LAYOUT_PHASE_ENTRY_POINT(mPresShell->GetPresContext(), FrameC);
   nsresult      rv = NS_OK;
 
-  if (aContent->HasFlag(FRAMETREE_DEPENDS_ON_CHARS)) {
+  if ((aContent->HasFlag(NS_CREATE_FRAME_IF_NON_WHITESPACE) &&
+       !aContent->TextIsOnlyWhitespace()) ||
+      (aContent->HasFlag(NS_REFRAME_IF_WHITESPACE) &&
+       aContent->TextIsOnlyWhitespace())) {
 #ifdef DEBUG
     nsIFrame* frame = mPresShell->GetPrimaryFrameFor(aContent);
     NS_ASSERTION(!frame || !frame->IsGeneratedContentFrame(),
@@ -11788,7 +11788,8 @@ nsCSSFrameConstructor::FrameConstructionItem::IsWhitespace() const
   if (!mIsText) {
     return PR_FALSE;
   }
-  mContent->SetFlags(FRAMETREE_DEPENDS_ON_CHARS);
+  mContent->SetFlags(NS_CREATE_FRAME_IF_NON_WHITESPACE |
+                     NS_REFRAME_IF_WHITESPACE);
   return mContent->TextIsOnlyWhitespace();
 }
 

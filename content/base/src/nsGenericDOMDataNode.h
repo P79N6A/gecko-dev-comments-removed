@@ -44,7 +44,13 @@
 #define nsGenericDOMDataNode_h___
 
 
-#define FRAMETREE_DEPENDS_ON_CHARS (1 << NODE_TYPE_SPECIFIC_BITS_OFFSET)
+
+
+#define NS_CREATE_FRAME_IF_NON_WHITESPACE (1 << NODE_TYPE_SPECIFIC_BITS_OFFSET)
+
+
+
+#define NS_REFRAME_IF_WHITESPACE (1 << (NODE_TYPE_SPECIFIC_BITS_OFFSET + 1))
 
 #include "nsIDOMCharacterData.h"
 #include "nsIDOMEventTarget.h"

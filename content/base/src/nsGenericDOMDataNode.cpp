@@ -588,8 +588,8 @@ void
 nsGenericDOMDataNode::UnbindFromTree(PRBool aDeep, PRBool aNullParent)
 {
   
-  
-  UnsetFlags(FRAMETREE_DEPENDS_ON_CHARS);
+  UnsetFlags(NS_CREATE_FRAME_IF_NON_WHITESPACE |
+             NS_REFRAME_IF_WHITESPACE);
   
   nsIDocument *document = GetCurrentDoc();
   if (document) {
