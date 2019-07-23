@@ -503,6 +503,9 @@ struct InterpState
 
 
     uint32         builtinStatus;
+
+    
+    double*        deepBailSp;
 };
 
 static JS_INLINE void
