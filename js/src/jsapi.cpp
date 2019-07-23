@@ -805,7 +805,6 @@ JS_ShutDown(void)
 #ifdef JS_THREADSAFE
     js_CleanupLocks();
 #endif
-    PRMJ_NowShutdown();
 }
 
 JS_PUBLIC_API(void *)
@@ -949,7 +948,7 @@ JS_ResumeRequest(JSContext *cx, jsrefcount saveDepth)
         JS_BeginRequest(cx);
 }
 
-#endif
+#endif 
 
 JS_PUBLIC_API(void)
 JS_Lock(JSRuntime *rt)

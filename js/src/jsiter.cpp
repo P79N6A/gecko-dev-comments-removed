@@ -829,13 +829,6 @@ SendToGenerator(JSContext *cx, JSGeneratorOp op, JSObject *obj,
     JSArena *arena;
     JSBool ok;
 
-    if (gen->state == JSGEN_RUNNING || gen->state == JSGEN_CLOSING) {
-        js_ReportValueError(cx, JSMSG_NESTING_GENERATOR,
-                            JSDVG_SEARCH_STACK, OBJECT_TO_JSVAL(obj),
-                            JS_GetFunctionId(gen->frame.fun));
-        return JS_FALSE;
-    }
-
     JS_ASSERT(gen->state ==  JSGEN_NEWBORN || gen->state == JSGEN_OPEN);
     switch (op) {
       case JSGENOP_NEXT:
@@ -924,6 +917,7 @@ CloseGenerator(JSContext *cx, JSObject *obj)
         return JS_TRUE;
     }
 
+    JS_ASSERT(gen->state != JSGEN_RUNNING && gen->state != JSGEN_CLOSING);
     if (gen->state == JSGEN_CLOSED)
         return JS_TRUE;
 
@@ -950,7 +944,8 @@ generator_op(JSContext *cx, JSGeneratorOp op,
         goto closed_generator;
     }
 
-    if (gen->state == JSGEN_NEWBORN) {
+    switch (gen->state) {
+      case JSGEN_NEWBORN:
         switch (op) {
           case JSGENOP_NEXT:
           case JSGENOP_THROW:
@@ -969,7 +964,21 @@ generator_op(JSContext *cx, JSGeneratorOp op,
             gen->state = JSGEN_CLOSED;
             return JS_TRUE;
         }
-    } else if (gen->state == JSGEN_CLOSED) {
+        break;
+
+      case JSGEN_OPEN:
+        break;
+
+      case JSGEN_RUNNING:
+      case JSGEN_CLOSING:
+        js_ReportValueError(cx, JSMSG_NESTING_GENERATOR,
+                            JSDVG_SEARCH_STACK, argv[-1],
+                            JS_GetFunctionId(gen->frame.fun));
+        return JS_FALSE;
+
+      default:
+        JS_ASSERT(gen->state == JSGEN_CLOSED);
+
       closed_generator:
         switch (op) {
           case JSGENOP_NEXT:

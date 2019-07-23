@@ -54,7 +54,7 @@ def walk(base):
       pass
     yield (os.path.normpath(root[len(base)+1:]), files)
 
-def createLocalization(source, dest, apps, exceptions = {}):
+def createLocalization(source, dest, apps = ['browser'], exceptions = {}):
   '''
   Creates a new localization.
 
@@ -75,9 +75,6 @@ def createLocalization(source, dest, apps, exceptions = {}):
   assert os.path.isdir(source), "source directory is not a directory"
   clientmk = os.path.join(source,'client.mk')
   assert os.path.isfile(clientmk), "client.mk missing"
-
-  if not apps or not len(apps):
-    apps=['browser']
 
   if not os.path.isdir(dest):
     os.makedirs(dest)
@@ -127,8 +124,7 @@ def createLocalization(source, dest, apps, exceptions = {}):
         if ignore and ignore.search(f):
           
           continue
-        if not os.path.exists(os.path.join(l10npath,f)):
-          copy2(os.path.join(basepath, root, f), l10npath)
+        copy2(os.path.join(basepath, root, f), l10npath)
 
 if __name__ == '__main__':
   p = OptionParser()
@@ -136,9 +132,6 @@ if __name__ == '__main__':
                help='Mozilla sources')
   p.add_option('--dest', default = '../l10n',
                help='Localization target directory')
-  p.add_option('--app', action="append",
-               help='Create localization for this application ' + \
-               '(multiple applications allowed, default: browser)')
   p.add_option('-v', '--verbose', action="store_true", default=False,
                help='report debugging information')
   (opts, args) = p.parse_args()
@@ -151,4 +144,4 @@ if __name__ == '__main__':
                 {'searchplugins': '\\.xml$'},
                 'extensions/spellcheck': 'all'}
   createLocalization(opts.source, os.path.join(opts.dest, args[0]),
-                     opts.app, exceptions=exceptions)
+                     exceptions=exceptions)

@@ -201,17 +201,10 @@ ifndef GNU_CC
 #
 # Changes to the PDBFILE naming scheme should also be reflected in HOST_PDBFILE
 # 
-ifdef LIBRARY_NAME
-PDBFILE=$(LIBRARY_NAME).pdb
-ifdef MOZ_DEBUG
-CODFILE=$(LIBRARY_NAME).cod
-endif
-else
 PDBFILE=$(basename $(@F)).pdb
 ifdef MOZ_DEBUG
 CODFILE=$(basename $(@F)).cod
 endif
-endif # LIBRARY_NAME
 
 ifdef MOZ_MAPINFO
 ifdef LIBRARY_NAME
@@ -992,7 +985,7 @@ else
 ifeq (WINNT_,$(HOST_OS_ARCH)_$(GNU_CC))
 	$(HOST_LD) -NOLOGO -OUT:$@ -PDB:$(PDBFILE) $< $(WIN32_EXE_LDFLAGS) $(HOST_LIBS) $(HOST_EXTRA_LIBS)
 else
-ifdef HOST_CPPSRCS
+ifneq (,$(HOST_CPPSRCS)$(USE_HOST_CXX))
 	$(HOST_CXX) $(HOST_OUTOPTION)$@ $(HOST_CXXFLAGS) $(INCLUDES) $< $(HOST_LIBS) $(HOST_EXTRA_LIBS)
 else
 	$(HOST_CC) $(HOST_OUTOPTION)$@ $(HOST_CFLAGS) $(INCLUDES) $< $(HOST_LIBS) $(HOST_EXTRA_LIBS)
