@@ -115,6 +115,9 @@ nsPlaintextEditor::~nsPlaintextEditor()
   
   
   RemoveEventListeners();
+
+  if (mRules)
+    mRules->DetachEditor();
 }
 
 NS_IMPL_ADDREF_INHERITED(nsPlaintextEditor, nsEditor)

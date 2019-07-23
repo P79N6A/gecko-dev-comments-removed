@@ -229,7 +229,8 @@ nsHTMLEditRules::~nsHTMLEditRules()
   
   
   
-  mHTMLEditor->RemoveEditActionListener(this);
+  if (mHTMLEditor)
+    mHTMLEditor->RemoveEditActionListener(this);
 }
 
 
@@ -302,6 +303,12 @@ nsHTMLEditRules::Init(nsPlaintextEditor *aEditor, PRUint32 aFlags)
   return res;
 }
 
+NS_IMETHODIMP
+nsHTMLEditRules::DetachEditor()
+{
+  mHTMLEditor = nsnull;
+  return nsTextEditRules::DetachEditor();
+}
 
 NS_IMETHODIMP
 nsHTMLEditRules::BeforeEdit(PRInt32 action, nsIEditor::EDirection aDirection)
