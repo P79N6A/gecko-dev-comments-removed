@@ -816,15 +816,10 @@ private:
 
 
 
+
+
+
   PRBool IsEditableRoot() const;
-
-  
-
-
-
-
-
-  nsIContent* FindEditableRoot();
 
   void ChangeEditableState(PRInt32 aChange);
 };
