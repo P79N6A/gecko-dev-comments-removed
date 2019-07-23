@@ -1480,22 +1480,6 @@ private:
 
 
 
-
-
-
-
-
-
-
-  void MoveFramesToEndOfIBSplit(nsFrameConstructorState& aState,
-                                nsIFrame* aExistingEndFrame,
-                                nsFrameList& aFramesToMove,
-                                nsFrameConstructorState* aTargetState);
-
-  
-
-
-
   void BuildInlineChildItems(nsFrameConstructorState& aState,
                              FrameConstructionItem& aParentItem);
 
