@@ -135,12 +135,11 @@ function ensure_tag_results(results, searchTerm)
       current_test++;
       tests[current_test]();
     }
-
-    do_test_finished();
+    else {
+      
+      do_test_finished();
+    }
   };
-
-  
-  do_test_pending();
 
   controller.startSearch(searchTerm);
 }
@@ -161,6 +160,9 @@ var tests = [
 
 
 function run_test() {
+  
+  do_test_pending();
+
   tagssvc.tagURI(uri1, ["bar", "baz", "boo", "*nix"]);
 
   tests[0]();

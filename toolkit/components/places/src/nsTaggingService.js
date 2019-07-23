@@ -545,13 +545,25 @@ TagAutoCompleteSearch.prototype = {
         }
     
         ++i;
+
         
-        if ((i % 100) == 0) {
-          var newResult = new TagAutoCompleteResult(searchString,
-            Ci.nsIAutoCompleteResult.RESULT_SUCCESS_ONGOING, 0, "", results, comments);
-          listener.onSearchResult(self, newResult);
-          yield true;
-        } 
+
+
+
+
+
+
+
+
+        
+
+
+
+
+
+
+
+
       }
 
       var newResult = new TagAutoCompleteResult(searchString,
@@ -562,26 +574,8 @@ TagAutoCompleteSearch.prototype = {
     
     
     var gen = doSearch();
-    function driveGenerator() {
-      if (gen.next()) { 
-        var timer = Cc["@mozilla.org/timer;1"]
-          .createInstance(Components.interfaces.nsITimer);
-        self._callback = driveGenerator;
-        timer.initWithCallback(self, 0, timer.TYPE_ONE_SHOT);
-      }
-      else {
-        gen.close();	
-      }
-    }
-    driveGenerator();
-  },
-
-  
-
-
-  notify: function PTACS_notify(timer) {
-    if (this._callback) 
-      this._callback();
+    while (gen.next());
+    gen.close();
   },
 
   
