@@ -216,8 +216,6 @@ pref("accessibility.typeaheadfind.prefillwithselection", true);
 
 pref("gfx.use_text_smoothing_setting", false);
 
-pref("browser.history_expire_days", 9);
-
 
 pref("browser.frames.enabled", true);
 
