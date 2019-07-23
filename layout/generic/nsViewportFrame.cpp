@@ -231,9 +231,8 @@ ViewportFrame::AdjustReflowStateForScrollbars(nsHTMLReflowState* aReflowState) c
     aReflowState->SetComputedWidth(aReflowState->ComputedWidth() -
                                    scrollbars.LeftRight());
     aReflowState->availableWidth -= scrollbars.LeftRight();
-    aReflowState->SetComputedHeight(aReflowState->ComputedHeight() -
-                                    scrollbars.TopBottom());
-    
+    aReflowState->SetComputedHeightWithoutResettingResizeFlags(
+      aReflowState->ComputedHeight() - scrollbars.TopBottom());
     return nsPoint(scrollbars.left, scrollbars.top);
   }
   return nsPoint(0, 0);
@@ -278,7 +277,7 @@ ViewportFrame::Reflow(nsPresContext*           aPresContext,
                                          kidFrame, availableSpace);
 
       
-      kidReflowState.SetComputedHeight(aReflowState.availableHeight);
+      kidReflowState.SetComputedHeight(aReflowState.ComputedHeight());
       rv = ReflowChild(kidFrame, aPresContext, kidDesiredSize, kidReflowState,
                        0, 0, 0, aStatus);
       kidHeight = kidDesiredSize.height;
@@ -296,8 +295,8 @@ ViewportFrame::Reflow(nsPresContext*           aPresContext,
   aDesiredSize.width = aReflowState.availableWidth;
   
   
-  aDesiredSize.height = aReflowState.availableHeight != NS_UNCONSTRAINEDSIZE
-                          ? aReflowState.availableHeight
+  aDesiredSize.height = aReflowState.ComputedHeight() != NS_UNCONSTRAINEDSIZE
+                          ? aReflowState.ComputedHeight()
                           : kidHeight;
 
   

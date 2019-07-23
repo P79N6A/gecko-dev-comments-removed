@@ -6582,12 +6582,7 @@ PresShell::DoReflow(nsIFrame* target)
 
   
   
-  
-  nsSize reflowSize;
-  if (target != rootFrame)
-    reflowSize = nsSize(size.width, NS_UNCONSTRAINEDSIZE);
-  else
-    reflowSize = size;
+  nsSize reflowSize(size.width, NS_UNCONSTRAINEDSIZE);
   nsHTMLReflowState reflowState(mPresContext, target, rcx, reflowSize);
 
   

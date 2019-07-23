@@ -247,17 +247,11 @@ nsHTMLReflowState::SetComputedHeight(nscoord aComputedHeight)
   
   
   
-  
-  
-  
-  
 
   NS_PRECONDITION(aComputedHeight >= 0, "Invalid computed height");
   if (mComputedHeight != aComputedHeight) {
     mComputedHeight = aComputedHeight;
-    if (frame->GetType() != nsGkAtoms::viewportFrame) { 
-      InitResizeFlags(frame->PresContext());
-    }
+    InitResizeFlags(frame->PresContext());
   }
 }
 

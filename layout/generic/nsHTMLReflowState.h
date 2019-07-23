@@ -445,6 +445,14 @@ public:
   
   void SetComputedHeight(nscoord aComputedHeight);
 
+  void SetComputedHeightWithoutResettingResizeFlags(nscoord aComputedHeight) {
+    
+    
+    
+    
+    mComputedHeight = aComputedHeight;
+  }
+
   void SetTruncated(const nsHTMLReflowMetrics& aMetrics, nsReflowStatus* aStatus) const;
 
   PRBool WillReflowAgainForClearance() const {
