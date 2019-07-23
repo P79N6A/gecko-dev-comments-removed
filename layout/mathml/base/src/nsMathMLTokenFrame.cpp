@@ -45,8 +45,7 @@
 #include "nsIRenderingContext.h"
 #include "nsIFontMetrics.h"
 #include "nsContentUtils.h"
-#include "nsFrameManager.h"
-#include "nsStyleChangeList.h"
+#include "nsCSSFrameConstructor.h"
 #include "nsMathMLTokenFrame.h"
 
 nsIFrame*
@@ -255,14 +254,8 @@ nsMathMLTokenFrame::ProcessTextData(PRBool aComputeStyleChange)
     return;
 
   
-  nsFrameManager* fm = PresContext()->FrameManager();
-  nsStyleChangeList changeList;
-  fm->ComputeStyleChangeFor(this, &changeList, NS_STYLE_HINT_NONE);
-#ifdef DEBUG
-  
-  nsIFrame* parentFrame = GetParent();
-  fm->DebugVerifyStyleTree(parentFrame ? parentFrame : this);
-#endif
+  GetPresContext()->PresShell()->FrameConstructor()->
+    PostRestyleEvent(mContent, eReStyle_Self, NS_STYLE_HINT_NONE);
 }
 
 
