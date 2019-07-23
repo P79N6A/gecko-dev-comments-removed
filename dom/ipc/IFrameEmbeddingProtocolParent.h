@@ -136,5 +136,29 @@ private:
 };
 
 
+#if 0
+
+
+
+
+
+class ActorImpl :
+    public IFrameEmbeddingProtocolParent
+{
+    ActorImpl();
+    virtual ~ActorImpl();
+};
+
+
+
+ActorImpl::ActorImpl()
+{
+}
+
+ActorImpl::~ActorImpl()
+{
+}
+
+#endif 
 
 #endif 

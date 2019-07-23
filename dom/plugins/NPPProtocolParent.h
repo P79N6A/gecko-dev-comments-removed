@@ -133,5 +133,39 @@ private:
 
 } 
 } 
+#if 0
+
+
+
+
+
+class ActorImpl :
+    public NPPProtocolParent
+{
+    virtual nsresult AnswerNPN_GetValue(
+                const String& key,
+                String* value);
+    ActorImpl();
+    virtual ~ActorImpl();
+};
+
+
+
+nsresult ActorImpl::AnswerNPN_GetValue(
+            const String& key,
+            String* value)
+{
+    return NS_ERROR_NOT_IMPLEMENTED;
+}
+
+ActorImpl::ActorImpl()
+{
+}
+
+ActorImpl::~ActorImpl()
+{
+}
+
+#endif 
 
 #endif 

@@ -206,5 +206,55 @@ private:
 
 } 
 } 
+#if 0
+
+
+
+
+
+class ActorImpl :
+    public NPAPIProtocolParent
+{
+    virtual NPPProtocolParent* NPPConstructor(
+                const String& aMimeType,
+                const uint16_t& aMode,
+                const StringArray& aNames,
+                const StringArray& aValues,
+                NPError* rv);
+    virtual nsresult NPPDestructor(
+                NPPProtocolParent* __a,
+                NPError* rv);
+    ActorImpl();
+    virtual ~ActorImpl();
+};
+
+
+
+NPPProtocolParent* ActorImpl::NPPConstructor(
+            const String& aMimeType,
+            const uint16_t& aMode,
+            const StringArray& aNames,
+            const StringArray& aValues,
+            NPError* rv)
+{
+    return NS_ERROR_NOT_IMPLEMENTED;
+}
+
+nsresult ActorImpl::NPPDestructor(
+            NPPProtocolParent* __a,
+            NPError* rv)
+{
+    return NS_ERROR_NOT_IMPLEMENTED;
+}
+
+ActorImpl::ActorImpl()
+{
+}
+
+ActorImpl::~ActorImpl()
+{
+}
+
+#endif 
 
 #endif 
