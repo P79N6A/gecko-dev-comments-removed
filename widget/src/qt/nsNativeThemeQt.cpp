@@ -38,8 +38,6 @@
 
 
 
-#include "nsIFrame.h"
-
 #include <QApplication>
 #include <QStyle>
 #include <QPalette>
@@ -50,6 +48,8 @@
 #include <QStyleOptionButton>
 #include <QFlags>
 #include <QStyleOptionComboBox>
+
+#include "nsIFrame.h"
 
 #include "nsCoord.h"
 #include "nsNativeThemeQt.h"

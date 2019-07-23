@@ -37,11 +37,13 @@
 
 
 
-#include "nsLookAndFeel.h"
 
 #include <QPalette>
 #include <QApplication>
 #include <QStyle>
+
+#include "nsLookAndFeel.h"
+
 #include <qglobal.h>
 
 #undef NS_LOOKANDFEEL_DEBUG

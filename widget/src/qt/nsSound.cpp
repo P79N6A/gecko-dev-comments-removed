@@ -36,6 +36,9 @@
 
 
 
+#include <QApplication>
+#include <QSound>
+
 #include <string.h>
 
 #include "nscore.h"
@@ -51,9 +54,6 @@
 #include "nsCOMPtr.h"
 #include "nsNativeCharsetUtils.h"
 #include "nsAutoPtr.h"
-
-#include <QApplication>
-#include <QSound>
 
 
 static int esdref = -1;

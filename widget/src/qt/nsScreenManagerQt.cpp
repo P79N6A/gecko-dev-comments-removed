@@ -37,11 +37,11 @@
 
 
 
-#include "nsScreenManagerQt.h"
-#include "nsScreenQt.h"
-
 #include "qdesktopwidget.h"
 #include "qapplication.h"
+
+#include "nsScreenManagerQt.h"
+#include "nsScreenQt.h"
 
 nsScreenManagerQt::nsScreenManagerQt()
 {

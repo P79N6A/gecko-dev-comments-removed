@@ -38,8 +38,10 @@
 
 
 
-#include "nscore.h"  
 #include "nsToolkit.h"
+
+#include "nscore.h"  
+
 #include "nsGUIEvent.h"
 #include "nsWidgetAtoms.h"
 
