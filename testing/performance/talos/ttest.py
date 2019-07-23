@@ -170,26 +170,29 @@ def runTest(browser_config, test_config):
       
       (bytes, current_output) = ffprocess.NonBlockingReadProcessOutput(handle)
       output += current_output
+      match = RESULTS_GENERIC.search(current_output)
+      if match:
+        if match.group(1):
+          utils.noisy(match.group(1))
       match = RESULTS_REGEX.search(output)
       if match:
         browser_results += match.group(1)
+        utils.debug("Matched basic results: " + browser_results)
         res = 1
         break
       
       match = RESULTS_TP_REGEX.search(output)
       if match:
         browser_results += match.group(1)
+        utils.debug("Matched tp results: " + browser_results)
         res = 1
         break
       match = RESULTS_REGEX_FAIL.search(output)
       if match:
         browser_results += match.group(1)
+        utils.debug("Matched fail results: " + browser_results)
         print "FAIL: " + match.group(1)
         break
-      match = RESULTS_GENERIC.search(current_output)
-      if match:
-        if match.group(1) != '':
-          utils.noisy(match.group(1))
 
       
       
@@ -210,6 +213,7 @@ def runTest(browser_config, test_config):
     
     cm.stopMonitor()
 
+    utils.debug("Completed test with: " + browser_results)
     
     ffprocess.TerminateAllProcesses("firefox")
     all_browser_results.append(browser_results)
