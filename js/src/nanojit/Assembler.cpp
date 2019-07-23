@@ -137,34 +137,22 @@ namespace nanojit
     Register Assembler::registerAlloc(RegisterMask allow)
     {
         RegAlloc &regs = _allocator;
+        RegisterMask allowedAndFree = allow & regs.free;
 
-        RegisterMask prefer = SavedRegs & allow;
-        RegisterMask free = regs.free & allow;
-
-        RegisterMask set = prefer;
-        if (set == 0) set = allow;
-
-        if (free)
+        if (allowedAndFree)
         {
             
-            set &= free;
-
             
-            
-            if (!set)
-            {
-                
-                set = free;
-            }
-            NanoAssert((set & allow) != 0);
+            RegisterMask preferredAndFree = allowedAndFree & SavedRegs;
+            RegisterMask set = ( preferredAndFree ? preferredAndFree : allowedAndFree );
             Register r = nRegisterAllocFromSet(set);
             regs.used |= rmask(r);
             return r;
         }
-        counter_increment(steals);
 
         
         
+        counter_increment(steals);
         LIns* vic = findVictim(regs, allow);
         NanoAssert(vic != NULL);
 
@@ -313,22 +301,16 @@ namespace nanojit
         }
         else
         {
-            Register rb = UnknownReg;
             resvb = getresv(ib);
-            if (resvb && (rb = resvb->reg) != UnknownReg) {
-                if (allow & rmask(rb)) {
-                    
-                    allow &= ~rmask(rb);
-                } else {
-                    
-                    rb = UnknownReg;
-                }
+            bool rbDone = (resvb && resvb->reg != UnknownReg && (allow & rmask(resvb->reg)));
+            if (rbDone) {
+                
+                allow &= ~rmask(resvb->reg);
             }
             Register ra = findRegFor(ia, allow);
             resva = getresv(ia);
             NanoAssert(error() || (resva != 0 && ra != UnknownReg));
-            if (rb == UnknownReg)
-            {
+            if (!rbDone) {
                 allow &= ~rmask(ra);
                 findRegFor(ib, allow);
                 resvb = getresv(ib);
