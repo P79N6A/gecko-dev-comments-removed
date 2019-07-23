@@ -9226,14 +9226,6 @@ nsNavigator::JavaEnabled(PRBool *aReturn)
 
 #ifdef OJI
   
-  
-  *aReturn = nsContentUtils::GetBoolPref("security.enable_java");
-
-  
-  if (!*aReturn)
-    return NS_OK;
-
-  
   nsCOMPtr<nsIJVMManager> jvmService = do_GetService(kJVMServiceCID);
   if (jvmService) {
     jvmService->GetJavaEnabled(aReturn);

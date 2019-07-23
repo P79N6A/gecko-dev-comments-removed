@@ -117,24 +117,31 @@ public:
   void SetHost(nsPluginHostImpl * aHost);
   void TryUnloadPlugin(PRBool aForceShutdown = PR_FALSE);
   void Mark(PRUint32 mask) {
+    PRBool wasEnabled = IsEnabled();
     mFlags |= mask;
     
-    
-    if ((mask & NS_PLUGIN_FLAG_ENABLED) && mPluginHost) {
-      RegisterWithCategoryManager(PR_FALSE, nsPluginTag::ePluginRegister);
+    if (mPluginHost && wasEnabled != IsEnabled()) {
+      if (wasEnabled)
+        RegisterWithCategoryManager(PR_FALSE, nsPluginTag::ePluginUnregister);
+      else
+        RegisterWithCategoryManager(PR_FALSE, nsPluginTag::ePluginRegister);
     }
   }
   void UnMark(PRUint32 mask) {
+    PRBool wasEnabled = IsEnabled();
     mFlags &= ~mask;
     
-    
-    if ((mask & NS_PLUGIN_FLAG_ENABLED) && mPluginHost) {
-      RegisterWithCategoryManager(PR_FALSE, nsPluginTag::ePluginUnregister);
+    if (mPluginHost && wasEnabled != IsEnabled()) {
+      if (wasEnabled)
+        RegisterWithCategoryManager(PR_FALSE, nsPluginTag::ePluginUnregister);
+      else
+        RegisterWithCategoryManager(PR_FALSE, nsPluginTag::ePluginRegister);
     }
   }
   PRBool HasFlag(PRUint32 flag) { return (mFlags & flag) != 0; }
   PRUint32 Flags() { return mFlags; }
   PRBool Equals(nsPluginTag* aPluginTag);
+  PRBool IsEnabled() { return HasFlag(NS_PLUGIN_FLAG_ENABLED) && !HasFlag(NS_PLUGIN_FLAG_BLOCKLISTED); }
 
   enum nsRegisterType {
     ePluginRegister,
