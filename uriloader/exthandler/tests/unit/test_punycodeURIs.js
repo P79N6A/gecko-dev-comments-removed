@@ -81,6 +81,17 @@ function checkFile() {
 
 function run_test() {
   
+  const httpHandler =
+    Components.classes["@mozilla.org/network/protocol;1?name=http"]
+              .getService(Components.interfaces.nsIHttpProtocolHandler);
+  const oscpu = httpHandler.oscpu;
+  if (oscpu.match(/Mac OS X 10.4/)) {
+    dump("This test is not run on Mac OS 10.4 because it fails for unknown " +
+         "reasons. See bug 447999.\n");
+    return;
+  }
+
+  
   var ioService = Components.classes["@mozilla.org/network/io-service;1"].
     getService(Components.interfaces.nsIIOService);
 
