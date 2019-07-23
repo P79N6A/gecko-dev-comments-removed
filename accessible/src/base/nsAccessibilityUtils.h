@@ -152,6 +152,13 @@ public:
 
 
 
+   static PRBool AreSiblings(nsIDOMNode *aDOMNode1,
+                             nsIDOMNode *aDOMNode2);
+
+  
+
+
+
 
 
    static already_AddRefed<nsIAccessible>

@@ -103,8 +103,6 @@ class nsDocAccessible : public nsHyperTextAccessibleWrap,
     
     NS_IMETHOD GetAssociatedEditor(nsIEditor **aEditor);
 
-    enum EDupeEventRule { eAllowDupes, eCoalesceFromSameSubtree, eRemoveDupes };
-
     
 
 
@@ -120,7 +118,7 @@ class nsDocAccessible : public nsHyperTextAccessibleWrap,
 
 
     nsresult FireDelayedToolkitEvent(PRUint32 aEvent, nsIDOMNode *aDOMNode,
-                                     EDupeEventRule aAllowDupes = eRemoveDupes,
+                                     nsAccEvent::EEventRule aAllowDupes = nsAccEvent::eRemoveDupes,
                                      PRBool aIsAsynch = PR_FALSE);
 
     
@@ -128,11 +126,7 @@ class nsDocAccessible : public nsHyperTextAccessibleWrap,
 
 
 
-
-
-
-    nsresult FireDelayedAccessibleEvent(nsIAccessibleEvent *aEvent,
-                                        EDupeEventRule aAllowDupes = eRemoveDupes);
+    nsresult FireDelayedAccessibleEvent(nsIAccessibleEvent *aEvent);
 
     void ShutdownChildDocuments(nsIDocShellTreeItem *aStart);
 

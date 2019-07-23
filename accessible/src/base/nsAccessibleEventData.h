@@ -41,7 +41,9 @@
 #ifndef _nsAccessibleEventData_H_
 #define _nsAccessibleEventData_H_
 
+#include "nsAutoPtr.h"
 #include "nsCOMPtr.h"
+#include "nsCOMArray.h"
 #include "nsIAccessibleEvent.h"
 #include "nsIAccessible.h"
 #include "nsIAccessibleDocument.h"
@@ -50,13 +52,45 @@
 
 class nsIPresShell;
 
+#define NS_ACCEVENT_IMPL_CID                            \
+{  /* 55b89892-a83d-4252-ba78-cbdf53a86936 */           \
+  0x55b89892,                                           \
+  0xa83d,                                               \
+  0x4252,                                               \
+  { 0xba, 0x78, 0xcb, 0xdf, 0x53, 0xa8, 0x69, 0x36 }    \
+}
+
 class nsAccEvent: public nsIAccessibleEvent
 {
 public:
+
   
-  nsAccEvent(PRUint32 aEventType, nsIAccessible *aAccessible, PRBool aIsAsynch = PR_FALSE);
   
-  nsAccEvent(PRUint32 aEventType, nsIDOMNode *aDOMNode, PRBool aIsAsynch = PR_FALSE);
+  enum EEventRule {
+     
+     
+     eAllowDupes,
+     
+     
+     
+     eCoalesceFromSameSubtree,
+     
+     
+     eRemoveDupes,
+     
+     eDoNotEmit
+   };
+
+  NS_DECLARE_STATIC_IID_ACCESSOR(NS_ACCEVENT_IMPL_CID)
+
+  
+  nsAccEvent(PRUint32 aEventType, nsIAccessible *aAccessible,
+             PRBool aIsAsynch = PR_FALSE,
+             EEventRule aEventRule = eRemoveDupes);
+  
+  nsAccEvent(PRUint32 aEventType, nsIDOMNode *aDOMNode,
+             PRBool aIsAsynch = PR_FALSE,
+             EEventRule aEventRule = eRemoveDupes);
   virtual ~nsAccEvent() {}
 
   NS_DECL_ISUPPORTS
@@ -73,6 +107,7 @@ protected:
 
 private:
   PRUint32 mEventType;
+  EEventRule mEventRule;
   nsCOMPtr<nsIAccessible> mAccessible;
   nsCOMPtr<nsIDOMNode> mDOMNode;
   nsCOMPtr<nsIAccessibleDocument> mDocAccessible;
@@ -81,6 +116,21 @@ private:
   static nsIDOMNode* gLastEventNodeWeak;
 
 public:
+  static PRUint32 EventType(nsIAccessibleEvent *aAccEvent) {
+    PRUint32 eventType;
+    aAccEvent->GetEventType(&eventType);
+    return eventType;
+  }
+  static EEventRule EventRule(nsIAccessibleEvent *aAccEvent) {
+    nsRefPtr<nsAccEvent> accEvent = GetAccEventPtr(aAccEvent);
+    return accEvent->mEventRule;
+  }
+  static PRBool IsFromUserInput(nsIAccessibleEvent *aAccEvent) {
+    PRBool isFromUserInput;
+    aAccEvent->GetIsFromUserInput(&isFromUserInput);
+    return isFromUserInput;
+  }
+
   static void ResetLastInputState()
    {gLastEventFromUserInput = PR_FALSE; gLastEventNodeWeak = nsnull; }
 
@@ -103,7 +153,40 @@ public:
 
   static void PrepareForEvent(nsIAccessibleEvent *aEvent,
                               PRBool aForceIsFromUserInput = PR_FALSE);
+
+  
+
+
+
+
+
+
+  static void ApplyEventRules(nsCOMArray<nsIAccessibleEvent> &aEventsToFire);
+
+private:
+  static already_AddRefed<nsAccEvent> GetAccEventPtr(nsIAccessibleEvent *aAccEvent) {
+    nsAccEvent* accEvent = nsnull;
+    aAccEvent->QueryInterface(NS_GET_IID(nsAccEvent), (void**)&accEvent);
+    return accEvent;
+  }
+
+  
+
+
+
+
+
+
+
+
+
+  static void ApplyToSiblings(nsCOMArray<nsIAccessibleEvent> &aEventsToFire,
+                              PRUint32 aStart, PRUint32 aEnd,
+                              PRUint32 aEventType, nsIDOMNode* aDOMNode,
+                              EEventRule aEventRule);
 };
+
+NS_DEFINE_STATIC_IID_ACCESSOR(nsAccEvent, NS_ACCEVENT_IMPL_CID)
 
 class nsAccStateChangeEvent: public nsAccEvent,
                              public nsIAccessibleStateChangeEvent
