@@ -168,6 +168,9 @@ pref("extensions.dss.enabled", false);
 pref("extensions.dss.switchPending", false);    
                                                 
 
+pref("extensions.{972ce4c6-7e08-4474-a285-3208198ce6fd}.name", "chrome://browser/locale/browser.properties");
+pref("extensions.{972ce4c6-7e08-4474-a285-3208198ce6fd}.description", "chrome://browser/locale/browser.properties");
+
 pref("xpinstall.whitelist.add", "update.mozilla.org");
 pref("xpinstall.whitelist.add.103", "addons.mozilla.org");
 
