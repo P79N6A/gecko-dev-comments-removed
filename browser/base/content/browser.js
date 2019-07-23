@@ -1969,7 +1969,6 @@ function URLBarSetURI(aURI) {
 }
 
 
-
 function handleURLBarRevert() {
   var throbberElement = document.getElementById("navigator-throbber");
   var isScrolling = gURLBar.popupOpen;
@@ -1980,7 +1979,9 @@ function handleURLBarRevert() {
   
   if ((!throbberElement || !throbberElement.hasAttribute("busy")) && !isScrolling) {
     URLBarSetURI();
-    if (gURLBar.value)
+
+    
+    if (gURLBar.value && gURLBar.hasAttribute("focused"))
       gURLBar.select();
   }
 
