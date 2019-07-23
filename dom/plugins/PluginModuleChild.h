@@ -247,6 +247,13 @@ private:
     
     
     guint mNestedLoopTimerId;
+#  ifdef DEBUG
+    
+    
+    
+    
+    int mTopLoopDepth;
+#  endif
 #endif
 
     struct NPObjectData : public nsPtrHashKey<NPObject>
