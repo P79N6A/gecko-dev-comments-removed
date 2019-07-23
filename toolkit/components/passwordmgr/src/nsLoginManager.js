@@ -1109,34 +1109,31 @@ LoginManager.prototype = {
         if (usernameField && usernameField.value) {
             
             
-
             var username = usernameField.value.toLowerCase();
 
-            var matchingLogin;
-            var found = logins.some(function(l) {
-                                matchingLogin = l;
-                                return (l.username.toLowerCase() == username);
-                            });
-            if (found)
-                selectedLogin = matchingLogin;
+            let matchingLogins = logins.filter(function(l)
+                                     l.username.toLowerCase() == username);
+            if (matchingLogins.length)
+                selectedLogin = matchingLogins[0];
             else
                 this.log("Password not filled. None of the stored " +
                          "logins match the username already present.");
-
-        } else if (usernameField && logins.length == 2) {
-            
-            
-            
-            
-            
-            if (!logins[0].username && logins[1].username)
-                selectedLogin = logins[1];
-            else if (!logins[1].username && logins[0].username)
-                selectedLogin = logins[0];
         } else if (logins.length == 1) {
             selectedLogin = logins[0];
         } else {
-            this.log("Multiple logins for form, so not filling any.");
+            
+            
+            
+            
+            let matchingLogins;
+            if (usernameField)
+                matchingLogins = logins.filter(function(l) l.username);
+            else
+                matchingLogins = logins.filter(function(l) !l.username);
+            if (matchingLogins.length == 1)
+                selectedLogin = matchingLogins[0];
+            else
+                this.log("Multiple logins for form, so not filling any.");
         }
 
         var didFillForm = false;
