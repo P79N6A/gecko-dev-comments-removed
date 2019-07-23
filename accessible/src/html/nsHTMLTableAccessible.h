@@ -146,20 +146,6 @@ public:
   
 
 
-
-
-  PRBool IsValidColumn(PRInt32 aColumn);
-
-  
-
-
-
-
-  PRBool IsValidRow(PRInt32 aRow);
-
-  
-
-
   nsresult GetCellAt(PRInt32 aRowIndex, PRInt32 aColIndex,
                      nsIDOMElement* &aCell);
 
