@@ -38,22 +38,22 @@
 #include "nsUCSupport.h"
 #include "nsUTF8ToUnicode.h"
 
-#if defined(__GNUC__) && defined(__i386__) && defined(__APPLE__)
-#define MAC_SSE2
+#if defined(__GNUC__) && defined(__SSE2__)
+
+#define GCC_SSE2
 #endif
-#if defined(XP_WIN32) && defined(_M_IX86) && defined(_MSC_VER) && _MSC_VER >= 1400
+#if (defined(_M_IX86) || defined(_M_AMD64)) && defined(_MSC_VER) && _MSC_VER >= 1400
 #define WIN_SSE2
 #endif
 
-#if defined(MAC_SSE2) || defined(WIN_SSE2)
+#if defined(GCC_SSE2) || defined(WIN_SSE2)
 #include "emmintrin.h"
 #endif
 
-#if defined(MAC_SSE2)
-#define __sse2_available 1
-#endif
+#if defined(GCC_SSE2) || defined(_M_AMD64)
 
-#if defined(WIN_SSE2)
+#define __sse2_available 1
+#elif defined(WIN_SSE2)
 extern "C" int __sse2_available;
 #endif
 
@@ -146,7 +146,7 @@ NS_IMETHODIMP nsUTF8ToUnicode::Reset()
 
 
 
-#if defined(MAC_SSE2) || defined(WIN_SSE2)
+#if defined(GCC_SSE2) || defined(WIN_SSE2)
 
 static inline void
 Convert_ascii_run (const char *&src,
