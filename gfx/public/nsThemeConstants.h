@@ -157,6 +157,9 @@
 #define NS_THEME_TEXTFIELD_CARET                           96
 
 
+#define NS_THEME_TEXTFIELD_MULTILINE                       97
+
+
 #define NS_THEME_DROPDOWN                                  101
 
 

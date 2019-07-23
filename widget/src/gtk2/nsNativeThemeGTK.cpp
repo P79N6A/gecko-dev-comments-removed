@@ -223,6 +223,7 @@ nsNativeThemeGTK::GetGtkWidgetAndState(PRUint8 aWidgetType, nsIFrame* aFrame,
       
       
       if (aWidgetType == NS_THEME_TEXTFIELD ||
+          aWidgetType == NS_THEME_TEXTFIELD_MULTILINE ||
           aWidgetType == NS_THEME_DROPDOWN_TEXTFIELD ||
           aWidgetType == NS_THEME_RADIO_CONTAINER ||
           aWidgetType == NS_THEME_RADIO_LABEL ||
@@ -351,6 +352,7 @@ nsNativeThemeGTK::GetGtkWidgetAndState(PRUint8 aWidgetType, nsIFrame* aFrame,
     aGtkWidgetType = MOZ_GTK_GRIPPER;
     break;
   case NS_THEME_TEXTFIELD:
+  case NS_THEME_TEXTFIELD_MULTILINE:
   case NS_THEME_DROPDOWN_TEXTFIELD:
     aGtkWidgetType = MOZ_GTK_ENTRY;
     break;
@@ -1008,6 +1010,7 @@ nsNativeThemeGTK::ThemeSupportsWidget(nsPresContext* aPresContext,
     
     
   case NS_THEME_TEXTFIELD:
+  case NS_THEME_TEXTFIELD_MULTILINE:
     
   case NS_THEME_DROPDOWN_BUTTON:
   case NS_THEME_DROPDOWN_TEXTFIELD:
