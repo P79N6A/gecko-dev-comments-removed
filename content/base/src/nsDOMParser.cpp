@@ -232,10 +232,6 @@ nsDOMParser::ParseFromStream(nsIInputStream *stream,
                                       scriptHandlingObject,
                                       getter_AddRefs(domDocument));
   NS_ENSURE_SUCCESS(rv, rv);
-  nsCOMPtr<nsIDocument> document(do_QueryInterface(domDocument));
-  if (!document) return NS_ERROR_FAILURE;
-
-  document->SetPrincipal(mPrincipal);
 
   
   nsCOMPtr<nsPIDOMEventTarget> target(do_QueryInterface(domDocument));
@@ -256,7 +252,8 @@ nsDOMParser::ParseFromStream(nsIInputStream *stream,
                            nsDependentCString(contentType), nsnull);
   NS_ENSURE_STATE(parserChannel);
 
-  parserChannel->SetOwner(mPrincipal);
+  
+  parserChannel->SetOwner(mOriginalPrincipal);
 
   if (charset) {
     parserChannel->SetContentCharset(nsDependentCString(charset));
@@ -271,16 +268,19 @@ nsDOMParser::ParseFromStream(nsIInputStream *stream,
   
   
   
+  nsCOMPtr<nsIDocument> document(do_QueryInterface(domDocument));
+  if (!document) return NS_ERROR_FAILURE;
+
   rv = document->StartDocumentLoad(kLoadAsData, parserChannel, 
                                    nsnull, nsnull, 
                                    getter_AddRefs(listener),
                                    PR_FALSE);
 
   
-  document->SetPrincipal(mPrincipal);
+  document->SetBaseURI(mBaseURI);
 
   
-  document->SetBaseURI(mBaseURI);
+  document->SetPrincipal(mPrincipal);
 
   if (NS_FAILED(rv) || !listener) {
     return NS_ERROR_FAILURE;
