@@ -50,7 +50,6 @@ typedef   nsTextControlFrame nsNewFrame;
 
 class nsIsIndexFrame : public nsBlockFrame,
                        public nsIAnonymousContentCreator,
-                       public nsIDOMKeyListener,
                        public nsIStatefulFrame
 {
 public:
@@ -59,33 +58,29 @@ public:
 
   virtual void Destroy(); 
 
-  
+private:
+  void KeyPress(nsIDOMEvent* aKeyEvent);
 
+  class KeyListener : public nsIDOMKeyListener
+  {
+    NS_DECL_ISUPPORTS
 
+    KeyListener(nsIsIndexFrame* aOwner) : mOwner(aOwner) { };
 
+    NS_IMETHOD KeyDown(nsIDOMEvent* aKeyEvent) { return NS_OK; }
 
-  NS_IMETHOD KeyDown(nsIDOMEvent* aKeyEvent) { return NS_OK; }
+    NS_IMETHOD KeyUp(nsIDOMEvent* aKeyEvent) { return NS_OK; }
 
-  
+    NS_IMETHOD KeyPress(nsIDOMEvent* aKeyEvent); 
 
+    NS_IMETHOD HandleEvent(nsIDOMEvent* aEvent) { return NS_OK; }
 
+    nsIsIndexFrame* mOwner;
+  };
 
-
-  NS_IMETHOD KeyUp(nsIDOMEvent* aKeyEvent) { return NS_OK; }
-
-  
-
-
-
-
-
-  NS_IMETHOD KeyPress(nsIDOMEvent* aKeyEvent); 
-
+public:
   NS_DECL_QUERYFRAME
   NS_DECL_FRAMEARENA_HELPERS
-
-  
-  NS_IMETHOD QueryInterface(const nsIID& aIID, void** aInstancePtr);
 
   
   virtual nscoord GetMinWidth(nsIRenderingContext *aRenderingContext);
@@ -103,8 +98,6 @@ public:
 
   
   virtual nsresult CreateAnonymousContent(nsTArray<nsIContent*>& aElements);
-
-  NS_IMETHOD HandleEvent(nsIDOMEvent* aEvent) { return NS_OK; }
 
   NS_IMETHOD OnSubmit(nsPresContext* aPresContext);
 
@@ -131,8 +124,7 @@ private:
   char* UnicodeToNewBytes(const PRUnichar* aSrc, PRUint32 aLen, nsIUnicodeEncoder* encoder);
   void URLEncode(const nsString& aString, nsIUnicodeEncoder* encoder, nsString& oString);
 
-  NS_IMETHOD_(nsrefcnt) AddRef() { return NS_OK; }
-  NS_IMETHOD_(nsrefcnt) Release() { return NS_OK; }
+  nsCOMPtr<KeyListener> mListener;
 };
 
 #endif
