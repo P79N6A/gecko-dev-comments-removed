@@ -439,6 +439,8 @@ extern JSObject *
 js_InitObjectClass(JSContext *cx, JSObject *obj);
 
 
+
+
 extern const char js_watch_str[];
 extern const char js_unwatch_str[];
 extern const char js_hasOwnProperty_str[];
