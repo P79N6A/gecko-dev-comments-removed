@@ -38,6 +38,8 @@
 
 
 #include <windows.h>
+#include <uxtheme.h>
+
 #include "nscore.h"
 
 #if MOZ_WINSDK_TARGETVER >= MOZ_NTDDI_LONGHORN
