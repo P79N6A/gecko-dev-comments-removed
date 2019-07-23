@@ -2047,6 +2047,17 @@ nsAccessible::GetAttributes(nsIPersistentProperties **aAttributes)
     }
   }
 
+  nsCOMPtr<nsIAccessibleValue> supportsValue = do_QueryInterface(static_cast<nsIAccessible*>(this));
+  if (supportsValue) {
+    
+    
+    
+    nsAutoString valuetext;
+    GetValue(valuetext);
+    attributes->SetStringProperty(NS_LITERAL_CSTRING("valuetext"), valuetext, oldValueUnused);
+  }
+
+
   
   
   nsAutoString atomic, live, relevant, channel, busy;
@@ -2407,8 +2418,11 @@ NS_IMETHODIMP nsAccessible::GetValue(nsAString& aValue)
       return NS_OK;
     }
     nsCOMPtr<nsIContent> content(do_QueryInterface(mDOMNode));
-    if (content && content->GetAttr(kNameSpaceID_None, nsAccessibilityAtoms::aria_valuenow, aValue)) {
-      return NS_OK;
+    NS_ENSURE_STATE(content);
+    
+    
+    if (!content->GetAttr(kNameSpaceID_None, nsAccessibilityAtoms::aria_valuetext, aValue)) {
+      content->GetAttr(kNameSpaceID_None, nsAccessibilityAtoms::aria_valuenow, aValue);
     }
   }
   return NS_OK;
