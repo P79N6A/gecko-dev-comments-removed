@@ -36,6 +36,7 @@
 
 
 
+
 #ifndef jstracerinlines_h___
 #define jstracerinlines_h___
 
@@ -377,23 +378,6 @@ guard_boolean_is_true(JSContext* cx, JSFrameRegs& regs, JSBool& cond)
 }
 
 static inline void
-prim_icmp_eq(JSContext* cx, jsint& a, jsint& b, JSBool& r)
-{
-    interp_prim_icmp_eq(cx, a, b, r);
-    recorder(cx)->binary(LIR_eq, &a, &b, &r);
-}
-
-static inline void
-prim_icmp_ne(JSContext* cx, jsint& a, jsint& b, JSBool& r)
-{
-    interp_prim_icmp_ne(cx, a, b, r);
-#if 0
-    
-    recorder(cx)->binary(LIR_ne, &a, &b, &r);
-#endif
-}
-
-static inline void
 prim_icmp_lt(JSContext* cx, jsint& a, jsint& b, JSBool& r)
 {
     interp_prim_icmp_lt(cx, a, b, r);
@@ -419,23 +403,6 @@ prim_icmp_ge(JSContext* cx, jsint& a, jsint& b, JSBool& r)
 {
     interp_prim_icmp_ge(cx, a, b, r);
     recorder(cx)->binary(LIR_ge, &a, &b, &r);
-}
-
-static inline void
-prim_dcmp_eq(JSContext* cx, bool ifnan, jsdouble& a, jsdouble& b, JSBool& r)
-{
-    interp_prim_dcmp_eq(cx, ifnan, a, b, r);
-    recorder(cx)->binary(LIR_eq, &a, &b, &r); 
-}
-
-static inline void
-prim_dcmp_ne(JSContext *cx, bool ifnan, jsdouble& a, jsdouble& b, JSBool& r)
-{
-    interp_prim_dcmp_ne(cx, ifnan, a, b, r);
-#if 0
-    
-    recorder(cx)->binary(LIR_ne, &a, &b, &r);
-#endif
 }
 
 static inline void
@@ -531,10 +498,6 @@ guard_ops_are_xml(JSContext *cx, JSFrameRegs& regs, JSObjectOps*& ops)
     recorder(cx)->guard_eqi(ok, &ops, (int)&js_XMLObjectOps.base, regs);
     return ok;
 }
-
-
-
-
 
 static inline bool
 guard_obj_is_xml(JSContext* cx, JSFrameRegs& regs, JSObject*& obj)

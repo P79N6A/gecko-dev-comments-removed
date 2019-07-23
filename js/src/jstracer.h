@@ -36,6 +36,7 @@
 
 
 
+
 #ifndef jstracer_h___
 #define jstracer_h___
 
@@ -103,7 +104,7 @@ public:
     TraceRecorder(JSContext* cx, JSFrameRegs& regs, nanojit::Fragmento*);
     ~TraceRecorder();
     
-    inline jsbytecode* entryPC() 
+    inline jsbytecode* entryPC() const
     {
         return entryState.pc;
     }
