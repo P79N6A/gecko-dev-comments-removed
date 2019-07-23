@@ -79,6 +79,7 @@ class nsIControllers;
 class nsIDOMNSFeatureFactory;
 class nsIEventListenerManager;
 class nsIScrollableView;
+class nsContentList;
 struct nsRect;
 
 typedef unsigned long PtrBits;
@@ -389,6 +390,9 @@ private:
 };
 
 
+class nsNSElementTearoff;
+
+
 
 
 
@@ -397,6 +401,8 @@ class nsGenericElement : public nsIContent
 public:
   nsGenericElement(nsINodeInfo *aNodeInfo);
   virtual ~nsGenericElement();
+
+  friend class nsNSElementTearoff;
 
   friend class nsNSElementTearoff;
 
@@ -1007,6 +1013,11 @@ public:
 
 
     nsNodeWeakReference* mWeakReference;
+
+    
+
+
+    nsRefPtr<nsContentList> mChildrenList;
   };
 
 protected:
@@ -1141,6 +1152,8 @@ public:
   }
   
 private:
+  nsContentList* GetChildrenList();
+
   nsRefPtr<nsGenericElement> mContent;
 
   
