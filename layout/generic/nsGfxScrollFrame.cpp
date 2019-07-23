@@ -230,26 +230,24 @@ nsHTMLScrollFrame::InvalidateInternal(const nsRect& aDamageRect,
                                       PRUint32 aFlags)
 {
   if (aForChild == mInner.mScrolledFrame) {
-    if (!(aFlags & INVALIDATE_NOTIFY_ONLY)) {
-      
-      nsRect damage = aDamageRect + nsPoint(aX, aY);
-      nsRect r;
-      if (r.IntersectRect(damage, mInner.mScrollableView->View()->GetBounds())) {
-        nsHTMLContainerFrame::InvalidateInternal(r, 0, 0, aForChild, aFlags);
-      }
-      if (mInner.mIsRoot && r != damage) {
-        
-        
-        
-        
-        
-        
-        
-        PresContext()->NotifyInvalidation(damage,
-            (aFlags & INVALIDATE_CROSS_DOC) != 0);
-      }
-      return;
+    
+    nsRect damage = aDamageRect + nsPoint(aX, aY);
+    nsRect r;
+    if (r.IntersectRect(damage, mInner.mScrollableView->View()->GetBounds())) {
+      nsHTMLContainerFrame::InvalidateInternal(r, 0, 0, aForChild, aFlags);
     }
+    if (mInner.mIsRoot && r != damage) {
+      
+      
+      
+      
+      
+      
+      
+      PresContext()->NotifyInvalidation(damage,
+          (aFlags & INVALIDATE_CROSS_DOC) != 0);
+    }
+    return;
   } else if (aForChild == mInner.mHScrollbarBox) {
     if (!mInner.mHasHorizontalScrollbar) {
       
