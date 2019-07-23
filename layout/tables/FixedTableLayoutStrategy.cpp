@@ -203,6 +203,10 @@ FixedTableLayoutStrategy::ComputeColumnWidths(const nsHTMLReflowState& aReflowSt
     
     float pctTotal = 0.0f;
 
+    
+    
+    nscoord specTotal = 0;
+
     for (PRInt32 col = 0; col < colCount; ++col) {
         nsTableColFrame *colFrame = mTableFrame->GetColFrame(col);
         if (!colFrame) {
@@ -217,6 +221,7 @@ FixedTableLayoutStrategy::ComputeColumnWidths(const nsHTMLReflowState& aReflowSt
             colWidth = nsLayoutUtils::ComputeWidthValue(
                          aReflowState.rendContext,
                          colFrame, 0, 0, 0, *styleWidth);
+            specTotal += colWidth;
         } else if (styleWidth->GetUnit() == eStyleUnit_Percent) {
             float pct = styleWidth->GetPercentValue();
             colWidth = NSToCoordFloor(pct * float(tableWidth));
@@ -272,6 +277,9 @@ FixedTableLayoutStrategy::ComputeColumnWidths(const nsHTMLReflowState& aReflowSt
                         if (colWidth < 0)
                             colWidth = 0;
                     }
+                    if (styleWidth->GetUnit() != eStyleUnit_Percent) {
+                        specTotal += colWidth;
+                    }
                 }
             } else {
                 colWidth = unassignedMarker;
@@ -313,6 +321,8 @@ FixedTableLayoutStrategy::ComputeColumnWidths(const nsHTMLReflowState& aReflowSt
     }
 
     if (unassignedCount > 0) {
+        
+        
         nscoord toAssign = unassignedSpace / unassignedCount;
         for (PRInt32 col = 0; col < colCount; ++col) {
             nsTableColFrame *colFrame = mTableFrame->GetColFrame(col);
@@ -325,16 +335,73 @@ FixedTableLayoutStrategy::ComputeColumnWidths(const nsHTMLReflowState& aReflowSt
         }
     } else if (unassignedSpace > 0) {
         
-        
-        
-        nscoord toAdd = unassignedSpace / colCount;
-        for (PRInt32 col = 0; col < colCount; ++col) {
-            nsTableColFrame *colFrame = mTableFrame->GetColFrame(col);
-            if (!colFrame) {
-                NS_ERROR("column frames out of sync with cell map");
-                continue;
+        if (specTotal > 0) {
+            
+            nscoord specUndist = specTotal;
+            for (PRInt32 col = 0; col < colCount; ++col) {
+                nsTableColFrame *colFrame = mTableFrame->GetColFrame(col);
+                if (!colFrame) {
+                    NS_ERROR("column frames out of sync with cell map");
+                    continue;
+                }
+                if (colFrame->GetPrefPercent() == 0.0f) {
+                    NS_ASSERTION(colFrame->GetFinalWidth() <= specUndist,
+                                 "widths don't add up");
+                    nscoord toAdd = NSToCoordRound(float(unassignedSpace) *
+                       (float(colFrame->GetFinalWidth()) / float(specUndist)));
+                    specUndist -= colFrame->GetFinalWidth();
+                    colFrame->SetFinalWidth(colFrame->GetFinalWidth() + toAdd);
+                    unassignedSpace -= toAdd;
+                    if (specUndist <= 0) {
+                        NS_ASSERTION(specUndist == 0,
+                                     "math should be exact");
+                        break;
+                    }
+                }
             }
-            colFrame->SetFinalWidth(colFrame->GetFinalWidth() + toAdd);
+            NS_ASSERTION(unassignedSpace == 0, "failed to redistribute");
+        } else if (pctTotal > 0) {
+            
+            float pctUndist = pctTotal;
+            for (PRInt32 col = 0; col < colCount; ++col) {
+                nsTableColFrame *colFrame = mTableFrame->GetColFrame(col);
+                if (!colFrame) {
+                    NS_ERROR("column frames out of sync with cell map");
+                    continue;
+                }
+                if (pctUndist < colFrame->GetPrefPercent()) {
+                    
+                    NS_ASSERTION(colFrame->GetPrefPercent() - pctUndist
+                                   < 0.0001,
+                                 "widths don't add up");
+                    pctUndist = colFrame->GetPrefPercent();
+                }
+                nscoord toAdd = NSToCoordRound(float(unassignedSpace) *
+                    (colFrame->GetPrefPercent() / pctUndist));
+                colFrame->SetFinalWidth(colFrame->GetFinalWidth() + toAdd);
+                unassignedSpace -= toAdd;
+                pctUndist -= colFrame->GetPrefPercent();
+                if (pctUndist <= 0.0f) {
+                    break;
+                }
+            }
+            NS_ASSERTION(unassignedSpace == 0, "failed to redistribute");
+        } else {
+            
+            PRInt32 colsLeft = colCount;
+            for (PRInt32 col = 0; col < colCount; ++col) {
+                nsTableColFrame *colFrame = mTableFrame->GetColFrame(col);
+                if (!colFrame) {
+                    NS_ERROR("column frames out of sync with cell map");
+                    continue;
+                }
+                NS_ASSERTION(colFrame->GetFinalWidth() == 0, "yikes");
+                nscoord toAdd = NSToCoordRound(float(unassignedSpace) /
+                                               float(colsLeft));
+                colFrame->SetFinalWidth(toAdd);
+                unassignedSpace -= toAdd;
+                --colsLeft;
+            }
         }
     }
 }
