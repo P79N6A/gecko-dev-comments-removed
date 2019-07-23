@@ -248,6 +248,15 @@ GeckoProcessType sChildProcessType = GeckoProcessType_Default;
 static MessageLoop* sIOMessageLoop;
 
 #if defined(MOZ_CRASHREPORTER)
+
+
+
+PRBool
+XRE_GetMinidumpForChild(PRUint32 aChildPid, nsIFile** aDump)
+{
+  return CrashReporter::GetMinidumpForChild(aChildPid, aDump);
+}
+
 PRBool
 XRE_SetRemoteExceptionHandler(const char* aPipe)
 {

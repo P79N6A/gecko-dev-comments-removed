@@ -42,6 +42,8 @@
 #include "nsXPCOM.h"
 #include "nsStringGlue.h"
 
+#include "nsIFile.h"
+
 #if defined(XP_WIN32)
 #ifdef WIN32_LEAN_AND_MEAN
 #undef WIN32_LEAN_AND_MEAN
@@ -64,16 +66,26 @@ nsresult SetupExtraData(nsILocalFile* aAppDataDirectory,
                         const nsACString& aBuildID);
 #ifdef XP_WIN32
   nsresult WriteMinidumpForException(EXCEPTION_POINTERS* aExceptionInfo);
-
-
-const char* GetChildNotificationPipe();
-
-bool SetRemoteExceptionHandler(const nsACString& crashPipe);
 #endif
 #ifdef XP_MACOSX
   nsresult AppendObjCExceptionInfoToAppNotes(void *inException);
 #endif
-#ifdef XP_LINUX
+
+#ifdef MOZ_IPC
+
+
+
+
+bool GetMinidumpForChild(PRUint32 childPid, nsIFile** dump NS_OUTPARAM);
+
+#  if defined(XP_WIN32)
+
+const char* GetChildNotificationPipe();
+
+
+bool SetRemoteExceptionHandler(const nsACString& crashPipe);
+
+#  elif defined(XP_LINUX)
 
 
 
@@ -88,9 +100,10 @@ bool CreateNotificationPipeForChild(int* childCrashFd, int* childCrashRemapFd);
 
 
 bool SetRemoteExceptionHandler();
-#endif
+#endif  
 
 bool UnsetRemoteExceptionHandler();
+#endif 
 }
 
 #endif 
