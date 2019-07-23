@@ -87,7 +87,7 @@ private:
 BOOL PrnClosePrinter( PRTQUEUE *pPrintQueue);
 
 
-HDC PrnOpenDC( PRTQUEUE *pPrintQueue, PSZ pszApplicationName, int copies, int destination, char *file);
+HDC PrnOpenDC( PRTQUEUE *pPrintQueue, PCSZ pszApplicationName, int copies, int destination, char *file);
 
 
 BOOL PrnQueryHardcopyCaps( HDC hdc, PHCINFO pHCInfo);
