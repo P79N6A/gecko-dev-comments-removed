@@ -47,7 +47,6 @@
 #include "nsBaseWidget.h"
 #include "nsPIWidgetCocoa.h"
 #include "nsAutoPtr.h"
-#include "nsNativeThemeColors.h"
 
 class nsCocoaWindow;
 class nsChildView;
@@ -119,31 +118,6 @@ typedef struct _nsCocoaWindowList {
 - (void)sendToplevelDeactivateEvents;
 @end
 
-struct UnifiedGradientInfo {
-  float titlebarHeight;
-  float toolbarHeight;
-  BOOL windowIsMain;
-  BOOL drawTitlebar; 
-};
-
-
-
-static void unifiedShading(void* aInfo, const float* aIn, float* aOut)
-{
-  UnifiedGradientInfo* info = (UnifiedGradientInfo*)aInfo;
-  
-  float start = info->titlebarHeight / (info->titlebarHeight + info->toolbarHeight - 1);
-  const float startGrey = NativeGreyColorAsFloat(headerStartGrey, info->windowIsMain);
-  const float endGrey = NativeGreyColorAsFloat(headerEndGrey, info->windowIsMain);
-  
-  
-  float a = info->drawTitlebar ? *aIn * start : start + *aIn * (1 - start);
-  float result = (1.0f - a) * startGrey + a * endGrey;
-  aOut[0] = result;
-  aOut[1] = result;
-  aOut[2] = result;
-  aOut[3] = 1.0f;
-}
 
 
 
@@ -153,6 +127,7 @@ static void unifiedShading(void* aInfo, const float* aIn, float* aOut)
   NSColor *mInactiveTitlebarColor;
   NSColor *mBackgroundColor;
   NSWindow *mWindow; 
+  float mTitlebarHeight;
 }
 
 - (id)initWithActiveTitlebarColor:(NSColor*)aActiveTitlebarColor
@@ -169,20 +144,17 @@ static void unifiedShading(void* aInfo, const float* aIn, float* aOut)
 - (NSColor*)backgroundColor;
 
 - (NSWindow*)window;
+- (float)titlebarHeight;
 @end
 
 
 @interface ToolbarWindow : NSWindow
 {
   TitlebarAndBackgroundColor *mColor;
-  float mUnifiedToolbarHeight;
-  BOOL mSuppressPainting;
 }
 - (void)setTitlebarColor:(NSColor*)aColor forActiveWindow:(BOOL)aActive;
-- (void)setUnifiedToolbarHeight:(float)aToolbarHeight;
-- (float)unifiedToolbarHeight;
-- (float)titlebarHeight;
-- (BOOL)isPaintingSuppressed;
+- (NSColor*)activeTitlebarColor;
+- (NSColor*)inactiveTitlebarColor;
 
 
 - (NSColor*)windowBackgroundColor;

@@ -236,7 +236,4 @@
 #define NS_THEME_WIN_BROWSER_TAB_BAR_TOOLBOX               223
 
 
-#define NS_THEME_MOZ_MAC_UNIFIED_TOOLBAR                   224
-
-
 #define NS_THEME_WIN_GLASS                                 230

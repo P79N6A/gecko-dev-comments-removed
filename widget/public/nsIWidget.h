@@ -95,8 +95,8 @@ typedef nsEventStatus (*PR_CALLBACK EVENT_CALLBACK)(nsGUIEvent *event);
 
 
 #define NS_IWIDGET_IID \
-{ 0x0e64821f, 0x00a2, 0x4adc, \
-  { 0xac, 0x3b, 0x34, 0x39, 0xd6, 0x1f, 0x44, 0x91 } }
+{ 0xae42543f, 0xbf61, 0x4164, \
+  { 0x96, 0xba, 0xaf, 0x8f, 0x4e, 0xdc, 0xee, 0xad } }
 
 
 
@@ -382,15 +382,6 @@ class nsIWidget : public nsISupports {
 
 
     virtual nsIWidget* GetParent(void) = 0;
-
-    
-
-
-
-
-
-
-    virtual nsIWidget* GetTopLevelWidget(PRInt32* aLevelsUp = NULL) = 0;
 
     
 

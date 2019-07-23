@@ -143,8 +143,6 @@ public:
     eColor__moz_oddtreerow,
 
     
-    eColor__moz_mac_chrome_active,                          
-    eColor__moz_mac_chrome_inactive,                        
     eColor__moz_mac_focusring,				
     eColor__moz_mac_menuselect,				
     eColor__moz_mac_menushadow,				
