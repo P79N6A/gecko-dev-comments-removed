@@ -128,7 +128,7 @@ class nsXULContentBuilder : public nsXULTemplateBuilder
 {
 public:
     
-    NS_IMETHOD CreateContents(nsIContent* aElement);
+    NS_IMETHOD CreateContents(nsIContent* aElement, PRBool aForceCreation);
 
     NS_IMETHOD HasGeneratedContent(nsIRDFResource* aResource,
                                    nsIAtom* aTag,
@@ -264,8 +264,10 @@ protected:
 
 
 
+
     nsresult
     CreateTemplateAndContainerContents(nsIContent* aElement,
+                                       PRBool aForceCreation,
                                        nsIContent** aContainer,
                                        PRInt32* aNewIndexInContainer);
 
@@ -279,9 +281,11 @@ protected:
 
 
 
+
     nsresult
     CreateContainerContents(nsIContent* aElement,
                             nsIXULTemplateResult* aResult,
+                            PRBool aForceCreation,
                             PRBool aNotify,
                             nsIContent** aContainer,
                             PRInt32* aNewIndexInContainer);
@@ -853,7 +857,7 @@ nsXULContentBuilder::BuildContentFromTemplate(nsIContent *aTemplateNode,
                 if (NS_FAILED(rv)) return rv;
 
                 if (isGenerationElement) {
-                    rv = CreateContainerContents(realKid, aChild, PR_FALSE,
+                    rv = CreateContainerContents(realKid, aChild, PR_FALSE, PR_FALSE,
                                                  nsnull ,
                                                  nsnull );
                     if (NS_FAILED(rv)) return rv;
@@ -1099,6 +1103,7 @@ nsXULContentBuilder::RemoveMember(nsIContent* aContent)
 
 nsresult
 nsXULContentBuilder::CreateTemplateAndContainerContents(nsIContent* aElement,
+                                                        PRBool aForceCreation,
                                                         nsIContent** aContainer,
                                                         PRInt32* aNewIndexInContainer)
 {
@@ -1143,8 +1148,8 @@ nsXULContentBuilder::CreateTemplateAndContainerContents(nsIContent* aElement,
         }
 
         if (mRootResult) {
-            CreateContainerContents(aElement, mRootResult, PR_FALSE,
-                                    aContainer, aNewIndexInContainer);
+            CreateContainerContents(aElement, mRootResult, aForceCreation,
+                                    PR_FALSE, aContainer, aNewIndexInContainer);
         }
     }
     else if (!(mFlags & eDontRecurse)) {
@@ -1159,8 +1164,8 @@ nsXULContentBuilder::CreateTemplateAndContainerContents(nsIContent* aElement,
             if (NS_FAILED(rv) || !mayProcessChildren)
                 return rv;
 
-            CreateContainerContents(aElement, match->mResult, PR_FALSE,
-                                    aContainer, aNewIndexInContainer);
+            CreateContainerContents(aElement, match->mResult, aForceCreation,
+                                    PR_FALSE, aContainer, aNewIndexInContainer);
         }
     }
 
@@ -1173,6 +1178,7 @@ nsXULContentBuilder::CreateTemplateAndContainerContents(nsIContent* aElement,
 nsresult
 nsXULContentBuilder::CreateContainerContents(nsIContent* aElement,
                                              nsIXULTemplateResult* aResult,
+                                             PRBool aForceCreation,
                                              PRBool aNotify,
                                              nsIContent** aContainer,
                                              PRInt32* aNewIndexInContainer)
@@ -1210,7 +1216,7 @@ nsXULContentBuilder::CreateContainerContents(nsIContent* aElement,
     
     
     
-    if (IsLazyWidgetItem(aElement) && !IsOpen(aElement))
+    if (!aForceCreation && IsLazyWidgetItem(aElement) && !IsOpen(aElement))
         return NS_OK;
 
     
@@ -1670,13 +1676,26 @@ nsXULContentBuilder::SetContainerAttrs(nsIContent *aElement,
 
 
 NS_IMETHODIMP
-nsXULContentBuilder::CreateContents(nsIContent* aElement)
+nsXULContentBuilder::CreateContents(nsIContent* aElement, PRBool aForceCreation)
 {
     NS_PRECONDITION(aElement != nsnull, "null ptr");
     if (! aElement)
         return NS_ERROR_NULL_POINTER;
 
-    return CreateTemplateAndContainerContents(aElement, nsnull , nsnull );
+    nsCOMPtr<nsIContent> container;
+    PRInt32 newIndex;
+    nsresult rv = CreateTemplateAndContainerContents(aElement, aForceCreation,
+                                                     getter_AddRefs(container), &newIndex);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    
+    if (aForceCreation && container) {
+        MOZ_AUTO_DOC_UPDATE(container->GetCurrentDoc(), UPDATE_CONTENT_MODEL,
+                            PR_TRUE);
+        nsNodeUtils::ContentAppended(container, newIndex);
+    }
+
+    return NS_OK;
 }
 
 NS_IMETHODIMP
@@ -2017,7 +2036,8 @@ nsXULContentBuilder::OpenContainer(nsIContent* aElement)
     
     nsCOMPtr<nsIContent> container;
     PRInt32 newIndex;
-    CreateContainerContents(aElement, result, PR_FALSE, getter_AddRefs(container), &newIndex);
+    CreateContainerContents(aElement, result, PR_FALSE,
+                            PR_FALSE, getter_AddRefs(container), &newIndex);
 
     if (container && IsLazyWidgetItem(aElement)) {
         
@@ -2090,7 +2110,7 @@ nsXULContentBuilder::RebuildAll()
     
     nsCOMPtr<nsIContent> container;
     PRInt32 newIndex;
-    CreateTemplateAndContainerContents(mRoot, getter_AddRefs(container), &newIndex);
+    CreateTemplateAndContainerContents(mRoot, PR_FALSE, getter_AddRefs(container), &newIndex);
 
     if (container) {
         MOZ_AUTO_DOC_UPDATE(container->GetCurrentDoc(), UPDATE_CONTENT_MODEL,

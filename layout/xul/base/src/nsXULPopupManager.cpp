@@ -45,6 +45,8 @@
 #include "nsIDOMDocument.h"
 #include "nsIDOMNSEvent.h"
 #include "nsIDOMNSUIEvent.h"
+#include "nsIDOMXULElement.h"
+#include "nsIXULTemplateBuilder.h"
 #include "nsIPrivateDOMEvent.h"
 #include "nsEventDispatcher.h"
 #include "nsEventStateManager.h"
@@ -366,6 +368,24 @@ nsXULPopupManager::ShowMenu(nsIContent *aMenu,
                             PRBool aSelectFirstItem,
                             PRBool aAsynchronous)
 {
+  
+  
+  if (aMenu) {
+    nsIContent* element = aMenu;
+    do {
+      nsCOMPtr<nsIDOMXULElement> xulelem = do_QueryInterface(element);
+      if (xulelem) {
+        nsCOMPtr<nsIXULTemplateBuilder> builder;
+        xulelem->GetBuilder(getter_AddRefs(builder));
+        if (builder) {
+          builder->CreateContents(aMenu, PR_TRUE);
+          break;
+        }
+      }
+      element = element->GetParent();
+    } while (element);
+  }
+
   nsMenuFrame* menuFrame = GetMenuFrameForContent(aMenu);
   if (!menuFrame || !menuFrame->IsMenu())
     return;
@@ -913,12 +933,6 @@ nsXULPopupManager::FirePopupShowingEvent(nsIContent* aPopup,
                                          PRBool aSelectFirstItem)
 {
   nsCOMPtr<nsIPresShell> presShell = aPresContext->PresShell();
-
-  
-  
-  if (aMenu)
-    aMenu->SetAttr(kNameSpaceID_None, nsGkAtoms::open,
-                   NS_LITERAL_STRING("true"), PR_TRUE);
 
   
   
