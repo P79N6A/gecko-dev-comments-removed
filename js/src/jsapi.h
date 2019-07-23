@@ -180,9 +180,7 @@ JS_BEGIN_EXTERN_C
 #define JSFUN_THISP_BOOLEAN   0x0400    /* |this| may be a primitive boolean */
 #define JSFUN_THISP_PRIMITIVE 0x0700    /* |this| may be any primitive value */
 
-#define JSFUN_FAST_NATIVE     0x0800    /* JSFastNative needs no JSStackFrame */
-
-#define JSFUN_FLAGS_MASK      0x0ff8    /* overlay JSFUN_* attributes --
+#define JSFUN_FLAGS_MASK      0x07f8    /* overlay JSFUN_* attributes --
                                            note that bit #15 is used internally
                                            to flag interpreted functions */
 
@@ -643,29 +641,6 @@ JS_GetClassObject(JSContext *cx, JSObject *obj, JSProtoKey key,
 
 extern JS_PUBLIC_API(JSObject *)
 JS_GetScopeChain(JSContext *cx);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#define JS_CALLEE(cx,vp)        ((vp)[0])
-#define JS_ARGV_CALLEE(argv)    ((argv)[-2])
-#define JS_THIS(cx,vp)          ((vp)[1])
-#define JS_THIS_OBJECT(cx,vp)   ((JSObject *) JS_THIS(cx,vp))
-#define JS_ARGV(cx,vp)          ((vp) + 2)
-#define JS_RVAL(cx,vp)          (*(vp))
-#define JS_SET_RVAL(cx,vp,v)    (*(vp) = (v))
 
 extern JS_PUBLIC_API(void *)
 JS_malloc(JSContext *cx, size_t nbytes);
@@ -1400,38 +1375,12 @@ struct JSFunctionSpec {
 #else
     uint16          nargs;
     uint16          flags;
-
-    
-
+    uint32          extra;      
 
 
-    uint32          extra;
+
 #endif
 };
-
-
-
-
-
-#define JS_FS_END JS_FS(NULL,NULL,0,0,0)
-
-
-
-
-
-
-
-#define JS_FS(name,call,nargs,flags,extra)                                    \
-    {name, call, nargs, flags, extra}
-
-
-
-
-
-
-#define JS_FN(name,fastcall,minargs,nargs,flags,extra)                        \
-    {name, (JSNative)(fastcall), nargs, (flags) | JSFUN_FAST_NATIVE,          \
-     (minargs) << 16 | (uint16)(extra)}
 
 extern JS_PUBLIC_API(JSObject *)
 JS_InitClass(JSContext *cx, JSObject *obj, JSObject *parent_proto,
