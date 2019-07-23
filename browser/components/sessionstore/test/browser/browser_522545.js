@@ -197,6 +197,8 @@ function test() {
 
   
   function test_getBrowserState_lotsOfTabsOpening() {
+    gBrowser.stop();
+
     let uris = [];
     for (let i = 0; i < 25; i++)
       uris.push("http://example.com/" + i);
@@ -206,8 +208,6 @@ function test() {
     
     
     gBrowser.addEventListener("load", function(aEvent) {
-      if (gBrowser.currentURI.spec == "about:blank")
-        return;
       gBrowser.removeEventListener("load", arguments.callee, true);
 
       let state = JSON.parse(ss.getBrowserState());
@@ -219,7 +219,7 @@ function test() {
         return aTab.userTypedValue && aTab.userTypedClear && !aTab.entries.length;
       });
 
-      ok(hasSH, "At least one tab has it's entry in SH");
+      ok(hasSH, "At least one tab has its entry in SH");
       ok(hasUTV, "At least one tab has a userTypedValue with userTypedClear with no loaded URL");
 
       runNextTest();
