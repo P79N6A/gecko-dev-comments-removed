@@ -80,6 +80,9 @@ enum nsStyleAnimType {
   eStyleAnimType_Sides_Left,
 
   
+  eStyleAnimType_nscoord,
+
+  
   eStyleAnimType_None
 };
 
