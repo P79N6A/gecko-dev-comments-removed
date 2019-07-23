@@ -3582,9 +3582,22 @@ NS_IMETHODIMP nsFrame::GetOffsetFromView(nsPoint&  aOffset,
  PRBool
 nsIFrame::AreAncestorViewsVisible() const
 {
-  for (nsIView* view = GetClosestView(); view; view = view->GetParent()) {
-    if (view->GetVisibility() == nsViewVisibility_kHide) {
+  const nsIFrame* parent;
+  for (const nsIFrame* f = this; f; f = parent) {
+    nsIView* view = f->GetView();
+    if (view && view->GetVisibility() == nsViewVisibility_kHide) {
       return PR_FALSE;
+    }
+    parent = f->GetParent();
+    if (!parent) {
+      parent = nsLayoutUtils::GetCrossDocParentFrame(f);
+      if (parent && parent->PresContext()->IsChrome() &&
+          !f->PresContext()->IsChrome()) {
+        
+        
+        
+        break;
+      }
     }
   }
   return PR_TRUE;
