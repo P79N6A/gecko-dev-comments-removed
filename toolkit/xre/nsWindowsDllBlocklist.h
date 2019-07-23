@@ -44,6 +44,12 @@
 
 
 
+
+
+#define UNVERSIONED    ((unsigned long long)0LL)
+
+
+
 #define MAKE_VERSION(a,b,c,d)\
   ((a##ULL << 48) + (b##ULL << 32) + (c##ULL << 16) + d##ULL)
 
@@ -80,6 +86,10 @@ static DllBlockInfo sWindowsDllBlocklist[] = {
 
   
   {"hook.dll", ALL_VERSIONS},
+  
+  
+  
+  {"googledesktopnetwork3.dll", UNVERSIONED},
 
   
   { "mozdllblockingtest.dll", ALL_VERSIONS },
