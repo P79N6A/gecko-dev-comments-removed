@@ -51,6 +51,7 @@
 #include "nsIPrincipal.h"
 
 #include "nsContentUtils.h"
+#include "mozAutoDocUpdate.h"
 
 
 nsDOMCSSDeclaration::~nsDOMCSSDeclaration()
@@ -263,6 +264,13 @@ nsDOMCSSDeclaration::ParsePropertyValue(const nsCSSProperty aPropID,
     return result;
   }
 
+  
+  
+  
+  
+  
+  mozAutoDocConditionalContentUpdateBatch autoUpdate(DocToUpdate(), PR_TRUE);
+
   PRBool changed;
   result = cssParser->ParseProperty(aPropID, aPropValue, sheetURI, baseURI,
                                     sheetPrincipal, decl, &changed);
@@ -303,6 +311,13 @@ nsDOMCSSDeclaration::ParseDeclaration(const nsAString& aDecl,
     return result;
   }
 
+  
+  
+  
+  
+  
+  mozAutoDocConditionalContentUpdateBatch autoUpdate(DocToUpdate(), PR_TRUE);
+
   PRBool changed;
   result = cssParser->ParseAndAppendDeclaration(aDecl, sheetURI, baseURI,
                                                 sheetPrincipal, decl,
@@ -329,6 +344,13 @@ nsDOMCSSDeclaration::RemoveProperty(const nsCSSProperty aPropID)
   if (!decl) {
     return rv;
   }
+
+  
+  
+  
+  
+  
+  mozAutoDocConditionalContentUpdateBatch autoUpdate(DocToUpdate(), PR_TRUE);
 
   rv = decl->RemoveProperty(aPropID);
 

@@ -50,6 +50,7 @@ class nsICSSParser;
 class nsICSSLoader;
 class nsIURI;
 class nsIPrincipal;
+class nsIDocument;
 
 class CSS2PropertiesTearoff : public nsIDOMNSCSS2Properties
 {
@@ -101,6 +102,10 @@ protected:
   virtual nsresult GetCSSDeclaration(nsCSSDeclaration **aDecl,
                                      PRBool aAllocate) = 0;
   virtual nsresult DeclarationChanged() = 0;
+  
+  
+  
+  virtual nsIDocument* DocToUpdate() = 0;
   
   
   

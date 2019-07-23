@@ -105,6 +105,14 @@ nsDOMCSSAttributeDeclaration::DeclarationChanged()
     mContent->SetInlineStyleRule(newRule, PR_TRUE);
 }
 
+nsIDocument*
+nsDOMCSSAttributeDeclaration::DocToUpdate()
+{
+  
+  
+  return mContent->GetOwnerDoc();
+}
+
 nsresult
 nsDOMCSSAttributeDeclaration::GetCSSDeclaration(nsCSSDeclaration **aDecl,
                                                 PRBool aAllocate)
