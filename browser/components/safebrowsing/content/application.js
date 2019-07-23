@@ -100,3 +100,30 @@ function PROT_Application() {
 PROT_Application.prototype.getReportURL = function(name) {
   return gDataProvider["getReport" + name + "URL"]();
 }
+
+
+
+
+PROT_Application.prototype.newChannel = function(uri) {
+  var ioService = Cc["@mozilla.org/network/io-service;1"]
+                 .getService(Ci.nsIIOService);
+  var childURI = ioService.newURI("chrome://browser/content/safebrowsing/blockedSite.xhtml",
+                                  null, null);
+  var channel = ioService.newChannelFromURI(childURI);
+  channel.originalURI = uri;
+
+  return channel;
+}
+
+PROT_Application.prototype.getURIFlags = function(uri) {
+  return Ci.nsIAboutModule.ALLOW_SCRIPT;
+}
+
+PROT_Application.prototype.QueryInterface = function(iid) {
+  if (iid.equals(Ci.nsISupports) ||
+      iid.equals(Ci.nsIAboutModule))
+    return this;
+
+  Components.returnCode = Components.results.NS_ERROR_NO_INTERFACE;
+  return null;
+}

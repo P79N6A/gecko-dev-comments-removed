@@ -2853,6 +2853,9 @@ nsDocShell::DisplayLoadError(nsresult aError, nsIURI *aURI,
     nsresult rv = NS_OK;
     nsAutoString messageStr;
     nsCAutoString cssClass;
+    nsCAutoString errorPage;
+
+    errorPage.AssignLiteral("neterror");
 
     
     if (NS_ERROR_UNKNOWN_PROTOCOL == aError) {
@@ -2947,6 +2950,25 @@ nsDocShell::DisplayLoadError(nsresult aError, nsIURI *aURI,
         }
         if (!messageStr.IsEmpty())
             error.AssignLiteral("nssFailure2");
+    } else if (NS_ERROR_PHISHING_URI == aError || NS_ERROR_MALWARE_URI == aError) {
+        nsCAutoString host;
+        aURI->GetHost(host);
+        CopyUTF8toUTF16(host, formatStrs[0]);
+        formatStrCount = 1;
+        
+        
+        
+        nsXPIDLCString alternateErrorPage;
+        mPrefs->GetCharPref("urlclassifier.alternate_error_page",
+                            getter_Copies(alternateErrorPage));
+        if (alternateErrorPage)
+            errorPage.Assign(alternateErrorPage);
+
+        if (NS_ERROR_PHISHING_URI == aError)
+            error.AssignLiteral("phishingBlocked");
+        else
+            error.AssignLiteral("malwareBlocked");
+        cssClass.AssignLiteral("blacklist");
     }
     else {
         
@@ -2993,15 +3015,6 @@ nsDocShell::DisplayLoadError(nsresult aError, nsIURI *aURI,
             
             error.AssignLiteral("contentEncodingError");
             break;
-        case NS_ERROR_MALWARE_URI:
-            nsCAutoString host;
-            aURI->GetHost(host);
-            CopyUTF8toUTF16(host, formatStrs[0]);
-            formatStrCount = 1;
-
-            error.AssignLiteral("malwareBlocked");
-            cssClass.AssignLiteral("blacklist");
-            break;
         }
     }
 
@@ -3042,8 +3055,8 @@ nsDocShell::DisplayLoadError(nsresult aError, nsIURI *aURI,
     
     if (mUseErrorPages && aURI && aFailedChannel) {
         
-        LoadErrorPage(aURI, aURL, error.get(), messageStr.get(),
-                      cssClass.get(), aFailedChannel);
+        LoadErrorPage(aURI, aURL, errorPage.get(), error.get(),
+                      messageStr.get(), cssClass.get(), aFailedChannel);
     } 
     else
     {
@@ -3066,6 +3079,7 @@ nsDocShell::DisplayLoadError(nsresult aError, nsIURI *aURI,
 
 NS_IMETHODIMP
 nsDocShell::LoadErrorPage(nsIURI *aURI, const PRUnichar *aURL,
+                          const char *aErrorPage,
                           const PRUnichar *aErrorType,
                           const PRUnichar *aDescription,
                           const char *aCSSClass,
@@ -3135,7 +3149,9 @@ nsDocShell::LoadErrorPage(nsIURI *aURI, const PRUnichar *aURL,
     char *escapedDescription = nsEscape(NS_ConvertUTF16toUTF8(aDescription).get(), url_Path);
     char *escapedCSSClass = nsEscape(aCSSClass, url_Path);
 
-    nsCString errorPageUrl("about:neterror?e=");
+    nsCString errorPageUrl("about:");
+    errorPageUrl.AppendASCII(aErrorPage);
+    errorPageUrl.AppendLiteral("?e=");
 
     errorPageUrl.AppendASCII(escapedError);
     errorPageUrl.AppendLiteral("&u=");

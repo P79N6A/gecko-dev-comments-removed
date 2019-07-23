@@ -532,26 +532,7 @@ PROT_PhishMsgDisplayerCanvas.inherits(PROT_PhishMsgDisplayerBase);
 
 
 
-PROT_PhishMsgDisplayerCanvas.prototype.showMessage_ = function() {
-  G_Debug(this, "Showing message.");
-
-  
-  var dimmer = this.doc_.getElementById('safebrowsing-dim-area-canvas');
-  if (!dimmer) {
-    var onOverlayMerged = BindToObject(this.showMessageAfterOverlay_,
-                                       this);
-    var observer = new G_ObserverWrapper("xul-overlay-merged",
-                                         onOverlayMerged);
-
-    this.doc_.loadOverlay(
-        "chrome://browser/content/safebrowsing/warning-overlay.xul",
-        observer);
-  } else {
-    
-    
-    this.showMessageAfterOverlay_();
-  }
-}
+PROT_PhishMsgDisplayerCanvas.prototype.showMessage_ = function() { }
 
 
 
@@ -678,34 +659,7 @@ PROT_PhishMsgDisplayerCanvas.prototype.isVisibleElement_ = function(elt) {
 
 
 
-PROT_PhishMsgDisplayerCanvas.prototype.hideMessage_ = function() {
-  G_Debug(this, "Hiding phishing warning.");
-  G_Assert(this, this.messageShowing_, "Hide message called but not showing?");
-
-  this.messageShowing_ = false;
-  this.repainter_.cancel();
-  this.repainter_ = null;
-
-  
-  var message = this.doc_.getElementById(this.messageId_);
-  message.hidden = true;
-  message.style.display = "none";
-  var content = this.doc_.getElementById(this.messageContentId_);
-  content.style.height = "";
-  content.style.overflow = "";
-
-  var tail = this.doc_.getElementById(this.messageTailId_);
-  tail.hidden = true;
-  tail.style.display = "none";
-
-  
-  var pageCanvas = this.doc_.getElementById(this.pageCanvasId_);
-  pageCanvas.parentNode.removeChild(pageCanvas);
-
-  
-  var dimarea = this.doc_.getElementById(this.dimAreaId_);
-  dimarea.hidden = true;
-}
+PROT_PhishMsgDisplayerCanvas.prototype.hideMessage_ = function() { }
 
 
 

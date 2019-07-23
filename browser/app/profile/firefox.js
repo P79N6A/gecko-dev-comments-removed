@@ -539,6 +539,10 @@ pref("browser.safebrowsing.provider.0.reportPhishURL", "http://{moz:locale}.phis
 
 
 pref("browser.safebrowsing.warning.infoURL", "http://%LOCALE%.www.mozilla.com/%LOCALE%/firefox/phishing-protection/");
+
+
+
+pref("urlclassifier.alternate_error_page", "blocked");
 #endif
 
 
