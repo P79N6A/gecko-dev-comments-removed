@@ -107,8 +107,8 @@ extern "C" {
 
 
 
-#define SQLITE_VERSION         "3.6.4"
-#define SQLITE_VERSION_NUMBER  3006004
+#define SQLITE_VERSION         "3.6.6.2"
+#define SQLITE_VERSION_NUMBER  3006006
 
 
 
@@ -295,6 +295,8 @@ int sqlite3_close(sqlite3 *);
 
 
 typedef int (*sqlite3_callback)(void*,int,char**, char**);
+
+
 
 
 
@@ -605,6 +607,12 @@ typedef struct sqlite3_file sqlite3_file;
 struct sqlite3_file {
   const struct sqlite3_io_methods *pMethods;  
 };
+
+
+
+
+
+
 
 
 
@@ -1313,6 +1321,20 @@ struct sqlite3_mem_methods {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #define SQLITE_CONFIG_SINGLETHREAD  1  /* nil */
 #define SQLITE_CONFIG_MULTITHREAD   2  /* nil */
 #define SQLITE_CONFIG_SERIALIZED    3  /* nil */
@@ -1324,8 +1346,10 @@ struct sqlite3_mem_methods {
 #define SQLITE_CONFIG_MEMSTATUS     9  /* boolean */
 #define SQLITE_CONFIG_MUTEX        10  /* sqlite3_mutex_methods* */
 #define SQLITE_CONFIG_GETMUTEX     11  /* sqlite3_mutex_methods* */
-#define SQLITE_CONFIG_CHUNKALLOC   12  /* int threshold */
+ 
 #define SQLITE_CONFIG_LOOKASIDE    13  /* int int */
+#define SQLITE_CONFIG_PCACHE       14  /* sqlite3_pcache_methods* */
+#define SQLITE_CONFIG_GETPCACHE    15  /* sqlite3_pcache_methods* */
 
 
 
@@ -2375,7 +2399,7 @@ int sqlite3_set_authorizer(
 #define SQLITE_ANALYZE              28   /* Table Name      NULL            */
 #define SQLITE_CREATE_VTABLE        29   /* Table Name      Module Name     */
 #define SQLITE_DROP_VTABLE          30   /* Table Name      Module Name     */
-#define SQLITE_FUNCTION             31   /* Function Name   NULL            */
+#define SQLITE_FUNCTION             31   /* NULL            Function Name   */
 #define SQLITE_COPY                  0   /* No longer used */
 
 
@@ -2696,7 +2720,27 @@ int sqlite3_open_v2(
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 int sqlite3_errcode(sqlite3 *db);
+int sqlite3_extended_errcode(sqlite3 *db);
 const char *sqlite3_errmsg(sqlite3*);
 const void *sqlite3_errmsg16(sqlite3*);
 
@@ -5773,6 +5817,7 @@ typedef struct sqlite3_blob sqlite3_blob;
 
 
 
+
 int sqlite3_blob_open(
   sqlite3*,
   const char *zDb,
@@ -5882,7 +5927,9 @@ int sqlite3_blob_bytes(sqlite3_blob *);
 
 
 
+
 int sqlite3_blob_read(sqlite3_blob *, void *Z, int N, int iOffset);
+
 
 
 
@@ -6253,6 +6300,17 @@ int sqlite3_mutex_notheld(sqlite3_mutex*);
 
 
 
+sqlite3_mutex *sqlite3_db_mutex(sqlite3*);
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -6512,6 +6570,149 @@ SQLITE_EXPERIMENTAL int sqlite3_stmt_status(sqlite3_stmt*, int op,int resetFlg);
 
 #define SQLITE_STMTSTATUS_FULLSCAN_STEP     1
 #define SQLITE_STMTSTATUS_SORT              2
+
+
+
+
+
+
+
+
+
+
+
+
+
+typedef struct sqlite3_pcache sqlite3_pcache;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+typedef struct sqlite3_pcache_methods sqlite3_pcache_methods;
+struct sqlite3_pcache_methods {
+  void *pArg;
+  int (*xInit)(void*);
+  void (*xShutdown)(void*);
+  sqlite3_pcache *(*xCreate)(int szPage, int bPurgeable);
+  void (*xCachesize)(sqlite3_pcache*, int nCachesize);
+  int (*xPagecount)(sqlite3_pcache*);
+  void *(*xFetch)(sqlite3_pcache*, unsigned key, int createFlag);
+  void (*xUnpin)(sqlite3_pcache*, void*, int discard);
+  void (*xRekey)(sqlite3_pcache*, void*, unsigned oldKey, unsigned newKey);
+  void (*xTruncate)(sqlite3_pcache*, unsigned iLimit);
+  void (*xDestroy)(sqlite3_pcache*);
+};
 
 
 
