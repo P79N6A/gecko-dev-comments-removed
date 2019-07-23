@@ -48,29 +48,7 @@
 #include "nsBoxLayoutState.h"
 #include "nsIScrollableFrame.h"
 #include "nsIRootBox.h"
-
-nsPopupFrameList::nsPopupFrameList(nsIContent* aPopupContent, nsPopupFrameList* aNext)
-:mNextPopup(aNext), 
- mPopupFrame(nsnull),
- mPopupContent(aPopupContent)
-{
-}
-
-void nsPopupFrameList::Destroy(nsIFrame* aDestructRoot)
-{
-  if (mPopupFrame) {
-    nsIFrame* prevSib = mPopupFrame->GetPrevSibling();
-    if (prevSib)
-      prevSib->SetNextSibling(mPopupFrame->GetNextSibling());
-    mPopupFrame->SetNextSibling(nsnull);
-    mPopupFrame->DestroyFrom((aDestructRoot) ? aDestructRoot : mPopupFrame);
-  }
-}
-
-
-
-
-
+#include "nsMenuPopupFrame.h"
 
 nsIFrame*
 NS_NewPopupSetFrame(nsIPresShell* aPresShell, nsStyleContext* aContext)
@@ -108,7 +86,8 @@ nsPopupSetFrame::AppendFrames(nsIAtom*        aListName,
                               nsFrameList&    aFrameList)
 {
   if (aListName == nsGkAtoms::popupList) {
-    return AddPopupFrameList(aFrameList);
+    AddPopupFrameList(aFrameList);
+    return NS_OK;
   }
   return nsBoxFrame::AppendFrames(aListName, aFrameList);
 }
@@ -118,7 +97,8 @@ nsPopupSetFrame::RemoveFrame(nsIAtom*        aListName,
                              nsIFrame*       aOldFrame)
 {
   if (aListName == nsGkAtoms::popupList) {
-    return RemovePopupFrame(aOldFrame);
+    RemovePopupFrame(aOldFrame);
+    return NS_OK;
   }
   return nsBoxFrame::RemoveFrame(aListName, aOldFrame);
 }
@@ -129,7 +109,8 @@ nsPopupSetFrame::InsertFrames(nsIAtom*        aListName,
                               nsFrameList&    aFrameList)
 {
   if (aListName == nsGkAtoms::popupList) {
-    return AddPopupFrameList(aFrameList);
+    AddPopupFrameList(aFrameList);
+    return NS_OK;
   }
   return nsBoxFrame::InsertFrames(aListName, aPrevFrame, aFrameList);
 }
@@ -139,7 +120,13 @@ nsPopupSetFrame::SetInitialChildList(nsIAtom*        aListName,
                                      nsFrameList&    aChildList)
 {
   if (aListName == nsGkAtoms::popupList) {
-    return AddPopupFrameList(aChildList);
+    
+    
+    
+    
+    
+    AddPopupFrameList(aChildList);
+    return NS_OK;
   }
   return nsBoxFrame::SetInitialChildList(aListName, aChildList);
 }
@@ -147,12 +134,7 @@ nsPopupSetFrame::SetInitialChildList(nsIAtom*        aListName,
 void
 nsPopupSetFrame::DestroyFrom(nsIFrame* aDestructRoot)
 {
-  
-  while (mPopupList) {
-    nsPopupFrameList* temp = mPopupList;
-    mPopupList = mPopupList->mNextPopup;
-    temp->Destroy(aDestructRoot); 
-  }
+  mPopupList.DestroyFramesFrom(aDestructRoot);
 
   
   
@@ -171,10 +153,9 @@ nsPopupSetFrame::DoLayout(nsBoxLayoutState& aState)
   nsresult rv = nsBoxFrame::DoLayout(aState);
 
   
-  nsPopupFrameList* currEntry = mPopupList;
-  while (currEntry) {
-    nsMenuPopupFrame* popupChild = currEntry->mPopupFrame;
-    if (popupChild && popupChild->IsOpen()) {
+  for (nsFrameList::Enumerator e(mPopupList); !e.AtEnd(); e.Next()) {
+    nsMenuPopupFrame* popupChild = static_cast<nsMenuPopupFrame*>(e.get());
+    if (popupChild->IsOpen()) {
       
       nsSize prefSize = popupChild->GetPrefSize(aState);
       nsSize minSize = popupChild->GetMinSize(aState);
@@ -222,96 +203,32 @@ nsPopupSetFrame::DoLayout(nsBoxLayoutState& aState)
       }
       popupChild->AdjustView();
     }
-
-    currEntry = currEntry->mNextPopup;
   }
 
   return rv;
 }
 
-nsresult
+void
 nsPopupSetFrame::RemovePopupFrame(nsIFrame* aPopup)
 {
-  
-  
-#ifdef DEBUG
-  PRBool found = PR_FALSE;
-#endif
-  nsPopupFrameList* currEntry = mPopupList;
-  nsPopupFrameList* temp = nsnull;
-  while (currEntry) {
-    if (currEntry->mPopupFrame == aPopup) {
-      
-      if (temp)
-        temp->mNextPopup = currEntry->mNextPopup;
-      else
-        mPopupList = currEntry->mNextPopup;
-      
-      NS_ASSERTION((aPopup->GetStateBits() & NS_FRAME_OUT_OF_FLOW) &&
-                   aPopup->GetType() == nsGkAtoms::menuPopupFrame,
-                   "found wrong type of frame in popupset's ::popupList");
-      
-      currEntry->mNextPopup = nsnull;
-      currEntry->Destroy(); 
-#ifdef DEBUG
-      found = PR_TRUE;
-#endif
+  NS_PRECONDITION((aPopup->GetStateBits() & NS_FRAME_OUT_OF_FLOW) &&
+                  aPopup->GetType() == nsGkAtoms::menuPopupFrame,
+                  "removing wrong type of frame in popupset's ::popupList");
 
-      
-      break;
-    }
-
-    temp = currEntry;
-    currEntry = currEntry->mNextPopup;
-  }
-
-  NS_ASSERTION(found, "frame to remove is not in our ::popupList");
-  return NS_OK;
+  mPopupList.DestroyFrame(aPopup);
 }
 
-nsresult
+void
 nsPopupSetFrame::AddPopupFrameList(nsFrameList& aPopupFrameList)
 {
-  while (!aPopupFrameList.IsEmpty()) {
-    nsIFrame* f = aPopupFrameList.FirstChild();
-    
-    
-    
-    aPopupFrameList.RemoveFrame(f);
-    nsresult rv = AddPopupFrame(f);
-    NS_ENSURE_SUCCESS(rv, rv);
+#ifdef DEBUG
+  for (nsFrameList::Enumerator e(aPopupFrameList); !e.AtEnd(); e.Next()) {
+    NS_ASSERTION((e.get()->GetStateBits() & NS_FRAME_OUT_OF_FLOW) &&
+                 e.get()->GetType() == nsGkAtoms::menuPopupFrame,
+                 "adding wrong type of frame in popupset's ::popupList");
   }
-  return NS_OK;
-}
-
-nsresult
-nsPopupSetFrame::AddPopupFrame(nsIFrame* aPopup)
-{
-  NS_ASSERTION((aPopup->GetStateBits() & NS_FRAME_OUT_OF_FLOW) &&
-               aPopup->GetType() == nsGkAtoms::menuPopupFrame,
-               "adding wrong type of frame in popupset's ::popupList");
-
-  
-  
-  
-  nsIContent* content = aPopup->GetContent();
-  nsPopupFrameList* entry = mPopupList;
-  while (entry && entry->mPopupContent != content)
-    entry = entry->mNextPopup;
-  if (!entry) {
-    entry = new nsPopupFrameList(content, mPopupList);
-    if (!entry)
-      return NS_ERROR_OUT_OF_MEMORY;
-    mPopupList = entry;
-  }
-  else {
-    NS_ASSERTION(!entry->mPopupFrame, "Leaking a popup frame");
-  }
-
-  
-  entry->mPopupFrame = static_cast<nsMenuPopupFrame *>(aPopup);
-  
-  return NS_OK;
+#endif
+  mPopupList.InsertFrames(nsnull, nsnull, aPopupFrameList);
 }
 
 #ifdef DEBUG
@@ -389,7 +306,7 @@ nsPopupSetFrame::List(FILE* out, PRInt32 aIndent) const
   
   
 
-  if (mPopupList) {
+  if (!mPopupList.IsEmpty()) {
     fputs("<\n", out);
     ++aIndent;
     IndentBy(out, aIndent);
@@ -400,8 +317,8 @@ nsPopupSetFrame::List(FILE* out, PRInt32 aIndent) const
     ListTag(out);
     fputs(" <\n", out);
     ++aIndent;
-    for (nsPopupFrameList* l = mPopupList; l; l = l->mNextPopup) {
-      l->mPopupFrame->List(out, aIndent);
+    for (nsFrameList::Enumerator e(mPopupList); !e.AtEnd(); e.Next()) {
+      e.get()->List(out, aIndent);
     }
     --aIndent;
     IndentBy(out, aIndent);

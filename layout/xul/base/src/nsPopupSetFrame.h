@@ -36,31 +36,13 @@
 
 
 
-
-
-
-
 #ifndef nsPopupSetFrame_h__
 #define nsPopupSetFrame_h__
 
 #include "nsIAtom.h"
-
 #include "nsBoxFrame.h"
-#include "nsMenuPopupFrame.h"
-
-class nsCSSFrameConstructor;
 
 nsIFrame* NS_NewPopupSetFrame(nsIPresShell* aPresShell, nsStyleContext* aContext);
-
-struct nsPopupFrameList {
-  nsPopupFrameList* mNextPopup;  
-  nsMenuPopupFrame* mPopupFrame; 
-  nsIContent* mPopupContent;     
-
-public:
-  nsPopupFrameList(nsIContent* aPopupContent, nsPopupFrameList* aNext);
-  void Destroy(nsIFrame* aDestructRoot = nsnull);
-};
 
 class nsPopupSetFrame : public nsBoxFrame
 {
@@ -85,7 +67,7 @@ public:
   NS_IMETHOD  SetInitialChildList(nsIAtom*        aListName,
                                   nsFrameList&    aChildList);
 
-    
+  
   NS_IMETHOD DoLayout(nsBoxLayoutState& aBoxLayoutState);
 
   
@@ -102,13 +84,10 @@ public:
 #endif
 
 protected:
-
-  nsresult AddPopupFrameList(nsFrameList& aPopupFrameList);
-  nsresult AddPopupFrame(nsIFrame* aPopup);
-  nsresult RemovePopupFrame(nsIFrame* aPopup);
+  void AddPopupFrameList(nsFrameList& aPopupFrameList);
+  void RemovePopupFrame(nsIFrame* aPopup);
   
-  nsPopupFrameList* mPopupList;
-
-}; 
+  nsFrameList mPopupList;
+};
 
 #endif

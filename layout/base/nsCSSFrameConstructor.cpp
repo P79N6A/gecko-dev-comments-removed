@@ -256,6 +256,7 @@ static FrameCtorDebugFlags gFlags[] = {
 
 #ifdef MOZ_XUL
 #include "nsMenuFrame.h"
+#include "nsMenuPopupFrame.h"
 #include "nsPopupSetFrame.h"
 #include "nsTreeColFrame.h"
 #include "nsIBoxObject.h"
