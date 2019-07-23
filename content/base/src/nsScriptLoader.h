@@ -205,7 +205,22 @@ public:
 
   void EndDeferringScripts();
 
+  
+
+
+
+
+
+
+  virtual void PreloadURI(nsIURI *aURI, const nsAString &aCharset,
+                          const nsAString &aType);
+
 protected:
+  
+
+
+  nsresult StartLoad(nsScriptLoadRequest *aRequest, const nsAString &aType);
+
   
 
 
@@ -253,6 +268,25 @@ protected:
   nsIDocument* mDocument;                   
   nsCOMArray<nsIScriptLoaderObserver> mObservers;
   nsCOMArray<nsScriptLoadRequest> mRequests;
+
+  
+  struct PreloadInfo {
+    nsRefPtr<nsScriptLoadRequest> mRequest;
+    nsString mCharset;
+  };
+
+  struct PreloadRequestComparator {
+    PRBool Equals(const PreloadInfo &aPi, nsScriptLoadRequest * const &aRequest)
+        const
+    {
+      return aRequest == aPi.mRequest;
+    }
+  };
+  struct PreloadURIComparator {
+    PRBool Equals(const PreloadInfo &aPi, nsIURI * const &aURI) const;
+  };
+  nsTArray<PreloadInfo> mPreloads;
+
   nsCOMPtr<nsIScriptElement> mCurrentScript;
   
   nsTArray< nsRefPtr<nsScriptLoader> > mPendingChildLoaders;
