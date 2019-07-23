@@ -698,6 +698,13 @@ JSBool
 XPC_SOW_WrapObject(JSContext *cx, JSObject *parent, jsval v,
                    jsval *vp)
 {
+  
+  
+  JSObject *innerObj = JSVAL_TO_OBJECT(v);
+  if (IS_SLIM_WRAPPER(innerObj) && !MorphSlimWrapper(cx, innerObj)) {
+    return ThrowException(NS_ERROR_FAILURE, cx);
+  }
+
   JSObject *wrapperObj =
     JS_NewObjectWithGivenProto(cx, &sXPC_SOW_JSClass.base, NULL, parent);
   if (!wrapperObj) {
