@@ -78,14 +78,6 @@ Link::GetLinkState() const
 void
 Link::SetLinkState(nsLinkState aState)
 {
-  
-  
-  
-  if (aState == eLinkState_Unknown) {
-    ResetLinkState();
-    return;
-  }
-
   NS_ASSERTION(mRegistered,
                "Setting the link state of an unregistered Link!");
   NS_ASSERTION(mLinkState != aState,
@@ -147,7 +139,7 @@ Link::LinkState() const
       
       nsIDocument *doc = content->GetCurrentDoc();
       if (doc) {
-        doc->AddStyleRelevantLink(content, hrefURI);
+        doc->AddStyleRelevantLink(self);
       }
     }
   }
@@ -470,16 +462,25 @@ Link::GetHash(nsAString &_hash)
 }
 
 void
-Link::ResetLinkState()
+Link::ResetLinkState(bool aNotify)
 {
+  
+  if (mLinkState == defaultState) {
+    return;
+  }
+
+  
+  if (mLinkState == eLinkState_NotLink) {
+    mLinkState = defaultState;
+    return;
+  }
+
   nsIContent *content = Content();
 
   
-  if (mRegistered) {
-    nsIDocument *doc = content->GetCurrentDoc();
-    if (doc) {
-      doc->ForgetLink(content);
-    }
+  nsIDocument *doc = content->GetCurrentDoc();
+  if (doc) {
+    doc->ForgetLink(this);
   }
 
   UnregisterFromHistory();
@@ -489,6 +490,17 @@ Link::ResetLinkState()
 
   
   mCachedURI = nsnull;
+
+  
+  
+  
+  
+  
+  if (aNotify && doc) {
+    PRUint32 changedState = NS_EVENT_STATE_VISITED ^ NS_EVENT_STATE_UNVISITED;
+    MOZ_AUTO_DOC_UPDATE(doc, UPDATE_STYLE, aNotify);
+    doc->ContentStatesChanged(content, nsnull, changedState);
+  }
 }
 
 void
