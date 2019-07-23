@@ -43,11 +43,6 @@
 namespace nanojit
 {
     
-    inline bool containsPtr(const NIns* start, const NIns* end, const NIns* ptr) {
-        return ptr >= start && ptr <= end;
-    }
-
-    
 
 
 
@@ -93,9 +88,6 @@ namespace nanojit
 
         
         size_t blockSize() const { return uintptr_t(end) - uintptr_t(this); }
-
-        
-        bool contains(NIns* p) const  { return containsPtr(&code[0], end, p); }
     };
 
     
@@ -197,29 +189,10 @@ namespace nanojit
         static void add(CodeList* &code, NIns* start, NIns* end);
 
         
-        static void moveAll(CodeList* &to, CodeList* &from);
-
-        
-        static bool contains(const CodeList* code, NIns* p);
-
-        
-        static size_t size(const CodeList* code);
-
-        
         size_t size();
 
         
         void logStats();
-
-        enum CodePointerKind {
-            kUnknown, kFree, kUsed
-        };
-
-        
-        CodePointerKind classifyPtr(NIns *p);
-
-        
-        void sweep();
 
         
         void markAllExec();

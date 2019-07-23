@@ -303,7 +303,7 @@ namespace nanojit
     {
         if (error()) return;
         
-        NanoAssertMsg(containsPtr(codeStart, codeEnd, _nIns),
+        NanoAssertMsg(codeStart <= _nIns && _nIns <= codeEnd,
                      "Native instruction pointer overstep paging bounds; check overrideProtect for last instruction");
     }
     #endif
