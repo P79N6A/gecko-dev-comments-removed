@@ -73,6 +73,9 @@
 
 #include "nsIXPConnect.h"
 
+#include "nsIObserverService.h"
+#include <prinrval.h>
+
 #if defined(XP_MACOSX)
 #include <Resources.h>
 #endif
@@ -238,6 +241,19 @@ _FP2TV(void *fp)
 #define FP2TV(f) (f)
 
 #endif 
+
+
+
+void NS_NotifyPluginCall(PRIntervalTime startTime) 
+{
+  PRIntervalTime endTime = PR_IntervalNow() - startTime;
+  nsCOMPtr<nsIObserverService> notifyUIService = do_GetService("@mozilla.org/observer-service;1");
+  float runTimeInSeconds = float(endTime) / PR_TicksPerSecond();
+  nsAutoString runTimeString;
+  runTimeString.AppendFloat(runTimeInSeconds);
+  const PRUnichar* runTime = runTimeString.get();
+  notifyUIService->NotifyObservers(nsnull, "experimental-notify-plugin-call", runTime);
+}
 
 
 
