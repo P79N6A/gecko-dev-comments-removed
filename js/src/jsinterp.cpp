@@ -2787,12 +2787,6 @@ js_Interpret(JSContext *cx)
 
 #endif 
 
-#ifdef JS_TRACER
-    
-    if (TRACE_RECORDER(cx))
-        js_AbortRecording(cx, "attempt to reenter interpreter while recording");
-#endif
-
     
     JS_CHECK_RECURSION(cx, return JS_FALSE);
 
@@ -2988,6 +2982,15 @@ js_Interpret(JSContext *cx)
         }
     }
 #endif 
+
+#ifdef JS_TRACER
+    
+
+
+
+    if (TRACE_RECORDER(cx))
+        js_AbortRecording(cx, "attempt to reenter interpreter while recording");
+#endif
 
     
 
