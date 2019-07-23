@@ -56,14 +56,18 @@
 
 
 
-class nsCommaSeparatedTokenizer
+class nsCharSeparatedTokenizer
 {
 public:
-    nsCommaSeparatedTokenizer(const nsSubstring& aSource)
+    nsCharSeparatedTokenizer(const nsSubstring& aSource,
+                             PRUnichar aSeparatorChar)
+        : mLastTokenEndedWithSeparator(PR_FALSE),
+          mSeparatorChar(aSeparatorChar)
     {
         aSource.BeginReading(mIter);
         aSource.EndReading(mEnd);
 
+        
         while (mIter != mEnd && isWhitespace(*mIter)) {
             ++mIter;
         }
@@ -80,9 +84,9 @@ public:
         return mIter != mEnd;
     }
 
-    PRBool lastTokenEndedWithComma()
+    PRBool lastTokenEndedWithSeparator()
     {
-        return mLastTokenEndedWithComma;
+        return mLastTokenEndedWithSeparator;
     }
 
     
@@ -96,21 +100,24 @@ public:
                      "Should be at beginning of token if there is one");
 
         
-        while (mIter != mEnd && *mIter != ',') {
-          while (mIter != mEnd && !isWhitespace(*mIter) && *mIter != ',') {
+        while (mIter != mEnd && *mIter != mSeparatorChar) {
+          
+          while (mIter != mEnd &&
+                 !isWhitespace(*mIter) && *mIter != mSeparatorChar) {
               ++mIter;
           }
           end = mIter;
 
+          
           while (mIter != mEnd && isWhitespace(*mIter)) {
               ++mIter;
           }
         }
-        mLastTokenEndedWithComma = mIter != mEnd;
+        mLastTokenEndedWithSeparator = mIter != mEnd;
 
         
-        if (mLastTokenEndedWithComma) {
-            NS_ASSERTION(*mIter == ',', "Ended loop too soon");
+        if (mLastTokenEndedWithSeparator) {
+            NS_ASSERTION(*mIter == mSeparatorChar, "Ended loop too soon");
             ++mIter;
 
             while (mIter != mEnd && isWhitespace(*mIter)) {
@@ -123,7 +130,8 @@ public:
 
 private:
     nsSubstring::const_char_iterator mIter, mEnd;
-    PRPackedBool mLastTokenEndedWithComma;
+    PRPackedBool mLastTokenEndedWithSeparator;
+    PRUnichar mSeparatorChar;
 
     PRBool isWhitespace(PRUnichar aChar)
     {
@@ -132,6 +140,14 @@ private:
                 aChar == '\r'|| aChar == '\t');
     }
 };
+
+class nsCommaSeparatedTokenizer : public nsCharSeparatedTokenizer
+{
+public:
+    nsCommaSeparatedTokenizer(const nsSubstring& aSource)
+        : nsCharSeparatedTokenizer(aSource, ',') {}
+};
+
 
 class nsCCommaSeparatedTokenizer
 {

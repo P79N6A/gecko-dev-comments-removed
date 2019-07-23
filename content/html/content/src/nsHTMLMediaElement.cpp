@@ -1329,7 +1329,7 @@ static CanPlayStatus GetCanPlay(const nsAString& aType)
       
       return CANPLAY_NO;
     }
-    expectMoreTokens = tokenizer.lastTokenEndedWithComma();
+    expectMoreTokens = tokenizer.lastTokenEndedWithSeparator();
   }
   if (expectMoreTokens) {
     
