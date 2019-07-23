@@ -5007,7 +5007,16 @@ js_Enumerate(JSContext *cx, JSObject *obj, JSIterateOp enum_op,
                 *statep = JSVAL_ZERO;
         } else {
             
+            JS_ASSERT(enum_op == JSENUMERATE_DESTROY);
             ne->cursor = 0;
+
+            
+
+
+
+
+            if (cx->runtime->state == JSRTS_LANDING)
+                cx->runtime->gcPoke = true;
         }
         break;
     }
