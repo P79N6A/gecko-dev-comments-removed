@@ -689,10 +689,12 @@ nsBinaryDetector::DetermineContentType(nsIRequest* aRequest)
   
   
   
+  
   if (!contentType.EqualsLiteral("text/plain") ||
       (!contentTypeHdr.EqualsLiteral("text/plain") &&
        !contentTypeHdr.EqualsLiteral("text/plain; charset=ISO-8859-1") &&
-       !contentTypeHdr.EqualsLiteral("text/plain; charset=iso-8859-1"))) {
+       !contentTypeHdr.EqualsLiteral("text/plain; charset=iso-8859-1") &&
+       !contentTypeHdr.EqualsLiteral("text/plain; charset=UTF-8"))) {
     return;
   }
 
