@@ -50,8 +50,8 @@ class nsIDeviceContext;
 class nsIViewObserver;
 
 #define NS_IVIEWMANAGER_IID   \
-  { 0x6ca2fd1c, 0xa57e, 0x4802, \
-    { 0xad, 0x55, 0x85, 0xf6, 0x6f, 0x4a, 0x2c, 0x04 } }
+  { 0xbbdd429c, 0x6542, 0x477a, \
+    { 0xab, 0x48, 0x6c, 0xd6, 0xcb, 0xb8, 0xdf, 0x98 } }
 
 class nsIViewManager : public nsISupports
 {
@@ -276,23 +276,6 @@ public:
 
 
   NS_IMETHOD  GetDeviceContext(nsIDeviceContext *&aContext) = 0;
-
-  
-
-
-
-  
-  
-  
-  NS_IMETHOD DisableRefresh(void) = 0;
-
-  
-
-
-
-
-
-  NS_IMETHOD EnableRefresh(PRUint32 aUpdateFlags) = 0;
 
   class NS_STACK_CLASS UpdateViewBatch {
   public:

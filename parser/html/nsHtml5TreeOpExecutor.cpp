@@ -600,23 +600,17 @@ nsHtml5TreeOpExecutor::NeedsCharsetSwitchTo(const char* aEncoding)
     return;
   }
   
-  nsresult rv = NS_OK;
   nsCOMPtr<nsIWebShellServices> wss = do_QueryInterface(mDocShell);
   if (!wss) {
     return;
   }
-#ifndef DONT_INFORM_WEBSHELL
+
   
-  if (NS_FAILED(rv = wss->SetRendering(PR_FALSE))) {
-    
-  } else if (NS_FAILED(rv = wss->StopDocumentLoad())) {
-    rv = wss->SetRendering(PR_TRUE); 
-  } else if (NS_FAILED(rv = wss->ReloadDocument(aEncoding, kCharsetFromMetaTag))) {
-    rv = wss->SetRendering(PR_TRUE); 
+  if (NS_SUCCEEDED(wss->StopDocumentLoad())) {
+    wss->ReloadDocument(aEncoding, kCharsetFromMetaTag);
   }
   
   
-#endif
 
   if (!mParser) {
     
