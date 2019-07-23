@@ -1489,7 +1489,7 @@ nsTextControlFrame::CreateFrameFor(nsIContent*      aContent)
       }
     } else {
       
-      textEditor->SetWrapWidth(-1);
+      textEditor->SetWrapColumn(-1);
     }
 
 
