@@ -171,7 +171,7 @@ private:
   nsresult SetItemDateInternal(mozIStorageStatement* aStatement, PRInt64 aItemId, PRTime aValue);
 
   
-  typedef struct folderChildrenInfo
+  struct folderChildrenInfo
   {
     PRInt64 itemId;
     PRUint16 itemType;
