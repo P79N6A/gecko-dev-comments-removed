@@ -61,9 +61,13 @@ NS_IMETHODIMP nsXULTextAccessible::GetName(nsAString& aName)
   if (!content) {
     return NS_ERROR_FAILURE;  
   }
+  if (!content->GetAttr(kNameSpaceID_None, nsAccessibilityAtoms::value,
+                        aName)) {
+    
+    return AppendFlatStringFromSubtree(content, &aName);
+  }
   
-  
-  return content->GetAttr(kNameSpaceID_None, nsAccessibilityAtoms::value, aName);
+  return NS_OK;
 }
 
 NS_IMETHODIMP
@@ -172,9 +176,13 @@ NS_IMETHODIMP nsXULLinkAccessible::GetName(nsAString& aName)
 
 NS_IMETHODIMP nsXULLinkAccessible::GetRole(PRUint32 *aRole)
 {
+  if (mIsLink) {
+    *aRole = nsIAccessibleRole::ROLE_LINK;
+  } else {
+    
+    *aRole = nsIAccessibleRole::ROLE_PUSHBUTTON;
+  }
   
-  
-  *aRole = nsIAccessibleRole::ROLE_LINK;
   return NS_OK;
 }
 
