@@ -2539,7 +2539,7 @@ SearchService.prototype = {
         bStream.close();
 
         
-        var str = b64(bytes);
+        var str = btoa(String.fromCharCode.apply(null, bytes));
 
         aEngine._iconURI = makeURI(ICON_DATAURL_PREFIX + str);
         LOG("_importSherlockEngine: Set sherlock iconURI to: \"" +
