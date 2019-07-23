@@ -215,6 +215,10 @@ protected:
       nscoord mCaretWidth;        
     };
     Metrics ComputeMetrics(nsIFrame* aFrame, PRInt32 aOffset, nscoord aCaretHeight);
+    void GetGeometryForFrame(nsIFrame* aFrame,
+                             PRInt32   aFrameOffset,
+                             nsRect*   aRect,
+                             nscoord*  aBidiIndicatorSize);
 
     
     

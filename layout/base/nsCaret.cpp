@@ -357,6 +357,57 @@ void nsCaret::SetCaretReadOnly(PRBool inMakeReadonly)
   mReadOnly = inMakeReadonly;
 }
 
+void
+nsCaret::GetGeometryForFrame(nsIFrame* aFrame,
+                             PRInt32   aFrameOffset,
+                             nsRect*   aRect,
+                             nscoord*  aBidiIndicatorSize)
+{
+  nsPoint framePos(0, 0);
+  aFrame->GetPointFromOffset(aFrameOffset, &framePos);
+  nscoord height = aFrame->GetContentRect().height;
+  if (height == 0) {
+    nsCOMPtr<nsIFontMetrics> fm;
+    nsLayoutUtils::GetFontMetricsForFrame(aFrame, getter_AddRefs(fm));
+    if (fm) {
+      nscoord ascent, descent;
+      fm->GetMaxAscent(ascent);
+      fm->GetMaxDescent(descent);
+      height = ascent + descent;
+
+      
+      
+      
+      if (aFrame->GetStyleDisplay()->IsInlineOutside() &&
+          !FramesOnSameLineHaveZeroHeight(aFrame))
+        framePos.y -= ascent;
+    }
+  }
+  Metrics caretMetrics = ComputeMetrics(aFrame, aFrameOffset, height);
+  *aRect = nsRect(framePos, nsSize(caretMetrics.mCaretWidth, height));
+
+  
+  
+  nsIFrame *scrollFrame =
+    nsLayoutUtils::GetClosestFrameOfType(aFrame, nsGkAtoms::scrollFrame);
+  if (scrollFrame) {
+    
+    nsIScrollableFrame *sf = do_QueryFrame(scrollFrame);
+    nsIFrame *scrolled = sf->GetScrolledFrame();
+    nsRect caretInScroll = *aRect + aFrame->GetOffsetTo(scrolled);
+
+    
+    
+    nscoord overflow = caretInScroll.XMost() -
+      scrolled->GetOverflowRectRelativeToSelf().width;
+    if (overflow > 0)
+      aRect->x -= overflow;
+  }
+
+  if (aBidiIndicatorSize)
+    *aBidiIndicatorSize = caretMetrics.mBidiIndicatorSize;
+}
+
 nsIFrame* nsCaret::GetGeometry(nsISelection* aSelection, nsRect* aRect,
                                nscoord* aBidiIndicatorSize)
 {
@@ -374,67 +425,20 @@ nsIFrame* nsCaret::GetGeometry(nsISelection* aSelection, nsRect* aRect,
   if (!contentNode)
     return nsnull;
 
-  
-  nsIFrame* theFrame = nsnull;
-  PRInt32   theFrameOffset = 0;
-
   nsCOMPtr<nsFrameSelection> frameSelection = GetFrameSelection();
   if (!frameSelection)
     return nsnull;
   PRUint8 bidiLevel = frameSelection->GetCaretBidiLevel();
+  nsIFrame* frame;
+  PRInt32 frameOffset;
   rv = GetCaretFrameForNodeOffset(contentNode, focusOffset,
                                   frameSelection->GetHint(), bidiLevel,
-                                  &theFrame, &theFrameOffset);
-  if (NS_FAILED(rv) || !theFrame)
-    return nsnull;
-  
-  nsPoint framePos(0, 0);
-  rv = theFrame->GetPointFromOffset(theFrameOffset, &framePos);
-  if (NS_FAILED(rv))
+                                  &frame, &frameOffset);
+  if (NS_FAILED(rv) || !frame)
     return nsnull;
 
-  nscoord height = theFrame->GetContentRect().height;
-  if (height == 0) {
-    nsCOMPtr<nsIFontMetrics> fm;
-    nsLayoutUtils::GetFontMetricsForFrame(theFrame, getter_AddRefs(fm));
-    if (fm) {
-      nscoord ascent, descent;
-      fm->GetMaxAscent(ascent);
-      fm->GetMaxDescent(descent);
-      height = ascent + descent;
-
-      
-      
-      
-      if (theFrame->GetStyleDisplay()->IsInlineOutside() &&
-          !FramesOnSameLineHaveZeroHeight(theFrame))
-        framePos.y -= ascent;
-    }
-  }
-  Metrics caretMetrics = ComputeMetrics(theFrame, theFrameOffset, height);
-  *aRect = nsRect(framePos, nsSize(caretMetrics.mCaretWidth, height));
-
-  
-  
-  nsIFrame *scrollFrame =
-    nsLayoutUtils::GetClosestFrameOfType(theFrame, nsGkAtoms::scrollFrame);
-  if (scrollFrame) {
-    
-    nsIScrollableFrame *sf = do_QueryFrame(scrollFrame);
-    nsIFrame *scrolled = sf->GetScrolledFrame();
-    nsRect caretInScroll = *aRect + theFrame->GetOffsetTo(scrolled);
-
-    
-    
-    nscoord overflow = caretInScroll.XMost() -
-      scrolled->GetOverflowRectRelativeToSelf().width;
-    if (overflow > 0)
-      aRect->x -= overflow;
-  }
-
-  if (aBidiIndicatorSize)
-    *aBidiIndicatorSize = caretMetrics.mBidiIndicatorSize;
-  return theFrame;
+  GetGeometryForFrame(frame, frameOffset, aRect, aBidiIndicatorSize);
+  return frame;
 }
 
 void nsCaret::DrawCaretAfterBriefDelay()
@@ -1077,11 +1081,8 @@ nsCaret::UpdateCaretRects(nsIFrame* aFrame, PRInt32 aFrameOffset)
 {
   NS_ASSERTION(aFrame, "Should have a frame here");
 
-  nsCOMPtr<nsISelection> domSelection = do_QueryReferent(mDomSelectionWeak);
-  if (!domSelection)
-    return PR_FALSE;
   nscoord bidiIndicatorSize;
-  GetGeometry(domSelection, &mCaretRect, &bidiIndicatorSize);
+  GetGeometryForFrame(aFrame, aFrameOffset, &mCaretRect, &bidiIndicatorSize);
 
   
   const nsStyleVisibility* vis = aFrame->GetStyleVisibility();
@@ -1109,7 +1110,9 @@ nsCaret::UpdateCaretRects(nsIFrame* aFrame, PRInt32 aFrameOffset)
 
  
       mKeyboardRTL = isCaretRTL;
-      if (NS_SUCCEEDED(domSelection->SelectionLanguageChange(mKeyboardRTL)))
+      nsCOMPtr<nsISelection> domSelection = do_QueryReferent(mDomSelectionWeak);
+      if (!domSelection ||
+          NS_SUCCEEDED(domSelection->SelectionLanguageChange(mKeyboardRTL)))
         return PR_FALSE;
     }
     
