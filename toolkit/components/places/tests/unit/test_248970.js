@@ -102,13 +102,13 @@ function get_PBSvc() {
 
 
 function add_visit(aURI, aType) {
-  var placeID = histsvc.addVisit(uri(aURI),
+  var visitId = histsvc.addVisit(uri(aURI),
                                  Date.now() * 1000,
                                  null, 
                                  aType,
                                  false, 
                                  0);
-  return placeID;
+  return visitId;
 }
 
 
@@ -266,13 +266,10 @@ function is_bookmark_A_altered(){
 }
 
 function run_test() {
-
   
   var pb = get_PBSvc();
 
-  if(pb) { 
-    start_sync(); 
-
+  if (pb) { 
     
     var os = Cc["@mozilla.org/observer-service;1"].
              getService(Ci.nsIObserverService);
@@ -293,7 +290,7 @@ function run_test() {
 
         
         do_check_true(bmsvc.isBookmarked(bookmark_A_URI));
-        do_check_eq("google",bmsvc.getKeywordForURI(bookmark_A_URI));
+        do_check_eq("google", bmsvc.getKeywordForURI(bookmark_A_URI));
 
         
         pb.privateBrowsingEnabled = true;
@@ -355,7 +352,7 @@ function run_test() {
         }
 
         prefBranch.clearUserPref("browser.privatebrowsing.keep_current_session");
-        finish_test();
+        do_test_finished();
       }
     };
 

@@ -158,19 +158,6 @@ function dump_table(aName)
 
 
 
-function finish_test()
-{
-  
-  let os = Cc["@mozilla.org/observer-service;1"].
-           getService(Ci.nsIObserverService);
-  os.notifyObservers(null, "quit-application", null);
-  do_test_finished();
-}
-
-
-
-
-
 
 
 
@@ -204,7 +191,7 @@ function new_test_bookmark_uri_event(aBookmarkId, aExpectedURI, aExpected, aFini
   stmt = null;
 
   if (aFinish)
-    finish_test();
+    do_test_finished();
 }
 
 
@@ -244,7 +231,7 @@ function new_test_visit_uri_event(aVisitId, aExpectedURI, aExpected, aFinish)
   stmt = null;
 
   if (aFinish)
-    finish_test();
+    do_test_finished();
 }
 
 
@@ -280,4 +267,15 @@ function flush_main_thread_events()
   let tm = Cc["@mozilla.org/thread-manager;1"].getService(Ci.nsIThreadManager);
   while (tm.mainThread.hasPendingEvents())
     tm.mainThread.processNextEvent(false);
+}
+
+
+function shutdownPlaces()
+{
+  const TOPIC_XPCOM_SHUTDOWN = "xpcom-shutdown";
+  let hs = Cc["@mozilla.org/browser/nav-history-service;1"].
+           getService(Ci.nsIObserver);
+  hs.observe(null, TOPIC_XPCOM_SHUTDOWN, null);
+  let sync = Cc["@mozilla.org/places/sync;1"].getService(Ci.nsIObserver);
+  sync.observe(null, TOPIC_XPCOM_SHUTDOWN, null);
 }

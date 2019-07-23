@@ -177,26 +177,6 @@ function check_no_bookmarks() {
   root.containerOpen = false;
 }
 
-var syncSvc = null;
-function start_sync() {
-
-
-  syncSvc = Cc["@mozilla.org/places/sync;1"].getService(Ci.nsISupports);
-}
-
-
-
-
-
-function finish_test()
-{
-  
-  let os = Cc["@mozilla.org/observer-service;1"].
-           getService(Ci.nsIObserverService);
-  os.notifyObservers(null, "quit-application", null);
-  do_test_finished();
-}
-
 
 
 

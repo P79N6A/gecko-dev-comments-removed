@@ -122,7 +122,7 @@ var observer = {
         os.removeObserver(this, kSyncFinished);
         bs.removeObserver(bookmarksObserver);
         
-        finish_test();
+        do_test_finished();
       }
       else
         do_throw("Too many places sync calls");

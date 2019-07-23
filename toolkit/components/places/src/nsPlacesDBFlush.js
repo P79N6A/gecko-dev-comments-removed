@@ -48,7 +48,7 @@ const Ci = Components.interfaces;
 const Cr = Components.results;
 const Cu = Components.utils;
 
-const kQuitApplication = "quit-application";
+const kXPComShutdown = "xpcom-shutdown";
 const kSyncFinished = "places-sync-finished";
 const kDebugStopSync = "places-debug-stop-sync";
 const kDebugStartSync = "places-debug-start-sync";
@@ -109,7 +109,7 @@ function nsPlacesDBFlush()
   
   this._os = Cc["@mozilla.org/observer-service;1"].
              getService(Ci.nsIObserverService);
-  this._os.addObserver(this, kQuitApplication, false);
+  this._os.addObserver(this, kXPComShutdown, false);
   this._os.addObserver(this, kDebugStopSync, false);
   this._os.addObserver(this, kDebugStartSync, false);
 
@@ -149,8 +149,8 @@ nsPlacesDBFlush.prototype = {
 
   observe: function DBFlush_observe(aSubject, aTopic, aData)
   {
-    if (aTopic == kQuitApplication) {
-      this._os.removeObserver(this, kQuitApplication);
+    if (aTopic == kXPComShutdown) {
+      this._os.removeObserver(this, kXPComShutdown);
       this._os.removeObserver(this, kDebugStopSync);
       this._os.removeObserver(this, kDebugStartSync);
 
@@ -158,8 +158,12 @@ nsPlacesDBFlush.prototype = {
         pb2.removeObserver(kSyncPrefName, this);
         pb2.removeObserver(kExpireDaysPrefName, this);
       }
-      this._timer.cancel();
-      this._timer = null;
+
+      if (this._timer) {
+        this._timer.cancel();
+        this._timer = null;
+      }
+
       
       
       
@@ -169,18 +173,26 @@ nsPlacesDBFlush.prototype = {
       tm.mainThread.dispatch({
         _self: this,
         run: function() {
-          let pip = Cc["@mozilla.org/browser/nav-history-service;1"].
-                    getService(Ci.nsPIPlacesDatabase);
-          pip.commitPendingChanges();
+          
           this._self._flushWithQueries([kQuerySyncPlacesId, kQuerySyncHistoryVisitsId]);
+
           
           
-          pip.finalizeInternalStatements();
+          let catMan = Cc["@mozilla.org/categorymanager;1"].
+                       getService(Ci.nsICategoryManager);
+          catMan.deleteCategoryEntry("bookmark-observers",
+                                     this._self.classDescription,
+                                     true);
+          catMan.deleteCategoryEntry("history-observers",
+                                     this._self.classDescription,
+                                     true);
+
+          
+          
           this._self._finalizeInternalStatements();
           this._self._db.close();
         }
       }, Ci.nsIThread.DISPATCH_NORMAL);
-
     }
     else if (aTopic == "nsPref:changed" && aData == kSyncPrefName) {
       

@@ -40,9 +40,6 @@
 
 
 
-start_sync();
-
-
 var histsvc = Cc["@mozilla.org/browser/nav-history-service;1"].
               getService(Ci.nsINavHistoryService);
 var bhist = histsvc.QueryInterface(Ci.nsIBrowserHistory);
@@ -827,5 +824,5 @@ function checkExpireBadPrefs() {
     do_throw(ex);
   }
   dump("done incremental expiration test 6\n");
-  finish_test();
+  do_test_finished();
 }

@@ -433,7 +433,7 @@ protected:
   
 
 
-  nsresult FinalizeStatements();
+  NS_HIDDEN_(nsresult) FinalizeStatements();
 
   
 
@@ -443,6 +443,12 @@ protected:
 
 
   NS_HIDDEN_(nsresult) VacuumDatabase();
+
+  
+
+
+
+  NS_HIDDEN_(nsresult) FinalizeInternalStatements();
 
   
   NS_DECL_NSICHARSETRESOLVER
@@ -580,7 +586,7 @@ protected:
   nsresult StartLazyTimer();
   nsresult AddLazyMessage(const LazyMessage& aMessage);
   static void LazyTimerCallback(nsITimer* aTimer, void* aClosure);
-  void CommitLazyMessages();
+  NS_HIDDEN_(void) CommitLazyMessages(PRBool aIsShutdown = PR_FALSE);
 #endif
 
   nsresult ConstructQueryString(const nsCOMArray<nsNavHistoryQuery>& aQueries, 

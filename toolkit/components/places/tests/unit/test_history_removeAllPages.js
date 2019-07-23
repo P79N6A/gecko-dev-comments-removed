@@ -38,9 +38,6 @@
 
 
 
-start_sync();
-
-
 let hs = Cc["@mozilla.org/browser/nav-history-service;1"].
          getService(Ci.nsINavHistoryService);
 let bh = hs.QueryInterface(Ci.nsIBrowserHistory);
@@ -224,7 +221,7 @@ let syncObserver = {
     do_check_false(stmt.executeStep());
     stmt.finalize();
 
-    finish_test();
+    do_test_finished();
   }
 }
 os.addObserver(syncObserver, kSyncFinished, false);

@@ -78,7 +78,6 @@ const BrowserGlueServiceFactory = {
 
 
 function BrowserGlue() {
-
   XPCOMUtils.defineLazyServiceGetter(this, "_prefs",
                                      "@mozilla.org/preferences-service;1",
                                      "nsIPrefBranch");
@@ -91,13 +90,23 @@ function BrowserGlue() {
                                      "@mozilla.org/widget/idleservice;1",
                                      "nsIIdleService");
 
-  XPCOMUtils.defineLazyServiceGetter(this, "_observerService",
-                                     "@mozilla.org/observer-service;1",
-                                     "nsIObserverService");
-
   XPCOMUtils.defineLazyGetter(this, "_distributionCustomizer", function() {
                                 return new DistributionCustomizer();
                               });
+
+  XPCOMUtils.defineLazyGetter(this, "_sanitizer",
+    function() {
+      let sanitizerScope = {};
+      Cc["@mozilla.org/moz/jssubscript-loader;1"].
+      getService(Ci.mozIJSSubScriptLoader).
+      loadSubScript("chrome://browser/content/sanitize.js", sanitizerScope);
+      return sanitizerScope.Sanitizer;
+    });
+
+  
+  
+  this._observerService = Cc["@mozilla.org/observer-service;1"].
+                          getService(Ci.nsIObserverService);
 
   this._init();
 }
@@ -109,15 +118,17 @@ function BrowserGlue() {
 #endif
 
 BrowserGlue.prototype = {
-  
   _saveSession: false,
   _isIdleObserver: false,
   _isPlacesInitObserver: false,
   _isPlacesLockedObserver: false,
   _isPlacesDatabaseLocked: false,
 
-  _setPrefToSaveSession: function()
+  _setPrefToSaveSession: function(aForce)
   {
+    if (!this._saveSession && !aForce)
+      return;
+
     this._prefs.setBoolPref("browser.sessionstore.resume_session_once", true);
 
     
@@ -153,12 +164,9 @@ BrowserGlue.prototype = {
         this._onQuitRequest(subject, data);
         break;
       case "quit-application-granted":
-        if (this._saveSession) {
-          this._setPrefToSaveSession();
-        }
         
         
-        
+        this._setPrefToSaveSession();
         this._onProfileShutdown();
         break;
 #ifdef OBSERVE_LASTWINDOW_CLOSE_TOPICS
@@ -168,12 +176,11 @@ BrowserGlue.prototype = {
         this._onQuitRequest(subject, "lastwindow");
         break;
       case "browser-lastwindow-close-granted":
-        if (this._saveSession)
-          this._setPrefToSaveSession();
+        this._setPrefToSaveSession();
         break;
 #endif
       case "session-save":
-        this._setPrefToSaveSession();
+        this._setPrefToSaveSession(true);
         subject.QueryInterface(Ci.nsISupportsPRBool);
         subject.data = true;
         break;
@@ -268,7 +275,7 @@ BrowserGlue.prototype = {
   
   _onProfileStartup: function() 
   {
-    this.Sanitizer.onStartup();
+    this._sanitizer.onStartup();
     
     var app = Cc["@mozilla.org/xre/app-info;1"].getService(Ci.nsIXULAppInfo).
               QueryInterface(Ci.nsIXULRuntime);
@@ -302,7 +309,8 @@ BrowserGlue.prototype = {
       }
     }
 
-    this._observerService.notifyObservers(null, "browser-ui-startup-complete", "");
+    this._observerService
+        .notifyObservers(null, "browser-ui-startup-complete", "");
   },
 
   
@@ -311,7 +319,7 @@ BrowserGlue.prototype = {
     this._shutdownPlaces();
     this._idleService.removeIdleObserver(this, BOOKMARKS_BACKUP_IDLE_TIME);
     this._isIdleObserver = false;
-    this.Sanitizer.onShutdown();
+    this._sanitizer.onShutdown();
   },
 
   
@@ -570,17 +578,6 @@ BrowserGlue.prototype = {
     var win = this.getMostRecentBrowserWindow();
     var browser = win.gBrowser;
     browser.selectedTab = browser.addTab(updateUrl);
-  },
-
-  
-  get Sanitizer() 
-  {
-    if(typeof(Sanitizer) != "function") { 
-      Cc["@mozilla.org/moz/jssubscript-loader;1"].
-      getService(Ci.mozIJSSubScriptLoader).
-      loadSubScript("chrome://browser/content/sanitize.js", null);
-    }
-    return Sanitizer;
   },
 
   
@@ -907,7 +904,7 @@ BrowserGlue.prototype = {
   
   sanitize: function(aParentWindow) 
   {
-    this.Sanitizer.sanitize(aParentWindow);
+    this._sanitizer.sanitize(aParentWindow);
   },
 
   ensurePlacesDefaultQueriesInitialized: function() {

@@ -205,7 +205,7 @@ tests.push({
     do_check_false(ps.getBoolPref(PREF_RESTORE_DEFAULT_BOOKMARKS));
     do_check_false(ps.getBoolPref(PREF_IMPORT_BOOKMARKS_HTML));
 
-    finish_test();
+    do_test_finished();
   }
 });
 
@@ -213,7 +213,8 @@ tests.push({
 
 function finish_test() {
   
-  os.notifyObservers(null, "quit-application-granted", null);
+  remove_all_bookmarks();
+
   do_test_finished();
 }
 
@@ -223,15 +224,12 @@ function next_test() {
   remove_all_bookmarks();
 
   
-  os.notifyObservers(null, "quit-application-granted", null);
-
-  
   
   os.addObserver(bg, TOPIC_PLACES_INIT_COMPLETE, false);
 
   
   let test = tests.shift();
-  dump("\nTEST " + (++testIndex) + ": " + test.description);
+  print("\nTEST " + (++testIndex) + ": " + test.description);
   test.exec();
 }
 

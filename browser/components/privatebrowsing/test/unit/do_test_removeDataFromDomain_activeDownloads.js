@@ -155,6 +155,4 @@ function do_test()
   
   for (let i = 0; i < data.length; i++)
     check_active_download(data[i].source, !data[i].removed);
-
-  shutdownPlaces();
 }

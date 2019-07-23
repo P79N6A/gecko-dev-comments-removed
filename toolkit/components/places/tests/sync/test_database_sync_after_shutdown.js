@@ -56,6 +56,7 @@ var historyObserver = {
   onVisit: function(aURI, aVisitId, aTime, aSessionId, aReferringId,
                     aTransitionType, aAdded) {
     observer.visitId = aVisitId;
+    hs.removeObserver(this);
   }
 }
 hs.addObserver(historyObserver, false);
@@ -65,10 +66,10 @@ var observer = {
   observe: function(aSubject, aTopic, aData) {
     if (aTopic == kSyncFinished) {
       
-      do_check_neq(this.visitId, -1);
-      
       os.removeObserver(this, kSyncFinished);
-      hs.removeObserver(historyObserver);
+
+      
+      do_check_neq(this.visitId, -1);
       
       new_test_visit_uri_event(this.visitId, TEST_URI, true, true);
     }
@@ -87,7 +88,8 @@ function run_test()
               hs.TRANSITION_TYPED, false, 0);
 
   
-  os.notifyObservers(null, "quit-application", null);
+  shutdownPlaces();
 
+  
   do_test_pending();
 }
