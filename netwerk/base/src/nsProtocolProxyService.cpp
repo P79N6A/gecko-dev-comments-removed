@@ -406,6 +406,8 @@ nsProtocolProxyService::PrefsChanged(nsIPrefBranch *prefBranch,
 
         if (mProxyConfig == eProxyConfig_System) {
             mSystemProxySettings = do_GetService(NS_SYSTEMPROXYSETTINGS_CONTRACTID);
+            if (!mSystemProxySettings)
+                mProxyConfig = eProxyConfig_Direct;
         } else {
             mSystemProxySettings = nsnull;
         }
@@ -1239,14 +1241,8 @@ nsProtocolProxyService::Resolve_Internal(nsIURI *uri,
 
     if (mSystemProxySettings) {
         nsCAutoString PACURI;
-        if (NS_SUCCEEDED(mSystemProxySettings->GetPACURI(PACURI)) &&
-            !PACURI.IsEmpty()) {
-            
-            
-            nsresult rv = ConfigureFromPAC(PACURI, PR_FALSE);
-            if (NS_FAILED(rv))
-                return rv;
-        } else {
+        if (NS_FAILED(mSystemProxySettings->GetPACURI(PACURI)) ||
+            PACURI.IsEmpty()) {
             nsCAutoString proxy;
             nsresult rv = mSystemProxySettings->GetProxyForURI(uri, proxy);
             if (NS_SUCCEEDED(rv)) {
@@ -1256,13 +1252,19 @@ nsProtocolProxyService::Resolve_Internal(nsIURI *uri,
             
             return NS_OK;
         }
+
+        
+        
+        nsresult rv = ConfigureFromPAC(PACURI, PR_FALSE);
+        if (NS_FAILED(rv))
+            return rv;
     }
 
     
     
     if (mProxyConfig == eProxyConfig_Direct ||
-            (mProxyConfig == eProxyConfig_Manual &&
-             !CanUseProxy(uri, info.defaultPort)))
+        (mProxyConfig == eProxyConfig_Manual &&
+         !CanUseProxy(uri, info.defaultPort)))
         return NS_OK;
 
     
