@@ -721,6 +721,23 @@ nsXULListitemAccessible::GetAllowsAnonChildAccessibles(PRBool *aAllowsAnonChildr
   return NS_OK;
 }
 
+nsresult
+nsXULListitemAccessible::GetAttributesInternal(nsIPersistentProperties *aAttributes)
+{
+  NS_ENSURE_ARG_POINTER(aAttributes);
+
+  
+  
+  
+  nsresult rv = nsAccessible::GetAttributesInternal(aAttributes);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  nsAccUtils::SetAccAttrsForXULSelectControlItem(mDOMNode, aAttributes);
+  return NS_OK;
+}
+
+
+
 
 
 nsXULListCellAccessible::
