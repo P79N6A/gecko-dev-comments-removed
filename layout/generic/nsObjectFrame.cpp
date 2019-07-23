@@ -3857,8 +3857,13 @@ nsPluginInstanceOwner::Destroy()
     target->RemoveEventListener(NS_LITERAL_STRING("draggesture"), listener, PR_TRUE);
   }
 
-  if (mDestroyWidget && mWidget) {
-    mWidget->Destroy();
+  if (mWidget) {
+    nsCOMPtr<nsIPluginWidget> pluginWidget = do_QueryInterface(mWidget);
+    if (pluginWidget)
+      pluginWidget->SetPluginInstanceOwner(nsnull);
+
+    if (mDestroyWidget)
+      mWidget->Destroy();
   }
 
   return NS_OK;
@@ -4355,6 +4360,11 @@ NS_IMETHODIMP nsPluginInstanceOwner::CreateWidget(void)
 
           
           mPluginWindow->SetPluginWidget(mWidget);
+
+          
+          nsCOMPtr<nsIPluginWidget> pluginWidget = do_QueryInterface(mWidget);
+          if (pluginWidget)
+            pluginWidget->SetPluginInstanceOwner(this);
         }
       }
     }
