@@ -108,7 +108,14 @@ pluginInstanceShutdown(InstanceData* instanceData)
   GtkWidget* plug = instanceData->platformData->plug;
   if (plug) {
     instanceData->platformData->plug = 0;
-    gtk_widget_destroy(plug);
+    if (instanceData->cleanupWidget) {
+      
+      gtk_widget_destroy(plug);
+    } else {
+      
+      g_signal_handlers_disconnect_matched(plug, G_SIGNAL_MATCH_DATA, 0, 0,
+                                           NULL, NULL, instanceData);
+    }
   }
 
   NPN_MemFree(instanceData->platformData);
