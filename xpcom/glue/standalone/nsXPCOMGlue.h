@@ -127,5 +127,45 @@ XPCOMGlueLoadXULFunctions(const nsDynamicFunctionLoad *symbols);
 extern "C" NS_HIDDEN_(nsresult)
 XPCOMGlueShutdown();
 
+
+
+
+
+
+
+
+
+
+
+
+
+extern "C" NS_HIDDEN_(char const *)
+GRE_GetXPCOMPath();
+
+
+
+
+
+
+
+extern "C" NS_HIDDEN_(nsresult)
+GRE_GetGREDirectory(nsILocalFile* *_retval);
+
+
+
+
+
+
+
+extern "C" NS_HIDDEN_(nsresult)
+GRE_Startup();
+
+
+
+
+
+extern "C" NS_HIDDEN_(nsresult)
+GRE_Shutdown();
+
 #endif 
 #endif 

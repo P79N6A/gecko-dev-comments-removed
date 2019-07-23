@@ -39,7 +39,6 @@
 #define nsRegisterGRE_h__
 
 #include "nscore.h"
-#include "nsStringAPI.h"
 class nsIFile;
 struct GREProperty;
 
@@ -52,10 +51,5 @@ RegisterXULRunner(PRBool aRegisterGlobally, nsIFile* aLocation,
 
 NS_HIDDEN_(void)
 UnregisterXULRunner(PRBool aUnregisterGlobally, nsIFile* aLocation);
-
-
-
-NS_HIDDEN_(nsresult)
-GetGREVersion(const char *argv0, nsACString *aMilestone, nsACString *aVersion);
 
 #endif 
