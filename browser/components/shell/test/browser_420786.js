@@ -80,6 +80,10 @@ function onPageLoad() {
 }
 
 function test() {
+  
+  finish();
+  return;
+
   var osString = Cc["@mozilla.org/xre/app-info;1"].
                  getService(Ci.nsIXULRuntime).OS;
 
