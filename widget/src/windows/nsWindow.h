@@ -269,6 +269,9 @@ protected:
   virtual void            SubclassWindow(BOOL bState);
   void                    GetNonClientBounds(nsIntRect &aRect);
   PRBool                  CanTakeFocus();
+#if !defined(WINCE)
+  static void             InitTrackPointHack();
+#endif
 
   
 
@@ -435,6 +438,7 @@ protected:
   static PRBool         sJustGotDeactivate;
   static PRBool         sJustGotActivate;
   static int            sTrimOnMinimize;
+  static PRBool         sTrackPointHack;
 
   
   

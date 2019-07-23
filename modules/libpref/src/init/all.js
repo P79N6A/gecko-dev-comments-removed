@@ -1625,6 +1625,10 @@ pref("ui.panel.default_level_parent", false);
 
 pref("mousewheel.system_scroll_override_on_root_content.enabled", true);
 
+
+
+
+pref("ui.trackpoint_hack.enabled", -1);
 # WINNT
 #endif
 

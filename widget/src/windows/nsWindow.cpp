@@ -262,6 +262,9 @@ BYTE            nsWindow::sLastMouseButton        = 0;
 
 int             nsWindow::sTrimOnMinimize         = 2;
 
+
+PRBool          nsWindow::sTrackPointHack         = PR_FALSE;
+
 #ifdef ACCESSIBILITY
 BOOL            nsWindow::sIsAccessibilityOn      = FALSE;
 
@@ -423,6 +426,10 @@ nsWindow::nsWindow() : nsBaseWidget()
 #if defined(HEAP_DUMP_EVENT)
   InitHeapDump();
 #endif
+
+#if !defined(WINCE)
+  InitTrackPointHack();
+#endif
   } 
 
   
@@ -578,7 +585,8 @@ nsWindow::Create(nsIWidget *aParent,
   if (!mWnd)
     return NS_ERROR_FAILURE;
 
-  if (mWindowType != eWindowType_plugin &&
+  if (nsWindow::sTrackPointHack &&
+      mWindowType != eWindowType_plugin &&
       mWindowType != eWindowType_invisible) {
     
     
@@ -6815,6 +6823,52 @@ PRBool nsWindow::CanTakeFocus()
   }
   return PR_FALSE;
 }
+
+#if !defined(WINCE)
+void nsWindow::InitTrackPointHack()
+{
+  
+  nsresult rv;
+  PRInt32 lHackValue;
+  long lResult;
+  const WCHAR wstrKeys[][40] = {L"Software\\Lenovo\\TrackPoint",
+                                L"Software\\Lenovo\\UltraNav"};    
+  
+  sTrackPointHack = false;
+  nsCOMPtr<nsIPrefBranch> prefs(do_GetService(NS_PREFSERVICE_CONTRACTID, &rv));
+  if(NS_SUCCEEDED(rv) && prefs) {
+    prefs->GetIntPref("ui.trackpoint_hack.enabled", &lHackValue);
+    switch (lHackValue) {
+      
+      case 0:
+        break;
+      
+      case 1:
+        sTrackPointHack = true;
+        break;
+      
+      case -1:
+        for(int i = 0; i < 2; i++) {
+          HKEY hKey;
+          lResult = ::RegOpenKeyExW(HKEY_CURRENT_USER, (LPCWSTR)&wstrKeys[i],
+                                    0, KEY_READ, &hKey);
+          ::RegCloseKey(hKey);
+          if(lResult == ERROR_SUCCESS) {
+            
+            
+            sTrackPointHack = true;
+            break;
+          }
+        }
+        break;
+      
+      default:
+        break;
+    }
+  }
+  return;
+}
+#endif 
 
 LPARAM nsWindow::lParamToScreen(LPARAM lParam)
 {
