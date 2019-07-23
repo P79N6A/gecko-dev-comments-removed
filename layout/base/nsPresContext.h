@@ -67,7 +67,7 @@
 #include "gfxRect.h"
 #include "nsRegion.h"
 
-class nsImageLoader;
+class nsImageLoadNotifier;
 #ifdef IBMBIDI
 class nsBidiPresUtils;
 #endif 
@@ -364,8 +364,8 @@ public:
 
 
 
-  NS_HIDDEN_(void) SetImageLoaders(nsIFrame* aTargetFrame,
-                                   nsImageLoader* aImageLoaders);
+  NS_HIDDEN_(void) SetImageNotifiers(nsIFrame* aTargetFrame,
+                                     nsImageLoadNotifier* aImageNotifiers);
 
   
 
@@ -764,7 +764,7 @@ protected:
   nsILinkHandler*       mLinkHandler;   
   nsIAtom*              mLangGroup;     
 
-  nsRefPtrHashtable<nsVoidPtrHashKey, nsImageLoader> mImageLoaders;
+  nsRefPtrHashtable<nsVoidPtrHashKey, nsImageLoadNotifier> mImageNotifiers;
 
   nsWeakPtr             mContainer;
 
