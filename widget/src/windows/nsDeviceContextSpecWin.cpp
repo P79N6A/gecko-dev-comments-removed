@@ -468,10 +468,8 @@ NS_IMETHODIMP nsDeviceContextSpecWin::Init(nsIWidget* aWidget,
   HGLOBAL   hDevNames = NULL;
 
   
-  PRUnichar * printerName = nsnull;
-  if (mPrintSettings) {
-    mPrintSettings->GetPrinterName(&printerName);
-  }
+  PRUnichar * printerName;
+  mPrintSettings->GetPrinterName(&printerName);
 
   
   if (!printerName || (printerName && !*printerName)) {
@@ -514,10 +512,8 @@ NS_IMETHODIMP nsDeviceContextSpecWin::GetSurfaceForPrinter(gfxASurface **surface
 
   nsRefPtr<gfxASurface> newSurface;
 
-  PRInt16 outputFormat = 0;
-  if (mPrintSettings) {
-    mPrintSettings->GetOutputFormat(&outputFormat);
-  }
+  PRInt16 outputFormat;
+  mPrintSettings->GetOutputFormat(&outputFormat);
 
   if (outputFormat == nsIPrintSettings::kOutputFormatPDF) {
     nsXPIDLString filename;
@@ -542,7 +538,6 @@ NS_IMETHODIMP nsDeviceContextSpecWin::GetSurfaceForPrinter(gfxASurface **surface
     newSurface = new gfxPDFSurface(stream, gfxSize(width, height));
   } else {
     if (mDevMode) {
-      NS_WARN_IF_FALSE(mDriverName, "No driver!");
       HDC dc = ::CreateDCW(mDriverName, mDeviceName, NULL, mDevMode);
 
       
@@ -1010,7 +1005,9 @@ GlobalPrinters::EnumerateNativePrinters()
   PR_PL(("EnumerateNativePrinters\n"));
 
   TCHAR szDefaultPrinterName[1024];    
-  DWORD status = GetProfileString("devices", 0, ",", szDefaultPrinterName, sizeof(szDefaultPrinterName)/sizeof(TCHAR));
+  DWORD status = GetProfileString(TEXT("devices"), 0, TEXT(","),
+                                  szDefaultPrinterName,
+                                  NS_ARRAY_LENGTH(szDefaultPrinterName));
   if (status > 0) {
     DWORD count = 0;
     LPTSTR sPtr   = (LPTSTR)szDefaultPrinterName;
@@ -1041,7 +1038,9 @@ GlobalPrinters::GetDefaultPrinterName(LPTSTR& aDefaultPrinterName)
 #ifndef WINCE
   aDefaultPrinterName = nsnull;
   TCHAR szDefaultPrinterName[1024];    
-  DWORD status = GetProfileString("windows", "device", 0, szDefaultPrinterName, sizeof(szDefaultPrinterName)/sizeof(TCHAR));
+  DWORD status = GetProfileString(TEXT("windows"), TEXT("device"), 0,
+                                  szDefaultPrinterName,
+                                  NS_ARRAY_LENGTH(szDefaultPrinterName));
   if (status > 0) {
     TCHAR comma = (TCHAR)',';
     LPTSTR sPtr = (LPTSTR)szDefaultPrinterName;
@@ -1052,7 +1051,7 @@ GlobalPrinters::GetDefaultPrinterName(LPTSTR& aDefaultPrinterName)
     }
     aDefaultPrinterName = _tcsdup(szDefaultPrinterName);
   } else {
-    aDefaultPrinterName = _tcsdup("");
+    aDefaultPrinterName = _tcsdup(TEXT(""));
   }
 
   PR_PL(("DEFAULT PRINTER [%s]\n", aDefaultPrinterName));

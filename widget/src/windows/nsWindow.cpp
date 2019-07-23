@@ -104,6 +104,10 @@
 
 
 
+#ifdef MOZ_IPC
+#include "mozilla/ipc/SyncChannel.h"
+#endif
+
 #include "nsWindow.h"
 
 #include <windows.h>
@@ -1500,17 +1504,28 @@ NS_IMETHODIMP nsWindow::SetSizeMode(PRInt32 aMode) {
       case nsSizeMode_Maximized :
         mode = SW_MAXIMIZE;
         break;
-
       case nsSizeMode_Minimized :
-        
-        
-        
-        
-        
-        
         mode = sTrimOnMinimize ? SW_MINIMIZE : SW_SHOWMINIMIZED;
-        break;
+        if (!sTrimOnMinimize) {
+          
+          HWND hwndBelow = ::GetNextWindow(mWnd, GW_HWNDNEXT);
+          while (hwndBelow && (!::IsWindowEnabled(hwndBelow) || !::IsWindowVisible(hwndBelow) ||
+                               ::IsIconic(hwndBelow))) {
+            hwndBelow = ::GetNextWindow(hwndBelow, GW_HWNDNEXT);
+          }
 
+          
+          
+          ::SetWindowPos(mWnd, HWND_BOTTOM, 0, 0, 0, 0,
+                         SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE);
+          if (hwndBelow)
+            ::SetForegroundWindow(hwndBelow);
+
+          
+          
+          ::PlaySoundW(L"Minimize", nsnull, SND_ALIAS | SND_NODEFAULT | SND_ASYNC);
+        }
+        break;
       default :
         mode = SW_RESTORE;
     }
@@ -1638,12 +1653,6 @@ NS_METHOD nsWindow::IsEnabled(PRBool *aState)
 NS_METHOD nsWindow::SetFocus(PRBool aRaise)
 {
   if (mWnd) {
-#ifdef WINSTATE_DEBUG_OUTPUT
-    if (mWnd == GetTopLevelHWND(mWnd))
-      printf("*** SetFocus: [  top] raise=%d\n", aRaise);
-    else
-      printf("*** SetFocus: [child] raise=%d\n", aRaise);
-#endif
     
     HWND toplevelWnd = GetTopLevelHWND(mWnd);
     if (aRaise && ::IsIconic(toplevelWnd)) {
@@ -2227,29 +2236,6 @@ HasDescendantWindowOutsideRect(DWORD aThisThreadID, HWND aWnd,
   return PR_FALSE;
 }
 
-static void
-InvalidateRgnInWindowSubtree(HWND aWnd, HRGN aRgn, HRGN aTmpRgn)
-{
-  RECT clientRect;
-  ::GetClientRect(aWnd, &clientRect);
-  ::SetRectRgn(aTmpRgn, clientRect.left, clientRect.top,
-               clientRect.right, clientRect.bottom);
-  if (::CombineRgn(aTmpRgn, aTmpRgn, aRgn, RGN_AND) == NULLREGION) {
-    return;
-  }
-
-  ::InvalidateRgn(aWnd, aTmpRgn, FALSE);
-
-  for (HWND child = ::GetWindow(aWnd, GW_CHILD); child;
-       child = ::GetWindow(child, GW_HWNDNEXT)) {
-    POINT pt = { 0, 0 };
-    ::MapWindowPoints(child, aWnd, &pt, 1);
-    ::OffsetRgn(aRgn, -pt.x, -pt.y);
-    InvalidateRgnInWindowSubtree(child, aRgn, aTmpRgn);
-    ::OffsetRgn(aRgn, pt.x, pt.y);
-  }
-}
-
 void
 nsWindow::Scroll(const nsIntPoint& aDelta,
                  const nsTArray<nsIntRect>& aDestRects,
@@ -2274,26 +2260,14 @@ nsWindow::Scroll(const nsIntPoint& aDelta,
     w->SetWindowClipRegion(configuration.mClipRegion, PR_TRUE);
   }
 
-  
-  HRGN updateRgn = ::CreateRectRgn(0, 0, 0, 0);
-  if (!updateRgn) {
-    
-    return;
-  }
-  HRGN destRgn = ::CreateRectRgn(0, 0, 0, 0);
-  if (!destRgn) {
-    
-    ::DeleteObject((HGDIOBJ)updateRgn);
-    return;
-  }
-
   DWORD ourThreadID = GetWindowThreadProcessId(mWnd, NULL);
 
-  for (BlitRectIter iter(aDelta, aDestRects); !iter.IsDone(); ++iter) {
-    const nsIntRect& destRect = iter.Rect();
+  for (PRUint32 i = 0; i < aDestRects.Length(); ++i) {
     nsIntRect affectedRect;
-    affectedRect.UnionRect(destRect, destRect - aDelta);
-    UINT flags = SW_SCROLLCHILDREN;
+    affectedRect.UnionRect(aDestRects[i], aDestRects[i] - aDelta);
+    
+    
+    UINT flags = SW_SCROLLCHILDREN | SW_INVALIDATE;
     
     
     for (nsWindow* w = static_cast<nsWindow*>(GetFirstChild()); w;
@@ -2366,34 +2340,8 @@ nsWindow::Scroll(const nsIntPoint& aDelta,
     }
 
     RECT clip = { affectedRect.x, affectedRect.y, affectedRect.XMost(), affectedRect.YMost() };
-    ::ScrollWindowEx(mWnd, aDelta.x, aDelta.y, &clip, &clip, updateRgn, NULL, flags);
-
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    ::SetRectRgn(destRgn, destRect.x, destRect.y, destRect.XMost(), destRect.YMost());
-    ::CombineRgn(updateRgn, updateRgn, destRgn, RGN_AND);
-    if (flags & SW_SCROLLCHILDREN) {
-      InvalidateRgnInWindowSubtree(mWnd, updateRgn, destRgn);
-    } else {
-      ::InvalidateRgn(mWnd, updateRgn, FALSE);
-    }
+    ::ScrollWindowEx(mWnd, aDelta.x, aDelta.y, &clip, &clip, NULL, NULL, flags);
   }
-
-  ::DeleteObject((HGDIOBJ)updateRgn);
-  ::DeleteObject((HGDIOBJ)destRgn);
 
   
   
@@ -3072,7 +3020,7 @@ PRBool nsWindow::DispatchKeyEvent(PRUint32 aEventType, WORD aCharCode,
     pluginEvent.event = aMsg->message;
     pluginEvent.wParam = aMsg->wParam;
     pluginEvent.lParam = aMsg->lParam;
-    event.pluginEvent = (void *)&pluginEvent;
+    event.nativeMsg = (void *)&pluginEvent;
   }
 
   PRBool result = DispatchWindowEvent(&event);
@@ -3140,12 +3088,6 @@ BOOL CALLBACK nsWindow::DispatchStarvedPaints(HWND aWnd, LPARAM aMsg)
 
 void nsWindow::DispatchPendingEvents()
 {
-  if (mPainting) {
-    NS_WARNING("We were asked to dispatch pending events during painting, "
-               "denying since that's unsafe.");
-    return;
-  }
-
   UpdateLastInputEventTime();
 
   
@@ -3187,7 +3129,7 @@ PRBool nsWindow::DispatchPluginEvent(const MSG &aMsg)
   pluginEvent.event = aMsg.message;
   pluginEvent.wParam = aMsg.wParam;
   pluginEvent.lParam = aMsg.lParam;
-  event.pluginEvent = (void *)&pluginEvent;
+  event.nativeMsg = (void *)&pluginEvent;
   return DispatchWindowEvent(&event);
 }
 
@@ -3364,7 +3306,7 @@ PRBool nsWindow::DispatchMouseEvent(PRUint32 aEventType, WPARAM wParam,
   pluginEvent.wParam = wParam;     
   pluginEvent.lParam = lParam;
 
-  event.pluginEvent = (void *)&pluginEvent;
+  event.nativeMsg = (void *)&pluginEvent;
 
   
   if (nsnull != mEventCallback) {
@@ -3450,22 +3392,9 @@ PRBool nsWindow::DispatchFocusToTopLevelWindow(PRUint32 aEventType)
   sJustGotDeactivate = PR_FALSE;
 
   
-  HWND curWnd = mWnd;
-  HWND toplevelWnd = NULL;
-  while (curWnd) {
-    toplevelWnd = curWnd;
-
-    nsWindow *win = GetNSWindowPtr(curWnd);
-    if (win) {
-      nsWindowType wintype;
-      win->GetWindowType(wintype);
-      if (wintype == eWindowType_toplevel || wintype == eWindowType_dialog)
-        break;
-    }
-
-    curWnd = ::GetParent(curWnd); 
-  }
-
+  
+  
+  HWND toplevelWnd = GetTopLevelHWND(mWnd);
   if (toplevelWnd) {
     nsWindow *win = GetNSWindowPtr(toplevelWnd);
     if (win)
@@ -3504,7 +3433,7 @@ PRBool nsWindow::DispatchFocus(PRUint32 aEventType)
         break;
     }
 
-    event.pluginEvent = (void *)&pluginEvent;
+    event.nativeMsg = (void *)&pluginEvent;
 
     return DispatchWindowEvent(&event);
   }
@@ -3587,6 +3516,11 @@ PRBool nsWindow::ConvertStatus(nsEventStatus aStatus)
 
 LRESULT CALLBACK nsWindow::WindowProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
+#ifdef MOZ_IPC
+  NS_ASSERTION(!mozilla::ipc::SyncChannel::IsPumpingMessages(),
+               "Failed to prevent a nonqueued message from running!");
+#endif
+
   
   
   nsAutoRollup autoRollup;
@@ -4900,96 +4834,23 @@ BOOL nsWindow::OnInputLangChange(HKL aHKL)
   return PR_FALSE;   
 }
 
-#if !defined(WINCE) 
 void nsWindow::OnWindowPosChanged(WINDOWPOS *wp, PRBool& result)
 {
   if (wp == nsnull)
     return;
 
-#ifdef WINSTATE_DEBUG_OUTPUT
-  if (mWnd == GetTopLevelHWND(mWnd))
-    printf("*** OnWindowPosChanged: [  top] ");
-  else
-    printf("*** OnWindowPosChanged: [child] ");
-  printf("WINDOWPOS flags:");
-  if (wp->flags & SWP_FRAMECHANGED)
-    printf("SWP_FRAMECHANGED ");
-  if (wp->flags & SWP_SHOWWINDOW)
-    printf("SWP_SHOWWINDOW ");
-  if (wp->flags & SWP_NOSIZE)
-    printf("SWP_NOSIZE ");
-  if (wp->flags & SWP_HIDEWINDOW)
-    printf("SWP_HIDEWINDOW ");
-  printf("\n");
-#endif
-
   
-  if (wp->flags & SWP_FRAMECHANGED) {
-    nsSizeModeEvent event(PR_TRUE, NS_SIZEMODE, this);
-
-    WINDOWPLACEMENT pl;
-    pl.length = sizeof(pl);
-    ::GetWindowPlacement(mWnd, &pl);
-
-    if (pl.showCmd == SW_SHOWMAXIMIZED)
-      event.mSizeMode = nsSizeMode_Maximized;
-    else if (pl.showCmd == SW_SHOWMINIMIZED)
-      event.mSizeMode = nsSizeMode_Minimized;
-    else
-      event.mSizeMode = nsSizeMode_Normal;
-
-    
-    
-    
-    
-    
-    
-    
-    mSizeMode = event.mSizeMode;
-
-    
-    
-    
-    
-    
-    if (!sTrimOnMinimize && nsSizeMode_Minimized == event.mSizeMode)
-      ActivateOtherWindowHelper(mWnd);
-
-#ifdef WINSTATE_DEBUG_OUTPUT
-    switch (mSizeMode) {
-      case nsSizeMode_Normal:
-          printf("*** mSizeMode: nsSizeMode_Normal\n");
-        break;
-      case nsSizeMode_Minimized:
-          printf("*** mSizeMode: nsSizeMode_Minimized\n");
-        break;
-      case nsSizeMode_Maximized:
-          printf("*** mSizeMode: nsSizeMode_Maximized\n");
-        break;
-      default:
-          printf("*** mSizeMode: ??????\n");
-        break;
-    };
-#endif
-
-    InitEvent(event);
-
-    result = DispatchWindowEvent(&event);
-
-    
-    if (mSizeMode == nsSizeMode_Minimized)
-      return;
-  }
-
+  
   
   if (0 == (wp->flags & SWP_NOSIZE)) {
+    
+    
+    
     RECT r;
-    PRInt32 newWidth, newHeight;
-
     ::GetWindowRect(mWnd, &r);
-
-    newWidth  = r.right - r.left;
-    newHeight = r.bottom - r.top;
+    PRInt32 newWidth, newHeight;
+    newWidth = PRInt32(r.right - r.left);
+    newHeight = PRInt32(r.bottom - r.top);
     nsIntRect rect(wp->x, wp->y, newWidth, newHeight);
 
 #ifdef MOZ_XUL
@@ -5002,78 +4863,87 @@ void nsWindow::OnWindowPosChanged(WINDOWPOS *wp, PRBool& result)
       RECT drect;
 
       
-      drect.left   = wp->x + mLastSize.width;
-      drect.top    = wp->y;
-      drect.right  = drect.left + (newWidth - mLastSize.width);
+      drect.left = wp->x + mLastSize.width;
+      drect.top = wp->y;
+      drect.right = drect.left + (newWidth - mLastSize.width);
       drect.bottom = drect.top + newHeight;
 
       ::RedrawWindow(mWnd, &drect, NULL,
-                     RDW_INVALIDATE |
-                     RDW_NOERASE |
-                     RDW_NOINTERNALPAINT |
-                     RDW_ERASENOW |
-                     RDW_ALLCHILDREN);
+                     RDW_INVALIDATE | RDW_NOERASE | RDW_NOINTERNALPAINT | RDW_ERASENOW | RDW_ALLCHILDREN);
     }
     if (newHeight > mLastSize.height)
     {
       RECT drect;
 
       
-      drect.left   = wp->x;
-      drect.top    = wp->y + mLastSize.height;
-      drect.right  = drect.left + newWidth;
+      drect.left = wp->x;
+      drect.top = wp->y + mLastSize.height;
+      drect.right = drect.left + newWidth;
       drect.bottom = drect.top + (newHeight - mLastSize.height);
 
       ::RedrawWindow(mWnd, &drect, NULL,
-                     RDW_INVALIDATE |
-                     RDW_NOERASE |
-                     RDW_NOINTERNALPAINT |
-                     RDW_ERASENOW |
-                     RDW_ALLCHILDREN);
+                     RDW_INVALIDATE | RDW_NOERASE | RDW_NOINTERNALPAINT | RDW_ERASENOW | RDW_ALLCHILDREN);
     }
 
-    mBounds.width    = newWidth;
-    mBounds.height   = newHeight;
-    mLastSize.width  = newWidth;
+    mBounds.width  = newWidth;
+    mBounds.height = newHeight;
+    mLastSize.width = newWidth;
     mLastSize.height = newHeight;
 
-#ifdef WINSTATE_DEBUG_OUTPUT
-    printf("*** Resize window: %d x %d x %d x %d\n", wp->x, wp->y, newWidth, newHeight);
-#endif
+    
+    
+    
+    
+    HWND toplevelWnd = GetTopLevelHWND(mWnd);
+    if (mWnd == toplevelWnd && IsIconic(toplevelWnd)) {
+      result = PR_FALSE;
+      return;
+    }
 
+    
     
     if (::GetClientRect(mWnd, &r)) {
-      rect.width  = r.right - r.left;
-      rect.height = r.bottom - r.top;
+      rect.width  = PRInt32(r.right - r.left);
+      rect.height = PRInt32(r.bottom - r.top);
     }
-    
-    
     result = OnResize(rect);
   }
-}
 
-
-void nsWindow::ActivateOtherWindowHelper(HWND aWnd)
-{
   
-  HWND hwndBelow = ::GetNextWindow(aWnd, GW_HWNDNEXT);
-  while (hwndBelow && (!::IsWindowEnabled(hwndBelow) || !::IsWindowVisible(hwndBelow) ||
-                       ::IsIconic(hwndBelow))) {
-    hwndBelow = ::GetNextWindow(hwndBelow, GW_HWNDNEXT);
+  
+  
+  
+  
+  if (wp->flags & SWP_FRAMECHANGED && ::IsWindowVisible(mWnd)) {
+    nsSizeModeEvent event(PR_TRUE, NS_SIZEMODE, this);
+#ifndef WINCE
+    WINDOWPLACEMENT pl;
+    pl.length = sizeof(pl);
+    ::GetWindowPlacement(mWnd, &pl);
+
+    if (pl.showCmd == SW_SHOWMAXIMIZED)
+      event.mSizeMode = nsSizeMode_Maximized;
+    else if (pl.showCmd == SW_SHOWMINIMIZED)
+      event.mSizeMode = nsSizeMode_Minimized;
+    else
+      event.mSizeMode = nsSizeMode_Normal;
+#else
+    event.mSizeMode = mSizeMode;
+#endif
+    
+    
+    
+    
+    
+    
+    
+    mSizeMode = event.mSizeMode;
+
+    InitEvent(event);
+
+    result = DispatchWindowEvent(&event);
   }
-
-  
-  
-  ::SetWindowPos(aWnd, HWND_BOTTOM, 0, 0, 0, 0,
-                 SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE);
-  if (hwndBelow)
-    ::SetForegroundWindow(hwndBelow);
-
-  
-  
-  ::PlaySoundW(L"Minimize", nsnull, SND_ALIAS | SND_NODEFAULT | SND_ASYNC);
 }
-#endif 
 
 #if !defined(WINCE)
 void nsWindow::OnWindowPosChanging(LPWINDOWPOS& info)
@@ -5253,9 +5123,8 @@ PRBool nsWindow::OnMouseWheel(UINT msg, WPARAM wParam, LPARAM lParam, PRBool& ge
 
   
   
-  PRBool quit;
-  if (!HandleScrollingPlugins(msg, wParam, lParam, result, aRetValue, quit))
-    return quit; 
+  if (!HandleScrollingPlugins(msg, wParam, lParam, result))
+    return result; 
 
   
   
@@ -5989,15 +5858,12 @@ void nsWindow::OnSettingsChange(WPARAM wParam, LPARAM lParam)
 
 
 
-
 PRBool nsWindow::HandleScrollingPlugins(UINT aMsg, WPARAM aWParam,
-                                        LPARAM aLParam, PRBool& aHandled,
-                                        LRESULT* aRetValue,
-                                        PRBool& aQuitProcessing)
+                                        LPARAM aLParam, PRBool& aHandled)
 {
   
   
-  aQuitProcessing = PR_FALSE; 
+  aHandled = PR_FALSE; 
   POINT point;
   DWORD dwPoints = ::GetMessagePos();
   point.x = GET_X_LPARAM(dwPoints);
@@ -6090,8 +5956,9 @@ PRBool nsWindow::HandleScrollingPlugins(UINT aMsg, WPARAM aWParam,
     return PR_FALSE;
   if (destWnd != mWnd) {
     if (destWindow) {
-      aHandled = destWindow->ProcessMessage(aMsg, aWParam, aLParam, aRetValue);
-      aQuitProcessing = PR_TRUE;
+      LRESULT aRetValue;
+      destWindow->ProcessMessage(aMsg, aWParam, aLParam, &aRetValue);
+      aHandled = PR_TRUE;
       return PR_FALSE; 
     }
   #ifdef DEBUG
@@ -6108,11 +5975,10 @@ PRBool nsWindow::OnScroll(UINT aMsg, WPARAM aWParam, LPARAM aLParam)
   {
     
     
-    PRBool quit, result;
-    LRESULT retVal;
 
-    if (!HandleScrollingPlugins(aMsg, aWParam, aLParam, result, &retVal, quit))
-      return quit;  
+    PRBool result;
+    if (!HandleScrollingPlugins(aMsg, aWParam, aLParam, result))
+      return result;  
 
     nsMouseScrollEvent scrollevent(PR_TRUE, NS_MOUSE_SCROLL, this);
     scrollevent.scrollFlags = (aMsg == WM_VSCROLL) 
@@ -7012,7 +6878,6 @@ void nsWindow::InitTrackPointHack()
   long lResult;
   const WCHAR wstrKeys[][40] = {L"Software\\Lenovo\\TrackPoint",
                                 L"Software\\Lenovo\\UltraNav",
-                                L"Software\\Alps\\Apoint\\TrackPoint",
                                 L"Software\\Synaptics\\SynTPEnh\\UltraNavPS2"};    
   
   sTrackPointHack = false;
