@@ -5269,13 +5269,7 @@ JS_SetOperationLimit(JSContext *cx, uint32 operationLimit)
 {
     
     JS_ASSERT(!cx->branchCallbackWasSet);
-
-    
-    
-    if (!(operationLimit <= JS_MAX_OPERATION_LIMIT)) {
-        operationLimit = JS_MAX_OPERATION_LIMIT;
-    }
-
+    JS_ASSERT(operationLimit <= JS_MAX_OPERATION_LIMIT);
     JS_ASSERT(operationLimit > 0);
 
     cx->operationCount = (int32) operationLimit;
@@ -5286,13 +5280,7 @@ JS_PUBLIC_API(uint32)
 JS_GetOperationLimit(JSContext *cx)
 {
     JS_ASSERT(!cx->branchCallbackWasSet);
-
-    
-
-
-
-    JS_ASSERT(cx->operationLimit <= JS_MAX_OPERATION_LIMIT + 1);
-    return JS_MIN(cx->operationLimit, JS_MAX_OPERATION_LIMIT);
+    return cx->operationLimit;
 }
 
 JS_PUBLIC_API(JSBranchCallback)
