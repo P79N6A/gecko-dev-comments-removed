@@ -56,6 +56,13 @@ class nsDirEnumerator;
 #endif
 
 
+#if defined(HAVE_STATVFS64) && (MAC_OS_X_VERSION_MIN_REQUIRED > MAC_OS_X_VERSION_10_4)
+#define STATVFS statvfs64
+#else
+#define STATVFS statvfs
+#endif
+
+
 
 
 
