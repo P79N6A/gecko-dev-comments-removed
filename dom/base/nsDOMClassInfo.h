@@ -146,8 +146,11 @@ public:
 
   
   
+  
+  
   static inline nsresult WrapNativeParent(JSContext *cx, JSObject *scope,
                                           nsISupports *native,
+                                          nsWrapperCache *nativeWrapperCache,
                                           JSObject **parentObj);
 
   
