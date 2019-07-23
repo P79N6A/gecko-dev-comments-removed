@@ -374,9 +374,6 @@ static PRBool sThemeChanged;
 void
 nsPresContext::GetFontPreferences()
 {
-  if (!mLangGroup)
-    return;
-
   
 
 
@@ -396,8 +393,10 @@ nsPresContext::GetFontPreferences()
   mDefaultVariableFont.size = CSSPixelsToAppUnits(16);
   mDefaultFixedFont.size = CSSPixelsToAppUnits(13);
 
-  const char *langGroup;
-  mLangGroup->GetUTF8String(&langGroup);
+  const char *langGroup = "x-western"; 
+  if (mLangGroup) {
+    mLangGroup->GetUTF8String(&langGroup);
+  }
 
   nsCAutoString pref;
 
