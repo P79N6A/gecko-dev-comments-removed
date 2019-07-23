@@ -427,7 +427,7 @@ nsXMLEventsManager::ContentRemoved(nsIDocument* aDocument,
                                    nsIContent* aChild,
                                    PRInt32 aIndexInContainer)
 {
-  if (!aChild || !aChild->IsNodeOfType(nsINode::eELEMENT))
+  if (!aChild || !aChild->IsElement())
     return;
   
   

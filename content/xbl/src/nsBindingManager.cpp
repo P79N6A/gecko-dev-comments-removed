@@ -1691,7 +1691,8 @@ nsBindingManager::Traverse(nsIContent *aContent,
     cb.NoteXPCOMChild(value);
   }
 
-  if (!aContent->IsNodeOfType(nsINode::eELEMENT)) {
+  
+  if (!aContent->IsElement()) {
     return;
   }
 

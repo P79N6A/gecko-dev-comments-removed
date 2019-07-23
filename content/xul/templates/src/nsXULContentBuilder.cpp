@@ -1346,7 +1346,7 @@ nsXULContentBuilder::RemoveGeneratedContent(nsIContent* aElement)
             
             if (element->NodeInfo()->Equals(nsGkAtoms::_template,
                                             kNameSpaceID_XUL) ||
-                !element->IsNodeOfType(nsINode::eELEMENT))
+                !element->IsElement())
                 continue;
 
             
