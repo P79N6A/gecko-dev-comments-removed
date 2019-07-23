@@ -182,7 +182,6 @@ function test()
     
     check(function() (a[0] = "10") && (a[0] == 10));
 
-
     
     a = new Uint8ClampedArray(4);
     a[0] = 128;
@@ -194,6 +193,28 @@ function test()
     check(function() a[1] == 255);
     check(function() a[2] == 0);
     check(function() a[3] == 0);
+
+    
+    var x = Array(5);
+    x[0] = "hello";
+    x[1] = { };
+    
+    x[3] = undefined;
+    x[4] = true;
+
+    a = new Uint8Array(x);
+    check(function() a[0] == 0);
+    check(function() a[1] == 0);
+    check(function() a[2] == 0);
+    check(function() a[3] == 0);
+    check(function() a[4] == 1);
+
+    a = new Float32Array(x);
+    check(function() !(a[0] == a[0]));
+    check(function() !(a[1] == a[1]));
+    check(function() !(a[2] == a[2]));
+    check(function() !(a[3] == a[3]));
+    check(function() a[4] == 1);
 
     print ("done");
 
