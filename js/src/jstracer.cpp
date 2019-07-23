@@ -1978,6 +1978,7 @@ js_IsLoopEdge(jsbytecode* pc, jsbytecode* header)
 JS_REQUIRES_STACK bool
 TraceRecorder::adjustCallerTypes(Fragment* f)
 {
+    JSTraceMonitor* tm = traceMonitor;
     uint16* gslots = treeInfo->globalSlots->data();
     unsigned ngslots = treeInfo->globalSlots->length();
     JS_ASSERT(ngslots == treeInfo->nGlobalTypes());
@@ -2641,6 +2642,7 @@ JS_REQUIRES_STACK void
 TraceRecorder::joinEdgesToEntry(Fragmento* fragmento, Fragment* peer_root)
 {
     if (fragment->kind == LoopTrace) {
+        JSTraceMonitor* tm = traceMonitor;
         TreeInfo* ti;
         Fragment* peer;
         uint8* t1, *t2;
@@ -3036,6 +3038,7 @@ js_StartRecorder(JSContext* cx, VMSideExit* anchor, Fragment* f, TreeInfo* ti,
                  VMSideExit* expectedInnerExit, Fragment* outer)
 {
     JSTraceMonitor* tm = &JS_TRACE_MONITOR(cx);
+    JS_ASSERT(f->root != f || !cx->fp->imacpc);
 
     
     tm->recorder = new (&gc) TraceRecorder(cx, anchor, f, ti,
@@ -3612,7 +3615,7 @@ js_RecordLoopEdge(JSContext* cx, TraceRecorder* r, uintN& inlineCallCount)
             AUDIT(noCompatInnerTrees);
             debug_only_v(printf("No compatible inner tree (%p).\n", f);)
 
-                Fragment* old = getLoop(tm, tm->recorder->getFragment()->root->ip, ti->globalShape);
+            Fragment* old = getLoop(tm, tm->recorder->getFragment()->root->ip, ti->globalShape);
             if (old == NULL)
                 old = tm->recorder->getFragment();
             js_AbortRecording(cx, "No compatible inner tree");
@@ -4115,9 +4118,23 @@ js_MonitorLoopEdge(JSContext* cx, uintN& inlineCallCount)
 
     
     if (tm->recorder) {
+        jsbytecode* innerLoopHeaderPC = cx->fp->regs->pc;
+
         if (js_RecordLoopEdge(cx, tm->recorder, inlineCallCount))
             return true;
+
         
+
+
+
+
+
+
+
+
+
+        if (innerLoopHeaderPC != cx->fp->regs->pc)
+            return false;
     }
     JS_ASSERT(!tm->recorder);
 
