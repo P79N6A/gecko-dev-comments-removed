@@ -73,6 +73,9 @@ function urlSecurityCheck(aURL, aPrincipal, aFlags)
   }
 }
 
+
+
+
 function isContentFrame(aFocusedWindow)
 {
   if (!aFocusedWindow)
@@ -81,10 +84,6 @@ function isContentFrame(aFocusedWindow)
   return (aFocusedWindow.top == window.content);
 }
 
-
-const kSaveAsType_Complete = 0;   
-
-const kSaveAsType_Text = 2;       
 
 
 
@@ -213,6 +212,10 @@ DownloadListener.prototype = {
   }
 }
 
+const kSaveAsType_Complete = 0; 
+
+const kSaveAsType_Text     = 2; 
+
 
 
 
@@ -305,7 +308,7 @@ function internalSave(aURL, aDocument, aDefaultFileName, aContentDisposition,
     source      : source,
     contentType : (!aChosenData && useSaveDocument &&
                    saveAsType == kSaveAsType_Text) ?
-                   "text/plain" : null,
+                  "text/plain" : null,
     target      : fileURL,
     postData    : isDocument ? getPostData() : null,
     bypassCache : aShouldBypassCache
@@ -635,14 +638,13 @@ function appendFiltersForContentType(aFilePicker, aContentType, aFileExtension, 
   aFilePicker.appendFilters(Components.interfaces.nsIFilePicker.filterAll);
 }
 
-
 function getPostData()
 {
   try {
     var sessionHistory = getWebNavigation().sessionHistory;
-    var entry = sessionHistory.getEntryAtIndex(sessionHistory.index, false);
-    entry = entry.QueryInterface(Components.interfaces.nsISHEntry);
-    return entry.postData;
+    return sessionHistory.getEntryAtIndex(sessionHistory.index, false)
+                         .QueryInterface(Components.interfaces.nsISHEntry)
+                         .postData;
   }
   catch (e) {
   }
@@ -652,16 +654,16 @@ function getPostData()
 function getStringBundle()
 {
   const bundleURL = "chrome://global/locale/contentAreaCommands.properties";
-  
+
   const sbsContractID = "@mozilla.org/intl/stringbundle;1";
   const sbsIID = Components.interfaces.nsIStringBundleService;
   const sbs = Components.classes[sbsContractID].getService(sbsIID);
-  
+
   const lsContractID = "@mozilla.org/intl/nslocaleservice;1";
   const lsIID = Components.interfaces.nsILocaleService;
   const ls = Components.classes[lsContractID].getService(lsIID);
   var appLocale = ls.getApplicationLocale();
-  return sbs.createBundle(bundleURL, appLocale);    
+  return sbs.createBundle(bundleURL, appLocale);
 }
 
 function makeWebBrowserPersist()
@@ -670,6 +672,13 @@ function makeWebBrowserPersist()
   const persistIID = Components.interfaces.nsIWebBrowserPersist;
   return Components.classes[persistContractID].createInstance(persistIID);
 }
+
+
+
+
+
+
+
 
 function makeURI(aURL, aOriginCharset, aBaseURI)
 {
@@ -709,7 +718,7 @@ function getFileBaseName(aFileName, aFileExt)
 
 function getMIMETypeForURI(aURI)
 {
-  try {  
+  try {
     return getMIMEService().getTypeFromURI(aURI);
   }
   catch (e) {
@@ -831,7 +840,7 @@ function getNormalizedLeafName(aFile, aDefaultExtension)
 
   
   aFile = aFile.replace(/^\.+/, "");
-      
+
   
   var i = aFile.lastIndexOf(".");
   if (aFile.substr(i + 1) != aDefaultExtension)
@@ -855,12 +864,12 @@ function getDefaultExtension(aFilename, aURI, aContentType)
 
   
   
-  
+
   var mimeInfo = getMIMEInfoForType(aContentType, ext);
 
   if (ext && mimeInfo && mimeInfo.extensionExists(ext))
     return ext;
-  
+
   
   var urlext;
   try {
