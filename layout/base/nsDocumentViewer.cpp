@@ -351,8 +351,12 @@ protected:
   virtual ~DocumentViewerImpl();
 
 private:
-  nsresult MakeWindow(nsIWidget* aParentWidget,
-                      const nsRect& aBounds);
+  
+
+
+
+
+  nsresult MakeWindow(const nsSize& aSize);
   nsresult InitInternal(nsIWidget* aParentWidget,
                         nsISupports *aState,
                         nsIDeviceContext* aDeviceContext,
@@ -831,7 +835,8 @@ DocumentViewerImpl::InitInternal(nsIWidget* aParentWidget,
       
       
 
-      rv = MakeWindow(aParentWidget, aBounds);
+      rv = MakeWindow(nsSize(mPresContext->DevPixelsToAppUnits(aBounds.width),
+                             mPresContext->DevPixelsToAppUnits(aBounds.height)));
       NS_ENSURE_SUCCESS(rv, rv);
       Hide();
 
@@ -1612,6 +1617,12 @@ DocumentViewerImpl::SetDOMDocument(nsIDOMDocument *aDocument)
 
   nsCOMPtr<nsILinkHandler> linkHandler;
   if (mPresShell) {
+    nsSize currentSize(0, 0);
+
+    if (mViewManager) {
+      mViewManager->GetWindowDimensions(&currentSize.width, &currentSize.height);
+    }
+
     if (mPresContext) {
       
       
@@ -1622,6 +1633,10 @@ DocumentViewerImpl::SetDOMDocument(nsIDOMDocument *aDocument)
     mPresShell->Destroy();
 
     mPresShell = nsnull;
+
+    
+    
+    MakeWindow(currentSize);
   }
 
   
@@ -1901,7 +1916,8 @@ DocumentViewerImpl::Show(void)
     nsRect tbounds;
     mParentWidget->GetBounds(tbounds);
 
-    rv = MakeWindow(mParentWidget, tbounds);
+    rv = MakeWindow(nsSize(mPresContext->DevPixelsToAppUnits(tbounds.width),
+                           mPresContext->DevPixelsToAppUnits(tbounds.height)));
     if (NS_FAILED(rv))
       return rv;
 
@@ -2200,8 +2216,7 @@ DocumentViewerImpl::ClearHistoryEntry()
 
 
 nsresult
-DocumentViewerImpl::MakeWindow(nsIWidget* aParentWidget,
-                               const nsRect& aBounds)
+DocumentViewerImpl::MakeWindow(const nsSize& aSize)
 {
   nsresult rv;
 
@@ -2211,26 +2226,13 @@ DocumentViewerImpl::MakeWindow(nsIWidget* aParentWidget,
 
   nsIDeviceContext *dx = mPresContext->DeviceContext();
 
-  nsRect tbounds = aBounds;
-  tbounds *= mPresContext->AppUnitsPerDevPixel();
-
-   
-   
   rv = mViewManager->Init(dx);
   if (NS_FAILED(rv))
     return rv;
 
   
   
-  
-  
-  
-  tbounds.x = 0;
-  tbounds.y = 0;
-
-  
-  
-  nsIView* containerView = nsIView::GetViewFor(aParentWidget);
+  nsIView* containerView = nsIView::GetViewFor(mParentWidget);
 
   if (containerView) {
     
@@ -2263,6 +2265,8 @@ DocumentViewerImpl::MakeWindow(nsIWidget* aParentWidget,
   }
 
   
+  nsRect tbounds(nsPoint(0, 0), aSize);
+  
   nsIView* view = mViewManager->CreateView(tbounds, containerView);
   if (!view)
     return NS_ERROR_OUT_OF_MEMORY;
@@ -2271,7 +2275,7 @@ DocumentViewerImpl::MakeWindow(nsIWidget* aParentWidget,
   
   
   rv = view->CreateWidget(kWidgetCID, nsnull,
-                          containerView != nsnull ? nsnull : aParentWidget->GetNativeData(NS_NATIVE_WIDGET),
+                          containerView != nsnull ? nsnull : mParentWidget->GetNativeData(NS_NATIVE_WIDGET),
                           PR_TRUE, PR_FALSE);
   if (NS_FAILED(rv))
     return rv;
