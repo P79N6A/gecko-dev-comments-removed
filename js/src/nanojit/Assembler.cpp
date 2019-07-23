@@ -665,9 +665,10 @@ namespace nanojit
     {
         Fragment *frag = lr->exit->target;
 		NanoAssert(frag->fragEntry != 0);
-		NIns* was = asm_adjustBranch((NIns*)lr->jmp, frag->fragEntry);
+		NIns* was = nPatchBranch((NIns*)lr->jmp, frag->fragEntry);
 		verbose_only(verbose_outputf("patching jump at %p to target %p (was %p)\n",
 			lr->jmp, frag->fragEntry, was);)
+		(void)was;
     }
 
     void Assembler::patch(SideExit *exit)
@@ -1285,7 +1286,7 @@ namespace nanojit
                     if (label && label->addr) {
                         
                         unionRegisterState(label->regs);
-    					asm_branch(op == LIR_jf, cond, label->addr);
+    					asm_branch(op == LIR_jf, cond, label->addr, false);
                     }
                     else {
                         
@@ -1300,7 +1301,7 @@ namespace nanojit
                             
                             intersectRegisterState(label->regs);
                         }
-                        NIns *branch = asm_branch(op == LIR_jf, cond, 0);
+                        NIns *branch = asm_branch(op == LIR_jf, cond, 0, false);
 			            _patches.put(branch,to);
                         verbose_only(
                             verbose_outputf("Loop %s -> %s", 
@@ -1340,7 +1341,7 @@ namespace nanojit
 					
                     NIns* exit = asm_exit(ins); 
 					LIns* cond = ins->oprnd1();
-					asm_branch(op == LIR_xf, cond, exit);
+					asm_branch(op == LIR_xf, cond, exit, false);
 					break;
 				}
 				case LIR_x:
