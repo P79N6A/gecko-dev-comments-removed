@@ -583,6 +583,10 @@ JSClass js_ArgumentsClass = {
     JS_CLASS_TRACE(args_or_call_trace), NULL
 };
 
+#define JSSLOT_SCRIPTED_FUNCTION         (JSSLOT_PRIVATE + 1)
+#define JSSLOT_CALL_ARGUMENTS            (JSSLOT_PRIVATE + 2)
+#define CALL_CLASS_FIXED_RESERVED_SLOTS  2
+
 JSObject *
 js_GetCallObject(JSContext *cx, JSStackFrame *fp, JSObject *parent)
 {
@@ -603,10 +607,12 @@ js_GetCallObject(JSContext *cx, JSStackFrame *fp, JSObject *parent)
 
     
     callobj = js_NewObject(cx, &js_CallClass, NULL, parent, 0);
-    if (!callobj || !JS_SetPrivate(cx, callobj, fp)) {
-        cx->weakRoots.newborn[GCX_OBJECT] = NULL;
+    if (!callobj)
         return NULL;
-    }
+
+    JS_SetPrivate(cx, callobj, fp);
+    STOBJ_SET_SLOT(callobj, JSSLOT_SCRIPTED_FUNCTION,
+                   OBJECT_TO_JSVAL(FUN_OBJECT(fp->fun)));
     fp->callobj = callobj;
 
     
@@ -616,36 +622,70 @@ js_GetCallObject(JSContext *cx, JSStackFrame *fp, JSObject *parent)
     return callobj;
 }
 
-static JSBool
-call_enumerate(JSContext *cx, JSObject *obj);
+JSFunction *
+js_GetCallObjectFunction(JSObject *obj)
+{
+    jsval v;
+
+    JS_ASSERT(STOBJ_GET_CLASS(obj) == &js_CallClass);
+    v = STOBJ_GET_SLOT(obj, JSSLOT_SCRIPTED_FUNCTION);
+    if (JSVAL_IS_VOID(v)) {
+        
+        return NULL;
+    }
+    JS_ASSERT(!JSVAL_IS_PRIMITIVE(v));
+    return (JSFunction *) JSVAL_TO_OBJECT(v);
+}
 
 JS_FRIEND_API(JSBool)
 js_PutCallObject(JSContext *cx, JSStackFrame *fp)
 {
     JSObject *callobj;
     JSBool ok;
-    jsid argsid;
-    jsval aval;
+    JSFunction *fun;
+    uintN n;
+    JSScope *scope;
 
     
 
 
+
+    JS_STATIC_ASSERT(JS_INITIAL_NSLOTS - JSSLOT_PRIVATE ==
+                     1 + CALL_CLASS_FIXED_RESERVED_SLOTS);
 
     callobj = fp->callobj;
     if (!callobj)
         return JS_TRUE;
-    ok = call_enumerate(cx, callobj);
 
     
 
 
+    ok = JS_TRUE;
     if (fp->argsobj) {
         if (!TEST_OVERRIDE_BIT(fp, CALL_ARGUMENTS)) {
-            argsid = ATOM_TO_JSID(cx->runtime->atomState.argumentsAtom);
-            aval = OBJECT_TO_JSVAL(fp->argsobj);
-            ok &= js_SetProperty(cx, callobj, argsid, &aval);
+            STOBJ_SET_SLOT(callobj, JSSLOT_CALL_ARGUMENTS,
+                           OBJECT_TO_JSVAL(fp->argsobj));
         }
         ok &= js_PutArgsObject(cx, fp);
+    }
+
+    fun = fp->fun;
+    JS_ASSERT(fun == js_GetCallObjectFunction(callobj));
+    n = JS_GET_LOCAL_NAME_COUNT(fun);
+    if (n != 0) {
+        JS_LOCK_OBJ(cx, callobj);
+        n += JS_INITIAL_NSLOTS;
+        if (n > STOBJ_NSLOTS(callobj))
+            ok &= js_ReallocSlots(cx, callobj, n, JS_TRUE);
+        scope = OBJ_SCOPE(callobj);
+        if (ok) {
+            memcpy(callobj->dslots, fp->argv, fun->nargs * sizeof(jsval));
+            memcpy(callobj->dslots + fun->nargs, fp->vars,
+                   fun->u.i.nvars * sizeof(jsval));
+            if (scope->object == callobj && n > scope->map.freeslot)
+                scope->map.freeslot = n;
+        }
+        JS_UNLOCK_SCOPE(cx, scope);
     }
 
     
@@ -653,7 +693,7 @@ js_PutCallObject(JSContext *cx, JSStackFrame *fp)
 
 
 
-    ok &= JS_SetPrivate(cx, callobj, NULL);
+    JS_SetPrivate(cx, callobj, NULL);
     fp->callobj = NULL;
     return ok;
 }
@@ -661,28 +701,16 @@ js_PutCallObject(JSContext *cx, JSStackFrame *fp)
 static JSBool
 call_enumerate(JSContext *cx, JSObject *obj)
 {
-    JSStackFrame *fp;
     JSFunction *fun;
-    uintN n, i, slot;
+    uintN n, i;
     void *mark;
     jsuword *names;
     JSBool ok;
     JSAtom *name;
     JSObject *pobj;
     JSProperty *prop;
-    jsval v;
 
-    fp = (JSStackFrame *) JS_GetPrivate(cx, obj);
-    if (!fp)
-        return JS_TRUE;
-    JS_ASSERT(GET_FUNCTION_PRIVATE(cx, fp->callee) == fp->fun);
-
-    
-
-
-
-
-    fun = fp->fun;
+    fun = js_GetCallObjectFunction(obj);
     n = JS_GET_LOCAL_NAME_COUNT(fun);
     if (n == 0)
         return JS_TRUE;
@@ -715,11 +743,7 @@ call_enumerate(JSContext *cx, JSObject *obj)
 
 
         JS_ASSERT(prop && pobj == obj);
-        slot = ((JSScopeProperty *) prop)->slot;
         OBJ_DROP_PROPERTY(cx, pobj, prop);
-
-        v = (i < fun->nargs) ? fp->argv[i] : fp->vars[i - fun->nargs];
-        LOCKED_OBJ_SET_SLOT(obj, slot, v);
     }
     ok = JS_TRUE;
 
@@ -738,35 +762,52 @@ static JSBool
 CallPropertyOp(JSContext *cx, JSObject *obj, jsid id, jsval *vp,
                JSCallPropertyKind kind, JSBool setter)
 {
-    JSStackFrame *fp;
     JSFunction *fun;
+    JSStackFrame *fp;
     uintN i;
     jsval *array;
 
-    fp = (JSStackFrame *) JS_GetPrivate(cx, obj);
-    if (!fp)
+    if (STOBJ_GET_CLASS(obj) != &js_CallClass)
         return JS_TRUE;
-    fun = fp->fun;
-    JS_ASSERT(fun && FUN_INTERPRETED(fun));
+
+    fun = js_GetCallObjectFunction(obj);
+    fp = (JSStackFrame *) JS_GetPrivate(cx, obj);
 
     if (kind == JSCPK_ARGUMENTS) {
         if (setter) {
-            SET_OVERRIDE_BIT(fp, CALL_ARGUMENTS);
-        } else if (!TEST_OVERRIDE_BIT(fp, CALL_ARGUMENTS)) {
-            JSObject *argsobj;
+            if (fp)
+                SET_OVERRIDE_BIT(fp, CALL_ARGUMENTS);
+            STOBJ_SET_SLOT(obj, JSSLOT_CALL_ARGUMENTS, *vp);
+        } else {
+            if (fp && !TEST_OVERRIDE_BIT(fp, CALL_ARGUMENTS)) {
+                JSObject *argsobj;
 
-            argsobj = js_GetArgsObject(cx, fp);
-            if (!argsobj)
-                return JS_FALSE;
-            *vp = OBJECT_TO_JSVAL(argsobj);
+                argsobj = js_GetArgsObject(cx, fp);
+                if (!argsobj)
+                    return JS_FALSE;
+                *vp = OBJECT_TO_JSVAL(argsobj);
+            } else {
+                *vp = STOBJ_GET_SLOT(obj, JSSLOT_CALL_ARGUMENTS);
+            }
         }
         return JS_TRUE;
-    }
+  }
 
     JS_ASSERT((int16) JSVAL_TO_INT(id) == JSVAL_TO_INT(id));
     i = (uint16) JSVAL_TO_INT(id);
     JS_ASSERT_IF(kind == JSCPK_ARG, i < fun->nargs);
     JS_ASSERT_IF(kind == JSCPK_VAR, i < fun->u.i.nvars);
+
+    if (!fp) {
+        i += CALL_CLASS_FIXED_RESERVED_SLOTS;
+        if (kind == JSCPK_VAR)
+            i += fun->nargs;
+        else
+            JS_ASSERT(kind == JSCPK_ARG);
+        return setter
+               ? JS_SetReservedSlot(cx, obj, i, *vp)
+               : JS_GetReservedSlot(cx, obj, i, vp);
+    }
 
     JS_ASSERT(fun->u.i.nvars == fp->nvars);
     if (kind == JSCPK_ARG) {
@@ -822,22 +863,17 @@ static JSBool
 call_resolve(JSContext *cx, JSObject *obj, jsval idval, uintN flags,
              JSObject **objp)
 {
-    JSStackFrame *fp;
     JSFunction *fun;
     jsid id;
     JSLocalKind localKind;
     JSPropertyOp getter, setter;
     uintN slot, attrs;
-    jsval *vp;
-
-    fp = (JSStackFrame *) JS_GetPrivate(cx, obj);
-    if (!fp)
-        return JS_TRUE;
-    fun = fp->fun;
-    JS_ASSERT(fun);
-    JS_ASSERT(GET_FUNCTION_PRIVATE(cx, fp->callee) == fun);
 
     if (!JSVAL_IS_STRING(idval))
+        return JS_TRUE;
+
+    fun = js_GetCallObjectFunction(obj);
+    if (!fun)
         return JS_TRUE;
 
     if (!js_ValueToStringId(cx, idval, &id))
@@ -846,24 +882,20 @@ call_resolve(JSContext *cx, JSObject *obj, jsval idval, uintN flags,
     localKind = js_LookupLocal(cx, fun, JSID_TO_ATOM(id), &slot);
     if (localKind != JSLOCAL_NONE) {
         JS_ASSERT((uint16) slot == slot);
+        attrs = JSPROP_PERMANENT | JSPROP_SHARED;
         if (localKind == JSLOCAL_ARG) {
             JS_ASSERT(slot < fun->nargs);
-            vp = fp->argv;
             getter = js_GetCallArg;
             setter = SetCallArg;
-            attrs = JSPROP_PERMANENT;
         } else {
             JS_ASSERT(localKind == JSLOCAL_VAR || localKind == JSLOCAL_CONST);
-            JS_ASSERT(fun->u.i.nvars == fp->nvars);
             JS_ASSERT(slot < fun->u.i.nvars);
-            vp = fp->vars;
             getter = js_GetCallVar;
             setter = SetCallVar;
-            attrs = (localKind == JSLOCAL_CONST)
-                    ? JSPROP_PERMANENT | JSPROP_READONLY
-                    : JSPROP_PERMANENT;
+            if (localKind == JSLOCAL_CONST)
+                attrs |= JSPROP_READONLY;
         }
-        if (!js_DefineNativeProperty(cx, obj, id, vp[slot], getter, setter,
+        if (!js_DefineNativeProperty(cx, obj, id, JSVAL_VOID, getter, setter,
                                      attrs, SPROP_HAS_SHORTID, (int16) slot,
                                      NULL)) {
             return JS_FALSE;
@@ -879,7 +911,8 @@ call_resolve(JSContext *cx, JSObject *obj, jsval idval, uintN flags,
     if (id == ATOM_TO_JSID(cx->runtime->atomState.argumentsAtom)) {
         if (!js_DefineNativeProperty(cx, obj, id, JSVAL_VOID,
                                      GetCallArguments, SetCallArguments,
-                                     JSPROP_PERMANENT, 0, 0, NULL)) {
+                                     JSPROP_PERMANENT | JSPROP_SHARED,
+                                     0, 0, NULL)) {
             return JS_FALSE;
         }
         *objp = obj;
@@ -903,9 +936,20 @@ call_convert(JSContext *cx, JSObject *obj, JSType type, jsval *vp)
     return JS_TRUE;
 }
 
+static uint32
+call_reserveSlots(JSContext *cx, JSObject *obj)
+{
+    JSFunction *fun;
+
+    fun = js_GetCallObjectFunction(obj);
+    return JS_GET_LOCAL_NAME_COUNT(fun);
+}
+
 JS_FRIEND_DATA(JSClass) js_CallClass = {
     js_Call_str,
-    JSCLASS_HAS_PRIVATE | JSCLASS_NEW_RESOLVE | JSCLASS_IS_ANONYMOUS |
+    JSCLASS_HAS_PRIVATE |
+    JSCLASS_HAS_RESERVED_SLOTS(CALL_CLASS_FIXED_RESERVED_SLOTS) |
+    JSCLASS_NEW_RESOLVE | JSCLASS_IS_ANONYMOUS |
     JSCLASS_MARK_IS_TRACE | JSCLASS_HAS_CACHED_PROTO(JSProto_Call),
     JS_PropertyStub,    JS_PropertyStub,
     JS_PropertyStub,    JS_PropertyStub,
@@ -914,7 +958,7 @@ JS_FRIEND_DATA(JSClass) js_CallClass = {
     NULL,               NULL,
     NULL,               NULL,
     NULL,               NULL,
-    JS_CLASS_TRACE(args_or_call_trace), NULL,
+    JS_CLASS_TRACE(args_or_call_trace), call_reserveSlots
 };
 
 

@@ -101,23 +101,6 @@ typedef struct JSInlineFrame {
     JSVersion       callerVersion;  
 } JSInlineFrame;
 
-typedef enum JSNextStep {
-    JS_NEXT_CONTINUE,
-    JS_NEXT_EXIT,
-    JS_NEXT_ERROR
-} JSNextStep;
-
-typedef struct JSInterpreterState {
-    JSAtom          **atoms;
-    uintN           inlineCallCount;
-    JSVersion       currentVersion,
-                    originalVersion;
-    void            *mark;
-    JSFrameRegs     regs;
-    JSBool          ok;
-    JSNextStep      next;
-};
-
 
 #define JSFRAME_CONSTRUCTING   0x01 /* frame is for a constructor invocation */
 #define JSFRAME_COMPUTED_THIS  0x02 /* frame.thisp was computed already */
@@ -136,18 +119,6 @@ typedef struct JSInterpreterState {
 #define JSFRAME_OVERRIDE_BITS  8
 
 #define JSFRAME_SPECIAL       (JSFRAME_DEBUGGER | JSFRAME_EVAL)
-
-
-
-
-
-
-
-#define CAN_DO_FAST_INC_DEC(v)     (((((v) << 1) ^ v) & 0x80000001) == 1)
-
-JS_STATIC_ASSERT(JSVAL_INT == 1);
-JS_STATIC_ASSERT(!CAN_DO_FAST_INC_DEC(INT_TO_JSVAL(JSVAL_INT_MIN)));
-JS_STATIC_ASSERT(!CAN_DO_FAST_INC_DEC(INT_TO_JSVAL(JSVAL_INT_MAX)));
 
 
 
@@ -487,10 +458,7 @@ extern JSBool
 js_InvokeConstructor(JSContext *cx, uintN argc, jsval *vp);
 
 extern JSBool
-js_Interpret(JSContext *cx, JSInterpreterState *state);
-
-extern JSBool
-js_TracingInterpret(JSContext *cx, JSInterpreterState *state);
+js_Interpret(JSContext *cx);
 
 #define JSPROP_INITIALIZER 0x100   /* NB: Not a valid property attribute. */
 
