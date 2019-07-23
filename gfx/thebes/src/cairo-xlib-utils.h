@@ -56,7 +56,7 @@ CAIRO_BEGIN_DECLS
 
 typedef cairo_bool_t (* cairo_xlib_drawing_callback)
     (void *closure,
-     Display *dpy,
+     Screen *screen,
      Drawable drawable,
      Visual *visual,
      short offset_x, short offset_y,
@@ -109,7 +109,7 @@ typedef enum {
     CAIRO_XLIB_DRAWING_SUPPORTS_OFFSET = 0x01,
     CAIRO_XLIB_DRAWING_SUPPORTS_CLIP_RECT = 0x02,
     CAIRO_XLIB_DRAWING_SUPPORTS_CLIP_LIST = 0x04,
-    CAIRO_XLIB_DRAWING_SUPPORTS_ALTERNATE_DISPLAY = 0x08,
+    CAIRO_XLIB_DRAWING_SUPPORTS_ALTERNATE_SCREEN = 0x08,
     CAIRO_XLIB_DRAWING_SUPPORTS_NONDEFAULT_VISUAL = 0x10
 } cairo_xlib_drawing_support_t;
 

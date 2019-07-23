@@ -60,7 +60,8 @@ public:
 
 
 
-    virtual nsresult NativeDraw(Display* dpy, Drawable drawable, Visual* visual,
+    virtual nsresult NativeDraw(Screen* screen, Drawable drawable,
+                                Visual* visual, Colormap colormap,
                                 short offsetX, short offsetY,
                                 XRectangle* clipRects, PRUint32 numClipRects) = 0;
   
@@ -83,7 +84,8 @@ public:
         DRAW_SUPPORTS_NONDEFAULT_VISUAL = 0x10,
         
         
-        DRAW_SUPPORTS_ALTERNATE_DISPLAY = 0x20
+        
+        DRAW_SUPPORTS_ALTERNATE_SCREEN = 0x20,
     };
 
     struct DrawOutput {

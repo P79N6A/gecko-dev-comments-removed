@@ -628,8 +628,8 @@ public:
                 const GdkRectangle& aGDKRect, const GdkRectangle& aGDKClip)
     : mState(aState), mGTKWidgetType(aGTKWidgetType), mFlags(aFlags),
       mDirection(aDirection), mGDKRect(aGDKRect), mGDKClip(aGDKClip) {}
-  nsresult NativeDraw(Display* dpy, Drawable drawable, Visual* visual,
-                      short offsetX, short offsetY,
+  nsresult NativeDraw(Screen* screen, Drawable drawable, Visual* visual,
+                      Colormap colormap, short offsetX, short offsetY,
                       XRectangle* clipRects, PRUint32 numClipRects);
 private:
   GtkWidgetState mState;
@@ -642,8 +642,8 @@ private:
 };
 
 nsresult
-ThemeRenderer::NativeDraw(Display* dpy, Drawable drawable, Visual* visual,
-                          short offsetX, short offsetY,
+ThemeRenderer::NativeDraw(Screen* screen, Drawable drawable, Visual* visual,
+                          Colormap colormap, short offsetX, short offsetY,
                           XRectangle* clipRects, PRUint32 numClipRects)
 {
   GdkRectangle gdk_rect = mGDKRect;
@@ -654,7 +654,7 @@ ThemeRenderer::NativeDraw(Display* dpy, Drawable drawable, Visual* visual,
   gdk_clip.x += offsetX;
   gdk_clip.y += offsetY;
   
-  GdkDisplay* gdkDpy = gdk_x11_lookup_xdisplay(dpy);
+  GdkDisplay* gdkDpy = gdk_x11_lookup_xdisplay(DisplayOfScreen(screen));
   if (!gdkDpy)
     return NS_ERROR_FAILURE;
 
@@ -662,17 +662,23 @@ ThemeRenderer::NativeDraw(Display* dpy, Drawable drawable, Visual* visual,
   if (gdkPixmap) {
     g_object_ref(G_OBJECT(gdkPixmap));
   } else {
+    
+    
     gdkPixmap = gdk_pixmap_foreign_new_for_display(gdkDpy, drawable);
     if (!gdkPixmap)
       return NS_ERROR_FAILURE;
     if (visual) {
+      
       GdkScreen* gdkScreen = gdk_display_get_default_screen(gdkDpy);
-      GdkVisual* gdkVisual = gdk_x11_screen_lookup_visual(gdkScreen, visual->visualid);
-      Colormap cmap = DefaultScreenOfDisplay(dpy)->cmap;
-      GdkColormap* colormap =
-        gdk_x11_colormap_foreign_new(gdkVisual, cmap);
-                                             
-      gdk_drawable_set_colormap(gdkPixmap, colormap);
+      NS_ASSERTION(screen == GDK_SCREEN_XSCREEN(gdkScreen),
+                   "'screen' should be the default Screen");
+      
+      GdkVisual* gdkVisual =
+        gdk_x11_screen_lookup_visual(gdkScreen, visual->visualid);
+      GdkColormap* gdkColormap =
+        gdk_x11_colormap_foreign_new(gdkVisual, colormap);
+      gdk_drawable_set_colormap(gdkPixmap, gdkColormap);
+      g_object_unref(G_OBJECT(gdkColormap));
     }
   }
 

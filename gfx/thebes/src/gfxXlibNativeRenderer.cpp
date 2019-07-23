@@ -40,6 +40,61 @@
 
 #include "cairo-xlib-utils.h"
 
+#ifdef MOZ_WIDGET_GTK2
+#include <gdk/gdkscreen.h>
+#include <gdk/gdkx.h>
+#endif
+
+
+static Colormap
+LookupColormapForVisual(const Screen* screen, const Visual* visual)
+{
+    
+    if (visual == DefaultVisualOfScreen(screen))
+        return DefaultColormapOfScreen(screen);
+
+#ifdef MOZ_WIDGET_GTK2
+    
+    Display* dpy = DisplayOfScreen(screen);
+    GdkDisplay* gdkDpy = gdk_x11_lookup_xdisplay(dpy);
+    if (gdkDpy) {
+        gint screen_num = 0;
+        for (int s = 0; s < ScreenCount(dpy); ++s) {
+            if (ScreenOfDisplay(dpy, s) == screen) {
+                screen_num = s;
+                break;
+            }
+        }
+        GdkScreen* gdkScreen = gdk_display_get_screen(gdkDpy, screen_num);
+
+        GdkColormap* gdkColormap = NULL;
+        if (visual ==
+            GDK_VISUAL_XVISUAL(gdk_screen_get_rgb_visual(gdkScreen))) {
+            
+            
+            
+            
+            
+            
+            
+            gdkColormap = gdk_screen_get_rgb_colormap(gdkScreen);
+        }
+        else if (visual ==
+             GDK_VISUAL_XVISUAL(gdk_screen_get_rgba_visual(gdkScreen))) {
+            
+            
+            
+            
+            gdkColormap = gdk_screen_get_rgba_colormap(gdkScreen);
+        }
+        if (gdkColormap != NULL)
+            return GDK_COLORMAP_XCOLORMAP(gdkColormap);
+    }
+#endif
+
+    return None;
+}
+
 typedef struct {
     gfxXlibNativeRenderer* mRenderer;
     nsresult               mRV;
@@ -47,17 +102,46 @@ typedef struct {
 
 static cairo_bool_t
 NativeRendering(void *closure,
-                Display *dpy,
+                Screen *screen,
                 Drawable drawable,
                 Visual *visual,
                 short offset_x, short offset_y,
                 XRectangle* rectangles, unsigned int num_rects)
 {
+    
+    
+    Colormap colormap = LookupColormapForVisual(screen, visual);
+    PRBool allocColormap = colormap == None;
+    if (allocColormap) {
+        
+        
+        
+        
+        
+        
+        NS_ASSERTION(visual->c_class == TrueColor ||
+                     visual->c_class == StaticColor ||
+                     visual->c_class == StaticGray,
+                     "Creating empty colormap");
+        
+        
+        
+        
+        
+        colormap = XCreateColormap(DisplayOfScreen(screen),
+                                   RootWindowOfScreen(screen),
+                                   visual, AllocNone);
+    }
+
     NativeRenderingClosure* cl = (NativeRenderingClosure*)closure;
     nsresult rv = cl->mRenderer->
-        NativeDraw(dpy, drawable, visual, offset_x, offset_y,
+        NativeDraw(screen, drawable, visual, colormap, offset_x, offset_y,
                    rectangles, num_rects);
     cl->mRV = rv;
+
+    if (allocColormap) {
+        XFreeColormap(DisplayOfScreen(screen), colormap);
+    }
     return NS_SUCCEEDED(rv);
 }
 
@@ -87,8 +171,8 @@ gfxXlibNativeRenderer::Draw(Display* dpy, gfxContext* ctx, int width, int height
     if (flags & DRAW_SUPPORTS_CLIP_LIST) {
         cairoFlags |= CAIRO_XLIB_DRAWING_SUPPORTS_CLIP_LIST;
     }
-    if (flags & DRAW_SUPPORTS_ALTERNATE_DISPLAY) {
-        cairoFlags |= CAIRO_XLIB_DRAWING_SUPPORTS_ALTERNATE_DISPLAY;
+    if (flags & DRAW_SUPPORTS_ALTERNATE_SCREEN) {
+        cairoFlags |= CAIRO_XLIB_DRAWING_SUPPORTS_ALTERNATE_SCREEN;
     }
     if (flags & DRAW_SUPPORTS_NONDEFAULT_VISUAL) {
         cairoFlags |= CAIRO_XLIB_DRAWING_SUPPORTS_NONDEFAULT_VISUAL;
