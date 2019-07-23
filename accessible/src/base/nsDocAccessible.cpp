@@ -214,8 +214,11 @@ nsDocAccessible::GetState(PRUint32 *aState, PRUint32 *aExtraState)
   
   nsAccessible::GetState(aState, aExtraState);
 
+#ifdef MOZ_XUL
   nsCOMPtr<nsIXULDocument> xulDoc(do_QueryInterface(mDocument));
-  if (!xulDoc) {
+  if (!xulDoc)
+#endif
+  {
     
     
     
