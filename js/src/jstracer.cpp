@@ -640,7 +640,7 @@ TraceRecorder::nativeFrameSlots(JSStackFrame* fp, JSFrameRegs& regs) const
         JS_UNLOCK_OBJ(cx, obj2);
     }
     for (;;) {
-        slots += 2 + (regs.sp - fp->spbase);
+        slots += 1 + (regs.sp - fp->spbase);
         if (fp->callee)
             slots += fp->argc + fp->nvars;
         if (fp == entryFrame)
