@@ -1131,13 +1131,6 @@ public:
   }
 
   PRUint32 EventHandlingSuppressed() { return mEventsSuppressed; }
-  
-  
-
-
-
-
-  virtual void PreLoadImage(nsIURI* uri);
 protected:
   ~nsIDocument()
   {
