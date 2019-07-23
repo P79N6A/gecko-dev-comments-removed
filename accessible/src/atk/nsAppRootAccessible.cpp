@@ -47,6 +47,7 @@
 #include "nsIPrefBranch.h"
 #include "nsIServiceManager.h"
 #include "nsAutoPtr.h"
+#include "nsAccessibilityService.h"
 
 #include <gtk/gtk.h>
 #include <atk/atk.h>
@@ -435,16 +436,18 @@ mai_util_remove_key_event_listener (guint remove_listener)
 AtkObject *
 mai_util_get_root(void)
 {
+    if (nsAccessibilityService::gIsShutdown) {
+        
+        
+        if (gail_get_root)
+            return gail_get_root();
+    }
+
     nsRefPtr<nsApplicationAccessibleWrap> root =
         nsAccessNode::GetApplicationAccessible();
 
     if (root)
         return root->GetAtkObject();
-
-    
-    
-    if (gail_get_root)
-        return gail_get_root();
 
     return nsnull;
 }
@@ -562,6 +565,9 @@ nsApplicationAccessibleWrap::Init()
         
         
         g_type_class_unref(g_type_class_ref(MAI_TYPE_UTIL));
+
+        
+        PR_SetEnv("NO_AT_BRIDGE=0");
 
         
         rv = LoadGtkModule(sAtkBridge);
