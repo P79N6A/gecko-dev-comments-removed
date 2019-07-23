@@ -951,11 +951,6 @@ public:
     
 
 
-    nsNodeWeakReference* mWeakReference;
-
-    
-
-
     nsRefPtr<nsContentList> mChildrenList;
 
     
