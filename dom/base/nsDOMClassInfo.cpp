@@ -512,7 +512,6 @@ static const char kDOMStringBundleURL[] =
   (NODE_SCRIPTABLE_FLAGS |                                                    \
    nsIXPCScriptable::WANT_POSTCREATE |                                        \
    nsIXPCScriptable::WANT_ADDPROPERTY |                                       \
-   nsIXPCScriptable::WANT_DELPROPERTY |                                       \
    nsIXPCScriptable::WANT_GETPROPERTY |                                       \
    nsIXPCScriptable::WANT_ENUMERATE)
 
@@ -1447,8 +1446,6 @@ jsval nsDOMClassInfo::sPackages_id        = JSVAL_VOID;
 
 static const JSClass *sObjectClass = nsnull;
 const JSClass *nsDOMClassInfo::sXPCNativeWrapperClass = nsnull;
-
-static PRBool sDoSecurityCheckInAddProperty = PR_TRUE;
 
 
 
@@ -3667,10 +3664,7 @@ nsDOMClassInfo::Init()
     RegisterClassProtos(i);
   }
 
-  PRBool doSecurityCheckInAddProperty = sDoSecurityCheckInAddProperty;
-  sDoSecurityCheckInAddProperty = PR_FALSE;
   RegisterExternalClasses();
-  sDoSecurityCheckInAddProperty = doSecurityCheckInAddProperty;
 
   sDisableDocumentAllSupport =
     nsContentUtils::GetBoolPref("browser.dom.document.all.disabled");
@@ -4955,19 +4949,6 @@ nsWindowSH::AddProperty(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
     }
   }
 
-  
-  
-  if (!sDoSecurityCheckInAddProperty) {
-    return NS_OK;
-  }
-
-  if (id == sLocation_id) {
-    
-    
-
-    return NS_ERROR_DOM_SECURITY_ERR;
-  }
-
   return nsEventReceiverSH::AddProperty(wrapper, cx, obj, id, vp, _retval);
 }
 
@@ -5013,13 +4994,6 @@ nsWindowSH::DelProperty(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
 
       return NS_OK;
     }
-  }
-
-  if (id == sLocation_id) {
-    
-    
-
-    return NS_ERROR_DOM_SECURITY_ERR;
   }
 
   
@@ -5314,16 +5288,12 @@ public:
 
   nsresult Install(JSContext *cx, JSObject *target, jsval thisAsVal)
   {
-    PRBool doSecurityCheckInAddProperty = sDoSecurityCheckInAddProperty;
-    sDoSecurityCheckInAddProperty = PR_FALSE;
-
     JSBool ok =
       ::JS_DefineUCProperty(cx, target,
                             reinterpret_cast<const jschar *>(mClassName),
                             nsCRT::strlen(mClassName), thisAsVal, nsnull,
                             nsnull, JSPROP_PERMANENT);
 
-    sDoSecurityCheckInAddProperty = doSecurityCheckInAddProperty;
     return ok ? NS_OK : NS_ERROR_UNEXPECTED;
   }
 
@@ -5686,18 +5656,12 @@ ResolvePrototype(nsIXPConnect *aXPConnect, nsGlobalWindow *aWin, JSContext *cx,
                                          getter_AddRefs(constructor));
   NS_ENSURE_SUCCESS(rv, rv);
 
-  PRBool doSecurityCheckInAddProperty = sDoSecurityCheckInAddProperty;
-  sDoSecurityCheckInAddProperty = PR_FALSE;
-
   nsCOMPtr<nsIXPConnectJSObjectHolder> holder;
   jsval v;
 
   rv = nsDOMClassInfo::WrapNative(cx, obj, constructor,
                                   &NS_GET_IID(nsIDOMDOMConstructor),
                                   PR_FALSE, &v, getter_AddRefs(holder));
-
-  sDoSecurityCheckInAddProperty = doSecurityCheckInAddProperty;
-
   NS_ENSURE_SUCCESS(rv, rv);
 
   if (install) {
@@ -5879,17 +5843,10 @@ nsWindowSH::GlobalResolve(nsGlobalWindow *aWin, JSContext *cx,
                                   getter_AddRefs(constructor));
     NS_ENSURE_SUCCESS(rv, rv);
 
-    PRBool doSecurityCheckInAddProperty = sDoSecurityCheckInAddProperty;
-    sDoSecurityCheckInAddProperty = PR_FALSE;
-
     nsCOMPtr<nsIXPConnectJSObjectHolder> holder;
     jsval v;
-
     rv = WrapNative(cx, obj, constructor, &NS_GET_IID(nsIDOMDOMConstructor),
                     PR_FALSE, &v, getter_AddRefs(holder));
-
-    sDoSecurityCheckInAddProperty = doSecurityCheckInAddProperty;
-
     NS_ENSURE_SUCCESS(rv, rv);
 
     rv = constructor->Install(cx, obj, v);
@@ -6042,15 +5999,11 @@ nsWindowSH::GlobalResolve(nsGlobalWindow *aWin, JSContext *cx,
 
     NS_ENSURE_SUCCESS(rv, rv);
 
-    PRBool doSecurityCheckInAddProperty = sDoSecurityCheckInAddProperty;
-    sDoSecurityCheckInAddProperty = PR_FALSE;
-
     JSBool ok = ::JS_DefineUCProperty(cx, obj, ::JS_GetStringChars(str),
                                       ::JS_GetStringLength(str),
                                       prop_val, nsnull, nsnull,
                                       JSPROP_ENUMERATE);
 
-    sDoSecurityCheckInAddProperty = doSecurityCheckInAddProperty;
     *did_resolve = PR_TRUE;
 
     return ok ? NS_OK : NS_ERROR_FAILURE;
@@ -6181,13 +6134,8 @@ nsWindowSH::NewResolve(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
         
         
 
-        PRBool doSecurityCheckInAddProperty = sDoSecurityCheckInAddProperty;
-        sDoSecurityCheckInAddProperty = PR_FALSE;
-
         *_retval = ::JS_DefineElement(cx, obj, JSVAL_TO_INT(id), JSVAL_VOID,
                                       nsnull, nsnull, 0);
-
-        sDoSecurityCheckInAddProperty = doSecurityCheckInAddProperty;
 
         if (*_retval) {
           *objp = obj;
@@ -6230,18 +6178,9 @@ nsWindowSH::NewResolve(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
 
       
       
-      
-    
-      PRBool doSecurityCheckInAddProperty = sDoSecurityCheckInAddProperty;
-      sDoSecurityCheckInAddProperty = PR_FALSE;
-
-      
-      
       ok = obj == realObj ?
            ::JS_ResolveStandardClass(my_cx, obj, id, &did_resolve) :
            JS_TRUE;
-
-      sDoSecurityCheckInAddProperty = doSecurityCheckInAddProperty;
 
       if (!ok) {
         
@@ -6341,18 +6280,6 @@ nsWindowSH::NewResolve(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
         }
 #endif
 
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-
         JSAutoRequest ar(cx);
 
         PRBool ok = ::JS_DefineUCProperty(cx, obj, chars,
@@ -6451,8 +6378,8 @@ nsWindowSH::NewResolve(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
       wrapper->GetJSObject(&scope);
     }
 
-    jsval v;
     nsCOMPtr<nsIXPConnectJSObjectHolder> holder;
+    jsval v;
     rv = WrapNative(cx, scope, location, &NS_GET_IID(nsIDOMLocation), PR_TRUE,
                     &v, getter_AddRefs(holder));
     NS_ENSURE_SUCCESS(rv, rv);
@@ -6466,16 +6393,11 @@ nsWindowSH::NewResolve(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
     }
 #endif
 
-    PRBool doSecurityCheckInAddProperty = sDoSecurityCheckInAddProperty;
-    sDoSecurityCheckInAddProperty = PR_FALSE;
-
     JSAutoRequest ar(cx);
 
     JSBool ok = ::JS_DefineUCProperty(cx, obj, ::JS_GetStringChars(str),
                                       ::JS_GetStringLength(str), v, nsnull,
                                       nsnull, JSPROP_ENUMERATE);
-
-    sDoSecurityCheckInAddProperty = doSecurityCheckInAddProperty;
 
     if (!ok) {
       return NS_ERROR_FAILURE;
@@ -6572,9 +6494,6 @@ nsWindowSH::NewResolve(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
 
       JSAutoRequest ar(cx);
 
-      PRBool doSecurityCheckInAddProperty = sDoSecurityCheckInAddProperty;
-      sDoSecurityCheckInAddProperty = PR_FALSE;
-
       jsval winVal = OBJECT_TO_JSVAL(win->GetGlobalJSObject());
       if (!win->IsChromeWindow()) {
         JSObject *scope;
@@ -6598,8 +6517,6 @@ nsWindowSH::NewResolve(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
                               winVal, JS_PropertyStub, JS_PropertyStub,
                               JSPROP_READONLY | JSPROP_ENUMERATE);
 
-      sDoSecurityCheckInAddProperty = doSecurityCheckInAddProperty;
-
       if (!ok) {
         return NS_ERROR_FAILURE;
       }
@@ -6614,16 +6531,11 @@ nsWindowSH::NewResolve(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
       if (!isResolvingJavaProperties) {
         isResolvingJavaProperties = PR_TRUE;
 
-        PRBool oldVal = sDoSecurityCheckInAddProperty;
-        sDoSecurityCheckInAddProperty = PR_FALSE;
-
         
         
         
 
         win->InitJavaProperties(); 
-
-        sDoSecurityCheckInAddProperty = oldVal;
 
         PRBool hasProp;
         PRBool ok = ::JS_HasProperty(cx, obj, ::JS_GetStringBytes(str),
@@ -7001,17 +6913,11 @@ nsNodeSH::DefineVoidProp(JSContext* cx, JSObject* obj, jsval id,
   JSString* str = JSVAL_TO_STRING(id);
 
   
-  PRBool doSecurityCheckInAddProperty = sDoSecurityCheckInAddProperty;
-  sDoSecurityCheckInAddProperty = PR_FALSE;
-
-  
   
   
   JSBool ok = ::JS_DefineUCProperty(cx, obj, ::JS_GetStringChars(str),
                                     ::JS_GetStringLength(str), JSVAL_VOID,
                                     nsnull, nsnull, JSPROP_SHARED);
-
-  sDoSecurityCheckInAddProperty = doSecurityCheckInAddProperty;
 
   if (!ok) {
     return NS_ERROR_FAILURE;
@@ -8179,44 +8085,6 @@ nsContentListSH::GetNamedItem(nsISupports *aNative, const nsAString& aName,
   return list->GetNamedItem(aName, aResult);
 }
 
-
-
-NS_IMETHODIMP
-nsDocumentSH::AddProperty(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
-                          JSObject *obj, jsval id, jsval *vp,
-                          PRBool *_retval)
-{
-  
-  
-  if (!sDoSecurityCheckInAddProperty) {
-    return NS_OK;
-  }
-
-  if (id == sLocation_id) {
-    
-    
-
-    return NS_ERROR_DOM_SECURITY_ERR;
-  }
-
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsDocumentSH::DelProperty(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
-                          JSObject *obj, jsval id, jsval *vp,
-                          PRBool *_retval)
-{
-  if (id == sLocation_id) {
-    
-    
-
-    return NS_ERROR_DOM_SECURITY_ERR;
-  }
-
-  return NS_OK;
-}
-
 NS_IMETHODIMP
 nsDocumentSH::NewResolve(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
                          JSObject *obj, jsval id, PRUint32 flags,
@@ -8225,8 +8093,6 @@ nsDocumentSH::NewResolve(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
   nsresult rv;
 
   if (id == sLocation_id) {
-    
-    
     
     
 
@@ -8244,17 +8110,12 @@ nsDocumentSH::NewResolve(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
                     &v, getter_AddRefs(holder));
     NS_ENSURE_SUCCESS(rv, rv);
 
-    PRBool doSecurityCheckInAddProperty = sDoSecurityCheckInAddProperty;
-    sDoSecurityCheckInAddProperty = PR_FALSE;
-
     JSAutoRequest ar(cx);
 
     JSString *str = JSVAL_TO_STRING(id);
     JSBool ok = ::JS_DefineUCProperty(cx, obj, ::JS_GetStringChars(str),
                                       ::JS_GetStringLength(str), v, nsnull,
                                       nsnull, JSPROP_ENUMERATE);
-
-    sDoSecurityCheckInAddProperty = doSecurityCheckInAddProperty;
 
     if (!ok) {
       return NS_ERROR_FAILURE;
