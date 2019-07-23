@@ -2442,7 +2442,7 @@ js_TraceContext(JSTracer *trc, JSContext *acx)
     }
 
     
-    if (IS_GC_MARKING_TRACER(trc) && acx->fp)
+    if (acx->fp)
         acx->fp->dormantNext = NULL;
 
     
