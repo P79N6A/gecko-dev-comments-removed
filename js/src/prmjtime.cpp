@@ -107,6 +107,14 @@ PRMJ_LocalGMTDifference()
 {
     struct tm ltime;
 
+#ifdef XP_WIN
+    
+
+
+
+
+    _tzset();
+#endif
     
     memset((char *)&ltime,0,sizeof(ltime));
     ltime.tm_mday = 2;
@@ -549,6 +557,16 @@ PRMJ_DSTOffset(JSInt64 local_time)
         
         JSLL_UI2L(local_time,PRMJ_DAY_SECONDS);
     }
+
+#ifdef XP_WIN
+    
+
+
+
+
+    _tzset();
+#endif
+
     JSLL_L2UI(local,local_time);
     PRMJ_basetime(local_time,&prtm);
 #ifndef HAVE_LOCALTIME_R
