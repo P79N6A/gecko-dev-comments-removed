@@ -2127,6 +2127,7 @@ BindNameToSlot(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn)
         JS_ASSERT(cg->flags & TCF_IN_FUNCTION);
         JS_ASSERT(cg->lexdeps.lookup(atom));
         JS_ASSERT(JOF_OPTYPE(op) == JOF_ATOM);
+        JS_ASSERT(cg->fun->u.i.skipmin <= skip);
 
         
 

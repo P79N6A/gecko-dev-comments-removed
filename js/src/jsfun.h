@@ -113,6 +113,8 @@ typedef union JSLocalNames {
 #define FUN_INTERPRETED(fun) (FUN_KIND(fun) >= JSFUN_INTERPRETED)
 #define FUN_FLAT_CLOSURE(fun)(FUN_KIND(fun) == JSFUN_FLAT_CLOSURE)
 #define FUN_NULL_CLOSURE(fun)(FUN_KIND(fun) == JSFUN_NULL_CLOSURE)
+#define FUN_OPTIMIZED_CLOSURE(fun) (FUN_KIND(fun) > JSFUN_INTERPRETED)
+#define FUN_ESCAPE_HAZARD(fun)     (FUN_OPTIMIZED_CLOSURE(fun) && (fun)->u.i.skipmin != 0)
 #define FUN_SLOW_NATIVE(fun) (!FUN_INTERPRETED(fun) && !((fun)->flags & JSFUN_FAST_NATIVE))
 #define FUN_SCRIPT(fun)      (FUN_INTERPRETED(fun) ? (fun)->u.i.script : NULL)
 #define FUN_NATIVE(fun)      (FUN_SLOW_NATIVE(fun) ? (fun)->u.n.native : NULL)
@@ -146,6 +148,15 @@ struct JSFunction {
         struct {
             uint16      nvars;    
             uint16      nupvars;  
+
+            uint16       skipmin; 
+
+
+            JSPackedBool wrapper; 
+
+
+
+
 
             JSScript    *script;  
             JSLocalNames names;   
@@ -231,6 +242,9 @@ js_CloneFunctionObject(JSContext *cx, JSFunction *fun, JSObject *parent);
 extern JS_REQUIRES_STACK JSObject *
 js_NewFlatClosure(JSContext *cx, JSFunction *fun);
 
+extern JS_REQUIRES_STACK JSObject *
+js_NewDebuggableFlatClosure(JSContext *cx, JSFunction *fun);
+
 extern JSFunction *
 js_DefineFunction(JSContext *cx, JSObject *obj, JSAtom *atom, JSNative native,
                   uintN nargs, uintN flags);
@@ -265,7 +279,7 @@ js_PutCallObject(JSContext *cx, JSStackFrame *fp);
 extern JSBool
 js_GetCallArg(JSContext *cx, JSObject *obj, jsid id, jsval *vp);
 
-extern JSBool
+extern JS_REQUIRES_STACK JSBool
 js_GetCallVar(JSContext *cx, JSObject *obj, jsval id, jsval *vp);
 
 extern JSBool

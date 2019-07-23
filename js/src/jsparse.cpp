@@ -819,7 +819,7 @@ JSCompiler::compileScript(JSContext *cx, JSObject *scopeChain, JSStackFrame *cal
     
     script = NULL;
 
-    cg.flags |= (uint16) tcflags;
+    cg.flags |= uint16(tcflags);
     cg.scopeChain = scopeChain;
     if (!SetStaticLevel(&cg, TCF_GET_STATIC_LEVEL(tcflags)))
         goto out;
@@ -1689,11 +1689,20 @@ JSCompiler::analyzeFunctions(JSFunctionBox *funbox, uint16& tcflags)
 
 
 
-static void
+
+
+
+
+
+
+static uintN
 FindFunArgs(JSFunctionBox *funbox, int level, JSFunctionBoxQueue *queue)
 {
+    uintN allskipmin = FREE_STATIC_LEVEL;
+
     do {
         JSParseNode *fn = funbox->node;
+        JSFunction *fun = (JSFunction *) funbox->object;
         int fnlevel = level;
 
         
@@ -1709,35 +1718,78 @@ FindFunArgs(JSFunctionBox *funbox, int level, JSFunctionBoxQueue *queue)
                 kid->node->setFunArg();
         }
 
-        if (fn->isFunArg()) {
-            queue->push(funbox);
-            fnlevel = int(funbox->level);
-        } else {
-            JSParseNode *pn = fn->pn_body;
+        
 
-            if (pn->pn_type == TOK_UPVARS) {
-                JSAtomList upvars(pn->pn_names);
-                JS_ASSERT(upvars.count != 0);
 
-                JSAtomListIterator iter(&upvars);
-                JSAtomListElement *ale;
 
-                while ((ale = iter()) != NULL) {
-                    JSDefinition *lexdep = ALE_DEFN(ale)->resolve();
 
-                    if (!lexdep->isFreeVar() && int(lexdep->frameLevel()) <= fnlevel) {
+        uintN skipmin = FREE_STATIC_LEVEL;
+        JSParseNode *pn = fn->pn_body;
+
+        if (pn->pn_type == TOK_UPVARS) {
+            JSAtomList upvars(pn->pn_names);
+            JS_ASSERT(upvars.count != 0);
+
+            JSAtomListIterator iter(&upvars);
+            JSAtomListElement *ale;
+
+            while ((ale = iter()) != NULL) {
+                JSDefinition *lexdep = ALE_DEFN(ale)->resolve();
+
+                if (!lexdep->isFreeVar()) {
+                    uintN upvarLevel = lexdep->frameLevel();
+
+                    if (int(upvarLevel) <= fnlevel)
                         fn->setFunArg();
-                        queue->push(funbox);
-                        fnlevel = int(funbox->level);
-                        break;
-                    }
+
+                    uintN skip = (funbox->level + 1) - upvarLevel;
+                    if (skip < skipmin)
+                        skipmin = skip;
                 }
             }
         }
 
-        if (funbox->kids)
-            FindFunArgs(funbox->kids, fnlevel, queue);
+        
+
+
+
+
+
+
+        if (fn->isFunArg()) {
+            queue->push(funbox);
+            fnlevel = int(funbox->level);
+        }
+
+        
+
+
+
+        if (funbox->kids) {
+            uintN kidskipmin = FindFunArgs(funbox->kids, fnlevel, queue);
+
+            JS_ASSERT(kidskipmin != 0);
+            if (kidskipmin != FREE_STATIC_LEVEL) {
+                --kidskipmin;
+                if (kidskipmin != 0 && kidskipmin < skipmin)
+                    skipmin = kidskipmin;
+            }
+        }
+
+        
+
+
+
+
+
+        if (skipmin != FREE_STATIC_LEVEL) {
+            fun->u.i.skipmin = skipmin;
+            if (skipmin < allskipmin)
+                allskipmin = skipmin;
+        }
     } while ((funbox = funbox->siblings) != NULL);
+
+    return allskipmin;
 }
 
 bool
@@ -1767,6 +1819,7 @@ JSCompiler::markFunArgs(JSFunctionBox *funbox, uintN tcflags)
                     !lexdep->isFunArg() &&
                     lexdep->kind() == JSDefinition::FUNCTION) {
                     
+
 
 
 
