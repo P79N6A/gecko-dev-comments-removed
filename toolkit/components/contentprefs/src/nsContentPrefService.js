@@ -35,6 +35,7 @@
 
 
 
+
 const Ci = Components.interfaces;
 const Cc = Components.classes;
 const Cr = Components.results;
@@ -127,22 +128,27 @@ ContentPrefService.prototype = {
   
   
 
-  getPref: function ContentPrefService_getPref(aURI, aName) {
+  getPref: function ContentPrefService_getPref(aGroup, aName) {
     if (!aName)
       throw Components.Exception("aName cannot be null or an empty string",
                                  Cr.NS_ERROR_ILLEGAL_VALUE);
 
-    if (aURI) {
-      var group = this.grouper.group(aURI);
+    if (aGroup == null)
+      return this._selectGlobalPref(aName);
+    if (aGroup.constructor.name == "String")
+      return this._selectPref(aGroup.toString(), aName);
+    if (aGroup instanceof Ci.nsIURI) {
+      var group = this.grouper.group(aGroup);
       return this._selectPref(group, aName);
     }
 
-    return this._selectGlobalPref(aName);
+    throw Components.Exception("aGroup is not a string, nsIURI or null",
+                               Cr.NS_ERROR_ILLEGAL_VALUE);
   },
 
-  setPref: function ContentPrefService_setPref(aURI, aName, aValue) {
+  setPref: function ContentPrefService_setPref(aGroup, aName, aValue) {
     
-    var currentValue = this.getPref(aURI, aName);
+    var currentValue = this.getPref(aGroup, aName);
     if (typeof currentValue != "undefined") {
       if (currentValue == aValue)
         return;
@@ -161,15 +167,25 @@ ContentPrefService.prototype = {
 
     var settingID = this._selectSettingID(aName) || this._insertSetting(aName);
     var group, groupID, prefID;
-    if (aURI) {
-      group = this.grouper.group(aURI);
+    if (aGroup == null) {
+      group = null;
+      groupID = null;
+      prefID = this._selectGlobalPrefID(settingID);
+    }
+    else if (aGroup.constructor.name == "String") {
+      group = aGroup.toString();
+      groupID = this._selectGroupID(group) || this._insertGroup(group);
+      prefID = this._selectPrefID(groupID, settingID);
+    }
+    else if (aGroup instanceof Ci.nsIURI) {
+      group = this.grouper.group(aGroup);
       groupID = this._selectGroupID(group) || this._insertGroup(group);
       prefID = this._selectPrefID(groupID, settingID);
     }
     else {
-      group = null;
-      groupID = null;
-      prefID = this._selectGlobalPrefID(settingID);
+      
+      throw Components.Exception("aGroup is not a string, nsIURI or null",
+                                 Cr.NS_ERROR_ILLEGAL_VALUE);
     }
 
     
@@ -188,28 +204,38 @@ ContentPrefService.prototype = {
     }
   },
 
-  hasPref: function ContentPrefService_hasPref(aURI, aName) {
+  hasPref: function ContentPrefService_hasPref(aGroup, aName) {
     
     
-    return (typeof this.getPref(aURI, aName) != "undefined");
+    return (typeof this.getPref(aGroup, aName) != "undefined");
   },
 
-  removePref: function ContentPrefService_removePref(aURI, aName) {
+  removePref: function ContentPrefService_removePref(aGroup, aName) {
     
-    if (!this.hasPref(aURI, aName))
+    if (!this.hasPref(aGroup, aName))
       return;
 
     var settingID = this._selectSettingID(aName);
     var group, groupID, prefID;
-    if (aURI) {
-      group = this.grouper.group(aURI);
+    if (aGroup == null) {
+      group = null;
+      groupID = null;
+      prefID = this._selectGlobalPrefID(settingID);
+    }
+    else if (aGroup.constructor.name == "String") {
+      group = aGroup.toString();
+      groupID = this._selectGroupID(group);
+      prefID = this._selectPrefID(groupID, settingID);
+    }
+    else if (aGroup instanceof Ci.nsIURI) {
+      group = this.grouper.group(aGroup);
       groupID = this._selectGroupID(group);
       prefID = this._selectPrefID(groupID, settingID);
     }
     else {
-      group = null;
-      groupID = null;
-      prefID = this._selectGlobalPrefID(settingID);
+      
+      throw Components.Exception("aGroup is not a string, nsIURI or null",
+                                 Cr.NS_ERROR_ILLEGAL_VALUE);
     }
 
     this._deletePref(prefID);
@@ -241,9 +267,8 @@ ContentPrefService.prototype = {
                                  Cr.NS_ERROR_ILLEGAL_VALUE);
 
     var settingID = this._selectSettingID(aName);
-    if (!settingID) {
+    if (!settingID)
       return;
-    }
     
     var selectGroupsStmt = this._dbCreateStatement(
       "SELECT groups.name AS groupName " +
@@ -278,13 +303,19 @@ ContentPrefService.prototype = {
     }
   },
 
-  getPrefs: function ContentPrefService_getPrefs(aURI) {
-    if (aURI) {
-      var group = this.grouper.group(aURI);
+  getPrefs: function ContentPrefService_getPrefs(aGroup) {
+    if (aGroup == null)
+      return this._selectGlobalPrefs();
+    if (aGroup.constructor.name == "String") {
+      group = aGroup.toString();
       return this._selectPrefs(group);
     }
-
-    return this._selectGlobalPrefs();
+    if (aGroup instanceof Ci.nsIURI) {
+      var group = this.grouper.group(aGroup);
+      return this._selectPrefs(group);
+    }
+    throw Components.Exception("aGroup is not a string, nsIURI or null",
+                               Cr.NS_ERROR_ILLEGAL_VALUE);
   },
 
   getPrefsByName: function ContentPrefService_getPrefsByName(aName) {

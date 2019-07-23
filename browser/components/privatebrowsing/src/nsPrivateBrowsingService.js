@@ -567,9 +567,7 @@ PrivateBrowsingService.prototype = {
 
       
       for (let i = 0; i < names.length; i++) {
-        
-        
-        let uri = { host: names[i]};
+        let uri = names[i];
         let enumerator = cp.getPrefs(uri).enumerator;
         while (enumerator.hasMoreElements()) {
           let pref = enumerator.getNext().QueryInterface(Ci.nsIProperty);
