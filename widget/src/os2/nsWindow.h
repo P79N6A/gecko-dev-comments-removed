@@ -60,6 +60,23 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef _nswindow_h
 #define _nswindow_h
 
@@ -123,18 +140,12 @@ extern "C" {
 
 
 
-#ifdef DEBUG_FOCUS
-  #define DEBUGFOCUS(what) fprintf(stderr, "[%8x]  %8lx  (%02d)  "#what"\n", \
-                                   (int)this, mWnd, mWindowIdentifier)
-#else
-  #define DEBUGFOCUS(what)
-#endif
-
 
 
 
 class imgIContainer;
 class gfxOS2Surface;
+class os2FrameWindow;
 
 MRESULT EXPENTRY fnwpNSWindow(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2);
 MRESULT EXPENTRY fnwpFrame(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2);
@@ -215,11 +226,11 @@ protected:
 
   
   static void           InitGlobals();
-  virtual nsresult      CreateWindow(nsWindow* aParent,
+  nsresult              CreateWindow(nsWindow* aParent,
                                      HWND aParentWnd,
                                      const nsIntRect& aRect,
-                                     PRUint32 aStyle);
-  virtual HWND          GetMainWindow()     const {return mWnd;}
+                                     nsWidgetInitData* aInitData);
+  HWND                  GetMainWindow();
   static nsWindow*      GetNSWindowPtr(HWND aWnd);
   static PRBool         SetNSWindowPtr(HWND aWnd, nsWindow* aPtr);
   void                  NS2PM(POINTL& ptl);
@@ -228,7 +239,7 @@ protected:
   void                  ActivatePlugin(HWND aWnd);
   void                  SetPluginClipRegion(const Configuration& aConfiguration);
   HWND                  GetPluginClipWindow(HWND aParentWnd);
-  virtual void          ActivateTopLevelWidget();
+  void                  ActivateTopLevelWidget();
   HBITMAP               DataToBitmap(PRUint8* aImageData, PRUint32 aWidth,
                                      PRUint32 aHeight, PRUint32 aDepth);
   HBITMAP               CreateBitmapRGB(PRUint8* aImageData,
@@ -240,7 +251,7 @@ protected:
   static PRBool         RollupOnButtonDown(ULONG aMsg);
   static void           RollupOnFocusLost(HWND aFocus);
   MRESULT               ProcessMessage(ULONG msg, MPARAM mp1, MPARAM mp2);
-  virtual PRBool        OnReposition(PSWP pNewSwp);
+  PRBool                OnReposition(PSWP pNewSwp);
   PRBool                OnPaint();
   PRBool                OnMouseChord(MPARAM mp1, MPARAM mp2);
   PRBool                OnDragDropMsg(ULONG msg, MPARAM mp1, MPARAM mp2,
@@ -264,16 +275,16 @@ protected:
                                            PRInt16 aButton = nsMouseEvent::eLeftButton);
   PRBool                DispatchActivationEvent(PRUint32 aEventType);
   PRBool                DispatchScrollEvent(ULONG msg, MPARAM mp1, MPARAM mp2);
-  virtual PRInt32       GetClientHeight()   {return mBounds.height;}
 
   friend MRESULT EXPENTRY fnwpNSWindow(HWND hwnd, ULONG msg,
                                        MPARAM mp1, MPARAM mp2);
   friend MRESULT EXPENTRY fnwpFrame(HWND hwnd, ULONG msg,
                                     MPARAM mp1, MPARAM mp2);
+  friend class os2FrameWindow;
 
   HWND          mWnd;               
   nsWindow*     mParent;            
-  PRBool        mIsTopWidgetWindow; 
+  os2FrameWindow* mFrame;           
   PRInt32       mWindowState;       
   PRBool        mIsDestroying;      
   PRBool        mInSetFocus;        
@@ -283,12 +294,22 @@ protected:
   HPOINTER      mCssCursorHPtr;     
   nsCOMPtr<imgIContainer> mCssCursorImg;
   nsRefPtr<gfxOS2Surface> mThebesSurface;
-  HWND          mFrameWnd;          
-  HPOINTER      mFrameIcon;         
-  PRBool        mChromeHidden;      
 #ifdef DEBUG_FOCUS
   int           mWindowIdentifier;  
 #endif
+};
+
+
+
+
+
+
+
+
+class nsChildWindow : public nsWindow {
+public:
+  nsChildWindow()       {}
+  ~nsChildWindow()      {}
 };
 
 #endif 
