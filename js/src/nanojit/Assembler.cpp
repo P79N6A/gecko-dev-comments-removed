@@ -265,7 +265,6 @@ namespace nanojit
         
         _nIns = 0;
         _nExitIns = 0;
-        _startingIns = 0;
         codeStart = codeEnd = 0;
         exitStart = exitEnd = 0;
         _stats.pages = 0;
@@ -674,10 +673,6 @@ namespace nanojit
         
         nativePageSetup();
 
-        
-        underrunProtect(LARGEST_UNDERRUN_PROT);  
-        recordStartingInstructionPointer();
-
     #ifdef AVMPLUS_PORTING_API
         _endJit2Addr = _nExitIns;
     #endif
@@ -781,10 +776,6 @@ namespace nanojit
                     break;
                 }
             }
-        }
-        else {
-            
-            resetInstructionPointer();
         }
 
         

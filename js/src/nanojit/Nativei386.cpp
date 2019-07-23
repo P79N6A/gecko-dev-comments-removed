@@ -1682,20 +1682,6 @@ namespace nanojit
     }
 
     
-    
-    
-    void Assembler::resetInstructionPointer()
-    {
-        _nIns = _startingIns;
-    }
-
-    
-    void Assembler::recordStartingInstructionPointer()
-    {
-        _startingIns = _nIns;
-    }
-
-    
     void Assembler::underrunProtect(int n)
     {
         NIns *eip = _nIns;
