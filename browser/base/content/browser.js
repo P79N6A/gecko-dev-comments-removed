@@ -868,6 +868,9 @@ function BrowserStartup() {
   
   
   
+  
+  
+  
   if ("arguments" in window && window.arguments[0])
     uriToLoad = window.arguments[0];
 
@@ -880,7 +883,7 @@ function BrowserStartup() {
   appCore.startPageCycler();
 #else
 # only load url passed in when we're not page cycling
-  if (uriToLoad && !isLoadingBlank) {
+  if (uriToLoad && !isLoadingBlank) { 
     if (uriToLoad instanceof Ci.nsISupportsArray) {
       let count = uriToLoad.Count();
       let specs = [];
@@ -894,6 +897,17 @@ function BrowserStartup() {
       try {
         gBrowser.loadTabs(specs, false, true);
       } catch (e) {}
+    }
+    else if (uriToLoad instanceof XULElement) {
+      
+      
+
+      
+      gBrowser.selectedBrowser.stop();
+      
+      gBrowser.selectedBrowser.docShell;
+
+      gBrowser.swapBrowsersAndCloseOther(gBrowser.selectedTab, uriToLoad);
     }
     else if (window.arguments.length >= 3) {
       loadURI(uriToLoad, window.arguments[2], window.arguments[3] || null,
