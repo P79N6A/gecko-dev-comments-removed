@@ -157,7 +157,7 @@ gboolean save_yourself_cb(GnomeClient *client, gint phase,
   }
   
   
-  char* argv1 = getenv("MOZILLA_APP_LAUNCHER");
+  char* argv1 = getenv("MOZ_APP_LAUNCHER");
 
   if(!argv1) {
     
