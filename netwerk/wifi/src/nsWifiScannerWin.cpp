@@ -410,6 +410,7 @@ nsWifiMonitor::DoScan()
 #endif
           
           if (result == ERROR_GEN_FAILURE ||  
+              result == ERROR_INVALID_USER_BUFFER || 
               result == ERROR_INSUFFICIENT_BUFFER ||
               result == ERROR_MORE_DATA ||
               result == NDIS_STATUS_INVALID_LENGTH ||
