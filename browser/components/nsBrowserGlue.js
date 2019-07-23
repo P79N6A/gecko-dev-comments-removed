@@ -181,31 +181,6 @@ BrowserGlue.prototype = {
   
   _onProfileStartup: function() 
   {
-    
-
-    var mustDisplayEULA = false;
-    try {
-      mustDisplayEULA = !this._prefs.getBoolPref("browser.EULA.override");
-    } catch (e) {
-      
-    }
-
-    
-    if (mustDisplayEULA) {
-      try {
-        var EULAVersion = this._prefs.getIntPref("browser.EULA.version");
-        mustDisplayEULA = !this._prefs.getBoolPref("browser.EULA." + EULAVersion + ".accepted");
-      } catch(ex) {
-      }
-    }
-
-    if (mustDisplayEULA) {
-      var ww2 = Cc["@mozilla.org/embedcomp/window-watcher;1"].
-                getService(Ci.nsIWindowWatcher);
-      ww2.openWindow(null, "chrome://browser/content/EULA.xul", 
-                     "_blank", "chrome,centerscreen,modal,resizable=yes", null);
-    }
-
     this.Sanitizer.onStartup();
     
     var app = Cc["@mozilla.org/xre/app-info;1"].getService(Ci.nsIXULAppInfo).
@@ -244,6 +219,10 @@ BrowserGlue.prototype = {
   
   _onBrowserStartup: function()
   {
+    
+    if (this._shouldShowRights())
+      this._showRightsNotification();
+
     
     if (this._prefs.prefHasUserValue(PREF_EM_NEW_ADDONS_LIST)) {
       var args = Cc["@mozilla.org/supports-array;1"].
@@ -378,6 +357,80 @@ BrowserGlue.prototype = {
       }
       break;
     }
+  },
+
+  
+
+
+
+
+
+
+
+  _shouldShowRights : function () {
+    
+    
+    try {
+      return !this._prefs.getBoolPref("browser.rights.override");
+    } catch (e) { }
+    
+    try {
+      return !this._prefs.getBoolPref("browser.EULA.override");
+    } catch (e) { }
+
+#ifndef OFFICIAL_BUILD
+    
+    return false;
+#endif
+
+    
+    var currentVersion = this._prefs.getIntPref("browser.rights.version");
+    try {
+      return !this._prefs.getBoolPref("browser.rights." + currentVersion + ".shown");
+    } catch (e) { }
+
+    
+    
+    try {
+      return !this._prefs.getBoolPref("browser.EULA." + currentVersion + ".accepted");
+    } catch (e) { }
+
+    
+    return true;
+  },
+
+  _showRightsNotification : function () {
+    
+    var win = this.getMostRecentBrowserWindow();
+    var browser = win.gBrowser; 
+    var notifyBox = browser.getNotificationBox();
+
+    var bundleService = Cc["@mozilla.org/intl/stringbundle;1"].
+                        getService(Ci.nsIStringBundleService);
+    var brandBundle  = bundleService.createBundle("chrome://branding/locale/brand.properties");
+    var rightsBundle = bundleService.createBundle("chrome://browser/locale/aboutRights.properties");
+
+    var buttonLabel     = rightsBundle.GetStringFromName("buttonLabel");
+    var buttonAccessKey = rightsBundle.GetStringFromName("buttonAccessKey");
+    var productName     = brandBundle.GetStringFromName("brandFullName");
+    var notifyText      = rightsBundle.formatStringFromName("notifyText", [productName], 1);
+    
+    var buttons = [
+                    {
+                      label:     buttonLabel,
+                      accessKey: buttonAccessKey,
+                      popup:     null,
+                      callback: function(aNotificationBar, aButton) {
+                        browser.selectedTab = browser.addTab("about:rights");
+                      }
+                    }
+                  ];
+
+    
+    var currentVersion = this._prefs.getIntPref("browser.rights.version");
+    this._prefs.setBoolPref("browser.rights." + currentVersion + ".shown", true);
+
+    notifyBox.appendNotification(notifyText, "about-rights", null, notifyBox.PRIORITY_INFO_LOW, buttons);
   },
 
   
@@ -764,6 +817,53 @@ BrowserGlue.prototype = {
       this._prefs.QueryInterface(Ci.nsIPrefService).savePrefFile(null);
     }
   },
+
+#ifdef XP_UNIX
+#ifndef XP_MACOSX
+#define BROKEN_WM_Z_ORDER
+#endif
+#endif
+#ifdef XP_OS2
+#define BROKEN_WM_Z_ORDER
+#endif
+
+  
+  getMostRecentBrowserWindow : function ()
+  {
+    var wm = Cc["@mozilla.org/appshell/window-mediator;1"].
+             getService(Components.interfaces.nsIWindowMediator);
+
+#ifdef BROKEN_WM_Z_ORDER
+    var win = wm.getMostRecentWindow("navigator:browser", true);
+
+    
+    if (win && win.document.documentElement.getAttribute("chromehidden")) {
+      win = null;
+      var windowList = wm.getEnumerator("navigator:browser", true);
+      
+      while (windowList.hasMoreElements()) {
+        var nextWin = windowList.getNext();
+        if (!nextWin.document.documentElement.getAttribute("chromehidden"))
+          win = nextWin;
+      }
+    }
+#else
+    var windowList = wm.getZOrderDOMWindowEnumerator("navigator:browser", true);
+    if (!windowList.hasMoreElements())
+      return null;
+
+    var win = windowList.getNext();
+    while (win.document.documentElement.getAttribute("chromehidden")) {
+      if (!windowList.hasMoreElements())
+        return null;
+
+      win = windowList.getNext();
+    }
+#endif
+
+    return win;
+  },
+
 
   
   classDescription: "Firefox Browser Glue Service",
