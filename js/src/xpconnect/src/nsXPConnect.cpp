@@ -415,9 +415,11 @@ nsXPConnect::GetInfoForName(const char * name, nsIInterfaceInfo** info)
 
 static JSGCCallback gOldJSGCCallback;
 
-static PRUint32 gCollections;
+static PRBool gDidCollection;
 
-static PRBool gCollect;
+static PRBool gInCollection;
+
+static PRBool gCollected;
 
 JS_STATIC_DLL_CALLBACK(JSBool)
 XPCCycleCollectGCCallback(JSContext *cx, JSGCStatus status)
@@ -427,13 +429,13 @@ XPCCycleCollectGCCallback(JSContext *cx, JSGCStatus status)
     {
         
         
-        if(gCollect && nsCycleCollector_doCollect())
-            ++gCollections;
-        else
-            
-            
-            
-            gCollect = PR_FALSE;
+        if(!gDidCollection)
+        {
+            NS_ASSERTION(!gInCollection, "Recursing?");
+
+            gDidCollection = PR_TRUE;
+            gInCollection = nsCycleCollector_beginCollection();
+        }
 
         
         
@@ -441,7 +443,14 @@ XPCCycleCollectGCCallback(JSContext *cx, JSGCStatus status)
             TraceXPConnectRoots(cx->runtime->gcMarkingTracer);
     }
     else if(status == JSGC_END)
+    {
+        if(gInCollection)
+        {
+            gInCollection = PR_FALSE;
+            gCollected = nsCycleCollector_finishCollection();
+        }
         nsXPConnect::GetRuntime()->RestoreContextGlobals();
+    }
 
     PRBool ok = gOldJSGCCallback ? gOldJSGCCallback(cx, status) : JS_TRUE;
 
@@ -451,7 +460,7 @@ XPCCycleCollectGCCallback(JSContext *cx, JSGCStatus status)
     return ok;
 }
 
-PRUint32
+PRBool
 nsXPConnect::Collect()
 {
     
@@ -508,8 +517,9 @@ nsXPConnect::Collect()
 
     mCycleCollecting = PR_TRUE;
     mCycleCollectionContext = &cycleCollectionContext;
-    gCollections = 0;
-    gCollect = PR_TRUE;
+    gDidCollection = PR_FALSE;
+    gInCollection = PR_FALSE;
+    gCollected = PR_FALSE;
 
     JSContext *cx = mCycleCollectionContext->GetJSContext();
     gOldJSGCCallback = JS_SetGCCallback(cx, XPCCycleCollectGCCallback);
@@ -520,7 +530,7 @@ nsXPConnect::Collect()
     mCycleCollectionContext = nsnull;
     mCycleCollecting = PR_FALSE;
 
-    return gCollections;
+    return gCollected;
 }
 
 

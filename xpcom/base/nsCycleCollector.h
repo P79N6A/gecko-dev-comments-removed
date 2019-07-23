@@ -75,10 +75,13 @@ struct nsCycleCollectionJSRuntime : public nsCycleCollectionLanguageRuntime
 
 
 
-    virtual PRUint32 Collect() = 0;
+    virtual PRBool Collect() = 0;
 };
 
-NS_COM PRBool nsCycleCollector_doCollect();
+NS_COM PRBool nsCycleCollector_beginCollection();
+
+
+NS_COM PRBool nsCycleCollector_finishCollection();
 
 #ifdef DEBUG
 NS_COM void nsCycleCollector_DEBUG_shouldBeFreed(nsISupports *n);

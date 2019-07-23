@@ -507,7 +507,7 @@ public:
     virtual nsresult BeginCycleCollection(nsCycleCollectionTraversalCallback &cb);
     virtual nsresult FinishCycleCollection();
     virtual nsCycleCollectionParticipant *ToParticipant(void *p);
-    virtual PRUint32 Collect();
+    virtual PRBool Collect();
 #ifdef DEBUG_CC
     virtual void PrintAllReferencesTo(void *p);
 #endif
@@ -2027,7 +2027,15 @@ public:
     NS_DECL_ISUPPORTS
     NS_DECL_NSIXPCONNECTJSOBJECTHOLDER
     NS_DECL_NSIXPCONNECTWRAPPEDNATIVE
-    NS_DECL_CYCLE_COLLECTION_CLASS(XPCWrappedNative)
+    
+    
+    
+    
+    
+    
+    
+    
+    NS_DECL_CYCLE_COLLECTION_CLASS_NO_UNLINK(XPCWrappedNative)
     NS_DECL_CYCLE_COLLECTION_UNMARK_PURPLE_STUB(XPCWrappedNative)
 
 #ifndef XPCONNECT_STANDALONE

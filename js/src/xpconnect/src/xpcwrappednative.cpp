@@ -122,12 +122,6 @@ XPCWrappedNative::NoteTearoffs(nsCycleCollectionTraversalCallback& cb)
     }
 }
 
-
-
-
-
-NS_IMPL_CYCLE_COLLECTION_UNLINK_0(XPCWrappedNative)
-
 #ifdef XPC_CHECK_CLASSINFO_CLAIMS
 static void DEBUG_CheckClassInfoClaims(XPCWrappedNative* wrapper);
 #else
