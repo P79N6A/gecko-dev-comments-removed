@@ -6,12 +6,6 @@
 
 
   
-#ifdef __MWERKS__
-  #define HAVE_CPP_MEMBER_TEMPLATES
-	#define HAVE_CPP_NUMERIC_LIMITS
-#endif
-
-  
 #ifdef _MSC_VER
   #pragma warning( disable: 4514 )
 #endif
