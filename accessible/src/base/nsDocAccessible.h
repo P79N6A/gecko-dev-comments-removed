@@ -106,6 +106,17 @@ class nsDocAccessible : public nsHyperTextAccessible,
     
     nsresult FireDelayedToolkitEvent(PRUint32 aEvent, nsIDOMNode *aDOMNode,
                                      void *aData, PRBool aAllowDupes = PR_FALSE);
+
+    
+
+
+
+
+
+
+    nsresult FireDelayedAccessibleEvent(nsIAccessibleEvent *aEvent,
+                                        PRBool aAllowDupes = PR_FALSE);
+
     void ShutdownChildDocuments(nsIDocShellTreeItem *aStart);
 
   protected:
@@ -119,6 +130,14 @@ class nsDocAccessible : public nsHyperTextAccessible,
     void CheckForEditor();
     virtual void SetEditor(nsIEditor *aEditor);
     virtual already_AddRefed<nsIEditor> GetEditor() { nsIEditor *editor = mEditor; NS_IF_ADDREF(editor); return editor; }
+
+    
+
+
+
+
+
+    void ARIAAttributeChanged(nsIContent* aContent, nsIAtom* aAttribute);
 
     nsInterfaceHashtable<nsVoidHashKey, nsIAccessNode> mAccessNodeCache;
     void *mWnd;
