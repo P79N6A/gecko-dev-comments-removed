@@ -132,21 +132,10 @@ class nsIFormControl;
 struct nsRadioGroupStruct;
 class nsOnloadBlocker;
 class nsUnblockOnloadEvent;
-struct PLEvent;
 class nsChildContentList;
 #ifdef MOZ_SMIL
 class nsSMILAnimationController;
 #endif 
-
-PR_BEGIN_EXTERN_C
-
-
-
-typedef void*
-(EventHandlerFunc)(PLEvent* self);
-typedef void
-(EventDestructorFunc)(PLEvent* self);
-PR_END_EXTERN_C
 
 
 
