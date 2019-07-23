@@ -68,7 +68,7 @@ class nsIChannel;
 #define NS_BLOCK_FRAME_HAS_OUTSIDE_BULLET   0x40000000
 
 
-#define NS_BLOCK_FLAGS_MASK                 0xF0E00000
+#define NS_BLOCK_FLAGS_MASK                 0xF0E00000 
 
 
 
