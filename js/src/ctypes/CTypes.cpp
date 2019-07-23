@@ -2847,6 +2847,15 @@ CType::GetName(JSContext* cx, JSObject* obj)
 
   jsval string;
   ASSERT_OK(JS_GetReservedSlot(cx, obj, SLOT_NAME, &string));
+  if (JSVAL_IS_VOID(string)) {
+    
+    JSString* name = BuildTypeName(cx, obj);
+    if (!name || !JS_SetReservedSlot(cx, obj, SLOT_NAME, STRING_TO_JSVAL(name)))
+      return NULL;
+
+    return name;
+  }
+
   return JSVAL_TO_STRING(string);
 }
 
@@ -2904,8 +2913,11 @@ CType::NameGetter(JSContext* cx, JSObject* obj, jsval idval, jsval* vp)
     return JS_FALSE;
   }
 
-  ASSERT_OK(JS_GetReservedSlot(cx, obj, SLOT_NAME, vp));
-  JS_ASSERT(JSVAL_IS_STRING(*vp));
+  JSString* name = CType::GetName(cx, obj);
+  if (!name)
+    return JS_FALSE;
+
+  *vp = STRING_TO_JSVAL(name);
   return JS_TRUE;
 }
 
@@ -3094,12 +3106,6 @@ PointerType::CreateInternal(JSContext* cx, JSObject* baseType)
 
   
   if (!JS_SetReservedSlot(cx, typeObj, SLOT_TARGET_T, OBJECT_TO_JSVAL(baseType)))
-    return NULL;
-
-  
-  JSString* nameStr = BuildTypeName(cx, typeObj);
-  if (!nameStr ||
-      !JS_SetReservedSlot(cx, typeObj, SLOT_NAME, STRING_TO_JSVAL(nameStr)))
     return NULL;
 
   
@@ -3403,12 +3409,6 @@ ArrayType::CreateInternal(JSContext* cx,
 
   
   if (!JS_SetReservedSlot(cx, typeObj, SLOT_LENGTH, lengthVal))
-    return NULL;
-
-  
-  JSString* name = BuildTypeName(cx, typeObj);
-  if (!name ||
-      !JS_SetReservedSlot(cx, typeObj, SLOT_NAME, STRING_TO_JSVAL(name)))
     return NULL;
 
   return typeObj;
@@ -4609,12 +4609,6 @@ FunctionType::CreateInternal(JSContext* cx,
          PRIVATE_TO_JSVAL(fninfo.get())))
     return NULL;
   fninfo.forget();
-
-  
-  JSString* name = BuildTypeName(cx, typeObj);
-  if (!name ||
-      !JS_SetReservedSlot(cx, typeObj, SLOT_NAME, STRING_TO_JSVAL(name)))
-    return NULL;
 
   return typeObj;
 }
