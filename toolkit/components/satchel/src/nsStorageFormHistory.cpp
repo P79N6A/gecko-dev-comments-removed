@@ -66,6 +66,8 @@
 #include "nsTArray.h"
 #include "nsIPrivateBrowsingService.h"
 #include "nsNetCID.h"
+#include "jsapi.h"
+#include "nsIJSContextStack.h"
 
 
 
@@ -261,18 +263,30 @@ NS_IMETHODIMP
 nsFormHistory::AddEntry(const nsAString &aName, const nsAString &aValue)
 {
   
-  PRBool inPrivateBrowsing = PR_FALSE;
+  nsresult rv;
   nsCOMPtr<nsIPrivateBrowsingService> pbs =
     do_GetService(NS_PRIVATE_BROWSING_SERVICE_CONTRACTID);
-  if (pbs)
-    pbs->GetPrivateBrowsingEnabled(&inPrivateBrowsing);
-  if (inPrivateBrowsing)
-    return NS_OK;
+  if (pbs) {
+    PRBool inPrivateBrowsing = PR_TRUE;
+    
+    
+    nsCOMPtr<nsIJSContextStack> stack =
+      do_GetService("@mozilla.org/js/xpc/ContextStack;1");
+    if (stack && NS_SUCCEEDED(stack->Push(nsnull))) {
+      rv = pbs->GetPrivateBrowsingEnabled(&inPrivateBrowsing);
+      if (NS_FAILED(rv))
+        inPrivateBrowsing = PR_TRUE; 
+      JSContext *cx;
+      stack->Pop(&cx);
+      NS_ASSERTION(cx == nsnull, "JSContextStack mismatch");
+    }
+    if (inPrivateBrowsing)
+      return NS_OK;
+  }
 
   if (!FormHistoryEnabled())
     return NS_OK;
 
-  nsresult rv;
   PRInt64 existingID = GetExistingEntryID(aName, aValue);
 
   if (existingID != -1) {
