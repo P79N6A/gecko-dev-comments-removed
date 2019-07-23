@@ -1582,74 +1582,46 @@ SessionStoreService.prototype = {
   retryDownloads: function sss_retryDownloads(aWindow) {
     var downloadManager = Cc["@mozilla.org/download-manager;1"].
                           getService(Ci.nsIDownloadManager);
-    var rdfService = Cc["@mozilla.org/rdf/rdf-service;1"].
-                     getService(Ci.nsIRDFService);
     var ioService = Cc["@mozilla.org/network/io-service;1"].
                     getService(Ci.nsIIOService);
     
-    var rdfContainer = Cc["@mozilla.org/rdf/container;1"].
-                       createInstance(Ci.nsIRDFContainer);
-    var datasource = downloadManager.datasource;
+    var database = downloadManager.DBConnection;
     
-    try {
-      rdfContainer.Init(datasource, rdfService.GetResource("NC:DownloadsRoot"));
+    var stmt = database.createStatement("SELECT source, target, id " +
+                                        "FROM moz_downloads " +
+                                        "WHERE state = ?1");
+    stmt.bindInt32Parameter(0, Ci.nsIDownloadManager.DOWNLOAD_DOWNLOADING);
+
+    var dls = [];
+    
+    while (stmt.executeStep()) {
+      
+      var url = stmt.getUTF8String(0);
+      
+      var savedTo = stmt.getUTF8String(1);
+      var savedToURI = Cc["@mozilla.org/network/io-service;1"].
+                       getService(Ci.nsIIOService).
+                       newURI(savedTo, null, null);
+      savedTo = savedToURI.path;
+   
+      var dl = { id: stmt.getInt64(2), url: url, savedTo: savedTo };
+      dls.push(dl);
     }
-    catch (ex) { 
-      return;
-    }
+    stmt.reset();
+
     
-    
-    
-    var downloads = rdfContainer.GetElements();
-    while (downloads.hasMoreElements()) {
-      var download = downloads.getNext().QueryInterface(Ci.nsIRDFResource);
+    stmt = database.createStatement("DELETE FROM moz_downloads " +
+                                    "WHERE state = ?1");
+    stmt.bindInt32Parameter(0, Ci.nsIDownloadManager.DOWNLOAD_DOWNLOADING);
+    stmt.execute();
 
-      
-      var node = datasource.GetTarget(download, rdfService.GetResource("http://home.netscape.com/NC-rdf#DownloadState"), true);
-      if (node) {
-        node.QueryInterface(Ci.nsIRDFInt);
-      }
-      if (!node || node.Value != Ci.nsIDownloadManager.DOWNLOAD_DOWNLOADING) {
-        continue;
-      }
-
-      
-      node = datasource.GetTarget(download, rdfService.GetResource("http://home.netscape.com/NC-rdf#URL"), true);
-      var url = node.QueryInterface(Ci.nsIRDFResource).Value;
-      
-      
-      node = datasource.GetTarget(download, rdfService.GetResource("http://home.netscape.com/NC-rdf#File"), true);
-
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      var savedTo = node.QueryInterface(Ci.nsIRDFResource).Value;
-      try {
-        var savedToURI = Cc["@mozilla.org/network/io-service;1"].
-                         getService(Ci.nsIIOService).
-                         newURI(savedTo, null, null);
-        if (savedToURI.schemeIs("file"))
-          savedTo = savedToURI.path;
-      }
-      catch (e) {  }
-
+    for (var i = dls.length - 1; i >= 0; --i) {
       var linkChecker = Cc["@mozilla.org/network/urichecker;1"].
                         createInstance(Ci.nsIURIChecker);
-      linkChecker.init(ioService.newURI(url, null, null));
+      linkChecker.init(ioService.newURI(dls[i].url, null, null));
       linkChecker.loadFlags = Ci.nsIRequest.LOAD_BACKGROUND;
-      linkChecker.asyncCheck(new AutoDownloader(url, savedTo, aWindow), null);
+      linkChecker.asyncCheck(new AutoDownloader(dls[i].url, dls[i].savedTo, aWindow),
+                             null);
     }
   },
 
