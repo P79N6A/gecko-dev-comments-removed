@@ -45,7 +45,6 @@
 #include "nsIPrefBranch.h"
 #include "nsIPrefBranch2.h"
 #include "nsIPrefService.h"
-#include "nsICookieConsent.h"
 #include "nsICookiePermission.h"
 #include "nsIURI.h"
 #include "nsIURL.h"
@@ -99,17 +98,18 @@ static const PRUint32 kMaxBytesPerCookie  = 4096;
 static const PRUint32 kMaxBytesPerPath    = 1024;
 
 
+static const PRUint32 STATUS_ACCEPTED            = 0;
+static const PRUint32 STATUS_REJECTED            = 1;
 
 
 
 
-static const nsCookieStatus STATUS_REJECTED_WITH_ERROR = 5;
+static const PRUint32 STATUS_REJECTED_WITH_ERROR = 2;
 
 
 static const PRUint32 BEHAVIOR_ACCEPT        = 0;
 static const PRUint32 BEHAVIOR_REJECTFOREIGN = 1;
 static const PRUint32 BEHAVIOR_REJECT        = 2;
-static const PRUint32 BEHAVIOR_P3P           = 3;
 
 
 static const char kPrefCookiesPermissions[] = "network.cookie.cookieBehavior";
@@ -378,7 +378,6 @@ NS_IMPL_ISUPPORTS6(nsCookieService,
 
 nsCookieService::nsCookieService()
  : mCookieCount(0)
- , mCookieIconVisible(PR_FALSE)
  , mCookiesPermissions(BEHAVIOR_ACCEPT)
  , mMaxNumberOfCookies(kMaxNumberOfCookies)
  , mMaxCookiesPerHost(kMaxCookiesPerHost)
@@ -409,7 +408,6 @@ nsCookieService::Init()
   if (mObserverService) {
     mObserverService->AddObserver(this, "profile-before-change", PR_TRUE);
     mObserverService->AddObserver(this, "profile-do-change", PR_TRUE);
-    mObserverService->AddObserver(this, "cookieIcon", PR_TRUE);
   }
 
   mPermissionService = do_GetService(NS_COOKIEPERMISSION_CONTRACTID);
@@ -585,11 +583,6 @@ nsCookieService::Observe(nsISupports     *aSubject,
     
     InitDB();
 
-  } else if (!strcmp(aTopic, "cookieIcon")) {
-    
-    
-    mCookieIconVisible = (aData[0] == 'o' && aData[1] == 'n' && aData[2] == '\0');
-
   } else if (!strcmp(aTopic, NS_PREFBRANCH_PREFCHANGE_TOPIC_ID)) {
     nsCOMPtr<nsIPrefBranch> prefBranch = do_QueryInterface(aSubject);
     if (prefBranch)
@@ -616,11 +609,10 @@ nsCookieService::GetCookieList(nsIURI           *aHostURI,
   }
 
   
-  nsCookiePolicy cookiePolicy; 
-  nsCookieStatus cookieStatus = CheckPrefs(aHostURI, aFirstURI, aChannel, nsnull, cookiePolicy);
+  PRUint32 cookieStatus = CheckPrefs(aHostURI, aFirstURI, aChannel, nsnull);
   
   switch (cookieStatus) {
-  case nsICookie::STATUS_REJECTED:
+  case STATUS_REJECTED:
   case STATUS_REJECTED_WITH_ERROR:
     return;
   }
@@ -723,9 +715,9 @@ nsCookieService::GetCookieList(nsIURI           *aHostURI,
 
 NS_IMETHODIMP
 nsCookieService::GetCookieValue(nsIURI *aHostURI,
-				nsIChannel *aChannel,
+                                nsIChannel *aChannel,
                                 const nsACString& aName,
-				nsACString& aResult)
+                                nsACString& aResult)
 {
   aResult.Truncate();
 
@@ -842,11 +834,10 @@ nsCookieService::SetCookieValue(nsIURI *aHostURI,
   }
 
   
-  nsCookiePolicy cookiePolicy = nsICookie::POLICY_UNKNOWN;
-  nsCookieStatus cookieStatus = CheckPrefs(aHostURI, firstURI, aChannel, "", cookiePolicy);
+  PRUint32 cookieStatus = CheckPrefs(aHostURI, firstURI, aChannel, "");
   
   switch (cookieStatus) {
-  case nsICookie::STATUS_REJECTED:
+  case STATUS_REJECTED:
     NotifyRejected(aHostURI);
   case STATUS_REJECTED_WITH_ERROR:
     return NS_OK;
@@ -864,8 +855,7 @@ nsCookieService::SetCookieValue(nsIURI *aHostURI,
   attributes.isSecure = PR_FALSE;
   aHostURI->SchemeIs("https", &attributes.isSecure);
 
-  CheckAndAdd(aHostURI, aChannel, attributes,
-              cookieStatus, cookiePolicy, EmptyCString());
+  CheckAndAdd(aHostURI, aChannel, attributes, EmptyCString());
   return NS_OK;
 }
 
@@ -901,11 +891,10 @@ nsCookieService::SetCookieStringFromHttp(nsIURI     *aHostURI,
   }
 
   
-  nsCookiePolicy cookiePolicy = nsICookie::POLICY_UNKNOWN;
-  nsCookieStatus cookieStatus = CheckPrefs(aHostURI, aFirstURI, aChannel, aCookieHeader, cookiePolicy);
+  PRUint32 cookieStatus = CheckPrefs(aHostURI, aFirstURI, aChannel, aCookieHeader);
   
   switch (cookieStatus) {
-  case nsICookie::STATUS_REJECTED:
+  case STATUS_REJECTED:
     NotifyRejected(aHostURI);
   case STATUS_REJECTED_WITH_ERROR:
     return NS_OK;
@@ -930,9 +919,7 @@ nsCookieService::SetCookieStringFromHttp(nsIURI     *aHostURI,
  
   
   nsDependentCString cookieHeader(aCookieHeader);
-  while (SetCookieInternal(aHostURI, aChannel,
-                           cookieHeader, serverTime,
-                           cookieStatus, cookiePolicy));
+  while (SetCookieInternal(aHostURI, aChannel, cookieHeader, serverTime));
 
   return NS_OK;
 }
@@ -957,31 +944,6 @@ nsCookieService::NotifyChanged(nsICookie2      *aCookie,
 {
   if (mObserverService)
     mObserverService->NotifyObservers(aCookie, "cookie-changed", aData);
-
-  
-  
-  
-  
-  if (mCookiesPermissions == BEHAVIOR_P3P &&
-      (!nsCRT::strcmp(aData, NS_LITERAL_STRING("added").get()) ||
-       !nsCRT::strcmp(aData, NS_LITERAL_STRING("changed").get()))) {
-    nsCookieStatus status;
-    aCookie->GetStatus(&status);
-    if (status == nsICookie::STATUS_DOWNGRADED ||
-        status == nsICookie::STATUS_FLAGGED) {
-      mCookieIconVisible = PR_TRUE;
-      if (mObserverService)
-        mObserverService->NotifyObservers(nsnull, "cookieIcon", NS_LITERAL_STRING("on").get());
-    }
-  }
-}
-
-
-NS_IMETHODIMP
-nsCookieService::GetCookieIconIsVisible(PRBool *aIsVisible)
-{
-  *aIsVisible = mCookieIconVisible;
-  return NS_OK;
 }
 
 
@@ -994,7 +956,7 @@ nsCookieService::PrefChanged(nsIPrefBranch *aPrefBranch)
 {
   PRInt32 val;
   if (NS_SUCCEEDED(aPrefBranch->GetIntPref(kPrefCookiesPermissions, &val)))
-    mCookiesPermissions = LIMIT(val, 0, 3, 0);
+    mCookiesPermissions = LIMIT(val, 0, 2, 0);
 
   if (NS_SUCCEEDED(aPrefBranch->GetIntPref(kPrefMaxNumberOfCookies, &val)))
     mMaxNumberOfCookies = LIMIT(val, 0, 0xFFFF, 0xFFFF);
@@ -1063,9 +1025,7 @@ nsCookieService::Add(const nsACString &aDomain,
                      currentTimeInUsec,
                      aIsSession,
                      aIsSecure,
-                     aIsHttpOnly,
-                     nsICookie::STATUS_UNKNOWN,
-                     nsICookie::POLICY_UNKNOWN);
+                     aIsHttpOnly);
   if (!cookie) {
     return NS_ERROR_OUT_OF_MEMORY;
   }
@@ -1156,9 +1116,7 @@ nsCookieService::Read()
                        creationID,
                        PR_FALSE,
                        isSecure,
-                       isHttpOnly,
-                       nsICookie::STATUS_UNKNOWN,
-                       nsICookie::POLICY_UNKNOWN);
+                       isHttpOnly);
     if (!newCookie)
       return NS_ERROR_OUT_OF_MEMORY;
 
@@ -1287,9 +1245,7 @@ nsCookieService::ImportCookies()
                        creationIDCounter,
                        PR_FALSE,
                        Substring(buffer, secureIndex, expiresIndex - secureIndex - 1).EqualsLiteral(kTrue),
-                       isHttpOnly,
-                       nsICookie::STATUS_UNKNOWN,
-                       nsICookie::POLICY_UNKNOWN);
+                       isHttpOnly);
     if (!newCookie) {
       return NS_ERROR_OUT_OF_MEMORY;
     }
@@ -1328,9 +1284,7 @@ PRBool
 nsCookieService::SetCookieInternal(nsIURI             *aHostURI,
                                    nsIChannel         *aChannel,
                                    nsDependentCString &aCookieHeader,
-                                   PRInt64             aServerTime,
-                                   nsCookieStatus      aStatus,
-                                   nsCookiePolicy      aPolicy)
+                                   PRInt64             aServerTime)
 {
   
   
@@ -1352,12 +1306,10 @@ nsCookieService::SetCookieInternal(nsIURI             *aHostURI,
   cookieAttributes.creationID = currentTimeInUsec;
 
   
-  
   cookieAttributes.isSession = GetExpiry(cookieAttributes, aServerTime,
-                                         currentTimeInUsec / PR_USEC_PER_SEC, aStatus);
+                                         currentTimeInUsec / PR_USEC_PER_SEC);
 
-  CheckAndAdd(aHostURI, aChannel, cookieAttributes,
-              aStatus, aPolicy, savedCookieHeader);
+  CheckAndAdd(aHostURI, aChannel, cookieAttributes, savedCookieHeader);
 
   return newCookie;
 }
@@ -1366,8 +1318,6 @@ void
 nsCookieService::CheckAndAdd(nsIURI               *aHostURI,
                              nsIChannel           *aChannel,
                              nsCookieAttributes   &aAttributes,
-                             nsCookieStatus        aStatus,
-                             const nsCookiePolicy  aPolicy,
                              const nsAFlatCString &aCookieHeader)
 {
   
@@ -1401,9 +1351,7 @@ nsCookieService::CheckAndAdd(nsIURI               *aHostURI,
                      aAttributes.creationID,
                      aAttributes.isSession,
                      aAttributes.isSecure,
-                     aAttributes.isHttpOnly,
-                     aStatus,
-                     aPolicy);
+                     aAttributes.isHttpOnly);
   if (!cookie) {
     return;
   }
@@ -1877,12 +1825,11 @@ nsCookieService::IsForeign(nsIURI *aHostURI,
   return !IsInDomain(NS_LITERAL_CSTRING(".") + firstHost, currentHost);
 }
 
-nsCookieStatus
+PRUint32
 nsCookieService::CheckPrefs(nsIURI         *aHostURI,
                             nsIURI         *aFirstURI,
                             nsIChannel     *aChannel,
-                            const char     *aCookieHeader,
-                            nsCookiePolicy &aPolicy)
+                            const char     *aCookieHeader)
 {
   
   
@@ -1890,11 +1837,6 @@ nsCookieService::CheckPrefs(nsIURI         *aHostURI,
   
   
   
-  
-  
-  
-  
-
   
   
   
@@ -1929,10 +1871,10 @@ nsCookieService::CheckPrefs(nsIURI         *aHostURI,
       switch (access) {
       case nsICookiePermission::ACCESS_DENY:
         COOKIE_LOGFAILURE(aCookieHeader ? SET_COOKIE : GET_COOKIE, aHostURI, aCookieHeader, "cookies are blocked for this site");
-        return nsICookie::STATUS_REJECTED;
+        return STATUS_REJECTED;
 
       case nsICookiePermission::ACCESS_ALLOW:
-        return nsICookie::STATUS_ACCEPTED;
+        return STATUS_ACCEPTED;
       }
     }
   }
@@ -1940,7 +1882,7 @@ nsCookieService::CheckPrefs(nsIURI         *aHostURI,
   
   if (mCookiesPermissions == BEHAVIOR_REJECT) {
     COOKIE_LOGFAILURE(aCookieHeader ? SET_COOKIE : GET_COOKIE, aHostURI, aCookieHeader, "cookies are disabled");
-    return nsICookie::STATUS_REJECTED;
+    return STATUS_REJECTED;
 
   } else if (mCookiesPermissions == BEHAVIOR_REJECTFOREIGN) {
     
@@ -1951,35 +1893,12 @@ nsCookieService::CheckPrefs(nsIURI         *aHostURI,
     
     if (IsForeign(aHostURI, aFirstURI)) {
       COOKIE_LOGFAILURE(aCookieHeader ? SET_COOKIE : GET_COOKIE, aHostURI, aCookieHeader, "originating server test failed");
-      return nsICookie::STATUS_REJECTED;
+      return STATUS_REJECTED;
     }
-
-  } else if (mCookiesPermissions == BEHAVIOR_P3P) {
-    
-    
-
-    nsCookieStatus p3pStatus = nsICookie::STATUS_UNKNOWN;
-
-    nsCOMPtr<nsIHttpChannel> httpChannel = do_QueryInterface(aChannel);
-
-    
-    if (!mP3PService)
-      mP3PService = do_GetService(NS_COOKIECONSENT_CONTRACTID);
-
-    if (mP3PService) {
-      
-      PRBool isForeign = IsForeign(aHostURI, aFirstURI);
-      mP3PService->GetConsent(aHostURI, httpChannel, isForeign, &aPolicy, &p3pStatus);
-    }
-
-    if (p3pStatus == nsICookie::STATUS_REJECTED) {
-      COOKIE_LOGFAILURE(aCookieHeader ? SET_COOKIE : GET_COOKIE, aHostURI, aCookieHeader, "P3P test failed");
-    }
-    return p3pStatus;
   }
 
   
-  return nsICookie::STATUS_ACCEPTED;
+  return STATUS_ACCEPTED;
 }
 
 
@@ -2100,8 +2019,7 @@ nsCookieService::CheckPath(nsCookieAttributes &aCookieAttributes,
 PRBool
 nsCookieService::GetExpiry(nsCookieAttributes &aCookieAttributes,
                            PRInt64             aServerTime,
-                           PRInt64             aCurrentTime,
-                           nsCookieStatus      aStatus)
+                           PRInt64             aCurrentTime)
 {
   
 
@@ -2148,11 +2066,7 @@ nsCookieService::GetExpiry(nsCookieAttributes &aCookieAttributes,
   
   aCookieAttributes.expiryTime = aCurrentTime + delta;
 
-  
-  
-  
-  return aStatus == nsICookie::STATUS_DOWNGRADED &&
-         aCookieAttributes.expiryTime > aCurrentTime;
+  return PR_FALSE;
 }
 
 
