@@ -61,7 +61,8 @@
 #include "nsPresState.h"
 #include "nsLayoutErrors.h"
 
-#define NS_IN_SUBMIT_CLICK (1 << 0)
+#define NS_IN_SUBMIT_CLICK      (1 << 0)
+#define NS_OUTER_ACTIVATE_EVENT (1 << 1)
 
 class nsHTMLButtonElement : public nsGenericHTMLFormElement,
                             public nsIDOMHTMLButtonElement,
@@ -125,6 +126,7 @@ protected:
   PRInt8 mType;
   PRPackedBool mHandlingClick;
   PRPackedBool mDisabledChanged;
+  PRPackedBool mInInternalActivate;
 
 private:
   
@@ -143,7 +145,8 @@ nsHTMLButtonElement::nsHTMLButtonElement(nsINodeInfo *aNodeInfo)
   : nsGenericHTMLFormElement(aNodeInfo),
     mType(NS_FORM_BUTTON_SUBMIT),  
     mHandlingClick(PR_FALSE),
-    mDisabledChanged(PR_FALSE)
+    mDisabledChanged(PR_FALSE),
+    mInInternalActivate(PR_FALSE)
 {
 }
 
@@ -321,16 +324,22 @@ nsHTMLButtonElement::PreHandleEvent(nsEventChainPreVisitor& aVisitor)
 
   
   
-  PRBool bInSubmitClick = mType == NS_FORM_BUTTON_SUBMIT &&
-                          NS_IS_MOUSE_LEFT_CLICK(aVisitor.mEvent) &&
-                          mForm;
+  
+  
+  PRBool outerActivateEvent =
+    (NS_IS_MOUSE_LEFT_CLICK(aVisitor.mEvent) ||
+     (aVisitor.mEvent->message == NS_UI_ACTIVATE &&
+      !mInInternalActivate));
 
-  if (bInSubmitClick) {
-    aVisitor.mItemFlags |= NS_IN_SUBMIT_CLICK;
-    
-    
-    
-    mForm->OnSubmitClickBegin();
+  if (outerActivateEvent) {
+    aVisitor.mItemFlags |= NS_OUTER_ACTIVATE_EVENT;
+    if (mType == NS_FORM_BUTTON_SUBMIT && mForm) {
+      aVisitor.mItemFlags |= NS_IN_SUBMIT_CLICK;
+      
+      
+      
+      mForm->OnSubmitClickBegin();
+    }
   }
 
   return nsGenericHTMLElement::PreHandleEvent(aVisitor);
@@ -343,6 +352,25 @@ nsHTMLButtonElement::PostHandleEvent(nsEventChainPostVisitor& aVisitor)
   if (!aVisitor.mPresContext) {
     return rv;
   }
+
+  if (aVisitor.mEventStatus != nsEventStatus_eConsumeNoDefault &&
+      NS_IS_MOUSE_LEFT_CLICK(aVisitor.mEvent)) {
+    nsUIEvent actEvent(NS_IS_TRUSTED_EVENT(aVisitor.mEvent), NS_UI_ACTIVATE, 1);
+
+    nsCOMPtr<nsIPresShell> shell = aVisitor.mPresContext->GetPresShell();
+    if (shell) {
+      nsEventStatus status = nsEventStatus_eIgnore;
+      mInInternalActivate = PR_TRUE;
+      shell->HandleDOMEventWithTarget(this, &actEvent, &status);
+      mInInternalActivate = PR_FALSE;
+
+      
+      
+      if (status == nsEventStatus_eConsumeNoDefault)
+        aVisitor.mEventStatus = status;
+    }
+  }
+
   
   if ((aVisitor.mItemFlags & NS_IN_SUBMIT_CLICK) && mForm) {
     
@@ -372,50 +400,6 @@ nsHTMLButtonElement::PostHandleEvent(nsEventChainPostVisitor& aVisitor)
             nsEventDispatcher::Dispatch(static_cast<nsIContent*>(this),
                                         aVisitor.mPresContext, &event, nsnull,
                                         &status);
-          }
-        }
-        break;
-
-      case NS_MOUSE_CLICK:
-        {
-          if (NS_IS_MOUSE_LEFT_CLICK(aVisitor.mEvent)) {
-            nsCOMPtr<nsIPresShell> presShell =
-              aVisitor.mPresContext->GetPresShell();
-            if (presShell) {
-              
-              nsUIEvent event(NS_IS_TRUSTED_EVENT(aVisitor.mEvent),
-                              NS_UI_ACTIVATE, 1);
-              nsEventStatus status = nsEventStatus_eIgnore;
-  
-              presShell->HandleDOMEventWithTarget(this, &event, &status);
-              aVisitor.mEventStatus = status;
-            }
-          }
-        }
-        break;
-
-      case NS_UI_ACTIVATE:
-        {
-          if (mForm && (mType == NS_FORM_BUTTON_SUBMIT ||
-                        mType == NS_FORM_BUTTON_RESET)) {
-            nsFormEvent event(PR_TRUE,
-                              (mType == NS_FORM_BUTTON_RESET)
-                              ? NS_FORM_RESET : NS_FORM_SUBMIT);
-            event.originator      = this;
-            nsEventStatus status  = nsEventStatus_eIgnore;
-
-            nsCOMPtr<nsIPresShell> presShell =
-              aVisitor.mPresContext->GetPresShell();
-            
-            
-            
-            
-            
-            
-            if (presShell) {
-              nsCOMPtr<nsIContent> form(do_QueryInterface(mForm));
-              presShell->HandleDOMEventWithTarget(form, &event, &status);
-            }
           }
         }
         break;
@@ -478,33 +462,36 @@ nsHTMLButtonElement::PostHandleEvent(nsEventChainPostVisitor& aVisitor)
       default:
         break;
     }
-  } else {
-    switch (aVisitor.mEvent->message) {
-      
-      
-      
-      
-      case NS_MOUSE_CLICK:
-        if (NS_IS_MOUSE_LEFT_CLICK(aVisitor.mEvent)) {
-          if (mForm && mType == NS_FORM_BUTTON_SUBMIT) {
-            
-            
-            
-            
-            mForm->FlushPendingSubmission();
-          }
+    if (aVisitor.mItemFlags & NS_OUTER_ACTIVATE_EVENT) {
+      if (mForm && (mType == NS_FORM_BUTTON_SUBMIT ||
+                    mType == NS_FORM_BUTTON_RESET)) {
+        nsFormEvent event(PR_TRUE,
+                          (mType == NS_FORM_BUTTON_RESET)
+                          ? NS_FORM_RESET : NS_FORM_SUBMIT);
+        event.originator     = this;
+        nsEventStatus status = nsEventStatus_eIgnore;
+
+        nsCOMPtr<nsIPresShell> presShell =
+          aVisitor.mPresContext->GetPresShell();
+        
+        
+        
+        
+        
+        
+        if (presShell) {
+          nsCOMPtr<nsIContent> form(do_QueryInterface(mForm));
+          presShell->HandleDOMEventWithTarget(form, &event, &status);
         }
-        break;
-      case NS_UI_ACTIVATE:
-        if (mForm && mType == NS_FORM_BUTTON_SUBMIT) {
-          
-          
-          
-          
-          mForm->FlushPendingSubmission();
-        }
-        break;
-    } 
+      }
+    }
+  } else if ((aVisitor.mItemFlags & NS_IN_SUBMIT_CLICK) && mForm) {
+    
+    
+    
+    
+    
+    mForm->FlushPendingSubmission();
   } 
 
   return rv;
