@@ -510,7 +510,7 @@ nsAutoCompleteController::HandleKeyNavigation(PRUint32 aKey, PRBool *_retval)
       PRInt32 selectedIndex;
       popup->GetSelectedIndex(&selectedIndex);
       PRBool shouldComplete;
-      mInput->GetCompleteDefaultIndex(&shouldComplete);
+      input->GetCompleteDefaultIndex(&shouldComplete);
       if (selectedIndex >= 0) {
         
         nsAutoString value;
@@ -526,7 +526,10 @@ nsAutoCompleteController::HandleKeyNavigation(PRUint32 aKey, PRBool *_retval)
         
         
         nsAutoString value;
-        if (NS_SUCCEEDED(GetDefaultCompleteValue(selectedIndex, PR_FALSE, value))) {
+        nsAutoString inputValue;
+        input->GetTextValue(inputValue);
+        if (NS_SUCCEEDED(GetDefaultCompleteValue(selectedIndex, PR_FALSE, value)) &&
+            value.Equals(inputValue, nsCaseInsensitiveStringComparator())) {
           input->SetTextValue(value);
           input->SelectTextRange(value.Length(), value.Length());
         }
@@ -1115,6 +1118,8 @@ nsAutoCompleteController::EnterMatch(PRBool aIsPopupSelection)
   nsAutoString value;
   popup->GetOverrideValue(value);
   if (value.IsEmpty()) {
+    PRBool shouldComplete;
+    mInput->GetCompleteDefaultIndex(&shouldComplete);
     PRBool completeSelection;
     input->GetCompleteSelectedIndex(&completeSelection);
 
@@ -1126,6 +1131,19 @@ nsAutoCompleteController::EnterMatch(PRBool aIsPopupSelection)
     popup->GetSelectedIndex(&selectedIndex);
     if (selectedIndex >= 0 && (!completeSelection || aIsPopupSelection))
       GetResultValueAt(selectedIndex, PR_TRUE, value);
+    else if (shouldComplete) {
+      
+      
+      
+      
+      
+      nsAutoString defaultIndexValue;
+      nsAutoString inputValue;
+      input->GetTextValue(inputValue);
+      if (NS_SUCCEEDED(GetDefaultCompleteValue(selectedIndex, PR_FALSE, defaultIndexValue)) &&
+          defaultIndexValue.Equals(inputValue, nsCaseInsensitiveStringComparator()))
+        value = defaultIndexValue;
+    }
 
     if (forceComplete && value.IsEmpty()) {
       
