@@ -45,9 +45,6 @@
 
 
 
-
-const kUpdateInterval = 30 * 60 * 1000;
-
 function QueryAdapter(callback) {
   this.callback_ = callback;
 };
@@ -68,6 +65,7 @@ function PROT_ListManager() {
 
   this.currentUpdateChecker_ = null;   
   this.prefs_ = new G_Preferences();
+  this.updateInterval = this.prefs_.getPref("urlclassifier.updateinterval", 30 * 60) * 1000;
 
   this.updateserverURL_ = null;
   this.gethashURL_ = null;
@@ -304,13 +302,12 @@ PROT_ListManager.prototype.maybeToggleUpdateChecking = function() {
 
 
 
-
 PROT_ListManager.prototype.startUpdateChecker = function() {
   this.stopUpdateChecker();
   
   
-  var repeatingUpdateDelay = kUpdateInterval / 2;
-  repeatingUpdateDelay += Math.floor(Math.random() * kUpdateInterval);
+  var repeatingUpdateDelay = this.updateInterval / 2;
+  repeatingUpdateDelay += Math.floor(Math.random() * this.updateInterval);
   this.updateChecker_ = new G_Alarm(BindToObject(this.initialUpdateCheck_,
                                                  this),
                                     repeatingUpdateDelay);
@@ -324,7 +321,7 @@ PROT_ListManager.prototype.startUpdateChecker = function() {
 PROT_ListManager.prototype.initialUpdateCheck_ = function() {
   this.checkForUpdates();
   this.updateChecker_ = new G_Alarm(BindToObject(this.checkForUpdates, this), 
-                                    kUpdateInterval, true );
+                                    this.updateInterval, true );
 }
 
 
