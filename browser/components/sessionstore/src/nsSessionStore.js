@@ -419,11 +419,6 @@ SessionStoreService.prototype = {
         this.restoreWindow(aWindow, this._initialState, this._isCmdLineEmpty(aWindow));
         delete this._initialState;
       }
-      
-      if (this._lastSessionCrashed) {
-        
-        aWindow.setTimeout(this.retryDownloads, 0);
-      }
     }
     
     var tabbrowser = aWindow.getBrowser();
@@ -1759,15 +1754,6 @@ SessionStoreService.prototype = {
       }
       catch (ex) { Cu.reportError(ex); } 
     }
-  },
-
-  
-
-
-  retryDownloads: function sss_retryDownloads() {
-    
-    var dlManager = Cc["@mozilla.org/download-manager;1"].
-                    getService(Ci.nsIDownloadManager);
   },
 
 

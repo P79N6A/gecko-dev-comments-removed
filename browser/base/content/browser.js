@@ -1051,6 +1051,14 @@ function delayedStartup()
   
   
   gBrowser.addEventListener("command", BrowserOnCommand, false);
+
+  
+  
+  
+  
+  
+  setTimeout(function() Cc["@mozilla.org/download-manager;1"].
+                        getService(Ci.nsIDownloadManager), 10000);
 }
 
 function BrowserShutdown()
