@@ -415,8 +415,17 @@ struct nsStyleBackground {
 
     
     
-    PRBool DependsOnFrameSize() const {
-      return mWidthType <= ePercentage || mHeightType <= ePercentage;
+    
+    
+    
+    PRBool DependsOnFrameSize(nsStyleImageType aType) const {
+      if (aType == eStyleImageType_Image) {
+        return mWidthType <= ePercentage || mHeightType <= ePercentage;
+      } else if (aType == eStyleImageType_Gradient) {
+        return mWidthType <= eAuto || mHeightType <= eAuto;
+      } else {
+        NS_NOTREACHED("unrecognized image type");
+      }
     }
 
     
@@ -456,9 +465,8 @@ struct nsStyleBackground {
     
     PRBool RenderingMightDependOnFrameSize() const {
       return (!mImage.IsEmpty() &&
-              (mImage.GetType() == eStyleImageType_Gradient ||
-               mPosition.DependsOnFrameSize() ||
-               mSize.DependsOnFrameSize()));
+              (mPosition.DependsOnFrameSize() ||
+               mSize.DependsOnFrameSize(mImage.GetType())));
     }
 
     
