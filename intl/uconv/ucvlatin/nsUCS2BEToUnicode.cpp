@@ -59,11 +59,13 @@ UTF16ConvertToUnicode(PRUint8& aState, PRUint8& aData, const char * aSrc,
 
   if(STATE_FOUND_BOM == aState) 
   {
-    NS_ASSERTION(*aSrcLength >= 2, "Too few bytes in input");
+    if (*aSrcLength < 2)
+      return NS_ERROR_ILLEGAL_INPUT;
     src+=2;
     aState = STATE_NORMAL;
   } else if(STATE_FIRST_CALL == aState) { 
-    NS_ASSERTION(*aSrcLength >= 2, "Too few bytes in input");
+    if (*aSrcLength < 2)
+      return NS_ERROR_ILLEGAL_INPUT;
 
     
     
@@ -159,7 +161,8 @@ nsUTF16BEToUnicode::Convert(const char * aSrc, PRInt32 * aSrcLength,
     if(STATE_FIRST_CALL == mState) 
     {
       mState = STATE_NORMAL;
-      NS_ASSERTION(*aSrcLength >= 2, "Too few bytes in input");
+      if (*aSrcLength < 2)
+        return NS_ERROR_ILLEGAL_INPUT;
       if(0xFFFE == *((PRUnichar*)aSrc)) {
         
         mState = STATE_FOUND_BOM;
@@ -190,7 +193,8 @@ nsUTF16LEToUnicode::Convert(const char * aSrc, PRInt32 * aSrcLength,
     if(STATE_FIRST_CALL == mState) 
     {
       mState = STATE_NORMAL;
-      NS_ASSERTION(*aSrcLength >= 2, "Too few bytes in input");
+      if (*aSrcLength < 2)
+        return NS_ERROR_ILLEGAL_INPUT;
       if(0xFFFE == *((PRUnichar*)aSrc)) {
         
         mState = STATE_FOUND_BOM;
@@ -226,7 +230,8 @@ nsUTF16ToUnicode::Convert(const char * aSrc, PRInt32 * aSrcLength,
     if(STATE_FIRST_CALL == mState) 
     {
       mState = STATE_NORMAL;
-      NS_ASSERTION(*aSrcLength >= 2, "Too few bytes in input");
+      if (*aSrcLength < 2)
+        return NS_ERROR_ILLEGAL_INPUT;
 
       
       
