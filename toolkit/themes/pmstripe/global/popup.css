@@ -83,10 +83,6 @@ tooltip {
   font: message-box;
 }
 
-.tooltip-label {
-  margin: 0px !important;
-}
-
 tooltip[titletip="true"] {
  
 
