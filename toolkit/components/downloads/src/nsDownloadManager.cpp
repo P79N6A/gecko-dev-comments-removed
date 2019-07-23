@@ -1366,6 +1366,12 @@ nsDownload::OnProgressChange64(nsIWebProgress *aWebProgress,
   if (!mRequest)
     mRequest = aRequest; 
 
+  if (mDownloadState == nsIDownloadManager::DOWNLOAD_NOTSTARTED) {
+    nsresult rv = SetState(nsIDownloadManager::DOWNLOAD_DOWNLOADING);
+    NS_ENSURE_SUCCESS(rv, rv);
+    mDownloadManager->mObserverService->NotifyObservers(this, "dl-start", nsnull);
+  }
+
   
   PRTime now = PR_Now();
   PRIntervalTime delta = now - mLastUpdate;
@@ -1373,12 +1379,6 @@ nsDownload::OnProgressChange64(nsIWebProgress *aWebProgress,
     return NS_OK;
 
   mLastUpdate = now;
-
-  if (mDownloadState == nsIDownloadManager::DOWNLOAD_NOTSTARTED) {
-    nsresult rv = SetState(nsIDownloadManager::DOWNLOAD_DOWNLOADING);
-    NS_ENSURE_SUCCESS(rv, rv);
-    mDownloadManager->mObserverService->NotifyObservers(this, "dl-start", nsnull);
-  }
 
   
   
