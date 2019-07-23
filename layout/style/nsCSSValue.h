@@ -73,7 +73,8 @@ enum nsCSSUnit {
   eCSSUnit_Image        = 31,     
   eCSSUnit_Integer      = 50,     
   eCSSUnit_Enumerated   = 51,     
-  eCSSUnit_Color        = 80,     
+  eCSSUnit_EnumColor    = 80,     
+  eCSSUnit_Color        = 81,     
   eCSSUnit_Percent      = 90,     
   eCSSUnit_Number       = 91,     
 
@@ -174,7 +175,8 @@ public:
 
   PRInt32 GetIntValue() const
   {
-    NS_ASSERTION(mUnit == eCSSUnit_Integer || mUnit == eCSSUnit_Enumerated,
+    NS_ASSERTION(mUnit == eCSSUnit_Integer || mUnit == eCSSUnit_Enumerated ||
+                 mUnit == eCSSUnit_EnumColor,
                  "not an int value");
     return mValue.mInt;
   }
