@@ -153,6 +153,50 @@ function test_files() {
   do_check_eq(x[17], 2e+00);
   do_check_eq(x[18], 2e-00);
   do_check_eq(x[19], "rosebud");
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  for (var i = 1; i <= 34; ++i) {
+    var path = "/dom/src/json/test/fail" + i + ".json";
+    try {
+      dump(path +"\n");
+      x = read_file(path);
+      if (i == 4) {
+        
+        do_check_eq(x[0], "extra comma");
+        do_check_eq(x.length, 1);
+      } else if (i == 9) {
+        
+        do_check_eq(x["Extra comma"], true);
+      } else if (i == 13) {
+        
+        do_check_eq(x["Numbers cannot have leading zeroes"], 13);
+      } else if (i == 18) {
+        
+        var t = x[0][0][0][0][0][0][0][0][0][0][0][0][0][0][0][0][0][0][0][0];
+        do_check_eq(t, "Too deep");
+      } else if (i == 25) {
+        
+        do_check_eq(x[0], "\ttab\tcharacter\tin\tstring\t");
+      } else if (i == 27) {
+        do_check_eq(x[0], "line\nbreak");
+      } else {
+
+        do_throw("UNREACHED");
+
+      }
+
+    } catch (ex) {
+      
+    }
+  }
+  
 }
 
 function run_test() {
