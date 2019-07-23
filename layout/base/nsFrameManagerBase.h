@@ -70,6 +70,18 @@ class nsFrameManagerBase
 public:
   PRBool IsDestroyingFrames() { return mIsDestroyingFrames; }
 
+  
+
+
+
+
+  NS_HIDDEN_(nsIFrame*) GetRootFrame() const { return mRootFrame; }
+  NS_HIDDEN_(void)      SetRootFrame(nsIFrame* aRootFrame)
+  {
+    NS_ASSERTION(!mRootFrame, "already have a root frame");
+    mRootFrame = aRootFrame;
+  }
+
 protected:
   class UndisplayedMap;
 

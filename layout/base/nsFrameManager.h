@@ -95,18 +95,6 @@ public:
 
 
 
-
-  NS_HIDDEN_(nsIFrame*) GetRootFrame() { return mRootFrame; }
-  NS_HIDDEN_(void)      SetRootFrame(nsIFrame* aRootFrame)
-  {
-    NS_ASSERTION(!mRootFrame, "already have a root frame");
-    mRootFrame = aRootFrame;
-  }
-
-  
-
-
-
   NS_HIDDEN_(nsIFrame*) GetCanvasFrame();
 
   
