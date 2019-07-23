@@ -60,6 +60,7 @@ struct gfxFontStyle;
 class gfxUserFontSet;
 class gfxFontEntry;
 class gfxProxyFontEntry;
+class gfxPlatformFontList;
 class nsIURI;
 
 
@@ -162,6 +163,14 @@ public:
 
 
     virtual nsresult UpdateFontList();
+
+    
+
+
+    virtual gfxPlatformFontList *CreatePlatformFontList() {
+        NS_NOTREACHED("oops, this platform doesn't have a gfxPlatformFontList implementation");
+        return nsnull;
+    }
 
     
 

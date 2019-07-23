@@ -37,6 +37,7 @@
 
 
 
+
 #ifndef GFX_ATSUIFONTS_H
 #define GFX_ATSUIFONTS_H
 
@@ -53,7 +54,6 @@
 class gfxAtsuiFontGroup;
 
 class MacOSFontEntry;
-class MacOSFamilyEntry;
 
 class gfxAtsuiFont : public gfxFont {
 public:
@@ -168,9 +168,9 @@ public:
     void UpdateFontList();
 
 protected:
-    static PRBool FindATSUFont(const nsAString& aName,
-                               const nsACString& aGenericName,
-                               void *closure);
+    static PRBool FindATSFont(const nsAString& aName,
+                              const nsACString& aGenericName,
+                              void *closure);
 
     PRUint32 GuessMaximumStringLength();
 
@@ -203,7 +203,7 @@ protected:
     void InitFontList();
     
     
-    nsRefPtr<MacOSFamilyEntry>    mLastPrefFamily;
+    nsRefPtr<gfxFontFamily>       mLastPrefFamily;
     nsRefPtr<gfxAtsuiFont>        mLastPrefFont;
     eFontPrefLang                 mLastPrefLang;       
     PRBool                        mLastPrefFirstFont;  

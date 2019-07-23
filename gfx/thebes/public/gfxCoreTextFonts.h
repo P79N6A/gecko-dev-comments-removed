@@ -52,7 +52,6 @@
 class gfxCoreTextFontGroup;
 
 class MacOSFontEntry;
-class MacOSFamilyEntry;
 
 class gfxCoreTextFont : public gfxFont {
 public:
@@ -220,7 +219,7 @@ protected:
                               PRInt32 aLayoutLength);
 
     
-    nsRefPtr<MacOSFamilyEntry>    mLastPrefFamily;
+    nsRefPtr<gfxFontFamily>       mLastPrefFamily;
     nsRefPtr<gfxCoreTextFont>     mLastPrefFont;
     eFontPrefLang                 mLastPrefLang;       
     PRBool                        mLastPrefFirstFont;  

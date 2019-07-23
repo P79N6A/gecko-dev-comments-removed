@@ -37,6 +37,7 @@
 
 
 
+
 #ifndef GFX_FONT_H
 #define GFX_FONT_H
 
@@ -61,6 +62,7 @@ class gfxContext;
 class gfxTextRun;
 class nsIAtom;
 class gfxFont;
+class gfxFontFamily;
 class gfxFontGroup;
 class gfxUserFontSet;
 class gfxUserFontData;
@@ -157,12 +159,15 @@ class gfxFontEntry {
 public:
     THEBES_INLINE_DECL_REFCOUNTING(gfxFontEntry)
 
-    gfxFontEntry(const nsAString& aName) : 
+    gfxFontEntry(const nsAString& aName, gfxFontFamily *aFamily = nsnull,
+                 PRBool aIsStandardFace = PR_FALSE) : 
         mName(aName), mItalic(PR_FALSE), mFixedPitch(PR_FALSE),
         mIsProxy(PR_FALSE), mIsValid(PR_TRUE), 
         mIsBadUnderlineFont(PR_FALSE), mIsUserFont(PR_FALSE),
+        mStandardFace(aIsStandardFace),
         mWeight(500), mStretch(NS_FONT_STRETCH_NORMAL),
-        mCmapInitialized(PR_FALSE), mUserFontData(nsnull)
+        mCmapInitialized(PR_FALSE), mUserFontData(nsnull),
+        mFamily(aFamily)
     { }
 
     gfxFontEntry(const gfxFontEntry& aEntry) : 
@@ -170,8 +175,10 @@ public:
         mFixedPitch(aEntry.mFixedPitch), mIsProxy(aEntry.mIsProxy), 
         mIsValid(aEntry.mIsValid), mIsBadUnderlineFont(aEntry.mIsBadUnderlineFont),
         mIsUserFont(aEntry.mIsUserFont),
+        mStandardFace(aEntry.mStandardFace),
         mWeight(aEntry.mWeight), mCmapInitialized(aEntry.mCmapInitialized),
-        mCharacterMap(aEntry.mCharacterMap), mUserFontData(aEntry.mUserFontData)
+        mCharacterMap(aEntry.mCharacterMap), mUserFontData(aEntry.mUserFontData),
+        mFamily(aEntry.mFamily)
     { }
 
     virtual ~gfxFontEntry();
@@ -179,7 +186,8 @@ public:
     
     const nsString& Name() const { return mName; }
 
-    PRInt32 Weight() { return mWeight; }
+    PRUint16 Weight() { return mWeight; }
+    PRInt16 Stretch() { return mStretch; }
 
     PRBool IsUserFont() { return mIsUserFont; }
     PRBool IsFixedPitch() { return mFixedPitch; }
@@ -194,7 +202,9 @@ public:
     }
 
     virtual PRBool TestCharacterMap(PRUint32 aCh);
-    virtual nsresult ReadCMAP() { return 0; }
+    virtual nsresult ReadCMAP();
+
+    const nsString& FamilyName();
 
     nsString         mName;
 
@@ -204,40 +214,156 @@ public:
     PRPackedBool     mIsValid     : 1;
     PRPackedBool     mIsBadUnderlineFont : 1;
     PRPackedBool     mIsUserFont  : 1;
+    PRPackedBool     mStandardFace : 1;
 
     PRUint16         mWeight;
-    PRUint16         mStretch;
+    PRInt16          mStretch;
 
     PRPackedBool     mCmapInitialized;
     gfxSparseBitSet  mCharacterMap;
     gfxUserFontData* mUserFontData;
+
+protected:
+    friend class gfxPlatformFontList;
+    friend class gfxMacPlatformFontList;
+    friend class gfxFcFontEntry;
+    friend class gfxFontFamily;
+
+    gfxFontEntry() :
+        mItalic(PR_FALSE), mFixedPitch(PR_FALSE),
+        mIsProxy(PR_FALSE), mIsValid(PR_TRUE), 
+        mIsBadUnderlineFont(PR_FALSE),
+        mIsUserFont(PR_FALSE),
+        mStandardFace(PR_FALSE),
+        mWeight(500), mStretch(NS_FONT_STRETCH_NORMAL),
+        mCmapInitialized(PR_FALSE),
+        mUserFontData(nsnull),
+        mFamily(nsnull)
+    { }
+
+    virtual nsresult GetFontTable(PRUint32 aTableTag, nsTArray<PRUint8>& aBuffer) {
+        return NS_ERROR_FAILURE; 
+    }
+
+    gfxFontFamily *mFamily;
 };
 
+
+
+struct FontSearch {
+    FontSearch(const PRUint32 aCharacter, gfxFont *aFont) :
+        mCh(aCharacter), mFontToMatch(aFont), mMatchRank(0) {
+    }
+    const PRUint32         mCh;
+    gfxFont*               mFontToMatch;
+    PRInt32                mMatchRank;
+    nsRefPtr<gfxFontEntry> mBestMatch;
+};
+
+
+class AddOtherFamilyNameFunctor;
 
 class gfxFontFamily {
 public:
     THEBES_INLINE_DECL_REFCOUNTING(gfxFontFamily)
 
     gfxFontFamily(const nsAString& aName) :
-        mName(aName) { }
+        mName(aName), mOtherFamilyNamesInitialized(PR_FALSE), mHasOtherFamilyNames(PR_FALSE),
+        mIsSimpleFamily(PR_FALSE),
+        mHasStyles(PR_FALSE)
+        { }
 
     virtual ~gfxFontFamily() { }
 
     const nsString& Name() { return mName; }
 
+    virtual void LocalizedName(nsAString& aLocalizedName);
+    virtual PRBool HasOtherFamilyNames();
+    
+    nsTArray<nsRefPtr<gfxFontEntry> >& GetFontList() { return mAvailableFonts; }
+    
+    void AddFontEntry(nsRefPtr<gfxFontEntry> aFontEntry) {
+        mAvailableFonts.AppendElement(aFontEntry);
+    }
+
+    
+    void SetHasStyles(PRBool aHasStyles) { mHasStyles = aHasStyles; }
+
+    
+    
     
     
     gfxFontEntry *FindFontForStyle(const gfxFontStyle& aFontStyle, 
                                    PRBool& aNeedsBold);
 
+    
+    
+    void FindFontForChar(FontSearch *aMatchData);
+
+    
+    virtual void ReadOtherFamilyNames(AddOtherFamilyNameFunctor& aOtherFamilyFunctor);
+
+    
+    virtual void FindStyleVariations() { }
+
+    
+    gfxFontEntry* FindFont(const nsAString& aPostscriptName);
+
+    
+    void ReadCMAP() {
+        PRUint32 i, numFonts = mAvailableFonts.Length();
+        
+        
+        for (i = 0; i < numFonts; i++)
+            mAvailableFonts[i]->ReadCMAP();
+    }
+
+    
+    void SetBadUnderlineFont(PRBool aIsBadUnderlineFont) {
+        PRUint32 i, numFonts = mAvailableFonts.Length();
+        
+        
+        
+        for (i = 0; i < numFonts; i++)
+            mAvailableFonts[i]->mIsBadUnderlineFont = aIsBadUnderlineFont;
+    }
+
+    
+    void SortAvailableFonts();
+
+    
+    
+    
+    void CheckForSimpleFamily();
+
 protected:
     
-   
-    virtual PRBool FindWeightsForStyle(gfxFontEntry* aFontsForWeights[], 
-                                       const gfxFontStyle& aFontStyle) 
-    { return PR_FALSE; }
+    
+    virtual PRBool FindWeightsForStyle(gfxFontEntry* aFontsForWeights[],
+                                       PRBool anItalic, PRInt16 aStretch);
+
+    PRBool ReadOtherFamilyNamesForFace(AddOtherFamilyNameFunctor& aOtherFamilyFunctor,
+                                       gfxFontEntry *aFontEntry,
+                                       PRBool useFullName);
 
     nsString mName;
+    nsTArray<nsRefPtr<gfxFontEntry> >  mAvailableFonts;
+    PRPackedBool mOtherFamilyNamesInitialized;
+    PRPackedBool mHasOtherFamilyNames;
+    PRPackedBool mIsSimpleFamily;
+    PRPackedBool mHasStyles;
+
+    enum {
+        
+        
+        kRegularFaceIndex    = 0,
+        kBoldFaceIndex       = 1,
+        kItalicFaceIndex     = 2,
+        kBoldItalicFaceIndex = 3,
+        
+        kBoldMask   = 0x01,
+        kItalicMask = 0x02
+    };
 };
 
 struct gfxTextRange {

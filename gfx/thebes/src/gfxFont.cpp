@@ -37,6 +37,7 @@
 
 
 
+
 #include "nsIPrefService.h"
 #include "nsServiceManagerUtils.h"
 #include "nsReadableUtils.h"
@@ -50,6 +51,7 @@
 #include "gfxContext.h"
 #include "gfxFontMissingGlyphs.h"
 #include "gfxUserFontSet.h"
+#include "gfxPlatformFontList.h"
 #include "nsMathUtils.h"
 #include "nsBidiUtils.h"
 
@@ -59,6 +61,8 @@
 #include "nsCRT.h"
 
 gfxFontCache *gfxFontCache::gGlobalCache = nsnull;
+
+static PRLogModuleInfo *gFontSelection = PR_NewLogModule("fontSelectionLog");
 
 #ifdef DEBUG_roc
 #define DEBUG_TEXT_RUN_STORAGE_METRICS
@@ -83,31 +87,159 @@ gfxFontEntry::~gfxFontEntry()
 }
 
 
-PRBool gfxFontEntry::TestCharacterMap(PRUint32 aCh) {
-    if (!mCmapInitialized) ReadCMAP();
+PRBool gfxFontEntry::TestCharacterMap(PRUint32 aCh)
+{
+    if (!mCmapInitialized) {
+        ReadCMAP();
+    }
     return mCharacterMap.test(aCh);
 }
 
 
-gfxFontEntry *gfxFontFamily::FindFontForStyle(const gfxFontStyle& aFontStyle, PRBool& aNeedsBold)
+nsresult gfxFontEntry::ReadCMAP()
 {
-    gfxFontEntry *weightList[10] = { 0 };
+    mCmapInitialized = PR_TRUE;
+    return NS_OK;
+}
+
+
+const nsString& gfxFontEntry::FamilyName()
+{
+    NS_ASSERTION(mFamily, "gfxFontEntry is not a member of a family");
+    return mFamily->Name();
+}
+
+
+
+class FontEntryStandardFaceComparator {
+  public:
+    PRBool Equals(const nsRefPtr<gfxFontEntry>& a, const nsRefPtr<gfxFontEntry>& b) const {
+        return a->mStandardFace == b->mStandardFace;
+    }
+    PRBool LessThan(const nsRefPtr<gfxFontEntry>& a, const nsRefPtr<gfxFontEntry>& b) const {
+        return (a->mStandardFace == PR_FALSE && b->mStandardFace == PR_TRUE);
+    }
+};
+
+void
+gfxFontFamily::SortAvailableFonts()
+{
+    mAvailableFonts.Sort(FontEntryStandardFaceComparator());
+}
+
+PRBool
+gfxFontFamily::HasOtherFamilyNames()
+{
+    
+    if (!mOtherFamilyNamesInitialized) {
+        AddOtherFamilyNameFunctor addOtherNames(gfxPlatformFontList::PlatformFontList());
+        ReadOtherFamilyNames(addOtherNames);  
+    }
+    return mHasOtherFamilyNames;
+}
+
+gfxFontEntry*
+gfxFontFamily::FindFontForStyle(const gfxFontStyle& aFontStyle, PRBool& aNeedsBold)
+{
+    if (!mHasStyles)
+        FindStyleVariations(); 
+
+    NS_ASSERTION(mAvailableFonts.Length() > 0, "font family with no faces!");
 
     aNeedsBold = PR_FALSE;
 
-    PRBool foundWeights = FindWeightsForStyle(weightList, aFontStyle);
-    if (!foundWeights)
-        return nsnull;
-
     PRInt8 baseWeight, weightDistance;
     aFontStyle.ComputeWeightAndOffset(&baseWeight, &weightDistance);
+    PRBool wantBold = baseWeight >= 6;
+    if ((wantBold && weightDistance < 0) || (!wantBold && weightDistance > 0)) {
+        wantBold = !wantBold;
+    }
+
+    
+    if (mAvailableFonts.Length() == 1) {
+        gfxFontEntry *fe = mAvailableFonts[0];
+        aNeedsBold = wantBold && !fe->IsBold();
+        return fe;
+    }
+
+    PRBool wantItalic = (aFontStyle.style & (FONT_STYLE_ITALIC | FONT_STYLE_OBLIQUE)) != 0;
+
+    
+    
+    
+    
+    
+    
+
+    if (mIsSimpleFamily) {
+        
+        
+        
+        PRUint8 faceIndex = (wantItalic ? kItalicMask : 0) |
+                            (wantBold ? kBoldMask : 0);
+
+        
+        gfxFontEntry *fe = mAvailableFonts[faceIndex];
+        if (fe) {
+            
+            return fe;
+        }
+
+        
+        static const PRUint8 simpleFallbacks[4][3] = {
+            { kBoldFaceIndex, kItalicFaceIndex, kBoldItalicFaceIndex },   
+            { kRegularFaceIndex, kBoldItalicFaceIndex, kItalicFaceIndex },
+            { kBoldItalicFaceIndex, kRegularFaceIndex, kBoldFaceIndex },  
+            { kItalicFaceIndex, kBoldFaceIndex, kRegularFaceIndex }       
+        };
+        const PRUint8 *order = simpleFallbacks[faceIndex];
+
+        for (PRUint8 trial = 0; trial < 3; ++trial) {
+            
+            fe = mAvailableFonts[order[trial]];
+            if (fe) {
+                PR_LOG(gFontSelection, PR_LOG_DEBUG,
+                       ("(FindFontForStyle) name: %s, sty: %02x, wt: %d, sz: %.1f -> %s (trial %d)\n", 
+                        NS_ConvertUTF16toUTF8(mName).get(),
+                        aFontStyle.style, aFontStyle.weight, aFontStyle.size,
+                        NS_ConvertUTF16toUTF8(fe->Name()).get(), trial));
+                aNeedsBold = wantBold && !fe->IsBold();
+                return fe;
+            }
+        }
+
+        
+        NS_NOTREACHED("no face found in simple font family!");
+        return nsnull;
+    }
+
+    
+    
+    
+    
+
+    gfxFontEntry *weightList[10] = { 0 };
+    PRBool foundWeights = FindWeightsForStyle(weightList, wantItalic, aFontStyle.stretch);
+    if (!foundWeights) {
+        PR_LOG(gFontSelection, PR_LOG_DEBUG,
+               ("(FindFontForStyle) name: %s, sty: %02x, wt: %d, sz: %.1f -> null\n", 
+                NS_ConvertUTF16toUTF8(mName).get(),
+                aFontStyle.style, aFontStyle.weight, aFontStyle.size));
+        return nsnull;
+    }
 
     
     
     if (baseWeight == 5 && weightDistance == 0) {
         
-        if (weightList[5])
+        if (weightList[5]) {
+            PR_LOG(gFontSelection, PR_LOG_DEBUG,
+                   ("(FindFontForStyle) name: %s, sty: %02x, wt: %d, sz: %.1f -> %s using wt 500\n", 
+                    NS_ConvertUTF16toUTF8(mName).get(),
+                    aFontStyle.style, aFontStyle.weight, aFontStyle.size,
+                    NS_ConvertUTF16toUTF8(weightList[5]->Name()).get()));
             return weightList[5];
+        }
 
         
         baseWeight = 4;
@@ -123,8 +255,9 @@ gfxFontEntry *gfxFontFamily::FindFontForStyle(const gfxFontStyle& aFontStyle, PR
 
         
         
-        if (i == 1 || i == 9)
+        if (i == 1 || i == 9) {
             direction = -direction;
+        }
     }
 
     gfxFontEntry *matchFE;
@@ -153,12 +286,306 @@ gfxFontEntry *gfxFontFamily::FindFontForStyle(const gfxFontStyle& aFontStyle, PR
         aNeedsBold = PR_TRUE;
     }
 
-    if (!matchFE)
+    if (!matchFE) {
         matchFE = weightList[matchBaseWeight];
+    }
 
+    PR_LOG(gFontSelection, PR_LOG_DEBUG,
+           ("(FindFontForStyle) name: %s, sty: %02x, wt: %d, sz: %.1f -> %s\n", 
+            NS_ConvertUTF16toUTF8(mName).get(),
+            aFontStyle.style, aFontStyle.weight, aFontStyle.size,
+            NS_ConvertUTF16toUTF8(matchFE->Name()).get()));
     NS_ASSERTION(matchFE, "we should always be able to return something here");
     return matchFE;
 }
+
+void
+gfxFontFamily::CheckForSimpleFamily()
+{
+    if (mAvailableFonts.Length() > 4) {
+        return; 
+    }
+
+    PRInt16 firstStretch = mAvailableFonts[0]->Stretch();
+
+    gfxFontEntry *faces[4] = { 0 };
+    for (PRUint8 i = 0; i < mAvailableFonts.Length(); ++i) {
+        gfxFontEntry *fe = mAvailableFonts[i];
+        if (fe->Stretch() != firstStretch) {
+            return; 
+        }
+        PRUint8 faceIndex = (fe->IsItalic() ? kItalicMask : 0) |
+                            (fe->Weight() >= 600 ? kBoldMask : 0);
+        if (faces[faceIndex]) {
+            return; 
+        }
+        faces[faceIndex] = fe;
+    }
+
+    
+    
+    mAvailableFonts.SetLength(4);
+    for (PRUint8 i = 0; i < 4; ++i) {
+        if (mAvailableFonts[i].get() != faces[i]) {
+            mAvailableFonts[i].swap(faces[i]);
+        }
+    }
+
+    mIsSimpleFamily = PR_TRUE;
+}
+
+static inline PRUint32
+StyleDistance(gfxFontEntry *aFontEntry,
+              PRBool anItalic, PRInt16 aStretch)
+{
+    
+    
+    
+
+    
+    
+    
+
+    return (aFontEntry->IsItalic() != anItalic ? 1 : 0) +
+           (aFontEntry->mStretch != aStretch ? 10 : 0);
+}
+
+PRBool
+gfxFontFamily::FindWeightsForStyle(gfxFontEntry* aFontsForWeights[],
+                                   PRBool anItalic, PRInt16 aStretch)
+{
+    PRUint32 foundWeights = 0;
+    PRUint32 bestMatchDistance = 0xffffffff;
+
+    for (PRUint32 i = 0; i < mAvailableFonts.Length(); i++) {
+        
+        
+        gfxFontEntry *fe = mAvailableFonts[i];
+        PRUint32 distance = StyleDistance(fe, anItalic, aStretch);
+        if (distance <= bestMatchDistance) {
+            PRInt8 wt = fe->mWeight / 100;
+            NS_ASSERTION(wt >= 1 && wt < 10, "invalid weight in fontEntry");
+            if (!aFontsForWeights[wt]) {
+                
+                aFontsForWeights[wt] = fe;
+                ++foundWeights;
+            } else {
+                PRUint32 prevDistance = StyleDistance(aFontsForWeights[wt], anItalic, aStretch);
+                if (prevDistance >= distance) {
+                    
+                    aFontsForWeights[wt] = fe;
+                }
+            }
+            bestMatchDistance = distance;
+        }
+    }
+
+    NS_ASSERTION(foundWeights > 0, "Font family containing no faces?");
+
+    if (foundWeights == 1) {
+        
+        return PR_TRUE;
+    }
+
+    
+    
+    
+    for (PRUint32 i = 0; i < 10; ++i) {
+        if (aFontsForWeights[i] &&
+            StyleDistance(aFontsForWeights[i], anItalic, aStretch) > bestMatchDistance)
+        {
+            aFontsForWeights[i] = 0;
+        }
+    }
+
+    return (foundWeights > 0);
+}
+
+
+void gfxFontFamily::LocalizedName(nsAString& aLocalizedName)
+{
+    
+    aLocalizedName = mName;
+}
+
+
+void
+gfxFontFamily::FindFontForChar(FontSearch *aMatchData)
+{
+    
+    
+    
+
+    
+    PRUint32 numFonts = mAvailableFonts.Length();
+    for (PRUint32 i = 0; i < numFonts; i++) {
+        gfxFontEntry *fe = mAvailableFonts[i];
+        if (!fe)
+            continue;
+
+        PRInt32 rank = 0;
+
+        if (fe->TestCharacterMap(aMatchData->mCh)) {
+            rank += 20;
+        }
+
+        
+        if (rank == 0)
+            continue;
+            
+        
+        
+
+        if (aMatchData->mFontToMatch) { 
+            const gfxFontStyle *style = aMatchData->mFontToMatch->GetStyle();
+            
+            
+            if (fe->IsItalic() && 
+                    (style->style & (FONT_STYLE_ITALIC | FONT_STYLE_OBLIQUE)) != 0) {
+                rank += 5;
+            }
+            
+            
+            PRInt8 baseWeight, weightDistance;
+            style->ComputeWeightAndOffset(&baseWeight, &weightDistance);
+
+            
+            
+            PRInt32 targetWeight = (baseWeight * 100) + (weightDistance * 100);
+
+            PRInt32 entryWeight = fe->Weight();
+            if (entryWeight == targetWeight) {
+                rank += 5;
+            } else {
+                PRUint32 diffWeight = abs(entryWeight - targetWeight);
+                if (diffWeight <= 100)  
+                    rank += 2;
+            }
+        } else {
+            
+            if (!fe->IsItalic() && !fe->IsBold())
+                rank += 5;
+        }
+        
+        
+        
+        if (rank > aMatchData->mMatchRank
+            || (rank == aMatchData->mMatchRank &&
+                Compare(fe->Name(), aMatchData->mBestMatch->Name()) > 0)) 
+        {
+            aMatchData->mBestMatch = fe;
+            aMatchData->mMatchRank = rank;
+        }
+    }
+}
+
+
+
+PRBool
+gfxFontFamily::ReadOtherFamilyNamesForFace(AddOtherFamilyNameFunctor& aOtherFamilyFunctor,
+                                           gfxFontEntry *aFontEntry,
+                                           PRBool useFullName = PR_FALSE)
+{
+    const PRUint32 kNAME = TRUETYPE_TAG('n','a','m','e');
+
+    nsAutoTArray<PRUint8,8192> buffer;
+    if (aFontEntry->GetFontTable(kNAME, buffer) != NS_OK)
+        return PR_FALSE;
+
+    const PRUint8 *nameData = buffer.Elements();
+    PRUint32 dataLength = buffer.Length();
+    const gfxFontUtils::NameHeader *nameHeader =
+        reinterpret_cast<const gfxFontUtils::NameHeader*>(nameData);
+
+    PRUint32 nameCount = nameHeader->count;
+    if (nameCount * sizeof(gfxFontUtils::NameRecord) > dataLength) {
+        NS_WARNING("invalid font (name records)");
+        return PR_FALSE;
+    }
+    
+    const gfxFontUtils::NameRecord *nameRecord =
+        reinterpret_cast<const gfxFontUtils::NameRecord*>(nameData + sizeof(gfxFontUtils::NameHeader));
+    PRUint32 stringsBase = PRUint32(nameHeader->stringOffset);
+
+    PRBool foundNames = PR_FALSE;
+    for (PRUint32 i = 0; i < nameCount; i++, nameRecord++) {
+        PRUint32 nameLen = nameRecord->length;
+        PRUint32 nameOff = nameRecord->offset;  
+
+        if (stringsBase + nameOff + nameLen > dataLength) {
+            NS_WARNING("invalid font (name table strings)");
+            return PR_FALSE;
+        }
+
+        PRUint16 nameID = nameRecord->nameID;
+        if ((useFullName && nameID == gfxFontUtils::NAME_ID_FULL) ||
+            (!useFullName && (nameID == gfxFontUtils::NAME_ID_FAMILY ||
+                              nameID == gfxFontUtils::NAME_ID_PREFERRED_FAMILY))) {
+            nsAutoString otherFamilyName;
+            PRBool ok = gfxFontUtils::DecodeFontName(nameData + stringsBase + nameOff,
+                                                     nameLen,
+                                                     PRUint32(nameRecord->platformID),
+                                                     PRUint32(nameRecord->encodingID),
+                                                     PRUint32(nameRecord->languageID),
+                                                     otherFamilyName);
+            
+            if (ok && otherFamilyName != mName) {
+                aOtherFamilyFunctor(this, otherFamilyName);
+                foundNames = PR_TRUE;
+            }
+        }
+    }
+
+    return foundNames;
+}
+
+
+void
+gfxFontFamily::ReadOtherFamilyNames(AddOtherFamilyNameFunctor& aOtherFamilyFunctor)
+{
+    if (mOtherFamilyNamesInitialized) 
+        return;
+    mOtherFamilyNamesInitialized = PR_TRUE;
+
+    
+    PRUint32 numFonts = mAvailableFonts.Length();
+    PRUint32 i;
+    for (i = 0; i < numFonts; ++i) {
+        if (!mAvailableFonts[i])
+            continue;
+        mHasOtherFamilyNames = ReadOtherFamilyNamesForFace(aOtherFamilyFunctor,
+                                                           mAvailableFonts[i].get());
+        break;
+    }
+
+    
+    
+    
+    if (mHasOtherFamilyNames) {
+        
+        
+        for ( ; i < numFonts; i++) {
+            if (!mAvailableFonts[i])
+                continue;
+            ReadOtherFamilyNamesForFace(aOtherFamilyFunctor, mAvailableFonts[i].get());
+        }
+    }
+}
+
+
+gfxFontEntry*
+gfxFontFamily::FindFont(const nsAString& aPostscriptName)
+{
+    
+    PRUint32 numFonts = mAvailableFonts.Length();
+    for (PRUint32 i = 0; i < numFonts; i++) {
+        gfxFontEntry *fe = mAvailableFonts[i].get();
+        if (fe && fe->Name() == aPostscriptName)
+            return fe;
+    }
+    return nsnull;
+}
+
 
 nsresult
 gfxFontCache::Init()
@@ -2202,7 +2629,6 @@ gfxTextRun::FindFirstGlyphRunContaining(PRUint32 aOffset)
     NS_ASSERTION(aOffset <= mCharacterCount, "Bad offset looking for glyphrun");
     if (aOffset == mCharacterCount)
         return mGlyphRuns.Length();
-
     PRUint32 start = 0;
     PRUint32 end = mGlyphRuns.Length();
     while (end - start > 1) {
@@ -2287,18 +2713,16 @@ gfxTextRun::SanitizeGlyphRuns()
     
     
     
-    PRInt32 i;
-    for (i = mGlyphRuns.Length() - 1; i >= 0; --i) {
+    PRInt32 i, last = mGlyphRuns.Length() - 1;
+    for (i = last; i >= 0; --i) {
         GlyphRun& run = mGlyphRuns[i];
         while (mCharacterGlyphs[run.mCharacterOffset].IsLigatureContinuation() &&
                run.mCharacterOffset < mCharacterCount) {
             run.mCharacterOffset++;
         }
         
-        if ((i < mGlyphRuns.Length() - 1 &&
-             run.mCharacterOffset >= mGlyphRuns[i+1].mCharacterOffset) ||
-            (i == mGlyphRuns.Length() - 1 &&
-             run.mCharacterOffset == mCharacterCount)) {
+        if ((i < last && run.mCharacterOffset >= mGlyphRuns[i+1].mCharacterOffset) ||
+            (i == last && run.mCharacterOffset == mCharacterCount)) {
             mGlyphRuns.RemoveElementAt(i);
         }
     }

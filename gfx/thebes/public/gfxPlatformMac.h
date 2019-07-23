@@ -75,6 +75,8 @@ public:
     virtual gfxFontEntry* LookupLocalFont(const gfxProxyFontEntry *aProxyEntry,
                                           const nsAString& aFontName);
 
+    virtual gfxPlatformFontList* CreatePlatformFontList();
+
     virtual gfxFontEntry* MakePlatformFont(const gfxProxyFontEntry *aProxyEntry,
                                            nsISupports *aLoader,
                                            const PRUint8 *aFontData,
@@ -96,6 +98,14 @@ public:
 
     
     PRUint32 GetAntiAliasingThreshold() { return mFontAntiAliasingThreshold; }
+
+    
+    PRBool UsingCoreText()
+#ifdef __LP64__
+        { return PR_TRUE; }
+#else
+        { return mUseCoreText; }
+#endif
 
     
     static void SetupClusterBoundaries(gfxTextRun *aTextRun, const PRUnichar *aString);
