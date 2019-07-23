@@ -53,7 +53,7 @@
 
 
 
-class nsMorkReader
+class NS_STACK_CLASS nsMorkReader
 {
  public:
   
