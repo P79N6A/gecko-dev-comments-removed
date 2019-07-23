@@ -58,8 +58,6 @@
 #include "SimpleBuffer.h"
 #include "nsGLPbuffer.h"
 
-#include "WebGLArrays.h"
-
 class nsIDocShell;
 
 namespace mozilla {
@@ -245,6 +243,7 @@ public:
                               nsIInputStream **aStream);
     NS_IMETHOD GetThebesSurface(gfxASurface **surface);
     NS_IMETHOD SetIsOpaque(PRBool b) { return NS_OK; };
+    NS_IMETHOD Redraw(const gfxRect&) { return NS_ERROR_NOT_IMPLEMENTED; }
 
 protected:
     GLES20Wrap *gl;
@@ -265,8 +264,7 @@ protected:
     void MakeContextCurrent() { mGLPbuffer->MakeContextCurrent(); }
 
     nsresult TexImageElementBase(nsIDOMHTMLElement *imageOrCanvas,
-                                 gfxImageSurface **imageOut,
-                                 PRBool flipY, PRBool premultiplyAlpha);
+                                 gfxImageSurface **imageOut);
 
     GLuint mActiveTexture;
 
@@ -284,12 +282,10 @@ protected:
     WebGLObjectRefPtr<WebGLBuffer> mBoundElementArrayBuffer;
     WebGLObjectRefPtr<WebGLProgram> mCurrentProgram;
 
-    
-    nsTArray<WebGLObjectRefPtr<WebGLTexture> > mFramebufferColorAttachments;
-    nsRefPtr<WebGLFramebuffer> mFramebufferDepthAttachment;
-    nsRefPtr<WebGLFramebuffer> mFramebufferStencilAttachment;
+    nsTArray<nsRefPtr<WebGLFramebuffer> > mBoundColorFramebuffers;
+    nsRefPtr<WebGLFramebuffer> mBoundDepthFramebuffer;
+    nsRefPtr<WebGLFramebuffer> mBoundStencilFramebuffer;
 
-    nsRefPtr<WebGLFramebuffer> mBoundFramebuffer;
     nsRefPtr<WebGLRenderbuffer> mBoundRenderbuffer;
 
     
@@ -355,14 +351,10 @@ public:
     PRBool Deleted() { return mDeleted; }
     GLuint GLName() { return mName; }
 
-    void Set(nsIWebGLArray *na) {
+    void Set(nsICanvasArray *na) {
         mGLType = na->NativeType();
         mElementSize = na->NativeElementSize();
         mCount = na->NativeCount();
-    }
-
-    void SetCount(GLuint count) {
-        mCount = count;
     }
 
     GLenum GLType() { return mGLType; }
@@ -500,6 +492,188 @@ public:
 protected:
     GLuint mName;
     PRBool mDeleted;
+};
+
+
+
+
+
+class WebGLFloatArray :
+    public nsICanvasFloatArray,
+    public nsIJSNativeInitializer
+{
+public:
+    WebGLFloatArray();
+    WebGLFloatArray(JSContext *cx, JSObject *arrayObj, jsuint arrayLen);
+
+    NS_DECL_ISUPPORTS
+    NS_DECL_NSICANVASARRAY
+    NS_DECL_NSICANVASFLOATARRAY
+
+    static nsresult NewCanvasFloatArray(nsISupports **aNewObject);
+
+    NS_IMETHOD Initialize(nsISupports* aOwner,
+                          JSContext* aCx,
+                          JSObject* aObj,
+                          PRUint32 aArgc,
+                          jsval* aArgv);
+
+protected:
+    SimpleBuffer mBuffer;
+    PRUint32 mLength;
+    PRUint32 mSize;
+    PRUint32 mElementSize;
+    PRUint32 mCount;
+};
+
+class WebGLByteArray :
+    public nsICanvasByteArray,
+    public nsIJSNativeInitializer
+{
+public:
+    WebGLByteArray();
+    WebGLByteArray(JSContext *cx, JSObject *arrayObj, jsuint arrayLen);
+
+    NS_DECL_ISUPPORTS
+    NS_DECL_NSICANVASARRAY
+    NS_DECL_NSICANVASBYTEARRAY
+
+    NS_IMETHOD Initialize(nsISupports* aOwner,
+                          JSContext* aCx,
+                          JSObject* aObj,
+                          PRUint32 aArgc,
+                          jsval* aArgv);
+protected:
+    SimpleBuffer mBuffer;
+    PRUint32 mLength;
+    PRUint32 mSize;
+    PRUint32 mElementSize;
+    PRUint32 mCount;
+};
+
+class WebGLUnsignedByteArray :
+    public nsICanvasUnsignedByteArray,
+    public nsIJSNativeInitializer
+{
+public:
+    WebGLUnsignedByteArray();
+    WebGLUnsignedByteArray(JSContext *cx, JSObject *arrayObj, jsuint arrayLen);
+
+    NS_DECL_ISUPPORTS
+    NS_DECL_NSICANVASARRAY
+    NS_DECL_NSICANVASUNSIGNEDBYTEARRAY
+
+    NS_IMETHOD Initialize(nsISupports* aOwner,
+                          JSContext* aCx,
+                          JSObject* aObj,
+                          PRUint32 aArgc,
+                          jsval* aArgv);
+protected:
+    SimpleBuffer mBuffer;
+    PRUint32 mLength;
+    PRUint32 mSize;
+    PRUint32 mElementSize;
+    PRUint32 mCount;
+};
+
+class WebGLShortArray :
+    public nsICanvasShortArray,
+    public nsIJSNativeInitializer
+{
+public:
+    WebGLShortArray();
+    WebGLShortArray(JSContext *cx, JSObject *arrayObj, jsuint arrayLen);
+
+    NS_DECL_ISUPPORTS
+    NS_DECL_NSICANVASARRAY
+    NS_DECL_NSICANVASSHORTARRAY
+
+    NS_IMETHOD Initialize(nsISupports* aOwner,
+                          JSContext* aCx,
+                          JSObject* aObj,
+                          PRUint32 aArgc,
+                          jsval* aArgv);
+protected:
+    SimpleBuffer mBuffer;
+    PRUint32 mLength;
+    PRUint32 mSize;
+    PRUint32 mElementSize;
+    PRUint32 mCount;
+};
+
+class WebGLUnsignedShortArray :
+    public nsICanvasUnsignedShortArray,
+    public nsIJSNativeInitializer
+{
+public:
+    WebGLUnsignedShortArray();
+    WebGLUnsignedShortArray(JSContext *cx, JSObject *arrayObj, jsuint arrayLen);
+
+    NS_DECL_ISUPPORTS
+    NS_DECL_NSICANVASARRAY
+    NS_DECL_NSICANVASUNSIGNEDSHORTARRAY
+
+    NS_IMETHOD Initialize(nsISupports* aOwner,
+                          JSContext* aCx,
+                          JSObject* aObj,
+                          PRUint32 aArgc,
+                          jsval* aArgv);
+protected:
+    SimpleBuffer mBuffer;
+    PRUint32 mLength;
+    PRUint32 mSize;
+    PRUint32 mElementSize;
+    PRUint32 mCount;
+};
+
+class WebGLIntArray :
+    public nsICanvasIntArray,
+    public nsIJSNativeInitializer
+{
+public:
+    WebGLIntArray();
+    WebGLIntArray(JSContext *cx, JSObject *arrayObj, jsuint arrayLen);
+
+    NS_DECL_ISUPPORTS
+    NS_DECL_NSICANVASARRAY
+    NS_DECL_NSICANVASINTARRAY
+
+    NS_IMETHOD Initialize(nsISupports* aOwner,
+                          JSContext* aCx,
+                          JSObject* aObj,
+                          PRUint32 aArgc,
+                          jsval* aArgv);
+protected:
+    SimpleBuffer mBuffer;
+    PRUint32 mLength;
+    PRUint32 mSize;
+    PRUint32 mElementSize;
+    PRUint32 mCount;
+};
+
+class WebGLUnsignedIntArray :
+    public nsICanvasUnsignedIntArray,
+    public nsIJSNativeInitializer
+{
+public:
+    WebGLUnsignedIntArray();
+    WebGLUnsignedIntArray(JSContext *cx, JSObject *arrayObj, jsuint arrayLen);
+
+    NS_DECL_ISUPPORTS
+    NS_DECL_NSICANVASARRAY
+    NS_DECL_NSICANVASUNSIGNEDINTARRAY
+
+    NS_IMETHOD Initialize(nsISupports* aOwner,
+                          JSContext* aCx,
+                          JSObject* aObj,
+                          PRUint32 aArgc,
+                          jsval* aArgv);
+protected:
+    SimpleBuffer mBuffer;
+    PRUint32 mLength;
+    PRUint32 mSize;
+    PRUint32 mElementSize;
+    PRUint32 mCount;
 };
 
 }

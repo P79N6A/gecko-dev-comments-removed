@@ -1,6 +1,4 @@
-/* -*- Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil; tab-width: 8 -*- */
-/* vim: set sw=4 ts=8 et tw=80 ft=cpp : */
-
+/* -*- Mode: C++; c-basic-offset: 2; indent-tabs-mode: nil; tab-width: 8 -*- */
 /* ***** BEGIN LICENSE BLOCK *****
  * Version: MPL 1.1/GPL 2.0/LGPL 2.1
  *
@@ -14,7 +12,7 @@
  * for the specific language governing rights and limitations under the
  * License.
  *
- * The Original Code is Mozilla Content App.
+ * The Original Code is Mozilla Fenntrolysis.
  *
  * The Initial Developer of the Original Code is
  *   The Mozilla Foundation.
@@ -37,34 +35,15 @@
  *
  * ***** END LICENSE BLOCK ***** */
 
-include protocol "PContentProcess.ipdl";
-include protocol "PDocumentRenderer.ipdl";
-
-using PRUint32;
-using PRInt32;
+include protocol "PIFrameEmbedding.ipdl";
 
 namespace mozilla {
-namespace dom {
+namespace ipc {
 
-async protocol PIFrameEmbedding
+protocol PDocumentRenderer
 {
-    manager PContentProcess;
-    manages PDocumentRenderer;
-
-child:
-    loadURL(nsCString uri);
-
-    move(PRUint32 x,
-         PRUint32 y,
-         PRUint32 width,
-         PRUint32 height);
-
-    PDocumentRenderer(PRInt32 x, PRInt32 y, PRInt32 w, PRInt32 h, nsString bgcolor, PRUint32 flags, bool flush);
-
-parent:
-
-    ~PDocumentRenderer(PRUint32 w, PRUint32 h, nsCString data);
+  manager PIFrameEmbedding;
 };
 
-}
-}
+} // namespace ipc
+} // namespace mozilla

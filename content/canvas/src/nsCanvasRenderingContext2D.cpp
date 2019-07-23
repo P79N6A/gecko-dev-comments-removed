@@ -37,6 +37,13 @@
 
 
 
+#ifdef MOZ_IPC
+#include "mozilla/ipc/PDocumentRendererParent.h"
+#include "mozilla/dom/PIFrameEmbeddingParent.h"
+#include "mozilla/ipc/DocumentRendererParent.h"
+#endif
+#include "nsIDOMXULElement.h"
+
 #ifdef _MSC_VER
 #define _USE_MATH_DEFINES
 #endif
@@ -102,6 +109,8 @@
 #include "gfxBlur.h"
 
 #include "nsFrameManager.h"
+
+#include "nsFrameLoader.h"
 
 #include "nsBidiPresUtils.h"
 
@@ -236,7 +245,7 @@ public:
     gfxPattern* GetPattern() {
         return mPattern;
     }
-
+    
     nsIPrincipal* Principal() { return mPrincipal; }
     PRBool GetForceWriteOnly() { return mForceWriteOnly; }
 
@@ -311,8 +320,6 @@ public:
     virtual ~nsCanvasRenderingContext2D();
 
     nsresult Redraw();
-    
-    nsresult Redraw(const gfxRect& r);
 
     
     NS_IMETHOD SetCanvasElement(nsICanvasElement* aParentCanvas);
@@ -324,6 +331,8 @@ public:
                               nsIInputStream **aStream);
     NS_IMETHOD GetThebesSurface(gfxASurface **surface);
     NS_IMETHOD SetIsOpaque(PRBool isOpaque);
+    
+    NS_IMETHOD Redraw(const gfxRect &r);
 
     
     NS_DECL_ISUPPORTS
@@ -353,7 +362,7 @@ protected:
 
 
     void ApplyStyle(Style aWhichStyle, PRBool aUseGlobalAlpha = PR_TRUE);
-
+    
     
     PRInt32 mWidth, mHeight;
     PRPackedBool mValid;
@@ -537,7 +546,7 @@ protected:
                                float maxWidth,
                                TextDrawOperation op,
                                float* aWidth);
-
+ 
     
     
 
@@ -550,7 +559,7 @@ protected:
     class ContextState {
     public:
         ContextState() : shadowOffset(0.0, 0.0),
-                         globalAlpha(1.0),
+                         globalAlpha(1.0),             
                          shadowBlur(0.0),
                          textAlign(TEXT_ALIGN_START),
                          textBaseline(TEXT_BASELINE_ALPHABETIC),
@@ -848,7 +857,7 @@ nsCanvasRenderingContext2D::Redraw()
     return mCanvasElement->InvalidateFrame();
 }
 
-nsresult
+NS_IMETHODIMP
 nsCanvasRenderingContext2D::Redraw(const gfxRect& r)
 {
     if (!mCanvasElement)
@@ -939,10 +948,6 @@ nsCanvasRenderingContext2D::InitializeWithSurface(nsIDocShell *docShell, gfxASur
 
     mThebes->NewPath();
 
-    
-    
-    Redraw();
-
     return NS_OK;
 }
 
@@ -963,7 +968,7 @@ nsCanvasRenderingContext2D::SetIsOpaque(PRBool isOpaque)
 
     return NS_OK;
 }
-
+ 
 NS_IMETHODIMP
 nsCanvasRenderingContext2D::Render(gfxContext *ctx, gfxPattern::GraphicsFilter aFilter)
 {
@@ -1882,8 +1887,6 @@ CreateFontStyleRule(const nsAString& aFont,
     if (NS_FAILED(rv))
         return rv;
 
-    rule->RuleMatched();
-
     rule.forget(aResult);
     return NS_OK;
 }
@@ -1947,19 +1950,15 @@ nsCanvasRenderingContext2D::SetFont(const nsAString& font)
             return rv;
         nsCOMArray<nsIStyleRule> parentRules;
         parentRules.AppendObject(parentRule);
-        parentContext =
-            styleSet->ResolveStyleForRules(nsnull, nsnull,
-                                           nsCSSPseudoElements::ePseudo_NotPseudoElement,
-                                           nsnull, parentRules);
+        parentContext = styleSet->ResolveStyleForRules(nsnull, nsnull,
+                                                       nsnull, parentRules);
     }
 
     if (!parentContext)
         return NS_ERROR_FAILURE;
 
     nsRefPtr<nsStyleContext> sc =
-        styleSet->ResolveStyleForRules(parentContext, nsnull,
-                                       nsCSSPseudoElements::ePseudo_NotPseudoElement,
-                                       nsnull, rules);
+        styleSet->ResolveStyleForRules(parentContext, nsnull, nsnull, rules);
     if (!sc)
         return NS_ERROR_FAILURE;
     const nsStyleFont* fontStyle = sc->GetStyleFont();
@@ -2066,7 +2065,7 @@ nsCanvasRenderingContext2D::SetTextBaseline(const nsAString& tb)
     
     else
         return NS_ERROR_INVALID_ARG;
-
+    
     return NS_OK;
 }
 
@@ -2221,7 +2220,7 @@ struct NS_STACK_CLASS nsCanvasBidiProcessor : public nsBidiPresUtils::BidiProces
 
     
     gfxFontGroup* mFontgrp;
-
+    
     
     PRUint32 mAppUnitsPerDevPixel;
 
@@ -2542,7 +2541,7 @@ nsCanvasRenderingContext2D::MozDrawText(const nsAString& textToDraw)
 
     
     ApplyStyle(STYLE_FILL);
-
+    
     textRun->Draw(mThebes,
                   pt,
                    0,
@@ -3029,7 +3028,7 @@ nsCanvasRenderingContext2D::DrawImage(nsIDOMElement *imgElt, float a1,
         rv = NS_ERROR_DOM_INDEX_SIZE_ERR;
         goto FINISH;
     }
-
+    
     matrix.Translate(gfxPoint(sx, sy));
     matrix.Scale(sw/dw, sh/dh);
 #ifdef WINCE
@@ -3236,7 +3235,7 @@ FlushLayoutForTree(nsIDOMWindow* aWindow)
 
 NS_IMETHODIMP
 nsCanvasRenderingContext2D::DrawWindow(nsIDOMWindow* aWindow, float aX, float aY,
-                                       float aW, float aH,
+                                       float aW, float aH, 
                                        const nsAString& aBGColor,
                                        PRUint32 flags)
 {
@@ -3313,6 +3312,68 @@ nsCanvasRenderingContext2D::DrawWindow(nsIDOMWindow* aWindow, float aX, float aY
     Redraw(damageRect);
 
     return rv;
+}
+
+NS_IMETHODIMP
+nsCanvasRenderingContext2D::AsyncDrawXULElement(nsIDOMXULElement* aElem, float aX, float aY,
+                                                float aW, float aH,
+                                                const nsAString& aBGColor,
+                                                PRUint32 flags)
+{
+    NS_ENSURE_ARG(aElem != nsnull);
+
+    
+    
+    
+    
+    
+    
+    if (!nsContentUtils::IsCallerTrustedForRead()) {
+        
+        
+        return NS_ERROR_DOM_SECURITY_ERR;
+    }
+
+    nsCOMPtr<nsIFrameLoaderOwner> loaderOwner = do_QueryInterface(aElem);
+    if (!loaderOwner)
+        return NS_ERROR_FAILURE;
+
+    nsCOMPtr<nsFrameLoader> frameloader = loaderOwner->GetFrameLoader();
+    if (!frameloader)
+        return NS_ERROR_FAILURE;
+
+    mozilla::dom::PIFrameEmbeddingParent *child = frameloader->GetChildProcess();
+    if (!child)
+        return NS_ERROR_FAILURE;
+
+    
+    
+    if (!gfxASurface::CheckSurfaceSize(gfxIntSize(aW, aH), 0xffff))
+        return NS_ERROR_FAILURE;
+
+    PRBool flush =
+        (flags & nsIDOMCanvasRenderingContext2D::DRAWWINDOW_DO_NOT_FLUSH) == 0;
+
+    PRUint32 renderDocFlags = nsIPresShell::RENDER_IGNORE_VIEWPORT_SCROLLING;
+    if (flags & nsIDOMCanvasRenderingContext2D::DRAWWINDOW_DRAW_CARET) {
+        renderDocFlags |= nsIPresShell::RENDER_CARET;
+    }
+    if (flags & nsIDOMCanvasRenderingContext2D::DRAWWINDOW_DRAW_VIEW) {
+        renderDocFlags &= ~nsIPresShell::RENDER_IGNORE_VIEWPORT_SCROLLING;
+    }
+
+    PRInt32 x = nsPresContext::CSSPixelsToAppUnits(aX),
+            y = nsPresContext::CSSPixelsToAppUnits(aY),
+            w = nsPresContext::CSSPixelsToAppUnits(aW),
+            h = nsPresContext::CSSPixelsToAppUnits(aH);
+
+    mozilla::ipc::PDocumentRendererParent *pdocrender =
+        child->SendPDocumentRendererConstructor(x, y, w, h, nsString(aBGColor), renderDocFlags, flush);
+    mozilla::ipc::DocumentRendererParent *docrender = static_cast<mozilla::ipc::DocumentRendererParent *>(pdocrender);
+
+    docrender->SetCanvasContext(this, mThebes);
+
+    return NS_OK;
 }
 
 
