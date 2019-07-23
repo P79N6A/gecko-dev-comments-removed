@@ -35,6 +35,7 @@
 
 
 
+
 var bug = 345736;
 var summary = 'for each in array comprehensions';
 var actual = '';
@@ -64,6 +65,14 @@ function test()
   expect = 'aa,bb,cc';
   actual = arr.toString();
   reportCompare(expect, actual, summary);
+
+  arr=[x+x for ([,x] in ["a","b","c"])];
+  expect = 'aa,bb,cc';
+  actual = arr.toString();
+
+  arr=[x+y for ([x,y] in ["a","b","c"])]; 
+  expect = '0a,1b,2c';
+  actual = arr.toString();
 
   exitFunc ('test');
 }
