@@ -811,7 +811,10 @@ nsPlacesAutoComplete.prototype = {
     
     
     let searchString = this._originalSearchString;
-    let queryString = searchString.substring(searchString.indexOf(" ") + 1);
+    let queryString = "";
+    let queryIndex = searchString.indexOf(" ");
+    if (queryIndex != -1)
+      queryString = searchString.substring(queryIndex + 1);
 
     
     queryString = encodeURIComponent(queryString).replace("%20", "+", "g");
