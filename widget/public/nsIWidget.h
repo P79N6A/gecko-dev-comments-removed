@@ -96,8 +96,8 @@ typedef nsEventStatus (*PR_CALLBACK EVENT_CALLBACK)(nsGUIEvent *event);
 
 
 #define NS_IWIDGET_IID \
-{ 0x00e25b3d, 0xc872, 0x4985, \
-  { 0xa1, 0x5e, 0x8e, 0x65, 0x0b, 0x7b, 0x8f, 0xf6 } }
+{ 0x594d22a3, 0xef2d, 0x4189, \
+  { 0x9b, 0xc1, 0x3c, 0x3d, 0xa5, 0x86, 0xf4, 0x7a } }
 
 
 
@@ -1117,6 +1117,84 @@ class nsIWidget : public nsISupports {
 
 
     virtual nsresult ActivateNativeMenuItemAt(const nsAString& indexString) = 0;
+
+    
+
+
+    NS_IMETHOD ResetInputState()=0;
+
+    
+
+
+
+
+
+
+
+
+
+    
+
+
+
+
+    NS_IMETHOD SetIMEOpenState(PRBool aState) = 0;
+
+    
+
+
+
+
+    NS_IMETHOD GetIMEOpenState(PRBool* aState) = 0;
+
+    
+
+
+
+    enum IMEStatus {
+      
+
+
+
+      IME_STATUS_DISABLED = 0,
+      
+
+
+      IME_STATUS_ENABLED = 1,
+      
+
+
+
+
+
+      IME_STATUS_PASSWORD = 2
+    };
+
+    
+
+
+    NS_IMETHOD SetIMEEnabled(PRUint32 aState) = 0;
+
+    
+
+
+    NS_IMETHOD GetIMEEnabled(PRUint32* aState) = 0;
+
+    
+
+
+    NS_IMETHOD CancelIMEComposition() = 0;
+
+    
+
+
+
+
+
+
+
+
+    NS_IMETHOD GetToggledKeyState(PRUint32 aKeyCode, PRBool* aLEDState) = 0;
 
 protected:
     

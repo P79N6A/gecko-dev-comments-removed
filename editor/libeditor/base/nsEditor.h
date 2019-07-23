@@ -45,7 +45,6 @@
 #include "nsIEditor.h"
 #include "nsIEditorIMESupport.h"
 #include "nsIPhonetic.h"
-#include "nsIKBStateControl.h"
 
 #include "nsIAtom.h"
 #include "nsIDOMDocument.h"
@@ -340,7 +339,7 @@ protected:
                            PRBool       bNoBlockCrossing = PR_FALSE);
 
   
-  nsresult GetKBStateControl(nsIKBStateControl **aKBSC);
+  nsresult GetWidget(nsIWidget **aWidget);
 
 
   

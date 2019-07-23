@@ -1112,7 +1112,7 @@ public:
   
 
 
-  static PRUint32 GetKBStateControlStatusFromIMEStatus(PRUint32 aState);
+  static PRUint32 GetWidgetStatusFromIMEStatus(PRUint32 aState);
 
   
 
