@@ -710,16 +710,22 @@ nsHTMLReflowState::ComputeRelativeOffsets(const nsHTMLReflowState* cbrs,
   }
 }
 
+static nsIFrame*
+GetNearestContainingBlock(nsIFrame *aFrame)
+{
+  nsIFrame *cb = aFrame;
+  do {
+    cb = cb->GetParent();
+  } while (!cb->IsContainingBlock());
+  return cb;
+}
+
 nsIFrame*
 nsHTMLReflowState::GetHypotheticalBoxContainer(nsIFrame* aFrame,
                                                nscoord& aCBLeftEdge,
                                                nscoord& aCBWidth)
 {
-  do {
-    aFrame = aFrame->GetParent();
-    NS_ASSERTION(aFrame, "Must find containing block somewhere");
-  } while (!aFrame->IsContainingBlock());
-
+  aFrame = GetNearestContainingBlock(aFrame);
   NS_ASSERTION(aFrame != frame, "How did that happen?");
 
   
@@ -751,16 +757,6 @@ nsHTMLReflowState::GetHypotheticalBoxContainer(nsIFrame* aFrame,
   }
 
   return aFrame;
-}
-
-static nsIFrame*
-GetNearestContainingBlock(nsIFrame *aFrame)
-{
-  nsIFrame *cb = aFrame;
-  do {
-    cb = cb->GetParent();
-  } while (!cb->IsContainingBlock());
-  return cb;
 }
 
 
@@ -972,8 +968,13 @@ nsHTMLReflowState::CalculateHypotheticalBox(nsPresContext*    aPresContext,
   nsPoint placeholderOffset = aPlaceholderFrame->GetOffsetTo(aContainingBlock);
 
   
-  nsBlockFrame* blockFrame = nsLayoutUtils::GetAsBlock(aContainingBlock);
+  
+  
+  
+  nsBlockFrame* blockFrame =
+    nsLayoutUtils::GetAsBlock(aContainingBlock->GetContentInsertionFrame());
   if (blockFrame) {
+    nscoord blockYOffset = blockFrame->GetOffsetTo(aContainingBlock).y;
     PRBool isValid;
     nsBlockInFlowLineIterator iter(blockFrame, aPlaceholderFrame, &isValid);
     NS_ASSERTION(isValid, "Can't find placeholder!");
@@ -985,7 +986,7 @@ nsHTMLReflowState::CalculateHypotheticalBox(nsPresContext*    aPresContext,
     if (NS_STYLE_DISPLAY_INLINE == mStyleDisplay->mOriginalDisplay) {
       
       
-      aHypotheticalBox.mTop = lineBox->mBounds.y;
+      aHypotheticalBox.mTop = lineBox->mBounds.y + blockYOffset;
     } else {
       
       
@@ -1010,11 +1011,11 @@ nsHTMLReflowState::CalculateHypotheticalBox(nsPresContext*    aPresContext,
           
           
           
-          aHypotheticalBox.mTop = lineBox->mBounds.y;
+          aHypotheticalBox.mTop = lineBox->mBounds.y + blockYOffset;
         } else {
           
           
-          aHypotheticalBox.mTop = lineBox->mBounds.YMost();
+          aHypotheticalBox.mTop = lineBox->mBounds.YMost() + blockYOffset;
         }
       } else {
         
