@@ -167,7 +167,7 @@ private:
   
   
   
-  void SetCacheable(PRBool cacheable);
+  void SetIsInCache(PRBool cacheable);
 
 public:
   NS_DECL_IMGILOAD
@@ -213,7 +213,7 @@ private:
   PRPackedBool mProcessing : 1;
   PRPackedBool mHadLastPart : 1;
   PRPackedBool mGotData : 1;
-  PRPackedBool mIsCacheable : 1;
+  PRPackedBool mIsInCache : 1;
 };
 
 #endif

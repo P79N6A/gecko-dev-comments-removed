@@ -128,8 +128,6 @@ static PRBool NewRequestAndEntry(nsIURI *uri, imgRequest **request, imgCacheEntr
   NS_ADDREF(*request);
   NS_ADDREF(*entry);
 
-  imgLoader::SetHasNoProxies(uri, *entry);
-
   return PR_TRUE;
 }
 
@@ -267,8 +265,6 @@ void imgCacheEntry::TouchWithSize(PRInt32 diff)
   
   
   if (!Evicted() && HasNoProxies()) {
-    
-    
     nsCOMPtr<nsIURI> uri;
     mRequest->GetKeyURI(getter_AddRefs(uri));
     imgLoader::CacheEntriesChanged(uri, diff);
@@ -285,8 +281,6 @@ void imgCacheEntry::Touch(PRBool updateTime )
   
   
   if (!Evicted() && HasNoProxies()) {
-    
-    
     nsCOMPtr<nsIURI> uri;
     mRequest->GetKeyURI(getter_AddRefs(uri));
     imgLoader::CacheEntriesChanged(uri);
@@ -711,6 +705,27 @@ PRBool imgLoader::PutIntoCache(nsIURI *key, imgCacheEntry *entry)
   if (!cache.Put(spec, entry))
     return PR_FALSE;
 
+  
+  if (entry->Evicted())
+    entry->SetEvicted(PR_FALSE);
+
+  
+  
+  if (entry->HasNoProxies()) {
+    nsresult addrv = NS_OK;
+
+    if (gCacheTracker)
+      addrv = gCacheTracker->AddObject(entry);
+
+    if (NS_SUCCEEDED(addrv)) {
+      imgCacheQueue &queue = GetCacheQueue(key);
+      queue.Push(entry);
+    }
+  }
+
+  nsRefPtr<imgRequest> request(getter_AddRefs(entry->GetRequest()));
+  request->SetIsInCache(PR_TRUE);
+
   return PR_TRUE;
 }
 
@@ -1039,6 +1054,9 @@ PRBool imgLoader::RemoveFromCache(nsIURI *aKey)
 
     entry->SetEvicted(PR_TRUE);
 
+    nsRefPtr<imgRequest> request(getter_AddRefs(entry->GetRequest()));
+    request->SetIsInCache(PR_FALSE);
+
     return PR_TRUE;
   }
   else
@@ -1070,6 +1088,7 @@ PRBool imgLoader::RemoveFromCache(imgCacheEntry *entry)
       }
 
       entry->SetEvicted(PR_TRUE);
+      request->SetIsInCache(PR_FALSE);
 
       return PR_TRUE;
     }
@@ -1269,8 +1288,7 @@ NS_IMETHODIMP imgLoader::LoadImage(nsIURI *aURI,
     }
 
     
-    if (!PutIntoCache(aURI, entry))
-      request->SetCacheable(PR_FALSE);
+    PutIntoCache(aURI, entry);
 
   
   } else {
@@ -1406,8 +1424,7 @@ NS_IMETHODIMP imgLoader::LoadImageWithChannel(nsIChannel *channel, imgIDecoderOb
     NS_RELEASE(pl);
 
     
-    if (!PutIntoCache(uri, entry))
-      request->SetCacheable(PR_FALSE);
+    PutIntoCache(uri, entry);
   }
 
   
@@ -1686,8 +1703,7 @@ NS_IMETHODIMP imgCacheValidator::OnStartRequest(nsIRequest *aRequest, nsISupport
   
   
   
-  if (!sImgLoader.PutIntoCache(uri, entry))
-    request->SetCacheable(PR_FALSE);
+  sImgLoader.PutIntoCache(uri, entry);
 
   PRUint32 count = mProxies.Count();
   for (PRInt32 i = count-1; i>=0; i--) {
