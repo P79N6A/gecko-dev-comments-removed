@@ -209,8 +209,8 @@ builtin_String_fromCharCode(JSContext* cx, jsint i)
 {
     jschar c = (jschar)i;
     
-    
-    
+    if (c < UNIT_STRING_LIMIT)
+        return js_GetUnitStringForChar(cx, c);
     return js_NewStringCopyN(cx, &c, 1);
 }
 
