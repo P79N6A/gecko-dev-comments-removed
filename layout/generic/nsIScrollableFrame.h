@@ -119,6 +119,13 @@ public:
 
 
   virtual void ScrollToRestoredPosition() = 0;
+
+  
+
+
+
+  NS_IMETHOD PostScrolledAreaEventForCurrentArea() = 0;
+
 };
 
 #endif
