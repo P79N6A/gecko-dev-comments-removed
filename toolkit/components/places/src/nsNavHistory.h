@@ -219,6 +219,14 @@ public:
 
   nsresult UpdateFrecency(PRInt64 aPageID, PRBool isBookmark);
 
+  
+
+
+  nsresult FixInvalidFrecencies();
+
+  
+
+
   nsresult FixInvalidFrecenciesForExcludedPlaces();
 
   
@@ -453,28 +461,12 @@ protected:
   
   NS_DECL_NSICHARSETRESOLVER
 
-  
-
-
-
-
-
-
-
-
-  nsresult RecalculateFrecencies(PRInt32 aCount, PRBool aRecalcOld);
-  nsresult RecalculateFrecenciesInternal(mozIStorageStatement *aStatement, PRInt32 aCount);
-
   nsresult CalculateFrecency(PRInt64 aPageID, PRInt32 aTyped, PRInt32 aVisitCount, nsCAutoString &aURL, PRInt32 *aFrecency);
   nsresult CalculateFrecencyInternal(PRInt64 aPageID, PRInt32 aTyped, PRInt32 aVisitCount, PRBool aIsBookmarked, PRInt32 *aFrecency);
   nsCOMPtr<mozIStorageStatement> mDBVisitsForFrecency;
   nsCOMPtr<mozIStorageStatement> mDBUpdateFrecencyAndHidden;
   nsCOMPtr<mozIStorageStatement> mDBGetPlaceVisitStats;
   nsCOMPtr<mozIStorageStatement> mDBFullVisitCount;
-  mozIStorageStatement *GetDBInvalidFrecencies();
-  nsCOMPtr<mozIStorageStatement> mDBInvalidFrecencies;
-  mozIStorageStatement *GetDBOldFrecencies();
-  nsCOMPtr<mozIStorageStatement> mDBOldFrecencies;
 
   
 
@@ -789,9 +781,6 @@ protected:
 
   
   PRInt32 mNumVisitsForFrecency;
-  PRInt32 mNumCalculateFrecencyOnIdle;
-  PRInt32 mNumCalculateFrecencyOnMigrate;
-  PRInt32 mFrecencyUpdateIdleTime;
   PRInt32 mFirstBucketCutoffInDays;
   PRInt32 mSecondBucketCutoffInDays;
   PRInt32 mThirdBucketCutoffInDays;

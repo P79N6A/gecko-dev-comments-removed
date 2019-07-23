@@ -135,9 +135,6 @@
 #define PREF_AUTOCOMPLETE_SEARCH_TIMEOUT        "urlbar.search.timeout"
 #define PREF_DB_CACHE_PERCENTAGE                "history_cache_percentage"
 #define PREF_FRECENCY_NUM_VISITS                "places.frecency.numVisits"
-#define PREF_FRECENCY_CALC_ON_IDLE              "places.frecency.numCalcOnIdle"
-#define PREF_FRECENCY_CALC_ON_MIGRATE           "places.frecency.numCalcOnMigrate"
-#define PREF_FRECENCY_UPDATE_IDLE_TIME          "places.frecency.updateIdleTime"
 #define PREF_FRECENCY_FIRST_BUCKET_CUTOFF       "places.frecency.firstBucketCutoff"
 #define PREF_FRECENCY_SECOND_BUCKET_CUTOFF      "places.frecency.secondBucketCutoff"
 #define PREF_FRECENCY_THIRD_BUCKET_CUTOFF       "places.frecency.thirdBucketCutoff"
@@ -1590,7 +1587,6 @@ nsNavHistory::MigrateV7Up(mozIStorageConnection* aDBConn)
   if (NS_FAILED(rv)) {
     
     
-    
     rv = aDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
         "ALTER TABLE moz_places ADD frecency INTEGER DEFAULT -1 NOT NULL"));
     NS_ENSURE_SUCCESS(rv, rv);
@@ -1601,10 +1597,6 @@ nsNavHistory::MigrateV7Up(mozIStorageConnection* aDBConn)
         "CREATE INDEX IF NOT EXISTS moz_places_frecencyindex "
           "ON moz_places (frecency)"));
     NS_ENSURE_SUCCESS(rv, rv);
-
-    
-    
-    
 
     
     
@@ -2083,12 +2075,6 @@ nsNavHistory::LoadPrefs(PRBool aInitializing)
   if (prefs) {
     prefs->GetIntPref(PREF_FRECENCY_NUM_VISITS, 
       &mNumVisitsForFrecency);
-    prefs->GetIntPref(PREF_FRECENCY_CALC_ON_IDLE, 
-      &mNumCalculateFrecencyOnIdle);
-    prefs->GetIntPref(PREF_FRECENCY_CALC_ON_MIGRATE, 
-      &mNumCalculateFrecencyOnMigrate);
-    prefs->GetIntPref(PREF_FRECENCY_UPDATE_IDLE_TIME, 
-      &mFrecencyUpdateIdleTime);
     prefs->GetIntPref(PREF_FRECENCY_FIRST_BUCKET_CUTOFF, 
       &mFirstBucketCutoffInDays);
     prefs->GetIntPref(PREF_FRECENCY_SECOND_BUCKET_CUTOFF,
@@ -4538,10 +4524,6 @@ nsNavHistory::RemovePagesInternal(const nsCString& aPlaceIdsQueryString)
   rv = FixInvalidFrecenciesForExcludedPlaces();
   NS_ENSURE_SUCCESS(rv, rv);
 
-  
-  
-  
-
   return transaction.Commit();
 }
 
@@ -5596,8 +5578,7 @@ nsNavHistory::Observe(nsISupports *aSubject, const char *aTopic,
   }
   else if (strcmp(aTopic, gIdleDaily) == 0) {
     
-    if (mFrecencyUpdateIdleTime)
-      (void)RecalculateFrecencies(mNumCalculateFrecencyOnIdle, PR_TRUE);
+    (void)FixInvalidFrecencies();
 
     if (mDBConn) {
       
@@ -5657,9 +5638,7 @@ nsNavHistory::Observe(nsISupports *aSubject, const char *aTopic,
 
     
     
-    
-    (void)RecalculateFrecencies(mNumCalculateFrecencyOnMigrate,
-                                PR_FALSE );
+    (void)FixInvalidFrecencies();
   }
 
   return NS_OK;
@@ -7464,9 +7443,6 @@ nsNavHistory::CalculateFrecencyInternal(PRInt64 aPlaceId,
     bonus += mUnvisitedTypedBonus;
 
   
-  
-  
-  
   pointsForSampledVisits = mFirstBucketWeight * (bonus / (float)100.0); 
    
   
@@ -7508,38 +7484,39 @@ nsNavHistory::CalculateFrecency(PRInt64 aPlaceId,
 }
 
 nsresult
-nsNavHistory::RecalculateFrecencies(PRInt32 aCount, PRBool aRecalcOld)
+nsNavHistory::FixInvalidFrecencies()
 {
   mozStorageTransaction transaction(mDBConn, PR_TRUE);
 
-  nsresult rv = RecalculateFrecenciesInternal(GetDBInvalidFrecencies(), aCount);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  if (aRecalcOld) {
-    rv = RecalculateFrecenciesInternal(GetDBOldFrecencies(), aCount);
-    NS_ENSURE_SUCCESS(rv, rv);
-  }
-  return NS_OK;
-}
-
-nsresult 
-nsNavHistory::RecalculateFrecenciesInternal(mozIStorageStatement *aStatement, PRInt32 aCount)
-{
-  mozStorageStatementScoper scoper(aStatement);
-
-  nsresult rv = aStatement->BindInt32Parameter(0, aCount);
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  nsCOMPtr<mozIStorageStatement> invalidFrecencies;
+  nsresult rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING(
+      "SELECT id, typed, hidden, frecency, url "
+      "FROM moz_places_view "
+      "WHERE frecency < 0"),
+    getter_AddRefs(invalidFrecencies));
   NS_ENSURE_SUCCESS(rv, rv);
 
   PRBool hasMore = PR_FALSE;
-  while (NS_SUCCEEDED(aStatement->ExecuteStep(&hasMore)) && hasMore) {
-    PRInt64 placeId = aStatement->AsInt64(0);
-    
-    PRInt32 hidden = aStatement->AsInt32(2);
-    PRInt32 typed = aStatement->AsInt32(3);
-    PRInt32 oldFrecency = aStatement->AsInt32(4);
-
+  while (NS_SUCCEEDED(invalidFrecencies->ExecuteStep(&hasMore)) && hasMore) {
+    PRInt64 placeId = invalidFrecencies->AsInt64(0);
+    PRInt32 typed = invalidFrecencies->AsInt32(1);
+    PRInt32 hidden = invalidFrecencies->AsInt32(2);
+    PRInt32 oldFrecency = invalidFrecencies->AsInt32(3);
     nsCAutoString url;
-    aStatement->GetUTF8String(5, url);
+    invalidFrecencies->GetUTF8String(4, url);
 
     PRInt32 newFrecency = 0;
     PRInt32 visitCountForFrecency = 0;
@@ -7736,85 +7713,6 @@ nsNavHistory::GetDBBookmarkToUrlResult()
   return mDBBookmarkToUrlResult;
 }
 
-mozIStorageStatement *
-nsNavHistory::GetDBInvalidFrecencies()
-{
-  if (mDBInvalidFrecencies)
-    return mDBInvalidFrecencies;
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  nsresult rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING(
-      "/* do not warn (bug 482351) */ "
-      "SELECT * FROM ( "
-        "SELECT id, visit_count, hidden, typed, frecency, url "
-        "FROM ( "
-          "SELECT * FROM moz_places_temp "
-          "WHERE frecency < 0 "
-          "UNION ALL "
-          "SELECT * FROM ( "
-            "SELECT * FROM moz_places "
-            "WHERE +id NOT IN (SELECT id FROM moz_places_temp) "
-            "AND frecency < 0 "
-            "ORDER BY frecency ASC LIMIT ROUND(?1 / 2) "
-          ") "
-        ") ORDER BY frecency ASC LIMIT ROUND(?1 / 2)) "
-      "UNION "
-      "SELECT * FROM ( "
-        "SELECT id, visit_count, hidden, typed, frecency, url "
-        "FROM moz_places "
-        "WHERE frecency < 0 "
-        "AND ROWID >= ABS(RANDOM() % (SELECT MAX(ROWID) FROM moz_places)) "
-        "LIMIT ROUND(?1 / 2))"),
-    getter_AddRefs(mDBInvalidFrecencies));
-  NS_ENSURE_SUCCESS(rv, nsnull);
-
-  return mDBInvalidFrecencies;
-}
-
-mozIStorageStatement *
-nsNavHistory::GetDBOldFrecencies()
-{
-  if (mDBOldFrecencies)
-    return mDBOldFrecencies;
-
-  
-  
-  
-  
-  
-  
-  nsresult rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING(
-    "SELECT id, visit_count, hidden, typed, frecency, url "
-     "FROM moz_places "
-     "WHERE ROWID >= ABS(RANDOM() % (SELECT MAX(ROWID) FROM moz_places)) "
-     "LIMIT ?1"),
-    getter_AddRefs(mDBOldFrecencies));
-  NS_ENSURE_SUCCESS(rv, nsnull);
-
-  return mDBOldFrecencies;
-}
-
 nsresult
 nsNavHistory::FinalizeStatements() {
   mozIStorageStatement* stmts[] = {
@@ -7837,8 +7735,6 @@ nsNavHistory::FinalizeStatements() {
     mDBUpdateFrecencyAndHidden,
     mDBGetPlaceVisitStats,
     mDBFullVisitCount,
-    mDBInvalidFrecencies,
-    mDBOldFrecencies,
     mDBCurrentQuery,
     mDBAutoCompleteQuery,
     mDBAutoCompleteTypedQuery,

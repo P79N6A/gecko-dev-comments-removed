@@ -748,18 +748,6 @@ pref("accessibility.blockautorefresh", false);
 pref("places.frecency.numVisits", 10);
 
 
-pref("places.frecency.numCalcOnIdle", 50);
-
-
-
-pref("places.frecency.numCalcOnMigrate", 50);
-
-
-
-
-pref("places.frecency.updateIdleTime", 60000);
-
-
 pref("places.frecency.firstBucketCutoff", 4);
 pref("places.frecency.secondBucketCutoff", 14);
 pref("places.frecency.thirdBucketCutoff", 31);
