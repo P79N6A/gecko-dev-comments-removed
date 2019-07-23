@@ -41,6 +41,7 @@
 #define nsCSSRendering_h___
 
 #include "nsIRenderingContext.h"
+#include "nsStyleConsts.h"
 #include "gfxContext.h"
 struct nsPoint;
 class nsStyleContext;
@@ -224,19 +225,47 @@ public:
 
 
 
-
-
-
   static void PaintDecorationLine(gfxContext* aGfxContext,
                                   const nscolor aColor,
                                   const gfxPoint& aPt,
                                   const gfxSize& aLineSize,
                                   const gfxFloat aAscent,
                                   const gfxFloat aOffset,
-                                  const gfxFloat aPreferredSize,
                                   const PRUint8 aDecoration,
                                   const PRUint8 aStyle,
                                   const PRBool aIsRTL);
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  static nsRect GetTextDecorationRect(nsPresContext* aPresContext,
+                                      const gfxSize& aLineSize,
+                                      const gfxFloat aAscent,
+                                      const gfxFloat aOffset,
+                                      const PRUint8 aDecoration,
+                                      const PRUint8 aStyle);
 
 protected:
 
@@ -271,6 +300,12 @@ protected:
                            PRInt32 aNumPoints,
                            nsRect* aGap);
 
+  static gfxRect GetTextDecorationRectInternal(const gfxPoint& aPt,
+                                               const gfxSize& aLineSize,
+                                               const gfxFloat aAscent,
+                                               const gfxFloat aOffset,
+                                               const PRUint8 aDecoration,
+                                               const PRUint8 aStyle);
 };
 
 
