@@ -198,8 +198,6 @@ private:
   nsINodeInfo *mDocumentNodeInfo; 
 
   nsRefPtr<nsDOMNodeAllocator> mNodeAllocator;
-
-  static PRUint32 gNodeManagerCount;
 };
 
 #endif 
