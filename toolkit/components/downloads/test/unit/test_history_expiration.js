@@ -88,7 +88,9 @@ function run_test()
   let histsvc = Cc["@mozilla.org/browser/nav-history-service;1"].
                 getService(Ci.nsINavHistoryService);
   
-  histsvc.addVisit(theURI, Date.now() * 1000, null,
+  
+  let yesterday = Date.now() - 24 * 60 * 60 * 1000;
+  histsvc.addVisit(theURI, yesterday * 1000, null,
                    histsvc.TRANSITION_DOWNLOAD, false, 0);
 
   
