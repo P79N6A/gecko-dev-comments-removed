@@ -95,6 +95,7 @@ SyncChannel::Send(Message* msg, Message* reply)
             
             NS_ASSERTION(!mRecvd.is_reply(), "can't process replies here");
             
+            
             mWorkerLoop->PostTask(
                 FROM_HERE,
                 NewRunnableMethod(this, &SyncChannel::OnDispatchMessage, mRecvd));
@@ -143,7 +144,7 @@ SyncChannel::OnDispatchMessage(const Message& msg)
 void
 SyncChannel::OnMessageReceived(const Message& msg)
 {
-    MutexAutoLock lock(mMutex);
+    mMutex.Lock();
 
     if (ChannelIdle == mChannelState) {
         
@@ -153,6 +154,7 @@ SyncChannel::OnMessageReceived(const Message& msg)
                 NewRunnableMethod(this, &SyncChannel::OnDispatchMessage, msg));
         }
         else {
+            mMutex.Unlock();
             return AsyncChannel::OnMessageReceived(msg);
         }
     }
@@ -165,6 +167,8 @@ SyncChannel::OnMessageReceived(const Message& msg)
         
         NOTREACHED();
     }
+
+    mMutex.Unlock();
 }
 
 void

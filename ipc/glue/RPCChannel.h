@@ -64,7 +64,9 @@ public:
     };
 
     RPCChannel(RPCListener* aListener) :
-        SyncChannel(aListener)
+        SyncChannel(aListener),
+        mPending(),
+        mRemoteStackDepth(0)
     {
     }
 
@@ -86,9 +88,67 @@ private:
         return mPending.size() > 0 || SyncChannel::WaitingForReply();
     }
 
-    void OnDispatchMessage(const Message& msg);
+    void OnIncall(const Message& msg);
+    void ProcessIncall(const Message& call, size_t stackDepth);
 
+    size_t StackDepth() {
+        mMutex.AssertCurrentThreadOwns();
+        NS_ABORT_IF_FALSE(
+            mPending.empty()
+            || (mPending.top().is_rpc() && !mPending.top().is_reply()),
+            "StackDepth() called from an inconsistent state");
+
+        return mPending.size();
+    }
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
     std::stack<Message> mPending;
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    size_t mRemoteStackDepth;
 };
 
 

@@ -140,6 +140,17 @@ class Message : public Pickle {
     header()->routing = new_id;
   }
 
+#if defined(CHROMIUM_MOZILLA_BUILD)
+  size_t rpc_remote_stack_depth() const {
+      return header()->rpc_remote_stack_depth_guess;
+  }
+
+  void set_rpc_remote_stack_depth(size_t depth) {
+    DCHECK(is_rpc());
+    header()->rpc_remote_stack_depth_guess = depth;
+  }
+#endif
+
   template<class T>
   static bool Dispatch(const Message* msg, T* obj, void (T::*func)()) {
     (obj->*func)();
@@ -249,6 +260,11 @@ class Message : public Pickle {
     uint16 flags;   
 #if defined(OS_POSIX)
     uint32 num_fds; 
+#endif
+#if defined(CHROMIUM_MOZILLA_BUILD)
+    
+    
+    size_t rpc_remote_stack_depth_guess;
 #endif
   };
 #pragma pack(pop)
