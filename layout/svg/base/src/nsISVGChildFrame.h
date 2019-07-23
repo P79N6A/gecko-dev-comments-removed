@@ -76,7 +76,13 @@ public:
 
   NS_IMETHOD_(nsRect) GetCoveredRegion()=0;
   NS_IMETHOD UpdateCoveredRegion()=0;
+
+  
+  
+  
+  
   NS_IMETHOD InitialUpdate()=0;
+
   NS_IMETHOD NotifyCanvasTMChanged(PRBool suppressInvalidation)=0;
   NS_IMETHOD NotifyRedrawSuspended()=0;
   NS_IMETHOD NotifyRedrawUnsuspended()=0;
