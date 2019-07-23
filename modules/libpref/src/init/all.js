@@ -657,6 +657,9 @@ pref("network.http.proxy.pipelining", false);
 pref("network.http.pipelining.maxrequests" , 4);
 
 
+pref("network.http.prompt-temp-redirect", true);
+
+
 
 
 
