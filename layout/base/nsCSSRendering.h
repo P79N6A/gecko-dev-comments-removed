@@ -144,8 +144,6 @@ public:
                               nsIFrame* aForFrame,
                               const nsRect& aDirtyRect,
                               const nsRect& aBorderArea,
-                              const nsStyleBorder& aBorder,
-                              const nsStylePadding& aPadding,
                               PRBool aUsePrintSettings,
                               nsRect* aBGClipRect = nsnull);
 

@@ -2052,9 +2052,6 @@ nsMathMLChar::Display(nsDisplayListBuilder*   aBuilder,
           nsDisplayMathMLCharBackground(aForFrame, mRect, styleContext));
       NS_ENSURE_SUCCESS(rv, rv);
     }
-
-    
-    
     
     
 

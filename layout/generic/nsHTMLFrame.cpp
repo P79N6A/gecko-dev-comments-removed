@@ -440,11 +440,11 @@ public:
     CanvasFrame* frame = static_cast<CanvasFrame*>(mFrame);
     nsPoint offset = aBuilder->ToReferenceFrame(mFrame);
     nsRect bgClipRect = frame->CanvasArea() + offset;
+    
+    
     nsCSSRendering::PaintBackground(mFrame->PresContext(), *aCtx, mFrame,
                                     aDirtyRect,
                                     nsRect(offset, mFrame->GetSize()),
-                                    *mFrame->GetStyleBorder(),
-                                    *mFrame->GetStylePadding(),
                                     mFrame->HonorPrintBackgroundSettings(),
                                     &bgClipRect);
   }
