@@ -103,7 +103,7 @@ private:
   MessageDataArray mMessageData;
 
   
-  friend nsWindow;
+  friend class ::nsWindow;
 };
 
 }
