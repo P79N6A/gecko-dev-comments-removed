@@ -269,6 +269,7 @@ nsHTMLMediaElement::MediaLoadListener::Observe(nsISupports* aSubject,
 
   
   mElement = nsnull;
+  return NS_OK;
 }
 
 NS_IMETHODIMP nsHTMLMediaElement::MediaLoadListener::OnStartRequest(nsIRequest* aRequest, nsISupports* aContext)
