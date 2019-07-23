@@ -158,6 +158,9 @@
 #ifdef MOZ_MEDIA
 #include "nsHTMLMediaElement.h"
 #endif
+#ifdef MOZ_SMIL
+#include "nsSMILAnimationController.h"
+#endif
 
 
 #include "nsWidgetsCID.h"
@@ -4755,6 +4758,13 @@ PresShell::FlushPendingNotifications(mozFlushType aType)
       
       
       mPresContext->FlushUserFontSet();
+
+#ifdef MOZ_SMIL
+      
+      if (mDocument->HasAnimationController()) {
+        mDocument->GetAnimationController()->FlushResampleRequests();
+      }
+#endif 
 
       nsAutoScriptBlocker scriptBlocker;
       mFrameConstructor->ProcessPendingRestyles();
