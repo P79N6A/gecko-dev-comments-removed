@@ -80,6 +80,9 @@
 #define MAX_MISMATCH 5
 
 
+#define MAX_OUTERLINE 3
+
+
 #define MAX_NATIVE_STACK_SLOTS 1024
 
 
@@ -674,6 +677,7 @@ TraceRecorder::TraceRecorder(JSContext* cx, GuardRecord* _anchor, Fragment* _fra
     this->lirbuf = _fragment->lirbuf;
     this->treeInfo = ti;
     this->callDepth = _fragment->calldepth;
+    this->loopEdgeCount = 0;
     JS_ASSERT(!_anchor || _anchor->calldepth == _fragment->calldepth);
     this->atoms = cx->fp->script->atomMap.vector;
 
@@ -746,6 +750,14 @@ unsigned
 TraceRecorder::getCallDepth() const
 {
     return callDepth;
+}
+
+
+
+bool
+TraceRecorder::trackLoopEdges()
+{
+    return loopEdgeCount++ < MAX_OUTERLINE;
 }
 
 
@@ -1097,8 +1109,7 @@ TraceRecorder::import(LIns* base, ptrdiff_t offset, jsval* p, uint8& t,
     const char* funName = NULL;
     if (*prefix == 'a' || *prefix == 'v') {
         mark = JS_ARENA_MARK(&cx->tempPool);
-        if (JS_GET_LOCAL_NAME_COUNT(fp->fun) != 0)
-            localNames = js_GetLocalNameArray(cx, fp->fun, &cx->tempPool);
+        localNames = js_GetLocalNameArray(cx, fp->fun, &cx->tempPool);
         funName = fp->fun->atom ? js_AtomToPrintableString(cx, fp->fun->atom) : "<anonymous>";
     }
     if (!strcmp(prefix, "argv")) {
@@ -1911,6 +1922,9 @@ js_ContinueRecording(JSContext* cx, TraceRecorder* r, jsbytecode* oldpc, uintN& 
             return false;
         }
     }
+    
+    if (r->trackLoopEdges())
+        return true;
     
     AUDIT(returnToDifferentLoopHeader);
     debug_only_v(printf("loop edge %d -> %d, header %d\n",
