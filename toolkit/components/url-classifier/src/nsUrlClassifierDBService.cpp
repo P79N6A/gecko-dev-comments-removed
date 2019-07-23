@@ -3268,12 +3268,7 @@ nsUrlClassifierLookupCallback::Completion(const nsACString& completeHash,
 
     if (!result.mEntry.mHaveComplete &&
         hash.StartsWith(result.mEntry.mPartialHash) &&
-        
-        
-        
-#if 0
         result.mTableName == tableName &&
-#endif
         result.mEntry.mChunkId == chunkId) {
       
       result.mEntry.SetHash(hash);
@@ -3293,6 +3288,20 @@ nsUrlClassifierLookupCallback::Completion(const nsACString& completeHash,
 
         mCacheResults->AppendElement(result);
       }
+    } else if (result.mLookupFragment == hash) {
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      result.mConfirmed = PR_TRUE;
+      result.mTableName = tableName;
+
+      NS_WARNING("Accepting a gethash with an invalid table name or chunk id");
     }
   }
 

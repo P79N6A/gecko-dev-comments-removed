@@ -7,6 +7,7 @@ function DummyCompleter() {
   this.fragments = {};
   this.queries = [];
   this.cachable = true;
+  this.tableName = "test-phish-simple";
 }
 
 DummyCompleter.prototype =
@@ -35,7 +36,7 @@ complete: function(partialHash, cb)
         for (var i = 0; i < fragments[partialHash].length; i++) {
           var chunkId = fragments[partialHash][i][0];
           var hash = fragments[partialHash][i][1];
-          cb.completion(hash, "test-phish-simple", chunkId, self.cachable);
+          cb.completion(hash, self.tableName, chunkId, self.cachable);
         }
       }
     cb.completionFinished(0);
@@ -99,6 +100,7 @@ compareQueries: function(fragments)
 function setupCompleter(table, hits, conflicts)
 {
   var completer = new DummyCompleter();
+  completer.tableName = table;
   for (var i = 0; i < hits.length; i++) {
     var chunkId = hits[i][0];
     var fragments = hits[i][1];
@@ -347,11 +349,46 @@ function testWrongTable()
           { "chunkNum" : 1,
             "urls" : addUrls
           }],
-        32);
+        4);
   var completer = installCompleter('test-malware-simple', 
-                                   [[1, addUrls]]);
+                                   [[1, addUrls]], []);
 
-  doTest([update], assertions);
+  
+  
+  dbservice.setHashCompleter("test-phish-simple", completer);
+
+
+  var assertions = {
+    "tableData" : "test-phish-simple;a:1",
+    
+    
+    "malwareUrlsExist" : addUrls,
+    
+    "completerQueried" : [completer, addUrls]
+  };
+
+  doUpdateTest([update], assertions,
+               function() {
+                 
+                 var timer = new Timer(3000, function() {
+                     
+                     
+                     var newCompleter = installCompleter('test-malware-simple', [[1, addUrls]], []);
+
+                     
+                     
+                     
+                     dbservice.setHashCompleter("test-phish-simple",
+                                                newCompleter);
+
+
+                     var assertions = {
+                       "malwareUrlsExist" : addUrls,
+                       "completerQueried" : [newCompleter, addUrls]
+                     };
+                     checkAssertions(assertions, runNextTest);
+                   });
+               }, updateError);
 }
 
 function testWrongChunk()
@@ -362,12 +399,33 @@ function testWrongChunk()
           { "chunkNum" : 1,
             "urls" : addUrls
           }],
-        32);
+        4);
   var completer = installCompleter('test-phish-simple',
                                    [[2, 
-                                     addUrls]]);
+                                     addUrls]], []);
 
-  doTest([update], assertions);
+  var assertions = {
+    "tableData" : "test-phish-simple;a:1",
+    "urlsExist" : addUrls,
+    
+    "completerQueried" : [completer, addUrls]
+  };
+
+  doUpdateTest([update], assertions,
+               function() {
+                 
+                 var timer = new Timer(3000, function() {
+                     
+                     
+                     var newCompleter = installCompleter('test-phish-simple', [[2, addUrls]], []);
+
+                     var assertions = {
+                       "urlsExist" : addUrls,
+                       "completerQueried" : [newCompleter, addUrls]
+                     };
+                     checkAssertions(assertions, runNextTest);
+                   });
+               }, updateError);
 }
 
 function setupCachedResults(addUrls, part2)
@@ -505,6 +563,8 @@ function run_test()
     testMixedSizesSameDomain,
     testMixedSizesDifferentDomains,
     testInvalidHashSize,
+    testWrongTable,
+    testWrongChunk,
     testCachedResults,
     testCachedResultsWithSub,
     testCachedResultsWithExpire,
