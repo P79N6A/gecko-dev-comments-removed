@@ -63,7 +63,7 @@ public:
 
 
 
-  PRBool Get(KeyType aKey, UserDataType* pData) const;
+  PRBool Get(KeyType aKey, UserDataType* pData NS_OUTPARAM) const;
 
   
 
@@ -93,7 +93,7 @@ public:
 
 
 
-  PRBool Get(KeyType aKey, UserDataType* pData) const;
+  PRBool Get(KeyType aKey, UserDataType* pData NS_OUTPARAM) const;
 
   
   
