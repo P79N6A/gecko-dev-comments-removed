@@ -8347,6 +8347,9 @@ DeletingFrameSubtree(nsFrameManager* aFrameManager,
 nsresult
 nsCSSFrameConstructor::RemoveMappingsForFrameSubtree(nsIFrame* aRemovedFrame)
 {
+  NS_ASSERTION(!(aRemovedFrame->GetStateBits() & NS_FRAME_OUT_OF_FLOW),
+               "RemoveMappingsForFrameSubtree doesn't handle out-of-flows");
+
   if (NS_UNLIKELY(mIsDestroyingFrameTree)) {
     
     
@@ -8355,10 +8358,29 @@ nsCSSFrameConstructor::RemoveMappingsForFrameSubtree(nsIFrame* aRemovedFrame)
     return NS_OK;
   }
 
+  nsFrameManager *frameManager = mPresShell->FrameManager();
+  if (nsGkAtoms::placeholderFrame == aRemovedFrame->GetType()) {
+    nsIFrame *placeholderFrame = aRemovedFrame;
+    do {
+      NS_ASSERTION(placeholderFrame->GetType() == nsGkAtoms::placeholderFrame,
+                   "continuation must be of same type");
+      nsIFrame* outOfFlowFrame =
+        nsPlaceholderFrame::GetRealFrameForPlaceholder(placeholderFrame);
+      
+      frameManager->UnregisterPlaceholderFrame(
+        static_cast<nsPlaceholderFrame*>(placeholderFrame));
+      ::DeletingFrameSubtree(frameManager, outOfFlowFrame);
+      frameManager->RemoveFrame(outOfFlowFrame->GetParent(),
+                                GetChildListNameFor(outOfFlowFrame),
+                                outOfFlowFrame);
+      placeholderFrame = placeholderFrame->GetNextContinuation();
+    } while (placeholderFrame);
+  }
+
   
   CaptureStateFor(aRemovedFrame, mTempFrameTreeState);
 
-  return ::DeletingFrameSubtree(mPresShell->FrameManager(), aRemovedFrame);
+  return ::DeletingFrameSubtree(frameManager, aRemovedFrame);
 }
 
 static void UnregisterPlaceholderChain(nsFrameManager* frameManager,
