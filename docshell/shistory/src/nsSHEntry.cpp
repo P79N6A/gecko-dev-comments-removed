@@ -54,6 +54,8 @@
 #include "nsIWebNavigation.h"
 #include "nsISHistory.h"
 #include "nsISHistoryInternal.h"
+#include "nsDocShellEditorData.h"
+#include "nsIDocShell.h"
 
 
 #define CONTENT_VIEWER_TIMEOUT_SECONDS 30*60
@@ -160,6 +162,8 @@ nsSHEntry::~nsSHEntry()
   if (viewer) {
     viewer->Destroy();
   }
+
+  mEditorData = nsnull;
 
 #ifdef DEBUG
   
@@ -833,3 +837,25 @@ nsSHEntry::DocumentMutated()
   
   
 }
+
+nsDocShellEditorData*
+nsSHEntry::ForgetEditorData()
+{
+  return mEditorData.forget();
+}
+
+void
+nsSHEntry::SetEditorData(nsDocShellEditorData* aData)
+{
+  NS_ASSERTION(!(aData && mEditorData),
+               "We're going to overwrite an owning ref!");
+  if (mEditorData != aData)
+    mEditorData = aData;
+}
+
+PRBool
+nsSHEntry::HasDetachedEditor()
+{
+  return mEditorData != nsnull;
+}
+

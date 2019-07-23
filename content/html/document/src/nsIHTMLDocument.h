@@ -56,10 +56,10 @@ class nsIScriptElement;
 class nsIEditor;
 
 
-
 #define NS_IHTMLDOCUMENT_IID \
-{ 0xbfd644d6, 0x92cc, 0x4560, \
-  { 0xa3, 0x29, 0xf0, 0x2b, 0xa0, 0xc9, 0x1c, 0xa5 } }
+{ 0x19d63a6c, 0xcc94, 0x499c, \
+  { 0x89, 0x2a, 0x95, 0x5a, 0xdd, 0x77, 0x2e, 0x10 } }
+
 
 
 
@@ -164,6 +164,13 @@ public:
 
 
   virtual EditingState GetEditingState() = 0;
+
+  
+
+
+
+
+  virtual nsresult SetEditingState(EditingState aState) = 0;
 
   
 

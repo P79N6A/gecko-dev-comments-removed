@@ -52,53 +52,54 @@
 #endif
 
 
+#include "nsIHTMLDocument.h"
 #include "nsIEditor.h"
 
-
-
-
+class nsIDOMWindow;
 
 class nsDocShellEditorData
 {
 public:
 
-              nsDocShellEditorData(nsIDocShell* inOwningDocShell);
-              ~nsDocShellEditorData();
-              
+  nsDocShellEditorData(nsIDocShell* inOwningDocShell);
+  ~nsDocShellEditorData();
 
-  
-  nsresult    MakeEditable(PRBool inWaitForUriLoad);
-  
-  PRBool      GetEditable();
-  
-              
-  nsresult    CreateEditor();
-  
-              
-              
-  nsresult    GetEditingSession(nsIEditingSession **outEditingSession);
-  
-              
-  nsresult    GetEditor(nsIEditor **outEditor);
-  
-              
-  nsresult    SetEditor(nsIEditor *inEditor);
-
-  
-  void        TearDownEditor();
-
-protected:              
-
-  nsresult    EnsureEditingSession();
+  nsresult MakeEditable(PRBool inWaitForUriLoad);
+  PRBool GetEditable();
+  nsresult CreateEditor();
+  nsresult GetEditingSession(nsIEditingSession **outEditingSession);
+  nsresult GetEditor(nsIEditor **outEditor);
+  nsresult SetEditor(nsIEditor *inEditor);
+  void TearDownEditor();
+  nsresult DetachFromWindow();
+  nsresult ReattachToWindow(nsIDOMWindow *aWindow);
 
 protected:
 
-  nsIDocShell*                mDocShell;        
-  
-  nsCOMPtr<nsIEditingSession> mEditingSession;  
+  nsresult EnsureEditingSession();
 
-  PRBool                      mMakeEditable;    
-  nsCOMPtr<nsIEditor>         mEditor;          
+  
+  nsIDocShell* mDocShell;
+
+  
+  nsCOMPtr<nsIEditingSession> mEditingSession;
+
+  
+  PRBool mMakeEditable;
+  
+  
+  nsCOMPtr<nsIEditor> mEditor;
+
+  
+  
+  PRBool mIsDetached;
+
+  
+  PRBool mDetachedMakeEditable;
+
+  
+  
+  nsIHTMLDocument::EditingState mDetachedEditingState;
 
 };
 

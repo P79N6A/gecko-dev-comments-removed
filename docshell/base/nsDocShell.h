@@ -525,6 +525,9 @@ protected:
     
     PRBool IsOKToLoadURI(nsIURI* aURI);
     
+    void ReattachEditorToWindow(nsIDOMWindow *aWindow, nsISHEntry *aSHEntry);
+    void DetachEditorFromWindow(nsISHEntry *aSHEntry);
+
 protected:
     
     virtual nsresult SetDocLoaderParent(nsDocLoader * aLoader);
@@ -643,7 +646,7 @@ protected:
     PRInt32                    mLoadedTransIndex;
 
     
-    nsDocShellEditorData*      mEditorData;          
+    nsAutoPtr<nsDocShellEditorData> mEditorData;
 
     
     nsCOMPtr<nsIClipboardDragDropHookList>  mTransferableHookData;
@@ -674,6 +677,9 @@ protected:
 
     static nsIURIFixup *sURIFixup;
 
+    
+    
+    PRBool HasDetachedEditor();
 
 public:
     class InterfaceRequestorProxy : public nsIInterfaceRequestor {
