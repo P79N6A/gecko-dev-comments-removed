@@ -181,21 +181,15 @@ nsResizerFrame::HandleEvent(nsPresContext* aPresContext,
 
       
       
-      Direction direction;
+      Direction direction = GetDirection();
       if (window || menuPopupFrame) {
-        direction = GetDirection();
         if (menuPopupFrame) {
           menuPopupFrame->CanAdjustEdges(
             (direction.mHorizontal == -1) ? NS_SIDE_LEFT : NS_SIDE_RIGHT,
             (direction.mVertical == -1) ? NS_SIDE_TOP : NS_SIDE_BOTTOM, mouseMove);
         }
       }
-      else if (contentToResize) {
-        direction.mHorizontal =
-          GetStyleVisibility()->mDirection == NS_STYLE_DIRECTION_RTL ? -1 : 1;
-        direction.mVertical = 1;
-      }
-      else {
+      else if (!contentToResize) {
         break; 
       }
 
@@ -233,9 +227,16 @@ nsResizerFrame::HandleEvent(nsPresContext* aPresContext,
       }
 
       if (contentToResize) {
-        nsIntRect cssRect =
-          rect.ToAppUnits(aPresContext->AppUnitsPerDevPixel())
-              .ToInsidePixels(nsPresContext::AppUnitsPerCSSPixel());
+        
+        
+        
+        
+        nsRect appUnitsRect = rect.ToAppUnits(aPresContext->AppUnitsPerDevPixel());
+        if (appUnitsRect.width < mRect.width && mouseMove.x)
+          appUnitsRect.width = mRect.width;
+        if (appUnitsRect.height < mRect.height && mouseMove.y)
+          appUnitsRect.height = mRect.height;
+        nsIntRect cssRect = appUnitsRect.ToInsidePixels(nsPresContext::AppUnitsPerCSSPixel());
 
         nsAutoString widthstr, heightstr;
         widthstr.AppendInt(cssRect.width);
@@ -353,7 +354,9 @@ nsResizerFrame::GetContentToResize(nsIPresShell* aPresShell, nsIBaseWindow** aWi
   }
 
   if (elementid.EqualsLiteral("_parent")) {
-    return mContent->GetParent();
+    
+    nsIContent* parent = mContent->GetParent();
+    return parent ? parent->FindFirstNonNativeAnonymous() : nsnull;
   }
 
   nsCOMPtr<nsIDOMDocument> doc = do_QueryInterface(aPresShell->GetDocument());
