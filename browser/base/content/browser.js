@@ -997,6 +997,9 @@ function delayedStartup(isLoadingBlank, mustLoadSidebar) {
   else
     focusElement(content);
 
+  if (gURLBar)
+    gURLBar.setAttribute("emptytext", gURLBar.getAttribute("delayedemptytext"));
+
   gNavToolbox.customizeDone = BrowserToolboxCustomizeDone;
   gNavToolbox.customizeChange = BrowserToolboxCustomizeChange;
 
@@ -3042,6 +3045,9 @@ function BrowserToolboxCustomizeDone(aToolboxChanged) {
   
   if (aToolboxChanged) {
     gURLBar = document.getElementById("urlbar");
+    if (gURLBar)
+      gURLBar.emptyText = gURLBar.getAttribute("delayedemptytext");
+
     gProxyFavIcon = document.getElementById("page-proxy-favicon");
     gHomeButton.updateTooltip();
     gIdentityHandler._cacheElements();
