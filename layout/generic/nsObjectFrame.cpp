@@ -392,6 +392,7 @@ public:
   NPDrawingModel GetDrawingModel();
   WindowRef FixUpPluginWindow(PRInt32 inPaintState);
   void GUItoMacEvent(const nsGUIEvent& anEvent, EventRecord* origEvent, EventRecord& aMacEvent);
+  void SetCGContextChanged(PRBool aState) { mCGContextChanged = aState; }
 #endif
 
   void SetOwner(nsObjectFrame *aOwner)
@@ -458,6 +459,7 @@ private:
   PRUint32                    mLastEventloopNestingLevel;
   PRPackedBool                mContentFocused;
   PRPackedBool                mWidgetVisible;    
+  PRPackedBool                mCGContextChanged;
 
   
   
@@ -1367,7 +1369,6 @@ nsObjectFrame::PaintPlugin(nsIRenderingContext& aRenderingContext,
       
       
       
-      
       nsPluginPort* pluginPort = mInstanceOwner->GetPluginPort();
       nsCOMPtr<nsIPluginInstance> inst;
       GetPluginInstance(*getter_AddRefs(inst));
@@ -1381,9 +1382,11 @@ nsObjectFrame::PaintPlugin(nsIRenderingContext& aRenderingContext,
         NS_WARNING("null plugin window during PaintPlugin");
         return;
       }
-      pluginPort->cgPort.context = cgContext;
-      window->window = pluginPort;
-      inst->SetWindow(window);
+      if (window->window->cgPort.context != cgContext) {
+        pluginPort->cgPort.context = cgContext;
+        window->window = pluginPort;
+        mInstanceOwner->SetCGContextChanged(PR_TRUE);
+      }
 
       mInstanceOwner->Paint(aDirtyRect);
 
@@ -2142,6 +2145,7 @@ nsPluginInstanceOwner::nsPluginInstanceOwner()
   mTagText = nsnull;
   mContentFocused = PR_FALSE;
   mWidgetVisible = PR_TRUE;
+  mCGContextChanged = PR_FALSE;
   mNumCachedAttrs = 0;
   mNumCachedParams = 0;
   mCachedAttrParamNames = nsnull;
@@ -4612,6 +4616,7 @@ WindowRef nsPluginInstanceOwner::FixUpPluginWindow(PRInt32 inPaintState)
       mPluginWindow->clipRect.bottom  != oldClipRect.bottom)
   {
     mInstance->SetWindow(mPluginWindow);
+    mCGContextChanged = PR_FALSE;
     
     CancelTimer();
     if (mPluginWindow->clipRect.left == mPluginWindow->clipRect.right ||
@@ -4621,6 +4626,9 @@ WindowRef nsPluginInstanceOwner::FixUpPluginWindow(PRInt32 inPaintState)
     else {
       StartTimer(NORMAL_PLUGIN_DELAY);
     }
+  } else if (mCGContextChanged) {
+    mInstance->SetWindow(mPluginWindow);
+    mCGContextChanged = PR_FALSE;
   }
 
 #ifndef NP_NO_QUICKDRAW
