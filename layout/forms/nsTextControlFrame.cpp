@@ -1099,10 +1099,11 @@ nsTextControlFrame::DestroyFrom(nsIFrame* aDestructRoot)
   if (!mDidPreDestroy) {
     PreDestroy();
   }
-  if (mAnonymousDiv && mMutationObserver) {
-    mAnonymousDiv->RemoveMutationObserver(mMutationObserver);
+  if (mValueDiv && mMutationObserver) {
+    mValueDiv->RemoveMutationObserver(mMutationObserver);
   }
-  nsContentUtils::DestroyAnonymousContent(&mAnonymousDiv);
+  nsContentUtils::DestroyAnonymousContent(&mValueDiv);
+  nsContentUtils::DestroyAnonymousContent(&mPlaceholderDiv);
   nsBoxFrame::DestroyFrom(aDestructRoot);
 }
 
@@ -1269,7 +1270,7 @@ nsTextControlFrame::CalcIntrinsicSize(nsIRenderingContext* aRenderingContext,
     if (GetFirstChild(nsnull)->GetStylePadding()->GetPadding(childPadding)) {
       aIntrinsicSize.width += childPadding.LeftRight();
     } else {
-      NS_ERROR("Percentage padding on anonymous div?");
+      NS_ERROR("Percentage padding on value div?");
     }
   }
 
@@ -1416,7 +1417,7 @@ nsTextControlFrame::InitEditor()
   if (!domdoc)
     return NS_ERROR_FAILURE;
 
-  rv = mEditor->Init(domdoc, shell, mAnonymousDiv, mSelCon, editorFlags);
+  rv = mEditor->Init(domdoc, shell, mValueDiv, mSelCon, editorFlags);
   NS_ENSURE_SUCCESS(rv, rv);
 
   
@@ -1586,7 +1587,7 @@ nsTextControlFrame::CreateAnonymousContent(nsTArray<nsIContent*>& aElements)
                                                  kNameSpaceID_XHTML);
   NS_ENSURE_TRUE(nodeInfo, NS_ERROR_OUT_OF_MEMORY);
 
-  nsresult rv = NS_NewHTMLElement(getter_AddRefs(mAnonymousDiv), nodeInfo, PR_FALSE);
+  nsresult rv = NS_NewHTMLElement(getter_AddRefs(mValueDiv), nodeInfo, PR_FALSE);
   NS_ENSURE_SUCCESS(rv, rv);
 
   
@@ -1611,13 +1612,13 @@ nsTextControlFrame::CreateAnonymousContent(nsTArray<nsIContent*>& aElements)
 
     mMutationObserver = new nsAnonDivObserver(this);
     NS_ENSURE_TRUE(mMutationObserver, NS_ERROR_OUT_OF_MEMORY);
-    mAnonymousDiv->AddMutationObserver(mMutationObserver);
+    mValueDiv->AddMutationObserver(mMutationObserver);
   }
-  rv = mAnonymousDiv->SetAttr(kNameSpaceID_None, nsGkAtoms::_class,
-                              classValue, PR_FALSE);
+  rv = mValueDiv->SetAttr(kNameSpaceID_None, nsGkAtoms::_class,
+                          classValue, PR_FALSE);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  if (!aElements.AppendElement(mAnonymousDiv))
+  if (!aElements.AppendElement(mValueDiv))
     return NS_ERROR_OUT_OF_MEMORY;
 
   
@@ -1629,7 +1630,7 @@ nsTextControlFrame::CreateAnonymousContent(nsTArray<nsIContent*>& aElements)
   
 
   mSelCon = new nsTextInputSelectionImpl(mFrameSel, shell,
-                                         mAnonymousDiv);
+                                         mValueDiv);
   if (!mSelCon)
     return NS_ERROR_OUT_OF_MEMORY;
   mTextListener = new nsTextInputListener();
@@ -1667,13 +1668,18 @@ nsTextControlFrame::CreateAnonymousContent(nsTArray<nsIContent*>& aElements)
     return NS_ERROR_OUT_OF_MEMORY;
   }
 
+  
+  rv = CreatePlaceholderDiv(aElements, doc->NodeInfoManager());
+  NS_ENSURE_SUCCESS(rv, rv);
+
   return NS_OK;
 }
 
 void
 nsTextControlFrame::AppendAnonymousContentTo(nsBaseContentList& aElements)
 {
-  aElements.MaybeAppendElement(mAnonymousDiv);
+  aElements.MaybeAppendElement(mValueDiv);
+  aElements.MaybeAppendElement(mPlaceholderDiv);
 }
 
 nscoord
@@ -1827,12 +1833,33 @@ nsTextControlFrame::IsLeaf() const
 void nsTextControlFrame::SetFocus(PRBool aOn, PRBool aRepaint)
 {
   if (!aOn) {
+    nsWeakFrame weakFrame(this);
+
+    nsAutoString valueString;
+    GetValue(valueString, PR_TRUE);
+    if (valueString.IsEmpty())
+      ShowPlaceholder();
+
+    if (!weakFrame.IsAlive())
+    {
+      return;
+    }
+
     MaybeEndSecureKeyboardInput();
     return;
   }
 
   if (!mSelCon)
     return;
+
+  nsWeakFrame weakFrame(this);
+
+  HidePlaceholder();
+
+  if (!weakFrame.IsAlive())
+  {
+    return;
+  }
 
   if (NS_SUCCEEDED(InitFocusedValue()))
     MaybeBeginSecureKeyboardInput();
@@ -2405,6 +2432,12 @@ nsTextControlFrame::AttributeChanged(PRInt32         aNameSpaceID,
     }    
     mEditor->SetFlags(flags);
   }
+  else if (nsGkAtoms::placeholder == aAttribute)
+  {
+    nsWeakFrame weakFrame(this);
+    UpdatePlaceholderText(PR_TRUE);
+    NS_ENSURE_STATE(weakFrame.IsAlive());
+  }
   
   
   else {
@@ -2718,6 +2751,15 @@ nsTextControlFrame::SetValue(const nsAString& aValue)
         editor->SetFlags(savedFlags);
         if (selPriv)
           selPriv->EndBatchChanges();
+
+        if (newValue.IsEmpty())
+        {
+          if (!IsFocusedContent(mContent))
+            ShowPlaceholder();
+          
+        }
+        else
+          HidePlaceholder();
       }
 
       NS_ENSURE_STATE(weakFrame.IsAlive());
@@ -2806,6 +2848,88 @@ nsTextControlFrame::ShutDown()
 {
   NS_IF_RELEASE(sNativeTextAreaBindings);
   NS_IF_RELEASE(sNativeInputBindings);
+}
+
+nsresult
+nsTextControlFrame::CreatePlaceholderDiv(nsTArray<nsIContent*>& aElements,
+                                         nsNodeInfoManager* pNodeInfoManager)
+{
+  nsresult rv;
+  nsCOMPtr<nsIContent> placeholderText;
+
+  
+  
+  nsCOMPtr<nsINodeInfo> nodeInfo;
+  nodeInfo = pNodeInfoManager->GetNodeInfo(nsGkAtoms::div, nsnull,
+                                           kNameSpaceID_XHTML);
+  NS_ENSURE_TRUE(nodeInfo, NS_ERROR_OUT_OF_MEMORY);
+
+  rv = NS_NewHTMLElement(getter_AddRefs(mPlaceholderDiv), nodeInfo, PR_FALSE);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  rv = NS_NewTextNode(getter_AddRefs(placeholderText), pNodeInfoManager);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  rv = mPlaceholderDiv->AppendChildTo(placeholderText, PR_FALSE);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  
+  
+  SetPlaceholderClass(PR_TRUE, PR_FALSE);
+
+  if (!aElements.AppendElement(mPlaceholderDiv))
+    return NS_ERROR_OUT_OF_MEMORY;
+
+  
+  UpdatePlaceholderText(PR_FALSE);
+
+  return NS_OK;
+}
+
+nsresult
+nsTextControlFrame::ShowPlaceholder()
+{
+  return SetPlaceholderClass(PR_TRUE, PR_TRUE);
+}
+
+nsresult
+nsTextControlFrame::HidePlaceholder()
+{
+  return SetPlaceholderClass(PR_FALSE, PR_TRUE);
+}
+
+nsresult
+nsTextControlFrame::SetPlaceholderClass(PRBool aVisible,
+                                        PRBool aNotify)
+{
+  nsresult rv;
+  nsAutoString classValue;
+
+  classValue.Assign(NS_LITERAL_STRING("anonymous-div placeholder"));
+
+  if (!aVisible)
+    classValue.AppendLiteral(" hidden");
+
+  rv = mPlaceholderDiv->SetAttr(kNameSpaceID_None, nsGkAtoms::_class,
+                                classValue, aNotify);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  return NS_OK;
+}
+
+nsresult
+nsTextControlFrame::UpdatePlaceholderText(PRBool aNotify)
+{
+  nsAutoString placeholderValue;
+
+  mContent->GetAttr(kNameSpaceID_None, nsGkAtoms::placeholder, placeholderValue);
+  RemoveNewlines(placeholderValue);
+  NS_ASSERTION(mPlaceholderDiv->GetChildAt(0), "placeholder div has no child");
+  mPlaceholderDiv->GetChildAt(0)->SetText(placeholderValue, aNotify);
+
+  return NS_OK;
 }
 
 NS_IMPL_ISUPPORTS1(nsAnonDivObserver, nsIMutationObserver)

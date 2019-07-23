@@ -764,6 +764,7 @@ NS_IMPL_STRING_ATTR(nsHTMLInputElement, UseMap, usemap)
 
 
 
+NS_IMPL_STRING_ATTR(nsHTMLInputElement, Placeholder, placeholder)
 
 NS_IMETHODIMP
 nsHTMLInputElement::GetDefaultValue(nsAString& aValue)
