@@ -2019,6 +2019,8 @@ namespace nanojit
 
 #endif
 		assm->beginAssembly(triggerFrag, &regMap);
+		if (assm->error())
+			return;
 
 		
 		Fragment* root = triggerFrag;

@@ -296,6 +296,8 @@ namespace nanojit
 			
 			page = list;
 			setError(OutOMem);
+			if (!list)
+				return NULL;
 		}
 		return &page->code[sizeof(page->code)/sizeof(NIns)]; 
 	}
@@ -894,7 +896,7 @@ namespace nanojit
 		NanoAssertMsgf(error() || _fpuStkDepth == 0,"_fpuStkDepth %d\n",_fpuStkDepth);
 
 		internalReset();  
-		NanoAssert(_branchStateMap->isEmpty());
+		NanoAssert(!_branchStateMap || _branchStateMap->isEmpty());
 		_branchStateMap = 0;
 
 #ifdef AVMPLUS_ARM
@@ -1422,6 +1424,9 @@ namespace nanojit
 					asm_call(ins);
 				}
 			}
+
+			if (error())
+				return;
 
 			
 			debug_only( pageValidate(); )
