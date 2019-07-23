@@ -1,0 +1,66 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+var gTestfile = 'regress-462989.js';
+
+var BUGNUMBER = 462989;
+var summary = 'Do not assert: need a way to EOT now, since this is trace end';
+var actual = '';
+var expect = '';
+
+printBugNumber(BUGNUMBER);
+printStatus (summary);
+ 
+jit(true);
+
+function a()
+{
+  "".split(";");
+  this.v = true;
+}
+
+function b()
+{    
+  var z = { t: function() { for (var i = 0; i < 5; i++) { a(); } } };
+  z.t();
+}
+
+b();
+
+jit(false);
+
+reportCompare(expect, actual, summary);
