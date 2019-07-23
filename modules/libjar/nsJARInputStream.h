@@ -53,23 +53,24 @@ class nsJARInputStream : public nsIInputStream
 {
   public:
     nsJARInputStream() : 
-        mFd(nsnull), mInSize(0), mCurPos(0),
-        mInflate(nsnull), mDirectory(0), mClosed(PR_FALSE) { }
-    
-    ~nsJARInputStream() { Close(); }
+        mInSize(0), mCurPos(0), mInflate(nsnull), mDirectory(0), mClosed(PR_FALSE)
+  { }
+
+  ~nsJARInputStream() {
+    Close();
+  }
 
     NS_DECL_ISUPPORTS
     NS_DECL_NSIINPUTSTREAM
    
     
-    nsresult InitFile(nsZipArchive* aZip, nsZipItem *item, PRFileDesc *fd);
+    nsresult InitFile(nsZipHandle *aFd, nsZipItem *item);
 
-    nsresult InitDirectory(nsZipArchive* aZip,
+    nsresult InitDirectory(nsJAR *aJar,
                            const nsACString& aJarDirSpec,
                            const char* aDir);
   
   private:
-    PRFileDesc*   mFd;              
     PRUint32      mInSize;          
     PRUint32      mCurPos;          
 
@@ -83,14 +84,14 @@ class nsJARInputStream : public nsIInputStream
     struct InflateStruct *   mInflate;
 
     
-    nsZipArchive*           mZip;        
+    nsRefPtr<nsJAR>         mJar;     
     PRUint32                mNameLen; 
     nsCAutoString           mBuffer;  
     PRUint32                mArrPos;  
     nsTArray<nsCString>     mArray;   
-
-    PRPackedBool    mDirectory;
-    PRPackedBool    mClosed;          
+  PRPackedBool            mDirectory; 
+    PRPackedBool            mClosed;  
+    nsSeekableZipHandle     mFd;      
 
     nsresult ContinueInflate(char* aBuf, PRUint32 aCount, PRUint32* aBytesRead);
     nsresult ReadDirectory(char* aBuf, PRUint32 aCount, PRUint32* aBytesRead);
