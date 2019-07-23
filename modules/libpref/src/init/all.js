@@ -501,7 +501,7 @@ pref("advanced.mailftp",                    false);
 pref("image.animation_mode",                "normal");
 
 
-pref("security.fileuri.origin_policy", 2);
+pref("security.fileuri.strict_origin_policy", true);
 
 
 

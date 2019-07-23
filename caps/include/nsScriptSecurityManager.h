@@ -546,10 +546,6 @@ private:
                    nsISecurityPref* securityPref);
 
 
-    
-    static PRBool SecurityCompareFileURIs(nsIURI* aSourceURI,
-                                          nsIURI* aTargetURI);
-
 #ifdef XPC_IDISPATCH_SUPPORT
     
     
@@ -590,24 +586,12 @@ private:
     static const char sXPCDefaultGrantAllName[];
 #endif
 
-    static PRInt32 sFileURIOriginPolicy;
+    static PRBool sStrictFileOriginPolicy;
 
     static nsIIOService    *sIOService;
     static nsIXPConnect    *sXPConnect;
     static nsIStringBundle *sStrBundle;
     static JSRuntime       *sRuntime;
 };
-
-
-
-
-
-
-
-#define FILEURI_SOP_SELF        0
-#define FILEURI_SOP_SAMEDIR     1
-#define FILEURI_SOP_SUBDIR      2
-#define FILEURI_SOP_ANYFILE     3
-#define FILEURI_SOP_TRADITIONAL 4
 
 #endif 

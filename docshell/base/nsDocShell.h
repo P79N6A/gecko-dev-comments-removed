@@ -515,6 +515,9 @@ protected:
     static nsresult URIInheritsSecurityContext(nsIURI* aURI, PRBool* aResult);
 
     
+    static PRBool URIIsLocalFile(nsIURI *aURI);
+
+    
     static PRBool IsAboutBlank(nsIURI* aURI);
 
     
@@ -548,6 +551,7 @@ protected:
     PRPackedBool               mObserveErrorPages;
     PRPackedBool               mAllowAuth;
     PRPackedBool               mAllowKeywordFixup;
+    PRPackedBool               mStrictFilePolicy;
 
     
     

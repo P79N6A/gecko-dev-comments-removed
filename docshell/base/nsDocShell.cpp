@@ -133,6 +133,7 @@
 #include "nsITimer.h"
 #include "nsISHistoryInternal.h"
 #include "nsIPrincipal.h"
+#include "nsIFileURL.h"
 #include "nsIHistoryEntry.h"
 #include "nsISHistoryListener.h"
 #include "nsIWindowWatcher.h"
@@ -289,6 +290,7 @@ nsDocShell::nsDocShell():
     mObserveErrorPages(PR_TRUE),
     mAllowAuth(PR_TRUE),
     mAllowKeywordFixup(PR_FALSE),
+    mStrictFilePolicy(PR_TRUE),
     mFiredUnloadEvent(PR_FALSE),
     mEODForCurrentDocument(PR_FALSE),
     mURIResultedInDocument(PR_FALSE),
@@ -3591,6 +3593,10 @@ nsDocShell::Create()
         }
     }
 
+    rv = mPrefs->GetBoolPref("security.fileuri.strict_origin_policy", &tmpbool);
+    if (NS_SUCCEEDED(rv))
+        mStrictFilePolicy = tmpbool;
+
     
     rv = mPrefs->GetBoolPref("browser.xul.error_pages.enabled", &tmpbool);
     if (NS_SUCCEEDED(rv))
@@ -3606,7 +3612,7 @@ nsDocShell::Create()
         const char* msg = mItemType == typeContent ?
             NS_WEBNAVIGATION_CREATE : NS_CHROME_WEBNAVIGATION_CREATE;
         serv->NotifyObservers(GetAsSupports(this), msg, nsnull);
-    }    
+    }
 
     return NS_OK;
 }
@@ -7343,6 +7349,76 @@ nsDocShell::DoURILoad(nsIURI * aURI,
         channel->SetOwner(aOwner);
     }
 
+    
+    
+    
+    
+    
+    
+    
+    
+    if (mStrictFilePolicy && URIIsLocalFile(aURI)) {
+        nsCOMPtr<nsIFileURL> fileURL(do_QueryInterface(aURI));
+        nsCOMPtr<nsIPrincipal> ownerPrincipal(do_QueryInterface(aOwner));
+        nsCOMPtr<nsIURI> ownerURI;
+        if (ownerPrincipal) {
+             ownerPrincipal->GetURI(getter_AddRefs(ownerURI));
+        }
+
+        if (!URIIsLocalFile(ownerURI)) {
+            
+            
+            
+            
+            
+            ownerURI = nsnull;
+        }
+
+        
+        
+        
+        nsCOMPtr<nsIFileURL> ownerFileURL(do_QueryInterface(ownerURI));
+        nsCOMPtr<nsIFile> targetFile;
+        nsCOMPtr<nsIFile> ownerFile;
+        if (ownerFileURL &&
+            NS_SUCCEEDED(fileURL->GetFile(getter_AddRefs(targetFile))) &&
+            NS_SUCCEEDED(ownerFileURL->GetFile(getter_AddRefs(ownerFile)))) {
+            
+            
+            
+            
+            PRBool targetIsDir;
+            if (targetFile && ownerFile && 
+                NS_SUCCEEDED(targetFile->Normalize()) &&
+                NS_SUCCEEDED(ownerFile->Normalize()) &&
+                NS_SUCCEEDED(targetFile->IsDirectory(&targetIsDir)) &&
+                !targetIsDir) {
+                
+                
+                
+                
+                
+                PRBool ownerIsDir;
+                PRBool contained = PR_FALSE;
+                rv = ownerFile->IsDirectory(&ownerIsDir);
+                if (NS_SUCCEEDED(rv) && ownerIsDir) {
+                    rv = ownerFile->Contains(targetFile, PR_TRUE, &contained);
+                }
+                else {
+                    nsCOMPtr<nsIFile> ownerParent;
+                    rv = ownerFile->GetParent(getter_AddRefs(ownerParent));
+                    if (NS_SUCCEEDED(rv) && ownerParent) {
+                        rv = ownerParent->Contains(targetFile, PR_TRUE, &contained);
+                    }
+                }
+
+                if (NS_SUCCEEDED(rv) && contained) {
+                    channel->SetOwner(aOwner);
+                }
+            }
+        }
+    }
+
     nsCOMPtr<nsIScriptChannel> scriptChannel = do_QueryInterface(channel);
     if (scriptChannel) {
         
@@ -7360,7 +7436,7 @@ nsDocShell::DoURILoad(nsIURI * aURI,
     }
 
     rv = DoChannelLoad(channel, uriLoader, aBypassClassifier);
-    
+
     
     
     
@@ -9312,6 +9388,19 @@ nsDocShell::URIInheritsSecurityContext(nsIURI* aURI, PRBool* aResult)
     return NS_URIChainHasFlags(aURI,
                                nsIProtocolHandler::URI_INHERITS_SECURITY_CONTEXT,
                                aResult);
+}
+
+
+PRBool
+nsDocShell::URIIsLocalFile(nsIURI *aURI)
+{
+    PRBool isFile;
+    nsCOMPtr<nsINetUtil> util = do_GetIOService();
+
+    return util && NS_SUCCEEDED(util->ProtocolHasFlags(aURI,
+                                    nsIProtocolHandler::URI_IS_LOCAL_FILE,
+                                    &isFile)) &&
+           isFile;
 }
 
 
