@@ -446,41 +446,31 @@ nsHTMLContainerFrame::GetTextDecorations(nsPresContext* aPresContext,
     return; 
   }
 
-  
-  PRUint8 decorMask = NS_STYLE_TEXT_DECORATION_UNDERLINE |
-                      NS_STYLE_TEXT_DECORATION_OVERLINE |
-                      NS_STYLE_TEXT_DECORATION_LINE_THROUGH; 
-
   if (!aIsBlock) {
-    aDecorations = GetStyleTextReset()->mTextDecoration  & decorMask;
+    aDecorations = this->GetStyleTextReset()->mTextDecoration &
+                   NS_STYLE_TEXT_DECORATION_LINES_MASK;
     if (aDecorations) {
-      const nsStyleColor* styleColor = GetStyleColor();
-      aUnderColor = styleColor->mColor;
-      aOverColor = styleColor->mColor;
-      aStrikeColor = styleColor->mColor;
+      nscolor color = this->GetStyleColor()->mColor;
+      aUnderColor = color;
+      aOverColor = color;
+      aStrikeColor = color;
     }
   }
   else {
     
-    for (nsIFrame *frame = this; frame && decorMask; frame = frame->GetParent()) {
-      
+    
+    
+    
+    
+    
+    PRUint8 decorMask = NS_STYLE_TEXT_DECORATION_LINES_MASK;
 
-      nsStyleContext* styleContext = frame->GetStyleContext();
-      const nsStyleDisplay* styleDisplay = styleContext->GetStyleDisplay();
-      if (!styleDisplay->IsBlockInside() &&
-          styleDisplay->mDisplay != NS_STYLE_DISPLAY_TABLE_CELL &&
-          styleDisplay->mDisplay != NS_STYLE_DISPLAY_TABLE_CAPTION) {
-        
-        
-        
-        break;
-      }
-
-      const nsStyleTextReset* styleText = styleContext->GetStyleTextReset();
-      PRUint8 decors = decorMask & styleText->mTextDecoration;
+    
+    for (nsIFrame* frame = this; frame; frame = frame->GetParent()) {
+      PRUint8 decors = frame->GetStyleTextReset()->mTextDecoration & decorMask;
       if (decors) {
         
-        nscolor color = styleContext->GetStyleColor()->mColor;
+        nscolor color = frame->GetStyleColor()->mColor;
 
         if (NS_STYLE_TEXT_DECORATION_UNDERLINE & decors) {
           aUnderColor = color;
@@ -497,6 +487,35 @@ nsHTMLContainerFrame::GetTextDecorations(nsPresContext* aPresContext,
           decorMask &= ~NS_STYLE_TEXT_DECORATION_LINE_THROUGH;
           aDecorations |= NS_STYLE_TEXT_DECORATION_LINE_THROUGH;
         }
+      }
+      
+      
+      if (!decorMask) {
+        break;
+      }
+
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      const nsStyleDisplay* styleDisplay = frame->GetStyleDisplay();
+      if (styleDisplay->IsFloating() ||
+          styleDisplay->IsAbsolutelyPositioned() ||
+          styleDisplay->IsInlineOutside()) {
+        break;
       }
     }
   }
