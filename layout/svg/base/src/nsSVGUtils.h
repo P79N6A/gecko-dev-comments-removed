@@ -390,11 +390,6 @@ private:
   
 
 
-  static nsPresContext* GetContextForContent(nsIContent* aContent);
-
-  
-
-
   static const nsStyleFont* GetStyleFontForContent(nsIContent *aContent);
 };
 

@@ -532,6 +532,15 @@ public:
 
 
 
+  static nsPresContext* GetContextForContent(nsIContent* aContent);
+
+  
+
+
+
+
+
+
 
 
 
