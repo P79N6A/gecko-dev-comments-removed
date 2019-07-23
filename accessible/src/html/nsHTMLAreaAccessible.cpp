@@ -54,6 +54,10 @@ nsLinkableAccessible(aDomNode, aShell)
 }
 
 
+NS_IMPL_ISUPPORTS_INHERITED1(nsHTMLAreaAccessible, nsLinkableAccessible,
+                             nsIAccessibleHyperLink)
+
+
 NS_IMETHODIMP nsHTMLAreaAccessible::GetName(nsAString & aName)
 {
   nsCOMPtr<nsIContent> content(do_QueryInterface(mDOMNode));

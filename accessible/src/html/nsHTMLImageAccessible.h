@@ -67,14 +67,25 @@ public:
   NS_IMETHOD DoAction(PRUint8 index);
 
   
+  NS_IMETHOD GetAnchors(PRInt32 *aAnchors);
+  NS_IMETHOD GetURI(PRInt32 aIndex, nsIURI **aURI);
+  NS_IMETHOD GetObject(PRInt32 aIndex, nsIAccessible **aAccessible);
+
+  
   NS_IMETHOD Shutdown();
 
   
   NS_DECL_NSIACCESSIBLEIMAGE
 
 protected:
+  
   virtual void CacheChildren();
-  already_AddRefed<nsIAccessible> GetAreaAccessible(PRInt32 aAreaNum);
+
+  already_AddRefed<nsIDOMHTMLCollection> GetAreaCollection();
+  already_AddRefed<nsIAccessible>
+    GetAreaAccessible(nsIDOMHTMLCollection* aAreaNodes, PRInt32 aAreaNum);
+
+  
   nsCOMPtr<nsIDOMHTMLMapElement> mMapElement;
 
   
