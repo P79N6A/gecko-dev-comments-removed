@@ -412,6 +412,7 @@ protected:
   nsIWidget* mParentWidget;          
 
   float mTextZoom;      
+  float mPageZoom;
 
   PRInt16 mNumURLStarts;
   PRInt16 mDestroyRefCount;    
@@ -507,7 +508,7 @@ void DocumentViewerImpl::PrepareToStartLoad()
 
 
 DocumentViewerImpl::DocumentViewerImpl()
-  : mTextZoom(1.0),
+  : mTextZoom(1.0), mPageZoom(1.0),
     mIsSticky(PR_TRUE),
     mHintCharsetSource(kCharsetUninitialized)
 {
@@ -682,12 +683,13 @@ DocumentViewerImpl::InitPresentationStuff(PRBool aDoInitialReflow)
   nsRect bounds;
   mWindow->GetBounds(bounds);
 
-  nscoord width = mPresContext->DevPixelsToAppUnits(bounds.width);
-  nscoord height = mPresContext->DevPixelsToAppUnits(bounds.height);
+  nscoord width = mPresContext->DeviceContext()->UnscaledAppUnitsPerDevPixel() * bounds.width;
+  nscoord height = mPresContext->DeviceContext()->UnscaledAppUnitsPerDevPixel() * bounds.height;
 
   mViewManager->DisableRefresh();
   mViewManager->SetWindowDimensions(width, height);
   mPresContext->SetTextZoom(mTextZoom);
+  mPresContext->SetFullZoom(mPageZoom);
 
   
 
@@ -2716,6 +2718,7 @@ DocumentViewerImpl::GetTextZoom(float* aTextZoom)
 NS_IMETHODIMP
 DocumentViewerImpl::SetFullZoom(float aFullZoom)
 {
+  mPageZoom = aFullZoom;
   struct ZoomInfo ZoomInfo = { aFullZoom };
   CallChildren(SetChildFullZoom, &ZoomInfo);
   if (mPresContext) {
@@ -2729,7 +2732,9 @@ NS_IMETHODIMP
 DocumentViewerImpl::GetFullZoom(float* aFullZoom)
 {
   NS_ENSURE_ARG_POINTER(aFullZoom);
-  *aFullZoom = mPresContext ? mPresContext->GetFullZoom() : 1.0;
+  NS_ASSERTION(!mPresContext || mPresContext->GetFullZoom() == mPageZoom, 
+               "mPresContext->GetFullZoom() != mPageZoom");
+  *aFullZoom = mPresContext ? mPresContext->GetFullZoom() : 1.0f;
   return NS_OK;
 }
 
