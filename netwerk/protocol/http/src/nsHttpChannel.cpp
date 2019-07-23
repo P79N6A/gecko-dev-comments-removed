@@ -853,6 +853,71 @@ nsHttpChannel::CallOnStartRequest()
 }
 
 nsresult
+nsHttpChannel::ProcessFailedSSLConnect(PRUint32 httpStatus)
+{
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+
+    NS_ABORT_IF_FALSE(mConnectionInfo->UsingSSL(),
+                      "SSL connect failed but not using SSL?");
+    nsresult rv;
+    switch (httpStatus) 
+    {
+    case 403: 
+    case 407: 
+    case 501: 
+        
+        rv = NS_ERROR_PROXY_CONNECTION_REFUSED; 
+        break;
+    
+    case 404: 
+    
+    
+    
+    case 400: 
+    case 500: 
+        
+
+
+        rv = NS_ERROR_UNKNOWN_HOST; 
+        break;
+    case 502: 
+    
+    case 503: 
+        
+
+
+
+
+        rv = NS_ERROR_CONNECTION_REFUSED;
+        break;
+    
+    
+    case 504: 
+        
+        
+        rv = NS_ERROR_NET_TIMEOUT;
+        break;
+    
+    default:
+        rv = NS_ERROR_PROXY_CONNECTION_REFUSED; 
+        break;
+    }
+    LOG(("Cancelling failed SSL proxy connection [this=%x httpStatus=%u]\n",
+         this, httpStatus)); 
+    Cancel(rv);
+    return rv;
+}
+
+nsresult
 nsHttpChannel::ProcessResponse()
 {
     nsresult rv;
@@ -860,6 +925,9 @@ nsHttpChannel::ProcessResponse()
 
     LOG(("nsHttpChannel::ProcessResponse [this=%x httpStatus=%u]\n",
         this, httpStatus));
+
+    if (mTransaction->SSLConnectFailed() && httpStatus != 407)
+        return ProcessFailedSSLConnect(httpStatus);
 
     
     gHttpHandler->OnExamineResponse(this);
@@ -947,6 +1015,8 @@ nsHttpChannel::ProcessResponse()
         rv = ProcessAuthentication(httpStatus);
         if (NS_FAILED(rv)) {
             LOG(("ProcessAuthentication failed [rv=%x]\n", rv));
+            if (mTransaction->SSLConnectFailed())
+                return ProcessFailedSSLConnect(httpStatus);
             CheckForSuperfluousAuth();
             rv = ProcessNormal();
         }
