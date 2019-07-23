@@ -1072,6 +1072,8 @@ typedef struct JSResolvingEntry {
 
 #define JSRESOLVE_INFER         0xffff  /* infer bits from current bytecode */
 
+extern const JSDebugHooks js_NullDebugHooks;  
+
 struct JSContext {
     
 
@@ -1248,8 +1250,9 @@ struct JSContext {
     void updateJITEnabled() {
 #ifdef JS_TRACER
         jitEnabled = ((options & JSOPTION_JIT) &&
-                      !runtime->debuggerInhibitsJIT() &&
-                      debugHooks == &runtime->globalDebugHooks);
+                      (debugHooks == &js_NullDebugHooks ||
+                       (debugHooks == &runtime->globalDebugHooks &&
+                        !runtime->debuggerInhibitsJIT())));
 #endif
     }
 
