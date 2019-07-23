@@ -588,6 +588,7 @@ XPC_XOW_GetOrSetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp,
     return JS_TRUE;
   }
 
+  JSObject *origObj = obj;
   obj = GetWrapper(cx, obj);
   if (!obj) {
     return ThrowException(NS_ERROR_ILLEGAL_VALUE, cx);
@@ -666,17 +667,32 @@ XPC_XOW_GetOrSetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp,
     return JS_FALSE;
   }
 
-  JSObject *newProto;
-  if (checkProto &&
-      (newProto = JS_GetPrototype(cx, wrappedObj)) != proto &&
-      newProto) {
+  if (checkProto) {
+    JSObject *newProto = JS_GetPrototype(cx, wrappedObj);
+
+    
+    
+    
     
     
     
 
-    JS_SetPrototype(cx, wrappedObj, proto);
-    JS_ReportError(cx, "invalid __proto__ value (can only be set to null)");
-    return JS_FALSE;
+    if (origObj != obj) {
+      
+      if (!JS_SetPrototype(cx, wrappedObj, proto) ||
+          !JS_SetPrototype(cx, origObj, newProto)) {
+        return JS_FALSE;
+      }
+    } else if (newProto) {
+      
+      
+      
+      
+
+      JS_SetPrototype(cx, wrappedObj, proto);
+      JS_ReportError(cx, "invalid __proto__ value (can only be set to null)");
+      return JS_FALSE;
+    }
   }
 
   return WrapSameOriginProp(cx, obj, vp);
