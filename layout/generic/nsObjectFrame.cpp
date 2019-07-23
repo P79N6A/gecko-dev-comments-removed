@@ -45,6 +45,7 @@
 
 
 
+
 #include "nscore.h"
 #include "nsCOMPtr.h"
 #include "nsPresContext.h"
@@ -145,6 +146,7 @@
 
 #include "nsContentCID.h"
 static NS_DEFINE_CID(kRangeCID, NS_RANGE_CID);
+static NS_DEFINE_CID(kAppShellCID, NS_APPSHELL_CID);
 
 #ifdef XP_MACOSX
 #include "gfxQuartzNativeDrawing.h"
@@ -397,6 +399,21 @@ public:
     mOwner = aOwner;
   }
 
+  PRUint32 GetLastEventloopNestingLevel() const {
+    return mLastEventloopNestingLevel; 
+  }
+
+  void ConsiderNewEventloopNestingLevel() {
+    nsCOMPtr<nsIAppShell> appShell = do_GetService(kAppShellCID);
+    if (appShell) {
+      PRUint32 currentLevel = 0;
+      appShell->GetEventloopNestingLevel(&currentLevel);
+      if (currentLevel < mLastEventloopNestingLevel) {
+        mLastEventloopNestingLevel = currentLevel;
+      }
+    }
+  }
+
 private:
   void FixUpURLS(const nsString &name, nsAString &value);
 
@@ -409,6 +426,11 @@ private:
   nsCOMPtr<nsIWidget>         mWidget;
   nsCOMPtr<nsITimer>          mPluginTimer;
   nsCOMPtr<nsIPluginHost>     mPluginHost;
+
+  
+  
+  
+  PRUint32                    mLastEventloopNestingLevel;
   PRPackedBool                mContentFocused;
   PRPackedBool                mWidgetVisible;    
 
@@ -787,7 +809,6 @@ nsObjectFrame::InstantiatePlugin(nsIPluginHost* aPluginHost,
   
   
   
-  static NS_DEFINE_CID(kAppShellCID, NS_APPSHELL_CID);
   nsCOMPtr<nsIAppShell> appShell = do_GetService(kAppShellCID);
   if (appShell) {
     appShell->SuspendNative();
@@ -1521,6 +1542,8 @@ nsObjectFrame::HandleEvent(nsPresContext* aPresContext,
   if (!mInstanceOwner)
     return NS_ERROR_NULL_POINTER;
 
+  mInstanceOwner->ConsiderNewEventloopNestingLevel();
+
   if (anEvent->message == NS_PLUGIN_ACTIVATE) {
     nsIContent* content = GetContent();
     if (content) {
@@ -1668,19 +1691,29 @@ nsObjectFrame::TryNotifyContentObjectWrapper()
   }
 }
 
-class nsStopPluginRunnable : public nsRunnable
+class nsStopPluginRunnable : public nsRunnable, public nsITimerCallback
 {
 public:
+  NS_DECL_ISUPPORTS_INHERITED
+
   nsStopPluginRunnable(nsPluginInstanceOwner *aInstanceOwner)
     : mInstanceOwner(aInstanceOwner)
   {
+    NS_ASSERTION(aInstanceOwner, "need an owner");
   }
 
+  
   NS_IMETHOD Run();
 
+  
+  NS_IMETHOD Notify(nsITimer *timer);
+
 private:  
+  nsCOMPtr<nsITimer> mTimer;
   nsRefPtr<nsPluginInstanceOwner> mInstanceOwner;
 };
+
+NS_IMPL_ISUPPORTS_INHERITED1(nsStopPluginRunnable, nsRunnable, nsITimerCallback)
 
 static void
 DoStopPlugin(nsPluginInstanceOwner *aInstanceOwner, PRBool aDelayedStop)
@@ -1761,8 +1794,37 @@ DoStopPlugin(nsPluginInstanceOwner *aInstanceOwner, PRBool aDelayedStop)
 }
 
 NS_IMETHODIMP
+nsStopPluginRunnable::Notify(nsITimer *aTimer)
+{
+  return Run();
+}
+
+NS_IMETHODIMP
 nsStopPluginRunnable::Run()
 {
+  
+  
+  nsCOMPtr<nsITimerCallback> kungFuDeathGrip = this;
+  nsCOMPtr<nsIAppShell> appShell = do_GetService(kAppShellCID);
+  if (appShell) {
+    PRUint32 currentLevel = 0;
+    appShell->GetEventloopNestingLevel(&currentLevel);
+    if (currentLevel > mInstanceOwner->GetLastEventloopNestingLevel()) {
+      if (!mTimer)
+        mTimer = do_CreateInstance("@mozilla.org/timer;1");
+      if (mTimer) {
+        nsresult rv = mTimer->InitWithCallback(this, 3000, nsITimer::TYPE_ONE_SHOT);
+        if (NS_SUCCEEDED(rv)) {
+          return rv;
+        }
+      }
+      NS_ERROR("Failed to setup a timer to stop the plugin later (at a safe "
+               "time). Stopping the plugin now, this might crash.");
+    }
+  }
+
+  mTimer = nsnull;
+
   DoStopPlugin(mInstanceOwner, PR_FALSE);
 
   return NS_OK;
@@ -1771,7 +1833,30 @@ nsStopPluginRunnable::Run()
 void
 nsObjectFrame::StopPlugin()
 {
+#ifdef XP_WIN
+  
+  
+  PRBool delayedStop = PR_TRUE;
+  nsCOMPtr<nsIPluginInstance> inst;
+  if (mInstanceOwner)
+    mInstanceOwner->GetInstance(*getter_AddRefs(inst));
+  if (inst) {
+    PRBool doCache = PR_TRUE;
+    inst->GetValue(nsPluginInstanceVariable_DoCacheBool, (void *)&doCache);
+    if (!doCache) {
+      PRBool doCallSetWindowAfterDestroy = PR_FALSE;
+      inst->GetValue(nsPluginInstanceVariable_CallSetWindowAfterDestroyBool, 
+                     (void *)&doCallSetWindowAfterDestroy);
+      if (doCallSetWindowAfterDestroy) {
+        
+        delayedStop = PR_FALSE;
+      }
+    }
+  }
+  StopPluginInternal(delayedStop);
+#else
   StopPluginInternal(PR_FALSE);
+#endif
 }
 
 void
@@ -4062,6 +4147,12 @@ nsresult nsPluginInstanceOwner::Init(nsPresContext* aPresContext,
                                      nsObjectFrame* aFrame,
                                      nsIContent*    aContent)
 {
+  mLastEventloopNestingLevel = 0;
+  nsCOMPtr<nsIAppShell> appShell = do_GetService(kAppShellCID);
+  if (appShell) {
+    appShell->GetEventloopNestingLevel(&mLastEventloopNestingLevel);
+  }
+
   PR_LOG(nsObjectFrameLM, PR_LOG_DEBUG,
          ("nsPluginInstanceOwner::Init() called on %p for frame %p\n", this,
           aFrame));
