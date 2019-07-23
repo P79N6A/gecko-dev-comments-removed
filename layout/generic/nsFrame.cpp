@@ -1955,6 +1955,9 @@ nsFrame::HandlePress(nsPresContext* aPresContext,
   
   PRBool useFrameSelection = (selectStyle == NS_STYLE_USER_SELECT_TEXT);
 
+  if (!IsMouseCaptured(aPresContext))
+    CaptureMouse(aPresContext, PR_TRUE);
+
   
   
   const nsFrameSelection* frameselection = nsnull;
@@ -1963,19 +1966,6 @@ nsFrame::HandlePress(nsPresContext* aPresContext,
   else
     frameselection = shell->ConstFrameSelection();
 
-  nsPoint pt = nsLayoutUtils::GetEventCoordinatesRelativeTo(aEvent, this);
-  ContentOffsets offsets = GetContentOffsetsFromPoint(pt);
-  
-  if (!IsMouseCaptured(aPresContext) && offsets.content) {
-    PRInt32 offset;
-    nsIFrame* capturingFrame = frameselection->
-      GetFrameForNodeOffset(offsets.content, offsets.offset, 
-                            nsFrameSelection::HINT(offsets.associateWithNext),
-                            &offset);
-    if (capturingFrame)
-      capturingFrame->CaptureMouse(aPresContext, PR_TRUE);
-  }
-    
   if (frameselection->GetDisplaySelection() == nsISelectionController::SELECTION_OFF)
     return NS_OK;
 
@@ -1998,6 +1988,9 @@ nsFrame::HandlePress(nsPresContext* aPresContext,
     fc->SetMouseDoubleDown(PR_TRUE);
     return HandleMultiplePress(aPresContext, aEvent, aEventStatus, control);
   }
+
+  nsPoint pt = nsLayoutUtils::GetEventCoordinatesRelativeTo(aEvent, this);
+  ContentOffsets offsets = GetContentOffsetsFromPoint(pt);
 
   if (!offsets.content)
     return NS_ERROR_FAILURE;
