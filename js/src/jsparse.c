@@ -87,6 +87,14 @@
 
 
 
+JS_STATIC_ASSERT(offsetof(JSParseNode, pn_u.name.atom) ==
+                 offsetof(JSParseNode, pn_u.apair.atom));
+JS_STATIC_ASSERT(offsetof(JSParseNode, pn_u.name.slot) ==
+                 offsetof(JSParseNode, pn_u.lexical.slot));
+
+
+
+
 
 
 
@@ -1106,6 +1114,9 @@ FunctionDef(JSContext *cx, JSTokenStream *ts, JSTreeContext *tc,
     pn = NewParseNode(cx, ts, PN_FUNC, tc);
     if (!pn)
         return NULL;
+#ifdef DEBUG
+    pn->pn_index = (uint32) -1;
+#endif
 
     
     ts->flags |= TSF_KEYWORD_IS_NAME;
@@ -1442,6 +1453,7 @@ Statements(JSContext *cx, JSTokenStream *ts, JSTreeContext *tc)
 
     CHECK_RECURSION();
 
+    JS_ASSERT(CURRENT_TOKEN(ts).type == TOK_LC);
     pn = NewParseNode(cx, ts, PN_LIST, tc);
     if (!pn)
         return NULL;
@@ -1453,8 +1465,11 @@ Statements(JSContext *cx, JSTokenStream *ts, JSTreeContext *tc)
         ts->flags |= TSF_OPERAND;
         tt = js_PeekToken(cx, ts);
         ts->flags &= ~TSF_OPERAND;
-        if (tt <= TOK_EOF || tt == TOK_RC)
+        if (tt <= TOK_EOF || tt == TOK_RC) {
+            if (tt == TOK_ERROR)
+                return NULL;
             break;
+        }
         pn2 = Statement(cx, ts, tc);
         if (!pn2) {
             if (ts->flags & TSF_EOF)
@@ -1462,10 +1477,21 @@ Statements(JSContext *cx, JSTokenStream *ts, JSTreeContext *tc)
             return NULL;
         }
 
-        
-        if (pn2->pn_type == TOK_FUNCTION && !AT_TOP_LEVEL(tc))
-            tc->flags |= TCF_HAS_FUNCTION_STMT;
+        if (pn2->pn_type == TOK_FUNCTION) {
+            
 
+
+
+
+
+
+
+
+            if (AT_TOP_LEVEL(tc))
+                pn->pn_extra |= PNX_FUNCDEFS;
+            else
+                tc->flags |= TCF_HAS_FUNCTION_STMT;
+        }
         PN_APPEND(pn, pn2);
     }
 
@@ -1477,10 +1503,6 @@ Statements(JSContext *cx, JSTokenStream *ts, JSTreeContext *tc)
     if (tc->blockNode != pn)
         pn = tc->blockNode;
     tc->blockNode = saveBlock;
-
-    ts->flags &= ~TSF_OPERAND;
-    if (tt == TOK_ERROR)
-        return NULL;
 
     pn->pn_pos.end = CURRENT_TOKEN(ts).pos.end;
     return pn;

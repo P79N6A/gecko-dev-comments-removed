@@ -282,6 +282,7 @@ struct JSParseNode {
             JSParseNode *body;          
             uint16      flags;          
             uint16      sclen;          
+            uint32      index;          
         } func;
         struct {                        
             JSParseNode *head;          
@@ -331,6 +332,7 @@ struct JSParseNode {
 #define pn_body         pn_u.func.body
 #define pn_flags        pn_u.func.flags
 #define pn_sclen        pn_u.func.sclen
+#define pn_index        pn_u.func.index
 #define pn_head         pn_u.list.head
 #define pn_tail         pn_u.list.tail
 #define pn_count        pn_u.list.count
@@ -362,7 +364,8 @@ struct JSParseNode {
 #define PNX_XMLROOT     0x20            /* top-most node in XML literal tree */
 #define PNX_GROUPINIT   0x40            /* var [a, b] = [c, d]; unit list */
 #define PNX_NEEDBRACES  0x80            /* braces necessary due to closure */
-
+#define PNX_FUNCDEFS   0x100            /* contains top-level function
+                                           statements */
 
 
 

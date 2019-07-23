@@ -4717,51 +4717,17 @@ interrupt:
 
             slot = GET_VARNO(pc);
 
-            JS_ASSERT(!fp->blockChain);
-            if (!(fp->flags & JSFRAME_POP_BLOCKS)) {
-                
-
-
-
-
-
-                parent = OBJ_GET_PARENT(cx, obj);
-                if (parent && OBJ_GET_CLASS(cx, parent) == &js_BlockClass)
-                    fp->blockChain = parent;
-                parent = js_GetScopeChain(cx, fp);
-            } else {
-                
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-                parent = fp->scopeChain;
-                JS_ASSERT(OBJ_GET_CLASS(cx, parent) == &js_BlockClass);
-                JS_ASSERT(OBJ_GET_PROTO(cx, parent) == OBJ_GET_PARENT(cx, obj));
-                JS_ASSERT(OBJ_GET_CLASS(cx, OBJ_GET_PARENT(cx, parent))
-                          == &js_CallClass);
+            parent = js_GetScopeChain(cx, fp);
+            if (!parent) {
+                ok = JS_FALSE;
+                goto out;
             }
 
-            
-            if (OBJ_GET_PARENT(cx, obj) != parent) {
-                SAVE_SP_AND_PC(fp);
-                obj = js_CloneFunctionObject(cx, obj, parent);
-                if (!obj) {
-                    ok = JS_FALSE;
-                    goto out;
-                }
+            SAVE_SP_AND_PC(fp);
+            obj = js_CloneFunctionObject(cx, obj, parent);
+            if (!obj) {
+                ok = JS_FALSE;
+                goto out;
             }
 
             fp->vars[slot] = OBJECT_TO_JSVAL(obj);
@@ -5547,23 +5513,12 @@ interrupt:
 
             if (fp->flags & JSFRAME_POP_BLOCKS) {
                 JS_ASSERT(!fp->blockChain);
-
-                
-
-
-
-
-                parent = fp->scopeChain;
-                if (OBJ_GET_PROTO(cx, parent) == obj) {
-                    JS_ASSERT(OBJ_GET_CLASS(cx, parent) == &js_BlockClass);
-                } else {
-                    obj = js_CloneBlockObject(cx, obj, parent, fp);
-                    if (!obj) {
-                        ok = JS_FALSE;
-                        goto out;
-                    }
-                    fp->scopeChain = obj;
+                obj = js_CloneBlockObject(cx, obj, fp->scopeChain, fp);
+                if (!obj) {
+                    ok = JS_FALSE;
+                    goto out;
                 }
+                fp->scopeChain = obj;
             } else {
                 JS_ASSERT(!fp->blockChain ||
                           OBJ_GET_PARENT(cx, obj) == fp->blockChain);
