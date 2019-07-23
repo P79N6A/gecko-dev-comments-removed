@@ -39,6 +39,8 @@
 
 #include "cairoint.h"
 
+#if CAIRO_HAS_FONT_SUBSET
+
 
 
 
@@ -191,5 +193,7 @@ typedef struct _tt_glyph_data {
     int8_t            data[8];
     tt_composite_glyph_t glyph;
 } tt_glyph_data_t;
+
+#endif 
 
 #endif 

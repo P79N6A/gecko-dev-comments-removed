@@ -41,19 +41,78 @@
 #define _BSD_SOURCE
 #include "cairoint.h"
 
-
-
-
 static const cairo_font_face_backend_t _cairo_toy_font_face_backend;
 
 
 
-const cairo_font_face_t _cairo_font_face_nil = {
-    { 0 },			
-    CAIRO_STATUS_NO_MEMORY,	
+const cairo_toy_font_face_t _cairo_font_face_nil = {
+    {
+    { 0 },				
+    CAIRO_STATUS_NO_MEMORY,		
     CAIRO_REFERENCE_COUNT_INVALID,	
-    { 0, 0, 0, NULL },		
+    { 0, 0, 0, NULL },			
     &_cairo_toy_font_face_backend
+    },
+    CAIRO_FONT_FAMILY_DEFAULT,		
+    TRUE,				
+    CAIRO_FONT_SLANT_DEFAULT,		
+    CAIRO_FONT_WEIGHT_DEFAULT		
+};
+
+static const cairo_toy_font_face_t _cairo_font_face_null_pointer = {
+    {
+    { 0 },				
+    CAIRO_STATUS_NULL_POINTER,		
+    CAIRO_REFERENCE_COUNT_INVALID,	
+    { 0, 0, 0, NULL },			
+    &_cairo_toy_font_face_backend
+    },
+    CAIRO_FONT_FAMILY_DEFAULT,		
+    TRUE,				
+    CAIRO_FONT_SLANT_DEFAULT,		
+    CAIRO_FONT_WEIGHT_DEFAULT		
+};
+
+static const cairo_toy_font_face_t _cairo_font_face_invalid_string = {
+    {
+    { 0 },				
+    CAIRO_STATUS_INVALID_STRING,	
+    CAIRO_REFERENCE_COUNT_INVALID,	
+    { 0, 0, 0, NULL },			
+    &_cairo_toy_font_face_backend
+    },
+    CAIRO_FONT_FAMILY_DEFAULT,		
+    TRUE,				
+    CAIRO_FONT_SLANT_DEFAULT,		
+    CAIRO_FONT_WEIGHT_DEFAULT		
+};
+
+static const cairo_toy_font_face_t _cairo_font_face_invalid_slant = {
+    {
+    { 0 },				
+    CAIRO_STATUS_INVALID_SLANT,		
+    CAIRO_REFERENCE_COUNT_INVALID,	
+    { 0, 0, 0, NULL },			
+    &_cairo_toy_font_face_backend
+    },
+    CAIRO_FONT_FAMILY_DEFAULT,		
+    TRUE,				
+    CAIRO_FONT_SLANT_DEFAULT,		
+    CAIRO_FONT_WEIGHT_DEFAULT		
+};
+
+static const cairo_toy_font_face_t _cairo_font_face_invalid_weight = {
+    {
+    { 0 },				
+    CAIRO_STATUS_INVALID_WEIGHT,	
+    CAIRO_REFERENCE_COUNT_INVALID,	
+    { 0, 0, 0, NULL },			
+    &_cairo_toy_font_face_backend
+    },
+    CAIRO_FONT_FAMILY_DEFAULT,		
+    TRUE,				
+    CAIRO_FONT_SLANT_DEFAULT,		
+    CAIRO_FONT_WEIGHT_DEFAULT		
 };
 
 cairo_status_t
@@ -383,14 +442,53 @@ _cairo_toy_font_face_keys_equal (const void *key_a,
 
 
 
+
+
+
+
+
+
+
+
+
 cairo_font_face_t *
-_cairo_toy_font_face_create (const char          *family,
-			     cairo_font_slant_t   slant,
-			     cairo_font_weight_t  weight)
+cairo_toy_font_face_create (const char          *family,
+			    cairo_font_slant_t   slant,
+			    cairo_font_weight_t  weight)
 {
     cairo_status_t status;
     cairo_toy_font_face_t key, *font_face;
     cairo_hash_table_t *hash_table;
+
+    if (family == NULL)
+	return (cairo_font_face_t*) &_cairo_font_face_null_pointer;
+
+    
+    status = _cairo_utf8_to_ucs4 (family, -1, NULL, NULL);
+    if (status == CAIRO_STATUS_INVALID_STRING)
+	return (cairo_font_face_t*) &_cairo_font_face_invalid_string;
+    else if (status)
+	return (cairo_font_face_t*) &_cairo_font_face_nil;
+
+    switch (slant) {
+	case CAIRO_FONT_SLANT_NORMAL:
+	case CAIRO_FONT_SLANT_ITALIC:
+	case CAIRO_FONT_SLANT_OBLIQUE:
+	    break;
+	default:
+	    return (cairo_font_face_t*) &_cairo_font_face_invalid_slant;
+    }
+
+    switch (weight) {
+	case CAIRO_FONT_WEIGHT_NORMAL:
+	case CAIRO_FONT_WEIGHT_BOLD:
+	    break;
+	default:
+	    return (cairo_font_face_t*) &_cairo_font_face_invalid_weight;
+    }
+
+    if (*family == '\0')
+	family = CAIRO_FONT_FAMILY_DEFAULT;
 
     hash_table = _cairo_toy_font_face_hash_table_lock ();
     if (hash_table == NULL)
@@ -444,6 +542,7 @@ _cairo_toy_font_face_create (const char          *family,
  UNWIND:
     return (cairo_font_face_t*) &_cairo_font_face_nil;
 }
+slim_hidden_def (cairo_toy_font_face_create);
 
 static void
 _cairo_toy_font_face_destroy (void *abstract_face)
@@ -491,6 +590,77 @@ _cairo_toy_font_face_scaled_font_create (void                *abstract_font_face
 							    ctm,
 							    options,
 							    scaled_font));
+}
+
+static cairo_bool_t
+_cairo_font_face_is_toy (cairo_font_face_t *font_face)
+{
+    return font_face->backend == &_cairo_toy_font_face_backend;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+const char *
+cairo_toy_font_face_get_family (cairo_font_face_t *font_face)
+{
+    cairo_toy_font_face_t *toy_font_face = (cairo_toy_font_face_t *) font_face;
+    if (! _cairo_font_face_is_toy (font_face)) {
+	if (_cairo_font_face_set_error (font_face, CAIRO_STATUS_FONT_TYPE_MISMATCH))
+	    return CAIRO_FONT_FAMILY_DEFAULT;
+    }
+    assert (toy_font_face->owns_family);
+    return toy_font_face->family;
+}
+
+
+
+
+
+
+
+
+
+
+
+cairo_font_slant_t
+cairo_toy_font_face_get_slant (cairo_font_face_t *font_face)
+{
+    cairo_toy_font_face_t *toy_font_face = (cairo_toy_font_face_t *) font_face;
+    if (! _cairo_font_face_is_toy (font_face)) {
+	if (_cairo_font_face_set_error (font_face, CAIRO_STATUS_FONT_TYPE_MISMATCH))
+	    return CAIRO_FONT_SLANT_DEFAULT;
+    }
+    return toy_font_face->slant;
+}
+
+
+
+
+
+
+
+
+
+
+
+cairo_font_weight_t
+cairo_toy_font_face_get_weight (cairo_font_face_t *font_face)
+{
+    cairo_toy_font_face_t *toy_font_face = (cairo_toy_font_face_t *) font_face;
+    if (! _cairo_font_face_is_toy (font_face)) {
+	if (_cairo_font_face_set_error (font_face, CAIRO_STATUS_FONT_TYPE_MISMATCH))
+	    return CAIRO_FONT_WEIGHT_DEFAULT;
+    }
+    return toy_font_face->weight;
 }
 
 static const cairo_font_face_backend_t _cairo_toy_font_face_backend = {

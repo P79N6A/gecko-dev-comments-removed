@@ -38,12 +38,18 @@
 
 
 
+
 #define _BSD_SOURCE
 #include "cairoint.h"
+
+#if CAIRO_HAS_FONT_SUBSET
+
 #include "cairo-type1-private.h"
 #include "cairo-scaled-font-subsets-private.h"
 #include "cairo-output-stream-private.h"
 
+
+#if CAIRO_HAS_FT_FONT
 
 #include "cairo-ft-private.h"
 
@@ -1405,3 +1411,7 @@ _cairo_type1_scaled_font_is_type1 (cairo_scaled_font_t *scaled_font)
 
     return is_type1;
 }
+
+#endif 
+
+#endif 
