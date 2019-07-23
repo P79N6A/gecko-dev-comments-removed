@@ -1324,27 +1324,10 @@ nsXULTemplateBuilder::LoadDataSourceUrls(nsIDocument* aDocument,
         if (NS_FAILED(rv) || !uri)
             continue; 
 
-        nsCOMPtr<nsIPrincipal> principal;
-        if (!isTrusted) {
-            
-            
-
-            rv = gScriptSecurityManager->GetCodebasePrincipal(uri, getter_AddRefs(principal));
-            NS_ASSERTION(NS_SUCCEEDED(rv), "unable to get codebase principal");
-            NS_ENSURE_SUCCESS(rv, rv);
-
-            PRBool same;
-            rv = docPrincipal->Equals(principal, &same);
-            NS_ASSERTION(NS_SUCCEEDED(rv), "unable to test same origin");
-            NS_ENSURE_SUCCESS(rv, rv);
-
-            if (! same)
-                continue;
-
-            
-            
-            
-        }
+        
+        
+        if (!isTrusted && NS_FAILED(docPrincipal->CheckMayLoad(uri, PR_TRUE)))
+          continue;
 
         uriList->AppendElement(uri, PR_FALSE);
     }
@@ -1357,7 +1340,6 @@ nsXULTemplateBuilder::LoadDataSourceUrls(nsIDocument* aDocument,
                                         aShouldDelayBuilding,
                                         getter_AddRefs(mDataSource));
     NS_ENSURE_SUCCESS(rv, rv);
-
 
     if (aIsRDFQuery && mDataSource) {  
         
