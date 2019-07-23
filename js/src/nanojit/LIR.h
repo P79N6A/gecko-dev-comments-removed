@@ -681,6 +681,20 @@ namespace nanojit
             return isop(LIR_jt) || isop(LIR_jf) || isop(LIR_j);
         }
 
+        
+        
+        
+        
+        
+        
+        bool isStmt() {
+            return isGuard() || isBranch() ||
+                   (isCall() && !isCse()) ||
+                   isStore() ||
+                   isop(LIR_loop) || isop(LIR_label) || isop(LIR_live) ||
+                   isRet();
+        }
+
         void setTarget(LIns* t);
         LIns* getTarget();
 

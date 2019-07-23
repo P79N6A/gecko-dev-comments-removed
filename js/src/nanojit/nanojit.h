@@ -268,11 +268,10 @@ namespace nanojit {
 
 
         
-        LC_Liveness    = 1<<7, 
-        LC_ReadLIR     = 1<<6, 
-        LC_AfterSF_SP  = 1<<5, 
-        LC_AfterSF_RP  = 1<<4, 
-        LC_AfterDeadF  = 1<<3, 
+        LC_Liveness    = 1<<6, 
+        LC_ReadLIR     = 1<<5, 
+        LC_AfterSF_SP  = 1<<4, 
+        LC_AfterSF_RP  = 1<<3, 
         LC_RegAlloc    = 1<<2, 
         LC_Assembly    = 1<<1, 
         LC_NoCodeAddrs = 1<<0  

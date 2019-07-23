@@ -58,35 +58,6 @@ namespace nanojit
 {
     int UseSoftfloat = 0;
 
-    class DeadCodeFilter: public LirFilter
-    {
-        bool ignoreInstruction(LInsp ins)
-        {
-            LOpcode op = ins->opcode();
-            if (ins->isStore() ||
-                op == LIR_loop ||
-                op == LIR_label ||
-                op == LIR_live ||
-                op == LIR_start ||
-                ins->isRet()) {
-                return false;
-            }
-            return !ins->resv()->used;
-        }
-
-    public:
-        DeadCodeFilter(LirFilter *in) : LirFilter(in) {}
-        LInsp read() {
-            for (;;) {
-                LInsp i = in->read();
-                if (i->isGuard() || i->isBranch()
-                    || (i->isCall() && !i->isCse())
-                    || !ignoreInstruction(i))
-                    return i;
-            }
-        }
-    };
-
 #ifdef NJ_VERBOSE
     class VerboseBlockReader: public LirFilter
     {
@@ -821,8 +792,7 @@ namespace nanojit
         verbose_only(
         ReverseLister *pp_init = NULL,
                       *pp_after_sf1 = NULL,
-                      *pp_after_sf2 = NULL,
-                      *pp_after_dead = NULL;
+                      *pp_after_sf2 = NULL;
         )
 
         
@@ -858,18 +828,8 @@ namespace nanojit
 
         verbose_only( if (_logc->lcbits & LC_AfterSF_RP) {
         pp_after_sf2 = new ReverseLister(prev, gc, frag->lirbuf->names, _logc,
-                                         "After StoreFilter(rp)");
+                                         "After StoreFilter(rp) (final LIR)");
         prev = pp_after_sf2;
-        })
-
-        
-        DeadCodeFilter deadfilter(prev);
-        prev = &deadfilter;
-
-        verbose_only( if (_logc->lcbits & LC_AfterDeadF) {
-        pp_after_dead = new ReverseLister(prev, gc, frag->lirbuf->names, _logc,
-                                          "After DeadFilter == Final LIR");
-        prev = pp_after_dead;
         })
 
         
@@ -920,8 +880,7 @@ namespace nanojit
         if (pp_init)       delete pp_init;
         if (pp_after_sf1)  delete pp_after_sf1;
         if (pp_after_sf2)  delete pp_after_sf2;
-        if (pp_after_dead) delete pp_after_dead;
-           )
+        )
     }
 
     void Assembler::endAssembly(Fragment* frag, NInsList& loopJumps)
@@ -1128,8 +1087,49 @@ namespace nanojit
 
         InsList pending_lives(_gc);
 
-        for (LInsp ins = reader->read(); !ins->isop(LIR_start) && !error(); ins = reader->read())
+        for (LInsp ins = reader->read(); !ins->isop(LIR_start) && !error();
+                                         ins = reader->read())
         {
+            
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+            bool required = ins->isStmt() || ins->resv()->used;
+            if (!required)
+                continue;
+ 
             LOpcode op = ins->opcode();
             switch(op)
             {
