@@ -67,14 +67,9 @@ var observer = {
     }
   }
 };
+os.addObserver(observer, NS_PLACES_INIT_COMPLETE_TOPIC, false);
 
 function run_test() {
-  
-  
-  return;
-
-  os.addObserver(observer, NS_PLACES_INIT_COMPLETE_TOPIC, false);
-
   
   remove_bookmarks_html();
   
