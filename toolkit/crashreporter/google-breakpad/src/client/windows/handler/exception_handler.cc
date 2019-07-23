@@ -40,13 +40,12 @@
 
 namespace google_breakpad {
 
-static const int kWaitForHandlerThreadMs = 60000;
 static const int kExceptionHandlerThreadInitialStackSize = 64 * 1024;
 
 vector<ExceptionHandler*>* ExceptionHandler::handler_stack_ = NULL;
 LONG ExceptionHandler::handler_stack_index_ = 0;
 CRITICAL_SECTION ExceptionHandler::handler_stack_critical_section_;
-volatile LONG ExceptionHandler::instance_count_ = 0;
+bool ExceptionHandler::handler_stack_critical_section_initialized_ = false;
 
 ExceptionHandler::ExceptionHandler(const wstring& dump_path,
                                    FilterCallback filter,
@@ -89,7 +88,6 @@ void ExceptionHandler::Initialize(const wstring& dump_path,
                                   MINIDUMP_TYPE dump_type,
                                   const wchar_t* pipe_name,
                                   const CustomClientInfo* custom_info) {
-  LONG instance_count = InterlockedIncrement(&instance_count_);
   filter_ = filter;
   callback_ = callback;
   callback_context_ = callback_context;
@@ -108,7 +106,6 @@ void ExceptionHandler::Initialize(const wstring& dump_path,
 #endif  
   previous_pch_ = NULL;
   handler_thread_ = NULL;
-  is_shutdown_ = false;
   handler_start_semaphore_ = NULL;
   handler_finish_semaphore_ = NULL;
   requesting_thread_id_ = 0;
@@ -180,22 +177,12 @@ void ExceptionHandler::Initialize(const wstring& dump_path,
     set_dump_path(dump_path);
   }
 
-  
-  
-  
-  
-  
-  
-  
-  
-  
-
-  
-  if (instance_count == 1) {
-    InitializeCriticalSection(&handler_stack_critical_section_);
-  }
-
   if (handler_types != HANDLER_NONE) {
+    if (!handler_stack_critical_section_initialized_) {
+      InitializeCriticalSection(&handler_stack_critical_section_);
+      handler_stack_critical_section_initialized_ = true;
+    }
+
     EnterCriticalSection(&handler_stack_critical_section_);
 
     
@@ -272,35 +259,11 @@ ExceptionHandler::~ExceptionHandler() {
   
   
   if (!IsOutOfProcess()) {
-#ifdef BREAKPAD_NO_TERMINATE_THREAD
     
-    
-    
-    
-    
-    
-    is_shutdown_ = true;
-    ReleaseSemaphore(handler_start_semaphore_, 1, NULL);
-    WaitForSingleObject(handler_thread_, kWaitForHandlerThreadMs);
-#else
     TerminateThread(handler_thread_, 1);
-#endif  
-
-    CloseHandle(handler_thread_);
-    handler_thread_ = NULL;
     DeleteCriticalSection(&handler_critical_section_);
     CloseHandle(handler_start_semaphore_);
     CloseHandle(handler_finish_semaphore_);
-  }
-
-  
-  
-  
-  
-  
-  
-  if (InterlockedDecrement(&instance_count_) == 0) {
-    DeleteCriticalSection(&handler_stack_critical_section_);
   }
 }
 
@@ -315,15 +278,8 @@ DWORD ExceptionHandler::ExceptionHandlerThreadMain(void* lpParameter) {
     if (WaitForSingleObject(self->handler_start_semaphore_, INFINITE) ==
         WAIT_OBJECT_0) {
       
-      if (self->is_shutdown_) {
-        
-        break;
-      } else {
-        self->handler_return_value_ =
-            self->WriteMinidumpWithException(self->requesting_thread_id_,
-                                             self->exception_info_,
-                                             self->assertion_);
-      }
+      self->handler_return_value_ = self->WriteMinidumpWithException(
+          self->requesting_thread_id_, self->exception_info_, self->assertion_);
 
       
       ReleaseSemaphore(self->handler_finish_semaphore_, 1, NULL);

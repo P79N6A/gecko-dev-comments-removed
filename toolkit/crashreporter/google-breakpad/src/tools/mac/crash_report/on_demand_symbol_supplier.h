@@ -47,7 +47,7 @@ class OnDemandSymbolSupplier : public SymbolSupplier {
  public:
   
   
-  OnDemandSymbolSupplier(const string &search_dir,
+  OnDemandSymbolSupplier(const string &search_dir, 
                          const string &symbol_search_dir);
   virtual ~OnDemandSymbolSupplier() {}
 
@@ -56,16 +56,11 @@ class OnDemandSymbolSupplier : public SymbolSupplier {
                                      const SystemInfo *system_info,
                                      string *symbol_file);
 
-  
-  virtual SymbolResult GetSymbolFile(const CodeModule *module,
-                                     const SystemInfo *system_info,
-                                     string *symbol_file,
-                                     string *symbol_data);
  protected:
   
   string search_dir_;
   string symbol_search_dir_;
-
+  
   
   
   map<string, string> module_file_map_;

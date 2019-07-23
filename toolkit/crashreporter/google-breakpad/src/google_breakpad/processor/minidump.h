@@ -336,9 +336,7 @@ class MinidumpThreadList : public MinidumpStream {
   }
   static u_int32_t max_threads() { return max_threads_; }
 
-  unsigned int thread_count() const {
-    return valid_ ? thread_count_ : 0;
-  }
+  unsigned int thread_count() const { return valid_ ? thread_count_ : 0; }
 
   
   MinidumpThread* GetThreadAtIndex(unsigned int index) const;
@@ -757,11 +755,8 @@ class Minidump {
   
   explicit Minidump(const string& path);
 
-  virtual ~Minidump();
+  ~Minidump();
 
-  virtual string path() const {
-    return path_;
-  }
   static void set_max_streams(u_int32_t max_streams) {
     max_streams_ = max_streams;
   }
@@ -772,19 +767,19 @@ class Minidump {
   }
   static u_int32_t max_string_length() { return max_string_length_; }
 
-  virtual const MDRawHeader* header() const { return valid_ ? &header_ : NULL; }
+  const MDRawHeader* header() const { return valid_ ? &header_ : NULL; }
 
   
   
   
   
-  virtual bool Read();
+  bool Read();
 
   
   
   
   
-  virtual MinidumpThreadList* GetThreadList();
+  MinidumpThreadList* GetThreadList();
   MinidumpModuleList* GetModuleList();
   MinidumpMemoryList* GetMemoryList();
   MinidumpException* GetException();

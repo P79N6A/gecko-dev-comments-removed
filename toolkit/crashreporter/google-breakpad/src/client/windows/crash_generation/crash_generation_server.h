@@ -241,7 +241,7 @@ class CrashGenerationServer {
   
   
   
-  volatile IPCServerState server_state_;
+  IPCServerState server_state_;
 
   
   volatile bool shutting_down_;

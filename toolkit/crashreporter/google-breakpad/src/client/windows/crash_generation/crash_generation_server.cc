@@ -130,19 +130,6 @@ CrashGenerationServer::~CrashGenerationServer() {
   shutting_down_ = true;
 
   
-  
-  
-  
-  
-  
-  
-  DisconnectNamedPipe(pipe_);
-  int num_tries = 100;
-  while (num_tries-- && server_state_ != IPC_SERVER_STATE_ERROR) {
-    Sleep(10);
-  }
-
-  
   if (pipe_wait_handle_) {
     
     UnregisterWaitEx(pipe_wait_handle_, INVALID_HANDLE_VALUE);
@@ -642,14 +629,6 @@ bool CrashGenerationServer::RespondToClient(ClientInfo* client_info) {
 
 
 void CrashGenerationServer::HandleConnectionRequest() {
-  
-  
-  if (shutting_down_) {
-    server_state_ = IPC_SERVER_STATE_ERROR;
-    ResetEvent(overlapped_.hEvent);
-    return;
-  }
-
   switch (server_state_) {
     case IPC_SERVER_STATE_ERROR:
       HandleErrorState();

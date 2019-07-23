@@ -36,7 +36,6 @@
 
 #include <cassert>
 #include <cstdlib>
-#include <cstdio>
 #include <ctime>
 #include <linux/limits.h>
 
@@ -81,15 +80,6 @@ ExceptionHandler::ExceptionHandler(const string &dump_path,
       dump_path_(),
       installed_handler_(install_handler) {
   set_dump_path(dump_path);
-
-  act_.sa_handler = HandleException;
-  act_.sa_flags = SA_ONSTACK;
-  sigemptyset(&act_.sa_mask);
-  
-  
-  for ( size_t i = 0; i < sizeof(SigTable) / sizeof(SigTable[0]); ++i) {
-    sigaddset(&act_.sa_mask, SigTable[i]);
-  }
 
   if (install_handler) {
     SetupHandler();
@@ -159,26 +149,20 @@ void ExceptionHandler::SetupHandler() {
 }
 
 void ExceptionHandler::SetupHandler(int signo) {
-
-  
-  
-  
-  
-  struct sigaction *old_act = &old_actions_[signo];
-
-  if (sigaction(signo, &act_, old_act) < 0)
-   return;
+  struct sigaction act, old_act;
+  act.sa_handler = HandleException;
+  act.sa_flags = SA_ONSTACK;
+  if (sigaction(signo, &act, &old_act) < 0)
+    return;
+  old_handlers_[signo] = old_act.sa_handler;
 }
 
 void ExceptionHandler::TeardownHandler(int signo) {
-  TeardownHandler(signo, NULL);
-}
-
-void ExceptionHandler::TeardownHandler(int signo, struct sigaction *final_handler) {
-  if (old_actions_[signo].sa_handler) {
-    struct sigaction *act = &old_actions_[signo];
-    sigaction(signo, act, final_handler);
-    memset(&old_actions_[signo], 0x0, sizeof(struct sigaction));
+  if (old_handlers_.find(signo) != old_handlers_.end()) {
+    struct sigaction act;
+    act.sa_handler = old_handlers_[signo];
+    act.sa_flags = 0;
+    sigaction(signo, &act, 0);
   }
 }
 
@@ -209,8 +193,7 @@ void ExceptionHandler::HandleException(int signo) {
   pthread_mutex_unlock(&handler_stack_mutex_);
 
   
-  struct sigaction old_action;
-  current_handler->TeardownHandler(signo, &old_action);
+  current_handler->TeardownHandler(signo);
 
   struct sigcontext *sig_ctx = NULL;
   if (current_handler->InternalWriteMinidump(signo, current_ebp, &sig_ctx)) {
@@ -219,23 +202,11 @@ void ExceptionHandler::HandleException(int signo) {
   } else {
     
     
-    if (old_action.sa_handler != NULL && sig_ctx != NULL) {
-
-      
-      
-      typedef void (*SignalHandler)(int signo, struct sigcontext);
-
-      SignalHandler old_handler =
-          reinterpret_cast<SignalHandler>(old_action.sa_handler);
-
-      sigset_t old_set;
-      
-      
-      sigprocmask(SIG_BLOCK, &old_action.sa_mask, &old_set);
+    typedef void (*SignalHandler)(int signo, struct sigcontext);
+    SignalHandler old_handler =
+      reinterpret_cast<SignalHandler>(current_handler->old_handlers_[signo]);
+    if (old_handler != NULL && sig_ctx != NULL)
       old_handler(signo, *sig_ctx);
-      sigprocmask(SIG_SETMASK, &old_set, NULL);
-    }
-
   }
 
   pthread_mutex_lock(&handler_stack_mutex_);
@@ -276,7 +247,7 @@ bool ExceptionHandler::InternalWriteMinidump(int signo,
 
   
   if (blocked) {
-    sigprocmask(SIG_SETMASK, &sig_old, NULL);
+    sigprocmask(SIG_SETMASK, &sig_old, &sig_old);
   }
 
   if (callback_)

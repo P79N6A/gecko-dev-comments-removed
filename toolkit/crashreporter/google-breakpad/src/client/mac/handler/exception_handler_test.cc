@@ -31,6 +31,14 @@
 
 
 
+
+
+
+
+
+
+
+
 #include <pthread.h>
 #include <pwd.h>
 #include <unistd.h>
@@ -47,11 +55,10 @@ static void *SleepyFunction(void *) {
   while (1) {
     sleep(10000);
   }
-  return NULL;
 }
 
 static void Crasher() {
-  int *a = (int*)0x42;
+  int *a = NULL;
 
 	fprintf(stdout, "Going to crash...\n");
   fprintf(stdout, "A = %d", *a);
@@ -70,14 +77,15 @@ bool MDCallback(const char *dump_dir, const char *file_name,
 
   fprintf(stdout, "Minidump: %s\n", path.c_str());
   
-  exit(0);
+  return true;
 }
 
 int main(int argc, char * const argv[]) {
   char buffer[PATH_MAX];
+  struct passwd *user = getpwuid(getuid());
 
   
-  snprintf(buffer, sizeof(buffer), "/tmp/");
+  snprintf(buffer, sizeof(buffer), "/Users/%s/Desktop/", user->pw_name);
 
   string path(buffer);
   ExceptionHandler eh(path, NULL, MDCallback, NULL, true);
@@ -89,8 +97,8 @@ int main(int argc, char * const argv[]) {
     perror("pthread_create");
   }
 
-
-
+  
+  eh.WriteMinidump();
 
 	
   SoonToCrash();

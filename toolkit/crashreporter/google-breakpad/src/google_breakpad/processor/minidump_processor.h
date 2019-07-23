@@ -30,7 +30,6 @@
 #ifndef GOOGLE_BREAKPAD_PROCESSOR_MINIDUMP_PROCESSOR_H__
 #define GOOGLE_BREAKPAD_PROCESSOR_MINIDUMP_PROCESSOR_H__
 
-#include <cassert>
 #include <string>
 #include "google_breakpad/common/breakpad_types.h"
 
@@ -44,52 +43,15 @@ class SourceLineResolverInterface;
 class SymbolSupplier;
 class SystemInfo;
 
-enum ProcessResult {
-  PROCESS_OK,                                 
-                                              
-                                              
-
-  PROCESS_ERROR_MINIDUMP_NOT_FOUND,           
-                                              
-
-  PROCESS_ERROR_NO_MINIDUMP_HEADER,           
-                                              
-
-  PROCESS_ERROR_NO_THREAD_LIST,               
-                                              
-
-  PROCESS_ERROR_GETTING_THREAD,               
-                                              
-                                              
-                                              
-
-  PROCESS_ERROR_GETTING_THREAD_ID,            
-                                              
-                                              
-                                              
-
-  PROCESS_ERROR_DUPLICATE_REQUESTING_THREADS, 
-                                              
-                                              
-
-  PROCESS_ERROR_NO_MEMORY_FOR_THREAD,         
-                                              
-
-  PROCESS_ERROR_NO_STACKWALKER_FOR_THREAD,    
-                                              
-                                              
-                                              
-                                              
-
-  PROCESS_SYMBOL_SUPPLIER_INTERRUPTED         
-                                              
-                                              
-                                              
-                                              
-};
-
 class MinidumpProcessor {
  public:
+  
+  enum ProcessResult {
+    PROCESS_OK,           
+    PROCESS_ERROR,        
+    PROCESS_INTERRUPTED   
+  };
+
   
   
   MinidumpProcessor(SymbolSupplier *supplier,
@@ -100,10 +62,6 @@ class MinidumpProcessor {
   ProcessResult Process(const string &minidump_file,
                         ProcessState *process_state);
 
-  
-  
-  ProcessResult Process(Minidump *minidump,
-                        ProcessState *process_state);
   
   
   
@@ -126,21 +84,6 @@ class MinidumpProcessor {
   
   static string GetCrashReason(Minidump *dump, u_int64_t *address);
 
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  static bool IsErrorUnrecoverable(ProcessResult p) {
-    assert(p !=  PROCESS_OK);
-    return (p != PROCESS_SYMBOL_SUPPLIER_INTERRUPTED);
-  }
-
  private:
   SymbolSupplier *supplier_;
   SourceLineResolverInterface *resolver_;
@@ -148,4 +91,4 @@ class MinidumpProcessor {
 
 }  
 
-#endif  
+#endif

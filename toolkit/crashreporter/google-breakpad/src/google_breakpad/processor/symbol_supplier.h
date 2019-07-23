@@ -62,19 +62,9 @@ class SymbolSupplier {
   
   
   
-  
   virtual SymbolResult GetSymbolFile(const CodeModule *module,
                                      const SystemInfo *system_info,
                                      string *symbol_file) = 0;
-  
-  
-  
-  
-  
-  virtual SymbolResult GetSymbolFile(const CodeModule *module,
-                                     const SystemInfo *system_info,
-                                     string *symbol_file,
-                                     string *symbol_data) = 0;
 };
 
 }  
