@@ -663,11 +663,14 @@ var PlacesUIUtils = {
 
 
 
-  showItemProperties: function PU_showItemProperties(aItemId, aType) {
+
+
+  showItemProperties: function PU_showItemProperties(aItemId, aType, aReadOnly) {
     var info = {
       action: "edit",
       type: aType,
-      itemId: aItemId
+      itemId: aItemId,
+      readOnly: aReadOnly
     };
     return this._showBookmarkDialog(info);
   },

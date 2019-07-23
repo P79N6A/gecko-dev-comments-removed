@@ -671,19 +671,23 @@ var PlacesOrganizer = {
       
       
       
-      if (aSelectedNode.type ==
-          Ci.nsINavHistoryResultNode.RESULT_TYPE_FOLDER_SHORTCUT) {
-        gEditItemOverlay.initPanel(asQuery(aSelectedNode).folderItemId,
-                                  { hiddenRows: ["folderPicker"],
-                                    forceReadOnly: true });
+      var concreteId = PlacesUtils.getConcreteItemId(aSelectedNode);
+      var isRootItem = concreteId != -1 && PlacesUtils.isRootItem(concreteId);
+      var readOnly = isRootItem ||
+                     aSelectedNode.parent.itemId == PlacesUIUtils.leftPaneFolderId;
+      var useConcreteId = isRootItem ||
+                          PlacesUtils.nodeIsTagQuery(aSelectedNode);
+      var itemId = -1;
+      if (concreteId != -1 && useConcreteId)
+        itemId = concreteId;
+      else if (aSelectedNode.itemId != -1)
+        itemId = aSelectedNode.itemId;
+      else
+        itemId = PlacesUtils._uri(aSelectedNode.uri);
 
-      }
-      else {
-        var itemId = PlacesUtils.getConcreteItemId(aSelectedNode);
-        gEditItemOverlay.initPanel(itemId != -1 ? itemId :
-                                   PlacesUtils._uri(aSelectedNode.uri),
-                                   { hiddenRows: ["folderPicker"] });
-      }
+      gEditItemOverlay.initPanel(itemId, { hiddenRows: ["folderPicker"],
+                                           forceReadOnly: readOnly });
+
       this._detectAndSetDetailsPaneMinimalState(aSelectedNode);
     }
     else if (!aSelectedNode && aNodeList[0]) {

@@ -92,6 +92,7 @@
 
 
 
+
 const BOOKMARK_ITEM = 0;
 const BOOKMARK_FOLDER = 1;
 const LIVEMARK_CONTAINER = 2;
@@ -127,6 +128,7 @@ var BookmarkPropertiesPanel = {
   _defaultInsertionPoint: null,
   _hiddenRows: [],
   _batching: false,
+  _readOnly: false,
 
   
 
@@ -263,6 +265,7 @@ var BookmarkPropertiesPanel = {
       this._title = PlacesUtils.bookmarks.getItemTitle(this._itemId);
       
       this._hiddenRows.push("folderPicker");
+      this._readOnly = !!dialogInfo.readOnly;
 
       switch (dialogInfo.type) {
         case "bookmark":
@@ -333,6 +336,7 @@ var BookmarkPropertiesPanel = {
     switch (this._action) {
       case ACTION_EDIT:
         this._fillEditProperties();
+        acceptButton.disabled = this._readOnly;
         break;
       case ACTION_ADD:
         this._fillAddProperties();
@@ -358,21 +362,23 @@ var BookmarkPropertiesPanel = {
           .addEventListener("DOMAttrModified", this, false);
     }
 
-    
-    if (this._itemType == BOOKMARK_ITEM) {
-      this._element("locationField")
-          .addEventListener("input", this, false);
-    }
-    else if (this._itemType == LIVEMARK_CONTAINER) {
-      this._element("feedLocationField")
-          .addEventListener("input", this, false);
-      this._element("siteLocationField")
-          .addEventListener("input", this, false);
-    }
+    if (!this._readOnly) {
+      
+      if (this._itemType == BOOKMARK_ITEM) {
+        this._element("locationField")
+            .addEventListener("input", this, false);
+      }
+      else if (this._itemType == LIVEMARK_CONTAINER) {
+        this._element("feedLocationField")
+            .addEventListener("input", this, false);
+        this._element("siteLocationField")
+            .addEventListener("input", this, false);
+      }
 
-    
-    
-    document.addEventListener("keypress", this, true);
+      
+      
+      document.addEventListener("keypress", this, true);
+    }
 
     window.sizeToContent();
   },
@@ -464,7 +470,8 @@ var BookmarkPropertiesPanel = {
 
   _fillEditProperties: function BPP__fillEditProperties() {
     gEditItemOverlay.initPanel(this._itemId,
-                               { hiddenRows: this._hiddenRows });
+                               { hiddenRows: this._hiddenRows,
+                                 forceReadOnly: this._readOnly });
   },
 
   _fillAddProperties: function BPP__fillAddProperties() {

@@ -816,6 +816,21 @@ var PlacesUtils = {
 
 
 
+
+  isRootItem: function PU_isRootItem(aItemId) {
+    return aItemId == PlacesUtils.bookmarksMenuFolderId ||
+           aItemId == PlacesUtils.toolbarFolderId ||
+           aItemId == PlacesUtils.unfiledBookmarksFolderId ||
+           aItemId == PlacesUtils.tagsFolderId ||
+           aItemId == PlacesUtils.placesRootId;
+  },
+
+  
+
+
+
+
+
   setPostDataForBookmark: function PU_setPostDataForBookmark(aBookmarkId, aPostData) {
     const annos = this.annotations;
     if (aPostData)
