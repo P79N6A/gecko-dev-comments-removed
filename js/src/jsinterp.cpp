@@ -1452,8 +1452,6 @@ JSBool
 js_InternalGetOrSet(JSContext *cx, JSObject *obj, jsid id, jsval fval,
                     JSAccessMode mode, uintN argc, jsval *argv, jsval *rval)
 {
-    JSSecurityCallbacks *callbacks;
-
     js_LeaveTrace(cx);
 
     
@@ -1461,31 +1459,6 @@ js_InternalGetOrSet(JSContext *cx, JSObject *obj, jsid id, jsval fval,
 
 
     JS_CHECK_RECURSION(cx, return JS_FALSE);
-
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    JS_ASSERT(mode == JSACC_READ || mode == JSACC_WRITE);
-    callbacks = JS_GetSecurityCallbacks(cx);
-    if (callbacks &&
-        callbacks->checkObjectAccess &&
-        VALUE_IS_FUNCTION(cx, fval) &&
-        FUN_INTERPRETED(GET_FUNCTION_PRIVATE(cx, JSVAL_TO_OBJECT(fval))) &&
-        !callbacks->checkObjectAccess(cx, obj, ID_TO_VALUE(id), mode, &fval)) {
-        return JS_FALSE;
-    }
 
     return js_InternalCall(cx, obj, fval, argc, argv, rval);
 }
