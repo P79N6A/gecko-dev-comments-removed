@@ -50,12 +50,6 @@ class nsIRadioControlFrame
 public:
   NS_DECLARE_FRAME_ACCESSOR(nsIRadioControlFrame)
 
-  
-
-
-
-   NS_IMETHOD SetRadioButtonFaceStyleContext(nsStyleContext *aRadioButtonFaceStyleContext) = 0;
-
    
 
 

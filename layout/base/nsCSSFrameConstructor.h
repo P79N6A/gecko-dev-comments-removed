@@ -562,15 +562,6 @@ protected:
 
 private:
   
-  nsresult ConstructRadioControlFrame(nsIFrame**         aNewFrame,
-                                      nsIContent*        aContent,
-                                      nsStyleContext*    aStyleContext);
-
-  
-  nsresult ConstructCheckboxControlFrame(nsIFrame**       aNewFrame,
-                                         nsIContent*      aContent,
-                                         nsStyleContext*  aStyleContext);
-  
   
   nsresult ConstructButtonFrame(nsFrameConstructorState& aState,
                                 nsIContent*              aContent,

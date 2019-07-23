@@ -45,6 +45,7 @@
 #include "nsIServiceManager.h"
 #include "nsIDOMHTMLInputElement.h"
 #include "nsDisplayList.h"
+#include "nsCSSAnonBoxes.h"
 
 static void
 PaintCheckMark(nsIRenderingContext& aRenderingContext,
@@ -97,6 +98,22 @@ NS_QUERYFRAME_HEAD(nsGfxCheckboxControlFrame)
   NS_QUERYFRAME_ENTRY(nsICheckboxControlFrame)
 NS_QUERYFRAME_TAIL_INHERITING(nsFormControlFrame)
 
+NS_IMETHODIMP
+nsGfxCheckboxControlFrame::Init(nsIContent* aContent,
+                                nsIFrame* aParent,
+                                nsIFrame* aPrevInFlow)
+{
+  nsresult rv = nsFormControlFrame::Init(aContent, aParent, aPrevInFlow);
+  if (NS_SUCCEEDED(rv)) {
+    mCheckButtonFaceStyle =
+      PresContext()->PresShell()->StyleSet()->
+        ResolvePseudoStyleFor(aContent, nsCSSAnonBoxes::check,
+                              GetStyleContext());
+  }
+
+  return rv;
+}
+
 #ifdef ACCESSIBILITY
 NS_IMETHODIMP nsGfxCheckboxControlFrame::GetAccessible(nsIAccessible** aAccessible)
 {
@@ -109,15 +126,6 @@ NS_IMETHODIMP nsGfxCheckboxControlFrame::GetAccessible(nsIAccessible** aAccessib
   return NS_ERROR_FAILURE;
 }
 #endif
-
-
-NS_IMETHODIMP
-nsGfxCheckboxControlFrame::SetCheckboxFaceStyleContext(nsStyleContext *aCheckboxFaceStyleContext)
-{
-  mCheckButtonFaceStyle = aCheckboxFaceStyleContext;
-  return NS_OK;
-}
-
 
 
 nsStyleContext*
@@ -222,6 +230,8 @@ nsGfxCheckboxControlFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
 
   
   if (mCheckButtonFaceStyle) {
+    
+    
     
     
     
