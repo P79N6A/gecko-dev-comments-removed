@@ -2204,14 +2204,13 @@ DocumentViewerImpl::MakeWindow(nsIWidget* aParentWidget,
       
       
       
+      
       nsCOMPtr<nsIDocShellTreeItem> container(do_QueryReferent(mContainer));
-      nsCOMPtr<nsIDocShellTreeItem> parentContainer;
-      PRInt32 itemType;
-      if (nsnull == container
-          || NS_FAILED(container->GetParent(getter_AddRefs(parentContainer)))
-          || nsnull == parentContainer
-          || NS_FAILED(parentContainer->GetItemType(&itemType))
-          || itemType != nsIDocShellTreeItem::typeContent) {
+      nsCOMPtr<nsIDocShellTreeItem> sameTypeParent;
+      if (container) {
+        container->GetSameTypeParent(getter_AddRefs(sameTypeParent));
+      }
+      if (!sameTypeParent) {
         containerView = nsnull;
       }
     }
