@@ -1438,9 +1438,6 @@ nsPresContext::RebuildAllStyleData(nsChangeHint aExtraHint)
     
     return;
   }
-
-  RebuildUserFontSet();
-
   mShell->FrameConstructor()->RebuildAllStyleData(aExtraHint);
 }
 
@@ -1696,130 +1693,40 @@ InsertFontFaceRule(nsCSSFontFaceRule *aRule, gfxUserFontSet* aFontSet)
   }
 }
 
-gfxUserFontSet*
+gfxUserFontSet* 
 nsPresContext::GetUserFontSet()
 {
-  
-  
-  
-  
-  
-  
-  
   if (mUserFontSetDirty) {
-    
-    
-    
-    
-    NS_ASSERTION(!mGetUserFontSetCalled,
-                 "FlushUserFontSet should have been called first");
-    FlushUserFontSet();
-  }
+    NS_IF_RELEASE(mUserFontSet);
 
-  mGetUserFontSetCalled = PR_TRUE;
-  return mUserFontSet;
-}
-
-void
-nsPresContext::FlushUserFontSet()
-{
-  if (!mShell)
-    return; 
-
-  if (mUserFontSetDirty) {
     if (gfxPlatform::GetPlatform()->DownloadableFontsEnabled()) {
-      nsRefPtr<gfxUserFontSet> oldUserFontSet = mUserFontSet;
-
       nsTArray< nsRefPtr<nsCSSFontFaceRule> > rules;
       if (!mShell->StyleSet()->AppendFontFaceRules(this, rules))
-        return;
+        return nsnull;
 
-      PRBool differ;
-      if (rules.Length() == mFontFaceRules.Length()) {
-        differ = PR_FALSE;
+      if (rules.Length() > 0) {
+        nsFontFaceLoaderContext *loaderCtx =
+          new nsFontFaceLoaderContext(this);
+        if (!loaderCtx)
+          return nsnull;
+        gfxUserFontSet *fs = new gfxUserFontSet(loaderCtx);
+        
+        if (!fs) {
+          delete loaderCtx;
+          return nsnull;
+        }
+        mUserFontSet = fs;
+        NS_ADDREF(mUserFontSet);
+
         for (PRUint32 i = 0, i_end = rules.Length(); i < i_end; ++i) {
-          if (rules[i] != mFontFaceRules[i]) {
-            differ = PR_TRUE;
-            break;
-          }
+          InsertFontFaceRule(rules[i], fs);
         }
-      } else {
-        differ = PR_TRUE;
-      }
-
-      
-      if (differ) {
-        NS_IF_RELEASE(mUserFontSet);
-
-        if (rules.Length() > 0) {
-          nsFontFaceLoaderContext *loaderCtx =
-            new nsFontFaceLoaderContext(this);
-          if (!loaderCtx)
-            return;
-          gfxUserFontSet *fs = new gfxUserFontSet(loaderCtx);
-          
-          if (!fs) {
-            delete loaderCtx;
-            return;
-          }
-          mUserFontSet = fs;
-          NS_ADDREF(mUserFontSet);
-
-          for (PRUint32 i = 0, i_end = rules.Length(); i < i_end; ++i) {
-            InsertFontFaceRule(rules[i], fs);
-          }
-        }
-      }
-
-#ifdef DEBUG
-      PRBool success =
-#endif
-        rules.SwapElements(mFontFaceRules);
-      NS_ASSERTION(success, "should never fail given both are heap arrays");
-
-      if (mGetUserFontSetCalled && oldUserFontSet != mUserFontSet) {
-        
-        
-        
-        
-        
-        
-        
-        mShell->StyleChangeReflow();
       }
     }
 
     mUserFontSetDirty = PR_FALSE;
   }
-}
-
-void
-nsPresContext::RebuildUserFontSet()
-{
-  if (!mGetUserFontSetCalled) {
-    
-    
-    
-    return;
-  }
-
-  mUserFontSetDirty = PR_TRUE;
-
-  
-  
-  
-  
-  
-  
-  
-  if (!mPostedFlushUserFontSet) {
-    nsCOMPtr<nsIRunnable> ev =
-      new nsRunnableMethod<nsPresContext>(this,
-                                     &nsPresContext::HandleRebuildUserFontSet);
-    if (NS_SUCCEEDED(NS_DispatchToCurrentThread(ev))) {
-      mPostedFlushUserFontSet = PR_TRUE;
-    }
-  }    
+  return mUserFontSet;
 }
 
 void

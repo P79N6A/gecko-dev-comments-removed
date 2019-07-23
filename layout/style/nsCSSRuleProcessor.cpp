@@ -2166,10 +2166,6 @@ nsCSSRuleProcessor::AppendFontFaceRules(
 nsresult
 nsCSSRuleProcessor::ClearRuleCascades()
 {
-  
-  
-  
-  
   RuleCascadeData *data = mRuleCascades;
   mRuleCascades = nsnull;
   while (data) {
