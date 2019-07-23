@@ -49,7 +49,6 @@
 #include "nsPresContext.h"
 #include "nsIPresShell.h"
 #include "nsIContent.h"
-#include "nsIContentViewer.h"
 #include "nsIDocument.h"
 #include "nsIDOMDocument.h"
 #include "nsIDOMWindow.h"
@@ -65,7 +64,6 @@
 #include "nsUnicharUtils.h"
 #include "nsIScriptGlobalObject.h"
 #include "nsIScriptSecurityManager.h"
-#include "nsIScrollable.h"
 #include "nsFrameLoader.h"
 #include "nsIDOMEventTarget.h"
 #include "nsIFrame.h"
@@ -76,8 +74,6 @@
 #include "nsEventDispatcher.h"
 #include "nsISHistory.h"
 #include "nsISHistoryInternal.h"
-#include "nsIDOMNSHTMLDocument.h"
-#include "nsIView.h"
 
 #include "nsIURI.h"
 #include "nsIURL.h"
@@ -87,8 +83,17 @@
 #include "nsINameSpaceManager.h"
 
 #include "nsThreadUtils.h"
-#include "nsICSSStyleSheet.h"
-#include "nsIContentViewer.h"
+#include "nsIView.h"
+
+#include "TabParent.h"
+
+#include "mozcontainer.h"
+
+#include <gdk/gdkx.h>
+#include <gtk/gtk.h>
+
+using namespace mozilla;
+using namespace mozilla::tabs;
 
 class nsAsyncDocShellDestroyer : public nsRunnable
 {
@@ -136,19 +141,6 @@ NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(nsFrameLoader)
   NS_INTERFACE_MAP_ENTRY(nsISupports)
 NS_INTERFACE_MAP_END
 
-nsFrameLoader*
-nsFrameLoader::Create(nsIContent* aOwner)
-{
-  NS_ENSURE_TRUE(aOwner, nsnull);
-  nsIDocument* doc = aOwner->GetOwnerDoc();
-  NS_ENSURE_TRUE(doc && !doc->GetDisplayDocument() &&
-                 ((!doc->IsLoadedAsData() && aOwner->GetCurrentDoc()) ||
-                   doc->IsStaticDocument()),
-                 nsnull);
-
-  return new nsFrameLoader(aOwner);
-}
-
 NS_IMETHODIMP
 nsFrameLoader::LoadFrame()
 {
@@ -164,7 +156,7 @@ nsFrameLoader::LoadFrame()
   }
 
   nsIDocument* doc = mOwnerContent->GetOwnerDoc();
-  if (!doc || doc->IsStaticDocument()) {
+  if (!doc) {
     return NS_OK;
   }
 
@@ -212,6 +204,18 @@ nsresult
 nsFrameLoader::ReallyStartLoading()
 {
   NS_ENSURE_STATE(mURIToLoad && mOwnerContent && mOwnerContent->IsInDoc());
+
+  if (!mTriedNewProcess) {
+    TryNewProcess();
+    mTriedNewProcess = PR_TRUE;
+  }
+
+  if (mChildProcess) {
+    
+    mChildProcess->LoadURL(mURIToLoad);
+    return NS_OK;
+  }
+  
   
   nsresult rv = CheckURILoad(mURIToLoad);
   NS_ENSURE_SUCCESS(rv, rv);
@@ -408,7 +412,7 @@ AddTreeItemToTreeOwner(nsIDocShellTreeItem* aItem, nsIContent* aOwningContent,
   nsAutoString value;
   PRBool isContent = PR_FALSE;
 
-  if (aOwningContent->IsXUL()) {
+  if (aOwningContent->IsNodeOfType(nsINode::eXUL)) {
       aOwningContent->GetAttr(kNameSpaceID_None, nsGkAtoms::type, value);
   }
 
@@ -471,107 +475,6 @@ AllDescendantsOfType(nsIDocShellTreeItem* aParentItem, PRInt32 aType)
   }
 
   return PR_TRUE;
-}
-
-bool
-nsFrameLoader::Show(PRInt32 marginWidth, PRInt32 marginHeight,
-                    PRInt32 scrollbarPrefX, PRInt32 scrollbarPrefY,
-                    nsIFrameFrame* frame)
-{
-  nsContentType contentType;
-
-  nsresult rv = EnsureDocShell();
-  if (NS_FAILED(rv)) {
-    return false;
-  }
-
-  if (!mDocShell)
-    return false;
-
-  nsCOMPtr<nsIPresShell> presShell;
-  mDocShell->GetPresShell(getter_AddRefs(presShell));
-  if (presShell)
-    return true;
-
-  mDocShell->SetMarginWidth(marginWidth);
-  mDocShell->SetMarginHeight(marginHeight);
-
-  nsCOMPtr<nsIScrollable> sc = do_QueryInterface(mDocShell);
-  if (sc) {
-    sc->SetDefaultScrollbarPreferences(nsIScrollable::ScrollOrientation_X,
-                                       scrollbarPrefX);
-    sc->SetDefaultScrollbarPreferences(nsIScrollable::ScrollOrientation_Y,
-                                       scrollbarPrefY);
-  }
-
-
-  nsCOMPtr<nsIDocShellTreeItem> treeItem = do_QueryInterface(mDocShell);
-  NS_ASSERTION(treeItem,
-               "Found a nsIDocShell that isn't a nsIDocShellTreeItem.");
-
-  PRInt32 itemType;
-  treeItem->GetItemType(&itemType);
-
-  if (itemType == nsIDocShellTreeItem::typeChrome)
-    contentType = eContentTypeUI;
-  else {
-    nsCOMPtr<nsIDocShellTreeItem> sameTypeParent;
-    treeItem->GetSameTypeParent(getter_AddRefs(sameTypeParent));
-    contentType = sameTypeParent ? eContentTypeContentFrame : eContentTypeContent;
-  }
-
-  nsIView* view = frame->CreateViewAndWidget(contentType);
-  if (!view)
-    return false;
-
-  nsCOMPtr<nsIBaseWindow> baseWindow = do_QueryInterface(mDocShell);
-  NS_ASSERTION(baseWindow, "Found a nsIDocShell that isn't a nsIBaseWindow.");
-  baseWindow->InitWindow(nsnull, view->GetWidget(), 0, 0, 10, 10);
-  
-  
-  
-  baseWindow->Create();
-  baseWindow->SetVisibility(PR_TRUE);
-
-  
-  
-  
-  
-  mDocShell->GetPresShell(getter_AddRefs(presShell));
-  if (presShell) {
-    nsCOMPtr<nsIDOMNSHTMLDocument> doc =
-      do_QueryInterface(presShell->GetDocument());
-
-    if (doc) {
-      nsAutoString designMode;
-      doc->GetDesignMode(designMode);
-
-      if (designMode.EqualsLiteral("on")) {
-        doc->SetDesignMode(NS_LITERAL_STRING("off"));
-        doc->SetDesignMode(NS_LITERAL_STRING("on"));
-      }
-    }
-  }
-
-  return true;
-}
-
-void
-nsFrameLoader::Hide()
-{
-  if (!mDocShell)
-    return;
-
-  nsCOMPtr<nsIContentViewer> contentViewer;
-  mDocShell->GetContentViewer(getter_AddRefs(contentViewer));
-  if (contentViewer)
-    contentViewer->SetSticky(PR_FALSE);
-
-  nsCOMPtr<nsIBaseWindow> baseWin = do_QueryInterface(mDocShell);
-  NS_ASSERTION(baseWin,
-               "Found an nsIDocShell which doesn't implement nsIBaseWindow.");
-  baseWin->SetVisibility(PR_FALSE);
-  baseWin->SetParentWidget(nsnull);
 }
 
 nsresult
@@ -914,8 +817,8 @@ nsFrameLoader::EnsureDocShell()
   
   
   
-  nsIDocument* doc = mOwnerContent->GetOwnerDoc();
-  if (!doc || !(doc->IsStaticDocument() || mOwnerContent->IsInDoc())) {
+  nsIDocument* doc = mOwnerContent->GetDocument();
+  if (!doc) {
     return NS_ERROR_UNEXPECTED;
   }
 
@@ -924,9 +827,8 @@ nsFrameLoader::EnsureDocShell()
     return NS_ERROR_NOT_AVAILABLE;
   }
 
-  nsCOMPtr<nsISupports> container =
-    doc->GetContainer();
-  nsCOMPtr<nsIWebNavigation> parentAsWebNav = do_QueryInterface(container);
+  nsCOMPtr<nsIWebNavigation> parentAsWebNav =
+    do_GetInterface(doc->GetScriptGlobalObject());
 
   
   mDocShell = do_CreateInstance("@mozilla.org/docshell;1");
@@ -1129,27 +1031,102 @@ nsFrameLoader::CheckForRecursiveLoad(nsIURI* aURI)
   return NS_OK;
 }
 
-nsresult
-nsFrameLoader::CreateStaticClone(nsIFrameLoader* aDest)
+PRBool
+nsFrameLoader::TryNewProcess()
 {
-  nsFrameLoader* dest = static_cast<nsFrameLoader*>(aDest);
-  dest->EnsureDocShell();
-  NS_ENSURE_STATE(dest->mDocShell);
+  nsIDocument* doc = mOwnerContent->GetDocument();
+  if (!doc) {
+    return NS_ERROR_UNEXPECTED;
+  }
 
-  nsCOMPtr<nsIDOMDocument> dummy = do_GetInterface(dest->mDocShell);
-  nsCOMPtr<nsIContentViewer> viewer;
-  dest->mDocShell->GetContentViewer(getter_AddRefs(viewer));
-  NS_ENSURE_STATE(viewer);
+  if (doc->GetDisplayDocument()) {
+    
+    return NS_ERROR_NOT_AVAILABLE;
+  }
 
-  nsCOMPtr<nsIDocShell> origDocShell;
-  GetDocShell(getter_AddRefs(origDocShell));
-  nsCOMPtr<nsIDOMDocument> domDoc = do_GetInterface(origDocShell);
+  nsCOMPtr<nsIWebNavigation> parentAsWebNav =
+    do_GetInterface(doc->GetScriptGlobalObject());
 
-  nsCOMPtr<nsIDocument> doc = do_QueryInterface(domDoc);
-  NS_ENSURE_STATE(doc);
-  nsCOMPtr<nsIDocument> clonedDoc = doc->CreateStaticClone(dest->mDocShell);
-  nsCOMPtr<nsIDOMDocument> clonedDOMDoc = do_QueryInterface(clonedDoc);
+  if (!parentAsWebNav) {
+    return PR_FALSE;
+  }
 
-  viewer->SetDOMDocument(clonedDOMDoc);
-  return NS_OK;
+  nsCOMPtr<nsIDocShellTreeItem> parentAsItem(do_QueryInterface(parentAsWebNav));
+
+  PRInt32 parentType;
+  parentAsItem->GetItemType(&parentType);
+
+  if (parentType != nsIDocShellTreeItem::typeChrome) {
+    return PR_FALSE;
+  }
+
+  if (!mOwnerContent->IsNodeOfType(nsINode::eXUL)) {
+    return PR_FALSE;
+  }
+
+  NS_ERROR("trying to start new process");
+  nsAutoString value;
+  mOwnerContent->GetAttr(kNameSpaceID_None, nsGkAtoms::type, value);
+
+  if (!value.LowerCaseEqualsLiteral("content") &&
+      !StringBeginsWith(value, NS_LITERAL_STRING("content-"),
+                        nsCaseInsensitiveStringComparator())) {
+    return PR_FALSE;
+  }
+
+  
+
+  
+  doc->FlushPendingNotifications(Flush_Layout);
+  nsIFrame* ourFrame =
+    doc->GetPrimaryShell()->GetPrimaryFrameFor(mOwnerContent);
+  nsIView* ancestorView = ourFrame->GetView();
+
+  nsIView* firstChild = ancestorView->GetFirstChild();
+  if (!firstChild) {
+    NS_ERROR("no first child");
+    return PR_FALSE;
+  }
+
+  nsIWidget* w = firstChild->GetWidget();
+  if (!w) {
+    NS_ERROR("we're stuffed!");
+    return PR_FALSE;
+  }
+  
+  
+
+  GdkWindow* parent_win =
+    static_cast<GdkWindow*>(w->GetNativeData(NS_NATIVE_WINDOW));
+  
+  gpointer user_data = nsnull;
+  gdk_window_get_user_data(parent_win, &user_data);
+
+  MozContainer* parentMozContainer = MOZ_CONTAINER(user_data);
+  GtkContainer* container = GTK_CONTAINER(parentMozContainer);
+
+  
+  GtkWidget* socket = gtk_socket_new();
+  gtk_widget_set_parent_window(socket, parent_win);
+  gtk_container_add(container, socket);
+  gtk_widget_realize(socket);
+
+  
+  nsPresContext* presContext = ourFrame->PresContext();
+  GtkAllocation alloc;
+  alloc.x = 0;                  
+  alloc.y = 0;
+  alloc.width = presContext->AppUnitsToDevPixels(ourFrame->GetSize().width);
+  alloc.height = presContext->AppUnitsToDevPixels(ourFrame->GetSize().height);
+  gtk_widget_size_allocate(socket, &alloc);
+
+  gtk_widget_show(socket);
+
+  GdkNativeWindow id = gtk_socket_get_id((GtkSocket*)socket);
+
+  mChildProcess = new TabParent(id);
+
+  mChildProcess->Move(0, 0, alloc.width, alloc.height);
+
+  return PR_TRUE;
 }

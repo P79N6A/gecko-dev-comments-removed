@@ -88,6 +88,7 @@
 #include "nsIJSContextStack.h"
 #include "nsIScriptObjectPrincipal.h"
 #include "nsDocumentCharsetInfoCID.h"
+#include "nsICanvasFrame.h"
 #include "nsIScrollableFrame.h"
 #include "nsContentPolicyUtils.h" 
 #include "nsICategoryManager.h"
@@ -201,11 +202,6 @@
 
 
 #include "nsIWebBrowserChromeFocus.h"
-
-#if NS_PRINT_PREVIEW
-#include "nsIDocumentViewerPrint.h"
-#include "nsIWebBrowserPrint.h"
-#endif
 
 #include "nsPluginError.h"
 
@@ -360,7 +356,7 @@ ForEachPing(nsIContent *content, ForEachPingCallback callback, void *closure)
 
   
   
-  if (!content->IsHTML())
+  if (!content->IsNodeOfType(nsINode::eHTML))
     return;
   nsIAtom *nameAtom = content->Tag();
   if (!nameAtom->EqualsUTF8(NS_LITERAL_CSTRING("a")) &&
@@ -3799,14 +3795,35 @@ nsDocShell::LoadErrorPage(nsIURI *aURI, const PRUnichar *aURL,
                 spec.get(), NS_ConvertUTF16toUTF8(aURL).get(), chanName.get()));
     }
 #endif
-    mFailedChannel = aFailedChannel;
-    mFailedURI = aURI;
-    mFailedLoadType = mLoadType;
+    
+    if (aFailedChannel) {
+        mURIResultedInDocument = PR_TRUE;
+        OnLoadingSite(aFailedChannel, PR_TRUE, PR_FALSE);
+    } else if (aURI) {
+        mURIResultedInDocument = PR_TRUE;
+        OnNewURI(aURI, nsnull, nsnull, mLoadType, PR_TRUE, PR_FALSE);
+    }
+    
+    
+    if (mSessionHistory && !mLSHE) {
+        PRInt32 idx;
+        mSessionHistory->GetRequestedIndex(&idx);
+        if (idx == -1)
+            mSessionHistory->GetIndex(&idx);
+
+        nsCOMPtr<nsIHistoryEntry> entry;
+        mSessionHistory->GetEntryAtIndex(idx, PR_FALSE,
+                                         getter_AddRefs(entry));
+        mLSHE = do_QueryInterface(entry);
+    }
 
     nsCAutoString url;
     nsCAutoString charset;
     if (aURI)
     {
+        
+        SetCurrentURI(aURI);
+
         nsresult rv = aURI->GetSpec(url);
         rv |= aURI->GetOriginCharset(charset);
         NS_ENSURE_SUCCESS(rv, rv);
@@ -3934,17 +3951,6 @@ nsDocShell::Stop(PRUint32 aStopFlags)
 {
     
     mRestorePresentationEvent.Revoke();
-
-    if (mLoadType == LOAD_ERROR_PAGE) {
-        if (mLSHE) {
-            
-            SetHistoryEntry(&mOSHE, mLSHE);
-            SetHistoryEntry(&mLSHE, nsnull);
-        }
-
-        mFailedChannel = nsnull;
-        mFailedURI = nsnull;
-    }
 
     if (nsIWebNavigation::STOP_CONTENT & aStopFlags) {
         
@@ -4135,6 +4141,8 @@ nsDocShell::InitWindow(nativeWindow parentNativeWindow,
                        nsIWidget * parentWidget, PRInt32 x, PRInt32 y,
                        PRInt32 cx, PRInt32 cy)
 {
+    NS_ENSURE_ARG(parentWidget);        
+
     SetParentWidget(parentWidget);
     SetPositionAndSize(x, y, cx, cy, PR_FALSE);
 
@@ -4363,14 +4371,10 @@ nsDocShell::GetPositionAndSize(PRInt32 * x, PRInt32 * y, PRInt32 * cx,
 {
     
     
-    if (cx || cy) {
-        
-        
-        nsCOMPtr<nsIDOMDocument> document(do_GetInterface(GetAsSupports(mParent)));
-        nsCOMPtr<nsIDocument> doc(do_QueryInterface(document));
-        if (doc) {
-            doc->FlushPendingNotifications(Flush_Layout);
-        }
+    nsCOMPtr<nsIDOMDocument> document(do_GetInterface(GetAsSupports(mParent)));
+    nsCOMPtr<nsIDocument> doc(do_QueryInterface(document));
+    if (doc) {
+        doc->FlushPendingNotifications(Flush_Layout);
     }
     
     DoGetPositionAndSize(x, y, cx, cy);
@@ -4621,11 +4625,15 @@ nsDocShell::SetTitle(const PRUnichar * aTitle)
 
 
     
-    if (mOSHE && mLoadType != LOAD_BYPASS_HISTORY &&
-        mLoadType != LOAD_ERROR_PAGE) {
-
+    
+    
+    
+    
+    if (mOSHE && (mLoadType != LOAD_BYPASS_HISTORY) &&
+        (mLoadType != LOAD_HISTORY) && (mLoadType != LOAD_ERROR_PAGE)) {
         mOSHE->SetTitle(mTitle);    
     }
+
 
     return NS_OK;
 }
@@ -5539,6 +5547,7 @@ nsDocShell::OnStateChange(nsIWebProgress * aProgress, nsIRequest * aRequest,
 {
     nsresult rv;
 
+    
     if ((~aStateFlags & (STATE_START | STATE_IS_NETWORK)) == 0) {
         nsCOMPtr<nsIWyciwygChannel>  wcwgChannel(do_QueryInterface(aRequest));
         nsCOMPtr<nsIWebProgress> webProgress =
@@ -5571,19 +5580,6 @@ nsDocShell::OnStateChange(nsIWebProgress * aProgress, nsIRequest * aRequest,
         }
         
         mBusyFlags = BUSY_FLAGS_BUSY | BUSY_FLAGS_BEFORE_PAGE_LOAD;
-
-        if ((aStateFlags & STATE_RESTORING) == 0) {
-            
-            PRBool tmpBool = PR_FALSE;
-            if (NS_SUCCEEDED(mPrefs->GetBoolPref("ui.use_activity_cursor", &tmpBool))
-                && tmpBool) {
-                nsCOMPtr<nsIWidget> mainWidget;
-                GetMainWidget(getter_AddRefs(mainWidget));
-                if (mainWidget) {
-                    mainWidget->SetCursor(eCursor_spinning);
-                }
-            }
-        }
     }
     else if ((~aStateFlags & (STATE_TRANSFERRING | STATE_IS_DOCUMENT)) == 0) {
         
@@ -5592,17 +5588,6 @@ nsDocShell::OnStateChange(nsIWebProgress * aProgress, nsIRequest * aRequest,
     else if ((aStateFlags & STATE_STOP) && (aStateFlags & STATE_IS_NETWORK)) {
         
         mBusyFlags = BUSY_FLAGS_NONE;
-
-        
-        PRBool tmpBool = PR_FALSE;
-        if (NS_SUCCEEDED(mPrefs->GetBoolPref("ui.use_activity_cursor", &tmpBool))
-            && tmpBool) {
-            nsCOMPtr<nsIWidget> mainWidget;
-            GetMainWidget(getter_AddRefs(mainWidget));
-            if (mainWidget) {
-                mainWidget->SetCursor(eCursor_standard);
-            }
-        }
     }
     if ((~aStateFlags & (STATE_IS_DOCUMENT | STATE_STOP)) == 0) {
         nsCOMPtr<nsIWebProgress> webProgress =
@@ -6137,7 +6122,7 @@ nsDocShell::CreateAboutBlankContentViewer(nsIPrincipal* aPrincipal,
     
 
     PRBool okToUnload;
-    rv = mContentViewer->PermitUnload(PR_FALSE, &okToUnload);
+    rv = mContentViewer->PermitUnload(&okToUnload);
 
     if (NS_SUCCEEDED(rv) && !okToUnload) {
       
@@ -6356,11 +6341,22 @@ nsDocShell::CaptureState()
     NS_ENSURE_SUCCESS(rv, rv);
 
     
-    if (mContentViewer) {
-        nsIntRect bounds;
-        mContentViewer->GetBounds(bounds);
-        rv = mOSHE->SetViewerBounds(bounds);
-        NS_ENSURE_SUCCESS(rv, rv);
+    nsCOMPtr<nsIPresShell> shell;
+    nsDocShell::GetPresShell(getter_AddRefs(shell));
+    if (shell) {
+        nsIViewManager *vm = shell->GetViewManager();
+        if (vm) {
+            nsIView *rootView = nsnull;
+            vm->GetRootView(rootView);
+            if (rootView) {
+                nsIWidget *widget = rootView->GetWidget();
+                if (widget) {
+                    nsIntRect bounds(0, 0, 0, 0);
+                    widget->GetBounds(bounds);
+                    rv = mOSHE->SetViewerBounds(bounds);
+                }
+            }
+        }
     }
 
     
@@ -6694,7 +6690,10 @@ nsDocShell::RestoreFromHistory()
                 rootViewSibling = oldRootView->GetNextSibling();
                 rootViewParent = oldRootView->GetParent();
 
-                mContentViewer->GetBounds(newBounds);
+                nsIWidget *widget = oldRootView->GetWidget();
+                if (widget) {
+                    widget->GetBounds(newBounds);
+                }
             }
         }
     }
@@ -6939,18 +6938,15 @@ nsDocShell::RestoreFromHistory()
     
 
     if (newRootView) {
-        if (!newBounds.IsEmpty() && newBounds != oldBounds) {
+        nsIWidget *widget = newRootView->GetWidget();
+        if (widget && !newBounds.IsEmpty() && newBounds != oldBounds) {
 #ifdef DEBUG_PAGE_CACHE
             printf("resize widget(%d, %d, %d, %d)\n", newBounds.x,
                    newBounds.y, newBounds.width, newBounds.height);
 #endif
-            mContentViewer->SetBounds(newBounds);
-        } else {
-            nsIScrollableFrame *rootScrollFrame =
-              shell->GetRootScrollFrameAsScrollableExternal();
-            if (rootScrollFrame) {
-                rootScrollFrame->PostScrolledAreaEventForCurrentArea();
-            }
+
+            widget->Resize(newBounds.x, newBounds.y, newBounds.width,
+                           newBounds.height, PR_FALSE);
         }
     }
 
@@ -7019,49 +7015,6 @@ nsDocShell::CreateContentViewer(const char *aContentType,
     
     
     mURIResultedInDocument = PR_TRUE;
-
-    if (mLoadType == LOAD_ERROR_PAGE) {
-        
-        
-        
-
-        
-        
-        mLoadType = mFailedLoadType;
-
-        nsCOMPtr<nsIChannel> failedChannel = mFailedChannel;
-        nsCOMPtr<nsIURI> failedURI = mFailedURI;
-        mFailedChannel = nsnull;
-        mFailedURI = nsnull;
-
-        
-        if (failedChannel) {
-            mURIResultedInDocument = PR_TRUE;
-            OnLoadingSite(failedChannel, PR_TRUE, PR_FALSE);
-        } else if (failedURI) {
-            mURIResultedInDocument = PR_TRUE;
-            OnNewURI(failedURI, nsnull, nsnull, mLoadType, PR_TRUE, PR_FALSE);
-        }
-
-        
-        
-        if (mSessionHistory && !mLSHE) {
-            PRInt32 idx;
-            mSessionHistory->GetRequestedIndex(&idx);
-            if (idx == -1)
-                mSessionHistory->GetIndex(&idx);
-
-            nsCOMPtr<nsIHistoryEntry> entry;
-            mSessionHistory->GetEntryAtIndex(idx, PR_FALSE,
-                                             getter_AddRefs(entry));
-            mLSHE = do_QueryInterface(entry);
-        }
-
-        
-        SetCurrentURI(failedURI);
-
-        mLoadType = LOAD_ERROR_PAGE;
-    }
 
     PRBool onLocationChangeNeeded = OnLoadingSite(aOpenedChannel, PR_FALSE);
 
@@ -7856,12 +7809,8 @@ nsDocShell::InternalLoad(nsIURI * aURI,
          aLoadType == LOAD_HISTORY ||
          aLoadType == LOAD_LINK) && allowScroll) {
         PRBool wasAnchor = PR_FALSE;
-        PRBool doHashchange = PR_FALSE;
         nscoord cx, cy;
-        NS_ENSURE_SUCCESS(ScrollIfAnchor(aURI, &wasAnchor, aLoadType, &cx, &cy,
-                                         &doHashchange),
-                          NS_ERROR_FAILURE);
-
+        NS_ENSURE_SUCCESS(ScrollIfAnchor(aURI, &wasAnchor, aLoadType, &cx, &cy), NS_ERROR_FAILURE);
         if (wasAnchor) {
             mLoadType = aLoadType;
             mURIResultedInDocument = PR_TRUE;
@@ -7954,14 +7903,6 @@ nsDocShell::InternalLoad(nsIURI * aURI,
                     shEntry->SetTitle(mTitle);
             }
 
-            if (doHashchange) {
-                nsCOMPtr<nsPIDOMWindow> window =
-                    do_QueryInterface(mScriptGlobal);
-
-                if (window)
-                    window->DispatchAsyncHashchange();
-            }
-
             return NS_OK;
         }
     }
@@ -7976,7 +7917,7 @@ nsDocShell::InternalLoad(nsIURI * aURI,
     
     if (!bIsJavascript && mContentViewer) {
         PRBool okToUnload;
-        rv = mContentViewer->PermitUnload(PR_FALSE, &okToUnload);
+        rv = mContentViewer->PermitUnload(&okToUnload);
 
         if (NS_SUCCEEDED(rv) && !okToUnload) {
             
@@ -8579,21 +8520,18 @@ nsDocShell::CheckClassifier(nsIChannel *aChannel)
     return NS_OK;
 }
 
-nsresult
+NS_IMETHODIMP
 nsDocShell::ScrollIfAnchor(nsIURI * aURI, PRBool * aWasAnchor,
-                           PRUint32 aLoadType, nscoord *cx, nscoord *cy,
-                           PRBool * aDoHashchange)
+                           PRUint32 aLoadType, nscoord *cx, nscoord *cy)
 {
     NS_ASSERTION(aURI, "null uri arg");
     NS_ASSERTION(aWasAnchor, "null anchor arg");
-    NS_PRECONDITION(aDoHashchange, "null hashchange arg");
 
-    if (!aURI || !aWasAnchor) {
+    if (aURI == nsnull || aWasAnchor == nsnull) {
         return NS_ERROR_FAILURE;
     }
 
     *aWasAnchor = PR_FALSE;
-    *aDoHashchange = PR_FALSE;
 
     if (!mCurrentURI) {
         return NS_OK;
@@ -8651,10 +8589,8 @@ nsDocShell::ScrollIfAnchor(nsIURI * aURI, PRBool * aWasAnchor,
     const nsACString& sNewRef =  Substring(refStart, refEnd);
                                           
     
-    nsACString::const_iterator currentLeftStart, currentLeftEnd,
-                               currentRefStart, currentRefEnd;
+    nsACString::const_iterator currentLeftStart, currentLeftEnd;
     currentSpec.BeginReading(currentLeftStart);
-    currentSpec.EndReading(currentRefEnd);
 
     PRInt32 hashCurrent = currentSpec.FindChar(kHash);
     if (hashCurrent == 0) {
@@ -8664,13 +8600,9 @@ nsDocShell::ScrollIfAnchor(nsIURI * aURI, PRBool * aWasAnchor,
     if (hashCurrent > 0) {
         currentLeftEnd = currentLeftStart;
         currentLeftEnd.advance(hashCurrent);
-
-        currentRefStart = currentLeftEnd;
-        ++currentRefStart; 
     }
     else {
-        
-        currentLeftEnd = currentRefStart = currentRefEnd;
+        currentSpec.EndReading(currentLeftEnd);
     }
 
     
@@ -8699,10 +8631,6 @@ nsDocShell::ScrollIfAnchor(nsIURI * aURI, PRBool * aWasAnchor,
 
     
     *aWasAnchor = PR_TRUE;
-
-    
-    
-    *aDoHashchange = !Substring(currentRefStart, currentRefEnd).Equals(sNewRef);
 
     
     
@@ -9917,10 +9845,13 @@ nsDocShell::EnsureScriptEnvironment()
     NS_ENSURE_TRUE(factory, NS_ERROR_FAILURE);
 
     nsCOMPtr<nsIWebBrowserChrome> browserChrome(do_GetInterface(mTreeOwner));
-    NS_ENSURE_TRUE(browserChrome, NS_ERROR_NOT_AVAILABLE);
 
     PRUint32 chromeFlags;
-    browserChrome->GetChromeFlags(&chromeFlags);
+    if (browserChrome) {
+        browserChrome->GetChromeFlags(&chromeFlags);
+    } else {
+        chromeFlags = 0;
+    }
 
     PRBool isModalContentWindow =
         (chromeFlags & nsIWebBrowserChrome::CHROME_MODAL) &&
@@ -10620,7 +10551,7 @@ nsDocShell::GetControllerForCommand(const char * inCommand,
   if (window) {
     nsIFocusController *focusController = window->GetRootFocusController();
     if (focusController)
-      rv = focusController->GetControllerForCommand (window, inCommand, outController);
+      rv = focusController->GetControllerForCommand (inCommand, outController);
   } 
 
   return rv;
@@ -11076,32 +11007,6 @@ nsDocShell::SetRendering(PRBool aRender)
   
   return NS_ERROR_DOCSHELL_REQUEST_REJECTED;
 }
-
-NS_IMETHODIMP
-nsDocShell::GetPrintPreview(nsIWebBrowserPrint** aPrintPreview)
-{
-  *aPrintPreview = nsnull;
-#if NS_PRINT_PREVIEW
-  nsCOMPtr<nsIDocumentViewerPrint> print = do_QueryInterface(mContentViewer);
-  if (!print || !print->IsInitializedForPrintPreview()) {
-    Stop(nsIWebNavigation::STOP_ALL);
-    nsCOMPtr<nsIPrincipal> principal =
-      do_CreateInstance("@mozilla.org/nullprincipal;1");
-    NS_ENSURE_STATE(principal);
-    nsresult rv = CreateAboutBlankContentViewer(principal, nsnull);
-    NS_ENSURE_SUCCESS(rv, rv);
-    print = do_QueryInterface(mContentViewer);
-    NS_ENSURE_STATE(print);
-    print->InitializeForPrintPreview();
-  }
-  nsCOMPtr<nsIWebBrowserPrint> result = do_QueryInterface(print);
-  result.forget(aPrintPreview);
-  return NS_OK;
-#else
-  return NS_ERROR_NOT_IMPLEMENTED;
-#endif
-}
-
 
 #ifdef DEBUG
 unsigned long nsDocShell::gNumberOfDocShells = 0;

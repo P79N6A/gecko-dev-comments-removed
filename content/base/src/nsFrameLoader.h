@@ -48,30 +48,34 @@
 #include "nsStringFwd.h"
 #include "nsIFrameLoader.h"
 #include "nsIURI.h"
+#include "nsAutoPtr.h"
 
 class nsIContent;
 class nsIURI;
-class nsIFrameFrame;
+namespace mozilla {
+  namespace tabs {
+    class TabParent;
+  }
+}
 
 class nsFrameLoader : public nsIFrameLoader
 {
-protected:
+public:
   nsFrameLoader(nsIContent *aOwner) :
     mOwnerContent(aOwner),
     mDepthTooGreat(PR_FALSE),
     mIsTopLevelContent(PR_FALSE),
     mDestroyCalled(PR_FALSE),
     mNeedsAsyncDestroy(PR_FALSE),
-    mInSwap(PR_FALSE)
+    mInSwap(PR_FALSE),
+    mChildProcess(nsnull),
+    mTriedNewProcess(PR_FALSE)
   {}
 
-public:
   ~nsFrameLoader() {
     mNeedsAsyncDestroy = PR_TRUE;
     nsFrameLoader::Destroy();
   }
-
-  static nsFrameLoader* Create(nsIContent* aOwner);
 
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_CYCLE_COLLECTION_CLASS(nsFrameLoader)
@@ -80,25 +84,6 @@ public:
   nsresult ReallyStartLoading();
   void Finalize();
   nsIDocShell* GetExistingDocShell() { return mDocShell; }
-
-  nsresult CreateStaticClone(nsIFrameLoader* aDest);
-
-  
-
-
-
-  bool Show(PRInt32 marginWidth, PRInt32 marginHeight,
-            PRInt32 scrollbarPrefX, PRInt32 scrollbarPrefY,
-            nsIFrameFrame* frame);
-
-  
-
-
-
-
-  void Hide();
-
-  nsresult CloneForStatic(nsIFrameLoader* aOriginal);
 
   
   
@@ -112,6 +97,9 @@ private:
   NS_HIDDEN_(void) GetURL(nsString& aURL);
   nsresult CheckURILoad(nsIURI* aURI);
 
+  
+  PRBool TryNewProcess();
+
   nsCOMPtr<nsIDocShell> mDocShell;
   nsCOMPtr<nsIURI> mURIToLoad;
   nsIContent *mOwnerContent; 
@@ -120,6 +108,10 @@ private:
   PRPackedBool mDestroyCalled : 1;
   PRPackedBool mNeedsAsyncDestroy : 1;
   PRPackedBool mInSwap : 1;
+
+  
+  mozilla::tabs::TabParent* mChildProcess;
+  PRBool mTriedNewProcess;
 };
 
 #endif
