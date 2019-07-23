@@ -337,11 +337,6 @@ void nsGIFDecoder2::BeginImageFrame()
 
 void nsGIFDecoder2::EndImageFrame()
 {
-  
-  
-  if (mGIFStruct.delay_time < MINIMUM_DELAY_TIME)
-    mGIFStruct.delay_time = MINIMUM_DELAY_TIME;
-
   mGIFStruct.images_decoded++;
 
   
