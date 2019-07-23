@@ -105,7 +105,6 @@ class nsHashKey;
 #define NS_DRAG_EVENT                     35
 #define NS_NOTIFYPAINT_EVENT              36
 #define NS_SIMPLE_GESTURE_EVENT           37
-#define NS_SELECTION_EVENT                38
 
 
 
@@ -345,18 +344,14 @@ class nsHashKey;
 #define NS_QUERY_SELECTED_TEXT          (NS_QUERY_CONTENT_EVENT_START)
 
 
-
 #define NS_QUERY_TEXT_CONTENT           (NS_QUERY_CONTENT_EVENT_START + 1)
 
 
+
+#define NS_QUERY_CHARACTER_RECT         (NS_QUERY_CONTENT_EVENT_START + 2)
+
+
 #define NS_QUERY_CARET_RECT             (NS_QUERY_CONTENT_EVENT_START + 3)
-
-
-
-#define NS_QUERY_TEXT_RECT              (NS_QUERY_CONTENT_EVENT_START + 4)
-
-
-#define NS_QUERY_EDITOR_RECT             (NS_QUERY_CONTENT_EVENT_START + 5)
 
 
 #ifdef MOZ_MEDIA
@@ -401,11 +396,6 @@ class nsHashKey;
 
 #define NS_PLUGIN_EVENT_START   3600
 #define NS_PLUGIN_EVENT         (NS_PLUGIN_EVENT_START)
-
-
-#define NS_SELECTION_EVENT_START        3700
-
-#define NS_SELECTION_SET                (NS_SELECTION_EVENT_START)
 
 
 
@@ -868,11 +858,11 @@ class nsTextEvent : public nsInputEvent
 public:
   nsTextEvent(PRBool isTrusted, PRUint32 msg, nsIWidget *w)
     : nsInputEvent(isTrusted, msg, w, NS_TEXT_EVENT),
-      rangeCount(0), rangeArray(nsnull), isChar(PR_FALSE)
+      theText(nsnull), rangeCount(0), rangeArray(nsnull), isChar(PR_FALSE)
   {
   }
 
-  nsString          theText;
+  const PRUnichar*  theText;
   nsTextEventReply  theReply;
   PRUint32          rangeCount;
   
@@ -975,19 +965,18 @@ public:
     mInput.mLength = aLength;
   }
 
+  void InitForQueryCharacterRect(PRUint32 aOffset)
+  {
+    NS_ASSERTION(message == NS_QUERY_CHARACTER_RECT,
+                 "wrong initializer is called");
+    mInput.mOffset = aOffset;
+  }
+
   void InitForQueryCaretRect(PRUint32 aOffset)
   {
     NS_ASSERTION(message == NS_QUERY_CARET_RECT,
                  "wrong initializer is called");
     mInput.mOffset = aOffset;
-  }
-
-  void InitForQueryTextRect(PRUint32 aOffset, PRUint32 aLength)
-  {
-    NS_ASSERTION(message == NS_QUERY_TEXT_RECT,
-                 "wrong initializer is called");
-    mInput.mOffset = aOffset;
-    mInput.mLength = aLength;
   }
 
   PRBool mSucceeded;
@@ -1002,23 +991,7 @@ public:
     nsIntRect mRect; 
     
     nsIWidget* mFocusedWidget;
-    PRPackedBool mReversed; 
   } mReply;
-};
-
-class nsSelectionEvent : public nsGUIEvent
-{
-public:
-  nsSelectionEvent(PRBool aIsTrusted, PRUint32 aMsg, nsIWidget *aWidget) :
-    nsGUIEvent(aIsTrusted, aMsg, aWidget, NS_SELECTION_EVENT),
-    mSucceeded(PR_FALSE)
-  {
-  }
-
-  PRUint32 mOffset; 
-  PRUint32 mLength; 
-  PRPackedBool mReversed; 
-  PRPackedBool mSucceeded;
 };
 
 
@@ -1259,12 +1232,8 @@ enum nsDragDropEventStatus {
 #define NS_IS_QUERY_CONTENT_EVENT(evnt) \
        (((evnt)->message == NS_QUERY_SELECTED_TEXT) || \
         ((evnt)->message == NS_QUERY_TEXT_CONTENT) || \
-        ((evnt)->message == NS_QUERY_CARET_RECT) || \
-        ((evnt)->message == NS_QUERY_TEXT_RECT) || \
-        ((evnt)->message == NS_QUERY_EDITOR_RECT))
-
-#define NS_IS_SELECTION_EVENT(evnt) \
-       (((evnt)->message == NS_SELECTION_SET))
+        ((evnt)->message == NS_QUERY_CHARACTER_RECT) || \
+        ((evnt)->message == NS_QUERY_CARET_RECT))
 
 #define NS_IS_PLUGIN_EVENT(evnt) \
        (((evnt)->message == NS_PLUGIN_EVENT))

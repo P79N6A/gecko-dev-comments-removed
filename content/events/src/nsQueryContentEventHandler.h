@@ -36,9 +36,8 @@
 
 
 
-
-#ifndef nsContentEventHandler_h__
-#define nsContentEventHandler_h__
+#ifndef nsQueryContentEventHandler_h__
+#define nsQueryContentEventHandler_h__
 
 #include "nscore.h"
 #include "nsCOMPtr.h"
@@ -51,7 +50,6 @@
 class nsPresContext;
 class nsIPresShell;
 class nsQueryContentEvent;
-class nsSelectionEvent;
 class nsCaret;
 struct nsRect;
 
@@ -63,24 +61,18 @@ struct nsRect;
 
 
 
-class NS_STACK_CLASS nsContentEventHandler {
+class NS_STACK_CLASS nsQueryContentEventHandler {
 public:
-  nsContentEventHandler(nsPresContext *aPresContext);
+  nsQueryContentEventHandler(nsPresContext *aPresContext);
 
   
   nsresult OnQuerySelectedText(nsQueryContentEvent* aEvent);
   
   nsresult OnQueryTextContent(nsQueryContentEvent* aEvent);
   
+  nsresult OnQueryCharacterRect(nsQueryContentEvent* aEvent);
+  
   nsresult OnQueryCaretRect(nsQueryContentEvent* aEvent);
-  
-  nsresult OnQueryTextRect(nsQueryContentEvent* aEvent);
-  
-  nsresult OnQueryEditorRect(nsQueryContentEvent* aEvent);
-
-  
-  nsresult OnSelectionEvent(nsSelectionEvent* aEvent);
-
 protected:
   nsPresContext* mPresContext;
   nsIPresShell* mPresShell;
@@ -90,19 +82,11 @@ protected:
 
   nsresult Init(nsQueryContentEvent* aEvent);
 
-public:
   
   
 
   
-  static nsresult GetFlatTextOffsetOfRange(nsIContent* aRootContent,
-                                           nsINode* aNode,
-                                           PRInt32 aNodeOffset,
-                                           PRUint32* aOffset);
-  static nsresult GetFlatTextOffsetOfRange(nsIContent* aRootContent,
-                                           nsIRange* aRange,
-                                           PRUint32* aOffset);
-protected:
+  nsresult GenerateFlatTextContent(nsIRange* aRange, nsAFlatString& aString);
   
   
   
@@ -111,13 +95,17 @@ protected:
                                       PRUint32 aNativeLength,
                                       PRBool aExpandToClusterBoundaries);
   
+  nsresult GetFlatTextOffsetOfRange(nsIRange* aRange, PRUint32* aOffset);
+  
   
   nsresult GetStartFrameAndOffset(nsIRange* aRange,
-                                  nsIFrame** aFrame,
-                                  PRInt32* aOffsetInFrame);
+                                  nsIFrame** aFrame, PRInt32* aOffsetInFrame);
   
-  nsresult ConvertToRootViewRelativeOffset(nsIFrame* aFrame,
-                                           nsRect& aRect);
+  nsresult ConvertToRootViewRelativeOffset(nsIFrame* aFrame, nsRect& aRect);
+  
+  
+  nsresult QueryRectFor(nsQueryContentEvent* aEvent, nsIRange* aRange,
+                        nsCaret* aCaret);
   
   
   nsresult ExpandToClusterBoundary(nsIContent* aContent, PRBool aForward,
