@@ -1682,8 +1682,8 @@ js_PropertyIsEnumerable(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 }
 
 #if JS_HAS_GETTER_SETTER
-JS_FRIEND_API(JSBool)
-js_obj_defineGetter(JSContext *cx, uintN argc, jsval *vp)
+static JSBool
+obj_defineGetter(JSContext *cx, uintN argc, jsval *vp)
 {
     jsval fval, junk;
     jsid id;
@@ -1717,8 +1717,8 @@ js_obj_defineGetter(JSContext *cx, uintN argc, jsval *vp)
                                NULL);
 }
 
-JS_FRIEND_API(JSBool)
-js_obj_defineSetter(JSContext *cx, uintN argc, jsval *vp)
+static JSBool
+obj_defineSetter(JSContext *cx, uintN argc, jsval *vp)
 {
     jsval fval, junk;
     jsid id;
@@ -1863,8 +1863,8 @@ static JSFunctionSpec object_methods[] = {
     JS_TN(js_propertyIsEnumerable_str, obj_propertyIsEnumerable,    1,0,
           obj_propertyIsEnumerable_trcinfo),
 #if JS_HAS_GETTER_SETTER
-    JS_FN(js_defineGetter_str,         js_obj_defineGetter,         2,0),
-    JS_FN(js_defineSetter_str,         js_obj_defineSetter,         2,0),
+    JS_FN(js_defineGetter_str,         obj_defineGetter,            2,0),
+    JS_FN(js_defineSetter_str,         obj_defineSetter,            2,0),
     JS_FN(js_lookupGetter_str,         obj_lookupGetter,            1,0),
     JS_FN(js_lookupSetter_str,         obj_lookupSetter,            1,0),
 #endif
@@ -5432,7 +5432,7 @@ js_GetWrappedObject(JSContext *cx, JSObject *obj)
     return obj;
 }
 
-#if DEBUG
+#ifdef DEBUG
 
 
 
@@ -5602,8 +5602,12 @@ js_DumpObject(JSObject *obj)
 
         sharesScope = (scope->object != obj);
         if (sharesScope) {
-            fprintf(stderr, "no own properties - see proto (%s at %p)\n",
-                    STOBJ_GET_CLASS(proto)->name, proto);
+            if (proto) {
+                fprintf(stderr, "no own properties - see proto (%s at %p)\n",
+                        STOBJ_GET_CLASS(proto)->name, proto);
+            } else {
+                fprintf(stderr, "no own properties - null proto\n");
+            }
         } else {
             fprintf(stderr, "properties:\n");
             for (JSScopeProperty *sprop = SCOPE_LAST_PROP(scope); sprop;
