@@ -347,6 +347,243 @@ FontFamily::FindWeightsForStyle(gfxFontEntry* aFontsForWeights[], const gfxFontS
     return matchesSomething;
 }
 
+
+
+#ifndef __t2embapi__
+
+#define TTLOAD_PRIVATE                  0x00000001
+#define LICENSE_PREVIEWPRINT            0x0004
+#define E_NONE                          0x0000L
+
+typedef unsigned long( WINAPIV *READEMBEDPROC ) ( void*, void*, const unsigned long );
+
+typedef struct
+{
+    unsigned short usStructSize;    
+    unsigned short usRefStrSize;    
+    unsigned short *pusRefStr;      
+}TTLOADINFO;
+
+LONG WINAPI TTLoadEmbeddedFont
+(
+    HANDLE*  phFontReference,           
+                                        
+    ULONG    ulFlags,                   
+    ULONG*   pulPrivStatus,             
+    ULONG    ulPrivs,                   
+    ULONG*   pulStatus,                 
+    READEMBEDPROC lpfnReadFromStream,   
+    LPVOID   lpvReadStream,             
+    LPWSTR   szWinFamilyName,           
+    LPSTR    szMacFamilyName,           
+    TTLOADINFO* pTTLoadInfo             
+);
+
+#endif 
+
+typedef LONG( WINAPI *TTLoadEmbeddedFontProc ) (HANDLE* phFontReference, ULONG ulFlags, ULONG* pulPrivStatus, ULONG ulPrivs, ULONG* pulStatus, 
+                                             READEMBEDPROC lpfnReadFromStream, LPVOID lpvReadStream, LPWSTR szWinFamilyName, 
+                                             LPSTR szMacFamilyName, TTLOADINFO* pTTLoadInfo);
+
+typedef LONG( WINAPI *TTDeleteEmbeddedFontProc ) (HANDLE hFontReference, ULONG ulFlags, ULONG* pulStatus);
+
+
+static TTLoadEmbeddedFontProc TTLoadEmbeddedFontPtr = nsnull;
+static TTDeleteEmbeddedFontProc TTDeleteEmbeddedFontPtr = nsnull;
+
+void FontEntry::InitializeFontEmbeddingProcs()
+{
+    HMODULE fontlib = LoadLibraryW(L"t2embed.dll");
+    if (!fontlib)
+        return;
+    TTLoadEmbeddedFontPtr = (TTLoadEmbeddedFontProc) GetProcAddress(fontlib, "TTLoadEmbeddedFont");
+    TTDeleteEmbeddedFontPtr = (TTDeleteEmbeddedFontProc) GetProcAddress(fontlib, "TTDeleteEmbeddedFont");
+}
+
+class WinUserFontData : public gfxUserFontData {
+public:
+    WinUserFontData(HANDLE aFontRef, PRBool aIsCFF)
+        : mFontRef(aFontRef), mIsCFF(aIsCFF)
+    { }
+
+    virtual ~WinUserFontData()
+    {
+        if (mIsCFF) {
+            RemoveFontMemResourceEx(mFontRef);
+        } else {
+            ULONG pulStatus;
+            TTDeleteEmbeddedFontPtr(mFontRef, 0, &pulStatus);
+        }
+    }
+    
+    HANDLE mFontRef;
+    PRPackedBool mIsCFF;
+};
+
+
+
+class EOTFontStreamReader {
+public:
+    EOTFontStreamReader(const PRUint8 *aFontData, PRUint32 aLength, PRUint8 *aEOTHeader, 
+                        PRUint32 aEOTHeaderLen)
+        : mInHeader(PR_TRUE), mHeaderOffset(0), mEOTHeader(aEOTHeader), 
+          mEOTHeaderLen(aEOTHeaderLen), mFontData(aFontData), mFontDataLen(aLength),
+          mFontDataOffset(0)
+    {
+    
+    }
+
+    ~EOTFontStreamReader() 
+    { 
+
+    }
+
+    PRPackedBool            mInHeader;
+    PRUint32                mHeaderOffset;
+    PRUint8                 *mEOTHeader;
+    PRUint32                mEOTHeaderLen;
+    const PRUint8           *mFontData;
+    PRUint32                mFontDataLen;
+    PRUint32                mFontDataOffset;
+
+    unsigned long Read(void *outBuffer, const unsigned long aBytesToRead)
+    {
+        PRUint32 bytesLeft = aBytesToRead;
+        PRUint8 *out = static_cast<PRUint8*> (outBuffer);
+
+        
+        if (mInHeader) {
+            PRUint32 toCopy = PR_MIN(aBytesToRead, mEOTHeaderLen - mHeaderOffset);
+            memcpy(out, mEOTHeader + mHeaderOffset, toCopy);
+            bytesLeft -= toCopy;
+            mHeaderOffset += toCopy;
+            out += toCopy;
+            if (mHeaderOffset == mEOTHeaderLen)
+                mInHeader = PR_FALSE;
+        }
+
+        if (bytesLeft) {
+            PRInt32 bytesRead = PR_MIN(bytesLeft, mFontDataLen - mFontDataOffset);
+            memcpy(out, mFontData, bytesRead);
+            mFontData += bytesRead;
+            mFontDataOffset += bytesRead;
+            if (bytesRead > 0)
+                bytesLeft -= bytesRead;
+        }
+
+        return aBytesToRead - bytesLeft;
+    }
+
+    static unsigned long ReadEOTStream(void *aReadStream, void *outBuffer, 
+                                       const unsigned long aBytesToRead) 
+    {
+        EOTFontStreamReader *eotReader = 
+                               static_cast<EOTFontStreamReader*> (aReadStream);
+        return eotReader->Read(outBuffer, aBytesToRead);
+    }        
+        
+};
+
+static void MakeUniqueFontName(nsAString& aName)
+{
+    char buf[50];
+
+    static PRUint32 fontCount = 0;
+    ++fontCount;
+
+    sprintf(buf, "mozfont%8.8x%8.8x", ::GetTickCount(), fontCount);  
+    aName.AssignASCII(buf);
+}
+
+
+FontEntry* 
+FontEntry::CreateFontEntry(const gfxProxyFontEntry &aProxyEntry, nsISupports *aLoader,
+             const PRUint8 *aFontData, PRUint32 aLength) {
+    
+    if (!TTLoadEmbeddedFontPtr || !TTDeleteEmbeddedFontPtr)
+        return nsnull;
+
+    PRBool isCFF;
+    if (!gfxFontUtils::ValidateSFNTHeaders(aFontData, aLength, &isCFF))
+        return nsnull;
+        
+    nsresult rv;
+    HANDLE fontRef;
+
+    nsAutoString uniqueName;
+    MakeUniqueFontName(uniqueName);
+
+    if (isCFF) {
+        
+        nsTArray<PRUint8> newFontData;
+
+        rv = gfxFontUtils::RenameFont(uniqueName, aFontData, aLength, &newFontData);
+
+        if (NS_FAILED(rv))
+            return nsnull;
+        
+        DWORD numFonts = 0;
+
+        PRUint8 *fontData = reinterpret_cast<PRUint8*> (newFontData.Elements());
+        PRUint32 fontLength = newFontData.Length();
+        NS_ASSERTION(fontData, "null font data after renaming");
+
+        
+        
+        
+        fontRef = AddFontMemResourceEx(fontData, fontLength, 
+                                       0 , &numFonts);
+        if (!fontRef)
+            return nsnull;
+
+        
+        if (fontRef && numFonts != 1) {
+            RemoveFontMemResourceEx(fontRef);
+            return nsnull;
+        }
+    } else {
+        
+        nsAutoTArray<PRUint8,2048> eotHeader;
+        PRUint8 *buffer;
+        PRUint32 eotlen;
+
+        PRUint32 nameLen = PR_MIN(uniqueName.Length(), LF_FACESIZE - 1);
+        nsPromiseFlatString fontName(Substring(uniqueName, 0, nameLen));
+
+        rv = gfxFontUtils::MakeEOTHeader(aFontData, aLength, &eotHeader);
+        if (NS_FAILED(rv))
+            return nsnull;
+
+        
+        eotlen = eotHeader.Length();
+        buffer = reinterpret_cast<PRUint8*> (eotHeader.Elements());
+        
+        PRInt32 ret;
+        ULONG privStatus, pulStatus;
+        EOTFontStreamReader eotReader(aFontData, aLength, buffer, eotlen);
+
+        ret = TTLoadEmbeddedFontPtr(&fontRef, TTLOAD_PRIVATE, &privStatus, 
+                                   LICENSE_PREVIEWPRINT, &pulStatus, 
+                                   EOTFontStreamReader::ReadEOTStream, 
+                                   &eotReader, (PRUnichar*)(fontName.get()), 0, 0);
+        if (ret != E_NONE)
+            return nsnull;
+    }
+
+    
+    WinUserFontData *winUserFontData = new WinUserFontData(fontRef, isCFF);
+    PRUint16 w = (aProxyEntry.mWeight == 0 ? 400 : aProxyEntry.mWeight);
+
+    FontEntry *fe = FontEntry::CreateFontEntry(uniqueName, 
+        gfxWindowsFontType(isCFF ? GFX_FONT_TYPE_PS_OPENTYPE : GFX_FONT_TYPE_TRUETYPE) , 
+        PRUint32(aProxyEntry.mItalic ? FONT_STYLE_ITALIC : FONT_STYLE_NORMAL), 
+        w, winUserFontData);
+
+    if (fe && isCFF)
+        fe->mForceGDI = PR_TRUE;
+    return fe;
+}
+
 FontEntry* 
 FontEntry::CreateFontEntry(const nsAString& aName, gfxWindowsFontType aFontType, PRBool aItalic, PRUint16 aWeight, gfxUserFontData* aUserFontData, HDC hdc, LOGFONTW *aLogFont)
 {
@@ -2157,7 +2394,7 @@ gfxWindowsFontGroup::WhichPrefFontSupportsChar(PRUint32 aCh)
 already_AddRefed<gfxFont> 
 gfxWindowsFontGroup::WhichSystemFontSupportsChar(PRUint32 aCh)
 {
-    nsRefPtr<gfxWindowsFont> selectedFont;
+    nsRefPtr<gfxFont> selectedFont;
 
     
     PR_LOG(gFontLog, PR_LOG_DEBUG, (" - Looking for best match"));
@@ -2167,8 +2404,7 @@ gfxWindowsFontGroup::WhichSystemFontSupportsChar(PRUint32 aCh)
     selectedFont = platform->FindFontForChar(aCh, refFont);
 
     if (selectedFont) {
-        nsRefPtr<gfxFont> f = static_cast<gfxFont*>(selectedFont.get());
-        return f.forget();
+        return selectedFont.forget();
     }
 
     return nsnull;
