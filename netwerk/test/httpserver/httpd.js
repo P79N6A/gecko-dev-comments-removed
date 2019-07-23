@@ -49,9 +49,10 @@
 const Cc = Components.classes;
 const Ci = Components.interfaces;
 const Cr = Components.results;
+const CC = Components.Constructor;
 
 
-const DEBUG = false; 
+var DEBUG = false; 
 
 
 
@@ -132,11 +133,53 @@ function range(x, y)
 const HTTP_ERROR_CODES = array2obj(range(400, 417).concat(range(500, 505)));
 
 
+
+
+
+
+
+
+
+
+
+const HIDDEN_CHAR = "^";
+
+
+
+
+
+const HEADERS_SUFFIX = HIDDEN_CHAR + "headers" + HIDDEN_CHAR;
+
+
+
 function dumpn(str)
 {
   if (DEBUG)
     dump(str + "\n");
 }
+
+
+
+
+
+
+
+const Pipe = CC("@mozilla.org/pipe;1",
+                "nsIPipe",
+                "init");
+const FileInputStream = CC("@mozilla.org/network/file-input-stream;1",
+                           "nsIFileInputStream",
+                           "init");
+const StreamCopier = CC("@mozilla.org/network/async-stream-copier;1",
+                        "nsIAsyncStreamCopier",
+                        "init");
+const ConverterInputStream = CC("@mozilla.org/intl/converter-input-stream;1",
+                                "nsIConverterInputStream",
+                                "init");
+const WritablePropertyBag = CC("@mozilla.org/hash-property-bag;1",
+                               "nsIWritablePropertyBag2");
+const SupportsString = CC("@mozilla.org/supports-string;1",
+                          "nsISupportsString");
 
 
 
@@ -553,7 +596,7 @@ function defaultIndexHandler(metadata, response)
 {
   response.setHeader("Content-Type", "text/html", false);
 
-  var path = htmlEscape(metadata.path);
+  var path = htmlEscape(decodeURI(metadata.path));
 
   
   
@@ -577,7 +620,10 @@ function defaultIndexHandler(metadata, response)
   while (files.hasMoreElements())
   {
     var f = files.getNext().QueryInterface(Ci.nsIFile);
-    if (!f.isHidden())
+    var name = f.leafName;
+    if (!f.isHidden() &&
+        (name.charAt(name.length - 1) != HIDDEN_CHAR ||
+         name.charAt(name.length - 2) == HIDDEN_CHAR))
       fileList.push(f);
   }
 
@@ -589,6 +635,8 @@ function defaultIndexHandler(metadata, response)
     try
     {
       var name = file.leafName;
+      if (name.charAt(name.length - 1) == HIDDEN_CHAR)
+        name = name.substring(0, name.length - 1);
       var sep = file.isDirectory() ? "/" : "";
 
       
@@ -623,6 +671,122 @@ function fileSort(a, b)
 
   var namea = a.leafName.toLowerCase(), nameb = b.leafName.toLowerCase();
   return nameb > namea ? -1 : 1;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function toInternalPath(path, encoded)
+{
+  if (encoded)
+    path = decodeURI(path);
+
+  var comps = path.split("/");
+  for (var i = 0, sz = comps.length; i < sz; i++)
+  {
+    var comp = comps[i];
+    if (comp.charAt(comp.length - 1) == HIDDEN_CHAR)
+      comps[i] = comp + HIDDEN_CHAR;
+  }
+  return comps.join("/");
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function maybeAddHeaders(file, metadata, response)
+{
+  var name = file.leafName;
+  if (name.charAt(name.length - 1) == HIDDEN_CHAR)
+    name = name.substring(0, name.length - 1);
+
+  var headerFile = file.parent;
+  headerFile.append(name + HEADERS_SUFFIX);
+
+  if (!headerFile.exists())
+    return;
+
+  const PR_RDONLY = 0x01;
+  var fis = new FileInputStream(headerFile, PR_RDONLY, 0444,
+                                Ci.nsIFileInputStream.CLOSE_ON_EOF);
+
+  var lis = new ConverterInputStream(fis, "UTF-8", 1024, 0x0);
+  lis.QueryInterface(Ci.nsIUnicharLineInputStream);
+
+  try
+  {
+    var line = {value: ""};
+    var more = lis.readLine(line);
+
+    if (!more && line.value == "")
+      return;
+
+
+    
+
+    var status = line.value;
+    if (status.indexOf("HTTP ") == 0)
+    {
+      status = status.substring(5);
+      var space = status.indexOf(" ");
+      var code, description;
+      if (space < 0)
+      {
+        code = status;
+        description = "";
+      }
+      else
+      {
+        code = status.substring(0, space);
+        description = status.substring(space + 1, status.length);
+      }
+    
+      response.setStatusLine(metadata.httpVersion, parseInt(code, 10), description);
+
+      line.value = "";
+      more = lis.readLine(line);
+    }
+
+    
+    while (more || line.value != "")
+    {
+      var header = line.value;
+      var colon = header.indexOf(":");
+
+      response.setHeader(header.substring(0, colon),
+                         header.substring(colon + 1, header.length),
+                         false); 
+
+      line.value = "";
+      more = lis.readLine(line);
+    }
+  }
+  catch (e)
+  {
+    dumpn("WARNING: error in headers for " + metadata.path + ": " + e);
+    throw HTTP_500;
+  }
 }
 
 
@@ -792,6 +956,8 @@ ServerHandler.prototype =
           
           throw e;
         }
+
+        maybeAddHeaders(file, metadata, response);
       };
   },
 
@@ -817,6 +983,13 @@ ServerHandler.prototype =
     
     
     var key = path.length == 1 ? "" : path.substring(1, path.length - 1);
+
+    
+    
+    if (key.charAt(0) == "/")
+      throw Cr.NS_ERROR_INVALID_ARG;
+
+    key = toInternalPath(key, false);
 
     if (directory)
     {
@@ -866,7 +1039,8 @@ ServerHandler.prototype =
 
 
 
-  _handlerToField: function(handler, dict, key) {
+  _handlerToField: function(handler, dict, key)
+  {
     
     if (typeof(handler) == "function")
       dict[key] = handler;
@@ -935,6 +1109,8 @@ ServerHandler.prototype =
       
       dumpn("*** handling '" + path + "' as mapping to " + file.path);
       this._writeFileResponse(file, response);
+
+      maybeAddHeaders(file, metadata, response);
     }
     catch (e)
     {
@@ -964,10 +1140,9 @@ ServerHandler.prototype =
 
     response.setHeader("Content-Type", getTypeFromFile(file), false);
 
-    var fis = Cc["@mozilla.org/network/file-input-stream;1"]
-                .createInstance(Ci.nsIFileInputStream);
     const PR_RDONLY = 0x01;
-    fis.init(file, PR_RDONLY, 0444, Ci.nsIFileInputStream.CLOSE_ON_EOF);
+    var fis = new FileInputStream(file, PR_RDONLY, 0444,
+                                  Ci.nsIFileInputStream.CLOSE_ON_EOF);
     response.bodyOutputStream.writeFrom(fis, file.fileSize);
     fis.close();
   },
@@ -987,12 +1162,10 @@ ServerHandler.prototype =
 
   _getFileForPath: function(path)
   {
-    var pathMap = this._pathDirectoryMap;
-
     
     try
     {
-      path = decodeURI(path);
+      path = toInternalPath(path, true);
     }
     catch (e)
     {
@@ -1000,6 +1173,7 @@ ServerHandler.prototype =
     }
 
     
+    var pathMap = this._pathDirectoryMap;
 
     
     
@@ -1295,9 +1469,8 @@ ServerHandler.prototype =
 
         
         
-        var copier = Cc["@mozilla.org/network/async-stream-copier;1"]
-                       .createInstance(Ci.nsIAsyncStreamCopier);
-        copier.init(bodyStream, outStream, null, true, true, 8192);
+        var copier = new StreamCopier(bodyStream, outStream, null,
+                                      true, true, 8192);
         copier.asyncCopy(copyObserver, null);
       }
       else
@@ -1565,10 +1738,8 @@ Response.prototype =
 
     if (!this._bodyOutputStream && !this._outputProcessed)
     {
-      var pipe = Cc["@mozilla.org/pipe;1"]
-                   .createInstance(Ci.nsIPipe);
       const PR_UINT32_MAX = Math.pow(2, 32) - 1;
-      pipe.init(false, false, 0, PR_UINT32_MAX, null);
+      var pipe = new Pipe(false, false, 0, PR_UINT32_MAX, null);
       this._bodyOutputStream = pipe.outputStream;
       this._bodyInputStream = pipe.inputStream;
     }
@@ -1838,16 +2009,19 @@ const headerUtils =
 
   normalizeFieldName: function(fieldName)
   {
-     for (var i = 0, sz = fieldName.length; i < sz; i++)
-     {
-       if (!IS_TOKEN_ARRAY[fieldName.charCodeAt(i)])
-       {
-         dumpn(fieldName + " is not a valid header field name!");
-         throw Cr.NS_ERROR_INVALID_ARG;
-       }
-     }
+    if (fieldName == "")
+      throw Cr.NS_ERROR_INVALID_ARG;
 
-     return fieldName.toLowerCase();
+    for (var i = 0, sz = fieldName.length; i < sz; i++)
+    {
+      if (!IS_TOKEN_ARRAY[fieldName.charCodeAt(i)])
+      {
+        dumpn(fieldName + " is not a valid header field name!");
+        throw Cr.NS_ERROR_INVALID_ARG;
+      }
+    }
+
+    return fieldName.toLowerCase();
   },
 
   
@@ -2072,8 +2246,7 @@ nsHttpHeaders.prototype =
     var headers = [];
     for (var i in this._headers)
     {
-      var supports = Cc["@mozilla.org/supports-string;1"]
-                       .createInstance(Ci.nsISupportsString);
+      var supports = new SupportsString();
       supports.data = i;
       headers.push(supports);
     }
@@ -2145,8 +2318,7 @@ function RequestMetadata(port)
 
 
 
-  this._bag = Cc["@mozilla.org/hash-property-bag;1"]
-                .createInstance(Ci.nsIWritablePropertyBag2);
+  this._bag = new WritablePropertyBag();
 
   
 
@@ -2288,11 +2460,8 @@ RequestMetadata.prototype =
 
     
     
-    var is = Cc["@mozilla.org/intl/converter-input-stream;1"]
-               .createInstance(Ci.nsIConverterInputStream);
-    is.init(input, "ISO-8859-1", 1024, 0xFFFD);
-
-    var lis = is.QueryInterface(Ci.nsIUnicharLineInputStream);
+    var lis = new ConverterInputStream(input, "ISO-8859-1", 1024, 0xFFFD);
+    lis.QueryInterface(Ci.nsIUnicharLineInputStream);
 
 
     this._parseRequestLine(lis);
@@ -2593,10 +2762,6 @@ const module =
 
 
 
-
-
-
-
 function NSGetModule(compMgr, fileSpec)
 {
   return module;
@@ -2639,6 +2804,9 @@ function server(port, basePath)
     lp.initWithPath(basePath);
   }
 
+  
+  DEBUG = true;
+
   var srv = new nsHttpServer();
   if (lp)
     srv.registerDirectory("/", lp);
@@ -2653,4 +2821,6 @@ function server(port, basePath)
   
   while (thread.hasPendingEvents())
     thread.processNextEvent(true);
+
+  DEBUG = false;
 }
