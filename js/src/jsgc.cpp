@@ -1408,7 +1408,7 @@ LastDitchGC(JSContext *cx)
     JS_ASSERT(!JS_ON_TRACE(cx));
 
     
-    AutoSaveWeakRoots save(cx);
+    AutoSaveRestoreWeakRoots save(cx);
     AutoKeepAtoms keep(cx->runtime);
 
     
