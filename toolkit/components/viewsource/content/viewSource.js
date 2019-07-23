@@ -183,10 +183,14 @@ function viewSource(url)
   if (loadFromURL) {
     
     
+    var webNavigation = getBrowser().webNavigation;
+    webNavigation.sessionHistory = Components.classes["@mozilla.org/browser/shistory;1"].createInstance();
+    
+    
     
     var loadFlags = Components.interfaces.nsIWebNavigation.LOAD_FLAGS_NONE;
     var viewSrcUrl = "view-source:" + url;
-    getBrowser().webNavigation.loadURI(viewSrcUrl, loadFlags, null, null, null);
+    webNavigation.loadURI(viewSrcUrl, loadFlags, null, null, null);
   }
 
   
