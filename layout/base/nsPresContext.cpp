@@ -233,6 +233,7 @@ nsPresContext::nsPresContext(nsIDocument* aDocument, nsPresContextType aType)
 nsPresContext::~nsPresContext()
 {
   mImageLoaders.Enumerate(destroy_loads, nsnull);
+  mBorderImageLoaders.Enumerate(destroy_loads, nsnull);
 
   NS_PRECONDITION(!mShell, "Presshell forgot to clear our mShell pointer");
   SetShell(nsnull);
@@ -319,6 +320,7 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(nsPresContext)
   
 
   tmp->mImageLoaders.Enumerate(TraverseImageLoader, &cb);
+  tmp->mBorderImageLoaders.Enumerate(TraverseImageLoader, &cb);
 
   
   
@@ -342,6 +344,8 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(nsPresContext)
 
   tmp->mImageLoaders.Enumerate(destroy_loads, nsnull);
   tmp->mImageLoaders.Clear();
+  tmp->mBorderImageLoaders.Enumerate(destroy_loads, nsnull);
+  tmp->mBorderImageLoaders.Clear();
 
   
   
@@ -1069,8 +1073,8 @@ nsPresContext::SetImageAnimationModeInternal(PRUint16 aMode)
     return;
 
   
-  
   mImageLoaders.Enumerate(set_animation_mode, NS_INT32_TO_PTR(aMode));
+  mBorderImageLoaders.Enumerate(set_animation_mode, NS_INT32_TO_PTR(aMode));
 
   
   
@@ -1183,7 +1187,7 @@ nsPresContext::DoLoadImage(nsPresContext::ImageLoaderTable& aTable,
       return nsnull;
 
     loader->Init(aTargetFrame, this, aReflowOnLoad);
-    mImageLoaders.Put(aTargetFrame, loader);
+    aTable.Put(aTargetFrame, loader);
   }
 
   loader->Load(aImage);
