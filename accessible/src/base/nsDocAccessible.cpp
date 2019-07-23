@@ -910,7 +910,7 @@ nsDocAccessible::FireDocLoadEvents(PRUint32 aEventType)
       FireAccessibleEvent(accEvent);
     }
 
-    nsAccUtils::FireAccEvent(aEventType, this);
+    nsEventShell::FireEvent(aEventType, this);
   }
 }
 
@@ -924,7 +924,7 @@ void nsDocAccessible::ScrollTimerCallback(nsITimer *aTimer, void *aClosure)
     
     
     
-    nsAccUtils::FireAccEvent(nsIAccessibleEvent::EVENT_SCROLLING_END, docAcc);
+    nsEventShell::FireEvent(nsIAccessibleEvent::EVENT_SCROLLING_END, docAcc);
 
     docAcc->mScrollPositionChangedTicks = 0;
     if (docAcc->mScrollWatchTimer) {
@@ -1793,7 +1793,7 @@ nsDocAccessible::FlushPendingEvents()
           
           nsCOMPtr<nsIAccessible> accForFocus;
           GetAccService()->GetAccessibleFor(gLastFocusedNode, getter_AddRefs(accForFocus));
-          nsAccUtils::FireAccEvent(nsIAccessibleEvent::EVENT_ALERT, accForFocus);
+          nsEventShell::FireEvent(nsIAccessibleEvent::EVENT_ALERT, accForFocus);
 #endif
           nsCOMPtr<nsIAccessibleEvent> caretMoveEvent =
             new nsAccCaretMoveEvent(accessible, caretOffset);
@@ -1805,8 +1805,8 @@ nsDocAccessible::FlushPendingEvents()
           PRInt32 selectionCount;
           accessibleText->GetSelectionCount(&selectionCount);
           if (selectionCount) {  
-            nsAccUtils::FireAccEvent(nsIAccessibleEvent::EVENT_TEXT_SELECTION_CHANGED,
-                                     accessible, PR_TRUE);
+            nsEventShell::FireEvent(nsIAccessibleEvent::EVENT_TEXT_SELECTION_CHANGED,
+                                    accessible, PR_TRUE);
           }
         } 
       }
@@ -1910,8 +1910,8 @@ void nsDocAccessible::RefreshNodes(nsIDOMNode *aStartNode)
       if (!popup) {
         
         
-        nsAccUtils::FireAccEvent(nsIAccessibleEvent::EVENT_MENUPOPUP_END,
-                                 accessible);
+        nsEventShell::FireEvent(nsIAccessibleEvent::EVENT_MENUPOPUP_END,
+                                accessible);
       }
     }
     nsRefPtr<nsAccessible> acc = nsAccUtils::QueryAccessible(accessible);

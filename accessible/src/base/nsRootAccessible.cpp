@@ -479,8 +479,8 @@ nsRootAccessible::FireAccessibleFocusEvent(nsIAccessible *aAccessible,
         if (menuBarAccessNode) {
           menuBarAccessNode->GetDOMNode(getter_AddRefs(mCurrentARIAMenubar));
           if (mCurrentARIAMenubar) {
-            nsAccUtils::FireAccEvent(nsIAccessibleEvent::EVENT_MENU_START,
-                                     menuBarAccessible);
+            nsEventShell::FireEvent(nsIAccessibleEvent::EVENT_MENU_START,
+                                    menuBarAccessible);
           }
         }
       }
@@ -751,12 +751,14 @@ nsresult nsRootAccessible::HandleEventWithTarget(nsIDOMEvent* aEvent,
         
         
         
-        return nsAccUtils::FireAccEvent(nsIAccessibleEvent::EVENT_SELECTION_WITHIN,
-                                        accessible);
+        nsEventShell::FireEvent(nsIAccessibleEvent::EVENT_SELECTION_WITHIN,
+                                accessible);
+        return NS_OK;
       }
 
-      return nsAccUtils::FireAccEvent(nsIAccessibleEvent::EVENT_SELECTION,
-                                      treeItemAccessible);
+      nsEventShell::FireEvent(nsIAccessibleEvent::EVENT_SELECTION,
+                              treeItemAccessible);
+      return NS_OK;
     }
   }
   else
@@ -807,15 +809,15 @@ nsresult nsRootAccessible::HandleEventWithTarget(nsIDOMEvent* aEvent,
     FireAccessibleFocusEvent(accessible, focusedItem, aEvent);
   }
   else if (eventType.EqualsLiteral("AlertActive")) { 
-    nsAccUtils::FireAccEvent(nsIAccessibleEvent::EVENT_ALERT, accessible);
+    nsEventShell::FireEvent(nsIAccessibleEvent::EVENT_ALERT, accessible);
   }
   else if (eventType.EqualsLiteral("popupshown")) {
     HandlePopupShownEvent(accessible);
   }
   else if (eventType.EqualsLiteral("DOMMenuInactive")) {
     if (nsAccUtils::Role(accessible) == nsIAccessibleRole::ROLE_MENUPOPUP) {
-      nsAccUtils::FireAccEvent(nsIAccessibleEvent::EVENT_MENUPOPUP_END,
-                               accessible);
+      nsEventShell::FireEvent(nsIAccessibleEvent::EVENT_MENUPOPUP_END,
+                              accessible);
     }
   }
   else if (eventType.EqualsLiteral("DOMMenuItemActive")) {
@@ -881,13 +883,13 @@ nsresult nsRootAccessible::HandleEventWithTarget(nsIDOMEvent* aEvent,
   }
   else if (eventType.EqualsLiteral("DOMMenuBarActive")) {  
     nsAccEvent::PrepareForEvent(aTargetNode, PR_TRUE);
-    nsAccUtils::FireAccEvent(nsIAccessibleEvent::EVENT_MENU_START,
-                             accessible, PR_TRUE);
+    nsEventShell::FireEvent(nsIAccessibleEvent::EVENT_MENU_START,
+                            accessible, PR_TRUE);
   }
   else if (eventType.EqualsLiteral("DOMMenuBarInactive")) {  
     nsAccEvent::PrepareForEvent(aTargetNode, PR_TRUE);
-    nsAccUtils::FireAccEvent(nsIAccessibleEvent::EVENT_MENU_END,
-                             accessible, PR_TRUE);
+    nsEventShell::FireEvent(nsIAccessibleEvent::EVENT_MENU_END,
+                            accessible, PR_TRUE);
     FireCurrentFocusEvent();
   }
   else if (eventType.EqualsLiteral("ValueChange")) {
@@ -896,8 +898,8 @@ nsresult nsRootAccessible::HandleEventWithTarget(nsIDOMEvent* aEvent,
   }
 #ifdef DEBUG
   else if (eventType.EqualsLiteral("mouseover")) {
-    nsAccUtils::FireAccEvent(nsIAccessibleEvent::EVENT_DRAGDROP_START,
-                             accessible);
+    nsEventShell::FireEvent(nsIAccessibleEvent::EVENT_DRAGDROP_START,
+                            accessible);
   }
 #endif
   return NS_OK;
@@ -1103,8 +1105,9 @@ nsRootAccessible::HandlePopupShownEvent(nsIAccessible *aAccessible)
 
   if (role == nsIAccessibleRole::ROLE_MENUPOPUP) {
     
-    return nsAccUtils::FireAccEvent(nsIAccessibleEvent::EVENT_MENUPOPUP_START,
-                                    aAccessible);
+    nsEventShell::FireEvent(nsIAccessibleEvent::EVENT_MENUPOPUP_START,
+                            aAccessible);
+    return NS_OK;
   }
 
   if (role == nsIAccessibleRole::ROLE_TOOLTIP) {
@@ -1112,8 +1115,8 @@ nsRootAccessible::HandlePopupShownEvent(nsIAccessible *aAccessible)
     
     
     
-    return nsAccUtils::FireAccEvent(nsIAccessibleEvent::EVENT_SHOW,
-                                    aAccessible);
+    nsEventShell::FireEvent(nsIAccessibleEvent::EVENT_SHOW, aAccessible);
+    return NS_OK;
   }
 
   if (role == nsIAccessibleRole::ROLE_COMBOBOX_LIST) {
