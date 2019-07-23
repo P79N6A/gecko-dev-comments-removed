@@ -65,30 +65,47 @@ gfxASurface::AddRef(void)
 {
     NS_PRECONDITION(mSurface != nsnull, "gfxASurface::AddRef without mSurface");
 
-    if (mHasFloatingRef) {
-        
-        mHasFloatingRef = PR_FALSE;
-    } else {
-        cairo_surface_reference(mSurface);
-    }
+    if (mSurfaceValid) {
+        if (mFloatingRefs) {
+            
+            mFloatingRefs--;
+        } else {
+            cairo_surface_reference(mSurface);
+        }
 
-    return (nsrefcnt) cairo_surface_get_reference_count(mSurface);
+        return (nsrefcnt) cairo_surface_get_reference_count(mSurface);
+    } else {
+        
+        
+        return ++mFloatingRefs;
+    }
 }
 
 nsrefcnt
 gfxASurface::Release(void)
 {
-    NS_PRECONDITION(!mHasFloatingRef, "gfxASurface::Release while floating ref still outstanding!");
     NS_PRECONDITION(mSurface != nsnull, "gfxASurface::Release without mSurface");
-    
-    
-    
-    nsrefcnt refcnt = (nsrefcnt) cairo_surface_get_reference_count(mSurface);
-    cairo_surface_destroy(mSurface);
 
-    
+    if (mSurfaceValid) {
+        NS_ASSERTION(mFloatingRefs == 0, "gfxASurface::Release with floating refs still hanging around!");
 
-    return --refcnt;
+        
+        
+        
+        nsrefcnt refcnt = (nsrefcnt) cairo_surface_get_reference_count(mSurface);
+        cairo_surface_destroy(mSurface);
+
+        
+
+        return --refcnt;
+    } else {
+        if (--mFloatingRefs == 0) {
+            delete this;
+            return 0;
+        }
+
+        return mFloatingRefs;
+    }
 }
 
 void
@@ -157,14 +174,22 @@ gfxASurface::Wrap (cairo_surface_t *csurf)
 void
 gfxASurface::Init(cairo_surface_t* surface, PRBool existingSurface)
 {
+    if (cairo_surface_status(surface)) {
+        
+        mSurfaceValid = PR_FALSE;
+        cairo_surface_destroy(surface);
+        return;
+    }
+
     SetSurfaceWrapper(surface, this);
 
     mSurface = surface;
+    mSurfaceValid = PR_TRUE;
 
     if (existingSurface) {
-        mHasFloatingRef = PR_FALSE;
+        mFloatingRefs = 0;
     } else {
-        mHasFloatingRef = PR_TRUE;
+        mFloatingRefs = 1;
     }
 }
 
@@ -215,7 +240,6 @@ gfxASurface::MarkDirty(const gfxRect& r)
                                        (int) r.size.width, (int) r.size.height);
 }
 
-
 void
 gfxASurface::SetData(const cairo_user_data_key_t *key,
                      void *user_data,
@@ -234,4 +258,38 @@ void
 gfxASurface::Finish()
 {
     cairo_surface_finish(mSurface);
+}
+
+int
+gfxASurface::Status()
+{
+    if (!mSurfaceValid)
+        return -1;
+
+    return cairo_surface_status(mSurface);
+}
+
+
+PRBool
+gfxASurface::CheckSurfaceSize(const gfxIntSize& sz, PRInt32 limit)
+{
+    if (sz.width <= 0 || sz.height <= 0)
+        return PR_FALSE;
+
+    
+    PRInt32 tmp = sz.width * sz.height;
+    if (tmp / sz.height != sz.width)
+        return PR_FALSE;
+
+    
+    tmp = tmp * 4;
+    if (tmp / 4 != sz.width * sz.height)
+        return PR_FALSE;
+
+    
+    if (limit &&
+        (sz.width > limit || sz.height > limit))
+        return PR_FALSE;
+
+    return PR_TRUE;
 }
