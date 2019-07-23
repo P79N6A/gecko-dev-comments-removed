@@ -4986,16 +4986,6 @@ nsEventStateManager::GetDocSelectionLocation(nsIContent **aStartContent,
       
       
       
-      nsIContent *parentContent = startContent;
-      while ((parentContent = parentContent->GetParent()) != nsnull) {
-        if (parentContent->Tag() == nsGkAtoms::label) {
-          return NS_OK; 
-        }
-      }
-      
-      
-      
-      
 
       nsCOMPtr<nsIDOMNode> domNode(do_QueryInterface(startContent));
       PRUint16 nodeType;
