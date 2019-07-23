@@ -3698,9 +3698,8 @@ nsBrowserStatusHandler.prototype =
 
     var securityUI = gBrowser.securityUI;
     this.securityButton.setAttribute("tooltiptext", securityUI.tooltipText);
-    var lockIcon = document.getElementById("lock-icon");
-    if (lockIcon)
-      lockIcon.setAttribute("tooltiptext", securityUI.tooltipText);
+    
+    getIdentityHandler().checkIdentity(aWebProgress, aRequest, aState);
   },
 
   
@@ -5582,4 +5581,173 @@ function showToolbars() {
     goButtonStack.removeAttribute("hidden");
   
   return false; 
+}
+
+
+
+
+function IdentityHandler() {}
+
+IdentityHandler.prototype = {
+
+  
+  IDENTITY_MODE_IDENTIFIED       : "verifiedIdentity", 
+  IDENTITY_MODE_DOMAIN_VERIFIED  : "verifiedDomain",   
+  IDENTITY_MODE_UNKNOWN          : "unknownIdentity",  
+
+  
+
+
+
+  handleMoreInfoClick : function(event) {
+    if (event.button == 0) {
+      displaySecurityInfo();
+      event.stopPropagation();
+    }   
+  },
+  
+  
+
+
+
+
+
+
+
+
+  checkIdentity : function(webProgress, request, state) {
+    if (state & Components.interfaces.nsIWebProgressListener.STATE_IDENTITY_EV_TOPLEVEL)
+      this.setMode(this.IDENTITY_MODE_IDENTIFIED);
+    else if (state & Components.interfaces.nsIWebProgressListener.STATE_SECURE_HIGH)
+      this.setMode(this.IDENTITY_MODE_DOMAIN_VERIFIED);
+    else
+      this.setMode(this.IDENTITY_MODE_UNKNOWN);
+  },
+  
+  
+
+
+
+  setMode : function(newMode) {
+    document.getElementById("identity-popup").className = newMode;
+    document.getElementById("identity-box").className = newMode;
+    document.getElementById("identity-popup-content-box").className = newMode;
+    this.setMessages(newMode);
+  },
+  
+  
+
+
+
+
+
+  setMessages : function(newMode) {
+      
+    var stringBundle = document.getElementById("bundle_browser");
+    var brandShortName = document.getElementById("bundle_brand").getString("brandShortName");
+  
+    
+    var supplemental = "";
+    var verifier = "";
+    var icon_label = "";
+      
+    if (newMode == this.IDENTITY_MODE_DOMAIN_VERIFIED) {
+      var title = stringBundle.getString("identity.domainverified.title");
+      var encryption_label = stringBundle.getString("identity.encrypted");
+      var status = gBrowser.securityUI
+                           .QueryInterface(Components.interfaces.nsISSLStatusProvider)
+                           .SSLStatus.QueryInterface(Components.interfaces.nsISSLStatus);
+      var cert = status.serverCert;
+
+      
+      
+      
+      
+      
+      var body = icon_label = gBrowser.contentWindow.location.host;
+      var caOrg = cert.issuerOrganization || cert.issuerCommonName;      
+      verifier = stringBundle.getFormattedString("identity.identified.verifier",
+                                                 [caOrg]);
+      var tooltip = verifier;      
+      supplemental = stringBundle.getString("identity.domainverified.supplemental");      
+    }
+    else if (newMode == this.IDENTITY_MODE_IDENTIFIED) {
+      title = stringBundle.getString("identity.identified.title");
+      encryption_label = stringBundle.getString("identity.encrypted");
+  
+      
+      status = gBrowser.securityUI
+                       .QueryInterface(Components.interfaces.nsISSLStatusProvider)
+                       .SSLStatus.QueryInterface(Components.interfaces.nsISSLStatus);
+      cert = status.serverCert;
+
+      
+      
+      body = cert.organization || cert.commonName;
+      caOrg = cert.issuerOrganization || cert.issuerCommonName;        
+      verifier = stringBundle.getFormattedString("identity.identified.verifier",
+                                                 [caOrg]);
+      tooltip = verifier;
+            
+      
+      
+      
+      if (cert.subjectName) {
+        var subjectNameFields = {};
+        cert.subjectName.split(",").forEach(function(v) {
+          var field = v.split("=");
+          this[field[0]] = field[1];
+        }, subjectNameFields);
+
+        if (subjectNameFields.L) 
+          supplemental += subjectNameFields.L + "\n";
+                
+        if (subjectNameFields.ST && subjectNameFields.C) 
+          supplemental += stringBundle.getFormattedString("identity.identified.state_and_country",
+                                                          [subjectNameFields.ST,
+                                                          subjectNameFields.C]);
+        else if (subjectNameFields.ST) 
+          supplemental += subjectNameFields.ST;
+        else if (subjectNameFields.C) 
+          supplemental += subjectNameFields.C;
+              
+        
+        if (subjectNameFields.C)
+          icon_label = stringBundle.getFormattedString("identity.identified.title_with_country",
+                                                       [body, subjectNameFields.C]);
+        else
+          icon_label = body;
+      }
+    }
+    else {
+      encryption_label = stringBundle.getString("identity.unencrypted");
+      title = stringBundle.getString("identity.unknown.title");
+      body = stringBundle.getFormattedString("identity.unknown.body", [brandShortName], 1);
+      tooltip = body;
+    }
+    
+    
+    document.getElementById("identity-popup-title").value = title;
+    document.getElementById("identity-popup-content").textContent = body;
+    document.getElementById("identity-popup-content-supplemental")
+            .textContent = supplemental;
+    document.getElementById("identity-popup-content-verifier")
+            .textContent = verifier;
+    document.getElementById("identity-box").tooltipText = tooltip;
+    document.getElementById("identity-icon-label").value = icon_label;
+    document.getElementById("identity-popup-encryption-label")
+            .textContent = encryption_label;
+  }
+};
+
+var gIdentityHandler; 
+
+
+
+
+
+function getIdentityHandler() {
+  if (!gIdentityHandler)
+    gIdentityHandler = new IdentityHandler();
+  return gIdentityHandler;    
 }
