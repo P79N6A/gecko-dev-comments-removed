@@ -2903,6 +2903,9 @@ const BrowserSearch = {
       return;
 
     var browser = gBrowser.getBrowserForDocument(targetDoc);
+    
+    if (!browser)
+      return;
 
     
     if (browser.engines) {
@@ -2914,8 +2917,8 @@ const BrowserSearch = {
     
     
     var iconURL = null;
-    if (gBrowser.shouldLoadFavIcon(browser.contentDocument.documentURIObject))
-      iconURL = browser.currentURI.prePath + "/favicon.ico";
+    if (gBrowser.shouldLoadFavIcon(targetDoc.documentURIObject))
+      iconURL = targetDoc.documentURIObject.prePath + "/favicon.ico";
 
     var hidden = false;
     
@@ -6100,7 +6103,7 @@ var FeedHandler = {
 
       feeds.push(feed);
       browserForLink.feeds = feeds;
-      if (browserForLink == gBrowser || browserForLink == gBrowser.mCurrentBrowser) {
+      if (browserForLink == gBrowser.mCurrentBrowser) {
         var feedButton = document.getElementById("feed-button");
         if (feedButton)
           feedButton.collapsed = false;
