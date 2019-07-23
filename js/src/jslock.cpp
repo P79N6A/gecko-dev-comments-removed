@@ -628,6 +628,14 @@ ClaimTitle(JSTitle *title, JSContext *cx)
 
 
         requestDebit = js_DiscountRequestsForGC(cx);
+        if (title->ownercx != ownercx) {
+            
+
+
+
+            js_RecountRequestsAfterGC(rt, requestDebit);
+            continue;
+        }
 
         
 

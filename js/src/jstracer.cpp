@@ -5031,14 +5031,37 @@ js_DeepBail(JSContext *cx)
     JS_ASSERT(JS_ON_TRACE(cx));
 
     
-    JS_ASSERT(cx->bailExit);
 
-    JS_TRACE_MONITOR(cx).onTrace = false;
-    JS_TRACE_MONITOR(cx).prohibitFlush++;
+
+
+    JSContext *tracecx = NULL;
+#ifdef JS_THREADSAFE
+    JSCList *head = &cx->thread->contextList;
+    for (JSCList *link = head->next; link != head; link = link->next) {
+        JSContext *acx = CX_FROM_THREAD_LINKS(link);
+        JS_ASSERT(!(acx->requestDepth == 0 && acx->bailExit));
+#else
+    JSContext *acx, *iter = NULL;
+    while ((acx = js_ContextIterator(cx->runtime, JS_TRUE, &iter)) != NULL) {
+#endif
+        if (acx->bailExit) {
+            JS_ASSERT(!tracecx);
+            tracecx = acx;
+#ifndef DEBUG
+            break;
+#endif
+        }
+    }
+
+    
+    JS_ASSERT(tracecx->bailExit);
+
+    JS_TRACE_MONITOR(tracecx).onTrace = false;
+    JS_TRACE_MONITOR(tracecx).prohibitFlush++;
     debug_only_v(printf("Deep bail.\n");)
-    LeaveTree(*cx->interpState, cx->bailExit);
-    cx->bailExit = NULL;
-    cx->interpState->builtinStatus |= JSBUILTIN_BAILED;
+    LeaveTree(*tracecx->interpState, tracecx->bailExit);
+    tracecx->bailExit = NULL;
+    tracecx->interpState->builtinStatus |= JSBUILTIN_BAILED;
 }
 
 JS_REQUIRES_STACK jsval&

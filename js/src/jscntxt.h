@@ -178,6 +178,11 @@ struct JSTraceMonitor {
 
 typedef struct InterpStruct InterpStruct;
 
+
+
+
+
+
 #ifdef JS_TRACER
 # define JS_ON_TRACE(cx)            (JS_TRACE_MONITOR(cx).onTrace)
 #else
@@ -229,6 +234,11 @@ struct JSThreadData {
 
     
     JSPropertyCache     propertyCache;
+
+
+
+
+
 
 #ifdef JS_TRACER
     
