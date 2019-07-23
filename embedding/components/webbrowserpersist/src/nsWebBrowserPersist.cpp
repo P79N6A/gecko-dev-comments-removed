@@ -2290,7 +2290,10 @@ nsWebBrowserPersist::MakeOutputStreamFromFile(
     {
         
         CleanupData *cleanupData = new CleanupData;
-        NS_ENSURE_TRUE(cleanupData, NS_ERROR_OUT_OF_MEMORY);
+        if (!cleanupData) {
+          NS_RELEASE(*aOutputStream);
+          return NS_ERROR_OUT_OF_MEMORY;
+        }
         cleanupData->mFile = aFile;
         cleanupData->mIsDirectory = PR_FALSE;
         mCleanupList.AppendElement(cleanupData);
