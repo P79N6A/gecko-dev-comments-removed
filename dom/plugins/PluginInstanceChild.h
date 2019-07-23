@@ -69,7 +69,7 @@ protected:
 
     
     virtual nsresult
-    RecvTest(const Variant& v1, const Variant& v2)
+    AnswerTest(const Variant& v1, const Variant& v2, Variant* _retval)
     {
         printf("\n[PluginInstanceChild] v1: ");
 
@@ -116,6 +116,7 @@ protected:
         }
 
         puts("\n");
+        *_retval = v1;
         return NS_OK;
     }
 
