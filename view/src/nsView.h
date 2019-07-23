@@ -218,6 +218,10 @@ public:
 
   virtual ~nsView();
 
+  nsPoint ViewToWidgetOffset() const {
+    return mViewToWidgetOffset;
+  }
+
 protected:
   
   
@@ -228,6 +232,7 @@ protected:
   
   nsRect*      mClipRect;
   nsRegion*    mDirtyRegion;
+  nsPoint      mViewToWidgetOffset;
   PRPackedBool mChildRemoved;
 };
 
