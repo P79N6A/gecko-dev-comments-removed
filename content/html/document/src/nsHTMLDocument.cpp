@@ -72,6 +72,7 @@
 #include "nsIMarkupDocumentViewer.h"
 #include "nsIDocShell.h"
 #include "nsIDocShellTreeItem.h"
+#include "nsDocShellLoadTypes.h"
 #include "nsIWebNavigation.h"
 #include "nsIBaseWindow.h"
 #include "nsIWebShellServices.h"
@@ -2265,19 +2266,8 @@ nsHTMLDocument::OpenCommon(const nsACString& aContentType, PRBool aReplace)
     
     
     
-    
-    PRUint32 loadType;
-    if (aReplace) {
-      loadType = nsIDocShell::LOAD_CMD_NORMAL |
-        (nsIWebNavigation::LOAD_FLAGS_REPLACE_HISTORY << 16);
-    } else {
-      
-      
-      loadType = nsIDocShell::LOAD_CMD_NORMAL |
-        (nsIWebNavigation::LOAD_FLAGS_NONE << 16);
-    }
-    docshell->SetLoadType(loadType);
-    
+    docshell->SetLoadType(aReplace ? LOAD_NORMAL_REPLACE : LOAD_NORMAL);
+
     nsCOMPtr<nsIContentViewer> cv;
     docshell->GetContentViewer(getter_AddRefs(cv));
     nsCOMPtr<nsIDocumentViewer> docViewer = do_QueryInterface(cv);
