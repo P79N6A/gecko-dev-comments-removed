@@ -2072,9 +2072,15 @@ SessionStoreService.prototype = {
       return;
     }
     try {
-      var currentUrl = aWindow.getBrowser().currentURI.spec;
+      var currentURI = aWindow.getBrowser().currentURI.clone();
+      
+      try { 
+        currentURI.userPass = ""; 
+      } 
+      catch (ex) { } 
+
       var cr = Cc["@mozilla.org/xre/app-info;1"].getService(Ci.nsICrashReporter);
-      cr.annotateCrashReport("URL", currentUrl);
+      cr.annotateCrashReport("URL", currentURI.spec);
     }
     catch (ex) {
       
