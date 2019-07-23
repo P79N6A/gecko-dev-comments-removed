@@ -263,4 +263,8 @@ function makeTagCloud(tagInfo)
 
 var tagcloud = makeTagCloud(tagInfo);
 tagInfo = null;
-assertEq(tagcloud.length, 315260)
+
+
+
+var tagcloud_norm = tagcloud.replace(/([0-9.]+)px/g, function(str, p1) { return p1.substr(0, 10) + 'px' })
+assertEq(tagcloud_norm.length, 295906)
