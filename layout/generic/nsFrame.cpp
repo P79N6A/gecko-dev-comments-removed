@@ -5662,8 +5662,10 @@ nsIFrame::FinishAndStoreOverflow(nsRect* aOverflowArea, nsSize aNewSize)
       &hasOutlineOrEffects);
 
   
-  if ((mState & NS_FRAME_MAY_BE_TRANSFORMED_OR_HAVE_RENDERING_OBSERVERS) && 
-      GetStyleDisplay()->HasTransform()) {
+  PRBool hasTransform =
+    (mState & NS_FRAME_MAY_BE_TRANSFORMED_OR_HAVE_RENDERING_OBSERVERS) && 
+    GetStyleDisplay()->HasTransform();
+  if (hasTransform) {
     
 
 
@@ -5687,7 +5689,7 @@ nsIFrame::FinishAndStoreOverflow(nsRect* aOverflowArea, nsSize aNewSize)
     }
   }
 
-  if (overflowChanged && hasOutlineOrEffects) {
+  if (overflowChanged && (hasOutlineOrEffects || hasTransform)) {
     
     
     
