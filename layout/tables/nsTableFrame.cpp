@@ -6810,7 +6810,13 @@ nsTableFrame::InvalidateFrame(nsIFrame* aFrame,
   if (aIsFirstReflow ||
       aOrigRect.TopLeft() != aFrame->GetPosition() ||
       aOrigOverflowRect.TopLeft() != overflowRect.TopLeft()) {
-    aFrame->InvalidateOverflowRect();
+    
+    
+    
+    
+    
+    aFrame->Invalidate(overflowRect);
+    parent->Invalidate(aOrigOverflowRect + aOrigRect.TopLeft());
   } else {
     aFrame->InvalidateRectDifference(aOrigOverflowRect, overflowRect);
     parent->InvalidateRectDifference(aOrigRect, aFrame->GetRect());
