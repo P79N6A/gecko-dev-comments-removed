@@ -81,7 +81,6 @@ nsScrollPortView::nsScrollPortView(nsViewManager* aViewManager)
   : nsView(aViewManager)
 {
   mOffsetX = mOffsetY = 0;
-  mOffsetXpx = mOffsetYpx = 0;
   nsCOMPtr<nsIDeviceContext> dev;
   mViewManager->GetDeviceContext(*getter_AddRefs(dev));
   mLineHeight = dev->AppUnitsPerInch() / 6; 
@@ -617,12 +616,11 @@ NS_IMETHODIMP nsScrollPortView::ScrollToImpl(nscoord aX, nscoord aY, PRUint32 aU
     return rv;
   }
   
+  PRInt32 xPixels = NSAppUnitsToIntPixels(aX, p2a);
+  PRInt32 yPixels = NSAppUnitsToIntPixels(aY, p2a);
   
-  nscoord aXpx = NSAppUnitsToIntPixels(aX, p2a);
-  nscoord aYpx = NSAppUnitsToIntPixels(aY, p2a);
-  
-  aX = NSIntPixelsToAppUnits(aXpx, p2a);
-  aY = NSIntPixelsToAppUnits(aYpx, p2a);
+  aX = NSIntPixelsToAppUnits(xPixels, p2a);
+  aY = NSIntPixelsToAppUnits(yPixels, p2a);
   
   
   
@@ -632,8 +630,8 @@ NS_IMETHODIMP nsScrollPortView::ScrollToImpl(nscoord aX, nscoord aY, PRUint32 aU
   }
 
   
-  dxPx = mOffsetXpx - aXpx;
-  dyPx = mOffsetYpx - aYpx;
+  dxPx = NSAppUnitsToIntPixels(mOffsetX, p2a) - xPixels;
+  dyPx = NSAppUnitsToIntPixels(mOffsetY, p2a) - yPixels;
 
   
   PRUint32 listenerCount;
@@ -657,11 +655,6 @@ NS_IMETHODIMP nsScrollPortView::ScrollToImpl(nscoord aX, nscoord aY, PRUint32 aU
   
   
   scrolledView->SetPositionIgnoringChildWidgets(-aX, -aY);
-      
-  
-  
-  mOffsetXpx = aXpx;
-  mOffsetYpx = aYpx;
       
   nsPoint twipsDelta(aX - mOffsetX, aY - mOffsetY);
 
