@@ -2832,10 +2832,12 @@ void
 js_DestroyRegExp(JSContext *cx, JSRegExp *re)
 {
     if (JS_ATOMIC_DECREMENT(&re->nrefs) == 0) {
+#ifdef JS_TRACER
         
         Fragment* fragment = JS_TRACE_MONITOR(cx).reFragmento->getLoop(re);
-        if (fragment) 
+        if (fragment)
             fragment->blacklist();
+#endif
         if (re->classList) {
             uintN i;
             for (i = 0; i < re->classCount; i++) {
