@@ -214,9 +214,10 @@ NS_IMETHODIMP nsXULTabPanelsAccessible::GetRole(PRUint32 *aRole)
 
 
 
-NS_IMETHODIMP nsXULTabPanelsAccessible::GetName(nsAString& _retval)
+NS_IMETHODIMP nsXULTabPanelsAccessible::GetName(nsAString& aName)
 {
-  return NS_ERROR_NOT_IMPLEMENTED;
+  aName.Truncate();
+  return NS_OK;
 }
 
 

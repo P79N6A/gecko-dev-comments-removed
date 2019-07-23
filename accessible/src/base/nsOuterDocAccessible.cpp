@@ -54,8 +54,10 @@ nsOuterDocAccessible::nsOuterDocAccessible(nsIDOMNode* aNode,
 
   
 NS_IMETHODIMP nsOuterDocAccessible::GetName(nsAString& aName) 
-{ 
-  nsCOMPtr<nsIAccessibleDocument> accDoc(do_QueryInterface(mFirstChild));
+{
+  nsCOMPtr<nsIAccessible> accessible;
+  GetFirstChild(getter_AddRefs(accessible));
+  nsCOMPtr<nsIAccessibleDocument> accDoc(do_QueryInterface(accessible));
   if (!accDoc) {
     return NS_ERROR_FAILURE;
   }
