@@ -1314,6 +1314,9 @@ function nonBrowserWindowDelayedStartup()
                            .getService(Components.interfaces.nsIPrefBranch2);
 
   
+  BrowserOffline.init();
+  
+  
   gSanitizeListener = new SanitizeListener();
 }
 
@@ -1321,6 +1324,8 @@ function nonBrowserWindowShutdown()
 {
   if (gSanitizeListener)
     gSanitizeListener.shutdown();
+
+  BrowserOffline.uninit();
 }
 #endif
 
