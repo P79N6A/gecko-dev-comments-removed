@@ -533,3 +533,13 @@ function dump_table(aName)
   stmt.finalize();
   stmt = null;
 }
+
+
+
+
+function flush_main_thread_events()
+{
+  let tm = Cc["@mozilla.org/thread-manager;1"].getService(Ci.nsIThreadManager);
+  while (tm.mainThread.hasPendingEvents())
+    tm.mainThread.processNextEvent(false);
+}
