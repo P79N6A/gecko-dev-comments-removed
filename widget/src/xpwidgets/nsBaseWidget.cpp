@@ -1002,8 +1002,8 @@ void ScrollRectIterBase::Move(ScrollRect** aUnmovedLink)
   
   
   
-  for (ScrollRect** nextLink = aUnmovedLink;
-       ScrollRect* otherRect = *nextLink; ) {
+  for (ScrollRect** nextLink = aUnmovedLink; *nextLink; ) {
+    ScrollRect* otherRect = *nextLink;
     NS_ASSERTION(otherRect->y >= rect->y, "Scroll rectangles out of order");
     if (otherRect->y >= rect->YMost()) 
       break;
