@@ -246,6 +246,8 @@ js_FillPropertyCache(JSContext *cx, JSObject *obj,
             SPROP_HAS_VALID_SLOT(sprop, scope)) {
             
             vword = SLOT_TO_PCVAL(sprop->slot);
+            if (sprop->slot >= JS_INITIAL_NSLOTS && !DSLOTS_IS_NOT_NULL(obj))
+                DSLOTS_BUMP(obj);
         } else {
             
             vword = SPROP_TO_PCVAL(sprop);
