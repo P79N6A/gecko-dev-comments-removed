@@ -165,10 +165,7 @@ class nsMediaDecoder : public nsIObserver
   virtual void Invalidate();
 
   
-  
-  
-  
-  virtual void Progress(PRBool aTimer);
+  virtual void Progress();
 
   
   virtual void UpdateBytesDownloaded(PRUint64 aBytes) = 0;
@@ -214,16 +211,6 @@ protected:
   PRInt32 mRGBHeight;
 
   
-  
-  PRIntervalTime mProgressTime;
-
-  
-  
-  
-  
-  PRIntervalTime mDataTime;
-
-  
   PRPackedBool mSizeChanged;
 
   
@@ -252,12 +239,6 @@ protected:
   
   
   PRPackedBool mStopping;
-
-  
-  
-  
-  
-  PRPackedBool mIgnoreProgressData;
 };
 
 #endif
