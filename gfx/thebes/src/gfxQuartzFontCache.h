@@ -116,11 +116,17 @@ public:
     THEBES_INLINE_DECL_REFCOUNTING(MacOSFamilyEntry)
 
     MacOSFamilyEntry(nsString &aName) :
-        mName(aName), mOtherFamilyNamesInitialized(PR_FALSE)
-    {
-    }
-
+        mName(aName), mOtherFamilyNamesInitialized(PR_FALSE), mHasOtherFamilyNames(PR_FALSE)
+    {}
+  
+    virtual ~MacOSFamilyEntry() {}
+        
     const nsString& Name() { return mName; }
+    virtual void LocalizedName(nsString& aLocalizedName);
+    virtual PRBool HasOtherFamilyNames();
+    
+    nsTArray<nsRefPtr<MacOSFontEntry> >& GetFontList() { return mAvailableFonts; }
+    
     void AddFontEntry(nsRefPtr<MacOSFontEntry> aFontEntry) {
         mAvailableFonts.AppendElement(aFontEntry);
     }
@@ -134,7 +140,10 @@ public:
     void FindFontForChar(FontSearch *aMatchData);
     
     
-    void ReadOtherFamilyNames(AddOtherFamilyNameFunctor& aOtherFamilyFunctor);
+    virtual void ReadOtherFamilyNames(AddOtherFamilyNameFunctor& aOtherFamilyFunctor);
+    
+    
+    MacOSFontEntry* FindFont(const nsString& aPostscriptName);
     
 protected:
     
@@ -150,8 +159,24 @@ protected:
     nsString mName;  
     nsTArray<nsRefPtr<MacOSFontEntry> >  mAvailableFonts;
     PRPackedBool mOtherFamilyNamesInitialized;
+    PRPackedBool mHasOtherFamilyNames;
 };
 
+
+class SingleFaceFamily : public MacOSFamilyEntry
+{
+public:
+    SingleFaceFamily(nsString &aName) :
+        MacOSFamilyEntry(aName)
+    {}
+    
+    virtual ~SingleFaceFamily() {}
+    
+    virtual void LocalizedName(nsString& aLocalizedName);
+    
+    
+    virtual void ReadOtherFamilyNames(AddOtherFamilyNameFunctor& aOtherFamilyFunctor);
+};
 
 class gfxQuartzFontCache {
 public:
@@ -211,6 +236,15 @@ private:
     
     
     void InitOtherFamilyNames();
+    
+    
+    void InitSingleFaceList();
+    
+    
+    void PreloadNamesList();
+    
+    
+    void EliminateDuplicateFaces(const nsAString& aFamilyName);
                                                              
     static PLDHashOperator PR_CALLBACK InitOtherFamilyNamesProc(nsStringHashKey::KeyType aKey,
                                                              nsRefPtr<MacOSFamilyEntry>& aFamilyEntry,

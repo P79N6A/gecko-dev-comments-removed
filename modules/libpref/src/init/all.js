@@ -1730,6 +1730,14 @@ pref("font.size.fixed.zh-HK", 16);
 
 pref("font.mathfont-family", "STIXNonUnicode, STIXSize1, STIXGeneral, Cambria Math, Symbol, DejaVu Sans");
 
+
+
+pref("font.single-face-list", "Osaka-Mono");
+
+
+
+pref("font.preload-names-list", "Hiragino Kaku Gothic Pro,Hiragino Mincho Pro,STSong");
+
 pref("browser.urlbar.clickAtEndSelects", false);
 
 
