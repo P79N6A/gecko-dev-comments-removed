@@ -73,8 +73,8 @@ protected:
     mNeedsAsyncDestroy(PR_FALSE),
     mInSwap(PR_FALSE)
 #ifdef MOZ_IPC
+    , mRemoteFrame(false)
     , mChildProcess(nsnull)
-    , mTriedNewProcess(PR_FALSE)
 #endif
   {}
 
@@ -102,8 +102,16 @@ public:
                                nsRefPtr<nsFrameLoader>& aSecondToSwap);
 private:
 
-  NS_HIDDEN_(nsresult) EnsureDocShell();
-  NS_HIDDEN_(void) GetURL(nsString& aURL);
+#ifdef MOZ_IPC
+  bool ShouldUseRemoteProcess();
+#endif
+
+  
+
+
+
+  nsresult MaybeCreateDocShell();
+  void GetURL(nsString& aURL);
 
   
   NS_HIDDEN_(nsIntSize) GetSubDocumentSize(const nsIFrame *aIFrame);
@@ -128,9 +136,9 @@ private:
   PRPackedBool mInSwap : 1;
 
 #ifdef MOZ_IPC
+  bool mRemoteFrame;
   
   mozilla::dom::TabParent* mChildProcess;
-  PRBool mTriedNewProcess;
 #endif
 };
 
