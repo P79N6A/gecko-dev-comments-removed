@@ -48,7 +48,7 @@
 
 
 
-#define MOZ_OSXSPELL_CONTRACTID "@mozilla.org/spellchecker/myspell;1"
+#define MOZ_OSXSPELL_CONTRACTID "@mozilla.org/spellchecker/hunspell;1"
 #define MOZ_OSXSPELL_CID         \
 { /* BAABBAF4-71C3-47F4-A576-E75469E485E2 */  \
 0xBAABBAF4, 0x71C3, 0x47F4,                    \

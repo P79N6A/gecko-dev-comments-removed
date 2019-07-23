@@ -35,15 +35,14 @@
 
 
 
-
 #include "nsIGenericFactory.h"
 
 #ifdef MOZ_WIDGET_COCOA
 #include "mozOSXSpell.h"
 #else
-#include "mozMySpell.h"
+#include "mozHunspell.h"
 #ifdef MOZ_XUL_APP
-#include "mozMySpellDirProvider.h"
+#include "mozHunspellDirProvider.h"
 #endif
 #endif
 
@@ -72,9 +71,9 @@
 #ifdef MOZ_WIDGET_COCOA
 NS_GENERIC_FACTORY_CONSTRUCTOR(mozOSXSpell)
 #else
-NS_GENERIC_FACTORY_CONSTRUCTOR_INIT(mozMySpell, Init)
+NS_GENERIC_FACTORY_CONSTRUCTOR_INIT(mozHunspell, Init)
 #ifdef MOZ_XUL_APP
-NS_GENERIC_FACTORY_CONSTRUCTOR(mozMySpellDirProvider)
+NS_GENERIC_FACTORY_CONSTRUCTOR(mozHunspellDirProvider)
 #endif
 #endif
 
@@ -132,19 +131,19 @@ static nsModuleComponentInfo components[] = {
     },
 #else
     {
-        "mozMySpell",
-        MOZ_MYSPELL_CID,
-        MOZ_MYSPELL_CONTRACTID,
-        mozMySpellConstructor
+        "mozHunspell",
+        MOZ_HUNSPELL_CID,
+        MOZ_HUNSPELL_CONTRACTID,
+        mozHunspellConstructor
     },
 #ifdef MOZ_XUL_APP
     {
-        "mozMySpellDirProvider",
-        MYSPELLDIRPROVIDER_CID,
-        mozMySpellDirProvider::kContractID,
-        mozMySpellDirProviderConstructor,
-        mozMySpellDirProvider::Register,
-        mozMySpellDirProvider::Unregister
+        "mozHunspellDirProvider",
+        HUNSPELLDIRPROVIDER_CID,
+        mozHunspellDirProvider::kContractID,
+        mozHunspellDirProviderConstructor,
+        mozHunspellDirProvider::Register,
+        mozHunspellDirProvider::Unregister
     },
 #endif 
 #endif 
