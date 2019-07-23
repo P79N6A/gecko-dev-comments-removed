@@ -43,19 +43,20 @@
 #include "nsIObserver.h"
 #include "nsIURI.h"
 
-#include "nsIDOMGeolocation.h"
-#include "nsIDOMGeolocation.h"
-#include "nsIDOMGeolocationCallback.h"
-#include "nsIDOMGeolocator.h"
-#include "nsIDOMNavigatorGeolocator.h"
+#include "nsIDOMGeoGeolocation.h"
+#include "nsIDOMGeoPosition.h"
+#include "nsIDOMGeoPositionError.h"
+#include "nsIDOMGeoPositionCallback.h"
+#include "nsIDOMGeoPositionErrorCallback.h"
+#include "nsIDOMGeoPositionOptions.h"
+#include "nsIDOMNavigatorGeolocation.h"
 
 #include "nsPIDOMWindow.h"
 
 #include "nsIGeolocationProvider.h"
 
-class nsGeolocator;
-class nsGeolocatorService;
-
+class nsGeolocationService;
+class nsGeolocation;
 
 class nsGeolocationRequest : public nsIGeolocationRequest
 {
@@ -63,10 +64,12 @@ class nsGeolocationRequest : public nsIGeolocationRequest
   NS_DECL_ISUPPORTS
   NS_DECL_NSIGEOLOCATIONREQUEST
 
-  nsGeolocationRequest(nsGeolocator* locator, nsIDOMGeolocationCallback* callback);
+  nsGeolocationRequest(nsGeolocation* locator,
+                       nsIDOMGeoPositionCallback* callback,
+                       nsIDOMGeoPositionErrorCallback* errorCallback);
   void Shutdown();
 
-  void SendLocation(nsIDOMGeolocation* location);
+  void SendLocation(nsIDOMGeoPosition* location);
   void MarkCleared();
   PRBool Allowed() {return mAllowed;}
 
@@ -77,53 +80,54 @@ class nsGeolocationRequest : public nsIGeolocationRequest
   PRBool mCleared;
   PRBool mFuzzLocation;
 
-  nsCOMPtr<nsIDOMGeolocationCallback> mCallback;
+  nsCOMPtr<nsIDOMGeoPositionCallback> mCallback;
+  nsCOMPtr<nsIDOMGeoPositionErrorCallback> mErrorCallback;
 
-  nsGeolocator* mLocator; 
+  nsGeolocation* mLocator; 
 };
 
 
 
  
-class nsGeolocation : public nsIDOMGeolocation
+class nsGeoPosition : public nsIDOMGeoPosition
 {
 public:
   NS_DECL_ISUPPORTS
-  NS_DECL_NSIDOMGEOLOCATION
+  NS_DECL_NSIDOMGEOPOSITION
 
-    nsGeolocation(double aLat, double aLong, double aAlt, double aHError, double aVError, long long aTimestamp)
-    : mLat(aLat), mLong(aLong), mAlt(aAlt), mHError(aHError), mVError(aVError), mTimestamp(aTimestamp){};
+    nsGeoPosition(double aLat, double aLong, double aAlt, double aHError, double aVError, double aHeading, double aVelocity, long long aTimestamp)
+    : mLat(aLat), mLong(aLong), mAlt(aAlt), mHError(aHError), mVError(aVError), mHeading(aHeading), mVelocity(aVelocity), mTimestamp(aTimestamp){};
 
 private:
-  ~nsGeolocation(){}
-  double mLat, mLong, mAlt, mHError, mVError;
+  ~nsGeoPosition(){}
+  double mLat, mLong, mAlt, mHError, mVError, mHeading, mVelocity;
   long long mTimestamp;
 };
 
 
 
 
-class nsGeolocatorService : public nsIGeolocationService, public nsIGeolocationUpdate, public nsIObserver
+class nsGeolocationService : public nsIGeolocationService, public nsIGeolocationUpdate, public nsIObserver
 {
 public:
 
-  static nsGeolocatorService* GetGeolocationService();
-  static nsGeolocatorService* GetInstance();  
-  static nsGeolocatorService* gService;
+  static nsGeolocationService* GetGeolocationService();
+  static nsGeolocationService* GetInstance();  
+  static nsGeolocationService* gService;
 
   NS_DECL_ISUPPORTS
   NS_DECL_NSIGEOLOCATIONUPDATE
   NS_DECL_NSIOBSERVER
   NS_DECL_NSIGEOLOCATIONSERVICE
 
-  nsGeolocatorService();
+  nsGeolocationService();
 
   
-  void AddLocator(nsGeolocator* locator);
-  void RemoveLocator(nsGeolocator* locator);
+  void AddLocator(nsGeolocation* locator);
+  void RemoveLocator(nsGeolocation* locator);
 
   
-  already_AddRefed<nsIDOMGeolocation> GetLastKnownPosition();
+  already_AddRefed<nsIDOMGeoPosition> GetLastKnownPosition();
   
   
   nsIGeolocationPrompt* GetPrompt() { return mPrompt; } 
@@ -143,7 +147,7 @@ public:
 
 private:
 
-  ~nsGeolocatorService();
+  ~nsGeolocationService();
 
   
   
@@ -159,7 +163,7 @@ private:
   
   
   
-  nsTArray<nsGeolocator*> mGeolocators;
+  nsTArray<nsGeolocation*> mGeolocators;
 
   
   nsCOMPtr<nsIGeolocationPrompt> mPrompt;
@@ -169,17 +173,17 @@ private:
 
 
  
-class nsGeolocator : public nsIDOMGeolocator
+class nsGeolocation : public nsIDOMGeoGeolocation
 {
 public:
 
   NS_DECL_ISUPPORTS
-  NS_DECL_NSIDOMGEOLOCATOR
+  NS_DECL_NSIDOMGEOGEOLOCATION
 
-  nsGeolocator(nsIDOMWindow* contentDom);
+  nsGeolocation(nsIDOMWindow* contentDom);
 
   
-  void Update(nsIDOMGeolocation* aLocation);
+  void Update(nsIDOMGeoPosition* aPosition);
 
   
   PRBool   HasActiveCallbacks();
@@ -201,7 +205,7 @@ public:
 
 private:
 
-  ~nsGeolocator();
+  ~nsGeolocation();
 
   
   
@@ -220,5 +224,5 @@ private:
   nsCOMPtr<nsIURI> mURI;
 
   
-  nsRefPtr<nsGeolocatorService> mService;
+  nsRefPtr<nsGeolocationService> mService;
 };
