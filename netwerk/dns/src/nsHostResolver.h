@@ -104,12 +104,17 @@ public:
 
 
     PRLock      *addr_info_lock;
-    PRAddrInfo  *addr_info;
     int          addr_info_gencnt; 
+    PRAddrInfo  *addr_info;
     PRNetAddr   *addr;
+    PRBool       negative;   
+
+
+
+
     PRUint32     expiration; 
 
-    PRBool HasResult() const { return addr_info || addr; }
+    PRBool HasResult() const { return addr_info || addr || negative; }
 
 private:
     friend class nsHostResolver;

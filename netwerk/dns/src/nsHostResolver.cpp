@@ -186,6 +186,7 @@ nsHostRecord::Create(const nsHostKey *key, nsHostRecord **result)
     rec->resolving = PR_FALSE;
     PR_INIT_CLIST(rec);
     PR_INIT_CLIST(&rec->callbacks);
+    rec->negative = PR_FALSE;
     memcpy((char *) rec->host, key->host, hostLen);
 
     *result = rec;
@@ -456,6 +457,13 @@ nsHostResolver::ResolveHost(const char            *host,
                 LOG(("using cached record\n"));
                 
                 result = he->rec;
+                if (he->rec->negative) {
+                    status = NS_ERROR_UNKNOWN_HOST;
+                    if (!he->rec->resolving) 
+                        
+                        
+                        IssueLookup(he->rec);
+                }
             }
             
             
@@ -638,8 +646,14 @@ nsHostResolver::OnLookupComplete(nsHostRecord *rec, nsresult status, PRAddrInfo 
         if (old_addr_info)
             PR_FreeAddrInfo(old_addr_info);
         rec->expiration = NowInMinutes();
-        if (result)
+        if (result) {
             rec->expiration += mMaxCacheLifetime;
+            rec->negative = PR_FALSE;
+        }
+        else {
+            rec->expiration += 1;                 
+            rec->negative = PR_TRUE;
+        }
         rec->resolving = PR_FALSE;
         
         if (rec->addr_info && !mShutdown) {
