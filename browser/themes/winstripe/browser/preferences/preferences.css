@@ -149,6 +149,14 @@ radio[pane=paneAdvanced][selected="true"] {
 
 
 
+
+
+#advancedPrefs {
+  padding-bottom: 8px;
+}
+
+
+
 .bottomBox {
   padding-bottom: 4px;
 }
