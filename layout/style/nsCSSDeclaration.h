@@ -163,9 +163,6 @@ private:
   
   PRBool   AppendValueToString(nsCSSProperty aProperty, nsAString& aResult) const;
   
-  nsresult GetValueOrImportantValue(nsCSSProperty aProperty, nsCSSValue& aValue) const;
-
-  
   void     AppendPropertyAndValueToString(nsCSSProperty aProperty,
                                           nsAutoString& aValue,
                                           nsAString& aResult) const;
