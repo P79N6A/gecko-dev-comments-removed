@@ -322,10 +322,6 @@ nsresult
 nsHTMLLinkElement::UnsetAttr(PRInt32 aNameSpaceID, nsIAtom* aAttribute,
                              PRBool aNotify)
 {
-  if (aAttribute == nsGkAtoms::href && kNameSpaceID_None == aNameSpaceID) {
-    Link::ResetLinkState(!!aNotify);
-  }
-
   nsresult rv = nsGenericHTMLElement::UnsetAttr(aNameSpaceID, aAttribute,
                                                 aNotify);
   if (NS_SUCCEEDED(rv)) {
@@ -335,6 +331,15 @@ nsHTMLLinkElement::UnsetAttr(PRInt32 aNameSpaceID, nsIAtom* aAttribute,
                               aAttribute == nsGkAtoms::title ||
                               aAttribute == nsGkAtoms::media ||
                               aAttribute == nsGkAtoms::type));
+  }
+
+  
+  
+  
+  
+  
+  if (aAttribute == nsGkAtoms::href && kNameSpaceID_None == aNameSpaceID) {
+    Link::ResetLinkState(!!aNotify);
   }
 
   return rv;

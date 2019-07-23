@@ -286,11 +286,18 @@ nsresult
 nsSVGAElement::UnsetAttr(PRInt32 aNameSpaceID, nsIAtom* aAttr,
                          PRBool aNotify)
 {
+  nsresult rv = nsSVGAElementBase::UnsetAttr(aNameSpaceID, aAttr, aNotify);
+
+  
+  
+  
+  
+  
   if (aAttr == nsGkAtoms::href && aNameSpaceID == kNameSpaceID_XLink) {
     Link::ResetLinkState(!!aNotify);
   }
 
-  return nsSVGAElementBase::UnsetAttr(aNameSpaceID, aAttr, aNotify);
+  return rv;
 }
 
 
