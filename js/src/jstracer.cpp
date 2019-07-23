@@ -6687,6 +6687,10 @@ TraceRecorder::unbox_jsval(jsval v, LIns*& v_ins, VMSideExit* exit)
 JS_REQUIRES_STACK JSRecordingStatus
 TraceRecorder::getThis(LIns*& this_ins)
 {
+    
+
+
+    jsval original = cx->fp->argv[-1];
     JSObject* thisObj = js_ComputeThisForFrame(cx, cx->fp);
     if (!thisObj)
         ABORT_TRACE_ERROR("js_ComputeThisForName failed");
@@ -6713,7 +6717,7 @@ TraceRecorder::getThis(LIns*& this_ins)
 
 
 
-    if (JSVAL_IS_NULL(thisv)) {
+    if (JSVAL_IS_NULL(original)) {
         JS_ASSERT(!JSVAL_IS_PRIMITIVE(thisv));
         if (thisObj != globalObj)
             ABORT_TRACE("global object was wrapped while recording");
@@ -6730,6 +6734,7 @@ TraceRecorder::getThis(LIns*& this_ins)
 
 
 
+    JS_ASSERT(original == thisv);
 
     if (guardClass(JSVAL_TO_OBJECT(thisv), this_ins, &js_WithClass, snapshot(MISMATCH_EXIT)))
         ABORT_TRACE("can't trace getThis on With object");
