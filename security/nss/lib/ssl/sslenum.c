@@ -55,6 +55,9 @@
 
 
 
+
+
+
 const PRUint16 SSL_ImplementedCiphers[] = {
     
 #ifdef NSS_ENABLE_ECC
@@ -149,3 +152,14 @@ const PRUint16 SSL_ImplementedCiphers[] = {
 const PRUint16 SSL_NumImplementedCiphers = 
     (sizeof SSL_ImplementedCiphers) / (sizeof SSL_ImplementedCiphers[0]) - 1;
 
+const PRUint16 *
+SSL_GetImplementedCiphers(void)
+{
+    return SSL_ImplementedCiphers;
+}
+
+PRUint16
+SSL_GetNumImplementedCiphers(void)
+{
+    return SSL_NumImplementedCiphers;
+}

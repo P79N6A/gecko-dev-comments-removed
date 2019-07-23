@@ -42,6 +42,26 @@
 #include "prenv.h"
 #include "plhash.h"
 #include "nssrwlk.h"
+#include "nssutil.h"
+
+
+
+#if defined(DEBUG)
+#define _DEBUG_STRING " (debug)"
+#else
+#define _DEBUG_STRING ""
+#endif
+
+
+
+
+
+
+
+const char __nss_util_rcsid[] = "$Header: NSS " NSSUTIL_VERSION _DEBUG_STRING
+        "  " __DATE__ " " __TIME__ " $";
+const char __nss_util_sccsid[] = "@(#)NSS " NSSUTIL_VERSION _DEBUG_STRING
+        "  " __DATE__ " " __TIME__;
 
 
 #define USGOV                   0x60, 0x86, 0x48, 0x01, 0x65
@@ -1861,6 +1881,9 @@ SECOID_Init(void)
     const SECOidData *oid;
     int i;
     char * envVal;
+    volatile char c; 
+
+    c = __nss_util_rcsid[0] + __nss_util_sccsid[0];
 
     if (oidhash) {
 	return SECSuccess; 

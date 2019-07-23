@@ -36,8 +36,7 @@
 #include "seccomon.h"
 #include "prio.h"
 #include "prprf.h"
-
-
+#include "plhash.h"
 
 
 
@@ -52,6 +51,7 @@
 
 
 #ifdef XP_UNIX
+#include <unistd.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 
@@ -110,6 +110,20 @@ getSystemDB(void) {
    return PORT_Strdup(NSS_DEFAULT_SYSTEM);
 }
 
+static PRBool
+userIsRoot()
+{
+   
+
+   return getuid() == 0;
+}
+
+static PRBool
+userCanModifySystemDB()
+{
+   return (access(NSS_DEFAULT_SYSTEM, W_OK) == 0);
+}
+
 #else
 #ifdef XP_WIN
 static char *
@@ -128,8 +142,23 @@ getSystemDB(void)
    return NULL;
 }
 
+static PRBool
+userIsRoot()
+{
+   
+   return PR_FALSE;
+}
+
+static PRBool
+userCanModifySystemDB()
+{
+   
+
+   return PR_FALSE;
+}
+
 #else
-#error "Need to write getUserDB and get SystemDB functions"
+#error "Need to write getUserDB, SystemDB, userIsRoot, and userCanModifySystemDB functions"
 #endif
 #endif
 
@@ -192,6 +221,25 @@ getFIPSMode(void)
 
 
 
+#define ORDER_FLAGS "trustOrder=75 cipherOrder=100"
+#define SLOT_FLAGS \
+	"[slotFlags=RSA,RC4,RC2,DES,DH,SHA1,MD5,MD2,SSL,TLS,AES,RANDOM" \
+	" askpw=any timeout=30 ]"
+ 
+static const char *nssDefaultFlags =
+	ORDER_FLAGS " slotParams={0x00000001=" SLOT_FLAGS " }  ";
+
+static const char *nssDefaultFIPSFlags =
+	ORDER_FLAGS " slotParams={0x00000003=" SLOT_FLAGS " }  ";
+
+
+
+
+
+
+
+
+
 
 
 
@@ -201,8 +249,10 @@ getFIPSMode(void)
 static char **
 get_list(char *filename, char *stripped_parameters)
 {
-    char **module_list = PORT_ZNewArray(char *, 4);
-    char *userdb;
+    char **module_list = PORT_ZNewArray(char *, 5);
+    char *userdb, *sysdb;
+    int isFIPS = getFIPSMode();
+    const char *nssflags = isFIPS ? nssDefaultFIPSFlags : nssDefaultFlags;
     int next = 0;
 
     
@@ -210,15 +260,19 @@ get_list(char *filename, char *stripped_parameters)
 	return NULL;
     }
 
-    userdb  = getUserDB();
-    if (userdb != NULL) {
+    sysdb = getSystemDB();
+    userdb = getUserDB();
+
+    
+    if (userdb != NULL && !userIsRoot()) {
 	
 	module_list[next++] = PR_smprintf(
 	    "library= "
 	    "module=\"NSS User database\" "
-	    "parameters=\"configdir='sql:%s' %s\" "
-	    "NSS=\"flags=internal%s\"", 
-		userdb, stripped_parameters, getFIPSMode() ? ",FIPS" : "");
+	    "parameters=\"configdir='sql:%s' %s tokenDescription='NSS user database'\" "
+        "NSS=\"%sflags=internal%s\"",
+        userdb, stripped_parameters, nssflags,
+        isFIPS ? ",FIPS" : "");
 
 	
 	
@@ -228,19 +282,47 @@ get_list(char *filename, char *stripped_parameters)
 	    "parameters=\"configdir='sql:%s' %s\" "
 	    "NSS=\"flags=internal,moduleDBOnly,defaultModDB,skipFirst\"", 
 		userdb, stripped_parameters);
-   }
+	}
+
+#if 0
+	
+
+
 
     
-    module_list[next++] = PR_smprintf(
-	"library= "
-	"module=\"NSS system database\" "
-	"parameters=\"configdir='sql:%s' tokenDescription='NSS system database' flags=readonly\" "
-	"NSS=\"flags=internal,critical\"",filename);
+
+
+
+    PORT_Assert(filename);
+    if (sysdb && PL_CompareStrings(filename, sysdb))
+	    filename = NULL;
+    else if (userdb && PL_CompareStrings(filename, userdb))
+	    filename = NULL;
+
+    if (filename && !userIsRoot()) {
+	    module_list[next++] = PR_smprintf(
+	      "library= "
+	      "module=\"NSS database\" "
+	      "parameters=\"configdir='sql:%s' tokenDescription='NSS database sql:%s'\" "
+	      "NSS=\"%sflags=internal\"",filename, filename, nssflags);
+    }
+#endif
+
+    
+    if (sysdb) {
+	    const char *readonly = userCanModifySystemDB() ? "" : "flags=readonly";
+	    module_list[next++] = PR_smprintf(
+	      "library= "
+	      "module=\"NSS system database\" "
+	      "parameters=\"configdir='sql:%s' tokenDescription='NSS system database' %s\" "
+	      "NSS=\"%sflags=internal,critical\"",sysdb, readonly, nssflags);
+    }
 
     
     module_list[next] = 0;
 
     PORT_Free(userdb);
+    PORT_Free(sysdb);
 
     return module_list;
 }

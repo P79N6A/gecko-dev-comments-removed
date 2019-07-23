@@ -66,12 +66,12 @@
 
 
 
-#define NSS_VERSION  "3.12.6.0" _NSS_ECC_STRING _NSS_CUSTOMIZED " Beta"
+#define NSS_VERSION  "3.12.6.0" _NSS_ECC_STRING _NSS_CUSTOMIZED
 #define NSS_VMAJOR   3
 #define NSS_VMINOR   12
 #define NSS_VPATCH   6
 #define NSS_VBUILD   0
-#define NSS_BETA     PR_TRUE
+#define NSS_BETA     PR_FALSE
 
 #ifndef RC_INVOKED
 
@@ -263,11 +263,7 @@ extern SECStatus NSS_InitReadWrite(const char *configdir);
         NSS_INIT_NOPK11FINALIZE | \
         NSS_INIT_RESERVED
 
-#ifdef macintosh
-#define SECMOD_DB "Security Modules"
-#else
 #define SECMOD_DB "secmod.db"
-#endif
 
 typedef struct NSSInitContextStr NSSInitContext;
 

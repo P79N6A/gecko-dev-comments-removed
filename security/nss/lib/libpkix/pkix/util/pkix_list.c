@@ -120,7 +120,7 @@ pkix_List_Destroy(
 
         
         PKIX_DECREF(list->item);
-        while (nextItem = list->next) {
+        while ((nextItem = list->next) != NULL) {
             list->next = nextItem->next;
             nextItem->next = NULL;
             PKIX_DECREF(nextItem);

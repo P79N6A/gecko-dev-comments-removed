@@ -48,6 +48,13 @@
 
 
 
+#define PKIX_DEFAULT_MAX_CRL_RESPONSE_LENGTH (512 * 1024)
+
+
+
+
+
+
 
 
 
@@ -871,6 +878,8 @@ DownloadCrl(pkix_pl_CrlDp *dp, PKIX_PL_CRL **crl,
 
             myHttpResponseDataLen =
                 ((PKIX_PL_NssContext*)plContext)->maxResponseLength;
+            if (myHttpResponseDataLen < PKIX_DEFAULT_MAX_CRL_RESPONSE_LENGTH)
+                myHttpResponseDataLen = PKIX_DEFAULT_MAX_CRL_RESPONSE_LENGTH;
 
             
 

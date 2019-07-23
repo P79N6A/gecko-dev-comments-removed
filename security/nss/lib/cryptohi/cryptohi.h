@@ -137,7 +137,8 @@ extern SECStatus SGN_End(SGNContext *cx, SECItem *result);
 
 
 
-extern SECStatus SEC_SignData(SECItem *result, unsigned char *buf, int len,
+extern SECStatus SEC_SignData(SECItem *result,
+			     const unsigned char *buf, int len,
 			     SECKEYPrivateKey *pk, SECOidTag algid);
 
 
@@ -348,8 +349,8 @@ extern SECStatus VFY_VerifyDigestWithAlgorithmID(const SECItem *dig,
 
 
 
-extern SECStatus VFY_VerifyData(unsigned char *buf, int len,
-				SECKEYPublicKey *key, SECItem *sig,
+extern SECStatus VFY_VerifyData(const unsigned char *buf, int len,
+				const SECKEYPublicKey *key, const SECItem *sig,
 				SECOidTag sigAlg, void *wincx);
 
 
@@ -391,7 +392,7 @@ extern SECStatus VFY_VerifyDataDirect(const unsigned char *buf, int len,
 
 extern SECStatus VFY_VerifyDataWithAlgorithmID(const unsigned char *buf, 
 				int len, const SECKEYPublicKey *key,
-				 const SECItem *sig,
+				const SECItem *sig,
 				const SECAlgorithmID *algid, SECOidTag *hash,
 				void *wincx);
 
