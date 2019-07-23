@@ -5932,6 +5932,7 @@ nsWindowSH::NewResolve(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
   
   
 
+  JSBool did_resolve = JS_FALSE;
   JSContext *my_cx;
 
   if (!my_context) {
@@ -5940,42 +5941,50 @@ nsWindowSH::NewResolve(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
     my_cx = (JSContext *)my_context->GetNativeContext();
   }
 
-  
-  
-  
+  JSBool ok;
+  jsval exn;
+  {
+    JSAutoSuspendRequest asr(my_cx != cx ? cx : nsnull);
+    {
+      JSAutoRequest ar(my_cx);
 
-  JSBool did_resolve = JS_FALSE;
-  PRBool doSecurityCheckInAddProperty = sDoSecurityCheckInAddProperty;
-  sDoSecurityCheckInAddProperty = PR_FALSE;
+      JSObject *realObj;
+      wrapper->GetJSObject(&realObj);
 
-  JSAutoRequest ar(my_cx);
+      
+      
+      
+    
+      PRBool doSecurityCheckInAddProperty = sDoSecurityCheckInAddProperty;
+      sDoSecurityCheckInAddProperty = PR_FALSE;
 
-  JSObject *realObj;
-  wrapper->GetJSObject(&realObj);
+      
+      
+      ok = obj == realObj ?
+           ::JS_ResolveStandardClass(my_cx, obj, id, &did_resolve) :
+           JS_TRUE;
 
-  
-  
-  JSBool ok = obj == realObj ?
-              ::JS_ResolveStandardClass(my_cx, obj, id, &did_resolve) :
-              JS_TRUE;
+      sDoSecurityCheckInAddProperty = doSecurityCheckInAddProperty;
 
-  sDoSecurityCheckInAddProperty = doSecurityCheckInAddProperty;
+      if (!ok) {
+        
+        
+
+        if (!JS_GetPendingException(my_cx, &exn)) {
+          return NS_ERROR_UNEXPECTED;
+        }
+
+        
+        
+        
+        
+
+        JS_ClearPendingException(my_cx);
+      }
+    }
+  }
 
   if (!ok) {
-    
-    
-
-    jsval exn;
-    if (!JS_GetPendingException(my_cx, &exn)) {
-      return NS_ERROR_UNEXPECTED;
-    }
-
-    
-    
-    
-    
-
-    JS_ClearPendingException(my_cx);
     JS_SetPendingException(cx, exn);
     *_retval = JS_FALSE;
     return NS_OK;
