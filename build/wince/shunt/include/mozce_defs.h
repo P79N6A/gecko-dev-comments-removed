@@ -791,4 +791,15 @@ typedef struct
 #endif
 
 #define SHGetSpecialFolderPathW SHGetSpecialFolderPath
+
+
+
+
+#define SHGetPathFromIDListW SHGetPathFromIDList 
+#define GetUserNameW         GetUserName
+#define RemovePropW          RemoveProp
+#define GetPropW             GetProp
+#define SetPropW             SetProp
+#define FONTENUMPROCW        FONTENUMPROC
+#define GetLongPathNameW     GetLongPathName
 #endif 
