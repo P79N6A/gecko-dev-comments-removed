@@ -1632,7 +1632,7 @@ NS_IMETHODIMP nsAccessible::GetFinalRole(PRUint32 *aRole)
 
     
     
-    if (mRoleMapEntry->role != nsIAccessibleRole::ROLE_NOTHING) {
+    if (mRoleMapEntry != &nsARIAMap::gLandmarkRoleMap) {
       
       
       
