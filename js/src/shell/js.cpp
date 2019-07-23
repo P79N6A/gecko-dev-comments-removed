@@ -41,6 +41,7 @@
 
 
 
+#include "jsstddef.h"
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -1376,7 +1377,7 @@ LineToPC(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
     pc = JS_LineNumberToPC(cx, script, lineno);
     if (!pc)
         return JS_FALSE;
-    *rval = INT_TO_JSVAL(pc - script->code);
+    *rval = INT_TO_JSVAL(PTRDIFF(pc, script->code, jsbytecode));
     return JS_TRUE;
 }
 
@@ -1399,7 +1400,7 @@ PCToLine(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 #ifdef DEBUG
 
 static void
-UpdateSwitchTableBounds(JSScript *script, uintN offset,
+UpdateSwitchTableBounds(JSContext *cx, JSScript *script, uintN offset,
                         uintN *start, uintN *end)
 {
     jsbytecode *pc;
@@ -1408,7 +1409,7 @@ UpdateSwitchTableBounds(JSScript *script, uintN offset,
     jsint low, high, n;
 
     pc = script->code + offset;
-    op = (JSOp) *pc;
+    op = js_GetOpcode(cx, script, pc);
     switch (op) {
       case JSOP_TABLESWITCHX:
         jmplen = JUMPX_OFFSET_LEN;
@@ -1471,11 +1472,11 @@ SrcNotes(JSContext *cx, JSScript *script)
             if (switchTableStart <= offset && offset < switchTableEnd) {
                 name = "case";
             } else {
-                JS_ASSERT(script->code[offset] == JSOP_NOP);
+                JS_ASSERT(js_GetOpcode(cx, script, script->code + offset) == JSOP_NOP);
             }
         }
         fprintf(gOutFile, "%3u: %5u [%4u] %-8s",
-                (uintN) (sn - notes), offset, delta, name);
+                (uintN) PTRDIFF(sn, notes, jssrcnote), offset, delta, name);
         switch (type) {
           case SRC_SETLINE:
             fprintf(gOutFile, " lineno %u", (uintN) js_GetSrcNoteOffset(sn, 0));
@@ -1529,7 +1530,7 @@ SrcNotes(JSContext *cx, JSScript *script)
             caseOff = (uintN) js_GetSrcNoteOffset(sn, 1);
             if (caseOff)
                 fprintf(gOutFile, " first case offset %u", caseOff);
-            UpdateSwitchTableBounds(script, offset,
+            UpdateSwitchTableBounds(cx, script, offset,
                                     &switchTableStart, &switchTableEnd);
             break;
           case SRC_CATCH:
@@ -1745,7 +1746,7 @@ DisassWithSrc(JSContext *cx, JSObject *obj, uintN argc, jsval *argv,
             }
 
             len = js_Disassemble1(cx, script, pc,
-                                  pc - script->code,
+                                  PTRDIFF(pc, script->code, jsbytecode),
                                   JS_TRUE, stdout);
             if (!len) {
                 ok = JS_FALSE;
@@ -3966,7 +3967,7 @@ my_ErrorReporter(JSContext *cx, const char *message, JSErrorReport *report)
             report->linebuf,
             (n > 0 && report->linebuf[n-1] == '\n') ? "" : "\n",
             prefix);
-    n = report->tokenptr - report->linebuf;
+    n = PTRDIFF(report->tokenptr, report->linebuf, char);
     for (i = j = 0; i < n; i++) {
         if (report->linebuf[i] == '\t') {
             for (k = (j + 8) & ~7; j < k; j++) {
