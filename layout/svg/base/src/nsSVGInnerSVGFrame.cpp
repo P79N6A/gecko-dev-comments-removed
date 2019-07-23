@@ -65,9 +65,6 @@ private:
 
 public:
   
-  NS_IMETHOD DidSetStyleContext();
-
-  
   
   
 
@@ -402,12 +399,5 @@ nsSVGInnerSVGFrame::DidModifySVGObservable (nsISVGValue* observable,
                                             nsISVGValue::modificationType aModType)
 {
   NotifyViewportChange();
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsSVGInnerSVGFrame::DidSetStyleContext()
-{
-  nsSVGUtils::StyleEffects(this);
   return NS_OK;
 }

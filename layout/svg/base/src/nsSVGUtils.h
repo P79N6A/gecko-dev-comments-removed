@@ -339,8 +339,9 @@ public:
   
 
 
+
   static void
-  StyleEffects(nsIFrame *aFrame);
+  UpdateEffects(nsIFrame *aFrame);
 
   
 

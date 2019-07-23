@@ -91,7 +91,6 @@ private:
 
 public:
   
-  virtual void Destroy();
   NS_IMETHOD InsertFrames(nsIAtom*        aListName,
                           nsIFrame*       aPrevFrame,
                           nsIFrame*       aFrameList);

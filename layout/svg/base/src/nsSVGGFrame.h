@@ -67,7 +67,6 @@ public:
 #endif
 
   
-  NS_IMETHOD DidSetStyleContext();
   NS_IMETHOD AttributeChanged(PRInt32         aNameSpaceID,
                               nsIAtom*        aAttribute,
                               PRInt32         aModType);

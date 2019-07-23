@@ -49,7 +49,17 @@ enum nsChangeHint {
   nsChangeHint_ReflowFrame = 0x02,   
   nsChangeHint_SyncFrameView = 0x04, 
   nsChangeHint_UpdateCursor = 0x08,  
-  nsChangeHint_ReconstructFrame = 0x10   
+  
+
+
+
+
+
+
+
+
+  nsChangeHint_UpdateEffects = 0x10,
+  nsChangeHint_ReconstructFrame = 0x20   
                                          
   
   

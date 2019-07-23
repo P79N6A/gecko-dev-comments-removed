@@ -106,10 +106,6 @@ nsSVGForeignObjectFrame::Init(nsIContent* aContent,
 void nsSVGForeignObjectFrame::Destroy()
 {
   nsSVGUtils::GetOuterSVGFrame(this)->UnregisterForeignObject(this);
-  
-  
-  
-  nsSVGUtils::StyleEffects(this);
   nsSVGForeignObjectFrameBase::Destroy();
 }
 
@@ -140,13 +136,6 @@ nsSVGForeignObjectFrame::AttributeChanged(PRInt32  aNameSpaceID,
     }
   }
 
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsSVGForeignObjectFrame::DidSetStyleContext()
-{
-  nsSVGUtils::StyleEffects(this);
   return NS_OK;
 }
 
