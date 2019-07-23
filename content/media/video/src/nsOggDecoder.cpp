@@ -1399,8 +1399,6 @@ nsresult nsOggDecoder::Play()
     mNextState = PLAY_STATE_PLAYING;
     return NS_OK;
   }
-  if (mPlayState == PLAY_STATE_ENDED)
-    return Seek(0);
 
   ChangeState(PLAY_STATE_PLAYING);
 
@@ -1420,11 +1418,7 @@ nsresult nsOggDecoder::Seek(float aTime)
   
   
   if (mPlayState != PLAY_STATE_SEEKING) {
-    if (mPlayState == PLAY_STATE_ENDED) {
-      mNextState = PLAY_STATE_PLAYING;
-    } else {
-      mNextState = mPlayState;
-    }
+    mNextState = mPlayState;
     ChangeState(PLAY_STATE_SEEKING);
   }
 
@@ -1662,8 +1656,7 @@ void nsOggDecoder::PlaybackEnded()
   if (mShuttingDown || mPlayState == nsOggDecoder::PLAY_STATE_SEEKING)
     return;
 
-  ChangeState(PLAY_STATE_ENDED);
-
+  Stop();
   if (mElement)  {
     mElement->PlaybackEnded();
   }
@@ -1871,6 +1864,20 @@ void nsOggDecoder::ChangeState(PlayState aState)
 
   if (mPlayState == PLAY_STATE_SHUTDOWN) {
     mon.NotifyAll();
+    return;
+  }
+
+  if (mPlayState == PLAY_STATE_ENDED &&
+      aState != PLAY_STATE_SHUTDOWN) {
+    
+    
+    
+    
+    
+    
+    mNextState = aState;
+    mPlayState = PLAY_STATE_LOADING;
+    Load(mURI, nsnull, nsnull);
     return;
   }
 
