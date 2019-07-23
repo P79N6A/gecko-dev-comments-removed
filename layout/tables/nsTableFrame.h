@@ -196,6 +196,9 @@ public:
 
   
   virtual void Destroy();
+  
+  
+  virtual void DidSetStyleContext();
 
   NS_IMETHOD AppendFrames(nsIAtom*        aListName,
                           nsIFrame*       aFrameList);

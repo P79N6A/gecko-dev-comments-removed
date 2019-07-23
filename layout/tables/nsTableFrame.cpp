@@ -2226,6 +2226,27 @@ nsTableFrame::GetCollapsedWidth(nsMargin aBorderPadding)
   return width;
 }
 
+ void
+nsTableFrame::DidSetStyleContext()
+{
+   
+   if (!mTableLayoutStrategy || GetPrevInFlow())
+     return;
+     
+   PRBool isAuto = IsAutoLayout();
+   if (isAuto != (LayoutStrategy()->GetType() == nsITableLayoutStrategy::Auto)) {
+     nsITableLayoutStrategy* temp;
+     if (isAuto)
+       temp = new BasicTableLayoutStrategy(this);
+     else
+       temp = new FixedTableLayoutStrategy(this);
+     
+     if (temp) {
+       delete mTableLayoutStrategy;
+       mTableLayoutStrategy = temp;
+     }
+  }
+}
 
 
 
