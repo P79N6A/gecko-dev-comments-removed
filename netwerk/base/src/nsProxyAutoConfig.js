@@ -53,31 +53,6 @@ const nsIProxyAutoConfig = Components.interfaces.nsIProxyAutoConfig;
 const nsIDNSService      = Components.interfaces.nsIDNSService;
 
 
-
-
-var safeToString = null;
-function myToString(thisp) {
-    return thisp + '';
-}
-
-
-
-var callFunction = null;
-function myCall(fun) {
-    var args = [];
-    for (var i = 1; i < arguments.length; i++)
-        args.push(arguments[i]);
-    return fun.apply(this, args);
-}
-
-
-
-var safeGetProperty = null;
-function myGet(thisp, id) {
-    return thisp[id];
-}
-
-
 function nsProxyAutoConfig() {};
 
 nsProxyAutoConfig.prototype = {
@@ -94,7 +69,6 @@ nsProxyAutoConfig.prototype = {
     init: function(pacURI, pacText) {
         
         if (pacURI == "" || pacText == "") {
-            this._findProxyForURL = null;
             this._sandBox = null;
             return;
         }
@@ -103,21 +77,6 @@ nsProxyAutoConfig.prototype = {
         this._sandBox = new Components.utils.Sandbox(pacURI);
         Components.utils.evalInSandbox(pacUtils, this._sandBox);
 
-        safeToString =
-            Components.utils.evalInSandbox("(" + myToString.toSource() + ")",
-                                           this._sandBox);
-        callFunction =
-            Components.utils.evalInSandbox("(" + myCall.toSource() + ")",
-                                           this._sandBox);
-
-        
-        
-        callFunction.call = Function.prototype.call;
-
-        safeGetProperty =
-            Components.utils.evalInSandbox("(" + myGet.toSource() + ")",
-                                           this._sandBox);
-
         
         this._sandBox.importFunction(myIpAddress);
         this._sandBox.importFunction(dnsResolve);
@@ -125,23 +84,27 @@ nsProxyAutoConfig.prototype = {
 
         
         Components.utils.evalInSandbox(pacText, this._sandBox);
-        this._findProxyForURL =
-            safeGetProperty(this._sandBox, "FindProxyForURL");
+
+        
+        
+        
+        this._sandBox = new XPCSafeJSObjectWrapper(this._sandBox);
     },
 
     getProxyForURI: function(testURI, testHost) {
-        if (!this._findProxyForURL)
+        if (!("FindProxyForURL" in this._sandBox))
             return null;
 
         
-        return callFunction.call(this._sandBox, this._findProxyForURL,
-                                 testURI, testHost);
+        var rval = this._sandBox.FindProxyForURL(testURI, testHost);
+        return rval;
     }
 }
 
 function proxyAlert(msg) {
     
-    msg = safeToString(msg);
+    if (typeof msg != "string")
+        msg = new XPCSafeJSObjectWraper(msg).toString();
 
     try {
         
@@ -164,7 +127,8 @@ function myIpAddress() {
 
 
 function dnsResolve(host) {
-    host = safeToString(host);
+    if (typeof host != "string")
+        host = new XPCSafeJSObjectWrapper(host).toString();
 
     try {
         return dns.resolve(host, 0).getNextAddrAsString();
