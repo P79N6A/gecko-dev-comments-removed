@@ -900,40 +900,21 @@ nsLocalFile::InitWithPath(const nsAString &filePath)
 
     
     
-
-    PRUnichar *path = nsnull;
-    PRInt32 pathLen = 0;
-
-    if (( 
-         !FindCharInReadable(L'/', begin, end) )   
-#ifndef WINCE
-        && (secondChar == L':') ||  
-        (secondChar == L'\\') &&    
-#else
-        ||
-#endif 
-        (firstChar == L'\\')    
-
-         )
-    {
-        
-        path = ToNewUnicode(filePath);
-        pathLen = filePath.Length();
-    }
-
-    if (path == nsnull) {
+    if (FindCharInReadable(L'/', begin, end))
         return NS_ERROR_FILE_UNRECOGNIZED_PATH;
-    }
 
+#ifdef WINCE
+    if (firstChar != L'\\')
+#else
+    if (secondChar != L':' && (secondChar != L'\\' || firstChar != L'\\'))
+#endif
+        return NS_ERROR_FILE_UNRECOGNIZED_PATH;
+
+    mWorkingPath = filePath;
     
-    PRInt32 len = pathLen - 1;
-    if (path[len] == L'\\')
-    {
-        path[len] = L'\0';
-        pathLen = len;
-    }
+    if (mWorkingPath.Last() == L'\\')
+        mWorkingPath.Truncate(mWorkingPath.Length() - 1);
 
-    mWorkingPath.Adopt(path, pathLen);
     return NS_OK;
 
 }
