@@ -487,19 +487,23 @@ nullUser.passwordField = "passnull";
 
 
 nullUser.username = "user\0name";
-nullUser.password = "pass\0word";
-tryAddUser(storage, nullUser, null);
+tryAddUser(storage, nullUser, /login values can't contain nulls/);
+nullUser.username = "username";
 
-LoginTest.checkStorageData(storage, [], [nullUser]);
+
+nullUser.password = "pass\0word";
+tryAddUser(storage, nullUser, /login values can't contain nulls/);
+nullUser.password = "password";
+
+
+
+LoginTest.checkStorageData(storage, [], []);
 var numLines = LoginTest.countLinesInFile(OUTDIR, "output-394610-4.txt");
-do_check_eq(numLines, 10);
+do_check_eq(numLines, 2);
 
 testdesc = "[flush and reload for verification]"
 LoginTest.initStorage(storage, OUTDIR, "output-394610-4.txt");
-LoginTest.checkStorageData(storage, [], [nullUser]);
-
-nullUser.username = "username";
-nullUser.password = "password";
+LoginTest.checkStorageData(storage, [], []);
 
 
 

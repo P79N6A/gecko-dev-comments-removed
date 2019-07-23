@@ -514,6 +514,14 @@ LoginManagerStorage_legacy.prototype = {
             throw "login values can't contain nulls";
 
         
+        
+        
+        
+        if (aLogin.username.indexOf("\0") != -1 ||
+            aLogin.password.indexOf("\0") != -1)
+            throw "login values can't contain nulls";
+
+        
         if (badCharacterPresent(aLogin, "\r") ||
             badCharacterPresent(aLogin, "\n"))
             throw "login values can't contain newlines";
