@@ -59,7 +59,7 @@
 #include "nsGkAtoms.h"
 #include "nsAutoPtr.h"
 #ifdef MOZ_SMIL
-class nsSMILAnimationController;
+#include "nsSMILAnimationController.h"
 #endif 
 
 class nsIContent;
@@ -114,10 +114,9 @@ class Link;
 } 
 } 
 
-
 #define NS_IDOCUMENT_IID      \
-{ 0x0bce8f8b, 0x8e27, 0x44e6, \
-  { 0x92, 0xbc, 0x65, 0xd0, 0x80, 0x5b, 0x7f, 0xb4 } }
+{ 0x36f0a42c, 0x089b, 0x4909, \
+  { 0xb3, 0xee, 0xc5, 0xa4, 0x00, 0x90, 0x30, 0x02 } }
 
 
 #define NS_STYLESHEET_FROM_CATALOG                (1 << 0)
@@ -1166,6 +1165,13 @@ public:
 
 #ifdef MOZ_SMIL
   
+  
+  
+  PRBool HasAnimationController()  { return !!mAnimationController; }
+
+  
+  
+  
   virtual nsSMILAnimationController* GetAnimationController() = 0;
 #endif 
 
@@ -1343,6 +1349,11 @@ protected:
   
   
   nsAutoPtr<nsTHashtable<nsPtrHashKey<nsIContent> > > mFreezableElements;
+
+#ifdef MOZ_SMIL
+  
+  nsAutoPtr<nsSMILAnimationController> mAnimationController;
+#endif 
 
   
   nsPropertyTable mPropertyTable;

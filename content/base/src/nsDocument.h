@@ -135,10 +135,6 @@ struct nsRadioGroupStruct;
 class nsOnloadBlocker;
 class nsUnblockOnloadEvent;
 class nsChildContentList;
-#ifdef MOZ_SMIL
-class nsSMILAnimationController;
-#endif 
-
 
 
 
@@ -895,6 +891,8 @@ public:
     EnumerateExternalResources(nsSubDocEnumFunc aCallback, void* aData);
 
 #ifdef MOZ_SMIL
+  
+  
   nsSMILAnimationController* GetAnimationController();
 #endif 
 
@@ -1194,10 +1192,6 @@ private:
   nsCOMArray<imgIRequest> mPreloadingImages;
 
   nsCOMPtr<nsIDOMDOMImplementation> mDOMImplementation;
-
-#ifdef MOZ_SMIL
-  nsAutoPtr<nsSMILAnimationController> mAnimationController;
-#endif 
 
 #ifdef DEBUG
 protected:
