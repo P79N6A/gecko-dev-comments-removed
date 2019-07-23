@@ -35,6 +35,7 @@
 
 
 
+
 #ifndef nsChildView_h_
 #define nsChildView_h_
 
@@ -182,6 +183,29 @@ enum {
   
   
   TSMDocumentID mPluginTSMDoc;
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  enum {
+    eGestureState_None,
+    eGestureState_StartGesture,
+    eGestureState_MagnifyGesture,
+    eGestureState_RotateGesture
+  } mGestureState;
+  float mCumulativeMagnification;
+  float mCumulativeRotation;
 }
 
 
@@ -196,6 +220,22 @@ enum {
 - (void)sendFocusEvent:(PRUint32)eventType;
 
 - (void) processPluginKeyEvent:(EventRef)aKeyEvent;
+
+
+
+
+
+
+
+
+
+
+
+- (void)swipeWithEvent:(NSEvent *)anEvent;
+- (void)beginGestureWithEvent:(NSEvent *)anEvent;
+- (void)magnifyWithEvent:(NSEvent *)anEvent;
+- (void)rotateWithEvent:(NSEvent *)anEvent;
+- (void)endGestureWithEvent:(NSEvent *)anEvent;
 @end
 
 

@@ -37,6 +37,7 @@
 
 
 
+
 #ifndef nsGUIEvent_h__
 #define nsGUIEvent_h__
 
@@ -103,6 +104,7 @@ class nsHashKey;
 #endif 
 #define NS_DRAG_EVENT                     35
 #define NS_NOTIFYPAINT_EVENT              36
+#define NS_SIMPLE_GESTURE_EVENT           37
 
 
 
@@ -381,6 +383,16 @@ class nsHashKey;
 
 #define NS_NOTIFYPAINT_START    3400
 #define NS_AFTERPAINT           (NS_NOTIFYPAINT_START)
+
+
+#define NS_SIMPLE_GESTURE_EVENT_START    3500
+#define NS_SIMPLE_GESTURE_SWIPE          (NS_SIMPLE_GESTURE_EVENT_START)
+#define NS_SIMPLE_GESTURE_MAGNIFY_START  (NS_SIMPLE_GESTURE_EVENT_START+1)
+#define NS_SIMPLE_GESTURE_MAGNIFY_UPDATE (NS_SIMPLE_GESTURE_EVENT_START+2)
+#define NS_SIMPLE_GESTURE_MAGNIFY        (NS_SIMPLE_GESTURE_EVENT_START+3)
+#define NS_SIMPLE_GESTURE_ROTATE_START   (NS_SIMPLE_GESTURE_EVENT_START+4)
+#define NS_SIMPLE_GESTURE_ROTATE_UPDATE  (NS_SIMPLE_GESTURE_EVENT_START+5)
+#define NS_SIMPLE_GESTURE_ROTATE         (NS_SIMPLE_GESTURE_EVENT_START+6)
 
 
 
@@ -1118,6 +1130,23 @@ public:
   }
 
   nsCOMPtr<nsIDOMEvent> sourceEvent;
+};
+
+
+
+
+class nsSimpleGestureEvent : public nsInputEvent
+{
+public:
+  nsSimpleGestureEvent(PRBool isTrusted, PRUint32 msg, nsIWidget* w,
+                         PRUint32 directionArg, PRFloat64 deltaArg)
+    : nsInputEvent(isTrusted, msg, w, NS_SIMPLE_GESTURE_EVENT),
+      direction(directionArg), delta(deltaArg)
+  {
+  }
+
+  PRUint32 direction;   
+  PRFloat64 delta;      
 };
 
 
