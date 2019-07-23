@@ -796,6 +796,8 @@ var AddonManager = {
 
   
   
+  PENDING_NONE: 0,
+  
   PENDING_ENABLE: 1,
   
   PENDING_DISABLE: 2,
