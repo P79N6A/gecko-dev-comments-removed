@@ -3698,7 +3698,13 @@ nsContentUtils::IsNativeAnonymous(nsIContent* aContent)
       return PR_TRUE;
     }
 
-    NS_ASSERTION(!aContent->IsNativeAnonymous(),
+    
+    
+    
+    
+    
+    NS_ASSERTION(!aContent->IsNativeAnonymous() ||
+                 !aContent->GetCurrentDoc(),
                  "Native anonymous node with wrong binding parent");
     aContent = bindingParent;
   }
