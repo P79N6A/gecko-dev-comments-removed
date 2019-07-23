@@ -166,6 +166,14 @@ struct JSTokenPtr {
     uint32              index;          
     uint32              lineno;         
 
+    bool operator==(const JSTokenPtr& bptr) {
+        return index == bptr.index && lineno == bptr.lineno;
+    }
+
+    bool operator!=(const JSTokenPtr& bptr) {
+        return index != bptr.index || lineno != bptr.lineno;
+    }
+
     bool operator <(const JSTokenPtr& bptr) {
         return lineno < bptr.lineno ||
                (lineno == bptr.lineno && index < bptr.index);
@@ -188,6 +196,14 @@ struct JSTokenPtr {
 struct JSTokenPos {
     JSTokenPtr          begin;          
     JSTokenPtr          end;            
+
+    bool operator==(const JSTokenPos& bpos) {
+        return begin == bpos.begin && end == bpos.end;
+    }
+
+    bool operator!=(const JSTokenPos& bpos) {
+        return begin != bpos.begin || end != bpos.end;
+    }
 
     bool operator <(const JSTokenPos& bpos) {
         return begin < bpos.begin;

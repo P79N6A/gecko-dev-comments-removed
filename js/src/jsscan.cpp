@@ -1204,6 +1204,12 @@ retry:
             }
         }
 
+        if (JS_ISIDSTART(c)) {
+            js_ReportCompileErrorNumber(cx, ts, NULL, JSREPORT_ERROR,
+                                        JSMSG_IDSTART_AFTER_NUMBER);
+            goto error;
+        }
+
         
         UngetChar(ts, c);
         if (!tb.append(0))
