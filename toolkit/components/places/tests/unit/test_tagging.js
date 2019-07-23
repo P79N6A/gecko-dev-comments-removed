@@ -94,17 +94,18 @@ function run_test() {
 
   
   do_check_eq(tagRoot.childCount, 1);
-  tagssvc.tagURI(uri1, ["tag 1", "tag 2"]);
+  
+  tagssvc.tagURI(uri1, ["tag 1", "tag 2", "Tag 1", "Tag 2"]);
   do_check_eq(tagRoot.childCount, 2);
 
   
   var uri1tags = tagssvc.getTagsForURI(uri1, {});
   do_check_eq(uri1tags.length, 2);
-  do_check_eq(uri1tags[0], "tag 1");
-  do_check_eq(uri1tags[1], "tag 2");
+  do_check_eq(uri1tags[0], "Tag 1");
+  do_check_eq(uri1tags[1], "Tag 2");
   var uri2tags = tagssvc.getTagsForURI(uri2, {});
   do_check_eq(uri2tags.length, 1);
-  do_check_eq(uri2tags[0], "tag 1");
+  do_check_eq(uri2tags[0], "Tag 1");
 
   
   var tag1uris = tagssvc.getURIsForTag("tag 1");
@@ -115,8 +116,8 @@ function run_test() {
   
   var allTags = tagssvc.allTags;
   do_check_eq(allTags.length, 2);
-  do_check_eq(allTags[0], "tag 1");
-  do_check_eq(allTags[1], "tag 2");
+  do_check_eq(allTags[0], "Tag 1");
+  do_check_eq(allTags[1], "Tag 2");
 
   
   tagssvc.untagURI(uri1, ["tag 1"]);

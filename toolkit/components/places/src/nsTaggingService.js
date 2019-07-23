@@ -104,11 +104,12 @@ TaggingService.prototype = {
 
 
   _getTagNode: function TS__getTagIndex(aName) {
+    var nameLower = aName.toLowerCase();
     var root = this._tagsResult.root;
     var cc = root.childCount;
     for (var i=0; i < cc; i++) {
       var child = root.getChild(i);
-      if (child.title == aName)
+      if (child.title.toLowerCase() == nameLower)
         return child;
     }
 
@@ -173,6 +174,12 @@ TaggingService.prototype = {
         var tagId = tagNode.itemId;
         if (!this._isURITaggedInternal(aURI, tagNode.itemId, {}))
           this._bms.insertBookmark(tagId, aURI, this._bms.DEFAULT_INDEX, null);
+
+        
+        
+        
+        if (tagNode.title != aTags[i])
+          this._bms.setItemTitle(tagNode.itemId, aTags[i]);
       }
     }
   },
