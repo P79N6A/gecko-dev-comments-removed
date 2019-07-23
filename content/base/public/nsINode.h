@@ -182,7 +182,7 @@ public:
 
     eDATA_NODE           = 1 << 12,
     
-    eMATHML              = 1 << 13,
+    eMATHML              = 1 << 13
   };
 
   
