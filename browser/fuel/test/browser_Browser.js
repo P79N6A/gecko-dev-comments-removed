@@ -9,6 +9,7 @@ function url(spec) {
 var gTabOpenCount = 0;
 var gTabCloseCount = 0;
 var gTabMoveCount = 0;
+var gPageLoadCount = 0;
 
 function test() {
   var windows = Application.windows;
@@ -54,20 +55,37 @@ function test() {
     
     pageA.events.addListener("load", onPageLoad);
     pageA.load(pageB.uri);
+
+    
+    
+    pageB.events.addListener("load", onPageLoadWithFrames);
+    pageB.load(url("chrome://mochikit/content/browser/browser/fuel/test/ContentWithFrames.html"));
   }
 
   function onPageLoad(event) {
     is(pageA.uri.spec, "chrome://mochikit/content/browser/browser/fuel/test/ContentB.html", "Checking 'BrowserTab.uri' after loading new content");
 
     
-    pageA.close();
-    pageB.close();
-    setTimeout(afterClose, 1000);
+    
+    
+    
+    setTimeout(function() {
+      pageA.close();
+      pageB.close();
+      setTimeout(afterClose, 1000);
+     }, 1000);
   }
 
+  function onPageLoadWithFrames(event) {
+    gPageLoadCount++;
+  }
+  
   function afterClose() {
     
     is(gTabCloseCount, 2, "Checking event handler for tab close");
+
+    
+    is(gPageLoadCount, 1, "Checking 'BrowserTab.uri' after loading new content with a frame");
 
     is(activeWin.tabs.length, 1, "Checking length of 'Browser.tabs' after closing 2 tabs");
 

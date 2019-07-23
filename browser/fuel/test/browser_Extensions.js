@@ -3,7 +3,9 @@ var testdata = {
   dummyid: "fuel-dummy-extension@mozilla.org",
   dummyname: "Dummy Extension",
   inspectorid: "inspector@mozilla.org",
-  inspectorname: "DOM Inspector"
+  inspectorname: "DOM Inspector",
+  missing: "fuel.fuel-test-missing",
+  dummy: "fuel.fuel-test"
 };
 var gLastEvent = "";
 
@@ -23,9 +25,6 @@ function test() {
   
   
   is(Application.extensions.all.length, 1, "Check a find for all extensions");
-
-  
-  is(Application.extensions.all[0].prefs.root, "extensions.inspector@mozilla.org.", "Check an extension preference root");
   
   
   inspector.storage.set("test", "simple check");
@@ -57,12 +56,64 @@ function test() {
 
   extmgr.cancelUninstallItem(testdata.inspectorid);
   is(gLastEvent, "cancel", "Checking that cancel event is fired");
+
   
   
   inspector.prefs.get("install-event-fired").reset();
+
+  
+  is(Application.extensions.all[0].prefs.root, "extensions.inspector@mozilla.org.", "Check an extension preference root");
+
+  
+  var itemValue = inspector.prefs.getValue(testdata.missing, "default");
+  is(itemValue, "default", "Check 'Extension.prefs.getValue' for non-existing item");
+  
+  is(inspector.prefs.get(testdata.missing), null, "Check 'Extension.prefs.get' for non-existing item");
+  
+  
+  inspector.prefs.setValue(testdata.dummy, "dummy");
+  itemValue = inspector.prefs.getValue(testdata.dummy, "default");
+  is(itemValue, "dummy", "Check 'Extension.prefs.getValue' for existing item");
+
+  
+  inspector.prefs.setValue(testdata.dummy, "smarty");
+  itemValue = inspector.prefs.getValue(testdata.dummy, "default");
+  is(itemValue, "smarty", "Check 'Extension.prefs.getValue' for overwritten item");
+  
+  
+  inspector.prefs.get(testdata.dummy).value = "dummy2";
+  itemValue = inspector.prefs.get(testdata.dummy).value;
+  is(itemValue, "dummy2", "Check 'Extension.prefs.get().value' for existing item");
+
+  
+  inspector.prefs.get(testdata.dummy).reset();
+  var itemValue = inspector.prefs.getValue(testdata.dummy, "default");
+  is(itemValue, "default", "Check 'Extension.prefs.getValue' for reset pref");
+  
+  
+  ok(!inspector.prefs.has(testdata.dummy), "Check non-existant property for existance");
+
+  waitForExplicitFinish();
+  inspector.prefs.events.addListener("change", onPrefChange);
+  inspector.prefs.setValue("fuel.fuel-test", "change event");
 }
 
 function onGenericEvent(event) {
-  netscape.security.PrivilegeManager.enablePrivilege("UniversalXPConnect");
   gLastEvent = event.type;
+}
+
+function onPrefChange(evt) {
+  var inspector3 = Application.extensions.get(testdata.inspectorid);
+
+  is(evt.data, testdata.dummy, "Check 'Extension.prefs.set' fired a change event");
+  inspector3.prefs.events.removeListener("change", onPrefChange);
+
+  inspector3.prefs.get("fuel.fuel-test").events.addListener("change", onPrefChange2);
+  inspector3.prefs.setValue("fuel.fuel-test", "change event2");
+}
+
+function onPrefChange2(evt) {
+  is(evt.data, testdata.dummy, "Check 'Extension.prefs.set' fired a change event for a single preference");
+  
+  finish();
 }
