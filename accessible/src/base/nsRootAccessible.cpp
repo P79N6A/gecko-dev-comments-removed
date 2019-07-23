@@ -395,9 +395,6 @@ void nsRootAccessible::TryFireEarlyLoadEvent(nsIDOMNode *aDocNode)
 
   
   
-  nsCOMPtr<nsIAccessible> docAccessible;
-  GetAccService()->GetAccessibleFor(aDocNode, getter_AddRefs(docAccessible));
-
   nsCOMPtr<nsIDocShellTreeNode> treeNode(do_QueryInterface(treeItem));
   if (treeNode) {
     PRInt32 subDocuments;
@@ -420,8 +417,10 @@ void nsRootAccessible::TryFireEarlyLoadEvent(nsIDOMNode *aDocNode)
     if (!rootContentAccessible) {
       return;
     }
-    PRUint32 state = State(rootContentAccessible);
-    if (state & nsIAccessibleStates::STATE_BUSY) {
+    PRUint32 state, extState;
+    rootContentAccessible->GetFinalState(&state, &extState);
+    if ((state & nsIAccessibleStates::STATE_BUSY) ||
+        (extState & nsIAccessibleStates::EXT_STATE_DEFUNCT)) {
       
       return;
     }

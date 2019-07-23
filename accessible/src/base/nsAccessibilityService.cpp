@@ -180,25 +180,37 @@ NS_IMETHODIMP nsAccessibilityService::OnStateChange(nsIWebProgress *aWebProgress
 
   nsCOMPtr<nsIDOMDocument> domDoc;
   domWindow->GetDocument(getter_AddRefs(domDoc));
-  nsCOMPtr<nsIDOMNode> domDocRootNode(do_QueryInterface(domDoc));
-  NS_ENSURE_TRUE(domDocRootNode, NS_ERROR_FAILURE);
-
-  
-  
-  
-  
-  nsCOMPtr<nsIAccessible> accessible;
-  GetAccessibleFor(domDocRootNode, getter_AddRefs(accessible));
-  nsCOMPtr<nsPIAccessibleDocument> docAccessible =
-    do_QueryInterface(accessible);
-  NS_ENSURE_TRUE(docAccessible, NS_ERROR_FAILURE);
+  nsCOMPtr<nsIDOMNode> domDocNode(do_QueryInterface(domDoc));
+  NS_ENSURE_TRUE(domDocNode, NS_ERROR_FAILURE);
+  nsCOMPtr<nsIAccessibleDocument> docAccessible;
 
   PRUint32 eventType = 0;
-  if ((aStateFlags & STATE_STOP) && NS_SUCCEEDED(aStatus)) {
-    eventType = nsIAccessibleEvent::EVENT_DOCUMENT_LOAD_COMPLETE;
-  } else if ((aStateFlags & STATE_STOP) && (aStatus & NS_BINDING_ABORTED)) {
-    eventType = nsIAccessibleEvent::EVENT_DOCUMENT_LOAD_STOPPED;
-  } else if (aStateFlags & STATE_START) {
+  if (aStateFlags & STATE_STOP) {
+    
+    
+    docAccessible = nsAccessNode::GetDocAccessibleFor(domDocNode);  
+    if (!docAccessible)
+      return NS_OK;
+    nsCOMPtr<nsIDOMDocument> domDocTest;
+    docAccessible->GetDocument(getter_AddRefs(domDocTest));
+    if (domDocTest != domDoc) {
+      
+      
+      NS_ASSERTION(!domDocTest, "Doc not shut down but reports incorrect DOM document");
+      return NS_OK;
+    }
+    
+    eventType = NS_FAILED(aStatus) ? nsIAccessibleEvent::EVENT_DOCUMENT_LOAD_STOPPED :
+                                     nsIAccessibleEvent::EVENT_DOCUMENT_LOAD_COMPLETE;
+  }
+  else {
+    
+    
+    
+    
+    nsCOMPtr<nsIAccessible> accessible;
+    GetAccessibleFor(domDocNode, getter_AddRefs(accessible));  
+    docAccessible = do_QueryInterface(accessible);
     eventType = nsIAccessibleEvent::EVENT_DOCUMENT_LOAD_START;
     nsCOMPtr<nsIWebNavigation> webNav(do_GetInterface(domWindow));
     nsCOMPtr<nsIDocShell> docShell(do_QueryInterface(webNav));
@@ -213,11 +225,9 @@ NS_IMETHODIMP nsAccessibilityService::OnStateChange(nsIWebProgress *aWebProgress
     }
   }
       
-  if (eventType == 0)
-    return NS_OK; 
-
-  if (docAccessible) {
-    docAccessible->FireDocLoadEvents(eventType);
+  nsCOMPtr<nsPIAccessibleDocument> privDocAccessible = do_QueryInterface(docAccessible);
+  if (eventType && privDocAccessible) {
+    privDocAccessible->FireDocLoadEvents(eventType);
   }
 
   return NS_OK;
