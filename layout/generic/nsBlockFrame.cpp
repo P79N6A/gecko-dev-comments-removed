@@ -1272,7 +1272,8 @@ nsBlockFrame::ComputeFinalSize(const nsHTMLReflowState& aReflowState,
         
         
         
-        aMetrics.height = aReflowState.availableHeight;
+        aMetrics.height = PR_MAX(aReflowState.availableHeight,
+                                 aState.mY + nonCarriedOutVerticalMargin);
         aState.mReflowStatus |= NS_FRAME_NOT_COMPLETE;
       }
     }
