@@ -728,13 +728,7 @@ public:
   
 
                  
-  PRBool HasBorder() const
-  {
-    
-    
-    return (GetUsedBorder() != nsMargin(0,0,0,0) ||
-            GetStyleBorder()->IsBorderImageLoaded());
-  }
+  PRBool HasBorder() const;
 
   
 
