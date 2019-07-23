@@ -4147,6 +4147,7 @@ TraceRecorder::prepareTreeCall(Fragment* inner)
 {
     TreeInfo* ti = (TreeInfo*)inner->vmprivate;
     inner_sp_ins = lirbuf->sp;
+    VMSideExit* exit = snapshot(OOM_EXIT);
 
     
 
@@ -4177,12 +4178,12 @@ TraceRecorder::prepareTreeCall(Fragment* inner)
                 - treeInfo->nativeStackBase 
                 + sp_adj 
                 + ti->maxNativeStackSlots * sizeof(double)); 
-        guard(true, lir->ins2(LIR_lt, sp_top, eos_ins), OOM_EXIT);
+        guard(true, lir->ins2(LIR_lt, sp_top, eos_ins), exit);
 
         
         LIns* rp_top = lir->ins2i(LIR_piadd, lirbuf->rp, rp_adj +
                 ti->maxCallDepth * sizeof(FrameInfo*));
-        guard(true, lir->ins2(LIR_lt, rp_top, eor_ins), OOM_EXIT);
+        guard(true, lir->ins2(LIR_lt, rp_top, eor_ins), exit);
 
         
         lir->insStorei(inner_sp_ins = lir->ins2i(LIR_piadd, lirbuf->sp,
@@ -4193,6 +4194,15 @@ TraceRecorder::prepareTreeCall(Fragment* inner)
         lir->insStorei(lir->ins2i(LIR_piadd, lirbuf->rp, rp_adj),
                 lirbuf->state, offsetof(InterpState, rp));
     }
+
+    
+
+
+
+
+
+    LIns* guardRec = createGuardRecord(exit);
+    lir->insGuard(LIR_xbarrier, NULL, guardRec);
 }
 
 static unsigned
