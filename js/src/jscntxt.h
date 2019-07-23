@@ -495,6 +495,15 @@ struct JSRuntime {
 
 
 
+
+
+    JSBool              anyArrayProtoHasElement;
+
+    
+
+
+
+
 #ifdef JS_DUMP_ENUM_CACHE_STATS
     int32               nativeEnumProbes;
     int32               nativeEnumMisses;
@@ -853,7 +862,6 @@ struct JSContext {
 
     
     void                *data;
-    void                *data2;
 
     
     JSStackFrame        *dormantFrameChain; 
