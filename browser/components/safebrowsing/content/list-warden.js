@@ -188,82 +188,51 @@ function MultiTableQuerier(url, whiteTables, blackTables, callback) {
   this.debugZone = "multitablequerier";
   this.url_ = url;
 
-  this.whiteTables_ = whiteTables;
-  this.blackTables_ = blackTables;
-  this.whiteIdx_ = 0;
-  this.blackIdx_ = 0;
+  this.whiteTables_ = {};
+  for (var i = 0; i < whiteTables.length; i++) {
+    this.whiteTables_[whiteTables[i]] = true;
+  }
+
+  this.blackTables_ = {};
+  for (var i = 0; i < blackTables.length; i++) {
+    this.blackTables_[blackTables[i]] = true;
+  }
 
   this.callback_ = callback;
   this.listManager_ = Cc["@mozilla.org/url-classifier/listmanager;1"]
                       .getService(Ci.nsIUrlListManager);
 }
 
-
-
-
-
-
-
-
 MultiTableQuerier.prototype.run = function() {
-  var whiteTable = this.whiteTables_[this.whiteIdx_];
-  var blackTable = this.blackTables_[this.blackIdx_];
-  if (whiteTable) {
-    
-    ++this.whiteIdx_;
-    this.listManager_.safeExists(whiteTable, this.url_,
-                                 BindToObject(this.whiteTableCallback_,
-                                              this));
-  } else if (blackTable) {
-    
-    ++this.blackIdx_;
-    this.listManager_.safeExists(blackTable, this.url_,
-                                 BindToObject(this.blackTableCallback_,
-                                              this));
-  } else {
-    
-    G_Debug(this, "Not found in any tables: " + this.url_);
+  
+  this.listManager_.safeLookup(this.url_,
+                               BindToObject(this.lookupCallback_, this));
+}
+
+MultiTableQuerier.prototype.lookupCallback_ = function(result) {
+  if (result == "") {
     this.callback_(PROT_ListWarden.NOT_FOUND);
-
-    
-    this.callback_ = null;
-    this.listManager_ = null;
+    return;
   }
-}
 
+  var tableNames = result.split(",");
 
-
-
-
-MultiTableQuerier.prototype.whiteTableCallback_ = function(isFound) {
   
-  if (!isFound)
-    this.run();
-  else {
-    G_Debug(this, "Found in whitelist: " + this.url_)
-    this.callback_(PROT_ListWarden.IN_WHITELIST);
-
-    
-    this.callback_ = null;
-    this.listManager_ = null;
+  for (var i = 0; i < tableNames.length; i++) {
+    if (tableNames[i] && this.whiteTables_[tableNames[i]]) {
+      this.callback_(PROT_ListWarden.IN_WHITELIST);
+      return;
+    }
   }
-}
 
-
-
-
-
-MultiTableQuerier.prototype.blackTableCallback_ = function(isFound) {
   
-  if (!isFound) {
-    this.run();
-  } else {
-    
-    G_Debug(this, "Found in blacklist: " + this.url_)
-    this.callback_(PROT_ListWarden.IN_BLACKLIST);
-
-    
-    this.callback_ = null;
-    this.listManager_ = null;
+  for (var i = 0; i < tableNames.length; i++) {
+    if (tableNames[i] && this.blackTables_[tableNames[i]]) {
+      this.callback_(PROT_ListWarden.IN_BLACKLIST);
+      return;
+    }
   }
+
+  
+  this.callback_(PROT_ListWarden.NOT_FOUND);
 }
