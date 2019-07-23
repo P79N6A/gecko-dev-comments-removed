@@ -91,12 +91,21 @@ union nsPluginPort;
   
   BOOL mIsPluginView;
 
-  NSEvent* mCurKeyEvent;   
-  PRBool mKeyDownHandled;
   
+  
+  
+  
+  
+  NSEvent* mCurKeyEvent;
+  PRBool mKeyDownHandled;
+  BOOL mIgnoreDoCommand;
+  
+  
+  
+  BOOL mKeyPressSent;
+
   
   NSRange mMarkedRange;
-  BOOL mIgnoreDoCommand;
 
   BOOL mInHandScroll; 
   
