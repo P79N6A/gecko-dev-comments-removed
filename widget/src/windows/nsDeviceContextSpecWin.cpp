@@ -468,8 +468,10 @@ NS_IMETHODIMP nsDeviceContextSpecWin::Init(nsIWidget* aWidget,
   HGLOBAL   hDevNames = NULL;
 
   
-  PRUnichar * printerName;
-  mPrintSettings->GetPrinterName(&printerName);
+  PRUnichar * printerName = nsnull;
+  if (mPrintSettings) {
+    mPrintSettings->GetPrinterName(&printerName);
+  }
 
   
   if (!printerName || (printerName && !*printerName)) {
@@ -512,8 +514,10 @@ NS_IMETHODIMP nsDeviceContextSpecWin::GetSurfaceForPrinter(gfxASurface **surface
 
   nsRefPtr<gfxASurface> newSurface;
 
-  PRInt16 outputFormat;
-  mPrintSettings->GetOutputFormat(&outputFormat);
+  PRInt16 outputFormat = 0;
+  if (mPrintSettings) {
+    mPrintSettings->GetOutputFormat(&outputFormat);
+  }
 
   if (outputFormat == nsIPrintSettings::kOutputFormatPDF) {
     nsXPIDLString filename;
@@ -538,6 +542,7 @@ NS_IMETHODIMP nsDeviceContextSpecWin::GetSurfaceForPrinter(gfxASurface **surface
     newSurface = new gfxPDFSurface(stream, gfxSize(width, height));
   } else {
     if (mDevMode) {
+      NS_WARN_IF_FALSE(mDriverName, "No driver!");
       HDC dc = ::CreateDCW(mDriverName, mDeviceName, NULL, mDevMode);
 
       

@@ -81,6 +81,8 @@ public:
   void Finalize();
   nsIDocShell* GetExistingDocShell() { return mDocShell; }
 
+  nsresult CreateStaticClone(nsIFrameLoader* aDest);
+
   
 
 
@@ -95,6 +97,8 @@ public:
 
 
   void Hide();
+
+  nsresult CloneForStatic(nsIFrameLoader* aOriginal);
 
   
   

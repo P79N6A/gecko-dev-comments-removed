@@ -41,10 +41,15 @@
 
 class nsIDocument;
 class nsStyleSet;
+class nsIPresShell;
+class nsPresContext;
+class nsIWidget;
+class nsIViewManager;
 
 
 #define NS_IDOCUMENT_VIEWER_PRINT_IID \
- { 0xd0b7f354, 0xd575, 0x43fd, { 0x90, 0x3d, 0x5a, 0xa3, 0x5a, 0x19, 0x3e, 0xda } }
+{ 0xc6f255cf, 0xcadd, 0x4382, \
+  { 0xb5, 0x7f, 0xcd, 0x2a, 0x98, 0x74, 0x16, 0x9b } }
 
 
 
@@ -72,6 +77,23 @@ public:
 
   virtual void OnDonePrinting() = 0;
 
+  
+
+
+  virtual PRBool IsInitializedForPrintPreview() = 0;
+
+  
+
+
+  virtual void InitializeForPrintPreview() = 0;
+
+  
+
+
+  virtual void SetPrintPreviewPresentation(nsIWidget* aWidget,
+                                           nsIViewManager* aViewManager,
+                                           nsPresContext* aPresContext,
+                                           nsIPresShell* aPresShell) = 0;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsIDocumentViewerPrint,
@@ -86,6 +108,12 @@ NS_DEFINE_STATIC_IID_ACCESSOR(nsIDocumentViewerPrint,
   virtual nsresult CreateStyleSet(nsIDocument* aDocument, nsStyleSet** aStyleSet); \
   virtual void     IncrementDestroyRefCount(); \
   virtual void     ReturnToGalleyPresentation(); \
-  virtual void     OnDonePrinting();
+  virtual void     OnDonePrinting(); \
+  virtual PRBool   IsInitializedForPrintPreview(); \
+  virtual void     InitializeForPrintPreview(); \
+  virtual void     SetPrintPreviewPresentation(nsIWidget* aWidget, \
+                                               nsIViewManager* aViewManager, \
+                                               nsPresContext* aPresContext, \
+                                               nsIPresShell* aPresShell);
 
 #endif 

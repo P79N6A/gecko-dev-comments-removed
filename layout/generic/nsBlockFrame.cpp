@@ -6187,7 +6187,8 @@ NS_IMETHODIMP nsBlockFrame::GetAccessible(nsIAccessible** aAccessible)
   
   const nsStyleList* myList = GetStyleList();
   nsAutoString bulletText;
-  if (myList->mListStyleImage || myList->mListStyleType == NS_STYLE_LIST_STYLE_DISC ||
+  if (myList->GetListStyleImage() ||
+      myList->mListStyleType == NS_STYLE_LIST_STYLE_DISC ||
       myList->mListStyleType == NS_STYLE_LIST_STYLE_CIRCLE ||
       myList->mListStyleType == NS_STYLE_LIST_STYLE_SQUARE) {
     bulletText.Assign(PRUnichar(0x2022));; 
@@ -6419,7 +6420,7 @@ nsBlockFrame::BulletIsEmpty() const
                "should only care when we have an outside bullet");
   const nsStyleList* list = GetStyleList();
   return list->mListStyleType == NS_STYLE_LIST_STYLE_NONE &&
-         !list->mListStyleImage;
+         !list->GetListStyleImage();
 }
 
 

@@ -67,7 +67,6 @@ class nsClientRectList;
 #include "nsCSSPseudoElements.h"
 
 class nsBlockFrame;
-class nsTextFragment;
 
 
 
@@ -1062,12 +1061,6 @@ public:
 
 
   static PRBool sDisableGetUsedXAssertions;
-
-  
-
-
-
-  static nsTextFragment* GetTextFragmentForPrinting(const nsIFrame* aFrame);
 
   
 

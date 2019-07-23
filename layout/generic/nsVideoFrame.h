@@ -101,6 +101,12 @@ public:
   
   virtual nsresult CreateAnonymousContent(nsTArray<nsIContent*>& aElements);
 
+  nsIContent* GetPosterImage() { return mPosterImage; }
+
+  
+  
+  PRBool ShouldDisplayPoster();
+
 #ifdef DEBUG
   NS_IMETHOD GetFrameName(nsAString& aResult) const;
 #endif
@@ -115,10 +121,6 @@ protected:
   
   
   PRBool HasVideoData();
-  
-  
-  
-  PRBool ShouldDisplayPoster();
 
   
   

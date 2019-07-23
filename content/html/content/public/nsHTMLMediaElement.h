@@ -267,8 +267,9 @@ public:
 
 
 
-  PRBool GetPlayedOrSeeked() { return mHasPlayedOrSeeked; }
+  PRBool GetPlayedOrSeeked() const { return mHasPlayedOrSeeked; }
 
+  nsresult CopyInnerTo(nsGenericElement* aDest) const;
 protected:
   class MediaLoadListener;
   class LoadNextSourceEvent;
@@ -519,4 +520,6 @@ protected:
   
   
   PRPackedBool mHasSelfReference;
+
+  nsRefPtr<gfxASurface> mPrintSurface;
 };

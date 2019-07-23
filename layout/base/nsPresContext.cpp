@@ -1229,7 +1229,7 @@ nsPresContext::GetDefaultFont(PRUint8 aFontID) const
 void
 nsPresContext::SetFullZoom(float aZoom)
 {
-  if (!mShell || mFullZoom == aZoom || !IsDynamic()) {
+  if (!mShell || mFullZoom == aZoom) {
     return;
   }
   

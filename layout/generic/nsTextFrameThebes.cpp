@@ -166,8 +166,7 @@
 
 #define TEXT_WHITESPACE_FLAGS      0x18000000
 
-
-
+#define TEXT_BLINK_ON              0x20000000
 
 
 #define TEXT_IN_TEXTRUN_USER_DATA  0x40000000
@@ -484,7 +483,7 @@ nsTextFrameTextRunCache::Shutdown() {
 
 PRInt32 nsTextFrame::GetContentEnd() const {
   nsTextFrame* next = static_cast<nsTextFrame*>(GetNextContinuation());
-  return next ? next->GetContentOffset() : GetFragment()->GetLength();
+  return next ? next->GetContentOffset() : mContent->GetText()->GetLength();
 }
 
 PRInt32 nsTextFrame::GetInFlowContentLength() {
@@ -500,7 +499,7 @@ PRInt32 nsTextFrame::GetInFlowContentLength() {
     }
   }
 #endif 
-  return GetFragment()->GetLength() - mContentOffset;
+  return mContent->TextLength() - mContentOffset;
 }
 
 
@@ -729,7 +728,7 @@ public:
     
     PRInt32 GetContentEnd() {
       return mEndFrame ? mEndFrame->GetContentOffset()
-          : mStartFrame->GetFragment()->GetLength();
+          : mStartFrame->GetContent()->GetText()->GetLength();
     }
   };
 
@@ -947,7 +946,7 @@ BuildTextRunsScanner::FindBoundaries(nsIFrame* aFrame, FindBoundaryState* aState
 
   if (textFrame) {
     if (!aState->mSeenSpaceForLineBreakingOnThisLine) {
-      const nsTextFragment* frag = textFrame->GetFragment();
+      const nsTextFragment* frag = textFrame->GetContent()->GetText();
       PRUint32 start = textFrame->GetContentOffset();
       const void* text = frag->Is2b()
           ? static_cast<const void*>(frag->Get2b() + start)
@@ -1272,7 +1271,7 @@ void BuildTextRunsScanner::AccumulateRunInfo(nsTextFrame* aFrame)
 {
   NS_ASSERTION(mMaxTextLength <= mMaxTextLength + aFrame->GetContentLength(), "integer overflow");
   mMaxTextLength += aFrame->GetContentLength();
-  mDoubleByteText |= aFrame->GetFragment()->Is2b();
+  mDoubleByteText |= aFrame->GetContent()->GetText()->Is2b();
   mLastFrame = aFrame;
   mCommonAncestorWithLastFrame = aFrame->GetParent();
 
@@ -1305,7 +1304,7 @@ HasTerminalNewline(const nsTextFrame* aFrame)
 {
   if (aFrame->GetContentLength() == 0)
     return PR_FALSE;
-  const nsTextFragment* frag = aFrame->GetFragment();
+  const nsTextFragment* frag = aFrame->GetContent()->GetText();
   return frag->CharAt(aFrame->GetContentEnd() - 1) == '\n';
 }
 
@@ -1626,7 +1625,7 @@ BuildTextRunsScanner::BuildTextRunForFrames(void* aTextBuffer)
 
     
     nsIContent* content = f->GetContent();
-    const nsTextFragment* frag = f->GetFragment();
+    const nsTextFragment* frag = content->GetText();
     PRInt32 contentStart = mappedFlow->mStartFrame->GetContentOffset();
     PRInt32 contentEnd = mappedFlow->GetContentEnd();
     PRInt32 contentLength = contentEnd - contentStart;
@@ -1855,7 +1854,7 @@ HasCompressedLeadingWhitespace(nsTextFrame* aFrame, const nsStyleText* aStyleTex
 
   gfxSkipCharsIterator iter = aIterator;
   PRInt32 frameContentOffset = aFrame->GetContentOffset();
-  const nsTextFragment* frag = aFrame->GetFragment();
+  const nsTextFragment* frag = aFrame->GetContent()->GetText();
   while (frameContentOffset < aContentEndOffset && iter.IsOriginalCharSkipped()) {
     if (IsTrimmableSpace(frag, frameContentOffset, aStyleText))
       return PR_TRUE;
@@ -2223,7 +2222,7 @@ public:
   PropertyProvider(nsTextFrame* aFrame, const gfxSkipCharsIterator& aStart)
     : mTextRun(aFrame->GetTextRun()), mFontGroup(nsnull),
       mTextStyle(aFrame->GetStyleText()),
-      mFrag(aFrame->GetFragment()),
+      mFrag(aFrame->GetContent()->GetText()),
       mLineContainer(nsnull),
       mFrame(aFrame), mStart(aStart), mTempIterator(aStart),
       mTabWidths(nsnull),
@@ -3409,11 +3408,6 @@ nsTextFrame::Init(nsIContent*      aContent,
   NS_ASSERTION(!aPrevInFlow, "Can't be a continuation!");
   NS_PRECONDITION(aContent->IsNodeOfType(nsINode::eTEXT),
                   "Bogus content!");
-
-  if (!PresContext()->IsDynamic()) {
-    AddStateBits(TEXT_BLINK_ON_OR_PRINTING);
-  }
-
   
   aContent->UnsetFlags(NS_CREATE_FRAME_IF_NON_WHITESPACE);
   
@@ -3498,11 +3492,6 @@ nsContinuingTextFrame::Init(nsIContent* aContent,
                             nsIFrame*   aPrevInFlow)
 {
   NS_ASSERTION(aPrevInFlow, "Must be a continuation!");
-
-  if (!PresContext()->IsDynamic()) {
-    AddStateBits(TEXT_BLINK_ON_OR_PRINTING);
-  }
-
   
   nsresult rv = nsFrame::Init(aContent, aParent, aPrevInFlow);
 
@@ -3515,7 +3504,7 @@ nsContinuingTextFrame::Init(nsIContent* aContent,
   aPrevInFlow->SetNextInFlow(this);
   nsTextFrame* prev = static_cast<nsTextFrame*>(aPrevInFlow);
   mContentOffset = prev->GetContentOffset() + prev->GetContentLengthHint();
-  NS_ASSERTION(mContentOffset < PRInt32(GetFragment()->GetLength()),
+  NS_ASSERTION(mContentOffset < PRInt32(aContent->GetText()->GetLength()),
                "Creating ContinuingTextFrame, but there is no more content");
   if (prev->GetStyleContext() != GetStyleContext()) {
     
@@ -3704,7 +3693,7 @@ NS_IMPL_FRAMEARENA_HELPERS(nsContinuingTextFrame)
 
 nsTextFrame::~nsTextFrame()
 {
-  if (0 != (mState & TEXT_BLINK_ON_OR_PRINTING) && PresContext()->IsDynamic())
+  if (0 != (mState & TEXT_BLINK_ON))
   {
     nsBlinkTimer::RemoveBlinkFrame(this);
   }
@@ -3912,7 +3901,7 @@ nsTextFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
   
   DO_GLOBAL_REFLOW_COUNT_DSP("nsTextFrame");
 
-  if ((0 != (mState & TEXT_BLINK_ON_OR_PRINTING)) && nsBlinkTimer::GetBlinkIsOff() &&
+  if ((0 != (mState & TEXT_BLINK_ON)) && nsBlinkTimer::GetBlinkIsOff() &&
       PresContext()->IsDynamic() && !aBuilder->IsForEventDelivery())
     return NS_OK;
     
@@ -5246,7 +5235,7 @@ nsTextFrame::PeekOffsetNoAmount(PRBool aForward, PRInt32* aOffset)
   if (!mTextRun)
     return PR_FALSE;
 
-  TrimmedOffsets trimmed = GetTrimmedOffsets(GetFragment(), PR_TRUE);
+  TrimmedOffsets trimmed = GetTrimmedOffsets(mContent->GetText(), PR_TRUE);
   
   return iter.ConvertOriginalToSkipped(trimmed.GetEnd()) >
          iter.ConvertOriginalToSkipped(trimmed.mStart);
@@ -5313,7 +5302,7 @@ nsTextFrame::PeekOffsetCharacter(PRBool aForward, PRInt32* aOffset)
   if (!mTextRun)
     return PR_FALSE;
 
-  TrimmedOffsets trimmed = GetTrimmedOffsets(GetFragment(), PR_FALSE);
+  TrimmedOffsets trimmed = GetTrimmedOffsets(mContent->GetText(), PR_FALSE);
 
   
   PRInt32 startOffset = GetContentOffset() + (*aOffset < 0 ? contentLength : *aOffset);
@@ -5428,7 +5417,7 @@ ClusterIterator::ClusterIterator(nsTextFrame* aTextFrame, PRInt32 aPosition,
 
   mCategories = do_GetService(NS_UNICHARCATEGORY_CONTRACTID);
   
-  mFrag = aTextFrame->GetFragment();
+  mFrag = aTextFrame->GetContent()->GetText();
   mTrimmed = aTextFrame->GetTrimmedOffsets(mFrag, PR_TRUE);
 
   PRInt32 textOffset = aTextFrame->GetContentOffset();
@@ -5669,7 +5658,7 @@ nsTextFrame::AddInlineMinWidthForFlow(nsIRenderingContext *aRenderingContext,
   
   
   const nsStyleText* textStyle = GetStyleText();
-  const nsTextFragment* frag = GetFragment();
+  const nsTextFragment* frag = mContent->GetText();
   PropertyProvider provider(mTextRun, textStyle, frag, this,
                             iter, PR_INT32_MAX, nsnull, 0);
 
@@ -5797,7 +5786,7 @@ nsTextFrame::AddInlinePrefWidthForFlow(nsIRenderingContext *aRenderingContext,
   
   
   const nsStyleText* textStyle = GetStyleText();
-  const nsTextFragment* frag = GetFragment();
+  const nsTextFragment* frag = mContent->GetText();
   PropertyProvider provider(mTextRun, textStyle, frag, this,
                             iter, PR_INT32_MAX, nsnull, 0);
 
@@ -6085,14 +6074,14 @@ nsTextFrame::Reflow(nsPresContext*           aPresContext,
   nsLineLayout& lineLayout = *aReflowState.mLineLayout;
 
   if (aReflowState.mFlags.mBlinks) {
-    if (0 == (mState & TEXT_BLINK_ON_OR_PRINTING) && PresContext()->IsDynamic()) {
-      mState |= TEXT_BLINK_ON_OR_PRINTING;
+    if (0 == (mState & TEXT_BLINK_ON)) {
+      mState |= TEXT_BLINK_ON;
       nsBlinkTimer::AddBlinkFrame(aPresContext, this);
     }
   }
   else {
-    if (0 != (mState & TEXT_BLINK_ON_OR_PRINTING) && PresContext()->IsDynamic()) {
-      mState &= ~TEXT_BLINK_ON_OR_PRINTING;
+    if (0 != (mState & TEXT_BLINK_ON)) {
+      mState &= ~TEXT_BLINK_ON;
       nsBlinkTimer::RemoveBlinkFrame(this);
     }
   }
@@ -6107,7 +6096,7 @@ nsTextFrame::Reflow(nsPresContext*           aPresContext,
   PRUint32 flowEndInTextRun;
   nsIFrame* lineContainer = lineLayout.GetLineContainerFrame();
   gfxContext* ctx = aReflowState.rendContext->ThebesContext();
-  const nsTextFragment* frag = GetFragment();
+  const nsTextFragment* frag = mContent->GetText();
 
   
   
@@ -6527,7 +6516,7 @@ nsTextFrame::TrimTrailingWhiteSpace(nsIRenderingContext* aRC)
 
   PRUint32 trimmedStart = start.GetSkippedOffset();
 
-  const nsTextFragment* frag = GetFragment();
+  const nsTextFragment* frag = mContent->GetText();
   TrimmedOffsets trimmed = GetTrimmedOffsets(frag, PR_TRUE);
   gfxSkipCharsIterator trimmedEndIter = start;
   const nsStyleText* textStyle = GetStyleText();
@@ -6664,7 +6653,7 @@ nsresult nsTextFrame::GetRenderedText(nsAString* aAppendToString,
   
   gfxSkipCharsBuilder skipCharsBuilder;
   nsTextFrame* textFrame;
-  const nsTextFragment* textFrag = GetFragment();
+  const nsTextFragment* textFrag = mContent->GetText();
   PRUint32 keptCharsLength = 0;
   PRUint32 validCharsLength = 0;
 
@@ -6730,7 +6719,7 @@ void
 nsTextFrame::ToCString(nsCString& aBuf, PRInt32* aTotalContentLength) const
 {
   
-  const nsTextFragment* frag = GetFragment();
+  const nsTextFragment* frag = mContent->GetText();
   if (!frag) {
     return;
   }
@@ -6790,7 +6779,7 @@ nsTextFrame::IsEmpty()
     return PR_TRUE;
   }
   
-  PRBool isEmpty = IsAllWhitespace(GetFragment(),
+  PRBool isEmpty = IsAllWhitespace(mContent->GetText(),
           textStyle->mWhiteSpace != NS_STYLE_WHITESPACE_PRE_LINE);
   mState |= (isEmpty ? TEXT_IS_ONLY_WHITESPACE : TEXT_ISNOT_ONLY_WHITESPACE);
   return isEmpty;
@@ -6926,11 +6915,4 @@ PRBool
 nsTextFrame::IsAtEndOfLine() const
 {
   return (GetStateBits() & TEXT_END_OF_LINE) != 0;
-}
-
-const nsTextFragment*
-nsTextFrame::GetFragmentInternal() const
-{
-  return PresContext()->IsDynamic() ? mContent->GetText() :
-    nsLayoutUtils::GetTextFragmentForPrinting(this);
 }

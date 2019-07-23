@@ -1322,22 +1322,12 @@ void
 nsObjectFrame::PrintPlugin(nsIRenderingContext& aRenderingContext,
                            const nsRect& aDirtyRect)
 {
-  
-  
-
-  
-  nsIDocument* doc = mContent->GetCurrentDoc();
-  if (!doc)
+  nsCOMPtr<nsIObjectLoadingContent> obj(do_QueryInterface(mContent));
+  if (!obj)
     return;
 
-  
-  
-  nsIPresShell *shell = doc->GetPrimaryShell();
-  if (!shell)
-    return;
-
-  
-  nsIFrame* frame = shell->GetPrimaryFrameFor(mContent);
+  nsIFrame* frame = nsnull;
+  obj->GetPrintFrame(&frame);
   if (!frame)
     return;
 

@@ -673,6 +673,11 @@ public:
   
 
 
+  static already_AddRefed<imgIRequest> GetStaticRequest(imgIRequest* aRequest);
+
+  
+
+
 
 
 

@@ -62,10 +62,6 @@ class PropertyProvider;
 
 
 
-#define TEXT_BLINK_ON_OR_PRINTING  0x20000000
-
-
-
 #define TEXT_HAS_NONCOLLAPSED_CHARACTERS 0x80000000
 
 class nsTextFrame : public nsFrame {
@@ -369,16 +365,8 @@ public:
   TrimmedOffsets GetTrimmedOffsets(const nsTextFragment* aFrag,
                                    PRBool aTrimAfter);
 
-  const nsTextFragment* GetFragment() const
-  {
-    return !(GetStateBits() & TEXT_BLINK_ON_OR_PRINTING) ?
-      mContent->GetText() : GetFragmentInternal();
-  }
-
 protected:
   virtual ~nsTextFrame();
-
-  const nsTextFragment* GetFragmentInternal() const;
 
   nsIFrame*   mNextContinuation;
   

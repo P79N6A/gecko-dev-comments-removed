@@ -1163,6 +1163,25 @@ public:
 
 
 
+  PRBool IsStaticDocument() { return mIsStaticDocument; }
+
+  
+
+
+
+  virtual already_AddRefed<nsIDocument>
+  CreateStaticClone(nsISupports* aCloneContainer);
+
+  
+
+
+
+  nsIDocument* GetOriginalDocument() { return mOriginalDocument; }
+
+  
+
+
+
 
   virtual void MaybePreLoadImage(nsIURI* uri) = 0;
 
@@ -1308,6 +1327,16 @@ protected:
   
   PRPackedBool mAllowDNSPrefetch;
   
+  
+  PRPackedBool mIsStaticDocument;
+
+  
+  PRPackedBool mCreatingStaticClone;
+
+  
+  
+  nsCOMPtr<nsIDocument> mOriginalDocument;
+
   
   
   PRUint32 mBidiOptions;
