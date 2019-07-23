@@ -100,21 +100,8 @@ public:
 
   Mutex sharedAsyncExecutionMutex;
 
-  
-
-
-  nsresult internalClose();
-
 private:
   ~Connection();
-
-  
-
-
-
-
-
-  nsresult setClosedState();
 
   
 
@@ -155,7 +142,7 @@ private:
   
 
 
-  Mutex mAsyncExecutionMutex;
+  PRLock *mAsyncExecutionMutex;
 
   
 
@@ -169,7 +156,7 @@ private:
 
 
 
-  bool mAsyncExecutionThreadShuttingDown;
+  PRBool mAsyncExecutionThreadShuttingDown;
 
   PRLock *mTransactionMutex;
   PRBool mTransactionInProgress;
@@ -179,12 +166,6 @@ private:
 
   PRLock *mProgressHandlerMutex;
   nsCOMPtr<mozIStorageProgressHandler> mProgressHandler;
-
-  
-
-
-
-  nsCOMPtr<nsIThread> mOpenedThread;
 
   
   
