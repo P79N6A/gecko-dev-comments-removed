@@ -438,6 +438,9 @@ enum nsDOMClassInfoID {
 #endif
 
   
+  eDOMClassInfo_NodeIterator_id,
+
+  
   eDOMClassInfoIDCount
 };
 
