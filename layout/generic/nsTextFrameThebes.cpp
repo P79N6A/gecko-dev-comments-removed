@@ -139,9 +139,15 @@
 
 #define TEXT_TRIMMED_TRAILING_WHITESPACE 0x01000000
 
+
+
+
+
+#define TEXT_RUN_LAYOUT_DEPENDENT  0x02000000
+
 #define TEXT_REFLOW_FLAGS    \
   (TEXT_FIRST_LETTER|TEXT_START_OF_LINE|TEXT_END_OF_LINE|TEXT_HYPHEN_BREAK| \
-   TEXT_TRIMMED_TRAILING_WHITESPACE)
+   TEXT_TRIMMED_TRAILING_WHITESPACE|TEXT_RUN_LAYOUT_DEPENDENT)
 
 
 
@@ -499,15 +505,6 @@ public:
   PRInt32 GetContentEnd() const { return mContentOffset + mContentLength; }
 
   
-
-
-
-
-
-
-  void AdjustNextInFlowContentOffsetsForGrowth(PRBool aClearTextRuns);
-
-  
   
   
   
@@ -562,6 +559,8 @@ protected:
                                     PRBool isRTLChars,
                                     PRBool isOddLevel,
                                     PRBool isBidiSystem);
+
+  void SetOffsets(PRInt32 start, PRInt32 end);
 };
 
 static void
@@ -1339,9 +1338,12 @@ void BuildTextRunsScanner::ScanFrame(nsIFrame* aFrame)
           !HasTerminalNewline(mLastFrame)) {
         nsTextFrame* frame = static_cast<nsTextFrame*>(aFrame);
         mappedFlow->mEndFrame = static_cast<nsTextFrame*>(frame->GetNextInFlow());
-        NS_ASSERTION(mappedFlow->mContentEndOffset <= frame->GetContentOffset(),
-                     "frame offsets overlap!");
-        mappedFlow->mContentEndOffset = frame->GetContentEnd();
+        
+        
+        
+        
+        mappedFlow->mContentEndOffset =
+          PR_MAX(mappedFlow->mContentEndOffset, frame->GetContentEnd());
         AccumulateRunInfo(frame);
         return;
       }
@@ -1563,8 +1565,12 @@ BuildTextRunsScanner::BuildTextRunForFrames(void* aTextBuffer)
     PRInt32 contentLength = contentEnd - contentStart;
 
     if (content == lastContent) {
-      NS_ASSERTION(endOfLastContent == contentStart,
-                   "Gap in textframes mapping content, or overlap?!"); 
+      NS_ASSERTION(endOfLastContent >= contentStart,
+                   "Gap in textframes mapping content?!"); 
+      
+      contentStart = PR_MAX(contentStart, endOfLastContent);
+      if (contentStart >= contentEnd)
+        continue;
       userData->mMappedFlows[finalMappedFlowCount - 1].mContentLength += contentLength;
     } else {
       TextRunMappedFlow* newFlow = &userData->mMappedFlows[finalMappedFlowCount];
@@ -3268,18 +3274,18 @@ nsContinuingTextFrame::Init(nsIContent* aContent,
   
   nsresult rv = nsFrame::Init(aContent, aParent, aPrevInFlow);
 
+  nsIFrame* nextContinuation = aPrevInFlow->GetNextContinuation();
   
+  SetPrevInFlow(aPrevInFlow);
+  aPrevInFlow->SetNextInFlow(this);
   nsTextFrame* prev = static_cast<nsTextFrame*>(aPrevInFlow);
-  nsTextFrame* nextContinuation = static_cast<nsTextFrame*>
-                                             (prev->GetNextContinuation());
-  SetPrevInFlow(prev);
-  prev->SetNextInFlow(this);
-
   mTextRun = prev->GetTextRun();
   mContentOffset = prev->GetContentEnd();
-  mContentLength = mContent->TextLength() - mContentOffset;
 #ifdef IBMBIDI
-  if (prev->GetStateBits() & NS_FRAME_IS_BIDI) {
+  if (aPrevInFlow->GetStateBits() & NS_FRAME_IS_BIDI) {
+    PRInt32 start, end;
+    aPrevInFlow->GetOffsets(start, mContentOffset);
+
     nsPropertyTable *propTable = PresContext()->PropertyTable();
     propTable->SetProperty(this, nsGkAtoms::embeddingLevel,
           propTable->GetProperty(aPrevInFlow, nsGkAtoms::embeddingLevel),
@@ -3290,13 +3296,11 @@ nsContinuingTextFrame::Init(nsIContent* aContent,
     propTable->SetProperty(this, nsGkAtoms::charType,
                propTable->GetProperty(aPrevInFlow, nsGkAtoms::charType),
                            nsnull, nsnull);
-
     if (nextContinuation) {
       SetNextContinuation(nextContinuation);
       nextContinuation->SetPrevContinuation(this);
-      NS_ASSERTION(mContentOffset <= nextContinuation->GetContentOffset(),
-                   "Overlapping text ranges!");
-      mContentLength = nextContinuation->GetContentOffset() - mContentOffset;
+      nextContinuation->GetOffsets(start, end);
+      mContentLength = PR_MAX(1, start - mContentOffset);
     }
     mState |= NS_FRAME_IS_BIDI;
   } 
@@ -5158,26 +5162,6 @@ HasSoftHyphenBefore(const nsTextFragment* aFrag, gfxTextRun* aTextRun,
   return PR_FALSE;
 }
 
-void
-nsTextFrame::AdjustNextInFlowContentOffsetsForGrowth(PRBool aClearTextRuns)
-{
-  PRInt32 end = GetContentEnd();
-  nsTextFrame* f = this;
-  NS_ASSERTION(!GetNextInFlow() ||
-               static_cast<nsTextFrame*>(GetNextInFlow())->GetContentOffset() <= GetContentEnd(),
-               "We shrunk, this should not be called");
-  while (PR_TRUE) {
-    f = static_cast<nsTextFrame*>(f->GetNextInFlow());
-    if (!f || f->GetContentOffset() >= end)
-      break;
-    f->mContentLength = PR_MAX(end, f->GetContentEnd()) - end;
-    f->mContentOffset = end;
-    if (aClearTextRuns) {
-      f->ClearTextRun();
-    }
-  }
-}
-
 NS_IMETHODIMP
 nsTextFrame::Reflow(nsPresContext*           aPresContext,
                     nsHTMLReflowMetrics&     aMetrics,
@@ -5201,16 +5185,25 @@ nsTextFrame::Reflow(nsPresContext*           aPresContext,
   
   RemoveStateBits(TEXT_REFLOW_FLAGS | TEXT_WHITESPACE_FLAGS);
 
-  NS_ASSERTION(!GetPrevInFlow() ||
-               static_cast<nsTextFrame*>(GetPrevInFlow())->GetContentEnd() == mContentOffset,
-               "Discontinuous content offsets!");
-  PRInt32 maxContentLength = GetInFlowContentLength();
+  nsTextFrame* prevInFlow = static_cast<nsTextFrame*>(GetPrevInFlow());
+  if (prevInFlow) {
+    
+    
+    mContentOffset = prevInFlow->GetContentEnd();
+  }
 
   
   
   
   
-  if (!aReflowState.mLineLayout || !maxContentLength) {
+  PRInt32 maxContentLength = GetInFlowContentLength();
+  mContentLength = maxContentLength;
+
+  
+  
+  
+  
+  if (!aReflowState.mLineLayout || !mContentLength) {
     ClearMetrics(aMetrics);
     aStatus = NS_FRAME_COMPLETE;
     return NS_OK;
@@ -5249,15 +5242,11 @@ nsTextFrame::Reflow(nsPresContext*           aPresContext,
   PRBool layoutDependentTextRun =
     lineLayout.GetFirstLetterStyleOK() || lineLayout.GetInFirstLine();
   if (layoutDependentTextRun) {
+    AddStateBits(TEXT_RUN_LAYOUT_DEPENDENT);
+  }
+  if (layoutDependentTextRun ||
+      (prevInFlow && (prevInFlow->GetStateBits() & TEXT_RUN_LAYOUT_DEPENDENT))) {
     ClearTextRun();
-    
-    
-    
-    mContentLength = maxContentLength;
-    
-    
-    
-    AdjustNextInFlowContentOffsetsForGrowth(PR_TRUE);
   }
 
   PRUint32 flowEndInTextRun;
@@ -5276,7 +5265,7 @@ nsTextFrame::Reflow(nsPresContext*           aPresContext,
   
   
   
-  PRInt32 length = maxContentLength;
+  PRInt32 length = mContentLength;
   PRInt32 offset = mContentOffset;
 
   
@@ -5430,27 +5419,6 @@ nsTextFrame::Reflow(nsPresContext*           aPresContext,
     AddStateBits(TEXT_TRIMMED_TRAILING_WHITESPACE);
   }
   mContentLength = offset + charsFit - mContentOffset;
-
-  
-  nsTextFrame* f = static_cast<nsTextFrame*>(GetNextInFlow());
-  if (f) {
-    if (f->GetContentOffset() > GetContentEnd()) {
-      
-      f->mContentLength = f->GetContentEnd() - GetContentEnd();
-      f->mContentOffset = GetContentEnd();
-      if (layoutDependentTextRun) {
-        
-        
-        f->ClearTextRun();
-      }
-    } else if (f->GetContentOffset() < GetContentEnd()) {
-      
-      
-      NS_ASSERTION(!layoutDependentTextRun,
-                   "We should have grown up above and be shrinking here!");
-      AdjustNextInFlowContentOffsetsForGrowth(layoutDependentTextRun);
-    }
-  }
   
   
   
@@ -5619,9 +5587,9 @@ nsTextFrame::TrimTrailingWhiteSpace(nsPresContext* aPresContext,
 
   if (GetStateBits() & TEXT_TRIMMED_TRAILING_WHITESPACE) {
     aLastCharIsJustifiable = PR_TRUE;
-  } else if (trimmed.mStart + trimmed.mLength < GetContentEnd()) {
+  } else if (trimmed.mStart + trimmed.mLength < mContentOffset + mContentLength) {
     gfxSkipCharsIterator end = iter;
-    PRUint32 endOffset = end.ConvertOriginalToSkipped(GetContentEnd());
+    PRUint32 endOffset = end.ConvertOriginalToSkipped(mContentOffset + mContentLength);
     if (trimmedEnd < endOffset) {
       
       
@@ -5896,24 +5864,20 @@ void
 nsTextFrame::AdjustOffsetsForBidi(PRInt32 aStart, PRInt32 aEnd)
 {
   AddStateBits(NS_FRAME_IS_BIDI);
+  SetOffsets(aStart, aEnd);
+  
+
+
+
+
+  ClearTextRun();
+}
+
+void
+nsTextFrame::SetOffsets(PRInt32 aStart, PRInt32 aEnd)
+{
   mContentOffset = aStart;
   mContentLength = aEnd - aStart;
-  nsTextFrame* f = this;
-  
-  
-  while (PR_TRUE) {
-    
-
-
-
-
-    f->ClearTextRun();
-    f = static_cast<nsTextFrame*>(f->GetNextInFlow());
-    if (!f)
-      break;
-    f->mContentOffset = aEnd;
-    f->mContentLength = 0;
-  }
 }
 
 
