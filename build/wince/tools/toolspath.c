@@ -13,10 +13,8 @@ int argpath_conv(char **args_in, char **args_out)
     {
       
       if ( (args_out[i][0] == '-' || args_out[i][0] == '/') &&
-           (args_out[i][1] == 'F') && (args_out[i][2] == 'o') &&
+           (args_out[i][1] == 'F') && ((args_out[i][2] == 'o') || (args_out[i][2] == 'e')) &&
            (args_out[i][3] == '/') && (strlen(args_out[i]) > 5) ) {
-
-        
 
         strcpy(noleak_buffers[next_buffer], args_in[i]);
 
@@ -25,8 +23,6 @@ int argpath_conv(char **args_in, char **args_out)
         noleak_buffers[next_buffer][4] = ':';
 
         args_out[i] = noleak_buffers[next_buffer];
-
-        
 
         next_buffer++;
       }
