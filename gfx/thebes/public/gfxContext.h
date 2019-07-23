@@ -580,6 +580,7 @@ public:
     
 
 
+
     gfxRect GetClipExtents();
 
     
