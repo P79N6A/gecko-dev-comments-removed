@@ -716,16 +716,19 @@ gfxPangoFontGroup::MakeTextRun(const PRUint8 *aString, PRUint32 aLength,
     if (!run)
         return nsnull;
 
-    const gchar *utf8Chars = NS_REINTERPRET_CAST(const gchar*, aString);
-
     PRBool isRTL = run->IsRightToLeft();
-    if (!isRTL) {
+    if ((aParams->mFlags & TEXT_IS_ASCII) && !isRTL) {
         
         
+        const gchar *utf8Chars = NS_REINTERPRET_CAST(const gchar*, aString);
         InitTextRun(run, utf8Chars, aLength, 0, nsnull, 0);
     } else {
+        const char *chars = NS_REINTERPRET_CAST(const char*, aString);
         
-        NS_ConvertASCIItoUTF16 unicodeString(utf8Chars, aLength);
+        
+        
+        
+        NS_ConvertASCIItoUTF16 unicodeString(chars, aLength);
         nsCAutoString utf8;
         PRInt32 headerLen = AppendDirectionalIndicatorUTF8(isRTL, utf8);
         AppendUTF16toUTF8(unicodeString, utf8);
@@ -1131,6 +1134,10 @@ gfxPangoFontGroup::CreateGlyphRunsXft(gfxTextRun *aTextRun,
     aTextRun->AddGlyphRun(font, 0);
 
     while (p < aUTF8 + aUTF8Length) {
+        
+        
+        
+        
         gunichar ch = g_utf8_get_char(p);
         p = g_utf8_next_char(p);
         
