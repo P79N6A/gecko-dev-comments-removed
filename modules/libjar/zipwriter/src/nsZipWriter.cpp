@@ -139,6 +139,10 @@ nsresult nsZipWriter::ReadFile(nsIFile *aFile)
     nsresult rv = aFile->GetFileSize(&size);
     NS_ENSURE_SUCCESS(rv, rv);
 
+    
+    
+    NS_ENSURE_TRUE(size > ZIP_EOCDR_HEADER_SIZE, NS_ERROR_FILE_CORRUPTED);
+
     nsCOMPtr<nsIInputStream> inputStream;
     rv = NS_NewLocalFileInputStream(getter_AddRefs(inputStream), aFile);
     NS_ENSURE_SUCCESS(rv, rv);
@@ -147,16 +151,14 @@ nsresult nsZipWriter::ReadFile(nsIFile *aFile)
     PRInt64 seek = size - 1024;
     PRUint32 length = 1024;
 
-    if (seek < 0) {
-        length += seek;
-        seek = 0;
-    }
-
-    PRUint32 pos;
-    PRUint32 sig = 0;
     nsCOMPtr<nsISeekableStream> seekable = do_QueryInterface(inputStream);
 
     while (true) {
+        if (seek < 0) {
+            length += (PRInt32)seek;
+            seek = 0;
+        }
+
         rv = seekable->Seek(nsISeekableStream::NS_SEEK_SET, seek);
         if (NS_FAILED(rv)) {
             inputStream->Close();
@@ -173,10 +175,9 @@ nsresult nsZipWriter::ReadFile(nsIFile *aFile)
 
 
         
-        pos = length - ZIP_EOCDR_HEADER_SIZE;
-        sig = READ32(buf, &pos);
-        pos -= 4;
-        while (pos >=0) {
+        for (PRUint32 pos = length - ZIP_EOCDR_HEADER_SIZE;
+             (PRInt32)pos >= 0; pos--) {
+            PRUint32 sig = PEEK32((unsigned char *)buf + pos);
             if (sig == ZIP_EOCDR_HEADER_SIGNATURE) {
                 
                 pos += 10;
@@ -241,8 +242,6 @@ nsresult nsZipWriter::ReadFile(nsIFile *aFile)
 
                 return inputStream->Close();
             }
-            sig = sig << 8;
-            sig += buf[--pos];
         }
 
         if (seek == 0) {
@@ -253,10 +252,6 @@ nsresult nsZipWriter::ReadFile(nsIFile *aFile)
 
         
         seek -= (1024 - ZIP_EOCDR_HEADER_SIZE);
-        if (seek < 0) {
-            length += seek;
-            seek = 0;
-        }
     }
     
     NS_NOTREACHED("Loop should never complete");

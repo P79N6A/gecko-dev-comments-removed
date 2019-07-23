@@ -90,6 +90,14 @@ inline NS_HIDDEN_(PRUint32) READ32(char* buf, PRUint32* off)
   return val;
 }
 
+inline NS_HIDDEN_(PRUint32) PEEK32(unsigned char *buf)
+{
+  return (PRUint32)( (buf [0]      ) |
+                     (buf [1] <<  8) |
+                     (buf [2] << 16) |
+                     (buf [3] << 24) );
+}
+
 NS_HIDDEN_(nsresult) ZW_ReadData(nsIInputStream *aStream, char *aBuffer, PRUint32 aCount);
 
 NS_HIDDEN_(nsresult) ZW_WriteData(nsIOutputStream *aStream, const char *aBuffer,
