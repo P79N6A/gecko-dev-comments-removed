@@ -498,6 +498,21 @@ static PRBool test_autoarray() {
 
 
 
+
+
+
+static PRBool test_indexof() {
+  nsTArray<int> array;
+  array.AppendElement(0);
+  
+  array.AppendElement(5);
+  array.RemoveElementAt(1);
+  
+  return array.IndexOf(5, 1) == -1;
+}
+
+
+
 typedef PRBool (*TestFunc)();
 #define DECL_TEST(name) { #name, name }
 
@@ -517,6 +532,7 @@ static const struct Test {
 #ifdef DEBUG
   DECL_TEST(test_autoarray),
 #endif
+  DECL_TEST(test_indexof),
   { nsnull, nsnull }
 };
 
