@@ -436,6 +436,13 @@ js_GetLocalNameArray(JSContext *cx, JSFunction *fun, struct JSArenaPool *pool);
 extern void
 js_FreezeLocalNames(JSContext *cx, JSFunction *fun);
 
+
+
+
+
+extern JSAtom *
+js_FindDuplicateFormal(JSFunction *fun);
+
 extern JSBool
 js_fun_apply(JSContext *cx, uintN argc, jsval *vp);
 

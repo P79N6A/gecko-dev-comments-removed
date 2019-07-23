@@ -3061,3 +3061,32 @@ js_FreezeLocalNames(JSContext *cx, JSFunction *fun)
         JS_DHashMarkTableImmutable(&fun->u.i.names.map->names);
 #endif
 }
+
+extern JSAtom *
+js_FindDuplicateFormal(JSFunction *fun)
+{
+    unsigned nargs = fun->nargs;
+    if (nargs <= 1)
+        return NULL;
+
+    
+    if (nargs <= MAX_ARRAY_LOCALS) {
+        jsuword *array = fun->u.i.names.array;
+        
+        for (unsigned i = 0; i < nargs; i++) {
+            for (unsigned j = i + 1; j < nargs; j++) {
+                if (array[i] == array[j])
+                    return JS_LOCAL_NAME_TO_ATOM(array[i]);
+            }
+        }
+        return NULL;
+    }
+
+    
+
+
+
+
+    JSNameIndexPair *dup = fun->u.i.names.map->lastdup;
+    return dup ? dup->name : NULL;
+}
