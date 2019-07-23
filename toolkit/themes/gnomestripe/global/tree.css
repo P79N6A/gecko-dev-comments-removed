@@ -173,11 +173,6 @@ tree[seltype="text"] > treechildren::-moz-tree-cell-text(active, selected, curre
 
 
 
-treechildren::-moz-tree-line {
-  visibility: hidden;
-}
-
-
 
 treechildren::-moz-tree-separator {
   border-top: 1px solid ThreeDShadow;

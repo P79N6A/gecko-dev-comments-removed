@@ -582,6 +582,11 @@ treecol[hidden="true"] {
 }
 
 
+tree:not([treelines="true"]) > treechildren::-moz-tree-line {
+  visibility: hidden;
+}
+
+
 
 deck {
   display: -moz-deck;
