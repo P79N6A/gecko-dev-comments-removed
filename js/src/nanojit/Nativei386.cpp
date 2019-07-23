@@ -38,6 +38,7 @@
 
 
 
+#include "nanojit.h"
 
 #ifdef _MAC
 
@@ -49,11 +50,10 @@
 #include <errno.h>
 #include <stdlib.h>
 #endif
-#include "nanojit.h"
 
 namespace nanojit
 {
-    #ifdef FEATURE_NANOJIT
+    #if defined FEATURE_NANOJIT && defined NANOJIT_IA32
 
     #ifdef NJ_VERBOSE
         const char *regNames[] = {
@@ -80,7 +80,7 @@ namespace nanojit
     void Assembler::nInit(AvmCore* core)
     {
         (void) core;
-        OSDep::getDate();
+        VMPI_getDate();
     }
 
     void Assembler::nBeginAssembly() {
@@ -192,6 +192,7 @@ namespace nanojit
         const int32_t pushsize = 4*istack + 8*fargs; 
 
 #if _MSC_VER
+        
         
         
         uint32_t align = 4;
@@ -409,6 +410,12 @@ namespace nanojit
             if (!i->getArIndex()) {
                 i->markAsClear();
             }
+            
+            
+            
+            
+            
+            
             int d = (arg - abi_regcount) * sizeof(intptr_t) + 8;
             LD(r, d, FP);
         }
@@ -1395,9 +1402,8 @@ namespace nanojit
                 ra = findSpecificRegFor(lhs, rr);
             } else if ((rmask(lhs->getReg()) & XmmRegs) == 0) {
                 
-
-
-
+                
+                
                 ra = findRegFor(lhs, XmmRegs);
             } else {
                 
@@ -1710,8 +1716,7 @@ namespace nanojit
     )
 
     void Assembler::nativePageReset()
-    {
-    }
+    {}
 
     void Assembler::nativePageSetup()
     {

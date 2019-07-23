@@ -95,7 +95,7 @@ namespace nanojit
 
 
 
-    Assembler::Assembler(CodeAlloc& codeAlloc, Allocator& alloc, AvmCore *core, LogControl* logc)
+    Assembler::Assembler(CodeAlloc& codeAlloc, Allocator& alloc, AvmCore* core, LogControl* logc)
         : codeList(0)
         , alloc(alloc)
         , _codeAlloc(codeAlloc)
@@ -104,7 +104,9 @@ namespace nanojit
         , _labels(alloc)
         , config(core->config)
     {
+        VMPI_memset(&_stats, 0, sizeof(_stats));
         nInit(core);
+        (void)logc;
         verbose_only( _logc = logc; )
         verbose_only( _outputCache = 0; )
         verbose_only( outlineEOL[0] = '\0'; )
@@ -152,10 +154,10 @@ namespace nanojit
             Register r = nRegisterAllocFromSet(set);
             return r;
         }
+        counter_increment(steals);
 
         
         
-        counter_increment(steals);
         LIns* vic = findVictim(allow);
         NanoAssert(vic);
 
@@ -204,7 +206,7 @@ namespace nanojit
         arReset();
     }
 
-#ifdef _DEBUG
+    #ifdef _DEBUG
     void Assembler::pageValidate()
     {
         if (error()) return;
@@ -212,10 +214,7 @@ namespace nanojit
         NanoAssertMsg(_inExit ? containsPtr(exitStart, exitEnd, _nIns) : containsPtr(codeStart, codeEnd, _nIns),
                      "Native instruction pointer overstep paging bounds; check overrideProtect for last instruction");
     }
-#endif
-
-#endif
-
+    #endif
 
     #ifdef _DEBUG
 
@@ -291,7 +290,7 @@ namespace nanojit
             managed >>= 1;
         }
     }
-    #endif
+    #endif 
 
     void Assembler::findRegFor2(RegisterMask allow, LIns* ia, Reservation* &resva, LIns* ib, Reservation* &resvb)
     {
@@ -385,7 +384,7 @@ namespace nanojit
             
             
             RegisterMask prefer = hint(ins, allow);
-#ifdef AVMPLUS_IA32
+#ifdef NANOJIT_IA32
             if (((rmask(r)&XmmRegs) && !(allow&XmmRegs)) ||
                 ((rmask(r)&x87Regs) && !(allow&x87Regs)))
             {
@@ -425,7 +424,6 @@ namespace nanojit
         }
         return r;
     }
-
 
     int Assembler::findMemFor(LIns *ins)
     {
@@ -783,7 +781,7 @@ namespace nanojit
         
         frag->fragEntry = fragEntry;
         frag->setCode(_nIns);
-        
+        PERFM_NVPROF("code", CodeAlloc::size(codeList));
 
 #ifdef NANOJIT_IA32
         NanoAssertMsgf(_fpuStkDepth == 0,"_fpuStkDepth %d\n",_fpuStkDepth);
@@ -876,8 +874,8 @@ namespace nanojit
                    reader->pos()->isop(LIR_ret) ||
                    reader->pos()->isop(LIR_fret) ||
                    reader->pos()->isop(LIR_xtbl) ||
-                   reader->pos()->isop(LIR_live) ||
-                   reader->pos()->isop(LIR_flive));
+                   reader->pos()->isop(LIR_flive) ||
+                   reader->pos()->isop(LIR_live));
 
         InsList pending_lives(alloc);
 
@@ -958,11 +956,12 @@ namespace nanojit
                     break;
                 }
 
-                case LIR_ret:
                 case LIR_fret:
+                case LIR_ret:  {
                     countlir_ret();
                     asm_ret(ins);
                     break;
+                }
 
                 
                 
@@ -1340,7 +1339,7 @@ namespace nanojit
                     asm_call(ins);
                 }
             }
- 
+
 #ifdef NJ_VERBOSE
             
             
@@ -1401,7 +1400,7 @@ namespace nanojit
         underrunProtect(si->count * sizeof(NIns*) + 20);
         _nIns = reinterpret_cast<NIns*>(uintptr_t(_nIns) & ~(sizeof(NIns*) - 1));
         for (uint32_t i = 0; i < si->count; ++i) {
-            _nIns = (NIns*) (((uint8*) _nIns) - sizeof(NIns*));
+            _nIns = (NIns*) (((intptr_t) _nIns) - sizeof(NIns*));
             *(NIns**) _nIns = target;
         }
         si->table = (NIns**) _nIns;
@@ -1453,6 +1452,9 @@ namespace nanojit
             else
                 findRegFor(op1, i->isop(LIR_flive) ? FpRegs : GpRegs);
         }
+
+        
+        
         pending_lives.clear();
     }
 
@@ -1799,77 +1801,77 @@ namespace nanojit
         return a;
     }
 
-    #ifdef NJ_VERBOSE
+#ifdef NJ_VERBOSE
+    
+    
+    
+    char Assembler::outline[8192];
+    char Assembler::outlineEOL[512];
+
+    void Assembler::outputForEOL(const char* format, ...)
+    {
+        va_list args;
+        va_start(args, format);
+        outlineEOL[0] = '\0';
+        vsprintf(outlineEOL, format, args);
+    }
+
+    void Assembler::outputf(const char* format, ...)
+    {
+        va_list     args;
+        va_start(args, format);
+        outline[0] = '\0';
+
+        
+        
+        uint32_t outline_len = vsprintf(outline, format, args);
+
         
         
         
-        char Assembler::outline[8192];
-        char Assembler::outlineEOL[512];
+        VMPI_strncat(outline, outlineEOL, sizeof(outline)-(outline_len+1));
+        outlineEOL[0] = '\0';
 
-        void Assembler::outputForEOL(const char* format, ...)
+        output(outline);
+    }
+
+    void Assembler::output(const char* s)
+    {
+        if (_outputCache)
         {
-            va_list args;
-            va_start(args, format);
-            outlineEOL[0] = '\0';
-            vsprintf(outlineEOL, format, args);
+            char* str = new (alloc) char[VMPI_strlen(s)+1];
+            VMPI_strcpy(str, s);
+            _outputCache->insert(str);
         }
-
-        void Assembler::outputf(const char* format, ...)
+        else
         {
-            va_list     args;
-            va_start(args, format);
-            outline[0] = '\0';
-
-            
-            
-            uint32_t outline_len = vsprintf(outline, format, args);
-
-            
-            
-            
-            VMPI_strncat(outline, outlineEOL, sizeof(outline)-(outline_len+1));
-            outlineEOL[0] = '\0';
-
-            output(outline);
+            _logc->printf("%s\n", s);
         }
+    }
 
-        void Assembler::output(const char* s)
-        {
-            if (_outputCache)
-            {
-                char* str = new (alloc) char[VMPI_strlen(s)+1];
-                VMPI_strcpy(str, s);
-                _outputCache->insert(str);
-            }
-            else
-            {
-                _logc->printf("%s\n", s);
-            }
-        }
+    void Assembler::output_asm(const char* s)
+    {
+        if (!(_logc->lcbits & LC_Assembly))
+            return;
 
-        void Assembler::output_asm(const char* s)
-        {
-            if (!(_logc->lcbits & LC_Assembly))
-                return;
+        
+        
+        
+        VMPI_strncat(outline, outlineEOL, sizeof(outline)-(strlen(outline)+1));
+        outlineEOL[0] = '\0';
 
-            
-            
-            
-            VMPI_strncat(outline, outlineEOL, sizeof(outline)-(strlen(outline)+1));
-            outlineEOL[0] = '\0';
+        output(s);
+    }
 
-            output(s);
-        }
-
-        char* Assembler::outputAlign(char *s, int col)
-        {
-            int len = VMPI_strlen(s);
-            int add = ((col-len)>0) ? col-len : 1;
-            VMPI_memset(&s[len], ' ', add);
-            s[col] = '\0';
-            return &s[col];
-        }
-    #endif 
+    char* Assembler::outputAlign(char *s, int col)
+    {
+        int len = (int)VMPI_strlen(s);
+        int add = ((col-len)>0) ? col-len : 1;
+        VMPI_memset(&s[len], ' ', add);
+        s[col] = '\0';
+        return &s[col];
+    }
+#endif 
 
     uint32_t CallInfo::_count_args(uint32_t mask) const
     {
@@ -1909,3 +1911,4 @@ namespace nanojit
         return labels.get(label);
     }
 }
+#endif 

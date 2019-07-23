@@ -204,8 +204,8 @@ namespace nanojit
         PPC_mulli   = 0x1C000000, 
         PPC_mullw   = 0x7C0001D6, 
         PPC_neg     = 0x7C0000D0, 
-        PPC_nor        = 0x7C0000F8, 
-        PPC_or        = 0x7C000378, 
+        PPC_nor     = 0x7C0000F8, 
+        PPC_or      = 0x7C000378, 
         PPC_ori     = 0x60000000, 
         PPC_oris    = 0x64000000, 
         PPC_rlwinm  = 0x54000000, 
@@ -226,7 +226,7 @@ namespace nanojit
         PPC_stdx    = 0x7C00012A, 
         PPC_stfd    = 0xD8000000, 
         PPC_stfdx   = 0x7C0005AE, 
-        PPC_stw        = 0x90000000, 
+        PPC_stw     = 0x90000000, 
         PPC_stwu    = 0x94000000, 
         PPC_stwux   = 0x7C00016E, 
         PPC_stwx    = 0x7C00012E, 
@@ -277,11 +277,11 @@ namespace nanojit
         void underrunProtect(int bytes);                                    \
         void nativePageReset();                                             \
         void nativePageSetup();                                             \
-        void br(NIns *addr, int link);                                        \
-        void br_far(NIns *addr, int link);                                    \
+        void br(NIns *addr, int link);                                      \
+        void br_far(NIns *addr, int link);                                  \
         void asm_regarg(ArgSize, LIns*, Register);                          \
-        void asm_li(Register r, int32_t imm);                                \
-        void asm_li32(Register r, int32_t imm);                                \
+        void asm_li(Register r, int32_t imm);                               \
+        void asm_li32(Register r, int32_t imm);                             \
         void asm_li64(Register r, uint64_t imm);                            \
         void asm_cmp(LOpcode op, LIns *a, LIns *b, ConditionRegister);      \
         NIns* asm_branch_far(bool onfalse, LIns *cond, NIns * const targ);  \
@@ -470,15 +470,15 @@ namespace nanojit
 #ifdef NANOJIT_64BIT
     #define LP(r, d, b)       LD(r, d, b)
     #define STP(r, d, b)      STD(r, d, b)
-    #define STPU(r, d, b)      STDU(r, d, b)
-    #define STPX(s, a, b)      STDX(s, a, b)
-    #define STPUX(s, a, b)       STDUX(s, a, b)
+    #define STPU(r, d, b)     STDU(r, d, b)
+    #define STPX(s, a, b)     STDX(s, a, b)
+    #define STPUX(s, a, b)    STDUX(s, a, b)
 #else
     #define LP(r, d, b)       LWZ(r, d, b)
     #define STP(r, d, b)      STW(r, d, b)
-    #define STPU(r, d, b)      STWU(r, d, b)
-    #define STPX(s, a, b)      STWX(s, a, b)
-    #define STPUX(s, a, b)       STWUX(s, a, b)
+    #define STPU(r, d, b)     STWU(r, d, b)
+    #define STPX(s, a, b)     STWX(s, a, b)
+    #define STPUX(s, a, b)    STWUX(s, a, b)
 #endif
 
     #define LFD(r,  d, b) FMEMd(lfd,  r, d, b)

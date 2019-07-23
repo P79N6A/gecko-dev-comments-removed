@@ -84,8 +84,9 @@ namespace nanojit
     }
 
     CodeList* CodeAlloc::firstBlock(CodeList* term) {
-        char* end = (char*)alignUp(term, bytesPerPage);
-        return (CodeList*) (end - bytesPerAlloc);
+        
+        uintptr_t end = (uintptr_t)alignUp(term, bytesPerPage);
+        return (CodeList*) (end - (uintptr_t)bytesPerAlloc);
     }
 
     int round(size_t x) {
@@ -299,12 +300,20 @@ extern  "C" void sync_instruction_memory(caddr_t v, u_int len);
     }
 
 #elif defined AVMPLUS_UNIX
+    #ifdef ANDROID
+    void CodeAlloc::flushICache(CodeList* &blocks) {
+        for (CodeList *b = blocks; b != 0; b = b->next) {
+			cacheflush((int)b->start(), (int)b->start()+b->size(), 0);
+        }
+    }
+	#else
     
     void CodeAlloc::flushICache(CodeList* &blocks) {
         for (CodeList *b = blocks; b != 0; b = b->next) {
             __clear_cache((char*)b->start(), (char*)b->start()+b->size());
         }
     }
+	#endif
 #endif 
 
     void CodeAlloc::addBlock(CodeList* &blocks, CodeList* b) {

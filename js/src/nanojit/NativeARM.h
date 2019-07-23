@@ -105,8 +105,8 @@ typedef enum {
     
     D7 = 23,
 
-    FirstFloatReg = 16,
-    LastFloatReg = 22,
+    FirstFloatReg = D0,
+    LastFloatReg = D6,
 
     FirstReg = 0,
     LastReg = 22,   
@@ -460,6 +460,7 @@ enum {
 
 
 #define RSBS(_d,_r) ALUi(AL, rsb, 1, _d, _r, 0)
+
 
 
 #define MVN(_d,_r)                          ALUr(AL, mvn, 0, _d, 0, _r)

@@ -44,7 +44,7 @@ namespace nanojit
 {
     
     inline bool containsPtr(const NIns* start, const NIns* end, const NIns* ptr) {
-        return ptr >= start && ptr < end;
+        return ptr >= start && ptr <= end;
     }
 
     

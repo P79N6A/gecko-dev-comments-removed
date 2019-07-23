@@ -108,7 +108,7 @@ namespace nanojit
         }
 
         NIns *patchEntry = _nIns;
-        MR(FP,SP);                
+        MR(FP,SP);              
         STP(FP, cr_offset, SP); 
         STP(R0, lr_offset, SP); 
         MFLR(R0);
@@ -142,9 +142,8 @@ namespace nanojit
 
     void Assembler::asm_ld(LIns *ins) {
         LIns* base = ins->oprnd1();
-        LIns* disp = ins->oprnd2();
+        int d = ins->disp();
         Register rr = prepResultReg(ins, GpRegs);
-        int d = disp->constval();
         Register ra = getBaseReg(base, d, GpRegs);
 
         #if !PEDANTIC
@@ -197,7 +196,7 @@ namespace nanojit
         Register rr = prepResultReg(ins, FpRegs);
     #endif
 
-        int dr = ins->oprnd2()->constval();
+        int dr = ins->disp();
         Register ra = getBaseReg(base, dr, GpRegs);
 
     #ifdef NANOJIT_64BIT
@@ -265,7 +264,7 @@ namespace nanojit
     #if !PEDANTIC && !defined NANOJIT_64BIT
         if (value->isop(LIR_quad) && isS16(dr) && isS16(dr+4)) {
             
-            uint64_t q = value->constvalq();
+            uint64_t q = value->imm64();
             STW(R0, dr, ra);   
             asm_li(R0, int32_t(q>>32)); 
             STW(R0, dr+4, ra); 
@@ -507,7 +506,7 @@ namespace nanojit
 
     #if !PEDANTIC
         if (b->isconst()) {
-            int32_t d = b->constval();
+            int32_t d = b->imm32();
             if (isS16(d)) {
                 if (condop >= LIR_eq && condop <= LIR_ge) {
                     CMPWI(cr, ra, d);
@@ -562,7 +561,7 @@ namespace nanojit
 
     void Assembler::asm_ret(LIns *ins) {
         genEpilogue();
-        assignSavedParams();
+        assignSavedRegs();
         LIns *value = ins->oprnd1();
         Register r = ins->isop(LIR_ret) ? R3 : F1;
         findSpecificRegFor(value, r);
@@ -582,9 +581,9 @@ namespace nanojit
         }
         else if (i->isconst()) {
             if (!resv->arIndex) {
-                reserveFree(i);
+                i->resv()->clear();
             }
-            asm_li(r, i->constval());
+            asm_li(r, i->imm32());
         }
         else {
             d = findMemFor(i);
@@ -596,10 +595,9 @@ namespace nanojit
             } else {
                 LWZ(r, d, FP);
             }
-            verbose_only(
-                if (_verbose)
-                    outputf("        restore %s",_thisfrag->lirbuf->names->formatRef(i));
-            )
+            verbose_only( if (_logc->lcbits & LC_RegAlloc) {
+                            outputForEOL("  <= restore %s",
+                            _thisfrag->lirbuf->names->formatRef(i)); } )
         }
     }
 
@@ -609,13 +607,7 @@ namespace nanojit
 
     void Assembler::asm_int(LIns *ins) {
         Register rr = prepResultReg(ins, GpRegs);
-        asm_li(rr, ins->constval());
-    }
-
-    void Assembler::asm_short(LIns *ins) {
-        int32_t val = ins->imm16();
-        Register rr = prepResultReg(ins, GpRegs);
-        LI(rr, val);
+        asm_li(rr, ins->imm32());
     }
 
     void Assembler::asm_fneg(LIns *ins) {
@@ -625,8 +617,8 @@ namespace nanojit
     }
 
     void Assembler::asm_param(LIns *ins) {
-        uint32_t a = ins->imm8();
-        uint32_t kind = ins->imm8b();
+        uint32_t a = ins->paramArg();
+        uint32_t kind = ins->paramKind();
         if (kind == 0) {
             
             
@@ -652,7 +644,7 @@ namespace nanojit
 
         bool indirect;
         if (!(indirect = call->isIndirect())) {
-            verbose_only(if (_verbose)
+            verbose_only(if (_logc->lcbits & LC_Assembly)
                 outputf("        %p:", _nIns);
             )
             br((NIns*)call->_address, 1);
@@ -723,7 +715,7 @@ namespace nanojit
         #endif
             
             if (p->isconst()) {
-                asm_li(r, p->constval());
+                asm_li(r, p->imm32());
             } else {
                 Reservation* rA = getresv(p);
                 if (rA) {
@@ -802,7 +794,7 @@ namespace nanojit
         Register ra = findRegFor(lhs, GpRegs);
 
         if (rhs->isconst()) {
-            int32_t rhsc = rhs->constval();
+            int32_t rhsc = rhs->imm32();
             if (isS16(rhsc)) {
                 
                 switch (op) {
@@ -874,10 +866,10 @@ namespace nanojit
                 XOR(rr, ra, rb);
                 break;
             case LIR_sub:  SUBF(rr, rb, ra);    break;
-            case LIR_lsh:  SLW(rr, ra, R0);        ANDI(R0, rb, 31);    break;
-            case LIR_rsh:  SRAW(rr, ra, R0);    ANDI(R0, rb, 31);    break;
-            case LIR_ush:  SRW(rr, ra, R0);        ANDI(R0, rb, 31);    break;
-            case LIR_mul:  MULLW(rr, ra, rb);    break;
+            case LIR_lsh:  SLW(rr, ra, R0);     ANDI(R0, rb, 31);   break;
+            case LIR_rsh:  SRAW(rr, ra, R0);    ANDI(R0, rb, 31);   break;
+            case LIR_ush:  SRW(rr, ra, R0);     ANDI(R0, rb, 31);   break;
+            case LIR_mul:  MULLW(rr, ra, rb);   break;
         #ifdef NANOJIT_64BIT
             case LIR_qilsh:
                 SLD(rr, ra, R0);
@@ -927,8 +919,8 @@ namespace nanojit
 
     #if defined NANOJIT_64BIT && !PEDANTIC
         FCFID(r, r);    
-        LFD(r, d, SP);    
-        STD(v, d, SP);    
+        LFD(r, d, SP);  
+        STD(v, d, SP);  
         EXTSW(v, v);    
     #else
         FSUB(r, r, F0);
@@ -950,8 +942,8 @@ namespace nanojit
 
     #if defined NANOJIT_64BIT && !PEDANTIC
         FCFID(r, r);    
-        LFD(r, d, SP);    
-        STD(v, d, SP);    
+        LFD(r, d, SP);  
+        STD(v, d, SP);  
         CLRLDI(v, v, 32); 
     #else
         FSUB(r, r, F0);
@@ -1005,7 +997,7 @@ namespace nanojit
                     int32_t hi, lo;
                 } w;
             };
-            d = ins->constvalf();
+            d = ins->imm64f();
             LFD(r, 12, SP);
             STW(R0, 12, SP);
             asm_li(R0, w.hi);
@@ -1013,7 +1005,7 @@ namespace nanojit
             asm_li(R0, w.lo);
         }
         else {
-            int64_t q = ins->constvalq();
+            int64_t q = ins->imm64();
             if (isS32(q)) {
                 asm_li(r, int32_t(q));
                 return;
@@ -1094,7 +1086,7 @@ namespace nanojit
         #endif
             if (pc - instr - br_size < top) {
                 
-                verbose_only(if (_verbose) outputf("newpage %p:", pc);)
+                verbose_only(if (_logc->lcbits & LC_Assembly) outputf("newpage %p:", pc);)
                 codeAlloc();
             }
             
@@ -1105,7 +1097,7 @@ namespace nanojit
         }
     #else
         if (pc - instr < top) {
-            verbose_only(if (_verbose) outputf("newpage %p:", pc);)
+            verbose_only(if (_logc->lcbits & LC_Assembly) outputf("newpage %p:", pc);)
             codeAlloc();
             
             
@@ -1116,17 +1108,19 @@ namespace nanojit
 
     void Assembler::asm_cmov(LIns *ins) {
         NanoAssert(ins->isop(LIR_cmov) || ins->isop(LIR_qcmov));
-        LIns* cond = ins->oprnd1();
-        NanoAssert(cond->isCmp());
-        LIns* iftrue = ins->oprnd2();
+        LIns* cond    = ins->oprnd1();
+        LIns* iftrue  = ins->oprnd2();
         LIns* iffalse = ins->oprnd3();
+
+        NanoAssert(cond->isCmp());
         NanoAssert(iftrue->isQuad() == iffalse->isQuad());
+
         
         Register rr = prepResultReg(ins, GpRegs);
         findSpecificRegFor(iftrue, rr);
         Register rf = findRegFor(iffalse, GpRegs & ~rmask(rr));
         NIns *after = _nIns;
-        verbose_only(if (_verbose) outputf("%p:",after);)
+        verbose_only(if (_logc->lcbits & LC_Assembly) outputf("%p:",after);)
         MR(rr, rf);
         asm_branch(false, cond, after);
     }
@@ -1138,9 +1132,9 @@ namespace nanojit
             prefer = rmask(R3);
         else if (op == LIR_fcall)
             prefer = rmask(F1);
-        else if (op == LIR_iparam) {
-            if (i->imm8() < 8) {
-                prefer = rmask(argRegs[i->imm8()]);
+        else if (op == LIR_param) {
+            if (i->paramArg() < 8) {
+                prefer = rmask(argRegs[i->paramArg()]);
             }
         }
         
@@ -1297,12 +1291,6 @@ namespace nanojit
     void Assembler::nFragExit(LIns*) {
         TODO(nFragExit);
     }
-
-    NIns* Assembler::asm_adjustBranch(NIns*, NIns*) {
-        TODO(asm_adjustBranch);
-        return 0;
-    }
-
 } 
 
 #endif 
