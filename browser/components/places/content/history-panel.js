@@ -71,7 +71,8 @@ function HistorySidebarInit()
 
 function initContextMenu() {
   
-  var alwaysHideElements = ["placesContext_new:folder",
+  var alwaysHideElements = ["placesContext_new:bookmark",
+                            "placesContext_new:folder",
                             "placesContext_new:separator",
                             "placesContext_cut",
                             "placesContext_paste",
