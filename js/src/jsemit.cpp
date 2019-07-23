@@ -1235,30 +1235,6 @@ js_InStatement(JSTreeContext *tc, JSStmtType type)
     return JS_FALSE;
 }
 
-JSBool
-js_IsGlobalReference(JSTreeContext *tc, JSAtom *atom, JSBool *loopyp)
-{
-    JSStmtInfo *stmt;
-    JSScope *scope;
-
-    *loopyp = JS_FALSE;
-    for (stmt = tc->topStmt; stmt; stmt = stmt->down) {
-        if (stmt->type == STMT_WITH)
-            return JS_FALSE;
-        if (STMT_IS_LOOP(stmt)) {
-            *loopyp = JS_TRUE;
-            continue;
-        }
-        if (stmt->flags & SIF_SCOPE) {
-            JS_ASSERT(STOBJ_GET_CLASS(stmt->u.blockObj) == &js_BlockClass);
-            scope = OBJ_SCOPE(stmt->u.blockObj);
-            if (SCOPE_GET_PROPERTY(scope, ATOM_TO_JSID(atom)))
-                return JS_FALSE;
-        }
-    }
-    return JS_TRUE;
-}
-
 void
 js_PushStatement(JSTreeContext *tc, JSStmtInfo *stmt, JSStmtType type,
                  ptrdiff_t top)
@@ -1913,6 +1889,10 @@ BindNameToSlot(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn,
 
 
 
+
+        if (js_InWithStatement(tc))
+            return JS_TRUE;
+
         fp = cx->fp;
         if (fp->scopeChain != fp->varobj)
             return JS_TRUE;
@@ -1934,18 +1914,6 @@ BindNameToSlot(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn,
 
         if (fp->flags & JSFRAME_SPECIAL)
             return JS_TRUE;
-
-        
-
-
-
-
-
-        if (!(tc->globalUses >= 100 ||
-              (tc->loopyGlobalUses &&
-               tc->loopyGlobalUses >= tc->globalUses / 2))) {
-            return JS_TRUE;
-        }
 
         
 

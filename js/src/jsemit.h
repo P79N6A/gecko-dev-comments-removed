@@ -162,8 +162,6 @@ struct JSStmtInfo {
 struct JSTreeContext {              
     uint16          flags;          
     uint16          ngvars;         
-    uint32          globalUses;     
-    uint32          loopyGlobalUses;
     JSStmtInfo      *topStmt;       
     JSStmtInfo      *topScopeStmt;  
     JSObject        *blockChain;    
@@ -217,7 +215,6 @@ struct JSTreeContext {
 
 #define TREE_CONTEXT_INIT(tc, pc)                                             \
     ((tc)->flags = (tc)->ngvars = 0,                                          \
-     (tc)->globalUses = (tc)->loopyGlobalUses = 0,                            \
      (tc)->topStmt = (tc)->topScopeStmt = NULL,                               \
      (tc)->blockChain = NULL,                                                 \
      ATOM_LIST_INIT(&(tc)->decls),                                            \
@@ -449,14 +446,6 @@ js_InStatement(JSTreeContext *tc, JSStmtType type);
 
 
 #define js_InWithStatement(tc)      js_InStatement(tc, STMT_WITH)
-
-
-
-
-
-
-extern JSBool
-js_IsGlobalReference(JSTreeContext *tc, JSAtom *atom, JSBool *loopyp);
 
 
 
