@@ -416,10 +416,6 @@ HandlerInfoWrapper.prototype = {
     this._handlerSvc.store(this.wrappedHandlerInfo);
   },
 
-  remove: function() {
-    this._handlerSvc.remove(this.wrappedHandlerInfo);
-  },
-
 
   
   
@@ -692,9 +688,6 @@ var feedHandlerInfo = {
   
   
   store: function() {},
-
-  
-  remove: function() {},
 
 
   
@@ -1182,17 +1175,6 @@ var gApplicationsPane = {
       menuItem.setAttribute("label", this._bundle.getString("chooseApp"));
       menuPopup.appendChild(menuItem);
     }
-
-    
-    
-    
-    
-    if (!handlerInfo.plugin && handlerInfo.type != TYPE_MAYBE_FEED) {
-      let menuItem = document.createElementNS(kXULNS, "menuitem");
-      menuItem.setAttribute("oncommand", "gApplicationsPane.removeType(event)");
-      menuItem.setAttribute("label", this._bundle.getString("removeType"));
-      menuPopup.appendChild(menuItem);
-    }
   },
 
 
@@ -1386,40 +1368,6 @@ var gApplicationsPane = {
     
     
     this.rebuildActionsMenu();
-  },
-
-  removeType: function() {
-    var promptService = Cc["@mozilla.org/embedcomp/prompt-service;1"].
-                        getService(Ci.nsIPromptService);
-    var flags = Ci.nsIPromptService.BUTTON_TITLE_IS_STRING * Ci.nsIPromptService.BUTTON_POS_0;
-    flags += Ci.nsIPromptService.BUTTON_TITLE_CANCEL * Ci.nsIPromptService.BUTTON_POS_1;
-
-    var title = this._bundle.getString("removeTitle");
-    var message = this._bundle.getString("removeMessage");
-    var button = this._bundle.getString("removeButton");
-    var rv = promptService.confirmEx(window, title, message, flags, button, 
-                                     null, null, null, { value: 0 });
-
-    if (rv == 0) {
-      
-      let listItem = this._list.selectedItem;
-      let handlerInfo = this._handledTypes[listItem.type];
-      handlerInfo.remove();
-
-      
-      
-      if (this._list.selectedIndex == this._list.getRowCount() - 1)
-        this._list.selectedIndex = this._list.selectedIndex - 1;
-      else
-        this._list.selectedIndex = this._list.selectedIndex + 1;
-
-      
-      this._list.removeChild(listItem);
-    }
-    else {
-      
-      this.rebuildActionsMenu();
-    }
   },
 
   
