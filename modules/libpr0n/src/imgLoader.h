@@ -61,7 +61,6 @@ class imgCacheEntry
 {
 public:
   imgCacheEntry(imgRequest *request, PRBool mustValidateIfExpired = PR_FALSE);
-  ~imgCacheEntry();
 
   nsrefcnt AddRef()
   {
@@ -144,11 +143,6 @@ public:
     return &mExpirationState;
   }
 
-  PRBool HasNoProxies() const
-  {
-    return mHasNoProxies;
-  }
-
 private: 
   friend class imgLoader;
   friend class imgCacheQueue;
@@ -158,24 +152,18 @@ private:
   {
     mEvicted = evict;
   }
-  void SetHasNoProxies(PRBool hasNoProxies);
-
-  
-  imgCacheEntry(const imgCacheEntry &);
 
 private: 
   nsAutoRefCnt mRefCnt;
   NS_DECL_OWNINGTHREAD
 
   nsRefPtr<imgRequest> mRequest;
-  nsCOMPtr<nsIURI> mKeyURI;
   PRUint32 mDataSize;
   PRInt32 mTouchedTime;
   PRInt32 mExpiryTime;
   nsExpirationState mExpirationState;
-  PRPackedBool mMustValidateIfExpired : 1;
-  PRPackedBool mEvicted : 1;
-  PRPackedBool mHasNoProxies : 1;
+  PRBool mMustValidateIfExpired;
+  PRBool mEvicted;
 };
 
 #include <vector>
@@ -261,20 +249,6 @@ public:
   }
 
   static void VerifyCacheSizes();
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  static PRBool SetHasNoProxies(nsIURI *key, imgCacheEntry *entry);
-  static PRBool SetHasProxies(nsIURI *key);
 
 private: 
 
