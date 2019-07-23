@@ -114,7 +114,28 @@ public:
     NS_OVERRIDE
     virtual void OnChannelError();
 
-private:
+#ifdef OS_WIN
+    static bool IsSpinLoopActive() {
+        return (sInnerEventLoopDepth > 0);
+    }
+
+protected:
+    void WaitForNotify();
+    bool IsMessagePending();
+    bool SpinInternalEventLoop();
+    static void EnterModalLoop() {
+        sInnerEventLoopDepth++;
+    }
+    static void ExitModalLoop() {
+        sInnerEventLoopDepth--;
+        NS_ASSERTION(sInnerEventLoopDepth >= 0,
+            "sInnerEventLoopDepth dropped below zero!");
+    }
+
+    static int sInnerEventLoopDepth;
+#endif
+
+  private:
     
 
     void MaybeProcessDeferredIncall();
@@ -190,7 +211,8 @@ private:
     
     
     
-    std::stack<Message> mOutOfTurnReplies;
+    typedef std::map<size_t, Message> MessageMap;
+    MessageMap mOutOfTurnReplies;
 
     
     

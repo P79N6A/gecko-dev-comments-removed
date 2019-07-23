@@ -103,7 +103,7 @@ SyncChannel::Send(Message* msg, Message* reply)
     
     do {
         
-        WaitForNotify();
+        SyncChannel::WaitForNotify();
     } while(Connected() &&
             mPendingReply != mRecvd.type() && !mRecvd.is_reply_error());
 

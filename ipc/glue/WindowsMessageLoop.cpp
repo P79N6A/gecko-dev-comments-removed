@@ -37,8 +37,9 @@
 
 
 
+
 #include "WindowsMessageLoop.h"
-#include "SyncChannel.h"
+#include "RPCChannel.h"
 
 #include "nsAutoPtr.h"
 #include "nsServiceManagerUtils.h"
@@ -48,9 +49,17 @@
 #include "mozilla/Mutex.h"
 
 using mozilla::ipc::SyncChannel;
+using mozilla::ipc::RPCChannel;
 using mozilla::MutexAutoUnlock;
 
 using namespace mozilla::ipc::windows;
+
+
+
+
+
+
+
 
 
 
@@ -97,6 +106,12 @@ namespace {
 UINT gEventLoopMessage =
     RegisterWindowMessage(L"SyncChannel Windows Message Loop Message");
 
+UINT gOOPPSpinNativeLoopEvent =
+    RegisterWindowMessage(L"SyncChannel Spin Inner Loop Message");
+
+UINT gOOPPStopNativeLoopEvent =
+    RegisterWindowMessage(L"SyncChannel Stop Inner Loop Message");
+
 const wchar_t kOldWndProcProp[] = L"MozillaIPCOldWndProc";
 
 
@@ -114,7 +129,6 @@ HHOOK gDeferredGetMsgHook = NULL;
 HHOOK gDeferredCallWndProcHook = NULL;
 
 DWORD gUIThreadId = 0;
-int gEventLoopDepth = 0;
 
 LRESULT CALLBACK
 DeferredMessageHook(int nCode,
@@ -155,6 +169,23 @@ DeferredMessageHook(int nCode,
 
   
   return CallNextHookEx(NULL, nCode, wParam, lParam);
+}
+
+void
+ScheduleDeferredMessageRun()
+{
+  if (gDeferredMessages &&
+      !(gDeferredGetMsgHook && gDeferredCallWndProcHook)) {
+    NS_ASSERTION(gDeferredMessages->Length(), "No deferred messages?!");
+
+    gDeferredGetMsgHook = ::SetWindowsHookEx(WH_GETMESSAGE, DeferredMessageHook,
+                                             NULL, gUIThreadId);
+    gDeferredCallWndProcHook = ::SetWindowsHookEx(WH_CALLWNDPROC,
+                                                  DeferredMessageHook, NULL,
+                                                  gUIThreadId);
+    NS_ASSERTION(gDeferredGetMsgHook && gDeferredCallWndProcHook,
+                 "Failed to set hooks!");
+  }
 }
 
 LRESULT
@@ -252,6 +283,7 @@ ProcessOrDeferMessage(HWND hwnd,
     }
 
     
+    case WM_ENTERIDLE:
     case WM_GETICON:
     case WM_GETMINMAXINFO:
     case WM_GETTEXT:
@@ -459,43 +491,156 @@ AssertWindowIsNotNeutered(HWND hWnd)
 #endif
 }
 
+void
+UnhookNeuteredWindows()
+{
+  if (!gNeuteredWindows)
+    return;
+  PRUint32 count = gNeuteredWindows->Length();
+  for (PRUint32 index = 0; index < count; index++) {
+    RestoreWindowProcedure(gNeuteredWindows->ElementAt(index));
+  }
+  gNeuteredWindows->Clear();
+}
+
+void
+Init()
+{
+  
+  
+  if (!gUIThreadId) {
+    gUIThreadId = GetCurrentThreadId();
+  }
+  NS_ASSERTION(gUIThreadId, "ThreadId should not be 0!");
+  NS_ASSERTION(gUIThreadId == GetCurrentThreadId(),
+               "Running on different threads!");
+
+  if (!gNeuteredWindows) {
+    gNeuteredWindows = new nsAutoTArray<HWND, 20>();
+  }
+  NS_ASSERTION(gNeuteredWindows, "Out of memory!");
+}
+
 } 
+
+bool
+RPCChannel::SpinInternalEventLoop()
+{
+  
+  
+  do {
+    MSG msg = { 0 };
+
+    
+    {
+      MutexAutoLock lock(mMutex);
+      if (!Connected()) {
+        RPCChannel::ExitModalLoop();
+        return false;
+      }
+    }
+
+    if (!RPCChannel::IsSpinLoopActive()) {
+      return false;
+    }
+
+    
+    
+    
+    
+    if (PeekMessageW(&msg, (HWND)-1, gOOPPStopNativeLoopEvent,
+                     gOOPPStopNativeLoopEvent, PM_REMOVE)) {
+      RPCChannel::ExitModalLoop();
+      return false;
+    }
+
+    
+    
+    
+    if (PeekMessageW(&msg, (HWND)-1, gEventLoopMessage, gEventLoopMessage,
+                     PM_REMOVE)) {
+      return true;
+    }
+
+    
+    if (PeekMessageW(&msg, NULL, 0, 0, PM_REMOVE)) {
+      if (msg.message == gOOPPStopNativeLoopEvent) {
+        RPCChannel::ExitModalLoop();
+        return false;
+      }
+      else if (msg.message == gOOPPSpinNativeLoopEvent) {
+        
+        RPCChannel::EnterModalLoop();
+        continue;
+      }
+      else if (msg.message == gEventLoopMessage) {
+        return true;
+      }
+
+      
+      
+      if (msg.message == WM_QUIT) {
+          NS_ERROR("WM_QUIT received in SpinInternalEventLoop!");
+      } else {
+          TranslateMessage(&msg);
+          DispatchMessageW(&msg);
+      }
+    } else {
+      
+      WaitMessage();
+    }
+  } while (true);
+}
+
+bool
+RPCChannel::IsMessagePending()
+{
+  MutexAutoLock lock(mMutex);
+  if (mStack.empty())
+    return true;
+
+  MessageMap::iterator it = mOutOfTurnReplies.find(mStack.top().seqno());
+  if (!mOutOfTurnReplies.empty() && 
+      it != mOutOfTurnReplies.end() &&
+      it->first == mStack.top().seqno())
+    return true;
+
+  if (!mPending.empty() &&
+      mPending.front().seqno() == mStack.top().seqno())
+    return true;
+
+  return false;
+}
 
 void
 SyncChannel::WaitForNotify()
 {
   mMutex.AssertCurrentThreadOwns();
 
-  NS_ASSERTION(gEventLoopDepth >= 0, "Event loop depth mismatch!");
+  MutexAutoUnlock unlock(mMutex);
 
-  HHOOK windowHook = NULL;
+  
+  Init();
 
-  nsAutoTArray<HWND, 20> neuteredWindows;
-
-  if (++gEventLoopDepth == 1) {
-    NS_ASSERTION(!SyncChannel::IsPumpingMessages(),
-                 "Shouldn't be pumping already!");
-    SyncChannel::SetIsPumpingMessages(true);
-
-    if (!gUIThreadId) {
-      gUIThreadId = GetCurrentThreadId();
-    }
-    NS_ASSERTION(gUIThreadId, "ThreadId should not be 0!");
-    NS_ASSERTION(gUIThreadId == GetCurrentThreadId(),
-                 "Running on different threads!");
-
-    NS_ASSERTION(!gNeuteredWindows, "Should only set this once!");
-    gNeuteredWindows = &neuteredWindows;
-
-    windowHook = SetWindowsHookEx(WH_CALLWNDPROC, CallWindowProcedureHook,
-                                  NULL, gUIThreadId);
-    NS_ASSERTION(windowHook, "Failed to set hook!");
-  }
+  
+  NS_ASSERTION(!SyncChannel::IsPumpingMessages(),
+               "Shouldn't be pumping already!");
+  SyncChannel::SetIsPumpingMessages(true);
+  HHOOK windowHook = SetWindowsHookEx(WH_CALLWNDPROC, CallWindowProcedureHook,
+                                      NULL, gUIThreadId);
+  NS_ASSERTION(windowHook, "Failed to set hook!");
 
   {
-    MutexAutoUnlock unlock(mMutex);
-
     while (1) {
+      MSG msg = { 0 };
+      
+      {
+        MutexAutoLock lock(mMutex);
+        if (!Connected()) {
+          return;
+        }
+      }
+
       
       
       
@@ -527,7 +672,6 @@ SyncChannel::WaitForNotify()
 
       
       
-      MSG msg = { 0 };
       if (PeekMessageW(&msg, (HWND)-1, gEventLoopMessage, gEventLoopMessage,
                        PM_REMOVE)) {
         break;
@@ -546,40 +690,167 @@ SyncChannel::WaitForNotify()
     }
   }
 
-  NS_ASSERTION(gEventLoopDepth > 0, "Event loop depth mismatch!");
+  
+  UnhookWindowsHookEx(windowHook);
 
-  if (--gEventLoopDepth == 0) {
-    if (windowHook) {
-      UnhookWindowsHookEx(windowHook);
+  
+  
+  UnhookNeuteredWindows();
+
+  
+  
+  
+  
+  ScheduleDeferredMessageRun();
+
+  SyncChannel::SetIsPumpingMessages(false);
+}
+
+void
+RPCChannel::WaitForNotify()
+{
+  mMutex.AssertCurrentThreadOwns();
+
+  if (!StackDepth()) {
+    NS_ASSERTION(!StackDepth(),
+        "StackDepth() is 0 in a call to RPCChannel::WaitForNotify?");
+    return;
+  }
+
+  MutexAutoUnlock unlock(mMutex);
+
+  
+  Init();
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  if (RPCChannel::IsSpinLoopActive()) {
+    if (SpinInternalEventLoop()) {
+      return;
     }
 
-    NS_ASSERTION(gNeuteredWindows == &neuteredWindows, "Bad pointer!");
-    gNeuteredWindows = nsnull;
-
-    PRUint32 count = neuteredWindows.Length();
-    for (PRUint32 index = 0; index < count; index++) {
-      RestoreWindowProcedure(neuteredWindows[index]);
-    }
-
-    SyncChannel::SetIsPumpingMessages(false);
-
     
     
     
     
-    if (gDeferredMessages &&
-        !(gDeferredGetMsgHook && gDeferredCallWndProcHook)) {
-      NS_ASSERTION(gDeferredMessages->Length(), "No deferred messages?!");
-
-      gDeferredGetMsgHook = SetWindowsHookEx(WH_GETMESSAGE, DeferredMessageHook,
-                                             NULL, gUIThreadId);
-      gDeferredCallWndProcHook = SetWindowsHookEx(WH_CALLWNDPROC,
-                                                  DeferredMessageHook, NULL,
-                                                  gUIThreadId);
-      NS_ASSERTION(gDeferredGetMsgHook && gDeferredCallWndProcHook,
-                   "Failed to set hooks!");
+    
+    if (IsMessagePending()) {
+      return;
     }
   }
+  
+  
+  NS_ASSERTION(!SyncChannel::IsPumpingMessages(),
+               "Shouldn't be pumping already!");
+  SyncChannel::SetIsPumpingMessages(true);
+  HHOOK windowHook = SetWindowsHookEx(WH_CALLWNDPROC, CallWindowProcedureHook,
+                                      NULL, gUIThreadId);
+  NS_ASSERTION(windowHook, "Failed to set hook!");
+
+  {
+    while (1) {
+      MSG msg = { 0 };
+
+      
+      {
+        MutexAutoLock lock(mMutex);
+        if (!Connected())
+          break;
+      }
+
+      DWORD result = MsgWaitForMultipleObjects(0, NULL, FALSE, INFINITE,
+                                               QS_ALLINPUT);
+      if (result != WAIT_OBJECT_0) {
+        NS_ERROR("Wait failed!");
+        break;
+      }
+
+      
+      bool haveSentMessagesPending =
+        (HIWORD(GetQueueStatus(QS_SENDMESSAGE)) & QS_SENDMESSAGE) != 0;
+
+      
+      
+      
+      
+      
+      
+      if (PeekMessageW(&msg, (HWND)-1, gOOPPSpinNativeLoopEvent,
+                       gOOPPSpinNativeLoopEvent, PM_REMOVE)) {
+        
+        UnhookWindowsHookEx(windowHook);
+        windowHook = NULL;
+
+        
+        SyncChannel::SetIsPumpingMessages(false);
+
+        
+        
+        UnhookNeuteredWindows();
+
+        
+        
+        
+        ScheduleDeferredMessageRun();
+        
+        
+        
+        
+        
+        RPCChannel::EnterModalLoop();
+        if (SpinInternalEventLoop())
+          return;
+
+        
+        
+        if (IsMessagePending())
+          return;
+
+        
+        
+        
+        windowHook = SetWindowsHookEx(WH_CALLWNDPROC, CallWindowProcedureHook,
+                                      NULL, gUIThreadId);
+        NS_ASSERTION(windowHook, "Failed to set proc hook on the rebound!");
+
+        SyncChannel::SetIsPumpingMessages(true);
+        continue;
+      }
+
+      if (PeekMessageW(&msg, (HWND)-1, gEventLoopMessage, gEventLoopMessage,
+                       PM_REMOVE)) {
+        break;
+      }
+
+      if (!PeekMessageW(&msg, NULL, 0, 0, PM_NOREMOVE) &&
+          !haveSentMessagesPending) {
+        
+        SwitchToThread();
+      }
+    }
+  }
+
+  
+  UnhookWindowsHookEx(windowHook);
+
+  
+  
+  UnhookNeuteredWindows();
+
+  
+  
+  
+  
+  ScheduleDeferredMessageRun();
+
+  SyncChannel::SetIsPumpingMessages(false);
 }
 
 void

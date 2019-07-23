@@ -355,6 +355,15 @@ PRBool nsWindow::OnPaint(HDC aDC)
   }
 #endif
 
+#ifdef MOZ_IPC
+  
+  
+  
+  
+  if (mozilla::ipc::RPCChannel::IsSpinLoopActive() && mPainting)
+    return PR_FALSE;
+#endif
+
   nsPaintEvent willPaintEvent(PR_TRUE, NS_WILL_PAINT, this);
   DispatchWindowEvent(&willPaintEvent);
 

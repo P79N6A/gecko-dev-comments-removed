@@ -105,7 +105,7 @@
 
 
 #ifdef MOZ_IPC
-#include "mozilla/ipc/SyncChannel.h"
+#include "mozilla/ipc/RPCChannel.h"
 #endif
 
 #include "nsWindow.h"
@@ -3615,6 +3615,71 @@ PRBool nsWindow::ConvertStatus(nsEventStatus aStatus)
 
 
 
+#ifdef MOZ_IPC
+
+
+bool
+nsWindow::IsAsyncResponseEvent(UINT aMsg, LRESULT& aResult)
+{
+  switch(aMsg) {
+    case WM_SETFOCUS:
+    case WM_KILLFOCUS:
+    case WM_ENABLE:
+    case WM_WINDOWPOSCHANGING:
+    case WM_WINDOWPOSCHANGED:
+    case WM_PARENTNOTIFY:
+    case WM_ACTIVATEAPP:
+    case WM_NCACTIVATE:
+    case WM_ACTIVATE:
+    case WM_CHILDACTIVATE:
+    case WM_IME_SETCONTEXT:
+    case WM_IME_NOTIFY:
+    case WM_SHOWWINDOW:
+    case WM_CANCELMODE:
+    case WM_MOUSEACTIVATE:
+      aResult = 0;
+    return true;
+
+    case WM_SETTINGCHANGE:
+    case WM_SETCURSOR:
+    return false;
+  }
+
+#ifdef DEBUG
+  char szBuf[200];
+  sprintf(szBuf,
+    "An unhandled ISMEX_SEND message was received during spin loop! (%X)", aMsg);
+  NS_WARNING(szBuf);
+#endif
+
+  return false;
+}
+
+
+void
+nsWindow::IPCWindowProcHandler(HWND& hWnd, UINT& msg, WPARAM& wParam, LPARAM& lParam)
+{
+  NS_ASSERTION(!mozilla::ipc::SyncChannel::IsPumpingMessages(),
+               "Failed to prevent a nonqueued message from running!");
+  if (mozilla::ipc::RPCChannel::IsSpinLoopActive() &&
+      (::InSendMessageEx(NULL)&(ISMEX_REPLIED|ISMEX_SEND)) == ISMEX_SEND) {
+    LRESULT res;
+    if (IsAsyncResponseEvent(msg, res)) {
+      ::ReplyMessage(res);
+    }
+  }
+}
+
+#endif 
+
+
+
+
+
+
+
+
+
 
 
 
@@ -3631,8 +3696,7 @@ PRBool nsWindow::ConvertStatus(nsEventStatus aStatus)
 LRESULT CALLBACK nsWindow::WindowProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
 #ifdef MOZ_IPC
-  NS_ASSERTION(!mozilla::ipc::SyncChannel::IsPumpingMessages(),
-               "Failed to prevent a nonqueued message from running!");
+  IPCWindowProcHandler(hWnd, msg, wParam, lParam);
 #endif
 
   
@@ -3766,6 +3830,12 @@ PRBool nsWindow::ProcessMessage(UINT msg, WPARAM &wParam, LPARAM &lParam,
   if (mWindowHook.Notify(mWnd, msg, wParam, lParam, aRetValue))
     return PR_TRUE;
   
+#if defined(EVENT_DEBUG_OUTPUT)
+  
+  
+  PrintEvent(msg, SHOW_REPEAT_EVENTS, SHOW_MOUSEMOVE_EVENTS);
+#endif
+
   PRBool eatMessage;
   if (nsIMM32Handler::ProcessMessage(this, msg, wParam, lParam, aRetValue,
                                      eatMessage)) {
@@ -3785,12 +3855,6 @@ PRBool nsWindow::ProcessMessage(UINT msg, WPARAM &wParam, LPARAM &lParam,
   *aRetValue = 0;
 
   static PRBool getWheelInfo = PR_TRUE;
-
-#if defined(EVENT_DEBUG_OUTPUT)
-  
-  
-  PrintEvent(msg, SHOW_REPEAT_EVENTS, SHOW_MOUSEMOVE_EVENTS);
-#endif
 
   switch (msg) {
     case WM_COMMAND:
