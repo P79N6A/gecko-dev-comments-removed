@@ -43,6 +43,8 @@
 
 
 
+#include <string.h>
+
 #include "jsarena.h" 
 #include "jsclist.h"
 #include "jslong.h"
@@ -678,6 +680,35 @@ struct JSSetSlotRequest {
     JSSetSlotRequest    *next;          
 };
 
+#define JS_PROTO_CACHE_METERING
+
+
+struct JSClassProtoCache {
+    void purge() { memset(entries, 0, sizeof(entries)); }
+
+#ifdef JS_PROTO_CACHE_METERING
+    struct Stats {
+        int32       probe, hit;
+    };
+# define PROTO_CACHE_METER(cx, x)                                             \
+    ((void) (PR_ATOMIC_INCREMENT(&(cx)->runtime->classProtoCacheStats.x)))
+#else
+# define PROTO_CACHE_METER(cx, x)  ((void) 0)
+#endif
+
+  private:
+    struct GlobalAndProto {
+        JSObject    *global;
+        JSObject    *proto;
+    };
+
+    GlobalAndProto  entries[JSProto_LIMIT - JSProto_Object];
+
+    friend JSBool js_GetClassPrototype(JSContext *cx, JSObject *scope,
+                                       JSProtoKey protoKey, JSObject **protop,
+                                       JSClass *clasp);
+};
+
 struct JSRuntime {
     
     JSRuntimeState      state;
@@ -1028,6 +1059,10 @@ struct JSRuntime {
     char                lastScriptFilename[1024];
 #endif
 
+#ifdef JS_PROTO_CACHE_METERING
+    JSClassProtoCache::Stats classProtoCacheStats;
+#endif
+
     JSRuntime();
     ~JSRuntime();
 
@@ -1220,8 +1255,7 @@ extern const JSDebugHooks js_NullDebugHooks;
 
 
 
-struct JSGCReachableFrame
-{
+struct JSGCReachableFrame {
     JSGCReachableFrame  *next;
     JSStackFrame        *frame;
 };
@@ -1464,6 +1498,8 @@ struct JSContext
     bool                 jitEnabled;
 #endif
 
+    JSClassProtoCache    classProtoCache;
+
     
     void updateJITEnabled() {
 #ifdef JS_TRACER
@@ -1621,6 +1657,8 @@ struct JSContext
     }
 
     bool isConstructing();
+
+    void purge();
 
 private:
 

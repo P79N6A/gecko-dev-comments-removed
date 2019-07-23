@@ -995,10 +995,8 @@ js_InitExceptionClasses(JSContext *cx, JSObject *obj)
 
 
 
-    if (!js_GetClassPrototype(cx, obj, INT_TO_JSID(JSProto_Object),
-                              &obj_proto)) {
+    if (!js_GetClassPrototype(cx, obj, JSProto_Object, &obj_proto))
         return NULL;
-    }
 
     memset(roots, 0, sizeof(roots));
     JSAutoTempValueRooter tvr(cx, JS_ARRAY_LENGTH(roots), roots);
@@ -1167,8 +1165,7 @@ js_ErrorToException(JSContext *cx, const char *message, JSErrorReport *reportp,
 
 
 
-    ok = js_GetClassPrototype(cx, NULL, INT_TO_JSID(GetExceptionProtoKey(exn)),
-                              &errProto);
+    ok = js_GetClassPrototype(cx, NULL, GetExceptionProtoKey(exn), &errProto);
     if (!ok)
         goto out;
     tv[0] = OBJECT_TO_JSVAL(errProto);

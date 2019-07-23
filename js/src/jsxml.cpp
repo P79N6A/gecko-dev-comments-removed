@@ -1753,7 +1753,7 @@ GetXMLSetting(JSContext *cx, const char *name, jsval *vp)
 {
     jsval v;
 
-    if (!js_FindClassObject(cx, NULL, INT_TO_JSID(JSProto_XML), &v))
+    if (!js_FindClassObject(cx, NULL, JSProto_XML, &v))
         return JS_FALSE;
     if (!VALUE_IS_FUNCTION(cx, v)) {
         *vp = JSVAL_VOID;
@@ -4734,7 +4734,7 @@ HasFunctionProperty(JSContext *cx, JSObject *obj, jsid funid, JSBool *found)
 
 
             JS_PUSH_TEMP_ROOT_OBJECT(cx, NULL, &tvr);
-            ok = js_GetClassPrototype(cx, NULL, INT_TO_JSID(JSProto_String),
+            ok = js_GetClassPrototype(cx, NULL, JSProto_String,
                                       &tvr.u.object);
             JS_ASSERT(tvr.u.object);
             if (ok) {
@@ -7836,8 +7836,7 @@ GetXMLFunction(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
     xml = (JSXML *) obj->getPrivate();
     if (HasSimpleContent(xml)) {
         
-        ok = js_GetClassPrototype(cx, NULL, INT_TO_JSID(JSProto_String),
-                                  &tvr.u.object);
+        ok = js_GetClassPrototype(cx, NULL, JSProto_String, &tvr.u.object);
         if (!ok)
             goto out;
         JS_ASSERT(tvr.u.object);
