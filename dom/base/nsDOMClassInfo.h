@@ -81,6 +81,7 @@ struct nsDOMClassInfoData
   PRUint32 mScriptableFlags : 31; 
   PRUint32 mHasClassInterface : 1;
   PRUint32 mInterfacesBitmap;
+  PRBool mChromeOnly;
 #ifdef NS_DEBUG
   PRUint32 mDebugID;
 #endif
