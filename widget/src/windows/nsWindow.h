@@ -75,11 +75,6 @@
 #endif
 
 
-#if !defined(WINCE)
-#define NS_ENABLE_TSF
-#endif 
-
-
 
 
 

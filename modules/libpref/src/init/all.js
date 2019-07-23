@@ -1597,12 +1597,14 @@ pref("intl.jis0208.map", "CP932");
 
 pref("intl.keyboard.per_window_layout", false);
 
+#ifdef NS_ENABLE_TSF
 
 pref("intl.enable_tsf_support", false);
 
 
 
 pref("intl.tsf.on_layout_change_interval", 100);
+#endif
 
 
 pref("ui.panel.default_level_parent", false);
