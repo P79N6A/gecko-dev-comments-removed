@@ -2105,6 +2105,11 @@ JS_CallFunctionValue(JSContext *cx, JSObject *obj, jsval fval, uintN argc,
 
 #define JS_MAX_OPERATION_LIMIT ((uint32) 0x7FFFFFFF)
 
+#define JS_OPERATION_WEIGHT_BASE 4096
+
+
+
+
 
 
 

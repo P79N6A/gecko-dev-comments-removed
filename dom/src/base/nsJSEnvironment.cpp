@@ -783,18 +783,18 @@ PrintWinCodebase(nsGlobalWindow *win)
 #endif
 
 
-#define MAYBE_GC_BRANCH_COUNT_MASK 0x00000fff // 4095
+#define MAYBE_GC_OPERATION_COUNT_MASK 0x00000fff // 4095
 
 
 
 
 
 
-#define INITIALIZE_TIME_BRANCH_COUNT_MASK 0x000000ff // 255
+#define INITIALIZE_TIME_OPERATION_COUNT_MASK 0x000000ff // 255
 
 
 JSBool JS_DLL_CALLBACK
-nsJSContext::DOMBranchCallback(JSContext *cx, JSScript *script)
+nsJSContext::DOMOperationCallback(JSContext *cx)
 {
   
   nsJSContext *ctx = static_cast<nsJSContext *>(::JS_GetContextPrivate(cx));
@@ -804,17 +804,17 @@ nsJSContext::DOMBranchCallback(JSContext *cx, JSScript *script)
     return JS_TRUE;
   }
 
-  PRUint32 callbackCount = ++ctx->mBranchCallbackCount;
+  PRUint32 callbackCount = ++ctx->mOperationCallbackCount;
 
-  if (callbackCount & INITIALIZE_TIME_BRANCH_COUNT_MASK) {
+  if (callbackCount & INITIALIZE_TIME_OPERATION_COUNT_MASK) {
     return JS_TRUE;
   }
 
-  if (callbackCount == INITIALIZE_TIME_BRANCH_COUNT_MASK + 1 &&
-      LL_IS_ZERO(ctx->mBranchCallbackTime)) {
+  if (callbackCount == INITIALIZE_TIME_OPERATION_COUNT_MASK + 1 &&
+      LL_IS_ZERO(ctx->mOperationCallbackTime)) {
     
     
-    ctx->mBranchCallbackTime = PR_Now();
+    ctx->mOperationCallbackTime = PR_Now();
 
     ctx->mIsTrackingChromeCodeTime =
       ::JS_IsSystemObject(cx, ::JS_GetGlobalObject(cx));
@@ -822,7 +822,7 @@ nsJSContext::DOMBranchCallback(JSContext *cx, JSScript *script)
     return JS_TRUE;
   }
 
-  if (callbackCount & MAYBE_GC_BRANCH_COUNT_MASK) {
+  if (callbackCount & MAYBE_GC_OPERATION_COUNT_MASK) {
     return JS_TRUE;
   }
 
@@ -830,14 +830,14 @@ nsJSContext::DOMBranchCallback(JSContext *cx, JSScript *script)
   
   
   
-  PRTime callbackTime = ctx->mBranchCallbackTime;
+  PRTime callbackTime = ctx->mOperationCallbackTime;
 
   
   JS_MaybeGC(cx);
 
   
-  ctx->mBranchCallbackTime = callbackTime;
-  ctx->mBranchCallbackCount = callbackCount;
+  ctx->mOperationCallbackTime = callbackTime;
+  ctx->mOperationCallbackCount = callbackCount;
 
   PRTime now = PR_Now();
 
@@ -871,7 +871,9 @@ nsJSContext::DOMBranchCallback(JSContext *cx, JSScript *script)
   nsresult rv;
 
   
-  PRBool debugPossible = (cx->debugHooks->debuggerHandler != nsnull);
+  JSStackFrame* fp = ::JS_GetScriptedCaller(cx, NULL);
+  PRBool debugPossible = (fp != nsnull &&
+                          cx->debugHooks->debuggerHandler != nsnull);
 #ifdef MOZ_JSDEBUGGER
   
   if (debugPossible) {
@@ -939,6 +941,7 @@ nsJSContext::DOMBranchCallback(JSContext *cx, JSScript *script)
   }
 
   
+  JSScript *script = fp ? ::JS_GetFrameScript(cx, fp) : nsnull;
   if (script) {
     const char *filename = ::JS_GetScriptFilename(cx, script);
     if (filename) {
@@ -994,17 +997,18 @@ nsJSContext::DOMBranchCallback(JSContext *cx, JSScript *script)
       }
     }
 
-    ctx->mBranchCallbackTime = PR_Now();
+    ctx->mOperationCallbackTime = PR_Now();
     return JS_TRUE;
   }
   else if ((buttonPressed == 2) && debugPossible) {
     
     jsval rval;
-    switch(cx->debugHooks->debuggerHandler(cx, script, cx->fp->pc, &rval,
+    switch(cx->debugHooks->debuggerHandler(cx, script, ::JS_GetFramePC(cx, fp),
+                                           &rval,
                                            cx->debugHooks->
                                            debuggerHandlerData)) {
       case JSTRAP_RETURN:
-        cx->fp->rval = rval;
+        fp->rval = rval;
         return JS_TRUE;
       case JSTRAP_ERROR:
         cx->throwing = JS_FALSE;
@@ -1092,9 +1096,7 @@ nsJSContext::nsJSContext(JSRuntime *aRuntime) : mGCOnDestruction(PR_TRUE)
 
   ++sContextCount;
 
-  mDefaultJSOptions = JSOPTION_PRIVATE_IS_NSISUPPORTS
-                    | JSOPTION_NATIVE_BRANCH_CALLBACK
-                    | JSOPTION_ANONFUNFIX;
+  mDefaultJSOptions = JSOPTION_PRIVATE_IS_NSISUPPORTS | JSOPTION_ANONFUNFIX;
 
   
   
@@ -1113,7 +1115,8 @@ nsJSContext::nsJSContext(JSRuntime *aRuntime) : mGCOnDestruction(PR_TRUE)
                                          JSOptionChangedCallback,
                                          this);
 
-    ::JS_SetBranchCallback(mContext, DOMBranchCallback);
+    ::JS_SetOperationCallback(mContext, DOMOperationCallback,
+                              JS_OPERATION_WEIGHT_BASE);
 
     static JSLocaleCallbacks localeCallbacks =
       {
@@ -1129,8 +1132,8 @@ nsJSContext::nsJSContext(JSRuntime *aRuntime) : mGCOnDestruction(PR_TRUE)
   mNumEvaluations = 0;
   mTerminations = nsnull;
   mScriptsEnabled = PR_TRUE;
-  mBranchCallbackCount = 0;
-  mBranchCallbackTime = LL_ZERO;
+  mOperationCallbackCount = 0;
+  mOperationCallbackTime = LL_ZERO;
   mProcessingScriptTag = PR_FALSE;
   mIsTrackingChromeCodeTime = PR_FALSE;
 }
@@ -1168,7 +1171,7 @@ nsJSContext::Unlink()
   ::JS_SetContextPrivate(mContext, nsnull);
 
   
-  ::JS_SetBranchCallback(mContext, nsnull);
+  ::JS_ClearOperationCallback(mContext);
 
   
   nsContentUtils::UnregisterPrefCallback(js_options_dot_str,
@@ -1479,6 +1482,8 @@ nsJSContext::EvaluateString(const nsAString& aScript,
   
   
   
+  
+  
   jsval val;
 
   nsJSContext::TerminationFuncHolder holder(this);
@@ -1683,7 +1688,6 @@ nsJSContext::ExecuteScript(void *aScriptObject,
     return NS_ERROR_FAILURE;
   }
 
-  
   
   
   
@@ -3225,8 +3229,8 @@ nsJSContext::ScriptEvaluated(PRBool aTerminated)
   }
 #endif
 
-  mBranchCallbackCount = 0;
-  mBranchCallbackTime = LL_ZERO;
+  mOperationCallbackCount = 0;
+  mOperationCallbackTime = LL_ZERO;
 }
 
 nsresult
