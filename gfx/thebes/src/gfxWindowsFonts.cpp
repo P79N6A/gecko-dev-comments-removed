@@ -592,15 +592,23 @@ gfxWindowsFontGroup::MakeTextRun(const PRUint8 *aString, PRUint32 aLength,
     const PRBool isComplex = textRun->IsRightToLeft();
 #endif
 
-    if (isComplex) {
+    
+
+
+    if (!isComplex && (aParams->mFlags & TEXT_IS_ASCII)) {
+        InitTextRunGDI(aParams->mContext, textRun,
+                       reinterpret_cast<const char*>(aString), aLength);
+    }
+    else {
         nsDependentCSubstring cString(reinterpret_cast<const char*>(aString),
                                   reinterpret_cast<const char*>(aString + aLength));
         nsAutoString utf16;
         AppendASCIItoUTF16(cString, utf16);
-        InitTextRunUniscribe(aParams->mContext, textRun, utf16.get(), aLength);
-    } else {
-        InitTextRunGDI(aParams->mContext, textRun,
-                       reinterpret_cast<const char*>(aString), aLength);
+        if (isComplex) {
+            InitTextRunUniscribe(aParams->mContext, textRun, utf16.get(), aLength);
+        } else {
+            InitTextRunGDI(aParams->mContext, textRun, utf16.get(), aLength);
+        }
     }
 
     return textRun;
