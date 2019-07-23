@@ -2756,6 +2756,15 @@ nsNavHistoryFolderResultNode::FillChildren()
   FillStats();
 
   
+  
+  SortComparator comparator = GetSortingComparator(GetSortType());
+  nsCAutoString sortingAnnotation;
+  GetSortingAnnotation(sortingAnnotation);
+
+  if (comparator)
+    RecursiveSort(sortingAnnotation.get(), comparator);
+
+  
   nsNavHistoryResult* result = GetResult();
   NS_ENSURE_TRUE(result, NS_ERROR_FAILURE);
   result->AddBookmarkObserver(this, mFolderId);
