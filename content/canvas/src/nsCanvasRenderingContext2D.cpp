@@ -406,17 +406,17 @@ protected:
 
 
 
-
-
-    PRBool NeedToUseIntermediateSurface()
+    void ClearSurfaceForUnboundedSource()
     {
+        gfxContext::GraphicsOperator current = mThebes->CurrentOperator();
+        if (current != gfxContext::OPERATOR_SOURCE)
+            return;
+        mThebes->SetOperator(gfxContext::OPERATOR_CLEAR);
         
         
-        return mThebes->OriginalSurface()->GetType() != gfxASurface::SurfaceTypeQuartz &&
-               OperatorAffectsUncoveredAreas(mThebes->CurrentOperator());
-
         
-        
+        mThebes->Paint();
+        mThebes->SetOperator(current);
     }
 
     
@@ -1482,10 +1482,12 @@ nsCanvasRenderingContext2D::DrawPath(Style style, gfxRect *dirtyRect)
 
 
 
-    PRBool doUseIntermediateSurface = NeedToUseIntermediateSurface() ||
-                                      NeedIntermediateSurfaceToHandleGlobalAlpha(style);
+    PRBool doUseIntermediateSurface = NeedIntermediateSurfaceToHandleGlobalAlpha(style);
 
     PRBool doDrawShadow = NeedToDrawShadow();
+
+    
+    ClearSurfaceForUnboundedSource();
 
     if (doDrawShadow) {
         gfxMatrix matrix = mThebes->CurrentMatrix();
@@ -2271,7 +2273,10 @@ nsCanvasRenderingContext2D::DrawOrMeasureText(const nsAString& aRawText,
     
     PRBool doDrawShadow = aOp == TEXT_DRAW_OPERATION_FILL && NeedToDrawShadow();
     PRBool doUseIntermediateSurface = aOp == TEXT_DRAW_OPERATION_FILL &&
-        (NeedToUseIntermediateSurface() || NeedIntermediateSurfaceToHandleGlobalAlpha(STYLE_FILL));
+        NeedIntermediateSurfaceToHandleGlobalAlpha(STYLE_FILL);
+
+    
+    ClearSurfaceForUnboundedSource();
 
     nsCanvasBidiProcessor processor;
 
@@ -3048,6 +3053,9 @@ nsCanvasRenderingContext2D::DrawImage(nsIDOMElement *imgElt, float a1,
 
     pathSR.Save();
 
+    
+    ClearSurfaceForUnboundedSource();
+
     {
         gfxContextAutoSaveRestore autoSR(mThebes);
         mThebes->Translate(gfxPoint(dx, dy));
@@ -3071,23 +3079,10 @@ nsCanvasRenderingContext2D::DrawImage(nsIDOMElement *imgElt, float a1,
             }
         }
 
-        PRBool doUseIntermediateSurface = NeedToUseIntermediateSurface();
-
         mThebes->SetPattern(pattern);
         DirtyAllStyles();
 
-        if (doUseIntermediateSurface) {
-            
-            mThebes->PushGroup(gfxASurface::CONTENT_COLOR_ALPHA);
-            mThebes->Clip(clip);
-
-            
-            mThebes->SetOperator(gfxContext::OPERATOR_SOURCE);
-
-            mThebes->Paint();
-            mThebes->PopGroupToSource();
-        } else
-            mThebes->Clip(clip);
+        mThebes->Clip(clip);
 
         dirty = mThebes->UserToDevice(clip);
 
