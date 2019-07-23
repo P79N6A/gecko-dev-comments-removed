@@ -79,7 +79,7 @@ void *_alloca(size_t size);
 #  define max(x,y)  ((x)<(y)?(y):(x))
 #endif
 
-#if defined(__i386__) && defined(__GNUC__) && !defined(__BEOS__)
+#if defined(__i386__) && defined(__GNUC__) && !defined(__BEOS__) && !defined(WINCE)
 #  define VORBIS_FPU_CONTROL
 
 
@@ -116,7 +116,7 @@ static inline int vorbis_ftoi(double f){
 #endif
 
 
-#if defined(_WIN32) && !defined(__GNUC__) && !defined(__BORLANDC__)
+#if defined(_WIN32) && !defined(__GNUC__) && !defined(__BORLANDC__) && !defined(WINCE)
 #  define VORBIS_FPU_CONTROL
 
 typedef ogg_int16_t vorbis_fpu_control;
