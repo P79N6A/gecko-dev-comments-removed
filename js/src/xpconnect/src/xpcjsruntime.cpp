@@ -1090,23 +1090,6 @@ XPCJSRuntime::XPCJSRuntime(nsXPConnect* aXPConnect)
     
     mStrIDs[0] = 0;
 
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    XPCPerThreadData::GetData(nsnull);
-
     mJSRuntime = JS_NewRuntime(32L * 1024L * 1024L); 
     if(mJSRuntime)
     {
