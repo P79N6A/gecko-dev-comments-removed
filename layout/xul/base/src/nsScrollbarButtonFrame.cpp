@@ -74,7 +74,11 @@ nsScrollbarButtonFrame::HandleEvent(nsPresContext* aPresContext,
                                     nsEventStatus* aEventStatus)
 {  
   NS_ENSURE_ARG_POINTER(aEventStatus);
-  if (nsEventStatus_eConsumeNoDefault == *aEventStatus) {
+
+  
+  
+  if (!mContent->IsInNativeAnonymousSubtree() &&
+      nsEventStatus_eConsumeNoDefault == *aEventStatus) {
     return NS_OK;
   }
 
