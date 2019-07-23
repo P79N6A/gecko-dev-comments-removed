@@ -83,10 +83,10 @@ function getTestPairs() {
   
 
   
-  var X = function() { this.a = "b" }
+  var X = function() { this.foo = "b" }
   X.prototype = {c:"d"}
   var y = new X();
-  testPairs.push(['{"a":"b","c":"d"}', y]);
+  testPairs.push(['{"foo":"b"}', y]);
 
   
   testPairs.push([null, null]);
