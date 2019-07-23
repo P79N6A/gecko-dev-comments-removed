@@ -11146,11 +11146,16 @@ nsCSSFrameConstructor::ProcessPendingRestyleTable(
 void
 nsCSSFrameConstructor::ProcessPendingRestyles()
 {
-  NS_PRECONDITION(mDocument, "No document?  Pshaw!\n");
+  NS_PRECONDITION(mDocument, "No document?  Pshaw!");
   NS_PRECONDITION(!nsContentUtils::IsSafeToRunScript(),
                   "Missing a script blocker!");
 
   
+  nsPresContext *presContext = mPresShell->GetPresContext();
+  NS_ABORT_IF_FALSE(!presContext->IsProcessingRestyles(),
+                    "Nesting calls to ProcessPendingRestyles?");
+  presContext->SetProcessingRestyles(PR_TRUE);
+
   ProcessPendingRestyleTable(mPendingRestyles);
 
   NS_POSTCONDITION(mPendingRestyles.Count() == 0,
@@ -11164,11 +11169,11 @@ nsCSSFrameConstructor::ProcessPendingRestyles()
   
   
   
-  nsPresContext *presContext = mPresShell->GetPresContext();
   presContext->SetProcessingAnimationStyleChange(PR_TRUE);
   ProcessPendingRestyleTable(mPendingAnimationRestyles);
   presContext->SetProcessingAnimationStyleChange(PR_FALSE);
 
+  presContext->SetProcessingRestyles(PR_FALSE);
   mInStyleRefresh = PR_FALSE;
 
   NS_POSTCONDITION(mPendingAnimationRestyles.Count() == 0,

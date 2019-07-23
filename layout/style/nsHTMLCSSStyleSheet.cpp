@@ -87,8 +87,18 @@ nsHTMLCSSStyleSheet::RulesMatching(ElementRuleProcessorData* aData)
 #ifdef MOZ_SMIL
   rule = content->GetSMILOverrideStyleRule();
   if (rule) {
-    rule->RuleMatched();
-    aData->mRuleWalker->Forward(rule);
+    if (aData->mPresContext->IsProcessingRestyles() &&
+        !aData->mPresContext->IsProcessingAnimationStyleChange()) {
+      
+      
+      
+      aData->mPresContext->PresShell()->RestyleForAnimation(aData->mContent);
+    } else {
+      
+      
+      rule->RuleMatched();
+      aData->mRuleWalker->Forward(rule);
+    }
   }
 #endif 
 
