@@ -722,6 +722,12 @@ public:
   #include "nsStyleStructList.h"
   #undef STYLE_STRUCT
 
+#ifdef _IMPL_NS_LAYOUT
+  
+  nscolor GetVisitedDependentColor(nsCSSProperty aProperty)
+    { return mStyleContext->GetVisitedDependentColor(aProperty); }
+#endif
+
   
 
 

@@ -248,6 +248,16 @@ public:
 
   NS_HIDDEN_(nsChangeHint) CalcStyleDifference(nsStyleContext* aOther);
 
+  
+
+
+
+
+
+
+
+  NS_HIDDEN_(nscolor) GetVisitedDependentColor(nsCSSProperty aProperty);
+
 #ifdef DEBUG
   NS_HIDDEN_(void) List(FILE* out, PRInt32 aIndent);
 #endif
