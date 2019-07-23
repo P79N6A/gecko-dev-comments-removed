@@ -36,13 +36,13 @@
 
 
 
+#include "jscntxt.h"
 #include "CTypes.h"
 #include "nsAutoPtr.h"
 #include "nsUTF8Utils.h"
 #include "nsCRTGlue.h"
 #include "prlog.h"
 #include "prdtoa.h"
-#include "jscntxt.h"
 #include "jsnum.h"
 
 namespace mozilla {
@@ -100,7 +100,7 @@ static JSPropertySpec sCTypeProps[] = {
   { "name", 0, CTYPESPROP_FLAGS, CType::NameGetter, NULL },
   { "size", 0, CTYPESPROP_FLAGS, CType::SizeGetter, NULL },
   { "ptr", 0, CTYPESPROP_FLAGS, CType::PtrGetter, NULL },
-  { "prototype", 0, CTYPESPROP_FLAGS, CType::ProtoGetter, NULL },
+  { "prototype", 0, CTYPESPROP_FLAGS, CType::PrototypeGetter, NULL },
   { 0, 0, 0, NULL, NULL }
 };
 
@@ -123,7 +123,7 @@ static JSFunctionSpec sPointerFunction =
   JS_FN("PointerType", PointerType::Create, 1, CTYPESFN_FLAGS);
 
 static JSPropertySpec sPointerProps[] = {
-  { "targetType", 0, CTYPESPROP_FLAGS, PointerType::TargetGetter, NULL },
+  { "targetType", 0, CTYPESPROP_FLAGS, PointerType::TargetTypeGetter, NULL },
   { 0, 0, 0, NULL, NULL }
 };
 
@@ -230,6 +230,20 @@ static JSFunctionSpec sUInt64Functions[] = {
   JS_FS_END
 };
 
+JS_ALWAYS_INLINE void
+ASSERT_OK(JSBool ok)
+{
+  JS_ASSERT(ok);
+}
+
+JS_ALWAYS_INLINE JSString*
+NewUCString(JSContext* cx, const nsString& from)
+{
+  JS_ASSERT(from.get());
+  return JS_NewUCStringCopyN(cx,
+    reinterpret_cast<const jschar*>(from.get()), from.Length());
+}
+
 ABICode
 GetABICode(JSContext* cx, JSObject* obj)
 {
@@ -239,7 +253,7 @@ GetABICode(JSContext* cx, JSObject* obj)
     return INVALID_ABI;
 
   jsval result;
-  JS_GetReservedSlot(cx, obj, SLOT_ABICODE, &result);
+  ASSERT_OK(JS_GetReservedSlot(cx, obj, SLOT_ABICODE, &result));
 
   return ABICode(JSVAL_TO_INT(result));
 }
@@ -360,7 +374,7 @@ InitInt64Class(JSContext* cx,
   
   
   jsval join;
-  JS_GetProperty(cx, ctor, "join", &join);
+  ASSERT_OK(JS_GetProperty(cx, ctor, "join", &join));
   if (!JS_SetReservedSlot(cx, JSVAL_TO_OBJECT(join), SLOT_FN_INT64PROTO,
          OBJECT_TO_JSVAL(prototype)))
     return NULL;
@@ -544,6 +558,7 @@ PR_STATIC_ASSERT(sizeof(long) == 4 || sizeof(long) == 8);
 PR_STATIC_ASSERT(sizeof(long long) == 8);
 PR_STATIC_ASSERT(sizeof(size_t) == sizeof(uintptr_t));
 PR_STATIC_ASSERT(sizeof(float) == 4);
+PR_STATIC_ASSERT(sizeof(jschar) == sizeof(PRUnichar));
 
 template<class IntegerType>
 static JS_ALWAYS_INLINE IntegerType
@@ -1108,7 +1123,7 @@ ConvertToJS(JSContext* cx,
   }
 #define DEFINE_CHAR_TYPE(name, type, ffiType)                                  \
   case TYPE_##name:                                                            \
-    /* Convert to an integer. (We have no idea what character encoding to */   \
+    /* Convert to an integer. We have no idea what character encoding to */    \
     /* use, if any. */                                                         \
     *result = INT_TO_JSVAL(*static_cast<type*>(data));                         \
     break;
@@ -1217,14 +1232,13 @@ ImplicitConvert(JSContext* cx,
   case TYPE_##name: {                                                          \
     /* Convert from a 1-character string, regardless of encoding, */           \
     /* or from an integer, provided the result fits in 'type'. */              \
-    /* TODO: Check IsASCII(chars) for 8-bit char types? */                     \
     type result;                                                               \
     if (JSVAL_IS_STRING(val)) {                                                \
       JSString* str = JSVAL_TO_STRING(val);                                    \
       if (JS_GetStringLength(str) != 1)                                        \
         return TypeError(cx, #name, val);                                      \
                                                                                \
-      jschar c = *JS_GetStringCharsZ(cx, str);                                 \
+      jschar c = *JS_GetStringChars(str);                                      \
       result = c;                                                              \
       if (jschar(result) != c)                                                 \
         return TypeError(cx, #name, val);                                      \
@@ -1513,7 +1527,7 @@ ExplicitConvert(JSContext* cx, jsval val, JSObject* targetType, void* buffer)
   case TYPE_bool: {
     
     JSBool result;
-    JS_ValueToBoolean(cx, val, &result);
+    ASSERT_OK(JS_ValueToBoolean(cx, val, &result));
     *static_cast<bool*>(buffer) = result != JS_FALSE;
     break;
   }
@@ -1780,8 +1794,22 @@ BuildDataSource(JSContext* cx, JSObject* typeObj, void* data, bool isImplicit)
     /* Serialize as an integer. */                                             \
     result.Append(IntegerToString(*static_cast<type*>(data), 10));             \
     break;
-#define DEFINE_JSCHAR_TYPE(x, y, z) DEFINE_CHAR_TYPE(x, y, z)
 #include "typedefs.h"
+  case TYPE_jschar: {
+    
+    JSString* str = JS_NewUCStringCopyN(cx, static_cast<jschar*>(data), 1);
+    if (!str)
+      break;
+
+    JSString* src = JS_ValueToSource(cx, STRING_TO_JSVAL(str));
+    if (!src)
+      break;
+
+    const jschar* srcChars = JS_GetStringChars(src);
+    size_t srclen = JS_GetStringLength(src);
+    result.Append(reinterpret_cast<const PRUnichar*>(srcChars), srclen);
+    break;
+  }
   case TYPE_pointer: {
     if (isImplicit) {
       
@@ -2053,7 +2081,7 @@ CType::Finalize(JSContext* cx, JSObject* obj)
   switch (TypeCode(JSVAL_TO_INT(slot))) {
   case TYPE_struct:
     
-    JS_GetReservedSlot(cx, obj, SLOT_FIELDINFO, &slot);
+    ASSERT_OK(JS_GetReservedSlot(cx, obj, SLOT_FIELDINFO, &slot));
     if (!JSVAL_IS_VOID(slot))
       delete static_cast<nsTArray<FieldInfo>*>(JSVAL_TO_PRIVATE(slot));
 
@@ -2061,7 +2089,7 @@ CType::Finalize(JSContext* cx, JSObject* obj)
   case TYPE_array: {
     
     jsval slot;
-    JS_GetReservedSlot(cx, obj, SLOT_FFITYPE, &slot);
+    ASSERT_OK(JS_GetReservedSlot(cx, obj, SLOT_FFITYPE, &slot));
     if (!JSVAL_IS_VOID(slot) && JSVAL_TO_PRIVATE(slot)) {
       ffi_type* ffiType = static_cast<ffi_type*>(JSVAL_TO_PRIVATE(slot));
       delete[] ffiType->elements;
@@ -2088,7 +2116,7 @@ CType::GetTypeCode(JSContext* cx, JSObject* typeObj)
   JS_ASSERT(IsCType(cx, typeObj));
 
   jsval result;
-  JS_GetReservedSlot(cx, typeObj, SLOT_TYPECODE, &result);
+  ASSERT_OK(JS_GetReservedSlot(cx, typeObj, SLOT_TYPECODE, &result));
   return TypeCode(JSVAL_TO_INT(result));
 }
 
@@ -2148,7 +2176,7 @@ CType::GetSafeSize(JSContext* cx, JSObject* obj, size_t* result)
   JS_ASSERT(CType::IsCType(cx, obj));
 
   jsval size;
-  JS_GetReservedSlot(cx, obj, SLOT_SIZE, &size);
+  ASSERT_OK(JS_GetReservedSlot(cx, obj, SLOT_SIZE, &size));
 
   
   
@@ -2171,7 +2199,7 @@ CType::GetSize(JSContext* cx, JSObject* obj)
   JS_ASSERT(CType::IsCType(cx, obj));
 
   jsval size;
-  JS_GetReservedSlot(cx, obj, SLOT_SIZE, &size);
+  ASSERT_OK(JS_GetReservedSlot(cx, obj, SLOT_SIZE, &size));
 
   JS_ASSERT(!JSVAL_IS_VOID(size));
 
@@ -2189,7 +2217,7 @@ CType::IsSizeDefined(JSContext* cx, JSObject* obj)
   JS_ASSERT(CType::IsCType(cx, obj));
 
   jsval size;
-  JS_GetReservedSlot(cx, obj, SLOT_SIZE, &size);
+  ASSERT_OK(JS_GetReservedSlot(cx, obj, SLOT_SIZE, &size));
 
   
   
@@ -2203,7 +2231,7 @@ CType::GetAlignment(JSContext* cx, JSObject* obj)
   JS_ASSERT(CType::IsCType(cx, obj));
 
   jsval slot;
-  JS_GetReservedSlot(cx, obj, SLOT_ALIGN, &slot);
+  ASSERT_OK(JS_GetReservedSlot(cx, obj, SLOT_ALIGN, &slot));
   return static_cast<size_t>(JSVAL_TO_INT(slot));
 }
 
@@ -2213,7 +2241,7 @@ CType::GetFFIType(JSContext* cx, JSObject* obj)
   JS_ASSERT(CType::IsCType(cx, obj));
 
   jsval slot;
-  JS_GetReservedSlot(cx, obj, SLOT_FFITYPE, &slot);
+  ASSERT_OK(JS_GetReservedSlot(cx, obj, SLOT_FFITYPE, &slot));
 
   ffi_type* result = static_cast<ffi_type*>(JSVAL_TO_PRIVATE(slot));
   JS_ASSERT(result);
@@ -2226,24 +2254,22 @@ CType::GetName(JSContext* cx, JSObject* obj)
   JS_ASSERT(CType::IsCType(cx, obj));
 
   jsval string;
-  JS_GetReservedSlot(cx, obj, SLOT_NAME, &string);
+  ASSERT_OK(JS_GetReservedSlot(cx, obj, SLOT_NAME, &string));
   return JSVAL_TO_STRING(string);
 }
 
 JSObject*
-CType::GetProtoFromCtor(JSContext* cx, JSObject* obj, CTypeProtoSlot slot)
+CType::GetProtoFromCtor(JSContext* cx, JSObject* obj)
 {
   
   jsval prototype;
-  JS_GetProperty(cx, obj, "prototype", &prototype);
+  ASSERT_OK(JS_GetProperty(cx, obj, "prototype", &prototype));
   JSObject* proto = JSVAL_TO_OBJECT(prototype);
   JS_ASSERT(proto);
   JS_ASSERT(JS_GET_CLASS(cx, proto) == &sCTypeProtoClass);
 
   
-  jsval result;
-  JS_GetReservedSlot(cx, proto, slot, &result);
-  return JSVAL_TO_OBJECT(result);
+  return proto;
 }
 
 JSObject*
@@ -2258,19 +2284,19 @@ CType::GetProtoFromType(JSContext* cx, JSObject* obj, CTypeProtoSlot slot)
 
   
   jsval result;
-  JS_GetReservedSlot(cx, proto, slot, &result);
+  ASSERT_OK(JS_GetReservedSlot(cx, proto, slot, &result));
   return JSVAL_TO_OBJECT(result);
 }
 
 JSBool
-CType::ProtoGetter(JSContext* cx, JSObject* obj, jsval idval, jsval* vp)
+CType::PrototypeGetter(JSContext* cx, JSObject* obj, jsval idval, jsval* vp)
 {
   if (!CType::IsCType(cx, obj)) {
     JS_ReportError(cx, "not a CType");
     return JS_FALSE;
   }
 
-  JS_GetReservedSlot(cx, obj, SLOT_PROTO, vp);
+  ASSERT_OK(JS_GetReservedSlot(cx, obj, SLOT_PROTO, vp));
   JS_ASSERT(!JSVAL_IS_PRIMITIVE(*vp));
   return JS_TRUE;
 }
@@ -2283,7 +2309,7 @@ CType::NameGetter(JSContext* cx, JSObject* obj, jsval idval, jsval* vp)
     return JS_FALSE;
   }
 
-  JS_GetReservedSlot(cx, obj, SLOT_NAME, vp);
+  ASSERT_OK(JS_GetReservedSlot(cx, obj, SLOT_NAME, vp));
   JS_ASSERT(JSVAL_IS_STRING(*vp));
   return JS_TRUE;
 }
@@ -2296,7 +2322,7 @@ CType::SizeGetter(JSContext* cx, JSObject* obj, jsval idval, jsval* vp)
     return JS_FALSE;
   }
 
-  JS_GetReservedSlot(cx, obj, SLOT_SIZE, vp);
+  ASSERT_OK(JS_GetReservedSlot(cx, obj, SLOT_SIZE, vp));
   JS_ASSERT(JSVAL_IS_NUMBER(*vp) || JSVAL_IS_VOID(*vp));
   return JS_TRUE;
 }
@@ -2367,8 +2393,7 @@ CType::ToString(JSContext* cx, uintN argc, jsval *vp)
   size_t rightlen = JS_GetStringLength(right);
   type.Append(reinterpret_cast<const PRUnichar*>(rightChars), rightlen);
 
-  JSString* result = JS_NewUCStringCopyN(cx,
-    reinterpret_cast<const jschar*>(type.get()), type.Length());
+  JSString* result = NewUCString(cx, type);
   if (!result)
     return JS_FALSE;
   
@@ -2388,8 +2413,7 @@ CType::ToSource(JSContext* cx, uintN argc, jsval *vp)
   }
 
   nsAutoString source = BuildTypeSource(cx, obj, false);
-  JSString* result = JS_NewUCStringCopyN(cx,
-    reinterpret_cast<const jschar*>(source.get()), source.Length());
+  JSString* result = NewUCString(cx, source);
   if (!result)
     return JS_FALSE;
   
@@ -2447,7 +2471,7 @@ PointerType::CreateInternal(JSContext* cx,
   if (baseType) {
     
     jsval slot;
-    JS_GetReservedSlot(cx, baseType, SLOT_PTR, &slot);
+    ASSERT_OK(JS_GetReservedSlot(cx, baseType, SLOT_PTR, &slot));
     if (!JSVAL_IS_VOID(slot))
       return JSVAL_TO_OBJECT(slot);
   }
@@ -2456,7 +2480,7 @@ PointerType::CreateInternal(JSContext* cx,
   
   JSObject* proto;
   if (ctor)
-    proto = CType::GetProtoFromCtor(cx, ctor, SLOT_POINTERPROTO);
+    proto = CType::GetProtoFromCtor(cx, ctor);
   else
     proto = CType::GetProtoFromType(cx, baseType, SLOT_POINTERPROTO);
 
@@ -2477,8 +2501,7 @@ PointerType::CreateInternal(JSContext* cx,
   if (baseType) {
     
     nsAutoString typeName = BuildTypeName(cx, typeObj);
-    JSString* nameStr = JS_NewUCStringCopyN(cx,
-      reinterpret_cast<const jschar*>(typeName.get()), typeName.Length());
+    JSString* nameStr = NewUCString(cx, typeName);
     if (!nameStr ||
         !JS_SetReservedSlot(cx, typeObj, SLOT_NAME, STRING_TO_JSVAL(nameStr)))
       return NULL;
@@ -2528,19 +2551,22 @@ PointerType::GetBaseType(JSContext* cx, JSObject* obj)
   JS_ASSERT(CType::GetTypeCode(cx, obj) == TYPE_pointer);
 
   jsval type;
-  JS_GetReservedSlot(cx, obj, SLOT_TARGET_T, &type);
+  ASSERT_OK(JS_GetReservedSlot(cx, obj, SLOT_TARGET_T, &type));
   return JSVAL_TO_OBJECT(type);
 }
 
 JSBool
-PointerType::TargetGetter(JSContext* cx, JSObject* obj, jsval idval, jsval* vp)
+PointerType::TargetTypeGetter(JSContext* cx,
+                              JSObject* obj,
+                              jsval idval,
+                              jsval* vp)
 {
   if (!CType::IsCType(cx, obj) || CType::GetTypeCode(cx, obj) != TYPE_pointer) {
     JS_ReportError(cx, "not a PointerType");
     return JS_FALSE;
   }
 
-  JS_GetReservedSlot(cx, obj, SLOT_TARGET_T, vp);
+  ASSERT_OK(JS_GetReservedSlot(cx, obj, SLOT_TARGET_T, vp));
   JS_ASSERT(JSVAL_IS_OBJECT(*vp));
   return JS_TRUE;
 }
@@ -2746,8 +2772,7 @@ ArrayType::CreateInternal(JSContext* cx,
 
   
   nsAutoString typeName = BuildTypeName(cx, typeObj);
-  JSString* name = JS_NewUCStringCopyN(cx,
-    reinterpret_cast<const jschar*>(typeName.get()), typeName.Length());
+  JSString* name = NewUCString(cx, typeName);
   if (!name ||
       !JS_SetReservedSlot(cx, typeObj, SLOT_NAME, STRING_TO_JSVAL(name)))
     return NULL;
@@ -2866,7 +2891,7 @@ ArrayType::GetBaseType(JSContext* cx, JSObject* obj)
   JS_ASSERT(CType::GetTypeCode(cx, obj) == TYPE_array);
 
   jsval type;
-  JS_GetReservedSlot(cx, obj, SLOT_ELEMENT_T, &type);
+  ASSERT_OK(JS_GetReservedSlot(cx, obj, SLOT_ELEMENT_T, &type));
   return JSVAL_TO_OBJECT(type);
 }
 
@@ -2877,7 +2902,7 @@ ArrayType::GetSafeLength(JSContext* cx, JSObject* obj, size_t* result)
   JS_ASSERT(CType::GetTypeCode(cx, obj) == TYPE_array);
 
   jsval length;
-  JS_GetReservedSlot(cx, obj, SLOT_LENGTH, &length);
+  ASSERT_OK(JS_GetReservedSlot(cx, obj, SLOT_LENGTH, &length));
 
   
   
@@ -2901,7 +2926,7 @@ ArrayType::GetLength(JSContext* cx, JSObject* obj)
   JS_ASSERT(CType::GetTypeCode(cx, obj) == TYPE_array);
 
   jsval length;
-  JS_GetReservedSlot(cx, obj, SLOT_LENGTH, &length);
+  ASSERT_OK(JS_GetReservedSlot(cx, obj, SLOT_LENGTH, &length));
 
   JS_ASSERT(!JSVAL_IS_VOID(length));
 
@@ -2921,7 +2946,7 @@ ArrayType::ElementTypeGetter(JSContext* cx, JSObject* obj, jsval idval, jsval* v
     return JS_FALSE;
   }
 
-  JS_GetReservedSlot(cx, obj, SLOT_ELEMENT_T, vp);
+  ASSERT_OK(JS_GetReservedSlot(cx, obj, SLOT_ELEMENT_T, vp));
   JS_ASSERT(!JSVAL_IS_PRIMITIVE(*vp));
   return JS_TRUE;
 }
@@ -2939,7 +2964,7 @@ ArrayType::LengthGetter(JSContext* cx, JSObject* obj, jsval idval, jsval* vp)
     return JS_FALSE;
   }
 
-  JS_GetReservedSlot(cx, obj, SLOT_LENGTH, vp);
+  ASSERT_OK(JS_GetReservedSlot(cx, obj, SLOT_LENGTH, vp));
   JS_ASSERT(JSVAL_IS_NUMBER(*vp) || JSVAL_IS_VOID(*vp));
   return JS_TRUE;
 }
@@ -3088,10 +3113,6 @@ ExtractStructField(JSContext* cx, jsval val, FieldInfo* field)
   jsid id;
   if (!JS_NextProperty(cx, iter, &id))
     return false;
-  if (JSVAL_IS_VOID(id)) {
-    JS_ReportError(cx, "struct field descriptors require a valid name and type");
-    return false;
-  }
 
   jsval nameVal;
   if (!JS_IdToValue(cx, id, &nameVal))
@@ -3193,7 +3214,7 @@ StructType::Create(JSContext* cx, uintN argc, jsval* vp)
   
   JSObject* fieldsObj = JSVAL_TO_OBJECT(argv[1]);
   jsuint len;
-  JS_GetArrayLength(cx, fieldsObj, &len);
+  ASSERT_OK(JS_GetArrayLength(cx, fieldsObj, &len));
 
   nsAutoPtr<ffi_type> ffiType(new ffi_type);
   if (!ffiType) {
@@ -3325,7 +3346,7 @@ StructType::Create(JSContext* cx, uintN argc, jsval* vp)
 
   
   JSObject* callee = JSVAL_TO_OBJECT(JS_CALLEE(cx, vp));
-  JSObject* proto = CType::GetProtoFromCtor(cx, callee, SLOT_STRUCTPROTO);
+  JSObject* proto = CType::GetProtoFromCtor(cx, callee);
 
   
   JSObject* typeObj = CType::Create(cx, proto, TYPE_struct, name,
@@ -3371,61 +3392,56 @@ StructType::ConstructData(JSContext* cx,
 
   *rval = OBJECT_TO_JSVAL(result);
 
-  if (argc != 0) {
-    char* buffer = static_cast<char*>(CData::GetData(cx, result));
-    nsTArray<FieldInfo>* fields = GetFieldInfo(cx, obj);
+  if (argc == 0)
+    return JS_TRUE;
 
-    if (argc == 1) {
-      
-      
-      
-      
-      
-      
-      
+  char* buffer = static_cast<char*>(CData::GetData(cx, result));
+  nsTArray<FieldInfo>* fields = GetFieldInfo(cx, obj);
 
-      
-      if (ExplicitConvert(cx, argv[0], obj, buffer))
-        return JS_TRUE;
+  if (argc == 1) {
+    
+    
+    
+    
+    
+    
+    
 
-      
-      
-      if (!JS_IsExceptionPending(cx))
-        return JS_FALSE;
+    
+    if (ExplicitConvert(cx, argv[0], obj, buffer))
+      return JS_TRUE;
 
-      
-      
-      JS_ClearPendingException(cx);
-
-      if (fields->Length() != 1) {
-        JS_ReportError(cx, "constructor takes 0, 1, or %u arguments",
-          fields->Length());
-        return JS_FALSE;
-      }
-
-      
-      FieldInfo& field = fields->ElementAt(0);
-      return ImplicitConvert(cx, argv[0], field.mType, buffer + field.mOffset,
-               false, NULL);
-    }
-
-    if (argc != fields->Length()) {
-      JS_ReportError(cx, "constructor takes 0, 1, or %u arguments",
-        fields->Length());
+    if (fields->Length() != 1)
       return JS_FALSE;
-    }
 
     
     
+    if (!JS_IsExceptionPending(cx))
+      return JS_FALSE;
+
+    
+    
+    JS_ClearPendingException(cx);
+
+    
+  }
+
+  
+  
+  if (argc == fields->Length()) {
     for (PRUint32 i = 0; i < fields->Length(); ++i) {
       FieldInfo& field = fields->ElementAt(i);
       if (!ImplicitConvert(cx, argv[i], field.mType, buffer + field.mOffset,
              false, NULL))
         return JS_FALSE;
     }
+
+    return JS_TRUE;
   }
 
-  return JS_TRUE;
+  JS_ReportError(cx, "constructor takes 0, 1, or %u arguments",
+    fields->Length());
+  return JS_FALSE;
 }
 
 nsTArray<FieldInfo>*
@@ -3435,7 +3451,7 @@ StructType::GetFieldInfo(JSContext* cx, JSObject* obj)
   JS_ASSERT(CType::GetTypeCode(cx, obj) == TYPE_struct);
 
   jsval slot;
-  JS_GetReservedSlot(cx, obj, SLOT_FIELDINFO, &slot);
+  ASSERT_OK(JS_GetReservedSlot(cx, obj, SLOT_FIELDINFO, &slot));
   JS_ASSERT(!JSVAL_IS_VOID(slot) && JSVAL_TO_PRIVATE(slot));
 
   return static_cast<nsTArray<FieldInfo>*>(JSVAL_TO_PRIVATE(slot));
@@ -3473,7 +3489,7 @@ StructType::FieldsArrayGetter(JSContext* cx, JSObject* obj, jsval idval, jsval* 
     return JS_FALSE;
   }
 
-  JS_GetReservedSlot(cx, obj, SLOT_FIELDS, vp);
+  ASSERT_OK(JS_GetReservedSlot(cx, obj, SLOT_FIELDS, vp));
   JS_ASSERT(!JSVAL_IS_PRIMITIVE(*vp) &&
             JS_IsArrayObject(cx, JSVAL_TO_OBJECT(*vp)));
   return JS_TRUE;
@@ -3594,7 +3610,7 @@ CData::Create(JSContext* cx, JSObject* typeObj, JSObject* baseObj, void* source)
 
   
   jsval slot;
-  JS_GetReservedSlot(cx, typeObj, SLOT_PROTO, &slot);
+  ASSERT_OK(JS_GetReservedSlot(cx, typeObj, SLOT_PROTO, &slot));
   JS_ASSERT(!JSVAL_IS_PRIMITIVE(slot));
 
   JSObject* proto = JSVAL_TO_OBJECT(slot);
@@ -3674,7 +3690,7 @@ CData::GetCType(JSContext* cx, JSObject* dataObj)
   JS_ASSERT(CData::IsCData(cx, dataObj));
 
   jsval slot;
-  JS_GetReservedSlot(cx, dataObj, SLOT_CTYPE, &slot);
+  ASSERT_OK(JS_GetReservedSlot(cx, dataObj, SLOT_CTYPE, &slot));
   JSObject* typeObj = JSVAL_TO_OBJECT(slot);
   JS_ASSERT(CType::IsCType(cx, typeObj));
   return typeObj;
@@ -3686,7 +3702,7 @@ CData::GetData(JSContext* cx, JSObject* dataObj)
   JS_ASSERT(CData::IsCData(cx, dataObj));
 
   jsval slot;
-  JS_GetReservedSlot(cx, dataObj, SLOT_DATA, &slot);
+  ASSERT_OK(JS_GetReservedSlot(cx, dataObj, SLOT_DATA, &slot));
 
   void** buffer = static_cast<void**>(JSVAL_TO_PRIVATE(slot));
   JS_ASSERT(buffer);
@@ -3868,9 +3884,7 @@ CData::ReadString(JSContext* cx, uintN argc, jsval *vp)
       return JS_FALSE;
     }
 
-    NS_ConvertUTF8toUTF16 converted(string);
-    result = JS_NewUCStringCopyN(cx,
-      reinterpret_cast<const jschar*>(converted.get()), converted.Length());
+    result = NewUCString(cx, NS_ConvertUTF8toUTF16(string));
     break;
   }
   case TYPE_int16_t:
@@ -3924,8 +3938,7 @@ CData::ToSource(JSContext* cx, uintN argc, jsval *vp)
   source.Append(BuildDataSource(cx, typeObj, data, false));
   source.Append(')');
 
-  JSString* result = JS_NewUCStringCopyN(cx,
-    reinterpret_cast<const jschar*>(source.get()), source.Length());
+  JSString* result = NewUCString(cx, source);
   if (!result)
     return JS_FALSE;
 
@@ -3982,7 +3995,7 @@ Int64Base::GetInt(JSContext* cx, JSObject* obj) {
   JS_ASSERT(Int64::IsInt64(cx, obj) || UInt64::IsUInt64(cx, obj));
 
   jsval slot;
-  JS_GetReservedSlot(cx, obj, SLOT_INT64, &slot);
+  ASSERT_OK(JS_GetReservedSlot(cx, obj, SLOT_INT64, &slot));
   return *static_cast<PRUint64*>(JSVAL_TO_PRIVATE(slot));
 }
 
@@ -4016,8 +4029,7 @@ Int64Base::ToString(JSContext* cx,
     intString = IntegerToString(static_cast<PRInt64>(GetInt(cx, obj)), radix);
   }
 
-  JSString *result = JS_NewUCStringCopyN(cx,
-    reinterpret_cast<const jschar*>(intString.get()), intString.Length());
+  JSString *result = NewUCString(cx, intString);
   if (!result)
     return JS_FALSE;
 
@@ -4048,8 +4060,7 @@ Int64Base::ToSource(JSContext* cx,
   }
   source.Append(NS_LITERAL_STRING("\")"));
 
-  JSString *result = JS_NewUCStringCopyN(cx,
-    reinterpret_cast<const jschar*>(source.get()), source.Length());
+  JSString *result = NewUCString(cx, source);
   if (!result)
     return JS_FALSE;
 
@@ -4076,7 +4087,8 @@ Int64::Construct(JSContext* cx,
 
   
   jsval slot;
-  JS_GetProperty(cx, JSVAL_TO_OBJECT(JS_ARGV_CALLEE(argv)), "prototype", &slot);
+  ASSERT_OK(JS_GetProperty(cx, JSVAL_TO_OBJECT(JS_ARGV_CALLEE(argv)),
+    "prototype", &slot));
   JSObject* proto = JSVAL_TO_OBJECT(slot);
   JS_ASSERT(JS_GET_CLASS(cx, proto) == &sInt64ProtoClass);
 
@@ -4217,7 +4229,7 @@ Int64::Join(JSContext* cx, uintN argc, jsval* vp)
   JSObject* callee = JSVAL_TO_OBJECT(JS_ARGV_CALLEE(argv));
 
   jsval slot;
-  JS_GetReservedSlot(cx, callee, SLOT_FN_INT64PROTO, &slot);
+  ASSERT_OK(JS_GetReservedSlot(cx, callee, SLOT_FN_INT64PROTO, &slot));
   JSObject* proto = JSVAL_TO_OBJECT(slot);
   JS_ASSERT(JS_GET_CLASS(cx, proto) == &sInt64ProtoClass);
 
@@ -4248,7 +4260,8 @@ UInt64::Construct(JSContext* cx,
 
   
   jsval slot;
-  JS_GetProperty(cx, JSVAL_TO_OBJECT(JS_ARGV_CALLEE(argv)), "prototype", &slot);
+  ASSERT_OK(JS_GetProperty(cx, JSVAL_TO_OBJECT(JS_ARGV_CALLEE(argv)),
+    "prototype", &slot));
   JSObject* proto = JSVAL_TO_OBJECT(slot);
   JS_ASSERT(JS_GET_CLASS(cx, proto) == &sUInt64ProtoClass);
 
@@ -4385,7 +4398,7 @@ UInt64::Join(JSContext* cx, uintN argc, jsval* vp)
   JSObject* callee = JSVAL_TO_OBJECT(JS_ARGV_CALLEE(argv));
 
   jsval slot;
-  JS_GetReservedSlot(cx, callee, SLOT_FN_INT64PROTO, &slot);
+  ASSERT_OK(JS_GetReservedSlot(cx, callee, SLOT_FN_INT64PROTO, &slot));
   JSObject* proto = JSVAL_TO_OBJECT(slot);
   JS_ASSERT(JS_GET_CLASS(cx, proto) == &sUInt64ProtoClass);
 
