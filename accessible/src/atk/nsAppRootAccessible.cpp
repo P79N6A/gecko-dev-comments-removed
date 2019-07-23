@@ -568,7 +568,7 @@ NS_IMETHODIMP nsAppRootAccessible::Init()
         
         
         
-        PR_UnloadLibrary(sAtkBridge.lib);
+        
         sAtkBridge.lib = NULL;
         sAtkBridge.init = NULL;
         sAtkBridge.shutdown = NULL;
@@ -579,15 +579,15 @@ NS_IMETHODIMP nsAppRootAccessible::Init()
         
         
         
-        PR_UnloadLibrary(sGail.lib);
+        
         sGail.lib = NULL;
         sGail.init = NULL;
         sGail.shutdown = NULL;
     }
-    if (sATKLib) {
-        PR_UnloadLibrary(sATKLib);
-        sATKLib = nsnull;
-    }
+    
+    
+    
+    
 }
 
 NS_IMETHODIMP nsAppRootAccessible::GetName(nsAString& _retval)
