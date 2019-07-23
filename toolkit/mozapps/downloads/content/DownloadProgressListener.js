@@ -91,8 +91,7 @@ DownloadProgressListener.prototype = {
       
       updateTime(dl);
       updateStatus(dl);
-
-      gDownloadViewController.onCommandUpdate();
+      updateButtons(dl);
     } catch (e) { }
   },
 
