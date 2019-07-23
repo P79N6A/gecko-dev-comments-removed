@@ -56,10 +56,7 @@ typedef cairo_int128_t	cairo_fixed_96_32_t;
 #define CAIRO_FIXED_BITS	32
 
 
-
-
-
-#define CAIRO_FIXED_FRAC_BITS	16
+#define CAIRO_FIXED_FRAC_BITS	8
 
 
 typedef int32_t cairo_fixed_t;
@@ -206,10 +203,25 @@ _cairo_fixed_integer_ceil (cairo_fixed_t f)
 static inline cairo_fixed_16_16_t
 _cairo_fixed_to_16_16 (cairo_fixed_t f)
 {
-#if CAIRO_FIXED_FRAC_BITS > 16
+#if (CAIRO_FIXED_FRAC_BITS == 16) && (CAIRO_FIXED_BITS == 32)
+    return f;
+#elif CAIRO_FIXED_FRAC_BITS > 16
     return f >> (CAIRO_FIXED_FRAC_BITS - 16);
 #else
-    return f << (16 - CAIRO_FIXED_FRAC_BITS);
+    cairo_fixed_16_16_t x;
+
+    
+
+
+    if ((f >> CAIRO_FIXED_FRAC_BITS) < INT16_MIN) {
+	x = INT32_MIN;
+    } else if ((f >> CAIRO_FIXED_FRAC_BITS) > INT16_MAX) {
+	x = INT32_MAX;
+    } else {
+	x = f << (16 - CAIRO_FIXED_FRAC_BITS);
+    }
+
+    return x;
 #endif
 }
 
