@@ -92,6 +92,7 @@ pluginWidgetInit(InstanceData* instanceData, void* oldWindow)
 {
   HWND hWnd = (HWND)instanceData->window.window;
   if (oldWindow) {
+    
     HWND hWndOld = (HWND)oldWindow;
     ClearSubclass(hWndOld);
     if (instanceData->platformData->childWindow) {
