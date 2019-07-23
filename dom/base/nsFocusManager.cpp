@@ -1454,7 +1454,7 @@ nsFocusManager::Focus(nsPIDOMWindow* aWindow,
   if (!aWindow)
     return;
 
-  if (aContent && aContent == mFirstFocusEvent)
+  if (aContent && (aContent == mFirstFocusEvent || aContent == mFirstBlurEvent))
     return;
 
   
