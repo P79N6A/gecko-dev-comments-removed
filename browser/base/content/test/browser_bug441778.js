@@ -40,65 +40,38 @@
 
 
 
-let testPage = 'data:text/html,<body><iframe id="a" src=""></iframe></body>';
-
 function test() {
   waitForExplicitFinish();
 
-  
-  
-  
-  let zoomLevel;
+  const TEST_PAGE_URL = 'data:text/html,<body><iframe src=""></iframe></body>';
+  const TEST_IFRAME_URL = "http://test2.example.org/";
 
   
   gBrowser.selectedTab = gBrowser.addTab();
   let testBrowser = gBrowser.selectedBrowser;
 
-  let finishTest = function() {
-    testBrowser.removeProgressListener(progressListener);
-    is(ZoomManager.zoom, zoomLevel, "zoom is retained after sub-document load");
-    gBrowser.removeCurrentTab();
-    finish();
-  };
+  testBrowser.addEventListener("load", function () {
+    testBrowser.removeEventListener("load", arguments.callee, true);
 
-  let progressListener = {
-    QueryInterface: XPCOMUtils.generateQI([Ci.nsIWebProgressListener,
-                                           Ci.nsISupportsWeakReference]),
-    onStateChange: function() {},
-    onProgressChange: function() {},
-    onLocationChange: function() {
-      window.setTimeout(finishTest, 0);
-    },
-    onStatusChange: function() {},
-    onSecurityChange: function() {}
-  };
-
-  let continueTest = function() {
     
     
     FullZoom.enlarge();
-    zoomLevel = ZoomManager.zoom;
+    var zoomLevel = ZoomManager.zoom;
 
     
-    
-    testBrowser.addProgressListener(progressListener);
+    executeSoon(function () {
+      testBrowser.addEventListener("load", function (e) {
+        testBrowser.removeEventListener("load", arguments.callee, true);
 
-    
-    content.document.getElementById("a").src = "http://test2.example.org/";
-  };
+        is(e.target.defaultView.location, TEST_IFRAME_URL, "got the load event for the iframe");
+        is(ZoomManager.zoom, zoomLevel, "zoom is retained after sub-document load");
 
-  
-  
-  
-  
-  let continueListener = function() {
-    window.setTimeout(continueTest, 0);
-    
-    
-    testBrowser.removeEventListener("load", continueListener, true);
-  };
-  testBrowser.addEventListener("load", continueListener, true);
+        gBrowser.removeCurrentTab();
+        finish();
+      }, true);
+      content.document.querySelector("iframe").src = TEST_IFRAME_URL;
+    });
+  }, true);
 
-  
-  testBrowser.contentWindow.location = testPage;
+  content.location = TEST_PAGE_URL;
 }
