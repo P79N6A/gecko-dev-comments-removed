@@ -230,8 +230,6 @@ nsSprocketLayout::Layout(nsIBox* aBox, nsBoxLayoutState& aState)
   
   
   
-  
-  
   nsRect originalClientRect(clientRect);
 
   
@@ -288,11 +286,6 @@ nsSprocketLayout::Layout(nsIBox* aBox, nsBoxLayoutState& aState)
   }
 
   
-  NS_ASSERTION(clientRect.TopLeft() == originalClientRect.TopLeft(),
-               "clientRect moved??");
-  originalClientRect.UnionRectIncludeEmpty(originalClientRect, clientRect);
-
-  
   PRBool needsRedraw = PR_FALSE;
   PRBool finished;
   nscoord passes = 0;
@@ -305,6 +298,10 @@ nsSprocketLayout::Layout(nsIBox* aBox, nsBoxLayoutState& aState)
   nscoord y = 0;
   nscoord origX = 0;
   nscoord origY = 0;
+
+  
+  
+  PRBool childResized = PR_FALSE;
 
   
   
@@ -553,6 +550,9 @@ nsSprocketLayout::Layout(nsIBox* aBox, nsBoxLayoutState& aState)
                      finished);
 
         
+        childResized = PR_TRUE;
+
+        
         
         if (clientRect.width > originalClientRect.width || clientRect.height > originalClientRect.height) {
           if (clientRect.width > originalClientRect.width)
@@ -644,23 +644,25 @@ nsSprocketLayout::Layout(nsIBox* aBox, nsBoxLayoutState& aState)
     delete toDelete;
   }
 
-  
-  nsRect tmpClientRect(originalClientRect);
-  nsMargin bp(0,0,0,0);
-  aBox->GetBorderAndPadding(bp);
-  tmpClientRect.Inflate(bp);
-
-  if (tmpClientRect.width > originalSize.width || tmpClientRect.height > originalSize.height)
-  {
+  if (childResized) {
     
-    nsRect bounds(aBox->GetRect());
-    if (tmpClientRect.width > originalSize.width)
-      bounds.width = tmpClientRect.width;
+    nsRect tmpClientRect(originalClientRect);
+    nsMargin bp(0,0,0,0);
+    aBox->GetBorderAndPadding(bp);
+    tmpClientRect.Inflate(bp);
 
-    if (tmpClientRect.height > originalSize.height)
-      bounds.height = tmpClientRect.height;
+    if (tmpClientRect.width > originalSize.width || tmpClientRect.height > originalSize.height)
+    {
+      
+      nsRect bounds(aBox->GetRect());
+      if (tmpClientRect.width > originalSize.width)
+        bounds.width = tmpClientRect.width;
 
-    aBox->SetBounds(aState, bounds);
+      if (tmpClientRect.height > originalSize.height)
+        bounds.height = tmpClientRect.height;
+
+      aBox->SetBounds(aState, bounds);
+    }
   }
 
   
