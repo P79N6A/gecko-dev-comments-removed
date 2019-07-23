@@ -404,12 +404,6 @@ nsProtocolProxyService::PrefsChanged(nsIPrefBranch *prefBranch,
             mProxyConfig = static_cast<ProxyConfig>(type);
             reloadPAC = PR_TRUE;
         }
-
-        if (mProxyConfig == eProxyConfig_System) {
-            mSystemProxySettings = do_GetService(NS_SYSTEMPROXYSETTINGS_CONTRACTID);
-        } else {
-            mSystemProxySettings = nsnull;
-        }
     }
 
     if (!pref || !strcmp(pref, PROXY_PREF("http")))
@@ -468,9 +462,7 @@ nsProtocolProxyService::PrefsChanged(nsIPrefBranch *prefBranch,
     }
 
     
-    
-    if (mProxyConfig != eProxyConfig_PAC && mProxyConfig != eProxyConfig_WPAD &&
-        mProxyConfig != eProxyConfig_System)
+    if (mProxyConfig != eProxyConfig_PAC && mProxyConfig != eProxyConfig_WPAD)
         return;
 
     
@@ -485,20 +477,17 @@ nsProtocolProxyService::PrefsChanged(nsIPrefBranch *prefBranch,
         if (mProxyConfig == eProxyConfig_PAC) {
             prefBranch->GetCharPref(PROXY_PREF("autoconfig_url"),
                                     getter_Copies(tempString));
-        } else {
-            
-            
-            
-            
-            
-            
-            if (mSystemProxySettings)
-                mSystemProxySettings->GetPACURI(tempString);
-            else
-                tempString.AssignLiteral(WPAD_URL);
         }
-        if (!tempString.IsEmpty())
-            ConfigureFromPAC(tempString);
+        else if (mProxyConfig == eProxyConfig_WPAD) {
+            
+            
+            
+            
+            
+            
+            tempString.AssignLiteral(WPAD_URL);
+        }
+        ConfigureFromPAC(tempString);
     }
 }
 
@@ -766,15 +755,12 @@ nsProtocolProxyService::ConfigureFromPAC(const nsCString &spec)
             return NS_ERROR_OUT_OF_MEMORY;
     }
 
+    mFailedProxies.Clear();
+
     nsCOMPtr<nsIURI> pacURI;
     nsresult rv = NS_NewURI(getter_AddRefs(pacURI), spec);
     if (NS_FAILED(rv))
         return rv;
-
-    if (mPACMan->IsPACURI(pacURI))
-        return NS_OK;
-
-    mFailedProxies.Clear();
 
     return mPACMan->LoadPACFromURI(pacURI);
 }
@@ -951,9 +937,7 @@ nsProtocolProxyService::GetFailoverForProxy(nsIProxyInfo  *aProxy,
                                             nsIProxyInfo **aResult)
 {
     
-    
-    if (mProxyConfig != eProxyConfig_PAC && mProxyConfig != eProxyConfig_WPAD &&
-        mProxyConfig != eProxyConfig_System)
+    if (mProxyConfig != eProxyConfig_PAC && mProxyConfig != eProxyConfig_WPAD)
         return NS_ERROR_NOT_AVAILABLE;
 
     
@@ -1250,37 +1234,15 @@ nsProtocolProxyService::Resolve_Internal(nsIURI *uri,
     if (!(info.flags & nsIProtocolHandler::ALLOWS_PROXY))
         return NS_OK;  
 
-    if (mSystemProxySettings) {
-        nsCAutoString PACURI;
-        if (NS_SUCCEEDED(mSystemProxySettings->GetPACURI(PACURI)) &&
-            !PACURI.IsEmpty()) {
-            
-            
-            nsresult rv = ConfigureFromPAC(PACURI);
-            if (NS_FAILED(rv))
-                return rv;
-        } else {
-            nsCAutoString proxy;
-            nsresult rv = mSystemProxySettings->GetProxyForURI(uri, proxy);
-            if (NS_SUCCEEDED(rv)) {
-                ProcessPACString(proxy, result);
-                return NS_OK;
-            }
-            
-            return NS_OK;
-        }
-    }
-
     
     
     if (mProxyConfig == eProxyConfig_Direct ||
             (mProxyConfig == eProxyConfig_Manual &&
              !CanUseProxy(uri, info.defaultPort)))
         return NS_OK;
-
     
-    if (mProxyConfig == eProxyConfig_PAC || mProxyConfig == eProxyConfig_WPAD ||
-        mProxyConfig == eProxyConfig_System) {
+    
+    if (mProxyConfig == eProxyConfig_PAC || mProxyConfig == eProxyConfig_WPAD) {
         
         *usePAC = PR_TRUE;
         return NS_OK;
