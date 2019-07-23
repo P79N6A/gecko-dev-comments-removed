@@ -35,10 +35,112 @@
 
 
 function run_test() {
+  
+  
+
+  
+  
+  
+
+  
+  {
+    ContentPrefTest.deleteDatabase();
+
+    
+    let cps = Cc["@mozilla.org/content-pref/service;1"].
+              createInstance(Ci.nsIContentPrefService);
+    do_check_true(cps.DBConnection.connectionReady);
+    cps.DBConnection.close();
+  }
+
+  
+  {
+    let dbFile = ContentPrefTest.deleteDatabase();
+
+    let cps = Cc["@mozilla.org/content-pref/service;1"].
+               createInstance(Ci.nsIContentPrefService);
+    cps.DBConnection.close();
+    do_check_true(dbFile.exists());
+
+    
+    cps = Cc["@mozilla.org/content-pref/service;1"].
+          createInstance(Ci.nsIContentPrefService);
+    do_check_true(cps.DBConnection.connectionReady);
+    cps.DBConnection.close();
+  }
+
+  
+  {
+    let dbFile = ContentPrefTest.deleteDatabase();
+
+    
+    let dbService = Cc["@mozilla.org/storage/service;1"].
+                    getService(Ci.mozIStorageService);
+    let dbConnection = dbService.openDatabase(dbFile);
+    do_check_eq(dbConnection.schemaVersion, 0);
+    dbConnection.close();
+    do_check_true(dbFile.exists());
+
+    
+    let cps = Cc["@mozilla.org/content-pref/service;1"].
+              createInstance(Ci.nsIContentPrefService);
+    do_check_neq(cps.DBConnection.schemaVersion, 0);
+    cps.DBConnection.close();
+  }
+
+  
+  {
+    let dbFile = ContentPrefTest.deleteDatabase();
+    let backupDBFile = ContentPrefTest.deleteBackupDatabase();
+
+    
+    let foStream = Cc["@mozilla.org/network/file-output-stream;1"].
+                   createInstance(Ci.nsIFileOutputStream);
+    foStream.init(dbFile, 0x02 | 0x08 | 0x20, 0666, 0);
+    let garbageData = "garbage that makes SQLite think the file is corrupted";
+    foStream.write(garbageData, garbageData.length);
+    foStream.close();
+
+    
+    let cps = Cc["@mozilla.org/content-pref/service;1"].
+              createInstance(Ci.nsIContentPrefService);
+    do_check_true(backupDBFile.exists());
+    do_check_true(cps.DBConnection.connectionReady);
+
+    cps.DBConnection.close();
+  }
+
+  
+  {
+    let dbFile = ContentPrefTest.deleteDatabase();
+    let backupDBFile = ContentPrefTest.deleteBackupDatabase();
+
+    
+    
+    let dbService = Cc["@mozilla.org/storage/service;1"].
+                    getService(Ci.mozIStorageService);
+    let dbConnection = dbService.openDatabase(dbFile);
+    dbConnection.schemaVersion = -1;
+    dbConnection.close();
+    do_check_true(dbFile.exists());
+
+    
+    let cps = Cc["@mozilla.org/content-pref/service;1"].
+              createInstance(Ci.nsIContentPrefService);
+    do_check_true(backupDBFile.exists());
+    do_check_true(cps.DBConnection.connectionReady);
+
+    cps.DBConnection.close();
+  }
+
+
+  
   var cps = Cc["@mozilla.org/content-pref/service;1"].
             getService(Ci.nsIContentPrefService);
+
   var uri = ContentPrefTest.getURI("http://www.example.com/");
-  
+
+
   
   
 
