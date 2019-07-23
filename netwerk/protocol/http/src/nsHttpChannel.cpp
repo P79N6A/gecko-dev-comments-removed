@@ -5126,6 +5126,17 @@ nsHttpChannel::GetEntityID(nsACString& aEntityID)
         return NS_ERROR_NOT_RESUMABLE;
     }
 
+    
+    
+    
+    
+    const char* acceptRanges =
+        mResponseHead->PeekHeader(nsHttp::Accept_Ranges);
+    if (acceptRanges &&
+        !nsHttp::FindToken(acceptRanges, "bytes", HTTP_HEADER_VALUE_SEPS)) {
+        return NS_ERROR_NOT_RESUMABLE;
+    }
+
     PRUint64 size = LL_MAXUINT;
     nsCAutoString etag, lastmod;
     if (mResponseHead) {
