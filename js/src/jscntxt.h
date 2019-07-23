@@ -253,6 +253,7 @@ struct JSRuntime {
     uint32              gcLevel;
     uint32              gcNumber;
     JSTracer            *gcMarkingTracer;
+    uint32              gcTriggerFactor;
 
     
 

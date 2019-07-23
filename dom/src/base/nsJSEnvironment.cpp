@@ -851,23 +851,7 @@ PrintWinCodebase(nsGlobalWindow *win)
 #endif
 
 
-const PRUint32 MAYBE_GC_OPERATION_WEIGHT = 5000 * JS_OPERATION_WEIGHT_BASE;
-
-static void
-MaybeGC(JSContext *cx)
-{
-  size_t bytes = cx->runtime->gcBytes;
-  size_t lastBytes = cx->runtime->gcLastBytes;
-
-  if ((bytes > 8192 && bytes / 16 > lastBytes)
-#ifdef DEBUG
-      || cx->runtime->gcZeal > 0
-#endif
-      ) {
-    ++sGCCount;
-    JS_GC(cx);
-  }
-}
+const PRUint32 DOM_CALLBACK_OPERATION_WEIGHT = 5000 * JS_OPERATION_WEIGHT_BASE;
 
 static already_AddRefed<nsIPrompt>
 GetPromptFromContext(nsJSContext* ctx)
@@ -900,16 +884,7 @@ nsJSContext::DOMOperationCallback(JSContext *cx)
     return JS_TRUE;
   }
 
-  
-  
-  
-  
   PRTime callbackTime = ctx->mOperationCallbackTime;
-
-  MaybeGC(cx);
-
-  
-  ctx->mOperationCallbackTime = callbackTime;
 
   
   nsCOMPtr<nsIMemory> mem;
@@ -932,24 +907,24 @@ nsJSContext::DOMOperationCallback(JSContext *cx)
 
         if (nsContentUtils::GetBoolPref("dom.prevent_oom_dialog", PR_FALSE))
           return JS_FALSE;
-        
+
         nsCOMPtr<nsIPrompt> prompt = GetPromptFromContext(ctx);
-        
+
         nsXPIDLString title, msg;
         rv = nsContentUtils::GetLocalizedString(nsContentUtils::eDOM_PROPERTIES,
                                                 "LowMemoryTitle",
                                                 title);
-        
+
         rv |= nsContentUtils::GetLocalizedString(nsContentUtils::eDOM_PROPERTIES,
                                                  "LowMemoryMessage",
                                                  msg);
-        
+
         
         if (NS_FAILED(rv) || !title || !msg) {
           NS_ERROR("Failed to get localized strings.");
           return JS_FALSE;
         }
-        
+
         prompt->Alert(title, msg);
         return JS_FALSE;
       }
@@ -1238,7 +1213,7 @@ nsJSContext::nsJSContext(JSRuntime *aRuntime) : mGCOnDestruction(PR_TRUE)
                                          this);
 
     ::JS_SetOperationCallback(mContext, DOMOperationCallback,
-                              MAYBE_GC_OPERATION_WEIGHT);
+                              DOM_CALLBACK_OPERATION_WEIGHT);
 
     static JSLocaleCallbacks localeCallbacks =
       {
@@ -1251,7 +1226,6 @@ nsJSContext::nsJSContext(JSRuntime *aRuntime) : mGCOnDestruction(PR_TRUE)
     ::JS_SetLocaleCallbacks(mContext, &localeCallbacks);
   }
   mIsInitialized = PR_FALSE;
-  mNumEvaluations = 0;
   mTerminations = nsnull;
   mScriptsEnabled = PR_TRUE;
   mOperationCallbackTime = LL_ZERO;
@@ -3294,21 +3268,7 @@ nsJSContext::ScriptEvaluated(PRBool aTerminated)
     delete start;
   }
 
-  mNumEvaluations++;
-
-#ifdef JS_GC_ZEAL
-  if (mContext->runtime->gcZeal >= 2) {
-    MaybeGC(mContext);
-  } else
-#endif
-  if (mNumEvaluations > 20) {
-    mNumEvaluations = 0;
-    MaybeGC(mContext);
-  }
-
-  if (aTerminated) {
-    mOperationCallbackTime = LL_ZERO;
-  }
+  mOperationCallbackTime = LL_ZERO;
 }
 
 nsresult
@@ -3392,17 +3352,27 @@ nsJSContext::CC()
 #endif
   sPreviousCCTime = PR_Now();
   sDelayedCCollectCount = 0;
-  sGCCount = 0;
+  sGCCount = JS_GetGCParameter(nsJSRuntime::sRuntime, JSGC_NUMBER);
   sCCSuspectChanges = 0;
   
   
   sCollectedObjectsCounts = nsCycleCollector_collect();
   sCCSuspectedCount = nsCycleCollector_suspectedCount();
 #ifdef DEBUG_smaug
-  printf("Collected %u objects, %u suspected objects, took %lldms\n",
-         sCollectedObjectsCounts, sCCSuspectedCount,
-         (PR_Now() - sPreviousCCTime) / PR_USEC_PER_MSEC);
+  printf("Collected %u objects, %u suspected objects\n",
+         sCollectedObjectsCounts, sCCSuspectedCount);
 #endif
+}
+
+static inline uint32
+GetGCRunsCount()
+{
+    
+
+
+
+
+    return JS_GetGCParameter(nsJSRuntime::sRuntime, JSGC_NUMBER) - sGCCount;
 }
 
 
@@ -3413,7 +3383,7 @@ nsJSContext::MaybeCC(PRBool aHigherProbability)
 
   
   if (sCCSuspectChanges <= NS_MIN_SUSPECT_CHANGES ||
-      sGCCount <= NS_MAX_GC_COUNT) {
+      GetGCRunsCount() <= NS_MAX_GC_COUNT) {
 #ifdef DEBUG_smaug
     PRTime now = PR_Now();
 #endif
@@ -3431,7 +3401,8 @@ nsJSContext::MaybeCC(PRBool aHigherProbability)
   }
 #ifdef DEBUG_smaug
   printf("sCCSuspectChanges %u, sGCCount %u\n",
-         sCCSuspectChanges, sGCCount);
+         sCCSuspectChanges,
+         GetGCRunsCount());
 #endif
 
   
@@ -3444,7 +3415,7 @@ nsJSContext::MaybeCC(PRBool aHigherProbability)
   if (!sGCTimer &&
       (sDelayedCCollectCount > NS_MAX_DELAYED_CCOLLECT) &&
       ((sCCSuspectChanges > NS_MIN_SUSPECT_CHANGES &&
-        sGCCount > NS_MAX_GC_COUNT) ||
+        GetGCRunsCount() > NS_MAX_GC_COUNT) ||
        (sCCSuspectChanges > NS_MAX_SUSPECT_CHANGES))) {
     if ((PR_Now() - sPreviousCCTime) >=
         PRTime(NS_MIN_CC_INTERVAL * PR_USEC_PER_MSEC)) {
