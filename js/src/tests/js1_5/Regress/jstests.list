@@ -114,7 +114,7 @@ script regress-295052.js
 script regress-295666.js
 script regress-299209.js
 script regress-299641.js
-skip-if(!xulRuntime.shell) script regress-303213.js # bug 524731
+skip-if(xulRuntime.XPCOMABI.match(/x86_64/)||xulRuntime.OS=="WINNT") script regress-303213.js # bug 524731
 script regress-306633.js
 script regress-306727.js
 script regress-306794.js
@@ -170,7 +170,7 @@ skip-if(xulRuntime.OS=="WINNT"&&isDebugBuild) script regress-341360.js # slow
 script regress-343713.js
 script regress-343966.js
 script regress-344711-n.js
-random-if(!xulRuntime.shell&&xulRuntime.OS=="WINNT") script regress-344804.js # bug 524732
+fails-if(!xulRuntime.shell&&xulRuntime.OS=="WINNT") script regress-344804.js # bug 524732
 script regress-344959.js
 script regress-346237.js
 script regress-346801.js
