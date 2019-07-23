@@ -541,8 +541,20 @@ var PlacesOrganizer = {
           this._paneDisabled = false;
         }
 
-        gEditItemOverlay.initPanel(selectedNode.itemId,
-                                   { hiddenRows: ["folderPicker"] });
+        
+        
+        
+        
+        if (selectedNode.type ==
+            Ci.nsINavHistoryResultNode.RESULT_TYPE_FOLDER_SHORTCUT) {
+          gEditItemOverlay.initPanel(asQuery(selectedNode).folderItemId,
+                                     { hiddenRows: ["folderPicker"],
+                                       forceReadOnly: true });
+        }
+        else {
+          gEditItemOverlay.initPanel(selectedNode.itemId,
+                                     { hiddenRows: ["folderPicker"] });
+        }
 
         this._detectAndSetDetailsPaneMinimalState(selectedNode);
         return;

@@ -62,6 +62,8 @@ var gEditItemOverlay = {
       this._hiddenRows = aInfo.hiddenRows;
     else
       this._hiddenRows.splice(0);
+    
+    this._readOnly = aInfo && aInfo.forceReadOnly;
   },
 
   _showHideRows: function EIO__showHideRows() {
@@ -90,6 +92,17 @@ var gEditItemOverlay = {
   
 
 
+
+
+
+
+
+
+
+
+
+
+
   initPanel: function EIO_initPanel(aItemId, aInfo) {
     const bms = PlacesUtils.bookmarks;
 
@@ -103,10 +116,8 @@ var gEditItemOverlay = {
     if (this._itemType == Ci.nsINavBookmarksService.TYPE_BOOKMARK) {
       this._uri = bms.getBookmarkURI(this._itemId);
       this._isLivemark = false;
-      if (PlacesUtils.livemarks.isLivemark(container))
-        this._readOnly = true;
-      else
-        this._readOnly = false;
+      if (!this._readOnly) 
+        this._readOnly = PlacesUtils.livemarks.isLivemark(container);
 
       this._initTextField("locationField", this._uri.spec);
       this._initTextField("tagsField",
@@ -126,7 +137,8 @@ var gEditItemOverlay = {
                                                   LOAD_IN_SIDEBAR_ANNO);
     }
     else {
-      this._readOnly = false;
+      if (!this._readOnly) 
+        this._readOnly = false;
       this._isLivemark = PlacesUtils.livemarks.isLivemark(this._itemId);
       if (this._isLivemark) {
         var feedURI = PlacesUtils.livemarks.getFeedURI(this._itemId);
