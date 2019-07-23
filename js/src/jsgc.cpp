@@ -3138,11 +3138,85 @@ GC(JSContext *cx, JSGCInvocationKind gckind  GCTIMER_PARAM)
 
 
 
+static bool
+FireGCBegin(JSContext *cx, JSGCInvocationKind gckind)
+{
+    JSRuntime *rt = cx->runtime;
+    JSGCCallback callback = rt->gcCallback;
+
+    
+
+
+
+
+
+    if (gckind != GC_SET_SLOT_REQUEST && callback) {
+        JSBool ok;
+
+        if (gckind & GC_LOCK_HELD)
+            JS_UNLOCK_GC(rt);
+        ok = callback(cx, JSGC_BEGIN);
+        if (gckind & GC_LOCK_HELD)
+            JS_LOCK_GC(rt);
+        if (!ok && gckind != GC_LAST_CONTEXT)
+            return false;
+    }
+    return true;
+}
+
+
+
+
+
+static bool
+FireGCEnd(JSContext *cx, JSGCInvocationKind gckind)
+{
+    JSRuntime *rt = cx->runtime;
+    JSGCCallback callback = rt->gcCallback;
+
+    
+
+
+
+
+    if (gckind != GC_SET_SLOT_REQUEST && callback) {
+        if (!(gckind & GC_KEEP_ATOMS)) {
+            (void) callback(cx, JSGC_END);
+
+            
+
+
+
+            if (gckind == GC_LAST_CONTEXT && rt->gcPoke)
+                return false;
+        } else {
+            
+
+
+
+
+            AutoSaveWeakRoots save(cx);
+
+            JS_KEEP_ATOMS(rt);
+            JS_UNLOCK_GC(rt);
+
+            (void) callback(cx, JSGC_END);
+
+            JS_LOCK_GC(rt);
+            JS_UNKEEP_ATOMS(rt);
+        }
+    }
+    return true;
+}
+
+
+
+
+
 void
 js_GC(JSContext *cx, JSGCInvocationKind gckind)
 {
     JSRuntime *rt;
-    JSGCCallback callback;
 #ifdef JS_THREADSAFE
     size_t requestDebit;
 #endif
@@ -3178,30 +3252,15 @@ js_GC(JSContext *cx, JSGCInvocationKind gckind)
     TIMESTAMP(gcTimer.enter);
 
   restart_at_beginning:
-    
+    if (!FireGCBegin(cx, gckind)) {
+        
 
 
 
 
-
-    if (gckind != GC_SET_SLOT_REQUEST && (callback = rt->gcCallback)) {
-        JSBool ok;
-
-        if (gckind & GC_LOCK_HELD)
-            JS_UNLOCK_GC(rt);
-        ok = callback(cx, JSGC_BEGIN);
-        if (gckind & GC_LOCK_HELD)
-            JS_LOCK_GC(rt);
-        if (!ok && gckind != GC_LAST_CONTEXT) {
-            
-
-
-
-
-            if (rt->gcLevel == 0 && (gckind & GC_LOCK_HELD))
-                JS_NOTIFY_GC_DONE(rt);
-            return;
-        }
+        if (rt->gcLevel == 0 && (gckind & GC_LOCK_HELD))
+            JS_NOTIFY_GC_DONE(rt);
+        return;
     }
 
     
@@ -3420,38 +3479,9 @@ js_GC(JSContext *cx, JSGCInvocationKind gckind)
         JS_UNLOCK_GC(rt);
 #endif
 
-    
+    if (!FireGCEnd(cx, gckind))
+        goto restart_at_beginning;
 
-
-
-
-    if (gckind != GC_SET_SLOT_REQUEST && (callback = rt->gcCallback)) {
-        if (!(gckind & GC_KEEP_ATOMS)) {
-            (void) callback(cx, JSGC_END);
-
-            
-
-
-
-            if (gckind == GC_LAST_CONTEXT && rt->gcPoke)
-                goto restart_at_beginning;
-        } else {
-            
-
-
-
-
-            AutoSaveWeakRoots save(cx);
-
-            JS_KEEP_ATOMS(rt);
-            JS_UNLOCK_GC(rt);
-
-            (void) callback(cx, JSGC_END);
-
-            JS_LOCK_GC(rt);
-            JS_UNKEEP_ATOMS(rt);
-        }
-    }
     TIMESTAMP(gcTimer.end);
 
 #ifdef MOZ_GCTIMER
