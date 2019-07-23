@@ -39,8 +39,6 @@
 #
 # ***** END LICENSE BLOCK *****
 
-var  XUL_NS = "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul";
-
 var gPrintSettingsAreGlobal = false;
 var gSavePrintSettings = false;
 
@@ -88,6 +86,12 @@ var PrintUtils = {
     }
   },
 
+  
+  
+  
+  
+  
+  
   printPreview: function (aEnterPPCallback, aExitPPCallback, aWindow)
   {
     
@@ -101,7 +105,9 @@ var PrintUtils = {
       
       
       
-      pptoolbar.hidden = true;
+      var browser = getPPBrowser();
+      if (browser)
+        browser.collapsed = true;
     }
 
     this._webProgressPP = {};
@@ -122,7 +128,7 @@ var PrintUtils = {
       PPROMPTSVC.showProgress(this, webBrowserPrint, printSettings, this._obsPP, false,
                               this._webProgressPP, ppParams, notifyOnOpen);
       if (ppParams.value) {
-        var webNav = getBrowser().webNavigation;
+        var webNav = getWebNavigation();
         ppParams.value.docTitle = webNav.document.title;
         ppParams.value.docURL   = webNav.currentURI.spec;
       }
@@ -183,7 +189,6 @@ var PrintUtils = {
     return printSettings;
   },
 
-  _chromeState: {},
   _closeHandlerPP: null,
   _webProgressPP: null,
   _onEnterPP: null,
@@ -223,25 +228,22 @@ var PrintUtils = {
     var printPreviewTB = document.getElementById("print-preview-toolbar");
     if (printPreviewTB) {
       printPreviewTB.updateToolbar();
-      printPreviewTB.hidden = false;
+      var browser = getPPBrowser();
+      if (browser)
+        browser.collapsed = false;
       return;
     }
 
     
     
+    var XUL_NS =
+      "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul";
     printPreviewTB = document.createElementNS(XUL_NS, "toolbar");
     printPreviewTB.setAttribute("printpreview", true);
     printPreviewTB.setAttribute("id", "print-preview-toolbar");
 
-#ifdef MOZ_PHOENIX
-    getBrowser().parentNode.insertBefore(printPreviewTB, getBrowser());
-
-    
-    if ("getStripVisibility" in getBrowser()) {
-      this._chromeState.hadTabStrip = getBrowser().getStripVisibility();
-      getBrowser().setStripVisibilityTo(false);
-    }
-#endif
+    var navToolbox = getNavToolbox();
+    navToolbox.parentNode.insertBefore(printPreviewTB, navToolbox);
 
     
     if (document.documentElement.hasAttribute("onclose"))
@@ -267,24 +269,17 @@ var PrintUtils = {
   {
     window.removeEventListener("keypress", this.onKeyPressPP, true);
 
-#ifdef MOZ_THUNDERBIRD
-    BrowserExitPrintPreview(); 
-    return;
-#endif
-
     
     document.documentElement.setAttribute("onclose", this._closeHandlerPP);
     this._closeHandlerPP = null;
-
-    if ("getStripVisibility" in getBrowser())
-      getBrowser().setStripVisibilityTo(this._chromeState.hadTabStrip);
 
     var webBrowserPrint = this.getWebBrowserPrint(aWindow);
     webBrowserPrint.exitPrintPreview(); 
 
     
+    var navToolbox = getNavToolbox();
     var printPreviewTB = document.getElementById("print-preview-toolbar");
-    getBrowser().parentNode.removeChild(printPreviewTB);
+    navToolbox.parentNode.removeChild(printPreviewTB);
 
     var contentWindow = aWindow || window.content;
     contentWindow.focus();
