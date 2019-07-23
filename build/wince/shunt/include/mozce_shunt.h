@@ -143,7 +143,17 @@ int _unlink(const char *filename );
 
 
 
-  
+
+struct tm;
+
+#ifndef _TIME_T_DEFINED
+typedef long time_t;
+#define _TIME_T_DEFINED
+#endif
+
+struct tm* gmtime_r(const time_t* inTimeT, struct tm* outRetval);
+struct tm* localtime_r(const time_t* inTimeT, struct tm* outRetval);
+
 
   
 
