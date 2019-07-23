@@ -68,10 +68,7 @@
 typedef NS_NPAPIPLUGIN_CALLBACK(NPError, NP_GETENTRYPOINTS) (NPPluginFuncs* pCallbacks);
 typedef NS_NPAPIPLUGIN_CALLBACK(NPError, NP_PLUGININIT) (const NPNetscapeFuncs* pCallbacks);
 typedef NS_NPAPIPLUGIN_CALLBACK(NPError, NP_PLUGINUNIXINIT) (const NPNetscapeFuncs* pCallbacks, NPPluginFuncs* fCallbacks);
-typedef NS_NPAPIPLUGIN_CALLBACK(NPError, NP_PLUGINSHUTDOWN) (void);
-#ifdef XP_MACOSX
-typedef NS_NPAPIPLUGIN_CALLBACK(NPError, NP_MAIN) (NPNetscapeFuncs* nCallbacks, NPPluginFuncs* pCallbacks, NPP_ShutdownProcPtr* unloadProcPtr);
-#endif
+typedef NS_NPAPIPLUGIN_CALLBACK(NPError, NP_PLUGINSHUTDOWN) ();
 
 class nsNPAPIPlugin : public nsIPlugin
 {
@@ -105,20 +102,16 @@ public:
 
 protected:
   
-  static void CheckClassInitialized(void);
+  static void CheckClassInitialized();
 
 #ifdef XP_MACOSX
-  short fPluginRefNum;
+  short mPluginRefNum;
 #endif
 
   
   
-  NPPluginFuncs fCallbacks;
-  PluginLibrary* fLibrary;
-  PRLibrary* fPRLibrary;
-
-  
-  static NPNetscapeFuncs CALLBACKS;
+  NPPluginFuncs mPluginFuncs;
+  PluginLibrary* mLibrary;
 
   PRBool mIsDefaultPlugin;
 };
@@ -305,7 +298,7 @@ _memalloc (uint32_t size);
 
 
 void* NP_CALLBACK 
-_getJavaEnv(void);
+_getJavaEnv();
 
 void* NP_CALLBACK 
 _getJavaPeer(NPP npp);
