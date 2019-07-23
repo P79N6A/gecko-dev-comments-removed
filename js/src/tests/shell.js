@@ -165,7 +165,8 @@ gFailureExpected = false;
 TestCase.prototype.dump = function () {
   
   
-  if (!document.location.href.match(/jsreftest.html/))
+  if (typeof document != "object" ||
+      !document.location.href.match(/jsreftest.html/))
   {
     dump('\njstest: ' + this.path + ' ' +
          'bug: '         + this.bugnumber + ' ' +
