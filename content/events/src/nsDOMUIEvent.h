@@ -67,8 +67,6 @@ public:
   
   
   NS_IMETHOD GetCompositionReply(nsTextEventReply** aReply);
-  NS_IMETHOD GetReconversionReply(nsReconversionEventReply** aReply);
-  NS_IMETHOD GetQueryCaretRectReply(nsQueryCaretRectEventReply** aReply);
   
   
   NS_FORWARD_TO_NSDOMEVENT

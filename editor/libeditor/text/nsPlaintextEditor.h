@@ -86,9 +86,9 @@ public:
   NS_DECL_NSIEDITORMAILSUPPORT
 
   
-  
-  NS_IMETHOD SetCompositionString(const nsAString & aCompositionString, nsIPrivateTextRangeList * aTextRange, nsTextEventReply * aReply);
-  NS_IMETHOD GetReconversionString(nsReconversionEventReply* aReply);
+  NS_IMETHOD SetCompositionString(const nsAString &aCompositionString,
+                                  nsIPrivateTextRangeList *aTextRange,
+                                  nsTextEventReply *aReply);
 
   
   NS_IMETHOD BeginComposition(nsTextEventReply* aReply);

@@ -292,10 +292,8 @@ PRUint32*  nsWindow::sIMECompClauseArray       = NULL;
 PRInt32    nsWindow::sIMECompClauseArrayLength = 0;
 PRInt32    nsWindow::sIMECompClauseArraySize   = 0;
 long       nsWindow::sIMECursorPosition        = 0;
-PRUnichar* nsWindow::sIMEReconvertUnicode      = NULL;
 
 RECT*      nsWindow::sIMECompCharPos           = nsnull;
-PRInt32    nsWindow::sIMECaretHeight           = 0;
 
 PRBool nsWindow::sIsInEndSession = PR_FALSE;
 
@@ -746,8 +744,6 @@ nsWindow::~nsWindow()
       delete [] sIMEAttributeArray;
     if (sIMECompClauseArray) 
       delete [] sIMECompClauseArray;
-    if (sIMEReconvertUnicode)
-      nsMemory::Free(sIMEReconvertUnicode);
 
     NS_IF_RELEASE(gCursorImgContainer);
 
@@ -6483,7 +6479,6 @@ nsWindow::HandleTextEvent(HIMC hIMEContext,PRBool aCheckAttr)
       sIMECompCharPos[sIMECursorPosition].top = cursorPosition.y;
       sIMECompCharPos[sIMECursorPosition].bottom = cursorPosition.YMost();
     }
-    sIMECaretHeight = cursorPosition.height;
   } else {
     
     
@@ -6501,11 +6496,6 @@ nsWindow::HandleStartComposition(HIMC hIMEContext)
   
   if (sIMEIsComposing)
     return PR_TRUE;
-
-  if (sIMEReconvertUnicode) {
-    nsMemory::Free(sIMEReconvertUnicode);
-    sIMEReconvertUnicode = NULL;
-  }
 
   nsCompositionEvent event(PR_TRUE, NS_COMPOSITION_START, this);
   nsPoint point(0, 0);
@@ -6549,7 +6539,6 @@ nsWindow::HandleStartComposition(HIMC hIMEContext)
       sIMECompCharPos[0].top = cursorPosition.y;
       sIMECompCharPos[0].bottom = cursorPosition.YMost();
     }
-    sIMECaretHeight = cursorPosition.height;
   } else {
     
     
@@ -6582,7 +6571,6 @@ nsWindow::HandleEndComposition(void)
   DispatchWindowEvent(&event);
   PR_FREEIF(sIMECompCharPos);
   sIMECompCharPos = nsnull;
-  sIMECaretHeight = 0;
   sIMEIsComposing = PR_FALSE;
 }
 
@@ -7042,70 +7030,48 @@ PRBool nsWindow::OnIMEReconvert(LPARAM aData, LRESULT *oResult)
   printf("OnIMEReconvert\n");
 #endif
 
-  PRBool           result  = PR_FALSE;
+  *oResult = 0;
   RECONVERTSTRING* pReconv = (RECONVERTSTRING*) aData;
-  int              len = 0;
+
+  nsQueryContentEvent selection(PR_TRUE, NS_QUERY_SELECTED_TEXT, this);
+  nsPoint point(0, 0);
+  InitEvent(selection, &point);
+  DispatchWindowEvent(&selection);
+  if (!selection.mSucceeded)
+    return PR_FALSE;
 
   if (!pReconv) {
-
     
-    
-    
-    if (sIMEReconvertUnicode) {
-      nsMemory::Free(sIMEReconvertUnicode);
-      sIMEReconvertUnicode = NULL;
-    }
-
-    
-    nsReconversionEvent event(PR_TRUE, NS_RECONVERSION_QUERY, this);
-    nsPoint point(0, 0);
-
-    InitEvent(event, &point);
-    event.theReply.mReconversionString = NULL;
-    DispatchWindowEvent(&event);
-
-    sIMEReconvertUnicode = event.theReply.mReconversionString;
-
-    
-
-    if (sIMEReconvertUnicode) {
-      len = nsCRT::strlen(sIMEReconvertUnicode);
-      *oResult = sizeof(RECONVERTSTRING) + len * sizeof(WCHAR);
-
-      result = PR_TRUE;
-    }
-  } else {
-
-    
-    
-    
-
-    len = nsCRT::strlen(sIMEReconvertUnicode);
-    *oResult = sizeof(RECONVERTSTRING) + len * sizeof(WCHAR);
-
-    if (pReconv->dwSize < *oResult) {
-      *oResult = 0;
+    if (selection.mReply.mString.IsEmpty())
       return PR_FALSE;
-    }
-
-    DWORD tmpSize = pReconv->dwSize;
-    ::ZeroMemory(pReconv, tmpSize);
-    pReconv->dwSize            = tmpSize;
-    pReconv->dwVersion         = 0;
-    pReconv->dwStrLen          = len;
-    pReconv->dwStrOffset       = sizeof(RECONVERTSTRING);
-    pReconv->dwCompStrLen      = len;
-    pReconv->dwCompStrOffset   = 0;
-    pReconv->dwTargetStrLen    = len;
-    pReconv->dwTargetStrOffset = 0;
-
-    ::CopyMemory((LPVOID) (aData + sizeof(RECONVERTSTRING)),
-                 sIMEReconvertUnicode, len * sizeof(WCHAR));
-
-    result = PR_TRUE;
+    PRUint32 len = selection.mReply.mString.Length();
+    *oResult = sizeof(RECONVERTSTRING) + len * sizeof(WCHAR);
+    return PR_TRUE;
   }
 
-  return result;
+  
+  PRUint32 len = selection.mReply.mString.Length();
+  PRUint32 needSize = sizeof(RECONVERTSTRING) + len * sizeof(WCHAR);
+
+  if (pReconv->dwSize < needSize)
+    return PR_FALSE;
+
+  *oResult = needSize;
+
+  DWORD tmpSize = pReconv->dwSize;
+  ::ZeroMemory(pReconv, tmpSize);
+  pReconv->dwSize            = tmpSize;
+  pReconv->dwVersion         = 0;
+  pReconv->dwStrLen          = len;
+  pReconv->dwStrOffset       = sizeof(RECONVERTSTRING);
+  pReconv->dwCompStrLen      = len;
+  pReconv->dwCompStrOffset   = 0;
+  pReconv->dwTargetStrLen    = len;
+  pReconv->dwTargetStrOffset = 0;
+
+  ::CopyMemory((LPVOID) (aData + sizeof(RECONVERTSTRING)),
+               selection.mReply.mString.get(), len * sizeof(WCHAR));
+  return PR_TRUE;
 }
 
 
@@ -7114,72 +7080,57 @@ PRBool nsWindow::OnIMEQueryCharPosition(LPARAM aData, LRESULT *oResult)
 #ifdef DEBUG_IME
   printf("OnIMEQueryCharPosition\n");
 #endif
+
+  PRUint32 len = sIMEIsComposing ? sIMECompUnicode->Length() : 0;
+  *oResult = FALSE;
   IMECHARPOSITION* pCharPosition = (IMECHARPOSITION*)aData;
   if (!pCharPosition ||
       pCharPosition->dwSize < sizeof(IMECHARPOSITION) ||
-      ::GetFocus() != mWnd) {
-    *oResult = FALSE;
+      ::GetFocus() != mWnd ||
+      pCharPosition->dwCharPos > len)
     return PR_FALSE;
+
+  nsPoint point(0, 0);
+
+  nsQueryContentEvent selection(PR_TRUE, NS_QUERY_SELECTED_TEXT, this);
+  InitEvent(selection, &point);
+  DispatchWindowEvent(&selection);
+  if (!selection.mSucceeded)
+    return PR_FALSE;
+
+  PRUint32 offset = selection.mReply.mOffset + pCharPosition->dwCharPos;
+  PRBool useCaretRect = selection.mReply.mString.IsEmpty();
+
+  nsRect r;
+  if (!useCaretRect) {
+    nsQueryContentEvent charRect(PR_TRUE, NS_QUERY_CHARACTER_RECT, this);
+    charRect.InitForQueryCharacterRect(offset);
+    InitEvent(charRect, &point);
+    DispatchWindowEvent(&charRect);
+    if (charRect.mSucceeded)
+      r = charRect.mReply.mRect;
+    else
+      useCaretRect = PR_TRUE;
   }
 
-  if (!sIMEIsComposing) {  
-    if (pCharPosition->dwCharPos != 0) {
-      *oResult = FALSE;
+  if (useCaretRect) {
+    nsQueryContentEvent caretRect(PR_TRUE, NS_QUERY_CARET_RECT, this);
+    caretRect.InitForQueryCaretRect(offset);
+    InitEvent(caretRect, &point);
+    DispatchWindowEvent(&caretRect);
+    if (!caretRect.mSucceeded)
       return PR_FALSE;
-    }
-    nsPoint point(0, 0);
-    nsQueryCaretRectEvent event(PR_TRUE, NS_QUERYCARETRECT, this);
-    InitEvent(event, &point);
-    DispatchWindowEvent(&event);
-    
-    if (!event.theReply.mRectIsValid) {
-      *oResult = FALSE;
-      return PR_FALSE;
-    }
-
-    nsRect screenRect;
-    ResolveIMECaretPos(nsnull, event.theReply.mCaretRect, screenRect);
-    pCharPosition->pt.x = screenRect.x;
-    pCharPosition->pt.y = screenRect.y;
-
-    pCharPosition->cLineHeight = event.theReply.mCaretRect.height;
-
-    ::GetWindowRect(mWnd, &pCharPosition->rcDocument);
-
-    *oResult = TRUE;
-    return PR_TRUE;
+    r = caretRect.mReply.mRect;
   }
 
-  
-  
-  if (!sIMECompCharPos) {
-    *oResult = FALSE;
-    return PR_FALSE;
-  }
+  nsRect screenRect;
+  ResolveIMECaretPos(nsnull, r, screenRect);
+  pCharPosition->pt.x = screenRect.x;
+  pCharPosition->pt.y = screenRect.y;
 
-  long charPosition;
-  if (pCharPosition->dwCharPos > sIMECompUnicode->Length()) {
-    *oResult = FALSE;
-    return PR_FALSE;
-  }
-  charPosition = pCharPosition->dwCharPos;
+  pCharPosition->cLineHeight = r.height;
 
   
-  
-  
-  if ((charPosition != 0 && charPosition != sIMECursorPosition) ||
-      charPosition > IME_MAX_CHAR_POS) {
-    *oResult = FALSE;
-    return PR_FALSE;
-  }
-  POINT pt;
-  pt.x = sIMECompCharPos[charPosition].left;
-  pt.y = sIMECompCharPos[charPosition].top;
-  ::ClientToScreen(mWnd, &pt);
-  pCharPosition->pt = pt;
-
-  pCharPosition->cLineHeight = sIMECaretHeight;
-
   ::GetWindowRect(mWnd, &pCharPosition->rcDocument);
 
   *oResult = TRUE;
