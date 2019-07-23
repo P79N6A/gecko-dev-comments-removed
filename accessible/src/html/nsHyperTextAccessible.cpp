@@ -1280,6 +1280,19 @@ nsHyperTextAccessible::GetAssociatedEditor(nsIEditor **aEditor)
   NS_ENSURE_TRUE(content, NS_ERROR_FAILURE);
 
   if (!content->HasFlag(NODE_IS_EDITABLE)) {
+    
+    nsCOMPtr<nsIAccessible> ancestor, current = this;
+    while (NS_SUCCEEDED(current->GetParent(getter_AddRefs(ancestor))) && ancestor) {
+      nsRefPtr<nsHyperTextAccessible> ancestorTextAccessible;
+      ancestor->QueryInterface(NS_GET_IID(nsHyperTextAccessible),
+                               getter_AddRefs(ancestorTextAccessible));
+      if (ancestorTextAccessible) {
+        
+        
+        return ancestorTextAccessible->GetAssociatedEditor(aEditor);
+      }
+      current = ancestor;
+    }
     return NS_OK;
   }
 
