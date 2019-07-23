@@ -489,8 +489,7 @@ gfxWindowsPlatform::FindFontForCharProc(nsStringHashKey::KeyType aKey,
     return PL_DHASH_NEXT;
 }
 
-
-FontEntry *
+already_AddRefed<gfxWindowsFont>
 gfxWindowsPlatform::FindFontForChar(PRUint32 aCh, gfxWindowsFont *aFont)
 {
     
@@ -503,12 +502,17 @@ gfxWindowsPlatform::FindFontForChar(PRUint32 aCh, gfxWindowsFont *aFont)
     
     mFonts.Enumerate(gfxWindowsPlatform::FindFontForCharProc, &data);
 
-    
-    if (!data.bestMatch) {
-        mCodepointsWithNoFonts.set(aCh);
+    if (data.bestMatch) {
+        nsRefPtr<gfxWindowsFont> font =
+            gfxWindowsFont::GetOrMakeFont(data.bestMatch, aFont->GetStyle());
+        if (font->IsValid())
+            return font.forget();
+        return nsnull;
     }
 
-    return data.bestMatch;
+    
+    mCodepointsWithNoFonts.set(aCh);
+    return nsnull;
 }
 
 gfxFontGroup *
