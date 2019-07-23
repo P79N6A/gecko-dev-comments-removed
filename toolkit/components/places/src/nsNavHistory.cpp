@@ -4199,22 +4199,28 @@ nsNavHistory::FilterResultSet(nsNavHistoryQueryResultNode* aQueryNode,
           
           PRInt64 ancestor = parentId, lastAncestor;
           PRBool belongs = PR_FALSE;
+          nsTArray<PRInt64> ancestorFolders;
 
           while (!belongs) {
             
             lastAncestor = ancestor;
+            ancestorFolders.AppendElement(ancestor);
 
             
             if (NS_FAILED(bookmarks->GetFolderIdForItem(ancestor,&ancestor))) {
+              break;
+            } else if (excludeFolders[queryIndex]->IndexOf(ancestor) != -1) {
               break;
             } else if (includeFolders[queryIndex]->IndexOf(ancestor) != -1) {
               belongs = PR_TRUE;
             }
           }
+          
+          
           if (belongs) {
-            includeFolders[queryIndex]->AppendElement(lastAncestor);
+            includeFolders[queryIndex]->AppendElements(ancestorFolders);
           } else {
-            excludeFolders[queryIndex]->AppendElement(lastAncestor);
+            excludeFolders[queryIndex]->AppendElements(ancestorFolders);
             continue;
           }
         }
