@@ -107,7 +107,11 @@ typedef struct {
 
 
 
+#if defined(__SUNPRO_C) || defined(__SUNPRO_CC)
+#pragma pack(4)
+#else
 #pragma pack(push, 4)
+#endif
 
 typedef struct {
   
@@ -136,7 +140,11 @@ typedef struct {
   MDVectorSaveAreaPPC   vector_save;
 } MDRawContextPPC;  
 
+#if defined(__SUNPRO_C) || defined(__SUNPRO_CC)
+#pragma pack(0)
+#else
 #pragma pack(pop)
+#endif
 
 
 

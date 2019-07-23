@@ -56,6 +56,9 @@ class SourceLineResolverInterface {
   
   virtual bool LoadModule(const string &module_name,
                           const string &map_file) = 0;
+  
+  virtual bool LoadModuleUsingMapBuffer(const string &module_name,
+                                        const string &map_buffer) = 0;
 
   
   virtual bool HasModule(const string &module_name) const = 0;

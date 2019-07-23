@@ -60,8 +60,12 @@ bool ContainedRangeMap<AddressType, EntryType>::StoreRange(
 
   
   if (size <= 0 || high < base) {
-    BPLOG(INFO) << "StoreRange failed, " << HexString(base) << "+" <<
-                   HexString(size) << ", " << HexString(high);
+    
+    
+    
+    
+    
+    
     return false;
   }
 
@@ -81,8 +85,9 @@ bool ContainedRangeMap<AddressType, EntryType>::StoreRange(
     
     
     if (iterator_base->second->base_ == base && iterator_base->first == high) {
-      BPLOG(INFO) << "StoreRange failed, identical range is already "
-                     "present: " << HexString(base) << "+" << HexString(size);
+      
+
+
       return false;
     }
 

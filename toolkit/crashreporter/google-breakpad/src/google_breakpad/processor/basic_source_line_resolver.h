@@ -69,6 +69,12 @@ class BasicSourceLineResolver : public SourceLineResolverInterface {
   
   virtual bool LoadModule(const string &module_name, const string &map_file);
 
+  
+  
+  virtual bool LoadModuleUsingMapBuffer(const string &module_name,
+                                        const string &map_buffer);
+
+
   virtual bool HasModule(const string &module_name) const;
 
   virtual StackFrameInfo* FillSourceLineInfo(StackFrame *frame) const;
