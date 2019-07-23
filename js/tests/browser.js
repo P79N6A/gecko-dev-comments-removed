@@ -698,15 +698,18 @@ function jsTestDriverBrowserInit()
   var subsuite = testpathparts[testpathparts.length - 2];
   var test     = testpathparts[testpathparts.length - 1];
 
+  document.write('<title>' + suitepath + '/' + subsuite + '/' + test + '<\/title>');
+
+  
+  
+  document.write('<script></script>');
+
   outputscripttag(suitepath + '/shell.js', properties);
   outputscripttag(suitepath + '/browser.js', properties);
   outputscripttag(suitepath + '/' + subsuite + '/shell.js', properties);
   outputscripttag(suitepath + '/' + subsuite + '/browser.js', properties);
   outputscripttag(suitepath + '/' + subsuite + '/' + test, properties,
   	properties.e4x || /e4x\//.test(properties.test));
-
-  document.write('<title>' + suitepath + '/' + subsuite + '/' + test + '<\/title>');
-
   outputscripttag('js-test-driver-end.js', properties);
   return;
 }
