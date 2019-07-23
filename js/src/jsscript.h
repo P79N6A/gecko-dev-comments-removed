@@ -216,14 +216,6 @@ js_InitRuntimeScriptState(JSRuntime *rt);
 
 
 
-extern void
-js_FinishRuntimeScriptState(JSRuntime *rt);
-
-
-
-
-
-
 
 
 extern void
