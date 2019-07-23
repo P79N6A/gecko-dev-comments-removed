@@ -56,7 +56,8 @@ class TimeStamp;
 
 
 
-class NS_COM TimeDuration {
+class NS_COM TimeDuration
+{
 public:
   
   TimeDuration() : mValue(0) {}
@@ -155,7 +156,8 @@ private:
 
 
 
-class NS_COM TimeStamp {
+class NS_COM TimeStamp
+{
 public:
   
 

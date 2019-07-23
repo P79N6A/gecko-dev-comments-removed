@@ -164,8 +164,6 @@ static BrowserProcessSubThread* sIOThread;
 } 
 #endif
 
-using mozilla::TimeStamp;
-
 
 
 
@@ -518,10 +516,6 @@ NS_InitXPCOM3(nsIServiceManager* *result,
         sIOThread = ioThread.release();
     }
 #endif
-
-    
-    rv = TimeStamp::Startup();
-    NS_ENSURE_SUCCESS(rv, rv);
 
     
     rv = nsThreadManager::get()->Init();
@@ -884,8 +878,6 @@ ShutdownXPCOM(nsIServiceManager* servMgr)
     NS_PurgeAtomTable();
 
     NS_IF_RELEASE(gDebug);
-
-    TimeStamp::Shutdown();
 
 #ifdef MOZ_IPC
     if (sIOThread) {
