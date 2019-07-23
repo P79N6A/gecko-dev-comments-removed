@@ -56,6 +56,10 @@
 
 #if _MSC_VER < 1400  
 #define swprintf _snwprintf
+#else
+
+
+#define swprintf swprintf_s
 #endif  
 
 namespace google_breakpad {
