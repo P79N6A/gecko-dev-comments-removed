@@ -243,14 +243,6 @@ static nsresult ClampScrollValues(nscoord& aX, nscoord& aY, nsScrollPortView* aT
 NS_IMETHODIMP nsScrollPortView::ScrollTo(nscoord aDestinationX, nscoord aDestinationY,
                                          PRUint32 aUpdateFlags)
 {
-  
-  if (aDestinationX == mDestinationX && aDestinationY == mDestinationY) {
-    
-    delete mAsyncScroll;
-    mAsyncScroll = nsnull;
-    return NS_OK;
-  }
-
   mDestinationX = aDestinationX;
   mDestinationY = aDestinationY;
   ClampScrollValues(mDestinationX, mDestinationY, this);
