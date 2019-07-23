@@ -78,6 +78,7 @@ private:
   PRUint8 mAttrEnum; 
   PRPackedBool mIsAnimated;
 
+public:
   struct DOMAnimatedInteger : public nsIDOMSVGAnimatedInteger
   {
     NS_DECL_CYCLE_COLLECTING_ISUPPORTS

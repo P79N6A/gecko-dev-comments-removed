@@ -59,6 +59,8 @@ nsScreen::~nsScreen()
 }
 
 
+DOMCI_DATA(Screen, nsScreen)
+
 
 NS_INTERFACE_MAP_BEGIN(nsScreen)
   NS_INTERFACE_MAP_ENTRY(nsISupports)

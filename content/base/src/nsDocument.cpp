@@ -477,6 +477,8 @@ nsDOMStyleSheetList::~nsDOMStyleSheetList()
   }
 }
 
+DOMCI_DATA(StyleSheetList, nsDOMStyleSheetList)
+
 
 
 NS_INTERFACE_TABLE_HEAD(nsDOMStyleSheetList)
@@ -1268,6 +1270,8 @@ nsDOMImplementation::nsDOMImplementation(nsIScriptGlobalObject* aScriptObject,
 nsDOMImplementation::~nsDOMImplementation()
 {
 }
+
+DOMCI_DATA(DOMImplementation, nsDOMImplementation)
 
 
 NS_INTERFACE_MAP_BEGIN(nsDOMImplementation)

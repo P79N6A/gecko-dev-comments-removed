@@ -121,6 +121,7 @@ nsDOMDocumentType::~nsDOMDocumentType()
 {
 }
 
+DOMCI_DATA(DocumentType, nsDOMDocumentType)
 
 
 NS_INTERFACE_TABLE_HEAD(nsDOMDocumentType)

@@ -106,6 +106,7 @@ nsCommentNode::~nsCommentNode()
 {
 }
 
+DOMCI_DATA(Comment, nsCommentNode)
 
 
 NS_INTERFACE_TABLE_HEAD(nsCommentNode)
