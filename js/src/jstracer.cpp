@@ -12523,8 +12523,8 @@ TraceRecorder::record_JSOP_GETDSLOT()
     LIns* callee_ins = get(&cx->fp->argv[-2]);
 
     unsigned index = GET_UINT16(cx->fp->regs->pc);
-    LIns* dslots_ins = NULL;
-    LIns* v_ins = stobj_get_dslot(callee_ins, index, dslots_ins);
+    LIns* dslots_ins = lir->insLoad(LIR_ldp, callee_ins, offsetof(JSObject, dslots));
+    LIns* v_ins = lir->insLoad(LIR_ldcp, dslots_ins, index * sizeof(jsval));
 
     stack(0, unbox_jsval(callee->dslots[index], v_ins, snapshot(BRANCH_EXIT)));
     return ARECORD_CONTINUE;
@@ -12541,17 +12541,24 @@ TraceRecorder::record_JSOP_CALLDSLOT()
 JS_REQUIRES_STACK RecordingStatus
 TraceRecorder::guardCallee(jsval& callee)
 {
-    JS_ASSERT(VALUE_IS_FUNCTION(cx, callee));
+    JSObject* callee_obj = JSVAL_TO_OBJECT(callee);
+    JS_ASSERT(callee_obj->isFunction());
+    JSFunction* callee_fun = (JSFunction*) callee_obj->getPrivate();
+
+    
+
+
+
+
 
     VMSideExit* branchExit = snapshot(BRANCH_EXIT);
-    JSObject* callee_obj = JSVAL_TO_OBJECT(callee);
     LIns* callee_ins = get(&callee);
-
     tree->gcthings.addUnique(callee);
+
     guard(true,
           lir->ins2(LIR_peq,
                     stobj_get_private(callee_ins),
-                    INS_CONSTPTR(callee_obj->getPrivate())),
+                    INS_CONSTPTR(callee_fun)),
           branchExit);
 
     
@@ -12563,11 +12570,34 @@ TraceRecorder::guardCallee(jsval& callee)
 
 
 
-    guard(true,
-          lir->ins2(LIR_peq,
-                    stobj_get_parent(callee_ins),
-                    INS_CONSTOBJ(OBJ_GET_PARENT(cx, callee_obj))),
-          branchExit);
+
+
+
+
+
+
+
+
+
+
+
+
+
+    if (FUN_INTERPRETED(callee_fun) &&
+        (!FUN_NULL_CLOSURE(callee_fun) || callee_fun->u.i.nupvars != 0)) {
+        JSObject* parent = callee_obj->getParent();
+
+        if (parent != globalObj) {
+            if (parent->getClass() != &js_CallClass)
+                RETURN_STOP("closure scoped by neither the global object nor a Call object");
+
+            guard(true,
+                  lir->ins2(LIR_peq,
+                            stobj_get_parent(callee_ins),
+                            INS_CONSTOBJ(parent)),
+                  branchExit);
+        }
+    }
     return RECORD_CONTINUE;
 }
 
@@ -14172,7 +14202,7 @@ TraceRecorder::record_JSOP_LAMBDA_FC()
         return ARECORD_STOP;
 
     LIns* args[] = {
-        INS_CONSTOBJ(globalObj),
+        scopeChain(),
         INS_CONSTFUN(fun),
         cx_ins
     };
@@ -15384,6 +15414,20 @@ JS_REQUIRES_STACK AbortableRecordingStatus
 TraceRecorder::record_JSOP_UNBRAND()
 {
     LIns* args_ins[] = { stack(-1), cx_ins };
+    LIns* call_ins = lir->insCall(&js_Unbrand_ci, args_ins);
+    guard(true, call_ins, OOM_EXIT);
+    return ARECORD_CONTINUE;
+}
+
+JS_REQUIRES_STACK AbortableRecordingStatus
+TraceRecorder::record_JSOP_UNBRANDTHIS()
+{
+    LIns* this_ins;
+    RecordingStatus status = getThis(this_ins);
+    if (status != RECORD_CONTINUE)
+        return InjectStatus(status);
+
+    LIns* args_ins[] = { this_ins, cx_ins };
     LIns* call_ins = lir->insCall(&js_Unbrand_ci, args_ins);
     guard(true, call_ins, OOM_EXIT);
     return ARECORD_CONTINUE;

@@ -308,6 +308,12 @@ struct JSTreeContext {
 
 
 
+
+#define TCF_FUN_MODULE_PATTERN 0x200000
+
+
+
+
 #define TCF_RETURN_FLAGS        (TCF_RETURN_EXPR | TCF_RETURN_VOID)
 
 

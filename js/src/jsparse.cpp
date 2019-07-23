@@ -326,7 +326,7 @@ JSFunctionBox::shouldUnbrand(uintN methods, uintN slowMethods) const
 {
     if (slowMethods != 0) {
         for (const JSFunctionBox *funbox = this; funbox; funbox = funbox->parent) {
-            if (!(funbox->node->pn_dflags & PND_MODULEPAT))
+            if (!(funbox->tcflags & TCF_FUN_MODULE_PATTERN))
                 return true;
             if (funbox->inLoop)
                 return true;
@@ -2051,6 +2051,188 @@ OneBlockId(JSParseNode *fn, uint32 id)
     return true;
 }
 
+static inline bool
+CanFlattenUpvar(JSDefinition *dn, JSFunctionBox *funbox, uint32 tcflags)
+{
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    JSFunctionBox *afunbox = funbox;
+    uintN dnLevel = dn->frameLevel();
+
+    JS_ASSERT(dnLevel <= funbox->level);
+    while (afunbox->level != dnLevel) {
+        afunbox = afunbox->parent;
+
+        
+
+
+
+
+
+
+
+        JS_ASSERT(afunbox);
+
+        
+
+
+
+
+        if (!afunbox || afunbox->node->isFunArg())
+            return false;
+    }
+
+    
+
+
+
+
+
+    if (afunbox->inLoop)
+        return false;
+
+    
+
+
+
+
+
+    if ((afunbox->parent ? afunbox->parent->tcflags : tcflags) & TCF_FUN_HEAVYWEIGHT)
+        return false;
+
+    
+
+
+
+
+
+
+    JSFunction *afun = (JSFunction *) afunbox->object;
+    if (!(afun->flags & JSFUN_LAMBDA)) {
+        if (dn->isBindingForm() || dn->pn_pos >= afunbox->node->pn_pos)
+            return false;
+    }
+
+    if (!dn->isInitialized())
+        return false;
+
+    JSDefinition::Kind dnKind = dn->kind();
+    if (dnKind != JSDefinition::CONST) {
+        if (dn->isAssigned())
+            return false;
+
+        
+
+
+
+
+
+
+
+
+
+
+        if (dnKind == JSDefinition::ARG &&
+            ((afunbox->parent ? afunbox->parent->tcflags : tcflags) & TCF_FUN_USES_ARGUMENTS)) {
+            return false;
+        }
+    }
+
+    
+
+
+
+
+    if (dnKind != JSDefinition::FUNCTION) {
+        
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        if (dn->pn_pos.end >= afunbox->node->pn_pos.end ||
+            (dn->isTopLevel()
+             ? !MinBlockId(afunbox->node, dn->pn_blockid)
+             : !dn->isBlockChild() ||
+               !afunbox->node->isBlockChild() ||
+               !OneBlockId(afunbox->node, dn->pn_blockid))) {
+            return false;
+        }
+    }
+    return true;
+}
+
+static void
+FlagHeavyweights(JSDefinition *dn, JSFunctionBox *funbox, uint32& tcflags)
+{
+    JSFunctionBox *afunbox = funbox->parent;
+    uintN dnLevel = dn->frameLevel();
+
+    while (afunbox) {
+        
+
+
+
+
+
+        if (afunbox->level + 1U == dnLevel || (dnLevel == 0 && dn->isLet())) {
+            afunbox->tcflags |= TCF_FUN_HEAVYWEIGHT;
+            break;
+        }
+        afunbox = afunbox->parent;
+    }
+    if (!afunbox && (tcflags & TCF_IN_FUNCTION))
+        tcflags |= TCF_FUN_HEAVYWEIGHT;
+}
+
+static void
+DeoptimizeUsesWithin(JSDefinition *dn, JSFunctionBox *funbox, uint32& tcflags)
+{
+    JSParseNode **pnup = &dn->dn_uses;
+    uintN ndeoptimized = 0;
+
+    while (JSParseNode *pnu = *pnup) {
+        JS_ASSERT(pnu->pn_used);
+        JS_ASSERT(!pnu->pn_defn);
+        const JSTokenPos &pos = funbox->node->pn_body->pn_pos;
+        if (pnu->pn_pos.begin >= pos.begin && pnu->pn_pos.end < pos.end) {
+            pnu->pn_dflags |= PND_DEOPTIMIZED;
+            *pnup = pnu->pn_link;
+            ++ndeoptimized;
+            continue;
+        }
+        pnup = &pnu->pn_link;
+    }
+
+    if (ndeoptimized != 0)
+        FlagHeavyweights(dn, funbox, tcflags);
+}
+
 void
 JSCompiler::setFunctionKinds(JSFunctionBox *funbox, uint32& tcflags)
 {
@@ -2184,6 +2366,7 @@ JSCompiler::setFunctionKinds(JSFunctionBox *funbox, uint32& tcflags)
 
 
 
+
                     FUN_METER(display);
                     FUN_SET_KIND(fun, JSFUN_NULL_CLOSURE);
                 } else {
@@ -2191,7 +2374,7 @@ JSCompiler::setFunctionKinds(JSFunctionBox *funbox, uint32& tcflags)
                         FUN_METER(setupvar);
                 }
             } else {
-                uintN nupvars = 0;
+                uintN nupvars = 0, nflattened = 0;
 
                 
 
@@ -2203,165 +2386,18 @@ JSCompiler::setFunctionKinds(JSFunctionBox *funbox, uint32& tcflags)
 
                     if (!lexdep->isFreeVar()) {
                         ++nupvars;
-
-                        
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-                        JSFunctionBox *afunbox = funbox;
-                        uintN lexdepLevel = lexdep->frameLevel();
-
-                        JS_ASSERT(lexdepLevel <= funbox->level);
-                        while (afunbox->level != lexdepLevel) {
-                            afunbox = afunbox->parent;
-
-                            
-
-
-
-
-
-
-
-
-                            JS_ASSERT(afunbox);
-
-                            
-
-
-
-
-
-                            if (!afunbox || afunbox->node->isFunArg())
-                                goto break2;
+                        if (CanFlattenUpvar(lexdep, funbox, tcflags)) {
+                            ++nflattened;
+                            continue;
                         }
-
-                        
-
-
-
-
-
-
-
-                        if (afunbox->inLoop)
-                            break;
-
-                        
-
-
-
-
-
-                        if ((afunbox->parent ? afunbox->parent->tcflags : tcflags)
-                            & TCF_FUN_HEAVYWEIGHT) {
-                            break;
-                        }
-
-                        
-
-
-
-
-
-
-
-
-                        JSFunction *afun = (JSFunction *) afunbox->object;
-                        if (!(afun->flags & JSFUN_LAMBDA)) {
-                            if (lexdep->isBindingForm())
-                                break;
-                            if (lexdep->pn_pos >= afunbox->node->pn_pos)
-                                break;
-                        }
-
-                        if (!lexdep->isInitialized())
-                            break;
-
-                        JSDefinition::Kind lexdepKind = lexdep->kind();
-                        if (lexdepKind != JSDefinition::CONST) {
-                            if (lexdep->isAssigned())
-                                break;
-
-                            
-
-
-
-
-
-
-
-
-
-
-
-
-
-                            if (lexdepKind == JSDefinition::ARG &&
-                                ((afunbox->parent ? afunbox->parent->tcflags : tcflags) &
-                                 TCF_FUN_USES_ARGUMENTS)) {
-                                break;
-                            }
-                        }
-
-                        
-
-
-
-
-
-                        if (lexdepKind != JSDefinition::FUNCTION) {
-                            
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-                            if (lexdep->pn_pos.end >= afunbox->node->pn_pos.end)
-                                break;
-
-                            if (lexdep->isTopLevel()
-                                ? !MinBlockId(afunbox->node, lexdep->pn_blockid)
-                                : !lexdep->isBlockChild() ||
-                                  !afunbox->node->isBlockChild() ||
-                                  !OneBlockId(afunbox->node, lexdep->pn_blockid)) {
-                                break;
-                            }
-                        }
+                        DeoptimizeUsesWithin(lexdep, funbox, tcflags);
                     }
                 }
 
-              break2:
                 if (nupvars == 0) {
                     FUN_METER(onlyfreevar);
                     FUN_SET_KIND(fun, JSFUN_NULL_CLOSURE);
-                } else if (!ale) {
+                } else if (nflattened != 0) {
                     
 
 
@@ -2406,30 +2442,8 @@ JSCompiler::setFunctionKinds(JSFunctionBox *funbox, uint32& tcflags)
 
             while ((ale = iter()) != NULL) {
                 JSDefinition *lexdep = ALE_DEFN(ale)->resolve();
-
-                if (!lexdep->isFreeVar()) {
-                    JSFunctionBox *afunbox = funbox->parent;
-                    uintN lexdepLevel = lexdep->frameLevel();
-
-                    while (afunbox) {
-                        
-
-
-
-
-
-
-
-                        if (afunbox->level + 1U == lexdepLevel ||
-                            (lexdepLevel == 0 && lexdep->isLet())) {
-                            afunbox->tcflags |= TCF_FUN_HEAVYWEIGHT;
-                            break;
-                        }
-                        afunbox = afunbox->parent;
-                    }
-                    if (!afunbox && (tcflags & TCF_IN_FUNCTION))
-                        tcflags |= TCF_FUN_HEAVYWEIGHT;
-                }
+                if (!lexdep->isFreeVar())
+                    FlagHeavyweights(lexdep, funbox, tcflags);
             }
         }
 
@@ -5746,7 +5760,7 @@ Statement(JSContext *cx, JSTokenStream *ts, JSTreeContext *tc)
 
             if (PN_TYPE(pn2->pn_head) == TOK_FUNCTION &&
                 !pn2->pn_head->pn_funbox->node->isFunArg()) {
-                pn2->pn_head->pn_funbox->node->pn_dflags |= PND_MODULEPAT;
+                pn2->pn_head->pn_funbox->tcflags |= TCF_FUN_MODULE_PATTERN;
             }
             break;
           case TOK_ASSIGN:
