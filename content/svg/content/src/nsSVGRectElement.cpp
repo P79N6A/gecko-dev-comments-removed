@@ -185,16 +185,6 @@ nsSVGRectElement::ConstructPath(gfxContext *aCtx)
   }
 
   
-  float halfWidth  = width/2;
-  float halfHeight = height/2;
-  if (rx > halfWidth)
-    rx = halfWidth;
-  if (ry > halfHeight)
-    ry = halfHeight;
-
-  
-
-
 
   PRBool hasRx = HasAttr(kNameSpaceID_None, nsGkAtoms::rx);
   PRBool hasRy = HasAttr(kNameSpaceID_None, nsGkAtoms::ry);
@@ -204,11 +194,12 @@ nsSVGRectElement::ConstructPath(gfxContext *aCtx)
     rx = ry;
 
   
-
+  float halfWidth  = width/2;
+  float halfHeight = height/2;
   if (rx > halfWidth)
-    rx = ry = halfWidth;
-  else if (ry > halfHeight)
-    rx = ry = halfHeight;
+    rx = halfWidth;
+  if (ry > halfHeight)
+    ry = halfHeight;
 
   gfxSize corner(rx, ry);
   aCtx->RoundedRectangle(gfxRect(x, y, width, height),
