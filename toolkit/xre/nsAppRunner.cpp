@@ -2726,8 +2726,33 @@ XRE_main(int argc, char* argv[], const nsXREAppData* aAppData)
       gdk_rgb_set_install(TRUE);
 
     
-    gtk_init(&gArgc, &gArgv);
 
+    
+    
+    
+    if (!gtk_parse_args(&gArgc, &gArgv))
+      return 1;
+
+    GdkDisplay* display = nsnull;
+    {
+      
+      const char *display_name = gdk_get_display_arg_name();
+      if (!display_name) {
+        display_name = PR_GetEnv("DISPLAY");
+        if (!display_name) {
+          PR_fprintf(PR_STDERR, "Error: no display specified\n");
+          return 1;
+        }
+      }
+      display = gdk_display_open(display_name);
+      if (!display) {
+        PR_fprintf(PR_STDERR, "Error: cannot open display: %s\n", display_name);
+        return 1;
+      }
+    }
+    gdk_display_manager_set_default_display (gdk_display_manager_get(),
+                                             display);
+    
     
     _g_set_application_name_fn _g_set_application_name =
       (_g_set_application_name_fn)FindFunction("g_set_application_name");
@@ -3187,6 +3212,8 @@ XRE_main(int argc, char* argv[], const nsXREAppData* aAppData)
       }
 #endif
 
+
+
 #if defined(HAVE_DESKTOP_STARTUP_ID) && defined(MOZ_TOOLKIT_GTK2)
       nsGTKToolkit* toolkit = GetGTKToolkit();
       if (toolkit) {
@@ -3202,6 +3229,10 @@ XRE_main(int argc, char* argv[], const nsXREAppData* aAppData)
       }
 #endif
 
+#ifdef MOZ_WIDGET_GTK2
+      gdk_display_close(display);
+#endif
+
       rv = LaunchChild(nativeApp, appInitiatedRestart, upgraded ? -1 : 0);
 
 #ifdef MOZ_CRASHREPORTER
@@ -3211,6 +3242,12 @@ XRE_main(int argc, char* argv[], const nsXREAppData* aAppData)
 
       return rv == NS_ERROR_LAUNCHED_CHILD_PROCESS ? 0 : 1;
     }
+
+#ifdef MOZ_WIDGET_GTK2
+    
+    
+    gdk_display_close(display);
+#endif
   }
 
 #ifdef MOZ_CRASHREPORTER
