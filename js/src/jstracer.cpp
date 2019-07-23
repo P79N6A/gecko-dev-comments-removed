@@ -756,7 +756,7 @@ TraceRecorder::getCallDepth() const
 bool
 TraceRecorder::trackLoopEdges()
 {
-    return loopEdgeCount++ < 1;
+    return loopEdgeCount++ < 3;
 }
 
 
@@ -1944,10 +1944,19 @@ js_RecordBranch(JSContext* cx, TraceRecorder* r, jsbytecode* oldpc, uintN& inlin
         return false; 
     }
 #endif
+    Fragmento* fragmento = JS_TRACE_MONITOR(cx).fragmento;
+    
+
+    if (js_isBreak(cx, cx->fp->script, cx->fp->regs->pc)) {
+        AUDIT(traceCompleted);
+        r->endLoop(fragmento);
+        js_DeleteRecorder(cx);
+        return false; 
+    }
     
     if (cx->fp->regs->pc > oldpc)
         return true;
-    Fragmento* fragmento = JS_TRACE_MONITOR(cx).fragmento;
+    
     if (r->isLoopHeader(cx)) { 
         if (fragmento->assm()->error()) {
             js_AbortRecording(cx, oldpc, "Error during recording");
@@ -1971,7 +1980,9 @@ js_RecordBranch(JSContext* cx, TraceRecorder* r, jsbytecode* oldpc, uintN& inlin
         GuardRecord* innermostNestedGuard = NULL;
         GuardRecord* lr = js_ExecuteTree(cx, &f, inlineCallCount, &innermostNestedGuard);
         if (!lr) {
-            js_AbortRecording(cx, oldpc, "Couldn't call inner tree");
+            
+            if (JS_TRACE_MONITOR(cx).recorder)
+                js_AbortRecording(cx, oldpc, "Couldn't call inner tree");
             return false;
         }
         switch (lr->exit->exitType) {
@@ -2267,20 +2278,15 @@ js_AbortRecording(JSContext* cx, jsbytecode* abortpc, const char* reason)
     JS_ASSERT(tm->recorder != NULL);
     Fragment* f = tm->recorder->getFragment();
     JS_ASSERT(!f->vmprivate);
-    if (js_isBreak(cx, cx->fp->script, cx->fp->regs->pc)) {
-        
-        tm->recorder->endLoop(tm->fragmento);
-    } else {
-        
-        AUDIT(recorderAborted);
-        if (cx->fp) {
-            debug_only_v(if (!abortpc) abortpc = cx->fp->regs->pc;
-                         printf("Abort recording (line %d, pc %d): %s.\n",
-                                js_PCToLineNumber(cx, cx->fp->script, abortpc),
-                                abortpc - cx->fp->script->code, reason);)
-        }
-        f->blacklist();
+    
+    AUDIT(recorderAborted);
+    if (cx->fp) {
+        debug_only_v(if (!abortpc) abortpc = cx->fp->regs->pc;
+                     printf("Abort recording (line %d, pc %d): %s.\n",
+                            js_PCToLineNumber(cx, cx->fp->script, abortpc),
+                            abortpc - cx->fp->script->code, reason);)
     }
+    f->blacklist();
     js_DeleteRecorder(cx);
     
     if (!f->code() && (f->root == f)) 
@@ -3319,8 +3325,7 @@ TraceRecorder::record_JSOP_RETURN()
 bool
 TraceRecorder::record_JSOP_GOTO()
 {
-    
-    return (!js_isBreak(cx, cx->fp->script, cx->fp->regs->pc));
+    return true;
 }
 
 bool
@@ -5317,8 +5322,7 @@ TraceRecorder::record_JSOP_DEFLOCALFUN()
 bool
 TraceRecorder::record_JSOP_GOTOX()
 {
-    
-    return record_JSOP_GOTO();
+    return true;
 }
 
 bool
