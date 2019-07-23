@@ -80,26 +80,21 @@ namespace nanojit
         
 
 
-        underrunProtect(16);
+        underrunProtect(12);
         uint32_t stackNeeded = STACK_GRANULARITY * _activation.highwatermark;
         uint32_t frameSize = stackNeeded + kcalleeAreaSize + kLinkageAreaSize;
         frameSize = BIT_ROUND_UP(frameSize, 8);
 
-        if (frameSize <= 4096)
-            SUBI(FP, frameSize, SP);
-        else {
-            SUB(FP, G1, SP);
-            ORI(G1, frameSize & 0x3FF, G1);
-            SETHI(frameSize, G1);
-        }
-
         verbose_only( verbose_outputf("        %p:",_nIns); )
         verbose_only( asm_output("        patch entry:"); )
-        NIns *patchEntry = _nIns;
-
-        
-        
-        SAVEI(SP, -148, SP);
+            NIns *patchEntry = _nIns;
+        if (frameSize <= 4096)
+            SAVEI(SP, (-frameSize), SP);
+        else {
+            SAVE(SP, G1, SP);
+            ORI(G1, -frameSize & 0x3FF, G1);
+            SETHI(-frameSize, G1);
+        }
 
         
         asm_align_code();
@@ -769,14 +764,10 @@ namespace nanojit
         underrunProtect(4);
         LOpcode op = ins->opcode();
         LIns* condval = ins->oprnd1();
+        LIns* iftrue  = ins->oprnd2();
+        LIns* iffalse = ins->oprnd3();
+
         NanoAssert(condval->isCmp());
-
-        LIns* values = ins->oprnd2();
-
-        NanoAssert(values->opcode() == LIR_2);
-        LIns* iftrue = values->oprnd1();
-        LIns* iffalse = values->oprnd2();
-
         NanoAssert(op == LIR_qcmov || (!iftrue->isQuad() && !iffalse->isQuad()));
 
         const Register rr = prepResultReg(ins, GpRegs);
@@ -859,10 +850,12 @@ namespace nanojit
         freeRsrcOf(ins, false);
         if (d)
             {
-                STW32(L2, d+4, FP);
-                SET32(ins->imm64_0(), L2);
-                STW32(L2, d, FP);
-                SET32(ins->imm64_1(), L2);
+                Register r = registerAlloc(GpRegs);
+                _allocator.addFree(r);
+                STW32(r, d+4, FP);
+                SET32(ins->imm64_0(), r);
+                STW32(r, d, FP);
+                SET32(ins->imm64_1(), r);
             }
     }
 
