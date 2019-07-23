@@ -64,16 +64,16 @@ var gURIUseCounts;
 var gURICanvases;
 var gTestResults = {
   
+  Pass: 0,
+  LoadOnly: 0,
+  
   Exception: 0,
   FailedLoad: 0,
   UnexpectedFail: 0,
   UnexpectedPass: 0,
   
-  Pass: 0,
   KnownFail : 0,
   Random : 0,
-  LoadOnly: 0,
-  
   Skip: 0,
 };
 var gTotalTests = 0;
@@ -423,9 +423,22 @@ function DoneTests()
          "ms (" + gSlowestTestURL + ")\n");
 
     dump("REFTEST INFO | Result summary:\n");
-    for (var result in gTestResults)
-      if (gTestResults[result] != 0)
-        dump("REFTEST INFO | " + result + ": " + gTestResults[result] + "\n");
+    var count = gTestResults.Pass + gTestResults.LoadOnly;
+    dump("REFTEST INFO | Successful: " + count + " (" +
+         gTestResults.Pass + " pass, " +
+         gTestResults.LoadOnly + " load only)\n");
+    count = gTestResults.Exception + gTestResults.FailedLoad +
+            gTestResults.UnexpectedFail + gTestResults.UnexpectedPass;
+    dump("REFTEST INFO | Unexpected: " + count + " (" +
+         gTestResults.UnexpectedFail + " unexpected fail, " +
+         gTestResults.UnexpectedPass + " unexpected pass, " +
+         gTestResults.FailedLoad + " failed load, " +
+         gTestResults.Exception + " exception)\n");
+    count = gTestResults.KnownFail + gTestResults.Random + gTestResults.Skip;
+    dump("REFTEST INFO | Known problems: " + count + " (" +
+         gTestResults.KnownFail + " known fail, " +
+         gTestResults.Random + " random, " +
+         gTestResults.Skip + " skipped)\n");
 
     dump("REFTEST INFO | Total canvas count = " + gRecycledCanvases.length + "\n");
 
