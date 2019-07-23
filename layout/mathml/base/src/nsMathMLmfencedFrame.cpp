@@ -289,7 +289,7 @@ nsMathMLmfencedFrame::doReflow(nsPresContext*          aPresContext,
   
 
   nsReflowStatus childStatus;
-  nsSize availSize(aReflowState.ComputedWidth(), aReflowState.ComputedHeight());
+  nsSize availSize(aReflowState.ComputedWidth(), NS_UNCONSTRAINEDSIZE);
   nsIFrame* firstChild = aForFrame->GetFirstChild(nsnull);
   nsIFrame* childFrame = firstChild;
   nscoord ascent = 0, descent = 0;
