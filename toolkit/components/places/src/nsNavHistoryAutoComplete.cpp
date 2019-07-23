@@ -106,6 +106,7 @@
 #include "mozIStorageFunction.h"
 #include "mozStorageCID.h"
 #include "mozStorageHelper.h"
+#include "nsFaviconService.h"
 
 #define NS_AUTOCOMPLETESIMPLERESULT_CONTRACTID \
   "@mozilla.org/autocomplete/simple-result;1"
@@ -370,7 +371,6 @@ nsNavHistory::StopSearch()
 
 
 
-
 nsresult nsNavHistory::AutoCompleteTypedSearch(
                                             nsIAutoCompleteSimpleResult* result)
 {
@@ -390,6 +390,9 @@ nsresult nsNavHistory::AutoCompleteTypedSearch(
   if (! urls.Init(500))
     return NS_ERROR_OUT_OF_MEMORY;
 
+  nsFaviconService* faviconService = nsFaviconService::GetFaviconService();
+  NS_ENSURE_TRUE(faviconService, NS_ERROR_OUT_OF_MEMORY);
+
   PRInt32 dummy;
   PRInt32 count = 0;
   PRBool hasMore = PR_FALSE;
@@ -402,7 +405,11 @@ nsresult nsNavHistory::AutoCompleteTypedSearch(
 
     if (! urls.Get(entryURL, &dummy)) {
       
-      rv = result->AppendMatch(entryURL, entryTitle, entryImage, NS_LITERAL_STRING("favicon"));
+      nsCAutoString faviconSpec;
+      faviconService->GetFaviconSpecForIconString(
+        NS_ConvertUTF16toUTF8(entryImage), faviconSpec);
+      rv = result->AppendMatch(entryURL, entryTitle, 
+        NS_ConvertUTF8toUTF16(faviconSpec), NS_LITERAL_STRING("favicon"));
       NS_ENSURE_SUCCESS(rv, rv);
 
       urls.Put(entryURL, 1);
@@ -497,19 +504,32 @@ nsNavHistory::AutoCompleteFullHistorySearch(const nsAString& aSearchString,
                                AUTOCOMPLETE_MATCHES_SCHEME_PENALTY, &matches);
   }
 
+  nsFaviconService* faviconService = nsFaviconService::GetFaviconService();
+  NS_ENSURE_TRUE(faviconService, NS_ERROR_OUT_OF_MEMORY);
+
   
   if (matches.Length() > 0) {
     
     AutoCompleteResultComparator comparator(this);
     matches.Sort(comparator);
 
-    rv = aResult->AppendMatch(matches[0].url, matches[0].title, matches[0].image, NS_LITERAL_STRING("favicon"));
+    nsCAutoString faviconSpec;
+    faviconService->GetFaviconSpecForIconString(
+      NS_ConvertUTF16toUTF8(matches[0].image), faviconSpec);
+    rv = aResult->AppendMatch(matches[0].url, matches[0].title, 
+                              NS_ConvertUTF8toUTF16(faviconSpec), 
+                              NS_LITERAL_STRING("favicon"));
     NS_ENSURE_SUCCESS(rv, rv);
+
     for (i = 1; i < matches.Length(); i ++) {
       
       
       if (!matches[i].url.Equals(matches[i-1].url)) {
-        rv = aResult->AppendMatch(matches[i].url, matches[i].title, matches[i].image, NS_LITERAL_STRING("favicon"));
+        faviconService->GetFaviconSpecForIconString(
+          NS_ConvertUTF16toUTF8(matches[i].image), faviconSpec);
+        rv = aResult->AppendMatch(matches[i].url, matches[i].title, 
+                                  NS_ConvertUTF8toUTF16(faviconSpec),  
+                                  NS_LITERAL_STRING("favicon"));
         NS_ENSURE_SUCCESS(rv, rv);
       }
     }
