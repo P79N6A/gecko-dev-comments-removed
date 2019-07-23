@@ -45,8 +45,8 @@
 
 
 #define NS_ILINEBREAKER_IID \
-{ 0xc3d9f25f, 0x7cea, 0x4a76, \
-    { 0xa0, 0x8f, 0x05, 0xc4, 0x31, 0x35, 0x34, 0x48 } }
+{ 0xc9c5938e, 0x70ef, 0x4db2, \
+    { 0xad, 0xee, 0xe7, 0xb2, 0xcc, 0xfb, 0xbe, 0xe6 } }
 
 class nsILineBreaker : public nsISupports
 {
@@ -69,6 +69,8 @@ public:
   
   
   virtual void GetJISx4051Breaks(const PRUnichar* aText, PRUint32 aLength,
+                                 PRPackedBool* aBreakBefore) = 0;
+  virtual void GetJISx4051Breaks(const PRUint8* aText, PRUint32 aLength,
                                  PRPackedBool* aBreakBefore) = 0;
 };
 
