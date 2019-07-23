@@ -2199,15 +2199,18 @@ nsPrintEngine::DoPrint(nsPrintObject * aPO)
               {
                 startRect.y -= margin.top;
                 endRect.y   -= margin.top;
+                nscoord selectionHgt = endRect.y + endRect.height - startRect.y;
                 
-                pageSequence->SetSelectionHeight(startRect.y, endRect.y+endRect.height-startRect.y);
+                pageSequence->SetSelectionHeight(startRect.y * aPO->mZoomRatio,
+                                                 selectionHgt * aPO->mZoomRatio);
 
                 
                 
-                nscoord selectionHgt = endRect.y + endRect.height - startRect.y;
                 nscoord pageWidth, pageHeight;
                 mPrt->mPrintDC->GetDeviceSurfaceDimensions(pageWidth, pageHeight);
                 pageHeight -= margin.top + margin.bottom;
+                
+                
                 PRInt32 totalPages = NSToIntCeil(float(selectionHgt) / float(pageHeight));
                 pageSequence->SetTotalNumPages(totalPages);
               }
