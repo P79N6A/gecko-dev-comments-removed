@@ -253,6 +253,12 @@ protected:
 
   PRBool SizeToPopup(nsBoxLayoutState& aState, nsSize& aSize);
 
+  PRBool ShouldBlink();
+  void StartBlinking(nsGUIEvent *aEvent, PRBool aFlipChecked);
+  void StopBlinking();
+  void CreateMenuCommandEvent(nsGUIEvent *aEvent, PRBool aFlipChecked);
+  void PassMenuCommandEventToPopupManager();
+
 protected:
 #ifdef DEBUG_LAYOUT
   nsresult SetDebug(nsBoxLayoutState& aState, nsIFrame* aList, PRBool aDebug);
@@ -272,6 +278,10 @@ protected:
   nsRefPtr<nsMenuTimerMediator> mTimerMediator;
 
   nsCOMPtr<nsITimer> mOpenTimer;
+  nsCOMPtr<nsITimer> mBlinkTimer;
+
+  PRUint8 mBlinkState; 
+  nsRefPtr<nsXULMenuCommandEvent> mDelayedMenuCommandEvent;
 
   nsString mGroupName;
   

@@ -80,6 +80,8 @@
 #include "nsDisplayList.h"
 #include "nsIReflowCallback.h"
 #include "nsISound.h"
+#include "nsEventStateManager.h"
+#include "nsIDOMXULMenuListElement.h"
 
 #define NS_MENU_POPUP_LIST_INDEX 0
 
@@ -97,6 +99,7 @@ nsString *nsMenuFrame::gControlText = nsnull;
 nsString *nsMenuFrame::gMetaText = nsnull;
 nsString *nsMenuFrame::gAltText = nsnull;
 nsString *nsMenuFrame::gModifierSeparator = nsnull;
+const PRInt32 kBlinkDelay = 67; 
 
 
 class nsMenuActivateEvent : public nsRunnable
@@ -191,7 +194,8 @@ nsMenuFrame::nsMenuFrame(nsIPresShell* aShell, nsStyleContext* aContext):
     mChecked(PR_FALSE),
     mType(eMenuType_Normal),
     mMenuParent(nsnull),
-    mPopupFrame(nsnull)
+    mPopupFrame(nsnull),
+    mBlinkState(0)
 {
 
 } 
@@ -376,6 +380,8 @@ nsMenuFrame::DestroyFrom(nsIFrame* aDestructRoot)
     mOpenTimer->Cancel();
   }
 
+  StopBlinking();
+
   
   
   mTimerMediator->ClearFrame();
@@ -417,7 +423,8 @@ nsMenuFrame::HandleEvent(nsPresContext* aPresContext,
                          nsEventStatus*  aEventStatus)
 {
   NS_ENSURE_ARG_POINTER(aEventStatus);
-  if (nsEventStatus_eConsumeNoDefault == *aEventStatus) {
+  if (nsEventStatus_eConsumeNoDefault == *aEventStatus ||
+      (mMenuParent && mMenuParent->IsMenuLocked())) {
     return NS_OK;
   }
 
@@ -897,6 +904,31 @@ nsMenuFrame::Notify(nsITimer* aTimer)
         }
       }
     }
+  } else if (aTimer == mBlinkTimer) {
+    switch (mBlinkState++) {
+      case 0:
+        NS_ASSERTION(false, "Blink timer fired while not blinking");
+        StopBlinking();
+        break;
+      case 1:
+        {
+          
+          nsWeakFrame weakFrame(this);
+          mContent->SetAttr(kNameSpaceID_None, nsGkAtoms::menuactive,
+                            NS_LITERAL_STRING("true"), PR_TRUE);
+          if (weakFrame.IsAlive()) {
+            aTimer->InitWithCallback(mTimerMediator, kBlinkDelay, nsITimer::TYPE_ONE_SHOT);
+          }
+        }
+        break;
+      default:
+        if (mMenuParent) {
+          mMenuParent->LockMenuUntilClosed(PR_FALSE);
+        }
+        PassMenuCommandEventToPopupManager();
+        StopBlinking();
+        break;
+    }
   }
 
   return NS_OK;
@@ -1154,31 +1186,123 @@ nsMenuFrame::BuildAcceleratorText()
 void
 nsMenuFrame::Execute(nsGUIEvent *aEvent)
 {
-  nsWeakFrame weakFrame(this);
   
+  PRBool needToFlipChecked = PR_FALSE;
   if (mType == eMenuType_Checkbox || (mType == eMenuType_Radio && !mChecked)) {
-    if (!mContent->AttrValueIs(kNameSpaceID_None, nsGkAtoms::autocheck,
-                               nsGkAtoms::_false, eCaseMatters)) {
-      if (mChecked) {
-        mContent->UnsetAttr(kNameSpaceID_None, nsGkAtoms::checked,
-                            PR_TRUE);
-        ENSURE_TRUE(weakFrame.IsAlive());
-      }
-      else {
-        mContent->SetAttr(kNameSpaceID_None, nsGkAtoms::checked, NS_LITERAL_STRING("true"),
-                          PR_TRUE);
-        ENSURE_TRUE(weakFrame.IsAlive());
-      }
-    }
+    needToFlipChecked = !mContent->AttrValueIs(kNameSpaceID_None, nsGkAtoms::autocheck,
+                                               nsGkAtoms::_false, eCaseMatters);
   }
 
   nsCOMPtr<nsISound> sound(do_CreateInstance("@mozilla.org/sound;1"));
   if (sound)
     sound->PlayEventSound(nsISound::EVENT_MENU_EXECUTE);
 
+  StartBlinking(aEvent, needToFlipChecked);
+}
+
+PRBool
+nsMenuFrame::ShouldBlink()
+{
+  PRInt32 shouldBlink = 0;
+  nsCOMPtr<nsILookAndFeel> lookAndFeel(do_GetService(kLookAndFeelCID));
+  if (lookAndFeel) {
+    lookAndFeel->GetMetric(nsILookAndFeel::eMetric_ChosenMenuItemsShouldBlink, shouldBlink);
+  }
+  if (!shouldBlink)
+    return PR_FALSE;
+
+  
+  if (mMenuParent && mMenuParent->IsMenu()) {
+    nsMenuPopupFrame* popupFrame = static_cast<nsMenuPopupFrame*>(mMenuParent);
+    nsIFrame* parentMenu = popupFrame->GetParent();
+    if (parentMenu) {
+      nsCOMPtr<nsIDOMXULMenuListElement> menulist = do_QueryInterface(parentMenu->GetContent());
+      if (menulist) {
+        PRBool isEditable = PR_FALSE;
+        menulist->GetEditable(&isEditable);
+        return !isEditable;
+      }
+    }
+  }
+  return PR_TRUE;
+}
+
+void
+nsMenuFrame::StartBlinking(nsGUIEvent *aEvent, PRBool aFlipChecked)
+{
+  StopBlinking();
+  CreateMenuCommandEvent(aEvent, aFlipChecked);
+
+  if (!ShouldBlink()) {
+    PassMenuCommandEventToPopupManager();
+    return;
+  }
+
+  
+  nsWeakFrame weakFrame(this);
+  mContent->UnsetAttr(kNameSpaceID_None, nsGkAtoms::menuactive, PR_TRUE);
+  if (!weakFrame.IsAlive())
+    return;
+
+  if (mMenuParent) {
+    
+    mMenuParent->LockMenuUntilClosed(PR_TRUE);
+  }
+
+  
+  mBlinkTimer = do_CreateInstance("@mozilla.org/timer;1");
+  mBlinkTimer->InitWithCallback(mTimerMediator, kBlinkDelay, nsITimer::TYPE_ONE_SHOT);
+  mBlinkState = 1;
+}
+
+void
+nsMenuFrame::StopBlinking()
+{
+  mBlinkState = 0;
+  if (mBlinkTimer) {
+    mBlinkTimer->Cancel();
+    mBlinkTimer = nsnull;
+  }
+  mDelayedMenuCommandEvent = nsnull;
+}
+
+void
+nsMenuFrame::CreateMenuCommandEvent(nsGUIEvent *aEvent, PRBool aFlipChecked)
+{
+  
+  
+  
+  PRBool isTrusted = aEvent ? NS_IS_TRUSTED_EVENT(aEvent) :
+                              nsContentUtils::IsCallerChrome();
+
+  PRBool shift = PR_FALSE, control = PR_FALSE, alt = PR_FALSE, meta = PR_FALSE;
+  if (aEvent && (aEvent->eventStructType == NS_MOUSE_EVENT ||
+                 aEvent->eventStructType == NS_KEY_EVENT ||
+                 aEvent->eventStructType == NS_ACCESSIBLE_EVENT)) {
+    shift = static_cast<nsInputEvent *>(aEvent)->isShift;
+    control = static_cast<nsInputEvent *>(aEvent)->isControl;
+    alt = static_cast<nsInputEvent *>(aEvent)->isAlt;
+    meta = static_cast<nsInputEvent *>(aEvent)->isMeta;
+  }
+
+  
+  
+  
+  PRBool userinput = nsEventStateManager::IsHandlingUserInput();
+
+  mDelayedMenuCommandEvent =
+    new nsXULMenuCommandEvent(mContent, isTrusted, shift, control, alt, meta,
+                              userinput, aFlipChecked);
+}
+
+void
+nsMenuFrame::PassMenuCommandEventToPopupManager()
+{
   nsXULPopupManager* pm = nsXULPopupManager::GetInstance();
-  if (pm && mMenuParent)
-    pm->ExecuteMenu(mContent, aEvent);
+  if (pm && mMenuParent && mDelayedMenuCommandEvent) {
+    pm->ExecuteMenu(mContent, mDelayedMenuCommandEvent);
+  }
+  mDelayedMenuCommandEvent = nsnull;
 }
 
 NS_IMETHODIMP

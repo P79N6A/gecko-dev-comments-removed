@@ -225,6 +225,7 @@ public:
     eMetric_TreeScrollDelay,                              
     eMetric_TreeScrollLinesMax,                           
     eMetric_TabFocusModel,                                
+    eMetric_ChosenMenuItemsShouldBlink,                   
 
     
 

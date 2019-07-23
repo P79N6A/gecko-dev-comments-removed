@@ -85,6 +85,14 @@ public:
   
   
   virtual PRBool MenuClosed() = 0;
+
+  
+  
+  
+  
+  
+  virtual void LockMenuUntilClosed(PRBool aLock) = 0;
+  virtual PRBool IsMenuLocked() = 0;
 };
 
 #endif

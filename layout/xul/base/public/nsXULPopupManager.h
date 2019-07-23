@@ -271,7 +271,7 @@ public:
                         PRBool aAlt,
                         PRBool aMeta,
                         PRBool aUserInput,
-                        CloseMenuMode aCloseMenuMode)
+                        PRBool aFlipChecked)
     : mMenu(aMenu),
       mIsTrusted(aIsTrusted),
       mShift(aShift),
@@ -279,12 +279,15 @@ public:
       mAlt(aAlt),
       mMeta(aMeta),
       mUserInput(aUserInput),
-      mCloseMenuMode(aCloseMenuMode)
+      mFlipChecked(aFlipChecked),
+      mCloseMenuMode(CloseMenuMode_Auto)
   {
     NS_ASSERTION(aMenu, "null menu supplied to nsXULMenuCommandEvent constructor");
   }
 
   NS_IMETHOD Run();
+
+  void SetCloseMenuMode(CloseMenuMode aCloseMenuMode) { mCloseMenuMode = aCloseMenuMode; }
 
 private:
   nsCOMPtr<nsIContent> mMenu;
@@ -294,6 +297,7 @@ private:
   PRBool mAlt;
   PRBool mMeta;
   PRBool mUserInput;
+  PRBool mFlipChecked;
   CloseMenuMode mCloseMenuMode;
 };
 
@@ -483,7 +487,7 @@ public:
 
 
 
-  void ExecuteMenu(nsIContent* aMenu, nsEvent* aEvent);
+  void ExecuteMenu(nsIContent* aMenu, nsXULMenuCommandEvent* aEvent);
 
   
 

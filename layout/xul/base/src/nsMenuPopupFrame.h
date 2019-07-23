@@ -158,6 +158,9 @@ public:
 
   virtual PRBool MenuClosed() { return PR_TRUE; }
 
+  virtual void LockMenuUntilClosed(PRBool aLock);
+  virtual PRBool IsMenuLocked() { return mIsMenuLocked; }
+
   NS_IMETHOD GetWidget(nsIWidget **aWidget);
 
   
@@ -395,6 +398,7 @@ protected:
   PRPackedBool mShouldAutoPosition; 
   PRPackedBool mConsumeRollupEvent; 
   PRPackedBool mInContentShell; 
+  PRPackedBool mIsMenuLocked; 
 
   
   PRPackedBool mHFlip;
