@@ -45,9 +45,7 @@
 
 #include "jsprvtd.h"
 #include "jspubtd.h"
-#include "jsfun.h"
 #include "jsopcode.h"
-#include "jsscript.h"
 
 JS_BEGIN_EXTERN_C
 
@@ -68,7 +66,7 @@ typedef struct JSFrameRegs {
 
 struct JSStackFrame {
     JSFrameRegs     *regs;
-    jsval           *slots;         
+    jsval           *spbase;        
     JSObject        *callobj;       
     JSObject        *argsobj;       
     JSObject        *varobj;        
@@ -79,6 +77,8 @@ struct JSStackFrame {
     uintN           argc;           
     jsval           *argv;          
     jsval           rval;           
+    uintN           nvars;          
+    jsval           *vars;          
     JSStackFrame    *down;          
     void            *annotation;    
     JSObject        *scopeChain;    
@@ -92,24 +92,6 @@ struct JSStackFrame {
     jsrefcount      pcDisabledSave; 
 #endif
 };
-
-static JS_INLINE jsval *
-StackBase(JSStackFrame *fp)
-{
-    return fp->slots + fp->script->nfixed;
-}
-
-static JS_INLINE uintN
-GlobalVarCount(JSStackFrame *fp)
-{
-    uintN n;
-    
-    JS_ASSERT(!fp->fun);
-    n = fp->script->nfixed;
-    if (fp->script->regexpsOffset != 0)
-        n -= JS_SCRIPT_REGEXPS(fp->script)->length;
-    return n;
-}
 
 typedef struct JSInlineFrame {
     JSStackFrame    frame;          
@@ -354,6 +336,12 @@ js_AllocStack(JSContext *cx, uintN nslots, void **markp);
 extern JS_FRIEND_API(void)
 js_FreeStack(JSContext *cx, void *mark);
 
+extern jsval *
+js_AllocRawStack(JSContext *cx, uintN nslots, void **markp);
+
+extern void
+js_FreeRawStack(JSContext *cx, void *mark);
+
 
 
 
@@ -385,6 +373,24 @@ js_GetPrimitiveThis(JSContext *cx, jsval *vp, JSClass *clasp, jsval *thisvp);
 
 extern JSObject *
 js_ComputeThis(JSContext *cx, JSBool lazy, jsval *argv);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+JSObject *
+js_ComputeGlobalThis(JSContext *cx, JSBool lazy, jsval *argv);
 
 extern const uint16 js_PrimitiveTestFlags[];
 
@@ -463,54 +469,6 @@ js_CheckRedeclaration(JSContext *cx, JSObject *obj, jsid id, uintN attrs,
 extern JSBool
 js_StrictlyEqual(JSContext *cx, jsval lval, jsval rval);
 
-
-
-
-
-
-
-
-
-
-
-
-#ifndef JS_LONE_INTERPRET
-# ifdef _MSC_VER
-#  define JS_LONE_INTERPRET 0
-# else
-#  define JS_LONE_INTERPRET 1
-# endif
-#endif
-
-#if !JS_LONE_INTERPRET
-# define JS_STATIC_INTERPRET    static
-#else
-# define JS_STATIC_INTERPRET
-
-extern jsval *
-js_AllocRawStack(JSContext *cx, uintN nslots, void **markp);
-
-extern void
-js_FreeRawStack(JSContext *cx, void *mark);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-extern JSObject *
-js_ComputeGlobalThis(JSContext *cx, JSBool lazy, jsval *argv);
-
 extern JSBool
 js_EnterWith(JSContext *cx, jsint stackIndex);
 
@@ -535,6 +493,9 @@ extern JSBool
 js_InternNonIntElementId(JSContext *cx, JSObject *obj, jsval idval, jsid *idp);
 
 extern JSBool
+js_ImportProperty(JSContext *cx, JSObject *obj, jsid id);
+
+extern JSBool
 js_OnUnknownMethod(JSContext *cx, jsval *vp);
 
 
@@ -549,20 +510,11 @@ js_DoIncDec(JSContext *cx, const JSCodeSpec *cs, jsval *vp, jsval *vp2);
 
 
 
-
-extern void
-js_TraceOpcode(JSContext *cx, jsint len);
-
-
-
-
 extern void
 js_MeterOpcodePair(JSOp op1, JSOp op2);
 
 extern void
 js_MeterSlotOpcode(JSOp op, uint32 slot);
-
-#endif 
 
 JS_END_EXTERN_C
 

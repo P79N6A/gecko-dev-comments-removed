@@ -103,8 +103,8 @@ JS_BEGIN_EXTERN_C
 #define JSVAL_INT_POW2(n)       ((jsval)1 << (n))
 #define JSVAL_INT_MIN           (-JSVAL_INT_POW2(30))
 #define JSVAL_INT_MAX           (JSVAL_INT_POW2(30) - 1)
-#define INT_FITS_IN_JSVAL(i)    ((jsuint)(i) - (jsuint)JSVAL_INT_MIN <=      \
-                                 (jsuint)(JSVAL_INT_MAX - JSVAL_INT_MIN))
+#define INT_FITS_IN_JSVAL(i)    ((jsuint)(i) + JSVAL_INT_MAX + 1 <=           \
+                                 2 * JSVAL_INT_MAX + 1)
 #define JSVAL_TO_INT(v)         ((jsint)(v) >> 1)
 #define INT_TO_JSVAL(i)         (((jsval)(i) << 1) | JSVAL_INT)
 
@@ -121,6 +121,7 @@ JS_BEGIN_EXTERN_C
 #define JSPROP_ENUMERATE        0x01    /* property is visible to for/in loop */
 #define JSPROP_READONLY         0x02    /* not settable: assignment is no-op */
 #define JSPROP_PERMANENT        0x04    /* property cannot be deleted */
+#define JSPROP_EXPORTED         0x08    /* property is exported from object */
 #define JSPROP_GETTER           0x10    /* property holds getter function */
 #define JSPROP_SETTER           0x20    /* property holds setter function */
 #define JSPROP_SHARED           0x40    /* don't allocate a value slot for this
@@ -139,6 +140,34 @@ JS_BEGIN_EXTERN_C
 
 #define JSFUN_DISJOINT_FLAGS(f) ((f) & 0x0f)
 #define JSFUN_GSFLAGS(f)        ((f) & (JSFUN_GETTER | JSFUN_SETTER))
+
+#ifdef MOZILLA_1_8_BRANCH
+
+
+
+
+
+#define JSFUN_GETTER_TEST(f)       (JSFUN_GSFLAGS(f) == JSFUN_GETTER)
+#define JSFUN_SETTER_TEST(f)       (JSFUN_GSFLAGS(f) == JSFUN_SETTER)
+#define JSFUN_FLAGS_TEST(f,t)      (JSFUN_GSFLAGS(~(f)) ? (f) & (t) : 0)
+#define JSFUN_BOUND_METHOD_TEST(f) JSFUN_FLAGS_TEST(f, JSFUN_BOUND_METHOD)
+#define JSFUN_HEAVYWEIGHT_TEST(f)  JSFUN_FLAGS_TEST(f, JSFUN_HEAVYWEIGHT)
+
+#define JSFUN_GSFLAG2ATTR(f)       (JSFUN_GETTER_TEST(f) ? JSPROP_GETTER :    \
+                                    JSFUN_SETTER_TEST(f) ? JSPROP_SETTER : 0)
+
+#define JSFUN_THISP_FLAGS(f)    (JSFUN_GSFLAGS(~(f)) ? 0 :                    \
+                                 (f) & JSFUN_THISP_PRIMITIVE)
+#define JSFUN_THISP_TEST(f,t)   ((f) == (t) || (f) == JSFUN_THISP_PRIMITIVE)
+
+#define JSFUN_THISP_STRING      0x30    /* |this| may be a primitive string */
+#define JSFUN_THISP_NUMBER      0x70    /* |this| may be a primitive number */
+#define JSFUN_THISP_BOOLEAN     0xb0    /* |this| may be a primitive boolean */
+#define JSFUN_THISP_PRIMITIVE   0xf0    /* |this| may be any primitive value */
+
+#define JSFUN_FLAGS_MASK        0xf8    /* overlay JSFUN_* attributes */
+
+#else
 
 #define JSFUN_GETTER_TEST(f)       ((f) & JSFUN_GETTER)
 #define JSFUN_SETTER_TEST(f)       ((f) & JSFUN_SETTER)
@@ -164,6 +193,8 @@ JS_BEGIN_EXTERN_C
 #define JSFUN_STUB_GSOPS      0x1000    /* use JS_PropertyStub getter/setter
                                            instead of defaulting to class gsops
                                            for property holding function */
+
+#endif
 
 
 
@@ -440,35 +471,6 @@ class JSAutoRequest {
     }
     void resume() {
         JS_ResumeRequest(mContext, mSaveDepth);
-    }
-
-  protected:
-    JSContext *mContext;
-    jsrefcount mSaveDepth;
-
-#if 0
-  private:
-    static void *operator new(size_t) CPP_THROW_NEW { return 0; };
-    static void operator delete(void *, size_t) { };
-#endif
-};
-
-class JSAutoSuspendRequest {
-  public:
-    JSAutoSuspendRequest(JSContext *cx) : mContext(cx) {
-        if (mContext) {
-            mSaveDepth = JS_SuspendRequest(mContext);
-        }
-    }
-    ~JSAutoSuspendRequest() {
-        resume();
-    }
-
-    void resume() {
-        if (mContext) {
-            JS_ResumeRequest(mContext, mSaveDepth);
-            mContext = 0;
-        }
     }
 
   protected:
@@ -1434,6 +1436,11 @@ struct JSPropertySpec {
 struct JSFunctionSpec {
     const char      *name;
     JSNative        call;
+#ifdef MOZILLA_1_8_BRANCH
+    uint8           nargs;
+    uint8           flags;
+    uint16          extra;
+#else
     uint16          nargs;
     uint16          flags;
 
@@ -1444,6 +1451,7 @@ struct JSFunctionSpec {
 
 
     uint32          extra;
+#endif
 };
 
 
@@ -1466,9 +1474,10 @@ struct JSFunctionSpec {
 
 
 
-#define JS_FN(name,fastcall,nargs,flags)                                      \
+#define JS_FN(name,fastcall,minargs,nargs,flags)                              \
     {name, (JSNative)(fastcall), nargs,                                       \
-     (flags) | JSFUN_FAST_NATIVE | JSFUN_STUB_GSOPS, 0}
+     (flags) | JSFUN_FAST_NATIVE | JSFUN_STUB_GSOPS,                          \
+     (minargs) << 16}
 
 extern JS_PUBLIC_API(JSObject *)
 JS_InitClass(JSContext *cx, JSObject *obj, JSObject *parent_proto,
