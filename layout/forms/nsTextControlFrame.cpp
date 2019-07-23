@@ -1866,6 +1866,11 @@ void nsTextControlFrame::SetFocus(PRBool aOn, PRBool aRepaint)
     MaybeBeginSecureKeyboardInput();
 
   
+  mSelCon->ScrollSelectionIntoView(nsISelectionController::SELECTION_NORMAL,
+                                   nsISelectionController::SELECTION_FOCUS_REGION,
+                                   PR_FALSE);
+
+  
 
   nsCOMPtr<nsISelection> ourSel;
   mSelCon->GetSelection(nsISelectionController::SELECTION_NORMAL, 
