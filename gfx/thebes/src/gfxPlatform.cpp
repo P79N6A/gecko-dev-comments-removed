@@ -598,10 +598,6 @@ gfxPlatform::GetCMSOutputProfile()
                                         getter_Copies(fname));
                 if (NS_SUCCEEDED(rv) && !fname.IsEmpty()) {
                     gCMSOutputProfile = cmsOpenProfileFromFile(fname, "r");
-                    if (gCMSOutputProfile)
-                        fprintf(stderr,
-                                "ICM profile read from %s successfully\n",
-                                fname.get());
                 }
             }
         }
@@ -609,6 +605,15 @@ gfxPlatform::GetCMSOutputProfile()
         if (!gCMSOutputProfile) {
             gCMSOutputProfile =
                 gfxPlatform::GetPlatform()->GetPlatformCMSOutputProfile();
+        }
+
+        
+
+        if (gCMSOutputProfile && cmsProfileIsBogus(gCMSOutputProfile)) {
+            NS_ASSERTION(gCMSOutputProfile != GetCMSsRGBProfile(),
+                         "Builtin sRGB profile tagged as bogus!!!");
+            cmsCloseProfile(gCMSOutputProfile);
+            gCMSOutputProfile = nsnull;
         }
 
         if (!gCMSOutputProfile) {
