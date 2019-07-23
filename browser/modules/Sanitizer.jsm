@@ -22,6 +22,7 @@
 # Contributor(s):
 #   Ben Goodger <ben@mozilla.org>
 #   Giorgio Maone <g.maone@informaction.com>
+#   Ehsan Akhgari <ehsan.akhgari@gmail.com>
 #
 # Alternatively, the contents of this file may be used under the terms of
 # either the GNU General Public License Version 2 or later (the "GPL"), or
@@ -255,7 +256,6 @@ Sanitizer.prototype = {
 
 
 Sanitizer.prefDomain          = "privacy.sanitize.";
-Sanitizer.prefPrompt          = "promptOnSanitize";
 Sanitizer.prefShutdown        = "sanitizeOnShutdown";
 Sanitizer.prefDidShutdown     = "didShutdownSanitize";
 
@@ -290,15 +290,10 @@ Sanitizer.showUI = function(aParentWindow)
 
 
 
-
-
 Sanitizer.sanitize = function(aParentWindow) 
 {
-  if (Sanitizer.prefs.getBoolPref(Sanitizer.prefPrompt)) {
-    Sanitizer.showUI(aParentWindow);
-    return null;
-  }
-  return new Sanitizer().sanitize();
+  Sanitizer.showUI(aParentWindow);
+  return null;
 };
 
 Sanitizer.onStartup = function() 
@@ -320,7 +315,7 @@ Sanitizer._checkAndSanitize = function()
   if (prefs.getBoolPref(Sanitizer.prefShutdown) && 
       !prefs.prefHasUserValue(Sanitizer.prefDidShutdown)) {
     
-    Sanitizer.sanitize(null) || 
+    new Sanitizer().sanitize() || 
       prefs.setBoolPref(Sanitizer.prefDidShutdown, true);
   }
 };

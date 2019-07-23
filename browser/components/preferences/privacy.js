@@ -39,6 +39,7 @@
 
 
 
+
 var gPrivacyPane = {
 
   
@@ -48,7 +49,6 @@ var gPrivacyPane = {
   init: function ()
   {
     this._updateHistoryDaysUI();
-    this.updateClearNowButtonLabel();
   },
 
   
@@ -259,26 +259,6 @@ var gPrivacyPane = {
 
 
 
-
-
-  
-
-
-
-
-
-
-  updateClearNowButtonLabel: function ()
-  {
-    var pref = document.getElementById("privacy.sanitize.promptOnSanitize");
-    var clearNowButton = document.getElementById("clearDataNow");
-
-    if (pref.valueFromPreferences)
-      clearNowButton.label = clearNowButton.getAttribute("label1"); 
-    else
-      clearNowButton.label = clearNowButton.getAttribute("label2"); 
-  },
-
   
 
 
@@ -286,12 +266,9 @@ var gPrivacyPane = {
   {
     document.documentElement.openSubDialog("chrome://browser/content/preferences/sanitize.xul",
                                            "", null);
-    this.updateClearNowButtonLabel();
   },
 
   
-
-
 
 
 

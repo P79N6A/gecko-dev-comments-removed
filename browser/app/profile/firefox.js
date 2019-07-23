@@ -417,7 +417,6 @@ pref("privacy.item.offlineApps", false);
 
 pref("privacy.sanitize.timeSpan", 0);
 pref("privacy.sanitize.sanitizeOnShutdown", false);
-pref("privacy.sanitize.promptOnSanitize", true);
 
 pref("network.proxy.share_proxy_settings",  false); 
 
