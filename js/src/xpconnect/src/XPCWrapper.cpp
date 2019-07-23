@@ -618,7 +618,9 @@ ResolveNativeProperty(JSContext *cx, JSObject *wrapperObj,
     
     
 
-    return MaybePreserveWrapper(cx, wn, flags);
+    MaybePreserveWrapper(cx, wn, flags);
+
+    return JS_TRUE;
   }
 
   
@@ -634,7 +636,9 @@ ResolveNativeProperty(JSContext *cx, JSObject *wrapperObj,
   if (!iface) {
     
 
-    return MaybePreserveWrapper(cx, wn, flags);
+    MaybePreserveWrapper(cx, wn, flags);
+
+    return JS_TRUE;
   }
 
   
@@ -642,7 +646,9 @@ ResolveNativeProperty(JSContext *cx, JSObject *wrapperObj,
   if (!member) {
     
 
-    return MaybePreserveWrapper(cx, wn, flags);
+    MaybePreserveWrapper(cx, wn, flags);
+
+    return JS_TRUE;
   }
 
   JSString *str = JSVAL_TO_STRING(id);
