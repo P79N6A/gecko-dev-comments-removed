@@ -2316,6 +2316,7 @@ nsJSContext::ConnectToInner(nsIScriptGlobalObject *aNewInner, void *aOuterGlobal
   
   
   
+  ::JS_ClearScope(mContext, myobject);
 
   
   
