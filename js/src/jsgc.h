@@ -383,13 +383,16 @@ class JSFreePointerListTask : public JSBackgroundTask {
 extern void
 js_FinalizeStringRT(JSRuntime *rt, JSString *str);
 
-#ifdef DEBUG_notme
-#define JS_GCMETER 1
+#if defined JS_GCMETER
+const bool JS_WANT_GC_METER_PRINT = true;
+#elif defined DEBUG
+# define JS_GCMETER 1
+const bool JS_WANT_GC_METER_PRINT = false;
 #endif
 
 #ifdef JS_GCMETER
 
-typedef struct JSGCArenaStats {
+struct JSGCArenaStats {
     uint32  alloc;          
     uint32  localalloc;     
     uint32  retry;          
@@ -403,9 +406,9 @@ typedef struct JSGCArenaStats {
     uint32  maxarenas;      
     uint32  totalarenas;    
 
-} JSGCArenaStats;
+};
 
-typedef struct JSGCStats {
+struct JSGCStats {
     uint32  finalfail;  
     uint32  lockborn;   
     uint32  lock;       
@@ -430,9 +433,9 @@ typedef struct JSGCStats {
     uint32  closelater; 
     uint32  maxcloselater; 
 
-    JSGCArenaStats  arenaStats[FINALIZE_LIST_LIMIT];
+    JSGCArenaStats  arenaStats[FINALIZE_LIMIT];
     JSGCArenaStats  doubleArenaStats;
-} JSGCStats;
+};
 
 extern JS_FRIEND_API(void)
 js_DumpGCStats(JSRuntime *rt, FILE *fp);
