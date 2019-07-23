@@ -59,12 +59,14 @@
 #include "nsNetUtil.h"
 #include "nsReadableUtils.h"
 #include "nsStreamUtils.h"
-#include "nsStringStream.h"
 #include "mozStorageHelper.h"
 
 
-#include "imgITools.h"
-#include "imgIContainer.h"
+
+
+
+
+#define MAX_FAVICON_SIZE 32768
 
 #define FAVICON_BUFFER_INCREMENT 8192
 
@@ -551,24 +553,6 @@ nsFaviconService::SetFaviconData(nsIURI* aFavicon, const PRUint8* aData,
                                  PRTime aExpiration)
 {
   nsresult rv;
-  PRUint32 dataLen = aDataLen;
-  const PRUint8* data = aData;
-  const nsACString* mimeType = &aMimeType;
-  nsCString newData, newMimeType;
-
-  
-  
-  
-  
-  if (aDataLen > 1024) {
-    rv = OptimizeFaviconImage(aData, aDataLen, aMimeType, newData, newMimeType);
-    if (NS_SUCCEEDED(rv) && newData.Length() < aDataLen) {
-      data = reinterpret_cast<PRUint8*>(const_cast<char*>(newData.get())),
-      dataLen = newData.Length();
-      mimeType = &newMimeType;
-    }
-  }
-
   mozIStorageStatement* statement;
   {
     
@@ -599,9 +583,9 @@ nsFaviconService::SetFaviconData(nsIURI* aFavicon, const PRUint8* aData,
   mozStorageStatementScoper scoper(statement);
 
   
-  rv = statement->BindBlobParameter(1, data, dataLen);
+  rv = statement->BindBlobParameter(1, aData, aDataLen);
   NS_ENSURE_SUCCESS(rv, rv);
-  rv = statement->BindUTF8StringParameter(2, *mimeType);
+  rv = statement->BindUTF8StringParameter(2, aMimeType);
   NS_ENSURE_SUCCESS(rv, rv);
   rv = statement->BindInt64Parameter(3, aExpiration);
   NS_ENSURE_SUCCESS(rv, rv);
@@ -816,48 +800,6 @@ nsFaviconService::GetFaviconSpecForIconString(const nsCString& aSpec, nsACString
 }
 
 
-
-
-
-
-nsresult
-nsFaviconService::OptimizeFaviconImage(const PRUint8* aData, PRUint32 aDataLen,
-                                       const nsACString& aMimeType,
-                                       nsACString& aNewData,
-                                       nsACString& aNewMimeType)
-{
-  nsresult rv;
-  
-
-  nsCOMPtr<imgITools> imgtool = do_CreateInstance("@mozilla.org/image/tools;1");
-
-  nsCOMPtr<nsIInputStream> stream;
-  rv = NS_NewByteInputStream(getter_AddRefs(stream),
-                reinterpret_cast<const char*>(aData), aDataLen,
-                NS_ASSIGNMENT_DEPEND);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  
-  nsCOMPtr<imgIContainer> container;
-  rv = imgtool->DecodeImageData(stream, aMimeType, getter_AddRefs(container));
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  aNewMimeType.AssignLiteral("image/png");
-
-  
-  nsCOMPtr<nsIInputStream> iconStream;
-  rv = imgtool->EncodeScaledImage(container, aNewMimeType, 16, 16,
-                                  getter_AddRefs(iconStream));
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  
-  rv = NS_ConsumeStream(iconStream, PR_UINT32_MAX, aNewData);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  return NS_OK;
-}
-
-
 NS_IMPL_ISUPPORTS4(FaviconLoadListener,
                    nsIRequestObserver,
                    nsIStreamListener,
@@ -984,6 +926,9 @@ FaviconLoadListener::OnDataAvailable(nsIRequest *aRequest, nsISupports *aContext
                                   nsIInputStream *aInputStream,
                                   PRUint32 aOffset, PRUint32 aCount)
 {
+  if (aOffset + aCount > MAX_FAVICON_SIZE)
+    return NS_ERROR_FAILURE; 
+
   nsCString buffer;
   nsresult rv = NS_ConsumeStream(aInputStream, aCount, buffer);
   if (rv != NS_BASE_STREAM_WOULD_BLOCK && NS_FAILED(rv))

@@ -93,6 +93,10 @@ function compareArrays(aArray1, aArray2) {
 
 
 function run_test() {
+
+
+return;
+
 try {
 
 
