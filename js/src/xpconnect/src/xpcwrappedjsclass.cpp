@@ -1435,6 +1435,41 @@ nsXPCWrappedJSClass::CallMethod(nsXPCWrappedJS* wrapper, uint16 methodIndex,
     }
 
     
+    if(XPT_MD_IS_GETTER(info->flags) || XPT_MD_IS_SETTER(info->flags))
+    {
+        
+        uintN attrs;
+        JSBool found;
+        JSPropertyOp getter;
+        JSPropertyOp setter;
+        if(!JS_GetPropertyAttrsGetterAndSetter(cx, obj, name,
+                                               &attrs, &found,
+                                               &getter, &setter))
+        {
+            
+            JS_ClearPendingException(cx);
+            goto pre_call_clean_up;
+        }
+
+        if(XPT_MD_IS_GETTER(info->flags) && (attrs & JSPROP_GETTER))
+        {
+            
+            
+            ccx.SetCallee(JS_FUNC_TO_DATA_PTR(JSObject*, getter));
+        }
+        else if(XPT_MD_IS_SETTER(info->flags) && (attrs & JSPROP_SETTER))
+        {
+            
+            
+            ccx.SetCallee(JS_FUNC_TO_DATA_PTR(JSObject*, setter));
+        }
+    }
+    else if(JSVAL_IS_OBJECT(fval))
+    {
+        ccx.SetCallee(JSVAL_TO_OBJECT(fval));
+    }
+
+    
     for(i = 0; i < argc; i++)
     {
         const nsXPTParamInfo& param = info->params[i];
@@ -1487,39 +1522,6 @@ nsXPCWrappedJSClass::CallMethod(nsXPCWrappedJS* wrapper, uint16 methodIndex,
                                           i, GET_LENGTH, nativeParams,
                                           &array_count))
                     goto pre_call_clean_up;
-            }
-
-            
-            if(XPT_MD_IS_GETTER(info->flags) || XPT_MD_IS_SETTER(info->flags))
-            {
-                
-                uintN attrs;
-                JSBool found;
-                JSPropertyOp getter;
-                JSPropertyOp setter;
-                JSBool ok =
-                    JS_GetPropertyAttrsGetterAndSetter(cx, obj, name,
-                                                       &attrs, &found,
-                                                       &getter, &setter);
-                if(ok)
-                {
-                    if(XPT_MD_IS_GETTER(info->flags) && (attrs & JSPROP_GETTER))
-                    {
-                        
-                        
-                        ccx.SetCallee(JS_FUNC_TO_DATA_PTR(JSObject*, getter));
-                    }
-                    else if(XPT_MD_IS_SETTER(info->flags) && (attrs & JSPROP_SETTER))
-                    {
-                        
-                        
-                        ccx.SetCallee(JS_FUNC_TO_DATA_PTR(JSObject*, setter));
-                    }
-                }
-            }
-            else if(JSVAL_IS_OBJECT(fval))
-            {
-                ccx.SetCallee(JSVAL_TO_OBJECT(fval));
             }
 
             if(isArray)
