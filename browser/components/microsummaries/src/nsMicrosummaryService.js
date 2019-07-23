@@ -2065,10 +2065,8 @@ MicrosummaryResource.prototype = {
     if (request.responseXML) {
       this._isXML = true;
       
-      if (request.responseXML.documentElement.nodeName == "parsererror") {
-        this._handleError(event);
-        return;
-      }
+      if (request.responseXML.documentElement.nodeName == "parsererror")
+        throw(request.channel.originalURI.spec + " contains invalid XML");
       this._content = request.responseXML;
       this._contentType = request.channel.contentType;
       this._loadCallback(this);
@@ -2112,10 +2110,8 @@ MicrosummaryResource.prototype = {
     
     
     
-    if (!window) {
-      this._handleError(event);
-      return;
-    }
+    if (!window)
+      throw(this._uri.spec + " can't parse; no browser window");
     var document = window.document;
     var rootElement = document.documentElement;
   
