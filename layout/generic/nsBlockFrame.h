@@ -70,6 +70,7 @@ enum LineReflowStatus {
 };
 
 class nsBlockReflowState;
+class nsBlockInFlowLineIterator;
 class nsBulletFrame;
 class nsLineBox;
 class nsFirstLineFrame;
@@ -608,6 +609,7 @@ protected:
   nsBulletFrame* mBullet;
 
   friend class nsBlockReflowState;
+  friend class nsBlockInFlowLineIterator;
 
 private:
   nsAbsoluteContainingBlock mAbsoluteContainer;
@@ -653,5 +655,32 @@ private:
 };
 #endif
 
-#endif 
 
+
+
+class nsBlockInFlowLineIterator {
+public:
+  typedef nsBlockFrame::line_iterator line_iterator;
+  nsBlockInFlowLineIterator(nsBlockFrame* aFrame, line_iterator& aLine, PRBool aInOverflow);
+
+  line_iterator GetLine() { return mLine; }
+  nsBlockFrame* GetContainer() { return mFrame; }
+  PRBool GetInOverflow() { return mInOverflowLines != nsnull; }
+  
+
+
+
+  PRBool Next();
+  
+
+
+
+  PRBool Prev();
+
+private:
+  nsBlockFrame* mFrame;
+  line_iterator mLine;
+  nsLineList*   mInOverflowLines;
+};
+
+#endif 
