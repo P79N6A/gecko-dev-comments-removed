@@ -2864,7 +2864,7 @@ NativeToValueBase(JSContext* cx, jsval& v, JSTraceType type, double* slot)
 
 
 
-            if (JS_THREAD_DATA(cx)->gcFreeLists.doubles) {
+            if (JS_THREAD_DATA(cx)->doubleFreeList) {
 #ifdef DEBUG
             JSBool ok =
 #endif

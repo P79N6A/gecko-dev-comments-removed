@@ -130,6 +130,27 @@ js_RegisterCloseableIterator(JSContext *cx, JSObject *obj);
 
 
 
+
+
+extern JSObject*
+js_NewGCObject(JSContext *cx);
+
+extern JSString*
+js_NewGCString(JSContext *cx);
+
+extern JSString*
+js_NewGCExternalString(JSContext *cx, uintN type);
+
+extern JSFunction*
+js_NewGCFunction(JSContext *cx);
+
+extern JSXML*
+js_NewGCXML(JSContext *cx);
+
+
+
+
+
 extern JSBool
 js_NewDoubleInRootedValue(JSContext *cx, jsdouble d, jsval *vp);
 
@@ -260,78 +281,28 @@ IsFinalizableStringKind(unsigned thingKind)
            thingKind <= unsigned(FINALIZE_EXTERNAL_STRING_LAST);
 }
 
-
-
-
-
-
-
-extern void *
-NewFinalizableGCThing(JSContext *cx, unsigned thingKind);
-
-static inline JSObject *
-js_NewGCObject(JSContext *cx)
-{
-    return (JSObject *) NewFinalizableGCThing(cx, FINALIZE_OBJECT);
-}
-
-static inline JSString *
-js_NewGCString(JSContext *cx)
-{
-    return (JSString *) NewFinalizableGCThing(cx, FINALIZE_STRING);
-}
-
-static inline JSString *
-js_NewGCExternalString(JSContext *cx, uintN type)
-{
-    JS_ASSERT(type < JS_EXTERNAL_STRING_LIMIT);
-    return (JSString *) NewFinalizableGCThing(cx,
-                                              FINALIZE_EXTERNAL_STRING0 + type);
-}
-
-static inline JSFunction*
-js_NewGCFunction(JSContext *cx)
-{
-    return (JSFunction *) NewFinalizableGCThing(cx, FINALIZE_FUNCTION);
-}
-
-#if JS_HAS_XML_SUPPORT
-static inline JSXML *
-js_NewGCXML(JSContext *cx)
-{
-    return (JSXML *) NewFinalizableGCThing(cx, FINALIZE_XML);
-}
-#endif
-
-struct JSGCArenaInfo;
-struct JSGCChunkInfo;
+typedef struct JSGCArenaInfo JSGCArenaInfo;
+typedef struct JSGCArenaList JSGCArenaList;
+typedef struct JSGCChunkInfo JSGCChunkInfo;
 
 struct JSGCArenaList {
-    JSGCArenaInfo   *head;          
-    JSGCArenaInfo   *cursor;        
+    JSGCArenaInfo   *last;          
+    uint32          lastCount;      
+
     uint32          thingKind;      
     uint32          thingSize;      
 
+    JSGCThing       *freeList;      
+};
+
+union JSGCDoubleCell {
+    double          number;
+    JSGCDoubleCell  *link;
 };
 
 struct JSGCDoubleArenaList {
-    JSGCArenaInfo   *head;          
-    JSGCArenaInfo   *cursor;        
-};
-
-struct JSGCFreeLists {
-    JSGCThing       *doubles;
-    JSGCThing       *finalizables[FINALIZE_LIMIT];
-
-    void purge();
-
-#ifdef DEBUG
-    void assertEmpty() const {
-        JS_ASSERT(!doubles);
-        for (size_t i = 0; i != JS_ARRAY_LENGTH(finalizables); ++i)
-            JS_ASSERT(!finalizables[i]);
-    }
-#endif
+    JSGCArenaInfo   *first;             
+    JSGCArenaInfo   *cursor;            
 };
 
 extern void
@@ -339,16 +310,19 @@ js_DestroyScriptsToGC(JSContext *cx, JSThreadData *data);
 
 struct JSWeakRoots {
     
-    void            *finalizableNewborns[FINALIZE_LIMIT];
+    JSObject        *newbornObject;
     jsdouble        *newbornDouble;
+    JSString        *newbornString;
+#if JS_HAS_XML_SUPPORT
+    JSXML           *newbornXML;
+#endif
+    JSString        *newbornExternalString[JS_EXTERNAL_STRING_LIMIT];
 
     
     jsval           lastAtom;
 
     
     jsval           lastInternalResult;
-
-    void mark(JSTracer *trc);
 };
 
 #define JS_CLEAR_WEAK_ROOTS(wr) (memset((wr), 0, sizeof(JSWeakRoots)))

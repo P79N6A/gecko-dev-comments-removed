@@ -289,7 +289,8 @@ typedef struct JSFunctionMeter {
 #endif
 
 struct JSThreadData {
-    JSGCFreeLists       gcFreeLists;
+    
+    JSGCDoubleCell      *doubleFreeList;
 
     
 
@@ -364,6 +365,8 @@ struct JSThread {
 
     
     JSTitle             *titleToShare;
+
+    JSGCThing           *gcFreeLists[FINALIZE_LIMIT];
 
     
     JSThreadData        data;
