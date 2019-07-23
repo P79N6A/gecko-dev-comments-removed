@@ -3832,7 +3832,7 @@ nsWindow::IPCWindowProcHandler(UINT& msg, WPARAM& wParam, LPARAM& lParam)
   
 
   
-  if (msg == WM_SETFOCUS &&
+  if ((msg == WM_SETFOCUS || msg == WM_KILLFOCUS) &&
       (InSendMessageEx(NULL)&(ISMEX_REPLIED|ISMEX_SEND)) == ISMEX_SEND) {
     ReplyMessage(0);
     return;
