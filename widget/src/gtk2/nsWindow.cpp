@@ -532,10 +532,20 @@ nsWindow::SetModal(PRBool aModal)
     if (!grabWidget)
         return NS_ERROR_FAILURE;
 
+    
+    
+    if (mTransientParent) {
+        GtkWidget *transientWidget = GTK_WIDGET(mTransientParent);
+        nsRefPtr<nsWindow> parent = get_window_for_gtk_widget(transientWidget);
+        if (!parent)
+            return NS_ERROR_FAILURE;
+        parent->mContainerBlockFocus = aModal;
+    }
+
     if (aModal)
-        gtk_grab_add(grabWidget);
+        gtk_window_set_modal(GTK_WINDOW(grabWidget), TRUE);
     else
-        gtk_grab_remove(grabWidget);
+        gtk_window_set_modal(GTK_WINDOW(grabWidget), FALSE);
 
     return NS_OK;
 }
