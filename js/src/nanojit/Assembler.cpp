@@ -214,7 +214,7 @@ namespace nanojit
 
 		
 		
-		LIns* vic = findVictim(regs,allow);
+		LIns* vic = findVictim(regs, allow);
 		NanoAssert(vic != NULL);
 
 	    Reservation* resv = getresv(vic);
@@ -527,6 +527,16 @@ namespace nanojit
 	{
 		return findRegFor(i, rmask(w));
 	}
+
+    Register Assembler::getBaseReg(LIns *i, int &d, RegisterMask allow)
+    {
+        if (i->isop(LIR_alloc)) {
+            d += findMemFor(i);
+            return FP;
+        } else {
+            return findRegFor(i, allow);
+        }
+    }
 			
 	Register Assembler::findRegFor(LIns* i, RegisterMask allow)
 	{
@@ -554,6 +564,8 @@ namespace nanojit
 			resv = reserveAlloc(i);
 
         r = resv->reg;
+
+#ifdef AVMPLUS_IA32
         if (r != UnknownReg && 
             ((rmask(r)&XmmRegs) && !(allow&XmmRegs) ||
                  (rmask(r)&x87Regs) && !(allow&x87Regs)))
@@ -563,6 +575,7 @@ namespace nanojit
             evict(r);
             r = UnknownReg;
         }
+#endif
 
         if (r == UnknownReg)
 		{
@@ -608,6 +621,20 @@ namespace nanojit
 		Register rr = findRegFor(i, allow);
 		freeRsrcOf(i, pop);
 		return rr;
+	}
+
+	void Assembler::asm_spilli(LInsp i, Reservation *resv, bool pop)
+	{
+		int d = disp(resv);
+		Register rr = resv->reg;
+		bool quad = i->opcode() == LIR_param || i->isQuad();
+		asm_spill(rr, d, pop, quad);
+		if (d) 
+		{
+			verbose_only(if (_verbose) {
+				outputf("        spill %s",_thisfrag->lirbuf->names->formatRef(i));
+			})
+		}
 	}
 
 	void Assembler::freeRsrcOf(LIns *i, bool pop)
@@ -667,13 +694,7 @@ namespace nanojit
 			
 			}
 			else if (!rhs->isQuad()) {
-				Register r;
-				if (lhs->isop(LIR_alloc)) {
-					r = FP;
-					c += findMemFor(lhs);
-				} else {
-					r = findRegFor(lhs, GpRegs);
-				}
+				Register r = getBaseReg(lhs, c, GpRegs);
 				CMPi(r, c);
 			}
 		}
@@ -1070,7 +1091,11 @@ namespace nanojit
                         JMP(_epilogue);
                     }
                     assignSavedParams();
+#ifdef NANOJIT_IA32
                     findSpecificRegFor(ins->oprnd1(), FST0);
+#else
+                    NanoAssert(false);
+#endif
                     fpu_pop();
                     break;
                 }
@@ -1136,12 +1161,11 @@ namespace nanojit
 					        prepResultReg(ins, rmask(argRegs[a]));
                         } else {
                             
-                            
-                            Register r = prepResultReg(ins, GpRegs & ~rmask(EAX));
+                            Register r = prepResultReg(ins, GpRegs);
                             int d = (a - abi_regcount) * sizeof(intptr_t) + 8;
                             LD(r, d, FP); 
                         }
-                    } 
+                    }
                     else {
                         
                         prepResultReg(ins, rmask(savedRegs[a]));
@@ -1243,14 +1267,8 @@ namespace nanojit
 					LIns* base = ins->oprnd1();
 					LIns* disp = ins->oprnd2();
 					Register rr = prepResultReg(ins, GpRegs);
-					Register ra;
 					int d = disp->constval();
-                    if (base->isop(LIR_alloc)) {
-                        ra = FP;
-                        d += findMemFor(base);
-                    } else {
-                        ra = findRegFor(base, GpRegs);
-                    }
+                    Register ra = getBaseReg(base, d, GpRegs);
 					if (op == LIR_ldcb)
 						LD8Z(rr, d, ra);
 					else
