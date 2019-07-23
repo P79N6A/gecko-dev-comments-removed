@@ -39,7 +39,7 @@
 #define nsPluginsDirUtils_h___
 
 #include "nsPluginsDir.h"
-#include "nsVoidArray.h"
+#include "nsTArray.h"
 #include "prmem.h"
 
 
@@ -58,7 +58,7 @@ ParsePluginMimeDescription(const char *mdesc, nsPluginInfo &info)
 
     char *mdescDup = PL_strdup(mdesc); 
     char anEmptyString[] = "";
-    nsAutoVoidArray tmpMimeTypeArr;
+    nsAutoTArray<char*, 8> tmpMimeTypeArr;
     char delimiters[] = {':',':',';'};
     int mimeTypeVariantCount = 0;
     char *p = mdescDup; 
@@ -88,9 +88,9 @@ ParsePluginMimeDescription(const char *mdesc, nsPluginInfo &info)
         
         
         if (ptrMimeArray[0] != anEmptyString) {
-            tmpMimeTypeArr.AppendElement((void*) ptrMimeArray[0]);
-            tmpMimeTypeArr.AppendElement((void*) ptrMimeArray[1]);
-            tmpMimeTypeArr.AppendElement((void*) ptrMimeArray[2]);
+            tmpMimeTypeArr.AppendElement(ptrMimeArray[0]);
+            tmpMimeTypeArr.AppendElement(ptrMimeArray[1]);
+            tmpMimeTypeArr.AppendElement(ptrMimeArray[2]);
             mimeTypeVariantCount++;
         }
     }
@@ -107,9 +107,9 @@ ParsePluginMimeDescription(const char *mdesc, nsPluginInfo &info)
         for (j = i = 0; i < mimeTypeVariantCount; i++) {
             
            
-            info.fMimeTypeArray[i]        =  PL_strdup((char*) tmpMimeTypeArr.ElementAt(j++));
-            info.fExtensionArray[i]       =  PL_strdup((char*) tmpMimeTypeArr.ElementAt(j++));
-            info.fMimeDescriptionArray[i] =  PL_strdup((char*) tmpMimeTypeArr.ElementAt(j++));
+            info.fMimeTypeArray[i]        =  PL_strdup(tmpMimeTypeArr.ElementAt(j++));
+            info.fExtensionArray[i]       =  PL_strdup(tmpMimeTypeArr.ElementAt(j++));
+            info.fMimeDescriptionArray[i] =  PL_strdup(tmpMimeTypeArr.ElementAt(j++));
         }
         rv = NS_OK;
     }
