@@ -1161,6 +1161,14 @@ js_CleanupThreadPrivateData();
 
 
 
+
+extern void
+js_SyncOptionsToVersion(JSContext *cx);
+
+
+
+
+
 extern void
 js_OnVersionChange(JSContext *cx);
 
