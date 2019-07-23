@@ -389,6 +389,8 @@ private:
   PRInt64 mResumedAt;
   double mSpeed;
 
+  PRBool mHasMultipleFiles;
+
   
 
 

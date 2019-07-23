@@ -1767,6 +1767,7 @@ nsDownload::nsDownload() : mDownloadState(nsIDownloadManager::DOWNLOAD_NOTSTARTE
                            mLastUpdate(PR_Now() - (PRUint32)gUpdateInterval),
                            mResumedAt(-1),
                            mSpeed(0),
+                           mHasMultipleFiles(PR_FALSE),
                            mAutoResume(DONT_RESUME)
 {
 }
@@ -2009,6 +2010,10 @@ nsDownload::OnProgressChange64(nsIWebProgress *aWebProgress,
   mDownloadManager->NotifyListenersOnProgressChange(
     aWebProgress, aRequest, currBytes, maxBytes, currBytes, maxBytes, this);
 
+  
+  if (aMaxSelfProgress != aMaxTotalProgress)
+    mHasMultipleFiles = PR_TRUE;
+
   return NS_OK;
 }
 
@@ -2066,8 +2071,7 @@ nsDownload::OnStateChange(nsIWebProgress *aWebProgress,
 
   
   
-
-  if (aStateFlags & STATE_START) {
+  if ((aStateFlags & STATE_START) && (aStateFlags & STATE_IS_NETWORK)) {
     nsresult rv;
     nsCOMPtr<nsIHttpChannel> channel = do_QueryInterface(aRequest, &rv);
     if (NS_SUCCEEDED(rv)) {
@@ -2082,7 +2086,10 @@ nsDownload::OnStateChange(nsIWebProgress *aWebProgress,
         (void)SetState(nsIDownloadManager::DOWNLOAD_BLOCKED);
       }
     }
-  } else if ((aStateFlags & STATE_STOP) && IsFinishable()) {
+  } else if ((aStateFlags & STATE_STOP) && (aStateFlags & STATE_IS_NETWORK) &&
+             IsFinishable()) {
+    
+    
     if (NS_SUCCEEDED(aStatus)) {
       
       
@@ -2092,7 +2099,8 @@ nsDownload::OnStateChange(nsIWebProgress *aWebProgress,
       nsCOMPtr<nsILocalFile> file;
       
       nsCOMPtr<nsIFile> clone;
-      if (NS_SUCCEEDED(GetTargetFile(getter_AddRefs(file))) &&
+      if (!mHasMultipleFiles &&
+          NS_SUCCEEDED(GetTargetFile(getter_AddRefs(file))) &&
           NS_SUCCEEDED(file->Clone(getter_AddRefs(clone))) &&
           NS_SUCCEEDED(clone->GetFileSize(&fileSize)) && fileSize > 0) {
         mCurrBytes = mMaxBytes = fileSize;
