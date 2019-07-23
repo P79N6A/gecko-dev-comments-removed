@@ -5994,7 +5994,7 @@ js_EmitTree(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn)
 
 
         pn2 = pn->pn_head;
-        op = JSOP_NEWINIT;      
+        op = JSOP_NEWARRAY;
 
 #if JS_HAS_SHARP_VARS
         if (pn2 && pn2->pn_type == TOK_DEFSHARP)
