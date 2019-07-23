@@ -795,12 +795,6 @@ main(PRInt32 argc, char *argv[])
         name += NS_LITERAL_CSTRING("=creation");
         SetACookie(cookieService, "http://creation.ordering.tests/", nsnull, name.get(), nsnull);
 
-        if (i == 9) {
-          
-          
-          PR_Sleep(2 * PR_TicksPerSecond());
-        }
-
         if (i >= 10) {
           expected += name;
           if (i < 59)
@@ -818,12 +812,6 @@ main(PRInt32 argc, char *argv[])
         host.AppendInt(i);
         host += NS_LITERAL_CSTRING(".tests/");
         SetACookie(cookieService, host.get(), nsnull, "test=eviction", nsnull);
-
-        if (i == 9) {
-          
-          
-          PR_Sleep(2 * PR_TicksPerSecond());
-        }
       }
       rv[1] = NS_SUCCEEDED(cookieMgr->GetEnumerator(getter_AddRefs(enumerator)));
       i = 0;
