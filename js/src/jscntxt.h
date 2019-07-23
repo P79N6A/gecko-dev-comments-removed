@@ -249,6 +249,12 @@ struct JSThreadData {
 #ifdef JS_EVAL_CACHE_METERING
     JSEvalCacheMeter    evalCacheMeter;
 #endif
+
+    
+
+
+
+    size_t              gcMallocBytes;
 };
 
 #ifdef JS_THREADSAFE
@@ -263,12 +269,6 @@ struct JSThread {
 
     
     jsword              id;
-
-    
-
-
-
-    uint32              gcMallocBytes;
 
     
     JSTitle             *titleToShare;
@@ -395,7 +395,7 @@ struct JSRuntime {
 #endif
 
     JSGCCallback        gcCallback;
-    uint32              gcMallocBytes;
+    size_t              gcMallocBytes;
     JSGCArenaInfo       *gcUntracedArenaStackTop;
 #ifdef DEBUG
     size_t              gcTraceLaterCount;
@@ -1040,6 +1040,17 @@ struct JSContext {
     uintN               nativeVpLen;
     jsval               *nativeVp;
 #endif
+
+    
+    inline void
+    updateMallocCounter(size_t nbytes)
+    {
+        size_t *pbytes, bytes;
+
+        pbytes = &JS_THREAD_DATA(this)->gcMallocBytes;
+        bytes = *pbytes;
+        *pbytes = (size_t(-1) - bytes <= nbytes) ? size_t(-1) : bytes + nbytes;
+    }
 };
 
 #ifdef JS_THREADSAFE
