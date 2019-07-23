@@ -56,6 +56,7 @@
 #include "nsIDOMNodeList.h"
 #include "nsGkAtoms.h"
 #include "nsContentUtils.h"
+#include "nsGenericDOMDataNode.h"
 
 nsresult NS_NewContentIterator(nsIContentIterator** aInstancePtrResult);
 nsresult NS_NewContentSubtreeIterator(nsIContentIterator** aInstancePtrResult);
@@ -1098,10 +1099,80 @@ CollapseRangeAfterDelete(nsIDOMRange *aRange)
   return aRange->Collapse(PR_FALSE);
 }
 
-nsresult nsRange::DeleteContents()
+
+
+
+
+
+static nsresult
+RemoveNode(nsIDOMNode* aNode)
+{
+  nsCOMPtr<nsINode> node = do_QueryInterface(aNode);
+  nsCOMPtr<nsINode> parent = node->GetNodeParent();
+  return parent ? parent->RemoveChildAt(parent->IndexOf(node), PR_TRUE) : NS_OK;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+static nsresult SplitDataNode(nsIDOMCharacterData* aStartNode,
+                              PRUint32 aStartIndex,
+                              PRUint32 aEndIndex,
+                              nsIDOMCharacterData** aMiddleNode,
+                              nsIDOMCharacterData** aEndNode,
+                              PRBool aCloneAfterOriginal = PR_TRUE)
+{
+  nsresult rv;
+  nsCOMPtr<nsINode> node = do_QueryInterface(aStartNode);
+  NS_ENSURE_STATE(node && node->IsNodeOfType(nsINode::eDATA_NODE));
+  nsGenericDOMDataNode* dataNode = static_cast<nsGenericDOMDataNode*>(node.get());
+  
+  if (aEndNode && aEndIndex > aStartIndex) {
+    nsCOMPtr<nsIContent> newData;
+    rv = dataNode->SplitData(aEndIndex, getter_AddRefs(newData),
+                             aCloneAfterOriginal);
+    NS_ENSURE_SUCCESS(rv, rv);
+    rv = CallQueryInterface(newData, aEndNode);
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
+
+  nsCOMPtr<nsIContent> newData;
+  rv = dataNode->SplitData(aStartIndex, getter_AddRefs(newData),
+                           aCloneAfterOriginal);
+  NS_ENSURE_SUCCESS(rv, rv);
+  return CallQueryInterface(newData, aMiddleNode);
+}
+
+nsresult nsRange::CutContents(nsIDOMDocumentFragment** aFragment)
 { 
-  if(IsDetached())
+  if (IsDetached())
     return NS_ERROR_DOM_INVALID_STATE_ERR;
+
+  nsresult rv;
+
+  nsCOMPtr<nsIDocument> doc =
+    do_QueryInterface(mStartParent->GetOwnerDoc());
+  if (!doc) return NS_ERROR_UNEXPECTED;
+
+  
+  nsCOMPtr<nsIDOMDocumentFragment> retval;
+  if (aFragment) {
+    rv = NS_NewDocumentFragment(getter_AddRefs(retval),
+                                doc->NodeInfoManager());
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
 
   
   mozAutoSubtreeModified subtree(mRoot ? mRoot->GetOwnerDoc(): nsnull, nsnull);
@@ -1119,8 +1190,8 @@ nsresult nsRange::DeleteContents()
 
   RangeSubtreeIterator iter;
 
-  nsresult res = iter.Init(this);
-  if (NS_FAILED(res)) return res;
+  rv = iter.Init(this);
+  if (NS_FAILED(rv)) return rv;
 
   if (iter.IsDone())
   {
@@ -1131,6 +1202,7 @@ nsresult nsRange::DeleteContents()
   
 
   iter.Last();
+  nsCOMPtr<nsIDOMNode> lastFragmentNode = nsnull;
 
   PRBool handled = PR_FALSE;
 
@@ -1170,8 +1242,24 @@ nsresult nsRange::DeleteContents()
 
           if (endOffset > startOffset)
           {
-            res = charData->DeleteData(startOffset, endOffset - startOffset);
-            if (NS_FAILED(res)) return res;
+            nsCOMPtr<nsIDOMCharacterData> cutNode;
+            nsCOMPtr<nsIDOMCharacterData> endNode;
+            rv = SplitDataNode(charData, startOffset, endOffset,
+                               getter_AddRefs(cutNode),
+                               getter_AddRefs(endNode));
+            NS_ENSURE_SUCCESS(rv, rv);
+            nsCOMPtr<nsIDOMNode> returnedNode;
+
+            if (retval) {
+              
+              rv = retval->InsertBefore(cutNode, lastFragmentNode,
+                                        getter_AddRefs(returnedNode));
+              NS_ENSURE_SUCCESS(rv, rv);
+              lastFragmentNode = returnedNode;
+            } else {
+              rv = RemoveNode(cutNode);
+              NS_ENSURE_SUCCESS(rv, rv);
+            }
           }
 
           handled = PR_TRUE;
@@ -1180,13 +1268,27 @@ nsresult nsRange::DeleteContents()
         {
           
 
-          res = charData->GetLength(&dataLength);
-          if (NS_FAILED(res)) return res;
+          rv = charData->GetLength(&dataLength);
+          NS_ENSURE_SUCCESS(rv, rv);
 
           if (dataLength > (PRUint32)startOffset)
           {
-            res = charData->DeleteData(startOffset, dataLength - startOffset);
-            if (NS_FAILED(res)) return res;
+            nsCOMPtr<nsIDOMCharacterData> cutNode;
+            rv = SplitDataNode(charData, startOffset, dataLength,
+                               getter_AddRefs(cutNode), nsnull);
+            NS_ENSURE_SUCCESS(rv, rv);
+
+            if (retval) {
+              
+              nsCOMPtr<nsIDOMNode> returnedNode;
+              rv = retval->InsertBefore(cutNode, lastFragmentNode,
+                                        getter_AddRefs(returnedNode));
+              NS_ENSURE_SUCCESS(rv, rv);
+              lastFragmentNode = returnedNode;
+            } else {
+              rv = RemoveNode(cutNode);
+              NS_ENSURE_SUCCESS(rv, rv);
+            }
           }
 
           handled = PR_TRUE;
@@ -1198,8 +1300,25 @@ nsresult nsRange::DeleteContents()
 
         if (endOffset > 0)
         {
-          res = charData->DeleteData(0, endOffset);
-          if (NS_FAILED(res)) return res;
+          nsCOMPtr<nsIDOMCharacterData> cutNode;
+          
+
+
+          rv = SplitDataNode(charData, endOffset, endOffset,
+                             getter_AddRefs(cutNode), nsnull, PR_FALSE);
+          NS_ENSURE_SUCCESS(rv, rv);
+
+          if (retval) {
+            
+            nsCOMPtr<nsIDOMNode> aReturnedNode;
+            rv = retval->InsertBefore(cutNode, lastFragmentNode,
+                                      getter_AddRefs(aReturnedNode));
+            NS_ENSURE_SUCCESS(rv, rv);
+            lastFragmentNode = aReturnedNode;
+          } else {
+            rv = RemoveNode(cutNode);
+            NS_ENSURE_SUCCESS(rv, rv);
+          }
         }
 
         handled = PR_TRUE;
@@ -1210,14 +1329,16 @@ nsresult nsRange::DeleteContents()
     {
       
       
-
-      nsCOMPtr<nsIDOMNode> parent, tmpNode;
-
-      node->GetParentNode(getter_AddRefs(parent));
-
-      if (parent) {
-        res = parent->RemoveChild(node, getter_AddRefs(tmpNode));
-        if (NS_FAILED(res)) return res;
+      if (retval) {
+        
+        nsCOMPtr<nsIDOMNode> aReturnedNode;
+        rv = retval->InsertBefore(node, lastFragmentNode,
+                                  getter_AddRefs(aReturnedNode));
+        if (NS_FAILED(rv)) return rv;
+        lastFragmentNode = aReturnedNode;
+      } else {
+        rv = RemoveNode(node);
+        if (NS_FAILED(rv)) return rv;
       }
     }
   }
@@ -1232,8 +1353,24 @@ nsresult nsRange::DeleteContents()
   
   
   
+  
+
+  if (aFragment) {
+    NS_ADDREF(*aFragment = retval);
+  }
 
   return CollapseRangeAfterDelete(this);
+}
+
+nsresult nsRange::DeleteContents()
+{
+  return CutContents(nsnull);
+}
+
+nsresult nsRange::ExtractContents(nsIDOMDocumentFragment** aReturn)
+{
+  NS_ENSURE_ARG_POINTER(aReturn);
+  return CutContents(aReturn);
 }
 
 NS_IMETHODIMP
@@ -1290,26 +1427,7 @@ nsRange::CompareBoundaryPoints(PRUint16 aHow, nsIDOMRange* aOtherRange,
   return NS_OK;
 }
 
-nsresult nsRange::ExtractContents(nsIDOMDocumentFragment** aReturn)
-{ 
-  if(mIsDetached)
-    return NS_ERROR_DOM_INVALID_STATE_ERR;
 
-  
-  mozAutoSubtreeModified subtree(mRoot ? mRoot->GetOwnerDoc(): nsnull, nsnull);
-
-  
-  
-  
-  
-  
-
-  nsresult res = CloneContents(aReturn);
-  if (NS_FAILED(res))
-    return res;
-  res = DeleteContents();
-  return res; 
-}
 
 static nsresult
 CloneParentsBetween(nsIDOMNode *aAncestor,
