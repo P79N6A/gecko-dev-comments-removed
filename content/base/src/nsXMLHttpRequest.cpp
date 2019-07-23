@@ -2093,10 +2093,12 @@ nsXMLHttpRequest::Send(nsIVariant *aBody)
   if (httpChannel) {
     httpChannel->GetRequestMethod(method); 
 
-    nsCOMPtr<nsIURI> codebase;
-    mPrincipal->GetURI(getter_AddRefs(codebase));
+    if (!IsSystemPrincipal(mPrincipal)) {
+      nsCOMPtr<nsIURI> codebase;
+      mPrincipal->GetURI(getter_AddRefs(codebase));
 
-    httpChannel->SetReferrer(codebase);
+      httpChannel->SetReferrer(codebase);
+    }
   }
 
   if (aBody && httpChannel && !method.EqualsLiteral("GET")) {
