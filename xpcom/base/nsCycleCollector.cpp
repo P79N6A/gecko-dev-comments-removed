@@ -2223,6 +2223,8 @@ nsCycleCollector::ExplainLiveExpectedGarbage()
         return;
     }
 
+    mBuf.Empty();
+
     for (PRUint32 i = 0; i <= nsIProgrammingLanguage::MAX; ++i) {
         if (mRuntimes[i])
             mRuntimes[i]->BeginCycleCollection();
@@ -2233,10 +2235,10 @@ nsCycleCollector::ExplainLiveExpectedGarbage()
 
     {
         GCGraph graph;
-        mBuf.Empty();
 
         
         
+        PRUint32 suspectCurrentCount = mBuf.GetSize();
         mExpectedGarbage.EnumerateEntries(&AddExpectedGarbage, this);
 
         MarkRoots(graph);
@@ -2248,18 +2250,23 @@ nsCycleCollector::ExplainLiveExpectedGarbage()
         PRBool findCycleRoots = PR_FALSE;
         {
             NodePool::Enumerator queue(graph.mNodes);
+            PRUint32 i = 0;
             while (!queue.IsDone()) {
                 PtrInfo *pi = queue.GetNext();
                 if (pi->mColor == white) {
                     findCycleRoots = PR_TRUE;
                 }
 
-                if (pi->mInternalRefs != pi->mRefCount) {
+                if (pi->mInternalRefs != pi->mRefCount && i >= suspectCurrentCount) {
                     describeExtraRefcounts = PR_TRUE;
                 }
+                ++i;
             }
         }
 
+        
+        
+        
         if (describeExtraRefcounts && CreateReversedEdges(graph)) {
             
             
@@ -2278,7 +2285,7 @@ nsCycleCollector::ExplainLiveExpectedGarbage()
 
             nsDeque queue; 
             NodePool::Enumerator etor_roots(graph.mNodes);
-            for (PRUint32 i = 0; i < graph.mRootCount; ++i) {
+            for (PRUint32 i = suspectCurrentCount; i < graph.mRootCount; ++i) {
                 PtrInfo *root_pi = etor_roots.GetNext();
                 root_pi->mSCCIndex = INDEX_REACHED;
                 queue.Push(root_pi);
