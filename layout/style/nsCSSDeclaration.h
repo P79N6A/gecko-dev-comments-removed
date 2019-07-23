@@ -112,7 +112,8 @@ public:
   void CompressFrom(nsCSSExpandedDataBlock *aExpandedData) {
     NS_ASSERTION(!mData, "oops");
     NS_ASSERTION(!mImportantData, "oops");
-    aExpandedData->Compress(&mData, &mImportantData);
+    aExpandedData->Compress(getter_AddRefs(mData),
+                            getter_AddRefs(mImportantData));
     aExpandedData->AssertInitialState();
   }
 
@@ -157,12 +158,8 @@ public:
 
 
   void ClearData() {
-    mData->Destroy();
     mData = nsnull;
-    if (mImportantData) {
-      mImportantData->Destroy();
-      mImportantData = nsnull;
-    }
+    mImportantData = nsnull;
     mOrder.Clear();
   }
 
@@ -237,8 +234,12 @@ private:
 private:
     nsAutoTArray<PRUint8, 8> mOrder;
     nsAutoRefCnt mRefCnt;
-    nsCSSCompressedDataBlock *mData; 
-    nsCSSCompressedDataBlock *mImportantData; 
+
+    
+    nsRefPtr<nsCSSCompressedDataBlock> mData;
+
+    
+    nsRefPtr<nsCSSCompressedDataBlock> mImportantData;
 };
 
 #endif 

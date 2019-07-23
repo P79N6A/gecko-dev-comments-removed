@@ -45,11 +45,17 @@
 #include "nsCSSStruct.h"
 #include "nsCSSProps.h"
 #include "nsCSSPropertySet.h"
+#include "nsAutoPtr.h"
 
 struct nsRuleData;
 
 class nsCSSExpandedDataBlock;
 class nsCSSDeclaration;
+
+
+
+
+
 
 
 
@@ -119,21 +125,36 @@ public:
     
 
 
-    nsCSSCompressedDataBlock* Clone() const;
+    already_AddRefed<nsCSSCompressedDataBlock> Clone() const;
 
     
 
 
-    void Destroy();
+    static already_AddRefed<nsCSSCompressedDataBlock> CreateEmptyBlock();
 
-    
+    void AddRef() {
+        NS_ASSERTION(mRefCnt == 0 || mRefCnt == 1,
+                     "unexpected reference count");
+        ++mRefCnt;
+    }
+    void Release() {
+        NS_ASSERTION(mRefCnt == 1 || mRefCnt == 2,
+                     "unexpected reference count");
+        if (--mRefCnt == 0) {
+            Destroy();
+        }
+    }
 
-
-    static nsCSSCompressedDataBlock* CreateEmptyBlock();
+    PRBool IsMutable() const {
+        NS_ASSERTION(mRefCnt == 1 || mRefCnt == 2,
+                     "unexpected reference count");
+        return mRefCnt < 2;
+    }
 
 private:
     PRInt32 mStyleBits; 
                         
+    nsAutoRefCnt mRefCnt;
 
     enum { block_chars = 4 }; 
                               
@@ -150,6 +171,11 @@ private:
     
     ~nsCSSCompressedDataBlock() { }
 
+    
+
+
+    void Destroy();
+
     char* mBlockEnd; 
     char mBlock_[block_chars]; 
 
@@ -162,6 +188,7 @@ private:
     
     
     void* SlotForValue(nsCSSProperty aProperty) {
+      NS_ABORT_IF_FALSE(IsMutable(), "must be mutable");
       return const_cast<void*>(StorageFor(aProperty));
     }
 };
@@ -204,8 +231,8 @@ public:
 
 
 
-    void Expand(nsCSSCompressedDataBlock **aNormalBlock,
-                nsCSSCompressedDataBlock **aImportantBlock);
+    void Expand(nsRefPtr<nsCSSCompressedDataBlock> *aNormalBlock,
+                nsRefPtr<nsCSSCompressedDataBlock> *aImportantBlock);
 
     
 
@@ -242,7 +269,8 @@ private:
     };
     ComputeSizeResult ComputeSize();
 
-    void DoExpand(nsCSSCompressedDataBlock *aBlock, PRBool aImportant);
+    void DoExpand(nsRefPtr<nsCSSCompressedDataBlock> *aBlock,
+                  PRBool aImportant);
 
 #ifdef DEBUG
     void DoAssertInitialState();
