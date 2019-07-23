@@ -786,7 +786,11 @@ var PlacesStarButton = {
   },
 
   onClick: function PSB_onClick(aEvent) {
-    PlacesCommandHook.bookmarkCurrentPage(this._starred);
+    if (aEvent.button == 0)
+      PlacesCommandHook.bookmarkCurrentPage(this._starred);
+
+    
+    aEvent.stopPropagation();
   },
 
   
