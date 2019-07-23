@@ -299,6 +299,50 @@ nsCCMemoryPressureObserver::Observe(nsISupports* aSubject, const char* aTopic,
   return NS_OK;
 }
 
+class nsJSVersionSetter {
+public:
+  nsJSVersionSetter(JSContext *aContext, PRUint32 aVersion);
+  ~nsJSVersionSetter();
+
+private:
+  JSContext* mContext;
+  uint32 mOldOptions;
+  JSVersion mOldVersion;
+  JSBool mOptionsChanged;
+};
+
+nsJSVersionSetter::nsJSVersionSetter(JSContext *aContext, PRUint32 aVersion)
+  : mContext(aContext)
+{
+  
+  
+  
+  JSBool hasxml = (aVersion & JSVERSION_HAS_XML) != 0;
+  mOldOptions = ::JS_GetOptions(mContext);
+  mOptionsChanged = ((hasxml) ^ !!(mOldOptions & JSOPTION_XML));
+
+  if (mOptionsChanged) {
+    ::JS_SetOptions(mContext,
+                    hasxml
+                    ? mOldOptions | JSOPTION_XML
+                    : mOldOptions & ~JSOPTION_XML);
+  }
+
+  
+  
+  JSVersion newVer = (JSVersion)(aVersion & JSVERSION_MASK);
+  mOldVersion = ::JS_SetVersion(mContext, newVer);
+}
+
+nsJSVersionSetter::~nsJSVersionSetter()
+{
+  ::JS_SetVersion(mContext, mOldVersion);
+
+  if (mOptionsChanged) {
+      ::JS_SetOptions(mContext, mOldOptions);
+  }
+}
+
 
 
 
@@ -1262,27 +1306,10 @@ nsJSContext::EvaluateStringWithValue(const nsAString& aScript,
   
   
   
-  
-  
   if (ok && ((JSVersion)aVersion) != JSVERSION_UNKNOWN) {
-    
-    
-    
-    JSBool hasxml = (aVersion & JSVERSION_HAS_XML) != 0;
-    uint32 jsoptions = ::JS_GetOptions(mContext);
-    JSBool optionsChanged = ((hasxml) ^ !!(jsoptions & JSOPTION_XML));
 
-    if (optionsChanged) {
-      ::JS_SetOptions(mContext,
-                      hasxml
-                      ? jsoptions | JSOPTION_XML
-                      : jsoptions & ~JSOPTION_XML);
-    }
-    
-    
-    JSVersion newVer = (JSVersion)(aVersion & JSVERSION_MASK);
-    JSVersion oldVer = ::JS_SetVersion(mContext, newVer);
     JSAutoRequest ar(mContext);
+    nsJSVersionSetter setVersion(mContext, aVersion);
 
     ok = ::JS_EvaluateUCScriptForPrincipals(mContext,
                                             (JSObject *)aScopeObject,
@@ -1292,12 +1319,6 @@ nsJSContext::EvaluateStringWithValue(const nsAString& aScript,
                                             aURL,
                                             aLineNo,
                                             &val);
-
-    ::JS_SetVersion(mContext, oldVer);
-
-    if (optionsChanged) {
-      ::JS_SetOptions(mContext, jsoptions);
-    }
 
     if (!ok) {
         
@@ -1465,27 +1486,9 @@ nsJSContext::EvaluateString(const nsAString& aScript,
   
   
   
-  
-  
   if (ok && ((JSVersion)aVersion) != JSVERSION_UNKNOWN) {
     JSAutoRequest ar(mContext);
-    
-    
-    
-    JSBool hasxml = (aVersion & JSVERSION_HAS_XML) != 0;
-    uint32 jsoptions = ::JS_GetOptions(mContext);
-    JSBool optionsChanged = ((hasxml) ^ !!(jsoptions & JSOPTION_XML));
-
-    if (optionsChanged) {
-      ::JS_SetOptions(mContext,
-                      hasxml
-                      ? jsoptions | JSOPTION_XML
-                      : jsoptions & ~JSOPTION_XML);
-    }
-    
-    
-    JSVersion newVer = (JSVersion)(aVersion & JSVERSION_MASK);
-    JSVersion oldVer = ::JS_SetVersion(mContext, newVer);
+    nsJSVersionSetter setVersion(mContext, aVersion);
 
     ok = ::JS_EvaluateUCScriptForPrincipals(mContext,
                                               (JSObject *)aScopeObject,
@@ -1495,12 +1498,6 @@ nsJSContext::EvaluateString(const nsAString& aScript,
                                               aURL,
                                               aLineNo,
                                               &val);
-
-    ::JS_SetVersion(mContext, oldVer);
-
-    if (optionsChanged) {
-      ::JS_SetOptions(mContext, jsoptions);
-    }
 
     if (!ok) {
         
@@ -1574,27 +1571,9 @@ nsJSContext::CompileScript(const PRUnichar* aText,
   
   
   
-  
-  
   if (ok && ((JSVersion)aVersion) != JSVERSION_UNKNOWN) {
-    
-    
-    
     JSAutoRequest ar(mContext);
-    JSBool hasxml = (aVersion & JSVERSION_HAS_XML) != 0;
-    uint32 jsoptions = ::JS_GetOptions(mContext);
-    JSBool optionsChanged = ((hasxml) ^ !!(jsoptions & JSOPTION_XML));
-
-    if (optionsChanged) {
-      ::JS_SetOptions(mContext,
-                      hasxml
-                      ? jsoptions | JSOPTION_XML
-                      : jsoptions & ~JSOPTION_XML);
-    }
-    
-    
-    JSVersion newVer = (JSVersion)(aVersion & JSVERSION_MASK);
-    JSVersion oldVer = ::JS_SetVersion(mContext, newVer);
+    nsJSVersionSetter setVersion(mContext, aVersion);
 
     JSScript* script =
         ::JS_CompileUCScriptForPrincipals(mContext,
@@ -1614,13 +1593,8 @@ nsJSContext::CompileScript(const PRUnichar* aText,
         ::JS_DestroyScript(mContext, script);
         script = nsnull;
       }
-    } else
+    } else {
       rv = NS_ERROR_OUT_OF_MEMORY;
-
-    ::JS_SetVersion(mContext, oldVer);
-
-    if (optionsChanged) {
-      ::JS_SetOptions(mContext, jsoptions);
     }
   }
 
@@ -1760,6 +1734,7 @@ nsJSContext::CompileEventHandler(nsIAtom *aName,
                                  const char** aArgNames,
                                  const nsAString& aBody,
                                  const char *aURL, PRUint32 aLineNo,
+                                 PRUint32 aVersion,
                                  nsScriptObjectHolder &aHandler)
 {
   NS_ENSURE_TRUE(mIsInitialized, NS_ERROR_NOT_INITIALIZED);
@@ -1771,12 +1746,20 @@ nsJSContext::CompileEventHandler(nsIAtom *aName,
     return NS_ERROR_UNEXPECTED;
   }
 
+  
+  
+  if ((JSVersion)aVersion == JSVERSION_UNKNOWN) {
+    return NS_ERROR_ILLEGAL_VALUE;
+  }
+
   const char *charName = AtomToEventHandlerName(aName);
 
   
   
   
   JSAutoRequest ar(mContext);
+  nsJSVersionSetter setVersion(mContext, aVersion);
+
   JSFunction* fun =
       ::JS_CompileUCFunctionForPrincipals(mContext,
                                           nsnull, nsnull,
@@ -1805,10 +1788,17 @@ nsJSContext::CompileFunction(void* aTarget,
                              const nsAString& aBody,
                              const char* aURL,
                              PRUint32 aLineNo,
+                             PRUint32 aVersion,
                              PRBool aShared,
                              void** aFunctionObject)
 {
   NS_ENSURE_TRUE(mIsInitialized, NS_ERROR_NOT_INITIALIZED);
+
+  
+  
+  if ((JSVersion)aVersion == JSVERSION_UNKNOWN) {
+    return NS_ERROR_ILLEGAL_VALUE;
+  }
 
   JSPrincipals *jsprin = nsnull;
 
@@ -1827,6 +1817,7 @@ nsJSContext::CompileFunction(void* aTarget,
   JSObject *target = (JSObject*)aTarget;
 
   JSAutoRequest ar(mContext);
+  nsJSVersionSetter setVersion(mContext, aVersion);
 
   JSFunction* fun =
       ::JS_CompileUCFunctionForPrincipals(mContext,

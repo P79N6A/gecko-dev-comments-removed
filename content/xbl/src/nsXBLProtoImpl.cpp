@@ -83,12 +83,18 @@ nsXBLProtoImpl::InstallImplementation(nsXBLPrototypeBinding* aBinding, nsIConten
   JSObject * targetScriptObject;
   holder->GetJSObject(&targetScriptObject);
 
+  JSContext *cx = (JSContext *)context->GetNativeContext();
+  
+  JSVersion oldVersion = ::JS_SetVersion(cx, JSVERSION_LATEST);
+  
   
   for (nsXBLProtoImplMember* curr = mMembers;
        curr;
        curr = curr->GetNext())
     curr->InstallMember(context, aBoundElement, targetScriptObject,
                         targetClassObject, mClassName);
+
+  ::JS_SetVersion(cx, oldVersion);
   return NS_OK;
 }
 
@@ -171,12 +177,13 @@ nsXBLProtoImpl::CompilePrototypeMembers(nsXBLPrototypeBinding* aBinding)
 
   nsIScriptContext *context = globalObject->GetContext();
   NS_ENSURE_TRUE(context, NS_ERROR_OUT_OF_MEMORY);
+
+  JSContext *cx = (JSContext *)context->GetNativeContext();
   JSObject *global = globalObject->GetGlobalJSObject();
+  
 
   void* classObject;
-  nsresult rv = aBinding->InitClass(mClassName,
-                                    (JSContext *)context->GetNativeContext(),
-                                    global, global,
+  nsresult rv = aBinding->InitClass(mClassName, cx, global, global,
                                     &classObject);
   if (NS_FAILED(rv))
     return rv;
@@ -186,6 +193,9 @@ nsXBLProtoImpl::CompilePrototypeMembers(nsXBLPrototypeBinding* aBinding)
     return NS_ERROR_FAILURE;
 
   
+  JSVersion oldVersion = ::JS_SetVersion(cx, JSVERSION_LATEST);
+
+  
   
   for (nsXBLProtoImplMember* curr = mMembers;
        curr;
@@ -193,9 +203,12 @@ nsXBLProtoImpl::CompilePrototypeMembers(nsXBLPrototypeBinding* aBinding)
     nsresult rv = curr->CompileMember(context, mClassName, mClassObject);
     if (NS_FAILED(rv)) {
       DestroyMembers();
+      ::JS_SetVersion(cx, oldVersion);
       return rv;
     }
   }
+
+  ::JS_SetVersion(cx, oldVersion);
   return NS_OK;
 }
 
@@ -238,6 +251,8 @@ nsXBLProtoImpl::FindField(const nsString& aFieldName) const
 PRBool
 nsXBLProtoImpl::ResolveAllFields(JSContext *cx, JSObject *obj) const
 {
+  
+  JSVersion oldVersion = ::JS_SetVersion(cx, JSVERSION_LATEST);  
   for (nsXBLProtoImplField* f = mFields; f; f = f->GetNext()) {
     
     
@@ -247,10 +262,12 @@ nsXBLProtoImpl::ResolveAllFields(JSContext *cx, JSObject *obj) const
     if (!::JS_LookupUCProperty(cx, obj,
                                reinterpret_cast<const jschar*>(name.get()),
                                name.Length(), &dummy)) {
+      ::JS_SetVersion(cx, oldVersion);
       return PR_FALSE;
     }
   }
 
+  ::JS_SetVersion(cx, oldVersion);
   return PR_TRUE;
 }
 

@@ -283,6 +283,7 @@ nsHTMLScriptEventHandler::Invoke(nsISupports *aTargetObject,
                                       scriptBody, 
                                       nsnull,     
                                       lineNumber, 
+                                      JSVERSION_DEFAULT, 
                                       PR_FALSE,   
                                       &funcObject);
   

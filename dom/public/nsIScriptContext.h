@@ -57,9 +57,13 @@ class nsScriptObjectHolder;
 typedef void (*nsScriptTerminationFunc)(nsISupports* aRef);
 
 #define NS_ISCRIPTCONTEXT_IID \
-{ /* {52B46C37-A078-4952-AED7-035D83C810C0} */ \
-  0x52b46c37, 0xa078, 0x4952, \
-  {0xae, 0xd7, 0x3, 0x5d, 0x83, 0xc8, 0x10, 0xc0 } }
+{ /* {09316a0e-8d05-4d26-9efd-8f907a7c79d2} */ \
+  0x09316a0e, 0x8d05, 0x4d26, \
+ { 0x9e, 0xfd, 0x8f, 0x90, 0x7a, 0x7c, 0x79, 0xd2 } }
+
+
+
+#define SCRIPTVERSION_DEFAULT JSVERSION_DEFAULT
 
 
 
@@ -181,11 +185,14 @@ public:
 
 
 
+
   virtual nsresult CompileEventHandler(nsIAtom* aName,
                                        PRUint32 aArgCount,
                                        const char** aArgNames,
                                        const nsAString& aBody,
-                                       const char* aURL, PRUint32 aLineNo,
+                                       const char* aURL,
+                                       PRUint32 aLineNo,
+                                       PRUint32 aVersion,
                                        nsScriptObjectHolder &aHandler) = 0;
 
   
@@ -255,6 +262,7 @@ public:
                                    const nsAString& aBody,
                                    const char* aURL,
                                    PRUint32 aLineNo,
+                                   PRUint32 aVersion,
                                    PRBool aShared,
                                    void **aFunctionObject) = 0;
 

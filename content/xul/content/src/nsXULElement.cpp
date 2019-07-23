@@ -738,7 +738,9 @@ nsScriptEventHandlerOwnerTearoff::CompileEventHandler(
     nsContentUtils::GetEventArgNames(kNameSpaceID_XUL, aName, &argCount,
                                      &argNames);
     rv = context->CompileEventHandler(aName, argCount, argNames,
-                                      aBody, aURL, aLineNo, aHandler);
+                                      aBody, aURL, aLineNo,
+                                      SCRIPTVERSION_DEFAULT,  
+                                      aHandler);
     if (NS_FAILED(rv)) return rv;
 
     
