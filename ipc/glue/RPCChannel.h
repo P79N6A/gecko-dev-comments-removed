@@ -242,7 +242,10 @@ protected:
 
             if (mThat.mCxxStackFrames.empty())
                 mThat.EnteredCxxStack();
+
             mThat.mCxxStackFrames.push_back(RPCFrame(direction, msg));
+            mThat.mSawRPCOutMsg |= (direction == OUT_MESSAGE) &&
+                                   (msg->is_rpc());
         }
 
         ~CxxStackFrame() {
@@ -385,7 +388,12 @@ protected:
     
     
     std::vector<RPCFrame> mCxxStackFrames;
+
     
+    
+    
+    bool mSawRPCOutMsg;
+
 private:
 
     
