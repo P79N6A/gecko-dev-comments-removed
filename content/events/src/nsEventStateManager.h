@@ -63,7 +63,9 @@ class imgIContainer;
 class nsDOMDataTransfer;
 
 
-#ifdef XP_MACOSX
+
+
+#if defined(XP_MACOSX) || defined(NS_HILDON)
 #define CLICK_HOLD_CONTEXT_MENUS 1
 #endif
 
