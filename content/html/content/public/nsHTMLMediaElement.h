@@ -137,6 +137,21 @@ protected:
   nsMediaReadyState mReadyState;
 
   
+  float mMutedVolume;
+
+  
+  
+  
+  float mDefaultPlaybackRate;
+
+  
+  
+  
+  
+  
+  float mPlaybackRate;
+
+  
   
   PRPackedBool mBegun;
 
@@ -167,9 +182,6 @@ protected:
 
   
   PRPackedBool mMuted;
-
-  
-  float mMutedVolume; 
 
   
   
