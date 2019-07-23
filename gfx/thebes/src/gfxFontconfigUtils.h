@@ -99,6 +99,8 @@ protected:
     nsCStringArray mAliasForMultiFonts;
 
     nsDataHashtable<nsCStringHashKey, nsRefPtr<gfxFontNameList> > mAliasTable;
+
+    FcConfig *mLastConfig;
 };
 
 #endif 
