@@ -160,15 +160,34 @@ public:
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 class Tracker {
+    #define TRACKER_PAGE_SZB        4096
+    #define TRACKER_PAGE_ENTRIES    (TRACKER_PAGE_SZB >> 2)    // each slot is 4 bytes
+    #define TRACKER_PAGE_MASK       jsuword(TRACKER_PAGE_SZB - 1)
+
     struct TrackerPage {
         struct TrackerPage* next;
         jsuword             base;
-        nanojit::LIns*      map[1];
+        nanojit::LIns*      map[TRACKER_PAGE_ENTRIES];
     };
     struct TrackerPage* pagelist;
 
     jsuword             getTrackerPageBase(const void* v) const;
+    jsuword             getTrackerPageOffset(const void* v) const;
     struct TrackerPage* findTrackerPage(const void* v) const;
     struct TrackerPage* addTrackerPage(const void* v);
 public:
