@@ -14,6 +14,12 @@ function test_stream(stream) {
   
   
   do_check_eq(stream.isNonBlocking(), false);
+
+  
+  do_check_eq(Components.classes["@mozilla.org/io-util;1"]
+                         .getService(Components.interfaces.nsIIOUtil)
+                         .inputStreamIsBuffered(stream),
+              false);
   
   
   
