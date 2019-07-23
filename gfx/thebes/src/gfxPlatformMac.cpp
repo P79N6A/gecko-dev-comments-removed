@@ -191,12 +191,10 @@ gfxPlatformMac::MakePlatformFont(const gfxProxyFontEntry *aProxyEntry,
 {
     
     
-    gfxFontEntry *fe =
-        gfxPlatformFontList::PlatformFontList()->MakePlatformFont(aProxyEntry,
-                                                                  aFontData,
-                                                                  aLength);
-    NS_Free((void*)aFontData);
-    return fe;
+    
+    return gfxPlatformFontList::PlatformFontList()->MakePlatformFont(aProxyEntry,
+                                                                     aFontData,
+                                                                     aLength);
 }
 
 PRBool

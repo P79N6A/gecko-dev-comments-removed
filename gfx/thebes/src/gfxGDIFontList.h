@@ -1,0 +1,353 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#ifndef GFX_GDIFONTLIST_H
+#define GFX_GDIFONTLIST_H
+
+#include "gfxWindowsPlatform.h"
+#include "gfxPlatformFontList.h"
+
+#include <windows.h>
+#include <bitset>
+
+class AutoDC 
+{
+public:
+    AutoDC() {
+        mDC = ::GetDC(NULL);
+    }
+
+    ~AutoDC() {
+        ::ReleaseDC(NULL, mDC);
+    }
+
+    HDC GetDC() {
+        return mDC;
+    }
+
+private:
+    HDC mDC;
+};
+
+class AutoSelectFont 
+{
+public:
+    AutoSelectFont(HDC aDC, LOGFONTW *aLogFont) {
+        mFont = ::CreateFontIndirectW(aLogFont);
+        if (mFont) {
+            mDC = aDC;
+            mOldFont = (HFONT)::SelectObject(aDC, mFont);
+        } else {
+            mOldFont = NULL;
+        }
+    }
+
+    AutoSelectFont(HDC aDC, HFONT aFont) {
+        mDC = aDC;
+        mFont = aFont;
+        mOldFont = (HFONT)::SelectObject(aDC, aFont);
+    }
+
+    ~AutoSelectFont() {
+        if (mOldFont) {
+            ::SelectObject(mDC, mOldFont);
+        }
+    }
+
+    PRBool IsValid() const {
+        return mFont != NULL;
+    }
+
+    HFONT GetFont() const {
+        return mFont;
+    }
+
+private:
+    HDC mDC;
+    HFONT mFont;
+    HFONT mOldFont;
+};
+
+
+
+
+
+
+
+
+
+
+
+enum gfxWindowsFontType {
+    GFX_FONT_TYPE_UNKNOWN = 0,
+    GFX_FONT_TYPE_DEVICE,
+    GFX_FONT_TYPE_RASTER,
+    GFX_FONT_TYPE_TRUETYPE,
+    GFX_FONT_TYPE_PS_OPENTYPE,
+    GFX_FONT_TYPE_TT_OPENTYPE,
+    GFX_FONT_TYPE_TYPE1
+};
+
+
+
+
+class GDIFontEntry : public gfxFontEntry
+{
+public:
+    LPLOGFONTW GetLogFont() { return &mLogFont; }
+
+    nsresult ReadCMAP();
+
+    void FillLogFont(LOGFONTW *aLogFont, PRBool aItalic,
+                     PRUint16 aWeight, gfxFloat aSize);
+
+    static gfxWindowsFontType DetermineFontType(const NEWTEXTMETRICW& metrics, 
+                                                DWORD fontType)
+    {
+        gfxWindowsFontType feType;
+        if (metrics.ntmFlags & NTM_TYPE1)
+            feType = GFX_FONT_TYPE_TYPE1;
+        else if (metrics.ntmFlags & NTM_PS_OPENTYPE)
+            feType = GFX_FONT_TYPE_PS_OPENTYPE;
+        else if (metrics.ntmFlags & NTM_TT_OPENTYPE)
+            feType = GFX_FONT_TYPE_TT_OPENTYPE;
+        else if (fontType == TRUETYPE_FONTTYPE)
+            feType = GFX_FONT_TYPE_TRUETYPE;
+        else if (fontType == RASTER_FONTTYPE)
+            feType = GFX_FONT_TYPE_RASTER;
+        else if (fontType == DEVICE_FONTTYPE)
+            feType = GFX_FONT_TYPE_DEVICE;
+        else
+            feType = GFX_FONT_TYPE_UNKNOWN;
+        
+        return feType;
+    }
+
+    PRBool IsType1() const {
+        return (mFontType == GFX_FONT_TYPE_TYPE1);
+    }
+
+    PRBool IsTrueType() const {
+        return (mFontType == GFX_FONT_TYPE_TRUETYPE ||
+                mFontType == GFX_FONT_TYPE_PS_OPENTYPE ||
+                mFontType == GFX_FONT_TYPE_TT_OPENTYPE);
+    }
+
+    PRBool IsCrappyFont() const {
+        
+        return (!mUnicodeFont || IsSymbolFont() || IsType1());
+    }
+
+    PRBool MatchesGenericFamily(const nsACString& aGeneric) const {
+        if (aGeneric.IsEmpty())
+            return PR_TRUE;
+
+        
+        
+        if (mWindowsFamily == FF_ROMAN && mWindowsPitch & FIXED_PITCH) {
+            return aGeneric.EqualsLiteral("monospace");
+        }
+
+        
+        
+        if (mWindowsFamily == FF_MODERN && mWindowsPitch & VARIABLE_PITCH) {
+            return aGeneric.EqualsLiteral("sans-serif");
+        }
+
+        
+        switch (mWindowsFamily) {
+        case FF_DONTCARE:
+            return PR_TRUE;
+        case FF_ROMAN:
+            return aGeneric.EqualsLiteral("serif");
+        case FF_SWISS:
+            return aGeneric.EqualsLiteral("sans-serif");
+        case FF_MODERN:
+            return aGeneric.EqualsLiteral("monospace");
+        case FF_SCRIPT:
+            return aGeneric.EqualsLiteral("cursive");
+        case FF_DECORATIVE:
+            return aGeneric.EqualsLiteral("fantasy");
+        }
+
+        return PR_FALSE;
+    }
+
+    PRBool SupportsLangGroup(const nsACString& aLangGroup) const {
+        if (aLangGroup.IsEmpty())
+            return PR_TRUE;
+
+        PRInt16 bit = -1;
+
+        
+        if (aLangGroup.EqualsLiteral("x-western")) {
+            bit = ANSI_CHARSET;
+        } else if (aLangGroup.EqualsLiteral("ja")) {
+            bit = SHIFTJIS_CHARSET;
+        } else if (aLangGroup.EqualsLiteral("ko")) {
+            bit = HANGEUL_CHARSET;
+        } else if (aLangGroup.EqualsLiteral("ko-XXX")) {
+            bit = JOHAB_CHARSET;
+        } else if (aLangGroup.EqualsLiteral("zh-CN")) {
+            bit = GB2312_CHARSET;
+        } else if (aLangGroup.EqualsLiteral("zh-TW")) {
+            bit = CHINESEBIG5_CHARSET;
+        } else if (aLangGroup.EqualsLiteral("el")) {
+            bit = GREEK_CHARSET;
+        } else if (aLangGroup.EqualsLiteral("tr")) {
+            bit = TURKISH_CHARSET;
+        } else if (aLangGroup.EqualsLiteral("he")) {
+            bit = HEBREW_CHARSET;
+        } else if (aLangGroup.EqualsLiteral("ar")) {
+            bit = ARABIC_CHARSET;
+        } else if (aLangGroup.EqualsLiteral("x-baltic")) {
+            bit = BALTIC_CHARSET;
+        } else if (aLangGroup.EqualsLiteral("x-cyrillic")) {
+            bit = RUSSIAN_CHARSET;
+        } else if (aLangGroup.EqualsLiteral("th")) {
+            bit = THAI_CHARSET;
+        } else if (aLangGroup.EqualsLiteral("x-central-euro")) {
+            bit = EASTEUROPE_CHARSET;
+        } else if (aLangGroup.EqualsLiteral("x-symbol")) {
+            bit = SYMBOL_CHARSET;
+        }
+
+        if (bit != -1)
+            return mCharset[bit];
+
+        return PR_FALSE;
+    }
+
+    PRBool SupportsRange(PRUint8 range) {
+        return mUnicodeRanges[range];
+    }
+
+    PRBool TestCharacterMap(PRUint32 aCh);
+
+    
+    static GDIFontEntry* CreateFontEntry(const nsAString& aName, 
+                                      gfxWindowsFontType aFontType, 
+                                      PRBool aItalic, PRUint16 aWeight, 
+                                      gfxUserFontData* aUserFontData);
+
+    
+    static GDIFontEntry* LoadLocalFont(const gfxProxyFontEntry &aProxyEntry,
+                                    const nsAString& aFullname);
+
+    PRUint8 mWindowsFamily;
+    PRUint8 mWindowsPitch;
+
+    gfxWindowsFontType mFontType;
+    PRPackedBool mForceGDI    : 1;
+    PRPackedBool mUnknownCMAP : 1;
+    PRPackedBool mUnicodeFont : 1;
+
+    std::bitset<256> mCharset;
+    std::bitset<128> mUnicodeRanges;
+
+protected:
+    friend class gfxWindowsFont;
+
+    GDIFontEntry(const nsAString& aFaceName, gfxWindowsFontType aFontType,
+                     PRBool aItalic, PRUint16 aWeight, gfxUserFontData *aUserFontData);
+
+    void InitLogFont(const nsAString& aName, gfxWindowsFontType aFontType);
+
+    virtual nsresult GetFontTable(PRUint32 aTableTag, nsTArray<PRUint8>& aBuffer);
+
+    LOGFONTW mLogFont;
+};
+
+
+class GDIFontFamily : public gfxFontFamily
+{
+public:
+    GDIFontFamily(nsAString &aName) :
+        gfxFontFamily(aName) {}
+
+    virtual void FindStyleVariations();
+
+private:
+    static int CALLBACK FamilyAddStylesProc(const ENUMLOGFONTEXW *lpelfe,
+                                            const NEWTEXTMETRICEXW *nmetrics,
+                                            DWORD fontType, LPARAM data);
+};
+
+class gfxGDIFontList : public gfxPlatformFontList {
+public:
+    static gfxGDIFontList* PlatformFontList() {
+        return static_cast<gfxGDIFontList*>(sPlatformFontList);
+    }
+
+    virtual gfxFontEntry* GetDefaultFont(const gfxFontStyle* aStyle, PRBool& aNeedsBold);
+
+    virtual gfxFontEntry* LookupLocalFont(const gfxProxyFontEntry *aProxyEntry,
+                                          const nsAString& aFontName);
+
+    virtual gfxFontEntry* MakePlatformFont(const gfxProxyFontEntry *aProxyEntry,
+                                           const PRUint8 *aFontData, PRUint32 aLength);
+
+    virtual PRBool ResolveFontName(const nsAString& aFontName,
+                                   nsAString& aResolvedFontName);
+
+private:
+    friend class gfxWindowsPlatform;
+
+    gfxGDIFontList();
+
+    void InitializeFontEmbeddingProcs();
+
+    
+    virtual void InitFontList();
+
+    nsresult GetFontSubstitutes();
+
+    static int CALLBACK EnumFontFamExProc(ENUMLOGFONTEXW *lpelfe,
+                                          NEWTEXTMETRICEXW *lpntme,
+                                          DWORD fontType,
+                                          LPARAM lParam);
+
+    typedef nsDataHashtable<nsStringHashKey, nsRefPtr<gfxFontFamily> > FontTable;
+
+    FontTable mFontSubstitutes;
+    nsTArray<nsString> mNonExistingFonts;
+};
+
+#endif 

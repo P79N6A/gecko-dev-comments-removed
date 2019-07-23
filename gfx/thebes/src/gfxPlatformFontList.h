@@ -109,12 +109,13 @@ public:
 
     
     
-    virtual gfxFontEntry* MakePlatformFont(const gfxFontEntry *aProxyEntry,
+    virtual gfxFontEntry* MakePlatformFont(const gfxProxyFontEntry *aProxyEntry,
                                            const PRUint8 *aFontData,
                                            PRUint32 aLength) = 0;
 
     
-    virtual PRBool GetStandardFamilyName(const nsAString& aFontName, nsAString& aFamilyName) = 0;
+    
+    virtual PRBool GetStandardFamilyName(const nsAString& aFontName, nsAString& aFamilyName);
 
 protected:
     gfxPlatformFontList();
