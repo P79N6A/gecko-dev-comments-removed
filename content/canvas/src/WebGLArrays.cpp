@@ -53,9 +53,9 @@
 using namespace mozilla;
 
 nsresult
-NS_NewCanvasArrayBuffer(nsISupports **aResult)
+NS_NewWebGLArrayBuffer(nsISupports **aResult)
 {
-    nsICanvasArrayBuffer *wgab = new WebGLArrayBuffer();
+    nsIWebGLArrayBuffer *wgab = new WebGLArrayBuffer();
     if (!wgab)
         return NS_ERROR_OUT_OF_MEMORY;
 
@@ -120,9 +120,9 @@ NS_IMETHODIMP_(PRUint32) WebGLArrayBuffer::NativeSize()
 
 
 nsresult
-NS_NewCanvasFloatArray(nsISupports **aResult)
+NS_NewWebGLFloatArray(nsISupports **aResult)
 {
-    nsICanvasFloatArray *wgfa = new WebGLFloatArray();
+    nsIWebGLFloatArray *wgfa = new WebGLFloatArray();
     if (!wgfa)
         return NS_ERROR_OUT_OF_MEMORY;
 
@@ -181,9 +181,9 @@ WebGLFloatArray::Initialize(nsISupports *owner,
             mBuffer->InitFromJSArray(LOCAL_GL_FLOAT, 1, cx, arrayObj, arrayLen);
             mLength = arrayLen;
         } else {
-            nsCOMPtr<nsICanvasArrayBuffer> canvasObj;
+            nsCOMPtr<nsIWebGLArrayBuffer> canvasObj;
             nsresult rv;
-            rv = nsContentUtils::XPConnect()->WrapJS(cx, arrayObj, NS_GET_IID(nsICanvasArrayBuffer), getter_AddRefs(canvasObj));
+            rv = nsContentUtils::XPConnect()->WrapJS(cx, arrayObj, NS_GET_IID(nsIWebGLArrayBuffer), getter_AddRefs(canvasObj));
             if (NS_FAILED(rv) || !canvasObj) {
                 return NS_ERROR_DOM_SYNTAX_ERR;
             }
@@ -211,7 +211,7 @@ WebGLFloatArray::Initialize(nsISupports *owner,
 }
 
 
-NS_IMETHODIMP WebGLFloatArray::GetBuffer(nsICanvasArrayBuffer **aBuffer)
+NS_IMETHODIMP WebGLFloatArray::GetBuffer(nsIWebGLArrayBuffer **aBuffer)
 {
     NS_ADDREF(*aBuffer = mBuffer);
     return NS_OK;
@@ -246,7 +246,7 @@ NS_IMETHODIMP WebGLFloatArray::AlignedSizeInBytes(PRUint32 *retval)
 }
 
 
-NS_IMETHODIMP WebGLFloatArray::Slice(PRUint32 offset, PRUint32 length, nsICanvasArray **retval)
+NS_IMETHODIMP WebGLFloatArray::Slice(PRUint32 offset, PRUint32 length, nsIWebGLArray **retval)
 {
     if (length == 0) 
         return NS_ERROR_FAILURE;
@@ -254,7 +254,7 @@ NS_IMETHODIMP WebGLFloatArray::Slice(PRUint32 offset, PRUint32 length, nsICanvas
     if (offset + length > mBuffer->capacity)
         return NS_ERROR_FAILURE;
 
-    nsICanvasArray *wga = new WebGLFloatArray(mBuffer, offset, length);
+    nsIWebGLArray *wga = new WebGLFloatArray(mBuffer, offset, length);
     NS_ADDREF(*retval = wga);
     return NS_OK;
 }
@@ -439,9 +439,9 @@ NS_IMETHODIMP WebGLFloatArray::NewResolve(nsIXPConnectWrappedNative *wrapper, JS
 
 
 nsresult
-NS_NewCanvasByteArray(nsISupports **aResult)
+NS_NewWebGLByteArray(nsISupports **aResult)
 {
-    nsICanvasByteArray *wgba = new WebGLByteArray();
+    nsIWebGLByteArray *wgba = new WebGLByteArray();
     if (!wgba)
         return NS_ERROR_OUT_OF_MEMORY;
 
@@ -500,9 +500,9 @@ WebGLByteArray::Initialize(nsISupports *owner,
             mBuffer->InitFromJSArray(LOCAL_GL_UNSIGNED_BYTE, 1, cx, arrayObj, arrayLen);
             mLength = arrayLen;
         } else {
-            nsCOMPtr<nsICanvasArrayBuffer> canvasObj;
+            nsCOMPtr<nsIWebGLArrayBuffer> canvasObj;
             nsresult rv;
-            rv = nsContentUtils::XPConnect()->WrapJS(cx, arrayObj, NS_GET_IID(nsICanvasArrayBuffer), getter_AddRefs(canvasObj));
+            rv = nsContentUtils::XPConnect()->WrapJS(cx, arrayObj, NS_GET_IID(nsIWebGLArrayBuffer), getter_AddRefs(canvasObj));
             if (NS_FAILED(rv) || !canvasObj) {
                 return NS_ERROR_DOM_SYNTAX_ERR;
             }
@@ -523,7 +523,7 @@ WebGLByteArray::Initialize(nsISupports *owner,
 }
 
 
-NS_IMETHODIMP WebGLByteArray::GetBuffer(nsICanvasArrayBuffer **aBuffer)
+NS_IMETHODIMP WebGLByteArray::GetBuffer(nsIWebGLArrayBuffer **aBuffer)
 {
     NS_ADDREF(*aBuffer = mBuffer);
     return NS_OK;
@@ -558,7 +558,7 @@ NS_IMETHODIMP WebGLByteArray::AlignedSizeInBytes(PRUint32 *retval)
 }
 
 
-NS_IMETHODIMP WebGLByteArray::Slice(PRUint32 offset, PRUint32 length, nsICanvasArray **retval)
+NS_IMETHODIMP WebGLByteArray::Slice(PRUint32 offset, PRUint32 length, nsIWebGLArray **retval)
 {
     if (length == 0) 
         return NS_ERROR_FAILURE;
@@ -566,7 +566,7 @@ NS_IMETHODIMP WebGLByteArray::Slice(PRUint32 offset, PRUint32 length, nsICanvasA
     if (offset + length > mBuffer->capacity)
         return NS_ERROR_FAILURE;
 
-    nsICanvasArray *wga = new WebGLByteArray(mBuffer, offset, length);
+    nsIWebGLArray *wga = new WebGLByteArray(mBuffer, offset, length);
     NS_ADDREF(*retval = wga);
     return NS_OK;
 }
@@ -749,9 +749,9 @@ NS_IMETHODIMP WebGLByteArray::NewResolve(nsIXPConnectWrappedNative *wrapper, JSC
 
 
 nsresult
-NS_NewCanvasUnsignedByteArray(nsISupports **aResult)
+NS_NewWebGLUnsignedByteArray(nsISupports **aResult)
 {
-    nsICanvasUnsignedByteArray *wguba = new WebGLUnsignedByteArray();
+    nsIWebGLUnsignedByteArray *wguba = new WebGLUnsignedByteArray();
     if (!wguba)
         return NS_ERROR_OUT_OF_MEMORY;
 
@@ -810,9 +810,9 @@ WebGLUnsignedByteArray::Initialize(nsISupports *owner,
             mBuffer->InitFromJSArray(LOCAL_GL_UNSIGNED_BYTE, 1, cx, arrayObj, arrayLen);
             mLength = arrayLen;
         } else {
-            nsCOMPtr<nsICanvasArrayBuffer> canvasObj;
+            nsCOMPtr<nsIWebGLArrayBuffer> canvasObj;
             nsresult rv;
-            rv = nsContentUtils::XPConnect()->WrapJS(cx, arrayObj, NS_GET_IID(nsICanvasArrayBuffer), getter_AddRefs(canvasObj));
+            rv = nsContentUtils::XPConnect()->WrapJS(cx, arrayObj, NS_GET_IID(nsIWebGLArrayBuffer), getter_AddRefs(canvasObj));
             if (NS_FAILED(rv) || !canvasObj) {
                 return NS_ERROR_DOM_SYNTAX_ERR;
             }
@@ -833,7 +833,7 @@ WebGLUnsignedByteArray::Initialize(nsISupports *owner,
 }
 
 
-NS_IMETHODIMP WebGLUnsignedByteArray::GetBuffer(nsICanvasArrayBuffer **aBuffer)
+NS_IMETHODIMP WebGLUnsignedByteArray::GetBuffer(nsIWebGLArrayBuffer **aBuffer)
 {
     NS_ADDREF(*aBuffer = mBuffer);
     return NS_OK;
@@ -868,7 +868,7 @@ NS_IMETHODIMP WebGLUnsignedByteArray::AlignedSizeInBytes(PRUint32 *retval)
 }
 
 
-NS_IMETHODIMP WebGLUnsignedByteArray::Slice(PRUint32 offset, PRUint32 length, nsICanvasArray **retval)
+NS_IMETHODIMP WebGLUnsignedByteArray::Slice(PRUint32 offset, PRUint32 length, nsIWebGLArray **retval)
 {
     if (length == 0) 
         return NS_ERROR_FAILURE;
@@ -876,7 +876,7 @@ NS_IMETHODIMP WebGLUnsignedByteArray::Slice(PRUint32 offset, PRUint32 length, ns
     if (offset + length > mBuffer->capacity)
         return NS_ERROR_FAILURE;
 
-    nsICanvasArray *wga = new WebGLUnsignedByteArray(mBuffer, offset, length);
+    nsIWebGLArray *wga = new WebGLUnsignedByteArray(mBuffer, offset, length);
     NS_ADDREF(*retval = wga);
     return NS_OK;
 }
@@ -1059,9 +1059,9 @@ NS_IMETHODIMP WebGLUnsignedByteArray::NewResolve(nsIXPConnectWrappedNative *wrap
 
 
 nsresult
-NS_NewCanvasShortArray(nsISupports **aResult)
+NS_NewWebGLShortArray(nsISupports **aResult)
 {
-    nsICanvasShortArray *wgsa = new WebGLShortArray();
+    nsIWebGLShortArray *wgsa = new WebGLShortArray();
     if (!wgsa)
         return NS_ERROR_OUT_OF_MEMORY;
 
@@ -1120,9 +1120,9 @@ WebGLShortArray::Initialize(nsISupports *owner,
             mBuffer->InitFromJSArray(LOCAL_GL_SHORT, 1, cx, arrayObj, arrayLen);
             mLength = arrayLen;
         } else {
-            nsCOMPtr<nsICanvasArrayBuffer> canvasObj;
+            nsCOMPtr<nsIWebGLArrayBuffer> canvasObj;
             nsresult rv;
-            rv = nsContentUtils::XPConnect()->WrapJS(cx, arrayObj, NS_GET_IID(nsICanvasArrayBuffer), getter_AddRefs(canvasObj));
+            rv = nsContentUtils::XPConnect()->WrapJS(cx, arrayObj, NS_GET_IID(nsIWebGLArrayBuffer), getter_AddRefs(canvasObj));
             if (NS_FAILED(rv) || !canvasObj) {
                 return NS_ERROR_DOM_SYNTAX_ERR;
             }
@@ -1150,7 +1150,7 @@ WebGLShortArray::Initialize(nsISupports *owner,
 }
 
 
-NS_IMETHODIMP WebGLShortArray::GetBuffer(nsICanvasArrayBuffer * *aBuffer)
+NS_IMETHODIMP WebGLShortArray::GetBuffer(nsIWebGLArrayBuffer * *aBuffer)
 {
     NS_ADDREF(*aBuffer = mBuffer);
     return NS_OK;
@@ -1185,7 +1185,7 @@ NS_IMETHODIMP WebGLShortArray::AlignedSizeInBytes(PRUint32 *retval)
 }
 
 
-NS_IMETHODIMP WebGLShortArray::Slice(PRUint32 offset, PRUint32 length, nsICanvasArray **retval)
+NS_IMETHODIMP WebGLShortArray::Slice(PRUint32 offset, PRUint32 length, nsIWebGLArray **retval)
 {
     if (length == 0) 
         return NS_ERROR_FAILURE;
@@ -1193,7 +1193,7 @@ NS_IMETHODIMP WebGLShortArray::Slice(PRUint32 offset, PRUint32 length, nsICanvas
     if (offset + length > mBuffer->capacity)
         return NS_ERROR_FAILURE;
 
-    nsICanvasArray *wga = new WebGLShortArray(mBuffer, offset, length);
+    nsIWebGLArray *wga = new WebGLShortArray(mBuffer, offset, length);
     NS_ADDREF(*retval = wga);
     return NS_OK;
 }
@@ -1376,9 +1376,9 @@ NS_IMETHODIMP WebGLShortArray::NewResolve(nsIXPConnectWrappedNative *wrapper, JS
 
 
 nsresult
-NS_NewCanvasUnsignedShortArray(nsISupports **aResult)
+NS_NewWebGLUnsignedShortArray(nsISupports **aResult)
 {
-    nsICanvasUnsignedShortArray *wgusa = new WebGLUnsignedShortArray();
+    nsIWebGLUnsignedShortArray *wgusa = new WebGLUnsignedShortArray();
     if (!wgusa)
         return NS_ERROR_OUT_OF_MEMORY;
 
@@ -1437,9 +1437,9 @@ WebGLUnsignedShortArray::Initialize(nsISupports *owner,
             mBuffer->InitFromJSArray(LOCAL_GL_UNSIGNED_SHORT, 1, cx, arrayObj, arrayLen);
             mLength = arrayLen;
         } else {
-            nsCOMPtr<nsICanvasArrayBuffer> canvasObj;
+            nsCOMPtr<nsIWebGLArrayBuffer> canvasObj;
             nsresult rv;
-            rv = nsContentUtils::XPConnect()->WrapJS(cx, arrayObj, NS_GET_IID(nsICanvasArrayBuffer), getter_AddRefs(canvasObj));
+            rv = nsContentUtils::XPConnect()->WrapJS(cx, arrayObj, NS_GET_IID(nsIWebGLArrayBuffer), getter_AddRefs(canvasObj));
             if (NS_FAILED(rv) || !canvasObj) {
                 return NS_ERROR_DOM_SYNTAX_ERR;
             }
@@ -1467,7 +1467,7 @@ WebGLUnsignedShortArray::Initialize(nsISupports *owner,
 }
 
 
-NS_IMETHODIMP WebGLUnsignedShortArray::GetBuffer(nsICanvasArrayBuffer * *aBuffer)
+NS_IMETHODIMP WebGLUnsignedShortArray::GetBuffer(nsIWebGLArrayBuffer * *aBuffer)
 {
     NS_ADDREF(*aBuffer = mBuffer);
     return NS_OK;
@@ -1502,7 +1502,7 @@ NS_IMETHODIMP WebGLUnsignedShortArray::AlignedSizeInBytes(PRUint32 *retval)
 }
 
 
-NS_IMETHODIMP WebGLUnsignedShortArray::Slice(PRUint32 offset, PRUint32 length, nsICanvasArray **retval)
+NS_IMETHODIMP WebGLUnsignedShortArray::Slice(PRUint32 offset, PRUint32 length, nsIWebGLArray **retval)
 {
     if (length == 0) 
         return NS_ERROR_FAILURE;
@@ -1510,7 +1510,7 @@ NS_IMETHODIMP WebGLUnsignedShortArray::Slice(PRUint32 offset, PRUint32 length, n
     if (offset + length > mBuffer->capacity)
         return NS_ERROR_FAILURE;
 
-    nsICanvasArray *wga = new WebGLUnsignedShortArray(mBuffer, offset, length);
+    nsIWebGLArray *wga = new WebGLUnsignedShortArray(mBuffer, offset, length);
     NS_ADDREF(*retval = wga);
     return NS_OK;
 }
@@ -1693,9 +1693,9 @@ NS_IMETHODIMP WebGLUnsignedShortArray::NewResolve(nsIXPConnectWrappedNative *wra
 
 
 nsresult
-NS_NewCanvasIntArray(nsISupports **aResult)
+NS_NewWebGLIntArray(nsISupports **aResult)
 {
-    nsICanvasIntArray *wgia = new WebGLIntArray();
+    nsIWebGLIntArray *wgia = new WebGLIntArray();
     if (!wgia)
         return NS_ERROR_OUT_OF_MEMORY;
 
@@ -1754,9 +1754,9 @@ WebGLIntArray::Initialize(nsISupports *owner,
             mBuffer->InitFromJSArray(LOCAL_GL_INT, 1, cx, arrayObj, arrayLen);
             mLength = arrayLen;
         } else {
-            nsCOMPtr<nsICanvasArrayBuffer> canvasObj;
+            nsCOMPtr<nsIWebGLArrayBuffer> canvasObj;
             nsresult rv;
-            rv = nsContentUtils::XPConnect()->WrapJS(cx, arrayObj, NS_GET_IID(nsICanvasArrayBuffer), getter_AddRefs(canvasObj));
+            rv = nsContentUtils::XPConnect()->WrapJS(cx, arrayObj, NS_GET_IID(nsIWebGLArrayBuffer), getter_AddRefs(canvasObj));
             if (NS_FAILED(rv) || !canvasObj) {
                 return NS_ERROR_DOM_SYNTAX_ERR;
             }
@@ -1784,7 +1784,7 @@ WebGLIntArray::Initialize(nsISupports *owner,
 }
 
 
-NS_IMETHODIMP WebGLIntArray::GetBuffer(nsICanvasArrayBuffer * *aBuffer)
+NS_IMETHODIMP WebGLIntArray::GetBuffer(nsIWebGLArrayBuffer * *aBuffer)
 {
     NS_ADDREF(*aBuffer = mBuffer);
     return NS_OK;
@@ -1819,7 +1819,7 @@ NS_IMETHODIMP WebGLIntArray::AlignedSizeInBytes(PRUint32 *retval)
 }
 
 
-NS_IMETHODIMP WebGLIntArray::Slice(PRUint32 offset, PRUint32 length, nsICanvasArray **retval)
+NS_IMETHODIMP WebGLIntArray::Slice(PRUint32 offset, PRUint32 length, nsIWebGLArray **retval)
 {
     if (length == 0) 
         return NS_ERROR_FAILURE;
@@ -1827,7 +1827,7 @@ NS_IMETHODIMP WebGLIntArray::Slice(PRUint32 offset, PRUint32 length, nsICanvasAr
     if (offset + length > mBuffer->capacity)
         return NS_ERROR_FAILURE;
 
-    nsICanvasArray *wga = new WebGLIntArray(mBuffer, offset, length);
+    nsIWebGLArray *wga = new WebGLIntArray(mBuffer, offset, length);
     NS_ADDREF(*retval = wga);
     return NS_OK;
 }
@@ -2010,9 +2010,9 @@ NS_IMETHODIMP WebGLIntArray::NewResolve(nsIXPConnectWrappedNative *wrapper, JSCo
 
 
 nsresult
-NS_NewCanvasUnsignedIntArray(nsISupports **aResult)
+NS_NewWebGLUnsignedIntArray(nsISupports **aResult)
 {
-    nsICanvasUnsignedIntArray *wguia = new WebGLUnsignedIntArray();
+    nsIWebGLUnsignedIntArray *wguia = new WebGLUnsignedIntArray();
     if (!wguia)
         return NS_ERROR_OUT_OF_MEMORY;
 
@@ -2071,9 +2071,9 @@ WebGLUnsignedIntArray::Initialize(nsISupports *owner,
             mBuffer->InitFromJSArray(LOCAL_GL_UNSIGNED_INT, 1, cx, arrayObj, arrayLen);
             mLength = arrayLen;
         } else {
-            nsCOMPtr<nsICanvasArrayBuffer> canvasObj;
+            nsCOMPtr<nsIWebGLArrayBuffer> canvasObj;
             nsresult rv;
-            rv = nsContentUtils::XPConnect()->WrapJS(cx, arrayObj, NS_GET_IID(nsICanvasArrayBuffer), getter_AddRefs(canvasObj));
+            rv = nsContentUtils::XPConnect()->WrapJS(cx, arrayObj, NS_GET_IID(nsIWebGLArrayBuffer), getter_AddRefs(canvasObj));
             if (NS_FAILED(rv) || !canvasObj) {
                 return NS_ERROR_DOM_SYNTAX_ERR;
             }
@@ -2101,7 +2101,7 @@ WebGLUnsignedIntArray::Initialize(nsISupports *owner,
 }
 
 
-NS_IMETHODIMP WebGLUnsignedIntArray::GetBuffer(nsICanvasArrayBuffer * *aBuffer)
+NS_IMETHODIMP WebGLUnsignedIntArray::GetBuffer(nsIWebGLArrayBuffer * *aBuffer)
 {
     NS_ADDREF(*aBuffer = mBuffer);
     return NS_OK;
@@ -2136,7 +2136,7 @@ NS_IMETHODIMP WebGLUnsignedIntArray::AlignedSizeInBytes(PRUint32 *retval)
 }
 
 
-NS_IMETHODIMP WebGLUnsignedIntArray::Slice(PRUint32 offset, PRUint32 length, nsICanvasArray **retval)
+NS_IMETHODIMP WebGLUnsignedIntArray::Slice(PRUint32 offset, PRUint32 length, nsIWebGLArray **retval)
 {
     if (length == 0) 
         return NS_ERROR_FAILURE;
@@ -2144,7 +2144,7 @@ NS_IMETHODIMP WebGLUnsignedIntArray::Slice(PRUint32 offset, PRUint32 length, nsI
     if (offset + length > mBuffer->capacity)
         return NS_ERROR_FAILURE;
 
-    nsICanvasArray *wga = new WebGLUnsignedIntArray(mBuffer, offset, length);
+    nsIWebGLArray *wga = new WebGLUnsignedIntArray(mBuffer, offset, length);
     NS_ADDREF(*retval = wga);
     return NS_OK;
 }
@@ -2330,92 +2330,92 @@ NS_IMPL_ADDREF(WebGLArrayBuffer)
 NS_IMPL_RELEASE(WebGLArrayBuffer)
 
 NS_INTERFACE_MAP_BEGIN(WebGLArrayBuffer)
-  NS_INTERFACE_MAP_ENTRY(nsICanvasArrayBuffer)
-  NS_INTERFACE_MAP_ENTRY_AMBIGUOUS(nsISupports, nsICanvasArrayBuffer)
+  NS_INTERFACE_MAP_ENTRY(nsIWebGLArrayBuffer)
+  NS_INTERFACE_MAP_ENTRY_AMBIGUOUS(nsISupports, nsIWebGLArrayBuffer)
   NS_INTERFACE_MAP_ENTRY(nsIJSNativeInitializer)
-  NS_INTERFACE_MAP_ENTRY_CONTENT_CLASSINFO(CanvasArrayBuffer)
+  NS_INTERFACE_MAP_ENTRY_CONTENT_CLASSINFO(WebGLArrayBuffer)
 NS_INTERFACE_MAP_END
 
 NS_IMPL_ADDREF(WebGLFloatArray)
 NS_IMPL_RELEASE(WebGLFloatArray)
 
 NS_INTERFACE_MAP_BEGIN(WebGLFloatArray)
-  NS_INTERFACE_MAP_ENTRY(nsICanvasArray)
-  NS_INTERFACE_MAP_ENTRY(nsICanvasFloatArray)
-  NS_INTERFACE_MAP_ENTRY_AMBIGUOUS(nsISupports, nsICanvasFloatArray)
+  NS_INTERFACE_MAP_ENTRY(nsIWebGLArray)
+  NS_INTERFACE_MAP_ENTRY(nsIWebGLFloatArray)
+  NS_INTERFACE_MAP_ENTRY_AMBIGUOUS(nsISupports, nsIWebGLFloatArray)
   NS_INTERFACE_MAP_ENTRY(nsIJSNativeInitializer)
   NS_INTERFACE_MAP_ENTRY(nsIXPCScriptable)
-  NS_INTERFACE_MAP_ENTRY_CONTENT_CLASSINFO(CanvasFloatArray)
+  NS_INTERFACE_MAP_ENTRY_CONTENT_CLASSINFO(WebGLFloatArray)
 NS_INTERFACE_MAP_END
 
 NS_IMPL_ADDREF(WebGLByteArray)
 NS_IMPL_RELEASE(WebGLByteArray)
 
 NS_INTERFACE_MAP_BEGIN(WebGLByteArray)
-  NS_INTERFACE_MAP_ENTRY(nsICanvasArray)
-  NS_INTERFACE_MAP_ENTRY(nsICanvasByteArray)
-  NS_INTERFACE_MAP_ENTRY_AMBIGUOUS(nsISupports, nsICanvasByteArray)
+  NS_INTERFACE_MAP_ENTRY(nsIWebGLArray)
+  NS_INTERFACE_MAP_ENTRY(nsIWebGLByteArray)
+  NS_INTERFACE_MAP_ENTRY_AMBIGUOUS(nsISupports, nsIWebGLByteArray)
   NS_INTERFACE_MAP_ENTRY(nsIJSNativeInitializer)
   NS_INTERFACE_MAP_ENTRY(nsIXPCScriptable)
-  NS_INTERFACE_MAP_ENTRY_CONTENT_CLASSINFO(CanvasByteArray)
+  NS_INTERFACE_MAP_ENTRY_CONTENT_CLASSINFO(WebGLByteArray)
 NS_INTERFACE_MAP_END
 
 NS_IMPL_ADDREF(WebGLUnsignedByteArray)
 NS_IMPL_RELEASE(WebGLUnsignedByteArray)
 
 NS_INTERFACE_MAP_BEGIN(WebGLUnsignedByteArray)
-  NS_INTERFACE_MAP_ENTRY(nsICanvasArray)
-  NS_INTERFACE_MAP_ENTRY(nsICanvasUnsignedByteArray)
-  NS_INTERFACE_MAP_ENTRY_AMBIGUOUS(nsISupports, nsICanvasUnsignedByteArray)
+  NS_INTERFACE_MAP_ENTRY(nsIWebGLArray)
+  NS_INTERFACE_MAP_ENTRY(nsIWebGLUnsignedByteArray)
+  NS_INTERFACE_MAP_ENTRY_AMBIGUOUS(nsISupports, nsIWebGLUnsignedByteArray)
   NS_INTERFACE_MAP_ENTRY(nsIJSNativeInitializer)
   NS_INTERFACE_MAP_ENTRY(nsIXPCScriptable)
-  NS_INTERFACE_MAP_ENTRY_CONTENT_CLASSINFO(CanvasUnsignedByteArray)
+  NS_INTERFACE_MAP_ENTRY_CONTENT_CLASSINFO(WebGLUnsignedByteArray)
 NS_INTERFACE_MAP_END
 
 NS_IMPL_ADDREF(WebGLShortArray)
 NS_IMPL_RELEASE(WebGLShortArray)
 
 NS_INTERFACE_MAP_BEGIN(WebGLShortArray)
-  NS_INTERFACE_MAP_ENTRY(nsICanvasArray)
-  NS_INTERFACE_MAP_ENTRY(nsICanvasShortArray)
-  NS_INTERFACE_MAP_ENTRY_AMBIGUOUS(nsISupports, nsICanvasShortArray)
+  NS_INTERFACE_MAP_ENTRY(nsIWebGLArray)
+  NS_INTERFACE_MAP_ENTRY(nsIWebGLShortArray)
+  NS_INTERFACE_MAP_ENTRY_AMBIGUOUS(nsISupports, nsIWebGLShortArray)
   NS_INTERFACE_MAP_ENTRY(nsIJSNativeInitializer)
   NS_INTERFACE_MAP_ENTRY(nsIXPCScriptable)
-  NS_INTERFACE_MAP_ENTRY_CONTENT_CLASSINFO(CanvasShortArray)
+  NS_INTERFACE_MAP_ENTRY_CONTENT_CLASSINFO(WebGLShortArray)
 NS_INTERFACE_MAP_END
 
 NS_IMPL_ADDREF(WebGLUnsignedShortArray)
 NS_IMPL_RELEASE(WebGLUnsignedShortArray)
 
 NS_INTERFACE_MAP_BEGIN(WebGLUnsignedShortArray)
-  NS_INTERFACE_MAP_ENTRY(nsICanvasArray)
-  NS_INTERFACE_MAP_ENTRY(nsICanvasUnsignedShortArray)
-  NS_INTERFACE_MAP_ENTRY_AMBIGUOUS(nsISupports, nsICanvasUnsignedShortArray)
+  NS_INTERFACE_MAP_ENTRY(nsIWebGLArray)
+  NS_INTERFACE_MAP_ENTRY(nsIWebGLUnsignedShortArray)
+  NS_INTERFACE_MAP_ENTRY_AMBIGUOUS(nsISupports, nsIWebGLUnsignedShortArray)
   NS_INTERFACE_MAP_ENTRY(nsIJSNativeInitializer)
   NS_INTERFACE_MAP_ENTRY(nsIXPCScriptable)
-  NS_INTERFACE_MAP_ENTRY_CONTENT_CLASSINFO(CanvasUnsignedShortArray)
+  NS_INTERFACE_MAP_ENTRY_CONTENT_CLASSINFO(WebGLUnsignedShortArray)
 NS_INTERFACE_MAP_END
 
 NS_IMPL_ADDREF(WebGLIntArray)
 NS_IMPL_RELEASE(WebGLIntArray)
 
 NS_INTERFACE_MAP_BEGIN(WebGLIntArray)
-  NS_INTERFACE_MAP_ENTRY(nsICanvasArray)
-  NS_INTERFACE_MAP_ENTRY(nsICanvasIntArray)
-  NS_INTERFACE_MAP_ENTRY_AMBIGUOUS(nsISupports, nsICanvasIntArray)
+  NS_INTERFACE_MAP_ENTRY(nsIWebGLArray)
+  NS_INTERFACE_MAP_ENTRY(nsIWebGLIntArray)
+  NS_INTERFACE_MAP_ENTRY_AMBIGUOUS(nsISupports, nsIWebGLIntArray)
   NS_INTERFACE_MAP_ENTRY(nsIJSNativeInitializer)
   NS_INTERFACE_MAP_ENTRY(nsIXPCScriptable)
-  NS_INTERFACE_MAP_ENTRY_CONTENT_CLASSINFO(CanvasIntArray)
+  NS_INTERFACE_MAP_ENTRY_CONTENT_CLASSINFO(WebGLIntArray)
 NS_INTERFACE_MAP_END
 
 NS_IMPL_ADDREF(WebGLUnsignedIntArray)
 NS_IMPL_RELEASE(WebGLUnsignedIntArray)
 
 NS_INTERFACE_MAP_BEGIN(WebGLUnsignedIntArray)
-  NS_INTERFACE_MAP_ENTRY(nsICanvasArray)
-  NS_INTERFACE_MAP_ENTRY(nsICanvasUnsignedIntArray)
-  NS_INTERFACE_MAP_ENTRY_AMBIGUOUS(nsISupports, nsICanvasUnsignedIntArray)
+  NS_INTERFACE_MAP_ENTRY(nsIWebGLArray)
+  NS_INTERFACE_MAP_ENTRY(nsIWebGLUnsignedIntArray)
+  NS_INTERFACE_MAP_ENTRY_AMBIGUOUS(nsISupports, nsIWebGLUnsignedIntArray)
   NS_INTERFACE_MAP_ENTRY(nsIJSNativeInitializer)
   NS_INTERFACE_MAP_ENTRY(nsIXPCScriptable)
-  NS_INTERFACE_MAP_ENTRY_CONTENT_CLASSINFO(CanvasUnsignedIntArray)
+  NS_INTERFACE_MAP_ENTRY_CONTENT_CLASSINFO(WebGLUnsignedIntArray)
 NS_INTERFACE_MAP_END
