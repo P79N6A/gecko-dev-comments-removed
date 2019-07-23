@@ -239,27 +239,6 @@ nsGeolocationRequest::Allow()
   nsRefPtr<nsGeolocationService> geoService = nsGeolocationService::GetInstance();
 
   
-  PRUint32 maximumAge;
-  if (mOptions && NS_SUCCEEDED(mOptions->GetMaximumAge(&maximumAge)) && maximumAge != 0) {
-    nsCOMPtr<nsIDOMGeoPosition> lastPosition = geoService->GetCachedPosition();
-    DOMTimeStamp cachedPositionTime;
-    lastPosition->GetTimestamp(&cachedPositionTime);
-    
-    if ( PR_Now() - maximumAge >= cachedPositionTime )
-    {
-      
-      mAllowed = PR_TRUE;
-
-      
-      SendLocation(lastPosition);
-      
-      
-      mLocator->RemoveRequest(this);
-    }
-
-  }
-
-  
   nsresult rv = geoService->StartDevice();
   
   if (NS_FAILED(rv)) {
@@ -267,13 +246,47 @@ nsGeolocationRequest::Allow()
     NotifyError(nsIDOMGeoPositionError::POSITION_UNAVAILABLE);
     return NS_OK;
   }
+  
+  nsCOMPtr<nsIDOMGeoPosition> lastPosition = geoService->GetCachedPosition();
+  DOMTimeStamp cachedPositionTime;
+  if (lastPosition)
+    lastPosition->GetTimestamp(&cachedPositionTime);
+
+  
+  
+  
+  
+  
+  
+  
+  PRUint32 maximumAge = 30 * PR_MSEC_PER_SEC;
+  if (mOptions) {
+    PRUint32 tempAge;
+    nsresult rv = mOptions->GetMaximumAge(&tempAge);
+    if (NS_SUCCEEDED(rv))
+      maximumAge = tempAge;
+  }
+
+  if (lastPosition && maximumAge > 0 && ( (PR_Now() / PR_USEC_PER_MSEC ) - maximumAge <= cachedPositionTime) ) {
+    
+    mAllowed = PR_TRUE;
+    
+    
+    SendLocation(lastPosition);
+    
+    
+    mLocator->RemoveRequest(this);
+  }
 
   PRUint32 timeout;
   if (mOptions && NS_SUCCEEDED(mOptions->GetTimeout(&timeout)) && timeout > 0) {
-      mTimeoutTimer = do_CreateInstance("@mozilla.org/timer;1");
-      mTimeoutTimer->InitWithCallback(this, timeout, nsITimer::TYPE_ONE_SHOT);
-  }
+    
+    if (timeout < 10)
+      timeout = 10;
 
+    mTimeoutTimer = do_CreateInstance("@mozilla.org/timer;1");
+    mTimeoutTimer->InitWithCallback(this, timeout, nsITimer::TYPE_ONE_SHOT);
+  }
 
   mAllowed = PR_TRUE;
   return NS_OK;
@@ -600,7 +613,7 @@ nsGeolocation::Update(nsIDOMGeoPosition *aSomewhere)
 
   mUpdateInProgress = PR_TRUE;
 
-  if (!aSomewhere)
+  if (aSomewhere)
   {
     nsRefPtr<nsGeolocationService> geoService = nsGeolocationService::GetInstance();
     geoService->SetCachedPosition(aSomewhere);
