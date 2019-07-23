@@ -44,8 +44,8 @@
 #include "nsILocalFile.h"
 #include "nsNativeCharsetUtils.h"
 
-nsresult
-net_GetURLSpecFromFile(nsIFile *aFile, nsACString &result)
+nsresult 
+net_GetURLSpecFromActualFile(nsIFile *aFile, nsACString &result)
 {
     nsresult rv;
     nsCAutoString nativePath, ePath;
@@ -77,19 +77,6 @@ net_GetURLSpecFromFile(nsIFile *aFile, nsACString &result)
     
     
     escPath.ReplaceSubstring(";", "%3b");
-
-    
-    
-    
-    
-    
-    if (escPath.Last() != '/') {
-        PRBool dir;
-        rv = aFile->IsDirectory(&dir);
-        if (NS_SUCCEEDED(rv) && dir)
-            escPath += '/';
-    }
-    
     result = escPath;
     return NS_OK;
 }

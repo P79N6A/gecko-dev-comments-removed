@@ -41,6 +41,7 @@
 #include "nsReadableUtils.h"
 #include "nsIServiceManager.h"
 #include "nsIIOService.h"
+#include "nsILocalFile.h"
 #include "nsIURLParser.h"
 #include "nsIURI.h"
 #include "nsMemory.h"
@@ -127,6 +128,52 @@ net_GetStdURLParser()
     if (!gInitialized)
         InitGlobals();
     return gStdURLParser;
+}
+
+
+
+
+nsresult
+net_GetURLSpecFromDir(nsIFile *aFile, nsACString &result)
+{
+    nsCAutoString escPath;
+    nsresult rv = net_GetURLSpecFromActualFile(aFile, escPath);
+    if (NS_FAILED(rv))
+        return rv;
+
+    if (escPath.Last() != '/') {
+        escPath += '/';
+    }
+    
+    result = escPath;
+    return NS_OK;
+}
+
+nsresult
+net_GetURLSpecFromFile(nsIFile *aFile, nsACString &result)
+{
+    
+    NS_WARNING("If possible, callers of GetURLSpecFromFile should use "
+               "GetURLSpecFromDir or GetURLSpecFromActualFile instead.");
+    nsCAutoString escPath;
+    nsresult rv = net_GetURLSpecFromActualFile(aFile, escPath);
+    if (NS_FAILED(rv))
+        return rv;
+
+    
+    
+    
+    
+    
+    if (escPath.Last() != '/') {
+        PRBool dir;
+        rv = aFile->IsDirectory(&dir);
+        if (NS_SUCCEEDED(rv) && dir)
+            escPath += '/';
+    }
+    
+    result = escPath;
+    return NS_OK;
 }
 
 

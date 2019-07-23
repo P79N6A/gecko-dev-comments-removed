@@ -45,7 +45,7 @@
 #include <windows.h>
 
 nsresult
-net_GetURLSpecFromFile(nsIFile *aFile, nsACString &result)
+net_GetURLSpecFromActualFile(nsIFile *aFile, nsACString &result)
 {
     nsresult rv;
     nsAutoString path;
@@ -78,18 +78,6 @@ net_GetURLSpecFromFile(nsIFile *aFile, nsACString &result)
     
     escPath.ReplaceSubstring(";", "%3b");
 
-    
-    
-    
-    
-    
-    if (escPath.Last() != '/') {
-        PRBool dir;
-        rv = aFile->IsDirectory(&dir);
-        if (NS_SUCCEEDED(rv) && dir)
-            escPath += '/';
-    }
-    
     result = escPath;
     return NS_OK;
 }

@@ -755,6 +755,46 @@ NS_GetURLSpecFromFile(nsIFile      *file,
 
 
 inline nsresult
+NS_GetURLSpecFromActualFile(nsIFile      *file,
+                            nsACString   &url,
+                            nsIIOService *ioService = nsnull)
+{
+    nsresult rv;
+    nsCOMPtr<nsIFileProtocolHandler> fileHandler;
+    rv = NS_GetFileProtocolHandler(getter_AddRefs(fileHandler), ioService);
+    if (NS_SUCCEEDED(rv))
+        rv = fileHandler->GetURLSpecFromActualFile(file, url);
+    return rv;
+}
+
+
+
+
+
+
+
+
+inline nsresult
+NS_GetURLSpecFromDir(nsIFile      *file,
+                     nsACString   &url,
+                     nsIIOService *ioService = nsnull)
+{
+    nsresult rv;
+    nsCOMPtr<nsIFileProtocolHandler> fileHandler;
+    rv = NS_GetFileProtocolHandler(getter_AddRefs(fileHandler), ioService);
+    if (NS_SUCCEEDED(rv))
+        rv = fileHandler->GetURLSpecFromDir(file, url);
+    return rv;
+}
+
+
+
+
+
+
+
+
+inline nsresult
 NS_GetReferrerFromChannel(nsIChannel *channel,
                           nsIURI **referrer)
 {
