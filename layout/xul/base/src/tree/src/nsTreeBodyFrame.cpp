@@ -221,6 +221,8 @@ nsTreeBodyFrame::Init(nsIContent*     aContent,
   mRowHeight = GetRowHeight();
 
   NS_ENSURE_TRUE(mImageCache.Init(16), NS_ERROR_OUT_OF_MEMORY);
+  EnsureBoxObject();
+  NS_ENSURE_STATE(mTreeBoxObject);
   return rv;
 }
 
@@ -326,7 +328,6 @@ nsTreeBodyFrame::Destroy()
     mColumns->SetTree(nsnull);
 
   
-  EnsureBoxObject();
   nsCOMPtr<nsPIBoxObject> box(do_QueryInterface(mTreeBoxObject));
   if (box) {
     if (mTopRowIndex > 0) {
@@ -380,7 +381,6 @@ void
 nsTreeBodyFrame::EnsureView()
 {
   if (!mView) {
-    EnsureBoxObject();
     nsCOMPtr<nsIBoxObject> box = do_QueryInterface(mTreeBoxObject);
     if (box) {
       nsCOMPtr<nsITreeView> treeView;
@@ -469,8 +469,6 @@ NS_IMETHODIMP nsTreeBodyFrame::GetView(nsITreeView * *aView)
 
 NS_IMETHODIMP nsTreeBodyFrame::SetView(nsITreeView * aView)
 {
-  
-  EnsureBoxObject();
   
   if (mView) {
     nsCOMPtr<nsITreeSelection> sel;
@@ -567,7 +565,6 @@ nsTreeBodyFrame::GetTreeBody(nsIDOMElement** aElement)
 NS_IMETHODIMP 
 nsTreeBodyFrame::GetColumns(nsITreeColumns** aColumns)
 {
-  EnsureBoxObject();
   NS_IF_ADDREF(*aColumns = mColumns);
   return NS_OK;
 }
