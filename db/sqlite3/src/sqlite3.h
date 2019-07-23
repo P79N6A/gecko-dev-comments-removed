@@ -99,8 +99,8 @@ extern "C" {
 
 
 
-#define SQLITE_VERSION         "3.6.14.2"
-#define SQLITE_VERSION_NUMBER  3006014
+#define SQLITE_VERSION         "3.6.16"
+#define SQLITE_VERSION_NUMBER  3006016
 
 
 
@@ -392,20 +392,20 @@ int sqlite3_exec(
 
 
 
-#define SQLITE_OPEN_READONLY         0x00000001
-#define SQLITE_OPEN_READWRITE        0x00000002
-#define SQLITE_OPEN_CREATE           0x00000004
-#define SQLITE_OPEN_DELETEONCLOSE    0x00000008
-#define SQLITE_OPEN_EXCLUSIVE        0x00000010
-#define SQLITE_OPEN_MAIN_DB          0x00000100
-#define SQLITE_OPEN_TEMP_DB          0x00000200
-#define SQLITE_OPEN_TRANSIENT_DB     0x00000400
-#define SQLITE_OPEN_MAIN_JOURNAL     0x00000800
-#define SQLITE_OPEN_TEMP_JOURNAL     0x00001000
-#define SQLITE_OPEN_SUBJOURNAL       0x00002000
-#define SQLITE_OPEN_MASTER_JOURNAL   0x00004000
-#define SQLITE_OPEN_NOMUTEX          0x00008000
-#define SQLITE_OPEN_FULLMUTEX        0x00010000
+#define SQLITE_OPEN_READONLY         0x00000001  /* Ok for sqlite3_open_v2() */
+#define SQLITE_OPEN_READWRITE        0x00000002  /* Ok for sqlite3_open_v2() */
+#define SQLITE_OPEN_CREATE           0x00000004  /* Ok for sqlite3_open_v2() */
+#define SQLITE_OPEN_DELETEONCLOSE    0x00000008  /* VFS only */
+#define SQLITE_OPEN_EXCLUSIVE        0x00000010  /* VFS only */
+#define SQLITE_OPEN_MAIN_DB          0x00000100  /* VFS only */
+#define SQLITE_OPEN_TEMP_DB          0x00000200  /* VFS only */
+#define SQLITE_OPEN_TRANSIENT_DB     0x00000400  /* VFS only */
+#define SQLITE_OPEN_MAIN_JOURNAL     0x00000800  /* VFS only */
+#define SQLITE_OPEN_TEMP_JOURNAL     0x00001000  /* VFS only */
+#define SQLITE_OPEN_SUBJOURNAL       0x00002000  /* VFS only */
+#define SQLITE_OPEN_MASTER_JOURNAL   0x00004000  /* VFS only */
+#define SQLITE_OPEN_NOMUTEX          0x00008000  /* Ok for sqlite3_open_v2() */
+#define SQLITE_OPEN_FULLMUTEX        0x00010000  /* Ok for sqlite3_open_v2() */
 
 
 
@@ -566,6 +566,12 @@ struct sqlite3_file {
 
 
 
+
+
+
+
+
+
 typedef struct sqlite3_io_methods sqlite3_io_methods;
 struct sqlite3_io_methods {
   int iVersion;
@@ -615,6 +621,16 @@ struct sqlite3_io_methods {
 
 
 typedef struct sqlite3_mutex sqlite3_mutex;
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -960,6 +976,16 @@ struct sqlite3_mem_methods {
   void (*xShutdown)(void*);      
   void *pAppData;                
 };
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -3124,6 +3150,9 @@ int sqlite3_reset(sqlite3_stmt *pStmt);
 
 
 
+
+
+
 int sqlite3_create_function(
   sqlite3 *db,
   const char *zFunctionName,
@@ -3773,8 +3802,26 @@ sqlite3_stmt *sqlite3_next_stmt(sqlite3 *pDb, sqlite3_stmt *pStmt);
 
 
 
+
+
+
+
+
+
+
+
 void *sqlite3_commit_hook(sqlite3*, int(*)(void*), void*);
 void *sqlite3_rollback_hook(sqlite3*, void(*)(void *), void*);
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -4408,6 +4455,22 @@ typedef struct sqlite3_blob sqlite3_blob;
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 int sqlite3_blob_open(
   sqlite3*,
   const char *zDb,
@@ -4417,6 +4480,9 @@ int sqlite3_blob_open(
   int flags,
   sqlite3_blob **ppBlob
 );
+
+
+
 
 
 
@@ -4451,6 +4517,13 @@ int sqlite3_blob_close(sqlite3_blob *);
 
 
 
+
+
+
+
+
+
+
 int sqlite3_blob_bytes(sqlite3_blob *);
 
 
@@ -4473,7 +4546,25 @@ int sqlite3_blob_bytes(sqlite3_blob *);
 
 
 
+
+
+
+
+
+
+
+
+
 int sqlite3_blob_read(sqlite3_blob *, void *Z, int N, int iOffset);
+
+
+
+
+
+
+
+
+
 
 
 
@@ -4852,6 +4943,8 @@ int sqlite3_test_control(int op, ...);
 #define SQLITE_TESTCTRL_FAULT_INSTALL            9
 #define SQLITE_TESTCTRL_BENIGN_MALLOC_HOOKS     10
 #define SQLITE_TESTCTRL_PENDING_BYTE            11
+#define SQLITE_TESTCTRL_ASSERT                  12
+#define SQLITE_TESTCTRL_ALWAYS                  13
 
 
 
