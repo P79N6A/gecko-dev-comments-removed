@@ -669,6 +669,29 @@ getAnchor(JSTraceMonitor* tm, const void *ip, JSObject* globalObj, uint32 global
     return f;
 }
 
+#ifdef DEBUG
+static void
+ensureTreeIsUnique(JSTraceMonitor* tm, VMFragment* f, TreeInfo* ti)
+{
+    JS_ASSERT(f->root == f);
+    
+
+
+
+
+    TreeInfo* ti_other;
+    for (Fragment* peer = getLoop(tm, f->ip, f->globalObj, f->globalShape, f->argc);
+         peer != NULL;
+         peer = peer->peer) {
+        if (!peer->code() || peer == f)
+            continue;
+        ti_other = (TreeInfo*)peer->vmprivate;
+        JS_ASSERT(ti_other);
+        JS_ASSERT(!ti->typeMap.matches(ti_other->typeMap));
+    }
+}
+#endif
+
 static void
 js_AttemptCompilation(JSContext *cx, JSTraceMonitor* tm, JSObject* globalObj, jsbytecode* pc,
                       uint32 argc)
@@ -3765,20 +3788,7 @@ js_RecordTree(JSContext* cx, JSTraceMonitor* tm, Fragment* f, jsbytecode* outer,
     ti->nStackTypes = ti->typeMap.length() - globalSlots->length();
 
 #ifdef DEBUG
-    
-
-
-
-
-    TreeInfo* ti_other;
-    for (Fragment* peer = getLoop(tm, f->root->ip, globalObj, globalShape, argc); peer != NULL;
-         peer = peer->peer) {
-        if (!peer->code() || peer == f)
-            continue;
-        ti_other = (TreeInfo*)peer->vmprivate;
-        JS_ASSERT(ti_other);
-        JS_ASSERT(!ti->typeMap.matches(ti_other->typeMap));
-    }
+    ensureTreeIsUnique(tm, (VMFragment*)f, ti);
     ti->treeFileName = cx->fp->script->filename;
     ti->treeLineNumber = js_FramePCToLineNumber(cx, cx->fp);
     ti->treePCOffset = FramePCOffset(cx->fp);
@@ -3802,6 +3812,18 @@ js_RecordTree(JSContext* cx, JSTraceMonitor* tm, Fragment* f, jsbytecode* outer,
     }
 
     return true;
+}
+
+JS_REQUIRES_STACK static inline void
+markSlotUndemotable(JSContext* cx, TreeInfo* ti, unsigned slot)
+{
+    if (slot < ti->nStackTypes) {
+        oracle.markStackSlotUndemotable(cx, slot);
+        return;
+    }
+
+    uint16* gslots = ti->globalSlots->data();
+    oracle.markGlobalSlotUndemotable(cx, gslots[slot - ti->nStackTypes]);
 }
 
 JS_REQUIRES_STACK static inline bool
@@ -3829,27 +3851,29 @@ js_AttemptToStabilizeTree(JSContext* cx, VMSideExit* exit, jsbytecode* outer, ui
     JS_ASSERT(exit->from->root->code());
 
     
-    uint8* m = getStackTypeMap(exit);
-    for (unsigned i = 0; i < exit->numStackSlots; i++) {
-        if (m[i] == JSVAL_DOUBLE)
-            oracle.markStackSlotUndemotable(cx, i);
-    }
-    m = getGlobalTypeMap(exit);
-    for (unsigned i = 0; i < exit->numGlobalSlots; i++) {
-        if (m[i] == JSVAL_DOUBLE)
-            oracle.markGlobalSlotUndemotable(cx, from_ti->globalSlots->data()[i]);
-    }
-
-    
 
 
-    m = getFullTypeMap(exit);
-    if (exit->numGlobalSlots < from_ti->nGlobalTypes()) {
+
+
+    uint8* m = getFullTypeMap(exit);
+    unsigned ngslots = exit->numGlobalSlots;
+    if (ngslots < from_ti->nGlobalTypes()) {
         uint32 partial = exit->numStackSlots + exit->numGlobalSlots;
         m = (uint8*)alloca(from_ti->typeMap.length());
         memcpy(m, getFullTypeMap(exit), partial);
         memcpy(m + partial, from_ti->globalTypeMap() + exit->numGlobalSlots,
                from_ti->nGlobalTypes() - exit->numGlobalSlots);
+        ngslots = from_ti->nGlobalTypes();
+    }
+    JS_ASSERT(exit->numStackSlots + ngslots == from_ti->typeMap.length());
+
+    
+
+
+
+    for (unsigned i = 0; i < from_ti->typeMap.length(); i++) {
+        if (m[i] == JSVAL_DOUBLE)
+            markSlotUndemotable(cx, from_ti, i);
     }
 
     bool bound = false;
