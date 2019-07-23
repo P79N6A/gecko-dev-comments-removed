@@ -409,6 +409,7 @@ protected:
   nsCOMPtr<mozIStorageStatement> mDBAddNewPage; 
   nsCOMPtr<mozIStorageStatement> mDBGetTags; 
   nsCOMPtr<mozIStorageStatement> mFoldersWithAnnotationQuery;  
+  nsCOMPtr<mozIStorageStatement> mDBSetPlaceTitle; 
 
   
   nsCOMPtr<mozIStorageStatement> mDBVisitToURLResult; 
