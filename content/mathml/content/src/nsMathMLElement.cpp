@@ -37,7 +37,6 @@
 
 
 
-
 #include "nsMathMLElement.h"
 #include "nsDOMClassInfoID.h" 
 #include "nsGkAtoms.h"
@@ -123,7 +122,9 @@ nsMathMLElement::ParseAttribute(PRInt32 aNamespaceID,
 static nsGenericElement::MappedAttributeEntry sTokenStyles[] = {
   { &nsGkAtoms::mathsize_ },
   { &nsGkAtoms::fontsize_ },
+  { &nsGkAtoms::mathcolor_ },
   { &nsGkAtoms::color },
+  { &nsGkAtoms::mathbackground_ },
   { &nsGkAtoms::fontfamily_ },
   { nsnull }
 };
@@ -136,67 +137,27 @@ static nsGenericElement::MappedAttributeEntry sEnvironmentStyles[] = {
   { nsnull }
 };
 
-static nsGenericElement::MappedAttributeEntry sCommonPresStyles[] = {
-  { &nsGkAtoms::mathcolor_ },
-  { &nsGkAtoms::mathbackground_ },
-  { nsnull }
-};
-
 PRBool
 nsMathMLElement::IsAttributeMapped(const nsIAtom* aAttribute) const
 {
   static const MappedAttributeEntry* const tokenMap[] = {
-    sTokenStyles,
-    sCommonPresStyles
+    sTokenStyles
   };
   static const MappedAttributeEntry* const mstyleMap[] = {
     sTokenStyles,
-    sEnvironmentStyles,
-    sCommonPresStyles
-  };
-  static const MappedAttributeEntry* const commonPresMap[] = {
-    sCommonPresStyles
+    sEnvironmentStyles
   };
   
   
   nsIAtom* tag = Tag();
   if (tag == nsGkAtoms::ms_ || tag == nsGkAtoms::mi_ ||
       tag == nsGkAtoms::mn_ || tag == nsGkAtoms::mo_ ||
-      tag == nsGkAtoms::mtext_ || tag == nsGkAtoms::mspace_)
+      tag == nsGkAtoms::mtext_)
     return FindAttributeDependence(aAttribute, tokenMap,
                                    NS_ARRAY_LENGTH(tokenMap));
   if (tag == nsGkAtoms::mstyle_)
     return FindAttributeDependence(aAttribute, mstyleMap,
                                    NS_ARRAY_LENGTH(mstyleMap));
-
-  if (tag == nsGkAtoms::maction_ ||
-      tag == nsGkAtoms::maligngroup_ ||
-      tag == nsGkAtoms::malignmark_ ||
-      tag == nsGkAtoms::math ||
-      tag == nsGkAtoms::menclose_ ||
-      tag == nsGkAtoms::merror_ ||
-      tag == nsGkAtoms::mfenced_ ||
-      tag == nsGkAtoms::mfrac_ ||
-      tag == nsGkAtoms::mover_ ||
-      tag == nsGkAtoms::mpadded_ ||
-      tag == nsGkAtoms::mphantom_ ||
-      tag == nsGkAtoms::mprescripts_ ||
-      tag == nsGkAtoms::mroot_ ||
-      tag == nsGkAtoms::mrow_ ||
-      tag == nsGkAtoms::msqrt_ ||
-      tag == nsGkAtoms::msub_ ||
-      tag == nsGkAtoms::msubsup_ ||
-      tag == nsGkAtoms::msup_ ||
-      tag == nsGkAtoms::mtable_ ||
-      tag == nsGkAtoms::mtd_ ||
-      tag == nsGkAtoms::mtr_ ||
-      tag == nsGkAtoms::munder_ ||
-      tag == nsGkAtoms::munderover_ ||
-      tag == nsGkAtoms::none) {
-    return FindAttributeDependence(aAttribute, commonPresMap,
-                                   NS_ARRAY_LENGTH(commonPresMap));
-  }
-
   return PR_FALSE;
 }
 
