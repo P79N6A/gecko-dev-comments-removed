@@ -336,8 +336,10 @@ stringify(JSContext *cx, jsval *vp, JSObject *replacer,
                 break;
         }
 
+        JSType type = JS_TypeOfValue(cx, outputValue);
+
         
-        if (outputValue == JSVAL_VOID)
+        if (outputValue == JSVAL_VOID || type == JSTYPE_FUNCTION || type == JSTYPE_XML)
             continue;
 
         
@@ -349,11 +351,6 @@ stringify(JSContext *cx, jsval *vp, JSObject *replacer,
         }
         memberWritten = JS_TRUE;
 
-        JSType type = JS_TypeOfValue(cx, outputValue);
-
-        
-        if (type == JSTYPE_FUNCTION || type == JSTYPE_XML)
-            break;
 
         
         JSString *s;
