@@ -3383,10 +3383,16 @@ nsContinuingTextFrame::Init(nsIContent* aContent,
 void
 nsContinuingTextFrame::Destroy()
 {
-  ClearTextRun();
-  if (mPrevContinuation || mNextContinuation) {
-    nsSplittableFrame::RemoveFromFlow(this);
+  
+  
+  
+  
+  
+  if (!mPrevContinuation ||
+      mPrevContinuation->GetStyleContext() != GetStyleContext()) {
+    ClearTextRun();
   }
+  nsSplittableFrame::RemoveFromFlow(this);
   
   nsFrame::Destroy();
 }
