@@ -35,6 +35,8 @@
 
 
 
+
+
 #ifndef nsPermissionManager_h__
 #define nsPermissionManager_h__
 
@@ -45,24 +47,28 @@
 #include "nsCOMPtr.h"
 #include "nsIFile.h"
 #include "nsTHashtable.h"
+#include "nsTArray.h"
 #include "nsString.h"
-#include "nsITimer.h"
 
 class nsIPermission;
+class nsIIDNService;
+class mozIStorageConnection;
+class mozIStorageStatement;
 
 
 
+class nsPermissionEntry
+{
+public:
+  nsPermissionEntry(PRUint32 aType, PRUint32 aPermission, PRInt64 aID)
+   : mType(aType)
+   , mPermission(aPermission)
+   , mID(aID) {}
 
-
-
-
-
-
-
-
-
-#define NUMBER_OF_TYPES       (8)
-#define NUMBER_OF_PERMISSIONS (16)
+  PRUint32 mType;
+  PRUint32 mPermission;
+  PRInt64  mID;
+};
 
 class nsHostEntry : public PLDHashEntryHdr
 {
@@ -100,7 +106,9 @@ public:
     return PL_DHashStringKey(nsnull, aKey);
   }
 
-  enum { ALLOW_MEMMOVE = PR_TRUE };
+  
+  
+  enum { ALLOW_MEMMOVE = PR_FALSE };
 
   
   inline const nsDependentCString GetHost() const
@@ -108,33 +116,32 @@ public:
     return nsDependentCString(mHost);
   }
 
-  
-  void SetPermission(PRInt32 aTypeIndex, PRUint32 aPermission)
+  inline nsTArray<nsPermissionEntry> & GetPermissions()
   {
-    mPermissions[aTypeIndex] = (PRUint8)aPermission;
+    return mPermissions;
   }
 
-  PRUint32 GetPermission(PRInt32 aTypeIndex) const
+  inline PRInt32 GetPermissionIndex(PRUint32 aType) const
   {
-    return (PRUint32)mPermissions[aTypeIndex];
+    for (PRUint32 i = 0; i < mPermissions.Length(); ++i)
+      if (mPermissions[i].mType == aType)
+        return i;
+
+    return -1;
   }
 
-  PRBool PermissionsAreEmpty() const
+  inline PRUint32 GetPermission(PRUint32 aType) const
   {
-    
-    return (*reinterpret_cast<const PRUint32*>(&mPermissions[0])==0 && 
-            *reinterpret_cast<const PRUint32*>(&mPermissions[4])==0 );
+    for (PRUint32 i = 0; i < mPermissions.Length(); ++i)
+      if (mPermissions[i].mType == aType)
+        return mPermissions[i].mPermission;
+
+    return nsIPermissionManager::UNKNOWN_ACTION;
   }
 
 private:
   const char *mHost;
-
-  
-  
-  
-  
-  
-  PRUint8 mPermissions[NUMBER_OF_TYPES];
+  nsAutoTArray<nsPermissionEntry, 1> mPermissions;
 };
 
 
@@ -155,10 +162,31 @@ public:
 
 private:
 
+  
+  enum OperationType {
+    eOperationNone,
+    eOperationAdding,
+    eOperationRemoving,
+    eOperationChanging
+  };
+
+  enum DBOperationType {
+    eNoDBOperation,
+    eWriteToDB
+  };
+
+  enum NotifyOperationType {
+    eDontNotify,
+    eNotify
+  };
+
   nsresult AddInternal(const nsAFlatCString &aHost,
-                       PRInt32  aTypeIndex,
+                       const nsAFlatCString &aType,
                        PRUint32 aPermission,
-                       PRBool   aNotify);
+                       PRInt64 aID,
+                       NotifyOperationType aNotifyOperation,
+                       DBOperationType aDBOperation);
+
   PRInt32 GetTypeIndex(const char *aTypeString,
                        PRBool      aAdd);
 
@@ -171,36 +199,44 @@ private:
                                 PRUint32   *aPermission,
                                 PRBool      aExactHostMatch);
 
-  
-  
-  void        LazyWrite();
-  static void DoLazyWrite(nsITimer *aTimer, void *aClosure);
-  nsresult    Write();
-
+  nsresult InitDB();
+  nsresult CreateTable();
+  nsresult Import();
   nsresult Read();
   void     NotifyObserversWithPermission(const nsACString &aHost,
-                                         const char       *aType,
+                                         const nsCString  &aType,
                                          PRUint32          aPermission,
                                          const PRUnichar  *aData);
   void     NotifyObservers(nsIPermission *aPermission, const PRUnichar *aData);
+  nsresult RemoveAllInternal();
   nsresult RemoveAllFromMemory();
+  nsresult NormalizeToACE(nsCString &aHost);
   nsresult GetHost(nsIURI *aURI, nsACString &aResult);
-  void     RemoveTypeStrings();
+  static void UpdateDB(OperationType         aOp,
+                       mozIStorageStatement* aStmt,
+                       PRInt64               aID,
+                       const nsACString     &aHost,
+                       const nsACString     &aType,
+                       PRUint32              aPermission);
 
   nsCOMPtr<nsIObserverService> mObserverService;
-  nsCOMPtr<nsIFile>            mPermissionsFile;
-  nsCOMPtr<nsITimer>           mWriteTimer;
+  nsCOMPtr<nsIIDNService>      mIDNService;
+
+  nsCOMPtr<mozIStorageConnection> mDBConn;
+  nsCOMPtr<mozIStorageStatement> mStmtInsert;
+  nsCOMPtr<mozIStorageStatement> mStmtDelete;
+  nsCOMPtr<mozIStorageStatement> mStmtUpdate;
+
   nsTHashtable<nsHostEntry>    mHostTable;
-  PRUint32                     mHostCount;
-  PRPackedBool                 mChangedList;
-  PRPackedBool                 mHasUnknownTypes;
+  
+  PRInt64                      mLargestID;
 
   
-  char                        *mTypeArray[NUMBER_OF_TYPES];
+  nsTArray<nsCString>          mTypeArray;
 };
 
 
 #define NS_PERMISSIONMANAGER_CID \
 { 0x4f6b5e00, 0xc36, 0x11d5, { 0xa5, 0x35, 0x0, 0x10, 0xa4, 0x1, 0xeb, 0x10 } }
 
-#endif 
+#endif

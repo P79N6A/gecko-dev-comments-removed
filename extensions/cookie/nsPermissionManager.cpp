@@ -36,14 +36,22 @@
 
 
 
+
 #include "nsPermissionManager.h"
 #include "nsPermission.h"
 #include "nsCRT.h"
 #include "nsNetUtil.h"
+#include "nsCOMArray.h"
+#include "nsArrayEnumerator.h"
 #include "nsILineInputStream.h"
+#include "nsIIDNService.h"
 #include "nsAppDirectoryServiceDefs.h"
-#include "nsVoidArray.h"
 #include "prprf.h"
+#include "mozIStorageService.h"
+#include "mozIStorageStatement.h"
+#include "mozIStorageConnection.h"
+#include "mozStorageHelper.h"
+#include "mozStorageCID.h"
 
 
 
@@ -72,135 +80,39 @@ ArenaStrDup(const char* str, PLArenaPool* aArena)
 nsHostEntry::nsHostEntry(const char* aHost)
 {
   mHost = ArenaStrDup(aHost, gHostArena);
-  mPermissions[0] = mPermissions[1] = 0;
 }
+
 
 nsHostEntry::nsHostEntry(const nsHostEntry& toCopy)
+ : mHost(toCopy.mHost)
+ , mPermissions(toCopy.mPermissions)
 {
-  
-  
-  NS_NOTREACHED("nsHostEntry copy constructor is forbidden!");
-}
-
-
-
-class nsPermissionEnumerator : public nsISimpleEnumerator
-{
-  public:
-    NS_DECL_ISUPPORTS
- 
-    nsPermissionEnumerator(const nsTHashtable<nsHostEntry> *aHostTable,
-                           const char*   *aHostList,
-                           const PRUint32 aHostCount,
-                           const char*   *aTypeArray)
-      : mHostCount(aHostCount),
-        mHostIndex(0),
-        mTypeIndex(0),
-        mHostTable(aHostTable),
-        mHostList(aHostList),
-        mTypeArray(aTypeArray)
-    {
-      Prefetch();
-    }
-    
-    NS_IMETHOD HasMoreElements(PRBool *aResult) 
-    {
-      *aResult = (mNextPermission != nsnull);
-      return NS_OK;
-    }
-
-    NS_IMETHOD GetNext(nsISupports **aResult) 
-    {
-      *aResult = mNextPermission;
-      if (!mNextPermission)
-        return NS_ERROR_FAILURE;
-
-      NS_ADDREF(*aResult);
-      
-      Prefetch();
-
-      return NS_OK;
-    }
-
-    virtual ~nsPermissionEnumerator() 
-    {
-      delete[] mHostList;
-    }
-
-  protected:
-    void Prefetch();
-
-    PRInt32 mHostCount;
-    PRInt32 mHostIndex;
-    PRInt32 mTypeIndex;
-    
-    const nsTHashtable<nsHostEntry> *mHostTable;
-    const char*                     *mHostList;
-    nsCOMPtr<nsIPermission>          mNextPermission;
-    const char*                     *mTypeArray;
-};
-
-NS_IMPL_ISUPPORTS1(nsPermissionEnumerator, nsISimpleEnumerator)
-
-
-
-void
-nsPermissionEnumerator::Prefetch() 
-{
-  
-  mNextPermission = nsnull;
-
-  
-  PRUint32 permission;
-  while (mHostIndex < mHostCount && !mNextPermission) {
-    
-    nsHostEntry *entry = mHostTable->GetEntry(mHostList[mHostIndex]);
-    if (entry) {
-      
-      permission = entry->GetPermission(mTypeIndex);
-      if (permission != nsIPermissionManager::UNKNOWN_ACTION && mTypeArray[mTypeIndex]) {
-        mNextPermission = new nsPermission(entry->GetHost(), 
-                                           nsDependentCString(mTypeArray[mTypeIndex]),
-                                           permission);
-      }
-    }
-
-    
-    ++mTypeIndex;
-    if (mTypeIndex == NUMBER_OF_TYPES) {
-      mTypeIndex = 0;
-      ++mHostIndex;
-    }
-  }
 }
 
 
 
 
-static const char kPermissionsFileName[] = "hostperm.1";
-static const char kOldPermissionsFileName[] = "cookperm.txt";
+static const char kPermissionsFileName[] = "permissions.sqlite";
+#define HOSTS_SCHEMA_VERSION 1
+
+static const char kHostpermFileName[] = "hostperm.1";
+
 static const char kPermissionChangeNotification[] = PERM_CHANGE_NOTIFICATION;
-
-static const PRUint32 kLazyWriteTimeout = 2000; 
 
 NS_IMPL_ISUPPORTS3(nsPermissionManager, nsIPermissionManager, nsIObserver, nsISupportsWeakReference)
 
 nsPermissionManager::nsPermissionManager()
- : mHostCount(0),
-   mChangedList(PR_FALSE)
+ : mLargestID(0)
 {
 }
 
 nsPermissionManager::~nsPermissionManager()
 {
-  if (mWriteTimer)
-    mWriteTimer->Cancel();
-
-  RemoveTypeStrings();
   RemoveAllFromMemory();
 }
 
-nsresult nsPermissionManager::Init()
+nsresult
+nsPermissionManager::Init()
 {
   nsresult rv;
 
@@ -209,16 +121,9 @@ nsresult nsPermissionManager::Init()
   }
 
   
-  memset(mTypeArray, nsnull, sizeof(mTypeArray));
-
   
-  rv = NS_GetSpecialDirectory(NS_APP_USER_PROFILE_50_DIR, getter_AddRefs(mPermissionsFile));
-  if (NS_SUCCEEDED(rv)) {
-    mPermissionsFile->AppendNative(NS_LITERAL_CSTRING(kPermissionsFileName));
-
-    
-    Read();
-  }
+  
+  InitDB();
 
   mObserverService = do_GetService("@mozilla.org/observer-service;1", &rv);
   if (NS_SUCCEEDED(rv)) {
@@ -227,6 +132,139 @@ nsresult nsPermissionManager::Init()
   }
 
   return NS_OK;
+}
+
+nsresult
+nsPermissionManager::InitDB()
+{
+  nsCOMPtr<nsIFile> permissionsFile;
+  NS_GetSpecialDirectory(NS_APP_USER_PROFILE_50_DIR, getter_AddRefs(permissionsFile));
+  if (!permissionsFile)
+    return NS_ERROR_UNEXPECTED;
+
+  nsresult rv = permissionsFile->AppendNative(NS_LITERAL_CSTRING(kPermissionsFileName));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  nsCOMPtr<mozIStorageService> storage = do_GetService(MOZ_STORAGE_SERVICE_CONTRACTID);
+  if (!storage)
+    return NS_ERROR_UNEXPECTED;
+
+  
+  rv = storage->OpenDatabase(permissionsFile, getter_AddRefs(mDBConn));
+  if (rv == NS_ERROR_FILE_CORRUPTED) {
+    
+    rv = permissionsFile->Remove(PR_FALSE);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    rv = storage->OpenDatabase(permissionsFile, getter_AddRefs(mDBConn));
+  }
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  PRBool tableExists = PR_FALSE;
+  mDBConn->TableExists(NS_LITERAL_CSTRING("moz_hosts"), &tableExists);
+  if (!tableExists) {
+      rv = CreateTable();
+      NS_ENSURE_SUCCESS(rv, rv);
+
+  } else {
+    
+    PRInt32 dbSchemaVersion;
+    rv = mDBConn->GetSchemaVersion(&dbSchemaVersion);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    switch (dbSchemaVersion) {
+    
+    
+    
+    
+
+    
+    case HOSTS_SCHEMA_VERSION:
+      break;
+
+    case 0:
+      {
+        NS_WARNING("couldn't get schema version!");
+          
+        
+        
+        
+        
+        
+        rv = mDBConn->SetSchemaVersion(HOSTS_SCHEMA_VERSION);
+        NS_ENSURE_SUCCESS(rv, rv);
+      }
+      
+
+    
+    
+    
+    
+    
+    
+    default:
+      {
+        
+        nsCOMPtr<mozIStorageStatement> stmt;
+        rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING(
+          "SELECT host, type, permission FROM moz_hosts"), getter_AddRefs(stmt));
+        if (NS_SUCCEEDED(rv))
+          break;
+
+        
+        rv = mDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING("DROP TABLE moz_hosts"));
+        NS_ENSURE_SUCCESS(rv, rv);
+
+        rv = CreateTable();
+        NS_ENSURE_SUCCESS(rv, rv);
+      }
+      break;
+    }
+  }
+
+  
+  mDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING("PRAGMA synchronous = OFF"));
+
+  
+  rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING(
+    "INSERT INTO moz_hosts "
+    "(id, host, type, permission) "
+    "VALUES (?1, ?2, ?3, ?4)"), getter_AddRefs(mStmtInsert));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING(
+    "DELETE FROM moz_hosts "
+    "WHERE id = ?1"), getter_AddRefs(mStmtDelete));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING(
+    "UPDATE moz_hosts "
+    "SET permission = ?2 WHERE id = ?1"), getter_AddRefs(mStmtUpdate));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  if (tableExists)
+    return Read();
+
+  return Import();
+}
+
+
+nsresult
+nsPermissionManager::CreateTable()
+{
+  
+  nsresult rv = mDBConn->SetSchemaVersion(HOSTS_SCHEMA_VERSION);
+  if (NS_FAILED(rv)) return rv;
+
+  
+  return mDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
+    "CREATE TABLE moz_hosts ("
+      " id INTEGER PRIMARY KEY"
+      ",host TEXT"
+      ",type TEXT"
+      ",permission INTEGER"
+    ")"));
 }
 
 NS_IMETHODIMP
@@ -241,29 +279,18 @@ nsPermissionManager::Add(nsIURI     *aURI,
 
   nsCAutoString host;
   rv = GetHost(aURI, host);
-  
-  if (NS_FAILED(rv)) return NS_OK;
+  NS_ENSURE_SUCCESS(rv, rv);
 
-  PRInt32 typeIndex = GetTypeIndex(aType, PR_TRUE);
-  if (typeIndex == -1 || aPermission >= NUMBER_OF_PERMISSIONS)
-    return NS_ERROR_FAILURE;
-
-  rv = AddInternal(host, typeIndex, aPermission, PR_TRUE);
-  if (NS_FAILED(rv)) return rv;
-
-  mChangedList = PR_TRUE;
-  LazyWrite();
-
-  return NS_OK;
+  return AddInternal(host, nsDependentCString(aType), aPermission, 0, eNotify, eWriteToDB);
 }
-
-
 
 nsresult
 nsPermissionManager::AddInternal(const nsAFlatCString &aHost,
-                                 PRInt32               aTypeIndex,
+                                 const nsAFlatCString &aType,
                                  PRUint32              aPermission,
-                                 PRBool                aNotify)
+                                 PRInt64               aID,
+                                 NotifyOperationType   aNotifyOperation,
+                                 DBOperationType       aDBOperation)
 {
   if (!gHostArena) {
     gHostArena = new PLArenaPool;
@@ -271,6 +298,10 @@ nsPermissionManager::AddInternal(const nsAFlatCString &aHost,
       return NS_ERROR_OUT_OF_MEMORY;    
     PL_INIT_ARENA_POOL(gHostArena, "PermissionHostArena", HOST_ARENA_SIZE);
   }
+
+  
+  PRInt32 typeIndex = GetTypeIndex(aType.get(), PR_TRUE);
+  NS_ENSURE_TRUE(typeIndex != -1, NS_ERROR_OUT_OF_MEMORY);
 
   
   
@@ -281,46 +312,100 @@ nsPermissionManager::AddInternal(const nsAFlatCString &aHost,
     return NS_ERROR_OUT_OF_MEMORY;
   }
 
-  if (entry->PermissionsAreEmpty()) {
-    ++mHostCount;
+  
+  OperationType op;
+  PRInt32 index = entry->GetPermissionIndex(typeIndex);
+  PRUint32 oldPermission;
+  if (index == -1) {
+    if (aPermission == nsIPermissionManager::UNKNOWN_ACTION)
+      op = eOperationNone;
+    else
+      op = eOperationAdding;
+
+  } else {
+    oldPermission = entry->GetPermissions()[index].mPermission;
+
+    if (aPermission == oldPermission)
+      op = eOperationNone;
+    else if (aPermission == nsIPermissionManager::UNKNOWN_ACTION)
+      op = eOperationRemoving;
+    else
+      op = eOperationChanging;
   }
 
-  PRUint32 oldPermission = entry->GetPermission(aTypeIndex);
-  entry->SetPermission(aTypeIndex, aPermission);
+  
+  
+  PRInt64 id;
+  switch (op) {
+  case eOperationNone:
+    {
+      
+      return NS_OK;
+    }
 
-  
-  
-  if (entry->PermissionsAreEmpty()) {
-    mHostTable.RawRemoveEntry(entry);
-    --mHostCount;
-  }
+  case eOperationAdding:
+    {
+      if (aDBOperation == eWriteToDB) {
+        
+        id = ++mLargestID;
+      } else {
+        
+        id = aID;
+      }
 
-  
-  
-  
-  
-  
-  if (aNotify) {
-    if (aPermission == nsIPermissionManager::UNKNOWN_ACTION) {
-      if (oldPermission != nsIPermissionManager::UNKNOWN_ACTION)
-        
+      entry->GetPermissions().AppendElement(nsPermissionEntry(typeIndex, aPermission, id));
+
+      if (aDBOperation == eWriteToDB)
+        UpdateDB(op, mStmtInsert, id, aHost, aType, aPermission);
+
+      if (aNotifyOperation == eNotify) {
         NotifyObserversWithPermission(aHost,
-                                      mTypeArray[aTypeIndex],
-                                      oldPermission,
-                                      NS_LITERAL_STRING("deleted").get());
-    } else {
-      if (oldPermission == nsIPermissionManager::UNKNOWN_ACTION)
-        
-        NotifyObserversWithPermission(aHost,
-                                      mTypeArray[aTypeIndex],
+                                      mTypeArray[typeIndex],
                                       aPermission,
                                       NS_LITERAL_STRING("added").get());
-      else
-        
+      }
+
+      break;
+    }
+
+  case eOperationRemoving:
+    {
+      id = entry->GetPermissions()[index].mID;
+      entry->GetPermissions().RemoveElementAt(index);
+
+      
+      if (entry->GetPermissions().IsEmpty())
+        mHostTable.RawRemoveEntry(entry);
+
+      if (aDBOperation == eWriteToDB)
+        UpdateDB(op, mStmtDelete, id, EmptyCString(), EmptyCString(), 0);
+
+      if (aNotifyOperation == eNotify) {
         NotifyObserversWithPermission(aHost,
-                                      mTypeArray[aTypeIndex],
+                                      mTypeArray[typeIndex],
+                                      oldPermission,
+                                      NS_LITERAL_STRING("deleted").get());
+      }
+
+      break;
+    }
+
+  case eOperationChanging:
+    {
+      id = entry->GetPermissions()[index].mID;
+      entry->GetPermissions()[index].mPermission = aPermission;
+
+      if (aDBOperation == eWriteToDB)
+        UpdateDB(op, mStmtUpdate, id, EmptyCString(), EmptyCString(), aPermission);
+
+      if (aNotifyOperation == eNotify) {
+        NotifyObserversWithPermission(aHost,
+                                      mTypeArray[typeIndex],
                                       aPermission,
                                       NS_LITERAL_STRING("changed").get());
+      }
+
+      break;
     }
   }
 
@@ -332,42 +417,38 @@ nsPermissionManager::Remove(const nsACString &aHost,
                             const char       *aType)
 {
   NS_ENSURE_ARG_POINTER(aType);
-  PRInt32 typeIndex = GetTypeIndex(aType, PR_FALSE);
+
   
-  
-  if (typeIndex == -1) return NS_OK;
-
-  nsHostEntry *entry = GetHostEntry(PromiseFlatCString(aHost), typeIndex, PR_FALSE);
-  if (entry) {
-    
-    PRUint32 oldPermission = entry->GetPermission(typeIndex);
-
-    entry->SetPermission(typeIndex, nsIPermissionManager::UNKNOWN_ACTION);
-
-    
-    if (entry->PermissionsAreEmpty()) {
-      mHostTable.RawRemoveEntry(entry);
-      --mHostCount;
-    }
-    mChangedList = PR_TRUE;
-    LazyWrite();
-
-    
-    if (oldPermission != nsIPermissionManager::UNKNOWN_ACTION)
-      NotifyObserversWithPermission(PromiseFlatCString(aHost),
-                                    aType,
-                                    oldPermission,
-                                    NS_LITERAL_STRING("deleted").get());
-  }
-  return NS_OK;
+  return AddInternal(PromiseFlatCString(aHost),
+                     nsDependentCString(aType),
+                     nsIPermissionManager::UNKNOWN_ACTION,
+                     0,
+                     eNotify,
+                     eWriteToDB);
 }
 
 NS_IMETHODIMP
 nsPermissionManager::RemoveAll()
 {
-  RemoveAllFromMemory();
+  nsresult rv = RemoveAllInternal();
   NotifyObservers(nsnull, NS_LITERAL_STRING("cleared").get());
-  LazyWrite();
+  return rv;
+}
+
+nsresult
+nsPermissionManager::RemoveAllInternal()
+{
+  RemoveAllFromMemory();
+
+  
+  if (mDBConn) {
+    nsresult rv = mDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING("DELETE FROM moz_hosts"));
+    if (NS_FAILED(rv)) {
+      NS_WARNING("db delete failed");
+      return rv;
+    }
+  }
+
   return NS_OK;
 }
 
@@ -447,88 +528,63 @@ nsPermissionManager::GetHostEntry(const nsAFlatCString &aHost,
 }
 
 
+struct nsGetEnumeratorData
+{
+  nsGetEnumeratorData(nsCOMArray<nsIPermission> *aArray, const nsTArray<nsCString> *aTypes)
+   : array(aArray)
+   , types(aTypes) {}
+
+  nsCOMArray<nsIPermission> *array;
+  const nsTArray<nsCString> *types;
+};
 
 PR_STATIC_CALLBACK(PLDHashOperator)
-AddHostToList(nsHostEntry *entry, void *arg)
+AddPermissionsToList(nsHostEntry *entry, void *arg)
 {
-  
-  
-  
-  
-  const char*** elementPtr = static_cast<const char***>(arg);
-  **elementPtr = entry->GetKey();
-  ++(*elementPtr);
+  nsGetEnumeratorData *data = static_cast<nsGetEnumeratorData *>(arg);
+
+  for (PRUint32 i = 0; i < entry->GetPermissions().Length(); ++i) {
+    nsPermissionEntry &permEntry = entry->GetPermissions()[i];
+
+    nsPermission *perm = new nsPermission(entry->GetHost(), 
+                                          data->types->ElementAt(permEntry.mType),
+                                          permEntry.mPermission);
+
+    data->array->AppendObject(perm);
+  }
+
   return PL_DHASH_NEXT;
 }
 
 NS_IMETHODIMP nsPermissionManager::GetEnumerator(nsISimpleEnumerator **aEnum)
 {
-  *aEnum = nsnull;
   
-  
+  nsCOMArray<nsIPermission> array;
+  nsGetEnumeratorData data(&array, &mTypeArray);
 
-  
-  const char* *hostList = new const char*[mHostCount];
-  if (!hostList) return NS_ERROR_OUT_OF_MEMORY;
+  mHostTable.EnumerateEntries(AddPermissionsToList, &data);
 
-  
-  
-  const char** hostListCopy = hostList;
-  mHostTable.EnumerateEntries(AddHostToList, &hostListCopy);
-
-  nsPermissionEnumerator* permissionEnum = new nsPermissionEnumerator(&mHostTable, hostList, mHostCount, const_cast<const char**>(mTypeArray));
-  if (!permissionEnum) {
-    delete[] hostList;
-    return NS_ERROR_OUT_OF_MEMORY;
-  }
-  NS_ADDREF(permissionEnum);
-  *aEnum = permissionEnum;
-  return NS_OK;
+  return NS_NewArrayEnumerator(aEnum, array);
 }
 
 NS_IMETHODIMP nsPermissionManager::Observe(nsISupports *aSubject, const char *aTopic, const PRUnichar *someData)
 {
-  nsresult rv = NS_OK;
-
   if (!nsCRT::strcmp(aTopic, "profile-before-change")) {
     
-
-    if (mWriteTimer) {
-      mWriteTimer->Cancel();
-      mWriteTimer = 0;
-    }
     
-    
-    
-    
-    
-    
-    
-    
-
     if (!nsCRT::strcmp(someData, NS_LITERAL_STRING("shutdown-cleanse").get())) {
-      if (mPermissionsFile) {
-        mPermissionsFile->Remove(PR_FALSE);
-      }
+      
+      RemoveAllInternal();
     } else {
-      Write();
+      RemoveAllFromMemory();
     }
-    RemoveTypeStrings();
-    RemoveAllFromMemory();
   }  
   else if (!nsCRT::strcmp(aTopic, "profile-do-change")) {
     
-    
-
-    
-    rv = NS_GetSpecialDirectory(NS_APP_USER_PROFILE_50_DIR, getter_AddRefs(mPermissionsFile));
-    if (NS_SUCCEEDED(rv)) {
-      mPermissionsFile->AppendNative(NS_LITERAL_CSTRING(kPermissionsFileName));
-      Read();
-    }
+    InitDB();
   }
 
-  return rv;
+  return NS_OK;
 }
 
 
@@ -538,26 +594,15 @@ NS_IMETHODIMP nsPermissionManager::Observe(nsISupports *aSubject, const char *aT
 nsresult
 nsPermissionManager::RemoveAllFromMemory()
 {
+  mLargestID = 0;
+  mTypeArray.Clear();
   mHostTable.Clear();
-  mHostCount = 0;
   if (gHostArena) {
     PL_FinishArenaPool(gHostArena);
     delete gHostArena;
   }
   gHostArena = nsnull;
-  mChangedList = PR_TRUE;
   return NS_OK;
-}
-
-void
-nsPermissionManager::RemoveTypeStrings()
-{
-  for (PRUint32 i = NUMBER_OF_TYPES; i--; ) {
-    if (mTypeArray[i]) {
-      PL_strfree(mTypeArray[i]);
-      mTypeArray[i] = nsnull;
-    }
-  }
 }
 
 
@@ -565,42 +610,34 @@ PRInt32
 nsPermissionManager::GetTypeIndex(const char *aType,
                                   PRBool      aAdd)
 {
-  PRInt32 firstEmpty = -1;
-
-  for (PRUint32 i = 0; i < NUMBER_OF_TYPES; ++i) {
-    if (!mTypeArray[i]) {
-      if (firstEmpty == -1)
-        
-        firstEmpty = i;
-    } else if (!strcmp(aType, mTypeArray[i])) {
+  for (PRUint32 i = 0; i < mTypeArray.Length(); ++i)
+    if (mTypeArray[i].Equals(aType))
       return i;
-    }
+
+  if (!aAdd) {
+    
+    return -1;
   }
 
-  if (!aAdd || firstEmpty == -1)
-    
-    
+  
+  
+  nsCString *elem = mTypeArray.AppendElement();
+  if (!elem)
     return -1;
 
-  
-  
-  
-  mTypeArray[firstEmpty] = PL_strdup(aType);
-  if (!mTypeArray[firstEmpty])
-    return -1;
-
-  return firstEmpty;
+  elem->Assign(aType);
+  return mTypeArray.Length() - 1;
 }
 
 
 void
 nsPermissionManager::NotifyObserversWithPermission(const nsACString &aHost,
-                                                   const char       *aType,
+                                                   const nsCString  &aType,
                                                    PRUint32          aPermission,
                                                    const PRUnichar  *aData)
 {
   nsCOMPtr<nsIPermission> permission =
-    new nsPermission(aHost, nsDependentCString(aType), aPermission);
+    new nsPermission(aHost, aType, aPermission);
   if (permission)
     NotifyObservers(permission, aData);
 }
@@ -621,73 +658,75 @@ nsPermissionManager::NotifyObservers(nsIPermission   *aPermission,
                                       aData);
 }
 
-static const char kTab = '\t';
-static const char kNew = '\n';
-static const char kTrue = 'T';
-static const char kFalse = 'F';
-static const char kFirstLetter = 'a';
-static const char kTypeSign = '%';
-
-static const char kMatchTypeHost[] = "host";
-
 nsresult
 nsPermissionManager::Read()
 {
   nsresult rv;
-  
-  PRBool readingOldFile = PR_FALSE;
-  nsCOMPtr<nsIInputStream> fileInputStream;
 
-  PRBool fileExists = PR_FALSE;
-  rv = mPermissionsFile->Exists(&fileExists);
+  nsCOMPtr<mozIStorageStatement> stmt;
+  rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING(
+    "SELECT id, host, type, permission "
+    "FROM moz_hosts"), getter_AddRefs(stmt));
   NS_ENSURE_SUCCESS(rv, rv);
 
-  if (fileExists) {
-    rv = NS_NewLocalFileInputStream(getter_AddRefs(fileInputStream),
-                                    mPermissionsFile);
-  } else {
+  PRInt64 id;
+  nsCAutoString host, type;
+  PRUint32 permission;
+  PRBool hasResult;
+  while (NS_SUCCEEDED(stmt->ExecuteStep(&hasResult)) && hasResult) {
     
+    
+    id = stmt->AsInt64(0);
+    if (id > mLargestID)
+      mLargestID = id;
 
-    nsCOMPtr<nsIFile> oldPermissionsFile;
-    rv = NS_GetSpecialDirectory(NS_APP_USER_PROFILE_50_DIR,
-                                getter_AddRefs(oldPermissionsFile));
+    rv = stmt->GetUTF8String(1, host);
     NS_ENSURE_SUCCESS(rv, rv);
 
-    rv = oldPermissionsFile->AppendNative(NS_LITERAL_CSTRING(kOldPermissionsFileName));
+    rv = stmt->GetUTF8String(2, type);
     NS_ENSURE_SUCCESS(rv, rv);
 
-    rv = oldPermissionsFile->Exists(&fileExists);
-    if (NS_SUCCEEDED(rv) && fileExists) {
-      rv = NS_NewLocalFileInputStream(getter_AddRefs(fileInputStream),
-                                      oldPermissionsFile);
-      readingOldFile = PR_TRUE;
-    } else {
-      rv = NS_ERROR_FILE_NOT_FOUND;
-    }
-    
+    permission = stmt->AsInt32(3);
 
-
-
-
-
+    rv = AddInternal(host, type, permission, id, eDontNotify, eNoDBOperation);
+    NS_ENSURE_SUCCESS(rv, rv);
   }
-  
-  
-  if (NS_FAILED(rv))
-    return rv;
 
+  return NS_OK;
+}
+
+static const char kMatchTypeHost[] = "host";
+
+nsresult
+nsPermissionManager::Import()
+{
+  nsresult rv;
+
+  nsCOMPtr<nsIFile> permissionsFile;
+  rv = NS_GetSpecialDirectory(NS_APP_USER_PROFILE_50_DIR, getter_AddRefs(permissionsFile));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  rv = permissionsFile->AppendNative(NS_LITERAL_CSTRING(kHostpermFileName));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  nsCOMPtr<nsIInputStream> fileInputStream;
+  rv = NS_NewLocalFileInputStream(getter_AddRefs(fileInputStream),
+                                  permissionsFile);
+  NS_ENSURE_SUCCESS(rv, rv);
 
   nsCOMPtr<nsILineInputStream> lineInputStream = do_QueryInterface(fileInputStream, &rv);
   NS_ENSURE_SUCCESS(rv, rv);
 
   
+  
+  mozStorageTransaction transaction(mDBConn, PR_TRUE);
+
+  
 
 
 
 
 
-
-  mHasUnknownTypes = PR_FALSE;
 
   nsCAutoString buffer;
   PRBool isMore = PR_TRUE;
@@ -696,308 +735,48 @@ nsPermissionManager::Read()
       continue;
     }
 
-    if (!readingOldFile) {
-      nsCStringArray lineArray;
+    nsCStringArray lineArray;
+
+    
+    lineArray.ParseString(buffer.get(), "\t");
+    
+    if (lineArray[0]->EqualsLiteral(kMatchTypeHost) &&
+        lineArray.Count() == 4) {
       
-      
-      lineArray.ParseString(buffer.get(), "\t");
-      
-      if (lineArray[0]->EqualsLiteral(kMatchTypeHost) &&
-          lineArray.Count() == 4) {
-        
-        PRInt32 error;
-        PRUint32 permission = lineArray[2]->ToInteger(&error);
-        if (error)
-          continue;
-        PRInt32 type = GetTypeIndex(lineArray[1]->get(), PR_TRUE);
-        if (type < 0)
-          continue;
-
-        rv = AddInternal(*lineArray[3], type, permission, PR_FALSE);
-        NS_ENSURE_SUCCESS(rv, rv);
-      } else {
-        mHasUnknownTypes = PR_TRUE;
-      }
-
-    } else {
-      
-      nsASingleFragmentCString::char_iterator iter;
-      if (buffer.First() == kTypeSign) {
-        
-
-        PRInt32 stringIndex;
-
-        if ((stringIndex = buffer.FindChar(kTab) + 1) == 0) {
-          continue;      
-        }
-
-        PRUint32 type;
-        if (PR_sscanf(buffer.get() + 1, "%u", &type) != 1 || type >= NUMBER_OF_TYPES) {
-          continue;
-        }
-
-        
-        
-        
-        
-        
-        
-        if (!strcmp(buffer.get() + stringIndex, "0F"))
-          continue;
-
-        NS_ASSERTION(GetTypeIndex(buffer.get() + stringIndex, PR_FALSE) == -1, "Corrupt cookperm.txt file");
-        mTypeArray[type] = PL_strdup(buffer.get() + stringIndex);
-
+      PRInt32 error;
+      PRUint32 permission = lineArray[2]->ToInteger(&error);
+      if (error)
         continue;
-      }
-
-      PRInt32 hostIndex, permissionIndex;
-      PRUint32 nextPermissionIndex = 0;
-      hostIndex = 0;
-
-      if ((permissionIndex = buffer.FindChar('\t', hostIndex) + 1) == 0)
-        continue;      
 
       
-      while (hostIndex < permissionIndex && (buffer.CharAt(hostIndex) == '.'))
-        ++hostIndex;
-
-      
-      buffer.BeginWriting(iter);
-      *(iter += permissionIndex - 1) = char(0);
-      nsDependentCString host(buffer.get() + hostIndex, iter);
-
-      for (;;) {
-        if (nextPermissionIndex == buffer.Length()+1)
-          break;
-
-        if ((nextPermissionIndex = buffer.FindChar(kTab, permissionIndex) + 1) == 0)
-          nextPermissionIndex = buffer.Length()+1;
-
-        const nsASingleFragmentCString &permissionString = Substring(buffer, permissionIndex, nextPermissionIndex - permissionIndex - 1);
-        permissionIndex = nextPermissionIndex;
-
-        PRInt32 type = 0;
-        PRUint32 index = 0;
-
-        if (permissionString.IsEmpty())
-          continue; 
-
-        
-        char c = permissionString.CharAt(index);
-        while (index < permissionString.Length() && c >= '0' && c <= '9') {
-          type = 10*type + (c-'0');
-          c = permissionString.CharAt(++index);
-        }
-
-        if (type >= NUMBER_OF_TYPES)
-          continue; 
-
-        if (index >= permissionString.Length())
-          continue; 
-
-        PRUint32 permission;
-        if (permissionString.CharAt(index) == kTrue)
-          permission = nsIPermissionManager::ALLOW_ACTION;
-        else if (permissionString.CharAt(index) == kFalse)
-          permission = nsIPermissionManager::DENY_ACTION;
-        else
-          permission = permissionString.CharAt(index) - kFirstLetter;
-
-        
-        if (permission >= NUMBER_OF_PERMISSIONS)
+      if (!IsASCII(*lineArray[3])) {
+        rv = NormalizeToACE(*lineArray[3]);
+        if (NS_FAILED(rv))
           continue;
-
-        
-        if (!permissionString.IsEmpty() && !host.EqualsLiteral("@@@@")) {
-          rv = AddInternal(host, type, permission, PR_FALSE);
-          if (NS_FAILED(rv)) return rv;
-        }
-
       }
-      
-      
-      
-      GetTypeIndex("cookie", PR_TRUE);
-      GetTypeIndex("image", PR_TRUE);
-      GetTypeIndex("popup", PR_TRUE);
 
-      
+      rv = AddInternal(*lineArray[3], *lineArray[1], permission, 0, eDontNotify, eWriteToDB);
+      NS_ENSURE_SUCCESS(rv, rv);
     }
-
   }
 
-
-  mChangedList = PR_FALSE;
+  
+  permissionsFile->Remove(PR_FALSE);
 
   return NS_OK;
-}
-
-
-
-
-
-PR_STATIC_CALLBACK(PLDHashOperator)
-AddEntryToList(nsHostEntry *entry, void *arg)
-{
-  
-  
-  
-  
-  nsHostEntry*** elementPtr = static_cast<nsHostEntry***>(arg);
-  **elementPtr = entry;
-  ++(*elementPtr);
-  return PL_DHASH_NEXT;
-}
-
-void
-nsPermissionManager::LazyWrite()
-{
-  if (mWriteTimer) {
-    mWriteTimer->SetDelay(kLazyWriteTimeout);
-  } else {
-    mWriteTimer = do_CreateInstance("@mozilla.org/timer;1");
-    if (mWriteTimer) {
-      mWriteTimer->InitWithFuncCallback(DoLazyWrite, this, kLazyWriteTimeout,
-                                        nsITimer::TYPE_ONE_SHOT);
-    }
-  }
-}
-
-void
-nsPermissionManager::DoLazyWrite(nsITimer *aTimer,
-                                 void     *aClosure)
-{
-  nsPermissionManager *service = reinterpret_cast<nsPermissionManager*>(aClosure);
-  service->Write();
-  service->mWriteTimer = 0;
 }
 
 nsresult
-nsPermissionManager::Write()
+nsPermissionManager::NormalizeToACE(nsCString &aHost)
 {
-  nsresult rv;
-
-  if (!mChangedList) {
-    return NS_OK;
+  
+  if (!mIDNService) {
+    nsresult rv;
+    mIDNService = do_GetService(NS_IDNSERVICE_CONTRACTID, &rv);
+    NS_ENSURE_SUCCESS(rv, rv);
   }
 
-  if (!mPermissionsFile) {
-    return NS_ERROR_FAILURE;
-  }
-
-  
-  
-  
-  nsCStringArray rememberList;
-  if (mHasUnknownTypes) {
-    nsCOMPtr<nsIInputStream> fileInputStream;
-    rv = NS_NewLocalFileInputStream(getter_AddRefs(fileInputStream), mPermissionsFile);
-    if (NS_SUCCEEDED(rv)) {
-      nsCOMPtr<nsILineInputStream> lineInputStream = do_QueryInterface(fileInputStream, &rv);
-      if (NS_SUCCEEDED(rv)) {
-        nsCAutoString buffer;
-        PRBool isMore = PR_TRUE;
-        while (isMore && NS_SUCCEEDED(lineInputStream->ReadLine(buffer, &isMore))) {
-          if (buffer.IsEmpty() || buffer.First() == '#' ||
-              StringBeginsWith(buffer, NS_LITERAL_CSTRING(kMatchTypeHost)))
-            continue;
-
-          rememberList.AppendCString(buffer);
-        }
-      }
-    }
-  }
-
-  nsCOMPtr<nsIOutputStream> fileOutputStream;
-  rv = NS_NewSafeLocalFileOutputStream(getter_AddRefs(fileOutputStream),
-                                       mPermissionsFile,
-                                       -1,
-                                       0600);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  
-  nsCOMPtr<nsIOutputStream> bufferedOutputStream;
-  rv = NS_NewBufferedOutputStream(getter_AddRefs(bufferedOutputStream), fileOutputStream, 4096);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  static const char kHeader[] = 
-    "# Permission File\n"
-    "# This is a generated file! Do not edit.\n\n";
-
-  bufferedOutputStream->Write(kHeader, sizeof(kHeader) - 1, &rv);
-
-  
-
-
-
-  
-  PRUint32 i;
-  if (mHasUnknownTypes) {
-    for (i = 0 ; i < rememberList.Count() ; ++i) {
-      bufferedOutputStream->Write(rememberList[i]->get(), 
-                                  rememberList[i]->Length(), &rv);
-      bufferedOutputStream->Write(&kNew, 1, &rv);
-    }
-  }
-
-  
-  nsHostEntry* *hostList = new nsHostEntry*[mHostCount];
-  if (!hostList) return NS_ERROR_OUT_OF_MEMORY;
-
-  
-  
-  nsHostEntry** hostListCopy = hostList;
-  mHostTable.EnumerateEntries(AddEntryToList, &hostListCopy);
-
-  for (i = 0; i < mHostCount; ++i) {
-    nsHostEntry *entry = static_cast<nsHostEntry*>(hostList[i]);
-    NS_ASSERTION(entry, "corrupt permission list");
-
-    for (PRInt32 type = 0; type < NUMBER_OF_TYPES; ++type) {
-    
-      PRUint32 permission = entry->GetPermission(type);
-      if (permission && mTypeArray[type]) {
-        
-        
-        bufferedOutputStream->Write(kMatchTypeHost, sizeof(kMatchTypeHost) - 1, &rv);
-
-        
-        bufferedOutputStream->Write(&kTab, 1, &rv);
-        bufferedOutputStream->Write(mTypeArray[type], strlen(mTypeArray[type]), &rv);
-
-        
-        bufferedOutputStream->Write(&kTab, 1, &rv);
-        char permissionString[5];
-        PRUint32 len = PR_snprintf(permissionString, sizeof(permissionString) - 1, "%u", permission);
-        bufferedOutputStream->Write(permissionString, len, &rv);
-
-        
-        bufferedOutputStream->Write(&kTab, 1, &rv);
-        bufferedOutputStream->Write(entry->GetHost().get(), entry->GetHost().Length(), &rv);
-        
-        
-        bufferedOutputStream->Write(&kNew, 1, &rv);
-      }
-    }
-  }
-
-  delete[] hostList;
-
-  
-  
-  nsCOMPtr<nsISafeOutputStream> safeStream = do_QueryInterface(bufferedOutputStream);
-  NS_ASSERTION(safeStream, "expected a safe output stream!");
-  if (safeStream) {
-    rv = safeStream->Finish();
-    if (NS_FAILED(rv)) {
-      NS_WARNING("failed to save permissions file! possible dataloss");
-      return rv;
-    }
-  }
-
-  mChangedList = PR_FALSE;
-  return NS_OK;
+  return mIDNService->ConvertUTF8toACE(aHost, aHost);
 }
 
 nsresult
@@ -1006,18 +785,74 @@ nsPermissionManager::GetHost(nsIURI *aURI, nsACString &aResult)
   nsCOMPtr<nsIURI> innerURI = NS_GetInnermostURI(aURI);
   if (!innerURI) return NS_ERROR_FAILURE;
 
-  innerURI->GetHost(aResult);
+  nsresult rv = innerURI->GetAsciiHost(aResult);
 
-  
-  
-  if (aResult.IsEmpty()) {
-    innerURI->GetScheme(aResult);
-    if (aResult.IsEmpty()) {
-      
-      return NS_ERROR_FAILURE;
-    }
-    aResult = NS_LITERAL_CSTRING("scheme:") + aResult;
-  }
+  if (NS_FAILED(rv) || aResult.IsEmpty())
+    return NS_ERROR_UNEXPECTED;
 
   return NS_OK;
 }
+
+void
+nsPermissionManager::UpdateDB(OperationType         aOp,
+                              mozIStorageStatement* aStmt,
+                              PRInt64               aID,
+                              const nsACString     &aHost,
+                              const nsACString     &aType,
+                              PRUint32              aPermission)
+{
+  nsresult rv;
+
+  
+  if (!aStmt)
+    return;
+
+  switch (aOp) {
+  case eOperationAdding:
+    {
+      rv = aStmt->BindInt64Parameter(0, aID);
+      if (NS_FAILED(rv)) break;
+
+      rv = aStmt->BindUTF8StringParameter(1, aHost);
+      if (NS_FAILED(rv)) break;
+      
+      rv = aStmt->BindUTF8StringParameter(2, aType);
+      if (NS_FAILED(rv)) break;
+
+      rv = aStmt->BindInt32Parameter(3, aPermission);
+      break;
+    }
+
+  case eOperationRemoving:
+    {
+      rv = aStmt->BindInt64Parameter(0, aID);
+      break;
+    }
+
+  case eOperationChanging:
+    {
+      rv = aStmt->BindInt64Parameter(0, aID);
+      if (NS_FAILED(rv)) break;
+
+      rv = aStmt->BindInt32Parameter(1, aPermission);
+      break;
+    }
+
+  default:
+    {
+      NS_NOTREACHED("need a valid operation in UpdateDB()!");
+      rv = NS_ERROR_UNEXPECTED;
+      break;
+    }
+  }
+
+  if (NS_SUCCEEDED(rv)) {
+    PRBool hasResult;
+    rv = aStmt->ExecuteStep(&hasResult);
+    aStmt->Reset();
+  }
+
+  if (NS_FAILED(rv))
+    NS_WARNING("db change failed!");
+}
+
