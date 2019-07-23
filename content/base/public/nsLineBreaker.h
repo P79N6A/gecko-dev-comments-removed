@@ -95,11 +95,17 @@ public:
   
   
   
+  
+  
+  
+  
+  
   enum {
     
 
 
-    BREAK_WHITESPACE           = 0x01,
+
+    BREAK_WHITESPACE_END       = 0x01,
     
 
 
@@ -163,7 +169,7 @@ private:
 
   
   
-  PRPackedBool             mBreakBeforeNextWord;
+  PRPackedBool                mBreakBeforeNonWhitespace;
 };
 
 #endif 

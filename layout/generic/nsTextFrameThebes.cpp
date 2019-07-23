@@ -186,10 +186,6 @@
 
 
 
-
-
-
-
 class nsTextFrame;
 class PropertyProvider;
 
@@ -527,8 +523,6 @@ public:
 
   gfxTextRun* GetTextRun() { return mTextRun; }
   void SetTextRun(gfxTextRun* aTextRun) { mTextRun = aTextRun; }
-  
-  PRInt32 GetColumn() { return mColumn; }
 
   
   
@@ -546,7 +540,6 @@ protected:
   nsIFrame*   mNextContinuation;
   PRInt32     mContentOffset;
   PRInt32     mContentLength;
-  PRInt32     mColumn;
   nscoord     mAscent;
   gfxTextRun* mTextRun;
 
@@ -1558,10 +1551,14 @@ BuildTextRunsScanner::SetupBreakSinksForTextRun(gfxTextRun* aTextRun,
         mappedFlow->mAncestorControllingInitialBreak->GetStyleText()->WhiteSpaceCanWrap()) {
       flags |= nsLineBreaker::BREAK_NONWHITESPACE_BEFORE;
     }
-    if (mappedFlow->mStartFrame->GetStyleText()->WhiteSpaceCanWrap()) {
-      flags |= nsLineBreaker::BREAK_WHITESPACE | nsLineBreaker::BREAK_NONWHITESPACE_INSIDE;
+    const nsStyleText* textStyle = mappedFlow->mStartFrame->GetStyleText();
+    if (textStyle->WhiteSpaceCanWrap()) {
+      
+      
+      
+      flags |= nsLineBreaker::BREAK_NONWHITESPACE_INSIDE |
+        nsLineBreaker::BREAK_WHITESPACE_END;
     }
-    
     
     
     if (aTextRun->GetFlags() & gfxFontGroup::TEXT_IS_8BIT) {
@@ -1841,13 +1838,18 @@ public:
 
   PropertyProvider(gfxTextRun* aTextRun, const nsStyleText* aTextStyle,
                    const nsTextFragment* aFrag, nsTextFrame* aFrame,
-                   const gfxSkipCharsIterator& aStart, PRInt32 aLength)
+                   const gfxSkipCharsIterator& aStart, PRInt32 aLength,
+                   nsIFrame* aLineContainer,
+                   nscoord aOffsetFromBlockOriginForTabs)
     : mTextRun(aTextRun), mFontGroup(nsnull), mTextStyle(aTextStyle), mFrag(aFrag),
-      mFrame(aFrame), mStart(aStart), mLength(aLength),
+      mLineContainer(aLineContainer),
+      mFrame(aFrame), mStart(aStart), mTabWidths(nsnull), mLength(aLength),
       mWordSpacing(StyleToCoord(mTextStyle->mWordSpacing)),
       mLetterSpacing(StyleToCoord(mTextStyle->mLetterSpacing)),
       mJustificationSpacing(0),
-      mHyphenWidth(-1)
+      mHyphenWidth(-1),
+      mOffsetFromBlockOriginForTabs(aOffsetFromBlockOriginForTabs),
+      mReflowing(PR_TRUE)
   {
     NS_ASSERTION(mStart.IsInitialized(), "Start not initialized?");
   }
@@ -1858,13 +1860,18 @@ public:
 
 
   PropertyProvider(nsTextFrame* aFrame, const gfxSkipCharsIterator& aStart)
-    : mTextRun(aFrame->GetTextRun()), mFontGroup(nsnull), mTextStyle(aFrame->GetStyleText()),
+    : mTextRun(aFrame->GetTextRun()), mFontGroup(nsnull),
+      mTextStyle(aFrame->GetStyleText()),
       mFrag(aFrame->GetContent()->GetText()),
-      mFrame(aFrame), mStart(aStart), mLength(aFrame->GetContentLength()),
+      mLineContainer(nsnull),
+      mFrame(aFrame), mStart(aStart), mTabWidths(nsnull),
+      mLength(aFrame->GetContentLength()),
       mWordSpacing(StyleToCoord(mTextStyle->mWordSpacing)),
       mLetterSpacing(StyleToCoord(mTextStyle->mLetterSpacing)),
       mJustificationSpacing(0),
-      mHyphenWidth(-1)
+      mHyphenWidth(-1),
+      mOffsetFromBlockOriginForTabs(0),
+      mReflowing(PR_FALSE)
   {
     NS_ASSERTION(mTextRun, "Textrun not initialized!");
   }
@@ -1877,16 +1884,14 @@ public:
   virtual void GetHyphenationBreaks(PRUint32 aStart, PRUint32 aLength,
                                     PRPackedBool* aBreakBefore);
 
+  void GetSpacingInternal(PRUint32 aStart, PRUint32 aLength, Spacing* aSpacing,
+                          PRBool aIgnoreTabs);
+
   
 
 
   PRUint32 ComputeJustifiableCharacters(PRInt32 aOffset, PRInt32 aLength);
   void FindEndOfJustificationRange(gfxSkipCharsIterator* aIter);
-
-  
-
-
-  PRUint32 GetTabExpansionCount(PRUint32 aOffset, PRUint32 aLength);
 
   const nsStyleText* GetStyleText() { return mTextStyle; }
   nsTextFrame* GetFrame() { return mFrame; }
@@ -1904,25 +1909,26 @@ public:
     return mFontGroup;
   }
 
+  gfxFloat* GetTabWidths(PRUint32 aTransformedStart, PRUint32 aTransformedLength);
+
 protected:
   void SetupJustificationSpacing();
-
   
-  PRUint8* ComputeTabSpaceCount(PRUint32 aOffset, PRUint32 aLength);
-
   gfxTextRun*           mTextRun;
   gfxFontGroup*         mFontGroup;
   const nsStyleText*    mTextStyle;
   const nsTextFragment* mFrag;
+  nsIFrame*             mLineContainer;
   nsTextFrame*          mFrame;
   gfxSkipCharsIterator  mStart;  
-  nsTArray<PRUint8>     mTabSpaceCounts;  
-  PRUint32              mCurrentColumn;
+  nsTArray<gfxFloat>*   mTabWidths;  
   PRInt32               mLength; 
   gfxFloat              mWordSpacing;     
   gfxFloat              mLetterSpacing;   
   gfxFloat              mJustificationSpacing;
   gfxFloat              mHyphenWidth;
+  gfxFloat              mOffsetFromBlockOriginForTabs;
+  PRPackedBool          mReflowing;
 };
 
 PRUint32
@@ -1942,42 +1948,6 @@ PropertyProvider::ComputeJustifiableCharacters(PRInt32 aOffset, PRInt32 aLength)
     }
   }
   return justifiableChars;
-}
-
-PRUint8*
-PropertyProvider::ComputeTabSpaceCount(PRUint32 aOffset, PRUint32 aLength)
-{
-  PRUint32 tabsEnd = mStart.GetSkippedOffset() + mTabSpaceCounts.Length();
-  
-  
-  
-  
-  if (aOffset + aLength > tabsEnd) {
-    PRUint32 column = mTabSpaceCounts.Length() ? mCurrentColumn : mFrame->GetColumn();
-    PRInt32 count = aOffset + aLength - tabsEnd;
-    nsSkipCharsRunIterator
-      run(mStart, nsSkipCharsRunIterator::LENGTH_UNSKIPPED_ONLY, count);
-    run.SetSkippedOffset(tabsEnd);
-    while (run.NextRun()) {
-      PRInt32 i;
-      for (i = 0; i < run.GetRunLength(); ++i) {
-        if (mFrag->CharAt(i + run.GetOriginalOffset()) == '\t') {
-          PRInt32 spaces = 8 - column%8;
-          column += spaces;
-          
-          mTabSpaceCounts.AppendElement(spaces - 1);
-        } else {
-          if (mTextRun->IsClusterStart(i + run.GetSkippedOffset())) {
-            ++column;
-          }
-          mTabSpaceCounts.AppendElement(0);
-        }
-      }
-    }
-    mCurrentColumn = column;
-  }
-
-  return mTabSpaceCounts.Elements() + aOffset - mStart.GetSkippedOffset();
 }
 
 
@@ -2019,6 +1989,14 @@ void
 PropertyProvider::GetSpacing(PRUint32 aStart, PRUint32 aLength,
                              Spacing* aSpacing)
 {
+  GetSpacingInternal(aStart, aLength, aSpacing,
+                     (mTextRun->GetFlags() & nsTextFrameUtils::TEXT_HAS_TAB) == 0);
+}
+
+void
+PropertyProvider::GetSpacingInternal(PRUint32 aStart, PRUint32 aLength,
+                                     Spacing* aSpacing, PRBool aIgnoreTabs)
+{
   NS_PRECONDITION(IsInBounds(mStart, mLength, aStart, aLength), "Range out of bounds");
 
   PRUint32 index;
@@ -2059,16 +2037,12 @@ PropertyProvider::GetSpacing(PRUint32 aStart, PRUint32 aLength,
   }
 
   
-  if (mTextRun->GetFlags() & nsTextFrameUtils::TEXT_HAS_TAB) {
-    
-    
-    
-    PRUint8* tabSpaceList = ComputeTabSpaceCount(aStart, aLength);
-    gfxFloat spaceWidth = mLetterSpacing + mWordSpacing +
-        mTextRun->GetFontGroup()->GetFontAt(0)->GetMetrics().spaceWidth*mTextRun->GetAppUnitsPerDevUnit();
-    for (index = 0; index < aLength; ++index) {
-      PRInt32 tabSpaces = tabSpaceList[index];
-      aSpacing[index].mAfter += spaceWidth*tabSpaces;
+  if (!aIgnoreTabs) {
+    gfxFloat* tabs = GetTabWidths(aStart, aLength);
+    if (tabs) {
+      for (index = 0; index < aLength; ++index) {
+        aSpacing[index].mAfter += tabs[index];
+      }
     }
   }
 
@@ -2105,19 +2079,91 @@ PropertyProvider::GetSpacing(PRUint32 aStart, PRUint32 aLength,
   }
 }
 
-PRUint32
-PropertyProvider::GetTabExpansionCount(PRUint32 aStart, PRUint32 aLength)
+static void TabWidthDestructor(void* aObject, nsIAtom* aProp, void* aValue,
+                               void* aData)
 {
-  if (!(mTextRun->GetFlags() & nsTextFrameUtils::TEXT_HAS_TAB))
-    return 0;
+  delete NS_STATIC_CAST(nsTArray<gfxFloat>*, aValue);
+}
 
-  PRUint8* spaces = ComputeTabSpaceCount(aStart, aLength);
-  PRUint32 i;
-  PRUint32 sum = 0;
-  for (i = 0; i < aLength; ++i) {
-    sum += spaces[i];
+gfxFloat*
+PropertyProvider::GetTabWidths(PRUint32 aStart, PRUint32 aLength)
+{
+  if (!mTabWidths) {
+    if (!mReflowing) {
+      mTabWidths = NS_STATIC_CAST(nsTArray<gfxFloat>*,
+        mFrame->GetProperty(nsGkAtoms::tabWidthProperty));
+      if (!mTabWidths) {
+        NS_WARNING("We need precomputed tab widths, but they're not here...");
+        return nsnull;
+      }
+    } else {
+      nsAutoPtr<nsTArray<gfxFloat> > tabs(new nsTArray<gfxFloat>());
+      if (!tabs)
+        return nsnull;
+      nsresult rv = mFrame->SetProperty(nsGkAtoms::tabWidthProperty, tabs,
+                                        TabWidthDestructor, nsnull);
+      if (NS_FAILED(rv))
+        return nsnull;
+      mTabWidths = tabs.forget();
+    }
   }
-  return sum;
+
+  PRUint32 startOffset = mStart.GetSkippedOffset();
+  PRUint32 tabsEnd = startOffset + mTabWidths->Length();
+  if (tabsEnd < aStart + aLength) {
+    if (!mReflowing) {
+      NS_WARNING("We need precomputed tab widths, but we don't have enough...");
+      return nsnull;
+    }
+    
+    if (!mTabWidths->AppendElements(aStart + aLength - tabsEnd))
+      return nsnull;
+    
+    PRUint32 i;
+    if (!mLineContainer) {
+      NS_WARNING("Tabs encountered in a situation where we don't support tabbing");
+      for (i = tabsEnd; i < aStart + aLength; ++i) {
+        (*mTabWidths)[i - startOffset] = 0;
+      }
+    } else {
+      gfxFloat tabWidth = NS_round(8*mTextRun->GetAppUnitsPerDevUnit()*
+        GetFontMetrics(GetFontGroupForFrame(mLineContainer)).spaceWidth);
+      
+      for (i = tabsEnd; i < aStart + aLength; ++i) {
+        Spacing spacing;
+        GetSpacingInternal(i, 1, &spacing, PR_TRUE);
+        mOffsetFromBlockOriginForTabs += spacing.mBefore;
+  
+        if (mTextRun->GetChar(i) != '\t') {
+          (*mTabWidths)[i - startOffset] = 0;
+          if (mTextRun->IsClusterStart(i)) {
+            PRUint32 clusterEnd = i + 1;
+            while (clusterEnd < mTextRun->GetLength() &&
+                   !mTextRun->IsClusterStart(clusterEnd)) {
+              ++clusterEnd;
+            }
+            mOffsetFromBlockOriginForTabs +=
+              mTextRun->GetAdvanceWidth(i, clusterEnd - i, nsnull);
+          }
+        } else {
+          
+          
+          
+          static const double EPSILON = 0.000001;
+          double nextTab = NS_ceil(mOffsetFromBlockOriginForTabs/tabWidth)*tabWidth;
+          if (nextTab < mOffsetFromBlockOriginForTabs + EPSILON) {
+            nextTab += tabWidth;
+          }
+          (*mTabWidths)[i - startOffset] = nextTab - mOffsetFromBlockOriginForTabs;
+          mOffsetFromBlockOriginForTabs = nextTab;
+        }
+  
+        mOffsetFromBlockOriginForTabs += spacing.mAfter;
+      }
+    }
+  }
+
+  return mTabWidths->Elements() + aStart - startOffset;
 }
 
 gfxFloat
@@ -4132,10 +4178,10 @@ nsTextFrame::GetPointFromOffset(nsPresContext* aPresContext,
 }
 
 NS_IMETHODIMP
-nsTextFrame::GetChildFrameContainingOffset(PRInt32 inContentOffset,
-                                           PRBool  inHint,
-                                           PRInt32* outFrameContentOffset,
-                                           nsIFrame **outChildFrame)
+nsTextFrame::GetChildFrameContainingOffset(PRInt32   aContentOffset,
+                                           PRBool    aHint,
+                                           PRInt32*  aOutOffset,
+                                           nsIFrame**aOutFrame)
 {
   DEBUG_VERIFY_NOT_DIRTY(mState);
 #if 0 
@@ -4143,39 +4189,40 @@ nsTextFrame::GetChildFrameContainingOffset(PRInt32 inContentOffset,
     return NS_ERROR_UNEXPECTED;
 #endif
 
-  if (nsnull == outChildFrame)
-    return NS_ERROR_NULL_POINTER;
-  PRInt32 contentOffset = inContentOffset;
-  
-  if (contentOffset != -1) 
-    contentOffset = inContentOffset - mContentOffset;
+  NS_ASSERTION(aOutOffset && aOutFrame, "Bad out parameters");
+  NS_ASSERTION(aContentOffset >= 0, "Negative content offset, existing code was very broken!");
 
-  if ((contentOffset > mContentLength) || ((contentOffset == mContentLength) && inHint) )
-  {
-    
-    nsIFrame* nextContinuation = GetNextContinuation();
-    if (nextContinuation)
-    {
-      return nextContinuation->GetChildFrameContainingOffset(inContentOffset, inHint, outFrameContentOffset, outChildFrame);
+  nsTextFrame* f = this;
+  if (aContentOffset >= mContentOffset) {
+    while (PR_TRUE) {
+      nsTextFrame* next = NS_STATIC_CAST(nsTextFrame*, f->GetNextContinuation());
+      if (!next || aContentOffset < next->GetContentOffset())
+        break;
+      if (aContentOffset == next->GetContentOffset()) {
+        if (aHint) {
+          f = next;
+        }
+        break;
+      }
+      f = next;
     }
-    else {
-      if (contentOffset != mContentLength) 
-        return NS_ERROR_FAILURE;
+  } else {
+    while (PR_TRUE) {
+      nsTextFrame* prev = NS_STATIC_CAST(nsTextFrame*, f->GetPrevContinuation());
+      if (!prev || aContentOffset > f->GetContentOffset())
+        break;
+      if (aContentOffset == f->GetContentOffset()) {
+        if (!aHint) {
+          f = prev;
+        }
+        break;
+      }
+      f = prev;
     }
   }
-
-  if (inContentOffset < mContentOffset) 
-  {
-    *outChildFrame = GetPrevInFlow();
-    if (*outChildFrame)
-      return (*outChildFrame)->GetChildFrameContainingOffset(inContentOffset, inHint,
-        outFrameContentOffset,outChildFrame);
-    else
-      return NS_OK; 
-  }
   
-  *outFrameContentOffset = contentOffset;
-  *outChildFrame = this;
+  *aOutOffset = aContentOffset - f->GetContentOffset();
+  *aOutFrame = f;
   return NS_OK;
 }
 
@@ -4432,8 +4479,10 @@ nsTextFrame::AddInlineMinWidthForFlow(nsIRenderingContext *aRenderingContext,
   if (!mTextRun)
     return;
 
+  
+  
   PropertyProvider provider(mTextRun, GetStyleText(), mContent->GetText(), this,
-                            iter, GetInFlowContentLength());
+                            iter, GetInFlowContentLength(), nsnull, 0);
 
   PRBool collapseWhitespace = !provider.GetStyleText()->WhiteSpaceIsSignificant();
   PRUint32 start =
@@ -4518,8 +4567,10 @@ nsTextFrame::AddInlinePrefWidthForFlow(nsIRenderingContext *aRenderingContext,
   if (!mTextRun)
     return;
 
+  
+  
   PropertyProvider provider(mTextRun, GetStyleText(), mContent->GetText(), this,
-                            iter, GetInFlowContentLength());
+                            iter, GetInFlowContentLength(), nsnull, 0);
 
   PRBool collapseWhitespace = !provider.GetStyleText()->WhiteSpaceIsSignificant();
   PRUint32 start =
@@ -4707,9 +4758,6 @@ nsTextFrame::Reflow(nsPresContext*           aPresContext,
     AddStateBits(TEXT_START_OF_LINE);
   }
 
-  PRInt32 column = lineLayout.GetColumn();
-  mColumn = column;
-
   
   
   PRBool layoutDependentTextRun =
@@ -4748,6 +4796,7 @@ nsTextFrame::Reflow(nsPresContext*           aPresContext,
     newLineOffset = FindChar(frag, offset, length, '\n');
     if (newLineOffset >= 0) {
       length = newLineOffset + 1 - offset;
+      newLineOffset -= mContentOffset;
     }
   } else {
     if (atStartOfLine) {
@@ -4770,7 +4819,10 @@ nsTextFrame::Reflow(nsPresContext*           aPresContext,
   
   
   iter.SetOriginalOffset(offset);
-  PropertyProvider provider(mTextRun, textStyle, frag, this, iter, length);
+  nscoord xOffsetForTabs = (mTextRun->GetFlags() & nsTextFrameUtils::TEXT_HAS_TAB) ?
+         lineLayout.GetCurrentFrameXDistanceFromBlock() : -1;
+  PropertyProvider provider(mTextRun, textStyle, frag, this, iter, length,
+      lineContainer, xOffsetForTabs);
 
   PRUint32 transformedOffset = provider.GetStart().GetSkippedOffset();
 
@@ -4822,15 +4874,20 @@ nsTextFrame::Reflow(nsPresContext*           aPresContext,
   }
   PRUint32 transformedLastBreak = 0;
   PRBool usedHyphenation;
+  gfxFloat trimmedWidth = 0;
+  gfxFloat availWidth = aReflowState.availableWidth;
+  PRBool canTrimTrailingWhitespace = !textStyle->WhiteSpaceIsSignificant();
   PRUint32 transformedCharsFit =
     mTextRun->BreakAndMeasureText(transformedOffset, transformedLength,
                                   (GetStateBits() & TEXT_START_OF_LINE) != 0,
-                                  aReflowState.availableWidth,
+                                  availWidth,
                                   &provider, suppressInitialBreak,
+                                  canTrimTrailingWhitespace ? &trimmedWidth : nsnull,
                                   &textMetrics, needTightBoundingBox,
                                   &usedHyphenation, &transformedLastBreak);
   end.SetSkippedOffset(transformedOffset + transformedCharsFit);
   PRInt32 charsFit = end.GetOriginalOffset() - offset;
+  
   
   
   PRInt32 lastBreak = -1;
@@ -4859,38 +4916,24 @@ nsTextFrame::Reflow(nsPresContext*           aPresContext,
   
   
   
-  
-  
-  if (charsFit < length) {
-    PRInt32 whitespaceCount =
-      GetWhitespaceCount(frag, offset + charsFit, length - charsFit, 1);
-    if (whitespaceCount > 0) {
-      charsFit += whitespaceCount;
-
+  if (textMetrics.mAdvanceWidth + trimmedWidth <= availWidth) {
+    textMetrics.mAdvanceWidth += trimmedWidth;
+    if (mTextRun->IsRightToLeft()) {
       
       
-      
-      
-      
-      AddStateBits(TEXT_TRIMMED_TRAILING_WHITESPACE);
-      PRUint32 currentEnd = end.GetSkippedOffset();
-      PRUint32 trimmedEnd = transformedOffset +
-        GetLengthOfTrimmedText(frag, transformedOffset, currentEnd, &end);
-      textMetrics.mAdvanceWidth -=
-        mTextRun->GetAdvanceWidth(trimmedEnd,
-                                  currentEnd - trimmedEnd, &provider);
-      
-      
-      
-      
-      end.SetOriginalOffset(offset + charsFit);
+      textMetrics.mBoundingBox.MoveBy(gfxPoint(trimmedWidth, 0));
     }
-  } else {
+    
     
     if (lastBreak >= 0) {
       lineLayout.NotifyOptionalBreakPosition(mContent, lastBreak,
           textMetrics.mAdvanceWidth < aReflowState.availableWidth);
     }
+  } else {
+    
+    
+    
+    AddStateBits(TEXT_TRIMMED_TRAILING_WHITESPACE);
   }
   mContentLength = offset + charsFit - mContentOffset;
 
@@ -4941,11 +4984,6 @@ nsTextFrame::Reflow(nsPresContext*           aPresContext,
   
   
 
-  
-  column += textMetrics.mClusterCount +
-      provider.GetTabExpansionCount(provider.GetStart().GetSkippedOffset(),
-                                    GetSkippedDistance(provider.GetStart(), end));
-  lineLayout.SetColumn(column);
   lineLayout.SetUnderstandsWhiteSpace(PR_TRUE);
   PRBool endsInWhitespace = PR_FALSE;
   if (charsFit > 0) {
@@ -5050,7 +5088,10 @@ nsTextFrame::TrimTrailingWhiteSpace(nsPresContext* aPresContext,
     gfxSkipCharsIterator end = iter;
     PRUint32 endOffset = end.ConvertOriginalToSkipped(mContentOffset + mContentLength);
     if (trimmedEnd < endOffset) {
-      PropertyProvider provider(mTextRun, textStyle, frag, this, iter, mContentLength);
+      
+      
+      PropertyProvider provider(mTextRun, textStyle, frag, this, iter, mContentLength,
+                                nsnull, 0);
       delta = mTextRun->GetAdvanceWidth(trimmedEnd, endOffset - trimmedEnd, &provider);
       
       
@@ -5062,7 +5103,8 @@ nsTextFrame::TrimTrailingWhiteSpace(nsPresContext* aPresContext,
   if (!aLastCharIsJustifiable &&
       NS_STYLE_TEXT_ALIGN_JUSTIFY == textStyle->mTextAlign) {
     
-    PropertyProvider provider(mTextRun, textStyle, frag, this, iter, mContentLength);
+    PropertyProvider provider(mTextRun, textStyle, frag, this, iter, mContentLength,
+                              nsnull, 0);
     PRBool isCJK = IsChineseJapaneseLangGroup(this);
     gfxSkipCharsIterator justificationEnd(iter);
     provider.FindEndOfJustificationRange(&justificationEnd);
