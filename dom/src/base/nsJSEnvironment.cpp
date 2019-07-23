@@ -487,18 +487,12 @@ NS_ScriptErrorReporter(JSContext *cx,
               nsCOMPtr<nsIURI> errorURI;
               NS_NewURI(getter_AddRefs(errorURI), report->filename);
 
-              nsCOMPtr<nsIURI> codebase;
-              p->GetURI(getter_AddRefs(codebase));
-
-              if (errorURI && codebase) {
+              if (errorURI) {
                 
                 
                 
                 
-                sameOrigin =
-                  NS_SUCCEEDED(sSecurityManager->
-                               CheckSameOriginURI(errorURI, codebase,
-                                                  PR_FALSE));
+                sameOrigin = NS_SUCCEEDED(p->CheckMayLoad(errorURI, PR_FALSE));
               }
             }
 
