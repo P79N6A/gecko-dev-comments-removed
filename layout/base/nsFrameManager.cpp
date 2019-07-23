@@ -848,7 +848,8 @@ VerifyStyleTree(nsPresContext* aPresContext, nsIFrame* aFrame,
   do {
     child = aFrame->GetFirstChild(childList);
     while (child) {
-      if (NS_FRAME_OUT_OF_FLOW != (child->GetStateBits() & NS_FRAME_OUT_OF_FLOW)) {
+      if (!(child->GetStateBits() & NS_FRAME_OUT_OF_FLOW)
+          || (child->GetStateBits() & NS_FRAME_IS_OVERFLOW_CONTAINER)) {
         
         if (nsGkAtoms::placeholderFrame == child->GetType()) { 
           
@@ -944,7 +945,8 @@ nsFrameManager::ReParentStyleContext(nsIFrame* aFrame)
           child = aFrame->GetFirstChild(childList);
           while (child) {
             
-            if (!(child->GetStateBits() & NS_FRAME_OUT_OF_FLOW)) {
+            if (!(child->GetStateBits() & NS_FRAME_OUT_OF_FLOW)
+                 || (child->GetStateBits() & NS_FRAME_IS_OVERFLOW_CONTAINER)) {
               if (nsGkAtoms::placeholderFrame == child->GetType()) {
                 
                 nsIFrame* outOfFlowFrame =
@@ -1317,7 +1319,8 @@ nsFrameManager::ReResolveStyleContext(nsPresContext    *aPresContext,
       do {
         nsIFrame* child = aFrame->GetFirstChild(childList);
         while (child) {
-          if (!(child->GetStateBits() & NS_FRAME_OUT_OF_FLOW)) {
+          if (!(child->GetStateBits() & NS_FRAME_OUT_OF_FLOW)
+              || (child->GetStateBits() & NS_FRAME_IS_OVERFLOW_CONTAINER)) {
             
             if (nsGkAtoms::placeholderFrame == child->GetType()) { 
               

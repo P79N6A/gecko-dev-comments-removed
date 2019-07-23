@@ -46,6 +46,7 @@
 #include "nsFrameList.h"
 #include "nsHTMLReflowState.h"
 #include "nsGkAtoms.h"
+#include "nsContainerFrame.h"
 
 class nsIAtom;
 class nsIFrame;
@@ -113,9 +114,10 @@ public:
   
   
   
-  nsresult Reflow(nsIFrame*                aDelegatingFrame,
+  nsresult Reflow(nsContainerFrame*        aDelegatingFrame,
                   nsPresContext*           aPresContext,
                   const nsHTMLReflowState& aReflowState,
+                  nsReflowStatus&          aReflowStatus,
                   nscoord                  aContainingBlockWidth,
                   nscoord                  aContainingBlockHeight,
                   PRBool                   aCBWidthChanged,

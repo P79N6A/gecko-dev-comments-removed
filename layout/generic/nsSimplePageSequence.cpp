@@ -307,7 +307,7 @@ nsSimplePageSequenceFrame::Reflow(nsPresContext*          aPresContext,
     
     nsIFrame* kidNextInFlow = kidFrame->GetNextInFlow();
 
-    if (NS_FRAME_IS_COMPLETE(status)) {
+    if (NS_FRAME_IS_FULLY_COMPLETE(status)) {
       NS_ASSERTION(nsnull == kidNextInFlow, "bad child flow list");
     } else if (nsnull == kidNextInFlow) {
       

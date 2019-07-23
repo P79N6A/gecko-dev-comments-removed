@@ -717,12 +717,12 @@ nsContainerFrame::ReflowChild(nsIFrame*                aKidFrame,
   
   
   if (NS_SUCCEEDED(result) && NS_FRAME_IS_FULLY_COMPLETE(aStatus)) {
-    if (aTracker) aTracker->Finish(aKidFrame);
     nsIFrame* kidNextInFlow = aKidFrame->GetNextInFlow();
     if (nsnull != kidNextInFlow) {
       
       
       
+      if (aTracker) aTracker->Finish(aKidFrame);
       static_cast<nsContainerFrame*>(kidNextInFlow->GetParent())
         ->DeleteNextInFlowChild(aPresContext, kidNextInFlow);
     }
@@ -877,7 +877,7 @@ nsContainerFrame::ReflowOverflowContainerChildren(nsPresContext*           aPres
   if (!overflowContainers)
     return NS_OK; 
 
-  nsOverflowContinuationTracker tracker(aPresContext, this, PR_FALSE);
+  nsOverflowContinuationTracker tracker(aPresContext, this, PR_FALSE, PR_FALSE);
   for (nsIFrame* frame = overflowContainers->FirstChild(); frame;
        frame = frame->GetNextSibling()) {
     if (NS_SUBTREE_DIRTY(frame)) {
@@ -897,8 +897,12 @@ nsContainerFrame::ReflowOverflowContainerChildren(nsPresContext*           aPres
       nsReflowStatus frameStatus = NS_FRAME_COMPLETE;
 
       
+      nsRect oldRect = frame->GetRect();
+      nsRect oldOverflow = frame->GetOverflowRect();
+
+      
       rv = ReflowChild(frame, aPresContext, desiredSize, frameState,
-                       prevRect.x, 0, aFlags, frameStatus);
+                       prevRect.x, 0, aFlags, frameStatus, &tracker);
       NS_ENSURE_SUCCESS(rv, rv);
       
       
@@ -907,9 +911,29 @@ nsContainerFrame::ReflowOverflowContainerChildren(nsPresContext*           aPres
       NS_ENSURE_SUCCESS(rv, rv);
 
       
-      NS_ASSERTION(NS_FRAME_IS_COMPLETE(frameStatus),
-                   "overflow container frames can't be incomplete, only overflow-incomplete");
+      nsRect rect = frame->GetRect();
+      if (rect != oldRect) {
+        nsRect dirtyRect = oldOverflow;
+        dirtyRect.MoveBy(oldRect.x, oldRect.y);
+        Invalidate(dirtyRect);
+
+        dirtyRect = frame->GetOverflowRect();
+        dirtyRect.MoveBy(rect.x, rect.y);
+        Invalidate(dirtyRect);
+      }
+
+      
       if (!NS_FRAME_IS_FULLY_COMPLETE(frameStatus)) {
+        if (frame->GetStateBits() & NS_FRAME_OUT_OF_FLOW) {
+          
+          
+          NS_FRAME_SET_OVERFLOW_INCOMPLETE(frameStatus);
+        }
+        else {
+          NS_ASSERTION(NS_FRAME_IS_COMPLETE(frameStatus),
+                       "overflow container frames can't be incomplete, only overflow-incomplete");
+        }
+
         
         nsIFrame* nif = frame->GetNextInFlow();
         if (!nif) {
@@ -1017,6 +1041,8 @@ nsContainerFrame::DeleteNextInFlowChild(nsPresContext* aPresContext,
         ->DeleteNextInFlowChild(aPresContext, delFrame);
     }
   }
+
+  aNextInFlow->Invalidate(aNextInFlow->GetOverflowRect());
 
   
   nsSplittableFrame::BreakFromPrevFlow(aNextInFlow);
@@ -1228,12 +1254,14 @@ nsContainerFrame::MoveOverflowToChildList(nsPresContext* aPresContext)
 
 nsOverflowContinuationTracker::nsOverflowContinuationTracker(nsPresContext*    aPresContext,
                                                              nsContainerFrame* aFrame,
+                                                             PRBool            aWalkOOFFrames,
                                                              PRBool            aSkipOverflowContainerChildren)
   : mOverflowContList(nsnull),
     mPrevOverflowCont(nsnull),
     mSentry(nsnull),
     mParent(aFrame),
-    mSkipOverflowContainerChildren(aSkipOverflowContainerChildren)
+    mSkipOverflowContainerChildren(aSkipOverflowContainerChildren),
+    mWalkOOFFrames(aWalkOOFFrames)
 {
   NS_PRECONDITION(aFrame, "null frame pointer");
   nsContainerFrame* next = static_cast<nsContainerFrame*>
@@ -1274,6 +1302,10 @@ nsOverflowContinuationTracker::SetUpListWalker()
         mPrevOverflowCont = cur;
         cur = cur->GetNextSibling();
       }
+      while (cur && (mWalkOOFFrames == cur->GetStateBits() & NS_FRAME_OUT_OF_FLOW)) {
+        mPrevOverflowCont = cur;
+        cur = cur->GetNextSibling();
+      }
     }
     if (cur) {
       mSentry = cur->GetPrevInFlow();
@@ -1298,6 +1330,15 @@ nsOverflowContinuationTracker::StepForward()
   }
   else {
     mPrevOverflowCont = mOverflowContList->FirstChild();
+  }
+
+  
+  if (mSkipOverflowContainerChildren) {
+    nsIFrame* cur = mPrevOverflowCont->GetNextSibling();
+    while (cur && (mWalkOOFFrames == cur->GetStateBits() & NS_FRAME_OUT_OF_FLOW)) {
+      mPrevOverflowCont = cur;
+      cur = cur->GetNextSibling();
+    }
   }
 
   
@@ -1363,7 +1404,7 @@ nsOverflowContinuationTracker::Finish(nsIFrame* aChild)
 {
   NS_PRECONDITION(aChild, "null ptr");
   NS_PRECONDITION(aChild->GetNextInFlow(),
-                "supposed to call Next *before* deleting next-in-flow!");
+                "supposed to call Finish *before* deleting next-in-flow!");
   if (aChild == mSentry) {
     
     
@@ -1377,8 +1418,9 @@ nsOverflowContinuationTracker::Finish(nsIFrame* aChild)
     else {
       
       
-      nsIFrame* sentryCont = aChild->GetNextInFlow()->GetNextSibling();
-      mSentry = (sentryCont) ? sentryCont->GetPrevInFlow() : nsnull;
+      nsIFrame* prevOverflowCont = mPrevOverflowCont;
+      StepForward();
+      mPrevOverflowCont = prevOverflowCont;
     }
   }
 }

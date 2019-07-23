@@ -316,7 +316,7 @@ ViewportFrame::Reflow(nsPresContext*          aPresContext,
 #endif
 
   
-  rv = mFixedContainer.Reflow(this, aPresContext, reflowState,
+  rv = mFixedContainer.Reflow(this, aPresContext, reflowState, aStatus,
                               reflowState.ComputedWidth(),
                               reflowState.ComputedHeight(),
                               PR_TRUE, PR_TRUE); 

@@ -1712,9 +1712,12 @@ static nsIAtom*
 GetChildListNameFor(nsIFrame*       aChildFrame)
 {
   nsIAtom*      listName;
+
+  if (aChildFrame->GetStateBits() & NS_FRAME_IS_OVERFLOW_CONTAINER) {
+    listName = nsGkAtoms::overflowContainersList;
+  }
   
-  
-  if (aChildFrame->GetStateBits() & NS_FRAME_OUT_OF_FLOW) {
+  else if (aChildFrame->GetStateBits() & NS_FRAME_OUT_OF_FLOW) {
     
     const nsStyleDisplay* disp = aChildFrame->GetStyleDisplay();
     
@@ -8104,15 +8107,19 @@ FindPreviousAnonymousSibling(nsIPresShell* aPresShell,
 
       
       
-      prevSibling = prevSibling->GetLastContinuation();
-
-      
-      
       if (prevSibling->GetStateBits() & NS_FRAME_OUT_OF_FLOW) {
         nsIFrame *placeholderFrame;
         aPresShell->GetPlaceholderFrameFor(prevSibling, &placeholderFrame);
         NS_ASSERTION(placeholderFrame, "no placeholder for out-of-flow frame");
         prevSibling = placeholderFrame;
+      }
+
+      
+      
+      prevSibling = prevSibling->GetLastContinuation();
+      while (prevSibling->GetStateBits() & NS_FRAME_IS_OVERFLOW_CONTAINER) {
+        prevSibling = prevSibling->GetPrevInFlow();
+        NS_ASSERTION(prevSibling, "first-in-flow can't be overflow container");
       }
 
       
@@ -8288,18 +8295,6 @@ nsCSSFrameConstructor::FindPreviousSibling(nsIContent*       aContainer,
       }
 
       
-      prevSibling = prevSibling->GetLastContinuation();
-
-      
-      
-      const nsStyleDisplay* display = prevSibling->GetStyleDisplay();
-  
-      if (aChild && !IsValidSibling(aContainerFrame, prevSibling, 
-                                    display->mDisplay, (nsIContent&)*aChild,
-                                    childDisplay))
-        continue;
-
-      
       
       if (prevSibling->GetStateBits() & NS_FRAME_OUT_OF_FLOW) {
         nsIFrame* placeholderFrame;
@@ -8307,6 +8302,20 @@ nsCSSFrameConstructor::FindPreviousSibling(nsIContent*       aContainer,
         NS_ASSERTION(placeholderFrame, "no placeholder for out-of-flow frame");
         prevSibling = placeholderFrame;
       }
+
+      
+      
+      prevSibling = prevSibling->GetLastContinuation();
+      while (prevSibling->GetStateBits() & NS_FRAME_IS_OVERFLOW_CONTAINER) {
+        prevSibling = prevSibling->GetPrevInFlow();
+        NS_ASSERTION(prevSibling, "first-in-flow can't be overflow container");
+      }
+
+      const nsStyleDisplay* display = prevSibling->GetStyleDisplay();
+      if (aChild && !IsValidSibling(aContainerFrame, prevSibling,
+                                    display->mDisplay, (nsIContent&)*aChild,
+                                    childDisplay))
+        continue;
 
 #ifdef DEBUG
       nsIFrame* containerFrame = nsnull;
@@ -9609,7 +9618,8 @@ UpdateViewsForTree(nsIFrame* aFrame, nsIViewManager* aViewManager,
   do {
     nsIFrame* child = aFrame->GetFirstChild(childList);
     while (child) {
-      if (!(child->GetStateBits() & NS_FRAME_OUT_OF_FLOW)) {
+      if (!(child->GetStateBits() & NS_FRAME_OUT_OF_FLOW)
+          || (child->GetStateBits() & NS_FRAME_IS_OVERFLOW_CONTAINER)) {
         
         if (nsGkAtoms::placeholderFrame == child->GetType()) { 
           
@@ -9781,8 +9791,11 @@ nsCSSFrameConstructor::StyleChangeReflow(nsIFrame* aFrame)
   if (IsFrameSpecial(aFrame))
     aFrame = GetIBContainingBlockFor(aFrame);
 
-  mPresShell->FrameNeedsReflow(aFrame, nsIPresShell::eStyleChange,
-                               NS_FRAME_IS_DIRTY);
+  do {
+    mPresShell->FrameNeedsReflow(aFrame, nsIPresShell::eStyleChange,
+                                 NS_FRAME_IS_DIRTY);
+    aFrame = aFrame->GetNextContinuation();
+  } while (aFrame);
 
   return NS_OK;
 }
@@ -10560,6 +10573,11 @@ nsCSSFrameConstructor::CreateContinuingFrame(nsPresContext* aPresContext,
   
   if (aFrame->GetStateBits() & NS_FRAME_GENERATED_CONTENT) {
     newFrame->AddStateBits(NS_FRAME_GENERATED_CONTENT);
+  }
+
+  
+  if (aFrame->GetStateBits() & NS_FRAME_OUT_OF_FLOW) {
+    newFrame->AddStateBits(NS_FRAME_OUT_OF_FLOW);
   }
 
   if (nextInFlow) {

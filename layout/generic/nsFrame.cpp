@@ -4958,6 +4958,10 @@ nsFrame::GetLineNumber(nsIFrame *aFrame, nsIFrame** aContainingBlock)
     if (thisBlock->GetStateBits() & NS_FRAME_OUT_OF_FLOW) {
       
       
+      if (thisBlock->GetStateBits() & NS_FRAME_IS_OVERFLOW_CONTAINER) {
+        
+        thisBlock = thisBlock->GetFirstInFlow();
+      }
       thisBlock = frameManager->GetPlaceholderFrameFor(thisBlock);
       if (!thisBlock)
         return -1;
@@ -5444,8 +5448,15 @@ nsFrame::DoGetParentStyleContextFrame(nsPresContext* aPresContext,
 
   
   
+  nsIFrame* oofFrame = this;
+  if ((oofFrame->GetStateBits() & NS_FRAME_IS_OVERFLOW_CONTAINER)
+      && (oofFrame->GetStateBits() & NS_FRAME_OUT_OF_FLOW)) {
+    
+    
+    oofFrame = oofFrame->GetFirstInFlow();
+  }
   nsIFrame *placeholder =
-    aPresContext->FrameManager()->GetPlaceholderFrameFor(this);
+    aPresContext->FrameManager()->GetPlaceholderFrameFor(oofFrame);
   if (!placeholder) {
     NS_NOTREACHED("no placeholder frame for out-of-flow frame");
     GetCorrectedParent(aPresContext, this, aProviderFrame);

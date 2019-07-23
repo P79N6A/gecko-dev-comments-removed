@@ -421,6 +421,22 @@ protected:
 
 
 
+#define IS_TRUE_OVERFLOW_CONTAINER(frame)                      \
+  (  (frame->GetStateBits() & NS_FRAME_IS_OVERFLOW_CONTAINER)  \
+  && !(frame->GetStateBits() & NS_FRAME_OUT_OF_FLOW)           )
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -446,8 +462,13 @@ public:
 
 
 
+
+
+
+
   nsOverflowContinuationTracker(nsPresContext*    aPresContext,
                                 nsContainerFrame* aFrame,
+                                PRBool            aWalkOOFFrames,
                                 PRBool            aSkipOverflowContainerChildren = PR_TRUE);
   
 
@@ -471,6 +492,7 @@ public:
   nsresult Insert(nsIFrame*       aOverflowCont,
                   nsReflowStatus& aReflowStatus);
   
+
 
 
 
@@ -526,6 +548,8 @@ private:
   
 
   PRBool mSkipOverflowContainerChildren;
+  
+  PRBool mWalkOOFFrames;
 };
 
 #endif 

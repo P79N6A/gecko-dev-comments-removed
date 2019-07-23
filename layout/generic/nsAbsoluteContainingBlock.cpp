@@ -123,19 +123,23 @@ nsAbsoluteContainingBlock::RemoveFrame(nsIFrame*       aDelegatingFrame,
                                        nsIFrame*       aOldFrame)
 {
   NS_ASSERTION(GetChildListName() == aListName, "unexpected child list");
+  nsIFrame* nif = aOldFrame->GetNextInFlow();
+  if (nif) {
+    static_cast<nsContainerFrame*>(nif->GetParent())
+      ->DeleteNextInFlowChild(aOldFrame->PresContext(), nif);
+  }
 
   PRBool result = mAbsoluteFrames.DestroyFrame(aOldFrame);
   NS_ASSERTION(result, "didn't find frame to delete");
-  
-  
-  
+
   return result ? NS_OK : NS_ERROR_FAILURE;
 }
 
 nsresult
-nsAbsoluteContainingBlock::Reflow(nsIFrame*                aDelegatingFrame,
-                                  nsPresContext*          aPresContext,
+nsAbsoluteContainingBlock::Reflow(nsContainerFrame*        aDelegatingFrame,
+                                  nsPresContext*           aPresContext,
                                   const nsHTMLReflowState& aReflowState,
+                                  nsReflowStatus&          aReflowStatus,
                                   nscoord                  aContainingBlockWidth,
                                   nscoord                  aContainingBlockHeight,
                                   PRBool                   aCBWidthChanged,
@@ -145,23 +149,61 @@ nsAbsoluteContainingBlock::Reflow(nsIFrame*                aDelegatingFrame,
   
   if (aChildBounds)
     aChildBounds->SetRect(0, 0, 0, 0);
+  nsReflowStatus reflowStatus = NS_FRAME_COMPLETE;
 
   PRBool reflowAll = aReflowState.ShouldReflowAllKids();
 
   nsIFrame* kidFrame;
+  nsOverflowContinuationTracker tracker(aPresContext, aDelegatingFrame, PR_TRUE);
   for (kidFrame = mAbsoluteFrames.FirstChild(); kidFrame; kidFrame = kidFrame->GetNextSibling()) {
     if (reflowAll ||
         NS_SUBTREE_DIRTY(kidFrame) ||
         FrameDependsOnContainer(kidFrame, aCBWidthChanged, aCBHeightChanged)) {
       
-      nsReflowStatus  kidStatus;
-      ReflowAbsoluteFrame(aDelegatingFrame, aPresContext, aReflowState, aContainingBlockWidth,
-                          aContainingBlockHeight, kidFrame, kidStatus, aChildBounds);
-    } else if (aChildBounds) {
-      aChildBounds->UnionRect(*aChildBounds, kidFrame->GetOverflowRect() +
-                                             kidFrame->GetPosition());
+      nsReflowStatus  kidStatus = NS_FRAME_COMPLETE;
+      ReflowAbsoluteFrame(aDelegatingFrame, aPresContext, aReflowState,
+                          aContainingBlockWidth, aContainingBlockHeight,
+                          kidFrame, kidStatus, aChildBounds);
+      nsIFrame* nextFrame = kidFrame->GetNextInFlow();
+      if (!NS_FRAME_IS_FULLY_COMPLETE(kidStatus)) {
+        
+        if (!nextFrame) {
+          nsresult rv = nsHTMLContainerFrame::CreateNextInFlow(aPresContext,
+                          aDelegatingFrame, kidFrame, nextFrame);
+          NS_ENSURE_SUCCESS(rv, rv);
+          kidFrame->SetNextSibling(nextFrame->GetNextSibling());
+          nextFrame->SetNextSibling(nsnull);
+        }
+        
+        
+        
+        
+        tracker.Insert(nextFrame, kidStatus);
+        reflowStatus = NS_FRAME_MERGE_INCOMPLETE(reflowStatus, kidStatus);
+      }
+      else {
+        
+        if (nextFrame) {
+          tracker.Finish(kidFrame);
+          static_cast<nsContainerFrame*>(nextFrame->GetParent())
+            ->DeleteNextInFlowChild(aPresContext, nextFrame);
+        }
+      }
+    }
+    else {
+      tracker.Skip(kidFrame, reflowStatus);
+      if (aChildBounds) {
+        aChildBounds->UnionRect(*aChildBounds, kidFrame->GetOverflowRect() +
+                                               kidFrame->GetPosition());
+      }
     }
   }
+  
+  
+  if (NS_FRAME_IS_NOT_COMPLETE(reflowStatus))
+    NS_FRAME_SET_OVERFLOW_INCOMPLETE(reflowStatus);
+
+  aReflowStatus = NS_FRAME_MERGE_INCOMPLETE(reflowStatus, aReflowStatus);
   return NS_OK;
 }
 
@@ -370,6 +412,19 @@ nsAbsoluteContainingBlock::ReflowAbsoluteFrame(nsIFrame*                aDelegat
 
   
   aKidFrame->WillReflow(aPresContext);
+
+  PRBool constrainHeight = (aReflowState.availableHeight != NS_UNCONSTRAINEDSIZE)
+    && (nsGkAtoms::fixedList != GetChildListName())
+       
+    && (aDelegatingFrame->GetType() != nsGkAtoms::positionedInlineFrame)
+       
+    && (aKidFrame->GetRect().y <= aReflowState.availableHeight);
+       
+       
+       
+  if (constrainHeight) {
+    kidReflowState.availableHeight = aReflowState.availableHeight - aKidFrame->GetRect().y;
+  }
 
   
   rv = aKidFrame->Reflow(aPresContext, kidDesiredSize, kidReflowState, aStatus);
