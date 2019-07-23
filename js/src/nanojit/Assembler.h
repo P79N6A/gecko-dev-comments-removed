@@ -253,6 +253,9 @@ namespace nanojit
             NIns*       _nExitIns;      
             NIns*       _epilogue;
             AssmError   _err;           
+        #if PEDANTIC
+            NIns*       pedanticTop;
+        #endif
 
             AR          _activation;
             RegAlloc    _allocator;
