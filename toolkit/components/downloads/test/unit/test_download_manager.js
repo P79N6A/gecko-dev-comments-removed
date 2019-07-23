@@ -225,76 +225,78 @@ function run_test()
 
 
 
+  print("Try creating listener...")
   
+  var listener = {
+    onDownloadStateChange: function(aState, aDownload)
+    {
+      if (aDownload.state == Ci.nsIDownloadManager.DOWNLOAD_FINISHED)
+        gDownloadCount--;
+
+      if (aDownload.state == Ci.nsIDownloadManager.DOWNLOAD_CANCELED ||
+          aDownload.state == Ci.nsIDownloadManager.DOWNLOAD_FAILED) {
+          gDownloadCount--;
+      }
+      
+      do_check_eq(gDownloadCount, dm.activeDownloadCount);
+    
+      if (gDownloadCount == 0)
+        httpserv.stop();
+    },
+    onStateChange: function(a, b, c, d, e) { },
+    onProgressChange: function(a, b, c, d, e, f, g) { },
+    onStatusChange: function(a, b, c, d, e) { },
+    onLocationChange: function(a, b, c, d) { },
+    onSecurityChange: function(a, b, c, d) { }
+  };
+  dm.listener = listener;
+
+  print("Try creating observer...");
+  var observer = {
+    observe: function(aSubject, aTopic, aData) {
+      var dl = aSubject.QueryInterface(Ci.nsIDownload);
+      switch (aTopic) {
+        case "dl-start":
+          do_check_eq(nsIDownloadManager.DOWNLOAD_DOWNLOADING, dl.state);
+          do_test_pending();
+          break;
+        case "dl-failed":
+          do_check_eq(nsIDownloadManager.DOWNLOAD_FAILED, dl.state);
+          do_test_finished();
+          break;
+        case "dl-cancel":
+          do_check_eq(nsIDownloadManager.DOWNLOAD_CANCELED, dl.state);
+          do_test_finished();
+          break;
+        case "dl-done":
+          dm.removeDownload(dl.id);
+
+          var stmt = dm.DBConnection.createStmt("SELECT COUNT(*) " +
+                                                "FROM moz_downloads " +
+                                                "WHERE id = ?1");
+          stmt.bindInt32Parameter(0, dl.id);
+          stmt.executeStep();
+
+          do_check_eq(0, stmt.getInt32(0));
+          stmt.reset();
+
+          do_check_eq(nsIDownloadManager.DOWNLOAD_FINISHED, dl.state);
+          do_test_finished();
+          break;
+      };
+    }
+  };
+  var os = Cc["@mozilla.org/observer-service;1"]
+           .getService(Ci.nsIObserverService);
+  os.addObserver(observer, "dl-start", false);
+  os.addObserver(observer, "dl-failed", false);
+  os.addObserver(observer, "dl-cancel", false);
+  os.addObserver(observer, "dl-done", false);
+
+  print("Made it through adding observers.");
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  for (var i = 0; i < tests.length; i++)
-    tests[i]();
 
   
 
