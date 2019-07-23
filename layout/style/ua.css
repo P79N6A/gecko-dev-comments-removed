@@ -143,7 +143,9 @@
 *|*::-moz-scrolled-page-sequence {
   
   padding: inherit;
-  display: inherit;
+  
+
+  display: block;
   -moz-box-orient: inherit;
   
 
