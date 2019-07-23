@@ -42,15 +42,11 @@
 #include "nsRefPtrHashtable.h"
 #include "nsCycleCollectionParticipant.h"
 
-class nsAccessNode;
-class nsAccessible;
 class nsIAccessNode;
 
-typedef nsRefPtrHashtable<nsVoidPtrHashKey, nsAccessNode>
-  nsAccessNodeHashtable;
 
-typedef nsRefPtrHashtable<nsVoidPtrHashKey, nsAccessible>
-  nsAccessibleHashtable;
+
+
 
 
 

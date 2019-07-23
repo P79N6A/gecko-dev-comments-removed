@@ -37,11 +37,16 @@
 
 
 
-
 #include "nsXULFormControlAccessible.h"
-#include "nsHTMLFormControlAccessible.h"
+
 #include "nsAccessibilityAtoms.h"
+#include "nsAccUtils.h"
 #include "nsAccTreeWalker.h"
+#include "nsCoreUtils.h"
+#include "nsRelUtils.h"
+
+
+#include "nsHTMLFormControlAccessible.h"
 #include "nsXULMenuAccessible.h"
 #include "nsIDOMHTMLInputElement.h"
 #include "nsIDOMNSEditableElement.h"

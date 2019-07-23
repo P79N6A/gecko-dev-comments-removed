@@ -43,13 +43,14 @@
 #ifndef _nsAccessibleWrap_H_
 #define _nsAccessibleWrap_H_
 
+#include "nsAccessible.h"
+#include "nsAccUtils.h"
+
 #include "nsCOMPtr.h"
 #include "nsRect.h"
 
 #include "nsTArray.h"
 #include "nsAutoPtr.h"
-
-#include "nsAccessible.h"
 
 struct AccessibleWrapper;
 struct objc_class;
@@ -99,23 +100,10 @@ class nsAccessibleWrap : public nsAccessible
 
     virtual nsresult FirePlatformEvent(nsAccEvent *aEvent);
 
-    PRBool AncestorIsFlat() {
-      
-      
-      
-      
-      
+  
 
-      nsAccessible* parent(GetParent());
-      while (parent) {
-        if (nsAccUtils::MustPrune(parent))
-          return PR_TRUE;
 
-        parent = parent->GetParent();
-      }
-      
-      return PR_FALSE;
-    }
+  PRBool AncestorIsFlat();
 
     
     AccessibleWrapper *mNativeWrapper;

@@ -49,9 +49,14 @@
 
 #include "nsIFrame.h"
 #include "nsIDocShellTreeItem.h"
-#include "nsIArray.h"
+#include "nsIDOMCSSStyleDeclaration.h"
+#include "nsIDOMDOMStringList.h"
 #include "nsIMutableArray.h"
 #include "nsPoint.h"
+#include "nsTArray.h"
+
+
+
 
 class nsCoreUtils
 {
@@ -472,128 +477,22 @@ public:
 
 
 
+class nsAccessibleDOMStringList : public nsIDOMDOMStringList
+{
+public:
+  nsAccessibleDOMStringList() {};
+  virtual ~nsAccessibleDOMStringList() {};
 
+  NS_DECL_ISUPPORTS
+  NS_DECL_NSIDOMDOMSTRINGLIST
 
+  PRBool Add(const nsAString& aName) {
+    return mNames.AppendElement(aName) != nsnull;
+  }
 
-
-
-
-
-
-
-
-
-
-
-
-
-#define NS_DECL_RUNNABLEMETHOD_HELPER(ClassType, Method)                       \
-  void Revoke()                                                                \
-  {                                                                            \
-    NS_IF_RELEASE(mObj);                                                       \
-  }                                                                            \
-                                                                               \
-protected:                                                                     \
-  virtual ~nsRunnableMethod_##Method()                                         \
-  {                                                                            \
-    NS_IF_RELEASE(mObj);                                                       \
-  }                                                                            \
-                                                                               \
-private:                                                                       \
-  ClassType *mObj;                                                             \
-
-
-#define NS_DECL_RUNNABLEMETHOD(ClassType, Method)                              \
-class nsRunnableMethod_##Method : public nsRunnable                            \
-{                                                                              \
-public:                                                                        \
-  nsRunnableMethod_##Method(ClassType *aObj) : mObj(aObj)                      \
-  {                                                                            \
-    NS_IF_ADDREF(mObj);                                                        \
-  }                                                                            \
-                                                                               \
-  NS_IMETHODIMP Run()                                                          \
-  {                                                                            \
-    if (!mObj)                                                                 \
-      return NS_OK;                                                            \
-    (mObj-> Method)();                                                         \
-    return NS_OK;                                                              \
-  }                                                                            \
-                                                                               \
-  NS_DECL_RUNNABLEMETHOD_HELPER(ClassType, Method)                             \
-                                                                               \
+private:
+  nsTArray<nsString> mNames;
 };
-
-#define NS_DECL_RUNNABLEMETHOD_ARG1(ClassType, Method, Arg1Type)               \
-class nsRunnableMethod_##Method : public nsRunnable                            \
-{                                                                              \
-public:                                                                        \
-  nsRunnableMethod_##Method(ClassType *aObj, Arg1Type aArg1) :                 \
-    mObj(aObj), mArg1(aArg1)                                                   \
-  {                                                                            \
-    NS_IF_ADDREF(mObj);                                                        \
-  }                                                                            \
-                                                                               \
-  NS_IMETHODIMP Run()                                                          \
-  {                                                                            \
-    if (!mObj)                                                                 \
-      return NS_OK;                                                            \
-    (mObj-> Method)(mArg1);                                                    \
-    return NS_OK;                                                              \
-  }                                                                            \
-                                                                               \
-  NS_DECL_RUNNABLEMETHOD_HELPER(ClassType, Method)                             \
-  Arg1Type mArg1;                                                              \
-};
-
-#define NS_DECL_RUNNABLEMETHOD_ARG2(ClassType, Method, Arg1Type, Arg2Type)     \
-class nsRunnableMethod_##Method : public nsRunnable                            \
-{                                                                              \
-public:                                                                        \
-                                                                               \
-  nsRunnableMethod_##Method(ClassType *aObj,                                   \
-                            Arg1Type aArg1, Arg2Type aArg2) :                  \
-    mObj(aObj), mArg1(aArg1), mArg2(aArg2)                                     \
-  {                                                                            \
-    NS_IF_ADDREF(mObj);                                                        \
-  }                                                                            \
-                                                                               \
-  NS_IMETHODIMP Run()                                                          \
-  {                                                                            \
-    if (!mObj)                                                                 \
-      return NS_OK;                                                            \
-    (mObj-> Method)(mArg1, mArg2);                                             \
-    return NS_OK;                                                              \
-  }                                                                            \
-                                                                               \
-  NS_DECL_RUNNABLEMETHOD_HELPER(ClassType, Method)                             \
-  Arg1Type mArg1;                                                              \
-  Arg2Type mArg2;                                                              \
-};
-
-#define NS_DISPATCH_RUNNABLEMETHOD(Method, Obj)                                \
-{                                                                              \
-  nsCOMPtr<nsIRunnable> runnable =                                             \
-    new nsRunnableMethod_##Method(Obj);                                        \
-  if (runnable)                                                                \
-    NS_DispatchToMainThread(runnable);                                         \
-}
-
-#define NS_DISPATCH_RUNNABLEMETHOD_ARG1(Method, Obj, Arg1)                     \
-{                                                                              \
-  nsCOMPtr<nsIRunnable> runnable =                                             \
-    new nsRunnableMethod_##Method(Obj, Arg1);                                  \
-  if (runnable)                                                                \
-    NS_DispatchToMainThread(runnable);                                         \
-}
-
-#define NS_DISPATCH_RUNNABLEMETHOD_ARG2(Method, Obj, Arg1, Arg2)               \
-{                                                                              \
-  nsCOMPtr<nsIRunnable> runnable =                                             \
-    new nsRunnableMethod_##Method(Obj, Arg1, Arg2);                            \
-  if (runnable)                                                                \
-    NS_DispatchToMainThread(runnable);                                         \
-}
 
 #endif
 

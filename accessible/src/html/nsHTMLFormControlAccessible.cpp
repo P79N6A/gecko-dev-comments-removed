@@ -36,9 +36,13 @@
 
 
 
+#include "nsHTMLFormControlAccessible.h"
 
 #include "nsAccessibilityAtoms.h"
-#include "nsHTMLFormControlAccessible.h"
+#include "nsAccUtils.h"
+#include "nsRelUtils.h"
+#include "nsTextEquivUtils.h"
+
 #include "nsIDOMDocument.h"
 #include "nsIDOMNSHTMLInputElement.h"
 #include "nsIDOMHTMLInputElement.h"

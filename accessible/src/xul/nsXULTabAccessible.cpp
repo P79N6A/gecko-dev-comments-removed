@@ -36,8 +36,12 @@
 
 
 
-
 #include "nsXULTabAccessible.h"
+
+#include "nsAccUtils.h"
+#include "nsRelUtils.h"
+
+
 #include "nsIDocument.h"
 #include "nsIFrame.h"
 #include "nsIDOMDocument.h"

@@ -37,8 +37,10 @@
 
 
 #include "nsOuterDocAccessible.h"
-#include "nsIAccessibilityService.h"
-#include "nsIAccessibleDocument.h"
+
+#include "nsAccessibilityService.h"
+#include "nsAccUtils.h"
+
 #include "nsIDocument.h"
 #include "nsIServiceManager.h"
 #include "nsIContent.h"

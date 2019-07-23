@@ -38,8 +38,10 @@
 
 
 #include "nsHyperTextAccessible.h"
+
 #include "nsAccessibilityAtoms.h"
 #include "nsAccessibilityService.h"
+#include "nsAccUtils.h"
 #include "nsTextAttrs.h"
 
 #include "nsIClipboard.h"
