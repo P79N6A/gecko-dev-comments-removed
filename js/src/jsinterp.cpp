@@ -2472,7 +2472,6 @@ js_Interpret(JSContext *cx)
 #if JS_HAS_GETTER_SETTER
     JSPropertyOp getter, setter;
 #endif
-    JSAutoResolveFlags rf(cx, JSRESOLVE_INFER);
 
 #ifdef __GNUC__
 # define JS_EXTENSION __extension__
@@ -4584,7 +4583,6 @@ js_Interpret(JSContext *cx)
                         PCMETER(cache->setmisses++);
                     } else {
                         ASSERT_VALID_PROPERTY_CACHE_HIT(0, obj, obj2, entry);
-                        sprop = NULL;
                         if (obj == obj2) {
                             JS_ASSERT(PCVAL_IS_SPROP(entry->vword));
                             sprop = PCVAL_TO_SPROP(entry->vword);
@@ -4593,7 +4591,7 @@ js_Interpret(JSContext *cx)
                             NATIVE_SET(cx, obj, sprop, &rval);
                         }
                         JS_UNLOCK_OBJ(cx, obj2);
-                        if (sprop) {
+                        if (obj == obj2) {
                             TRACE_2(SetPropHit, entry, sprop);
                             break;
                         }
@@ -5337,14 +5335,9 @@ js_Interpret(JSContext *cx)
 
 
             rval = POP_OPND();
-            if (JSVAL_IS_INT(rval)) {
-                i = JSVAL_TO_INT(rval);
-            } else if (JSVAL_IS_DOUBLE(rval) && *JSVAL_TO_DOUBLE(rval) == 0) {
-                
-                i = 0;
-            } else {
+            if (!JSVAL_IS_INT(rval))
                 DO_NEXT_OP(len);
-            }
+            i = JSVAL_TO_INT(rval);
 
             pc2 += JUMP_OFFSET_LEN;
             low = GET_JUMP_OFFSET(pc2);
@@ -5370,14 +5363,9 @@ js_Interpret(JSContext *cx)
 
 
             rval = POP_OPND();
-            if (JSVAL_IS_INT(rval)) {
-                i = JSVAL_TO_INT(rval);
-            } else if (JSVAL_IS_DOUBLE(rval) && *JSVAL_TO_DOUBLE(rval) == 0) {
-                
-                i = 0;
-            } else {
+            if (!JSVAL_IS_INT(rval))
                 DO_NEXT_OP(len);
-            }
+            i = JSVAL_TO_INT(rval);
 
             pc2 += JUMPX_OFFSET_LEN;
             low = GET_JUMP_OFFSET(pc2);
@@ -5812,6 +5800,8 @@ js_Interpret(JSContext *cx)
                     goto error;
             }
 
+            TRACE_2(DefLocalFunSetSlot, slot, obj);
+            
             fp->slots[slot] = OBJECT_TO_JSVAL(obj);
           END_CASE(JSOP_DEFLOCALFUN)
 
