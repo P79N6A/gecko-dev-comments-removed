@@ -50,6 +50,9 @@
 #else
 @BINPATH@/@DLL_PREFIX@xul@DLL_SUFFIX@
 #endif
+#ifdef MOZ_IPC
+@BINPATH@/mozilla-runtime@BIN_SUFFIX@
+#endif
 #ifdef WINCE
 @BINPATH@/mozce_shunt.dll
 #elifdef XP_WIN32
@@ -66,7 +69,7 @@
 
 [browser]
 ; [Base Browser Files]
-#ifndef XP_UNIX
+#ifdef XP_WIN32
 @BINPATH@/@MOZ_APP_NAME@.exe
 #else
 @BINPATH@/@MOZ_APP_NAME@-bin
@@ -84,8 +87,6 @@
 #ifndef WINCE
 @BINPATH@/plugins/npnul32.dll
 #endif
-#elifdef XP_OS2
-@BINPATH@/plugins/npnulos2.dll
 #endif
 @BINPATH@/@DLL_PREFIX@sqlite3@DLL_SUFFIX@
 @BINPATH@/README.txt
@@ -102,7 +103,6 @@
 #endif
 
 ; [Components]
-@BINPATH@/components/components.list
 @BINPATH@/components/alerts.xpt
 #ifdef ACCESSIBILITY
 #ifdef XP_WIN32
@@ -125,7 +125,6 @@
 @BINPATH@/components/commandlines.xpt
 @BINPATH@/components/composer.xpt
 @BINPATH@/components/content_base.xpt
-@BINPATH@/components/content_events.xpt
 @BINPATH@/components/content_canvas.xpt
 @BINPATH@/components/content_htmldoc.xpt
 @BINPATH@/components/content_html.xpt
@@ -281,7 +280,6 @@
 @BINPATH@/components/nsLoginManagerPrompter.js
 @BINPATH@/components/storage-Legacy.js
 @BINPATH@/components/storage-mozStorage.js
-@BINPATH@/components/crypto-SDR.js
 @BINPATH@/components/jsconsole-clhandler.js
 #ifdef MOZ_GTK2
 @BINPATH@/components/nsFilePicker.js
@@ -294,22 +292,13 @@
 @BINPATH@/components/nsSidebar.js
 @BINPATH@/components/nsExtensionManager.js
 @BINPATH@/components/nsBlocklistService.js
-#ifdef MOZ_UPDATER
 @BINPATH@/components/nsUpdateService.js
-@BINPATH@/components/nsUpdateServiceStub.js
-#endif
-@BINPATH@/components/nsUpdateTimerManager.js
 @BINPATH@/components/pluginGlue.js
 @BINPATH@/components/nsSessionStartup.js
 @BINPATH@/components/nsSessionStore.js
 @BINPATH@/components/nsURLFormatter.js
-#ifndef XP_OS2
 @BINPATH@/components/@DLL_PREFIX@browserdirprovider@DLL_SUFFIX@
 @BINPATH@/components/@DLL_PREFIX@browsercomps@DLL_SUFFIX@
-#else
-@BINPATH@/components/brwsrdir@DLL_SUFFIX@
-@BINPATH@/components/brwsrcmp@DLL_SUFFIX@
-#endif
 @BINPATH@/components/txEXSLTRegExFunctions.js
 @BINPATH@/components/nsLivemarkService.js
 @BINPATH@/components/nsTaggingService.js
@@ -362,7 +351,7 @@
 
 
 ; shell icons
-#ifdef XP_UNIX
+#ifndef XP_WIN32
 @BINPATH@/icons/*.xpm
 @BINPATH@/icons/*.png
 #endif
@@ -378,6 +367,11 @@
 
 ; [Layout Engine Resources]
 ; Style Sheets, Graphics and other Resources used by the layout engine. 
+@BINPATH@/res/hiddenWindow.html
+@BINPATH@/res/ua.css
+@BINPATH@/res/html.css
+@BINPATH@/res/quirk.css
+@BINPATH@/res/forms.css
 @BINPATH@/res/EditorOverride.css
 @BINPATH@/res/contenteditable.css
 @BINPATH@/res/designmode.css
@@ -401,7 +395,11 @@
 @BINPATH@/res/table-remove-row.gif
 @BINPATH@/res/arrowd.gif
 @BINPATH@/res/grabber.gif
+@BINPATH@/res/viewsource.css
+@BINPATH@/res/mathml.css
 @BINPATH@/res/arrow.gif
+@BINPATH@/res/loading-image.png
+@BINPATH@/res/broken-image.png
 #ifdef XP_MACOSX
 @BINPATH@/res/cursors/*
 #endif
@@ -502,9 +500,4 @@ bin/components/@DLL_PREFIX@nkgnomevfs@DLL_SUFFIX@
 @BINPATH@/firefoxfaststart.exe
 @BINPATH@/components/FastStartup.js
 #endif
-#endif
-
-; [OS/2]
-#ifdef XP_OS2
-@BINPATH@/MozSounds.cmd
 #endif
