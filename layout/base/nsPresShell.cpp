@@ -5101,7 +5101,7 @@ PresShell::ClipListToRange(nsDisplayListBuilder *aBuilder,
             
             
             
-            itemToInsert = new (aBuilder)nsDisplayClip(frame, frame, i, textRect);
+            itemToInsert = new (aBuilder)nsDisplayClip(frame, i, textRect);
           }
         }
         else {
