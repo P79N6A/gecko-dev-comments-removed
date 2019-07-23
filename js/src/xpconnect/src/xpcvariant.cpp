@@ -63,19 +63,20 @@ XPCVariant::XPCVariant(jsval aJSVal)
 
 XPCTraceableVariant::~XPCTraceableVariant()
 {
-    NS_ASSERTION(JSVAL_IS_TRACEABLE(mJSVal), "Must be tracaeble");
+    NS_ASSERTION(JSVAL_IS_GCTHING(mJSVal), "Must be traceable or unlinked");
 
     
     
     if(!JSVAL_IS_STRING(mJSVal))
         nsVariant::Cleanup(&mData);
 
-    RemoveFromRootSet(nsXPConnect::GetRuntime()->GetJSRuntime());
+    if(!JSVAL_IS_NULL(mJSVal))
+        RemoveFromRootSet(nsXPConnect::GetRuntime()->GetJSRuntime());
 }
 
 void XPCTraceableVariant::TraceJS(JSTracer* trc)
 {
-    NS_ASSERTION(JSVAL_IS_TRACEABLE(mJSVal), "Must be tracaeble");
+    NS_ASSERTION(JSVAL_IS_TRACEABLE(mJSVal), "Must be traceable");
     JS_SET_TRACING_DETAILS(trc, PrintTraceName, this, 0);
     JS_CallTracer(trc, JSVAL_TO_TRACEABLE(mJSVal), JSVAL_TRACE_KIND(mJSVal));
 }
