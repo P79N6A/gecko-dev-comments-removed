@@ -57,7 +57,7 @@ function tablesCallback(tables)
   
   
   do_check_eq(parts.join("\n"),
-              "\ntesting-malware-simple;a:1\ntesting-phish-simple;a:2s:3");
+              "\ntesting-malware-simple;a:1\ntesting-phish-simple;a:2:s:3");
   do_test_finished();
 }
 
