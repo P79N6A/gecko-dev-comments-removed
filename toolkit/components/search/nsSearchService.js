@@ -1431,7 +1431,8 @@ Engine.prototype = {
       case "https":
       case "ftp":
         
-        if (!this._readOnly) {
+        if (!this._readOnly ||
+            getBoolPref(BROWSER_SEARCH_PREF + "cache.enabled", true)) {
           LOG("_setIcon: Downloading icon: \"" + uri.spec +
               "\" for engine: \"" + this.name + "\"");
           var chan = NetUtil.ioService.newChannelFromURI(uri);
