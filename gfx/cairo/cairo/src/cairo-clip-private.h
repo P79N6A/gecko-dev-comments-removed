@@ -38,7 +38,7 @@
 
 #include "cairo-path-fixed-private.h"
 
-extern cairo_private const cairo_rectangle_list_t _cairo_rectangles_nil;
+extern const cairo_private cairo_rectangle_list_t _cairo_rectangles_nil;
 
 struct _cairo_clip_path {
     unsigned int	ref_count;
@@ -63,7 +63,7 @@ struct _cairo_clip {
 
 
     cairo_surface_t *surface;
-    cairo_rectangle_int16_t surface_rect;
+    cairo_rectangle_int_t surface_rect;
     
 
 
@@ -72,7 +72,8 @@ struct _cairo_clip {
     
 
 
-    pixman_region16_t *region;
+    cairo_region_t region;
+    cairo_bool_t has_region;
     
 
 
@@ -83,18 +84,15 @@ struct _cairo_clip {
 cairo_private void
 _cairo_clip_init (cairo_clip_t *clip, cairo_surface_t *target);
 
-cairo_private void
-_cairo_clip_fini (cairo_clip_t *clip);
-
-cairo_private void
+cairo_private cairo_status_t
 _cairo_clip_init_copy (cairo_clip_t *clip, cairo_clip_t *other);
 
-cairo_private void
+cairo_private cairo_status_t
 _cairo_clip_init_deep_copy (cairo_clip_t    *clip,
                             cairo_clip_t    *other,
                             cairo_surface_t *target);
 
-cairo_private cairo_status_t
+cairo_private void
 _cairo_clip_reset (cairo_clip_t *clip);
 
 cairo_private cairo_status_t
@@ -107,11 +105,11 @@ _cairo_clip_clip (cairo_clip_t       *clip,
 
 cairo_private cairo_status_t
 _cairo_clip_intersect_to_rectangle (cairo_clip_t            *clip,
-				    cairo_rectangle_int16_t *rectangle);
+				    cairo_rectangle_int_t   *rectangle);
 
 cairo_private cairo_status_t
 _cairo_clip_intersect_to_region (cairo_clip_t      *clip,
-				 pixman_region16_t *region);
+				 cairo_region_t *region);
 
 cairo_private cairo_status_t
 _cairo_clip_combine_to_surface (cairo_clip_t                  *clip,
@@ -119,7 +117,7 @@ _cairo_clip_combine_to_surface (cairo_clip_t                  *clip,
 				cairo_surface_t               *dst,
 				int                            dst_x,
 				int                            dst_y,
-				const cairo_rectangle_int16_t *extents);
+				const cairo_rectangle_int_t   *extents);
 
 cairo_private void
 _cairo_clip_translate (cairo_clip_t  *clip,

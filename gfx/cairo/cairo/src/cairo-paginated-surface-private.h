@@ -36,106 +36,37 @@
 #ifndef CAIRO_PAGINATED_SURFACE_H
 #define CAIRO_PAGINATED_SURFACE_H
 
-#include "cairoint.h"
+#include "cairo.h"
 
-typedef enum {
-    CAIRO_PAGINATED_MODE_ANALYZE,	
-    CAIRO_PAGINATED_MODE_RENDER		
-} cairo_paginated_mode_t;
+#include "cairo-surface-private.h"
 
-typedef struct _cairo_paginated_surface_backend {
+typedef struct _cairo_paginated_surface {
+    cairo_surface_t base;
+
     
+    cairo_surface_t *target;
 
-
-
-
-
-
-
-
-    cairo_int_status_t
-    (*start_page)		(void			*surface);
+    cairo_content_t content;
 
     
 
 
 
 
-    void
-    (*set_paginated_mode)	(void			*surface,
-				 cairo_paginated_mode_t	 mode);
-} cairo_paginated_surface_backend_t;
+    int width;
+    int height;
+
+    
+    const cairo_paginated_surface_backend_t *backend;
+
+    
 
 
+    cairo_surface_t *meta;
 
+    int page_num;
+    cairo_bool_t page_is_blank;
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-cairo_private cairo_surface_t *
-_cairo_paginated_surface_create (cairo_surface_t				*target,
-				 cairo_content_t				 content,
-				 int						 width,
-				 int						 height,
-				 const cairo_paginated_surface_backend_t	*backend);
-
-cairo_private cairo_surface_t *
-_cairo_paginated_surface_get_target (cairo_surface_t *surface);
-
-cairo_private cairo_bool_t
-_cairo_surface_is_paginated (cairo_surface_t *surface);
+} cairo_paginated_surface_t;
 
 #endif 
