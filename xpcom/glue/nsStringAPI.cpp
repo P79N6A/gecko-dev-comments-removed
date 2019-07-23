@@ -1037,42 +1037,39 @@ ToNewUTF8String(const nsAString& aSource)
 void
 CompressWhitespace(nsAString& aString)
 {
-  aString.Trim(" \n\t\r");
-
   PRUnichar *start;
   PRUint32 len = NS_StringGetMutableData(aString, PR_UINT32_MAX, &start);
   PRUnichar *end = start + len;
+  PRUnichar *from = start, *to = start;
 
-  for (PRUnichar *cur = start; cur < end; ++cur) {
-    if (!NS_IsAsciiWhitespace(*cur))
-      continue;
+  
+  while (from < end && NS_IsAsciiWhitespace(*from))
+    from++;
 
-    *cur = ' ';
+  while (from < end) {
+    PRUnichar theChar = *from++;
 
-    PRUnichar *wend;
-    for (wend = cur + 1; wend < end && NS_IsAsciiWhitespace(*wend); ++wend) {
+    if (NS_IsAsciiWhitespace(theChar)) {
       
+      while (from < end && NS_IsAsciiWhitespace(*from))
+        from++;  
+
+      
+      theChar = ' ';
     }
 
-    if (wend == cur + 1)
-      continue;
-
-    PRUint32 wlen = wend - cur - 1;
-
-    
-    end -= wlen;
-
-    
-    for (PRUnichar *m = cur + 1; m < end; ++m) {
-      *m = *(m + wlen);
-    }
+    *to++ = theChar;
   }
 
   
-  *end = '\0';
+  if (to > start && to[-1] == ' ')
+    to--;
 
   
-  aString.SetLength(end - start);
+  *to = '\0';
+
+  
+  aString.SetLength(to - start);
 }
 
 PRUint32
