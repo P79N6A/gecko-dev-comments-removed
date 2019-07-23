@@ -346,25 +346,6 @@ typedef void
 
 
 
-
-
-
-
-
-
-
-
-
-typedef jsval
-(* JSGetRequiredSlotOp)(JSContext *cx, JSObject *obj, uint32 slot);
-
-typedef JSBool
-(* JSSetRequiredSlotOp)(JSContext *cx, JSObject *obj, uint32 slot, jsval v);
-
-
-
-
-
 #ifdef JS_C_STRINGS_ARE_UTF8
 # define js_CStringsAreUTF8 JS_TRUE
 #else
