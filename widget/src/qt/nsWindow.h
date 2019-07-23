@@ -354,6 +354,8 @@ private:
     }
     PRInt32 mQCursor;
 
+    
+    QRegion mDirtyScrollArea;
 };
 
 class nsChildWindow : public nsWindow

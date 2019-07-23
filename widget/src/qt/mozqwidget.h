@@ -107,6 +107,10 @@ protected:
             mTopLevelWidget->setGeometry( 0.0, 0.0,
                 static_cast<qreal>(aEvent->size().width()),
                 static_cast<qreal>(aEvent->size().height()));
+            
+            
+            setSceneRect(viewport()->rect());
+
         }
         QGraphicsView::resizeEvent(aEvent);
     }
