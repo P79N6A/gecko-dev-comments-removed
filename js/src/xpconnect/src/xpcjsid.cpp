@@ -943,17 +943,22 @@ nsJSCID::HasInstance(nsIXPConnectWrappedNative *wrapper,
 
         NS_ASSERTION(obj, "when is an object not an object?");
 
-        
-        JSObject* obj2;
-        XPCWrappedNative* other_wrapper =
-           XPCWrappedNative::GetWrappedNativeOfJSObject(cx, obj, nsnull, &obj2);
+        nsIClassInfo* ci;
+        if(IS_SLIM_WRAPPER(obj))
+        {
+            ci = GetSlimWrapperProto(obj)->GetClassInfo();
+        }
+        else
+        {
+            
+            XPCWrappedNative* other_wrapper =
+               XPCWrappedNative::GetWrappedNativeOfJSObject(cx, obj);
 
-        if(!obj2)
-            return NS_OK;
+            if(!other_wrapper)
+                return NS_OK;
 
-        nsIClassInfo* ci = other_wrapper ?
-                           other_wrapper->GetClassInfo() :
-                           GetSlimWrapperProto(obj2)->GetClassInfo();
+            ci = other_wrapper->GetClassInfo();
+        }
 
         
         
