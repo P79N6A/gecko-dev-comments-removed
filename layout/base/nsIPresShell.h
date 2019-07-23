@@ -66,29 +66,22 @@
 #include "nsWeakReference.h"
 #include <stdio.h> 
 
-class nsIAtom;
 class nsIContent;
-class nsIContentIterator;
 class nsIDocument;
-class nsIDocumentObserver;
 class nsIFrame;
 class nsPresContext;
 class nsStyleSet;
 class nsIViewManager;
-class nsIDeviceContext;
 class nsIRenderingContext;
 class nsIPageSequenceFrame;
-class nsString;
 class nsAString;
 class nsCaret;
-class nsStyleContext;
 class nsFrameSelection;
 class nsFrameManager;
 class nsILayoutHistoryState;
 class nsIReflowCallback;
 class nsIDOMNode;
 class nsIRegion;
-class nsIStyleFrameConstruction;
 class nsIStyleSheet;
 class nsCSSFrameConstructor;
 class nsISelection;
@@ -97,7 +90,6 @@ class nsWeakFrame;
 class nsIScrollableFrame;
 class gfxASurface;
 class gfxContext;
-class nsPIDOMEventTarget;
 class nsIDOMEvent;
 class nsDisplayList;
 class nsDisplayListBuilder;
@@ -127,8 +119,8 @@ typedef struct CapturingContentInfo {
 } CapturingContentInfo;
 
 #define NS_IPRESSHELL_IID     \
-{ 0x6736ae7e, 0x25f9, 0x4594, \
-  { 0xb5, 0x26, 0x49, 0x39, 0x17, 0x63, 0x2f, 0x94 } }
+{ 0x84f1a428, 0x6bbe, 0x4958, \
+  { 0xa1, 0x08, 0x8a, 0xe0, 0x78, 0xb8, 0x63, 0xf4 } }
 
 
 #define NS_PRESSHELL_SCROLL_TOP      0
@@ -688,12 +680,16 @@ public:
   
 
 
-  virtual NS_HIDDEN_(void) DisableThemeSupport() = 0;
+  void DisableThemeSupport()
+  {
+    
+    mIsThemeSupportDisabled = PR_TRUE;
+  }
 
   
 
 
-  virtual PRBool IsThemeSupportEnabled() = 0;
+  PRBool IsThemeSupportEnabled() const { return !mIsThemeSupportDisabled; }
 
   
 
@@ -1015,6 +1011,7 @@ protected:
   PRPackedBool              mIsDestroying;
   PRPackedBool              mIsReflowing;
   PRPackedBool              mPaintingSuppressed;  
+  PRPackedBool              mIsThemeSupportDisabled;  
 
 #ifdef ACCESSIBILITY
   
