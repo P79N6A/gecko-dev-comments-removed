@@ -64,9 +64,6 @@ function createTestData() {
 
 
  function run_test() {
-   
-   return;
-
    createTestData();
    populateDB(testData);
    var query = histsvc.getNewQuery();
