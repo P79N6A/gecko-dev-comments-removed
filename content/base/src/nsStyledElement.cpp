@@ -237,8 +237,8 @@ nsStyledElement::ParseStyleAttribute(nsIContent* aContent,
   if (doc && (aForceInDataDoc || !doc->IsLoadedAsData())) {
     PRBool isCSS = PR_TRUE; 
 
-    if (!aContent->IsNativeAnonymous()) {  
-                                           
+    if (!aContent->IsInNativeAnonymousSubtree()) {  
+                                                    
       nsAutoString styleType;
       doc->GetHeaderData(nsGkAtoms::headerContentStyleType, styleType);
       if (!styleType.IsEmpty()) {

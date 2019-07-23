@@ -3853,36 +3853,6 @@ nsContentUtils::TriggerLink(nsIContent *aContent, nsPresContext *aPresContext,
 }
 
 
-PRBool
-nsContentUtils::IsNativeAnonymous(nsIContent* aContent)
-{
-  while (aContent) {
-    nsIContent* bindingParent = aContent->GetBindingParent();
-    if (bindingParent == aContent) {
-      NS_ASSERTION(bindingParent->IsNativeAnonymous() ||
-                   bindingParent->IsNodeOfType(nsINode::eXUL),
-                   "Bogus binding parent?");
-      return PR_TRUE;
-    }
-
-    
-    
-    
-    
-    
-    NS_ASSERTION(!aContent->IsNativeAnonymous() ||
-                 !aContent->GetCurrentDoc() ||
-                 (aContent->GetParent() &&
-                  aContent->GetParent()->NodeInfo()->
-                    Equals(nsGkAtoms::use, kNameSpaceID_SVG)),
-                 "Native anonymous node with wrong binding parent");
-    aContent = bindingParent;
-  }
-
-  return PR_FALSE;
-}
-
-
 nsIWidget*
 nsContentUtils::GetTopLevelWidget(nsIWidget* aWidget)
 {

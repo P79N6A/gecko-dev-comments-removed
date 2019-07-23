@@ -282,24 +282,16 @@ nsFindContentIterator::Reset()
 
   
   nsCOMPtr<nsIContent> startContent(do_QueryInterface(mStartNode));
-  for ( ; startContent; startContent = startContent->GetParent()) {
-    if (!startContent->IsNativeAnonymous() &&
-        (!startContent->GetBindingParent() ||
-         !startContent->GetBindingParent()->IsNativeAnonymous())) {
-      mStartOuterNode = do_QueryInterface(startContent);
-      break;
-    }
+  if (startContent) {
+    mStartOuterNode =
+      do_QueryInterface(startContent->FindFirstNonNativeAnonymous());
   }
 
   
   nsCOMPtr<nsIContent> endContent(do_QueryInterface(mEndNode));
-  for ( ; endContent; endContent = endContent->GetParent()) {
-    if (!endContent->IsNativeAnonymous() &&
-        (!endContent->GetBindingParent() ||
-         !endContent->GetBindingParent()->IsNativeAnonymous())) {
-      mEndOuterNode = do_QueryInterface(endContent);
-      break;
-    }
+  if (endContent) {
+    mEndOuterNode =
+      do_QueryInterface(endContent->FindFirstNonNativeAnonymous());
   }
 
   

@@ -1131,12 +1131,6 @@ public:
   
 
 
-
-  static PRBool IsNativeAnonymous(nsIContent* aContent);
-
-  
-
-
   static nsIWidget* GetTopLevelWidget(nsIWidget* aWidget);
 
   

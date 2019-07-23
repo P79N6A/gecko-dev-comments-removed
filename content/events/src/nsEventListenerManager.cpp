@@ -1468,29 +1468,31 @@ nsEventListenerManager::PrepareToUseCaretPosition(nsIWidget* aEventWidget,
   NS_ENSURE_SUCCESS(rv, PR_FALSE);
   NS_ENSURE_TRUE(node, PR_FALSE);
   nsCOMPtr<nsIContent> content(do_QueryInterface(node));
-  for ( ; content; content = content->GetParent()) {
-    if (!content->IsNativeAnonymous()) {
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      rv = aShell->ScrollContentIntoView(content,
-                                         NS_PRESSHELL_SCROLL_IF_NOT_VISIBLE,
-                                         NS_PRESSHELL_SCROLL_IF_NOT_VISIBLE);
-      NS_ENSURE_SUCCESS(rv, PR_FALSE);
-      frame = aShell->GetPrimaryFrameFor(content);
-      NS_ASSERTION(frame, "No frame for focused content?");
-      break;
-    }
+  if (content) {
+    nsIContent* nonNative = content->FindFirstNonNativeAnonymous();
+    content = nonNative;
+  }
+
+  if (content) {
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    rv = aShell->ScrollContentIntoView(content,
+                                       NS_PRESSHELL_SCROLL_IF_NOT_VISIBLE,
+                                       NS_PRESSHELL_SCROLL_IF_NOT_VISIBLE);
+    NS_ENSURE_SUCCESS(rv, PR_FALSE);
+    frame = aShell->GetPrimaryFrameFor(content);
+    NS_WARN_IF_FALSE(frame, "No frame for focused content?");
   }
 
   
