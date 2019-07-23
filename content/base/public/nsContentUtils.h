@@ -876,25 +876,6 @@ public:
 
 
 
-
-
-
-
-
-
-
-  static nsresult SetUserData(nsINode *aNode, nsIAtom *aKey, nsIVariant *aData,
-                              nsIDOMUserDataHandler *aHandler,
-                              nsIVariant **aResult);
-
-  
-
-
-
-
-
-
-
   static nsresult CreateContextualFragment(nsIDOMNode* aContextNode,
                                            const nsAString& aFragment,
                                            nsIDOMDocumentFragment** aReturn);

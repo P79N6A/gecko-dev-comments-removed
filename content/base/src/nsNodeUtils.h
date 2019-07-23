@@ -46,7 +46,11 @@ struct JSContext;
 struct JSObject;
 class nsINode;
 class nsNodeInfoManager;
+class nsIVariant;
+class nsIDOMUserDataHandler;
 template<class E> class nsCOMArray;
+struct nsCycleCollectionTraversalCallback;
+struct CharacterDataChangeInfo;
 
 class nsNodeUtils
 {
@@ -113,8 +117,7 @@ public:
 
 
 
-
-  static void LastRelease(nsINode* aNode, PRBool aDelete);
+  static void LastRelease(nsINode* aNode);
 
   
 
@@ -190,6 +193,39 @@ public:
 
 
 
+  static nsresult SetUserData(nsINode *aNode, const nsAString &aKey,
+                              nsIVariant *aData,
+                              nsIDOMUserDataHandler *aHandler,
+                              nsIVariant **aResult);
+
+  
+
+
+
+
+
+
+
+
+
+  static nsresult GetUserData(nsINode *aNode, const nsAString &aKey,
+                              nsIVariant **aResult);
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   static nsresult CallUserDataHandlers(nsCOMArray<nsINode> &aNodesWithProperties,
                                        nsIDocument *aOwnerDocument,
                                        PRUint16 aOperation, PRBool aCloned);
@@ -201,9 +237,26 @@ public:
 
 
 
+  static void TraverseUserData(nsINode* aNode,
+                               nsCycleCollectionTraversalCallback &aCb);
+
+  
+
+
+
+
+
+
 
   static nsresult CloneNodeImpl(nsINode *aNode, PRBool aDeep,
                                 nsIDOMNode **aResult);
+
+  
+
+
+
+
+  static void UnlinkUserData(nsINode *aNode);
 
 private:
   friend PLDHashOperator PR_CALLBACK

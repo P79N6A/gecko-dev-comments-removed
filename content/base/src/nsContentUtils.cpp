@@ -3149,52 +3149,6 @@ nsContentUtils::IsValidNodeName(nsIAtom *aLocalName, nsIAtom *aPrefix,
 
 
 nsresult
-nsContentUtils::SetUserData(nsINode *aNode, nsIAtom *aKey,
-                            nsIVariant *aData, nsIDOMUserDataHandler *aHandler,
-                            nsIVariant **aResult)
-{
-  *aResult = nsnull;
-
-  nsresult rv;
-  void *data;
-  if (aData) {
-    rv = aNode->SetProperty(DOM_USER_DATA, aKey, aData,
-                            nsPropertyTable::SupportsDtorFunc, PR_TRUE,
-                            &data);
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    NS_ADDREF(aData);
-  }
-  else {
-    data = aNode->UnsetProperty(DOM_USER_DATA, aKey);
-  }
-
-  
-  nsCOMPtr<nsIVariant> oldData = dont_AddRef(NS_STATIC_CAST(nsIVariant*, data));
-
-  if (aData && aHandler) {
-    rv = aNode->SetProperty(DOM_USER_DATA_HANDLER, aKey, aHandler,
-                            nsPropertyTable::SupportsDtorFunc, PR_TRUE);
-    if (NS_FAILED(rv)) {
-      
-      aNode->DeleteProperty(DOM_USER_DATA, aKey);
-
-      return rv;
-    }
-
-    NS_ADDREF(aHandler);
-  }
-  else {
-    aNode->DeleteProperty(DOM_USER_DATA_HANDLER, aKey);
-  }
-
-  oldData.swap(*aResult);
-
-  return NS_OK;
-}
-
-
-nsresult
 nsContentUtils::CreateContextualFragment(nsIDOMNode* aContextNode,
                                          const nsAString& aFragment,
                                          nsIDOMDocumentFragment** aReturn)

@@ -236,6 +236,13 @@ class nsPropertyTable
 
 
 
+  NS_HIDDEN_(void) DeleteAllPropertiesFor(nsPropertyOwner aObject,
+                                          PRUint16 aCategory);
+
+  
+
+
+
 
 
 
