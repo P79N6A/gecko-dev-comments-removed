@@ -972,6 +972,46 @@ class CheckStateMachine(TcheckVisitor):
         
         
         
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+
+        
         syncdirection = None
         syncok = True
         for trans in ts.transitions:
@@ -988,6 +1028,7 @@ class CheckStateMachine(TcheckVisitor):
         if not syncok:
             return
 
+        
         def triggerTargets(S, t):
             '''Return the set of states transitioned to from state |S|
 upon trigger |t|, or { } if |t| is not a trigger in |S|.'''
@@ -996,7 +1037,34 @@ upon trigger |t|, or { } if |t| is not a trigger in |S|.'''
                     return trans.toStates
             return set()
 
+        def allTriggersSameDirectionAs(S, t):
+            '''Return true iff all the triggers from state |S| have the same
+direction as trigger |t|'''
+            direction = t.direction()
+            for trans in self.p.states[S].transitions:
+                if direction != trans.trigger.direction():
+                    return False
+            return True
 
+        def terminalState(S):
+            '''Return true iff |S| is a "terminal state".'''
+            for trans in self.p.states[S].transitions:
+                for S_ in trans.toStates:
+                    if S_ != S:  return False
+            return True
+
+        def sameTerminalState(S1, S2, S3):
+            '''Return true iff states |S1|, |S2|, and |S3| are all the same
+"terminal state".'''
+            if isinstance(S3, set):
+                assert len(S3) == 1
+                for S3_ in S3: pass
+                S3 = S3_
+
+            return (S1 == S2 == S3) and terminalState(S1)
+
+
+        
         for (t1, t2) in unique_pairs(ts.transitions):
             
             
@@ -1012,8 +1080,15 @@ upon trigger |t|, or { } if |t| is not a trigger in |S|.'''
                 U2 = triggerTargets(T2, t1)
 
                 if (0 == len(U1)
+                    
                     or 1 < len(U1) or 1 < len(U2)
-                    or U1 != U2):
+                    or U1 != U2
+                    or not (
+                        (allTriggersSameDirectionAs(T1, t2.trigger)
+                         and allTriggersSameDirectionAs(T2, t1.trigger))
+                        or
+                        sameTerminalState(T1, T2, U1)
+                    )):
                     self.error(
                         t2.loc,
                         "in protocol `%s' state `%s', trigger `%s' potentially races (does not commute) with `%s'",
