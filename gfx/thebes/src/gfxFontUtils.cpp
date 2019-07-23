@@ -869,7 +869,10 @@ gfxFontUtils::ValidateSFNTHeaders(const PRUint8 *aFontData,
 
     if (headData->checkSumAdjustment != (HeadTable::HEAD_CHECKSUM_CALC_CONST - checksum)) {
         NS_WARNING("invalid font (bad checksum)");
-        return PR_FALSE;
+        
+        
+        
+        
     }
     
     
