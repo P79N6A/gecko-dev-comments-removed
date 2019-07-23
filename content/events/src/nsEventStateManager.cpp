@@ -1267,6 +1267,12 @@ IsAccessKeyTarget(nsIContent* aContent, nsIFrame* aFrame, nsAString& aKey)
         tag == nsGkAtoms::label ||
         tag == nsGkAtoms::legend)
       return PR_TRUE;
+
+  } else if (aContent->IsNodeOfType(nsINode::eXUL)) {
+    
+    
+    if (aContent->Tag() == nsGkAtoms::label)
+      return PR_TRUE;
   }
 
   return PR_FALSE;
