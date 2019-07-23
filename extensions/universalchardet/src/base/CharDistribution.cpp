@@ -46,16 +46,13 @@
 #define SURE_YES 0.99f
 #define SURE_NO  0.01f
 
-#define MINIMUM_DATA_THRESHOLD  4
 
-
-float CharDistributionAnalysis::GetConfidence(PRBool aIsPreferredLanguage)
+float CharDistributionAnalysis::GetConfidence(void)
 { 
   
   
   
-  if (mTotalChars <= 0 ||
-      !aIsPreferredLanguage && mFreqChars <= MINIMUM_DATA_THRESHOLD)
+  if (mTotalChars <= 0 || mFreqChars <= mDataThreshold)
     return SURE_NO;
 
   if (mTotalChars != mFreqChars) {

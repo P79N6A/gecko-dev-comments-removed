@@ -42,10 +42,12 @@
 
 #define ENOUGH_DATA_THRESHOLD 1024
  
+#define MINIMUM_DATA_THRESHOLD  4
+
 class CharDistributionAnalysis
 {
 public:
-  CharDistributionAnalysis() {Reset();}
+  CharDistributionAnalysis() {Reset(PR_FALSE);}
 
   
   void HandleData(const char* aBuf, PRUint32 aLen) {}
@@ -71,14 +73,15 @@ public:
   }
 
   
-  float GetConfidence(PRBool aIsPreferredLanguage);
+  float GetConfidence(void);
 
   
-  void      Reset(void) 
+  void      Reset(PRBool aIsPreferredLanguage) 
   {
     mDone = PR_FALSE;
     mTotalChars = 0;
     mFreqChars = 0;
+    mDataThreshold = aIsPreferredLanguage ? 0 : MINIMUM_DATA_THRESHOLD;
   }
 
   
@@ -103,6 +106,9 @@ protected:
 
   
   PRUint32 mTotalChars;
+
+  
+  PRUint32 mDataThreshold;
 
   
   const PRInt16  *mCharToFreqOrder;
