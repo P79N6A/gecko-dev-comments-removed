@@ -41,11 +41,13 @@
 
 
 
+
 #include "nsCOMPtr.h"
 #include "nsIDOMNode.h"
 #include "nsIRDFNode.h"
 #include "nsIRDFObserver.h"
 #include "nsIRDFRemoteDataSource.h"
+#include "nsIRDFInferDataSource.h"
 #include "nsIRDFService.h"
 #include "nsRDFCID.h"
 #include "nsIServiceManager.h"
@@ -56,6 +58,7 @@
 #include "nsUnicharUtils.h"
 #include "nsAttrName.h"
 #include "rdf.h"
+#include "nsArrayUtils.h"
 
 #include "nsContentTestNode.h"
 #include "nsRDFConInstanceTestNode.h"
@@ -215,6 +218,119 @@ nsXULTemplateQueryProcessorRDF::InitGlobals()
 
 
 
+NS_IMETHODIMP
+nsXULTemplateQueryProcessorRDF::GetDatasource(nsIArray* aDataSources,
+                                              nsIDOMNode* aRootNode,
+                                              PRBool aIsTrusted,
+                                              nsIXULTemplateBuilder* aBuilder,
+                                              PRBool* aShouldDelayBuilding,
+                                              nsISupports** aResult)
+{
+    nsCOMPtr<nsIRDFCompositeDataSource> compDB;
+    nsCOMPtr<nsIContent> root = do_QueryInterface(aRootNode);
+    nsresult rv;
+
+    *aResult = nsnull;
+    *aShouldDelayBuilding = PR_FALSE;
+
+    NS_ENSURE_TRUE(root, NS_ERROR_UNEXPECTED);
+
+    
+    rv = InitGlobals();
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    
+    compDB = do_CreateInstance(NS_RDF_DATASOURCE_CONTRACTID_PREFIX 
+                               "composite-datasource");
+    if (!compDB) {
+        NS_ERROR("unable to construct new composite data source");
+        return NS_ERROR_UNEXPECTED;
+    }
+
+    
+    if (root->AttrValueIs(kNameSpaceID_None,
+                          nsGkAtoms::coalesceduplicatearcs,
+                          nsGkAtoms::_false, eCaseMatters))
+        compDB->SetCoalesceDuplicateArcs(PR_FALSE);
+
+    if (root->AttrValueIs(kNameSpaceID_None,
+                          nsGkAtoms::allownegativeassertions,
+                          nsGkAtoms::_false, eCaseMatters))
+        compDB->SetAllowNegativeAssertions(PR_FALSE);
+
+    if (aIsTrusted) {
+        
+        
+        
+        
+        nsCOMPtr<nsIRDFDataSource> localstore;
+        rv = gRDFService->GetDataSource("rdf:local-store",
+                                        getter_AddRefs(localstore));
+        NS_ENSURE_SUCCESS(rv, rv);
+
+        rv = compDB->AddDataSource(localstore);
+        NS_ASSERTION(NS_SUCCEEDED(rv), "unable to add local store to db");
+        NS_ENSURE_SUCCESS(rv, rv);
+    }
+
+    PRUint32 length, index;
+    rv = aDataSources->GetLength(&length);
+    NS_ENSURE_SUCCESS(rv,rv);
+
+    for (index = 0; index < length; index++) {
+
+        nsCOMPtr<nsIURI> uri = do_QueryElementAt(aDataSources, index);
+        if (!uri) 
+            continue;
+
+        nsCOMPtr<nsIRDFDataSource> ds;
+        nsCAutoString uristrC;
+        uri->GetSpec(uristrC);
+
+        rv = gRDFService->GetDataSource(uristrC.get(), getter_AddRefs(ds));
+
+        if (NS_FAILED(rv)) {
+            
+            
+            
+  #ifdef DEBUG
+            nsCAutoString msg;
+            msg.Append("unable to load datasource '");
+            msg.Append(uristrC);
+            msg.Append('\'');
+            NS_WARNING(msg.get());
+  #endif
+            continue;
+        }
+
+        compDB->AddDataSource(ds);
+    }
+
+
+    
+    nsAutoString infer;
+    nsCOMPtr<nsIRDFDataSource> db;
+    root->GetAttr(kNameSpaceID_None, nsGkAtoms::infer, infer);
+    if (!infer.IsEmpty()) {
+        nsCString inferCID(NS_RDF_INFER_DATASOURCE_CONTRACTID_PREFIX);
+        AppendUTF16toUTF8(infer, inferCID);
+        nsCOMPtr<nsIRDFInferDataSource> inferDB =
+            do_CreateInstance(inferCID.get());
+
+        if (inferDB) {
+            inferDB->SetBaseDataSource(compDB);
+            db = do_QueryInterface(inferDB);
+        }
+        else {
+            NS_WARNING("failed to construct inference engine specified on template");
+        }
+    }
+
+    if (!db)
+        db = compDB;
+
+    return CallQueryInterface(db, aResult);
+}
 
 NS_IMETHODIMP
 nsXULTemplateQueryProcessorRDF::InitializeForBuilding(nsISupports* aDatasource,
