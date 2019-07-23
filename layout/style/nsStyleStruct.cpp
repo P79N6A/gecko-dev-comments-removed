@@ -1402,17 +1402,20 @@ nsChangeHint nsStyleContent::MaxDifference()
 
 nsresult nsStyleContent::AllocateContents(PRUint32 aCount)
 {
-  if (aCount != mContentCount) {
-    DELETE_ARRAY_IF(mContents);
-    if (aCount) {
-      mContents = new nsStyleContentData[aCount];
-      if (! mContents) {
-        mContentCount = 0;
-        return NS_ERROR_OUT_OF_MEMORY;
-      }
+  
+  
+  
+  
+  
+  DELETE_ARRAY_IF(mContents);
+  if (aCount) {
+    mContents = new nsStyleContentData[aCount];
+    if (! mContents) {
+      mContentCount = 0;
+      return NS_ERROR_OUT_OF_MEMORY;
     }
-    mContentCount = aCount;
   }
+  mContentCount = aCount;
   return NS_OK;
 }
 
