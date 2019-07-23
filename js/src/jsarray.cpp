@@ -1193,10 +1193,12 @@ js_MakeArraySlow(JSContext *cx, JSObject *obj)
 
 
 
-    uint32 length = obj->fslots[JSSLOT_ARRAY_LENGTH];
-    obj->fslots[JSSLOT_ARRAY_COUNT] = INT_FITS_IN_JSVAL(length)
-                                      ? INT_TO_JSVAL(length)
-                                      : JSVAL_VOID;
+    {
+        uint32 length = obj->fslots[JSSLOT_ARRAY_LENGTH];
+        obj->fslots[JSSLOT_ARRAY_COUNT] = INT_FITS_IN_JSVAL(length)
+                                          ? INT_TO_JSVAL(length)
+                                          : JSVAL_VOID;
+    }
 
     
     obj->classword ^= (jsuword) &js_ArrayClass;
