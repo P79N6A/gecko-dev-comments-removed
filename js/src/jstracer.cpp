@@ -10822,7 +10822,7 @@ TraceRecorder::guardCallee(jsval& callee)
     guard(true,
           lir->ins2(LIR_eq,
                     stobj_get_private(callee_ins),
-                    INS_CONSTPTR(callee_obj->getAssignedPrivate())),
+                    INS_CONSTPTR(callee_obj->getPrivate())),
           branchExit);
     guard(true,
           lir->ins2(LIR_eq,
@@ -11897,7 +11897,7 @@ TraceRecorder::record_JSOP_BINDNAME()
         
         while (OBJ_GET_CLASS(cx, obj) == &js_BlockClass) {
             
-            JS_ASSERT(obj->getAssignedPrivate() == fp);
+            JS_ASSERT(obj->getPrivate() == fp);
             obj = OBJ_GET_PARENT(cx, obj);
             
             JS_ASSERT(obj);
