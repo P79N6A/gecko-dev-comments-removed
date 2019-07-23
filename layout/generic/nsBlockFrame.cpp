@@ -6832,8 +6832,8 @@ nsBlockFrame::WidthToClearPastFloats(nsBlockReflowState& aState,
     aState.ComputeReplacedBlockOffsetsForFloats(aFrame, leftOffset, rightOffset,
                                                 &result);
 
-    nscoord availWidth = aState.mContentArea.width - leftOffset - rightOffset
-                           + result.marginLeft + result.marginRight;
+    
+    nscoord availWidth = aState.mContentArea.width - leftOffset - rightOffset;
     
     
     result.borderBoxWidth =
