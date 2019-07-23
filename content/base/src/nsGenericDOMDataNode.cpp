@@ -585,10 +585,6 @@ nsGenericDOMDataNode::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
 void
 nsGenericDOMDataNode::UnbindFromTree(PRBool aDeep, PRBool aNullParent)
 {
-  
-  
-  UnsetFlags(FRAMETREE_DEPENDS_ON_CHARS);
-  
   nsIDocument *document = GetCurrentDoc();
   if (document) {
     

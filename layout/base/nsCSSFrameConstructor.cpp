@@ -122,7 +122,6 @@
 #include "nsIFocusEventSuppressor.h"
 #include "nsBox.h"
 #include "nsTArray.h"
-#include "nsGenericDOMDataNode.h"
 
 #ifdef MOZ_XUL
 #include "nsIRootBox.h"
@@ -1924,6 +1923,13 @@ nsCSSFrameConstructor::CreateGeneratedContentItem(nsFrameConstructorState& aStat
                                     kNameSpaceID_None, pseudoStyleContext,
                                     ITEM_IS_GENERATED_CONTENT, aItems);
 }
+
+static PRBool
+TextIsOnlyWhitespace(nsIContent* aContent)
+{
+  return aContent->IsNodeOfType(nsINode::eTEXT) &&
+         aContent->TextIsOnlyWhitespace();
+}
     
 
 
@@ -2368,21 +2374,9 @@ NeedFrameFor(nsIFrame*   aParentFrame,
   
   
   
-
-  
-  
-  
-  
-  
-  
-  if (!aParentFrame->IsFrameOfType(nsIFrame::eExcludesIgnorableWhitespace) ||
-      aParentFrame->IsGeneratedContentFrame() ||
-      !aChildContent->IsNodeOfType(nsINode::eTEXT)) {
-    return PR_TRUE;
-  }
-
-  aChildContent->SetFlags(FRAMETREE_DEPENDS_ON_CHARS);
-  return !aChildContent->TextIsOnlyWhitespace();
+  return !aParentFrame->IsFrameOfType(nsIFrame::eExcludesIgnorableWhitespace)
+    || !TextIsOnlyWhitespace(aChildContent)
+    || aParentFrame->IsGeneratedContentFrame();
 }
 
 
@@ -6176,7 +6170,6 @@ nsCSSFrameConstructor::ContentAppended(nsIContent*     aContainer,
                "Unexpected parent");
 
   
-  nsIFrame* origParentFrame = parentFrame;
   nsIFrame* parentAfterFrame;
   parentFrame =
     ::AdjustAppendParentForAfterContent(mPresShell->GetPresContext(),
@@ -6213,26 +6206,12 @@ nsCSSFrameConstructor::ContentAppended(nsIContent*     aContainer,
   }
 
   
-  PRBool isInsertAtStart = PR_TRUE;
-  nsIFrame* curParent = parentFrame;
-  nsIFrame* curAfterChild = parentAfterFrame;
-  do {
-    if (curParent->GetPrevContinuation() ||
-        curParent->GetFirstChild(nsnull) != curAfterChild) {
-      isInsertAtStart = PR_FALSE;
-      break;
-    }
-    curAfterChild = curParent;
-    curParent = curParent->GetParent();
-  } while (curAfterChild != origParentFrame);
-
-  
   
   
   
   LAYOUT_PHASE_TEMP_EXIT();
   if (WipeContainingBlock(state, containingBlock, parentFrame, items,
-                          !parentAfterFrame, isInsertAtStart, nsnull)) {
+                          !parentAfterFrame, nsnull)) {
     LAYOUT_PHASE_TEMP_REENTER();
     return NS_OK;
   }
@@ -6648,9 +6627,7 @@ nsCSSFrameConstructor::ContentInserted(nsIContent*            aContainer,
   
   LAYOUT_PHASE_TEMP_EXIT();
   if (WipeContainingBlock(state, containingBlock, parentFrame, items,
-                          isAppend && !appendAfterFrame,
-                          prevSibling == nsnull,
-                          prevSibling)) {
+                          isAppend && !appendAfterFrame, prevSibling)) {
     LAYOUT_PHASE_TEMP_REENTER();
     return NS_OK;
   }
@@ -6672,9 +6649,6 @@ nsCSSFrameConstructor::ContentInserted(nsIContent*            aContainer,
     }
   }
 
-  
-  
-  
   
   
   
@@ -7480,15 +7454,6 @@ nsCSSFrameConstructor::CharacterDataChanged(nsIContent* aContent,
 {
   AUTO_LAYOUT_PHASE_ENTRY_POINT(mPresShell->GetPresContext(), FrameC);
   nsresult      rv = NS_OK;
-
-  if (aContent->HasFlag(FRAMETREE_DEPENDS_ON_CHARS)) {
-#ifdef DEBUG
-    nsIFrame* frame = mPresShell->GetPrimaryFrameFor(aContent);
-    NS_ASSERTION(!frame || !frame->IsGeneratedContentFrame(),
-                 "Bit should never be set on generated content");
-#endif
-    return RecreateFramesForContent(aContent);
-  }
 
   
   nsIFrame* frame = mPresShell->GetPrimaryFrameFor(aContent);
@@ -8746,28 +8711,6 @@ nsCSSFrameConstructor::MaybeRecreateFramesForContent(nsIContent* aContent)
   return result;
 }
 
-static nsIFrame*
-FindFirstNonWhitespaceChild(nsIFrame* aParentFrame)
-{
-  nsIFrame* f = aParentFrame->GetFirstChild(nsnull);
-  while (f && f->GetType() == nsGkAtoms::textFrame &&
-         f->GetContent()->TextIsOnlyWhitespace()) {
-    f = f->GetNextSibling();
-  }
-  return f;
-}
-
-static nsIFrame*
-FindNextNonWhitespaceSibling(nsIFrame* aFrame)
-{
-  nsIFrame* f = aFrame;
-  do {
-    f = f->GetNextSibling();
-  } while (f && f->GetType() == nsGkAtoms::textFrame &&
-           f->GetContent()->TextIsOnlyWhitespace());
-  return f;
-}
-
 PRBool
 nsCSSFrameConstructor::MaybeRecreateContainerForFrameRemoval(nsIFrame* aFrame,
                                                              nsresult* aResult)
@@ -8801,8 +8744,8 @@ nsCSSFrameConstructor::MaybeRecreateContainerForFrameRemoval(nsIFrame* aFrame,
   NS_ASSERTION(inFlowFrame, "How did that happen?");
   nsIFrame* parent = inFlowFrame->GetParent();
   if (IsTablePseudo(parent)) {
-    if (FindFirstNonWhitespaceChild(parent) == inFlowFrame ||
-        !FindNextNonWhitespaceSibling(inFlowFrame->GetLastContinuation()) ||
+    if (parent->GetFirstChild(nsnull) == inFlowFrame ||
+        !inFlowFrame->GetLastContinuation()->GetNextSibling() ||
         
         
         (inFlowFrame->GetType() == nsGkAtoms::tableColGroupFrame &&
@@ -9114,14 +9057,37 @@ nsCSSFrameConstructor::CreateNeededTablePseudos(FrameConstructionItemList& aItem
 
   FCItemIterator iter(aItems);
   do {
-    if (iter.SkipItemsWantingParentType(ourParentType)) {
-      
-      return NS_OK;
+    NS_ASSERTION(!iter.IsDone(), "How did that happen?");
+
+    
+    while (iter.item().DesiredParentType() == ourParentType) {
+      iter.Next();
+      if (iter.IsDone()) {
+        
+        return NS_OK;
+      }
     }
 
-    
-    
+    NS_ASSERTION(!iter.IsDone() &&
+                 iter.item().DesiredParentType() != ourParentType,
+                 "Why did we stop?");
 
+    
+    
+    
+    
+    
+    NS_ASSERTION(aParentFrame->IsGeneratedContentFrame() ||
+                 !iter.item().mIsText ||
+                 !iter.item().mContent->TextIsOnlyWhitespace(),
+                 "Why do we have whitespace under a known-table parent?");
+
+    
+    
+    
+    
+    
+    
     
     
     
@@ -9135,83 +9101,63 @@ nsCSSFrameConstructor::CreateNeededTablePseudos(FrameConstructionItemList& aItem
 
     FCItemIterator endIter(iter); 
     ParentType groupingParentType = endIter.item().DesiredParentType();
-    if (aItems.AllWantParentType(groupingParentType) &&
-        groupingParentType != eTypeBlock) {
-      
-      
-      
-      endIter.SetToEnd();
-    } else {
-      
+    
+    
+    
+    
+    
+    
+    do {
+      endIter.Next();
+      if (endIter.IsDone()) {
+        break;
+      }
 
-      
-      
-      
-      ParentType prevParentType = ourParentType;
-      do {
+      if (!aParentFrame->IsGeneratedContentFrame() &&
+          endIter.item().IsWhitespace()) {
         
-        FCItemIterator spaceEndIter(endIter);
-        if (prevParentType != eTypeBlock &&
-            !aParentFrame->IsGeneratedContentFrame() &&
-            spaceEndIter.item().IsWhitespace()) {
-          PRBool trailingSpaces = spaceEndIter.SkipWhitespace();
+        FCItemIterator textSkipIter(endIter);
+        do {
+          textSkipIter.Next();
+        } while (!textSkipIter.IsDone() && textSkipIter.item().IsWhitespace());
 
+        PRBool trailingSpace = textSkipIter.IsDone();
+        if (
+            (trailingSpace && ourParentType != eTypeBlock) ||
+            
+            (!trailingSpace &&
+             textSkipIter.item().DesiredParentType() != ourParentType)) {
           
-          if (trailingSpaces ||
-              spaceEndIter.item().DesiredParentType() != eTypeBlock) {
-            PRBool updateStart = (iter == endIter);
-            endIter.DeleteItemsTo(spaceEndIter);
-            NS_ASSERTION(trailingSpaces == endIter.IsDone(), "These should match");
+          
+          
+          do {
+            endIter.DeleteItem();
+          } while (endIter != textSkipIter);
 
-            if (updateStart) {
-              iter = endIter;
-            }
-
-            if (trailingSpaces) {
-              break; 
-            }
-
-            if (updateStart) {
-              
-              
-              groupingParentType = iter.item().DesiredParentType();
-            }
+          NS_ASSERTION(endIter.IsDone() == trailingSpace,
+                       "endIter == skipIter now!");
+          if (trailingSpace) {
+            break; 
           }
         }
+      }
 
-        
-        
-        
-        
-        
-        prevParentType = endIter.item().DesiredParentType();
-        if (prevParentType == ourParentType) {
-          
-          break;
-        }
+      ParentType itemParentType = endIter.item().DesiredParentType();
 
-        if (ourParentType == eTypeTable &&
-            (prevParentType == eTypeColGroup) !=
-            (groupingParentType == eTypeColGroup)) {
-          
-          
-          break;
-        }
+      if (itemParentType == ourParentType) {
+        break;
+      }
 
+      if (ourParentType == eTypeTable &&
+          (itemParentType == eTypeColGroup) !=
+          (groupingParentType == eTypeColGroup)) {
         
         
-        
-        
-        endIter = spaceEndIter;
+        break;
+      }
+    } while (1);
 
-        endIter.Next();
-      } while (!endIter.IsDone());
-    }
-
-    if (iter == endIter) {
-      
-      continue;
-    }
+    NS_ASSERTION(iter != endIter, "How did that happen?");
 
     
     
@@ -10827,9 +10773,8 @@ PRBool
 nsCSSFrameConstructor::WipeContainingBlock(nsFrameConstructorState& aState,
                                            nsIFrame* aContainingBlock,
                                            nsIFrame* aFrame,
-                                           FrameConstructionItemList& aItems,
+                                           const FrameConstructionItemList& aItems,
                                            PRBool aIsAppend,
-                                           PRBool aIsInsertAtStart,
                                            nsIFrame* aPrevSibling)
 {
   if (aItems.IsEmpty()) {
@@ -10860,82 +10805,6 @@ nsCSSFrameConstructor::WipeContainingBlock(nsFrameConstructorState& aState,
     
     
     
-    if (parentType != eTypeBlock && !aFrame->IsGeneratedContentFrame()) {
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-
-      FCItemIterator iter(aItems);
-      FCItemIterator start(iter);
-      do {
-        if (iter.SkipItemsWantingParentType(parentType)) {
-          break;
-        }
-
-        
-        
-        if (!iter.item().IsWhitespace()) {
-          break;
-        }
-
-        if (iter == start && !aPrevSibling && !aIsInsertAtStart) {
-          
-          
-          
-          break;
-        }
-
-        FCItemIterator spaceEndIter(iter);
-        
-        PRBool trailingSpaces = spaceEndIter.SkipWhitespace();
-
-        if ((!trailingSpaces &&
-             spaceEndIter.item().DesiredParentType() == parentType) ||
-            (trailingSpaces && aIsAppend)) {
-          
-          iter.DeleteItemsTo(spaceEndIter);
-        } else {
-          
-          
-          break;
-        }
-
-        
-        
-      } while (!iter.IsDone());
-    }
-
-    
-    
-    
     
     
     
@@ -10943,16 +10812,8 @@ nsCSSFrameConstructor::WipeContainingBlock(nsFrameConstructorState& aState,
 
     
     
-    if (aItems.IsEmpty()) {
-      return PR_FALSE;
-    }
-
-    if (!aItems.AllWantParentType(parentType)) {
-      
-      
-      RecreateFramesForContent(aFrame->GetContent());
-      return PR_TRUE;
-    }
+    RecreateFramesForContent(aFrame->GetContent());
+    return PR_TRUE;
   }
 
   
@@ -11678,19 +11539,6 @@ nsCSSFrameConstructor::LazyGenerateChildrenEvent::Run()
 
 
 
-PRBool
-nsCSSFrameConstructor::FrameConstructionItem::IsWhitespace() const
-{
-  if (!mIsText) {
-    return PR_FALSE;
-  }
-  mContent->SetFlags(FRAMETREE_DEPENDS_ON_CHARS);
-  return mContent->TextIsOnlyWhitespace();
-}
-
-
-
-
 void
 nsCSSFrameConstructor::FrameConstructionItemList::
 AdjustCountsForItem(FrameConstructionItem* aItem, PRInt32 aDelta)
@@ -11708,36 +11556,6 @@ AdjustCountsForItem(FrameConstructionItem* aItem, PRInt32 aDelta)
 
 
 
-
-inline PRBool
-nsCSSFrameConstructor::FrameConstructionItemList::
-Iterator::SkipItemsWantingParentType(ParentType aParentType)
-{
-  NS_PRECONDITION(!IsDone(), "Shouldn't be done yet");
-  while (item().DesiredParentType() == aParentType) {
-    Next();
-    if (IsDone()) {
-      return PR_TRUE;
-    }
-  }
-  return PR_FALSE;
-}
-
-inline PRBool
-nsCSSFrameConstructor::FrameConstructionItemList::
-Iterator::SkipWhitespace()
-{
-  NS_PRECONDITION(!IsDone(), "Shouldn't be done yet");
-  NS_PRECONDITION(item().IsWhitespace(), "Not pointing to whitespace?");
-  do {
-    Next();
-    if (IsDone()) {
-      return PR_TRUE;
-    }
-  } while (item().IsWhitespace());
-
-  return PR_FALSE;
-}
 
 void
 nsCSSFrameConstructor::FrameConstructionItemList::
@@ -11801,18 +11619,11 @@ Iterator::InsertItem(FrameConstructionItem* aItem)
 }
 
 void
-nsCSSFrameConstructor::FrameConstructionItemList::
-Iterator::DeleteItemsTo(const Iterator& aEnd)
+nsCSSFrameConstructor::FrameConstructionItemList::Iterator::DeleteItem()
 {
-  NS_PRECONDITION(mEnd == aEnd.mEnd, "end iterator for some other list?");
-  NS_PRECONDITION(*this != aEnd, "Shouldn't be at aEnd yet");
-
-  do {
-    NS_ASSERTION(!IsDone(), "Ran off end of list?");
-    FrameConstructionItem* item = ToItem(mCurrent);
-    Next();
-    PR_REMOVE_LINK(item);
-    mList.AdjustCountsForItem(item, -1);
-    delete item;
-  } while (*this != aEnd);
+  FrameConstructionItem* item = ToItem(mCurrent);
+  Next();
+  PR_REMOVE_LINK(item);
+  mList.AdjustCountsForItem(item, -1);
+  delete item;
 }
