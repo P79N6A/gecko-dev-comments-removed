@@ -6194,8 +6194,10 @@ js_Interpret(JSContext *cx)
                                            NULL, NULL)) {
                     goto error;
                 }
-                if (!js_SetPropertyHelper(cx, obj, id, &rval, &entry))
+                if (!js_DefineNativeProperty(cx, obj, id, rval, NULL, NULL,
+                                             JSPROP_ENUMERATE, 0, 0, NULL, &entry)) {
                     goto error;
+                }
 #ifdef JS_TRACER
                 if (entry)
                     TRACE_1(SetPropMiss, entry);
@@ -6243,7 +6245,7 @@ js_Interpret(JSContext *cx)
                     goto error;
                 }
             } else {
-                if (!OBJ_SET_PROPERTY(cx, obj, id, &rval))
+                if (!OBJ_DEFINE_PROPERTY(cx, obj, id, rval, NULL, NULL, JSPROP_ENUMERATE, NULL))
                     goto error;
             }
             regs.sp -= 2;
@@ -6796,7 +6798,7 @@ js_Interpret(JSContext *cx)
                 goto error;
             }
             id = INT_TO_JSID(i);
-            if (!OBJ_SET_PROPERTY(cx, obj, id, &rval))
+            if (!OBJ_DEFINE_PROPERTY(cx, obj, id, rval, NULL, NULL, JSPROP_ENUMERATE, NULL))
                 goto error;
             regs.sp--;
           END_CASE(JSOP_ARRAYPUSH)
