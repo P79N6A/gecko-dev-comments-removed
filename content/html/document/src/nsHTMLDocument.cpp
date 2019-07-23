@@ -1979,13 +1979,6 @@ nsHTMLDocument::OpenCommon(const nsACString& aContentType, PRBool aReplace)
 
   
   
-  
-  
-  SetTitle(EmptyString());
-  mDocumentTitle.SetIsVoid(PR_TRUE);
-
-  
-  
   mSecurityInfo = securityInfo;
 
   mParser = do_CreateInstance(kCParserCID, &rv);
@@ -2934,34 +2927,6 @@ nsHTMLDocument::PrePopulateIdentifierMap()
 nsHTMLDocument::GetBodyContentExternal()
 {
   return GetBodyContent();
-}
-
-nsIContent*
-nsHTMLDocument::GetHtmlContent()
-{
-  nsIContent* rootContent = GetRootContent();
-  if (rootContent && rootContent->Tag() == nsGkAtoms::html &&
-      rootContent->IsNodeOfType(nsINode::eHTML))
-    return rootContent;
-  return nsnull;
-}
-
-nsIContent*
-nsHTMLDocument::GetBodyContent()
-{
-  nsIContent* html = GetHtmlContent();
-  if (!html)
-    return nsnull;
-
-  
-  
-  for (PRUint32 i = 0; i < html->GetChildCount(); ++i) {
-    nsIContent* body = html->GetChildAt(i);
-    if (body->Tag() == nsGkAtoms::body &&
-        body->IsNodeOfType(nsINode::eHTML))
-      return body;
-  }
-  return nsnull;
 }
 
 
