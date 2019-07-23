@@ -865,7 +865,7 @@ nsresult nsExternalHelperAppService::FillContentHandlerProperties(
           return NS_ERROR_OUT_OF_MEMORY;
         }
 
-        return aHandlerInfo->SetPreferredApplicationHandler(handlerApp);
+        rv = aHandlerInfo->SetPreferredApplicationHandler(handlerApp);
       }
     } else {
       
@@ -879,13 +879,14 @@ nsresult nsExternalHelperAppService::FillContentHandlerProperties(
         if (!handlerApp) {
             return NS_ERROR_OUT_OF_MEMORY;
         }
-        return aHandlerInfo->SetPreferredApplicationHandler(handlerApp);
+        rv = aHandlerInfo->SetPreferredApplicationHandler(handlerApp);
+      } else {
+        return NS_ERROR_FAILURE; 
       }
-    
     }
   }
 
-  return NS_OK;
+  return rv;
 }
 #endif 
 
