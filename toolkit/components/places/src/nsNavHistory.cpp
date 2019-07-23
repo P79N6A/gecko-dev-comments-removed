@@ -446,16 +446,27 @@ nsNavHistory::BackupDBFile()
   nsCOMPtr<nsIFile> profDir;
   nsresult rv = NS_GetSpecialDirectory(NS_APP_USER_PROFILE_50_DIR,
                               getter_AddRefs(profDir));
+
   
   nsCOMPtr<nsIFile> corruptBackup;
   rv = profDir->Clone(getter_AddRefs(corruptBackup));
   NS_ENSURE_SUCCESS(rv, rv);
-  
   rv = corruptBackup->Append(DB_CORRUPT_FILENAME);
   NS_ENSURE_SUCCESS(rv, rv);
   rv = corruptBackup->CreateUnique(nsIFile::NORMAL_FILE_TYPE, 0600);
   NS_ENSURE_SUCCESS(rv, rv);
-  return mDBFile->MoveTo(profDir, DB_CORRUPT_FILENAME);
+
+  
+  nsAutoString backupName;
+  rv = corruptBackup->GetLeafName(backupName);
+  NS_ENSURE_SUCCESS(rv, rv);
+  rv = corruptBackup->Remove(PR_FALSE);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  rv = mDBFile->CopyTo(profDir, backupName);
+  NS_ENSURE_SUCCESS(rv, rv);
+  return NS_OK;
 }
   
 
@@ -473,15 +484,24 @@ nsNavHistory::InitDBFile(PRBool aForceInit)
   NS_ENSURE_SUCCESS(rv, rv);
   
   
+  PRBool dbExists;
   if (aForceInit) {
+    if (mDBConn) {
+      
+      rv = mDBConn->Close();
+      NS_ENSURE_SUCCESS(rv, rv);
+    }
     rv = BackupDBFile();
     NS_ENSURE_SUCCESS(rv, rv);
+    rv = mDBFile->Remove(PR_FALSE);
+    NS_ENSURE_SUCCESS(rv, rv);
+    dbExists = PR_FALSE;
   }
-
-  
-  PRBool dbExists;
-  rv = mDBFile->Exists(&dbExists);
-  NS_ENSURE_SUCCESS(rv, rv);
+  else {
+    
+    rv = mDBFile->Exists(&dbExists);
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
   
   
   mDBService = do_GetService(MOZ_STORAGE_SERVICE_CONTRACTID, &rv);
