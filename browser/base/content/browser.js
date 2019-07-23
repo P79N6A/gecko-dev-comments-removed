@@ -3914,11 +3914,13 @@ var XULBrowserWindow = {
   onProgressChange: function (aWebProgress, aRequest,
                               aCurSelfProgress, aMaxSelfProgress,
                               aCurTotalProgress, aMaxTotalProgress) {
-    if (aMaxTotalProgress > 0) {
+    
+    
+    if (aMaxTotalProgress > 0 && this._busyUI) {
       
       
       
-      var percentage = (aCurTotalProgress * 100) / aMaxTotalProgress;
+      let percentage = (aCurTotalProgress * 100) / aMaxTotalProgress;
       this.statusMeter.value = percentage;
     }
   },
@@ -3932,8 +3934,8 @@ var XULBrowserWindow = {
   },
 
   onStateChange: function (aWebProgress, aRequest, aStateFlags, aStatus) {
-    const nsIWebProgressListener = Components.interfaces.nsIWebProgressListener;
-    const nsIChannel = Components.interfaces.nsIChannel;
+    const nsIWebProgressListener = Ci.nsIWebProgressListener;
+    const nsIChannel = Ci.nsIChannel;
     if (aStateFlags & nsIWebProgressListener.STATE_START) {
       
       
@@ -3946,22 +3948,25 @@ var XULBrowserWindow = {
 
       this.isBusy = true;
 
-      if (this.throbberElement) {
+      if (!(aStateFlags & nsIWebProgressListener.STATE_RESTORING)) {
+        this._busyUI = true;
+
         
-        this.throbberElement.setAttribute("busy", "true");
-      }
+        if (this.throbberElement)
+          this.throbberElement.setAttribute("busy", "true");
 
-      
-      this.statusMeter.value = 0;  
-      if (gProgressCollapseTimer) {
-        window.clearTimeout(gProgressCollapseTimer);
-        gProgressCollapseTimer = null;
-      }
-      else
-        this.statusMeter.parentNode.collapsed = false;
+        
+        this.statusMeter.value = 0;  
+        if (gProgressCollapseTimer) {
+          window.clearTimeout(gProgressCollapseTimer);
+          gProgressCollapseTimer = null;
+        }
+        else
+          this.statusMeter.parentNode.collapsed = false;
 
-      
-      this.stopCommand.removeAttribute("disabled");
+        
+        this.stopCommand.removeAttribute("disabled");
+      }
     }
     else if (aStateFlags & nsIWebProgressListener.STATE_STOP) {
       if (aStateFlags & nsIWebProgressListener.STATE_IS_NETWORK) {
@@ -4015,16 +4020,20 @@ var XULBrowserWindow = {
 
       this.isBusy = false;
 
-      
-      gProgressCollapseTimer = window.setTimeout(function () {
-        gProgressMeterPanel.collapsed = true;
-        gProgressCollapseTimer = null;
-      }, 100);
+      if (this._busyUI) {
+        this._busyUI = false;
 
-      if (this.throbberElement)
-        this.throbberElement.removeAttribute("busy");
+        
+        gProgressCollapseTimer = window.setTimeout(function () {
+          gProgressMeterPanel.collapsed = true;
+          gProgressCollapseTimer = null;
+        }, 100);
 
-      this.stopCommand.setAttribute("disabled", "true");
+        if (this.throbberElement)
+          this.throbberElement.removeAttribute("busy");
+
+        this.stopCommand.setAttribute("disabled", "true");
+      }
     }
   },
 
