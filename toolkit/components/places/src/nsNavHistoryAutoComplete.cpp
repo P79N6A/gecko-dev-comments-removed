@@ -343,10 +343,20 @@ nsNavHistory::PerformAutoComplete()
   if (mDBPreviousQuery) {
     rv = AutoCompletePreviousSearch();
     NS_ENSURE_SUCCESS(rv, rv);
+
+    
+    
+    if (moreChunksToSearch = mPreviousChunkOffset != -1)
+      mCurrentChunkOffset = mPreviousChunkOffset - mAutoCompleteSearchChunkSize;
   } else {
     rv = AutoCompleteFullHistorySearch(&moreChunksToSearch);
     NS_ENSURE_SUCCESS(rv, rv);
   }
+
+  
+  
+  if (!moreChunksToSearch)
+    mCurrentChunkOffset = -1;
 
   
   moreChunksToSearch &= !AutoCompleteHasEnoughResults();
@@ -387,6 +397,7 @@ nsNavHistory::PerformAutoComplete()
 void
 nsNavHistory::DoneSearching(PRBool aFinished)
 {
+  mPreviousChunkOffset = mCurrentChunkOffset;
   mAutoCompleteFinishedSearch = aFinished;
   mCurrentResult = nsnull;
   mCurrentListener = nsnull;
@@ -427,15 +438,12 @@ nsNavHistory::StartSearch(const nsAString & aSearchString,
   
   
   
-  
-  if (mAutoCompleteFinishedSearch &&
-      prevMatchCount < (PRUint32)mAutoCompleteMaxResults &&
-      !prevSearchString.IsEmpty() &&
+  if (!prevSearchString.IsEmpty() &&
       StringBeginsWith(mCurrentSearchString, prevSearchString) &&
       (StartsWithJS(prevSearchString) == StartsWithJS(mCurrentSearchString))) {
 
     
-    if (prevMatchCount == 0) {
+    if (mAutoCompleteFinishedSearch && prevMatchCount == 0) {
       
       mCurrentResult->SetSearchString(mCurrentSearchString);
       mCurrentResult->SetSearchResult(nsIAutoCompleteResult::RESULT_NOMATCH);
@@ -449,6 +457,8 @@ nsNavHistory::StartSearch(const nsAString & aSearchString,
 
       return NS_OK;
     } else {
+      
+      
       
       
       nsCString sql = NS_LITERAL_CSTRING(
@@ -638,7 +648,8 @@ nsNavHistory::AutoCompleteProcessSearch(mozIStorageStatement* aQuery,
                                         PRBool *aHasMoreResults)
 {
   
-  if (AutoCompleteHasEnoughResults())
+  
+  if (!aHasMoreResults && AutoCompleteHasEnoughResults())
     return NS_OK;
 
   nsFaviconService* faviconService = nsFaviconService::GetFaviconService();
