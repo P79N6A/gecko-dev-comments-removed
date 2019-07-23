@@ -41,6 +41,7 @@ const nsIPropertyElement = Components.interfaces.nsIPropertyElement;
 
 const ROLE_PUSHBUTTON = nsIAccessibleRole.ROLE_PUSHBUTTON;
 const ROLE_CELL = nsIAccessibleRole.ROLE_CELL;
+const ROLE_CHROME_WINDOW = nsIAccessibleRole.ROLE_CHROME_WINDOW;
 const ROLE_COMBOBOX = nsIAccessibleRole.ROLE_COMBOBOX;
 const ROLE_COMBOBOX_LIST = nsIAccessibleRole.ROLE_COMBOBOX_LIST;
 const ROLE_COMBOBOX_OPTION = nsIAccessibleRole.ROLE_COMBOBOX_OPTION;
@@ -234,6 +235,44 @@ function getAccessible(aAccOrElmOrID, aInterfaces, aElmObj, aDoNotFailIfNoAcc)
 function isAccessible(aAccOrElmOrID)
 {
   return getAccessible(aAccOrElmOrID, null, null, true) ? true : false;
+}
+
+
+
+
+function roleToString(aRole)
+{
+  return gAccRetrieval.getStringRole(aRole);
+}
+
+
+
+
+function statesToString(aStates, aExtraStates)
+{
+  var list = gAccRetrieval.getStringStates(aStates, aExtraStates);
+
+  var str = "";
+  for (var index = 0; index < list.length; index++)
+    str += list.item(index) + ", ";
+
+  return str;
+}
+
+
+
+
+function eventTypeToString(aEventType)
+{
+  gAccRetrieval.getStringEventType(aEventType);
+}
+
+
+
+
+function relationTypeToString(aRelationType)
+{
+  return gAccRetrieval.getStringRelationType(aRelationType);
 }
 
 
