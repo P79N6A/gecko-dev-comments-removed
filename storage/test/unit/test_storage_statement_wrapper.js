@@ -37,10 +37,13 @@
 
 
 
+
+
+
 function setup()
 {
-  getOpenedDatabase().createTable("test", "id INTEGER PRIMARY KEY, name TEXT," +
-                                          "alt_name TEXT");
+  getOpenedDatabase().createTable("test", "id INTEGER PRIMARY KEY, val NONE," +
+                                          "alt_val NONE");
 }
 
 var wrapper = new Components.Constructor("@mozilla.org/storage/statement-wrapper;1",
@@ -52,60 +55,159 @@ createStatement = function(aSQL) {
   return new wrapper(getOpenedDatabase().createStatement(aSQL));
 }
 
-function test_binding_params()
-{
-  var stmt = createStatement("INSERT INTO test (name) VALUES (:name)");
 
-  const name = "foo";
-  stmt.params.name = name;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function checkVal(aActualVal, aReturnedVal)
+{
+  if (aActualVal instanceof Date) aActualVal = aActualVal.valueOf() * 1000.0;
+  do_check_eq(aActualVal, aReturnedVal);
+}
+
+
+
+
+function clearTable()
+{
+  var stmt = createStatement("DELETE FROM test");
   stmt.execute();
   stmt.statement.finalize();
+  ensureNumRows(0);
+}
 
-  stmt = createStatement("SELECT COUNT(*) AS number FROM test");
-  do_check_true(stmt.step());
-  do_check_eq(1, stmt.row.number);
-  stmt.reset();
-  stmt.statement.finalize();
 
-  stmt = createStatement("SELECT name FROM test WHERE id = 1");
+
+
+
+
+
+
+function ensureNumRows(aNumRows)
+{
+  var stmt = createStatement("SELECT COUNT(*) AS number FROM test");
   do_check_true(stmt.step());
-  do_check_eq(name, stmt.row.name);
+  do_check_eq(aNumRows, stmt.row.number);
   stmt.reset();
   stmt.statement.finalize();
 }
 
-function test_binding_multiple_params()
+
+
+
+
+
+
+
+
+function insertAndCheckSingleParam(aVal)
 {
-  var stmt = createStatement("INSERT INTO test (name, alt_name)" +
-                             "VALUES (:name, :name)");
-  const name = "me";
-  stmt.params.name = name;
+  clearTable();
+
+  var stmt = createStatement("INSERT INTO test (val) VALUES (:val)");
+  stmt.params.val = aVal;
   stmt.execute();
   stmt.statement.finalize();
 
-  stmt = createStatement("SELECT COUNT(*) AS number FROM test");
-  do_check_true(stmt.step());
-  do_check_eq(2, stmt.row.number);
-  stmt.reset();
-  stmt.statement.finalize();
+  ensureNumRows(1);
 
-  stmt = createStatement("SELECT name, alt_name FROM test WHERE id = 2");
+  stmt = createStatement("SELECT val FROM test WHERE id = 1");
   do_check_true(stmt.step());
-  do_check_eq(name, stmt.row.name);
-  do_check_eq(name, stmt.row.alt_name);
+  checkVal(aVal, stmt.row.val);
   stmt.reset();
   stmt.statement.finalize();
 }
 
-var tests = [test_binding_params, test_binding_multiple_params];
+
+
+
+
+
+
+
+
+
+function insertAndCheckMultipleParams(aVal)
+{
+  clearTable();
+
+  var stmt = createStatement("INSERT INTO test (val, alt_val) " +
+                             "VALUES (:val, :val)");
+  stmt.params.val = aVal;
+  stmt.execute();
+  stmt.statement.finalize();
+
+  ensureNumRows(1);
+
+  stmt = createStatement("SELECT val, alt_val FROM test WHERE id = 1");
+  do_check_true(stmt.step());
+  checkVal(aVal, stmt.row.val);
+  checkVal(aVal, stmt.row.alt_val);
+  stmt.reset();
+  stmt.statement.finalize();
+}
+
+
+
+
+
+
+
+
+function printValDesc(aVal)
+{
+  try
+  {
+    var toSource = aVal.toSource();
+  }
+  catch (exc)
+  {
+    toSource = "";
+  }
+  print("Testing value: toString=" + aVal +
+        (toSource ? " toSource=" + toSource : ""));
+}
 
 function run_test()
 {
   setup();
 
-  for (var i = 0; i < tests.length; i++)
-    tests[i]();
-    
+  
+  
+  
+  var vals = [
+    1337,       
+    3.1337,     
+    "foo",      
+    true,       
+    null,       
+    new Date(), 
+  ];
+
+  vals.forEach(function (val)
+  {
+    printValDesc(val);
+    print("Single parameter");
+    insertAndCheckSingleParam(val);
+    print("Multiple parameters");
+    insertAndCheckMultipleParams(val)
+  });
+
   cleanup();
 }
-
