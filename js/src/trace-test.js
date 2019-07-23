@@ -1085,6 +1085,13 @@ function testDoubleToStr() {
 testDoubleToStr.expected = 5.5*200;
 test(testDoubleToStr);
 
+function testNumberToString() {
+    var x = new Number(0);
+    for (var i = 0; i < 4; i++)
+        x.toString();
+}
+test(testNumberToString);
+
 function testDecayingInnerLoop() {
     var i, j, k = 10;
     for (i = 0; i < 5000; ++i) {
