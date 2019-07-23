@@ -361,11 +361,17 @@ nsCookiePermission::CanSetCookie(nsIURI     *aURI,
       
       
       
-      PRBool foundCookie;
+      PRBool foundCookie = PR_FALSE;
       PRUint32 countFromHost;
       nsCOMPtr<nsICookieManager2> cookieManager = do_GetService(NS_COOKIEMANAGER_CONTRACTID, &rv);
-      if (NS_SUCCEEDED(rv))
-        rv = cookieManager->FindMatchingCookie(aCookie, &countFromHost, &foundCookie);
+      if (NS_SUCCEEDED(rv)) {
+        nsCAutoString rawHost;
+        aCookie->GetRawHost(rawHost);
+        rv = cookieManager->CountCookiesFromHost(rawHost, &countFromHost);
+
+        if (NS_SUCCEEDED(rv) && countFromHost > 0)
+          rv = cookieManager->CookieExists(aCookie, &foundCookie);
+      }
       if (NS_FAILED(rv)) return rv;
 
       

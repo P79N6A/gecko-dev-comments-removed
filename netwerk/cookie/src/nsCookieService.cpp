@@ -1432,7 +1432,7 @@ nsCookieService::AddInternal(nsCookie   *aCookie,
 
     
     nsEnumerationData data(aCurrentTime, LL_MAXINT);
-    if (CountCookiesFromHost(aCookie, data) >= mMaxCookiesPerHost) {
+    if (CountCookiesFromHostInternal(aCookie->RawHost(), data) >= mMaxCookiesPerHost) {
       
       oldCookie = data.iter.current;
       RemoveCookieFromList(data.iter);
@@ -2149,11 +2149,9 @@ nsCookieService::RemoveExpiredCookies(nsInt64 aCurrentTime)
 
 
 
-
 NS_IMETHODIMP
-nsCookieService::FindMatchingCookie(nsICookie2 *aCookie,
-                                    PRUint32   *aCountFromHost,
-                                    PRBool     *aFoundCookie)
+nsCookieService::CookieExists(nsICookie2 *aCookie,
+                              PRBool     *aFoundCookie)
 {
   NS_ENSURE_ARG_POINTER(aCookie);
 
@@ -2161,7 +2159,6 @@ nsCookieService::FindMatchingCookie(nsICookie2 *aCookie,
   nsEnumerationData data(NOW_IN_SECONDS, LL_MININT);
   nsCookie *cookie = NS_STATIC_CAST(nsCookie*, aCookie);
 
-  *aCountFromHost = CountCookiesFromHost(cookie, data);
   *aFoundCookie = FindCookie(cookie->Host(), cookie->Name(), cookie->Path(), data.iter);
   return NS_OK;
 }
@@ -2169,12 +2166,12 @@ nsCookieService::FindMatchingCookie(nsICookie2 *aCookie,
 
 
 PRUint32
-nsCookieService::CountCookiesFromHost(nsCookie          *aCookie,
-                                      nsEnumerationData &aData)
+nsCookieService::CountCookiesFromHostInternal(const nsACString  &aHost,
+                                              nsEnumerationData &aData)
 {
   PRUint32 countFromHost = 0;
 
-  nsCAutoString hostWithDot(NS_LITERAL_CSTRING(".") + aCookie->RawHost());
+  nsCAutoString hostWithDot(NS_LITERAL_CSTRING(".") + aHost);
 
   const char *currentDot = hostWithDot.get();
   const char *nextDot = currentDot + 1;
@@ -2200,6 +2197,19 @@ nsCookieService::CountCookiesFromHost(nsCookie          *aCookie,
   } while (currentDot);
 
   return countFromHost;
+}
+
+
+
+NS_IMETHODIMP
+nsCookieService::CountCookiesFromHost(const nsACString &aHost,
+                                      PRUint32         *aCountFromHost)
+{
+  
+  nsEnumerationData data(NOW_IN_SECONDS, LL_MININT);
+  
+  *aCountFromHost = CountCookiesFromHostInternal(aHost, data);
+  return NS_OK;
 }
 
 
