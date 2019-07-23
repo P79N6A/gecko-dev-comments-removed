@@ -423,13 +423,13 @@ LivemarkService.prototype = {
     var oldURI = this._livemarks[index].folderURI;
     var feedURIString = this._ans.getAnnotationString(oldURI, LMANNO_FEEDURI);
     this._ans.removeAnnotation(oldURI, LMANNO_FEEDURI);
-    this._ans.setAnnotation(newURI, LMANNO_FEEDURI, feedURIString, 0, 
+    this._ans.setAnnotationString(newURI, LMANNO_FEEDURI, feedURIString, 0, 
                             this._ans.EXPIRE_NEVER);
     
     
     var siteURIString;
     try {
-      siteURIString = this._ans.GetAnnotationString(oldURI, LMANNO_SITEURI);
+      siteURIString = this._ans.getAnnotationString(oldURI, LMANNO_SITEURI);
     }
     catch (ex) {
       
@@ -437,7 +437,7 @@ LivemarkService.prototype = {
 
     if (siteURIString) {
       this._ans.removeAnnotation(oldURI, LMANNO_SITEURI);
-      this._ans.setAnnotation(newURI, LMANNO_SITEURI, siteURIString, 0,
+      this._ans.setAnnotationString(newURI, LMANNO_SITEURI, siteURIString, 0,
                               this._ans.EXPIRE_NEVER);
     }
   },
