@@ -214,7 +214,13 @@ js_Math_max(jsdouble d, jsdouble p)
 
     if (p == 0 && p == d && fd_copysign(1.0, d) == -1)
         return p;
-    return (d > p) ? d : p;
+    
+
+
+
+
+
+    return (p > d) ? p : d;
 }
 
 JSBool FASTCALL
