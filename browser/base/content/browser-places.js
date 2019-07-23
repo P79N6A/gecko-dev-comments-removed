@@ -486,11 +486,16 @@ var BookmarksEventHandler = {
           var openHomePage = document.createElement("menuitem");
           openHomePage.setAttribute("siteURI", siteURIString);
           openHomePage.setAttribute("oncommand",
-                                    "openUILink(this.getAttribute('siteURI'), event);");
-          openHomePage.setAttribute(
-            "label",
-            PlacesUtils.getFormattedString("menuOpenLivemarkOrigin.label",
-                                           [target.parentNode.getAttribute("label")]));
+              "openUILink(this.getAttribute('siteURI'), event);");
+          
+          
+          
+          
+          openHomePage.setAttribute("onclick",
+              "checkForMiddleClick(this, event); event.stopPropagation();");
+          openHomePage.setAttribute("label",
+              PlacesUtils.getFormattedString("menuOpenLivemarkOrigin.label",
+              [target.parentNode.getAttribute("label")]));
           target.appendChild(openHomePage);
         }
 
