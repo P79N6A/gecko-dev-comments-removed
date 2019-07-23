@@ -652,7 +652,7 @@ nsNavHistory::InitDB(PRBool *aDoImport)
 
       
       
-      if (DBSchemaVersion > 2) {
+      if (DBSchemaVersion > 2 && DBSchemaVersion < 6) {
         
         rv = ForceMigrateBookmarksDB(mDBConn);
         NS_ENSURE_SUCCESS(rv, rv);
