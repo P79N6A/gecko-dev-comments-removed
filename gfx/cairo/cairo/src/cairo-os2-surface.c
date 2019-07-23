@@ -69,11 +69,11 @@
 static int cairo_os2_initialization_count = 0;
 
 
-HMTX cairo_toy_font_face_hash_table_mutex = 0;
-HMTX cairo_scaled_font_map_mutex = 0;
+HMTX _cairo_scaled_font_map_mutex = 0;
 HMTX _global_image_glyph_cache_mutex = 0;
+HMTX _cairo_font_face_mutex = 0;
 #ifdef CAIRO_HAS_FT_FONT
-HMTX cairo_ft_unscaled_font_map_mutex = 0;
+HMTX _cairo_ft_unscaled_font_map_mutex = 0;
 #endif
 
 static void inline
@@ -106,13 +106,13 @@ cairo_os2_init (void)
     
 
     
-    DosCreateMutexSem (NULL, &cairo_toy_font_face_hash_table_mutex, 0, FALSE);
-    DosCreateMutexSem (NULL, &cairo_scaled_font_map_mutex, 0, FALSE);
+    DosCreateMutexSem (NULL, &_cairo_scaled_font_map_mutex, 0, FALSE);
     DosCreateMutexSem (NULL, &_global_image_glyph_cache_mutex, 0, FALSE);
+    DosCreateMutexSem (NULL, &_cairo_font_face_mutex, 0, FALSE);
 
 #ifdef CAIRO_HAS_FT_FONT
     
-    DosCreateMutexSem (NULL, &cairo_ft_unscaled_font_map_mutex, 0, FALSE);
+    DosCreateMutexSem (NULL, &_cairo_ft_unscaled_font_map_mutex, 0, FALSE);
 #endif
 
     
@@ -139,24 +139,24 @@ cairo_os2_fini (void)
 
     
     
-    if (cairo_toy_font_face_hash_table_mutex) {
-        DosCloseMutexSem (cairo_toy_font_face_hash_table_mutex);
-        cairo_toy_font_face_hash_table_mutex = 0;
-    }
-    if (cairo_scaled_font_map_mutex) {
-        DosCloseMutexSem (cairo_scaled_font_map_mutex);
-        cairo_scaled_font_map_mutex = 0;
+    if (_cairo_scaled_font_map_mutex) {
+        DosCloseMutexSem (_cairo_scaled_font_map_mutex);
+        _cairo_scaled_font_map_mutex = 0;
     }
     if (_global_image_glyph_cache_mutex) {
         DosCloseMutexSem (_global_image_glyph_cache_mutex);
         _global_image_glyph_cache_mutex = 0;
     }
+    if (_cairo_font_face_mutex) {
+        DosCloseMutexSem (_cairo_font_face_mutex);
+        _cairo_font_face_mutex = 0;
+    }
 
 #ifdef CAIRO_HAS_FT_FONT
     
-    if (cairo_ft_unscaled_font_map_mutex) {
-        DosCloseMutexSem (cairo_ft_unscaled_font_map_mutex);
-        cairo_ft_unscaled_font_map_mutex = 0;
+    if (_cairo_ft_unscaled_font_map_mutex) {
+        DosCloseMutexSem (_cairo_ft_unscaled_font_map_mutex);
+        _cairo_ft_unscaled_font_map_mutex = 0;
     }
 #endif
 

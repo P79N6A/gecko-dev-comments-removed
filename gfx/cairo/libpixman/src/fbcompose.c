@@ -28,7 +28,9 @@
 #endif
 #include "pixman-xserver-compat.h"
 #include "fbpict.h"
+#ifndef MOZILLA_CAIRO_NOT_DEFINED
 #include "fbmmx.h"
+#endif 
 
 #ifdef RENDER
 
@@ -38,6 +40,7 @@
 #define _USE_MATH_DEFINES
 #endif
 
+#include <assert.h>
 #include <math.h>
 
 #ifndef M_PI
@@ -2740,12 +2743,13 @@ typedef struct
     CARD32        right_rb;
     int32_t       left_x;
     int32_t       right_x;
-    int32_t       width_x;
     int32_t       stepper;
 
     pixman_gradient_stop_t  *stops;
     int                      num_stops;
     unsigned int             spread;
+
+    int           need_reset;
 } GradientWalker;
 
 static void
@@ -2757,13 +2761,14 @@ _gradient_walker_init (GradientWalker  *walker,
     walker->stops     = pGradient->gradient.stops;
     walker->left_x    = 0;
     walker->right_x   = 0x10000;
-    walker->width_x   = 0;  
     walker->stepper   = 0;
     walker->left_ag   = 0;
     walker->left_rb   = 0;
     walker->right_ag  = 0;
     walker->right_rb  = 0;
     walker->spread    = spread;
+
+    walker->need_reset = TRUE;
 }
 
 static void
@@ -2853,13 +2858,15 @@ _gradient_walker_reset (GradientWalker  *walker,
 	    pixman_color_t  *tmp_c;
 	    int32_t          tmp_x;
 
-	    tmp_x   = 0x20000 - right_x;
-	    right_x = 0x20000 - left_x;
+	    tmp_x   = 0x10000 - right_x;
+	    right_x = 0x10000 - left_x;
 	    left_x  = tmp_x;
 
 	    tmp_c   = right_c;
 	    right_c = left_c;
 	    left_c  = tmp_c;
+
+            x = 0x10000 - x;
 	}
 	left_x  += (pos - x);
 	right_x += (pos - x);
@@ -2893,27 +2900,28 @@ _gradient_walker_reset (GradientWalker  *walker,
 
     walker->left_x   = left_x;
     walker->right_x  = right_x;
-    walker->width_x  = right_x - left_x;
     walker->left_ag  = ((left_c->alpha >> 8) << 16)   | (left_c->green >> 8);
     walker->left_rb  = ((left_c->red & 0xff00) << 8)  | (left_c->blue >> 8);
     walker->right_ag = ((right_c->alpha >> 8) << 16)  | (right_c->green >> 8);
     walker->right_rb = ((right_c->red & 0xff00) << 8) | (right_c->blue >> 8);
 
-    if ( walker->width_x == 0                      ||
+    if ( walker->left_x == walker->right_x           ||
 	 ( walker->left_ag == walker->right_ag &&
 	   walker->left_rb == walker->right_rb )   )
     {
-	walker->width_x = 1;
 	walker->stepper = 0;
     }
     else
     {
-	walker->stepper = ((1 << 24) + walker->width_x/2)/walker->width_x;
+	int32_t width = right_x - left_x;
+	walker->stepper = ((1 << 24) + width/2)/width;
     }
+
+    walker->need_reset = FALSE;
 }
 
 #define  GRADIENT_WALKER_NEED_RESET(w,x)  \
-   ( (x) < (w)->left_x || (x) - (w)->left_x >= (w)->width_x )
+   ( (w)->need_reset || (x) < (w)->left_x || (x) >= (w)->right_x)
 
 
 static CARD32
@@ -2947,8 +2955,6 @@ _gradient_walker_pixel (GradientWalker  *walker,
 
     return (color | (t1 & 0xff00ff) | (t2 & 0xff00));
 }
-
-
 
 static void fbFetchSourcePict(PicturePtr pict, int x, int y, int width, CARD32 *buffer, CARD32 *mask, CARD32 maskBits)
 {
@@ -3081,13 +3087,128 @@ static void fbFetchSourcePict(PicturePtr pict, int x, int y, int width, CARD32 *
 	    }
         }
     } else {
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         
         Bool projective = FALSE;
         double cx = 1.;
         double cy = 0.;
         double cz = 0.;
-        double rx = x;
-        double ry = y;
+        double rx = x + 0.5;
+        double ry = y + 0.5;
         double rz = 1.;
 
         if (pict->transform) {
@@ -3109,23 +3230,36 @@ static void fbFetchSourcePict(PicturePtr pict, int x, int y, int width, CARD32 *
         }
 
         if (pGradient->type == SourcePictTypeRadial) {
+	    pixman_radial_gradient_image_t *radial;
+	    radial = &pGradient->radial;
             if (!projective) {
-                rx -= pGradient->radial.fx;
-                ry -= pGradient->radial.fy;
-
                 while (buffer < end) {
-                    double b, c, det, s;
-
                     if (!mask || *mask++ & maskBits)
                     {
-                        xFixed_48_16  t;
+			double pdx, pdy;
+			double B, C;
+			double det;
+			double c1x = xFixedToDouble (radial->c1.x);
+			double c1y = xFixedToDouble (radial->c1.y);
+			double r1  = xFixedToDouble (radial->c1.radius);
+                        xFixed_48_16 t;
 
-                        b = 2*(rx*pGradient->radial.dx + ry*pGradient->radial.dy);
-                        c = -(rx*rx + ry*ry);
-                        det = (b * b) - (4 * pGradient->radial.a * c);
-                        s = (-b + sqrt(det))/(2. * pGradient->radial.a);
+			pdx = rx - c1x;
+			pdy = ry - c1y;
 
-                        t = (xFixed_48_16)((s*pGradient->radial.m + pGradient->radial.b)*65536);
+			B = -2 * (  pdx * radial->cdx
+				  + pdy * radial->cdy
+				  + r1 * radial->dr);
+			C = (pdx * pdx + pdy * pdy - r1 * r1);
+
+                        det = (B * B) - (4 * radial->A * C);
+			if (det < 0.0)
+			    det = 0.0;
+
+			if (radial->A < 0)
+			    t = (xFixed_48_16) ((- B - sqrt(det)) / (2.0 * radial->A) * 65536);
+			else
+			    t = (xFixed_48_16) ((- B + sqrt(det)) / (2.0 * radial->A) * 65536);
 
                         *buffer = _gradient_walker_pixel (&walker, t);
                     }
@@ -3134,35 +3268,12 @@ static void fbFetchSourcePict(PicturePtr pict, int x, int y, int width, CARD32 *
                     ry += cy;
                 }
             } else {
-                while (buffer < end) {
-                    double x, y;
-                    double b, c, det, s;
+		
 
-                    if (!mask || *mask++ & maskBits)
-                    {
-                        xFixed_48_16  t;
 
-                        if (rz != 0) {
-                            x = rx/rz;
-                            y = ry/rz;
-                        } else {
-                            x = y = 0.;
-                        }
-                        x -= pGradient->radial.fx;
-                        y -= pGradient->radial.fy;
-                        b = 2*(x*pGradient->radial.dx + y*pGradient->radial.dy);
-                        c = -(x*x + y*y);
-                        det = (b * b) - (4 * pGradient->radial.a * c);
-                        s = (-b + sqrt(det))/(2. * pGradient->radial.a);
-                        t = (xFixed_48_16)((s*pGradient->radial.m + pGradient->radial.b)*65536);
 
-                        *buffer = _gradient_walker_pixel (&walker, t);
-                    }
-                    ++buffer;
-                    rx += cx;
-                    ry += cy;
-                    rz += cz;
-                }
+
+		assert (0);
             }
         } else  {
             double a = pGradient->conical.angle/(180.*65536);
@@ -3927,6 +4038,7 @@ fbCompositeRect (const FbComposeData *data, CARD32 *scanline_buffer)
 	if (!compose)
 	    return;
 
+#ifndef MOZILLA_CAIRO_NOT_DEFINED
 	
 
 
@@ -3944,6 +4056,7 @@ fbCompositeRect (const FbComposeData *data, CARD32 *scanline_buffer)
 	    srcClass = SourcePictClassUnknown;
 	    maskClass = SourcePictClassUnknown;
 	}
+#endif 
 
 	for (i = 0; i < data->height; ++i) {
 	    
