@@ -49,7 +49,7 @@ try {
 
 function add_visit(aURI, aType) {
   var placeID = histsvc.addVisit(uri(aURI),
-                                 Date.now(),
+                                 Date.now() * 1000,
                                  null, 
                                  aType,
                                  false, 

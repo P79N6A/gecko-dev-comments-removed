@@ -53,7 +53,7 @@ try {
 
 
 function add_visit(aURI, aDate) {
-  var date = aDate || Date.now();
+  var date = aDate || Date.now() * 1000;
   var placeID = histsvc.addVisit(aURI,
                                  date,
                                  null, 
@@ -152,7 +152,7 @@ function run_test() {
   do_check_eq(root.uri, viewer.changedItem.uri);
 
   
-  bhist.addPageWithDetails(testURI, "baz", Date.now());
+  bhist.addPageWithDetails(testURI, "baz", Date.now() * 1000);
   do_check_eq(viewer.changedItem.title, "baz");
 
   

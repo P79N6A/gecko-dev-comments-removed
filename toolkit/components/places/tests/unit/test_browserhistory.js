@@ -55,7 +55,7 @@ function run_test() {
 
 
   try {
-    bhist.addPageWithDetails(testURI, "testURI", Date.now());
+    bhist.addPageWithDetails(testURI, "testURI", Date.now() * 1000);
   } catch(ex) {
     do_throw("addPageWithDetails failed");
   }
@@ -89,13 +89,13 @@ function run_test() {
 
 
 
-  bhist.addPageWithDetails(testURI, "testURI", Date.now());
+  bhist.addPageWithDetails(testURI, "testURI", Date.now() * 1000);
   bhist.removePagesFromHost("mozilla.com", true);
   do_check_eq(0, bhist.count);
 
   
-  bhist.addPageWithDetails(testURI, "testURI", Date.now());
-  bhist.addPageWithDetails(uri("http://foobar.mozilla.com"), "testURI2", Date.now());
+  bhist.addPageWithDetails(testURI, "testURI", Date.now() * 1000);
+  bhist.addPageWithDetails(uri("http://foobar.mozilla.com"), "testURI2", Date.now() * 1000);
   bhist.removePagesFromHost("mozilla.com", false);
   do_check_eq(1, bhist.count);
 

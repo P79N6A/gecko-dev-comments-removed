@@ -62,7 +62,7 @@ const TOTAL_SITES = 20;
 
 
 function run_test() {
-  var now = Date.now();
+  var now = Date.now() * 1000;
   
   for (var i=0; i < TOTAL_SITES; i++) {
     var site = "http://www.test-" + i + ".com/";

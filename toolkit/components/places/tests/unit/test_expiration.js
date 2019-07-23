@@ -141,7 +141,7 @@ function run_test() {
   bmsvc.insertBookmark(bmsvc.bookmarksMenuFolder, bmURI, bmsvc.DEFAULT_INDEX, "foo");
   
   var placeURI = uri("place:folder=23");
-  bhist.addPageWithDetails(placeURI, "place uri", Date.now());
+  bhist.addPageWithDetails(placeURI, "place uri", Date.now() * 1000);
   annosvc.setPageAnnotation(removeAllTestURI, testAnnoName + "Hist", testAnnoVal, 0, annosvc.EXPIRE_WITH_HISTORY);
   annosvc.setPageAnnotation(removeAllTestURINever, testAnnoName + "Never", testAnnoVal, 0, annosvc.EXPIRE_NEVER);
   bhist.removeAllPages();
