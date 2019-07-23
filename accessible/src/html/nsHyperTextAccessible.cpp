@@ -522,13 +522,15 @@ nsresult nsHyperTextAccessible::DOMPointToOffset(nsIDOMNode* aNode, PRInt32 aNod
       childAccessible = descendantAccessible;
       break;
     }
+    
+    
+    
+    
+    
+    
+    
+    addTextOffset = (TextLength(descendantAccessible) == addTextOffset) ? 1 : 0;
     descendantAccessible = parentAccessible;
-    
-    
-    
-    
-    
-    addTextOffset = 0;
   }  
 
   
@@ -602,6 +604,12 @@ PRInt32 nsHyperTextAccessible::GetRelativeOffset(nsIPresShell *aPresShell, nsIFr
   }  
   else if (aAmount == eSelectBeginLine) {
     
+    if (pos.mContentOffset == 0 && mFirstChild && 
+        Role(mFirstChild) == nsIAccessibleRole::ROLE_STATICTEXT &&
+        TextLength(mFirstChild) == hyperTextOffset) {
+      
+      hyperTextOffset = 0;
+    }
     if (!aNeedsStart && hyperTextOffset > 0) {
       -- hyperTextOffset;
     }
