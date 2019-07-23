@@ -34,7 +34,6 @@
 
 
 
-
 var gPageCompleted;
 var GLOBAL = this + '';
 
@@ -164,7 +163,7 @@ function jsdgc()
   }
   catch(ex)
   {
-    print('gc: ' + ex);
+    print('jsdgc: ' + ex);
   }
 }
 
@@ -200,6 +199,7 @@ function Preferences(aPrefRoot)
   }
   catch(ex)
   {
+    print('Preferences: ' + ex);
   }
 
 }
@@ -222,6 +222,7 @@ function Preferences_getPrefRoot()
   }
   catch(ex)
   {
+    print('Preferences_getPrefRoot: ' + ex);
   }
   return root;
 }
@@ -242,6 +243,7 @@ function Preferences_getPref(aPrefName)
   }
   catch(ex)
   {
+    
   }
   return value;
 }
@@ -262,6 +264,7 @@ function Preferences_getBoolPref(aPrefName)
   }
   catch(ex)
   {
+    
   }
   return value;
 }
@@ -282,6 +285,7 @@ function Preferences_getIntPref(aPrefName)
   }
   catch(ex)
   {
+    
   }
   return value;
 }
@@ -302,6 +306,7 @@ function Preferences_getCharPref(aPrefName)
   }
   catch(ex)
   {
+    
   }
   return value;
 }
@@ -329,6 +334,7 @@ function Preferences_setPref(aPrefName, aPrefValue)
   }
   catch(ex)
   {
+    print('Preferences_setCharPref: ' + ex);
   }
 }
 
@@ -355,6 +361,7 @@ function Preferences_setBoolPref(aPrefName, aPrefValue)
   }
   catch(ex)
   {
+    print('Preferences_setBoolPref: ' + ex);
   }
 }
 
@@ -381,6 +388,7 @@ function Preferences_setIntPref(aPrefName, aPrefValue)
   }
   catch(ex)
   {
+    print('Preferences_setIntPref: ' + ex);
   }
 }
 
@@ -407,6 +415,7 @@ function Preferences_setCharPref(aPrefName, aPrefValue)
   }
   catch(ex)
   {
+    print('Preferences_setCharPref: ' + ex);
   }
 }
 
@@ -436,6 +445,7 @@ function Preferences_resetPref(aPrefName)
   }
   catch(ex)
   {
+    print('Preferences_resetPref: ' + ex);
   }
 }
 
@@ -460,6 +470,7 @@ function Preferences_resetAllPrefs()
   }
   catch(ex)
   {
+    print('Preferences_resetAllPrefs: ' + ex);
   }
 }
 
@@ -478,6 +489,7 @@ function Preferences_clearPref(aPrefName)
   }
   catch(ex)
   {
+    print('Preferences_clearPref: ' + ex);
   }
 }
 
@@ -596,6 +608,7 @@ var gVersion = 150;
 
 function jsTestDriverBrowserInit()
 {
+
   if (typeof dump != 'function')
   {
     dump = print;
@@ -667,6 +680,14 @@ function jsTestDriverBrowserInit()
     }
   }
 
+  
+  
+  if (!properties.language)
+  {
+    properties.language = 'type';
+    properties.mimetype = 'text/javascript';
+  }
+
   gTestPath = properties.test;
 
   gVersion = 10*parseInt(properties.version.replace(/\./g, ''));
@@ -685,7 +706,8 @@ function jsTestDriverBrowserInit()
 
 
 
-  jit(properties.jit);
+  if (properties.jit  || !document.location.href.match(/jsreftest.html/))
+    jit(properties.jit);
 
   var testpathparts = properties.test.split(/\//);
 
@@ -810,8 +832,133 @@ function jsTestDriverEnd()
     }
 
     
+    document.documentElement.className = '';
+    
     gPageCompleted = true;
   }
 }
+
+
+var dlog = (function (s) {});
+
+
+
+var gDialogCloser;
+var gDialogCloserObserver;
+
+function registerDialogCloser()
+{
+  dlog('registerDialogCloser: start');
+  try
+  {
+    netscape.security.PrivilegeManager.
+      enablePrivilege('UniversalXPConnect');
+  }
+  catch(excp)
+  {
+    print('registerDialogCloser: ' + excp);
+    return;
+  }
+
+  gDialogCloser = Components.
+    classes['@mozilla.org/embedcomp/window-watcher;1'].
+    getService(Components.interfaces.nsIWindowWatcher);
+
+  gDialogCloserObserver = {observe: dialogCloser_observe};
+
+  gDialogCloser.registerNotification(gDialogCloserObserver);
+
+  dlog('registerDialogCloser: complete');
+}
+
+function unregisterDialogCloser()
+{
+  dlog('unregisterDialogCloser: start');
+
+  if (!gDialogCloserObserver || !gDialogCloser)
+  {
+    return;
+  }
+  try
+  {
+    netscape.security.PrivilegeManager.
+      enablePrivilege('UniversalXPConnect');
+  }
+  catch(excp)
+  {
+    print('unregisterDialogCloser: ' + excp);
+    return;
+  }
+
+  gDialogCloser.unregisterNotification(gDialogCloserObserver);
+
+  gDialogCloserObserver = null;
+  gDialogCloser = null;
+
+  dlog('unregisterDialogCloser: stop');
+}
+
+
+
+var gDialogCloserSubjects = [];
+
+function dialogCloser_observe(subject, topic, data)
+{
+  try
+  {
+    netscape.security.PrivilegeManager.
+      enablePrivilege('UniversalXPConnect');
+
+    dlog('dialogCloser_observe: ' +
+         'subject: ' + subject + 
+         ', topic=' + topic + 
+         ', data=' + data + 
+         ', subject.document.documentURI=' + subject.document.documentURI +
+         ', subjects pending=' + gDialogCloserSubjects.length);
+  }
+  catch(excp)
+  {
+    print('dialogCloser_observe: ' + excp);
+    return;
+  }
+
+  if (subject instanceof ChromeWindow && topic == 'domwindowopened' )
+  {
+    gDialogCloserSubjects.push(subject);
+    
+    subject.setTimeout(closeDialog, 0);
+  }
+  dlog('dialogCloser_observe: subjects pending: ' + gDialogCloserSubjects.length);
+}
+
+function closeDialog()
+{
+  var subject;
+  dlog('closeDialog: subjects pending: ' + gDialogCloserSubjects.length);
+
+  while ( (subject = gDialogCloserSubjects.pop()) != null)
+  {
+    dlog('closeDialog: subject=' + subject);
+
+    dlog('closeDialog: subject.document instanceof XULDocument: ' + (subject.document instanceof XULDocument));
+    dlog('closeDialog: subject.document.documentURI: ' + subject.document.documentURI);
+
+    if (subject.document instanceof XULDocument && 
+        subject.document.documentURI == 'chrome://global/content/commonDialog.xul')
+    {
+      dlog('closeDialog: close XULDocument dialog?');
+      subject.close();
+    }
+    else
+    {
+      
+      dlog('closeDialog: close chrome dialog?');
+      subject.close();
+    }
+  }
+}
+
+registerDialogCloser();
+window.addEventListener('unload', unregisterDialogCloser, true);
 
 jsTestDriverBrowserInit();
