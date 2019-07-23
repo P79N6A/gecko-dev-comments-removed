@@ -193,20 +193,21 @@ class CVSFileInfo(VCSFileInfo):
             return "cvs:%s:%s:%s" % (self.clean_root, file, self.revision)
         return file
 
+
+
+
+
+
+
+
+
+
+rootRegex = re.compile(r'^\S+?:/+(?:[^\s/]*@)?(\S+)$')
+
 class SVNFileInfo(VCSFileInfo):
     url = None
     repo = None
     svndata = {}
-
-    
-    
-    
-    
-    
-    
-    
-    
-    rootRegex = re.compile(r'^\S+?:/+(?:[^\s/]*@)?(\S+)$')
 
     def __init__(self, file):
         """ We only want to run subversion's info tool once so pull all the data
@@ -232,7 +233,7 @@ class SVNFileInfo(VCSFileInfo):
     def GetRoot(self):
         key = "Repository Root"
         if key in self.svndata:
-            match = self.rootRegex.match(self.svndata[key])
+            match = rootRegex.match(self.svndata[key])
             if match:
                 return match.group(1)
         print >> sys.stderr, "Failed to get SVN Root for %s" % self.file
@@ -258,11 +259,76 @@ class SVNFileInfo(VCSFileInfo):
         print >> sys.stderr, "Failed to get SVN Filename for %s" % self.file
         return self.file
 
+class HGRepoInfo():
+    
+    
+    repos = {}
+    def __init__(self, path, rev, cleanroot):
+        self.path = path
+        self.rev = rev
+        self.cleanroot = cleanroot
+
+class HGFileInfo(VCSFileInfo):
+    def __init__(self, file, srcdir):
+        VCSFileInfo.__init__(self, file)
+        
+        if not srcdir in HGRepoInfo.repos:
+            rev = os.popen('hg identify -i "%s"' % srcdir, "r").readlines()[0].rstrip()
+            
+            if rev.endswith('+'):
+                rev = rev[:-1]
+
+            path = os.popen('hg -R "%s" showconfig paths.default' % srcdir, "r").readlines()[0].rstrip()
+            if path == '':
+                hg_root = os.environ.get("SRCSRV_ROOT")
+                if hg_root:
+                    path = hg_root
+                else:
+                    print >> sys.stderr, "Failed to get HG Repo for %s" % srcdir
+            if path != '': 
+                match = rootRegex.match(path)
+                if match:
+                    cleanroot = match.group(1)
+                    if cleanroot.endswith('/'):
+                        cleanroot = cleanroot[:-1]
+            HGRepoInfo.repos[srcdir] = HGRepoInfo(path, rev, cleanroot)
+        self.repo = HGRepoInfo.repos[srcdir]
+        self.file = file
+        self.srcdir = srcdir
+
+    def GetRoot(self):
+        return self.repo.path
+
+    def GetCleanRoot(self):
+        return self.repo.cleanroot
+
+    def GetRevision(self):
+        return self.repo.rev
+
+    def GetFilename(self):
+        file = self.file
+        if self.revision and self.clean_root:
+            if self.srcdir:
+                
+                file = os.path.normpath(file)
+                if IsInDir(file, self.srcdir):
+                    file = file[len(self.srcdir):]
+                if file.startswith('/') or file.startswith('\\'):
+                    file = file[1:]
+            return "hg:%s:%s:%s" % (self.clean_root, file, self.revision)
+        return file
+
 
 
 
 
 vcsFileInfoCache = {}
+
+def IsInDir(file, dir):
+    
+    
+    
+    return os.path.abspath(file).lower().startswith(os.path.abspath(dir).lower())
 
 def GetVCSFilename(file, srcdir):
     """Given a full path to a file, and the top source directory,
@@ -291,6 +357,9 @@ def GetVCSFilename(file, srcdir):
         elif os.path.isdir(os.path.join(path, ".svn")) or \
              os.path.isdir(os.path.join(path, "_svn")):
             fileInfo = SVNFileInfo(file);
+        elif os.path.isdir(os.path.join(srcdir, '.hg')) and \
+             IsInDir(file, srcdir):
+            fileInfo = HGFileInfo(file, srcdir)
         vcsFileInfoCache[file] = fileInfo
 
     if fileInfo:
