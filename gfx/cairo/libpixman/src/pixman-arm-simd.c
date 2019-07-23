@@ -27,7 +27,7 @@
 #include <config.h>
 #endif
 
-#include "pixman-arm.h"
+#include "pixman-arm-simd.h"
 
 void
 fbCompositeSrcAdd_8000x8000arm (pixman_op_t op,
@@ -139,8 +139,8 @@ fbCompositeSrc_8888x8888arm (pixman_op_t op,
 			
 
 
-			"cmp r5, #0x1000000\n\t"
-			"blt 3f\n\t"
+			"cmp r5, #0\n\t"
+			"beq 3f\n\t"
 
 			
 			"sub r8, %[alpha_mask], r5, lsr #24\n\t"
@@ -233,8 +233,8 @@ fbCompositeSrc_8888x8x8888arm (pixman_op_t op,
 			
 
 
-			"cmp r5, #0x1000000\n\t"
-			"blt 3f\n\t"
+			"cmp r5, #0\n\t"
+			"beq 3f\n\t"
 
 #endif
 			"ldr r4, [%[dest]] \n\t"
@@ -347,9 +347,7 @@ fbCompositeSolidMask_nx8x8888arm (pixman_op_t      op,
 			
 
 
-			
-
-			"cmp r5, #0x0\n\t"
+			"cmp r5, #0\n\t"
 			"beq 3f\n\t"
 
 #endif
