@@ -464,14 +464,10 @@ function Startup()
   gSearchBox.addEventListener("keypress", function(e) {
     if (e.keyCode == e.DOM_VK_ESCAPE) {
       
-      gSearchBox.value = "";
-      gSearchBox.doCommand();
-
-      
       gDownloadsView.focus();
       e.preventDefault();
     }
-  }, true);
+  }, false);
 }
 
 function Shutdown()
