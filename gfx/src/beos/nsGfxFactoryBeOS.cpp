@@ -46,7 +46,6 @@
 #include "nsScriptableRegion.h" 
 #include "nsDeviceContextBeOS.h" 
 #include "nsImageBeOS.h" 
-#include "nsFontList.h"
 #include "gfxImageFrame.h"
 
 
@@ -58,7 +57,6 @@ NS_GENERIC_FACTORY_CONSTRUCTOR(nsImageBeOS)
 NS_GENERIC_FACTORY_CONSTRUCTOR(nsBlender) 
 NS_GENERIC_FACTORY_CONSTRUCTOR(nsRegionBeOS) 
 NS_GENERIC_FACTORY_CONSTRUCTOR(nsFontEnumeratorBeOS) 
-NS_GENERIC_FACTORY_CONSTRUCTOR(nsFontList)
 
 NS_GENERIC_FACTORY_CONSTRUCTOR(gfxImageFrame)
  
@@ -146,11 +144,6 @@ static const nsModuleComponentInfo components[] =
     
     "@mozilla.org/gfx/fontenumerator;1", 
     nsFontEnumeratorBeOSConstructor }, 
-  { "Font List",  
-    NS_FONTLIST_CID,
-    
-    NS_FONTLIST_CONTRACTID,
-    nsFontListConstructor },
   { "windows image frame",
     GFX_IMAGEFRAME_CID,
     "@mozilla.org/gfx/image/frame;2",
