@@ -753,6 +753,14 @@ nsStyleContext::GetVisitedDependentColor(nsCSSProperty aProperty)
  nscolor
 nsStyleContext::CombineVisitedColors(nscolor *aColors, PRBool aLinkIsVisited)
 {
+  if (NS_GET_A(aColors[1]) == 0) {
+    
+    
+    
+    
+    aLinkIsVisited = PR_FALSE;
+  }
+
   
   
   const ColorIndexSet &set =
