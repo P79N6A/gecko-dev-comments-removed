@@ -348,9 +348,6 @@ class nsOggDecoder : public nsMediaDecoder
   
   virtual PRBool GetSeekable();
 
-  
-  nsChannelReader* GetReader() { return mReader; }
-
 protected:
   
   
@@ -489,7 +486,7 @@ private:
   
   
   
-  nsAutoPtr<nsChannelReader> mReader;
+  nsChannelReader* mReader;
 
   
   
