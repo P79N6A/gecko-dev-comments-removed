@@ -403,13 +403,13 @@ nsDiskCacheDevice::FindEntry(nsCString * key, PRBool *collision)
 
     *collision = PR_FALSE;
 
-#if DEBUG  
     binding = mBindery.FindActiveBinding(hashNumber);
-    NS_ASSERTION(!binding || strcmp(binding->mCacheEntry->Key()->get(), key->get()) != 0,
-                 "FindEntry() called for a bound entry.");
+    if (binding && PL_strcmp(binding->mCacheEntry->Key()->get(), key->get()) != 0) {
+        *collision = PR_TRUE;
+        return nsnull;
+    }
     binding = nsnull;
-#endif
-    
+
     
     nsresult rv = mCacheMap.FindRecord(hashNumber, &record);
     if (NS_FAILED(rv))  return nsnull;  
