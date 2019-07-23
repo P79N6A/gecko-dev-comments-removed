@@ -98,6 +98,8 @@ public:
     
     void mark();
     void recover();
+
+    void abort();
     
     unsigned calldepth() const;
     JSStackFrame* findFrame(void* p) const;
@@ -113,7 +115,7 @@ public:
     void set(void* p, nanojit::LIns* l);
     nanojit::LIns* get(void* p);
     
-    void readstack(void*, char *prefix = NULL, int index = 0);
+    void readstack(void*);
     
     void copy(void* a, void* v);
     void imm(jsint i, void* v);
