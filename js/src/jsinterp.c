@@ -134,6 +134,31 @@ js_FillPropertyCache(JSContext *cx, JSObject *obj, jsuword kshape,
     }
 
     
+
+
+
+
+
+
+
+
+
+
+
+
+    JS_ASSERT_IF(scopeIndex == 0 && protoIndex == 0, obj == pobj);
+    if (protoIndex != 0) {
+        JSObject *tmp;
+
+        JS_ASSERT(pobj != obj);
+        protoIndex = 1;
+        tmp = obj;
+        while ((tmp = OBJ_GET_PROTO(cx, tmp)) != NULL) {
+            if (tmp == pobj)
+                break;
+            ++protoIndex;
+        }
+    }
     if (scopeIndex > PCVCAP_SCOPEMASK || protoIndex > PCVCAP_PROTOMASK) {
         PCMETER(cache->longchains++);
         return;
