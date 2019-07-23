@@ -93,6 +93,17 @@ public:
          BSTR __RPC_FAR *pszValue);
 
     virtual void FireAnchorJumpEvent();
+
+  
+
+  
+
+
+
+
+
+  static void GetXPAccessibleForChildID(const VARIANT& aVarChild,
+                                        nsIAccessible **aAccessible);
 };
 
 #endif
