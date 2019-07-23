@@ -86,8 +86,6 @@
 #include "nsHtml5Module.h"
 #include "nsCrossSiteListenerProxy.h"
 #include "nsFocusManager.h"
-#include "nsFrameList.h"
-#include "nsListControlFrame.h"
 
 #ifdef MOZ_XUL
 #include "nsXULPopupManager.h"
@@ -271,6 +269,12 @@ nsLayoutStatics::Initialize()
   }
 
 #ifdef MOZ_MEDIA
+  rv = nsMediaDecoder::InitLogger();
+  if (NS_FAILED(rv)) {
+    NS_ERROR("Could not initialize nsMediaDecoder");
+    return rv;
+  }
+  
   nsHTMLMediaElement::InitMediaTypes();
 #endif
 
@@ -281,14 +285,6 @@ nsLayoutStatics::Initialize()
   nsHtml5Module::InitializeStatics();
   
   nsCrossSiteListenerProxy::Startup();
-
-  rv = nsFrameList::Init();
-  if (NS_FAILED(rv)) {
-    NS_ERROR("Could not initialize nsFrameList");
-    return rv;
-  }
-
-  NS_SealStaticAtomTable();
 
   return NS_OK;
 }
@@ -357,7 +353,6 @@ nsLayoutStatics::Shutdown()
   nsGlobalWindow::ShutDown();
   nsDOMClassInfo::ShutDown();
   nsTextControlFrame::ShutDown();
-  nsListControlFrame::Shutdown();
   nsXBLWindowKeyHandler::ShutDown();
   nsAutoCopyListener::Shutdown();
 
@@ -382,8 +377,6 @@ nsLayoutStatics::Shutdown()
   nsRegion::ShutdownStatic();
 
   NS_ShutdownChainItemPool();
-
-  nsFrameList::Shutdown();
 }
 
 void

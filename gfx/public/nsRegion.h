@@ -208,9 +208,12 @@ public:
   
 
 
+  static nsresult InitStatic();
+
+  
 
 
-  static void MigrateToCurrentThread();
+  static void ShutdownStatic();
 
 private:
   PRUint32    mRectCount;
