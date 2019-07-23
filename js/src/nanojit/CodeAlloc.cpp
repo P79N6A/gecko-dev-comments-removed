@@ -241,6 +241,19 @@ namespace nanojit
         }
     }
 
+#if defined NANOJIT_ARM && defined UNDER_CE
+    
+    
+    void CodeAlloc::flushICache(CodeList* &blocks) {
+        FlushInstructionCache(GetCurrentProcess(), NULL, NULL);
+    }
+#else
+    void CodeAlloc::flushICache(CodeList* &blocks) {
+        for (CodeList *b = blocks; b != 0; b = b->next)
+            flushICache(b->start(), b->size());
+    }
+#endif
+
 #if defined(AVMPLUS_UNIX) && defined(NANOJIT_ARM)
 #include <asm/unistd.h>
 extern "C" void __clear_cache(char *BEG, char *END);
@@ -252,18 +265,19 @@ extern  "C" void sync_instruction_memory(caddr_t v, u_int len);
 
 #if defined NANOJIT_IA32 || defined NANOJIT_X64
     
-    void CodeAlloc::flushICache(CodeList* &blocks) {
+    void CodeAlloc::flushICache(void *start, size_t len) {
         
         
-        for (CodeList *b = blocks; b != 0; b = b->next)
-            VALGRIND_DISCARD_TRANSLATIONS(b->start(), b->size());
+        (void)start;
+        (void)len;
+        VALGRIND_DISCARD_TRANSLATIONS(start, len);
     }
 
 #elif defined NANOJIT_ARM && defined UNDER_CE
     
     
-    void CodeAlloc::flushICache(CodeList* &) {
-        
+    
+    void CodeAlloc::flushICache(void *, size_t) {
         FlushInstructionCache(GetCurrentProcess(), NULL, NULL);
     }
 
@@ -274,44 +288,34 @@ extern  "C" void sync_instruction_memory(caddr_t v, u_int len);
     extern "C" void sys_dcache_flush(const void*, size_t len);
 
     
-    void CodeAlloc::flushICache(CodeList* &blocks) {
-        for (CodeList *b = blocks; b != 0; b = b->next) {
-            void *start = b->start();
-            size_t bytes = b->size();
-            sys_dcache_flush(start, bytes);
-            sys_icache_invalidate(start, bytes);
-        }
+    void CodeAlloc::flushICache(void *start, size_t len) {
+        sys_dcache_flush(start, len);
+        sys_icache_invalidate(start, len);
     }
 #  else
     
     
     
-    void CodeAlloc::flushICache(CodeList* &blocks) {
-        for (CodeList *b = blocks; b != 0; b = b->next)
-            MakeDataExecutable(b->start(), b->size());
+    void CodeAlloc::flushICache(void *start, size_t len) {
+        MakeDataExecutable(start, len);
     }
 #  endif
 
 #elif defined AVMPLUS_SPARC
     
-    void CodeAlloc::flushICache(CodeList* &blocks) {
-        for (CodeList *b = blocks; b != 0; b = b->next)
-            sync_instruction_memory((char*)b->start(), b->size());
+    void CodeAlloc::flushICache(void *start, size_t len) {
+            sync_instruction_memory((char*)start, len);
     }
 
 #elif defined AVMPLUS_UNIX
     #ifdef ANDROID
-    void CodeAlloc::flushICache(CodeList* &blocks) {
-        for (CodeList *b = blocks; b != 0; b = b->next) {
-			cacheflush((int)b->start(), (int)b->start()+b->size(), 0);
-        }
+    void CodeAlloc::flushICache(void *start, size_t len) {
+        cacheflush((int)start, (int)(start + len), 0);
     }
 	#else
     
-    void CodeAlloc::flushICache(CodeList* &blocks) {
-        for (CodeList *b = blocks; b != 0; b = b->next) {
-            __clear_cache((char*)b->start(), (char*)b->start()+b->size());
-        }
+    void CodeAlloc::flushICache(void *start, size_t len) {
+        __clear_cache((char*)start, (char*)(start + len));
     }
 	#endif
 #endif 

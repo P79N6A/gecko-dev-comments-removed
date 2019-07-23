@@ -72,6 +72,9 @@ const int LARGEST_UNDERRUN_PROT = 32;
 typedef int NIns;
 
 
+const size_t LARGEST_BRANCH_PATCH = 2 * sizeof(NIns);
+
+
 typedef enum {
     R0  = 0,
     R1  = 1,

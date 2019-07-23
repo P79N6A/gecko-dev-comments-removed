@@ -79,6 +79,9 @@ namespace nanojit
     typedef uint32_t NIns;
 
     
+    const size_t LARGEST_BRANCH_PATCH = 2 * sizeof(NIns);
+
+    
     typedef enum
         {
             G0  = 0,

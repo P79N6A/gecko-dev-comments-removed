@@ -162,7 +162,10 @@ namespace nanojit
         void freeAll(CodeList* &code);
 
         
-        void flushICache(CodeList* &blocks);
+        static void flushICache(CodeList* &blocks);
+
+        
+        static void flushICache(void *start, size_t len);
 
         
 
