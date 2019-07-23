@@ -95,7 +95,12 @@ private:
 
 
 
+
 - (void)_removeWindowFromCache:(NSWindow *)aWindow;
+
+
+
+- (void)_modalSession:(NSModalSession)aSession sendEvent:(NSEvent *)theEvent;
 
 @end
 
