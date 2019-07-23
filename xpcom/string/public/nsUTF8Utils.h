@@ -293,13 +293,18 @@ public:
       }
     else if (NS_IS_HIGH_SURROGATE(c)) 
       {
-        if (*buffer == end)
+        if (p == end)
           {
-            NS_ERROR("Unexpected end of buffer after high surrogate");
+            
+            
+            
+
+            NS_WARNING("Unexpected end of buffer after high surrogate");
+
             if (err)
               *err = PR_TRUE;
-
-            return 0;
+            *buffer = p;
+            return 0xFFFD;
           }
 
         
@@ -319,15 +324,31 @@ public:
           }
         else
           {
-            NS_ERROR("got a High Surrogate but no low surrogate");
             
+            
+            
+
+            NS_WARNING("got a High Surrogate but no low surrogate");
+
+            if (err)
+              *err = PR_TRUE;
+            *buffer = p;
+            return 0xFFFD;
           }
       }
     else 
       {
         
-        NS_ERROR("got a low Surrogate but no high surrogate");
+
         
+        
+        
+
+        NS_WARNING("got a low Surrogate but no high surrogate");
+        if (err)
+          *err = PR_TRUE;
+        *buffer = p;
+        return 0xFFFD;
       }
 
     if (err)
@@ -359,10 +380,15 @@ public:
       {
         if (iter == end)
           {
+            
+            
+            
+
+            NS_WARNING("Unexpected end of buffer after high surrogate");
+
             if (err)
               *err = PR_TRUE;
-
-            return 0;
+            return 0xFFFD;
           }
 
         
@@ -381,15 +407,30 @@ public:
           }
         else
           {
-            NS_ERROR("got a High Surrogate but no low surrogate");
             
+            
+            
+
+            NS_WARNING("got a High Surrogate but no low surrogate");
+
+            if (err)
+              *err = PR_TRUE;
+            return 0xFFFD;
           }
       }
     else 
       {
         
-        NS_ERROR("got a low Surrogate but no high surrogate");
+
         
+        
+        
+
+        NS_WARNING("got a low Surrogate but no high surrogate");
+
+        if (err)
+          *err = PR_TRUE;
+        return 0xFFFD;
       }
 
     if (err)

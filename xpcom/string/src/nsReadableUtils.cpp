@@ -1158,11 +1158,20 @@ CompareUTF8toUTF16(const nsASingleFragmentCString& aUTF8String,
             if (err)
               return PR_INT32_MIN;
 
-            PRUint32 c16_32 = UTF16CharEnumerator::NextChar(&u16, u16end,
-                                                            &err);
-            if (err)
-              return PR_INT32_MIN;
-
+            PRUint32 c16_32 = UTF16CharEnumerator::NextChar(&u16, u16end);
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
             if (c8_32 != c16_32)
               return c8_32 < c16_32 ? -1 : 1;
           }
