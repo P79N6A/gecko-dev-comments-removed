@@ -1209,18 +1209,26 @@ namespace nanojit
         LInsp _i; 
 
     public:
-        LirReader(LInsp i) : LirFilter(0), _i(i) {
-            NanoAssert(_i);
+        LirReader(LInsp i) : LirFilter(0), _i(i)
+        {
+            
+            
+            
+            
+            
+            
+            
+            NanoAssert(i && !i->isop(LIR_skip));
         }
         virtual ~LirReader() {}
 
         
+        
         LInsp read(); 
+
+        
         LInsp pos() {
             return _i;
-        }
-        void setpos(LIns *i) {
-            _i = i;
         }
     };
 
