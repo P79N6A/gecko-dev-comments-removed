@@ -622,6 +622,10 @@ nsCookieService::Observe(nsISupports     *aSubject,
         NS_WARNING("db delete failed");
     }
 
+    
+    mDBConn->Close();
+    mDBConn = nsnull;
+
   } else if (!strcmp(aTopic, "profile-do-change")) {
     
     InitDB();
