@@ -70,7 +70,7 @@ public:
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_NSIMUTATIONOBSERVER
 
-  nsBindingManager();
+  nsBindingManager(nsIDocument* aDocument);
   ~nsBindingManager();
 
   nsXBLBinding* GetBinding(nsIContent* aContent);
@@ -291,6 +291,9 @@ protected:
   
   friend class nsRunnableMethod<nsBindingManager>;
   nsCOMPtr<nsIRunnable> mProcessAttachedQueueEvent;
+
+  
+  nsIDocument* mDocument; 
 };
 
 #endif
