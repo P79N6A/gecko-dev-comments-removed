@@ -372,7 +372,7 @@ nsScriptablePeer::ConvertVariants(VARIANT *aIn, nsIVariant **aOut)
     {
         
         
-        HMODULE hlib = ::LoadLibrary("xpcom.dll");
+        HMODULE hlib = ::LoadLibraryW(L"xpcom.dll");
         if (hlib)
         {
             nsIComponentManager *pManager = nsnull; 

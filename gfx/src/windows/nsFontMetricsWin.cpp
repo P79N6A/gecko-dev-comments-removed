@@ -2121,40 +2121,9 @@ nsGlyphAgent::GetGlyphMetrics(HDC           aDC,
                               GLYPHMETRICS* aGlyphMetrics)
 {
   memset(aGlyphMetrics, 0, sizeof(GLYPHMETRICS)); 
-  if (eGlyphAgent_UNKNOWN == mState) { 
-    
-    DWORD len = GetGlyphOutlineW(aDC, aChar, GGO_METRICS, aGlyphMetrics, 0, nsnull, &mMat);
-    if (GetLastError() == ERROR_CALL_NOT_IMPLEMENTED) {
-      
-      mState = eGlyphAgent_ANSI;
-    }
-    else {
-      
-      mState = eGlyphAgent_UNICODE;
-      return len;
-    }
-  }
+  mState = eGlyphAgent_UNICODE;
+  return GetGlyphOutlineW(aDC, aChar, GGO_METRICS, aGlyphMetrics, 0, nsnull, &mMat);
 
-  if (eGlyphAgent_UNICODE == mState) {
-    return GetGlyphOutlineW(aDC, aChar, GGO_METRICS, aGlyphMetrics, 0, nsnull, &mMat);
-  }
-
-  
-  
-  
-  
-  if (0 == aGlyphIndex) { 
-    nsAutoChar16Buffer buf;
-    if (NS_SUCCEEDED(GetGlyphIndices(aDC, nsnull, &aChar, 1, buf)))
-      aGlyphIndex = *(buf.Elements());
-  }
-  if (0 < aGlyphIndex) {
-    return GetGlyphOutlineA(aDC, aGlyphIndex, GGO_METRICS | GGO_GLYPH_INDEX, aGlyphMetrics, 0, nsnull, &mMat);
-  }
-
-  
-  
-  return GDI_ERROR;
 }
 
 
