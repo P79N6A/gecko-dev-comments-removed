@@ -171,14 +171,19 @@ protected:
 
 
 
+
+
+
+
   virtual void PaintTextDecorationLine(nsIRenderingContext& aRenderingContext,
                                        nsPoint aPt,
                                        nsLineBox* aLine,
                                        nscolor aColor,
                                        nscoord aOffset,
                                        nscoord aAscent,
-                                       nscoord aSize);
-                                       
+                                       nscoord aSize,
+                                       const PRUint8 aDecoration);
+
   friend class nsDisplayTextDecoration;
 };
 

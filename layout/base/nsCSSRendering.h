@@ -41,6 +41,7 @@
 #define nsCSSRendering_h___
 
 #include "nsIRenderingContext.h"
+#include "gfxContext.h"
 struct nsPoint;
 class nsStyleContext;
 class nsPresContext;
@@ -197,6 +198,45 @@ public:
 
 
   static nscolor TransformColor(nscolor  aMapColor,PRBool aNoBackGround);
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  static void PaintDecorationLine(gfxContext* aGfxContext,
+                                  const nscolor aColor,
+                                  const gfxPoint& aPt,
+                                  const gfxSize& aLineSize,
+                                  const gfxFloat aAscent,
+                                  const gfxFloat aOffset,
+                                  const gfxFloat aPreferredSize,
+                                  const PRUint8 aDecoration,
+                                  const PRUint8 aStyle,
+                                  const PRBool aIsRTL);
 
 protected:
 
