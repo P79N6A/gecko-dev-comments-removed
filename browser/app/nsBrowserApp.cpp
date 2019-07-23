@@ -53,6 +53,11 @@
 #include "nsILocalFile.h"
 #include "nsStringGlue.h"
 
+#ifdef XP_WIN
+
+#include "nsWindowsWMain.cpp"
+#endif
+
 static void Output(const char *fmt, ... )
 {
   va_list ap;
@@ -156,13 +161,3 @@ int main(int argc, char* argv[])
     PR_smprintf_free(appEnv);
   return result;
 }
-
-#if defined( XP_WIN ) && defined( WIN32 ) && !defined(__GNUC__)
-
-
-int WINAPI WinMain( HINSTANCE, HINSTANCE, LPSTR args, int )
-{
-    
-    return main( __argc, __argv );
-}
-#endif

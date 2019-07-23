@@ -266,11 +266,10 @@ struct nsXREAppData
 
 
 
-
-
-
 XRE_API(int,
         XRE_main, (int argc, char* argv[], const nsXREAppData* sAppData))
+
+
 
 
 

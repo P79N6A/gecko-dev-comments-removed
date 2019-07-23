@@ -51,7 +51,6 @@
 #define snprintf _snprintf
 #define vsnprintf _vsnprintf
 #define PATH_SEPARATOR_CHAR '\\'
-#include "nsWindowsRestart.cpp"
 #define R_OK 04
 #elif defined(XP_MACOSX)
 #include <CFBundle.h>
@@ -70,6 +69,10 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #define PATH_SEPARATOR_CHAR '/'
+#endif
+
+#ifdef XP_WIN
+#include "nsWindowsWMain.cpp"
 #endif
 
 #define VERSION_MAXLEN 128
@@ -351,13 +354,3 @@ main(int argc, char **argv)
 
   return retval;
 }
-
-#if defined( XP_WIN ) && defined( WIN32 ) && !defined(__GNUC__)
-
-
-int WINAPI WinMain( HINSTANCE, HINSTANCE, LPSTR args, int )
-{
-  
-  return main( __argc, __argv );
-}
-#endif

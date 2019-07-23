@@ -564,28 +564,28 @@ struct MessageWindow {
     }
 
     
-    NS_IMETHOD SendRequest( const char *cmd ) {
-        
-        int cmdlen = strlen(cmd);
-        char* cmdbuf = (char*) malloc(cmdlen + MAX_PATH + 1);
-        if (!cmdbuf)
-            return NS_ERROR_OUT_OF_MEMORY;
+    NS_IMETHOD SendRequest() {
+        WCHAR *cmd = ::GetCommandLineW();
+        WCHAR cwd[MAX_PATH];
+        _wgetcwd(cwd, MAX_PATH);
 
-        strcpy(cmdbuf, cmd);
-        _getcwd(cmdbuf + cmdlen + 1, MAX_PATH);
+        
+        NS_ConvertUTF16toUTF8 utf8buffer(cmd);
+        utf8buffer.Append('\0');
+        AppendUTF16toUTF8(cwd, utf8buffer);
+        utf8buffer.Append('\0');
 
         
         
         COPYDATASTRUCT cds = {
             1,
-            cmdlen + strlen(cmdbuf + cmdlen + 1) + 2,
-            (void*) cmdbuf
+            utf8buffer.Length(),
+            (void*) utf8buffer.get()
         };
         
         
         ::SetForegroundWindow( mHandle );
         ::SendMessage( mHandle, WM_COPYDATA, 0, (LPARAM)&cds );
-        free (cmdbuf);
         return NS_OK;
     }
 
@@ -615,9 +615,9 @@ struct MessageWindow {
                 printf( "Working dir: %s\n", wdpath);
 #endif
 
-                NS_NewNativeLocalFile(nsDependentCString(wdpath),
-                                      PR_FALSE,
-                                      getter_AddRefs(workingDir));
+                NS_NewLocalFile(NS_ConvertUTF8toUTF16(wdpath),
+                                PR_FALSE,
+                                getter_AddRefs(workingDir));
             }
             (void)nsNativeAppSupportWin::HandleCommandLine((char*)cds->lpData, workingDir, nsICommandLine::STATE_REMOTE_AUTO);
 
@@ -701,8 +701,7 @@ nsNativeAppSupportWin::Start( PRBool *aResult ) {
     MessageWindow msgWindow;
     if ( (HWND)msgWindow ) {
         
-        LPTSTR cmd = ::GetCommandLine();
-        rv = msgWindow.SendRequest( cmd );
+        rv = msgWindow.SendRequest();
     } else {
         
         rv = msgWindow.Create();

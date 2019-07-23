@@ -62,9 +62,19 @@
   
 #endif
 
+
+
+
+
+#ifdef NS_NO_XPCOM
+#define NS_WARNING(msg)
+#define NS_ASSERTION(cond, msg)
+#define NS_ERROR(msg)
+#else
 #ifndef nsDebug_h__
 #include "nsDebug.h"
   
+#endif
 #endif
 
 #ifdef HAVE_CPP_BOOL

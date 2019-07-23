@@ -363,6 +363,11 @@ ApplyUpdate(nsIFile *greDir, nsIFile *updateDir, nsILocalFile *statusFile,
   if (NS_FAILED(rv))
     return;
 
+  nsAutoString updaterPathW;
+  rv = updater->GetPath(updaterPathW);
+  if (NS_FAILED(rv))
+    return;
+
   
   
   
@@ -435,7 +440,7 @@ ApplyUpdate(nsIFile *greDir, nsIFile *updateDir, nsILocalFile *statusFile,
 #elif defined(XP_WIN)
   _chdir(applyToDir.get());
 
-  if (!WinLaunchChild(updaterPath.get(), appArgc + 4, argv, 1))
+  if (!WinLaunchChild(updaterPathW.get(), appArgc + 4, argv, 1))
     return;
   _exit(0);
 #else

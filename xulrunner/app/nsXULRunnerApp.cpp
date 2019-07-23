@@ -57,6 +57,10 @@
 #include "prenv.h"
 #include "nsINIParser.h"
 
+#ifdef XP_WIN
+#include "nsWindowsWMain.cpp"
+#endif
+
 
 
 
@@ -445,13 +449,3 @@ int main(int argc, char* argv[])
 
   return XRE_main(argc, argv, appData);
 }
-
-#if defined( XP_WIN ) && defined( WIN32 ) && !defined(__GNUC__)
-
-
-int WINAPI WinMain( HINSTANCE, HINSTANCE, LPSTR args, int )
-{
-  
-  return main( __argc, __argv );
-}
-#endif

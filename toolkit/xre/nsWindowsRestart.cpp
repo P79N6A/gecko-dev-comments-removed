@@ -44,6 +44,8 @@
 #define nsWindowsRestart_cpp
 #endif
 
+#include "nsUTF8Utils.h"
+
 #include <shellapi.h>
 
 #ifndef ERROR_ELEVATION_REQUIRED
@@ -65,7 +67,7 @@ BOOL (WINAPI *pIsUserAnAdmin)(VOID);
 
 
 
-static int QuotedStrLen(const char *s)
+static int QuotedStrLen(const PRUnichar *s)
 {
   int i = 2; 
   while (*s) {
@@ -73,7 +75,7 @@ static int QuotedStrLen(const char *s)
       ++i;
     }
 
-    ++i; ++s;
+    ++i, ++s;
   }
   return i;
 }
@@ -85,7 +87,7 @@ static int QuotedStrLen(const char *s)
 
 
 
-static char* QuoteString(char *d, const char *s)
+static PRUnichar* QuoteString(PRUnichar *d, const PRUnichar *s)
 {
   *d = '"';
   ++d;
@@ -110,8 +112,10 @@ static char* QuoteString(char *d, const char *s)
 
 
 
-static char*
-MakeCommandLine(int argc, char **argv)
+
+
+static PRUnichar*
+MakeCommandLine(int argc, PRUnichar **argv)
 {
   int i;
   int len = 1; 
@@ -119,11 +123,11 @@ MakeCommandLine(int argc, char **argv)
   for (i = 0; i < argc; ++i)
     len += QuotedStrLen(argv[i]) + 1;
 
-  char *s = (char*) malloc(len);
+  PRUnichar *s = (PRUnichar*) malloc(len * sizeof(PRUnichar));
   if (!s)
     return NULL;
 
-  char *c = s;
+  PRUnichar *c = s;
   for (i = 0; i < argc; ++i) {
     c = QuoteString(c, argv[i]);
     *c = ' ';
@@ -138,34 +142,17 @@ MakeCommandLine(int argc, char **argv)
 
 
 
-static PRUnichar *
-AllocConvertAToW(const char *buf)
-{
-  PRUint32 inputLen = strlen(buf) + 1;
-  int n = MultiByteToWideChar(CP_ACP, 0, buf, inputLen, NULL, 0);
-  if (n <= 0)
-    return NULL;
-  PRUnichar *result = (PRUnichar *)malloc(n * sizeof(PRUnichar));
-  if (!result)
-    return NULL;
-  MultiByteToWideChar(CP_ACP, 0, buf, inputLen, result, n);
-  return result;
-}
-
-
-
-
 static BOOL
-LaunchAsNormalUser(const char *exePath, char *cl)
+LaunchAsNormalUser(const PRUnichar *exePath, PRUnichar *cl)
 {
   if (!pCreateProcessWithTokenW) {
     
     *(FARPROC *)&pIsUserAnAdmin =
-        GetProcAddress(GetModuleHandle("shell32.dll"), "IsUserAnAdmin");
+        GetProcAddress(GetModuleHandleA("shell32.dll"), "IsUserAnAdmin");
 
     
     *(FARPROC *)&pCreateProcessWithTokenW =
-        GetProcAddress(GetModuleHandle("advapi32.dll"),
+        GetProcAddress(GetModuleHandleA("advapi32.dll"),
                        "CreateProcessWithTokenW");
 
     if (!pCreateProcessWithTokenW)
@@ -177,7 +164,7 @@ LaunchAsNormalUser(const char *exePath, char *cl)
     return FALSE;
 
   
-  HWND hwndShell = FindWindow("Progman", NULL);
+  HWND hwndShell = FindWindowA("Progman", NULL);
   DWORD dwProcessId;
   GetWindowThreadProcessId(hwndShell, &dwProcessId);
 
@@ -205,22 +192,24 @@ LaunchAsNormalUser(const char *exePath, char *cl)
   STARTUPINFOW si = {sizeof(si), 0};
   PROCESS_INFORMATION pi = {0};
 
-  PRUnichar *exePathW = AllocConvertAToW(exePath);
-  PRUnichar *clW = AllocConvertAToW(cl);
-  ok = exePathW && clW;
-  if (ok) {
-    ok = pCreateProcessWithTokenW(hNewToken,
-                                  0,    
-                                  exePathW,
-                                  clW,
-                                  0,    
-                                  NULL, 
-                                  NULL, 
-                                  &si,
-                                  &pi);
-  }
-  free(exePathW);
-  free(clW);
+  
+  
+  
+  WCHAR* myenv = GetEnvironmentStringsW();
+
+  ok = pCreateProcessWithTokenW(hNewToken,
+                                0,    
+                                exePath,
+                                cl,
+                                CREATE_UNICODE_ENVIRONMENT,
+                                myenv, 
+                                NULL, 
+                                &si,
+                                &pi);
+
+  if (myenv)
+    FreeEnvironmentStringsW(myenv);
+
   CloseHandle(hNewToken);
   if (!ok)
     return FALSE;
@@ -235,22 +224,76 @@ LaunchAsNormalUser(const char *exePath, char *cl)
 
 
 
+static PRUnichar*
+AllocConvertUTF8toUTF16(const char *arg)
+{
+  
+  int len = strlen(arg);
+  PRUnichar *s = new PRUnichar[(len + 1) * sizeof(PRUnichar)];
+  if (!s)
+    return NULL;
+
+  ConvertUTF8toUTF16 convert(s);
+  len = convert.write(arg, len);
+  s[len] = '\0';
+  return s;
+}
+
+static void
+FreeAllocStrings(int argc, PRUnichar **argv)
+{
+  while (argc) {
+    --argc;
+    delete [] argv[argc];
+  }
+
+  delete [] argv;
+}
+
+
+
+
+
+
+
 
 BOOL
-WinLaunchChild(const char *exePath, int argc, char **argv, int needElevation)
+WinLaunchChild(const PRUnichar *exePath, int argc, PRUnichar **argv, int needElevation);
+
+BOOL
+WinLaunchChild(const PRUnichar *exePath, int argc, char **argv, int needElevation)
 {
-  char *cl;
+  PRUnichar** argvConverted = new PRUnichar*[argc];
+  if (!argvConverted)
+    return FALSE;
+
+  for (int i = 0; i < argc; ++i) {
+    argvConverted[i] = AllocConvertUTF8toUTF16(argv[i]);
+    if (!argvConverted[i]) {
+      return FALSE;
+    }
+  }
+
+  BOOL ok = WinLaunchChild(exePath, argc, argvConverted, needElevation);
+  FreeAllocStrings(argc, argvConverted);
+  return ok;
+}
+
+BOOL
+WinLaunchChild(const PRUnichar *exePath, int argc, PRUnichar **argv, int needElevation)
+{
+  PRUnichar *cl;
   BOOL ok;
   if (needElevation > 0) {
     cl = MakeCommandLine(argc - 1, argv + 1);
     if (!cl)
       return FALSE;
-    ok = ShellExecute(NULL, 
-                      NULL, 
-                      exePath,
-                      cl,
-                      NULL, 
-                      SW_SHOWDEFAULT) > (HINSTANCE)32;
+    ok = ShellExecuteW(NULL, 
+                       NULL, 
+                       exePath,
+                       cl,
+                       NULL, 
+                       SW_SHOWDEFAULT) > (HINSTANCE)32;
     free(cl);
     return ok;
   }
@@ -267,19 +310,19 @@ WinLaunchChild(const char *exePath, int argc, char **argv, int needElevation)
       needElevation = 0;
   }
   if (needElevation == 0) {
-    STARTUPINFO si = {sizeof(si), 0};
+    STARTUPINFOW si = {sizeof(si), 0};
     PROCESS_INFORMATION pi = {0};
 
-    ok = CreateProcess(exePath,
-                       cl,
-                       NULL,  
-                       NULL,  
-                       FALSE, 
-                       0,     
-                       NULL,  
-                       NULL,  
-                       &si,
-                       &pi);
+    ok = CreateProcessW(exePath,
+                        cl,
+                        NULL,  
+                        NULL,  
+                        FALSE, 
+                        0,     
+                        NULL,  
+                        NULL,  
+                        &si,
+                        &pi);
 
     if (ok) {
       CloseHandle(pi.hProcess);
