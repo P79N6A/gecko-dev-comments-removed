@@ -2304,8 +2304,19 @@ function BrowserOnCommand(event) {
       var errorDoc = ot.ownerDocument;
       
       if (ot == errorDoc.getElementById('exceptionDialogButton')) {
-        var params = { location : content.location.href,
-                       exceptionAdded : false };
+        var params = { exceptionAdded : false };
+        
+        try {
+          switch (gPrefService.getIntPref("browser.ssl_override_behavior")) {
+            case 2 : 
+              params.prefetchCert = true;
+            case 1 : 
+              params.location = content.location.href;
+          }
+        } catch (e) {
+          Components.utils.reportError("Couldn't get ssl_override pref: " + e);
+        }
+        
         window.openDialog('chrome:
                           '','chrome,centerscreen,modal', params);
         

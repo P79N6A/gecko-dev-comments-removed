@@ -82,16 +82,21 @@ function initExceptionDialog() {
                                                          [brandName], 1));
   gDialog.getButton("extra1").disabled = true;
   
-  if (window.arguments[0]
-      && window.arguments[0].location) {
+  var args = window.arguments;
+  if (args && args[0]) {
+    if (args[0].location) {
+      
+      document.getElementById("locationTextBox").value = args[0].location;
+      document.getElementById('checkCertButton').disabled = false;
+      
+      
+      if (args[0].prefetchCert)
+        checkCert();
+    }
     
     
-    document.getElementById("locationTextBox").value = window.arguments[0].location;
-    checkCert();
+    args[0].exceptionAdded = false; 
   }
-  
-  
-  window.arguments[0].exceptionAdded = false;
 }
 
 
@@ -341,6 +346,9 @@ function addException() {
     flags,
     !permanentCheckbox.checked);
   
-  window.arguments[0].exceptionAdded = true;
+  var args = window.arguments;
+  if (args && args[0])
+    args[0].exceptionAdded = true;
+  
   gDialog.acceptDialog();
 }

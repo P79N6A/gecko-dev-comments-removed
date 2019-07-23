@@ -581,3 +581,9 @@ pref("browser.places.importBookmarksHTML", true);
 
 
 pref("browser.places.createdDefaultQueries", false);
+
+
+
+
+
+pref("browser.ssl_override_behavior", 1);
