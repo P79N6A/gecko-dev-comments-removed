@@ -684,12 +684,12 @@ nsStateMapEntry nsARIAMap::gWAIStateMap[] = {
 
 
 eStateMapEntryID nsARIAMap::gWAIUnivStateMap[] = {
-  eARIARequired,
-  eARIAInvalid,
-  eARIAHasPopup,
   eARIABusy,
   eARIADisabled,
-  eARIAExpanded,
+  eARIAExpanded,  
+  eARIAHasPopup,  
+  eARIAInvalid,
+  eARIARequired,  
   eARIANone
 };
 

@@ -193,8 +193,7 @@ private:
 
 
 
-
-  PRBool HasUniversalAriaProperty(nsIContent *aContent, nsIWeakReference *aWeakShell);
+  PRBool HasUniversalAriaProperty(nsIContent *aContent);
 
   
 

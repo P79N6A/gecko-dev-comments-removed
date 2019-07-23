@@ -1638,7 +1638,7 @@ nsAccessibilityService::GetAccessible(nsIDOMNode *aNode,
   if (!newAcc && content->Tag() != nsAccessibilityAtoms::body && content->GetParent() && 
       ((weakFrame.GetFrame() && weakFrame.GetFrame()->IsFocusable()) ||
        (isHTML && nsCoreUtils::HasClickListener(content)) ||
-       HasUniversalAriaProperty(content, aWeakShell) || roleMapEntry ||
+       HasUniversalAriaProperty(content) || roleMapEntry ||
        HasRelatedContent(content) || nsCoreUtils::IsXLink(content))) {
     
     
@@ -1659,26 +1659,26 @@ nsAccessibilityService::GetAccessible(nsIDOMNode *aNode,
 }
 
 PRBool
-nsAccessibilityService::HasUniversalAriaProperty(nsIContent *aContent,
-                                                 nsIWeakReference *aWeakShell)
+nsAccessibilityService::HasUniversalAriaProperty(nsIContent *aContent)
 {
+  
   
   return nsAccUtils::HasDefinedARIAToken(aContent, nsAccessibilityAtoms::aria_atomic) ||
          nsAccUtils::HasDefinedARIAToken(aContent, nsAccessibilityAtoms::aria_busy) ||
          aContent->HasAttr(kNameSpaceID_None, nsAccessibilityAtoms::aria_controls) ||
          aContent->HasAttr(kNameSpaceID_None, nsAccessibilityAtoms::aria_describedby) ||
+         aContent->HasAttr(kNameSpaceID_None, nsAccessibilityAtoms::aria_disabled) ||
          nsAccUtils::HasDefinedARIAToken(aContent, nsAccessibilityAtoms::aria_dropeffect) ||
          aContent->HasAttr(kNameSpaceID_None, nsAccessibilityAtoms::aria_flowto) ||
          nsAccUtils::HasDefinedARIAToken(aContent, nsAccessibilityAtoms::aria_grabbed) ||
          nsAccUtils::HasDefinedARIAToken(aContent, nsAccessibilityAtoms::aria_haspopup) ||
+         
          nsAccUtils::HasDefinedARIAToken(aContent, nsAccessibilityAtoms::aria_invalid) ||
          aContent->HasAttr(kNameSpaceID_None, nsAccessibilityAtoms::aria_label) ||
          aContent->HasAttr(kNameSpaceID_None, nsAccessibilityAtoms::aria_labelledby) ||
          nsAccUtils::HasDefinedARIAToken(aContent, nsAccessibilityAtoms::aria_live) ||
          nsAccUtils::HasDefinedARIAToken(aContent, nsAccessibilityAtoms::aria_owns) ||
-         nsAccUtils::HasDefinedARIAToken(aContent, nsAccessibilityAtoms::aria_relevant) ||
-         nsAccUtils::HasDefinedARIAToken(aContent, nsAccessibilityAtoms::aria_required) ||
-         nsAccUtils::HasDefinedARIAToken(aContent, nsAccessibilityAtoms::aria_sort);
+         nsAccUtils::HasDefinedARIAToken(aContent, nsAccessibilityAtoms::aria_relevant);
 }
 
 
