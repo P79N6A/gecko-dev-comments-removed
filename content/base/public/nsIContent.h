@@ -61,10 +61,17 @@ class nsIDocShell;
 class nsISMILAttr;
 #endif 
 
+enum nsLinkState {
+  eLinkState_Unknown    = 0,
+  eLinkState_Unvisited  = 1,
+  eLinkState_Visited    = 2, 
+  eLinkState_NotLink    = 3
+};
+
 
 #define NS_ICONTENT_IID       \
-{ 0x08dadcc4, 0x057a, 0x4b8d, \
-  { 0x89, 0x43, 0x30, 0x0e, 0x61, 0xc6, 0x9d, 0x36 } }
+{ 0x4aaa38b8, 0x6bc1, 0x4d01, \
+  { 0xb6, 0x3d, 0xcd, 0x11, 0xc0, 0x84, 0x56, 0x9e } }
 
 
 
@@ -597,6 +604,40 @@ public:
 
 
   virtual PRBool IsLink(nsIURI** aURI) const = 0;
+
+  
+
+
+
+
+
+  virtual nsLinkState GetLinkState() const
+  {
+    return eLinkState_NotLink;
+  }
+
+  
+
+
+
+
+  virtual void SetLinkState(nsLinkState aState)
+  {
+    NS_ASSERTION(aState == eLinkState_NotLink,
+                 "Need to override SetLinkState?");
+  }
+
+  
+
+
+
+
+
+
+  virtual already_AddRefed<nsIURI> GetHrefURI() const
+  {
+    return nsnull;
+  }
 
   
 

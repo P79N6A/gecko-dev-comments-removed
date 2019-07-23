@@ -196,7 +196,7 @@ public:
   PRBool IsHTMLLink(nsIURI** aURI) const;
 
   
-  nsresult GetHrefURIForAnchors(nsIURI** aURI) const;
+  already_AddRefed<nsIURI> GetHrefURIForAnchors() const;
 
   
   

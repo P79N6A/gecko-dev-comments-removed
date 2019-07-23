@@ -45,8 +45,8 @@ class nsIURI;
 
 
 #define NS_ILINK_IID    \
-{ 0x0c212bc4, 0xfcd7, 0x479d,  \
-  { 0x8c, 0x3f, 0x3b, 0xe8, 0xe6, 0x78, 0x74, 0x50 } }
+{ 0x6f374a11, 0x212d, 0x47d6, \
+  { 0x94, 0xd1, 0xe6, 0x7c, 0x23, 0x4d, 0x34, 0x99 } }
 
 
 
@@ -63,28 +63,6 @@ public:
 
 
 
-
-
-
-  NS_IMETHOD GetLinkState(nsLinkState &aState) = 0;
-
-  
-
-
-
-
-
-  NS_IMETHOD SetLinkState(nsLinkState aState) = 0;
-
-  
-
-
-
-
-
-
-
-  NS_IMETHOD GetHrefURI(nsIURI** aURI) = 0;
 
   
 

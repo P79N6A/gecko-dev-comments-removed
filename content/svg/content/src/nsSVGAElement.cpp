@@ -122,29 +122,23 @@ nsSVGAElement::GetTarget(nsIDOMSVGAnimatedString * *aTarget)
 
 
 
-NS_IMETHODIMP
-nsSVGAElement::GetLinkState(nsLinkState &aState)
+nsLinkState
+nsSVGAElement::GetLinkState() const
 {
-  aState = mLinkState;
-  return NS_OK;
+  return mLinkState;
 }
 
-NS_IMETHODIMP
+void
 nsSVGAElement::SetLinkState(nsLinkState aState)
 {
   mLinkState = aState;
-  return NS_OK;
 }
 
-NS_IMETHODIMP
-nsSVGAElement::GetHrefURI(nsIURI** aURI)
+already_AddRefed<nsIURI>
+nsSVGAElement::GetHrefURI() const
 {
-  *aURI = nsnull;
-  return NS_OK; 
+  return nsnull; 
 }
-
-
-
 
 
 PRBool
