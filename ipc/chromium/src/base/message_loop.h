@@ -27,7 +27,13 @@
 #endif
 
 #ifdef CHROMIUM_MOZILLA_BUILD
+namespace mozilla {
+namespace ipc {
+
 class DoWorkRunnable;
+
+} 
+} 
 #endif
 
 
@@ -63,7 +69,7 @@ class DoWorkRunnable;
 class MessageLoop : public base::MessagePump::Delegate {
 
 #ifdef CHROMIUM_MOZILLA_BUILD
-  friend class DoWorkRunnable;
+  friend class mozilla::ipc::DoWorkRunnable;
 #endif
 
 public:
