@@ -371,7 +371,12 @@ nsPageFrame::DrawHeaderFooter(nsIRenderingContext& aRenderingContext,
       return; 
     }
     
-    PresContext()->SetBidiEnabled(HasRTLChars(str));
+    
+    
+    
+    if (HasRTLChars(str)) {
+      PresContext()->SetBidiEnabled(PR_TRUE);
+    }
 
     
     nscoord x = GetXPosition(aRenderingContext, aRect, aJust, str);
