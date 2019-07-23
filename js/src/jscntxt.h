@@ -164,7 +164,6 @@ struct InterpState
     
     double*        deepBailSp;
 
-
     
     uintN          nativeVpLen;
     jsval*         nativeVp;
@@ -247,8 +246,6 @@ struct JSTraceMonitor {
 #endif
 
     TraceRecorder*          recorder;
-    jsval                   *reservedDoublePool;
-    jsval                   *reservedDoublePoolPtr;
 
     struct GlobalState      globalStates[MONITOR_N_GLOBAL_STATES];
     struct TreeFragment*    vmfragments[FRAGMENT_TABLE_SIZE];
@@ -376,6 +373,13 @@ const uint32 JSLRS_NULL_MARK = uint32(-1);
 
 struct JSThreadData {
     JSGCFreeLists       gcFreeLists;
+
+    
+
+
+
+
+    bool                waiveGCQuota;
 
     
 

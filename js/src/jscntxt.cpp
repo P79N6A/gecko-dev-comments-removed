@@ -131,24 +131,14 @@ JSThreadData::purge(JSContext *cx)
     
     js_PurgePropertyCache(cx, &propertyCache);
 
-# ifdef JS_TRACER
+#ifdef JS_TRACER
     
 
 
 
     if (cx->runtime->gcRegenShapes)
         traceMonitor.needFlush = JS_TRUE;
-
-    
-
-
-
-
-    if (cx->runtime->state == JSRTS_LANDING) {
-        traceMonitor.reservedDoublePoolPtr = traceMonitor.reservedDoublePool;
-        traceMonitor.reservedObjects = NULL;
-    }
-# endif
+#endif
 
     
     js_DestroyScriptsToGC(cx, this);
