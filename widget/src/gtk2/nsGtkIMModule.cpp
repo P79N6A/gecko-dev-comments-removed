@@ -770,13 +770,15 @@ nsGtkIMModule::OnEndCompositionNative(GtkIMContext *aContext)
         return;
     }
 
+    PRBool shouldIgnoreThisEvent = ShouldIgnoreNativeCompositionEvent();
+
     
     
     
     
     mIgnoreNativeCompositionEvent = PR_FALSE;
 
-    if (!mIsComposing) {
+    if (!mIsComposing || shouldIgnoreThisEvent) {
         
         return;
     }
@@ -988,12 +990,13 @@ nsGtkIMModule::GetCompositionString(nsAString &aCompositionString)
     } else {
         aCompositionString.Truncate();
     }
-    pango_attr_list_unref(feedback_list);
-    g_free(preedit_string);
 
     PR_LOG(gGtkIMLog, PR_LOG_ALWAYS,
         ("GtkIMModule(%p): GetCompositionString, result=\"%s\"",
          this, preedit_string));
+
+    pango_attr_list_unref(feedback_list);
+    g_free(preedit_string);
 }
 
 PRBool
