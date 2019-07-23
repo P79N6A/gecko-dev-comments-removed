@@ -775,7 +775,8 @@ void nsDocAccessible::ScrollTimerCallback(nsITimer *aTimer, void *aClosure)
     
     
     
-    docAcc->FireToolkitEvent(nsIAccessibleEvent::EVENT_SCROLLINGEND, docAcc, nsnull);
+    docAcc->FireToolkitEvent(nsIAccessibleEvent::EVENT_SCROLLING_END, docAcc,
+                             nsnull);
     docAcc->mScrollPositionChangedTicks = 0;
     if (docAcc->mScrollWatchTimer) {
       docAcc->mScrollWatchTimer->Cancel();
@@ -1130,15 +1131,17 @@ NS_IMETHODIMP nsDocAccessible::FlushPendingEvents()
           docAccessible->FireDocLoadEvents(nsIAccessibleEvent::EVENT_DOCUMENT_LOAD_COMPLETE);
         }
       }
-      else if (eventType == nsIAccessibleEvent::EVENT_ATK_TEXT_CARET_MOVE) {
+      else if (eventType == nsIAccessibleEvent::EVENT_TEXT_CARET_MOVED) {
         nsCOMPtr<nsIAccessibleText> accessibleText = do_QueryInterface(accessible);
         PRInt32 caretOffset;
         if (accessibleText && NS_SUCCEEDED(accessibleText->GetCaretOffset(&caretOffset))) {
-          FireToolkitEvent(nsIAccessibleEvent::EVENT_ATK_TEXT_CARET_MOVE, accessible, &caretOffset);
+          FireToolkitEvent(nsIAccessibleEvent::EVENT_TEXT_CARET_MOVED,
+                           accessible, &caretOffset);
           PRInt32 selectionCount;
           accessibleText->GetSelectionCount(&selectionCount);
           if (selectionCount) {  
-           FireToolkitEvent(nsIAccessibleEvent::EVENT_ATK_TEXT_SELECTION_CHANGE, accessible, nsnull);
+           FireToolkitEvent(nsIAccessibleEvent::EVENT_TEXT_SELECTION_CHANGED,
+                                                accessible, nsnull);
           }
         }
       }
@@ -1185,7 +1188,7 @@ void nsDocAccessible::RefreshNodes(nsIDOMNode *aStartNode, PRUint32 aChangeEvent
               if (!popup) {
                 
                 
-                event = nsIAccessibleEvent::EVENT_MENUPOPUPEND;
+                event = nsIAccessibleEvent::EVENT_MENUPOPUP_END;
               }
             }
             else if (role == nsIAccessibleRole::ROLE_PROGRESSBAR &&
@@ -1350,7 +1353,8 @@ NS_IMETHODIMP nsDocAccessible::InvalidateCacheSubtree(nsIContent *aChild,
     nsAutoString role;
     if (GetRoleAttribute(aChild, role) &&
         StringEndsWith(role, NS_LITERAL_STRING(":menu"), nsCaseInsensitiveStringComparator())) {
-      FireDelayedToolkitEvent(nsIAccessibleEvent::EVENT_MENUPOPUPSTART, childNode, nsnull);
+      FireDelayedToolkitEvent(nsIAccessibleEvent::EVENT_MENUPOPUP_START,
+                              childNode, nsnull);
     }
   }
 

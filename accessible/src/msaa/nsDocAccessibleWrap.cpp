@@ -40,6 +40,7 @@
 #include "ISimpleDOMDocument_i.c"
 #include "nsIAccessibilityService.h"
 #include "nsIAccessibleEvent.h"
+#include "nsEventMap.h"
 #include "nsIDocShell.h"
 #include "nsIDocShellTreeNode.h"
 #include "nsIFrame.h"
@@ -165,47 +166,15 @@ NS_IMETHODIMP nsDocAccessibleWrap::Shutdown()
   return nsDocAccessible::Shutdown();
 }
 
-NS_IMETHODIMP nsDocAccessibleWrap::FireToolkitEvent(PRUint32 aEvent, nsIAccessible* aAccessible, void* aData)
+NS_IMETHODIMP
+nsDocAccessibleWrap::FireToolkitEvent(PRUint32 aEvent, nsIAccessible* aAccessible, void* aData)
 {
-#ifdef DEBUG_A11Y
-  
-  PRUint32 supportedEvents[] = {
-    nsIAccessibleEvent::EVENT_SHOW,
-    nsIAccessibleEvent::EVENT_HIDE,
-    nsIAccessibleEvent::EVENT_REORDER,
-    nsIAccessibleEvent::EVENT_FOCUS,
-    nsIAccessibleEvent::EVENT_STATE_CHANGE,
-    nsIAccessibleEvent::EVENT_NAME_CHANGE,
-    nsIAccessibleEvent::EVENT_DESCRIPTIONCHANGE,
-    nsIAccessibleEvent::EVENT_LOCATION_CHANGE,
-    nsIAccessibleEvent::EVENT_VALUE_CHANGE,
-    nsIAccessibleEvent::EVENT_SELECTION,
-    nsIAccessibleEvent::EVENT_SELECTION_ADD,
-    nsIAccessibleEvent::EVENT_SELECTION_REMOVE,
-    nsIAccessibleEvent::EVENT_SELECTION_WITHIN,
-    nsIAccessibleEvent::EVENT_ALERT,
-    nsIAccessibleEvent::EVENT_MENUSTART,
-    nsIAccessibleEvent::EVENT_MENUEND,
-    nsIAccessibleEvent::EVENT_MENUPOPUPSTART,
-    nsIAccessibleEvent::EVENT_MENUPOPUPEND,
-    nsIAccessibleEvent::EVENT_SCROLLINGSTART,
-    nsIAccessibleEvent::EVENT_SCROLLINGEND,
-  };
+  PRUint32 winEvent = gWinEventMap[aEvent];
+  if (!winEvent)
+    return NS_OK;
 
-  PRBool found = PR_FALSE;
-  for (PRUint32 count = 0; count < NS_ARRAY_LENGTH(supportedEvents); count ++) {
-    if (aEvent == supportedEvents[count]) {
-      found = PR_TRUE;
-      break;
-    }
-  }
-  if (!found) {
-    
-  }
-#endif
-  if (!mWeakShell) {   
-    return NS_ERROR_FAILURE;
-  }
+  
+  NS_ENSURE_TRUE(mWeakShell, NS_ERROR_FAILURE);
 
   nsDocAccessible::FireToolkitEvent(aEvent, aAccessible, aData); 
 
@@ -262,7 +231,9 @@ NS_IMETHODIMP nsDocAccessibleWrap::FireToolkitEvent(PRUint32 aEvent, nsIAccessib
   
   
   
-  NotifyWinEvent(aEvent, hWnd, worldID, childID);   
+
+  
+  NotifyWinEvent(winEvent, hWnd, worldID, childID);
 
   return NS_OK;
 }
@@ -316,7 +287,7 @@ NS_IMETHODIMP nsDocAccessibleWrap::FireAnchorJumpEvent()
   nsCOMPtr<nsIAccessible> accessible = GetFirstAvailableAccessible(focusNode, PR_TRUE);
   nsCOMPtr<nsPIAccessible> privateAccessible = do_QueryInterface(accessible);
   if (privateAccessible) {
-    privateAccessible->FireToolkitEvent(nsIAccessibleEvent::EVENT_SCROLLINGSTART,
+    privateAccessible->FireToolkitEvent(nsIAccessibleEvent::EVENT_SCROLLING_START,
                                         accessible, nsnull);
   }
   return NS_OK;
