@@ -35,15 +35,11 @@
 
 
 
-
 #ifndef nsPrintSettingsX_h_
 #define nsPrintSettingsX_h_
 
 #include "nsPrintSettingsImpl.h"  
 #include "nsIPrintSettingsX.h"  
-
-
-
 
 
 class nsPrintSettingsX : public nsPrintSettings,
@@ -55,7 +51,7 @@ public:
 
   nsPrintSettingsX();
   virtual ~nsPrintSettingsX();
-  
+
   nsresult Init();
 
 protected:
@@ -64,11 +60,9 @@ protected:
 
   nsresult _Clone(nsIPrintSettings **_retval);
   nsresult _Assign(nsIPrintSettings *aPS);
+
   
   
-
-
-
   nsresult InitUnwriteableMargin();
 
   

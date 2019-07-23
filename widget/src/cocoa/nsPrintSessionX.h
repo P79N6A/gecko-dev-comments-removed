@@ -43,9 +43,6 @@
 #include "nsIPrintSessionX.h"
 
 
-
-
-
 class nsPrintSessionX : public nsPrintSession,
                         public nsIPrintSessionX
 {
@@ -55,11 +52,11 @@ public:
 
   nsPrintSessionX();
   virtual ~nsPrintSessionX();
-  
+
   nsresult Init();
-  
+
 protected:
-  PMPrintSession    mSession;
+  PMPrintSession mSession;
 };
 
 #endif 
