@@ -155,7 +155,7 @@ struct JSTraceMonitor {
 
     JSContext               *tracecx;
 
-    CLS(VMAllocator)        allocator;   
+    CLS(VMAllocator)        dataAlloc;   
     CLS(nanojit::CodeAlloc) codeAlloc;   
     CLS(nanojit::Assembler) assembler;
     CLS(nanojit::LirBuffer) lirbuf;
