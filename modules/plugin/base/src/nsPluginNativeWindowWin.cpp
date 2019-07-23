@@ -207,9 +207,13 @@ static LRESULT CALLBACK PluginWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM
 
   
   
+  
+  nsCOMPtr<nsIPluginInstance> inst;
+  win->GetPluginInstance(inst);
+
+  
+  
   if (win->mPluginType == nsPluginType_Unknown) {
-    nsCOMPtr<nsIPluginInstance> inst;
-    win->GetPluginInstance(inst);
     if (inst) {
       nsCOMPtr<nsIPluginInstancePeer> pip;
       inst->GetPeer(getter_AddRefs(pip));
@@ -332,8 +336,6 @@ static LRESULT CALLBACK PluginWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM
   LRESULT res = TRUE;
 
   nsCOMPtr<nsIPluginInstanceInternal> instInternal;
-  nsCOMPtr<nsIPluginInstance> inst;
-  win->GetPluginInstance(inst);
 
   if (enablePopups) {
     nsCOMPtr<nsIPluginInstanceInternal> tmp = do_QueryInterface(inst);
