@@ -49,6 +49,7 @@
 
 
 
+
 const Cc = Components.classes;
 const Ci = Components.interfaces;
 const Cr = Components.results;
@@ -71,7 +72,8 @@ const NOTIFY_WINDOWS_RESTORED = "sessionstore-windows-restored";
 const OBSERVING = [
   "domwindowopened", "domwindowclosed",
   "quit-application-requested", "quit-application-granted",
-  "quit-application", "browser:purge-session-history"
+  "quit-application", "browser:purge-session-history",
+  "private-browsing"
 ];
 
 
@@ -157,6 +159,9 @@ SessionStoreService.prototype = {
   
   _recentCrashes: 0,
 
+  
+  _inPrivateBrowsing: false,
+
 
 
   
@@ -181,7 +186,11 @@ SessionStoreService.prototype = {
     OBSERVING.forEach(function(aTopic) {
       observerService.addObserver(this, aTopic, true);
     }, this);
-    
+
+    var pbs = Cc["@mozilla.org/privatebrowsing;1"].
+              getService(Ci.nsIPrivateBrowsingService);
+    this._inPrivateBrowsing = pbs.privateBrowsingEnabled;
+
     
     this._interval = this._prefBranch.getIntPref("sessionstore.interval");
     this._prefBranch.addObserver("sessionstore.interval", this, true);
@@ -371,6 +380,32 @@ SessionStoreService.prototype = {
     case "timer-callback": 
       this._saveTimer = null;
       this.saveState();
+      break;
+    case "private-browsing":
+      switch (aData) {
+      case "enter":
+        this.saveState(true);
+        this._inPrivateBrowsing = true;
+        this._stateBackup = this._safeEval(this._getCurrentState(true).toSource());
+        break;
+      case "exit":
+        aSubject.QueryInterface(Ci.nsISupportsPRBool);
+        let quitting = aSubject.data;
+        if (quitting) {
+          
+          
+          if ("_stateBackup" in this) {
+            var oState = this._stateBackup;
+            oState.session = { state: STATE_STOPPED_STR };
+
+            this._saveStateObject(oState);
+          }
+        }
+        else
+          this._inPrivateBrowsing = false;
+        delete this._stateBackup;
+        break;
+      }
       break;
     }
   },
@@ -2141,7 +2176,8 @@ SessionStoreService.prototype = {
       this._dirtyWindows[aWindow.__SSi] = true;
     }
 
-    if (!this._saveTimer && this._resume_from_crash) {
+    if (!this._saveTimer && this._resume_from_crash &&
+        !this._inPrivateBrowsing) {
       
       var minimalDelay = this._lastSaveTime + this._interval - Date.now();
       
@@ -2166,7 +2202,11 @@ SessionStoreService.prototype = {
     
     if (!this._resume_from_crash && this._loadState == STATE_RUNNING)
       return;
+
     
+    if (this._inPrivateBrowsing)
+      return;
+
     var oState = this._getCurrentState(aUpdateAll);
     oState.session = {
       state: this._loadState == STATE_RUNNING ? STATE_RUNNING_STR : STATE_STOPPED_STR,
@@ -2174,19 +2214,26 @@ SessionStoreService.prototype = {
     };
     if (this._recentCrashes)
       oState.session.recentCrashes = this._recentCrashes;
-    
+
+    this._saveStateObject(oState);
+  },
+
+  
+
+
+  _saveStateObject: function sss_saveStateObject(aStateObj) {
     var stateString = Cc["@mozilla.org/supports-string;1"].
                         createInstance(Ci.nsISupportsString);
-    stateString.data = oState.toSource();
-    
+    stateString.data = aStateObj.toSource();
+
     var observerService = Cc["@mozilla.org/observer-service;1"].
                           getService(Ci.nsIObserverService);
     observerService.notifyObservers(stateString, "sessionstore-state-write", "");
-    
+
     
     if (stateString.data)
       this._writeFile(this._sessionFile, stateString.data);
-    
+
     this._lastSaveTime = Date.now();
   },
 
