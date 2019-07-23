@@ -550,12 +550,6 @@ nsAppShellService::UnregisterTopLevelWindow(nsIXULWindow* aWindow)
 
 
 NS_IMETHODIMP
-nsAppShellService::TopLevelWindowIsModal(nsIXULWindow *aWindow, PRBool aModal)
-{
-  return NS_OK;
-}
-
-NS_IMETHODIMP
 nsAppShellService::Observe(nsISupports* aSubject, const char *aTopic,
                            const PRUnichar *aData)
 {
