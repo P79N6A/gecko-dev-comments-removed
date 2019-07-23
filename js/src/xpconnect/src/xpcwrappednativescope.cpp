@@ -272,17 +272,13 @@ WrappedNativeJSGCThingTracer(JSDHashTable *table, JSDHashEntryHdr *hdr,
         JS_CALL_OBJECT_TRACER(trc, wrapper->GetFlatJSObject(),
                               "XPCWrappedNative::mFlatJSObject");
 
-        if (JS_IsGCMarkingTracer(trc)) 
-        {
-            XPCWrappedNativeProto* proto = wrapper->GetProto();
-            if (proto && 
-                proto->ClassIsMainThreadOnly()) 
-            {
-                NS_ASSERTION(NS_IsMainThread(), 
-                             "Tracing wrapped natives from non-main thread");
-                nsCycleCollector_suspectCurrent(wrapper);
-            }
-        }
+        
+        
+        
+        
+        
+        
+        
     }
     return JS_DHASH_NEXT;
 }
