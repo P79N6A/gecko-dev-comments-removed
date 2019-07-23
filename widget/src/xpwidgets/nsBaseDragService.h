@@ -95,11 +95,15 @@ protected:
 
 
 
+
+
+
   nsresult DrawDrag(nsIDOMNode* aDOMNode,
                     nsIScriptableRegion* aRegion,
                     PRInt32 aScreenX, PRInt32 aScreenY,
                     nsRect* aScreenDragRect,
-                    gfxASurface** aSurface);
+                    gfxASurface** aSurface,
+                    nsPresContext **aPresContext);
 
   
 
@@ -109,6 +113,13 @@ protected:
                             PRInt32 aScreenX, PRInt32 aScreenY,
                             nsRect* aScreenDragRect,
                             gfxASurface** aSurface);
+
+  
+
+
+  void
+  ConvertToUnscaledDevPixels(nsPresContext* aPresContext,
+                             PRInt32* aScreenX, PRInt32* aScreenY);
 
   PRPackedBool mCanDrop;
   PRPackedBool mDoingDrag;
