@@ -292,6 +292,12 @@ protected:
 
   already_AddRefed<nsIURI> GetNextSource();
 
+  
+
+
+
+  void ChangeDelayLoadStatus(PRBool aDelay);
+
   nsRefPtr<nsMediaDecoder> mDecoder;
 
   nsCOMPtr<nsIChannel> mChannel;
@@ -307,6 +313,10 @@ protected:
   
   
   nsCOMPtr<nsIDOMRange> mSourcePointer;
+
+  
+  
+  nsCOMPtr<nsIDocument> mLoadBlockedDoc;
 
   
   
@@ -392,4 +402,12 @@ protected:
 
   
   PRPackedBool mIsLoadingFromSrcAttribute;
+
+  
+  
+  PRPackedBool mDelayingLoadEvent;
+
+  
+  
+  PRPackedBool mIsRunningSelectResource;
 };
