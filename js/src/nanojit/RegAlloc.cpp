@@ -43,61 +43,6 @@ namespace nanojit
 {
     #ifdef FEATURE_NANOJIT
 
-    
-
-
-    void RegAlloc::clear()
-    {
-        VMPI_memset(this, 0, sizeof(*this));
-    }
-
-    bool RegAlloc::isFree(Register r)
-    {
-        NanoAssert(r != UnknownReg);
-        return (free & rmask(r)) != 0;
-    }
-
-    void RegAlloc::addFree(Register r)
-    {
-        NanoAssert(!isFree(r));
-        free |= rmask(r);
-    }
-
-    void RegAlloc::addActive(Register r, LIns* v)
-    {
-        
-        NanoAssert(v);
-        NanoAssert(r != UnknownReg);
-        NanoAssert(active[r] == NULL);
-        active[r] = v;
-        useActive(r);
-    }
-
-    void RegAlloc::useActive(Register r)
-    {
-        NanoAssert(r != UnknownReg);
-        NanoAssert(active[r] != NULL);
-        usepri[r] = priority++;
-    }
-
-    void RegAlloc::removeActive(Register r)
-    {
-        
-        NanoAssert(r != UnknownReg);
-        NanoAssert(active[r] != NULL);
-
-        
-        active[r] = NULL;
-    }
-
-    void RegAlloc::retire(Register r)
-    {
-        NanoAssert(r != UnknownReg);
-        NanoAssert(active[r] != NULL);
-        active[r] = NULL;
-        free |= rmask(r);
-    }
-
     #ifdef  NJ_VERBOSE
     void RegAlloc::formatRegisters(char* s, Fragment *frag)
     {
