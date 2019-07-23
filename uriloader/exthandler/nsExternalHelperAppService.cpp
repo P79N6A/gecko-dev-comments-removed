@@ -761,13 +761,8 @@ NS_IMETHODIMP nsExternalHelperAppService::LoadUrl(nsIURI * aURL)
   return LoadURI(aURL, nsnull);
 }
 
-
-
-
 static const char kExternalProtocolPrefPrefix[]  = "network.protocol-handler.external.";
 static const char kExternalProtocolDefaultPref[] = "network.protocol-handler.external-default";
-static const char kExternalWarningPrefPrefix[]   = "network.protocol-handler.warn-external.";
-static const char kExternalWarningDefaultPref[]  = "network.protocol-handler.warn-external-default";
 
 NS_IMETHODIMP 
 nsExternalHelperAppService::LoadURI(nsIURI *aURI,
@@ -811,16 +806,6 @@ nsExternalHelperAppService::LoadURI(nsIURI *aURI,
   if (NS_FAILED(rv) || !allowLoad)
     return NS_OK; 
 
-  
-  nsCAutoString warningPref(kExternalWarningPrefPrefix);
-  warningPref += scheme;
-  PRBool warn = PR_TRUE;
-  rv = prefs->GetBoolPref(warningPref.get(), &warn);
-  if (NS_FAILED(rv))
-  {
-    
-    prefs->GetBoolPref(kExternalWarningDefaultPref, &warn);
-  }
  
   nsCOMPtr<nsIHandlerInfo> handler;
   rv = GetProtocolHandlerInfo(scheme, getter_AddRefs(handler));
@@ -833,9 +818,7 @@ nsExternalHelperAppService::LoadURI(nsIURI *aURI,
 
   
   
-  
-  if (!warn &&
-      !alwaysAsk && (preferredAction == nsIHandlerInfo::useHelperApp ||
+  if (!alwaysAsk && (preferredAction == nsIHandlerInfo::useHelperApp ||
                      preferredAction == nsIHandlerInfo::useSystemDefault))
     return handler->LaunchWithURI(uri, aWindowContext);
   
@@ -895,13 +878,15 @@ nsresult nsExternalHelperAppService::ExpungeTemporaryFiles()
   return NS_OK;
 }
 
+static const char kExternalWarningPrefPrefix[] = 
+  "network.protocol-handler.warn-external.";
+static const char kExternalWarningDefaultPref[] = 
+  "network.protocol-handler.warn-external-default";
+
 NS_IMETHODIMP
 nsExternalHelperAppService::GetProtocolHandlerInfo(const nsACString &aScheme, 
                                                    nsIHandlerInfo **aHandlerInfo)
 {
-  
-  
-
   
   
 
@@ -916,20 +901,37 @@ nsExternalHelperAppService::GetProtocolHandlerInfo(const nsACString &aScheme,
   nsCOMPtr<nsIHandlerService> handlerSvc = do_GetService(NS_HANDLERSERVICE_CONTRACTID);
   if (handlerSvc)
     rv = handlerSvc->FillHandlerInfo(*aHandlerInfo, EmptyCString());
-
+  
+  
+  
   if (NS_FAILED(rv)) {
     
-    
-    
-    
-    
-    (*aHandlerInfo)->SetAlwaysAskBeforeHandling(PR_TRUE);
-    
-    
-    if (exists)
+    if (exists) {
+      
       (*aHandlerInfo)->SetPreferredAction(nsIHandlerInfo::useSystemDefault);
-    else
+
+      
+
+      nsCOMPtr<nsIPrefBranch> prefs(do_GetService(NS_PREFSERVICE_CONTRACTID));
+      if (!prefs)
+        return NS_OK; 
+
+      nsCAutoString warningPref(kExternalWarningPrefPrefix);
+      warningPref += aScheme;
+      PRBool warn = PR_TRUE;
+      rv = prefs->GetBoolPref(warningPref.get(), &warn);
+      if (NS_FAILED(rv))
+      {
+        
+        prefs->GetBoolPref(kExternalWarningDefaultPref, &warn);
+      }
+      (*aHandlerInfo)->SetAlwaysAskBeforeHandling(warn);
+    } else {
+      
+      
+      
       (*aHandlerInfo)->SetPreferredAction(nsIHandlerInfo::alwaysAsk);
+    }
   }
 
   return NS_OK;
