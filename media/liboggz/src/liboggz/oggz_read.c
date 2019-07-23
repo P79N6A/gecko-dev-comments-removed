@@ -124,12 +124,10 @@ oggz_set_read_callback (OGGZ * oggz, long serialno,
     reader->read_user_data = user_data;
   } else {
     stream = oggz_get_stream (oggz, serialno);
-#if 0
-    if (stream == NULL) return OGGZ_ERR_BAD_SERIALNO;
-#else
     if (stream == NULL)
       stream = oggz_add_stream (oggz, serialno);
-#endif
+    if (stream == NULL)
+      return OGGZ_ERR_OUT_OF_MEMORY;
 
     stream->read_packet = read_packet;
     stream->read_user_data = user_data;
@@ -158,12 +156,10 @@ oggz_set_read_page (OGGZ * oggz, long serialno, OggzReadPage read_page,
     reader->read_page_user_data = user_data;
   } else {
     stream = oggz_get_stream (oggz, serialno);
-#if 0
-    if (stream == NULL) return OGGZ_ERR_BAD_SERIALNO;
-#else
     if (stream == NULL)
       stream = oggz_add_stream (oggz, serialno);
-#endif
+    if (stream == NULL)
+      return OGGZ_ERR_OUT_OF_MEMORY;
 
     stream->read_page = read_page;
     stream->read_page_user_data = user_data;
@@ -182,13 +178,11 @@ oggz_set_read_page (OGGZ * oggz, long serialno, OggzReadPage read_page,
 
 
 
+
 static oggz_off_t
-oggz_get_next_page_7 (OGGZ * oggz, ogg_page * og)
+oggz_read_get_next_page (OGGZ * oggz, ogg_page * og)
 {
   OggzReader * reader = &oggz->x.reader;
-#if _UNMODIFIED
-  char * buffer;
-#endif
   long bytes = 0, more;
   oggz_off_t page_offset = 0, ret;
   int found = 0;
@@ -198,25 +192,7 @@ oggz_get_next_page_7 (OGGZ * oggz, ogg_page * og)
 
     if (more == 0) {
       page_offset = 0;
-#if _UMMODIFIED_
-      buffer = ogg_sync_buffer (&reader->ogg_sync, CHUNKSIZE);
-      if ((bytes = oggz_io_read (oggz, buffer, CHUNKSIZE)) == 0) {
-#if 0
-  if (ferror (oggz->file)) {
-    oggz_set_error (oggz, OGGZ_ERR_SYSTEM);
-    return -1;
-  }
-#endif
-      }
-
-      if (bytes == 0) {
-        return -2;
-      }
-
-      ogg_sync_wrote(&reader->ogg_sync, bytes);
-#else
       return -2;
-#endif
     } else if (more < 0) {
 #ifdef DEBUG_VERBOSE
       printf ("get_next_page: skipped %ld bytes\n", -more);
@@ -258,9 +234,11 @@ oggz_read_new_pbuffer_entry(OGGZ *oggz, ogg_packet *packet,
             ogg_int64_t granulepos, long serialno, oggz_stream_t * stream, 
             OggzReader *reader) {
 
-  OggzBufferedPacket *p = malloc(sizeof(OggzBufferedPacket));
+  OggzBufferedPacket *p = oggz_malloc(sizeof(OggzBufferedPacket));
+  if (p == NULL) return NULL;
+
   memcpy(&(p->packet), packet, sizeof(ogg_packet));
-  p->packet.packet = malloc(packet->bytes);
+  p->packet.packet = oggz_malloc(packet->bytes);
   memcpy(p->packet.packet, packet->packet, packet->bytes);
 
   p->calced_granulepos = granulepos;
@@ -275,8 +253,8 @@ oggz_read_new_pbuffer_entry(OGGZ *oggz, ogg_packet *packet,
 void
 oggz_read_free_pbuffer_entry(OggzBufferedPacket *p) {
   
-  free(p->packet.packet);
-  free(p);
+  oggz_free(p->packet.packet);
+  oggz_free(p);
 
 }
 
@@ -371,30 +349,36 @@ oggz_read_sync (OGGZ * oggz)
           
           if ((stream = oggz_add_stream (oggz, serialno)) == NULL) {
             
-            return -7;
+            return OGGZ_ERR_OUT_OF_MEMORY;
           }
         }
         os = &stream->ogg_stream;
 
         result = ogg_stream_packetout(os, op);
 
+        
+
+
+
         if(result == -1) {
 #ifdef DEBUG
           printf ("oggz_read_sync: hole in the data\n");
 #endif
+          
+          if (stream->packetno < 3) return OGGZ_ERR_HOLE_IN_DATA;
+
+          
+
+
           result = ogg_stream_packetout(os, op);
           if (result == -1) {
-#ifdef DEBUG
             
 
 
-
-
-
-
-            printf ("shouldn't get here");
+#ifdef DEBUG
+            printf ("Multiple holes in data!");
 #endif
-            return -7;
+            return OGGZ_ERR_HOLE_IN_DATA;
           }
         }
 
@@ -418,7 +402,7 @@ oggz_read_sync (OGGZ * oggz)
             (oggz->flags & OGGZ_AUTO)
           ) 
           {
-            oggz_auto_get_granulerate (oggz, op, serialno, NULL);
+            oggz_auto_read_bos_packet (oggz, op, serialno, NULL);
           }
 
           
@@ -511,7 +495,7 @@ oggz_read_sync (OGGZ * oggz)
     
     if (cb_ret == OGGZ_STOP_OK || cb_ret == OGGZ_STOP_ERR) return cb_ret;
 
-    if(oggz_get_next_page_7 (oggz, &og) < 0)
+    if(oggz_read_get_next_page (oggz, &og) < 0)
       return OGGZ_READ_EMPTY; 
 
     serialno = ogg_page_serialno (&og);
@@ -523,11 +507,15 @@ oggz_read_sync (OGGZ * oggz)
       
       if ((stream = oggz_add_stream (oggz, serialno)) == NULL) {
         
-        return -7;
+        return OGGZ_ERR_OUT_OF_MEMORY;
       }
 
       
       oggz_auto_identify_page (oggz, &og, serialno);
+
+      
+      if (oggz->flags & OGGZ_AUTO)
+        oggz_auto_read_bos_page (oggz, &og, serialno, NULL);
     }
     else if (oggz_stream_get_content(oggz, serialno) == OGGZ_CONTENT_ANXDATA)
     {
@@ -560,12 +548,6 @@ oggz_read_sync (OGGZ * oggz)
         reader->read_page (oggz, &og, serialno, reader->read_page_user_data);
     }
 
-#if 0
-    
-
-    vf->bittrack+=og.header_len*8;
-#endif
-
     ogg_stream_pagein(os, &og);
   }
 
@@ -594,28 +576,14 @@ oggz_read (OGGZ * oggz, long n)
   reader = &oggz->x.reader;
 
   cb_ret = oggz_read_sync (oggz);
-
-#if 0
-  if (cb_ret == OGGZ_READ_EMPTY) {
-    
-    if (reader->current_unit == 0) cb_ret = 0;
-    else {
-#if 0
-      printf ("oggz_read: EMPTY, current_unit %ld != 0\n",
-              reader->current_unit);
-      return 0;
-#endif
-    }
-  }
-#endif
+  if (cb_ret == OGGZ_ERR_OUT_OF_MEMORY)
+    return cb_ret;
 
   while (cb_ret != OGGZ_STOP_ERR && cb_ret != OGGZ_STOP_OK &&
          bytes_read > 0 && remaining > 0) {
     bytes = MIN (remaining, CHUNKSIZE);
     buffer = ogg_sync_buffer (&reader->ogg_sync, bytes);
-    if ((bytes_read = (long) oggz_io_read (oggz, buffer, bytes)) == 0) {
-      
-    }
+    bytes_read = (long) oggz_io_read (oggz, buffer, bytes);
     if (bytes_read == OGGZ_ERR_SYSTEM) {
       return OGGZ_ERR_SYSTEM;
     }
@@ -627,6 +595,8 @@ oggz_read (OGGZ * oggz, long n)
       nread += bytes_read;
       
       cb_ret = oggz_read_sync (oggz);
+      if (cb_ret == OGGZ_ERR_OUT_OF_MEMORY)
+        return cb_ret;
     }
   }
 
@@ -678,14 +648,8 @@ oggz_read_input (OGGZ * oggz, unsigned char * buf, long n)
   reader = &oggz->x.reader;
 
   cb_ret = oggz_read_sync (oggz);
-
-#if 0
-  if (cb_ret == OGGZ_READ_EMPTY) {
-    
-    if (reader->current_unit == 0) cb_ret = 0;
-    else return 0;
-  }
-#endif
+  if (cb_ret == OGGZ_ERR_OUT_OF_MEMORY)
+    return cb_ret;
 
   while (cb_ret != OGGZ_STOP_ERR && cb_ret != OGGZ_STOP_OK  &&
           remaining > 0) {
@@ -699,6 +663,8 @@ oggz_read_input (OGGZ * oggz, unsigned char * buf, long n)
     nread += bytes;
 
     cb_ret = oggz_read_sync (oggz);
+    if (cb_ret == OGGZ_ERR_OUT_OF_MEMORY)
+      return cb_ret;
   }
 
   if (cb_ret == OGGZ_STOP_ERR) oggz_purge (oggz);

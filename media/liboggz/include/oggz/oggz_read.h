@@ -102,6 +102,7 @@ typedef int (*OggzReadPacket) (OGGZ * oggz, ogg_packet * op, long serialno,
 
 
 
+
 int oggz_set_read_callback (OGGZ * oggz, long serialno,
 			    OggzReadPacket read_packet, void * user_data);
 
@@ -139,8 +140,10 @@ typedef int (*OggzReadPage) (OGGZ * oggz, const ogg_page * og,
 
 
 
+
 int oggz_set_read_page (OGGZ * oggz, long serialno,
 			OggzReadPage read_page, void * user_data);
+
 
 
 

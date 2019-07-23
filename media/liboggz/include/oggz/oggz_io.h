@@ -126,6 +126,7 @@ typedef int (*OggzIOFlush) (void * user_handle);
 
 
 
+
 int oggz_io_set_read (OGGZ * oggz, OggzIORead read, void * user_handle);
 
 
@@ -136,6 +137,7 @@ int oggz_io_set_read (OGGZ * oggz, OggzIORead read, void * user_handle);
 
 
 void * oggz_io_get_read_user_handle (OGGZ * oggz);
+
 
 
 
@@ -172,6 +174,7 @@ void * oggz_io_get_write_user_handle (OGGZ * oggz);
 
 
 
+
 int oggz_io_set_seek (OGGZ * oggz, OggzIOSeek seek, void * user_handle);
 
 
@@ -194,6 +197,7 @@ void * oggz_io_get_seek_user_handle (OGGZ * oggz);
 
 
 
+
 int oggz_io_set_tell (OGGZ * oggz, OggzIOTell tell, void * user_handle);
 
 
@@ -204,6 +208,7 @@ int oggz_io_set_tell (OGGZ * oggz, OggzIOTell tell, void * user_handle);
 
 
 void * oggz_io_get_tell_user_handle (OGGZ * oggz);
+
 
 
 

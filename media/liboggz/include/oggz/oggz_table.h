@@ -49,6 +49,7 @@ typedef void OggzTable;
 
 
 
+
 OggzTable *
 oggz_table_new (void);
 
