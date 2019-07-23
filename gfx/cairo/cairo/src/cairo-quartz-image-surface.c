@@ -41,6 +41,13 @@
 #define SURFACE_ERROR_NO_MEMORY (_cairo_surface_create_in_error(_cairo_error(CAIRO_STATUS_NO_MEMORY)))
 #define SURFACE_ERROR_INVALID_FORMAT (_cairo_surface_create_in_error(_cairo_error(CAIRO_STATUS_INVALID_FORMAT)))
 
+static void
+DataProviderReleaseCallback (void *info, const void *data, size_t size)
+{
+    cairo_surface_t *surface = (cairo_surface_t *) info;
+    cairo_surface_destroy (surface);
+}
+
 CGImageRef
 _cairo_quartz_create_cgimage (cairo_format_t format,
 			      unsigned int width,
@@ -192,6 +199,36 @@ _cairo_quartz_image_surface_get_extents (void *asurface,
     return CAIRO_STATUS_SUCCESS;
 }
 
+
+
+
+
+static cairo_status_t
+_cairo_quartz_image_surface_flush (void *asurface)
+{
+    cairo_quartz_image_surface_t *surface = (cairo_quartz_image_surface_t *) asurface;
+    CGImageRef oldImage = surface->image;
+    CGImageRef newImage = NULL;
+
+    
+    cairo_surface_reference ((cairo_surface_t*) surface->imageSurface);
+
+    newImage = _cairo_quartz_create_cgimage (surface->imageSurface->format,
+					     surface->imageSurface->width,
+					     surface->imageSurface->height,
+					     surface->imageSurface->stride,
+					     surface->imageSurface->data,
+					     FALSE,
+					     NULL,
+					     DataProviderReleaseCallback,
+					     surface->imageSurface);
+
+    surface->image = newImage;
+    CGImageRelease (oldImage);
+
+    return CAIRO_STATUS_SUCCESS;
+}
+
 static const cairo_surface_backend_t cairo_quartz_image_surface_backend = {
     CAIRO_SURFACE_TYPE_QUARTZ_IMAGE,
     _cairo_quartz_image_surface_create_similar,
@@ -211,7 +248,7 @@ static const cairo_surface_backend_t cairo_quartz_image_surface_backend = {
     _cairo_quartz_image_surface_get_extents,
     NULL, 
     NULL, 
-    NULL, 
+    _cairo_quartz_image_surface_flush,
     NULL, 
     NULL, 
     NULL, 
@@ -227,13 +264,6 @@ static const cairo_surface_backend_t cairo_quartz_image_surface_backend = {
     NULL  
 
 };
-
-static void
-DataProviderReleaseCallback (void *info, const void *data, size_t size)
-{
-    cairo_surface_t *surface = (cairo_surface_t *) info;
-    cairo_surface_destroy (surface);
-}
 
 
 
@@ -337,4 +367,3 @@ cairo_quartz_image_surface_get_image (cairo_surface_t *asurface)
 
     return (cairo_surface_t*) surface->imageSurface;
 }
-
