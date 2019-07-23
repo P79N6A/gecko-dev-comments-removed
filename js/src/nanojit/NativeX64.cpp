@@ -575,7 +575,7 @@ namespace nanojit
 
     void Assembler::JMP(NIns *target) {
         if (!target || isTargetWithinS32(target)) {
-            if (target && isS8(target - _nIns)) {
+            if (target && isTargetWithinS8(target)) {
                 JMP8(8, target);
             } else {
                 JMP32(8, target);
@@ -1028,7 +1028,6 @@ namespace nanojit
         
         NanoAssert((condop & ~LIR64) >= LIR_ov);
         NanoAssert((condop & ~LIR64) <= LIR_uge);
-        underrunProtect(8); 
         if (target && isTargetWithinS8(target)) {
             if (onFalse) {
                 switch (condop & ~LIR64) {
@@ -1171,8 +1170,9 @@ namespace nanojit
                 
                 
                 
+                underrunProtect(16); 
                 NIns *skip = _nIns;
-                JE(16, target);     
+                JE(0, target);      
                 patch = _nIns;
                 JP8(0, skip);       
             }
