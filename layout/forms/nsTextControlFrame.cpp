@@ -1690,7 +1690,7 @@ nsTextControlFrame::CreateAnonymousContent(nsTArray<nsIContent*>& aElements)
 
   
   
-  mAnonymousDiv->SetNativeAnonymous(PR_TRUE);
+  mAnonymousDiv->SetNativeAnonymous();
 
   
 

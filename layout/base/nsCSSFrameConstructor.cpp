@@ -1947,7 +1947,7 @@ nsCSSFrameConstructor::CreateAttributeContent(nsIContent* aParentContent,
                                        getter_AddRefs(content));
   NS_ENSURE_SUCCESS(rv, rv);
 
-  content->SetNativeAnonymous(PR_TRUE);
+  content->SetNativeAnonymous();
 
   
   rv = content->BindToTree(mDocument, aParentContent, content, PR_TRUE);
@@ -2016,7 +2016,7 @@ nsCSSFrameConstructor::CreateGeneratedFrameFor(nsIFrame*             aParentFram
                                            data.mContent.mImage);
     NS_ENSURE_SUCCESS(rv, rv);
 
-    content->SetNativeAnonymous(PR_TRUE);
+    content->SetNativeAnonymous();
   
     
     
@@ -2200,7 +2200,7 @@ nsCSSFrameConstructor::CreateGeneratedFrameFor(nsIFrame*             aParentFram
           NS_ASSERTION(*textPtr, "must implement nsIDOMCharacterData");
         }
 
-        textContent->SetNativeAnonymous(PR_TRUE);
+        textContent->SetNativeAnonymous();
 
         
         nsresult rv = textContent->BindToTree(mDocument, aContent, textContent,
@@ -5735,7 +5735,7 @@ nsCSSFrameConstructor::CreateAnonymousFrames(nsFrameConstructorState& aState,
     nsIContent* content = newAnonymousItems[i];
     NS_ASSERTION(content, "null anonymous content?");
 
-    content->SetNativeAnonymous(PR_TRUE);
+    content->SetNativeAnonymous();
 
     nsIContent* bindingParent = content;
 #ifdef MOZ_SVG

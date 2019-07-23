@@ -62,42 +62,28 @@ class nsIDocShell;
 
 
 #define NS_ICONTENT_IID       \
-{ 0xe0c5d967, 0x2c15, 0x4097, \
-  { 0xb0, 0xdc, 0x75, 0xa3, 0xa7, 0xfc, 0xcd, 0x1a } }
-
-
-class nsIContent_base : public nsINode {
-public:
-#ifdef MOZILLA_INTERNAL_API
-  
-  
-
-  nsIContent_base(nsINodeInfo *aNodeInfo)
-    : nsINode(aNodeInfo)
-  {
-  }
-#endif
-
-  NS_DECLARE_STATIC_IID_ACCESSOR(NS_ICONTENT_IID)
-};
+{ 0xfba9aa39, 0x016e, 0x4d5d, \
+  { 0xab, 0x62, 0x22, 0xa1, 0xb8, 0x4a, 0x3c, 0x7b } }
 
 
 
 
 
-class nsIContent : public nsIContent_base {
+class nsIContent : public nsINode {
 public:
 #ifdef MOZILLA_INTERNAL_API
   
   
 
   nsIContent(nsINodeInfo *aNodeInfo)
-    : nsIContent_base(aNodeInfo)
+    : nsINode(aNodeInfo)
   {
     NS_ASSERTION(aNodeInfo,
                  "No nsINodeInfo passed to nsIContent, PREPARE TO CRASH!!!");
   }
 #endif 
+
+  NS_DECLARE_STATIC_IID_ACCESSOR(NS_ICONTENT_IID)
 
   
 
@@ -168,18 +154,11 @@ public:
   
 
 
-  PRBool IsAnonymousForEvents() const
+
+  void SetNativeAnonymous()
   {
-    return HasFlag(NODE_IS_ANONYMOUS_FOR_EVENTS);
+    SetFlags(NODE_IS_ANONYMOUS);
   }
-
-  
-
-
-
-
-
-  virtual void SetNativeAnonymous(PRBool aAnonymous);
 
   
 
@@ -867,4 +846,4 @@ NS_DEFINE_STATIC_IID_ACCESSOR(nsIContent, NS_ICONTENT_IID)
   }
 
 
-#endif
+#endif 

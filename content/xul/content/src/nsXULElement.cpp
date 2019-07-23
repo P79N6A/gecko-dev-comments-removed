@@ -832,22 +832,6 @@ nsXULElement::UnbindFromTree(PRBool aDeep, PRBool aNullParent)
     nsGenericElement::UnbindFromTree(aDeep, aNullParent);
 }
 
-void
-nsXULElement::SetNativeAnonymous(PRBool aAnonymous)
-{
-    
-    if (NodeInfo()->Equals(nsGkAtoms::popupgroup)) {
-        nsGenericElement::SetNativeAnonymous(aAnonymous);
-    } else {
-      
-      if (aAnonymous) {
-        SetFlags(NODE_IS_ANONYMOUS_FOR_EVENTS);
-      } else {
-        UnsetFlags(NODE_IS_ANONYMOUS_FOR_EVENTS);
-      }
-    }
-}
-
 PRUint32
 nsXULElement::GetChildCount() const
 {
