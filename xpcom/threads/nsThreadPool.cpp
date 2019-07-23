@@ -162,6 +162,16 @@ nsThreadPool::Run()
   PRBool wasIdle = PR_FALSE;
   PRIntervalTime idleSince;
 
+  nsCOMPtr<nsIThreadPoolListener> listener;
+  {
+    nsAutoMonitor mon(mEvents.Monitor());
+    listener = mListener;
+  }
+
+  if (listener) {
+    listener->OnThreadCreated();
+  }
+
   do {
     nsCOMPtr<nsIRunnable> event;
     {
@@ -210,8 +220,12 @@ nsThreadPool::Run()
     }
   } while (!exitThread);
 
-  if (shutdownThreadOnExit)
+  if (shutdownThreadOnExit) {
+    if (listener) {
+      listener->OnThreadShuttingDown();
+    }
     ShutdownThread(current);
+  }
 
   LOG(("THRD-P(%p) leave\n", this));
   return NS_OK;
@@ -257,12 +271,18 @@ NS_IMETHODIMP
 nsThreadPool::Shutdown()
 {
   nsCOMArray<nsIThread> threads;
+  nsCOMPtr<nsIThreadPoolListener> listener;
   {
     nsAutoMonitor mon(mEvents.Monitor());
     mShutdown = PR_TRUE;
     mon.NotifyAll();
 
     threads.AppendObjects(mThreads);
+
+    
+    
+    
+    mListener.swap(listener);
   }
 
   
@@ -324,5 +344,24 @@ nsThreadPool::SetIdleThreadTimeout(PRUint32 value)
   nsAutoMonitor mon(mEvents.Monitor());
   mIdleThreadTimeout = value;
   mon.NotifyAll();  
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsThreadPool::GetListener(nsIThreadPoolListener** aListener)
+{
+  nsAutoMonitor mon(mEvents.Monitor());
+  NS_IF_ADDREF(*aListener = mListener);
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsThreadPool::SetListener(nsIThreadPoolListener* aListener)
+{
+  nsCOMPtr<nsIThreadPoolListener> swappedListener(aListener);
+  {
+    nsAutoMonitor mon(mEvents.Monitor());
+    mListener.swap(swappedListener);
+  }
   return NS_OK;
 }
