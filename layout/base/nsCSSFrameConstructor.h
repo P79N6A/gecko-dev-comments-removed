@@ -275,6 +275,12 @@ public:
   nsIFrame* GetDocElementContainingBlock()
     { return mDocElementContainingBlock; }
 
+  
+  
+  
+  
+  PRBool IsDestroyingFrameTree() { return mIsDestroyingFrameTree; }
+
 private:
 
   nsresult ReconstructDocElementHierarchyInternal();
