@@ -5746,23 +5746,12 @@ PrimaryExpr(JSContext *cx, JSTokenStream *ts, JSTreeContext *tc,
             return NULL;
         if (genexp)
             return pn2;
-
         MUST_MATCH_TOKEN(TOK_RP, JSMSG_PAREN_IN_PAREN);
+
+        
         if (pn2->pn_type == TOK_RP ||
             (js_CodeSpec[pn2->pn_op].prec >= js_CodeSpec[JSOP_GETPROP].prec &&
              !afterDot)) {
-            
-
-
-
-
-
-
-
-
-
-
-
             RecycleTree(pn, tc);
             pn = pn2;
         } else {

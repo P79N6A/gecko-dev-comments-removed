@@ -592,6 +592,7 @@ typedef enum JSSrcNoteType {
     SRC_CONTINUE    = 5,        
 
 
+
     SRC_DECL        = 6,        
     SRC_DESTRUCT    = 6,        
 

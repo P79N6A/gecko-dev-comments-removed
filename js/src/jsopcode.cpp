@@ -1628,9 +1628,16 @@ DecompileDestructuring(SprintStack *ss, jsbytecode *pc, jsbytecode *endpc)
 
 
 
+
+
+
         sn = js_GetSrcNote(jp->script, pc);
-        if (sn && SN_TYPE(sn) == SRC_DESTRUCT)
+        if (!sn)
             break;
+        if (SN_TYPE(sn) != SRC_CONTINUE) {
+            LOCAL_ASSERT(SN_TYPE(sn) == SRC_DESTRUCT);
+            break;
+        }
 
         if (!hole && SprintPut(&ss->sprinter, ", ", 2) < 0)
             return NULL;

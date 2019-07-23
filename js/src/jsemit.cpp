@@ -3450,6 +3450,9 @@ EmitDestructuringOpsHelper(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn)
         
 
 
+
+        if (pn2 != pn->pn_head && js_NewSrcNote(cx, cg, SRC_CONTINUE) < 0)
+            return JS_FALSE;
         if (js_Emit1(cx, cg, JSOP_DUP) < 0)
             return JS_FALSE;
 
