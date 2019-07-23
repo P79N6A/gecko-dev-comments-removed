@@ -10965,6 +10965,25 @@ nsCSSFrameConstructor::MaybeRecreateContainerForIBSplitterFrame(nsIFrame* aFrame
     return PR_FALSE;
   }
 
+
+  
+  
+  
+  
+  
+  
+  
+  if (IsInlineOutside(aFrame) &&
+      (
+       
+       GetSpecialSibling(parent) || !IsInlineOutside(parent) ||
+       
+       aFrame->GetLastContinuation()->GetNextSibling() ||
+       aFrame != parent->GetFirstContinuation()->GetFirstChild(nsnull)
+      )) {
+     return PR_FALSE;
+  }
+
 #ifdef DEBUG
   if (gNoisyContentUpdates || 1) {
     printf("nsCSSFrameConstructor::MaybeRecreateContainerForIBSplitterFrame: "
