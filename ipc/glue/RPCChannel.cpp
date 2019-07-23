@@ -107,6 +107,10 @@ RPCChannel::Call(Message* msg, Message* reply)
     while (1) {
         
         
+        MaybeProcessDeferredIncall();
+
+        
+        
         while (Connected() && mPending.empty()) {
             WaitForNotify();
         }
@@ -153,11 +157,6 @@ RPCChannel::Call(Message* msg, Message* reply)
             if (!isError) {
                 *reply = recvd;
             }
-
-            
-            
-            
-            MaybeProcessDeferredIncall();
 
             if (0 == StackDepth())
                 
@@ -220,11 +219,18 @@ RPCChannel::MaybeProcessDeferredIncall()
 void
 RPCChannel::EnqueuePendingMessages()
 {
-    
-    
-
     AssertWorkerThread();
     mMutex.AssertCurrentThreadOwns();
+    RPC_ASSERT(mDeferred.empty() || 1 == mDeferred.size(),
+               "expected mDeferred to have 0 or 1 items");
+
+    if (!mDeferred.empty())
+        mWorkerLoop->PostTask(
+            FROM_HERE,
+            NewRunnableMethod(this, &RPCChannel::OnMaybeDequeueOne));
+
+    
+    
 
     for (size_t i = 0; i < mPending.size(); ++i)
         mWorkerLoop->PostTask(
@@ -240,10 +246,15 @@ RPCChannel::OnMaybeDequeueOne()
 
     AssertWorkerThread();
     mMutex.AssertNotCurrentThreadOwns();
+    RPC_ASSERT(mDeferred.empty() || 1 == mDeferred.size(),
+               "expected mDeferred to have 0 or 1 items, but it has %lu");
 
     Message recvd;
     {
         MutexAutoLock lock(mMutex);
+
+        if (!mDeferred.empty())
+            return MaybeProcessDeferredIncall();
 
         if (mPending.empty())
             return;
