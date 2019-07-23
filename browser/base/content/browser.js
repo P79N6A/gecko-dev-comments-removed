@@ -3303,25 +3303,6 @@ function BrowserToolboxCustomizeDone(aToolboxChanged) {
   var cmd = document.getElementById("cmd_CustomizeToolbars");
   cmd.removeAttribute("disabled");
 
-  
-  
-  var reloadButton = document.getElementById("reload-button");
-  if (reloadButton) {
-    reloadButton.disabled =
-      document.getElementById("Browser:Reload").getAttribute("disabled") == "true";
-  }
-  
-  var backButton = document.getElementById("back-button");
-  if (backButton) {
-    backButton.disabled =
-      document.getElementById("Browser:Back").getAttribute("disabled") == "true";
-  }
-  var forwardButton = document.getElementById("forward-button");
-  if (forwardButton) {
-    forwardButton.disabled =
-      document.getElementById("Browser:Forward").getAttribute("disabled") == "true";
-  }
-
 #ifdef XP_MACOSX
   
   if (!getBoolPref("ui.click_hold_context_menus", false))
