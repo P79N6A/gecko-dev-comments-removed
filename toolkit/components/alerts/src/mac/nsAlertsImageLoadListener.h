@@ -1,0 +1,64 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#ifndef nsAlertsImageLoadListener_h_
+#define nsAlertsImageLoadListener_h_
+
+#import "mozGrowlDelegate.h"
+
+#include "nsIStreamLoader.h"
+#include "nsString.h"
+
+class nsAlertsImageLoadListener : public nsIStreamLoaderObserver
+{
+public:
+  nsAlertsImageLoadListener(const nsAString& aAlertTitle,
+                            const nsAString& aAlertText,
+                            PRBool aAlertClickable,
+                            const nsAString& aAlertCookie,
+                            PRUint32 aAlertListenerKey);
+
+  NS_DECL_ISUPPORTS
+  NS_DECL_NSISTREAMLOADEROBSERVER
+private:
+  nsString mAlertTitle;
+  nsString mAlertText;
+  PRBool   mAlertClickable;
+  nsString mAlertCookie;
+  PRUint32 mAlertListenerKey;
+};
+
+#endif 
