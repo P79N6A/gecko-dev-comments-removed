@@ -1669,6 +1669,7 @@ nsMenuPopupFrame::AttributeChanged(PRInt32 aNameSpaceID,
   
   if (aAttribute == nsGkAtoms::menugenerated &&
       mFrames.IsEmpty() && !mGeneratedChildren) {
+    EnsureWidget();
     PresContext()->PresShell()->FrameConstructor()->
       AddLazyChildren(mContent, LazyGeneratePopupDone, nsnull, PR_TRUE);
   }
