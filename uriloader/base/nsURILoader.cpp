@@ -402,17 +402,14 @@ nsresult nsDocumentOpenInfo::DispatchContent(nsIRequest *request, nsISupports * 
       
       
       if (NS_FAILED(rv) || 
-          (
-           
-           
-           !dispToken.IsEmpty() &&
+          (!dispToken.IsEmpty() &&
            !dispToken.LowerCaseEqualsLiteral("inline") &&
-          
-          
-          
-           !dispToken.EqualsIgnoreCase("filename", 8)) &&
-          
-           !dispToken.EqualsIgnoreCase("name", 4))
+           
+           
+           
+           !dispToken.EqualsIgnoreCase("filename", 8) &&
+           
+           !dispToken.EqualsIgnoreCase("name", 4)))
         
         forceExternalHandling = PR_TRUE;
     }

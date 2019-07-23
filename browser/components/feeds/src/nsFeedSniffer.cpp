@@ -161,17 +161,14 @@ HasAttachmentDisposition(nsIHttpChannel* httpChannel)
       
       
       if (NS_FAILED(rv) || 
-          (
-           
-           
-           !dispToken.IsEmpty() &&
+          (!dispToken.IsEmpty() &&
            !StringBeginsWithLowercaseLiteral(dispToken, "inline") &&
            
            
            
-           !StringBeginsWithLowercaseLiteral(dispToken, "filename")) &&
-          
-          !StringBeginsWithLowercaseLiteral(dispToken, "name"))
+           !StringBeginsWithLowercaseLiteral(dispToken, "filename") &&
+           
+           !StringBeginsWithLowercaseLiteral(dispToken, "name")))
         
         return PR_TRUE;
     }
