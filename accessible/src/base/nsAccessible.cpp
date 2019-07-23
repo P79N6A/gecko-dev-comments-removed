@@ -1082,70 +1082,73 @@ NS_IMETHODIMP nsAccessible::GetFocusedChild(nsIAccessible **aFocusedChild)
 }
 
   
-NS_IMETHODIMP nsAccessible::GetChildAtPoint(PRInt32 tx, PRInt32 ty, nsIAccessible **aAccessible)
+NS_IMETHODIMP
+nsAccessible::GetChildAtPoint(PRInt32 aX, PRInt32 aY,
+                              nsIAccessible **aAccessible)
 {
+  NS_ENSURE_ARG_POINTER(aAccessible);
   *aAccessible = nsnull;
 
-  nsCOMPtr<nsIAccessible> child;
-  GetFirstChild(getter_AddRefs(child));
+  
+  
+  
+  
+  
+  
+  nsCOMPtr<nsIAccessibleDocument> accDocument;
+  nsresult rv = GetAccessibleDocument(getter_AddRefs(accDocument));
+  NS_ENSURE_SUCCESS(rv, rv);
 
-  PRInt32 x, y, w, h;
-  PRUint32 state;
-
-  nsCOMPtr<nsIAccessible> childAtPoint;
-  while (child) {
-    child->GetBounds(&x, &y, &w, &h);
-    if (tx >= x && tx < x + w && ty >= y && ty < y + h) {
-      nsCOMPtr<nsPIAccessNode> accessNode(do_QueryInterface(child));
-      if (accessNode) {
-        nsIFrame *frame = accessNode->GetFrame();
-        if (!frame) {
-          state = State(child);
-          
-          
-          
-          if ((state & (nsIAccessibleStates::STATE_OFFSCREEN |
-              nsIAccessibleStates::STATE_INVISIBLE)) == 0) {
-            
-            NS_IF_ADDREF(*aAccessible = child);
-            return NS_OK;
-          }
-        }
-        else {
-          
-          
-          
-          
-          
-          while (frame) {
-            if (frame->GetScreenRectExternal().Contains(tx, ty)) {
-              childAtPoint = child;
-              break; 
-            }
-            frame = frame->GetNextContinuation();
-          }
-        }
-      }
-    }
-    nsCOMPtr<nsIAccessible> next;
-    child->GetNextSibling(getter_AddRefs(next));
-    child = next;
-  }
-
-  if (childAtPoint) {
-    NS_ADDREF(*aAccessible = childAtPoint);
+  if (!accDocument)
     return NS_OK;
-  }
-  GetState(&state, nsnull);
-  GetBounds(&x, &y, &w, &h);
-  if ((state & (nsIAccessibleStates::STATE_OFFSCREEN |
-                nsIAccessibleStates::STATE_INVISIBLE)) == 0 &&
-      tx >= x && tx < x + w && ty >= y && ty < y + h) {
-    *aAccessible = this;
-    NS_ADDREF_THIS();
+
+  nsCOMPtr<nsPIAccessNode> accessNodeDocument(do_QueryInterface(accDocument));
+  NS_ASSERTION(accessNodeDocument,
+               "nsIAccessibleDocument doesn't implement nsPIAccessNode");
+
+  nsIFrame *frame = accessNodeDocument->GetFrame();
+  NS_ENSURE_STATE(frame);
+
+  nsPresContext *presContext = frame->PresContext();
+
+  nsIntRect screenRect = frame->GetScreenRectExternal();
+  nsPoint offset(presContext->DevPixelsToAppUnits(aX - screenRect.x),
+                 presContext->DevPixelsToAppUnits(aY - screenRect.y));
+
+  nsCOMPtr<nsIPresShell> presShell = presContext->PresShell();
+  nsIFrame *foundFrame = presShell->GetFrameForPoint(frame, offset);
+  if (!foundFrame)
     return NS_OK;
+
+  nsCOMPtr<nsIContent> content(foundFrame->GetContent());
+  if (!content)
+    return NS_OK;
+
+  nsCOMPtr<nsIDOMNode> node(do_QueryInterface(content));
+  nsCOMPtr<nsIAccessibilityService> accService = GetAccService();
+
+  nsCOMPtr<nsIDOMNode> relevantNode;
+  accService->GetRelevantContentNodeFor(node, getter_AddRefs(relevantNode));
+  if (!relevantNode)
+    return NS_OK;
+
+  nsCOMPtr<nsIAccessible> accessible;
+  accService->GetAccessibleFor(relevantNode, getter_AddRefs(accessible));
+  if (!accessible)
+    return NS_OK;
+
+  nsCOMPtr<nsIAccessible> parent;
+  accessible->GetParent(getter_AddRefs(parent));
+
+  while (parent && parent != this) {
+    accessible.swap(parent);
+    accessible->GetParent(getter_AddRefs(parent));
   }
-  return NS_ERROR_FAILURE;
+
+  if (parent)
+    NS_ADDREF(*aAccessible = accessible);
+
+  return NS_OK;
 }
 
 void nsAccessible::GetBoundsRect(nsRect& aTotalBounds, nsIFrame** aBoundingFrame)
