@@ -67,6 +67,7 @@ class nsIXPConnect;
 class nsINode;
 class nsIContent;
 class nsIDOMNode;
+class nsIDOMKeyEvent;
 class nsIDocument;
 class nsIDocShell;
 class nsINameSpaceManager;
@@ -1196,7 +1197,7 @@ public:
 
 
 
-  static void GetAccelKeyCandidates(nsIDOMEvent* aDOMEvent,
+  static void GetAccelKeyCandidates(nsIDOMKeyEvent* aDOMKeyEvent,
                                     nsTArray<nsShortcutCandidate>& aCandidates);
 
   

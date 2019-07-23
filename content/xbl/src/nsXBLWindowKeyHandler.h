@@ -46,6 +46,7 @@
 class nsIAtom;
 class nsIDOMElement;
 class nsIDOMEventTarget;
+class nsIDOMKeyEvent;
 class nsPIDOMEventTarget;
 class nsIXBLDocumentInfo;
 class nsXBLSpecialDocInfo;
@@ -73,15 +74,15 @@ public:
   static NS_HIDDEN_(void) ShutDown();
 
 protected:
-  nsresult WalkHandlers(nsIDOMEvent* aKeyEvent, nsIAtom* aEventType);
+  nsresult WalkHandlers(nsIDOMKeyEvent* aKeyEvent, nsIAtom* aEventType);
 
   
-  nsresult WalkHandlersInternal(nsIDOMEvent* aKeyEvent,
+  nsresult WalkHandlersInternal(nsIDOMKeyEvent* aKeyEvent,
                                 nsIAtom* aEventType, 
                                 nsXBLPrototypeHandler* aHandler);
 
   
-  PRBool WalkHandlersAndExecute(nsIDOMEvent* aEvent, nsIAtom* aEventType,
+  PRBool WalkHandlersAndExecute(nsIDOMKeyEvent* aKeyEvent, nsIAtom* aEventType,
                                 nsXBLPrototypeHandler* aHandler,
                                 PRUint32 aCharCode, PRBool aIgnoreShiftKey);
 
@@ -91,7 +92,7 @@ protected:
 
   
   PRBool EventMatched(nsXBLPrototypeHandler* inHandler, nsIAtom* inEventType,
-                      nsIDOMEvent* inEvent, PRUint32 aCharCode,
+                      nsIDOMKeyEvent* inEvent, PRUint32 aCharCode,
                       PRBool aIgnoreShiftKey);
 
   

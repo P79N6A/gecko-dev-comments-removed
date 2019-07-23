@@ -4002,20 +4002,22 @@ IsCaseChangeableChar(PRUint32 aChar)
 
 
 void
-nsContentUtils::GetAccelKeyCandidates(nsIDOMEvent* aDOMEvent,
+nsContentUtils::GetAccelKeyCandidates(nsIDOMKeyEvent* aDOMKeyEvent,
                   nsTArray<nsShortcutCandidate>& aCandidates)
 {
   NS_PRECONDITION(aCandidates.IsEmpty(), "aCandidates must be empty");
 
   nsAutoString eventType;
-  aDOMEvent->GetType(eventType);
+  aDOMKeyEvent->GetType(eventType);
   
   if (!eventType.EqualsLiteral("keypress"))
     return;
 
   nsKeyEvent* nativeKeyEvent =
-    static_cast<nsKeyEvent*>(GetNativeEvent(aDOMEvent));
+    static_cast<nsKeyEvent*>(GetNativeEvent(aDOMKeyEvent));
   if (nativeKeyEvent) {
+    NS_ASSERTION(nativeKeyEvent->eventStructType == NS_KEY_EVENT,
+                 "wrong type of native event");
     
     
     
@@ -4092,9 +4094,8 @@ nsContentUtils::GetAccelKeyCandidates(nsIDOMEvent* aDOMEvent,
       }
     }
   } else {
-    nsCOMPtr<nsIDOMKeyEvent> key(do_QueryInterface(aDOMEvent));
     PRUint32 charCode;
-    key->GetCharCode(&charCode);
+    aDOMKeyEvent->GetCharCode(&charCode);
     if (charCode) {
       nsShortcutCandidate key(charCode, PR_FALSE);
       aCandidates.AppendElement(key);
