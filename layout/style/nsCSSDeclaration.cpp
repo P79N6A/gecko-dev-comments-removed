@@ -1098,8 +1098,8 @@ nsCSSDeclaration::ToString(nsAString& aString) const
       NS_ASSERTION(shorthand != eCSSProperty_font ||
                    *(shorthands + 1) == eCSSProperty_UNKNOWN,
                    "font should always be the only containing shorthand");
-      if (shorthand == eCSSProperty_font && haveSystemFont) {
-        if (!didSystemFont) {
+      if (shorthand == eCSSProperty_font) {
+        if (haveSystemFont && !didSystemFont) {
           
           
           
@@ -1114,12 +1114,14 @@ nsCSSDeclaration::ToString(nsAString& aString) const
         
         
         
+        
+        
         NS_ASSERTION(nsCSSProps::kTypeTable[property] == eCSSType_Value,
                      "not a value typed subproperty");
         const nsCSSValue *val =
           systemFontData->ValueStorageFor(property);
         if (property == eCSSProperty__x_system_font ||
-            (val && val->GetUnit() == eCSSUnit_System_Font)) {
+            (haveSystemFont && val && val->GetUnit() == eCSSUnit_System_Font)) {
           doneProperty = PR_TRUE;
         }
       }
