@@ -550,7 +550,21 @@ nsRootAccessible::FireCurrentFocusEvent()
         nsCOMPtr<nsIDOMNode> targetNode;
         accService->GetRelevantContentNodeFor(focusedNode,
                                             getter_AddRefs(targetNode));
+
         if (targetNode) {
+          
+          
+          nsCOMPtr<nsIContent> targetContent(do_QueryInterface(targetNode));
+          if (targetContent) {
+            nsCOMPtr<nsIDOMNode> document =
+              do_QueryInterface(targetContent->GetOwnerDoc());
+            if (targetContent == nsCoreUtils::GetRoleContent(document)) {
+              HandleEventWithTarget(event, document);
+              return;
+            }
+          }
+
+          
           HandleEventWithTarget(event, targetNode);
         }
       }
