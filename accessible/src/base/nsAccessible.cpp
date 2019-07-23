@@ -1440,20 +1440,54 @@ NS_IMETHODIMP nsAccessible::TakeSelection()
 }
 
 
-NS_IMETHODIMP nsAccessible::TakeFocus()
-{ 
-  nsCOMPtr<nsIDOMNSHTMLElement> htmlElement(do_QueryInterface(mDOMNode));
+NS_IMETHODIMP
+nsAccessible::TakeFocus()
+{
+  if (IsDefunct())
+    return NS_ERROR_FAILURE;
+
+  nsCOMPtr<nsIContent> content(do_QueryInterface(mDOMNode));
+
+  nsIFrame *frame = GetFrame();
+  NS_ENSURE_STATE(frame);
+
+  
+  
+  
+  
+  if (!frame->IsFocusable()) {
+    nsAutoString id;
+    if (content && nsAccUtils::GetID(content, id)) {
+
+      nsCOMPtr<nsIContent> ancestorContent = content;
+      while ((ancestorContent = ancestorContent->GetParent()) &&
+             !ancestorContent->HasAttr(kNameSpaceID_None,
+                                       nsAccessibilityAtoms::aria_activedescendant));
+
+      if (ancestorContent) {
+        nsCOMPtr<nsIPresShell> presShell(do_QueryReferent(mWeakShell));
+        if (presShell) {
+          nsIFrame *frame = presShell->GetPrimaryFrameFor(ancestorContent);
+          if (frame && frame->IsFocusable()) {
+
+            content = ancestorContent;            
+            content->SetAttr(kNameSpaceID_None,
+                             nsAccessibilityAtoms::aria_activedescendant,
+                             id, PR_TRUE);
+          }
+        }
+      }
+    }
+  }
+
+  nsCOMPtr<nsIDOMNSHTMLElement> htmlElement(do_QueryInterface(content));
   if (htmlElement) {
     
     
     return htmlElement->Focus();
   }
-  nsCOMPtr<nsIContent> content(do_QueryInterface(mDOMNode));
-  if (!content) {
-    return NS_ERROR_FAILURE;
-  }
-  content->SetFocus(GetPresContext());
 
+  content->SetFocus(GetPresContext());
   return NS_OK;
 }
 
