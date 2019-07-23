@@ -257,25 +257,69 @@ public:
 
   nsIContent* GetIdContent(PRBool* aIsNotInDocument = nsnull);
   void AppendAllIdContent(nsCOMArray<nsIContent>* aElements);
+  
+
+
+
+
   PRBool AddIdContent(nsIContent* aContent);
   
 
 
+
   PRBool RemoveIdContent(nsIContent* aContent);
   void FlagIDNotInDocument();
+
+  PRBool HasContentChangeCallback() { return mChangeCallbacks != nsnull; }
+  void AddContentChangeCallback(nsIDocument::IDTargetObserver aCallback, void* aData);
+  void RemoveContentChangeCallback(nsIDocument::IDTargetObserver aCallback, void* aData);
 
   void Traverse(nsCycleCollectionTraversalCallback* aCallback);
 
   void SetDocAllList(nsContentList* aContentList) { mDocAllList = aContentList; }
   nsContentList* GetDocAllList() { return mDocAllList; }
 
+  struct ChangeCallback {
+    nsIDocument::IDTargetObserver mCallback;
+    void* mData;
+  };
+
+  struct ChangeCallbackEntry : public PLDHashEntryHdr {
+    typedef const ChangeCallback KeyType;
+    typedef const ChangeCallback* KeyTypePointer;
+
+    ChangeCallbackEntry(const ChangeCallback* key) :
+      mKey(*key) { }
+    ChangeCallbackEntry(const ChangeCallbackEntry& toCopy) :
+      mKey(toCopy.mKey) { }
+
+    KeyType GetKey() const { return mKey; }
+    PRBool KeyEquals(KeyTypePointer aKey) const {
+      return aKey->mCallback == mKey.mCallback &&
+             aKey->mData == mKey.mData;
+    }
+
+    static KeyTypePointer KeyToPointer(KeyType& aKey) { return &aKey; }
+    static PLDHashNumber HashKey(KeyTypePointer aKey)
+    {
+      return NS_PTR_TO_INT32(aKey->mCallback) >> 2 +
+             NS_PTR_TO_INT32(aKey->mData);
+    }
+    enum { ALLOW_MEMMOVE = PR_TRUE };
+    
+    ChangeCallback mKey;
+  };
+
 private:
+  void FireChangeCallbacks(nsIContent* aOldContent, nsIContent* aNewContent);
+
   
   
   nsSmallVoidArray mIdContentList;
   
   nsBaseContentList *mNameContentList;
   nsRefPtr<nsContentList> mDocAllList;
+  nsAutoPtr<nsTHashtable<ChangeCallbackEntry> > mChangeCallbacks;
 };
 
 class nsDocHeaderData
@@ -422,6 +466,11 @@ public:
 
 
   virtual void RemoveCharSetObserver(nsIObserver* aObserver);
+
+  virtual nsIContent* AddIDTargetObserver(nsIAtom* aID,
+                                          IDTargetObserver aObserver, void* aData);
+  virtual void RemoveIDTargetObserver(nsIAtom* aID,
+                                      IDTargetObserver aObserver, void* aData);
 
   
 
@@ -750,7 +799,8 @@ protected:
 
 
 
-  static PRBool CheckGetElementByIdArg(const nsAString& aId);
+  static PRBool CheckGetElementByIdArg(const nsIAtom* aId);
+  nsIdentifierMapEntry* GetElementByIdInternal(nsIAtom* aID);
 
   void DispatchContentLoadedEvents();
 

@@ -346,6 +346,58 @@ nsIdentifierMapEntry::AppendAllIdContent(nsCOMArray<nsIContent>* aElements)
   }
 }
 
+void
+nsIdentifierMapEntry::AddContentChangeCallback(nsIDocument::IDTargetObserver aCallback,
+                                               void* aData)
+{
+  if (!mChangeCallbacks) {
+    mChangeCallbacks = new nsTHashtable<ChangeCallbackEntry>;
+    if (!mChangeCallbacks)
+      return;
+    mChangeCallbacks->Init();
+  }
+
+  ChangeCallback cc = { aCallback, aData };
+  mChangeCallbacks->PutEntry(cc);
+}
+
+void
+nsIdentifierMapEntry::RemoveContentChangeCallback(nsIDocument::IDTargetObserver aCallback,
+                                                  void* aData)
+{
+  if (!mChangeCallbacks)
+    return;
+  ChangeCallback cc = { aCallback, aData };
+  mChangeCallbacks->RemoveEntry(cc);
+  if (mChangeCallbacks->Count() == 0) {
+    mChangeCallbacks = nsnull;
+  }
+}
+
+struct FireChangeArgs {
+  nsIContent* mFrom;
+  nsIContent* mTo;
+};
+
+PR_STATIC_CALLBACK(PLDHashOperator)
+FireChangeEnumerator(nsIdentifierMapEntry::ChangeCallbackEntry *aEntry, void *aArg)
+{
+  FireChangeArgs* args = static_cast<FireChangeArgs*>(aArg);
+  return aEntry->mKey.mCallback(args->mFrom, args->mTo, aEntry->mKey.mData)
+      ? PL_DHASH_NEXT : PL_DHASH_REMOVE;
+}
+
+void
+nsIdentifierMapEntry::FireChangeCallbacks(nsIContent* aOldContent,
+                                          nsIContent* aNewContent)
+{
+  if (!mChangeCallbacks)
+    return;
+
+  FireChangeArgs args = { aOldContent, aNewContent };
+  mChangeCallbacks->EnumerateEntries(FireChangeEnumerator, &args);
+}
+
 PRBool
 nsIdentifierMapEntry::AddIdContent(nsIContent* aContent)
 {
@@ -355,15 +407,20 @@ nsIdentifierMapEntry::AddIdContent(nsIContent* aContent)
   NS_PRECONDITION(aContent != ID_NOT_IN_DOCUMENT,
                   "Bogus content pointer");
 
-  if (mIdContentList.SafeElementAt(0) == ID_NOT_IN_DOCUMENT) {
+  nsIContent* currentContent = static_cast<nsIContent*>(mIdContentList.SafeElementAt(0));
+  if (currentContent == ID_NOT_IN_DOCUMENT) {
     NS_ASSERTION(mIdContentList.Count() == 1, "Bogus count");
     mIdContentList.ReplaceElementAt(aContent, 0);
+    FireChangeCallbacks(nsnull, aContent);
     return PR_TRUE;
   }
 
   
   if (mIdContentList.Count() == 0) {
-    return mIdContentList.AppendElement(aContent) != nsnull;
+    if (!mIdContentList.AppendElement(aContent))
+      return PR_FALSE;
+    FireChangeCallbacks(nsnull, aContent);
+    return PR_TRUE;
   }
 
   
@@ -389,8 +446,13 @@ nsIdentifierMapEntry::AddIdContent(nsIContent* aContent)
       start = cur + 1;
     }
   } while (start != end);
-  
-  return mIdContentList.InsertElementAt(aContent, start);
+
+  if (!mIdContentList.InsertElementAt(aContent, start))
+    return PR_FALSE;
+  if (start == 0) {
+    FireChangeCallbacks(currentContent, aContent);
+  }
+  return PR_TRUE;
 }
 
 PRBool
@@ -398,8 +460,17 @@ nsIdentifierMapEntry::RemoveIdContent(nsIContent* aContent)
 {
   
   
-  return mIdContentList.RemoveElement(aContent) &&
-    mIdContentList.Count() == 0 && !mNameContentList;
+
+  
+  
+  nsIContent* currentContent = static_cast<nsIContent*>(mIdContentList.SafeElementAt(0));
+  if (!mIdContentList.RemoveElement(aContent))
+    return PR_FALSE;
+  if (currentContent == aContent) {
+    FireChangeCallbacks(currentContent,
+                        static_cast<nsIContent*>(mIdContentList.SafeElementAt(0)));
+  }
+  return mIdContentList.Count() == 0 && !mNameContentList && !mChangeCallbacks;
 }
 
 void
@@ -3099,9 +3170,9 @@ nsDocument::BeginLoad()
 }
 
 PRBool
-nsDocument::CheckGetElementByIdArg(const nsAString& aId)
+nsDocument::CheckGetElementByIdArg(const nsIAtom* aId)
 {
-  if (aId.IsEmpty()) {
+  if (aId == nsGkAtoms::_empty) {
     nsContentUtils::ReportToConsole(
         nsContentUtils::eDOM_PROPERTIES,
         "EmptyGetElementByIdParam",
@@ -3115,6 +3186,100 @@ nsDocument::CheckGetElementByIdArg(const nsAString& aId)
   return PR_TRUE;
 }
 
+static void
+MatchAllElementsId(nsIContent* aContent, nsIAtom* aId, nsIdentifierMapEntry* aEntry)
+{
+  if (aId == aContent->GetID()) {
+    aEntry->AddIdContent(aContent);
+  }
+
+  PRUint32 i, count = aContent->GetChildCount();
+  for (i = 0; i < count; i++) {
+    MatchAllElementsId(aContent->GetChildAt(i), aId, aEntry);
+  }
+}
+
+nsIdentifierMapEntry*
+nsDocument::GetElementByIdInternal(nsIAtom* aID)
+{
+  
+  
+  
+  
+  nsIdentifierMapEntry *entry = mIdentifierMap.PutEntry(aID);
+  NS_ENSURE_TRUE(entry, nsnull);
+
+  if (entry->GetIdContent())
+    return entry;
+
+  
+  
+  
+  
+
+  
+  
+  PRUint32 generation = mIdentifierMap.GetGeneration();
+  
+  FlushPendingNotifications(Flush_ContentAndNotify);
+
+  if (generation != mIdentifierMap.GetGeneration()) {
+    
+    
+    
+    entry = mIdentifierMap.PutEntry(aID);
+  }
+  
+  PRBool isNotInDocument;
+  nsIContent *e = entry->GetIdContent(&isNotInDocument);
+  if (e || isNotInDocument)
+    return entry;
+
+  
+  nsIContent* root = GetRootContent();
+  if (!IdTableIsLive()) {
+    if (IdTableShouldBecomeLive()) {
+      
+      
+      if (root) {
+        RegisterNamedItems(root);
+      }
+      return GetElementByIdInternal(aID);
+    }
+
+    if (root) {
+      
+      
+      
+      
+      
+      NS_ASSERTION(!entry->HasContentChangeCallback(),
+                   "No callbacks should be registered while we set up this entry");
+      MatchAllElementsId(root, aID, entry);
+      e = entry->GetIdContent();
+    }
+  }
+
+  if (!e) {
+#ifdef DEBUG
+    
+    
+    if (IdTableIsLive() && root && aID != nsGkAtoms::_empty) {
+      nsIContent* eDebug =
+        nsContentUtils::MatchElementId(root, aID);
+      NS_ASSERTION(!eDebug,
+                   "We got null for |e| but MatchElementId found something?");
+    }
+#endif
+    
+    
+    entry->FlagIDNotInDocument();
+    return entry;
+  }
+
+  return entry;
+}
+
 NS_IMETHODIMP
 nsDocument::GetElementById(const nsAString& aElementId,
                            nsIDOMElement** aReturn)
@@ -3124,95 +3289,47 @@ nsDocument::GetElementById(const nsAString& aElementId,
 
   nsCOMPtr<nsIAtom> idAtom(do_GetAtom(aElementId));
   NS_ENSURE_TRUE(idAtom, NS_ERROR_OUT_OF_MEMORY);
+  if (!CheckGetElementByIdArg(idAtom))
+    return NS_OK;
 
-  
-  
-  
-  
-  nsIdentifierMapEntry *entry = mIdentifierMap.PutEntry(idAtom);
+  nsIdentifierMapEntry *entry = GetElementByIdInternal(idAtom);
   NS_ENSURE_TRUE(entry, NS_ERROR_OUT_OF_MEMORY);
 
   PRBool isNotInDocument;
   nsIContent *e = entry->GetIdContent(&isNotInDocument);
-
-  if (!e) {
-    
-    
-    
-    
-    
-    
-    
-    PRUint32 generation = mIdentifierMap.GetGeneration();
-  
-    FlushPendingNotifications(Flush_ContentAndNotify);
-
-    if (generation != mIdentifierMap.GetGeneration()) {
-      
-      
-      
-      entry = mIdentifierMap.PutEntry(idAtom);
-      NS_ENSURE_TRUE(entry, NS_ERROR_OUT_OF_MEMORY);
-    }
-
-    
-    
-    
-    e = entry->GetIdContent(&isNotInDocument);
-  }
-
-  if (isNotInDocument) {
-    
-    
-    
-
+  NS_ASSERTION(e || isNotInDocument, "Incomplete map entry!");
+  if (isNotInDocument)
     return NS_OK;
-  }
-
-  if (!e) {
-    
-    
-    nsIContent* root = GetRootContent();
-    if (!IdTableIsLive()) {
-      if (IdTableShouldBecomeLive()) {
-        
-        
-        if (root) {
-          RegisterNamedItems(root);
-        }
-        return GetElementById(aElementId, aReturn);
-      }
-
-      if (root && CheckGetElementByIdArg(aElementId)) {
-        e = nsContentUtils::MatchElementId(root, idAtom);
-      }
-    }
-
-    if (!e) {
-#ifdef DEBUG
-      
-      
-      if (IdTableIsLive() && root && !aElementId.IsEmpty()) {
-        nsIContent* eDebug =
-          nsContentUtils::MatchElementId(root, idAtom);
-        NS_ASSERTION(!eDebug,
-                     "We got null for |e| but MatchElementId found something?");
-      }
-#endif
-      
-      
-      entry->FlagIDNotInDocument();
-
-      return NS_OK;
-    }
-
-    
-    if (NS_UNLIKELY(!entry->AddIdContent(e))) {
-      return NS_ERROR_OUT_OF_MEMORY;
-    }
-  }
 
   return CallQueryInterface(e, aReturn);
+}
+
+nsIContent*
+nsDocument::AddIDTargetObserver(nsIAtom* aID, IDTargetObserver aObserver,
+                                void* aData)
+{
+  if (!CheckGetElementByIdArg(aID))
+    return nsnull;
+
+  nsIdentifierMapEntry *entry = GetElementByIdInternal(aID);
+  NS_ENSURE_TRUE(entry, nsnull);
+
+  entry->AddContentChangeCallback(aObserver, aData);
+  return entry->GetIdContent();
+}
+
+void
+nsDocument::RemoveIDTargetObserver(nsIAtom* aID,
+                                   IDTargetObserver aObserver, void* aData)
+{
+  if (!CheckGetElementByIdArg(aID))
+    return;
+
+  nsIdentifierMapEntry *entry = GetElementByIdInternal(aID);
+  if (!entry)
+    return;
+
+  entry->RemoveContentChangeCallback(aObserver, aData);
 }
 
 void

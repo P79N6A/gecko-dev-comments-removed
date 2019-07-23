@@ -153,6 +153,7 @@ static NS_DEFINE_CID(kXTFServiceCID, NS_XTFSERVICE_CID);
 #include "nsDOMJSUtils.h"
 #include "nsGenericHTMLElement.h"
 #include "nsAttrValue.h"
+#include "nsReferencedElement.h"
 
 #ifdef IBMBIDI
 #include "nsIBidiKeyboard.h"
@@ -3087,120 +3088,13 @@ nsContentUtils::CheckForBOM(const unsigned char* aBuffer, PRUint32 aLength,
   return found;
 }
 
-static PRBool EqualExceptRef(nsIURL* aURL1, nsIURL* aURL2)
-{
-  nsCOMPtr<nsIURI> u1;
-  nsCOMPtr<nsIURI> u2;
-
-  nsresult rv = aURL1->Clone(getter_AddRefs(u1));
-  if (NS_SUCCEEDED(rv)) {
-    rv = aURL2->Clone(getter_AddRefs(u2));
-  }
-  if (NS_FAILED(rv))
-    return PR_FALSE;
-
-  nsCOMPtr<nsIURL> url1 = do_QueryInterface(u1);
-  nsCOMPtr<nsIURL> url2 = do_QueryInterface(u2);
-  if (!url1 || !url2) {
-    NS_WARNING("Cloning a URL produced a non-URL");
-    return PR_FALSE;
-  }
-  url1->SetRef(EmptyCString());
-  url2->SetRef(EmptyCString());
-
-  PRBool equal;
-  rv = url1->Equals(url2, &equal);
-  return NS_SUCCEEDED(rv) && equal;
-}
-
 
 nsIContent*
 nsContentUtils::GetReferencedElement(nsIURI* aURI, nsIContent *aFromContent)
 {
-  nsCOMPtr<nsIURL> url = do_QueryInterface(aURI);
-  if (!url)
-    return nsnull;
-
-  nsCAutoString refPart;
-  url->GetRef(refPart);
-  
-  
-  NS_UnescapeURL(refPart);
-
-  nsCAutoString charset;
-  url->GetOriginCharset(charset);
-  nsAutoString ref;
-  nsresult rv = ConvertStringFromCharset(charset, refPart, ref);
-  if (NS_FAILED(rv)) {
-    CopyUTF8toUTF16(refPart, ref);
-  }
-  if (ref.IsEmpty())
-    return nsnull;
-
-  
-  nsIDocument *doc = aFromContent->GetCurrentDoc();
-  if (!doc)
-    return nsnull;
-
-  
-  
-  
-  nsCOMPtr<nsIURL> documentURL = do_QueryInterface(doc->GetDocumentURI());
-  nsIContent* bindingParent = aFromContent->GetBindingParent();
-  PRBool isXBL = PR_FALSE;
-  if (bindingParent) {
-    nsXBLBinding* binding = doc->BindingManager()->GetBinding(bindingParent);
-    if (binding) {
-      
-      
-      
-      
-      
-      
-      
-      documentURL = do_QueryInterface(binding->PrototypeBinding()->DocURI());
-      isXBL = PR_TRUE;
-    }
-  }
-  if (!documentURL)
-    return nsnull;
-
-  if (!EqualExceptRef(url, documentURL)) {
-    
-    return nsnull;
-  }
-
-  
-  nsCOMPtr<nsIContent> content;
-  if (isXBL) {
-    nsCOMPtr<nsIDOMNodeList> anonymousChildren;
-    doc->BindingManager()->
-      GetAnonymousNodesFor(bindingParent, getter_AddRefs(anonymousChildren));
-
-    if (anonymousChildren) {
-      PRUint32 length;
-      anonymousChildren->GetLength(&length);
-      for (PRUint32 i = 0; i < length && !content; ++i) {
-        nsCOMPtr<nsIDOMNode> node;
-        anonymousChildren->Item(i, getter_AddRefs(node));
-        nsCOMPtr<nsIContent> c = do_QueryInterface(node);
-        if (c) {
-          content = MatchElementId(c, ref);
-        }
-      }
-    }
-  } else {
-    nsCOMPtr<nsIDOMDocument> domDoc = do_QueryInterface(doc);
-    NS_ASSERTION(domDoc, "Content doesn't reference a dom Document");
-
-    nsCOMPtr<nsIDOMElement> element;
-    rv = domDoc->GetElementById(ref, getter_AddRefs(element));
-    if (element) {
-      content = do_QueryInterface(element);
-    }
-  }
-
-  return content;
+  nsReferencedElement ref;
+  ref.Reset(aFromContent, aURI);
+  return ref.get();
 }
 
 
