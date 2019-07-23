@@ -65,8 +65,7 @@
 #include "nsITheme.h"
 #include "nsThemeConstants.h"
 #include "nsIServiceManager.h"
-#include "nsIDOMHTMLBodyElement.h"
-#include "nsIDOMHTMLDocument.h"
+#include "nsIHTMLDocument.h"
 #include "nsLayoutUtils.h"
 #include "nsINameSpaceManager.h"
 
@@ -3147,11 +3146,9 @@ FindCanvasBackground(nsIFrame* aForFrame,
       if (content) {
         
         nsIDocument* document = content->GetOwnerDoc();
-        nsCOMPtr<nsIDOMHTMLDocument> htmlDoc = do_QueryInterface(document);
+        nsCOMPtr<nsIHTMLDocument> htmlDoc = do_QueryInterface(document);
         if (htmlDoc) {
-          nsCOMPtr<nsIDOMHTMLElement> body;
-          htmlDoc->GetBody(getter_AddRefs(body));
-          nsCOMPtr<nsIContent> bodyContent = do_QueryInterface(body);
+          nsIContent* bodyContent = htmlDoc->GetBodyContentExternal();
           
           
           
@@ -3215,13 +3212,11 @@ FindElementBackground(nsIFrame* aForFrame,
 
   
   nsIDocument* document = content->GetOwnerDoc();
-  nsCOMPtr<nsIDOMHTMLDocument> htmlDoc = do_QueryInterface(document);
+  nsCOMPtr<nsIHTMLDocument> htmlDoc = do_QueryInterface(document);
   if (!htmlDoc)
     return PR_TRUE;
 
-  nsCOMPtr<nsIDOMHTMLElement> body;
-  htmlDoc->GetBody(getter_AddRefs(body));
-  nsCOMPtr<nsIContent> bodyContent = do_QueryInterface(body);
+  nsIContent* bodyContent = htmlDoc->GetBodyContentExternal();
   if (bodyContent != content)
     return PR_TRUE; 
 
