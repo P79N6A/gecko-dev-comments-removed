@@ -742,24 +742,18 @@ nsViewManager::UpdateViewAfterScroll(nsView *aView, const nsRegion& aUpdateRegio
     --RootViewManager()->mScrollCnt;
     return;
   }
-  nsPoint offset = ComputeViewOffset(aView);
+
+  nsView* displayRoot = GetDisplayRootFor(aView);
+  nsPoint offset = aView->GetOffsetTo(displayRoot);
   damageRect.MoveBy(offset);
 
-  
-  
-  if (aView->GetFloating()) {
-    
-    --RootViewManager()->mScrollCnt;
-    return;
-  }
-
-  UpdateWidgetArea(RootViewManager()->GetRootView(), nsRegion(damageRect), aView);
+  UpdateWidgetArea(displayRoot, nsRegion(damageRect), aView);
   if (!aUpdateRegion.IsEmpty()) {
     
     
     nsRegion update(aUpdateRegion);
     update.MoveBy(offset);
-    UpdateWidgetArea(RootViewManager()->GetRootView(), update, nsnull);
+    UpdateWidgetArea(displayRoot, update, nsnull);
     
   }
 
