@@ -1252,6 +1252,16 @@ nsPlainTextSerializer::Output(nsString& aString)
   mOutputString->Append(aString);
 }
 
+static PRBool
+IsSpaceStuffable(const PRUnichar *s)
+{
+  if (s[0] == '>' || s[0] == ' ' || s[0] == kNBSP ||
+      nsCRT::strncmp(s, NS_LITERAL_STRING("From ").get(), 5) == 0)
+    return PR_TRUE;
+  else
+    return PR_FALSE;
+}
+
 
 
 
@@ -1275,13 +1285,7 @@ nsPlainTextSerializer::AddToLine(const PRUnichar * aLineFragment,
     }
 
     if(mFlags & nsIDocumentEncoder::OutputFormatFlowed) {
-      if(
-         (
-          '>' == aLineFragment[0] ||
-          ' ' == aLineFragment[0] ||
-        kNBSP == aLineFragment[0] ||  
-          !nsCRT::strncmp(aLineFragment, NS_LITERAL_STRING("From ").get(), 5)
-          )
+      if(IsSpaceStuffable(aLineFragment)
          && mCiteQuoteLevel == 0  
          )
         {
@@ -1398,14 +1402,7 @@ nsPlainTextSerializer::AddToLine(const PRUnichar * aLineFragment,
         mCurrentLine.Truncate();
         
         if(mFlags & nsIDocumentEncoder::OutputFormatFlowed) {
-          if(
-              !restOfLine.IsEmpty()
-              &&
-              (
-                restOfLine[0] == '>' ||
-                restOfLine[0] == ' ' ||
-                StringBeginsWith(restOfLine, NS_LITERAL_STRING("From "))
-              )
+          if(!restOfLine.IsEmpty() && IsSpaceStuffable(restOfLine.get())
               && mCiteQuoteLevel == 0  
             )
           {
@@ -1581,7 +1578,7 @@ nsPlainTextSerializer::Write(const nsAString& aStr)
 
 #ifdef DEBUG_wrapping
   printf("Write(%s): wrap col = %d\n",
-         NS_ConvertUTF16toUTF8(aString).get(), mWrapColumn);
+         NS_ConvertUTF16toUTF8(str).get(), mWrapColumn);
 #endif
 
   PRInt32 bol = 0;
@@ -1595,12 +1592,11 @@ nsPlainTextSerializer::Write(const nsAString& aStr)
   
   
   if (mFlags & nsIDocumentEncoder::OutputFormatFlowed) {
-    PRUnichar nbsp = 160;
     for (PRInt32 i = totLen-1; i >= 0; i--) {
       PRUnichar c = str[i];
       if ('\n' == c || '\r' == c || ' ' == c || '\t' == c)
         continue;
-      if (nbsp == c)
+      if (kNBSP == c)
         str.Replace(i, 1, ' ');
       else
         break;
@@ -1629,6 +1625,7 @@ nsPlainTextSerializer::Write(const nsAString& aStr)
       PRBool outputQuotes = mAtFirstColumn;
       PRBool atFirstColumn = mAtFirstColumn;
       PRBool outputLineBreak = PR_FALSE;
+      PRBool spacesOnly = PR_TRUE;
 
       
       
@@ -1642,14 +1639,17 @@ nsPlainTextSerializer::Write(const nsAString& aStr)
           newline = new_newline;
           break;
         }
+        if(' ' != *iter)
+          spacesOnly = PR_FALSE;
         ++new_newline;
         ++iter;
       }
 
       
+      nsAutoString stringpart;
       if(newline == kNotFound) {
         
-        nsAutoString stringpart(Substring(str, bol, totLen - bol));
+        stringpart.Assign(Substring(str, bol, totLen - bol));
         if(!stringpart.IsEmpty()) {
           PRUnichar lastchar = stringpart[stringpart.Length()-1];
           if((lastchar == '\t') || (lastchar == ' ') ||
@@ -1660,18 +1660,14 @@ nsPlainTextSerializer::Write(const nsAString& aStr)
             mInWhitespace = PR_FALSE;
           }
         }
-        mCurrentLine.Assign(stringpart);
         mEmptyLines=-1;
         atFirstColumn = mAtFirstColumn && (totLen-bol)==0;
         bol = totLen;
       } 
       else {
         
-        nsAutoString stringpart(Substring(str, bol, newline-bol));
-        if (mFlags & nsIDocumentEncoder::OutputFormatFlowed)
-          stringpart.Trim(" ", PR_FALSE, PR_TRUE, PR_TRUE);
+        stringpart.Assign(Substring(str, bol, newline-bol));
         mInWhitespace = PR_TRUE;
-        mCurrentLine.Assign(stringpart);
         outputLineBreak = PR_TRUE;
         mEmptyLines=0;
         atFirstColumn = PR_TRUE;
@@ -1683,6 +1679,17 @@ nsPlainTextSerializer::Write(const nsAString& aStr)
           bol++;
         }
       }
+
+      mCurrentLine.AssignLiteral("");
+      if (mFlags & nsIDocumentEncoder::OutputFormatFlowed) {
+        if ((outputLineBreak || !spacesOnly) && 
+            !stringpart.EqualsLiteral("-- ") &&
+            !stringpart.EqualsLiteral("- -- "))
+          stringpart.Trim(" ", PR_FALSE, PR_TRUE, PR_TRUE);
+        if (IsSpaceStuffable(stringpart.get()) && stringpart[0] != '>')
+          mCurrentLine.Append(PRUnichar(' '));
+      }
+      mCurrentLine.Append(stringpart);
 
       if(outputQuotes) {
         
