@@ -522,7 +522,7 @@ moz_gtk_button_paint(GdkDrawable* drawable, GdkRectangle* rect,
 
 
         gtk_paint_box(style, drawable, button_state, shadow_type, cliprect,
-                      widget, "button", x, y, width, height);
+                      widget, (state->isDefault ? "buttondefault" : "button"), x, y, width, height);
     }
 
     if (state->focused) {
