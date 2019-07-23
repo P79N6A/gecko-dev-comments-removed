@@ -131,7 +131,8 @@ public:
                          nsIDOMEvent* aDOMEvent,
                          nsEventStatus aEventStatus = nsEventStatus_eIgnore)
   : nsEventChainVisitor(aPresContext, aEvent, aDOMEvent, aEventStatus),
-    mCanHandle(PR_TRUE), mForceContentDispatch(PR_FALSE) {}
+    mCanHandle(PR_TRUE), mForceContentDispatch(PR_FALSE),
+    mRelatedTargetIsInAnon(PR_FALSE) {}
 
   void Reset() {
     mItemFlags = 0;
@@ -156,6 +157,12 @@ public:
 
 
   PRPackedBool          mForceContentDispatch;
+
+  
+
+
+
+  PRPackedBool          mRelatedTargetIsInAnon;
 
   
 
