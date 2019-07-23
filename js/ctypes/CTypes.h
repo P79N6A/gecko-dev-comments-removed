@@ -49,6 +49,10 @@ namespace mozilla {
 namespace ctypes {
 
 
+
+
+
+
 enum ErrorNum {
 #define MSG_DEF(name, number, count, exception, format) \
   name = number,
@@ -126,9 +130,16 @@ struct ClosureInfo
 
 JSBool InitTypeClasses(JSContext* cx, JSObject* parent);
 
-JSBool ConvertToJS(JSContext* cx, JSObject* typeObj, JSObject* dataObj, void* data, bool wantPrimitive, bool ownResult, jsval* result);
-JSBool ImplicitConvert(JSContext* cx, jsval val, JSObject* targetType, void* buffer, bool isArgument, bool* freePointer);
-JSBool ExplicitConvert(JSContext* cx, jsval val, JSObject* targetType, void* buffer);
+JSBool ConvertToJS(JSContext* cx, JSObject* typeObj, JSObject* dataObj,
+  void* data, bool wantPrimitive, bool ownResult, jsval* result);
+
+JSBool ImplicitConvert(JSContext* cx, jsval val, JSObject* targetType,
+  void* buffer, bool isArgument, bool* freePointer);
+
+JSBool ExplicitConvert(JSContext* cx, jsval val, JSObject* targetType,
+  void* buffer);
+
+
 
 
 
@@ -201,195 +212,88 @@ enum Int64FunctionSlot {
   
 };
 
-class CType {
-public:
-  static JSObject* Create(JSContext* cx, JSObject* typeProto, JSObject* dataProto, TypeCode type, JSString* name, jsval size, jsval align, ffi_type* ffiType, PropertySpec* ps);
-  static JSObject* DefineBuiltin(JSContext* cx, JSObject* parent, const char* propName, JSObject* typeProto, JSObject* dataProto, const char* name, TypeCode type, jsval size, jsval align, ffi_type* ffiType);
-  static void Trace(JSTracer* trc, JSObject* obj);
-  static void Finalize(JSContext* cx, JSObject* obj);
-  static void FinalizeProtoClass(JSContext* cx, JSObject* obj);
-
-  static JSBool ConstructAbstract(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval);
-  static JSBool ConstructData(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval);
-  static JSBool ConstructBasic(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval);
-
-  static bool IsCType(JSContext* cx, JSObject* obj);
-  static TypeCode GetTypeCode(JSContext* cx, JSObject* typeObj);
-  static bool TypesEqual(JSContext* cx, JSObject* t1, JSObject* t2);
-  static size_t GetSize(JSContext* cx, JSObject* obj);
-  static bool GetSafeSize(JSContext* cx, JSObject* obj, size_t* result);
-  static bool IsSizeDefined(JSContext* cx, JSObject* obj);
-  static size_t GetAlignment(JSContext* cx, JSObject* obj);
-  static ffi_type* GetFFIType(JSContext* cx, JSObject* obj);
-  static JSString* GetName(JSContext* cx, JSObject* obj);
-  static JSObject* GetProtoFromCtor(JSContext* cx, JSObject* obj, CTypeProtoSlot slot);
-  static JSObject* GetProtoFromType(JSContext* cx, JSObject* obj, CTypeProtoSlot slot);
-
-  static JSBool PrototypeGetter(JSContext* cx, JSObject* obj, jsval idval, jsval* vp);
-  static JSBool NameGetter(JSContext* cx, JSObject* obj, jsval idval, jsval* vp);
-  static JSBool SizeGetter(JSContext* cx, JSObject* obj, jsval idval, jsval* vp);
-  static JSBool PtrGetter(JSContext* cx, JSObject* obj, jsval idval, jsval* vp);
-  static JSBool Array(JSContext* cx, uintN argc, jsval* vp);
-  static JSBool ToString(JSContext* cx, uintN argc, jsval* vp);
-  static JSBool ToSource(JSContext* cx, uintN argc, jsval* vp);
-  static JSBool HasInstance(JSContext* cx, JSObject* obj, jsval v, JSBool* bp);
-};
-
-class PointerType {
-public:
-  static JSBool Create(JSContext* cx, uintN argc, jsval* vp);
-  static JSObject* CreateInternal(JSContext* cx, JSObject* ctor, JSObject* baseType, JSString* name);
-
-  static JSBool ConstructData(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval);
-
-  static JSObject* GetBaseType(JSContext* cx, JSObject* obj);
-
-  static JSBool TargetTypeGetter(JSContext* cx, JSObject* obj, jsval idval, jsval* vp);
-  static JSBool IsNull(JSContext* cx, uintN argc, jsval* vp);
-  static JSBool ContentsGetter(JSContext* cx, JSObject* obj, jsval idval, jsval* vp);
-  static JSBool ContentsSetter(JSContext* cx, JSObject* obj, jsval idval, jsval* vp);
-};
-
-class ArrayType {
-public:
-  static JSBool Create(JSContext* cx, uintN argc, jsval* vp);
-  static JSObject* CreateInternal(JSContext* cx, JSObject* baseType, size_t length, bool lengthDefined);
-
-  static JSBool ConstructData(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval);
-
-  static JSObject* GetBaseType(JSContext* cx, JSObject* obj);
-  static size_t GetLength(JSContext* cx, JSObject* obj);
-  static bool GetSafeLength(JSContext* cx, JSObject* obj, size_t* result);
-
-  static JSBool ElementTypeGetter(JSContext* cx, JSObject* obj, jsval idval, jsval* vp);
-  static JSBool LengthGetter(JSContext* cx, JSObject* obj, jsval idval, jsval* vp);
-  static JSBool Getter(JSContext* cx, JSObject* obj, jsval idval, jsval* vp);
-  static JSBool Setter(JSContext* cx, JSObject* obj, jsval idval, jsval* vp);
-  static JSBool AddressOfElement(JSContext* cx, uintN argc, jsval* vp);
-};
-
-class StructType {
-public:
-  static JSBool Create(JSContext* cx, uintN argc, jsval* vp);
-
-  static JSBool ConstructData(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval);
-
-  static nsTArray<FieldInfo>* GetFieldInfo(JSContext* cx, JSObject* obj);
-  static FieldInfo* LookupField(JSContext* cx, JSObject* obj, jsval idval);
-
-  static JSBool FieldsArrayGetter(JSContext* cx, JSObject* obj, jsval idval, jsval* vp);
-  static JSBool FieldGetter(JSContext* cx, JSObject* obj, jsval idval, jsval* vp);
-  static JSBool FieldSetter(JSContext* cx, JSObject* obj, jsval idval, jsval* vp);
-  static JSBool AddressOfField(JSContext* cx, uintN argc, jsval* vp);
-};
 
 
-struct AutoValue
-{
-  AutoValue() : mData(NULL) { }
 
-  ~AutoValue()
-  {
-    delete[] static_cast<char*>(mData);
-  }
 
-  bool SizeToType(JSContext* cx, JSObject* type)
-  {
-    size_t size = CType::GetSize(cx, type);
-    mData = new char[size];
-    if (mData)
-      memset(mData, 0, size);
-    return mData != NULL;
-  }
+namespace CType {
+  JSObject* Create(JSContext* cx, JSObject* typeProto, JSObject* dataProto,
+    TypeCode type, JSString* name, jsval size, jsval align, ffi_type* ffiType, 
+    PropertySpec* ps);
 
-  void* mData;
-};
+  JSObject* DefineBuiltin(JSContext* cx, JSObject* parent, const char* propName,
+    JSObject* typeProto, JSObject* dataProto, const char* name, TypeCode type,
+    jsval size, jsval align, ffi_type* ffiType);
 
-class FunctionType {
-public:
-  static JSBool Create(JSContext* cx, uintN argc, jsval* vp);
-  static JSObject* CreateInternal(JSContext* cx, jsval abi, jsval rtype, jsval* argtypes, jsuint arglen);
+  bool IsCType(JSContext* cx, JSObject* obj);
+  TypeCode GetTypeCode(JSContext* cx, JSObject* typeObj);
+  bool TypesEqual(JSContext* cx, JSObject* t1, JSObject* t2);
+  size_t GetSize(JSContext* cx, JSObject* obj);
+  bool GetSafeSize(JSContext* cx, JSObject* obj, size_t* result);
+  bool IsSizeDefined(JSContext* cx, JSObject* obj);
+  size_t GetAlignment(JSContext* cx, JSObject* obj);
+  ffi_type* GetFFIType(JSContext* cx, JSObject* obj);
+  JSString* GetName(JSContext* cx, JSObject* obj);
+  JSObject* GetProtoFromCtor(JSContext* cx, JSObject* obj, CTypeProtoSlot slot);
+  JSObject* GetProtoFromType(JSContext* cx, JSObject* obj, CTypeProtoSlot slot);
+}
 
-  static JSBool ConstructData(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval);
-  static JSObject* ConstructWithObject(JSContext* cx, JSObject* typeObj, JSObject* refObj, PRFuncPtr fnptr, JSObject* result);
+namespace PointerType {
+  JSObject* CreateInternal(JSContext* cx, JSObject* ctor, JSObject* baseType,
+    JSString* name);
 
-  static JSBool Call(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval);
+  JSObject* GetBaseType(JSContext* cx, JSObject* obj);
+}
 
-  static FunctionInfo* GetFunctionInfo(JSContext* cx, JSObject* obj);
-  static JSObject* GetLibrary(JSContext* cx, JSObject* obj);
-  static JSBool ArgTypesGetter(JSContext* cx, JSObject* obj, jsval idval, jsval* vp);
-  static JSBool ReturnTypeGetter(JSContext* cx, JSObject* obj, jsval idval, jsval* vp);
-  static JSBool ABIGetter(JSContext* cx, JSObject* obj, jsval idval, jsval* vp);
-};
+namespace ArrayType {
+  JSObject* CreateInternal(JSContext* cx, JSObject* baseType, size_t length,
+    bool lengthDefined);
 
-class CClosure {
-public:
-  static JSObject* Create(JSContext* cx, JSObject* typeObj, JSObject* fnObj, JSObject* thisObj, PRFuncPtr* fnptr);
-  static void Trace(JSTracer* trc, JSObject* obj);
-  static void Finalize(JSContext* cx, JSObject* obj);
+  JSObject* GetBaseType(JSContext* cx, JSObject* obj);
+  size_t GetLength(JSContext* cx, JSObject* obj);
+  bool GetSafeLength(JSContext* cx, JSObject* obj, size_t* result);
+}
 
-  static void ClosureStub(ffi_cif* cif, void* result, void** args, void* userData);
-};
+namespace StructType {
+  nsTArray<FieldInfo>* GetFieldInfo(JSContext* cx, JSObject* obj);
+  FieldInfo* LookupField(JSContext* cx, JSObject* obj, jsval idval);
+}
 
-class CData {
-public:
-  static JSObject* Create(JSContext* cx, JSObject* typeObj, JSObject* refObj, void* data, bool ownResult);
-  static void Finalize(JSContext* cx, JSObject* obj);
+namespace FunctionType {
+  JSObject* CreateInternal(JSContext* cx, jsval abi, jsval rtype,
+    jsval* argtypes, jsuint arglen);
 
-  static JSObject* GetCType(JSContext* cx, JSObject* dataObj);
-  static void* GetData(JSContext* cx, JSObject* dataObj);
-  static bool IsCData(JSContext* cx, JSObject* obj);
+  JSObject* ConstructWithObject(JSContext* cx, JSObject* typeObj,
+    JSObject* refObj, PRFuncPtr fnptr, JSObject* result);
 
-  static JSBool ValueGetter(JSContext* cx, JSObject* obj, jsval idval, jsval* vp);
-  static JSBool ValueSetter(JSContext* cx, JSObject* obj, jsval idval, jsval* vp);
-  static JSBool Address(JSContext* cx, uintN argc, jsval* vp);
-  static JSBool Cast(JSContext* cx, uintN argc, jsval* vp);
-  static JSBool ReadString(JSContext* cx, uintN argc, jsval* vp);
-  static JSBool ToSource(JSContext* cx, uintN argc, jsval* vp);
-};
+  FunctionInfo* GetFunctionInfo(JSContext* cx, JSObject* obj);
+  JSObject* GetLibrary(JSContext* cx, JSObject* obj);
+}
 
-class Int64Base {
-public:
-  static JSObject* Construct(JSContext* cx, JSObject* proto, PRUint64 data, bool isUnsigned);
-  static void Finalize(JSContext* cx, JSObject* obj);
+namespace CClosure {
+  JSObject* Create(JSContext* cx, JSObject* typeObj, JSObject* fnObj,
+    JSObject* thisObj, PRFuncPtr* fnptr);
+}
 
-  static PRUint64 GetInt(JSContext* cx, JSObject* obj);
+namespace CData {
+  JSObject* Create(JSContext* cx, JSObject* typeObj, JSObject* refObj,
+    void* data, bool ownResult);
 
-  static JSBool ToString(JSContext* cx, JSObject* obj, uintN argc, jsval* vp, bool isUnsigned);
-  static JSBool ToSource(JSContext* cx, JSObject* obj, uintN argc, jsval* vp, bool isUnsigned);
-};
-
-class Int64 : public Int64Base {
-public:
-  static JSBool Construct(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval);
-
-  static bool IsInt64(JSContext* cx, JSObject* obj);
-
-  static JSBool ToString(JSContext* cx, uintN argc, jsval* vp);
-  static JSBool ToSource(JSContext* cx, uintN argc, jsval* vp);
+  JSObject* GetCType(JSContext* cx, JSObject* dataObj);
+  void* GetData(JSContext* cx, JSObject* dataObj);
+  bool IsCData(JSContext* cx, JSObject* obj);
 
   
-  static JSBool Compare(JSContext* cx, uintN argc, jsval* vp);
-  static JSBool Lo(JSContext* cx, uintN argc, jsval* vp);
-  static JSBool Hi(JSContext* cx, uintN argc, jsval* vp);
-  static JSBool Join(JSContext* cx, uintN argc, jsval* vp);
-};
+  JSBool Cast(JSContext* cx, uintN argc, jsval* vp);
+}
 
-class UInt64 : public Int64Base {
-public:
-  static JSBool Construct(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval);
+namespace Int64 {
+  bool IsInt64(JSContext* cx, JSObject* obj);
+}
 
-  static bool IsUInt64(JSContext* cx, JSObject* obj);
-
-  static JSBool ToString(JSContext* cx, uintN argc, jsval* vp);
-  static JSBool ToSource(JSContext* cx, uintN argc, jsval* vp);
-
-  
-  static JSBool Compare(JSContext* cx, uintN argc, jsval* vp);
-  static JSBool Lo(JSContext* cx, uintN argc, jsval* vp);
-  static JSBool Hi(JSContext* cx, uintN argc, jsval* vp);
-  static JSBool Join(JSContext* cx, uintN argc, jsval* vp);
-};
+namespace UInt64 {
+  bool IsUInt64(JSContext* cx, JSObject* obj);
+}
 
 }
 }

@@ -53,6 +53,18 @@ namespace ctypes {
 
 
 
+namespace Library
+{
+  static void Finalize(JSContext* cx, JSObject* obj);
+
+  static JSBool Close(JSContext* cx, uintN argc, jsval* vp);
+  static JSBool Declare(JSContext* cx, uintN argc, jsval* vp);
+}
+
+
+
+
+
 static JSClass sLibraryClass = {
   "Library",
   JSCLASS_HAS_RESERVED_SLOTS(LIBRARY_SLOTS) | JSCLASS_MARK_IS_TRACE,
