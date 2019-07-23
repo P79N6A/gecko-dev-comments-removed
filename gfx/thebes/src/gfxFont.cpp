@@ -36,7 +36,6 @@
 
 
 
-
 #include "nsIPref.h"
 #include "nsServiceManagerUtils.h"
 #include "nsReadableUtils.h"
@@ -73,77 +72,6 @@ static PRUint32 gGlyphExtentsSetupEagerTight = 0;
 static PRUint32 gGlyphExtentsSetupLazyTight = 0;
 static PRUint32 gGlyphExtentsSetupFallBackToTight = 0;
 #endif
-
-gfxFontEntry::~gfxFontEntry() {
-
-}
-
-
-PRBool gfxFontEntry::TestCharacterMap(PRUint32 aCh) {
-    if (!mCmapInitialized) ReadCMAP();
-    return mCharacterMap.test(aCh);
-}
-
-
-gfxFontEntry *gfxFontFamily::FindFontForStyle(const gfxFontStyle& aFontStyle, PRBool& aNeedsBold)
-{
-    gfxFontEntry *weightList[10] = { 0 };
-
-    aNeedsBold = PR_FALSE;
-
-    FindWeightsForStyle(weightList, aFontStyle);
-
-    PRInt8 baseWeight, weightDistance;
-    aFontStyle.ComputeWeightAndOffset(&baseWeight, &weightDistance);
-
-    
-    
-    if (baseWeight == 5 && weightDistance == 0) {
-        
-        if (weightList[5])
-            return weightList[5];
-
-        
-        baseWeight = 4;
-    }
-
-    PRInt8 matchBaseWeight = 0;
-    PRInt8 direction = (baseWeight > 5) ? 1 : -1;
-    for (PRInt8 i = baseWeight; ; i += direction) {
-        if (weightList[i]) {
-            matchBaseWeight = i;
-            break;
-        }
-
-        
-        
-        if (i == 1 || i == 9)
-            direction = -direction;
-    }
-
-    gfxFontEntry *matchFE;
-    const PRInt8 absDistance = abs(weightDistance);
-    direction = (weightDistance >= 0) ? 1 : -1;
-    PRInt8 i, k;
-    for (i = matchBaseWeight, k = 0; i < 10 && i > 0; i += direction) {
-        if (weightList[i]) {
-            matchFE = weightList[i];
-            k++;
-        }
-        if (k > absDistance)
-            break;
-    }
-
-    if (weightDistance > 0 && k <= absDistance) {
-        aNeedsBold = PR_TRUE;
-    }
-
-    if (!matchFE)
-        matchFE = weightList[matchBaseWeight];
-
-    NS_ASSERTION(matchFE, "we should always be able to return something here");
-    return matchFE;
-}
 
 nsresult
 gfxFontCache::Init()
@@ -246,23 +174,8 @@ gfxFontCache::DestroyFont(gfxFont *aFont)
     delete aFont;
 }
 
-void
-gfxFont::RunMetrics::CombineWith(const RunMetrics& aOther, PRBool aOtherIsOnLeft)
-{
-    mAscent = PR_MAX(mAscent, aOther.mAscent);
-    mDescent = PR_MAX(mDescent, aOther.mDescent);
-    if (aOtherIsOnLeft) {
-        mBoundingBox =
-            (mBoundingBox + gfxPoint(aOther.mAdvanceWidth, 0)).Union(aOther.mBoundingBox);
-    } else {
-        mBoundingBox =
-            mBoundingBox.Union(aOther.mBoundingBox + gfxPoint(mAdvanceWidth, 0));
-    }
-    mAdvanceWidth += aOther.mAdvanceWidth;
-}
-
-gfxFont::gfxFont(gfxFontEntry *aFontEntry, const gfxFontStyle *aFontStyle) :
-    mIsValid(PR_TRUE), mStyle(*aFontStyle), mFontEntry(aFontEntry), mSyntheticBoldOffset(0)
+gfxFont::gfxFont(const nsAString &aName, const gfxFontStyle *aFontStyle) :
+    mName(aName), mStyle(*aFontStyle), mSyntheticBoldOffset(0)
 {
 #ifdef DEBUG_TEXT_RUN_STORAGE_METRICS
     ++gFontCount;
@@ -338,7 +251,7 @@ gfxFont::Draw(gfxTextRun *aTextRun, PRUint32 aStart, PRUint32 aEnd,
     GlyphBuffer glyphs;
     cairo_glyph_t *glyph;
     cairo_t *cr = aContext->GetCairo();
-
+    
     if (aSpacing) {
         x += direction*aSpacing[0].mBefore;
     }
@@ -460,10 +373,14 @@ GetAdvanceForGlyphs(gfxTextRun *aTextRun, PRUint32 aStart, PRUint32 aEnd)
 }
 
 static void
-UnionRange(gfxFloat aX, gfxFloat* aDestMin, gfxFloat* aDestMax)
+UnionWithXPoint(gfxRect *aRect, double aX)
 {
-    *aDestMin = PR_MIN(*aDestMin, aX);
-    *aDestMax = PR_MAX(*aDestMax, aX);
+    if (aX < aRect->pos.x) {
+        aRect->size.width += aRect->pos.x - aX;
+        aRect->pos.x = aX;
+    } else if (aX > aRect->XMost()) {
+        aRect->size.width = aX - aRect->pos.x;
+    }
 }
 
 static PRBool
@@ -485,13 +402,14 @@ gfxFont::Measure(gfxTextRun *aTextRun,
     RunMetrics metrics;
     metrics.mAscent = fontMetrics.maxAscent*appUnitsPerDevUnit;
     metrics.mDescent = fontMetrics.maxDescent*appUnitsPerDevUnit;
-    if (aStart == aEnd) {
-        
+    if (!aTightBoundingBox) {
         metrics.mBoundingBox = gfxRect(0, -metrics.mAscent, 0, metrics.mAscent + metrics.mDescent);
-        return metrics;
+    }
+    if (aStart == aEnd) {
+      
+      return metrics;
     }
 
-    gfxFloat advanceMin = 0, advanceMax = 0;
     const gfxTextRun::CompressedGlyph *charGlyphs = aTextRun->GetCharacterGlyphs();
     PRBool isRTL = aTextRun->IsRightToLeft();
     double direction = aTextRun->GetDirection();
@@ -513,8 +431,7 @@ gfxFont::Measure(gfxTextRun *aTextRun,
                 PRUint32 glyphIndex = glyphData->GetSimpleGlyph();
                 PRUint16 extentsWidth = extents->GetContainedGlyphWidthAppUnits(glyphIndex);
                 if (extentsWidth != gfxGlyphExtents::INVALID_WIDTH && !aTightBoundingBox) {
-                    UnionRange(x, &advanceMin, &advanceMax);
-                    UnionRange(x + direction*extentsWidth, &advanceMin, &advanceMax);
+                    UnionWithXPoint(&metrics.mBoundingBox, x + direction*extentsWidth);
                 } else {
                     gfxRect glyphRect;
                     if (!extents->GetTightGlyphExtentsAppUnits(this,
@@ -544,8 +461,8 @@ gfxFont::Measure(gfxTextRun *aTextRun,
                             aRefContext, glyphIndex, &glyphRect)) {
                     
                     
-                    glyphRect = gfxRect(0, -metrics.mAscent,
-                        advance, metrics.mAscent + metrics.mDescent);
+                    glyphRect = gfxRect(0, metrics.mBoundingBox.Y(),
+                        advance, metrics.mBoundingBox.Height());
                 }
                 if (isRTL) {
                     glyphRect.pos.x -= advance;
@@ -566,10 +483,8 @@ gfxFont::Measure(gfxTextRun *aTextRun,
     }
 
     if (!aTightBoundingBox) {
-        UnionRange(x, &advanceMin, &advanceMax);
-        gfxRect fontBox(advanceMin, -metrics.mAscent,
-                        advanceMax - advanceMin, metrics.mAscent + metrics.mDescent);
-        metrics.mBoundingBox = metrics.mBoundingBox.Union(fontBox);
+        
+        UnionWithXPoint(&metrics.mBoundingBox, x);
     }
     if (isRTL) {
         metrics.mBoundingBox.pos.x -= x;
@@ -720,8 +635,6 @@ gfxFont::SanitizeMetrics(gfxFont::Metrics *aMetrics, PRBool aIsBadUnderlineFont)
     }
 }
 
-
-
 gfxGlyphExtents::~gfxGlyphExtents()
 {
 #ifdef DEBUG_TEXT_RUN_STORAGE_METRICS
@@ -753,7 +666,7 @@ gfxGlyphExtents::GetTightGlyphExtentsAppUnits(gfxFont *aFont,
             return PR_FALSE;
         }
     }
-
+    
     *aExtents = gfxRect(entry->x, entry->y, entry->width, entry->height);
     return PR_TRUE;
 }
@@ -961,8 +874,10 @@ gfxFontGroup::ForEachFontInternal(const nsAString& aFamilies,
                 genericFamily.SetIsVoid(PR_TRUE);
             }
         }
-        
-        if (!family.IsEmpty()) {
+
+        if (generic) {
+            ForEachFontInternal(family, lang, PR_FALSE, aResolveFontName, fc, closure);
+        } else if (!family.IsEmpty()) {
             NS_LossyConvertUTF16toASCII gf(genericFamily);
             if (aResolveFontName) {
                 ResolveData data(fc, gf, closure);
@@ -1039,113 +954,6 @@ gfxFontGroup::MakeSpaceTextRun(const Parameters *aParams, PRUint32 aFlags)
     
     return textRun.forget();
 }
-
-
-
-already_AddRefed<gfxFont>
-gfxFontGroup::FindFontForChar(PRUint32 aCh, PRUint32 aPrevCh, PRUint32 aNextCh, gfxFont *aPrevMatchedFont)
-{
-    nsRefPtr<gfxFont>    selectedFont;
-
-    
-    
-    if (gfxFontUtils::IsJoiner(aCh) || gfxFontUtils::IsJoiner(aPrevCh) || gfxFontUtils::IsJoiner(aNextCh)) {
-        if (aPrevMatchedFont && aPrevMatchedFont->HasCharacter(aCh)) {
-            selectedFont = aPrevMatchedFont;
-            return selectedFont.forget();
-        }
-    }
-
-    
-    for (PRUint32 i = 0; i < FontListLength(); i++) {
-        nsRefPtr<gfxFont> font = GetFontAt(i);
-        if (font->HasCharacter(aCh))
-            return font.forget();
-    }
-
-    
-    if (selectedFont)
-        return selectedFont.forget();
-        
-    
-    if ((aCh >= 0xE000  && aCh <= 0xF8FF) || (aCh >= 0xF0000 && aCh <= 0x10FFFD))
-        return nsnull;
-
-    
-    if ((selectedFont = WhichPrefFontSupportsChar(aCh))) {
-        return selectedFont.forget();
-    }
-
-    
-    
-    if (!selectedFont && aPrevMatchedFont && aPrevMatchedFont->HasCharacter(aCh)) {
-        selectedFont = aPrevMatchedFont;
-        return selectedFont.forget();
-    }
-
-    
-    if (!selectedFont) {
-        selectedFont = WhichSystemFontSupportsChar(aCh);
-        return selectedFont.forget();
-    }
-
-    return nsnull;
-}
-
-
-void gfxFontGroup::ComputeRanges(nsTArray<gfxTextRange>& aRanges, const PRUnichar *aString, PRUint32 begin, PRUint32 end)
-{
-    const PRUnichar *str = aString + begin;
-    PRUint32 len = end - begin;
-
-    aRanges.Clear();
-
-    PRUint32 prevCh = 0;
-    for (PRUint32 i = 0; i < len; i++) {
-
-        const PRUint32 origI = i; 
-
-        
-        PRUint32 ch = str[i];
-        if ((i+1 < len) && NS_IS_HIGH_SURROGATE(ch) && NS_IS_LOW_SURROGATE(str[i+1])) {
-            i++;
-            ch = SURROGATE_TO_UCS4(ch, str[i]);
-        }
-
-        
-        PRUint32 nextCh = 0;
-        if (i+1 < len) {
-            nextCh = str[i+1];
-            if ((i+2 < len) && NS_IS_HIGH_SURROGATE(nextCh) && NS_IS_LOW_SURROGATE(str[i+2]))
-                nextCh = SURROGATE_TO_UCS4(nextCh, str[i+2]);
-        }
-        
-        
-        nsRefPtr<gfxFont> font = FindFontForChar(ch, prevCh, nextCh, (aRanges.Length() == 0) ? nsnull : aRanges[aRanges.Length() - 1].font);
-
-        prevCh = ch;
-
-        if (aRanges.Length() == 0) {
-            
-            gfxTextRange r(0,1);
-            r.font = font;
-            aRanges.AppendElement(r);
-        } else {
-            
-            gfxTextRange& prevRange = aRanges[aRanges.Length() - 1];
-            if (prevRange.font != font) {
-                
-                prevRange.end = origI;
-
-                gfxTextRange r(origI, i+1);
-                r.font = font;
-                aRanges.AppendElement(r);
-            }
-        }
-    }
-    aRanges[aRanges.Length()-1].end = len;
-}
-
 
 #define DEFAULT_PIXEL_FONT_SIZE 16.0f
 
@@ -1285,11 +1093,11 @@ gfxTextRun::gfxTextRun(const gfxTextRunFactory::Parameters *aParams, const void 
     if (aParams->mSkipChars) {
         mSkipChars.TakeFrom(aParams->mSkipChars);
     }
-
+    
     mCharacterGlyphs = reinterpret_cast<CompressedGlyph*>
         (reinterpret_cast<PRUint8*>(this) + aObjectSize);
     memset(mCharacterGlyphs, 0, sizeof(CompressedGlyph)*aLength);
-
+    
     if (mFlags & gfxTextRunFactory::TEXT_IS_8BIT) {
         mText.mSingle = static_cast<const PRUint8 *>(aText);
         if (!(mFlags & gfxTextRunFactory::TEXT_IS_PERSISTENT)) {
@@ -1385,10 +1193,7 @@ gfxTextRun::ComputeLigatureData(PRUint32 aPartStart, PRUint32 aPartEnd,
     PRUint32 partClusterIndex = 0;
     PRUint32 partClusterCount = 0;
     for (i = result.mLigatureStart; i < result.mLigatureEnd; ++i) {
-        
-        
-        
-        if (i == result.mLigatureStart || charGlyphs[i].IsClusterStart()) {
+        if (charGlyphs[i].IsClusterStart()) {
             ++totalClusterCount;
             if (i < aPartStart) {
                 ++partClusterIndex;
@@ -1399,20 +1204,8 @@ gfxTextRun::ComputeLigatureData(PRUint32 aPartStart, PRUint32 aPartEnd,
     }
     result.mPartAdvance = ligatureWidth*partClusterIndex/totalClusterCount;
     result.mPartWidth = ligatureWidth*partClusterCount/totalClusterCount;
-
-    if (partClusterCount == 0) {
-        
-        result.mClipBeforePart = result.mClipAfterPart = PR_TRUE;
-    } else {
-        
-        
-        
-        
-        result.mClipBeforePart = partClusterIndex > 0;
-        
-        
-        result.mClipAfterPart = partClusterIndex + partClusterCount < totalClusterCount;
-    }
+    result.mPartIsStartOfLigature = partClusterIndex == 0;
+    result.mPartIsEndOfLigature = partClusterIndex + partClusterCount == totalClusterCount;
 
     if (aProvider && (mFlags & gfxTextRunFactory::TEXT_ENABLE_SPACING)) {
         gfxFont::Spacing spacing;
@@ -1519,14 +1312,16 @@ static void
 ClipPartialLigature(gfxTextRun *aTextRun, gfxFloat *aLeft, gfxFloat *aRight,
                     gfxFloat aXOrigin, gfxTextRun::LigatureData *aLigature)
 {
-    if (aLigature->mClipBeforePart) {
+    if (!aLigature->mPartIsStartOfLigature) {
+        
         if (aTextRun->IsRightToLeft()) {
             *aRight = PR_MIN(*aRight, aXOrigin);
         } else {
             *aLeft = PR_MAX(*aLeft, aXOrigin);
         }
     }
-    if (aLigature->mClipAfterPart) {
+    if (!aLigature->mPartIsEndOfLigature) {
+        
         gfxFloat endEdge = aXOrigin + aTextRun->GetDirection()*aLigature->mPartWidth;
         if (aTextRun->IsRightToLeft()) {
             *aLeft = PR_MAX(*aLeft, endEdge);
@@ -1594,7 +1389,7 @@ HasSyntheticBold(gfxTextRun *aRun, PRUint32 aStart, PRUint32 aLength)
 static PRBool
 HasNonOpaqueColor(gfxContext *aContext, gfxRGBA& aCurrentColor)
 {
-    if (aContext->GetDeviceColor(aCurrentColor)) {
+    if (aContext->GetColor(aCurrentColor)) {
         if (aCurrentColor.a < 1.0 && aCurrentColor.a > 0.0) {
             return PR_TRUE;
         }
@@ -1608,11 +1403,11 @@ struct BufferAlphaColor {
     BufferAlphaColor(gfxContext *aContext)
         : mContext(aContext)
     {
-
+    
     }
-
+    
     ~BufferAlphaColor() {}
-
+    
     void PushSolidColor(const gfxRect& aBounds, const gfxRGBA& aAlphaColor, PRUint32 appsPerDevUnit)
     {
         mContext->Save();
@@ -1626,7 +1421,7 @@ struct BufferAlphaColor {
         mContext->PushGroup(gfxASurface::CONTENT_COLOR_ALPHA);
         mAlpha = aAlphaColor.a;
     }
-
+    
     void PopAlpha()
     {
         
@@ -1702,7 +1497,7 @@ gfxTextRun::Draw(gfxContext *aContext, gfxPoint aPt,
     BufferAlphaColor syntheticBoldBuffer(aContext);
     gfxRGBA currentColor;
     PRBool needToRestore = PR_FALSE;
-
+    
     if (HasNonOpaqueColor(aContext, currentColor) && HasSyntheticBold(this, aStart, aLength)) {
         needToRestore = PR_TRUE;
         
@@ -1710,7 +1505,7 @@ gfxTextRun::Draw(gfxContext *aContext, gfxPoint aPt,
         metrics.mBoundingBox.MoveBy(aPt);
         syntheticBoldBuffer.PushSolidColor(metrics.mBoundingBox, currentColor, GetAppUnitsPerDevUnit());
     }
-
+    
     GlyphRunIterator iter(this, aStart, aLength);
     while (iter.NextRun()) {
         gfxFont *font = iter.GetGlyphRun()->mFont;
@@ -1768,6 +1563,7 @@ gfxTextRun::DrawToPath(gfxContext *aContext, gfxPoint aPt,
     }
 }
 
+
 void
 gfxTextRun::AccumulateMetricsForRun(gfxFont *aFont,
                                     PRUint32 aStart, PRUint32 aEnd,
@@ -1781,7 +1577,13 @@ gfxTextRun::AccumulateMetricsForRun(gfxFont *aFont,
         aSpacingStart, aSpacingEnd, &spacingBuffer);
     Metrics metrics = aFont->Measure(this, aStart, aEnd, aTight, aRefContext,
                                      haveSpacing ? spacingBuffer.Elements() : nsnull);
-    aMetrics->CombineWith(metrics, IsRightToLeft());
+ 
+    if (IsRightToLeft()) {
+        metrics.CombineWith(*aMetrics);
+        *aMetrics = metrics;
+    } else {
+        aMetrics->CombineWith(metrics);
+    }
 }
 
 void
@@ -1800,7 +1602,7 @@ gfxTextRun::AccumulatePartialLigatureMetrics(gfxFont *aFont,
     Metrics metrics;
     AccumulateMetricsForRun(aFont, data.mLigatureStart, data.mLigatureEnd,
                             aTight, aRefContext, aProvider, aStart, aEnd, &metrics);
-
+    
     
     gfxFloat bboxLeft = metrics.mBoundingBox.X();
     gfxFloat bboxRight = metrics.mBoundingBox.XMost();
@@ -1817,7 +1619,12 @@ gfxTextRun::AccumulatePartialLigatureMetrics(gfxFont *aFont,
             : data.mPartAdvance;    
     metrics.mAdvanceWidth = data.mPartWidth;
 
-    aMetrics->CombineWith(metrics, IsRightToLeft());
+    if (IsRightToLeft()) {
+        metrics.CombineWith(*aMetrics);
+        *aMetrics = metrics;
+    } else {
+        aMetrics->CombineWith(metrics);
+    }
 }
 
 gfxTextRun::Metrics
@@ -1868,9 +1675,7 @@ gfxTextRun::BreakAndMeasureText(PRUint32 aStart, PRUint32 aMaxLength,
                                 Metrics *aMetrics, PRBool aTightBoundingBox,
                                 gfxContext *aRefContext,
                                 PRBool *aUsedHyphenation,
-                                PRUint32 *aLastBreak,
-                                PRBool aCanWordWrap,
-                                gfxBreakPriority *aBreakPriority)
+                                PRUint32 *aLastBreak)
 {
     aMaxLength = PR_MIN(aMaxLength, mCharacterCount - aStart);
 
@@ -1924,38 +1729,29 @@ gfxTextRun::BreakAndMeasureText(PRUint32 aStart, PRUint32 aMaxLength,
             }
         }
 
-        
-        
-        
-        
-        if (!aSuppressInitialBreak || i > aStart) {
-            PRBool lineBreakHere = mCharacterGlyphs[i].CanBreakBefore();
-            PRBool hyphenation = haveHyphenation && hyphenBuffer[i - bufferStart];
-            PRBool wordWrapping = aCanWordWrap && *aBreakPriority <= eWordWrapBreak;
-
-            if (lineBreakHere || hyphenation || wordWrapping) {
-                gfxFloat hyphenatedAdvance = advance;
-                if (!lineBreakHere && !wordWrapping) {
-                    hyphenatedAdvance += aProvider->GetHyphenWidth();
-                }
+        PRBool lineBreakHere = mCharacterGlyphs[i].CanBreakBefore() &&
+            (!aSuppressInitialBreak || i > aStart);
+        if (lineBreakHere || (haveHyphenation && hyphenBuffer[i - bufferStart])) {
+            gfxFloat hyphenatedAdvance = advance;
+            PRBool hyphenation = !lineBreakHere;
+            if (hyphenation) {
+                hyphenatedAdvance += aProvider->GetHyphenWidth();
+            }
             
-                if (lastBreak < 0 || width + hyphenatedAdvance - trimmableAdvance <= aWidth) {
-                    
-                    lastBreak = i;
-                    lastBreakTrimmableChars = trimmableChars;
-                    lastBreakTrimmableAdvance = trimmableAdvance;
-                    lastBreakUsedHyphenation = !lineBreakHere && !wordWrapping;
-                    *aBreakPriority = hyphenation || lineBreakHere ?
-                        eNormalBreak : eWordWrapBreak;
-                }
+            if (lastBreak < 0 || width + hyphenatedAdvance - trimmableAdvance <= aWidth) {
+                
+                lastBreak = i;
+                lastBreakTrimmableChars = trimmableChars;
+                lastBreakTrimmableAdvance = trimmableAdvance;
+                lastBreakUsedHyphenation = hyphenation;
+            }
 
-                width += advance;
-                advance = 0;
-                if (width - trimmableAdvance > aWidth) {
-                    
-                    aborted = PR_TRUE;
-                    break;
-                }
+            width += advance;
+            advance = 0;
+            if (width - trimmableAdvance > aWidth) {
+                
+                aborted = PR_TRUE;
+                break;
             }
         }
         
