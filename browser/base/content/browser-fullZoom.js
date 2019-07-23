@@ -333,11 +333,10 @@ var FullZoom = {
 
 
   _applyPrefToSetting: function FullZoom__applyPrefToSetting(aValue, aBrowser) {
-    var browser = aBrowser || gBrowser.selectedBrowser;
-
     if (!this.siteSpecific && !this._inPrivateBrowsing)
       return;
 
+    var browser = aBrowser || gBrowser.selectedBrowser;
     try {
       if (gInPrintPreviewMode ||
           browser.contentDocument instanceof Ci.nsIImageDocument ||
