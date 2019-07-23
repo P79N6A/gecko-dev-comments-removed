@@ -1530,11 +1530,11 @@ nsJSContext::EvaluateString(const nsAString& aScript,
                                               &val);
 
     if (!ok) {
-        
-        
-        
+      
+      
+      
 
-        nsContentUtils::NotifyXPCIfExceptionPending(mContext);
+      JS_ReportPendingException(mContext);
     }
   }
 
