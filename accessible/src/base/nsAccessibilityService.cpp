@@ -1351,8 +1351,13 @@ NS_IMETHODIMP nsAccessibilityService::GetAccessible(nsIDOMNode *aNode,
   if (content->IsNodeOfType(nsINode::eTEXT)) {
     
     if (frame->IsEmpty()) {
-      *aIsHidden = PR_TRUE;
-      return NS_OK;
+      nsAutoString renderedWhitespace;
+      frame->GetRenderedText(&renderedWhitespace, nsnull, nsnull, 0, 1);
+      if (renderedWhitespace.IsEmpty()) {
+        
+        *aIsHidden = PR_TRUE;
+        return NS_OK;
+      }
     }
     frame->GetAccessible(getter_AddRefs(newAcc));
     return InitAccessible(newAcc, aAccessible, nsnull);

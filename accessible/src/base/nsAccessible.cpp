@@ -937,12 +937,17 @@ PRBool nsAccessible::IsVisible(PRBool *aIsOffscreen)
                                  &rectVisibility);
 
   if (rectVisibility == nsRectVisibility_kZeroAreaRect) {
-    if (frame->GetNextContinuation()) {
+    nsIAtom *frameType = frame->GetType();
+    if (frameType == nsAccessibilityAtoms::textFrame) {
       
       
-      rectVisibility = nsRectVisibility_kVisible;
+      nsAutoString renderedText;
+      frame->GetRenderedText (&renderedText, nsnull, nsnull, 0, 1);
+      if (!renderedText.IsEmpty()) {
+        rectVisibility = nsRectVisibility_kVisible;
+      }
     }
-    else if (IsCorrectFrameType(frame, nsAccessibilityAtoms::inlineFrame)) {
+    else if (frameType == nsAccessibilityAtoms::inlineFrame) {
       
       
       
