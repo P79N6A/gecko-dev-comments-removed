@@ -147,6 +147,8 @@
 #include "nsAppDirectoryServiceDefs.h"
 #include "nsXPIDLString.h"
 #include "nsWidgetsCID.h"
+#include "nsTHashtable.h"
+#include "nsHashKeys.h"
 
 #if defined(WINCE)
 #include "nsWindowCE.h"
@@ -2297,43 +2299,54 @@ NS_IMETHODIMP nsWindow::Update()
 
 
 
-
-
-BOOL CALLBACK nsWindow::InvalidateForeignChildWindows(HWND aWnd, LPARAM aMsg)
+void
+nsWindow::Scroll(const nsIntPoint& aDelta, const nsIntRect& aSource,
+                 const nsTArray<Configuration>& aConfigurations)
 {
-  LONG_PTR proc = ::GetWindowLongPtrW(aWnd, GWLP_WNDPROC);
-  if (proc != (LONG_PTR)&nsWindow::WindowProc) {
-    
-    VERIFY(::InvalidateRect(aWnd, NULL, FALSE));    
-  }
-  return TRUE;
-}
-
-
-NS_METHOD nsWindow::Scroll(PRInt32 aDx, PRInt32 aDy, nsIntRect *aClipRect)
-{
-  RECT  trect;
-
-  if (nsnull != aClipRect)
-  {
-    trect.left = aClipRect->x;
-    trect.top = aClipRect->y;
-    trect.right = aClipRect->XMost();
-    trect.bottom = aClipRect->YMost();
+  
+  
+  
+  
+  
+  
+  nsTHashtable<nsPtrHashKey<nsWindow> > scrolledWidgets;
+  scrolledWidgets.Init();
+  for (PRUint32 i = 0; i < aConfigurations.Length(); ++i) {
+    const Configuration& configuration = aConfigurations[i];
+    nsWindow* w = static_cast<nsWindow*>(configuration.mChild);
+    NS_ASSERTION(w->GetParent() == this,
+                 "Configured widget is not a child");
+    if (configuration.mBounds == w->mBounds + aDelta) {
+      scrolledWidgets.PutEntry(w);
+    }
+    w->SetWindowClipRegion(configuration.mClipRegion, PR_TRUE);
   }
 
-  ::ScrollWindowEx(mWnd, aDx, aDy, NULL, (nsnull != aClipRect) ? &trect : NULL,
-                   NULL, NULL, SW_INVALIDATE | SW_SCROLLCHILDREN);
+  
+  
+  nsIntRect affectedRect;
+  affectedRect.UnionRect(aSource, aSource + aDelta);
+  
+  
+  UINT flags = SW_SCROLLCHILDREN | SW_INVALIDATE;
+  for (nsWindow* w = static_cast<nsWindow*>(GetFirstChild()); w;
+       w = static_cast<nsWindow*>(w->GetNextSibling())) {
+    if (w->mBounds.Intersects(affectedRect) &&
+        !scrolledWidgets.GetEntry(w)) {
+      flags &= ~SW_SCROLLCHILDREN;
+      break;
+    }
+  }
+
+  nsIntRect destRect = aSource + aDelta;
+  RECT clip = { affectedRect.x, affectedRect.y, affectedRect.XMost(), affectedRect.YMost() };
+  ::ScrollWindowEx(mWnd, aDelta.x, aDelta.y, &clip, &clip, NULL, NULL, flags);
+
   
   
   
-#if !defined(WINCE)
-  ::EnumChildWindows(GetWindowHandle(), nsWindow::InvalidateForeignChildWindows, NULL);
-#else
-  nsWindowCE::EnumChildWindows(GetWindowHandle(), nsWindow::InvalidateForeignChildWindows, NULL);
-#endif
-  ::UpdateWindow(mWnd);
-  return NS_OK;
+  
+  ConfigureChildren(aConfigurations);
 }
 
 

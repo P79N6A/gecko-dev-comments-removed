@@ -69,14 +69,6 @@ public:
 
 
 
-
-  NS_IMETHOD  CreateScrollControls(nsNativeWidget aNative = nsnull) = 0;
-
-  
-
-
-
-
   NS_IMETHOD  GetContainerSize(nscoord *aWidth, nscoord *aHeight) const = 0;
 
   

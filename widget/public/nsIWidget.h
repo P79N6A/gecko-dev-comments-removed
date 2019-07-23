@@ -42,6 +42,7 @@
 #include "nsColor.h"
 #include "nsCoord.h"
 #include "nsRect.h"
+#include "nsPoint.h"
 
 #include "prthread.h"
 #include "nsEvent.h"
@@ -102,8 +103,8 @@ typedef nsEventStatus (* EVENT_CALLBACK)(nsGUIEvent *event);
 #endif
 
 #define NS_IWIDGET_IID \
-  { 0x8f0869be, 0x6a53, 0x4f21, \
-    { 0xa9, 0x64, 0x90, 0xd9, 0x26, 0x04, 0x05, 0xa3 } }
+  { 0x9b8d70bd, 0x068e, 0x4465, \
+    { 0x8a, 0xd2, 0x4c, 0xf7, 0x96, 0x67, 0xe4, 0xfc } }
 
 
 
@@ -716,7 +717,17 @@ class nsIWidget : public nsISupports {
 
 
 
-    NS_IMETHOD Scroll(PRInt32 aDx, PRInt32 aDy, nsIntRect *aClipRect) = 0;
+
+
+
+
+
+
+
+
+
+    virtual void Scroll(const nsIntPoint& aDelta, const nsIntRect& aSource,
+                        const nsTArray<Configuration>& aReconfigureChildren) = 0;
 
     
 

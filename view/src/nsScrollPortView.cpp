@@ -143,18 +143,6 @@ NS_IMETHODIMP nsScrollPortView::RemoveScrollPositionListener(nsIScrollPositionLi
   return NS_ERROR_FAILURE;
 }
 
-NS_IMETHODIMP nsScrollPortView::CreateScrollControls(nsNativeWidget aNative)
-{
-  nsWidgetInitData  initData;
-  initData.clipChildren = PR_TRUE;
-  initData.clipSiblings = PR_TRUE;
-
-  CreateWidget(kWidgetCID, &initData,
-               mWindow ? nsnull : aNative);
-  
-  return NS_OK;
-}
-
 NS_IMETHODIMP nsScrollPortView::GetContainerSize(nscoord *aWidth, nscoord *aHeight) const
 {
   if (!aWidth || !aHeight)
@@ -330,9 +318,9 @@ static void AdjustChildWidgets(nsView *aView,
         widget->Show(PR_TRUE);
       }
     }
+    
+    
   } else {
-    
-    
     nsPoint widgetToViewOrigin = aWidgetToParentViewOrigin
       + aView->GetPosition();
 
@@ -553,8 +541,9 @@ NS_IMETHODIMP nsScrollPortView::CanScroll(PRBool aHorizontal,
   return NS_OK;
 }
 
-void nsScrollPortView::Scroll(nsView *aScrolledView, nsPoint aTwipsDelta, nsIntPoint aPixDelta,
-                              PRInt32 aP2A)
+void nsScrollPortView::Scroll(nsView *aScrolledView, nsPoint aTwipsDelta,
+                              nsIntPoint aPixDelta, PRInt32 aP2A,
+                              const nsTArray<nsIWidget::Configuration>& aConfigurations)
 {
   if (aTwipsDelta.x != 0 || aTwipsDelta.y != 0)
   {
@@ -564,37 +553,20 @@ void nsScrollPortView::Scroll(nsView *aScrolledView, nsPoint aTwipsDelta, nsIntP
     if (aScrolledView->NeedsInvalidateFrameOnScroll())
       GetViewManager()->GetViewObserver()->InvalidateFrameForView(aScrolledView);
     
-    nsIWidget *scrollWidget = GetWidget();
+    nsPoint nearestWidgetOffset;
+    nsIWidget *nearestWidget = GetNearestWidget(&nearestWidgetOffset);
     nsRegion updateRegion;
-    PRBool canBitBlit = scrollWidget &&
+    PRBool canBitBlit = nearestWidget &&
                         mViewManager->CanScrollWithBitBlt(aScrolledView, aTwipsDelta, &updateRegion) &&
-                        scrollWidget->GetTransparencyMode() != eTransparencyTransparent;
+                        nearestWidget->GetTransparencyMode() != eTransparencyTransparent;
 
-    if (canBitBlit) {
-      
-      
-      mViewManager->WillBitBlit(this, aTwipsDelta);
-    }
-    
-    if (!scrollWidget)
-    {
-      NS_ASSERTION(!canBitBlit, "Someone screwed up");
-      nsPoint offsetToWidget;
-      GetNearestWidget(&offsetToWidget);
+    if (!canBitBlit) {
       
       
       
-      
-      
-      AdjustChildWidgets(aScrolledView, offsetToWidget, aP2A, PR_TRUE);
-      
-      
-      
-      mViewManager->UpdateView(this, NS_VMREFRESH_DEFERRED);
-    } else if (!canBitBlit) {
-      
-      
-      
+      if (nearestWidget) {
+        nearestWidget->ConfigureChildren(aConfigurations);
+      }
       nsRect bounds(GetBounds());
       nsPoint topLeft(bounds.x, bounds.y);
       AdjustChildWidgets(aScrolledView,
@@ -602,34 +574,45 @@ void nsScrollPortView::Scroll(nsView *aScrolledView, nsPoint aTwipsDelta, nsIntP
       
       
       mViewManager->UpdateView(this, NS_VMREFRESH_DEFERRED);
-    } else { 
-      nsIntRect* toScrollPtr = nsnull;
+    } else {
+      
+      
+      mViewManager->WillBitBlit(this, aTwipsDelta);
 
-#ifdef XP_WIN
-      nsIntRect toScroll;
-      if (!updateRegion.IsEmpty()) {
-        nsRegion regionToScroll;
-        regionToScroll.Sub(nsRect(nsPoint(0,0), GetBounds().Size()),
-                           updateRegion);
-        nsRegionRectIterator iter(regionToScroll);
-        nsRect biggestRect(0,0,0,0);
-        const nsRect* r;
-        for (r = iter.Next(); r; r = iter.Next()) {
-          if (PRInt64(r->width)*PRInt64(r->height) > PRInt64(biggestRect.width)*PRInt64(biggestRect.height)) {
-            biggestRect = *r;
-          }
+      
+      nsRect bounds(nsPoint(0,0), GetBounds().Size());
+      nsRegion regionToScroll;
+      regionToScroll.Sub(bounds, updateRegion);
+      
+      
+      regionToScroll.And(regionToScroll, bounds - aTwipsDelta);
+      
+      nsRegionRectIterator iter(regionToScroll);
+      nsRect biggestRect(0,0,0,0);
+      const nsRect* r;
+      for (r = iter.Next(); r; r = iter.Next()) {
+        if (PRInt64(r->width)*PRInt64(r->height) > PRInt64(biggestRect.width)*PRInt64(biggestRect.height)) {
+          biggestRect = *r;
         }
-        toScrollPtr = &toScroll;
-        toScroll = biggestRect.ToInsidePixels(aP2A);
-        biggestRect = toScroll.ToAppUnits(aP2A);
-        regionToScroll.Sub(regionToScroll, biggestRect);
-        updateRegion.Or(updateRegion, regionToScroll);
       }
-#endif
+      
+      nsIntRect destScroll = (biggestRect + nearestWidgetOffset).ToInsidePixels(aP2A);
+      
+      
+      biggestRect = destScroll.ToAppUnits(aP2A) - nearestWidgetOffset;
+      
+      regionToScroll.Sub(regionToScroll, biggestRect);
+      updateRegion.Or(updateRegion, regionToScroll);
 
       
       
-      scrollWidget->Scroll(aPixDelta.x, aPixDelta.y, toScrollPtr);
+      nsRegion exposedArea;
+      exposedArea.Sub(bounds, bounds - aTwipsDelta);
+      updateRegion.Or(updateRegion, exposedArea);
+
+      nearestWidget->Scroll(aPixDelta, destScroll - aPixDelta,
+                            aConfigurations);
+      AdjustChildWidgets(aScrolledView, nearestWidgetOffset, aP2A, PR_TRUE);
       mViewManager->UpdateViewAfterScroll(this, updateRegion);
     }
   }
@@ -686,16 +669,15 @@ NS_IMETHODIMP nsScrollPortView::ScrollToImpl(nscoord aX, nscoord aY)
   if (!scrolledView) return NS_ERROR_FAILURE;
 
   
-  
-  
   scrolledView->SetPositionIgnoringChildWidgets(-aX, -aY);
       
   
+  nsTArray<nsIWidget::Configuration> configurations;
   if (nsnull != mListeners) {
     if (NS_SUCCEEDED(mListeners->Count(&listenerCount))) {
       for (PRUint32 i = 0; i < listenerCount; i++) {
         if (NS_SUCCEEDED(mListeners->QueryElementAt(i, kScrollPositionListenerIID, (void**)&listener))) {
-          listener->ViewPositionDidChange(this);
+          listener->ViewPositionDidChange(this, &configurations);
           NS_RELEASE(listener);
         }
       }
@@ -708,7 +690,7 @@ NS_IMETHODIMP nsScrollPortView::ScrollToImpl(nscoord aX, nscoord aY)
   mOffsetX = aX;
   mOffsetY = aY;
 
-  Scroll(scrolledView, twipsDelta, nsIntPoint(dxPx, dyPx), p2a);
+  Scroll(scrolledView, twipsDelta, nsIntPoint(dxPx, dyPx), p2a, configurations);
 
   mViewManager->SynthesizeMouseMove(PR_TRUE);
   

@@ -1381,40 +1381,6 @@ nsGfxScrollFrameInner::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
   return NS_OK;
 }
 
-PRBool
-nsGfxScrollFrameInner::NeedsClipWidget() const
-{
-  
-  
-  
-  for (nsIFrame* parentFrame = mOuter; parentFrame;
-       parentFrame = nsLayoutUtils::GetCrossDocParentFrame(parentFrame)) {
-    
-    
-    if (parentFrame->GetStyleDisplay()->HasTransform())
-      return PR_FALSE;
-
-    
-    nsIFormControlFrame* fcFrame = do_QueryFrame(parentFrame);
-    if (fcFrame) {
-      return PR_FALSE;
-    }
-  }
-
-  
-  
-  nsIScrollableFrame *scrollableFrame = do_QueryFrame(mOuter);
-  ScrollbarStyles scrollbars = scrollableFrame->GetScrollbarStyles();
-  if ((scrollbars.mHorizontal == NS_STYLE_OVERFLOW_HIDDEN
-       || scrollbars.mHorizontal == NS_STYLE_OVERFLOW_VISIBLE)
-      && (scrollbars.mVertical == NS_STYLE_OVERFLOW_HIDDEN
-          || scrollbars.mVertical == NS_STYLE_OVERFLOW_VISIBLE)) {
-    return PR_FALSE;
-  }
- 
-  return PR_TRUE;
-}
-
 void
 nsGfxScrollFrameInner::CreateScrollableView()
 {
@@ -1429,11 +1395,6 @@ nsGfxScrollFrameInner::CreateScrollableView()
 
   
   viewManager->InsertChild(outerView, view, nsnull, PR_TRUE);
-
-  
-  if (NeedsClipWidget()) {
-    mScrollableView->CreateScrollControls(); 
-  }
 }
 
 static void HandleScrollPref(nsIScrollable *aScrollable, PRInt32 aOrientation,
@@ -1792,11 +1753,15 @@ nsGfxScrollFrameInner::InternalScrollPositionDidChange(nscoord aX, nscoord aY)
 }
 
 void
-nsGfxScrollFrameInner::ViewPositionDidChange(nsIScrollableView* aScrollable)
+nsGfxScrollFrameInner::ViewPositionDidChange(nsIScrollableView* aScrollable,
+                                             nsTArray<nsIWidget::Configuration>* aConfigurations)
 {
   
   nsPoint childOffset = mScrolledFrame->GetView()->GetOffsetTo(mOuter->GetView());
   mScrolledFrame->SetPosition(childOffset);
+
+  mOuter->PresContext()->RootPresContext()->
+    GetPluginGeometryUpdates(mOuter, aConfigurations);
 }
 
 
@@ -1816,8 +1781,6 @@ nsGfxScrollFrameInner::ScrollPositionDidChange(nsIScrollableView* aScrollable, n
   
   mOuter->InvalidateWithFlags(nsRect(nsPoint(0, 0), mOuter->GetSize()),
                               nsIFrame::INVALIDATE_NOTIFY_ONLY);
-
-  mOuter->PresContext()->RootPresContext()->UpdatePluginGeometry(mOuter);
 
   return NS_OK;
 }

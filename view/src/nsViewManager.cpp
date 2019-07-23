@@ -654,7 +654,6 @@ nsViewManager::WillBitBlit(nsView* aView, nsPoint aScrollAmount)
 
   NS_PRECONDITION(aView, "Must have a view");
   NS_PRECONDITION(!aView->NeedsInvalidateFrameOnScroll(), "We shouldn't be BitBlting.");
-  NS_PRECONDITION(aView->HasWidget(), "View must have a widget");
 
   ++mScrollCnt;
   
@@ -670,24 +669,10 @@ nsViewManager::UpdateViewAfterScroll(nsView *aView, const nsRegion& aUpdateRegio
 {
   NS_ASSERTION(RootViewManager()->mScrollCnt > 0,
                "Someone forgot to call WillBitBlit()");
-  
-  
-  nsRect damageRect = aView->GetDimensions();
-  if (damageRect.IsEmpty()) {
-    
-    --RootViewManager()->mScrollCnt;
-    return;
-  }
 
-  nsView* displayRoot = GetDisplayRootFor(aView);
-  nsPoint offset = aView->GetOffsetTo(displayRoot);
-  damageRect.MoveBy(offset);
-
-  UpdateWidgetArea(displayRoot, displayRoot->GetWidget(),
-                   nsRegion(damageRect), aView);
   if (!aUpdateRegion.IsEmpty()) {
-    
-    
+    nsView* displayRoot = GetDisplayRootFor(aView);
+    nsPoint offset = aView->GetOffsetTo(displayRoot);
     nsRegion update(aUpdateRegion);
     update.MoveBy(offset);
     UpdateWidgetArea(displayRoot, displayRoot->GetWidget(),
@@ -1572,11 +1557,7 @@ PRBool nsViewManager::CanScrollWithBitBlt(nsView* aView, nsPoint aDelta,
 
   aUpdateRegion->MoveBy(-displayOffset);
 
-#if defined(MOZ_WIDGET_GTK2) || defined(XP_OS2)
-  return aUpdateRegion->IsEmpty();
-#else
   return GetArea(aUpdateRegion->GetBounds()) < GetArea(parentBounds)/2;
-#endif
 }
 
 NS_IMETHODIMP nsViewManager::SetViewFloating(nsIView *aView, PRBool aFloating)

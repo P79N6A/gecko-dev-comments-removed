@@ -79,7 +79,6 @@ public:
   
   
   void ReloadChildFrames();
-  PRBool NeedsClipWidget() const;
   void CreateScrollableView();
 
   nsresult CreateAnonymousContent(nsTArray<nsIContent*>& aElements);
@@ -98,7 +97,8 @@ public:
   
 
   NS_IMETHOD ScrollPositionWillChange(nsIScrollableView* aScrollable, nscoord aX, nscoord aY);
-  virtual void ViewPositionDidChange(nsIScrollableView* aScrollable);
+  virtual void ViewPositionDidChange(nsIScrollableView* aScrollable,
+                                     nsTArray<nsIWidget::Configuration>* aConfigurations);
   NS_IMETHOD ScrollPositionDidChange(nsIScrollableView* aScrollable, nscoord aX, nscoord aY);
 
   
