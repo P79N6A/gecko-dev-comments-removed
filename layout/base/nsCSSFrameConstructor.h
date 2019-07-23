@@ -158,10 +158,6 @@ public:
 
   
   
-  PRUint32 GetHoverGeneration() const { return mHoverGeneration; }
-
-  
-  
   
   
   
@@ -201,16 +197,10 @@ public:
   
   void ProcessPendingRestyles();
   
-  
-  
-  
   void RebuildAllStyleData(nsChangeHint aExtraHint);
 
   void PostRestyleEvent(nsIContent* aContent, nsReStyleHint aRestyleHint,
                         nsChangeHint aMinChangeHint);
-private:
-  void PostRestyleEventInternal();
-public:
 
   
 
@@ -222,7 +212,7 @@ public:
 
 
 
-  void PostRebuildAllStyleDataEvent(nsChangeHint aExtraHint);
+  void PostRebuildAllStyleDataEvent();
 
   
   nsresult CreateContinuingFrame(nsPresContext* aPresContext,
@@ -1199,8 +1189,6 @@ private:
   PRPackedBool        mRebuildAllStyleData : 1;
   
   PRPackedBool        mHasRootAbsPosContainingBlock : 1;
-  PRUint32            mHoverGeneration;
-  nsChangeHint        mRebuildAllExtraHint;
 
   nsRevocableEventPtr<RestyleEvent> mRestyleEvent;
 

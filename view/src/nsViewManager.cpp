@@ -2312,10 +2312,6 @@ nsViewManager::SynthesizeMouseMove(PRBool aFromScroll)
 
 static nsView* FindFloatingViewContaining(nsView* aView, nsPoint aPt)
 {
-  if (aView->GetVisibility() == nsViewVisibility_kHide)
-    
-    return nsnull;
-
   for (nsView* v = aView->GetFirstChild(); v; v = v->GetNextSibling()) {
     nsView* r = FindFloatingViewContaining(v, aPt - v->GetOffsetTo(aView));
     if (r)
@@ -2323,33 +2319,9 @@ static nsView* FindFloatingViewContaining(nsView* aView, nsPoint aPt)
   }
 
   if (aView->GetFloating() && aView->HasWidget() &&
-      aView->GetDimensions().Contains(aPt))
+      aView->GetDimensions().Contains(aPt) && IsViewVisible(aView))
     return aView;
     
-  return nsnull;
-}
-
-
-
-
-
-
-
-
-
-
-static nsView* FindViewContaining(nsView* aView, nsPoint aPt)
-{
-  for (nsView* v = aView->GetFirstChild(); v; v = v->GetNextSibling()) {
-    if (aView->GetDimensions().Contains(aPt) &&
-        aView->GetVisibility() != nsViewVisibility_kHide) {
-      nsView* r = FindViewContaining(v, aPt - v->GetOffsetTo(aView));
-      if (r)
-        return r;
-      return v;
-    }
-  }
-
   return nsnull;
 }
 
@@ -2385,15 +2357,12 @@ nsViewManager::ProcessSynthMouseMoveEvent(PRBool aFromScroll)
   
   nsView* view = FindFloatingViewContaining(mRootView, pt);
   nsPoint offset(0, 0);
-  nsViewManager *pointVM;
   if (!view) {
     view = mRootView;
-    pointVM = FindViewContaining(mRootView, pt)->GetViewManager();
   } else {
     offset = view->GetOffsetTo(mRootView);
     offset.x = NSAppUnitsToIntPixels(offset.x, p2a);
     offset.y = NSAppUnitsToIntPixels(offset.y, p2a);
-    pointVM = view->GetViewManager();
   }
   nsMouseEvent event(PR_TRUE, NS_MOUSE_MOVE, view->GetWidget(),
                      nsMouseEvent::eSynthesized);
@@ -2401,7 +2370,8 @@ nsViewManager::ProcessSynthMouseMoveEvent(PRBool aFromScroll)
   event.time = PR_IntervalNow();
   
 
-  pointVM->GetViewObserver()->DispatchSynthMouseMove(&event, !aFromScroll);
+  nsEventStatus status;
+  view->GetViewManager()->DispatchEvent(&event, &status);
 
   if (!aFromScroll)
     mSynthMouseMoveEvent.Forget();
