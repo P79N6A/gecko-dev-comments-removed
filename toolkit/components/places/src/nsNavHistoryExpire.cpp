@@ -402,18 +402,19 @@ nsresult
 nsNavHistoryExpire::EraseVisits(mozIStorageConnection* aConnection,
     const nsTArray<nsNavHistoryExpireRecord>& aRecords)
 {
-  nsCOMPtr<mozIStorageStatement> deleteStatement;
-  nsresult rv = aConnection->CreateStatement(NS_LITERAL_CSTRING(
-      "DELETE FROM moz_historyvisits WHERE id = ?1"),
-    getter_AddRefs(deleteStatement));
-  NS_ENSURE_SUCCESS(rv, rv);
-  PRUint32 i;
-  for (i = 0; i < aRecords.Length(); i ++) {
-    deleteStatement->BindInt64Parameter(0, aRecords[i].visitID);
-    rv = deleteStatement->Execute();
-    NS_ENSURE_SUCCESS(rv, rv);
+  
+  nsCAutoString deletedVisitIds;
+  for (PRUint32 i = 0; i < aRecords.Length(); i ++) {
+    
+    if(! deletedVisitIds.IsEmpty())
+      deletedVisitIds.AppendLiteral(", ");
+    deletedVisitIds.AppendInt(aRecords[i].visitID);
   }
-  return NS_OK;
+
+  return aConnection->ExecuteSimpleSQL(
+    NS_LITERAL_CSTRING("DELETE FROM moz_historyvisits WHERE id IN (") +
+    deletedVisitIds +
+    NS_LITERAL_CSTRING(")"));
 }
 
 
@@ -429,37 +430,26 @@ nsresult
 nsNavHistoryExpire::EraseHistory(mozIStorageConnection* aConnection,
     nsTArray<nsNavHistoryExpireRecord>& aRecords)
 {
-  nsCOMPtr<mozIStorageStatement> deleteStatement;
-  nsresult rv = aConnection->CreateStatement(NS_LITERAL_CSTRING(
-      "DELETE FROM moz_places WHERE id = ?1"),
-    getter_AddRefs(deleteStatement));
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  nsCOMPtr<mozIStorageStatement> selectStatement;
-  rv = aConnection->CreateStatement(NS_LITERAL_CSTRING(
-      "SELECT place_id FROM moz_historyvisits WHERE place_id = ?1"),
-    getter_AddRefs(selectStatement));
-  NS_ENSURE_SUCCESS(rv, rv);
-
+  
+  nsCAutoString deletedPlaceIds;
   for (PRUint32 i = 0; i < aRecords.Length(); i ++) {
-    if (aRecords[i].bookmarked)
-      continue; 
-    if (StringBeginsWith(aRecords[i].uri, NS_LITERAL_CSTRING("place:")))
-      continue; 
-
     
-    rv = selectStatement->BindInt64Parameter(0, aRecords[i].placeID);
-    NS_ENSURE_SUCCESS(rv, rv);
-    PRBool hasVisit = PR_FALSE;
-    rv = selectStatement->ExecuteStep(&hasVisit);
-    selectStatement->Reset();
-    if (hasVisit) continue;
-
+    if (aRecords[i].bookmarked ||
+        StringBeginsWith(aRecords[i].uri, NS_LITERAL_CSTRING("place:")))
+      continue;
+    
+    if(! deletedPlaceIds.IsEmpty() )
+      deletedPlaceIds.AppendLiteral(", ");
+    deletedPlaceIds.AppendInt(aRecords[i].placeID);
     aRecords[i].erased = PR_TRUE;
-    rv = deleteStatement->BindInt64Parameter(0, aRecords[i].placeID);
-    rv = deleteStatement->Execute();
   }
-  return NS_OK;
+
+  return aConnection->ExecuteSimpleSQL(
+    NS_LITERAL_CSTRING("DELETE FROM moz_places WHERE id IN (") +
+    deletedPlaceIds +
+    NS_LITERAL_CSTRING(") AND id IN (SELECT h.id FROM moz_places h "
+      "LEFT OUTER JOIN moz_historyvisits v ON h.id = v.place_id "
+      "WHERE v.id IS NULL)"));
 }
 
 
@@ -470,40 +460,25 @@ nsNavHistoryExpire::EraseFavicons(mozIStorageConnection* aConnection,
     const nsTArray<nsNavHistoryExpireRecord>& aRecords)
 {
   
-  nsCOMPtr<mozIStorageStatement> selectStatement;
-  nsresult rv = aConnection->CreateStatement(NS_LITERAL_CSTRING(
-      "SELECT id FROM moz_places where favicon_id = ?1"),
-    getter_AddRefs(selectStatement));
-  NS_ENSURE_SUCCESS(rv, rv);
+  nsCAutoString deletedFaviconIds;
+  for (PRUint32 i = 0; i < aRecords.Length(); i ++) {
+    
+    if (! aRecords[i].erased || aRecords[i].faviconID == 0)
+      continue;
+    
+    if(! deletedFaviconIds.IsEmpty() )
+      deletedFaviconIds.AppendLiteral(", ");
+    deletedFaviconIds.AppendInt(aRecords[i].faviconID);
+  }
 
   
-  nsCOMPtr<mozIStorageStatement> deleteStatement;
-  rv = aConnection->CreateStatement(NS_LITERAL_CSTRING(
-      "DELETE FROM moz_favicons WHERE id = ?1"),
-    getter_AddRefs(deleteStatement));
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  for (PRUint32 i = 0; i < aRecords.Length(); i ++) {
-    if (! aRecords[i].erased)
-      continue; 
-    if (aRecords[i].faviconID == 0)
-      continue; 
-    selectStatement->BindInt64Parameter(0, aRecords[i].faviconID);
-
-    
-    PRBool hasEntry;
-    if (NS_SUCCEEDED(selectStatement->ExecuteStep(&hasEntry)) && hasEntry) {
-      selectStatement->Reset();
-      continue; 
-    }
-    selectStatement->Reset();
-
-    
-    
-    deleteStatement->BindInt64Parameter(0, aRecords[i].faviconID);
-    deleteStatement->Execute();
-  }
-  return NS_OK;
+  return aConnection->ExecuteSimpleSQL(
+    NS_LITERAL_CSTRING("DELETE FROM moz_favicons WHERE id IN (") +
+    deletedFaviconIds +
+    NS_LITERAL_CSTRING(") AND id IN "
+      "(SELECT f.id FROM moz_favicons f "
+      "LEFT OUTER JOIN moz_places h ON f.id = h.favicon_id "
+      "WHERE h.favicon_id IS NULL)"));
 }
 
 
