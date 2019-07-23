@@ -1053,8 +1053,7 @@ NumBorderPasses (PRUint8 *borderStyles,
       case NS_STYLE_BORDER_STYLE_OUTSET:
       case NS_STYLE_BORDER_STYLE_GROOVE:
       case NS_STYLE_BORDER_STYLE_RIDGE:
-        
-        numBorderPasses = 4;
+        numBorderPasses = 2;
         break;
 
       case NS_STYLE_BORDER_STYLE_SOLID:
