@@ -38,7 +38,7 @@
 
 
 #include "jsstddef.h"
-#include "jsconfig.h"
+#include "jsversion.h"
 
 #if JS_HAS_XML_SUPPORT
 

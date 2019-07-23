@@ -43,7 +43,7 @@
 
 
 #include <stddef.h>
-#include "jsconfig.h"
+#include "jsversion.h"
 #include "jstypes.h"
 #include "jshash.h" 
 #include "jsdhash.h"
