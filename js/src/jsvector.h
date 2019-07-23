@@ -430,10 +430,22 @@ class JSTempVector
 
     
 
+    
     bool reserve(size_t capacity);
-    bool resize(size_t newSize);
+
+    
     void shrinkBy(size_t incr);
+
+    
+
+
+
+
     bool growBy(size_t incr);
+
+    
+    bool resize(size_t newSize);
+
     void clear();
 
     bool append(const T &t);
@@ -586,7 +598,8 @@ JSTempVector<T,N>::growBy(size_t incr)
         size_t freespace = sInlineCapacity - inlineSize();
         if (incr <= freespace) {
             T *newend = inlineEnd() + incr;
-            Impl::initialize(inlineEnd(), newend);
+            if (!JSUtils::IsPodType<T>::result)
+                Impl::initialize(inlineEnd(), newend);
             inlineSize() += incr;
             JS_ASSERT(usingInlineStorage());
             return true;
@@ -606,7 +619,8 @@ JSTempVector<T,N>::growBy(size_t incr)
     
     JS_ASSERT(heapCapacity() - heapSize() >= incr);
     T *newend = heapEnd() + incr;
-    Impl::initialize(heapEnd(), newend);
+    if (!JSUtils::IsPodType<T>::result)
+        Impl::initialize(heapEnd(), newend);
     heapEnd() = newend;
     return true;
 }
