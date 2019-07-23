@@ -1871,15 +1871,8 @@ XPCWrappedNative::CallMethod(XPCCallContext& ccx,
     
     
     
-    
-    
-    
-#define PARAM_AUTOSTRING_COUNT     1
-
-#if PARAM_AUTOSTRING_COUNT
-    nsVoidableString autoStrings[PARAM_AUTOSTRING_COUNT];
-    int autoStringIndex = 0;
-#endif
+    char autoString[sizeof(nsAutoString)];
+    PRBool autoStringUsed = PR_FALSE;
 
     JSBool retval = JS_FALSE;
 
@@ -2118,19 +2111,24 @@ XPCWrappedNative::CallMethod(XPCCallContext& ccx,
                         
                         
 
-                        
-                        
-#if PARAM_AUTOSTRING_COUNT
-                        if(autoStringIndex < PARAM_AUTOSTRING_COUNT)
+                        if(!autoStringUsed)
                         {
                             
                             
-                            dp->val.p = &autoStrings[autoStringIndex++];
+                            
+                            
+                            nsAutoString *s = (nsAutoString*)&autoString;
+                            new (s) nsAutoString();
+                            autoStringUsed = PR_TRUE;
+
+                            
+                            
+                            dp->val.p = s;
                             continue;
                         }
-#endif
+
                         dp->SetValIsDOMString();
-                        if(!(dp->val.p = new nsVoidableString()))
+                        if(!(dp->val.p = new nsAutoString()))
                         {
                             JS_ReportOutOfMemory(ccx);
                             goto done;
@@ -2528,6 +2526,14 @@ done:
             else if(dp->IsValCString())
                 delete (nsCString*) p;
         }   
+    }
+
+    if (autoStringUsed) {
+        
+
+        nsAutoString *s = (nsAutoString*)&autoString;
+
+        s->~nsAutoString();
     }
 
     if(dispatchParams && dispatchParams != paramBuffer)
