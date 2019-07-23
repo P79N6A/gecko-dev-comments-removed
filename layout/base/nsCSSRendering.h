@@ -232,6 +232,17 @@ struct nsCSSRendering {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
   static void PaintDecorationLine(gfxContext* aGfxContext,
                                   const nscolor aColor,
                                   const gfxPoint& aPt,
@@ -239,9 +250,21 @@ struct nsCSSRendering {
                                   const gfxFloat aAscent,
                                   const gfxFloat aOffset,
                                   const PRUint8 aDecoration,
-                                  const PRUint8 aStyle);
+                                  const PRUint8 aStyle,
+                                  const gfxFloat aDescentLimit = -1.0);
 
   
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -268,7 +291,8 @@ struct nsCSSRendering {
                                       const gfxFloat aAscent,
                                       const gfxFloat aOffset,
                                       const PRUint8 aDecoration,
-                                      const PRUint8 aStyle);
+                                      const PRUint8 aStyle,
+                                      const gfxFloat aDescentLimit = -1.0);
 
 protected:
   static gfxRect GetTextDecorationRectInternal(const gfxPoint& aPt,
@@ -276,7 +300,8 @@ protected:
                                                const gfxFloat aAscent,
                                                const gfxFloat aOffset,
                                                const PRUint8 aDecoration,
-                                               const PRUint8 aStyle);
+                                               const PRUint8 aStyle,
+                                               const gfxFloat aDscentLimit);
 };
 
 
