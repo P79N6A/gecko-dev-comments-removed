@@ -260,7 +260,10 @@ namespace nanojit {
     public:
         
         
+        virtual ~LogControl() {} 
+        #ifdef NJ_VERBOSE
         virtual void printf( const char* format, ... ) PRINTF_CHECK(2,3);
+        #endif
 
         
         uint32_t lcbits;
