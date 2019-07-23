@@ -164,6 +164,15 @@ public:
   
 
 
+  static nsIScriptSecurityManager *GetSecurityManager() {
+    extern nsIScriptSecurityManager *gScriptSecurityManager;
+
+    return gScriptSecurityManager;
+  }
+
+  
+
+
 
   static JSBool MaybePreserveWrapper(JSContext *cx, XPCWrappedNative *wn,
                                      uintN flags) {
