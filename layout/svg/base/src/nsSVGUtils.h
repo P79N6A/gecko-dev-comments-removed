@@ -45,7 +45,6 @@
 #include "nsCOMPtr.h"
 #include "nsISVGValue.h"
 #include "nsRect.h"
-#include "cairo.h"
 
 class nsIDocument;
 class nsPresContext;
@@ -308,16 +307,8 @@ public:
 
 
 
-  static cairo_surface_t *
-  GetCairoComputationalSurface();
   static gfxASurface *
   GetThebesComputationalSurface();
-
-  
-
-
-  static cairo_matrix_t
-  ConvertSVGMatrixToCairo(nsIDOMSVGMatrix *aMatrix);
 
   
 
@@ -333,13 +324,6 @@ public:
               float aRX, float aRY, float aRWidth, float aRHeight,
               float aX, float aY);
 
-  
-
-
-  static void
-  UserToDeviceBBox(cairo_t *ctx,
-                   double *xmin, double *ymin,
-                   double *xmax, double *ymax);
 
   static void CompositeSurfaceMatrix(gfxContext *aContext,
                                      gfxASurface *aSurface,
@@ -359,7 +343,6 @@ public:
 
 private:
   
-  static cairo_surface_t *mCairoComputationalSurface;
   static gfxASurface *mThebesComputationalSurface;
 };
 
