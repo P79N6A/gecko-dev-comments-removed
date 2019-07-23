@@ -373,11 +373,14 @@ protected:
   nscoord     mAscent;
   gfxTextRun* mTextRun;
 
-  
-  
-  
   SelectionDetails* GetSelectionDetails();
   
+  void AdjustSelectionPointsForBidi(SelectionDetails *sdptr,
+                                    PRInt32 textLength,
+                                    PRBool isRTLChars,
+                                    PRBool isOddLevel,
+                                    PRBool isBidiSystem);
+
   void UnionTextDecorationOverflow(nsPresContext* aPresContext,
                                    PropertyProvider& aProvider,
                                    nsRect* aOverflowRect);
