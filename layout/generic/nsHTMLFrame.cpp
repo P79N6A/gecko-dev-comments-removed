@@ -710,8 +710,15 @@ CanvasFrame::Reflow(nsPresContext*           aPresContext,
     }
     
     
+    
+    
     aDesiredSize.width = aReflowState.ComputedWidth();
-    aDesiredSize.height = aReflowState.ComputedHeight();
+    if (aReflowState.ComputedHeight() == NS_UNCONSTRAINEDSIZE) {
+      aDesiredSize.height = kidFrame->GetRect().height +
+        kidReflowState.mComputedMargin.TopBottom();
+    } else {
+      aDesiredSize.height = aReflowState.ComputedHeight();
+    }
 
     aDesiredSize.mOverflowArea.UnionRect(
       nsRect(0, 0, aDesiredSize.width, aDesiredSize.height),
