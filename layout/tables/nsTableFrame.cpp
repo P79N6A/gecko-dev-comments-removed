@@ -2334,6 +2334,12 @@ nsTableFrame::InsertFrames(nsIAtom*        aListName,
   NS_ASSERTION(!aPrevFrame || aPrevFrame->GetParent() == this,
                "inserting after sibling frame with different parent");
 
+  if ((aPrevFrame && !aPrevFrame->GetNextSibling()) ||
+      (!aPrevFrame && !GetFirstChild(aListName))) {
+    
+    return AppendFrames(aListName, aFrameList);
+  }
+
   
   const nsStyleDisplay* display = aFrameList->GetStyleDisplay();
 #ifdef DEBUG
