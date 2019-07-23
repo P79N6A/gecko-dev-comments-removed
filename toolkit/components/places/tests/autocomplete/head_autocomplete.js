@@ -206,6 +206,7 @@ function run_test() {
   print("\n");
   
   prefs.setIntPref("browser.urlbar.search.sources", 3);
+  prefs.setIntPref("browser.urlbar.default.behavior", 0);
 
   
   do_test_pending();
