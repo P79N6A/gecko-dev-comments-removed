@@ -1724,6 +1724,9 @@ var gExtensionsViewController = {
         setRestartMessage(aSelectedItem);
       }
       
+      gPref.QueryInterface(Components.interfaces.nsIPrefService)
+           .savePrefFile(null);
+      
       
       gExtensionsViewController.onCommandUpdate();
     },
