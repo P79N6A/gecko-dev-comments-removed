@@ -49,22 +49,24 @@ const Cc = Components.classes;
 const Ci = Components.interfaces;
 const Cr = Components.results;
 
-const PREF_APP_UPDATE_ENABLED             = "app.update.enabled";
 const PREF_APP_UPDATE_AUTO                = "app.update.auto";
-const PREF_APP_UPDATE_MODE                = "app.update.mode";
-const PREF_APP_UPDATE_SILENT              = "app.update.silent";
-const PREF_APP_UPDATE_INTERVAL            = "app.update.interval";
-const PREF_APP_UPDATE_IDLETIME            = "app.update.idletime";
-const PREF_APP_UPDATE_LOG                 = "app.update.log";
-const PREF_APP_UPDATE_PROMPTWAITTIME      = "app.update.promptWaitTime";
-const PREF_APP_UPDATE_URL                 = "app.update.url";
-const PREF_APP_UPDATE_URL_OVERRIDE        = "app.update.url.override";
-const PREF_APP_UPDATE_URL_DETAILS         = "app.update.url.details";
-const PREF_APP_UPDATE_CHANNEL             = "app.update.channel";
 const PREF_APP_UPDATE_BACKGROUND_INTERVAL = "app.update.download.backgroundInterval";
-const PREF_APP_UPDATE_SHOW_INSTALLED_UI   = "app.update.showInstalledUI";
+const PREF_APP_UPDATE_CHANNEL             = "app.update.channel";
+const PREF_APP_UPDATE_ENABLED             = "app.update.enabled";
+const PREF_APP_UPDATE_EXTRA1              = "app.update.extra1";
+const PREF_APP_UPDATE_IDLETIME            = "app.update.idletime";
 const PREF_APP_UPDATE_INCOMPATIBLE_MODE   = "app.update.incompatible.mode";
-const PREF_UPDATE_NEVER_BRANCH            = "app.update.never.";
+const PREF_APP_UPDATE_INTERVAL            = "app.update.interval";
+const PREF_APP_UPDATE_LOG                 = "app.update.log";
+const PREF_APP_UPDATE_MODE                = "app.update.mode";
+const PREF_APP_UPDATE_NEVER_BRANCH        = "app.update.never.";
+const PREF_APP_UPDATE_PROMPTWAITTIME      = "app.update.promptWaitTime";
+const PREF_APP_UPDATE_SHOW_INSTALLED_UI   = "app.update.showInstalledUI";
+const PREF_APP_UPDATE_SILENT              = "app.update.silent";
+const PREF_APP_UPDATE_URL                 = "app.update.url";
+const PREF_APP_UPDATE_URL_DETAILS         = "app.update.url.details";
+const PREF_APP_UPDATE_URL_OVERRIDE        = "app.update.url.override";
+
 const PREF_PARTNER_BRANCH                 = "app.partner.";
 const PREF_APP_DISTRIBUTION               = "distribution.id";
 const PREF_APP_DISTRIBUTION_VERSION       = "distribution.version";
@@ -486,7 +488,6 @@ function writeStatusFile(dir, state) {
 
 
 
-
 function writeVersionFile(dir, version) {
   var versionFile = dir.clone();
   versionFile.append(FILE_UPDATE_VERSION);
@@ -824,8 +825,10 @@ UpdatePatch.prototype = {
 function Update(update) {
   this._properties = {};
   this._patches = [];
-  this.installDate = 0;
   this.isCompleteUpdate = false;
+  this.showPrompt = false;
+  this.showSurvey = false;
+  this.showNeverForVersion = false;
   this.channel = "default"
 
   
@@ -855,19 +858,44 @@ function Update(update) {
   for (var i = 0; i < update.attributes.length; ++i) {
     var attr = update.attributes.item(i);
     attr.QueryInterface(Ci.nsIDOMAttr);
-    if (attr.name == "installDate" && attr.value)
+    if (attr.value == "undefined")
+      continue;
+    else if (attr.name == "installDate" && attr.value)
       this.installDate = parseInt(attr.value);
     else if (attr.name == "isCompleteUpdate")
       this.isCompleteUpdate = attr.value == "true";
     else if (attr.name == "isSecurityUpdate")
       this.isSecurityUpdate = attr.value == "true";
+    else if (attr.name == "showPrompt")
+      this.showPrompt = attr.value == "true";
+    else if (attr.name == "showNeverForVersion")
+      this.showNeverForVersion = attr.value == "true";
+    else if (attr.name == "showSurvey")
+      this.showSurvey = attr.value == "true";
     else if (attr.name == "detailsURL")
       this._detailsURL = attr.value;
     else if (attr.name == "channel")
       this.channel = attr.value;
+    else if (attr.name == "extensionVersion") {
+      
+      
+      if (!this.appVersion)
+        this.appVersion = attr.value;
+    }
+    else if (attr.name == "version") {
+      
+      
+      if (!this.displayVersion)
+        this.displayVersion = attr.value;
+    }
     else
       this[attr.name] = attr.value;
   }
+
+  
+  
+  if (!this.installDate && this.installDate != 0)
+    this.installDate = (new Date()).getTime();
 
   
   
@@ -880,7 +908,7 @@ function Update(update) {
                       createBundle(URI_BRAND_PROPERTIES);
     var appName = brandBundle.GetStringFromName("brandShortName");
     name = gUpdateBundle.formatStringFromName("updateName",
-                                              [appName, this.version], 2);
+                                              [appName, this.displayVersion], 2);
   }
   this.name = name;
 }
@@ -961,17 +989,34 @@ Update.prototype = {
     var update = updates.createElementNS(URI_UPDATE_NS, "update");
     update.setAttribute("type", this.type);
     update.setAttribute("name", this.name);
-    update.setAttribute("version", this.version);
-    update.setAttribute("platformVersion", this.platformVersion);
-    update.setAttribute("extensionVersion", this.extensionVersion);
-    update.setAttribute("detailsURL", this.detailsURL);
-    update.setAttribute("licenseURL", this.licenseURL);
+    update.setAttribute("displayVersion", this.displayVersion);
+    
+    update.setAttribute("version", this.displayVersion);
+    update.setAttribute("appVersion", this.appVersion);
+    update.setAttribute("buildID", this.buildID);
+    
+    update.setAttribute("extensionVersion", this.appVersion);
+    if (this.platformVersion)
+      update.setAttribute("platformVersion", this.platformVersion);
+    if (this.previousAppVersion)
+      update.setAttribute("previousAppVersion", this.previousAppVersion);
+    if (this.detailsURL)
+      update.setAttribute("detailsURL", this.detailsURL);
+    if (this.billboardURL)
+      update.setAttribute("billboardURL", this.billboardURL);
+    if (this.licenseURL)
+      update.setAttribute("licenseURL", this.licenseURL);
     update.setAttribute("serviceURL", this.serviceURL);
     update.setAttribute("installDate", this.installDate);
-    update.setAttribute("statusText", this.statusText);
-    update.setAttribute("buildID", this.buildID);
+    if (this.statusText)
+      update.setAttribute("statusText", this.statusText);
     update.setAttribute("isCompleteUpdate", this.isCompleteUpdate);
     update.setAttribute("channel", this.channel);
+    update.setAttribute("showPrompt", this.showPrompt);
+    update.setAttribute("showSurvey", this.showSurvey);
+    update.setAttribute("showNeverForVersion", this.showNeverForVersion);
+    if (this.extra1)
+      update.setAttribute("extra1", this.extra1);
     updates.documentElement.appendChild(update);
 
     for (var p in this._properties) {
@@ -1021,8 +1066,7 @@ Update.prototype = {
 
 
   getProperty: function Update_getProperty(name) {
-    if (name in this._properties &&
-        this._properties[name].present)
+    if (name in this._properties && this._properties[name].present)
       return this._properties[name].data;
     throw Cr.NS_ERROR_FAILURE;
   },
@@ -1153,7 +1197,8 @@ UpdateService.prototype = {
 
       
       um.activeUpdate = update;
-
+      gPref.setCharPref(PREF_APP_UPDATE_EXTRA1,
+                        update.extra1 ? update.extra1 : "undefined");
       prompter.showUpdateInstalled();
 
       
@@ -1171,12 +1216,12 @@ UpdateService.prototype = {
         if (update.errorCode == WRITE_ERROR) {
           prompter.showUpdateError(update);
           writeStatusFile(getUpdatesDir(), update.state = STATE_PENDING);
-          writeVersionFile(getUpdatesDir(), update.extensionVersion);
+          writeVersionFile(getUpdatesDir(), update.appVersion);
           return;
         }
         else if (update.errorCode == ELEVATION_CANCELED) {
           writeStatusFile(getUpdatesDir(), update.state = STATE_PENDING);
-          writeVersionFile(getUpdatesDir(), update.extensionVersion);
+          writeVersionFile(getUpdatesDir(), update.appVersion);
           return;
         }
       }
@@ -1258,13 +1303,13 @@ UpdateService.prototype = {
 
     for (var i = 0; i < updates.length; ++i) {
       
-      if (gVC.compare(updates[i].extensionVersion, gApp.version) < 0)
+      if (gVC.compare(updates[i].appVersion, gApp.version) < 0)
         continue;
       if (updates[i].type == "major" &&
-          gVC.compare(newestMajor.version, updates[i].version) <= 0)
+          gVC.compare(newestMajor.appVersion, updates[i].appVersion) <= 0)
         majorUpdate = newestMajor = updates[i];
       if (updates[i].type == "minor" &&
-          gVC.compare(newestMinor.version, updates[i].version) <= 0)
+          gVC.compare(newestMinor.appVersion, updates[i].appVersion) <= 0)
         minorUpdate = newestMinor = updates[i];
     }
 
@@ -1325,28 +1370,17 @@ UpdateService.prototype = {
 
 
 
-    
-    var neverPrefName = PREF_UPDATE_NEVER_BRANCH +
-                        encodeURIComponent(update.version);
+    var neverPrefName = PREF_APP_UPDATE_NEVER_BRANCH + update.appVersion;
+    if (getPref("getBoolPref", neverPrefName, false)) {
+      LOG("Checker:_selectAndInstallUpdate - not prompting because the " +
+          "preference " + neverPrefName + " is true");
+      return;
+    }
 
     if (!gCanApplyUpdates) {
-      if (getPref("getBoolPref", neverPrefName, false)) {
-        LOG("Checker:_selectAndInstallUpdate - the user is unable to apply " +
-            "updates. Not prompting because the preference " + neverPrefName + 
-            " is true");
-      }
-      else {
-        LOG("Checker:_selectAndInstallUpdate - the user is unable to apply " +
-            "updates... prompting");
-        this._showPrompt(update);
-      }
-      return;
-    }
-
-    if (update.type == "major" &&
-        getPref("getBoolPref", neverPrefName, false)) {
-      LOG("Checker:_selectAndInstallUpdate - not prompting because this is a " +
-          "major update and the preference " + neverPrefName + " is true");
+      LOG("Checker:_selectAndInstallUpdate - the user is unable to apply " +
+          "updates... prompting");
+      this._showPrompt(update);
       return;
     }
 
@@ -1368,9 +1402,9 @@ UpdateService.prototype = {
 
 
 
-    if (update.type == "major") {
-      LOG("Checker:_selectAndInstallUpdate - prompting because it is a major " +
-          "update");
+    if (update.showPrompt) {
+      LOG("Checker:_selectAndInstallUpdate - prompting because the update " +
+          "snippet specified showPrompt");
       this._showPrompt(update);
       return;
     }
@@ -1393,8 +1427,7 @@ UpdateService.prototype = {
     }
 
     
-    if (update.extensionVersion &&
-        gVC.compare(update.extensionVersion, gApp.version) != 0) {
+    if (update.appVersion && gVC.compare(update.appVersion, gApp.version) != 0) {
       this._update = update;
       this._checkAddonCompatibility();
     }
@@ -1418,7 +1451,7 @@ UpdateService.prototype = {
                getService(Ci.nsIExtensionManager);
     
     
-    var currentAddons = em.getIncompatibleItemList(this._update.extensionVersion,
+    var currentAddons = em.getIncompatibleItemList(this._update.appVersion,
                                                    this._update.platformVersion,
                                                    Ci.nsIUpdateItem.TYPE_ANY,
                                                    false);
@@ -1469,7 +1502,7 @@ UpdateService.prototype = {
                                              Ci.nsIExtensionManager.UPDATE_NOTIFY_NEWVERSION;
       em.update(currentAddons, currentAddons.length, mode, this,
                 Ci.nsIExtensionManager.UPDATE_WHEN_NEW_APP_DETECTED,
-                this._update.extensionVersion, this._update.platformVersion);
+                this._update.appVersion, this._update.platformVersion);
     }
     else {
       LOG("UpdateService:_checkAddonCompatibility - no need to show prompt, " +
@@ -1586,14 +1619,14 @@ UpdateService.prototype = {
     
     
     
-    if (update.extensionVersion &&
-        (gVC.compare(update.extensionVersion, gApp.version) < 0 ||
+    if (update.appVersion &&
+        (gVC.compare(update.appVersion, gApp.version) < 0 ||
          update.buildID && update.buildID == gApp.appBuildID &&
-         update.extensionVersion == gApp.version)) {
+         update.appVersion == gApp.version)) {
       LOG("UpdateService:downloadUpdate - canceling download of update since " +
           "it is for an earlier or same application version and build ID.\n" +
           "current application version: " + gApp.version + "\n" +
-          "update application version : " + update.extensionVersion + "\n" +
+          "update application version : " + update.appVersion + "\n" +
           "current build ID: " + gApp.appBuildID + "\n" +
           "update build ID : " + update.buildID);
       cleanupActiveUpdate();
@@ -1609,6 +1642,8 @@ UpdateService.prototype = {
       }
       this._downloader.cancel();
     }
+    
+    update.previousAppVersion = gApp.version;
     this._downloader = new Downloader(background);
     return this._downloader.downloadUpdate(update);
   },
@@ -1798,7 +1833,7 @@ UpdateManager.prototype = {
     if (this._updates) {
       for (var i = 0; i < this._updates.length; ++i) {
         if (this._updates[i] &&
-            this._updates[i].version == update.version &&
+            this._updates[i].appVersion == update.appVersion &&
             this._updates[i].buildID == update.buildID) {
           
           
@@ -2496,7 +2531,7 @@ Downloader.prototype = {
 
         
         writeStatusFile(getUpdatesDir(), state);
-        writeVersionFile(getUpdatesDir(), this._update.extensionVersion);
+        writeVersionFile(getUpdatesDir(), this._update.appVersion);
         this._update.installDate = (new Date()).getTime();
         this._update.statusText = gUpdateBundle.GetStringFromName("installPending");
       }
