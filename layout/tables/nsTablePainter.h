@@ -241,10 +241,7 @@ class TableBackgroundPainter
     TableBackgroundData  mRow;      
     nsRect               mCellRect; 
 
-
     nsStyleBorder        mZeroBorder;  
-    nsStylePadding       mZeroPadding; 
-
 };
 
 #endif
