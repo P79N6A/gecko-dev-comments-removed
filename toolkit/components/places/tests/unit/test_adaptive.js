@@ -141,18 +141,17 @@ function ensure_results(uris, searchTerm)
 
 
 try {
-  var histsvc = Cc["@mozilla.org/browser/nav-history-service;1"].getService(Ci.nsINavHistoryService);
+  var histsvc = Cc["@mozilla.org/browser/nav-history-service;1"].
+                getService(Ci.nsINavHistoryService);
   var bhist = histsvc.QueryInterface(Ci.nsIBrowserHistory);
-  var obs = Cc["@mozilla.org/observer-service;1"].getService(Ci.nsIObserverService);
+  var obs = Cc["@mozilla.org/observer-service;1"].
+            getService(Ci.nsIObserverService);
 } catch(ex) {
   do_throw("Could not get history service\n");
 } 
 
 function setCountRank(aURI, aCount, aRank, aSearch)
 {
-  
-  histsvc.setPageDetails(aURI, aURI, aCount, false, true);
-
   
   for (let i = 0; i < aCount; i++)
     histsvc.addVisit(aURI, d1, null, histsvc.TRANSITION_TYPED, false, 0);
