@@ -49,6 +49,7 @@
 
 
 
+
 Cc["@mozilla.org/moz/jssubscript-loader;1"].
   getService(Components.interfaces.mozIJSSubScriptLoader).
   loadSubScript("chrome://mochikit/content/MochiKit/packed.js");
@@ -68,6 +69,22 @@ const formhist = Cc["@mozilla.org/satchel/form-history;1"].
 
 
 var gAllTests = [
+
+  
+
+
+  function () {
+    let wh = new WindowHelper();
+    wh.onload = function () {
+      
+      this.selectDuration(Sanitizer.TIMESPAN_HOUR);
+      
+      if (!this.getItemList().collapsed)
+        this.toggleDetails();
+      this.acceptDialog();
+    };
+    wh.open();
+  },
 
   
 
@@ -230,15 +247,15 @@ var gAllTests = [
          "with a predefined timespan");
       this.selectDuration(Sanitizer.TIMESPAN_EVERYTHING);
       this.checkPrefCheckbox("history", true);
-      this.checkDetails(false);
-
-      
-      this.toggleDetails();
       this.checkDetails(true);
 
       
       this.toggleDetails();
       this.checkDetails(false);
+
+      
+      this.toggleDetails();
+      this.checkDetails(true);
 
       this.acceptDialog();
 
@@ -287,8 +304,39 @@ var gAllTests = [
     let wh = new WindowHelper();
     wh.onload = function () {
       
+      this.resetCheckboxes();
+      this.selectDuration(Sanitizer.TIMESPAN_EVERYTHING);
+
+      
       this.toggleDetails();
+      this.checkDetails(false);
+      this.acceptDialog();
+    };
+    wh.open();
+  },
+  function () {
+    let wh = new WindowHelper();
+    wh.onload = function () {
+      
+      
+      this.checkDetails(false);
+
+      
+      this.checkPrefCheckbox("history", false);
+      this.acceptDialog();
+    };
+    wh.open();
+  },
+  function () {
+    let wh = new WindowHelper();
+    wh.onload = function () {
+      
+      
       this.checkDetails(true);
+
+      
+      this.toggleDetails();
+      this.checkDetails(false);
       this.cancelDialog();
     };
     wh.open();
@@ -297,11 +345,37 @@ var gAllTests = [
     let wh = new WindowHelper();
     wh.onload = function () {
       
-      this.checkDetails(true);
       
+      this.checkDetails(true);
+
+      
+      this.selectDuration(Sanitizer.TIMESPAN_HOUR);
       
       this.toggleDetails();
       this.checkDetails(false);
+      this.acceptDialog();
+    };
+    wh.open();
+  },
+  function () {
+    let wh = new WindowHelper();
+    wh.onload = function () {
+      
+      this.checkDetails(false);
+
+      this.cancelDialog();
+    };
+    wh.open();
+  },
+  function () {
+    let wh = new WindowHelper();
+    wh.onload = function () {
+      
+      this.checkDetails(false);
+
+      
+      this.toggleDetails();
+      this.checkDetails(true);
       this.cancelDialog();
     };
     wh.open();
@@ -392,6 +466,19 @@ WindowHelper.prototype = {
     is(cb.length, 1, "found checkbox for " + pref + " preference");
     if (cb[0].checked != aCheckState)
       cb[0].click();
+  },
+
+  
+
+
+  resetCheckboxes: function () {
+    var cb = this.win.document.querySelectorAll("#itemList > [preference]");
+    ok(cb.length > 1, "found checkboxes for preferences");
+    for (var i = 0; i < cb.length; ++i) {
+      var pref = this.win.document.getElementById(cb[i].getAttribute("preference"));
+      if (pref.value != pref.defaultValue)
+        cb[i].click();
+    }
   },
 
   

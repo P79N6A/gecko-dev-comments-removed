@@ -39,6 +39,7 @@
 
 
 
+
 const Cc = Components.classes;
 const Ci = Components.interfaces;
 
@@ -89,7 +90,7 @@ var gSanitizePromptDialog = {
       this.bundleBrowser.getString("sanitizeButtonOK");
 
     if (this.selectedTimespan === Sanitizer.TIMESPAN_EVERYTHING) {
-      this.ensureWarningIsInited();
+      this.prepareWarning();
       this.warningBox.hidden = false;
     }
     else
@@ -107,7 +108,7 @@ var gSanitizePromptDialog = {
 
     
     if (this.selectedTimespan === Sanitizer.TIMESPAN_EVERYTHING) {
-      this.ensureWarningIsInited();
+      this.prepareWarning();
       if (warningBox.hidden) {
         warningBox.hidden = false;
         window.resizeBy(0, warningBox.boxObject.height);
@@ -148,20 +149,23 @@ var gSanitizePromptDialog = {
 
 
 
-  ensureWarningIsInited: function ()
-  {
-    if (this._warningIsInited)
-      return;
+  prepareWarning: function () {
+    
+    
+    
 
-    this._warningIsInited = true;
-
-    
-    
-    
+    var warningStringID;
+    if (this.hasCustomizedItemSelection()) {
+      warningStringID = "sanitizeSelectedWarning";
+      this.showItemList();
+    }
+    else {
+      warningStringID = "sanitizeEverythingWarning2";
+    }
 
     var warningDesc = document.getElementById("sanitizeEverythingWarning");
     warningDesc.textContent =
-      this.bundleBrowser.getString("sanitizeEverythingNoVisitsWarning");
+      this.bundleBrowser.getString(warningStringID);
   },
 
   
@@ -186,6 +190,10 @@ var gSanitizePromptDialog = {
       document.documentElement.getButton("accept").disabled = !found;
     }
     catch (e) { }
+
+    
+    this.prepareWarning();
+
     return undefined;
   },
 
@@ -218,23 +226,56 @@ var gSanitizePromptDialog = {
   
 
 
-  toggleItemList: function ()
-  {
+  hasCustomizedItemSelection: function () {
+    let checkboxes = document.querySelectorAll("#itemList > [preference]");
+    for (let i = 0; i < checkboxes.length; ++i) {
+      let pref = document.getElementById(checkboxes[i].getAttribute("preference"));
+      if (pref.value != pref.defaultValue)
+        return true;
+    }
+    return false;
+  },
+
+  
+
+
+  showItemList: function () {
     var itemList = document.getElementById("itemList");
     var expanderButton = document.getElementById("detailsExpander");
 
-    
     if (itemList.collapsed) {
       expanderButton.className = "expander-up";
       itemList.setAttribute("collapsed", "false");
-      window.resizeBy(0, itemList.boxObject.height);
+      if (document.documentElement.boxObject.height)
+        window.resizeBy(0, itemList.boxObject.height);
     }
-    
-    else {
+  },
+
+  
+
+
+  hideItemList: function () {
+    var itemList = document.getElementById("itemList");
+    var expanderButton = document.getElementById("detailsExpander");
+
+    if (!itemList.collapsed) {
       expanderButton.className = "expander-down";
       window.resizeBy(0, -itemList.boxObject.height);
       itemList.setAttribute("collapsed", "true");
     }
+  },
+
+  
+
+
+  toggleItemList: function ()
+  {
+    var itemList = document.getElementById("itemList");
+
+    if (itemList.collapsed)
+      this.showItemList();
+    else
+      this.hideItemList();
   }
 
 #ifdef CRH_DIALOG_TREE_VIEW
@@ -408,7 +449,7 @@ var gSanitizePromptDialog = {
 
     
     if (durVal === Sanitizer.TIMESPAN_EVERYTHING) {
-      this.ensureWarningIsInited();
+      this.prepareWarning();
       durDeck.selectedIndex = 1;
       window.document.title =
         this.bundleBrowser.getString("sanitizeDialog2.everything.title");
