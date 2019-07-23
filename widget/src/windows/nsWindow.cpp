@@ -4291,7 +4291,7 @@ PRBool nsWindow::ProcessMessage(UINT msg, WPARAM &wParam, LPARAM &lParam,
         
         
         HWND toplevelWnd = GetTopLevelHWND(mWnd);
-        if (!newWidth && !newHeight && IsIconic(toplevelWnd)) {
+        if (mWnd == toplevelWnd && IsIconic(toplevelWnd)) {
           result = PR_FALSE;
           break;
         }
