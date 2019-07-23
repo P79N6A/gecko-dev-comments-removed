@@ -385,6 +385,7 @@ struct InterpState
 #ifdef EXECUTE_TREE_TIMER
     uint64         startTime;
 #endif
+    InterpState*   prev;
 
     
 
