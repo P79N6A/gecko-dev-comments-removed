@@ -102,7 +102,7 @@ typedef struct gif_struct {
     int ipass;                  
     PRUintn rows_remaining;        
     PRUintn irow;                  
-    PRUint32 *rowp;                 
+    PRUint8 *rowp;                 
 
     
     PRUintn x_offset, y_offset;    
@@ -118,7 +118,7 @@ typedef struct gif_struct {
     int version;                
     PRUintn screen_width;       
     PRUintn screen_height;
-    PRUint32 global_colormap_size;  
+    PRUint32 global_colormap_depth;  
     int images_decoded;         
     int loop_count;             
 

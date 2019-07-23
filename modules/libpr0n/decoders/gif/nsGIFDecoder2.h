@@ -76,7 +76,7 @@ private:
 
   void      BeginGIF();
   void      EndGIF();
-  void      BeginImageFrame();
+  void      BeginImageFrame(gfx_depth aDepth);
   void      EndImageFrame();
   void      FlushImageData();
   void      FlushImageData(PRUint32 fromRow, PRUint32 rows);
@@ -93,7 +93,7 @@ private:
   PRInt32 mCurrentRow;
   PRInt32 mLastFlushedRow;
 
-  PRUint32 *mImageData;      
+  PRUint8 *mImageData;       
   PRUint32 *mColormap;       
   PRUint32 mOldColor;        
   PRUint8 mCurrentPass;

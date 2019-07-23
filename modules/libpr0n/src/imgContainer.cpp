@@ -791,15 +791,6 @@ nsresult imgContainer::DoComposite(gfxIImageFrame** aFrameToUse,
   if (prevFrameDisposalMethod == imgIContainer::kDisposeRestorePrevious &&
       !mAnim->compositingPrevFrame)
     prevFrameDisposalMethod = imgIContainer::kDisposeClear;
-
-  
-  
-  if (prevFrameDisposalMethod == imgIContainer::kDisposeClearAll) {
-    aDirtyRect->SetRect(0, 0, mSize.width, mSize.height);
-    *aFrameToUse = aNextFrame;
-    return NS_OK;
-  }
-
   nsIntRect prevFrameRect;
   aPrevFrame->GetRect(prevFrameRect);
   PRBool isFullPrevFrame = (prevFrameRect.x == 0 && prevFrameRect.y == 0 &&
@@ -808,11 +799,9 @@ nsresult imgContainer::DoComposite(gfxIImageFrame** aFrameToUse,
 
   
   
-  if (isFullPrevFrame && prevFrameDisposalMethod == imgIContainer::kDisposeClear) {
-    aDirtyRect->SetRect(0, 0, mSize.width, mSize.height);
-    *aFrameToUse = aNextFrame;
-    return NS_OK;
-  }
+  if (isFullPrevFrame && 
+      (prevFrameDisposalMethod == imgIContainer::kDisposeClear))
+    prevFrameDisposalMethod = imgIContainer::kDisposeClearAll;
 
   PRInt32 nextFrameDisposalMethod;
   nsIntRect nextFrameRect;
@@ -824,18 +813,24 @@ nsresult imgContainer::DoComposite(gfxIImageFrame** aFrameToUse,
 
   gfx_format nextFormat;
   aNextFrame->GetFormat(&nextFormat);
-  PRBool nextFrameHasAlpha = (nextFormat != gfxIFormats::RGB) &&
-                             (nextFormat != gfxIFormats::BGR);
-
+  if (nextFormat != gfxIFormats::PAL && nextFormat != gfxIFormats::PAL_A1) {
+    
+    
+    if (prevFrameDisposalMethod == imgIContainer::kDisposeClearAll) {
+      aDirtyRect->SetRect(0, 0, mSize.width, mSize.height);
+      *aFrameToUse = aNextFrame;
+      return NS_OK;
+    }
   
-  
-  if (isFullNextFrame &&
-      (nextFrameDisposalMethod != imgIContainer::kDisposeRestorePrevious) &&
-      !nextFrameHasAlpha) {
-
-    aDirtyRect->SetRect(0, 0, mSize.width, mSize.height);
-    *aFrameToUse = aNextFrame;
-    return NS_OK;
+    
+    
+    if (isFullNextFrame &&
+        (nextFrameDisposalMethod != imgIContainer::kDisposeRestorePrevious) &&
+        (nextFormat == gfxIFormats::RGB)) {
+      aDirtyRect->SetRect(0, 0, mSize.width, mSize.height);
+      *aFrameToUse = aNextFrame;
+      return NS_OK;
+    }
   }
 
   
@@ -844,6 +839,11 @@ nsresult imgContainer::DoComposite(gfxIImageFrame** aFrameToUse,
     case imgIContainer::kDisposeNotSpecified:
     case imgIContainer::kDisposeKeep:
       *aDirtyRect = nextFrameRect;
+      break;
+
+    case imgIContainer::kDisposeClearAll:
+      
+      aDirtyRect->SetRect(0, 0, mSize.width, mSize.height);
       break;
 
     case imgIContainer::kDisposeClear:
@@ -892,54 +892,88 @@ nsresult imgContainer::DoComposite(gfxIImageFrame** aFrameToUse,
   }
 
   
-  
-  
-  
-  
-  
-  if (mAnim->lastCompositedFrameIndex != aNextFrameIndex - 1 &&
-      prevFrameDisposalMethod != imgIContainer::kDisposeRestorePrevious) {
-
-    
-    
-    
-    
-    if (isFullPrevFrame) {
-      CopyFrameImage(aPrevFrame, mAnim->compositingFrame);
-    } else {
-      ClearFrame(mAnim->compositingFrame);
-      DrawFrameTo(aPrevFrame, mAnim->compositingFrame, prevFrameRect);
+  PRBool doDisposal = PR_TRUE;
+  if ((nextFormat == gfxIFormats::RGB)||(nextFormat == gfxIFormats::PAL)) {
+    if (isFullNextFrame) {
+      
+      
+      doDisposal = PR_FALSE;
+      
       needToBlankComposite = PR_FALSE;
-    }
+    } else {
+      if ((prevFrameRect.x >= nextFrameRect.x) &&
+          (prevFrameRect.y >= nextFrameRect.y) &&
+          (prevFrameRect.x + prevFrameRect.width <= nextFrameRect.x + nextFrameRect.width) &&
+          (prevFrameRect.y + prevFrameRect.height <= nextFrameRect.y + nextFrameRect.height)) {
+        
+        
+        doDisposal = PR_FALSE;  
+      }
+    }      
   }
 
+  if (doDisposal) {
+    
+    switch (prevFrameDisposalMethod) {
+      case imgIContainer::kDisposeClear:
+        if (needToBlankComposite) {
+          
+          
+          ClearFrame(mAnim->compositingFrame);
+        } else {
+          
+          ClearFrame(mAnim->compositingFrame, prevFrameRect);
+        }
+        break;
   
-  switch (prevFrameDisposalMethod) {
-    case imgIContainer::kDisposeClear:
-      if (needToBlankComposite) {
-        
-        
+      case imgIContainer::kDisposeClearAll:
         ClearFrame(mAnim->compositingFrame);
-        needToBlankComposite = PR_FALSE;
-      } else {
+        break;
+  
+      case imgIContainer::kDisposeRestorePrevious:
         
-        ClearFrame(mAnim->compositingFrame, prevFrameRect);
-      }
-      break;
-
-    case imgIContainer::kDisposeRestorePrevious:
-      
-      
-      if (mAnim->compositingPrevFrame) {
-        CopyFrameImage(mAnim->compositingPrevFrame, mAnim->compositingFrame);
-
         
-        if (nextFrameDisposalMethod != imgIContainer::kDisposeRestorePrevious)
-          mAnim->compositingPrevFrame = nsnull;
-      } else {
-        ClearFrame(mAnim->compositingFrame);
-      }
-      break;
+        if (mAnim->compositingPrevFrame) {
+          CopyFrameImage(mAnim->compositingPrevFrame, mAnim->compositingFrame);
+  
+          
+          if (nextFrameDisposalMethod != imgIContainer::kDisposeRestorePrevious)
+            mAnim->compositingPrevFrame = nsnull;
+        } else {
+          ClearFrame(mAnim->compositingFrame);
+        }
+        break;
+      
+      default:
+        
+        
+        
+        
+        
+        
+        if (mAnim->lastCompositedFrameIndex != aNextFrameIndex - 1) {
+          gfx_format prevFormat;
+          aPrevFrame->GetFormat(&prevFormat);
+          if (isFullPrevFrame && 
+              prevFormat != gfxIFormats::PAL && prevFormat != gfxIFormats::PAL_A1) {
+            
+            CopyFrameImage(aPrevFrame, mAnim->compositingFrame);
+          } else {
+            if (needToBlankComposite) {
+              
+              if (!isFullPrevFrame ||
+                  (prevFormat != gfxIFormats::RGB && prevFormat != gfxIFormats::PAL)) {
+                ClearFrame(mAnim->compositingFrame);
+              }
+            }
+            DrawFrameTo(aPrevFrame, mAnim->compositingFrame, prevFrameRect);
+          }
+        }
+    }
+  } else if (needToBlankComposite) {
+    
+    
+    ClearFrame(mAnim->compositingFrame);
   }
 
   
@@ -972,7 +1006,15 @@ nsresult imgContainer::DoComposite(gfxIImageFrame** aFrameToUse,
   aNextFrame->GetTimeout(&timeout);
   mAnim->compositingFrame->SetTimeout(timeout);
 
-  if (isFullNextFrame && mAnimationMode == kNormalAnimMode && mLoopCount != 0) {
+  
+  nsIntRect r;
+  mAnim->compositingFrame->GetRect(r);
+  nsCOMPtr<nsIImage> img = do_GetInterface(mAnim->compositingFrame);
+  img->ImageUpdated(nsnull, nsImageUpdateFlags_kBitsChanged, &r);
+
+  
+  if (isFullNextFrame && mAnimationMode == kNormalAnimMode && mLoopCount != 0 &&
+      nextFormat != gfxIFormats::PAL && nextFormat != gfxIFormats::PAL_A1) {
     
     
     
@@ -1007,10 +1049,6 @@ void imgContainer::ClearFrame(gfxIImageFrame *aFrame)
   gfxContext ctx(surf);
   ctx.SetOperator(gfxContext::OPERATOR_CLEAR);
   ctx.Paint();
-
-  nsIntRect r;
-  aFrame->GetRect(r);
-  img->ImageUpdated(nsnull, nsImageUpdateFlags_kBitsChanged, &r);
 }
 
 
@@ -1029,8 +1067,6 @@ void imgContainer::ClearFrame(gfxIImageFrame *aFrame, nsIntRect &aRect)
   ctx.SetOperator(gfxContext::OPERATOR_CLEAR);
   ctx.Rectangle(gfxRect(aRect.x, aRect.y, aRect.width, aRect.height));
   ctx.Fill();
-
-  img->ImageUpdated(nsnull, nsImageUpdateFlags_kBitsChanged, &aRect);
 }
 
 
@@ -1061,14 +1097,6 @@ PRBool imgContainer::CopyFrameImage(gfxIImageFrame *aSrcFrame,
   memcpy(aDataDest, aDataSrc, aDataLengthSrc);
   aDstFrame->UnlockImageData();
 
-  
-  nsCOMPtr<nsIImage> img(do_GetInterface(aDstFrame));
-  if (!img)
-    return PR_FALSE;
-  nsIntRect r;
-  aDstFrame->GetRect(r);
-  img->ImageUpdated(nsnull, nsImageUpdateFlags_kBitsChanged, &r);
-
   return PR_TRUE;
 }
 
@@ -1079,6 +1107,65 @@ nsresult imgContainer::DrawFrameTo(gfxIImageFrame *aSrc,
 {
   if (!aSrc || !aDst)
     return NS_ERROR_NOT_INITIALIZED;
+
+  nsIntRect srcRect, dstRect;
+  aSrc->GetRect(srcRect);
+  aDst->GetRect(dstRect);
+
+  gfx_format format;
+  aSrc->GetFormat(&format);
+  if (format == gfxIFormats::PAL || format == gfxIFormats::PAL_A1) {
+    
+    NS_ASSERTION((aDstRect.x >= 0) && (aDstRect.y >= 0) &&
+                 (aDstRect.x + aDstRect.width <= dstRect.width) &&
+                 (aDstRect.y + aDstRect.height <= dstRect.height),
+                "imgContainer::DrawFrameTo: Invalid aDstRect");
+    
+    NS_ASSERTION((aDstRect.width <= srcRect.width) &&
+                 (aDstRect.height <= srcRect.height),
+                 "imgContainer::DrawFrameTo: source and dest size must be equal");
+
+    if (NS_FAILED(aDst->LockImageData()))
+      return NS_ERROR_FAILURE;
+    
+    PRUint32 size;
+    PRUint8 *srcPixels;
+    gfx_color *colormap;
+    gfx_color *dstPixels;
+
+    aSrc->GetImageData(&srcPixels, &size);
+    aDst->GetImageData((PRUint8**)&dstPixels, &size);
+    aSrc->GetPaletteData(&colormap, &size);
+    if (!srcPixels || !dstPixels || !colormap) {
+      aDst->UnlockImageData();
+      return NS_ERROR_FAILURE;
+    }
+
+    
+    dstPixels += aDstRect.x + (aDstRect.y * dstRect.width);
+    const PRUint32 width = (PRUint32)aDstRect.width;
+    if (format == gfxIFormats::PAL) {
+      for (PRUint32 r = aDstRect.height; r > 0; --r) {
+        for (PRUint32 c = width; c > 0; --c) {
+          *dstPixels++ = colormap[*srcPixels++];
+        }
+        dstPixels += dstRect.width - width;
+      }
+    } else {
+      
+      for (PRUint32 r = aDstRect.height; r > 0; --r) {
+        for (PRUint32 c = width; c > 0; --c) {
+          const PRUint32 color = colormap[*srcPixels++];
+          if (color)
+            *dstPixels = color;
+          dstPixels ++;
+        }
+        dstPixels += dstRect.width - width;
+      }
+    }
+    aDst->UnlockImageData();
+    return NS_OK;
+  }
 
   nsCOMPtr<nsIImage> srcImg(do_GetInterface(aSrc));
   nsRefPtr<gfxASurface> srcSurf;
@@ -1107,9 +1194,6 @@ nsresult imgContainer::DrawFrameTo(gfxIImageFrame *aSrc,
   
   dst.Translate(gfxPoint(aDstRect.x, aDstRect.y));
   dst.Rectangle(gfxRect(0, 0, aDstRect.width, aDstRect.height), PR_TRUE);
-
-  nsIntRect srcRect;
-  aSrc->GetRect(srcRect);
   dst.Scale(double(aDstRect.width) / srcRect.width, 
             double(aDstRect.height) / srcRect.height);
   dst.SetSource(srcSurf);
