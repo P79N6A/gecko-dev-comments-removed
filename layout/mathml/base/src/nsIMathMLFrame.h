@@ -47,6 +47,13 @@ struct nsEmbellishData;
 struct nsHTMLReflowMetrics;
 
 
+#define NS_IMATHMLFRAME_IID \
+{ 0xa781ed45, 0x4338, 0x43cb, \
+  { 0x97, 0x39, 0xa7, 0xa8, 0xf8, 0x41, 0x8f, 0xf3 } }
+
+static NS_DEFINE_IID(kIMathMLFrameIID, NS_IMATHMLFRAME_IID);
+
+
 
 enum eMathMLFrameType {
   eMathMLFrameType_UNKNOWN = -1,
@@ -61,10 +68,9 @@ enum eMathMLFrameType {
 };
 
 
-class nsIMathMLFrame
-{
+class nsIMathMLFrame : public nsISupports {
 public:
-  NS_DECLARE_FRAME_ACCESSOR(nsIMathMLFrame)
+  NS_DECLARE_STATIC_IID_ACCESSOR(NS_IMATHMLFRAME_IID)
 
  
  
@@ -302,6 +308,9 @@ struct nsPresentationData {
     mstyle = nsnull;
   }
 };
+
+NS_DEFINE_STATIC_IID_ACCESSOR(nsIMathMLFrame, NS_IMATHMLFRAME_IID)
+
 
 
 

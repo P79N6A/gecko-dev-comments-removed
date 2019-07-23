@@ -81,12 +81,9 @@ public:
 
   NS_IMETHOD KeyPress(nsIDOMEvent* aKeyEvent); 
 
-  NS_DECL_QUERYFRAME
-
   
   NS_IMETHOD QueryInterface(const nsIID& aIID, void** aInstancePtr);
 
-  
   virtual nscoord GetMinWidth(nsIRenderingContext *aRenderingContext);
   
   virtual PRBool IsLeaf() const;

@@ -93,7 +93,8 @@ private:
 
 
 
-  nsresult GetInfo(nsIFrame *aFrame,
+
+  nsresult GetInfo(nsISupports *aFrame, nsIFrame **aRealFrame,
                    nsIWeakReference **aShell,
                    nsIDOMNode **aContent);
 

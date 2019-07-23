@@ -38,7 +38,7 @@
 #ifndef nsIComboboxControlFrame_h___
 #define nsIComboboxControlFrame_h___
 
-#include "nsQueryFrame.h"
+#include "nsISupports.h"
 #include "nsFont.h"
 
 class nsPresContext;
@@ -49,13 +49,19 @@ class nsCSSFrameConstructor;
 
 
 
+#define NS_ICOMBOBOXCONTROLFRAME_IID    \
+  { 0x23f75e9c, 0x6850, 0x11da, \
+      { 0x95, 0x2c, 0x0, 0xe0, 0x81, 0x61, 0x16, 0x5f } }
 
 
 
-class nsIComboboxControlFrame : public nsQueryFrame
-{
+
+
+
+class nsIComboboxControlFrame : public nsISupports {
+
 public:
-  NS_DECLARE_FRAME_ACCESSOR(nsIComboboxControlFrame)
+  NS_DECLARE_STATIC_IID_ACCESSOR(NS_ICOMBOBOXCONTROLFRAME_IID)
 
   
 
@@ -120,6 +126,9 @@ public:
 
   virtual PRInt32 GetIndexOfDisplayArea() = 0;
 };
+
+NS_DEFINE_STATIC_IID_ACCESSOR(nsIComboboxControlFrame,
+                              NS_ICOMBOBOXCONTROLFRAME_IID)
 
 #endif
 

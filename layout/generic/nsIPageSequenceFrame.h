@@ -37,7 +37,7 @@
 #ifndef nsIPageSequenceFrame_h___
 #define nsIPageSequenceFrame_h___
 
-#include "nsQueryFrame.h"
+#include "nsISupports.h"
 #include "nsRect.h"
 
 class nsPresContext;
@@ -45,13 +45,19 @@ class nsIPrintSettings;
 
 
 
+#define NS_IPAGESEQUENCEFRAME_IID \
+ { 0xa6cf90d2, 0x15b3, 0x11d2,{0x93, 0x2e, 0x00, 0x80, 0x5f, 0x8a, 0xdd, 0x32}}
 
 
 
-class nsIPageSequenceFrame : public nsQueryFrame
-{
+
+
+
+
+
+class nsIPageSequenceFrame : public nsISupports {
 public:
-  NS_DECLARE_FRAME_ACCESSOR(nsIPageSequenceFrame)
+  NS_DECLARE_STATIC_IID_ACCESSOR(NS_IPAGESEQUENCEFRAME_IID)
 
   
 
@@ -86,7 +92,13 @@ public:
 
   
   NS_IMETHOD GetSTFPercent(float& aSTFPercent) = 0;
+  
+private:
+  NS_IMETHOD_(nsrefcnt) AddRef(void) = 0;
+  NS_IMETHOD_(nsrefcnt) Release(void) = 0;
 };
+
+NS_DEFINE_STATIC_IID_ACCESSOR(nsIPageSequenceFrame, NS_IPAGESEQUENCEFRAME_IID)
 
 #endif 
 

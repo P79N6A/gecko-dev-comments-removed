@@ -59,6 +59,20 @@ public:
 
   
 
+  NS_IMETHOD QueryInterface(REFNSIID aIID, void** aInstancePtr);
+
+  NS_IMETHOD_(nsrefcnt) AddRef() {
+    
+    return 1;
+  }
+
+  NS_IMETHOD_(nsrefcnt) Release() {
+    
+    return 1;
+  }
+
+  
+
   NS_IMETHOD
   GetBoundingMetrics(nsBoundingMetrics& aBoundingMetrics) {
     aBoundingMetrics = mBoundingMetrics;
@@ -215,7 +229,8 @@ public:
   GetMathMLFrameTypeFor(nsIFrame* aFrame)
   {
     if (aFrame->IsFrameOfType(nsIFrame::eMathML)) {
-      nsIMathMLFrame* mathMLFrame = do_QueryFrame(aFrame);
+      nsIMathMLFrame* mathMLFrame;
+      CallQueryInterface(aFrame, &mathMLFrame);
       if (mathMLFrame)
         return mathMLFrame->GetMathMLFrameType();
     }

@@ -1643,8 +1643,8 @@ nsContainerFrame::List(FILE* out, PRInt32 aIndent) const
         NS_ASSERTION(kid->GetParent() == (nsIFrame*)this, "bad parent frame pointer");
 
         
-        nsIFrameDebug *frameDebug = do_QueryFrame(kid);
-        if (frameDebug) {
+        nsIFrameDebug*  frameDebug;
+        if (NS_SUCCEEDED(kid->QueryInterface(NS_GET_IID(nsIFrameDebug), (void**)&frameDebug))) {
           frameDebug->List(out, aIndent + 1);
         }
         kid = kid->GetNextSibling();

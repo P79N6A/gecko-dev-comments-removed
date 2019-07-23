@@ -292,7 +292,8 @@ nsHTMLButtonAccessible::GetNameInternal(nsAString& aName)
     
     nsIFrame* frame = GetFrame();
     if (frame) {
-      nsIFormControlFrame* fcFrame = do_QueryFrame(frame);
+      nsIFormControlFrame* fcFrame = nsnull;
+      CallQueryInterface(frame, &fcFrame);
       if (fcFrame)
         fcFrame->GetFormProperty(nsAccessibilityAtoms::defaultLabel, name);
     }
