@@ -1332,6 +1332,8 @@ class RegExpGuard
             DROP_REGEXP(mCx, mRe);
     }
 
+    JSContext* cx() const { return mCx; }
+
     
     bool
     init(uintN argc, jsval *vp)
@@ -1573,8 +1575,17 @@ str_search(JSContext *cx, uintN argc, jsval *vp)
     return true;
 }
 
-struct ReplaceData {
-    ReplaceData(JSContext *cx) : g(cx), cb(cx) {}
+struct ReplaceData
+{
+    ReplaceData(JSContext *cx)
+     : g(cx), invokevp(NULL), cb(cx)
+    {}
+
+    ~ReplaceData() {
+        if (invokevp)
+            js_FreeStack(g.cx(), invokevpMark);
+    }
+
     JSString      *str;           
     RegExpGuard   g;              
     JSObject      *lambda;        
@@ -1585,6 +1596,8 @@ struct ReplaceData {
     jsint         leftIndex;      
     JSSubString   dollarStr;      
     bool          calledBack;     
+    jsval         *invokevp;      
+    void          *invokevpMark;  
     JSCharBuffer  cb;             
 };
 
@@ -1683,10 +1696,13 @@ FindReplaceLength(JSContext *cx, ReplaceData &rdata, size_t *sizep)
 
         uintN p = rdata.g.re()->parenCount;
         uintN argc = 1 + p + 2;
-        void *mark;
-        jsval *invokevp = js_AllocStack(cx, 2 + argc, &mark);
-        if (!invokevp)
-            return false;
+
+        if (!rdata.invokevp) {
+            rdata.invokevp = js_AllocStack(cx, 2 + argc, &rdata.invokevpMark);
+            if (!rdata.invokevp)
+                return false;
+        }
+        jsval* invokevp = rdata.invokevp;
 
         MUST_FLOW_THROUGH("lambda_out");
         bool ok = false;
@@ -1755,7 +1771,6 @@ FindReplaceLength(JSContext *cx, ReplaceData &rdata, size_t *sizep)
         ok = true;
 
       lambda_out:
-        js_FreeStack(cx, mark);
         if (freeMoreParens)
             cx->free(cx->regExpStatics.moreParens);
         cx->regExpStatics = save;
