@@ -371,7 +371,8 @@ NS_IMETHODIMP nsAccessibleWrap::GetNativeInterface(void **aOutAccessible)
     *aOutAccessible = nsnull;
 
     if (!mAtkObject) {
-        if (!IsEmbeddedObject(this)) {
+        if (!mWeakShell || !IsEmbeddedObject(this)) {
+            
             
             return NS_ERROR_FAILURE;
         }
