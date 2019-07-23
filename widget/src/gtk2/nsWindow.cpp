@@ -114,9 +114,6 @@ static const char sAccessibilityKey [] = "config.use_system_prefs.accessibility"
 #include "nsIInterfaceRequestorUtils.h"
 #include "nsAutoPtr.h"
 
-extern "C" {
-#include "pixman.h"
-}
 #include "gfxPlatformGtk.h"
 #include "gfxContext.h"
 #include "gfxImageSurface.h"
@@ -137,6 +134,8 @@ D_DEBUG_DOMAIN( ns_Window, "nsWindow", "nsWindow" );
 }
 #include "gfxDirectFBSurface.h"
 #define GDK_WINDOW_XWINDOW(_win) _win
+#else
+#define D_DEBUG_AT(x,y...)    do {} while (0)
 #endif
 
 
@@ -201,8 +200,6 @@ static gboolean scroll_event_cb           (GtkWidget *widget,
                                            GdkEventScroll *event);
 static gboolean visibility_notify_event_cb(GtkWidget *widget,
                                            GdkEventVisibility *event);
-static void     hierarchy_changed_cb      (GtkWidget *widget,
-                                           GtkWidget *previous_toplevel);
 static gboolean window_state_event_cb     (GtkWidget *widget,
                                            GdkEventWindowState *event);
 static void     theme_changed_cb          (GtkSettings *settings,
@@ -367,36 +364,6 @@ static PRBool gForce24bpp = PR_FALSE;
 
 static GtkWidget *gInvisibleContainer = NULL;
 
-
-
-template<class T> gpointer
-FuncToGpointer(T aFunction)
-{
-    return reinterpret_cast<gpointer>
-        (reinterpret_cast<uintptr_t>
-         
-         (reinterpret_cast<void (*)()>(aFunction)));
-}
-
-
-
-template <>
-class nsSimpleRef<pixman_region32> : public pixman_region32 {
-protected:
-    typedef pixman_region32 RawRef;
-
-    nsSimpleRef() { data = nsnull; }
-    nsSimpleRef(const RawRef &aRawRef) : pixman_region32(aRawRef) { }
-
-    static void Release(pixman_region32& region) {
-        pixman_region32_fini(&region);
-    }
-    
-    PRBool HaveResource() const { return data != nsnull; }
-
-    pixman_region32& get() { return *this; }
-};
-
 nsWindow::nsWindow()
 {
     mIsTopLevel       = PR_FALSE;
@@ -417,8 +384,7 @@ nsWindow::nsWindow()
     mContainerGotFocus   = PR_FALSE;
     mContainerLostFocus  = PR_FALSE;
     mContainerBlockFocus = PR_FALSE;
-    mHasMappedToplevel   = PR_FALSE;
-    mIsFullyObscured     = PR_FALSE;
+    mIsVisible           = PR_FALSE;
     mRetryPointerGrab    = PR_FALSE;
     mRetryKeyboardGrab   = PR_FALSE;
     mTransientParent     = nsnull;
@@ -547,7 +513,7 @@ nsWindow::InitKeyEvent(nsKeyEvent &aEvent, GdkEventKey *aGdkEvent)
     
     
     
-    aEvent.pluginEvent = (void *)aGdkEvent;
+    aEvent.nativeMsg = (void *)aGdkEvent;
 
     aEvent.time      = aGdkEvent->time;
 }
@@ -675,6 +641,8 @@ CheckDestroyInvisibleContainer()
 
 
 
+
+
 static void
 SetWidgetForHierarchy(GdkWindow *aWindow,
                       GtkWidget *aOldWidget,
@@ -693,7 +661,13 @@ SetWidgetForHierarchy(GdkWindow *aWindow,
 
         
         
-        gtk_widget_reparent(widget, aNewWidget);
+        if (aNewWidget) {
+            gtk_widget_reparent(widget, aNewWidget);
+        } else {
+            
+            
+            gtk_widget_destroy(widget);
+        }
 
         return;
     }
@@ -705,30 +679,6 @@ SetWidgetForHierarchy(GdkWindow *aWindow,
     g_list_free(children);
 
     gdk_window_set_user_data(aWindow, aNewWidget);
-}
-
-
-void
-nsWindow::DestroyChildWindows()
-{
-    if (!mGdkWindow)
-        return;
-
-    while (GList *children = gdk_window_peek_children(mGdkWindow)) {
-        GdkWindow *child = GDK_WINDOW(children->data);
-        nsWindow *kid = get_window_for_gdk_window(child);
-        if (kid) {
-            kid->Destroy();
-        } else {
-            
-            
-            gpointer data;
-            gdk_window_get_user_data(child, &data);
-            if (GTK_IS_WIDGET(data)) {
-                gtk_widget_destroy(static_cast<GtkWidget*>(data));
-            }
-        }
-    }
 }
 
 NS_IMETHODIMP
@@ -754,7 +704,7 @@ nsWindow::Destroy(void)
     }
 
     g_signal_handlers_disconnect_by_func(gtk_settings_get_default(),
-                                         FuncToGpointer(theme_changed_cb),
+                                         (gpointer)G_CALLBACK(theme_changed_cb),
                                          this);
 
     
@@ -767,6 +717,15 @@ nsWindow::Destroy(void)
     }
 
     NativeShow(PR_FALSE);
+
+    
+    
+    
+    for (nsIWidget* kid = mFirstChild; kid; ) {
+        nsIWidget* next = kid->GetNextSibling();
+        kid->Destroy();
+        kid = next;
+    }
 
 #ifdef USE_XIM
     IMEDestroyContext();
@@ -823,9 +782,12 @@ nsWindow::Destroy(void)
         
         
         
-        DestroyChildWindows();
+        if (owningWidget) {
+            SetWidgetForHierarchy(mGdkWindow, owningWidget, NULL);
+        }
+        NS_ASSERTION(!get_gtk_widget_for_gdk_window(mGdkWindow),
+                     "widget reference not removed");
 
-        gdk_window_set_user_data(mGdkWindow, NULL);
         g_object_set_data(G_OBJECT(mGdkWindow), "nsWindow", NULL);
         gdk_window_destroy(mGdkWindow);
         mGdkWindow = nsnull;
@@ -878,11 +840,11 @@ nsWindow::SetParent(nsIWidget *aNewParent)
     NS_ABORT_IF_FALSE(!GDK_WINDOW_OBJECT(mGdkWindow)->destroyed,
                       "destroyed GdkWindow with widget");
 
-    nsWindow* newParent = static_cast<nsWindow*>(aNewParent);
     GdkWindow* newParentWindow = NULL;
     GtkWidget* newContainer = NULL;
     if (aNewParent) {
-        newParentWindow = newParent->mGdkWindow;
+        newParentWindow = static_cast<GdkWindow*>
+            (aNewParent->GetNativeData(NS_NATIVE_WINDOW));
         if (newParentWindow) {
             newContainer = get_gtk_widget_for_gdk_window(newParentWindow);
         }
@@ -909,12 +871,6 @@ nsWindow::SetParent(nsIWidget *aNewParent)
         }
 
         gdk_window_reparent(mGdkWindow, newParentWindow, 0, 0);
-    }
-
-    PRBool parentHasMappedToplevel =
-        newParent && newParent->mHasMappedToplevel;
-    if (mHasMappedToplevel != parentHasMappedToplevel) {
-        SetHasMappedToplevel(parentHasMappedToplevel);
     }
 
     return NS_OK;
@@ -959,6 +915,33 @@ nsWindow::IsVisible(PRBool& aState)
     return NS_OK;
 }
 
+
+PRBool
+nsWindow::CanBeSeen()
+{
+    
+    
+    
+    
+    if (!mIsShown || !mIsVisible)
+        return PR_FALSE;
+
+    GtkWidget *topWidget = nsnull;
+    GetToplevelWidget(&topWidget);
+
+    
+    
+    
+    
+    
+    mIsVisible =
+        topWidget &&
+        !(gdk_window_get_state(topWidget->window) &
+          (GDK_WINDOW_STATE_ICONIFIED|GDK_WINDOW_STATE_WITHDRAWN));
+        
+    return mIsVisible;
+}
+
 NS_IMETHODIMP
 nsWindow::ConstrainPosition(PRBool aAllowSlop, PRInt32 *aX, PRInt32 *aY)
 {
@@ -991,18 +974,9 @@ nsWindow::ConstrainPosition(PRBool aAllowSlop, PRInt32 *aX, PRInt32 *aY)
 NS_IMETHODIMP
 nsWindow::Show(PRBool aState)
 {
-    if (aState == mIsShown)
-        return NS_OK;
-
     mIsShown = aState;
 
     LOG(("nsWindow::Show [%p] state %d\n", (void *)this, aState));
-
-    if (aState) {
-        
-        
-        SetHasMappedToplevel(mHasMappedToplevel);
-    }
 
     
     
@@ -1020,7 +994,14 @@ nsWindow::Show(PRBool aState)
     
     
     if (aState) {
+        
+        
+        
+        if (mSizeMode == nsSizeMode_Fullscreen)
+            MakeFullScreen(PR_TRUE);
+
         if (mNeedsMove) {
+            LOG(("\tresizing\n"));
             NativeResize(mBounds.x, mBounds.y, mBounds.width, mBounds.height,
                          PR_FALSE);
         } else if (mNeedsResize) {
@@ -1191,11 +1172,6 @@ nsWindow::Move(PRInt32 aX, PRInt32 aY)
 {
     LOG(("nsWindow::Move [%p] %d %d\n", (void *)this,
          aX, aY));
-
-    if (mWindowType == eWindowType_toplevel ||
-        mWindowType == eWindowType_dialog) {
-        SetSizeMode(nsSizeMode_Normal);
-    }
 
     mPlaced = PR_TRUE;
 
@@ -1679,7 +1655,7 @@ NS_IMETHODIMP
 nsWindow::Invalidate(const nsIntRect &aRect,
                      PRBool           aIsSynchronous)
 {
-    if (!mGdkWindow)
+    if (!mGdkWindow || !CanBeSeen())
         return NS_OK;
 
     GdkRectangle rect;
@@ -1704,133 +1680,8 @@ nsWindow::Update()
     if (!mGdkWindow)
         return NS_OK;
 
-    LOGDRAW(("Update [%p] %p\n", this, mGdkWindow));
-
     gdk_window_process_updates(mGdkWindow, FALSE);
-    
-    gdk_display_flush(gdk_drawable_get_display(GDK_DRAWABLE(mGdkWindow)));
     return NS_OK;
-}
-
-static pixman_box32
-ToPixmanBox(const nsIntRect& aRect)
-{
-    pixman_box32_t result;
-    result.x1 = aRect.x;
-    result.y1 = aRect.y;
-    result.x2 = aRect.XMost();
-    result.y2 = aRect.YMost();
-    return result;
-}
-
-static nsIntRect
-ToIntRect(const pixman_box32& aBox)
-{
-    nsIntRect result;
-    result.x = aBox.x1;
-    result.y = aBox.y1;
-    result.width = aBox.x2 - aBox.x1;
-    result.height = aBox.y2 - aBox.y1;
-    return result;
-}
-
-static void
-InitRegion(pixman_region32* aRegion,
-           const nsTArray<nsIntRect>& aRects)
-{
-    nsAutoTArray<pixman_box32,10> rects;
-    rects.SetCapacity(aRects.Length());
-    for (PRUint32 i = 0; i < aRects.Length (); ++i) {
-        rects.AppendElement(ToPixmanBox(aRects[i]));
-    }
-
-    pixman_region32_init_rects(aRegion,
-                               rects.Elements(), rects.Length());
-}
-
-static void
-GetIntRects(pixman_region32& aRegion, nsTArray<nsIntRect>* aRects)
-{
-    int nRects;
-    pixman_box32* boxes = pixman_region32_rectangles(&aRegion, &nRects);
-    aRects->SetCapacity(aRects->Length() + nRects);
-    for (int i = 0; i < nRects; ++i) {
-        aRects->AppendElement(ToIntRect(boxes[i]));
-    }
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-class ScrollItemIter : public ScrollRectIterBase {
-public:
-    
-    ScrollItemIter(const nsIntPoint& aDelta,
-                   const nsTArray<nsIntRect>& aBlitRects,
-                   const nsTArray<const nsIWidget::Configuration*>aChildConfs,
-                   const nsTArray<nsIntRect>& aChildSubRects);
-
-    PRBool IsBlit() const { return !Configuration(); };
-
-private:
-    struct ScrollItem : public ScrollRect {
-        ScrollItem(const nsIntRect& aIntRect) : ScrollRect(aIntRect) {}
-
-        const nsIWidget::Configuration *mChildConf;
-    };
-
-public:
-    const nsIWidget::Configuration* Configuration() const
-    {
-        return static_cast<const ScrollItem&>(Rect()).mChildConf;
-    }
-
-private:
-    
-    ScrollItemIter(const ScrollItemIter&);
-    void operator=(const ScrollItemIter&);
-
-    nsTArray<ScrollItem> mRects;
-};
-
-ScrollItemIter::ScrollItemIter(const nsIntPoint& aDelta,
-                               const nsTArray<nsIntRect>& aBlitRects,
-                               const nsTArray<const nsIWidget::Configuration*>aChildConfs,
-                               const nsTArray<nsIntRect>& aChildSubRects)
-  : mRects(aBlitRects.Length() + aChildConfs.Length())
-{
-    for (PRUint32 i = 0; i < aBlitRects.Length(); ++i) {
-        if (ScrollItem* item = mRects.AppendElement(aBlitRects[i])) {
-            item->mChildConf = nsnull;
-        }
-    }
-
-    PRUint32 numChildren =
-        NS_MIN(aChildConfs.Length(), aChildSubRects.Length());
-    for (PRUint32 i = 0; i < numChildren; ++i) {
-        if (ScrollItem* item = mRects.AppendElement(aChildSubRects[i])) {
-            item->mChildConf = aChildConfs[i];
-        }
-    }
-
-    
-    ScrollRect *next = nsnull;
-    for (PRUint32 i = mRects.Length(); i--; ) {
-        mRects[i].mNext = next;
-        next = &mRects[i];
-    }
-
-    BaseInit(aDelta, next);
 }
 
 void
@@ -1843,158 +1694,43 @@ nsWindow::Scroll(const nsIntPoint& aDelta,
         return;
     }
 
+    nsAutoTArray<nsWindow*,1> windowsToShow;
     
     
     
-    gdk_display_flush(gdk_drawable_get_display(GDK_DRAWABLE(mGdkWindow)));
-
     
     
-    nsTArray<const Configuration*> movingChildren;
-    nsTArray<nsIntRect> movingChildSubRects;
-
     for (PRUint32 i = 0; i < aConfigurations.Length(); ++i) {
-        const Configuration* conf = &aConfigurations[i];
-        nsWindow* w = static_cast<nsWindow*>(conf->mChild);
+        const Configuration& configuration = aConfigurations[i];
+        nsWindow* w = static_cast<nsWindow*>(configuration.mChild);
         NS_ASSERTION(w->GetParent() == this,
                      "Configured widget is not a child");
-
-        if (!w->mIsShown)
-            continue;
-
-        
-        
-        
-        w->SetWindowClipRegion(conf->mClipRegion, PR_TRUE);
-
-        if (conf->mBounds.TopLeft() == w->mBounds.TopLeft())
-            continue; 
-
-        nsAutoTArray<nsIntRect,1> rects; 
-        w->GetWindowClipRegion(&rects);
-
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        if (rects.Length() != 1)
-            continue; 
-
-        movingChildren.AppendElement(conf);
-
-        
-        nsIntRect subRect = rects[0] + conf->mBounds.TopLeft();
-        movingChildSubRects.AppendElement(subRect);
-    }
-
-    nsAutoRef<pixman_region32> blitRegion;
-    InitRegion(&blitRegion, aDestRects);
-
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    {
-        nsAutoRef<pixman_region32> childRegion;
-        InitRegion(&childRegion, movingChildSubRects);
-
-        pixman_region32_subtract(&blitRegion, &blitRegion, &childRegion);
-    }
-
-    nsTArray<nsIntRect> blitRects;
-    GetIntRects(blitRegion, &blitRects);
-
-    GdkRegion* updateArea = gdk_region_new(); 
-
-    for (ScrollItemIter iter(aDelta, blitRects,
-                             movingChildren, movingChildSubRects);
-         !iter.IsDone(); ++iter) {
-        if (iter.IsBlit()) {
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            GdkRegion* recentUpdates = gdk_window_get_update_area(mGdkWindow);
-            if (recentUpdates) {
-                gdk_region_union(updateArea, recentUpdates);
-                gdk_region_destroy(recentUpdates);
-            } 
-
-            
-            
-            
-            
-            nsIntRect source = iter.Rect() - aDelta;
-            GdkRectangle gdkSource =
-                { source.x, source.y, source.width, source.height };
-            GdkRegion* rectRegion = gdk_region_rectangle(&gdkSource);
-            gdk_window_move_region(mGdkWindow, rectRegion,
-                                   aDelta.x, aDelta.y);
-
-            
-            
-            
-            
-            
-            
-            
-
-            
-            GdkRegion* updateChanges = gdk_region_copy(rectRegion);
-            gdk_region_intersect(updateChanges, updateArea);
-            gdk_region_offset(updateChanges, aDelta.x, aDelta.y);
-
-            
-            gdk_region_offset(rectRegion, aDelta.x, aDelta.y);
-            
-            gdk_region_subtract(updateArea, rectRegion);
-            gdk_region_union(updateArea, updateChanges);
-
-            gdk_region_destroy(updateChanges);
-            gdk_region_destroy(rectRegion);
-        } else {
-            const Configuration *conf = iter.Configuration();
-            nsWindow* w = static_cast<nsWindow*>(conf->mChild);
-            const nsIntRect& newBounds = conf->mBounds;
-            
-            
-            w->Move(newBounds.x, newBounds.y);
+        if (w->mIsShown &&
+            (configuration.mClipRegion.IsEmpty() ||
+             configuration.mBounds != w->mBounds)) {
+            w->NativeShow(PR_FALSE);
+            windowsToShow.AppendElement(w);
         }
     }
 
-    gdk_window_invalidate_region(mGdkWindow, updateArea, FALSE);
-    gdk_region_destroy(updateArea);
+    
+    
+    
+    
+    for (PRUint32 i = 0; i < aDestRects.Length(); ++i) {
+        const nsIntRect& r = aDestRects[i];
+        GdkRectangle gdkSource =
+            { r.x - aDelta.x, r.y - aDelta.y, r.width, r.height };
+        GdkRegion* region = gdk_region_rectangle(&gdkSource);
+        gdk_window_move_region(GDK_WINDOW(mGdkWindow), region, aDelta.x, aDelta.y);
+        gdk_region_destroy(region);
+    }
 
     ConfigureChildren(aConfigurations);
+
+    for (PRUint32 i = 0; i < windowsToShow.Length(); ++i) {
+        windowsToShow[i]->NativeShow(PR_TRUE);
+    }
 }
 
 void*
@@ -2320,8 +2056,7 @@ nsWindow::OnExposeEvent(GtkWidget *aWidget, GdkEventExpose *aEvent)
         return FALSE;
     }
 
-    
-    if (!mGdkWindow || mIsFullyObscured || !mHasMappedToplevel)
+    if (!mGdkWindow)
         return FALSE;
 
     static NS_DEFINE_CID(kRegionCID, NS_REGION_CID);
@@ -2648,7 +2383,7 @@ nsWindow::OnContainerUnrealize(GtkWidget *aWidget)
                  "unexpected \"unrealize\" signal");
 
     if (mGdkWindow) {
-        DestroyChildWindows();
+        SetWidgetForHierarchy(mGdkWindow, aWidget, NULL);
 
         g_object_set_data(G_OBJECT(mGdkWindow), "nsWindow", NULL);
         mGdkWindow = NULL;
@@ -3474,23 +3209,10 @@ void
 nsWindow::OnVisibilityNotifyEvent(GtkWidget *aWidget,
                                   GdkEventVisibility *aEvent)
 {
-    LOGDRAW(("Visibility event %i on [%p] %p\n",
-             aEvent->state, this, aEvent->window));
-
-    if (!mGdkWindow)
-        return;
-
     switch (aEvent->state) {
     case GDK_VISIBILITY_UNOBSCURED:
     case GDK_VISIBILITY_PARTIAL:
-        if (mIsFullyObscured && mHasMappedToplevel) {
-            
-            
-            gdk_window_invalidate_rect(mGdkWindow, NULL, FALSE);
-        }
-
-        mIsFullyObscured = PR_FALSE;
-
+        mIsVisible = PR_TRUE;
 #ifdef MOZ_PLATFORM_HILDON
 #ifdef USE_XIM
         
@@ -3506,7 +3228,7 @@ nsWindow::OnVisibilityNotifyEvent(GtkWidget *aWidget,
         EnsureGrabs();
         break;
     default: 
-        mIsFullyObscured = PR_TRUE;
+        mIsVisible = PR_FALSE;
         break;
     }
 }
@@ -3516,27 +3238,6 @@ nsWindow::OnWindowStateEvent(GtkWidget *aWidget, GdkEventWindowState *aEvent)
 {
     LOG(("nsWindow::OnWindowStateEvent [%p] changed %d new_window_state %d\n",
          (void *)this, aEvent->changed_mask, aEvent->new_window_state));
-
-    if (IS_MOZ_CONTAINER(aWidget)) {
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        PRBool mapped =
-            !(aEvent->new_window_state &
-              (GDK_WINDOW_STATE_ICONIFIED|GDK_WINDOW_STATE_WITHDRAWN));
-        if (mHasMappedToplevel != mapped) {
-            SetHasMappedToplevel(mapped);
-        }
-        return;
-    }
-    
 
     nsSizeModeEvent event(PR_TRUE, NS_SIZEMODE, this);
 
@@ -4165,10 +3866,6 @@ nsWindow::Create(nsIWidget        *aParent,
     case eWindowType_child: {
         if (parentMozContainer) {
             mGdkWindow = CreateGdkWindow(parentGdkWindow, parentMozContainer);
-            nsWindow *parentnsWindow =
-                get_window_for_gdk_window(parentGdkWindow);
-            if (parentnsWindow)
-                mHasMappedToplevel = parentnsWindow->mHasMappedToplevel;
         }
         else if (parentGtkContainer) {
             GtkWidget *container = moz_container_new();
@@ -4256,10 +3953,6 @@ nsWindow::Create(nsIWidget        *aParent,
                          G_CALLBACK(scroll_event_cb), NULL);
         g_signal_connect(G_OBJECT(mContainer), "visibility_notify_event",
                          G_CALLBACK(visibility_notify_event_cb), NULL);
-        g_signal_connect(G_OBJECT(mContainer), "hierarchy_changed",
-                         G_CALLBACK(hierarchy_changed_cb), NULL);
-        
-        hierarchy_changed_cb(GTK_WIDGET(mContainer), NULL);
 
         gtk_drag_dest_set((GtkWidget *)mContainer,
                           (GtkDestDefaults)0,
@@ -4490,6 +4183,7 @@ nsWindow::NativeResize(PRInt32 aX, PRInt32 aY,
             gtk_window_move(GTK_WINDOW(mShell), aX, aY);
 
         gtk_window_resize(GTK_WINDOW(mShell), aWidth, aHeight);
+        gdk_window_resize(mGdkWindow, aWidth, aHeight);
     }
     else if (mContainer) {
         GtkAllocation allocation;
@@ -4549,48 +4243,6 @@ nsWindow::NativeShow (PRBool  aAction)
         }
         else if (mGdkWindow) {
             gdk_window_hide(mGdkWindow);
-        }
-    }
-}
-
-void
-nsWindow::SetHasMappedToplevel(PRBool aState)
-{
-    
-    
-    
-    PRBool oldState = mHasMappedToplevel;
-    mHasMappedToplevel = aState;
-
-    
-    
-    
-    
-    
-    
-    
-    if (!mIsShown || !mGdkWindow)
-        return;
-
-    if (aState && !oldState && !mIsFullyObscured) {
-        
-        
-        
-        gdk_window_invalidate_rect(mGdkWindow, NULL, FALSE);
-
-        
-        
-        EnsureGrabs();
-    }
-
-    for (GList *children = gdk_window_peek_children(mGdkWindow);
-         children;
-         children = children->next) {
-        GdkWindow *gdkWin = GDK_WINDOW(children->data);
-        nsWindow *child = get_window_for_gdk_window(gdkWin);
-
-        if (child && child->mHasMappedToplevel != aState) {
-            child->SetHasMappedToplevel(aState);
         }
     }
 }
@@ -4686,7 +4338,8 @@ nsWindow::ConfigureChildren(const nsTArray<Configuration>& aConfigurations)
         nsWindow* w = static_cast<nsWindow*>(configuration.mChild);
         NS_ASSERTION(w->GetParent() == this,
                      "Configured widget is not a child");
-        w->SetWindowClipRegion(configuration.mClipRegion, PR_TRUE);
+        nsresult rv = w->SetWindowClipRegion(configuration.mClipRegion);
+        NS_ENSURE_SUCCESS(rv, rv);
         if (w->mBounds.Size() != configuration.mBounds.Size()) {
             w->Resize(configuration.mBounds.x, configuration.mBounds.y,
                       configuration.mBounds.width, configuration.mBounds.height,
@@ -4694,48 +4347,24 @@ nsWindow::ConfigureChildren(const nsTArray<Configuration>& aConfigurations)
         } else if (w->mBounds.TopLeft() != configuration.mBounds.TopLeft()) {
             w->Move(configuration.mBounds.x, configuration.mBounds.y);
         } 
-        w->SetWindowClipRegion(configuration.mClipRegion, PR_FALSE);
     }
     return NS_OK;
 }
 
-void
-nsWindow::SetWindowClipRegion(const nsTArray<nsIntRect>& aRects,
-                              PRBool aIntersectWithExisting)
+nsresult
+nsWindow::SetWindowClipRegion(const nsTArray<nsIntRect>& aRects)
 {
-    const nsTArray<nsIntRect>* newRects = &aRects;
-
-    nsAutoTArray<nsIntRect,1> intersectRects;
-    if (aIntersectWithExisting) {
-        nsAutoTArray<nsIntRect,1> existingRects;
-        GetWindowClipRegion(&existingRects);
-
-        nsAutoRef<pixman_region32> existingRegion;
-        InitRegion(&existingRegion, existingRects);
-        nsAutoRef<pixman_region32> newRegion;
-        InitRegion(&newRegion, aRects);
-        nsAutoRef<pixman_region32> intersectRegion;
-        pixman_region32_intersect(&intersectRegion,
-                                  &newRegion, &existingRegion);
-
-        if (pixman_region32_equal(&intersectRegion, &existingRegion))
-            return;
-
-        if (!pixman_region32_equal(&intersectRegion, &newRegion)) {
-            GetIntRects(intersectRegion, &intersectRects);
-            newRects = &intersectRects;
-        }
-    }
-
-    if (!StoreWindowClipRegion(*newRects))
-        return;
+    if (!StoreWindowClipRegion(aRects))
+        return NS_OK;
 
     if (!mGdkWindow)
-        return;
+        return NS_OK;
 
-    GdkRegion *region = gdk_region_new(); 
-    for (PRUint32 i = 0; i < newRects->Length(); ++i) {
-        const nsIntRect& r = newRects->ElementAt(i);
+    GdkRegion *region = gdk_region_new();
+    if (!region)
+        return NS_ERROR_OUT_OF_MEMORY;
+    for (PRUint32 i = 0; i < aRects.Length(); ++i) {
+        const nsIntRect& r = aRects[i];
         GdkRectangle rect = { r.x, r.y, r.width, r.height };
         gdk_region_union_with_rect(region, &rect);
     }
@@ -4743,7 +4372,7 @@ nsWindow::SetWindowClipRegion(const nsTArray<nsIntRect>& aRects,
     gdk_window_shape_combine_region(mGdkWindow, region, 0, 0);
     gdk_region_destroy(region);
 
-    return;
+    return NS_OK;
 }
 
 void
@@ -4911,7 +4540,7 @@ nsWindow::GrabPointer(void)
     
     
     
-    if (!mHasMappedToplevel || mIsFullyObscured) {
+    if (!CanBeSeen()) {
         LOG(("GrabPointer: window not visible\n"));
         mRetryPointerGrab = PR_TRUE;
         return;
@@ -4948,7 +4577,7 @@ nsWindow::GrabKeyboard(void)
     
     
     
-    if (!mHasMappedToplevel || mIsFullyObscured) {
+    if (!CanBeSeen()) {
         LOG(("GrabKeyboard: window not visible\n"));
         mRetryKeyboardGrab = PR_TRUE;
         return;
@@ -5250,21 +4879,25 @@ nsWindow::MakeFullScreen(PRBool aFullScreen)
     LOG(("nsWindow::MakeFullScreen [%p] aFullScreen %d\n",
          (void *)this, aFullScreen));
 
+#if GTK_CHECK_VERSION(2,2,0)
     if (aFullScreen) {
         if (mSizeMode != nsSizeMode_Fullscreen)
             mLastSizeMode = mSizeMode;
 
         mSizeMode = nsSizeMode_Fullscreen;
-        gtk_window_fullscreen(GTK_WINDOW(mShell));
+        gdk_window_fullscreen (mShell->window);
     }
     else {
         mSizeMode = mLastSizeMode;
-        gtk_window_unfullscreen(GTK_WINDOW(mShell));
+        gdk_window_unfullscreen (mShell->window);
     }
 
     NS_ASSERTION(mLastSizeMode != nsSizeMode_Fullscreen,
                  "mLastSizeMode should never be fullscreen");
     return NS_OK;
+#else
+    return nsBaseWidget::MakeFullScreen(aFullScreen);
+#endif
 }
 
 NS_IMETHODIMP
@@ -6013,44 +5646,6 @@ visibility_notify_event_cb (GtkWidget *widget, GdkEventVisibility *event)
     window->OnVisibilityNotifyEvent(widget, event);
 
     return TRUE;
-}
-
-static void
-hierarchy_changed_cb (GtkWidget *widget,
-                      GtkWidget *previous_toplevel)
-{
-    GtkWidget *toplevel = gtk_widget_get_toplevel(widget);
-    GdkWindowState old_window_state = GDK_WINDOW_STATE_WITHDRAWN;
-    GdkEventWindowState event;
-
-    event.new_window_state = GDK_WINDOW_STATE_WITHDRAWN;
-
-    if (GTK_IS_WINDOW(previous_toplevel)) {
-        g_signal_handlers_disconnect_by_func(previous_toplevel,
-                                             FuncToGpointer(window_state_event_cb),
-                                             widget);
-        if (previous_toplevel->window) {
-            old_window_state = gdk_window_get_state(previous_toplevel->window);
-        }
-    }
-
-    if (GTK_IS_WINDOW(toplevel)) {
-        g_signal_connect_swapped(toplevel, "window-state-event",
-                                 G_CALLBACK(window_state_event_cb), widget);
-        if (toplevel->window) {
-            event.new_window_state = gdk_window_get_state(toplevel->window);
-        }
-    }
-
-    event.changed_mask = static_cast<GdkWindowState>
-        (old_window_state ^ event.new_window_state);
-
-    if (event.changed_mask) {
-        event.type = GDK_WINDOW_STATE;
-        event.window = NULL;
-        event.send_event = TRUE;
-        window_state_event_cb(widget, &event);
-    }
 }
 
 
@@ -7498,9 +7093,6 @@ nsWindow::GetSurfaceForGdkDrawable(GdkDrawable* aDrawable,
 gfxASurface*
 nsWindow::GetThebesSurface()
 {
-    if (!mGdkWindow)
-        return nsnull;
-
     GdkDrawable* d;
     gint x_offset, y_offset;
     gdk_window_get_internal_paint_info(mGdkWindow, &d, &x_offset, &y_offset);
