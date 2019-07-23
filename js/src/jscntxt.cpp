@@ -301,16 +301,18 @@ js_NewContext(JSRuntime *rt, size_t stackChunkSize)
 
     JS_LOCK_GC(rt);
     for (;;) {
-        first = (rt->contextList.next == &rt->contextList);
-        if (rt->state == JSRTS_UP) {
-            JS_ASSERT(!first);
+        
 
-            
-            js_WaitForGC(rt);
+
+        js_WaitForGC(rt);
+        if (rt->state == JSRTS_UP) {
+            JS_ASSERT(!JS_CLIST_IS_EMPTY(&rt->contextList));
+            first = JS_FALSE;
             break;
         }
         if (rt->state == JSRTS_DOWN) {
-            JS_ASSERT(first);
+            JS_ASSERT(JS_CLIST_IS_EMPTY(&rt->contextList));
+            first = JS_TRUE;
             rt->state = JSRTS_LAUNCHING;
             break;
         }
