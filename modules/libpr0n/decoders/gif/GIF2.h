@@ -94,16 +94,14 @@ typedef struct gif_struct {
     int ipass;                  
     PRUintn rows_remaining;        
     PRUintn irow;                  
-    PRUint8 *rowbuf;              
-    PRUint8 *rowend;              
-    PRUint8 *rowp;                
+    PRUint32 *rowp;                 
 
     
     PRUintn x_offset, y_offset;    
     PRUintn height, width;
     int tpixel;                 
     PRInt32 disposal_method;    
-    PRUint8 *local_colormap;    
+    PRUint32 *local_colormap;   
     int local_colormap_size;    
     PRUint32 delay_time;        
 
@@ -112,7 +110,7 @@ typedef struct gif_struct {
     int version;                
     PRUintn screen_width;       
     PRUintn screen_height;
-    int global_colormap_size;   
+    PRUint32 global_colormap_size;  
     int images_decoded;         
     int loop_count;             
 
@@ -120,11 +118,10 @@ typedef struct gif_struct {
     PRPackedBool progressive_display;    
     PRPackedBool interlaced;             
     PRPackedBool is_transparent;         
-    PRPackedBool is_local_colormap_defined;
 
     PRUint16  prefix[MAX_BITS];          
     PRUint8   hold[MAX_HOLD_SIZE];       
-    PRUint8   global_colormap[3*MAX_COLORS];   
+    PRUint32  global_colormap[MAX_COLORS];   
     PRUint8   suffix[MAX_BITS];          
     PRUint8   stack[MAX_BITS];           
 

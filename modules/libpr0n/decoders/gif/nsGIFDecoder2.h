@@ -79,15 +79,11 @@ private:
   void      BeginImageFrame();
   void      EndImageFrame();
   void      FlushImageData();
+  void      FlushImageData(PRUint32 fromRow, PRUint32 rows);
 
   nsresult  GifWrite(const PRUint8 * buf, PRUint32 numbytes);
   PRUint32  OutputRow();
   PRBool    DoLzw(const PRUint8 *q);
-  void      HaveDecodedRow(
-    PRUint8* aRowBufPtr,   
-    int aRow,              
-    int aDuplicateCount,   
-    int aInterlacePass);
 
   inline int ClearCode() const { return 1 << mGIFStruct.datasize; }
 
@@ -97,12 +93,12 @@ private:
   PRInt32 mCurrentRow;
   PRInt32 mLastFlushedRow;
 
-  PRUint8 *mRGBLine;
-  PRUint32 mRGBLineMaxSize;
+  PRUint32 *mImageData;      
+  PRUint32 *mColormap;       
+  PRUint32 mOldColor;        
   PRUint8 mCurrentPass;
   PRUint8 mLastFlushedPass;
   PRPackedBool mGIFOpen;
-  PRPackedBool mFrameHasNoAlpha;
 
   gif_struct mGIFStruct;
 };
