@@ -119,6 +119,16 @@ private:
                                         nsIAccessible **aAccessible);
 
   static nsAccessibilityService *gAccessibilityService;
+
+  
+
+
+
+
+
+
+
+  PRBool HasUniversalAriaProperty(nsIContent *aContent, nsIWeakReference *aWeakShell);
 };
 
 

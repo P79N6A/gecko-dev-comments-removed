@@ -84,7 +84,8 @@ PRUint32 nsDocAccessible::gLastFocusedAccessiblesState = 0;
 
 nsDocAccessible::nsDocAccessible(nsIDOMNode *aDOMNode, nsIWeakReference* aShell):
   nsHyperTextAccessibleWrap(aDOMNode, aShell), mWnd(nsnull),
-  mScrollPositionChangedTicks(0), mIsContentLoaded(PR_FALSE)
+  mScrollPositionChangedTicks(0), mIsContentLoaded(PR_FALSE),
+  mAriaPropTypes(eCheckNamespaced)
 {
   
   if (!mDOMNode)
@@ -97,7 +98,24 @@ nsDocAccessible::nsDocAccessible(nsIDOMNode *aDOMNode, nsIWeakReference* aShell)
 
   nsCOMPtr<nsIPresShell> shell(do_QueryReferent(mWeakShell));
   if (shell) {
+    
     mDocument = shell->GetDocument();
+    
+    if (!mDocument) {
+      NS_WARNING("No document!");
+      return;
+    }
+    
+    nsCOMPtr<nsIDOMNSHTMLDocument> htmlDoc(do_QueryInterface(mDocument));
+    if (htmlDoc) {
+      nsAutoString mimeType;
+      GetMimeType(mimeType);
+      mAriaPropTypes = eCheckHyphenated;
+      if (! mimeType.EqualsLiteral("text/html")) {
+        mAriaPropTypes |= eCheckNamespaced;
+      }
+    }
+    
     nsIViewManager* vm = shell->GetViewManager();
     if (vm) {
       nsCOMPtr<nsIWidget> widget;
@@ -904,7 +922,14 @@ NS_IMETHODIMP nsDocAccessible::Observe(nsISupports *aSubject, const char *aTopic
   return NS_OK;
 }
 
+NS_IMETHODIMP
+nsDocAccessible::GetAriaPropTypes(PRUint32 *aAriaPropTypes) 
+{
+  *aAriaPropTypes = mAriaPropTypes;
+  return NS_OK;
+}
 
+  
 
 
 NS_IMPL_NSIDOCUMENTOBSERVER_CORE_STUB(nsDocAccessible)
@@ -948,6 +973,14 @@ nsDocAccessible::AttributeChangedImpl(nsIContent* aContent, PRInt32 aNameSpaceID
   if (!docShell) {
     return;
   }
+  if (aNameSpaceID == kNameSpaceID_WAIProperties) {
+    
+    
+    
+    
+    mAriaPropTypes |= eCheckNamespaced;
+  }
+
   PRUint32 busyFlags;
   docShell->GetBusyFlags(&busyFlags);
   if (busyFlags) {
@@ -971,7 +1004,8 @@ nsDocAccessible::AttributeChangedImpl(nsIContent* aContent, PRInt32 aNameSpaceID
   nsAccEvent::PrepareForEvent(targetNode);
 
   
-  if (aAttribute == nsAccessibilityAtoms::disabled) {
+  if (aAttribute == nsAccessibilityAtoms::disabled ||
+      (aAttribute == nsAccessibilityAtoms::aria_disabled && (mAriaPropTypes & eCheckHyphenated))) {
     
     
     
@@ -991,8 +1025,22 @@ nsDocAccessible::AttributeChangedImpl(nsIContent* aContent, PRInt32 aNameSpaceID
     return;
   }
 
+  
+  nsCOMPtr<nsIAtom> ariaAttribute;
   if (aNameSpaceID == kNameSpaceID_WAIProperties) {
-    ARIAAttributeChanged(aContent, aAttribute);
+    ariaAttribute = aAttribute;
+  }
+  else if (mAriaPropTypes & eCheckHyphenated && aNameSpaceID == kNameSpaceID_None) {
+    
+    const char* attributeName;
+    aAttribute->GetUTF8String(&attributeName);
+    if (!PL_strncmp("aria-", attributeName, 5)) {
+      
+      ariaAttribute = do_GetAtom(attributeName + 5);
+    }
+  }
+  if (ariaAttribute) {  
+    ARIAAttributeChanged(aContent, ariaAttribute);
     return;
   }
 

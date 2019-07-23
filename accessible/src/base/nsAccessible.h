@@ -168,7 +168,6 @@ protected:
   PRBool IsVisible(PRBool *aIsOffscreen); 
 
   
-  nsresult GetTextFromRelationID(nsIAtom *aIDAttrib, nsString &aName);
 
   
 
@@ -178,53 +177,7 @@ protected:
 
 
 
-
-
-
-
-  already_AddRefed<nsIDOMNode> FindNeighbourPointingToThis(nsIAtom *aRelationAttr,
-                                                           PRUint32 aRelationNameSpaceID = kNameSpaceID_None,
-                                                           PRUint32 aAncestorLevelsToSearch = 0);
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-  static nsIContent *FindNeighbourPointingToNode(nsIContent *aForNode,
-                                                 nsIAtom *aTagName,
-                                                 nsIAtom *aRelationAttr,
-                                                 PRUint32 aRelationNameSpaceID = kNameSpaceID_None,
-                                                 PRUint32 aAncestorLevelsToSearch = 5);
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-  static nsIContent *FindDescendantPointingToID(const nsAString *aId,
-                                                nsIContent *aLookContent,
-                                                nsIAtom *aRelationAttr,
-                                                PRUint32 aRelationNamespaceID = kNameSpaceID_None,
-                                                nsIContent *aExcludeContent = nsnull,
-                                                nsIAtom *aTagType = nsAccessibilityAtoms::label);
+  nsresult GetTextFromRelationID(EAriaProperty aIDProperty, nsString &aName);
 
   static nsIContent *GetHTMLLabelContent(nsIContent *aForNode);
   static nsIContent *GetLabelContent(nsIContent *aForNode);
@@ -291,8 +244,7 @@ protected:
 
 
 
-
-  nsresult GetAttrValue(PRUint32 aNameSpaceID, nsIAtom *aName, double *aValue);
+  nsresult GetAttrValue(EAriaProperty aAriaProperty, double *aValue);
 
   
   nsCOMPtr<nsIAccessible> mParent;
