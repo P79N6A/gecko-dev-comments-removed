@@ -42,14 +42,14 @@
 
 
 
-var bg = Cc["@mozilla.org/browser/browserglue;1"].
-         getService(Ci.nsIBrowserGlue);
-
-
 var hs = Cc["@mozilla.org/browser/nav-history-service;1"].
          getService(Ci.nsINavHistoryService);
 var bs = Cc["@mozilla.org/browser/nav-bookmarks-service;1"].
          getService(Ci.nsINavBookmarksService);
+
+
+var bg = Cc["@mozilla.org/browser/browserglue;1"].
+         getService(Ci.nsIBrowserGlue);
 
 
 var ps = Cc["@mozilla.org/preferences-service;1"].
@@ -63,6 +63,7 @@ const PREF_SMART_BOOKMARKS_VERSION = "browser.places.smartBookmarksVersion";
 const SMART_BOOKMARKS_ANNO = "Places/SmartBookmark";
 
 const TOPIC_PLACES_INIT_COMPLETE = "places-init-complete";
+const TOPIC_PLACES_DATABASE_LOCKED = "places-database-locked";
 
 var tests = [];
 
@@ -73,21 +74,26 @@ tests.push({
   exec: function() {
     
     do_check_eq(bs.getIdForItemAt(bs.toolbarFolder, 0), -1);
-    
     do_check_eq(bs.getIdForItemAt(bs.bookmarksMenuFolder, 0), -1);
 
     
     ps.setIntPref(PREF_SMART_BOOKMARKS_VERSION, 0);
-    
-    os.notifyObservers(null, TOPIC_PLACES_INIT_COMPLETE, null);
 
     
-    do_check_eq(countFolderChildren(bs.toolbarFolder), SMART_BOOKMARKS_ON_TOOLBAR + DEFAULT_BOOKMARKS_ON_TOOLBAR);
-    
-    do_check_eq(countFolderChildren(bs.bookmarksMenuFolder), SMART_BOOKMARKS_ON_MENU + DEFAULT_BOOKMARKS_ON_MENU);
+    print("Simulate Places init");
+    bg.QueryInterface(Ci.nsIObserver).observe(null,
+                                              TOPIC_PLACES_INIT_COMPLETE,
+                                              null);
 
     
-    do_check_eq(ps.getIntPref(PREF_SMART_BOOKMARKS_VERSION), SMART_BOOKMARKS_VERSION);
+    do_check_eq(countFolderChildren(bs.toolbarFolder),
+                SMART_BOOKMARKS_ON_TOOLBAR + DEFAULT_BOOKMARKS_ON_TOOLBAR);
+    do_check_eq(countFolderChildren(bs.bookmarksMenuFolder),
+                SMART_BOOKMARKS_ON_MENU + DEFAULT_BOOKMARKS_ON_MENU);
+
+    
+    do_check_eq(ps.getIntPref(PREF_SMART_BOOKMARKS_VERSION),
+                SMART_BOOKMARKS_VERSION);
 
     next_test();
   }
@@ -102,20 +108,32 @@ tests.push({
     var itemId = bs.getIdForItemAt(bs.toolbarFolder, 0);
     do_check_neq(itemId, -1);
     do_check_true(as.itemHasAnnotation(itemId, SMART_BOOKMARKS_ANNO));
-
     
     bs.setItemTitle(itemId, "new title");
     do_check_eq(bs.getItemTitle(itemId), "new title");
 
     
-    ps.setIntPref(PREF_SMART_BOOKMARKS_VERSION, 1);
-    
-    os.notifyObservers(null, TOPIC_PLACES_INIT_COMPLETE, null);
+    dump_table("moz_bookmarks");
+    dump_table("moz_items_annos");
+    do_check_eq(countFolderChildren(bs.toolbarFolder),
+                SMART_BOOKMARKS_ON_TOOLBAR + DEFAULT_BOOKMARKS_ON_TOOLBAR);
+    do_check_eq(countFolderChildren(bs.bookmarksMenuFolder),
+                SMART_BOOKMARKS_ON_MENU + DEFAULT_BOOKMARKS_ON_MENU);
 
     
-    do_check_eq(countFolderChildren(bs.toolbarFolder), SMART_BOOKMARKS_ON_TOOLBAR + DEFAULT_BOOKMARKS_ON_TOOLBAR);
+    ps.setIntPref(PREF_SMART_BOOKMARKS_VERSION, 1);
+
     
-    do_check_eq(countFolderChildren(bs.bookmarksMenuFolder), SMART_BOOKMARKS_ON_MENU + DEFAULT_BOOKMARKS_ON_MENU);
+    print("Simulate Places init");
+    bg.QueryInterface(Ci.nsIObserver).observe(null,
+                                              TOPIC_PLACES_INIT_COMPLETE,
+                                              null);
+
+    
+    do_check_eq(countFolderChildren(bs.toolbarFolder),
+                SMART_BOOKMARKS_ON_TOOLBAR + DEFAULT_BOOKMARKS_ON_TOOLBAR);
+    do_check_eq(countFolderChildren(bs.bookmarksMenuFolder),
+                SMART_BOOKMARKS_ON_MENU + DEFAULT_BOOKMARKS_ON_MENU);
 
     
     itemId = bs.getIdForItemAt(bs.toolbarFolder, 0);
@@ -124,7 +142,8 @@ tests.push({
     do_check_true(as.itemHasAnnotation(itemId, SMART_BOOKMARKS_ANNO));
 
     
-    do_check_eq(ps.getIntPref(PREF_SMART_BOOKMARKS_VERSION), SMART_BOOKMARKS_VERSION);
+    do_check_eq(ps.getIntPref(PREF_SMART_BOOKMARKS_VERSION),
+                SMART_BOOKMARKS_VERSION);
 
     next_test();
   }
@@ -136,20 +155,35 @@ tests.push({
   description: "An explicitly removed smart bookmark should not be recreated.",
   exec: function() {   
     
-    ps.setIntPref(PREF_SMART_BOOKMARKS_VERSION, 1);
-    
     bs.removeItem(bs.getIdForItemAt(bs.toolbarFolder, 0));
 
     
-    os.notifyObservers(null, TOPIC_PLACES_INIT_COMPLETE, null);
+    dump_table("moz_bookmarks");
+    dump_table("moz_items_annos");
+    do_check_eq(countFolderChildren(bs.toolbarFolder),
+                DEFAULT_BOOKMARKS_ON_TOOLBAR);
+    do_check_eq(countFolderChildren(bs.bookmarksMenuFolder),
+                SMART_BOOKMARKS_ON_MENU + DEFAULT_BOOKMARKS_ON_MENU);
 
     
-    do_check_eq(countFolderChildren(bs.toolbarFolder),  DEFAULT_BOOKMARKS_ON_TOOLBAR);
-    
-    do_check_eq(countFolderChildren(bs.bookmarksMenuFolder), SMART_BOOKMARKS_ON_MENU + DEFAULT_BOOKMARKS_ON_MENU);
+    ps.setIntPref(PREF_SMART_BOOKMARKS_VERSION, 1);
 
     
-    do_check_eq(ps.getIntPref(PREF_SMART_BOOKMARKS_VERSION), SMART_BOOKMARKS_VERSION);
+    print("Simulate Places init");
+    bg.QueryInterface(Ci.nsIObserver).observe(null,
+                                              TOPIC_PLACES_INIT_COMPLETE,
+                                              null);
+
+    
+    
+    do_check_eq(countFolderChildren(bs.toolbarFolder),
+                DEFAULT_BOOKMARKS_ON_TOOLBAR);
+    do_check_eq(countFolderChildren(bs.bookmarksMenuFolder),
+                SMART_BOOKMARKS_ON_MENU + DEFAULT_BOOKMARKS_ON_MENU);
+
+    
+    do_check_eq(ps.getIntPref(PREF_SMART_BOOKMARKS_VERSION),
+                SMART_BOOKMARKS_VERSION);
 
     next_test();
   }
@@ -159,20 +193,34 @@ tests.push({
 
 tests.push({
   description: "Even if a smart bookmark has been removed recreate it if version is 0.",
-  exec: function() {   
+  exec: function() {
+    
+    dump_table("moz_bookmarks");
+    dump_table("moz_items_annos");
+    do_check_eq(countFolderChildren(bs.toolbarFolder),
+                DEFAULT_BOOKMARKS_ON_TOOLBAR);
+    do_check_eq(countFolderChildren(bs.bookmarksMenuFolder),
+                SMART_BOOKMARKS_ON_MENU + DEFAULT_BOOKMARKS_ON_MENU);
+
     
     ps.setIntPref(PREF_SMART_BOOKMARKS_VERSION, 0);
 
     
-    os.notifyObservers(null, TOPIC_PLACES_INIT_COMPLETE, null);
+    print("Simulate Places init");
+    bg.QueryInterface(Ci.nsIObserver).observe(null,
+                                              TOPIC_PLACES_INIT_COMPLETE,
+                                              null);
 
     
-    do_check_eq(countFolderChildren(bs.toolbarFolder), SMART_BOOKMARKS_ON_TOOLBAR + DEFAULT_BOOKMARKS_ON_TOOLBAR);
     
-    do_check_eq(countFolderChildren(bs.bookmarksMenuFolder), SMART_BOOKMARKS_ON_MENU + DEFAULT_BOOKMARKS_ON_MENU);
+    do_check_eq(countFolderChildren(bs.toolbarFolder),
+                SMART_BOOKMARKS_ON_TOOLBAR + DEFAULT_BOOKMARKS_ON_TOOLBAR);
+    do_check_eq(countFolderChildren(bs.bookmarksMenuFolder),
+                SMART_BOOKMARKS_ON_MENU + DEFAULT_BOOKMARKS_ON_MENU);
 
     
-    do_check_eq(ps.getIntPref(PREF_SMART_BOOKMARKS_VERSION), SMART_BOOKMARKS_VERSION);
+    do_check_eq(ps.getIntPref(PREF_SMART_BOOKMARKS_VERSION),
+                SMART_BOOKMARKS_VERSION);
 
     finish_test();
   }
@@ -204,10 +252,14 @@ function finish_test() {
 
 var testIndex = 0;
 function next_test() {
-  
-  
-  if (testIndex > 0)
-    os.addObserver(bg, TOPIC_PLACES_INIT_COMPLETE, false);
+  if (testIndex > 0) {
+    
+    
+    os.addObserver(bg.QueryInterface(Ci.nsIObserver),
+                   TOPIC_PLACES_INIT_COMPLETE, false);
+    os.addObserver(bg.QueryInterface(Ci.nsIObserver),
+                   TOPIC_PLACES_DATABASE_LOCKED, false);
+  }
 
   
   let test = tests.shift();
