@@ -44,7 +44,6 @@
 #include "nsICSSDeclaration.h"
 
 #include "nsROCSSPrimitiveValue.h"
-#include "nsDOMCSSDeclaration.h"
 #include "nsDOMCSSRGBColor.h"
 #include "nsDOMCSSValueList.h"
 #include "nsCSSProps.h"
@@ -438,8 +437,6 @@ private:
   };
 
   static const ComputedStyleMapEntry* GetQueryablePropertyMap(PRUint32* aLength);
-
-  CSS2PropertiesTearoff mInner;
 
   
   
