@@ -1632,8 +1632,23 @@ nsresult nsXULWindow::ContentShellAdded(nsIDocShellTreeItem* aContentShell,
     }
 #endif
     
-    NS_ENSURE_TRUE(mTargetableShells.AppendObject(contentShellWeak),
-                   NS_ERROR_OUT_OF_MEMORY);
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    PRBool inserted;
+    if (aPrimary || !mPrimaryContentShell) {
+      inserted = mTargetableShells.InsertObjectAt(contentShellWeak, 0);
+    } else {
+      inserted = mTargetableShells.AppendObject(contentShellWeak);
+    }
+    NS_ENSURE_TRUE(inserted, NS_ERROR_OUT_OF_MEMORY);
   }
 
   return NS_OK;
