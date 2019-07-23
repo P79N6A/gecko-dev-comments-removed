@@ -1801,6 +1801,36 @@ void nsOggDecodeStateMachine::LoadOggHeaders(nsChannelReader* aReader)
           mSeekable &&
           mDuration == -1) {
         mDecoder->StopProgressUpdates();
+
+        
+        
+        
+        
+        
+        mon.Exit();
+        OggPlayErrorCode decodeResult = DecodeFrame();
+        mon.Enter();
+
+        HandleDecodeErrors(decodeResult);
+        if (mState == DECODER_STATE_SHUTDOWN) {
+          return;
+        }
+
+        
+        
+        
+        
+        
+        
+        mon.Exit();
+        decodeResult = DecodeFrame();
+        mon.Enter();
+
+        HandleDecodeErrors(decodeResult);
+        if (mState == DECODER_STATE_SHUTDOWN) {
+          return;
+        }
+
         
         
         
