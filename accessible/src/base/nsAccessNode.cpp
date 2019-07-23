@@ -225,16 +225,18 @@ nsAccessNode::GetApplicationAccessible()
     if (!gApplicationAccessible)
       return nsnull;
 
+    
     NS_ADDREF(gApplicationAccessible);
 
     nsresult rv = gApplicationAccessible->Init();
     if (NS_FAILED(rv)) {
       NS_RELEASE(gApplicationAccessible);
+      gApplicationAccessible = nsnull;
       return nsnull;
     }
   }
 
-  NS_ADDREF(gApplicationAccessible);
+  NS_ADDREF(gApplicationAccessible);   
   return gApplicationAccessible;
 }
 
@@ -297,9 +299,12 @@ void nsAccessNode::ShutdownXPAccessibility()
   NS_IF_RELEASE(sAccService);
 
   nsApplicationAccessibleWrap::Unload();
-  NS_IF_RELEASE(gApplicationAccessible);
-
   ClearCache(gGlobalDocAccessibleCache);
+
+  
+  
+  NS_IF_RELEASE(gApplicationAccessible);
+  gApplicationAccessible = nsnull;  
 
   gIsAccessibilityActive = PR_FALSE;
   NotifyA11yInitOrShutdown();
