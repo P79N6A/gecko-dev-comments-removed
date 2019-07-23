@@ -672,29 +672,19 @@ function getSanitizedFile(aName) {
 
 
 
-
-
 function sanitizeName(aName) {
-  const chars = "-abcdefghijklmnopqrstuvwxyz0123456789";
   const maxLength = 60;
-
+  const minLength = 1;
   var name = aName.toLowerCase();
-  name = name.replace(/ /g, "-");
-  name = name.split("").filter(function (el) {
-                                 return chars.indexOf(el) != -1;
-                               }).join("");
+  name = name.replace(/\s+/g, "-");
+  name = name.replace(/[^-a-z0-9]/g, "");
 
-  if (!name) {
-    
-    var cl = chars.length - 1;
-    for (var i = 0; i < 8; ++i)
-      name += chars.charAt(Math.round(Math.random() * cl));
-  }
+  
+  if (name.length < minLength)
+    name = Math.random().toString(36).replace(/^.*\./, '');
 
-  if (name.length > maxLength)
-    name = name.substring(0, maxLength);
-
-  return name;
+  
+  return name.substring(0, maxLength);
 }
 
 
