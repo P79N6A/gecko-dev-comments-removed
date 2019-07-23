@@ -44,15 +44,18 @@
 #include "nsNetUtil.h"
 #include "nsIHttpChannel.h"
 #include "nsICachingChannel.h"
+#include "nsIObserverService.h"
+#include "nsIPrefBranch.h"
+#include "nsIPrefService.h"
 #include "nsIProxyObjectManager.h"
 #include "nsIServiceManager.h"
+#include "nsIFileURL.h"
 #include "nsThreadUtils.h"
 #include "nsXPIDLString.h"
 #include "nsCRT.h"
 
 #include "netCore.h"
 
-#include "imgCache.h"
 #include "imgRequest.h"
 #include "imgRequestProxy.h"
 
@@ -103,37 +106,36 @@ static void PrintImageDecoders()
 }
 #endif
 
-NS_IMPL_ISUPPORTS2(imgLoader, imgILoader, nsIContentSniffer)
-
-imgLoader::imgLoader()
+static PRBool NewRequestAndEntry(nsIURI *uri, imgRequest **request, imgCacheEntry **entry)
 {
   
-#ifdef DEBUG_pavlov
-  PrintImageDecoders();
-#endif
+  PRBool isFile;
+  uri->SchemeIs("file", &isFile);
+
+  *request = new imgRequest();
+  if (!*request)
+    return PR_FALSE;
+
+  *entry = new imgCacheEntry(*request,  isFile);
+  if (!*entry) {
+    delete *request;
+    return PR_FALSE;
+  }
+
+  NS_ADDREF(*request);
+  NS_ADDREF(*entry);
+
+  return PR_TRUE;
 }
 
-imgLoader::~imgLoader()
-{
-  
-}
-
-#define LOAD_FLAGS_CACHE_MASK    (nsIRequest::LOAD_BYPASS_CACHE | \
-                                  nsIRequest::LOAD_FROM_CACHE)
-
-#define LOAD_FLAGS_VALIDATE_MASK (nsIRequest::VALIDATE_ALWAYS |   \
-                                  nsIRequest::VALIDATE_NEVER |    \
-                                  nsIRequest::VALIDATE_ONCE_PER_SESSION)
-
-
-static PRBool RevalidateEntry(nsICacheEntryDescriptor *aEntry,
+static PRBool ShouldRevalidateEntry(imgCacheEntry *aEntry,
                               nsLoadFlags aFlags,
                               PRBool aHasExpired)
 {
   PRBool bValidateEntry = PR_FALSE;
 
-  NS_ASSERTION(!(aFlags & nsIRequest::LOAD_BYPASS_CACHE),
-               "MUST not revalidate when BYPASS_CACHE is specified.");
+  if (aFlags & nsIRequest::LOAD_BYPASS_CACHE)
+    return PR_FALSE;
 
   if (aFlags & nsIRequest::VALIDATE_ALWAYS) {
     bValidateEntry = PR_TRUE;
@@ -151,13 +153,7 @@ static PRBool RevalidateEntry(nsICacheEntryDescriptor *aEntry,
     if (aFlags & (nsIRequest::VALIDATE_NEVER | 
                   nsIRequest::VALIDATE_ONCE_PER_SESSION)) 
     {
-      nsXPIDLCString value;
-
-      aEntry->GetMetaDataElement("MustValidateIfExpired",
-                                 getter_Copies(value));
-      if (PL_strcmp(value, "true")) {
-        bValidateEntry = PR_TRUE;
-      }
+      bValidateEntry = aEntry->GetMustValidateIfExpired();
     }
     
     
@@ -170,7 +166,6 @@ static PRBool RevalidateEntry(nsICacheEntryDescriptor *aEntry,
 
   return bValidateEntry;
 }
-
 
 static nsresult NewImageChannel(nsIChannel **aResult,
                                 nsIURI *aURI,
@@ -238,6 +233,700 @@ static nsresult NewImageChannel(nsIChannel **aResult,
   return NS_OK;
 }
 
+static PRUint32 SecondsFromPRTime(PRTime prTime)
+{
+  return PRUint32(PRInt64(prTime) / PRInt64(PR_USEC_PER_SEC));
+}
+
+imgCacheEntry::imgCacheEntry(imgRequest *request, PRBool mustValidateIfExpired )
+ : mRequest(request),
+   mDataSize(0),
+   mTouchedTime(SecondsFromPRTime(PR_Now())),
+   mExpiryTime(0),
+   mMustValidateIfExpired(mustValidateIfExpired),
+   mEvicted(PR_FALSE)
+{}
+
+void imgCacheEntry::TouchWithSize(PRInt32 diff)
+{
+  LOG_SCOPE(gImgLog, "imgCacheEntry::TouchWithSize");
+
+  mTouchedTime = SecondsFromPRTime(PR_Now());
+
+  if (!Evicted()) {
+    nsCOMPtr<nsIURI> uri;
+    mRequest->GetURI(getter_AddRefs(uri));
+    imgLoader::CacheEntriesChanged(uri, diff);
+  }
+}
+
+void imgCacheEntry::Touch(PRBool updateTime )
+{
+  LOG_SCOPE(gImgLog, "imgCacheEntry::Touch");
+
+  if (updateTime)
+    mTouchedTime = SecondsFromPRTime(PR_Now());
+
+  if (!Evicted()) {
+    nsCOMPtr<nsIURI> uri;
+    mRequest->GetURI(getter_AddRefs(uri));
+    imgLoader::CacheEntriesChanged(uri);
+  }
+}
+
+imgCacheQueue::imgCacheQueue()
+ : mDirty(PR_FALSE),
+   mSize(0)
+{}
+
+void imgCacheQueue::EvictAll()
+{
+  for (queueContainer::iterator it = mQueue.begin(); it != mQueue.end(); ++it)
+    (*it)->SetEvicted(PR_TRUE);
+
+  mQueue.clear();
+}
+
+void imgCacheQueue::UpdateSize(PRInt32 diff)
+{
+  mSize += diff;
+}
+
+PRUint32 imgCacheQueue::GetSize() const
+{
+  return mSize;
+}
+
+#include <algorithm>
+
+void imgCacheQueue::Remove(imgCacheEntry *entry)
+{
+  queueContainer::iterator it = find(mQueue.begin(), mQueue.end(), entry);
+  if (it != mQueue.end()) {
+    mSize -= (*it)->GetDataSize();
+    mQueue.erase(it);
+    MarkDirty();
+  }
+}
+
+void imgCacheQueue::Push(imgCacheEntry *entry)
+{
+  mSize += entry->GetDataSize();
+
+  nsRefPtr<imgCacheEntry> refptr(entry);
+  mQueue.push_back(refptr);
+  MarkDirty();
+}
+
+already_AddRefed<imgCacheEntry> imgCacheQueue::Pop()
+{
+  if (mQueue.empty())
+    return nsnull;
+  if (IsDirty())
+    Refresh();
+
+  nsRefPtr<imgCacheEntry> entry = mQueue[0];
+  std::pop_heap(mQueue.begin(), mQueue.end(), imgLoader::CompareCacheEntries);
+  mQueue.pop_back();
+
+  mSize -= entry->GetDataSize();
+  imgCacheEntry *ret = entry;
+  NS_ADDREF(ret);
+  return ret;
+}
+
+void imgCacheQueue::Refresh()
+{
+  std::make_heap(mQueue.begin(), mQueue.end(), imgLoader::CompareCacheEntries);
+  mDirty = PR_FALSE;
+}
+
+void imgCacheQueue::MarkDirty()
+{
+  mDirty = PR_TRUE;
+}
+
+PRBool imgCacheQueue::IsDirty()
+{
+  return mDirty;
+}
+
+PRUint32 imgCacheQueue::GetNumElements() const
+{
+  return mQueue.size();
+}
+
+imgCacheQueue::iterator imgCacheQueue::begin()
+{
+  return mQueue.begin();
+}
+imgCacheQueue::const_iterator imgCacheQueue::begin() const
+{
+  return mQueue.begin();
+}
+
+imgCacheQueue::iterator imgCacheQueue::end()
+{
+  return mQueue.end();
+}
+imgCacheQueue::const_iterator imgCacheQueue::end() const
+{
+  return mQueue.end();
+}
+
+nsresult imgLoader::CreateNewProxyForRequest(imgRequest *aRequest, nsILoadGroup *aLoadGroup,
+                                             imgIDecoderObserver *aObserver,
+                                             nsLoadFlags aLoadFlags, imgIRequest *aProxyRequest,
+                                             imgIRequest **_retval)
+{
+  LOG_SCOPE_WITH_PARAM(gImgLog, "imgLoader::CreateNewProxyForRequest", "imgRequest", aRequest);
+
+  
+
+
+
+
+  imgRequestProxy *proxyRequest;
+  if (aProxyRequest) {
+    proxyRequest = static_cast<imgRequestProxy *>(aProxyRequest);
+  } else {
+    NS_NEWXPCOM(proxyRequest, imgRequestProxy);
+    if (!proxyRequest) return NS_ERROR_OUT_OF_MEMORY;
+  }
+  NS_ADDREF(proxyRequest);
+
+  
+
+
+  proxyRequest->SetLoadFlags(aLoadFlags);
+
+  
+  nsresult rv = proxyRequest->Init(aRequest, aLoadGroup, aObserver);
+  if (NS_FAILED(rv)) {
+    NS_RELEASE(proxyRequest);
+    return rv;
+  }
+
+  
+  *_retval = static_cast<imgIRequest*>(proxyRequest);
+
+  return NS_OK;
+}
+
+class imgCacheObserver : public nsIObserver
+{
+public:
+  NS_DECL_ISUPPORTS
+  NS_DECL_NSIOBSERVER
+private:
+  imgLoader mLoader;
+};
+
+NS_IMPL_ISUPPORTS1(imgCacheObserver, nsIObserver)
+
+NS_IMETHODIMP
+imgCacheObserver::Observe(nsISupports* aSubject, const char* aTopic, const PRUnichar* aSomeData)
+{
+  if (strcmp(aTopic, "memory-pressure") == 0) {
+    mLoader.ClearCache(PR_FALSE);
+    mLoader.ClearCache(PR_TRUE);
+  } else if (strcmp(aTopic, "chrome-flush-skin-caches") == 0 ||
+             strcmp(aTopic, "chrome-flush-caches") == 0) {
+    mLoader.ClearCache(PR_TRUE);
+  }
+  return NS_OK;
+}
+
+class imgCacheExpirationTracker : public nsExpirationTracker<imgCacheEntry, 3>
+{
+  enum { TIMEOUT_SECONDS = 10 };
+public:
+  imgCacheExpirationTracker();
+
+protected:
+  void NotifyExpired(imgCacheEntry *entry);
+};
+
+imgCacheExpirationTracker::imgCacheExpirationTracker()
+ : nsExpirationTracker<imgCacheEntry, 3>(TIMEOUT_SECONDS * 1000)
+{}
+
+void imgCacheExpirationTracker::NotifyExpired(imgCacheEntry *entry)
+{
+  
+  
+  if (!entry->Evicted())
+    imgLoader::RemoveFromCache(entry);
+
+  imgLoader::VerifyCacheSizes();
+}
+
+imgCacheObserver *gCacheObserver;
+imgCacheExpirationTracker *gCacheTracker;
+
+imgLoader::imgCacheTable imgLoader::sCache;
+imgCacheQueue imgLoader::sCacheQueue;
+
+imgLoader::imgCacheTable imgLoader::sChromeCache;
+imgCacheQueue imgLoader::sChromeCacheQueue;
+
+PRFloat64 imgLoader::sCacheTimeWeight;
+PRUint32 imgLoader::sCacheMaxSize;
+
+NS_IMPL_ISUPPORTS4(imgLoader, imgILoader, nsIContentSniffer, imgICache, nsISupportsWeakReference)
+
+imgLoader::imgLoader()
+{
+  
+#ifdef DEBUG_pavlov
+  PrintImageDecoders();
+#endif
+}
+
+imgLoader::~imgLoader()
+{
+  
+}
+
+void imgLoader::VerifyCacheSizes()
+{
+  PRUint32 queuesize = sCacheQueue.GetNumElements() + sChromeCacheQueue.GetNumElements();
+  PRUint32 cachesize = sCache.Count() + sChromeCache.Count();
+  PRUint32 trackersize = 0;
+  for (nsExpirationTracker<imgCacheEntry, 3>::Iterator it(gCacheTracker); it.Next(); )
+    trackersize++;
+  NS_ASSERTION(queuesize == cachesize, "Queue and cache sizes out of sync!");
+  NS_ASSERTION(queuesize == trackersize, "Queue and tracker sizes out of sync!");
+}
+
+imgLoader::imgCacheTable & imgLoader::GetCache(nsIURI *aURI)
+{
+  PRBool chrome = PR_FALSE;
+  aURI->SchemeIs("chrome", &chrome);
+  if (chrome)
+    return sChromeCache;
+  else
+    return sCache;
+}
+
+imgCacheQueue & imgLoader::GetCacheQueue(nsIURI *aURI)
+{
+  PRBool chrome = PR_FALSE;
+  aURI->SchemeIs("chrome", &chrome);
+  if (chrome)
+    return sChromeCacheQueue;
+  else
+    return sCacheQueue;
+}
+
+nsresult imgLoader::InitCache()
+{
+  nsresult rv;
+  nsCOMPtr<nsIObserverService> os = do_GetService("@mozilla.org/observer-service;1", &rv);
+  if (NS_FAILED(rv))
+    return rv;
+  
+  gCacheObserver = new imgCacheObserver();
+  if (!gCacheObserver) 
+    return NS_ERROR_OUT_OF_MEMORY;
+
+  os->AddObserver(gCacheObserver, "memory-pressure", PR_FALSE);
+  os->AddObserver(gCacheObserver, "chrome-flush-skin-caches", PR_FALSE);
+  os->AddObserver(gCacheObserver, "chrome-flush-caches", PR_FALSE);
+
+  gCacheTracker = new imgCacheExpirationTracker();
+  if (!gCacheTracker)
+    return NS_ERROR_OUT_OF_MEMORY;
+
+  if (!sCache.Init())
+      return NS_ERROR_OUT_OF_MEMORY;
+  if (!sChromeCache.Init())
+      return NS_ERROR_OUT_OF_MEMORY;
+
+  nsCOMPtr<nsIPrefBranch> prefs = do_GetService(NS_PREFSERVICE_CONTRACTID, &rv); 
+  if (NS_FAILED(rv))
+    return rv;
+
+  PRInt32 timeweight;
+  rv = prefs->GetIntPref("image.cache.timeweight", &timeweight);
+  if (NS_SUCCEEDED(rv))
+    sCacheTimeWeight = timeweight / 1000.0;
+  else
+    sCacheTimeWeight = 0.5;
+
+  PRInt32 cachesize;
+  rv = prefs->GetIntPref("image.cache.size", &cachesize);
+  if (NS_SUCCEEDED(rv))
+    sCacheMaxSize = cachesize;
+  else
+    sCacheMaxSize = 5 * 1024 * 1024;
+ 
+  return NS_OK;
+}
+
+
+NS_IMETHODIMP imgLoader::ClearCache(PRBool chrome)
+{
+  if (chrome)
+    return ClearChromeImageCache();
+  else
+    return ClearImageCache();
+}
+
+
+NS_IMETHODIMP imgLoader::RemoveEntry(nsIURI *uri)
+{
+  if (RemoveFromCache(uri))
+    return NS_OK;
+
+  return NS_ERROR_NOT_AVAILABLE;
+}
+
+
+NS_IMETHODIMP imgLoader::FindEntryProperties(nsIURI *uri, nsIProperties **_retval)
+{
+  nsRefPtr<imgCacheEntry> entry;
+  nsCAutoString spec;
+  imgCacheTable &cache = GetCache(uri);
+
+  uri->GetSpec(spec);
+  *_retval = nsnull;
+
+  if (cache.Get(spec, getter_AddRefs(entry)) && entry) {
+    gCacheTracker->MarkUsed(entry);
+    nsRefPtr<imgRequest> request = getter_AddRefs(entry->GetRequest());
+    if (request) {
+      *_retval = request->Properties();
+      NS_ADDREF(*_retval);
+    }
+  }
+
+  return NS_OK;
+}
+
+void imgLoader::Shutdown()
+{
+  
+}
+
+nsresult imgLoader::ClearChromeImageCache()
+{
+  return EvictEntries(sChromeCache, sChromeCacheQueue);
+}
+
+nsresult imgLoader::ClearImageCache()
+{
+  return EvictEntries(sCache, sCacheQueue);
+}
+
+PRBool imgLoader::PutIntoCache(nsIURI *key, imgCacheEntry *entry)
+{
+  LOG_STATIC_FUNC(gImgLog, "imgLoader::PutIntoCache");
+
+  imgCacheTable &cache = GetCache(key);
+
+  nsCAutoString spec;
+  key->GetSpec(spec);
+
+  
+  
+  
+  nsRefPtr<imgCacheEntry> tmpCacheEntry;
+  if (cache.Get(spec, getter_AddRefs(tmpCacheEntry)) && tmpCacheEntry) {
+    PR_LOG(gImgLog, PR_LOG_DEBUG,
+           ("[this=%p] imgLoader::PutIntoCache -- Element already in the cache", nsnull));
+    nsRefPtr<imgRequest> tmpRequest = getter_AddRefs(tmpCacheEntry->GetRequest());
+    void *cacheId = NS_GetCurrentThread();
+
+    if (!tmpRequest->IsReusable(cacheId))
+      return PR_FALSE;
+
+    gCacheTracker->MarkUsed(tmpCacheEntry);
+
+    return PR_TRUE;
+  }
+
+  PR_LOG(gImgLog, PR_LOG_DEBUG,
+         ("[this=%p] imgLoader::PutIntoCache -- Element NOT already in the cache", nsnull));
+
+  if (!cache.Put(spec, entry))
+    return PR_FALSE;
+
+  imgCacheQueue &queue = GetCacheQueue(key);
+  queue.Push(entry);
+
+  gCacheTracker->AddObject(entry);
+
+  CheckCacheLimits(cache, queue);
+
+  return PR_TRUE;
+}
+
+void imgLoader::CacheEntriesChanged(nsIURI *uri, PRInt32 sizediff )
+{
+  imgCacheQueue &queue = GetCacheQueue(uri);
+  queue.MarkDirty();
+  queue.UpdateSize(sizediff);
+}
+
+void imgLoader::CheckCacheLimits(imgCacheTable &cache, imgCacheQueue &queue)
+{
+  if (queue.GetNumElements() == 0)
+    NS_ASSERTION(queue.GetSize() == 0, 
+                 "imgLoader::CheckCacheLimits -- incorrect cache size");
+
+  
+  while (queue.GetSize() >= sCacheMaxSize) {
+    
+    nsRefPtr<imgCacheEntry> entry(queue.Pop());
+
+    NS_ASSERTION(entry, "imgLoader::CheckCacheLimits -- NULL entry pointer");
+
+    if (entry)
+      RemoveFromCache(entry);
+  }
+}
+
+PRBool imgLoader::ValidateRequestWithNewChannel(imgRequest *request,
+                                                nsIURI *aURI,
+                                                nsIURI *aInitialDocumentURI,
+                                                nsIURI *aReferrerURI,
+                                                nsILoadGroup *aLoadGroup,
+                                                imgIDecoderObserver *aObserver,
+                                                nsISupports *aCX,
+                                                nsLoadFlags aLoadFlags,
+                                                imgIRequest *aExistingRequest,
+                                                imgIRequest **aProxyRequest)
+{
+  
+  
+  
+
+  nsresult rv;
+
+  if (request->mValidator) {
+    rv = CreateNewProxyForRequest(request, aLoadGroup, aObserver,
+                                  aLoadFlags, aExistingRequest, 
+                                  reinterpret_cast<imgIRequest **>(aProxyRequest));
+
+    if (*aProxyRequest)
+      request->mValidator->AddProxy(static_cast<imgRequestProxy*>(*aProxyRequest));
+
+    return NS_SUCCEEDED(rv);
+
+  } else {
+    nsCOMPtr<nsIChannel> newChannel;
+    rv = NewImageChannel(getter_AddRefs(newChannel),
+                         aURI,
+                         aInitialDocumentURI,
+                         aReferrerURI,
+                         aLoadGroup,
+                         aLoadFlags);
+    if (NS_FAILED(rv)) {
+      return PR_FALSE;
+    }
+
+    nsCOMPtr<nsICachingChannel> cacheChan(do_QueryInterface(newChannel));
+
+    if (cacheChan) {
+      
+      
+      PRUint32 loadFlags;
+      if (NS_SUCCEEDED(newChannel->GetLoadFlags(&loadFlags)))
+        newChannel->SetLoadFlags(loadFlags | nsICachingChannel::LOAD_ONLY_IF_MODIFIED);
+    }
+
+    nsCOMPtr<imgIRequest> req;
+    rv = CreateNewProxyForRequest(request, aLoadGroup, aObserver,
+                                  aLoadFlags, aExistingRequest, getter_AddRefs(req));
+    if (NS_FAILED(rv)) {
+      return PR_FALSE;
+    }
+
+    imgCacheValidator *hvc = new imgCacheValidator(request, aCX);
+    if (!hvc) {
+      return PR_FALSE;
+    }
+
+    NS_ADDREF(hvc);
+    request->mValidator = hvc;
+
+    hvc->AddProxy(static_cast<imgRequestProxy*>
+                             (static_cast<imgIRequest*>(req.get())));
+
+    rv = newChannel->AsyncOpen(static_cast<nsIStreamListener *>(hvc), nsnull);
+    if (NS_SUCCEEDED(rv))
+      NS_ADDREF(*aProxyRequest = req.get());
+
+    NS_RELEASE(hvc);
+
+    return NS_SUCCEEDED(rv);
+  }
+}
+
+PRBool imgLoader::ValidateEntry(imgCacheEntry *aEntry,
+                                nsIURI *aURI,
+                                nsIURI *aInitialDocumentURI,
+                                nsIURI *aReferrerURI,
+                                nsILoadGroup *aLoadGroup,
+                                imgIDecoderObserver *aObserver,
+                                nsISupports *aCX,
+                                nsLoadFlags aLoadFlags,
+                                PRBool aCanMakeNewChannel,
+                                imgIRequest *aExistingRequest,
+                                imgIRequest **aProxyRequest)
+{
+  LOG_SCOPE(gImgLog, "imgLoader::ValidateEntry");
+
+  PRBool hasExpired;
+  PRUint32 expirationTime = aEntry->GetExpiryTime();
+  if (expirationTime <= SecondsFromPRTime(PR_Now())) {
+    hasExpired = PR_TRUE;
+  } else {
+    hasExpired = PR_FALSE;
+  }
+
+  nsresult rv;
+
+  
+  nsCOMPtr<nsIFileURL> fileUrl(do_QueryInterface(aURI));
+  if (fileUrl) {
+    PRUint32 lastModTime = aEntry->GetTouchedTime();
+
+    nsCOMPtr<nsIFile> theFile;
+    rv = fileUrl->GetFile(getter_AddRefs(theFile));
+    if (NS_SUCCEEDED(rv)) {
+      PRInt64 fileLastMod;
+      rv = theFile->GetLastModifiedTime(&fileLastMod);
+      if (NS_SUCCEEDED(rv)) {
+        
+        fileLastMod *= 1000;
+        hasExpired = SecondsFromPRTime((PRTime)fileLastMod) > lastModTime;
+      }
+    }
+  }
+
+  nsRefPtr<imgRequest> request(aEntry->GetRequest());
+
+  if (!request)
+    return PR_FALSE;
+
+  PRBool validateRequest = PR_FALSE;
+
+  
+  
+  
+  
+  
+  
+  void *key = (void *)aCX;
+  if (request->mLoadId != key) {
+    
+    validateRequest = ShouldRevalidateEntry(aEntry, aLoadFlags, hasExpired);
+
+    PR_LOG(gImgLog, PR_LOG_DEBUG,
+           ("imgLoader::ValidateEntry validating cache entry. " 
+            "validateRequest = %d", validateRequest));
+  }
+#if defined(PR_LOGGING)
+  else if (!key) {
+    nsCAutoString spec;
+    aURI->GetSpec(spec);
+
+    PR_LOG(gImgLog, PR_LOG_DEBUG,
+           ("imgLoader::ValidateEntry BYPASSING cache validation for %s " 
+            "because of NULL LoadID", spec.get()));
+  }
+#endif
+
+  
+  
+  
+  
+  void *cacheId = NS_GetCurrentThread();
+  if (!request->IsReusable(cacheId)) {
+    
+    
+    
+    
+    
+    
+    
+    PR_LOG(gImgLog, PR_LOG_DEBUG,
+           ("imgLoader::ValidateEntry -- DANGER!! Unable to use cached "
+            "imgRequest [request=%p]\n", address_of(request)));
+
+    return PR_FALSE;
+  }
+
+  if (validateRequest && aCanMakeNewChannel) {
+    LOG_SCOPE(gImgLog, "imgLoader::ValidateRequest |cache hit| must validate");
+
+    return ValidateRequestWithNewChannel(request, aURI, aInitialDocumentURI,
+                                         aReferrerURI, aLoadGroup, aObserver,
+                                         aCX, aLoadFlags, aExistingRequest,
+                                         aProxyRequest);
+  } 
+
+  return !validateRequest;
+}
+
+
+PRBool imgLoader::RemoveFromCache(nsIURI *aKey)
+{
+  LOG_STATIC_FUNC(gImgLog, "imgLoader::RemoveFromCache uri");
+  if (!aKey) return PR_FALSE;
+
+  imgCacheTable &cache = GetCache(aKey);
+  imgCacheQueue &queue = GetCacheQueue(aKey);
+
+  nsCAutoString spec;
+  aKey->GetSpec(spec);
+
+  nsRefPtr<imgCacheEntry> entry;
+  if (cache.Get(spec, getter_AddRefs(entry)) && entry) {
+    gCacheTracker->RemoveObject(entry);
+    cache.Remove(spec);
+    queue.Remove(entry);
+    entry->SetEvicted(PR_TRUE);
+    return PR_TRUE;
+  }
+  else
+    return PR_FALSE;
+}
+
+PRBool imgLoader::RemoveFromCache(imgCacheEntry *entry)
+{
+  LOG_STATIC_FUNC(gImgLog, "imgLoader::RemoveFromCache entry");
+  PRBool ret = PR_FALSE;
+  nsRefPtr<imgRequest> request(getter_AddRefs(entry->GetRequest()));
+  if (request) {
+    nsCOMPtr<nsIURI> key;
+    if (NS_SUCCEEDED(request->GetURI(getter_AddRefs(key))) && key)
+      ret = RemoveFromCache(key);
+  }
+
+  return ret;
+}
+
+nsresult imgLoader::EvictEntries(imgCacheTable &aCacheToClear, imgCacheQueue &aQueueToClear)
+{
+  LOG_STATIC_FUNC(gImgLog, "imgLoader::EvictEntries");
+  for (imgCacheQueue::iterator it = aQueueToClear.begin(); it != aQueueToClear.end(); ++it)
+    if (!RemoveFromCache(*it))
+      return NS_ERROR_FAILURE;
+
+  return NS_OK;
+}
+
+#define LOAD_FLAGS_CACHE_MASK    (nsIRequest::LOAD_BYPASS_CACHE | \
+                                  nsIRequest::LOAD_FROM_CACHE)
+
+#define LOAD_FLAGS_VALIDATE_MASK (nsIRequest::VALIDATE_ALWAYS |   \
+                                  nsIRequest::VALIDATE_NEVER |    \
+                                  nsIRequest::VALIDATE_ONCE_PER_SESSION)
+
+
 
 
 NS_IMETHODIMP imgLoader::LoadImage(nsIURI *aURI, 
@@ -247,25 +936,24 @@ NS_IMETHODIMP imgLoader::LoadImage(nsIURI *aURI,
                                    imgIDecoderObserver *aObserver,
                                    nsISupports *aCX,
                                    nsLoadFlags aLoadFlags,
-                                   nsISupports *cacheKey,
+                                   nsISupports *aCacheKey,
                                    imgIRequest *aRequest,
                                    imgIRequest **_retval)
 {
-  NS_ASSERTION(aURI, "imgLoader::LoadImage -- NULL URI pointer");
+  VerifyCacheSizes();
 
-  
-  
-  
-  *_retval = nsnull;
+  NS_ASSERTION(aURI, "imgLoader::LoadImage -- NULL URI pointer");
 
   if (!aURI)
     return NS_ERROR_NULL_POINTER;
 
 #if defined(PR_LOGGING)
   nsCAutoString spec;
-  aURI->GetAsciiSpec(spec);
+  aURI->GetSpec(spec);
   LOG_SCOPE_WITH_PARAM(gImgLog, "imgLoader::LoadImage", "aURI", spec.get());
 #endif
+
+  *_retval = nsnull;
 
   
   imgRequest *request = nsnull;
@@ -299,169 +987,43 @@ NS_IMETHODIMP imgLoader::LoadImage(nsIURI *aURI,
     requestFlags |= nsIRequest::LOAD_BACKGROUND;
   }
 
-  nsCOMPtr<nsICacheEntryDescriptor> entry;
-  PRBool bCanCacheRequest = PR_TRUE;
-  PRBool bHasExpired      = PR_FALSE;
-  PRBool bValidateRequest = PR_FALSE;
+  nsRefPtr<imgCacheEntry> entry;
 
   
   
-  
-  imgCache::Get(aURI, &bHasExpired,
-                &request, getter_AddRefs(entry)); 
+  if (aLoadFlags & nsIRequest::LOAD_BYPASS_CACHE) {
+    RemoveFromCache(aURI);
+  } else {
+    
+    
+    
+    
+    imgCacheTable &cache = GetCache(aURI);
+    nsCAutoString spec;
 
-  if (request && entry) {
+    aURI->GetSpec(spec);
 
-    
-    
-    
-    if (!request->mCacheEntry) {
-      request->mCacheEntry = entry;
-    }
+    if (cache.Get(spec, getter_AddRefs(entry)) && entry) {
+      gCacheTracker->MarkUsed(entry);
 
-    
-    
-    
-    
-    
-    
-    void *key = (void*)aCX;
-    if (request->mLoadId != key) {
+      if (ValidateEntry(entry, aURI, aInitialDocumentURI, aReferrerURI, aLoadGroup, aObserver, aCX,
+                        requestFlags, PR_TRUE, aRequest, _retval)) {
+        nsRefPtr<imgRequest> req(entry->GetRequest());
+        request = req;
+        NS_ADDREF(request);
 
-      
-      if (requestFlags & nsIRequest::LOAD_BYPASS_CACHE) {
-        
-        
-        
-        entry->Doom();
-        entry = nsnull;
-        request->RemoveFromCache();
-        NS_RELEASE(request);
-      } else {
-        
-        bValidateRequest = RevalidateEntry(entry, requestFlags, bHasExpired);
-
-        PR_LOG(gImgLog, PR_LOG_DEBUG,
-               ("imgLoader::LoadImage validating cache entry. " 
-                "bValidateRequest = %d", bValidateRequest));
-      }
-
-    }
-#if defined(PR_LOGGING)
-    else if (!key) {
-      PR_LOG(gImgLog, PR_LOG_DEBUG,
-             ("imgLoader::LoadImage BYPASSING cache validation for %s " 
-              "because of NULL LoadID", spec.get()));
-    }
+        entry->Touch();
+#ifdef DEBUG_joe
+        printf("CACHEGET: %d %s %d\n", time(NULL), spec.get(), entry->GetDataSize());
 #endif
-  }
-
-  
-  
-  
-  
-  void *cacheId = NS_GetCurrentThread();
-  if (request && !request->IsReusable(cacheId)) {
-    
-    
-    
-    
-    
-    
-    
-    
-    PR_LOG(gImgLog, PR_LOG_DEBUG,
-           ("[this=%p] imgLoader::LoadImage -- DANGER!! Unable to use cached "
-            "imgRequest [request=%p]\n", this, request));
-
-    entry = nsnull;
-    NS_RELEASE(request);
-
-    bCanCacheRequest = PR_FALSE;
-  }
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  if (request && bValidateRequest) {
-    
-    LOG_SCOPE(gImgLog, "imgLoader::LoadImage |cache hit| must validate");
-
-    
-    
-    
-
-    if (request->mValidator) {
-      rv = CreateNewProxyForRequest(request, aLoadGroup, aObserver,
-                                    requestFlags, aRequest, _retval);
-
-      if (*_retval)
-        request->mValidator->AddProxy(static_cast<imgRequestProxy*>(*_retval));
-
-      NS_RELEASE(request);
-      return rv;
-
-    } else {
-      nsCOMPtr<nsIChannel> newChannel;
-      rv = NewImageChannel(getter_AddRefs(newChannel),
-                           aURI,
-                           aInitialDocumentURI,
-                           aReferrerURI,
-                           aLoadGroup,
-                           requestFlags);
-      if (NS_FAILED(rv)) {
-        NS_RELEASE(request);
-        return NS_ERROR_FAILURE;
       }
-
-      nsCOMPtr<nsICachingChannel> cacheChan(do_QueryInterface(newChannel));
-
-      if (cacheChan) {
-        
-        
-        PRUint32 loadFlags;
-        if (NS_SUCCEEDED(newChannel->GetLoadFlags(&loadFlags)))
-            newChannel->SetLoadFlags(loadFlags | nsICachingChannel::LOAD_ONLY_IF_MODIFIED);
-
-      }
-      nsCOMPtr<imgIRequest> req;
-      rv = CreateNewProxyForRequest(request, aLoadGroup, aObserver,
-                                    requestFlags, aRequest, getter_AddRefs(req));
-      if (NS_FAILED(rv)) {
-        NS_RELEASE(request);
-        return rv;
-      }
-
-      imgCacheValidator *hvc = new imgCacheValidator(request, aCX);
-      if (!hvc) {
-        NS_RELEASE(request);
-        return NS_ERROR_OUT_OF_MEMORY;
-      }
-
-      NS_ADDREF(hvc);
-      request->mValidator = hvc;
-
-      hvc->AddProxy(static_cast<imgRequestProxy*>
-                               (static_cast<imgIRequest*>(req.get())));
-
-      rv = newChannel->AsyncOpen(static_cast<nsIStreamListener *>(hvc), nsnull);
-      if (NS_SUCCEEDED(rv))
-        NS_ADDREF(*_retval = req.get());
-
-      NS_RELEASE(hvc);
-
-      NS_RELEASE(request);
-
-      return rv;
+      else
+        entry = nsnull;
     }
-  } else if (!request) {
-    
+  }
+
+  
+  if (!request) {
     LOG_SCOPE(gImgLog, "imgLoader::LoadImage |cache miss|");
 
     nsCOMPtr<nsIChannel> newChannel;
@@ -474,18 +1036,11 @@ NS_IMETHODIMP imgLoader::LoadImage(nsIURI *aURI,
     if (NS_FAILED(rv))
       return NS_ERROR_FAILURE;
 
-    NS_NEWXPCOM(request, imgRequest);
-    if (!request) return NS_ERROR_OUT_OF_MEMORY;
-
-    NS_ADDREF(request);
+    if (!NewRequestAndEntry(aURI, &request, getter_AddRefs(entry)))
+      return NS_ERROR_OUT_OF_MEMORY;
 
     PR_LOG(gImgLog, PR_LOG_DEBUG,
            ("[this=%p] imgLoader::LoadImage -- Created new imgRequest [request=%p]\n", this, request));
-
-    
-    if (bCanCacheRequest) {
-      imgCache::Put(aURI, request, getter_AddRefs(entry));
-    }
 
     
     
@@ -493,6 +1048,7 @@ NS_IMETHODIMP imgLoader::LoadImage(nsIURI *aURI,
         do_CreateInstance(NS_LOADGROUP_CONTRACTID);
     newChannel->SetLoadGroup(loadGroup);
 
+    void *cacheId = NS_GetCurrentThread();
     request->Init(aURI, loadGroup, entry, cacheId, aCX);
 
     
@@ -508,8 +1064,7 @@ NS_IMETHODIMP imgLoader::LoadImage(nsIURI *aURI,
     PR_LOG(gImgLog, PR_LOG_DEBUG,
            ("[this=%p] imgLoader::LoadImage -- Calling channel->AsyncOpen()\n", this));
 
-    nsresult openRes;
-    openRes = newChannel->AsyncOpen(static_cast<nsIStreamListener *>(pl), nsnull);
+    nsresult openRes = newChannel->AsyncOpen(static_cast<nsIStreamListener *>(pl), nsnull);
 
     NS_RELEASE(pl);
 
@@ -522,8 +1077,11 @@ NS_IMETHODIMP imgLoader::LoadImage(nsIURI *aURI,
       return openRes;
     }
 
-  } else {
     
+    PutIntoCache(aURI, entry);
+
+  
+  } else {
     
     LOG_MSG_WITH_PARAM(gImgLog, 
                        "imgLoader::LoadImage |cache hit|", "request", request);
@@ -532,27 +1090,29 @@ NS_IMETHODIMP imgLoader::LoadImage(nsIURI *aURI,
     request->SetLoadId(aCX);
   }
 
-  LOG_MSG(gImgLog, "imgLoader::LoadImage", "creating proxy request.");
+  
+  if (!*_retval) {
+    LOG_MSG(gImgLog, "imgLoader::LoadImage", "creating proxy request.");
 
-  rv = CreateNewProxyForRequest(request, aLoadGroup, aObserver,
-                                requestFlags, aRequest, _retval);
+    rv = CreateNewProxyForRequest(request, aLoadGroup, aObserver,
+                                  requestFlags, aRequest, _retval);
+    imgRequestProxy *proxy = static_cast<imgRequestProxy *>(*_retval);
 
-  imgRequestProxy *proxy = (imgRequestProxy *)*_retval;
+    
+    
+    
+    proxy->AddToLoadGroup();
 
-  
-  
-  
-  proxy->AddToLoadGroup();
-
-  
-  
-  if (!bValidateRequest) {
     request->NotifyProxyListener(proxy);
+
+    NS_RELEASE(request);
+
+    return rv;
   }
 
-  NS_RELEASE(request);
+  NS_ASSERTION(*_retval, "imgLoader::LoadImage -- no return value");
 
-  return rv;
+  return NS_OK;
 }
 
 
@@ -560,50 +1120,61 @@ NS_IMETHODIMP imgLoader::LoadImageWithChannel(nsIChannel *channel, imgIDecoderOb
 {
   NS_ASSERTION(channel, "imgLoader::LoadImageWithChannel -- NULL channel pointer");
 
-  
-  
-  
-  *_retval = nsnull;
-
   nsresult rv;
   imgRequest *request = nsnull;
 
   nsCOMPtr<nsIURI> uri;
   channel->GetURI(getter_AddRefs(uri));
 
-  nsCOMPtr<nsICacheEntryDescriptor> entry;
-  PRBool bHasExpired;
-
-  imgCache::Get(uri, &bHasExpired, &request, getter_AddRefs(entry)); 
-
   nsLoadFlags requestFlags = nsIRequest::LOAD_NORMAL;
-
   channel->GetLoadFlags(&requestFlags);
 
-  if (request) {
-    PRBool bUseCacheCopy = PR_TRUE;
+  nsRefPtr<imgCacheEntry> entry;
 
+  if (requestFlags & nsIRequest::LOAD_BYPASS_CACHE) {
+    RemoveFromCache(uri);
+  } else {
     
-    if (requestFlags & nsIRequest::LOAD_BYPASS_CACHE) {
-      bUseCacheCopy = PR_FALSE;
-    }
-    else if (RevalidateEntry(entry, requestFlags, bHasExpired)) {
-      nsCOMPtr<nsICachingChannel> cacheChan(do_QueryInterface(channel));
-      if (cacheChan) {
-        cacheChan->IsFromCache(&bUseCacheCopy);
-      } else {
-        bUseCacheCopy = PR_FALSE;
-      }
-    }
+    
+    
+    
+    imgCacheTable &cache = GetCache(uri);
+    nsCAutoString spec;
 
-    if (!bUseCacheCopy) {
+    uri->GetSpec(spec);
+
+    if (cache.Get(spec, getter_AddRefs(entry)) && entry) {
+      gCacheTracker->MarkUsed(entry);
+
       
       
       
-      entry->Doom();
-      entry = nsnull;
-      request->RemoveFromCache();
-      NS_RELEASE(request);
+      
+      
+      
+      
+      if (ValidateEntry(entry, uri, nsnull, nsnull, nsnull, aObserver, aCX,
+                        requestFlags, PR_FALSE, nsnull, nsnull)) {
+        nsRefPtr<imgRequest> req(entry->GetRequest());
+        request = req;
+        NS_ADDREF(request);
+      } else {
+        nsCOMPtr<nsICachingChannel> cacheChan(do_QueryInterface(channel));
+        PRBool bUseCacheCopy;
+
+        if (cacheChan)
+          cacheChan->IsFromCache(&bUseCacheCopy);
+        else
+          bUseCacheCopy = PR_FALSE;
+
+        if (!bUseCacheCopy)
+          entry = nsnull;
+        else {
+          nsRefPtr<imgRequest> req = entry->GetRequest();
+          request = req;
+          NS_ADDREF(request);
+        }
+      }
     }
   }
 
@@ -617,18 +1188,12 @@ NS_IMETHODIMP imgLoader::LoadImageWithChannel(nsIChannel *channel, imgIDecoderOb
 
     *listener = nsnull; 
   } else {
-    
-    
+
     
     
     nsIThread *thread = NS_GetCurrentThread();
 
-    NS_NEWXPCOM(request, imgRequest);
-    if (!request) return NS_ERROR_OUT_OF_MEMORY;
-
-    NS_ADDREF(request);
-
-    imgCache::Put(uri, request, getter_AddRefs(entry));
+    NewRequestAndEntry(uri, &request, getter_AddRefs(entry));
 
     
     
@@ -649,6 +1214,9 @@ NS_IMETHODIMP imgLoader::LoadImageWithChannel(nsIChannel *channel, imgIDecoderOb
     NS_ADDREF(*listener);
 
     NS_RELEASE(pl);
+
+    
+    PutIntoCache(uri, entry);
   }
 
   
@@ -663,50 +1231,6 @@ NS_IMETHODIMP imgLoader::LoadImageWithChannel(nsIChannel *channel, imgIDecoderOb
   return rv;
 }
 
-
-nsresult
-imgLoader::CreateNewProxyForRequest(imgRequest *aRequest, nsILoadGroup *aLoadGroup,
-                                    imgIDecoderObserver *aObserver,
-                                    nsLoadFlags aLoadFlags, imgIRequest *aProxyRequest,
-                                    imgIRequest **_retval)
-{
-  LOG_SCOPE_WITH_PARAM(gImgLog, "imgLoader::CreateNewProxyForRequest", "imgRequest", aRequest);
-
-  
-
-
-
-
-  imgRequestProxy *proxyRequest;
-  if (aProxyRequest) {
-    proxyRequest = static_cast<imgRequestProxy *>(aProxyRequest);
-  } else {
-    NS_NEWXPCOM(proxyRequest, imgRequestProxy);
-    if (!proxyRequest) return NS_ERROR_OUT_OF_MEMORY;
-  }
-  NS_ADDREF(proxyRequest);
-
-  
-
-
-  proxyRequest->SetLoadFlags(aLoadFlags);
-
-  
-  nsresult rv = proxyRequest->Init(aRequest, aLoadGroup, aObserver);
-  if (NS_FAILED(rv)) {
-    NS_RELEASE(proxyRequest);
-    return rv;
-  }
-
-  if (*_retval) {
-    (*_retval)->Cancel(NS_IMAGELIB_ERROR_LOAD_ABORTED);
-    NS_RELEASE(*_retval);
-  }
-  
-  *_retval = static_cast<imgIRequest*>(proxyRequest);
-
-  return NS_OK;
-}
 
 NS_IMETHODIMP imgLoader::SupportImageWithMimeType(const char* aMimeType, PRBool *_retval)
 {
@@ -881,11 +1405,9 @@ NS_IMETHODIMP ProxyListener::OnDataAvailable(nsIRequest *aRequest, nsISupports *
 
 
 
-
-
-
-
 NS_IMPL_ISUPPORTS2(imgCacheValidator, nsIStreamListener, nsIRequestObserver)
+
+imgLoader imgCacheValidator::sImgLoader;
 
 imgCacheValidator::imgCacheValidator(imgRequest *request, void *aContext) :
   mContext(aContext)
@@ -938,9 +1460,10 @@ NS_IMETHODIMP imgCacheValidator::OnStartRequest(nsIRequest *aRequest, nsISupport
       return NS_OK;
     }
   }
+
   
   nsCOMPtr<nsIChannel> channel(do_QueryInterface(aRequest));
-  nsCOMPtr<nsICacheEntryDescriptor> entry;
+  nsRefPtr<imgCacheEntry> entry;
   nsCOMPtr<nsIURI> uri;
 
   
@@ -952,11 +1475,9 @@ NS_IMETHODIMP imgCacheValidator::OnStartRequest(nsIRequest *aRequest, nsISupport
   NS_RELEASE(mRequest); 
 
   imgRequest *request;
-  NS_NEWXPCOM(request, imgRequest);
-  if (!request) return NS_ERROR_OUT_OF_MEMORY;
-  NS_ADDREF(request);
 
-  imgCache::Put(uri, request, getter_AddRefs(entry));
+  if (!NewRequestAndEntry(uri, &request, getter_AddRefs(entry)))
+      return NS_ERROR_OUT_OF_MEMORY;
 
   
   
@@ -979,6 +1500,9 @@ NS_IMETHODIMP imgCacheValidator::OnStartRequest(nsIRequest *aRequest, nsISupport
     proxy->ChangeOwner(request);
     request->NotifyProxyListener(proxy);
   }
+
+  
+  sImgLoader.PutIntoCache(uri, entry);
 
   NS_RELEASE(request);
 
