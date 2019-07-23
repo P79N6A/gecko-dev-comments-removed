@@ -392,7 +392,14 @@ private:
 
 
 
-  nsIFrame* mFrame;
+
+  nsIFrame* mOuterFrame;
+  
+
+
+
+
+  nsIFrame* mInnerFrame;
   
 
 
