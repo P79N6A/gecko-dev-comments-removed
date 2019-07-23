@@ -1006,27 +1006,6 @@ STDMETHODIMP nsAccessibleWrap::put_accValue(
 #include "mshtml.h"
 
 STDMETHODIMP
-nsAccessibleWrap::QueryService(REFGUID guidService, REFIID iid, void** ppv)
-{
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-  return QueryInterface(iid, ppv);
-}
-
-
-STDMETHODIMP
 nsAccessibleWrap::Next(ULONG aNumElementsRequested, VARIANT FAR* pvar, ULONG FAR* aNumElementsFetched)
 {
   

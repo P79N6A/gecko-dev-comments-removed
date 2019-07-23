@@ -61,11 +61,15 @@ typedef LRESULT (STDAPICALLTYPE *LPFNGETGUITHREADINFO)(DWORD idThread, GUITHREAD
 
 class nsAccessNodeWrap :  public nsAccessNode,
                           public nsIWinAccessNode,
-                          public ISimpleDOMNode
+                          public ISimpleDOMNode,
+                          public IServiceProvider
 {
   public:
     NS_DECL_ISUPPORTS_INHERITED
     NS_DECL_NSIWINACCESSNODE
+
+  public: 
+    STDMETHODIMP QueryService(REFGUID guidService, REFIID riid, void** ppv);
 
   public: 
     nsAccessNodeWrap(nsIDOMNode *, nsIWeakReference* aShell);

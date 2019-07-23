@@ -94,8 +94,7 @@ class nsAccessibleWrap : public nsAccessible,
                          public CAccessibleHyperlink,
                          public CAccessibleValue,
                          public IAccessible2,
-                         public IEnumVARIANT,
-                         public IServiceProvider
+                         public IEnumVARIANT
 {
   public: 
     nsAccessibleWrap(nsIDOMNode*, nsIWeakReference *aShell);
@@ -106,9 +105,6 @@ class nsAccessibleWrap : public nsAccessible,
 
   public: 
     STDMETHODIMP QueryInterface(REFIID, void**);
-
-  public: 
-    STDMETHODIMP QueryService(REFGUID guidService, REFIID riid, void** ppv);
 
   
     CLSID GetClassID() const;

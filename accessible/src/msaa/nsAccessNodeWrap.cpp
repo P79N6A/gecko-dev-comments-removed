@@ -55,6 +55,8 @@
 #include "nsPIDOMWindow.h"
 #include "nsRootAccessible.h"
 #include "nsIServiceManager.h"
+#include "AccessibleApplication.h"
+#include "nsApplicationAccessibleWrap.h"
 
 
 HINSTANCE nsAccessNodeWrap::gmAccLib = nsnull;
@@ -124,6 +126,34 @@ STDMETHODIMP nsAccessNodeWrap::QueryInterface(REFIID iid, void** ppv)
    
   (reinterpret_cast<IUnknown*>(*ppv))->AddRef(); 
   return S_OK;
+}
+
+STDMETHODIMP
+nsAccessNodeWrap::QueryService(REFGUID guidService, REFIID iid, void** ppv)
+{
+  
+  if (iid == IID_IAccessibleApplication) {
+    nsRefPtr<nsApplicationAccessibleWrap> app =
+      GetApplicationAccessible();
+    nsresult rv = app->QueryNativeInterface(iid, ppv);
+    return NS_SUCCEEDED(rv) ? S_OK : E_NOINTERFACE;
+  }
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+  return QueryInterface(iid, ppv);
 }
 
 
