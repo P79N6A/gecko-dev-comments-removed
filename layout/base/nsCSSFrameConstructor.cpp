@@ -451,23 +451,22 @@ IsFrameSpecial(nsIFrame* aFrame)
   return (aFrame->GetStateBits() & NS_FRAME_IS_SPECIAL) != 0;
 }
 
-static void
-GetSpecialSibling(nsFrameManager* aFrameManager, nsIFrame* aFrame, nsIFrame** aResult)
+static nsIFrame* GetSpecialSibling(nsIFrame* aFrame)
 {
   
   
-  aFrame = aFrame->GetFirstInFlow();
+  aFrame = aFrame->GetFirstContinuation();
 
   void* value = aFrame->GetProperty(nsGkAtoms::IBSplitSpecialSibling);
 
-  *aResult = static_cast<nsIFrame*>(value);
+  return static_cast<nsIFrame*>(value);
 }
 
 static nsIFrame*
-GetLastSpecialSibling(nsFrameManager* aFrameManager, nsIFrame* aFrame)
+GetLastSpecialSibling(nsIFrame* aFrame)
 {
   for (nsIFrame *frame = aFrame, *next; ; frame = next) {
-    GetSpecialSibling(aFrameManager, frame, &next);
+    next = GetSpecialSibling(frame);
     if (!next)
       return frame;
   }
@@ -537,10 +536,18 @@ IsInlineOutside(nsIFrame* aFrame)
   return aFrame->GetStyleDisplay()->IsInlineOutside();
 }
 
+
+
+
+
+
+
+
+
 static PRBool
-IsBlockOutside(nsIFrame* aFrame)
+IsInlineFrame(const nsIFrame* aFrame)
 {
-  return aFrame->GetStyleDisplay()->IsBlockOutside();
+  return aFrame->IsFrameOfType(nsIFrame::eLineParticipant);
 }
 
 
@@ -1416,7 +1423,7 @@ nsFrameConstructorState::AddChild(nsIFrame* aNewFrame,
   
   nsIFrame* specialSibling = aNewFrame;
   while (specialSibling && IsFrameSpecial(specialSibling)) {
-    GetSpecialSibling(mFrameManager, specialSibling, &specialSibling);
+    specialSibling = GetSpecialSibling(specialSibling);
     if (specialSibling) {
       NS_ASSERTION(frameItems == &aFrameItems,
                    "IB split ending up in an out-of-flow childlist?");
@@ -7958,8 +7965,7 @@ FindPreviousAnonymousSibling(nsIPresShell* aPresShell,
       
       
       if (IsFrameSpecial(prevSibling)) {
-        prevSibling = GetLastSpecialSibling(aPresShell->FrameManager(),
-                                            prevSibling);
+        prevSibling = GetLastSpecialSibling(prevSibling);
       }
 
       
@@ -8144,8 +8150,7 @@ nsCSSFrameConstructor::FindPreviousSibling(nsIContent*       aContainer,
       
       
       if (IsFrameSpecial(prevSibling)) {
-        prevSibling = GetLastSpecialSibling(mPresShell->FrameManager(),
-                                            prevSibling);
+        prevSibling = GetLastSpecialSibling(prevSibling);
       }
 
       
@@ -8418,7 +8423,7 @@ nsCSSFrameConstructor::ContentAppended(nsIContent*     aContainer,
           if (item == child)
             
             ContentInserted(aContainer, child,
-                            iter.index(), mTempFrameTreeState, PR_FALSE);
+                            iter.index(), mTempFrameTreeState);
           LAYOUT_PHASE_TEMP_REENTER();
         }
       }
@@ -8448,17 +8453,6 @@ nsCSSFrameConstructor::ContentAppended(nsIContent*     aContainer,
   
   
   
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
   if (IsFrameSpecial(parentFrame)) {
 #ifdef DEBUG
     if (gNoisyContentUpdates) {
@@ -8470,37 +8464,7 @@ nsCSSFrameConstructor::ContentAppended(nsIContent*     aContainer,
 
     
     
-    nsFrameManager *frameManager = mPresShell->FrameManager();
-
-    while (1) {
-      nsIFrame* sibling;
-      GetSpecialSibling(frameManager, parentFrame, &sibling);
-      if (! sibling)
-        break;
-
-      parentFrame = sibling;
-    }
-
-    
-    
-    const nsStyleDisplay* display = parentFrame->GetStyleDisplay();
-
-    if (NS_STYLE_DISPLAY_BLOCK != display->mDisplay) {
-      
-      
-      
-      nsIContent *child = aContainer->GetChildAt(aNewIndexInContainer);
-      PRBool needReframe = !child;
-      if (child && child->IsNodeOfType(nsINode::eELEMENT)) {
-        nsRefPtr<nsStyleContext> styleContext;
-        styleContext = ResolveStyleContext(parentFrame, child);
-        
-        
-        needReframe = styleContext->GetStyleDisplay()->IsBlockOutside();
-      }
-      if (needReframe)
-        return ReframeContainingBlock(parentFrame);
-    }
+    parentFrame = GetLastSpecialSibling(parentFrame);
   }
 
   
@@ -8596,8 +8560,7 @@ nsCSSFrameConstructor::ContentAppended(nsIContent*     aContainer,
     
     
 
-    if (WipeContainingBlock(state, containingBlock, parentFrame,
-                            frameItems.childList)) {
+    if (WipeContainingBlock(state, containingBlock, parentFrame, frameItems)) {
       return NS_OK;
     }
 
@@ -8639,121 +8602,6 @@ nsCSSFrameConstructor::ContentAppended(nsIContent*     aContainer,
 #endif
 
   return NS_OK;
-}
-
-
-
-
-
-
-PRBool
-nsCSSFrameConstructor::NeedSpecialFrameReframe(nsIContent*     aParent1,     
-                                               nsIContent*     aParent2,     
-                                               nsIFrame*&      aParentFrame, 
-                                               nsIContent*     aChild,
-                                               PRInt32         aIndexInContainer,
-                                               nsIFrame*&      aPrevSibling,
-                                               nsIFrame*       aNextSibling)
-{
-  
-  
-  if (IsBlockOutside(aParentFrame)) 
-    return PR_FALSE;
-
-  
-  PRBool childIsBlock = PR_FALSE;
-  if (aChild->IsNodeOfType(nsINode::eELEMENT)) {
-    nsRefPtr<nsStyleContext> styleContext;
-    styleContext = ResolveStyleContext(aParentFrame, aChild);
-    const nsStyleDisplay* display = styleContext->GetStyleDisplay();
-    childIsBlock = display->IsBlockOutside();
-  }
-  nsIFrame* prevParent; 
-  nsIFrame* nextParent; 
-
-  if (childIsBlock) { 
-    if (aPrevSibling) {
-      prevParent = aPrevSibling->GetParent(); 
-      NS_ASSERTION(prevParent, "program error - null parent frame");
-      if (!IsBlockOutside(prevParent)) { 
-        
-        
-        
-        
-        return PR_TRUE; 
-      }        
-      aParentFrame = prevParent; 
-    }
-    else {
-      
-      
-      
-      nsIFrame* nextSibling = (aIndexInContainer >= 0)
-                              ? FindNextSibling(aParent2, aParentFrame,
-                                                aIndexInContainer)
-                              : FindNextAnonymousSibling(mPresShell, mDocument,
-                                                         aParent1, aChild);
-      if (nextSibling) {
-        nextParent = nextSibling->GetParent(); 
-        NS_ASSERTION(nextParent, "program error - null parent frame");
-        if (!IsBlockOutside(nextParent)) {
-          
-          
-          return PR_TRUE; 
-        }
-        
-        aParentFrame = nextParent;
-      }
-    }           
-  }
-  else { 
-    if (aPrevSibling) {
-      prevParent = aPrevSibling->GetParent(); 
-      NS_ASSERTION(prevParent, "program error - null parent frame");
-      if (!IsBlockOutside(prevParent)) { 
-        
-        aParentFrame = aPrevSibling->GetParent();
-        NS_ASSERTION(aParentFrame, "program error - null parent frame");
-      }
-      else { 
-        
-        
-        
-        nsIFrame* nextSibling = (aIndexInContainer >= 0)
-                                ? FindNextSibling(aParent2, aParentFrame,
-                                                  aIndexInContainer)
-                                : FindNextAnonymousSibling(mPresShell,
-                                                           mDocument, aParent1,
-                                                           aChild);
-        if (nextSibling) {
-          nextParent = nextSibling->GetParent();
-          NS_ASSERTION(nextParent, "program error - null parent frame");
-          if (!IsBlockOutside(nextParent)) {
-            
-            
-            aParentFrame = nextSibling->GetParent(); 
-            NS_ASSERTION(aParentFrame, "program error - null parent frame");
-            aPrevSibling = nsnull; 
-          }
-          else { 
-            
-            NS_ASSERTION(prevParent == nextParent, "special frame error");
-            aParentFrame = prevParent;
-          }
-        }
-        else {
-          
-          
-          
-          
-          
-          return PR_TRUE;
-        }
-      }
-    }
-    
-  }
-  return PR_FALSE;
 }
 
 #ifdef MOZ_XUL
@@ -8828,8 +8676,7 @@ nsresult
 nsCSSFrameConstructor::ContentInserted(nsIContent*            aContainer,
                                        nsIContent*            aChild,
                                        PRInt32                aIndexInContainer,
-                                       nsILayoutHistoryState* aFrameState,
-                                       PRBool                 aInReinsertContent)
+                                       nsILayoutHistoryState* aFrameState)
 {
   AUTO_LAYOUT_PHASE_ENTRY_POINT(mPresShell->GetPresContext(), FrameC);
   
@@ -8955,18 +8802,14 @@ nsCSSFrameConstructor::ContentInserted(nsIContent*            aContainer,
       : FindNextAnonymousSibling(mPresShell, mDocument, aContainer, aChild);
   }
 
-  PRBool handleSpecialFrame = IsFrameSpecial(parentFrame) && !aInReinsertContent;
-
   
   
   
   if (prevSibling) {
-    if (!handleSpecialFrame)
-      parentFrame = prevSibling->GetParent()->GetContentInsertionFrame();
+    parentFrame = prevSibling->GetParent()->GetContentInsertionFrame();
   }
   else if (nextSibling) {
-    if (!handleSpecialFrame)
-      parentFrame = nextSibling->GetParent()->GetContentInsertionFrame();
+    parentFrame = nextSibling->GetParent()->GetContentInsertionFrame();
   }
   else {
     
@@ -8991,26 +8834,6 @@ nsCSSFrameConstructor::ContentInserted(nsIContent*            aContainer,
     return NS_OK;
   }
   
-  
-  
-  if (handleSpecialFrame) {
-    
-    
-#ifdef DEBUG
-    if (gNoisyContentUpdates) {
-      printf("nsCSSFrameConstructor::ContentInserted: parentFrame=");
-      nsFrame::ListTag(stdout, parentFrame);
-      printf(" is special\n");
-    }
-#endif
-    
-    if (NeedSpecialFrameReframe(aContainer, container, parentFrame, 
-                                aChild, aIndexInContainer, prevSibling,
-                                nextSibling)) {
-      return ReframeContainingBlock(parentFrame);
-    }
-  }
-
   nsFrameConstructorState state(mPresShell, mFixedContainingBlock,
                                 GetAbsoluteContainingBlock(parentFrame),
                                 GetFloatContainingBlock(parentFrame),
@@ -9023,8 +8846,6 @@ nsCSSFrameConstructor::ContentInserted(nsIContent*            aContainer,
   
   
   nsIFrame* containingBlock = state.mFloatedItems.containingBlock;
-  nsStyleContext* blockSC;
-  nsIContent* blockContent = nsnull;
   PRBool haveFirstLetterStyle = PR_FALSE;
   PRBool haveFirstLineStyle = PR_FALSE;
 
@@ -9077,33 +8898,6 @@ nsCSSFrameConstructor::ContentInserted(nsIContent*            aContainer,
           ? FindNextSibling(container, parentFrame, aIndexInContainer, aChild)
           : FindNextAnonymousSibling(mPresShell, mDocument, aContainer, aChild);
       }
-
-      handleSpecialFrame = IsFrameSpecial(parentFrame) && !aInReinsertContent;
-      if (handleSpecialFrame &&
-          NeedSpecialFrameReframe(aContainer, container, parentFrame,
-                                  aChild, aIndexInContainer, prevSibling,
-                                  nextSibling)) {
-#ifdef DEBUG
-        nsIContent* parentContainer = blockContent->GetParent();
-        if (gNoisyContentUpdates) {
-          printf("nsCSSFrameConstructor::ContentInserted: parentFrame=");
-          nsFrame::ListTag(stdout, parentFrame);
-          printf(" is special inline\n");
-          printf("  ==> blockContent=%p, parentContainer=%p\n",
-                 static_cast<void*>(blockContent),
-                 static_cast<void*>(parentContainer));
-        }
-#endif
-
-        NS_ASSERTION(GetFloatContainingBlock(parentFrame) == containingBlock,
-                     "Unexpected block ancestor for parentFrame");
-
-        
-        
-        
-        
-        return ReframeContainingBlock(parentFrame);
-      }
     }
   }
 
@@ -9145,8 +8939,7 @@ nsCSSFrameConstructor::ContentInserted(nsIContent*            aContainer,
 
   
   
-  if (WipeContainingBlock(state, containingBlock, parentFrame,
-                          frameItems.childList))
+  if (WipeContainingBlock(state, containingBlock, parentFrame, frameItems))
     return NS_OK;
 
   if (haveFirstLineStyle && parentFrame == containingBlock) {
@@ -9264,7 +9057,7 @@ nsCSSFrameConstructor::ReinsertContent(nsIContent*     aContainer,
   nsresult res = ContentRemoved(aContainer, aChild, ix, PR_TRUE);
 
   if (NS_SUCCEEDED(res)) {
-    res = ContentInserted(aContainer, aChild, ix, nsnull, PR_TRUE);
+    res = ContentInserted(aContainer, aChild, ix, nsnull);
   }
 
   return res;
@@ -9487,21 +9280,9 @@ nsCSSFrameConstructor::ContentRemoved(nsIContent*     aContainer,
     
     
     
-    if (IsFrameSpecial(childFrame) && !aInReinsertContent) {
-      
-      
-      
-      
-      
-      
-#ifdef DEBUG
-      if (gNoisyContentUpdates) {
-        printf("nsCSSFrameConstructor::ContentRemoved: childFrame=");
-        nsFrame::ListTag(stdout, childFrame);
-        printf(" is special\n");
-      }
-#endif
-      return ReframeContainingBlock(childFrame);
+    if (!aInReinsertContent &&
+        MaybeRecreateContainerForIBSplitterFrame(childFrame, &rv)) {
+      return rv;
     }
 
     
@@ -10910,9 +10691,7 @@ nsCSSFrameConstructor::FindPrimaryFrameFor(nsFrameManager*  aFrameManager,
         
         
         
-        nsIFrame* specialSibling = nsnull;
-        GetSpecialSibling(aFrameManager, parentFrame, &specialSibling);
-        parentFrame = specialSibling;
+        parentFrame = GetSpecialSibling(parentFrame);
       }
       else {
         break;
@@ -11056,19 +10835,49 @@ nsCSSFrameConstructor::MaybeRecreateFramesForContent(nsIContent* aContent)
 }
 
 PRBool
-nsCSSFrameConstructor::MaybeRecreateContainerForIBSplitterFrame(nsIFrame* aFrame, nsresult* aResult)
+nsCSSFrameConstructor::MaybeRecreateContainerForIBSplitterFrame(nsIFrame* aFrame,
+                                                                nsresult* aResult)
 {
-  if (!aFrame || !IsFrameSpecial(aFrame))
+  NS_PRECONDITION(aFrame, "Must have a frame");
+  NS_PRECONDITION(aFrame->GetParent(), "Frame shouldn't be root");
+  NS_PRECONDITION(aResult, "Null out param?");
+  NS_PRECONDITION(aFrame == aFrame->GetFirstContinuation(),
+                  "aFrame not the result of GetPrimaryFrameFor()?");
+
+  if (IsFrameSpecial(aFrame)) {
+    
+    
+#ifdef DEBUG
+    if (gNoisyContentUpdates) {
+      printf("nsCSSFrameConstructor::MaybeRecreateContainerForIBSplitterFrame: "
+             "frame=");
+      nsFrame::ListTag(stdout, aFrame);
+      printf(" is special\n");
+    }
+#endif
+
+    *aResult = ReframeContainingBlock(aFrame);
+    return PR_TRUE;
+  }
+
+  
+  
+  
+  nsIFrame* parent = aFrame->GetParent();
+  if (!IsFrameSpecial(parent)) {
     return PR_FALSE;
+  }
 
 #ifdef DEBUG
-  if (gNoisyContentUpdates) {
-    printf("nsCSSFrameConstructor::RecreateFramesForContent: frame=");
-    nsFrame::ListTag(stdout, aFrame);
+  if (gNoisyContentUpdates || 1) {
+    printf("nsCSSFrameConstructor::MaybeRecreateContainerForIBSplitterFrame: "
+           "frame=");
+    nsFrame::ListTag(stdout, parent);
     printf(" is special\n");
   }
 #endif
-  *aResult = ReframeContainingBlock(aFrame);
+
+  *aResult = ReframeContainingBlock(parent);
   return PR_TRUE;
 }
  
@@ -11087,22 +10896,14 @@ nsCSSFrameConstructor::RecreateFramesForContent(nsIContent* aContent)
   
   
   
+  
 
   nsIFrame* frame = mPresShell->GetPrimaryFrameFor(aContent);
 
   nsresult rv = NS_OK;
 
-  if (frame) {
-    
-    
-    
-    
-    
-    
-    if (MaybeRecreateContainerForIBSplitterFrame(frame, &rv) ||
-        (!IsInlineOutside(frame) &&
-         MaybeRecreateContainerForIBSplitterFrame(frame->GetParent(), &rv)))
-      return rv;
+  if (frame && MaybeRecreateContainerForIBSplitterFrame(frame, &rv)) {
+    return rv;
   }
 
   nsCOMPtr<nsIContent> container = aContent->GetParent();
@@ -11121,7 +10922,7 @@ nsCSSFrameConstructor::RecreateFramesForContent(nsIContent* aContent)
     if (NS_SUCCEEDED(rv)) {
       
       rv = ContentInserted(container, aContent,
-                           indexInContainer, mTempFrameTreeState, PR_FALSE);
+                           indexInContainer, mTempFrameTreeState);
     }
   } else {
     
@@ -11951,8 +11752,7 @@ nsCSSFrameConstructor::WrapFramesInFirstLetterFrame(
   while (frame) {
     nsIFrame* nextFrame = frame->GetNextSibling();
 
-    nsIAtom* frameType = frame->GetType();
-    if (nsGkAtoms::textFrame == frameType) {
+    if (nsGkAtoms::textFrame == frame->GetType()) {
       
       nsIContent* textContent = frame->GetContent();
       if (IsFirstLetterContent(textContent)) {
@@ -11971,9 +11771,7 @@ nsCSSFrameConstructor::WrapFramesInFirstLetterFrame(
         return NS_OK;
       }
     }
-    else if ((nsGkAtoms::inlineFrame == frameType) ||
-             (nsGkAtoms::lineFrame == frameType) ||
-             (nsGkAtoms::positionedInlineFrame == frameType)) {
+    else if (IsInlineFrame(frame)) {
       nsIFrame* kids = frame->GetFirstChild(nsnull);
       WrapFramesInFirstLetterFrame(aState, aBlockFrame, frame, kids,
                                    aModifiedParent, aTextFrame,
@@ -12126,8 +11924,7 @@ nsCSSFrameConstructor::RemoveFirstLetterFrames(nsPresContext* aPresContext,
   nsIFrame* kid = aFrame->GetFirstChild(nsnull);
 
   while (kid) {
-    nsIAtom* frameType = kid->GetType();
-    if (nsGkAtoms::letterFrame == frameType) {
+    if (nsGkAtoms::letterFrame == kid->GetType()) {
       
       nsIFrame* textFrame = kid->GetFirstChild(nsnull);
       if (!textFrame) {
@@ -12161,9 +11958,7 @@ nsCSSFrameConstructor::RemoveFirstLetterFrames(nsPresContext* aPresContext,
       *aStopLooking = PR_TRUE;
       break;
     }
-    else if ((nsGkAtoms::inlineFrame == frameType) ||
-             (nsGkAtoms::lineFrame == frameType) ||
-             (nsGkAtoms::positionedInlineFrame == frameType)) {
+    else if (IsInlineFrame(kid)) {
       
       RemoveFirstLetterFrames(aPresContext, aPresShell, aFrameManager, kid,
                               aStopLooking);
@@ -12521,6 +12316,9 @@ nsCSSFrameConstructor::ConstructInline(nsFrameConstructorState& aState,
   nsIFrame* inlineFrame = nsnull;
 
   if (list3) {
+    
+    
+    
     if (aIsPositioned) {
       inlineFrame = NS_NewPositionedInlineFrame(mPresShell, aStyleContext);
     }
@@ -12675,8 +12473,14 @@ PRBool
 nsCSSFrameConstructor::WipeContainingBlock(nsFrameConstructorState& aState,
                                            nsIFrame* aContainingBlock,
                                            nsIFrame* aFrame,
-                                           nsIFrame* aFrameList)
+                                           const nsFrameItems& aFrameList)
 {
+  if (!aFrameList.childList) {
+    return PR_FALSE;
+  }
+  
+  
+  
   
   
   
@@ -12686,13 +12490,17 @@ nsCSSFrameConstructor::WipeContainingBlock(nsFrameConstructorState& aState,
   
   
   
-  
-  nsIAtom* frameType = aFrame->GetType();
-  if ((frameType != nsGkAtoms::inlineFrame &&
-       frameType != nsGkAtoms::positionedInlineFrame &&
-       frameType != nsGkAtoms::lineFrame) ||
-      AreAllKidsInline(aFrameList))
+
+  if (IsInlineFrame(aFrame)) {
+    
+    if (AreAllKidsInline(aFrameList.childList)) {
+      return PR_FALSE;
+    }
+  } else if (!IsFrameSpecial(aFrame) ||
+             !aFrameList.lastChild->GetStyleDisplay()->IsInlineOutside()) {
+    
     return PR_FALSE;
+  }
 
   
   nsFrameManager *frameManager = aState.mFrameManager;
@@ -12701,7 +12509,7 @@ nsCSSFrameConstructor::WipeContainingBlock(nsFrameConstructorState& aState,
   
   frameManager->ClearAllUndisplayedContentIn(aFrame->GetContent());
 
-  CleanupFrameReferences(frameManager, aFrameList);
+  CleanupFrameReferences(frameManager, aFrameList.childList);
   if (aState.mAbsoluteItems.childList) {
     CleanupFrameReferences(frameManager, aState.mAbsoluteItems.childList);
   }
@@ -12716,7 +12524,7 @@ nsCSSFrameConstructor::WipeContainingBlock(nsFrameConstructorState& aState,
     CleanupFrameReferences(frameManager, aState.mPopupItems.childList);
   }
 #endif
-  nsFrameList tmp(aFrameList);
+  nsFrameList tmp(aFrameList.childList);
   tmp.DestroyFrames();
 
   tmp.SetFrames(aState.mAbsoluteItems.childList);

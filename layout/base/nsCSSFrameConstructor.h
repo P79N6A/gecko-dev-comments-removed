@@ -111,8 +111,7 @@ public:
   nsresult ContentInserted(nsIContent*            aContainer,
                            nsIContent*            aChild,
                            PRInt32                aIndexInContainer,
-                           nsILayoutHistoryState* aFrameState,
-                           PRBool                 aInReinsertContent);
+                           nsILayoutHistoryState* aFrameState);
 
   nsresult ContentRemoved(nsIContent*     aContainer,
                           nsIContent*     aChild,
@@ -754,7 +753,16 @@ private:
 
   nsresult RecreateFramesForContent(nsIContent*      aContent);
 
-  PRBool MaybeRecreateContainerForIBSplitterFrame(nsIFrame* aFrame, nsresult* aResult);
+  
+  
+  
+  
+  
+  
+  
+  
+  PRBool MaybeRecreateContainerForIBSplitterFrame(nsIFrame* aFrame,
+                                                  nsresult* aResult);
 
   nsresult CreateContinuingOuterTableFrame(nsIPresShell*    aPresShell, 
                                            nsPresContext*  aPresContext,
@@ -838,17 +846,9 @@ private:
   PRBool AreAllKidsInline(nsIFrame* aFrameList);
 
   PRBool WipeContainingBlock(nsFrameConstructorState& aState,
-                             nsIFrame*                blockContent,
+                             nsIFrame*                aContainingBlock,
                              nsIFrame*                aFrame,
-                             nsIFrame*                aFrameList);
-
-  PRBool NeedSpecialFrameReframe(nsIContent*      aParent1,
-                                 nsIContent*      aParent2,
-                                 nsIFrame*&       aParentFrame,
-                                 nsIContent*      aChild,
-                                 PRInt32          aIndexInContainer,
-                                 nsIFrame*&       aPrevSibling,
-                                 nsIFrame*        aNextSibling);
+                             const nsFrameItems&      aFrameList);
 
   nsresult ReframeContainingBlock(nsIFrame* aFrame);
 
