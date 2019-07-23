@@ -584,10 +584,9 @@ TableBackgroundPainter::PaintRow(nsTableRowFrame* aFrame,
   
 
   for (nsTableCellFrame* cell = aFrame->GetFirstCell(); cell; cell = cell->GetNextCell()) {
-    mCellRect = cell->GetRect();
     
-    mCellRect.MoveBy(mRow.mRect.x, mRow.mRect.y);
-    if (mCellRect.Intersects(mDirtyRect - mRenderPt)) {
+    mCellRect = cell->GetRect() + mRow.mRect.TopLeft() + mRenderPt;
+    if (mCellRect.Intersects(mDirtyRect)) {
       nsresult rv = PaintCell(cell, aPassThrough || cell->IsPseudoStackingContextFromStyle());
       if (NS_FAILED(rv)) return rv;
     }
@@ -656,7 +655,7 @@ TableBackgroundPainter::PaintCell(nsTableCellFrame* aCell,
   
   if (mIsBorderCollapse && !aPassSelf) {
     aCell->PaintCellBackground(mRenderingContext, mDirtyRect,
-            mRenderPt + mCellRect.TopLeft());
+                               mCellRect.TopLeft());
   }
 
   return NS_OK;
