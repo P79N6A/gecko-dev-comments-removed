@@ -2646,16 +2646,22 @@ var browserDragAndDrop = {
         case "text/x-moz-url":
           var split = dt.getData(type).split("\n");
           return [split[0], split[1]];
-        case "application/x-moz-file":
-          var file = dt.mozGetDataAt(type, 0);
-          var name = file instanceof Components.interfaces.nsIFile ? file.leafName : "";
-          var ioService = Components.classes["@mozilla.org/network/io-service;1"]
-                                    .getService(Components.interfaces.nsIIOService);
-          var fileHandler = ioService.getProtocolHandler("file")
-                                     .QueryInterface(Components.interfaces.nsIFileProtocolHandler);
-          return [fileHandler.getURLSpecFromFile(file), name];
       }
     }
+
+    
+    
+    
+    var file = dt.mozGetDataAt("application/x-moz-file", 0);
+    if (file) {
+      var name = file instanceof Ci.nsIFile ? file.leafName : "";
+      var ioService = Cc["@mozilla.org/network/io-service;1"]
+                                .getService(Ci.nsIIOService);
+      var fileHandler = ioService.getProtocolHandler("file")
+                                 .QueryInterface(Ci.nsIFileProtocolHandler);
+      return [fileHandler.getURLSpecFromFile(file), name];
+    }
+
     return [ , ];
   },
 
