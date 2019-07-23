@@ -611,21 +611,6 @@ NS_IMETHODIMP imgRequest::OnStartRequest(nsIRequest *aRequest, nsISupports *ctxt
 
   
 
-
-
-
-
-
-  if (!mRequest) {
-    NS_ASSERTION(mpchan,
-                 "We should have an mRequest here unless we're multipart");
-    nsCOMPtr<nsIChannel> chan;
-    mpchan->GetBaseChannel(getter_AddRefs(chan));
-    mRequest = chan;
-  }
-
-  
-
   mImageStatus = imgIRequest::STATUS_NONE;
   mState = onStartRequest;
 
