@@ -183,6 +183,7 @@ protected:
   AnimationElementHashtable  mAnimationElementTable;
   TimeContainerHashtable     mChildContainerTable;
   PRPackedBool               mResampleNeeded;
+  PRPackedBool               mDeferredStartSampling;
 
   
   
