@@ -55,7 +55,8 @@ gfxAlphaBoxBlur::~gfxAlphaBoxBlur()
 gfxContext*
 gfxAlphaBoxBlur::Init(const gfxRect& aRect,
                       const gfxIntSize& aBlurRadius,
-                      const gfxRect* aDirtyRect)
+                      const gfxRect* aDirtyRect,
+                      const gfxRect* aSkipRect)
 {
     mBlurRadius = aBlurRadius;
 
@@ -78,6 +79,25 @@ gfxAlphaBoxBlur::Init(const gfxRect& aRect,
         rect = requiredBlurArea.Intersect(rect);
     } else {
         mHasDirtyRect = PR_FALSE;
+    }
+
+    if (aSkipRect) {
+        
+        
+        
+        gfxRect skipRect = *aSkipRect;
+        skipRect.RoundIn();
+        mSkipRect = gfxThebesUtils::GfxRectToIntRect(skipRect);
+        nsIntRect shadowIntRect = gfxThebesUtils::GfxRectToIntRect(rect);
+
+        mSkipRect.Deflate(aBlurRadius.width, aBlurRadius.height);
+        mSkipRect.IntersectRect(mSkipRect, shadowIntRect);
+        if (mSkipRect == shadowIntRect)
+          return nsnull;
+
+        mSkipRect -= shadowIntRect.TopLeft();
+    } else {
+        mSkipRect = nsIntRect(0, 0, 0, 0);
     }
 
     
@@ -120,33 +140,65 @@ gfxAlphaBoxBlur::PremultiplyAlpha(gfxFloat alpha)
 
 
 
+
 static void
 BoxBlurHorizontal(unsigned char* aInput,
                   unsigned char* aOutput,
                   PRInt32 aLeftLobe,
                   PRInt32 aRightLobe,
-                  PRInt32 aStride,
-                  PRInt32 aRows)
+                  PRInt32 aWidth,
+                  PRInt32 aRows,
+                  const nsIntRect& aSkipRect)
 {
     PRInt32 boxSize = aLeftLobe + aRightLobe + 1;
+    PRBool skipRectCoversWholeRow = 0 >= aSkipRect.x &&
+                                    aWidth - 1 <= aSkipRect.XMost();
 
     for (PRInt32 y = 0; y < aRows; y++) {
+        
+        
+        
+        PRBool inSkipRectY = y >= aSkipRect.y &&
+                             y < aSkipRect.YMost();
+        if (inSkipRectY && skipRectCoversWholeRow) {
+            y = aSkipRect.YMost() - 1;
+            continue;
+        }
+
         PRInt32 alphaSum = 0;
         for (PRInt32 i = 0; i < boxSize; i++) {
             PRInt32 pos = i - aLeftLobe;
-            pos = PR_MAX(pos, 0);
-            pos = PR_MIN(pos, aStride - 1);
-            alphaSum += aInput[aStride * y + pos];
+            pos = NS_MAX(pos, 0);
+            pos = NS_MIN(pos, aWidth - 1);
+            alphaSum += aInput[aWidth * y + pos];
         }
-        for (PRInt32 x = 0; x < aStride; x++) {
+        for (PRInt32 x = 0; x < aWidth; x++) {
+            
+            
+            if (inSkipRectY && x >= aSkipRect.x &&
+                x < aSkipRect.XMost()) {
+                x = aSkipRect.XMost();
+                if (x >= aWidth)
+                    break;
+
+                
+                
+                alphaSum = 0;
+                for (PRInt32 i = 0; i < boxSize; i++) {
+                    PRInt32 pos = x + i - aLeftLobe;
+                    pos = NS_MAX(pos, 0);
+                    pos = NS_MIN(pos, aWidth - 1);
+                    alphaSum += aInput[aWidth * y + pos];
+                }
+            }
             PRInt32 tmp = x - aLeftLobe;
-            PRInt32 last = PR_MAX(tmp, 0);
-            PRInt32 next = PR_MIN(tmp + boxSize, aStride - 1);
+            PRInt32 last = NS_MAX(tmp, 0);
+            PRInt32 next = NS_MIN(tmp + boxSize, aWidth - 1);
 
-            aOutput[aStride * y + x] = alphaSum/boxSize;
+            aOutput[aWidth * y + x] = alphaSum/boxSize;
 
-            alphaSum += aInput[aStride * y + next] -
-                        aInput[aStride * y + last];
+            alphaSum += aInput[aWidth * y + next] -
+                        aInput[aWidth * y + last];
         }
     }
 }
@@ -160,28 +212,52 @@ BoxBlurVertical(unsigned char* aInput,
                 unsigned char* aOutput,
                 PRInt32 aTopLobe,
                 PRInt32 aBottomLobe,
-                PRInt32 aStride,
-                PRInt32 aRows)
+                PRInt32 aWidth,
+                PRInt32 aRows,
+                const nsIntRect& aSkipRect)
 {
     PRInt32 boxSize = aTopLobe + aBottomLobe + 1;
+    PRBool skipRectCoversWholeColumn = 0 >= aSkipRect.y &&
+                                       aRows - 1 <= aSkipRect.YMost();
 
-    for (PRInt32 x = 0; x < aStride; x++) {
+    for (PRInt32 x = 0; x < aWidth; x++) {
+        PRBool inSkipRectX = x >= aSkipRect.x &&
+                             x < aSkipRect.XMost();
+        if (inSkipRectX && skipRectCoversWholeColumn) {
+            x = aSkipRect.XMost() - 1;
+            continue;
+        }
+
         PRInt32 alphaSum = 0;
         for (PRInt32 i = 0; i < boxSize; i++) {
             PRInt32 pos = i - aTopLobe;
-            pos = PR_MAX(pos, 0);
-            pos = PR_MIN(pos, aRows - 1);
-            alphaSum += aInput[aStride * pos + x];
+            pos = NS_MAX(pos, 0);
+            pos = NS_MIN(pos, aRows - 1);
+            alphaSum += aInput[aWidth * pos + x];
         }
         for (PRInt32 y = 0; y < aRows; y++) {
+            if (inSkipRectX && y >= aSkipRect.y &&
+                y < aSkipRect.YMost()) {
+                y = aSkipRect.YMost();
+                if (y >= aRows)
+                    break;
+
+                alphaSum = 0;
+                for (PRInt32 i = 0; i < boxSize; i++) {
+                    PRInt32 pos = y + i - aTopLobe;
+                    pos = NS_MAX(pos, 0);
+                    pos = NS_MIN(pos, aRows - 1);
+                    alphaSum += aInput[aWidth * pos + x];
+                }
+            }
             PRInt32 tmp = y - aTopLobe;
-            PRInt32 last = PR_MAX(tmp, 0);
-            PRInt32 next = PR_MIN(tmp + boxSize, aRows - 1);
+            PRInt32 last = NS_MAX(tmp, 0);
+            PRInt32 next = NS_MIN(tmp + boxSize, aRows - 1);
 
-            aOutput[aStride * y + x] = alphaSum/boxSize;
+            aOutput[aWidth * y + x] = alphaSum/boxSize;
 
-            alphaSum += aInput[aStride * next + x] -
-                        aInput[aStride * last + x];
+            alphaSum += aInput[aWidth * next + x] -
+                        aInput[aWidth * last + x];
         }
     }
 }
@@ -249,17 +325,17 @@ gfxAlphaBoxBlur::Paint(gfxContext* aDestinationCtx, const gfxPoint& offset)
         if (mBlurRadius.width > 0) {
             PRInt32 lobes[3][2];
             ComputeLobes(mBlurRadius.width, lobes);
-            BoxBlurHorizontal(boxData, tmpData, lobes[0][0], lobes[0][1], stride, rows);
-            BoxBlurHorizontal(tmpData, boxData, lobes[1][0], lobes[1][1], stride, rows);
-            BoxBlurHorizontal(boxData, tmpData, lobes[2][0], lobes[2][1], stride, rows);
+            BoxBlurHorizontal(boxData, tmpData, lobes[0][0], lobes[0][1], stride, rows, mSkipRect);
+            BoxBlurHorizontal(tmpData, boxData, lobes[1][0], lobes[1][1], stride, rows, mSkipRect);
+            BoxBlurHorizontal(boxData, tmpData, lobes[2][0], lobes[2][1], stride, rows, mSkipRect);
         }
 
         if (mBlurRadius.height > 0) {
             PRInt32 lobes[3][2];
             ComputeLobes(mBlurRadius.height, lobes);
-            BoxBlurVertical(tmpData, boxData, lobes[0][0], lobes[0][1], stride, rows);
-            BoxBlurVertical(boxData, tmpData, lobes[1][0], lobes[1][1], stride, rows);
-            BoxBlurVertical(tmpData, boxData, lobes[2][0], lobes[2][1], stride, rows);
+            BoxBlurVertical(tmpData, boxData, lobes[0][0], lobes[0][1], stride, rows, mSkipRect);
+            BoxBlurVertical(boxData, tmpData, lobes[1][0], lobes[1][1], stride, rows, mSkipRect);
+            BoxBlurVertical(tmpData, boxData, lobes[2][0], lobes[2][1], stride, rows, mSkipRect);
         }
     }
 

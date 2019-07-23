@@ -441,9 +441,12 @@ public:
 
 
 
+
+
+
   gfxContext* Init(const nsRect& aRect, nscoord aBlurRadius,
                    PRInt32 aAppUnitsPerDevPixel, gfxContext* aDestinationCtx,
-                   const nsRect& aDirtyRect);
+                   const nsRect& aDirtyRect, const gfxRect* aSkipRect);
 
   
 
