@@ -678,29 +678,27 @@ protected:
 
 
 
-
-
-
   struct nsAutoOOFFrameList {
     nsFrameList mList;
 
     nsAutoOOFFrameList(nsBlockFrame* aBlock)
-      : mList(aBlock->GetOverflowOutOfFlows())
-      , mOldFirstChild(mList.FirstChild())
-      , mBlock(aBlock) {}
-    ~nsAutoOOFFrameList() {
-      if (mList.FirstChild() != mOldFirstChild) {
-        mBlock->SetOverflowOutOfFlows(mList);
+      : mPropValue(aBlock->GetOverflowOutOfFlows())
+      , mBlock(aBlock) {
+      if (mPropValue) {
+        mList = *mPropValue;
       }
     }
+    ~nsAutoOOFFrameList() {
+      mBlock->SetOverflowOutOfFlows(mList, mPropValue);
+    }
   protected:
-    nsIFrame* const mOldFirstChild;
+    nsFrameList* const mPropValue;
     nsBlockFrame* const mBlock;
   };
   friend struct nsAutoOOFFrameList;
 
-  nsFrameList GetOverflowOutOfFlows() const;
-  void SetOverflowOutOfFlows(const nsFrameList& aList);
+  nsFrameList* GetOverflowOutOfFlows() const;
+  void SetOverflowOutOfFlows(const nsFrameList& aList, nsFrameList* aPropValue);
 
 #ifdef NS_DEBUG
   void VerifyLines(PRBool aFinalCheckOK);

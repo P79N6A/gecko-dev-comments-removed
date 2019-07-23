@@ -534,7 +534,8 @@ nsBlockFrame::GetChildList(nsIAtom* aListName) const
                          : nsFrameList::EmptyList();
   }
   else if (aListName == nsGkAtoms::overflowOutOfFlowList) {
-    return GetOverflowOutOfFlows();
+    const nsFrameList* list = GetOverflowOutOfFlows();
+    return list ? *list : nsFrameList::EmptyList();
   }
   else if (aListName == nsGkAtoms::floatList) {
     return mFloats;
@@ -4522,35 +4523,46 @@ nsBlockFrame::SetOverflowLines(nsLineList* aOverflowLines)
   return rv;
 }
 
-nsFrameList
+nsFrameList*
 nsBlockFrame::GetOverflowOutOfFlows() const
 {
   if (!(GetStateBits() & NS_BLOCK_HAS_OVERFLOW_OUT_OF_FLOWS)) {
-    return nsFrameList();
+    return nsnull;
   }
-  nsIFrame* result = static_cast<nsIFrame*>
-                                (GetProperty(nsGkAtoms::overflowOutOfFlowsProperty));
+  nsFrameList* result =
+    GetPropTableFrames(PresContext(), nsGkAtoms::overflowOutOfFlowsProperty);
   NS_ASSERTION(result, "value should always be non-empty when state set");
-  return nsFrameList(result, nsLayoutUtils::GetLastSibling(result));
+  return result;
 }
 
 
 void
-nsBlockFrame::SetOverflowOutOfFlows(const nsFrameList& aList)
+nsBlockFrame::SetOverflowOutOfFlows(const nsFrameList& aList,
+                                    nsFrameList* aPropValue)
 {
+  NS_PRECONDITION(!!(GetStateBits() & NS_BLOCK_HAS_OVERFLOW_OUT_OF_FLOWS) ==
+                  !!aPropValue, "state does not match value");
+
   if (aList.IsEmpty()) {
     if (!(GetStateBits() & NS_BLOCK_HAS_OVERFLOW_OUT_OF_FLOWS)) {
       return;
     }
-#ifdef DEBUG
-    nsIFrame* result = static_cast<nsIFrame*>
-#endif
-      (UnsetProperty(nsGkAtoms::overflowOutOfFlowsProperty));
-    NS_ASSERTION(result, "value should always be non-empty when state set");
+    nsFrameList* list =
+      RemovePropTableFrames(PresContext(),
+                            nsGkAtoms::overflowOutOfFlowsProperty);
+    NS_ASSERTION(aPropValue == list, "prop value mismatch");
+    delete list;
     RemoveStateBits(NS_BLOCK_HAS_OVERFLOW_OUT_OF_FLOWS);
-  } else {
-    SetProperty(nsGkAtoms::overflowOutOfFlowsProperty,
-                aList.FirstChild(), nsnull);
+  }
+  else if (GetStateBits() & NS_BLOCK_HAS_OVERFLOW_OUT_OF_FLOWS) {
+    NS_ASSERTION(aPropValue == GetPropTableFrames(PresContext(),
+                                 nsGkAtoms::overflowOutOfFlowsProperty),
+                 "prop value mismatch");
+    *aPropValue = aList;
+  }
+  else {
+    SetPropTableFrames(PresContext(), new nsFrameList(aList),
+                       nsGkAtoms::overflowOutOfFlowsProperty);
     AddStateBits(NS_BLOCK_HAS_OVERFLOW_OUT_OF_FLOWS);
   }
 }
@@ -6674,8 +6686,8 @@ nsBlockFrame::CheckFloats(nsBlockReflowState& aState)
   }
 #endif
 
-  nsFrameList oofs = GetOverflowOutOfFlows();
-  if (oofs.NotEmpty()) {
+  const nsFrameList* oofs = GetOverflowOutOfFlows();
+  if (oofs && oofs->NotEmpty()) {
     
     
     
@@ -6686,7 +6698,7 @@ nsBlockFrame::CheckFloats(nsBlockReflowState& aState)
     
     
     
-    aState.mFloatManager->RemoveTrailingRegions(oofs.FirstChild());
+    aState.mFloatManager->RemoveTrailingRegions(oofs->FirstChild());
   }
 }
 
