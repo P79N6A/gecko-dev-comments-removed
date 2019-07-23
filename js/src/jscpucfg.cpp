@@ -183,7 +183,20 @@ int main(int argc, char **argv)
     printf("/* AUTOMATICALLY GENERATED - DO NOT EDIT */\n\n");
 
 #ifdef CROSS_COMPILE
-#if defined(IS_LITTLE_ENDIAN)
+#if defined(__APPLE__)
+    
+
+
+
+
+    printf("#ifdef __LITTLE_ENDIAN__\n");
+    printf("#define IS_LITTLE_ENDIAN 1\n");
+    printf("#undef  IS_BIG_ENDIAN\n");
+    printf("#else\n");
+    printf("#undef  IS_LITTLE_ENDIAN\n");
+    printf("#define IS_BIG_ENDIAN 1\n");
+    printf("#endif\n\n");
+#elif defined(IS_LITTLE_ENDIAN)
     printf("#define IS_LITTLE_ENDIAN 1\n");
     printf("#undef  IS_BIG_ENDIAN\n\n");
 #elif defined(IS_BIG_ENDIAN)
