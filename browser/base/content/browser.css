@@ -3,6 +3,10 @@ searchbar {
 }
 
 
+#PopupAutoComplete {
+  -moz-binding: url("chrome://browser/content/urlbarBindings.xml#urlbar-result-popup");
+}
+
 
 toolbar[printpreview="true"] {
   -moz-binding: url("chrome://global/content/printPreviewBindings.xml#printpreviewtoolbar");
