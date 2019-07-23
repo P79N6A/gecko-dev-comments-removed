@@ -491,8 +491,7 @@ nsXULMenuitemAccessible::GetAttributesInternal(nsIPersistentProperties *aAttribu
   
   
 
-  nsAccessibilityUtils::
-    SetAccAttrsForXULSelectControlItem(mDOMNode, aAttributes);
+  nsAccUtils::SetAccAttrsForXULSelectControlItem(mDOMNode, aAttributes);
 
   return NS_OK;
 }

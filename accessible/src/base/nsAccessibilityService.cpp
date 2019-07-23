@@ -534,7 +534,7 @@ nsAccessibilityService::CreateHyperTextAccessible(nsISupports *aFrame, nsIAccess
   nsCOMPtr<nsIContent> content(do_QueryInterface(node));
   NS_ENSURE_TRUE(content, NS_ERROR_FAILURE);
   
-  if (nsAccessibilityUtils::HasListener(content, NS_LITERAL_STRING("click"))) {
+  if (nsAccUtils::HasListener(content, NS_LITERAL_STRING("click"))) {
     
     
     *aAccessible = new nsLinkableAccessible(node, weakShell);
@@ -1383,7 +1383,7 @@ NS_IMETHODIMP nsAccessibilityService::GetAccessible(nsIDOMNode *aNode,
   
   if (!newAcc && content->Tag() != nsAccessibilityAtoms::body && content->GetParent() && 
       (content->IsFocusable() ||
-      (isHTML && nsAccessibilityUtils::HasListener(content, NS_LITERAL_STRING("click"))) ||
+      (isHTML && nsAccUtils::HasListener(content, NS_LITERAL_STRING("click"))) ||
        content->HasAttr(kNameSpaceID_WAIProperties, nsAccessibilityAtoms::describedby) ||
        content->HasAttr(kNameSpaceID_WAIProperties, nsAccessibilityAtoms::labelledby) ||
        content->HasAttr(kNameSpaceID_WAIProperties, nsAccessibilityAtoms::required) ||
