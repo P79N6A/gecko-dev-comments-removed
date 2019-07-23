@@ -3226,58 +3226,10 @@ OuterLet(JSTreeContext *tc, JSStmtInfo *stmt, JSAtom *atom)
     return false;
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-static bool
-BindGvar(JSParseNode *pn, JSTreeContext *tc)
-{
-    JS_ASSERT(pn->pn_op == JSOP_NAME);
-    JS_ASSERT(!(tc->flags & TCF_IN_FUNCTION));
-
-    if ((tc->flags & TCF_COMPILING) && !tc->parser->callerFrame) {
-        JSCodeGenerator *cg = (JSCodeGenerator *) tc;
-
-        
-        JSAtomListElement *ale = cg->atomList.add(tc->parser, pn->pn_atom);
-        if (!ale)
-            return false;
-
-        
-        uintN slot = ALE_INDEX(ale);
-        if ((slot + 1) >> 16)
-            return true;
-
-        if ((uint16)(slot + 1) > cg->ngvars)
-            cg->ngvars = (uint16)(slot + 1);
-
-        pn->pn_op = JSOP_GETGVAR;
-        pn->pn_cookie = MAKE_UPVAR_COOKIE(tc->staticLevel, slot);
-        pn->pn_dflags |= PND_BOUND | PND_GVAR;
-    }
-
-    return true;
-}
-
 static JSBool
 BindVarOrConst(JSContext *cx, BindData *data, JSAtom *atom, JSTreeContext *tc)
 {
     JSParseNode *pn = data->pn;
-
-    
-    pn->pn_op = JSOP_NAME;
 
     if (!CheckStrictBinding(cx, tc, atom, pn))
         return false;
@@ -3285,8 +3237,9 @@ BindVarOrConst(JSContext *cx, BindData *data, JSAtom *atom, JSTreeContext *tc)
     JSStmtInfo *stmt = js_LexicalLookup(tc, atom, NULL);
 
     if (stmt && stmt->type == STMT_WITH) {
+        pn->pn_op = JSOP_NAME;
         data->fresh = false;
-        return (tc->flags & TCF_IN_FUNCTION) || BindGvar(pn, tc);
+        return JS_TRUE;
     }
 
     JSAtomListElement *ale = tc->decls.lookup(atom);
@@ -3421,8 +3374,43 @@ BindVarOrConst(JSContext *cx, BindData *data, JSAtom *atom, JSTreeContext *tc)
     if (data->op == JSOP_DEFCONST)
         pn->pn_dflags |= PND_CONST;
 
-    if (!(tc->flags & TCF_IN_FUNCTION))
-        return BindGvar(pn, tc);
+    if (!(tc->flags & TCF_IN_FUNCTION)) {
+        
+
+
+
+
+
+
+
+
+
+
+
+
+        pn->pn_op = JSOP_NAME;
+        if ((tc->flags & TCF_COMPILING) && !tc->parser->callerFrame) {
+            JSCodeGenerator *cg = (JSCodeGenerator *) tc;
+
+            
+            ale = cg->atomList.add(tc->parser, atom);
+            if (!ale)
+                return JS_FALSE;
+
+            
+            uintN slot = ALE_INDEX(ale);
+            if ((slot + 1) >> 16)
+                return JS_TRUE;
+
+            if ((uint16)(slot + 1) > cg->ngvars)
+                cg->ngvars = (uint16)(slot + 1);
+
+            pn->pn_op = JSOP_GETGVAR;
+            pn->pn_cookie = MAKE_UPVAR_COOKIE(tc->staticLevel, slot);
+            pn->pn_dflags |= PND_BOUND | PND_GVAR;
+        }
+        return JS_TRUE;
+    }
 
     if (atom == cx->runtime->atomState.argumentsAtom) {
         pn->pn_op = JSOP_ARGUMENTS;
@@ -3458,6 +3446,7 @@ BindVarOrConst(JSContext *cx, BindData *data, JSAtom *atom, JSTreeContext *tc)
         
         JS_ASSERT(localKind == JSLOCAL_VAR || localKind == JSLOCAL_CONST);
     }
+    pn->pn_op = JSOP_NAME;
     return JS_TRUE;
 }
 
