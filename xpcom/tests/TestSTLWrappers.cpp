@@ -22,14 +22,21 @@
 
 int main() {
     std::vector<int> v;
+    int rv = 1;
 
     TRY {
       
-      int unused = v.at(1);
+
+      
+      
+      rv += v.at(1) ? 1 : 2;
     } CATCH(const std::out_of_range& e) {
-      fputs("TEST-FAIL | TestSTLWrappers.cpp | caught an exception!\n",
+      fputs("TEST-FAIL | TestSTLWrappers.cpp | caught an exception?\n",
             stderr);
+      return 1;
     }
 
-    return 0;
+    fputs("TEST-FAIL | TestSTLWrappers.cpp | didn't abort()?\n",
+          stderr);
+    return rv;
 }
