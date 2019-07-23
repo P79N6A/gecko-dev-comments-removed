@@ -256,7 +256,7 @@ def process_explicit_remove_files(dir_path, patch_info):
             if line and not line.endswith("/"): 
                 patch_info.append_remove_instruction(os.path.join(prefix,line))
 
-def create_partial_patch(from_dir_path, to_dir_path, patch_filename, shas, patch_info):
+def create_partial_patch(from_dir_path, to_dir_path, patch_filename, shas, patch_info, forced_updates):
     """ Builds a partial patch by comparing the files in from_dir_path to thoes of to_dir_path"""
     
     from_dir_path = os.path.abspath(from_dir_path)
@@ -265,15 +265,22 @@ def create_partial_patch(from_dir_path, to_dir_path, patch_filename, shas, patch
     from_dir_hash,from_dir_set = patch_info.build_marfile_entry_hash(from_dir_path)
     to_dir_hash,to_dir_set = patch_info.build_marfile_entry_hash(to_dir_path)
     
+    forced_list = forced_updates.strip().split('|')
+    
     
     patch_filenames = list(from_dir_set.intersection(to_dir_set))
     patch_filenames.sort()
     for filename in patch_filenames:
         from_marfile_entry = from_dir_hash[filename]
         to_marfile_entry = to_dir_hash[filename]
-        if from_marfile_entry.sha() != to_marfile_entry.sha():
+        if filename in forced_list:
+            print "Forcing "+ filename
             
-            create_partial_patch_for_file(from_marfile_entry, to_marfile_entry, shas, patch_info)
+       	    create_add_patch_for_file(to_dir_hash[filename], patch_info)
+        else: 
+          if from_marfile_entry.sha() != to_marfile_entry.sha():
+              
+              create_partial_patch_for_file(from_marfile_entry, to_marfile_entry, shas, patch_info)
 
     
     remove_filenames = list(from_dir_set - to_dir_set)
@@ -387,7 +394,7 @@ def create_partial_patches(patches):
 
             mar_extract_time = time.time()
 
-            partial_filename = create_partial_patch(work_dir_from, work_dir_to, patch_filename, shas, PatchInfo(work_dir, ['channel-prefs.js','update.manifest','removed-files'],['/readme.txt']))
+            partial_filename = create_partial_patch(work_dir_from, work_dir_to, patch_filename, shas, PatchInfo(work_dir, ['channel-prefs.js','update.manifest','removed-files'],['/readme.txt']),forced_updates)
             partial_buildid = to_buildid
             partial_shasum = sha.sha(open(partial_filename).read()).hexdigest()
             partial_size = str(os.path.getsize(partial_filename))
