@@ -56,10 +56,9 @@ public:
   nsSVGPathList() : mArguments(nsnull), mNumCommands(0), mNumArguments(0) {}
   ~nsSVGPathList() { Clear(); }
   void Playback(gfxContext *aCtx);
-
-protected:
   void Clear();
 
+protected:
   float   *mArguments;
   PRUint32 mNumCommands;
   PRUint32 mNumArguments;
@@ -106,13 +105,17 @@ public:
 
   virtual already_AddRefed<gfxFlattenedPath> GetFlattenedPath(nsIDOMSVGMatrix *aMatrix);
 
+  
   virtual nsresult Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const;
+  virtual nsresult BeforeSetAttr(PRInt32 aNamespaceID, nsIAtom* aName,
+                                 const nsAString* aValue, PRBool aNotify);
+  virtual nsresult UnsetAttr(PRInt32 aNamespaceID, nsIAtom* aName,
+                             PRBool aNotify);
 
 protected:
 
+  
   virtual NumberAttributesInfo GetNumberInfo();
-  virtual nsresult BeforeSetAttr(PRInt32 aNamespaceID, nsIAtom* aName,
-                                 const nsAString* aValue, PRBool aNotify);
 
   
   nsresult CreatePathSegList();
