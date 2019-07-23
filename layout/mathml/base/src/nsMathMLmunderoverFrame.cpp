@@ -307,7 +307,6 @@ nsMathMLmunderoverFrame::Place(nsIRenderingContext& aRenderingContext,
     overFrame = underFrame->GetNextSibling();
   if (!baseFrame || !underFrame || !overFrame || overFrame->GetNextSibling()) {
     
-    NS_WARNING("invalid markup");
     return ReflowError(aRenderingContext, aDesiredSize);
   }
   GetReflowAndBoundingMetricsFor(baseFrame, baseSize, bmBase);

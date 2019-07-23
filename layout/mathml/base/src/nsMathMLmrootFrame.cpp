@@ -246,10 +246,11 @@ nsMathMLmrootFrame::Reflow(nsPresContext*          aPresContext,
   }
   if (2 != count) {
     
-    NS_WARNING("invalid markup");
     rv = ReflowError(renderingContext, aDesiredSize);
     aStatus = NS_FRAME_COMPLETE;
     NS_FRAME_SET_TRUNCATION(aStatus, aReflowState, aDesiredSize);
+    
+    DidReflowChildren(mFrames.FirstChild(), childFrame);
     return rv;
   }
 

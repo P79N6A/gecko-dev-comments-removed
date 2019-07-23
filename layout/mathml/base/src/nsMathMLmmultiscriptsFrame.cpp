@@ -268,7 +268,6 @@ nsMathMLmmultiscriptsFrame::Place(nsIRenderingContext& aRenderingContext,
       if (mprescriptsFrame) {
         
         
-        NS_WARNING("invalid markup");
         return ReflowError(aRenderingContext, aDesiredSize);
       }
       mprescriptsFrame = childFrame;
@@ -377,7 +376,6 @@ nsMathMLmmultiscriptsFrame::Place(nsIRenderingContext& aRenderingContext,
   
   if ((0 != width) || !baseFrame || !subScriptFrame || !supScriptFrame) {
     
-    NS_WARNING("invalid markup");
     return ReflowError(aRenderingContext, aDesiredSize);
   }
 
