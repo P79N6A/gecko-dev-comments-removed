@@ -463,19 +463,23 @@ PRBool nsRootAccessible::FireAccessibleFocusEvent(nsIAccessible *aAccessible,
       if (!finalFocusNode) {
         return PR_FALSE;
       }
-      GetAccService()->GetAccessibleFor(finalFocusNode, getter_AddRefs(finalFocusAccessible));      
-      
-      
-      
-      if (!finalFocusAccessible) {
-        return PR_FALSE;
-      }
+      finalFocusAccessible = nsnull;
     }
   }
 
   
   if (gLastFocusedNode == finalFocusNode && !aForceEvent) {
     return PR_FALSE;
+  }
+
+  if (!finalFocusAccessible) {
+    GetAccService()->GetAccessibleFor(finalFocusNode, getter_AddRefs(finalFocusAccessible));      
+    
+    
+    
+    if (!finalFocusAccessible) {
+      return PR_FALSE;
+    }
   }
 
   gLastFocusedAccessiblesState = State(finalFocusAccessible);
