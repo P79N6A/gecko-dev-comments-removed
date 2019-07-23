@@ -66,6 +66,7 @@ for codepoint in range(ord("A"), ord("D") + 1):
         g.width = width
 
         f.generate("mark" + mark + charname + ".ttf")
+        f.generate("mark" + mark + charname + ".otf")
 
 
 f = fontforge.font()
