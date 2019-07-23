@@ -111,7 +111,7 @@ nsTSubstring_CharT::MutatePrep( size_type capacity, char_type** oldData, PRUint3
     
     
 
-    if (curCapacity != size_type(-1))
+    if (curCapacity != 0)
       {
         if (capacity <= curCapacity) {
           mFlags &= ~F_VOIDED;  
@@ -280,9 +280,10 @@ nsTSubstring_CharT::Capacity() const
         
         nsStringBuffer* hdr = nsStringBuffer::FromData(mData);
         if (hdr->IsReadonly())
-          capacity = size_type(-1);
-        else
+          capacity = 0;
+        else {
           capacity = (hdr->StorageSize() / sizeof(char_type)) - 1;
+        }
       }
     else if (mFlags & F_FIXED)
       {
@@ -298,7 +299,7 @@ nsTSubstring_CharT::Capacity() const
       }
     else
       {
-        capacity = size_type(-1);
+        capacity = 0;
       }
 
     return capacity;
@@ -554,7 +555,7 @@ nsTSubstring_CharT::Replace( index_type cutStart, size_type cutLength, const sub
       tuple.WriteTo(mData + cutStart, length);
   }
 
-void
+PRBool
 nsTSubstring_CharT::SetCapacity( size_type capacity )
   {
     
@@ -572,7 +573,7 @@ nsTSubstring_CharT::SetCapacity( size_type capacity )
         char_type* oldData;
         PRUint32 oldFlags;
         if (!MutatePrep(capacity, &oldData, &oldFlags))
-          return; 
+          return PR_FALSE; 
 
         
         size_type newLen = NS_MIN(mLength, capacity);
@@ -594,23 +595,14 @@ nsTSubstring_CharT::SetCapacity( size_type capacity )
         
         mData[capacity] = char_type(0);
       }
+
+    return PR_TRUE;
   }
 
 void
 nsTSubstring_CharT::SetLength( size_type length )
   {
-    if (mLength == length) {
-      mFlags &= ~F_VOIDED;  
-      return;
-    }
-
-    SetCapacity(length);
-
-    
-    
-    
- 
-    if (Capacity() >= length)
+    if (SetCapacity(length))
       mLength = length;
   }
 
