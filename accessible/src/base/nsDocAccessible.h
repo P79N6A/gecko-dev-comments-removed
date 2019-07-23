@@ -112,7 +112,7 @@ public:
   virtual nsresult GetARIAState(PRUint32 *aState, PRUint32 *aExtraState);
 
   virtual void SetRoleMapEntry(nsRoleMapEntry* aRoleMapEntry);
-  virtual nsIAccessible* GetParent();
+  virtual nsAccessible* GetParent();
 
   
   NS_IMETHOD GetAssociatedEditor(nsIEditor **aEditor);

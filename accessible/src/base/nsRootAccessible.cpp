@@ -1062,7 +1062,7 @@ nsRootAccessible::GetRelationByType(PRUint32 aRelationType,
 
 
 
-nsIAccessible*
+nsAccessible*
 nsRootAccessible::GetParent()
 {
   

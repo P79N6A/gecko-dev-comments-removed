@@ -346,9 +346,8 @@ nsDocAccessible::GetARIAState(PRUint32 *aState, PRUint32 *aExtraState)
   nsresult rv = nsAccessible::GetARIAState(aState, aExtraState);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  nsRefPtr<nsAccessible> parent = nsAccUtils::QueryAccessible(mParent);
-  if (parent)  
-    return parent->GetARIAState(aState, aExtraState);
+  if (mParent)  
+    return mParent->GetARIAState(aState, aExtraState);
 
   return rv;
 }
@@ -554,13 +553,13 @@ NS_IMETHODIMP nsDocAccessible::GetCachedAccessNode(void *aUniqueID, nsIAccessNod
   
   
   
-  nsCOMPtr<nsIAccessible> accessible = do_QueryInterface(*aAccessNode);
-  nsRefPtr<nsAccessible> acc = nsAccUtils::QueryAccessible(accessible);
+  nsRefPtr<nsAccessible> acc =
+    nsAccUtils::QueryObject<nsAccessible>(*aAccessNode);
+
   if (acc) {
-    nsCOMPtr<nsIAccessible> parent = acc->GetCachedParent();
-    nsRefPtr<nsAccessible> parentAcc(nsAccUtils::QueryAccessible(parent));
-    if (parentAcc)
-      parentAcc->TestChildCache(accessible);
+    nsAccessible* parent(acc->GetCachedParent());
+    if (parent)
+      parent->TestChildCache(acc);
   }
 #endif
   return NS_OK;
@@ -880,7 +879,7 @@ nsDocAccessible::FireDocLoadEvents(PRUint32 aEventType)
   if (isFinished) {
     
     AddScrollListener();
-    nsRefPtr<nsAccessible> acc(nsAccUtils::QueryAccessible(GetParent()));
+    nsRefPtr<nsAccessible> acc(GetParent());
     if (acc) {
       
       acc->InvalidateChildren();
@@ -1421,7 +1420,7 @@ nsDocAccessible::ParentChainChanged(nsIContent *aContent)
 
 
 
-nsIAccessible*
+nsAccessible*
 nsDocAccessible::GetParent()
 {
   if (IsDefunct())
@@ -1444,7 +1443,9 @@ nsDocAccessible::GetParent()
       
       
       
-      accService->GetAccessibleFor(ownerNode, getter_AddRefs(mParent));
+      nsCOMPtr<nsIAccessible> parent;
+      accService->GetAccessibleFor(ownerNode, getter_AddRefs(parent));
+      mParent = nsAccUtils::QueryObject<nsAccessible>(parent);
     }
   }
 
@@ -1931,8 +1932,7 @@ void nsDocAccessible::RefreshNodes(nsIDOMNode *aStartNode)
 
     
     
-    nsCOMPtr<nsIAccessible> childAccessible = acc->GetCachedFirstChild();
-    if (childAccessible) {
+    if (acc->GetCachedFirstChild()) {
       nsCOMPtr<nsIArray> children;
       
       

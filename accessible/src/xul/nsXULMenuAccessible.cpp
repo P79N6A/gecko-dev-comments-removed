@@ -85,13 +85,11 @@ nsresult nsXULSelectableAccessible::ChangeSelection(PRInt32 aIndex, PRUint8 aMet
   if (!mSelectControl) {
     return NS_ERROR_FAILURE;
   }
-  nsCOMPtr<nsIAccessible> childAcc;
-  GetChildAt(aIndex, getter_AddRefs(childAcc));
-  nsCOMPtr<nsIAccessNode> accNode = do_QueryInterface(childAcc);
-  NS_ENSURE_TRUE(accNode, NS_ERROR_FAILURE);
+  nsAccessible* child = GetChildAt(aIndex);
+  NS_ENSURE_TRUE(child, NS_ERROR_FAILURE);
 
   nsCOMPtr<nsIDOMNode> childNode;
-  accNode->GetDOMNode(getter_AddRefs(childNode));
+  child->GetDOMNode(getter_AddRefs(childNode));
   nsCOMPtr<nsIDOMXULSelectControlItemElement> item(do_QueryInterface(childNode));
   NS_ENSURE_TRUE(item, NS_ERROR_FAILURE);
 
@@ -338,18 +336,17 @@ nsXULMenuitemAccessible::GetStateInternal(PRUint32 *aState,
 
     
     PRBool isCollapsed = PR_FALSE;
-    nsCOMPtr<nsIAccessible> parentAccessible(GetParent());
-    if (nsAccUtils::State(parentAccessible) & nsIAccessibleStates::STATE_INVISIBLE)
+    nsAccessible* parentAcc = GetParent();
+    if (nsAccUtils::State(parentAcc) & nsIAccessibleStates::STATE_INVISIBLE)
       isCollapsed = PR_TRUE;
-    
+
     if (isSelected) {
       *aState |= nsIAccessibleStates::STATE_SELECTED;
-      
+
       
       if (isCollapsed) {
         
-        nsCOMPtr<nsIAccessible> grandParentAcc;
-        parentAccessible->GetParent(getter_AddRefs(grandParentAcc));
+        nsAccessible* grandParentAcc = parentAcc->GetParent();
         NS_ENSURE_TRUE(grandParentAcc, NS_ERROR_FAILURE);
         NS_ASSERTION(nsAccUtils::Role(grandParentAcc) == nsIAccessibleRole::ROLE_COMBOBOX,
                      "grandparent of combobox listitem is not combobox");
@@ -423,9 +420,9 @@ nsXULMenuitemAccessible::GetKeyboardShortcut(nsAString& aAccessKey)
     if (accesskey.IsEmpty())
       return NS_OK;
 
-    nsCOMPtr<nsIAccessible> parentAccessible(GetParent());
-    if (parentAccessible) {
-      if (nsAccUtils::RoleInternal(parentAccessible) ==
+    nsAccessible* parentAcc = GetParent();
+    if (parentAcc) {
+      if (nsAccUtils::RoleInternal(parentAcc) ==
           nsIAccessibleRole::ROLE_MENUBAR) {
         
         

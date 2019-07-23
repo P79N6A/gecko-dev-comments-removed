@@ -461,20 +461,20 @@ nsHTMLTableAccessible::CacheChildren()
   nsAccessible::CacheChildren();
 
   
-  PRInt32 length = mChildren.Count();
+  PRInt32 length = mChildren.Length();
   for (PRInt32 idx = 0; idx < length; idx++) {
     
     
     
 
-    nsIAccessible* child = mChildren.ObjectAt(idx);
+    nsAccessible* child = mChildren.ElementAt(idx);
     if (nsAccUtils::Role(child) == nsIAccessibleRole::ROLE_CAPTION) {
       if (idx == 0)
         break;
 
-      nsCOMPtr<nsIAccessible> tmp = mChildren.ObjectAt(0);
-      mChildren.ReplaceObjectAt(child, 0);
-      mChildren.ReplaceObjectAt(tmp, idx);
+      nsRefPtr<nsAccessible> tmp = mChildren[0];
+      mChildren[0] = child;
+      mChildren[idx] = tmp;
       break;
     }
   }

@@ -127,7 +127,7 @@ nsOuterDocAccessible::CacheChildren()
     return;
 
   
-  mChildren.AppendObject(innerAccessible);
+  mChildren.AppendElement(innerAcc);
   innerAcc->SetParent(this);
 }
 

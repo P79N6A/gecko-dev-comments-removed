@@ -229,17 +229,17 @@ nsXULButtonAccessible::CacheChildren()
   if (!menupopupAccessible)
     return;
 
-  mChildren.AppendObject(menupopupAccessible);
-
   nsRefPtr<nsAccessible> menupopupAcc =
     nsAccUtils::QueryObject<nsAccessible>(menupopupAccessible);
+
+  mChildren.AppendElement(menupopupAcc);
   menupopupAcc->SetParent(this);
 
   if (buttonAccessible) {
-    mChildren.AppendObject(buttonAccessible);
-
     nsRefPtr<nsAccessible> buttonAcc =
       nsAccUtils::QueryObject<nsAccessible>(buttonAccessible);
+
+    mChildren.AppendElement(buttonAcc);
     buttonAcc->SetParent(this);
   }
 }
@@ -776,26 +776,26 @@ void
 nsXULToolbarButtonAccessible::GetPositionAndSizeInternal(PRInt32 *aPosInSet,
                                                          PRInt32 *aSetSize)
 {
-  nsCOMPtr<nsIAccessible> parent(GetParent());
   PRInt32 setSize = 0;
   PRInt32 posInSet = 0;
 
-  if (parent) {
-    nsCOMPtr<nsIAccessible> sibling;
-    nsCOMPtr<nsIAccessible> tempSibling;
-    parent->GetFirstChild(getter_AddRefs(sibling));
-    while (sibling) {
-      if (IsSeparator(sibling)) { 
-        if (posInSet)
-          break; 
-        setSize = 0; 
-      } else {
-        setSize++; 
-        if (sibling == this)
-          posInSet = setSize; 
-      }
-      sibling->GetNextSibling(getter_AddRefs(tempSibling));
-      sibling.swap(tempSibling);
+  nsAccessible* parent(GetParent());
+  NS_ENSURE_TRUE(parent,);
+
+  PRInt32 childCount = parent->GetChildCount();
+  for (PRInt32 childIdx = 0; childIdx < childCount; childIdx++) {
+    nsAccessible* child = parent->GetChildAt(childIdx);
+    if (IsSeparator(child)) { 
+      if (posInSet)
+        break; 
+
+      setSize = 0; 
+
+    } else {
+      setSize++; 
+
+      if (child == this)
+        posInSet = setSize; 
     }
   }
 
@@ -804,11 +804,10 @@ nsXULToolbarButtonAccessible::GetPositionAndSizeInternal(PRInt32 *aPosInSet,
 }
 
 PRBool
-nsXULToolbarButtonAccessible::IsSeparator(nsIAccessible *aAccessible)
+nsXULToolbarButtonAccessible::IsSeparator(nsAccessible *aAccessible)
 {
   nsCOMPtr<nsIDOMNode> domNode;
-  nsCOMPtr<nsIAccessNode> accessNode(do_QueryInterface(aAccessible));
-  accessNode->GetDOMNode(getter_AddRefs(domNode));
+  aAccessible->GetDOMNode(getter_AddRefs(domNode));
   nsCOMPtr<nsIContent> contentDomNode(do_QueryInterface(domNode));
 
   if (!contentDomNode)

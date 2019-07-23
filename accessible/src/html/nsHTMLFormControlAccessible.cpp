@@ -673,19 +673,20 @@ nsHTMLLegendAccessible::GetRelationByType(PRUint32 aRelationType,
 
   if (aRelationType == nsIAccessibleRelation::RELATION_LABEL_FOR) {
     
-    nsCOMPtr<nsIAccessible> groupboxAccessible = GetParent();
-    if (nsAccUtils::Role(groupboxAccessible) == nsIAccessibleRole::ROLE_GROUPING) {
+    nsAccessible* groupbox = GetParent();
+
+    if (nsAccUtils::Role(groupbox) == nsIAccessibleRole::ROLE_GROUPING) {
       
       
       nsCOMPtr<nsIAccessible> testLabelAccessible =
-        nsRelUtils::GetRelatedAccessible(groupboxAccessible,
+        nsRelUtils::GetRelatedAccessible(groupbox,
                                          nsIAccessibleRelation::RELATION_LABELLED_BY);
 
       if (testLabelAccessible == this) {
         
         
         return nsRelUtils::
-          AddTarget(aRelationType, aRelation, groupboxAccessible);
+          AddTarget(aRelationType, aRelation, groupbox);
       }
     }
   }

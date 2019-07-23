@@ -103,11 +103,11 @@ private:
 
 
 #define NS_ACCESSIBLE_IMPL_CID                          \
-{  /* 81a84b69-de5a-412f-85ff-deb005c5a68d */           \
-  0x81a84b69,                                           \
-  0xde5a,                                               \
-  0x412f,                                               \
-  { 0x85, 0xff, 0xde, 0xb0, 0x05, 0xc5, 0xa6, 0x8d }    \
+{  /* c734df37-7e12-49ec-8983-eea88a186bb8 */           \
+  0xc734df37,                                           \
+  0x7e12,                                               \
+  0x49ec,                                               \
+  { 0x89, 0x83, 0xee, 0xa8, 0x8a, 0x18, 0x6b, 0xb8 }    \
 }
 
 class nsAccessible : public nsAccessNodeWrap, 
@@ -228,7 +228,7 @@ public:
   
 
 
-  void SetParent(nsIAccessible *aParent);
+  void SetParent(nsAccessible *aParent);
 
   
 
@@ -243,12 +243,12 @@ public:
   
 
 
-  virtual nsIAccessible* GetParent();
+  virtual nsAccessible* GetParent();
 
   
 
 
-  virtual nsIAccessible* GetChildAt(PRUint32 aIndex);
+  virtual nsAccessible* GetChildAt(PRUint32 aIndex);
 
   
 
@@ -268,12 +268,12 @@ public:
   
 
 
-  already_AddRefed<nsIAccessible> GetCachedParent();
+  nsAccessible* GetCachedParent();
 
   
 
 
-  already_AddRefed<nsIAccessible> GetCachedFirstChild();
+  nsAccessible* GetCachedFirstChild();
 
   
   
@@ -312,7 +312,7 @@ protected:
   
 
 
-  void TestChildCache(nsIAccessible *aCachedChild);
+  void TestChildCache(nsAccessible *aCachedChild);
 
   
 
@@ -454,8 +454,8 @@ protected:
   virtual nsresult FirePlatformEvent(nsIAccessibleEvent *aEvent) = 0;
 
   
-  nsCOMPtr<nsIAccessible> mParent;
-  nsCOMArray<nsIAccessible> mChildren;
+  nsRefPtr<nsAccessible> mParent;
+  nsTArray<nsRefPtr<nsAccessible> > mChildren;
   PRBool mAreChildrenInitialized;
 
   nsRoleMapEntry *mRoleMapEntry; 
