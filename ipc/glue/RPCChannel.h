@@ -158,6 +158,13 @@ private:
     
     
     
+    
+    std::stack<Message> mOutOfTurnReplies;
+
+    
+    
+    
+    
     std::stack<Message> mDeferred;
 
     
