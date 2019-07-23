@@ -1000,7 +1000,8 @@ nsGenericElement::GetOffsetRect(nsRect& aRect, nsIContent** aOffsetParent)
   
   
   
-  nsRect rcFrame = nsLayoutUtils::GetAllInFlowRectsUnion(frame, nsnull);
+  nsIFrame* parent = frame->GetParent() ? frame->GetParent() : frame;
+  nsRect rcFrame = nsLayoutUtils::GetAllInFlowRectsUnion(frame, parent);
   aRect.width = nsPresContext::AppUnitsToIntCSSPixels(rcFrame.width);
   aRect.height = nsPresContext::AppUnitsToIntCSSPixels(rcFrame.height);
 }
