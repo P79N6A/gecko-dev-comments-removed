@@ -1605,10 +1605,11 @@ static PRBool LineHasClear(nsLineBox* aLine) {
 
 void
 nsBlockFrame::ReparentFloats(nsIFrame* aFirstFrame,
-                             nsBlockFrame* aOldParent, PRBool aFromOverflow) {
+                             nsBlockFrame* aOldParent, PRBool aFromOverflow,
+                             PRBool aReparentSiblings) {
   nsFrameList list;
   nsIFrame* tail = nsnull;
-  aOldParent->CollectFloats(aFirstFrame, list, &tail, aFromOverflow);
+  aOldParent->CollectFloats(aFirstFrame, list, &tail, aFromOverflow, aReparentSiblings);
   if (list.NotEmpty()) {
     for (nsIFrame* f = list.FirstChild(); f; f = f->GetNextSibling()) {
       ReparentFrame(f, aOldParent, this);
@@ -1983,7 +1984,7 @@ nsBlockFrame::ReflowDirtyLines(nsBlockReflowState& aState)
       lastFrame->SetNextSibling(nsnull);
 
       
-      ReparentFloats(toMove->mFirstChild, nextInFlow, collectOverflowFloats);
+      ReparentFloats(toMove->mFirstChild, nextInFlow, collectOverflowFloats, PR_TRUE);
 
       
       if (aState.mPrevChild) {
@@ -2344,7 +2345,7 @@ nsBlockFrame::PullFrameFrom(nsBlockReflowState& aState,
 
       
       
-      ReparentFloats(frame, aFromContainer, aFromOverflowLine);
+      ReparentFloats(frame, aFromContainer, aFromOverflowLine, PR_TRUE);
     }
 
     
@@ -3983,7 +3984,7 @@ nsBlockFrame::PushLines(nsBlockReflowState&  aState,
     
     nsFrameList floats;
     nsIFrame* tail = nsnull;
-    CollectFloats(overBegin->mFirstChild, floats, &tail, PR_FALSE);
+    CollectFloats(overBegin->mFirstChild, floats, &tail, PR_FALSE, PR_TRUE);
 
     if (floats.NotEmpty()) {
       
@@ -6199,7 +6200,7 @@ nsBlockFrame::ReflowBullet(nsBlockReflowState& aState,
 
 
 void nsBlockFrame::CollectFloats(nsIFrame* aFrame, nsFrameList& aList, nsIFrame** aTail,
-                                 PRBool aFromOverflow) {
+                                 PRBool aFromOverflow, PRBool aCollectSiblings) {
   while (aFrame) {
     
     if (!aFrame->IsFloatContainingBlock()) {
@@ -6221,9 +6222,11 @@ void nsBlockFrame::CollectFloats(nsIFrame* aFrame, nsFrameList& aList, nsIFrame*
         *aTail = outOfFlowFrame;
       }
 
-      CollectFloats(aFrame->GetFirstChild(nsnull), aList, aTail, aFromOverflow);
+      CollectFloats(aFrame->GetFirstChild(nsnull), aList, aTail, aFromOverflow,
+                    PR_TRUE);
     }
-    
+    if (!aCollectSiblings)
+      break;
     aFrame = aFrame->GetNextSibling();
   }
 }

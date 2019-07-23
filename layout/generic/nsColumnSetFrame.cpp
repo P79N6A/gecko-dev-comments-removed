@@ -270,7 +270,8 @@ nsColumnSetFrame::ChooseColumnStrategy(const nsHTMLReflowState& aReflowState)
     }
 
     
-    nscoord extraSpace = availContentWidth - (colWidth*numColumns + colGap*(numColumns - 1));
+    nscoord extraSpace =
+      PR_MAX(0, availContentWidth - (colWidth*numColumns + colGap*(numColumns - 1)));
     nscoord extraToColumns = extraSpace/numColumns;
     colWidth += extraToColumns;
     expectedWidthLeftOver = extraSpace - (extraToColumns*numColumns);

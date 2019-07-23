@@ -248,37 +248,6 @@ nsFrameList::Split(nsIFrame* aAfterFrame, nsIFrame** aNextFrameResult)
 }
 
 nsIFrame*
-nsFrameList::PullFrame(nsIFrame* aParent,
-                       nsIFrame* aLastChild,
-                       nsFrameList& aFromList)
-{
-  NS_PRECONDITION(nsnull != aParent, "null ptr");
-
-  nsIFrame* pulledFrame = nsnull;
-  if (nsnull != aParent) {
-    pulledFrame = aFromList.FirstChild();
-    if (nsnull != pulledFrame) {
-      
-      aFromList.RemoveFirstChild();
-
-      
-      if (nsnull == aLastChild) {
-        NS_ASSERTION(nsnull == mFirstChild, "bad aLastChild");
-        mFirstChild = pulledFrame;
-      }
-      else {
-        aLastChild->SetNextSibling(pulledFrame);
-      }
-      pulledFrame->SetParent(aParent);
-    }
-  }
-#ifdef DEBUG
-  CheckForLoops();
-#endif
-  return pulledFrame;
-}
-
-nsIFrame*
 nsFrameList::LastChild() const
 {
   nsIFrame* frame = mFirstChild;

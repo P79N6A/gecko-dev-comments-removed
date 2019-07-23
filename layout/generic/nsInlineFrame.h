@@ -160,12 +160,14 @@ protected:
   struct InlineReflowState {
     nsIFrame* mPrevFrame;
     nsInlineFrame* mNextInFlow;
+    nsIFrame*      mLineContainer;
     PRPackedBool mSetParentPointer;  
                                      
 
     InlineReflowState()  {
       mPrevFrame = nsnull;
       mNextInFlow = nsnull;
+      mLineContainer = nsnull;
       mSetParentPointer = PR_FALSE;
     };
   };
@@ -185,6 +187,15 @@ protected:
                              InlineReflowState& rs,
                              nsIFrame* aFrame,
                              nsReflowStatus& aStatus);
+
+  
+
+
+
+
+
+  void ReparentFloatsForInlineChild(nsIFrame* aOurBlock, nsIFrame* aFrame,
+                                    PRBool aReparentSiblings);
 
   virtual nsIFrame* PullOneFrame(nsPresContext* aPresContext,
                                  InlineReflowState& rs,

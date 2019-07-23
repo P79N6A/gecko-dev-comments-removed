@@ -379,6 +379,11 @@ public:
 
   nsresult DoRemoveFrame(nsIFrame* aDeletedFrame, PRBool aDestroyFrames = PR_TRUE, 
                          PRBool aRemoveOnlyFluidContinuations = PR_TRUE);
+
+  void ReparentFloats(nsIFrame* aFirstFrame,
+                      nsBlockFrame* aOldParent, PRBool aFromOverflow,
+                      PRBool aReparentSiblings);
+
 protected:
 
   
@@ -394,7 +399,7 @@ protected:
   line_iterator RemoveFloat(nsIFrame* aFloat);
 
   void CollectFloats(nsIFrame* aFrame, nsFrameList& aList, nsIFrame** aTail,
-                     PRBool aFromOverflow);
+                     PRBool aFromOverflow, PRBool aCollectFromSiblings);
   
   static void DoRemoveOutOfFlowFrame(nsIFrame* aFrame);
 
@@ -507,10 +512,6 @@ protected:
 
   void PushLines(nsBlockReflowState& aState,
                  nsLineList::iterator aLineBefore);
-
-
-  void ReparentFloats(nsIFrame* aFirstFrame,
-                      nsBlockFrame* aOldParent, PRBool aFromOverflow);
 
   void PropagateFloatDamage(nsBlockReflowState& aState,
                             nsLineBox* aLine,
