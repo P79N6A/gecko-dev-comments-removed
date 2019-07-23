@@ -1335,7 +1335,14 @@ SessionStoreService.prototype = {
         aData.innerHTML = aContent.document.body.innerHTML;
       }
     }
-    aData.scroll = aContent.scrollX + "," + aContent.scrollY;
+
+    
+    
+    let domWindowUtils = aContent.QueryInterface(Ci.nsIInterfaceRequestor)
+                                 .getInterface(Ci.nsIDOMWindowUtils);
+    let scrollX = {}, scrollY = {};
+    domWindowUtils.getScrollXY(false, scrollX, scrollY);
+    aData.scroll = scrollX.value + "," + scrollY.value;
   },
 
   
