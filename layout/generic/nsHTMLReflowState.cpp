@@ -1124,14 +1124,12 @@ nsHTMLReflowState::InitAbsoluteConstraints(nsPresContext* aPresContext,
                                mComputedOffsets.right);
   }
 
-  PRUint8 direction = cbrs ? cbrs->mStyleVisibility->mDirection : NS_STYLE_DIRECTION_LTR;
-
   
   
   if (leftIsAuto && rightIsAuto) {
     
     
-    if (NS_STYLE_DIRECTION_LTR == direction) {
+    if (NS_STYLE_DIRECTION_LTR == cbFrame->GetStyleVisibility()->mDirection) {
       if (hypotheticalBox.mLeftIsExact) {
         mComputedOffsets.left = hypotheticalBox.mLeft;
         leftIsAuto = PR_FALSE;
@@ -1262,12 +1260,13 @@ nsHTMLReflowState::InitAbsoluteConstraints(nsPresContext* aPresContext,
       
       
       
-      if (NS_STYLE_DIRECTION_LTR == direction) {
-        
-        mComputedOffsets.right += availMarginSpace;
-      } else {
+      if (cbrs &&
+          NS_STYLE_DIRECTION_RTL == cbrs->mStyleVisibility->mDirection) {
         
         mComputedOffsets.left += availMarginSpace;
+      } else {
+        
+        mComputedOffsets.right += availMarginSpace;
       }
     } else if (marginLeftIsAuto) {
       if (marginRightIsAuto) {
