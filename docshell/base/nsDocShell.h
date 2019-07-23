@@ -109,6 +109,7 @@
 #include "nsIChannelClassifier.h"
 
 class nsIScrollableView;
+class nsDocShell;
 
 
 
@@ -133,7 +134,7 @@ public:
 
     PRInt32 GetDelay() { return mDelay ;}
 
-    nsCOMPtr<nsIDocShell> mDocShell;
+    nsRefPtr<nsDocShell>  mDocShell;
     nsCOMPtr<nsIURI>      mURI;
     PRInt32               mDelay;
     PRPackedBool          mRepeat;
@@ -234,6 +235,13 @@ public:
     
     
     nsresult RestoreFromHistory();
+
+    
+    
+    
+    
+    nsresult ForceRefreshURIFromTimer(nsIURI * aURI, PRInt32 aDelay,
+                                      PRBool aMetaRefresh, nsITimer* aTimer);
 
 protected:
     
