@@ -785,7 +785,7 @@ nsStandardURL::AppendToSubstring(PRUint32 pos,
     if (tailLen < 0)
         tailLen = strlen(tail);
 
-    char *result = (char *) malloc(len + tailLen + 1);
+    char *result = (char *) NS_Alloc(len + tailLen + 1);
     if (result) {
         memcpy(result, mSpec.get() + pos, len);
         memcpy(result + len, tail, tailLen);
@@ -1669,9 +1669,7 @@ nsStandardURL::Resolve(const nsACString &in, nsACString &out)
     } else
         relpathLen = flat.Length();
     
-    
-    char *p = nsnull;
-    char **result = &p;
+    char *result = nsnull;
 
     LOG(("nsStandardURL::Resolve [this=%p spec=%s relpath=%s]\n",
         this, mSpec.get(), relpath));
@@ -1725,7 +1723,7 @@ nsStandardURL::Resolve(const nsACString &in, nsACString &out)
                                "://",3) == 0) {
                 
                 
-                *result = nsCRT::strdup(relpath);
+                result = NS_strdup(relpath);
             } else {         
                 
                 
@@ -1736,7 +1734,7 @@ nsStandardURL::Resolve(const nsACString &in, nsACString &out)
         } else {
             
             
-            *result = nsCRT::strdup(relpath);
+            result = NS_strdup(relpath);
         }  
     } else {
         
@@ -1748,7 +1746,7 @@ nsStandardURL::Resolve(const nsACString &in, nsACString &out)
         }
         if (relpath[0] == '/' && relpath[1] == '/') {
             
-            *result = AppendToSubstring(mScheme.mPos, mScheme.mLen + 1, relpath);
+            result = AppendToSubstring(mScheme.mPos, mScheme.mLen + 1, relpath);
         } else {
             
             relative = PR_TRUE;
@@ -1796,27 +1794,25 @@ nsStandardURL::Resolve(const nsACString &in, nsACString &out)
                 len = mDirectory.mPos + mDirectory.mLen;
             }
         }
-        *result = AppendToSubstring(0, len, realrelpath);
+        result = AppendToSubstring(0, len, realrelpath);
         
-        resultPath = *result + mPath.mPos;
+        resultPath = result + mPath.mPos;
     }
-    if (!*result)
+    if (!result)
         return NS_ERROR_OUT_OF_MEMORY;
 
     if (resultPath)
         net_CoalesceDirs(coalesceFlag, resultPath);
     else {
         
-        resultPath = PL_strstr(*result, "://");
+        resultPath = PL_strstr(result, "://");
         if (resultPath) {
             resultPath = PL_strchr(resultPath + 3, '/');
             if (resultPath)
                 net_CoalesceDirs(coalesceFlag,resultPath);
         }
     }
-    
-    out = *result;
-    free(*result);
+    out.Adopt(result);
     return NS_OK;
 }
 
