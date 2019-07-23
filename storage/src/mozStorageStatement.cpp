@@ -114,8 +114,11 @@ mozStorageStatement::Initialize(mozStorageConnection *aDBConnection,
     NS_ENSURE_TRUE(db != nsnull, NS_ERROR_NULL_POINTER);
 
     int srv;
-    srv = sqlite3_prepare_v2(db, nsPromiseFlatCString(aSQLStatement).get(),
-                             aSQLStatement.Length(), &mDBStatement, NULL);
+    
+    
+    
+    srv = sqlite3_prepare_v2(db, PromiseFlatCString(aSQLStatement).get(),
+                             aSQLStatement.Length() + 1, &mDBStatement, NULL);
     if (srv != SQLITE_OK) {
 #ifdef PR_LOGGING
         PR_LOG(gStorageLog, PR_LOG_ERROR, ("Sqlite statement prepare error: %d '%s'", srv, sqlite3_errmsg(db)));
