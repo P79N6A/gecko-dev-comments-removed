@@ -65,7 +65,7 @@ protected:
                         PRInt32 aMovement, PRInt8 aResizerDirection);
 
 protected:
-	nsRect mWidgetRect;
+	nsIntRect mWidgetRect;
 }; 
 
 #endif 

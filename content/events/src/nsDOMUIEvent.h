@@ -74,18 +74,18 @@ public:
 protected:
 
   
-  nsPoint GetClientPoint();
-  nsPoint GetScreenPoint();
-  nsPoint GetLayerPoint();
-  nsPoint GetPagePoint();
+  nsIntPoint GetClientPoint();
+  nsIntPoint GetScreenPoint();
+  nsIntPoint GetLayerPoint();
+  nsIntPoint GetPagePoint();
   
 protected:
   nsCOMPtr<nsIDOMAbstractView> mView;
   PRInt32 mDetail;
-  nsPoint mClientPoint;
+  nsIntPoint mClientPoint;
   
-  nsPoint mLayerPoint;
-  nsPoint mPagePoint;
+  nsIntPoint mLayerPoint;
+  nsIntPoint mPagePoint;
 };
 
 #define NS_FORWARD_TO_NSDOMUIEVENT \

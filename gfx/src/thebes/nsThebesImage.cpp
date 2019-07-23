@@ -220,7 +220,7 @@ nsThebesImage::GetAlphaLineStride()
 }
 
 nsresult
-nsThebesImage::ImageUpdated(nsIDeviceContext *aContext, PRUint8 aFlags, nsRect *aUpdateRect)
+nsThebesImage::ImageUpdated(nsIDeviceContext *aContext, PRUint8 aFlags, nsIntRect *aUpdateRect)
 {
     
     nsCOMPtr<nsIMemory> mem;
@@ -245,7 +245,7 @@ PRBool
 nsThebesImage::GetIsImageComplete()
 {
     if (!mImageComplete)
-        mImageComplete = (mDecoded == nsRect(0, 0, mWidth, mHeight));
+        mImageComplete = (mDecoded == nsIntRect(0, 0, mWidth, mHeight));
     return mImageComplete;
 }
 

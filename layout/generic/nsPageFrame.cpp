@@ -545,9 +545,8 @@ nsPageFrame::PaintPageContent(nsIRenderingContext& aRenderingContext,
   aRenderingContext.Translate(framePos.x, framePos.y);
   
   
-  rect -= framePos;
   aRenderingContext.Scale(scale, scale);
-  rect.ScaleRoundOut(1.0f / scale);
+  rect = (rect - framePos).ScaleRoundOutInverse(scale);
   
   
   nsRect clipRect(nsPoint(0, 0), pageContentFrame->GetSize());
