@@ -35,6 +35,7 @@
 
 
 
+
 #ifdef _MAC
 
 #include <CoreServices/CoreServices.h>
@@ -97,7 +98,13 @@ namespace nanojit
 			if (needSaving&rmask(i))
 				PUSHr(i);
 
-		#ifndef DARWIN
+        
+        
+        
+        
+        
+        
+        #if ! defined(DARWIN) && ! defined(__GNUC__)
 		
 		PUSHr(FP);
 		ANDi(SP, -NJ_ALIGN_STACK);

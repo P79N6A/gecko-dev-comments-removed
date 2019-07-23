@@ -36,6 +36,7 @@
 
 
 
+
 #ifndef __nanojit_Assembler__
 #define __nanojit_Assembler__
 

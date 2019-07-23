@@ -36,6 +36,7 @@
 
 
 
+
 #ifndef __nanojit_NativeThumb__
 #define __nanojit_NativeThumb__
 

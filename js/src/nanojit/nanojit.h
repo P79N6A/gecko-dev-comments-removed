@@ -35,6 +35,7 @@
 
 
 
+
 #ifndef __nanojit_h_
 #define __nanojit_h__
 
@@ -47,6 +48,9 @@
 #define NANOJIT_ARM
 #elif AVMPLUS_PPC
 #define NANOJIT_PPC
+#elif AVMPLUS_AMD64
+#define NANOJIT_AMD64
+#define NANOJIT_64BIT
 #else
 #error "unknown nanojit architecture"
 #endif
@@ -161,5 +165,6 @@ namespace nanojit
 #include "RegAlloc.h"
 #include "Fragmento.h"
 #include "Assembler.h"
+#include "TraceTreeDrawer.h"
 
 #endif 

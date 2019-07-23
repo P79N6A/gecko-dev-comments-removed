@@ -36,6 +36,7 @@
 
 
 
+
 #ifndef __nanojit_Nativei386__
 #define __nanojit_Nativei386__
 
@@ -56,11 +57,10 @@ namespace nanojit
 	#define NJ_MAX_STACK_ENTRY 256
 	#define NJ_MAX_PARAMETERS 1
 
-#ifdef DARWIN
+        
+        
+        
 	const int NJ_ALIGN_STACK = 16;
-#else
-	const int NJ_ALIGN_STACK = 8;
-#endif
 	
 	typedef uint8_t NIns;
 
@@ -323,7 +323,9 @@ namespace nanojit
 #define MRB(dr,sr)	do { ALU2(0x0f42,dr,sr); asm_output2("cmovb %s,%s", gpn(dr),gpn(sr)); } while(0)
 #define MRBE(dr,sr)	do { ALU2(0x0f46,dr,sr); asm_output2("cmovbe %s,%s", gpn(dr),gpn(sr)); } while(0)
 #define MRA(dr,sr)	do { ALU2(0x0f47,dr,sr); asm_output2("cmova %s,%s", gpn(dr),gpn(sr)); } while(0)
+#define MRNC(dr,sr)	do { ALU2(0x0f43,dr,sr); asm_output2("cmovnc %s,%s", gpn(dr),gpn(sr)); } while(0)
 #define MRAE(dr,sr)	do { ALU2(0x0f43,dr,sr); asm_output2("cmovae %s,%s", gpn(dr),gpn(sr)); } while(0)
+#define MRNO(dr,sr)	do { ALU2(0x0f41,dr,sr); asm_output2("cmovno %s,%s", gpn(dr),gpn(sr)); } while(0)
 
 
 

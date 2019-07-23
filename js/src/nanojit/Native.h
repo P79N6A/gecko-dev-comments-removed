@@ -36,6 +36,7 @@
 
 
 
+
 #ifndef __nanojit_Native__
 #define __nanojit_Native__
 

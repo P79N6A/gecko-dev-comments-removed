@@ -36,6 +36,7 @@
 
 
 
+
 #include "nanojit.h"
 #include <stdio.h>
 
@@ -50,7 +51,7 @@ namespace nanojit
 		0, 2, 2, 2, 2, 2, 2, 2, 2, 2,
 		2, 2, 0, 0, 2, 2, 1, 2, 2, 2,
 		1, 2, 2, 2, 1, 2, 2, 2, 1, 1,
-		1, 1, 2, 2, 2, 2, 2, 2, 2, 2,
+		1, 1, 2, 1, 1, 2, 2, 2, 2, 2,
 		2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
 		2, 2, 2, 1, 2, 2, 2, 2, 2, 2,
 		2, 2, 0, 2, 2, 2, 2, 2, 2, 2,
@@ -69,7 +70,7 @@ namespace nanojit
 	 "x","21","22","23","24","25","feq","flt","fgt","fle",
 	 "fge","cmov","short","int","ldc","","neg","add","sub","mul",
 	 "callh","and","or","xor","not","lsh","rsh","ush","xt","xf",
-	 "qlo","qhi","ldcb","53","54","eq","lt","gt","le","ge",
+	 "qlo","qhi","ldcb","ov","cs","eq","lt","gt","le","ge",
 	 "ult","ugt","ule","uge",
 	 "LIR64","65","66","67","68","69",
 	 "70","71","72","farg","74","stq","ldq","77","stqi","79",
@@ -442,11 +443,19 @@ namespace nanojit
 	bool FASTCALL isCmp(LOpcode c) {
 		return c >= LIR_eq && c <= LIR_uge || c >= LIR_feq && c <= LIR_fge;
 	}
-
+    
+	bool FASTCALL isCond(LOpcode c) {
+		return (c == LIR_ov) || (c == LIR_cs) || isCmp(c);
+	}
+    
 	bool LIns::isCmp() const {
 		return nanojit::isCmp(u.code);
 	}
 
+    bool LIns::isCond() const {
+        return nanojit::isCond(u.code);
+    }
+    
 	bool LIns::isCall() const
 	{
 		return (u.code&~LIR64) == LIR_call;
@@ -661,6 +670,10 @@ namespace nanojit
 			}
 			if (v == LIR_eq)
 				return insImm(c1 == c2);
+            if (v == LIR_ov)
+                return insImm((c2 != 0) && ((c1 + c2) <= c1)); 
+            if (v == LIR_cs)
+                return insImm((c2 != 0) && ((uint32_t(c1) + uint32_t(c2)) <= uint32_t(c1)));
 			if (v == LIR_lt)
 				return insImm(c1 < c2);
 			if (v == LIR_gt)
@@ -837,6 +850,11 @@ namespace nanojit
 	LIns* LirWriter::qjoin(LInsp lo, LInsp hi)
 	{
 		return ins2(LIR_qjoin, lo, hi);
+	}
+
+	LIns* LirWriter::insImmPtr(const void *ptr)
+	{
+		return sizeof(ptr) == 8 ? insImmq((uintptr_t)ptr) : insImm((intptr_t)ptr);
 	}
 
 	LIns* LirWriter::ins_choose(LIns* cond, LIns* iftrue, LIns* iffalse, bool hasConditionalMove)
@@ -1546,6 +1564,8 @@ namespace nanojit
 			case LIR_qlo:
 			case LIR_qhi:
 			case LIR_ref:
+            case LIR_ov:
+            case LIR_cs:
 				sprintf(s, "%s %s", lirNames[op], formatRef(i->oprnd1()));
 				break;
 
