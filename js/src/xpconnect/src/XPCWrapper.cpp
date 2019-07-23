@@ -434,7 +434,6 @@ XPCWrapper::ResolveNativeProperty(JSContext *cx, JSObject *wrapperObj,
 
   
   XPCNativeMember* member = ccx.GetMember();
-  NS_ASSERTION(member, "not doing IDispatch, how'd this happen?");
   if (!member) {
     
 
@@ -594,7 +593,6 @@ XPCWrapper::GetOrSetNativeProperty(JSContext *cx, JSObject *obj,
 
   
   XPCNativeMember* member = ccx.GetMember();
-  NS_ASSERTION(member, "not doing IDispatch, how'd this happen?");
   if (!member) {
     
 
