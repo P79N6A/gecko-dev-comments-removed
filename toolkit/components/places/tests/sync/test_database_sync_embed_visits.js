@@ -42,6 +42,8 @@
 
 
 
+
+
 var hs = Cc["@mozilla.org/browser/nav-history-service;1"].
          getService(Ci.nsINavHistoryService);
 var dbConn = hs.QueryInterface(Ci.nsPIPlacesDatabase).DBConnection;
@@ -65,6 +67,7 @@ var transitions = [ hs.TRANSITION_LINK,
                     hs.TRANSITION_TYPED,
                     hs.TRANSITION_BOOKMARK,
                     hs.TRANSITION_EMBED,
+                    hs.TRANSITION_FRAMED_LINK,
                     hs.TRANSITION_REDIRECT_PERMANENT,
                     hs.TRANSITION_REDIRECT_TEMPORARY,
                     hs.TRANSITION_DOWNLOAD ];

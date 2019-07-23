@@ -69,6 +69,7 @@ function run_test() {
       
       
       add_visit("http://www.hidden.com/hidden.gif", histsvc.TRANSITION_EMBED);
+      add_visit("http://www.alsohidden.com/hidden.gif", histsvc.TRANSITION_FRAMED_LINK);
     }
   }
 

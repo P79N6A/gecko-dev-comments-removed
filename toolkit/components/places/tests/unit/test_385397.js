@@ -40,22 +40,19 @@
 
 
 
-try {
-  var histsvc = Cc["@mozilla.org/browser/nav-history-service;1"].getService(Ci.nsINavHistoryService);
-} catch(ex) {
-  do_throw("Could not get history service\n");
-} 
+var histsvc = Cc["@mozilla.org/browser/nav-history-service;1"].
+              getService(Ci.nsINavHistoryService);
 
 
 function add_visit(aURI, aWhen, aType) {
-  var placeID = histsvc.addVisit(aURI,
+  var visitID = histsvc.addVisit(aURI,
                                  aWhen,
                                  null, 
                                  aType,
                                  false, 
                                  0);
-  do_check_true(placeID > 0);
-  return placeID;
+  do_check_true(visitID > 0);
+  return visitID;
 }
 
 const TOTAL_SITES = 20;
@@ -70,10 +67,13 @@ function run_test() {
     var testImageURI = uri(site + "blank.gif");
     var when = now + (i * TOTAL_SITES);
     add_visit(testURI, when, histsvc.TRANSITION_TYPED);
-    add_visit(testImageURI, when + 1, histsvc.TRANSITION_EMBED);
-    add_visit(testURI, when + 2, histsvc.TRANSITION_LINK);
+    add_visit(testImageURI, ++when, histsvc.TRANSITION_EMBED);
+    add_visit(testImageURI, ++when, histsvc.TRANSITION_FRAMED_LINK);
+    add_visit(testURI, ++when, histsvc.TRANSITION_LINK);
   }
 
+  
+  
   
   
   
@@ -93,16 +93,20 @@ function run_test() {
   var root = result.root;
   root.containerOpen = true;
   var cc = root.childCount;
-  do_check_eq(cc, 3 * TOTAL_SITES); 
-  for (var i=0; i < TOTAL_SITES; i++) {
-    var node = root.getChild(i*3);
+  do_check_eq(cc, 4 * TOTAL_SITES);
+  for (var i = 0; i < TOTAL_SITES; i++) {
+    var index = i * 4;
+    var node = root.getChild(index);
     var site = "http://www.test-" + (TOTAL_SITES - 1 - i) + ".com/";
     do_check_eq(node.uri, site);
     do_check_eq(node.type, options.RESULTS_AS_VISIT);
-    node = root.getChild(i*3+1);
+    node = root.getChild(++index);
     do_check_eq(node.uri, site + "blank.gif");
     do_check_eq(node.type, options.RESULTS_AS_VISIT);
-    node = root.getChild(i*3+2);
+    node = root.getChild(++index);
+    do_check_eq(node.uri, site + "blank.gif");
+    do_check_eq(node.type, options.RESULTS_AS_VISIT);
+    node = root.getChild(++index);
     do_check_eq(node.uri, site);
     do_check_eq(node.type, options.RESULTS_AS_VISIT);
   }
@@ -126,11 +130,12 @@ function run_test() {
   
   do_check_eq(cc, 2 * TOTAL_SITES); 
   for (var i=0; i < TOTAL_SITES; i++) {
-    var node = root.getChild(i*2);
+    var index = i * 2;
+    var node = root.getChild(index);
     var site = "http://www.test-" + (TOTAL_SITES - 1 - i) + ".com/";
     do_check_eq(node.uri, site);
     do_check_eq(node.type, options.RESULTS_AS_VISIT);
-    node = root.getChild(i*2+1);
+    node = root.getChild(++index);
     do_check_eq(node.uri, site);
     do_check_eq(node.type, options.RESULTS_AS_VISIT);
   }

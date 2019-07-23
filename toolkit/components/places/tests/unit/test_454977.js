@@ -37,13 +37,9 @@
 
 
 
-try {
-  var hs = Cc["@mozilla.org/browser/nav-history-service;1"].
-           getService(Ci.nsINavHistoryService);
-  var mDBConn = hs.QueryInterface(Ci.nsPIPlacesDatabase).DBConnection;
-} catch(ex) {
-  do_throw("Could not get services\n");
-}
+var hs = Cc["@mozilla.org/browser/nav-history-service;1"].
+         getService(Ci.nsINavHistoryService);
+var mDBConn = hs.QueryInterface(Ci.nsPIPlacesDatabase).DBConnection;
 
 
 var visit_count = 0;
@@ -57,6 +53,7 @@ function add_visit(aURI, aVisitDate, aVisitType) {
   
   if (aVisitType != 0 &&
       aVisitType != hs.TRANSITION_EMBED &&
+      aVisitType != hs.TRANSITION_FRAMED_LINK &&
       aVisitType != hs.TRANSITION_DOWNLOAD)
     visit_count ++;
   
@@ -108,6 +105,9 @@ function run_test() {
 
   
   var placeId = add_visit(testURI, Date.now()*1000, hs.TRANSITION_EMBED);
+  check_results(0, 1);
+
+  var placeId = add_visit(testURI, Date.now()*1000, hs.TRANSITION_FRAMED_LINK);
   check_results(0, 1);
 
   
