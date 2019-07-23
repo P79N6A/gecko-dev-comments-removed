@@ -965,7 +965,7 @@ js_ValueToNumber(JSContext *cx, jsval *vp)
 
 
         JS_PUSH_SINGLE_TEMP_ROOT(cx, v, &tvr);
-        if (!OBJ_DEFAULT_VALUE(cx, obj, JSTYPE_NUMBER, &tvr.u.value))
+        if (!obj->defaultValue(cx, JSTYPE_NUMBER, &tvr.u.value))
             obj = NULL;
         else
             v = *vp = tvr.u.value;

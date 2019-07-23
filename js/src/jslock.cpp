@@ -734,7 +734,7 @@ js_GetSlotThreadSafe(JSContext *cx, JSObject *obj, uint32 slot)
 
 
     if (!OBJ_IS_NATIVE(obj))
-        return OBJ_GET_REQUIRED_SLOT(cx, obj, slot);
+        return obj->getRequiredSlot(cx, slot);
 
     
 
@@ -827,7 +827,7 @@ js_SetSlotThreadSafe(JSContext *cx, JSObject *obj, uint32 slot, jsval v)
 
 
     if (!OBJ_IS_NATIVE(obj)) {
-        OBJ_SET_REQUIRED_SLOT(cx, obj, slot, v);
+        obj->setRequiredSlot(cx, slot, v);
         return;
     }
 
