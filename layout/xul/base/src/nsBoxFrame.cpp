@@ -1264,11 +1264,12 @@ public:
   }
 #endif
 
-  virtual nsIFrame* HitTest(nsDisplayListBuilder* aBuilder, nsPoint aPt,
-                            HitTestState* aState) {
+  virtual void HitTest(nsDisplayListBuilder* aBuilder, nsRect aRect,
+                       HitTestState* aState, nsTArray<nsIFrame*> *aOutFrames) {
+    nsPoint rectCenter(aRect.x + aRect.width / 2, aRect.y + aRect.height / 2);
     static_cast<nsBoxFrame*>(mFrame)->
-      DisplayDebugInfoFor(this, aPt - aBuilder->ToReferenceFrame(mFrame));
-    return PR_TRUE;
+      DisplayDebugInfoFor(this, rectCenter - aBuilder->ToReferenceFrame(mFrame));
+    aOutFrames->AppendElement(this);
   }
   virtual void Paint(nsDisplayListBuilder* aBuilder
                      nsIRenderingContext* aCtx);
@@ -2136,31 +2137,38 @@ public:
   nsDisplayXULEventRedirector(nsIFrame* aFrame, nsDisplayList* aList,
                               nsIFrame* aTargetFrame)
     : nsDisplayWrapList(aFrame, aList), mTargetFrame(aTargetFrame) {}
-  virtual nsIFrame* HitTest(nsDisplayListBuilder* aBuilder, nsPoint aPt,
-                            HitTestState* aState);
+  virtual void HitTest(nsDisplayListBuilder* aBuilder, const nsRect& aRect,
+                       HitTestState* aState, nsTArray<nsIFrame*> *aOutFrames);
   NS_DISPLAY_DECL_NAME("XULEventRedirector")
 private:
   nsIFrame* mTargetFrame;
 };
 
-nsIFrame* nsDisplayXULEventRedirector::HitTest(nsDisplayListBuilder* aBuilder,
-    nsPoint aPt, HitTestState* aState)
+void nsDisplayXULEventRedirector::HitTest(nsDisplayListBuilder* aBuilder,
+    const nsRect& aRect, HitTestState* aState, nsTArray<nsIFrame*> *aOutFrames)
 {
-  nsIFrame* frame = mList.HitTest(aBuilder, aPt, aState);
-  if (!frame)
-    return nsnull;
+  nsTArray<nsIFrame*> outFrames;
+  mList.HitTest(aBuilder, aRect, aState, &outFrames);
 
-  for (nsIContent* content = frame->GetContent();
-       content && content != mTargetFrame->GetContent();
-       content = content->GetParent()) {
-    if (content->AttrValueIs(kNameSpaceID_None, nsGkAtoms::allowevents,
-                             nsGkAtoms::_true, eCaseMatters)) {
-      
-      return frame;
+  PRInt32 originalLength = aOutFrames->Length();
+
+  for (PRUint32 i = 0; i < originalLength; i++) {
+
+    for (nsIContent* content = outFrames.ElementAt(i)->GetContent();
+         content && content != mTargetFrame->GetContent();
+         content = content->GetParent()) {
+      if (content->AttrValueIs(kNameSpaceID_None, nsGkAtoms::allowevents,
+                               nsGkAtoms::_true, eCaseMatters)) {
+        
+        aOutFrames->AppendElement(outFrames.ElementAt(i));
+      }
     }
+
   }
   
-  return mTargetFrame;
+  if (aOutFrames->Length() == originalLength) {
+    aOutFrames->AppendElement(mTargetFrame);
+  }
 }
 
 class nsXULEventRedirectorWrapper : public nsDisplayWrapper

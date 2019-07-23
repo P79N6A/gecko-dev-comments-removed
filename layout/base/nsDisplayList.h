@@ -515,8 +515,8 @@ public:
 
 
 
-  virtual nsIFrame* HitTest(nsDisplayListBuilder* aBuilder, nsPoint aPt,
-                            HitTestState* aState) { return nsnull; }
+  virtual void HitTest(nsDisplayListBuilder* aBuilder, const nsRect& aRect,
+                       HitTestState* aState, nsTArray<nsIFrame*> *aOutFrames) {}
   
 
 
@@ -871,8 +871,9 @@ public:
 
 
 
-  nsIFrame* HitTest(nsDisplayListBuilder* aBuilder, nsPoint aPt,
-                    nsDisplayItem::HitTestState* aState) const;
+  void HitTest(nsDisplayListBuilder* aBuilder, const nsRect& aRect,
+               nsDisplayItem::HitTestState* aState,
+               nsTArray<nsIFrame*> *aOutFrames) const;
 
   
 
@@ -1310,8 +1311,11 @@ public:
   }
 #endif
 
-  virtual nsIFrame* HitTest(nsDisplayListBuilder* aBuilder, nsPoint aPt,
-                            HitTestState* aState) { return mFrame; }
+  virtual void HitTest(nsDisplayListBuilder* aBuilder, const nsRect& aRect,
+                       HitTestState* aState, nsTArray<nsIFrame*> *aOutFrames)
+  {
+    aOutFrames->AppendElement(mFrame);
+  }
   virtual PRBool IsOpaque(nsDisplayListBuilder* aBuilder);
   virtual PRBool IsVaryingRelativeToMovingFrame(nsDisplayListBuilder* aBuilder);
   virtual PRBool IsUniform(nsDisplayListBuilder* aBuilder);
@@ -1409,8 +1413,11 @@ public:
   }
 #endif
 
-  virtual nsIFrame* HitTest(nsDisplayListBuilder* aBuilder, nsPoint aPt,
-                            HitTestState* aState) { return mFrame; }
+  virtual void HitTest(nsDisplayListBuilder* aBuilder, const nsRect& aRect,
+                       HitTestState* aState, nsTArray<nsIFrame*> *aOutFrames)
+  {
+    aOutFrames->AppendElement(mFrame);
+  }
   NS_DISPLAY_DECL_NAME("EventReceiver")
 };
 
@@ -1440,8 +1447,8 @@ public:
   nsDisplayWrapList(nsIFrame* aFrame, nsDisplayItem* aItem);
   virtual ~nsDisplayWrapList();
   virtual Type GetType() { return TYPE_WRAPLIST; }
-  virtual nsIFrame* HitTest(nsDisplayListBuilder* aBuilder, nsPoint aPt,
-                            HitTestState* aState);
+  virtual void HitTest(nsDisplayListBuilder* aBuilder, const nsRect& aRect,
+                       HitTestState* aState, nsTArray<nsIFrame*> *aOutFrames);
   virtual nsRect GetBounds(nsDisplayListBuilder* aBuilder);
   virtual PRBool IsOpaque(nsDisplayListBuilder* aBuilder);
   virtual PRBool IsUniform(nsDisplayListBuilder* aBuilder);
@@ -1587,8 +1594,8 @@ public:
   
   virtual Type GetType() { return TYPE_SVG_EFFECTS; }
   virtual PRBool IsOpaque(nsDisplayListBuilder* aBuilder);
-  virtual nsIFrame* HitTest(nsDisplayListBuilder* aBuilder, nsPoint aPt,
-                            HitTestState* aState);
+  virtual void HitTest(nsDisplayListBuilder* aBuilder, const nsRect& aRect,
+                       HitTestState* aState, nsTArray<nsIFrame*> *aOutFrames);
   virtual nsRect GetBounds(nsDisplayListBuilder* aBuilder) {
     return mBounds + aBuilder->ToReferenceFrame(mEffectsFrame);
   }
@@ -1644,8 +1651,8 @@ public:
   nsDisplayWrapList* GetStoredList() { return &mStoredList; }
 #endif
 
-  virtual nsIFrame* HitTest(nsDisplayListBuilder *aBuilder, nsPoint aPt,
-                            HitTestState *aState);
+  virtual void HitTest(nsDisplayListBuilder *aBuilder, const nsRect& aRect,
+                       HitTestState *aState, nsTArray<nsIFrame*> *aOutFrames);
   virtual nsRect GetBounds(nsDisplayListBuilder *aBuilder);
   virtual PRBool IsOpaque(nsDisplayListBuilder *aBuilder);
   virtual PRBool IsUniform(nsDisplayListBuilder *aBuilder);

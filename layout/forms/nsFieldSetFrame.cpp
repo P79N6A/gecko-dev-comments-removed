@@ -186,20 +186,20 @@ public:
   }
 #endif
 
-  virtual nsIFrame* HitTest(nsDisplayListBuilder* aBuilder, nsPoint aPt,
-                            HitTestState* aState);
+  virtual void HitTest(nsDisplayListBuilder* aBuilder, const nsRect& aRect,
+                       HitTestState* aState, nsTArray<nsIFrame*> *aOutFrames);
   virtual void Paint(nsDisplayListBuilder* aBuilder,
                      nsIRenderingContext* aCtx);
   NS_DISPLAY_DECL_NAME("FieldSetBorderBackground")
 };
 
-nsIFrame* nsDisplayFieldSetBorderBackground::HitTest(nsDisplayListBuilder* aBuilder,
-    nsPoint aPt, HitTestState* aState)
+void nsDisplayFieldSetBorderBackground::HitTest(nsDisplayListBuilder* aBuilder, const nsRect& aRect,
+                                                HitTestState* aState, nsTArray<nsIFrame*> *aOutFrames)
 {
   
   
   
-  return mFrame;
+  aOutFrames->AppendElement(mFrame);
 }
 
 void
