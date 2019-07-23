@@ -37,6 +37,7 @@
 
 
 
+
 #ifndef nsCocoaUtils_h_
 #define nsCocoaUtils_h_
 
@@ -46,7 +47,9 @@
 
 
 
-float CocoaScreenCoordsHeight();
+
+
+float FlippedScreenY(float y);
 
 
 
