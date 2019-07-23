@@ -161,6 +161,8 @@ protected:
 
     
 
+    void SendThroughTransport(Message* msg);
+
     void OnNotifyMaybeChannelError();
     virtual bool ShouldDeferNotifyMaybeError() {
         return false;
@@ -173,7 +175,6 @@ protected:
     
 
     void OnChannelOpened();
-    void OnSend(Message* aMsg);
     void OnCloseChannel();
     void PostErrorNotifyTask();
 
