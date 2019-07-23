@@ -254,6 +254,12 @@ typedef enum JSRuntimeState {
     JSRTS_LANDING
 } JSRuntimeState;
 
+typedef enum JSBuiltinFunctionId {
+    JSBUILTIN_ObjectToIterator,
+    JSBUILTIN_CallIteratorNext,
+    JSBUILTIN_LIMIT
+} JSBuiltinFunctionId;
+
 typedef struct JSPropertyTreeEntry {
     JSDHashEntryHdr     hdr;
     JSScopeProperty     *child;
@@ -362,6 +368,14 @@ struct JSRuntime {
 
     JSString            *emptyString;
     JSString            **unitStrings;
+
+    
+
+
+
+
+
+    JSObject            *builtinFunctions[JSBUILTIN_LIMIT];
 
     
     JSCList             contextList;
