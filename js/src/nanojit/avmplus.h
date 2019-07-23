@@ -63,7 +63,6 @@
 
 
 
-typedef JSWord intptr_t;
 typedef JSUint8 uint8_t;
 typedef JSUint16 uint16_t;
 typedef JSUint32 uint32_t;
