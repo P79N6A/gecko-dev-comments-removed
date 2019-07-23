@@ -80,7 +80,9 @@ function run_test() {
                                    bmsvc.DEFAULT_INDEX, "");
   do_check_true(observer.itemChangedProperty == null);
 
-  var newDate = Date.now() * 1000;
+  
+  
+  var newDate = Date.now() * 1000 - 1;
   bmsvc.setItemDateAdded(bookmarkId, newDate);
   
   do_check_eq(observer._itemChangedProperty, "dateAdded");
@@ -106,7 +108,7 @@ function run_test() {
   do_check_eq(observer._itemChangedValue, "Google");
 
   
-  do_check_neq(bmsvc.getItemLastModified(bookmarkId), newDate);
+  do_check_true(bmsvc.getItemLastModified(bookmarkId) > newDate);
 
   
   var query = histsvc.getNewQuery();
