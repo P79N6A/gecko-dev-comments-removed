@@ -51,6 +51,9 @@ nsHttpConnectionInfo::SetOriginServer(const nsACString &host, PRInt32 port)
     
     
     
+    
+    
+    
 
     const char *keyHost;
     PRInt32 keyPort;
@@ -64,7 +67,7 @@ nsHttpConnectionInfo::SetOriginServer(const nsACString &host, PRInt32 port)
         keyPort = Port();
     }
 
-    mHashKey.AssignLiteral("..");
+    mHashKey.AssignLiteral("...");
     mHashKey.Append(keyHost);
     mHashKey.Append(':');
     mHashKey.AppendInt(keyPort);

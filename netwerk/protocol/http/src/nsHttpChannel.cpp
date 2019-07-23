@@ -676,6 +676,7 @@ nsHttpChannel::SetupTransaction()
     
     if (mLoadFlags & LOAD_ANONYMOUS) {
         mCaps |= NS_HTTP_LOAD_ANONYMOUS;
+        mConnectionInfo->SetAnonymous();
     }
 
     nsCOMPtr<nsIAsyncInputStream> responseStream;
