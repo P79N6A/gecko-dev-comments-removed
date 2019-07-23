@@ -634,6 +634,8 @@ namespace nanojit
 
     void Assembler::patch(GuardRecord *lr)
     {
+        if (!lr->jmp) 
+            return;
         Fragment *frag = lr->exit->target;
         NanoAssert(frag->fragEntry != 0);
         NIns* was = nPatchBranch((NIns*)lr->jmp, frag->fragEntry);
