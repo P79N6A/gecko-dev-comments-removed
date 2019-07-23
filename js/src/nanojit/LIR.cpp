@@ -397,6 +397,49 @@ namespace nanojit
         return cur;
     }
 
+    
+    
+    void LIns::staticSanityCheck()
+    {
+        
+        NanoStaticAssert(sizeof(LIns) == 1*sizeof(void*));
+
+        
+        NanoStaticAssert(sizeof(LInsOp0) == 1*sizeof(void*));
+        NanoStaticAssert(sizeof(LInsOp1) == 2*sizeof(void*));
+        NanoStaticAssert(sizeof(LInsOp2) == 3*sizeof(void*));
+        NanoStaticAssert(sizeof(LInsOp3) == 4*sizeof(void*));
+        NanoStaticAssert(sizeof(LInsLd)  == 3*sizeof(void*));
+        NanoStaticAssert(sizeof(LInsSti) == 4*sizeof(void*));
+        NanoStaticAssert(sizeof(LInsSk)  == 2*sizeof(void*));
+        NanoStaticAssert(sizeof(LInsC)   == 3*sizeof(void*));
+        NanoStaticAssert(sizeof(LInsP)   == 2*sizeof(void*));
+        NanoStaticAssert(sizeof(LInsI)   == 2*sizeof(void*));
+    #if defined NANOJIT_64BIT
+        NanoStaticAssert(sizeof(LInsI64) == 2*sizeof(void*));
+    #else
+        NanoStaticAssert(sizeof(LInsI64) == 3*sizeof(void*));
+    #endif
+
+        
+        
+        NanoStaticAssert( (offsetof(LInsOp1, ins) - offsetof(LInsOp1, oprnd_1)) ==
+                          (offsetof(LInsOp2, ins) - offsetof(LInsOp2, oprnd_1)) );
+        NanoStaticAssert( (offsetof(LInsOp2, ins) - offsetof(LInsOp2, oprnd_1)) ==
+                          (offsetof(LInsOp3, ins) - offsetof(LInsOp3, oprnd_1)) );
+        NanoStaticAssert( (offsetof(LInsOp3, ins) - offsetof(LInsOp3, oprnd_1)) ==
+                          (offsetof(LInsLd,  ins) - offsetof(LInsLd,  oprnd_1)) );
+        NanoStaticAssert( (offsetof(LInsLd,  ins) - offsetof(LInsLd,  oprnd_1)) ==
+                          (offsetof(LInsSti, ins) - offsetof(LInsSti, oprnd_1)) );
+
+        
+        
+        NanoStaticAssert( (offsetof(LInsOp2, ins) - offsetof(LInsOp2, oprnd_2)) ==
+                          (offsetof(LInsOp3, ins) - offsetof(LInsOp3, oprnd_2)) );
+        NanoStaticAssert( (offsetof(LInsOp3, ins) - offsetof(LInsOp3, oprnd_2)) ==
+                          (offsetof(LInsSti, ins) - offsetof(LInsSti, oprnd_2)) );
+    }
+
     bool LIns::isFloat() const {
         switch (opcode()) {
             default:
@@ -519,66 +562,6 @@ namespace nanojit
     bool LIns::isCse() const
     {
         return nanojit::isCseOpcode(opcode()) || (isCall() && callInfo()->_cse);
-    }
-
-    void LIns::setTarget(LInsp label)
-    {
-        NanoAssert(label && label->isop(LIR_label));
-        NanoAssert(isBranch());
-        toLInsOp2()->oprnd_2 = label;
-    }
-
-    LInsp LIns::getTarget()
-    {
-        NanoAssert(isBranch());
-        return oprnd2();
-    }
-
-    void *LIns::payload() const
-    {
-        NanoAssert(isop(LIR_skip));
-        
-        
-        return (void*) (uintptr_t(prevLIns()) + sizeof(LIns));
-    }
-
-    uint64_t LIns::imm64() const
-    {
-        NanoAssert(isconstq());
-        return (uint64_t(toLInsI64()->imm64_1) << 32) | uint32_t(toLInsI64()->imm64_0);
-    }
-
-    double LIns::imm64f() const
-    {
-        union {
-            double f;
-            uint64_t q;
-        } u;
-        u.q = imm64();
-        return u.f;
-    }
-
-    const CallInfo* LIns::callInfo() const
-    {
-        NanoAssert(isCall());
-        return toLInsC()->ci;
-    }
-
-    
-    
-    LInsp LIns::arg(uint32_t i)
-    {
-        NanoAssert(isCall());
-        NanoAssert(i < argc());
-        
-        LInsp* argSlot = (LInsp*)(uintptr_t(toLInsC()) - (i+1)*sizeof(void*));
-        return *argSlot;
-    }
-
-    void LIns::setSize(int32_t nbytes) {
-        NanoAssert(isop(LIR_alloc));
-        NanoAssert(nbytes > 0);
-        toLInsI()->imm32 = (nbytes+3)>>2; 
     }
 
     LIns* LirWriter::ins2i(LOpcode v, LIns* oprnd1, int32_t imm)
@@ -1429,12 +1412,6 @@ namespace nanojit
         }
         i = hash;
         return k;
-    }
-
-    GuardRecord *LIns::record()
-    {
-        NanoAssert(isGuard());
-        return (GuardRecord*)oprnd2()->payload();
     }
 
 #ifdef NJ_VERBOSE
