@@ -200,10 +200,11 @@ protected:
   nsresult FindXPCNativeWrapperClass(nsIXPConnectJSObjectHolder *aHolder);
 
   
-  nsresult ConvertSupportsTojsvals(nsISupports *aArgs,
-                                   void *aScope,
-                                   PRUint32 *aArgc, void **aArgv,
-                                   void **aMarkp);
+  JS_FORCES_STACK nsresult ConvertSupportsTojsvals(nsISupports *aArgs,
+                                                   void *aScope,
+                                                   PRUint32 *aArgc,
+                                                   void **aArgv,
+                                                   void **aMarkp);
 
   nsresult AddSupportsPrimitiveTojsvals(nsISupports *aArg, jsval *aArgv);
 
