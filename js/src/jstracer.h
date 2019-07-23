@@ -612,14 +612,17 @@ struct InterpState
     InterpState*   prev;
 
     
-
-
-
-
+    
+    
     uint32         builtinStatus;
 
     
     double*        deepBailSp;
+
+
+    
+    uintN          nativeVpLen;
+    jsval         *nativeVp;
 };
 
 

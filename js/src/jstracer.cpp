@@ -4794,7 +4794,7 @@ SynthesizeFrame(JSContext* cx, const FrameInfo& fi, JSObject* callee)
 }
 
 static void
-SynthesizeSlowNativeFrame(JSContext *cx, VMSideExit *exit)
+SynthesizeSlowNativeFrame(InterpState& state, JSContext *cx, VMSideExit *exit)
 {
     VOUCH_DOES_NOT_REQUIRE_STACK();
 
@@ -4815,9 +4815,9 @@ SynthesizeSlowNativeFrame(JSContext *cx, VMSideExit *exit)
     fp->varobj = cx->fp->varobj;
     fp->script = NULL;
     
-    fp->thisp = (JSObject *) cx->nativeVp[1];
-    fp->argc = cx->nativeVpLen - 2;
-    fp->argv = cx->nativeVp + 2;
+    fp->thisp = (JSObject *) state.nativeVp[1];
+    fp->argc = state.nativeVpLen - 2;
+    fp->argv = state.nativeVp + 2;
     fp->fun = GET_FUNCTION_PRIVATE(cx, JSVAL_TO_OBJECT(fp->argv[-2]));
     fp->rval = JSVAL_VOID;
     fp->down = cx->fp;
@@ -5572,6 +5572,7 @@ ExecuteTree(JSContext* cx, Fragment* f, uintN& inlineCallCount,
     state->lastTreeExitGuard = NULL;
     state->lastTreeCallGuard = NULL;
     state->rpAtLastTreeCall = NULL;
+    state->nativeVp = NULL;
     state->builtinStatus = 0;
 
     
@@ -5643,6 +5644,7 @@ ExecuteTree(JSContext* cx, Fragment* f, uintN& inlineCallCount,
     }
 
     JS_ASSERT(*(uint64*)&global[globalFrameSize] == 0xdeadbeefdeadbeefLL);
+    JS_ASSERT(!state->nativeVp);
 
     VMSideExit* lr = (VMSideExit*)rec->exit;
 
@@ -5941,7 +5943,7 @@ LeaveTree(InterpState& state, VMSideExit* lr)
     JS_ASSERT(unsigned(slots) == innermost->numStackSlots);
 
     if (innermost->nativeCalleeWord)
-        SynthesizeSlowNativeFrame(cx, innermost);
+        SynthesizeSlowNativeFrame(state, cx, innermost);
 
     
     double* global = (double*)(&state + 1);
@@ -9293,8 +9295,8 @@ TraceRecorder::emitNativePropertyOp(JSScope* scope, JSScopeProperty* sprop, LIns
     
     
     LIns* vp_ins = lir->insAlloc(sizeof(jsval));
-    lir->insStorei(vp_ins, cx_ins, offsetof(JSContext, nativeVp));
-    lir->insStorei(INS_CONST(1), cx_ins, offsetof(JSContext, nativeVpLen));
+    lir->insStorei(vp_ins, lirbuf->state, offsetof(InterpState, nativeVp));
+    lir->insStorei(INS_CONST(1), lirbuf->state, offsetof(InterpState, nativeVpLen));
     if (setflag)
         lir->insStorei(boxed_ins, vp_ins, 0);
 
@@ -9314,7 +9316,7 @@ TraceRecorder::emitNativePropertyOp(JSScope* scope, JSScopeProperty* sprop, LIns
     LIns* ok_ins = lir->insCall(ci, args);
 
     
-    lir->insStorei(INS_NULL(), cx_ins, offsetof(JSContext, nativeVp));
+    lir->insStorei(INS_NULL(), lirbuf->state, offsetof(InterpState, nativeVp));
     leaveDeepBailCall();
 
     
@@ -9361,7 +9363,7 @@ TraceRecorder::emitNativeCall(JSSpecializedNative* sn, uintN argc, LIns* args[],
 
     
     if (rooted)
-        lir->insStorei(INS_NULL(), cx_ins, offsetof(JSContext, nativeVp));
+        lir->insStorei(INS_NULL(), lirbuf->state, offsetof(InterpState, nativeVp));
 
     rval_ins = res_ins;
     switch (JSTN_ERRTYPE(sn)) {
@@ -9570,9 +9572,7 @@ TraceRecorder::callNative(uintN argc, JSOp mode)
     uintN vplen = 2 + JS_MAX(argc, FUN_MINARGS(fun)) + fun->u.n.extra;
     if (!(fun->flags & JSFUN_FAST_NATIVE))
         vplen++; 
-    lir->insStorei(INS_CONST(vplen), cx_ins, offsetof(JSContext, nativeVpLen));
     LIns* invokevp_ins = lir->insAlloc(vplen * sizeof(jsval));
-    lir->insStorei(invokevp_ins, cx_ins, offsetof(JSContext, nativeVp));
 
     
     lir->insStorei(INS_CONSTWORD(OBJECT_TO_JSVAL(funobj)), invokevp_ins, 0);
@@ -9704,6 +9704,14 @@ TraceRecorder::callNative(uintN argc, JSOp mode)
                                                         : JSTN_UNBOX_AFTER);
     generatedSpecializedNative.prefix = NULL;
     generatedSpecializedNative.argtypes = NULL;
+
+    
+    
+    
+    
+    
+    lir->insStorei(INS_CONST(vplen), lirbuf->state, offsetof(InterpState, nativeVpLen));
+    lir->insStorei(invokevp_ins, lirbuf->state, offsetof(InterpState, nativeVp));
 
     
     
