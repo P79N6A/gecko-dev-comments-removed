@@ -68,13 +68,11 @@ JS_BEGIN_EXTERN_C
 #define GCX_XML                 JSTRACE_XML         /* JSXML */
 #define GCX_EXTERNAL_STRING     JSTRACE_LIMIT       /* JSString with external
                                                        chars */
-const uintN JS_EXTERNAL_STRING_LIMIT = 8;
 
 
 
 
-
-#define GCX_NTYPES              (GCX_EXTERNAL_STRING + JS_EXTERNAL_STRING_LIMIT)
+#define GCX_NTYPES              (GCX_EXTERNAL_STRING + 8)
 #define GCX_LIMIT_LOG2         4           /* type index bits */
 #define GCX_LIMIT              JS_BIT(GCX_LIMIT_LOG2)
 
@@ -171,19 +169,16 @@ struct JSGCThing {
 
 
 extern JSObject*
-js_NewGCObject(JSContext *cx);
+js_NewGCObject(JSContext *cx, uintN flags);
 
 extern JSString*
-js_NewGCString(JSContext *cx);
-
-extern JSString*
-js_NewGCExternalString(JSContext *cx, uintN type);
+js_NewGCString(JSContext *cx, uintN flags);
 
 extern JSFunction*
-js_NewGCFunction(JSContext *cx);
+js_NewGCFunction(JSContext *cx, uintN flags);
 
 extern JSXML*
-js_NewGCXML(JSContext *cx);
+js_NewGCXML(JSContext *cx, uintN flags);
 
 
 
@@ -320,13 +315,7 @@ js_DestroyScriptsToGC(JSContext *cx, JSThreadData *data);
 
 struct JSWeakRoots {
     
-    JSObject        *newbornObject;
-    jsdouble        *newbornDouble;
-    JSString        *newbornString;
-#if JS_HAS_XML_SUPPORT
-    JSXML           *newbornXML;
-#endif
-    JSString        *newbornExternalString[JS_EXTERNAL_STRING_LIMIT];
+    void            *newborn[GCX_NTYPES];
 
     
     jsval           lastAtom;

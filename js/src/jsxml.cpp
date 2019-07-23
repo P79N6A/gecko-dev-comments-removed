@@ -7182,7 +7182,9 @@ uint32  xml_serial;
 JSXML *
 js_NewXML(JSContext *cx, JSXMLClass xml_class)
 {
-    JSXML *xml = js_NewGCXML(cx);
+    JSXML *xml;
+
+    xml = (JSXML *) js_NewGCXML(cx, GCX_XML);
     if (!xml)
         return NULL;
 
