@@ -846,12 +846,6 @@ nscolor   newcolor;
 
 
 
-#ifdef MOZ_WIDGET_GTK2
-
-
-#define DISABLE_BORDER_ANTIALIAS
-#endif
-
 #undef DEBUG_NEW_BORDERS
 
 #ifdef DEBUG_NEW_BORDERS
@@ -2336,10 +2330,6 @@ DrawBorders(gfxContext *ctx,
     
     return;
   }
-
-#ifdef DISABLE_BORDER_ANTIALIAS
-  ctx->SetAntialiasMode(gfxContext::MODE_ALIASED);
-#endif
 
   
   
