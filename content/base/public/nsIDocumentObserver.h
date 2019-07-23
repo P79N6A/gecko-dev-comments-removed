@@ -124,6 +124,15 @@ public:
 
 
 
+  virtual void DocumentStatesChanged(nsIDocument* aDocument,
+                                     PRInt32 aStateMask) = 0;
+
+  
+
+
+
+
+
 
 
 
@@ -234,6 +243,8 @@ NS_DEFINE_STATIC_IID_ACCESSOR(nsIDocumentObserver, NS_IDOCUMENT_OBSERVER_IID)
                                       nsIContent* aContent1,                 \
                                       nsIContent* aContent2,                 \
                                       PRInt32 aStateMask);                   \
+    virtual void DocumentStatesChanged(nsIDocument* aDocument,               \
+                                       PRInt32 aStateMask);                  \
     virtual void StyleSheetAdded(nsIDocument* aDocument,                     \
                                  nsIStyleSheet* aStyleSheet,                 \
                                  PRBool aDocumentSheet);                     \
@@ -283,6 +294,12 @@ _class::ContentStatesChanged(nsIDocument* aDocument,                      \
                              nsIContent* aContent1,                       \
                              nsIContent* aContent2,                       \
                              PRInt32 aStateMask)                          \
+{                                                                         \
+}                                                                         \
+                                                                          \
+void                                                                      \
+_class::DocumentStatesChanged(nsIDocument* aDocument,                     \
+                              PRInt32 aStateMask)                         \
 {                                                                         \
 }
 

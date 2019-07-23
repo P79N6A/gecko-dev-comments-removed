@@ -184,7 +184,7 @@ public:
 
     virtual PRBool IsDocumentRightToLeft();
 
-    virtual void ResetDocumentDirection() { mDocDirection = Direction_Uninitialized; }
+    virtual void ResetDocumentDirection();
 
     virtual int GetDocumentLWTheme();
 
@@ -328,17 +328,6 @@ protected:
 
 
     nsCOMPtr<nsIDOMNode>    mTooltipNode;          
-
-    
-
-
-    enum DocumentDirection {
-      Direction_Uninitialized, 
-      Direction_LeftToRight,
-      Direction_RightToLeft
-    };
-
-    DocumentDirection               mDocDirection;
 
     
 
