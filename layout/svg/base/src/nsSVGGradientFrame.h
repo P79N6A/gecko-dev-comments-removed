@@ -48,16 +48,17 @@
 
 class nsIDOMSVGStopElement;
 
-typedef nsSVGPaintServerFrame  nsSVGGradientFrameBase;
+typedef nsSVGPaintServerFrame nsSVGGradientFrameBase;
 
-class nsSVGGradientFrame : public nsSVGGradientFrameBase,
-                           public nsISVGValueObserver
+
+
+
+
+class nsSVGGradientFrame : public nsSVGGradientFrameBase
 {
 protected:
   nsSVGGradientFrame(nsStyleContext* aContext,
                      nsIDOMSVGURIReference *aRef);
-
-  virtual ~nsSVGGradientFrame();
 
 public:
   
@@ -66,24 +67,7 @@ public:
                                   float aGraphicOpacity);
 
   
-  NS_IMETHOD QueryInterface(const nsIID& aIID, void** aInstancePtr);
-private:
-  NS_IMETHOD_(nsrefcnt) AddRef() { return 1; }
-  NS_IMETHOD_(nsrefcnt) Release() { return 1; }
-
-public:
-  
-  NS_IMETHOD WillModifySVGObservable(nsISVGValue* observable, 
-                                     nsISVGValue::modificationType aModType);
-  NS_IMETHOD DidModifySVGObservable(nsISVGValue* observable, 
-                                    nsISVGValue::modificationType aModType);
-
-  
   NS_IMETHOD DidSetStyleContext();
-  NS_IMETHOD RemoveFrame(nsIAtom*        aListName,
-                         nsIFrame*       aOldFrame);
-
-  virtual nsIAtom* GetType() const;  
 
   NS_IMETHOD AttributeChanged(PRInt32         aNameSpaceID,
                               nsIAtom*        aAttribute,
@@ -102,26 +86,24 @@ public:
   {
     return NS_OK;  
   }
-  
+
 private:
 
   
   
   
-  
-  
-  
-
-  
-  void GetRefedGradientFromHref();
+  nsSVGGradientFrame* GetReferencedGradient();
 
   
   
-  nsIContent* GetGradientWithAttr(nsIAtom *aAttrName);
+  
+  nsSVGGradientElement* GetGradientWithAttr(nsIAtom *aAttrName, nsIContent *aDefault);
 
   
   
-  nsIContent* GetGradientWithAttr(nsIAtom *aAttrName, nsIAtom *aGradType);
+  
+  nsSVGGradientElement* GetGradientWithAttr(nsIAtom *aAttrName, nsIAtom *aGradType,
+                                            nsIContent *aDefault);
 
   
   PRInt32 GetStopFrame(PRInt32 aIndex, nsIFrame * *aStopFrame);
@@ -136,28 +118,15 @@ protected:
   virtual already_AddRefed<gfxPattern> CreateGradient() = 0;
 
   
-  nsIContent* GetLinearGradientWithAttr(nsIAtom *aAttrName)
+  nsSVGLinearGradientElement* GetLinearGradientWithAttr(nsIAtom *aAttrName, nsIContent *aDefault)
   {
-    return GetGradientWithAttr(aAttrName, nsGkAtoms::svgLinearGradientFrame);
+    return static_cast<nsSVGLinearGradientElement*>(
+            GetGradientWithAttr(aAttrName, nsGkAtoms::svgLinearGradientFrame, aDefault));
   }
-  nsIContent* GetRadialGradientWithAttr(nsIAtom *aAttrName)
+  nsSVGRadialGradientElement* GetRadialGradientWithAttr(nsIAtom *aAttrName, nsIContent *aDefault)
   {
-    return GetGradientWithAttr(aAttrName, nsGkAtoms::svgRadialGradientFrame);
-  }
-
-  
-  
-  void WillModify(modificationType aModType = mod_other)
-  {
-    mLoopFlag = PR_TRUE;
-    nsSVGValue::WillModify(aModType);
-    mLoopFlag = PR_FALSE;
-  }
-  void DidModify(modificationType aModType = mod_other)
-  {
-    mLoopFlag = PR_TRUE;
-    nsSVGValue::DidModify(aModType);
-    mLoopFlag = PR_FALSE;
+    return static_cast<nsSVGRadialGradientElement*>(
+            GetGradientWithAttr(aAttrName, nsGkAtoms::svgRadialGradientFrame, aDefault));
   }
 
   
@@ -168,22 +137,16 @@ protected:
 
 private:
   
+  
   nsCOMPtr<nsIDOMSVGAnimatedString>      mHref;
-
-  
-  
-  nsSVGGradientFrame                    *mNextGrad;
 
   
   
   
   PRPackedBool                           mLoopFlag;
-
   
   
-  
-  
-  PRPackedBool                           mInitialized;
+  PRPackedBool                           mNoHRefURI;
 };
 
 
@@ -195,7 +158,7 @@ typedef nsSVGGradientFrame nsSVGLinearGradientFrameBase;
 
 class nsSVGLinearGradientFrame : public nsSVGLinearGradientFrameBase
 {
-  friend nsIFrame* NS_NewSVGLinearGradientFrame(nsIPresShell* aPresShell, 
+  friend nsIFrame* NS_NewSVGLinearGradientFrame(nsIPresShell* aPresShell,
                                                 nsIContent*   aContent,
                                                 nsStyleContext* aContext);
 protected:
@@ -232,7 +195,7 @@ typedef nsSVGGradientFrame nsSVGRadialGradientFrameBase;
 
 class nsSVGRadialGradientFrame : public nsSVGRadialGradientFrameBase
 {
-  friend nsIFrame* NS_NewSVGRadialGradientFrame(nsIPresShell* aPresShell, 
+  friend nsIFrame* NS_NewSVGRadialGradientFrame(nsIPresShell* aPresShell,
                                                 nsIContent*   aContent,
                                                 nsStyleContext* aContext);
 protected:
@@ -258,7 +221,7 @@ public:
 
 protected:
   float GradientLookupAttribute(nsIAtom *aAtomName, PRUint16 aEnumName,
-                                nsIContent *aElement = nsnull);
+                                nsSVGRadialGradientElement *aElement = nsnull);
   virtual already_AddRefed<gfxPattern> CreateGradient();
 };
 

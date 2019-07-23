@@ -103,10 +103,9 @@ typedef short SelectionType;
 typedef PRUint32 nsFrameState;
 
 
-
 #define NS_IPRESSHELL_IID \
-{ 0x134e504f, 0x4fd1, 0x4590, \
-  { 0x9f, 0x5d, 0x89, 0x9a, 0xfe, 0xe6, 0x3d, 0x0f } }
+{ 0x5c103bc2, 0x788e, 0x4bbe, \
+  { 0xb8, 0x2e, 0x63, 0x5b, 0xea, 0x34, 0xe7, 0x8f } }
 
 
 #define NS_PRESSHELL_SCROLL_TOP      0
@@ -165,6 +164,8 @@ public:
 
 
   NS_IMETHOD Destroy() = 0;
+  
+  PRBool IsDestroying() { return mIsDestroying; }
 
   
   

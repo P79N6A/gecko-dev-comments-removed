@@ -38,8 +38,6 @@
 #define __NS_SVGGEOMETRYFRAME_H__
 
 #include "nsFrame.h"
-#include "nsWeakReference.h"
-#include "nsISVGValueObserver.h"
 
 class nsSVGPaintServerFrame;
 class gfxContext;
@@ -52,33 +50,21 @@ typedef nsFrame nsSVGGeometryFrameBase;
 
 
 
-class nsSVGGeometryFrame : public nsSVGGeometryFrameBase,
-                           public nsISVGValueObserver
+class nsSVGGeometryFrame : public nsSVGGeometryFrameBase
 {
 protected:
   nsSVGGeometryFrame(nsStyleContext *aContext) : nsSVGGeometryFrameBase(aContext) {}
 
 public:
   
-  virtual void Destroy();
   NS_IMETHOD Init(nsIContent* aContent,
                   nsIFrame* aParent,
                   nsIFrame* aPrevInFlow);
-  NS_IMETHOD DidSetStyleContext();
 
   virtual PRBool IsFrameOfType(PRUint32 aFlags) const
   {
     return nsSVGGeometryFrameBase::IsFrameOfType(aFlags & ~(nsIFrame::eSVG));
   }
-
-  
-  NS_IMETHOD QueryInterface(const nsIID& aIID, void** aInstancePtr);
-
-  
-  NS_IMETHOD WillModifySVGObservable(nsISVGValue* observable,
-                                     nsISVGValue::modificationType aModType);
-  NS_IMETHOD DidModifySVGObservable(nsISVGValue* observable,
-                                    nsISVGValue::modificationType aModType);
 
   
   NS_IMETHOD GetCanvasTM(nsIDOMSVGMatrix * *aCanvasTM) = 0;
@@ -88,24 +74,20 @@ public:
   float GetStrokeWidth();
 
   
-  
-  
-  
-  PRBool HasFill();
-  PRBool HasStroke();
-
-  
 
 
 
   PRBool SetupCairoFill(gfxContext *aContext);
-
   
-  void SetupCairoStrokeGeometry(gfxContext *aContext);
 
+
+
+  PRBool SetupCairoStrokeGeometry(gfxContext *aContext);
   
-  void SetupCairoStrokeHitGeometry(gfxContext *aContext);
 
+
+
+  PRBool SetupCairoStrokeHitGeometry(gfxContext *aContext);
   
 
 
@@ -113,12 +95,12 @@ public:
   PRBool SetupCairoStroke(gfxContext *aContext);
 
 protected:
-  nsSVGPaintServerFrame *GetPaintServer(const nsStyleSVGPaint *aPaint);
+  nsSVGPaintServerFrame *GetPaintServer(const nsStyleSVGPaint *aPaint,
+                                        nsIAtom *aType);
 
 private:
   nsresult GetStrokeDashArray(double **arr, PRUint32 *count);
   float GetStrokeDashoffset();
-  void RemovePaintServerProperties();
 
   
   
