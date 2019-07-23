@@ -48,6 +48,7 @@
 #include <string.h>
 
 #include "jsj_private.h"      
+#include "jsobj.h"
 
 
 #define JS7_ISDEC(c)    (((c) >= '0') && ((c) <= '9'))

@@ -416,97 +416,8 @@ typedef uint32
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-typedef JSObjectMap *
-(* JSNewObjectMapOp)(JSContext *cx, jsrefcount nrefs, JSObjectOps *ops,
-                     JSClass *clasp, JSObject *obj);
-
-
-
-
-
-typedef void
-(* JSObjectMapOp)(JSContext *cx, JSObjectMap *map);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 typedef JSBool
-(* JSLookupPropOp)(JSContext *cx, JSObject *obj, jsid id, JSObject **objp,
-                   JSProperty **propp);
-
-
-
-
-
-
-
-
-
-
-
-
-
-typedef JSBool
-(* JSDefinePropOp)(JSContext *cx, JSObject *obj, jsid id, jsval value,
-                   JSPropertyOp getter, JSPropertyOp setter, uintN attrs,
-                   JSProperty **propp);
-
-
-
-
-
-
-
-
-
-typedef JSBool
-(* JSPropertyIdOp)(JSContext *cx, JSObject *obj, jsid id, jsval *vp);
-
-
-
-
-
-
-
-typedef JSBool
-(* JSAttributesOp)(JSContext *cx, JSObject *obj, jsid id, JSProperty *prop,
-                   uintN *attrsp);
-
-
-
-
-
-
-typedef JSBool
-(* JSCheckAccessIdOp)(JSContext *cx, JSObject *obj, jsid id, JSAccessMode mode,
-                      jsval *vp, uintN *attrsp);
+(* JSEqualityOp)(JSContext *cx, JSObject *obj, jsval v, JSBool *bp);
 
 
 
@@ -522,59 +433,6 @@ typedef JSObject *
 
 typedef JSObject *
 (* JSIteratorOp)(JSContext *cx, JSObject *obj, JSBool keysonly);
-
-
-
-
-
-
-
-typedef void
-(* JSPropertyRefOp)(JSContext *cx, JSObject *obj, JSProperty *prop);
-
-
-
-
-
-
-typedef JSBool
-(* JSSetObjectSlotOp)(JSContext *cx, JSObject *obj, uint32 slot,
-                      JSObject *pobj);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-typedef jsval
-(* JSGetRequiredSlotOp)(JSContext *cx, JSObject *obj, uint32 slot);
-
-typedef JSBool
-(* JSSetRequiredSlotOp)(JSContext *cx, JSObject *obj, uint32 slot, jsval v);
-
-typedef JSObject *
-(* JSGetMethodOp)(JSContext *cx, JSObject *obj, jsid id, jsval *vp);
-
-typedef JSBool
-(* JSSetMethodOp)(JSContext *cx, JSObject *obj, jsid id, jsval *vp);
-
-typedef JSBool
-(* JSEnumerateValuesOp)(JSContext *cx, JSObject *obj, JSIterateOp enum_op,
-                        jsval *statep, jsid *idp, jsval *vp);
-
-typedef JSBool
-(* JSEqualityOp)(JSContext *cx, JSObject *obj, jsval v, JSBool *bp);
-
-typedef JSBool
-(* JSConcatenateOp)(JSContext *cx, JSObject *obj, jsval v, jsval *vp);
 
 
 

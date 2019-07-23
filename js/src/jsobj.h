@@ -54,6 +54,51 @@
 
 JS_BEGIN_EXTERN_C
 
+
+struct JSObjectOps {
+    
+    JSNewObjectMapOp    newObjectMap;
+    JSObjectMapOp       destroyObjectMap;
+    JSLookupPropOp      lookupProperty;
+    JSDefinePropOp      defineProperty;
+    JSPropertyIdOp      getProperty;
+    JSPropertyIdOp      setProperty;
+    JSAttributesOp      getAttributes;
+    JSAttributesOp      setAttributes;
+    JSPropertyIdOp      deleteProperty;
+    JSConvertOp         defaultValue;
+    JSNewEnumerateOp    enumerate;
+    JSCheckAccessIdOp   checkAccess;
+
+    
+    JSObjectOp          thisObject;
+    JSPropertyRefOp     dropProperty;
+    JSNative            call;
+    JSNative            construct;
+    JSXDRObjectOp       xdrObject;
+    JSHasInstanceOp     hasInstance;
+    JSSetObjectSlotOp   setProto;
+    JSSetObjectSlotOp   setParent;
+    JSTraceOp           trace;
+    JSFinalizeOp        clear;
+    JSGetRequiredSlotOp getRequiredSlot;
+    JSSetRequiredSlotOp setRequiredSlot;
+};
+
+
+
+
+
+
+
+
+
+
+
+struct JSProperty {
+    jsid id;
+};
+
 struct JSObjectMap {
     jsrefcount  nrefs;          
     JSObjectOps *ops;           
