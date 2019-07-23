@@ -58,6 +58,12 @@ static const PRUint64 kNsPerMs   =    1000000;
 static const PRUint64 kNsPerSec  = 1000000000; 
 static const double kNsPerSecd   = 1000000000.0;
 
+static PRUint64
+TimespecToNs(const struct timespec& ts)
+{
+  PRUint64 baseNs = PRUint64(ts.tv_sec) * kNsPerSec;
+  return baseNs + PRUint64(ts.tv_nsec);
+}
 
 static PRUint64
 ClockTimeNs()
@@ -73,9 +79,7 @@ ClockTimeNs()
   
   
   
-  PRUint64 baseNs = PRUint64(ts.tv_sec) * kNsPerSec;
-
-  return baseNs + PRUint64(ts.tv_nsec);
+  return TimespecToNs(ts);
 }
 
 static PRUint64
@@ -105,11 +109,19 @@ ClockResolutionNs()
   }
 
   if (0 == minres) {
-    NS_WARNING("the clock resolution is *not* 1ns, something's wrong");
-    minres = 1;                 
+    
+    
+    struct timespec ts;
+    clock_getres(CLOCK_MONOTONIC, &ts);
+
+    minres = TimespecToNs(ts);
   }
-  if (minres / kNsPerMs)
-    NS_WARNING("the clock resolution is *not* >=1ms, something's wrong");
+
+  if (0 == minres) {
+    
+    
+    minres = 1 * kNsPerMs;
+  }
 
   return minres;
 }
