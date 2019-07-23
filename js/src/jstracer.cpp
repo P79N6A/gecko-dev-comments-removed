@@ -4213,7 +4213,6 @@ LeaveTree(InterpState& state, VMSideExit* lr)
         JS_ASSERT(!fp->callee || JSVAL_IS_OBJECT(fp->argv[-1]));
         JS_ASSERT_IF(fp->callee && fp->thisp != JSVAL_TO_OBJECT(fp->argv[-1]),
                      !(fp->flags & JSFRAME_COMPUTED_THIS) && !fp->thisp);
-        
     }
 #endif
 #ifdef JS_JIT_SPEW
