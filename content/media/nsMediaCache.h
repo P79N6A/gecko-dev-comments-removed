@@ -347,9 +347,11 @@ private:
 
 
 
+
+
   class BlockList {
   public:
-    BlockList() : mFirstBlock(-1), mCount(0) {}
+    BlockList() : mFirstBlock(-1), mCount(0) { mEntries.Init(); }
     ~BlockList() {
       NS_ASSERTION(mFirstBlock == -1 && mCount == 0,
                    "Destroying non-empty block list");
@@ -361,9 +363,14 @@ private:
     PRInt32 GetFirstBlock() const { return mFirstBlock; }
     
     PRInt32 GetLastBlock() const;
+    
+    
+    PRInt32 GetNextBlock(PRInt32 aBlock) const;
+    
+    
+    PRInt32 GetPrevBlock(PRInt32 aBlock) const;
     PRBool IsEmpty() const { return mFirstBlock < 0; }
     PRInt32 GetCount() const { return mCount; }
-    
     
     void NotifyBlockSwapped(PRInt32 aBlockIndex1, PRInt32 aBlockIndex2);
 #ifdef DEBUG
@@ -374,6 +381,16 @@ private:
 #endif
 
   private:
+    struct Entry : public nsUint32HashKey {
+      Entry(KeyTypePointer aKey) : nsUint32HashKey(aKey) { }
+      Entry(const Entry& toCopy) : nsUint32HashKey(&toCopy.GetKey()),
+        mNextBlock(toCopy.mNextBlock), mPrevBlock(toCopy.mPrevBlock) {}
+
+      PRInt32 mNextBlock;
+      PRInt32 mPrevBlock;
+    };
+    nsTHashtable<Entry> mEntries;
+
     
     PRInt32 mFirstBlock;
     
