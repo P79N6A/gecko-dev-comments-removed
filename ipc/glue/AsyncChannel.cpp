@@ -112,9 +112,11 @@ AsyncChannel::Close()
 bool
 AsyncChannel::Send(Message* msg)
 {
-    NS_ASSERTION(ChannelConnected == mChannelState,
-                 "trying to Send() to a channel not yet open");
-    NS_PRECONDITION(MSG_ROUTING_NONE != msg->routing_id(), "need a route");
+    NS_ABORT_IF_FALSE(MSG_ROUTING_NONE != msg->routing_id(), "need a route");
+
+    if (!Connected())
+        
+        return false;
 
     mIOLoop->PostTask(FROM_HERE,
                       NewRunnableMethod(this, &AsyncChannel::OnSend, msg));

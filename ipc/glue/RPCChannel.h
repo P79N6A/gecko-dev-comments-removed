@@ -80,7 +80,8 @@ public:
     bool Call(Message* msg, Message* reply);
 
     
-    virtual void OnMessageReceived(const Message& msg);
+    NS_OVERRIDE virtual void OnMessageReceived(const Message& msg);
+    NS_OVERRIDE virtual void OnChannelError();
 
 protected:
     

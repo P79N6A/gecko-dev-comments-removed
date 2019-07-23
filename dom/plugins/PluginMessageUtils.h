@@ -84,6 +84,29 @@ typedef nsCString Buffer;
 
 } 
 
+
+namespace {
+
+
+
+nsCString
+NullableString(const char* aString)
+{
+    if (!aString) {
+        nsCString str;
+        str.SetIsVoid(PR_TRUE);
+        return str;
+    }
+    return nsCString(aString);
+}
+
+} 
+
+
+#define NullableStringGet(__string)                     \
+    ( __string.IsVoid() ? NULL : __string.get())
+
+
 namespace IPC {
 
 template <>

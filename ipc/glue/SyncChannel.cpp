@@ -59,17 +59,25 @@ SyncChannel::Send(Message* msg, Message* reply)
 {
     NS_ABORT_IF_FALSE(!ProcessingSyncMessage(),
                       "violation of sync handler invariant");
-    NS_ASSERTION(ChannelConnected == mChannelState,
-                 "trying to Send() to a channel not yet open");
-    NS_PRECONDITION(msg->is_sync(), "can only Send() sync messages here");
+    NS_ABORT_IF_FALSE(msg->is_sync(), "can only Send() sync messages here");
+
+    if (!Connected())
+        
+        return false;
 
     MutexAutoLock lock(mMutex);
 
     mPendingReply = msg->type() + 1;
-    AsyncChannel::Send(msg);
+    if (!AsyncChannel::Send(msg))
+        
+        return false;
 
     
     mCvar.Wait();
+
+    if (!Connected())
+        
+        return false;
 
     
     
@@ -154,6 +162,22 @@ SyncChannel::OnMessageReceived(const Message& msg)
         mRecvd = msg;
         mCvar.Notify();
     }
+}
+
+void
+SyncChannel::OnChannelError()
+{
+    {
+        MutexAutoLock lock(mMutex);
+
+        mChannelState = ChannelError;
+
+        if (AwaitingSyncReply()) {
+            mCvar.Notify();
+        }
+    }
+
+    return AsyncChannel::OnChannelError();
 }
 
 void

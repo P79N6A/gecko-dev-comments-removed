@@ -120,11 +120,15 @@ public:
     bool Send(Message* msg);
 
     
-    virtual void OnMessageReceived(const Message& msg);
-    virtual void OnChannelConnected(int32 peer_pid);
-    virtual void OnChannelError();
+    NS_OVERRIDE virtual void OnMessageReceived(const Message& msg);
+    NS_OVERRIDE virtual void OnChannelConnected(int32 peer_pid);
+    NS_OVERRIDE virtual void OnChannelError();
 
 protected:
+    bool Connected() {
+        return ChannelConnected == mChannelState;
+    }
+
     
     void OnDispatchMessage(const Message& aMsg);
 
