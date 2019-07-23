@@ -291,8 +291,7 @@ nsPrincipal::Equals(nsIPrincipal *aOther, PRBool *aResult)
     
     *aResult =
       NS_SUCCEEDED(nsScriptSecurityManager::CheckSameOriginPrincipal(this,
-                                                                     aOther,
-                                                                     PR_FALSE));
+                                                                     aOther));
     return NS_OK;
   }
 

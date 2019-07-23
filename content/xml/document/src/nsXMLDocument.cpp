@@ -90,6 +90,8 @@
 #include "nsIDOMUserDataHandler.h"
 #include "nsEventDispatcher.h"
 #include "nsNodeUtils.h"
+#include "nsIConsoleService.h"
+#include "nsIScriptError.h"
 
 
 
@@ -347,35 +349,42 @@ nsXMLDocument::Load(const nsAString& aUrl, PRBool *aReturn)
   
   
   
-  
-  nsIScriptSecurityManager *secMan = nsContentUtils::GetSecurityManager();
 
   
   
   
   if (codebase) {
-    rv = secMan->CheckSameOriginURI(codebase, uri, PR_FALSE);
-
-    if (NS_FAILED(rv)) {
-      return rv;
-    }
+    rv = principal->CheckMayLoad(uri, PR_FALSE);
+    NS_ENSURE_SUCCESS(rv, rv);
   } else {
     
     
 
     PRBool isChrome = PR_FALSE;
     if (NS_FAILED(uri->SchemeIs("chrome", &isChrome)) || !isChrome) {
+      nsCAutoString spec;
+      if (mDocumentURI)
+        mDocumentURI->GetSpec(spec);
+
+      nsAutoString error;
+      error.AssignLiteral("Cross site loading using document.load is no "
+                          "longer supported. Use XMLHttpRequest instead.");
+      nsCOMPtr<nsIScriptError> errorObject =
+          do_CreateInstance(NS_SCRIPTERROR_CONTRACTID, &rv);
+      NS_ENSURE_SUCCESS(rv, rv);
+      rv = errorObject->Init(error.get(), NS_ConvertUTF8toUTF16(spec).get(),
+                             nsnull, 0, 0, nsIScriptError::warningFlag,
+                             "DOM");
+      NS_ENSURE_SUCCESS(rv, rv);
+
+      nsCOMPtr<nsIConsoleService> consoleService =
+        do_GetService(NS_CONSOLESERVICE_CONTRACTID);
+      if (consoleService) {
+        consoleService->LogMessage(errorObject);
+      }
+
       return NS_ERROR_DOM_SECURITY_ERR;
     }
-  }
-
-  rv = secMan->CheckConnect(nsnull, uri, "XMLDocument", "load");
-  if (NS_FAILED(rv)) {
-    
-    
-    
-    
-    return NS_OK;
   }
 
   
