@@ -1329,6 +1329,9 @@ nsOfflineCacheUpdate::LoadCompleted()
 {
     nsresult rv;
 
+    
+    nsCOMPtr<nsIOfflineCacheUpdate> kungFuDeathGrip(this);
+
     LOG(("nsOfflineCacheUpdate::LoadCompleted [%p]", this));
 
     if (mState == STATE_CANCELLED) {
@@ -1442,6 +1445,9 @@ void
 nsOfflineCacheUpdate::ManifestCheckCompleted(nsresult aStatus,
                                              const nsCString &aManifestHash)
 {
+    
+    nsCOMPtr<nsIOfflineCacheUpdate> kungFuDeathGrip(this);
+
     if (NS_SUCCEEDED(aStatus)) {
         nsCAutoString firstManifestHash;
         mManifestItem->GetManifestHash(firstManifestHash);
@@ -1476,6 +1482,9 @@ nsresult
 nsOfflineCacheUpdate::Begin()
 {
     LOG(("nsOfflineCacheUpdate::Begin [%p]", this));
+
+    
+    nsCOMPtr<nsIOfflineCacheUpdate> kungFuDeathGrip(this);
 
     mCurrentItem = 0;
 
@@ -1576,6 +1585,9 @@ nsOfflineCacheUpdate::AddExistingItems(PRUint32 aType,
 nsresult
 nsOfflineCacheUpdate::ProcessNextURI()
 {
+    
+    nsCOMPtr<nsIOfflineCacheUpdate> kungFuDeathGrip(this);
+
     LOG(("nsOfflineCacheUpdate::ProcessNextURI [%p, current=%d, numItems=%d]",
          this, mCurrentItem, mItems.Length()));
 
@@ -1793,6 +1805,9 @@ nsOfflineCacheUpdate::SetOwner(nsOfflineCacheUpdateOwner *aOwner)
 nsresult
 nsOfflineCacheUpdate::UpdateFinished(nsOfflineCacheUpdate *aUpdate)
 {
+    
+    nsCOMPtr<nsIOfflineCacheUpdate> kungFuDeathGrip(this);
+
     mImplicitUpdate = nsnull;
 
     NotifyNoUpdate();
@@ -1908,13 +1923,6 @@ nsresult
 nsOfflineCacheUpdate::Finish()
 {
     LOG(("nsOfflineCacheUpdate::Finish [%p]", this));
-
-    
-    
-    
-    
-    NS_ADDREF_THIS();
-    NS_ProxyRelease(NS_GetCurrentThread(), this, PR_TRUE);
 
     mState = STATE_FINISHED;
 
