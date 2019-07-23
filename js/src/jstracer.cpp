@@ -136,7 +136,7 @@ Tracker::set(const void* v, LIns* ins)
 #define NAME(op)
 #endif
 
-jsdouble builtin_dmod(jsdouble a, jsdouble b)
+FASTCALL jsdouble builtin_dmod(jsdouble a, jsdouble b)
 {
     if (b == 0.0) {
         jsdpun u;
@@ -159,7 +159,7 @@ jsdouble builtin_dmod(jsdouble a, jsdouble b)
 
 
 
-inline uint64 builtin_BoxDouble(JSContext* cx, jsdouble d)
+inline FASTCALL uint64 builtin_BoxDouble(JSContext* cx, jsdouble d)
 {
     if (!cx->doubleFreeList) 
         return 1LL << 32;
@@ -174,14 +174,14 @@ inline uint64 builtin_BoxDouble(JSContext* cx, jsdouble d)
     return v & 0xffffffffLL;
 }
 
-inline uint64 builtin_BoxInt32(JSContext* cx, jsint i)
+inline FASTCALL uint64 builtin_BoxInt32(JSContext* cx, jsint i)
 {
     if (INT_FITS_IN_JSVAL(i)) 
         return INT_TO_JSVAL(i) & 0xffffffffLL;
     return builtin_BoxDouble(cx, (jsdouble)i);
 }
 
-inline uint64 builtin_UnboxInt32(JSContext* cx, jsval v)
+inline FASTCALL uint64 builtin_UnboxInt32(JSContext* cx, jsval v)
 {
     if (JSVAL_IS_INT(v))
         return JSVAL_TO_INT(v);
