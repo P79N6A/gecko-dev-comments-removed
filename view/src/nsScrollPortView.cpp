@@ -396,11 +396,62 @@ NS_IMETHODIMP nsScrollPortView::GetLineHeight(nscoord *aHeight)
   return NS_OK;
 }
 
-NS_IMETHODIMP nsScrollPortView::ScrollByLines(PRInt32 aNumLinesX, PRInt32 aNumLinesY,
+nsresult
+nsScrollPortView::CalcScrollOverflow(nscoord aX, nscoord aY,
+                                     PRInt32& aPixelOverflowX, PRInt32& aPixelOverflowY)
+{
+  
+  nsView* scrolledView = GetScrolledView();
+  if (!scrolledView) return NS_ERROR_FAILURE;
+  
+  nsRect scrolledRect;
+  scrolledView->GetDimensions(scrolledRect);
+  
+  nsSize portSize;
+  this->GetDimensions(portSize);
+  
+  nscoord maxX = scrolledRect.XMost() - portSize.width;
+  nscoord maxY = scrolledRect.YMost() - portSize.height;
+  
+  nsCOMPtr<nsIDeviceContext> dev;
+  mViewManager->GetDeviceContext(*getter_AddRefs(dev));
+  float p2a = (float)dev->AppUnitsPerDevPixel();
+
+  if (maxX != 0 && aX > maxX)
+    aPixelOverflowX = NSAppUnitsToIntPixels(aX - maxX, p2a);
+
+  if (maxY != 0 && aY > maxY)
+    aPixelOverflowY = NSAppUnitsToIntPixels(aY - maxY, p2a);
+
+  if (maxX != 0 && aX < scrolledRect.x)
+    aPixelOverflowX = NSAppUnitsToIntPixels(scrolledRect.x - aX, p2a);
+
+  if (maxY != 0 && aY < scrolledRect.y)
+    aPixelOverflowY = NSAppUnitsToIntPixels(scrolledRect.y - aY, p2a);
+  
+  return NS_OK;
+}
+
+NS_IMETHODIMP nsScrollPortView::ScrollByLines(PRInt32 aNumLinesX,
+                                              PRInt32 aNumLinesY,
                                               PRUint32 aUpdateFlags)
 {
   nscoord dx = mLineHeight*aNumLinesX;
   nscoord dy = mLineHeight*aNumLinesY;
+
+  return ScrollTo(mDestinationX + dx, mDestinationY + dy, aUpdateFlags);
+}
+
+NS_IMETHODIMP nsScrollPortView::ScrollByLinesWithOverflow(PRInt32 aNumLinesX,
+                                                          PRInt32 aNumLinesY,
+                                                          PRInt32& aOverflowX,
+                                                          PRInt32& aOverflowY,
+                                                          PRUint32 aUpdateFlags)
+{
+  nscoord dx = mLineHeight*aNumLinesX;
+  nscoord dy = mLineHeight*aNumLinesY;
+
+  CalcScrollOverflow(mDestinationX + dx, mDestinationY + dy, aOverflowX, aOverflowY);
 
   return ScrollTo(mDestinationX + dx, mDestinationY + dy, aUpdateFlags);
 }
@@ -451,6 +502,8 @@ NS_IMETHODIMP nsScrollPortView::ScrollByWhole(PRBool aTop,
 
 NS_IMETHODIMP nsScrollPortView::ScrollByPixels(PRInt32 aNumPixelsX,
                                                PRInt32 aNumPixelsY,
+                                               PRInt32& aOverflowX,
+                                               PRInt32& aOverflowY,
                                                PRUint32 aUpdateFlags)
 {
   nsCOMPtr<nsIDeviceContext> dev;
@@ -460,6 +513,8 @@ NS_IMETHODIMP nsScrollPortView::ScrollByPixels(PRInt32 aNumPixelsX,
   nscoord dx = NSIntPixelsToAppUnits(aNumPixelsX, p2a);
   nscoord dy = NSIntPixelsToAppUnits(aNumPixelsY, p2a);
 
+  CalcScrollOverflow(mDestinationX + dx, mDestinationY + dy, aOverflowX, aOverflowY);
+  
   return ScrollTo(mDestinationX + dx, mDestinationY + dy, aUpdateFlags);
 }
 

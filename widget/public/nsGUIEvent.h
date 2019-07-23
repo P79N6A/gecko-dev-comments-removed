@@ -1061,21 +1061,24 @@ public:
                             
                             
                             
-    kNoLines =      1 << 4  
+    kNoLines =      1 << 4, 
                             
                             
                             
+                            
+    kNoDefer =      1 << 5  
                             
   };
 
   nsMouseScrollEvent(PRBool isTrusted, PRUint32 msg, nsIWidget *w)
     : nsMouseEvent_base(isTrusted, msg, w, NS_MOUSE_SCROLL_EVENT),
-      scrollFlags(0), delta(0)
+      scrollFlags(0), delta(0), scrollOverflow(0)
   {
   }
 
   PRInt32               scrollFlags;
   PRInt32               delta;
+  PRInt32               scrollOverflow;
 };
 
 class nsQueryContentEvent : public nsGUIEvent

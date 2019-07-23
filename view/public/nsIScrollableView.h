@@ -147,6 +147,20 @@ public:
 
   NS_IMETHOD ScrollByLines(PRInt32 aNumLinesX, PRInt32 aNumLinexY,
                            PRUint32 aUpdateFlags = 0) = 0;
+  
+
+
+
+
+
+
+
+
+
+
+  NS_IMETHOD ScrollByLinesWithOverflow(PRInt32 aNumLinesX, PRInt32 aNumLinexY,
+                                       PRInt32& aOverflowX, PRInt32& aOverflowY,
+                                       PRUint32 aUpdateFlags = 0) = 0;
 
   
 
@@ -186,7 +200,12 @@ public:
 
 
 
+
+
+
+
   NS_IMETHOD ScrollByPixels(PRInt32 aNumPixelsX, PRInt32 aNumPixelsY,
+                            PRInt32& aOverflowX, PRInt32& aOverflowY,
                             PRUint32 aUpdateFlags = 0) = 0;
 
   
