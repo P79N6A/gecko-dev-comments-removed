@@ -44,6 +44,14 @@
 #include "nsCOMPtr.h"
 #include "nsITimer.h"
 
+#define INITAL_REPEAT_DELAY 250
+
+#ifdef XP_MACOSX
+#define REPEAT_DELAY        25
+#else
+#define REPEAT_DELAY        50
+#endif
+
 class nsITimer;
 
 class nsRepeatService : public nsITimerCallback
@@ -57,7 +65,8 @@ public:
   
   
   
-  void Start(Callback aCallback, void* aData);
+  void Start(Callback aCallback, void* aData,
+             PRUint32 aInitialDelay = INITAL_REPEAT_DELAY);
   
   
   
