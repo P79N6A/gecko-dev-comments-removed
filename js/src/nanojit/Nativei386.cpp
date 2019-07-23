@@ -109,6 +109,10 @@ namespace nanojit
 		uint32_t stackPushed =
             STACK_GRANULARITY + 
             STACK_GRANULARITY; 
+		
+		if (!_thisfrag->lirbuf->explicitSavedParams)
+			stackPushed += NumSavedRegs * STACK_GRANULARITY;
+		
 		uint32_t aligned = alignUp(stackNeeded + stackPushed, NJ_ALIGN_STACK);
 		uint32_t amt = aligned - stackPushed;
 
@@ -128,6 +132,10 @@ namespace nanojit
         NIns *patchEntry = _nIns;
 		MR(FP, SP); 
         PUSHr(FP); 
+
+		if (!_thisfrag->lirbuf->explicitSavedParams) 
+			for (int i = 0; i < NumSavedRegs; ++i)
+				PUSHr(savedRegs[i]);
 
         
         asm_align_code();
@@ -214,6 +222,11 @@ namespace nanojit
     NIns *Assembler::genEpilogue()
     {
         RET();
+
+		if (!_thisfrag->lirbuf->explicitSavedParams) 
+			for (int i = NumSavedRegs - 1; i >= 0; --i)
+				POPr(savedRegs[i]);
+
         POPr(FP); 
         MR(SP,FP); 
         return  _nIns;
@@ -1238,7 +1251,7 @@ namespace nanojit
 		if (kind == 0) {
 			
 			AbiKind abi = _thisfrag->lirbuf->abi;
-			uint32_t abi_regcount = abi == ABI_FASTCALL ? 2 : abi == ABI_THISCALL ? 1 : 0;
+			uint32_t abi_regcount = max_abi_regs[abi];
 			if (a < abi_regcount) {
 				
 				prepResultReg(ins, rmask(argRegs[a]));

@@ -85,6 +85,12 @@ Assembler::genPrologue()
     uint32_t savingMask = rmask(FP) | rmask(LR);
     uint32_t savingCount = 2;
 
+    if (!_thisfrag->lirbuf->explicitSavedParams) {
+        for (int i = 0; i < NumSavedRegs; ++i)
+            savingMask |= rmask(savedRegs[i]);
+        savingCount += NumSavedRegs;
+    }
+
     
     uint32_t stackPushed = STACK_GRANULARITY * savingCount;
     uint32_t aligned = alignUp(stackNeeded + stackPushed, NJ_ALIGN_STACK);
@@ -150,6 +156,11 @@ Assembler::genEpilogue()
     BX(LR); 
 
     RegisterMask savingMask = rmask(FP) | rmask(LR);
+
+    if (!_thisfrag->lirbuf->explicitSavedParams)
+        for (int i = 0; i < NumSavedRegs; ++i)
+            savingMask |= rmask(savedRegs[i]);
+
     POP_mask(savingMask); 
 
     
