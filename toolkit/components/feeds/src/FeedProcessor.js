@@ -1421,9 +1421,9 @@ FeedProcessor.prototype = {
   
   
   onStartRequest: function FP_onStartRequest(request, context) {
+    
     var channel = request.QueryInterface(Ci.nsIChannel);
-    if (channel)
-      channel.contentType = "application/xml";
+    channel.contentType = "application/vnd.mozilla.maybe.feed";
     this._reader.onStartRequest(request, context);
   },
 
