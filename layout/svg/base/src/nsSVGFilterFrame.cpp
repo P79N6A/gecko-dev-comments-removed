@@ -554,6 +554,27 @@ nsSVGFilterInstance::LookupImage(const nsAString &aName,
   }
 }
 
+nsSVGFilterInstance::ColorModel
+nsSVGFilterInstance::LookupImageColorModel(const nsAString &aName)
+{
+  ImageEntry *entry;
+
+  if (aName.IsEmpty())
+    entry = mLastImage;
+  else
+    mImageDictionary.Get(aName, &entry);
+
+  if (entry)
+    return entry->mColorModel;
+
+  
+  
+  
+  
+
+  return ColorModel(ColorModel::SRGB, ColorModel::PREMULTIPLIED);
+}
+
 void
 nsSVGFilterInstance::DefineImage(const nsAString &aName,
                                  gfxImageSurface *aImage,
