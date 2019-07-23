@@ -78,7 +78,8 @@ nsresult SetSubmitReports(PRBool aSubmitReport);
 
 
 
-bool GetMinidumpForChild(PRUint32 childPid, nsIFile** dump NS_OUTPARAM);
+
+bool TakeMinidumpForChild(PRUint32 childPid, nsIFile** dump NS_OUTPARAM);
 
 #  if defined(XP_WIN32)
 
