@@ -847,6 +847,7 @@ NS_IMETHODIMP nsViewManager::UpdateView(nsIView *aView, const nsRect &aRect, PRU
   nsView* view = NS_STATIC_CAST(nsView*, aView);
 
   nsRect damagedRect(aRect);
+  NS_ASSERTION(damagedRect.IsEmpty() || view->GetDimensions().Contains(damagedRect),"");
 
    
    
@@ -1939,7 +1940,9 @@ void nsViewManager::ViewToWidget(nsView *aView, nsView* aWidgetView, nsRect &aRe
   
   aRect.x -= bounds.x;
   aRect.y -= bounds.y;
-  
+
+  aRect += aView->ViewToWidgetOffset();
+
   
   aRect.ScaleRoundOut(1.0f / mContext->AppUnitsPerDevPixel());
 }
