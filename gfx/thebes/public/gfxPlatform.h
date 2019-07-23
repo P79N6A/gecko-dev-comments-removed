@@ -98,14 +98,15 @@ enum eFontPrefLang {
     eFontPrefLang_Telugu      = 26,
     eFontPrefLang_Kannada     = 27,
     eFontPrefLang_Sinhala     = 28,
+    eFontPrefLang_Tibetan     = 29,
 
-    eFontPrefLang_LangCount   = 29, 
+    eFontPrefLang_LangCount   = 30, 
 
-    eFontPrefLang_Others      = 29, 
-    eFontPrefLang_UserDefined = 30,
+    eFontPrefLang_Others      = 30, 
+    eFontPrefLang_UserDefined = 31,
 
-    eFontPrefLang_CJKSet      = 31, 
-    eFontPrefLang_AllCount    = 32
+    eFontPrefLang_CJKSet      = 32, 
+    eFontPrefLang_AllCount    = 33
 };
 
 enum eCMSMode {

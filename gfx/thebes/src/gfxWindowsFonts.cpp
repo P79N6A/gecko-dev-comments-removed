@@ -1015,7 +1015,7 @@ static const struct ScriptPropertyEntry gScriptToText[] =
     { "LANG_MARATHI",    "x-devanagari" }, 
     { "LANG_SANSKRIT",   "x-devanagari" }, 
     { "LANG_MONGOLIAN",  "mon" },
-    { "TIBETAN",         "tib" }, 
+    { "TIBETAN",         "x-tibt" }, 
     { nsnull, nsnull },
     { "KHMER",           "x-khmr" }, 
     { "LAO",             "lao" },
