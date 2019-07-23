@@ -803,22 +803,10 @@ XPCNativeWrapperCtor(JSContext *cx, JSObject *obj, uintN argc, jsval *argv,
   JSObject *nativeObj = JSVAL_TO_OBJECT(native);
 
   
-  if (STOBJ_GET_CLASS(nativeObj) == &sXPC_XOW_JSClass.base) {
-    jsval v;
-    if (!::JS_GetReservedSlot(cx, nativeObj, XPCWrapper::sWrappedObjSlot, &v)) {
-      return JS_FALSE;
-    }
-    
-    
-    if (!JSVAL_IS_PRIMITIVE(v)) {
-      nativeObj = JSVAL_TO_OBJECT(v);
-    }
-  } else if (STOBJ_GET_CLASS(nativeObj) == &sXPC_SJOW_JSClass.base) {
-    
-    nativeObj = JS_GetParent(cx, nativeObj);
-    if (!nativeObj) {
-      return ThrowException(NS_ERROR_XPC_BAD_CONVERT_JS, cx);
-    }
+  
+  if (STOBJ_GET_CLASS(nativeObj) == &sXPC_XOW_JSClass.base ||
+      STOBJ_GET_CLASS(nativeObj) == &sXPC_SJOW_JSClass.base) {
+    return ThrowException(NS_ERROR_XPC_BAD_CONVERT_JS, cx);
   }
 
   XPCWrappedNative *wrappedNative;
