@@ -37,33 +37,39 @@
 
 
 
-#ifndef NSNATIVETYPES_H
-#define NSNATIVETYPES_H
+#ifndef LIBRARY_H
+#define LIBRARY_H
 
-#include "nsINativeTypes.h"
+#include "nsIForeignLibrary.h"
 
-#define NATIVETYPES_CONTRACTID \
+#define FOREIGNLIBRARY_CONTRACTID \
   "@mozilla.org/jsctypes;1"
 
-#define NATIVETYPES_CID \
+#define FOREIGNLIBRARY_CID \
 { 0xc797702, 0x1c60, 0x4051, { 0x9d, 0xd7, 0x4d, 0x74, 0x5, 0x60, 0x56, 0x42 } }
 
 struct PRLibrary;
 
-class nsNativeTypes : public nsINativeTypes
+namespace mozilla {
+namespace ctypes {
+
+class Library : public nsIForeignLibrary
 {
 public:
   NS_DECL_ISUPPORTS
-  NS_DECL_NSINATIVETYPES
+  NS_DECL_NSIFOREIGNLIBRARY
 
-  nsNativeTypes();
+  Library();
 
   PRBool IsOpen() { return mLibrary != nsnull; }
 
 private:
-  ~nsNativeTypes();
+  ~Library();
 
   PRLibrary* mLibrary;
 };
+
+}
+}
 
 #endif
