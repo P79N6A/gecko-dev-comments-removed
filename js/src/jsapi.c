@@ -949,7 +949,7 @@ JS_ResumeRequest(JSContext *cx, jsrefcount saveDepth)
         JS_BeginRequest(cx);
 }
 
-#endif 
+#endif
 
 JS_PUBLIC_API(void)
 JS_Lock(JSRuntime *rt)

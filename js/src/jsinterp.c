@@ -2441,7 +2441,7 @@ interrupt:
 
         switch (op) {
 
-#endif 
+#endif
 
           BEGIN_CASE(JSOP_STOP)
             goto out;
