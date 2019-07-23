@@ -106,12 +106,6 @@ window[chromehidden~="toolbar"] toolbar:not(.toolbar-primary):not(.chromeclass-m
 }
 
 
-
-#security-button > label {
-  display: none;
-}
-
-
 #fullscr-toggler {
   display: none;
   min-height: 5px;
