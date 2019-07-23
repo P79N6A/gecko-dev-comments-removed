@@ -381,49 +381,8 @@ NS_IMETHODIMP nsFileControlFrame::Reflow(nsPresContext*          aPresContext,
   }
 
   
-  
-  
-  
-  nsresult rv = nsAreaFrame::Reflow(aPresContext, aDesiredSize, aReflowState,
-                                    aStatus);
-  if (NS_SUCCEEDED(rv) && mTextFrame != nsnull) {
-    nsIFrame* child = GetFirstChild(nsnull);
-    if (child == mTextFrame) {
-      child = child->GetNextSibling();
-    }
-    if (child) {
-      nsRect buttonRect = child->GetRect();
-      nsRect txtRect = mTextFrame->GetRect();
-
-      
-      
-      
-      
-      if (txtRect.width + buttonRect.width != aDesiredSize.width ||
-          txtRect.height != aDesiredSize.height) {
-        nsHTMLReflowMetrics txtKidSize;
-        nsSize txtAvailSize(aReflowState.availableWidth, aDesiredSize.height);
-        nsHTMLReflowState   txtKidReflowState(aPresContext,
-                                              *aReflowState.parentReflowState,
-                                              this, txtAvailSize);
-        txtKidReflowState.SetComputedHeight(aDesiredSize.height);
-        rv = nsAreaFrame::WillReflow(aPresContext);
-        NS_ASSERTION(NS_SUCCEEDED(rv), "Should have succeeded");
-        rv = nsAreaFrame::Reflow(aPresContext, txtKidSize, txtKidReflowState, aStatus);
-        NS_ASSERTION(NS_SUCCEEDED(rv), "Should have succeeded");
-        rv = nsAreaFrame::DidReflow(aPresContext, &txtKidReflowState, aStatus);
-        NS_ASSERTION(NS_SUCCEEDED(rv), "Should have succeeded");
-
-        
-        txtRect        = mTextFrame->GetRect();
-        txtRect.y      = aReflowState.mComputedBorderPadding.top;
-        txtRect.height = aDesiredSize.height;
-        mTextFrame->SetRect(txtRect);
-      }
-    }
-  }
-  NS_FRAME_SET_TRUNCATION(aStatus, aReflowState, aDesiredSize);
-  return rv;
+  return nsAreaFrame::Reflow(aPresContext, aDesiredSize, aReflowState,
+                             aStatus);
 }
 
 
@@ -582,8 +541,11 @@ nsFileControlFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
     return rv;
 
   tempList.BorderBackground()->DeleteAll();
-  tempList.MoveTo(aLists);
-  
+
+  rv = OverflowClip(aBuilder, tempList, aLists,
+                    nsRect(aBuilder->ToReferenceFrame(this), GetSize()));
+  NS_ENSURE_SUCCESS(rv, rv);
+
   
   
   
