@@ -1019,7 +1019,7 @@ public:
 
 
 
-  static nsresult CreateContextualFragment(nsIDOMNode* aContextNode,
+  static nsresult CreateContextualFragment(nsINode* aContextNode,
                                            const nsAString& aFragment,
                                            PRBool aWillOwnFragment,
                                            nsIDOMDocumentFragment** aReturn);
