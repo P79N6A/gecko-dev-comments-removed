@@ -1138,43 +1138,83 @@ var PlacesUIUtils = {
 
   
   get leftPaneFolderId() {
-    var leftPaneRoot = -1;
-    var allBookmarksId;
+    let leftPaneRoot = -1;
+    let allBookmarksId;
 
     
-    var bs = PlacesUtils.bookmarks;
-    var as = PlacesUtils.annotations;
+    let bs = PlacesUtils.bookmarks;
+    let as = PlacesUtils.annotations;
 
     
+    let queries = {
+      "PlacesRoot": { title: "" },
+      "History": { title: this.getString("OrganizerQueryHistory") },
+      "Tags": { title: this.getString("OrganizerQueryTags") },
+      "AllBookmarks": { title: this.getString("OrganizerQueryAllBookmarks") },
+      "BookmarksToolbar":
+        { title: null,
+          concreteTitle: PlacesUtils.getString("BookmarksToolbarFolderTitle"),
+          concreteId: PlacesUtils.toolbarFolderId },
+      "BookmarksMenu":
+        { title: null,
+          concreteTitle: PlacesUtils.getString("BookmarksMenuFolderTitle"),
+          concreteId: PlacesUtils.bookmarksMenuFolderId },
+      "UnfiledBookmarks":
+        { title: null,
+          concreteTitle: PlacesUtils.getString("UnsortedBookmarksFolderTitle"),
+          concreteId: PlacesUtils.unfiledBookmarksFolderId },
+    };
     
-    var items = as.getItemsWithAnnotation(ORGANIZER_FOLDER_ANNO);
-    if (items.length > 1) {
-      
-      
-      items.forEach(bs.removeItem);
-    }
-    else if (items.length == 1 && items[0] != -1) {
-      leftPaneRoot = items[0];
-      
-      var version = as.getItemAnnotation(leftPaneRoot, ORGANIZER_FOLDER_ANNO);
-      if (version != ORGANIZER_LEFTPANE_VERSION) {
+    const EXPECTED_QUERY_COUNT = 6;
+
+    
+    function safeRemoveItem(aItemId) {
+      try {
+        if (as.itemHasAnnotation(aItemId, ORGANIZER_QUERY_ANNO) &&
+            !(as.getItemAnnotation(aItemId, ORGANIZER_QUERY_ANNO) in queries)) {
+          
+          
+          return;
+        }
         
-        bs.removeItem(leftPaneRoot);
-        leftPaneRoot = -1;
+        
+        as.removeItemAnnotation(aItemId, ORGANIZER_FOLDER_ANNO);
+        as.removeItemAnnotation(aItemId, ORGANIZER_QUERY_ANNO);
+        
+        bs.removeItem(aItemId);
+      }
+      catch(e) {  }
+    }
+
+    
+    function itemExists(aItemId) {
+      try {
+        bs.getItemIndex(aItemId);
+        return true;
+      }
+      catch(e) {
+        return false;
       }
     }
 
-    var queriesTitles = {
-      "PlacesRoot": "",
-      "History": this.getString("OrganizerQueryHistory"),
+    
+    let items = as.getItemsWithAnnotation(ORGANIZER_FOLDER_ANNO, {});
+    if (items.length > 1) {
       
-      "Tags": bs.getItemTitle(PlacesUtils.tagsFolderId),
-      "AllBookmarks": this.getString("OrganizerQueryAllBookmarks"),
-      "Downloads": this.getString("OrganizerQueryDownloads"),
-      "BookmarksToolbar": null,
-      "BookmarksMenu": null,
-      "UnfiledBookmarks": null
-    };
+      
+      items.forEach(safeRemoveItem);
+    }
+    else if (items.length == 1 && items[0] != -1) {
+      leftPaneRoot = items[0];
+
+      
+      let version = as.getItemAnnotation(leftPaneRoot, ORGANIZER_FOLDER_ANNO);
+      if (version != ORGANIZER_LEFTPANE_VERSION || !itemExists(leftPaneRoot)) {
+        
+        safeRemoveItem(leftPaneRoot);
+        leftPaneRoot = -1;
+      }
+    }
 
     if (leftPaneRoot != -1) {
       
@@ -1182,20 +1222,62 @@ var PlacesUIUtils = {
       
       delete this.leftPaneQueries;
       this.leftPaneQueries = {};
-      var items = as.getItemsWithAnnotation(ORGANIZER_QUERY_ANNO);
+
+      let items = as.getItemsWithAnnotation(ORGANIZER_QUERY_ANNO, {});
       
-      for (var i = 0; i < items.length; i++) {
-        var queryName = as.getItemAnnotation(items[i], ORGANIZER_QUERY_ANNO);
-        this.leftPaneQueries[queryName] = items[i];
+      let queriesCount = 0;
+      for(let i = 0; i < items.length; i++) {
+        let queryName = as.getItemAnnotation(items[i], ORGANIZER_QUERY_ANNO);
         
         
-        if (bs.getItemTitle(items[i]) != queriesTitles[queryName])
-          bs.setItemTitle(items[i], queriesTitles[queryName]);
+        if (!(queryName in queries))
+          continue;
+
+        let query = queries[queryName];
+        query.itemId = items[i];
+
+        if (!itemExists(query.itemId)) {
+          
+          break;
+        }
+
+        
+        let parentId = bs.getFolderIdForItem(query.itemId);
+        if (items.indexOf(parentId) == -1 && parentId != leftPaneRoot) {
+          
+          
+          break;
+        }
+
+        
+        
+        if (bs.getItemTitle(query.itemId) != query.title)
+          bs.setItemTitle(query.itemId, query.title);
+        if ("concreteId" in query) {
+          if (bs.getItemTitle(query.concreteId) != query.concreteTitle)
+            bs.setItemTitle(query.concreteId, query.concreteTitle);
+        }
+
+        
+        this.leftPaneQueries[queryName] = query.itemId;
+        queriesCount++;
       }
-      delete this.leftPaneFolderId;
-      return this.leftPaneFolderId = leftPaneRoot;
+
+      if (queriesCount != EXPECTED_QUERY_COUNT) {
+        
+        
+        
+        items.forEach(safeRemoveItem);
+        safeRemoveItem(leftPaneRoot);
+      }
+      else {
+        
+        delete this.leftPaneFolderId;
+        return this.leftPaneFolderId = leftPaneRoot;
+      }
     }
 
+    
     var self = this;
     var callback = {
       
@@ -1203,7 +1285,7 @@ var PlacesUIUtils = {
         let itemId = bs.insertBookmark(aParentId,
                                        PlacesUtils._uri(aQueryUrl),
                                        bs.DEFAULT_INDEX,
-                                       queriesTitles[aQueryName]);
+                                       queries[aQueryName].title);
         
         as.setItemAnnotation(itemId, ORGANIZER_QUERY_ANNO, aQueryName,
                              0, as.EXPIRE_NEVER);
@@ -1219,7 +1301,7 @@ var PlacesUIUtils = {
       create_folder: function CB_create_folder(aFolderName, aParentId, aIsRoot) {
               
         let folderId = bs.createFolder(aParentId,
-                                       queriesTitles[aFolderName],
+                                       queries[aFolderName].title,
                                        bs.DEFAULT_INDEX);
         
         as.setItemAnnotation(folderId, EXCLUDE_FROM_BACKUP_ANNO, 1,
