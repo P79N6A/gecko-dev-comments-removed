@@ -265,7 +265,9 @@ nsFtpState::EstablishControlConnection()
         
     
     nsFtpControlConnection *connection = nsnull;
-    gFtpHandler->RemoveConnection(mChannel->URI(), &connection);
+    
+    if (!mChannel->HasLoadFlag(nsIRequest::LOAD_ANONYMOUS))
+        gFtpHandler->RemoveConnection(mChannel->URI(), &connection);
 
     if (connection) {
         mControlConnection.swap(connection);
@@ -678,6 +680,11 @@ nsFtpState::S_user() {
     } else {
         mReconnectAndLoginAgain = PR_FALSE;
         if (mUsername.IsEmpty()) {
+
+            
+            if (mChannel->HasLoadFlag(nsIRequest::LOAD_ANONYMOUS))
+              return NS_ERROR_FAILURE;
+
             nsCOMPtr<nsIAuthPrompt2> prompter;
             NS_QueryAuthPrompt2(static_cast<nsIChannel*>(mChannel),
                                 getter_AddRefs(prompter));
@@ -762,6 +769,11 @@ nsFtpState::S_pass() {
         }
     } else {
         if (mPassword.IsEmpty() || mRetryPass) {
+            
+            
+            if (mChannel->HasLoadFlag(nsIRequest::LOAD_ANONYMOUS))
+                return NS_ERROR_FAILURE;
+
             nsCOMPtr<nsIAuthPrompt2> prompter;
             NS_QueryAuthPrompt2(static_cast<nsIChannel*>(mChannel),
                                 getter_AddRefs(prompter));
@@ -1725,8 +1737,12 @@ nsFtpState::KillControlConnection()
         mControlConnection->mServerType = mServerType;           
         mControlConnection->mPassword = mPassword;
         mControlConnection->mPwd = mPwd;
-        nsresult rv = gFtpHandler->InsertConnection(mChannel->URI(),
-                                                    mControlConnection);
+        
+        nsresult rv = NS_OK;
+        
+        if (!mChannel->HasLoadFlag(nsIRequest::LOAD_ANONYMOUS))
+            rv = gFtpHandler->InsertConnection(mChannel->URI(),
+                                               mControlConnection);
         
         mControlConnection->Disconnect(rv);
     } else {
