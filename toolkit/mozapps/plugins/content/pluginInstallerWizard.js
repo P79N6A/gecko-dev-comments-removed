@@ -60,7 +60,7 @@ function nsPluginInstallerWizard(){
 
   this.mBrowser = null;
   this.mSuccessfullPluginInstallation = 0;
-  this.mNeedsRestart = false
+  this.mNeedsRestart = false;
 
   
   
