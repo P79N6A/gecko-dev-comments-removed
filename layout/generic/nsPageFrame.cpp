@@ -611,7 +611,8 @@ nsPageBreakFrame::Reflow(nsPresContext*          aPresContext,
   
   
   aDesiredSize.width = GetIntrinsicWidth();
-  aDesiredSize.height = aReflowState.availableHeight;
+  aDesiredSize.height = (aReflowState.availableHeight == NS_UNCONSTRAINEDSIZE ?
+                         0 : aReflowState.availableHeight);
   
   aDesiredSize.height -=
     aDesiredSize.height % nsPresContext::CSSPixelsToAppUnits(1);
