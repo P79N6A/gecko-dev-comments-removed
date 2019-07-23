@@ -4344,7 +4344,7 @@ nsresult nsEditor::EndUpdateViewBatch()
       
       if (flags & nsIPlaintextEditor::eEditorUseAsyncUpdatesMask) {
         updateFlag = NS_VMREFRESH_DEFERRED;
-      } else {
+      } else if (presShell) {
         
         
         

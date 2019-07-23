@@ -3613,12 +3613,6 @@ nsHTMLEditor::AddOverrideStyleSheet(const nsAString& aURL)
   
   ps->AddOverrideStyleSheet(sheet);
 
-  
-  nsIDocument *document = ps->GetDocument();
-  if (!document)
-    return NS_ERROR_NULL_POINTER;
-  sheet->SetOwningDocument(document);
-
   ps->ReconstructStyleData();
 
   
@@ -3683,10 +3677,14 @@ nsHTMLEditor::EnableStyleSheet(const nsAString &aURL, PRBool aEnable)
 
   nsCOMPtr<nsIDOMStyleSheet> domSheet(do_QueryInterface(sheet));
   NS_ASSERTION(domSheet, "Sheet not implementing nsIDOMStyleSheet!");
+
+  
+  nsCOMPtr<nsIDocument> doc = do_QueryInterface(mDocWeak);
+  rv = sheet->SetOwningDocument(doc);
+  NS_ENSURE_SUCCESS(rv, rv);
   
   return domSheet->SetDisabled(!aEnable);
 }
-
 
 PRBool
 nsHTMLEditor::EnableExistingStyleSheet(const nsAString &aURL)
@@ -3698,6 +3696,11 @@ nsHTMLEditor::EnableExistingStyleSheet(const nsAString &aURL)
   
   if (sheet)
   {
+    
+    nsCOMPtr<nsIDocument> doc = do_QueryInterface(mDocWeak);
+    rv = sheet->SetOwningDocument(doc);
+    NS_ENSURE_SUCCESS(rv, rv);
+
     nsCOMPtr<nsIDOMStyleSheet> domSheet(do_QueryInterface(sheet));
     NS_ASSERTION(domSheet, "Sheet not implementing nsIDOMStyleSheet!");
     
