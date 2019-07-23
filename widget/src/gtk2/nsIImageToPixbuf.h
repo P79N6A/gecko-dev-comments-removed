@@ -50,8 +50,6 @@ typedef struct _GdkPixbuf GdkPixbuf;
 
 
 
-
-
 class nsIImageToPixbuf : public nsISupports {
     public:
         NS_DECLARE_STATIC_IID_ACCESSOR(NSIIMAGETOPIXBUF_IID)
