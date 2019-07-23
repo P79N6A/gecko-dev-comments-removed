@@ -7390,6 +7390,10 @@ JS_INTERPRET(JSContext *cx, JSInterpreterState *state)
             SAVE_STATE(&s, JS_NEXT_CONTINUE);
             js_TracingInterpret(cx, &s);
             
+
+
+            JS_TRACE_MONITOR(cx).freq = 0;
+            
             RESTORE_STATE(&s);
         }        
     }
