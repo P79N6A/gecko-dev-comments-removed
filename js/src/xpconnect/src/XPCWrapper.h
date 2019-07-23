@@ -340,20 +340,9 @@ private:
 
 
   static JSBool GetPropertyAttrs(JSContext *cx, JSObject *obj,
-                                 jsid interned_id, JSObject **objp,
-                                 JSBool wantDetails, uintN flags, uintN *attrsp,
-                                 JSPropertyOp *getterp, JSPropertyOp *setterp,
-                                 jsval *vp);
-
-  
-
-
-
-
-  static JSBool DefineProperty(JSContext *cx, JSObject *obj, jsid interned_id,
-                               JSBool haveDetails, jsval v,
-                               JSPropertyOp getter, JSPropertyOp setter,
-                               uintN attrs);
+                                 jsid interned_id, uintN flags,
+                                 JSBool wantDetails,
+                                 JSPropertyDescriptor *desc);
 };
 
 
