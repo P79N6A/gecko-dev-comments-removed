@@ -1074,7 +1074,7 @@ js_InitExceptionClasses(JSContext *cx, JSObject *obj)
             break;
 
         
-        fun->u.n.clasp = &js_ErrorClass;
+        FUN_CLASP(fun) = &js_ErrorClass;
 
         
         if (!js_SetClassPrototype(cx, FUN_OBJECT(fun), protos[i],

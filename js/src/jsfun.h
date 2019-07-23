@@ -73,7 +73,12 @@ struct JSFunction {
             uint16      extra;    
             uint16      spare;    
             JSNative    native;   
-            JSClass     *clasp;   
+            union {
+                JSClass             *clasp;    
+
+                JSTraceableNative   *trcinfo;  
+
+            } u;
         } n;
         struct {
             uint16      nvars;    
@@ -86,7 +91,10 @@ struct JSFunction {
     JSAtom          *atom;        
 };
 
-#define JSFUN_EXPR_CLOSURE   0x4000 /* expression closure: function(x)x*x */
+#define JSFUN_TRACEABLE      0x2000 /* can trace across calls to this native
+                                       function; use FUN_TRCINFO if set,
+                                       FUN_CLASP if unset */
+#define JSFUN_EXPR_CLOSURE   0x4000 
 #define JSFUN_INTERPRETED    0x8000 /* use u.i if set, u.n if unset */
 
 #define JSFUN_SCRIPT_OR_FAST_NATIVE (JSFUN_INTERPRETED | JSFUN_FAST_NATIVE)
@@ -102,6 +110,26 @@ struct JSFunction {
 #define FUN_MINARGS(fun)     (((fun)->flags & JSFUN_FAST_NATIVE)              \
                               ? 0                                             \
                               : (fun)->nargs)
+#define FUN_CLASP(fun)       (JS_ASSERT(!FUN_INTERPRETED(fun)),               \
+                              JS_ASSERT(!((fun)->flags & JSFUN_TRACEABLE)),   \
+                              fun->u.n.u.clasp)
+#define FUN_TRCINFO(fun)     (JS_ASSERT(!FUN_INTERPRETED(fun)),               \
+                              JS_ASSERT((fun)->flags & JSFUN_TRACEABLE),      \
+                              fun->u.n.u.trcinfo)
+
+
+
+
+
+#ifdef JS_TRACER
+
+# define JS_TN(name,fastcall,nargs,flags,trcinfo)                             \
+    {name, (JSNative)(void *)(trcinfo), nargs,                                \
+     (flags) | JSFUN_FAST_NATIVE | JSFUN_STUB_GSOPS | JSFUN_TRACEABLE, 0}
+#else
+# define JS_TN(name,fastcall,nargs,flags,trcinfo)                             \
+    JS_FN(name, fastcall, nargs, flags)
+#endif
 
 extern JSClass js_ArgumentsClass;
 extern JS_FRIEND_DATA(JSClass) js_CallClass;

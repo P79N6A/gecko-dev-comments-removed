@@ -49,23 +49,7 @@
 #include "jslock.h"
 #include "jsnum.h"
 #include "jsinterp.h"
-
-#include "nanojit/nanojit.h"
-
-
-
-
-
-
-
-#define JSVAL_ERROR_COOKIE OBJECT_TO_JSVAL((void*)0x10)
-
-
-
-
-
-
-#define INT32_ERROR_COOKIE 0xffffabcd
+#include "jsbuiltins.h"
 
 template <typename T>
 class Queue : public GCObject {
@@ -199,17 +183,6 @@ public:
     TreeInfo(nanojit::Fragment* _fragment) { 
         fragment = _fragment;
     }
-};
-
-extern struct nanojit::CallInfo builtins[];
-
-enum JSTNErrType { INFALLIBLE, FAIL_NULL, FAIL_NEG, FAIL_VOID, FAIL_JSVAL };
-struct JSTraceableNative {
-    JSFastNative native;
-    int          builtin;
-    const char  *prefix;
-    const char  *argtypes;
-    JSTNErrType  errtype;
 };
  
 class TraceRecorder : public GCObject {

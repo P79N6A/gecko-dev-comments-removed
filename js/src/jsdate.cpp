@@ -63,6 +63,7 @@
 #include "jsutil.h" 
 #include "jsapi.h"
 #include "jsversion.h"
+#include "jsbuiltins.h"
 #include "jscntxt.h"
 #include "jsdate.h"
 #include "jsinterp.h"
@@ -477,6 +478,9 @@ msFromTime(jsdouble t)
 
 
 
+
+const uint32 JSSLOT_UTC_TIME    = JSSLOT_PRIVATE;
+const uint32 JSSLOT_LOCAL_TIME  = JSSLOT_PRIVATE + 1;
 
 const uint32 DATE_RESERVED_SLOTS = 2;
 
@@ -909,11 +913,19 @@ date_parse(JSContext *cx, uintN argc, jsval *vp)
     return js_NewNumberInRootedValue(cx, result, vp);
 }
 
-JSBool
-js_date_now(JSContext *cx, uintN argc, jsval *vp)
+static JSBool
+date_now(JSContext *cx, uintN argc, jsval *vp)
 {
     return js_NewDoubleInRootedValue(cx, PRMJ_Now() / PRMJ_USEC_PER_MSEC, vp);
 }
+
+#ifdef JS_TRACER
+jsdouble FASTCALL
+js_Date_now(JSContext*)
+{
+    return PRMJ_Now() / PRMJ_USEC_PER_MSEC;
+}
+#endif
 
 
 
@@ -1952,10 +1964,23 @@ date_valueOf(JSContext *cx, uintN argc, jsval *vp)
 
 
 
+#ifdef JS_TRACER
+
+
+JS_DEFINE_CALLINFO_1(DOUBLE, Date_now, CONTEXT, 0, 0)
+
+JS_DEFINE_CALLINFO_2(OBJECT, FastNewDate, CONTEXT, OBJECT, 0, 0)
+
+static JSTraceableNative date_now_trcinfo[] = {
+    { date_now, &ci_Date_now, "C", "", INFALLIBLE }
+};
+
+#endif 
+
 static JSFunctionSpec date_static_methods[] = {
     JS_FN("UTC",                 date_UTC,                MAXARGS,0),
     JS_FN("parse",               date_parse,              1,0),
-    JS_FN("now",                 js_date_now,             0,0),
+    JS_TN("now",                 date_now,                0,0, date_now_trcinfo),
     JS_FS_END
 };
 
@@ -2087,6 +2112,39 @@ js_Date(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
     }
     return JS_TRUE;
 }
+
+JS_STATIC_ASSERT(JSSLOT_PRIVATE == JSSLOT_UTC_TIME);
+JS_STATIC_ASSERT(JSSLOT_UTC_TIME + 1 == JSSLOT_LOCAL_TIME);
+
+#ifdef JS_TRACER
+JSObject* FASTCALL
+js_FastNewDate(JSContext* cx, JSObject* proto)
+{
+    JS_ASSERT(JS_ON_TRACE(cx));
+    JSObject* obj = (JSObject*) js_NewGCThing(cx, GCX_OBJECT, sizeof(JSObject));
+    if (!obj)
+        return NULL;
+
+    JSClass* clasp = &js_DateClass;
+    obj->classword = jsuword(clasp);
+
+    obj->fslots[JSSLOT_PROTO] = OBJECT_TO_JSVAL(proto);
+    obj->fslots[JSSLOT_PARENT] = proto->fslots[JSSLOT_PARENT];
+
+    jsdouble* date = js_NewWeaklyRootedDouble(cx, 0.0);
+    if (!date)
+        return NULL;
+    *date = js_Date_now(cx);
+    obj->fslots[JSSLOT_UTC_TIME] = DOUBLE_TO_JSVAL(date);
+    obj->fslots[JSSLOT_LOCAL_TIME] = DOUBLE_TO_JSVAL(cx->runtime->jsNaN);;
+
+    JS_ASSERT(!clasp->getObjectOps);
+    JS_ASSERT(proto->map->ops == &js_ObjectOps);
+    obj->map = js_HoldObjectMap(cx, proto->map);
+    obj->dslots = NULL;
+    return obj;    
+}
+#endif
 
 JSObject *
 js_InitDateClass(JSContext *cx, JSObject *obj)
