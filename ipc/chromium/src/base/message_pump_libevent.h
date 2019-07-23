@@ -84,6 +84,54 @@ class MessagePumpLibevent : public MessagePump {
                            FileDescriptorWatcher *controller,
                            Watcher *delegate);
 
+
+#if defined(CHROMIUM_MOZILLA_BUILD)
+  
+  
+  
+  
+  
+  
+  
+  
+  class SignalEvent {
+     friend class MessagePumpLibevent;
+
+  public:
+    SignalEvent();
+    ~SignalEvent();             
+
+    
+    bool StopCatching();
+
+  private:
+    void Init(event* e);
+    event* ReleaseEvent();
+
+    event* event_;
+
+    DISALLOW_COPY_AND_ASSIGN(SignalEvent);
+  };
+
+  class SignalWatcher {
+  public:
+    virtual ~SignalWatcher() {}
+    
+    
+    virtual void OnSignal(int sig) = 0;
+  };
+
+  
+  
+  
+  
+  
+  bool CatchSignal(int sig,
+                   SignalEvent* sigevent,
+                   SignalWatcher* delegate);
+#endif  
+
+
   
   virtual void Run(Delegate* delegate);
   virtual void Quit();
@@ -111,6 +159,12 @@ class MessagePumpLibevent : public MessagePump {
   
   static void OnLibeventNotification(int fd, short flags,
                                      void* context);
+
+#if defined(CHROMIUM_MOZILLA_BUILD)
+  
+  static void OnLibeventSignalNotification(int sig, short flags,
+                                           void* context);
+#endif
 
   
   

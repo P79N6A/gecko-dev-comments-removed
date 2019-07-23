@@ -212,6 +212,91 @@ void MessagePumpLibevent::OnLibeventNotification(int fd, short flags,
 }
 
 
+#if defined(CHROMIUM_MOZILLA_BUILD)
+MessagePumpLibevent::SignalEvent::SignalEvent() :
+  event_(NULL)
+{
+}
+
+MessagePumpLibevent::SignalEvent::~SignalEvent()
+{
+  if (event_) {
+    StopCatching();
+  }
+}
+
+void
+MessagePumpLibevent::SignalEvent::Init(event *e)
+{
+  DCHECK(e);
+  DCHECK(event_ == NULL);
+  event_ = e;
+}
+
+bool
+MessagePumpLibevent::SignalEvent::StopCatching()
+{
+  
+  
+  
+  event* e = ReleaseEvent();
+  if (e == NULL)
+    return true;
+
+  
+  int rv = event_del(e);
+  delete e;
+  return (rv == 0);
+}
+
+event *
+MessagePumpLibevent::SignalEvent::ReleaseEvent()
+{
+  event *e = event_;
+  event_ = NULL;
+  return e;
+}
+
+bool
+MessagePumpLibevent::CatchSignal(int sig,
+                                 SignalEvent* sigevent,
+                                 SignalWatcher* delegate)
+{
+  DCHECK(sig > 0);
+  DCHECK(sigevent);
+  DCHECK(delegate);
+  
+  
+  
+  DCHECK(NULL == sigevent->event_);
+
+  scoped_ptr<event> evt(new event);
+  signal_set(evt.get(), sig, OnLibeventSignalNotification, delegate);
+
+  if (event_base_set(event_base_, evt.get()))
+    return false;
+
+  if (signal_add(evt.get(), NULL))
+    return false;
+
+  
+  sigevent->Init(evt.release());
+  return true;
+}
+
+void
+MessagePumpLibevent::OnLibeventSignalNotification(int sig, short flags,
+                                                  void* context)
+{
+  DCHECK(sig > 0);
+  DCHECK(EV_SIGNAL == flags);
+  DCHECK(context);
+  reinterpret_cast<SignalWatcher*>(context)->OnSignal(sig);
+}
+#endif  
+
+
+
 void MessagePumpLibevent::Run(Delegate* delegate) {
   DCHECK(keep_running_) << "Quit must have been called outside of Run!";
 
