@@ -1089,7 +1089,8 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(nsDocument)
   NS_IMPL_CYCLE_COLLECTION_UNLINK_USERDATA
 
   
-  tmp->RemoveReference(tmp);
+  delete tmp->mContentWrapperHash;
+  tmp->mContentWrapperHash = nsnull;
 
   tmp->mParentDocument = nsnull;
 
