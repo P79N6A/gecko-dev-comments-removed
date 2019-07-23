@@ -464,11 +464,6 @@ void imgFrame::Draw(gfxContext *aContext, gfxPattern::GraphicsFilter aFilter,
   
   
 
-  if (!AllowedImageSize(fill.size.width + 1, fill.size.height + 1)) {
-    NS_WARNING("Destination area too large, bailing out");
-    return;
-  }
-
   
   
   
