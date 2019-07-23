@@ -77,7 +77,7 @@
 
 
 
-#ifdef CMS_DEBUG
+#ifdef DEBUG
 #include <stdio.h>
 #define CMSASSERT(x) \
 {   if (!(x)) { \
