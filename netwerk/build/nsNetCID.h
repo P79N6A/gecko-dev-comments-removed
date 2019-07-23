@@ -431,6 +431,17 @@
 }
 
 
+#define NS_PRIVATE_BROWSING_SERVICE_CONTRACTID \
+    "@mozilla.org/privatebrowsing;1"
+#define NS_PRIVATE_BROWSING_SERVICE_CID              \
+{ /* c31f4883-839b-45f6-82ad-a6a9bc5ad599 */         \
+    0xc31f4883,                                      \
+    0x839b,                                          \
+    0x45f6,                                          \
+    {0x82, 0xad, 0xa6, 0xa9, 0xbc, 0x5a, 0xd5, 0x99} \
+}
+
+
 
 
 
