@@ -89,9 +89,6 @@
 #include "nsICharsetResolver.h"
 
 
-
-
-
 #define IN_MEMORY_SQLITE_TEMP_STORE
 
 
@@ -229,13 +226,6 @@ public:
   {
     return mDBConn;
   }
-
-#ifdef IN_MEMORY_LINKS
-  mozIStorageConnection* GetMemoryStorageConnection()
-  {
-    return mMemDBConn;
-  }
-#endif
 
   
 
@@ -477,15 +467,6 @@ protected:
   nsresult MigrateV6Up(mozIStorageConnection *aDBConn);
   nsresult EnsureCurrentSchema(mozIStorageConnection* aDBConn, PRBool *aMadeChanges);
   nsresult CleanUpOnQuit();
-
-#ifdef IN_MEMORY_LINKS
-  
-  nsCOMPtr<mozIStorageConnection> mMemDBConn;
-  nsCOMPtr<mozIStorageStatement> mMemDBAddPage;
-  nsCOMPtr<mozIStorageStatement> mMemDBGetPage;
-
-  nsresult InitMemDB();
-#endif
 
   nsresult RemovePagesInternal(const nsCString& aPlaceIdsQueryString);
 
