@@ -274,7 +274,9 @@ static char **gRestartArgv;
 
 #if defined(MOZ_WIDGET_GTK2)
 #include <gtk/gtk.h>
+#ifdef MOZ_X11
 #include <gdk/gdkx.h>
+#endif 
 #include "nsGTKToolkit.h"
 #endif
 
@@ -2391,6 +2393,7 @@ static void MOZ_gdk_display_close(GdkDisplay *display)
   
   
   if (gtk_check_version(2,10,0) != NULL) {
+#ifdef MOZ_X11
     
     
     
@@ -2398,6 +2401,9 @@ static void MOZ_gdk_display_close(GdkDisplay *display)
     Display* dpy = GDK_DISPLAY_XDISPLAY(display);
     if (!theme_is_qt)
       XCloseDisplay(dpy);
+#else
+    gdk_display_close(display);
+#endif 
   }
   else {
     if (!theme_is_qt)

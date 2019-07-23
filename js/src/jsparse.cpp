@@ -614,10 +614,6 @@ js_CompileScript(JSContext *cx, JSObject *obj, JSPrincipals *principals,
             goto out;
         }
 
-        
-
-
-
         JS_ASSERT(!cg.treeContext.blockNode);
 
         if (!js_FoldConstants(cx, pn, &cg.treeContext) ||
@@ -1582,82 +1578,6 @@ MatchLabel(JSContext *cx, JSTokenStream *ts, JSParseNode *pn)
     return JS_TRUE;
 }
 
-#if JS_HAS_EXPORT_IMPORT
-static JSParseNode *
-ImportExpr(JSContext *cx, JSTokenStream *ts, JSTreeContext *tc)
-{
-    JSParseNode *pn, *pn2;
-    JSTokenType tt;
-
-    MUST_MATCH_TOKEN(TOK_NAME, JSMSG_NO_IMPORT_NAME);
-    pn = NewParseNode(cx, ts, PN_NAME, tc);
-    if (!pn)
-        return NULL;
-    pn->pn_op = JSOP_NAME;
-    pn->pn_atom = CURRENT_TOKEN(ts).t_atom;
-    pn->pn_slot = -1;
-
-    ts->flags |= TSF_OPERAND;
-    while ((tt = js_GetToken(cx, ts)) == TOK_DOT || tt == TOK_LB) {
-        ts->flags &= ~TSF_OPERAND;
-        if (pn->pn_op == JSOP_IMPORTALL)
-            goto bad_import;
-
-        if (tt == TOK_DOT) {
-            pn2 = NewParseNode(cx, ts, PN_NAME, tc);
-            if (!pn2)
-                return NULL;
-            ts->flags |= TSF_KEYWORD_IS_NAME;
-            if (js_MatchToken(cx, ts, TOK_STAR)) {
-                pn2->pn_op = JSOP_IMPORTALL;
-                pn2->pn_slot = -1;
-            } else {
-                MUST_MATCH_TOKEN(TOK_NAME, JSMSG_NAME_AFTER_DOT);
-                pn2->pn_op = JSOP_GETPROP;
-                pn2->pn_atom = CURRENT_TOKEN(ts).t_atom;
-                pn2->pn_slot = -1;
-            }
-            ts->flags &= ~TSF_KEYWORD_IS_NAME;
-            pn2->pn_expr = pn;
-            pn2->pn_pos.begin = pn->pn_pos.begin;
-            pn2->pn_pos.end = CURRENT_TOKEN(ts).pos.end;
-        } else {
-            
-            pn2 = NewBinary(cx, tt, JSOP_GETELEM, pn, Expr(cx, ts, tc), tc);
-            if (!pn2)
-                return NULL;
-
-            MUST_MATCH_TOKEN(TOK_RB, JSMSG_BRACKET_IN_INDEX);
-        }
-
-        pn = pn2;
-        ts->flags |= TSF_OPERAND;
-    }
-    ts->flags &= ~TSF_OPERAND;
-    if (tt == TOK_ERROR)
-        return NULL;
-    js_UngetToken(ts);
-
-    switch (pn->pn_op) {
-      case JSOP_GETPROP:
-        pn->pn_op = JSOP_IMPORTPROP;
-        break;
-      case JSOP_GETELEM:
-        pn->pn_op = JSOP_IMPORTELEM;
-        break;
-      case JSOP_IMPORTALL:
-        break;
-      default:
-        goto bad_import;
-    }
-    return pn;
-
-  bad_import:
-    js_ReportCompileErrorNumber(cx, ts, NULL, JSREPORT_ERROR, JSMSG_BAD_IMPORT);
-    return NULL;
-}
-#endif 
-
 static JSBool
 BindLet(JSContext *cx, BindData *data, JSAtom *atom, JSTreeContext *tc)
 {
@@ -1714,7 +1634,7 @@ BindVarOrConst(JSContext *cx, BindData *data, JSAtom *atom, JSTreeContext *tc)
     const char *name;
     JSLocalKind localKind;
 
-    stmt = js_LexicalLookup(tc, atom, NULL, 0);
+    stmt = js_LexicalLookup(tc, atom, NULL);
     ATOM_LIST_SEARCH(ale, &tc->decls, atom);
     op = data->op;
     if ((stmt && stmt->type != STMT_WITH) || ale) {
@@ -2466,49 +2386,6 @@ Statement(JSContext *cx, JSTokenStream *ts, JSTreeContext *tc)
 #endif
 
     switch (tt) {
-#if JS_HAS_EXPORT_IMPORT
-      case TOK_EXPORT:
-        pn = NewParseNode(cx, ts, PN_LIST, tc);
-        if (!pn)
-            return NULL;
-        PN_INIT_LIST(pn);
-        if (js_MatchToken(cx, ts, TOK_STAR)) {
-            pn2 = NewParseNode(cx, ts, PN_NULLARY, tc);
-            if (!pn2)
-                return NULL;
-            PN_APPEND(pn, pn2);
-        } else {
-            do {
-                MUST_MATCH_TOKEN(TOK_NAME, JSMSG_NO_EXPORT_NAME);
-                pn2 = NewParseNode(cx, ts, PN_NAME, tc);
-                if (!pn2)
-                    return NULL;
-                pn2->pn_op = JSOP_NAME;
-                pn2->pn_atom = CURRENT_TOKEN(ts).t_atom;
-                pn2->pn_slot = -1;
-                PN_APPEND(pn, pn2);
-            } while (js_MatchToken(cx, ts, TOK_COMMA));
-        }
-        pn->pn_pos.end = PN_LAST(pn)->pn_pos.end;
-        tc->flags |= TCF_FUN_HEAVYWEIGHT;
-        break;
-
-      case TOK_IMPORT:
-        pn = NewParseNode(cx, ts, PN_LIST, tc);
-        if (!pn)
-            return NULL;
-        PN_INIT_LIST(pn);
-        do {
-            pn2 = ImportExpr(cx, ts, tc);
-            if (!pn2)
-                return NULL;
-            PN_APPEND(pn, pn2);
-        } while (js_MatchToken(cx, ts, TOK_COMMA));
-        pn->pn_pos.end = PN_LAST(pn)->pn_pos.end;
-        tc->flags |= TCF_FUN_HEAVYWEIGHT;
-        break;
-#endif 
-
       case TOK_FUNCTION:
 #if JS_HAS_XML_SUPPORT
         ts->flags |= TSF_KEYWORD_IS_NAME;
@@ -3330,14 +3207,8 @@ Statement(JSContext *cx, JSTokenStream *ts, JSTreeContext *tc)
             JS_ASSERT(tc->blockChain == stmt->u.blockObj);
             obj = tc->blockChain;
         } else {
-            if (!stmt) {
+            if (!stmt || (stmt->flags & SIF_BODY_BLOCK)) {
                 
-
-
-
-
-
-
 
 
 
@@ -5887,10 +5758,6 @@ PrimaryExpr(JSContext *cx, JSTokenStream *ts, JSTreeContext *tc,
 #endif
         break;
 
-#if !JS_HAS_EXPORT_IMPORT
-      case TOK_EXPORT:
-      case TOK_IMPORT:
-#endif
       case TOK_ERROR:
         
         return NULL;
@@ -6598,11 +6465,6 @@ js_FoldConstants(JSContext *cx, JSParseNode *pn, JSTreeContext *tc)
         goto do_binary_op;
 
       case TOK_STAR:
-        
-        if (pn->pn_arity == PN_NULLARY)
-            break;
-        
-
       case TOK_SHOP:
       case TOK_MINUS:
       case TOK_DIVOP:
