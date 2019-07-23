@@ -393,6 +393,14 @@ public:
 
 
 
+  static nsIFrame* GetPopupFrameForEventCoordinates(const nsEvent* aEvent);
+
+
+
+
+
+
+
 
 
   static nsPoint TranslateWidgetToView(nsPresContext* aPresContext, 

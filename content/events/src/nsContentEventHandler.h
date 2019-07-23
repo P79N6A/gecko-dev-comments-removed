@@ -95,6 +95,10 @@ protected:
   nsCOMPtr<nsIContent> mRootContent;
 
   nsresult Init(nsQueryContentEvent* aEvent);
+  nsresult Init(nsSelectionEvent* aEvent);
+
+  
+  nsresult InitCommon();
 
 public:
   

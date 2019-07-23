@@ -546,3 +546,261 @@ function disableNonTestMouseEvents(aDisable)
   if (utils)
     utils.disableNonTestMouseEvents(aDisable);
 }
+
+function _getDOMWindowUtils(aWindow)
+{
+  if (!aWindow) {
+    aWindow = window;
+  }
+  return aWindow.QueryInterface(Components.interfaces.nsIInterfaceRequestor).
+                 getInterface(Components.interfaces.nsIDOMWindowUtils);
+}
+
+
+
+
+
+
+
+
+function synthesizeComposition(aIsCompositionStart, aWindow)
+{
+  netscape.security.PrivilegeManager.enablePrivilege('UniversalXPConnect');
+
+  var utils = _getDOMWindowUtils(aWindow);
+  if (!utils) {
+    return;
+  }
+
+  utils.sendCompositionEvent(aIsCompositionStart ?
+                               "compositionstart" : "compositionend");
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function synthesizeText(aEvent, aWindow)
+{
+  netscape.security.PrivilegeManager.enablePrivilege('UniversalXPConnect');
+
+  var utils = _getDOMWindowUtils(aWindow);
+  if (!utils) {
+    return;
+  }
+
+  if (!aEvent.composition || !aEvent.composition.clauses ||
+      !aEvent.composition.clauses[0]) {
+    return;
+  }
+
+  var firstClauseLength = aEvent.composition.clauses[0].length;
+  var firstClauseAttr   = aEvent.composition.clauses[0].attr;
+  var secondClauseLength = 0;
+  var secondClauseAttr = 0;
+  var thirdClauseLength = 0;
+  var thirdClauseAttr = 0;
+  if (aEvent.composition.clauses[1]) {
+    secondClauseLength = aEvent.composition.clauses[1].length;
+    secondClauseAttr   = aEvent.composition.clauses[1].attr;
+    if (aEvent.composition.clauses[2]) {
+      thirdClauseLength = aEvent.composition.clauses[2].length;
+      thirdClauseAttr   = aEvent.composition.clauses[2].attr;
+    }
+  }
+
+  var caretStart = -1;
+  var caretLength = 0;
+  if (aEvent.caret) {
+    caretStart = aEvent.caret.start;
+    caretLength = aEvent.caret.length;
+  }
+
+  utils.sendTextEvent(aEvent.composition.string,
+                      firstClauseLength, firstClauseAttr,
+                      secondClauseLength, secondClauseAttr,
+                      thirdClauseLength, thirdClauseAttr,
+                      caretStart, caretLength);
+}
+
+
+
+
+
+
+
+
+function synthesizeQuerySelectedText(aWindow)
+{
+  netscape.security.PrivilegeManager.enablePrivilege('UniversalXPConnect');
+
+  var utils = _getDOMWindowUtils(aWindow);
+  if (!utils) {
+    return nsnull;
+  }
+  return utils.sendQueryContentEvent(utils.QUERY_SELECTED_TEXT, 0, 0, 0, 0);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+function synthesizeQueryTextContent(aOffset, aLength, aWindow)
+{
+  netscape.security.PrivilegeManager.enablePrivilege('UniversalXPConnect');
+
+  var utils = _getDOMWindowUtils(aWindow);
+  if (!utils) {
+    return nsnull;
+  }
+  return utils.sendQueryContentEvent(utils.QUERY_TEXT_CONTENT,
+                                     aOffset, aLength, 0, 0);
+}
+
+
+
+
+
+
+
+
+
+
+function synthesizeQueryCaretRect(aOffset, aWindow)
+{
+  netscape.security.PrivilegeManager.enablePrivilege('UniversalXPConnect');
+
+  var utils = _getDOMWindowUtils(aWindow);
+  if (!utils) {
+    return nsnull;
+  }
+  return utils.sendQueryContentEvent(utils.QUERY_CARET_RECT,
+                                     aOffset, 0, 0, 0);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+function synthesizeQueryTextRect(aOffset, aLength, aWindow)
+{
+  netscape.security.PrivilegeManager.enablePrivilege('UniversalXPConnect');
+
+  var utils = _getDOMWindowUtils(aWindow);
+  if (!utils) {
+    return nsnull;
+  }
+  return utils.sendQueryContentEvent(utils.QUERY_TEXT_RECT,
+                                     aOffset, aLength, 0, 0);
+}
+
+
+
+
+
+
+
+
+function synthesizeQueryEditorRect(aWindow)
+{
+  netscape.security.PrivilegeManager.enablePrivilege('UniversalXPConnect');
+
+  var utils = _getDOMWindowUtils(aWindow);
+  if (!utils) {
+    return nsnull;
+  }
+  return utils.sendQueryContentEvent(utils.QUERY_EDITOR_RECT, 0, 0, 0, 0);
+}
+
+
+
+
+
+
+
+
+
+function synthesizeCharAtPoint(aX, aY, aWindow)
+{
+  netscape.security.PrivilegeManager.enablePrivilege('UniversalXPConnect');
+
+  var utils = _getDOMWindowUtils(aWindow);
+  if (!utils) {
+    return nsnull;
+  }
+  return utils.sendQueryContentEvent(utils.QUERY_CHARACTER_AT_POINT,
+                                     0, 0, aX, aY);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+function synthesizeSelectionSet(aOffset, aLength, aReverse, aWindow)
+{
+  netscape.security.PrivilegeManager.enablePrivilege('UniversalXPConnect');
+
+  var utils = _getDOMWindowUtils(aWindow);
+  if (!utils) {
+    return false;
+  }
+  return utils.sendSelectionSetEvent(aOffset, aLength, aReverse);
+}

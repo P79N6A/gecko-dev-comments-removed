@@ -6156,27 +6156,16 @@ PresShell::HandleEvent(nsIView         *aView,
     
     if (framePresContext == rootPresContext &&
         frame == FrameManager()->GetRootFrame()) {
-
-#ifdef MOZ_XUL
-      nsXULPopupManager* pm = nsXULPopupManager::GetInstance();
-      if (pm) {
-        nsTArray<nsIFrame*> popups = pm->GetVisiblePopups();
-        PRUint32 i;
-        
-        nsIDocument* doc = framePresContext->GetPresShell()->GetDocument();
-        for (i = 0; i < popups.Length(); i++) {
-          nsIFrame* popup = popups[i];
-          if (popup->GetOverflowRect().Contains(
-              nsLayoutUtils::GetEventCoordinatesRelativeTo(aEvent, popup)) &&
-              !nsContentUtils::ContentIsCrossDocDescendantOf(
-                 doc, popup->GetContent())) {
-            
-            frame = popup;
-            break;
-          }
-        }
+      nsIFrame* popupFrame =
+        nsLayoutUtils::GetPopupFrameForEventCoordinates(aEvent);
+      
+      
+      if (popupFrame &&
+          !nsContentUtils::ContentIsCrossDocDescendantOf(
+             framePresContext->GetPresShell()->GetDocument(),
+             popupFrame->GetContent())) {
+        frame = popupFrame;
       }
-#endif
     }
 
     PRBool captureRetarget = PR_FALSE;
