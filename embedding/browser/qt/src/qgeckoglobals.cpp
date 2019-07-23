@@ -188,6 +188,12 @@ QGeckoGlobals::pushStartup()
         if (NS_FAILED(rv))
             return;
 
+        if (sProfileDir && !sProfileLock) {
+            rv = XRE_LockProfileDirectory(sProfileDir,
+                                          &sProfileLock);
+            if (NS_FAILED(rv)) return;
+        }
+
         rv = XRE_InitEmbedding(greDir, binDir,
                                const_cast<QTEmbedDirectoryProvider*>
                                              (&kDirectoryProvider),
@@ -195,12 +201,6 @@ QGeckoGlobals::pushStartup()
 
         if (NS_FAILED(rv))
             return;
-
-        
-        if (sAppFileLocProvider) {
-            NS_RELEASE(sAppFileLocProvider);
-            sAppFileLocProvider = nsnull;
-        }
 
         if (sProfileDir)
           XRE_NotifyProfile();
@@ -215,8 +215,18 @@ QGeckoGlobals::popStartup()
 {
     sWidgetCount--;
     if (sWidgetCount == 0) {
+
+        
+        if (sAppFileLocProvider) {
+            NS_RELEASE(sAppFileLocProvider);
+            sAppFileLocProvider = nsnull;
+        }
+
         
         XRE_TermEmbedding();
+
+        NS_IF_RELEASE(sProfileLock);
+        NS_IF_RELEASE(sProfileDir);
     }
 }
 
@@ -264,16 +274,27 @@ QGeckoGlobals::setProfilePath(const char *aDir, const char *aName)
 
     nsresult rv =
         NS_NewNativeLocalFile(nsDependentCString(aDir), PR_TRUE, &sProfileDir);
+
+    if (NS_SUCCEEDED(rv) && aName)
+        rv = sProfileDir->AppendNative(nsDependentCString(aName));
+
     if (NS_SUCCEEDED(rv)) {
+        PRBool exists = PR_FALSE;
+        rv = sProfileDir->Exists(&exists);
+        if (!exists)
+            rv = sProfileDir->Create(nsIFile::DIRECTORY_TYPE, 0700);
         rv = XRE_LockProfileDirectory(sProfileDir, &sProfileLock);
-        if (NS_SUCCEEDED(rv)) {
-            if (sWidgetCount)
-                XRE_NotifyProfile();
-            return;
-        }
+    }
+
+    if (NS_SUCCEEDED(rv)) {
+        if (sWidgetCount)
+            XRE_NotifyProfile();
+
+        return;
     }
 
     NS_WARNING("Failed to lock profile.");
+
     
     NS_IF_RELEASE(sProfileDir);
     NS_IF_RELEASE(sProfileLock);
