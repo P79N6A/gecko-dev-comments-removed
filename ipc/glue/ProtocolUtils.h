@@ -34,6 +34,9 @@
 
 
 
+
+
+
 #ifndef mozilla_ipc_ProtocolUtils_h
 #define mozilla_ipc_ProtocolUtils_h 1
 
@@ -47,10 +50,10 @@ namespace ipc {
 
 
 
+
 struct ActorHandle
 {
-    int mParentId;
-    int mChildId;
+    int mId;
 };
 
 
@@ -59,6 +62,7 @@ class  IProtocolManager
 {
 public:
     virtual int32 Register(ListenerT*) = 0;
+    virtual int32 RegisterID(ListenerT*, int32) = 0;
     virtual ListenerT* Lookup(int32) = 0;
     virtual void Unregister(int32) = 0;
 };
@@ -72,30 +76,27 @@ namespace IPC {
 template <>
 struct ParamTraits<mozilla::ipc::ActorHandle>
 {
-  typedef mozilla::ipc::ActorHandle paramType;
+    typedef mozilla::ipc::ActorHandle paramType;
 
-  static void Write(Message* aMsg, const paramType& aParam)
-  {
-    IPC::WriteParam(aMsg, aParam.mParentId);
-    IPC::WriteParam(aMsg, aParam.mChildId);
-  }
-
-  static bool Read(const Message* aMsg, void** aIter, paramType* aResult)
-  {
-    int parentId, childId;
-    if (IPC::ReadParam(aMsg, aIter, &parentId)
-        && ReadParam(aMsg, aIter, &childId)) {
-      aResult->mParentId = parentId;
-      aResult->mChildId = childId;
-      return true;
+    static void Write(Message* aMsg, const paramType& aParam)
+    {
+        IPC::WriteParam(aMsg, aParam.mId);
     }
-    return false;
-  }
 
-  static void Log(const paramType& aParam, std::wstring* aLog)
-  {
-    aLog->append(StringPrintf(L"(%d,%d)", aParam.mParentId, aParam.mChildId));
-  }
+    static bool Read(const Message* aMsg, void** aIter, paramType* aResult)
+    {
+        int id;
+        if (IPC::ReadParam(aMsg, aIter, &id)) {
+            aResult->mId = id;
+            return true;
+        }
+        return false;
+    }
+
+    static void Log(const paramType& aParam, std::wstring* aLog)
+    {
+        aLog->append(StringPrintf(L"(%d)", aParam.mId));
+    }
 };
 
 } 
