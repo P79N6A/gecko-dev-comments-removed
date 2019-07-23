@@ -563,14 +563,29 @@ Assembler::nPatchBranch(NIns* at, NIns* target)
     );
 
     
+    NanoAssert((at[0] & 0xf0000000) == COND_AL);
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
     intptr_t offs = PC_OFFSET_FROM(target, at);
     if (isS24(offs>>2)) {
+        
         
         at[0] = (NIns)( COND_AL | (0xA<<24) | ((offs >> 2) & 0xffffff) );
         
         at[1] = BKPT_insn;
     } else {
-        at[0] = (NIns)( COND_AL | (0x51<<20) | (PC<<16) | (PC<<12) | (4) );
+        
+        
+        NanoAssert(at[0] == (NIns)( COND_AL | (0x51<<20) | (PC<<16) | (PC<<12) | (4) ));
         at[1] = (NIns)(target);
     }
     VALGRIND_DISCARD_TRANSLATIONS(at, 2*sizeof(NIns));
@@ -1225,6 +1240,10 @@ Assembler::asm_ld_imm(Register d, int32_t imm)
 
 
 
+
+
+
+
 void
 Assembler::B_cond_chk(ConditionCode _c, NIns* _t, bool _chk)
 {
@@ -1232,21 +1251,48 @@ Assembler::B_cond_chk(ConditionCode _c, NIns* _t, bool _chk)
     
 
     
-    if (isS24(offs>>2)) {
-        if (_chk) underrunProtect(4);
+    
+    
+    NanoAssert((_t != 0) || (_c == AL));
+
+    
+    if (_chk && isS24(offs>>2) && (_t != 0)) {
+        underrunProtect(4);
         
         
         offs = PC_OFFSET_FROM(_t,_nIns-1);
     }
 
-    if (isS24(offs>>2)) {
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+
+    if (isS24(offs>>2) && (_t != 0)) {
         
         *(--_nIns) = (NIns)( ((_c)<<28) | (0xA<<24) | (((offs)>>2) & 0xFFFFFF) );
     } else if (_c == AL) {
         if(_chk) underrunProtect(8);
         *(--_nIns) = (NIns)(_t);
         *(--_nIns) = (NIns)( COND_AL | (0x51<<20) | (PC<<16) | (PC<<12) | 0x4 );
-    } else if (samepage(_nIns,_nSlot)) {
+    } else if (samepage(_nIns-1,_nSlot)) {
         if(_chk) underrunProtect(8);
         *(++_nSlot) = (NIns)(_t);
         offs = PC_OFFSET_FROM(_nSlot,_nIns-1);
@@ -1254,8 +1300,13 @@ Assembler::B_cond_chk(ConditionCode _c, NIns* _t, bool _chk)
         *(--_nIns) = (NIns)( ((_c)<<28) | (0x51<<20) | (PC<<16) | (PC<<12) | ((-offs) & 0xFFFFFF) );
     } else {
         if(_chk) underrunProtect(12);
+        
         *(--_nIns) = (NIns)(_t);
-        *(--_nIns) = (NIns)( COND_AL | (0xA<<24) | ((-4)>>2) & 0xFFFFFF );
+        
+        
+        
+        *(--_nIns) = (NIns)( COND_AL | (0xA<<24) | 0x0 );
+        
         *(--_nIns) = (NIns)( ((_c)<<28) | (0x51<<20) | (PC<<16) | (PC<<12) | 0x0 );
     }
 
