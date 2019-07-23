@@ -637,8 +637,7 @@ mozJSComponentLoader::LoadModule(nsILocalFile* aComponentFile,
     if (!entry)
         return NS_ERROR_OUT_OF_MEMORY;
 
-    rv = GlobalForLocation(aComponentFile, &entry->global, &entry->location,
-                           nsnull);
+    rv = GlobalForLocation(aComponentFile, &entry->global, &entry->location);
     if (NS_FAILED(rv)) {
 #ifdef DEBUG_shaver
         fprintf(stderr, "GlobalForLocation failed!\n");
@@ -1061,8 +1060,7 @@ mozJSComponentLoader::WriteScript(nsIFastLoadService *flSvc, JSScript *script,
 nsresult
 mozJSComponentLoader::GlobalForLocation(nsILocalFile *aComponent,
                                         JSObject **aGlobal,
-                                        char **aLocation,
-                                        jsval *exception)
+                                        char **aLocation)
 {
     nsresult rv;
 
@@ -1192,15 +1190,6 @@ mozJSComponentLoader::GlobalForLocation(nsILocalFile *aComponent,
         
         LOG(("Slow loading %s\n", nativePath.get()));
 
-        
-        
-        
-        uint32 oldopts = 0;
-        if (exception) {
-            oldopts = JS_GetOptions(cx);
-            JS_SetOptions(cx, oldopts | JSOPTION_DONT_REPORT_UNCAUGHT);
-        }
-
 #ifdef HAVE_PR_MEMMAP
         PRInt64 fileSize;
         rv = aComponent->GetFileSize(&fileSize);
@@ -1262,19 +1251,8 @@ mozJSComponentLoader::GlobalForLocation(nsILocalFile *aComponent,
                                                    fileHandle, jsPrincipals);
 
         
-#endif 
 
-        
-        
-        
-        
-        if (exception) {
-            JS_SetOptions(cx, oldopts);
-            if (!script) {
-                JS_GetPendingException(cx, exception);
-                JS_ClearPendingException(cx);
-            }
-        }
+#endif 
     }
 
     if (!script) {
@@ -1496,27 +1474,14 @@ mozJSComponentLoader::ImportInto(const nsACString & aLocation,
         if (!newEntry || !mInProgressImports.Put(lfhash, newEntry))
             return NS_ERROR_OUT_OF_MEMORY;
 
-        jsval exception = JSVAL_VOID;
         rv = GlobalForLocation(componentFile, &newEntry->global,
-                               &newEntry->location, &exception);
+                               &newEntry->location);
 
         mInProgressImports.Remove(lfhash);
 
         if (NS_FAILED(rv)) {
             *_retval = nsnull;
-
-            if (!JSVAL_IS_VOID(exception)) {
-                
-                
-                JSContext *callercx;
-                cc->GetJSContext(&callercx);
-                JS_SetPendingException(callercx, exception);
-                cc->SetExceptionWasThrown(PR_TRUE);
-                return NS_OK;
-            }
-
-            
-            return rv;
+            return NS_ERROR_FILE_NOT_FOUND;
         }
 
         mod = newEntry;
