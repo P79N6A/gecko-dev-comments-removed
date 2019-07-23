@@ -333,6 +333,16 @@ nsHTMLSelectListAccessible::GetState(PRUint32 *aState, PRUint32 *aExtraState)
 
   nsCOMPtr<nsIDOMHTMLSelectElement> select (do_QueryInterface(mDOMNode));
   if (select) {
+    if (*aState | nsIAccessibleStates::STATE_FOCUSED) {
+      
+      
+      nsCOMPtr<nsIDOMNode> focusedOption;
+      nsHTMLSelectOptionAccessible::GetFocusedOptionNode(mDOMNode, 
+                                                         getter_AddRefs(focusedOption));
+      if (focusedOption) { 
+        *aState &= ~nsIAccessibleStates::STATE_FOCUSED;
+      }
+    }
     PRBool multiple;
     select->GetMultiple(&multiple);
     if ( multiple )
@@ -485,10 +495,10 @@ nsHyperTextAccessibleWrap(aDOMNode, aShell)
 NS_IMETHODIMP nsHTMLSelectOptionAccessible::GetRole(PRUint32 *aRole)
 {
   if (mParent && Role(mParent) == nsIAccessibleRole::ROLE_COMBOBOX_LIST) {
-    *aRole = nsIAccessibleRole::ROLE_COMBOBOX_LISTITEM;
+    *aRole = nsIAccessibleRole::ROLE_COMBOBOX_OPTION;
   }
   else {
-    *aRole = nsIAccessibleRole::ROLE_LISTITEM;
+    *aRole = nsIAccessibleRole::ROLE_OPTION;
   }
   return NS_OK;
 }
@@ -622,6 +632,18 @@ nsHTMLSelectOptionAccessible::GetState(PRUint32 *aState, PRUint32 *aExtraState)
   if (0 == (*aState & nsIAccessibleStates::STATE_UNAVAILABLE)) {
     *aState |= (nsIAccessibleStates::STATE_FOCUSABLE |
                 nsIAccessibleStates::STATE_SELECTABLE);
+    
+    
+    
+    
+    
+    
+    
+    nsCOMPtr<nsIDOMNode> focusedOptionNode;
+    GetFocusedOptionNode(selectNode, getter_AddRefs(focusedOptionNode));
+    if (focusedOptionNode == mDOMNode) {
+      *aState |= nsIAccessibleStates::STATE_FOCUSED;
+    }
   }
 
   
@@ -788,6 +810,22 @@ nsresult nsHTMLSelectOptionAccessible::GetFocusedOptionNode(nsIDOMNode *aListNod
       
       
       focusedOptionIndex = listFrame->GetSelectedIndex();
+      if (focusedOptionIndex == -1) {
+        nsCOMPtr<nsIDOMNode> nextOption;
+        while (PR_TRUE) {
+          ++ focusedOptionIndex;
+          options->Item(focusedOptionIndex, getter_AddRefs(nextOption));
+          nsCOMPtr<nsIDOMHTMLOptionElement> optionElement = do_QueryInterface(nextOption);
+          if (!optionElement) {
+            break;
+          }
+          PRBool disabled;
+          optionElement->GetDisabled(&disabled);
+          if (!disabled) {
+            break;
+          }
+        }
+      }
     }
     else  
       rv = selectElement->GetSelectedIndex(&focusedOptionIndex);
