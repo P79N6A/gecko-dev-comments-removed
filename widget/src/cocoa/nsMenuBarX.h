@@ -172,7 +172,7 @@ public:
     
     static NativeMenuItemTarget* sNativeEventTarget;
     
-    static NSWindow* sEventTargetWindow;
+    static nsMenuBarX* sLastGeckoMenuBarPainted;
     
     NS_DECL_ISUPPORTS
 
@@ -197,6 +197,7 @@ public:
 
     PRUint32 RegisterForCommand(nsIMenuItem* aItem);
     void UnregisterCommand(PRUint32 aCommandID);
+    nsIMenuItem* GetMenuItemForCommandID(PRUint32 inCommandID);
 
     void RegisterForContentChanges(nsIContent* aContent, nsChangeObserver* aMenuObject);
     void UnregisterForContentChanges(nsIContent* aContent);
@@ -204,41 +205,30 @@ public:
 
     void RegisterKeyEquivalent(unsigned int modifiers, NSString* string);
     void UnregisterKeyEquivalent(unsigned int modifiers, NSString* string);
+
+    nsCOMPtr<nsIContent>    mAboutItemContent;    
+                                                  
+    nsCOMPtr<nsIContent>    mPrefItemContent;     
+    nsCOMPtr<nsIContent>    mQuitItemContent;     
 protected:
     
     void AquifyMenuBar();
     void HideItem(nsIDOMDocument* inDoc, const nsAString & inID, nsIContent** outHiddenNode);
-    OSStatus InstallCommandEventHandler();
 
-    
-    pascal static OSStatus CommandEventHandler(EventHandlerCallRef inHandlerChain, 
-                                               EventRef inEvent, void* userData);
-    nsEventStatus ExecuteCommand(nsIContent* inDispatchTo);
-    
     
     NSMenuItem* CreateNativeAppMenuItem(nsIMenu* inMenu, const nsAString& nodeID, SEL action,
                                                     int tag, NativeMenuItemTarget* target);
     nsresult CreateApplicationMenu(nsIMenu* inMenu);
 
-    nsHashtable             mObserverTable;       
-
     nsCOMArray<nsIMenu>     mMenusArray;          
     nsCOMPtr<nsIContent>    mMenuBarContent;      
-    nsCOMPtr<nsIContent>    mAboutItemContent;    
-                                                  
-    nsCOMPtr<nsIContent>    mPrefItemContent;     
-    nsCOMPtr<nsIContent>    mQuitItemContent;     
     nsIWidget*              mParent;              
     PRBool                  mIsMenuBarAdded;
     PRUint32                mCurrentCommandID;    
-
     nsIDocument*            mDocument;            
-
     NSMenu*                 mRootMenu;            
-
+    nsHashtable             mObserverTable;       
     nsTHashtable<CocoaKeyEquivKey> mKeyEquivTable;
-
-    static EventHandlerUPP  sCommandEventHandler; 
 };
 
 #endif 
