@@ -2916,41 +2916,44 @@ nsRuleNode::ComputeDisplayData(nsStyleStruct* aStartStruct,
     
     
 
-    
-    
-    if (display->mFloats != NS_STYLE_FLOAT_NONE) {
-      EnsureBlockDisplay(display->mDisplay);
-      
-      
-      
-      
-      inherited = PR_TRUE;
-    } else if (nsCSSPseudoElements::firstLetter == pseudoTag) {
+    if (nsCSSPseudoElements::firstLetter == pseudoTag) {
       
       
       display->mDisplay = NS_STYLE_DISPLAY_INLINE;
-      
+
       
       
       
       inherited = PR_TRUE;
     }
-    
-    
-    
+
     if (display->IsAbsolutelyPositioned()) {
+      
+      
+
       
       
       
       display->mOriginalDisplay = display->mDisplay;
       EnsureBlockDisplay(display->mDisplay);
       display->mFloats = NS_STYLE_FLOAT_NONE;
+
       
+      
+      
+      inherited = PR_TRUE;
+    } else if (display->mFloats != NS_STYLE_FLOAT_NONE) {
+      
+      
+
+      EnsureBlockDisplay(display->mDisplay);
+
       
       
       
       inherited = PR_TRUE;
     }
+
   }
 
   COMPUTE_END_RESET(Display, display)
