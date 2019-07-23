@@ -719,6 +719,10 @@ public:
 
 
 
+
+
+
+
   virtual nsMargin GetUsedMargin() const;
 
   
@@ -751,6 +755,11 @@ public:
   void ApplySkipSides(nsMargin& aMargin) const;
 
   
+
+
+
+
+
 
 
 

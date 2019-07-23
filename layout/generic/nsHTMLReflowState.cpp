@@ -1589,6 +1589,16 @@ static eNormalLineHeightControl GetNormalLineHeightCalcControl(void)
   return sNormalLineHeightControl;
 }
 
+static inline PRBool
+IsSideCaption(nsIFrame* aFrame, const nsStyleDisplay* aStyleDisplay)
+{
+  if (aStyleDisplay->mDisplay != NS_STYLE_DISPLAY_TABLE_CAPTION)
+    return PR_FALSE;
+  PRUint8 captionSide = aFrame->GetStyleTableBorder()->mCaptionSide;
+  return captionSide == NS_STYLE_CAPTION_SIDE_LEFT ||
+         captionSide == NS_STYLE_CAPTION_SIDE_RIGHT;
+}
+
 
 
 
@@ -1798,7 +1808,7 @@ nsHTMLReflowState::InitConstraints(nsPresContext* aPresContext,
       NS_ASSERTION(mComputedHeight == NS_UNCONSTRAINEDSIZE ||
                    mComputedHeight >= 0, "Bogus height");
 
-      if (isBlock)
+      if (isBlock && !IsSideCaption(frame, mStyleDisplay))
         CalculateBlockSideMargins(availableWidth, mComputedWidth);
     }
   }
@@ -2109,6 +2119,9 @@ nsCSSOffsetState::ComputeMargin(nscoord aContainingBlockWidth)
                                styleMargin->mMargin.GetBottom(bottom),
                                mComputedMargin.bottom);
 
+    
+    
+    
     
     frame->SetProperty(nsGkAtoms::usedMarginProperty,
                        new nsMargin(mComputedMargin),
