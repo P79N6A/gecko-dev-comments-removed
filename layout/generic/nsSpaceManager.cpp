@@ -700,6 +700,11 @@ nsSpaceManager::AddRectToBand(BandRect* aBand, BandRect* aBandRect)
 
       
       aBand->AddFrame(aBandRect->FrameAt(0));
+
+      
+      
+      
+      delete aBandRect;
       return;
 
     } else {
