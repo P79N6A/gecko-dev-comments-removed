@@ -136,6 +136,7 @@ typedef enum JSTokenType {
     TOK_LET = 81,                       
     TOK_SEQ = 82,                       
 
+    TOK_FORHEAD = 83,                   
     TOK_RESERVED,                       
     TOK_LIMIT                           
 } JSTokenType;

@@ -2078,11 +2078,16 @@ CheckSideEffects(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn,
         break;
 
       case PN_LIST:
-        if (pn->pn_type == TOK_NEW ||
-            pn->pn_type == TOK_LP ||
-            pn->pn_type == TOK_LB ||
-            pn->pn_type == TOK_RB ||
-            pn->pn_type == TOK_RC) {
+        if (pn->pn_op == JSOP_NOP ||
+            pn->pn_op == JSOP_OR || pn->pn_op == JSOP_AND ||
+            pn->pn_op == JSOP_STRICTEQ || pn->pn_op == JSOP_STRICTNE) {
+            
+
+
+
+            for (pn2 = pn->pn_head; pn2; pn2 = pn2->pn_next)
+                ok &= CheckSideEffects(cx, cg, pn2, answer);
+        } else {
             
 
 
@@ -2098,10 +2103,8 @@ CheckSideEffects(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn,
 
 
 
+
             *answer = JS_TRUE;
-        } else {
-            for (pn2 = pn->pn_head; pn2; pn2 = pn2->pn_next)
-                ok &= CheckSideEffects(cx, cg, pn2, answer);
         }
         break;
 
@@ -2138,11 +2141,21 @@ CheckSideEffects(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn,
                 }
             }
         } else {
-            
+            if (pn->pn_op == JSOP_OR || pn->pn_op == JSOP_AND ||
+                pn->pn_op == JSOP_STRICTEQ || pn->pn_op == JSOP_STRICTNE) {
+                
 
 
 
-            *answer = JS_TRUE;
+                ok = CheckSideEffects(cx, cg, pn->pn_left, answer) &&
+                     CheckSideEffects(cx, cg, pn->pn_right, answer);
+            } else {
+                
+
+
+
+                *answer = JS_TRUE;
+            }
         }
         break;
 
@@ -2172,6 +2185,14 @@ CheckSideEffects(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn,
                 break;
             }
             break;
+
+          case TOK_UNARYOP:
+            if (pn->pn_op == JSOP_NOT) {
+                
+                ok = CheckSideEffects(cx, cg, pn->pn_kid, answer);
+                break;
+            }
+            
 
           default:
             
