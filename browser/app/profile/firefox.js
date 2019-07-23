@@ -858,7 +858,7 @@ pref("geo.wifi.uri", "https://www.google.com/loc/json");
 #ifdef WINCE
 
 
-pref("browser.urlbar.delay", 1000);
+pref("browser.urlbar.delay", 250);
 
 
 pref("browser.safebrowsing.enabled", false);
