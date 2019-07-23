@@ -444,8 +444,6 @@ nsCookiePermission::GetOriginatingURI(nsIChannel  *aChannel,
 
 
 
-
-
   *aURI = nsnull;
 
   

@@ -99,7 +99,6 @@
 #include "nsIPluginInstancePeer2.h"
 #include "nsIPluginTagInfo.h"
 #include "nsIPluginTagInfo2.h"
-#include "nsICookieStorage.h"
 #include "nsIHTTPHeaderListener.h"
 
 #include "nsIJRIPlugin.h"
@@ -7238,68 +7237,6 @@ SAFE_VFT_ZEROS();
 
 
 
-
-
-
-
-
-nsresult VFTCALL downICSGetCookie(void *pvThis, const char *aCookieURL, void * aCookieBuffer, PRUint32 & aCookieSize)
-{
-    DOWN_ENTER_RC(pvThis, nsICookieStorage);
-    dprintf(("%s: aCookieURL=%x aCookieBuffer=%x aCookieSize=%x",
-             pszFunction, aCookieURL, aCookieBuffer, VALID_REF(aCookieSize) ? aCookieSize : 0xdeadbeef));
-    DPRINTF_STR(aCookieURL);
-    rc = pMozI->GetCookie(aCookieURL, aCookieBuffer, aCookieSize);
-    if (NS_SUCCEEDED(rc) && VALID_REF(aCookieSize))
-        dprintf(("%s: aCookieSize=%d", pszFunction, aCookieSize));
-    DOWN_LEAVE_INT(pvThis, rc);
-    return rc;
-}
-
-
-
-
-
-
-
-
-nsresult VFTCALL downICSSetCookie(void *pvThis, const char *aCookieURL, const void * aCookieBuffer, PRUint32 aCookieSize)
-{
-    DOWN_ENTER_RC(pvThis, nsICookieStorage);
-    dprintf(("%s: aCookieURL=%x aCookieBuffer=%x aCookieSize=%x",
-             pszFunction, aCookieURL, aCookieBuffer, aCookieSize));
-    DPRINTF_STR(aCookieURL);
-    rc = pMozI->SetCookie(aCookieURL, aCookieBuffer, aCookieSize);
-    DOWN_LEAVE_INT(pvThis, rc);
-    return rc;
-}
-
-
-MAKE_SAFE_VFT(VFTnsICookieStorage, downVFTnsICookieStorage)
-{
- {
-    VFTFIRST_VAL()
-    downQueryInterface,                                     VFTDELTA_VAL()
-    downAddRef,                                             VFTDELTA_VAL()
-    downRelease,                                            VFTDELTA_VAL()
- },
-    downICSGetCookie,                                       VFTDELTA_VAL()
-    downICSSetCookie,                                       VFTDELTA_VAL()
-}
-SAFE_VFT_ZEROS();
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifdef IPLUGINW_OUTOFTREE
 nsresult VFTCALL downITMGetCurrentThread(void *pvThis, nsPluginThread* *threadID)
 #else
@@ -10781,7 +10718,6 @@ static struct SupportedInterface_Down
     { &kPluginInstancePeer2IID,     &downVFTnsIPluginInstancePeer2 },
     { &kPluginTagInfoIID,           &downVFTnsIPluginTagInfo },
     { &kPluginTagInfo2IID,          &downVFTnsIPluginTagInfo2 },
-    { &kCookieStorageIID,           &downVFTnsICookieStorage },
     { &kJVMThreadManagerIID,        &downVFTnsIJVMThreadManager },
     { &kJVMManagerIID,              &downVFTnsIJVMManager },
     { &kLiveconnectIID,             &downVFTnsILiveconnect },
