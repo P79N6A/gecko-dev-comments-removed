@@ -351,8 +351,13 @@ nsEditor::InstallEventListeners()
   rv |= piTarget->AddEventListenerByIID(mMouseListenerP,
                                         NS_GET_IID(nsIDOMMouseListener));
 
-  rv |= piTarget->AddEventListenerByIID(mFocusListenerP,
-                                        NS_GET_IID(nsIDOMFocusListener));
+  if (elmP) {
+    
+    
+    rv |= elmP->AddEventListenerByIID(mFocusListenerP,
+                                      NS_GET_IID(nsIDOMFocusListener),
+                                      NS_EVENT_FLAG_CAPTURE);
+  }
 
   rv |= piTarget->AddEventListenerByIID(mTextListenerP,
                                         NS_GET_IID(nsIDOMTextListener));
@@ -386,13 +391,12 @@ nsEditor::RemoveEventListeners()
   if (piTarget)
   {
     
-
+    nsCOMPtr<nsIEventListenerManager> elmP;
+    piTarget->GetListenerManager(PR_TRUE, getter_AddRefs(elmP));
     if (mKeyListenerP)
     {
       nsCOMPtr<nsIDOMEventGroup> sysGroup;
       piTarget->GetSystemEventGroup(getter_AddRefs(sysGroup));
-      nsCOMPtr<nsIEventListenerManager> elmP;
-      piTarget->GetListenerManager(PR_TRUE, getter_AddRefs(elmP));
       if (sysGroup && elmP)
       {
         elmP->RemoveEventListenerByType(mKeyListenerP,
@@ -409,10 +413,11 @@ nsEditor::RemoveEventListeners()
                                          NS_GET_IID(nsIDOMMouseListener));
     }
 
-    if (mFocusListenerP)
+    if (mFocusListenerP && elmP)
     {
-      piTarget->RemoveEventListenerByIID(mFocusListenerP,
-                                         NS_GET_IID(nsIDOMFocusListener));
+      elmP->RemoveEventListenerByIID(mFocusListenerP,
+                                     NS_GET_IID(nsIDOMFocusListener),
+                                     NS_EVENT_FLAG_CAPTURE);
     }
 
     if (mTextListenerP)
