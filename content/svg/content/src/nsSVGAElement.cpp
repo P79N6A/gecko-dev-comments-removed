@@ -122,6 +122,57 @@ nsSVGAElement::GetTarget(nsIDOMSVGAnimatedString * *aTarget)
 
 
 
+void
+nsSVGAElement::UnbindFromTree(PRBool aDeep, PRBool aNullParent)
+{
+  if (HasAttr(kNameSpaceID_XLink, nsGkAtoms::href)) {
+    nsIDocument *doc = GetCurrentDoc();
+    if (doc) {
+      doc->ForgetLink(this);
+    }
+  }
+
+  nsSVGAElementBase::UnbindFromTree(aDeep, aNullParent);
+}
+
+nsresult
+nsSVGAElement::SetAttr(PRInt32 aNamespaceID, nsIAtom *aName,
+                       nsIAtom *aPrefix, const nsAString& aValue,
+                       PRBool aNotify)
+{
+  if (kNameSpaceID_XLink == aNamespaceID && nsGkAtoms::href == aName) {
+    
+    
+    
+    
+    
+    
+    
+    nsIDocument *doc = GetCurrentDoc();
+    if (doc) {
+      doc->ForgetLink(this);
+    }
+  }
+
+  return nsSVGAElementBase::SetAttr(aNamespaceID, aName, aPrefix, aValue,
+                                    aNotify);
+}
+
+nsresult
+nsSVGAElement::UnsetAttr(PRInt32 aNamespaceID, nsIAtom *aName,
+                         PRBool aNotify)
+{
+  if (kNameSpaceID_XLink == aNamespaceID && nsGkAtoms::href == aName) {
+    nsIDocument *doc = GetCurrentDoc();
+    if (doc) {
+      
+      doc->ForgetLink(this);
+    }
+  }
+
+  return nsSVGAElementBase::UnsetAttr(aNamespaceID, aName, aNotify);
+}
+
 nsLinkState
 nsSVGAElement::GetLinkState() const
 {
