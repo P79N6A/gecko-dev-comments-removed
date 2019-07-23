@@ -1425,7 +1425,7 @@ nsXMLHttpRequest::OpenRequest(const nsACString& method,
   
   
   nsCOMPtr<nsILoadGroup> loadGroup;
-  if (!(mState & XML_HTTP_REQUEST_BACKGROUND)) {
+  if (doc && !(mState & XML_HTTP_REQUEST_BACKGROUND)) {
     loadGroup = doc->GetDocumentLoadGroup();
   }
 
