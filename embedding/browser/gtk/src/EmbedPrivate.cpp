@@ -437,7 +437,8 @@ EmbedPrivate::LoadCurrentURI(void)
     nsAutoPopupStatePusher popupStatePusher(piWin, openAllowed);
 
     mNavigation->LoadURI(NS_ConvertUTF8toUTF16(mURI).get(), 
-                         nsIWebNavigation::LOAD_FLAGS_NONE, 
+                         nsIWebNavigation::LOAD_FLAGS_NONE | 
+                         nsIWebNavigation::LOAD_FLAGS_ALLOW_THIRD_PARTY_FIXUP,  
                          nsnull,                            
                          nsnull,                            
                          nsnull);                           
