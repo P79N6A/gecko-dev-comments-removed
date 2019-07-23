@@ -44,6 +44,7 @@
 #include "nscore.h"
 #include "nsAutoPtr.h"
 #include "nsIDOMStorage.h"
+#include "nsIDOMStorage2.h"
 #include "nsIDOMStorageList.h"
 #include "nsIDOMStorageItem.h"
 #include "nsInterfaceHashtable.h"
@@ -61,6 +62,7 @@
 #endif
 
 class nsDOMStorage;
+class nsIDOMStorage2;
 class nsDOMStorageItem;
 
 class nsDOMStorageEntry : public nsVoidPtrHashKey
@@ -123,7 +125,7 @@ class nsDOMStorage : public nsIDOMStorage,
 {
 public:
   nsDOMStorage();
-  nsDOMStorage(const nsAString& aDomain, PRBool aUseDB);
+  nsDOMStorage(nsDOMStorage& aThat);
   virtual ~nsDOMStorage();
 
   
@@ -134,10 +136,16 @@ public:
   NS_DECL_NSIDOMSTORAGE
 
   
-  virtual void Init(const nsAString& aDomain, PRBool aUseDB);
+  nsresult GetItem(const nsAString& key, nsAString& aData);
+  nsresult Clear();
+
+  
+  virtual nsresult InitAsLocalStorage(nsIPrincipal *aPrincipal);
+  virtual nsresult InitAsGlobalStorage(const nsACString &aDomainDemanded);
+  virtual nsresult InitAsSessionStorage(nsIURI* aURI);
   virtual already_AddRefed<nsIDOMStorage> Clone();
   virtual nsTArray<nsString> *GetKeys();
-  virtual const nsString &Domain();
+  virtual const nsCString &Domain();
   virtual PRBool CanAccess(nsIPrincipal *aPrincipal);
 
   
@@ -165,8 +173,7 @@ public:
   nsresult
   GetDBValue(const nsAString& aKey,
              nsAString& aValue,
-             PRBool* aSecure,
-             nsAString& aOwner);
+             PRBool* aSecure);
 
   
   
@@ -193,6 +200,7 @@ public:
 protected:
 
   friend class nsDOMStorageManager;
+  friend class nsDOMStorage2;
 
   static nsresult InitDB();
 
@@ -200,6 +208,8 @@ protected:
   nsresult CacheKeysFromDB();
 
   void BroadcastChangeNotification();
+
+  PRBool CanAccessSystem(nsIPrincipal *aPrincipal);
 
   
   PRPackedBool mUseDB;
@@ -212,17 +222,65 @@ protected:
   PRPackedBool mSessionOnly;
 
   
+  
+  
+  
+  PRPackedBool mLocalStorage;
+
+  
   PRPackedBool mItemsCached;
 
   
-  nsString mDomain;
+  nsCString mDomain;
 
   
   nsTHashtable<nsSessionStorageEntry> mItems;
 
-#ifdef MOZ_STORAGE
-  static nsDOMStorageDB* gStorageDB;
-#endif
+  
+  
+  nsCString mScopeDBKey;
+  nsCString mQuotaDomainDBKey;
+
+public:
+  
+  
+  
+  nsCString& GetScopeDBKey() {return mScopeDBKey;}
+
+  
+  
+  nsCString& GetQuotaDomainDBKey() {return mQuotaDomainDBKey;}
+
+ #ifdef MOZ_STORAGE
+   static nsDOMStorageDB* gStorageDB;
+ #endif
+};
+
+class nsDOMStorage2 : public nsIDOMStorage2,
+                      public nsPIDOMStorage
+{
+public:
+  
+  NS_DECL_CYCLE_COLLECTING_ISUPPORTS
+  NS_DECL_CYCLE_COLLECTION_CLASS_AMBIGUOUS(nsDOMStorage2, nsIDOMStorage2)
+
+  NS_DECL_NSIDOMSTORAGE2
+
+  
+  virtual nsresult InitAsLocalStorage(nsIPrincipal *aPrincipal);
+  virtual nsresult InitAsGlobalStorage(const nsACString &aDomainDemanded);
+  virtual nsresult InitAsSessionStorage(nsIURI* aURI);
+  virtual already_AddRefed<nsIDOMStorage> Clone();
+  virtual nsTArray<nsString> *GetKeys();
+  virtual const nsCString &Domain();
+  virtual PRBool CanAccess(nsIPrincipal *aPrincipal);
+
+private:
+  
+  
+  nsCOMPtr<nsIPrincipal> mPrincipal;
+
+  nsRefPtr<nsDOMStorage> mStorage;
 };
 
 class nsDOMStorageList : public nsIDOMStorageList
@@ -247,8 +305,8 @@ public:
 
 
   static PRBool
-  CanAccessDomain(const nsAString& aRequestedDomain,
-                  const nsAString& aCurrentDomain);
+  CanAccessDomain(const nsACString& aRequestedDomain,
+                  const nsACString& aCurrentDomain);
 
 protected:
 
@@ -263,8 +321,8 @@ protected:
 
 
   nsIDOMStorage*
-  GetStorageForDomain(const nsAString& aRequestedDomain,
-                      const nsAString& aCurrentDomain,
+  GetStorageForDomain(const nsACString& aRequestedDomain,
+                      const nsACString& aCurrentDomain,
                       PRBool aNoCurrentDomainCheck,
                       nsresult* aResult);
 
@@ -272,10 +330,10 @@ protected:
 
 
   static PRBool
-  ConvertDomainToArray(const nsAString& aDomain,
-                       nsTArray<nsString>* aArray);
+  ConvertDomainToArray(const nsACString& aDomain,
+                       nsTArray<nsCString>* aArray);
 
-  nsInterfaceHashtable<nsStringHashKey, nsIDOMStorage> mStorages;
+  nsInterfaceHashtable<nsCStringHashKey, nsIDOMStorage> mStorages;
 };
 
 class nsDOMStorageItem : public nsIDOMStorageItem,

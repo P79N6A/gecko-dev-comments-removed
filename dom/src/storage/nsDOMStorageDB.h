@@ -47,6 +47,39 @@
 class nsDOMStorage;
 class nsSessionStorageEntry;
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 class nsDOMStorageDB
 {
 public:
@@ -60,8 +93,7 @@ public:
 
 
   nsresult
-  GetAllKeys(const nsAString& aDomain,
-             nsDOMStorage* aStorage,
+  GetAllKeys(nsDOMStorage* aStorage,
              nsTHashtable<nsSessionStorageEntry>* aKeys);
 
   
@@ -70,21 +102,19 @@ public:
 
 
   nsresult
-  GetKeyValue(const nsAString& aDomain,
+  GetKeyValue(nsDOMStorage* aStorage,
               const nsAString& aKey,
               nsAString& aValue,
-              PRBool* aSecure,
-              nsAString& aOwner);
+              PRBool* aSecure);
 
   
 
 
   nsresult
-  SetKey(const nsAString& aDomain,
+  SetKey(nsDOMStorage* aStorage,
          const nsAString& aKey,
          const nsAString& aValue,
          PRBool aSecure,
-         const nsAString& aOwner,
          PRInt32 aQuota,
          PRInt32* aNewUsage);
 
@@ -93,7 +123,7 @@ public:
 
 
   nsresult
-  SetSecure(const nsAString& aDomain,
+  SetSecure(nsDOMStorage* aStorage,
             const nsAString& aKey,
             const PRBool aSecure);
 
@@ -101,23 +131,28 @@ public:
 
 
   nsresult
-  RemoveKey(const nsAString& aDomain,
+  RemoveKey(nsDOMStorage* aStorage,
             const nsAString& aKey,
-            const nsAString& aOwner,
             PRInt32 aKeyUsage);
 
   
 
 
+  nsresult ClearStorage(nsDOMStorage* aStorage);
+
+  
+
+
   nsresult
-  RemoveOwner(const nsAString& aOwner);
+  RemoveOwner(const nsACString& aOwner, PRBool aIncludeSubDomains);
 
   
 
 
 
   nsresult
-  RemoveOwners(const nsTArray<nsString>& aOwners, PRBool aMatch);
+  RemoveOwners(const nsTArray<nsString>& aOwners,
+               PRBool aIncludeSubDomains, PRBool aMatch);
 
   
 
@@ -125,7 +160,39 @@ public:
   nsresult
   RemoveAll();
 
-  nsresult GetUsage(const nsAString &aOwner, PRInt32 *aUsage);
+  
+
+
+  nsresult
+  GetUsage(nsDOMStorage* aStorage, PRInt32 *aUsage);
+
+  
+
+
+  nsresult
+  GetUsage(const nsACString& aDomain, PRBool aIncludeSubDomains, PRInt32 *aUsage);
+
+  
+
+
+
+
+  static nsresult CreateOriginScopeDBKey(nsIURI* aUri, nsACString& aKey);
+
+  
+
+
+
+  static nsresult CreateDomainScopeDBKey(nsIURI* aUri, nsACString& aKey);
+  static nsresult CreateDomainScopeDBKey(const nsACString& aAsciiDomain, nsACString& aKey);
+
+  
+
+
+
+
+  static nsresult CreateQuotaDomainDBKey(const nsACString& aAsciiDomain,
+                                         PRBool aIncludeSubDomains, nsACString& aKey);
 
 protected:
 
@@ -138,11 +205,15 @@ protected:
   nsCOMPtr<mozIStorageStatement> mSetSecureStatement;
   nsCOMPtr<mozIStorageStatement> mRemoveKeyStatement;
   nsCOMPtr<mozIStorageStatement> mRemoveOwnerStatement;
+  nsCOMPtr<mozIStorageStatement> mRemoveStorageStatement;
   nsCOMPtr<mozIStorageStatement> mRemoveAllStatement;
   nsCOMPtr<mozIStorageStatement> mGetUsageStatement;
 
-  nsAutoString mCachedOwner;
+  nsCString mCachedOwner;
   PRInt32 mCachedUsage;
+
+  nsresult
+  GetUsageInternal(const nsACString& aQuotaDomainDBKey, PRInt32 *aUsage);
 };
 
 #endif 

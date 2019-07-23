@@ -1,0 +1,44 @@
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>localStorage different origins</title>
+
+<script type="text/javascript" src="/MochiKit/packed.js"></script>
+<script type="text/javascript" src="/tests/SimpleTest/SimpleTest.js"></script>
+<script type="text/javascript" src="interOriginTest2.js"></script>
+<link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<script type="text/javascript">
+
+function startTest()
+{
+  masterFrameOrigin = "http://example.org:80";
+  slaveFrameOrigin = "http://example.com:80";
+
+  masterFrame.location = masterFrameOrigin + framePath + "frameMasterNotEqual.html";
+  slaveFrame.location = slaveFrameOrigin + framePath + "frameSlaveNotEqual.html";
+}
+
+SimpleTest.waitForExplicitFinish();
+
+</script>
+
+</head>
+
+<body onload="startTest();">
+  <iframe src="" name="masterFrame"></iframe>
+  <iframe src="" name="slaveFrame"></iframe>
+</body>
+</html>
