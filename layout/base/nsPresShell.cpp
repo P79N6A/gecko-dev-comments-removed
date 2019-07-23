@@ -3121,6 +3121,9 @@ PresShell::FrameNeedsReflow(nsIFrame *aFrame, IntrinsicDirty aIntrinsicDirty,
   NS_PRECONDITION(aBitToAdd == NS_FRAME_IS_DIRTY ||
                   aBitToAdd == NS_FRAME_HAS_DIRTY_CHILDREN,
                   "Unexpected bits being added");
+  NS_PRECONDITION(aIntrinsicDirty != eStyleChange ||
+                  aBitToAdd == NS_FRAME_IS_DIRTY,
+                  "bits don't correspond to style change reason");
 
   NS_ASSERTION(!mIsReflowing, "can't mark frame dirty during reflow");
 
@@ -3151,88 +3154,106 @@ PresShell::FrameNeedsReflow(nsIFrame *aFrame, IntrinsicDirty aIntrinsicDirty,
   }  
 #endif
 
-  
-  PRBool wasDirty = NS_SUBTREE_DIRTY(aFrame);
-  aFrame->AddStateBits(aBitToAdd);
+  nsAutoTArray<nsIFrame*, 4> subtrees;
+  subtrees.AppendElement(aFrame);
 
-  
-  
-  PRBool targetFrameDirty = (aBitToAdd == NS_FRAME_IS_DIRTY);
+  do {
+    nsIFrame *subtreeRoot = subtrees.ElementAt(subtrees.Length() - 1);
+    subtrees.RemoveElementAt(subtrees.Length() - 1);
+
+    
+    
+    PRBool wasDirty = NS_SUBTREE_DIRTY(subtreeRoot);
+    subtreeRoot->AddStateBits(aBitToAdd);
+
+    
+    
+    PRBool targetFrameDirty = (aBitToAdd == NS_FRAME_IS_DIRTY);
 
 #define FRAME_IS_REFLOW_ROOT(_f)                   \
   ((_f->GetStateBits() & NS_FRAME_REFLOW_ROOT) &&  \
-   (_f != aFrame || !targetFrameDirty))
+   (_f != subtreeRoot || !targetFrameDirty))
 
 
-  
-  
-
-  if (aIntrinsicDirty != eResize) {
     
     
-    
-    for (nsIFrame *a = aFrame;
-         a && !FRAME_IS_REFLOW_ROOT(a);
-         a = a->GetParent())
-      a->MarkIntrinsicWidthsDirty();
-  }
 
-  if (aIntrinsicDirty == eStyleChange) {
-    
-    
-    nsTArray<nsIFrame*> stack;
-    stack.AppendElement(aFrame);
+    if (aIntrinsicDirty != eResize) {
+      
+      
+      
+      
+      for (nsIFrame *a = subtreeRoot;
+           a && !FRAME_IS_REFLOW_ROOT(a);
+           a = a->GetParent())
+        a->MarkIntrinsicWidthsDirty();
+    }
 
-    while (stack.Length() != 0) {
-      nsIFrame *f =
-        stack.ElementAt(stack.Length() - 1);
-      stack.RemoveElementAt(stack.Length() - 1);
+    if (aIntrinsicDirty == eStyleChange) {
+      
+      
+      nsAutoTArray<nsIFrame*, 32> stack;
+      stack.AppendElement(subtreeRoot);
 
-      PRInt32 childListIndex = 0;
-      nsIAtom *childListName;
       do {
-        childListName = f->GetAdditionalChildListName(childListIndex++);
-        for (nsIFrame *kid = f->GetFirstChild(childListName); kid;
-             kid = kid->GetNextSibling()) {
-          kid->MarkIntrinsicWidthsDirty();
-          stack.AppendElement(kid);
+        nsIFrame *f = stack.ElementAt(stack.Length() - 1);
+        stack.RemoveElementAt(stack.Length() - 1);
+
+        if (f->GetType() == nsGkAtoms::placeholderFrame) {
+          nsIFrame *oof = nsPlaceholderFrame::GetRealFrameForPlaceholder(f);
+          if (!nsLayoutUtils::IsProperAncestorFrame(subtreeRoot, oof)) {
+            
+            subtrees.AppendElement(oof);
+          }
         }
-      } while (childListName);
-    }
-  }
 
-  
-  
-  nsIFrame *f = aFrame;
-  for (;;) {
-    if (FRAME_IS_REFLOW_ROOT(f) || !f->GetParent()) {
-      
-      if (!wasDirty) {
-        mDirtyRoots.AppendElement(f);
-      }
+        PRInt32 childListIndex = 0;
+        nsIAtom *childListName;
+        do {
+          childListName = f->GetAdditionalChildListName(childListIndex++);
+          for (nsIFrame *kid = f->GetFirstChild(childListName); kid;
+               kid = kid->GetNextSibling()) {
+            kid->MarkIntrinsicWidthsDirty();
+            stack.AppendElement(kid);
+          }
+        } while (childListName);
+      } while (stack.Length() != 0);
+    }
+
+    
+    
+    
+    nsIFrame *f = subtreeRoot;
+    for (;;) {
+      if (FRAME_IS_REFLOW_ROOT(f) || !f->GetParent()) {
+        
+        if (!wasDirty) {
+          mDirtyRoots.AppendElement(f);
+        }
 #ifdef DEBUG
-      else {
+        else {
+          VerifyHasDirtyRootAncestor(f);
+        }
+#endif
+        
+        break;
+      }
+
+      nsIFrame *child = f;
+      f = f->GetParent();
+      wasDirty = NS_SUBTREE_DIRTY(f);
+      f->ChildIsDirty(child);
+      NS_ASSERTION(f->GetStateBits() & NS_FRAME_HAS_DIRTY_CHILDREN,
+                   "ChildIsDirty didn't do its job");
+      if (wasDirty) {
+        
+#ifdef DEBUG
         VerifyHasDirtyRootAncestor(f);
+#endif
+        break;
       }
-#endif
-      
-      break;
     }
-
-    nsIFrame *child = f;
-    f = f->GetParent();
-    wasDirty = NS_SUBTREE_DIRTY(f);
-    f->ChildIsDirty(child);
-    NS_ASSERTION(f->GetStateBits() & NS_FRAME_HAS_DIRTY_CHILDREN,
-                 "ChildIsDirty didn't do its job");
-    if (wasDirty) {
-      
-#ifdef DEBUG
-      VerifyHasDirtyRootAncestor(f);
-#endif
-      break;
-    }
-  }
+  } while (subtrees.Length() != 0);
 
   PostReflowEvent();
 
