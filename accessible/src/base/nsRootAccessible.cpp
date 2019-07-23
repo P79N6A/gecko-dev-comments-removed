@@ -542,8 +542,12 @@ nsRootAccessible::FireAccessibleFocusEvent(nsIAccessible *aAccessible,
   return PR_TRUE;
 }
 
-void nsRootAccessible::FireCurrentFocusEvent()
+void
+nsRootAccessible::FireCurrentFocusEvent()
 {
+  if (IsDefunct())
+    return;
+
   nsCOMPtr<nsIDOMNode> focusedNode = GetCurrentFocus();
   if (!focusedNode) {
     return; 
@@ -772,13 +776,7 @@ nsresult nsRootAccessible::HandleEventWithTarget(nsIDOMEvent* aEvent,
       
       
       
-      if (!mFireFocusTimer) {
-        mFireFocusTimer = do_CreateInstance("@mozilla.org/timer;1");
-      }
-      if (mFireFocusTimer) {
-        mFireFocusTimer->InitWithFuncCallback(FireFocusCallback, this,
-                                              0, nsITimer::TYPE_ONE_SHOT);
-      }
+      NS_DISPATCH_RUNNABLEMETHOD(FireCurrentFocusEvent, this)
     }
 
     
@@ -934,13 +932,6 @@ void nsRootAccessible::GetTargetNode(nsIDOMEvent *aEvent, nsIDOMNode **aTargetNo
   NS_ADDREF(*aTargetNode = eventTarget);
 }
 
-void nsRootAccessible::FireFocusCallback(nsITimer *aTimer, void *aClosure)
-{
-  nsRootAccessible *rootAccessible = static_cast<nsRootAccessible*>(aClosure);
-  NS_ASSERTION(rootAccessible, "How did we get here without a root accessible?");
-  rootAccessible->FireCurrentFocusEvent();
-}
-
 
 
 
@@ -969,11 +960,6 @@ nsRootAccessible::Shutdown()
   root->RemoveRootAccessible(this);
 
   mCurrentARIAMenubar = nsnull;
-
-  if (mFireFocusTimer) {
-    mFireFocusTimer->Cancel();
-    mFireFocusTimer = nsnull;
-  }
 
   return nsDocAccessibleWrap::Shutdown();
 }

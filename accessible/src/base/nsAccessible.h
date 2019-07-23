@@ -377,20 +377,6 @@ protected:
   
 
 
-  struct nsCommandClosure
-  {
-    nsCommandClosure(nsAccessible *aAccessible, nsIContent *aContent,
-                     PRUint32 aActionIndex) :
-      accessible(aAccessible), content(aContent), actionIndex(aActionIndex) {}
-
-    nsRefPtr<nsAccessible> accessible;
-    nsCOMPtr<nsIContent> content;
-    PRUint32 actionIndex;
-  };
-
-  
-
-
 
 
 
@@ -405,15 +391,10 @@ protected:
   
 
 
-
-
-
-  static void DoCommandCallback(nsITimer *aTimer, void *aClosure);
-
-  
-
-
   virtual void DispatchClickEvent(nsIContent *aContent, PRUint32 aActionIndex);
+
+  NS_DECL_RUNNABLEMETHOD_ARG2(nsAccessible, DispatchClickEvent,
+                              nsCOMPtr<nsIContent>, PRUint32)
 
   
   

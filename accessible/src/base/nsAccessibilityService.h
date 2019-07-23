@@ -40,9 +40,11 @@
 #define __nsAccessibilityService_h__
 
 #include "nsIAccessibilityService.h"
+
+#include "nsCoreUtils.h"
+
 #include "nsCOMArray.h"
 #include "nsIObserver.h"
-#include "nsITimer.h"
 #include "nsIWebProgress.h"
 #include "nsIWebProgressListener.h"
 #include "nsWeakReference.h"
@@ -157,10 +159,19 @@ private:
 
   PRBool HasUniversalAriaProperty(nsIContent *aContent, nsIWeakReference *aWeakShell);
 
-  static void StartLoadCallback(nsITimer *aTimer, void *aClosure);
-  static void EndLoadCallback(nsITimer *aTimer, void *aClosure);
-  static void FailedLoadCallback(nsITimer *aTimer, void *aClosure);
-  nsCOMArray<nsITimer> mLoadTimers;
+  
+
+
+
+
+
+
+
+
+  void ProcessDocLoadEvent(nsIWebProgress *aWebProgress, PRUint32 aEventType);
+
+  NS_DECL_RUNNABLEMETHOD_ARG2(nsAccessibilityService, ProcessDocLoadEvent,
+                              nsCOMPtr<nsIWebProgress>, PRUint32)
 };
 
 
@@ -413,5 +424,5 @@ static const char kRelationTypeNames[][20] = {
   "default button"       
 };
 
-#endif 
+#endif
 
