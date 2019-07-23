@@ -345,7 +345,7 @@ nsSimplePageSequenceFrame::Reflow(nsPresContext*          aPresContext,
   
   if (!mDateFormatter)
     mDateFormatter = do_CreateInstance(NS_DATETIMEFORMAT_CONTRACTID);
-#ifndef WINCE
+
   NS_ENSURE_TRUE(mDateFormatter, NS_ERROR_FAILURE);
 
   nsAutoString formattedDateString;
@@ -359,7 +359,6 @@ nsSimplePageSequenceFrame::Reflow(nsPresContext*          aPresContext,
     PRUnichar * uStr = ToNewUnicode(formattedDateString);
     SetDateTimeStr(uStr); 
   }
-#endif
 
   
   
