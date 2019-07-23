@@ -75,6 +75,7 @@
 #include "nsIPrincipal.h"
 #include "nsComponentManagerUtils.h"
 #include "nsCSSPseudoClasses.h"
+#include "nsTArray.h"
 
 #include "nsContentUtils.h"
 #include "nsContentErrors.h"
@@ -468,11 +469,6 @@ static PRBool IsPseudoElement(nsIAtom* aAtom)
   return PR_FALSE;
 }
 
-void nsCSSSelector::AppendNegationToString(nsAString& aString)
-{
-  aString.AppendLiteral(":not(");
-}
-
 
 
 
@@ -483,28 +479,58 @@ nsCSSSelector::ToString(nsAString& aString, nsICSSStyleSheet* aSheet,
 {
   if (!aAppend)
    aString.Truncate();
+
+  
+  
+  nsAutoTArray<const nsCSSSelector*, 8> stack;
+  for (const nsCSSSelector *s = this; s; s = s->mNext) {
+    stack.AppendElement(s);
+  }
    
-  ToStringInternal(aString, aSheet, IsPseudoElement(mTag), PR_FALSE);
+  while (!stack.IsEmpty()) {
+    PRUint32 index = stack.Length() - 1;
+    const nsCSSSelector *s = stack.ElementAt(index);
+    stack.RemoveElementAt(index);
+
+    s->AppendToStringWithoutCombinators(aString, aSheet);
+
+    
+    if (!stack.IsEmpty()) {
+      const nsCSSSelector *next = stack.ElementAt(index - 1);
+      if (!IsPseudoElement(next->mTag)) {
+        aString.Append(PRUnichar(' '));
+        PRUnichar oper = s->mOperator;
+        if (oper != PRUnichar(0)) {
+          aString.Append(oper);
+          aString.Append(PRUnichar(' '));
+        }
+      }
+    }
+  }
 }
 
-void nsCSSSelector::ToStringInternal(nsAString& aString,
-                                     nsICSSStyleSheet* aSheet,
-                                     PRBool aIsPseudoElem,
-                                     PRBool aIsNegated) const
+void
+nsCSSSelector::AppendToStringWithoutCombinators
+                   (nsAString& aString, nsICSSStyleSheet* aSheet) const
+{
+  AppendToStringWithoutCombinatorsOrNegations(aString, aSheet, PR_FALSE);
+
+  for (const nsCSSSelector* negation = mNegations; negation;
+       negation = negation->mNegations) {
+    aString.AppendLiteral(":not(");
+    negation->AppendToStringWithoutCombinatorsOrNegations(aString, aSheet,
+                                                          PR_TRUE);
+    aString.Append(PRUnichar(')'));
+  }
+}
+
+void
+nsCSSSelector::AppendToStringWithoutCombinatorsOrNegations
+                   (nsAString& aString, nsICSSStyleSheet* aSheet,
+                   PRBool aIsNegated) const
 {
   nsAutoString temp;
   PRBool isPseudoElement = IsPseudoElement(mTag);
-  
-  
-  
-  if (mNext) {
-    mNext->ToStringInternal(aString, aSheet, IsPseudoElement(mTag), 0);
-    if (!aIsNegated && !isPseudoElement) {
-      
-      
-      aString.Append(PRUnichar(' '));
-    }
-  }
 
   
   
@@ -696,22 +722,6 @@ void nsCSSSelector::ToStringInternal(nsAString& aString,
       }
       list = list->mNext;
     }
-  }
-
-  if (!aIsNegated) {
-    for (nsCSSSelector* negation = mNegations; negation;
-         negation = negation->mNegations) {
-      aString.AppendLiteral(":not(");
-      negation->ToStringInternal(aString, aSheet, PR_FALSE, PR_TRUE);
-      aString.Append(PRUnichar(')'));
-    }
-  }
-
-  
-  
-  if (!aIsNegated && mOperator && !aIsPseudoElem) {
-    aString.Append(PRUnichar(' '));
-    aString.Append(mOperator);
   }
 }
 
