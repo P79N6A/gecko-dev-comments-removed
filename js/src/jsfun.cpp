@@ -555,6 +555,7 @@ ArgGetter(JSContext *cx, JSObject *obj, jsval idval, jsval *vp)
 static JSBool
 ArgSetter(JSContext *cx, JSObject *obj, jsval idval, jsval *vp)
 {
+#ifdef JS_TRACER
     
     
     
@@ -563,6 +564,7 @@ ArgSetter(JSContext *cx, JSObject *obj, jsval idval, jsval *vp)
         js_DeepBail(cx);
         return false;
     }
+#endif
 
     if (!JS_InstanceOf(cx, obj, &js_ArgumentsClass, NULL))
         return true;
