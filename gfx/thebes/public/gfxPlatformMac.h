@@ -99,14 +99,6 @@ public:
     PRUint32 GetAntiAliasingThreshold() { return mFontAntiAliasingThreshold; }
 
     
-    PRBool UsingCoreText()
-#ifdef __LP64__
-        { return PR_TRUE; }
-#else
-        { return mUseCoreText; }
-#endif
-
-    
     virtual void SetupClusterBoundaries(gfxTextRun *aTextRun, const PRUnichar *aString);
 
 private:
@@ -117,12 +109,6 @@ private:
     
     PRInt32 mOSXVersion;
     PRUint32 mFontAntiAliasingThreshold;
-
-#ifndef __LP64__
-    
-    
-    PRBool mUseCoreText;
-#endif
 };
 
 #endif 

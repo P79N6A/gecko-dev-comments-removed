@@ -1672,11 +1672,6 @@ pref("browser.drag_out_of_frame_style", 1);
 pref("ui.key.saveLink.shift", false); 
 pref("ui.click_hold_context_menus", false);
 
-#ifndef __LP64__
-
-pref("gfx.force_atsui_text", false);
-#endif
-
 
 
 
