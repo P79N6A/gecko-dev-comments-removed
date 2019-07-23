@@ -344,7 +344,7 @@ protected:
 
 
   
-  nsresult InstallEventListeners();
+  virtual nsresult InstallEventListeners();
 
   virtual nsresult CreateEventListeners();
 

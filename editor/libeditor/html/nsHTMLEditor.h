@@ -429,6 +429,7 @@ protected:
   
   virtual nsresult CreateEventListeners();
 
+  virtual nsresult InstallEventListeners();
   virtual void RemoveEventListeners();
 
   
