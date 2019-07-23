@@ -1314,7 +1314,6 @@ nsNavBookmarks::GetIdForItemAt(PRInt64 aFolder, PRInt32 aIndex, PRInt64* aItemId
     
     return GetLastChildId(aFolder, aItemId);
   } else {
-    mozIStorageConnection *dbConn = DBConn();
     {
       
       mozStorageStatementScoper scope(mDBGetChildAt);
@@ -1698,9 +1697,9 @@ nsNavBookmarks::MoveItem(PRInt64 aItemId, PRInt64 aNewParent, PRInt32 aIndex)
   NS_ENSURE_SUCCESS(rv, rv);
 
   PRTime now = PR_Now();
-  rv = SetItemDateInternal(mDBSetItemLastModified, oldParent, PR_Now());
+  rv = SetItemDateInternal(mDBSetItemLastModified, oldParent, now);
   NS_ENSURE_SUCCESS(rv, rv);
-  rv = SetItemDateInternal(mDBSetItemLastModified, aNewParent, PR_Now());
+  rv = SetItemDateInternal(mDBSetItemLastModified, aNewParent, now);
   NS_ENSURE_SUCCESS(rv, rv);
 
   rv = transaction.Commit();
