@@ -102,8 +102,7 @@ gfxAtsuiFont::InitMetrics(ATSUFontID aFontID, ATSFontRef aFontRef)
     ATSUAttributeTag styleTags[] = {
         kATSUFontTag,
         kATSUSizeTag,
-        kATSUFontMatrixTag,
-        kATSUKerningInhibitFactorTag
+        kATSUFontMatrixTag
     };
 
     ByteCount styleArgSizes[] = {
@@ -123,14 +122,11 @@ gfxAtsuiFont::InitMetrics(ATSUFontID aFontID, ATSFontRef aFontRef)
     ATSUFontID fid = aFontID;
     
     CGAffineTransform transform = CGAffineTransformMakeScale(1, -1);
-    
-    Fract inhibitKerningFactor = FloatToFract(1.0);
 
     ATSUAttributeValuePtr styleArgs[] = {
         &fid,
         &fSize,
         &transform,
-        &inhibitKerningFactor
     };
 
     if (mATSUStyle)
