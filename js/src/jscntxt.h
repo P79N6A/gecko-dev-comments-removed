@@ -417,13 +417,6 @@ struct TraceMonitor {
     
 
 
-
-    JSBool                  useReservedObjects;
-    JSObject                *reservedObjects;
-
-    
-
-
     REHashMap*              reFragments;
 
     
