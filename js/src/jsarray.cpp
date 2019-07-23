@@ -1172,8 +1172,8 @@ js_MakeArraySlow(JSContext *cx, JSObject *obj)
                                       : JSVAL_VOID;
 
     
-    obj->fslots[JSSLOT_CLASS] ^= (jsval) &js_ArrayClass;
-    obj->fslots[JSSLOT_CLASS] |= (jsval) &js_SlowArrayClass;
+    obj->classword ^= (jsuword) &js_ArrayClass;
+    obj->classword |= (jsuword) &js_SlowArrayClass;
 
     
     oldmap = obj->map;
