@@ -79,6 +79,9 @@ static DllBlockInfo sWindowsDllBlocklist[] = {
   {"calc.dll", MAKE_VERSION(1,0,0,1)},
 
   
+  {"hook.dll", ALL_VERSIONS},
+
+  
   { "mozdllblockingtest.dll", ALL_VERSIONS },
   { "mozdllblockingtest_versioned.dll", 0x0000000400000000ULL },
 
