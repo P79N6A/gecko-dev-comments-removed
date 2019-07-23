@@ -947,8 +947,6 @@ JS_EndRequest(JSContext *cx)
 {
 #ifdef JS_THREADSAFE
     JSRuntime *rt;
-    JSTitle *title, **todop;
-    JSBool shared;
 
     CHECK_REQUEST(cx);
     JS_ASSERT(CURRENT_THREAD_IS_ME(cx->thread));
@@ -961,34 +959,7 @@ JS_EndRequest(JSContext *cx)
         cx->requestDepth = 0;
         cx->outstandingRequests--;
 
-        
-        todop = &rt->titleSharingTodo;
-        shared = JS_FALSE;
-        while ((title = *todop) != NO_TITLE_SHARING_TODO) {
-            if (title->ownercx != cx) {
-                todop = &title->u.link;
-                continue;
-            }
-            *todop = title->u.link;
-            title->u.link = NULL;       
-
-            
-
-
-
-
-
-
-            if (js_DropObjectMap(cx, TITLE_TO_MAP(title), NULL)) {
-                js_InitLock(&title->lock);
-                title->u.count = 0;   
-                js_FinishSharingTitle(cx, title); 
-                shared = JS_TRUE;
-            }
-        }
-        if (shared)
-            JS_NOTIFY_ALL_CONDVAR(rt->titleSharingDone);
-
+        js_ShareWaitingTitles(cx);
         js_RevokeGCLocalFreeLists(cx);
 
         

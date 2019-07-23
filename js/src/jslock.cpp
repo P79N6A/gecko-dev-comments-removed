@@ -367,22 +367,40 @@ js_unlog_title(JSTitle *title)
 
 
 
-
-
-static JSBool
-WillDeadlock(JSTitle *title, JSContext *cx)
+static bool
+WillDeadlock(JSContext *ownercx, JSThread *thread)
 {
-    JSContext *ownercx;
+    JS_ASSERT(CURRENT_THREAD_IS_ME(thread));
+    JS_ASSERT(ownercx->thread != thread);
 
-    do {
-        ownercx = title->ownercx;
-        if (ownercx == cx) {
-            JS_RUNTIME_METER(cx->runtime, deadlocksAvoided);
-            return JS_TRUE;
+     for (;;) {
+        JS_ASSERT(ownercx->thread);
+        JS_ASSERT(ownercx->requestDepth > 0);
+        JSTitle *title = ownercx->thread->titleToShare;
+        if (!title || !title->ownercx) {
+            
+
+
+
+            return false;
         }
-    } while (ownercx && (title = ownercx->titleToShare) != NULL);
-    return JS_FALSE;
+
+        
+
+
+
+
+
+        if (title->ownercx->thread == thread) {
+            JS_RUNTIME_METER(ownercx->runtime, deadlocksAvoided);
+            return true;
+        }
+        ownercx = title->ownercx;
+     }
 }
+
+static void
+FinishSharingTitle(JSContext *cx, JSTitle *title);
 
 
 
@@ -409,9 +427,7 @@ ShareTitle(JSContext *cx, JSTitle *title)
         title->u.link = NULL;       
         JS_NOTIFY_ALL_CONDVAR(rt->titleSharingDone);
     }
-    js_InitLock(&title->lock);
-    title->u.count = 0;
-    js_FinishSharingTitle(cx, title);
+    FinishSharingTitle(cx, title);
 }
 
 
@@ -426,9 +442,8 @@ ShareTitle(JSContext *cx, JSTitle *title)
 
 
 
-
-void
-js_FinishSharingTitle(JSContext *cx, JSTitle *title)
+static void
+FinishSharingTitle(JSContext *cx, JSTitle *title)
 {
     JSObjectMap *map;
     JSScope *scope;
@@ -436,6 +451,8 @@ js_FinishSharingTitle(JSContext *cx, JSTitle *title)
     uint32 nslots, i;
     jsval v;
 
+    js_InitLock(&title->lock);
+    title->u.count = 0;     
     map = TITLE_TO_MAP(title);
     if (!MAP_IS_NATIVE(map))
         return;
@@ -483,14 +500,17 @@ js_NudgeOtherContexts(JSContext *cx)
 
 
 
-void
-js_NudgeThread(JSContext *cx, JSThread *thread)
+static void
+NudgeThread(JSThread *thread)
 {
-    JSRuntime *rt = cx->runtime;
-    JSContext *acx = NULL;
-    
-    while ((acx = js_NextActiveContext(rt, acx)) != NULL) {
-        if (cx != acx && acx->thread == thread)
+    JSCList *link;
+    JSContext *acx;
+
+    link = &thread->contextList;
+    while ((link = link->next) != &thread->contextList) {
+        acx = CX_FROM_THREAD_LINKS(link);
+        JS_ASSERT(acx->thread == thread);
+        if (acx->requestDepth)
             JS_TriggerOperationCallback(acx);
     }
 }
@@ -508,8 +528,7 @@ ClaimTitle(JSTitle *title, JSContext *cx)
 {
     JSRuntime *rt;
     JSContext *ownercx;
-    jsrefcount saveDepth;
-    PRStatus stat;
+    uint32 requestDebit;
 
     rt = cx->runtime;
     JS_RUNTIME_METER(rt, claimAttempts);
@@ -531,11 +550,26 @@ ClaimTitle(JSTitle *title, JSContext *cx)
 
 
 
-        if (!title->u.link &&
-            (!js_ValidContextPointer(rt, ownercx) ||
-             !ownercx->requestDepth ||
-             ownercx->thread == cx->thread)) {
-            JS_ASSERT(title->u.count == 0);
+
+
+
+
+
+
+
+        bool canClaim;
+        if (title->u.link) {
+            JS_ASSERT(js_ValidContextPointer(rt, ownercx));
+            JS_ASSERT(ownercx->requestDepth > 0);
+            JS_ASSERT_IF(cx->requestDepth == 0, cx->thread == rt->gcThread);
+            canClaim = (ownercx->thread == cx->thread &&
+                        cx->requestDepth > 0);
+        } else {
+            canClaim = (!js_ValidContextPointer(rt, ownercx) ||
+                        !ownercx->requestDepth ||
+                        ownercx->thread == cx->thread);
+        }
+        if (canClaim) {
             title->ownercx = cx;
             JS_UNLOCK_GC(rt);
             JS_RUNTIME_METER(rt, claimedTitles);
@@ -559,9 +593,9 @@ ClaimTitle(JSTitle *title, JSContext *cx)
 
 
 
-        if (rt->gcThread == cx->thread ||
-            (ownercx->titleToShare &&
-             WillDeadlock(ownercx->titleToShare, cx))) {
+
+
+        if (rt->gcThread == cx->thread || WillDeadlock(ownercx, cx->thread)) {
             ShareTitle(cx, title);
             break;
         }
@@ -582,46 +616,26 @@ ClaimTitle(JSTitle *title, JSContext *cx)
 
 
 
-
-
-
-
-
-        saveDepth = cx->requestDepth;
-        if (saveDepth) {
-            cx->requestDepth = 0;
-            if (rt->gcThread != cx->thread) {
-                JS_ASSERT(rt->requestCount > 0);
-                rt->requestCount--;
-                if (rt->requestCount == 0)
-                    JS_NOTIFY_REQUEST_DONE(rt);
-            }
-        }
-
-        js_NudgeThread(cx, ownercx->thread);
+        requestDebit = js_DiscountRequestsForGC(cx);
 
         
 
 
 
 
-        cx->titleToShare = title;
-        stat = PR_WaitCondVar(rt->titleSharingDone, PR_INTERVAL_NO_TIMEOUT);
+
+
+        NudgeThread(ownercx->thread);
+
+        JS_ASSERT(!cx->thread->titleToShare);
+        cx->thread->titleToShare = title;
+#ifdef DEBUG
+        PRStatus stat =
+#endif
+            PR_WaitCondVar(rt->titleSharingDone, PR_INTERVAL_NO_TIMEOUT);
         JS_ASSERT(stat != PR_FAILURE);
 
-        
-
-
-
-
-        if (saveDepth) {
-            if (rt->gcThread != cx->thread) {
-                while (rt->gcLevel > 0)
-                    JS_AWAIT_GC_DONE(rt);
-                rt->requestCount++;
-            }
-            cx->requestDepth = saveDepth;
-        }
+        js_RecountRequestsAfterGC(rt, requestDebit);
 
         
 
@@ -635,11 +649,44 @@ ClaimTitle(JSTitle *title, JSContext *cx)
 
 
 
-        cx->titleToShare = NULL;
+        cx->thread->titleToShare = NULL;
     }
 
     JS_UNLOCK_GC(rt);
     return JS_FALSE;
+}
+
+void
+js_ShareWaitingTitles(JSContext *cx)
+{
+    JSTitle *title, **todop;
+    bool shared;
+
+    
+    todop = &cx->runtime->titleSharingTodo;
+    shared = false;
+    while ((title = *todop) != NO_TITLE_SHARING_TODO) {
+        if (title->ownercx != cx) {
+            todop = &title->u.link;
+            continue;
+        }
+        *todop = title->u.link;
+        title->u.link = NULL;       
+
+        
+
+
+
+
+
+
+        if (js_DropObjectMap(cx, TITLE_TO_MAP(title), NULL)) {
+            FinishSharingTitle(cx, title); 
+            shared = true;
+        }
+    }
+    if (shared)
+        JS_NOTIFY_ALL_CONDVAR(cx->runtime->titleSharingDone);
 }
 
 

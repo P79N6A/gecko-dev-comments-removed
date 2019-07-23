@@ -3360,57 +3360,25 @@ js_GC(JSContext *cx, JSGCInvocationKind gckind)
     rt->gcPoke = JS_FALSE;
 
 #ifdef JS_THREADSAFE
-    JS_ASSERT(cx->thread->id == js_CurrentThreadId());
-    
-    
-    if (rt->gcThread == cx->thread) {
-        JS_ASSERT(rt->gcLevel > 0);
-        rt->gcLevel++;
-        METER_UPDATE_MAX(rt->gcStats.maxlevel, rt->gcLevel);
-        if (!(gckind & GC_LOCK_HELD))
-            JS_UNLOCK_GC(rt);
-        return;
-    }
-
     
 
 
 
-
-    requestDebit = 0;
-    {
-        JSCList *head, *link;
-
-        
-
-
-
-        head = &cx->thread->contextList;
-        for (link = head->next; link != head; link = link->next) {
-            acx = CX_FROM_THREAD_LINKS(link);
-            JS_ASSERT(acx->thread == cx->thread);
-            if (acx->requestDepth)
-                requestDebit++;
-        }
-    }
-    if (requestDebit) {
-        JS_ASSERT(requestDebit <= rt->requestCount);
-        rt->requestCount -= requestDebit;
-        if (rt->requestCount == 0)
-            JS_NOTIFY_REQUEST_DONE(rt);
-    }
-
-    
     if (rt->gcLevel > 0) {
+        JS_ASSERT(rt->gcThread);
+
         
         rt->gcLevel++;
         METER_UPDATE_MAX(rt->gcStats.maxlevel, rt->gcLevel);
 
         
-        while (rt->gcLevel > 0)
-            JS_AWAIT_GC_DONE(rt);
-        if (requestDebit)
-            rt->requestCount += requestDebit;
+
+
+
+        if (rt->gcThread != cx->thread) {
+            requestDebit = js_DiscountRequestsForGC(cx);
+            js_RecountRequestsAfterGC(rt, requestDebit);
+        }
         if (!(gckind & GC_LOCK_HELD))
             JS_UNLOCK_GC(rt);
         return;
@@ -3429,8 +3397,17 @@ js_GC(JSContext *cx, JSGCInvocationKind gckind)
     js_NudgeOtherContexts(cx);
 
     
+
+
+
+
+
+    requestDebit = js_CountThreadRequests(cx);
+    JS_ASSERT_IF(cx->requestDepth != 0, requestDebit >= 1);
+    rt->requestCount -= requestDebit;
     while (rt->requestCount > 0)
         JS_AWAIT_REQUEST_DONE(rt);
+    rt->requestCount += requestDebit;
 
 #else  
 
@@ -3478,7 +3455,6 @@ js_GC(JSContext *cx, JSGCInvocationKind gckind)
         rt->gcRunning = JS_FALSE;
 #ifdef JS_THREADSAFE
         rt->gcThread = NULL;
-        rt->requestCount += requestDebit;
 #endif
         gckind = GC_LOCK_HELD;
         goto restart_at_beginning;
@@ -3810,9 +3786,6 @@ out:
     rt->gcRunning = JS_FALSE;
 
 #ifdef JS_THREADSAFE
-    
-    if (requestDebit)
-        rt->requestCount += requestDebit;
     rt->gcThread = NULL;
     JS_NOTIFY_GC_DONE(rt);
 
@@ -3859,31 +3832,6 @@ out:
         }
     }
 }
-
-#ifdef JS_THREADSAFE
-
-
-
-
-
-
-
-
-
-
-
-void
-js_WaitForGC(JSRuntime *rt)
-{
-    JS_ASSERT_IF(rt->gcRunning, rt->gcLevel > 0);
-    if (rt->gcRunning && rt->gcThread->id != js_CurrentThreadId()) {
-        do {
-            JS_AWAIT_GC_DONE(rt);
-        } while (rt->gcRunning);
-    }
-}
-
-#endif
 
 void
 js_UpdateMallocCounter(JSContext *cx, size_t nbytes)

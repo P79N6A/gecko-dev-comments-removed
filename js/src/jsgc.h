@@ -285,20 +285,6 @@ extern void
 js_GC(JSContext *cx, JSGCInvocationKind gckind);
 
 
-
-
-
-
-
-#ifdef JS_THREADSAFE
-extern void
-js_WaitForGC(JSRuntime *rt);
-#else
-# define js_WaitForGC(rt)    ((void) 0)
-#endif
-
-
-
 extern void
 js_UpdateMallocCounter(JSContext *cx, size_t nbytes);
 
