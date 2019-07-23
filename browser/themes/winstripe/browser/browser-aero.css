@@ -18,23 +18,6 @@
 
 
 
-#urlbar:-moz-locale-dir(ltr):-moz-system-metric(windows-default-theme) {
-  -moz-margin-start: 9px;
-}
-
-#identity-box:-moz-locale-dir(ltr):-moz-system-metric(windows-default-theme) {
-  -moz-margin-start: -7px;
-}
-
-#identity-box:-moz-locale-dir(ltr):-moz-system-metric(windows-default-theme) {
-  -moz-border-radius: 11px 0 2px 11px / 15px 0 2px 15px;
-}
-
-
-#identity-popup:-moz-locale-dir(ltr):-moz-system-metric(windows-default-theme) {
-  -moz-margin-start: 7px;
-}
-
 
 
 #identity-popup:-moz-system-metric(windows-default-theme),
