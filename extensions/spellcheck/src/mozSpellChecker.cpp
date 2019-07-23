@@ -34,8 +34,6 @@
 
 
 
-
-
 #include "mozSpellChecker.h"
 #include "nsIServiceManager.h"
 #include "mozISpellI18NManager.h"
@@ -45,7 +43,7 @@
 
 #define UNREASONABLE_WORD_LENGTH 64
 
-#define DEFAULT_SPELL_CHECKER "@mozilla.org/spellchecker/hunspell;1"
+#define DEFAULT_SPELL_CHECKER "@mozilla.org/spellchecker/engine;1"
 
 NS_IMPL_ISUPPORTS1(mozSpellChecker, nsISpellChecker)
 
