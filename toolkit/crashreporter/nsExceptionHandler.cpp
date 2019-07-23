@@ -1053,6 +1053,9 @@ static nsresult PrefSubmitReports(PRBool* aSubmitReports, bool writePref)
 
   *aSubmitReports = !!value;
   return NS_OK;
+#elif defined(XP_MACOSX)
+  
+  return NS_ERROR_NOT_IMPLEMENTED;
 #elif defined(XP_UNIX)
   
 
@@ -1118,7 +1121,6 @@ static nsresult PrefSubmitReports(PRBool* aSubmitReports, bool writePref)
 
   return NS_OK;
 #else
-  
   return NS_ERROR_NOT_IMPLEMENTED;
 #endif
 }
