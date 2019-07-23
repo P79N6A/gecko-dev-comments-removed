@@ -801,7 +801,6 @@ GetPropertyTreeChild(JSContext *cx, JSScopeProperty *parent,
     JSScopeProperty *sprop;
     PropTreeKidsChunk *chunk;
     uintN i, n;
-    uint32 shape;
 
     rt = cx->runtime;
     if (!parent) {
@@ -888,12 +887,6 @@ GetPropertyTreeChild(JSContext *cx, JSScopeProperty *parent,
     }
 
 locked_not_found:
-    
-
-
-
-    shape = js_GenerateShape(cx, JS_TRUE, NULL);
-
     sprop = NewScopeProperty(rt);
     if (!sprop)
         goto out_of_memory;
@@ -906,7 +899,7 @@ locked_not_found:
     sprop->flags = child->flags;
     sprop->shortid = child->shortid;
     sprop->parent = sprop->kids = NULL;
-    sprop->shape = shape;
+    sprop->shape = js_GenerateShape(cx, JS_TRUE);
 
     if (!parent) {
         entry->child = sprop;
@@ -1732,12 +1725,10 @@ js_SweepScopeProperties(JSContext *cx)
 
             if (sprop->flags & SPROP_MARK) {
                 sprop->flags &= ~SPROP_MARK;
-                if (sprop->flags & SPROP_FLAG_SHAPE_REGEN) {
+                if (sprop->flags & SPROP_FLAG_SHAPE_REGEN)
                     sprop->flags &= ~SPROP_FLAG_SHAPE_REGEN;
-                } else {
-                    sprop->shape = ++cx->runtime->shapeGen;
-                    JS_ASSERT(sprop->shape != 0);
-                }
+                else
+                    sprop->shape = js_RegenerateShapeForGC(cx);
                 liveCount++;
                 continue;
             }

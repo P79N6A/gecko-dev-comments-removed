@@ -354,6 +354,7 @@ struct JSRuntime {
     uint32              gcNumber;
     JSTracer            *gcMarkingTracer;
     uint32              gcTriggerFactor;
+    volatile JSBool     gcIsNeeded;
 
     
 
@@ -559,7 +560,8 @@ struct JSRuntime {
 
 
 
-    uint32              shapeGen;
+
+    volatile uint32     shapeGen;
 
     
     JSAtomState         atomState;
@@ -1417,6 +1419,14 @@ extern JSErrorFormatString js_ErrorFormatString[JSErr_Limit];
 extern JSBool
 js_InvokeOperationCallback(JSContext *cx);
 
+#ifndef JS_THREADSAFE
+# define js_TriggerAllOperationCallbacks(rt, gcLocked) \
+    js_TriggerAllOperationCallbacks (rt)
+#endif
+
+void
+js_TriggerAllOperationCallbacks(JSRuntime *rt, JSBool gcLocked);
+
 extern JSStackFrame *
 js_GetScriptedCaller(JSContext *cx, JSStackFrame *fp);
 
@@ -1466,6 +1476,28 @@ js_GetTopStackFrame(JSContext *cx)
 {
     js_LeaveTrace(cx);
     return cx->fp;
+}
+
+static JS_INLINE JSBool
+js_IsPropertyCacheDisabled(JSContext *cx)
+{
+    return cx->runtime->shapeGen >= SHAPE_OVERFLOW_BIT;
+}
+
+static JS_INLINE uint32
+js_RegenerateShapeForGC(JSContext *cx)
+{
+    JS_ASSERT(cx->runtime->gcRunning);
+
+    
+
+
+
+
+    uint32 shape = cx->runtime->shapeGen;
+    shape = (shape + 1) | (shape & SHAPE_OVERFLOW_BIT);
+    cx->runtime->shapeGen = shape;
+    return shape;
 }
 
 JS_END_EXTERN_C
