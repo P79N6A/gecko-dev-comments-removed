@@ -1461,6 +1461,10 @@ nsresult nsAccessible::AppendNameFromAccessibleFor(nsIContent *aContent,
   nsCOMPtr<nsIAccessible> accessible;
   if (domNode == mDOMNode) {
     accessible = this;
+    if (!aFromValue) {
+      
+      return NS_OK;
+    }
   }
   else {
     nsCOMPtr<nsIAccessibilityService> accService =
