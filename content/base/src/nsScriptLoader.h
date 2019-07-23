@@ -219,6 +219,13 @@ protected:
   
 
 
+  nsresult CheckContentPolicy(nsScriptLoadRequest *aRequest,
+                              nsISupports *aContext,
+                              const nsAString &aType);
+
+  
+
+
   nsresult StartLoad(nsScriptLoadRequest *aRequest, const nsAString &aType);
 
   

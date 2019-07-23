@@ -196,6 +196,31 @@ IsScriptEventHandler(nsIScriptElement *aScriptElement)
 }
 
 nsresult
+nsScriptLoader::CheckContentPolicy(nsScriptLoadRequest *aRequest,
+                                   nsISupports *aContext,
+                                   const nsAString &aType)
+{
+  PRInt16 shouldLoad = nsIContentPolicy::ACCEPT;
+  nsresult rv = NS_CheckContentLoadPolicy(nsIContentPolicy::TYPE_SCRIPT,
+                                          aRequest->mURI,
+                                          mDocument->NodePrincipal(),
+                                          aContext,
+                                          NS_LossyConvertUTF16toASCII(aType),
+                                          nsnull,    
+                                          &shouldLoad,
+                                          nsContentUtils::GetContentPolicy(),
+                                          nsContentUtils::GetSecurityManager());
+  if (NS_FAILED(rv) || NS_CP_REJECTED(shouldLoad)) {
+    if (NS_FAILED(rv) || shouldLoad != nsIContentPolicy::REJECT_TYPE) {
+      return NS_ERROR_CONTENT_BLOCKED;
+    }
+    return NS_ERROR_CONTENT_BLOCKED_SHOW_ALT;
+  }
+
+  return NS_OK;
+}
+
+nsresult
 nsScriptLoader::StartLoad(nsScriptLoadRequest *aRequest, const nsAString &aType)
 {
   
@@ -206,21 +231,12 @@ nsScriptLoader::StartLoad(nsScriptLoadRequest *aRequest, const nsAString &aType)
   NS_ENSURE_SUCCESS(rv, rv);
 
   
-  PRInt16 shouldLoad = nsIContentPolicy::ACCEPT;
-  rv = NS_CheckContentLoadPolicy(nsIContentPolicy::TYPE_SCRIPT,
-                                 aRequest->mURI,
-                                 mDocument->NodePrincipal(),
-                                 aRequest->mElement,
-                                 NS_LossyConvertUTF16toASCII(aType),
-                                 nsnull,    
-                                 &shouldLoad,
-                                 nsContentUtils::GetContentPolicy(),
-                                 nsContentUtils::GetSecurityManager());
-  if (NS_FAILED(rv) || NS_CP_REJECTED(shouldLoad)) {
-    if (NS_FAILED(rv) || shouldLoad != nsIContentPolicy::REJECT_TYPE) {
-      return NS_ERROR_CONTENT_BLOCKED;
-    }
-    return NS_ERROR_CONTENT_BLOCKED_SHOW_ALT;
+  nsISupports *context = aRequest->mElement.get()
+                         ? static_cast<nsISupports *>(aRequest->mElement.get())
+                         : static_cast<nsISupports *>(mDocument);
+  rv = CheckContentPolicy(aRequest, context, aType);
+  if (NS_FAILED(rv)) {
+    return rv;
   }
 
   nsCOMPtr<nsILoadGroup> loadGroup = mDocument->GetDocumentLoadGroup();
@@ -462,6 +478,12 @@ nsScriptLoader::ProcessScriptElement(nsIScriptElement *aElement)
       request->mJSVersion = version;
       request->mDefer = mDeferEnabled && aElement->GetScriptDeferred();
       mPreloads.RemoveElementAt(i);
+
+      rv = CheckContentPolicy(request, aElement, type);
+      if (NS_FAILED(rv)) {
+        
+        return rv;
+      }
 
       if (!request->mLoading && !request->mDefer && !hadPendingRequests &&
             ReadyToExecuteScripts() && nsContentUtils::IsSafeToRunScript()) {
