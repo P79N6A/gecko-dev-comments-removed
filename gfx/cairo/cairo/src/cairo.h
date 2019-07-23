@@ -1915,6 +1915,7 @@ cairo_surface_status (cairo_surface_t *surface);
 
 
 
+
 typedef enum _cairo_surface_type {
     CAIRO_SURFACE_TYPE_IMAGE,
     CAIRO_SURFACE_TYPE_PDF,
@@ -1931,7 +1932,8 @@ typedef enum _cairo_surface_type {
     CAIRO_SURFACE_TYPE_WIN32_PRINTING,
     CAIRO_SURFACE_TYPE_QUARTZ_IMAGE,
     CAIRO_SURFACE_TYPE_SCRIPT,
-    CAIRO_SURFACE_TYPE_QPAINTER,
+    CAIRO_SURFACE_TYPE_QT,
+    CAIRO_SURFACE_TYPE_META,
     CAIRO_SURFACE_TYPE_DDRAW
 } cairo_surface_type_t;
 
@@ -2109,6 +2111,24 @@ cairo_image_surface_create_from_png_stream (cairo_read_func_t	read_func,
 					    void		*closure);
 
 #endif
+
+
+
+cairo_public cairo_surface_t *
+cairo_meta_surface_create (cairo_content_t	content,
+			   double		width_pixels,
+			   double		height_pixels);
+
+cairo_public void
+cairo_meta_surface_ink_extents (cairo_surface_t *surface,
+				double *x0,
+				double *y0,
+				double *width,
+				double *height);
+
+cairo_public cairo_status_t
+cairo_meta_surface_replay (cairo_surface_t *surface,
+			   cairo_surface_t *target);
 
 
 
@@ -2376,6 +2396,10 @@ cairo_region_create (void);
 
 cairo_public cairo_region_t *
 cairo_region_create_rectangle (const cairo_rectangle_int_t *rectangle);
+
+cairo_public cairo_region_t *
+cairo_region_create_rectangles (cairo_rectangle_int_t *rects,
+				int count);
 
 cairo_public cairo_region_t *
 cairo_region_copy (cairo_region_t *original);

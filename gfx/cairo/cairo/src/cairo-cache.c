@@ -48,7 +48,43 @@ _cairo_cache_entry_is_non_zero (const void *entry)
     return ((const cairo_cache_entry_t *) entry)->size;
 }
 
-static cairo_status_t
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+cairo_status_t
 _cairo_cache_init (cairo_cache_t		*cache,
 		   cairo_cache_keys_equal_func_t keys_equal,
 		   cairo_cache_predicate_func_t  predicate,
@@ -78,78 +114,6 @@ _cairo_cache_pluck (void *entry, void *closure)
     _cairo_cache_remove (closure, entry);
 }
 
-static void
-_cairo_cache_fini (cairo_cache_t *cache)
-{
-    _cairo_hash_table_foreach (cache->hash_table,
-			       _cairo_cache_pluck,
-			       cache);
-    assert (cache->size == 0);
-    _cairo_hash_table_destroy (cache->hash_table);
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-cairo_cache_t *
-_cairo_cache_create (cairo_cache_keys_equal_func_t keys_equal,
-		     cairo_cache_predicate_func_t  predicate,
-		     cairo_destroy_func_t	   entry_destroy,
-		     unsigned long		   max_size)
-{
-    cairo_status_t status;
-    cairo_cache_t *cache;
-
-    cache = malloc (sizeof (cairo_cache_t));
-    if (unlikely (cache == NULL)) {
-	status = _cairo_error (CAIRO_STATUS_NO_MEMORY);
-	return NULL;
-    }
-
-    status = _cairo_cache_init (cache,
-				keys_equal,
-				predicate,
-				entry_destroy,
-				max_size);
-    if (unlikely (status)) {
-	free (cache);
-	return NULL;
-    }
-
-    return cache;
-}
-
 
 
 
@@ -160,11 +124,13 @@ _cairo_cache_create (cairo_cache_keys_equal_func_t keys_equal,
 
 
 void
-_cairo_cache_destroy (cairo_cache_t *cache)
+_cairo_cache_fini (cairo_cache_t *cache)
 {
-    _cairo_cache_fini (cache);
-
-    free (cache);
+    _cairo_hash_table_foreach (cache->hash_table,
+			       _cairo_cache_pluck,
+			       cache);
+    assert (cache->size == 0);
+    _cairo_hash_table_destroy (cache->hash_table);
 }
 
 
