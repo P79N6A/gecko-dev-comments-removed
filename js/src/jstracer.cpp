@@ -6759,11 +6759,8 @@ JS_DEFINE_CALLINFO_6(extern, UINT32, GetClosureArg, CONTEXT, OBJECT, UINT32,
 
 
 
-
-
-
 JS_REQUIRES_STACK JSRecordingStatus
-TraceRecorder::scopeChainProp(JSObject* obj, jsval*& vp, LIns*& ins, bool& tracked)
+TraceRecorder::scopeChainProp(JSObject* obj, jsval*& vp, LIns*& ins, NameResult& nr)
 {
     JS_ASSERT(obj != globalObj);
 
@@ -6793,7 +6790,7 @@ TraceRecorder::scopeChainProp(JSObject* obj, jsval*& vp, LIns*& ins, bool& track
         vp = &STOBJ_GET_SLOT(obj, sprop->slot);
         ins = get(vp);
         OBJ_DROP_PROPERTY(cx, obj2, prop);
-        tracked = true;
+        nr.tracked = true;
         return JSRS_CONTINUE;
     }
 
@@ -6830,7 +6827,7 @@ TraceRecorder::scopeChainProp(JSObject* obj, jsval*& vp, LIns*& ins, bool& track
                 
                 
                 ins = get(vp);
-                tracked = true;
+                nr.tracked = true;
                 return JSRS_CONTINUE;
             } else {
                 
@@ -6865,7 +6862,10 @@ TraceRecorder::scopeChainProp(JSObject* obj, jsval*& vp, LIns*& ins, bool& track
                               "guard(type-stable name access)"),
                       BRANCH_EXIT);
                 ins = stackLoad(outp, type);
-                tracked = false;
+                nr.tracked = false;
+                nr.obj = obj;
+                nr.scopeIndex = scopeIndex;
+                nr.sprop = sprop;
                 return JSRS_CONTINUE;
             }
         }
@@ -9539,13 +9539,20 @@ TraceRecorder::incName(jsint incr, bool pre)
 {
     jsval* vp;
     LIns* v_ins;
-    bool tracked;
-    CHECK_STATUS(name(vp, v_ins, tracked));
-    if (!tracked)
-        ABORT_TRACE("incName on non-tracked value not supported");
+    NameResult nr;
+    CHECK_STATUS(name(vp, v_ins, nr));
     CHECK_STATUS(inc(*vp, v_ins, incr, pre));
-    set(vp, v_ins);
-    return JSRS_CONTINUE;
+    if (nr.tracked) {
+        set(vp, v_ins);
+        return JSRS_CONTINUE;
+    }
+
+    if (OBJ_GET_CLASS(cx, nr.obj) != &js_CallClass)
+        ABORT_TRACE("incName on unsupported object class");
+    LIns* callobj_ins = get(&cx->fp->argv[-2]);
+    for (jsint i = 0; i < nr.scopeIndex; ++i)
+        callobj_ins = stobj_get_parent(callobj_ins);
+    return setCallProp(callobj_ins, nr.sprop, v_ins, *vp);
 }
 
 JS_REQUIRES_STACK JSRecordingStatus
@@ -9693,26 +9700,8 @@ TraceRecorder::setProp(jsval &l, JSPropCacheEntry* entry, JSScopeProperty* sprop
 
     
     if (OBJ_GET_CLASS(cx, obj) == &js_CallClass) {
-        const CallInfo* ci = NULL;
-        if (sprop->setter == SetCallArg)
-            ci = &js_SetCallArg_ci;
-        else if (sprop->setter == SetCallVar)
-            ci = &js_SetCallVar_ci;
-        else
-            ABORT_TRACE("can't trace special CallClass setter");
-
         v_ins = get(&v);
-        LIns* v_boxed_ins = v_ins;
-        box_jsval(v, v_boxed_ins);
-        LIns* args[] = {
-            v_boxed_ins,
-            INS_CONST(SPROP_USERID(sprop)),
-            obj_ins,
-            cx_ins
-        };
-        LIns* call_ins = lir->insCall(ci, args);
-        guard(false, addName(lir->ins_eq0(call_ins), "guard(set upvar)"), STATUS_EXIT);
-        return JSRS_CONTINUE;
+        return setCallProp(obj_ins, sprop, v_ins, v);
     }
 
     
@@ -9755,6 +9744,29 @@ TraceRecorder::setProp(jsval &l, JSPropCacheEntry* entry, JSScopeProperty* sprop
 
     v_ins = get(&v);
     return nativeSet(obj, obj_ins, sprop, v, v_ins);
+}
+
+JS_REQUIRES_STACK JSRecordingStatus
+TraceRecorder::setCallProp(LIns *callobj_ins, JSScopeProperty *sprop, LIns *v_ins, jsval v)
+{
+    const CallInfo* ci = NULL;
+    if (sprop->setter == SetCallArg)
+        ci = &js_SetCallArg_ci;
+    else if (sprop->setter == SetCallVar)
+        ci = &js_SetCallVar_ci;
+    else
+        ABORT_TRACE("can't trace special CallClass setter");
+
+    box_jsval(v, v_ins);
+    LIns* args[] = {
+        v_ins,
+        INS_CONST(SPROP_USERID(sprop)),
+        callobj_ins,
+        cx_ins
+    };
+    LIns* call_ins = lir->insCall(ci, args);
+    guard(false, addName(lir->ins_eq0(call_ins), "guard(set upvar)"), STATUS_EXIT);
+    return JSRS_CONTINUE;
 }
 
 JS_REQUIRES_STACK JSRecordingStatus
@@ -10138,8 +10150,8 @@ TraceRecorder::record_JSOP_CALLNAME()
     if (obj != globalObj) {
         jsval* vp;
         LIns* ins;
-        bool tracked;
-        CHECK_STATUS(scopeChainProp(obj, vp, ins, tracked));
+        NameResult nr;
+        CHECK_STATUS(scopeChainProp(obj, vp, ins, nr));
         stack(0, ins);
         stack(1, INS_CONSTPTR(globalObj));
         return JSRS_CONTINUE;
@@ -10606,11 +10618,11 @@ TraceRecorder::record_NativeCallComplete()
 }
 
 JS_REQUIRES_STACK JSRecordingStatus
-TraceRecorder::name(jsval*& vp, LIns*& ins, bool& tracked)
+TraceRecorder::name(jsval*& vp, LIns*& ins, NameResult& nr)
 {
     JSObject* obj = cx->fp->scopeChain;
     if (obj != globalObj)
-        return scopeChainProp(obj, vp, ins, tracked);
+        return scopeChainProp(obj, vp, ins, nr);
 
     
     LIns* obj_ins = scopeChain();
@@ -10650,7 +10662,7 @@ TraceRecorder::name(jsval*& vp, LIns*& ins, bool& tracked)
 
     vp = &STOBJ_GET_SLOT(obj, slot);
     ins = get(vp);
-    tracked = true;
+    nr.tracked = true;
     return JSRS_CONTINUE;
 }
 
@@ -10920,8 +10932,8 @@ TraceRecorder::record_JSOP_NAME()
 {
     jsval* vp;
     LIns* v_ins;
-    bool tracked;
-    CHECK_STATUS(name(vp, v_ins, tracked));
+    NameResult nr;
+    CHECK_STATUS(name(vp, v_ins, nr));
     stack(0, v_ins);
     return JSRS_CONTINUE;
 }
@@ -11250,9 +11262,9 @@ TraceRecorder::record_JSOP_FORNAME()
 {
     jsval* vp;
     LIns* x_ins;
-    bool tracked;
-    CHECK_STATUS(name(vp, x_ins, tracked));
-    if (!tracked)
+    NameResult nr;
+    CHECK_STATUS(name(vp, x_ins, nr));
+    if (!nr.tracked)
         ABORT_TRACE("forname on non-tracked value not supported");
     set(vp, stack(-1));
     return JSRS_CONTINUE;
@@ -12223,8 +12235,8 @@ TraceRecorder::record_JSOP_GETXPROP()
 
     jsval* vp;
     LIns* v_ins;
-    bool tracked;
-    CHECK_STATUS(name(vp, v_ins, tracked));
+    NameResult nr;
+    CHECK_STATUS(name(vp, v_ins, nr));
     stack(-1, v_ins);
     return JSRS_CONTINUE;
 }
