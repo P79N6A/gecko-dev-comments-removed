@@ -152,8 +152,9 @@ nsHtml5Parser::nsHtml5Parser()
     mFirstBuffer(new nsHtml5UTF16Buffer(NS_HTML5_PARSER_READ_BUFFER_SIZE)), 
     mLastBuffer(mFirstBuffer),
     mTreeBuilder(new nsHtml5TreeBuilder(this)),
-    mTokenizer(new nsHtml5Tokenizer(mTreeBuilder, this))
+    mTokenizer(new nsHtml5Tokenizer(mTreeBuilder))
 {
+  mTokenizer->setEncodingDeclarationHandler(this);
   
 }
 
