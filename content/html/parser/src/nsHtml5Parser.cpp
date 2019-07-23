@@ -866,16 +866,6 @@ nsHtml5Parser::SetParser(nsIParser* aParser)
 void
 nsHtml5Parser::FlushPendingNotifications(mozFlushType aType)
 {
-  
-  
-  if (!mInNotification) {
-    mTreeBuilder->Flush();
-    if (aType >= Flush_Layout) {
-      
-      
-      StartLayout(PR_TRUE);
-    }
-  }
 }
 
 NS_IMETHODIMP
@@ -1545,6 +1535,12 @@ nsHtml5Parser::ScriptDidExecute()
 {
   NS_ASSERTION(mScriptsExecuting > 0, "Too many calls to ScriptDidExecute");
   --mScriptsExecuting;
+}
+
+PRBool
+nsHtml5Parser::CanInterrupt()
+{
+  return !mFragmentMode;
 }
 
 #ifdef DEBUG
