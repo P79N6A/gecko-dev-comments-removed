@@ -37,6 +37,9 @@
 
 
 
+
+
+
 function test_connectionReady_open()
 {
   
@@ -211,6 +214,22 @@ function test_defaultSynchronousAtNormal()
   }
 }
 
+function test_close_succeeds_with_finalized_async_statement()
+{
+  
+  
+  
+  let stmt = createStatement("SELECT * FROM test");
+  stmt.executeAsync();
+  stmt.finalize();
+
+  
+  cleanup();
+}
+
+
+
+
 var tests = [
   test_connectionReady_open,
   test_connectionReady_closed,
@@ -231,6 +250,7 @@ var tests = [
   test_set_schemaVersion_negative,
   test_createTable,
   test_defaultSynchronousAtNormal,
+  test_close_succeeds_with_finalized_async_statement,
 ];
 
 function run_test()

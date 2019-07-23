@@ -290,6 +290,14 @@ struct variant_blob_traits<PRUint8[]>
                                  void **_result)
   {
     
+    if (aData.Length() == 0) {
+      *_result = nsnull;
+      *_type = nsIDataType::VTYPE_UINT8;
+      *_size = 0;
+      return NS_OK;
+    }
+
+    
     *_result = nsMemory::Clone(aData.Elements(), aData.Length() * sizeof(PRUint8));
     NS_ENSURE_TRUE(*_result, NS_ERROR_OUT_OF_MEMORY);
 

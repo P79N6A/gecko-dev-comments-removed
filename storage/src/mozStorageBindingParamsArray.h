@@ -59,6 +59,8 @@ public:
 
   BindingParamsArray(Statement *aOwningStatement);
 
+  typedef nsTArray_base::size_type size_type;
+
   
 
 
@@ -69,6 +71,11 @@ public:
 
 
   const Statement *getOwner() const;
+
+  
+
+
+  const size_type length() const { return mArray.Length(); }
 
   class iterator {
   public:
@@ -95,7 +102,7 @@ public:
     }
     BindingParams *operator*()
     {
-      NS_ASSERTION(mIndex < mArray->mArray.Length(),
+      NS_ASSERTION(mIndex < mArray->length(),
                    "Dereferenceing an invalid value!");
       return mArray->mArray[mIndex].get();
     }
@@ -110,7 +117,8 @@ public:
 
   inline iterator begin()
   {
-    NS_ASSERTION(mLocked, "Obtaining an iterator when we are not locked!");
+    NS_ASSERTION(length() != 0,
+                 "Obtaining an iterator to the beginning with no elements!");
     return iterator(this, 0);
   }
 
@@ -119,8 +127,9 @@ public:
 
   inline iterator end()
   {
-    NS_ASSERTION(mLocked, "Obtaining an iterator when we are not locked!");
-    return iterator(this, mArray.Length());
+    NS_ASSERTION(mLocked,
+                 "Obtaining an iterator to the end when we are not locked!");
+    return iterator(this, length());
   }
 private:
   nsRefPtr<Statement> mOwningStatement;

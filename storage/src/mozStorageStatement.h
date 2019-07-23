@@ -46,6 +46,7 @@
 #include "nsTArray.h"
 
 #include "mozStorageBindingParamsArray.h"
+#include "mozStorageStatementData.h"
 #include "mozIStorageStatement.h"
 
 class nsIXPConnectJSObjectHolder;
@@ -55,6 +56,7 @@ namespace mozilla {
 namespace storage {
 class StatementJSHelper;
 class Connection;
+class BindingParams;
 
 class Statement : public mozIStorageStatement
 {
@@ -92,6 +94,16 @@ public:
     return mParamsArray.forget();
   }
 
+  
+
+
+
+
+
+
+
+  nsresult getAsynchronousStatementData(StatementData &_data);
+
 private:
     ~Statement();
 
@@ -106,7 +118,29 @@ private:
 
 
 
+    BindingParams *getParams();
+
+    
+
+
+
     nsRefPtr<BindingParamsArray> mParamsArray;
+
+    
+
+
+
+
+    sqlite3_stmt *mCachedAsyncStatement;
+
+    
+
+
+
+
+
+
+    int getAsyncStatement(sqlite3_stmt **_stmt);
 
     
 

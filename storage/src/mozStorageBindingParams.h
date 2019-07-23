@@ -69,6 +69,11 @@ public:
   
 
 
+  void unlock();
+
+  
+
+
   const BindingParamsArray *getOwner() const;
 
   

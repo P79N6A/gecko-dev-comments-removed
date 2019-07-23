@@ -43,9 +43,13 @@
 
 #include "nsError.h"
 #include "nsMemory.h"
+#include "nsThreadUtils.h"
 #include "nsIClassInfoImpl.h"
 #include "nsIProgrammingLanguage.h"
 
+#include "mozIStorageError.h"
+
+#include "mozStorageBindingParams.h"
 #include "mozStorageConnection.h"
 #include "mozStorageStatementJSHelper.h"
 #include "mozStoragePrivateHelpers.h"
@@ -61,6 +65,33 @@ extern PRLogModuleInfo* gStorageLog;
 
 namespace mozilla {
 namespace storage {
+
+
+
+
+namespace {
+
+
+
+
+class AsyncStatementFinalizer : public nsRunnable
+{
+public:
+  AsyncStatementFinalizer(sqlite3_stmt *aStatement)
+  : mStatement(aStatement)
+  {
+  }
+
+  NS_IMETHOD Run()
+  {
+    (void)::sqlite3_finalize(mStatement);
+    return NS_OK;
+  }
+private:
+  sqlite3_stmt *mStatement;
+};
+
+} 
 
 
 
@@ -151,6 +182,7 @@ Statement::Statement()
 , mDBStatement(NULL)
 , mColumnNames()
 , mExecuting(false)
+, mCachedAsyncStatement(NULL)
 {
 }
 
@@ -231,6 +263,82 @@ Statement::initialize(Connection *aDBConnection,
   return NS_OK;
 }
 
+nsresult
+Statement::getAsynchronousStatementData(StatementData &_data)
+{
+  if (!mDBStatement)
+    return NS_ERROR_UNEXPECTED;
+
+  sqlite3_stmt *stmt;
+  int rc = getAsyncStatement(&stmt);
+  if (rc != SQLITE_OK)
+    return convertResultCode(rc);
+
+  _data = StatementData(stmt, bindingParamsArray(), this);
+
+  return NS_OK;
+}
+
+int
+Statement::getAsyncStatement(sqlite3_stmt **_stmt)
+{
+  
+  NS_ASSERTION(mDBStatement != NULL, "We have no statement to clone!");
+
+  
+  if (!mCachedAsyncStatement) {
+    int rc = ::sqlite3_prepare_v2(mDBConnection->GetNativeConnection(),
+                                  ::sqlite3_sql(mDBStatement), -1,
+                                  &mCachedAsyncStatement, NULL);
+    if (rc != SQLITE_OK)
+      return rc;
+
+#ifdef PR_LOGGING
+    PR_LOG(gStorageLog, PR_LOG_NOTICE,
+           ("Cloned statement 0x%p to 0x%p", mDBStatement,
+            mCachedAsyncStatement));
+#endif
+  }
+
+  *_stmt = mCachedAsyncStatement;
+  return SQLITE_OK;
+}
+
+BindingParams *
+Statement::getParams()
+{
+  nsresult rv;
+
+  
+  if (!mParamsArray) {
+    nsCOMPtr<mozIStorageBindingParamsArray> array;
+    rv = NewBindingParamsArray(getter_AddRefs(array));
+    NS_ENSURE_SUCCESS(rv, nsnull);
+
+    mParamsArray = static_cast<BindingParamsArray *>(array.get());
+  }
+
+  
+  if (mParamsArray->length() == 0) {
+    nsRefPtr<BindingParams> params(new BindingParams(mParamsArray, this));
+    NS_ENSURE_TRUE(params, nsnull);
+
+    rv = mParamsArray->AddParams(params);
+    NS_ENSURE_SUCCESS(rv, nsnull);
+
+    
+    
+    params->unlock();
+
+    
+    
+    
+    mParamsArray->lock();
+  }
+
+  return *mParamsArray->begin();
+}
+
 Statement::~Statement()
 {
   (void)Finalize();
@@ -279,6 +387,20 @@ Statement::Finalize()
 
   int srv = ::sqlite3_finalize(mDBStatement);
   mDBStatement = NULL;
+
+  
+  
+  
+  if (mCachedAsyncStatement) {
+    nsCOMPtr<nsIRunnable> event =
+      new AsyncStatementFinalizer(mCachedAsyncStatement);
+    NS_ENSURE_TRUE(event, NS_ERROR_OUT_OF_MEMORY);
+
+    nsCOMPtr<nsIEventTarget> target = mDBConnection->getAsyncExecutionTarget();
+    nsresult rv = target->Dispatch(event, NS_DISPATCH_NORMAL);
+    NS_ENSURE_SUCCESS(rv, rv);
+    mCachedAsyncStatement = NULL;
+  }
 
   
   
@@ -415,6 +537,7 @@ Statement::Reset()
   checkAndLogStatementPerformance(mDBStatement);
 #endif
 
+  mParamsArray = nsnull;
   (void)sqlite3_reset(mDBStatement);
   (void)sqlite3_clear_bindings(mDBStatement);
 
@@ -430,10 +553,10 @@ Statement::BindUTF8StringParameter(PRUint32 aParamIndex,
   if (!mDBStatement)
     return NS_ERROR_NOT_INITIALIZED;
 
-  int srv = ::sqlite3_bind_text(mDBStatement, aParamIndex + 1,
-                                PromiseFlatCString(aValue).get(),
-                                aValue.Length(), SQLITE_TRANSIENT);
-  return convertResultCode(srv);
+  BindingParams *params = getParams();
+  NS_ENSURE_TRUE(params, NS_ERROR_OUT_OF_MEMORY);
+
+  return params->BindUTF8StringByIndex(aParamIndex, aValue);
 }
 
 NS_IMETHODIMP
@@ -443,10 +566,10 @@ Statement::BindStringParameter(PRUint32 aParamIndex,
   if (!mDBStatement)
     return NS_ERROR_NOT_INITIALIZED;
 
-  int srv = ::sqlite3_bind_text16(mDBStatement, aParamIndex + 1,
-                                  PromiseFlatString(aValue).get(),
-                                  aValue.Length() * 2, SQLITE_TRANSIENT);
-  return convertResultCode(srv);
+  BindingParams *params = getParams();
+  NS_ENSURE_TRUE(params, NS_ERROR_OUT_OF_MEMORY);
+
+  return params->BindStringByIndex(aParamIndex, aValue);
 }
 
 NS_IMETHODIMP
@@ -456,8 +579,10 @@ Statement::BindDoubleParameter(PRUint32 aParamIndex,
   if (!mDBStatement)
     return NS_ERROR_NOT_INITIALIZED;
 
-  int srv = ::sqlite3_bind_double(mDBStatement, aParamIndex + 1, aValue);
-  return convertResultCode(srv);
+  BindingParams *params = getParams();
+  NS_ENSURE_TRUE(params, NS_ERROR_OUT_OF_MEMORY);
+
+  return params->BindDoubleByIndex(aParamIndex, aValue);
 }
 
 NS_IMETHODIMP
@@ -467,8 +592,10 @@ Statement::BindInt32Parameter(PRUint32 aParamIndex,
   if (!mDBStatement)
     return NS_ERROR_NOT_INITIALIZED;
 
-  int srv = ::sqlite3_bind_int(mDBStatement, aParamIndex + 1, aValue);
-  return convertResultCode(srv);
+  BindingParams *params = getParams();
+  NS_ENSURE_TRUE(params, NS_ERROR_OUT_OF_MEMORY);
+
+  return params->BindInt32ByIndex(aParamIndex, aValue);
 }
 
 NS_IMETHODIMP
@@ -478,8 +605,10 @@ Statement::BindInt64Parameter(PRUint32 aParamIndex,
   if (!mDBStatement)
     return NS_ERROR_NOT_INITIALIZED;
 
-  int srv = ::sqlite3_bind_int64(mDBStatement, aParamIndex + 1, aValue);
-  return convertResultCode(srv);
+  BindingParams *params = getParams();
+  NS_ENSURE_TRUE(params, NS_ERROR_OUT_OF_MEMORY);
+
+  return params->BindInt64ByIndex(aParamIndex, aValue);
 }
 
 NS_IMETHODIMP
@@ -488,8 +617,10 @@ Statement::BindNullParameter(PRUint32 aParamIndex)
   if (!mDBStatement)
     return NS_ERROR_NOT_INITIALIZED;
 
-  int srv = ::sqlite3_bind_null(mDBStatement, aParamIndex + 1);
-  return convertResultCode(srv);
+  BindingParams *params = getParams();
+  NS_ENSURE_TRUE(params, NS_ERROR_OUT_OF_MEMORY);
+
+  return params->BindNullByIndex(aParamIndex);
 }
 
 NS_IMETHODIMP
@@ -500,9 +631,10 @@ Statement::BindBlobParameter(PRUint32 aParamIndex,
   if (!mDBStatement)
     return NS_ERROR_NOT_INITIALIZED;
 
-  int srv = ::sqlite3_bind_blob(mDBStatement, aParamIndex + 1, aValue,
-                                aValueSize, SQLITE_TRANSIENT);
-  return convertResultCode(srv);
+  BindingParams *params = getParams();
+  NS_ENSURE_TRUE(params, NS_ERROR_OUT_OF_MEMORY);
+
+  return params->BindBlobByIndex(aParamIndex, aValue, aValueSize);
 }
 
 NS_IMETHODIMP
@@ -551,6 +683,25 @@ Statement::ExecuteStep(PRBool *_moreResults)
   if (!mDBStatement)
     return NS_ERROR_NOT_INITIALIZED;
 
+  
+  if (mParamsArray) {
+    
+    
+    if (mParamsArray->length() != 1)
+      return NS_ERROR_UNEXPECTED;
+
+    BindingParamsArray::iterator row = mParamsArray->begin();
+    nsCOMPtr<mozIStorageError> error;
+    error = (*row)->bind(mDBStatement);
+    if (error) {
+      PRInt32 srv;
+      (void)error->GetResult(&srv);
+      return convertResultCode(srv);
+    }
+
+    
+    mParamsArray = nsnull;
+  }
   int srv = ::sqlite3_step(mDBStatement);
 
 #ifdef PR_LOGGING

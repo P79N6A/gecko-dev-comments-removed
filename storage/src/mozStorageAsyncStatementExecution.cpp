@@ -568,7 +568,7 @@ AsyncExecuteStatements::Run()
   
   
   
-  if (mStatements.Length() > 1 || mStatements[0].hasParametersToBeBound()) {
+  if (mStatements.Length() > 1 || mStatements[0].needsTransaction()) {
     
     mTransactionManager = new mozStorageTransaction(mConnection, PR_FALSE,
                                                     mozIStorageConnection::TRANSACTION_IMMEDIATE);
