@@ -47,6 +47,7 @@ class nsISMILAnimationElement;
 class nsSMILTimeValue;
 class nsSMILValue;
 class nsSMILRepeatCount;
+class nsSMILTimeValueSpecParams;
 
 
 
@@ -69,6 +70,10 @@ public:
 
   static nsresult ParseRepeatCount(const nsAString& aSpec,
                                    nsSMILRepeatCount& aResult);
+
+  static nsresult ParseTimeValueSpecParams(const nsAString& aSpec,
+                                           nsSMILTimeValueSpecParams& aResult);
+
 
   
   static const PRInt8 kClockValueAllowSign       = 1;
