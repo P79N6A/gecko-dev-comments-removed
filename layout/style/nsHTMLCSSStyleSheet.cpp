@@ -143,19 +143,17 @@ NS_IMETHODIMP
 HTMLCSSStyleSheetImpl::RulesMatching(ElementRuleProcessorData* aData)
 {
   nsIContent* content = aData->mContent;
+
   
-  if (content) {
-    
-    nsICSSStyleRule* rule = content->GetInlineStyleRule();
-    if (rule)
-      aData->mRuleWalker->Forward(rule);
+  nsICSSStyleRule* rule = content->GetInlineStyleRule();
+  if (rule)
+    aData->mRuleWalker->Forward(rule);
 
 #ifdef MOZ_SMIL
-    rule = content->GetSMILOverrideStyleRule();
-    if (rule)
-      aData->mRuleWalker->Forward(rule);
+  rule = content->GetSMILOverrideStyleRule();
+  if (rule)
+    aData->mRuleWalker->Forward(rule);
 #endif 
-  }
 
   return NS_OK;
 }

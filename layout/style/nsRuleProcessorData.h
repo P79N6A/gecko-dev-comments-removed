@@ -154,10 +154,11 @@ private:
   
   PRInt32 mNthIndices[2][2];
 
+  
   PRInt32 mContentState;  
+                          
   nsLinkState mLinkState; 
   PRPackedBool mIsLink;   
-                          
   PRPackedBool mGotContentState;
   PRPackedBool mGotLinkInfo; 
                              
@@ -170,7 +171,6 @@ struct ElementRuleProcessorData : public RuleProcessorData {
   : RuleProcessorData(aPresContext,aContent,aRuleWalker)
   {
     NS_PRECONDITION(aPresContext, "null pointer");
-    NS_PRECONDITION(aContent, "null pointer");
     NS_PRECONDITION(aRuleWalker, "null pointer");
   }
 };
@@ -238,7 +238,6 @@ struct StateRuleProcessorData : public RuleProcessorData {
       mStateMask(aStateMask)
   {
     NS_PRECONDITION(aPresContext, "null pointer");
-    NS_PRECONDITION(aContent, "null pointer");
   }
   const PRInt32 mStateMask; 
                             
@@ -256,7 +255,6 @@ struct AttributeRuleProcessorData : public RuleProcessorData {
       mAttrHasChanged(aAttrHasChanged)
   {
     NS_PRECONDITION(aPresContext, "null pointer");
-    NS_PRECONDITION(aContent, "null pointer");
   }
   nsIAtom* mAttribute; 
   PRInt32 mModType;    

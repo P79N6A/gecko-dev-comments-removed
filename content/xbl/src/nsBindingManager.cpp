@@ -1272,8 +1272,7 @@ nsBindingManager::WalkRules(nsIStyleRuleProcessor::EnumFunc aFunc,
 {
   *aCutOffInheritance = PR_FALSE;
   
-  if (!aData->mContent)
-    return NS_OK;
+  NS_ASSERTION(aData->mContent, "How did that happen?");
 
   
   
