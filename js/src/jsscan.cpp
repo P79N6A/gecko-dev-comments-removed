@@ -1564,6 +1564,15 @@ retry:
 
 
 
+
+
+
+
+
+
+
+
+
         if ((ts->flags & TSF_OPERAND) &&
             (JS_HAS_XML_OPTION(cx) || PeekChar(ts) != '!')) {
             
