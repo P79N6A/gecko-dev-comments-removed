@@ -93,13 +93,21 @@ protected:
 
   virtual void ResetLinkState();
 
-  nsLinkState mLinkState;
-
 private:
+  
+
+
+
+  void UnregisterFromHistory();
+
   already_AddRefed<nsIURI> GetURIToMutate();
   void SetHrefAttribute(nsIURI *aURI);
 
+  nsLinkState mLinkState;
+
   mutable nsCOMPtr<nsIURI> mCachedURI;
+
+  bool mRegistered;
 };
 
 } 
