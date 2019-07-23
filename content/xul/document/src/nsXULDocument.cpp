@@ -1759,6 +1759,7 @@ nsXULDocument::AddElementToDocumentPost(nsIContent* aElement)
 NS_IMETHODIMP
 nsXULDocument::AddSubtreeToDocument(nsIContent* aElement)
 {
+    NS_ASSERTION(aElement->GetCurrentDoc() == this, "Element not in doc!");
     
     if (!aElement->IsNodeOfType(nsINode::eELEMENT)) {
         return NS_OK;
@@ -3961,7 +3962,10 @@ nsXULDocument::OverlayForwardReference::Resolve()
         if (NS_FAILED(rv)) return eResolve_Error;
     }
 
-    if (!notify) {
+    
+    if (!notify && target->GetCurrentDoc() == mDocument) {
+        
+        
         
         rv = mDocument->AddSubtreeToDocument(target);
         if (NS_FAILED(rv)) return eResolve_Error;
