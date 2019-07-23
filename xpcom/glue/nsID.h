@@ -44,8 +44,6 @@
 #include "nscore.h"
 #endif
 
-#define NSID_LENGTH 39
-
 
 
 
@@ -98,15 +96,7 @@ struct nsID {
 
 
 
-
   NS_COM_GLUE char* ToString() const;
-
-  
-
-
-
-
-  NS_COM_GLUE void ToProvidedString(char (&dest)[NSID_LENGTH]) const;
   
 };
 
