@@ -1113,6 +1113,8 @@ nsXULTemplateBuilder::AttributeChanged(nsIDocument* aDocument,
         
         
         else if (aAttribute == nsGkAtoms::datasources) {
+            Uninit(PR_FALSE);  
+            
             PRBool shouldDelay;
             LoadDataSources(aDocument, &shouldDelay);
             if (!shouldDelay)
