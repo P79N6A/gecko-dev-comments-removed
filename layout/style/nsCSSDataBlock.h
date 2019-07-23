@@ -48,6 +48,7 @@
 struct nsRuleData;
 
 class nsCSSExpandedDataBlock;
+class nsCSSDeclaration;
 
 
 
@@ -58,6 +59,7 @@ class nsCSSExpandedDataBlock;
 class nsCSSCompressedDataBlock {
 public:
     friend class nsCSSExpandedDataBlock;
+    friend class nsCSSDeclaration;
 
     
 
@@ -66,6 +68,8 @@ public:
     nsresult MapRuleInfoInto(nsRuleData *aRuleData) const;
 
     
+
+
 
 
 
@@ -153,6 +157,12 @@ private:
     const char* Block() const { return mBlock_; }
     const char* BlockEnd() const { return mBlockEnd; }
     ptrdiff_t DataSize() const { return BlockEnd() - Block(); }
+
+    
+    
+    void* SlotForValue(nsCSSProperty aProperty) {
+      return const_cast<void*>(StorageFor(aProperty));
+    }
 };
 
 class nsCSSExpandedDataBlock {

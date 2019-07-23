@@ -347,6 +347,9 @@ nsCSSCompressedDataBlock::MapRuleInfoInto(nsRuleData *aRuleData) const
 const void*
 nsCSSCompressedDataBlock::StorageFor(nsCSSProperty aProperty) const
 {
+    NS_PRECONDITION(!nsCSSProps::IsShorthand(aProperty),
+                    "Don't call for shorthands");
+
     
     
     
