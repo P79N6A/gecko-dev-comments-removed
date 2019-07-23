@@ -1445,8 +1445,17 @@ var PlacesUtils = {
 
       addGenericProperties(bNode, node);
 
-      if (self.nodeIsURI(bNode))
+      if (self.nodeIsURI(bNode)) {
+        
+        
+        
+        try {
+          self._uri(bNode.uri);
+        } catch (ex) {
+          return;
+        }
         addURIProperties(bNode, node);
+      }
       else if (self.nodeIsContainer(bNode))
         addContainerProperties(bNode, node);
       else if (self.nodeIsSeparator(bNode))
