@@ -245,10 +245,6 @@ class nsStyleSet
 
   nsPresContext* PresContext() { return mRuleTree->GetPresContext(); }
 
-  
-  
-  static PRBool IsNativeAnonymous(nsIContent* aContent);
-
   static nsIURI  *gQuirkURI;
 
   

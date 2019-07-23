@@ -1098,6 +1098,13 @@ public:
                           nsIURI *aLinkURI, const nsString& aTargetSpec,
                           PRBool aClick, PRBool aIsUserTriggered);
 
+  
+
+
+
+  static PRBool IsNativeAnonymous(nsIContent* aContent);
+
+
 private:
 
   static PRBool InitializeEventTable();
