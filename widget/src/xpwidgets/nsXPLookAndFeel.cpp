@@ -601,14 +601,14 @@ nsXPLookAndFeel::GetColor(const nsColorID aID, nscolor &aColor)
   if (aID == eColor_TextHighlightBackground) {
     
     
-    aColor = NS_RGB(0xf0, 0xe0, 0x20);
+    aColor = NS_RGB(0xef, 0x0f, 0xff);
     return NS_OK;
   }
 
   if (aID == eColor_TextHighlightForeground) {
     
     
-    aColor = NS_RGB(0x00, 0x00, 0x00);
+    aColor = NS_RGB(0xff, 0xff, 0xff);
     return NS_OK;
   }
 
