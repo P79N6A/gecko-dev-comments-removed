@@ -41,7 +41,6 @@
 #include "nsITextControlElement.h"
 #include "nsIDOMNSEditableElement.h"
 #include "nsIControllers.h"
-#include "nsIFocusController.h"
 #include "nsPIDOMWindow.h"
 #include "nsContentCID.h"
 #include "nsCOMPtr.h"
@@ -307,36 +306,7 @@ nsHTMLTextAreaElement::Focus()
 void
 nsHTMLTextAreaElement::SetFocus(nsPresContext* aPresContext)
 {
-  if (!aPresContext)
-    return;
-
-  
-  if (HasAttr(kNameSpaceID_None, nsGkAtoms::disabled)) {
-    return;
-  }
-
-  
-  nsIDocument* doc = GetCurrentDoc();
-  if (!doc)
-    return;
-
-  
-  
-  
-  nsPIDOMWindow* win = doc->GetWindow();
-  if (win) {
-    nsIFocusController *focusController = win->GetRootFocusController();
-    PRBool isActive = PR_FALSE;
-    focusController->GetActive(&isActive);
-    if (!isActive) {
-      focusController->SetFocusedWindow(win);
-      focusController->SetFocusedElement(this);
-
-      return;
-    }
-  }
-
-  SetFocusAndScrollIntoView(aPresContext);
+  DoSetFocus(aPresContext);
 }
 
 NS_IMETHODIMP
@@ -345,39 +315,24 @@ nsHTMLTextAreaElement::Select()
   nsresult rv = NS_OK;
 
   
-  if (HasAttr(kNameSpaceID_None, nsGkAtoms::disabled)) {
-    return rv;
+  
+
+  FocusTristate state = FocusState();
+  if (state == eUnfocusable) {
+    return NS_OK;
   }
 
-  
-  nsIDocument* doc = GetCurrentDoc();
-  if (!doc)
-    return rv;
-
-  
-  
-  
-  nsPIDOMWindow* win = doc->GetWindow();
-  if (win) {
-    nsIFocusController *focusController = win->GetRootFocusController();
-    PRBool isActive = PR_FALSE;
-    focusController->GetActive(&isActive);
-    if (!isActive) {
-      focusController->SetFocusedWindow(win);
-      focusController->SetFocusedElement(this);
-
-      return rv;
-    }
-  }
-
-  
-  
-
-  
   nsCOMPtr<nsPresContext> presContext = GetPresContext();
+  if (state == eInactiveWindow) {
+    SelectAll(presContext);
+    return NS_OK;
+  }
+
+  
 
   nsEventStatus status = nsEventStatus_eIgnore;
   nsGUIEvent event(PR_TRUE, NS_FORM_SELECTED, nsnull);
+  
   nsEventDispatcher::Dispatch(static_cast<nsIContent*>(this), presContext,
                               &event, nsnull, &status);
 

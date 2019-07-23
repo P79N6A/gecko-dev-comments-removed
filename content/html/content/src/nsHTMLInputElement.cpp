@@ -46,7 +46,6 @@
 #include "nsIPhonetic.h"
 
 #include "nsIControllers.h"
-#include "nsIFocusController.h"
 #include "nsPIDOMWindow.h"
 #include "nsContentCID.h"
 #include "nsIComponentManager.h"
@@ -1265,124 +1264,75 @@ nsHTMLInputElement::Focus()
 void
 nsHTMLInputElement::SetFocus(nsPresContext* aPresContext)
 {
-  if (!aPresContext)
-    return;
-
-  
-  nsIDocument* doc = GetCurrentDoc();
-  if (!doc)
-    return;
-
-  
-  if (HasAttr(kNameSpaceID_None, nsGkAtoms::disabled)) {
-    return;
-  }
- 
-  
-  
-  
-  nsCOMPtr<nsPIDOMWindow> win = doc->GetWindow();
-  if (win) {
-    nsIFocusController *focusController = win->GetRootFocusController();
-    if (focusController) {
-      PRBool isActive = PR_FALSE;
-      focusController->GetActive(&isActive);
-      if (!isActive) {
-        focusController->SetFocusedWindow(win);
-        focusController->SetFocusedElement(this);
-
-        return;
-      }
-    }
-  }
-
-  SetFocusAndScrollIntoView(aPresContext);
+  DoSetFocus(aPresContext);
 }
 
 NS_IMETHODIMP
 nsHTMLInputElement::Select()
 {
-  nsresult rv = NS_OK;
-
-  nsIDocument* doc = GetCurrentDoc();
-  if (!doc)
+  if (mType != NS_FORM_INPUT_PASSWORD && mType != NS_FORM_INPUT_TEXT) {
     return NS_OK;
+  }
 
   
-  if (HasAttr(kNameSpaceID_None, nsGkAtoms::disabled)) {
+  
+
+  FocusTristate state = FocusState();
+  if (state == eUnfocusable) {
     return NS_OK;
   }
 
-  if (mType == NS_FORM_INPUT_PASSWORD || mType == NS_FORM_INPUT_TEXT) {
-    
-    
+  nsCOMPtr<nsPresContext> presContext = GetPresContext();
+  if (state == eInactiveWindow) {
+    SelectAll(presContext);
+    return NS_OK;
+  }
 
-    nsCOMPtr<nsPresContext> presContext = GetPresContext();
+  
+  nsEventStatus status = nsEventStatus_eIgnore;
+    
+  
+  if (!GET_BOOLBIT(mBitField, BF_HANDLING_SELECT_EVENT)) {
+    nsEvent event(nsContentUtils::IsCallerChrome(), NS_FORM_SELECTED);
 
-    
-    
-    
-    nsPIDOMWindow *win = doc->GetWindow();
-    if (win) {
-      nsIFocusController *focusController = win->GetRootFocusController();
-      if (focusController) {
-        PRBool isActive = PR_FALSE;
-        focusController->GetActive(&isActive);
-        if (!isActive) {
-          focusController->SetFocusedWindow(win);
-          focusController->SetFocusedElement(this);
-          SelectAll(presContext);
-          return NS_OK;
-        }
+    SET_BOOLBIT(mBitField, BF_HANDLING_SELECT_EVENT, PR_TRUE);
+    nsEventDispatcher::Dispatch(static_cast<nsIContent*>(this),
+                                presContext, &event, nsnull, &status);
+    SET_BOOLBIT(mBitField, BF_HANDLING_SELECT_EVENT, PR_FALSE);
+  }
+
+  
+  
+  if (status == nsEventStatus_eIgnore) {
+    PRBool shouldFocus = ShouldFocus(this);
+
+    if (presContext && shouldFocus) {
+      nsIEventStateManager *esm = presContext->EventStateManager();
+      
+      
+      
+      
+      PRInt32 currentState;
+      esm->GetContentState(this, currentState);
+      if (!(currentState & NS_EVENT_STATE_FOCUS) &&
+          !esm->SetContentState(this, NS_EVENT_STATE_FOCUS)) {
+        return NS_OK; 
       }
     }
 
-    
-    nsEventStatus status = nsEventStatus_eIgnore;
-    
-    
-    if (!GET_BOOLBIT(mBitField, BF_HANDLING_SELECT_EVENT)) {
-      nsEvent event(nsContentUtils::IsCallerChrome(), NS_FORM_SELECTED);
+    nsIFormControlFrame* formControlFrame = GetFormControlFrame(PR_TRUE);
 
-      SET_BOOLBIT(mBitField, BF_HANDLING_SELECT_EVENT, PR_TRUE);
-      nsEventDispatcher::Dispatch(static_cast<nsIContent*>(this),
-                                  presContext, &event, nsnull, &status);
-      SET_BOOLBIT(mBitField, BF_HANDLING_SELECT_EVENT, PR_FALSE);
-    }
-
-    
-    
-    if (status == nsEventStatus_eIgnore) {
-      PRBool shouldFocus = ShouldFocus(this);
-
-      if (presContext && shouldFocus) {
-        nsIEventStateManager *esm = presContext->EventStateManager();
-        
-        
-        
-        
-        PRInt32 currentState;
-        esm->GetContentState(this, currentState);
-        if (!(currentState & NS_EVENT_STATE_FOCUS) &&
-            !esm->SetContentState(this, NS_EVENT_STATE_FOCUS)) {
-          return rv; 
-        }
+    if (formControlFrame) {
+      if (shouldFocus) {
+        formControlFrame->SetFocus(PR_TRUE, PR_TRUE);
       }
 
-      nsIFormControlFrame* formControlFrame = GetFormControlFrame(PR_TRUE);
-
-      if (formControlFrame) {
-        if (shouldFocus) {
-          formControlFrame->SetFocus(PR_TRUE, PR_TRUE);
-        }
-
-        
-        SelectAll(presContext);
-      }
+      
+      SelectAll(presContext);
     }
   }
 
-  return rv;
+  return NS_OK;
 }
 
 void

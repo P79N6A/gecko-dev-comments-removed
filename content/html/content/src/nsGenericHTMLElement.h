@@ -869,6 +869,22 @@ protected:
   void SetFocusAndScrollIntoView(nsPresContext* aPresContext);
 
   
+  void DoSetFocus(nsPresContext* aPresContext);
+
+  
+  
+  
+  enum FocusTristate {
+    eUnfocusable,
+    eInactiveWindow,
+    eActiveWindow
+  };
+
+  
+  
+  FocusTristate FocusState();
+
+  
   nsIForm* mForm;
 };
 

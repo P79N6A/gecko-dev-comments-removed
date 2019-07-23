@@ -261,15 +261,7 @@ nsHTMLButtonElement::IsHTMLFocusable(PRBool *aIsFocusable, PRInt32 *aTabIndex)
 void
 nsHTMLButtonElement::SetFocus(nsPresContext* aPresContext)
 {
-  if (!aPresContext)
-    return;
-
-  
-  if (HasAttr(kNameSpaceID_None, nsGkAtoms::disabled)) {
-    return;
-  }
-
-  SetFocusAndScrollIntoView(aPresContext);
+  DoSetFocus(aPresContext);
 }
 
 static const nsAttrValue::EnumTable kButtonTypeTable[] = {

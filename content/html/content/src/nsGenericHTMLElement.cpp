@@ -111,6 +111,7 @@
 #include "nsLayoutUtils.h"
 #include "nsContentCreatorFunctions.h"
 #include "mozAutoDocUpdate.h"
+#include "nsIFocusController.h"
 
 class nsINodeInfo;
 class nsIDOMNodeList;
@@ -2668,6 +2669,53 @@ nsGenericHTMLFormElement::SetFocusAndScrollIntoView(nsPresContext* aPresContext)
       }
     }
   }
+}
+
+void
+nsGenericHTMLFormElement::DoSetFocus(nsPresContext* aPresContext)
+{
+  if (!aPresContext)
+    return;
+
+  if (FocusState() == eActiveWindow) {
+    SetFocusAndScrollIntoView(aPresContext);
+  }
+}
+
+nsGenericHTMLFormElement::FocusTristate
+nsGenericHTMLFormElement::FocusState()
+{
+  
+  nsIDocument* doc = GetCurrentDoc();
+  if (!doc)
+    return eUnfocusable;
+
+  
+  if (HasAttr(kNameSpaceID_None, nsGkAtoms::disabled)) {
+    return eUnfocusable;
+  }
+
+  
+  
+  
+  nsCOMPtr<nsPIDOMWindow> win = doc->GetWindow();
+  if (win) {
+    nsIFocusController *focusController = win->GetRootFocusController();
+    if (focusController) {
+      PRBool isActive = PR_FALSE;
+      focusController->GetActive(&isActive);
+      if (!isActive) {
+        focusController->SetFocusedWindow(win);
+        nsCOMPtr<nsIDOMElement> el =
+          do_QueryInterface(static_cast<nsGenericHTMLElement*>(this));
+        focusController->SetFocusedElement(el);
+
+        return eInactiveWindow;
+      }
+    }
+  }
+
+  return eActiveWindow;
 }
 
 
