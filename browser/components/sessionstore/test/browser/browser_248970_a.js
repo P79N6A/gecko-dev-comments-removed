@@ -82,61 +82,65 @@ function test() {
     this.removeEventListener("load", arguments.callee, true);
 
     let prePBModeTimeStamp = getSessionstorejsModificationTime();
-    
-    pb.privateBrowsingEnabled = true;
-    ok(pb.privateBrowsingEnabled, "private browsing enabled");
 
     
     
-
-
-
-
-
-    
-    let startPBModeTimeStamp = getSessionstorejsModificationTime();
-
-    
-    const testURL_B = "http://test1.example.org/";
-    let tab_B = gBrowser.addTab(testURL_B);
-
-    tab_B.linkedBrowser.addEventListener("load", function (aEvent) {
-      this.removeEventListener("load", arguments.callee, true);
+    let timer = Cc["@mozilla.org/timer;1"].
+                createInstance(Ci.nsITimer);
+    timer.initWithCallback(function (aTimer) {
+      
+      pb.privateBrowsingEnabled = true;
+      ok(pb.privateBrowsingEnabled, "private browsing enabled");
 
       
-      const testURL_C = "http://localhost:8888/";
-      let tab_C = gBrowser.addTab(testURL_C);
+      isnot(prePBModeTimeStamp, getSessionstorejsModificationTime(),
+        "sessionstore.js should be modified when entering the private browsing mode");
 
-      tab_C.linkedBrowser.addEventListener("load", function (aEvent) {
+      
+      let startPBModeTimeStamp = getSessionstorejsModificationTime();
+
+      
+      const testURL_B = "http://test1.example.org/";
+      let tab_B = gBrowser.addTab(testURL_B);
+
+      tab_B.linkedBrowser.addEventListener("load", function (aEvent) {
         this.removeEventListener("load", arguments.callee, true);
 
         
-        gBrowser.removeTab(tab_C);
+        const testURL_C = "http://localhost:8888/";
+        let tab_C = gBrowser.addTab(testURL_C);
 
-        
-        gBrowser.removeTab(tab_B);
+        tab_C.linkedBrowser.addEventListener("load", function (aEvent) {
+          this.removeEventListener("load", arguments.callee, true);
 
-        
-        gBrowser.removeTab(tab_A);
+          
+          gBrowser.removeTab(tab_C);
 
-        
-        gPrefService.setIntPref("browser.sessionstore.interval", ss_interval);
-        gPrefService.setIntPref("browser.sessionstore.interval", 0);
-        let endPBModeTimeStamp = getSessionstorejsModificationTime();
+          
+          gBrowser.removeTab(tab_B);
 
-        
-        pb.privateBrowsingEnabled = false;
-        ok(!pb.privateBrowsingEnabled, "private browsing disabled");
+          
+          gBrowser.removeTab(tab_A);
 
-        
-        is(startPBModeTimeStamp, endPBModeTimeStamp,
-          "outside private browsing - sessionStore.js timestamp has not changed");
+          
+          gPrefService.setIntPref("browser.sessionstore.interval", ss_interval);
+          gPrefService.setIntPref("browser.sessionstore.interval", 0);
+          let endPBModeTimeStamp = getSessionstorejsModificationTime();
 
-        
-        gPrefService.setIntPref("browser.sessionstore.interval", ss_interval);
-        gPrefService.clearUserPref("browser.privatebrowsing.keep_current_session");
-        finish();
+          
+          pb.privateBrowsingEnabled = false;
+          ok(!pb.privateBrowsingEnabled, "private browsing disabled");
+
+          
+          is(startPBModeTimeStamp, endPBModeTimeStamp,
+            "outside private browsing - sessionStore.js timestamp has not changed");
+
+          
+          gPrefService.setIntPref("browser.sessionstore.interval", ss_interval);
+          gPrefService.clearUserPref("browser.privatebrowsing.keep_current_session");
+          finish();
+        }, true);
       }, true);
-    }, true);
+    }, 50, Ci.nsITimer.TYPE_ONE_SHOT);
   }, true);
 }
