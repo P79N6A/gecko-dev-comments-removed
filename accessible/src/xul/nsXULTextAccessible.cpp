@@ -45,6 +45,7 @@
 #include "nsINameSpaceManager.h"
 #include "nsString.h"
 #include "nsXULTextAccessible.h"
+#include "nsNetUtil.h"
 
 
 
@@ -141,59 +142,115 @@ NS_IMETHODIMP nsXULTooltipAccessible::GetRole(PRUint32 *_retval)
 
 
 
-nsXULLinkAccessible::nsXULLinkAccessible(nsIDOMNode *aDomNode, nsIWeakReference *aShell):
-nsLinkableAccessible(aDomNode, aShell)
+nsXULLinkAccessible::
+  nsXULLinkAccessible(nsIDOMNode *aDomNode, nsIWeakReference *aShell):
+  nsHyperTextAccessibleWrap(aDomNode, aShell)
 {
 }
 
-NS_IMETHODIMP nsXULLinkAccessible::GetValue(nsAString& aValue)
-{
-  if (mIsLink) {
-    mActionContent->GetAttr(kNameSpaceID_None, nsAccessibilityAtoms::href, aValue);
-    return NS_OK;
-  }
-  return NS_ERROR_NOT_IMPLEMENTED;
-}
 
-NS_IMETHODIMP nsXULLinkAccessible::GetName(nsAString& aName)
-{ 
+
+
+NS_IMETHODIMP
+nsXULLinkAccessible::GetValue(nsAString& aValue)
+{
+  aValue.Truncate();
+
+  if (IsDefunct())
+    return NS_ERROR_FAILURE;
+
   nsCOMPtr<nsIContent> content(do_QueryInterface(mDOMNode));
-  if (!content) {
-    return NS_ERROR_FAILURE;  
-  }
-  if (!content->GetAttr(kNameSpaceID_None, nsAccessibilityAtoms::value,
-                        aName)) {
-    
-    return AppendFlatStringFromSubtree(content, &aName);
-  }
-  
+  content->GetAttr(kNameSpaceID_None, nsAccessibilityAtoms::href, aValue);
   return NS_OK;
 }
 
-NS_IMETHODIMP nsXULLinkAccessible::GetRole(PRUint32 *aRole)
+NS_IMETHODIMP
+nsXULLinkAccessible::GetName(nsAString& aName)
 {
-  
-  
+  aName.Truncate();
+
+  if (IsDefunct())
+    return NS_ERROR_FAILURE;
+
+  nsCOMPtr<nsIContent> content(do_QueryInterface(mDOMNode));
+  content->GetAttr(kNameSpaceID_None, nsAccessibilityAtoms::value, aName);
+  if (!aName.IsEmpty())
+    return NS_OK;
+
+  return AppendFlatStringFromSubtree(content, &aName);
+}
+
+NS_IMETHODIMP
+nsXULLinkAccessible::GetRole(PRUint32 *aRole)
+{
+  NS_ENSURE_ARG_POINTER(aRole);
+
   *aRole = nsIAccessibleRole::ROLE_LINK;
   return NS_OK;
 }
 
-void nsXULLinkAccessible::CacheActionContent()
-{
-  
-  nsCOMPtr<nsIContent> mTempContent = do_QueryInterface(mDOMNode);
-  if (!mTempContent) {
-    return;
-  }
 
+NS_IMETHODIMP
+nsXULLinkAccessible::GetState(PRUint32 *aState, PRUint32 *aExtraState)
+{
+  nsresult rv = nsHyperTextAccessibleWrap::GetState(aState, aExtraState);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  *aState |= nsIAccessibleStates::STATE_LINKED;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsXULLinkAccessible::GetNumActions(PRUint8 *aNumActions)
+{
+  NS_ENSURE_ARG_POINTER(aNumActions);
   
-  if (mTempContent->HasAttr(kNameSpaceID_None, nsAccessibilityAtoms::href) ||
-      mTempContent->Tag() == nsAccessibilityAtoms::link) {
-    mIsLink = PR_TRUE;
-    mActionContent = mTempContent;
-  }
-  else if (nsAccUtils::HasListener(mTempContent, NS_LITERAL_STRING("click"))) {
-    mIsOnclick = PR_TRUE;
-    mActionContent = mTempContent;
-  }
+  *aNumActions = 1;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsXULLinkAccessible::GetActionName(PRUint8 aIndex, nsAString& aName)
+{
+  aName.Truncate();
+
+  if (aIndex != eAction_Jump)
+    return NS_ERROR_INVALID_ARG;
+  
+  aName.AssignLiteral("jump");
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsXULLinkAccessible::DoAction(PRUint8 aIndex)
+{
+  if (aIndex != eAction_Jump)
+    return NS_ERROR_INVALID_ARG;
+
+  if (IsDefunct())
+    return NS_ERROR_FAILURE;
+
+  nsCOMPtr<nsIContent> content(do_QueryInterface(mDOMNode));
+  return DoCommand(content);
+}
+
+
+
+
+NS_IMETHODIMP
+nsXULLinkAccessible::GetURI(PRInt32 aIndex, nsIURI **aURI)
+{
+  NS_ENSURE_ARG_POINTER(aURI);
+  *aURI = nsnull;
+
+  if (aIndex != 0)
+    return NS_ERROR_INVALID_ARG;
+
+  nsAutoString href;
+  nsCOMPtr<nsIContent> content(do_QueryInterface(mDOMNode));
+  content->GetAttr(kNameSpaceID_None, nsAccessibilityAtoms::href, href);
+
+  nsCOMPtr<nsIDocument> document = content->GetOwnerDoc();
+  return NS_NewURI(aURI, href,
+                   document ? document->GetDocumentCharacterSet().get() : nsnull);
 }
