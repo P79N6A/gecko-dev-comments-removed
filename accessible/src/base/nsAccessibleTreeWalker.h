@@ -42,6 +42,7 @@
 
 
 
+
 #include "nsCOMPtr.h"
 #include "nsIDocument.h"
 #include "nsIAccessible.h"
@@ -49,6 +50,7 @@
 #include "nsIDOMNodeList.h"
 #include "nsIAccessibilityService.h"
 #include "nsIWeakReference.h"
+#include "nsIFrame.h"
 
 enum { eSiblingsUninitialized = -1, eSiblingsWalkFrames = -2 };
 
@@ -58,7 +60,7 @@ struct WalkState {
   nsCOMPtr<nsIDOMNodeList> siblingList;
   nsIContent *parentContent; 
   WalkState *prevState;
-  nsIFrame *frame;     
+  nsWeakFrame frame;       
   PRInt32 siblingIndex;    
   PRBool isHidden;         
 };

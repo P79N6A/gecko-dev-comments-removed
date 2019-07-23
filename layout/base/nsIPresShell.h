@@ -124,8 +124,8 @@ typedef struct CapturingContentInfo {
 
 
 #define NS_IPRESSHELL_IID     \
-{ 0x8ceb97da, 0x5075, 0x4bdd, \
-  { 0xb1, 0xd5, 0x4e, 0x1e, 0xf2, 0x88, 0x0b, 0x5e } }
+{ 0x7190dd0b, 0x4278, 0x4ad6, \
+  { 0xbe, 0xe5, 0x6d, 0xef, 0xef, 0x4c, 0x56, 0x47 } }
 
 
 #define NS_PRESSHELL_SCROLL_TOP      0
@@ -828,8 +828,29 @@ public:
                                                         nsIntPoint& aPoint,
                                                         nsIntRect* aScreenRect) = 0;
 
-  void AddWeakFrame(nsWeakFrame* aWeakFrame);
-  void RemoveWeakFrame(nsWeakFrame* aWeakFrame);
+  void AddWeakFrameInternal(nsWeakFrame* aWeakFrame);
+  virtual void AddWeakFrameExternal(nsWeakFrame* aWeakFrame);
+
+  void AddWeakFrame(nsWeakFrame* aWeakFrame)
+  {
+#ifdef _IMPL_NS_LAYOUT
+    AddWeakFrameInternal(aWeakFrame);
+#else
+    AddWeakFrameExternal(aWeakFrame);
+#endif
+  }
+
+  void RemoveWeakFrameInternal(nsWeakFrame* aWeakFrame);
+  virtual void RemoveWeakFrameExternal(nsWeakFrame* aWeakFrame);
+
+  void RemoveWeakFrame(nsWeakFrame* aWeakFrame)
+  {
+#ifdef _IMPL_NS_LAYOUT
+    RemoveWeakFrameInternal(aWeakFrame);
+#else
+    RemoveWeakFrameExternal(aWeakFrame);
+#endif
+  }
 
 #ifdef NS_DEBUG
   nsIFrame* GetDrawEventTargetFrame() { return mDrawEventTargetFrame; }

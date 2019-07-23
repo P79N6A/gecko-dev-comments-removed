@@ -362,10 +362,14 @@ nsresult
 nsAccessibilityService::GetInfo(nsIFrame* aFrame, nsIWeakReference** aShell, nsIDOMNode** aNode)
 {
   NS_ASSERTION(aFrame,"Error -- 1st argument (aFrame) is null!!");
+  if (!aFrame) {
+    return NS_ERROR_FAILURE;
+  }
   nsCOMPtr<nsIContent> content = aFrame->GetContent();
   nsCOMPtr<nsIDOMNode> node(do_QueryInterface(content));
   if (!content || !node)
     return NS_ERROR_FAILURE;
+
   *aNode = node;
   NS_IF_ADDREF(*aNode);
 
@@ -1326,6 +1330,12 @@ NS_IMETHODIMP nsAccessibilityService::GetAccessible(nsIDOMNode *aNode,
 
   *aIsHidden = PR_FALSE;
 
+  
+  
+  
+  
+  nsWeakFrame weakFrame = *aFrameHint;
+
 #ifdef DEBUG_A11Y
   
   nsAutoString name;
@@ -1396,15 +1406,15 @@ NS_IMETHODIMP nsAccessibilityService::GetAccessible(nsIDOMNode *aNode,
   }
 
   
-  nsIFrame *frame = *aFrameHint;
 #ifdef DEBUG_A11Y
   static int frameHintFailed, frameHintTried, frameHintNonexistant, frameHintFailedForText;
   ++frameHintTried;
 #endif
-  if (!frame || content != frame->GetContent()) {
+
+  if (!weakFrame.GetFrame() || content != weakFrame.GetFrame()->GetContent()) {
     
-    frame = aPresShell->GetRealPrimaryFrameFor(content);
-    if (frame) {
+    weakFrame = aPresShell->GetRealPrimaryFrameFor(content);
+    if (weakFrame.GetFrame()) {
 #ifdef DEBUG_A11Y_FRAME_OPTIMIZATION
       
       ++frameHintFailed;
@@ -1417,18 +1427,18 @@ NS_IMETHODIMP nsAccessibilityService::GetAccessible(nsIDOMNode *aNode,
         printf("* "); 
       }
 #endif
-      if (frame->GetContent() != content) {
+      if (weakFrame.GetFrame()->GetContent() != content) {
         
         
         
         
 
         
-        nsIImageFrame *imageFrame = do_QueryFrame(frame);
+        nsIImageFrame *imageFrame = do_QueryFrame(weakFrame.GetFrame());
         nsCOMPtr<nsIDOMHTMLAreaElement> areaElmt = do_QueryInterface(content);
         if (imageFrame && areaElmt) {
           nsCOMPtr<nsIAccessible> imageAcc;
-          CreateHTMLImageAccessible(frame, getter_AddRefs(imageAcc));
+          CreateHTMLImageAccessible(weakFrame.GetFrame(), getter_AddRefs(imageAcc));
           if (imageAcc) {
             
             PRInt32 childCount;
@@ -1440,12 +1450,13 @@ NS_IMETHODIMP nsAccessibilityService::GetAccessible(nsIDOMNode *aNode,
 
         return NS_OK;
       }
-      *aFrameHint = frame;
+      *aFrameHint = weakFrame.GetFrame();
     }
   }
 
   
-  if (!frame || !frame->GetStyleVisibility()->IsVisible()) {
+  if (!weakFrame.GetFrame() ||
+      !weakFrame.GetFrame()->GetStyleVisibility()->IsVisible()) {
     *aIsHidden = PR_TRUE;
   }
 
@@ -1457,16 +1468,19 @@ NS_IMETHODIMP nsAccessibilityService::GetAccessible(nsIDOMNode *aNode,
 
   if (content->IsNodeOfType(nsINode::eTEXT)) {
     
-    if (frame->IsEmpty()) {
+    nsIFrame* f = weakFrame.GetFrame();
+    if (f && f->IsEmpty()) {
       nsAutoString renderedWhitespace;
-      frame->GetRenderedText(&renderedWhitespace, nsnull, nsnull, 0, 1);
+      f->GetRenderedText(&renderedWhitespace, nsnull, nsnull, 0, 1);
       if (renderedWhitespace.IsEmpty()) {
         
         *aIsHidden = PR_TRUE;
         return NS_OK;
       }
     }
-    frame->GetAccessible(getter_AddRefs(newAcc));
+    if (weakFrame.IsAlive()) {
+      weakFrame.GetFrame()->GetAccessible(getter_AddRefs(newAcc));
+    }
     return InitAccessible(newAcc, aAccessible, nsnull);
   }
 
@@ -1487,7 +1501,8 @@ NS_IMETHODIMP nsAccessibilityService::GetAccessible(nsIDOMNode *aNode,
       return NS_OK;
     }
     
-    nsresult rv = CreateHyperTextAccessible(frame, getter_AddRefs(newAcc));
+    nsresult rv =
+      CreateHyperTextAccessible(weakFrame.GetFrame(), getter_AddRefs(newAcc));
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
@@ -1500,10 +1515,10 @@ NS_IMETHODIMP nsAccessibilityService::GetAccessible(nsIDOMNode *aNode,
     return NS_OK;
   }
 
-  if (!newAcc && isHTML) {  
+  if (weakFrame.IsAlive() && !newAcc && isHTML) {  
     PRBool tryTagNameOrFrame = PR_TRUE;
 
-    nsIAtom *frameType = frame->GetType();
+    nsIAtom *frameType = weakFrame.GetFrame()->GetType();
 
     PRBool partOfHTMLTable =
       frameType == nsAccessibilityAtoms::tableCaptionFrame ||
@@ -1598,8 +1613,9 @@ NS_IMETHODIMP nsAccessibilityService::GetAccessible(nsIDOMNode *aNode,
       
       
       
-      nsresult rv = CreateHTMLAccessibleByMarkup(frame, aWeakShell, aNode,
-                                                 getter_AddRefs(newAcc));
+      nsresult rv =
+        CreateHTMLAccessibleByMarkup(weakFrame.GetFrame(), aWeakShell, aNode,
+                                     getter_AddRefs(newAcc));
       NS_ENSURE_SUCCESS(rv, rv);
 
       if (!newAcc) {
@@ -1609,14 +1625,18 @@ NS_IMETHODIMP nsAccessibilityService::GetAccessible(nsIDOMNode *aNode,
         
         
         
-        if (frame->GetType() == nsAccessibilityAtoms::tableCaptionFrame &&
-           frame->GetRect().IsEmpty()) {
+        nsIFrame* f = weakFrame.GetFrame();
+        if (!f) {
+          f = aPresShell->GetRealPrimaryFrameFor(content);
+        }
+        if (f->GetType() == nsAccessibilityAtoms::tableCaptionFrame &&
+           f->GetRect().IsEmpty()) {
           
           
           *aIsHidden = PR_TRUE;
           return NS_OK;
         }
-        frame->GetAccessible(getter_AddRefs(newAcc)); 
+        f->GetAccessible(getter_AddRefs(newAcc)); 
       }
     }
   }
@@ -1651,7 +1671,7 @@ NS_IMETHODIMP nsAccessibilityService::GetAccessible(nsIDOMNode *aNode,
   
   
   if (!newAcc && content->Tag() != nsAccessibilityAtoms::body && content->GetParent() && 
-      (frame->IsFocusable() ||
+      ((weakFrame.GetFrame() && weakFrame.GetFrame()->IsFocusable()) ||
        (isHTML && nsCoreUtils::HasListener(content, NS_LITERAL_STRING("click"))) ||
        HasUniversalAriaProperty(content, aWeakShell) || roleMapEntry ||
        HasRelatedContent(content) || nsCoreUtils::IsXLink(content))) {
@@ -1660,7 +1680,7 @@ NS_IMETHODIMP nsAccessibilityService::GetAccessible(nsIDOMNode *aNode,
     
     if (isHTML) {
       
-      CreateHyperTextAccessible(frame, getter_AddRefs(newAcc));
+      CreateHyperTextAccessible(weakFrame.GetFrame(), getter_AddRefs(newAcc));
     }
     else {  
       
