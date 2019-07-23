@@ -506,6 +506,13 @@ SessionStoreService.prototype = {
     
     aWindow.__SS_dyingCache = this._windows[aWindow.__SSi] || this._lastWindowClosed;
     
+    
+    
+    var tabCount = aWindow.__SS_dyingCache.tabs.length;
+    for (var t = 0; t < tabCount; t++) {
+      delete aWindow.__SS_dyingCache.tabs[t]._tab;
+    }
+    
     delete aWindow.__SSi;
   },
 
@@ -575,6 +582,10 @@ SessionStoreService.prototype = {
     
     var tabState = this._collectTabData(aTab);
     this._updateTextAndScrollDataForTab(aWindow, aTab.linkedBrowser, tabState);
+
+    
+    
+    delete tabState._tab;
     
     
     if (tabState.entries.length > 1 || tabState.entries[0].url != "about:blank") {
