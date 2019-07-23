@@ -78,8 +78,10 @@ var PlacesOrganizer = {
     
     PlacesSearchBox.init();
 
+#ifdef PLACES_QUERY_BUILDER
     
     PlacesQueryBuilder.init();
+#endif
 
     window.addEventListener("AppCommand", this, true);
 #ifdef XP_MACOSX
@@ -632,25 +634,15 @@ var PlacesOrganizer = {
   saveSearch: function PO_saveSearch() {
     
     
-    var queries = [];
+    var queries = PlacesQueryBuilder.queries;
     var options = this.getCurrentOptions();
-    options.excludeQueries = true;
-    
-    options.expandQueries = true;
-    var searchUI = document.getElementById("searchModifiers");
-    if (!searchUI.hidden)
-      queries = PlacesQueryBuilder.queries;
-    else if (PlacesSearchBox.value && PlacesSearchBox.value.length > 0) {
-      
-      var query = PlacesUtils.history.getNewQuery();
-      query.searchTerms = PlacesSearchBox.value;
-      queries.push(query);
-    }
-    else {
-      
-      
-     return;
-    }
+
+#ifndef PLACES_QUERY_BUILDER
+    var query = PlacesUtils.history.getNewQuery();
+    query.searchTerms = PlacesSearchBox.value;
+    queries.push(query);
+#endif
+
     var placeSpec = PlacesUtils.history.queriesToQueryString(queries,
                                                              queries.length,
                                                              options);
@@ -843,9 +835,11 @@ var PlacesSearchBox = {
     var searchModifiers = document.getElementById("searchModifiers");
     searchModifiers.hidden = false;
 
+#ifdef PLACES_QUERY_BUILDER
     
     if (PlacesQueryBuilder.numRows == 0)
       document.getElementById("OrganizerCommand_search:moreCriteria").doCommand();
+#endif
   },
 
   hideSearchUI: function PSB_hideSearchUI() {
@@ -862,6 +856,7 @@ var PlacesQueryBuilder = {
   queries: [],
   queryOptions: null,
 
+#ifdef PLACES_QUERY_BUILDER
   numRows: 0,
 
   
@@ -903,6 +898,7 @@ var PlacesQueryBuilder = {
   },
   _nextSearch: null,
   _queryBuilders: null,
+
 
   init: function PQB_init() {
     
@@ -1319,6 +1315,7 @@ var PlacesQueryBuilder = {
     
     PlacesOrganizer._content.load(this.queries, this.options);
   },
+#endif
 
   onScopeSelected: function PQB_onScopeSelected(aButton) {
     var id = aButton.getAttribute("id");
