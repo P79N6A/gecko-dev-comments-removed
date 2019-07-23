@@ -59,8 +59,6 @@ public:
         
         RENDER_QPAINTER = 0,
         
-        RENDER_XLIB,
-        
         RENDER_SHARED_IMAGE,
         
         RENDER_MODE_MAX

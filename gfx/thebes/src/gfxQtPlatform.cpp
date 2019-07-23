@@ -124,7 +124,6 @@ gfxQtPlatform::gfxQtPlatform()
     PRInt32 ival;
     
     
-    
     nsCOMPtr<nsIPrefBranch> prefs = do_GetService(NS_PREFSERVICE_CONTRACTID, &rv);
     if (prefs) {
       rv = prefs->GetIntPref("mozilla.widget-qt.render-mode", &ival);
@@ -141,9 +140,6 @@ gfxQtPlatform::gfxQtPlatform()
             mRenderMode = RENDER_QPAINTER;
             break;
         case 1:
-            mRenderMode = RENDER_XLIB;
-            break;
-        case 2:
             mRenderMode = RENDER_SHARED_IMAGE;
             break;
         default:
