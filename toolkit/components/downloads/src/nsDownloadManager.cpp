@@ -42,6 +42,8 @@
 
 
 
+
+
 #include "mozIStorageService.h"
 #include "nsIAlertsService.h"
 #include "nsIDOMWindowInternal.h"
@@ -64,6 +66,9 @@
 #include "nsDownloadManager.h"
 #include "nsNetUtil.h"
 
+#include "nsIHttpChannel.h"
+#include "nsIFileChannel.h"
+#include "nsIFTPChannel.h"
 #include "mozStorageCID.h"
 #include "nsDocShellCID.h"
 #include "nsEmbedCID.h"
@@ -2197,45 +2202,47 @@ nsDownload::SetState(DownloadState aState)
             }
         }
       }
-#if defined(XP_WIN) && !defined(WINCE)
+
       nsCOMPtr<nsIFileURL> fileURL = do_QueryInterface(mTarget);
-      nsCOMPtr<nsIFile> file;
-      nsAutoString path;
+      if (fileURL) {
+        nsCOMPtr<nsIFile> file;
+        if (NS_SUCCEEDED(fileURL->GetFile(getter_AddRefs(file))) && file ) {
+#if defined(XP_WIN) && !defined(WINCE)
+          nsAutoString path;
+          if (NS_SUCCEEDED(file->GetPath(path))) {
 
-      if (fileURL &&
-          NS_SUCCEEDED(fileURL->GetFile(getter_AddRefs(file))) &&
-          file &&
-          NS_SUCCEEDED(file->GetPath(path))) {
+            
+            
+            PRBool addToRecentDocs = PR_TRUE;
+            if (pref)
+              pref->GetBoolPref(PREF_BDM_ADDTORECENTDOCS, &addToRecentDocs);
 
-        
-        
-        {
-          PRBool addToRecentDocs = PR_TRUE;
-          if (pref)
-            pref->GetBoolPref(PREF_BDM_ADDTORECENTDOCS, &addToRecentDocs);
+            if (addToRecentDocs)
+              ::SHAddToRecentDocs(SHARD_PATHW, path.get());
+           }
 
-          if (addToRecentDocs)
-            ::SHAddToRecentDocs(SHARD_PATHW, path.get());
+          
+          
+          
+          nsCOMPtr<nsIFile> tempDir, fileDir;
+          rv = NS_GetSpecialDirectory(NS_OS_TEMP_DIR, getter_AddRefs(tempDir));
+          NS_ENSURE_SUCCESS(rv, rv);
+          (void)file->GetParent(getter_AddRefs(fileDir));
+
+          PRBool isTemp = PR_FALSE;
+          if (fileDir)
+            (void)fileDir->Equals(tempDir, &isTemp);
+
+          nsCOMPtr<nsILocalFileWin> localFileWin(do_QueryInterface(file));
+          if (!isTemp && localFileWin)
+            (void)localFileWin->SetFileAttributesWin(nsILocalFileWin::WFA_SEARCH_INDEXED);
+#endif
+          
+          
+          (void)file->SetLastModifiedTime(GetLastModifiedTime(mRequest));
         }
       }
 
-      
-      
-      
-      nsCOMPtr<nsIFile> tempDir, fileDir;
-      rv = NS_GetSpecialDirectory(NS_OS_TEMP_DIR, getter_AddRefs(tempDir));
-      NS_ENSURE_SUCCESS(rv, rv);
-      (void)file->GetParent(getter_AddRefs(fileDir));
-
-      PRBool isTemp = PR_FALSE;
-      if (fileDir)
-        (void)fileDir->Equals(tempDir, &isTemp);
-
-      nsCOMPtr<nsILocalFileWin> localFileWin(do_QueryInterface(file));
-      if (!isTemp && localFileWin)
-        (void)localFileWin->SetFileAttributesWin(nsILocalFileWin::WFA_SEARCH_INDEXED);
-
-#endif
       
       if (mDownloadManager->GetRetentionBehavior() == 0)
         mDownloadManager->RemoveDownload(mID);
@@ -3040,4 +3047,51 @@ nsDownload::FailDownload(nsresult aStatus, const PRUnichar *aMessage)
     do_GetService("@mozilla.org/embedcomp/prompt-service;1", &rv);
   NS_ENSURE_SUCCESS(rv, rv);
   return prompter->Alert(dmWindow, title, message);
+}
+
+NS_IMETHODIMP_(PRInt64)
+nsDownload::GetLastModifiedTime(nsIRequest *aRequest)
+{
+  NS_ASSERTION(aRequest, "Must not pass a NULL request in!");
+
+  PRInt64 timeLastModified = 0;
+
+  
+  
+  nsCOMPtr<nsIHttpChannel> httpChannel = do_QueryInterface(aRequest);
+  if (httpChannel) {
+    nsCAutoString refreshHeader;
+    if (NS_SUCCEEDED(httpChannel->GetResponseHeader(NS_LITERAL_CSTRING("Last-Modified"), refreshHeader))) {
+      PRStatus result = PR_ParseTimeString(PromiseFlatCString(refreshHeader).get(), PR_FALSE, &timeLastModified);
+      if (result == PR_SUCCESS)
+        return timeLastModified / PR_USEC_PER_MSEC;
+    }
+    return PR_Now() / PR_USEC_PER_MSEC;
+  }
+
+  
+  
+  nsCOMPtr<nsIFileChannel> fileChannel = do_QueryInterface(aRequest);
+  if (fileChannel) {
+    nsCOMPtr<nsIFile> file;
+    fileChannel->GetFile(getter_AddRefs(file));
+    if (file && NS_SUCCEEDED(file->GetLastModifiedTime(&timeLastModified)))
+      return timeLastModified;
+    return PR_Now() / PR_USEC_PER_MSEC;
+  }
+
+  
+  
+  nsCOMPtr<nsIFTPChannel> ftpChannel = do_QueryInterface(aRequest);
+  if (ftpChannel) {
+    if (NS_SUCCEEDED(ftpChannel->GetLastModifiedTime(&timeLastModified)) &&
+        timeLastModified != 0) {
+      return timeLastModified / PR_USEC_PER_MSEC;
+    }
+    return PR_Now() / PR_USEC_PER_MSEC;
+  }
+
+  
+  
+  return PR_Now() / PR_USEC_PER_MSEC;
 }
