@@ -321,8 +321,9 @@ public:
     
     
     
+    
     gfxFontEntry *FindFontForStyle(const gfxFontStyle& aFontStyle, 
-                                   PRBool& aNeedsBold);
+                                   PRBool& aNeedsSyntheticBold);
 
     
     

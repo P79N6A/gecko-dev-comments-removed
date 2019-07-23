@@ -162,14 +162,15 @@ gfxFontFamily::HasOtherFamilyNames()
 }
 
 gfxFontEntry*
-gfxFontFamily::FindFontForStyle(const gfxFontStyle& aFontStyle, PRBool& aNeedsBold)
+gfxFontFamily::FindFontForStyle(const gfxFontStyle& aFontStyle, 
+                                PRBool& aNeedsSyntheticBold)
 {
     if (!mHasStyles)
         FindStyleVariations(); 
 
     NS_ASSERTION(mAvailableFonts.Length() > 0, "font family with no faces!");
 
-    aNeedsBold = PR_FALSE;
+    aNeedsSyntheticBold = PR_FALSE;
 
     PRInt8 baseWeight, weightDistance;
     aFontStyle.ComputeWeightAndOffset(&baseWeight, &weightDistance);
@@ -181,7 +182,7 @@ gfxFontFamily::FindFontForStyle(const gfxFontStyle& aFontStyle, PRBool& aNeedsBo
     
     if (mAvailableFonts.Length() == 1) {
         gfxFontEntry *fe = mAvailableFonts[0];
-        aNeedsBold = wantBold && !fe->IsBold();
+        aNeedsSyntheticBold = wantBold && !fe->IsBold();
         return fe;
     }
 
@@ -226,7 +227,7 @@ gfxFontFamily::FindFontForStyle(const gfxFontStyle& aFontStyle, PRBool& aNeedsBo
                         NS_ConvertUTF16toUTF8(mName).get(),
                         aFontStyle.style, aFontStyle.weight, aFontStyle.size,
                         NS_ConvertUTF16toUTF8(fe->Name()).get(), trial));
-                aNeedsBold = wantBold && !fe->IsBold();
+                aNeedsSyntheticBold = wantBold && !fe->IsBold();
                 return fe;
             }
         }
@@ -292,6 +293,13 @@ gfxFontFamily::FindFontForStyle(const gfxFontStyle& aFontStyle, PRBool& aNeedsBo
     
     
     
+    
+    
+
+    
+    
+    
+    
     if (weightDistance < 0 && baseWeight > 5 && matchBaseWeight < 6) {
         wghtSteps = 1; 
     }
@@ -305,10 +313,13 @@ gfxFontFamily::FindFontForStyle(const gfxFontStyle& aFontStyle, PRBool& aNeedsBo
             break;
     }
 
-    if ((weightDistance > 0 && wghtSteps <= absDistance) ||
-        (baseWeight >= 6 && !matchFE->IsBold() &&
-          (wghtSteps - 1) <= weightDistance)) {
-        aNeedsBold = PR_TRUE;
+    NS_ASSERTION(matchFE, "we should always be able to return something here");
+
+    if (!matchFE->IsBold() &&
+        ((weightDistance == 0 && baseWeight >= 6) ||
+         (weightDistance > 0 && wghtSteps <= absDistance)))
+    {
+        aNeedsSyntheticBold = PR_TRUE;
     }
 
     PR_LOG(gFontSelection, PR_LOG_DEBUG,
@@ -316,7 +327,6 @@ gfxFontFamily::FindFontForStyle(const gfxFontStyle& aFontStyle, PRBool& aNeedsBo
             NS_ConvertUTF16toUTF8(mName).get(),
             aFontStyle.style, aFontStyle.weight, aFontStyle.size,
             NS_ConvertUTF16toUTF8(matchFE->Name()).get()));
-    NS_ASSERTION(matchFE, "we should always be able to return something here");
     return matchFE;
 }
 

@@ -53,18 +53,7 @@ gfxMacFont::gfxMacFont(MacOSFontEntry *aFontEntry, const gfxFontStyle *aFontStyl
       mScaledFont(nsnull),
       mAdjustedSize(0.0)
 {
-    
-    PRInt8 baseWeight, weightDistance;
-    mStyle.ComputeWeightAndOffset(&baseWeight, &weightDistance);
-    PRUint16 targetWeight = (baseWeight * 100) + (weightDistance * 100);
-
-    
-    
-    
-    
-    if (!aFontEntry->IsBold()
-        && ((weightDistance == 0 && targetWeight >= 600) || (weightDistance > 0 && aNeedsBold)))
-    {
+    if (aNeedsBold) {
         mSyntheticBoldOffset = 1;  
     }
 
