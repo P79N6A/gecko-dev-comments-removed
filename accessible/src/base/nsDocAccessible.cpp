@@ -510,6 +510,10 @@ NS_IMETHODIMP nsDocAccessible::GetAssociatedEditor(nsIEditor **aEditor)
       nsCoreUtils::GetDOMElementFor(DOMDocument);
     nsCOMPtr<nsIContent> content(do_QueryInterface(DOMElement));
 
+    
+    if (!content)
+        return NS_OK;
+
     if (!content->HasFlag(NODE_IS_EDITABLE))
       return NS_OK;
   }
