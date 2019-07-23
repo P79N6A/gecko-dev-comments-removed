@@ -5284,12 +5284,11 @@ nsTextFrame::Reflow(nsPresContext*           aPresContext,
   PRInt32 offset = GetContentOffset();
 
   
-  PRInt32 newLineOffset = -1;
+  PRInt32 newLineOffset = -1; 
   if (textStyle->WhiteSpaceIsSignificant()) {
     newLineOffset = FindChar(frag, offset, length, '\n');
     if (newLineOffset >= 0) {
       length = newLineOffset + 1 - offset;
-      newLineOffset -= mContentOffset;
     }
   } else {
     if (atStartOfLine) {
@@ -5403,6 +5402,13 @@ nsTextFrame::Reflow(nsPresContext*           aPresContext,
   gfxSkipCharsIterator end(provider.GetEndHint());
   end.SetSkippedOffset(transformedOffset + transformedCharsFit);
   PRInt32 charsFit = end.GetOriginalOffset() - offset;
+  if (offset + charsFit == newLineOffset) {
+    
+    
+    
+    
+    ++charsFit;
+  }
   
   
   
@@ -5543,7 +5549,7 @@ nsTextFrame::Reflow(nsPresContext*           aPresContext,
   if (charsFit == 0 && length > 0) {
     
     aStatus = NS_INLINE_LINE_BREAK_BEFORE();
-  } else if (contentLength > 0 && contentLength - 1 == newLineOffset) {
+  } else if (contentLength > 0 && mContentOffset + contentLength - 1 == newLineOffset) {
     
     aStatus = NS_INLINE_LINE_BREAK_AFTER(aStatus);
     lineLayout.SetLineEndsInBR(PR_TRUE);
