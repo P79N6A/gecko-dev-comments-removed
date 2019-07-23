@@ -945,7 +945,6 @@ public:
 
   virtual NS_HIDDEN_(void) AddStyleRelevantLink(nsIContent* aContent, nsIURI* aURI);
   virtual NS_HIDDEN_(void) ForgetLink(nsIContent* aContent);
-  virtual NS_HIDDEN_(void) NotifyURIVisitednessChanged(nsIURI* aURI);
 
   NS_HIDDEN_(void) ClearBoxObjectFor(nsIContent* aContent);
   NS_IMETHOD GetBoxObjectFor(nsIDOMElement* aElement, nsIBoxObject** aResult);
@@ -1038,7 +1037,6 @@ protected:
                                   PRInt32& aCharsetSource,
                                   nsACString& aCharset);
 
-  void UpdateLinkMap();
   
   
   void DestroyLinkMap();
@@ -1243,11 +1241,9 @@ private:
   PRUint32 mOnloadBlockCount;
   nsCOMPtr<nsIRequest> mOnloadBlocker;
   ReadyState mReadyState;
-  
+
   
   nsTHashtable<nsUint32ToContentHashEntry> mLinkMap;
-  
-  nsCOMArray<nsIURI> mVisitednessChangedURIs;
 
   
   nsString mLastStyleSheetSet;
