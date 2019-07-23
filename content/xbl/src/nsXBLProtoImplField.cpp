@@ -119,6 +119,10 @@ nsXBLProtoImplField::InstallField(nsIScriptContext* aContext,
   nsCAutoString uriSpec;
   aBindingDocURI->GetSpec(uriSpec);
   
+  JSContext* cx = (JSContext*) aContext->GetNativeContext();
+  NS_ASSERTION(!::JS_IsExceptionPending(cx),
+               "Shouldn't get here when an exception is pending!");
+  
   
   
   
@@ -133,13 +137,19 @@ nsXBLProtoImplField::InstallField(nsIScriptContext* aContext,
   if (NS_FAILED(rv))
     return rv;
 
+  
+  
+  
+  if (::JS_IsExceptionPending(cx)) {
+    ::JS_ReportPendingException(cx);
+  }
+
   if (undefined) {
     result = JSVAL_VOID;
   }
 
   
   nsDependentString name(mName);
-  JSContext* cx = (JSContext*) aContext->GetNativeContext();
   JSAutoRequest ar(cx);
   if (!::JS_DefineUCProperty(cx, aBoundNode,
                              reinterpret_cast<const jschar*>(mName), 
