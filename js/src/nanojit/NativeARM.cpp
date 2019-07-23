@@ -1230,9 +1230,6 @@ Assembler::asm_restore(LInsp i, Reservation *, Register r)
             }
         }
     }
-    verbose_only(
-        asm_output("        restore %s",_thisfrag->lirbuf->names->formatRef(i));
-        )
 }
 
 void

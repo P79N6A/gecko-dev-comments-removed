@@ -181,6 +181,10 @@ namespace nanojit {
         #define gpn(r)                    regNames[(r)]
         #define fpn(r)                    regNames[(r)]
     #elif defined(NJ_VERBOSE)
+        
+        
+        
+        
         #define asm_output(...) do { \
             counter_increment(native); \
             if (_logc->lcbits & LC_Assembly) { \
@@ -190,9 +194,7 @@ namespace nanojit {
                 else \
                    VMPI_memset(outline, (int)' ', 10+3); \
                 sprintf(&outline[13], ##__VA_ARGS__); \
-                Assembler::outputAlign(outline, 35); \
-                _allocator.formatRegisters(outline, _thisfrag); \
-                Assembler::output_asm(outline); \
+                output(); \
                 outputAddr=(_logc->lcbits & LC_NoCodeAddrs) ? false : true;    \
             } \
         } while (0) /* no semi */

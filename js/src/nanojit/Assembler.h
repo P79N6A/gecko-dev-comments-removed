@@ -189,25 +189,41 @@ namespace nanojit
         friend class VerboseBlockReader;
         public:
             #ifdef NJ_VERBOSE
-            static char  outline[8192];
-            static char  outlineEOL[512];  
-            static char* outputAlign(char* s, int col);
-
-            void outputForEOL(const char* format, ...);
-            void output(const char* s);
-            void outputf(const char* format, ...);
-            void output_asm(const char* s);
-
-            bool outputAddr, vpad[3];  
-            void printActivationState(const char* what);
-
+            
+            
+            LogControl* _logc;
+            
             StringList* _outputCache;
 
             
             
-            LogControl* _logc;
+            void outputf(const char* format, ...);
+
+        private:
+            
+            
+            
+            static char  outline[8192];
+            
+            
+            static char  outlineEOL[512];
+            
+            
+            bool outputAddr, vpad[3];
+
+            
+            
+            
+            void output();
+
+            
+            void setOutputForEOL(const char* format, ...);
+
+            void printRegState();
+            void printActivationState();
             #endif 
 
+        public:
             #ifdef VTUNE
             avmplus::CodegenLIR *cgen;
             #endif
@@ -388,10 +404,10 @@ namespace nanojit
 
             
             inline void fpu_push() {
-                debug_only( ++_fpuStkDepth;  NanoAssert(_fpuStkDepth<=0); )
+                debug_only( ++_fpuStkDepth; NanoAssert(_fpuStkDepth<=0); )
             }
             inline void fpu_pop() {
-                debug_only( --_fpuStkDepth;  NanoAssert(_fpuStkDepth<=0); )
+                debug_only( --_fpuStkDepth; NanoAssert(_fpuStkDepth<=0); )
             }
 #endif
             avmplus::Config &config;

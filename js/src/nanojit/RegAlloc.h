@@ -179,9 +179,7 @@ namespace nanojit
         RegisterMask    free;
         int32_t         priority;
 
-        verbose_only( void formatRegisters(char* s, Fragment*); )
-
         DECLARE_PLATFORM_REGALLOC()
     };
 }
-#endif 
+#endif
