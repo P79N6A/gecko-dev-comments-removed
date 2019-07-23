@@ -1716,8 +1716,10 @@ var gApplicationsPane = {
     
     typeItem.setAttribute("actionDescription",
                           this._describePreferredAction(handlerInfo));
-    typeItem.setAttribute("actionIcon",
-                          this._getIconURLForPreferredAction(handlerInfo));
+    if (!this._setIconClassForPreferredAction(handlerInfo, typeItem)) {
+      typeItem.setAttribute("actionIcon",
+                            this._getIconURLForPreferredAction(handlerInfo));
+    }
   },
 
   chooseApp: function(aEvent) {
