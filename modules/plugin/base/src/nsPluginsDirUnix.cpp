@@ -458,8 +458,7 @@ nsresult nsPluginFile::GetPluginInfo(nsPluginInfo& info)
             
             
             
-            rv = ns4xPlugin::CreatePlugin(mgr, 0, 0, pLibrary,
-                                          getter_AddRefs(plugin));
+            rv = ns4xPlugin::CreatePlugin(0, 0, pLibrary, getter_AddRefs(plugin));
             if (NS_FAILED(rv))
                 return rv;
         } else {
@@ -468,8 +467,7 @@ nsresult nsPluginFile::GetPluginInfo(nsPluginInfo& info)
     } else {
         
         
-        rv = ns4xPlugin::CreatePlugin(mgr, 0, 0, pLibrary, 
-				      getter_AddRefs(plugin));
+        rv = ns4xPlugin::CreatePlugin(0, 0, pLibrary, getter_AddRefs(plugin));
         if (NS_FAILED(rv)) return rv;
     }
 
