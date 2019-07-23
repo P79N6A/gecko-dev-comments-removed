@@ -879,6 +879,8 @@ public:
     PRUint32 mOffset;
     nsString mString;
     nsRect mRect; 
+    
+    nsIWidget* mFocusedWidget;
   } mReply;
 };
 
