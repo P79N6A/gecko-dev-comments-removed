@@ -3815,17 +3815,22 @@ nsEditor::IsEditable(nsIDOMNode *aNode)
                  "frame for non element-or-text?");
     if (!content->IsNodeOfType(nsINode::eTEXT))
       return PR_TRUE;  
-    if (resultFrame->GetStateBits() & NS_FRAME_IS_DIRTY) 
-    {
-      
-      
-      
-      
-      
-      return IsTextInDirtyFrameVisible(aNode);
+
+    
+    while (resultFrame) {
+      if (resultFrame->GetStateBits() & NS_FRAME_IS_DIRTY) 
+      {
+        
+        
+        
+        
+        
+        return IsTextInDirtyFrameVisible(aNode);
+      }
+      if (resultFrame->GetSize().width > 0) 
+        return PR_TRUE;  
+      resultFrame = resultFrame->GetNextContinuation();
     }
-    if (resultFrame->GetSize().width > 0) 
-      return PR_TRUE;  
   }
   return PR_FALSE;  
 }
