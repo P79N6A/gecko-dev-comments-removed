@@ -241,11 +241,8 @@ namespace nanojit
     class Assembler
     {
         friend class VerboseBlockReader;
-        public:
             #ifdef NJ_VERBOSE
-            
-            
-            LogControl* _logc;
+        public:
             
             StringList* _outputCache;
 
@@ -254,6 +251,10 @@ namespace nanojit
             void outputf(const char* format, ...);
 
         private:
+            
+            
+            LogControl* _logc;
+
             
             
             
@@ -281,6 +282,9 @@ namespace nanojit
 
             Assembler(CodeAlloc& codeAlloc, Allocator& dataAlloc, Allocator& alloc, AvmCore* core, LogControl* logc);
 
+            void        compile(Fragment *frag, Allocator& alloc, bool optimize
+                                verbose_only(, LabelMap*));
+
             void        endAssembly(Fragment* frag);
             void        assemble(Fragment* frag, LirFilter* reader);
             void        beginAssembly(Fragment *frag);
@@ -302,10 +306,10 @@ namespace nanojit
             debug_only( void        resourceConsistencyCheck(); )
             debug_only( void        registerConsistencyCheck(); )
 
-            Stats       _stats;
             CodeList*   codeList;                   
 
         private:
+            Stats       _stats;
 
             void        gen(LirFilter* toCompile);
             NIns*       genPrologue();
@@ -387,12 +391,10 @@ namespace nanojit
             NIns*       _nExitIns;              
                                                 
         #ifdef NJ_VERBOSE
-        public:
             size_t      codeBytes;              
             size_t      exitBytes;              
         #endif
 
-        private:
             #define     SWAP(t, a, b)   do { t tmp = a; a = b; b = tmp; } while (0)
             void        swapCodeChunks();
 
