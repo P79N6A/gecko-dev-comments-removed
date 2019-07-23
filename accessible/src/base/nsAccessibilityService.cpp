@@ -1488,6 +1488,8 @@ NS_IMETHODIMP nsAccessibilityService::GetAccessible(nsIDOMNode *aNode,
                                         nsIAccessibleRole::ROLE_EQUATION);
     }
   } else if (!newAcc) {  
+    PRBool tryTagNameOrFrame = PR_TRUE;
+
     nsIAtom *frameType = frame->GetType();
     if (!roleMapEntry &&
         (frameType == nsAccessibilityAtoms::tableCaptionFrame ||
@@ -1527,38 +1529,41 @@ NS_IMETHODIMP nsAccessibilityService::GetAccessible(nsIDOMNode *aNode,
         else if (tableFrame->GetType() == nsAccessibilityAtoms::tableCellFrame) {
           
           
-          NS_ASSERTION(!roleMapEntry, "Should not be changing ARIA role, just overriding impl class role");
-          
-          roleMapEntry = &nsARIAMap::gEmptyRoleMap;
+          tryTagNameOrFrame = PR_FALSE;
           break;
         }
       }
+
+      if (!tableContent)
+        tryTagNameOrFrame = PR_FALSE;
     }
 
-    
-    
-    
-    
-    
-    rv = CreateHTMLAccessibleByMarkup(frame, aWeakShell, aNode,
-                                      getter_AddRefs(newAcc));
-    NS_ENSURE_SUCCESS(rv, rv);
+    if (tryTagNameOrFrame) {
+      
+      
+      
+      
+      
+      rv = CreateHTMLAccessibleByMarkup(frame, aWeakShell, aNode,
+                                        getter_AddRefs(newAcc));
+      NS_ENSURE_SUCCESS(rv, rv);
 
-    if (!newAcc) {
-      
-      
-      
-      
-      
-      
-      if (frame->GetType() == nsAccessibilityAtoms::tableCaptionFrame &&
-         frame->GetRect().IsEmpty()) {
+      if (!newAcc) {
         
         
-        *aIsHidden = PR_TRUE;
-        return NS_OK;
+        
+        
+        
+        
+        if (frame->GetType() == nsAccessibilityAtoms::tableCaptionFrame &&
+           frame->GetRect().IsEmpty()) {
+          
+          
+          *aIsHidden = PR_TRUE;
+          return NS_OK;
+        }
+        frame->GetAccessible(getter_AddRefs(newAcc)); 
       }
-      frame->GetAccessible(getter_AddRefs(newAcc)); 
     }
   }
 
