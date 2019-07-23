@@ -296,6 +296,16 @@ nsIWidget* nsBaseWidget::GetParent(void)
 
 
 
+nsIWidget* nsBaseWidget::GetSheetWindowParent(void)
+{
+  return nsnull;
+}
+
+
+
+
+
+
 void nsBaseWidget::AddChild(nsIWidget* aChild)
 {
   NS_PRECONDITION(!aChild->GetNextSibling() && !aChild->GetPrevSibling(),
@@ -847,7 +857,7 @@ nsBaseWidget::EndSecureKeyboardInput()
 }
 
 NS_IMETHODIMP
-nsBaseWidget::SetWindowTitlebarColor(nscolor aColor)
+nsBaseWidget::SetWindowTitlebarColor(nscolor aColor, PRBool aActive)
 {
   return NS_ERROR_NOT_IMPLEMENTED;
 }

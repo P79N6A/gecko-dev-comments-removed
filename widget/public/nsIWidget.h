@@ -97,8 +97,8 @@ typedef nsEventStatus (*PR_CALLBACK EVENT_CALLBACK)(nsGUIEvent *event);
 
 
 #define NS_IWIDGET_IID \
-{ 0xa6593177, 0xba36, 0x400e, \
-  { 0x88, 0x12, 0xa0, 0xd3, 0x6b, 0x3a, 0xf1, 0x7b } }
+{ 0x9151e8c9, 0xa1cc, 0x44e9, \
+  { 0xa7, 0x0d, 0xaf, 0xb3, 0x95, 0x6d, 0x4e, 0x13 } }
 
 
 
@@ -378,6 +378,16 @@ class nsIWidget : public nsISupports {
 
 
     virtual nsIWidget* GetParent(void) = 0;
+
+    
+
+
+
+
+
+
+
+    virtual nsIWidget* GetSheetWindowParent(void) = 0;
 
     
 
@@ -1032,7 +1042,10 @@ class nsIWidget : public nsISupports {
 
 
 
-    NS_IMETHOD SetWindowTitlebarColor(nscolor aColor) = 0;
+
+
+
+    NS_IMETHOD SetWindowTitlebarColor(nscolor aColor, PRBool aActive) = 0;
 
     
 

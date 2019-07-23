@@ -2223,11 +2223,11 @@ nsGlobalWindow::PostHandleEvent(nsEventChainPostVisitor& aVisitor)
   nsCOMPtr<nsIScriptContext> kungFuDeathGrip2(GetContextInternal());
   nsGlobalWindow* outer = GetOuterWindowInternal();
 
-  
-  
-  if (outer && outer->mFullScreen) {
-    if (aVisitor.mEvent->message == NS_DEACTIVATE ||
-        aVisitor.mEvent->message == NS_ACTIVATE) {
+  if (aVisitor.mEvent->message == NS_DEACTIVATE ||
+      aVisitor.mEvent->message == NS_ACTIVATE) {
+    
+    
+    if (outer && outer->mFullScreen) {
       nsCOMPtr<nsIFullScreen> fullScreen =
         do_GetService("@mozilla.org/browser/fullscreen;1");
       if (fullScreen) {
@@ -2235,6 +2235,51 @@ nsGlobalWindow::PostHandleEvent(nsEventChainPostVisitor& aVisitor)
           fullScreen->ShowAllOSChrome();
         else
           fullScreen->HideAllOSChrome();
+      }
+    }
+
+    
+    
+    nsCOMPtr<nsIWidget> mainWidget = GetMainWidget();
+    NS_ENSURE_TRUE(mainWidget, nsnull);
+
+    
+    
+    nsCOMPtr<nsIWidget> topLevelWidget = mainWidget->GetSheetWindowParent();
+    if (!topLevelWidget)
+      topLevelWidget = mainWidget;
+
+    
+    nsCOMPtr<nsIDOMWindowInternal> topLevelWindow;
+    if (topLevelWidget == mainWidget) {
+      topLevelWindow = static_cast<nsIDOMWindowInternal *>(this);
+    } else {
+      
+      
+      
+      
+      void* clientData;
+      topLevelWidget->GetClientData(clientData); 
+      nsISupports* data = static_cast<nsISupports*>(clientData);
+      nsCOMPtr<nsIInterfaceRequestor> req(do_QueryInterface(data));
+      topLevelWindow = do_GetInterface(req);
+    }
+
+    if (topLevelWindow) {
+      
+      
+      nsCOMPtr<nsIDOMDocument> domDoc;
+      topLevelWindow->GetDocument(getter_AddRefs(domDoc));
+      nsCOMPtr<nsIDocument> doc(do_QueryInterface(domDoc));
+      nsCOMPtr<nsIDOMXULDocument> xulDoc(do_QueryInterface(doc));
+      nsCOMPtr<nsIDOMChromeWindow> chromeWin = do_QueryInterface(topLevelWindow);
+      if (xulDoc && chromeWin) {
+        nsCOMPtr<nsIContent> rootElem = doc->GetRootContent();
+        if (aVisitor.mEvent->message == NS_ACTIVATE)
+          rootElem->SetAttr(kNameSpaceID_None, nsGkAtoms::active,
+                            NS_LITERAL_STRING("true"), PR_TRUE);
+        else
+          rootElem->UnsetAttr(kNameSpaceID_None, nsGkAtoms::active, PR_TRUE);
       }
     }
   }
