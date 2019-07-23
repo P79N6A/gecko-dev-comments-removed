@@ -401,8 +401,21 @@ nsSMILTimedElement::DoSampleAt(nsSMILTime aContainerTime, PRBool aEndOnly)
         if (mCurrentInterval.Begin()->Time() <= sampleTime) {
           mElementState = STATE_ACTIVE;
           mCurrentInterval.FreezeBegin();
+          if (mPrevInterval.IsSet()) {
+            Reset(); 
+          }
           if (mClient) {
             mClient->Activate(mCurrentInterval.Begin()->Time().GetMillis());
+          }
+          if (mPrevInterval.IsSet()) {
+            
+            
+            
+            
+            
+            
+            
+            UpdateCurrentInterval();
           }
           stateChanged = PR_TRUE;
         }
@@ -435,7 +448,6 @@ nsSMILTimedElement::DoSampleAt(nsSMILTime aContainerTime, PRBool aEndOnly)
           mCurrentInterval = newInterval;
           
           SampleFillValue();
-          Reset();
           if (mElementState == STATE_WAITING) {
             NotifyNewInterval();
           }
@@ -480,17 +492,16 @@ nsSMILTimedElement::HandleContainerTimeChange()
 void
 nsSMILTimedElement::Reset()
 {
+  
+  
+  
+  
+  
+  
   PRInt32 count = mBeginInstances.Length();
-
   for (PRInt32 i = count - 1; i >= 0; --i) {
     nsSMILInstanceTime* instance = mBeginInstances[i].get();
     NS_ABORT_IF_FALSE(instance, "NULL instance in begin instances array");
-    
-    
-    
-    
-    
-    
     if (instance->ClearOnReset() &&
        (!mCurrentInterval.IsSet() || instance != mCurrentInterval.Begin())) {
       mBeginInstances.RemoveElementAt(i);
@@ -498,7 +509,6 @@ nsSMILTimedElement::Reset()
   }
 
   count = mEndInstances.Length();
-
   for (PRInt32 j = count - 1; j >= 0; --j) {
     nsSMILInstanceTime* instance = mEndInstances[j].get();
     NS_ABORT_IF_FALSE(instance, "NULL instance in end instances array");
@@ -601,7 +611,6 @@ nsresult
 nsSMILTimedElement::SetEndSpec(const nsAString& aEndSpec,
                                nsIContent* aContextNode)
 {
-  
   
   
   
@@ -833,8 +842,7 @@ nsSMILTimedElement::UnsetFillMode()
   PRUint16 previousFillMode = mFillMode;
   mFillMode = FILL_REMOVE;
   if ((mElementState == STATE_WAITING || mElementState == STATE_POSTACTIVE) &&
-      previousFillMode == FILL_FREEZE &&
-      mClient)
+      previousFillMode == FILL_FREEZE && mClient && mPrevInterval.IsSet())
     mClient->Inactivate(PR_FALSE);
 }
 
@@ -1013,6 +1021,10 @@ nsSMILTimedElement::GetNextInterval(const nsSMILInterval* aPrevInterval,
     beginAfter = aPrevInterval->End()->Time();
     prevIntervalWasZeroDur
       = aPrevInterval->End()->Time() == aPrevInterval->Begin()->Time();
+    if (aFixedBeginTime) {
+      prevIntervalWasZeroDur &= 
+        aPrevInterval->Begin()->Time() == aFixedBeginTime->Time();
+    }
   } else {
     beginAfter.SetMillis(LL_MININT);
   }
@@ -1021,6 +1033,7 @@ nsSMILTimedElement::GetNextInterval(const nsSMILInterval* aPrevInterval,
   nsRefPtr<nsSMILInstanceTime> tempEnd;
 
   while (PR_TRUE) {
+    
     if (aFixedBeginTime) {
       if (aFixedBeginTime->Time() < beginAfter)
         return NS_ERROR_FAILURE;
@@ -1042,13 +1055,8 @@ nsSMILTimedElement::GetNextInterval(const nsSMILInterval* aPrevInterval,
     NS_ABORT_IF_FALSE(tempBegin && tempBegin->Time() >= beginAfter,
         "Got a bad begin time while fetching next interval");
 
-    if (mEndSpecs.IsEmpty() && mEndInstances.IsEmpty()) {
-      nsSMILTimeValue activeEnd =
-        CalcActiveEnd(tempBegin->Time(), nsSMILTimeValue::Indefinite());
-      tempEnd = new nsSMILInstanceTime(activeEnd, nsnull);
-      if (!tempEnd)
-        return NS_ERROR_OUT_OF_MEMORY;
-    } else {
+    
+    {
       PRInt32 endPos = 0;
       tempEnd = GetNextGreaterOrEqual(mEndInstances, tempBegin->Time(), endPos);
 
@@ -1059,15 +1067,21 @@ nsSMILTimedElement::GetNextInterval(const nsSMILInterval* aPrevInterval,
         tempEnd = GetNextGreater(mEndInstances, tempBegin->Time(), endPos);
       }
 
-      if (!tempEnd && !mEndHasEventConditions && !mEndInstances.IsEmpty()) {
-        
-        
-        
-        
-        
-        
-        return NS_ERROR_FAILURE;
-      }
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      PRBool openEndedIntervalOk = mEndHasEventConditions ||
+          mEndSpecs.IsEmpty() ||
+          mEndInstances.IsEmpty();
+      if (!tempEnd && !openEndedIntervalOk)
+        return NS_ERROR_FAILURE; 
 
       nsSMILTimeValue intervalEnd = tempEnd
                                   ? tempEnd->Time() : nsSMILTimeValue();
@@ -1076,7 +1090,6 @@ nsSMILTimedElement::GetNextInterval(const nsSMILInterval* aPrevInterval,
       if (!tempEnd || intervalEnd != activeEnd) {
         tempEnd = new nsSMILInstanceTime(activeEnd, nsnull);
       }
-
       if (!tempEnd)
         return NS_ERROR_OUT_OF_MEMORY;
     }
@@ -1352,7 +1365,10 @@ nsSMILTimedElement::UpdateCurrentInterval(PRBool aForceChangeNotice)
     RegisterMilestone();
   } else {
     if (mElementState == STATE_ACTIVE && mClient) {
-      mClient->Inactivate(PR_FALSE); 
+      
+      
+      PRBool applyFill = mPrevInterval.IsSet() && mFillMode == FILL_FREEZE;
+      mClient->Inactivate(applyFill);
     }
 
     if (mElementState == STATE_ACTIVE || mElementState == STATE_WAITING) {
