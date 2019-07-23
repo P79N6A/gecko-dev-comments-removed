@@ -3520,28 +3520,33 @@ js_GC(JSContext *cx, JSGCInvocationKind gckind)
 #endif
     TIMESTAMP(gcTimer.enter);
 
-  restart_at_beginning:
-    if (!FireGCBegin(cx, gckind))
-        return;
+    for (;;) {
+        if (!FireGCBegin(cx, gckind))
+            return;
 
-    
-    if (!(gckind & GC_LOCK_HELD))
-        JS_LOCK_GC(rt);
+        {
+            
+            Conditionally<AutoLockGC> lockIf(!(gckind & GC_LOCK_HELD), rt);
 
-    if (!BeginGCSession(cx, gckind)) {
-        
-        if (!(gckind & GC_LOCK_HELD))
-            JS_UNLOCK_GC(rt);
-        return;
-    }
+            if (!BeginGCSession(cx, gckind)) {
+                
+                return;
+            }
 
-    if (gckind == GC_SET_SLOT_REQUEST && !ProcessAllSetSlotRequests(cx, &gckind))
-        return;
+            if (gckind == GC_SET_SLOT_REQUEST && !ProcessAllSetSlotRequests(cx, &gckind))
+                return;
 
-    if (gckind != GC_SET_SLOT_REQUEST) {
-        if (!JS_ON_TRACE(cx))
-            GCUntilDone(cx, gckind  GCTIMER_ARG);
-        rt->setGCLastBytes(rt->gcBytes);
+            if (gckind != GC_SET_SLOT_REQUEST) {
+                if (!JS_ON_TRACE(cx))
+                    GCUntilDone(cx, gckind  GCTIMER_ARG);
+                rt->setGCLastBytes(rt->gcBytes);
+            }
+
+            EndGCSession(cx);
+        }
+
+        if (FireGCEnd(cx, gckind))
+            break;
     }
 
     EndGCSession(cx);
