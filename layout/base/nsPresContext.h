@@ -138,11 +138,6 @@ enum nsLayoutPhase {
 #endif
 
 
-#define NS_AUTHOR_SPECIFIED_BACKGROUND      (1 << 0)
-#define NS_AUTHOR_SPECIFIED_BORDER          (1 << 1)
-#define NS_AUTHOR_SPECIFIED_PADDING         (1 << 2)
-
-
 
 
 class nsPresContext : public nsIObserver {
@@ -746,7 +741,7 @@ public:
   PRBool IsChrome() const;
 
   
-  virtual PRBool HasAuthorSpecifiedRules(nsIFrame *aFrame, PRUint32 ruleTypeMask) const;
+  virtual PRBool HasAuthorSpecifiedBorderOrBackground(nsIFrame *aFrame) const;
 
   
   PRBool UseDocumentColors() const {
