@@ -80,6 +80,48 @@ class nsIComponentLoaderManager;
 
 char* ArenaStrdup(const char* s, PLArenaPool* aArena);
 
+
+
+
+
+class BaseStringEnumerator
+  : public nsISimpleEnumerator,
+           nsIUTF8StringEnumerator
+{
+public:
+  NS_DECL_ISUPPORTS
+  NS_DECL_NSISIMPLEENUMERATOR
+  NS_DECL_NSIUTF8STRINGENUMERATOR
+
+protected:
+  
+  static int SortCallback(const void *, const void *, void *);
+
+  BaseStringEnumerator()
+    : mArray(nsnull),
+      mCount(0),
+      mSimpleCurItem(0),
+      mStringCurItem(0) { }
+
+  
+  
+
+  virtual ~BaseStringEnumerator()
+  {
+    if (mArray)
+      delete[] mArray;
+  }
+
+  void Sort();
+
+  const char** mArray;
+  PRUint32 mCount;
+  PRUint32 mSimpleCurItem;
+  PRUint32 mStringCurItem;
+};
+
+NS_IMPL_ISUPPORTS2(BaseStringEnumerator, nsISimpleEnumerator, nsIUTF8StringEnumerator)
+
 NS_IMETHODIMP
 BaseStringEnumerator::HasMoreElements(PRBool *_retval)
 {
@@ -441,6 +483,8 @@ CategoryEnumerator::enumfunc_createenumerator(const char* aStr, CategoryNode* aN
 
 
 
+NS_IMPL_THREADSAFE_ISUPPORTS1(nsCategoryManager, nsICategoryManager)
+
 nsCategoryManager*
 nsCategoryManager::Create()
 {
@@ -741,6 +785,17 @@ nsCategoryManager::SuppressNotifications(PRBool aSuppress)
   mSuppressNotifications = aSuppress;
   return NS_OK;
 }
+
+class nsCategoryManagerFactory : public nsIFactory
+   {
+     public:
+       nsCategoryManagerFactory() { }
+
+       NS_DECL_ISUPPORTS
+       NS_DECL_NSIFACTORY
+   };
+
+NS_IMPL_ISUPPORTS1(nsCategoryManagerFactory, nsIFactory)
 
 NS_IMETHODIMP
 nsCategoryManagerFactory::CreateInstance( nsISupports* aOuter, const nsIID& aIID, void** aResult )

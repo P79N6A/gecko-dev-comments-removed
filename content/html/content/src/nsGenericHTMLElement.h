@@ -45,8 +45,6 @@
 #include "nsIDOMNSHTMLFrameElement.h"
 #include "nsFrameLoader.h"
 #include "nsGkAtoms.h"
-#include "nsIDOMElementCSSInlineStyle.h"
-#include "nsIDOMNSHTMLElement.h"
 
 class nsIDOMAttr;
 class nsIDOMEventListener;
@@ -901,6 +899,9 @@ public:
   virtual ~nsGenericHTMLFrameElement();
 
   
+  NS_IMETHOD QueryInterface(REFNSIID aIID, void** aInstancePtr);
+
+  
   NS_DECL_NSIDOMNSHTMLFRAMEELEMENT
 
   
@@ -938,30 +939,6 @@ protected:
   nsresult GetContentDocument(nsIDOMDocument** aContentDocument);
 
   nsCOMPtr<nsIFrameLoader> mFrameLoader;
-};
-
-class nsGenericHTMLElementTearoff : public nsIDOMNSHTMLElement,
-                                    public nsIDOMElementCSSInlineStyle
-{
-  NS_DECL_CYCLE_COLLECTING_ISUPPORTS
-
-  nsGenericHTMLElementTearoff(nsGenericHTMLElement *aElement)
-    : mElement(aElement)
-  {
-  }
-
-  virtual ~nsGenericHTMLElementTearoff()
-  {
-  }
-
-  NS_FORWARD_NSIDOMNSHTMLELEMENT(mElement->)
-  NS_FORWARD_NSIDOMELEMENTCSSINLINESTYLE(mElement->)
-
-  NS_DECL_CYCLE_COLLECTION_CLASS_AMBIGUOUS(nsGenericHTMLElementTearoff,
-                                           nsIDOMNSHTMLElement)
-
-private:
-  nsCOMPtr<nsGenericHTMLElement> mElement;
 };
 
 
@@ -1226,4 +1203,4 @@ NS_DECLARE_NS_NEW_HTML_ELEMENT(Thead)
 NS_DECLARE_NS_NEW_HTML_ELEMENT(Title)
 NS_DECLARE_NS_NEW_HTML_ELEMENT(Unknown)
 
-#endif
+#endif 

@@ -273,7 +273,6 @@ private:
     static PRBool                       gEncodeQueryInUTF8;
 };
 
-
 #define NS_THIS_STANDARDURL_IMPL_CID                 \
 { /* b8e3e97b-1ccd-4b45-af5a-79596770f5d7 */         \
     0xb8e3e97b,                                      \

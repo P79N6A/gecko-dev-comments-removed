@@ -34,13 +34,47 @@
 
 
 
-
-#include "nsHTMLFrameElement.h"
+#include "nsIDOMHTMLFrameElement.h"
+#include "nsGenericHTMLElement.h"
 #include "nsGkAtoms.h"
 #include "nsIPresShell.h"
 #include "nsIDocument.h"
 #include "nsIDOMDocument.h"
 #include "nsDOMError.h"
+
+
+class nsHTMLFrameElement : public nsGenericHTMLFrameElement,
+                           public nsIDOMHTMLFrameElement
+{
+public:
+  nsHTMLFrameElement(nsINodeInfo *aNodeInfo);
+  virtual ~nsHTMLFrameElement();
+
+  
+  NS_DECL_ISUPPORTS_INHERITED
+
+  
+  NS_FORWARD_NSIDOMNODE(nsGenericHTMLFrameElement::)
+
+  
+  NS_FORWARD_NSIDOMELEMENT(nsGenericHTMLFrameElement::)
+
+  
+  NS_FORWARD_NSIDOMHTMLELEMENT(nsGenericHTMLFrameElement::)
+
+  
+  NS_DECL_NSIDOMHTMLFRAMEELEMENT
+
+  
+  virtual PRBool ParseAttribute(PRInt32 aNamespaceID,
+                                nsIAtom* aAttribute,
+                                const nsAString& aValue,
+                                nsAttrValue& aResult);
+  NS_IMETHOD_(PRBool) IsAttributeMapped(const nsIAtom* aAttribute) const;
+  nsMapRuleToAttributesFunc GetAttributeMappingFunction() const;
+  virtual nsresult Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const;
+};
+
 
 NS_IMPL_NS_NEW_HTML_ELEMENT(Frame)
 
@@ -57,6 +91,14 @@ nsHTMLFrameElement::~nsHTMLFrameElement()
 
 NS_IMPL_ADDREF_INHERITED(nsHTMLFrameElement, nsGenericElement)
 NS_IMPL_RELEASE_INHERITED(nsHTMLFrameElement, nsGenericElement)
+
+
+
+NS_HTML_CONTENT_INTERFACE_TABLE_HEAD(nsHTMLFrameElement,
+                                     nsGenericHTMLFrameElement)
+  NS_INTERFACE_TABLE_INHERITED1(nsHTMLFrameElement, nsIDOMHTMLFrameElement)
+NS_HTML_CONTENT_INTERFACE_TABLE_TAIL_CLASSINFO(HTMLFrameElement)
+
 
 NS_IMPL_ELEMENT_CLONE(nsHTMLFrameElement)
 

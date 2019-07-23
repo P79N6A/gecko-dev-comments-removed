@@ -168,25 +168,4 @@ private:
   nsSupportsArray(const nsISupportsArray& other);
 };
 
-class nsArrayEnumerator : public nsISimpleEnumerator
-{
-public:
-    
-    NS_DECL_ISUPPORTS
-
-    
-    NS_IMETHOD HasMoreElements(PRBool* aResult);
-    NS_IMETHOD GetNext(nsISupports** aResult);
-
-    
-    nsArrayEnumerator(nsISupportsArray* aValueArray);
-
-private:
-    ~nsArrayEnumerator(void);
-
-protected:
-    nsISupportsArray* mValueArray;
-    PRInt32 mIndex;
-};
-
 #endif 

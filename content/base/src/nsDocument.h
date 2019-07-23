@@ -798,7 +798,7 @@ protected:
   
   PRUint32 mUpdateNestLevel;
 
-protected:
+private:
   friend class nsUnblockOnloadEvent;
 
   void PostUnblockOnloadEvent();
