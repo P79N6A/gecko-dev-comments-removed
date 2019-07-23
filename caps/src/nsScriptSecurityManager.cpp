@@ -143,6 +143,14 @@ nsresult
 GetPrincipalDomainOrigin(nsIPrincipal* aPrincipal,
                          nsACString& aOrigin)
 {
+  if (nsAutoInPrincipalDomainOriginSetter::sInPrincipalDomainOrigin > 1) {
+      
+      
+      
+      
+      return NS_ERROR_NOT_AVAILABLE;
+  }
+
   nsAutoInPrincipalDomainOriginSetter autoSetter;
   aOrigin.Truncate();
 
