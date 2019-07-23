@@ -70,6 +70,15 @@ let gBuilder = 0;
 
 
 
+
+
+
+
+let gPerformAllCallback;
+
+
+
+
 const gListBuildDelay = 300;
 const gListBuildChunk = 3;
 
@@ -327,7 +336,20 @@ function copySourceLocation(aDownload)
   var clipboard = Cc["@mozilla.org/widget/clipboardhelper;1"].
                   getService(Ci.nsIClipboardHelper);
 
-  clipboard.copyString(uri);
+  
+  if (gPerformAllCallback === null) {
+    let uris = [];
+    gPerformAllCallback = function(aURI) aURI ? uris.push(aURI) :
+      clipboard.copyString(uris.join("\n"));
+  }
+
+  
+  if (typeof gPerformAllCallback == "function")
+    gPerformAllCallback(uri);
+  else {
+    
+    clipboard.copyString(uri);
+  }
 }
 
 
@@ -705,6 +727,12 @@ var gDownloadViewController = {
     },
     cmd_clearList: function() {
       
+      if (gPerformAllCallback === null)
+        gPerformAllCallback = function() {};
+      else if (gPerformAllCallback)
+        return;
+
+      
       if (gSearchTerms == "") {
         gDownloadManager.cleanUp();
       }
@@ -740,7 +768,27 @@ function performCommand(aCmd, aItem)
 {
   let elm = aItem;
   if (!elm) {
-    elm = gDownloadsView.selectedItem;
+    
+    
+    
+    
+    gPerformAllCallback = null;
+
+    
+    let items = [];
+    for (let i = gDownloadsView.selectedItems.length; --i >= 0; )
+      items.unshift(gDownloadsView.selectedItems[i]);
+
+    
+    for each (let item in items)
+      performCommand(aCmd, item);
+
+    
+    if (typeof gPerformAllCallback == "function")
+      gPerformAllCallback();
+    gPerformAllCallback = undefined;
+
+    return;
   } else {
     while (elm.nodeName != "richlistitem" ||
            elm.getAttribute("type") != "download")
