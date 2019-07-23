@@ -832,8 +832,10 @@ class TypedArrayTemplate
         
         
         JSObject *nobj = JS_NewObject(cx, slowClass(), NULL, NULL);
-        if (!nobj)
+        if (!nobj) {
+            delete ntarray;
             return false;
+        }
 
         makeFastWithPrivate(cx, nobj, ntarray);
 
