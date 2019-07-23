@@ -125,8 +125,6 @@ nsXBLProtoImplField::InstallField(nsIScriptContext* aContext,
                "Shouldn't get here when an exception is pending!");
   
   
-  
-  
   PRBool undefined;
   nsCOMPtr<nsIScriptContext> context = aContext;
   rv = context->EvaluateStringWithValue(nsDependentString(mFieldText,
