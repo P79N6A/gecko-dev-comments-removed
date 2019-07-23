@@ -43,16 +43,6 @@
 
 #import <Cocoa/Cocoa.h>
 
-#ifdef MOZ_LOGGING
-
-#define FORCE_PR_LOG
-#include "prlog.h"
-#endif
-
-#ifdef PR_LOGGING
-extern PRLogModuleInfo* sCocoaLog;
-#endif
-
 class nsITransferable;
 
 
