@@ -79,9 +79,17 @@ function run_test() {
   
   
   
-  
-  
-  
-  
-  
+  var urlsToIgnore = ["about:config", 
+    "data:,Hello%2C%20World!",
+    "imap://cyrus.andrew.cmu.edu/archive.imap",
+    "news://news.mozilla.org/mozilla.dev.apps.firefox",
+    "moz-anno:favicon:http://www.mozilla.org/2005/made-up-favicon/84-1321",
+    "chrome://browser/content/browser.xul",
+    "view-source:http://www.google.com/"];
+
+  for each (var currentURL in urlsToIgnore) {
+    var cantAddUri = uri(currentURL);
+    add_uri_to_history(cantAddUri);
+    do_check_false(gh.isVisited(cantAddUri));
+  }
 }
