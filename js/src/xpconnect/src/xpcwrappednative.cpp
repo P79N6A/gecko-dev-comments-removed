@@ -1193,7 +1193,7 @@ XPCWrappedNative::FinishInit(XPCCallContext &ccx)
 #endif
 
     
-    ccx.GetJSContext()->updateMallocCounter(2 * sizeof(XPCWrappedNative));
+    JS_updateMallocCounter(ccx.GetJSContext(), 2 * sizeof(XPCWrappedNative));
 
     return JS_TRUE;
 }
