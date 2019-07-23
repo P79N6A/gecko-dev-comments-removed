@@ -8640,9 +8640,10 @@ TraceRecorder::record_JSOP_GOTO()
 
 
 
+
     jssrcnote* sn = js_GetSrcNote(cx->fp->script, cx->fp->regs->pc);
 
-    if (sn && SN_TYPE(sn) == SRC_BREAK) {
+    if (sn && (SN_TYPE(sn) == SRC_BREAK || SN_TYPE(sn) == SRC_CONT2LABEL)) {
         AUDIT(breakLoopExits);
         endLoop();
         return JSRS_STOP;
