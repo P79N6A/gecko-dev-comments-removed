@@ -799,7 +799,7 @@ namespace nanojit
 		
 		
 		underrunProtect(LARGEST_UNDERRUN_PROT);  
-		_startingIns = _nIns;
+        recordStartingInstructionPointer();
 		
 	#ifdef AVMPLUS_PORTING_API
 		_endJit2Addr = _nExitIns;
@@ -870,7 +870,8 @@ namespace nanojit
 		    }
         }
 		else {
-			_nIns = _startingIns;  
+            
+            resetInstructionPointer();
 		}
 	}
 
@@ -927,7 +928,8 @@ namespace nanojit
 		}
 		else
 		{
-			_nIns = _startingIns;  
+            
+            resetInstructionPointer();
 		}
 		
 		NanoAssertMsgf(error() || _fpuStkDepth == 0,"_fpuStkDepth %d",_fpuStkDepth);

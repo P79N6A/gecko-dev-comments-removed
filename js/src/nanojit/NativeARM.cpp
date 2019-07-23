@@ -836,6 +836,7 @@ void
 Assembler::nativePageReset()
 {
     _nSlot = 0;
+    _startingSlot = 0;
     _nExitSlot = 0;
 }
 
@@ -857,6 +858,26 @@ Assembler::nativePageSetup()
         
         _nSlot = pageDataStart(_nIns); 
     }
+}
+
+
+
+void
+Assembler::recordStartingInstructionPointer()
+{
+    _startingIns = _nIns;
+    _startingSlot = _nSlot;
+    NanoAssert(samepage(_nIns,_nSlot));
+}
+
+
+
+void
+Assembler::resetInstructionPointer()
+{
+    _nIns = _startingIns;
+    _nSlot = _startingSlot;
+    NanoAssert(samepage(_nIns,_nSlot));
 }
 
 
