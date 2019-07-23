@@ -951,6 +951,31 @@ NS_IMETHODIMP nsTextControlFrame::GetAccessible(nsIAccessible** aAccessible)
 }
 #endif
 
+#ifdef DEBUG
+class EditorInitializerEntryTracker {
+public:
+  explicit EditorInitializerEntryTracker(nsTextControlFrame &frame)
+    : mFrame(frame)
+    , mFirstEntry(PR_FALSE)
+  {
+    if (!mFrame.mInEditorInitialization) {
+      mFrame.mInEditorInitialization = PR_TRUE;
+      mFirstEntry = PR_TRUE;
+    }
+  }
+  ~EditorInitializerEntryTracker()
+  {
+    if (mFirstEntry) {
+      mFrame.mInEditorInitialization = PR_FALSE;
+    }
+  }
+  PRBool EnteredMoreThanOnce() const { return !mFirstEntry; }
+private:
+  nsTextControlFrame &mFrame;
+  PRBool mFirstEntry;
+};
+#endif
+
 nsTextControlFrame::nsTextControlFrame(nsIPresShell* aShell, nsStyleContext* aContext)
   : nsStackFrame(aShell, aContext)
   , mUseEditor(PR_FALSE)
@@ -960,6 +985,9 @@ nsTextControlFrame::nsTextControlFrame(nsIPresShell* aShell, nsStyleContext* aCo
   , mFireChangeEventState(PR_FALSE)
   , mInSecureKeyboardInputMode(PR_FALSE)
   , mTextListener(nsnull)
+#ifdef DEBUG
+  , mInEditorInitialization(PR_FALSE)
+#endif
 {
 }
 
@@ -1506,6 +1534,14 @@ nsTextControlFrame::EnsureEditorInitialized()
   
   
   mUseEditor = PR_TRUE;
+
+#ifdef DEBUG
+  
+  
+  const EditorInitializerEntryTracker tracker(*this);
+  NS_ASSERTION(!tracker.EnteredMoreThanOnce(),
+               "EnsureEditorInitialized has been called while a previous call was in progress");
+#endif
 
   
   
