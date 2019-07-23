@@ -142,9 +142,6 @@ static const char tagChar[]  = "OIDISIBI";
 #define MAX_GLOBAL_SLOTS 4096
 
 
-#define MAX_SKIP_BYTES (NJ_PAGE_SIZE - sizeof(LIns))
-
-
 #define MAX_INTERP_STACK_BYTES                                                \
     (MAX_NATIVE_STACK_SLOTS * sizeof(jsval) +                                 \
      MAX_CALL_STACK_ENTRIES * sizeof(JSInlineFrame) +                         \

@@ -418,6 +418,18 @@ namespace nanojit
 		LIns*		insImmf(double f);
 	};
 
+
+	
+	
+	
+	
+	
+	
+	
+#define MAX_SKIP_BYTES (NJ_PAGE_SIZE			\
+						- sizeof(PageHeader)	\
+						- 6*sizeof(LIns))
+
 #ifdef NJ_VERBOSE
 	extern const char* lirNames[];
 
