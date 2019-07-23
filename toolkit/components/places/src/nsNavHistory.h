@@ -364,6 +364,7 @@ protected:
   nsresult InitDB(PRBool *aDoImport);
   nsresult InitStatements();
   nsresult ForceMigrateBookmarksDB(mozIStorageConnection *aDBConn);
+  nsresult MigrateV3Up(mozIStorageConnection *aDBConn);
 
 #ifdef IN_MEMORY_LINKS
   

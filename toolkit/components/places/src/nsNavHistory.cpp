@@ -383,7 +383,7 @@ nsNavHistory::Init()
 
 
 
-#define PLACES_SCHEMA_VERSION 2
+#define PLACES_SCHEMA_VERSION 3
 
 nsresult
 nsNavHistory::InitDB(PRBool *aDoImport)
@@ -441,7 +441,7 @@ nsNavHistory::InitDB(PRBool *aDoImport)
   NS_ENSURE_SUCCESS(rv, rv);
 
   
-  PRInt32 schemaVersion;
+  PRInt32 DBSchemaVersion;
   {
     nsCOMPtr<mozIStorageStatement> statement;
     rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING("PRAGMA user_version"),
@@ -452,25 +452,54 @@ nsNavHistory::InitDB(PRBool *aDoImport)
     rv = statement->ExecuteStep(&hasResult);
     NS_ENSURE_SUCCESS(rv, rv);
     NS_ENSURE_TRUE(hasResult, NS_ERROR_FAILURE);
-    schemaVersion = statement->AsInt32(0);
+    DBSchemaVersion = statement->AsInt32(0);
   }
    
-  if (PLACES_SCHEMA_VERSION != schemaVersion) {
+  if (PLACES_SCHEMA_VERSION != DBSchemaVersion) {
     
     
     
     
     
-    if (schemaVersion < 2) {
+    
+    
+    
+    
+    
+    
+    
+    
+    if (DBSchemaVersion < PLACES_SCHEMA_VERSION) {
       
-      rv = ForceMigrateBookmarksDB(mDBConn);
-      NS_ENSURE_SUCCESS(rv, rv);
+
+      
+      if (DBSchemaVersion < 2) {
+        rv = ForceMigrateBookmarksDB(mDBConn);
+        NS_ENSURE_SUCCESS(rv, rv);
+      } 
+
+      if (DBSchemaVersion < 3) {
+        rv = MigrateV3Up(mDBConn);
+        NS_ENSURE_SUCCESS(rv, rv);
+      }
+
+      
+
     } else {
       
+
       
       
-      rv = ForceMigrateBookmarksDB(mDBConn);
-      NS_ENSURE_SUCCESS(rv, rv);
+
+      
+      
+      
+
+      if (DBSchemaVersion > 2) {
+        
+        rv = ForceMigrateBookmarksDB(mDBConn);
+        NS_ENSURE_SUCCESS(rv, rv);
+      }
     }
 
     
@@ -767,6 +796,20 @@ nsNavHistory::ForceMigrateBookmarksDB(mozIStorageConnection* aDBConn)
   return rv;
 }
 
+
+nsresult
+nsNavHistory::MigrateV3Up(mozIStorageConnection* aDBConn) 
+{
+  
+  nsresult rv = aDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
+    "ALTER TABLE moz_annos ADD type INTEGER DEFAULT 0"));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  rv = nsNavBookmarks::InitTables(aDBConn);
+  NS_ENSURE_SUCCESS(rv, rv);
+  return NS_OK;
+}
 
 #ifdef IN_MEMORY_LINKS
 
