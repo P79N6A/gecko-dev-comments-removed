@@ -141,7 +141,6 @@ class nsXBLInsertionPointEntry {
 public:
   ~nsXBLInsertionPointEntry() {
     if (mDefaultContent) {
-      nsAutoScriptBlocker scriptBlocker;
       
       
       
@@ -249,7 +248,6 @@ NS_IMPL_CYCLE_COLLECTION_CLASS(nsXBLInsertionPointEntry)
 NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN_NATIVE(nsXBLInsertionPointEntry)
   NS_IMPL_CYCLE_COLLECTION_UNLINK_NSCOMPTR(mInsertionParent)
   if (tmp->mDefaultContent) {
-    nsAutoScriptBlocker scriptBlocker;
     
     
     
@@ -1287,7 +1285,6 @@ nsXBLPrototypeBinding::ConstructInsertionTable(nsIContent* aContent)
     
     PRUint32 defaultCount = child->GetChildCount();
     if (defaultCount > 0) {
-      nsAutoScriptBlocker scriptBlocker;
       
       xblIns->SetDefaultContent(child);
 

@@ -13452,8 +13452,6 @@ nsCSSFrameConstructor::ProcessPendingRestyles()
   
   mPendingRestyles.Clear();
 
-  nsAutoScriptBlocker scriptBlocker;
-
   
   
   BeginUpdate();

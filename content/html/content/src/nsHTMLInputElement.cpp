@@ -111,8 +111,6 @@
 #include "nsImageLoadingContent.h"
 #include "nsIDOMWindowInternal.h"
 
-#include "mozAutoDocUpdate.h"
-
 
 
 static NS_DEFINE_CID(kXULControllersCID,  NS_XULCONTROLLERS_CID);

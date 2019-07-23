@@ -37,7 +37,6 @@
 
 
 #include "nsXBLInsertionPoint.h"
-#include "nsContentUtils.h"
 
 nsXBLInsertionPoint::nsXBLInsertionPoint(nsIContent* aParentElement,
                                          PRUint32 aIndex,
@@ -125,8 +124,6 @@ nsXBLInsertionPoint::UnbindDefaultContent()
 
   
   nsCOMPtr<nsIContent> defContent = mDefaultContent;
-
-  nsAutoScriptBlocker scriptBlocker;
 
   
   
