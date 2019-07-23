@@ -2396,10 +2396,7 @@ PresShell::InitialReflow(nscoord aWidth, nscoord aHeight)
 
     
     
-    {
-      nsAutoScriptBlocker scriptBlocker;
-      mFrameConstructor->ProcessPendingRestyles();
-    }
+    mFrameConstructor->ProcessPendingRestyles();
 
     
     NS_ENSURE_STATE(!mHaveShutDown);
@@ -2502,10 +2499,7 @@ PresShell::ResizeReflow(nscoord aWidth, nscoord aHeight)
     nsCOMPtr<nsIPresShell> kungFuDeathGrip(this);
 
     
-    {
-      nsAutoScriptBlocker scriptBlocker;
-      mFrameConstructor->ProcessPendingRestyles();
-    }
+    mFrameConstructor->ProcessPendingRestyles();
 
     if (!mIsDestroying) {
       
@@ -4502,7 +4496,6 @@ PresShell::DoFlushPendingNotifications(mozFlushType aType,
       
       mPresContext->FlushUserFontSet();
 
-      nsAutoScriptBlocker scriptBlocker;
       mFrameConstructor->ProcessPendingRestyles();
     }
 
@@ -4520,7 +4513,6 @@ PresShell::DoFlushPendingNotifications(mozFlushType aType,
     
     
     if (!mIsDestroying) {
-      nsAutoScriptBlocker scriptBlocker;
       mFrameConstructor->ProcessPendingRestyles();
     }
 
