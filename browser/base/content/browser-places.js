@@ -115,10 +115,11 @@ var StarUI = {
         if (aEvent.keyCode == KeyEvent.DOM_VK_ESCAPE) {
           
           
+          
           if (!this._element("editBookmarkPanelContent").hidden) {
             var elt = aEvent.target;
-            if (elt.localName != "tree" ||
-                (elt.localName == "tree" && !elt.hasAttribute("editing")))
+            if ((elt.localName != "tree" || !elt.hasAttribute("editing")) &&
+                !elt.popupOpen)
               this.cancelButtonOnCommand();
           }
         }
