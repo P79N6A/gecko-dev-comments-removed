@@ -58,13 +58,22 @@ class nsLeafAccessible : public nsAccessibleWrap
 {
 public:
   nsLeafAccessible(nsIDOMNode* aNode, nsIWeakReference* aShell);
+
+  
   NS_DECL_ISUPPORTS_INHERITED
+
+  
   NS_IMETHOD GetFirstChild(nsIAccessible **_retval);
   NS_IMETHOD GetLastChild(nsIAccessible **_retval);
   NS_IMETHOD GetChildCount(PRInt32 *_retval);
+
+  
   NS_IMETHOD GetAllowsAnonChildAccessibles(PRBool *aAllowsAnonChildren);
-  NS_IMETHOD GetChildAtPoint(PRInt32 aX, PRInt32 aY, nsIAccessible **aAccessible)
-    { NS_ENSURE_ARG_POINTER(aAccessible); NS_ADDREF(*aAccessible = this); return NS_OK; } 
+
+  
+  virtual nsresult GetChildAtPoint(PRInt32 aX, PRInt32 aY,
+                                   PRBool aDeepestChild,
+                                   nsIAccessible **aChild);
 };
 
 

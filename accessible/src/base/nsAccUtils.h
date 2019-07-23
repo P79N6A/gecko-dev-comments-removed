@@ -52,6 +52,7 @@
 #include "nsPoint.h"
 
 class nsAccessNode;
+class nsAccessible;
 
 class nsAccUtils
 {
@@ -319,6 +320,12 @@ public:
     
     return accessNode;
   }
+
+  
+
+
+  static already_AddRefed<nsAccessible>
+    QueryAccessible(nsIAccessible *aAccessible);
 
 #ifdef DEBUG_A11Y
   

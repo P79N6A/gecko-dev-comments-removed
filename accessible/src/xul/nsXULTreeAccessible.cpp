@@ -319,9 +319,10 @@ NS_IMETHODIMP nsXULTreeAccessible::GetFocusedChild(nsIAccessible **aFocusedChild
 }
 
 
-NS_IMETHODIMP
-nsXULTreeAccessible::GetDeepestChildAtPoint(PRInt32 aX, PRInt32 aY,
-                                            nsIAccessible **aAccessible)
+nsresult
+nsXULTreeAccessible::GetChildAtPoint(PRInt32 aX, PRInt32 aY,
+                                     PRBool aDeepestChild,
+                                     nsIAccessible **aChild)
 {
   nsIFrame *frame = GetFrame();
   if (!frame)
@@ -350,9 +351,16 @@ nsXULTreeAccessible::GetDeepestChildAtPoint(PRInt32 aX, PRInt32 aY,
   
   if (row == -1 || !column)
     return nsXULSelectableAccessible::
-      GetDeepestChildAtPoint(aX, aY, aAccessible);
+      GetChildAtPoint(aX, aY, aDeepestChild, aChild);
 
-  return GetCachedTreeitemAccessible(row, column, aAccessible);
+  nsCOMPtr<nsIAccessible> treeitemAcc;
+  nsresult rv = GetCachedTreeitemAccessible(row, column,
+                                            getter_AddRefs(treeitemAcc));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  NS_IF_ADDREF(*aChild = treeitemAcc);
+
+  return NS_OK;
 }
 
 

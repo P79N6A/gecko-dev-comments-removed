@@ -95,6 +95,17 @@ nsLeafAccessible::GetAllowsAnonChildAccessibles(PRBool *aAllowsAnonChildren)
 }
 
 
+nsresult
+nsLeafAccessible::GetChildAtPoint(PRInt32 aX, PRInt32 aY,
+                                  PRBool aDeepestChild,
+                                  nsIAccessible **aChild)
+{
+  
+  NS_ADDREF(*aChild = this);
+  return NS_OK;
+}
+
+
 
 
 nsLinkableAccessible::
