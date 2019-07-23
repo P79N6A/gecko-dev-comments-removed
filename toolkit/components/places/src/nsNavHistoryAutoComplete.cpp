@@ -575,10 +575,6 @@ nsNavHistory::StartSearch(const nsAString & aSearchString,
   mLivemarkFeedURIs.Clear();
 
   
-  mRestrictHistory = mRestrictBookmark = mRestrictTag = PR_FALSE;
-  mMatchTitle = mMatchUrl = PR_FALSE;
-
-  
   GenerateSearchTokens();
 
   
@@ -661,6 +657,13 @@ nsNavHistory::AddSearchToken(nsAutoString &aToken)
 void
 nsNavHistory::ProcessTokensForSpecialSearch()
 {
+  
+  mRestrictHistory = mAutoCompleteRestrictHistory.IsEmpty();
+  mRestrictBookmark = mAutoCompleteRestrictBookmark.IsEmpty();
+  mRestrictTag = mAutoCompleteRestrictTag.IsEmpty();
+  mMatchTitle = mAutoCompleteMatchTitle.IsEmpty();
+  mMatchUrl = mAutoCompleteMatchUrl.IsEmpty();
+
   
   for (PRInt32 i = mCurrentSearchTokens.Count(); --i >= 0; ) {
     PRBool needToRemove = PR_TRUE;
