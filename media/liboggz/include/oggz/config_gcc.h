@@ -26,6 +26,10 @@
 #define HAVE_MEMORY_H 1
 
 
+
+#define HAVE_REALLOC 1
+
+
 #define HAVE_SSIZE_T 1
 
 
@@ -129,6 +133,9 @@
 
 
 #define _LARGEFILE_SOURCE 1
+
+
+
 
 
 
