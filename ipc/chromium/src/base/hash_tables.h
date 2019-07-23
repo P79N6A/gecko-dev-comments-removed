@@ -12,10 +12,12 @@
 
 
 
-#ifndef BASE_HASH_TABLES_H__
-#define BASE_HASH_TABLES_H__
+#ifndef BASE_HASH_TABLES_H_
+#define BASE_HASH_TABLES_H_
 
 #include "build/build_config.h"
+
+#include "base/string16.h"
 
 #if defined(COMPILER_MSVC)
 #include <hash_map>
@@ -35,73 +37,68 @@ using stdext::hash_set;
 
 #include <ext/hash_map>
 #include <ext/hash_set>
+#include <string>
 
 #ifdef CHROME_OLD__DEPRECATED
 #define __DEPRECATED CHROME_OLD__DEPRECATED
 #undef CHROME_OLD__DEPRECATED
 #endif
 
-#include <tr1/functional>
 namespace base {
 using __gnu_cxx::hash_map;
 using __gnu_cxx::hash_set;
-}
-
-
+}  
 
 namespace __gnu_cxx {
 
-template<>
-struct hash<wchar_t*> {
-  size_t operator()(const wchar_t* s) const {
-    return std::tr1::hash<const wchar_t*>()(s);
-  }
-};
 
-template<>
-struct hash<const wchar_t*> {
-  size_t operator()(const wchar_t* s) const {
-    return std::tr1::hash<const wchar_t*>()(s);
-  }
-};
 
-template<>
-struct hash<std::wstring> {
-  size_t operator()(const std::wstring& s) const {
-    return std::tr1::hash<std::wstring>()(s);
-  }
-};
 
-template<>
-struct hash<const std::wstring> {
-  size_t operator()(const std::wstring& s) const {
-    return std::tr1::hash<std::wstring>()(s);
-  }
-};
 
-template<>
-struct hash<std::string> {
-  size_t operator()(const std::string& s) const {
-    return std::tr1::hash<std::string>()(s);
-  }
-};
 
-template<>
-struct hash<const std::string> {
-  size_t operator()(const std::string& s) const {
-    return std::tr1::hash<std::string>()(s);
-  }
-};
+#define DEFINE_TRIVIAL_HASH(integral_type) \
+    template<> \
+    struct hash<integral_type> { \
+      std::size_t operator()(integral_type value) const { \
+        return static_cast<std::size_t>(value); \
+      } \
+    }
 
-template<>
-struct hash<long long> {
-  size_t operator()(long long i) const {
-    return std::tr1::hash<long>()((long) i);
-  }
-};
+DEFINE_TRIVIAL_HASH(long long);
+DEFINE_TRIVIAL_HASH(unsigned long long);
 
-}
+#undef DEFINE_TRIVIAL_HASH
 
-#endif
+
+
+
+
+
+
+#define DEFINE_STRING_HASH(string_type) \
+    template<> \
+    struct hash<string_type> { \
+      std::size_t operator()(const string_type& s) const { \
+        std::size_t result = 0; \
+        for (string_type::const_iterator i = s.begin(); i != s.end(); ++i) \
+          result = (result * 131) + *i; \
+        return result; \
+      } \
+    }
+
+DEFINE_STRING_HASH(std::string);
+DEFINE_STRING_HASH(std::wstring);
+
+#if defined(WCHAR_T_IS_UTF32)
+
+
+DEFINE_STRING_HASH(string16);
+#endif  
+
+#undef DEFINE_STRING_HASH
+
+}  
+
+#endif  
 
 #endif  
