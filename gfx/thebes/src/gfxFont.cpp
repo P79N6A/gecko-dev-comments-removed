@@ -1191,7 +1191,10 @@ gfxTextRun::ComputeLigatureData(PRUint32 aPartStart, PRUint32 aPartEnd,
     PRUint32 partClusterIndex = 0;
     PRUint32 partClusterCount = 0;
     for (i = result.mLigatureStart; i < result.mLigatureEnd; ++i) {
-        if (charGlyphs[i].IsClusterStart()) {
+        
+        
+        
+        if (i == result.mLigatureStart || charGlyphs[i].IsClusterStart()) {
             ++totalClusterCount;
             if (i < aPartStart) {
                 ++partClusterIndex;
@@ -1202,8 +1205,20 @@ gfxTextRun::ComputeLigatureData(PRUint32 aPartStart, PRUint32 aPartEnd,
     }
     result.mPartAdvance = ligatureWidth*partClusterIndex/totalClusterCount;
     result.mPartWidth = ligatureWidth*partClusterCount/totalClusterCount;
-    result.mPartIsStartOfLigature = partClusterIndex == 0;
-    result.mPartIsEndOfLigature = partClusterIndex + partClusterCount == totalClusterCount;
+
+    if (partClusterCount == 0) {
+        
+        result.mClipBeforePart = result.mClipAfterPart = PR_TRUE;
+    } else {
+        
+        
+        
+        
+        result.mClipBeforePart = partClusterIndex > 0;
+        
+        
+        result.mClipAfterPart = partClusterIndex + partClusterCount < totalClusterCount;
+    }
 
     if (aProvider && (mFlags & gfxTextRunFactory::TEXT_ENABLE_SPACING)) {
         gfxFont::Spacing spacing;
@@ -1310,16 +1325,14 @@ static void
 ClipPartialLigature(gfxTextRun *aTextRun, gfxFloat *aLeft, gfxFloat *aRight,
                     gfxFloat aXOrigin, gfxTextRun::LigatureData *aLigature)
 {
-    if (!aLigature->mPartIsStartOfLigature) {
-        
+    if (aLigature->mClipBeforePart) {
         if (aTextRun->IsRightToLeft()) {
             *aRight = PR_MIN(*aRight, aXOrigin);
         } else {
             *aLeft = PR_MAX(*aLeft, aXOrigin);
         }
     }
-    if (!aLigature->mPartIsEndOfLigature) {
-        
+    if (aLigature->mClipAfterPart) {
         gfxFloat endEdge = aXOrigin + aTextRun->GetDirection()*aLigature->mPartWidth;
         if (aTextRun->IsRightToLeft()) {
             *aLeft = PR_MAX(*aLeft, endEdge);

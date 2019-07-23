@@ -1271,8 +1271,8 @@ public:
         
         gfxFloat mPartWidth;
         
-        PRPackedBool mPartIsStartOfLigature;
-        PRPackedBool mPartIsEndOfLigature;
+        PRPackedBool mClipBeforePart;
+        PRPackedBool mClipAfterPart;
     };
 
 #ifdef DEBUG
