@@ -456,6 +456,8 @@ nsHTMLImageElement::IsHTMLFocusable(PRBool *aIsFocusable, PRInt32 *aTabIndex)
       
       
       *aIsFocusable = PR_FALSE;
+
+      return PR_FALSE;
     }
   }
 

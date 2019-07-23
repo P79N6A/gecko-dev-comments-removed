@@ -301,7 +301,10 @@ nsHTMLSharedObjectElement::IsHTMLFocusable(PRBool *aIsFocusable,
     if (aTabIndex) {
       GetTabIndex(aTabIndex);
     }
-  
+
+    *aIsFocusable = PR_TRUE;
+
+    
     return PR_TRUE;
   }
 
