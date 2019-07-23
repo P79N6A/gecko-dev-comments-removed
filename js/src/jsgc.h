@@ -434,19 +434,15 @@ struct JSGCStats {
     uint32  maxunmarked;
 
 #endif
-    uint32  maxlevel;       
-    uint32  poke;           
-    uint32  afree;          
-    uint32  stackseg;       
-    uint32  segslots;       
-    uint32  nclose;         
-    uint32  maxnclose;      
-    uint32  closelater;     
-    uint32  maxcloselater;  
-    uint32  nallarenas;     
-    uint32  maxnallarenas;  
-    uint32  nchunks;        
-    uint32  maxnchunks;     
+    uint32  maxlevel;   
+    uint32  poke;       
+    uint32  afree;      
+    uint32  stackseg;   
+    uint32  segslots;   
+    uint32  nclose;     
+    uint32  maxnclose;  
+    uint32  closelater; 
+    uint32  maxcloselater; 
 
     JSGCArenaStats  arenaStats[FINALIZE_LIMIT];
     JSGCArenaStats  doubleArenaStats;
