@@ -628,10 +628,7 @@ void
 gfxContext::UpdateSurfaceClip()
 {
     NewPath();
-    
-    
-    SetDeviceColor(gfxRGBA(0,0,0,0));
-    Rectangle(gfxRect(0,1,1,0));
+    Rectangle(gfxRect(0,0,0,0));
     Fill();
 }
 

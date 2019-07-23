@@ -1,87 +1,55 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/* cairo - a vector graphics library with display and print output
+ *
+ * Copyright © 2004 Keith Packard
+ *
+ * This library is free software; you can redistribute it and/or
+ * modify it either under the terms of the GNU Lesser General Public
+ * License version 2.1 as published by the Free Software Foundation
+ * (the "LGPL") or, at your option, under the terms of the Mozilla
+ * Public License Version 1.1 (the "MPL"). If you do not alter this
+ * notice, a recipient may use your version of this file under either
+ * the MPL or the LGPL.
+ *
+ * You should have received a copy of the LGPL along with this library
+ * in the file COPYING-LGPL-2.1; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ * You should have received a copy of the MPL along with this library
+ * in the file COPYING-MPL-1.1
+ *
+ * The contents of this file are subject to the Mozilla Public License
+ * Version 1.1 (the "License"); you may not use this file except in
+ * compliance with the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * This software is distributed on an "AS IS" basis, WITHOUT WARRANTY
+ * OF ANY KIND, either express or implied. See the LGPL or the MPL for
+ * the specific language governing rights and limitations.
+ *
+ * The Original Code is the cairo graphics library.
+ *
+ * The Initial Developer of the Original Code is Keith Packard
+ *
+ * Contributor(s):
+ *	Keith R. Packard <keithp@keithp.com>
+ */
 
 #include "cairoint.h"
 
 #if HAVE_UINT64_T
 
-#define uint64_lo32(i)	((i) & 0xffffffff)
-#define uint64_hi32(i)	((i) >> 32)
-#define uint64_lo(i)	((i) & 0xffffffff)
-#define uint64_hi(i)	((i) >> 32)
-#define uint64_shift32(i)   ((i) << 32)
-#define uint64_carry32	(((uint64_t) 1) << 32)
-
 #define _cairo_uint32s_to_uint64(h,l) ((uint64_t) (h) << 32 | (l))
 
+cairo_uquorem64_t
+_cairo_uint64_divrem (cairo_uint64_t num, cairo_uint64_t den)
+{
+    cairo_uquorem64_t	qr;
+
+    qr.quo = num / den;
+    qr.rem = num % den;
+    return qr;
+}
+
 #else
-
-#define uint64_lo32(i)	((i).lo)
-#define uint64_hi32(i)	((i).hi)
-
-static cairo_uint64_t
-uint64_lo (cairo_uint64_t i)
-{
-    cairo_uint64_t  s;
-
-    s.lo = i.lo;
-    s.hi = 0;
-    return s;
-}
-
-static cairo_uint64_t
-uint64_hi (cairo_uint64_t i)
-{
-    cairo_uint64_t  s;
-
-    s.lo = i.hi;
-    s.hi = 0;
-    return s;
-}
-
-static cairo_uint64_t
-uint64_shift32 (cairo_uint64_t i)
-{
-    cairo_uint64_t  s;
-
-    s.lo = 0;
-    s.hi = i.lo;
-    return s;
-}
-
-static const cairo_uint64_t uint64_carry32 = { 0, 1 };
 
 cairo_uint64_t
 _cairo_uint32_to_uint64 (uint32_t i)
@@ -159,9 +127,9 @@ _cairo_uint32x32_64_mul (uint32_t a, uint32_t b)
     r2 = (uint32_t) ah * bl;
     r3 = (uint32_t) ah * bh;
 
-    r1 += uint32_hi(r0);    
-    r1 += r2;		    
-    if (r1 < r2)	    
+    r1 += uint32_hi(r0);    /* no carry possible */
+    r1 += r2;		    /* but this can carry */
+    if (r1 < r2)	    /* check */
 	r3 += uint32_carry16;
 
     s.hi = r3 + uint32_hi(r1);
@@ -311,9 +279,9 @@ _cairo_uint64_negate (cairo_uint64_t a)
     return a;
 }
 
-
-
-
+/*
+ * Simple bit-at-a-time divide.
+ */
 cairo_uquorem64_t
 _cairo_uint64_divrem (cairo_uint64_t num, cairo_uint64_t den)
 {
@@ -323,7 +291,7 @@ _cairo_uint64_divrem (cairo_uint64_t num, cairo_uint64_t den)
 
     bit = _cairo_uint32_to_uint64 (1);
 
-    
+    /* normalize to make den >= num, but not overflow */
     while (_cairo_uint64_lt (den, num) && (den.hi & 0x80000000) == 0)
     {
 	bit = _cairo_uint64_lsl (bit, 1);
@@ -331,7 +299,7 @@ _cairo_uint64_divrem (cairo_uint64_t num, cairo_uint64_t den)
     }
     quo = _cairo_uint32_to_uint64 (0);
 
-    
+    /* generate quotient, one bit at a time */
     while (bit.hi | bit.lo)
     {
 	if (_cairo_uint64_le (den, num))
@@ -347,9 +315,34 @@ _cairo_uint64_divrem (cairo_uint64_t num, cairo_uint64_t den)
     return qr;
 }
 
-#endif 
+#endif /* !HAVE_UINT64_T */
+
+cairo_quorem64_t
+_cairo_int64_divrem (cairo_int64_t num, cairo_int64_t den)
+{
+    int			num_neg = _cairo_int64_negative (num);
+    int			den_neg = _cairo_int64_negative (den);
+    cairo_uquorem64_t	uqr;
+    cairo_quorem64_t	qr;
+
+    if (num_neg)
+	num = _cairo_int64_negate (num);
+    if (den_neg)
+	den = _cairo_int64_negate (den);
+    uqr = _cairo_uint64_divrem (num, den);
+    if (num_neg)
+	qr.rem = _cairo_int64_negate (uqr.rem);
+    else
+	qr.rem = uqr.rem;
+    if (num_neg != den_neg)
+	qr.quo = (cairo_int64_t) _cairo_int64_negate (uqr.quo);
+    else
+	qr.quo = (cairo_int64_t) uqr.quo;
+    return qr;
+}
 
 #if HAVE_UINT128_T
+
 cairo_uquorem128_t
 _cairo_uint128_divrem (cairo_uint128_t num, cairo_uint128_t den)
 {
@@ -426,6 +419,54 @@ _cairo_uint128_sub (cairo_uint128_t a, cairo_uint128_t b)
     return s;
 }
 
+#if HAVE_UINT64_T
+
+#define uint64_lo32(i)	((i) & 0xffffffff)
+#define uint64_hi32(i)	((i) >> 32)
+#define uint64_lo(i)	((i) & 0xffffffff)
+#define uint64_hi(i)	((i) >> 32)
+#define uint64_shift32(i)   ((i) << 32)
+#define uint64_carry32	(((uint64_t) 1) << 32)
+
+#else
+
+#define uint64_lo32(i)	((i).lo)
+#define uint64_hi32(i)	((i).hi)
+
+static cairo_uint64_t
+uint64_lo (cairo_uint64_t i)
+{
+    cairo_uint64_t  s;
+
+    s.lo = i.lo;
+    s.hi = 0;
+    return s;
+}
+
+static cairo_uint64_t
+uint64_hi (cairo_uint64_t i)
+{
+    cairo_uint64_t  s;
+
+    s.lo = i.hi;
+    s.hi = 0;
+    return s;
+}
+
+static cairo_uint64_t
+uint64_shift32 (cairo_uint64_t i)
+{
+    cairo_uint64_t  s;
+
+    s.lo = 0;
+    s.hi = i.lo;
+    return s;
+}
+
+static const cairo_uint64_t uint64_carry32 = { 0, 1 };
+
+#endif
+
 cairo_uint128_t
 _cairo_uint64x64_128_mul (cairo_uint64_t a, cairo_uint64_t b)
 {
@@ -443,9 +484,9 @@ _cairo_uint64x64_128_mul (cairo_uint64_t a, cairo_uint64_t b)
     r2 = _cairo_uint32x32_64_mul (ah, bl);
     r3 = _cairo_uint32x32_64_mul (ah, bh);
 
-    r1 = _cairo_uint64_add (r1, uint64_hi (r0));    
-    r1 = _cairo_uint64_add (r1, r2);	    	    
-    if (_cairo_uint64_lt (r1, r2))		    
+    r1 = _cairo_uint64_add (r1, uint64_hi (r0));    /* no carry possible */
+    r1 = _cairo_uint64_add (r1, r2);	    	    /* but this can carry */
+    if (_cairo_uint64_lt (r1, r2))		    /* check */
 	r3 = _cairo_uint64_add (r3, uint64_carry32);
 
     s.hi = _cairo_uint64_add (r3, uint64_hi(r1));
@@ -598,7 +639,7 @@ _cairo_uint128_divrem (cairo_uint128_t num, cairo_uint128_t den)
 
     bit = _cairo_uint32_to_uint128 (1);
 
-    
+    /* normalize to make den >= num, but not overflow */
     while (_cairo_uint128_lt (den, num) && !_cairo_msbset64(den.hi))
     {
 	bit = _cairo_uint128_lsl (bit, 1);
@@ -606,7 +647,7 @@ _cairo_uint128_divrem (cairo_uint128_t num, cairo_uint128_t den)
     }
     quo = _cairo_uint32_to_uint128 (0);
 
-    
+    /* generate quotient, one bit at a time */
     while (_cairo_uint128_ne (bit, _cairo_uint32_to_uint128(0)))
     {
 	if (_cairo_uint128_le (den, num))
@@ -638,7 +679,7 @@ _cairo_int128_not (cairo_int128_t a)
     return a;
 }
 
-#endif 
+#endif /* !HAVE_UINT128_T */
 
 cairo_quorem128_t
 _cairo_int128_divrem (cairo_int128_t num, cairo_int128_t den)
@@ -664,15 +705,15 @@ _cairo_int128_divrem (cairo_int128_t num, cairo_int128_t den)
     return qr;
 }
 
-
-
-
-
-
-
-
-
-
+/**
+ * _cairo_uint_96by64_32x64_divrem:
+ *
+ * Compute a 32 bit quotient and 64 bit remainder of a 96 bit unsigned
+ * dividend and 64 bit divisor.  If the quotient doesn't fit into 32
+ * bits then the returned remainder is equal to the divisor, and the
+ * quotient is the largest representable 64 bit integer.  It is an
+ * error to call this function with the high 32 bits of @num being
+ * non-zero. */
 cairo_uquorem64_t
 _cairo_uint_96by64_32x64_divrem (cairo_uint128_t num,
 				 cairo_uint64_t den)
@@ -680,65 +721,65 @@ _cairo_uint_96by64_32x64_divrem (cairo_uint128_t num,
     cairo_uquorem64_t result;
     cairo_uint64_t B = _cairo_uint32s_to_uint64 (1, 0);
 
-    
-
-
+    /* These are the high 64 bits of the *96* bit numerator.  We're
+     * going to represent the numerator as xB + y, where x is a 64,
+     * and y is a 32 bit number. */
     cairo_uint64_t x = _cairo_uint128_to_uint64 (_cairo_uint128_rsl(num, 32));
 
-    
+    /* Initialise the result to indicate overflow. */
     result.quo = _cairo_uint32s_to_uint64 (-1U, -1U);
     result.rem = den;
 
-    
+    /* Don't bother if the quotient is going to overflow. */
     if (_cairo_uint64_ge (x, den)) {
-	return  result;
+	return /* overflow */ result;
     }
 
     if (_cairo_uint64_lt (x, B)) {
-	
-
+	/* When the final quotient is known to fit in 32 bits, then
+	 * num < 2^64 if and only if den < 2^32. */
 	return _cairo_uint64_divrem (_cairo_uint128_to_uint64 (num), den);
     }
     else {
-	
-
-
-
-
-
-
+	/* Denominator is >= 2^32. the numerator is >= 2^64, and the
+	 * division won't overflow: need two divrems.  Write the
+	 * numerator and denominator as
+	 *
+	 *	num = xB + y		x : 64 bits, y : 32 bits
+	 *	den = uB + v		u, v : 32 bits
+	 */
 	uint32_t y = _cairo_uint128_to_uint32 (num);
 	uint32_t u = uint64_hi32 (den);
 	uint32_t v = _cairo_uint64_to_uint32 (den);
 
-	
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+	/* Compute a lower bound approximate quotient of num/den
+	 * from x/(u+1).  Then we have
+	 *
+	 * x	= q(u+1) + r	; q : 32 bits, r <= u : 32 bits.
+	 *
+	 * xB + y	= q(u+1)B	+ (rB+y)
+	 *		= q(uB + B + v - v) + (rB+y)
+	 *		= q(uB + v)	+ qB - qv + (rB+y)
+	 *		= q(uB + v)	+ q(B-v) + (rB+y)
+	 *
+	 * The true quotient of num/den then is q plus the
+	 * contribution of q(B-v) + (rB+y).  The main contribution
+	 * comes from the term q(B-v), with the term (rB+y) only
+	 * contributing at most one part.
+	 *
+	 * The term q(B-v) must fit into 64 bits, since q fits into 32
+	 * bits on account of being a lower bound to the true
+	 * quotient, and as B-v <= 2^32, we may safely use a single
+	 * 64/64 bit division to find its contribution. */
 
 	cairo_uquorem64_t quorem;
-	cairo_uint64_t remainder; 
-	uint32_t quotient;	
+	cairo_uint64_t remainder; /* will contain final remainder */
+	uint32_t quotient;	/* will contain final quotient. */
 	uint32_t q;
 	uint32_t r;
 
-	
-
+	/* Approximate quotient by dividing the high 64 bits of num by
+	 * u+1. Watch out for overflow of u+1. */
 	if (u+1) {
 	    quorem = _cairo_uint64_divrem (x, _cairo_uint32_to_uint64 (u+1));
 	    q = _cairo_uint64_to_uint32 (quorem.quo);
@@ -750,25 +791,25 @@ _cairo_uint_96by64_32x64_divrem (cairo_uint128_t num,
 	}
 	quotient = q;
 
-	
-
+	/* Add the main term's contribution to quotient.  Note B-v =
+	 * -v as an uint32 (unless v = 0) */
 	if (v)
 	    quorem = _cairo_uint64_divrem (_cairo_uint32x32_64_mul (q, -v), den);
 	else
 	    quorem = _cairo_uint64_divrem (_cairo_uint32s_to_uint64 (q, 0), den);
 	quotient += _cairo_uint64_to_uint32 (quorem.quo);
 
-	
-
+	/* Add the contribution of the subterm and start computing the
+	 * true remainder. */
 	remainder = _cairo_uint32s_to_uint64 (r, y);
 	if (_cairo_uint64_ge (remainder, den)) {
 	    remainder = _cairo_uint64_sub (remainder, den);
 	    quotient++;
 	}
 
-	
-
-
+	/* Add the contribution of the main term's remainder. The
+	 * funky test here checks that remainder + main_rem >= den,
+	 * taking into account overflow of the addition. */
 	remainder = _cairo_uint64_add (remainder, quorem.rem);
 	if (_cairo_uint64_ge (remainder, den) ||
 	    _cairo_uint64_lt (remainder, quorem.rem))
@@ -801,7 +842,7 @@ _cairo_int_96by64_32x64_divrem (cairo_int128_t num, cairo_int64_t den)
 
     uqr = _cairo_uint_96by64_32x64_divrem (num, nonneg_den);
     if (_cairo_uint64_eq (uqr.rem, nonneg_den)) {
-	
+	/* bail on overflow. */
 	qr.quo = _cairo_uint32s_to_uint64 (0x7FFFFFFF, -1U);;
 	qr.rem = den;
 	return qr;
