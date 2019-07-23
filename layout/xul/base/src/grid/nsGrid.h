@@ -68,6 +68,15 @@ public:
   void NeedsRebuild(nsBoxLayoutState& aBoxLayoutState);
   void RebuildIfNeeded();
 
+  
+  
+  
+  
+  
+  
+  
+  
+
   nsSize GetPrefRowSize(nsBoxLayoutState& aBoxLayoutState, PRInt32 aRowIndex, PRBool aIsHorizontal = PR_TRUE);
   nsSize GetMinRowSize(nsBoxLayoutState& aBoxLayoutState, PRInt32 aRowIndex, PRBool aIsHorizontal = PR_TRUE);
   nsSize GetMaxRowSize(nsBoxLayoutState& aBoxLayoutState, PRInt32 aRowIndex, PRBool aIsHorizontal = PR_TRUE);
