@@ -319,8 +319,9 @@ gfxFontFamily::FindFontForStyle(const gfxFontStyle& aFontStyle, PRBool& aNeedsBo
 void
 gfxFontFamily::CheckForSimpleFamily()
 {
-    if (mAvailableFonts.Length() > 4) {
+    if (mAvailableFonts.Length() > 4 || mAvailableFonts.Length() == 0) {
         return; 
+                
     }
 
     PRInt16 firstStretch = mAvailableFonts[0]->Stretch();

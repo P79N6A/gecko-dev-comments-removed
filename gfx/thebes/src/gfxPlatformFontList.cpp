@@ -524,6 +524,13 @@ gfxPlatformFontList::RunLoader()
 
         
         familyEntry->FindStyleVariations();
+        if (familyEntry->GetFontList().Length() == 0) {
+            
+            nsAutoString key;
+            GenerateFontListKey(familyEntry->Name(), key);
+            mFontFamilies.Remove(key);
+            continue;
+        }
 
         
         familyEntry->ReadCMAP();
@@ -535,10 +542,9 @@ gfxPlatformFontList::RunLoader()
         familyEntry->CheckForSimpleFamily();
     }
 
-    mStartIndex += mIncrement;
-    if (mStartIndex < mNumFamilies)
-        return PR_FALSE;
-    return PR_TRUE;
+    mStartIndex = endIndex;
+
+    return (mStartIndex >= mNumFamilies);
 }
 
 void 
