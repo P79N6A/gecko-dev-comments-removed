@@ -57,6 +57,8 @@
 #include "nsDOMError.h"
 #include "nsDOMCID.h"
 #include "jsdbgapi.h"
+#include "jsarena.h"
+#include "jsfun.h"
 #include "nsIXPConnect.h"
 #include "nsIXPCSecurityManager.h"
 #include "nsTextFormatter.h"
@@ -95,6 +97,14 @@ nsIIOService    *nsScriptSecurityManager::sIOService = nsnull;
 nsIXPConnect    *nsScriptSecurityManager::sXPConnect = nsnull;
 nsIStringBundle *nsScriptSecurityManager::sStrBundle = nsnull;
 JSRuntime       *nsScriptSecurityManager::sRuntime   = 0;
+
+
+
+
+static const JSClass *sXPCWrappedNativeJSClass;
+static JSGetObjectOps sXPCWrappedNativeGetObjOps1;
+static JSGetObjectOps sXPCWrappedNativeGetObjOps2;
+
 
 
 
@@ -1875,7 +1885,7 @@ nsScriptSecurityManager::GetCertificatePrincipal(const nsACString& aCertFingerpr
                                      aPrettyName, aCertificate, aURI, PR_TRUE,
                                      result);
 }
-    
+
 nsresult
 nsScriptSecurityManager::DoGetCertificatePrincipal(const nsACString& aCertFingerprint,
                                                    const nsACString& aSubjectName,
@@ -2286,8 +2296,11 @@ nsScriptSecurityManager::GetObjectPrincipal(JSContext *aCx, JSObject *aObj,
 
 
 nsIPrincipal*
-nsScriptSecurityManager::doGetObjectPrincipal(JSContext *aCx, JSObject *aObj,
-                                              PRBool aAllowShortCircuit)
+nsScriptSecurityManager::doGetObjectPrincipal(JSContext *aCx, JSObject *aObj
+#ifdef DEBUG
+                                              , PRBool aAllowShortCircuit
+#endif
+                                              )
 {
     NS_ASSERTION(aCx && aObj, "Bad call to doGetObjectPrincipal()!");
     nsIPrincipal* result = nsnull;
@@ -2296,58 +2309,125 @@ nsScriptSecurityManager::doGetObjectPrincipal(JSContext *aCx, JSObject *aObj,
     JSObject* origObj = aObj;
 #endif
     
-    do
-    {
-        const JSClass *jsClass = JS_GetClass(aCx, aObj);
+    const JSClass *jsClass = JS_GET_CLASS(aCx, aObj);
 
-        if (jsClass && !(~jsClass->flags & (JSCLASS_HAS_PRIVATE |
-                                            JSCLASS_PRIVATE_IS_NSISUPPORTS)))
-        {
-            
+    
+    
+    
+    
+    
+    
+
+    if (jsClass == &js_FunctionClass) {
+        aObj = JS_GetParent(aCx, aObj);
+
+        if (!aObj)
+            return nsnull;
+
+        jsClass = JS_GET_CLASS(aCx, aObj);
+
+        if (jsClass == &js_CallClass) {
+            aObj = JS_GetParent(aCx, aObj);
+
+            if (!aObj)
+                return nsnull;
+
+            jsClass = JS_GET_CLASS(aCx, aObj);
+        }
+    }
+
+    do {
+        
+        
+
+        
+        
+        if (jsClass == sXPCWrappedNativeJSClass ||
+            jsClass->getObjectOps == sXPCWrappedNativeGetObjOps1 ||
+            jsClass->getObjectOps == sXPCWrappedNativeGetObjOps2) {
+            nsIXPConnectWrappedNative *xpcWrapper =
+                (nsIXPConnectWrappedNative *)JS_GetPrivate(aCx, aObj);
+
+            if (xpcWrapper) {
+                nsISupports *native = xpcWrapper->Native();
+                char ch = jsClass->name[0];
+
+                
+                
+                
+                
+
+                
+                
+                
+                
+                
+                
+                
+                
+                if (ch != 'W' && ch != 'M' && ch != 'C'
+#ifdef DEBUG
+                    && aAllowShortCircuit
+#endif
+                    ) {
+                    nsCOMPtr<nsINode> node = do_QueryInterface(native);
+
+                    if (node) {
+                        result = node->NodePrincipal();
+
+                        
+                        
+
+                        break;
+                    }
+                }
+
+                
+                
+                nsCOMPtr<nsIScriptObjectPrincipal> objPrin =
+                    do_QueryInterface(native);
+                if (objPrin) {
+                    result = objPrin->GetPrincipal();
+
+                    if (result) {
+                        break;
+                    }
+                }
+            }
+        } else if (!(~jsClass->flags & (JSCLASS_HAS_PRIVATE |
+                                        JSCLASS_PRIVATE_IS_NSISUPPORTS))) {
             nsISupports *priv = (nsISupports *)JS_GetPrivate(aCx, aObj);
 
-            
+#ifdef DEBUG
+            if (aAllowShortCircuit) {
+                nsCOMPtr<nsIXPConnectWrappedNative> xpcWrapper =
+                    do_QueryInterface(priv);
 
+                NS_ASSERTION(!xpcWrapper,
+                             "Uh, an nsIXPConnectWrappedNative with the "
+                             "wrong JSClass or getObjectOps hooks!");
+            }
+#endif
 
-
-
-            nsCOMPtr<nsIXPConnectWrappedNative> xpcWrapper =
+            nsCOMPtr<nsIScriptObjectPrincipal> objPrin =
                 do_QueryInterface(priv);
 
-            if (NS_LIKELY(xpcWrapper != nsnull))
-            {
-                if (NS_UNLIKELY(aAllowShortCircuit))
-                {
-                    result = xpcWrapper->GetObjectPrincipal();
-                }
-                else
-                {
-                    nsCOMPtr<nsIScriptObjectPrincipal> objPrin;
-                    objPrin = do_QueryWrappedNative(xpcWrapper);
-                    if (objPrin)
-                    {
-                        result = objPrin->GetPrincipal();
-                    }                    
-                }
-            }
-            else
-            {
-                nsCOMPtr<nsIScriptObjectPrincipal> objPrin;
-                objPrin = do_QueryInterface(priv);
-                if (objPrin)
-                {
-                    result = objPrin->GetPrincipal();
-                }
-            }
+            if (objPrin) {
+                result = objPrin->GetPrincipal();
 
-            if (result)
-            {
-                break;
+                if (result) {
+                    break;
+                }
             }
         }
 
         aObj = JS_GetParent(aCx, aObj);
-    } while (aObj);
+
+        if (!aObj)
+            break;
+
+        jsClass = JS_GET_CLASS(aCx, aObj);
+    } while (1);
 
     NS_ASSERTION(!aAllowShortCircuit ||
                  result == doGetObjectPrincipal(aCx, origObj, PR_FALSE),
@@ -3231,6 +3311,10 @@ nsresult nsScriptSecurityManager::Init()
     JSCheckAccessOp oldCallback =
 #endif
         JS_SetCheckObjectAccessCallback(sRuntime, CheckObjectAccess);
+
+    sXPConnect->GetXPCWrappedNativeJSClassInfo(&sXPCWrappedNativeJSClass,
+                                               &sXPCWrappedNativeGetObjOps1,
+                                               &sXPCWrappedNativeGetObjOps2);
 
     
     NS_ASSERTION(!oldCallback, "Someone already set a JS CheckObjectAccess callback");

@@ -409,8 +409,11 @@ private:
     
     
     static nsIPrincipal*
-    doGetObjectPrincipal(JSContext *cx, JSObject *obj,
-                         PRBool aAllowShortCircuit = PR_FALSE);
+    doGetObjectPrincipal(JSContext *cx, JSObject *obj
+#ifdef DEBUG
+                         , PRBool aAllowShortCircuit = PR_TRUE
+#endif
+                         );
 
     
     

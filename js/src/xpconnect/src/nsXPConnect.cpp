@@ -1862,6 +1862,23 @@ nsXPConnect::EvalInSandboxObject(const nsAString& source, JSContext *cx,
 }
 
 
+NS_IMETHODIMP
+nsXPConnect::GetXPCWrappedNativeJSClassInfo(const JSClass **clazz,
+                                            JSGetObjectOps *ops1,
+                                            JSGetObjectOps *ops2)
+{
+    
+    
+    
+
+    *clazz = &XPC_WN_NoHelper_JSClass.base;
+    *ops1 = XPC_WN_GetObjectOpsNoCall;
+    *ops2 = XPC_WN_GetObjectOpsWithCall;
+
+    return NS_OK;
+}
+
+
 NS_IMETHODIMP 
 nsXPConnect::GetWrappedNativePrototype(JSContext * aJSContext, 
                                        JSObject * aScope, 
