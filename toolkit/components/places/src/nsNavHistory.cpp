@@ -2835,6 +2835,11 @@ nsNavHistory::AddVisitChain(nsIURI* aURI, PRTime aTime,
                        &referringVisit, aSessionID, aRedirectBookmark);
     NS_ENSURE_SUCCESS(rv, rv);
 
+    
+    
+    if (!aToplevel) {
+      transitionType = nsINavHistoryService::TRANSITION_EMBED;
+    }
   } else if (aReferrer) {
     
     
