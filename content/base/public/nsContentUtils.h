@@ -1411,6 +1411,12 @@ public:
   static already_AddRefed<nsIDocument>
   GetDocumentFromScriptContext(nsIScriptContext *aScriptContext);
 
+  
+
+
+
+
+  static PRBool CanAccessNativeAnon();
 private:
 
   static PRBool InitializeEventTable();

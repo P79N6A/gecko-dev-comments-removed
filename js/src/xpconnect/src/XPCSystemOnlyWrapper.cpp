@@ -160,6 +160,7 @@ GetWrappedObject(JSContext *cx, JSObject *wrapper)
   return XPCWrapper::UnwrapGeneric(cx, &sXPC_SOW_JSClass, wrapper);
 }
 
+
 JSBool
 AllowedToAct(JSContext *cx, jsval idval)
 {
