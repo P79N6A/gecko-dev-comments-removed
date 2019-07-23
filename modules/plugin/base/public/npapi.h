@@ -412,6 +412,10 @@ typedef enum {
 
 
   NPPVformValue = 16
+#ifdef XP_MACOSX
+  
+  , NPPVpluginDrawingModel = 1000
+#endif
 } NPPVariable;
 
 
