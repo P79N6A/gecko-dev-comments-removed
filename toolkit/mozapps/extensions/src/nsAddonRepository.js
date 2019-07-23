@@ -1,0 +1,367 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+const Cc = Components.classes;
+const Ci = Components.interfaces;
+const Cr = Components.results;
+
+Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
+
+const PREF_GETADDONS_BROWSEADDONS        = "extensions.getAddons.browseAddons";
+const PREF_GETADDONS_BROWSERECOMMENDED   = "extensions.getAddons.recommended.browseURL";
+const PREF_GETADDONS_GETRECOMMENDED      = "extensions.getAddons.recommended.url";
+const PREF_GETADDONS_BROWSESEARCHRESULTS = "extensions.getAddons.search.browseURL";
+const PREF_GETADDONS_GETSEARCHRESULTS    = "extensions.getAddons.search.url";
+
+const XMLURI_PARSE_ERROR  = "http://www.mozilla.org/newlayout/xml/parsererror.xml"
+
+function AddonSearchResult() {
+}
+
+AddonSearchResult.prototype = {
+  id: null,
+  name: null,
+  version: null,
+  summary: null,
+  description: null,
+  rating: null,
+  iconURL: null,
+  thumbnailURL: null,
+  homepageURL: null,
+  eula: null,
+  type: null,
+  xpiURL: null,
+  xpiHash: null,
+
+  QueryInterface: XPCOMUtils.generateQI([Ci.nsIAddonSearchResult])
+}
+
+function AddonRepository() {
+}
+
+AddonRepository.prototype = {
+  
+  _addons: [],
+
+  
+  _searching: false,
+
+  
+  _recommended: false,
+
+  
+  _request: null,
+
+  
+  
+  _emptyCount: null,
+
+  
+  _callback: null,
+
+  
+  _retrieveURI: null,
+
+  
+  _maxResults: null,
+
+  get homepageURL() {
+    return Components.classes["@mozilla.org/toolkit/URLFormatterService;1"]
+                     .getService(Components.interfaces.nsIURLFormatter)
+                     .formatURLPref(PREF_GETADDONS_BROWSEADDONS);
+  },
+
+  get isSearching() {
+    return this._searching;
+  },
+
+  getRecommendedURL: function() {
+    var urlf = Components.classes["@mozilla.org/toolkit/URLFormatterService;1"]
+                         .getService(Components.interfaces.nsIURLFormatter);
+
+    return urlf.formatURLPref(PREF_GETADDONS_BROWSERECOMMENDED);
+  },
+
+  getSearchURL: function(aSearchTerms) {
+    var prefs = Components.classes["@mozilla.org/preferences-service;1"]
+                          .getService(Components.interfaces.nsIPrefBranch);
+    var urlf = Components.classes["@mozilla.org/toolkit/URLFormatterService;1"]
+                         .getService(Components.interfaces.nsIURLFormatter);
+
+    var url = prefs.getCharPref(PREF_GETADDONS_BROWSESEARCHRESULTS);
+    url = url.replace(/%TERMS%/g, encodeURIComponent(aSearchTerms));
+    return urlf.formatURL(url);
+  },
+
+  cancelSearch: function() {
+    this._searching = false;
+    if (this._request) {
+      this._request.abort();
+      this._request = null;
+    }
+  },
+
+  retrieveRecommendedAddons: function(aMaxResults, aCallback) {
+    if (this._searching)
+      return;
+
+    this._searching = true;
+    this._addons = [];
+    this._callback = aCallback;
+    this._recommended = true;
+    this._emptyCount = 0;
+    this._maxResults = aMaxResults;
+
+    var urlf = Components.classes["@mozilla.org/toolkit/URLFormatterService;1"]
+                         .getService(Components.interfaces.nsIURLFormatter);
+
+    this._retrieveURI = urlf.formatURLPref(PREF_GETADDONS_GETRECOMMENDED);
+    this._loadList();
+  },
+
+  searchAddons: function(aSearchTerms, aMaxResults, aCallback) {
+    if (this._searching)
+      return;
+
+    this._searching = true;
+    this._addons = [];
+    this._callback = aCallback;
+    this._recommended = false;
+    this._emptyCount = 0;
+    this._maxResults = aMaxResults;
+
+    var prefs = Components.classes["@mozilla.org/preferences-service;1"]
+                          .getService(Components.interfaces.nsIPrefBranch);
+    var urlf = Components.classes["@mozilla.org/toolkit/URLFormatterService;1"]
+                         .getService(Components.interfaces.nsIURLFormatter);
+
+    this._retrieveURI = prefs.getCharPref(PREF_GETADDONS_GETSEARCHRESULTS);
+    this._retrieveURI = this._retrieveURI.replace(/%TERMS%/g, encodeURIComponent(aSearchTerms));
+    this._retrieveURI = urlf.formatURL(this._retrieveURI);
+    this._loadList();
+  },
+
+  
+  _reportSuccess: function(aCount) {
+    this._searching = false;
+    this._request = null;
+    this._callback.searchSucceeded(this._addons, this._addons.length,
+                                   this._recommended ? -1 : aCount);
+  },
+
+  
+  _reportFailure: function(aEvent) {
+    this._searching = false;
+    this._request = null;
+    this._callback.searchFailed();
+  },
+
+  
+  _parseAddon: function(element) {
+    var em = Cc["@mozilla.org/extensions/manager;1"].
+             getService(Ci.nsIExtensionManager);
+    var app = Cc["@mozilla.org/xre/app-info;1"].
+              getService(Ci.nsIXULAppInfo).
+              QueryInterface(Ci.nsIXULRuntime);
+
+    var guid = element.getElementsByTagName("guid");
+    if (guid.length != 1)
+      return;
+
+    
+    for (var i = 0; i < this._addons.length; i++)
+      if (this._addons[i].id == guid[0].textContent)
+        return;
+
+    
+    if (em.getItemForID(guid[0].textContent) != null)
+      return;
+
+    
+    var status = element.getElementsByTagName("status");
+    
+    if (status.length != 1 || status[0].getAttribute("id") != 4)
+      return;
+
+    
+    var compatible = false;
+    var os = element.getElementsByTagName("compatible_os");
+    var i = 0;
+    while (i < os.length && !compatible) {
+      if (os[i].textContent == "ALL" || os[i].textContent == app.OS) {
+        compatible = true;
+        break;
+      }
+      i++;
+    }
+    if (!compatible)
+      return;
+
+    
+    compatible = false;
+    var tags = element.getElementsByTagName("compatible_applications");
+    if (tags.length != 1)
+      return;
+    var vc = Cc["@mozilla.org/xpcom/version-comparator;1"].
+             getService(Ci.nsIVersionComparator);
+    var apps = tags[0].getElementsByTagName("name");
+    var i = 0;
+    while (i < apps.length) {
+      if (apps[i].textContent.toLowerCase() == app.name.toLowerCase()) {
+        var minversion = apps[i].parentNode.getElementsByTagName("min_version")[0].textContent;
+        var maxversion = apps[i].parentNode.getElementsByTagName("max_version")[0].textContent;
+        if ((vc.compare(minversion, app.version) > 0) ||
+            (vc.compare(app.version, maxversion) > 0))
+          return;
+        compatible = true;
+        break;
+      }
+      i++;
+    }
+    if (!compatible)
+      return;
+
+    var addon = new AddonSearchResult();
+    addon.id = guid[0].textContent;
+    addon.rating = -1;
+    var node = element.firstChild;
+    while (node) {
+      if (node instanceof Ci.nsIDOMElement) {
+        switch (node.localName) {
+          case "name":
+          case "version":
+          case "summary":
+          case "description":
+          case "eula":
+            addon[node.localName] = node.textContent;
+            break;
+          case "rating":
+            if (node.textContent.length > 0)
+              addon.rating = parseInt(node.textContent);
+            break;
+          case "thumbnail":
+            addon.thumbnailURL = node.textContent;
+            break;
+          case "icon":
+            addon.iconURL = node.textContent;
+            break;
+          case "learnmore":
+            addon.homepageURL = node.textContent;
+            break;
+          case "type":
+            
+            
+            if (node.getAttribute("id") == 2)
+              addon.type = Ci.nsIUpdateItem.TYPE_THEME;
+            else
+              addon.type = Ci.nsIUpdateItem.TYPE_EXTENSION;
+            break;
+          case "install":
+            addon.xpiURL = node.textContent;
+            if (node.hasAttribute("hash"))
+              addon.xpiHash = node.getAttribute("hash");
+            break;
+        }
+      }
+      node = node.nextSibling;
+    }
+
+    this._addons.push(addon);
+  },
+
+  
+  
+  _listLoaded: function(aEvent) {
+    var request = aEvent.target;
+    var responseXML = request.responseXML;
+
+    if (!responseXML || responseXML.documentElement.namespaceURI == XMLURI_PARSE_ERROR ||
+        (request.status != 200 && request.status != 0)) {
+      this._reportFailure();
+      return;
+    }
+    var elements = responseXML.documentElement.getElementsByTagName("addon");
+    var oldcount = this._addons.length;
+    for (var i = 0; i < elements.length; i++) {
+      this._parseAddon(elements[i]);
+
+      var prefs = Components.classes["@mozilla.org/preferences-service;1"]
+                            .getService(Components.interfaces.nsIPrefBranch);
+      if (this._addons.length == this._maxResults) {
+        this._reportSuccess(elements.length);
+        return;
+      }
+    }
+
+    
+    if (oldcount == this._addons.length)
+      this._emptyCount++;
+    else
+      this._emptyCount = 0;
+
+    
+
+    if (this._recommended && this._emptyCount < 5)
+      this._loadList();
+    else
+      this._reportSuccess(elements.length);
+  },
+
+  
+  _loadList: function() {
+    this._request = Cc["@mozilla.org/xmlextras/xmlhttprequest;1"].
+                    createInstance(Ci.nsIXMLHttpRequest);
+    this._request.open("GET", this._retrieveURI, true);
+    this._request.overrideMimeType("text/xml");
+
+    var self = this;
+    this._request.onerror = function(event) { self._reportFailure(event); };
+    this._request.onload = function(event) { self._listLoaded(event); };
+    this._request.send(null);
+  },
+
+  classDescription: "Addon Repository",
+  contractID: "@mozilla.org/extensions/addon-repository;1",
+  classID: Components.ID("{8eaaf524-7d6d-4f7d-ae8b-9277b324008d}"),
+  QueryInterface: XPCOMUtils.generateQI([Ci.nsIAddonRepository])
+}
+
+function NSGetModule(aCompMgr, aFileSpec) {
+  return XPCOMUtils.generateModule([AddonRepository]);
+}
