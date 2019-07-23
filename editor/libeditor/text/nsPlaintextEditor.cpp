@@ -305,21 +305,6 @@ nsPlaintextEditor::SetDocumentCharacterSet(const nsACString & characterSet)
   return result; 
 } 
 
-NS_IMETHODIMP 
-nsPlaintextEditor::GetFlags(PRUint32 *aFlags)
-{
-  if (!mRules || !aFlags) { return NS_ERROR_NULL_POINTER; }
-  return mRules->GetFlags(aFlags);
-}
-
-
-NS_IMETHODIMP 
-nsPlaintextEditor::SetFlags(PRUint32 aFlags)
-{
-  if (!mRules) { return NS_ERROR_NULL_POINTER; }
-  return mRules->SetFlags(aFlags);
-}
-
 
 NS_IMETHODIMP nsPlaintextEditor::InitRules()
 {
@@ -327,7 +312,7 @@ NS_IMETHODIMP nsPlaintextEditor::InitRules()
   nsresult res = NS_NewTextEditRules(getter_AddRefs(mRules));
   if (NS_FAILED(res)) return res;
   if (!mRules) return NS_ERROR_UNEXPECTED;
-  return mRules->Init(this, mFlags);
+  return mRules->Init(this);
 }
 
 
@@ -345,11 +330,7 @@ nsPlaintextEditor::GetIsDocumentEditable(PRBool *aIsDocumentEditable)
 
 PRBool nsPlaintextEditor::IsModifiable()
 {
-  PRUint32 flags;
-  if (NS_SUCCEEDED(GetFlags(&flags)))
-    return ((flags & eEditorReadonlyMask) == 0);
-
-  return PR_FALSE;
+  return !IsReadonly();
 }
 
 
@@ -871,7 +852,7 @@ nsPlaintextEditor::BeginComposition()
 {
   NS_ENSURE_TRUE(!mInIMEMode, NS_OK);
 
-  if(mFlags & nsIPlaintextEditor::eEditorPasswordMask)  {
+  if (IsPasswordEditor())  {
     if (mRules) {
       nsIEditRules *p = mRules.get();
       nsTextEditRules *textEditRules = static_cast<nsTextEditRules *>(p);
@@ -993,9 +974,7 @@ nsPlaintextEditor::SetWrapWidth(PRInt32 aWrapColumn)
 
   
   
-  PRUint32 flags = 0;
-  GetFlags(&flags);
-  if (!(flags & eEditorPlaintextMask))
+  if (!IsPlaintextEditor())
     return NS_OK;
 
   
@@ -1026,14 +1005,14 @@ nsPlaintextEditor::SetWrapWidth(PRInt32 aWrapColumn)
   
   
   
-  if ((flags & eEditorEnableWrapHackMask) && aWrapColumn >= 0)
+  if (IsWrapHackEnabled() && aWrapColumn >= 0)
     styleValue.AppendLiteral("font-family: -moz-fixed; ");
 
   
   
   
   
-  if (flags & eEditorMailMask)
+  if (IsMailEditor())
   {
     nsresult rv;
     nsCOMPtr<nsIPrefBranch> prefBranch =

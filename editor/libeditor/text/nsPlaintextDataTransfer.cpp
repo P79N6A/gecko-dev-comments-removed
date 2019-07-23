@@ -526,16 +526,10 @@ nsPlaintextEditor::SetupDocEncoder(nsIDocumentEncoder **aDocEncoder)
   if (NS_FAILED(rv)) return rv;
 
   
-  PRUint32 editorFlags = 0;
-  rv = GetFlags(&editorFlags);
-  if (NS_FAILED(rv)) return rv;
-
-  PRBool bIsPlainTextControl = ((editorFlags & eEditorPlaintextMask) != 0);
-
   
   nsAutoString mimeType;
   PRUint32 docEncoderFlags = 0;
-  if (bIsPlainTextControl)
+  if (IsPlaintextEditor())
   {
     docEncoderFlags |= nsIDocumentEncoder::OutputBodyOnly | nsIDocumentEncoder::OutputPreformatted;
     mimeType.AssignLiteral(kUnicodeMime);
@@ -593,12 +587,7 @@ nsPlaintextEditor::PutDragDataInTransferable(nsITransferable **aTransferable)
   NS_ENSURE_SUCCESS(rv, rv);
 
   
-  PRUint32 editorFlags = 0;
-  rv = GetFlags(&editorFlags);
-  if (NS_FAILED(rv)) return rv;
-
-  PRBool bIsPlainTextControl = ((editorFlags & eEditorPlaintextMask) != 0);
-  if (bIsPlainTextControl)
+  if (IsPlaintextEditor())
   {
     
     rv = trans->AddDataFlavor(kUnicodeMime);
@@ -619,7 +608,7 @@ nsPlaintextEditor::PutDragDataInTransferable(nsITransferable **aTransferable)
   
   
   nsCOMPtr<nsISupports> nsisupportsDataWrapper = do_QueryInterface(dataWrapper);
-  rv = trans->SetTransferData(bIsPlainTextControl ? kUnicodeMime : kHTMLMime,
+  rv = trans->SetTransferData(IsPlaintextEditor() ? kUnicodeMime : kHTMLMime,
                    nsisupportsDataWrapper, buffer.Length() * sizeof(PRUnichar));
   if (NS_FAILED(rv)) return rv;
 

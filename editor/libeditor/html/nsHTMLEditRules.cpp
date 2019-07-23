@@ -248,13 +248,13 @@ NS_IMPL_QUERY_INTERFACE_INHERITED2(nsHTMLEditRules, nsTextEditRules, nsIHTMLEdit
 
 
 NS_IMETHODIMP
-nsHTMLEditRules::Init(nsPlaintextEditor *aEditor, PRUint32 aFlags)
+nsHTMLEditRules::Init(nsPlaintextEditor *aEditor)
 {
   mHTMLEditor = static_cast<nsHTMLEditor*>(aEditor);
   nsresult res;
   
   
-  res = nsTextEditRules::Init(aEditor, aFlags);
+  res = nsTextEditRules::Init(aEditor);
   if (NS_FAILED(res)) return res;
 
   
@@ -1373,8 +1373,6 @@ nsHTMLEditRules::WillInsertText(PRInt32          aAction,
   nsCOMPtr<nsIDOMNode> selNode;
   PRInt32 selOffset;
 
-  PRBool bPlaintext = mFlags & nsIPlaintextEditor::eEditorPlaintextMask;
-
   
   PRBool bCollapsed;
   res = aSelection->GetIsCollapsed(&bCollapsed);
@@ -1450,7 +1448,7 @@ nsHTMLEditRules::WillInsertText(PRInt32          aAction,
     
     
     
-    if (isPRE || bPlaintext)
+    if (isPRE || IsPlaintextEditor())
     {
       while (unicodeBuf && (pos != -1) && (pos < (PRInt32)(*inString).Length()))
       {
@@ -1583,8 +1581,6 @@ nsHTMLEditRules::WillInsertBreak(nsISelection *aSelection, PRBool *aCancel, PRBo
   
   *aCancel = PR_FALSE;
   *aHandled = PR_FALSE;
-  
-  PRBool bPlaintext = mFlags & nsIPlaintextEditor::eEditorPlaintextMask;
 
   
   PRBool bCollapsed;
@@ -1605,9 +1601,9 @@ nsHTMLEditRules::WillInsertBreak(nsISelection *aSelection, PRBool *aCancel, PRBo
   
   
   
-  if (mFlags & nsIPlaintextEditor::eEditorMailMask)
+  if (IsMailEditor())
   {
-    res = SplitMailCites(aSelection, bPlaintext, aHandled);
+    res = SplitMailCites(aSelection, IsPlaintextEditor(), aHandled);
     if (NS_FAILED(res)) return res;
     if (*aHandled) return NS_OK;
   }
@@ -1697,7 +1693,7 @@ nsHTMLEditRules::StandardBreakImpl(nsIDOMNode *aNode, PRInt32 aOffset, nsISelect
   nsCOMPtr<nsIDOMNode> node(aNode);
   nsCOMPtr<nsISelectionPrivate> selPriv(do_QueryInterface(aSelection));
   
-  if (mFlags & nsIPlaintextEditor::eEditorPlaintextMask)
+  if (IsPlaintextEditor())
   {
     res = mHTMLEditor->CreateBR(node, aOffset, address_of(brNode));
   }
@@ -1917,8 +1913,6 @@ nsHTMLEditRules::WillDeleteSelection(nsISelection *aSelection,
   }
 
   nsresult res = NS_OK;
-  PRBool bPlaintext = mFlags & nsIPlaintextEditor::eEditorPlaintextMask;
-  
   PRBool bCollapsed, join = PR_FALSE;
   res = aSelection->GetIsCollapsed(&bCollapsed);
   if (NS_FAILED(res)) return res;
@@ -2363,7 +2357,7 @@ nsHTMLEditRules::WillDeleteSelection(nsISelection *aSelection,
 
   
   
-  if (!bPlaintext)
+  if (!IsPlaintextEditor())
   {
     nsAutoTxnsConserveSelection dontSpazMySelection(mHTMLEditor);
     res = nsWSRunObject::PrepareToDeleteRange(mHTMLEditor,
@@ -2388,10 +2382,10 @@ nsHTMLEditRules::WillDeleteSelection(nsISelection *aSelection,
       
       nsCOMPtr<nsIDOMNode> endCiteNode, startCiteNode;
       res = GetTopEnclosingMailCite(startNode, address_of(startCiteNode), 
-                                    mFlags & nsIPlaintextEditor::eEditorPlaintextMask);
+                                    IsPlaintextEditor());
       if (NS_FAILED(res)) return res; 
       res = GetTopEnclosingMailCite(endNode, address_of(endCiteNode), 
-                                    mFlags & nsIPlaintextEditor::eEditorPlaintextMask);
+                                    IsPlaintextEditor());
       if (NS_FAILED(res)) return res; 
       
       
@@ -2997,7 +2991,7 @@ nsHTMLEditRules::DidDeleteSelection(nsISelection *aSelection,
   
   nsCOMPtr<nsIDOMNode> citeNode;
   res = GetTopEnclosingMailCite(startNode, address_of(citeNode), 
-                                mFlags & nsIPlaintextEditor::eEditorPlaintextMask);
+                                IsPlaintextEditor());
   if (NS_FAILED(res)) return res;
   if (citeNode)
   {

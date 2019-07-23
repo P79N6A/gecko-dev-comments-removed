@@ -272,10 +272,8 @@ nsHTMLEditor::Init(nsIDOMDocument *aDoc, nsIPresShell *aPresShell,
     result = nsPlaintextEditor::Init(aDoc, aPresShell, aRoot, aSelCon, aFlags);
     if (NS_FAILED(result)) { return result; }
 
-    UpdateForFlags(aFlags);
-
     
-    if (aFlags & eEditorMailMask)
+    if (IsMailEditor())
     {
       SetAbsolutePositioningEnabled(PR_FALSE);
       SetSnapToGridEnabled(PR_FALSE);
@@ -291,7 +289,7 @@ nsHTMLEditor::Init(nsIDOMDocument *aDoc, nsIPresShell *aPresShell,
     
     nsPresContext *context = aPresShell->GetPresContext();
     if (!context) return NS_ERROR_NULL_POINTER;
-    if (!(mFlags & (eEditorPlaintextMask | eEditorAllowInteraction))) {
+    if (!IsPlaintextEditor() && !IsInteractionAllowed()) {
       mLinkHandler = context->GetLinkHandler();
 
       context->SetLinkHandler(nsnull);
@@ -306,7 +304,7 @@ nsHTMLEditor::Init(nsIDOMDocument *aDoc, nsIPresShell *aPresShell,
     mSelectionListenerP = new ResizerSelectionListener(this);
     if (!mSelectionListenerP) {return NS_ERROR_NULL_POINTER;}
 
-    if (!(mFlags & eEditorAllowInteraction)) {
+    if (!IsInteractionAllowed()) {
       
       AddOverrideStyleSheet(NS_LITERAL_STRING("resource://gre/res/EditorOverride.css"));
     }
@@ -388,20 +386,17 @@ nsHTMLEditor::RemoveEventListeners()
 }
 
 NS_IMETHODIMP 
-nsHTMLEditor::GetFlags(PRUint32 *aFlags)
-{
-  if (!mRules || !aFlags) { return NS_ERROR_NULL_POINTER; }
-  return mRules->GetFlags(aFlags);
-}
-
-NS_IMETHODIMP 
 nsHTMLEditor::SetFlags(PRUint32 aFlags)
 {
-  if (!mRules) { return NS_ERROR_NULL_POINTER; }
+  nsresult rv = nsPlaintextEditor::SetFlags(aFlags);
+  NS_ENSURE_SUCCESS(rv, rv);
 
-  UpdateForFlags(aFlags);
+  
+  
+  
+  mCSSAware = !NoCSS() && !IsMailEditor();
 
-  return mRules->SetFlags(aFlags);
+  return NS_OK;
 }
 
 NS_IMETHODIMP
@@ -411,7 +406,7 @@ nsHTMLEditor::InitRules()
   nsresult res = NS_NewHTMLEditRules(getter_AddRefs(mRules));
   if (NS_FAILED(res)) return res;
   if (!mRules) return NS_ERROR_UNEXPECTED;
-  res = mRules->Init(static_cast<nsPlaintextEditor*>(this), mFlags);
+  res = mRules->Init(static_cast<nsPlaintextEditor*>(this));
   
   return res;
 }
@@ -1143,11 +1138,7 @@ nsHTMLEditor::GetIsDocumentEditable(PRBool *aIsDocumentEditable)
 
 PRBool nsHTMLEditor::IsModifiable()
 {
-  PRUint32 flags;
-  if (NS_SUCCEEDED(GetFlags(&flags)))
-    return ((flags & nsIPlaintextEditor::eEditorReadonlyMask) == 0);
-  else
-    return PR_FALSE;
+  return !IsReadonly();
 }
 
 #ifdef XP_MAC
@@ -1213,7 +1204,7 @@ NS_IMETHODIMP nsHTMLEditor::HandleKeyPress(nsIDOMKeyEvent* aKeyEvent)
     
     if (keyCode == nsIDOMKeyEvent::DOM_VK_TAB)
     {
-      if (!(mFlags & eEditorPlaintextMask)) {
+      if (!IsPlaintextEditor()) {
         nsCOMPtr<nsISelection>selection;
         res = GetSelection(getter_AddRefs(selection));
         if (NS_FAILED(res)) return res;
@@ -1259,7 +1250,7 @@ NS_IMETHODIMP nsHTMLEditor::HandleKeyPress(nsIDOMKeyEvent* aKeyEvent)
     {
       aKeyEvent->PreventDefault();
       nsString empty;
-      if (isShift && !(mFlags&eEditorPlaintextMask))
+      if (isShift && !IsPlaintextEditor())
       {
         return TypedText(empty, eTypedBR);  
       }
@@ -5119,18 +5110,13 @@ nsHTMLEditor::SetIsCSSEnabled(PRBool aIsCSSPrefChecked)
   }
   
   if (NS_SUCCEEDED(err)) {
-    PRUint32 flags = 0;
-    err = GetFlags(&flags);
-    NS_ENSURE_SUCCESS(err, err);
-
+    PRUint32 flags = mFlags;
     if (aIsCSSPrefChecked) {
       
-      if (flags & eEditorNoCSSMask) {
-        flags -= eEditorNoCSSMask;
-      }
-    } else if (!(flags & eEditorNoCSSMask)) {
+      flags &= ~eEditorNoCSSMask;
+    } else {
       
-      flags += eEditorNoCSSMask;
+      flags |= eEditorNoCSSMask;
     }
 
     err = SetFlags(flags);

@@ -68,14 +68,12 @@ public:
   virtual     ~nsTextEditRules();
 
   
-  NS_IMETHOD Init(nsPlaintextEditor *aEditor, PRUint32 aFlags);
+  NS_IMETHOD Init(nsPlaintextEditor *aEditor);
   NS_IMETHOD DetachEditor();
   NS_IMETHOD BeforeEdit(PRInt32 action, nsIEditor::EDirection aDirection);
   NS_IMETHOD AfterEdit(PRInt32 action, nsIEditor::EDirection aDirection);
   NS_IMETHOD WillDoAction(nsISelection *aSelection, nsRulesInfo *aInfo, PRBool *aCancel, PRBool *aHandled);
   NS_IMETHOD DidDoAction(nsISelection *aSelection, nsRulesInfo *aInfo, nsresult aResult);
-  NS_IMETHOD GetFlags(PRUint32 *aFlags);
-  NS_IMETHOD SetFlags(PRUint32 aFlags);
   NS_IMETHOD DocumentIsEmpty(PRBool *aDocumentIsEmpty);
 
   
@@ -235,6 +233,35 @@ protected:
 
   nsresult HideLastPWInput();
 
+  PRBool IsPasswordEditor() const
+  {
+    return mEditor ? mEditor->IsPasswordEditor() : PR_FALSE;
+  }
+  PRBool IsSingleLineEditor() const
+  {
+    return mEditor ? mEditor->IsSingleLineEditor() : PR_FALSE;
+  }
+  PRBool IsPlaintextEditor() const
+  {
+    return mEditor ? mEditor->IsPlaintextEditor() : PR_FALSE;
+  }
+  PRBool IsReadonly() const
+  {
+    return mEditor ? mEditor->IsReadonly() : PR_FALSE;
+  }
+  PRBool IsDisabled() const
+  {
+    return mEditor ? mEditor->IsDisabled() : PR_FALSE;
+  }
+  PRBool IsMailEditor() const
+  {
+    return mEditor ? mEditor->IsMailEditor() : PR_FALSE;
+  }
+  PRBool DontEchoPassword() const
+  {
+    return mEditor ? mEditor->DontEchoPassword() : PR_FALSE;
+  }
+
   
   nsPlaintextEditor   *mEditor;        
   nsString             mPasswordText;  
@@ -243,7 +270,6 @@ protected:
   nsCOMPtr<nsIDOMNode> mBogusNode;     
   nsCOMPtr<nsIDOMNode> mCachedSelectionNode;    
   PRInt32              mCachedSelectionOffset;  
-  PRUint32             mFlags;
   PRUint32             mActionNesting;
   PRPackedBool         mLockRulesSniffing;
   PRPackedBool         mDidExplicitlySetInterline;

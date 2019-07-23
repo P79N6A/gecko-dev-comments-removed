@@ -72,7 +72,7 @@
 static NS_DEFINE_CID(kLookAndFeelCID, NS_LOOKANDFEEL_CID);
 
 #define CANCEL_OPERATION_IF_READONLY_OR_DISABLED \
-  if ((mFlags & nsIPlaintextEditor::eEditorReadonlyMask) || (mFlags & nsIPlaintextEditor::eEditorDisabledMask)) \
+  if (IsReadonly() || IsDisabled()) \
   {                     \
     *aCancel = PR_TRUE; \
     return NS_OK;       \
@@ -98,7 +98,6 @@ nsTextEditRules::nsTextEditRules()
 , mPasswordText()
 , mPasswordIMEText()
 , mPasswordIMEIndex(0)
-, mFlags(0) 
 , mActionNesting(0)
 , mLockRulesSniffing(PR_FALSE)
 , mDidExplicitlySetInterline(PR_FALSE)
@@ -136,13 +135,11 @@ NS_IMPL_CYCLE_COLLECTING_RELEASE(nsTextEditRules)
 
 
 NS_IMETHODIMP
-nsTextEditRules::Init(nsPlaintextEditor *aEditor, PRUint32 aFlags)
+nsTextEditRules::Init(nsPlaintextEditor *aEditor)
 {
   if (!aEditor) { return NS_ERROR_NULL_POINTER; }
 
   mEditor = aEditor;  
-  
-  SetFlags(aFlags);
   nsCOMPtr<nsISelection> selection;
   mEditor->GetSelection(getter_AddRefs(selection));
   NS_ASSERTION(selection, "editor cannot get selection");
@@ -165,7 +162,7 @@ nsTextEditRules::Init(nsPlaintextEditor *aEditor, PRUint32 aFlags)
     NS_ENSURE_SUCCESS(res, res);
   }
 
-  if (mFlags & nsIPlaintextEditor::eEditorPlaintextMask)
+  if (IsPlaintextEditor())
   {
     
     res = CreateTrailingBRIfNeeded();
@@ -213,28 +210,6 @@ nsTextEditRules::DetachEditor()
     mTimer->Cancel();
 
   mEditor = nsnull;
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsTextEditRules::GetFlags(PRUint32 *aFlags)
-{
-  if (!aFlags) { return NS_ERROR_NULL_POINTER; }
-  *aFlags = mFlags;
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsTextEditRules::SetFlags(PRUint32 aFlags)
-{
-  if (mFlags == aFlags) return NS_OK;
-  
-  
-  
-  
-  
-
-  mFlags = aFlags;
   return NS_OK;
 }
 
@@ -457,7 +432,7 @@ nsTextEditRules::WillInsertBreak(nsISelection *aSelection, PRBool *aCancel, PRBo
   if (!aSelection || !aCancel || !aHandled) { return NS_ERROR_NULL_POINTER; }
   CANCEL_OPERATION_IF_READONLY_OR_DISABLED
   *aHandled = PR_FALSE;
-  if (mFlags & nsIPlaintextEditor::eEditorSingleLineMask) {
+  if (IsSingleLineEditor()) {
     *aCancel = PR_TRUE;
   }
   else 
@@ -490,7 +465,9 @@ nsTextEditRules::DidInsertBreak(nsISelection *aSelection, nsresult aResult)
   
   
   
-  if (!nsIPlaintextEditor::eEditorPlaintextMask & mFlags) return NS_OK;
+  if (!IsPlaintextEditor()) {
+    return NS_OK;
+  }
 
   
   
@@ -554,7 +531,7 @@ GetTextNode(nsISelection *selection, nsEditor *editor) {
 }
 #ifdef DEBUG
 #define ASSERT_PASSWORD_LENGTHS_EQUAL()                                \
-  if (mFlags & nsIPlaintextEditor::eEditorPasswordMask) {              \
+  if (IsPasswordEditor()) {                                            \
     PRInt32 txtLen;                                                    \
     mEditor->GetTextLength(&txtLen);                                   \
     NS_ASSERTION(mPasswordText.Length() == txtLen,                     \
@@ -669,7 +646,7 @@ nsTextEditRules::WillInsertText(PRInt32          aAction,
   PRUint32 end = 0;  
 
   
-  if (mFlags & nsIPlaintextEditor::eEditorPasswordMask)
+  if (IsPasswordEditor())
   {
     res = mEditor->GetTextSelectionOffsets(aSelection, start, end);
     NS_ASSERTION((NS_SUCCEEDED(res)), "getTextSelectionOffsets failed!");
@@ -695,7 +672,7 @@ nsTextEditRules::WillInsertText(PRInt32          aAction,
   
   
   
-  if (mFlags & nsIPlaintextEditor::eEditorPasswordMask)
+  if (IsPasswordEditor())
   {
     if (aAction == kInsertTextIME)  {
       res = RemoveIMETextFromPWBuf(start, outString);
@@ -713,7 +690,7 @@ nsTextEditRules::WillInsertText(PRInt32          aAction,
   
   
   
-  if (nsIPlaintextEditor::eEditorSingleLineMask & mFlags)
+  if (IsSingleLineEditor())
   {
     nsAutoString tString(*outString);
 
@@ -722,14 +699,13 @@ nsTextEditRules::WillInsertText(PRInt32          aAction,
     outString->Assign(tString);
   }
 
-  if (mFlags & nsIPlaintextEditor::eEditorPasswordMask)
+  if (IsPasswordEditor())
   {
     
     mPasswordText.Insert(*outString, start);
 
     nsCOMPtr<nsILookAndFeel> lookAndFeel = do_GetService(kLookAndFeelCID);
-    if (lookAndFeel->GetEchoPassword() && 
-        !(mFlags & nsIPlaintextEditor::eEditorDontEchoPassword)) {
+    if (lookAndFeel->GetEchoPassword() && !DontEchoPassword()) {
       HideLastPWInput();
       mLastStart = start;
       mLastLength = outString->Length();
@@ -820,7 +796,7 @@ nsTextEditRules::WillInsertText(PRInt32          aAction,
         
         if (subStr.EqualsLiteral(LFSTR))
         {
-          if (nsIPlaintextEditor::eEditorSingleLineMask & mFlags)
+          if (IsSingleLineEditor())
           {
             NS_ASSERTION((mEditor->mNewlineHandling == nsIPlaintextEditor::eNewlinesPasteIntact),
                   "Newline improperly getting into single-line edit field!");
@@ -937,7 +913,7 @@ nsTextEditRules::WillSetTextProperty(nsISelection *aSelection, PRBool *aCancel, 
     { return NS_ERROR_NULL_POINTER; }
 
   
-  if (nsIPlaintextEditor::eEditorPlaintextMask & mFlags) {
+  if (IsPlaintextEditor()) {
     *aCancel = PR_TRUE;
   }
   return NS_OK;
@@ -956,7 +932,7 @@ nsTextEditRules::WillRemoveTextProperty(nsISelection *aSelection, PRBool *aCance
     { return NS_ERROR_NULL_POINTER; }
 
   
-  if (nsIPlaintextEditor::eEditorPlaintextMask & mFlags) {
+  if (IsPlaintextEditor()) {
     *aCancel = PR_TRUE;
   }
   return NS_OK;
@@ -989,7 +965,7 @@ nsTextEditRules::WillDeleteSelection(nsISelection *aSelection,
 
   nsresult res = NS_OK;
 
-  if (mFlags & nsIPlaintextEditor::eEditorPasswordMask)
+  if (IsPasswordEditor())
   {
     res = mEditor->ExtendSelectionForDelete(aSelection, &aCollapsedAction);
     NS_ENSURE_SUCCESS(res, res);
@@ -1195,7 +1171,7 @@ nsTextEditRules::WillOutputText(nsISelection *aSelection,
   ToLowerCase(outputFormat);
   if (outputFormat.EqualsLiteral("text/plain"))
   { 
-    if (mFlags & nsIPlaintextEditor::eEditorPasswordMask)
+    if (IsPasswordEditor())
     {
       *aOutString = mPasswordText;
       *aHandled = PR_TRUE;
@@ -1297,7 +1273,7 @@ nsresult
 nsTextEditRules::CreateTrailingBRIfNeeded()
 {
   
-  if (mFlags & nsIPlaintextEditor::eEditorSingleLineMask)
+  if (IsSingleLineEditor())
     return NS_OK;
   nsIDOMNode *body = mEditor->GetRoot();
   if (!body)
@@ -1396,8 +1372,7 @@ nsTextEditRules::TruncateInsertionIfNeeded(nsISelection *aSelection,
   nsresult res = NS_OK;
   *aOutString = *aInString;
   
-  if ((-1 != aMaxLength) && (mFlags & nsIPlaintextEditor::eEditorPlaintextMask)
-      && !mEditor->IsIMEComposing() )
+  if ((-1 != aMaxLength) && IsPlaintextEditor() && !mEditor->IsIMEComposing() )
   {
     
     
