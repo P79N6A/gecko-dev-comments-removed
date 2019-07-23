@@ -101,9 +101,6 @@ function run_test() {
 try {
 
 
-return;
-
-
 var testnum = 0;
 var testdesc = "nsIFaviconService setup";
 
@@ -112,6 +109,13 @@ iconsvc = Cc["@mozilla.org/browser/favicon-service;1"].
 
 if (!iconsvc)
     throw "Couldn't get nsIFaviconService service"
+
+
+
+
+
+
+var isWindows = ("@mozilla.org/windows-registry-key;1" in Cc);
 
 
 
@@ -220,7 +224,10 @@ var expectedData = readFileData(expectedFile);
 
 
 do_check_eq("image/png", outMimeType);
-compareArrays(expectedData, outData);
+
+if (!isWindows)
+  compareArrays(expectedData, outData);
+
 
 
 testnum++;
