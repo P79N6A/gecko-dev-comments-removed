@@ -141,23 +141,12 @@ NS_IMETHODIMP nsFilePicker::ShowW(PRInt16 *aReturnVal)
   NS_NAMED_LITERAL_STRING(htmExt, "html");
   nsAutoString initialDir;
   if (mDisplayDirectory)
-  {
-    PRBool exists;
-    
-    
-    mDisplayDirectory->Exists(&exists);
-    if (exists)
-      mDisplayDirectory->GetPath(initialDir);
-  }
+    mDisplayDirectory->GetPath(initialDir);
 
   
   if(initialDir.IsEmpty()) {
     
     initialDir = mLastUsedUnicodeDirectory;
-    
-    
-    if (initialDir.IsEmpty())
-      initialDir.AssignLiteral(".");
   }
 
   mUnicodeFile.Truncate();
