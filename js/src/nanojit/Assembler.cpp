@@ -1610,7 +1610,7 @@ namespace nanojit
                     
                     
                     releaseRegisters();
-                    AvmAssert(_allocator.countActive() == 0);
+                    NanoAssert(_allocator.countActive() == 0);
 
                     uint32_t count = ins->getTableSize();
                     bool has_back_edges = false;
@@ -1635,7 +1635,7 @@ namespace nanojit
                     
                     
                     
-                    AvmAssert(_allocator.countActive() == 0);
+                    NanoAssert(_allocator.countActive() == 0);
 
                     if (has_back_edges) {
                         handleLoopCarriedExprs(pending_lives);
