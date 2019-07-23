@@ -521,10 +521,6 @@ private:
   nsIntSize mPluginSize;
 
   
-  
-  nsCOMPtr<nsIDOMElement> mBlitParentElement;
-
-  
   gfxRect mAbsolutePosition;
 
   
@@ -2440,6 +2436,7 @@ nsPluginInstanceOwner::nsPluginInstanceOwner()
 #if defined(MOZ_PLATFORM_HILDON) && defined(MOZ_WIDGET_GTK2)
   mPluginSize = nsIntSize(0,0);
   mXlibSurfGC = None;
+  mBlitWindow = nsnull;
   mSharedXImage = nsnull;
   mSharedSegmentInfo.shmaddr = nsnull;
 #endif
@@ -4955,7 +4952,6 @@ nsPluginInstanceOwner::ReleaseXShm()
 PRBool
 nsPluginInstanceOwner::SetupXShm()
 {
-  mBlitWindow = GDK_WINDOW_XWINDOW(GetClosestWindow(mBlitParentElement));
   if (!mBlitWindow)
     return PR_FALSE;
 
@@ -5050,7 +5046,7 @@ void
 nsPluginInstanceOwner::NativeImageDraw(NPRect* invalidRect)
 {
   
-  if (!mBlitParentElement)
+  if (!mBlitWindow)
     return;
 
   
@@ -5768,10 +5764,15 @@ nsPluginInstanceOwner::SetAbsoluteScreenPosition(nsIDOMElement* element,
                                                  nsIDOMClientRect* position,
                                                  nsIDOMClientRect* clip)
 {
-  if ((mBlitParentElement && (mBlitParentElement != element)) ||
-      !position || !clip)
+  if (!element || !position || !clip)
     return NS_ERROR_FAILURE;
   
+  if (!mBlitWindow) {
+    mBlitWindow = GDK_WINDOW_XWINDOW(GetClosestWindow(element));
+    if (!mBlitWindow)
+      return NS_ERROR_FAILURE;
+  }
+
   float left, top, width, height;
   position->GetLeft(&left);
   position->GetTop(&top);
@@ -5787,8 +5788,6 @@ nsPluginInstanceOwner::SetAbsoluteScreenPosition(nsIDOMElement* element,
 
   mAbsolutePositionClip = gfxRect(left, top, width, height);
 
-  mBlitParentElement = element;
-    
   UpdateVisibility(!(width == 0 && height == 0));
 
   if (!mInstance)
