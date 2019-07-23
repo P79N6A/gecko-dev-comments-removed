@@ -68,7 +68,7 @@ NSPR_API(PRStatus) PR_NetAddrToString(
 typedef struct PRHostEnt {
     char *h_name;       
     char **h_aliases;   
-#if defined(WIN32) || defined(WIN16)
+#ifdef WIN32
     PRInt16 h_addrtype; 
     PRInt16 h_length;   
 #else
@@ -354,7 +354,7 @@ NSPR_API(void) PR_ConvertIPv4AddrToIPv6(PRUint32 v4addr, PRIPv6Addr *v6addr);
 typedef struct PRProtoEnt {
     char *p_name;       
     char **p_aliases;   
-#if defined(WIN32) || defined(WIN16)
+#ifdef WIN32
     PRInt16 p_num;      
 #else
     PRInt32 p_num;      

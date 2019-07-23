@@ -48,7 +48,7 @@
 #ifdef NO_NSPR_10_SUPPORT
 
 
-int main()
+int main(int argc, char **argv)
 {
     printf("PASS\n");
     return 0;
@@ -58,7 +58,7 @@ int main()
 
 #include "prtypes.h"  
 
-int main()
+int main(int argc, char **argv)
 {
     
 

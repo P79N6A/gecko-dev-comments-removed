@@ -115,7 +115,7 @@ typedef struct PRTimeParameters {
 typedef struct PRExplodedTime {
     PRInt32 tm_usec;		    
     PRInt32 tm_sec;             
-	
+
     PRInt32 tm_min;             
     PRInt32 tm_hour;            
     PRInt32 tm_mday;            
@@ -174,11 +174,7 @@ typedef PRTimeParameters (PR_CALLBACK *PRTimeParamFn)(const PRExplodedTime *gmt)
 
 
 
-#if defined(HAVE_WATCOM_BUG_2)
-PRTime __pascal __export __loadds
-#else
-NSPR_API(PRTime) 
-#endif
+NSPR_API(PRTime)
 PR_Now(void);
 
 
@@ -195,11 +191,7 @@ NSPR_API(void) PR_ExplodeTime(
     PRTime usecs, PRTimeParamFn params, PRExplodedTime *exploded);
 
 
-#if defined(HAVE_WATCOM_BUG_2)
-PRTime __pascal __export __loadds
-#else
-NSPR_API(PRTime) 
-#endif
+NSPR_API(PRTime)
 PR_ImplodeTime(const PRExplodedTime *exploded);
 
 
@@ -298,7 +290,7 @@ NSPR_API(PRStatus) PR_ParseTimeString (
 #ifndef NO_NSPR_10_SUPPORT
 
 
-NSPR_API(PRUint32) PR_FormatTime(char *buf, int buflen, const char *fmt, 
+NSPR_API(PRUint32) PR_FormatTime(char *buf, int buflen, const char *fmt,
                                            const PRExplodedTime *tm);
 
 

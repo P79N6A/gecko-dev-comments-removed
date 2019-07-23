@@ -53,14 +53,7 @@ PR_BEGIN_EXTERN_C
 
 
 
-#if defined(HAVE_WATCOM_BUG_1)
-
-
-
-PRFloat64 __pascal __loadds __export
-#else
 NSPR_API(PRFloat64)
-#endif
 PR_strtod(const char *s00, char **se);
 
 

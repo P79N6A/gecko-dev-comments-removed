@@ -208,8 +208,12 @@ PR_IMPLEMENT(void) PR_Lock(PRLock *lock)
     PR_ASSERT(0 == lock->notified.length);
     PR_ASSERT(NULL == lock->notified.link);
     PR_ASSERT(PR_FALSE == lock->locked);
-    lock->locked = PR_TRUE;
+    
+
+
+
     lock->owner = pthread_self();
+    lock->locked = PR_TRUE;
 #if defined(DEBUG)
     pt_debug.locks_acquired += 1;
 #endif
@@ -241,6 +245,14 @@ PR_IMPLEMENT(PRStatus) PR_Unlock(PRLock *lock)
     return PR_SUCCESS;
 }  
 
+PR_IMPLEMENT(void) PR_AssertCurrentThreadOwnsLock(PRLock *lock)
+{
+    
+
+
+
+    PR_ASSERT(lock->locked && pthread_equal(lock->owner, pthread_self()));
+}
 
 
 
@@ -514,6 +526,11 @@ PR_IMPLEMENT(PRIntn) PR_GetMonitorEntryCount(PRMonitor *mon)
     if (pthread_equal(mon->owner, self))
         return mon->entryCount;
     return 0;
+}
+
+PR_IMPLEMENT(void) PR_AssertCurrentThreadInMonitor(PRMonitor *mon)
+{
+    PR_ASSERT_CURRENT_THREAD_OWNS_LOCK(&mon->lock);
 }
 
 PR_IMPLEMENT(void) PR_EnterMonitor(PRMonitor *mon)

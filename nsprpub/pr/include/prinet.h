@@ -118,10 +118,6 @@ struct sockaddr_dl;
 
 
 
-#elif defined(WIN16)
-
-#include <winsock.h>
-
 #else
 
 #error Unknown platform

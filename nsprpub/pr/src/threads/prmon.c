@@ -148,6 +148,15 @@ PR_IMPLEMENT(PRIntn) PR_GetMonitorEntryCount(PRMonitor *mon)
 
 
 
+PR_IMPLEMENT(void) PR_AssertCurrentThreadInMonitor(PRMonitor *mon)
+{
+    PR_ASSERT_CURRENT_THREAD_OWNS_LOCK(mon->cvar->lock);
+}
+
+
+
+
+
 
 
 

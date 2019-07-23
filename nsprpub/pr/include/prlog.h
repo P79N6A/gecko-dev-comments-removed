@@ -189,11 +189,7 @@ NSPR_API(void) PR_LogPrint(const char *fmt, ...);
 
 NSPR_API(void) PR_LogFlush(void);
 
-
-
-
-
-#if (defined(DEBUG) || defined(FORCE_PR_LOG)) && !defined(WIN16)
+#if defined(DEBUG) || defined(FORCE_PR_LOG)
 #define PR_LOGGING 1
 
 #define PR_LOG_TEST(_module,_level) \

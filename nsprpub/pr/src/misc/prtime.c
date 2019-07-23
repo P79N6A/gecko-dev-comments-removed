@@ -50,10 +50,8 @@
 
 #include <string.h>
 #include <ctype.h>
-
-#ifdef XP_MAC
+#include <errno.h>  
 #include <time.h>
-#endif
 
 
 
@@ -165,7 +163,7 @@ ComputeGMT(PRTime time, PRExplodedTime *gmt)
     }
 
     
-    
+
     gmt->tm_hour = rem / 3600;
     rem %= 3600;
     gmt->tm_min = rem / 60;
@@ -178,7 +176,7 @@ ComputeGMT(PRTime time, PRExplodedTime *gmt)
 
 
 
-    
+
     numDays += 719162;       
     tmp = numDays / 146097;  
     rem = numDays % 146097;
@@ -199,7 +197,7 @@ ComputeGMT(PRTime time, PRExplodedTime *gmt)
     tmp = rem / 1461;     
     rem %= 1461;
     gmt->tm_year += tmp * 4;
-    
+
     
 
     tmp = rem / 365;
@@ -259,11 +257,7 @@ PR_ExplodeTime(
 
 
 
-#if defined(HAVE_WATCOM_BUG_2)
-PRTime __pascal __export __loadds
-#else
 PR_IMPLEMENT(PRTime)
-#endif
 PR_ImplodeTime(const PRExplodedTime *exploded)
 {
     PRExplodedTime copy;
@@ -512,8 +506,6 @@ PR_NormalizeTime(PRExplodedTime *time, PRTimeParamFn params)
 
 
 
-
-#include <time.h>
 
 #if defined(HAVE_INT_LOCALTIME_R)
 
@@ -1567,6 +1559,12 @@ PR_ParseTimeStringToExplodedTime(
         result->tm_year = year;
   if (dotw != TT_UNKNOWN)
         result->tm_wday = (((int)dotw) - ((int)TT_SUN));
+  
+
+
+
+  PR_NormalizeTime(result, PR_GMTParameters);
+  
 
   if (zone == TT_UNKNOWN && default_to_gmt)
         {
@@ -1616,7 +1614,32 @@ PR_ParseTimeStringToExplodedTime(
 
 
                   localTime.tm_isdst = -1;
+
+#if _MSC_VER == 1400  
+                  
+
+
+
+
+
+
+
+
+
+
+
+
+
+                  if (result->tm_year >= 3000) {
+                      
+                      errno = EINVAL;
+                      secs = (time_t) -1;
+                  } else {
+                      secs = mktime(&localTime);
+                  }
+#else
                   secs = mktime(&localTime);
+#endif
                   if (secs != (time_t) -1)
                     {
                       PRTime usecs64;
@@ -1638,8 +1661,6 @@ PR_ParseTimeStringToExplodedTime(
                               + 1440 * (localTime.tm_mday - 2);
         }
 
-  
-  PR_NormalizeTime(result, PR_GMTParameters);
   result->tm_params.tp_gmt_offset = zone_offset * 60;
   result->tm_params.tp_dst_offset = dst_offset * 60;
 

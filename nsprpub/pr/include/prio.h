@@ -1275,6 +1275,10 @@ NSPR_API(PRFileDesc*)    PR_OpenTCPSocket(PRIntn af);
 
 
 
+
+
+
+
 NSPR_API(PRStatus) PR_Connect(
     PRFileDesc *fd, const PRNetAddr *addr, PRIntervalTime timeout);
 

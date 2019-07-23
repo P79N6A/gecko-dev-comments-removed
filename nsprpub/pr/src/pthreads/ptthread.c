@@ -52,6 +52,13 @@
 #include <string.h>
 #include <signal.h>
 
+#ifdef SYMBIAN
+
+
+
+#undef _POSIX_THREAD_PRIORITY_SCHEDULING
+#endif
+
 
 
 

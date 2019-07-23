@@ -432,7 +432,7 @@ static void OrderedLockTest( void )
 } 
 
 
-PRIntn main(PRIntn argc, char *argv[])
+int main(int argc, char **argv)
 {
 #if defined(DEBUG) || defined(FORCE_NSPR_TRACE)
     PRUint32    counter;

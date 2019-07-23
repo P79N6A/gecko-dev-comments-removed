@@ -156,7 +156,7 @@ struct _imcb *IAC$GL_IMAGE_LIST = NULL;
 
 
 #if defined(SUNOS4) || (defined(DARWIN) && defined(USE_MACH_DYLD)) \
-    || defined(NEXTSTEP) || defined(WIN16) || defined(XP_OS2) \
+    || defined(NEXTSTEP) || defined(XP_OS2) \
     || ((defined(OPENBSD) || defined(NETBSD)) && !defined(__ELF__))
 #define NEED_LEADING_UNDERSCORE
 #endif
@@ -314,34 +314,6 @@ void _PR_InitLinker(void)
     PR_ExitMonitor(pr_linker_lock);
 }
 
-#if defined(WIN16)
-
-
-
-
-void _PR_ShutdownLinker(void)
-{
-    PR_EnterMonitor(pr_linker_lock);
-
-    while (pr_loadmap) {
-    if (pr_loadmap->refCount > 1) {
-#ifdef DEBUG
-        fprintf(stderr, "# Forcing library to unload: %s (%d outstanding references)\n",
-            pr_loadmap->name, pr_loadmap->refCount);
-#endif
-        pr_loadmap->refCount = 1;
-    }
-    PR_UnloadLibrary(pr_loadmap);
-    }
-    
-    PR_ExitMonitor(pr_linker_lock);
-
-    PR_DestroyMonitor(pr_linker_lock);
-    pr_linker_lock = NULL;
-}
-#else
-
-
 
 
 
@@ -361,7 +333,6 @@ void _PR_ShutdownLinker(void)
         _pr_currentLibPath = NULL;
     }
 }
-#endif
 
 
 
@@ -905,7 +876,7 @@ pr_LoadLibraryByPathname(const char *name, PRIntn flags)
 #else
     int dl_flags = 0;
 #endif
-    void *h;
+    void *h = NULL;
 
     if (flags & PR_LD_LAZY) {
         dl_flags |= RTLD_LAZY;
@@ -919,7 +890,17 @@ pr_LoadLibraryByPathname(const char *name, PRIntn flags)
     if (flags & PR_LD_LOCAL) {
         dl_flags |= RTLD_LOCAL;
     }
+#if defined(DARWIN)
+    
+    
+    
+    if (strchr(name, PR_DIRECTORY_SEPARATOR) == NULL ||
+        PR_Access(name, PR_ACCESS_EXISTS) == PR_SUCCESS) {
+            h = dlopen(name, dl_flags);
+        }
+#else
     h = dlopen(name, dl_flags);
+#endif
 #elif defined(USE_HPSHL)
     int shl_flags = 0;
     shl_t h;
@@ -1213,7 +1194,7 @@ pr_FindSymbolInLib(PRLibrary *lm, const char *name)
 #endif
 #endif  
 
-#if defined(WIN32) || defined(WIN16)
+#ifdef WIN32
     f = GetProcAddress(lm->dlh, name);
 #endif  
 

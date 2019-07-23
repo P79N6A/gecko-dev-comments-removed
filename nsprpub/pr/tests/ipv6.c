@@ -109,7 +109,7 @@ static PRStatus PrintAddress(const PRNetAddr* address)
     return rv;
 }  
 
-PRIntn main(PRIntn argc, char **argv)
+int main(int argc, char **argv)
 {
     PRStatus rv;
     PLOptStatus os;

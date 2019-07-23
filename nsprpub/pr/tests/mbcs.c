@@ -142,7 +142,7 @@ static void TraverseDirectory( unsigned char *dir )
 
 } 
 
-PRIntn main(PRIntn argc, char *argv[])
+int main(int argc, char **argv)
 {
     { 
         

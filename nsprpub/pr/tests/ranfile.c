@@ -122,7 +122,7 @@ extern void SetupMacPrintfLog(char *logFile);
 
 
 
-static PRUint32 Random(void)
+static PRUint32 RandomNum(void)
 {
     PRUint32 rv;
     PRUint64 shift;
@@ -175,9 +175,9 @@ static void PR_CALLBACK Thread(void *arg)
     while (PR_TRUE)
     {
         PRUint32 bytes;
-        PRUint32 minor = (Random() % cd->limit) + 1;
-        PRUint32 random = (Random() % cd->limit) + 1;
-        PRUint32 pages = (Random() % cd->limit) + 10;
+        PRUint32 minor = (RandomNum() % cd->limit) + 1;
+        PRUint32 random = (RandomNum() % cd->limit) + 1;
+        PRUint32 pages = (RandomNum() % cd->limit) + 10;
         while (minor-- > 0)
         {
             cd->problem = sg_okay;
@@ -275,7 +275,7 @@ static PRCondVar *cv;
 
 
 
-int main (int argc,      char   *argv[])
+int main(int argc, char **argv)
 {
     PRLock *ml;
     PRUint32 id = 0;
@@ -357,7 +357,7 @@ int main (int argc,      char   *argv[])
             hammer[active].writes = 0;
             hammer[active].action = sg_go;
             hammer[active].problem = sg_okay;
-            hammer[active].limit = (Random() % limit) + 1;
+            hammer[active].limit = (RandomNum() % limit) + 1;
             hammer[active].timein = PR_IntervalNow();
             hammer[active].thread = PR_CreateThread(
                 PR_USER_THREAD, Thread, &hammer[active],

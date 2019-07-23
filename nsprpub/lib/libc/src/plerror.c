@@ -69,20 +69,4 @@ PR_IMPLEMENT(void) PL_PrintError(const char *msg)
 	PL_FPrintError(fd, msg);
 }  
 
-#if defined(WIN16)
-
-
-
-
-int CALLBACK LibMain( HINSTANCE hInst, WORD wDataSeg, 
-  WORD cbHeapSize, LPSTR lpszCmdLine )
-{
-return TRUE;
-}
-#endif 
-
-
-
-
-
 

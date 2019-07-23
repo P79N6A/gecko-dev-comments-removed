@@ -211,9 +211,23 @@ PR_IMPLEMENT(PRStatus)
     return( PR_SUCCESS );
 }
 
+
+
+
+
 PR_IMPLEMENT(PRIntn)
     PR_GetMonitorEntryCount(PRMonitor *mon)
 {
-    return( mon->entryCount );
+    return( (mon->cvar->lock->owner == find_thread( NULL )) ?
+            mon->entryCount : 0 );
 }
 
+
+
+
+
+PR_IMPLEMENT(void)
+    PR_AssertCurrentThreadInMonitor(PRMonitor *mon)
+{
+    PR_ASSERT_CURRENT_THREAD_OWNS_LOCK(mon->cvar->lock);
+}

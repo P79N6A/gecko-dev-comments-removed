@@ -108,6 +108,21 @@ NSPR_API(PRStatus) PR_Notify(PRMonitor *mon);
 
 NSPR_API(PRStatus) PR_NotifyAll(PRMonitor *mon);
 
+
+
+
+
+
+#if defined(DEBUG) || defined(FORCE_PR_ASSERT)
+#define PR_ASSERT_CURRENT_THREAD_IN_MONITOR( mon) \
+    PR_AssertCurrentThreadInMonitor(mon)
+#else
+#define PR_ASSERT_CURRENT_THREAD_IN_MONITOR( mon)
+#endif
+
+
+NSPR_API(void) PR_AssertCurrentThreadInMonitor(PRMonitor *mon);
+
 PR_END_EXTERN_C
 
 #endif 

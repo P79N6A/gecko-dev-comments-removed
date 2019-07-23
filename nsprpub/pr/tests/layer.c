@@ -279,7 +279,7 @@ static Verbosity ChangeVerbosity(Verbosity verbosity, PRIntn delta)
     return (Verbosity)verbage;
 }  
 
-PRIntn main(PRIntn argc, char **argv)
+int main(int argc, char **argv)
 {
     PRStatus rv;
     PRIntn mits;

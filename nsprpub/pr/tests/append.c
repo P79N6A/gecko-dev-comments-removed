@@ -62,7 +62,7 @@ const PRInt32 addedBytes = 1000;
 const PRInt32   buf = 1; 
 PRInt32         inBuf;   
 
-PRIntn main(PRIntn argc, char *argv[])
+int main(int argc, char **argv)
 {
     PRStatus    rc;
     PRInt32     rv;

@@ -407,6 +407,16 @@ PR_IMPLEMENT(PRStatus) PR_Unlock(PRLock *lock)
 
 
 
+PR_IMPLEMENT(void) PR_AssertCurrentThreadOwnsLock(PRLock *lock)
+{
+    PRThread *me = _PR_MD_CURRENT_THREAD();
+    PR_ASSERT(lock->owner == me);
+}
+
+
+
+
+
 
 PR_IMPLEMENT(PRBool) PR_TestAndLock(PRLock *lock)
 {

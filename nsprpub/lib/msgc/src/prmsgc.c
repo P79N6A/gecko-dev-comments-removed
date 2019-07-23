@@ -297,7 +297,6 @@ static PRWord bigAllocBytes = 0;
 
 
 
-#if !defined(WIN16)
 #define SET_HBIT(_sp,_ph) \
     SET_BIT((_sp)->hbits, (((PRWord*)(_ph)) - ((PRWord*) (_sp)->base)))
 
@@ -306,67 +305,6 @@ static PRWord bigAllocBytes = 0;
 
 #define IS_HBIT(_sp,_ph) \
     TEST_BIT((_sp)->hbits, (((PRWord*)(_ph)) - ((PRWord*) (_sp)->base)))
-#else
-
-#define SET_HBIT(_sp,_ph) set_hbit(_sp,_ph)
-
-#define CLEAR_HBIT(_sp,_ph) clear_hbit(_sp,_ph)
-
-#define IS_HBIT(_sp,_ph) is_hbit(_sp,_ph)
-
-static void
-set_hbit(GCSeg *sp, PRWord *p)
-{
-    unsigned int distance;
-    unsigned int index;
-    PRWord     mask;
-
-        PR_ASSERT( SELECTOROF(p) == SELECTOROF(sp->base) );
-        PR_ASSERT( OFFSETOF(p)   >= OFFSETOF(sp->base) );
-
-        distance = (OFFSETOF(p) - OFFSETOF(sp->base)) >> 2;
-    index    = distance >> PR_BITS_PER_WORD_LOG2;
-    mask     = 1L << (distance&(PR_BITS_PER_WORD-1));
-
-    sp->hbits[index] |= mask;
-}
-
-static void
-clear_hbit(GCSeg *sp, PRWord *p)
-{
-    unsigned int distance;
-    unsigned int index;
-    PRWord    mask;
-
-        PR_ASSERT( SELECTOROF(p) == SELECTOROF(sp->base) );
-        PR_ASSERT( OFFSETOF(p)   >= OFFSETOF(sp->base) );
-
-        distance = (OFFSETOF(p) - OFFSETOF(sp->base)) >> 2;
-    index    = distance >> PR_BITS_PER_WORD_LOG2;
-    mask     = 1L << (distance&(PR_BITS_PER_WORD-1));
-
-    sp->hbits[index] &= ~mask;
-}
-
-static int
-is_hbit(GCSeg *sp, PRWord *p)
-{
-    unsigned int distance;
-    unsigned int index;
-    PRWord    mask;
-
-        PR_ASSERT( SELECTOROF(p) == SELECTOROF(sp->base) );
-        PR_ASSERT( OFFSETOF(p)   >= OFFSETOF(sp->base) );
-
-        distance = (OFFSETOF(p) - OFFSETOF(sp->base)) >> 2;
-    index    = distance >> PR_BITS_PER_WORD_LOG2;
-    mask     = 1L << (distance&(PR_BITS_PER_WORD-1));
-
-    return ((sp->hbits[index] & mask) != 0);
-}
-
-
-#endif  
 
 
 
@@ -383,9 +321,6 @@ static PRWord *FindObject(GCSeg *sp, PRWord *p)
     p = (PRWord*) ((PRWord)p & ~(PR_BYTES_PER_WORD-1L));
 
     base = (PRWord *) sp->base;
-#if defined(WIN16)
-    PR_ASSERT( SELECTOROF(p) == SELECTOROF(base));
-#endif
     do {
     if (IS_HBIT(sp, p)) {
         return (p);
@@ -404,15 +339,9 @@ static PRWord *FindObject(GCSeg *sp, PRWord *p)
 #define OutputDebugString(msg)
 #endif 
 
-#if !defined(WIN16)
 #define IN_SEGMENT(_sp, _p)             \
     ((((char *)(_p)) >= (_sp)->base) &&    \
      (((char *)(_p)) < (_sp)->limit))
-#else
-#define IN_SEGMENT(_sp, _p)                  \
-    ((((PRWord)(_p)) >= ((PRWord)(_sp)->base)) && \
-     (((PRWord)(_p)) < ((PRWord)(_sp)->limit)))
-#endif
 
 static GCSeg *InHeap(void *p)
 {
@@ -465,13 +394,6 @@ static GCSeg* DoGrowHeap(PRInt32 requestedSize, PRBool exactly)
     return 0;
     }
 
-#if defined(WIN16)
-    if (requestedSize > segmentSize) {
-    PR_DELETE(segInfo);
-    return 0;
-    }
-#endif
-
     
     if (exactly) {
     allocSize = requestedSize;
@@ -493,9 +415,6 @@ static GCSeg* DoGrowHeap(PRInt32 requestedSize, PRBool exactly)
     * sizeof(PRWord);
 
     
-#if defined(WIN16)
-    PR_ASSERT( nhbytes < MAX_ALLOC_SIZE );
-#endif
     hbits = (PRWord *) PR_CALLOC((PRUint32)nhbytes);
     if (!hbits) {
     
@@ -801,16 +720,8 @@ static void PR_CALLBACK ProcessRootBlock(void **base, PRInt32 count)
     high = _pr_gcData.highSeg;
     while (--count >= 0) {
         p0 = (PRWord*) *base++;
-        
-
-
-
-
-
-#if !defined(WIN16)
         if (p0 < low) continue;                  
         if (p0 >= high) continue;                
-#endif
         
         
     sp = lastInHeap;
@@ -897,16 +808,8 @@ static void PR_CALLBACK ProcessRootPointer(void *ptr)
 
   p0 = (PRWord*) ptr;
 
-  
-
-
-
-
-
-#if !defined(WIN16)
   if (p0 < _pr_gcData.lowSeg) return;                  
   if (p0 >= _pr_gcData.highSeg) return;                
-#endif
 
   
   
@@ -1858,16 +1761,8 @@ pr_ConservativeWalkPointer(void* ptr, PRWalkFun walkRootPointer, void* data)
 
   p0 = (PRWord*) ptr;
 
-  
-
-
-
-
-
-#if !defined(WIN16)
   if (p0 < _pr_gcData.lowSeg) return 0;                  
   if (p0 >= _pr_gcData.highSeg) return 0;                
-#endif
 
   
   
@@ -2637,11 +2532,6 @@ static PRWord *BigAlloc(int cbix, PRInt32 bytes, int dub)
         }
 #endif
 
-#if defined(WIN16)
-            
-            PR_ASSERT( (((PRWord)p) & (PR_BYTES_PER_WORD-1)) == 0 );
-#endif
-
         
         h = MAKE_HEADER(cbix, (chunkSize >> PR_BYTES_PER_WORD_LOG2));
         p[0] = h;
@@ -2802,7 +2692,6 @@ PR_IMPLEMENT(PRWord GCPTR *)PR_AllocMemory(
 
 
 
-#if !defined(WIN16) 
     
     if ((MAX_INT - PR_BYTES_PER_WORD) < bytes ) return NULL;
     bytes = (bytes + PR_BYTES_PER_WORD - 1) >> PR_BYTES_PER_WORD_LOG2;
@@ -2810,25 +2699,6 @@ PR_IMPLEMENT(PRWord GCPTR *)PR_AllocMemory(
     
     if ((MAX_INT - sizeof(PRWord)) < bytes ) return NULL;
     bytes += sizeof(PRWord);
-#else 
-    
-
-
-
-    {
-        PRWord shiftVal;
-
-        
-        if ((MAX_INT - PR_BYTES_PER_WORD) < bytes ) return NULL;
-        bytes += PR_BYTES_PER_WORD - 1L;
-        shiftVal = PR_BYTES_PER_WORD_LOG2;
-        bytes >>= shiftVal;
-        bytes <<= shiftVal;
-        
-        if ((MAX_INT - sizeof(PRWord)) < bytes ) return NULL;
-        bytes += sizeof(PRWord);
-    }
-#endif
     
 
 
@@ -3070,25 +2940,9 @@ PR_AllocSimpleMemory(PRWord requestedBytes, PRInt32 tix)
 
 
 
-#if !defined(WIN16) 
     bytes = (bytes + PR_BYTES_PER_WORD - 1) >> PR_BYTES_PER_WORD_LOG2;
     bytes <<= PR_BYTES_PER_WORD_LOG2;
     bytes += sizeof(PRWord);
-#else 
-    
-
-
-
-    {
-    PRWord shiftVal;
-
-    bytes += PR_BYTES_PER_WORD - 1L;
-    shiftVal = PR_BYTES_PER_WORD_LOG2;
-    bytes >>= shiftVal;
-    bytes <<= shiftVal;
-    bytes += sizeof(PRWord);
-    }
-#endif
     
     
 
@@ -3112,9 +2966,6 @@ PR_AllocSimpleMemory(PRWord requestedBytes, PRInt32 tix)
     bytes += sizeof(GCBlockEnd);
 #endif
 
-#if defined(WIN16)
-    PR_ASSERT( bytes < MAX_ALLOC_SIZE );
-#endif
     
     
 
@@ -3288,10 +3139,6 @@ PR_IMPLEMENT(void) PR_InitGC(
     _pr_pageShift = PR_GetPageShift();
     _pr_pageSize = PR_GetPageSize();
 
-#if defined(WIN16)
-    PR_ASSERT( initialHeapSize < MAX_ALLOC_SIZE );
-#endif
-
   
   if (0 != segSize) segmentSize = segSize;
 #ifdef DEBUG
@@ -3342,19 +3189,6 @@ PR_IMPLEMENT(void) PR_InitGC(
   GrowHeap(initialHeapSize);
     PR_RegisterRootFinder(ScanWeakFreeList, "scan weak free list", 0);
 }
-
-#if defined(WIN16)
-
-
-
-
-PR_IMPLEMENT(PRBool)
-PR_GC_In_Heap(void *object)
-{
-    return InHeap( object ) != NULL;    
-}
-#endif
-
 
 
 
