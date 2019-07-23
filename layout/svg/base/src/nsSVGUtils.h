@@ -116,6 +116,9 @@ class nsSVGDisplayContainerFrame;
 
 #define NS_SVG_OFFSCREEN_MAX_DIMENSION 4096
 
+#define SVG_WSP_DELIM       "\x20\x9\xD\xA"
+#define SVG_COMMA_WSP_DELIM "," SVG_WSP_DELIM
+
 
 
 
