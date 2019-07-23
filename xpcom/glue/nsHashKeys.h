@@ -69,6 +69,8 @@
 
 
 
+
+
 NS_COM_GLUE PRUint32 HashString(const nsAString& aStr);
 NS_COM_GLUE PRUint32 HashString(const nsACString& aStr);
 NS_COM_GLUE PRUint32 HashString(const char* aKey);
@@ -199,31 +201,30 @@ private:
 
 
 
-class nsVoidPtrHashKey : public PLDHashEntryHdr
+template<class T>
+class nsPtrHashKey : public PLDHashEntryHdr
 {
-public:
-  typedef const void* KeyType;
-  typedef const void* KeyTypePointer;
+ public:
+  typedef T *KeyType;
+  typedef const T *KeyTypePointer;
 
-  nsVoidPtrHashKey(const void* key) :
-    mKey(key) { }
-  nsVoidPtrHashKey(const nsVoidPtrHashKey& toCopy) :
-    mKey(toCopy.mKey) { }
-  ~nsVoidPtrHashKey() { }
+  nsPtrHashKey(const T *key) : mKey(const_cast<T*>(key)) {}
+  nsPtrHashKey(const nsPtrHashKey<T> &toCopy) : mKey(toCopy.mKey) {}
+  ~nsPtrHashKey() {}
 
   KeyType GetKey() const { return mKey; }
-  
-  PRBool KeyEquals(KeyTypePointer aKey) const { return aKey == mKey; }
 
-  static KeyTypePointer KeyToPointer(KeyType aKey) { return aKey; }
-  static PLDHashNumber HashKey(KeyTypePointer aKey)
+  PRBool KeyEquals(KeyTypePointer key) const { return key == mKey; }
+
+  static KeyTypePointer KeyToPointer(KeyType key) { return key; }
+  static PLDHashNumber HashKey(KeyTypePointer key)
   {
-    return NS_PTR_TO_INT32(aKey) >>2;
+    return NS_PTR_TO_INT32(key) >> 2;
   }
   enum { ALLOW_MEMMOVE = PR_TRUE };
 
-private:
-  const void* mKey;
+ protected:
+  T *mKey;
 };
 
 
@@ -234,32 +235,18 @@ private:
 
 
 
-class nsClearingVoidPtrHashKey : public PLDHashEntryHdr
+template<class T>
+class nsClearingPtrHashKey : public nsPtrHashKey<T>
 {
-public:
-  typedef const void* KeyType;
-  typedef const void* KeyTypePointer;
-
-  nsClearingVoidPtrHashKey(const void* key) :
-    mKey(key) { }
-  nsClearingVoidPtrHashKey(const nsClearingVoidPtrHashKey& toCopy) :
-    mKey(toCopy.mKey) { }
-  ~nsClearingVoidPtrHashKey() { mKey = NULL; }
-
-  KeyType GetKey() const { return mKey; }
-  
-  PRBool KeyEquals(KeyTypePointer aKey) const { return aKey == mKey; }
-
-  static KeyTypePointer KeyToPointer(KeyType aKey) { return aKey; }
-  static PLDHashNumber HashKey(KeyTypePointer aKey)
-  {
-    return NS_PTR_TO_INT32(aKey) >>2;
-  }
-  enum { ALLOW_MEMMOVE = PR_TRUE };
-
-private:
-  const void* mKey;
+ public:
+  nsClearingPtrHashKey(const T *key) : nsPtrHashKey<T>(key) {}
+  nsClearingPtrHashKey(const nsClearingPtrHashKey<T> &toCopy) :
+    nsPtrHashKey<T>(toCopy) {}
+  ~nsClearingPtrHashKey() { nsPtrHashKey<T>::mKey = nsnull; }
 };
+
+typedef nsPtrHashKey<const void> nsVoidPtrHashKey; 
+typedef nsClearingPtrHashKey<const void> nsClearingVoidPtrHashKey;
 
 
 
