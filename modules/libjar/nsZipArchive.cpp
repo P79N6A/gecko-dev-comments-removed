@@ -49,7 +49,6 @@
 
 
 
-
 #define READTYPE  PRInt32
 #include "zlib.h"
 #include "nsISupportsUtils.h"
@@ -59,7 +58,6 @@
 #include "prlog.h"
 #include "stdlib.h"
 #include "nsWildCard.h"
-#include "zipstruct.h"
 #include "nsZipArchive.h"
 
 
@@ -100,12 +98,16 @@ nsRecyclingAllocator *gZlibAllocator = NULL;
 #  endif
 #endif  
 
-static PRUint16 xtoint(unsigned char *ii);
-static PRUint32 xtolong(unsigned char *ll);
-static PRUint16 ExtractMode(unsigned char *ll);
-static PRUint32 HashName(const char* aName);
+
+static const PRUint32 kMaxNameLength = PATH_MAX; 
+
+static const PRUint16 kSyntheticTime = 0;
+static const PRUint16 kSyntheticDate = (1 + (1 << 5) + (0 << 9));
+
+static PRUint16 xtoint(const unsigned char *ii);
+static PRUint32 xtolong(const unsigned char *ll);
+static PRUint32 HashName(const char* aName, PRUint16 nameLen);
 #if defined(XP_UNIX) || defined(XP_BEOS)
-static PRBool IsSymlink(unsigned char *ll);
 static nsresult ResolveSymlink(const char *path);
 #endif
 
@@ -243,7 +245,7 @@ nsresult nsZipArchive::Test(const char *aEntryName)
     if (!currItem)
       return NS_ERROR_FILE_TARGET_DOES_NOT_EXIST;
     
-    if (currItem->isDirectory)
+    if (currItem->IsDirectory())
       return NS_OK;
     return ExtractFile(currItem, 0, 0);
   }
@@ -252,7 +254,7 @@ nsresult nsZipArchive::Test(const char *aEntryName)
   for (int i = 0; i < ZIP_TABSIZE; i++) {
     for (currItem = mFiles[i]; currItem; currItem = currItem->next) {
       
-      if (currItem->isDirectory)
+      if (currItem->IsDirectory())
         continue;
       nsresult rv = ExtractFile(currItem, 0, 0);
       if (rv != NS_OK)
@@ -291,19 +293,20 @@ nsresult nsZipArchive::CloseArchive()
 nsZipItem*  nsZipArchive::GetItem(const char * aEntryName)
 {
   if (aEntryName) {
+    PRUint32 len = strlen(aEntryName);
     
     
     if (!mBuiltSynthetics) {
-        PRUint32 len = strlen(aEntryName);
         if ((len > 0) && (aEntryName[len-1] == '/')) {
             if (BuildSynthetics() != NS_OK)
                 return 0;
         }
     }
 
-    nsZipItem* item = mFiles[ HashName(aEntryName) ];
+    nsZipItem* item = mFiles[ HashName(aEntryName, len) ];
     while (item) {
-      if (!strcmp(aEntryName, item->name))
+      if ((len == item->nameLength) && 
+         (!memcmp(aEntryName, item->Name(), len)))
         return item; 
       item = item->next;
     }
@@ -328,12 +331,12 @@ nsresult nsZipArchive::ExtractFile(nsZipItem *item, const char *outname,
 
   
   
-  PR_ASSERT(!item->isDirectory);
+  PR_ASSERT(!item->IsDirectory());
 
   nsresult rv;
 
   
-  switch(item->compression)
+  switch(item->Compression())
   {
     case STORED:
       rv = CopyItemToDisk(item, aFd);
@@ -354,7 +357,7 @@ nsresult nsZipArchive::ExtractFile(nsZipItem *item, const char *outname,
     if (rv != NS_OK)
       PR_Delete(outname);
 #if defined(XP_UNIX) || defined(XP_BEOS)
-    else if (item->isSymlink)
+    else if (item->IsSymlink())
       rv = ResolveSymlink(outname);
 #endif
   }
@@ -423,12 +426,13 @@ nsZipArchive::FindInit(const char * aPattern, nsZipFind **aFind)
 
 
 
-nsresult nsZipFind::FindNext(const char ** aResult)
+nsresult nsZipFind::FindNext(const char ** aResult, PRUint16 *aNameLen)
 {
-  if (!mArchive || !aResult)
+  if (!mArchive || !aResult || !aNameLen)
     return NS_ERROR_ILLEGAL_VALUE;
 
   *aResult = 0;
+  *aNameLen = 0;
 
   
   while (mSlot < ZIP_TABSIZE)
@@ -442,12 +446,19 @@ nsresult nsZipFind::FindNext(const char ** aResult)
     else if (!mPattern)
       found = PR_TRUE;            
     else if (mRegExp)
-      found = (NS_WildCardMatch(mItem->name, mPattern, PR_FALSE) == MATCH);
+    {
+      char buf[kMaxNameLength+1];
+      memcpy(buf, mItem->Name(), mItem->nameLength);
+      buf[mItem->nameLength]='\0';
+      found = (NS_WildCardMatch(buf, mPattern, PR_FALSE) == MATCH);
+    }
     else
-      found = (PL_strcmp(mItem->name, mPattern) == 0);
-
+      found = ((mItem->nameLength == strlen(mPattern)) &&
+               (memcmp(mItem->Name(), mPattern, mItem->nameLength) == 0));
     if (found) {
-      *aResult = mItem->name;
+      
+      *aResult = mItem->Name();
+      *aNameLen = mItem->nameLength;
       return NS_OK;
     }
   }
@@ -483,17 +494,14 @@ static nsresult ResolveSymlink(const char *path)
 
 
 
-#define BR_BUF_SIZE 1024 /* backward read buffer size */
 
 
 
-
-nsZipItem* nsZipArchive::CreateZipItem(PRUint16 namelen)
+nsZipItem* nsZipArchive::CreateZipItem()
 {
   
-  
   void *mem;
-  PL_ARENA_ALLOCATE(mem, &mArena, sizeof(nsZipItem)+namelen);
+  PL_ARENA_ALLOCATE(mem, &mArena, sizeof(nsZipItem));
   return (nsZipItem*)mem;
 }
 
@@ -504,20 +512,21 @@ nsresult nsZipArchive::BuildFileList()
 {
   
   PRUint8* buf;
-  PRUint8* endp = mFd->mFileData + mFd->mLen;
+  PRUint8* startp = mFd->mFileData;
+  PRUint8* endp = startp + mFd->mLen;
 
   for (buf = endp - ZIPEND_SIZE; xtolong(buf) != ENDSIG; buf--)
   {
-    if (buf == mFd->mFileData) {
+    if (buf == startp) {
       
       
       return NS_ERROR_FILE_CORRUPTED;
     }
   }
-  PRUint32 central = xtolong(((ZipEnd *)buf)->offset_central_dir);
+  PRUint32 centralOffset = xtolong(((ZipEnd *)buf)->offset_central_dir);
 
   
-  buf = mFd->mFileData + central;
+  buf = startp + centralOffset;
   PRUint32 sig = xtolong(buf);
   while (sig == CENTRALSIG) {
     
@@ -532,43 +541,26 @@ nsresult nsZipArchive::BuildFileList()
     PRUint16 commentlen = xtoint(central->commentfield_len);
 
     
+    buf += ZIPCENTRAL_SIZE + namelen + extralen + commentlen;
+
     
-    if (namelen > BR_BUF_SIZE || extralen > BR_BUF_SIZE || commentlen > 2*BR_BUF_SIZE)
+    
+    if (namelen > kMaxNameLength || buf >= endp)
       return NS_ERROR_FILE_CORRUPTED;
 
-    nsZipItem* item = CreateZipItem(namelen);
+    nsZipItem* item = CreateZipItem();
     if (!item)
       return NS_ERROR_OUT_OF_MEMORY;
 
-    item->headerOffset  = xtolong(central->localhdr_offset);
-    item->size          = xtolong(central->size);
-    item->realsize      = xtolong(central->orglen);
-    item->crc32         = xtolong(central->crc32);
-    item->time          = xtoint(central->time);
-    item->date          = xtoint(central->date);
-    item->isSynthetic   = PR_FALSE;
-    item->compression   = PR_MIN(xtoint(central->method), UNSUPPORTED);
-    item->mode          = ExtractMode(central->external_attributes);
-#if defined(XP_UNIX) || defined(XP_BEOS)
-    
-    item->isSymlink = IsSymlink(central->external_attributes);
-#endif
-
-    buf += ZIPCENTRAL_SIZE;
+    item->central = central;
+    item->nameLength = namelen;
+    item->isSynthetic = false;
 
     
-    memcpy(item->name, buf, namelen);
-    item->name[namelen] = 0;
-    
-    item->isDirectory = ('/' == item->name[namelen - 1]);
-
-    
-    PRUint32 hash = HashName(item->name);
+    PRUint32 hash = HashName(item->Name(), namelen);
     item->next = mFiles[hash];
     mFiles[hash] = item;
 
-    
-    buf += namelen + extralen + commentlen;
     sig = xtolong(buf);
   } 
 
@@ -601,64 +593,40 @@ nsresult nsZipArchive::BuildSynthetics()
       
       
       
-      PRUint16 namelen = strlen(item->name);
-      for (char* p = item->name + namelen - 2; p >= item->name; p--)
+      PRUint16 namelen = item->nameLength;
+      const char *name = item->Name();
+      for (PRUint16 dirlen = namelen - 1; dirlen > 0; dirlen--)
       {
-        if ('/' != *p)
+        if (name[dirlen-1] != '/')
           continue;
 
         
-        
-        
-        
-        
-        
-        const PRUint32 dirnamelen = p + 1 - item->name;
-        const char savedChar = item->name[dirnamelen];
-        item->name[dirnamelen] = 0;
-
-        
-        PRUint32 hash = HashName(item->name);
+        PRUint32 hash = HashName(item->Name(), dirlen);
         PRBool found = PR_FALSE;
         for (nsZipItem* zi = mFiles[hash]; zi != NULL; zi = zi->next)
         {
-          if (0 == strcmp(item->name, zi->name))
+          if ((dirlen == zi->nameLength) &&
+              (0 == memcmp(item->Name(), zi->Name(), dirlen)))
           {
             
             found = PR_TRUE;
             break;
           }
         }
-
-        
-        item->name[dirnamelen] = savedChar;
-
         
         
         
         if (found)
           break;
 
-        nsZipItem* diritem = CreateZipItem(dirnamelen);
+        nsZipItem* diritem = CreateZipItem();
         if (!diritem)
           return NS_ERROR_OUT_OF_MEMORY;
 
-        memcpy(diritem->name, item->name, dirnamelen);
-        diritem->name[dirnamelen] = 0;
-
-        diritem->isDirectory = PR_TRUE;
-        diritem->isSynthetic = PR_TRUE;
-        diritem->compression = STORED;
-        diritem->size = diritem->realsize = 0;
-        diritem->crc32 = 0;
-        diritem->mode = 0755;
-
         
-        
-        
-        
-        diritem->time = 0;
-        diritem->date = 1 + (1 << 5) + (0 << 9);
+        diritem->central =  item->central;
+        diritem->nameLength = dirlen;
+        diritem->isSynthetic = true;
 
         
         diritem->next = mFiles[hash];
@@ -685,27 +653,29 @@ PRUint8* nsZipArchive::GetData(nsZipItem* aItem)
 
   
   
-  if (aItem->headerOffset + ZIPLOCAL_SIZE > mFd->mLen)
+  PRUint32 len = mFd->mLen;
+  PRUint8* data = mFd->mFileData;
+  PRUint32 offset = aItem->LocalOffset();
+  if (offset + ZIPLOCAL_SIZE > len)
     return nsnull;
 
   
-  ZipLocal* Local = (ZipLocal*)(mFd->mFileData + aItem->headerOffset);
+  ZipLocal* Local = (ZipLocal*)(data + offset);
   if ((xtolong(Local->signature) != LOCALSIG))
     return nsnull;
 
   
   
   
-  PRUint32 dataOffset = aItem->headerOffset +
-                        ZIPLOCAL_SIZE +
-                        xtoint(Local->filename_len) +
-                        xtoint(Local->extrafield_len);
+  offset += ZIPLOCAL_SIZE +
+            xtoint(Local->filename_len) +
+            xtoint(Local->extrafield_len);
 
   
-  if (dataOffset + aItem->size > mFd->mLen)
+  if (offset + aItem->Size() > len)
     return nsnull;
 
-  return mFd->mFileData + dataOffset;
+  return data + offset;
 }
 
 
@@ -721,16 +691,16 @@ nsZipArchive::CopyItemToDisk(nsZipItem *item, PRFileDesc* outFD)
   if (!itemData)
     return NS_ERROR_FILE_CORRUPTED;
 
-  if (outFD && PR_Write(outFD, itemData, item->size) < (READTYPE)item->size)
+  if (outFD && PR_Write(outFD, itemData, item->Size()) < (READTYPE)item->Size())
   {
     
     return NS_ERROR_FILE_DISK_FULL;
   }
 
   
-  PRUint32 crc = crc32(0L, (const unsigned char*)itemData, item->size);
+  PRUint32 crc = crc32(0L, (const unsigned char*)itemData, item->Size());
   
-  if (crc != item->crc32)
+  if (crc != item->CRC32())
       return NS_ERROR_FILE_CORRUPTED;
 
   return NS_OK;
@@ -758,7 +728,7 @@ nsresult nsZipArchive::InflateItem(nsZipItem * item, PRFileDesc* outFD)
     return NS_ERROR_FAILURE;
 
   
-  zs.avail_in = item->size;
+  zs.avail_in = item->Size();
   zs.next_in = (Bytef*)GetData(item);
   if (!zs.next_in)
     return NS_ERROR_FILE_CORRUPTED;
@@ -792,7 +762,7 @@ nsresult nsZipArchive::InflateItem(nsZipItem * item, PRFileDesc* outFD)
   inflateEnd(&zs);
 
   
-  if ((status == NS_OK) && (crc != item->crc32))
+  if ((status == NS_OK) && (crc != item->CRC32()))
   {
     status = NS_ERROR_FILE_CORRUPTED;
   }
@@ -850,13 +820,15 @@ nsZipFind::~nsZipFind()
 
 
 
-static PRUint32 HashName(const char* aName)
+static PRUint32 HashName(const char* aName, PRUint16 len)
 {
   PR_ASSERT(aName != 0);
 
+  const PRUint8* p = (const PRUint8*)aName;
+  const PRUint8* endp = p + len;
   PRUint32 val = 0;
-  for (PRUint8* c = (PRUint8*)aName; *c != 0; c++) {
-    val = val*37 + *c;
+  while (p != endp) {
+    val = val*37 + *p++;
   }
 
   return (val % ZIP_TABSIZE);
@@ -868,7 +840,7 @@ static PRUint32 HashName(const char* aName)
 
 
 
-static PRUint16 xtoint (unsigned char *ii)
+static PRUint16 xtoint (const unsigned char *ii)
 {
   return (PRUint16) ((ii [0]) | (ii [1] << 8));
 }
@@ -879,7 +851,7 @@ static PRUint16 xtoint (unsigned char *ii)
 
 
 
-static PRUint32 xtolong (unsigned char *ll)
+static PRUint32 xtolong (const unsigned char *ll)
 {
   return (PRUint32)( (ll [0] <<  0) |
                      (ll [1] <<  8) |
@@ -887,28 +859,56 @@ static PRUint32 xtolong (unsigned char *ll)
                      (ll [3] << 24) );
 }
 
-
-
-
-
-
-
-
-
-static PRUint16 ExtractMode(unsigned char *ll)
+PRUint32 const nsZipItem::LocalOffset()
 {
-    return ((PRUint16)(ll[2])) | 0x0100;
+  return xtolong(central->localhdr_offset);
+}
+
+PRUint32 const nsZipItem::Size()
+{
+  return isSynthetic ? 0 : xtolong(central->size);
+}
+
+PRUint32 const nsZipItem::RealSize()
+{
+  return isSynthetic ? 0 : xtolong(central->orglen);
+}
+
+PRUint32 const nsZipItem::CRC32()
+{
+  return isSynthetic ? 0 : xtolong(central->crc32);
+}
+
+PRUint16 const nsZipItem::Date()
+{
+  return isSynthetic ? kSyntheticDate : xtoint(central->date);
+}
+
+PRUint16 const nsZipItem::Time()
+{
+  return isSynthetic ? kSyntheticTime : xtoint(central->time);
+}
+
+PRUint16 const nsZipItem::Compression()
+{
+  return isSynthetic ? STORED : xtoint(central->method);
+}
+
+bool const nsZipItem::IsDirectory()
+{
+  return isSynthetic || ((nameLength > 0) && ('/' == Name()[nameLength - 1]));
+}
+
+PRUint16 const nsZipItem::Mode()
+{
+  if (isSynthetic) return 0755;
+  return ((PRUint16)(central->external_attributes[2]) | 0x100);
 }
 
 #if defined(XP_UNIX) || defined(XP_BEOS)
-
-
-
-
-
-
-static PRBool IsSymlink(unsigned char *ll)
+bool const nsZipItem::IsSymlink()
 {
-  return ((xtoint(ll+2) & S_IFMT) == S_IFLNK);
+  if (isSynthetic) return false;
+  return (xtoint(central->external_attributes+2) & S_IFMT) == S_IFLNK;
 }
 #endif
