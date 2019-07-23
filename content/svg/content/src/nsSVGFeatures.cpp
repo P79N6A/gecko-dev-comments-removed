@@ -37,25 +37,74 @@
 
 
 
+
+
+
+
+
+
+
+
 #include "nsString.h"
-#include "nsSVGUtils.h"
 #include "nsGkAtoms.h"
+#include "nsIContent.h"
+#include "nsContentUtils.h"
+#include "nsWhitespaceTokenizer.h"
+#include "nsStyleUtil.h"
+#include "nsSVGUtils.h"
+
+class nsSVGCommaTokenizer
+{
+public:
+  nsSVGCommaTokenizer(const nsSubstring& aSource) {
+    aSource.BeginReading(mIter);
+    aSource.EndReading(mEnd);
+
+    while (mIter != mEnd && *mIter == ',') {
+      ++mIter;
+    }
+  }
+
+  
+
+
+  PRBool hasMoreTokens() {
+    return mIter != mEnd;
+  }
+
+  
+
+
+  const nsDependentSubstring nextToken() {
+    nsSubstring::const_char_iterator begin = mIter;
+    while (mIter != mEnd && *mIter != ',') {
+      ++mIter;
+    }
+    nsSubstring::const_char_iterator end = mIter;
+    while (mIter != mEnd && *mIter == ',') {
+      ++mIter;
+    }
+    return Substring(begin, end);
+  }
+
+private:
+  nsSubstring::const_char_iterator mIter, mEnd;
+};
+
+
+
+
+
 
 
 PRBool
-NS_SVG_TestFeature(const nsAString& fstr) {
+NS_SVG_HaveFeature(const nsAString& aFeature)
+{
   if (!NS_SVGEnabled()) {
     return PR_FALSE;
   }
-  nsAutoString lstr(fstr);
-  lstr.StripWhitespace();
 
-#ifdef DEBUG_scooter
-  NS_ConvertUTF16toUTF8 feature(lstr);
-  printf("NS_SVG_TestFeature: testing for %s\n", feature.get());
-#endif
-
-#define SVG_SUPPORTED_FEATURE(str) if (lstr.Equals(NS_LITERAL_STRING(str).get())) return PR_TRUE;
+#define SVG_SUPPORTED_FEATURE(str) if (aFeature.Equals(NS_LITERAL_STRING(str).get())) return PR_TRUE;
 #define SVG_UNSUPPORTED_FEATURE(str)
 #include "nsSVGFeaturesList.h"
 #undef SVG_SUPPORTED_FEATURE
@@ -64,49 +113,128 @@ NS_SVG_TestFeature(const nsAString& fstr) {
 }
 
 
-PRBool
-NS_SVG_TestFeatures(const nsAString& fstr) {
-  nsAutoString lstr(fstr);
-  
-  PRInt32 vbegin = 0;
-  PRInt32 vlen = lstr.Length();
-  while (vbegin < vlen) {
-    PRInt32 vend = lstr.FindChar(PRUnichar(' '), vbegin);
-    if (vend == kNotFound) {
-      vend = vlen;
-    }
-    if (NS_SVG_TestFeature(Substring(lstr, vbegin, vend-vbegin)) == PR_FALSE) {
+
+
+
+
+
+static PRBool
+HaveFeatures(const nsSubstring& aFeatures)
+{
+  nsWhitespaceTokenizer tokenizer(aFeatures);
+  while (tokenizer.hasMoreTokens()) {
+    if (!NS_SVG_HaveFeature(tokenizer.nextToken())) {
       return PR_FALSE;
     }
-    vbegin = vend+1;
   }
   return PR_TRUE;
 }
 
 
-static PRBool
-NS_SVG_Conditional(const nsIAtom *atom, PRUint16 cond) {
 
-#define SVG_ELEMENT(_atom, _supports) if (atom == nsGkAtoms::_atom) return (_supports & cond) != 0;
+
+
+
+
+
+
+
+static PRBool
+MatchesLanguagePreferences(const nsSubstring& aAttribute, const nsSubstring& aLanguagePreferences) 
+{
+  const nsDefaultStringComparator defaultComparator;
+
+  nsSVGCommaTokenizer attributeTokenizer(aAttribute);
+
+  while (attributeTokenizer.hasMoreTokens()) {
+    const nsSubstring &attributeToken = attributeTokenizer.nextToken();
+    nsSVGCommaTokenizer languageTokenizer(aLanguagePreferences);
+    while (languageTokenizer.hasMoreTokens()) {
+      if (nsStyleUtil::DashMatchCompare(attributeToken,
+                                        languageTokenizer.nextToken(),
+                                        defaultComparator)) {
+        return PR_TRUE;
+      }
+    }
+  }
+  return PR_FALSE;
+}
+
+
+
+
+
+
+
+
+
+
+static PRBool
+ElementSupportsAttributes(const nsIAtom *aTagName, PRUint16 aAttr)
+{
+#define SVG_ELEMENT(_atom, _supports) if (aTagName == nsGkAtoms::_atom) return (_supports & aAttr) != 0;
 #include "nsSVGElementList.h"
 #undef SVG_ELEMENT
   return PR_FALSE;
 }
 
-PRBool
-NS_SVG_TestsSupported(const nsIAtom *atom) {
-  return NS_SVG_Conditional(atom, SUPPORTS_TEST);
-}
+
+
+
+
+
+
+
 
 PRBool
-NS_SVG_LangSupported(const nsIAtom *atom) {
-  return NS_SVG_Conditional(atom, SUPPORTS_LANG);
-}
+NS_SVG_PassesConditionalProcessingTests(nsIContent *aContent)
+{
+  if (!ElementSupportsAttributes(aContent->Tag(), ATTRS_CONDITIONAL)) {
+    return PR_TRUE;
+  }
 
-#if 0
+  
+  nsAutoString value;
+  if (aContent->GetAttr(kNameSpaceID_None, nsGkAtoms::requiredFeatures, value)) {
+    if (value.IsEmpty() || !HaveFeatures(value)) {
+      return PR_FALSE;
+    }
+  }
 
-PRBool
-NS_SVG_ExternalSupported(const nsIAtom *atom) {
-  return NS_SVG_Conditional(atom, SUPPORTS_EXTERNAL);
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  if (aContent->HasAttr(kNameSpaceID_None, nsGkAtoms::requiredExtensions)) {
+    return PR_FALSE;
+  }
+
+  
+  
+  
+  
+  
+  
+  
+  if (aContent->GetAttr(kNameSpaceID_None, nsGkAtoms::systemLanguage,
+                        value)) {
+    
+    nsAutoString langPrefs(nsContentUtils::GetLocalizedStringPref("intl.accept_languages"));
+    if (!langPrefs.IsEmpty()) {
+      langPrefs.StripWhitespace();
+      value.StripWhitespace();
+      return MatchesLanguagePreferences(value, langPrefs);
+    } else {
+      
+      NS_WARNING("no default language specified for systemLanguage conditional test");
+      return !value.IsEmpty();
+    }
+  }
+
+  return PR_TRUE;
 }
-#endif

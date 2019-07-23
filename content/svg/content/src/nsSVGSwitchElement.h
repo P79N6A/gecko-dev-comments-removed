@@ -1,0 +1,83 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#include "nsSVGGraphicElement.h"
+#include "nsIDOMSVGSwitchElement.h"
+
+typedef nsSVGGraphicElement nsSVGSwitchElementBase;
+
+class nsSVGSwitchElement : public nsSVGSwitchElementBase,
+                           public nsIDOMSVGSwitchElement
+{
+  friend class nsSVGSwitchFrame;
+protected:
+  friend nsresult NS_NewSVGSwitchElement(nsIContent **aResult,
+                                         nsINodeInfo *aNodeInfo);
+  nsSVGSwitchElement(nsINodeInfo *aNodeInfo);
+
+public:
+  nsIContent * GetActiveChild()
+  { return mActiveChild; }
+  void MaybeInvalidate();
+    
+  
+
+  NS_DECL_ISUPPORTS_INHERITED
+  NS_DECL_NSIDOMSVGSWITCHELEMENT
+
+  
+  NS_FORWARD_NSIDOMNODE(nsSVGSwitchElementBase::)
+  NS_FORWARD_NSIDOMELEMENT(nsSVGSwitchElementBase::)
+  NS_FORWARD_NSIDOMSVGELEMENT(nsSVGSwitchElementBase::)
+
+  
+  virtual nsresult InsertChildAt(nsIContent* aKid, PRUint32 aIndex,
+                                 PRBool aNotify);
+  virtual nsresult RemoveChildAt(PRUint32 aIndex, PRBool aNotify);
+
+  
+  NS_IMETHOD_(PRBool) IsAttributeMapped(const nsIAtom* aAttribute) const;
+
+  virtual nsresult Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const;
+
+private:
+  void UpdateActiveChild();
+
+  
+  nsCOMPtr<nsIContent> mActiveChild;
+};

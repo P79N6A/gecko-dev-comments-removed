@@ -34,35 +34,13 @@
 
 
 
-#include "nsSVGGraphicElement.h"
-#include "nsIDOMSVGSwitchElement.h"
+#include "nsSVGSwitchElement.h"
+#include "nsIFrame.h"
+#include "nsISVGChildFrame.h"
+#include "nsSVGUtils.h"
 
-typedef nsSVGGraphicElement nsSVGSwitchElementBase;
-
-class nsSVGSwitchElement : public nsSVGSwitchElementBase,
-                           public nsIDOMSVGSwitchElement
-{
-protected:
-  friend nsresult NS_NewSVGSwitchElement(nsIContent **aResult,
-                                         nsINodeInfo *aNodeInfo);
-  nsSVGSwitchElement(nsINodeInfo *aNodeInfo);
-
-public:
-  
-
-  NS_DECL_ISUPPORTS_INHERITED
-  NS_DECL_NSIDOMSVGSWITCHELEMENT
-
-  
-  NS_FORWARD_NSIDOMNODE(nsSVGSwitchElementBase::)
-  NS_FORWARD_NSIDOMELEMENT(nsSVGSwitchElementBase::)
-  NS_FORWARD_NSIDOMSVGELEMENT(nsSVGSwitchElementBase::)
-
-  
-  NS_IMETHOD_(PRBool) IsAttributeMapped(const nsIAtom* aAttribute) const;
-
-  virtual nsresult Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const;
-};
+PRBool 
+NS_SVG_PassesConditionalProcessingTests(nsIContent *aContent);
 
 
 
@@ -91,9 +69,53 @@ NS_INTERFACE_MAP_END_INHERITING(nsSVGSwitchElementBase)
 nsSVGSwitchElement::nsSVGSwitchElement(nsINodeInfo *aNodeInfo)
   : nsSVGSwitchElementBase(aNodeInfo)
 {
-
 }
 
+void
+nsSVGSwitchElement::MaybeInvalidate()
+{
+  
+  
+  
+
+  PRUint32 count = GetChildCount();
+  for (PRUint32 i = 0; i < count; i++) {
+    nsIContent * child = GetChildAt(i);
+    if (child->IsNodeOfType(nsINode::eELEMENT) &&
+        NS_SVG_PassesConditionalProcessingTests(child)) {
+
+      if (mActiveChild == child) {
+        return;
+      }
+
+      nsIFrame *frame = GetPrimaryFrame();
+      if (frame) {
+        nsISVGChildFrame* svgFrame = nsnull;
+
+        CallQueryInterface(frame, &svgFrame);
+        if (svgFrame) {
+          nsSVGUtils::UpdateGraphic(svgFrame);
+        }
+      }
+      return;
+    }
+  }
+}
+
+void
+nsSVGSwitchElement::UpdateActiveChild()
+{
+  PRUint32 count = GetChildCount();
+  for (PRUint32 i = 0; i < count; i++) {
+    nsIContent * child = GetChildAt(i);
+    if (child->IsNodeOfType(nsINode::eELEMENT) &&
+        NS_SVG_PassesConditionalProcessingTests(child)) {
+      mActiveChild = child;
+      return;
+    }
+  }
+  mActiveChild = nsnull;
+}
 
 
 
@@ -102,6 +124,30 @@ nsSVGSwitchElement::nsSVGSwitchElement(nsINodeInfo *aNodeInfo)
 NS_IMPL_ELEMENT_CLONE_WITH_INIT(nsSVGSwitchElement)
 
 
+
+
+nsresult
+nsSVGSwitchElement::InsertChildAt(nsIContent* aKid,
+                                  PRUint32 aIndex,
+                                  PRBool aNotify)
+{
+  nsresult rv = nsSVGSwitchElementBase::InsertChildAt(aKid, aIndex, aNotify);
+  if (NS_SUCCEEDED(rv)) {
+    MaybeInvalidate();
+  }
+  return rv;
+}
+
+nsresult
+nsSVGSwitchElement::RemoveChildAt(PRUint32 aIndex, PRBool aNotify)
+{
+  nsresult rv = nsSVGSwitchElementBase::RemoveChildAt(aIndex, aNotify);
+  if (NS_SUCCEEDED(rv)) {
+    MaybeInvalidate();
+  }
+  return rv;
+}
+ 
 
 
 

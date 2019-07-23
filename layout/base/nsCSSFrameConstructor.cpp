@@ -180,6 +180,8 @@ NS_NewSVGAFrame(nsIPresShell* aPresShell, nsIContent* aContent, nsStyleContext* 
 nsIFrame*
 NS_NewSVGGlyphFrame(nsIPresShell* aPresShell, nsIContent* aContent, nsIFrame* parent, nsStyleContext* aContext);
 nsIFrame*
+NS_NewSVGSwitchFrame(nsIPresShell* aPresShell, nsIContent* aContent, nsStyleContext* aContext);
+nsIFrame*
 NS_NewSVGTextFrame(nsIPresShell* aPresShell, nsIContent* aContent, nsStyleContext* aContext);
 nsIFrame*
 NS_NewSVGTSpanFrame(nsIPresShell* aPresShell, nsIContent* aContent, nsIFrame* parent, nsStyleContext* aContext);
@@ -188,11 +190,7 @@ NS_NewSVGContainerFrame(nsIPresShell* aPresShell, nsIContent* aContent, nsStyleC
 nsIFrame*
 NS_NewSVGUseFrame(nsIPresShell* aPresShell, nsIContent* aContent, nsStyleContext* aContext);
 PRBool 
-NS_SVG_TestFeatures (const nsAString& value);
-PRBool 
-NS_SVG_TestsSupported (const nsIAtom *atom);
-PRBool 
-NS_SVG_LangSupported (const nsIAtom *atom);
+NS_SVG_PassesConditionalProcessingTests(nsIContent *aContent);
 extern nsIFrame*
 NS_NewSVGLinearGradientFrame(nsIPresShell *aPresShell, nsIContent *aContent, nsStyleContext* aContext);
 extern nsIFrame*
@@ -396,44 +394,6 @@ SVG_GetFirstNonAAncestorFrame(nsIFrame *aParentFrame)
     }
   }
   return nsnull;
-}
-
-
-static PRBool
-SVG_TestLanguage(const nsSubstring& lstr, const nsSubstring& prefs) 
-{
-  
-  
-  
-  
-  
-  PRInt32 vbegin = 0;
-  PRInt32 vlen = lstr.Length();
-  while (vbegin < vlen) {
-    PRInt32 vend = lstr.FindChar(PRUnichar(','), vbegin);
-    if (vend == kNotFound) {
-      vend = vlen;
-    }
-    PRInt32 gbegin = 0;
-    PRInt32 glen = prefs.Length();
-    while (gbegin < glen) {
-      PRInt32 gend = prefs.FindChar(PRUnichar(','), gbegin);
-      if (gend == kNotFound) {
-        gend = glen;
-      }
-      const nsDefaultStringComparator defaultComparator;
-      const nsStringComparator& comparator = 
-                  static_cast<const nsStringComparator&>(defaultComparator);
-      if (nsStyleUtil::DashMatchCompare(Substring(lstr, vbegin, vend-vbegin),
-                                        Substring(prefs, gbegin, gend-gbegin),
-                                        comparator)) {
-        return PR_TRUE;
-      }
-      gbegin = gend + 1;
-    }
-    vbegin = vend + 1;
-  }
-  return PR_FALSE;
 }
 #endif
 
@@ -7068,142 +7028,6 @@ nsCSSFrameConstructor::ConstructMathMLFrame(nsFrameConstructorState& aState,
 
 #ifdef MOZ_SVG
 nsresult
-nsCSSFrameConstructor::TestSVGConditions(nsIContent* aContent,
-                                         PRBool&     aHasRequiredExtensions,
-                                         PRBool&     aHasRequiredFeatures,
-                                         PRBool&     aHasSystemLanguage)
-{
-  nsAutoString value;
-
-  
-  if (! aContent->IsNodeOfType(nsINode::eELEMENT)) {
-    aHasRequiredExtensions = PR_FALSE;
-    aHasRequiredFeatures = PR_FALSE;
-    aHasSystemLanguage = PR_FALSE;
-    return NS_OK;
-  }
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  aHasRequiredExtensions = !aContent->HasAttr(kNameSpaceID_None,
-                                              nsGkAtoms::requiredExtensions);
-
-  
-  aHasRequiredFeatures = PR_TRUE;
-  if (aContent->GetAttr(kNameSpaceID_None, nsGkAtoms::requiredFeatures, value)) {
-    aHasRequiredFeatures = !value.IsEmpty() && NS_SVG_TestFeatures(value);
-  }
-
-  
-  
-  
-  
-  
-  
-  
-  aHasSystemLanguage = PR_TRUE;
-  if (aContent->GetAttr(kNameSpaceID_None, nsGkAtoms::systemLanguage,
-                        value)) {
-    
-    nsAutoString langPrefs(nsContentUtils::GetLocalizedStringPref("intl.accept_languages"));
-    if (!langPrefs.IsEmpty()) {
-      langPrefs.StripWhitespace();
-      value.StripWhitespace();
-#ifdef  DEBUG_scooter
-      printf("Calling SVG_TestLanguage('%s','%s')\n", NS_ConvertUTF16toUTF8(value).get(), 
-                                                      NS_ConvertUTF16toUTF8(langPrefs).get());
-#endif
-      aHasSystemLanguage = SVG_TestLanguage(value, langPrefs);
-    } else {
-      
-      NS_WARNING("no default language specified for systemLanguage conditional test");
-      aHasSystemLanguage = !value.IsEmpty();
-    }
-  }
-  return NS_OK;
-}
-
-nsresult
-nsCSSFrameConstructor::SVGSwitchProcessChildren(nsFrameConstructorState& aState,
-                                                nsIContent*              aContent,
-                                                nsIFrame*                aFrame,
-                                                nsFrameItems&            aFrameItems)
-{
-  nsresult rv = NS_OK;
-  PRBool hasRequiredExtensions = PR_FALSE;
-  PRBool hasRequiredFeatures = PR_FALSE;
-  PRBool hasSystemLanguage = PR_FALSE;
-
-  
-  nsPseudoFrames priorPseudoFrames;
-  aState.mPseudoFrames.Reset(&priorPseudoFrames);
-
-  
-  
-  
-  
-  
-  PRInt32 childCount = aContent->GetChildCount();
-  for (PRInt32 i = 0; i < childCount; ++i) {
-    nsIContent* child = aContent->GetChildAt(i);
-
-    
-    if (!child->IsNodeOfType(nsINode::eELEMENT)) {
-      continue;
-    }
-
-    rv = TestSVGConditions(child,
-                           hasRequiredExtensions,
-                           hasRequiredFeatures,
-                           hasSystemLanguage);
-#ifdef DEBUG_scooter
-    nsAutoString str;
-    child->Tag()->ToString(str);
-    printf("Child tag: %s\n", NS_ConvertUTF16toUTF8(str).get());
-    printf("SwitchProcessChildren: Required Extensions = %s, Required Features = %s, System Language = %s\n",
-            hasRequiredExtensions ? "true" : "false",
-            hasRequiredFeatures ? "true" : "false",
-            hasSystemLanguage ? "true" : "false");
-#endif
-    if (NS_FAILED(rv))
-      return rv;
-
-    if (hasRequiredExtensions &&
-        hasRequiredFeatures &&
-        hasSystemLanguage) {
-
-      rv = ConstructFrame(aState, child,
-                          aFrame, aFrameItems);
-
-      if (NS_FAILED(rv))
-        return rv;
-
-      
-      break;
-    }
-  }
-
-  
-  if (!aState.mPseudoFrames.IsEmpty()) {
-    ProcessPseudoFrames(aState, aFrameItems);
-  }
-
-  
-  aState.mPseudoFrames = priorPseudoFrames;
-
-
-  return rv;
-}
-
-nsresult
 nsCSSFrameConstructor::ConstructSVGFrame(nsFrameConstructorState& aState,
                                          nsIContent*              aContent,
                                          nsIFrame*                aParentFrame,
@@ -7271,37 +7095,17 @@ nsCSSFrameConstructor::ConstructSVGFrame(nsFrameConstructorState& aState,
   }
   
   
-  if (aParentFrame && 
-      aParentFrame->GetType() == nsGkAtoms::svgSwitch &&
-      aParentFrame->GetFirstChild(nsnull)) {
+  
+  
+  if (!NS_SVG_PassesConditionalProcessingTests(aContent)) {
+    
+    
+    
+    
+    
+    
     *aHaltProcessing = PR_TRUE;
     return NS_OK;
-  }
-
-  
-  
-  if (((aContent->HasAttr(kNameSpaceID_None, nsGkAtoms::requiredFeatures) ||
-        aContent->HasAttr(kNameSpaceID_None, nsGkAtoms::requiredExtensions)) &&
-        NS_SVG_TestsSupported(aTag)) ||
-      (aContent->HasAttr(kNameSpaceID_None, nsGkAtoms::systemLanguage) &&
-       NS_SVG_LangSupported(aTag))) {
-
-    PRBool hasRequiredExtentions = PR_FALSE;
-    PRBool hasRequiredFeatures = PR_FALSE;
-    PRBool hasSystemLanguage = PR_FALSE;
-    TestSVGConditions(aContent, hasRequiredExtentions, 
-                      hasRequiredFeatures, hasSystemLanguage);
-    
-    
-    
-    
-    
-    
-    if (!hasRequiredExtentions || !hasRequiredFeatures ||
-        !hasSystemLanguage) {
-      *aHaltProcessing = PR_TRUE;
-      return NS_OK;
-    }
   }
 
   
@@ -7321,9 +7125,11 @@ nsCSSFrameConstructor::ConstructSVGFrame(nsFrameConstructorState& aState,
       newFrame = NS_NewSVGInnerSVGFrame(mPresShell, aContent, aStyleContext);
     }
   }
-  else if (aTag == nsGkAtoms::g ||
-           aTag == nsGkAtoms::svgSwitch) {
+  else if (aTag == nsGkAtoms::g) {
     newFrame = NS_NewSVGGFrame(mPresShell, aContent, aStyleContext);
+  }
+  else if (aTag == nsGkAtoms::svgSwitch) {
+    newFrame = NS_NewSVGSwitchFrame(mPresShell, aContent, aStyleContext);
   }
   else if (aTag == nsGkAtoms::polygon ||
            aTag == nsGkAtoms::polyline ||
@@ -7482,14 +7288,8 @@ nsCSSFrameConstructor::ConstructSVGFrame(nsFrameConstructorState& aState,
     {
       
       if (!newFrame->IsLeaf()) {
-        if (aTag == nsGkAtoms::svgSwitch) {
-          rv = SVGSwitchProcessChildren(aState, aContent, newFrame,
-                                        childItems);
-        } else {
-          rv = ProcessChildren(aState, aContent, newFrame, PR_FALSE, childItems,
-                               PR_FALSE);
-        }
-
+        rv = ProcessChildren(aState, aContent, newFrame, PR_FALSE, childItems,
+                             PR_FALSE);
       }
       CreateAnonymousFrames(aTag, aState, aContent, newFrame,
                             PR_FALSE, childItems);
