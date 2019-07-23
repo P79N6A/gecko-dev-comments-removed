@@ -148,7 +148,14 @@ namespace nanojit
 		{
 			
 			lr = placeGuardRecord(guard);
-            BL(_epilogue);
+
+#ifdef NJ_THUMB_JIT
+			BL(_epilogue);
+#else
+			
+			
+			BL_far(_epilogue);
+#endif
 
 			lr->jmp = _nIns;
 		}
@@ -196,6 +203,25 @@ namespace nanojit
 	void Assembler::asm_call(LInsp ins)
 	{
         const CallInfo* call = callInfoFor(ins->fid());
+		uint32_t atypes = call->_argtypes;
+		uint32_t roffset = 0;
+
+		
+		
+		
+		
+		bool arg0IsInt32FollowedByFloat = false;
+		while ((atypes & 3) != ARGSIZE_NONE) {
+			if (((atypes >> 4) & 3) == ARGSIZE_LO &&
+				((atypes >> 2) & 3) == ARGSIZE_F &&
+				((atypes >> 6) & 3) == ARGSIZE_NONE)
+			{
+				arg0IsInt32FollowedByFloat = true;
+				break;
+			}
+			atypes >>= 2;
+		}
+
 		CALL(call);
         ArgSize sizes[10];
         uint32_t argc = call->get_sizes(sizes);
@@ -205,8 +231,11 @@ namespace nanojit
             ArgSize sz = sizes[j];
             NanoAssert(sz == ARGSIZE_LO || sz == ARGSIZE_Q);
     		
-            Register r = i < 4 ? argRegs[i] : UnknownReg;
+            Register r = (i+roffset) < 4 ? argRegs[i+roffset] : UnknownReg;
             asm_arg(sz, ins->arg(j), r);
+
+			if (i == 0 && arg0IsInt32FollowedByFloat)
+				roffset = 1;
 		}
 	}
 	
@@ -277,11 +306,12 @@ namespace nanojit
 
 		
 		
+		
 
 		
 		int32_t offset = int(target) - int(branch+2);
 
-
+		
 
 #ifdef NJ_THUMB_JIT
 		NanoAssert(-(1<<21) <= offset && offset < (1<<21)); 
@@ -289,7 +319,15 @@ namespace nanojit
 		*branch =   (NIns)(0xF800 | (offset>>1)&0x7FF);
 #else
 		
-		*branch = (NIns)( COND_AL | (0xA<<24) | ((offset >>2)& 0xFFFFFF) );
+		
+		if (-(1<<24) <= offset & offset < (1<<24)) {
+			
+			*branch = (NIns)( COND_AL | (0xA<<24) | ((offset >>2) & 0xFFFFFF) );
+		} else {
+			
+			*branch++ = (NIns)( COND_AL | (0x51<<20) | (PC<<16) | (PC<<12) | ( 0x004 ) );
+			*branch = (NIns)target;
+		}
 #endif
 	}
 
@@ -451,37 +489,6 @@ namespace nanojit
 		}
 	}
 
-	NIns* Assembler::asm_adjustBranch(NIns* at, NIns* target)
-	{
-		NIns* save = _nIns;
-#ifdef NJ_THUMB_JIT
-		NIns* was =  (NIns*) (((((*(at+2))&0x7ff)<<12) | (((*(at+1))&0x7ff)<<1)) + (at-2+2));
-		_nIns = at + 2;
-#else
-		NIns* was = (NIns*) (((*at&0xFFFFFF)<<2));
-	    _nIns = at + 1;
-#endif
-		BL(target);
-	#ifdef AVMPLUS_PORTING_API
-		NanoJIT_PortAPI_FlushInstructionCache(save, _nIns);
-	#endif
-                  
-		#if defined(UNDER_CE)
- 		
- 			FlushInstructionCache(GetCurrentProcess(), NULL, NULL);
-		#elif defined(AVMPLUS_LINUX)
-			
-			
-			register unsigned long _beg __asm("a1") = (unsigned long)(_nIns);
-			register unsigned long _end __asm("a2") = (unsigned long)(_nIns+2);
-			register unsigned long _flg __asm("a3") = 0;
-			register unsigned long _swi __asm("r7") = 0xF0002;
-			__asm __volatile ("swi 0 	@ sys_cacheflush" : "=r" (_beg) : "0" (_beg), "r" (_end), "r" (_flg), "r" (_swi));
-		#endif
-		_nIns = save;
-		return was;
-	}
-
 	void Assembler::nativePageReset()
 	{
 		#ifdef NJ_THUMB_JIT
@@ -522,19 +529,53 @@ namespace nanojit
 		if (!_nSlot)
 		{
 			
+			
 			_nIns--;
 			_nExitIns--;
 
 			
 			
-			_nSlot = (int*)(pageTop(_nIns)+1);
-
+			_nSlot = pageDataStart(_nIns); 
 		}
 		#endif
 	}
 
+	void Assembler::flushCache(NIns* n1, NIns* n2) {
+#if defined(UNDER_CE)
+ 		
+		FlushInstructionCache(GetCurrentProcess(), NULL, NULL);
+#elif defined(AVMPLUS_LINUX)
+		
+		
+		register unsigned long _beg __asm("a1") = (unsigned long)(n1);
+		register unsigned long _end __asm("a2") = (unsigned long)(n2);
+		register unsigned long _flg __asm("a3") = 0;
+		register unsigned long _swi __asm("r7") = 0xF0002;
+		__asm __volatile ("swi 0 	@ sys_cacheflush" : "=r" (_beg) : "0" (_beg), "r" (_end), "r" (_flg), "r" (_swi));
+#endif
+	}
 
 #ifdef NJ_THUMB_JIT
+
+	NIns* Assembler::asm_adjustBranch(NIns* at, NIns* target)
+	{
+		NIns* save = _nIns;
+		NIns* was =  (NIns*) (((((*(at+2))&0x7ff)<<12) | (((*(at+1))&0x7ff)<<1)) + (at-2+2));
+
+		_nIns = at + 2;
+		BL(target);
+
+		flushCache(_nIns, _nIns+2);
+
+#ifdef AVMPLUS_PORTING_API
+		
+		NanoJIT_PortAPI_FlushInstructionCache(save, _nIns+2);
+#endif
+		
+		_nIns = save;
+
+		return was;
+	}
 
 	void Assembler::STi(Register b, int32_t d, int32_t v)
 	{
@@ -551,6 +592,7 @@ namespace nanojit
 
 	void Assembler::underrunProtect(int bytes)
 	{
+		
 		intptr_t u = bytes + 4;
 		if (!samepage(_nIns-u, _nIns-1)) {
 			NIns* target = _nIns;
@@ -855,45 +897,94 @@ namespace nanojit
 	}
 
 #else 
-		void Assembler::underrunProtect(int bytes)
-		{
-			intptr_t u = (bytes) + 4;
-			if ( (samepage(_nIns,_nSlot) && (((intptr_t)_nIns-u) <= intptr_t(_nSlot+1))) ||
-				 (!samepage((intptr_t)_nIns-u,_nIns)) )
-			{
-				NIns* target = _nIns;
-				_nIns = pageAlloc(_inExit);
-				JMP_nochk(target);
-				_nSlot = pageTop(_nIns);
-			}
-		}		
-
-	bool isB24(NIns *target, NIns *cur)
+	NIns* Assembler::asm_adjustBranch(NIns* at, NIns* target)
 	{
-		int offset = int(target)-int(cur-2+2);
-		return (-(1<<24) <= offset && offset < (1<<24));
+		
+		
+		
+		NanoAssert(at[1] == (NIns)( COND_AL | OP_IMM | (1<<23) | (PC<<16) | (LR<<12) | (4) ));
+		NanoAssert(at[2] == (NIns)( COND_AL | (0x9<<21) | (0xFFF<<8) | (1<<4) | (IP) ));
+
+		NIns* was = (NIns*) at[3];
+
+		at[3] = (NIns)target;
+
+		flushCache(at, at+4);
+
+#ifdef AVMPLUS_PORTING_API
+		NanoJIT_PortAPI_FlushInstructionCache(at, at+4);
+#endif
+
+		return was;
+	}
+
+	void Assembler::underrunProtect(int bytes)
+	{
+		intptr_t u = bytes + sizeof(PageHeader)/sizeof(NIns) + 8;
+		if ( (samepage(_nIns,_nSlot) && (((intptr_t)_nIns-u) <= intptr_t(_nSlot+1))) ||
+			 (!samepage((intptr_t)_nIns-u,_nIns)) )
+		{
+			NIns* target = _nIns;
+
+			_nIns = pageAlloc(_inExit);
+
+			
+			
+			
+			
+			
+			
+			
+			_nIns--;
+
+			
+			
+			_nSlot = pageDataStart(_nIns);
+
+			
+			
+			
+			
+			JMP_nochk(target);
+		} else if (!_nSlot) {
+			
+			_nSlot = pageDataStart(_nIns);
+		}
+	}
+
+	void Assembler::BL_far(NIns* addr) {
+		
+		
+		underrunProtect(16);
+
+		
+		*(--_nIns) = (NIns)((addr));
+		
+		*(--_nIns) = (NIns)( COND_AL | (0x9<<21) | (0xFFF<<8) | (1<<4) | (IP) );
+		
+		*(--_nIns) = (NIns)( COND_AL | OP_IMM | (1<<23) | (PC<<16) | (LR<<12) | (4) );
+		
+		*(--_nIns) = (NIns)( COND_AL | (0x59<<20) | (PC<<16) | (IP<<12) | (4));
+		asm_output1("bl %p (32-bit)", addr);
+	}
+
+	void Assembler::BL(NIns* addr) {
+		intptr_t offs = PC_OFFSET_FROM(addr,(intptr_t)_nIns-4);
+		if (JMP_S24_OFFSET_OK(offs)) {
+			
+			underrunProtect(4);
+			*(--_nIns) = (NIns)( COND_AL | (0xB<<24) | (((offs)>>2) & 0xFFFFFF) ); \
+			asm_output1("bl %p", addr);
+		} else {
+			BL_far(addr);
+		}
 	}
 
 	void Assembler::CALL(const CallInfo *ci)
 	{
         intptr_t addr = ci->_address;
-		if (isB24((NIns*)addr, _nIns))
-		{
-			
-			underrunProtect(4);
-
-			BL(addr);
-			asm_output2("call %08X:%s", addr, ci->_name);
-		}
-		else
-		{
-			underrunProtect(16);
-			*(--_nIns) = (NIns)((addr));
-			*(--_nIns) = (NIns)( COND_AL | (0x9<<21) | (0xFFF<<8) | (1<<4) | (IP) );
-			*(--_nIns) = (NIns)( COND_AL | OP_IMM | (1<<23) | (PC<<16) | (LR<<12) | (4) );
-			*(--_nIns) = (NIns)( COND_AL | (0x59<<20) | (PC<<16) | (IP<<12) | (4));
-			asm_output2("call %08X:%s", addr, ci->_name);
-		}
+		BL((NIns*)addr);
+		asm_output1("   (call %s)", ci->_name);
 	}
 
 #endif 
@@ -937,31 +1028,18 @@ namespace nanojit
 	#else
 
 		
-
-		if (!_nSlot)
-			_nSlot = pageTop(_nIns);
-
-		if ( (_nSlot+1) >= (_nIns-1) )
-		{
-			
-			
-					
-			NIns* target = _nIns;
-			_nIns = pageAlloc(_inExit);
-			JMP_nochk(target);
-
-			
-			_nSlot = pageTop(_nIns);
-		}
+		underrunProtect(8);
 
 		*(++_nSlot) = (int)imm;
 
-		int offset = (int)(_nSlot) - (int)(_nIns+1);
+		
 
-		*(--_nIns) = (NIns)( COND_AL | (0x51<<20) | (PC<<16) | ((r)<<12) | -(offset));
+		int offset = PC_OFFSET_FROM(_nSlot,(intptr_t)(_nIns)-4);
+
+		NanoAssert(JMP_S24_OFFSET_OK(offset) && (offset < 0));
+
+		*(--_nIns) = (NIns)( COND_AL | (0x51<<20) | (PC<<16) | ((r)<<12) | ((-offset) & 0xFFFFFF) );
 		asm_output2("ld %s,%d",gpn(r),imm);
-
-
 	#endif
 
 	}
