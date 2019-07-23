@@ -62,7 +62,10 @@ function add_normalized_visit(aURI, aTime, aDayOffset) {
   dateObj.setSeconds(0);
   dateObj.setMilliseconds(0);
   
-  var PRTimeWithOffset = (dateObj.getTime() + aDayOffset * 86400000) * 1000;
+  var previousDateObj = new Date(dateObj.getTime() + aDayOffset * 86400000);
+  var DSTCorrection = (dateObj.getTimezoneOffset() - previousDateObj.getTimezoneOffset()) * 60 * 1000;
+  
+  var PRTimeWithOffset = (previousDateObj.getTime() - DSTCorrection) * 1000;
   print("Adding visit to " + aURI.spec + " at " + new Date(PRTimeWithOffset/1000));
   var visitId = hs.addVisit(aURI,
                             PRTimeWithOffset,
