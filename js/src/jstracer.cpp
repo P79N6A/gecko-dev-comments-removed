@@ -36,7 +36,6 @@
 
 
 
-
-#define jsinvoke_cpp___
+#define jstracer_cpp___
 
 #include "jsinterp.cpp"
