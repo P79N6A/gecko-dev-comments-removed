@@ -4,12 +4,6 @@ const ACCEPT_FUZZ = 1;
 const DECLINE = 2;
 
 
-
-
-
-var TEST_PROVIDER = 0; 
-
-
 var DELAYED_PROMPT = 0;
 
 var prompt_delay = timeout * 2;
@@ -37,15 +31,20 @@ function check_geolocation(location) {
 
   ok(location, "Check to see if this location is non-null");
 
-  ok("latitude" in location, "Check to see if there is a latitude");
-  ok("longitude" in location, "Check to see if there is a longitude");
-  ok("altitude" in location, "Check to see if there is a altitude");
-  ok("accuracy" in location, "Check to see if there is a accuracy");
-  ok("altitudeAccuracy" in location, "Check to see if there is a alt accuracy");
-  ok("heading" in location, "Check to see if there is a heading");
-  ok("speed" in location, "Check to see if there is a speed");
   ok("timestamp" in location, "Check to see if there is a timestamp");
 
+  
+  ok("coords" in location, "Check to see if this location has a coords");
+
+  var coords = location.coords;
+
+  ok("latitude" in coords, "Check to see if there is a latitude");
+  ok("longitude" in coords, "Check to see if there is a longitude");
+  ok("altitude" in coords, "Check to see if there is a altitude");
+  ok("accuracy" in coords, "Check to see if there is a accuracy");
+  ok("altitudeAccuracy" in coords, "Check to see if there is a alt accuracy");
+  ok("heading" in coords, "Check to see if there is a heading");
+  ok("speed" in coords, "Check to see if there is a speed");
 }
 
 
@@ -55,11 +54,6 @@ function check_fuzzed_geolocation(location) {
 
 function check_no_geolocation(location) {
    ok(!location, "Check to see if this location is null");
-}
-
-function checkFlags(flags, value, isExact) {
-  for(var i = 0; i < flags.length; i++)
-    ok(isExact ? flags[i] == value : flags[i] >= value, "ensure callbacks called " + value + " times");
 }
 
 function success_callback(position) {
