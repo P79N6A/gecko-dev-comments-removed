@@ -124,7 +124,13 @@ struct THEBES_API gfxRect {
     
     
     
+    
+    
     void Round();
+    
+    
+    
+    void RoundOut();
 
     
     gfxPoint TopLeft() const { return gfxPoint(pos); }
