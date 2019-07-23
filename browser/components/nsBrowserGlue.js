@@ -52,6 +52,8 @@ Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource:///modules/distribution.js");
 
 const PREF_EM_NEW_ADDONS_LIST = "extensions.newAddons";
+const PREF_PLUGINS_NOTIFYUSER = "plugins.update.notifyUser";
+const PREF_PLUGINS_UPDATEURL  = "plugins.update.url";
 
 
 
@@ -334,6 +336,11 @@ BrowserGlue.prototype = {
     if (this._isPlacesDatabaseLocked) {
       this._showPlacesLockedNotificationBox();
     }
+
+    
+    
+    if (this._prefs.getBoolPref(PREF_PLUGINS_NOTIFYUSER))
+      this._showPluginUpdatePage();
   },
 
   _onQuitRequest: function(aCancelQuit, aQuitType)
@@ -525,6 +532,18 @@ BrowserGlue.prototype = {
 
     var box = notifyBox.appendNotification(notifyRightsText, "about-rights", null, notifyBox.PRIORITY_INFO_LOW, buttons);
     box.persistence = 3; 
+  },
+  
+  _showPluginUpdatePage : function () {
+    this._prefs.setBoolPref(PREF_PLUGINS_NOTIFYUSER, false);
+
+    var formatter = Cc["@mozilla.org/toolkit/URLFormatterService;1"].
+                    getService(Ci.nsIURLFormatter);
+    var updateUrl = formatter.formatURLPref(PREF_PLUGINS_UPDATEURL);
+
+    var win = this.getMostRecentBrowserWindow();
+    var browser = win.gBrowser;
+    browser.selectedTab = browser.addTab(updateUrl);
   },
 
   

@@ -570,6 +570,10 @@ pref("pfs.datasource.url", "https://pfs.mozilla.org/plugins/PluginFinderService.
 
 
 pref("plugins.hide_infobar_for_missing_plugin", false);
+pref("plugins.hide_infobar_for_outdated_plugin", false);
+
+pref("plugins.update.url", "https://www.mozilla.com/%LOCALE%/plugins/");
+pref("plugins.update.notifyUser", false);
 
 #ifdef XP_WIN
 pref("browser.preferences.instantApply", false);

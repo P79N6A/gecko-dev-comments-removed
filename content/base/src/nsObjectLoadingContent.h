@@ -64,6 +64,7 @@ enum PluginSupportState {
   ePluginDisabled,     
                        
   ePluginBlocklisted,  
+  ePluginOutdated,     
   ePluginOtherState    
                        
 };
