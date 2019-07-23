@@ -132,7 +132,6 @@ const char *const js_common_atom_names[] = {
     js_caller_str,              
     js_class_prototype_str,     
     js_constructor_str,         
-    js_count_str,               
     js_each_str,                
     js_eval_str,                
     js_fileName_str,            
@@ -206,7 +205,6 @@ const char js_callee_str[]          = "callee";
 const char js_caller_str[]          = "caller";
 const char js_class_prototype_str[] = "prototype";
 const char js_constructor_str[]     = "constructor";
-const char js_count_str[]           = "__count__";
 const char js_each_str[]            = "each";
 const char js_eval_str[]            = "eval";
 const char js_fileName_str[]        = "fileName";
