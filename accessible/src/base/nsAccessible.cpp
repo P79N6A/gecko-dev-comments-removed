@@ -2468,23 +2468,38 @@ nsAccessible::GetARIAState(PRUint32 *aState)
     ++ index;
   }
 
-  if (!mRoleMapEntry)
-    return NS_OK;
-
-  
-  *aState &= ~nsIAccessibleStates::STATE_READONLY;
-
-  if (content->HasAttr(kNameSpaceID_None, content->GetIDAttributeName())) {
+  if (mRoleMapEntry) {
     
-    nsIContent *ancestorContent = content;
-    while ((ancestorContent = ancestorContent->GetParent()) != nsnull) {
-      if (ancestorContent->HasAttr(kNameSpaceID_None, nsAccessibilityAtoms::aria_activedescendant)) {
-          
-        *aState |= nsIAccessibleStates::STATE_FOCUSABLE;
-        break;
+    *aState &= ~nsIAccessibleStates::STATE_READONLY;
+
+    if (content->HasAttr(kNameSpaceID_None, content->GetIDAttributeName())) {
+      
+      nsIContent *ancestorContent = content;
+      while ((ancestorContent = ancestorContent->GetParent()) != nsnull) {
+        if (ancestorContent->HasAttr(kNameSpaceID_None, nsAccessibilityAtoms::aria_activedescendant)) {
+            
+          *aState |= nsIAccessibleStates::STATE_FOCUSABLE;
+          break;
+        }
       }
     }
   }
+
+  if (*aState & nsIAccessibleStates::STATE_FOCUSABLE) {
+    
+    nsIContent *ancestorContent = content;
+    while ((ancestorContent = ancestorContent->GetParent()) != nsnull) {
+      if (ancestorContent->AttrValueIs(kNameSpaceID_None, nsAccessibilityAtoms::aria_disabled,
+                                       nsAccessibilityAtoms::_true, eCaseMatters)) {
+          
+        *aState |= nsIAccessibleStates::STATE_UNAVAILABLE;
+        break;
+      }
+    }    
+  }
+
+  if (!mRoleMapEntry)
+    return NS_OK;
 
   *aState |= mRoleMapEntry->state;
   if (MappedAttrState(content, aState, &mRoleMapEntry->attributeMap1) &&
