@@ -160,8 +160,6 @@ protected:
 #define LL_INFIRSTLETTER               0x00002000
 #define LL_LASTFLAG                    LL_INFIRSTLETTER
 
-  PRUint16 mFlags;
-
   void SetFlag(PRUint32 aFlag, PRBool aValue)
   {
     NS_ASSERTION(aFlag<=LL_LASTFLAG, "bad flag");
@@ -382,43 +380,13 @@ protected:
 
   nsIContent* mLastOptionalBreakContent;
   nsIContent* mForceBreakContent;
-  PRInt32     mLastOptionalBreakContentOffset;
-  PRInt32     mForceBreakContentOffset;
-  gfxBreakPriority mLastOptionalBreakPriority;
   
   
   friend class nsInlineFrame;
 
   nsBlockReflowState* mBlockRS;
-  nscoord mMinLineHeight;
-  PRUint8 mTextAlign;
-
-  PRUint8 mPlacedFloats;
-  
-  
-  
-  nscoord mTextIndent;
-
-  
-  
-  PRInt32 mLineNumber;
-  PRInt32 mTextJustificationNumSpaces;
-  PRInt32 mTextJustificationNumLetters;
 
   nsLineList::iterator mLineBox;
-
-  PRInt32 mTotalPlacedFrames;
-
-  nscoord mTopEdge;
-  nscoord mMaxTopBoxHeight;
-  nscoord mMaxBottomBoxHeight;
-
-  
-  
-  nscoord mFinalLineHeight;
-  
-  
-  nscoord mTrimmableWidth;
 
   
   
@@ -539,12 +507,48 @@ protected:
   PerSpanData* mSpanFreeList;
   PerSpanData* mRootSpan;
   PerSpanData* mCurrentSpan;
+
+  gfxBreakPriority mLastOptionalBreakPriority;
+  PRInt32     mLastOptionalBreakContentOffset;
+  PRInt32     mForceBreakContentOffset;
+
+  nscoord mMinLineHeight;
+  
+  
+  
+  nscoord mTextIndent;
+
+  
+  
+  PRInt32 mLineNumber;
+  PRInt32 mTextJustificationNumSpaces;
+  PRInt32 mTextJustificationNumLetters;
+
+  PRInt32 mTotalPlacedFrames;
+
+  nscoord mTopEdge;
+  nscoord mMaxTopBoxHeight;
+  nscoord mMaxBottomBoxHeight;
+
+  
+  
+  nscoord mFinalLineHeight;
+  
+  
+  nscoord mTrimmableWidth;
+
   PRInt32 mSpanDepth;
 #ifdef DEBUG
   PRInt32 mSpansAllocated, mSpansFreed;
   PRInt32 mFramesAllocated, mFramesFreed;
 #endif
   PLArenaPool mArena; 
+
+  PRUint16 mFlags;
+
+  PRUint8 mTextAlign;
+
+  PRUint8 mPlacedFloats;
 
   nsresult NewPerFrameData(PerFrameData** aResult);
 

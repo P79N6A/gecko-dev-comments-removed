@@ -101,10 +101,10 @@ nsLineLayout::nsLineLayout(nsPresContext* aPresContext,
     mBlockReflowState(aOuterReflowState),
     mLastOptionalBreakContent(nsnull),
     mForceBreakContent(nsnull),
+    mBlockRS(nsnull),
+    mLastOptionalBreakPriority(eNoBreak),
     mLastOptionalBreakContentOffset(-1),
     mForceBreakContentOffset(-1),
-    mLastOptionalBreakPriority(eNoBreak),
-    mBlockRS(nsnull),
     mMinLineHeight(0),
     mTextIndent(0)
 {
