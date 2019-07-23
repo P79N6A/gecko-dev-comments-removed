@@ -1,0 +1,195 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+"""A generic means of running an URL based browser test
+   follows the following steps
+     - creates a profile
+     - tests the profile
+     - gets metrics for the current test environment
+     - loads the url
+     - collects info on any counters while test runs
+     - waits for a 'dump' from the browser
+"""
+
+__author__ = 'annie.sullivan@gmail.com (Annie Sullivan)'
+
+
+import platform
+import os
+import re
+import shutil
+import time
+import sys
+import subprocess
+import utils
+
+import ffprocess
+import ffsetup
+
+if platform.system() == "Linux":
+    from cmanager_linux import *
+elif platform.system() == "Windows":
+    from cmanager_win32 import *
+elif platform.system() == "Darwin":
+    from cmanager_mac import *
+
+
+
+RESULTS_REGEX = re.compile('__start_report(.*)__end_report',
+                      re.DOTALL | re.MULTILINE)
+
+RESULTS_TP_REGEX = re.compile('__start_tp_report(.*)__end_tp_report',
+                      re.DOTALL | re.MULTILINE)
+RESULTS_REGEX_FAIL = re.compile('__FAIL(.*)__FAIL', re.DOTALL|re.MULTILINE)
+
+
+def runTest(browser_config, test_config):
+  """
+  Runs an url based test on the browser as specified in the browser_config dictionary
+  
+  Args:
+    browser_config:  Dictionary of configuration options for the browser (paths, prefs, etc)
+    test_config   :  Dictionary of configuration for the given test (url, cycles, counters, etc)
+  
+  """
+ 
+  res = 0
+  counters = test_config['counters']
+  resolution = test_config['resolution']
+  all_browser_results = []
+  all_counter_results = []
+  utils.setEnvironmentVars(browser_config['env'])
+
+  
+  for dir in browser_config['dirs']:
+    ffsetup.InstallInBrowser(browser_config['firefox'], browser_config['dirs'][dir])
+  
+  profile_dir = ffsetup.CreateTempProfileDir(browser_config['profile_path'],
+                                               browser_config['preferences'],
+                                               browser_config['extensions'])
+  utils.debug("created profile") 
+  
+  
+  
+  res = ffsetup.InitializeNewProfile(browser_config['firefox'], profile_dir)
+  if not res:
+    print "FAIL: couldn't initialize firefox"
+    return (res, all_browser_results, all_counter_results)
+  res = 0
+
+  utils.debug("initialized firefox")
+  sys.stdout.flush()
+  ffprocess.Sleep()
+
+  for i in range(test_config['cycles']):
+    
+    browser_results = ""
+    timeout = 18000 
+    total_time = 0
+    output = ''
+    url = test_config['url']
+    if 'url_mod' in test_config:
+      url += eval(test_config['url_mod']) 
+    command_line = ffprocess.GenerateFirefoxCommandLine(browser_config['firefox'], profile_dir, url)
+    process = subprocess.Popen(command_line, stdout=subprocess.PIPE, universal_newlines=True, shell=True, bufsize=0, env=os.environ)
+    handle = process.stdout
+
+    
+    
+    
+    ffprocess.Sleep()
+    
+    cm = CounterManager("firefox", counters)
+    cm.startMonitor()
+    counter_results = {}
+    for counter in counters:
+      counter_results[counter] = []
+    
+    while total_time < timeout:
+      
+      time.sleep(resolution)
+      total_time += resolution
+      
+      
+      for count_type in counters:
+        val = cm.getCounterValue(count_type)
+
+        if (val):
+          counter_results[count_type].append(val)
+
+      
+      (bytes, current_output) = ffprocess.NonBlockingReadProcessOutput(handle)
+      output += current_output
+      match = RESULTS_REGEX.search(output)
+      if match:
+        browser_results += match.group(1)
+        res = 1
+        break
+      
+      match = RESULTS_TP_REGEX.search(output)
+      if match:
+        browser_results += match.group(1)
+        res = 1
+        break
+      match = RESULTS_REGEX_FAIL.search(output)
+      if match:
+        browser_results += match.group(1)
+        print "FAIL: " + match.group(1)
+        break
+
+    if total_time > timeout:
+      print "FAIL: timeout from test"
+
+    
+    cm.stopMonitor()
+
+    
+    ffprocess.TerminateAllProcesses("firefox")
+    all_browser_results.append(browser_results)
+    all_counter_results.append(counter_results)
+    
+  
+  
+  
+  ffprocess.Sleep()
+  ffsetup.MakeDirectoryContentsWritable(profile_dir)
+  shutil.rmtree(profile_dir)
+    
+  utils.restoreEnvironmentVars()
+    
+  return (res, all_browser_results, all_counter_results)
