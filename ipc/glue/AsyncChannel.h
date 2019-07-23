@@ -44,6 +44,9 @@
 #include "base/message_loop.h"
 #include "chrome/common/ipc_channel.h"
 
+#include "mozilla/CondVar.h"
+#include "mozilla/Mutex.h"
+
 
 
 namespace {
@@ -63,6 +66,9 @@ namespace ipc {
 class AsyncChannel : public IPC::Channel::Listener
 {
 protected:
+    typedef mozilla::CondVar CondVar;
+    typedef mozilla::Mutex Mutex;
+
     enum ChannelState {
         ChannelClosed,
         ChannelOpening,
@@ -85,6 +91,8 @@ public:
         mTransport(0),
         mListener(aListener),
         mChannelState(ChannelClosed),
+        mMutex("mozilla.ipc.AsyncChannel.mMutex"),
+        mCvar(mMutex, "mozilla.ipc.AsyncChannel.mCvar"),
         mIOLoop(),
         mWorkerLoop()
     {
@@ -97,6 +105,9 @@ public:
         mTransport = 0;
     }
 
+    
+    
+    
     
     
     bool Open(Transport* aTransport, MessageLoop* aIOLoop=0);
@@ -124,6 +135,8 @@ protected:
     Transport* mTransport;
     AsyncListener* mListener;
     ChannelState mChannelState;
+    Mutex mMutex;
+    CondVar mCvar;
     MessageLoop* mIOLoop;       
     MessageLoop* mWorkerLoop;   
 };
@@ -131,4 +144,4 @@ protected:
 
 } 
 } 
-#endif
+#endif  

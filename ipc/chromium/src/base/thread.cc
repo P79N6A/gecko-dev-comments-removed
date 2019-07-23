@@ -145,10 +145,19 @@ void Thread::ThreadMain() {
   message_loop.set_thread_name(name_);
   message_loop_ = &message_loop;
 
+#if defined(CHROMIUM_MOZILLA_BUILD)
+  bool wait_for_init = startup_data_->options.wait_for_init;
+  if (!wait_for_init)
+    startup_data_->event.Signal();
+#endif
+
   
   
   Init();
 
+#if defined(CHROMIUM_MOZILLA_BUILD)
+  if (wait_for_init)
+#endif
   startup_data_->event.Signal();
   
   

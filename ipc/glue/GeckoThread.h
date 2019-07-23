@@ -53,7 +53,10 @@ class GeckoThread : public ChildThread
 {
 public:
   GeckoThread()
-  : ChildThread(base::Thread::Options(MessageLoop::TYPE_MOZILLA_CHILD, 0))
+  : ChildThread(base::Thread::Options(
+                    MessageLoop::TYPE_MOZILLA_CHILD, 
+                    0,                               
+                    false))                          
   { }
 
 protected:
