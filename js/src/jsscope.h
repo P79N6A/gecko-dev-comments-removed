@@ -392,15 +392,8 @@ struct JSScope : public JSObjectMap
 
 
 
-
-
-
-
-
-
-
     bool hasMethodBarrier()     { return flags & METHOD_BARRIER; }
-    void setMethodBarrier()     { flags |= METHOD_BARRIER; }
+    void setMethodBarrier()     { flags |= METHOD_BARRIER | BRANDED; }
 
     bool owned()                { return object != NULL; }
 };
@@ -698,10 +691,8 @@ JSScopeProperty::set(JSContext* cx, JSObject* obj, jsval* vp)
         return js_InternalGetOrSet(cx, obj, id, fval, JSACC_WRITE, 1, vp, vp);
     }
 
-    if (attrs & JSPROP_GETTER) {
-        js_ReportGetterOnlyAssignment(cx);
-        return false;
-    }
+    if (attrs & JSPROP_GETTER)
+        return !!js_ReportGetterOnlyAssignment(cx);
 
     
     if (STOBJ_GET_CLASS(obj) == &js_WithClass)
