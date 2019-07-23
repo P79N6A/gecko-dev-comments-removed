@@ -317,6 +317,8 @@ nsHTMLCanvasElement::ToDataURL(nsAString& aDataURL)
     return ToDataURLImpl(NS_LITERAL_STRING("image/png"), EmptyString(), aDataURL);
   }
 
+  JSAutoRequest ar(ctx);
+
   
   if (argc == 1) {
     if (!JSVAL_IS_STRING(argv[0]))
