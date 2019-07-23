@@ -142,6 +142,7 @@ function test_paste(aCurrentTest) {
 
   
   window.focus();
+  gBrowser.selectedBrowser.focus();
 
   
   info("About to focus " + element.id);
