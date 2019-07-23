@@ -23,7 +23,13 @@ var Microformats = {
 
 
 
-  get: function(name, rootElement, recurseFrames, targetArray) {
+
+
+
+
+
+
+  get: function(name, rootElement, options, targetArray) {
     if (!Microformats[name]) {
       return;
     }
@@ -32,10 +38,10 @@ var Microformats = {
     rootElement = rootElement || content.document;
 
     
-    if ((recurseFrames == undefined) || (recurseFrames == true)) {
+    if (!options || !options.hasOwnProperty("recurseFrames") || options.recurseFrames) {
       if (rootElement.defaultView && rootElement.defaultView.frames.length > 0) {
         for (let i=0; i < rootElement.defaultView.frames.length; i++) {
-          Microformats.get(name, rootElement.defaultView.frames[i].document, recurseFrames, targetArray);
+          Microformats.get(name, rootElement.defaultView.frames[i].document, options, targetArray);
         }
       }
     }
@@ -63,6 +69,13 @@ var Microformats = {
     
     
     for (let i = 0; i < microformatNodes.length; i++) {
+      
+      if (!options || !options.hasOwnProperty("showHidden") || !options.showHidden) {
+        var box = (microformatNodes[i].ownerDocument || microformatNodes[i]).getBoxObjectFor(microformatNodes[i]);
+        if ((box.height == 0) || (box.width == 0)) {
+          continue;
+        }
+      }
       targetArray.push(new Microformats[name].mfObject(microformatNodes[i]));
     }
     return targetArray;
@@ -75,44 +88,16 @@ var Microformats = {
 
 
 
-  count: function(name, rootElement, recurseFrames) {
-    if (!Microformats[name]) {
-      return;
-    }
-    var count = 0;
 
-    rootElement = rootElement || content.document;
 
-    
-    if (recurseFrames || recurseFrames === undefined) {
-      if (rootElement.defaultView && rootElement.defaultView.frames.length > 0) {
-        for (let i=0; i < rootElement.defaultView.frames.length; i++) {
-          count += Microformats.count(name, rootElement.defaultView.frames[i].document, recurseFrames);
-        }
-      }
-    }
 
-    
-    var microformatNodes = [];
-    if (Microformats[name].className) {
-      microformatNodes = Microformats.getElementsByClassName(rootElement,
-                                        Microformats[name].className);
-      
-      
-      if ((microformatNodes.length == 0) && Microformats[name].alternateClassName) {
-        var altClass = Microformats.getElementsByClassName(rootElement, Microformats[name].alternateClassName);
-        if (altClass.length > 0) {
-          microformatNodes.push(rootElement); 
-        }
-      }
-    } else if (Microformats[name].attributeValues) {
-      microformatNodes = 
-        Microformats.getElementsByAttribute(rootElement,
-                                            Microformats[name].attributeName,
-                                            Microformats[name].attributeValues);
+
+  count: function(name, rootElement, options) {
+    var mfArray = Microformats.get(name, rootElement, options);
+    if (mfArray) {
+      return mfArray.length;
     }
-    count += microformatNodes.length;
-    return count;
+    return 0;
   },
   
 
