@@ -186,40 +186,56 @@ js_FillPropertyCache(JSContext *cx, JSObject *obj,
 
 
 
-        if ((cs->format & JOF_CALLOP) &&
-            SPROP_HAS_STUB_GETTER(sprop) &&
-            SPROP_HAS_VALID_SLOT(sprop, scope)) {
+        if (cs->format & JOF_CALLOP) {
             jsval v;
 
-            v = LOCKED_OBJ_GET_SLOT(pobj, sprop->slot);
-            if (VALUE_IS_FUNCTION(cx, v)) {
+            if (sprop->isMethod()) {
                 
 
 
 
-
-
-
-
-
-
-                if (!scope->branded()) {
-                    PCMETER(cache->brandfills++);
-#ifdef DEBUG_notme
-                    fprintf(stderr,
-                            "branding %p (%s) for funobj %p (%s), shape %lu\n",
-                            pobj, pobj->getClass()->name,
-                            JSVAL_TO_OBJECT(v),
-                            JS_GetFunctionName(GET_FUNCTION_PRIVATE(cx, JSVAL_TO_OBJECT(v))),
-                            OBJ_SHAPE(obj));
-#endif
-                    scope->brandingShapeChange(cx, sprop->slot, v);
-                    if (js_IsPropertyCacheDisabled(cx))  
-                        return JS_NO_PROP_CACHE_FILL;
-                    scope->setBranded();
-                }
+                JS_ASSERT(scope->hasMethodBarrier());
+                v = sprop->methodValue();
+                JS_ASSERT(VALUE_IS_FUNCTION(cx, v));
+                JS_ASSERT(v == LOCKED_OBJ_GET_SLOT(pobj, sprop->slot));
                 vword = JSVAL_OBJECT_TO_PCVAL(v);
                 break;
+            }
+
+            if (SPROP_HAS_STUB_GETTER(sprop) &&
+                SPROP_HAS_VALID_SLOT(sprop, scope)) {
+                v = LOCKED_OBJ_GET_SLOT(pobj, sprop->slot);
+                if (VALUE_IS_FUNCTION(cx, v)) {
+                    
+
+
+
+
+
+
+
+
+
+
+
+                    if (!scope->branded()) {
+                        PCMETER(cache->brandfills++);
+#ifdef DEBUG_notme
+                        fprintf(stderr,
+                                "branding %p (%s) for funobj %p (%s), shape %lu\n",
+                                pobj, pobj->getClass()->name,
+                                JSVAL_TO_OBJECT(v),
+                                JS_GetFunctionName(GET_FUNCTION_PRIVATE(cx, JSVAL_TO_OBJECT(v))),
+                                OBJ_SHAPE(obj));
+#endif
+                        scope->brandingShapeChange(cx, sprop->slot, v);
+                        if (js_IsPropertyCacheDisabled(cx))  
+                            return JS_NO_PROP_CACHE_FILL;
+                        scope->setBranded();
+                    }
+                    vword = JSVAL_OBJECT_TO_PCVAL(v);
+                    break;
+                }
             }
         }
 
@@ -991,7 +1007,7 @@ js_OnUnknownMethod(JSContext *cx, jsval *vp)
 
     MUST_FLOW_THROUGH("out");
     id = ATOM_TO_JSID(cx->runtime->atomState.noSuchMethodAtom);
-    ok = js_GetMethod(cx, obj, id, false, &tvr.u.value);
+    ok = js_GetMethod(cx, obj, id, JSGET_NO_METHOD_BARRIER, &tvr.u.value);
     if (!ok)
         goto out;
     if (JSVAL_IS_PRIMITIVE(tvr.u.value)) {
@@ -2533,8 +2549,6 @@ AssertValidPropertyCacheHit(JSContext *cx, JSScript *script, JSFrameRegs& regs,
     }
     if (!ok)
         return false;
-    if (!prop)
-        return true;
     if (cx->runtime->gcNumber != sample ||
         PCVCAP_SHAPE(entry->vcap) != OBJ_SHAPE(pobj)) {
         pobj->dropProperty(cx, prop);
@@ -2546,18 +2560,26 @@ AssertValidPropertyCacheHit(JSContext *cx, JSScript *script, JSFrameRegs& regs,
     JSScopeProperty *sprop = (JSScopeProperty *) prop;
     if (PCVAL_IS_SLOT(entry->vword)) {
         JS_ASSERT(PCVAL_TO_SLOT(entry->vword) == sprop->slot);
+        JS_ASSERT(!sprop->isMethod());
     } else if (PCVAL_IS_SPROP(entry->vword)) {
         JS_ASSERT(PCVAL_TO_SPROP(entry->vword) == sprop);
+        JS_ASSERT_IF(sprop->isMethod(),
+                     sprop->methodValue() == LOCKED_OBJ_GET_SLOT(pobj, sprop->slot));
     } else {
         jsval v;
         JS_ASSERT(PCVAL_IS_OBJECT(entry->vword));
         JS_ASSERT(entry->vword != PCVAL_NULL);
         JS_ASSERT(OBJ_SCOPE(pobj)->branded());
-        JS_ASSERT(SPROP_HAS_STUB_GETTER(sprop));
+        JS_ASSERT(SPROP_HAS_STUB_GETTER_OR_IS_METHOD(sprop));
         JS_ASSERT(SPROP_HAS_VALID_SLOT(sprop, OBJ_SCOPE(pobj)));
         v = LOCKED_OBJ_GET_SLOT(pobj, sprop->slot);
         JS_ASSERT(VALUE_IS_FUNCTION(cx, v));
         JS_ASSERT(PCVAL_TO_OBJECT(entry->vword) == JSVAL_TO_OBJECT(v));
+
+        if (sprop->isMethod()) {
+            JS_ASSERT(js_CodeSpec[*regs.pc].format & JOF_CALLOP);
+            JS_ASSERT(sprop->methodValue() == v);
+        }
     }
 
     pobj->dropProperty(cx, prop);
@@ -2593,6 +2615,8 @@ JS_STATIC_ASSERT(JSOP_DEFFUN_FC_LENGTH == JSOP_DEFFUN_DBGFC_LENGTH);
 
 
 JS_STATIC_ASSERT(JSOP_SETNAME_LENGTH == JSOP_SETPROP_LENGTH);
+JS_STATIC_ASSERT(JSOP_SETNAME_LENGTH == JSOP_SETMETHOD_LENGTH);
+JS_STATIC_ASSERT(JSOP_INITPROP_LENGTH == JSOP_INITMETHOD_LENGTH);
 
 
 JS_STATIC_ASSERT(JSOP_IFNE_LENGTH == JSOP_IFEQ_LENGTH);
@@ -2652,14 +2676,6 @@ js_Interpret(JSContext *cx)
     JSPropertyOp getter, setter;
 #endif
     JSAutoResolveFlags rf(cx, JSRESOLVE_INFER);
-
-#ifdef __GNUC__
-# define JS_EXTENSION __extension__
-# define JS_EXTENSION_(s) __extension__ ({ s; })
-#else
-# define JS_EXTENSION
-# define JS_EXTENSION_(s) s
-#endif
 
 # ifdef DEBUG
     

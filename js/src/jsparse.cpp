@@ -2334,18 +2334,8 @@ LeaveFunction(JSParseNode *fn, JSTreeContext *funtc, JSTreeContext *tc,
 
 
 
-
-
-
-
-
-
-
-
-
-
                 if (dn->isFunArg())
-                    fn->pn_funbox->tcflags |= TCF_FUN_USES_ARGUMENTS;
+                    fn->pn_funbox->tcflags |= TCF_FUN_USES_OWN_NAME;
                 foundCallee = 1;
                 continue;
             }
@@ -5479,6 +5469,20 @@ Statement(JSContext *cx, JSTokenStream *ts, JSTreeContext *tc)
         pn->pn_type = TOK_SEMI;
         pn->pn_pos = pn2->pn_pos;
         pn->pn_kid = pn2;
+
+        
+
+
+
+
+
+        if (PN_TYPE(pn2) == TOK_ASSIGN && PN_OP(pn2) == JSOP_NOP &&
+            PN_OP(pn2->pn_left) == JSOP_SETPROP &&
+            PN_OP(pn2->pn_right) == JSOP_LAMBDA &&
+            !(pn2->pn_right->pn_funbox->tcflags
+              & (TCF_FUN_USES_ARGUMENTS | TCF_FUN_USES_OWN_NAME))) {
+            pn2->pn_left->pn_op = JSOP_SETMETHOD;
+        }
         break;
     }
 
@@ -6745,7 +6749,7 @@ CheckForImmediatelyAppliedLambda(JSParseNode *pn)
 
         JSFunctionBox *funbox = pn->pn_funbox;
         JS_ASSERT(((JSFunction *) funbox->object)->flags & JSFUN_LAMBDA);
-        if (!(funbox->tcflags & TCF_FUN_USES_ARGUMENTS))
+        if (!(funbox->tcflags & (TCF_FUN_USES_ARGUMENTS | TCF_FUN_USES_OWN_NAME)))
             pn->pn_dflags &= ~PND_FUNARG;
     }
     return pn;

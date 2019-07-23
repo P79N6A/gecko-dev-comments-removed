@@ -350,41 +350,6 @@ STOBJ_GET_CLASS(const JSObject* obj)
 #define LOCKED_OBJ_SET_SLOT(obj,slot,value)                                   \
     (OBJ_CHECK_SLOT(obj, slot), STOBJ_SET_SLOT(obj, slot, value))
 
-
-
-
-
-
-
-
-
-#define LOCKED_OBJ_WRITE_SLOT(cx,obj,slot,newval)                             \
-    JS_BEGIN_MACRO                                                            \
-        LOCKED_OBJ_WRITE_BARRIER(cx, obj, slot, newval);                      \
-        LOCKED_OBJ_SET_SLOT(obj, slot, newval);                               \
-    JS_END_MACRO
-
-
-
-
-
-
-
-#define LOCKED_OBJ_WRITE_BARRIER(cx,obj,slot,newval)                          \
-    JS_BEGIN_MACRO                                                            \
-        JSScope *scope_ = OBJ_SCOPE(obj);                                     \
-        JS_ASSERT(scope_->object == obj);                                     \
-        if (scope_->branded()) {                                              \
-            jsval oldval_ = LOCKED_OBJ_GET_SLOT(obj, slot);                   \
-            if (oldval_ != (newval) &&                                        \
-                (VALUE_IS_FUNCTION(cx, oldval_) ||                            \
-                 VALUE_IS_FUNCTION(cx, newval))) {                            \
-                scope_->methodShapeChange(cx, slot, newval);                  \
-            }                                                                 \
-        }                                                                     \
-        GC_POKE(cx, oldval);                                                  \
-    JS_END_MACRO
-
 #ifdef JS_THREADSAFE
 
 
@@ -398,7 +363,7 @@ STOBJ_GET_CLASS(const JSObject* obj)
     JS_BEGIN_MACRO                                                            \
         OBJ_CHECK_SLOT(obj, slot);                                            \
         if (OBJ_SCOPE(obj)->title.ownercx == cx)                              \
-            LOCKED_OBJ_WRITE_SLOT(cx, obj, slot, value);                      \
+            LOCKED_OBJ_SET_SLOT(obj, slot, value);                            \
         else                                                                  \
             js_SetSlotThreadSafe(cx, obj, slot, value);                       \
     JS_END_MACRO
@@ -424,7 +389,7 @@ STOBJ_GET_CLASS(const JSObject* obj)
 #else   
 
 #define OBJ_GET_SLOT(cx,obj,slot)       LOCKED_OBJ_GET_SLOT(obj,slot)
-#define OBJ_SET_SLOT(cx,obj,slot,value) LOCKED_OBJ_WRITE_SLOT(cx,obj,slot,value)
+#define OBJ_SET_SLOT(cx,obj,slot,value) LOCKED_OBJ_SET_SLOT(obj,slot,value)
 
 #endif 
 
@@ -724,6 +689,9 @@ js_DefineProperty(JSContext *cx, JSObject *obj, jsid id, jsval value,
 
 const uintN JSDNP_CACHE_RESULT = 1; 
 const uintN JSDNP_DONT_PURGE   = 2; 
+const uintN JSDNP_SET_METHOD   = 4; 
+
+
 
 
 
@@ -807,23 +775,40 @@ js_FindVariableScope(JSContext *cx, JSFunction **funp);
 
 
 
+
+
+
+
+
+
+
+const uintN JSGET_CACHE_RESULT      = 1; 
+const uintN JSGET_METHOD_BARRIER    = 0; 
+const uintN JSGET_NO_METHOD_BARRIER = 2; 
+
+
+
+
+
+
+
 extern JSBool
 js_NativeGet(JSContext *cx, JSObject *obj, JSObject *pobj,
-             JSScopeProperty *sprop, jsval *vp);
+             JSScopeProperty *sprop, uintN getHow, jsval *vp);
 
 extern JSBool
-js_NativeSet(JSContext *cx, JSObject *obj, JSScopeProperty *sprop, jsval *vp);
+js_NativeSet(JSContext *cx, JSObject *obj, JSScopeProperty *sprop, bool added,
+             jsval *vp);
 
 extern JSBool
-js_GetPropertyHelper(JSContext *cx, JSObject *obj, jsid id, JSBool cacheResult,
+js_GetPropertyHelper(JSContext *cx, JSObject *obj, jsid id, uintN getHow,
                      jsval *vp);
 
 extern JSBool
 js_GetProperty(JSContext *cx, JSObject *obj, jsid id, jsval *vp);
 
 extern JSBool
-js_GetMethod(JSContext *cx, JSObject *obj, jsid id, JSBool cacheResult,
-             jsval *vp);
+js_GetMethod(JSContext *cx, JSObject *obj, jsid id, uintN getHow, jsval *vp);
 
 
 
@@ -833,7 +818,7 @@ extern JS_FRIEND_API(JSBool)
 js_CheckUndeclaredVarAssignment(JSContext *cx);
 
 extern JSBool
-js_SetPropertyHelper(JSContext *cx, JSObject *obj, jsid id, JSBool cacheResult,
+js_SetPropertyHelper(JSContext *cx, JSObject *obj, jsid id, uintN defineHow,
                      jsval *vp);
 
 extern JSBool

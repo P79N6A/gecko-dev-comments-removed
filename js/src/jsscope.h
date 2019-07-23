@@ -45,6 +45,7 @@
 
 #include "jstypes.h"
 #include "jslock.h"
+#include "jsfun.h"
 #include "jsobj.h"
 #include "jsprvtd.h"
 #include "jspubtd.h"
@@ -279,15 +280,30 @@ struct JSScope {
 
     void extend(JSContext *cx, JSScopeProperty *sprop);
 
+    
+
+
+
+    inline bool methodReadBarrier(JSContext *cx, JSScopeProperty *sprop, jsval *vp);
+
+    
+
+
+
+
+
+
+    inline bool methodWriteBarrier(JSContext *cx, JSScopeProperty *sprop, jsval v);
+    inline bool methodWriteBarrier(JSContext *cx, uint32 slot, jsval v);
+
     void trace(JSTracer *trc);
 
     void brandingShapeChange(JSContext *cx, uint32 slot, jsval v);
     void deletingShapeChange(JSContext *cx, JSScopeProperty *sprop);
-    void methodShapeChange(JSContext *cx, uint32 slot, jsval toval);
+    bool methodShapeChange(JSContext *cx, JSScopeProperty *sprop, jsval toval);
+    bool methodShapeChange(JSContext *cx, uint32 slot, jsval toval);
     void protoShapeChange(JSContext *cx);
-    void replacingShapeChange(JSContext *cx,
-                              JSScopeProperty *sprop,
-                              JSScopeProperty *newsprop);
+    void replacingShapeChange(JSContext *cx, JSScopeProperty *sprop, JSScopeProperty *newsprop);
     void sealingShapeChange(JSContext *cx);
     void shadowingShapeChange(JSContext *cx, JSScopeProperty *sprop);
 
@@ -300,12 +316,13 @@ struct JSScope {
         BRANDED                 = 0x0004,
         INDEXED_PROPERTIES      = 0x0008,
         OWN_SHAPE               = 0x0010,
+        METHOD_BARRIER          = 0x0020,
 
         
 
 
 
-        SHAPE_REGEN             = 0x0020
+        SHAPE_REGEN             = 0x0040
     };
 
     bool hadMiddleDelete()      { return flags & MIDDLE_DELETE; }
@@ -335,6 +352,42 @@ struct JSScope {
     void setOwnShape()          { flags |= OWN_SHAPE; }
 
     bool hasRegenFlag(uint8 regenFlag) { return (flags & SHAPE_REGEN) == regenFlag; }
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    bool hasMethodBarrier()     { return flags & METHOD_BARRIER; }
+    void setMethodBarrier()     { flags |= METHOD_BARRIER | BRANDED; }
 
     bool owned()                { return object != NULL; }
 };
@@ -377,7 +430,8 @@ js_CastAsPropertyOp(JSObject *object)
 struct JSScopeProperty {
     jsid            id;                 
     JSPropertyOp    getter;             
-    JSPropertyOp    setter;
+    JSPropertyOp    setter;             
+
     uint32          slot;               
     uint8           attrs;              
     uint8           flags;              
@@ -386,6 +440,52 @@ struct JSScopeProperty {
     JSScopeProperty *kids;              
 
     uint32          shape;              
+
+
+#define SPROP_MARK                      0x01
+#define SPROP_IS_ALIAS                  0x02
+#define SPROP_HAS_SHORTID               0x04
+#define SPROP_FLAG_SHAPE_REGEN          0x08
+#define SPROP_IS_METHOD                 0x10
+
+    bool isMethod() const {
+        return flags & SPROP_IS_METHOD;
+    }
+    JSObject *methodObject() const {
+        JS_ASSERT(isMethod());
+        return js_CastAsObject(getter);
+    }
+    jsval methodValue() const {
+        JS_ASSERT(isMethod());
+        return js_CastAsObjectJSVal(getter);
+    }
+
+    bool hasGetterObject() const {
+        return attrs & JSPROP_GETTER;
+    }
+    JSObject *getterObject() const {
+        JS_ASSERT(hasGetterObject());
+        return js_CastAsObject(getter);
+    }
+    jsval getterValue() const {
+        JS_ASSERT(hasGetterObject());
+        return js_CastAsObjectJSVal(getter);
+    }
+
+    bool hasSetterObject() const {
+        return attrs & JSPROP_SETTER;
+    }
+    JSObject *setterObject() const {
+        JS_ASSERT(hasSetterObject());
+        return js_CastAsObject(setter);
+    }
+    jsval setterValue() const {
+        JS_ASSERT(hasSetterObject());
+        return js_CastAsObjectJSVal(setter);
+    }
+
+    bool get(JSContext* cx, JSObject* obj, JSObject *pobj, jsval* vp);
+    bool set(JSContext* cx, JSObject* obj, jsval* vp);
 
     void trace(JSTracer *trc);
 };
@@ -410,23 +510,17 @@ struct JSScopeProperty {
     (*(spp) = (JSScopeProperty *) ((jsuword)(sprop)                           \
                                    | SPROP_HAD_COLLISION(*(spp))))
 
-JS_ALWAYS_INLINE JSScopeProperty *
+inline JSScopeProperty *
 JSScope::lookup(jsid id)
 {
     return SPROP_FETCH(search(id, false));
 }
 
-JS_ALWAYS_INLINE bool
+inline bool
 JSScope::has(JSScopeProperty *sprop)
 {
     return lookup(sprop->id) == sprop;
 }
-
-
-#define SPROP_MARK                      0x01
-#define SPROP_IS_ALIAS                  0x02
-#define SPROP_HAS_SHORTID               0x04
-#define SPROP_FLAG_SHAPE_REGEN          0x08
 
 
 
@@ -444,6 +538,9 @@ JSScope::has(JSScopeProperty *sprop)
 #define SPROP_HAS_STUB_GETTER(sprop)    (!(sprop)->getter)
 #define SPROP_HAS_STUB_SETTER(sprop)    (!(sprop)->setter)
 
+#define SPROP_HAS_STUB_GETTER_OR_IS_METHOD(sprop)                             \
+    (SPROP_HAS_STUB_GETTER(sprop) || (sprop)->isMethod())
+
 #ifndef JS_THREADSAFE
 # define js_GenerateShape(cx, gcLocked)    js_GenerateShape (cx)
 #endif
@@ -452,6 +549,28 @@ extern uint32
 js_GenerateShape(JSContext *cx, bool gcLocked);
 
 #ifdef JS_DUMP_PROPTREE_STATS
+struct JSScopeStats {
+    jsrefcount          searches;
+    jsrefcount          hits;
+    jsrefcount          misses;
+    jsrefcount          hashes;
+    jsrefcount          steps;
+    jsrefcount          stepHits;
+    jsrefcount          stepMisses;
+    jsrefcount          adds;
+    jsrefcount          redundantAdds;
+    jsrefcount          addFailures;
+    jsrefcount          changeFailures;
+    jsrefcount          compresses;
+    jsrefcount          grows;
+    jsrefcount          removes;
+    jsrefcount          removeFrees;
+    jsrefcount          uselessRemoves;
+    jsrefcount          shrinks;
+};
+
+extern JS_FRIEND_DATA(JSScopeStats) js_scope_stats;
+
 # define METER(x)       JS_ATOMIC_INCREMENT(&js_scope_stats.x)
 #else
 # define METER(x)
@@ -512,9 +631,69 @@ JSScope::extend(JSContext *cx, JSScopeProperty *sprop)
     js_LeaveTraceIfGlobalObject(cx, object);
     shape = (!lastProp || shape == lastProp->shape)
             ? sprop->shape
-            : js_GenerateShape(cx, JS_FALSE);
+            : js_GenerateShape(cx, false);
     ++entryCount;
     lastProp = sprop;
+
+    jsuint index;
+    if (js_IdIsIndex(sprop->id, &index))
+        setIndexedProperties();
+
+    if (sprop->isMethod())
+        setMethodBarrier();
+}
+
+
+
+
+
+
+
+
+
+inline bool
+JSScope::methodReadBarrier(JSContext *cx, JSScopeProperty *sprop, jsval *vp)
+{
+    JS_ASSERT(hasMethodBarrier());
+    JS_ASSERT(has(sprop));
+    JS_ASSERT(sprop->isMethod());
+    JS_ASSERT(sprop->methodValue() == *vp);
+
+    JS_ASSERT(object->getClass() == &js_ObjectClass);
+
+    JSObject *funobj = JSVAL_TO_OBJECT(*vp);
+    JSFunction *fun = GET_FUNCTION_PRIVATE(cx, funobj);
+    JS_ASSERT(FUN_OBJECT(fun) == funobj && FUN_NULL_CLOSURE(fun));
+
+    funobj = js_CloneFunctionObject(cx, fun, OBJ_GET_PARENT(cx, funobj));
+    if (!funobj)
+        return false;
+    *vp = OBJECT_TO_JSVAL(funobj);
+    return js_SetPropertyHelper(cx, object, sprop->id, 0, vp);
+}
+
+inline bool
+JSScope::methodWriteBarrier(JSContext *cx, JSScopeProperty *sprop, jsval v)
+{
+    if (branded()) {
+        jsval prev = LOCKED_OBJ_GET_SLOT(object, sprop->slot);
+
+        if (prev != v && VALUE_IS_FUNCTION(cx, prev))
+            return methodShapeChange(cx, sprop, v);
+    }
+    return true;
+}
+
+inline bool
+JSScope::methodWriteBarrier(JSContext *cx, uint32 slot, jsval v)
+{
+    if (branded()) {
+        jsval prev = LOCKED_OBJ_GET_SLOT(object, slot);
+
+        if (prev != v && VALUE_IS_FUNCTION(cx, prev))
+            return methodShapeChange(cx, slot, v);
+    }
+    return true;
 }
 
 inline void
@@ -564,16 +743,23 @@ JSScope::trace(JSTracer *trc)
     }
 }
 
-
-static JS_INLINE bool
-js_GetSprop(JSContext* cx, JSScopeProperty* sprop, JSObject* obj, jsval* vp)
+inline bool
+JSScopeProperty::get(JSContext* cx, JSObject* obj, JSObject *pobj, jsval* vp)
 {
-    JS_ASSERT(!SPROP_HAS_STUB_GETTER(sprop));
+    JS_ASSERT(!SPROP_HAS_STUB_GETTER(this));
 
-    if (sprop->attrs & JSPROP_GETTER) {
-        jsval fval = js_CastAsObjectJSVal(sprop->getter);
-        return js_InternalGetOrSet(cx, obj, sprop->id, fval, JSACC_READ,
-                                   0, 0, vp);
+    if (attrs & JSPROP_GETTER) {
+        JS_ASSERT(!isMethod());
+        jsval fval = getterValue();
+        return js_InternalGetOrSet(cx, obj, id, fval, JSACC_READ, 0, 0, vp);
+    }
+
+    if (isMethod()) {
+        *vp = methodValue();
+
+        JSScope *scope = OBJ_SCOPE(pobj);
+        JS_ASSERT(scope->object == pobj);
+        return scope->methodReadBarrier(cx, this, vp);
     }
 
     
@@ -584,30 +770,28 @@ js_GetSprop(JSContext* cx, JSScopeProperty* sprop, JSObject* obj, jsval* vp)
 
     if (STOBJ_GET_CLASS(obj) == &js_WithClass)
         obj = obj->map->ops->thisObject(cx, obj);
-    return sprop->getter(cx, obj, SPROP_USERID(sprop), vp);
+    return getter(cx, obj, SPROP_USERID(this), vp);
 }
 
-static JS_INLINE bool
-js_SetSprop(JSContext* cx, JSScopeProperty* sprop, JSObject* obj, jsval* vp)
+inline bool
+JSScopeProperty::set(JSContext* cx, JSObject* obj, jsval* vp)
 {
-    JS_ASSERT(!(SPROP_HAS_STUB_SETTER(sprop) &&
-                !(sprop->attrs & JSPROP_GETTER)));
+    JS_ASSERT_IF(SPROP_HAS_STUB_SETTER(this), attrs & JSPROP_GETTER);
 
-    if (sprop->attrs & JSPROP_SETTER) {
-        jsval fval = js_CastAsObjectJSVal(sprop->setter);
-        return js_InternalGetOrSet(cx, obj, (sprop)->id, fval, JSACC_WRITE,
-                                   1, vp, vp);
+    if (attrs & JSPROP_SETTER) {
+        jsval fval = setterValue();
+        return js_InternalGetOrSet(cx, obj, id, fval, JSACC_WRITE, 1, vp, vp);
     }
 
-    if (sprop->attrs & JSPROP_GETTER) {
+    if (attrs & JSPROP_GETTER) {
         js_ReportGetterOnlyAssignment(cx);
-        return JS_FALSE;
+        return false;
     }
 
     
     if (STOBJ_GET_CLASS(obj) == &js_WithClass)
         obj = obj->map->ops->thisObject(cx, obj);
-    return sprop->setter(cx, obj, SPROP_USERID(sprop), vp);
+    return setter(cx, obj, SPROP_USERID(this), vp);
 }
 
 
