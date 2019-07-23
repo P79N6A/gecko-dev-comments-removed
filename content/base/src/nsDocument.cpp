@@ -1062,7 +1062,7 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(nsDocument)
   
   
   
-  DestroyLinkMap();
+  tmp->DestroyLinkMap();
 
   
   for (PRInt32 indx = PRInt32(tmp->mChildren.ChildCount()) - 1; 
