@@ -414,14 +414,14 @@ guard_both_jsvals_are_string(jsval& a, jsval& b)
     return interp_guard_both_jsvals_are_string(a, b);
 }
 
-
-
-
+static inline void 
+trace_start(JSContext* cx, jsbytecode* pc) 
+{
+}
 
 static inline void
-trace_stop(const char* op)
+trace_stop(JSContext* cx, const char* op)
 {
-    
 }
 
 #endif 

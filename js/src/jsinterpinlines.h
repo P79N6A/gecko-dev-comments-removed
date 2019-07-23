@@ -454,12 +454,19 @@ PRIMITIVE(guard_both_jsvals_are_string)(jsval& a, jsval& b)
     return JSVAL_IS_STRING(a) && JSVAL_IS_STRING(b);
 }
 
+static inline void
+PRIMITIVE(trace_start)(JSContext* cx, jsbytecode* pc)
+{
+    jsval args[] = { native_pointer_to_jsval(pc) };
+    js_CallRecorder(cx, "start", 1, args);
+}
+
 
 
 
 
 static inline void
-PRIMITIVE(trace_stop)(const char* op)
+PRIMITIVE(trace_stop)(JSContext* cx, const char* op)
 {
     
 }
