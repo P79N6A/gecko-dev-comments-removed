@@ -816,20 +816,13 @@ function BrowserStartup()
     else {
       
       
-      if ((screen.availWidth / 2) >= 800)
+      if (screen.availWidth >= 1600)
         defaultWidth = (screen.availWidth / 2) - 20;
       defaultHeight = screen.availHeight - 10;
 #ifdef MOZ_WIDGET_GTK2
-#define USE_HEIGHT_ADJUST
-#endif
-#ifdef USE_HEIGHT_ADJUST
       
       
       defaultHeight -= 28;
-#endif
-#ifdef XP_MACOSX
-      
-      defaultHeight -= 22;
 #endif
     }
     document.documentElement.setAttribute("width", defaultWidth);

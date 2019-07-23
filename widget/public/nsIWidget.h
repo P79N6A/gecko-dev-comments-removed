@@ -563,6 +563,7 @@ class nsIWidget : public nsISupports {
 
 
 
+
     NS_IMETHOD GetScreenBounds(nsRect &aRect) = 0;
 
 

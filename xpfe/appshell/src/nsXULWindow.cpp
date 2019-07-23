@@ -1062,8 +1062,10 @@ PRBool nsXULWindow::LoadPositionFromXUL()
         specX += parentX;
         specY += parentY;
       }
-    } else
+    }
+    else {
       StaggerPosition(specX, specY, currWidth, currHeight);
+    }
   }
   mWindow->ConstrainPosition(PR_FALSE, &specX, &specY);
   if (specX != currX || specY != currY)
@@ -1257,7 +1259,6 @@ void nsXULWindow::StaggerPosition(PRInt32 &aRequestedX, PRInt32 &aRequestedY,
   }
 
   
-  
   do {
     keepTrying = PR_FALSE;
     nsCOMPtr<nsISimpleEnumerator> windowList;
@@ -1267,10 +1268,8 @@ void nsXULWindow::StaggerPosition(PRInt32 &aRequestedX, PRInt32 &aRequestedY,
       break;
 
     
-    
     do {
       PRBool more;
-      PRInt32 listX, listY;
       windowList->HasMoreElements(&more);
       if (!more)
         break;
@@ -1279,13 +1278,13 @@ void nsXULWindow::StaggerPosition(PRInt32 &aRequestedX, PRInt32 &aRequestedY,
       windowList->GetNext(getter_AddRefs(supportsWindow));
 
       nsCOMPtr<nsIXULWindow> listXULWindow(do_QueryInterface(supportsWindow));
-      nsCOMPtr<nsIBaseWindow> listBaseWindow(do_QueryInterface(supportsWindow));
-
       if (listXULWindow != ourXULWindow) {
+        PRInt32 listX, listY;
+        nsCOMPtr<nsIBaseWindow> listBaseWindow(do_QueryInterface(supportsWindow));
         listBaseWindow->GetPosition(&listX, &listY);
 
-        if (PR_ABS(listX-aRequestedX) <= kSlop &&
-            PR_ABS(listY-aRequestedY) <= kSlop) {
+        if (PR_ABS(listX - aRequestedX) <= kSlop &&
+            PR_ABS(listY - aRequestedY) <= kSlop) {
           
           if (bouncedX & 0x1)
             aRequestedX -= kOffset;
@@ -1295,14 +1294,17 @@ void nsXULWindow::StaggerPosition(PRInt32 &aRequestedX, PRInt32 &aRequestedY,
 
           if (gotScreen) {
             
-            if (!(bouncedX & 0x1) && aRequestedX + aSpecWidth > screenRight) {
+            if (!(bouncedX & 0x1) && ((aRequestedX + aSpecWidth) > screenRight)) {
               aRequestedX = screenRight - aSpecWidth;
               ++bouncedX;
             }
+
+            
             if ((bouncedX & 0x1) && aRequestedX < screenLeft) {
               aRequestedX = screenLeft;
               ++bouncedX;
             }
+
             
             if (aRequestedY + aSpecHeight > screenBottom) {
               aRequestedY = screenTop;
