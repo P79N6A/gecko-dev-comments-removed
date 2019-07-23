@@ -104,20 +104,9 @@ FinishThreadData(JSThreadData *data)
 static void
 PurgeThreadData(JSContext *cx, JSThreadData *data)
 {
-    js_PurgeGSNCache(&data->gsnCache);
-
-    if (cx->runtime->gcRegenShapes)
-        js_PurgePropertyCache(cx, &data->propertyCache);
-
 # ifdef JS_TRACER
     JSTraceMonitor *tm = &data->traceMonitor;
     tm->reservedDoublePoolPtr = tm->reservedDoublePool;
-
-    
-
-
-
-
     tm->needFlush = JS_TRUE;
 
     if (tm->recorder)
@@ -134,6 +123,9 @@ PurgeThreadData(JSContext *cx, JSThreadData *data)
 
     
     js_DestroyScriptsToGC(cx, data);
+
+    js_PurgeGSNCache(&data->gsnCache);
+    js_PurgePropertyCache(cx, &data->propertyCache);
 }
 
 #ifdef JS_THREADSAFE
