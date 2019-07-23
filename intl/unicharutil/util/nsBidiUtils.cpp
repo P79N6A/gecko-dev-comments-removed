@@ -350,7 +350,9 @@ nsresult ArabicShaping(const PRUnichar* aString, PRUint32 aLen,
       }
       if(! done)
         *lDest++ = *lSrc++; 
-    } 
+    } else if (0x200C == *lSrc || 0x200D == *lSrc)
+      
+      lSrc++;
     else 
       *lDest++ = *lSrc++; 
 
