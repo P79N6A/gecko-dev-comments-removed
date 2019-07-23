@@ -140,20 +140,7 @@ class nsStyleSet
   
   
   already_AddRefed<nsStyleContext>
-  ResolveAnonymousBoxStyle(nsIAtom* aPseudoTag,
-                           nsStyleContext* aParentContext) {
-#ifdef DEBUG
-    PRBool isAnonBox = nsCSSAnonBoxes::IsAnonBox(aPseudoTag)
-#ifdef MOZ_XUL
-                 && !nsCSSAnonBoxes::IsTreePseudoElement(aPseudoTag)
-#endif
-      ;
-    NS_PRECONDITION(isAnonBox, "Unexpected pseudo");
-#endif
-    return ResolvePseudoStyleFor(nsnull, aPseudoTag,
-                                 nsCSSPseudoElements::ePseudo_AnonBox,
-                                 aParentContext);
-  }
+  ResolveAnonymousBoxStyle(nsIAtom* aPseudoTag, nsStyleContext* aParentContext);
 
 #ifdef MOZ_XUL
   
@@ -348,8 +335,11 @@ public:
   
   
   
+  
+  
+  
   void FileRules(nsIStyleRuleProcessor::EnumFunc aCollectorFunc,
-                 RuleProcessorData* aData, nsRuleWalker* aRuleWalker);
+                 void* aData, nsIContent* aContent, nsRuleWalker* aRuleWalker);
 
   
   
