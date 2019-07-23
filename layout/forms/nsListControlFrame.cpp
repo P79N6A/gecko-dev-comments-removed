@@ -338,8 +338,7 @@ void nsListControlFrame::PaintFocus(nsIRenderingContext& aRC, nsPoint aPt)
       
       
       childframe = containerFrame->GetFirstChild(nsnull);
-      if (childframe &&
-          !childframe->GetContent()->IsNodeOfType(nsINode::eELEMENT)) {
+      if (childframe && !childframe->GetContent()->IsElement()) {
         childframe = nsnull;
       }
       result = NS_OK;

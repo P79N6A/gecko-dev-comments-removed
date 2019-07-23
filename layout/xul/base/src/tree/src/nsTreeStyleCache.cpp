@@ -101,7 +101,7 @@ nsTreeStyleCache::GetStyleContext(nsICSSPseudoComparator* aComparator,
   if (!result) {
     
     result = aPresContext->StyleSet()->
-      ResolveXULTreePseudoStyle(aContent, aPseudoElement,
+      ResolveXULTreePseudoStyle(aContent->AsElement(), aPseudoElement,
                                 aContext, aComparator).get();
 
     

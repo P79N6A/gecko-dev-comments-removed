@@ -104,7 +104,7 @@ static void FindBodyElement(nsIContent* aParent, nsIContent** aResult)
       
       
       break;
-    } else if (content->IsNodeOfType(nsINode::eELEMENT) &&
+    } else if (content->IsElement() &&
                !ni->Equals(nsGkAtoms::_template, kNameSpaceID_XUL)) {
       FindBodyElement(content, aResult);
       if (*aResult)
