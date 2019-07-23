@@ -106,7 +106,8 @@ namespace nanojit
 
 		uint32_t stackPushed =
             STACK_GRANULARITY + 
-            STACK_GRANULARITY; 
+            STACK_GRANULARITY + 
+			STACK_GRANULARITY;  
 		
 		if (!_thisfrag->lirbuf->explicitSavedRegs)
 			stackPushed += NumSavedRegs * STACK_GRANULARITY;
@@ -130,9 +131,11 @@ namespace nanojit
 		MR(FP, SP); 
         PUSHr(FP); 
 
-		if (!_thisfrag->lirbuf->explicitSavedRegs) 
+		if (!_thisfrag->lirbuf->explicitSavedRegs) {
+			PUSHr(FP); 
 			for (int i = 0; i < NumSavedRegs; ++i)
 				PUSHr(savedRegs[i]);
+		}
 
         
         asm_align_code();
@@ -207,9 +210,11 @@ namespace nanojit
     {
         RET();
 
-		if (!_thisfrag->lirbuf->explicitSavedRegs) 
+		if (!_thisfrag->lirbuf->explicitSavedRegs) {
 			for (int i = NumSavedRegs - 1; i >= 0; --i)
 				POPr(savedRegs[i]);
+			POPr(FP); 
+		}
 
         POPr(FP); 
         MR(SP,FP); 
