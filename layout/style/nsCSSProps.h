@@ -84,6 +84,13 @@ enum nsStyleAnimType {
   eStyleAnimType_Sides_Left,
 
   
+  
+  eStyleAnimType_Corner_TopLeft,
+  eStyleAnimType_Corner_TopRight,
+  eStyleAnimType_Corner_BottomRight,
+  eStyleAnimType_Corner_BottomLeft,
+
+  
   eStyleAnimType_nscoord,
 
   
