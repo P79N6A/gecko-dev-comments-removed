@@ -42,12 +42,9 @@
 #include "jsbit.h"              
 #include "jsprf.h"
 #include <math.h>               
-
-#if defined(_MSC_VER) || defined(__MINGW32__)
-#include <malloc.h>
 #ifdef _MSC_VER
+#include <malloc.h>
 #define alloca _alloca
-#endif
 #endif
 #ifdef SOLARIS
 #include <alloca.h>
@@ -5060,7 +5057,7 @@ TraceRecorder::tableswitch()
         pc += JUMPX_OFFSET_LEN;
         low = GET_JUMPX_OFFSET(pc);
         pc += JUMPX_OFFSET_LEN;
-        high = GET_JUMPX_OFFSET(pc);            
+        high = GET_JUMPX_OFFSET(pc);
     }
 
     
