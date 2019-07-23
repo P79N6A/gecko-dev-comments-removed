@@ -156,6 +156,7 @@ public:
 
 
 
+
   NS_HIDDEN_(const void*) NS_FASTCALL GetStyleData(nsStyleStructID aSID);
 
   
@@ -165,14 +166,26 @@ public:
 
 
 
-
-  #define STYLE_STRUCT(name_, checkdata_cb_, ctor_args_)                      \
-    NS_HIDDEN_(const nsStyle##name_ *) NS_FASTCALL GetStyle##name_();
+  #define STYLE_STRUCT(name_, checkdata_cb_, ctor_args_)  \
+    const nsStyle##name_ * GetStyle##name_() {            \
+      return DoGetStyle##name_(PR_TRUE);                  \
+    }
   #include "nsStyleStructList.h"
   #undef STYLE_STRUCT
 
+  
 
-  NS_HIDDEN_(const void*) PeekStyleData(nsStyleStructID aSID);
+
+
+
+
+
+  #define STYLE_STRUCT(name_, checkdata_cb_, ctor_args_)  \
+    const nsStyle##name_ * PeekStyle##name_() {           \
+      return DoGetStyle##name_(PR_FALSE);                 \
+    }
+  #include "nsStyleStructList.h"
+  #undef STYLE_STRUCT
 
   NS_HIDDEN_(void*) GetUniqueStyleData(const nsStyleStructID& aSID);
 
@@ -187,6 +200,33 @@ protected:
   NS_HIDDEN_(void) RemoveChild(nsStyleContext* aChild);
 
   NS_HIDDEN_(void) ApplyStyleFixups(nsPresContext* aPresContext);
+
+  
+  
+  inline const void* GetCachedStyleData(nsStyleStructID aSID);
+
+  
+  #define STYLE_STRUCT_INHERITED(name_, checkdata_cb_, ctor_args_)      \
+    const nsStyle##name_ * DoGetStyle##name_(PRBool aComputeData) {     \
+      const nsStyle##name_ * cachedData =                               \
+        mCachedInheritedData.m##name_##Data;                            \
+      if (cachedData) /* Have it cached already, yay */                 \
+        return cachedData;                                              \
+      /* Have the rulenode deal */                                      \
+      return mRuleNode->GetStyle##name_(this, aComputeData);            \
+    }
+  #define STYLE_STRUCT_RESET(name_, checkdata_cb_, ctor_args_)          \
+    const nsStyle##name_ * DoGetStyle##name_(PRBool aComputeData) {     \
+      const nsStyle##name_ * cachedData =                               \
+        mCachedResetData ? mCachedResetData->m##name_##Data : nsnull;   \
+      if (cachedData) /* Have it cached already, yay */                 \
+        return cachedData;                                              \
+      /* Have the rulenode deal */                                      \
+      return mRuleNode->GetStyle##name_(this, aComputeData);            \
+    }
+  #include "nsStyleStructList.h"
+  #undef STYLE_STRUCT_RESET
+  #undef STYLE_STRUCT_INHERITED
 
   nsStyleContext* const mParent;
 
@@ -219,7 +259,11 @@ protected:
   
   
   
-  nsCachedStyleData       mCachedStyleData; 
+  
+  
+  
+  nsResetStyleData*       mCachedResetData; 
+  nsInheritedStyleData    mCachedInheritedData; 
   PRUint32                mBits; 
                                  
   PRUint32                mRefCnt;
