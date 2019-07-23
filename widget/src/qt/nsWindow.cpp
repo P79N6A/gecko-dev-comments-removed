@@ -150,7 +150,7 @@ InitKeyEvent(nsKeyEvent &aEvent, QKeyEvent *aQEvent)
     
     
     
-    aEvent.nativeMsg = (void *)aQEvent;
+    aEvent.pluginEvent = (void *)aQEvent;
 }
 
 nsWindow::nsWindow()

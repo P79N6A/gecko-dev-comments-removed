@@ -525,7 +525,7 @@ nsWindow::InitKeyEvent(nsKeyEvent &aEvent, GdkEventKey *aGdkEvent)
     
     
     
-    aEvent.nativeMsg = (void *)aGdkEvent;
+    aEvent.pluginEvent = (void *)aGdkEvent;
 
     aEvent.time      = aGdkEvent->time;
 }
