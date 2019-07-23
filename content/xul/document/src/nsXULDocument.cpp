@@ -199,8 +199,8 @@ struct BroadcastListener {
 
 nsXULDocument::nsXULDocument(void)
     : nsXMLDocument("application/vnd.mozilla.xul+xml"),
-      mResolutionPhase(nsForwardReference::eStart),
-      mState(eState_Master)
+      mState(eState_Master),
+      mResolutionPhase(nsForwardReference::eStart)
 {
 
     
@@ -2594,9 +2594,6 @@ nsXULDocument::LoadOverlayInternal(nsIURI* aURI, PRBool aIsDynamic,
     *aShouldReturn = PR_FALSE;
     *aFailureFromContent = PR_FALSE;
 
-    nsCOMPtr<nsIScriptSecurityManager> secMan = do_GetService(NS_SCRIPTSECURITYMANAGER_CONTRACTID, &rv);
-    NS_ENSURE_SUCCESS(rv, rv);
-
 #ifdef PR_LOGGING
     if (PR_LOG_TEST(gXULLog, PR_LOG_DEBUG)) {
         nsCAutoString urlspec;
@@ -2609,6 +2606,9 @@ nsXULDocument::LoadOverlayInternal(nsIURI* aURI, PRBool aIsDynamic,
 
     if (aIsDynamic)
         mResolutionPhase = nsForwardReference::eStart;
+
+    nsIScriptSecurityManager* secMan = nsContentUtils::GetSecurityManager();
+    NS_ENSURE_TRUE(secMan, NS_ERROR_NOT_AVAILABLE);
 
     
     
@@ -2678,7 +2678,6 @@ nsXULDocument::LoadOverlayInternal(nsIURI* aURI, PRBool aIsDynamic,
         
         
         
-        
         nsCOMPtr<nsIParser> parser;
         rv = PrepareToLoadPrototype(aURI, "view", nsnull, getter_AddRefs(parser));
         if (NS_FAILED(rv)) return rv;
@@ -2695,7 +2694,8 @@ nsXULDocument::LoadOverlayInternal(nsIURI* aURI, PRBool aIsDynamic,
         
         
         
-        ParserObserver* parserObserver = new ParserObserver(this);
+        ParserObserver* parserObserver =
+            new ParserObserver(this, mCurrentPrototype);
         if (! parserObserver)
             return NS_ERROR_OUT_OF_MEMORY;
 
@@ -3699,7 +3699,9 @@ nsXULDocument::AddPrototypeSheets()
         nsCOMPtr<nsIURI> uri = sheets[i];
 
         nsCOMPtr<nsICSSStyleSheet> incompleteSheet;
-        rv = CSSLoader()->LoadSheet(uri, this, getter_AddRefs(incompleteSheet));
+        rv = CSSLoader()->LoadSheet(uri, mCurrentPrototype->GetURI(),
+                                    mCurrentPrototype->DocumentPrincipal(),
+                                    this, getter_AddRefs(incompleteSheet));
 
         
         
@@ -4332,15 +4334,14 @@ nsXULDocument::CachedChromeStreamListener::OnDataAvailable(nsIRequest *request,
 
 
 
-nsXULDocument::ParserObserver::ParserObserver(nsXULDocument* aDocument)
-    : mDocument(aDocument)
+nsXULDocument::ParserObserver::ParserObserver(nsXULDocument* aDocument,
+                                              nsXULPrototypeDocument* aPrototype)
+    : mDocument(aDocument), mPrototype(aPrototype)
 {
-    NS_ADDREF(mDocument);
 }
 
 nsXULDocument::ParserObserver::~ParserObserver()
 {
-    NS_IF_RELEASE(mDocument);
 }
 
 NS_IMPL_ISUPPORTS1(nsXULDocument::ParserObserver, nsIRequestObserver)
@@ -4349,6 +4350,22 @@ NS_IMETHODIMP
 nsXULDocument::ParserObserver::OnStartRequest(nsIRequest *request,
                                               nsISupports* aContext)
 {
+    
+    if (mPrototype) {
+        nsCOMPtr<nsIChannel> channel = do_QueryInterface(request);
+        nsIScriptSecurityManager* secMan = nsContentUtils::GetSecurityManager();
+        if (channel && secMan) {
+            nsCOMPtr<nsIPrincipal> principal;
+            secMan->GetChannelPrincipal(channel, getter_AddRefs(principal));
+
+            
+            mPrototype->SetDocumentPrincipal(principal);            
+        }
+
+        
+        mPrototype = nsnull;
+    }
+        
     return NS_OK;
 }
 
@@ -4377,7 +4394,7 @@ nsXULDocument::ParserObserver::OnStopRequest(nsIRequest *request,
     
     
     
-    NS_RELEASE(mDocument);
+    mDocument = nsnull;
 
     return rv;
 }

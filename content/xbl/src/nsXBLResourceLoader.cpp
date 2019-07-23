@@ -139,6 +139,7 @@ nsXBLResourceLoader::LoadResources(PRBool* aResult)
       
 
       
+      
       PRBool chrome;
       nsresult rv;
       if (NS_SUCCEEDED(url->SchemeIs("chrome", &chrome)) && chrome)
@@ -154,7 +155,7 @@ nsXBLResourceLoader::LoadResources(PRBool* aResult)
       }
       else
       {
-        rv = cssLoader->LoadSheet(url, this);
+        rv = cssLoader->LoadSheet(url, docURL, doc->NodePrincipal(), this);
         if (NS_SUCCEEDED(rv))
           ++mPendingSheets;
       }

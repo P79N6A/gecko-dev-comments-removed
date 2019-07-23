@@ -55,12 +55,13 @@ class nsIUnicharInputStream;
 class nsICSSLoaderObserver;
 class nsMediaList;
 class nsICSSImportRule;
+class nsIPrincipal;
 
 
 
 #define NS_ICSS_LOADER_IID     \
-{ 0x5da3a869, 0x270c, 0x4f10, \
- { 0x97, 0xd1, 0x99, 0xea, 0xa1, 0x50, 0xeb, 0x4e } }
+{ 0xeed4ac28, 0x0add, 0x43a7, \
+ { 0x84, 0xbf, 0xfb, 0x53, 0x10, 0x9a, 0xe4, 0x0c } }
 
 typedef void (*nsCSSLoaderCallbackFunc)(nsICSSStyleSheet* aSheet, void *aData, PRBool aDidNotify);
 
@@ -207,14 +208,26 @@ public:
 
 
 
-  NS_IMETHOD LoadSheet(nsIURI* aURL, nsICSSLoaderObserver* aObserver,
+
+
+
+
+
+
+  NS_IMETHOD LoadSheet(nsIURI* aURL,
+                       nsIURI* aOriginURI,
+                       nsIPrincipal* aOriginPrincipal,
+                       nsICSSLoaderObserver* aObserver,
                        nsICSSStyleSheet** aSheet) = 0;
 
   
 
 
 
-  NS_IMETHOD LoadSheet(nsIURI* aURL, nsICSSLoaderObserver* aObserver) = 0;
+  NS_IMETHOD LoadSheet(nsIURI* aURL,
+                       nsIURI* aOriginURI,
+                       nsIPrincipal* aOriginPrincipal,
+                       nsICSSLoaderObserver* aObserver) = 0;
 
   
 
