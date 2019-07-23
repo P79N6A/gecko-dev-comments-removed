@@ -65,7 +65,7 @@ nsTArray_base::EnsureCapacity(size_type capacity, size_type elemSize) {
   
   
   
-  if (capacity * elemSize > size_type(-1)/2) {
+  if ((PRUint64)capacity * elemSize > size_type(-1)/2) {
     NS_ERROR("Attempting to allocate excessively large array");
     return PR_FALSE;
   }
