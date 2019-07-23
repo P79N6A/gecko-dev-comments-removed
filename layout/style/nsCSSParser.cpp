@@ -2458,6 +2458,8 @@ CSSParserImpl::ParseAttributeSelector(PRInt32&       aDataMask,
               "language", 
               "defer", 
               "type",
+              
+              "direction", 
               nsnull
             };
             short i = 0;
