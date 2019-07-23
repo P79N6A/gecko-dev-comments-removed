@@ -362,13 +362,13 @@ typedef uint32
 typedef void
 (* JS_DLL_CALLBACK JSTraceOp)(JSTracer *trc, JSObject *obj);
 
-#if defined __GNUC__ && __GNUC__ >= 4
+#if defined __GNUC__ && __GNUC__ >= 4 && !defined __cplusplus
 # define JS_CLASS_TRACE(method)                                               \
-    (__builtin_types_compatible_p(JSTraceOp, __typeof(&method))               \
+    (__builtin_types_compatible_p(JSTraceOp, __typeof(&(method)))             \
      ? (JSMarkOp)(method)                                                     \
-     : JS_WrongTypeForClassTacer)
+     : js_WrongTypeForClassTracer)
 
-extern JSMarkOp JS_WrongTypeForClassTacer;
+extern JSMarkOp js_WrongTypeForClassTracer;
 
 #else
 # define JS_CLASS_TRACE(method) ((JSMarkOp)(method))
