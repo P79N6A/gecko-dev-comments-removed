@@ -621,3 +621,17 @@ int32_t pluginGetClipRegionRectEdge(InstanceData* instanceData,
 void pluginDoInternalConsistencyCheck(InstanceData* instanceData, string& error)
 {
 }
+
+string
+pluginGetClipboardText(InstanceData* instanceData)
+{
+  GtkClipboard* cb = gtk_clipboard_get(GDK_SELECTION_CLIPBOARD);
+  
+  
+  gchar* text = gtk_clipboard_wait_for_text(cb);
+  string retText = text ? text : "";
+
+  g_free(text);
+
+  return retText;
+}

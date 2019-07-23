@@ -120,4 +120,10 @@ int32_t pluginGetClipRegionRectEdge(InstanceData* instanceData,
 
 void pluginDoInternalConsistencyCheck(InstanceData* instanceData, std::string& error);
 
+
+
+
+
+std::string pluginGetClipboardText(InstanceData* instanceData);
+
 #endif 
