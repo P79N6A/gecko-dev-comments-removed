@@ -5022,15 +5022,6 @@ nsBlockFrame::RemoveFloat(nsIFrame* aFloat) {
   }
 
   
-  
-  nsFrameManager* fm = PresContext()->GetPresShell()->FrameManager();
-  nsPlaceholderFrame* placeholder = fm->GetPlaceholderFrameFor(aFloat);
-  if (placeholder) {
-    fm->UnregisterPlaceholderFrame(placeholder);
-    placeholder->SetOutOfFlowFrame(nsnull);
-  }
-
-  
   if (mFloats.DestroyFrame(aFloat)) {
     return line;
   }

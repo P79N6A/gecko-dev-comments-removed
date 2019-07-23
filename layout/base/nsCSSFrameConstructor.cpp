@@ -6759,8 +6759,6 @@ DoDeletingFrameSubtree(nsFrameManager*      aFrameManager,
           nsPlaceholderFrame::GetRealFrameForPlaceholder(childFrame);
   
         
-        aFrameManager->UnregisterPlaceholderFrame((nsPlaceholderFrame*)childFrame);
-        
         
         
         
@@ -6884,18 +6882,6 @@ nsCSSFrameConstructor::RemoveMappingsForFrameSubtree(nsIFrame* aRemovedFrame)
   CaptureStateFor(aRemovedFrame, mTempFrameTreeState);
 
   return ::DeletingFrameSubtree(frameManager, aRemovedFrame);
-}
-
-static void UnregisterPlaceholderChain(nsFrameManager* frameManager,
-                                       nsPlaceholderFrame* placeholderFrame)
-{
-  
-  nsPlaceholderFrame* curFrame = placeholderFrame;
-  do {
-    frameManager->UnregisterPlaceholderFrame(curFrame);
-    curFrame->SetOutOfFlowFrame(nsnull);
-    curFrame = static_cast<nsPlaceholderFrame*>(curFrame->GetNextContinuation());
-  } while (curFrame);
 }
 
 nsresult
@@ -7077,8 +7063,6 @@ nsCSSFrameConstructor::ContentRemoved(nsIContent* aContainer,
       nsPlaceholderFrame* placeholderFrame =
         frameManager->GetPlaceholderFrameFor(childFrame);
       NS_ASSERTION(placeholderFrame, "No placeholder for out-of-flow?");
-
-      UnregisterPlaceholderChain(frameManager, placeholderFrame);
 
       
       
@@ -10146,8 +10130,6 @@ nsCSSFrameConstructor::RemoveFloatingFirstLetterFrames(
   printf("RemoveFloatingFirstLetterFrames: textContent=%p oldTextFrame=%p newTextFrame=%p\n",
          textContent.get(), textFrame, newTextFrame);
 #endif
-
-  UnregisterPlaceholderChain(aFrameManager, placeholderFrame);
 
   
   ::DeletingFrameSubtree(aFrameManager, floatFrame);
