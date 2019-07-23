@@ -1287,6 +1287,10 @@ function delayedStartup(isLoadingBlank, mustLoadSidebar) {
     Components.utils.reportError("Failed to init content pref service:\n" + ex);
   }
 
+  let NP = {};
+  Cu.import("resource:
+  NP.trackBrowserWindow(window);
+
   
   if (document.documentElement.getAttribute("windowtype") == "navigator:browser") {
     try {
