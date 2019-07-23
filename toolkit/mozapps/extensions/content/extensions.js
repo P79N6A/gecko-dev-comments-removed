@@ -696,11 +696,7 @@ function displaySearchResults(addons, count, isRecommended) {
 
     
     function compare(a, b) {
-      if (a.name.toLowerCase() < b.name.toLowerCase())
-        return -1;
-      if (a.name.toLowerCase() > b.name.toLowerCase())
-        return 1;
-      return 0;
+      return String.localeCompare(a.name, b.name);
     }
     addons.sort(compare);
   }
@@ -901,11 +897,7 @@ function rebuildPluginsDS()
 
   
   function compare(a, b) {
-    if (a.name.toLowerCase() < b.name.toLowerCase())
-      return -1;
-    if (a.name.toLowerCase() > b.name.toLowerCase())
-      return 1;
-    return 0;
+    return String.localeCompare(a.name, b.name);
   }
   plugins.sort(compare);
 
