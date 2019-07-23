@@ -79,6 +79,7 @@
 nsHZToUnicode::nsHZToUnicode() : nsBufferDecoderSupport(1)
 {
   mHZState = HZ_STATE_ASCII;	
+  mRunLength = 0;
 }
 
 NS_IMETHODIMP nsHZToUnicode::ConvertNoBuff(
@@ -102,8 +103,13 @@ NS_IMETHODIMP nsHZToUnicode::ConvertNoBuff(
     }
     if ( *aSrc & 0x80 ) 
     {
-      
-      *aDest = mUtil.GBKCharToUnicode(aSrc[0], aSrc[1]);
+      if (UINT8_IN_RANGE(0x81, aSrc[0], 0xFE) &&
+          UINT8_IN_RANGE(0x40, aSrc[1], 0xFE)) {
+        
+        *aDest = mUtil.GBKCharToUnicode(aSrc[0], aSrc[1]);
+      } else {
+        *aDest = UCS2_NO_MAPPING;
+      }
       aSrc += 2;
       i++;
       iDestlen++;
@@ -123,6 +129,7 @@ NS_IMETHODIMP nsHZToUnicode::ConvertNoBuff(
           
           
           mHZState = HZ_STATE_GB;
+          mRunLength = 0;
           aSrc += 2;
           i++;
           break;
@@ -132,6 +139,12 @@ NS_IMETHODIMP nsHZToUnicode::ConvertNoBuff(
           mHZState = HZ_STATE_ASCII;
           aSrc += 2;
           i++;
+          if (mRunLength == 0) {
+            *aDest = UCS2_NO_MAPPING;
+            iDestlen++;
+            aDest++;
+          }
+          mRunLength = 0;
           break;
         case HZLEAD1: 
           
@@ -141,6 +154,7 @@ NS_IMETHODIMP nsHZToUnicode::ConvertNoBuff(
           i++;
           iDestlen++;
           aDest++;
+          mRunLength++;
           break;
         case HZLEAD4:	
           
@@ -152,6 +166,9 @@ NS_IMETHODIMP nsHZToUnicode::ConvertNoBuff(
         default:
           
           aSrc += 2;
+          *aDest = UCS2_NO_MAPPING;
+          iDestlen++;
+          aDest++;
           break;
       };
       continue;
@@ -166,6 +183,7 @@ NS_IMETHODIMP nsHZToUnicode::ConvertNoBuff(
         i++;
         iDestlen++;
         aDest++;
+        mRunLength++;
         break;
       case HZ_STATE_ASCII:
       default:

@@ -70,6 +70,7 @@ protected:
 
 private:
   PRInt16 mHZState;
+  PRUint32 mRunLength; 
 
 };
 
