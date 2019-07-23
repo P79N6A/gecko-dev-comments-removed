@@ -60,16 +60,37 @@ public:
   
   TimeDuration() : mValue(0) {}
   
+  
+  struct _SomethingVeryRandomHere;
+  TimeDuration(_SomethingVeryRandomHere* aZero) : mValue(0) {
+    NS_ASSERTION(!aZero, "Who's playing funny games here?");
+  }
+  
 
   double ToSeconds() const { return double(mValue)/PR_TicksPerSecond(); }
 
   static TimeDuration FromSeconds(PRInt32 aSeconds) {
     
-    return TimeDuration(PRInt64(aSeconds)*PR_TicksPerSecond());
+    return TimeDuration::FromTicks(PRInt64(aSeconds)*PR_TicksPerSecond());
   }
   static TimeDuration FromMilliseconds(PRInt32 aMilliseconds) {
     
-    return TimeDuration(PRInt64(aMilliseconds)*PR_TicksPerSecond()/1000);
+    return TimeDuration::FromTicks(PRInt64(aMilliseconds)*PR_TicksPerSecond()/1000);
+  }
+
+  TimeDuration operator+(const TimeDuration& aOther) const {
+    return TimeDuration::FromTicks(mValue + aOther.mValue);
+  }
+  TimeDuration operator-(const TimeDuration& aOther) const {
+    return TimeDuration::FromTicks(mValue - aOther.mValue);
+  }
+  TimeDuration& operator+=(const TimeDuration& aOther) {
+    mValue += aOther.mValue;
+    return *this;
+  }
+  TimeDuration& operator-=(const TimeDuration& aOther) {
+    mValue -= aOther.mValue;
+    return *this;
   }
 
   PRBool operator<(const TimeDuration& aOther) const {
@@ -90,12 +111,15 @@ public:
   
   
   
-  
 
 private:
   friend class TimeStamp;
 
-  TimeDuration(PRInt64 aTicks) : mValue(aTicks) {}
+  static TimeDuration FromTicks(PRInt64 aTicks) {
+    TimeDuration t;
+    t.mValue = aTicks;
+    return t;
+  }
 
   
   PRInt64 mValue;
@@ -145,7 +169,26 @@ public:
   TimeDuration operator-(const TimeStamp& aOther) const {
     NS_ASSERTION(!IsNull(), "Cannot compute with a null value");
     NS_ASSERTION(!aOther.IsNull(), "Cannot compute with aOther null value");
-    return TimeDuration(mValue - aOther.mValue);
+    return TimeDuration::FromTicks(mValue - aOther.mValue);
+  }
+
+  TimeStamp operator+(const TimeDuration& aOther) const {
+    NS_ASSERTION(!IsNull(), "Cannot compute with a null value");
+    return TimeStamp(mValue + aOther.mValue);
+  }
+  TimeStamp operator-(const TimeDuration& aOther) const {
+    NS_ASSERTION(!IsNull(), "Cannot compute with a null value");
+    return TimeStamp(mValue - aOther.mValue);
+  }
+  TimeStamp& operator+=(const TimeDuration& aOther) {
+    NS_ASSERTION(!IsNull(), "Cannot compute with a null value");
+    mValue += aOther.mValue;
+    return *this;
+  }
+  TimeStamp& operator-=(const TimeDuration& aOther) {
+    NS_ASSERTION(!IsNull(), "Cannot compute with a null value");
+    mValue -= aOther.mValue;
+    return *this;
   }
 
   PRBool operator<(const TimeStamp& aOther) const {
@@ -169,9 +212,6 @@ public:
     return mValue > aOther.mValue;
   }
 
-  
-  
-  
   
   
   
