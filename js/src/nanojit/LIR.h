@@ -1276,7 +1276,9 @@ namespace nanojit
         LInsCall  = 7,
 
         LInsFirst = 0,
-        LInsLast = 7
+        LInsLast = 7,
+        
+        LInsInvalid = 8
     };
     #define nextKind(kind)  LInsHashKind(kind+1)
 
