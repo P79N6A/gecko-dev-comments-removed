@@ -102,9 +102,7 @@ nsObserverService::Create(nsISupports* outer, const nsIID& aIID, void* *aInstanc
 
     nsRefPtr<nsObserverService> os = new nsObserverService();
 
-    
-    
-    if (!os || !((nsObserverService*) os)->mObserverTopicTable.IsInitialized())
+    if (!os || !os->mObserverTopicTable.IsInitialized())
         return NS_ERROR_OUT_OF_MEMORY;
 
     return os->QueryInterface(aIID, aInstancePtr);
