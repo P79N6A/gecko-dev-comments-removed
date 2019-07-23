@@ -5792,6 +5792,8 @@ nsCSSFrameConstructor::ConstructXULFrame(nsFrameConstructorState& aState,
                aTag == nsGkAtoms::description) {
         if ((aTag == nsGkAtoms::label || aTag == nsGkAtoms::description) && 
             (! aContent->HasAttr(kNameSpaceID_None, nsGkAtoms::value))) {
+          
+          
           newFrame = NS_NewAreaFrame(mPresShell, aStyleContext,
                                      NS_BLOCK_SPACE_MGR | NS_BLOCK_MARGIN_ROOT);
         }
@@ -6115,11 +6117,13 @@ nsCSSFrameConstructor::ConstructXULFrame(nsFrameConstructorState& aState,
 #endif
 
     
+    
+    
     nsFrameConstructorSaveState floatSaveState;
-    if (newFrame->IsBoxFrame()) {
-      aState.PushFloatContainingBlock(nsnull, floatSaveState, PR_FALSE,
-                                      PR_FALSE);
-    }
+    PRBool isFloatContainingBlock =
+      newFrame->GetContentInsertionFrame()->IsFloatContainingBlock();
+    aState.PushFloatContainingBlock(isFloatContainingBlock ? newFrame : nsnull,
+                                    floatSaveState, PR_FALSE, PR_FALSE);
 
     
     nsFrameItems childItems;
