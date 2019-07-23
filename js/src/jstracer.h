@@ -163,7 +163,7 @@ public:
     void            clear();
 };
 
-#if defined(JS_JIT_SPEW) || defined(MOZ_NO_VARADIC_MACROS)
+#ifdef JS_JIT_SPEW
 
 enum LC_TMBits {
     
@@ -176,16 +176,6 @@ enum LC_TMBits {
     LC_TMStats    = 1<<21,
     LC_TMRegexp   = 1<<22
 };
-
-#endif
-
-#ifdef MOZ_NO_VARADIC_MACROS
-
-#define debug_only_stmt(action)
-static void debug_only_printf(int mask, const char *fmt, ...) {}
-#define debug_only_print0(mask, str)
-
-#elif defined(JS_JIT_SPEW)
 
 
 extern nanojit::LogControl js_LogController;
@@ -239,7 +229,7 @@ public:
 };
 
 
-#if defined(_MSC_VER) && _MSC_VER >= 1400 || defined(__GNUC__)
+#if defined(_MSC_VER) || (defined(__GNUC__) && __GNUC__ >= 4)
 #define USE_TRACE_TYPE_ENUM
 #endif
 
@@ -256,7 +246,7 @@ public:
 
 
 enum JSTraceType_
-#if defined(_MSC_VER) && _MSC_VER >= 1400
+#ifdef _MSC_VER
 : int8_t
 #endif
 {
@@ -269,7 +259,7 @@ enum JSTraceType_
     TT_PSEUDOBOOLEAN  = 6, 
     TT_FUNCTION       = 7  
 }
-#ifdef __GNUC__
+#if defined(__GNUC__) && defined(USE_TRACE_TYPE_ENUM)
 __attribute__((packed))
 #endif
 ;
