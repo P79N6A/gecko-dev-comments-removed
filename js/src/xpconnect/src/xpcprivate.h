@@ -3753,9 +3753,14 @@ xpc_CreateSandboxObject(JSContext * cx, jsval * vp, nsISupports *prinOrSop);
 
 
 
+
+
+
+
 nsresult
 xpc_EvalInSandbox(JSContext *cx, JSObject *sandbox, const nsAString& source,
-                  const char *filename, PRInt32 lineNo, jsval *rval);
+                  const char *filename, PRInt32 lineNo,
+                  PRBool returnStringOnly, jsval *rval);
 #endif 
 
 
