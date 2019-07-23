@@ -1104,7 +1104,7 @@ already_AddRefed<nsIFontMetrics>
 nsPresContext::GetMetricsFor(const nsFont& aFont)
 {
   nsIFontMetrics* metrics = nsnull;
-  mDeviceContext->GetMetricsFor(aFont, mLangGroup, metrics);
+  mDeviceContext->GetMetricsFor(aFont, mLangGroup, GetUserFontSet(), metrics);
   return metrics;
 }
 
@@ -1708,7 +1708,7 @@ InsertFontFaceRule(nsCSSFontFaceRule *aRule, gfxUserFontSet* aFontSet,
 }
 
 gfxUserFontSet*
-nsPresContext::GetUserFontSet()
+nsPresContext::GetUserFontSetInternal()
 {
   
   
@@ -1738,6 +1738,12 @@ nsPresContext::GetUserFontSet()
 
   mGetUserFontSetCalled = PR_TRUE;
   return mUserFontSet;
+}
+
+gfxUserFontSet*
+nsPresContext::GetUserFontSetExternal()
+{
+  return GetUserFontSetInternal();
 }
 
 void

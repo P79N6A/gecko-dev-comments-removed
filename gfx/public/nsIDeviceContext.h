@@ -171,8 +171,8 @@ const PRUint8 kUseAltDCFor_SURFACE_DIM     = 0x08;
 
 
 #define NS_IDEVICE_CONTEXT_IID   \
-{ 0x92a1e76c, 0xadbd, 0x441e, \
- { 0xaa, 0xe6, 0x24, 0x3d, 0x60, 0x4, 0xe0, 0xee } }
+{ 0xeca27eb2, 0xef6f, 0x4142, \
+  { 0xbf, 0x77, 0x89, 0xc1, 0x4e, 0x59, 0x51, 0x71 } }
 
 
 typedef void * nsPalette;
@@ -335,8 +335,8 @@ public:
 
 
   NS_IMETHOD  GetMetricsFor(const nsFont& aFont, nsIAtom* aLangGroup,
-                            nsIFontMetrics*& aMetrics, 
-                            gfxUserFontSet *aUserFontSet = nsnull) = 0;
+                            gfxUserFontSet* aUserFontSet,
+                            nsIFontMetrics*& aMetrics) = 0;
 
   
 
@@ -346,8 +346,8 @@ public:
 
 
 
-  NS_IMETHOD  GetMetricsFor(const nsFont& aFont, nsIFontMetrics*& aMetrics, 
-                            gfxUserFontSet *aUserFontSet = nsnull) = 0;
+  NS_IMETHOD  GetMetricsFor(const nsFont& aFont, gfxUserFontSet* aUserFontSet,
+                            nsIFontMetrics*& aMetrics) = 0;
 
   
 
