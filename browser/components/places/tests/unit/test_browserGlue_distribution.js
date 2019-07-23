@@ -50,6 +50,9 @@ const TOPIC_FINAL_UI_STARTUP = "final-ui-startup";
 const TOPIC_CUSTOMIZATION_COMPLETE = "distribution-customization-complete";
 
 function run_test() {
+  
+  return;
+
   do_test_pending();
 
   
@@ -142,6 +145,8 @@ function continue_test() {
 }
 
 do_register_cleanup(function() {
+  
+  return;
   
   
   let iniFile = Services.dirsvc.get("XCurProcD", Ci.nsIFile);
