@@ -1963,10 +1963,6 @@ PaintBackgroundLayer(nsPresContext* aPresContext,
     }
   }
 
-  nsSize imageSize = imageRenderer.ComputeSize(bgPositioningArea.Size());
-  if (imageSize.width <= 0 || imageSize.height <= 0)
-    return;
-
   
   
   
@@ -2006,6 +2002,10 @@ PaintBackgroundLayer(nsPresContext* aPresContext,
   } else {
     offset = bgPositioningArea.TopLeft();
   }
+
+  nsSize imageSize = imageRenderer.ComputeSize(bgPositioningArea.Size());
+  if (imageSize.width <= 0 || imageSize.height <= 0)
+    return;
      
   
   
