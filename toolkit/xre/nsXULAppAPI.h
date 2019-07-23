@@ -177,12 +177,6 @@ struct nsXREAppData
 
 
 
-#define XULAPPINFO_SERVICE_CONTRACTID \
-  "@mozilla.org/xre/app-info;1"
-
-
-
-
 
 
 

@@ -81,6 +81,8 @@
 #include "nsIContent.h"
 #include "nsCycleCollector.h"
 #include "nsNetUtil.h"
+#include "nsXPCOMCIDInternal.h"
+#include "nsIXULRuntime.h"
 
 
 #include "plstr.h"
@@ -1171,9 +1173,18 @@ nsJSContext::JSOptionChangedCallback(const char *pref, void *data)
   
   
   nsCOMPtr<nsIDOMChromeWindow> chromeWindow(do_QueryInterface(global));
+
   PRBool useJIT = nsContentUtils::GetBoolPref(chromeWindow ?
                                               js_jit_chrome_str :
                                               js_jit_content_str);
+  nsCOMPtr<nsIXULRuntime> xr = do_GetService(XULRUNTIME_SERVICE_CONTRACTID);
+  if (xr) {
+    PRBool safeMode = PR_FALSE;
+    xr->GetInSafeMode(&safeMode);
+    if (safeMode)
+      useJIT = PR_FALSE;
+  }    
+
   if (useJIT)
     newDefaultJSOptions |= JSOPTION_JIT;
   else

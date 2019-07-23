@@ -59,6 +59,7 @@
 #include "nsILivemarkService.h"
 #include "nsILocaleService.h"
 #include "nsToolkitCompsCID.h"
+#include "nsXPCOMCIDInternal.h"
 
 
 #define nsString_h___
