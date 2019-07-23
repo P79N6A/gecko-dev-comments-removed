@@ -394,14 +394,55 @@ gfxOS2FontGroup::gfxOS2FontGroup(const nsAString& aFamilies,
     mFontCache.Init(15);
     ForEachFont(FontCallback, &familyArray);
     FindGenericFontFromStyle(FontCallback, &familyArray);
+
+    
+    
+    
+    
+    nsString fontString;
+    gfxPlatform::GetPlatform()->GetPrefFonts("x-unicode", fontString, PR_FALSE);
+    ForEachFont(fontString, NS_LITERAL_CSTRING("x-unicode"), FontCallback, &familyArray);
+    gfxPlatform::GetPlatform()->GetPrefFonts("x-user-def", fontString, PR_FALSE);
+    ForEachFont(fontString, NS_LITERAL_CSTRING("x-user-def"), FontCallback, &familyArray);
+
     if (familyArray.Count() == 0) {
         
         
         familyArray.AppendString(NS_LITERAL_STRING("WarpSans"));
     }
+
     for (int i = 0; i < familyArray.Count(); i++) {
         mFonts.AppendElement(new gfxOS2Font(*familyArray[i], &mStyle));
     }
+
+#ifdef REALLY_DESPERATE_FONT_MATCHING
+    
+    nsStringArray fontList;
+    nsCAutoString generic;
+    if (!gfxPlatform::GetPlatform()->GetFontList(mStyle.langGroup, generic, fontList)) {
+        
+        
+        fontList.RemoveString(NS_LITERAL_STRING("MARKSYM"));
+        fontList.RemoveString(NS_LITERAL_STRING("MT Extra"));
+        fontList.RemoveString(NS_LITERAL_STRING("Math1"));
+        fontList.RemoveString(NS_LITERAL_STRING("Math2"));
+        fontList.RemoveString(NS_LITERAL_STRING("Math3"));
+        fontList.RemoveString(NS_LITERAL_STRING("Math4"));
+        fontList.RemoveString(NS_LITERAL_STRING("Math5"));
+        fontList.RemoveString(NS_LITERAL_STRING("Math1Mono"));
+        fontList.RemoveString(NS_LITERAL_STRING("Math2Mono"));
+        fontList.RemoveString(NS_LITERAL_STRING("Math3Mono"));
+        fontList.RemoveString(NS_LITERAL_STRING("Math4Mono"));
+        fontList.RemoveString(NS_LITERAL_STRING("Math5Mono"));
+        
+        for (int i = 3; i < fontList.Count(); i++) {
+            
+            if (familyArray.IndexOf(*fontList[i]) == -1) {
+                mFonts.AppendElement(new gfxOS2Font(*fontList[i], &mStyle));
+            }
+        }
+    }
+#endif
 }
 
 gfxOS2FontGroup::~gfxOS2FontGroup()
@@ -536,73 +577,113 @@ void gfxOS2FontGroup::CreateGlyphRunsFT(gfxTextRun *aTextRun, const PRUint8 *aUT
                font->GetStyle()->size);
     }
 #endif
+    PRUint32 fontlistLast = FontListLength()-1;
+    gfxOS2Font *font0 = GetFontAt(0);
     const PRUint8 *p = aUTF8;
-    gfxOS2Font *font = GetFontAt(0);
     PRUint32 utf16Offset = 0;
     gfxTextRun::CompressedGlyph g;
     const PRUint32 appUnitsPerDevUnit = aTextRun->GetAppUnitsPerDevUnit();
 
-    aTextRun->AddGlyphRun(font, 0);
+    aTextRun->AddGlyphRun(font0, 0);
     
-    FT_Face face = cairo_ft_scaled_font_lock_face(font->CairoScaledFont());
+    
+    FT_Face face0 = cairo_ft_scaled_font_lock_face(font0->CairoScaledFont());
     while (p < aUTF8 + aUTF8Length) {
+        PRBool glyphFound = PR_FALSE;
         
         PRUint8 chLen;
         PRUint32 ch = getUTF8CharAndNext(p, &chLen);
         p += chLen; 
 #ifdef DEBUG_thebes_2
-        printf("\'%c\' (%d, %#x, %s):", (char)ch, ch, ch, ch >=0x10000 ? "non-BMP!" : "BMP");
+        printf("\'%c\' (%d, %#x, %s) [%#x %#x]:", (char)ch, ch, ch, ch >=0x10000 ? "non-BMP!" : "BMP", ch >=0x10000 ? H_SURROGATE(ch) : 0, ch >=0x10000 ? L_SURROGATE(ch) : 0);
 #endif
 
         if (ch == 0) {
             
             aTextRun->SetMissingGlyph(utf16Offset, 0);
         } else {
-            NS_ASSERTION(!IsInvalidChar(ch), "Invalid char detected");
-            FT_UInt gid = FT_Get_Char_Index(face, ch); 
-            PRInt32 advance = 0;
-            if (gid == font->GetSpaceGlyph()) {
-                advance = (int)(font->GetMetrics().spaceWidth * appUnitsPerDevUnit);
-            } else if (gid == 0) {
-                advance = -1; 
-            } else {
-                FT_Load_Glyph(face, gid, FT_LOAD_DEFAULT); 
-                advance = (face->glyph->advance.x >> 6) * appUnitsPerDevUnit;
-            }
+            
+            
+            
+            
+            for (PRUint32 i = 0; i <= fontlistLast; i++) {
+                gfxOS2Font *font = font0;
+                FT_Face face = face0;
+                if (i > 0) {
+                    font = GetFontAt(i);
+                    face = cairo_ft_scaled_font_lock_face(font->CairoScaledFont());
 #ifdef DEBUG_thebes_2
-            printf(" gid=%d, advance=%d (%s)\n", gid, advance,
-                   NS_LossyConvertUTF16toASCII(font->GetName()).get());
+                    if (i == fontlistLast) {
+                        printf("Last font %d (%s) for ch=%#x (pos=%d)",
+                               i, NS_LossyConvertUTF16toASCII(font->GetName()).get(), ch, utf16Offset);
+                    }
+#endif
+                }
+                
+                aTextRun->AddGlyphRun(font, utf16Offset);
+
+                NS_ASSERTION(!IsInvalidChar(ch), "Invalid char detected");
+                FT_UInt gid = FT_Get_Char_Index(face, ch); 
+                PRInt32 advance = 0;
+                if (gid == font->GetSpaceGlyph()) {
+                    advance = (int)(font->GetMetrics().spaceWidth * appUnitsPerDevUnit);
+                } else if (gid == 0) {
+                    advance = -1; 
+                } else {
+                    FT_Load_Glyph(face, gid, FT_LOAD_DEFAULT); 
+                    advance = (face->glyph->advance.x >> 6) * appUnitsPerDevUnit;
+                }
+#ifdef DEBUG_thebes_2
+                printf(" gid=%d, advance=%d (%s)\n", gid, advance,
+                       NS_LossyConvertUTF16toASCII(font->GetName()).get());
 #endif
 
-            if (advance >= 0 &&
-                gfxTextRun::CompressedGlyph::IsSimpleAdvance(advance) &&
-                gfxTextRun::CompressedGlyph::IsSimpleGlyphID(gid))
-            {
-                aTextRun->SetSimpleGlyph(utf16Offset,
-                                         g.SetSimpleGlyph(advance, gid));
-            } else if (gid == 0) {
-                
-                aTextRun->SetMissingGlyph(utf16Offset, ch);
-            } else {
-                gfxTextRun::DetailedGlyph details;
-                details.mGlyphID = gid;
-                NS_ASSERTION(details.mGlyphID == gid, "Seriously weird glyph ID detected!");
-                details.mAdvance = advance;
-                details.mXOffset = 0;
-                details.mYOffset = 0;
-                g.SetComplex(aTextRun->IsClusterStart(utf16Offset), PR_TRUE, 1);
-                aTextRun->SetGlyphs(utf16Offset, g, &details);
-            }
+                if (advance >= 0 &&
+                    gfxTextRun::CompressedGlyph::IsSimpleAdvance(advance) &&
+                    gfxTextRun::CompressedGlyph::IsSimpleGlyphID(gid))
+                {
+                    aTextRun->SetSimpleGlyph(utf16Offset,
+                                             g.SetSimpleGlyph(advance, gid));
+                    glyphFound = PR_TRUE;
+                } else if (gid == 0) {
+                    
+                    if (i == fontlistLast) {
+                        
+                        
+                        aTextRun->SetMissingGlyph(utf16Offset, ch);
+                    }
+                    glyphFound = PR_FALSE;
+                } else {
+                    gfxTextRun::DetailedGlyph details;
+                    details.mGlyphID = gid;
+                    NS_ASSERTION(details.mGlyphID == gid, "Seriously weird glyph ID detected!");
+                    details.mAdvance = advance;
+                    details.mXOffset = 0;
+                    details.mYOffset = 0;
+                    g.SetComplex(aTextRun->IsClusterStart(utf16Offset), PR_TRUE, 1);
+                    aTextRun->SetGlyphs(utf16Offset, g, &details);
+                    glyphFound = PR_TRUE;
+                }
 
-            NS_ASSERTION(!IS_SURROGATE(ch), "Surrogates shouldn't appear in UTF8");
-            if (ch >= 0x10000) {
-                
-                ++utf16Offset;
+                if (i > 0) {
+                    cairo_ft_scaled_font_unlock_face(font->CairoScaledFont());
+                }
+
+                if (glyphFound) {
+                    break;
+                }
             }
+        } 
+
+        NS_ASSERTION(!IS_SURROGATE(ch), "Surrogates shouldn't appear in UTF8");
+        if (ch >= 0x10000) {
+            
+            ++utf16Offset;
         }
+
         ++utf16Offset;
     }
-    cairo_ft_scaled_font_unlock_face(font->CairoScaledFont());
+    cairo_ft_scaled_font_unlock_face(font0->CairoScaledFont());
 }
 
 PRBool gfxOS2FontGroup::FontCallback(const nsAString& aFontName,
