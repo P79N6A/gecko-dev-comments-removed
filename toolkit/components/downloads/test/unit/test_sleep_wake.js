@@ -61,6 +61,7 @@ function run_test()
   Cc["@mozilla.org/preferences-service;1"].
   getService(Ci.nsIPrefBranch).
   setIntPref("browser.download.manager.resumeOnWakeDelay", 1000);
+dump("%%%Set pref\n");
 
   
 
@@ -70,6 +71,7 @@ function run_test()
   
   for (let i = 0; i < 4; i++)
     data = [data,data,data,data,data,data,data,data,data,data,"\n"].join("");
+dump("%%%Generated data\n");
 
   
 
@@ -99,6 +101,7 @@ function run_test()
     resp.bodyOutputStream.write(body, body.length);
   });
   httpserv.start(4444);
+dump("%%%Started server\n");
 
   
 
@@ -107,17 +110,21 @@ function run_test()
   let didResumeDownload = false;
   dm.addListener({
     onDownloadStateChange: function(a, aDl) {
+dump("%%%onDownloadStateChange\n");
       if (aDl.state == nsIDM.DOWNLOAD_DOWNLOADING && !didPause) {
+dump("%%%aDl.state: DOWNLOAD_DOWNLOADING\n");
         
 
 
         notify("sleep_notification");
       } else if (aDl.state == nsIDM.DOWNLOAD_PAUSED) {
+dump("%%%aDl.state: DOWNLOAD_PAUSED\n");
         
 
 
         didPause = true;
       } else if (aDl.state == nsIDM.DOWNLOAD_FINISHED) {
+dump("%%%aDl.state: DOWNLOAD_FINISHED\n");
         
 
 
@@ -135,6 +142,7 @@ function run_test()
       }
     },
     onStateChange: function(a, b, aState, d, aDl) {
+dump("%%%onStateChange\n");
       if ((aState & nsIWPL.STATE_STOP) && didPause && !didResumeServer &&
           !didResumeDownload) {
         
@@ -148,6 +156,7 @@ function run_test()
     onSecurityChange: function(a, b, c, d) { }
   });
   dm.addListener(getDownloadListener());
+dump("%%%Added listener\n");
 
   
 
@@ -168,4 +177,5 @@ function run_test()
 
   
   do_test_pending();
+dump("%%%Started test\n");
 }
