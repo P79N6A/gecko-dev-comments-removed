@@ -620,6 +620,7 @@ nsThebesImage::ThebesDrawTile(gfxContext *thebesContext,
                               nsIDeviceContext* dx,
                               const gfxPoint& offset,
                               const gfxRect& targetRect,
+                              const nsIntRect& aSubimageRect,
                               const PRInt32 xPadding,
                               const PRInt32 yPadding)
 {
@@ -634,8 +635,9 @@ nsThebesImage::ThebesDrawTile(gfxContext *thebesContext,
 
     PRBool doSnap = !(thebesContext->CurrentMatrix().HasNonTranslation());
     PRBool hasPadding = ((xPadding != 0) || (yPadding != 0));
-
-    nsRefPtr<gfxASurface> tmpSurfaceGrip;
+    gfxImageSurface::gfxImageFormat format = mFormat;
+    
+    gfxPoint tmpOffset = offset;
 
     if (mSinglePixel && !hasPadding) {
         thebesContext->SetColor(mSinglePixelColor);
@@ -653,13 +655,12 @@ nsThebesImage::ThebesDrawTile(gfxContext *thebesContext,
             if (!AllowedImageSize(width, height))
                 return NS_ERROR_FAILURE;
 
-            surface = new gfxImageSurface(gfxIntSize(width, height),
-                                          gfxASurface::ImageFormatARGB32);
+            format = gfxASurface::ImageFormatARGB32;
+            surface = gfxPlatform::GetPlatform()->CreateOffscreenSurface(
+                    gfxIntSize(width, height), format);
             if (!surface || surface->CairoStatus()) {
                 return NS_ERROR_OUT_OF_MEMORY;
             }
-
-            tmpSurfaceGrip = surface;
 
             gfxContext tmpContext(surface);
             if (mSinglePixel) {
@@ -675,17 +676,105 @@ nsThebesImage::ThebesDrawTile(gfxContext *thebesContext,
             height = mHeight;
             surface = ThebesSurface();
         }
-
-        gfxMatrix patMat;
-        gfxPoint p0;
-
-        p0.x = - floor(offset.x + 0.5);
-        p0.y = - floor(offset.y + 0.5);
+        
         
         
         
         gfxFloat scale = gfxFloat(dx->AppUnitsPerDevPixel()) /
                          gfxFloat(nsIDeviceContext::AppUnitsPerCSSPixel());
+
+        if ((aSubimageRect.width < width || aSubimageRect.height < height) &&
+            (thebesContext->CurrentMatrix().HasNonTranslation() || scale != 1.0)) {
+            
+            
+            
+            
+            
+            
+            PRInt32 padX = aSubimageRect.width < width ? 1 : 0;
+            PRInt32 padY = aSubimageRect.height < height ? 1 : 0;
+            PRInt32 tileWidth = PR_MIN(aSubimageRect.width, width);
+            PRInt32 tileHeight = PR_MIN(aSubimageRect.height, height);
+            
+            
+            
+            
+            
+            
+            nsRefPtr<gfxASurface> tmpSurface;
+            tmpSurface = gfxPlatform::GetPlatform()->CreateOffscreenSurface(
+                    gfxIntSize(tileWidth + 2*padX, tileHeight + 2*padY), format);
+            if (!tmpSurface || tmpSurface->CairoStatus()) {
+                return NS_ERROR_OUT_OF_MEMORY;
+            }
+
+            gfxContext tmpContext(tmpSurface);
+            tmpContext.SetOperator(gfxContext::OPERATOR_SOURCE);
+            gfxPattern pat(surface);
+            pat.SetExtend(gfxPattern::EXTEND_REPEAT);
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            PRInt32 destY = 0;
+            for (PRInt32 y = -1; y <= 1; ++y) {
+                PRInt32 stripHeight = y == 0 ? tileHeight : padY;
+                if (stripHeight == 0)
+                    continue;
+                PRInt32 srcY = y == 1 ? aSubimageRect.YMost() - padY : aSubimageRect.y;
+                
+                PRInt32 destX = 0;
+                for (PRInt32 x = -1; x <= 1; ++x) {
+                    PRInt32 stripWidth = x == 0 ? tileWidth : padX;
+                    if (stripWidth == 0)
+                        continue;
+                    PRInt32 srcX = x == 1 ? aSubimageRect.XMost() - padX : aSubimageRect.x;
+
+                    gfxMatrix patMat;
+                    patMat.Translate(gfxPoint(srcX - destX, srcY - destY));
+                    pat.SetMatrix(patMat);
+                    tmpContext.SetPattern(&pat);
+                    tmpContext.Rectangle(gfxRect(destX, destY, stripWidth, stripHeight));
+                    tmpContext.Fill();
+                    tmpContext.NewPath();
+                    
+                    destX += stripWidth;
+                }
+                destY += stripHeight;
+            }
+
+            
+            
+            
+            
+            tmpOffset += gfxPoint(aSubimageRect.x - padX, aSubimageRect.y - padY)/scale;
+            
+            surface = tmpSurface;
+        }
+
+        gfxMatrix patMat;
+        gfxPoint p0;
+
+        p0.x = - floor(tmpOffset.x + 0.5);
+        p0.y = - floor(tmpOffset.y + 0.5);
         patMat.Scale(scale, scale);
         patMat.Translate(p0);
 
@@ -705,7 +794,7 @@ nsThebesImage::ThebesDrawTile(gfxContext *thebesContext,
     }
 
     gfxContext::GraphicsOperator op = thebesContext->CurrentOperator();
-    if (op == gfxContext::OPERATOR_OVER && mFormat == gfxASurface::ImageFormatRGB24)
+    if (op == gfxContext::OPERATOR_OVER && format == gfxASurface::ImageFormatRGB24)
         thebesContext->SetOperator(gfxContext::OPERATOR_SOURCE);
 
     thebesContext->NewPath();
