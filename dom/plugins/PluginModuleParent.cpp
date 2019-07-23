@@ -295,6 +295,15 @@ PluginModuleParent::NotifyPluginCrashed()
     
     mPluginCrashedTask = NULL;
 
+    if (!OkToCleanup()) {
+        
+        mPluginCrashedTask = NewRunnableMethod(
+            this, &PluginModuleParent::NotifyPluginCrashed);
+        MessageLoop::current()->PostDelayedTask(
+            FROM_HERE, mPluginCrashedTask, 10);
+        return;
+    }
+
     if (mPlugin)
         mPlugin->PluginCrashed(mDumpID);
 }
