@@ -50,8 +50,8 @@
 #include "nsTArray.h"
 #include "nsTHashtable.h"
 #include "prmem.h"
-
-#ifndef DEBUG_TRACEMALLOC_PRESARENA
+#include "prinit.h"
+#include "prlog.h"
 
 
 
@@ -60,6 +60,22 @@
 #define ALIGN_SHIFT 3
 #define PL_ARENA_CONST_ALIGN_MASK ((PRUword(1) << ALIGN_SHIFT) - 1)
 #include "plarena.h"
+
+#ifdef _WIN32
+# include <windows.h>
+#else
+# include <unistd.h>
+# include <sys/mman.h>
+# ifndef MAP_ANON
+#  ifdef MAP_ANONYMOUS
+#   define MAP_ANON MAP_ANONYMOUS
+#  else
+#   error "Don't know how to get anonymous memory"
+#  endif
+# endif
+#endif
+
+#ifndef DEBUG_TRACEMALLOC_PRESARENA
 
 
 static const size_t ARENA_PAGE_SIZE = 4096;
@@ -72,25 +88,137 @@ static const size_t ARENA_PAGE_SIZE = 4096;
 
 
 
+#ifdef _WIN32
+static void *
+ReserveRegion(PRUword region, PRUword size)
+{
+  return VirtualAlloc((void *)region, size, MEM_RESERVE, PAGE_NOACCESS);
+}
+
+static void
+ReleaseRegion(void *region, PRUword size)
+{
+  VirtualFree(region, size, MEM_RELEASE);
+}
+
+static bool
+ProbeRegion(PRUword region, PRUword size)
+{
+  SYSTEM_INFO sinfo;
+  GetSystemInfo(&sinfo);
+  if (region >= (PRUword)sinfo.lpMaximumApplicationAddress &&
+      region + size >= (PRUword)sinfo.lpMaximumApplicationAddress) {
+    return true;
+  } else {
+    return false;
+  }
+}
+
+static PRUword
+GetDesiredRegionSize()
+{
+  SYSTEM_INFO sinfo;
+  GetSystemInfo(&sinfo);
+  return sinfo.dwAllocationGranularity;
+}
+
+#define RESERVE_FAILED 0
+
+#else 
+
+static void *
+ReserveRegion(PRUword region, PRUword size)
+{
+  return mmap((void *)region, size, PROT_NONE, MAP_PRIVATE|MAP_ANON, -1, 0);
+}
+
+static void
+ReleaseRegion(void *region, PRUword size)
+{
+  munmap(region, size);
+}
+
+static bool
+ProbeRegion(PRUword region, PRUword size)
+{
+  if (madvise((void *)region, size, MADV_NORMAL)) {
+    return true;
+  } else {
+    return false;
+  }
+}
+
+static PRUword
+GetDesiredRegionSize()
+{
+  return sysconf(_SC_PAGESIZE);
+}
+
+#define RESERVE_FAILED MAP_FAILED
+
+#endif 
+
+static PRUword ARENA_POISON;
+static PRCallOnceType ARENA_POISON_guard;
+
+PR_STATIC_ASSERT(sizeof(PRUword) == 4 || sizeof(PRUword) == 8);
+PR_STATIC_ASSERT(sizeof(PRUword) == sizeof(void *));
+
+static PRStatus
+ARENA_POISON_init()
+{
+  PRUword rgnsize = GetDesiredRegionSize();
+
+  if (sizeof(PRUword) == 8) {
+    
+    
+    
+    ARENA_POISON =
+      (((PRUword(0x7FFFFFFFu) << 31) << 1 | PRUword(0xF0DEAFFFu))
+       & ~(rgnsize-1))
+      + rgnsize/2 - 1;
+    return PR_SUCCESS;
+
+  } else {
+    
+    
+    PRUword candidate = (0xF0DEAFFF & ~(rgnsize-1));
+    PRUword step = rgnsize;
+    int direction = +1;
+    PRUword limit = candidate + 1024*rgnsize;
+    while (candidate < limit) {
+      void *result = ReserveRegion(candidate, rgnsize);
+      if (result == (void *)candidate) {
+        
+        ARENA_POISON = candidate + rgnsize/2 - 1;
+        return PR_SUCCESS;
+
+      } else {
+        if (result != RESERVE_FAILED)
+          ReleaseRegion(result, rgnsize);
+
+        if (ProbeRegion(candidate, rgnsize)) {
+          
+          ARENA_POISON = candidate + rgnsize/2 - 1;
+          return PR_SUCCESS;
+        }
+      }
+
+      candidate += step*direction;
+      step = step + rgnsize;
+      direction = -direction;
+    }
+
+    NS_RUNTIMEABORT("no usable poison region identified");
+    return PR_FAILURE;
+  }
+}
 
 
 
 
 
-
-
-
-
-
-#if defined(__x86_64__) || defined(_M_AMD64)
-const PRUword ARENA_POISON = 0x7FFFFFFFF0DEA7FF;
-#else
-
-
-const PRUword ARENA_POISON = (~PRUword(0x0FFFFF00) | PRUword(0x0DEA700));
-#endif
-
-
+namespace {
 
 class FreeList : public PLDHashEntryHdr
 {
@@ -119,6 +247,8 @@ protected:
   friend class nsTHashtable<FreeList>;
 };
 
+}
+
 struct nsPresArena::State {
   nsTHashtable<FreeList> mFreeLists;
   PLArenaPool mPool;
@@ -127,6 +257,7 @@ struct nsPresArena::State {
   {
     mFreeLists.Init();
     PL_INIT_ARENA_POOL(&mPool, "PresArena", ARENA_PAGE_SIZE);
+    PR_CallOnce(&ARENA_POISON_guard, ARENA_POISON_init);
   }
 
   ~State()
