@@ -258,6 +258,12 @@ PreviewController.prototype = {
     this.dirtyRegion.unionRect(r.x, r.y, r.width, r.height);
   },
 
+  updateTitleAndTooltip: function () {
+    let title = this.win.tabbrowser.getWindowTitleForBrowser(this.linkedBrowser);
+    this.preview.title = title;
+    this.preview.tooltip = title;
+  },
+
   
   
 
@@ -345,9 +351,7 @@ PreviewController.prototype = {
         
         
         this.win.tabbrowser.setTabTitle(this.tab);
-        let title = this.tab.label;
-        this.preview.title = title;
-        this.preview.tooltip = title;
+        this.updateTitleAndTooltip();
         break;
     }
   }
@@ -420,8 +424,6 @@ TabWindow.prototype = {
   newTab: function (tab) {
     let controller = new PreviewController(this, tab);
     let preview = AeroPeek.taskbar.createTaskbarTabPreview(tab.linkedBrowser.docShell, controller);
-    preview.title = tab.label;
-    preview.tooltip = tab.label;
     preview.visible = AeroPeek.enabled;
     preview.active = this.tabbrowser.selectedTab == tab;
     
@@ -435,6 +437,9 @@ TabWindow.prototype = {
     
     this.previews.splice(tab._tPos, 0, preview);
     AeroPeek.addPreview(preview);
+    
+    
+    controller.updateTitleAndTooltip();
   },
 
   
