@@ -126,9 +126,10 @@ var gPermissionManager = {
     var exists = false;
     for (var i = 0; i < this._permissions.length; ++i) {
       if (this._permissions[i].rawHost == host) {
-        exists = true;
-        this._permissions[i].capability = capabilityString;
-        this._permissions[i].perm = aCapability;
+        
+        
+        
+        exists = this._permissions[i].perm == aCapability;
         break;
       }
     }
