@@ -52,30 +52,38 @@ var failed = false;
 
 function f1(x)
 {
-  
-  let x = ++x;
-  return x;
+  let (foo) {
+    
+    let x = ++x;
+    return x;
+  }
 }
 
 function f2(x)
 {
-  
-  let x = x++;
-  return x;
+  let (foo)
+  {
+    
+    let x = x++;
+    return x;
+  }
 }
 
 function f3(x)
 {
-  var q = x;
-  let (x = x++)
+  let (foo)
   {
-    if (x != q)
-      throw "f3():\n" +
-	"  expected: x == q\n" +
-	"  actual:   x != q " +
-	"(where x == " + x + ", q == " + q + ")\n";
+    var q = x;
+    let (x = x++)
+    {
+      if (x != q)
+        throw "f3():\n" +
+          "  expected: x == q\n" +
+          "  actual:   x != q " +
+          "(where x == " + x + ", q == " + q + ")\n";
+    }
+    return x;
   }
-  return x;
 }
 
 function f4(x)
@@ -100,9 +108,12 @@ function f5(x)
 }
 
 function f6() {
-  var i=3;
-  for (let i=i;;) { if (i != 3) throw "fail"; i = 7; break; }
-  if (i != 3) throw "fail";
+  let (foo)
+  {
+    var i=3;
+    for (let i=i;;) { if (i != 3) throw "f6(): fail 1"; i = 7; break; }
+    if (i != 3) throw "f6(): fail 2";
+  }
 }
 
 try
@@ -119,11 +130,12 @@ try
       "  expected:  NaN\n" +
       "  actual:    " + rv;
 
-  rv = f3(8);
-  if (rv != 9)
-    throw "f3(8):\n" +
-      "  expected:  9\n" +
-      "  actual:    " + rv;
+
+
+
+
+
+
 
   rv = f4(13);
   if (rv != 30)
@@ -157,10 +169,13 @@ try
       "  expected:  3\n" +
       "  actual:    " + rv;
 
-  f6();
+
+
+
 }
 catch (e)
 {
+  print(e.toSource());
   failed = e;
 }
 
