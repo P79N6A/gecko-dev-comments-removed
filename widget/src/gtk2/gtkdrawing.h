@@ -175,6 +175,8 @@ typedef enum {
   
   MOZ_GTK_TREE_HEADER_SORTARROW,
   
+  MOZ_GTK_TREEVIEW_EXPANDER,
+  
   MOZ_GTK_EXPANDER,
   
   MOZ_GTK_MENUBAR,
@@ -334,6 +336,14 @@ gint moz_gtk_get_toolbar_separator_width(gint* size);
 
 
 gint moz_gtk_get_expander_size(gint* size);
+
+
+
+
+
+
+
+gint moz_gtk_get_treeview_expander_size(gint* size);
 
 
 
