@@ -158,13 +158,18 @@ extern "C" {
 
 
 
+
+
 typedef PKIX_Error *
 (*PKIX_CertStore_CertCallback)(
         PKIX_CertStore *store,
         PKIX_CertSelector *selector,
+        PKIX_VerifyNode *verifyNode,
         void **pNBIOContext,
         PKIX_List **pCerts,  
         void *plContext);
+
+
 
 
 
@@ -215,6 +220,7 @@ PKIX_Error *
 PKIX_CertStore_CertContinue(
         PKIX_CertStore *store,
         PKIX_CertSelector *selector,
+        PKIX_VerifyNode *verifyNode,
         void **pNBIOContext,
         PKIX_List **pCerts,  
         void *plContext);
@@ -223,6 +229,7 @@ typedef PKIX_Error *
 (*PKIX_CertStore_CertContinueFunction)(
         PKIX_CertStore *store,
         PKIX_CertSelector *selector,
+        PKIX_VerifyNode *verifyNode,
         void **pNBIOContext,
         PKIX_List **pCerts,  
         void *plContext);

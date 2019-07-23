@@ -686,6 +686,16 @@ sftkdb_HasPasswordSet(SFTKDBHandle *keydb)
     value.data = valueData;
     value.len = sizeof(valueData);
     crv = (*db->sdb_GetMetaData)(db, "password", &salt, &value);
+
+    
+    if (((keydb->db->sdb_flags & SDB_RDONLY) == 0) && keydb->update 
+	&& crv != CKR_OK) {
+	
+	if (keydb->peerDB) {
+	    sftkdb_Update(keydb->peerDB, NULL);
+	}
+	sftkdb_Update(keydb, NULL);
+    }
     return (crv == CKR_OK) ? SECSuccess : SECFailure;
 }
 

@@ -778,6 +778,37 @@ PKIX_ProcessingParams_SetUseAIAForCertFetching(
 
 
 PKIX_Error *
+PKIX_ProcessingParams_SetQualifyTargetCert(
+        PKIX_ProcessingParams *params,
+        PKIX_Boolean qualifyTargetCert,
+        void *plContext);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+PKIX_Error *
 PKIX_ProcessingParams_GetHintCerts(
         PKIX_ProcessingParams *params,
         PKIX_List **pHintCerts,

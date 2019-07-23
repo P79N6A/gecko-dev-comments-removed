@@ -1478,6 +1478,23 @@ PKIX_PL_ByteArray_GetLength(
 
 
 
+PKIX_Error *
+PKIX_PL_OID_Create(
+        SECOidTag idtag,
+        PKIX_PL_OID **pOID,
+        void *plContext);
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1488,8 +1505,8 @@ PKIX_PL_ByteArray_GetLength(
 
 
 PKIX_Error *
-PKIX_PL_OID_Create(
-        char *stringRep,
+PKIX_PL_OID_CreateBySECItem(
+        SECItem *derOid,
         PKIX_PL_OID **pOID,
         void *plContext);
 

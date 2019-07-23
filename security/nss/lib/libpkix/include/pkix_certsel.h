@@ -141,14 +141,10 @@ extern "C" {
 
 
 
-
-
-
 typedef PKIX_Error *
 (*PKIX_CertSelector_MatchCallback)(
         PKIX_CertSelector *selector,
         PKIX_PL_Cert *cert,
-        PKIX_Boolean *pResult,
         void *plContext);
 
 
@@ -1794,6 +1790,66 @@ PKIX_Error *
 PKIX_ComCertSelParams_SetMatchAllSubjAltNames(
         PKIX_ComCertSelParams *params,
         PKIX_Boolean match,
+        void *plContext);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+PKIX_Error*
+PKIX_ComCertSelParams_GetLeafCertFlag(
+        PKIX_ComCertSelParams *params,
+        PKIX_Boolean *pLeafFlag,
+        void *plContext);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+PKIX_Error *
+PKIX_ComCertSelParams_SetLeafCertFlag(
+        PKIX_ComCertSelParams *params,
+        PKIX_Boolean leafFlag,
         void *plContext);
 
 #ifdef __cplusplus

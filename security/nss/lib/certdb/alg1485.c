@@ -757,9 +757,11 @@ CERT_GetOidString(const SECItem *oid)
 	    CASE(3, 0x7f);
 	    CASE(2, 0x7f);
 	    CASE(1, 0x7f);
-	    case 0: n |= last[0]; 
+	    case 0: n |= last[0] & 0x7f;
 		break;
 	    }
+	    if (last[0] & 0x80)
+	    	goto unsupported;
       
 	    if (!rvString) {
 		
@@ -785,9 +787,11 @@ CERT_GetOidString(const SECItem *oid)
 	    CGET(3, 0x7f);
 	    CGET(2, 0x7f);
 	    CGET(1, 0x7f);
-	        n |= last[0]; 
+	    CGET(0, 0x7f);
 		break;
 	    }
+	    if (last[0] & 0x80)
+	    	goto unsupported;
       
 	    if (!rvString) {
 		
@@ -905,18 +909,22 @@ get_hex_string(SECItem *data)
 static SECStatus
 AppendAVA(stringBuf *bufp, CERTAVA *ava, CertStrictnessLevel strict)
 {
+#define TMPBUF_LEN 384
     const NameToKind *pn2k   = name2kinds;
     SECItem     *avaValue    = NULL;
     char        *unknownTag  = NULL;
     char        *encodedAVA  = NULL;
     PRBool       useHex      = PR_FALSE;  
+    PRBool       truncateName  = PR_FALSE;
+    PRBool       truncateValue = PR_FALSE;
     SECOidTag    endKind;
     SECStatus    rv;
     unsigned int len;
-    int          nameLen, valueLen;
+    unsigned int nameLen, valueLen;
+    unsigned int maxName, maxValue;
     EQMode       mode        = minimalEscapeAndQuote;
     NameToKind   n2k         = { NULL, 32767, SEC_OID_UNKNOWN, SEC_ASN1_DS };
-    char         tmpBuf[384];
+    char         tmpBuf[TMPBUF_LEN];
 
 #define tagName  n2k.name    /* non-NULL means use NAME= form */
 #define maxBytes n2k.maxLen
@@ -971,61 +979,102 @@ AppendAVA(stringBuf *bufp, CERTAVA *ava, CertStrictnessLevel strict)
 	}
     }
 
-    if (strict == CERT_N2A_READABLE) {
-    	if (maxBytes > sizeof(tmpBuf) - 4)
-	    maxBytes = sizeof(tmpBuf) - 4;
-	
-	if (avaValue->len > maxBytes + 3) {
-	    
-
-
-
-
-	    len = maxBytes;
-	    while (((avaValue->data[len] & 0xc0) == 0x80) && len > 0) {
-	       len--;
-	    }
-	    
-	    avaValue->data[len++] = '.'; 
-	    avaValue->data[len++] = '.';
-	    avaValue->data[len++] = '.';
-	    avaValue->data[len]   = 0;
-	    avaValue->len = len;
-	}
-    }
-
     nameLen  = strlen(tagName);
     valueLen = (useHex ? avaValue->len : 
 		cert_RFC1485_GetRequiredLen(avaValue->data, avaValue->len, 
 					    &mode));
     len = nameLen + valueLen + 2; 
 
+    maxName  = nameLen;
+    maxValue = valueLen;
     if (len <= sizeof(tmpBuf)) {
     	encodedAVA = tmpBuf;
-    } else if (strict == CERT_N2A_READABLE) {
-	PORT_SetError(SEC_ERROR_OUTPUT_LEN);
-    } else {
+    } else if (strict != CERT_N2A_READABLE) {
 	encodedAVA = PORT_Alloc(len);
+	if (!encodedAVA) {
+	    SECITEM_FreeItem(avaValue, PR_TRUE);
+	    if (unknownTag) 
+		PR_smprintf_free(unknownTag);
+	    return SECFailure;
+	}
+    } else {
+	
+	unsigned int fair = (sizeof tmpBuf)/2 - 1; 
+
+	if (nameLen < fair) {
+	    
+	    maxValue = (sizeof tmpBuf) - (nameLen + 6); 
+
+	} else if (valueLen < fair) {
+	    
+	    maxName  = (sizeof tmpBuf) - (valueLen + 5); 
+	} else {
+	    
+	    maxName = maxValue = fair - 3;  
+	}
+	if (nameLen > maxName) {
+	    PORT_Assert(unknownTag && unknownTag == tagName);
+	    truncateName = PR_TRUE;
+	    nameLen = maxName;
+	}
+    	encodedAVA = tmpBuf;
     }
-    if (!encodedAVA) {
-	SECITEM_FreeItem(avaValue, PR_TRUE);
-	if (unknownTag) 
-	    PR_smprintf_free(unknownTag);
-	return SECFailure;
-    }
+
     memcpy(encodedAVA, tagName, nameLen);
+    if (truncateName) {
+	
+
+
+	encodedAVA[nameLen-1] = '.';
+	encodedAVA[nameLen-2] = '.';
+	encodedAVA[nameLen-3] = '.';
+    }
+    encodedAVA[nameLen++] = '=';
     if (unknownTag) 
     	PR_smprintf_free(unknownTag);
-    encodedAVA[nameLen++] = '=';
-    
+
+    if (strict == CERT_N2A_READABLE && maxValue > maxBytes)
+	maxValue = maxBytes;
+    if (valueLen > maxValue) {
+    	valueLen = maxValue;
+	truncateValue = PR_TRUE;
+    }
     
     if (useHex) {
-	memcpy(encodedAVA + nameLen, (char *)avaValue->data, avaValue->len);
-	encodedAVA[nameLen + avaValue->len] = '\0';
+	char * end = encodedAVA + nameLen + valueLen;
+	memcpy(encodedAVA + nameLen, (char *)avaValue->data, valueLen);
+	end[0] = '\0';
+	if (truncateValue) {
+	    end[-1] = '.';
+	    end[-2] = '.';
+	    end[-3] = '.';
+	}
 	rv = SECSuccess;
-    } else 
+    } else if (!truncateValue) {
 	rv = escapeAndQuote(encodedAVA + nameLen, len - nameLen, 
-		    	    (char *)avaValue->data, avaValue->len, &mode);
+			    (char *)avaValue->data, avaValue->len, &mode);
+    } else {
+	
+	char bigTmpBuf[TMPBUF_LEN * 3 + 3];
+	rv = escapeAndQuote(bigTmpBuf, sizeof bigTmpBuf,
+			    (char *)avaValue->data, valueLen, &mode);
+
+	bigTmpBuf[valueLen--] = '\0'; 
+	
+	while (((bigTmpBuf[valueLen] & 0xc0) == 0x80) && valueLen > 0) {
+	    bigTmpBuf[valueLen--] = '\0';
+	}
+	
+	bigTmpBuf[++valueLen] = '.';
+	bigTmpBuf[++valueLen] = '.';
+	bigTmpBuf[++valueLen] = '.';
+	if (bigTmpBuf[0] == '"')
+	    bigTmpBuf[++valueLen] = '"';
+	bigTmpBuf[++valueLen] = '\0';
+	PORT_Assert(nameLen + valueLen <= (sizeof tmpBuf) - 1);
+	memcpy(encodedAVA + nameLen, bigTmpBuf, valueLen+1);
+    }
+
     SECITEM_FreeItem(avaValue, PR_TRUE);
     if (rv == SECSuccess)
 	rv = AppendStr(bufp, encodedAVA);
