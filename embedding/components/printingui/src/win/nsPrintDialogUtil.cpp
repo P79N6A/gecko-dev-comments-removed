@@ -463,10 +463,10 @@ typedef struct {
 
 
 static PropKeyInfo gAllPropKeys[] = {
-    {"printFramesTitleWindows", grp3},
-    {"asLaidOutWindows", rad4},
-    {"selectedFrameWindows", rad5},
-    {"separateFramesWindows", rad6},
+    {"PrintFrames", grp3},
+    {"Aslaid", rad4},
+    {"selectedframe", rad5},
+    {"Eachframe", rad6},
     {NULL, NULL}};
 
 
@@ -1280,7 +1280,7 @@ ShowNativePrintDialogEx(HWND              aHWnd,
     
     nsCAutoString title;
     nsString optionsStr;
-    if (NS_SUCCEEDED(GetLocalizedString(strBundle, "optionsTitleWindows", optionsStr))) {
+    if (NS_SUCCEEDED(GetLocalizedString(strBundle, "options", optionsStr))) {
       
       NS_CopyUnicodeToNative(optionsStr, title);
     }
