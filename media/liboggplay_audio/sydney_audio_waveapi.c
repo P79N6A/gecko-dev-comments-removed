@@ -131,10 +131,6 @@ void CALLBACK waveOutProc(HWAVEOUT hWaveOut, UINT uMsg,
     DWORD dwInstance, DWORD dwParam1, DWORD dwParam2);
 
 
-typedef int (*sa_event_callback_t)(sa_stream_t *s, sa_event_t event);
-
-
-
 int sa_stream_create_pcm(sa_stream_t **s, 
                          const char *client_name, 
                          sa_mode_t mode, 
