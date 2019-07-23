@@ -427,6 +427,18 @@ public:
     }
   }
 
+  const char* GetPluginName()
+  {
+    if (mInstance && mPluginHost) {
+      nsCOMPtr<nsPIPluginHost> piPluginHost = do_QueryInterface(mPluginHost);
+      char* name = NULL;
+      if (NS_SUCCEEDED(piPluginHost->GetPluginName(mInstance, &name)) &&
+          name)
+        return name;
+    }
+    return "";
+  }
+
 private:
   void FixUpURLS(const nsString &name, nsAString &value);
 
@@ -1741,6 +1753,28 @@ GetMIMEType(nsIPluginInstance *aPluginInstance)
   return "";
 }
 
+static PRBool
+MatchPluginName(nsPluginInstanceOwner *aInstanceOwner, const char *aPluginName)
+{
+  return strncmp(aInstanceOwner->GetPluginName(),
+                 aPluginName,
+                 strlen(aPluginName)) == 0;
+}
+
+static PRBool
+DoDelayedStop(nsPluginInstanceOwner *aInstanceOwner, PRBool aDelayedStop)
+{
+  
+  if (aDelayedStop &&
+      !::MatchPluginName(aInstanceOwner, "QuickTime") &&
+      !::MatchPluginName(aInstanceOwner, "Flip4Mac")) {
+    nsCOMPtr<nsIRunnable> evt = new nsStopPluginRunnable(aInstanceOwner);
+    NS_DispatchToCurrentThread(evt);
+    return PR_TRUE;
+  }
+  return PR_FALSE;
+}
+
 static void
 DoStopPlugin(nsPluginInstanceOwner *aInstanceOwner, PRBool aDelayedStop)
 {
@@ -1779,14 +1813,8 @@ DoStopPlugin(nsPluginInstanceOwner *aInstanceOwner, PRBool aDelayedStop)
         else 
           inst->SetWindow(nsnull);
 
-        
-        if (aDelayedStop &&
-            strcmp(::GetMIMEType(inst), "video/quicktime") != 0) {
-          nsCOMPtr<nsIRunnable> evt = new nsStopPluginRunnable(aInstanceOwner);
-          NS_DispatchToCurrentThread(evt);
-
+        if (DoDelayedStop(aInstanceOwner, aDelayedStop))
           return;
-        }
 
         inst->Stop();
         inst->Destroy();
@@ -1798,14 +1826,8 @@ DoStopPlugin(nsPluginInstanceOwner *aInstanceOwner, PRBool aDelayedStop)
       else 
         inst->SetWindow(nsnull);
 
-      
-      if (aDelayedStop &&
-          strcmp(::GetMIMEType(inst), "video/quicktime") != 0) {
-        nsCOMPtr<nsIRunnable> evt = new nsStopPluginRunnable(aInstanceOwner);
-        NS_DispatchToCurrentThread(evt);
-
+      if (DoDelayedStop(aInstanceOwner, aDelayedStop))
         return;
-      }
 
       inst->Stop();
     }
