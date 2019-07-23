@@ -1453,7 +1453,7 @@ nsParser::ParseFragment(const nsAString& aSourceBuffer,
   nsCOMPtr<nsIFragmentContentSink> fragSink = do_QueryInterface(mSink);
   NS_ASSERTION(fragSink, "ParseFragment requires a fragment content sink");
 
-  if (!aXMLMode) {
+  if (!aXMLMode && theCount) {
     
     
     
