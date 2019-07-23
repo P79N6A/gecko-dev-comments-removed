@@ -120,6 +120,10 @@
 
 #include "nsLocalHandlerApp.h"
 
+#include "nsIRandomGenerator.h"
+#include "plbase64.h"
+#include "prmem.h"
+
 #ifdef PR_LOGGING
 PRLogModuleInfo* nsExternalHelperAppService::mLog = nsnull;
 #endif
@@ -1073,14 +1077,6 @@ void nsExternalAppHandler::RetargetLoadNotifications(nsIRequest *request)
 
 }
 
-#define SALT_SIZE 8
-#define TABLE_SIZE 36
-const PRUnichar table[] = 
-  { 'a','b','c','d','e','f','g','h','i','j',
-    'k','l','m','n','o','p','q','r','s','t',
-    'u','v','w','x','y','z','0','1','2','3',
-    '4','5','6','7','8','9'};
-
 
 
 
@@ -1135,33 +1131,53 @@ nsresult nsExternalAppHandler::SetUpTempFile(nsIChannel * aChannel)
   
   
   
-  nsAutoString saltedTempLeafName;
   
   
   
-  double fpTime;
-  LL_L2D(fpTime, PR_Now());
-  srand((uint)(fpTime * 1e-6 + 0.5));
-  PRInt32 i;
-  for (i=0;i<SALT_SIZE;i++) 
-  {
-    saltedTempLeafName.Append(table[(rand()%TABLE_SIZE)]);
-  }
+  
+
+  const PRUint32 wantedFileNameLength = 8;
+  const PRUint32 requiredBytesLength =
+    static_cast<PRUint32>((wantedFileNameLength + 1) / 4 * 3);
+
+  nsCOMPtr<nsIRandomGenerator> rg =
+    do_GetService("@mozilla.org/security/random-generator;1", &rv);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  PRUint8 *buffer;
+  rv = rg->GenerateRandomBytes(requiredBytesLength, &buffer);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  char *b64 = PL_Base64Encode(reinterpret_cast<const char *>(buffer),
+                              requiredBytesLength, nsnull);
+  NS_Free(buffer);
+  buffer = nsnull;
+
+  if (!b64)
+    return NS_ERROR_OUT_OF_MEMORY;
+
+  NS_ASSERTION(strlen(b64) >= wantedFileNameLength,
+               "not enough bytes produced for conversion!");
+
+  nsCAutoString tempLeafName(b64, wantedFileNameLength);
+  PR_Free(b64);
+  b64 = nsnull;
 
   
   nsCAutoString ext;
   mMimeInfo->GetPrimaryExtension(ext);
   if (!ext.IsEmpty()) {
     if (ext.First() != '.')
-      saltedTempLeafName.Append(PRUnichar('.'));
-    AppendUTF8toUTF16(ext, saltedTempLeafName);
+      tempLeafName.Append('.');
+    tempLeafName.Append(ext);
   }
 
   
   
-  saltedTempLeafName.Append(NS_LITERAL_STRING(".part"));
+  tempLeafName.Append(NS_LITERAL_CSTRING(".part"));
 
-  mTempFile->Append(saltedTempLeafName); 
+  mTempFile->Append(NS_ConvertUTF8toUTF16(tempLeafName));
+  
   mTempFile->CreateUnique(nsIFile::NORMAL_FILE_TYPE, 0600);
 
 #ifdef XP_MACOSX
