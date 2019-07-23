@@ -524,8 +524,25 @@ info_callback(png_structp png_ptr, png_infop info_ptr)
     png_set_expand(png_ptr);
 
   if (png_get_valid(png_ptr, info_ptr, PNG_INFO_tRNS)) {
-    png_get_tRNS(png_ptr, info_ptr, &trans, &num_trans, NULL);
-    png_set_expand(png_ptr);
+    int sample_max = (1 << bit_depth);
+    png_color_16p trans_values;
+    png_get_tRNS(png_ptr, info_ptr, &trans, &num_trans, &trans_values);
+    
+
+
+
+    if ((color_type == PNG_COLOR_TYPE_GRAY &&
+       (int)trans_values->gray > sample_max) ||
+       (color_type == PNG_COLOR_TYPE_RGB &&
+       ((int)trans_values->red > sample_max ||
+       (int)trans_values->green > sample_max ||
+       (int)trans_values->blue > sample_max)))
+       {
+         
+         png_free_data(png_ptr, info_ptr, PNG_FREE_TRNS, 0);
+       }
+    else
+       png_set_expand(png_ptr);
   }
 
   if (bit_depth == 16)
