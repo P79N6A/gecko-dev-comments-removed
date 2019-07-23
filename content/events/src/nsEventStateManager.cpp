@@ -2689,8 +2689,6 @@ nsEventStateManager::DoScrollText(nsPresContext* aPresContext,
     else
       scrollView->ScrollByLines(scrollX, scrollY,
                                 NS_VMREFRESH_SMOOTHSCROLL | NS_VMREFRESH_DEFERRED);
-
-    ForceViewUpdate(scrollView->View());
   }
   if (passToParent) {
     nsresult rv;
@@ -5441,20 +5439,6 @@ nsEventStateManager::GetRegisteredAccessKey(nsIContent* aContent,
   aContent->GetAttr(kNameSpaceID_None, nsGkAtoms::accesskey, accessKey);
   *aKey = accessKey.First();
   return NS_OK;
-}
-
-void
-nsEventStateManager::ForceViewUpdate(nsIView* aView)
-{
-  
-  
-
-  nsIViewManager* vm = aView->GetViewManager();
-  if (vm) {
-    
-    
-    vm->ForceUpdate();
-  }
 }
 
 void
