@@ -38,6 +38,11 @@
 #ifndef nsAHtml5TreeBuilderState_h___
 #define nsAHtml5TreeBuilderState_h___
 
+
+
+
+
+
 class nsAHtml5TreeBuilderState {
   public:
   
@@ -59,7 +64,7 @@ class nsAHtml5TreeBuilderState {
 
     virtual PRBool isFramesetOk() = 0;
 
-    virtual PRInt32 getForeignFlag() = 0;
+    virtual PRBool isInForeign() = 0;
 
     virtual PRBool isNeedToDropLF() = 0;
 
