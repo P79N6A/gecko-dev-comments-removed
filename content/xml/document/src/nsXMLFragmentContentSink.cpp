@@ -115,7 +115,8 @@ protected:
                                nsIContent *aContent);
   virtual nsresult CreateElement(const PRUnichar** aAtts, PRUint32 aAttsCount,
                                  nsINodeInfo* aNodeInfo, PRUint32 aLineNumber,
-                                 nsIContent** aResult, PRBool* aAppendContent);
+                                 nsIContent** aResult, PRBool* aAppendContent,
+                                 PRBool aFromParser);
   virtual nsresult CloseElement(nsIContent* aContent);
 
   virtual void MaybeStartLayout(PRBool aIgnorePendingSheets);
@@ -256,11 +257,15 @@ nsXMLFragmentContentSink::SetDocElement(PRInt32 aNameSpaceID,
 nsresult
 nsXMLFragmentContentSink::CreateElement(const PRUnichar** aAtts, PRUint32 aAttsCount,
                                         nsINodeInfo* aNodeInfo, PRUint32 aLineNumber,
-                                        nsIContent** aResult, PRBool* aAppendContent)
+                                        nsIContent** aResult, PRBool* aAppendContent,
+                                        PRBool aFromParser)
 {
+  
+  
   nsresult rv = nsXMLContentSink::CreateElement(aAtts, aAttsCount,
-                                aNodeInfo, aLineNumber,
-                                aResult, aAppendContent);
+                                                aNodeInfo, aLineNumber,
+                                                aResult, aAppendContent,
+                                                PR_FALSE);
 
   
   
