@@ -83,7 +83,7 @@
 #include "nsBindingManager.h"
 #include "nsIDocShellTreeOwner.h"
 #include "nsIBaseWindow.h"
-#include "nsISystemSoundService.h"
+#include "nsISound.h"
 #include "nsIRootBox.h"
 #include "nsIScreenManager.h"
 #include "nsIServiceManager.h"
@@ -637,7 +637,9 @@ nsMenuPopupFrame::ShowPopup(PRBool aIsContextMenu, PRBool aSelectFirstItem)
                          NS_FRAME_HAS_DIRTY_CHILDREN);
     }
     if (mPopupType == ePopupTypeMenu) {
-      nsContentUtils::PlayEventSound(nsISystemSoundService::EVENT_MENU_POPUP);
+      nsCOMPtr<nsISound> sound(do_CreateInstance("@mozilla.org/sound;1"));
+      if (sound)
+        sound->PlayEventSound(nsISound::EVENT_MENU_POPUP);
     }
   }
 
@@ -1328,8 +1330,11 @@ nsMenuPopupFrame::FindMenuWithShortcut(nsIDOMKeyEvent* aKeyEvent, PRBool& doActi
         return nsnull;
       }
       else {
-        nsContentUtils::PlayEventSound(
-          nsISystemSoundService::EVENT_MENU_NOT_FOUND);
+#ifdef XP_WIN
+        nsCOMPtr<nsISound> soundInterface = do_CreateInstance("@mozilla.org/sound;1");
+        if (soundInterface)
+          soundInterface->Beep();
+#endif  
       }
     }
     return nsnull;
@@ -1444,12 +1449,15 @@ nsMenuPopupFrame::FindMenuWithShortcut(nsIDOMKeyEvent* aKeyEvent, PRBool& doActi
   mIncrementalString.SetLength(mIncrementalString.Length() - 1);
 
   
-
+#ifdef XP_WIN
   
   
   if (isMenu) {
-    nsContentUtils::PlayEventSound(nsISystemSoundService::EVENT_MENU_NOT_FOUND);
+    nsCOMPtr<nsISound> soundInterface = do_CreateInstance("@mozilla.org/sound;1");
+    if (soundInterface)
+      soundInterface->Beep();
   }
+#endif  
 
   return nsnull;
 }
