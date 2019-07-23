@@ -2041,6 +2041,16 @@ nsHTMLDocument::OpenCommon(const nsACString& aContentType, PRBool aReplace)
   }
 
   
+  nsCOMPtr<nsIDocShell> shell = do_QueryReferent(mDocumentContainer);
+  if (shell) {
+    PRBool inUnload;
+    shell->GetIsInUnload(&inUnload);
+    if (inUnload) {
+      return NS_OK;
+    }
+  }
+
+  
   
   
   nsCOMPtr<nsIDocument> callerDoc =
