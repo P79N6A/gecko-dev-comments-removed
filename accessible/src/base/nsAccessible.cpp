@@ -2464,6 +2464,17 @@ nsAccessible::GetFinalState(PRUint32 *aState, PRUint32 *aExtraState)
     }
   }
 
+  const PRUint32 kExpandCollapseStates =
+    nsIAccessibleStates::STATE_COLLAPSED | nsIAccessibleStates::STATE_EXPANDED;
+  if ((*aState & kExpandCollapseStates) == kExpandCollapseStates) {
+    
+    
+    
+    
+    
+    *aState &= ~nsIAccessibleStates::STATE_COLLAPSED;
+  }
+
   
   if (!aExtraState)
     return NS_OK;
@@ -2473,19 +2484,9 @@ nsAccessible::GetFinalState(PRUint32 *aState, PRUint32 *aExtraState)
                     nsIAccessibleStates::EXT_STATE_SENSITIVE;
   }
 
-  const PRUint32 kExpandCollapseStates =
-    nsIAccessibleStates::STATE_COLLAPSED | nsIAccessibleStates::STATE_EXPANDED;
-  if (*aState & kExpandCollapseStates) {
+  if ((*aState & nsIAccessibleStates::STATE_COLLAPSED) ||
+      (*aState & nsIAccessibleStates::STATE_EXPANDED))
     *aExtraState |= nsIAccessibleStates::EXT_STATE_EXPANDABLE;
-    if ((*aState & kExpandCollapseStates) == kExpandCollapseStates) {
-      
-      
-      
-      
-      
-      *aExtraState &= ~nsIAccessibleStates::STATE_COLLAPSED;
-    }
-  }
 
   if (mRoleMapEntry) {
     
