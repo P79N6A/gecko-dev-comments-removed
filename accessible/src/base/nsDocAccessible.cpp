@@ -257,6 +257,9 @@ nsDocAccessible::GetState(PRUint32 *aState, PRUint32 *aExtraState)
     
     
     *aState |= nsIAccessibleStates::STATE_FOCUSABLE;
+    if (gLastFocusedNode == mDOMNode) {
+      *aState |= nsIAccessibleStates::STATE_FOCUSED;
+    }
   }
 
   if (!mIsContentLoaded) {
