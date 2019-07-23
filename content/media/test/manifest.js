@@ -34,6 +34,8 @@ var gPlayTests = [
   { name:"small-shot.ogg", type:"video/ogg" },
   
   { name:"short-video.ogv", type:"video/ogg", duration:1.081 },
+  
+  { name:"bug504613.ogv", type:"video/ogg" },
 
   { name:"bogus.duh", type:"bogus/duh" }
 ];
