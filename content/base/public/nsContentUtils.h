@@ -819,6 +819,11 @@ public:
   
 
 
+  static PRBool IsChildOfSameType(nsIDocument* aDoc);
+
+  
+
+
 
 
 
