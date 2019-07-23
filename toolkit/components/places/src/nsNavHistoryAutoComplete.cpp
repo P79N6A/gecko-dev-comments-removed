@@ -180,16 +180,6 @@ nsNavHistory::StartAutoCompleteTimer(PRUint32 aMilliseconds)
 
 
 
-
-
-
-#define AUTOCOMPLETE_SEARCH_CHUNK_SIZE 100
-
-
-#define AUTOCOMPLETE_SEARCH_TIMEOUT 100
-
-
-
 void 
 nsNavHistory::AutoCompleteTimerCallback(nsITimer* aTimer, void* aClosure)
 {
@@ -248,8 +238,8 @@ nsNavHistory::PerformAutoComplete()
   
   
   if (moreChunksToSearch) {
-    mCurrentChunkOffset += AUTOCOMPLETE_SEARCH_CHUNK_SIZE;
-    rv = StartAutoCompleteTimer(AUTOCOMPLETE_SEARCH_TIMEOUT);
+    mCurrentChunkOffset += mAutoCompleteSearchChunkSize;
+    rv = StartAutoCompleteTimer(mAutoCompleteSearchTimeout);
     NS_ENSURE_SUCCESS(rv, rv);
   } else {
     DoneSearching();
@@ -565,7 +555,7 @@ nsNavHistory::AutoCompleteFullHistorySearch(PRBool* aHasMoreResults)
   nsresult rv = mDBAutoCompleteQuery->BindStringParameter(0, NS_LITERAL_STRING("%") + mCurrentSearchStringEscaped + NS_LITERAL_STRING("%"));
   NS_ENSURE_SUCCESS(rv, rv);
 
-  rv = mDBAutoCompleteQuery->BindInt32Parameter(1, AUTOCOMPLETE_SEARCH_CHUNK_SIZE);
+  rv = mDBAutoCompleteQuery->BindInt32Parameter(1, mAutoCompleteSearchChunkSize);
   NS_ENSURE_SUCCESS(rv, rv);
 
   rv = mDBAutoCompleteQuery->BindInt32Parameter(2, mCurrentChunkOffset);
