@@ -1758,6 +1758,9 @@ PRBool CSSParserImpl::ParseImportRule(nsresult& aErrorCode, RuleAppendFunc aAppe
       
       return PR_FALSE;
     }
+
+    
+    
     NS_ASSERTION(media->Count() != 0, "media list must be nonempty");
   }
 
@@ -1854,7 +1857,6 @@ PRBool CSSParserImpl::ParseMediaRule(nsresult& aErrorCode,
   }
 
   if (GatherMedia(aErrorCode, media, '{')) {
-    NS_ASSERTION(media->Count() != 0, "media list must be nonempty");
     
     nsRefPtr<nsCSSMediaRule> rule(new nsCSSMediaRule());
     
