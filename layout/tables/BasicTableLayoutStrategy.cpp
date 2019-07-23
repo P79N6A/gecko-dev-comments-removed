@@ -273,14 +273,18 @@ BasicTableLayoutStrategy::ComputeColumnIntrinsicWidths(nsIRenderingContext* aRen
         
         
         
+
         
-        NS_ASSERTION(colFrame->GetParent()->GetType() ==
-                         nsGkAtoms::tableColGroupFrame,
-                     "expected a column-group");
-        colInfo = GetColWidthInfo(aRenderingContext, colFrame->GetParent());
-        colFrame->AddCoords(colInfo.minCoord, colInfo.prefCoord,
-                            colInfo.hasSpecifiedWidth);
-        colFrame->AddPrefPercent(colInfo.prefPercent);
+        if (colInfo.minCoord == 0 && colInfo.prefCoord == 0 &&
+            colInfo.prefPercent == 0.0f) {
+            NS_ASSERTION(colFrame->GetParent()->GetType() ==
+                             nsGkAtoms::tableColGroupFrame,
+                         "expected a column-group");
+            colInfo = GetColWidthInfo(aRenderingContext, colFrame->GetParent());
+            colFrame->AddCoords(colInfo.minCoord, colInfo.prefCoord,
+                                colInfo.hasSpecifiedWidth);
+            colFrame->AddPrefPercent(colInfo.prefPercent);
+        }
 
         
         
