@@ -77,6 +77,7 @@
 #include "jsxml.h"
 
 #include "jsatominlines.h"
+#include "jsscriptinlines.h"
 
 #include "jsautooplen.h"        
 #include "imacros.c.out"
