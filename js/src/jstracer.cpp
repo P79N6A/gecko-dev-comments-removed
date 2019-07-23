@@ -4510,7 +4510,7 @@ class DefaultSlotMap : public SlotMap
     DefaultSlotMap(TraceRecorder& tr) : SlotMap(tr)
     {
     }
-
+    
     virtual ~DefaultSlotMap()
     {
     }
@@ -11323,23 +11323,6 @@ TraceRecorder::lookupForSetPropertyOp(JSObject* obj, LIns* obj_ins, jsid id,
     return RECORD_CONTINUE;
 }
 
-JS_REQUIRES_STACK RecordingStatus
-TraceRecorder::setPropertyWithScriptSetter(JSScopeProperty* sprop)
-{
-    if (!canCallImacro())
-        RETURN_STOP("cannot trace script setter, already in imacro");
-
-    
-    
-    JSObject *setterObj = JSVAL_TO_OBJECT(sprop->setterValue());
-    cx->fp->regs->sp += 2;                  
-    stackCopy(-2, -4);                      
-    stackCopy(-4, -3);                      
-    stackCopy(-1, -3);                      
-    stackStoreConstObject(-3, setterObj);   
-    return callImacroInfallibly(setprop_imacros.scriptsetter);
-}
-
 static JSBool FASTCALL
 MethodWriteBarrier(JSContext* cx, JSObject* obj, JSScopeProperty* sprop, JSObject* funobj)
 {
@@ -11405,7 +11388,7 @@ TraceRecorder::nativeSet(JSObject* obj, LIns* obj_ins, JSScopeProperty* sprop,
     
     if (!sprop->hasDefaultSetter()) {
         if (sprop->hasSetterValue())
-            return setPropertyWithScriptSetter(sprop);
+            RETURN_STOP("can't trace JavaScript function setter yet");
         emitNativePropertyOp(scope, sprop, obj_ins, true, boxed_ins);
     }
 
@@ -12056,33 +12039,6 @@ TraceRecorder::getPropertyWithNativeGetter(LIns* obj_ins, JSScopeProperty* sprop
     return RECORD_CONTINUE;
 }
 
-
-JS_REQUIRES_STACK void
-TraceRecorder::stackCopy(int dest, int src)
-{
-    jsval* sp = cx->fp->regs->sp;
-    sp[dest] = sp[src];
-    set(&sp[dest], get(&sp[src]));
-}
-
-
-JS_REQUIRES_STACK void
-TraceRecorder::stackStoreConstObject(int dest, JSObject *obj)
-{
-    jsval* sp = cx->fp->regs->sp;
-    sp[dest] = OBJECT_TO_JSVAL(obj);
-    set(&sp[dest], INS_CONSTOBJ(obj));
-}
-
-
-JS_REQUIRES_STACK void
-TraceRecorder::stackStore(int dest, JSObject* obj, LIns* obj_ins)
-{
-    jsval* sp = cx->fp->regs->sp;
-    sp[dest] = OBJECT_TO_JSVAL(obj);
-    set(&sp[dest], obj_ins);
-}
-
 JS_REQUIRES_STACK RecordingStatus
 TraceRecorder::getPropertyWithScriptGetter(JSObject *obj, LIns* obj_ins, JSScopeProperty* sprop)
 {
@@ -12097,22 +12053,28 @@ TraceRecorder::getPropertyWithScriptGetter(JSObject *obj, LIns* obj_ins, JSScope
     switch (*cx->fp->regs->pc) {
       case JSOP_GETPROP:
         sp++;
-        stackCopy(-1, -2);
-        stackStoreConstObject(-2, JSVAL_TO_OBJECT(getter));
+        sp[-1] = sp[-2];
+        set(&sp[-1], get(&sp[-2]));
+        sp[-2] = getter;
+        set(&sp[-2], INS_CONSTOBJ(JSVAL_TO_OBJECT(getter)));
         return callImacroInfallibly(getprop_imacros.scriptgetter);
 
       case JSOP_CALLPROP:
         sp += 2;
-        stackStoreConstObject(-2, JSVAL_TO_OBJECT(getter));
-        stackCopy(-1, -3);
+        sp[-2] = getter;
+        set(&sp[-2], INS_CONSTOBJ(JSVAL_TO_OBJECT(getter)));
+        sp[-1] = sp[-3];
+        set(&sp[-1], get(&sp[-3]));
         return callImacroInfallibly(callprop_imacros.scriptgetter);
 
       case JSOP_GETTHISPROP:
       case JSOP_GETARGPROP:
       case JSOP_GETLOCALPROP:
         sp += 2;
-        stackStoreConstObject(-2, JSVAL_TO_OBJECT(getter));
-        stackStore(-1, obj, obj_ins);
+        sp[-2] = getter;
+        set(&sp[-2], INS_CONSTOBJ(JSVAL_TO_OBJECT(getter)));
+        sp[-1] = OBJECT_TO_JSVAL(obj);
+        set(&sp[-1], obj_ins);
         return callImacroInfallibly(getthisprop_imacros.scriptgetter);
 
       default:
@@ -12442,8 +12404,8 @@ TraceRecorder::setElem(int lval_spindex, int idx_spindex, int v_spindex)
 
         
         
-        idx_ins = makeNumberInt32(idx_ins);
-
+        idx_ins = makeNumberInt32(idx_ins);            
+                                                       
         
         lir->insGuard(LIR_xf,
                       lir->ins2(LIR_ult,
@@ -12511,7 +12473,7 @@ TraceRecorder::setElem(int lval_spindex, int idx_spindex, int v_spindex)
             
             break;
           default:
-            JS_NOT_REACHED("Unknown typed array type in tracer");
+            JS_NOT_REACHED("Unknown typed array type in tracer");       
         }
 
         switch (tarray->type) {
@@ -12540,7 +12502,7 @@ TraceRecorder::setElem(int lval_spindex, int idx_spindex, int v_spindex)
             lir->insStore(LIR_stfi, typed_v_ins, addr_ins, 0, ACC_OTHER);
             break;
           default:
-            JS_NOT_REACHED("Unknown typed array type in tracer");
+            JS_NOT_REACHED("Unknown typed array type in tracer");       
         }
     } else if (JSVAL_TO_INT(idx) < 0 || !obj->isDenseArray()) {
         CHECK_STATUS_A(initOrSetPropertyByIndex(obj_ins, idx_ins, &v,
