@@ -634,8 +634,10 @@ nsDocAccessible::Shutdown()
     return NS_OK;  
   }
 
-  mEventQueue->Shutdown();
-  mEventQueue = nsnull;
+  if (mEventQueue) {
+    mEventQueue->Shutdown();
+    mEventQueue = nsnull;
+  }
 
   nsCOMPtr<nsIDocShellTreeItem> treeItem =
     nsCoreUtils::GetDocShellTreeItemFor(mDOMNode);
