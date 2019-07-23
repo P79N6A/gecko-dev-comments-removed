@@ -58,24 +58,17 @@
 #include "nsDisplayList.h"
 
 nsIFrame*
-NS_NewDeckFrame(nsIPresShell* aPresShell, nsStyleContext* aContext, nsIBoxLayout* aLayoutManager)
+NS_NewDeckFrame(nsIPresShell* aPresShell, nsStyleContext* aContext)
 {
-  return new (aPresShell) nsDeckFrame(aPresShell, aContext, aLayoutManager);
+  return new (aPresShell) nsDeckFrame(aPresShell, aContext);
 } 
 
 
-nsDeckFrame::nsDeckFrame(nsIPresShell* aPresShell,
-                         nsStyleContext* aContext,
-                         nsIBoxLayout* aLayoutManager)
+nsDeckFrame::nsDeckFrame(nsIPresShell* aPresShell, nsStyleContext* aContext)
   : nsBoxFrame(aPresShell, aContext), mIndex(0)
 {
-     
-  nsCOMPtr<nsIBoxLayout> layout = aLayoutManager;
-
-  if (!layout) {
-    NS_NewStackLayout(aPresShell, layout);
-  }
-
+  nsCOMPtr<nsIBoxLayout> layout;
+  NS_NewStackLayout(aPresShell, layout);
   SetLayoutManager(layout);
 }
 

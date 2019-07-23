@@ -66,8 +66,10 @@ class nsBoxLayoutState;
 
 nsIFrame* NS_NewBoxFrame(nsIPresShell* aPresShell,
                          nsStyleContext* aContext,
-                         PRBool aIsRoot = PR_FALSE,
-                         nsIBoxLayout* aLayoutManager = nsnull);
+                         PRBool aIsRoot,
+                         nsIBoxLayout* aLayoutManager);
+nsIFrame* NS_NewBoxFrame(nsIPresShell* aPresShell,
+                         nsStyleContext* aContext);
 
 class nsBoxFrame : public nsContainerFrame
 {
@@ -77,6 +79,8 @@ public:
                                   nsStyleContext* aContext,
                                   PRBool aIsRoot,
                                   nsIBoxLayout* aLayoutManager);
+  friend nsIFrame* NS_NewBoxFrame(nsIPresShell* aPresShell,
+                                  nsStyleContext* aContext);
 
   
   
@@ -172,7 +176,7 @@ public:
 
   virtual ~nsBoxFrame();
   
-  nsBoxFrame(nsIPresShell* aPresShell, nsStyleContext* aContext, PRBool aIsRoot = nsnull, nsIBoxLayout* aLayoutManager = nsnull);
+  nsBoxFrame(nsIPresShell* aPresShell, nsStyleContext* aContext, PRBool aIsRoot = PR_FALSE, nsIBoxLayout* aLayoutManager = nsnull);
 
   
   

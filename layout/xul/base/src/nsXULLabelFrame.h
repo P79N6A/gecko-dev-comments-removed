@@ -49,7 +49,8 @@
 class nsXULLabelFrame : public nsBlockFrame
 {
 public:
-  friend nsIFrame* NS_NewXULLabelFrame(nsIPresShell* aPresShell, nsStyleContext *aContext, PRUint32 aFlags);
+  friend nsIFrame* NS_NewXULLabelFrame(nsIPresShell* aPresShell,
+                                       nsStyleContext *aContext);
   
   
   NS_IMETHOD Init(nsIContent*      aContent,
@@ -80,6 +81,6 @@ protected:
 };
 
 nsIFrame*
-NS_NewXULLabelFrame(nsIPresShell* aPresShell, nsStyleContext* aContext, PRUint32 aFlags);
+NS_NewXULLabelFrame(nsIPresShell* aPresShell, nsStyleContext* aContext);
 
 #endif 
