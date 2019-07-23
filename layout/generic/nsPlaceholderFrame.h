@@ -77,7 +77,17 @@
 #include "nsFrame.h"
 #include "nsGkAtoms.h"
 
-nsIFrame* NS_NewPlaceholderFrame(nsIPresShell* aPresShell, nsStyleContext* aContext);
+nsIFrame* NS_NewPlaceholderFrame(nsIPresShell* aPresShell,
+                                 nsStyleContext* aContext,
+                                 nsFrameState aTypeBit);
+
+
+
+#define PLACEHOLDER_FOR_FLOAT    0x00100000
+#define PLACEHOLDER_FOR_ABSPOS   0x00200000
+#define PLACEHOLDER_FOR_FIXEDPOS 0x00400000
+#define PLACEHOLDER_FOR_POPUP    0x00800000
+#define PLACEHOLDER_TYPE_MASK    0x00F00000
 
 
 
@@ -90,8 +100,20 @@ public:
   
 
 
-  friend nsIFrame* NS_NewPlaceholderFrame(nsIPresShell* aPresShell, nsStyleContext* aContext);
-  nsPlaceholderFrame(nsStyleContext* aContext) : nsFrame(aContext) {}
+
+  friend nsIFrame* NS_NewPlaceholderFrame(nsIPresShell* aPresShell,
+                                          nsStyleContext* aContext,
+                                          nsFrameState aTypeBit);
+  nsPlaceholderFrame(nsStyleContext* aContext, nsFrameState aTypeBit) :
+    nsFrame(aContext)
+  {
+    NS_PRECONDITION(aTypeBit == PLACEHOLDER_FOR_FLOAT ||
+                    aTypeBit == PLACEHOLDER_FOR_ABSPOS ||
+                    aTypeBit == PLACEHOLDER_FOR_FIXEDPOS ||
+                    aTypeBit == PLACEHOLDER_FOR_POPUP,
+                    "Unexpected type bit");
+    AddStateBits(aTypeBit);
+  }
   virtual ~nsPlaceholderFrame();
 
   
