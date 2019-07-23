@@ -787,7 +787,7 @@ struct nsStyleText {
   nsStyleCoord  mLetterSpacing;         
   nsStyleCoord  mLineHeight;            
   nsStyleCoord  mTextIndent;            
-  nsStyleCoord  mWordSpacing;           
+  nscoord mWordSpacing;                 
 
   nsRefPtr<nsCSSShadowArray> mTextShadow; 
   
