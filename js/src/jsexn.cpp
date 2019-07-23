@@ -1057,7 +1057,7 @@ js_InitExceptionClasses(JSContext *cx, JSObject *obj)
             break;
 
         
-        fun->clasp = &js_ErrorClass;
+        fun->u.n.clasp = &js_ErrorClass;
 
         
         funobj = fun->object;

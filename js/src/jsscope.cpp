@@ -386,9 +386,7 @@ ChangeScope(JSContext *cx, JSScope *scope, int change)
 
 
 
-
-
-#define SPROP_FLAGS_NOT_MATCHED (SPROP_MARK | SPROP_ALLOW_DUPLICATE)
+#define SPROP_FLAGS_NOT_MATCHED SPROP_MARK
 
 JS_STATIC_DLL_CALLBACK(JSDHashNumber)
 js_HashScopeProperty(JSDHashTable *table, const void *key)
@@ -955,7 +953,7 @@ CheckAncestorLine(JSScope *scope, JSBool sparse)
     for (sprop = ancestorLine; sprop; sprop = sprop->parent) {
         if (SCOPE_HAD_MIDDLE_DELETE(scope) &&
             !SCOPE_HAS_PROPERTY(scope, sprop)) {
-            JS_ASSERT(sparse || (sprop->flags & SPROP_ALLOW_DUPLICATE));
+            JS_ASSERT(sparse);
             continue;
         }
         ancestorCount++;
@@ -1070,44 +1068,32 @@ js_AddScopeProperty(JSContext *cx, JSScope *scope, jsid id,
 
 
 
-        if (flags & SPROP_ALLOW_DUPLICATE) {
-            sprop->flags |= SPROP_ALLOW_DUPLICATE;
-        } else {
+
+
+
+
+
+
+
+        if (sprop == SCOPE_LAST_PROP(scope)) {
+            do {
+                SCOPE_REMOVE_LAST_PROP(scope);
+                if (!SCOPE_HAD_MIDDLE_DELETE(scope))
+                    break;
+                sprop = SCOPE_LAST_PROP(scope);
+            } while (sprop && !SCOPE_HAS_PROPERTY(scope, sprop));
+        } else if (!SCOPE_HAD_MIDDLE_DELETE(scope)) {
             
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-            if (sprop == SCOPE_LAST_PROP(scope)) {
-                do {
-                    SCOPE_REMOVE_LAST_PROP(scope);
-                    if (!SCOPE_HAD_MIDDLE_DELETE(scope))
-                        break;
-                    sprop = SCOPE_LAST_PROP(scope);
-                } while (sprop && !SCOPE_HAS_PROPERTY(scope, sprop));
-            } else if (!SCOPE_HAD_MIDDLE_DELETE(scope)) {
-                
-
-
-
-                if (!scope->table) {
-                    if (!CreateScopeTable(cx, scope, JS_TRUE))
-                        return NULL;
-                    spp = js_SearchScope(scope, id, JS_TRUE);
-                    sprop = overwriting = SPROP_FETCH(spp);
-                }
-                SCOPE_SET_MIDDLE_DELETE(scope);
+            if (!scope->table) {
+                if (!CreateScopeTable(cx, scope, JS_TRUE))
+                    return NULL;
+                spp = js_SearchScope(scope, id, JS_TRUE);
+                sprop = overwriting = SPROP_FETCH(spp);
             }
+            SCOPE_SET_MIDDLE_DELETE(scope);
         }
 
         
@@ -1126,7 +1112,6 @@ js_AddScopeProperty(JSContext *cx, JSScope *scope, jsid id,
 
     if (!sprop) {
         
-
 
 
 
@@ -1274,7 +1259,7 @@ js_AddScopeProperty(JSContext *cx, JSScope *scope, jsid id,
         child.setter = setter;
         child.slot = slot;
         child.attrs = attrs;
-        child.flags = flags & ~SPROP_ALLOW_DUPLICATE;
+        child.flags = flags;
         child.shortid = shortid;
         sprop = GetPropertyTreeChild(cx, scope->lastProp, &child);
         if (!sprop)
@@ -1527,24 +1512,18 @@ PrintPropertyGetterOrSetter(JSTracer *trc, char *buf, size_t bufsize)
     JSScopeProperty *sprop;
     jsid id;
     size_t n;
-    const char *name, *prefix;
+    const char *name;
 
     JS_ASSERT(trc->debugPrinter == PrintPropertyGetterOrSetter);
     sprop = (JSScopeProperty *)trc->debugPrintArg;
     id = sprop->id;
     name = trc->debugPrintIndex ? js_setter_str : js_getter_str;
 
-    if (JSID_IS_ATOM(id) || JSID_IS_HIDDEN(id)) {
-        if (JSID_IS_HIDDEN(id)) {
-            id = JSID_UNHIDE_NAME(id);
-            prefix = "hidden ";
-        } else {
-            prefix = "";
-        }
+    if (JSID_IS_ATOM(id)) {
         n = js_PutEscapedString(buf, bufsize - 1,
                                 ATOM_TO_STRING(JSID_TO_ATOM(id)), 0);
         if (n < bufsize - 1)
-            JS_snprintf(buf + n, bufsize - n, " %s%s", prefix, name);
+            JS_snprintf(buf + n, bufsize - n, " %s", name);
     } else if (JSID_IS_INT(sprop->id)) {
         JS_snprintf(buf, bufsize, "%d %s", JSID_TO_INT(id), name);
     } else {
@@ -1656,9 +1635,6 @@ DumpSubtree(JSContext *cx, JSScopeProperty *sprop, int level, FILE *fp)
     } else {
         if (JSID_IS_ATOM(sprop->id)) {
             str = JSVAL_TO_STRING(v);
-        } else if (JSID_IS_HIDDEN(sprop->id)) {
-            str = JSVAL_TO_STRING(v);
-            fputs("hidden ", fp);
         } else {
             JSASSERT(JSID_IS_OBJECT(sprop->id));
             str = js_ValueToString(cx, v);

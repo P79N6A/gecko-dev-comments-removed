@@ -857,7 +857,7 @@ QName(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 
 
         obj = js_NewObject(cx,
-                           JS_ValueToFunction(cx, argv[-2])->clasp,
+                           JS_ValueToFunction(cx, argv[-2])->u.n.clasp,
                            NULL, NULL);
         if (!obj)
             return JS_FALSE;
@@ -2018,7 +2018,8 @@ ParseXMLSource(JSContext *cx, JSString *src)
         }
     }
 
-    if (!js_InitParseContext(cx, &pc, chars, length, NULL, filename, lineno))
+    if (!js_InitParseContext(cx, &pc, NULL, chars, length, NULL,
+                             filename, lineno))
         goto out;
     pn = js_ParseXMLText(cx, cx->fp->scopeChain, &pc, JS_FALSE);
     if (pn && XMLArrayInit(cx, &nsarray, 1)) {

@@ -57,6 +57,7 @@
 #include "jsbool.h"
 #include "jscntxt.h"
 #include "jsconfig.h"
+#include "jsemit.h"
 #include "jsfun.h"
 #include "jsgc.h"
 #include "jsinterp.h"
@@ -64,7 +65,7 @@
 #include "jsnum.h"
 #include "jsobj.h"
 #include "jsopcode.h"
-#include "jsscan.h"
+#include "jsparse.h"
 #include "jsscope.h"
 #include "jsscript.h"
 #include "jsstr.h"
@@ -1431,10 +1432,9 @@ obj_eval(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
         fp->flags |= JSFRAME_EVAL;
     } while ((fp = fp->down) != caller);
 
-    script = JS_CompileUCScriptForPrincipals(cx, scopeobj, principals,
-                                             JSSTRING_CHARS(str),
-                                             JSSTRING_LENGTH(str),
-                                             file, line);
+    script = js_CompileScript(cx, scopeobj, principals, TCF_COMPILE_N_GO,
+                              JSSTRING_CHARS(str), JSSTRING_LENGTH(str),
+                              NULL, file, line);
     if (!script) {
         ok = JS_FALSE;
         goto out;
@@ -2944,6 +2944,8 @@ js_FreeSlot(JSContext *cx, JSObject *obj, uint32 slot)
     JS_ASSERT(!MAP_IS_NATIVE(map) || ((JSScope *)map)->object == obj);
     LOCKED_OBJ_SET_SLOT(obj, slot, JSVAL_VOID);
     if (map->freeslot == slot + 1) {
+        map->freeslot = slot;
+
         
         ReallocSlots(cx, obj, slot, JS_FALSE);
     }

@@ -50,12 +50,14 @@
 #include "jscntxt.h"
 #include "jsconfig.h"
 #include "jsdbgapi.h"
+#include "jsemit.h"
 #include "jsfun.h"
 #include "jsgc.h"
 #include "jsinterp.h"
 #include "jslock.h"
 #include "jsobj.h"
 #include "jsopcode.h"
+#include "jsparse.h"
 #include "jsscope.h"
 #include "jsscript.h"
 #include "jsstr.h"
@@ -1202,7 +1204,7 @@ JS_EvaluateUCInStackFrame(JSContext *cx, JSStackFrame *fp,
                           jsval *rval)
 {
     JSObject *scobj;
-    uint32 flags, options;
+    uint32 flags;
     JSScript *script;
     JSBool ok;
 
@@ -1216,13 +1218,10 @@ JS_EvaluateUCInStackFrame(JSContext *cx, JSStackFrame *fp,
 
     flags = fp->flags;
     fp->flags |= JSFRAME_DEBUGGER | JSFRAME_EVAL;
-    options = cx->options;
-    cx->options = options | JSOPTION_COMPILE_N_GO;
-    script = JS_CompileUCScriptForPrincipals(cx, scobj,
-                                             JS_StackFramePrincipals(cx, fp),
-                                             chars, length, filename, lineno);
+    script = js_CompileScript(cx, scobj, JS_StackFramePrincipals(cx, fp),
+                              TCF_COMPILE_N_GO, chars, length, NULL,
+                              filename, lineno);
     fp->flags = flags;
-    cx->options = options;
     if (!script)
         return JS_FALSE;
 
@@ -1285,7 +1284,6 @@ JS_PUBLIC_API(JSBool)
 JS_GetPropertyDesc(JSContext *cx, JSObject *obj, JSScopeProperty *sprop,
                    JSPropertyDesc *pd)
 {
-    JSPropertyOp getter;
     JSScope *scope;
     JSScopeProperty *aprop;
     jsval lastException;
@@ -1322,20 +1320,14 @@ JS_GetPropertyDesc(JSContext *cx, JSObject *obj, JSScopeProperty *sprop,
             js_RemoveRoot(cx->runtime, &lastException);
     }
 
-    getter = sprop->getter;
     pd->flags |= ((sprop->attrs & JSPROP_ENUMERATE) ? JSPD_ENUMERATE : 0)
               | ((sprop->attrs & JSPROP_READONLY)  ? JSPD_READONLY  : 0)
               | ((sprop->attrs & JSPROP_PERMANENT) ? JSPD_PERMANENT : 0)
-              | ((getter == js_GetCallVariable)    ? JSPD_VARIABLE  : 0);
-    if (JSID_IS_HIDDEN(sprop->id)) {
-        pd->flags |= (getter == JS_HIDDEN_ARG_GETTER)
-                     ? JSPD_ARGUMENT
-                     : JSPD_VARIABLE;
-    }
+              | ((sprop->getter == js_GetCallVariable) ? JSPD_VARIABLE  : 0);
 
     
     if (OBJ_GET_CLASS(cx, obj) == &js_CallClass &&
-        getter == js_CallClass.getProperty) {
+        sprop->getter == js_CallClass.getProperty) {
         
 
 

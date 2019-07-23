@@ -1608,7 +1608,6 @@ js_LookupCompileTimeConstant(JSContext *cx, JSCodeGenerator *cg, JSAtom *atom,
                              jsval *vp)
 {
     JSBool ok;
-    JSStackFrame *fp;
     JSStmtInfo *stmt;
     jsint slot;
     JSAtomListElement *ale;
@@ -1621,16 +1620,10 @@ js_LookupCompileTimeConstant(JSContext *cx, JSCodeGenerator *cg, JSAtom *atom,
 
 
 
-
-
     *vp = JSVAL_VOID;
-    ok = JS_TRUE;
-    fp = cx->fp;
     do {
-        JS_ASSERT(fp->flags & JSFRAME_COMPILING);
-
-        obj = fp->varobj;
-        if (obj == fp->scopeChain) {
+        if ((cg->treeContext.flags & TCF_IN_FUNCTION) ||
+            cx->fp->varobj == cx->fp->scopeChain) {
             
             stmt = js_LexicalLookup(&cg->treeContext, atom, &slot, 0);
             if (stmt)
@@ -1649,16 +1642,18 @@ js_LookupCompileTimeConstant(JSContext *cx, JSCodeGenerator *cg, JSAtom *atom,
 
 
 
-            if (OBJ_GET_CLASS(cx, obj) == &js_FunctionClass) {
-                JS_ASSERT(fp->fun == GET_FUNCTION_PRIVATE(cx, obj));
-                if (js_LookupLocal(cx, fp->fun, atom, NULL) != JSLOCAL_NONE)
+            if (cg->treeContext.flags & TCF_IN_FUNCTION) {
+                if (js_LookupLocal(cx, cg->treeContext.fun, atom, NULL) !=
+                    JSLOCAL_NONE) {
                     break;
-            }
-
-            ok = OBJ_LOOKUP_PROPERTY(cx, obj, ATOM_TO_JSID(atom), &pobj, &prop);
-            if (ok) {
-                if (pobj == obj &&
-                    (fp->flags & (JSFRAME_EVAL | JSFRAME_COMPILE_N_GO))) {
+                }
+            } else if (cg->treeContext.flags & TCF_COMPILE_N_GO) {
+                obj = cx->fp->varobj;
+                ok = OBJ_LOOKUP_PROPERTY(cx, obj, ATOM_TO_JSID(atom), &pobj,
+                                         &prop);
+                if (!ok)
+                    return JS_FALSE;
+                if (pobj == obj) {
                     
 
 
@@ -1672,13 +1667,14 @@ js_LookupCompileTimeConstant(JSContext *cx, JSCodeGenerator *cg, JSAtom *atom,
                 }
                 if (prop)
                     OBJ_DROP_PROPERTY(cx, pobj, prop);
+                if (!ok)
+                    return JS_FALSE;
+                if (prop)
+                    break;
             }
-            if (!ok || prop)
-                break;
         }
-        fp = fp->down;
     } while ((cg = cg->parent) != NULL);
-    return ok;
+    return JS_TRUE;
 }
 
 
@@ -1838,7 +1834,6 @@ BindNameToSlot(JSContext *cx, JSTreeContext *tc, JSParseNode *pn,
     jsint slot;
     JSOp op;
     JSStackFrame *fp;
-    JSClass *clasp;
     JSLocalKind localKind;
     uintN index;
     JSAtomListElement *ale;
@@ -1889,29 +1884,33 @@ BindNameToSlot(JSContext *cx, JSTreeContext *tc, JSParseNode *pn,
 
 
 
-
-
-
-    fp = cx->fp;
-    if (fp->flags & JSFRAME_SCRIPT_OBJECT)
-        return JS_TRUE;
-
-    
-
-
-
-
     if (tc->flags & TCF_FUN_CLOSURE_VS_VAR)
         return JS_TRUE;
 
-    
+    if (!(tc->flags & TCF_IN_FUNCTION) &&
+        !((cx->fp->flags & JSFRAME_SPECIAL) && cx->fp->fun)) {
+        
 
 
-    if (fp->scopeChain != fp->varobj)
-        return JS_TRUE;
 
-    clasp = OBJ_GET_CLASS(cx, fp->varobj);
-    if (clasp != &js_FunctionClass && clasp != &js_CallClass) {
+
+
+
+        fp = cx->fp;
+        if (fp->scopeChain != fp->varobj)
+            return JS_TRUE;
+
+        
+
+
+
+
+
+
+
+        if (fp->flags & JSFRAME_SCRIPT_OBJECT)
+            return JS_TRUE;
+
         
 
 
@@ -1977,14 +1976,13 @@ BindNameToSlot(JSContext *cx, JSTreeContext *tc, JSParseNode *pn,
         return JS_TRUE;
     }
 
-    if (clasp == &js_FunctionClass) {
+    if (tc->flags & TCF_IN_FUNCTION) {
         
 
 
 
 
-        JS_ASSERT(fp->fun == GET_FUNCTION_PRIVATE(cx, fp->varobj));
-        localKind = js_LookupLocal(cx, fp->fun, atom, &index);
+        localKind = js_LookupLocal(cx, tc->fun, atom, &index);
         if (localKind != JSLOCAL_NONE) {
             op = PN_OP(pn);
             if (localKind == JSLOCAL_ARG) {
@@ -2021,6 +2019,7 @@ BindNameToSlot(JSContext *cx, JSTreeContext *tc, JSParseNode *pn,
             pn->pn_slot = index;
             return JS_TRUE;
         }
+        tc->flags |= TCF_FUN_USES_NONLOCALS;
     }
 
     
@@ -2038,7 +2037,6 @@ BindNameToSlot(JSContext *cx, JSTreeContext *tc, JSParseNode *pn,
         pn->pn_op = JSOP_ARGUMENTS;
         return JS_TRUE;
     }
-    tc->flags |= TCF_FUN_USES_NONLOCALS;
     return JS_TRUE;
 }
 
@@ -3171,39 +3169,6 @@ js_EmitFunctionBytecode(JSContext *cx, JSCodeGenerator *cg, JSParseNode *body)
            js_Emit1(cx, cg, JSOP_STOP) >= 0;
 }
 
-JSBool
-js_EmitFunctionBody(JSContext *cx, JSCodeGenerator *cg, JSParseNode *body,
-                    JSFunction *fun)
-{
-    JSStackFrame *fp, frame;
-    JSObject *funobj;
-    JSBool ok;
-
-    fp = cx->fp;
-    funobj = fun->object;
-    JS_ASSERT(!fp || (fp->fun != fun && fp->varobj != funobj &&
-                      fp->scopeChain != funobj));
-    memset(&frame, 0, sizeof frame);
-    frame.callee = funobj;
-    frame.fun = fun;
-    frame.varobj = frame.scopeChain = funobj;
-    frame.down = fp;
-    frame.flags = JS_HAS_COMPILE_N_GO_OPTION(cx)
-                  ? JSFRAME_COMPILING | JSFRAME_COMPILE_N_GO
-                  : JSFRAME_COMPILING;
-    cx->fp = &frame;
-    ok = js_EmitFunctionBytecode(cx, cg, body);
-    cx->fp = fp;
-    if (!ok)
-        return JS_FALSE;
-
-    if (!js_NewScriptFromCG(cx, cg, fun))
-        return JS_FALSE;
-
-    JS_ASSERT(FUN_INTERPRETED(fun));
-    return JS_TRUE;
-}
-
 
 #define UPDATE_LINE_NUMBER_NOTES(cx, cg, pn)                                  \
     JS_BEGIN_MACRO                                                            \
@@ -3998,10 +3963,13 @@ js_EmitTree(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn)
                              cg->codePool, cg->notePool,
                              pn->pn_pos.begin.lineno);
         cg2->treeContext.flags = (uint16) (pn->pn_flags | TCF_IN_FUNCTION);
-        cg2->parent = cg;
         fun = GET_FUNCTION_PRIVATE(cx, pn->pn_funpob->object);
-        if (!js_EmitFunctionBody(cx, cg2, pn->pn_body, fun))
+        cg2->treeContext.fun = fun;
+        cg2->parent = cg;
+        if (!js_EmitFunctionBytecode(cx, cg2, pn->pn_body) ||
+            !js_NewScriptFromCG(cx, cg2)) {
             return JS_FALSE;
+        }
 
         
 
@@ -4055,14 +4023,9 @@ js_EmitTree(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn)
             JSFunction *parentFun;
             JSLocalKind localKind;
 
-            if (cg->treeContext.flags & TCF_IN_FUNCTION) {
-                JS_ASSERT(OBJ_GET_CLASS(cx, OBJ_GET_PARENT(cx, fun->object)) ==
-                          &js_FunctionClass);
-                parentFun =
-                    GET_FUNCTION_PRIVATE(cx, OBJ_GET_PARENT(cx, fun->object));
-            } else {
-                parentFun = cx->fp->fun;
-            }
+            parentFun = (cg->treeContext.flags & TCF_IN_FUNCTION)
+                        ? cg->treeContext.fun
+                        : cx->fp->fun;
             localKind = js_LookupLocal(cx, parentFun, fun->atom, &slot);
             if (localKind == JSLOCAL_VAR || localKind == JSLOCAL_CONST)
                 op = JSOP_DEFLOCALFUN;
@@ -5217,9 +5180,7 @@ js_EmitTree(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn)
 
 
 
-            useful = wantval = !cx->fp->fun ||
-                               !FUN_INTERPRETED(cx->fp->fun) ||
-                               (cx->fp->flags & JSFRAME_SPECIAL);
+            useful = wantval = !(cg->treeContext.flags & TCF_IN_FUNCTION);
             if (!useful) {
                 if (!CheckSideEffects(cx, &cg->treeContext, pn2, &useful))
                     return JS_FALSE;
@@ -6267,7 +6228,7 @@ js_EmitTree(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn)
 
 
         JS_ASSERT(pn->pn_op == JSOP_REGEXP);
-        if (cx->fp->flags & (JSFRAME_EVAL | JSFRAME_COMPILE_N_GO)) {
+        if (cg->treeContext.flags & TCF_COMPILE_N_GO) {
             ok = EmitObjectOp(cx, pn->pn_pob, JSOP_OBJECT, cg);
         } else {
             ok = EmitIndexOp(cx, JSOP_REGEXP,
