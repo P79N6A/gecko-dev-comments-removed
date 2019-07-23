@@ -98,6 +98,7 @@
 #include "nsNetUtil.h"
 #endif
 
+PRInt32 gfxPlatformGtk::sPlatformDPI = -1;
 gfxFontconfigUtils *gfxPlatformGtk::sFontconfigUtils = nsnull;
 
 #ifndef MOZ_PANGO
@@ -530,6 +531,15 @@ gfxPlatformGtk::CreateFontGroup(const nsAString &aFamilies,
 void
 gfxPlatformGtk::InitDisplayCaps()
 {
+    GdkScreen *screen = gdk_screen_get_default();
+    gtk_settings_get_for_screen(screen); 
+    gfxPlatformGtk::sPlatformDPI = PRInt32(round(gdk_screen_get_resolution(screen)));
+
+    if (gfxPlatformGtk::sPlatformDPI <= 0) {
+        
+        gfxPlatformGtk::sPlatformDPI = 96;
+    }
+
 #if defined(MOZ_PLATFORM_HILDON)
     
     if (gfxPlatform::sDPI == -1) {
@@ -539,13 +549,13 @@ gfxPlatformGtk::InitDisplayCaps()
                              PR_TRUE, getter_AddRefs(file));
         if (NS_SUCCEEDED(rv)) {
             nsCOMPtr<nsIInputStream> fileStream;
-            NS_NewLocalFileInputStream(getter_AddRefs(fileStream), file);                
+            NS_NewLocalFileInputStream(getter_AddRefs(fileStream), file);
             nsCOMPtr<nsILineInputStream> lineStream = do_QueryInterface(fileStream);
             
             
             nsCAutoString buffer;
             PRBool isMore = PR_TRUE;
-            if (NS_SUCCEEDED(lineStream->ReadLine(buffer, &isMore))) {
+            if (lineStream && NS_SUCCEEDED(lineStream->ReadLine(buffer, &isMore))) {
                 if (StringEndsWith(buffer, NS_LITERAL_CSTRING("RX-51"))) {
                     gfxPlatform::sDPI = 265; 
                 }
@@ -558,14 +568,12 @@ gfxPlatformGtk::InitDisplayCaps()
         }
     }
 #else
-    GdkScreen *screen = gdk_screen_get_default();
-    gtk_settings_get_for_screen(screen); 
-    gfxPlatform::sDPI = PRInt32(round(gdk_screen_get_resolution(screen)));
+    gfxPlatform::sDPI = gfxPlatformGtk::sPlatformDPI;
 #endif
 
-    if (gfxPlatform::sDPI <= 0.0) {
+    if (gfxPlatform::sDPI <= 0) {
         
-        gfxPlatform::sDPI = 96.0;
+        gfxPlatform::sDPI = 96;
     } else {
         
         gfxPlatform::sDPI = PR_MAX(sDPI, 96);
