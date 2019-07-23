@@ -93,6 +93,15 @@ public:
 
   nscoord GetFirstLetterBaseline() const { return mBaseline; }
 
+  
+  
+  
+  
+  nsresult CreateContinuationForFloatingParent(nsPresContext* aPresContext,
+                                               nsIFrame* aChild,
+                                               nsIFrame** aContinuation,
+                                               PRBool aIsFluid);
+
 protected:
   nscoord mBaseline;
 

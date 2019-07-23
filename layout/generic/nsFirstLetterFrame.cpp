@@ -47,6 +47,8 @@
 #include "nsAutoPtr.h"
 #include "nsStyleSet.h"
 #include "nsFrameManager.h"
+#include "nsPlaceholderFrame.h"
+#include "nsCSSFrameConstructor.h"
 
 nsIFrame*
 NS_NewFirstLetterFrame(nsIPresShell* aPresShell, nsStyleContext* aContext)
@@ -267,16 +269,25 @@ nsFirstLetterFrame::Reflow(nsPresContext*          aPresContext,
   else {
     
     
-    nsIFrame* nextInFlow;
-    rv = CreateNextInFlow(aPresContext, kid, nextInFlow);
-    if (NS_FAILED(rv)) {
-      return rv;
-    }
+    if (!GetStyleDisplay()->IsFloating()) {
+      nsIFrame* nextInFlow;
+      rv = CreateNextInFlow(aPresContext, kid, nextInFlow);
+      if (NS_FAILED(rv)) {
+        return rv;
+      }
 
-    
-    const nsFrameList& overflow = mFrames.RemoveFramesAfter(kid);
-    if (overflow.NotEmpty()) {
-      SetOverflowFrames(aPresContext, overflow);
+      
+      const nsFrameList& overflow = mFrames.RemoveFramesAfter(kid);
+      if (overflow.NotEmpty()) {
+        SetOverflowFrames(aPresContext, overflow);
+      }
+    } else if (!kid->GetNextInFlow()) {
+      
+      
+      
+      nsIFrame* continuation;
+      rv = CreateContinuationForFloatingParent(aPresContext, kid,
+                                               &continuation, PR_TRUE);
     }
   }
 
@@ -291,6 +302,54 @@ nsFirstLetterFrame::CanContinueTextRun() const
 {
   
   return PR_TRUE;
+}
+
+nsresult
+nsFirstLetterFrame::CreateContinuationForFloatingParent(nsPresContext* aPresContext,
+                                                        nsIFrame* aChild,
+                                                        nsIFrame** aContinuation,
+                                                        PRBool aIsFluid)
+{
+  NS_ASSERTION(GetStyleDisplay()->IsFloating(),
+               "can only call this on floating first letter frames");
+  NS_PRECONDITION(aContinuation, "bad args");
+
+  *aContinuation = nsnull;
+  nsresult rv = NS_OK;
+
+  nsIPresShell* presShell = aPresContext->PresShell();
+  nsPlaceholderFrame* placeholderFrame =
+    presShell->FrameManager()->GetPlaceholderFrameFor(this);
+  nsIFrame* parent = placeholderFrame->GetParent();
+
+  nsIFrame* continuation;
+  rv = presShell->FrameConstructor()->
+    CreateContinuingFrame(aPresContext, aChild, parent, &continuation, aIsFluid);
+  if (NS_FAILED(rv) || !continuation) {
+    return rv;
+  }
+
+  
+  
+  
+  nsStyleContext* parentSC = this->GetStyleContext()->GetParent();
+  if (parentSC) {
+    nsRefPtr<nsStyleContext> newSC;
+    newSC = presShell->StyleSet()->ResolveStyleForNonElement(parentSC);
+    if (newSC) {
+      continuation->SetStyleContext(newSC);
+    }
+  }
+
+  
+  
+  
+  
+  nsFrameList temp(continuation, continuation);
+  rv = parent->InsertFrames(nsGkAtoms::nextBidi, placeholderFrame, temp);
+
+  *aContinuation = continuation;
+  return rv;
 }
 
 void
