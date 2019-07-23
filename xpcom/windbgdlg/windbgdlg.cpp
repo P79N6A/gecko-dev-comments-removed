@@ -43,6 +43,65 @@
 #include <windows.h>
 #include <stdlib.h>
 
+#ifdef __MINGW32__
+
+
+
+
+
+#include <shellapi.h>
+
+int WINAPI wWinMain(HINSTANCE, HINSTANCE, LPWSTR, int);
+
+#undef __argc
+#undef __wargv
+
+static int __argc;
+static wchar_t** __wargv;
+
+int WINAPI
+WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
+        LPSTR lpszCommandLine, int nCmdShow)
+{
+  LPWSTR commandLine = GetCommandLineW();
+
+  
+
+
+  __wargv = CommandLineToArgvW(commandLine, &__argc);
+  if (!__wargv)
+    return 127;
+
+  
+
+
+  while ((*commandLine <= L' ') && *commandLine) {
+    ++commandLine;
+  }
+  if (*commandLine == L'"') {
+    ++commandLine;
+    while ((*commandLine != L'"') && *commandLine) {
+      ++commandLine;
+    }
+    if (*commandLine) {
+      ++commandLine;
+    }
+  } else {
+    while (*commandLine > L' ') {
+      ++commandLine;
+    }
+  }
+  while ((*commandLine <= L' ') && *commandLine) {
+    ++commandLine;
+  }
+
+  int result = wWinMain(hInstance, hPrevInstance, commandLine, nCmdShow);
+  LocalFree(__wargv);
+  return result;
+}
+#endif 
+
+
 int WINAPI
 wWinMain(HINSTANCE  hInstance, HINSTANCE  hPrevInstance,
          LPWSTR  lpszCmdLine, int  nCmdShow)
