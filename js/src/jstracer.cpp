@@ -9272,6 +9272,16 @@ TraceRecorder::prop(JSObject* obj, LIns* obj_ins, uint32& slot, LIns*& v_ins)
 
 
 
+        if (OBJ_GET_CLASS(cx, obj)->getProperty != JS_PropertyStub) {
+            ABORT_TRACE("can't trace through access to undefined property if "
+                        "JSClass.getProperty hook isn't stubbed");
+        }
+        guardClass(obj, obj_ins, OBJ_GET_CLASS(cx, obj), snapshot(MISMATCH_EXIT));
+
+        
+
+
+
         VMSideExit* exit = snapshot(BRANCH_EXIT);
         for (;;) {
             LIns* map_ins = lir->insLoad(LIR_ldp, obj_ins, (int)offsetof(JSObject, map));
