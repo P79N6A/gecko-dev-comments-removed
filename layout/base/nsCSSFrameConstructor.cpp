@@ -9332,17 +9332,20 @@ nsCSSFrameConstructor::ContentInserted(nsIContent*            aContainer,
 }
 
 nsresult
-nsCSSFrameConstructor::ReinsertContent(nsIContent*     aContainer,
-                                       nsIContent*     aChild)
+nsCSSFrameConstructor::ReinsertContent(nsIContent* aContainer,
+                                       nsIContent* aChild)
 {
   PRInt32 ix = aContainer->IndexOf(aChild);
   
   
   
   
-  nsresult res = ContentRemoved(aContainer, aChild, ix, PR_TRUE);
+  PRBool didReconstruct;
+  nsresult res = ContentRemoved(aContainer, aChild, ix, &didReconstruct);
 
-  if (NS_SUCCEEDED(res)) {
+  if (NS_SUCCEEDED(res) && !didReconstruct) {
+    
+    
     res = ContentInserted(aContainer, aChild, ix, nsnull);
   }
 
@@ -9519,15 +9522,17 @@ static void UnregisterPlaceholderChain(nsFrameManager* frameManager,
 }
 
 nsresult
-nsCSSFrameConstructor::ContentRemoved(nsIContent*     aContainer,
-                                      nsIContent*     aChild,
-                                      PRInt32         aIndexInContainer,
-                                      PRBool          aInReinsertContent)
+nsCSSFrameConstructor::ContentRemoved(nsIContent* aContainer,
+                                      nsIContent* aChild,
+                                      PRInt32     aIndexInContainer,
+                                      PRBool*     aDidReconstruct)
 {
   AUTO_LAYOUT_PHASE_ENTRY_POINT(mPresShell->GetPresContext(), FrameC);
   NS_PRECONDITION(mUpdateCount != 0,
                   "Should be in an update while destroying frames");
 
+  *aDidReconstruct = PR_FALSE;
+  
   
   
 
@@ -9570,8 +9575,8 @@ nsCSSFrameConstructor::ContentRemoved(nsIContent*     aContainer,
     
     
     
-    if (!aInReinsertContent &&
-        MaybeRecreateContainerForIBSplitterFrame(childFrame, &rv)) {
+    if (MaybeRecreateContainerForIBSplitterFrame(childFrame, &rv)) {
+      *aDidReconstruct = PR_TRUE;
       return rv;
     }
 
@@ -9582,6 +9587,7 @@ nsCSSFrameConstructor::ContentRemoved(nsIContent*     aContainer,
     if (parentType == nsGkAtoms::frameSetFrame &&
         IsSpecialFramesetChild(aChild)) {
       
+      *aDidReconstruct = PR_TRUE;
       return RecreateFramesForContent(parentFrame->GetContent());
     }
 
@@ -9591,8 +9597,10 @@ nsCSSFrameConstructor::ContentRemoved(nsIContent*     aContainer,
     
     nsIFrame* possibleMathMLAncestor = parentType == nsGkAtoms::blockFrame ? 
          parentFrame->GetParent() : parentFrame;
-    if (possibleMathMLAncestor->IsFrameOfType(nsIFrame::eMathML))
+    if (possibleMathMLAncestor->IsFrameOfType(nsIFrame::eMathML)) {
+      *aDidReconstruct = PR_TRUE;
       return RecreateFramesForContent(possibleMathMLAncestor->GetContent());
+    }
 #endif
 
     
@@ -9604,6 +9612,7 @@ nsCSSFrameConstructor::ContentRemoved(nsIContent*     aContainer,
         
         aChild == AnyKidsNeedBlockParent(parentFrame->GetFirstChild(nsnull)) &&
         !AnyKidsNeedBlockParent(childFrame->GetNextSibling())) {
+      *aDidReconstruct = PR_TRUE;
       return RecreateFramesForContent(grandparentFrame->GetContent());
     }
     
@@ -11287,10 +11296,12 @@ nsCSSFrameConstructor::RecreateFramesForContent(nsIContent* aContent)
 
     
     
-    rv = ContentRemoved(container, aContent, indexInContainer,
-                        PR_FALSE);
+    PRBool didReconstruct;
+    rv = ContentRemoved(container, aContent, indexInContainer, &didReconstruct);
 
-    if (NS_SUCCEEDED(rv)) {
+    if (NS_SUCCEEDED(rv) && !didReconstruct) {
+      
+      
       
       rv = ContentInserted(container, aContent,
                            indexInContainer, mTempFrameTreeState);
