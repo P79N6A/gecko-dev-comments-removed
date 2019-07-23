@@ -414,4 +414,26 @@ nsresult AnnotateCrashReport(const nsACString &key, const nsACString &data)
   return NS_OK;
 }
 
+nsresult
+SetRestartArgs(int argc, char **argv)
+{
+  int i;
+  nsCAutoString envVar;
+  for (i = 0; i < argc; i++) {
+    envVar = "MOZ_CRASHREPORTER_RESTART_ARG_";
+    envVar.AppendInt(i);
+    envVar += "=";
+    envVar += argv[i];
+    PR_SetEnv(envVar.get());
+  }
+
+  
+  envVar = "MOZ_CRASHREPORTER_RESTART_ARG_";
+  envVar.AppendInt(i);
+  envVar += "=";
+
+  PR_SetEnv(envVar.get());
+
+  return NS_OK;
+}
 } 
