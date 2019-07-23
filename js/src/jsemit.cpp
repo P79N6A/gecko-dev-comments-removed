@@ -1843,8 +1843,7 @@ BindNameToSlot(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn,
 
     tc = &cg->treeContext;
     atom = pn->pn_atom;
-    if (declType != VAR_DECL &&
-        (stmt = js_LexicalLookup(tc, atom, &slot, declType))) {
+    if ((stmt = js_LexicalLookup(tc, atom, &slot, declType))) {
         if (stmt->type == STMT_WITH)
             return JS_TRUE;
 
@@ -1885,13 +1884,6 @@ BindNameToSlot(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn,
         
 
 
-
-
-
-
-
-        if (js_InWithStatement(tc))
-            return JS_TRUE;
 
         fp = cx->fp;
         if (fp->scopeChain != fp->varobj)
