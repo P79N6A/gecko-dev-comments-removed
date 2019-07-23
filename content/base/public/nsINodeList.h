@@ -38,9 +38,8 @@
 #ifndef nsINodeList_h___
 #define nsINodeList_h___
 
-#include "nsIDOMNodeList.h"
-
 class nsINode;
+class nsIDOMNodeList;
 
 
 #define NS_INODELIST_IID \
