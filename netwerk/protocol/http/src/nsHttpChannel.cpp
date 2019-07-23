@@ -2495,9 +2495,7 @@ nsHttpChannel::InitCacheEntry()
         mLoadFlags |= INHIBIT_PERSISTENT_CACHING;
 
     
-    
-    if (!gHttpHandler->CanCacheAllSSLContent() &&
-        mConnectionInfo->UsingSSL() && !mResponseHead->CacheControlPublic())
+    if (!gHttpHandler->IsPersistentHttpsCachingEnabled())
         mLoadFlags |= INHIBIT_PERSISTENT_CACHING;
 
     if (mLoadFlags & INHIBIT_PERSISTENT_CACHING) {
