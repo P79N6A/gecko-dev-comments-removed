@@ -368,9 +368,8 @@ nsCookieService::GetSingleton()
 
 
 
-NS_IMPL_ISUPPORTS6(nsCookieService,
+NS_IMPL_ISUPPORTS5(nsCookieService,
                    nsICookieService,
-                   nsICookieServiceInternal,
                    nsICookieManager,
                    nsICookieManager2,
                    nsIObserver,
@@ -592,156 +591,6 @@ nsCookieService::Observe(nsISupports     *aSubject,
   return NS_OK;
 }
 
-
-static inline PRBool ispathdelimiter(char c) { return c == '/' || c == '?' || c == '#' || c == ';'; }
-
-void
-nsCookieService::GetCookieList(nsIURI           *aHostURI,
-                               nsIURI           *aFirstURI,
-                               nsIChannel       *aChannel,
-                               const nsACString *aName,
-                               PRBool           aHttpBound,
-                               nsAutoVoidArray  &aResult)
-{
-  if (!aHostURI) {
-    COOKIE_LOGFAILURE(GET_COOKIE, nsnull, nsnull, "host URI is null");
-    return;
-  }
-
-  
-  PRUint32 cookieStatus = CheckPrefs(aHostURI, aFirstURI, aChannel, nsnull);
-  
-  switch (cookieStatus) {
-  case STATUS_REJECTED:
-  case STATUS_REJECTED_WITH_ERROR:
-    return;
-  }
-
-  
-  
-  
-  nsCAutoString hostFromURI, pathFromURI;
-  if (NS_FAILED(aHostURI->GetAsciiHost(hostFromURI)) ||
-      NS_FAILED(aHostURI->GetPath(pathFromURI))) {
-    COOKIE_LOGFAILURE(GET_COOKIE, aHostURI, nsnull, "couldn't get host/path from URI");
-    return;
-  }
-  
-  hostFromURI.Trim(".");
-  
-  
-  hostFromURI.Insert(NS_LITERAL_CSTRING("."), 0);
-  ToLowerCase(hostFromURI);
-
-  
-  
-  
-  PRBool isSecure;
-  if (NS_FAILED(aHostURI->SchemeIs("https", &isSecure))) {
-    isSecure = PR_FALSE;
-  }
-
-  nsCookie *cookie;
-  PRInt64 currentTime = PR_Now() / PR_USEC_PER_SEC;
-  const char *currentDot = hostFromURI.get();
-  const char *nextDot = currentDot + 1;
-
-  
-  
-  do {
-    nsCookieEntry *entry = mHostTable.GetEntry(currentDot);
-    cookie = entry ? entry->Head() : nsnull;
-    for (; cookie; cookie = cookie->Next()) {
-      
-      if (aName && !aName->Equals(cookie->Name())) {
-        continue;
-      }
-
-      
-      if (cookie->IsSecure() && !isSecure) {
-        continue;
-      }
-
-      
-      
-      if (cookie->IsHttpOnly() && !aHttpBound) {
-        continue;
-      }
-
-      
-      PRUint32 cookiePathLen = cookie->Path().Length();
-      if (cookiePathLen > 0 && cookie->Path().Last() == '/') {
-        --cookiePathLen;
-      }
-
-      
-      if (!StringBeginsWith(pathFromURI, Substring(cookie->Path(), 0, cookiePathLen))) {
-        continue;
-      }
-
-      if (pathFromURI.Length() > cookiePathLen &&
-          !ispathdelimiter(pathFromURI.CharAt(cookiePathLen))) {
-        
-
-
-
-
-
-
-
-        continue;
-      }
-
-      
-      if (cookie->Expiry() <= currentTime) {
-        continue;
-      }
-
-      
-      aResult.AppendElement(cookie);
-    }
-
-    currentDot = nextDot;
-    if (currentDot)
-      nextDot = strchr(currentDot + 1, '.');
-
-  } while (currentDot);
-
-  
-  
-  
-  aResult.Sort(compareCookiesForSending, nsnull);
-}
-
-NS_IMETHODIMP
-nsCookieService::GetCookieValue(nsIURI *aHostURI,
-                                nsIChannel *aChannel,
-                                const nsACString& aName,
-                                nsACString& aResult)
-{
-  aResult.Truncate();
-
-  
-  nsCOMPtr<nsIURI> firstURI;
-  if (aChannel) {
-    nsCOMPtr<nsIHttpChannelInternal> httpInternal = do_QueryInterface(aChannel);
-    if (httpInternal)
-      httpInternal->GetDocumentURI(getter_AddRefs(firstURI));
-  }
-
-  nsAutoVoidArray foundCookieList;
-  GetCookieList(aHostURI, firstURI, aChannel, &aName, PR_FALSE,
-                foundCookieList);
-
-  if (!foundCookieList.Count())
-    return NS_ERROR_NOT_AVAILABLE;
-
-  nsCookie *cookie = NS_STATIC_CAST(nsCookie*, foundCookieList[0]);
-
-  aResult.Assign(cookie->Value());
-  return NS_OK;
-}
-
 NS_IMETHODIMP
 nsCookieService::GetCookieString(nsIURI     *aHostURI,
                                  nsIChannel *aChannel,
@@ -755,10 +604,7 @@ nsCookieService::GetCookieString(nsIURI     *aHostURI,
       httpInternal->GetDocumentURI(getter_AddRefs(firstURI));
   }
 
-  nsAutoVoidArray foundCookieList;
-  GetCookieList(aHostURI, firstURI, aChannel, nsnull, PR_FALSE,
-                foundCookieList);
-  *aCookie = CookieStringFromArray(foundCookieList, aHostURI);
+  GetCookieInternal(aHostURI, firstURI, aChannel, PR_FALSE, aCookie);
   
   return NS_OK;
 }
@@ -769,93 +615,8 @@ nsCookieService::GetCookieStringFromHttp(nsIURI     *aHostURI,
                                          nsIChannel *aChannel,
                                          char       **aCookie)
 {
-  nsAutoVoidArray foundCookieList;
-  GetCookieList(aHostURI, aFirstURI, aChannel, nsnull, PR_TRUE,
-                foundCookieList);
-  *aCookie = CookieStringFromArray(foundCookieList, aHostURI);
+  GetCookieInternal(aHostURI, aFirstURI, aChannel, PR_TRUE, aCookie);
 
-  return NS_OK;
-}
-
-char*
-nsCookieService::CookieStringFromArray(const nsAutoVoidArray& aCookieList,
-                                       nsIURI *aHostURI)
-{
-  nsCAutoString cookieData;
-  PRInt32 count = aCookieList.Count();
-  for (PRInt32 i = 0; i < count; ++i) {
-    nsCookie *cookie = NS_STATIC_CAST(nsCookie*, aCookieList.ElementAt(i));
-
-    
-    if (!cookie->Name().IsEmpty() || !cookie->Value().IsEmpty()) {
-      
-      
-      if (!cookieData.IsEmpty()) {
-        cookieData.AppendLiteral("; ");
-      }
-
-      if (!cookie->Name().IsEmpty()) {
-        
-        cookieData += cookie->Name() + NS_LITERAL_CSTRING("=") + cookie->Value();
-      } else {
-        
-        cookieData += cookie->Value();
-      }
-    }
-  }
-
-  
-  
-  if (!cookieData.IsEmpty()) {
-    COOKIE_LOGSUCCESS(GET_COOKIE, aHostURI, cookieData, nsnull);
-    return ToNewCString(cookieData);
-  }
-  
-  return nsnull;
-}
-
-NS_IMETHODIMP
-nsCookieService::SetCookieValue(nsIURI *aHostURI,
-                                nsIChannel *aChannel,
-                                const nsACString& aDomain,
-                                const nsACString& aPath,
-                                const nsACString& aName,
-                                const nsACString& aValue,
-                                PRBool aIsSession,
-                                PRInt64 aExpiry)
-{
-  
-  nsCOMPtr<nsIURI> firstURI;
-
-  if (aChannel) {
-    nsCOMPtr<nsIHttpChannelInternal> httpInternal = do_QueryInterface(aChannel);
-    if (httpInternal)
-      httpInternal->GetDocumentURI(getter_AddRefs(firstURI));
-  }
-
-  
-  PRUint32 cookieStatus = CheckPrefs(aHostURI, firstURI, aChannel, "");
-  
-  switch (cookieStatus) {
-  case STATUS_REJECTED:
-    NotifyRejected(aHostURI);
-  case STATUS_REJECTED_WITH_ERROR:
-    return NS_OK;
-  }
-
-  nsCookieAttributes attributes;
-  attributes.name = aName;
-  attributes.value = aValue;
-  attributes.host = aDomain;
-  attributes.path = aPath;
-  attributes.expiryTime = aExpiry;
-  attributes.creationID = PR_Now();
-  attributes.isSession = aIsSession;
-
-  attributes.isSecure = PR_FALSE;
-  aHostURI->SchemeIs("https", &attributes.isSecure);
-
-  CheckAndAdd(aHostURI, aChannel, attributes, EmptyCString(), PR_FALSE);
   return NS_OK;
 }
 
@@ -1291,6 +1052,154 @@ nsCookieService::ImportCookies()
 
 
 
+static inline PRBool ispathdelimiter(char c) { return c == '/' || c == '?' || c == '#' || c == ';'; }
+
+void
+nsCookieService::GetCookieInternal(nsIURI      *aHostURI,
+                                   nsIURI      *aFirstURI,
+                                   nsIChannel  *aChannel,
+                                   PRBool       aHttpBound,
+                                   char       **aCookie)
+{
+  *aCookie = nsnull;
+
+  if (!aHostURI) {
+    COOKIE_LOGFAILURE(GET_COOKIE, nsnull, nsnull, "host URI is null");
+    return;
+  }
+
+  
+  PRUint32 cookieStatus = CheckPrefs(aHostURI, aFirstURI, aChannel, nsnull);
+  
+  switch (cookieStatus) {
+  case STATUS_REJECTED:
+  case STATUS_REJECTED_WITH_ERROR:
+    return;
+  }
+
+  
+  
+  
+  nsCAutoString hostFromURI, pathFromURI;
+  if (NS_FAILED(aHostURI->GetAsciiHost(hostFromURI)) ||
+      NS_FAILED(aHostURI->GetPath(pathFromURI))) {
+    COOKIE_LOGFAILURE(GET_COOKIE, aHostURI, nsnull, "couldn't get host/path from URI");
+    return;
+  }
+  
+  hostFromURI.Trim(".");
+  
+  
+  hostFromURI.Insert(NS_LITERAL_CSTRING("."), 0);
+  ToLowerCase(hostFromURI);
+
+  
+  
+  
+  PRBool isSecure;
+  if (NS_FAILED(aHostURI->SchemeIs("https", &isSecure))) {
+    isSecure = PR_FALSE;
+  }
+
+  nsCookie *cookie;
+  nsAutoVoidArray foundCookieList;
+  PRInt64 currentTime = PR_Now() / PR_USEC_PER_SEC;
+  const char *currentDot = hostFromURI.get();
+  const char *nextDot = currentDot + 1;
+
+  
+  
+  do {
+    nsCookieEntry *entry = mHostTable.GetEntry(currentDot);
+    cookie = entry ? entry->Head() : nsnull;
+    for (; cookie; cookie = cookie->Next()) {
+      
+      if (cookie->IsSecure() && !isSecure) {
+        continue;
+      }
+
+      
+      
+      if (cookie->IsHttpOnly() && !aHttpBound) {
+        continue;
+      }
+
+      
+      PRUint32 cookiePathLen = cookie->Path().Length();
+      if (cookiePathLen > 0 && cookie->Path().Last() == '/') {
+        --cookiePathLen;
+      }
+
+      
+      if (!StringBeginsWith(pathFromURI, Substring(cookie->Path(), 0, cookiePathLen))) {
+        continue;
+      }
+
+      if (pathFromURI.Length() > cookiePathLen &&
+          !ispathdelimiter(pathFromURI.CharAt(cookiePathLen))) {
+        
+
+
+
+
+
+
+
+        continue;
+      }
+
+      
+      if (cookie->Expiry() <= currentTime) {
+        continue;
+      }
+
+      
+      foundCookieList.AppendElement(cookie);
+    }
+
+    currentDot = nextDot;
+    if (currentDot)
+      nextDot = strchr(currentDot + 1, '.');
+
+  } while (currentDot);
+
+  
+  
+  
+  foundCookieList.Sort(compareCookiesForSending, nsnull);
+
+  nsCAutoString cookieData;
+  PRInt32 count = foundCookieList.Count();
+  for (PRInt32 i = 0; i < count; ++i) {
+    cookie = NS_STATIC_CAST(nsCookie*, foundCookieList.ElementAt(i));
+
+    
+    if (!cookie->Name().IsEmpty() || !cookie->Value().IsEmpty()) {
+      
+      
+      if (!cookieData.IsEmpty()) {
+        cookieData.AppendLiteral("; ");
+      }
+
+      if (!cookie->Name().IsEmpty()) {
+        
+        cookieData += cookie->Name() + NS_LITERAL_CSTRING("=") + cookie->Value();
+      } else {
+        
+        cookieData += cookie->Value();
+      }
+    }
+  }
+
+  
+  
+  if (!cookieData.IsEmpty()) {
+    COOKIE_LOGSUCCESS(GET_COOKIE, aHostURI, cookieData, nsnull);
+    *aCookie = ToNewCString(cookieData);
+  }
+}
+
+
 
 PRBool
 nsCookieService::SetCookieInternal(nsIURI             *aHostURI,
@@ -1322,53 +1231,40 @@ nsCookieService::SetCookieInternal(nsIURI             *aHostURI,
   cookieAttributes.isSession = GetExpiry(cookieAttributes, aServerTime,
                                          currentTimeInUsec / PR_USEC_PER_SEC);
 
-  CheckAndAdd(aHostURI, aChannel, cookieAttributes, savedCookieHeader, aFromHttp);
-
-  return newCookie;
-}
-
-void
-nsCookieService::CheckAndAdd(nsIURI               *aHostURI,
-                             nsIChannel           *aChannel,
-                             nsCookieAttributes   &aAttributes,
-                             const nsAFlatCString &aCookieHeader,
-                             PRBool                aFromHttp)
-{
   
-  if ((aAttributes.name.Length() + aAttributes.value.Length()) > kMaxBytesPerCookie) {
-    COOKIE_LOGFAILURE(SET_COOKIE, aHostURI, aCookieHeader, "cookie too big (> 4kb)");
-    return;
+  if ((cookieAttributes.name.Length() + cookieAttributes.value.Length()) > kMaxBytesPerCookie) {
+    COOKIE_LOGFAILURE(SET_COOKIE, aHostURI, savedCookieHeader, "cookie too big (> 4kb)");
+    return newCookie;
   }
 
-  if (aAttributes.name.FindChar('\t') != kNotFound) {
-    COOKIE_LOGFAILURE(SET_COOKIE, aHostURI, aCookieHeader, "invalid name character");
-    return;
+  if (cookieAttributes.name.FindChar('\t') != kNotFound) {
+    COOKIE_LOGFAILURE(SET_COOKIE, aHostURI, savedCookieHeader, "invalid name character");
+    return newCookie;
   }
 
   
-  if (!CheckDomain(aAttributes, aHostURI)) {
-    COOKIE_LOGFAILURE(SET_COOKIE, aHostURI, aCookieHeader, "failed the domain tests");
-    return;
+  if (!CheckDomain(cookieAttributes, aHostURI)) {
+    COOKIE_LOGFAILURE(SET_COOKIE, aHostURI, savedCookieHeader, "failed the domain tests");
+    return newCookie;
   }
-  if (!CheckPath(aAttributes, aHostURI)) {
-    COOKIE_LOGFAILURE(SET_COOKIE, aHostURI, aCookieHeader, "failed the path tests");
-    return;
+  if (!CheckPath(cookieAttributes, aHostURI)) {
+    COOKIE_LOGFAILURE(SET_COOKIE, aHostURI, savedCookieHeader, "failed the path tests");
+    return newCookie;
   }
 
   
   nsRefPtr<nsCookie> cookie =
-    nsCookie::Create(aAttributes.name,
-                     aAttributes.value,
-                     aAttributes.host,
-                     aAttributes.path,
-                     aAttributes.expiryTime,
-                     aAttributes.creationID,
-                     aAttributes.isSession,
-                     aAttributes.isSecure,
-                     aAttributes.isHttpOnly);
-  if (!cookie) {
-    return;
-  }
+    nsCookie::Create(cookieAttributes.name,
+                     cookieAttributes.value,
+                     cookieAttributes.host,
+                     cookieAttributes.path,
+                     cookieAttributes.expiryTime,
+                     cookieAttributes.creationID,
+                     cookieAttributes.isSession,
+                     cookieAttributes.isSecure,
+                     cookieAttributes.isHttpOnly);
+  if (!cookie)
+    return newCookie;
 
   
   
@@ -1379,23 +1275,24 @@ nsCookieService::CheckAndAdd(nsIURI               *aHostURI,
     mPermissionService->CanSetCookie(aHostURI,
                                      aChannel,
                                      NS_STATIC_CAST(nsICookie2*, NS_STATIC_CAST(nsCookie*, cookie)),
-                                     &aAttributes.isSession,
-                                     &aAttributes.expiryTime,
+                                     &cookieAttributes.isSession,
+                                     &cookieAttributes.expiryTime,
                                      &permission);
     if (!permission) {
-      COOKIE_LOGFAILURE(SET_COOKIE, aHostURI, aCookieHeader, "cookie rejected by permission manager");
+      COOKIE_LOGFAILURE(SET_COOKIE, aHostURI, savedCookieHeader, "cookie rejected by permission manager");
       NotifyRejected(aHostURI);
-      return;
+      return newCookie;
     }
 
     
-    cookie->SetIsSession(aAttributes.isSession);
-    cookie->SetExpiry(aAttributes.expiryTime);
+    cookie->SetIsSession(cookieAttributes.isSession);
+    cookie->SetExpiry(cookieAttributes.expiryTime);
   }
 
   
   
-  AddInternal(cookie, PR_Now() / PR_USEC_PER_SEC, aHostURI, aCookieHeader.get(), aFromHttp);
+  AddInternal(cookie, PR_Now() / PR_USEC_PER_SEC, aHostURI, savedCookieHeader.get(), aFromHttp);
+  return newCookie;
 }
 
 
