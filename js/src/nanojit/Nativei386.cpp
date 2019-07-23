@@ -394,6 +394,8 @@ namespace nanojit
         }
     }
 
+    
+    
     void Assembler::asm_restore(LInsp i, Reservation* , Register r)
     {
         uint32_t arg;
@@ -633,61 +635,46 @@ namespace nanojit
 
     NIns* Assembler::asm_branch(bool branchOnFalse, LInsp cond, NIns* targ)
     {
-        NIns* at = 0;
         LOpcode condop = cond->opcode();
         NanoAssert(cond->isCond());
-        if (condop >= LIR_feq && condop <= LIR_fge)
-        {
-            return asm_jmpcc(branchOnFalse, cond, targ);
-        }
+
         
-        if (branchOnFalse)
-        {
-            if (condop == LIR_eq)
-                JNE(targ);
-            else if (condop == LIR_ov)
-                JNO(targ);
-            else if (condop == LIR_lt)
-                JNL(targ);
-            else if (condop == LIR_le)
-                JNLE(targ);
-            else if (condop == LIR_gt)
-                JNG(targ);
-            else if (condop == LIR_ge)
-                JNGE(targ);
-            else if (condop == LIR_ult)
-                JNB(targ);
-            else if (condop == LIR_ule)
-                JNBE(targ);
-            else if (condop == LIR_ugt)
-                JNA(targ);
-            else 
-                JNAE(targ);
+        if (condop >= LIR_feq && condop <= LIR_fge) {
+            return asm_fbranch(branchOnFalse, cond, targ);
         }
-        else 
-        {
-            if (condop == LIR_eq)
-                JE(targ);
-            else if (condop == LIR_ov)
-                JO(targ);
-            else if (condop == LIR_lt)
-                JL(targ);
-            else if (condop == LIR_le)
-                JLE(targ);
-            else if (condop == LIR_gt)
-                JG(targ);
-            else if (condop == LIR_ge)
-                JGE(targ);
-            else if (condop == LIR_ult)
-                JB(targ);
-            else if (condop == LIR_ule)
-                JBE(targ);
-            else if (condop == LIR_ugt)
-                JA(targ);
-            else 
-                JAE(targ);
+
+        if (branchOnFalse) {
+            
+            switch (condop) {
+            case LIR_ov:    JNO(targ);      break;
+            case LIR_eq:    JNE(targ);      break;
+            case LIR_lt:    JNL(targ);      break;
+            case LIR_le:    JNLE(targ);     break;
+            case LIR_gt:    JNG(targ);      break;
+            case LIR_ge:    JNGE(targ);     break;
+            case LIR_ult:   JNB(targ);      break;
+            case LIR_ule:   JNBE(targ);     break;
+            case LIR_ugt:   JNA(targ);      break;
+            case LIR_uge:   JNAE(targ);     break;
+            default:        NanoAssert(0);  break;
+            }
+        } else {
+            
+            switch (condop) {
+            case LIR_ov:    JO(targ);       break;
+            case LIR_eq:    JE(targ);       break;
+            case LIR_lt:    JL(targ);       break;
+            case LIR_le:    JLE(targ);      break;
+            case LIR_gt:    JG(targ);       break;
+            case LIR_ge:    JGE(targ);      break;
+            case LIR_ult:   JB(targ);       break;
+            case LIR_ule:   JBE(targ);      break;
+            case LIR_ugt:   JA(targ);       break;
+            case LIR_uge:   JAE(targ);      break;
+            default:        NanoAssert(0);  break;
+            }
         }
-        at = _nIns;
+        NIns* at = _nIns;
         asm_cmp(cond);
         return at;
     }
@@ -705,6 +692,15 @@ namespace nanojit
         JMP_indexed(indexreg, 2, table);
     }
 
+    
+    
+    
+    
+    
+    
+    
+    
+    
     
     
     
@@ -773,9 +769,30 @@ namespace nanojit
 
     void Assembler::asm_fcond(LInsp ins)
     {
+        LOpcode opcode = ins->opcode();
+
         
         Register r = prepResultReg(ins, AllowableFlagRegs);
-        asm_setcc(r, ins);
+
+        
+        MOVZX8(r,r);
+
+        if (config.sse2) {
+            
+            
+            
+            switch (opcode) {
+            case LIR_feq:   SETNP(r);       break;
+            case LIR_flt:
+            case LIR_fgt:   SETA(r);        break;
+            case LIR_fle:
+            case LIR_fge:   SETAE(r);       break;
+            default:        NanoAssert(0);  break;
+            }
+        } else {
+            SETNP(r);
+        }
+        asm_fcmp(ins);
     }
 
     void Assembler::asm_cond(LInsp ins)
@@ -785,26 +802,19 @@ namespace nanojit
         Register r = prepResultReg(ins, AllowableFlagRegs);
         
         MOVZX8(r,r);
-        if (op == LIR_eq)
-            SETE(r);
-        else if (op == LIR_ov)
-            SETO(r);
-        else if (op == LIR_lt)
-            SETL(r);
-        else if (op == LIR_le)
-            SETLE(r);
-        else if (op == LIR_gt)
-            SETG(r);
-        else if (op == LIR_ge)
-            SETGE(r);
-        else if (op == LIR_ult)
-            SETB(r);
-        else if (op == LIR_ule)
-            SETBE(r);
-        else if (op == LIR_ugt)
-            SETA(r);
-        else 
-            SETAE(r);
+        switch (op) {
+        case LIR_ov:    SETO(r);        break;
+        case LIR_eq:    SETE(r);        break;
+        case LIR_lt:    SETL(r);        break;
+        case LIR_le:    SETLE(r);       break;
+        case LIR_gt:    SETG(r);        break;
+        case LIR_ge:    SETGE(r);       break;
+        case LIR_ult:   SETB(r);        break;
+        case LIR_ule:   SETBE(r);       break;
+        case LIR_ugt:   SETA(r);        break;
+        case LIR_uge:   SETAE(r);       break;
+        default:        NanoAssert(0);  break;
+        }
         asm_cmp(ins);
     }
 
@@ -1620,148 +1630,203 @@ namespace nanojit
         }
     }
 
-    NIns * Assembler::asm_jmpcc(bool branchOnFalse, LIns *cond, NIns *targ)
+    NIns* Assembler::asm_fbranch(bool branchOnFalse, LIns *cond, NIns *targ)
     {
-        LOpcode c = cond->opcode();
-        if (config.sse2 && c != LIR_feq) {
-            LIns *lhs = cond->oprnd1();
-            LIns *rhs = cond->oprnd2();
-            if (c == LIR_flt) {
-                LIns *t = lhs; lhs = rhs; rhs = t;
-                c = LIR_fgt;
-            }
-            else if (c == LIR_fle) {
-                LIns *t = lhs; lhs = rhs; rhs = t;
-                c = LIR_fge;
-            }
+        NIns* at;
+        LOpcode opcode = cond->opcode();
 
-            if (c == LIR_fgt) {
-                if (branchOnFalse) { JNA(targ); } else { JA(targ); }
+        if (config.sse2) {
+            
+            
+            
+            if (branchOnFalse) {
+                
+                switch (opcode) {
+                case LIR_feq:   JP(targ);       break;
+                case LIR_flt:
+                case LIR_fgt:   JNA(targ);      break;
+                case LIR_fle:
+                case LIR_fge:   JNAE(targ);     break;
+                default:        NanoAssert(0);  break;
+                }
+            } else {
+                
+                switch (opcode) {
+                case LIR_feq:   JNP(targ);      break;
+                case LIR_flt:
+                case LIR_fgt:   JA(targ);       break;
+                case LIR_fle:
+                case LIR_fge:   JAE(targ);      break;
+                default:        NanoAssert(0);  break;
+                }
             }
-            else { 
-                if (branchOnFalse) { JNAE(targ); } else { JAE(targ); }
-            }
-            NIns *at = _nIns;
-            Register ra, rb;
-            findRegFor2b(XmmRegs, lhs, ra, rhs, rb);
-            SSE_UCOMISD(ra, rb);
-            return at;
+        } else {
+            if (branchOnFalse)
+                JP(targ);
+            else
+                JNP(targ);
         }
 
-        if (branchOnFalse)
-            JP(targ);
-        else
-            JNP(targ);
-        NIns *at = _nIns;
+        at = _nIns;
         asm_fcmp(cond);
+
         return at;
     }
 
-    void Assembler::asm_setcc(Register r, LIns *cond)
-    {
-        LOpcode c = cond->opcode();
-        if (config.sse2 && c != LIR_feq) {
-            MOVZX8(r,r);
-            LIns *lhs = cond->oprnd1();
-            LIns *rhs = cond->oprnd2();
-            if (c == LIR_flt) {
-                LIns *t = lhs; lhs = rhs; rhs = t;
-                SETA(r);
-            }
-            else if (c == LIR_fle) {
-                LIns *t = lhs; lhs = rhs; rhs = t;
-                SETAE(r);
-            }
-            else if (c == LIR_fgt) {
-                SETA(r);
-            }
-            else { 
-                SETAE(r);
-            }
-            Register ra, rb;
-            findRegFor2b(XmmRegs, lhs, ra, rhs, rb);
-            SSE_UCOMISD(ra, rb);
-            return;
-        }
-        
-        MOVZX8(r,r);
-        SETNP(r);
-        asm_fcmp(cond);
-    }
-
+    
+    
+    
     void Assembler::asm_fcmp(LIns *cond)
     {
         LOpcode condop = cond->opcode();
         NanoAssert(condop >= LIR_feq && condop <= LIR_fge);
         LIns* lhs = cond->oprnd1();
         LIns* rhs = cond->oprnd2();
+        NanoAssert(lhs->isQuad() && rhs->isQuad());
 
-        int mask;
-        if (condop == LIR_feq)
-            mask = 0x44;
-        else if (condop == LIR_fle)
-            mask = 0x41;
-        else if (condop == LIR_flt)
-            mask = 0x05;
-        else if (condop == LIR_fge) {
+        if (config.sse2) {
             
-            condop = LIR_fle;
-            LIns* t = lhs; lhs = rhs; rhs = t;
-            mask = 0x41;
-        } else { 
-            
-            condop = LIR_flt;
-            LIns* t = lhs; lhs = rhs; rhs = t;
-            mask = 0x05;
-        }
-
-        if (config.sse2)
-        {
-            
-            
-            
-            
-
-            if (condop == LIR_feq && lhs == rhs) {
-                
-                Register r = findRegFor(lhs, XmmRegs);
-                SSE_UCOMISD(r, r);
+            if (condop == LIR_flt) {
+                condop = LIR_fgt;
+                LIns* t = lhs; lhs = rhs; rhs = t;
+            } else if (condop == LIR_fle) {
+                condop = LIR_fge;
+                LIns* t = lhs; lhs = rhs; rhs = t;
             }
-            else {
-                evictIfActive(EAX);
-                TEST_AH(mask);
-                LAHF();
+
+            if (condop == LIR_feq) {
+                if (lhs == rhs) {
+                    
+
+                    
+                    
+                    
+                    
+
+                    Register r = findRegFor(lhs, XmmRegs);
+                    SSE_UCOMISD(r, r);
+                } else {
+                    
+                    
+                    
+                    int mask = 0x44;
+
+                    
+                    
+                    
+                    
+                    
+                    
+        
+                    evictIfActive(EAX);
+                    Register ra, rb;
+                    findRegFor2b(XmmRegs, lhs, ra, rhs, rb);
+
+                    TEST_AH(mask);
+                    LAHF();
+                    SSE_UCOMISD(ra, rb);
+                }
+            } else {
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+
                 Register ra, rb;
                 findRegFor2b(XmmRegs, lhs, ra, rhs, rb);
                 SSE_UCOMISD(ra, rb);
             }
-        }
-        else
-        {
-            evictIfActive(EAX);
-            TEST_AH(mask);
-            FNSTSW_AX();
-            NanoAssert(lhs->isQuad() && rhs->isQuad());
-            if (lhs != rhs)
-            {
-                
-                int d = findMemFor(rhs);
-                int pop = lhs->isUnusedOrHasUnknownReg();
-                findSpecificRegFor(lhs, FST0);
-                
-                FCOM(pop, d, FP);
+
+        } else {
+            
+            
+            if (condop == LIR_fgt) {
+                condop = LIR_flt;
+                LIns* t = lhs; lhs = rhs; rhs = t;
+            } else if (condop == LIR_fge) {
+                condop = LIR_fle;
+                LIns* t = lhs; lhs = rhs; rhs = t;
             }
-            else
-            {
+
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+
+            int mask;
+            switch (condop) {
+            case LIR_feq:   mask = 0x44;    break;
+            case LIR_flt:   mask = 0x05;    break;
+            case LIR_fle:   mask = 0x41;    break;
+            default:        NanoAssert(0);  break;
+            }
+
+            evictIfActive(EAX);
+            int pop = lhs->isUnusedOrHasUnknownReg();
+            findSpecificRegFor(lhs, FST0);
+
+            if (lhs == rhs) {
                 
-                int pop = lhs->isUnusedOrHasUnknownReg();
-                findSpecificRegFor(lhs, FST0);
                 
+                TEST_AH(mask);
+                FNSTSW_AX();
                 if (pop)
                     FCOMPP();
                 else
                     FCOMP();
                 FLDr(FST0); 
+            } else {
+                int d = findMemFor(rhs);
+                
+                TEST_AH(mask);
+                FNSTSW_AX();
+                FCOM((pop?1:0), d, FP);
             }
         }
     }
