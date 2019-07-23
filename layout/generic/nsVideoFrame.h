@@ -72,7 +72,7 @@ public:
                    const nsRect& aDirtyRect, nsPoint aPt);
                               
   
-  nsSize GetIntrinsicSize(nsIRenderingContext *aRenderingContext);
+  nsSize GetVideoIntrinsicSize(nsIRenderingContext *aRenderingContext);
   virtual nsSize GetIntrinsicRatio();
   virtual nsSize ComputeSize(nsIRenderingContext *aRenderingContext,
                              nsSize aCBSize, nscoord aAvailableWidth,
