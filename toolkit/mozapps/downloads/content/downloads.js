@@ -1114,8 +1114,11 @@ function buildDownloadList()
   }
 
   
-  stepListBuilder(1);
-  gDownloadsView.selectedIndex = 0;
+  gBuilder = setTimeout(function() {
+    
+    stepListBuilder(1);
+    gDownloadsView.selectedIndex = 0;
+  }, 0);
 }
 
 
