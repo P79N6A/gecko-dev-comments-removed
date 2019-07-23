@@ -44,23 +44,13 @@
 #include "nsRect.h"
 #include "nsCRT.h"
 #include "nsIFactory.h"
-#include "nsIViewObserver.h"
 #include "nsEvent.h"
 #include <stdio.h>
 
 
 
-class nsIRegion;
-class nsIRenderingContext;
 class nsIViewManager;
 class nsViewManager;
-class nsZPlaceholderView;
-
-
-
-
-
-#define NS_VIEW_FLAG_DONT_CHECK_CHILDREN  0x0200
 
 class nsView : public nsIView
 {
@@ -93,12 +83,6 @@ public:
 
 
 
-  virtual PRBool IsZPlaceholderView() const { return PR_FALSE; }
-
-  
-
-
-
 
   NS_IMETHOD  SetVisibility(nsViewVisibility visibility);
 
@@ -122,16 +106,6 @@ public:
 
 
   NS_IMETHOD  SetFloating(PRBool aFloatingView);
-  
-
-
-
-
-
-
-
-
-  NS_IMETHOD  SetWidget(nsIWidget *aWidget);
 
   
   static nsView* GetViewFor(nsIWidget* aWidget) {
@@ -144,7 +118,6 @@ public:
 
 public:
   
-  nsZPlaceholderView* GetZParent() const { return mZParent; }
   
   
   nsView* GetFirstChild() const { return mFirstChild; }
@@ -174,7 +147,6 @@ public:
   void RemoveChild(nsView *aChild);
 
   void SetParent(nsView *aParent) { mParent = aParent; }
-  void SetZParent(nsZPlaceholderView *aZParent) { mZParent = aZParent; }
   void SetNextSibling(nsView *aSibling) { mNextSibling = aSibling; }
 
   PRUint32 GetViewFlags() const { return mVFlags; }
@@ -214,13 +186,8 @@ protected:
   
   void DoResetWidgetBounds(PRBool aMoveOnly, PRBool aInvalidateChangedSize);
 
-  nsZPlaceholderView* mZParent;
-
-  
-  nsRect*      mClipRect;
   nsRegion*    mDirtyRegion;
   nsPoint      mViewToWidgetOffset;
-  PRPackedBool mChildRemoved;
 };
 
 #endif

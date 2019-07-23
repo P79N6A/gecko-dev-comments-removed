@@ -46,8 +46,6 @@
 
 class nsIScrollableView;
 class nsIWidget;
-class nsIBlender;
-class nsICompositeListener;
 struct nsRect;
 class nsRegion;
 class nsIDeviceContext;
@@ -224,18 +222,6 @@ public:
 
 
 
-
-
-  NS_IMETHOD  InsertZPlaceholder(nsIView *aParent, nsIView *aChild, nsIView *aSibling,
-                                 PRBool aAfter) = 0;
-
-  
-
-
-
-
-
-
   NS_IMETHOD  RemoveChild(nsIView *aChild) = 0;
 
   
@@ -298,11 +284,6 @@ public:
 
 
   NS_IMETHOD  SetViewFloating(nsIView *aView, PRBool aFloatingView) = 0;
-
-  
-
-
-  NS_IMETHOD  SetViewCheckChildEvents(nsIView *aView, PRBool aEnable) = 0;
 
   
 

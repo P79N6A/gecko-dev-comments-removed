@@ -49,9 +49,7 @@
 #include "nsIScrollableView.h"
 #include "nsIRegion.h"
 #include "nsView.h"
-
-class nsISupportsArray;
-class BlendingBuffers;
+#include "nsIViewObserver.h"
 
 
 #ifdef MOZ_PERF_METRICS
@@ -92,50 +90,6 @@ class BlendingBuffers;
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-class nsZPlaceholderView : public nsView
-{
-public:
-  nsZPlaceholderView(nsViewManager* aViewManager) : nsView(aViewManager) {}
-
-  void RemoveReparentedView() { mReparentedView = nsnull; }
-  void SetReparentedView(nsView* aView) { mReparentedView = aView; }
-  nsView* GetReparentedView() const { return mReparentedView; }
-
-  virtual PRBool IsZPlaceholderView() const { return PR_TRUE; }
-
-protected:
-  virtual ~nsZPlaceholderView() {
-    if (nsnull != mReparentedView) {
-      mReparentedView->SetZParent(nsnull);
-    }
-  }
-
-protected:
-  nsView   *mReparentedView;
-};
 
 class nsViewManagerEvent : public nsRunnable {
 public:
@@ -188,9 +142,6 @@ public:
   NS_IMETHOD  InsertChild(nsIView *parent, nsIView *child,
                           PRInt32 zindex);
 
-  NS_IMETHOD  InsertZPlaceholder(nsIView *parent, nsIView *child, nsIView *sibling,
-                                 PRBool above);
-
   NS_IMETHOD  RemoveChild(nsIView *parent);
 
   NS_IMETHOD  MoveViewBy(nsIView *aView, nscoord aX, nscoord aY);
@@ -198,8 +149,6 @@ public:
   NS_IMETHOD  MoveViewTo(nsIView *aView, nscoord aX, nscoord aY);
 
   NS_IMETHOD  ResizeView(nsIView *aView, const nsRect &aRect, PRBool aRepaintExposedAreaOnly = PR_FALSE);
-
-  NS_IMETHOD  SetViewCheckChildEvents(nsIView *aView, PRBool aEnable);
 
   NS_IMETHOD  SetViewFloating(nsIView *aView, PRBool aFloating);
 
@@ -442,7 +391,6 @@ private:
   
   nsSize            mDelayedResize;
 
-  nsISupportsArray  *mCompositeListeners;
   nsCOMPtr<nsIFactory> mRegionFactory;
   nsView            *mRootView;
   
