@@ -382,6 +382,9 @@ nsNavHistory::Init()
 
 
 
+
+#define PLACES_SCHEMA_VERSION 1
+
 nsresult
 nsNavHistory::InitDB(PRBool *aDoImport)
 {
@@ -436,6 +439,49 @@ nsNavHistory::InitDB(PRBool *aDoImport)
   NS_ENSURE_SUCCESS(rv, rv);
   rv = nsAnnotationService::InitTables(mDBConn);
   NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  PRInt32 schemaVersion;
+  {
+    nsCOMPtr<mozIStorageStatement> statement;
+    rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING("PRAGMA user_version"),
+                                  getter_AddRefs(statement));
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    PRBool hasResult;
+    rv = statement->ExecuteStep(&hasResult);
+    NS_ENSURE_SUCCESS(rv, rv);
+    NS_ENSURE_TRUE(hasResult, NS_ERROR_FAILURE);
+    schemaVersion = statement->AsInt32(0);
+  }
+   
+  if (PLACES_SCHEMA_VERSION != schemaVersion) {
+    
+    
+    
+    
+    if (PLACES_SCHEMA_VERSION == 1) {
+      if (schemaVersion < 1) {
+        
+        rv = MigrateFromVnToV1(mDBConn);
+        NS_ENSURE_SUCCESS(rv, rv);
+      } else {
+        
+        
+        
+        rv = MigrateFromVnToV1(mDBConn);
+        NS_ENSURE_SUCCESS(rv, rv);
+      }
+
+      
+      nsCAutoString schemaVersionPragma("PRAGMA user_version=");
+      schemaVersionPragma.AppendInt(PLACES_SCHEMA_VERSION);
+      rv = mDBConn->ExecuteSimpleSQL(schemaVersionPragma);
+      NS_ENSURE_SUCCESS(rv, rv);
+    }
+
+    
+  }
 
   
   
@@ -695,6 +741,31 @@ nsNavHistory::InitStatements()
   NS_ENSURE_SUCCESS(rv, rv);
 
   return NS_OK;
+}
+
+
+
+
+
+
+
+nsresult
+nsNavHistory::MigrateFromVnToV1(mozIStorageConnection* aDBConn) 
+{
+  
+  nsresult rv = aDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING("DROP TABLE moz_bookmarks"));
+  NS_ENSURE_SUCCESS(rv, rv);
+  rv = aDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING("DROP TABLE moz_bookmarks_folders"));
+  NS_ENSURE_SUCCESS(rv, rv);
+  rv = aDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING("DROP TABLE moz_bookmarks_roots"));
+  NS_ENSURE_SUCCESS(rv, rv);
+  rv = aDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING("DROP TABLE moz_keywords"));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  rv = nsNavBookmarks::InitTables(aDBConn);
+  NS_ENSURE_SUCCESS(rv, rv);
+  return rv;
 }
 
 
