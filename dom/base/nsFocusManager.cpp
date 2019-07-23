@@ -356,7 +356,7 @@ NS_IMETHODIMP nsFocusManager::SetFocusedWindow(nsIDOMWindow* aWindowToFocus)
     if (content) {
       nsCOMPtr<nsIDOMWindow> childWindow = GetContentWindow(content);
       if (childWindow)
-        ClearFocus(childWindow);
+        ClearFocus(windowToFocus);
     }
   }
 
@@ -420,7 +420,7 @@ nsFocusManager::MoveFocus(nsIDOMWindow* aWindow, nsIDOMElement* aStartElement,
   *aElement = nsnull;
 
 #ifdef DEBUG_FOCUS
-  printf("<<MoveFocus Type: %d Flags: %d>>\n<<", aType, aFlags);
+  printf("<<MoveFocus Type: %d Flags: %x>>\n<<", aType, aFlags);
 
   nsCOMPtr<nsPIDOMWindow> focusedWindow = mFocusedWindow;
   if (focusedWindow) {
@@ -885,8 +885,8 @@ nsFocusManager::WindowHidden(nsIDOMWindow* aWindow)
   nsCOMPtr<nsIPresShell> presShell;
   focusedDocShell->GetPresShell(getter_AddRefs(presShell));
   if (presShell) {
-    nsPresContext* presContext = presShell->GetPresContext();
-    presContext->EventStateManager()->SetContentState(mFocusedContent, NS_EVENT_STATE_FOCUS);  
+    presShell->GetPresContext()->EventStateManager()->
+      SetContentState(mFocusedContent, NS_EVENT_STATE_FOCUS);
   }
 
   mFocusedContent = nsnull;
@@ -1062,7 +1062,7 @@ nsFocusManager::SetFocusInner(nsIContent* aNewContent, PRInt32 aFlags,
 
 #ifdef DEBUG_FOCUS
   PRINTTAGF("Shift Focus: %s", contentToFocus);
-  printf(" Flags: %d Current Window: %p New Window: %p Current Element: %p",
+  printf(" Flags: %x Current Window: %p New Window: %p Current Element: %p",
          aFlags, mFocusedWindow.get(), newWindow.get(), mFocusedContent.get());
   printf(" In Active Window: %d In Focused Window: %d\n",
          isElementInActiveWindow, isElementInFocusedWindow);
@@ -1133,8 +1133,8 @@ nsFocusManager::SetFocusInner(nsIContent* aNewContent, PRInt32 aFlags,
       AdjustWindowFocus(newWindow, PR_TRUE);
 
     
-    PRUint32 focusMethod = aFocusChanged ? aFlags & FOCUSMETHOD_MASK :
-                                           newWindow->GetFocusMethod();
+    PRUint32 focusMethod = aFocusChanged ? aFlags & FOCUSMETHODANDRING_MASK :
+                           newWindow->GetFocusMethod() | (aFlags & FLAG_SHOWRING);
     newWindow->SetFocusedNode(contentToFocus, focusMethod);
     if (aFocusChanged) {
       nsCOMPtr<nsIDocShell> docShell = newWindow->GetDocShell();
@@ -1346,7 +1346,7 @@ nsFocusManager::CheckIfFocusable(nsIContent* aContent, PRUint32 aFlags)
     const nsStyleUserInterface* ui = frame->GetStyleUserInterface();
     PRInt32 tabIndex = (ui->mUserFocus == NS_STYLE_USER_FOCUS_IGNORE ||
                         ui->mUserFocus == NS_STYLE_USER_FOCUS_NONE) ? -1 : 0;
-    return aContent->IsFocusable(&tabIndex) ? aContent : nsnull;
+    return aContent->IsFocusable(&tabIndex, aFlags & FLAG_BYMOUSE) ? aContent : nsnull;
   }
   
   return frame->IsFocusable(nsnull, aFlags & FLAG_BYMOUSE) ? aContent : nsnull;
@@ -1420,8 +1420,8 @@ nsFocusManager::Blur(nsPIDOMWindow* aWindowToClear,
     if (sendBlurEvent) {
       
       
-      nsPresContext* presContext = presShell->GetPresContext();
-      presContext->EventStateManager()->SetContentState(content, NS_EVENT_STATE_FOCUS);  
+      presShell->GetPresContext()->EventStateManager()->
+        SetContentState(content, NS_EVENT_STATE_FOCUS);
     }
 
     
@@ -1539,8 +1539,8 @@ nsFocusManager::Focus(nsPIDOMWindow* aWindow,
   
   
   
-  PRUint32 focusMethod = aFocusChanged ? aFlags & FOCUSMETHOD_MASK :
-                                         aWindow->GetFocusMethod();
+  PRUint32 focusMethod = aFocusChanged ? aFlags & FOCUSMETHODANDRING_MASK :
+                         aWindow->GetFocusMethod() | (aFlags & FLAG_SHOWRING);
 
   if (!IsWindowVisible(aWindow)) {
     
@@ -1564,7 +1564,7 @@ nsFocusManager::Focus(nsPIDOMWindow* aWindow,
   nsCOMPtr<nsIDocument> docm = do_QueryInterface(aWindow->GetExtantDocument());
   if (docm)
     PRINTTAGF(" from %s", docm->GetRootContent());
-  printf(" [Newdoc: %d FocusChanged: %d Raised: %d Flags: %d]\n",
+  printf(" [Newdoc: %d FocusChanged: %d Raised: %d Flags: %x]\n",
          aIsNewDocument, aFocusChanged, aWindowRaised, aFlags);
 #endif
 
@@ -1618,7 +1618,8 @@ nsFocusManager::Focus(nsPIDOMWindow* aWindow,
       
       
       nsPresContext* presContext = presShell->GetPresContext();
-      presContext->EventStateManager()->SetContentState(aContent, NS_EVENT_STATE_FOCUS);  
+      presContext->EventStateManager()->
+        SetContentState(aContent, NS_EVENT_STATE_FOCUS);
 
       
       

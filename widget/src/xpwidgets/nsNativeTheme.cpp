@@ -51,6 +51,7 @@
 #include "nsThemeConstants.h"
 #include "nsIComponentManager.h"
 #include "nsIDOMNSHTMLInputElement.h"
+#include "nsPIDOMWindow.h"
 
 nsNativeTheme::nsNativeTheme()
 {
@@ -95,6 +96,32 @@ nsNativeTheme::GetContentState(nsIFrame* aFrame, PRUint8 aWidgetType)
     if (IsFocused(aFrame))
       flags |= NS_EVENT_STATE_FOCUS;
   }
+
+  
+  
+  
+#if defined(XP_MACOSX)
+  
+  if (aWidgetType == NS_THEME_TEXTFIELD ||
+      aWidgetType == NS_THEME_TEXTFIELD_MULTILINE ||
+      aWidgetType == NS_THEME_SEARCHFIELD ||
+      aWidgetType == NS_THEME_LISTBOX) {
+    return flags;
+  }
+#endif
+#if defined(XP_WIN)
+  
+  if (aWidgetType == NS_THEME_BUTTON)
+    return flags;
+#endif    
+#if defined(XP_MACOSX) || defined(XP_WIN)
+  nsIDocument* doc = aFrame->GetContent()->GetOwnerDoc();
+  if (doc) {
+    nsPIDOMWindow* window = doc->GetWindow();
+    if (window && !window->ShouldShowFocusRing())
+      flags &= ~NS_EVENT_STATE_FOCUS;
+  }
+#endif
   
   return flags;
 }

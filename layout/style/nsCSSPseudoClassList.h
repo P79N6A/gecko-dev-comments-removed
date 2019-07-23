@@ -91,6 +91,9 @@ CSS_STATE_PSEUDO_CLASS(target, ":target", NS_EVENT_STATE_URLTARGET)
 CSS_STATE_PSEUDO_CLASS(indeterminate, ":indeterminate",
                        NS_EVENT_STATE_INDETERMINATE)
 
+
+CSS_STATE_PSEUDO_CLASS(mozFocusRing, ":-moz-focusring", NS_EVENT_STATE_FOCUSRING)
+
 CSS_PSEUDO_CLASS(firstChild, ":first-child")
 CSS_PSEUDO_CLASS(firstNode, ":-moz-first-node")
 CSS_PSEUDO_CLASS(lastChild, ":last-child")

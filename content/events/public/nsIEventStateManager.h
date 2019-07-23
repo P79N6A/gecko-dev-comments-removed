@@ -203,4 +203,7 @@ NS_DEFINE_STATIC_IID_ACCESSOR(nsIEventStateManager, NS_IEVENTSTATEMANAGER_IID)
 #define NS_EVENT_STATE_HANDLER_CRASHED \
                                      0x08000000
 
+
+#define NS_EVENT_STATE_FOCUSRING     0x10000000
+
 #endif 

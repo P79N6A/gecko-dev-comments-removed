@@ -111,6 +111,7 @@ class nsHashKey;
 #define NS_SELECTION_EVENT                38
 #define NS_CONTENT_COMMAND_EVENT          39
 #define NS_GESTURENOTIFY_EVENT            40
+#define NS_UISTATECHANGE_EVENT            41
 
 
 
@@ -211,6 +212,10 @@ class nsHashKey;
 
 
 #define NS_SYSCOLORCHANGED              (NS_WINDOW_START + 42)
+
+
+
+#define NS_UISTATECHANGED               (NS_WINDOW_START + 43)
 
 #define NS_RESIZE_EVENT                 (NS_WINDOW_START + 60)
 #define NS_SCROLL_EVENT                 (NS_WINDOW_START + 61)
@@ -461,6 +466,12 @@ class nsHashKey;
 
 #define NS_TRANSITION_EVENT_START    4200
 #define NS_TRANSITION_END            (NS_TRANSITION_EVENT_START)
+
+enum UIStateChangeType {
+  UIStateChangeType_NoChange,
+  UIStateChangeType_Set,
+  UIStateChangeType_Clear
+};
 
 
 
@@ -1357,6 +1368,20 @@ public:
   float elapsedTime;
 };
 
+
+class nsUIStateChangeEvent : public nsGUIEvent
+{
+public:
+  nsUIStateChangeEvent(PRBool isTrusted, PRUint32 msg, nsIWidget* w)
+    : nsGUIEvent(isTrusted, msg, w, NS_UISTATECHANGE_EVENT),
+      showAccelerators(UIStateChangeType_NoChange),
+      showFocusRings(UIStateChangeType_NoChange)
+  {
+  }
+
+  UIStateChangeType showAccelerators;
+  UIStateChangeType showFocusRings;
+};
 
 
 

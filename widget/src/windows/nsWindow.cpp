@@ -1165,6 +1165,13 @@ NS_METHOD nsWindow::Show(PRBool bState)
           ::SetWindowPos(mWnd, HWND_TOP, 0, 0, 0, 0, flags);
         }
       }
+
+#ifndef WINCE
+      if (!wasVisible && (mWindowType == eWindowType_toplevel || mWindowType == eWindowType_dialog)) {
+        
+        ::SendMessageW(mWnd, WM_CHANGEUISTATE, MAKEWPARAM(UIS_INITIALIZE, UISF_HIDEFOCUS | UISF_HIDEACCEL), 0);
+      }
+#endif
     } else {
       if (mWindowType != eWindowType_dialog) {
         ::ShowWindow(mWnd, SW_HIDE);
@@ -4703,6 +4710,27 @@ PRBool nsWindow::ProcessMessage(UINT msg, WPARAM &wParam, LPARAM &lParam,
     Invalidate(PR_FALSE);
     break;
 #endif
+
+  case WM_UPDATEUISTATE:
+  {
+    
+    
+    
+    
+    
+    PRInt32 action = LOWORD(wParam);
+    if (action == UIS_SET || action == UIS_CLEAR) {
+      nsUIStateChangeEvent event(PR_TRUE, NS_UISTATECHANGED, this);
+      PRInt32 flags = HIWORD(wParam);
+      if (flags & UISF_HIDEACCEL)
+        event.showAccelerators = (action == UIS_SET) ? UIStateChangeType_Clear : UIStateChangeType_Set;
+      if (flags & UISF_HIDEFOCUS)
+        event.showFocusRings = (action == UIS_SET) ? UIStateChangeType_Clear : UIStateChangeType_Set;
+      DispatchWindowEvent(&event);
+    }
+
+    break;
+  }
 
   
   case WM_TABLET_QUERYSYSTEMGESTURESTATUS:

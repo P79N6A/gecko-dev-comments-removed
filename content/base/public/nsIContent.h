@@ -71,8 +71,8 @@ enum nsLinkState {
 
 
 #define NS_ICONTENT_IID       \
-{ 0x9d15dea4, 0xa112, 0x40f4, \
- { 0xbd, 0xa9, 0x23, 0xc0, 0xed, 0xde, 0x08, 0x9c } }
+{ 0x51dcc330, 0x78f0, 0x47c9, \
+  { 0x95, 0x6f, 0xf9, 0x8a, 0x04, 0xb9, 0x74, 0x51 } }
 
 
 
@@ -558,7 +558,7 @@ public:
 
 
 
-  virtual PRBool IsFocusable(PRInt32 *aTabIndex = nsnull)
+  virtual PRBool IsFocusable(PRInt32 *aTabIndex = nsnull, PRBool aWithMouse = PR_FALSE)
   {
     if (aTabIndex) 
       *aTabIndex = -1; 
