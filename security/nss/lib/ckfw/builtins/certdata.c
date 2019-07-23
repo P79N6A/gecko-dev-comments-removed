@@ -1,46 +1,46 @@
-/* THIS IS A GENERATED FILE */
-/* ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is the Netscape security libraries.
- *
- * The Initial Developer of the Original Code is
- * Netscape Communications Corporation.
- * Portions created by the Initial Developer are Copyright (C) 1994-2000
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either the GNU General Public License Version 2 or later (the "GPL"), or
- * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifdef DEBUG
-static const char CVS_ID[] = "@(#) $RCSfile: certdata.c,v $ $Revision: 1.54 $ $Date: 2009/05/21 19:50:27 $""; @(#) $RCSfile: certdata.c,v $ $Revision: 1.54 $ $Date: 2009/05/21 19:50:27 $";
-#endif /* DEBUG */
+static const char CVS_ID[] = "@(#) $RCSfile: certdata.c,v $ $Revision: 1.55 $ $Date: 2009/08/13 23:40:29 $""; @(#) $RCSfile: certdata.c,v $ $Revision: 1.55 $ $Date: 2009/08/13 23:40:29 $";
+#endif 
 
 #ifndef BUILTINS_H
 #include "builtins.h"
-#endif /* BUILTINS_H */
+#endif 
 
 static const CK_BBOOL ck_false = CK_FALSE;
 static const CK_BBOOL ck_true = CK_TRUE;
@@ -56,7 +56,7 @@ static const CK_TRUST ckt_netscape_untrusted = CKT_NETSCAPE_UNTRUSTED;
 static const CK_ATTRIBUTE_TYPE nss_builtins_types_0 [] = {
  CKA_CLASS,  CKA_TOKEN,  CKA_PRIVATE,  CKA_MODIFIABLE,  CKA_LABEL,  CKA_APPLICATION,  CKA_VALUE
 };
-#endif /* DEBUG */
+#endif 
 static const CK_ATTRIBUTE_TYPE nss_builtins_types_1 [] = {
  CKA_CLASS,  CKA_TOKEN,  CKA_PRIVATE,  CKA_MODIFIABLE,  CKA_LABEL
 };
@@ -908,9 +908,9 @@ static const NSSItem nss_builtins_items_0 [] = {
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)"CVS ID", (PRUint32)7 },
   { (void *)"NSS", (PRUint32)4 },
-  { (void *)"@(#) $RCSfile: certdata.c,v $ $Revision: 1.54 $ $Date: 2009/05/21 19:50:27 $""; @(#) $RCSfile: certdata.c,v $ $Revision: 1.54 $ $Date: 2009/05/21 19:50:27 $", (PRUint32)160 }
+  { (void *)"@(#) $RCSfile: certdata.c,v $ $Revision: 1.55 $ $Date: 2009/08/13 23:40:29 $""; @(#) $RCSfile: certdata.c,v $ $Revision: 1.55 $ $Date: 2009/08/13 23:40:29 $", (PRUint32)160 }
 };
-#endif /* DEBUG */
+#endif 
 static const NSSItem nss_builtins_items_1 [] = {
   { (void *)&cko_netscape_builtin_root_list, (PRUint32)sizeof(CK_OBJECT_CLASS) },
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
@@ -17981,7 +17981,7 @@ static const NSSItem nss_builtins_items_266 [] = {
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
-  { (void *)"AC Ra+¡z Certic+ímara S.A.", (PRUint32)27 },
+  { (void *)"AC Ra\xC3\xADz Certic\xC3\xA1mara S.A.", (PRUint32)39 },
   { (void *)&ckc_x_509, (PRUint32)sizeof(CK_CERTIFICATE_TYPE) },
   { (void *)"\060\173\061\013\060\011\006\003\125\004\006\023\002\103\117\061"
 "\107\060\105\006\003\125\004\012\014\076\123\157\143\151\145\144"
@@ -18115,7 +18115,7 @@ static const NSSItem nss_builtins_items_267 [] = {
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
-  { (void *)"AC Ra+¡z Certic+ímara S.A.", (PRUint32)27 },
+  { (void *)"AC Ra\xC3\xADz Certic\xC3\xA1mara S.A.", (PRUint32)39 },
   { (void *)"\313\241\305\370\260\343\136\270\271\105\022\323\371\064\242\351"
 "\006\020\323\066"
 , (PRUint32)20 },
@@ -18958,7 +18958,7 @@ builtinsInternalObject
 nss_builtins_data[] = {
 #ifdef DEBUG
   { 7, nss_builtins_types_0, nss_builtins_items_0, {NULL} },
-#endif /* DEBUG */
+#endif 
   { 5, nss_builtins_types_1, nss_builtins_items_1, {NULL} },
   { 11, nss_builtins_types_2, nss_builtins_items_2, {NULL} },
   { 13, nss_builtins_types_3, nss_builtins_items_3, {NULL} },
@@ -19246,4 +19246,4 @@ const PRUint32
   nss_builtins_nObjects = 281+1;
 #else
   nss_builtins_nObjects = 281;
-#endif /* DEBUG */
+#endif 

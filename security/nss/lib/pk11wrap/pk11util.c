@@ -1248,13 +1248,12 @@ SECMOD_HasRemovableSlots(SECMODModule *mod)
 
 
 static SECStatus
-secmod_UserDBOp(CK_OBJECT_CLASS objClass, const char *sendSpec)
+secmod_UserDBOp(PK11SlotInfo *slot, CK_OBJECT_CLASS objClass, 
+		const char *sendSpec)
 {
-    PK11SlotInfo *slot = PK11_GetInternalSlot();
     CK_OBJECT_HANDLE dummy;
     CK_ATTRIBUTE template[2] ;
     CK_ATTRIBUTE *attrs = template;
-    SECStatus rv;
     CK_RV crv;
 
     PK11_SETATTRS(attrs, CKA_CLASS, &objClass, sizeof(objClass)); attrs++;
@@ -1270,13 +1269,10 @@ secmod_UserDBOp(CK_OBJECT_CLASS objClass, const char *sendSpec)
     PK11_ExitSlotMonitor(slot);
 
     if (crv != CKR_OK) {
-	PK11_FreeSlot(slot);
 	PORT_SetError(PK11_MapError(crv));
 	return SECFailure;
     }
-    rv = SECMOD_UpdateSlotList(slot->module);
-    PK11_FreeSlot(slot);
-    return rv;
+    return SECMOD_UpdateSlotList(slot->module);
 }
 
 
@@ -1334,6 +1330,112 @@ done:
 
 
 
+static PRBool
+secmod_SlotIsEmpty(SECMODModule *mod,  CK_SLOT_ID slotID)
+{
+    PK11SlotInfo *slot = SECMOD_LookupSlot(mod->moduleID, slotID);
+    if (slot) {
+	PRBool present = PK11_IsPresent(slot);
+	PK11_FreeSlot(slot);
+	if (present) {
+	    return PR_FALSE;
+	}
+    }
+    
+    return PR_TRUE;
+}
+
+
+
+
+static CK_SLOT_ID
+secmod_FindFreeSlot(SECMODModule *mod)
+{
+    CK_SLOT_ID i, minSlotID, maxSlotID;
+
+    
+    if (mod->internal && mod->isFIPS) {
+	minSlotID = SFTK_MIN_FIPS_USER_SLOT_ID;
+	maxSlotID = SFTK_MAX_FIPS_USER_SLOT_ID;
+    } else {
+	minSlotID = SFTK_MIN_USER_SLOT_ID;
+	maxSlotID = SFTK_MAX_USER_SLOT_ID;
+    }
+    for (i=minSlotID; i < maxSlotID; i++) {
+	if (secmod_SlotIsEmpty(mod,i)) {
+	    return i;
+	}
+    }
+    PORT_SetError(SEC_ERROR_NO_SLOT_SELECTED);
+    return (CK_SLOT_ID) -1;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+PK11SlotInfo *
+SECMOD_OpenNewSlot(SECMODModule *mod, const char *moduleSpec)
+{
+    CK_SLOT_ID slotID = 0;
+    PK11SlotInfo *slot;
+    char *escSpec;
+    char *sendSpec;
+    SECStatus rv;
+
+    slotID = secmod_FindFreeSlot(mod);
+    if (slotID == (CK_SLOT_ID) -1) {
+	return NULL;
+    }
+
+    if (mod->slotCount == 0) {
+	return NULL;
+    }
+
+    
+    slot = PK11_ReferenceSlot(mod->slots[0]);
+    if (slot == NULL) {
+	return NULL;
+    }
+
+    
+    escSpec = nss_doubleEscape(moduleSpec);
+    if (escSpec == NULL) {
+	PK11_FreeSlot(slot);
+	return NULL;
+    }
+    sendSpec = PR_smprintf("tokens=[0x%x=<%s>]", slotID, escSpec);
+    PORT_Free(escSpec);
+
+    if (sendSpec == NULL) {
+	
+	PK11_FreeSlot(slot);
+	PORT_SetError(SEC_ERROR_NO_MEMORY);
+	return NULL;
+    }
+    rv = secmod_UserDBOp(slot, CKO_NETSCAPE_NEWSLOT, sendSpec);
+    PR_smprintf_free(sendSpec);
+    PK11_FreeSlot(slot);
+    if (rv != SECSuccess) {
+	return NULL;
+    }
+
+    return SECMOD_FindSlotByID(mod, slotID);
+}
+
+
+
+
 
 
 
@@ -1383,13 +1485,7 @@ done:
 PK11SlotInfo *
 SECMOD_OpenUserDB(const char *moduleSpec)
 {
-    CK_SLOT_ID slotID = 0;
-    char *escSpec;
-    char *sendSpec;
-    SECStatus rv;
     SECMODModule *mod;
-    CK_SLOT_ID i, minSlotID, maxSlotID;
-    PRBool found = PR_FALSE;
 
     if (moduleSpec == NULL) {
 	return NULL;
@@ -1403,59 +1499,9 @@ SECMOD_OpenUserDB(const char *moduleSpec)
 	PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
 	return NULL;
     }
-
-    
-    if (mod->isFIPS) {
-	minSlotID = SFTK_MIN_FIPS_USER_SLOT_ID;
-	maxSlotID = SFTK_MAX_FIPS_USER_SLOT_ID;
-    } else {
-	minSlotID = SFTK_MIN_USER_SLOT_ID;
-	maxSlotID = SFTK_MAX_USER_SLOT_ID;
-    }
-    for (i=minSlotID; i < maxSlotID; i++) {
-	PK11SlotInfo *slot = SECMOD_LookupSlot(mod->moduleID, i);
-	if (slot) {
-	    PRBool present = PK11_IsPresent(slot);
-	    PK11_FreeSlot(slot);
-	    if (present) {
-		continue;
-	    }
-	    
-	}
-	
-	slotID = i;
-	found = PR_TRUE;
-	break;
-    }
-
-    if (!found) {
-	
-	PORT_SetError(SEC_ERROR_NO_SLOT_SELECTED);
-	return NULL;
-    }
-
-    
-
-    escSpec = nss_doubleEscape(moduleSpec);
-    if (escSpec == NULL) {
-	return NULL;
-    }
-    sendSpec = PR_smprintf("tokens=[0x%x=<%s>]", slotID, escSpec);
-    PORT_Free(escSpec);
-
-    if (sendSpec == NULL) {
-	
-	PORT_SetError(SEC_ERROR_NO_MEMORY);
-	return NULL;
-    }
-    rv = secmod_UserDBOp(CKO_NETSCAPE_NEWSLOT, sendSpec);
-    PR_smprintf_free(sendSpec);
-    if (rv != SECSuccess) {
-	return NULL;
-    }
-
-    return SECMOD_FindSlotByID(mod, slotID);
+    return SECMOD_OpenNewSlot(mod, moduleSpec);
 }
+
 
 
 
@@ -1468,11 +1514,6 @@ SECMOD_CloseUserDB(PK11SlotInfo *slot)
 {
     SECStatus rv;
     char *sendSpec;
-
-    if (!slot->isInternal) {
-	PORT_SetError(SEC_ERROR_INVALID_ARGS);
-	return SECFailure;
-    }
     
     sendSpec = PR_smprintf("tokens=[0x%x=<>]", slot->slotID);
     if (sendSpec == NULL) {
@@ -1480,7 +1521,7 @@ SECMOD_CloseUserDB(PK11SlotInfo *slot)
 	PORT_SetError(SEC_ERROR_NO_MEMORY);
 	return SECFailure;
     }
-    rv = secmod_UserDBOp(CKO_NETSCAPE_DELSLOT, sendSpec);
+    rv = secmod_UserDBOp(slot, CKO_NETSCAPE_DELSLOT, sendSpec);
     PR_smprintf_free(sendSpec);
     return rv;
 }
