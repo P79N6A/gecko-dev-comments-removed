@@ -1007,6 +1007,8 @@ nsSVGUtils::PaintFrameWithEffects(nsSVGRenderState *aContext,
 
 
 
+
+
   if (opacity != 1.0f && CanOptimizeOpacity(aFrame))
     opacity = 1.0f;
 
@@ -1382,16 +1384,26 @@ nsSVGUtils::GetRelativeRect(PRUint16 aUnits, const nsSVGLength2 *aXYWH,
 PRBool
 nsSVGUtils::CanOptimizeOpacity(nsIFrame *aFrame)
 {
-  if (!aFrame->GetStyleSVGReset()->mFilter) {
-    nsIAtom *type = aFrame->GetType();
-    if (type == nsGkAtoms::svgImageFrame)
-      return PR_TRUE;
-    if (type == nsGkAtoms::svgPathGeometryFrame) {
-      const nsStyleSVG *style = aFrame->GetStyleSVG();
-      if (style->mFill.mType == eStyleSVGPaintType_None ||
-          !static_cast<nsSVGPathGeometryFrame*>(aFrame)->HasStroke())
-        return PR_TRUE;
-    }
+  nsIAtom *type = aFrame->GetType();
+  if (type != nsGkAtoms::svgImageFrame &&
+      type != nsGkAtoms::svgPathGeometryFrame) {
+    return PR_FALSE;
+  }
+  if (aFrame->GetStyleSVGReset()->mFilter) {
+    return PR_FALSE;
+  }
+  
+  if (type == nsGkAtoms::svgImageFrame) {
+    return PR_TRUE;
+  }
+  const nsStyleSVG *style = aFrame->GetStyleSVG();
+  if (style->mMarkerStart || style->mMarkerMid || style->mMarkerEnd) {
+    return PR_FALSE;
+  }
+  if (style->mFill.mType == eStyleSVGPaintType_None ||
+      style->mFillOpacity <= 0 ||
+      !static_cast<nsSVGPathGeometryFrame*>(aFrame)->HasStroke()) {
+    return PR_TRUE;
   }
   return PR_FALSE;
 }

@@ -108,12 +108,13 @@ private:
   float GetStrokeDashoffset();
 
   
-  
-  
-  
-  
-  
-  float MaybeOptimizeOpacity(float aOpacity);
+
+
+
+
+
+
+  float MaybeOptimizeOpacity(float aFillOrStrokeOpacity);
 };
 
 #endif 
