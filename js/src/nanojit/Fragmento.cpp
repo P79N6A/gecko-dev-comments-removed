@@ -204,15 +204,18 @@ namespace nanojit
 	Fragment* Fragmento::newLoop(const void* ip)
 	{
         Fragment *f = newFrag(ip);
-        Fragment* p = _frags->get(ip);
+        Fragment *p = _frags->get(ip);
         if (p) {
+            f->first = p;
             
             Fragment* next;
             while ((next = p->peer) != NULL)
                 p = next;
             p->peer = f;
-        } else
+        } else {
+            f->first = f;
             _frags->put(ip, f); 
+        }
         f->anchor = f;
         f->root = f;
         f->kind = LoopTrace;
