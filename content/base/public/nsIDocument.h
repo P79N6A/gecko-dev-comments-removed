@@ -705,6 +705,14 @@ public:
 
   virtual void FlushPendingNotifications(mozFlushType aType) = 0;
 
+  
+
+
+
+
+
+  virtual void FlushExternalResources(mozFlushType aType) = 0;
+
   nsBindingManager* BindingManager() const
   {
     return mNodeInfoManager->GetBindingManager();

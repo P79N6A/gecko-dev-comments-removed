@@ -4593,6 +4593,14 @@ PresShell::FlushPendingNotifications(mozFlushType aType)
     
     
     
+    
+    
+    mDocument->FlushExternalResources(aType);
+
+    
+    
+    
+    
     mDocument->FlushPendingNotifications(Flush_ContentAndNotify);
 
     
