@@ -1714,7 +1714,7 @@ nsObjectLoadingContent::TryInstantiate(const nsACString& aMIMEType,
     
     nsIFrame* iframe = do_QueryFrame(frame);
     if (iframe->GetStateBits() & NS_FRAME_FIRST_REFLOW) {
-      LOG(("OBJLC [%p]: Frame hasn't been reflown yet\n", this));
+      LOG(("OBJLC [%p]: Frame hasn't been reflowed yet\n", this));
       return NS_OK; 
     }
   }
