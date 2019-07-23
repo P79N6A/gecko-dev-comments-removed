@@ -2592,6 +2592,10 @@ js_NewObjectWithGivenProto(JSContext *cx, JSClass *clasp, JSObject *proto,
     }
 
     
+    JS_ASSERT_IF(clasp->flags & JSCLASS_IS_EXTENDED,
+                 ((JSExtendedClass *)clasp)->equality);
+
+    
 
 
 
@@ -3553,6 +3557,8 @@ js_FindPropertyHelper(JSContext *cx, jsid id, JSObject **objp,
             protoIndex =
                 js_LookupPropertyWithFlags(cx, obj, id, cx->resolveFlags,
                                            &pobj, &prop);
+            if (protoIndex < 0)
+                return -1;
         } else {
             if (!OBJ_LOOKUP_PROPERTY(cx, obj, id, &pobj, &prop))
                 return -1;
