@@ -1456,11 +1456,8 @@ XPCWrappedNative::ReparentWrapperIfFound(XPCCallContext& ccx,
     {
         flat = cache->GetWrapper();
         if(flat && !IS_SLIM_WRAPPER_OBJECT(flat))
-        {
             wrapper = static_cast<XPCWrappedNative*>(xpc_GetJSPrivate(flat));
-            NS_ASSERTION(wrapper->GetScope() == aOldScope,
-                         "Incorrect scope passed");
-        }
+        
     }
     else
     {
@@ -1604,8 +1601,10 @@ XPCWrappedNative::ReparentWrapperIfFound(XPCCallContext& ccx,
 
     
 
-    if(aNewParent && !JS_SetParent(ccx, flat, aNewParent))
+    if(!JS_SetParent(ccx, flat, aNewParent))
+    {
         return NS_ERROR_FAILURE;
+    }
 
     *aWrapper = nsnull;
     wrapper.swap(*aWrapper);
@@ -2311,8 +2310,15 @@ XPCWrappedNative::CallMethod(XPCCallContext& ccx,
 
         nsISupports* qiresult = nsnull;
         {
-            AutoJSSuspendNonMainThreadRequest req(ccx.GetJSContext());
-            invokeResult = callee->QueryInterface(*iid, (void**) &qiresult);
+            if(XPCPerThreadData::IsMainThread(ccx))
+            {
+                invokeResult = callee->QueryInterface(*iid, (void**) &qiresult);
+            }
+            else
+            {
+                JSAutoSuspendRequest suspended(ccx);
+                invokeResult = callee->QueryInterface(*iid, (void**) &qiresult);
+            }
         }
 
         xpcc->SetLastResult(invokeResult);
@@ -2722,10 +2728,18 @@ XPCWrappedNative::CallMethod(XPCCallContext& ccx,
 
     
     {
-        AutoJSSuspendNonMainThreadRequest req(ccx.GetJSContext());
-        invokeResult = NS_InvokeByIndex(callee, vtblIndex,
-                                        paramCount + wantsOptArgc,
-                                        dispatchParams);
+        uint8 allParamCount = paramCount + wantsOptArgc;
+        if(XPCPerThreadData::IsMainThread(ccx))
+        {
+            invokeResult = NS_InvokeByIndex(callee, vtblIndex,
+                                            allParamCount, dispatchParams);
+        }
+        else
+        {
+            JSAutoSuspendRequest suspended(ccx);
+            invokeResult = NS_InvokeByIndex(callee, vtblIndex,
+                                            allParamCount, dispatchParams);
+        }
     }
 
     xpcc->SetLastResult(invokeResult);

@@ -195,7 +195,7 @@ JSBool XPCDispObject::Dispatch(XPCCallContext& ccx, IDispatch * disp,
     
     {
         
-        AutoJSSuspendRequest req(ccx);  
+        JSAutoSuspendRequest req(ccx);  
         
         invokeResult= disp->Invoke(
             dispID,                  
