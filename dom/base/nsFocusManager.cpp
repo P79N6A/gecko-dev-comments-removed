@@ -1041,9 +1041,22 @@ nsFocusManager::SetFocusInner(nsIContent* aNewContent, PRInt32 aFlags,
   PRBool allowFrameSwitch = !(aFlags & FLAG_NOSWITCHFRAME) ||
                             IsSameOrAncestor(newWindow, mFocusedWindow);
 
+  PRBool canStealFocus = PR_TRUE;
   
   
-  if (isElementInActiveWindow && allowFrameSwitch && IsWindowVisible(newWindow)) {
+  if (mFocusedContent && !(aFlags & (FLAG_BYMOUSE | FLAG_BYKEY))) {
+    nsCOMPtr<nsIDOMNode> currentFocusedNode =
+                           do_QueryInterface(mFocusedContent);
+    
+    
+    
+    canStealFocus = nsContentUtils::CanCallerAccess(currentFocusedNode);
+  }
+
+  
+  
+  if (isElementInActiveWindow && allowFrameSwitch &&
+      IsWindowVisible(newWindow) && canStealFocus) {
     
     if (mFocusedWindow) {
       
