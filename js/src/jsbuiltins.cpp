@@ -86,15 +86,13 @@ js_dmod(jsdouble a, jsdouble b)
     return r;
 }
 
-
-
-
-
-
 jsint FASTCALL
 js_imod(jsint a, jsint b)
 {
-    return a % b;
+    if (a < 0 || b <= 0)
+        return -1;
+    int r = a % b;
+    return r;
 }
 
 
