@@ -37,6 +37,7 @@
 
 
 import sys, os, os.path
+import tempfile
 from glob import glob
 from optparse import OptionParser
 from subprocess import Popen, PIPE, STDOUT
@@ -69,6 +70,12 @@ def runTests(xpcshell, testdirs=[], xrePath=None, testFile=None,
     instead of automatically executing  the test.
   |keepGoing|, if set to True, indicates that if a test fails
     execution should continue."""
+
+  if not testdirs and not manifest:
+    
+    print >>sys.stderr, "Error: No test dirs or test manifest specified!"
+    return False
+
   testharnessdir = os.path.dirname(os.path.abspath(__file__))
   xpcshell = os.path.abspath(xpcshell)
   
@@ -78,9 +85,27 @@ def runTests(xpcshell, testdirs=[], xrePath=None, testFile=None,
   
   env["XPCOM_DEBUG_BREAK"] = "stack-and-abort"
 
-  if not testdirs and not manifest:
+  
+  
+  leakLogFile = os.path.join(tempfile.gettempdir(), "runxpcshelltests_leaks.log")
+  env["XPCOM_MEM_LEAK_LOG"] = leakLogFile
+
+  def processLeakLog(leakLogFile):
+    """Process the leak log."""
     
-    raise Exception("No test dirs or test manifest specified!")
+    if not os.path.exists(leakLogFile):
+      return
+
+    leaks = open(leakLogFile, "r")
+    leakReport = leaks.read()
+    leaks.close()
+
+    
+    if not "0 TOTAL " in leakReport:
+      return
+
+    
+    print leakReport.rstrip("\n")
 
   if xrePath is None:
     xrePath = os.path.dirname(xpcshell)
@@ -113,6 +138,7 @@ def runTests(xpcshell, testdirs=[], xrePath=None, testFile=None,
   if manifest is not None:
     testdirs = readManifest(os.path.abspath(manifest))
 
+  
   success = True
   for testdir in testdirs:
     if singleDir and singleDir != os.path.basename(testdir):
@@ -130,13 +156,14 @@ def runTests(xpcshell, testdirs=[], xrePath=None, testFile=None,
         testtailfiles += ['-f', f]
 
     
-    
     testfiles = sorted(glob(os.path.join(testdir, "test_*.js")))
     if testFile:
       if testFile in [os.path.basename(x) for x in testfiles]:
         testfiles = [os.path.join(testdir, testFile)]
       else: 
         continue
+
+    
     for test in testfiles:
       pstdout = PIPE
       pstderr = STDOUT
@@ -150,6 +177,7 @@ def runTests(xpcshell, testdirs=[], xrePath=None, testFile=None,
                   + tailfiles + testtailfiles + interactiveargs
       proc = Popen(full_args, stdout=pstdout, stderr=pstderr,
                    env=env, cwd=testdir)
+      
       stdout, stderr = proc.communicate()
 
       if interactive:
@@ -157,16 +185,19 @@ def runTests(xpcshell, testdirs=[], xrePath=None, testFile=None,
         return True
 
       if proc.returncode != 0 or stdout.find("*** PASS") == -1:
-        print """TEST-UNEXPECTED-FAIL | %s | test failed, see log
-  %s.log:
+        print """TEST-UNEXPECTED-FAIL | %s | test failed, see following log:
   >>>>>>>
   %s
-  <<<<<<<""" % (test, test, stdout)
-        if not keepGoing:
-          return False
+  <<<<<<<""" % (test, stdout)
         success = False
       else:
         print "TEST-PASS | %s | all tests passed" % test
+      processLeakLog(leakLogFile)
+      
+      os.remove(leakLogFile)
+      if not (success or keepGoing):
+        return False
+
   return success
 
 def main():
