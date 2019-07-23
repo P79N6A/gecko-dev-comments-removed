@@ -457,7 +457,7 @@ struct FragPI {
 };
 
 
-typedef HashMap<uint32_t,FragPI> FragStatsMap;
+typedef HashMap<uint32,FragPI> FragStatsMap;
 
 void
 js_FragProfiling_FragFinalizer(Fragment* f, JSTraceMonitor* tm)
