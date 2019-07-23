@@ -463,7 +463,7 @@ nsXULPopupListener::LaunchPopup(nsIDOMEvent* aEvent, nsIContent* aTargetContent)
 
   
   
-  pm->SetMouseLocation(aEvent);
+  pm->SetMouseLocation(aEvent, popup);
 
   
   
