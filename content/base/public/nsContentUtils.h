@@ -369,6 +369,16 @@ public:
 
   static PRBool IsPunctuationMark(PRUnichar aChar);
 
+  
+
+
+
+
+
+
+
+  static PRBool IsHTMLWhitespace(PRUnichar aChar);
+
   static void Shutdown();
 
   
