@@ -200,7 +200,7 @@ function run_test() {
   annosvc.setItemAnnotation(bookmark, testAnnoName, testAnnoVal, 0, annosvc.EXPIRE_DAYS);
 
   
-  var expirationDate = (Date.now() - (7 * 86400 * 1000)) * 1000;
+  var expirationDate = (Date.now() - (8 * 86400 * 1000)) * 1000;
   dbConnection.executeSimpleSQL("UPDATE moz_annos SET dateAdded = " + expirationDate);
   dbConnection.executeSimpleSQL("UPDATE moz_items_annos SET dateAdded = " + expirationDate);
 
@@ -238,9 +238,38 @@ function run_test() {
 
   
   histsvc.addVisit(testURI, Date.now(), 0, histsvc.TRANSITION_TYPED, false, 0);
+  annosvc.setPageAnnotation(testURI, testAnnoName, testAnnoVal, 0, annosvc.EXPIRE_DAYS);
+  annosvc.setItemAnnotation(bookmark, testAnnoName, testAnnoVal, 0, annosvc.EXPIRE_DAYS);
+  
+  var expirationDate = (Date.now() - (6 * 86400 * 1000)) * 1000;
+  dbConnection.executeSimpleSQL("UPDATE moz_annos SET dateAdded = " + expirationDate);
+  dbConnection.executeSimpleSQL("UPDATE moz_items_annos SET dateAdded = " + expirationDate);
+
+  
+  histsvc.addVisit(triggerURI, Date.now(), 0, histsvc.TRANSITION_TYPED, false, 0);
+  bhist.removePage(triggerURI);
+
+  
+  try {
+    do_check_eq(annosvc.getPageAnnotation(testURI, testAnnoName), testAnnoVal);
+  } catch(ex) {
+    do_throw("anno < 7 days old was expired!");
+  }
+  annosvc.removePageAnnotation(testURI, testAnnoName);
+  try {
+    do_check_eq(annosvc.getItemAnnotation(bookmark, testAnnoName), testAnnoVal);
+  } catch(ex) {
+    do_throw("item anno < 7 days old was expired!");
+  }
+  annosvc.removeItemAnnotation(bookmark, testAnnoName);
+
+
+  
+  histsvc.addVisit(testURI, Date.now(), 0, histsvc.TRANSITION_TYPED, false, 0);
   annosvc.setPageAnnotation(testURI, testAnnoName, testAnnoVal, 0, annosvc.EXPIRE_WEEKS);
   annosvc.setItemAnnotation(bookmark, testAnnoName, testAnnoVal, 0, annosvc.EXPIRE_WEEKS);
-  var expirationDate = (Date.now() - (30 * 86400 * 1000)) * 1000;
+  
+  var expirationDate = (Date.now() - (31 * 86400 * 1000)) * 1000;
   dbConnection.executeSimpleSQL("UPDATE moz_annos SET dateAdded = " + expirationDate);
   dbConnection.executeSimpleSQL("UPDATE moz_items_annos SET dateAdded = " + expirationDate);
   
@@ -275,9 +304,36 @@ function run_test() {
   } catch(ex) {}
 
   
+  histsvc.addVisit(testURI, Date.now(), 0, histsvc.TRANSITION_TYPED, false, 0);
+  annosvc.setPageAnnotation(testURI, testAnnoName, testAnnoVal, 0, annosvc.EXPIRE_WEEKS);
+  annosvc.setItemAnnotation(bookmark, testAnnoName, testAnnoVal, 0, annosvc.EXPIRE_WEEKS);
+  
+  var expirationDate = (Date.now() - (29 * 86400 * 1000)) * 1000;
+  dbConnection.executeSimpleSQL("UPDATE moz_annos SET dateAdded = " + expirationDate);
+  dbConnection.executeSimpleSQL("UPDATE moz_items_annos SET dateAdded = " + expirationDate);
+
+  
+  histsvc.addVisit(triggerURI, Date.now(), 0, histsvc.TRANSITION_TYPED, false, 0);
+  bhist.removePage(triggerURI);
+
+  
+  try {
+    do_check_eq(annosvc.getPageAnnotation(testURI, testAnnoName), testAnnoVal);
+  } catch(ex) {
+    do_throw("anno < 30 days old was expired!");
+  }
+  annosvc.removePageAnnotation(testURI, testAnnoName);
+  try {
+    do_check_eq(annosvc.getItemAnnotation(bookmark, testAnnoName), testAnnoVal);
+  } catch(ex) {
+    do_throw("item anno < 30 days old was expired!");
+  }
+  annosvc.removeItemAnnotation(bookmark, testAnnoName);
+
+  
   annosvc.setPageAnnotation(testURI, testAnnoName, testAnnoVal, 0, annosvc.EXPIRE_MONTHS);
   annosvc.setItemAnnotation(bookmark, testAnnoName, testAnnoVal, 0, annosvc.EXPIRE_MONTHS);
-  var expirationDate = (Date.now() - (180 * 86400 * 1000)) * 1000;
+  var expirationDate = (Date.now() - (181 * 86400 * 1000)) * 1000;
   dbConnection.executeSimpleSQL("UPDATE moz_annos SET dateAdded = " + expirationDate);
   dbConnection.executeSimpleSQL("UPDATE moz_items_annos SET dateAdded = " + expirationDate);
   
@@ -310,6 +366,33 @@ function run_test() {
     annosvc.getItemAnnotation(bookmark, testAnnoName);
     do_throw("bookmark still had months anno");
   } catch(ex) {}
+
+  
+  histsvc.addVisit(testURI, Date.now(), 0, histsvc.TRANSITION_TYPED, false, 0);
+  annosvc.setPageAnnotation(testURI, testAnnoName, testAnnoVal, 0, annosvc.EXPIRE_MONTHS);
+  annosvc.setItemAnnotation(bookmark, testAnnoName, testAnnoVal, 0, annosvc.EXPIRE_MONTHS);
+  
+  var expirationDate = (Date.now() - (179 * 86400 * 1000)) * 1000;
+  dbConnection.executeSimpleSQL("UPDATE moz_annos SET dateAdded = " + expirationDate);
+  dbConnection.executeSimpleSQL("UPDATE moz_items_annos SET dateAdded = " + expirationDate);
+
+  
+  histsvc.addVisit(triggerURI, Date.now(), 0, histsvc.TRANSITION_TYPED, false, 0);
+  bhist.removePage(triggerURI);
+
+  
+  try {
+    do_check_eq(annosvc.getPageAnnotation(testURI, testAnnoName), testAnnoVal);
+  } catch(ex) {
+    do_throw("anno < 180 days old was expired!");
+  }
+  annosvc.removePageAnnotation(testURI, testAnnoName);
+  try {
+    do_check_eq(annosvc.getItemAnnotation(bookmark, testAnnoName), testAnnoVal);
+  } catch(ex) {
+    do_throw("item anno < 180 days old was expired!");
+  }
+  annosvc.removeItemAnnotation(bookmark, testAnnoName);
 
   
   
