@@ -5,7 +5,7 @@
 # The contents of this file are subject to the Mozilla Public License Version
 # 1.1 (the "License"); you may not use this file except in compliance with
 # the License. You may obtain a copy of the License at
-# http://www.mozilla.org/MPL/
+# http:
 #
 # Software distributed under the License is distributed on an "AS IS" basis,
 # WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
@@ -37,6 +37,10 @@
 #
 # ***** END LICENSE BLOCK *****
 
+const NS_ERROR_MODULE_NETWORK = 2152398848;
+const NS_NET_STATUS_READ_FROM = NS_ERROR_MODULE_NETWORK + 8;
+const NS_NET_STATUS_WROTE_TO  = NS_ERROR_MODULE_NETWORK + 9;
+
 function getPanelBrowser()
 {
     return document.getElementById("web-panels-browser");
@@ -53,7 +57,7 @@ var panelProgressListener = {
         if (!aRequest)
           return;
 
-        //ignore local/resource:/chrome: files
+        
         if (aStatus == NS_NET_STATUS_READ_FROM || aStatus == NS_NET_STATUS_WROTE_TO)
            return;
 
