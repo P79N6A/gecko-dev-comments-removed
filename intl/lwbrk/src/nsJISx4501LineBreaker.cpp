@@ -193,31 +193,210 @@
 
 
 
-#define MAX_CLASSES 10
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#define MAX_CLASSES 12
 
 static const PRUint16 gPair[MAX_CLASSES] = {
-  0x03FF, 
-  0x0002, 
-  0x0006, 
-  0x0042, 
-  0x0002, 
-  0x0002, 
-  0x0152, 
-  0x0182, 
-  0x01C2,
-  0x0202
+  0x0FFF,
+  0x0E02,
+  0x0806,
+  0x0842,
+  0x0802,
+  0x0C02,
+  0x0ED2,
+  0x0EC2,
+  0x0902,
+  0x0FFF,
+  0x0CC2,
+  0x0FFF
 };
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+static const PRUint16 gPairConservative[MAX_CLASSES] = {
+  0x0FFF,
+  0x0EC2,
+  0x0EC6,
+  0x0EC2,
+  0x0EC2,
+  0x0C02,
+  0x0FDF,
+  0x0FDF,
+  0x0FC2,
+  0x0FFF,
+  0x0EDF,
+  0x0FFF
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#define CLASS_NONE                             PR_INT8_MAX
+
+#define CLASS_OPEN                             0x00
+#define CLASS_CLOSE                            0x01
+#define CLASS_NON_BREAKABLE_BETWEEN_SAME_CLASS 0x02
+#define CLASS_PREFIX                           0x03
+#define CLASS_POSTFFIX                         0x04
+#define CLASS_BREAKABLE                        0x05
+#define CLASS_NUMERIC                          0x06
+#define CLASS_CHARACTER                        0x07
+#define CLASS_COMPLEX                          0x08
+#define CLASS_OPEN_LIKE_CHARACTER              0x09
+#define CLASS_CLOSE_LIKE_CHARACTER             0x0A
+#define CLASS_NON_BREAKABLE                    0x0B
+
+#define U_NULL      PRUnichar(0x0000)
+#define U_SLASH     PRUnichar('/')
+#define U_SPACE     PRUnichar(' ')
+#define U_HYPHEN    PRUnichar('-')
+#define U_EQUAL     PRUnichar('=')
+#define U_PERCENT   PRUnichar('%')
+#define U_AMPERSAND PRUnichar('&')
+#define U_BACKSLASH PRUnichar('\\')
+
+#define NEED_CONTEXTUAL_ANALYSIS(c) (IS_HYPHEN(c) || \
+                                     (c) == U_SLASH || \
+                                     (c) == U_PERCENT || \
+                                     (c) == U_AMPERSAND || \
+                                     (c) == U_BACKSLASH)
+
+#define IS_ASCII_DIGIT(u) (0x0030 <= (u) && (u) <= 0x0039)
 
 static inline int
 GETCLASSFROMTABLE(const PRUint32* t, PRUint16 l)
 {
   return ((((t)[(l>>3)]) >> ((l & 0x0007)<<2)) & 0x000f);
 }
-
-#define CLASS_COMPLEX 9
-
-
 
 static inline int
 IS_HALFWIDTH_IN_JISx4051_CLASS3(PRUnichar u)
@@ -240,54 +419,48 @@ IS_COMPLEX(PRUnichar u)
   return (0x0e01 <= (u) && (u) <= 0x0e5b);
 }
 
-static inline int
-IS_SPACE(PRUnichar u)
+static inline PRBool
+IS_NONBREAKABLE_SPACE(PRUnichar u)
 {
-  return ((u) == 0x0020 || (u) == 0x0009 || (u) == 0x000a || (u) == 0x000d || (u)==0x200b);
+  return u == 0x00A0 || u == 0x2007; 
 }
 
-static PRInt8 GetClass(PRUnichar u)
+static inline PRBool
+IS_HYPHEN(PRUnichar u)
+{
+  return (u == U_HYPHEN ||
+          u == 0x058A || 
+          u == 0x2010 || 
+          u == 0x2012);  
+}
+
+static PRInt8
+GetClass(PRUnichar u)
 {
    PRUint16 h = u & 0xFF00;
    PRUint16 l = u & 0x00ff;
    PRInt8 c;
+
    
-   
-   if( 0x0000 == h)
-   {
+   if (0x0000 == h) {
      c = GETCLASSFROMTABLE(gLBClass00, l);
-   } 
-   else if( 0x0E00 == h)
-   {
+   } else if (0x0E00 == h) {
      c = GETCLASSFROMTABLE(gLBClass0E, l);
-   }
-   else if( 0x2000 == h)
-   {
+   } else if (0x2000 == h) {
      c = GETCLASSFROMTABLE(gLBClass20, l);
-   } 
-   else if( 0x2100 == h)
-   {
+   } else if (0x2100 == h) {
      c = GETCLASSFROMTABLE(gLBClass21, l);
-   } 
-   else if( 0x3000 == h)
-   {
+   } else if (0x3000 == h) {
      c = GETCLASSFROMTABLE(gLBClass30, l);
-   } 
-   else if (  ( ( 0x3200 <= u) && ( u <= 0xA4CF) ) || 
-              ( ( 0xAC00 <= h) && ( h <= 0xD7FF) ) || 
-              ( ( 0xf900 <= h) && ( h <= 0xfaff) )
-             )
-   { 
-     c = 5; 
-   } 
-   else if( 0xff00 == h)
-   {
-     if( l < 0x0060) 
-     {
+   } else if (((0x3200 <= u) && (u <= 0xA4CF)) || 
+              ((0xAC00 <= h) && (h <= 0xD7FF)) || 
+              ((0xf900 <= h) && (h <= 0xfaff))) {
+     c = CLASS_BREAKABLE; 
+   } else if (0xff00 == h) {
+     if (l < 0x0060) { 
        c = GETCLASSFROMTABLE(gLBClass00, (l+0x20));
      } else if (l < 0x00a0) {
-       switch (l)
-       {
+       switch (l) {
          case 0x61: c = GetClass(0x3002); break;
          case 0x62: c = GetClass(0x300c); break;
          case 0x63: c = GetClass(0x300d); break;
@@ -296,53 +469,77 @@ static PRInt8 GetClass(PRUnichar u)
          case 0x9e: c = GetClass(0x309b); break;
          case 0x9f: c = GetClass(0x309c); break;
          default:
-           if(IS_HALFWIDTH_IN_JISx4051_CLASS3(u))
-              c = 1; 
+           if (IS_HALFWIDTH_IN_JISx4051_CLASS3(u))
+              c = CLASS_CLOSE; 
            else
-              c = 5; 
+              c = CLASS_BREAKABLE; 
            break;
        }
-       
-     } else if( l < 0x00e0) {
-       c = 8; 
-     } else if( l < 0x00f0) {
-       static PRUnichar NarrowFFEx[16] = 
-       { 
+     
+     } else if (l < 0x00e0) {
+       c = CLASS_CHARACTER; 
+     } else if (l < 0x00f0) {
+       static PRUnichar NarrowFFEx[16] = {
          0x00A2, 0x00A3, 0x00AC, 0x00AF, 0x00A6, 0x00A5, 0x20A9, 0x0000,
          0x2502, 0x2190, 0x2191, 0x2192, 0x2193, 0x25A0, 0x25CB, 0x0000
        };
        c = GetClass(NarrowFFEx[l - 0x00e0]);
      } else {
-       c = 8;
+       c = CLASS_CHARACTER;
      }
-   }
-   else if( 0x3100 == h) { 
-     if ( l <= 0xbf) {  
-                        
-                        
-       c = 5;
+   } else if (0x3100 == h) { 
+     if (l <= 0xbf) { 
+                      
+                      
+       c = CLASS_BREAKABLE;
+     } else if (l >= 0xf0) { 
+       c = CLASS_CLOSE;
+     } else { 
+       c = CLASS_CHARACTER;
      }
-     else if ( l >= 0xf0)
-     {            
-       c = 1;
-     }
-     else   
-     {
-       c = 8;
-     }
-   } 
-   else {
-     c = 8; 
+   } else if (0x0300 == h) {
+     if (0x4F == l || (0x5C <= l && l <= 0x62))
+       c = CLASS_NON_BREAKABLE;
+     else
+       c = CLASS_CHARACTER;
+   } else if (0x0500 == h) {
+     
+     if (l == 0x8A)
+       c = GETCLASSFROMTABLE(gLBClass00, PRUint16(U_HYPHEN));
+     else
+       c = CLASS_CHARACTER;
+   } else if (0x0F00 == h) {
+     if (0x08 == l || 0x0C == l || 0x12 == l)
+       c = CLASS_NON_BREAKABLE;
+     else
+       c = CLASS_CHARACTER;
+   } else if (0x1800 == h) {
+     if (0x0E == l)
+       c = CLASS_NON_BREAKABLE;
+     else
+       c = CLASS_CHARACTER;
+   } else {
+     c = CLASS_CHARACTER; 
    }
    return c;
 }
 
-static PRBool GetPair(PRInt8 c1, PRInt8 c2)
+static PRBool
+GetPair(PRInt8 c1, PRInt8 c2)
 {
-  NS_ASSERTION( c1 < MAX_CLASSES ,"illegal classes 1");
-  NS_ASSERTION( c2 < MAX_CLASSES ,"illegal classes 2");
+  NS_ASSERTION(c1 < MAX_CLASSES ,"illegal classes 1");
+  NS_ASSERTION(c2 < MAX_CLASSES ,"illegal classes 2");
 
-  return (0 == ((gPair[c1] >> c2 ) & 0x0001));
+  return (0 == ((gPair[c1] >> c2) & 0x0001));
+}
+
+static PRBool
+GetPairConservative(PRInt8 c1, PRInt8 c2)
+{
+  NS_ASSERTION(c1 < MAX_CLASSES ,"illegal classes 1");
+  NS_ASSERTION(c2 < MAX_CLASSES ,"illegal classes 2");
+
+  return (0 == ((gPairConservative[c1] >> c2) & 0x0001));
 }
 
 nsJISx4051LineBreaker::nsJISx4051LineBreaker()
@@ -355,81 +552,204 @@ nsJISx4051LineBreaker::~nsJISx4051LineBreaker()
 
 NS_IMPL_ISUPPORTS1(nsJISx4051LineBreaker, nsILineBreaker)
 
-#define U_PERIOD    PRUnichar('.')
-#define U_COMMA     PRUnichar(',')
-#define U_SEMICOLON PRUnichar(';')
-#define U_SLASH     PRUnichar('/')
-#define U_SPACE     PRUnichar(' ')
-#define U_HYPHEN    PRUnichar('-')
-#define U_EQUAL     PRUnichar('=')
-#define U_NULL      PRUnichar(0x0000)
-#define U_RIGHT_SINGLE_QUOTATION_MARK PRUnichar(0x2019)
-#define NEED_CONTEXTUAL_ANALYSIS(c) ((c) == U_PERIOD || \
-                                     (c) == U_COMMA || \
-                                     (c) == U_SEMICOLON || \
-                                     (c) == U_SLASH || \
-                                     (c) == U_HYPHEN || \
-                                     (c) == U_EQUAL || \
-                                     (c) == U_RIGHT_SINGLE_QUOTATION_MARK)
-#define NUMERIC_CLASS  6 // JIS x4051 class 15 is now map to simplified class 6
-#define CHARACTER_CLASS  8 // JIS x4051 class 18 is now map to simplified class 8
-#define IS_ASCII_DIGIT(u) (0x0030 <= (u) && (u) <= 0x0039)
+class ContextState {
+public:
+  ContextState(const PRUnichar* aText, PRUint32 aLength) {
+    mUniText = aText;
+    mText = nsnull;
+    mLength = aLength;
+    Init();
+  }
 
-static PRInt8 ContextualAnalysis(
-  PRUnichar prev, PRUnichar cur, PRUnichar next)
+  ContextState(const PRUint8* aText, PRUint32 aLength) {
+    mUniText = nsnull;
+    mText = aText;
+    mLength = aLength;
+    Init();
+  }
+
+  PRUint32 Length() { return mLength; }
+  PRUint32 Index() { return mIndex; }
+
+  PRUnichar GetCharAt(PRUint32 aIndex) {
+    NS_ASSERTION(0 <= aIndex && aIndex < mLength, "Out of range!");
+    return mUniText ? mUniText[aIndex] : PRUnichar(mText[aIndex]);
+  }
+
+  void AdvanceIndexTo(PRUint32 aIndex) {
+    NS_ASSERTION(mIndex <= aIndex, "the index cannot decrease.");
+    NS_ASSERTION(aIndex < mLength, "out of range");
+    mIndex = aIndex;
+  }
+
+  void NotifyBreakBefore() { mLastBreakIndex = mIndex; }
+
+
+
+
+
+
+
+
+
+#define CONSERVATIVE_BREAK_RANGE 6
+
+  PRBool UseConservativeBreaking(PRUint32 aOffset = 0) {
+    if (mHasCJKChar)
+      return PR_FALSE;
+    PRUint32 index = mIndex + aOffset;
+    PRBool result = (index < CONSERVATIVE_BREAK_RANGE ||
+                     mLength - index < CONSERVATIVE_BREAK_RANGE ||
+                     index - mLastBreakIndex < CONSERVATIVE_BREAK_RANGE);
+    if (result || !mHasNonbreakableSpace)
+      return result;
+
+    
+    
+
+    
+    for (PRUint32 i = index - 1; index - CONSERVATIVE_BREAK_RANGE < i; --i) {
+      if (IS_NONBREAKABLE_SPACE(GetCharAt(i)))
+        return PR_TRUE;
+      if (i == 0)
+        break;
+    }
+    
+    for (PRUint32 i = index + 1; i < index + CONSERVATIVE_BREAK_RANGE; ++i) {
+      if (IS_NONBREAKABLE_SPACE(GetCharAt(i)))
+        return PR_TRUE;
+    }
+    return PR_FALSE;
+  }
+
+  PRBool HasCharacterAlready(PRUnichar aCh) {
+    
+    if (mIndex == 0)
+      return PR_FALSE;
+    for (PRUint32 i = mIndex - 1; 0 < i; --i) {
+      if (GetCharAt(i) == aCh)
+        return PR_TRUE;
+      if (i == 0)
+        break;
+    }
+    return PR_FALSE;
+  }
+
+  PRUnichar GetPreviousNonHyphenCharacter() {
+    NS_ASSERTION(IS_HYPHEN(GetCharAt(mIndex)),
+                 "current character isn't hyphen");
+    
+    if (mIndex == 0)
+      return PR_FALSE;
+    for (PRUint32 i = mIndex - 1; 0 < i; --i) {
+      PRUnichar ch = GetCharAt(i);
+      if (!IS_HYPHEN(ch))
+        return ch;
+      if (i == 0)
+        break;
+    }
+    return U_NULL;
+  }
+
+private:
+  void Init() {
+    mIndex = 0;
+    mLastBreakIndex = 0;
+    mHasCJKChar = 0;
+    mHasNonbreakableSpace = 0;
+
+    for (PRUint32 i = 0; i < mLength; ++i) {
+      PRUnichar u = GetCharAt(i);
+      if (!mHasNonbreakableSpace && IS_NONBREAKABLE_SPACE(u))
+        mHasNonbreakableSpace = 1;
+      else if (mUniText && !mHasCJKChar && IS_CJK_CHAR(u))
+        mHasCJKChar = 1;
+    }
+  }
+
+  const PRUnichar* mUniText;
+  const PRUint8* mText;
+
+  PRUint32 mIndex;
+  PRUint32 mLength;         
+  PRUint32 mLastBreakIndex;
+  PRPackedBool mHasCJKChar; 
+  PRPackedBool mHasNonbreakableSpace; 
+                                     
+};
+
+static PRInt8
+ContextualAnalysis(PRUnichar prev, PRUnichar cur, PRUnichar next,
+                   ContextState &aState)
 {
-   if(U_COMMA == cur || U_SEMICOLON == cur)
-   {
-     if((IS_ASCII_DIGIT(prev) || prev == U_NULL) && IS_ASCII_DIGIT(next))
-       return NUMERIC_CLASS;
-   }
-   else if(U_PERIOD == cur)
-   {
-     if((IS_ASCII_DIGIT(prev) || prev == U_SPACE || prev == U_NULL) &&
-         IS_ASCII_DIGIT(next))
-       return NUMERIC_CLASS;
+  
 
-     
-     
-     
-     
-     
-     
-     
-     PRUint8 pc = prev != U_NULL ? GetClass(prev) : CHARACTER_CLASS;
-     if((pc > 5 || pc == 0)  && GetClass(next) > 5)
-       return CHARACTER_CLASS;
-   }
-   else if(U_SLASH == cur || U_HYPHEN == cur || U_EQUAL == cur)
-   {
-     
-     if (U_SLASH == cur && prev == U_NULL)
-       return CHARACTER_CLASS;
-     if (IS_ASCII_DIGIT(next))
-       return NUMERIC_CLASS;
-   }
-   else if(U_RIGHT_SINGLE_QUOTATION_MARK == cur)
-   {
-     
-     if(U_SPACE != next)
-       return CHARACTER_CLASS;
-   }
-   return GetClass(cur);
+  if (IS_HYPHEN(cur)) {
+    
+    if (IS_HYPHEN(next))
+      return CLASS_CHARACTER;
+    
+    
+    PRBool prevIsNum = IS_ASCII_DIGIT(prev);
+    PRBool nextIsNum = IS_ASCII_DIGIT(next);
+    if (prevIsNum && nextIsNum)
+      return CLASS_NUMERIC;
+    
+    
+    if (!aState.UseConservativeBreaking(1)) {
+      PRUnichar prevOfHyphen = aState.GetPreviousNonHyphenCharacter();
+      if (prevOfHyphen && next) {
+        PRBool prevIsChar = !NEED_CONTEXTUAL_ANALYSIS(prevOfHyphen) &&
+                            GetClass(prevOfHyphen) == CLASS_CHARACTER;
+        PRBool nextIsChar = !NEED_CONTEXTUAL_ANALYSIS(next) &&
+                            GetClass(next) == CLASS_CHARACTER;
+        if ((prevIsNum || prevIsChar) && (nextIsNum || nextIsChar))
+          return CLASS_CLOSE;
+      }
+    }
+  } else if (cur == U_SLASH || cur == U_BACKSLASH) {
+    
+    if (prev == cur)
+      return CLASS_CHARACTER;
+    
+    if (!aState.UseConservativeBreaking() &&
+        aState.HasCharacterAlready(cur))
+      return CLASS_OPEN;
+  } else if (cur == U_PERCENT) {
+    
+    if (!aState.UseConservativeBreaking()) {
+      if (aState.Index() >= 3 &&
+          aState.GetCharAt(aState.Index() - 3) == U_PERCENT)
+        return CLASS_OPEN;
+      if (aState.Index() + 3 < aState.Length() &&
+          aState.GetCharAt(aState.Index() + 3) == U_PERCENT)
+        return CLASS_OPEN;
+    }
+  } else if (cur == U_AMPERSAND) {
+    
+    if (!aState.UseConservativeBreaking(1) &&
+        aState.HasCharacterAlready(U_EQUAL))
+      return CLASS_CLOSE;
+  } else {
+    NS_ERROR("Forgot to handle the current character!");
+  }
+  return GetClass(cur);
 }
 
 
-PRInt32 nsJISx4051LineBreaker::WordMove(
-  const PRUnichar* aText, PRUint32 aLen, PRUint32 aPos, PRInt8 aDirection)
+PRInt32
+nsJISx4051LineBreaker::WordMove(const PRUnichar* aText, PRUint32 aLen,
+                                PRUint32 aPos, PRInt8 aDirection)
 {
   PRBool  textNeedsJISx4051 = PR_FALSE;
   PRInt32 begin, end;
 
-  for (begin = aPos; begin > 0 && !IS_SPACE(aText[begin - 1]); --begin) {
+  for (begin = aPos; begin > 0 && !NS_IsSpace(aText[begin - 1]); --begin) {
     if (IS_CJK_CHAR(aText[begin]) || IS_COMPLEX(aText[begin])) {
       textNeedsJISx4051 = PR_TRUE;
     }
   }
-  for (end = aPos + 1; end < PRInt32(aLen) && !IS_SPACE(aText[end]); ++end) {
+  for (end = aPos + 1; end < PRInt32(aLen) && !NS_IsSpace(aText[end]); ++end) {
     if (IS_CJK_CHAR(aText[end]) || IS_COMPLEX(aText[end])) {
       textNeedsJISx4051 = PR_TRUE;
     }
@@ -458,8 +778,9 @@ PRInt32 nsJISx4051LineBreaker::WordMove(
   return ret;
 }
 
-PRInt32 nsJISx4051LineBreaker::Next(
-  const PRUnichar* aText, PRUint32 aLen, PRUint32 aPos) 
+PRInt32
+nsJISx4051LineBreaker::Next(const PRUnichar* aText, PRUint32 aLen,
+                            PRUint32 aPos) 
 {
   NS_ASSERTION(aText, "aText shouldn't be null");
   NS_ASSERTION(aLen > aPos, "Illegal value (length > position)");
@@ -468,8 +789,9 @@ PRInt32 nsJISx4051LineBreaker::Next(
   return nextPos < PRInt32(aLen) ? nextPos : NS_LINEBREAKER_NEED_MORE_TEXT;
 }
 
-PRInt32 nsJISx4051LineBreaker::Prev( 
-  const PRUnichar* aText, PRUint32 aLen, PRUint32 aPos) 
+PRInt32
+nsJISx4051LineBreaker::Prev(const PRUnichar* aText, PRUint32 aLen,
+                            PRUint32 aPos) 
 {
   NS_ASSERTION(aText, "aText shouldn't be null");
   NS_ASSERTION(aLen >= aPos, "Illegal value (length >= position)");
@@ -483,16 +805,19 @@ nsJISx4051LineBreaker::GetJISx4051Breaks(const PRUnichar* aChars, PRUint32 aLeng
                                          PRPackedBool* aBreakBefore)
 {
   PRUint32 cur;
-  PRInt8 lastClass = -1;
+  PRInt8 lastClass = CLASS_NONE;
+  ContextState state(aChars, aLength);
 
   for (cur = 0; cur < aLength; ++cur) {
     PRUnichar ch = aChars[cur];
     PRInt8 cl;
+    state.AdvanceIndexTo(cur);
 
     if (NEED_CONTEXTUAL_ANALYSIS(ch)) {
       cl = ContextualAnalysis(cur > 0 ? aChars[cur - 1] : U_NULL,
                               ch,
-                              cur + 1 < aLength ? aChars[cur + 1] : U_NULL);
+                              cur + 1 < aLength ? aChars[cur + 1] : U_NULL,
+                              state);
     } else {
       cl = GetClass(ch);
     }
@@ -501,11 +826,16 @@ nsJISx4051LineBreaker::GetJISx4051Breaks(const PRUnichar* aChars, PRUint32 aLeng
     if (cur > 0) {
       NS_ASSERTION(CLASS_COMPLEX != lastClass || CLASS_COMPLEX != cl,
                    "Loop should have prevented adjacent complex chars here");
-      allowBreak = GetPair(lastClass, cl);
+      if (state.UseConservativeBreaking())
+        allowBreak = GetPairConservative(lastClass, cl);
+      else
+        allowBreak = GetPair(lastClass, cl);
     } else {
       allowBreak = PR_FALSE;
     }
     aBreakBefore[cur] = allowBreak;
+    if (allowBreak)
+      state.NotifyBreakBefore();
     lastClass = cl;
     if (CLASS_COMPLEX == cl) {
       PRUint32 end = cur + 1;
@@ -530,27 +860,35 @@ nsJISx4051LineBreaker::GetJISx4051Breaks(const PRUint8* aChars, PRUint32 aLength
                                          PRPackedBool* aBreakBefore)
 {
   PRUint32 cur;
-  PRInt8 lastClass = -1;
+  PRInt8 lastClass = CLASS_NONE;
+  ContextState state(aChars, aLength);
 
   for (cur = 0; cur < aLength; ++cur) {
     PRUnichar ch = aChars[cur];
     PRInt8 cl;
+    state.AdvanceIndexTo(cur);
 
     if (NEED_CONTEXTUAL_ANALYSIS(ch)) {
       cl = ContextualAnalysis(cur > 0 ? aChars[cur - 1] : U_NULL,
                               ch,
-                              cur + 1 < aLength ? aChars[cur + 1] : U_NULL);
+                              cur + 1 < aLength ? aChars[cur + 1] : U_NULL,
+                              state);
     } else {
       cl = GetClass(ch);
     }
 
     PRBool allowBreak;
     if (cur > 0) {
-      allowBreak = GetPair(lastClass, cl);
+      if (state.UseConservativeBreaking())
+        allowBreak = GetPairConservative(lastClass, cl);
+      else
+        allowBreak = GetPair(lastClass, cl);
     } else {
       allowBreak = PR_FALSE;
     }
     aBreakBefore[cur] = allowBreak;
+    if (allowBreak)
+      state.NotifyBreakBefore();
     lastClass = cl;
   }
 }
