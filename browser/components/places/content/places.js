@@ -292,15 +292,24 @@ var PlacesOrganizer = {
 
 
   onTreeClick: function PO_onTreeClick(aEvent) {
+    
     if (aEvent.target.localName != "treechildren")
       return;
 
     var currentView = aEvent.currentTarget;
     var selectedNode = currentView.selectedNode;
-    if (selectedNode && aEvent.button == 1) {
-      if (PlacesUtils.nodeIsURI(selectedNode))
-        PlacesUIUtils.openNodeWithEvent(selectedNode, aEvent);
-      else if (PlacesUtils.nodeIsContainer(selectedNode)) {
+    if (selectedNode) {
+      var doubleClickOnFlatList = (aEvent.button == 0 && aEvent.detail == 2 &&
+                                   aEvent.target.parentNode.flatList);
+      var middleClick = (Event.button == 1 && aEvent.detail == 1);
+
+      if (PlacesUtils.nodeIsURI(selectedNode) &&
+          (doubleClickOnFlatList || middleClick)) {
+        
+        PlacesOrganizer.openSelectedNode(aEvent);
+      }
+      else if (middleClick &&
+               PlacesUtils.nodeIsContainer(selectedNode)) {
         
         
         

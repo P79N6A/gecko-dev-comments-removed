@@ -966,8 +966,9 @@ function testtag_tree_TreeView_rows(tree, testid, rowInfo, startRow)
 function testtag_tree_TreeView_rows_sort(tree, testid, rowInfo)
 {
   
+  var columnIndex = 0;
   var view = tree.view;
-  var column = tree.columns[0];
+  var column = tree.columns[columnIndex];
   var columnElement = column.element;
   var sortkey = columnElement.getAttribute("sort");
   if (sortkey) {
@@ -984,6 +985,30 @@ function testtag_tree_TreeView_rows_sort(tree, testid, rowInfo)
     is(columnElement.getAttribute("sortDirection"), "", "cycleHeader column sortDirection natural");
     
   }
+
+  
+  var columns = getSortedColumnArray(tree);
+  is(columnElement.getAttribute("sortDirection"), "",
+     "cycleHeader column sortDirection");
+
+  
+  mouseClickOnColumnHeader(columns, columnIndex, 0, 1);
+  is(columnElement.getAttribute("sortDirection"), "ascending",
+     "single click cycleHeader column sortDirection ascending");
+
+  
+  mouseClickOnColumnHeader(columns, columnIndex, 0, 2);
+  if (navigator.platform == "Win32") {
+    
+    is(columnElement.getAttribute("sortDirection"), "descending",
+       "double click cycleHeader column sortDirection descending");
+    
+    mouseClickOnColumnHeader(columns, columnIndex, 0, 1);
+  }
+
+  
+  is(columnElement.getAttribute("sortDirection"), "",
+     "cycleHeader column sortDirection");
 }
 
 
@@ -1209,6 +1234,21 @@ function mouseOnCell(tree, row, column, testname)
   tree.boxObject.getCoordsForCellItem(row, column, "text", x, y, width, height);
 
   synthesizeMouseExpectEvent(tree.body, x.value, y.value, {}, tree, "select", testname);
+}
+
+function mouseClickOnColumnHeader(aColumns, aColumnIndex, aButton, aClickCount)
+{
+  var columnHeader = aColumns[aColumnIndex].element;
+  var columnHeaderRect = columnHeader.getBoundingClientRect();
+  var columnWidth = columnHeaderRect.right - columnHeaderRect.left;
+  
+  
+  for (var i = 1; i <= aClickCount; i++) {
+    
+    synthesizeMouse(columnHeader, columnWidth / 2, 3,
+                    { button: aButton,
+                      clickCount: i }, null);
+  }
 }
 
 function mouseDblClickOnCell(tree, row, column, testname)
