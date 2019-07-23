@@ -77,7 +77,7 @@ class nsMediaDecoder : public nsIObserver
   virtual void GetCurrentURI(nsIURI** aURI) = 0;
 
   
-  virtual nsIPrincipal* GetCurrentPrincipal() = 0;
+  virtual already_AddRefed<nsIPrincipal> GetCurrentPrincipal() = 0;
 
   
   
@@ -140,12 +140,10 @@ class nsMediaDecoder : public nsIObserver
     
     double mPlaybackRate;
     
+    
     double mDownloadRate;
     
     PRInt64 mTotalBytes;
-    
-    
-    
     
     
     PRInt64 mDownloadPosition;
@@ -171,9 +169,6 @@ class nsMediaDecoder : public nsIObserver
   virtual Statistics GetStatistics() = 0;
 
   
-  virtual void SetTotalBytes(PRInt64 aBytes) = 0;
-
-  
   
   
   virtual void SetDuration(PRInt64 aDuration) = 0;
@@ -197,28 +192,16 @@ class nsMediaDecoder : public nsIObserver
   
   
   
+  virtual void NotifySuspendedStatusChanged() = 0;
   
   
   
-  virtual void NotifyDownloadSeeked(PRInt64 aOffsetBytes) = 0;
-
-  
-  
-  
-  
-  
-  
-  virtual void NotifyBytesDownloaded(PRInt64 aBytes) = 0;
+  virtual void NotifyBytesDownloaded() = 0;
 
   
   
   
   virtual void NotifyDownloadEnded(nsresult aStatus) = 0;
-
-  
-  
-  
-  virtual void NotifyBytesConsumed(PRInt64 aBytes) = 0;
 
   
   
@@ -253,70 +236,6 @@ protected:
                   PRInt32 aHeight,
                   float aFramerate,
                   unsigned char* aRGBBuffer);
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-  class ChannelStatistics {
-  public:
-    ChannelStatistics() { Reset(); }
-    void Reset() {
-      mLastStartTime = mAccumulatedTime = 0;
-      mAccumulatedBytes = 0;
-      mIsStarted = PR_FALSE;
-    }
-    void Start(PRIntervalTime aNow) {
-      if (mIsStarted)
-        return;
-      mLastStartTime = aNow;
-      mIsStarted = PR_TRUE;
-    }
-    void Stop(PRIntervalTime aNow) {
-      if (!mIsStarted)
-        return;
-      mAccumulatedTime += aNow - mLastStartTime;
-      mIsStarted = PR_FALSE;
-    }
-    void AddBytes(PRInt64 aBytes) {
-      if (!mIsStarted) {
-        
-        
-        return;
-      }
-      mAccumulatedBytes += aBytes;
-    }
-    double GetRateAtLastStop(PRPackedBool* aReliable) {
-      *aReliable = mAccumulatedTime >= PR_TicksPerSecond();
-      return double(mAccumulatedBytes)*PR_TicksPerSecond()/mAccumulatedTime;
-    }
-    double GetRate(PRIntervalTime aNow, PRPackedBool* aReliable) {
-      PRIntervalTime time = mAccumulatedTime;
-      if (mIsStarted) {
-        time += aNow - mLastStartTime;
-      }
-      *aReliable = time >= PR_TicksPerSecond();
-      NS_ASSERTION(time >= 0, "Time wraparound?");
-      if (time <= 0)
-        return 0.0;
-      return double(mAccumulatedBytes)*PR_TicksPerSecond()/time;
-    }
-  private:
-    PRInt64        mAccumulatedBytes;
-    PRIntervalTime mAccumulatedTime;
-    PRIntervalTime mLastStartTime;
-    PRPackedBool   mIsStarted;
-  };
 
 protected:
   

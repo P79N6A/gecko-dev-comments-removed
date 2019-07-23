@@ -159,6 +159,11 @@ public:
 
   
   
+  
+  void NotifyAutoplayDataReady();
+
+  
+  
   PRBool ShouldCheckAllowOrigin();
 
   
@@ -170,7 +175,7 @@ public:
   PRBool IsPlaybackEnded() const;
 
   
-  nsIPrincipal* GetCurrentPrincipal();
+  already_AddRefed<nsIPrincipal> GetCurrentPrincipal();
 
   
   
