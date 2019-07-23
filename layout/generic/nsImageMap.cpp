@@ -161,165 +161,161 @@ static void logMessage(nsIContent*      aContent,
      "ImageMap");
 }
 
-
-static nscoord* lo_parse_coord_list(char *str, PRInt32* value_cnt)
-{
-  char *tptr;
-  char *n_str;
-  PRInt32 i, cnt;
-  PRInt32 *value_list;
-
-  
-
-
-  *value_cnt = 0;
-  if (!str || *str == '\0')
-  {
-    return nsnull;
-  }
-
-  
-
-
-  n_str = str;
-  while (is_space(*n_str))
-  {
-    n_str++;
-  }
-  if (*n_str == '\0')
-  {
-    return nsnull;
-  }
-
-  
-
-
-
-  cnt = 0;
-  while (*n_str != '\0')
-  {
-    PRBool has_comma;
-
-    
-
-
-    tptr = n_str;
-    while (!is_space(*tptr) && *tptr != ',' && *tptr != '\0')
-    {
-      tptr++;
-    }
-    n_str = tptr;
-
-    
-
-
-    if (*n_str == '\0')
-    {
-      break;
-    }
-
-    
-
-
-
-    has_comma = PR_FALSE;
-    while (is_space(*tptr) || *tptr == ',')
-    {
-      if (*tptr == ',')
-      {
-        if (has_comma == PR_FALSE)
-        {
-          has_comma = PR_TRUE;
-        }
-        else
-        {
-          break;
-        }
-      }
-      tptr++;
-    }
-    
-
-
-    if ((*tptr == '\0')&&(has_comma == PR_FALSE))
-    {
-      break;
-    }
-    
-
-
-
-    else if (has_comma == PR_FALSE)
-    {
-      *n_str = ',';
-    }
-
-    
-
-
-    cnt++;
-
-    n_str = tptr;
-  }
-  
-
-
-  cnt++;
- 
-  
-
-
-  value_list = new nscoord[cnt];
-  if (!value_list)
-  {
-    return nsnull;
-  }
-
-  
-
-
-  tptr = str;
-  for (i=0; i<cnt; i++)
-  {
-    char *ptr;
-
-    ptr = strchr(tptr, ',');
-    if (ptr)
-    {
-      *ptr = '\0';
-    }
-    
-
-
-
-    while (is_space(*tptr))
-    {
-      tptr++;
-    }
-    if (*tptr == '\0')
-    {
-      value_list[i] = 0;
-    }
-    else
-    {
-      value_list[i] = (nscoord) ::atoi(tptr);
-    }
-    if (ptr)
-    {
-      *ptr = ',';
-      tptr = ptr + 1;
-    }
-  }
-
-  *value_cnt = cnt;
-  return value_list;
-}
-
 void Area::ParseCoords(const nsAString& aSpec)
 {
   char* cp = ToNewCString(aSpec);
   if (cp) {
-    mCoords = lo_parse_coord_list(cp, &mNumCoords);
+    char *tptr;
+    char *n_str;
+    PRInt32 i, cnt;
+    PRInt32 *value_list;
+
+    
+
+
+    mNumCoords = 0;
+    mCoords = nsnull;
+    if (*cp == '\0')
+    {
+      return;
+    }
+
+    
+
+
+    n_str = cp;
+    while (is_space(*n_str))
+    {
+      n_str++;
+    }
+    if (*n_str == '\0')
+    {
+      return;
+    }
+
+    
+
+
+
+    cnt = 0;
+    while (*n_str != '\0')
+    {
+      PRBool has_comma;
+
+      
+
+
+      tptr = n_str;
+      while (!is_space(*tptr) && *tptr != ',' && *tptr != '\0')
+      {
+        tptr++;
+      }
+      n_str = tptr;
+
+      
+
+
+      if (*n_str == '\0')
+      {
+        break;
+      }
+
+      
+
+
+
+      has_comma = PR_FALSE;
+      while (is_space(*tptr) || *tptr == ',')
+      {
+        if (*tptr == ',')
+        {
+          if (has_comma == PR_FALSE)
+          {
+            has_comma = PR_TRUE;
+          }
+          else
+          {
+            break;
+          }
+        }
+        tptr++;
+      }
+      
+
+
+      if ((*tptr == '\0')&&(has_comma == PR_FALSE))
+      {
+        break;
+      }
+      
+
+
+
+      else if (has_comma == PR_FALSE)
+      {
+        *n_str = ',';
+      }
+
+      
+
+
+      cnt++;
+
+      n_str = tptr;
+    }
+    
+
+
+    cnt++;
+ 
+    
+
+
+    value_list = new nscoord[cnt];
+    if (!value_list)
+    {
+      return;
+    }
+
+    
+
+
+    tptr = cp;
+    for (i=0; i<cnt; i++)
+    {
+      char *ptr;
+
+      ptr = strchr(tptr, ',');
+      if (ptr)
+      {
+        *ptr = '\0';
+      }
+      
+
+
+
+      while (is_space(*tptr))
+      {
+        tptr++;
+      }
+      if (*tptr == '\0')
+      {
+        value_list[i] = 0;
+      }
+      else
+      {
+        value_list[i] = (nscoord) ::atoi(tptr);
+      }
+      if (ptr)
+      {
+        *ptr = ',';
+        tptr = ptr + 1;
+      }
+    }
+
+    mNumCoords = cnt;
+    mCoords = value_list;
+  
     NS_Free(cp);
   }
 }
