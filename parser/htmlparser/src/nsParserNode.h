@@ -240,6 +240,9 @@ class nsCParserNode :  public nsIParserNode {
     virtual CToken* PopAttributeToken();
 
     
+    virtual CToken* PopAttributeTokenFront();
+
+    
 
 
 
@@ -314,6 +317,7 @@ public:
     virtual const    nsAString& GetKeyAt(PRUint32 anIndex) const;
     virtual const    nsAString& GetValueAt(PRUint32 anIndex) const;
     virtual CToken*  PopAttributeToken();
+    virtual CToken*  PopAttributeTokenFront();
     virtual void     GetSource(nsString& aString) const;
     virtual nsresult ReleaseAll();
 protected:

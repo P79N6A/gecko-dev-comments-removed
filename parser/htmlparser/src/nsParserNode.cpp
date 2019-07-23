@@ -264,6 +264,11 @@ nsCParserNode::PopAttributeToken() {
   return 0;
 }
 
+CToken* 
+nsCParserNode::PopAttributeTokenFront() {
+  return 0;
+}
+
 
 
 
@@ -351,6 +356,12 @@ CToken*
 nsCParserStartNode::PopAttributeToken() 
 {
   return static_cast<CToken*>(mAttributes.Pop());
+}
+
+CToken* 
+nsCParserStartNode::PopAttributeTokenFront() 
+{
+  return static_cast<CToken*>(mAttributes.PopFront());
 }
 
 void nsCParserStartNode::GetSource(nsString& aString) const
