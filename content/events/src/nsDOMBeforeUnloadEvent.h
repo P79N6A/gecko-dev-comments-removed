@@ -46,9 +46,8 @@ class nsDOMBeforeUnloadEvent : public nsIDOMBeforeUnloadEvent,
                                public nsDOMEvent
 {
 public:
-  nsDOMBeforeUnloadEvent(nsPresContext* aPresContext,
-                         nsBeforePageUnloadEvent* aEvent);
-  virtual ~nsDOMBeforeUnloadEvent();
+  nsDOMBeforeUnloadEvent(nsPresContext* aPresContext, nsEvent* aEvent)
+  : nsDOMEvent(aPresContext, aEvent) {}
 
   NS_DECL_ISUPPORTS_INHERITED
 
@@ -57,6 +56,8 @@ public:
 
   
   NS_DECL_NSIDOMBEFOREUNLOADEVENT
+protected:
+  nsString mText;
 };
 
-#endif
+#endif 
