@@ -215,7 +215,7 @@ protected:
                                      const nsRect& aBorderArea,
                                      const nsStyleBackground& aColor,
                                      const nsStyleBorder& aBorder,
-                                     PRInt16 aTheRadius[4],
+                                     nscoord aTheRadius[4],
                                      PRBool aCanPaintNonWhite);
 
   static nscolor MakeBevelColor(PRIntn whichSide, PRUint8 style,
@@ -230,100 +230,6 @@ protected:
                            const nsPoint aPoints[],
                            PRInt32 aNumPoints,
                            nsRect* aGap);
-
-};
-
-
-
-
-
-
-
-class QBCurve
-{
-
-public:
-	nsFloatPoint	mAnc1;
-	nsFloatPoint	mCon;
-	nsFloatPoint mAnc2;
-
-  QBCurve() {mAnc1.x=0;mAnc1.y=0;mCon=mAnc2=mAnc1;}
-  void SetControls(nsFloatPoint &aAnc1,nsFloatPoint &aCon,nsFloatPoint &aAnc2) { mAnc1 = aAnc1; mCon = aCon; mAnc2 = aAnc2;}
-  void SetPoints(float a1x,float a1y,float acx,float acy,float a2x,float a2y) {mAnc1.MoveTo(a1x,a1y),mCon.MoveTo(acx,acy),mAnc2.MoveTo(a2x,a2y);}
-
-
-
-
-
-
-
-
-
-  void SubDivide(nsIRenderingContext *aRenderingContext,nsPoint  aPointArray[],PRInt32 *aCurIndex);
-
-
-
-
-
-
-
-  void MidPointDivide(QBCurve *A,QBCurve *B);
-};
-
-
-
-
-
-
-
-class RoundedRect
-{
-
-public:
-  PRInt32 mRoundness[4];
-
-  PRBool  mDoRound;
-
-  PRInt32 mLeft;
-  PRInt32 mRight;
-  PRInt32 mTop;
-  PRInt32 mBottom;
-
-  
-
-
-
-  void  RoundRect() {mRoundness[0]=0;}
-
-  
-
-
-
-
-
-
-
-
-  void  Set(nscoord aLeft,nscoord aTop,PRInt32  aWidth,PRInt32 aHeight,PRInt16 aRadius[4],PRInt16 aNumTwipPerPix);
-
-
-  
-
-
-
-
-
-  void  CalcInsetCurves(QBCurve &aULCurve,QBCurve &aURCurve,QBCurve &aLLCurve,QBCurve &aLRCurve,nsMargin &aBorder);
-
-  
-
-
-
-
-
-
-
-  void GetRoundedBorders(QBCurve &aULCurve,QBCurve &aURCurve,QBCurve &aLLCurve,QBCurve &aLRCurve);
 
 };
 
