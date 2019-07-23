@@ -140,7 +140,29 @@ public:
 
 
 
-NS_IMPL_ISUPPORTS_INHERITED3(nsHtml5Parser, nsContentSink, nsIParser, nsIStreamListener, nsIContentSink)
+NS_IMPL_CYCLE_COLLECTION_CLASS(nsHtml5Parser)
+NS_INTERFACE_TABLE_HEAD_CYCLE_COLLECTION_INHERITED(nsHtml5Parser)                                              \
+  NS_INTERFACE_TABLE_INHERITED3(nsHtml5Parser, nsIParser, nsIStreamListener, nsIContentSink)
+NS_INTERFACE_TABLE_TAIL_INHERITING(nsContentSink)
+
+NS_IMPL_ADDREF_INHERITED(nsHtml5Parser, nsContentSink)
+NS_IMPL_RELEASE_INHERITED(nsHtml5Parser, nsContentSink)
+
+NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INHERITED(nsHtml5Parser, nsContentSink)
+  NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMPTR(mScriptElement)
+  NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMPTR(mRequest)
+  NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMPTR(mObserver)
+  NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMPTR(mUnicodeDecoder)
+  tmp->mTreeBuilder->DoTraverse(cb);
+NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
+
+NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN_INHERITED(nsHtml5Parser, nsContentSink)
+  NS_IMPL_CYCLE_COLLECTION_UNLINK_NSCOMPTR(mScriptElement)
+  NS_IMPL_CYCLE_COLLECTION_UNLINK_NSCOMPTR(mRequest)
+  NS_IMPL_CYCLE_COLLECTION_UNLINK_NSCOMPTR(mObserver)
+  NS_IMPL_CYCLE_COLLECTION_UNLINK_NSCOMPTR(mUnicodeDecoder)
+  tmp->mTreeBuilder->DoUnlink();
+NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 
 
 
@@ -604,12 +626,13 @@ nsHtml5Parser::Reset()
     mMetaScanner = nsnull;
         
     
-    nsHtml5UTF16Buffer*          mFirstBuffer; 
-    nsHtml5UTF16Buffer*          mLastBuffer; 
-                      
-    nsHtml5TreeBuilder*          mTreeBuilder; 
-    nsHtml5Tokenizer*            mTokenizer; 
-
+    while (mFirstBuffer->next) {
+      nsHtml5UTF16Buffer* oldBuf = mFirstBuffer;
+      mFirstBuffer = mFirstBuffer->next;
+      delete oldBuf;
+    }
+    mFirstBuffer->setStart(0);
+    mFirstBuffer->setEnd(0);
 }
     
 
