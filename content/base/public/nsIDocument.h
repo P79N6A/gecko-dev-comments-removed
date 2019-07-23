@@ -104,10 +104,16 @@ struct JSObject;
 class nsFrameLoader;
 class nsIBoxObject;
 
+namespace mozilla {
+namespace dom {
+class Link;
+} 
+} 
+
 
 #define NS_IDOCUMENT_IID      \
-  { 0x7d1ff787, 0x8c35, 0x45f3, \
-    { 0xa6, 0x7c, 0x8d, 0x7f, 0x36, 0xbd, 0x4e, 0x68 } }
+  { 0xd7978655, 0x9b7d, 0x41e6, \
+    { 0xad, 0x48, 0xdf, 0x32, 0x0b, 0x06, 0xb4, 0xda } }
 
 
 #define NS_STYLESHEET_FROM_CATALOG                (1 << 0)
@@ -909,15 +915,14 @@ public:
   
 
 
-
-  virtual void AddStyleRelevantLink(nsIContent* aContent, nsIURI* aURI) = 0;
+  virtual void AddStyleRelevantLink(mozilla::dom::Link* aLink) = 0;
   
 
 
 
 
 
-  virtual void ForgetLink(nsIContent* aContent) = 0;
+  virtual void ForgetLink(mozilla::dom::Link* aLink) = 0;
 
   
 

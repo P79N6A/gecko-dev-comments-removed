@@ -2646,10 +2646,6 @@ nsGenericElement::UnbindFromTree(PRBool aDeep, PRBool aNullParent)
     
     document->BindingManager()->ChangeDocumentFor(this, document, nsnull);
 
-    if (HasAttr(kNameSpaceID_XLink, nsGkAtoms::href)) {
-      document->ForgetLink(this);
-    }
-
     document->ClearBoxObjectFor(this);
   }
 
@@ -4305,20 +4301,6 @@ nsGenericElement::SetAttr(PRInt32 aNamespaceID, nsIAtom* aName,
   NS_ASSERTION(aNamespaceID != kNameSpaceID_Unknown,
                "Don't call SetAttr with unknown namespace");
 
-  nsIDocument* doc = GetCurrentDoc();
-  if (kNameSpaceID_XLink == aNamespaceID && nsGkAtoms::href == aName) {
-    
-    
-    
-    
-    
-    
-    
-    if (doc) {
-      doc->ForgetLink(this);
-    }
-  }
-
   nsAutoString oldValue;
   PRBool modification = PR_FALSE;
   PRBool hasListeners = aNotify &&
@@ -4630,12 +4612,6 @@ nsGenericElement::UnsetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
   if (aNotify) {
     nsNodeUtils::AttributeWillChange(this, aNameSpaceID, aName,
                                      nsIDOMMutationEvent::REMOVAL);
-  }
-
-  if (document && kNameSpaceID_XLink == aNameSpaceID &&
-      nsGkAtoms::href == aName) {
-    
-    document->ForgetLink(this);
   }
 
   

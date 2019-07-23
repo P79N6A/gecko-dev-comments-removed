@@ -87,12 +87,16 @@ public:
   nsresult GetPort(nsAString &_port);
   nsresult GetHash(nsAString &_hash);
 
-protected:
   
 
 
-  virtual void ResetLinkState();
 
+
+
+
+  virtual void ResetLinkState(bool aNotify);
+
+protected:
   virtual ~Link();
 
 private:

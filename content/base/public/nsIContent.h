@@ -72,8 +72,8 @@ enum nsLinkState {
 
 
 #define NS_ICONTENT_IID       \
-{ 0xe88a767e, 0x1ca1, 0x4855, \
- { 0xa7, 0xa4, 0x37, 0x9f, 0x07, 0x89, 0x45, 0xef } }
+{ 0xc19d6f16, 0xab13, 0x4dde, \
+ { 0x99, 0x7a, 0x51, 0x04, 0xc3, 0x64, 0xd2, 0x51 } }
 
 
 
@@ -653,17 +653,6 @@ public:
 
   virtual PRBool IsLink(nsIURI** aURI) const = 0;
 
-   
-
-
-
-
-
-
-  virtual void DropCachedHref()
-  {
-  }
-
   
 
 
@@ -673,17 +662,6 @@ public:
   virtual nsLinkState GetLinkState() const
   {
     return eLinkState_NotLink;
-  }
-
-  
-
-
-
-
-  virtual void SetLinkState(nsLinkState aState)
-  {
-    NS_ASSERTION(aState == eLinkState_NotLink,
-                 "Need to override SetLinkState?");
   }
 
   

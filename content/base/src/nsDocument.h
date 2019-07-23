@@ -146,83 +146,6 @@ class nsSMILAnimationController;
 
 
 
-class nsUint32ToContentHashEntry : public PLDHashEntryHdr
-{
-  public:
-    typedef const PRUint32& KeyType;
-    typedef const PRUint32* KeyTypePointer;
-
-    nsUint32ToContentHashEntry(const KeyTypePointer key) :
-      mValue(*key), mValOrHash(nsnull) { }
-    nsUint32ToContentHashEntry(const nsUint32ToContentHashEntry& toCopy) :
-      mValue(toCopy.mValue), mValOrHash(toCopy.mValOrHash)
-    {
-      
-      
-      
-      const_cast<nsUint32ToContentHashEntry&>(toCopy).mValOrHash = nsnull;
-      NS_ERROR("Copying not supported. Fasten your seat belt.");
-    }
-    ~nsUint32ToContentHashEntry() { Destroy(); }
-
-    KeyType GetKey() const { return mValue; }
-
-    PRBool KeyEquals(KeyTypePointer aKey) const { return mValue == *aKey; }
-
-    static KeyTypePointer KeyToPointer(KeyType aKey) { return &aKey; }
-    static PLDHashNumber HashKey(KeyTypePointer aKey) { return *aKey; }
-    enum { ALLOW_MEMMOVE = PR_TRUE };
-
-    
-    nsresult PutContent(nsIContent* aContent);
-
-    void RemoveContent(nsIContent* aContent);
-
-    struct Visitor {
-      virtual void Visit(nsIContent* aContent) = 0;
-    };
-    void VisitContent(Visitor* aVisitor);
-
-    PRBool IsEmpty() { return mValOrHash == nsnull; }
-
-  private:
-    typedef PRUptrdiff PtrBits;
-    typedef nsTHashtable<nsISupportsHashKey> HashSet;
-    
-    HashSet* GetHashSet()
-    {
-      return (PtrBits(mValOrHash) & 0x1) ? nsnull : (HashSet*)mValOrHash;
-    }
-    
-    nsIContent* GetContent()
-    {
-      return (PtrBits(mValOrHash) & 0x1)
-             ? (nsIContent*)(PtrBits(mValOrHash) & ~0x1)
-             : nsnull;
-    }
-    
-    nsresult SetContent(nsIContent* aVal)
-    {
-      NS_IF_ADDREF(aVal);
-      mValOrHash = (void*)(PtrBits(aVal) | 0x1);
-      return NS_OK;
-    }
-    
-    nsresult InitHashSet(HashSet** aSet);
-
-    void Destroy();
-
-  private:
-    const PRUint32 mValue;
-    
-    void* mValOrHash;
-};
-
-
-
-
-
-
 
 
 
@@ -943,8 +866,8 @@ public:
   virtual NS_HIDDEN_(void) BlockOnload();
   virtual NS_HIDDEN_(void) UnblockOnload(PRBool aFireSync);
 
-  virtual NS_HIDDEN_(void) AddStyleRelevantLink(nsIContent* aContent, nsIURI* aURI);
-  virtual NS_HIDDEN_(void) ForgetLink(nsIContent* aContent);
+  virtual NS_HIDDEN_(void) AddStyleRelevantLink(mozilla::dom::Link* aLink);
+  virtual NS_HIDDEN_(void) ForgetLink(mozilla::dom::Link* aLink);
 
   NS_HIDDEN_(void) ClearBoxObjectFor(nsIContent* aContent);
   NS_IMETHOD GetBoxObjectFor(nsIDOMElement* aElement, nsIBoxObject** aResult);
@@ -1243,7 +1166,13 @@ private:
   ReadyState mReadyState;
 
   
-  nsTHashtable<nsUint32ToContentHashEntry> mLinkMap;
+  nsTHashtable<nsPtrHashKey<mozilla::dom::Link> > mStyledLinks;
+#ifdef DEBUG
+  
+  
+  
+  bool mStyledLinksCleared;
+#endif
 
   
   nsString mLastStyleSheetSet;
