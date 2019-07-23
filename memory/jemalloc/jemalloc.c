@@ -449,7 +449,7 @@ static const bool __isthreaded = true;
 #define	CHUNK_2POW_DEFAULT	20
 
 
-#define	DIRTY_MAX_DEFAULT	(1U << 9)
+#define	DIRTY_MAX_DEFAULT	(1U << 10)
 
 
 
@@ -725,6 +725,9 @@ struct arena_chunk_s {
 	rb_node(arena_chunk_t) link_all;
 
 	
+	rb_node(arena_chunk_t) link_dirty;
+
+	
 
 
 
@@ -829,6 +832,18 @@ struct arena_s {
 
 	
 	arena_chunk_tree_t	chunks_all;
+
+	
+
+
+
+
+
+
+
+
+
+	arena_chunk_tree_t	chunks_dirty;
 
 	
 
@@ -1035,13 +1050,13 @@ static chunk_stats_t	stats_chunks;
 
 const char	*_malloc_options
 #ifdef MOZ_MEMORY_WINDOWS
-= "A10n2F"
+= "A10n"
 #elif (defined(MOZ_MEMORY_DARWIN))
 = "AP10n"
 #elif (defined(MOZ_MEMORY_LINUX))
-= "A10n2F"
+= "A10n"
 #elif (defined(MOZ_MEMORY_SOLARIS))
-= "A10n2F"
+= "A10n"
 #endif
 ;
 
@@ -2683,6 +2698,8 @@ arena_chunk_comp(arena_chunk_t *a, arena_chunk_t *b)
 
 rb_wrap(static, arena_chunk_tree_all_, arena_chunk_tree_t,
     arena_chunk_t, link_all, arena_chunk_comp)
+rb_wrap(static, arena_chunk_tree_dirty_, arena_chunk_tree_t,
+    arena_chunk_t, link_dirty, arena_chunk_comp)
 
 static inline int
 arena_run_comp(arena_run_t *a, arena_run_t *b)
@@ -2896,11 +2913,12 @@ arena_run_split(arena_t *arena, arena_run_t *run, size_t size, bool small,
     bool zero)
 {
 	arena_chunk_t *chunk;
-	size_t run_ind, total_pages, need_pages, rem_pages, i;
+	size_t old_ndirty, run_ind, total_pages, need_pages, rem_pages, i;
 	extent_node_t *nodeA, *nodeB, key;
 
 	
 	chunk = (arena_chunk_t *)CHUNK_ADDR2BASE(run);
+	old_ndirty = chunk->ndirty;
 	nodeA = arena_chunk_node_alloc(chunk);
 	nodeA->addr = run;
 	nodeA->size = size;
@@ -2995,6 +3013,8 @@ arena_run_split(arena_t *arena, arena_run_t *run, size_t size, bool small,
 	}
 
 	chunk->pages_used += need_pages;
+	if (chunk->ndirty == 0 && old_ndirty > 0)
+		arena_chunk_tree_dirty_remove(&arena->chunks_dirty, chunk);
 }
 
 static arena_chunk_t *
@@ -3083,7 +3103,11 @@ arena_chunk_dealloc(arena_t *arena, arena_chunk_t *chunk)
 	if (arena->spare != NULL) {
 		arena_chunk_tree_all_remove(&chunk->arena->chunks_all,
 		    arena->spare);
-		arena->ndirty -= arena->spare->ndirty;
+		if (arena->spare->ndirty > 0) {
+			arena_chunk_tree_dirty_remove(
+			    &chunk->arena->chunks_dirty, arena->spare);
+			arena->ndirty -= arena->spare->ndirty;
+		}
 		VALGRIND_FREELIKE_BLOCK(arena->spare, 0);
 		chunk_dealloc((void *)arena->spare, chunksize);
 #ifdef MALLOC_STATS
@@ -3146,6 +3170,7 @@ static void
 arena_purge(arena_t *arena)
 {
 	arena_chunk_t *chunk;
+	size_t i, npages;
 #ifdef MALLOC_DEBUG
 	size_t ndirty;
 
@@ -3153,6 +3178,13 @@ arena_purge(arena_t *arena)
 	rb_foreach_begin(arena_chunk_t, link_all, &arena->chunks_all, chunk) {
 		ndirty += chunk->ndirty;
 	} rb_foreach_end(arena_chunk_t, link_all, &arena->chunks_all, chunk)
+	assert(ndirty == arena->ndirty);
+
+	ndirty = 0;
+	rb_foreach_begin(arena_chunk_t, link_dirty, &arena->chunks_dirty,
+	    chunk) {
+		ndirty += chunk->ndirty;
+	} rb_foreach_end(arena_chunk_t, link_dirty, &arena->chunks_dirty, chunk)
 	assert(ndirty == arena->ndirty);
 #endif
 	assert(arena->ndirty > opt_dirty_max);
@@ -3165,60 +3197,62 @@ arena_purge(arena_t *arena)
 
 
 
-	rb_foreach_reverse_begin(arena_chunk_t, link_all, &arena->chunks_all,
-	    chunk) {
-		if (chunk->ndirty > 0) {
-			size_t i;
 
-			for (i = chunk_npages - 1; i >=
-			    arena_chunk_header_npages; i--) {
-				if (chunk->map[i] & CHUNK_MAP_DIRTY) {
-					size_t npages;
 
-					chunk->map[i] = (CHUNK_MAP_LARGE |
+	while (arena->ndirty > (opt_dirty_max >> 1)) {
+		chunk = arena_chunk_tree_dirty_last(&arena->chunks_dirty);
+		assert(chunk != NULL);
+
+		for (i = chunk_npages - 1; chunk->ndirty > 0; i--) {
+			assert(i >= arena_chunk_header_npages);
+
+			if (chunk->map[i] & CHUNK_MAP_DIRTY) {
+				chunk->map[i] = (CHUNK_MAP_LARGE |
 #ifdef MALLOC_DECOMMIT
-					    CHUNK_MAP_DECOMMITTED |
+				    CHUNK_MAP_DECOMMITTED |
 #endif
-					    CHUNK_MAP_POS_MASK);
-					chunk->ndirty--;
-					arena->ndirty--;
-					
-					for (npages = 1; i >
-					    arena_chunk_header_npages &&
-					    (chunk->map[i - 1] &
-					    CHUNK_MAP_DIRTY); npages++) {
-						i--;
-						chunk->map[i] = (CHUNK_MAP_LARGE
+				    CHUNK_MAP_POS_MASK);
+				
+				for (npages = 1; i > arena_chunk_header_npages
+				    && (chunk->map[i - 1] & CHUNK_MAP_DIRTY);
+				    npages++) {
+					i--;
+					chunk->map[i] = (CHUNK_MAP_LARGE
 #ifdef MALLOC_DECOMMIT
-						    | CHUNK_MAP_DECOMMITTED
+					    | CHUNK_MAP_DECOMMITTED
 #endif
-						    | CHUNK_MAP_POS_MASK);
-						chunk->ndirty--;
-						arena->ndirty--;
-					}
+					    | CHUNK_MAP_POS_MASK);
+				}
+				chunk->ndirty -= npages;
+				arena->ndirty -= npages;
 
 #ifdef MALLOC_DECOMMIT
-					pages_decommit((void *)((uintptr_t)
-					    chunk + (i << pagesize_2pow)),
-					    (npages << pagesize_2pow));
+				pages_decommit((void *)((uintptr_t)
+				    chunk + (i << pagesize_2pow)),
+				    (npages << pagesize_2pow));
 #  ifdef MALLOC_STATS
-					arena->stats.ndecommit++;
-					arena->stats.decommitted += npages;
+				arena->stats.ndecommit++;
+				arena->stats.decommitted += npages;
 #  endif
 #else
-					madvise((void *)((uintptr_t)chunk + (i
-					    << pagesize_2pow)), pagesize *
-					    npages, MADV_FREE);
+				madvise((void *)((uintptr_t)chunk + (i <<
+				    pagesize_2pow)), pagesize * npages,
+				    MADV_FREE);
 #endif
 #ifdef MALLOC_STATS
-					arena->stats.nmadvise++;
-					arena->stats.purged += npages;
+				arena->stats.nmadvise++;
+				arena->stats.purged += npages;
 #endif
-				}
+				if (arena->ndirty <= (opt_dirty_max >> 1))
+					break;
 			}
 		}
-	} rb_foreach_reverse_end(arena_chunk_t, link_all, &arena->chunks_all,
-	    chunk)
+
+		if (chunk->ndirty == 0) {
+			arena_chunk_tree_dirty_remove(&arena->chunks_dirty,
+			    chunk);
+		}
+	}
 }
 
 static void
@@ -3252,9 +3286,14 @@ arena_run_dalloc(arena_t *arena, arena_run_t *run, bool dirty)
 			assert((chunk->map[run_ind + i] & CHUNK_MAP_DIRTY) ==
 			    0);
 			chunk->map[run_ind + i] |= CHUNK_MAP_DIRTY;
-			chunk->ndirty++;
-			arena->ndirty++;
 		}
+
+		if (chunk->ndirty == 0) {
+			arena_chunk_tree_dirty_insert(&arena->chunks_dirty,
+			    chunk);
+		}
+		chunk->ndirty += run_pages;
+		arena->ndirty += run_pages;
 	}
 #ifdef MALLOC_DEBUG
 	
@@ -4462,6 +4501,7 @@ arena_new(arena_t *arena)
 
 	
 	arena_chunk_tree_all_new(&arena->chunks_all);
+	arena_chunk_tree_dirty_new(&arena->chunks_dirty);
 	arena->spare = NULL;
 
 	arena->ndirty = 0;
