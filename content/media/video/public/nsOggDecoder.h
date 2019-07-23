@@ -512,10 +512,6 @@ private:
   
   
   PlayState mNextState;	
-
-  
-  
-  PRPackedBool mResourceLoaded;
 };
 
 #endif
