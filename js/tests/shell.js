@@ -693,48 +693,30 @@ if (typeof options == 'function')
 
 function getTestCaseResult(expected, actual)
 {
-  var expected_t = typeof expected;
-  var actual_t = typeof actual;
-  var passed = true;
- 
-  
-  
-  if ( actual != actual ) 
-  {
-    if ( actual_t == "object" ) 
-    {
-      actual = "NaN object";
-    } 
-    else 
-    {
-      actual = "NaN number";
-    }
-  }
-  if ( expected != expected ) 
-  {
-    if ( expected_t == "object" ) 
-    {
-      expected = "NaN object";
-    } 
-    else 
-    {
-      expected = "NaN number";
-    }
-  }
+  if (typeof expected != typeof actual)
+    return false;
+  if (typeof expected != 'number')
+    
+    return actual == expected;
 
-  if (expected_t != actual_t)
-  {
-    passed = false;
-  }
-  else if (expected != actual)
-  {
-    if (expected_t != 'number' || (Math.abs(actual - expected) > 1E-10))
-    {
-      passed = false;
-    }
-  }
- 
-  return passed;
+  
+  
+  if (actual != actual)
+    return expected != expected;
+  if (expected != expected)
+    return false;
+
+  
+  if (actual != expected)
+    return Math.abs(actual - expected) <= 1E-10;
+
+  
+  
+  
+  
+  
+  
+  return true;
 }
 
 if (typeof dump == 'undefined')
