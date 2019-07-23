@@ -40,7 +40,7 @@
 #ifndef nsBindingManager_h_
 #define nsBindingManager_h_
 
-#include "nsIMutationObserver.h"
+#include "nsStubMutationObserver.h"
 #include "pldhash.h"
 #include "nsInterfaceHashtable.h"
 #include "nsRefPtrHashtable.h"
@@ -64,11 +64,14 @@ typedef nsTArray<nsRefPtr<nsXBLBinding> > nsBindingList;
 template<class T> class nsRunnableMethod;
 class nsIPrincipal;
 
-class nsBindingManager : public nsIMutationObserver
+class nsBindingManager : public nsStubMutationObserver
 {
 public:
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
-  NS_DECL_NSIMUTATIONOBSERVER
+
+  NS_DECL_NSIMUTATIONOBSERVER_CONTENTAPPENDED
+  NS_DECL_NSIMUTATIONOBSERVER_CONTENTINSERTED
+  NS_DECL_NSIMUTATIONOBSERVER_CONTENTREMOVED
 
   nsBindingManager(nsIDocument* aDocument);
   ~nsBindingManager();
@@ -181,22 +184,6 @@ public:
   PRBool ShouldBuildChildFrames(nsIContent* aContent);
 
   
-
-
-
-
-
-
-
-  void AddObserver(nsIMutationObserver* aObserver);
-
-  
-
-
-
-  PRBool RemoveObserver(nsIMutationObserver* aObserver);  
-
-  
   nsresult WalkRules(nsStyleSet* aStyleSet, 
                      nsIStyleRuleProcessor::EnumFunc aFunc,
                      RuleProcessorData* aData,
@@ -211,6 +198,9 @@ public:
   
   void BeginOutermostUpdate();
   void EndOutermostUpdate();
+
+  
+  void DropDocumentReference();
 
 protected:
   nsIXPConnectWrappedJS* GetWrappedJS(nsIContent* aContent);
@@ -233,10 +223,6 @@ protected:
   
   void HandleChildInsertion(nsIContent* aContainer, nsIContent* aChild,
                             PRUint32 aIndexInContainer, PRBool aAppend);
-
-#define NS_BINDINGMANAGER_NOTIFY_OBSERVERS(func_, params_) \
-  NS_OBSERVER_ARRAY_NOTIFY_OBSERVERS(mObservers, nsIMutationObserver, \
-                                     func_, params_);
 
   
   
@@ -290,11 +276,6 @@ protected:
   
   
   nsInterfaceHashtable<nsURIHashKey,nsIStreamListener> mLoadingDocTable;
-
-  
-  
-  
-  nsTObserverArray<nsIMutationObserver> mObservers;
 
   
   nsBindingList mAttachedStack;

@@ -456,9 +456,6 @@ public:
 
   virtual nsScriptLoader* ScriptLoader();
 
-  virtual void AddMutationObserver(nsIMutationObserver* aObserver);
-  virtual void RemoveMutationObserver(nsIMutationObserver* aMutationObserver);
-
   
 
 
