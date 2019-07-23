@@ -75,6 +75,7 @@
 #include "nsIPrincipal.h"
 #include "nsComponentManagerUtils.h"
 #include "nsCSSPseudoClasses.h"
+#include "nsCSSAnonBoxes.h"
 #include "nsTArray.h"
 
 #include "nsContentUtils.h"
@@ -693,9 +694,27 @@ nsCSSSelector::AppendToStringWithoutCombinatorsOrNegations
   }
 
   
-  if (mPseudoClassList) {
-    nsPseudoClassList* list = mPseudoClassList;
-    while (list != nsnull) {
+  if (isPseudoElement) {
+#ifdef MOZ_XUL
+    if (mPseudoClassList) {
+      NS_ABORT_IF_FALSE(nsCSSAnonBoxes::IsTreePseudoElement(mLowercaseTag),
+                        "must be tree pseudo-element");
+      aString.Append(PRUnichar('('));
+      for (nsPseudoClassList* list = mPseudoClassList; list;
+           list = list->mNext) {
+        list->mAtom->ToString(temp);
+        aString.Append(temp);
+        NS_ABORT_IF_FALSE(!list->u.mMemory, "data not expected");
+        aString.Append(PRUnichar(','));
+      }
+      
+      aString.Replace(aString.Length() - 1, 1, PRUnichar(')'));
+    }
+#else
+    NS_ABORT_IF_FALSE(!mPseudoClassList, "unexpected pseudo-class list");
+#endif
+  } else {
+    for (nsPseudoClassList* list = mPseudoClassList; list; list = list->mNext) {
       list->mAtom->ToString(temp);
       aString.Append(temp);
       if (list->u.mMemory) {
@@ -725,7 +744,6 @@ nsCSSSelector::AppendToStringWithoutCombinatorsOrNegations
         }
         aString.Append(PRUnichar(')'));
       }
-      list = list->mNext;
     }
   }
 }
