@@ -42,7 +42,6 @@
 #include "nsITreeView.h"
 #include "nsITreeColumns.h"
 #include "nsXULSelectAccessible.h"
-#include "nsIAccessibleTreeCache.h"
 
 
 
@@ -50,16 +49,29 @@
 const PRUint32 kMaxTreeColumns = 100;
 const PRUint32 kDefaultTreeCacheSize = 256;
 
-class nsXULTreeAccessible : public nsXULSelectableAccessible,
-                            public nsIAccessibleTreeCache
+
+
+
+
+#define NS_XULTREEACCESSIBLE_IMPL_CID                   \
+{  /* 2692e149-6176-42ee-b8e1-2c44b04185e3 */           \
+  0x2692e149,                                           \
+  0x6176,                                               \
+  0x42ee,                                               \
+  { 0xb8, 0xe1, 0x2c, 0x44, 0xb0, 0x41, 0x85, 0xe3 }    \
+}
+
+class nsXULTreeAccessible : public nsXULSelectableAccessible
 {
 public:
-  NS_DECL_ISUPPORTS_INHERITED
-  NS_DECL_NSIACCESSIBLESELECTABLE
-  NS_DECL_NSIACCESSIBLETREECACHE
-
   nsXULTreeAccessible(nsIDOMNode* aDOMNode, nsIWeakReference* aShell);
   virtual ~nsXULTreeAccessible() {}
+
+  
+  NS_DECL_ISUPPORTS_INHERITED
+
+  
+  NS_DECL_NSIACCESSIBLESELECTABLE
 
   
   NS_IMETHOD GetValue(nsAString& _retval);
@@ -70,6 +82,7 @@ public:
   NS_IMETHOD GetFocusedChild(nsIAccessible **aFocusedChild);
 
   
+  virtual PRBool IsDefunct();
   virtual nsresult Shutdown();
 
   
@@ -80,6 +93,48 @@ public:
                                    nsIAccessible **aChild);
 
   
+
+  NS_DECLARE_STATIC_IID_ACCESSOR(NS_XULTREEACCESSIBLE_IMPL_CID)
+
+  
+
+
+
+
+
+
+
+
+  void GetCachedTreeitemAccessible(PRInt32 aRow, nsITreeColumn *aColumn,
+                                   nsIAccessible **aAccessible);
+
+  
+
+
+
+
+
+
+
+  void InvalidateCache(PRInt32 aRow, PRInt32 aCount);
+
+  
+
+
+
+
+
+
+
+
+  void TreeViewInvalidated(PRInt32 aStartRow, PRInt32 aEndRow,
+                           PRInt32 aStartCol, PRInt32 aEndCol);
+
+  
+
+
+  void TreeViewChanged();
+
   static void GetTreeBoxObject(nsIDOMNode* aDOMNode, nsITreeBoxObject** aBoxObject);
   static nsresult GetColumnCount(nsITreeBoxObject* aBoxObject, PRInt32 *aCount);
 
@@ -96,26 +151,36 @@ protected:
   NS_IMETHOD ChangeSelection(PRInt32 aIndex, PRUint8 aMethod, PRBool *aSelState);
 };
 
+NS_DEFINE_STATIC_IID_ACCESSOR(nsXULTreeAccessible,
+                              NS_XULTREEACCESSIBLE_IMPL_CID)
 
 
 
-class nsXULTreeitemAccessible : public nsLeafAccessible,
-                                public nsPIAccessibleTreeItem
+
+
+#define NS_XULTREEITEMACCESSIBLE_IMPL_CID             \
+{  /* 7b1aa039-7270-4523-aeb3-61063a13ac3f */         \
+  0x7b1aa039,                                         \
+  0x7270,                                             \
+  0x4523,                                             \
+  { 0xae, 0xb3, 0x61, 0x06, 0x3a, 0x13, 0xac, 0x3f }  \
+}
+
+class nsXULTreeitemAccessible : public nsLeafAccessible
 {
 public:
   enum { eAction_Click = 0, eAction_Expand = 1 };
-
-  NS_DECL_ISUPPORTS_INHERITED
-  NS_DECL_NSPIACCESSIBLETREEITEM
 
   nsXULTreeitemAccessible(nsIAccessible *aParent, nsIDOMNode *aDOMNode, nsIWeakReference *aShell, PRInt32 aRow, nsITreeColumn* aColumn = nsnull);
   virtual ~nsXULTreeitemAccessible() {}
 
   
+  NS_DECL_ISUPPORTS_INHERITED
+
+  
   NS_IMETHOD GetName(nsAString& aName);
   NS_IMETHOD GetNumActions(PRUint8 *_retval);
   NS_IMETHOD GetActionName(PRUint8 aIndex, nsAString& aName);
-  virtual nsresult GetAttributesInternal(nsIPersistentProperties *aAttributes);
 
   NS_IMETHOD GetParent(nsIAccessible **_retval);
   NS_IMETHOD GetNextSibling(nsIAccessible **_retval);
@@ -138,8 +203,18 @@ public:
   virtual nsresult Shutdown();
 
   
+  virtual nsresult GetAttributesInternal(nsIPersistentProperties *aAttributes);
   virtual nsresult GetRoleInternal(PRUint32 *aRole);
   virtual nsresult GetStateInternal(PRUint32 *aState, PRUint32 *aExtraState);
+
+  
+  NS_DECLARE_STATIC_IID_ACCESSOR(NS_XULTREEITEMACCESSIBLE_IMPL_CID)
+
+  
+
+
+  void GetCachedName(nsAString& aName);
+  void SetCachedName(const nsAString& aName);
 
 protected:
   PRBool IsExpandable();
@@ -149,6 +224,12 @@ protected:
   nsCOMPtr<nsITreeColumn> mColumn;
   nsString mCachedName;
 };
+
+NS_DEFINE_STATIC_IID_ACCESSOR(nsXULTreeitemAccessible,
+                              NS_XULTREEITEMACCESSIBLE_IMPL_CID)
+
+
+
 
 class nsXULTreeColumnsAccessible : public nsXULColumnsAccessible
 {
