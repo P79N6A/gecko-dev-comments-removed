@@ -174,7 +174,7 @@
 
 
 
-
+#define MALLOC_PAGEFILE
 #endif
 
 #ifdef MALLOC_PAGEFILE
