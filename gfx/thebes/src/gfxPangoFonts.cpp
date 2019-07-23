@@ -529,6 +529,7 @@ public:
     }
 
     cairo_scaled_font_t *CairoScaledFont() { return mCairoFont; }
+    PRUint32 GetGlyph(PRUint32 aCharCode);
     void GetGlyphExtents(PRUint32 aGlyph, cairo_text_extents_t* aExtents);
 
 protected:
@@ -572,11 +573,18 @@ public:
 
 
 
-    PRUint32 GetCharExtents(char aChar, cairo_text_extents_t* aExtents);
+    PRUint32 GetGlyph(PRUint32 aCharCode);
 
     void GetMetrics(gfxFont::Metrics* aMetrics, PRUint32* aSpaceGlyph);
 
 private:
+    
+
+
+
+
+    PRUint32 GetCharExtents(char aChar, cairo_text_extents_t* aExtents);
+
     nsRefPtr<gfxFcFont> mGfxFont;
     FT_Face mFace;
 };
@@ -881,6 +889,14 @@ gfx_pango_fc_font_unlock_face(PangoFcFont *font)
     cairo_ft_scaled_font_unlock_face(gfxPangoFcFont::CairoFont(self));
 }
 
+static guint
+gfx_pango_fc_font_get_glyph(PangoFcFont *font, gunichar wc)
+{
+    gfxPangoFcFont *self = GFX_PANGO_FC_FONT(font);
+    gfxFcFont *gfxFont = gfxPangoFcFont::GfxFont(self);
+    return gfxFont->GetGlyph(wc);
+}
+
 static void
 gfx_pango_fc_font_class_init (gfxPangoFcFontClass *klass)
 {
@@ -903,6 +919,7 @@ gfx_pango_fc_font_class_init (gfxPangoFcFontClass *klass)
     
     fc_font_class->lock_face = gfx_pango_fc_font_lock_face;
     fc_font_class->unlock_face = gfx_pango_fc_font_unlock_face;
+    fc_font_class->get_glyph = gfx_pango_fc_font_get_glyph;
 }
 
 
@@ -2357,6 +2374,68 @@ gfxPangoFontGroup::GetBaseFontSet()
     return fontSet;
 }
 
+PRUint32
+gfxFcFont::GetGlyph(PRUint32 aCharCode)
+{
+    
+    
+    
+
+    cairo_font_face_t *face =
+        cairo_scaled_font_get_font_face(CairoScaledFont());
+
+    if (cairo_font_face_status(face) != CAIRO_STATUS_SUCCESS)
+        return 0;
+
+    
+    
+    
+    
+    
+
+    struct CmapCacheSlot {
+        PRUint32 mCharCode;
+        PRUint32 mGlyphIndex;
+    };
+    const PRUint32 kNumSlots = 256;
+    static cairo_user_data_key_t sCmapCacheKey;
+
+    CmapCacheSlot *slots = static_cast<CmapCacheSlot*>
+        (cairo_font_face_get_user_data(face, &sCmapCacheKey));
+
+    if (!slots) {
+        
+        
+        
+        
+        slots = static_cast<CmapCacheSlot*>
+            (calloc(kNumSlots, sizeof(CmapCacheSlot)));
+        if (!slots)
+            return 0;
+
+        cairo_status_t status =
+            cairo_font_face_set_user_data(face, &sCmapCacheKey, slots, free);
+        if (status != CAIRO_STATUS_SUCCESS) { 
+            free(slots);
+            return 0;
+        }
+
+        
+        
+        
+        
+        slots[0].mCharCode = 1;
+    }
+
+    CmapCacheSlot *slot = &slots[aCharCode % kNumSlots];
+    if (slot->mCharCode != aCharCode) {
+        slot->mCharCode = aCharCode;
+        slot->mGlyphIndex = LockedFTFace(this).GetGlyph(aCharCode);
+    }
+
+    return slot->mGlyphIndex;
+}
+
 void
 gfxFcFont::GetGlyphExtents(PRUint32 aGlyph, cairo_text_extents_t* aExtents)
 {
@@ -2375,12 +2454,9 @@ gfxFcFont::GetGlyphExtents(PRUint32 aGlyph, cairo_text_extents_t* aExtents)
 }
 
 PRUint32
-LockedFTFace::GetCharExtents(char aChar,
-                             cairo_text_extents_t* aExtents)
+LockedFTFace::GetGlyph(PRUint32 aCharCode)
 {
-    NS_PRECONDITION(aExtents != NULL, "aExtents must not be NULL");
-
-    if (!mFace)
+    if (NS_UNLIKELY(!mFace))
         return 0;
 
     
@@ -2390,9 +2466,23 @@ LockedFTFace::GetCharExtents(char aChar,
     
     
     
-    
-    
-    FT_UInt gid = FcFreeTypeCharIndex(mFace, aChar); 
+    if (!mFace->charmap || mFace->charmap->encoding != FT_ENCODING_UNICODE) {
+        FT_Select_Charmap(mFace, FT_ENCODING_UNICODE);
+    }
+
+    return FcFreeTypeCharIndex(mFace, aCharCode);
+}
+
+PRUint32
+LockedFTFace::GetCharExtents(char aChar,
+                             cairo_text_extents_t* aExtents)
+{
+    NS_PRECONDITION(aExtents != NULL, "aExtents must not be NULL");
+
+    if (!mFace)
+        return 0;
+
+    FT_UInt gid = mGfxFont->GetGlyph(aChar);
     if (gid) {
         mGfxFont->GetGlyphExtents(gid, aExtents);
     }
@@ -3329,7 +3419,6 @@ gfxPangoFontGroup::CreateGlyphRunsFast(gfxTextRun *aTextRun,
 {
     const gchar *p = aUTF8;
     PangoFont *pangofont = GetBasePangoFont();
-    PangoFcFont *fcfont = PANGO_FC_FONT (pangofont);
     gfxFcFont *gfxFont = gfxPangoFcFont::GfxFont(GFX_PANGO_FC_FONT(pangofont));
     PRUint32 utf16Offset = 0;
     gfxTextRun::CompressedGlyph g;
@@ -3351,7 +3440,7 @@ gfxPangoFontGroup::CreateGlyphRunsFast(gfxTextRun *aTextRun,
             aTextRun->SetMissingGlyph(utf16Offset, 0);
         } else {
             NS_ASSERTION(!IsInvalidChar(ch), "Invalid char detected");
-            FT_UInt glyph = pango_fc_font_get_glyph (fcfont, ch);
+            FT_UInt glyph = gfxFont->GetGlyph(ch);
             if (!glyph)                  
                 return NS_ERROR_FAILURE; 
 
