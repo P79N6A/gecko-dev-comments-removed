@@ -248,15 +248,10 @@ class nsTextEditorFocusListener : public nsIDOMFocusListener
 public:
   
 
-  nsTextEditorFocusListener();
+  nsTextEditorFocusListener(nsIEditor *aEditor, nsIPresShell *aPresShell);
   
 
   virtual ~nsTextEditorFocusListener();
-
-  
-
-
-  void SetEditor(nsIEditor *aEditor){mEditor = aEditor;}
 
 
   NS_DECL_ISUPPORTS
@@ -269,6 +264,7 @@ public:
 
 protected:
   nsIEditor*     mEditor;		
+  nsWeakPtr mPresShell;
 };
 
 
@@ -296,7 +292,9 @@ extern nsresult NS_NewEditorCompositionListener(nsIDOMEventListener** aInstanceP
 
 
 
-extern nsresult NS_NewEditorFocusListener(nsIDOMEventListener** aInstancePtrResult, nsIEditor *aEditor);
+extern nsresult
+NS_NewEditorFocusListener(nsIDOMEventListener** aInstancePtrResult,
+                          nsIEditor *aEditor, nsIPresShell *aPresShell);
 
 #endif 
 

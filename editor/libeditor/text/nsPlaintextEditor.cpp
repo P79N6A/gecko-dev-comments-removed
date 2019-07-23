@@ -300,16 +300,17 @@ nsPlaintextEditor::CreateEventListeners()
                                       this);
   }
 
+  nsCOMPtr<nsIPresShell> presShell = do_QueryReferent(mPresShellWeak);
   if (!mDragListenerP) {
     
-    nsCOMPtr<nsIPresShell> presShell = do_QueryReferent(mPresShellWeak);
     rv |= NS_NewEditorDragListener(getter_AddRefs(mDragListenerP), presShell,
                                    this);
   }
 
   if (!mFocusListenerP) {
     
-    rv |= NS_NewEditorFocusListener(getter_AddRefs(mFocusListenerP), this);
+    rv |= NS_NewEditorFocusListener(getter_AddRefs(mFocusListenerP),
+                                    this, presShell);
   }
 
   return rv;
