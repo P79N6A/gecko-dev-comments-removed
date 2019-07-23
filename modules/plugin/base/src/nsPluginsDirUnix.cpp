@@ -83,7 +83,7 @@
 #define DEFAULT_X11_PATH ""
 #endif
 
-#if defined(MOZ_WIDGET_GTK) || defined(MOZ_WIDGET_GTK2)
+#if defined(MOZ_WIDGET_GTK2)
 
 #define PLUGIN_MAX_LEN_OF_TMP_ARR 512
 
@@ -382,7 +382,7 @@ nsresult nsPluginFile::LoadPlugin(PRLibrary* &outLibrary)
 
     libSpec.value.pathname = path.get();
 
-#if defined(MOZ_WIDGET_GTK) || defined(MOZ_WIDGET_GTK2)
+#if defined(MOZ_WIDGET_GTK2)
 
     
     

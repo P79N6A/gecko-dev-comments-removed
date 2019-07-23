@@ -270,10 +270,8 @@ char **gArgv;
 static int    gRestartArgc;
 static char **gRestartArgv;
 
-#if defined(MOZ_WIDGET_GTK) || defined(MOZ_WIDGET_GTK2)
-#include <gtk/gtk.h>
-#endif 
 #if defined(MOZ_WIDGET_GTK2)
+#include <gtk/gtk.h>
 #include "nsGTKToolkit.h"
 #endif
 
@@ -1023,31 +1021,6 @@ DumpHelp()
   printf("Usage: %s [ options ... ] [URL]\n"
          "       where options include:\n\n", gArgv[0]);
 
-#ifdef MOZ_WIDGET_GTK
-  
-
-
-
-
-
-  printf("GTK options\n"
-         "\t--gdk-debug=FLAGS\t\tGdk debugging flags to set\n"
-         "\t--gdk-no-debug=FLAGS\t\tGdk debugging flags to unset\n"
-         "\t--gtk-debug=FLAGS\t\tGtk+ debugging flags to set\n"
-         "\t--gtk-no-debug=FLAGS\t\tGtk+ debugging flags to unset\n"
-         "\t--gtk-module=MODULE\t\tLoad an additional Gtk module\n"
-         "\t-install\t\tInstall a private colormap\n");
-
-#endif 
-#if MOZ_WIDGET_XLIB
-  printf("Xlib options\n"
-         "\t-display=DISPLAY\t\tX display to use\n"
-         "\t-visual=VISUALID\t\tX visual to use\n"
-         "\t-install_colormap\t\tInstall own colormap\n"
-         "\t-sync\t\tMake X calls synchronous\n"
-         "\t-no-xshm\t\tDon't use X shared memory extension\n");
-
-#endif 
 #ifdef MOZ_X11
   printf("X11 options\n"
          "\t--display=DISPLAY\t\tX display to use\n"
@@ -2446,7 +2419,7 @@ XRE_main(int argc, char* argv[], const nsXREAppData* aAppData)
       return 0;
     }
 
-#if defined(MOZ_WIDGET_GTK) || defined(MOZ_WIDGET_GTK2) || defined(MOZ_ENABLE_XREMOTE)
+#if defined(MOZ_WIDGET_GTK2) || defined(MOZ_ENABLE_XREMOTE)
     
 #define HAVE_DESKTOP_STARTUP_ID
     const char* desktopStartupIDEnv = PR_GetEnv("DESKTOP_STARTUP_ID");
@@ -2456,7 +2429,7 @@ XRE_main(int argc, char* argv[], const nsXREAppData* aAppData)
     }
 #endif
 
-#if defined(MOZ_WIDGET_GTK) || defined(MOZ_WIDGET_GTK2)
+#if defined(MOZ_WIDGET_GTK2)
     
     
     
@@ -2465,12 +2438,8 @@ XRE_main(int argc, char* argv[], const nsXREAppData* aAppData)
       gdk_rgb_set_install(TRUE);
 
     
-#if defined(MOZ_WIDGET_GTK)
-    gtk_set_locale();
-#endif
     gtk_init(&gArgc, &gArgv);
 
-#if defined(MOZ_WIDGET_GTK2)
     
     _g_set_application_name_fn _g_set_application_name =
       (_g_set_application_name_fn)FindFunction("g_set_application_name");
@@ -2482,7 +2451,6 @@ XRE_main(int argc, char* argv[], const nsXREAppData* aAppData)
     if (_gtk_window_set_auto_startup_notification) {
       _gtk_window_set_auto_startup_notification(PR_FALSE);
     }
-#endif
 
     gtk_widget_set_default_visual(gdk_rgb_get_visual());
     gtk_widget_set_default_colormap(gdk_rgb_get_cmap());
@@ -2492,10 +2460,6 @@ XRE_main(int argc, char* argv[], const nsXREAppData* aAppData)
     QApplication qapp(argc, argv);
 #endif
 
-    
-    
-    
-    
     
 #ifdef MOZ_JPROF
     setupProfilingStuff();

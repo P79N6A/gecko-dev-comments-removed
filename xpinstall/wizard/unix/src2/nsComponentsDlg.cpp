@@ -63,14 +63,8 @@ void
 nsComponentsDlg::Back(GtkWidget *aWidget, gpointer aData)
 {
     DUMP("Back");
-    if (aData != gCtx->cdlg) return;
-#ifdef MOZ_WIDGET_GTK
-    if (gCtx->bMoving)
-    {
-        gCtx->bMoving = FALSE;
+    if (aData != gCtx->cdlg)
         return;
-    }
-#endif
 
     
     gCtx->cdlg->Hide();
@@ -84,14 +78,8 @@ void
 nsComponentsDlg::Next(GtkWidget *aWidget, gpointer aData)
 {
     DUMP("Next");
-    if (aData != gCtx->cdlg) return;
-#ifdef MOZ_WIDGET_GTK
-    if (gCtx->bMoving)
-    {
-        gCtx->bMoving = FALSE;
+    if (aData != gCtx->cdlg)
         return;
-    }
-#endif
 
     if (OK != nsSetupTypeDlg::VerifyDiskSpace())
         return;
@@ -101,9 +89,6 @@ nsComponentsDlg::Next(GtkWidget *aWidget, gpointer aData)
 
     
     gCtx->idlg->Show();
-#ifdef MOZ_WIDGET_GTK
-    gCtx->bMoving = TRUE;
-#endif
 }
 
 int

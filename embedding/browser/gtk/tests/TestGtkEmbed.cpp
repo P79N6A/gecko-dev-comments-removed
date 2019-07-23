@@ -354,18 +354,11 @@ new_gtk_browser(guint32 chromeMask)
 		     FALSE, 
 		     0);    
   
-#ifdef MOZ_WIDGET_GTK
-  browser->toolbar = gtk_toolbar_new(GTK_ORIENTATION_HORIZONTAL,
-				     GTK_TOOLBAR_BOTH);
-#endif 
-
-#ifdef MOZ_WIDGET_GTK2
   browser->toolbar = gtk_toolbar_new();
   gtk_toolbar_set_orientation(GTK_TOOLBAR(browser->toolbar),
 			      GTK_ORIENTATION_HORIZONTAL);
   gtk_toolbar_set_style(GTK_TOOLBAR(browser->toolbar),
 			GTK_TOOLBAR_BOTH);
-#endif 
 
   
   gtk_box_pack_start(GTK_BOX(browser->toolbarHBox), browser->toolbar,

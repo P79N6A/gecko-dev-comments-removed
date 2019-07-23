@@ -98,14 +98,8 @@ void
 nsInstallDlg::Back(GtkWidget *aWidget, gpointer aData)
 {
     DUMP("Back");
-    if (aData != gCtx->idlg) return;
-#ifdef MOZ_WIDGET_GTK
-    if (gCtx->bMoving)
-    {
-        gCtx->bMoving = FALSE;
+    if (aData != gCtx->idlg)
         return;
-    }
-#endif
 
     
     gCtx->idlg->Hide();
@@ -115,9 +109,6 @@ nsInstallDlg::Back(GtkWidget *aWidget, gpointer aData)
     {
         gCtx->cdlg->Show();
         
-#ifdef MOZ_WIDGET_GTK
-        gCtx->bMoving = TRUE;
-#endif
     }
     else
     {
@@ -131,15 +122,8 @@ nsInstallDlg::Next(GtkWidget *aWidget, gpointer aData)
     DUMP("Next");
     GtkWidget *pauseLabel, *resumeLabel;
 
-    if (aData != gCtx->idlg) return;
-#ifdef MOZ_WIDGET_GTK
-    if (gCtx->bMoving)
-    {
-        gCtx->bMoving = FALSE;
-        DUMP("Moving done!");
+    if (aData != gCtx->idlg)
         return;
-    }
-#endif
 
     
     if (gCtx->opt->mMode != nsXIOptions::MODE_SILENT) {
@@ -205,9 +189,6 @@ nsInstallDlg::Next(GtkWidget *aWidget, gpointer aData)
     if (gCtx->opt->mMode == nsXIOptions::MODE_DEFAULT)
         gtk_main_quit();
     
-#ifdef MOZ_WIDGET_GTK
-    gCtx->bMoving = TRUE;
-#endif
     return;
 }
 

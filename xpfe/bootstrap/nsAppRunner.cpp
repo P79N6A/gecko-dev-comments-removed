@@ -290,16 +290,16 @@ static void InitializeMacOSXApp(int argc, char* argv[])
 #include <X11/Xlib.h>
 #endif 
 
-#if defined(MOZ_WIDGET_GTK) || defined(MOZ_WIDGET_GTK2)
+#if defined(MOZ_WIDGET_GTK2)
 #include <gtk/gtk.h>
-#endif 
+#endif
 
 #include "nsNativeAppSupport.h"
 
 
 
 
-#if !defined(MOZ_WIDGET_COCOA) && !defined(MOZ_WIDGET_PHOTON) && !defined( XP_WIN) && !defined(XP_OS2) && !defined(MOZ_WIDGET_GTK) && !defined(MOZ_WIDGET_GTK2)
+#if !defined(MOZ_WIDGET_COCOA) && !defined(MOZ_WIDGET_PHOTON) && !defined( XP_WIN) && !defined(XP_OS2) && !defined(MOZ_WIDGET_GTK2)
 
 nsresult NS_CreateSplashScreen(nsISplashScreen **aResult)
 {
@@ -334,7 +334,7 @@ PRBool NS_CanRun()
 
 
 
-#if !defined(XP_WIN) && !defined(XP_OS2)&& !defined( XP_BEOS ) && !defined(MOZ_WIDGET_GTK) && !defined(MOZ_WIDGET_GTK2) && !defined(XP_MAC) && (!defined(XP_MACOSX) || defined(MOZ_WIDGET_COCOA))
+#if !defined(XP_WIN) && !defined(XP_OS2)&& !defined( XP_BEOS ) && !defined(MOZ_WIDGET_GTK2) && !defined(XP_MAC) && (!defined(XP_MACOSX) || defined(MOZ_WIDGET_COCOA))
 
 nsresult NS_CreateNativeAppSupport(nsINativeAppSupport **aResult)
 {
@@ -1246,32 +1246,6 @@ static void DumpHelp(char *appname)
   printf("Usage: %s [ options ... ] [URL]\n"
          "       where options include:\n\n", appname);
 
-#ifdef MOZ_WIDGET_GTK
-  
-
-
-
-
-
-  printf("GTK options\n"
-         "\t--gdk-debug=FLAGS\t\tGdk debugging flags to set\n"
-         "\t--gdk-no-debug=FLAGS\t\tGdk debugging flags to unset\n"
-         "\t--gtk-debug=FLAGS\t\tGtk+ debugging flags to set\n"
-         "\t--gtk-no-debug=FLAGS\t\tGtk+ debugging flags to unset\n"
-         "\t--gtk-module=MODULE\t\tLoad an additional Gtk module\n"
-         "\t-install\t\tInstall a private colormap\n");
-
-  
-#endif 
-#if MOZ_WIDGET_XLIB
-  printf("Xlib options\n"
-         "\t-display=DISPLAY\t\tX display to use\n"
-         "\t-visual=VISUALID\t\tX visual to use\n"
-         "\t-install_colormap\t\tInstall own colormap\n"
-         "\t-sync\t\tMake X calls synchronous\n"
-         "\t-no-xshm\t\tDon't use X shared memory extension\n");
-
-#endif 
 #ifdef MOZ_X11
   printf("X11 options\n"
          "\t--display=DISPLAY\t\tX display to use\n"
@@ -1576,10 +1550,6 @@ int main(int argc, char* argv[])
   argc = NS_TraceMallocStartupArgs(argc, argv);
 #endif
 
-#if defined(MOZ_WIDGET_GTK) || defined(MOZ_WIDGET_GTK2) || defined(MOZ_X11)
-  int i;
-#endif
-
 #ifdef MOZ_X11
   
 
@@ -1590,7 +1560,7 @@ int main(int argc, char* argv[])
     x11threadsafe = PR_TRUE;
   else {
     x11threadsafe = PR_FALSE;
-    for (i = 1; i < argc; ++i)
+    for (int i = 1; i < argc; ++i)
       if (PL_strcmp(argv[i], "-xinitthreads") == 0) {
         x11threadsafe = PR_TRUE;
         break;
@@ -1604,12 +1574,12 @@ int main(int argc, char* argv[])
   }
 #endif 
 
-#if defined(MOZ_WIDGET_GTK) || defined(MOZ_WIDGET_GTK2)
+#if defined(MOZ_WIDGET_GTK2)
   
   
   
   
-  for (i=1; i<argc; i++)
+  for (int i=1; i<argc; i++)
     if ((PL_strcasecmp(argv[i], "-install") == 0)
         || (PL_strcasecmp(argv[i], "--install") == 0)) {
       gdk_rgb_set_install(TRUE);
@@ -1617,9 +1587,6 @@ int main(int argc, char* argv[])
     }
 
   
-#if defined(MOZ_WIDGET_GTK)
-  gtk_set_locale();
-#endif
   gtk_init(&argc, &argv);
 
   gtk_widget_set_default_visual(gdk_rgb_get_visual());
@@ -1630,11 +1597,6 @@ int main(int argc, char* argv[])
   QApplication qapp(argc, argv);
 #endif
 
-
-
-
-
-    
   
 #ifdef MOZ_JPROF
   setupProfilingStuff();

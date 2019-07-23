@@ -57,34 +57,10 @@
 #include "nsStringAPI.h"
 #endif
 
-#ifdef MOZ_WIDGET_GTK2
 #include "gtkmozembedmarshal.h"
 #define NEW_TOOLKIT_STRING(x) g_strdup(NS_ConvertUTF16toUTF8(x).get())
 #define GET_TOOLKIT_STRING(x) NS_ConvertUTF16toUTF8(x).get()
 #define GET_OBJECT_CLASS_TYPE(x) G_OBJECT_CLASS_TYPE(x)
-#endif 
-
-#ifdef MOZ_WIDGET_GTK
-
-#include <gtkmozarea.h>
-
-#define gtkmozembed_VOID__INT_UINT \
-  gtk_marshal_NONE__INT_INT
-#define gtkmozembed_VOID__STRING_INT_INT \
-  gtk_marshal_NONE__POINTER_INT_INT
-#define gtkmozembed_VOID__STRING_INT_UINT \
-  gtk_marshal_NONE__POINTER_INT_INT
-#define gtkmozembed_VOID__POINTER_INT_POINTER \
-  gtk_marshal_NONE__POINTER_INT_POINTER
-#define gtkmozembed_BOOL__STRING \
-  gtk_marshal_BOOL__POINTER
-#define gtkmozembed_VOID__INT_INT_BOOLEAN \
-  gtk_marshal_NONE__INT_INT_BOOLEAN
-#define G_SIGNAL_TYPE_STATIC_SCOPE 0
-#define NEW_TOOLKIT_STRING(x) g_strdup(NS_LossyConvertUTF16toASCII(x).get())
-#define GET_TOOLKIT_STRING(x) NS_LossyConvertUTF16toASCII(x).get()
-#define GET_OBJECT_CLASS_TYPE(x) (GTK_OBJECT_CLASS(x)->type)
-#endif 
 
 static void gtk_moz_embed_download_set_latest_object(GtkObject *o);
 static GtkObject *latest_download_object = nsnull;
@@ -172,11 +148,6 @@ gtk_moz_embed_download_class_init(GtkMozEmbedDownloadClass *klass)
                    G_TYPE_ULONG,
                    G_TYPE_ULONG,
                    G_TYPE_ULONG);
-
-#ifdef MOZ_WIDGET_GTK
-  gtk_object_class_add_signals(object_class, moz_embed_download_signals,
-                               DOWNLOAD_LAST_SIGNAL);
-#endif 
 }
 
 static void

@@ -639,7 +639,7 @@ nsObjectFrame::GetDesiredSize(nsPresContext* aPresContext,
                                aReflowState.mComputedMaxHeight);
     }
 
-#if defined (MOZ_WIDGET_GTK) || defined (MOZ_WIDGET_GTK2) || defined (MOZ_WIDGET_XLIB)  
+#if defined (MOZ_WIDGET_GTK2)
     
     
     

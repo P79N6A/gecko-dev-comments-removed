@@ -63,10 +63,8 @@
 #endif
 #include "prlink.h"  
 
-#if defined (MOZ_WIDGET_GTK) || defined (MOZ_WIDGET_GTK2)
+#if defined (MOZ_WIDGET_GTK2)
 #include <gtk/gtk.h>
-#elif defined (MOZ_WIDGET_XLIB)
-#include "xlibxtbin.h"
 #endif
 
 
@@ -176,14 +174,12 @@ protected:
 
     NPPluginFuncs* fCallbacks;
 
-#if defined (MOZ_WIDGET_GTK) || defined (MOZ_WIDGET_GTK2)
+#if defined (MOZ_WIDGET_GTK2)
    
 
 
 
    GtkWidget *mXtBin;
-#elif defined (MOZ_WIDGET_XLIB)
-   xtbin *mXlibXtBin;
 #endif
 
     
