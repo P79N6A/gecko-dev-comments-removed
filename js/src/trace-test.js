@@ -791,6 +791,18 @@ function merge_type_maps() {
 merge_type_maps.expected = "50,25";
 test(merge_type_maps)
 
+function inner_double_outer_int() {
+    function f(i) {
+	for (var m = 0; m < 20; ++m)
+	    for (var n = 0; n < 100; n += i)
+		;
+	return n;
+    }
+    return f(.5);
+}
+inner_double_outer_int.expected = "100";
+test(inner_double_outer_int);
+
 
 print("\npassed:", passes.length && passes.join(","));
 print("\nFAILED:", fails.length && fails.join(","));

@@ -1227,6 +1227,41 @@ struct FrameInfo {
     };
 };
 
+
+
+bool
+TraceRecorder::adjustCallerTypes(Fragment* f)
+{
+    JSTraceMonitor* tm = traceMonitor;
+    uint8* m = tm->globalTypeMap->data();
+    uint16* gslots = traceMonitor->globalSlots->data();
+    unsigned ngslots = traceMonitor->globalSlots->length();
+    FORALL_GLOBAL_SLOTS(cx, ngslots, gslots, 
+        LIns* i = get(vp);
+        bool isPromote = isPromoteInt(i);
+        if (isPromote && *m == JSVAL_DOUBLE) 
+            lir->insStorei(get(vp), gp_ins, nativeGlobalOffset(vp));
+        ++m;
+    );
+    m = ((TreeInfo*)f->vmprivate)->stackTypeMap.data();
+    FORALL_SLOTS_IN_PENDING_FRAMES(cx, callDepth,
+        LIns* i = get(vp);
+        bool isPromote = isPromoteInt(i);
+        if (isPromote && *m == JSVAL_DOUBLE) 
+            lir->insStorei(get(vp), lirbuf->sp, 
+                           -treeInfo->nativeStackBase + nativeStackOffset(vp));
+        ++m;
+    );
+    return true;
+}
+
+
+bool TraceRecorder::selectCallablePeerFragment(Fragment** first)
+{
+    
+    return (*first)->code();
+}
+
 SideExit*
 TraceRecorder::snapshot(ExitType exitType)
 {
@@ -1422,7 +1457,7 @@ TraceRecorder::closeLoop(Fragmento* fragmento)
 
 
 void
-TraceRecorder::emitTreeCallStackSetup(Fragment* inner)
+TraceRecorder::prepareTreeCall(Fragment* inner)
 {
     TreeInfo* ti = (TreeInfo*)inner->vmprivate;
     inner_sp_ins = lirbuf->sp;
@@ -1775,27 +1810,11 @@ js_ContinueRecording(JSContext* cx, TraceRecorder* r, jsbytecode* oldpc, uintN& 
     }
     
     Fragment* f = fragmento->getLoop(cx->fp->regs->pc);
-    if (nesting_enabled && f && f->code()) {
-        
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        r->emitTreeCallStackSetup(f);
+    if (nesting_enabled && 
+        f && 
+        r->selectCallablePeerFragment(&f) && 
+        r->adjustCallerTypes(f)) { 
+        r->prepareTreeCall(f);
         GuardRecord* lr = js_ExecuteTree(cx, &f, inlineCallCount);
         if (!lr) {
             js_AbortRecording(cx, oldpc, "Couldn't call inner tree");
