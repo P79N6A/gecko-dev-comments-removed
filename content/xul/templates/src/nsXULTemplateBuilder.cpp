@@ -1101,8 +1101,7 @@ nsXULTemplateBuilder::AttributeChanged(nsIDocument* aDocument,
                                        nsIContent*  aContent,
                                        PRInt32      aNameSpaceID,
                                        nsIAtom*     aAttribute,
-                                       PRInt32      aModType,
-                                       PRUint32     aStateMask)
+                                       PRInt32      aModType)
 {
     if (aContent == mRoot && aNameSpaceID == kNameSpaceID_None) {
         

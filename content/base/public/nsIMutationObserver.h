@@ -166,14 +166,11 @@ public:
 
 
 
-
-
   virtual void AttributeChanged(nsIDocument* aDocument,
                                 nsIContent*  aContent,
                                 PRInt32      aNameSpaceID,
                                 nsIAtom*     aAttribute,
-                                PRInt32      aModType,
-                                PRUint32     aStateMask) = 0;
+                                PRInt32      aModType) = 0;
 
   
 
@@ -280,8 +277,7 @@ NS_DEFINE_STATIC_IID_ACCESSOR(nsIMutationObserver, NS_IMUTATION_OBSERVER_IID)
                                   nsIContent* aContent,                      \
                                   PRInt32 aNameSpaceID,                      \
                                   nsIAtom* aAttribute,                       \
-                                  PRInt32 aModType,                          \
-                                  PRUint32 aStateMask);
+                                  PRInt32 aModType);
 
 #define NS_DECL_NSIMUTATIONOBSERVER_CONTENTAPPENDED                          \
     virtual void ContentAppended(nsIDocument* aDocument,                     \
@@ -349,8 +345,7 @@ _class::AttributeChanged(nsIDocument* aDocument,                          \
                          nsIContent* aContent,                            \
                          PRInt32 aNameSpaceID,                            \
                          nsIAtom* aAttribute,                             \
-                         PRInt32 aModType,                                \
-                         PRUint32 aStateMask)                             \
+                         PRInt32 aModType)                                \
 {                                                                         \
 }                                                                         \
 void                                                                      \

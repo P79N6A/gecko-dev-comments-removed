@@ -1566,8 +1566,7 @@ nsXULContentBuilder::AttributeChanged(nsIDocument* aDocument,
                                       nsIContent*  aContent,
                                       PRInt32      aNameSpaceID,
                                       nsIAtom*     aAttribute,
-                                      PRInt32      aModType,
-                                      PRUint32     aStateMask)
+                                      PRInt32      aModType)
 {
     
     
@@ -1591,7 +1590,7 @@ nsXULContentBuilder::AttributeChanged(nsIDocument* aDocument,
 
     
     nsXULTemplateBuilder::AttributeChanged(aDocument, aContent, aNameSpaceID,
-                                           aAttribute, aModType, aStateMask);
+                                           aAttribute, aModType);
 }
 
 void
