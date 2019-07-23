@@ -3726,6 +3726,8 @@ function testComparisons()
 testComparisons.expected = "no failures reported!";
 test(testComparisons);
 
+load("trace-test-math.js");
+
 
 function testGlobalProtoAccess() {
     return "ok";
