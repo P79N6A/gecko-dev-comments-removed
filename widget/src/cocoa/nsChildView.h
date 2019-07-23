@@ -131,7 +131,10 @@ union nsPluginPort;
 
 
 - (void)delayedTearDown;
+
 - (void)setTransparent:(BOOL)transparent;
+
+- (void)sendFocusEvent:(PRUint32)eventType;
 @end
 
 
@@ -353,6 +356,8 @@ protected:
   PRPackedBool          mIsPluginView; 
   PRPackedBool          mPluginDrawing;
   PRPackedBool          mPluginIsCG; 
+
+  PRPackedBool          mInSetFocus;
 
   nsPluginPort          mPluginPort;
 };
