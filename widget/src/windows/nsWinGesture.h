@@ -39,6 +39,10 @@
 #ifndef WinGesture_h__
 #define WinGesture_h__
 
+
+
+
+
 #include "nsdefs.h"
 #include <winuser.h>
 #include "nsPoint.h"

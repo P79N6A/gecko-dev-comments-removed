@@ -39,6 +39,10 @@
 #ifndef WindowDbg_h__
 #define WindowDbg_h__
 
+
+
+
+
 #include "nsWindowDefs.h"
 
 

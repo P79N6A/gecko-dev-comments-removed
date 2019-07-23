@@ -39,6 +39,10 @@
 #ifndef WindowDefs_h__
 #define WindowDefs_h__
 
+
+
+
+
 #include "nsBaseWidget.h"
 #include "nsdefs.h"
 #include "resource.h"

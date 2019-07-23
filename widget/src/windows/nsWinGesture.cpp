@@ -36,8 +36,9 @@
 
 
 
-#ifndef WinGesture_cpp__
-#define WinGesture_cpp__
+
+
+
 
 #include "nscore.h"
 #include "nsWinGesture.h"
@@ -598,7 +599,3 @@ nsWinGesture::PanDeltaToPixelScrollY(nsMouseScrollEvent& evt)
   }
   return PR_FALSE;
 }
-
-#endif 
-
-

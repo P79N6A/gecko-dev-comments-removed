@@ -38,6 +38,10 @@
 #ifndef WindowGfx_h__
 #define WindowGfx_h__
 
+
+
+
+
 #include "nsWindow.h"
 
 

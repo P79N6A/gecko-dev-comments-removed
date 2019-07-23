@@ -40,6 +40,10 @@
 #ifndef WindowCE_h__
 #define WindowCE_h__
 
+
+
+
+
 #ifdef WINCE
 
 #include "aygshell.h"

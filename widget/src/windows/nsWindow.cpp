@@ -101,6 +101,8 @@
 
 
 
+
+
 #include "nsWindow.h"
 
 #include <windows.h>
@@ -410,26 +412,26 @@ nsWindow::~nsWindow()
   sInstanceCount--;
 
   
-  if (!sInstanceCount) {
+  if (sInstanceCount == 0) {
 #ifdef NS_ENABLE_TSF
     nsTextStore::Terminate();
 #endif
 
 #if !defined(WINCE)
     NS_IF_RELEASE(sCursorImgContainer);
-
     if (sIsOleInitialized) {
       ::OleFlushClipboard();
       ::OleUninitialize();
       sIsOleInitialized = FALSE;
     }
-
     
     nsIMM32Handler::Terminate();
-
-    NS_IF_RELEASE(mNativeDragTarget);
 #endif 
   }
+
+#if !defined(WINCE)
+  NS_IF_RELEASE(mNativeDragTarget);
+#endif 
 }
 
 NS_IMPL_ISUPPORTS_INHERITED0(nsWindow, nsBaseWidget)
