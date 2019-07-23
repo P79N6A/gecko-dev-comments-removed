@@ -873,6 +873,11 @@ nsDiskCacheStreamIO::SetEOF()
                 rv = ReadCacheBlocks();
                 if (NS_FAILED(rv))  return rv;
             }
+
+            
+            
+            
+            mBufDirty = PR_TRUE;
         }
     }
     
