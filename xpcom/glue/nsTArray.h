@@ -443,6 +443,36 @@ class nsTArray : public nsTArray_base {
     
     
     
+    
+    
+    template<class Item, class Comparator>
+    index_type BinaryIndexOf(const Item& item, const Comparator& comp) const {
+      index_type low = 0, high = Length();
+      while (high > low) {
+        index_type mid = (high + low) >> 1;
+        if (comp.Equals(ElementAt(mid), item))
+          return mid;
+        if (comp.LessThan(ElementAt(mid), item))
+          low = mid + 1;
+        else
+          high = mid;
+      }
+      return NoIndex;
+    }
+
+    
+    
+    
+    
+    
+    template<class Item>
+    index_type BinaryIndexOf(const Item& item) const {
+      return BinaryIndexOf(item, nsDefaultComparator<elem_type, Item>());
+    }
+
+    
+    
+    
 
     
     
