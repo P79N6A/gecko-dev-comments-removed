@@ -232,8 +232,8 @@ public:
 
 
 
-  static nsresult GetAncestors(nsIDOMNode* aNode,
-                               nsTArray<nsIDOMNode*>* aArray);
+  static nsresult GetAncestors(nsINode* aNode,
+                               nsTArray<nsINode*>& aArray);
 
   
 
