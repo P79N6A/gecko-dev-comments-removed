@@ -1980,11 +1980,15 @@ nsHTMLReflowState::CalculateBlockSideMargins(nscoord aAvailWidth,
   }
 
   
+  
+  
+
   if (isAutoLeftMargin) {
     if (isAutoRightMargin) {
       
-      mComputedMargin.left = availMarginSpace / 2;
-      mComputedMargin.right = availMarginSpace - mComputedMargin.left;
+      nscoord forLeft = availMarginSpace / 2;
+      mComputedMargin.left  += forLeft;
+      mComputedMargin.right += availMarginSpace - forLeft;
     } else {
       mComputedMargin.left += availMarginSpace;
     }
