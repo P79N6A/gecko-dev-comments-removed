@@ -82,7 +82,7 @@ protected:
   nsIDOMHTMLScriptElement *mOuter;
 
   
-  nsCStringArray mArgNames;
+  nsTArray<nsCString> mArgNames;
 
   
   nsString mEventName;
@@ -144,7 +144,7 @@ nsresult nsHTMLScriptEventHandler::ParseEventString(const nsAString &aValue)
   NS_LossyConvertUTF16toASCII sig(Substring(next, end));
 
   
-  mArgNames.ParseString(sig.get(), ",");
+  ParseString(sig, ',', mArgNames);
 
   return NS_OK;
 }
@@ -257,7 +257,7 @@ nsHTMLScriptEventHandler::Invoke(nsISupports *aTargetObject,
   const char*  stackArgs[kMaxArgsOnStack];
 
   args = stackArgs;
-  argc = mArgNames.Count();
+  argc = PRInt32(mArgNames.Length());
 
   
   
@@ -267,7 +267,7 @@ nsHTMLScriptEventHandler::Invoke(nsISupports *aTargetObject,
   }
 
   for(i=0; i<argc; i++) {
-    args[i] = mArgNames[i]->get();
+    args[i] = mArgNames[i].get();
   }
 
   

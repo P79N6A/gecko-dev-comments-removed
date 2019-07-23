@@ -937,46 +937,6 @@ nsCStringArray::nsCStringArray(void)
 {
 }
 
-
-
-PRBool
-nsCStringArray::ParseString(const char* string, const char* delimiter)
-{
-  if (string && *string && delimiter && *delimiter) {
-    char *rest = strdup(string);
-    if (!rest)
-      return PR_FALSE;
-    char *newStr = rest;
-    char *token = NS_strtok(delimiter, &newStr);
-
-    PRInt32 count = Count();
-    while (token) {
-      if (*token) {
-        
-        nsCString *cstring = new nsCString(token);
-        if (cstring && !AppendElement(cstring)) {
-          
-          
-          delete cstring;
-          cstring = nsnull;
-        }
-        if (!cstring) {
-          
-          
-          
-          
-          RemoveElementsAt(count, Count() - count);
-          free(rest);
-          return PR_FALSE;
-        }
-      }
-      token = NS_strtok(delimiter, &newStr);
-    }
-    free(rest);
-  }
-  return PR_TRUE;
-}
-
 nsCStringArray::nsCStringArray(PRInt32 aCount)
   : nsVoidArray(aCount)
 {

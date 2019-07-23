@@ -40,7 +40,7 @@
 #define nsPSPrinters_h___
 
 #include "nsString.h"
-#include "nsVoidArray.h"
+#include "nsTArray.h"
 #include "prtypes.h"
 #include "nsCUPSShim.h"
 #include "psSharedCore.h"
@@ -77,7 +77,7 @@ class NS_PSSHARED nsPSPrinterList {
 
 
 
-        void GetPrinterList(nsCStringArray& aList);
+        void GetPrinterList(nsTArray<nsCString>& aList);
 
         enum PrinterType {
             kTypeUnknown,         

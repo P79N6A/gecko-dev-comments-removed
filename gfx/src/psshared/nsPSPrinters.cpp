@@ -93,7 +93,7 @@ nsPSPrinterList::Enabled()
 
 
 void
-nsPSPrinterList::GetPrinterList(nsCStringArray& aList)
+nsPSPrinterList::GetPrinterList(nsTArray<nsCString>& aList)
 {
     aList.Clear();
 
@@ -112,9 +112,9 @@ nsPSPrinterList::GetPrinterList(nsCStringArray& aList)
                     fullName.Append(dests[i].instance);
                 }
                 if (dests[i].is_default)
-                    aList.InsertCStringAt(fullName, 0);
+                    aList.InsertElementAt(0, fullName);
                 else
-                    aList.AppendCString(fullName);
+                    aList.AppendElement(fullName);
             }
         }
         (mCups.mCupsFreeDests)(num_dests, dests);
@@ -126,7 +126,7 @@ nsPSPrinterList::GetPrinterList(nsCStringArray& aList)
     
     
     
-    aList.AppendCString(
+    aList.AppendElement(
             NS_LITERAL_CSTRING(NS_POSTSCRIPT_DRIVER_NAME "default"));
 
     nsXPIDLCString list;
@@ -145,7 +145,7 @@ nsPSPrinterList::GetPrinterList(nsCStringArray& aList)
             if (0 != strcmp(name, "default")) {
                 nsCAutoString fullName(NS_POSTSCRIPT_DRIVER_NAME);
                 fullName.Append(name);
-                aList.AppendCString(fullName);
+                aList.AppendElement(fullName);
             }
         }
     }

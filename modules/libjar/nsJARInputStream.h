@@ -42,6 +42,7 @@
 
 #include "nsIInputStream.h"
 #include "nsJAR.h"
+#include "nsTArray.h"
 
 
 
@@ -86,7 +87,7 @@ class nsJARInputStream : public nsIInputStream
     PRUint32                mNameLen; 
     nsCAutoString           mBuffer;  
     PRUint32                mArrPos;  
-    nsCStringArray          mArray;   
+    nsTArray<nsCString>     mArray;   
 
     PRPackedBool    mDirectory;
     PRPackedBool    mClosed;          

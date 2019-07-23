@@ -1070,18 +1070,6 @@ NS_IMETHODIMP nsPrinterEnumeratorGTK::DisplayPropertiesDlg(const PRUnichar *aPri
 }
 
 
-
-
-
-static PRBool
-GlobalPrinterEnumFunc(nsCString& aName, void *aData)
-{
-  nsTArray<nsString> *a = (nsTArray<nsString> *)aData;
-  a->AppendElement(NS_ConvertUTF8toUTF16(aName));
-  return PR_TRUE;
-}
-
-
 nsresult GlobalPrinters::InitializeGlobalPrinters ()
 {
   if (PrintersAreAllocated()) {
@@ -1101,9 +1089,15 @@ nsresult GlobalPrinters::InitializeGlobalPrinters ()
   nsPSPrinterList psMgr;
   if (NS_SUCCEEDED(psMgr.Init()) && psMgr.Enabled()) {
     
-    nsCStringArray printerList;
+    
+    
+    
+    nsTArray<nsCString> printerList;
     psMgr.GetPrinterList(printerList);
-    printerList.EnumerateForwards(GlobalPrinterEnumFunc, mGlobalPrinterList);
+    for (PRUint32 i = 0; i < printerList.Length(); i++)
+    {
+      mGlobalPrinterList->AppendElement(NS_ConvertUTF8toUTF16(printerList[i]));
+    }
   }
 #endif   
       

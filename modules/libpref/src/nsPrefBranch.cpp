@@ -657,7 +657,7 @@ NS_IMETHODIMP nsPrefBranch::AddObserver(const char *aDomain, nsIObserver *aObser
   }
 
   mObservers->AppendElement(pCallback);
-  mObserverDomains.AppendCString(nsCString(aDomain));
+  mObserverDomains.AppendElement(nsCString(aDomain));
 
   
   pref = getPrefName(aDomain); 
@@ -689,7 +689,7 @@ NS_IMETHODIMP nsPrefBranch::RemoveObserver(const char *aDomain, nsIObserver *aOb
     pCallback = (PrefCallbackData *)mObservers->ElementAt(i);
     if (pCallback) {
       if (pCallback->pObserver == aObserver) {
-        mObserverDomains.CStringAt(i, domain);
+        domain = mObserverDomains[i];
         if (domain.Equals(aDomain)) {
           
           pref = getPrefName(aDomain); 
@@ -698,7 +698,7 @@ NS_IMETHODIMP nsPrefBranch::RemoveObserver(const char *aDomain, nsIObserver *aOb
             
             
             mObservers->RemoveElementAt(i);
-            mObserverDomains.RemoveCStringAt(i);
+            mObserverDomains.RemoveElementAt(i);
             if (pCallback->pWeakRef) {
               NS_RELEASE(pCallback->pWeakRef);
             } else {
@@ -768,7 +768,7 @@ void nsPrefBranch::freeObserverList(void)
       for (i = 0; i < count; ++i) {
         pCallback = (PrefCallbackData *)mObservers->ElementAt(i);
         if (pCallback) {
-          mObserverDomains.CStringAt(i, domain);
+          domain = mObserverDomains[i];
           
           pref = getPrefName(domain.get()); 
           

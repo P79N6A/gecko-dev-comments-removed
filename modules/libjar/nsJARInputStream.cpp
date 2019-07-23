@@ -162,7 +162,7 @@ nsJARInputStream::InitDirectory(nsZipArchive* aZip,
     const char *name;
     while ((rv = find->FindNext( &name )) == NS_OK) {
         
-        mArray.AppendCString(nsDependentCString(name));
+        mArray.AppendElement(nsDependentCString(name));
     }
     delete find;
 
@@ -353,15 +353,15 @@ nsJARInputStream::ReadDirectory(char* aBuffer, PRUint32 aCount, PRUint32 *aBytes
         
         mBuffer.Truncate();
         mCurPos = 0;
-        const PRUint32 arrayLen = mArray.Count();
+        const PRUint32 arrayLen = mArray.Length();
 
         for ( ;aCount > mBuffer.Length(); mArrPos++) {
             
             if (arrayLen <= mArrPos)
                 break;
 
-            const char * entryName = mArray[mArrPos]->get();
-            PRUint32 entryNameLen = mArray[mArrPos]->Length();
+            const char * entryName = mArray[mArrPos].get();
+            PRUint32 entryNameLen = mArray[mArrPos].Length();
             nsZipItem* ze = mZip->GetItem(entryName);
             NS_ENSURE_TRUE(ze, NS_ERROR_FILE_TARGET_DOES_NOT_EXIST);
 

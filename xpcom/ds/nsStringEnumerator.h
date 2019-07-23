@@ -37,7 +37,7 @@
 
 
 #include "nsIStringEnumerator.h"
-#include "nsVoidArray.h"
+#include "nsString.h"
 #include "nsTArray.h"
 
 
@@ -81,7 +81,7 @@ NS_NewStringEnumerator(nsIStringEnumerator** aResult NS_OUTPARAM,
                        nsISupports* aOwner);
 NS_COM nsresult
 NS_NewUTF8StringEnumerator(nsIUTF8StringEnumerator** aResult NS_OUTPARAM,
-                           const nsCStringArray* aArray);
+                           const nsTArray<nsCString>* aArray);
 
 NS_COM nsresult
 NS_NewStringEnumerator(nsIStringEnumerator** aResult NS_OUTPARAM,
@@ -102,7 +102,7 @@ NS_NewAdoptingStringEnumerator(nsIStringEnumerator** aResult NS_OUTPARAM,
 
 NS_COM nsresult
 NS_NewAdoptingUTF8StringEnumerator(nsIUTF8StringEnumerator** aResult NS_OUTPARAM,
-                                   nsCStringArray* aArray);
+                                   nsTArray<nsCString>* aArray);
 
 
 
@@ -119,5 +119,5 @@ NS_NewAdoptingUTF8StringEnumerator(nsIUTF8StringEnumerator** aResult NS_OUTPARAM
 
 NS_COM nsresult
 NS_NewUTF8StringEnumerator(nsIUTF8StringEnumerator** aResult NS_OUTPARAM,
-                           const nsCStringArray* aArray,
+                           const nsTArray<nsCString>* aArray,
                            nsISupports* aOwner);

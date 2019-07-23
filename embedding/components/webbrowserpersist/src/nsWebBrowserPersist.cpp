@@ -1995,7 +1995,7 @@ nsWebBrowserPersist::CalculateUniqueFilename(nsIURI *aURI)
     
     
 
-    if (base.IsEmpty() || mFilenameList.Count() > 0)
+    if (base.IsEmpty() || mFilenameList.Length() > 0)
     {
         nsCAutoString tmpPath;
         nsCAutoString tmpBase;
@@ -2048,7 +2048,7 @@ nsWebBrowserPersist::CalculateUniqueFilename(nsIURI *aURI)
     
     nsCAutoString newFilepath(directory);
     newFilepath.Append(filename);
-    mFilenameList.AppendCString(newFilepath);
+    mFilenameList.AppendElement(newFilepath);
 
     
     if (nameHasChanged)

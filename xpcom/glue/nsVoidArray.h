@@ -270,13 +270,6 @@ public:
 
   nsCStringArray& operator=(const nsCStringArray& other);
 
-  
-  
-  
-  
-  
-  PRBool ParseString(const char* string, const char* delimiter);
-
   PRInt32 Count(void) const {
     return nsVoidArray::Count();
   }
