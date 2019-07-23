@@ -1428,6 +1428,16 @@ PRBool
 nsDOMWorker::IsCanceled()
 {
   nsAutoLock lock(mLock);
+  return IsCanceledNoLock();
+}
+
+PRBool
+nsDOMWorker::IsCanceledNoLock()
+{
+  
+  if (mStatus == eRunning) {
+    return PR_FALSE;
+  }
 
   
   
@@ -1988,8 +1998,18 @@ NS_IMETHODIMP
 nsDOMWorker::DispatchEvent(nsIDOMEvent* aEvent,
                            PRBool* _retval)
 {
-  if (IsCanceled()) {
-    return NS_OK;
+  {
+    nsAutoLock lock(mLock);
+    if (IsCanceledNoLock()) {
+      return NS_OK;
+    }
+    if (mStatus == eTerminated) {
+      nsCOMPtr<nsIWorkerMessageEvent> messageEvent(do_QueryInterface(aEvent));
+      if (messageEvent) {
+        
+        return NS_OK;
+      }
+    }
   }
 
   return nsDOMWorkerMessageHandler::DispatchEvent(aEvent, _retval);

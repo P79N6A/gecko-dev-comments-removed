@@ -292,6 +292,8 @@ private:
 
   PRBool QueueSuspendedRunnable(nsIRunnable* aRunnable);
 
+  PRBool IsCanceledNoLock();
+
 private:
 
   
