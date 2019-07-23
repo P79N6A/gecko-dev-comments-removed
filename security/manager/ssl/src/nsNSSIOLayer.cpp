@@ -775,6 +775,9 @@ AppendErrorTextUntrusted(PRErrorCode errTrust,
       case SEC_ERROR_UNKNOWN_ISSUER:
         errorID = "certErrorTrust_UnknownIssuer";
         break;
+      case SEC_ERROR_INADEQUATE_KEY_USAGE:
+        
+        
       case SEC_ERROR_CA_CERT_INVALID:
         errorID = "certErrorTrust_CaInvalid";
         break;
@@ -2821,6 +2824,7 @@ nsNSSBadCertHandler(void *arg, PRFileDesc *sslSocket)
         case SEC_ERROR_UNTRUSTED_ISSUER:
         case SEC_ERROR_EXPIRED_ISSUER_CERTIFICATE:
         case SEC_ERROR_UNTRUSTED_CERT:
+        case SEC_ERROR_INADEQUATE_KEY_USAGE:
           
           collected_errors |= nsICertOverrideService::ERROR_UNTRUSTED;
           if (errorCodeTrust == SECSuccess) {
