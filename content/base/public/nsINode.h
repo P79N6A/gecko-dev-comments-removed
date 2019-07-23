@@ -95,6 +95,8 @@ enum {
   
   
   NODE_MAY_HAVE_ID =             0x00000200U,
+  
+  
   NODE_MAY_HAVE_CLASS =          0x00000400U,
   NODE_MAY_HAVE_STYLE =          0x00000800U,
 

@@ -60,7 +60,8 @@ NS_INTERFACE_MAP_END_INHERITING(nsSVGStylableElementBase)
 nsSVGStylableElement::nsSVGStylableElement(nsINodeInfo *aNodeInfo)
   : nsSVGStylableElementBase(aNodeInfo)
 {
-
+  
+  SetFlags(NODE_MAY_HAVE_CLASS);
 }
 
 nsresult
@@ -88,7 +89,7 @@ nsSVGStylableElement::Init()
 
 
 const nsAttrValue*
-nsSVGStylableElement::GetClasses() const
+nsSVGStylableElement::DoGetClasses() const
 {
   return mClassName->GetAttrValue();
 }

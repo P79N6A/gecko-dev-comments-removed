@@ -73,6 +73,8 @@ nsXTFElementWrapper::nsXTFElementWrapper(nsINodeInfo* aNodeInfo,
       mTmpAttrName(nsGkAtoms::_asterix) 
                                             
 {
+  
+  SetFlags(NODE_MAY_HAVE_CLASS);
 }
 
 nsXTFElementWrapper::~nsXTFElementWrapper()
@@ -931,7 +933,7 @@ nsXTFElementWrapper::GetClassAttributeName() const
 }
 
 const nsAttrValue*
-nsXTFElementWrapper::GetClasses() const
+nsXTFElementWrapper::DoGetClasses() const
 {
   const nsAttrValue* val = nsnull;
   nsIAtom* clazzAttr = GetClassAttributeName();
