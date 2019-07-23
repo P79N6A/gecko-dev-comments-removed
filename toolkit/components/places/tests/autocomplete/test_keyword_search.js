@@ -42,8 +42,14 @@
 
 
 
+
+
+
 let keyBase = "http://abc/?search=";
 let keyKey = "key";
+
+
+let otherBase = "http://xyz/?foo=";
 
 let unescaped = "ユニコード";
 let pageInHistory = "ThisPageIsInHistory";
@@ -56,6 +62,9 @@ let kURIs = [
   keyBase + "blocking%2B",
   keyBase + unescaped,
   keyBase + pageInHistory,
+  otherBase + "%s",
+  keyBase + "twoKey",
+  otherBase + "twoKey",
 ];
 let kTitles = [
   "Generic page title",
@@ -85,4 +94,14 @@ let gTests = [
    keyKey + " " + unescaped, [4]],
   ["4: Keyword that happens to match a page",
    keyKey + " " + pageInHistory, [5]],
+
+  
+  ["5: Two keywords matched",
+   keyKey + " twoKey", [7,8],
+   function() {
+     
+     addPageBook(6, 0, 1, [], keyKey);
+     gPages[7] = [7,1];
+     gPages[8] = [8,1];
+   }],
 ];
