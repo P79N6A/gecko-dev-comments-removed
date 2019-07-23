@@ -284,7 +284,11 @@ XRE_InitChildProcess(int aArgc,
       "can't open handle to parent");
 
   base::AtExitManager exitManager;
-  CommandLine::Init(aArgc, aArgv);
+
+  int rv = XRE_InitCommandLine(aArgc, aArgv);
+  if (NS_FAILED(rv))
+      return NS_ERROR_FAILURE;
+
   MessageLoopForIO mainMessageLoop;
 
   {
@@ -378,7 +382,9 @@ XRE_InitParentProcess(int aArgc,
   NS_ENSURE_ARG_POINTER(aArgv);
   NS_ENSURE_ARG_POINTER(aArgv[0]);
 
-  CommandLine::Init(aArgc, aArgv);
+  int rv = XRE_InitCommandLine(aArgc, aArgv);
+  if (NS_FAILED(rv))
+      return NS_ERROR_FAILURE;
 
   ScopedXREEmbed embed;
 
@@ -429,6 +435,45 @@ XRE_RunIPDLTest(int aArgc, char** aArgv)
     return 0;
 }
 #endif  
+
+
+nsresult
+XRE_InitCommandLine(int aArgc, char* aArgv[])
+{
+    nsresult rv = NS_OK;
+
+#if defined(MOZ_IPC) && !defined(OS_WIN)
+  
+  char** canonArgs = new char*[aArgc];
+
+  
+  nsCOMPtr<nsILocalFile> binFile;
+  rv = XRE_GetBinaryPath(aArgv[0], getter_AddRefs(binFile));
+  if (NS_FAILED(rv))
+    return NS_ERROR_FAILURE;
+
+  nsCAutoString canonBinPath;
+  rv = binFile->GetNativePath(canonBinPath);
+  if (NS_FAILED(rv))
+    return NS_ERROR_FAILURE;
+
+  canonArgs[0] = strdup(canonBinPath.get());
+
+  for (int i = 1; i < aArgc; ++i) {
+    if (aArgv[i]) {
+      canonArgs[i] = strdup(aArgv[i]);
+    }
+  }
+ 
+  NS_ASSERTION(!CommandLine::IsInitialized(), "Bad news!");
+  CommandLine::Init(aArgc, canonArgs);
+
+  delete[] canonArgs;
+#endif
+
+  return rv;
+}
+
 
 nsresult
 XRE_RunAppShell()
