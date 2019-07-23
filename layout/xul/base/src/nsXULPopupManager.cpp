@@ -1686,11 +1686,15 @@ nsXULPopupManager::IsValidMenuItem(nsPresContext* aPresContext,
 nsresult
 nsXULPopupManager::KeyUp(nsIDOMEvent* aKeyEvent)
 {
-  nsMenuChainItem* item = GetTopVisibleMenu();
-  if (item && item->PopupType() == ePopupTypeMenu) {
-    aKeyEvent->StopPropagation();
-    aKeyEvent->PreventDefault();
+  
+  if (!mActiveMenuBar) {
+    nsMenuChainItem* item = GetTopVisibleMenu();
+    if (!item || item->PopupType() != ePopupTypeMenu)
+      return NS_OK;
   }
+
+  aKeyEvent->StopPropagation();
+  aKeyEvent->PreventDefault();
 
   return NS_OK; 
 }
@@ -1699,9 +1703,11 @@ nsresult
 nsXULPopupManager::KeyDown(nsIDOMEvent* aKeyEvent)
 {
   
-  nsMenuChainItem* item = GetTopVisibleMenu();
-  if (!item || item->PopupType() != ePopupTypeMenu)
-    return NS_OK;
+  if (!mActiveMenuBar) {
+    nsMenuChainItem* item = GetTopVisibleMenu();
+    if (!item || item->PopupType() != ePopupTypeMenu)
+      return NS_OK;
+  }
 
   PRInt32 menuAccessKey = -1;
 
@@ -1826,7 +1832,7 @@ nsXULPopupManager::KeyPress(nsIDOMEvent* aKeyEvent)
     HandleShortcutNavigation(keyEvent, nsnull);
   }
 
-  if (mCurrentMenu) {
+  if (mCurrentMenu || mActiveMenuBar) {
     
     aKeyEvent->StopPropagation();
     aKeyEvent->PreventDefault();
