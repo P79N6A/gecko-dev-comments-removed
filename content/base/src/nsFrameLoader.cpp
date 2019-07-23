@@ -160,23 +160,67 @@ nsFrameLoader::LoadFrame()
 NS_IMETHODIMP
 nsFrameLoader::LoadURI(nsIURI* aURI)
 {
-  NS_PRECONDITION(aURI, "Null URI?");
-  NS_ENSURE_STATE(!mDestroyCalled);
   if (!aURI)
     return NS_ERROR_INVALID_POINTER;
+  NS_ENSURE_STATE(!mDestroyCalled && mOwnerContent);
 
-  nsIDocument* doc = mOwnerContent->GetOwnerDoc();
+  nsCOMPtr<nsIDocument> doc = mOwnerContent->GetOwnerDoc();
   if (!doc) {
     return NS_OK;
   }
 
-  nsresult rv = EnsureDocShell();
+  nsresult rv = CheckURILoad(aURI);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  mURIToLoad = aURI;
+  rv = doc->InitializeFrameLoader(this);
+  if (NS_FAILED(rv)) {
+    mURIToLoad = nsnull;
+  }
+  return rv;
+}
+
+nsresult
+nsFrameLoader::ReallyStartLoading()
+{
+  NS_ENSURE_STATE(mURIToLoad && mOwnerContent && mOwnerContent->IsInDoc());
+  
+  nsresult rv = CheckURILoad(mURIToLoad);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  rv = EnsureDocShell();
   NS_ENSURE_SUCCESS(rv, rv);
 
   nsCOMPtr<nsIDocShellLoadInfo> loadInfo;
   mDocShell->CreateLoadInfo(getter_AddRefs(loadInfo));
   NS_ENSURE_TRUE(loadInfo, NS_ERROR_FAILURE);
 
+  
+  
+  
+  loadInfo->SetOwner(mOwnerContent->NodePrincipal());
+
+  nsCOMPtr<nsIURI> referrer;
+  rv = mOwnerContent->NodePrincipal()->GetURI(getter_AddRefs(referrer));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  loadInfo->SetReferrer(referrer);
+
+  
+  rv = mDocShell->LoadURI(mURIToLoad, loadInfo,
+                          nsIWebNavigation::LOAD_FLAGS_NONE, PR_FALSE);
+  mURIToLoad = nsnull;
+#ifdef DEBUG
+  if (NS_FAILED(rv)) {
+    NS_WARNING("Failed to load the URL");
+  }
+#endif
+  return NS_OK;
+}
+
+nsresult
+nsFrameLoader::CheckURILoad(nsIURI* aURI)
+{
   
   
   
@@ -197,37 +241,15 @@ nsFrameLoader::LoadURI(nsIURI* aURI)
   nsIPrincipal* principal = mOwnerContent->NodePrincipal();
 
   
-  rv = secMan->CheckLoadURIWithPrincipal(principal, aURI,
-                                         nsIScriptSecurityManager::STANDARD);
+  nsresult rv =
+    secMan->CheckLoadURIWithPrincipal(principal, aURI,
+                                      nsIScriptSecurityManager::STANDARD);
   if (NS_FAILED(rv)) {
     return rv; 
   }
 
   
-  rv = CheckForRecursiveLoad(aURI);
-  NS_ENSURE_SUCCESS(rv, rv);
-  
-  
-  
-  
-  loadInfo->SetOwner(principal);
-
-  nsCOMPtr<nsIURI> referrer;
-  rv = principal->GetURI(getter_AddRefs(referrer));
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  loadInfo->SetReferrer(referrer);
-
-  
-  rv = mDocShell->LoadURI(aURI, loadInfo, nsIWebNavigation::LOAD_FLAGS_NONE,
-                          PR_FALSE);
-#ifdef DEBUG
-  if (NS_FAILED(rv)) {
-    NS_WARNING("Failed to load the URL");
-  }
-#endif
-
-  return rv;
+  return CheckForRecursiveLoad(aURI);
 }
 
 NS_IMETHODIMP
