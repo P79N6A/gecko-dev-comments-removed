@@ -4963,10 +4963,6 @@ var contentAreaDNDObserver = {
 
 };
 
-
-function getBrowser() gBrowser;
-function getNavToolbox() gNavToolbox;
-
 function MultiplexHandler(event)
 { try {
     var node = event.target;
@@ -6749,3 +6745,7 @@ let DownloadMonitorPanel = {
 
   QueryInterface: XPCOMUtils.generateQI([Ci.nsIDownloadProgressListener]),
 };
+
+
+function getBrowser() gBrowser;
+function getNavToolbox() gNavToolbox;
