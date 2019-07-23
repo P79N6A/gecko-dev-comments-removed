@@ -14,8 +14,9 @@ namespace gfx {
 
 
 enum YUVType {
-  YV16 = 0,           
-  YV12 = 1            
+  YV12 = 0,           
+  YV16 = 1,           
+  YV24 = 2            
 };
 
 
