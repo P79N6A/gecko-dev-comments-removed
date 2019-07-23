@@ -255,7 +255,9 @@ struct nsCSSSelectorList {
 
 
 
-  void AddSelector(nsAutoPtr<nsCSSSelector>& aSelector);
+
+
+  nsCSSSelector* AddSelector(PRUnichar aOperator);
 
   
 

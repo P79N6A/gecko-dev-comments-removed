@@ -2043,7 +2043,8 @@ static PRBool SelectorMatches(RuleProcessorData &data,
 
 
 
-#define NS_IS_GREEDY_OPERATOR(ch) (ch == PRUnichar(0) || ch == PRUnichar('~'))
+#define NS_IS_GREEDY_OPERATOR(ch) \
+  ((ch) == PRUnichar(' ') || (ch) == PRUnichar('~'))
 
 static PRBool SelectorMatchesTree(RuleProcessorData& aPrevData,
                                   nsCSSSelector* aSelector,
@@ -2052,6 +2053,10 @@ static PRBool SelectorMatchesTree(RuleProcessorData& aPrevData,
   nsCSSSelector* selector = aSelector;
   RuleProcessorData* prevdata = &aPrevData;
   while (selector) { 
+    NS_ASSERTION(!selector->mNext ||
+                 selector->mNext->mOperator != PRUnichar(0),
+                 "compound selector without combinator");
+
     
     
     
@@ -2112,7 +2117,7 @@ static PRBool SelectorMatchesTree(RuleProcessorData& aPrevData,
           selector->mNext &&
           selector->mNext->mOperator != selector->mOperator &&
           !(selector->mOperator == '~' &&
-            (selector->mNext->mOperator == PRUnichar(0) ||
+            (selector->mNext->mOperator == PRUnichar(' ') ||
              selector->mNext->mOperator == PRUnichar('>')))) {
 
         

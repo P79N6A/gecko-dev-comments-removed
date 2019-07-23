@@ -385,7 +385,8 @@ protected:
   nsSelectorParsingStatus ParseNegatedSimpleSelector(PRInt32&       aDataMask,
                                                      nsCSSSelector& aSelector);
 
-  nsSelectorParsingStatus ParseSelector(nsCSSSelectorList* aList);
+  nsSelectorParsingStatus ParseSelector(nsCSSSelectorList* aList,
+                                        PRUnichar aPrevCombinator);
 
   
   
@@ -2517,12 +2518,12 @@ static PRBool IsUniversalSelector(const nsCSSSelector& aSelector)
 PRBool
 CSSParserImpl::ParseSelectorGroup(nsCSSSelectorList*& aList)
 {
-  PRBool another;
+  PRUnichar combinator = 0;
   nsSelectorParsingStatus parsingStatus;
   nsAutoPtr<nsCSSSelectorList> list(new nsCSSSelectorList());
 
   do {
-    parsingStatus = ParseSelector(list);
+    parsingStatus = ParseSelector(list, combinator);
     if (parsingStatus == eSelectorParsingStatus_Error ||
         parsingStatus == eSelectorParsingStatus_Empty) {
       break;
@@ -2531,7 +2532,7 @@ CSSParserImpl::ParseSelectorGroup(nsCSSSelectorList*& aList)
                  "should not have left ParseSelector then");
 
     
-    another = PR_FALSE;
+    combinator = PRUnichar(0);
     if (!GetToken(PR_FALSE)) {
       break;
     }
@@ -2539,26 +2540,24 @@ CSSParserImpl::ParseSelectorGroup(nsCSSSelectorList*& aList)
       if (!GetToken(PR_TRUE)) {
         break;
       }
-      another = PR_TRUE; 
+      combinator = PRUnichar(' ');
     }
 
     if (mToken.mType == eCSSToken_Symbol &&
         (mToken.mSymbol == '+' ||
          mToken.mSymbol == '>' ||
          mToken.mSymbol == '~')) {
-      another = PR_TRUE;
-      list->mSelectors->SetOperator(mToken.mSymbol);
+      combinator = mToken.mSymbol;
     } else {
       if (mToken.mType == eCSSToken_Symbol &&
           (mToken.mSymbol == '{' ||
            mToken.mSymbol == ',')) {
-        
-        another = PR_FALSE;
+        combinator = PRUnichar(0); 
       }
       UngetToken(); 
                     
     }
-  } while (another);
+  } while (combinator);
 
   if (parsingStatus == eSelectorParsingStatus_Error) {
     return PR_FALSE;
@@ -3424,14 +3423,15 @@ CSSParserImpl::ParsePseudoClassWithNthPairArg(nsCSSSelector& aSelector,
 
 
 CSSParserImpl::nsSelectorParsingStatus
-CSSParserImpl::ParseSelector(nsCSSSelectorList* aList)
+CSSParserImpl::ParseSelector(nsCSSSelectorList* aList,
+                             PRUnichar aPrevCombinator)
 {
   if (! GetToken(PR_TRUE)) {
     REPORT_UNEXPECTED_EOF(PESelectorEOF);
     return eSelectorParsingStatus_Error;
   }
 
-  nsAutoPtr<nsCSSSelector> selector(new nsCSSSelector());
+  nsCSSSelector* selector = aList->AddSelector(aPrevCombinator);
   nsCOMPtr<nsIAtom> pseudoElement;
   nsAutoPtr<nsPseudoClassList> pseudoElementArgs;
   nsCSSPseudoElements::Type pseudoElementType =
@@ -3483,7 +3483,7 @@ CSSParserImpl::ParseSelector(nsCSSSelectorList* aList)
   if (pseudoElementType == nsCSSPseudoElements::ePseudo_AnonBox) {
     
     
-    if (aList->mSelectors || !IsUniversalSelector(*selector)) {
+    if (selector->mNext || !IsUniversalSelector(*selector)) {
       REPORT_UNEXPECTED(PEAnonBoxNotAlone);
       return eSelectorParsingStatus_Error;
     }
@@ -3493,24 +3493,19 @@ CSSParserImpl::ParseSelector(nsCSSSelectorList* aList)
     selector->mLowercaseTag.swap(pseudoElement);
     selector->mPseudoClassList = pseudoElementArgs.forget();
     selector->SetPseudoType(pseudoElementType);
-    aList->AddSelector(selector);
     return parsingStatus;
   }
 
   aList->mWeight += selector->CalcWeight();
-  aList->AddSelector(selector);
 
   
   
   if (pseudoElement) {
-    aList->mSelectors->SetOperator('>');
+    selector = aList->AddSelector('>');
 
-    nsAutoPtr<nsCSSSelector> pseudo(new nsCSSSelector());
-    pseudo->mLowercaseTag.swap(pseudoElement);
-    pseudo->mPseudoClassList = pseudoElementArgs.forget();
-    pseudo->SetPseudoType(pseudoElementType);
-    aList->AddSelector(pseudo);
-    
+    selector->mLowercaseTag.swap(pseudoElement);
+    selector->mPseudoClassList = pseudoElementArgs.forget();
+    selector->SetPseudoType(pseudoElementType);
   }
 
   return parsingStatus;
