@@ -644,7 +644,7 @@ nsWindow::StandardWindowCreate(nsIWidget *aParent,
       parent = NULL;
   } else if (mWindowType == eWindowType_invisible) {
     
-    style &= ~WS_CHILDWINDOW;
+    style &= ~0x40000000; 
   } else if (nsnull != aInitData) {
     
     if (aInitData->clipChildren) {
