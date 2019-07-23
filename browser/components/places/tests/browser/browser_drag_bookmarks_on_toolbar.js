@@ -122,14 +122,14 @@ function synthesizeDragWithDirection(aElement, aExpectedDragData, aDirection) {
                              { type: "mousemove" });
   gBookmarksToolbar.addEventListener("dragstart", trapDrag, false);
   EventUtils.synthesizeMouse(aElement,
-                             startingPoint.x + xIncrement * 8,
-                             startingPoint.y + yIncrement * 8,
+                             startingPoint.x + xIncrement * 9,
+                             startingPoint.y + yIncrement * 9,
                              { type: "mousemove" });
   ok(trapped, "A dragstart event has been trapped.");
   gBookmarksToolbar.removeEventListener("dragstart", trapDrag, false);
   EventUtils.synthesizeMouse(aElement,
-                             startingPoint.x + xIncrement * 8,
-                             startingPoint.y + yIncrement * 8,
+                             startingPoint.x + xIncrement * 9,
+                             startingPoint.y + yIncrement * 9,
                              { type: "mouseup" });
 
   
@@ -248,15 +248,6 @@ function nextTest() {
 }
 
 function test() {
-  var osString = Cc["@mozilla.org/xre/app-info;1"].
-                 getService(Ci.nsIXULRuntime).OS;
-
-  
-  if (osString == "Linux") {
-    finish();
-    return;
-  }
-
   waitForExplicitFinish();
 
   nextTest();
