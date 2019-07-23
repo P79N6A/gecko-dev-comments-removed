@@ -114,6 +114,9 @@ public:
   void AddLocator(nsGeolocation* locator);
   void RemoveLocator(nsGeolocation* locator);
 
+  void SetCachedPosition(nsIDOMGeoPosition* aPosition);
+  nsIDOMGeoPosition* GetCachedPosition();
+
   
   PRBool   HasGeolocationProvider();
 
@@ -148,6 +151,9 @@ private:
   
   
   nsTArray<nsGeolocation*> mGeolocators;
+
+  
+  nsCOMPtr<nsIDOMGeoPosition> mLastPosition;
 };
 
 
