@@ -529,14 +529,17 @@ protected:
                              LineReflowStatus* aLineReflowStatus);
 
   
-  nsRect ComputeFloatAvailableSpace(nsBlockReflowState& aState,
-                                    nsIFrame*           aFloatFrame);
+  nsRect AdjustFloatAvailableSpace(nsBlockReflowState& aState,
+                                   const nsRect&       aFloatAvailableSpace,
+                                   nsIFrame*           aFloatFrame);
   
   nscoord ComputeFloatWidth(nsBlockReflowState& aState,
+                            const nsRect&       aFloatAvailableSpace,
                             nsPlaceholderFrame* aPlaceholder);
   
   
   nsresult ReflowFloat(nsBlockReflowState& aState,
+                       const nsRect&       aFloatAvailableSpace,
                        nsPlaceholderFrame* aPlaceholder,
                        nsMargin&           aFloatMargin,
                        nsReflowStatus&     aReflowStatus);
