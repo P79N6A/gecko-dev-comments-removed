@@ -1056,7 +1056,7 @@ JSCompiler::compileScript(JSContext *cx, JSObject *scopeChain, JSStackFrame *cal
     JS_DumpArenaStats(stdout);
 #endif
     script = js_NewScriptFromCG(cx, &cg);
-    if (script && funbox)
+    if (script && funbox && script != script->emptyScript())
         script->savedCallerFun = true;
 
 #ifdef JS_SCOPE_DEPTH_METER
@@ -2413,8 +2413,7 @@ JSCompiler::setFunctionKinds(JSFunctionBox *funbox, uint32& tcflags)
                 if (nupvars == 0) {
                     FUN_METER(onlyfreevar);
                     FUN_SET_KIND(fun, JSFUN_NULL_CLOSURE);
-                } else if (nflattened == nupvars) {
-                    
+                } else if (nflattened != 0) {
                     
 
 
