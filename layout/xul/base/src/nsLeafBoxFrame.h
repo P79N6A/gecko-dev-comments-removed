@@ -48,10 +48,6 @@ public:
 
   friend nsIFrame* NS_NewLeafBoxFrame(nsIPresShell* aPresShell, nsStyleContext* aContext);
 
-  
-  NS_IMETHOD_(nsrefcnt) AddRef(void);
-  NS_IMETHOD_(nsrefcnt) Release(void);
-
   virtual nsSize GetPrefSize(nsBoxLayoutState& aState);
   virtual nsSize GetMinSize(nsBoxLayoutState& aState);
   virtual nsSize GetMaxSize(nsBoxLayoutState& aState);
