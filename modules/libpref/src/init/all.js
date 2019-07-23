@@ -950,8 +950,6 @@ pref("security.xpconnect.plugin.unrestricted", true);
 
 pref("security.dialog_enable_delay", 2000);
 
-pref("security.csp.enable", true);
-
 
 
 

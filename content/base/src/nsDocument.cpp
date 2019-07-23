@@ -182,21 +182,14 @@ static NS_DEFINE_CID(kDOMEventGroupCID, NS_DOMEVENTGROUP_CID);
 #endif 
 
 
-#include "IContentSecurityPolicy.h"
-
-
 #ifdef MOZ_LOGGING
 
 #define FORCE_PR_LOG 1
 #endif
 #include "prlog.h"
 
-
-static PRBool gCSPEnabled = PR_TRUE;
-
 #ifdef PR_LOGGING
 static PRLogModuleInfo* gDocumentLeakPRLog;
-static PRLogModuleInfo* gCspPRLog;
 #endif
 
 void
@@ -1502,12 +1495,7 @@ nsDocument::nsDocument(const char* aContentType)
   if (gDocumentLeakPRLog)
     PR_LOG(gDocumentLeakPRLog, PR_LOG_DEBUG,
            ("DOCUMENT %p created", this));
-
-  if (!gCspPRLog)
-    gCspPRLog = PR_NewLogModule("CSP");
 #endif
-
-  nsContentUtils::AddBoolPrefVarCache("security.csp.enable", &gCSPEnabled);
 
   
   SetDOMStringToNull(mLastStyleSheetSet);
@@ -2263,111 +2251,7 @@ nsDocument::StartDocumentLoad(const char* aCommand, nsIChannel* aChannel,
   RetrieveRelevantHeaders(aChannel);
 
   mChannel = aChannel;
-  
-  nsresult rv = InitCSP();
-  NS_ENSURE_SUCCESS(rv, rv);
 
-  return NS_OK;
-}
-
-nsresult
-nsDocument::InitCSP()
-{
-  if (gCSPEnabled) {
-    nsAutoString cspHeaderValue;
-    nsAutoString cspROHeaderValue;
-
-    this->GetHeaderData(nsGkAtoms::headerCSP, cspHeaderValue);
-    this->GetHeaderData(nsGkAtoms::headerCSPReportOnly, cspROHeaderValue);
-
-    PRBool system = PR_FALSE;
-    nsIScriptSecurityManager *ssm = nsContentUtils::GetSecurityManager();
-
-    if (NS_SUCCEEDED(ssm->IsSystemPrincipal(NodePrincipal(), &system)) && system) {
-      
-      return NS_OK;
-    }
-
-    if (cspHeaderValue.IsEmpty() && cspROHeaderValue.IsEmpty()) {
-      
-      return NS_OK;
-    }
-
-#ifdef PR_LOGGING 
-    PR_LOG(gCspPRLog, PR_LOG_DEBUG, ("CSP header specified for document %p", this));
-#endif
-
-    nsresult rv;
-    nsCOMPtr<IContentSecurityPolicy> mCSP;
-    mCSP = do_CreateInstance("@mozilla.org/contentsecuritypolicy;1", &rv);
-
-    if (NS_FAILED(rv)) {
-#ifdef PR_LOGGING 
-      PR_LOG(gCspPRLog, PR_LOG_DEBUG, ("Failed to create CSP object: %x", rv));
-#endif
-      return rv;
-    }
-
-    
-    nsCOMPtr<nsIHttpChannel> httpChannel = do_QueryInterface(mChannel);
-    mCSP->ScanRequestData(httpChannel);
-
-    
-    nsCOMPtr<nsIURI> chanURI;
-    mChannel->GetURI(getter_AddRefs(chanURI));
-
-#ifdef PR_LOGGING 
-    PR_LOG(gCspPRLog, PR_LOG_DEBUG, ("CSP Loaded"));
-#endif
-
-    
-    
-    
-    
-    if (cspHeaderValue.IsEmpty()) {
-      mCSP->SetReportOnlyMode(true);
-      mCSP->RefinePolicy(cspROHeaderValue, chanURI);
-#ifdef PR_LOGGING 
-      {
-        PR_LOG(gCspPRLog, PR_LOG_DEBUG, 
-                ("CSP (report only) refined, policy: \"%s\"", 
-                  NS_ConvertUTF16toUTF8(cspROHeaderValue).get()));
-      }
-#endif
-    } else {
-      
-      
-      mCSP->RefinePolicy(cspHeaderValue, chanURI);
-#ifdef PR_LOGGING 
-      {
-        PR_LOG(gCspPRLog, PR_LOG_DEBUG, 
-               ("CSP refined, policy: \"%s\"",
-                NS_ConvertUTF16toUTF8(cspHeaderValue).get()));
-      }
-#endif
-    }
-
-    
-    nsIPrincipal* principal = GetPrincipal();
-
-    if (principal) {
-        principal->SetCsp(mCSP);
-#ifdef PR_LOGGING
-        PR_LOG(gCspPRLog, PR_LOG_DEBUG, 
-                ("Inserted CSP into principal %p", principal));
-    }
-    else {
-      PR_LOG(gCspPRLog, PR_LOG_DEBUG, 
-              ("Couldn't copy CSP into absent principal %p", principal));
-#endif
-    }
-  }
-#ifdef PR_LOGGING
-  else { 
-    PR_LOG(gCspPRLog, PR_LOG_DEBUG, 
-           ("CSP is disabled, skipping CSP init for document %p", this));
-  }
-#endif
   return NS_OK;
 }
 
@@ -6294,7 +6178,8 @@ nsDocument::AddEventListener(const nsAString& aType,
                              nsIDOMEventListener* aListener,
                              PRBool aUseCapture)
 {
-  return AddEventListener(aType, aListener, aUseCapture, PR_FALSE, 0);
+  return AddEventListener(aType, aListener, aUseCapture,
+                          !nsContentUtils::IsChromeDoc(this));
 }
 
 nsresult
@@ -6365,21 +6250,14 @@ nsDocument::IsRegisteredHere(const nsAString & type, PRBool *_retval)
 NS_IMETHODIMP
 nsDocument::AddEventListener(const nsAString& aType,
                              nsIDOMEventListener *aListener,
-                             PRBool aUseCapture, PRBool aWantsUntrusted,
-                             PRUint8 optional_argc)
+                             PRBool aUseCapture, PRBool aWantsUntrusted)
 {
-  NS_ASSERTION(!aWantsUntrusted || optional_argc > 0,
-               "Won't check if this is chrome, you want to set "
-               "aWantsUntrusted to PR_FALSE or make the aWantsUntrusted "
-               "explicit by making optional_argc non-zero.");
-
   nsIEventListenerManager* manager = GetListenerManager(PR_TRUE);
   NS_ENSURE_STATE(manager);
 
   PRInt32 flags = aUseCapture ? NS_EVENT_FLAG_CAPTURE : NS_EVENT_FLAG_BUBBLE;
 
-  if (aWantsUntrusted ||
-      (optional_argc == 0 && !nsContentUtils::IsChromeDoc(this))) {
+  if (aWantsUntrusted) {
     flags |= NS_PRIV_EVENT_UNTRUSTED_PERMITTED;
   }
 
@@ -6764,8 +6642,6 @@ nsDocument::RetrieveRelevantHeaders(nsIChannel *aChannel)
       "content-disposition",
       "refresh",
       "x-dns-prefetch-control",
-      "x-content-security-policy",
-      "x-content-security-policy-read-only",
       
       
       
