@@ -17,9 +17,6 @@
 #define NS_THEME_CHECKBOX_SMALL                            5
 
 
-#define NS_THEME_BUTTON_SMALL                              6
-
-
 
 #define NS_THEME_BUTTON_BEVEL                              7
 
