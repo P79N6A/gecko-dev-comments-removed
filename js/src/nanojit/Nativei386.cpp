@@ -754,7 +754,7 @@ namespace nanojit
         if (op == LIR_mod) {
             
             findSpecificRegFor(lhs, EDX);
-            prepResultReg(ins, 1<<EDX);
+            prepResultReg(ins, rmask(EDX));
             evictIfActive(EAX);
             return;
         }
@@ -769,7 +769,7 @@ namespace nanojit
         case LIR_div:
             forceReg = true;
             rb = findRegFor(rhs, (GpRegs ^ (rmask(EAX)|rmask(EDX))));
-            allow = 1<<EAX;
+            allow = rmask(EAX);
             evictIfActive(EDX);
             break;
         case LIR_mul:
