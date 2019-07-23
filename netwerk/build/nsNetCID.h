@@ -849,6 +849,11 @@
 
 
 
+#define NS_CRYPTO_HMAC_CONTRACTID "@mozilla.org/security/hmac;1"
+
+
+
+
 
 
 
