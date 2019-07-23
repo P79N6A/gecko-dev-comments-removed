@@ -279,7 +279,10 @@ class nsObjectLoadingContent : public nsImageLoadingContent
 
 
 
-    nsIObjectFrame* GetFrame();
+
+
+
+    nsIObjectFrame* GetFrame(PRBool aFlushLayout);
 
     
 

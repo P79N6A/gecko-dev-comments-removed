@@ -96,7 +96,7 @@ nsPluginStreamListener::OnStartRequest(nsIRequest* request, nsISupports *ctxt)
     return rv;
   }
 
-  nsIContent* embed = mPluginDoc->GetPluginContent();
+  nsCOMPtr<nsIContent> embed = mPluginDoc->GetPluginContent();
 
   
   nsIPresShell* shell = mDocument->GetPrimaryShell();
@@ -104,6 +104,11 @@ nsPluginStreamListener::OnStartRequest(nsIRequest* request, nsISupports *ctxt)
     
     return NS_BINDING_ABORTED;
   }
+
+  
+  
+  
+  shell->FlushPendingNotifications(Flush_Layout);
 
   nsIFrame* frame = shell->GetPrimaryFrameFor(embed);
   if (!frame) {
