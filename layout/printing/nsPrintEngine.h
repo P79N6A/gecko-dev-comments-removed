@@ -280,7 +280,7 @@ protected:
   PRPackedBool mIsDoingPrintPreview; 
   PRPackedBool mProgressDialogIsShown;
 
-  nsIDocumentViewerPrint* mDocViewerPrint; 
+  nsCOMPtr<nsIDocumentViewerPrint> mDocViewerPrint;
   nsISupports*            mContainer;      
   nsIDeviceContext*       mDeviceContext;  
   

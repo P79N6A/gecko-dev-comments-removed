@@ -1313,10 +1313,8 @@ DocumentViewerImpl::Close(nsISHEntry *aSHEntry)
   
   
   
-  
   if (mPrintEngine && !mClosingWhilePrinting) {
     mClosingWhilePrinting = PR_TRUE;
-    NS_ADDREF_THIS();
   } else
 #endif
     {
@@ -4074,7 +4072,6 @@ DocumentViewerImpl::OnDonePrinting()
         mDocument = nsnull;
       }
       mClosingWhilePrinting = PR_FALSE;
-      NS_RELEASE_THIS();
     }
     if (mPresContext)
       mPresContext->RestoreImageAnimationMode();
