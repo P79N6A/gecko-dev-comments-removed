@@ -1920,14 +1920,7 @@ nsPlacesImportExportService::WriteSeparator(nsINavHistoryResultNode* aItem,
   NS_ENSURE_SUCCESS(rv, rv);
 
   
-  rv = aOutput->Write(kIdAttribute, sizeof(kIdAttribute)-1, &dummy);
-  NS_ENSURE_SUCCESS(rv, rv);
-  nsCAutoString id;
-  id.AppendInt(itemId);
-  rv = aOutput->Write(id.get(), id.Length(), &dummy);
-  NS_ENSURE_SUCCESS(rv, rv);
-  rv = aOutput->Write(kQuoteStr, sizeof(kQuoteStr)-1, &dummy);
-  NS_ENSURE_SUCCESS(rv, rv);
+  
 
   nsAutoString title;
   rv = mBookmarksService->GetItemTitle(itemId, title);

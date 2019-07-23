@@ -147,25 +147,26 @@ function run_test() {
 
 
 
-  
-  
-  
-  
-  
-  
-  
-  
-  bmsvc.removeFolderChildren(bmsvc.bookmarksRoot);
-  try {
-    importer.importHTMLFromFile(bookmarksFileNew, true);
-  } catch(ex) { do_throw("couldn't import the exported file: " + ex); }
-  try {
-    importer.exportHTMLToFile(bookmarksFileNew);
-  } catch(ex) { do_throw("couldn't export to file: " + ex); }
-  try {
-    importer.importHTMLFromFile(bookmarksFileNew, true);
-  } catch(ex) { do_throw("couldn't import the exported file: " + ex); }
-  testCanonicalBookmarks(bmsvc.bookmarksRoot);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
   
 
