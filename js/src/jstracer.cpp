@@ -1354,9 +1354,7 @@ TraceRecorder::checkType(jsval& v, uint8 t, bool& unstable)
         if (!isNumber(v))
             return false; 
         LIns* i = get(&v);
-        if (!isInt32(v) || (!i->isop(LIR_i2f) &&
-                !(i->isop(LIR_fadd) && i->oprnd2()->isconstq() &&
-                        fabs(i->oprnd2()->constvalf()) == 1.0))) {
+        if (!i->isop(LIR_i2f)) {
             debug_only_v(printf("int slot is !isInt32, slot #%d, triggering re-compilation\n",
                                 !isGlobal(&v)
                                 ? nativeStackOffset(&v)
@@ -1366,7 +1364,7 @@ TraceRecorder::checkType(jsval& v, uint8 t, bool& unstable)
             return true; 
         }
         
-        JS_ASSERT(i->isop(LIR_i2f));
+        JS_ASSERT(isInt32(v) && i->isop(LIR_i2f));
         
 
 
