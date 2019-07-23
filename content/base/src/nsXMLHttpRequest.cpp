@@ -1080,11 +1080,10 @@ nsXMLHttpRequest::GetStatus(PRUint32 *aStatus)
       
       
       
-      
       PRInt32 readyState;
       GetReadyState(&readyState);
       if (readyState >= 3) {
-        *aStatus = NS_ERROR_NOT_AVAILABLE;
+        *aStatus = 0;
         return NS_OK;
       }
     }
