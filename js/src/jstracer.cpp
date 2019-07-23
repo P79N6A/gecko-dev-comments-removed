@@ -13043,7 +13043,7 @@ static const uint32 sMaxConcatNSize = 32;
 
 
 
-jsval *
+JS_REQUIRES_STACK jsval *
 js_ConcatPostImacroStackCleanup(uint32 argc, JSFrameRegs &regs,
                                 TraceRecorder *recorder)
 {
