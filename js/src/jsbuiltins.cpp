@@ -452,7 +452,9 @@ js_PopInterpFrame(JSContext* cx, InterpState* state)
     cx->fp = cx->fp->down;
     JS_ASSERT(cx->fp->regs == &ifp->callerRegs);
     cx->fp->regs = ifp->frame.regs;
-    JS_ARENA_RELEASE(&cx->stackPool, ifp->mark);
+
+    
+    state->stackMark = ifp->mark;
 
     
     *state->inlineCallCountp = *state->inlineCallCountp - 1;

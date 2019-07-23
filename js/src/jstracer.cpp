@@ -6609,6 +6609,7 @@ LeaveTree(InterpState& state, VMSideExit* lr)
                  innermost->calldepth == 0 && callstack == rp);
 
     JS_ARENA_RELEASE(&cx->stackPool, state.stackMark);
+
     while (callstack < rp) {
         FrameInfo* fi = *callstack;
         
