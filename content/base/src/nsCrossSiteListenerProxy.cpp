@@ -697,6 +697,49 @@ EatChar(nsACString::const_iterator& aIter, nsACString::const_iterator& aEnd,
   return PR_FALSE;
 }
 
+
+
+
+
+
+
+static void
+EatSubdomainChars(nsACString::const_iterator& aIter,
+                  nsACString::const_iterator& aEnd)
+{
+  NS_ASSERTION(aIter.get() <= aEnd.get(), "EatSubdomainChars failed");
+
+  
+  if (*aIter == '-') {
+    return;
+  }
+
+  while (aIter != aEnd) {
+    unsigned char c = *aIter;
+    if (c <= 0x2c || 
+        0x2e <= c && c <= 0x2f ||
+        0x3a <= c && c <= 0x40 ||
+        0x5b <= c && c <= 0x60 ||
+        0x7b <= c && c <= 0x7f) {
+      return;
+    }
+    ++aIter;
+  }
+}
+
+static PRBool
+ACEEquals(const nsACString &aPattern, const nsCString &domain)
+{
+  if (aPattern.LowerCaseEqualsASCII(domain.get(), domain.Length()))
+    return PR_TRUE;
+
+  
+  nsCString acePattern;
+  if (!NS_StringToACE(aPattern, acePattern))
+    return PR_FALSE;
+  return acePattern.LowerCaseEqualsASCII(domain.get(), domain.Length());
+}
+
 PRBool
 nsCrossSiteListenerProxy::VerifyAndMatchDomainPattern(const nsACString& aPattern)
 {
@@ -753,13 +796,8 @@ nsCrossSiteListenerProxy::VerifyAndMatchDomainPattern(const nsACString& aPattern
   
   do {
     iter = start;
-    if (!EatAlpha(iter, end)) {
-      DENY_AND_RETURN PR_FALSE;
-    }
 
-    while (EatAlpha(iter, end) ||
-           EatDigit(iter, end) ||
-           EatChar(iter, end, '-')) {}
+    EatSubdomainChars(iter, end);
     
     const nsDependentCSubstring& label = Substring(start, iter);
     if (label.Last() == '-') {
@@ -767,7 +805,7 @@ nsCrossSiteListenerProxy::VerifyAndMatchDomainPattern(const nsACString& aPattern
     }
 
     start = iter;
-    
+
     
     patternSubdomains.AppendElement(label);
   } while (EatChar(start, end, '.'));
@@ -804,8 +842,9 @@ nsCrossSiteListenerProxy::VerifyAndMatchDomainPattern(const nsACString& aPattern
   }
 
   
-  if (patternPort != -1 &&
-      patternPort != NS_GetRealPort(mRequestingURI)) {
+  if (patternPort == -1 && !patternScheme.IsEmpty())
+    patternPort = NS_GetDefaultPort(patternScheme.get());
+  if (patternPort != -1 && patternPort != NS_GetRealPort(mRequestingURI)) {
     return PR_FALSE;
   }
 
@@ -815,8 +854,7 @@ nsCrossSiteListenerProxy::VerifyAndMatchDomainPattern(const nsACString& aPattern
   do {
     --patternPos;
     --reqPos;
-    if (!patternSubdomains[patternPos].LowerCaseEqualsASCII(
-          mReqSubdomains[reqPos].get(), mReqSubdomains[reqPos].Length())) {
+    if (!ACEEquals(patternSubdomains[patternPos], mReqSubdomains[reqPos])) {
       return PR_FALSE;
     }
   } while (patternPos > 0 && reqPos > 0);
@@ -824,8 +862,49 @@ nsCrossSiteListenerProxy::VerifyAndMatchDomainPattern(const nsACString& aPattern
   
   
   
-  
   return patternPos == 0 &&
-         ((reqPos == 0 && !patternHasWild) ||
-          (reqPos != 0 && patternHasWild));
+         (!patternHasWild || reqPos >= 1);
+}
+
+
+nsresult
+nsCrossSiteListenerProxy::AddRequestHeaders(nsIChannel* aChannel,
+                                            nsIPrincipal* aRequestingPrincipal)
+{
+  
+  NS_ENSURE_TRUE(aRequestingPrincipal, NS_ERROR_FAILURE);
+
+  
+  nsCOMPtr<nsIURI> uri;
+  nsresult rv = aRequestingPrincipal->GetURI(getter_AddRefs(uri));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  nsCString scheme, host;
+  rv = uri->GetScheme(scheme);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  rv = uri->GetAsciiHost(host);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  nsCString root = scheme + NS_LITERAL_CSTRING("://") + host +
+                   NS_LITERAL_CSTRING(":");
+
+  
+  PRInt32 port;
+  uri->GetPort(&port);
+  if (port == -1) {
+    port = NS_GetDefaultPort(scheme.get());
+    if (port == -1) {
+      return NS_ERROR_DOM_BAD_URI;
+    }
+  }
+
+  root.AppendInt(port);
+  
+  
+  nsCOMPtr<nsIHttpChannel> http = do_QueryInterface(aChannel);
+  NS_ENSURE_TRUE(http, NS_ERROR_FAILURE);
+
+  return http->SetRequestHeader(NS_LITERAL_CSTRING("Referer-Root"),
+    root, PR_FALSE);
 }
