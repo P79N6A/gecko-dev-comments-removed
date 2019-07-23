@@ -68,14 +68,15 @@ NS_IMPL_ISUPPORTS1(nsIdleServiceGTK, nsIIdleService)
 nsIdleServiceGTK::nsIdleServiceGTK()
     : mXssInfo(nsnull)
 {
+#ifdef PR_LOGGING
+    if (!sIdleLog)
+        sIdleLog = PR_NewLogModule("nsIIdleService");
+#endif
 }
 
 static void Initialize()
 {
     sInitialized = PR_TRUE;
-#ifdef PR_LOGGING
-    sIdleLog = PR_NewLogModule("nsIIdleService");
-#endif
 
     
     PRLibrary* xsslib = PR_LoadLibrary("libXss.so.1");
