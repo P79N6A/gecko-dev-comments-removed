@@ -39,32 +39,6 @@
 
 
 
-var FAILED = "FAILED!: ";
-var STATUS = "STATUS: ";
-var BUGNUMBER = "BUGNUMBER: ";
-var VERBOSE = false;
-var SECT_PREFIX = 'Section ';
-var SECT_SUFFIX = ' of test -';
-
-
-
-
-
-function expectExitCode(n)
-{
-
-    print('--- NOTE: IN THIS TESTCASE, WE EXPECT EXIT CODE ' + n + ' ---');
-
-}
-
-
-
-
-function inSection(x)
-{
-    return SECT_PREFIX + x + SECT_SUFFIX;
-}
-
 
 
 
@@ -74,28 +48,6 @@ function reportFailure (section, msg)
     var lines = msg.split ("\n");
     for (var i=0; i<lines.length; i++)
         print (FAILED + lines[i]);
-}
-
-
-
-
-function printStatus (msg)
-{
-    msg = msg.toString();
-    var lines = msg.split ("\n");
-    var l;
-
-    for (var i=0; i<lines.length; i++)
-        print (STATUS + lines[i]);
-
-}
-
-
-
-
-function printBugNumber (num)
-{
-  print (BUGNUMBER + num);
 }
 
 function toPrinted(value)
@@ -224,92 +176,7 @@ function compareSource(n, expect, actual)
     }
 }
 
-function optionsInit() {
-
-  
-  
-  options.initvalues  = {};
-
-  
-  
-  options.stackvalues = [];
-
-  var optionNames = options().split(',');
-
-  for (var i = 0; i < optionNames.length; i++)
-  {
-    var optionName = optionNames[i];
-    if (optionName)
-    {
-      options.initvalues[optionName] = '';
-    }
-  }
-}
-
-function optionsClear() {
-        
-  
-  var optionNames = options().split(',');
-  for (var i = 0; i < optionNames.length; i++)
-  {
-    var optionName = optionNames[i];
-    if (optionName)
-    {
-      options(optionName);
-    }
-  }
-}
-
-function optionsPush()
-{
-  var optionsframe = {};
-
-  options.stackvalues.push(optionsframe);
-
-  var optionNames = options().split(',');
-
-  for (var i = 0; i < optionNames.length; i++)
-  {
-    var optionName = optionNames[i];
-    if (optionName)
-    {
-      optionsframe[optionName] = '';
-    }
-  }
-
-  optionsClear();
-
-  
-  options('xml');
-}
-
-function optionsPop()
-{
-  var optionsframe = options.stackvalues.pop();
-
-  optionsClear();
-
-  for (optionName in optionsframe)
-  {
-    options(optionName);
-  }
-
-}
-
-function optionsReset() {
-
-  optionsClear();
-
-  
-  for (optionName in options.initvalues)
-  {
-    options(optionName);
-  }
-}
-
 if (typeof options == 'function')
 {
-  optionsInit();
-  optionsClear();
   options('xml');
 }
