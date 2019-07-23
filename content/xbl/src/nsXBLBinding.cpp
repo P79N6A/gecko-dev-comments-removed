@@ -1039,25 +1039,19 @@ void
 nsXBLBinding::ChangeDocument(nsIDocument* aOldDocument, nsIDocument* aNewDocument)
 {
   if (aOldDocument != aNewDocument) {
-    if (mNextBinding)
-      mNextBinding->ChangeDocument(aOldDocument, aNewDocument);
-
     
     if (mIsStyleBinding) {
       
-      nsIContent* interfaceElement =
-        mPrototypeBinding->GetImmediateChild(nsGkAtoms::implementation);
-
-      if (interfaceElement) { 
-        nsIScriptGlobalObject *global = aOldDocument->GetScriptGlobalObject();
+      if (mPrototypeBinding->HasImplementation()) { 
+        nsIScriptGlobalObject *global = aOldDocument->GetScopeObject();
         if (global) {
           nsIScriptContext *context = global->GetContext();
           if (context) {
-            JSContext *jscontext = (JSContext *)context->GetNativeContext();
+            JSContext *cx = (JSContext *)context->GetNativeContext();
  
             nsCOMPtr<nsIXPConnectJSObjectHolder> wrapper;
             nsresult rv = nsContentUtils::XPConnect()->
-              WrapNative(jscontext, global->GetGlobalJSObject(),
+              WrapNative(cx, global->GetGlobalJSObject(),
                          mBoundElement, NS_GET_IID(nsISupports),
                          getter_AddRefs(wrapper));
             if (NS_FAILED(rv))
@@ -1068,16 +1062,57 @@ nsXBLBinding::ChangeDocument(nsIDocument* aOldDocument, nsIDocument* aNewDocumen
             if (NS_FAILED(rv))
               return;
 
+            mPrototypeBinding->UndefineFields(cx, scriptObject);
+
+            
+            
+            
             
             
 
             
-            
-            JSObject* ourProto = ::JS_GetPrototype(jscontext, scriptObject);
-            if (ourProto)
-            {
-              JSObject* grandProto = ::JS_GetPrototype(jscontext, ourProto);
-              ::JS_SetPrototype(jscontext, scriptObject, grandProto);
+            JSObject* base = scriptObject;
+            JSObject* proto;
+            JSAutoRequest ar(cx);
+            for ( ; true; base = proto) { 
+              proto = ::JS_GetPrototype(cx, base);
+              if (!proto) {
+                break;
+              }
+
+              JSClass* clazz = ::JS_GetClass(cx, proto);
+              if (!clazz ||
+                  (~clazz->flags &
+                   (JSCLASS_HAS_PRIVATE | JSCLASS_PRIVATE_IS_NSISUPPORTS)) ||
+                  JSCLASS_RESERVED_SLOTS(clazz) != 1) {
+                
+                continue;
+              }
+
+              nsCOMPtr<nsIXBLDocumentInfo> docInfo =
+                do_QueryInterface(static_cast<nsISupports*>
+                                             (::JS_GetPrivate(cx, proto)));
+              if (!docInfo) {
+                
+                continue;
+              }
+              
+              jsval protoBinding;
+              if (!::JS_GetReservedSlot(cx, proto, 0, &protoBinding)) {
+                NS_ERROR("Really shouldn't happen");
+                continue;
+              }
+
+              if (JSVAL_TO_PRIVATE(protoBinding) != mPrototypeBinding) {
+                
+                continue;
+              }
+
+              
+              
+              JSObject* grandProto = ::JS_GetPrototype(cx, proto);
+              ::JS_SetPrototype(cx, base, grandProto);
+              break;
             }
 
             
@@ -1088,6 +1123,13 @@ nsXBLBinding::ChangeDocument(nsIDocument* aOldDocument, nsIDocument* aNewDocumen
       }
     }
 
+    
+    
+    if (mNextBinding) {
+      mNextBinding->ChangeDocument(aOldDocument, aNewDocument);
+    }
+
+    
     
     nsIContent *anonymous = mContent;
     if (anonymous) {
