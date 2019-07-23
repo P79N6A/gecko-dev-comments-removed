@@ -39,6 +39,7 @@
 
 
 
+
 #include "nsStackWalk.h"
 
 #if defined(_WIN32) && (defined(_M_IX86) || defined(_M_AMD64) || defined(_M_IA64)) && !defined(WINCE) 
@@ -1093,7 +1094,7 @@ NS_FormatCodeAddressDetails(void *aPC, const nsCodeAddressDetails *aDetails,
 
 
 
-#elif (defined(linux) && defined(__GNUC__) && (defined(__i386) || defined(PPC) || defined(__x86_64__))) || (defined(__sun) && (defined(__sparc) || defined(sparc) || defined(__i386) || defined(i386))) || (defined(XP_MACOSX) && (defined(__ppc__) || defined(__i386)))
+#elif HAVE_DLADDR && (HAVE__UNWIND_BACKTRACE || (defined(linux) && defined(__GNUC__) && (defined(__i386) || defined(PPC))) || (defined(__sun) && (defined(__sparc) || defined(sparc) || defined(__i386) || defined(i386))) || (defined(XP_MACOSX) && (defined(__ppc__) || defined(__i386))))
 
 #include <stdlib.h>
 #include <string.h>
@@ -1142,99 +1143,7 @@ void DemangleSymbol(const char * aSymbol,
 }
 
 
-#if (defined(linux) && defined(__GNUC__) && (defined(__i386) || defined(PPC) || defined(__x86_64__))) || (defined(XP_MACOSX) && (defined(__i386) || defined(__ppc__))) 
-
-
-EXPORT_XPCOM_API(nsresult)
-NS_StackWalk(NS_WalkStackCallback aCallback, PRUint32 aSkipFrames,
-             void *aClosure)
-{
-  
-
-  
-  void **bp;
-#if defined(__i386) 
-  __asm__( "movl %%ebp, %0" : "=g"(bp));
-#elif defined(__x86_64__)
-  __asm__( "movq %%rbp, %0" : "=g"(bp));
-#else
-  
-  
-  
-  bp = (void**) __builtin_frame_address(0);
-#endif
-
-  int skip = aSkipFrames;
-  for ( ; (void**)*bp > bp; bp = (void**)*bp) {
-#if defined(__ppc__) && defined(XP_MACOSX) 
-    void *pc = *(bp+2);
-#else
-    void *pc = *(bp+1);
-#endif
-    if (--skip < 0) {
-      (*aCallback)(pc, aClosure);
-    }
-  }
-  return NS_OK;
-}
-
-EXPORT_XPCOM_API(nsresult)
-NS_DescribeCodeAddress(void *aPC, nsCodeAddressDetails *aDetails)
-{
-  aDetails->library[0] = '\0';
-  aDetails->loffset = 0;
-  aDetails->filename[0] = '\0';
-  aDetails->lineno = 0;
-  aDetails->function[0] = '\0';
-  aDetails->foffset = 0;
-
-  Dl_info info;
-  int ok = dladdr(aPC, &info);
-  if (!ok) {
-    return NS_OK;
-  }
-
-  PL_strncpyz(aDetails->library, info.dli_fname, sizeof(aDetails->library));
-  aDetails->loffset = (char*)aPC - (char*)info.dli_fbase;
-
-  const char * symbol = info.dli_sname;
-  int len;
-  if (!symbol || !(len = strlen(symbol))) {
-    return NS_OK;
-  }
-
-  char demangled[4096] = "\0";
-
-  DemangleSymbol(symbol, demangled, sizeof(demangled));
-
-  if (strlen(demangled)) {
-    symbol = demangled;
-    len = strlen(symbol);
-  }
-
-  PL_strncpyz(aDetails->function, symbol, sizeof(aDetails->function));
-  aDetails->foffset = (char*)aPC - (char*)info.dli_saddr;
-  return NS_OK;
-}
-
-EXPORT_XPCOM_API(nsresult)
-NS_FormatCodeAddressDetails(void *aPC, const nsCodeAddressDetails *aDetails,
-                            char *aBuffer, PRUint32 aBufferSize)
-{
-  if (!aDetails->library[0]) {
-    snprintf(aBuffer, aBufferSize, "UNKNOWN %p\n", aPC);
-  } else if (!aDetails->function[0]) {
-    snprintf(aBuffer, aBufferSize, "UNKNOWN [%s +0x%08lX]\n",
-                                   aDetails->library, aDetails->loffset);
-  } else {
-    snprintf(aBuffer, aBufferSize, "%s+0x%08lX [%s +0x%08lX]\n",
-                                   aDetails->function, aDetails->foffset,
-                                   aDetails->library, aDetails->loffset);
-  }
-  return NS_OK;
-}
-
-#elif defined(__sun) && (defined(__sparc) || defined(sparc) || defined(__i386) || defined(i386))
+#if defined(__sun) && (defined(__sparc) || defined(sparc) || defined(__i386) || defined(i386))
 
 
 
@@ -1468,6 +1377,159 @@ NS_FormatCodeAddressDetails(void *aPC, const nsCodeAddressDetails *aDetails,
              aDetails->function[0] ? aDetails->function : "??",
              aDetails->foffset);
     return NS_OK;
+}
+
+#else 
+
+#if (defined(linux) && defined(__GNUC__) && (defined(__i386) || defined(PPC))) || (defined(XP_MACOSX) && (defined(__i386) || defined(__ppc__))) 
+
+#if __GLIBC__ > 2 || __GLIBC_MINOR > 1
+#define HAVE___LIBC_STACK_END 1
+#else
+#define HAVE___LIBC_STACK_END 0
+#endif
+
+#if HAVE___LIBC_STACK_END
+extern void *__libc_stack_end; 
+#endif
+
+EXPORT_XPCOM_API(nsresult)
+NS_StackWalk(NS_WalkStackCallback aCallback, PRUint32 aSkipFrames,
+             void *aClosure)
+{
+  
+
+  
+  void **bp;
+#if defined(__i386) 
+  __asm__( "movl %%ebp, %0" : "=g"(bp));
+#else
+  
+  
+  
+  bp = (void**) __builtin_frame_address(0);
+#endif
+
+  int skip = aSkipFrames;
+  while (1) {
+    void **next = (void**)*bp;
+    
+    
+    
+    
+    if (next <= bp ||
+#if HAVE___LIBC_STACK_END
+        next > __libc_stack_end ||
+#endif
+        (long(next) & 3)) {
+      break;
+    }
+#if (defined(__ppc__) && defined(XP_MACOSX)) || defined(__powerpc64__)
+    
+    void *pc = *(bp+2);
+#else 
+    void *pc = *(bp+1);
+#endif
+    if (--skip < 0) {
+      (*aCallback)(pc, aClosure);
+    }
+    bp = next;
+  }
+  return NS_OK;
+}
+
+#elif defined(HAVE__UNWIND_BACKTRACE)
+
+
+#include <unwind.h>
+
+struct unwind_info {
+    NS_WalkStackCallback callback;
+    int skip;
+    void *closure;
+};
+
+static _Unwind_Reason_Code
+unwind_callback (struct _Unwind_Context *context, void *closure)
+{
+    unwind_info *info = static_cast<unwind_info *>(closure);
+    if (--info->skip < 0) {
+        void *pc = reinterpret_cast<void *>(_Unwind_GetIP(context));
+        (*info->callback)(pc, info->closure);
+    }
+    return _URC_NO_REASON;
+}
+
+EXPORT_XPCOM_API(nsresult)
+NS_StackWalk(NS_WalkStackCallback aCallback, PRUint32 aSkipFrames,
+             void *aClosure)
+{
+    unwind_info info;
+    info.callback = aCallback;
+    info.skip = aSkipFrames + 1;
+    info.closure = aClosure;
+
+    _Unwind_Backtrace(unwind_callback, &info);
+
+    return NS_OK;
+}
+
+#endif
+
+EXPORT_XPCOM_API(nsresult)
+NS_DescribeCodeAddress(void *aPC, nsCodeAddressDetails *aDetails)
+{
+  aDetails->library[0] = '\0';
+  aDetails->loffset = 0;
+  aDetails->filename[0] = '\0';
+  aDetails->lineno = 0;
+  aDetails->function[0] = '\0';
+  aDetails->foffset = 0;
+
+  Dl_info info;
+  int ok = dladdr(aPC, &info);
+  if (!ok) {
+    return NS_OK;
+  }
+
+  PL_strncpyz(aDetails->library, info.dli_fname, sizeof(aDetails->library));
+  aDetails->loffset = (char*)aPC - (char*)info.dli_fbase;
+
+  const char * symbol = info.dli_sname;
+  int len;
+  if (!symbol || !(len = strlen(symbol))) {
+    return NS_OK;
+  }
+
+  char demangled[4096] = "\0";
+
+  DemangleSymbol(symbol, demangled, sizeof(demangled));
+
+  if (strlen(demangled)) {
+    symbol = demangled;
+    len = strlen(symbol);
+  }
+
+  PL_strncpyz(aDetails->function, symbol, sizeof(aDetails->function));
+  aDetails->foffset = (char*)aPC - (char*)info.dli_saddr;
+  return NS_OK;
+}
+
+EXPORT_XPCOM_API(nsresult)
+NS_FormatCodeAddressDetails(void *aPC, const nsCodeAddressDetails *aDetails,
+                            char *aBuffer, PRUint32 aBufferSize)
+{
+  if (!aDetails->library[0]) {
+    snprintf(aBuffer, aBufferSize, "UNKNOWN %p\n", aPC);
+  } else if (!aDetails->function[0]) {
+    snprintf(aBuffer, aBufferSize, "UNKNOWN [%s +0x%08lX]\n",
+                                   aDetails->library, aDetails->loffset);
+  } else {
+    snprintf(aBuffer, aBufferSize, "%s+0x%08lX [%s +0x%08lX]\n",
+                                   aDetails->function, aDetails->foffset,
+                                   aDetails->library, aDetails->loffset);
+  }
+  return NS_OK;
 }
 
 #endif
