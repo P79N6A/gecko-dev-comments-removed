@@ -1152,6 +1152,21 @@ public:
                                          nsNativeKeyEvent* aNativeEvent,
                                          PRBool aGetCharCode);
 
+  
+
+
+
+
+
+
+
+  static void GetOfflineAppManifest(nsIDOMWindow *aWindow, nsIURI **aURI);
+
+  
+
+
+  static PRBool OfflineAppAllowed(nsIURI *aURI);
+
 private:
 
   static PRBool InitializeEventTable();
@@ -1222,7 +1237,6 @@ private:
 
   static PRBool sInitialized;
 };
-
 
 #define NS_HOLD_JS_OBJECTS(obj, clazz)                                         \
   nsContentUtils::HoldJSObjects(NS_CYCLE_COLLECTION_UPCAST(obj, clazz),        \

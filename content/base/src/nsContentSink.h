@@ -75,7 +75,6 @@ class nsIContent;
 class nsIViewManager;
 class nsNodeInfoManager;
 class nsScriptLoader;
-class nsIOfflineCacheUpdate;
 
 #ifdef NS_DEBUG
 
@@ -169,7 +168,7 @@ protected:
 
   void PrefetchHref(const nsAString &aHref, nsIContent *aSource,
                     PRBool aExplicit);
-  nsresult AddOfflineResource(const nsAString &aHref, nsIContent *aSource);
+  void ProcessOfflineManifest(nsIContent *aElement);
 
   void ScrollToRef();
   nsresult RefreshIfEnabled(nsIViewManager* vm);
@@ -261,9 +260,6 @@ protected:
   PRPackedBool mNotifyOnTimer;
 
   
-  nsCOMPtr<nsIOfflineCacheUpdate> mOfflineCacheUpdate;
-
-  
   PRUint8 mBeganUpdate : 1;
   PRUint8 mLayoutStarted : 1;
   PRUint8 mScrolledToRefAlready : 1;
@@ -275,8 +271,6 @@ protected:
   PRUint8 mChangeScrollPosWhenScrollingToRef : 1;
   
   PRUint8 mDeferredLayoutStart : 1;
-  
-  PRUint8 mHaveOfflineResources : 1;
   
   PRUint8 mDeferredFlushTags : 1;
   
