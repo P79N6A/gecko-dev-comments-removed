@@ -103,9 +103,8 @@ EventItem.prototype = {
 
 
 
-function Events(notifier) {
+function Events() {
   this._listeners = [];
-  this._notifier = notifier;
 }
 
 
@@ -119,10 +118,6 @@ Events.prototype = {
       event: aEvent,
       listener: aListener
     });
-
-    if (this._notifier) {
-      this._notifier(aEvent, aListener);
-    }
 
     function hasFilter(element) {
       return element.event == aEvent && element.listener == aListener;
@@ -570,14 +565,23 @@ extApplication.prototype = {
     this._prefs = null;
     this._extensions = null;
     this._events = null;
-    this._registered = {};
 
     this._info = Components.classes["@mozilla.org/xre/app-info;1"]
                            .getService(Ci.nsIXULAppInfo);
+
+    var os = Components.classes["@mozilla.org/observer-service;1"]
+                       .getService(Ci.nsIObserverService);
+
+    os.addObserver(this, "final-ui-startup", false);
+    os.addObserver(this, "quit-application-requested", false);
+    os.addObserver(this, "xpcom-shutdown", false);
   },
 
   
   _xpcom_categories: [
+    
+    { category: "app-startup", service: true },
+
     
     { category: "JavaScript global privileged property" }
   ],
@@ -635,7 +639,6 @@ extApplication.prototype = {
       var os = Components.classes["@mozilla.org/observer-service;1"]
                          .getService(Ci.nsIObserverService);
 
-      os.removeObserver(this, "app-startup");
       os.removeObserver(this, "final-ui-startup");
       os.removeObserver(this, "quit-application-requested");
       os.removeObserver(this, "xpcom-shutdown");
@@ -678,23 +681,8 @@ extApplication.prototype = {
   },
 
   get events() {
-    if (this._events == null) {
-      var self = this;
-      function registerCheck(ev, k) {
-        var rmap = { "load": "app-startup",
-                     "ready": "final-ui-startup",
-                     "quit": "quit-application-requested",
-                     "unload": "xpcom-shutdown" };
-        if (!(ev in rmap) || ev in self._registered)
-          return;
-
-        Components.classes["@mozilla.org/observer-service;1"]
-                  .getService(Ci.nsIObserverService).addObserver(self, rmap[ev]);
-        self._registered[ev] = true;
-      }
-
-      this._events = new Events(registerCheck);
-    }
+    if (this._events == null)
+        this._events = new Events();
 
     return this._events;
   },
