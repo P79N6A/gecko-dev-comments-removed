@@ -38,7 +38,6 @@
 
 #include "nsAccessibleEventData.h"
 #include "nsAccessibilityAtoms.h"
-#include "nsApplicationAccessibleWrap.h"
 #include "nsCoreUtils.h"
 #include "nsIAccessibilityService.h"
 #include "nsIAccessNode.h"
@@ -112,15 +111,7 @@ void nsAccEvent::CaptureIsFromUserInput(PRBool aIsAsynch)
   nsCOMPtr<nsIDOMNode> eventNode;
   GetDOMNode(getter_AddRefs(eventNode));
   if (!eventNode) {
-    
-    
-    
-    nsRefPtr<nsApplicationAccessibleWrap> applicationAcc = 
-      nsAccessNode::GetApplicationAccessible();
-    nsCOMPtr<nsIAccessible> applicationAccessible = applicationAcc;
-
-    if (mAccessible != applicationAccessible)
-      NS_NOTREACHED("There should always be a DOM node for an event");
+    NS_NOTREACHED("There should always be a DOM node for an event");
     return;
   }
 
