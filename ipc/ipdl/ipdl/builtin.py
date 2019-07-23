@@ -57,8 +57,8 @@ Types = (
     'uintptr_t',
 
     
-    'mozilla::ipc::String',
-    'mozilla::ipc::StringArray',
+    'nsString',
+    'nsCString',
 )
 
 
@@ -66,6 +66,6 @@ Includes = (
     'base/basictypes.h',
     'nscore.h',
     'IPC/IPCMessageUtils.h',
-    'mozilla/ipc/MessageTypes.h',
+    'nsStringGlue.h',
     'mozilla/ipc/ProtocolUtils.h',
 )
