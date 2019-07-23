@@ -1143,6 +1143,14 @@ nsXBLBinding::ChangeDocument(nsIDocument* aOldDocument, nsIDocument* aNewDocumen
 #endif
 
       nsAutoScriptBlocker scriptBlocker;
+      
+      
+      
+      PRUint32 childCount = anonymous->GetChildCount();
+      for (PRUint32 i = 0; i < childCount; i++) {
+        anonymous->GetChildAt(i)->UnbindFromTree();
+      }
+      
       anonymous->UnbindFromTree(); 
 
 #ifdef MOZ_XUL
