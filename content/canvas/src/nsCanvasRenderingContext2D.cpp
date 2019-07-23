@@ -3231,9 +3231,7 @@ nsCanvasRenderingContext2D::DrawWindow(nsIDOMWindow* aWindow, float aX, float aY
     }
 
     
-    PRBool skipFlush =
-        (flags & nsIDOMCanvasRenderingContext2D::DRAWWINDOW_DO_NOT_FLUSH) != 0;
-    if (!skipFlush)
+    if (!(flags & nsIDOMCanvasRenderingContext2D::DRAWWINDOW_DO_NOT_FLUSH))
         FlushLayoutForTree(aWindow);
 
     nsCOMPtr<nsPresContext> presContext;
@@ -3267,10 +3265,7 @@ nsCanvasRenderingContext2D::DrawWindow(nsIDOMWindow* aWindow, float aX, float aY
         renderDocFlags &= ~nsIPresShell::RENDER_IGNORE_VIEWPORT_SCROLLING;
     }
 
-    PRBool oldDisableValue = nsLayoutUtils::sDisableGetUsedXAssertions;
-    nsLayoutUtils::sDisableGetUsedXAssertions = oldDisableValue || skipFlush;
     presShell->RenderDocument(r, renderDocFlags, bgColor, mThebes);
-    nsLayoutUtils::sDisableGetUsedXAssertions = oldDisableValue;
 
     
     mThebes->SetColor(gfxRGBA(1,1,1,1));
