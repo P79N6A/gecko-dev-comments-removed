@@ -2237,24 +2237,14 @@ nsCookieService::GetExpiry(nsCookieAttributes &aCookieAttributes,
 
   
   } else if (!aCookieAttributes.expires.IsEmpty()) {
-    PRTime tempExpires;
-    PRInt64 expires;
+    PRTime expires;
 
     
-    
-    
-    nsCString& expiresAttr = aCookieAttributes.expires;
-    if (!expiresAttr.IsEmpty() && expiresAttr.First() == '"' && expiresAttr.Last() == '"')
-      expiresAttr = Substring(expiresAttr.BeginReading() + 1, expiresAttr.EndReading() - 1);
-
-    
-    if (PR_ParseTimeString(expiresAttr.get(), PR_TRUE, &tempExpires) == PR_SUCCESS) {
-      expires = tempExpires / PR_USEC_PER_SEC;
-    } else {
+    if (PR_ParseTimeString(aCookieAttributes.expires.get(), PR_TRUE, &expires) != PR_SUCCESS) {
       return PR_TRUE;
     }
 
-    delta = expires - aServerTime;
+    delta = expires / PR_USEC_PER_SEC - aServerTime;
 
   
   } else {
