@@ -736,7 +736,7 @@ gfxFontconfigUtils::ResolveFontName(const nsAString& aFontName,
     
     
     if (IsExistingFamily(fontname) ||
-        mAliasForMultiFonts.IndexOfIgnoreCase(fontname))
+        mAliasForMultiFonts.IndexOfIgnoreCase(fontname) != -1)
         aAborted = !(*aCallback)(aFontName, aClosure);
 
     return NS_OK;
