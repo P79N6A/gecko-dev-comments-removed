@@ -3694,6 +3694,7 @@ nsCSSFrameConstructor::ConstructFrameFromItemInternal(FrameConstructionItem& aIt
   const nsStyleDisplay* display = styleContext->GetStyleDisplay();
 
   nsIFrame* newFrame;
+  nsIFrame* primaryFrame;
   if (bits & FCDATA_FUNC_IS_FULL_CTOR) {
     nsresult rv =
       (this->*(data->mFullConstructor))(aState, aItem, aParentFrame,
@@ -3701,6 +3702,8 @@ nsCSSFrameConstructor::ConstructFrameFromItemInternal(FrameConstructionItem& aIt
     if (NS_FAILED(rv)) {
       return rv;
     }
+
+    primaryFrame = newFrame;
   } else {
     nsIContent* const content = aItem.mContent;
 
@@ -3731,8 +3734,6 @@ nsCSSFrameConstructor::ConstructFrameFromItemInternal(FrameConstructionItem& aIt
         display->IsScrollableOverflow()) {
       BuildScrollFrame(aState, content, styleContext, newFrame,
                        geometricParent, frameToAddToList);
-      
-      bits |= FCDATA_SKIP_FRAMESET;
     } else {
       rv = InitAndRestoreFrame(aState, content, geometricParent, nsnull,
                                newFrame);
@@ -3742,6 +3743,12 @@ nsCSSFrameConstructor::ConstructFrameFromItemInternal(FrameConstructionItem& aIt
                                                (bits & FCDATA_FORCE_VIEW) != 0);
       frameToAddToList = newFrame;
     }
+
+    
+    
+    
+    
+    primaryFrame = frameToAddToList;
 
     rv = aState.AddChild(frameToAddToList, aFrameItems, content, styleContext,
                          aParentFrame, allowOutOfFlow, allowOutOfFlow, isPopup);
@@ -3839,7 +3846,7 @@ nsCSSFrameConstructor::ConstructFrameFromItemInternal(FrameConstructionItem& aIt
                "Incorrectly set FCDATA_IS_LINE_PARTICIPANT bits");
 
   if (!(bits & FCDATA_SKIP_FRAMESET)) {
-    aItem.mContent->SetPrimaryFrame(newFrame);
+    aItem.mContent->SetPrimaryFrame(primaryFrame);
   }
 
   return NS_OK;
@@ -4315,11 +4322,7 @@ nsCSSFrameConstructor::BuildScrollFrame(nsFrameConstructorState& aState,
     InitAndRestoreFrame(aState, aContent, aNewFrame, nsnull, aScrolledFrame);
 
     FinishBuildingScrollFrame(aNewFrame, aScrolledFrame);
-
-    
-    aContent->SetPrimaryFrame(aNewFrame);
     return NS_OK;
-
 }
 
 const nsCSSFrameConstructor::FrameConstructionData*
@@ -9597,6 +9600,12 @@ nsCSSFrameConstructor::CreateLetterFrame(nsIFrame* aBlockFrame,
     
     
     
+    
+    
+    
+    
+    
+    aTextContent->SetPrimaryFrame(nsnull);
     nsIFrame* textFrame = NS_NewTextFrame(mPresShell, textSC);
 
     NS_ASSERTION(aBlockFrame == GetFloatContainingBlock(aParentFrame),
@@ -9811,7 +9820,6 @@ nsCSSFrameConstructor::RemoveFloatingFirstLetterFrames(
     return NS_ERROR_OUT_OF_MEMORY;;
   }
   newTextFrame->Init(textContent, parentFrame, nsnull);
-  textContent->SetPrimaryFrame(newTextFrame);
 
   
   
@@ -9832,6 +9840,10 @@ nsCSSFrameConstructor::RemoveFloatingFirstLetterFrames(
 
   
   aFrameManager->RemoveFrame(nsnull, placeholderFrame);
+
+  
+  
+  textContent->SetPrimaryFrame(newTextFrame);
 
   
   nsFrameList textList(newTextFrame, newTextFrame);
@@ -9874,10 +9886,13 @@ nsCSSFrameConstructor::RemoveFirstLetterFrames(nsPresContext* aPresContext,
       }
       textFrame = NS_NewTextFrame(aPresShell, newSC);
       textFrame->Init(textContent, aFrame, nsnull);
-      textContent->SetPrimaryFrame(textFrame);
 
       
       aFrameManager->RemoveFrame(nsnull, kid);
+
+      
+      
+      textContent->SetPrimaryFrame(textFrame);
 
       
       nsFrameList textList(textFrame, textFrame);

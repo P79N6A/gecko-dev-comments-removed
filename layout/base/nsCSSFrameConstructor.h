@@ -595,8 +595,6 @@ private:
 #define FCDATA_SUPPRESS_FRAME 0x40
   
 
-
-
 #define FCDATA_MAY_NEED_SCROLLFRAME 0x80
 #ifdef MOZ_XUL
   
@@ -1329,7 +1327,6 @@ private:
 
   nsIContent* PropagateScrollToViewport();
 
-  
   
   
   
