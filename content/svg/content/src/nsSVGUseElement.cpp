@@ -95,8 +95,18 @@ NS_INTERFACE_MAP_END_INHERITING(nsSVGUseElementBase)
 
 
 
+#ifdef _MSC_VER
+
+
+
+#pragma warning(push)
+#pragma warning(disable:4355)
+#endif
 nsSVGUseElement::nsSVGUseElement(nsINodeInfo *aNodeInfo)
   : nsSVGUseElementBase(aNodeInfo), mSource(this)
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
 {
 }
 

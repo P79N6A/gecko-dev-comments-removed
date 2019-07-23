@@ -48,12 +48,22 @@
 
 NS_IMPL_ISUPPORTS1(nsSVGRenderingObserver, nsIMutationObserver)
 
+#ifdef _MSC_VER
+
+
+
+#pragma warning(push)
+#pragma warning(disable:4355)
+#endif
 nsSVGRenderingObserver::nsSVGRenderingObserver(nsIURI *aURI,
                                                nsIFrame *aFrame)
   : mElement(this), mFrame(aFrame),
     mFramePresShell(aFrame->PresContext()->PresShell()),
     mReferencedFrame(nsnull),
     mReferencedFramePresShell(nsnull)
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
 {
   
   mElement.Reset(aFrame->GetContent(), aURI);
