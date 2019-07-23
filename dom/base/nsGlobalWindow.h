@@ -96,6 +96,7 @@
 #include "nsIDOMStorageObsolete.h"
 #include "nsIDOMStorageList.h"
 #include "nsIDOMStorageWindow.h"
+#include "nsIDOMStorageEvent.h"
 #include "nsIDOMOfflineResourceList.h"
 #include "nsPIDOMEventTarget.h"
 #include "nsIArray.h"
@@ -738,6 +739,7 @@ protected:
   nsCOMPtr<nsIDOMCrypto>        mCrypto;
 
   nsCOMPtr<nsIDOMStorage>      mLocalStorage;
+  nsCOMPtr<nsIDOMStorage>      mSessionStorage;
 
   nsCOMPtr<nsISupports>         mInnerWindowHolders[NS_STID_ARRAY_UBOUND];
   nsCOMPtr<nsIPrincipal> mOpenerScriptPrincipal; 
@@ -750,7 +752,6 @@ protected:
   nsTimeout*                    mTimeoutInsertionPoint;
   PRUint32                      mTimeoutPublicIdCounter;
   PRUint32                      mTimeoutFiringDepth;
-  nsCOMPtr<nsIDOMStorageObsolete>       mSessionStorage;
 
   
   
@@ -761,7 +762,9 @@ protected:
   nsCOMPtr<nsIDocument> mDoc;  
   JSObject* mJSObject;
 
-  nsDataHashtable<nsStringHashKey, PRBool> *mPendingStorageEvents;
+  typedef nsTArray<nsCOMPtr<nsIDOMStorageEvent>> nsDOMStorageEventArray;
+  nsDOMStorageEventArray mPendingStorageEvents;
+  nsDataHashtable<nsStringHashKey, PRBool> *mPendingStorageEventsObsolete;
 
   PRUint32 mTimeoutsSuspendDepth;
 
