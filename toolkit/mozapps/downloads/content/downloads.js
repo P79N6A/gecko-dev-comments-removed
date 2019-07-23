@@ -67,8 +67,8 @@ let gBuilder = 0;
 
 
 
-const gListBuildDelay = 100;
-const gListBuildChunk = 10;
+const gListBuildDelay = 300;
+const gListBuildChunk = 3;
 
 
 
@@ -1188,7 +1188,7 @@ function stepListBuilder(aNumItems) {
     stepListBuilder(aNumItems - 1);
   } else {
     
-    let delay = Math.min(gDownloadsView.itemCount, gListBuildDelay);
+    let delay = Math.min(gDownloadsView.itemCount * 10, gListBuildDelay);
     gBuilder = setTimeout(stepListBuilder, delay, gListBuildChunk);
   }
 }
