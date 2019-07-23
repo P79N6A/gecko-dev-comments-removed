@@ -128,6 +128,8 @@ var PlacesUtils = {
   asContainer: function(aNode) asContainer(aNode),
   asQuery: function(aNode) asQuery(aNode),
 
+  endl: NEWLINE,
+
   
 
 

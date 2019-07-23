@@ -59,15 +59,6 @@ XPCOMUtils.defineLazyGetter(this, "PlacesUtils", function() {
   return PlacesUtils;
 });
 
-#ifdef XP_MACOSX
-
-
-const NEWLINE= "\n";
-#else
-
-const NEWLINE = "\r\n";
-#endif
-
 var PlacesUIUtils = {
   ORGANIZER_LEFTPANE_VERSION: 6,
   ORGANIZER_FOLDER_ANNO: "PlacesOrganizer/OrganizerFolder",
