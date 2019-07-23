@@ -877,8 +877,7 @@ nsContentTreeOwner::ProvideWindow(nsIDOMWindow* aParent,
   }
 
   *aWindowIsNew = (containerPref != nsIBrowserDOMWindow::OPEN_CURRENTWINDOW);
-  
-  
+
   
   
   return browserDOMWin->OpenURI(nsnull, aParent, containerPref,
