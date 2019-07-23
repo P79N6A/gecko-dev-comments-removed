@@ -549,3 +549,6 @@ pref("accessibility.blockautorefresh", false);
 
 
 pref("browser.places.importBookmarksHTML", true);
+
+
+pref("browser.warn_chromeless_window.infobar", true);

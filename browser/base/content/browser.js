@@ -40,6 +40,7 @@
 #   Pamela Greene <pamg.bugs@gmail.com>
 #   Michael Ventnor <m.ventnor@gmail.com>
 #   Simon BÃ¼nzli <zeniko@gmail.com>
+#   Johnathan Nightingale <johnath@mozilla.com>
 #
 # Alternatively, the contents of this file may be used under the terms of
 # either the GNU General Public License Version 2 or later (the "GPL"), or
@@ -1163,6 +1164,10 @@ function delayedStartup()
 
   
   gBookmarkAllTabsHandler = new BookmarkAllTabsHandler();
+  
+  
+  
+  checkForChromelessWindow();
 }
 
 function BrowserShutdown()
@@ -1258,7 +1263,7 @@ function nonBrowserWindowStartup()
 
   
   
-  if (window.location.href == "chrome://browser/content/hiddenWindow.xul")
+  if (window.location.href == "chrome:
   {
     var hiddenWindowDisabledItems = ['cmd_close', 'minimizeWindow', 'zoomWindow'];
     for (var id in hiddenWindowDisabledItems)
@@ -1711,7 +1716,7 @@ function updateGoMenu(aEvent, goMenu)
   if (count == 0)
     return;
 
-  const NC_NS     = "http://home.netscape.com/NC-rdf#";
+  const NC_NS     = "http:
 
   if (!gRDF)
      gRDF = Components.classes["@mozilla.org/rdf/rdf-service;1"]
@@ -2203,7 +2208,7 @@ function BrowserPageInfo(doc, initialTab)
   var args = {doc: doc, initialTab: initialTab};
   toOpenDialogByTypeAndUrl("Browser:page-info",
                            doc ? doc.location : window.content.document.location,
-                           "chrome:
+                           "chrome://browser/content/pageinfo/pageInfo.xul",
                            "chrome,toolbar,dialog=no,resizable",
                            args);
 }
@@ -2376,7 +2381,7 @@ function canonizeUrl(aTriggeringEvent, aPostDataRef) {
       } else
         url = url + (existingSuffix == -1 ? suffix : "/");
 
-      url = "http:
+      url = "http://www." + url;
     }
   }
 
@@ -2509,11 +2514,11 @@ function BrowserImport()
   if (win)
     win.focus();
   else {
-    window.openDialog("chrome:
+    window.openDialog("chrome://browser/content/migration/migration.xul",
                       "migration", "centerscreen,chrome,resizable=no");
   }
 #else
-  window.openDialog("chrome:
+  window.openDialog("chrome://browser/content/migration/migration.xul",
                     "migration", "modal,centerscreen,chrome,resizable=no");
 #endif
 }
@@ -5912,3 +5917,84 @@ BookmarkAllTabsHandler.prototype = {
     this._updateCommandState(aEvent.type == "TabClose");
   }
 };
+
+
+
+
+
+
+
+
+function checkForChromelessWindow() {
+
+  var prefs = Components.classes["@mozilla.org/preferences-service;1"]
+                        .getService(Components.interfaces.nsIPrefBranch);
+  
+  
+  if (!prefs.getBoolPref("browser.warn_chromeless_window.infobar"))
+    return;
+
+  if (document.documentElement.getAttribute("chromehidden").indexOf("toolbar") != -1 ||
+      document.documentElement.getAttribute("chromehidden").indexOf("location") != -1) {
+    
+    var bundle_browser = document.getElementById("bundle_browser");
+    
+    
+    
+    
+    try {
+      var messageString = bundle_browser.getFormattedString("chromelessWindow.warningMessage",
+                                                            [window.content.opener.location.host]);
+    } catch (ex) {
+        
+      
+      
+      Components.utils.reportError(ex);
+      messageString = bundle_browser.getString("chromelessWindow.warningNoLocation");
+      
+    }
+
+    var notificationBox = gBrowser.getNotificationBox();
+    var notificationName = "chromeless-info";
+    if (notificationBox.getNotificationWithValue(notificationName)) {
+      Components.utils.reportError("Already have a chromeless-info notification!")
+      return;
+    }
+    
+    var buttons = [{
+      label: bundle_browser.getString("chromelessWindow.showToolbarsButton"),
+      accessKey: bundle_browser.getString("chromelessWindow.accessKey"),
+      popup: null,
+      callback: function() { return showToolbars(); }
+    }];
+
+    notificationBox.appendNotification(messageString,
+                                       notificationName,
+                                       "chrome://browser/skin/Info.png",
+                                       notificationBox.PRIORITY_INFO_HIGH,
+                                       buttons);
+  }
+}
+
+
+
+
+
+
+function showToolbars() {
+
+  
+  document.documentElement.removeAttribute("chromehidden");
+  
+  
+  if (gURLBar) {
+    gURLBar.removeAttribute("readonly");
+    gURLBar.setAttribute("enablehistory", "true");
+  }
+  
+  var goButtonStack = document.getElementById("go-button-stack");
+  if (goButtonStack)
+    goButtonStack.removeAttribute("hidden");
+  
+  return false; 
+}
