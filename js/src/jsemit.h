@@ -171,7 +171,13 @@ struct JSTreeContext {
 
     JSAtomList      decls;          
     JSParseContext  *parseContext;
-    JSFunction      *fun;           
+
+    union {
+
+        JSFunction  *fun;           
+
+        JSObject    *scopeChain;    
+    } u;
 
 #ifdef JS_SCOPE_DEPTH_METER
     uint16          scopeDepth;     
@@ -195,7 +201,6 @@ struct JSTreeContext {
                                        chain */
 #define TCF_NO_SCRIPT_RVAL   0x1000 /* API caller does not want result value
                                        from global script */
-
 
 
 
@@ -230,7 +235,7 @@ struct JSTreeContext {
      ATOM_LIST_INIT(&(tc)->decls),                                            \
      (tc)->blockNode = NULL,                                                  \
      (tc)->parseContext = (pc),                                               \
-     (tc)->fun = NULL,                                                        \
+     (tc)->u.scopeChain = NULL,                                               \
      JS_SCOPE_DEPTH_METERING((tc)->scopeDepth = (tc)->maxScopeDepth = 0))
 
 
