@@ -298,6 +298,7 @@ nsresult nsPluginNativeWindowGtk2::CreateXEmbedWindow() {
 }
 
 #ifdef MOZ_COMPOSITED_PLUGINS
+#include <dlfcn.h>
 nsresult nsPluginNativeWindowGtk2::CreateXCompositedWindow() {
   NS_ASSERTION(!mSocketWidget,"Already created a socket widget!");
 
@@ -358,6 +359,17 @@ nsresult nsPluginNativeWindowGtk2::CreateXCompositedWindow() {
     XCompositeRedirectWindow (GDK_DISPLAY(),
         (Drawable)window,
         CompositeRedirectManual);
+
+    
+
+
+
+
+    static void *libplayback_handle;
+    if (!libplayback_handle) {
+      libplayback_handle = dlopen("libplayback-1.so.0", RTLD_NOW);
+    }
+
   }
 
   
