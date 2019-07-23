@@ -1236,10 +1236,7 @@ NS_IMETHODIMP nsXULTreeitemAccessible::GetAccessibleRelated(PRUint32 aRelationTy
   if (IsDefunct())
     return NS_ERROR_FAILURE;
 
-  
-  
   *aRelated = nsnull;
-#ifdef MOZ_ACCESSIBILITY_ATK
   if (aRelationType == nsIAccessibleRelation::RELATION_NODE_CHILD_OF) {
     PRInt32 columnIndex;
     if (NS_SUCCEEDED(mColumn->GetIndex(&columnIndex)) && columnIndex == 0) {
@@ -1256,12 +1253,9 @@ NS_IMETHODIMP nsXULTreeitemAccessible::GetAccessibleRelated(PRUint32 aRelationTy
       }
     }
     return NS_OK;
-  } else { 
-#endif
-    return nsAccessible::GetAccessibleRelated(aRelationType, aRelated);
-#ifdef MOZ_ACCESSIBILITY_ATK
   }
-#endif
+
+  return nsAccessible::GetAccessibleRelated(aRelationType, aRelated);
 }
 
 

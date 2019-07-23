@@ -147,6 +147,19 @@ public:
    static already_AddRefed<nsIAccessible>
      GetAncestorWithRole(nsIAccessible *aDescendant, PRUint32 aRole);
 
+   
+
+
+
+
+
+
+
+   static void
+     GetARIATreeItemParent(nsIAccessible *aStartTreeItem,
+                           nsIContent *aStartTreeItemContent,
+                           nsIAccessible **aTreeItemParent);
+
   
 
 

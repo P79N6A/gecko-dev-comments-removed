@@ -304,6 +304,81 @@ nsAccUtils::GetAncestorWithRole(nsIAccessible *aDescendant, PRUint32 aRole)
   return nsnull;
 }
 
+void
+nsAccUtils::GetARIATreeItemParent(nsIAccessible *aStartTreeItem, nsIContent *aStartContent,
+                                  nsIAccessible **aTreeItemParentResult)
+{
+  *aTreeItemParentResult = nsnull;
+  nsAutoString levelStr;
+  PRInt32 level = 0;
+  if (aStartContent->GetAttr(kNameSpaceID_None, nsAccessibilityAtoms::aria_level, levelStr)) {
+    
+    
+    PRInt32 success;
+    level = levelStr.ToInteger(&success);
+    if (level > 1 && NS_SUCCEEDED(success)) {
+      nsCOMPtr<nsIAccessible> currentAccessible = aStartTreeItem, prevAccessible;
+      while (PR_TRUE) {
+        currentAccessible->GetPreviousSibling(getter_AddRefs(prevAccessible));
+        currentAccessible.swap(prevAccessible);
+        nsCOMPtr<nsIAccessNode> accessNode = do_QueryInterface(currentAccessible);
+        if (!accessNode) {
+          break; 
+        }
+        PRUint32 role;
+        currentAccessible->GetFinalRole(&role);
+        if (role != nsIAccessibleRole::ROLE_OUTLINEITEM)
+          continue;
+        nsCOMPtr<nsIDOMNode> treeItemNode;
+        accessNode->GetDOMNode(getter_AddRefs(treeItemNode));
+        nsCOMPtr<nsIContent> treeItemContent = do_QueryInterface(treeItemNode);
+        if (treeItemContent &&
+            treeItemContent->GetAttr(kNameSpaceID_None,
+                                     nsAccessibilityAtoms::aria_level, levelStr)) {
+          if (levelStr.ToInteger(&success) < level && NS_SUCCEEDED(success)) {
+            NS_ADDREF(*aTreeItemParentResult = currentAccessible);
+            return;
+          }
+        }
+      }
+    }
+  }
+
+  
+  
+  
+  
+  nsCOMPtr<nsIAccessible> parentAccessible;
+  aStartTreeItem->GetParent(getter_AddRefs(parentAccessible));
+  if (!parentAccessible)
+    return;
+  PRUint32 role;
+  parentAccessible->GetFinalRole(&role);
+  if (role != nsIAccessibleRole::ROLE_GROUPING) {
+    NS_ADDREF(*aTreeItemParentResult = parentAccessible);
+    return; 
+  }
+  nsCOMPtr<nsIAccessible> prevAccessible;
+  parentAccessible->GetPreviousSibling(getter_AddRefs(prevAccessible));
+  if (!prevAccessible)
+    return;
+  prevAccessible->GetFinalRole(&role);
+  if (role == nsIAccessibleRole::ROLE_TEXT_LEAF) {
+    
+    
+    
+    nsCOMPtr<nsIAccessible> tempAccessible = prevAccessible;
+    tempAccessible->GetPreviousSibling(getter_AddRefs(prevAccessible));
+    if (!prevAccessible)
+      return;
+    prevAccessible->GetFinalRole(&role);
+  }
+  if (role == nsIAccessibleRole::ROLE_OUTLINEITEM) {
+    
+    NS_ADDREF(*aTreeItemParentResult = prevAccessible);
+  }
+}
+
 nsresult
 nsAccUtils::ScrollSubstringTo(nsIFrame *aFrame,
                               nsIDOMNode *aStartNode, PRInt32 aStartIndex,
