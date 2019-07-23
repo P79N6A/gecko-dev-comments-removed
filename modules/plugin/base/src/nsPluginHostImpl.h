@@ -48,6 +48,7 @@
 #include "prlink.h"
 
 #include "nsIPlugin.h"
+#include "nsIPluginTag.h"
 #include "nsIPluginTagInfo2.h"
 #include "nsIPluginInstancePeer2.h"
 
@@ -84,9 +85,12 @@ class nsPluginHostImpl;
 
 
 
-class nsPluginTag
+class nsPluginTag : public nsIPluginTag
 {
 public:
+  NS_DECL_ISUPPORTS
+  NS_DECL_NSIPLUGINTAG
+
   nsPluginTag(nsPluginTag* aPluginTag);
   nsPluginTag(nsPluginInfo* aPluginInfo);
 
@@ -132,7 +136,7 @@ public:
   void RegisterWithCategoryManager(PRBool aOverrideInternalTypes,
                                    nsRegisterType aType = ePluginRegister);
 
-  nsPluginTag   *mNext;
+  nsRefPtr<nsPluginTag>   mNext;
   nsPluginHostImpl *mPluginHost;
   char          *mName;
   char          *mDescription;
@@ -156,7 +160,7 @@ struct nsActivePlugin
   nsActivePlugin*        mNext;
   char*                  mURL;
   nsIPluginInstancePeer* mPeer;
-  nsPluginTag*           mPluginTag;
+  nsRefPtr<nsPluginTag>  mPluginTag;
   nsIPluginInstance*     mInstance;
   PRTime                 mllStopTime;
   PRPackedBool           mStopped;
@@ -315,6 +319,9 @@ public:
 
   static nsresult GetPluginTempDir(nsIFile **aDir);
 
+  
+  nsresult UpdatePluginInfo();
+
 private:
   NS_IMETHOD
   TrySetUpPluginInstance(const char *aMimeType, nsIURI *aURL, nsIPluginInstanceOwner *aOwner);
@@ -380,7 +387,8 @@ private:
 
   
   
-  nsPluginTag* RemoveCachedPluginsInfo(const char *filename);
+  void RemoveCachedPluginsInfo(const char *filename,
+                               nsPluginTag **result);
 
   
   nsPluginTag* HaveSamePlugin(nsPluginTag * aPluginTag);
@@ -418,8 +426,8 @@ private:
   nsresult AddPrefObserver();
   
   char        *mPluginPath;
-  nsPluginTag *mPlugins;
-  nsPluginTag *mCachedPlugins;
+  nsRefPtr<nsPluginTag> mPlugins;
+  nsRefPtr<nsPluginTag> mCachedPlugins;
   PRPackedBool mPluginsLoaded;
   PRPackedBool mDontShowBadPluginMessage;
   PRPackedBool mIsDestroyed;
