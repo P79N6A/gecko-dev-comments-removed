@@ -109,6 +109,11 @@ BrowserGlue.prototype = {
   _setPrefToSaveSession: function()
   {
     this._prefs.setBoolPref("browser.sessionstore.resume_session_once", true);
+
+    
+    
+    
+    this._prefs.QueryInterface(Ci.nsIPrefService).savePrefFile(null);
   },
 
   
