@@ -500,6 +500,13 @@ public:
   void   SetRowInserted(PRBool aValue);
 
 protected:
+    
+  
+  
+  
+  nsresult SetupHeaderFooterChild(const nsTableReflowState& aReflowState,
+                                  nsTableRowGroupFrame* aFrame,
+                                  nscoord* aDesiredHeight);
 
   NS_METHOD ReflowChildren(nsTableReflowState&  aReflowState,
                            nsReflowStatus&      aStatus,
