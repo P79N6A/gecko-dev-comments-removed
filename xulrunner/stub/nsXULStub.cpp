@@ -418,7 +418,16 @@ main(int argc, char **argv)
              range.lower, range.upper);
       return 1;
     }
+#ifdef XP_UNIX
+    
+    
+    char resolved_greDir[MAXPATHLEN] = "";  
+    if (realpath(greDir, resolved_greDir) && *resolved_greDir) {
+      strncpy(greDir, resolved_greDir, MAXPATHLEN);
+    }
+#endif
   }
+
 #ifdef XP_OS2
   
   strcpy(tmpPath, greDir);
