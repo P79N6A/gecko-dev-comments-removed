@@ -149,7 +149,6 @@
 #include "nsIContentViewer.h"
 #include "nsDOMClassInfo.h"
 #include "nsIJSNativeInitializer.h"
-#include "nsIFullScreen.h"
 #include "nsIScriptError.h"
 #include "nsIScriptEventManager.h" 
 #include "nsIConsoleService.h"
@@ -2114,29 +2113,6 @@ nsGlobalWindow::SetDocShell(nsIDocShell* aDocShell)
         langCtx->ClearScope(mScriptGlobals[NS_STID_INDEX(lang_id)], PR_TRUE);
     }
 
-    
-    
-    if (mFullScreen) {
-      
-      nsIFocusManager* fm = nsFocusManager::GetFocusManager();
-      if (fm) {
-        nsCOMPtr<nsIDOMWindow> activeWindow;
-        fm->GetActiveWindow(getter_AddRefs(activeWindow));
-
-        nsCOMPtr<nsIDocShellTreeItem> treeItem = do_QueryInterface(mDocShell);
-        nsCOMPtr<nsIDocShellTreeItem> rootItem;
-        treeItem->GetRootTreeItem(getter_AddRefs(rootItem));
-        nsCOMPtr<nsIDOMWindow> rootWin = do_GetInterface(rootItem);
-        if (rootWin == activeWindow) {
-          nsCOMPtr<nsIFullScreen> fullScreen =
-            do_GetService("@mozilla.org/browser/fullscreen;1");
-
-          if (fullScreen)
-            fullScreen->ShowAllOSChrome();
-        }
-      }
-    }
-
     ClearControllers();
 
     mChromeEventHandler = nsnull; 
@@ -3836,8 +3812,6 @@ nsGlobalWindow::SetFullScreen(PRBool aFullScreen)
   
   
   if (!DispatchCustomEvent("fullscreen")) {
-    
-
     return NS_OK;
   }
 
@@ -6594,20 +6568,6 @@ nsGlobalWindow::ActivateOrDeactivate(PRBool aActivate)
 {
   
   
-  nsGlobalWindow* outer = GetOuterWindowInternal();
-  if (outer && outer->mFullScreen) {
-    nsCOMPtr<nsIFullScreen> fullScreen =
-      do_GetService("@mozilla.org/browser/fullscreen;1");
-    if (fullScreen) {
-      if (aActivate)
-        fullScreen->HideAllOSChrome();
-      else
-        fullScreen->ShowAllOSChrome();
-    }
-  }
-
-  
-  
   nsCOMPtr<nsIWidget> mainWidget = GetMainWidget();
   if (mainWidget) {
     
@@ -8801,6 +8761,9 @@ nsGlobalChromeWindow::GetWindowState(PRUint16* aWindowState)
     case nsSizeMode_Maximized:
       *aWindowState = nsIDOMChromeWindow::STATE_MAXIMIZED;
       break;
+    case nsSizeMode_Fullscreen:
+      *aWindowState = nsIDOMChromeWindow::STATE_FULLSCREEN;
+      break;
     case nsSizeMode_Normal:
       *aWindowState = nsIDOMChromeWindow::STATE_NORMAL;
       break;
@@ -8831,16 +8794,8 @@ nsGlobalChromeWindow::Minimize()
   nsCOMPtr<nsIWidget> widget = GetMainWidget();
   nsresult rv = NS_OK;
 
-  if (widget) {
-    
-    
-    nsCOMPtr<nsIFullScreen> fullScreen =
-      do_GetService("@mozilla.org/browser/fullscreen;1");
-    if (fullScreen)
-      fullScreen->ShowAllOSChrome();
-
+  if (widget)
     rv = widget->SetSizeMode(nsSizeMode_Minimized);
-  }
 
   return rv;
 }
