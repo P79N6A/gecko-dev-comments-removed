@@ -124,10 +124,10 @@ function test() {
         pbWin.addEventListener("load", function(aEvent) {
           pbWin.gBrowser.addEventListener("load", function(aEvent) {
             executeSoon(function() {
-              gBrowser.removeEventListener("load", arguments.callee, true);
+              pbWin.gBrowser.removeEventListener("load", arguments.callee, true);
 
               
-              gBrowser.addTab();
+              pbWin.gBrowser.addTab();
 
               
               ss.setWindowValue(pbWin, uniqueKey_B, uniqueValue_B);
