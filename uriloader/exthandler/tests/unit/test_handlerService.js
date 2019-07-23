@@ -168,7 +168,7 @@ function run_test() {
   prefSvc.setBoolPref(kExternalWarningPrefPrefix + "mailto", false);
   protoInfo = protoSvc.getProtocolHandlerInfo("mailto");
   if (haveDefaultHandlersVersion)
-    do_check_eq(1, protoInfo.possibleApplicationHandlers.length);
+    do_check_eq(2, protoInfo.possibleApplicationHandlers.length);
   else
     do_check_eq(0, protoInfo.possibleApplicationHandlers.length);
   do_check_false(protoInfo.alwaysAskBeforeHandling);
@@ -177,7 +177,7 @@ function run_test() {
   prefSvc.setBoolPref(kExternalWarningPrefPrefix + "mailto", true);
   protoInfo = protoSvc.getProtocolHandlerInfo("mailto");
   if (haveDefaultHandlersVersion) {
-    do_check_eq(1, protoInfo.possibleApplicationHandlers.length);
+    do_check_eq(2, protoInfo.possibleApplicationHandlers.length);
     
     
     
@@ -196,7 +196,7 @@ function run_test() {
     protoInfo.alwaysAskBeforeHandling = true;
     handlerSvc.store(protoInfo);
     protoInfo = protoSvc.getProtocolHandlerInfo("mailto");
-    do_check_eq(1, protoInfo.possibleApplicationHandlers.length);
+    do_check_eq(2, protoInfo.possibleApplicationHandlers.length);
     do_check_true(protoInfo.alwaysAskBeforeHandling);
   }
 
