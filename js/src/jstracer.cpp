@@ -1781,7 +1781,7 @@ TraceRecorder::snapshot(ExitType exitType)
         JS_ASSERT(*pc == JSOP_CALL || *pc == JSOP_APPLY || *pc == JSOP_NEXTITER);
         pc += cs.length;
         regs->pc = pc;
-        MUST_FLOW_THROUGH(restore_pc);
+        MUST_FLOW_THROUGH("restore_pc");
     }
 
     
