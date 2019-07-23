@@ -43,8 +43,8 @@
 
 
 #define NS_IUGENCATEGORY_IID \
-{ 0xe86b3371, 0xbf89, 0x11d2, \
-    { 0xb3, 0xaf, 0x0, 0x80, 0x5f, 0x8a, 0x66, 0x70 } }
+{ 0x671fea05, 0xfcee, 0x4b1c, \
+    { 0x82, 0xa3, 0x6e, 0xb0, 0x3e, 0xda, 0x8d, 0xdc } }
 
 
 class nsIUGenCategory : public nsISupports {
@@ -57,28 +57,21 @@ public:
 
 
 
-
    typedef enum {
-     kUGenCategory_Mark         = 1, 
-     kUGenCategory_Number       = 2, 
-     kUGenCategory_Separator    = 3, 
-     kUGenCategory_Other        = 4, 
-     kUGenCategory_Letter       = 5, 
-     kUGenCategory_Punctuation  = 6, 
-     kUGenCategory_Symbol       = 7  
+     kUndefined    = 0,
+     kMark         = 1, 
+     kNumber       = 2, 
+     kSeparator    = 3, 
+     kOther        = 4, 
+     kLetter       = 5, 
+     kPunctuation  = 6, 
+     kSymbol       = 7  
    } nsUGenCategory;
 
    
 
 
-   NS_IMETHOD Get( PRUnichar aChar, nsUGenCategory* oResult) = 0 ;
-    
-   
-
-
-
-
-   NS_IMETHOD Is( PRUnichar aChar, nsUGenCategory aCategory, PRBool* oResult) = 0;
+   virtual nsUGenCategory Get(PRUint32 aChar) = 0;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsIUGenCategory, NS_IUGENCATEGORY_IID)

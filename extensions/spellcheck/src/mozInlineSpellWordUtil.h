@@ -42,6 +42,7 @@
 #include "nsIDocument.h"
 #include "nsString.h"
 #include "nsTArray.h"
+#include "nsIUGenCategory.h"
 
 
 
@@ -118,13 +119,15 @@ public:
   nsIDOMDocumentRange* GetDocumentRange() const { return mDOMDocumentRange; }
   nsIDocument* GetDocument() const { return mDocument; }
   nsIDOMNode* GetRootNode() { return mRootNode; }
-
+  nsIUGenCategory* GetCategories() { return mCategories; }
+  
 private:
 
   
   nsCOMPtr<nsIDOMDocumentRange> mDOMDocumentRange;
   nsCOMPtr<nsIDocument>         mDocument;
   nsCOMPtr<nsIDOMViewCSS>       mCSSView;
+  nsCOMPtr<nsIUGenCategory>     mCategories;
 
   
   nsIDOMNode* mRootNode;
