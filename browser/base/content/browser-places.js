@@ -181,16 +181,14 @@ var StarUI = {
     rows.insertBefore(header, rows.firstChild);
     header.hidden = false;
 
-    var bundle = this._element("bundle_browser");
-
     
     
     
     
     this._element("editBookmarkPanelTitle").value =
       this._batching ?
-        bundle.getString("editBookmarkPanel.pageBookmarkedTitle") :
-        bundle.getString("editBookmarkPanel.editBookmarkTitle");
+        gNavigatorBundle.getString("editBookmarkPanel.pageBookmarkedTitle") :
+        gNavigatorBundle.getString("editBookmarkPanel.editBookmarkTitle");
 
     
     
@@ -207,7 +205,7 @@ var StarUI = {
     
     
     var bookmarks = PlacesUtils.getBookmarksForURI(gBrowser.currentURI);
-    var forms = bundle.getString("editBookmark.removeBookmarks.label");
+    var forms = gNavigatorBundle.getString("editBookmark.removeBookmarks.label");
     var label = PluralForm.get(bookmarks.length, forms).replace("#1", bookmarks.length);
     this._element("editBookmarkPanelRemoveButton").label = label;
 
@@ -249,18 +247,17 @@ var StarUI = {
   function PCH_showPageBookmarkedNotification(aItemId, aAnchorElement, aPosition) {
     this._blockCommands(); 
 
-    var bundle = this._element("bundle_browser");
     var brandBundle = this._element("bundle_brand");
     var brandShortName = brandBundle.getString("brandShortName");
 
     
     this._element("editBookmarkPanelTitle").value =
-      bundle.getString("editBookmarkPanel.pageBookmarkedTitle");
+      gNavigatorBundle.getString("editBookmarkPanel.pageBookmarkedTitle");
 
     
     this._element("editBookmarkPanelDescription").textContent =
-      bundle.getFormattedString("editBookmarkPanel.pageBookmarkedDescription",
-                                [brandShortName]);
+      gNavigatorBundle.getFormattedString("editBookmarkPanel.pageBookmarkedDescription",
+                                          [brandShortName]);
 
     
     
@@ -310,12 +307,11 @@ var StarUI = {
     if (this._batching) {
       PlacesUIUtils.ptm.endBatch();
       PlacesUIUtils.ptm.beginBatch(); 
-      var bundle = this._element("bundle_browser");
 
       
       
       this._element("editBookmarkPanelTitle").value =
-        bundle.getString("editBookmarkPanel.bookmarkedRemovedTitle");
+        gNavigatorBundle.getString("editBookmarkPanel.bookmarkedRemovedTitle");
 
       
       this.quitEditMode();
@@ -1148,17 +1144,16 @@ var PlacesStarButton = {
     if (!starIcon)
       return;
 
-    var browserBundle = document.getElementById("bundle_browser");
     var uri = getBrowser().currentURI;
     this._starred = uri && (PlacesUtils.getMostRecentBookmarkForURI(uri) != -1 ||
                             PlacesUtils.getMostRecentFolderForFeedURI(uri) != -1);
     if (this._starred) {
       starIcon.setAttribute("starred", "true");
-      starIcon.setAttribute("tooltiptext", browserBundle.getString("starButtonOn.tooltip"));
+      starIcon.setAttribute("tooltiptext", gNavigatorBundle.getString("starButtonOn.tooltip"));
     }
     else {
       starIcon.removeAttribute("starred");
-      starIcon.setAttribute("tooltiptext", browserBundle.getString("starButtonOff.tooltip"));
+      starIcon.setAttribute("tooltiptext", gNavigatorBundle.getString("starButtonOff.tooltip"));
     }
   },
 
