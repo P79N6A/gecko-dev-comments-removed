@@ -48,7 +48,8 @@
 #include "nsCRT.h" 
 
 #include <gtk/gtk.h>
-#include <gtk/gtkunixprint.h>
+#include <gtk/gtkprinter.h>
+#include <gtk/gtkprintjob.h>
 
 #define NS_PORTRAIT  0
 #define NS_LANDSCAPE 1
