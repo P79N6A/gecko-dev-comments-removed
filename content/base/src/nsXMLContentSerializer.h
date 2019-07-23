@@ -147,6 +147,9 @@ class nsXMLContentSerializer : public nsIContentSerializer {
   PRBool IsShorthandAttr(const nsIAtom* aAttrName,
                          const nsIAtom* aElementName);
 
+  virtual void AppendToStringConvertLF(const nsAString& aStr,
+                                       nsAString& aOutputStr);
+
   
   
   void MaybeAddNewline(nsAString& aStr);
@@ -156,8 +159,17 @@ class nsXMLContentSerializer : public nsIContentSerializer {
   nsVoidArray mNameSpaceStack;
 
   
+  PRUint32  mFlags;
+
+  
+  nsString  mLineBreak;
+
+  
   nsCString mCharset;
   
+  
+  PRInt32   mColPos;
+
   PRPackedBool mInAttribute;
   PRPackedBool mAddNewline;
 };

@@ -1,4 +1,17 @@
+
+
+
+
+
+var LB;
+
 function run_test() {
+
+  if(("@mozilla.org/windows-registry-key;1" in C) || ("nsILocalFileOS2" in I))
+    LB = "\r\n";
+  else
+    LB = "\n";
+
   for (var i = 0; i < tests.length && tests[i]; ++i) {
     tests[i].call();
   }
@@ -265,8 +278,8 @@ function test7() {
 
 function test8() {
   
-  var str1 = '<?xml version="1.0" encoding="ISO-8859-1"?>\n<root/>';
-  var str2 = '<?xml version="1.0" encoding="UTF8"?>\n<root/>';
+  var str1 = '<?xml version="1.0" encoding="ISO-8859-1"?>'+LB+'<root/>';
+  var str2 = '<?xml version="1.0" encoding="UTF8"?>'+LB+'<root/>';
   var doc1 = ParseXML(str1);
   var doc2 = ParseXML(str2);
 
@@ -297,9 +310,9 @@ function test9() {
   var contents = '<root>' +
                    '\u00BD + \u00BE == \u00BD\u00B2 + \u00BC + \u00BE' +
                  '</root>';
-  var str1 = '<?xml version="1.0" encoding="ISO-8859-1"?>\n' + contents;
-  var str2 = '<?xml version="1.0" encoding="UTF8"?>\n' + contents;
-  var str3 = '<?xml version="1.0" encoding="UTF-16"?>\n' + contents;
+  var str1 = '<?xml version="1.0" encoding="ISO-8859-1"?>'+ LB + contents;
+  var str2 = '<?xml version="1.0" encoding="UTF8"?>'+ LB + contents;
+  var str3 = '<?xml version="1.0" encoding="UTF-16"?>'+ LB + contents;
   var doc1 = ParseXML(str1);
   var doc2 = ParseXML(str2);
   var doc3 = ParseXML(str3);
@@ -327,8 +340,8 @@ function test10() {
                    '\u0080 \u0398 \u03BB \u0725 ' + 
                    '\u0964 \u0F5F \u20AC \uFFFB' +  
                  '</root>';
-  var str1 = '<?xml version="1.0" encoding="UTF8"?>\n' + contents;
-  var str2 = '<?xml version="1.0" encoding="UTF-16"?>\n' + contents;
+  var str1 = '<?xml version="1.0" encoding="UTF8"?>'+ LB + contents;
+  var str2 = '<?xml version="1.0" encoding="UTF-16"?>'+ LB + contents;
   var doc1 = ParseXML(str1);
   var doc2 = ParseXML(str2);
 
