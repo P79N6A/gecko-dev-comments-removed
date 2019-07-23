@@ -4809,26 +4809,6 @@ function asyncOpenWebPanel(event)
          event.preventDefault();
          return false;
        }
-       else if (target == "_search") {
-         
-         
-
-         
-         
-         try {
-           const nsIScriptSecurityMan = Ci.nsIScriptSecurityManager;
-           urlSecurityCheck(wrapper.href,
-                            wrapper.ownerDocument.nodePrincipal,
-                            nsIScriptSecurityMan.DISALLOW_INHERIT_PRINCIPAL);
-         }
-         catch(ex) {
-           return false;
-         } 
-
-         openWebPanel(gNavigatorBundle.getString("webPanels"), wrapper.href);
-         event.preventDefault();
-         return false;
-       }
      }
      else {
        handleLinkClick(event, wrapper.href, linkNode);
