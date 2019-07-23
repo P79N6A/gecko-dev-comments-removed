@@ -78,6 +78,10 @@ using mozilla::gfx::SharedDIB;
 #include <windowsx.h>
 
 #define NS_OOPP_DOUBLEPASS_MSGID TEXT("MozDoublePassMsg")
+
+#ifndef WM_MOUSEHWHEEL
+#define WM_MOUSEHWHEEL                    0x020E
+#endif
 #elif defined(XP_MACOSX)
 #include <ApplicationServices/ApplicationServices.h>
 #endif 
@@ -1049,9 +1053,16 @@ PluginInstanceChild::PluginWindowProc(HWND hWnd,
     
     
     
-    if (message == WM_KILLFOCUS && 
-        ((InSendMessageEx(NULL) & (ISMEX_REPLIED|ISMEX_SEND)) == ISMEX_SEND)) {
-        ReplyMessage(0); 
+    if ((InSendMessageEx(NULL)&(ISMEX_REPLIED|ISMEX_SEND)) == ISMEX_SEND) {
+        switch(message) {
+            case WM_KILLFOCUS:
+            case WM_MOUSEHWHEEL:
+            case WM_MOUSEWHEEL:
+            case WM_HSCROLL:
+            case WM_VSCROLL:
+            ReplyMessage(0);
+            break;
+        }
     }
 
     LRESULT res = CallWindowProc(self->mPluginWndProc, hWnd, message, wParam,
