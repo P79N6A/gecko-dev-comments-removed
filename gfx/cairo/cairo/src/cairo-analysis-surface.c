@@ -586,6 +586,9 @@ static const cairo_surface_backend_t cairo_analysis_surface_backend = {
     _cairo_analysis_surface_fill,
     _cairo_analysis_surface_show_glyphs,
     NULL, 
+    NULL, 
+    NULL, 
+    NULL, 
 };
 
 cairo_surface_t *
