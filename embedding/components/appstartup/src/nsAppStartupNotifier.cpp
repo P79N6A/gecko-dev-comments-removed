@@ -35,6 +35,7 @@
 
 
 
+
 #include "nsCOMPtr.h"
 #include "nsString.h"
 #include "nsXPIDLString.h"
@@ -88,22 +89,22 @@ NS_IMETHODIMP nsAppStartupNotifier::Observe(nsISupports *aSubject, const char *a
                 
                 
 
-                const char *pServicePrefix = "service,";
-                
-                nsCAutoString cid(contractId);
-                PRInt32 serviceIdx = cid.Find(pServicePrefix);
-
-                nsCOMPtr<nsIObserver> startupObserver;
-                if (serviceIdx == 0)
-                    startupObserver = do_GetService(cid.get() + strlen(pServicePrefix), &rv);
+                nsCOMPtr<nsISupports> startupInstance;
+                if (Substring(contractId, 0, 8).EqualsLiteral("service,"))
+                    startupInstance = do_GetService(contractId.get() + 8, &rv);
                 else
-                    startupObserver = do_CreateInstance(contractId, &rv);
+                    startupInstance = do_CreateInstance(contractId, &rv);
 
                 if (NS_SUCCEEDED(rv)) {
-                    rv = startupObserver->Observe(nsnull, aTopic, nsnull);
- 
                     
-                    NS_ASSERTION(NS_SUCCEEDED(rv), "Startup Observer failed!\n");
+                    nsCOMPtr<nsIObserver> startupObserver =
+                        do_QueryInterface(startupInstance, &rv);
+                    if (NS_SUCCEEDED(rv)) {
+                        rv = startupObserver->Observe(nsnull, aTopic, nsnull);
+     
+                        
+                        NS_ASSERTION(NS_SUCCEEDED(rv), "Startup Observer failed!\n");
+                    }
                 }
                 else {
                   #ifdef NS_DEBUG
