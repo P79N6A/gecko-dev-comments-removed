@@ -49,4 +49,39 @@ function cleanUp() {
       file.remove(false);
   } catch (e) {}
 }
+
+
+
+
+
+
+
+
+
+
+
+function buildUpdate(update) {
+  var updateStr = "n:1000\n";
+
+  for (var tableName in update) {
+    updateStr += "i:" + tableName + "\n";
+    var chunks = update[tableName];
+    for (var j = 0; j < chunks.length; j++) {
+      var chunk = chunks[j];
+      var chunkType = chunk.chunkType ? chunk.chunkType : 'a';
+      var chunkNum = chunk.chunkNum ? chunk.chunkNum : j;
+      updateStr += chunkType + ':' + chunkNum;
+
+      if (chunk.urls) {
+        var chunkData = chunk.urls.join("\n");
+        updateStr += ":" + chunkData.length + "\n" + chunkData;
+      }
+
+      updateStr += "\n";
+    }
+  }
+
+  return updateStr;
+}
+
 cleanUp();
