@@ -389,10 +389,6 @@ public:
   
 
 
-
-
-
-
   static nsresult CheckSameOrigin(nsINode* aTrustedNode,
                                   nsIDOMNode* aUnTrustedNode);
 
