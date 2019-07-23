@@ -1415,6 +1415,14 @@ SessionStoreService.prototype = {
       winData.tabs = [];
     }
     
+    
+    else if (root._firstTabs && !aOverwriteTabs && winData.tabs.length == 1) {
+      let tabEntries = winData.tabs[0].entries || [];
+      if (tabEntries.length == 0 ||
+          tabEntries.length == 1 && tabEntries[0].url == "about:blank")
+        winData.tabs = [];
+    }
+    
     var tabbrowser = aWindow.getBrowser();
     var openTabCount = aOverwriteTabs ? tabbrowser.browsers.length : -1;
     var newTabCount = winData.tabs.length;
