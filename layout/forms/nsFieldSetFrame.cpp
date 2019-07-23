@@ -240,7 +240,9 @@ nsFieldSetFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
     NS_ENSURE_SUCCESS(rv, rv);
   }
   if (mLegendFrame) {
-    nsDisplayListSet set(aLists, aLists.Content());
+    
+    
+    nsDisplayListSet set(aLists, aLists.BlockBorderBackgrounds());
     nsresult rv = BuildDisplayListForChild(aBuilder, mLegendFrame, aDirtyRect, set);
     NS_ENSURE_SUCCESS(rv, rv);
   }
