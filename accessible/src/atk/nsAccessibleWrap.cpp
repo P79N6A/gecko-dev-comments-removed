@@ -793,8 +793,16 @@ GetAttributeSet(nsIAccessible* aAccessible)
     AtkAttributeSet *objAttributeSet = nsnull;
     nsCOMPtr<nsIPersistentProperties> attributes;
     aAccessible->GetAttributes(getter_AddRefs(attributes));
-
+    
     if (attributes) {
+        
+        if (State(aAccessible) & nsIAccessibleStates::STATE_HASPOPUP) {
+          
+          nsAutoString oldValueUnused;
+          attributes->SetStringProperty(NS_LITERAL_STRING("haspopup"), NS_LITERAL_STRING("true"),
+                                        oldValueUnused);
+        }
+
         nsCOMPtr<nsISimpleEnumerator> propEnum;
         nsresult rv = attributes->Enumerate(getter_AddRefs(propEnum));
         NS_ENSURE_SUCCESS(rv, nsnull);
