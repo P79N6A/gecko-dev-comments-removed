@@ -76,10 +76,6 @@ static void GetPageSize(void)
 #endif
 #endif 
 
-#ifdef XP_MAC
-    _pr_pageSize = 4096;
-#endif 
-
 #ifdef XP_BEOS
     _pr_pageSize = B_PAGE_SIZE;
 #endif

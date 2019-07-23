@@ -315,16 +315,6 @@ NSPR_API(PRMonitor*) PR_CTestAndEnterMonitor(void *address);
 
 
 
-#if defined(XP_MAC)
-
-NSPR_API(void) PR_Mac_WaitForAsyncNotify(PRIntervalTime timeout);
-NSPR_API(void) PR_Mac_PostAsyncNotify(PRThread *thread);
-
-#endif 
-
-
-
-
 #if defined(IRIX)
 
 

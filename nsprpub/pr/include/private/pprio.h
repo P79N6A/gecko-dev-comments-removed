@@ -269,15 +269,6 @@ NSPR_API(PRStatus) PR_NT_CancelIo(PRFileDesc *fd);
 
 #endif 
 
-
-
-
-
-#ifdef XP_MAC
-NSPR_API(void) PR_Init_Log(void);
-#endif
-
-
 PR_END_EXTERN_C
 
 #endif 

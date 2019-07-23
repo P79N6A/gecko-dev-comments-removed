@@ -226,12 +226,6 @@ PR_IMPLEMENT(PRInt32) PR_GetNumberOfProcessors( void )
 
     GetSystemInfo( &info );
     numCpus = info.dwNumberOfProcessors;
-#elif defined(XP_MAC)
-
-
-
-
-    numCpus = 1;
 #elif defined(BEOS)
     system_info sysInfo;
 

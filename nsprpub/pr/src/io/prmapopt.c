@@ -368,28 +368,6 @@ PRStatus PR_CALLBACK _PR_SocketSetSocketOption(PRFileDesc *fd, const PRSocketOpt
 
 
 
-#if defined(VMS)
-
-
-
-
-
-
-
-
-#undef IP_MULTICAST_IF
-#undef IP_MULTICAST_TTL
-#undef IP_MULTICAST_LOOP
-#undef IP_ADD_MEMBERSHIP
-#undef IP_DROP_MEMBERSHIP
-#include <ucx$inetdef.h>
-#define IP_MULTICAST_IF    UCX$C_IP_MULTICAST_IF
-#define IP_MULTICAST_TTL   UCX$C_IP_MULTICAST_TTL
-#define IP_MULTICAST_LOOP  UCX$C_IP_MULTICAST_LOOP
-#define IP_ADD_MEMBERSHIP  UCX$C_IP_ADD_MEMBERSHIP
-#define IP_DROP_MEMBERSHIP UCX$C_IP_DROP_MEMBERSHIP
-#endif
-
 
 
 

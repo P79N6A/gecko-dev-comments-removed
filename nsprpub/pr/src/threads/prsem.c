@@ -36,11 +36,7 @@
 
 
 #include "primpl.h"
-#if defined(XP_MAC)
-#include "prsem.h"
-#else
 #include "obsolete/prsem.h"
-#endif
 
 
 

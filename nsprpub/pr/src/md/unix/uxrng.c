@@ -112,24 +112,6 @@ GetHighResClock(void *buf, size_t maxbytes)
     return _pr_CopyLowBits(buf, maxbytes, &t, sizeof(t));
 }
 
-#elif defined(VMS)
-
-#include <ints.h>
-
-
-
-
-
-
-static size_t
-GetHighResClock(void *buf, size_t maxbytes)
-{
-    uint64 t;
-
-    t = __RPCC();
-    return _pr_CopyLowBits(buf, maxbytes, &t, sizeof(t));
-}
-
 #elif defined(AIX)
 
 static size_t

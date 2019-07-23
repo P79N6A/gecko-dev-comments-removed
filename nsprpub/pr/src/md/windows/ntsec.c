@@ -75,7 +75,8 @@ void _PR_NT_InitSids(void)
     SID_IDENTIFIER_AUTHORITY SIDAuthWorld = SECURITY_WORLD_SID_AUTHORITY;
     HANDLE hToken = NULL; 
 
-    UCHAR infoBuffer[1024];
+    PSID infoBuffer[1024/sizeof(PSID)]; 
+
     PTOKEN_OWNER pTokenOwner = (PTOKEN_OWNER) infoBuffer;
     PTOKEN_PRIMARY_GROUP pTokenPrimaryGroup
             = (PTOKEN_PRIMARY_GROUP) infoBuffer;

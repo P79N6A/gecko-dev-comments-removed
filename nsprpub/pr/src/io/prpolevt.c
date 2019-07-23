@@ -58,85 +58,6 @@
 #include "prerror.h"
 #include "prlog.h"
 
-#ifdef VMS
-
-
-
-
-
-#include "pprio.h"
-#include <lib$routines.h>
-#include <starlet.h>
-#include <stsdef.h>
-
-PR_IMPLEMENT(PRFileDesc *) PR_NewPollableEvent(void)
-{
-    unsigned int status;
-    int flag = -1;
-    PRFileDesc *event;
-
-    
-
-
-    status = lib$get_ef(&flag);
-    if ((!$VMS_STATUS_SUCCESS(status)) || (flag == -1)) {
-        PR_SetError(PR_INSUFFICIENT_RESOURCES_ERROR, status);
-        return NULL;
-    }
-    sys$clref(flag);
-
-    
-
-
-
-
-    event = PR_CreateSocketPollFd(-flag);
-    if (NULL == event) {
-        lib$free_ef(&flag);
-        return NULL;
-    }
-
-    return event;
-}
-
-PR_IMPLEMENT(PRStatus) PR_DestroyPollableEvent(PRFileDesc *event)
-{
-    int flag = -PR_FileDesc2NativeHandle(event);
-    PR_DestroySocketPollFd(event);
-    lib$free_ef(&flag);
-    return PR_SUCCESS;
-}
-
-PR_IMPLEMENT(PRStatus) PR_SetPollableEvent(PRFileDesc *event)
-{
-    
-
-
-    unsigned int status;
-    status = sys$setef(-PR_FileDesc2NativeHandle(event));
-    if (!$VMS_STATUS_SUCCESS(status)) {
-        PR_SetError(PR_INVALID_ARGUMENT_ERROR, status);
-        return PR_FAILURE;
-    }
-    return PR_SUCCESS;
-}
-
-PR_IMPLEMENT(PRStatus) PR_WaitForPollableEvent(PRFileDesc *event)
-{
-    
-
-
-    unsigned int status;
-    status = sys$clref(-PR_FileDesc2NativeHandle(event));
-    if (!$VMS_STATUS_SUCCESS(status)) {
-        PR_SetError(PR_INVALID_ARGUMENT_ERROR, status);
-        return PR_FAILURE;
-    }
-    return PR_SUCCESS;
-}
-
-#else 
-
 
 
 
@@ -339,5 +260,3 @@ PR_IMPLEMENT(PRStatus) PR_WaitForPollableEvent(PRFileDesc *event)
 
     return PR_SUCCESS;
 }
-
-#endif 

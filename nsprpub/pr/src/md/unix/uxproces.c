@@ -60,10 +60,6 @@ PR_IMPORT_DATA(char **) environ;
 #define SA_RESTART 0
 #endif
 
-#if defined(VMS)
-static PRLock *_pr_vms_fork_lock = NULL;
-#endif
-
 
 
 
@@ -176,9 +172,6 @@ ForkAndExec(
     char *const *childEnvp;
     char **newEnvp = NULL;
     int flags;
-#ifdef VMS
-    char VMScurdir[FILENAME_MAX+1] = { '\0' } ;
-#endif	
 
     process = PR_NEW(PRProcess);
     if (!process) {
@@ -218,66 +211,6 @@ ForkAndExec(
         newEnvp[idx] = NULL;
         childEnvp = newEnvp;
     }
-
-#ifdef VMS
-
-
-
-
-
-
-
-{
-    int decc$set_child_standard_streams(int,int,int);
-    int n, fd_stdin=0, fd_stdout=1, fd_stderr=2;
-
-    
-    if (attr) {
-       if (attr->stdinFd)
-           fd_stdin = attr->stdinFd->secret->md.osfd;
-       if (attr->stdoutFd)
-           fd_stdout = attr->stdoutFd->secret->md.osfd;
-       if (attr->stderrFd)
-           fd_stderr = attr->stderrFd->secret->md.osfd;
-    }
-
-    
-
-
-    PR_Lock(_pr_vms_fork_lock);
-
-    
-
-
-
-    n = decc$set_child_standard_streams(fd_stdin,fd_stdout,fd_stderr);
-    if (n == -1) {
-       PR_SetError(PR_BAD_DESCRIPTOR_ERROR, errno);
-       PR_DELETE(process);
-       if (newEnvp) {
-           PR_DELETE(newEnvp);
-       }
-       PR_Unlock(_pr_vms_fork_lock);
-       return NULL;
-    }
-
-    
-    if (attr) {
-       if (attr->currentDirectory) {
-           if ( (getcwd(VMScurdir,sizeof(VMScurdir)) == NULL) ||
-                (chdir(attr->currentDirectory) < 0) ) {
-               PR_SetError(PR_DIRECTORY_OPEN_ERROR, errno);
-               PR_DELETE(process);
-               if (newEnvp) {
-                   PR_DELETE(newEnvp);
-               }
-               PR_Unlock(_pr_vms_fork_lock);
-               return NULL;
-           }
-       }
-    }
-}
-#endif 
 
 #ifdef AIX
     process->md.pid = (*pr_wp.forkptr)();
@@ -345,9 +278,6 @@ ForkAndExec(
 
 
 #if !defined(NTO) && !defined(SYMBIAN)
-#ifdef VMS
-       
-#else
         if (attr) {
             
             int in_osfd = -1, out_osfd = -1, err_osfd = -1;
@@ -401,7 +331,6 @@ ForkAndExec(
                 }
             }
         }
-#endif 
 
         if (childEnvp) {
             (void)execve(path, argv, childEnvp);
@@ -410,36 +339,13 @@ ForkAndExec(
             (void)execv(path, argv);
         }
         
-#ifdef VMS
-       
-
-
-
-       PR_SetError(PR_UNKNOWN_ERROR, errno);
-       PR_DELETE(process);
-       if (newEnvp) {
-           PR_DELETE(newEnvp);
-       }
-       if (VMScurdir[0] != '\0')
-           chdir(VMScurdir);
-       PR_Unlock(_pr_vms_fork_lock);
-       return NULL;
-#else
         _exit(1);
-#endif 
 #endif 
     }
 
     if (newEnvp) {
         PR_DELETE(newEnvp);
     }
-#ifdef VMS
-    
-    if (VMScurdir[0] != '\0') {
-       chdir(VMScurdir); 
-    }
-    PR_Unlock(_pr_vms_fork_lock);
-#endif 
 
 #if defined(_PR_NATIVE_THREADS)
     PR_Lock(pr_wp.ml);
@@ -846,11 +752,6 @@ static PRStatus _MD_InitProcesses(void)
 
     pr_wp.ml = PR_NewLock();
     PR_ASSERT(NULL != pr_wp.ml);
-
-#if defined(VMS)
-    _pr_vms_fork_lock = PR_NewLock();
-    PR_ASSERT(NULL != _pr_vms_fork_lock);
-#endif
 
 #if defined(_PR_NATIVE_THREADS)
     pr_wp.numProcs = 0;
