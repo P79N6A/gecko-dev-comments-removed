@@ -69,10 +69,23 @@ TimerCallback(nsITimer* aTimer,
 
 } 
 
+class DoWorkRunnable : public nsRunnable
+{
+public:
+  NS_IMETHOD Run() {
+    MessageLoop* loop = MessageLoop::current();
+    NS_ASSERTION(loop, "Shouldn't be null!");
+    if (loop) {
+      loop->DoWork();
+    }
+    return NS_OK;
+  }
+};
+
 MessagePump::MessagePump()
 : mThread(nsnull)
 {
-  mDummyEvent = new nsRunnable();
+  mDummyEvent = new DoWorkRunnable();
   
   NS_ADDREF(mDummyEvent);
 }

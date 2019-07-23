@@ -38,6 +38,7 @@
 #define _IPC_TESTSHELL_TESTSHELLCHILD_H_
 
 #include "mozilla/ipc/TestShellProtocolChild.h"
+#include "mozilla/ipc/TestShellCommandProtocolChild.h"
 
 namespace mozilla {
 namespace ipc {
@@ -48,11 +49,21 @@ class TestShellChild : public TestShellProtocolChild
 {
 public:
   TestShellChild();
-  virtual ~TestShellChild();
+  ~TestShellChild();
 
-  virtual nsresult RecvSendCommand(const nsString& aCommand);
-  virtual nsresult RecvSendCommandWithResponse(const nsString& aCommand,
-                                               nsString* aResponse);
+  nsresult
+  RecvExecuteCommand(const nsString& aCommand);
+
+  TestShellCommandProtocolChild*
+  TestShellCommandConstructor(const nsString& aCommand);
+
+  nsresult
+  RecvTestShellCommandConstructor(TestShellCommandProtocolChild* aActor,
+                                  const nsString& aCommand);
+
+  nsresult
+  TestShellCommandDestructor(TestShellCommandProtocolChild* aCommand,
+                             const nsString& aResponse);
 
   void SetXPCShell(XPCShellEnvironment* aXPCShell) {
     mXPCShell = aXPCShell;

@@ -40,13 +40,24 @@
 #include "mozilla/ipc/AsyncChannel.h"
 #include "mozilla/ipc/GeckoThread.h"
 
+#include "mozilla/dom/ContentProcessChild.h"
+using mozilla::dom::ContentProcessChild;
+
 #include "nsDebug.h"
+#include "nsXULAppAPI.h"
 
 template<>
 struct RunnableMethodTraits<mozilla::ipc::AsyncChannel>
 {
     static void RetainCallee(mozilla::ipc::AsyncChannel* obj) { }
     static void ReleaseCallee(mozilla::ipc::AsyncChannel* obj) { }
+};
+
+template<>
+struct RunnableMethodTraits<ContentProcessChild>
+{
+    static void RetainCallee(ContentProcessChild* obj) { }
+    static void ReleaseCallee(ContentProcessChild* obj) { }
 };
 
 namespace mozilla {
@@ -143,6 +154,8 @@ AsyncChannel::OnDispatchMessage(const Message& msg)
 void
 AsyncChannel::OnMessageReceived(const Message& msg)
 {
+    NS_ASSERTION(mChannelState != ChannelError, "Shouldn't get here!");
+
     
     mWorkerLoop->PostTask(FROM_HERE,
                           NewRunnableMethod(this,
@@ -159,10 +172,26 @@ AsyncChannel::OnChannelConnected(int32 peer_pid)
 void
 AsyncChannel::OnChannelError()
 {
-    NS_WARNING("Channel error, quitting IO loop!");
-    
     mChannelState = ChannelError;
-    MessageLoop::current()->Quit();
+
+    if (XRE_GetProcessType() == GeckoProcessType_Default) {
+        
+    }
+    else {
+        
+#ifdef DEBUG
+        
+        mWorkerLoop->PostTask(FROM_HERE,
+            NewRunnableMethod(ContentProcessChild::GetSingleton(),
+                              &ContentProcessChild::Quit));
+
+        
+        MessageLoop::current()->Quit();
+#else
+        
+        NS_DebugBreak(NS_DEBUG_ABORT, nsnull, nsnull, nsnull, 0);
+#endif
+    }
 }
 
 void

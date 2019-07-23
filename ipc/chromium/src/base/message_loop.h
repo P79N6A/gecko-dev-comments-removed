@@ -26,6 +26,10 @@
 #include "base/message_pump_libevent.h"
 #endif
 
+#ifdef CHROMIUM_MOZILLA_BUILD
+class DoWorkRunnable;
+#endif
+
 
 
 
@@ -57,7 +61,12 @@
 
 
 class MessageLoop : public base::MessagePump::Delegate {
- public:
+
+#ifdef CHROMIUM_MOZILLA_BUILD
+  friend class DoWorkRunnable;
+#endif
+
+public:
   static void EnableHistogrammer(bool enable_histogrammer);
 
   
