@@ -75,16 +75,16 @@ tests.push({
     do_check_eq(bs.getIdForItemAt(bs.toolbarFolder, 0), -1);
     
     do_check_eq(bs.getIdForItemAt(bs.bookmarksMenuFolder, 0), -1);
-    
+
     
     ps.setIntPref(PREF_SMART_BOOKMARKS_VERSION, 0);
     
     os.notifyObservers(null, TOPIC_PLACES_INIT_COMPLETE, null);
 
     
-    do_check_eq(countFolderChildren(bs.toolbarFolder), SMART_BOOKMARKS_ON_TOOLBAR);
+    do_check_eq(countFolderChildren(bs.toolbarFolder), SMART_BOOKMARKS_ON_TOOLBAR + DEFAULT_BOOKMARKS_ON_TOOLBAR);
     
-    do_check_eq(countFolderChildren(bs.bookmarksMenuFolder), SMART_BOOKMARKS_ON_MENU + 1);
+    do_check_eq(countFolderChildren(bs.bookmarksMenuFolder), SMART_BOOKMARKS_ON_MENU + DEFAULT_BOOKMARKS_ON_MENU);
 
     
     do_check_eq(ps.getIntPref(PREF_SMART_BOOKMARKS_VERSION), SMART_BOOKMARKS_VERSION);
@@ -113,9 +113,9 @@ tests.push({
     os.notifyObservers(null, TOPIC_PLACES_INIT_COMPLETE, null);
 
     
-    do_check_eq(countFolderChildren(bs.toolbarFolder), SMART_BOOKMARKS_ON_TOOLBAR);
+    do_check_eq(countFolderChildren(bs.toolbarFolder), SMART_BOOKMARKS_ON_TOOLBAR + DEFAULT_BOOKMARKS_ON_TOOLBAR);
     
-    do_check_eq(countFolderChildren(bs.bookmarksMenuFolder), SMART_BOOKMARKS_ON_MENU + 1);
+    do_check_eq(countFolderChildren(bs.bookmarksMenuFolder), SMART_BOOKMARKS_ON_MENU + DEFAULT_BOOKMARKS_ON_MENU);
 
     
     itemId = bs.getIdForItemAt(bs.toolbarFolder, 0);
@@ -138,15 +138,15 @@ tests.push({
     
     ps.setIntPref(PREF_SMART_BOOKMARKS_VERSION, 1);
     
-    bs.removeFolderChildren(bs.toolbarFolder);
+    bs.removeItem(bs.getIdForItemAt(bs.toolbarFolder, 0));
 
     
     os.notifyObservers(null, TOPIC_PLACES_INIT_COMPLETE, null);
 
     
-    do_check_eq(countFolderChildren(bs.toolbarFolder), 0);
+    do_check_eq(countFolderChildren(bs.toolbarFolder),  DEFAULT_BOOKMARKS_ON_TOOLBAR);
     
-    do_check_eq(countFolderChildren(bs.bookmarksMenuFolder), SMART_BOOKMARKS_ON_MENU + 1);
+    do_check_eq(countFolderChildren(bs.bookmarksMenuFolder), SMART_BOOKMARKS_ON_MENU + DEFAULT_BOOKMARKS_ON_MENU);
 
     
     do_check_eq(ps.getIntPref(PREF_SMART_BOOKMARKS_VERSION), SMART_BOOKMARKS_VERSION);
@@ -167,9 +167,9 @@ tests.push({
     os.notifyObservers(null, TOPIC_PLACES_INIT_COMPLETE, null);
 
     
-    do_check_eq(countFolderChildren(bs.toolbarFolder), SMART_BOOKMARKS_ON_TOOLBAR);
+    do_check_eq(countFolderChildren(bs.toolbarFolder), SMART_BOOKMARKS_ON_TOOLBAR + DEFAULT_BOOKMARKS_ON_TOOLBAR);
     
-    do_check_eq(countFolderChildren(bs.bookmarksMenuFolder), SMART_BOOKMARKS_ON_MENU + 1);
+    do_check_eq(countFolderChildren(bs.bookmarksMenuFolder), SMART_BOOKMARKS_ON_MENU + DEFAULT_BOOKMARKS_ON_MENU);
 
     
     do_check_eq(ps.getIntPref(PREF_SMART_BOOKMARKS_VERSION), SMART_BOOKMARKS_VERSION);
@@ -193,23 +193,19 @@ function countFolderChildren(aFolderItemId) {
 function finish_test() {
   
   remove_all_bookmarks();
-  
-  os.notifyObservers(null, "quit-application-granted", null);
+
   do_test_finished();
 }
 
 var testIndex = 0;
 function next_test() {
   
-  os.notifyObservers(null, "quit-application-granted", null);
-
-  
   
   os.addObserver(bg, TOPIC_PLACES_INIT_COMPLETE, false);
 
   
-  var test = tests.shift();
-  dump("\nTEST " + (++testIndex) + ": " + test.description);
+  let test = tests.shift();
+  print("\nTEST " + (++testIndex) + ": " + test.description);
   test.exec();
 }
 

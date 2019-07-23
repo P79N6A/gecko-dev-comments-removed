@@ -55,10 +55,11 @@ const PREF_EM_NEW_ADDONS_LIST = "extensions.newAddons";
 
 
 
-const BOOKMARKS_ARCHIVE_IDLE_TIME = 60 * 60;
+const BOOKMARKS_BACKUP_IDLE_TIME = 15 * 60;
 
+const BOOKMARKS_BACKUP_INTERVAL = 86400 * 1000;
 
-const BOOKMARKS_ARCHIVE_INTERVAL = 86400 * 1000;
+const BOOKMARKS_BACKUP_MAX_BACKUPS = 10;
 
 
 const BrowserGlueServiceFactory = {
@@ -76,29 +77,21 @@ const BrowserGlueServiceFactory = {
 
 function BrowserGlue() {
 
-  this.__defineGetter__("_prefs", function() {
-    delete this._prefs;
-    return this._prefs = Cc["@mozilla.org/preferences-service;1"].
-                         getService(Ci.nsIPrefBranch);
-  });
+  XPCOMUtils.defineLazyServiceGetter(this, "_prefs",
+                                     "@mozilla.org/preferences-service;1",
+                                     "nsIPrefBranch");
 
-  this.__defineGetter__("_bundleService", function() {
-    delete this._bundleService;
-    return this._bundleService = Cc["@mozilla.org/intl/stringbundle;1"].
-                                 getService(Ci.nsIStringBundleService);
-  });
+  XPCOMUtils.defineLazyServiceGetter(this, "_bundleService",
+                                     "@mozilla.org/intl/stringbundle;1",
+                                     "nsIStringBundleService");
 
-  this.__defineGetter__("_idleService", function() {
-    delete this._idleService;
-    return this._idleService = Cc["@mozilla.org/widget/idleservice;1"].
-                           getService(Ci.nsIIdleService);
-  });
+  XPCOMUtils.defineLazyServiceGetter(this, "_idleService",
+                                     "@mozilla.org/widget/idleservice;1",
+                                     "nsIIdleService");
 
-  this.__defineGetter__("_observerService", function() {
-    delete this._observerService;
-    return this._observerService = Cc['@mozilla.org/observer-service;1'].
-                                   getService(Ci.nsIObserverService);
-  });
+  XPCOMUtils.defineLazyServiceGetter(this, "_observerService",
+                                     "@mozilla.org/observer-service;1",
+                                     "nsIObserverService");
 
   this._init();
 }
@@ -112,6 +105,10 @@ function BrowserGlue() {
 BrowserGlue.prototype = {
   
   _saveSession: false,
+  _isIdleObserver: false,
+  _isPlacesInitObserver: false,
+  _isPlacesLockedObserver: false,
+  _isPlacesDatabaseLocked: false,
 
   _setPrefToSaveSession: function()
   {
@@ -177,20 +174,21 @@ BrowserGlue.prototype = {
       case "places-init-complete":
         this._initPlaces();
         this._observerService.removeObserver(this, "places-init-complete");
+        this._isPlacesInitObserver = false;
         
         this._observerService.removeObserver(this, "places-database-locked");
+        this._isPlacesLockedObserver = false;
         break;
       case "places-database-locked":
         this._isPlacesDatabaseLocked = true;
         
         
         this._observerService.removeObserver(this, "places-database-locked");
+        this._isPlacesLockedObserver = false;
         break;
       case "idle":
-        if (this._idleService.idleTime > BOOKMARKS_ARCHIVE_IDLE_TIME * 1000) {
-          
-          this._archiveBookmarks();
-        }
+        if (this._idleService.idleTime > BOOKMARKS_BACKUP_IDLE_TIME * 1000)
+          this._backupBookmarks();
         break;
     }
   }, 
@@ -213,7 +211,9 @@ BrowserGlue.prototype = {
 #endif
     osvr.addObserver(this, "session-save", false);
     osvr.addObserver(this, "places-init-complete", false);
+    this._isPlacesInitObserver = true;
     osvr.addObserver(this, "places-database-locked", false);
+    this._isPlacesLockedObserver = true;
   },
 
   
@@ -227,12 +227,18 @@ BrowserGlue.prototype = {
     osvr.removeObserver(this, "sessionstore-windows-restored");
     osvr.removeObserver(this, "browser:purge-session-history");
     osvr.removeObserver(this, "quit-application-requested");
+    osvr.removeObserver(this, "quit-application-granted");
 #ifdef OBSERVE_LASTWINDOW_CLOSE_TOPICS
     osvr.removeObserver(this, "browser-lastwindow-close-requested");
     osvr.removeObserver(this, "browser-lastwindow-close-granted");
 #endif
-    osvr.removeObserver(this, "quit-application-granted");
     osvr.removeObserver(this, "session-save");
+    if (this._isIdleObserver)
+      this._idleService.removeIdleObserver(this, BOOKMARKS_BACKUP_IDLE_TIME);
+    if (this._isPlacesInitObserver)
+      osvr.removeObserver(this, "places-init-complete");
+    if (this._isPlacesLockedObserver)
+      osvr.removeObserver(this, "places-database-locked");
   },
 
   _onAppDefaults: function()
@@ -288,7 +294,8 @@ BrowserGlue.prototype = {
   _onProfileShutdown: function() 
   {
     this._shutdownPlaces();
-    this._idleService.removeIdleObserver(this, BOOKMARKS_ARCHIVE_IDLE_TIME);
+    this._idleService.removeIdleObserver(this, BOOKMARKS_BACKUP_IDLE_TIME);
+    this._isIdleObserver = false;
     this.Sanitizer.onShutdown();
   },
 
@@ -593,7 +600,7 @@ BrowserGlue.prototype = {
         this._prefs.getBoolPref("browser.bookmarks.restore_default_bookmarks");
       if (restoreDefaultBookmarks) {
         
-        this._archiveBookmarks();
+        this._backupBookmarks();
         importBookmarks = true;
       }
     } catch(ex) {}
@@ -603,10 +610,10 @@ BrowserGlue.prototype = {
     if (importBookmarks && !restoreDefaultBookmarks && !importBookmarksHTML) {
       
       Cu.import("resource://gre/modules/utils.js");
-      var bookmarksBackupFile = PlacesUtils.getMostRecentBackup();
-      if (bookmarksBackupFile && bookmarksBackupFile.leafName.match("\.json$")) {
+      var bookmarksBackupFile = PlacesUtils.backups.getMostRecent("json");
+      if (bookmarksBackupFile) {
         
-        PlacesUtils.restoreBookmarksFromJSONFile(bookmarksBackupFile);
+        PlacesUtils.backups.restoreBookmarksFromJSONFile(bookmarksBackupFile);
         importBookmarks = false;
       }
       else {
@@ -683,7 +690,10 @@ BrowserGlue.prototype = {
 
     
     
-    this._idleService.addIdleObserver(this, BOOKMARKS_ARCHIVE_IDLE_TIME);
+    if (!this._isIdleObserver) {
+      this._idleService.addIdleObserver(this, BOOKMARKS_BACKUP_IDLE_TIME);
+      this._isIdleObserver = true;
+    }
   },
 
   
@@ -695,17 +705,14 @@ BrowserGlue.prototype = {
 
 
   _shutdownPlaces: function bg__shutdownPlaces() {
-    
-    this._archiveBookmarks();
+    this._backupBookmarks();
 
     
     
     var autoExportHTML = false;
     try {
       autoExportHTML = this._prefs.getBoolPref("browser.bookmarks.autoExportHTML");
-    } catch(ex) {
-      Components.utils.reportError(ex);
-    }
+    } catch(ex) {  }
 
     if (autoExportHTML) {
       Cc["@mozilla.org/browser/places/import-export-service;1"].
@@ -717,21 +724,22 @@ BrowserGlue.prototype = {
   
 
 
-  _archiveBookmarks: function nsBrowserGlue__archiveBookmarks() {
+  _backupBookmarks: function nsBrowserGlue__backupBookmarks() {
     Cu.import("resource://gre/modules/utils.js");
 
-    var lastBackup = PlacesUtils.getMostRecentBackup();
+    let lastBackupFile = PlacesUtils.backups.getMostRecent();
 
     
     
-    if (!lastBackup ||
-        Date.now() - lastBackup.lastModifiedTime > BOOKMARKS_ARCHIVE_INTERVAL) {
-      var maxBackups = 5;
+    if (!lastBackupFile ||
+        new Date() - PlacesUtils.backups.getDateForFile(lastBackupFile) > BOOKMARKS_BACKUP_INTERVAL) {
+      let maxBackups = BOOKMARKS_BACKUP_MAX_BACKUPS;
       try {
         maxBackups = this._prefs.getIntPref("browser.bookmarks.max_backups");
-      } catch(ex) {}
+      }
+      catch(ex) {  }
 
-      PlacesUtils.archiveBookmarksFile(maxBackups, false );
+      PlacesUtils.backups.create(maxBackups); 
     }
   },
 

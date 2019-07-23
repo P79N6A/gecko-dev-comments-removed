@@ -159,6 +159,12 @@ var PlacesUtils = {
                           getService(Ci.nsITaggingService);
   },
 
+  get observerSvc() {
+    delete this.observerSvc;
+    return this.observerSvc = Cc["@mozilla.org/observer-service;1"].
+                              getService(Ci.nsIObserverService);
+  },
+
   
 
 
@@ -278,9 +284,7 @@ var PlacesUtils = {
     this.annotations.addObserver(this, false);
 
     
-    const os = Cc["@mozilla.org/observer-service;1"].
-               getService(Ci.nsIObserverService);
-    os.addObserver(this, "xpcom-shutdown", false);
+    this.observerSvc.addObserver(this, "xpcom-shutdown", false);
 
     var readOnly = this.annotations.getItemsWithAnnotation(READ_ONLY_ANNO, {});
     this.__defineGetter__("_readOnly", function() readOnly);
@@ -294,9 +298,7 @@ var PlacesUtils = {
   observe: function PU_observe(aSubject, aTopic, aData) {
     if (aTopic == "xpcom-shutdown") {
       this.annotations.removeObserver(this);
-      const os = Cc["@mozilla.org/observer-service;1"].
-                 getService(Ci.nsIObserverService);
-      os.removeObserver(this, "xpcom-shutdown");
+      this.observerSvc.removeObserver(this, "xpcom-shutdown");
     }
   },
 
@@ -1178,62 +1180,6 @@ var PlacesUtils = {
 
 
 
-  restoreBookmarksFromJSONFile:
-  function PU_restoreBookmarksFromJSONFile(aFile) {
-    var failed = false;
-    var obsServ = Cc["@mozilla.org/observer-service;1"].
-                  getService(Ci.nsIObserverService);
-    obsServ.notifyObservers(null,
-                            RESTORE_BEGIN_NSIOBSERVER_TOPIC,
-                            RESTORE_NSIOBSERVER_DATA);
-
-    try {
-      
-      var stream = Cc["@mozilla.org/network/file-input-stream;1"].
-                   createInstance(Ci.nsIFileInputStream);
-      stream.init(aFile, 0x01, 0, 0);
-      var converted = Cc["@mozilla.org/intl/converter-input-stream;1"].
-                      createInstance(Ci.nsIConverterInputStream);
-      converted.init(stream, "UTF-8", 8192,
-                     Ci.nsIConverterInputStream.DEFAULT_REPLACEMENT_CHARACTER);
-
-      
-      var str = {};
-      var jsonStr = "";
-      while (converted.readString(8192, str) != 0)
-        jsonStr += str.value;
-      converted.close();
-
-      if (jsonStr.length == 0)
-        return; 
-
-      this.restoreBookmarksFromJSONString(jsonStr, true);
-    }
-    catch (exc) {
-      failed = true;
-      obsServ.notifyObservers(null,
-                              RESTORE_FAILED_NSIOBSERVER_TOPIC,
-                              RESTORE_NSIOBSERVER_DATA);
-      Components.utils.reportError("Bookmarks JSON restore failed: " + exc);
-      throw exc;
-    }
-    finally {
-      if (!failed) {
-        obsServ.notifyObservers(null,
-                                RESTORE_SUCCESS_NSIOBSERVER_TOPIC,
-                                RESTORE_NSIOBSERVER_DATA);
-      }
-    }
-  },
-
-  
-
-
-
-
-
-
-
 
 
   restoreBookmarksFromJSONString:
@@ -1704,195 +1650,316 @@ var PlacesUtils = {
   
 
 
+  backups: {
 
+    get _filenamesRegex() {
+      
+      
+      let localizedFilename =
+        PlacesUtils.getFormattedString("bookmarksArchiveFilename", [new Date()]);
+      let localizedFilenamePrefix =
+        localizedFilename.substr(0, localizedFilename.indexOf("-"));
+      delete this._filenamesRegex;
+      return this._filenamesRegex =
+        new RegExp("^(bookmarks|" + localizedFilenamePrefix + ")-([0-9-]+)\.(json|html)");
+    },
 
-
-
-
-
-
-  backupBookmarksToFile: function PU_backupBookmarksToFile(aFile) {
-    if (aFile.exists() && !aFile.isWritable())
-      return; 
-
-    
-    var stream = Cc["@mozilla.org/network/file-output-stream;1"].
-                 createInstance(Ci.nsIFileOutputStream);
-    stream.init(aFile, 0x02 | 0x08 | 0x20, 0600, 0);
-
-    
-    var converter = Cc["@mozilla.org/intl/converter-output-stream;1"].
-                 createInstance(Ci.nsIConverterOutputStream);
-    converter.init(stream, "UTF-8", 0, 0x0000);
-
-    
-    var streamProxy = {
-      converter: converter,
-      write: function(aData, aLen) {
-        this.converter.writeString(aData);
+    get folder() {
+      let dirSvc = Cc["@mozilla.org/file/directory_service;1"].
+                   getService(Ci.nsIProperties);
+      let bookmarksBackupDir = dirSvc.get("ProfD", Ci.nsILocalFile);
+      bookmarksBackupDir.append("bookmarkbackups");
+      if (!bookmarksBackupDir.exists()) {
+        bookmarksBackupDir.create(Ci.nsIFile.DIRECTORY_TYPE, 0700);
+        if (!bookmarksBackupDir.exists())
+          throw("Unable to create bookmarks backup folder");
       }
-    };
+      delete this.folder;
+      return this.folder = bookmarksBackupDir;
+    },
 
     
-    var excludeItems = this.annotations
-                           .getItemsWithAnnotation(EXCLUDE_FROM_BACKUP_ANNO, {});
-
-    
-    var options = this.history.getNewQueryOptions();
-    options.expandQueries = false;
-    var query = this.history.getNewQuery();
-    query.setFolders([this.placesRootId], 1);
-    var result = this.history.executeQuery(query, options);
-    result.root.containerOpen = true;
-    
-    this.serializeNodeAsJSONToOutputStream(result.root, streamProxy,
-                                           false, false, excludeItems);
-    result.root.containerOpen = false;
-
-    
-    converter.close();
-    stream.close();
-  },
-
-  
 
 
-
-
-
-
-  getBackupFilename:
-  function PU_getBackupFilename(aDateObj) {
-    if (!aDateObj)
-      aDateObj = new Date();
-    
-    
-    var date = aDateObj.toLocaleFormat("%Y-%m-%d");
-    return "bookmarks-" + date + ".json";
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-  archiveBookmarksFile:
-  function PU_archiveBookmarksFile(aNumberOfBackups, aForceArchive) {
-    
-    var dirService = Cc["@mozilla.org/file/directory_service;1"].
-                     getService(Ci.nsIProperties);
-    var bookmarksBackupDir = dirService.get("ProfD", Ci.nsILocalFile);
-    bookmarksBackupDir.append("bookmarkbackups");
-    if (!bookmarksBackupDir.exists()) {
-      bookmarksBackupDir.create(Ci.nsIFile.DIRECTORY_TYPE, 0700);
-      if (!bookmarksBackupDir.exists())
-        return; 
-    }
-
-    
-    var date = new Date();
-    var backupFilename = this.getBackupFilename(date);
-    var backupFile = null;
-    if (!aForceArchive) {
-      var backupFileNames = [];
-      var backupFilenamePrefix = backupFilename.substr(0, backupFilename.indexOf("-"));
-
-      
-      
-      var localizedFilename = this.getFormattedString("bookmarksArchiveFilename", [date]);
-      var localizedFilenamePrefix = localizedFilename.substr(0, localizedFilename.indexOf("-"));
-      var rx = new RegExp("^(bookmarks|" + localizedFilenamePrefix + ")-([0-9-]+)\.(json|html)");
-
-      var entries = bookmarksBackupDir.directoryEntries;
-      while (entries.hasMoreElements()) {
-        var entry = entries.getNext().QueryInterface(Ci.nsIFile);
-        var backupName = entry.leafName;
+    get entries() {
+      delete this.entries;
+      this.entries = [];
+      let files = this.folder.directoryEntries;
+      while (files.hasMoreElements()) {
+        let entry = files.getNext().QueryInterface(Ci.nsIFile);
         
         
-        var matches = backupName.match(rx);
-        if (matches) {
-          if (backupName == backupFilename)
-            backupFile = entry;
-          backupFileNames.push({ filename: backupName, date: matches[2] });
+        let matches = entry.leafName.match(this._filenamesRegex);
+        if (!entry.isHidden() && matches) {
+          
+          if (this.getDateForFile(entry) > new Date()) {
+            entry.remove(false);
+            continue;
+          }
+          this.entries.push(entry);
         }
       }
+      this.entries.sort(function compare(a, b) {
+        aDate = PlacesUtils.backups.getDateForFile(a);
+        bDate = PlacesUtils.backups.getDateForFile(b);
+        return aDate < bDate ? 1 : aDate > bDate ? -1 : 0;
+      });
+      return this.entries;
+    },
 
-      var numberOfBackupsToDelete = 0;
-      if (aNumberOfBackups > -1)
-        numberOfBackupsToDelete = backupFileNames.length - aNumberOfBackups;
+    
 
-      if (numberOfBackupsToDelete > 0) {
-        
-        
-        
-        if (!backupFile)
-          numberOfBackupsToDelete++;
-        backupFileNames.sort(function compare(a, b) {
-          return a.date < b.date ? -1 : a.date > b.date ? 1 : 0;
-        });
-        while (numberOfBackupsToDelete--) {
-          let backupFile = bookmarksBackupDir.clone();
-          backupFile.append(backupFileNames[0].filename);
-          backupFile.remove(false);
-          backupFileNames.shift();
-        }
+
+
+
+
+
+
+    getFilenameForDate:
+    function PU_B_getFilenameForDate(aDateObj) {
+      let dateObj = aDateObj || new Date();
+      
+      
+      return "bookmarks-" + dateObj.toLocaleFormat("%Y-%m-%d") + ".json";
+    },
+
+    
+
+
+
+
+
+
+
+    getDateForFile:
+    function PU_B_getDateForFile(aBackupFile) {
+      let filename = aBackupFile.leafName;
+      let matches = filename.match(this._filenamesRegex);
+      if (!matches)
+        do_throw("Invalid backup file name: " + filename);
+      return new Date(matches[2].replace(/-/g, "/"));
+    },
+
+    
+
+
+
+
+
+
+
+    getMostRecent:
+    function PU__B_getMostRecent(aFileExt) {
+      let fileExt = aFileExt || "(json|html)";
+      for (let i = 0; i < this.entries.length; i++) {
+        let rx = new RegExp("\." + fileExt + "$");
+        if (this.entries[i].leafName.match(rx))
+          return this.entries[i];
       }
+      return null;
+    },
 
-      
-      
-      if (backupFile || aNumberOfBackups == 0)
+    
+
+
+
+
+
+
+
+
+
+    saveBookmarksToJSONFile:
+    function PU_B_saveBookmarksToFile(aFile) {
+      if (!aFile.exists())
+        aFile.create(Ci.nsIFile.NORMAL_FILE_TYPE, 0600);
+      if (!aFile.exists() || !aFile.isWritable()) {
+        Cu.reportError("Unable to create bookmarks backup file: " + aFile.leafName);
         return;
+      }
+
+      this._writeBackupFile(aFile);
+
+      if (aFile.parent.equals(this.folder)) {
+        
+        this.entries.push(aFile);
+      }
+      else {
+        
+        
+        
+        
+        var latestBackup = this.getMostRecent("json");
+        if (!latestBackup || latestBackup != aFile) {
+          let name = this.getFilenameForDate();
+          let file = this.folder.clone();
+          file.append(name);
+          if (file.exists())
+            file.remove(false);
+          else {
+            
+            
+            this.entries.push(file);
+          }
+          aFile.copyTo(this.folder, name);
+        }
+      }
+    },
+
+    _writeBackupFile:
+    function PU_B__writeBackupFile(aFile) {
+      
+      let stream = Cc["@mozilla.org/network/file-output-stream;1"].
+                   createInstance(Ci.nsIFileOutputStream);
+      stream.init(aFile, 0x02 | 0x08 | 0x20, 0600, 0);
+
+      
+      let converter = Cc["@mozilla.org/intl/converter-output-stream;1"].
+                   createInstance(Ci.nsIConverterOutputStream);
+      converter.init(stream, "UTF-8", 0, 0x0000);
+
+      
+      let streamProxy = {
+        converter: converter,
+        write: function(aData, aLen) {
+          this.converter.writeString(aData);
+        }
+      };
+
+      
+      let excludeItems =
+        PlacesUtils.annotations.getItemsWithAnnotation(EXCLUDE_FROM_BACKUP_ANNO, {});
+
+      
+      let options = PlacesUtils.history.getNewQueryOptions();
+      options.expandQueries = false;
+      let query = PlacesUtils.history.getNewQuery();
+      query.setFolders([PlacesUtils.placesRootId], 1);
+      let root = PlacesUtils.history.executeQuery(query, options).root;
+      root.containerOpen = true;
+      
+      PlacesUtils.serializeNodeAsJSONToOutputStream(root, streamProxy,
+                                                    false, false, excludeItems);
+      root.containerOpen = false;
+
+      
+      converter.close();
+      stream.close();
+    },
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    create:
+    function PU_B_create(aMaxBackups, aForceBackup) {
+      
+      let newBackupFilename = this.getFilenameForDate();
+      let mostRecentBackupFile = this.getMostRecent();
+
+      if (!aForceBackup) {
+        let numberOfBackupsToDelete = 0;
+        if (aMaxBackups !== undefined && aMaxBackups > -1)
+          numberOfBackupsToDelete = this.entries.length - aMaxBackups;
+
+        if (numberOfBackupsToDelete > 0) {
+          
+          
+          
+          if (!mostRecentBackupFile ||
+              mostRecentBackupFile.leafName != newBackupFilename)
+            numberOfBackupsToDelete++;
+
+          while (numberOfBackupsToDelete--) {
+            let oldestBackup = this.entries.pop();
+            oldestBackup.remove(false);
+          }
+        }
+
+        
+        if (aMaxBackups === 0 ||
+            (mostRecentBackupFile &&
+             mostRecentBackupFile.leafName == newBackupFilename))
+          return;
+      }
+
+      let newBackupFile = this.folder.clone();
+      newBackupFile.append(newBackupFilename);
+
+      if (aForceBackup && newBackupFile.exists())
+        newBackupFile.remove(false);
+
+      if (newBackupFile.exists())
+        return;
+
+      this.saveBookmarksToJSONFile(newBackupFile);
+    },
+
+    
+
+
+
+
+
+
+
+    restoreBookmarksFromJSONFile:
+    function PU_B_restoreBookmarksFromJSONFile(aFile) {
+      let failed = false;
+      PlacesUtils.observerSvc.notifyObservers(null,
+                                              RESTORE_BEGIN_NSIOBSERVER_TOPIC,
+                                              RESTORE_NSIOBSERVER_DATA);
+
+      try {
+        
+        var stream = Cc["@mozilla.org/network/file-input-stream;1"].
+                     createInstance(Ci.nsIFileInputStream);
+        stream.init(aFile, 0x01, 0, 0);
+        var converted = Cc["@mozilla.org/intl/converter-input-stream;1"].
+                        createInstance(Ci.nsIConverterInputStream);
+        converted.init(stream, "UTF-8", 8192,
+                       Ci.nsIConverterInputStream.DEFAULT_REPLACEMENT_CHARACTER);
+
+        
+        var str = {};
+        var jsonStr = "";
+        while (converted.readString(8192, str) != 0)
+          jsonStr += str.value;
+        converted.close();
+
+        if (jsonStr.length == 0)
+          return; 
+
+        PlacesUtils.restoreBookmarksFromJSONString(jsonStr, true);
+      }
+      catch (exc) {
+        failed = true;
+        PlacesUtils.observerSvc.notifyObservers(null,
+                                                RESTORE_FAILED_NSIOBSERVER_TOPIC,
+                                                RESTORE_NSIOBSERVER_DATA);
+        Components.utils.reportError("Bookmarks JSON restore failed: " + exc);
+        throw exc;
+      }
+      finally {
+        if (!failed) {
+          PlacesUtils.observerSvc.notifyObservers(null,
+                                                  RESTORE_SUCCESS_NSIOBSERVER_TOPIC,
+                                                  RESTORE_NSIOBSERVER_DATA);
+        }
+      }
     }
 
-    backupFile = bookmarksBackupDir.clone();
-    backupFile.append(backupFilename);
-
-    if (aForceArchive && backupFile.exists())
-        backupFile.remove(false);
-
-    if (!backupFile.exists())
-      backupFile.create(Ci.nsIFile.NORMAL_FILE_TYPE, 0600);
-
-    this.backupBookmarksToFile(backupFile);
-  },
-
-  
-
-
-
-  getMostRecentBackup: function PU_getMostRecentBackup() {
-    var dirService = Cc["@mozilla.org/file/directory_service;1"].
-                     getService(Ci.nsIProperties);
-    var bookmarksBackupDir = dirService.get("ProfD", Ci.nsILocalFile);
-    bookmarksBackupDir.append("bookmarkbackups");
-    if (!bookmarksBackupDir.exists())
-      return null;
-
-    var backups = [];
-    var entries = bookmarksBackupDir.directoryEntries;
-    while (entries.hasMoreElements()) {
-      var entry = entries.getNext().QueryInterface(Ci.nsIFile);
-      if (!entry.isHidden() && entry.leafName.match(/^bookmarks-.+(html|json)?$/))
-        backups.push(entry.leafName);
-    }
-
-    if (backups.length ==  0)
-      return null;
-
-    backups.sort();
-    var filename = backups.pop();
-
-    var backupFile = bookmarksBackupDir.clone();
-    backupFile.append(filename);
-    return backupFile;
   },
 
   
@@ -1900,6 +1967,6 @@ var PlacesUtils = {
 
 
   startPlacesDBUtils: function PU_startPlacesDBUtils() {
-    Components.utils.import("resource://gre/modules/PlacesDBUtils.jsm");
+    Cu.import("resource://gre/modules/PlacesDBUtils.jsm");
   }
 };

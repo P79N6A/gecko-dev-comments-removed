@@ -108,7 +108,7 @@ function run_test() {
 
   
   try {
-    PlacesUtils.backupBookmarksToFile(jsonFile);
+    PlacesUtils.backups.saveBookmarksToJSONFile(jsonFile);
   } catch(ex) { do_throw("couldn't export to file: " + ex); }
 
   
@@ -118,7 +118,7 @@ function run_test() {
 
   
   try {
-    PlacesUtils.restoreBookmarksFromJSONFile(jsonFile);
+    PlacesUtils.backups.restoreBookmarksFromJSONFile(jsonFile);
   } catch(ex) { do_throw("couldn't import the exported file: " + ex); }
 
   

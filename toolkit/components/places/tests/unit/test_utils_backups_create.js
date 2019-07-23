@@ -66,15 +66,7 @@ function run_test() {
   dates.sort();
 
   
-  var dirSvc = Cc["@mozilla.org/file/directory_service;1"].
-               getService(Ci.nsIProperties);
-  var bookmarksBackupDir = dirSvc.get("ProfD", Ci.nsILocalFile);
-  bookmarksBackupDir.append("bookmarkbackups");
-  if (bookmarksBackupDir.exists()) {
-    bookmarksBackupDir.remove(true);
-    do_check_false(bookmarksBackupDir.exists());
-  }
-  bookmarksBackupDir.create(Ci.nsIFile.DIRECTORY_TYPE, 0777);
+  var bookmarksBackupDir = PlacesUtils.backups.folder;
 
   
   
@@ -98,7 +90,7 @@ function run_test() {
     return LOCALIZED_PREFIX + aValue;
   }
 
-  PlacesUtils.archiveBookmarksFile(Math.floor(dates.length/2));
+  PlacesUtils.backups.create(Math.floor(dates.length/2));
   
   dates.push(dateObj.toLocaleFormat("%Y-%m-%d"));
 
@@ -123,5 +115,6 @@ function run_test() {
   
   bookmarksBackupDir.remove(true);
   do_check_false(bookmarksBackupDir.exists());
-  bookmarksBackupDir.create(Ci.nsIFile.DIRECTORY_TYPE, 0777);
+  
+  PlacesUtils.backups.folder;
 }
