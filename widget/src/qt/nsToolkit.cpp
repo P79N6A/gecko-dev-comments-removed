@@ -41,6 +41,7 @@
 #include "nscore.h"  
 #include "nsToolkit.h"
 #include "nsGUIEvent.h"
+#include "nsWidgetAtoms.h"
 
 
 
@@ -71,6 +72,8 @@ NS_IMPL_ISUPPORTS1(nsToolkit, nsIToolkit)
 
 NS_IMETHODIMP nsToolkit::Init(PRThread *aThread)
 {
+  nsWidgetAtoms::RegisterAtoms();
+
   return NS_OK;
 }
 
