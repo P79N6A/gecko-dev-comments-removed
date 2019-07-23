@@ -34,3 +34,4 @@ function equalInt()
   return eq;
 }
 test("int equality", equalInt(), 5000);
+
