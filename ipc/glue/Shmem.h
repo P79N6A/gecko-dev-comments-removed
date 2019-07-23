@@ -146,6 +146,22 @@ public:
   }
 
   
+  
+  bool
+  IsWritable() const
+  {
+    return mSegment != NULL;
+  }
+
+  
+  
+  bool
+  IsReadable() const
+  {
+    return mSegment != NULL;
+  }
+
+  
   template<typename T>
   T*
   get() const
