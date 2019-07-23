@@ -149,6 +149,9 @@ private:
 
 int main(int argc, char** argv)
 {
+
+
+#ifndef XP_WIN
   ScopedXPCOM xpcom("ThreadPoolListener");
   NS_ENSURE_FALSE(xpcom.failed(), 1);
 
@@ -230,6 +233,6 @@ int main(int argc, char** argv)
 
     NS_ENSURE_TRUE(match, 1);
   }
-
+#endif
   return 0;
 }
