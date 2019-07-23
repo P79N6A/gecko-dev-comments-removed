@@ -297,13 +297,21 @@ var BookmarksEventHandler = {
       var hasMultipleEntries = false;
       var hasFeedHomePage = false;
       var currentChild = target.firstChild;
-      while (currentChild && numNodes < 2) {
-        if (currentChild.node && currentChild.localName == "menuitem")
+      while (currentChild) {
+        if (currentChild.localName == "menuitem" && currentChild.node)
           numNodes++;
+
+        
+        if (currentChild.getAttribute("openInTabs") == "true")
+          return;
+        if (currentChild.hasAttribute("siteURI"))
+          return;
+
         currentChild = currentChild.nextSibling;
       }
       if (numNodes > 1)
         hasMultipleEntries = true;
+
       var button = target.parentNode;
       if (button.getAttribute("livemark") == "true" &&
           button.hasAttribute("siteURI"))
