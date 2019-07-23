@@ -621,7 +621,6 @@ nsContainerFrame::SyncFrameViewProperties(nsPresContext*  aPresContext,
       
       
       
-      
       viewIsVisible = PR_FALSE;
     } else if (IsMenuPopup(aFrame)) {
       

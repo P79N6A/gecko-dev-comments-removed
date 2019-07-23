@@ -166,6 +166,8 @@ public:
   void SetPositionIgnoringChildWidgets(nscoord aX, nscoord aY);
   nsresult LoadWidget(const nsCID &aClassIID);
 
+  void NotifyEffectiveVisibilityChanged(PRBool aEffectivelyVisible);
+
   
   
   
@@ -192,6 +194,8 @@ public:
   }
 
   nsIntRect CalcWidgetBounds(nsWindowType aType);
+
+  PRBool IsEffectivelyVisible();
 
 protected:
   

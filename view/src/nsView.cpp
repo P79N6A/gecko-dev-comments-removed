@@ -54,7 +54,6 @@ static nsEventStatus HandleEvent(nsGUIEvent *aEvent);
 
 
 
-
 #define VIEW_WRAPPER_IID \
 { 0x34297a07, 0xa8fd, 0xd811, { 0x87, 0xc6, 0x0, 0x2, 0x44, 0x21, 0x2b, 0xcb } }
 
@@ -338,6 +337,15 @@ void nsView::ResetWidgetBounds(PRBool aRecurse, PRBool aMoveOnly,
   }
 }
 
+PRBool nsView::IsEffectivelyVisible()
+{
+  for (nsView* v = this; v; v = v->mParent) {
+    if (v->GetVisibility() == nsViewVisibility_kHide)
+      return PR_FALSE;
+  }
+  return PR_TRUE;
+}
+
 nsIntRect nsView::CalcWidgetBounds(nsWindowType aType)
 {
   nsCOMPtr<nsIDeviceContext> dx;
@@ -354,7 +362,7 @@ nsIntRect nsView::CalcWidgetBounds(nsWindowType aType)
     viewBounds += offset;
 
     if (parentWidget && aType == eWindowType_popup &&
-        mVis == nsViewVisibility_kShow) {
+        IsEffectivelyVisible()) {
       nsIntPoint screenPoint = parentWidget->WidgetToScreenOffset();
       viewBounds += nsPoint(NSIntPixelsToAppUnits(screenPoint.x, p2a),
                             NSIntPixelsToAppUnits(screenPoint.y, p2a));
@@ -433,29 +441,38 @@ void nsView::SetDimensions(const nsRect& aRect, PRBool aPaint, PRBool aResizeWid
   }
 }
 
-NS_IMETHODIMP nsView::SetVisibility(nsViewVisibility aVisibility)
+void nsView::NotifyEffectiveVisibilityChanged(PRBool aEffectivelyVisible)
 {
-
-  mVis = aVisibility;
-
-  if (aVisibility == nsViewVisibility_kHide)
+  if (!aEffectivelyVisible)
   {
     DropMouseGrabbing();
   }
 
   if (nsnull != mWindow)
   {
-#ifndef HIDE_ALL_WIDGETS
-    if (mVis == nsViewVisibility_kShow)
+    if (aEffectivelyVisible)
     {
       DoResetWidgetBounds(PR_FALSE, PR_TRUE);
       mWindow->Show(PR_TRUE);
     }
     else
-#endif
       mWindow->Show(PR_FALSE);
   }
 
+  for (nsView* child = mFirstChild; child; child = child->mNextSibling) {
+    if (child->mVis == nsViewVisibility_kHide) {
+      
+      continue;
+    }
+    
+    child->NotifyEffectiveVisibilityChanged(aEffectivelyVisible);
+  }
+}
+
+NS_IMETHODIMP nsView::SetVisibility(nsViewVisibility aVisibility)
+{
+  mVis = aVisibility;
+  NotifyEffectiveVisibilityChanged(IsEffectivelyVisible());
   return NS_OK;
 }
 

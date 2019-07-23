@@ -261,6 +261,11 @@ public:
 
 
 
+
+
+
+
+
   NS_IMETHOD  SetViewVisibility(nsIView *aView, nsViewVisibility aVisible) = 0;
 
   
