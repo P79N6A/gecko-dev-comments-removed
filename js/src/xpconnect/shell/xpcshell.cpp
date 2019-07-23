@@ -1161,7 +1161,8 @@ FullTrustSecMan::CheckSameOrigin(JSContext * aJSContext, nsIURI *aTargetURI)
 
 
 NS_IMETHODIMP
-FullTrustSecMan::CheckSameOriginURI(nsIURI *aSourceURI, nsIURI *aTargetURI)
+FullTrustSecMan::CheckSameOriginURI(nsIURI *aSourceURI, nsIURI *aTargetURI,
+                                    PRBool reportError)
 {
     return NS_OK;
 }

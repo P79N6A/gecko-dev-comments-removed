@@ -2608,7 +2608,7 @@ nsXULDocument::LoadOverlayInternal(nsIURI* aURI, PRBool aIsDynamic,
     PRBool overlayIsChrome = IsChromeURI(aURI);
     if (!IsChromeURI(mDocumentURI) && !overlayIsChrome) {
         
-        rv = secMan->CheckSameOriginURI(mDocumentURI, aURI);
+        rv = secMan->CheckSameOriginURI(mDocumentURI, aURI, PR_TRUE);
         if (NS_FAILED(rv)) {
             *aFailureFromContent = PR_TRUE;
             return rv;
