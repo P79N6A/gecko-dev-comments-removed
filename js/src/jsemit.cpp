@@ -2283,12 +2283,14 @@ EmitPropOp(JSContext *cx, JSParseNode *pn, JSOp op, JSCodeGenerator *cg,
         op = JSOP_CALLPROP;
     } else if (op == JSOP_GETPROP && pn->pn_type == TOK_DOT) {
         if (pn2->pn_op == JSOP_THIS) {
+            if (pn->pn_atom != cx->runtime->atomState.lengthAtom) {
+                
+                return EmitAtomOp(cx, pn, JSOP_GETTHISPROP, cg);
+            }
+        } else if (pn2->pn_type == TOK_NAME) {
             
-            return EmitAtomOp(cx, pn, JSOP_GETTHISPROP, cg);
-        }
 
-        if (pn2->pn_type == TOK_NAME) {
-            
+
 
 
 
@@ -2296,29 +2298,29 @@ EmitPropOp(JSContext *cx, JSParseNode *pn, JSOp op, JSCodeGenerator *cg,
 
             if (!BindNameToSlot(cx, cg, pn2))
                 return JS_FALSE;
-            switch (pn2->pn_op) {
-              case JSOP_ARGUMENTS:
-                if (pn->pn_atom == cx->runtime->atomState.lengthAtom)
+            if (pn->pn_atom == cx->runtime->atomState.lengthAtom) {
+                if (pn2->pn_op == JSOP_ARGUMENTS)
                     return js_Emit1(cx, cg, JSOP_ARGCNT) >= 0;
-                break;
-
-              case JSOP_GETARG:
-                op = JSOP_GETARGPROP;
-                goto do_indexconst;
-              case JSOP_GETLOCAL:
-                op = JSOP_GETLOCALPROP;
-              do_indexconst: {
-                JSAtomListElement *ale;
-                jsatomid atomIndex;
-
-                ale = js_IndexAtom(cx, pn->pn_atom, &cg->atomList);
-                if (!ale)
-                    return JS_FALSE;
-                atomIndex = ALE_INDEX(ale);
-                return EmitSlotIndexOp(cx, op, pn2->pn_slot, atomIndex, cg);
-              }
-
-              default:;
+            } else {
+                switch (pn2->pn_op) {
+                  case JSOP_GETARG:
+                    op = JSOP_GETARGPROP;
+                    goto do_indexconst;
+                  case JSOP_GETLOCAL:
+                    op = JSOP_GETLOCALPROP;
+                  do_indexconst: {
+                        JSAtomListElement *ale;
+                        jsatomid atomIndex;
+                        
+                        ale = js_IndexAtom(cx, pn->pn_atom, &cg->atomList);
+                        if (!ale)
+                            return JS_FALSE;
+                        atomIndex = ALE_INDEX(ale);
+                        return EmitSlotIndexOp(cx, op, pn2->pn_slot, atomIndex, cg);
+                    }
+                    
+                  default:;
+                }
             }
         }
     }
