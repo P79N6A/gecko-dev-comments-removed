@@ -1034,9 +1034,6 @@ nsTextControlFrame::nsTextControlFrame(nsIPresShell* aShell, nsStyleContext* aCo
   , mFireChangeEventState(PR_FALSE)
   , mInSecureKeyboardInputMode(PR_FALSE)
   , mTextListener(nsnull)
-#ifdef DEBUG
-  , mCreateFrameForCalled(PR_FALSE)
-#endif
 {
 }
 
@@ -1132,7 +1129,6 @@ nsTextControlFrame::PreDestroy()
     mFrameSel->DisconnectFromPresShell();
     mFrameSel = nsnull;
   }
-
 
   nsFormControlFrame::RegUnRegAccessKey(static_cast<nsIFrame*>(this), PR_FALSE);
   if (mTextListener)
@@ -1388,7 +1384,7 @@ nsTextControlFrame::CalcIntrinsicSize(nsIRenderingContext* aRenderingContext,
 }
 
 void
-nsTextControlFrame::PostCreateFrames()
+nsTextControlFrame::DelayedEditorInit()
 {
   InitEditor();
   
@@ -1398,53 +1394,30 @@ nsTextControlFrame::PostCreateFrames()
   }
 }
 
-nsIFrame*
-nsTextControlFrame::CreateFrameFor(nsIContent*      aContent)
+nsresult
+nsTextControlFrame::InitEditor()
 {
-#ifdef DEBUG
-  NS_ASSERTION(!mCreateFrameForCalled, "CreateFrameFor called more than once!");
-  mCreateFrameForCalled = PR_TRUE;
-#endif
   
-  nsPresContext *presContext = PresContext();
-  nsIPresShell *shell = presContext->GetPresShell();
-  if (!shell)
-    return nsnull;
   
-  nsCOMPtr<nsIDOMDocument> domdoc = do_QueryInterface(shell->GetDocument());
-  if (!domdoc)
-    return nsnull;
+  
+  
+  
+  
+  
+  
 
   
   
+
+  if (mUseEditor)
+    return NS_OK;
+
   
-  
-  nsresult rv = NS_OK;
+
+  nsresult rv;
   mEditor = do_CreateInstance(kTextEditorCID, &rv);
-  if (NS_FAILED(rv) || !mEditor) 
-    return nsnull;
-
+  NS_ENSURE_SUCCESS(rv, rv);
   
-
-  mFrameSel = do_CreateInstance(kFrameSelectionCID, &rv);
-  if (NS_FAILED(rv))
-    return nsnull;
-  mFrameSel->SetScrollableViewProvider(this);
-
-  
-
-  mSelCon = static_cast<nsISelectionController*>
-                       (new nsTextInputSelectionImpl(mFrameSel, shell, aContent));
-  if (!mSelCon)
-    return nsnull;
-  mTextListener = new nsTextInputListener();
-  if (!mTextListener)
-    return nsnull;
-  NS_ADDREF(mTextListener);
-
-  mTextListener->SetFrame(this);
-  mSelCon->SetDisplaySelection(nsISelectionController::SELECTION_ON);
-
   
 
   PRUint32 editorFlags = 0;
@@ -1471,10 +1444,16 @@ nsTextControlFrame::CreateFrameFor(nsIContent*      aContent)
   
   
 
-  rv = mEditor->Init(domdoc, shell, aContent, mSelCon, editorFlags);
+  nsPresContext *presContext = PresContext();
+  nsIPresShell *shell = presContext->GetPresShell();
 
-  if (NS_FAILED(rv))
-    return nsnull;
+  
+  nsCOMPtr<nsIDOMDocument> domdoc = do_QueryInterface(shell->GetDocument());
+  if (!domdoc)
+    return NS_ERROR_FAILURE;
+
+  rv = mEditor->Init(domdoc, shell, mAnonymousDiv, mSelCon, editorFlags);
+  NS_ENSURE_SUCCESS(rv, rv);
 
   
 
@@ -1489,13 +1468,13 @@ nsTextControlFrame::CreateFrameFor(nsIContent*      aContent)
         do_QueryInterface(mContent);
 
       if (!textAreaElement)
-        return nsnull;
+        return NS_ERROR_FAILURE;
 
       rv = textAreaElement->GetControllers(getter_AddRefs(controllers));
     }
 
     if (NS_FAILED(rv))
-      return nsnull;
+      return rv;
 
     if (controllers) {
       PRUint32 numControllers;
@@ -1545,26 +1524,6 @@ nsTextControlFrame::CreateFrameFor(nsIContent*      aContent)
       textEditor->SetMaxTextLength(maxLength);
     }
   }
-    
-  
-
-  nsRefPtr<nsISelection> domSelection;
-  if (NS_SUCCEEDED(mSelCon->GetSelection(nsISelectionController::SELECTION_NORMAL,
-                                         getter_AddRefs(domSelection))) &&
-      domSelection) {
-    nsCOMPtr<nsISelectionPrivate> selPriv(do_QueryInterface(domSelection));
-    nsRefPtr<nsCaret> caret;
-    nsCOMPtr<nsISelectionListener> listener;
-    if (NS_SUCCEEDED(shell->GetCaret(getter_AddRefs(caret))) && caret) {
-      listener = do_QueryInterface(caret);
-      if (listener) {
-        selPriv->AddSelectionListener(listener);
-      }
-    }
-
-    selPriv->AddSelectionListener(static_cast<nsISelectionListener*>
-                                             (mTextListener));
-  }
   
   if (mContent) {
     rv = mEditor->GetFlags(&editorFlags);
@@ -1589,33 +1548,6 @@ nsTextControlFrame::CreateFrameFor(nsIContent*      aContent)
 
     mEditor->SetFlags(editorFlags);
   }
-  return nsnull;
-}
-
-nsresult
-nsTextControlFrame::InitEditor()
-{
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-
-  
-  
-
-  if (mUseEditor)
-    return NS_OK;
-
-  
-  if (!mEditor)
-    return NS_ERROR_NOT_INITIALIZED;
 
   
   nsAutoString defaultValue;
@@ -1631,13 +1563,6 @@ nsTextControlFrame::InitEditor()
   
 
   if (!defaultValue.IsEmpty()) {
-    PRUint32 editorFlags = 0;
-
-    nsresult rv = mEditor->GetFlags(&editorFlags);
-
-    if (NS_FAILED(rv))
-      return rv;
-
     
     
     
@@ -1662,8 +1587,8 @@ nsTextControlFrame::InitEditor()
 
     rv = mEditor->EnableUndo(PR_TRUE);
     NS_ASSERTION(NS_SUCCEEDED(rv),"Transaction Manager must have failed");
-    
 
+    
     rv = mEditor->SetFlags(editorFlags);
 
     if (NS_FAILED(rv))
@@ -1684,6 +1609,8 @@ nsTextControlFrame::InitEditor()
     
     mEditor->EnableUndo(PR_FALSE);
   }
+
+  mEditor->PostCreate();
 
   return NS_OK;
 }
@@ -1739,6 +1666,54 @@ nsTextControlFrame::CreateAnonymousContent(nsTArray<nsIContent*>& aElements)
     return NS_ERROR_OUT_OF_MEMORY;
 
   
+
+  mFrameSel = do_CreateInstance(kFrameSelectionCID, &rv);
+  if (NS_FAILED(rv))
+    return rv;
+  mFrameSel->SetScrollableViewProvider(this);
+
+  
+
+  mSelCon = static_cast<nsISelectionController*>
+                       (new nsTextInputSelectionImpl(mFrameSel, shell,
+                                                     mAnonymousDiv));
+  if (!mSelCon)
+    return NS_ERROR_OUT_OF_MEMORY;
+  mTextListener = new nsTextInputListener();
+  if (!mTextListener)
+    return NS_ERROR_OUT_OF_MEMORY;
+  NS_ADDREF(mTextListener);
+
+  mTextListener->SetFrame(this);
+  mSelCon->SetDisplaySelection(nsISelectionController::SELECTION_ON);
+
+  
+
+  nsRefPtr<nsISelection> domSelection;
+  if (NS_SUCCEEDED(mSelCon->GetSelection(nsISelectionController::SELECTION_NORMAL,
+                                         getter_AddRefs(domSelection))) &&
+      domSelection) {
+    nsCOMPtr<nsISelectionPrivate> selPriv(do_QueryInterface(domSelection));
+    nsRefPtr<nsCaret> caret;
+    nsCOMPtr<nsISelectionListener> listener;
+    if (NS_SUCCEEDED(shell->GetCaret(getter_AddRefs(caret))) && caret) {
+      listener = do_QueryInterface(caret);
+      if (listener) {
+        selPriv->AddSelectionListener(listener);
+      }
+    }
+
+    selPriv->AddSelectionListener(static_cast<nsISelectionListener*>
+                                             (mTextListener));
+  }
+
+  NS_ASSERTION(!nsContentUtils::IsSafeToRunScript(),
+               "Someone forgot a script blocker?");
+
+  if (!nsContentUtils::AddScriptRunner(new EditorInitializer(this))) {
+    return NS_ERROR_OUT_OF_MEMORY;
+  }
+
   return NS_OK;
 }
 
@@ -1930,11 +1905,7 @@ nsresult nsTextControlFrame::SetFormProperty(nsIAtom* aName, const nsAString& aV
       if (isUserInput) {
         SetFireChangeEventState(PR_TRUE);
       }
-      if (mEditor && mUseEditor) {
-        
-        
-        SetValueChanged(PR_TRUE);
-      }
+      SetValueChanged(PR_TRUE);
       nsresult rv = SetValue(aValue); 
       if (isUserInput) {
         SetFireChangeEventState(fireChangeEvent);
@@ -2387,7 +2358,8 @@ nsTextControlFrame::AttributeChanged(PRInt32         aNameSpaceID,
                                      PRInt32         aModType)
 {
   if (!mEditor || !mSelCon) 
-    return NS_ERROR_NOT_INITIALIZED;
+    return nsBoxFrame::AttributeChanged(aNameSpaceID, aAttribute, aModType);;
+
   nsresult rv = NS_OK;
 
   if (nsGkAtoms::maxlength == aAttribute) 
@@ -2428,7 +2400,7 @@ nsTextControlFrame::AttributeChanged(PRInt32         aNameSpaceID,
     }    
     mEditor->SetFlags(flags);
   }
-  else if (mEditor && nsGkAtoms::disabled == aAttribute) 
+  else if (nsGkAtoms::disabled == aAttribute) 
   {
     PRUint32 flags;
     mEditor->GetFlags(&flags);
@@ -2786,8 +2758,7 @@ nsTextControlFrame::SetInitialChildList(nsIAtom*        aListName,
                                         nsIFrame*       aChildList)
 {
   nsresult rv = nsBoxFrame::SetInitialChildList(aListName, aChildList);
-  if (mEditor)
-    mEditor->PostCreate();
+
   
   nsIFrame* first = GetFirstChild(nsnull);
 

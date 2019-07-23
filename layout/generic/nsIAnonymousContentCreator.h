@@ -46,10 +46,8 @@
 #include "nsQueryFrame.h"
 #include "nsIContent.h"
 
-class nsPresContext;
 class nsIFrame;
 template <class T> class nsTArray;
-
 
 
 
@@ -80,12 +78,6 @@ public:
 
 
   virtual nsIFrame* CreateFrameFor(nsIContent* aContent) { return nsnull; }
-
-  
-
-
-
-  virtual void PostCreateFrames() {}
 };
 
 #endif

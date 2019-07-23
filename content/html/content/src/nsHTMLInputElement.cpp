@@ -1005,41 +1005,26 @@ nsHTMLInputElement::SetValueInternal(const nsAString& aValue,
 
   if (mType == NS_FORM_INPUT_TEXT || mType == NS_FORM_INPUT_PASSWORD) {
 
-    nsITextControlFrame* textControlFrame = aFrame;
-    nsIFormControlFrame* formControlFrame = textControlFrame;
-    if (!textControlFrame) {
+    nsIFormControlFrame* formControlFrame = aFrame;
+    if (!formControlFrame) {
       
       
       
       formControlFrame = GetFormControlFrame(PR_FALSE);
-
-      if (formControlFrame) {
-        textControlFrame = do_QueryFrame(formControlFrame);
-      }
     }
 
-    
-    
-    PRBool frameOwnsValue = PR_FALSE;
-    if (textControlFrame) {
-      textControlFrame->OwnsValue(&frameOwnsValue);
-    }
-    
-    if (frameOwnsValue) {
+    if (formControlFrame) {
+      
+      
+      
+      
       formControlFrame->SetFormProperty(
         aUserInput ? nsGkAtoms::userInput : nsGkAtoms::value, aValue);
       return NS_OK;
     }
 
-    
-    if (mValue) {
-      nsMemory::Free(mValue);
-    }
-
-    mValue = ToNewUTF8String(aValue);
-
     SetValueChanged(PR_TRUE);
-    return mValue ? NS_OK : NS_ERROR_OUT_OF_MEMORY;
+    return TakeTextFrameValue(aValue);
   }
 
   if (mType == NS_FORM_INPUT_FILE) {

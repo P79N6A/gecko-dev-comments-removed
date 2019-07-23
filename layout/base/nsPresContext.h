@@ -1021,8 +1021,6 @@ struct nsAutoLayoutPhase {
         NS_ASSERTION(mPresContext->mLayoutPhaseCount[eLayoutPhase_Reflow] == 0,
                      "constructing frames in the middle of reflow");
         
-        
-        
         NS_WARN_IF_FALSE(mPresContext->mLayoutPhaseCount[eLayoutPhase_FrameC] == 0,
                          "recurring into frame construction");
         break;

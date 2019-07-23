@@ -119,8 +119,6 @@ public:
 
   
   virtual nsresult CreateAnonymousContent(nsTArray<nsIContent*>& aElements);
-  virtual nsIFrame* CreateFrameFor(nsIContent* aContent);
-  virtual void PostCreateFrames();
 
   
 
@@ -195,8 +193,6 @@ public:
   void SetValueChanged(PRBool aValueChanged);
   
   nsresult InitFocusedValue();
-  nsresult DOMPointToOffset(nsIDOMNode* aNode, PRInt32 aNodeOffset, PRInt32 *aResult);
-  nsresult OffsetToDOMPoint(PRInt32 aOffset, nsIDOMNode** aResult, PRInt32* aPosition);
 
   void SetFireChangeEventState(PRBool aNewState)
   {
@@ -216,6 +212,34 @@ public:
   void MaybeEndSecureKeyboardInput();
 
 protected:
+  class EditorInitializer;
+  friend class EditorInitializer;
+
+  class EditorInitializer : public nsRunnable {
+  public:
+    EditorInitializer(nsTextControlFrame* aFrame) :
+      mWeakFrame(aFrame),
+      mFrame(aFrame) {}
+
+    NS_IMETHOD Run() {
+      if (mWeakFrame) {
+        mFrame->DelayedEditorInit();
+      }
+      return NS_OK;
+    }
+
+  private:
+    nsWeakFrame mWeakFrame;
+    nsTextControlFrame* mFrame;
+  };
+
+  
+  
+  void DelayedEditorInit();
+
+  nsresult DOMPointToOffset(nsIDOMNode* aNode, PRInt32 aNodeOffset, PRInt32 *aResult);
+  nsresult OffsetToDOMPoint(PRInt32 aOffset, nsIDOMNode** aResult, PRInt32* aPosition);
+
   
 
 
@@ -303,10 +327,6 @@ private:
   nsCOMPtr<nsFrameSelection> mFrameSel;
   nsTextInputListener* mTextListener;
   nsString mFocusedValue;
-
-#ifdef DEBUG
-  PRBool mCreateFrameForCalled;
-#endif
 };
 
 #endif
