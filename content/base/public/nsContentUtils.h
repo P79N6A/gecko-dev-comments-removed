@@ -1359,26 +1359,6 @@ public:
   {
     return sThreadJSContextStack;
   }
-  
-
-  
-
-
-
-
-
-
-
-
-
-
-  static nsresult GetASCIIOrigin(nsIPrincipal* aPrincipal,
-                                 nsCString& aOrigin);
-  static nsresult GetASCIIOrigin(nsIURI* aURI, nsCString& aOrigin);
-  static nsresult GetUTFOrigin(nsIPrincipal* aPrincipal,
-                               nsString& aOrigin);
-  static nsresult GetUTFOrigin(nsIURI* aURI, nsString& aOrigin);
-
 private:
 
   static PRBool InitializeEventTable();

@@ -490,8 +490,7 @@ nsACProxyListener::OnChannelRedirect(nsIChannel *aOldChannel,
                                      PRUint32 aFlags)
 {
   
-  return NS_IsInternalSameURIRedirect(aOldChannel, aNewChannel, aFlags) ?
-         NS_OK : NS_ERROR_DOM_BAD_URI;
+  return NS_ERROR_DOM_BAD_URI;
 }
 
 NS_IMETHODIMP
@@ -2635,8 +2634,7 @@ nsXMLHttpRequest::Send(nsIVariant *aBody)
         mState |= XML_HTTP_REQUEST_NEED_AC_PREFLIGHT;
       }
     }
-    else if (!method.LowerCaseEqualsLiteral("get") &&
-             !method.LowerCaseEqualsLiteral("head")) {
+    else if (!method.LowerCaseEqualsLiteral("get")) {
       mState |= XML_HTTP_REQUEST_NEED_AC_PREFLIGHT;
     }
 
@@ -3113,16 +3111,14 @@ nsXMLHttpRequest::OnChannelRedirect(nsIChannel *aOldChannel,
 
   nsresult rv;
 
-  if (!NS_IsInternalSameURIRedirect(aOldChannel, aNewChannel, aFlags)) {
-    rv = CheckChannelForCrossSiteRequest(aNewChannel);
-    NS_ENSURE_SUCCESS(rv, rv);
+  rv = CheckChannelForCrossSiteRequest(aNewChannel);
+  NS_ENSURE_SUCCESS(rv, rv);
 
-    
-    
-    
-    if ((mState & XML_HTTP_REQUEST_NEED_AC_PREFLIGHT)) {
-       return NS_ERROR_DOM_BAD_URI;
-    }
+  
+  
+  
+  if ((mState & XML_HTTP_REQUEST_NEED_AC_PREFLIGHT)) {
+     return NS_ERROR_DOM_BAD_URI;
   }
 
   if (mChannelEventSink) {
