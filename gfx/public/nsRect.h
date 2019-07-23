@@ -172,10 +172,11 @@ struct NS_GFX nsRect {
   nsRect& operator-=(const nsPoint& aPoint) {x -= aPoint.x; y -= aPoint.y; return *this;}
 
   
-  
-
-
-  nsMargin operator-(const nsRect& aRect) const;
+  nsMargin operator-(const nsRect& aRect) const; 
+  nsRect& operator+=(const nsMargin& aMargin) { Inflate(aMargin); return *this; }
+  nsRect& operator-=(const nsMargin& aMargin) { Deflate(aMargin); return *this; }
+  nsRect  operator+(const nsMargin& aMargin) const { return nsRect(*this) += aMargin; }
+  nsRect  operator-(const nsMargin& aMargin) const { return nsRect(*this) -= aMargin; }
 
   
   
