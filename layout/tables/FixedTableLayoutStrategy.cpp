@@ -98,12 +98,16 @@ FixedTableLayoutStrategy::GetMinWidth(nsIRenderingContext* aRenderingContext)
         }
         const nsStyleCoord *styleWidth =
             &colFrame->GetStylePosition()->mWidth;
-        if (styleWidth->GetUnit() == eStyleUnit_Coord) {
-            result += styleWidth->GetCoordValue();
+        if (styleWidth->GetUnit() == eStyleUnit_Coord ||
+            styleWidth->GetUnit() == eStyleUnit_Chars) {
+            result += nsLayoutUtils::ComputeWidthValue(aRenderingContext,
+                        colFrame, 0, 0, 0, *styleWidth);
         } else if (styleWidth->GetUnit() == eStyleUnit_Percent) {
             
         } else {
-            NS_ASSERTION(styleWidth->GetUnit() == eStyleUnit_Auto, "bad width");
+            NS_ASSERTION(styleWidth->GetUnit() == eStyleUnit_Auto ||
+                         styleWidth->GetUnit() == eStyleUnit_Enumerated,
+                         "bad width");
 
             
             
@@ -113,7 +117,11 @@ FixedTableLayoutStrategy::GetMinWidth(nsIRenderingContext* aRenderingContext)
                 cellMap->GetCellInfoAt(0, col, &originates, &colSpan);
             if (cellFrame) {
                 styleWidth = &cellFrame->GetStylePosition()->mWidth;
-                if (styleWidth->GetUnit() == eStyleUnit_Coord) {
+                if (styleWidth->GetUnit() == eStyleUnit_Coord ||
+                    styleWidth->GetUnit() == eStyleUnit_Chars ||
+                    (styleWidth->GetUnit() == eStyleUnit_Enumerated &&
+                     (styleWidth->GetIntValue() == NS_STYLE_WIDTH_INTRINSIC ||
+                      styleWidth->GetIntValue() == NS_STYLE_WIDTH_MIN_INTRINSIC))) {
                     nscoord cellWidth = nsLayoutUtils::IntrinsicForContainer(
                         aRenderingContext, cellFrame, nsLayoutUtils::MIN_WIDTH);
                     if (colSpan > 1) {
@@ -131,6 +139,8 @@ FixedTableLayoutStrategy::GetMinWidth(nsIRenderingContext* aRenderingContext)
                         result -= spacing * (colSpan - 1);
                     }
                 }
+                
+                
             }
         }
     }
@@ -206,15 +216,20 @@ FixedTableLayoutStrategy::ComputeColumnWidths(const nsHTMLReflowState& aReflowSt
         const nsStyleCoord *styleWidth =
             &colFrame->GetStylePosition()->mWidth;
         nscoord colWidth;
-        if (styleWidth->GetUnit() == eStyleUnit_Coord) {
-            colWidth = styleWidth->GetCoordValue();
+        if (styleWidth->GetUnit() == eStyleUnit_Coord ||
+            styleWidth->GetUnit() == eStyleUnit_Chars) {
+            colWidth = nsLayoutUtils::ComputeWidthValue(
+                         aReflowState.rendContext,
+                         colFrame, 0, 0, 0, *styleWidth);
         } else if (styleWidth->GetUnit() == eStyleUnit_Percent) {
             float pct = styleWidth->GetPercentValue();
             colWidth = NSToCoordFloor(pct * float(tableWidth));
             colFrame->AddPrefPercent(pct);
             pctTotal += pct;
         } else {
-            NS_ASSERTION(styleWidth->GetUnit() == eStyleUnit_Auto, "bad width");
+            NS_ASSERTION(styleWidth->GetUnit() == eStyleUnit_Auto ||
+                         styleWidth->GetUnit() == eStyleUnit_Enumerated,
+                         "bad width");
 
             
             
@@ -224,24 +239,35 @@ FixedTableLayoutStrategy::ComputeColumnWidths(const nsHTMLReflowState& aReflowSt
                 cellMap->GetCellInfoAt(0, col, &originates, &colSpan);
             if (cellFrame) {
                 styleWidth = &cellFrame->GetStylePosition()->mWidth;
-                if (styleWidth->GetUnit() == eStyleUnit_Coord) {
-                    colWidth = styleWidth->GetCoordValue();
+                if (styleWidth->GetUnit() == eStyleUnit_Coord ||
+                    styleWidth->GetUnit() == eStyleUnit_Chars ||
+                    (styleWidth->GetUnit() == eStyleUnit_Enumerated &&
+                     (styleWidth->GetIntValue() == NS_STYLE_WIDTH_INTRINSIC ||
+                      styleWidth->GetIntValue() == NS_STYLE_WIDTH_MIN_INTRINSIC))) {
+                    
+                    
+                    
+                    
+                    
+                    
+                    colWidth = nsLayoutUtils::IntrinsicForContainer(
+                                 aReflowState.rendContext,
+                                 cellFrame, nsLayoutUtils::MIN_WIDTH);
                 } else if (styleWidth->GetUnit() == eStyleUnit_Percent) {
+                    
+                    nsIFrame::IntrinsicWidthOffsetData offsets =
+                        cellFrame->IntrinsicWidthOffsets(aReflowState.rendContext);
                     float pct = styleWidth->GetPercentValue();
-                    colWidth = NSToCoordFloor(pct * float(tableWidth));
+                    colWidth = NSToCoordFloor(pct * float(tableWidth)) +
+                               offsets.hPadding + offsets.hBorder;
                     pct /= float(colSpan);
                     colFrame->AddPrefPercent(pct);
                     pctTotal += pct;
                 } else {
+                    
                     colWidth = unassignedMarker;
                 }
                 if (colWidth != unassignedMarker) {
-                    
-                    
-                    nsIFrame::IntrinsicWidthOffsetData offsets =
-                        cellFrame->IntrinsicWidthOffsets(aReflowState.rendContext);
-                    colWidth += offsets.hPadding + offsets.hBorder;
-
                     if (colSpan > 1) {
                         
                         

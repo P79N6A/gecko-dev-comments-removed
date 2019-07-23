@@ -429,6 +429,12 @@
 #define NS_STYLE_FONT_FIELD											16
 
 
+#define NS_STYLE_WIDTH_INTRINSIC                0
+#define NS_STYLE_WIDTH_MIN_INTRINSIC            1
+#define NS_STYLE_WIDTH_SHRINK_WRAP              2
+#define NS_STYLE_WIDTH_FILL                     3
+
+
 #define NS_STYLE_POSITION_STATIC                0
 #define NS_STYLE_POSITION_RELATIVE              1
 #define NS_STYLE_POSITION_ABSOLUTE              2

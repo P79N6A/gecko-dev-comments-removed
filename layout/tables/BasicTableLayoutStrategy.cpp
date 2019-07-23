@@ -103,13 +103,14 @@ struct CellWidthInfo {
 
 static CellWidthInfo
 GetWidthInfo(nsIRenderingContext *aRenderingContext,
-             nsTableCellFrame *aCellFrame,
+             nsIFrame *aFrame,
+             PRBool aIsCell,
              const nsStylePosition *aStylePos)
 {
     nscoord minCoord, prefCoord;
-    if (aCellFrame) {
-        minCoord = aCellFrame->GetMinWidth(aRenderingContext);
-        prefCoord = aCellFrame->GetPrefWidth(aRenderingContext);
+    if (aIsCell) {
+        minCoord = aFrame->GetMinWidth(aRenderingContext);
+        prefCoord = aFrame->GetPrefWidth(aRenderingContext);
     } else {
         minCoord = 0;
         prefCoord = 0;
@@ -117,75 +118,102 @@ GetWidthInfo(nsIRenderingContext *aRenderingContext,
     float prefPercent = 0.0f;
     PRBool hasSpecifiedWidth = PR_FALSE;
 
-    switch (aStylePos->mWidth.GetUnit()) {
-        case eStyleUnit_Coord: {
-                hasSpecifiedWidth = PR_TRUE;
-                nscoord w = aStylePos->mWidth.GetCoordValue();
-                
-                
-                
-                if (aCellFrame && w > minCoord &&
-                    aCellFrame->PresContext()->CompatibilityMode() ==
-                      eCompatibility_NavQuirks &&
-                    aCellFrame->GetContent()->HasAttr(kNameSpaceID_None,
-                                                      nsGkAtoms::nowrap)) {
-                    minCoord = w;
-                }
-                prefCoord = PR_MAX(w, minCoord);
-            }
-            break;
-        case eStyleUnit_Percent: {
-                prefPercent = aStylePos->mWidth.GetPercentValue();
-            }
-            break;
-        default:
-            break;
-    }
+    
 
-    switch (aStylePos->mMaxWidth.GetUnit()) {
+    nsStyleUnit unit = aStylePos->mWidth.GetUnit();
+    if (unit == eStyleUnit_Coord || unit == eStyleUnit_Chars) {
+        hasSpecifiedWidth = PR_TRUE;
+        nscoord w = nsLayoutUtils::ComputeWidthValue(aRenderingContext,
+                      aFrame, 0, 0, 0, aStylePos->mWidth);
         
         
-        case eStyleUnit_Coord: {
-                nscoord w = aStylePos->mMaxWidth.GetCoordValue();
-                if (w < minCoord)
-                    minCoord = w;
-                if (w < prefCoord)
-                    prefCoord = w;
-            }
-            break;
-        case eStyleUnit_Percent: {
-                float p = aStylePos->mMaxWidth.GetPercentValue();
-                if (p < prefPercent)
-                    prefPercent = p;
-            }
-            break;
-        default:
-            break;
+        
+        if (aIsCell && w > minCoord &&
+            aFrame->PresContext()->CompatibilityMode() ==
+              eCompatibility_NavQuirks &&
+            aFrame->GetContent()->HasAttr(kNameSpaceID_None,
+                                          nsGkAtoms::nowrap)) {
+            minCoord = w;
+        }
+        prefCoord = PR_MAX(w, minCoord);
+    } else if (unit == eStyleUnit_Percent) {
+        prefPercent = aStylePos->mWidth.GetPercentValue();
+    } else if (unit == eStyleUnit_Enumerated && aIsCell) {
+        switch (aStylePos->mWidth.GetIntValue()) {
+            case NS_STYLE_WIDTH_INTRINSIC:
+                
+                
+                break;
+            case NS_STYLE_WIDTH_MIN_INTRINSIC:
+                prefCoord = minCoord;
+                break;
+            case NS_STYLE_WIDTH_SHRINK_WRAP:
+            case NS_STYLE_WIDTH_FILL:
+                
+                break;
+            default:
+                NS_NOTREACHED("unexpected enumerated value");
+        }
     }
 
-    switch (aStylePos->mMinWidth.GetUnit()) {
-        case eStyleUnit_Coord: {
-                nscoord w = aStylePos->mMinWidth.GetCoordValue();
-                if (w > minCoord)
-                    minCoord = w;
-                if (w > prefCoord)
-                    prefCoord = w;
-            }
-            break;
-        case eStyleUnit_Percent: {
-                float p = aStylePos->mMinWidth.GetPercentValue();
-                if (p > prefPercent)
-                    prefPercent = p;
-            }
-            break;
-        default:
-            break;
+    nsStyleCoord maxWidth(aStylePos->mMaxWidth);
+    if (maxWidth.GetUnit() == eStyleUnit_Enumerated) {
+        if (!aIsCell || maxWidth.GetIntValue() == NS_STYLE_WIDTH_FILL)
+            maxWidth.Reset();
+        else if (maxWidth.GetIntValue() == NS_STYLE_WIDTH_SHRINK_WRAP)
+            
+            
+            maxWidth.SetIntValue(NS_STYLE_WIDTH_INTRINSIC,
+                                 eStyleUnit_Enumerated);
+    }
+    unit = maxWidth.GetUnit();
+    
+    
+    if (unit == eStyleUnit_Coord || unit == eStyleUnit_Chars ||
+        unit == eStyleUnit_Enumerated) {
+        nscoord w =
+            nsLayoutUtils::ComputeWidthValue(aRenderingContext, aFrame,
+                                             0, 0, 0, maxWidth);
+        if (w < minCoord)
+            minCoord = w;
+        if (w < prefCoord)
+            prefCoord = w;
+    } else if (unit == eStyleUnit_Percent) {
+        float p = aStylePos->mMaxWidth.GetPercentValue();
+        if (p < prefPercent)
+            prefPercent = p;
+    }
+
+    nsStyleCoord minWidth(aStylePos->mMinWidth);
+    if (minWidth.GetUnit() == eStyleUnit_Enumerated) {
+        if (!aIsCell || minWidth.GetIntValue() == NS_STYLE_WIDTH_FILL)
+            minWidth.SetCoordValue(0);
+        else if (minWidth.GetIntValue() == NS_STYLE_WIDTH_SHRINK_WRAP)
+            
+            
+            minWidth.SetIntValue(NS_STYLE_WIDTH_MIN_INTRINSIC,
+                                 eStyleUnit_Enumerated);
+    }
+    unit = minWidth.GetUnit();
+    if (unit == eStyleUnit_Coord || unit == eStyleUnit_Chars ||
+        unit == eStyleUnit_Enumerated) {
+        nscoord w =
+            nsLayoutUtils::ComputeWidthValue(aRenderingContext, aFrame,
+                                             0, 0, 0, minWidth);
+        if (w > minCoord)
+            minCoord = w;
+        if (w > prefCoord)
+            prefCoord = w;
+    } else if (unit == eStyleUnit_Percent) {
+        float p = aStylePos->mMinWidth.GetPercentValue();
+        if (p > prefPercent)
+            prefPercent = p;
     }
 
     
-    if (aCellFrame) {
+    if (aIsCell) {
         nsIFrame::IntrinsicWidthOffsetData offsets =
-            aCellFrame->IntrinsicWidthOffsets(aRenderingContext);
+            aFrame->IntrinsicWidthOffsets(aRenderingContext);
         
         nscoord add = offsets.hPadding + offsets.hBorder;
         minCoord += add;
@@ -199,7 +227,7 @@ static inline CellWidthInfo
 GetCellWidthInfo(nsIRenderingContext *aRenderingContext,
                  nsTableCellFrame *aCellFrame)
 {
-    return GetWidthInfo(aRenderingContext, aCellFrame,
+    return GetWidthInfo(aRenderingContext, aCellFrame, PR_TRUE,
                         aCellFrame->GetStylePosition());
 }
 
@@ -207,7 +235,8 @@ static inline CellWidthInfo
 GetColWidthInfo(nsIRenderingContext *aRenderingContext,
                 nsIFrame *aFrame)
 {
-    return GetWidthInfo(aRenderingContext, nsnull, aFrame->GetStylePosition());
+    return GetWidthInfo(aRenderingContext, aFrame, PR_FALSE,
+                        aFrame->GetStylePosition());
 }
 
 

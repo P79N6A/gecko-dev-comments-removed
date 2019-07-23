@@ -189,6 +189,7 @@ public:
   static const PRInt32 kVisibilityKTable[];
   static const PRInt32 kVolumeKTable[];
   static const PRInt32 kWhitespaceKTable[];
+  static const PRInt32 kWidthKTable[]; 
 };
 
 #endif 

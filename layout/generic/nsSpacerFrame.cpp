@@ -109,6 +109,7 @@ SpacerFrame::Reflow(nsPresContext*          aPresContext,
   DISPLAY_REFLOW(aPresContext, this, aReflowState, aMetrics, aStatus);
   aStatus = NS_FRAME_COMPLETE;
 
+  
   nsSize percentBase(aReflowState.availableWidth, aReflowState.availableHeight);
   if (percentBase.width == NS_UNCONSTRAINEDSIZE)
     percentBase.width = 0;
@@ -130,6 +131,12 @@ SpacerFrame::GetDesiredSize(nsHTMLReflowMetrics& aMetrics, nsSize aPercentBase)
   
   aMetrics.width = 0;
   aMetrics.height = 0;
+
+  
+  
+  
+  
+  
 
   const nsStylePosition* position = GetStylePosition();
 
@@ -164,7 +171,7 @@ SpacerFrame::GetDesiredSize(nsHTMLReflowMetrics& aMetrics, nsSize aPercentBase)
     else if (eStyleUnit_Percent == unit) 
     {
       float factor = position->mHeight.GetPercentValue();
-      aMetrics.width = NSToCoordRound(factor * aPercentBase.height);
+      aMetrics.height = NSToCoordRound(factor * aPercentBase.height);
     }
     break;
   }

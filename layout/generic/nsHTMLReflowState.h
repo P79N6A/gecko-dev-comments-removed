@@ -188,9 +188,36 @@ private:
   void ComputePadding(nscoord aContainingBlockWidth);
 
 protected:
+
+  
+
+
+
+  
   inline void ComputeWidthDependentValue(nscoord aContainingBlockWidth,
                                          const nsStyleCoord& aCoord,
                                          nscoord& aResult);
+
+  
+
+
+
+
+  inline nscoord ComputeWidthValue(nscoord aContainingBlockWidth,
+                                   nscoord aContentEdgeToBoxSizing,
+                                   nscoord aBoxSizingToMarginEdge,
+                                   const nsStyleCoord& aCoord);
+  
+  
+  nscoord ComputeWidthValue(nscoord aContainingBlockWidth,
+                            PRUint8 aBoxSizing,
+                            const nsStyleCoord& aCoord);
+
+  
+
+
+
+  
   inline void ComputeHeightDependentValue(nscoord aContainingBlockHeight,
                                           const nsStyleCoord& aCoord,
                                           nscoord& aResult);
@@ -462,7 +489,9 @@ protected:
                            nscoord                  aContainingBlockHeight,
                            const nsHTMLReflowState* aContainingBlockRS);
 
-  nscoord CalculateHorizBorderPaddingMargin(nscoord aContainingBlockWidth);
+  void CalculateHorizBorderPaddingMargin(nscoord aContainingBlockWidth,
+                                         nscoord* aInsideBoxSizing,
+                                         nscoord* aOutsideBoxSizing);
 
 };
 

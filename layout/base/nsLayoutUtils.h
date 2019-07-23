@@ -527,11 +527,44 @@ public:
                                        nsIFrame* aFrame,
                                        IntrinsicWidthType aType);
 
+  
+
+
+
   static nscoord ComputeWidthDependentValue(
                    nsIRenderingContext* aRenderingContext,
                    nsIFrame*            aFrame,
                    nscoord              aContainingBlockWidth,
                    const nsStyleCoord&  aCoord);
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  static nscoord ComputeWidthValue(
+                   nsIRenderingContext* aRenderingContext,
+                   nsIFrame*            aFrame,
+                   nscoord              aContainingBlockWidth,
+                   nscoord              aContentEdgeToBoxSizing,
+                   nscoord              aBoxSizingToMarginEdge,
+                   const nsStyleCoord&  aCoord);
+
+  
+
+
 
   static nscoord ComputeHeightDependentValue(
                    nsIRenderingContext* aRenderingContext,
@@ -542,7 +575,7 @@ public:
   static nsSize ComputeSizeWithIntrinsicDimensions(
                     nsIRenderingContext* aRenderingContext,
                     nsIFrame* aFrame, nsSize aIntrinsicSize, nsSize aCBSize,
-                    nsSize aBorder, nsSize aPadding);
+                    nsSize aMargin, nsSize aBorder, nsSize aPadding);
 
   
   static nscoord PrefWidthFromInline(nsIFrame* aFrame,

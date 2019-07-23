@@ -3368,6 +3368,7 @@ nsTableFrame::IsAutoWidth(PRBool* aIsPctWidth)
     
     *aIsPctWidth = width.GetUnit() == eStyleUnit_Percent &&
                    width.GetPercentValue() > 0.0f;
+    
   }
   return width.GetUnit() == eStyleUnit_Auto;
 }
@@ -3414,10 +3415,17 @@ nsTableFrame::CalcBorderBoxHeight(const nsHTMLReflowState& aState)
 PRBool 
 nsTableFrame::IsAutoLayout()
 {
+  if (GetStyleTable()->mLayoutStrategy == NS_STYLE_TABLE_LAYOUT_AUTO)
+    return PR_TRUE;
   
-  return GetStyleTable()->mLayoutStrategy == NS_STYLE_TABLE_LAYOUT_AUTO ||
-         (GetStyleDisplay()->mDisplay == NS_STYLE_DISPLAY_INLINE_TABLE &&
-          GetStylePosition()->mWidth.GetUnit() == eStyleUnit_Auto);
+  
+  
+  
+  const nsStyleCoord &width = GetStylePosition()->mWidth;
+  return (GetStyleDisplay()->mDisplay == NS_STYLE_DISPLAY_INLINE_TABLE &&
+          width.GetUnit() == eStyleUnit_Auto) ||
+         (width.GetUnit() == eStyleUnit_Enumerated &&
+          width.GetIntValue() == NS_STYLE_WIDTH_INTRINSIC);
 }
 
 #ifdef DEBUG

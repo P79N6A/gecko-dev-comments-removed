@@ -684,19 +684,22 @@ nsIBox::AddCSSPrefSize(nsBoxLayoutState& aState, nsIBox* aBox, nsSize& aSize)
         aSize.width = position->mWidth.GetCoordValue();
         widthSet = PR_TRUE;
     }
+    
+    
+    
+    
 
     if (position->mHeight.GetUnit() == eStyleUnit_Coord) {
         aSize.height = position->mHeight.GetCoordValue();     
         heightSet = PR_TRUE;
     }
     
+    
     nsIContent* content = aBox->GetContent();
     
     
     
     if (content && content->IsNodeOfType(nsINode::eXUL)) {
-        nsPresContext* presContext = aState.PresContext();
-
         nsAutoString value;
         PRInt32 error;
 
@@ -770,6 +773,10 @@ nsIBox::AddCSSMinSize(nsBoxLayoutState& aState, nsIBox* aBox, nsSize& aSize)
         aSize.width = 0;
         widthSet = PR_TRUE;
     }
+    
+    
+    
+    
 
     if (position->mMinHeight.GetUnit() == eStyleUnit_Coord) {
         nscoord min = position->mMinHeight.GetCoordValue();
@@ -783,11 +790,10 @@ nsIBox::AddCSSMinSize(nsBoxLayoutState& aState, nsIBox* aBox, nsSize& aSize)
         aSize.height = 0;
         heightSet = PR_TRUE;
     }
+    
 
     nsIContent* content = aBox->GetContent();
     if (content) {
-        nsPresContext* presContext = aState.PresContext();
-
         nsAutoString value;
         PRInt32 error;
 
@@ -836,17 +842,20 @@ nsIBox::AddCSSMaxSize(nsBoxLayoutState& aState, nsIBox* aBox, nsSize& aSize)
         aSize.width = max;
         widthSet = PR_TRUE;
     }
+    
+    
+    
+    
 
     if (position->mMaxHeight.GetUnit() == eStyleUnit_Coord) {
         nscoord max = position->mMaxHeight.GetCoordValue();
         aSize.height = max;
         heightSet = PR_TRUE;
     }
+    
 
     nsIContent* content = aBox->GetContent();
     if (content) {
-        nsPresContext* presContext = aState.PresContext();
-
         nsAutoString value;
         PRInt32 error;
 
