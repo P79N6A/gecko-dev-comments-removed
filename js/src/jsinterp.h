@@ -276,7 +276,6 @@ typedef struct JSPropertyCache {
     uint32              rofills;        
     uint32              disfills;       
     uint32              oddfills;       
-    uint32              modfills;       
     uint32              brandfills;     
 
     uint32              noprotos;       
