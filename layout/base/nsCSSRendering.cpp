@@ -1410,6 +1410,36 @@ PixelSnapPoint(gfxContext* aContext, nsIDeviceContext *aDC, nsPoint& aPoint)
   }
 }
 
+static PRBool
+IsSolidBorderEdge(const nsStyleBorder& aBorder, PRUint32 aSide)
+{
+  if (aBorder.GetActualBorder().side(aSide) == 0)
+    return PR_TRUE;
+  if (aBorder.GetBorderStyle(aSide) != NS_STYLE_BORDER_STYLE_SOLID)
+    return PR_FALSE;
+
+  nscolor color;
+  PRBool isTransparent;
+  PRBool isForeground;
+  aBorder.GetBorderColor(aSide, color, isTransparent, isForeground);
+  return !isTransparent && NS_GET_A(color) == 255;
+}
+
+
+
+
+static PRBool
+IsSolidBorder(const nsStyleBorder& aBorder)
+{
+  if (nsLayoutUtils::HasNonZeroSide(aBorder.mBorderRadius) || aBorder.mBorderColors)
+    return PR_FALSE;
+  for (PRUint32 i = 0; i < 4; ++i) {
+    if (!IsSolidBorderEdge(aBorder, i))
+      return PR_FALSE;
+  }
+  return PR_TRUE;
+}
+
 void
 nsCSSRendering::PaintBackgroundWithSC(nsPresContext* aPresContext,
                                       nsIRenderingContext& aRenderingContext,
@@ -1454,9 +1484,10 @@ nsCSSRendering::PaintBackgroundWithSC(nsPresContext* aPresContext,
   else {
     
     bgClipArea = aBorderArea;
-    if (aColor.mBackgroundClip != NS_STYLE_BG_CLIP_BORDER) {
-      NS_ASSERTION(aColor.mBackgroundClip == NS_STYLE_BG_CLIP_PADDING,
-                   "unknown background-clip value");
+    
+    
+    if (aColor.mBackgroundClip != NS_STYLE_BG_CLIP_BORDER ||
+        IsSolidBorder(aBorder)) {
       nsMargin border = aForFrame->GetUsedBorder();
       aForFrame->ApplySkipSides(border);
       bgClipArea.Deflate(border);
