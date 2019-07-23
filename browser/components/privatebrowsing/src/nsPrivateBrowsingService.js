@@ -125,6 +125,9 @@ PrivateBrowsingService.prototype = {
   _viewSrcURLs: [],
 
   
+  _windowsToClose: [],
+
+  
   classDescription: "PrivateBrowsing Service",
   contractID: "@mozilla.org/privatebrowsing;1",
   classID: Components.ID("{c31f4883-839b-45f6-82ad-a6a9bc5ad599}"),
@@ -208,12 +211,20 @@ PrivateBrowsingService.prototype = {
           
           
           
-          let browser = this._getBrowserWindow().gBrowser;
+          browserWindow = this._getBrowserWindow();
+          let browser = browserWindow.gBrowser;
 
           
           
           browser.addTab();
+          browser.getBrowserForTab(browser.tabContainer.firstChild).stop();
           browser.removeTab(browser.tabContainer.firstChild);
+          browserWindow.getInterface(Ci.nsIWebNavigation)
+                       .QueryInterface(Ci.nsIDocShellTreeItem)
+                       .treeOwner
+                       .QueryInterface(Ci.nsIInterfaceRequestor)
+                       .getInterface(Ci.nsIXULWindow)
+                       .docShell.contentViewer.resetCloseWindow();
         }
       }
     }
@@ -296,6 +307,20 @@ PrivateBrowsingService.prototype = {
     return Cc["@mozilla.org/appshell/window-mediator;1"].
            getService(Ci.nsIWindowMediator).
            getMostRecentWindow("navigator:browser");
+  },
+
+  _ensureCanCloseWindows: function PBS__ensureCanCloseWindows() {
+    let windowMediator = Cc["@mozilla.org/appshell/window-mediator;1"].
+                         getService(Ci.nsIWindowMediator);
+    let windowsEnum = windowMediator.getXULWindowEnumerator("navigator:browser");
+
+    while (windowsEnum.hasMoreElements()) {
+      let win = windowsEnum.getNext().QueryInterface(Ci.nsIXULWindow);
+      if (win.docShell.contentViewer.permitUnload(true))
+        this._windowsToClose.push(win);
+      else
+        throw Cr.NS_ERROR_ABORT;
+    }
   },
 
   _closePageInfoWindows: function PBS__closePageInfoWindows() {
@@ -401,6 +426,8 @@ PrivateBrowsingService.prototype = {
             return;
         }
 
+        this._ensureCanCloseWindows();
+
         this._autoStarted = this._prefs.getBoolPref("browser.privatebrowsing.autostart");
         this._inPrivateBrowsing = val != false;
 
@@ -422,9 +449,16 @@ PrivateBrowsingService.prototype = {
         this._onAfterPrivateBrowsingModeChange();
       }
     } catch (ex) {
-      Cu.reportError("Exception thrown while processing the " +
-        "private browsing mode change request: " + ex.toString());
+      
+      
+      for (let i = 0; i < this._windowsToClose.length; i++)
+        this._windowsToClose[i].docShell.contentViewer.resetCloseWindow();
+      
+      if (ex != Cr.NS_ERROR_ABORT)
+        Cu.reportError("Exception thrown while processing the " +
+          "private browsing mode change request: " + ex.toString());
     } finally {
+      this._windowsToClose = [];
       this._alreadyChangingMode = false;
     }
   },
