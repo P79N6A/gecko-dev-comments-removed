@@ -159,12 +159,12 @@ nsTitleBarFrame::HandleEvent(nsPresContext* aPresContext,
          
          
          if (parent) {
+           nsMenuPopupFrame* menuPopupFrame = static_cast<nsMenuPopupFrame*>(parent);
            nsCOMPtr<nsIWidget> widget;
-           (static_cast<nsMenuPopupFrame*>(parent))->
-             GetWidget(getter_AddRefs(widget));
+           menuPopupFrame->GetWidget(getter_AddRefs(widget));
            nsIntRect bounds;
            widget->GetScreenBounds(bounds);
-           widget->Move(bounds.x + nsMoveBy.x, bounds.y + nsMoveBy.y);
+           menuPopupFrame->MoveTo(bounds.x + nsMoveBy.x, bounds.y + nsMoveBy.y, PR_FALSE);
          }
          else {
            nsIPresShell* presShell = aPresContext->PresShell();

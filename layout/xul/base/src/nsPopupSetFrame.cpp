@@ -183,7 +183,7 @@ nsPopupSetFrame::DoLayout(nsBoxLayoutState& aState)
       prefSize = BoundsCheck(minSize, prefSize, maxSize);
 
       popupChild->SetPreferredBounds(aState, nsRect(0,0,prefSize.width, prefSize.height));
-      popupChild->SetPopupPosition(nsnull);
+      popupChild->SetPopupPosition(nsnull, PR_FALSE);
 
       
       nsIBox* child = popupChild->GetChildBox();
@@ -218,7 +218,7 @@ nsPopupSetFrame::DoLayout(nsBoxLayoutState& aState)
         
         
         popupChild->SetPreferredSize(popupChild->GetSize());
-        popupChild->SetPopupPosition(nsnull);
+        popupChild->SetPopupPosition(nsnull, PR_FALSE);
       }
       popupChild->AdjustView();
     }

@@ -206,7 +206,8 @@ public:
   
   
   
-  nsresult SetPopupPosition(nsIFrame* aAnchorFrame);
+  
+  nsresult SetPopupPosition(nsIFrame* aAnchorFrame, PRBool aIsMove);
 
   PRBool HasGeneratedChildren() { return mGeneratedChildren; }
   void SetGeneratedChildren() { mGeneratedChildren = PR_TRUE; }

@@ -762,7 +762,7 @@ nsMenuFrame::DoLayout(nsBoxLayoutState& aState)
     
     
     if (IsOpen() && (sizeChanged || mPopupFrame->HasOpenChanged()))
-      mPopupFrame->SetPopupPosition(this);
+      mPopupFrame->SetPopupPosition(this, PR_FALSE);
 
     
     nsIBox* child = mPopupFrame->GetChildBox();
