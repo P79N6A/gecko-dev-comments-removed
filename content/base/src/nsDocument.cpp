@@ -7095,6 +7095,10 @@ nsDocument::OnPageShow(PRBool aPersisted)
     }
   }
 
+  
+  
+  mIsShowing = PR_TRUE;
+  
   nsPageTransitionEvent event(PR_TRUE, NS_PAGE_SHOW, aPersisted);
   DispatchEventToWindow(&event);
 }
@@ -7121,6 +7125,10 @@ nsDocument::OnPageHide(PRBool aPersisted)
     }
   }
 
+  
+  
+  mIsShowing = PR_FALSE;
+  
   
   nsPageTransitionEvent event(PR_TRUE, NS_PAGE_HIDE, aPersisted);
   DispatchEventToWindow(&event);
