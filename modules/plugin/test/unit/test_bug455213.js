@@ -55,7 +55,7 @@ var gDirSvc = Cc["@mozilla.org/file/directory_service;1"].
 
 function createProfileFolder() {
   
-  gProfD = __LOCATION__.parent.parent;
+  gProfD = do_get_cwd();
   gProfD.append("profile");
   
   if (gProfD.exists())

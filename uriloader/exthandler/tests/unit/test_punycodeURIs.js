@@ -44,7 +44,7 @@ function checkFile() {
   
   var tempFile = Components.classes["@mozilla.org/file/local;1"].
     createInstance(Components.interfaces.nsILocalFile);
-  tempFile = HandlerServiceTest._dirSvc.get("CurProcD", Components.interfaces.nsIFile);
+  tempFile = do_get_cwd();
   tempFile.append(kOutputFile);
 
   if (!tempFile.exists())
@@ -102,7 +102,7 @@ function run_test() {
   localHandler.name = "Test Local Handler App";
 
   
-  var processDir = HandlerServiceTest._dirSvc.get("CurProcD", Components.interfaces.nsIFile);
+  var processDir = do_get_cwd();
   var exe = processDir.clone();
   exe.append("WriteArgument");
 
@@ -123,9 +123,12 @@ function run_test() {
   
   
   
-  envSvc.set("DYLD_LIBRARY_PATH", processDir.path);
+  var greDir = HandlerServiceTest._dirSvc.get("GreD", Components.interfaces.nsIFile);
+
+  envSvc.set("DYLD_LIBRARY_PATH", greDir.path);
   
-  envSvc.set("LD_LIBRARY_PATH", processDir.path);
+  envSvc.set("LD_LIBRARY_PATH", greDir.path);
+  
 
   
   envSvc.set("WRITE_ARGUMENT_FILE", outFile.path);
