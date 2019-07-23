@@ -257,7 +257,6 @@ protected:
   
   
   void ScrollToRef();
-  nsresult RefreshIfEnabled(nsIViewManager* vm);
 
   
   
