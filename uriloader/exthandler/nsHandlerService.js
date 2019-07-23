@@ -362,28 +362,7 @@ HandlerService.prototype = {
     this._removeAssertions(preferredHandlerID);
 
     var infoID = this._getInfoID(this._getClass(aHandlerInfo), aHandlerInfo.type);
-
-    
-    
-    
-    var possibleHandlerIDs = [];
-    var possibleHandlerTargets = this._getTargets(infoID, NC_POSSIBLE_APP);
-    while (possibleHandlerTargets.hasMoreElements()) {
-      let possibleHandlerTarget = possibleHandlerTargets.getNext();
-      
-      
-      if (possibleHandlerTarget instanceof Ci.nsIRDFResource)
-        possibleHandlerIDs.push(possibleHandlerTarget.ValueUTF8);
-    }
-
-    
     this._removeAssertions(infoID);
-
-    
-    
-    for each (let possibleHandlerID in possibleHandlerIDs)
-      if (!this._existsResourceTarget(NC_POSSIBLE_APP, possibleHandlerID))
-        this._removeAssertions(possibleHandlerID);
 
     var typeID = this._getTypeID(this._getClass(aHandlerInfo), aHandlerInfo.type);
     this._removeAssertions(typeID);
@@ -1271,12 +1250,9 @@ HandlerService.prototype = {
     var properties = this._ds.ArcLabelsOut(source);
  
     while (properties.hasMoreElements()) {
-      let property = properties.getNext();
-      let targets = this._ds.GetTargets(source, property, true);
-      while (targets.hasMoreElements()) {
-        let target = targets.getNext();
-        this._ds.Unassert(source, property, target);
-      }
+      var property = properties.getNext();
+      var target = this._ds.GetTarget(source, property, true);
+      this._ds.Unassert(source, property, target);
     }
   }
 
