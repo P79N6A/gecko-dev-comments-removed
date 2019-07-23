@@ -273,7 +273,7 @@ AsyncChannel::OnChannelError()
     }
     else {
         
-#ifdef DEBUG
+#if defined(DEBUG) || defined(NS_BUILD_REFCNT_LOGGING)
         
         XRE_ShutdownChildProcess(mWorkerLoop);
 
