@@ -323,14 +323,6 @@ nsresult nsRootAccessible::AddEventListeners()
     mCaretAccessible = new nsCaretAccessible(this);
   }
 
-  
-  
-  mFireFocusTimer = do_CreateInstance("@mozilla.org/timer;1");
-  if (mFireFocusTimer) {
-    mFireFocusTimer->InitWithFuncCallback(FireFocusCallback, this,
-                                          0, nsITimer::TYPE_ONE_SHOT);
-  }
-
   return nsDocAccessible::AddEventListeners();
 }
 
@@ -739,6 +731,19 @@ nsresult nsRootAccessible::HandleEventWithTarget(nsIDOMEvent* aEvent,
   else
 #endif
   if (eventType.EqualsLiteral("focus")) {
+    if (aTargetNode == mDOMNode) {
+      
+      
+      
+      if (!mFireFocusTimer) {
+        mFireFocusTimer = do_CreateInstance("@mozilla.org/timer;1");
+      }
+      if (mFireFocusTimer) {
+        mFireFocusTimer->InitWithFuncCallback(FireFocusCallback, this,
+                                              0, nsITimer::TYPE_ONE_SHOT);
+      }
+    }
+
     
     
     
