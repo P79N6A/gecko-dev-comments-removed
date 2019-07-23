@@ -1,0 +1,277 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#ifndef WindowDefs_h__
+#define WindowDefs_h__
+
+#include "nsBaseWidget.h"
+#include "nsdefs.h"
+#include "resource.h"
+
+
+
+
+
+
+
+
+#define WIN2K_VERSION                     0x500
+#define WINXP_VERSION                     0x501
+#define WIN2K3_VERSION                    0x502
+#define VISTA_VERSION                     0x600
+#define WIN7_VERSION                      0x601
+
+#define WM_XP_THEMECHANGED                0x031A
+
+#ifndef WM_GETOBJECT
+#define WM_GETOBJECT                      0x03d
+#endif
+
+#ifndef PBT_APMRESUMEAUTOMATIC
+#define PBT_APMRESUMEAUTOMATIC            0x0012
+#endif
+
+#ifndef WM_MOUSEHWHEEL
+#define WM_MOUSEHWHEEL                    0x020E
+#endif
+
+#ifndef SPI_GETWHEELSCROLLCHARS
+#define SPI_GETWHEELSCROLLCHARS           0x006C
+#endif
+
+#ifndef MAPVK_VSC_TO_VK
+#define MAPVK_VK_TO_VSC                   0
+#define MAPVK_VSC_TO_VK                   1
+#define MAPVK_VK_TO_CHAR                  2
+#endif
+
+
+#define kWindowPositionSlop               20
+
+
+#define CS_XP_DROPSHADOW                  0x00020000
+
+
+
+#define MAX_RECTS_IN_REGION               100
+
+
+
+#ifndef WM_APPCOMMAND
+#define WM_APPCOMMAND                     0x0319
+#endif
+
+#define FAPPCOMMAND_MASK                  0xF000
+
+#ifndef APPCOMMAND_BROWSER_BACKWARD
+  #define APPCOMMAND_BROWSER_BACKWARD       1
+  #define APPCOMMAND_BROWSER_FORWARD        2
+  #define APPCOMMAND_BROWSER_REFRESH        3
+  #define APPCOMMAND_BROWSER_STOP           4
+  #define APPCOMMAND_BROWSER_SEARCH         5
+  #define APPCOMMAND_BROWSER_FAVORITES      6
+  #define APPCOMMAND_BROWSER_HOME           7
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  #define GET_APPCOMMAND_LPARAM(lParam)     ((short)(HIWORD(lParam) & ~FAPPCOMMAND_MASK))
+
+  
+
+
+
+
+
+#endif 
+
+#if defined(WINCE)
+#ifndef RDW_NOINTERNALPAINT
+#define RDW_NOINTERNALPAINT     0
+#endif
+#endif 
+
+
+
+
+
+
+
+
+typedef enum
+{
+    TRI_UNKNOWN = -1,
+    TRI_FALSE = 0,
+    TRI_TRUE = 1
+} TriStateBool;
+
+
+typedef enum {
+  
+  RENDER_GDI = 0,
+  
+  RENDER_IMAGE_STRETCH32,
+  
+  RENDER_IMAGE_STRETCH24,
+  
+  RENDER_DDRAW,
+  
+  RENDER_IMAGE_DDRAW16,
+  
+  RENDER_MODE_MAX
+} WinRenderMode;
+
+
+
+
+
+#if defined(WINCE_WINDOWS_MOBILE)
+#define DEFAULT_RENDER_MODE               RENDER_IMAGE_DDRAW16
+#elif defined(WINCE)
+#define DEFAULT_RENDER_MODE               RENDER_DDRAW
+#else
+#define DEFAULT_RENDER_MODE               RENDER_GDI
+#endif
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+const PRUint32 kMaxClassNameLength   = 40;
+const LPCWSTR kClassNameHidden       = L"MozillaHiddenWindowClass";
+const LPCWSTR kClassNameUI           = L"MozillaUIWindowClass";
+const LPCWSTR kClassNameContent      = L"MozillaContentWindowClass";
+const LPCWSTR kClassNameContentFrame = L"MozillaContentFrameWindowClass";
+const LPCWSTR kClassNameGeneral      = L"MozillaWindowClass";
+const LPCWSTR kClassNameDialog       = L"MozillaDialogClass";
+
+static const PRUint32 sModifierKeyMap[][3] = {
+  { nsIWidget::CAPS_LOCK, VK_CAPITAL, 0 },
+  { nsIWidget::NUM_LOCK,  VK_NUMLOCK, 0 },
+  { nsIWidget::SHIFT_L,   VK_SHIFT,   VK_LSHIFT },
+  { nsIWidget::SHIFT_R,   VK_SHIFT,   VK_RSHIFT },
+  { nsIWidget::CTRL_L,    VK_CONTROL, VK_LCONTROL },
+  { nsIWidget::CTRL_R,    VK_CONTROL, VK_RCONTROL },
+  { nsIWidget::ALT_L,     VK_MENU,    VK_LMENU },
+  { nsIWidget::ALT_R,     VK_MENU,    VK_RMENU }
+};
+
+
+
+
+
+
+
+
+struct nsAlternativeCharCode; 
+struct nsFakeCharMessage {
+  UINT mCharCode;
+  UINT mScanCode;
+};
+
+
+struct nsModifierKeyState {
+  PRBool mIsShiftDown;
+  PRBool mIsControlDown;
+  PRBool mIsAltDown;
+
+  nsModifierKeyState();
+  nsModifierKeyState(PRBool aIsShiftDown, PRBool aIsControlDown,
+                     PRBool aIsAltDown) :
+    mIsShiftDown(aIsShiftDown), mIsControlDown(aIsControlDown),
+    mIsAltDown(aIsAltDown)
+  {
+  }
+};
+
+
+struct KeyPair {
+  PRUint8 mGeneral;
+  PRUint8 mSpecific;
+  KeyPair(PRUint32 aGeneral, PRUint32 aSpecific)
+    : mGeneral(PRUint8(aGeneral)), mSpecific(PRUint8(aSpecific)) {}
+};
+
+
+
+
+
+
+
+#define NSRGB_2_COLOREF(color) \
+      RGB(NS_GET_R(color),NS_GET_G(color),NS_GET_B(color))
+#define COLOREF_2_NSRGB(color) \
+      NS_RGB(GetRValue(color), GetGValue(color), GetBValue(color))
+
+#define VERIFY_WINDOW_STYLE(s) \
+      NS_ASSERTION(((s) & (WS_CHILD | WS_POPUP)) != (WS_CHILD | WS_POPUP), \
+      "WS_POPUP and WS_CHILD are mutually exclusive")
+
+#endif

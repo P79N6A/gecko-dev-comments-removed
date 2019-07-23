@@ -1,0 +1,432 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#include "nsWindowCE.h"
+#include "nsIObserverService.h"
+#include "resource.h"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#if defined(WINCE_HAVE_SOFTKB)
+PRBool          nsWindow::sSoftKeyMenuBar         = PR_FALSE;
+PRBool          nsWindow::sSoftKeyboardState      = PR_FALSE;
+#endif
+
+
+
+
+
+
+
+
+
+
+
+#ifdef WINCE_HAVE_SOFTKB
+void nsWindowCE::NotifySoftKbObservers()
+{
+  nsCOMPtr<nsIObserverService> observerService = do_GetService("@mozilla.org/observer-service;1");
+  if (observerService) {
+    SIPINFO sipInfo;
+    wchar_t rectBuf[256];
+    memset(&sipInfo, 0, sizeof(SIPINFO));
+    sipInfo.cbSize = sizeof(SIPINFO);
+    if (SipGetInfo(&sipInfo)) {
+      _snwprintf(rectBuf, 256, L"{\"left\": %d, \"top\": %d,"
+                 L" \"right\": %d, \"bottom\": %d}", 
+                 sipInfo.rcVisibleDesktop.left, 
+                 sipInfo.rcVisibleDesktop.top, 
+                 sipInfo.rcVisibleDesktop.right, 
+                 sipInfo.rcVisibleDesktop.bottom);
+      observerService->NotifyObservers(nsnull, "softkb-change", rectBuf);
+    }
+  }
+}
+
+void nsWindowCE::ToggleSoftKB(PRBool show)
+{
+  HWND hWndSIP = FindWindowW(L"SipWndClass", NULL );
+  if (hWndSIP)
+    ::ShowWindow(hWndSIP, show ? SW_SHOW: SW_HIDE);
+
+  hWndSIP = FindWindowW(L"MS_SIPBUTTON", NULL ); 
+  if (hWndSIP)
+    ShowWindow(hWndSIP, show ? SW_SHOW: SW_HIDE);
+
+  SipShowIM(show ? SIPF_ON : SIPF_OFF);
+  NotifySoftKbObservers();
+}
+
+void nsWindowCE::CreateSoftKeyMenuBar(HWND wnd)
+{
+  if (!wnd)
+    return;
+  
+  static HWND sSoftKeyMenuBar = nsnull;
+  
+  if (sSoftKeyMenuBar != nsnull)
+    return;
+  
+  SHMENUBARINFO mbi;
+  ZeroMemory(&mbi, sizeof(SHMENUBARINFO));
+  mbi.cbSize = sizeof(SHMENUBARINFO);
+  mbi.hwndParent = wnd;
+  
+  
+  
+  
+  
+  mbi.nToolBarId = IDC_DUMMY_CE_MENUBAR;
+  mbi.hInstRes   = GetModuleHandle(NULL);
+  
+  if (!SHCreateMenuBar(&mbi))
+    return;
+  
+  SetWindowPos(mbi.hwndMB, HWND_BOTTOM, 0, 0, 0, 0, SWP_NOACTIVATE);
+  
+  SendMessage(mbi.hwndMB, SHCMBM_OVERRIDEKEY, VK_TBACK,
+              MAKELPARAM(SHMBOF_NODEFAULT | SHMBOF_NOTIFY,
+                         SHMBOF_NODEFAULT | SHMBOF_NOTIFY));
+  
+  SendMessage(mbi.hwndMB, SHCMBM_OVERRIDEKEY, VK_TSOFT1, 
+              MAKELPARAM (SHMBOF_NODEFAULT | SHMBOF_NOTIFY, 
+                          SHMBOF_NODEFAULT | SHMBOF_NOTIFY));
+  
+  SendMessage(mbi.hwndMB, SHCMBM_OVERRIDEKEY, VK_TSOFT2, 
+              MAKELPARAM (SHMBOF_NODEFAULT | SHMBOF_NOTIFY, 
+                          SHMBOF_NODEFAULT | SHMBOF_NOTIFY));
+  
+  sSoftKeyMenuBar = mbi.hwndMB;
+}
+#endif  
+
+typedef struct ECWWindows
+{
+  LPARAM      params;
+  WNDENUMPROC func;
+  HWND        parent;
+} ECWWindows;
+
+static BOOL CALLBACK MyEnumWindowsProc(HWND hwnd, LPARAM lParam)
+{
+  ECWWindows *myParams = (ECWWindows*) lParam;
+  
+  if (IsChild(myParams->parent, hwnd))
+  {
+    return myParams->func(hwnd, myParams->params);
+  }
+  return TRUE;
+}
+
+BOOL nsWindowCE::EnumChildWindows(HWND inParent, WNDENUMPROC inFunc, LPARAM inParam)
+{
+  ECWWindows myParams;
+  myParams.params = inParam;
+  myParams.func   = inFunc;
+  myParams.parent = inParent;
+  
+  return EnumWindows(MyEnumWindowsProc, (LPARAM) &myParams);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+DWORD nsWindow::WindowStyle()
+{
+  DWORD style;
+
+  
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+  
+
+  switch (mWindowType) {
+    case eWindowType_child:
+      style = WS_CHILD;
+      break;
+
+    case eWindowType_dialog:
+      style = WS_BORDER | WS_POPUP;
+#if !defined(WINCE_WINDOWS_MOBILE)
+      style |= WS_SYSMENU;
+      if (mBorderStyle != eBorderStyle_default)
+        style |= WS_CAPTION | WS_THICKFRAME | WS_MINIMIZEBOX | WS_MAXIMIZEBOX;
+#endif
+      break;
+
+    case eWindowType_popup:
+      style = WS_POPUP | WS_BORDER;
+      break;
+
+    default:
+      NS_ASSERTION(0, "unknown border style");
+      
+
+    case eWindowType_toplevel:
+    case eWindowType_invisible:
+      style = WS_BORDER;
+#if !defined(WINCE_WINDOWS_MOBILE)
+      style |= WS_THICKFRAME | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX | WS_MAXIMIZEBOX;
+#endif
+      break;
+  }
+
+#ifndef WINCE_WINDOWS_MOBILE
+  if (mBorderStyle != eBorderStyle_default && mBorderStyle != eBorderStyle_all) {
+    if (mBorderStyle == eBorderStyle_none || !(mBorderStyle & eBorderStyle_border))
+      style &= ~WS_BORDER;
+
+    if (mBorderStyle == eBorderStyle_none || !(mBorderStyle & eBorderStyle_title)) {
+      style &= ~WS_DLGFRAME;
+      style |= WS_POPUP;
+      style &= ~WS_CHILD;
+    }
+
+    if (mBorderStyle == eBorderStyle_none || !(mBorderStyle & eBorderStyle_close))
+      style &= ~0;
+    
+    
+
+    if (mBorderStyle == eBorderStyle_none ||
+      !(mBorderStyle & (eBorderStyle_menu | eBorderStyle_close)))
+      style &= ~WS_SYSMENU;
+    
+    
+    
+    
+
+    if (mBorderStyle == eBorderStyle_none || !(mBorderStyle & eBorderStyle_resizeh))
+      style &= ~WS_THICKFRAME;
+
+    if (mBorderStyle == eBorderStyle_none || !(mBorderStyle & eBorderStyle_minimize))
+      style &= ~WS_MINIMIZEBOX;
+
+    if (mBorderStyle == eBorderStyle_none || !(mBorderStyle & eBorderStyle_maximize))
+      style &= ~WS_MAXIMIZEBOX;
+  }
+#endif 
+
+  VERIFY_WINDOW_STYLE(style);
+  return style;
+}
+
+
+
+
+
+
+
+
+
+
+NS_IMETHODIMP nsWindow::SetSizeMode(PRInt32 aMode)
+{
+
+  nsresult rv;
+
+  
+  
+  
+  if (aMode == mSizeMode)
+    return NS_OK;
+
+#ifdef WINCE_WINDOWS_MOBILE
+  
+  
+  if (mWindowType == eWindowType_dialog || mWindowType == eWindowType_toplevel) {
+    aMode = nsSizeMode_Maximized;
+  }
+#endif
+
+  
+  rv = nsBaseWidget::SetSizeMode(aMode);
+  if (NS_SUCCEEDED(rv) && mIsVisible) {
+    int mode;
+
+    switch (aMode) {
+      case nsSizeMode_Maximized :
+        mode = SW_MAXIMIZE;
+        break;
+      default :
+        mode = SW_RESTORE;
+    }
+    ::ShowWindow(mWnd, mode);
+  }
+  return rv;
+}
+
+
+
+
+
+
+
+
+
+NS_METHOD nsWindow::EnableDragDrop(PRBool aEnable)
+{
+  return NS_ERROR_FAILURE;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+PRBool nsWindow::OnHotKey(WPARAM wParam, LPARAM lParam)
+{
+  
+  
+  
+  
+  
+  
+  
+  if (VK_TSOFT1 == HIWORD(lParam) && (0 != (MOD_KEYUP & LOWORD(lParam))))
+  {
+    keybd_event(VK_F19, 0, 0, 0);
+    keybd_event(VK_F19, 0, KEYEVENTF_KEYUP, 0);
+    return PR_FALSE;
+  }
+  
+  if (VK_TSOFT2 == HIWORD(lParam) && (0 != (MOD_KEYUP & LOWORD(lParam))))
+  {
+    keybd_event(VK_F20, 0, 0, 0);
+    keybd_event(VK_F20, 0, KEYEVENTF_KEYUP, 0);
+    return PR_FALSE;
+  }
+  
+  if (VK_TBACK == HIWORD(lParam) && (0 != (MOD_KEYUP & LOWORD(lParam))))
+  {
+    keybd_event(VK_BACK, 0, 0, 0);
+    keybd_event(VK_BACK, 0, KEYEVENTF_KEYUP, 0);
+    return PR_FALSE;
+  }
+
+  switch (wParam) 
+  {
+    case VK_APP1:
+      keybd_event(VK_F1, 0, 0, 0);
+      keybd_event(VK_F1, 0, KEYEVENTF_KEYUP, 0);
+      break;
+
+    case VK_APP2:
+      keybd_event(VK_F2, 0, 0, 0);
+      keybd_event(VK_F2, 0, KEYEVENTF_KEYUP, 0);
+      break;
+
+    case VK_APP3:
+      keybd_event(VK_F3, 0, 0, 0);
+      keybd_event(VK_F3, 0, KEYEVENTF_KEYUP, 0);
+      break;
+
+    case VK_APP4:
+      keybd_event(VK_F4, 0, 0, 0);
+      keybd_event(VK_F4, 0, KEYEVENTF_KEYUP, 0);
+      break;
+
+    case VK_APP5:
+      keybd_event(VK_F5, 0, 0, 0);
+      keybd_event(VK_F5, 0, KEYEVENTF_KEYUP, 0);
+      break;
+
+    case VK_APP6:
+      keybd_event(VK_F6, 0, 0, 0);
+      keybd_event(VK_F6, 0, KEYEVENTF_KEYUP, 0);
+      break;
+  }
+  return PR_FALSE;
+}
