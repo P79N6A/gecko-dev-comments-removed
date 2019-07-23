@@ -852,6 +852,7 @@ LoginManagerPrompter.prototype = {
 
 }; 
 
+
 var component = [LoginManagerPromptFactory, LoginManagerPrompter];
 function NSGetModule(compMgr, fileSpec) {
     return XPCOMUtils.generateModule(component);
