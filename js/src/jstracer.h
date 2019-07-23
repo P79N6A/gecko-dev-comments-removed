@@ -774,7 +774,7 @@ struct ArgsPrivateNative {
 static JS_INLINE void
 SetBuiltinError(JSContext *cx)
 {
-    cx->interpState->builtinStatus |= BUILTIN_ERROR;
+    cx->tracerState->builtinStatus |= BUILTIN_ERROR;
 }
 
 #ifdef DEBUG_RECORDING_STATUS_NOT_BOOL

@@ -131,7 +131,7 @@ struct REHashKey;
 struct FrameInfo;
 struct VMSideExit;
 struct TreeFragment;
-struct InterpState;
+struct TracerState;
 template<typename T> class Queue;
 typedef Queue<uint16> SlotList;
 class TypeMap;
@@ -165,7 +165,7 @@ class ContextAllocPolicy
 };
 
 
-struct InterpState
+struct TracerState 
 {
     JSContext*     cx;                  
     double*        stackBase;           
@@ -185,7 +185,7 @@ struct InterpState
     VMSideExit**   innermostNestedGuardp;
     VMSideExit*    innermost;
     uint64         startTime;
-    InterpState*   prev;
+    TracerState*   prev;
 
     
     
@@ -199,9 +199,9 @@ struct InterpState
     uintN          nativeVpLen;
     jsval*         nativeVp;
 
-    InterpState(JSContext *cx, TraceMonitor *tm, TreeFragment *ti,
+    TracerState(JSContext *cx, TraceMonitor *tm, TreeFragment *ti,
                 uintN &inlineCallCountp, VMSideExit** innermostNestedGuardp);
-    ~InterpState();
+    ~TracerState();
 };
 
 
@@ -1424,7 +1424,7 @@ struct JSContext
 
 
 
-    js::InterpState     *interpState;
+    js::TracerState     *tracerState;
     js::VMSideExit      *bailExit;
 
     
