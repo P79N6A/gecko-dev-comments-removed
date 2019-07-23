@@ -1080,9 +1080,8 @@ AddItemsToRegion(nsDisplayListBuilder* aBuilder, nsDisplayList* aList,
           
           
           
-          
           AccumulateItemInRegion(aRegion, aRect + aDelta, r + aDelta,
-                                 exclude + aDelta, item);
+                                 exclude, item);
         }
       }
     }
