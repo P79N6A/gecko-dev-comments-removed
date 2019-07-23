@@ -1784,13 +1784,10 @@ Lirasm::Lirasm(bool verbose) :
 #endif
 
     
-#define OPDEF(op, number, repkind) \
-    mOpMap[#op] = LIR_##op;
-#define OPD64(op, number, repkind) \
+#define OPDEF(op, number, repKind, retType) \
     mOpMap[#op] = LIR_##op;
 #include "nanojit/LIRopcode.tbl"
 #undef OPDEF
-#undef OPD64
 
     
     mOpMap["alloc"] = mOpMap["ialloc"];
