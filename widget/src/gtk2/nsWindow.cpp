@@ -305,7 +305,6 @@ nsWindow::nsWindow()
     mContainerGotFocus   = PR_FALSE;
     mContainerLostFocus  = PR_FALSE;
     mContainerBlockFocus = PR_FALSE;
-    mInKeyRepeat         = PR_FALSE;
     mIsVisible           = PR_FALSE;
     mRetryPointerGrab    = PR_FALSE;
     mRetryKeyboardGrab   = PR_FALSE;
@@ -322,6 +321,8 @@ nsWindow::nsWindow()
         
         initialize_prefs();
     }
+
+    memset(mKeyDownFlags, 0, sizeof(mKeyDownFlags));
 
     if (mLastDragMotionWindow == this)
         mLastDragMotionWindow = NULL;
@@ -1522,7 +1523,7 @@ nsWindow::LoseFocus(void)
 {
     
     
-    mInKeyRepeat = PR_FALSE;
+    memset(mKeyDownFlags, 0, sizeof(mKeyDownFlags));
 
     
     DispatchLostFocusEvent();
@@ -2188,8 +2189,11 @@ nsWindow::OnKeyPressEvent(GtkWidget *aWidget, GdkEventKey *aEvent)
     
 
     PRBool isKeyDownCancelled = PR_FALSE;
-    if (!mInKeyRepeat) {
-        mInKeyRepeat = PR_TRUE;
+    
+    PRUint32 domVirtualKeyCode = GdkKeyCodeToDOMKeyCode(aEvent->keyval);
+
+    if (!IsKeyDown(domVirtualKeyCode)) {
+        SetKeyDownFlag(domVirtualKeyCode);
 
         
         nsKeyEvent downEvent(PR_TRUE, NS_KEY_DOWN, this);
@@ -2210,9 +2214,6 @@ nsWindow::OnKeyPressEvent(GtkWidget *aWidget, GdkEventKey *aEvent)
         || aEvent->keyval == GDK_Alt_R
         || aEvent->keyval == GDK_Meta_L
         || aEvent->keyval == GDK_Meta_R) {
-        
-        
-        mInKeyRepeat = PR_FALSE;
         return TRUE;
     }
     nsKeyEvent event(PR_TRUE, NS_KEY_PRESS, this);
@@ -2294,11 +2295,11 @@ nsWindow::OnKeyReleaseEvent(GtkWidget *aWidget, GdkEventKey *aEvent)
     nsEventStatus status;
 
     
-    mInKeyRepeat = PR_FALSE;
-
-    
     nsKeyEvent event(PR_TRUE, NS_KEY_UP, this);
     InitKeyEvent(event, aEvent);
+
+    
+    ClearKeyDownFlag(event.keyCode);
 
     DispatchEvent(&event, status);
 
