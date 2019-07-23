@@ -41,6 +41,7 @@
 
 
 
+
 waitForExplicitFinish();
 
 const TEST_IDENTIFIER = "ui-perf-test";
@@ -87,7 +88,7 @@ var ptests = [];
 
 
 
-const TEST_REPEAT_COUNT = 10;
+const TEST_REPEAT_COUNT = 6;
 
 
 
@@ -113,7 +114,7 @@ ptests.push({
   },
   finish: function() {
     processTestResult(this);
-    runNextTest();
+    setTimeout(runNextTest, 0);
   }
 });
 
@@ -141,7 +142,7 @@ ptests.push({
   },
   finish: function() {
     processTestResult(this);
-    runNextTest();
+    setTimeout(runNextTest, 0);
   }
 });
 
@@ -169,63 +170,7 @@ ptests.push({
   },
   finish: function() {
     processTestResult(this);
-    runNextTest();
-  }
-});
-
-
-ptests.push({
-  name: "history_sidebar_byvisited",
-  times: [],
-  run: function() {
-    var self = this;
-    var start = Date.now();
-    sidebar.addEventListener("load", function() {
-      sidebar.removeEventListener("load", arguments.callee, true);
-      executeSoon(function() {
-        var duration = Date.now() - start;
-        sidebar.contentDocument.getElementById("byvisited").doCommand();
-        toggleSidebar("viewHistorySidebar", false);
-        self.times.push(duration);
-        if (self.times.length == TEST_REPEAT_COUNT)
-          self.finish();
-        else
-          self.run();
-      });
-    }, true);
-    toggleSidebar("viewHistorySidebar", true);
-  },
-  finish: function() {
-    processTestResult(this);
-    runNextTest();
-  }
-});
-
-
-ptests.push({
-  name: "history_sidebar_bylastvisited",
-  times: [],
-  run: function() {
-    var self = this;
-    var start = Date.now();
-    sidebar.addEventListener("load", function() {
-      sidebar.removeEventListener("load", arguments.callee, true);
-      executeSoon(function() {
-        var duration = Date.now() - start;
-        sidebar.contentDocument.getElementById("bylastvisited").doCommand();
-        toggleSidebar("viewHistorySidebar", false);
-        self.times.push(duration);
-        if (self.times.length == TEST_REPEAT_COUNT)
-          self.finish();
-        else
-          self.run();
-      });
-    }, true);
-    toggleSidebar("viewHistorySidebar", true);
-  },
-  finish: function() {
-    processTestResult(this);
-    runNextTest();
+    setTimeout(runNextTest, 0);
   }
 });
 
@@ -241,7 +186,7 @@ function processTestResult(aTest) {
 
 function test() {
   
-  runNextTest();
+  setTimeout(runNextTest, 0);
 }
 
 function runNextTest() {

@@ -41,6 +41,7 @@
 
 
 
+
 waitForExplicitFinish();
 
 const TEST_IDENTIFIER = "ui-perf-test";
@@ -62,13 +63,13 @@ var bs = Cc["@mozilla.org/browser/nav-bookmarks-service;1"].
          getService(Ci.nsINavBookmarksService);
 
 function add_visit(aURI, aDate) {
-  var placeID = hs.addVisit(aURI,
+  var visitId = hs.addVisit(aURI,
                             aDate,
                             null, 
                             hs.TRANSITION_TYPED, 
                             false, 
                             0);
-  return placeID;
+  return visitId;
 }
 
 function add_bookmark(aURI) {
@@ -86,7 +87,7 @@ var ptests = [];
 
 
 
-const TEST_REPEAT_COUNT = 10;
+const TEST_REPEAT_COUNT = 6;
 
 
 ptests.push({
@@ -116,18 +117,19 @@ ptests.push({
     var avgDuration = totalDuration/this.times.length;
     var report = make_test_report("open_bookmarks_sidebar", avgDuration);
     ok(true, report);
-    runNextTest();
+    setTimeout(runNextTest, 0);
   }
 });
 
 function test() {
   
-  runNextTest();
+  setTimeout(runNextTest, 0);
 }
 
 function runNextTest() {
-  if (ptests.length > 0)
+  if (ptests.length > 0) {
     ptests.shift().run();
+  }
   else
     finish();
 }
