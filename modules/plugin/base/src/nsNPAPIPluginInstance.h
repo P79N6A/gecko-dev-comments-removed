@@ -48,6 +48,7 @@
 #include "nsPIDOMWindow.h"
 #include "nsIPluginInstanceOwner.h"
 #include "nsITimer.h"
+#include "mozilla/TimeStamp.h"
 
 #include "npfunctions.h"
 #include "mozilla/PluginLibrary.h"
@@ -111,7 +112,10 @@ public:
   virtual ~nsNPAPIPluginInstance();
 
   
-  PRBool IsStarted();
+  PRBool IsRunning();
+
+  
+  mozilla::TimeStamp LastStopTime();
 
   
   nsresult SetCached(PRBool aCache);
@@ -155,7 +159,7 @@ protected:
   PRPackedBool mWindowless;
   PRPackedBool mWindowlessLocal;
   PRPackedBool mTransparent;
-  PRPackedBool mStarted;
+  PRPackedBool mRunning;
   PRPackedBool mCached;
   PRPackedBool mWantsAllNetworkStreams;
 
@@ -178,6 +182,10 @@ private:
 
   
   void* mCurrentPluginEvent;
+
+  
+  
+  mozilla::TimeStamp mStopTime;
 };
 
 #endif 

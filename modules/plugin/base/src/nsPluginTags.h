@@ -45,7 +45,7 @@
 #include "nsCOMPtr.h"
 #include "nsIPluginTag.h"
 #include "nsIPlugin.h"
-#include "nsIPluginInstance.h"
+#include "nsNPAPIPluginInstance.h"
 #include "nsISupportsArray.h"
 
 class nsPluginHost;
@@ -128,9 +128,7 @@ struct nsPluginInstanceTag
   nsPluginInstanceTag*   mNext;
   char*                  mURL;
   nsRefPtr<nsPluginTag>  mPluginTag;
-  nsIPluginInstance*     mInstance;
-  PRTime                 mllStopTime;
-  PRPackedBool           mStopped;
+  nsNPAPIPluginInstance* mInstance; 
   PRPackedBool           mDefaultPlugin;
   
   nsCOMPtr <nsISupportsArray> mStreams; 
@@ -140,8 +138,6 @@ struct nsPluginInstanceTag
                       const char * url,
                       PRBool aDefaultPlugin);
   ~nsPluginInstanceTag();
-  
-  void setStopped(PRBool stopped);
 };
 
 class nsPluginInstanceTagList
