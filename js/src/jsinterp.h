@@ -158,8 +158,8 @@ js_GetScopeChain(JSContext *cx, JSStackFrame *fp);
 
 
 
-extern JSObject *
-js_ComputeThis(JSContext *cx, JSObject *thisp, jsval *argv);
+extern JSBool
+js_ComputeThis(JSContext *cx, jsval *argv);
 
 
 

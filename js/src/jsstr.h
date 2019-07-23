@@ -341,10 +341,6 @@ extern void
 js_FinalizeStringRT(JSRuntime *rt, JSString *str);
 
 
-extern JSObject *
-js_StringToObject(JSContext *cx, JSString *str);
-
-
 
 
 typedef JSString *(*JSValueToStringFun)(JSContext *cx, jsval v);

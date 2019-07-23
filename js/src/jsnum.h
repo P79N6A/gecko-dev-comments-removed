@@ -179,10 +179,6 @@ extern JSBool
 js_NewNumberValue(JSContext *cx, jsdouble d, jsval *rval);
 
 
-extern JSObject *
-js_NumberToObject(JSContext *cx, jsdouble d);
-
-
 extern JSString *
 js_NumberToString(JSContext *cx, jsdouble d);
 

@@ -597,6 +597,13 @@ extern JSBool
 js_SetClassPrototype(JSContext *cx, JSObject *ctor, JSObject *proto,
                      uintN attrs);
 
+
+
+
+
+extern JSBool
+js_PrimitiveToObject(JSContext *cx, jsval *vp);
+
 extern JSBool
 js_ValueToObject(JSContext *cx, jsval v, JSObject **objp);
 
