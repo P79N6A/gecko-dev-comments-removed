@@ -81,12 +81,6 @@ textbox[enablehistory="true"] > .autocomplete-textbox-container {
 
 
 
-.autocomplete-history-dropmarker {
-  -moz-appearance: menulist-button;
-}
-
-
-
 panel[type="autocomplete"],
 panel[type="autocomplete-richlistbox"],
 .autocomplete-history-popup {
