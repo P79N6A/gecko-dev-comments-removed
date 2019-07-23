@@ -912,8 +912,8 @@ class JSTreeContext;
 
 typedef struct BindData BindData;
 
-struct JSCompiler {
-    JSContext           * const context;
+struct JSCompiler : private js::AutoGCRooter {
+    JSContext           * const context; 
     JSAtomListElement   *aleFreeList;
     void                *tempFreeList[NUM_TEMP_FREELISTS];
     js::TokenStream     tokenStream;
@@ -925,10 +925,9 @@ struct JSCompiler {
     uint32              functionCount;  
     JSObjectBox         *traceListHead; 
     JSTreeContext       *tc;            
-    JSTempValueRooter   tempRoot;       
 
     JSCompiler(JSContext *cx, JSPrincipals *prin = NULL, JSStackFrame *cfp = NULL)
-      : context(cx),
+      : js::AutoGCRooter(cx, COMPILER), context(cx),
         aleFreeList(NULL), tokenStream(cx), principals(NULL), callerFrame(cfp),
         callerVarObj(cfp ? cfp->varobj(cx->containingCallStack(cfp)) : NULL),
         nodeList(NULL), functionCount(0), traceListHead(NULL), tc(NULL)
@@ -939,6 +938,9 @@ struct JSCompiler {
     }
 
     ~JSCompiler();
+
+    friend void js::AutoGCRooter::trace(JSTracer *trc);
+    friend class JSTreeContext;
 
     
 
