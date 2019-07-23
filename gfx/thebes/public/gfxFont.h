@@ -156,9 +156,8 @@ public:
         
         AgeAllGenerations();
         
-        
-        NS_ASSERTION(mFonts.Count() == 0,
-                     "Fonts still alive while shutting down gfxFontCache");
+        NS_WARN_IF_FALSE(mFonts.Count() == 0,
+                         "Fonts still alive while shutting down gfxFontCache");
         
         
         
