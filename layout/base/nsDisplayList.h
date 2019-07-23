@@ -309,6 +309,13 @@ public:
 
 
 
+  PRUint32 GetBackgroundPaintFlags();
+
+  
+
+
+
+
 
   void SubtractFromVisibleRegion(nsRegion* aVisibleRegion,
                                  const nsRegion& aRegion);

@@ -198,7 +198,10 @@ struct nsCSSRendering {
 
 
 
-    PAINT_WILL_PAINT_BORDER = 0x01
+    PAINTBG_WILL_PAINT_BORDER = 0x01,
+    
+
+    PAINTBG_SYNC_DECODE_IMAGES = 0x02
   };
   static void PaintBackground(nsPresContext* aPresContext,
                               nsIRenderingContext& aRenderingContext,

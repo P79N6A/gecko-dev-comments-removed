@@ -73,12 +73,14 @@ class TableBackgroundPainter
 
 
 
+
     TableBackgroundPainter(nsTableFrame*        aTableFrame,
                            Origin               aOrigin,
                            nsPresContext*       aPresContext,
                            nsIRenderingContext& aRenderingContext,
                            const nsRect&        aDirtyRect,
-                           const nsPoint&       aPt);
+                           const nsPoint&       aPt,
+                           PRUint32             aBGPaintFlags);
 
     
     ~TableBackgroundPainter();
@@ -247,6 +249,7 @@ class TableBackgroundPainter
     nsRect               mCellRect; 
 
     nsStyleBorder        mZeroBorder;  
+    PRUint32             mBGPaintFlags;
 };
 
 #endif

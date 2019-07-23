@@ -276,7 +276,7 @@ public:
 
   void PaintTableBorderBackground(nsIRenderingContext& aRenderingContext,
                                   const nsRect& aDirtyRect,
-                                  nsPoint aPt);
+                                  nsPoint aPt, PRUint32 aBGPaintFlags);
 
   
 
