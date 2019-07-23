@@ -1288,7 +1288,7 @@ have_fun:
                 goto out;
             }
         }
-        ok = js_Interpret(cx, script->code, &v);
+        ok = js_Interpret(cx);
     } else {
         
         frame.scopeChain = NULL;
@@ -1512,11 +1512,7 @@ js_Execute(JSContext *cx, JSObject *chain, JSScript *script,
                         cx->debugHooks->executeHookData);
     }
 
-    
-
-
-
-    ok = js_Interpret(cx, script->code, &frame.rval);
+    ok = js_Interpret(cx);
     *result = frame.rval;
 
     if (hookData) {
@@ -2451,20 +2447,21 @@ JS_STATIC_ASSERT(JSOP_DEFFUN_LENGTH == JSOP_CLOSURE_LENGTH);
 JS_STATIC_ASSERT((JSVAL_TO_INT(JSVAL_VOID) & 31) == 0);
 
 JSBool
-js_Interpret(JSContext *cx, jsbytecode *pc, jsval *result)
+js_Interpret(JSContext *cx)
 {
     JSRuntime *rt;
     JSStackFrame *fp;
     JSScript *script;
     uintN inlineCallCount;
     JSAtom **atoms;
-    JSObject *obj, *obj2, *parent;
     JSVersion currentVersion, originalVersion;
+    void *mark;
+    jsval *sp;
+    jsbytecode *pc;
+    JSObject *obj, *obj2, *parent;
     JSBool ok, cond;
     JSTrapHandler interruptHandler;
     jsint len;
-    jsval *sp;
-    void *mark;
     jsbytecode *endpc, *pc2;
     JSOp op, op2;
     jsatomid index;
@@ -2541,7 +2538,6 @@ js_Interpret(JSContext *cx, jsbytecode *pc, jsval *result)
     
     JS_CHECK_RECURSION(cx, return JS_FALSE);
 
-    *result = JSVAL_VOID;
     rt = cx->runtime;
 
     
@@ -2599,27 +2595,6 @@ js_Interpret(JSContext *cx, jsbytecode *pc, jsval *result)
 
 
 
-#if JS_THREADED_INTERP
-# define LOAD_JUMP_TABLE()                                                    \
-    (jumpTable = interruptHandler ? interruptJumpTable : normalJumpTable)
-#else
-# define LOAD_JUMP_TABLE()
-#endif
-
-#define LOAD_INTERRUPT_HANDLER(cx)                                            \
-    JS_BEGIN_MACRO                                                            \
-        interruptHandler = (cx)->debugHooks->interruptHandler;                \
-        LOAD_JUMP_TABLE();                                                    \
-    JS_END_MACRO
-
-    LOAD_INTERRUPT_HANDLER(cx);
-
-    
-
-
-
-
-
 
 
 
@@ -2638,22 +2613,48 @@ js_Interpret(JSContext *cx, jsbytecode *pc, jsval *result)
 
 
 
+
+
+
+#if JS_THREADED_INTERP
+# define LOAD_JUMP_TABLE()                                                    \
+    (jumpTable = interruptHandler ? interruptJumpTable : normalJumpTable)
+#else
+# define LOAD_JUMP_TABLE()      ((void) 0)
+#endif
+
+#define LOAD_INTERRUPT_HANDLER(cx)                                            \
+    JS_BEGIN_MACRO                                                            \
+        interruptHandler = (cx)->debugHooks->interruptHandler;                \
+        LOAD_JUMP_TABLE();                                                    \
+    JS_END_MACRO
+
+    LOAD_INTERRUPT_HANDLER(cx);
+
+     
+
+
+
     if (JS_LIKELY(!fp->spbase)) {
         ASSERT_NOT_THROWING(cx);
+        JS_ASSERT(!fp->pc);
         JS_ASSERT(!fp->sp);
-        sp = js_AllocRawStack(cx, script->depth, &mark);
-        if (!sp) {
+        JS_ASSERT(!fp->spbase);
+        fp->spbase = js_AllocRawStack(cx, script->depth, &mark);
+        if (!fp->spbase) {
             mark = NULL;
             ok = JS_FALSE;
             goto exit;
         }
         JS_ASSERT(mark);
-        fp->spbase = sp;
-        SAVE_SP(fp);
+        fp->pc = script->code;
+        fp->sp = fp->spbase;
+        RESTORE_SP_AND_PC(fp);
     } else {
         JS_ASSERT(fp->flags & JSFRAME_GENERATOR);
         mark = NULL;
-        RESTORE_SP(fp);
+        RESTORE_SP_AND_PC(fp);
+        JS_ASSERT((size_t) (pc - script->code) <= script->length);
         JS_ASSERT((size_t) (sp - fp->spbase) <= script->depth);
         JS_ASSERT(JS_PROPERTY_CACHE(cx).disabled >= 0);
         JS_PROPERTY_CACHE(cx).disabled += js_CountWithBlocks(cx, fp);
@@ -2814,8 +2815,10 @@ interrupt:
             sp[-2] = rtmp;
           END_CASE(JSOP_SWAP)
 
+          BEGIN_CASE(JSOP_SETRVAL)
           BEGIN_CASE(JSOP_POPV)
-            *result = POP_OPND();
+            ASSERT_NOT_THROWING(cx);
+            fp->rval = POP_OPND();
           END_CASE(JSOP_POPV)
 
           BEGIN_CASE(JSOP_ENTERWITH)
@@ -2841,11 +2844,6 @@ interrupt:
             SAVE_SP_AND_PC(fp);
             js_LeaveWith(cx);
           END_CASE(JSOP_LEAVEWITH)
-
-          BEGIN_CASE(JSOP_SETRVAL)
-            ASSERT_NOT_THROWING(cx);
-            fp->rval = POP_OPND();
-          END_CASE(JSOP_SETRVAL)
 
           BEGIN_CASE(JSOP_RETURN)
             CHECK_BRANCH(-1);
@@ -7041,7 +7039,6 @@ interrupt:
         JS_ASSERT(!(fp->flags & JSFRAME_GENERATOR));
         JS_ASSERT(fp->spbase);
         JS_ASSERT(fp->spbase <= fp->sp);
-        JS_ASSERT(sp == fp->spbase);
         fp->sp = fp->spbase = NULL;
         js_FreeRawStack(cx, mark);
     }
