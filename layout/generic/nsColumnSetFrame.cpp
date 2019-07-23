@@ -704,6 +704,7 @@ nsColumnSetFrame::ReflowChildren(nsHTMLReflowMetrics&     aDesiredSize,
 
     if (NS_FRAME_IS_FULLY_COMPLETE(aStatus) && !NS_FRAME_IS_TRUNCATED(aStatus)) {
       NS_ASSERTION(!kidNextInFlow, "next in flow should have been deleted");
+      child = nsnull;
       break;
     } else {
       ++columnCount;
@@ -720,6 +721,7 @@ nsColumnSetFrame::ReflowChildren(nsHTMLReflowMetrics&     aDesiredSize,
         
         if (NS_FAILED(rv)) {
           NS_NOTREACHED("Couldn't create continuation");
+          child = nsnull;
           break;
         }
       }
@@ -751,17 +753,12 @@ nsColumnSetFrame::ReflowChildren(nsHTMLReflowMetrics&     aDesiredSize,
           SetOverflowFrames(PresContext(), continuationColumns);
           child->SetNextSibling(nsnull);
         }
+        child = nsnull;
         break;
       }
     }
 
-    if (PresContext()->CheckForInterrupt(this)) {
-      
-      
-      
-      
-      
-      
+    if (PresContext()->HasPendingInterrupt()) {
       
       
       
@@ -787,8 +784,15 @@ nsColumnSetFrame::ReflowChildren(nsHTMLReflowMetrics&     aDesiredSize,
     }
   }
 
-  if (PresContext()->HasPendingInterrupt() &&
+  if (PresContext()->CheckForInterrupt(this) &&
       (GetStateBits() & NS_FRAME_IS_DIRTY)) {
+    
+
+    
+    
+    
+    
+    
     
     for (; child; child = child->GetNextSibling()) {
       child->AddStateBits(NS_FRAME_IS_DIRTY);
