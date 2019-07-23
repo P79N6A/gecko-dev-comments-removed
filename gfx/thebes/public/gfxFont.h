@@ -521,19 +521,13 @@ public:
     
 
 
-    struct RunMetrics {
+    struct THEBES_API RunMetrics {
         RunMetrics() {
             mAdvanceWidth = mAscent = mDescent = 0.0;
             mBoundingBox = gfxRect(0,0,0,0);
         }
 
-        void CombineWith(const RunMetrics& aOtherOnRight) {
-            mAscent = PR_MAX(mAscent, aOtherOnRight.mAscent);
-            mDescent = PR_MAX(mDescent, aOtherOnRight.mDescent);
-            mBoundingBox =
-                mBoundingBox.Union(aOtherOnRight.mBoundingBox + gfxPoint(mAdvanceWidth, 0));
-            mAdvanceWidth += aOtherOnRight.mAdvanceWidth;
-        }
+        void CombineWith(const RunMetrics& aOther, PRBool aOtherIsOnLeft);
 
         
         
