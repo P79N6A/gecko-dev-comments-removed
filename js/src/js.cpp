@@ -251,6 +251,8 @@ Process(JSContext *cx, JSObject *obj, char *filename, JSBool forceTTY)
 
     SetContextOptions(cx);
 
+#ifndef WINCE
+    
     if (!forceTTY && !isatty(fileno(file))) {
         
 
@@ -283,6 +285,7 @@ Process(JSContext *cx, JSObject *obj, char *filename, JSBool forceTTY)
             fclose(file);
         return;
     }
+#endif 
 
     
     lineno = 1;
@@ -3966,8 +3969,9 @@ main(int argc, char **argv, char **envp)
 #endif 
 
     CheckHelpMessages();
+#ifndef WINCE
     setlocale(LC_ALL, "");
-
+#endif
     gStackBase = (jsuword)&stackDummy;
 
 #ifdef XP_OS2
