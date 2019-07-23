@@ -55,10 +55,10 @@
 #include "nsIAtom.h"
 #include "nsIDOMKeyEvent.h"
 #include "nsWeakPtr.h"
+#include "nsIWidget.h"
 
 class nsIRenderingContext;
 class nsIRegion;
-class nsIWidget;
 class nsIMenuItem;
 class nsIAccessible;
 class nsIContent;
@@ -438,9 +438,9 @@ public:
   }
 
   
-  nsIWidget*  widget;           
+  nsCOMPtr<nsIWidget> widget;           
   
-  void*     nativeMsg;        
+  void* nativeMsg;        
 };
 
 

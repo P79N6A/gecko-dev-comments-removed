@@ -1367,8 +1367,7 @@ nsEventListenerManager::FixContextMenuEvent(nsPresContext* aPresContext,
     
     
     if (contextMenuKey) {
-      NS_IF_RELEASE(((nsGUIEvent*)aEvent)->widget);
-      aPresContext->GetViewManager()->GetWidget(&((nsGUIEvent*)aEvent)->widget);
+      aPresContext->GetViewManager()->GetWidget(getter_AddRefs(((nsGUIEvent*)aEvent)->widget));
       aEvent->refPoint.x = 0;
       aEvent->refPoint.y = 0;
     }
