@@ -241,7 +241,9 @@ js_FillPropertyCache(JSContext *cx, JSObject *obj, jsuword kshape,
         }
 
         
-        if (!(cs->format & (JOF_SET | JOF_INCDEC | JOF_FOR)) &&
+        if (!(cs->format & JOF_SET) &&
+            !((cs->format & (JOF_INCDEC | JOF_FOR)) &&
+              (sprop->attrs & JSPROP_READONLY)) &&
             SPROP_HAS_STUB_GETTER(sprop) &&
             SPROP_HAS_VALID_SLOT(sprop, scope)) {
             
@@ -2645,7 +2647,9 @@ js_Interpret(JSContext *cx)
             }                                                                 \
             fp = cx->fp;                                                      \
             script = fp->script;                                              \
-            atoms = FrameAtomBase(cx, fp);                                    \
+            atoms = fp->imacpc                                                \
+                    ? COMMON_ATOMS_START(&rt->atomState)                      \
+                    : script->atomMap.vector;                                 \
             currentVersion = (JSVersion) script->version;                     \
             JS_ASSERT(fp->regs == &regs);                                     \
             if (cx->throwing)                                                 \
@@ -3052,7 +3056,9 @@ js_Interpret(JSContext *cx)
 
                 
                 script = fp->script;
-                atoms = FrameAtomBase(cx, fp);
+                atoms = fp->imacpc
+                        ? COMMON_ATOMS_START(&rt->atomState)
+                        : script->atomMap.vector;
 
                 
                 inlineCallCount--;
@@ -3221,6 +3227,7 @@ js_Interpret(JSContext *cx)
             CHECK_INTERRUPT_HANDLER();
             rval = BOOLEAN_TO_JSVAL(regs.sp[-1] != JSVAL_HOLE);
             PUSH(rval);
+            TRACE_0(IteratorNextComplete);
           END_CASE(JSOP_NEXTITER)
 
           BEGIN_CASE(JSOP_ENDITER)
@@ -6725,19 +6732,6 @@ js_Interpret(JSContext *cx)
           }
           END_CASE(JSOP_LEAVEBLOCK)
 
-          BEGIN_CASE(JSOP_CALLBUILTIN)
-#ifdef JS_TRACER
-              obj = js_GetBuiltinFunction(cx, GET_INDEX(regs.pc));
-              if (!obj)
-                  goto error;
-              rval = FETCH_OPND(-1);
-              PUSH_OPND(rval);
-              STORE_OPND(-2, OBJECT_TO_JSVAL(obj));
-#else
-              goto bad_opcode;  
-#endif
-          END_CASE(JSOP_CALLBUILTIN)
-
 #if JS_HAS_GENERATORS
           BEGIN_CASE(JSOP_GENERATOR)
             ASSERT_NOT_THROWING(cx);
@@ -6847,12 +6841,10 @@ js_Interpret(JSContext *cx)
           L_JSOP_UNUSED208:
           L_JSOP_UNUSED209:
           L_JSOP_UNUSED219:
+          L_JSOP_UNUSED226:
 
 #else 
           default:
-#endif
-#ifndef JS_TRACER
-        bad_opcode:
 #endif
           {
             char numBuf[12];
@@ -6871,8 +6863,7 @@ js_Interpret(JSContext *cx)
     if (fp->imacpc && cx->throwing) {
         
         if (*fp->imacpc == JSOP_NEXTITER) {
-            
-            JS_ASSERT(*regs.pc == JSOP_CALL || *regs.pc == JSOP_DUP);
+            JS_ASSERT(*regs.pc == JSOP_CALL);
             if (js_ValueIsStopIteration(cx->exception)) {
                 cx->throwing = JS_FALSE;
                 cx->exception = JSVAL_VOID;

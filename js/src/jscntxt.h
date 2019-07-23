@@ -227,12 +227,6 @@ typedef enum JSRuntimeState {
     JSRTS_LANDING
 } JSRuntimeState;
 
-typedef enum JSBuiltinFunctionId {
-    JSBUILTIN_ObjectToIterator,
-    JSBUILTIN_CallIteratorNext,
-    JSBUILTIN_LIMIT
-} JSBuiltinFunctionId;
-
 typedef struct JSPropertyTreeEntry {
     JSDHashEntryHdr     hdr;
     JSScopeProperty     *child;
@@ -340,14 +334,6 @@ struct JSRuntime {
 
     JSString            *emptyString;
     JSString            **unitStrings;
-
-    
-
-
-
-
-
-    JSObject            *builtinFunctions[JSBUILTIN_LIMIT];
 
     
     JSCList             contextList;
@@ -937,15 +923,6 @@ struct JSContext {
 
 #ifdef __cplusplus
 
-static inline JSAtom **
-FrameAtomBase(JSContext *cx, JSStackFrame *fp)
-{
-    return fp->imacpc
-           ? COMMON_ATOMS_START(&cx->runtime->atomState)
-           : fp->script->atomMap.vector;
-}
-
-
 class JSAutoTempValueRooter
 {
   public:
@@ -992,8 +969,7 @@ class JSAutoResolveFlags
     JSContext *mContext;
     uintN mSaved;
 };
-
-#endif 
+#endif
 
 
 
