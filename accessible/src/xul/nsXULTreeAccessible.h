@@ -47,7 +47,7 @@
 
 
 
-
+const PRUint32 kMaxTreeColumns = 100;
 const PRUint32 kDefaultTreeCacheSize = 256;
 
 class nsXULTreeAccessible : public nsXULSelectableAccessible,

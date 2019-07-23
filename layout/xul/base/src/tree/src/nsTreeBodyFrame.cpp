@@ -61,10 +61,15 @@
 #include "nsStyleContext.h"
 #include "nsIBoxObject.h"
 #include "nsGUIEvent.h"
+#include "nsPLDOMEvent.h"
+#include "nsIDOMDataContainerEvent.h"
 #include "nsIDOMMouseEvent.h"
+#include "nsIPrivateDOMEvent.h"
 #include "nsIDOMElement.h"
 #include "nsIDOMNodeList.h"
+#include "nsIDOMDocument.h"
 #include "nsIDOMNSDocument.h"
+#include "nsIDOMDocumentEvent.h"
 #include "nsIDOMXULElement.h"
 #include "nsIDocument.h"
 #include "nsIContent.h"
@@ -1789,6 +1794,12 @@ NS_IMETHODIMP nsTreeBodyFrame::RowCountChanged(PRInt32 aIndex, PRInt32 aCount)
 {
   if (aCount == 0 || !mView)
     return NS_OK; 
+
+#ifdef ACCESSIBILITY
+  nsIPresShell *presShell = PresContext()->PresShell();
+  if (presShell->IsAccessibilityActive())
+    FireRowCountChangedEvent(aIndex, aCount);
+#endif
 
   
   nsCOMPtr<nsITreeSelection> sel;
@@ -4363,6 +4374,63 @@ nsTreeBodyFrame::PostScrollEvent()
   } else {
     mScrollEvent = ev;
   }
+}
+
+void
+nsTreeBodyFrame::FireRowCountChangedEvent(PRInt32 aIndex, PRInt32 aCount)
+{
+  nsCOMPtr<nsIContent> content(GetBaseElement());
+  if (!content)
+    return;
+
+  nsCOMPtr<nsIDOMNode> node(do_QueryInterface(content));
+
+  nsCOMPtr<nsIDOMDocument> domDoc;
+  node->GetOwnerDocument(getter_AddRefs(domDoc));
+  nsCOMPtr<nsIDOMDocumentEvent> domEventDoc(do_QueryInterface(domDoc));
+  if (!domEventDoc)
+    return;
+
+  nsCOMPtr<nsIDOMEvent> event;
+  domEventDoc->CreateEvent(NS_LITERAL_STRING("datacontainerevents"),
+                           getter_AddRefs(event));
+
+  event->InitEvent(NS_LITERAL_STRING("TreeRowCountChanged"), PR_TRUE, PR_FALSE);
+
+  nsCOMPtr<nsIDOMDataContainerEvent> treeEvent(do_QueryInterface(event));
+  if (!treeEvent)
+    return;
+
+  
+  nsCOMPtr<nsIWritableVariant> indexVariant(
+    do_CreateInstance("@mozilla.org/variant;1"));
+  if (!indexVariant)
+    return;
+
+  indexVariant->SetAsInt32(aIndex);
+  treeEvent->SetData(NS_LITERAL_STRING("index"), indexVariant);
+
+  
+  nsCOMPtr<nsIWritableVariant> countVariant(
+    do_CreateInstance("@mozilla.org/variant;1"));
+  if (!countVariant)
+    return;
+
+  countVariant->SetAsInt32(aCount);
+  treeEvent->SetData(NS_LITERAL_STRING("count"), countVariant);
+
+  
+  nsCOMPtr<nsIPrivateDOMEvent> privateEvent(do_QueryInterface(event));
+  if (!privateEvent)
+    return;
+
+  privateEvent->SetTrusted(PR_TRUE);
+
+  nsRefPtr<nsPLDOMEvent> plevent = new nsPLDOMEvent(node, event);
+  if (!plevent)
+    return;
+
+  plevent->PostDOMEvent();
 }
 
 PRBool

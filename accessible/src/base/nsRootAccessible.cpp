@@ -53,6 +53,7 @@
 #include "nsIDOMHTMLImageElement.h"
 #include "nsIDOMHTMLInputElement.h"
 #include "nsIDOMHTMLSelectElement.h"
+#include "nsIDOMDataContainerEvent.h"
 #include "nsIDOMNSEvent.h"
 #include "nsIDOMXULMenuListElement.h"
 #include "nsIDOMXULMultSelectCntrlEl.h"
@@ -287,6 +288,7 @@ const char* const docEvents[] = {
   "AlertActive",
   
   "TreeViewChanged",
+  "TreeRowCountChanged",
   
   "OpenStateChange",
   
@@ -641,7 +643,9 @@ nsresult nsRootAccessible::HandleEventWithTarget(nsIDOMEvent* aEvent,
   }
 
   if (eventType.EqualsLiteral("TreeViewChanged")) { 
-    NS_ENSURE_TRUE(localName.EqualsLiteral("tree"), NS_OK);
+    if (!localName.EqualsLiteral("tree"))
+      return NS_OK;
+
     nsCOMPtr<nsIContent> treeContent = do_QueryInterface(aTargetNode);
     nsAccEvent::PrepareForEvent(aTargetNode, PR_TRUE);
     return accService->InvalidateSubtreeFor(eventShell, treeContent,
@@ -654,6 +658,33 @@ nsresult nsRootAccessible::HandleEventWithTarget(nsIDOMEvent* aEvent,
   nsCOMPtr<nsPIAccessible> privAcc(do_QueryInterface(accessible));
   if (!privAcc)
     return NS_OK;
+
+  if (eventType.EqualsLiteral("TreeRowCountChanged")) {
+    if (!localName.EqualsLiteral("tree"))
+      return NS_OK;
+
+    nsCOMPtr<nsIDOMDataContainerEvent> dataEvent(do_QueryInterface(aEvent));
+    NS_ENSURE_STATE(dataEvent);
+
+    nsCOMPtr<nsIVariant> indexVariant;
+    dataEvent->GetData(NS_LITERAL_STRING("index"),
+                       getter_AddRefs(indexVariant));
+    NS_ENSURE_STATE(indexVariant);
+
+    nsCOMPtr<nsIVariant> countVariant;
+    dataEvent->GetData(NS_LITERAL_STRING("count"),
+                       getter_AddRefs(countVariant));
+    NS_ENSURE_STATE(countVariant);
+
+    PRInt32 index, count;
+    indexVariant->GetAsInt32(&index);
+    countVariant->GetAsInt32(&count);
+
+    nsCOMPtr<nsIAccessibleTreeCache> treeAccCache(do_QueryInterface(accessible));
+    NS_ENSURE_STATE(treeAccCache);
+
+    return treeAccCache->InvalidateCache(index, count);
+  }
 
   if (eventType.EqualsLiteral("RadioStateChange")) {
     PRUint32 state = State(accessible);

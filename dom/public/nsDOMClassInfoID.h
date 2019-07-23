@@ -353,7 +353,7 @@ enum nsDOMClassInfoID {
   eDOMClassInfo_CanvasGradient_id,
   eDOMClassInfo_CanvasPattern_id,
 #endif
-  
+
   
   eDOMClassInfo_SmartCardEvent_id,
   
@@ -415,6 +415,9 @@ enum nsDOMClassInfoID {
 
   
   eDOMClassInfo_ModalContentWindow_id,
+
+  
+  eDOMClassInfo_DataContainerEvent_id,
 
   
   eDOMClassInfoIDCount
