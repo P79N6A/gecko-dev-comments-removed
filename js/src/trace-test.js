@@ -266,3 +266,28 @@ if (passes.length)
 if (fails.length)
   print("FAIL:", fails.join(","));
 
+function testincops(n) {
+    var i = 0, o = {p:0}, a = [0];
+
+    for (i = 0; i < n; i++);
+    while (i-- > 0);
+    for (i = 0; i < n; ++i);
+    while (--i >= 0);
+
+    for (o.p = 0; o.p < n; o.p++);
+    while (o.p-- > 0);
+    for (o.p = 0; o.p < n; ++o.p);
+    while (--o.p >= 0);
+return ++o.p;
+
+    
+
+
+
+
+
+
+
+
+}
+test("testincops", testincops(100), 0);
