@@ -99,23 +99,9 @@ nsOuterDocAccessible::GetChildAtPoint(PRInt32 aX, PRInt32 aY,
   return NS_OK;
 }
 
-void nsOuterDocAccessible::CacheChildren()
-{  
-  
-  
-  if (!mWeakShell) {
-    mAccChildCount = eChildCountUninitialized;
-    return;   
-  }
-  if (mAccChildCount != eChildCountUninitialized) {
-    return;
-  }
-
-  InvalidateChildren();
-  mAccChildCount = 0;
-
-  
-  
+void
+nsOuterDocAccessible::CacheChildren()
+{
   
   
 
@@ -134,18 +120,15 @@ void nsOuterDocAccessible::CacheChildren()
   }
 
   nsCOMPtr<nsIAccessible> innerAccessible;
-  nsCOMPtr<nsIAccessibilityService> accService = 
-    do_GetService("@mozilla.org/accessibilityService;1");
+  nsCOMPtr<nsIAccessibilityService> accService = GetAccService();
   accService->GetAccessibleFor(innerNode, getter_AddRefs(innerAccessible));
   nsRefPtr<nsAccessible> innerAcc(nsAccUtils::QueryAccessible(innerAccessible));
   if (!innerAcc)
     return;
 
   
-  mAccChildCount = 1;
-  SetFirstChild(innerAccessible); 
+  mChildren.AppendObject(innerAccessible);
   innerAcc->SetParent(this);
-  innerAcc->SetNextSibling(nsnull);
 }
 
 nsresult

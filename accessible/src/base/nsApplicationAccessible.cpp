@@ -42,63 +42,21 @@
  
 #include "nsApplicationAccessible.h"
 
+#include "nsAccessibilityService.h"
+
 #include "nsIComponentManager.h"
 #include "nsServiceManagerUtils.h"
 
-nsApplicationAccessible::nsApplicationAccessible():
-    nsAccessibleWrap(nsnull, nsnull), mChildren(nsnull)
+nsApplicationAccessible::nsApplicationAccessible() :
+  nsAccessibleWrap(nsnull, nsnull)
 {
 }
 
 
 
 
-NS_IMPL_CYCLE_COLLECTION_CLASS(nsApplicationAccessible)
+NS_IMPL_ISUPPORTS_INHERITED0(nsApplicationAccessible, nsAccessible)
 
-NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INHERITED(nsApplicationAccessible,
-                                                  nsAccessible)
-
-  nsCOMPtr<nsISimpleEnumerator> enumerator;
-  tmp->mChildren->Enumerate(getter_AddRefs(enumerator));
-
-  nsCOMPtr<nsIWeakReference> childWeakRef;
-  nsCOMPtr<nsIAccessible> accessible;
-
-  PRBool hasMoreElements;
-  while(NS_SUCCEEDED(enumerator->HasMoreElements(&hasMoreElements))
-        && hasMoreElements) {
-
-    enumerator->GetNext(getter_AddRefs(childWeakRef));
-    accessible = do_QueryReferent(childWeakRef);
-    if (accessible) {
-      NS_CYCLE_COLLECTION_NOTE_EDGE_NAME(cb, "nsApplicationAccessible child");
-      cb.NoteXPCOMChild(accessible);
-    }
-  }
-  
-NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
-
-NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN_INHERITED(nsApplicationAccessible,
-                                                nsAccessible)
-  tmp->mChildren->Clear();
-NS_IMPL_CYCLE_COLLECTION_UNLINK_END
-
-NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION_INHERITED(nsApplicationAccessible)
-NS_INTERFACE_MAP_END_INHERITING(nsAccessible)
-
-NS_IMPL_ADDREF_INHERITED(nsApplicationAccessible, nsAccessible)
-NS_IMPL_RELEASE_INHERITED(nsApplicationAccessible, nsAccessible)
-
-
-
-
-nsresult
-nsApplicationAccessible::Init()
-{
-  nsresult rv;
-  mChildren = do_CreateInstance(NS_ARRAY_CONTRACTID, &rv);
-  return rv;
-}
 
 
 
@@ -130,17 +88,65 @@ nsApplicationAccessible::GetName(nsAString& aName)
   return NS_OK;
 }
 
-nsresult
-nsApplicationAccessible::GetRoleInternal(PRUint32 *aRole)
+NS_IMETHODIMP
+nsApplicationAccessible::GetDescription(nsAString& aValue)
 {
-  *aRole = nsIAccessibleRole::ROLE_APP_ROOT;
+  aValue.Truncate();
   return NS_OK;
 }
 
 NS_IMETHODIMP
 nsApplicationAccessible::GetRole(PRUint32 *aRole)
 {
+  NS_ENSURE_ARG_POINTER(aRole);
+
   return GetRoleInternal(aRole);
+}
+
+NS_IMETHODIMP
+nsApplicationAccessible::GetState(PRUint32 *aState, PRUint32 *aExtraState)
+{
+  NS_ENSURE_ARG_POINTER(aState);
+  *aState = 0;
+
+  if (aExtraState)
+    *aExtraState = 0;
+
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsApplicationAccessible::GetParent(nsIAccessible **aAccessible)
+{
+  NS_ENSURE_ARG_POINTER(aAccessible);
+  *aAccessible = nsnull;
+
+  return IsDefunct() ? NS_ERROR_FAILURE : NS_OK;
+}
+
+
+
+
+PRBool
+nsApplicationAccessible::IsDefunct()
+{
+  return nsAccessibilityService::gIsShutdown;
+}
+
+nsresult
+nsApplicationAccessible::Init()
+{
+  return NS_OK;
+}
+
+
+
+
+nsresult
+nsApplicationAccessible::GetRoleInternal(PRUint32 *aRole)
+{
+  *aRole = nsIAccessibleRole::ROLE_APP_ROOT;
+  return NS_OK;
 }
 
 nsresult
@@ -154,111 +160,45 @@ nsApplicationAccessible::GetStateInternal(PRUint32 *aState,
   return NS_OK;
 }
 
-NS_IMETHODIMP
-nsApplicationAccessible::GetParent(nsIAccessible **aParent)
+nsIAccessible*
+nsApplicationAccessible::GetParent()
 {
-  *aParent = nsnull;
-  return NS_OK;
+  return nsnull;
 }
 
-NS_IMETHODIMP
-nsApplicationAccessible::GetChildAt(PRInt32 aChildNum, nsIAccessible **aChild)
+void
+nsApplicationAccessible::InvalidateChildren()
 {
-  NS_ENSURE_ARG_POINTER(aChild);
-  *aChild = nsnull;
-
-  PRUint32 count = 0;
-  nsresult rv = NS_OK;
-
-  if (mChildren) {
-    rv = mChildren->GetLength(&count);
-    NS_ENSURE_SUCCESS(rv, rv);
-  }
-
-  if (aChildNum >= static_cast<PRInt32>(count) || count == 0)
-    return NS_ERROR_INVALID_ARG;
-
-  if (aChildNum < 0)
-    aChildNum = count - 1;
-
-  nsCOMPtr<nsIWeakReference> childWeakRef;
-  rv = mChildren->QueryElementAt(aChildNum, NS_GET_IID(nsIWeakReference),
-                                 getter_AddRefs(childWeakRef));
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  if (childWeakRef) {
-    nsCOMPtr<nsIAccessible> childAcc(do_QueryReferent(childWeakRef));
-    NS_IF_ADDREF(*aChild = childAcc);
-  }
-
-  return NS_OK;
+  
+  
 }
 
-NS_IMETHODIMP
-nsApplicationAccessible::GetNextSibling(nsIAccessible **aNextSibling)
-{
-  NS_ENSURE_ARG_POINTER(aNextSibling);
 
-  *aNextSibling = nsnull;
-  return NS_OK;
-}
 
-NS_IMETHODIMP
-nsApplicationAccessible::GetPreviousSibling(nsIAccessible **aPreviousSibling)
-{
-  NS_ENSURE_ARG_POINTER(aPreviousSibling);
-
-  *aPreviousSibling = nsnull;
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsApplicationAccessible::GetIndexInParent(PRInt32 *aIndexInParent)
-{
-  NS_ENSURE_ARG_POINTER(aIndexInParent);
-
-  *aIndexInParent = -1;
-  return NS_OK;
-}
 
 void
 nsApplicationAccessible::CacheChildren()
 {
-  if (!mChildren) {
-    mAccChildCount = eChildCountUninitialized;
-    return;
-  }
-
-  if (mAccChildCount == eChildCountUninitialized) {
-    mAccChildCount = 0;
-    nsCOMPtr<nsISimpleEnumerator> enumerator;
-    mChildren->Enumerate(getter_AddRefs(enumerator));
-
-    nsCOMPtr<nsIWeakReference> childWeakRef;
-    nsCOMPtr<nsIAccessible> accessible;
-    nsRefPtr<nsAccessible> prevAcc;
-    PRBool hasMoreElements;
-
-    while(NS_SUCCEEDED(enumerator->HasMoreElements(&hasMoreElements)) &&
-          hasMoreElements) {
-      enumerator->GetNext(getter_AddRefs(childWeakRef));
-      accessible = do_QueryReferent(childWeakRef);
-      if (accessible) {
-        if (prevAcc)
-          prevAcc->SetNextSibling(accessible);
-        else
-          SetFirstChild(accessible);
-
-        prevAcc = nsAccUtils::QueryAccessible(accessible);
-        prevAcc->SetParent(this);
-      }
-    }
-
-    PRUint32 count = 0;
-    mChildren->GetLength(&count);
-    mAccChildCount = static_cast<PRInt32>(count);
-  }
+  
+  
 }
+
+nsIAccessible*
+nsApplicationAccessible::GetSiblingAtOffset(PRInt32 aOffset, nsresult* aError)
+{
+  if (IsDefunct()) {
+    if (aError)
+      *aError = NS_ERROR_FAILURE;
+
+    return nsnull;
+  }
+
+  if (aError)
+    *aError = NS_OK; 
+
+  return nsnull;
+}
+
 
 
 
@@ -267,11 +207,12 @@ nsApplicationAccessible::AddRootAccessible(nsIAccessible *aRootAccessible)
 {
   NS_ENSURE_ARG_POINTER(aRootAccessible);
 
-  
-  nsresult rv = mChildren->AppendElement(aRootAccessible, PR_TRUE);
-  NS_ENSURE_SUCCESS(rv, rv);
+  if (!mChildren.AppendObject(aRootAccessible))
+    return NS_ERROR_FAILURE;
 
-  InvalidateChildren();
+  nsRefPtr<nsAccessible> rootAcc = nsAccUtils::QueryAccessible(aRootAccessible);
+  rootAcc->SetParent(this);
+
   return NS_OK;
 }
 
@@ -280,17 +221,8 @@ nsApplicationAccessible::RemoveRootAccessible(nsIAccessible *aRootAccessible)
 {
   NS_ENSURE_ARG_POINTER(aRootAccessible);
 
-  PRUint32 index = 0;
-
   
-  nsCOMPtr<nsIWeakReference> weakPtr = do_GetWeakReference(aRootAccessible);
-  nsresult rv = mChildren->IndexOf(0, weakPtr, &index);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  rv = mChildren->RemoveElementAt(index);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  InvalidateChildren();
-  return NS_OK;
+  
+  
+  return mChildren.RemoveObject(aRootAccessible) ? NS_OK : NS_ERROR_FAILURE;
 }
-

@@ -186,78 +186,61 @@ nsXULButtonAccessible::CacheChildren()
   
   
 
-  if (!mWeakShell) {
-    mAccChildCount = eChildCountUninitialized;
-    return;   
+  
+  
+  nsCOMPtr<nsIContent> content(do_QueryInterface(mDOMNode));
+
+  PRBool isMenu = content->AttrValueIs(kNameSpaceID_None,
+                                       nsAccessibilityAtoms::type,
+                                       nsAccessibilityAtoms::menu,
+                                       eCaseMatters);
+
+  PRBool isMenuButton = isMenu ?
+    PR_FALSE :
+    content->AttrValueIs(kNameSpaceID_None, nsAccessibilityAtoms::type,
+                         nsAccessibilityAtoms::menuButton, eCaseMatters);
+
+  if (!isMenu && !isMenuButton)
+    return;
+
+  nsCOMPtr<nsIAccessible> buttonAccessible;
+  nsCOMPtr<nsIAccessible> menupopupAccessible;
+
+  nsAccessibleTreeWalker walker(mWeakShell, mDOMNode, PR_TRUE);
+  walker.GetFirstChild();
+
+  while (walker.mState.accessible) {
+    PRUint32 role = nsAccUtils::Role(walker.mState.accessible);
+
+    if (role == nsIAccessibleRole::ROLE_MENUPOPUP) {
+      
+      menupopupAccessible = walker.mState.accessible;
+
+    } else if (isMenuButton && role == nsIAccessibleRole::ROLE_PUSHBUTTON) {
+      
+      
+      buttonAccessible = walker.mState.accessible;
+      break;
+    }
+
+    walker.GetNextSibling();
   }
-  if (mAccChildCount == eChildCountUninitialized) {
-    mAccChildCount = 0;  
 
-    SetFirstChild(nsnull);
+  if (!menupopupAccessible)
+    return;
 
-    
-    
-    nsCOMPtr<nsIContent> content(do_QueryInterface(mDOMNode));
+  mChildren.AppendObject(menupopupAccessible);
 
-    PRBool isMenu = content->AttrValueIs(kNameSpaceID_None,
-                                         nsAccessibilityAtoms::type,
-                                         nsAccessibilityAtoms::menu,
-                                         eCaseMatters);
+  nsRefPtr<nsAccessible> menupopupAcc =
+    nsAccUtils::QueryObject<nsAccessible>(menupopupAccessible);
+  menupopupAcc->SetParent(this);
 
-    PRBool isMenuButton = isMenu ?
-      PR_FALSE :
-      content->AttrValueIs(kNameSpaceID_None, nsAccessibilityAtoms::type,
-                           nsAccessibilityAtoms::menuButton, eCaseMatters);
+  if (buttonAccessible) {
+    mChildren.AppendObject(buttonAccessible);
 
-    if (!isMenu && !isMenuButton)
-      return;
-
-    nsCOMPtr<nsIAccessible> buttonAccessible;
-    nsCOMPtr<nsIAccessible> menupopupAccessible;
-
-    nsAccessibleTreeWalker walker(mWeakShell, mDOMNode, PR_TRUE);
-    walker.GetFirstChild();
-
-    while (walker.mState.accessible) {
-      PRUint32 role = nsAccUtils::Role(walker.mState.accessible);
-
-      if (role == nsIAccessibleRole::ROLE_MENUPOPUP) {
-        
-        menupopupAccessible = walker.mState.accessible;
-
-      } else if (isMenuButton && role == nsIAccessibleRole::ROLE_PUSHBUTTON) {
-        
-        
-        buttonAccessible = walker.mState.accessible;
-        break;
-      }
-
-      walker.GetNextSibling();
-    }
-
-    if (!menupopupAccessible)
-      return;
-
-    SetFirstChild(menupopupAccessible);
-
-    nsRefPtr<nsAccessible> menupopupAcc =
-      nsAccUtils::QueryObject<nsAccessible>(menupopupAccessible);
-    menupopupAcc->SetParent(this);
-
-    mAccChildCount++;
-
-    if (buttonAccessible) {
-      if (menupopupAcc)
-        menupopupAcc->SetNextSibling(buttonAccessible);
-      else
-        SetFirstChild(buttonAccessible);
-
-      nsRefPtr<nsAccessible> buttonAcc =
-        nsAccUtils::QueryObject<nsAccessible>(buttonAccessible);
-      buttonAcc->SetParent(this);
-
-      mAccChildCount++;
-    }
+    nsRefPtr<nsAccessible> buttonAcc =
+      nsAccUtils::QueryObject<nsAccessible>(buttonAccessible);
+    buttonAcc->SetParent(this);
   }
 }
 
