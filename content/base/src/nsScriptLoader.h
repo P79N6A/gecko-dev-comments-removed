@@ -194,6 +194,9 @@ public:
   void BeginDeferringScripts()
   {
     mDeferEnabled = PR_TRUE;
+    if (mDocument) {
+      mDocument->BlockOnload();
+    }
   }
 
   
@@ -229,6 +232,8 @@ protected:
   nsresult StartLoad(nsScriptLoadRequest *aRequest, const nsAString &aType);
 
   
+
+
 
 
 
@@ -300,6 +305,7 @@ protected:
   PRUint32 mBlockerCount;
   PRPackedBool mEnabled;
   PRPackedBool mDeferEnabled;
+  PRPackedBool mUnblockOnloadWhenDoneProcessing;
 };
 
 #endif 
