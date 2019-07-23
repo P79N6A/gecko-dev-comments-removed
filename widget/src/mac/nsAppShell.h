@@ -79,6 +79,7 @@ protected:
   CFRunLoopSourceRef          mCFRunLoopSource;
 
   PRBool                      mRunningEventLoop;
+  PRBool                      mSkippedNativeCallback;
 };
 
 #endif 
