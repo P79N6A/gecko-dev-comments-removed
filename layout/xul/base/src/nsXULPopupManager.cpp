@@ -1845,9 +1845,15 @@ nsXULMenuCommandEvent::Run()
     
     nsIFrame* popupFrame = menuFrame->GetParent();
     while (popupFrame) {
-      if (popupFrame->GetType() == nsGkAtoms::menuPopupFrame) {
-        popup = popupFrame->GetContent();
+      
+      
+      
+      if (popupFrame->GetType() == nsGkAtoms::menuBarFrame) {
+        (static_cast<nsMenuBarFrame *>(popupFrame))->SetRecentlyClosed(nsnull);
         break;
+      }
+      else if (!popup && popupFrame->GetType() == nsGkAtoms::menuPopupFrame) {
+        popup = popupFrame->GetContent();
       }
       popupFrame = popupFrame->GetParent();
     }
