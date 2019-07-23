@@ -95,9 +95,7 @@ private:
 
 protected:
   nsLocalFile(const nsLocalFile& src);
-
   nsresult SetBaseURL(CFURLRef aCFURLRef); 
-
   nsresult GetFSRefInternal(FSRef& aFSRef);
   nsresult GetPathInternal(nsACString& path); 
   nsresult CopyInternal(nsIFile* newParentDir,
@@ -105,11 +103,9 @@ protected:
                         PRBool followLinks);
   nsresult FillStatBufferInternal(struct STAT *statBuffer);
 
-  static nsresult CFStringReftoUTF8(CFStringRef aInStrRef, nsACString& aOutStr);
-
 protected:
-  CFURLRef mBaseURL; 
-
+  CFURLRef     mBaseURL; 
+  char         mPath[PATH_MAX]; 
   PRPackedBool mFollowLinks;
 };
 
