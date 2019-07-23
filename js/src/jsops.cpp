@@ -3261,16 +3261,10 @@ BEGIN_CASE(JSOP_LAMBDA)
         if (FUN_NULL_CLOSURE(fun)) {
             parent = fp->scopeChain;
 
-            if (0 && OBJ_GET_PARENT(cx, obj) == parent) {
+            if (OBJ_GET_PARENT(cx, obj) == parent) {
                 op = JSOp(regs.pc[JSOP_LAMBDA_LENGTH]);
 
                 
-
-
-
-
-
-
 
 
 
@@ -3589,19 +3583,7 @@ BEGIN_CASE(JSOP_INITMETHOD)
                 JS_ASSERT(sprop2 == sprop);
             } else {
                 JS_ASSERT(scope->owned());
-
-                
-                js_LeaveTraceIfGlobalObject(cx, obj);
-                scope->shape = sprop->shape;
-                ++scope->entryCount;
-                scope->lastProp = sprop;
-
-                jsuint index;
-                if (js_IdIsIndex(sprop->id, &index))
-                    scope->setIndexedProperties();
-
-                if (sprop->isMethod())
-                    scope->setMethodBarrier();
+                scope->extend(cx, sprop);
             }
 
             
