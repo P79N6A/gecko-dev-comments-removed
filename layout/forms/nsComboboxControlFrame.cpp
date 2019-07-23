@@ -1042,6 +1042,13 @@ nsComboboxControlFrame::CreateAnonymousContent(nsTArray<nsIContent*>& aElements)
   return NS_OK;
 }
 
+void
+nsComboboxControlFrame::GetAnonymousContent(nsBaseContentList& aElements)
+{
+  aElements.MaybeAppendElement(mDisplayContent);
+  aElements.MaybeAppendElement(mButtonContent);
+}
+
 
 
 class nsComboboxDisplayFrame : public nsBlockFrame {

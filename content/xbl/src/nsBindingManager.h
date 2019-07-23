@@ -111,6 +111,11 @@ public:
   
 
 
+  nsINodeList* GetContentListFor(nsIContent* aContent);
+
+  
+
+
 
   nsresult SetContentListFor(nsIContent* aContent,
                              nsInsertionPointList* aList);

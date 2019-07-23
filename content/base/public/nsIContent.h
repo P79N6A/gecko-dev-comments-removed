@@ -152,6 +152,30 @@ public:
     return GetCurrentDoc();
   }
 
+  enum {
+    
+
+
+
+
+
+
+
+
+    eAllChildren = 0,
+
+    
+
+
+    eAllButXBL = 1
+  };
+
+  
+
+
+
+  virtual already_AddRefed<nsINodeList> GetChildren(PRInt32 aChildType) = 0;
+
   
 
 

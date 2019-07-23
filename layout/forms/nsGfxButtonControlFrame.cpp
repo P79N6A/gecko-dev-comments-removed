@@ -131,6 +131,12 @@ nsGfxButtonControlFrame::CreateAnonymousContent(nsTArray<nsIContent*>& aElements
   return NS_OK;
 }
 
+void
+nsGfxButtonControlFrame::GetAnonymousContent(nsBaseContentList& aElements)
+{
+  aElements.MaybeAppendElement(mTextContent);
+}
+
 
 
 nsIFrame*

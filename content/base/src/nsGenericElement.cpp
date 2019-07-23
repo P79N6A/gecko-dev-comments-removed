@@ -60,6 +60,7 @@
 #include "nsIURL.h"
 #include "nsNetUtil.h"
 #include "nsIFrame.h"
+#include "nsIAnonymousContentCreator.h"
 #include "nsIPresShell.h"
 #include "nsPresContext.h"
 #include "nsStyleConsts.h"
@@ -2695,6 +2696,80 @@ nsGenericElement::UnbindFromTree(PRBool aDeep, PRBool aNullParent)
 
   nsNodeUtils::ParentChainChanged(this);
 }
+
+already_AddRefed<nsINodeList>
+nsGenericElement::GetChildren(PRInt32 aChildType)
+{
+  nsRefPtr<nsBaseContentList> list = new nsBaseContentList();
+  if (!list) {
+    return nsnull;
+  }
+
+  nsIFrame *frame = GetPrimaryFrame();
+
+  
+  if (frame) {
+    nsIFrame *beforeFrame = nsLayoutUtils::GetBeforeFrame(frame);
+    if (beforeFrame) {
+      nsIContent* beforeContent = beforeFrame->GetContent();
+      if (beforeFrame) {
+        list->AppendElement(beforeContent);
+      }
+    }
+  }
+
+  
+  
+  
+  
+  nsINodeList *childList = nsnull;
+
+  nsIDocument* document = GetOwnerDoc();
+  if (document) {
+    if (aChildType != eAllButXBL) {
+      childList = document->BindingManager()->GetXBLChildNodesFor(this);
+      if (!childList) {
+        childList = GetChildNodesList();
+      }
+
+    } else {
+      childList = document->BindingManager()->GetContentListFor(this);
+    }
+  } else {
+    childList = GetChildNodesList();
+  }
+
+  if (childList) {
+    PRUint32 length = 0;
+    childList->GetLength(&length);
+    for (PRUint32 idx = 0; idx < length; idx++) {
+      nsIContent* child = childList->GetNodeAt(idx);
+      list->AppendElement(child);
+    }
+  }
+
+  if (frame) {
+    
+    nsIAnonymousContentCreator* creator = do_QueryFrame(frame);
+    if (creator) {
+      creator->GetAnonymousContent(*list);
+    }
+
+    
+    nsIFrame *afterFrame = nsLayoutUtils::GetAfterFrame(frame);
+    if (afterFrame) {
+      nsIContent* afterContent = afterFrame->GetContent();
+      if (afterFrame) {
+        list->AppendElement(afterContent);
+      }
+    }
+  }
+
+  nsINodeList* returnList = nsnull;
+  list.forget(&returnList);
+  return returnList;
+}
+
 
 nsresult
 nsGenericElement::PreHandleEvent(nsEventChainPreVisitor& aVisitor)

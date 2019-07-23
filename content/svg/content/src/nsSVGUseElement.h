@@ -96,6 +96,7 @@ public:
 
   
   nsIContent* CreateAnonymousContent();
+  nsIContent* GetAnonymousContent() const { return mClone; }
   void DestroyAnonymousContent();
 
   

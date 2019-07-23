@@ -74,6 +74,11 @@ public:
   
 
 
+  virtual void GetAnonymousContent(nsBaseContentList& aElements) = 0;
+
+  
+
+
 
 
 
