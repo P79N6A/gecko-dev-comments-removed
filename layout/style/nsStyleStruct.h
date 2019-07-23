@@ -69,6 +69,7 @@
 
 class nsIFrame;
 class imgIRequest;
+class imgIContainer;
 
 
 #include "nsStyleStructFwd.h"
@@ -838,6 +839,11 @@ struct nsStyleBorder {
   inline void SetBorderImage(imgIRequest* aImage);
   inline imgIRequest* GetBorderImage() const;
 
+  
+  
+  inline void SetSubImage(PRUint8 aIndex, imgIContainer* aSubImage) const;
+  inline imgIContainer* GetSubImage(PRUint8 aIndex) const;
+
   void GetCompositeColors(PRInt32 aIndex, nsBorderColors** aColors) const
   {
     if (!mBorderColors)
@@ -896,6 +902,9 @@ protected:
                                   
 
   nsCOMPtr<imgIRequest> mBorderImage; 
+
+  
+  nsCOMArray<imgIContainer> mSubImages;
 
   nscoord       mTwipsPerPixel;
 };
