@@ -190,10 +190,6 @@ public:
 #endif
 
   
-  nsresult StartDummyStatement();
-  nsresult StopDummyStatement();
-
-  
 
 
 
@@ -391,10 +387,6 @@ protected:
 
   nsresult InitMemDB();
 #endif
-
-  
-  nsCOMPtr<mozIStorageConnection> mDummyDBConn;
-  nsCOMPtr<mozIStorageStatement> mDBDummyStatement;
 
   nsresult AddURIInternal(nsIURI* aURI, PRTime aTime, PRBool aRedirect,
                           PRBool aToplevel, nsIURI* aReferrer);

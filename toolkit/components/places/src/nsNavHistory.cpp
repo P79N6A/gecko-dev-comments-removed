@@ -465,17 +465,8 @@ nsNavHistory::InitDB(PRBool *aDoImport)
   rv = mDBConn->ExecuteSimpleSQL(pageSizePragma);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  
-  rv = mDBService->OpenDatabase(dbFile, getter_AddRefs(mDummyDBConn));
-  NS_ENSURE_SUCCESS(rv, rv);
-
   mozStorageTransaction transaction(mDBConn, PR_FALSE);
 
-  
-  
-  
-  
-  
   
   
   
@@ -597,6 +588,12 @@ nsNavHistory::InitDB(PRBool *aDoImport)
   NS_ENSURE_SUCCESS(rv, rv);
 
   
+  
+  rv = mDBConn->ExecuteSimpleSQL(
+    NS_LITERAL_CSTRING("PRAGMA locking_mode = EXCLUSIVE"));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
   if (! tableExists) {
     *aDoImport = PR_TRUE;
     rv = mDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING("CREATE TABLE moz_places ("
@@ -657,11 +654,6 @@ nsNavHistory::InitDB(PRBool *aDoImport)
 
   
 
-  
-  rv = StartDummyStatement();
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  
   
   
   
@@ -945,99 +937,6 @@ nsNavHistory::InitMemDB()
   return NS_OK;
 }
 #endif
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-nsresult
-nsNavHistory::StartDummyStatement()
-{
-  nsresult rv;
-  NS_ASSERTION(mDummyDBConn, "The dummy connection should have been set up by Init");
-
-  
-  if (mDBDummyStatement)
-    return NS_OK;
-
-  
-  PRBool tableExists;
-  rv = mDBConn->TableExists(NS_LITERAL_CSTRING("moz_dummy_table"), &tableExists);
-  NS_ENSURE_SUCCESS(rv, rv);
-  if (! tableExists) {
-    rv = mDBConn->ExecuteSimpleSQL(
-        NS_LITERAL_CSTRING("CREATE TABLE moz_dummy_table (id INTEGER PRIMARY KEY)"));
-    NS_ENSURE_SUCCESS(rv, rv);
-  }
-
-  
-  
-  
-  
-  
-  rv = mDBConn->ExecuteSimpleSQL(
-      NS_LITERAL_CSTRING("INSERT OR IGNORE INTO moz_dummy_table VALUES (1)"));
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  rv = mDummyDBConn->CreateStatement(NS_LITERAL_CSTRING(
-      "SELECT id FROM moz_dummy_table LIMIT 1"),
-    getter_AddRefs(mDBDummyStatement));
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  
-  PRBool dummyHasResults;
-  rv = mDBDummyStatement->ExecuteStep(&dummyHasResults);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  return NS_OK;
-}
-
-
-
-
-
-
-
-
-
-
-nsresult
-nsNavHistory::StopDummyStatement()
-{
-  
-  if (! mDBDummyStatement)
-    return NS_OK;
-
-  nsresult rv = mDBDummyStatement->Reset();
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  mDBDummyStatement = nsnull;
-  return NS_OK;
-}
 
 
 
@@ -2631,11 +2530,8 @@ nsNavHistory::RemoveAllPages()
 
   
   
-  
 #if 0
-  StopDummyStatement();
   nsresult rv = mDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING("VACUUM"));
-  StartDummyStatement();
   NS_ENSURE_SUCCESS(rv, rv);
 #endif
   return NS_OK;
