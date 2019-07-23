@@ -107,8 +107,8 @@ typedef class nsIFrame nsIBox;
 
 
 #define NS_IFRAME_IID \
-    { 0x98a0c040, 0x09cf, 0x408b, \
-      { 0xb5, 0x5f, 0x32, 0x1b, 0x4f, 0x8d, 0x9d, 0x67 } }
+{ 0xbc99463c, 0x5ff7, 0x4ff3, \
+  { 0xb2, 0xc8, 0xb4, 0x17, 0x26, 0x46, 0xf7, 0x93 } }
 
 
 
@@ -1733,7 +1733,39 @@ public:
 
 
 
+
+
+
   nsRect GetOverflowRect() const;
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  nsRect GetOverflowRectRelativeToParent() const;
+
+  
+
+
+
+
+
+
+
+
+  nsRect GetOverflowRectRelativeToSelf() const;
 
   
 

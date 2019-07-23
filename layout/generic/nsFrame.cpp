@@ -3920,6 +3920,22 @@ nsIFrame::GetOverflowRect() const
   
   return nsRect(nsPoint(0, 0), GetSize());
 }
+
+nsRect
+nsIFrame::GetOverflowRectRelativeToParent() const
+{
+  return GetOverflowRect() + mRect.TopLeft();
+}
+  
+nsRect
+nsIFrame::GetOverflowRectRelativeToSelf() const
+{
+  if (!(mState & NS_FRAME_MAY_BE_TRANSFORMED) ||
+      !GetStyleDisplay()->HasTransform())
+    return GetOverflowRect();
+  return *static_cast<nsRect*>
+    (GetProperty(nsGkAtoms::preEffectsBBoxProperty));
+}
   
 void
 nsFrame::CheckInvalidateSizeChange(nsHTMLReflowMetrics& aNewDesiredSize)
@@ -5598,17 +5614,6 @@ nsIFrame::FinishAndStoreOverflow(nsRect* aOverflowArea, nsSize aNewSize)
     aOverflowArea->UnionRectIncludeEmpty(*aOverflowArea,
                                          nsRect(nsPoint(0, 0), aNewSize));
 
-  
-  if ((mState & NS_FRAME_MAY_BE_TRANSFORMED) && 
-      GetStyleDisplay()->HasTransform()) {
-    
-
-
-
-    nsRect newBounds(nsPoint(0, 0), aNewSize);
-    *aOverflowArea = nsDisplayTransform::TransformRect(*aOverflowArea, this, nsPoint(0, 0), &newBounds);
-  }
-  
   PRBool geometricOverflow =
     aOverflowArea->x < 0 || aOverflowArea->y < 0 ||
     aOverflowArea->XMost() > aNewSize.width || aOverflowArea->YMost() > aNewSize.height;
@@ -5622,21 +5627,35 @@ nsIFrame::FinishAndStoreOverflow(nsRect* aOverflowArea, nsSize aNewSize)
     geometricOverflow = PR_FALSE;
   }
 
-  nsRect overflowRect = GetAdditionalOverflow(*aOverflowArea, aNewSize);
+  *aOverflowArea = GetAdditionalOverflow(*aOverflowArea, aNewSize);
 
-  if (overflowRect != nsRect(nsPoint(0, 0), aNewSize)) {
+  
+  if ((mState & NS_FRAME_MAY_BE_TRANSFORMED) && 
+      GetStyleDisplay()->HasTransform()) {
+    
+    SetRectProperty(this, nsGkAtoms::preTransformBBoxProperty, *aOverflowArea);
+
+    
+
+
+
+    nsRect newBounds(nsPoint(0, 0), aNewSize);
+    *aOverflowArea = nsDisplayTransform::TransformRect(*aOverflowArea, this, nsPoint(0, 0), &newBounds);
+  }
+  
+  if (*aOverflowArea != nsRect(nsPoint(0, 0), aNewSize)) {
     mState |= NS_FRAME_OUTSIDE_CHILDREN;
     nsRect* overflowArea = GetOverflowAreaProperty(PR_TRUE); 
     NS_ASSERTION(overflowArea, "should have created rect");
-    *aOverflowArea = *overflowArea = overflowRect;
-  } 
+    *overflowArea = *aOverflowArea;
+  }
   else {
     if (mState & NS_FRAME_OUTSIDE_CHILDREN) {
       
       DeleteProperty(nsGkAtoms::overflowAreaProperty);
     }
     mState &= ~NS_FRAME_OUTSIDE_CHILDREN;
-  }   
+  }
 }
 
 void
