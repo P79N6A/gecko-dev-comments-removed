@@ -317,7 +317,7 @@ AsyncExecuteStatements::executeAndProcessStatement(sqlite3_stmt *aStatement,
 
 #ifdef DEBUG
   
-  CheckAndLogStatementPerformance(aStatement);
+  checkAndLogStatementPerformance(aStatement);
 #endif
 
   

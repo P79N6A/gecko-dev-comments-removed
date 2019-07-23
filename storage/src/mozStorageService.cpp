@@ -147,14 +147,14 @@ Service::initialize()
   
   int rc = ::sqlite3_config(SQLITE_CONFIG_MEMSTATUS, 0);
   if (rc != SQLITE_OK)
-    return ConvertResultCode(rc);
+    return convertResultCode(rc);
 
   
   
   
   rc = ::sqlite3_initialize();
   if (rc != SQLITE_OK)
-    return ConvertResultCode(rc);
+    return convertResultCode(rc);
 
   
   
@@ -163,7 +163,7 @@ Service::initialize()
   
   rc = ::sqlite3_enable_shared_cache(1);
   if (rc != SQLITE_OK)
-    return ConvertResultCode(rc);
+    return convertResultCode(rc);
 
   nsCOMPtr<nsIObserverService> os =
     do_GetService("@mozilla.org/observer-service;1");
@@ -255,13 +255,13 @@ Service::OpenUnsharedDatabase(nsIFile *aDatabaseFile,
     nsAutoLock lock(mLock);
     int rc = ::sqlite3_enable_shared_cache(0);
     if (rc != SQLITE_OK)
-      return ConvertResultCode(rc);
+      return convertResultCode(rc);
 
     rv = msc->initialize(aDatabaseFile);
 
     rc = ::sqlite3_enable_shared_cache(1);
     if (rc != SQLITE_OK)
-      return ConvertResultCode(rc);
+      return convertResultCode(rc);
   }
   NS_ENSURE_SUCCESS(rv, rv);
 

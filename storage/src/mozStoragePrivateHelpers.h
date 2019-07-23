@@ -38,8 +38,8 @@
 
 
 
-#ifndef _MOZSTORAGEPRIVATEHELPERS_H_
-#define _MOZSTORAGEPRIVATEHELPERS_H_
+#ifndef _mozStoragePrivateHelpers_h_
+#define _mozStoragePrivateHelpers_h_
 
 #include "mozStorage.h"
 
@@ -47,16 +47,8 @@
 
 
 
-
-
-
-
-
-
-
-nsresult ConvertResultCode(int aSQLiteResultCode);
-
-
+namespace mozilla {
+namespace storage {
 
 
 
@@ -65,7 +57,20 @@ nsresult ConvertResultCode(int aSQLiteResultCode);
 
 
 
-void CheckAndLogStatementPerformance(sqlite3_stmt *aStatement);
+nsresult convertResultCode(int aSQLiteResultCode);
+
+
+
+
+
+
+
+
+
+
+void checkAndLogStatementPerformance(sqlite3_stmt *aStatement);
+
+} 
+} 
 
 #endif 
-

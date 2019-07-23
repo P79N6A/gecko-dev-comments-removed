@@ -325,7 +325,7 @@ mozStorageStatement::Finalize()
         mStatementRowHolder = nsnull;
     }
 
-    return ConvertResultCode(srv);
+    return convertResultCode(srv);
 }
 
 
@@ -447,7 +447,7 @@ mozStorageStatement::Reset()
     PR_LOG(gStorageLog, PR_LOG_DEBUG, ("Resetting statement: '%s'",
                                        sqlite3_sql(mDBStatement)));
 
-    CheckAndLogStatementPerformance(mDBStatement);
+    checkAndLogStatementPerformance(mDBStatement);
 #endif
 
     sqlite3_reset(mDBStatement);
@@ -469,7 +469,7 @@ mozStorageStatement::BindUTF8StringParameter(PRUint32 aParamIndex, const nsACStr
                                  nsPromiseFlatCString(aValue).get(),
                                  aValue.Length(), SQLITE_TRANSIENT);
 
-    return ConvertResultCode(srv);
+    return convertResultCode(srv);
 }
 
 
@@ -483,7 +483,7 @@ mozStorageStatement::BindStringParameter(PRUint32 aParamIndex, const nsAString &
                                    nsPromiseFlatString(aValue).get(),
                                    aValue.Length() * 2, SQLITE_TRANSIENT);
 
-    return ConvertResultCode(srv);
+    return convertResultCode(srv);
 }
 
 
@@ -495,7 +495,7 @@ mozStorageStatement::BindDoubleParameter(PRUint32 aParamIndex, double aValue)
 
     int srv = sqlite3_bind_double (mDBStatement, aParamIndex + 1, aValue);
 
-    return ConvertResultCode(srv);
+    return convertResultCode(srv);
 }
 
 
@@ -507,7 +507,7 @@ mozStorageStatement::BindInt32Parameter(PRUint32 aParamIndex, PRInt32 aValue)
 
     int srv = sqlite3_bind_int (mDBStatement, aParamIndex + 1, aValue);
 
-    return ConvertResultCode(srv);
+    return convertResultCode(srv);
 }
 
 
@@ -519,7 +519,7 @@ mozStorageStatement::BindInt64Parameter(PRUint32 aParamIndex, PRInt64 aValue)
 
     int srv = sqlite3_bind_int64 (mDBStatement, aParamIndex + 1, aValue);
 
-    return ConvertResultCode(srv);
+    return convertResultCode(srv);
 }
 
 
@@ -531,7 +531,7 @@ mozStorageStatement::BindNullParameter(PRUint32 aParamIndex)
 
     int srv = sqlite3_bind_null (mDBStatement, aParamIndex + 1);
 
-    return ConvertResultCode(srv);
+    return convertResultCode(srv);
 }
 
 
@@ -544,7 +544,7 @@ mozStorageStatement::BindBlobParameter(PRUint32 aParamIndex, const PRUint8 *aVal
     int srv = sqlite3_bind_blob (mDBStatement, aParamIndex + 1, aValue,
                                  aValueSize, SQLITE_TRANSIENT);
 
-    return ConvertResultCode(srv);
+    return convertResultCode(srv);
 }
 
 
@@ -599,7 +599,7 @@ mozStorageStatement::ExecuteStep(PRBool *_retval)
         mExecuting = PR_FALSE;
     }
 
-    return ConvertResultCode(srv);
+    return convertResultCode(srv);
 }
 
 
