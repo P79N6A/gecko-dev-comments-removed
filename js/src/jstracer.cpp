@@ -4696,7 +4696,6 @@ SynthesizeFrame(JSContext* cx, const FrameInfo& fi, JSObject* callee)
     newifp->frame.sharpArray = NULL;
     newifp->frame.flags = constructing ? JSFRAME_CONSTRUCTING : 0;
     newifp->frame.dormantNext = NULL;
-    newifp->frame.xmlNamespace = NULL;
     newifp->frame.blockChain = NULL;
     newifp->mark = newmark;
     newifp->frame.thisp = NULL; 
@@ -4782,7 +4781,6 @@ SynthesizeSlowNativeFrame(JSContext *cx, VMSideExit *exit)
     fp->sharpArray = NULL;
     fp->flags = exit->constructing() ? JSFRAME_CONSTRUCTING : 0;
     fp->dormantNext = NULL;
-    fp->xmlNamespace = NULL;
     fp->displaySave = NULL;
 
     ifp->mark = mark;
@@ -5685,7 +5683,7 @@ LeaveTree(InterpState& state, VMSideExit* lr)
 
         if (!cx->fp->script) {
             JSStackFrame *fp = cx->fp;
-            JS_ASSERT(FUN_SLOW_NATIVE(fp->fun));
+            JS_ASSERT(FUN_SLOW_NATIVE(GET_FUNCTION_PRIVATE(cx, fp->callee())));
             JS_ASSERT(fp->regs == NULL);
             JS_ASSERT(fp->down->regs != &((JSInlineFrame *) fp)->callerRegs);
             cx->fp = fp->down;
@@ -6378,29 +6376,6 @@ js_arm_check_vfp() {
     return ret;
 }
 
-#define HAVE_ENABLE_DISABLE_DEBUGGER_EXCEPTIONS 1
-
-
-
-
-static void
-js_disable_debugger_exceptions() {
-    
-    DWORD kctrl = (DWORD) TlsGetValue(2);
-    
-    kctrl |= 0x12;
-    TlsSetValue(2, (LPVOID) kctrl); 
-}
-
-static void
-js_enable_debugger_exceptions() {
-    
-    DWORD kctrl = (DWORD) TlsGetValue(2);
-    
-    kctrl &= ~0x12;
-    TlsSetValue(2, (LPVOID) kctrl); 
-}
-
 #elif defined(__GNUC__) && defined(AVMPLUS_LINUX)
 
 #include <stdlib.h>
@@ -6520,13 +6495,6 @@ static bool
 js_arm_check_vfp() { return false; }
 #endif
 
-#ifndef HAVE_ENABLE_DISABLE_DEBUGGER_EXCEPTIONS
-static void
-js_enable_debugger_exceptions() { }
-static void
-js_disable_debugger_exceptions() { }
-#endif
-
 #endif 
 
 #define K *1024
@@ -6565,15 +6533,10 @@ js_InitJIT(JSTraceMonitor *tm)
             avmplus::AvmCore::config.sse2 = CheckForSSE2();
 #endif
 #if defined NANOJIT_ARM
-
-        js_disable_debugger_exceptions();
-
         bool            arm_vfp     = js_arm_check_vfp();
         bool            arm_thumb   = js_arm_check_thumb();
         bool            arm_thumb2  = js_arm_check_thumb2();
         unsigned int    arm_arch    = js_arm_check_arch();
-
-        js_enable_debugger_exceptions();
 
         avmplus::AvmCore::config.vfp        = arm_vfp;
         avmplus::AvmCore::config.soft_float = !arm_vfp;

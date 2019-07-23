@@ -126,7 +126,6 @@ struct JSStackFrame {
     JSObject        *sharpArray;    
     uint32          flags;          
     JSStackFrame    *dormantNext;   
-    JSObject        *xmlNamespace;  
     JSStackFrame    *displaySave;   
 
 
