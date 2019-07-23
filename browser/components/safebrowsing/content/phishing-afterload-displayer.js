@@ -208,6 +208,7 @@ PROT_PhishMsgDisplayerBase.prototype.browserSelected = function() {
     this.messageShouldShow_ = true;
   }
 
+  this.hideLockIcon_();        
   this.addWarningInUrlbar_();  
 
   
@@ -233,6 +234,7 @@ PROT_PhishMsgDisplayerBase.prototype.explicitShow = function() {
 
 PROT_PhishMsgDisplayerBase.prototype.browserUnselected = function() {
   this.removeWarningInUrlbar_();
+  this.unhideLockIcon_();
   if (this.messageShowing_)
     this.hideMessage_();
 }
@@ -288,6 +290,7 @@ PROT_PhishMsgDisplayerBase.prototype.done = function() {
     
     
     this.removeWarningInUrlbar_();
+    this.unhideLockIcon_();
 
     
     if (this.messageShowing_)
@@ -322,6 +325,28 @@ PROT_PhishMsgDisplayerBase.prototype.removeIfExists_ = function(orig,
     orig = orig.substring(0, pos) + orig.substring(pos + toRemove.length);
 
   return orig;
+}
+
+
+
+
+
+
+PROT_PhishMsgDisplayerBase.prototype.hideLockIcon_ = function() {
+  var lockIcon = this.doc_.getElementById("lock-icon");
+  if (!lockIcon)
+    return;
+  lockIcon.hidden = true;
+}
+
+
+
+
+PROT_PhishMsgDisplayerBase.prototype.unhideLockIcon_ = function() {
+  var lockIcon = this.doc_.getElementById("lock-icon");
+  if (!lockIcon)
+    return;
+  lockIcon.hidden = false;
 }
 
 
