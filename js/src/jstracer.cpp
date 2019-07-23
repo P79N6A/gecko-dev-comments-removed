@@ -1646,6 +1646,13 @@ bool
 js_RecordTree(JSContext* cx, JSTraceMonitor* tm, Fragment* f)
 {
     AUDIT(recorderStarted);
+
+    
+    while (f->code() && f->peer) 
+        f = f->peer;
+    if (f->code()) 
+        f = JS_TRACE_MONITOR(cx).fragmento->newLoop(f->ip);
+
     f->calldepth = 0;
     f->root = f;
     
