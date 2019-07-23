@@ -82,6 +82,7 @@
 #include "nsIOService.h"
 #include "nsAuthInformationHolder.h"
 #include "nsICacheService.h"
+#include "nsDNSPrefetch.h"
 
 
 #define BYPASS_LOCAL_CACHE(loadFlags) \
@@ -4008,6 +4009,13 @@ nsHttpChannel::AsyncOpen(nsIStreamListener *listener, nsISupports *context)
     rv = NS_CheckPortSafety(mURI);
     if (NS_FAILED(rv))
         return rv;
+
+    
+    
+    nsRefPtr<nsDNSPrefetch> prefetch = new nsDNSPrefetch(mURI);
+    if (prefetch) {
+        prefetch->PrefetchHigh();
+    }
 
     
     const char *cookieHeader = mRequestHead.PeekHeader(nsHttp::Cookie);
