@@ -298,6 +298,9 @@ protected:
                           const char* aCommand);
 
   
+  virtual void SetDocumentCharacterSet(const nsACString& aCharSetID);
+
+  
   
   
   

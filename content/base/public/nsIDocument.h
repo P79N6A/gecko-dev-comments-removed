@@ -234,6 +234,8 @@ public:
     return mCharacterSetSource;
   }
 
+  
+  
   void SetDocumentCharacterSetSource(PRInt32 aCharsetSource)
   {
     mCharacterSetSource = aCharsetSource;
