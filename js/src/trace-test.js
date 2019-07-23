@@ -28,7 +28,7 @@ if (!('gReportSummary' in this))
 var testName = null;
 if ("arguments" in this && arguments.length > 0)
   testName = arguments[0];
-var fails = [], passes=[];
+var fails = [], passes = [];
 
 function jitstatHandler(f)
 {
@@ -5405,6 +5405,60 @@ function testDivisionWithNegative1() {
 }
 testDivisionWithNegative1.expected = -Infinity;
 test(testDivisionWithNegative1);
+
+function testInt32ToId()
+{
+  
+  
+  var obj = { "-1073741828": 17 };
+  var index = -1073741819;
+  var a = [];
+  for (var i = 0; i < 10; i++)
+  {
+    a.push(index in obj);
+    index--;
+  }
+
+  
+  
+  
+  
+  
+  
+  
+  var obj2 = { 0: 17 };
+  var b = [];
+  var index = -(1 << 28);
+  for (var i = 0; i < 10; i++)
+  {
+    b.push(index in obj2);
+    index = index - (1 << 28);
+  }
+
+  return a.join(",") + b.join(",");
+}
+testInt32ToId.expected =
+  "false,false,false,false,false,false,false,false,false,true" +
+  "false,false,false,false,false,false,false,false,false,false";
+testInt32ToId.jitstats = {
+  sideExitIntoInterpreter: 2
+};
+test(testInt32ToId);
+
+function testOwnPropertyWithInOperator()
+{
+  var o = { 0: 0, 1: 1, 2: 2, 3: 3, 4: 4, 5: 5, 6: 6 };
+  var a = [];
+  for (var i = 0; i < 7; i++)
+    a.push(i in o);
+  return a.join(",");
+}
+testOwnPropertyWithInOperator.expected = "true,true,true,true,true,true,true";
+testOwnPropertyWithInOperator.jitstats = {
+  sideExitIntoInterpreter: 1
+};
+test(testOwnPropertyWithInOperator);
+
 
 
 
