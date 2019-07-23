@@ -254,7 +254,6 @@ gTests.push({
 
 function test() {
   waitForExplicitFinish();
-  dump("Starting test browser_library_middleclick.js\n");
 
   
   ok(PlacesUtils, "PlacesUtils in context");
@@ -301,8 +300,7 @@ function runNextTest() {
   if (gTests.length > 0) {
     
     gCurrentTest = gTests.shift();
-    ok(true, "*** TEST: " + gCurrentTest.desc);
-    dump("*** TEST: " + gCurrentTest.desc + "\n");
+    info("Start of test: " + gCurrentTest.desc);
     
     
     gCurrentTest.setup();
