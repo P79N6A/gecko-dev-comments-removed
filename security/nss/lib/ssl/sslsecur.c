@@ -995,14 +995,38 @@ ssl_SecureConnect(sslSocket *ss, const PRNetAddr *sa)
     return rv;
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 int
 ssl_SecureClose(sslSocket *ss)
 {
     int rv;
 
     if (ss->version >= SSL_LIBRARY_VERSION_3_0 	&&
-    	ss->firstHsDone 			&& 
 	!(ss->shutdownHow & ssl_SHUTDOWN_SEND)	&&
+    	ss->firstHsDone 			&& 
 	!ss->recvdCloseNotify                   &&
 	ss->ssl3.initialized) {
 
@@ -1032,8 +1056,8 @@ ssl_SecureShutdown(sslSocket *ss, int nsprHow)
     }
 
     if ((sslHow & ssl_SHUTDOWN_SEND) != 0 		&&
+    	ss->version >= SSL_LIBRARY_VERSION_3_0		&&
 	!(ss->shutdownHow & ssl_SHUTDOWN_SEND)		&&
-    	(ss->version >= SSL_LIBRARY_VERSION_3_0)	&&
 	ss->firstHsDone 				&& 
 	!ss->recvdCloseNotify                   	&&
 	ss->ssl3.initialized) {

@@ -291,8 +291,6 @@ done:
 }
 
 
-#ifndef XP_MAC
-
 
 
 
@@ -302,14 +300,12 @@ done:
 static const char *dllname =
 #if defined(XP_WIN32) || defined(XP_OS2)
 	"nssckbi.dll";
-#elif defined(HPUX) && !defined(__ia64)  
+#elif defined(HPUX) && !defined(__ia64)  /* HP-UX PA-RISC */
 	"libnssckbi.sl";
 #elif defined(DARWIN)
 	"libnssckbi.dylib";
 #elif defined(XP_UNIX) || defined(XP_BEOS)
 	"libnssckbi.so";
-#elif defined(XP_MAC)
-	"NSS Builtin Root Certs";
 #else
 	#error "Uh! Oh! I don't know about this platform."
 #endif
@@ -390,7 +386,6 @@ nss_FindExternalRoot(const char *dbpath, const char* secmodprefix)
         nss_FreeExternalRootPaths(oldpath, path);
 	return;
 }
-#endif
 
 
 
@@ -558,14 +553,11 @@ loser:
 	}
 	CERT_SetDefaultCertDB((CERTCertDBHandle *)
 				STAN_GetDefaultTrustDomain());
-#ifndef XP_MAC
-	
 	if ((!noModDB) && (!noCertDB) && (!noRootInit)) {
 	    if (!SECMOD_HasRootCerts()) {
 		nss_FindExternalRoot(configdir, secmodName);
 	    }
 	}
-#endif
 	pk11sdr_Init();
 	cert_CreateSubjectKeyIDHashTable();
 	nss_IsInitted = PR_TRUE;

@@ -165,6 +165,11 @@ typedef enum {
 
 
 
+#if defined(NEED_NSS_ILOCK)
+
+
+
+
 
 typedef enum  {
     FlushTT = 0,
@@ -200,12 +205,6 @@ struct pzTrace_s {
     char            file[24]; 
 };
 
-PR_BEGIN_EXTERN_C
-
-
-
-#if defined(NEED_NSS_ILOCK)
-
 
 
 
@@ -221,5 +220,4 @@ typedef struct pzmonitor_s PZMonitor;
     
 #endif 
 
-PR_END_EXTERN_C
 #endif 

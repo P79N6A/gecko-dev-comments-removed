@@ -1698,17 +1698,21 @@ PR_FormatTime(char *buf, int buflen, const char *fmt, const PRExplodedTime *tm)
 {
     size_t rv;
     struct tm a;
-    a.tm_sec = tm->tm_sec;
-    a.tm_min = tm->tm_min;
-    a.tm_hour = tm->tm_hour;
-    a.tm_mday = tm->tm_mday;
-    a.tm_mon = tm->tm_month;
-    a.tm_wday = tm->tm_wday;
-    a.tm_year = tm->tm_year - 1900;
-    a.tm_yday = tm->tm_yday;
-    a.tm_isdst = tm->tm_params.tp_dst_offset ? 1 : 0;
+    struct tm *ap;
 
+    if (tm) {
+        ap = &a;
+        a.tm_sec = tm->tm_sec;
+        a.tm_min = tm->tm_min;
+        a.tm_hour = tm->tm_hour;
+        a.tm_mday = tm->tm_mday;
+        a.tm_mon = tm->tm_month;
+        a.tm_wday = tm->tm_wday;
+        a.tm_year = tm->tm_year - 1900;
+        a.tm_yday = tm->tm_yday;
+        a.tm_isdst = tm->tm_params.tp_dst_offset ? 1 : 0;
 
+        
 
 
 
@@ -1716,11 +1720,15 @@ PR_FormatTime(char *buf, int buflen, const char *fmt, const PRExplodedTime *tm)
 #if defined(SUNOS4) || (__GLIBC__ >= 2) || defined(XP_BEOS) \
         || defined(NETBSD) || defined(OPENBSD) || defined(FREEBSD) \
         || defined(DARWIN) || defined(SYMBIAN)
-    a.tm_zone = NULL;
-    a.tm_gmtoff = tm->tm_params.tp_gmt_offset + tm->tm_params.tp_dst_offset;
+        a.tm_zone = NULL;
+        a.tm_gmtoff = tm->tm_params.tp_gmt_offset +
+                      tm->tm_params.tp_dst_offset;
 #endif
+    } else {
+        ap = NULL;
+    }
 
-    rv = strftime(buf, buflen, fmt, &a);
+    rv = strftime(buf, buflen, fmt, ap);
     if (!rv && buf && buflen > 0) {
         
 

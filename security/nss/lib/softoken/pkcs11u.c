@@ -1211,7 +1211,7 @@ sftk_DeleteObject(SFTKSession *session, SFTKObject *object)
     CK_RV crv = CKR_OK;
     PRUint32 index = sftk_hash(object->handle, slot->sessObjHashSize);
 
-  
+    
     if (so && so->session) {
 	SFTKSession *session = so->session;
 	PZ_Lock(session->objectLock);

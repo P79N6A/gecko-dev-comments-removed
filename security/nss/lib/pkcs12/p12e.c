@@ -1196,97 +1196,6 @@ loser:
 
 
 
-static SECStatus
-SEC_PKCS12AddEncryptedKey(SEC_PKCS12ExportContext *p12ctxt, 
-		SECKEYEncryptedPrivateKeyInfo *epki, SEC_PKCS12SafeInfo *safe,
-		void *nestedDest, SECItem *keyId, SECItem *nickName)
-{
-    void *mark;
-    void *keyItem;
-    SECOidTag keyType;
-    SECStatus rv = SECFailure;
-    sec_PKCS12SafeBag *returnBag;
-
-    if(!p12ctxt || !safe || !epki) {
-	return SECFailure;
-    }
-
-    mark = PORT_ArenaMark(p12ctxt->arena);
-
-    keyItem = PORT_ArenaZAlloc(p12ctxt->arena, 
-				sizeof(SECKEYEncryptedPrivateKeyInfo));
-    if(!keyItem) {
-	PORT_SetError(SEC_ERROR_NO_MEMORY);
-	goto loser;
-    }
-
-    rv = SECKEY_CopyEncryptedPrivateKeyInfo(p12ctxt->arena, 
-					(SECKEYEncryptedPrivateKeyInfo *)keyItem,
-					epki);
-    keyType = SEC_OID_PKCS12_V1_PKCS8_SHROUDED_KEY_BAG_ID;
-
-    if(rv != SECSuccess) {
-	goto loser;
-    }
-	
-    
-    returnBag = sec_PKCS12CreateSafeBag(p12ctxt, keyType, keyItem);
-    if(!returnBag) {
-	rv = SECFailure;
-	goto loser;
-    }
-
-    if(nickName) {
-	if(sec_PKCS12AddAttributeToBag(p12ctxt, returnBag, 
-				       SEC_OID_PKCS9_FRIENDLY_NAME, nickName) 
-				       != SECSuccess) {
-	    goto loser;
-	}
-    }
-	   
-    if(keyId) {
-	if(sec_PKCS12AddAttributeToBag(p12ctxt, returnBag, 
-	                               SEC_OID_PKCS9_LOCAL_KEY_ID,
-				       keyId) != SECSuccess) {
-	    goto loser;
-	}
-    }
-
-    if(nestedDest) {
-	rv = sec_pkcs12_append_bag_to_safe_contents(p12ctxt->arena, 
-					   (sec_PKCS12SafeContents*)nestedDest,
-					   returnBag);
-    } else {
-	rv = sec_pkcs12_append_bag(p12ctxt, safe, returnBag);
-    }
-
-loser:
-
-    if (rv != SECSuccess) {
-	PORT_ArenaRelease(p12ctxt->arena, mark);
-    } else {
-	PORT_ArenaUnmark(p12ctxt->arena, mark);
-    }
-
-    return rv;
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 SECStatus
 SEC_PKCS12AddKeyForCert(SEC_PKCS12ExportContext *p12ctxt, SEC_PKCS12SafeInfo *safe, 
 			void *nestedDest, CERTCertificate *cert,
@@ -1437,96 +1346,15 @@ loser:
 
 
 
-SECStatus
-SEC_PKCS12AddDERCertAndEncryptedKey(SEC_PKCS12ExportContext *p12ctxt, 
-		void *certSafe, void *certNestedDest, 
-		SECItem *derCert, void *keySafe, 
-		void *keyNestedDest, SECKEYEncryptedPrivateKeyInfo *epki,
-		char *nickname)
-{		
-    SECStatus rv = SECFailure;
-    SGNDigestInfo *digest = NULL;
-    void *mark = NULL;
-    CERTCertificate *cert;
-    SECItem nick = {siBuffer, NULL,0}, *nickPtr = NULL; 
-
-    if(!p12ctxt || !certSafe || !keySafe || !derCert) {
-	return SECFailure;
-    }
-
-    mark = PORT_ArenaMark(p12ctxt->arena);
-
-    cert = CERT_NewTempCertificate(CERT_GetDefaultCertDB(),
-                                   derCert, NULL, PR_FALSE, PR_FALSE);
-    if(!cert) {
-	PORT_ArenaRelease(p12ctxt->arena, mark);
-	PORT_SetError(SEC_ERROR_NO_MEMORY);
-	return SECFailure;
-    }
-    cert->nickname = nickname;
-
-    
-    digest = sec_pkcs12_compute_thumbprint(&cert->derCert);
-    if(!digest) {
-	CERT_DestroyCertificate(cert);
-	return SECFailure;
-    }
-
-    
-    rv = SEC_PKCS12AddCert(p12ctxt, (SEC_PKCS12SafeInfo*)certSafe, 
-			   certNestedDest, cert, NULL,
-    			   &digest->digest, PR_FALSE);
-    if(rv != SECSuccess) {
-	goto loser;
-    }
-
-    if(nickname) {
-	nick.data = (unsigned char *)nickname;
-	nick.len = PORT_Strlen(nickname);
-	nickPtr = &nick;
-    } else {
-	nickPtr = NULL;
-    }
-
-    
-    rv = SEC_PKCS12AddEncryptedKey(p12ctxt, epki, (SEC_PKCS12SafeInfo*)keySafe,
-				   keyNestedDest, &digest->digest, nickPtr );
-    if(rv != SECSuccess) {
-	goto loser;
-    }
-
-    SGN_DestroyDigestInfo(digest);
-
-    PORT_ArenaUnmark(p12ctxt->arena, mark);
-    return SECSuccess;
-
-loser:
-    SGN_DestroyDigestInfo(digest);
-    CERT_DestroyCertificate(cert);
-    PORT_ArenaRelease(p12ctxt->arena, mark);
-    
-    return SECFailure; 
-}
-
-
-
-
-
-
-
-
-
-
-
-
 
 SECStatus
-SEC_PKCS12AddCertAndKey(SEC_PKCS12ExportContext *p12ctxt, 
-			void *certSafe, void *certNestedDest, 
-			CERTCertificate *cert, CERTCertDBHandle *certDb,
-			void *keySafe, void *keyNestedDest, 
-			PRBool shroudKey, SECItem *pwitem, SECOidTag algorithm)
-{		
+SEC_PKCS12AddCertOrChainAndKey(SEC_PKCS12ExportContext *p12ctxt, 
+			       void *certSafe, void *certNestedDest, 
+			       CERTCertificate *cert, CERTCertDBHandle *certDb,
+			       void *keySafe, void *keyNestedDest, 
+			       PRBool shroudKey, SECItem *pwitem, 
+			       SECOidTag algorithm, PRBool includeCertChain)
+{
     SECStatus rv = SECFailure;
     SGNDigestInfo *digest = NULL;
     void *mark = NULL;
@@ -1547,7 +1375,7 @@ SEC_PKCS12AddCertAndKey(SEC_PKCS12ExportContext *p12ctxt,
     
     rv = SEC_PKCS12AddCert(p12ctxt, (SEC_PKCS12SafeInfo*)certSafe, 
 			   (SEC_PKCS12SafeInfo*)certNestedDest, cert, certDb,
-    			   &digest->digest, PR_TRUE);
+    			   &digest->digest, includeCertChain);
     if(rv != SECSuccess) {
 	goto loser;
     }
@@ -1572,6 +1400,20 @@ loser:
     
     return SECFailure; 
 }
+
+
+SECStatus
+SEC_PKCS12AddCertAndKey(SEC_PKCS12ExportContext *p12ctxt, 
+			void *certSafe, void *certNestedDest, 
+			CERTCertificate *cert, CERTCertDBHandle *certDb,
+			void *keySafe, void *keyNestedDest, 
+			PRBool shroudKey, SECItem *pwItem, SECOidTag algorithm)
+{
+    return SEC_PKCS12AddCertOrChainAndKey(p12ctxt, certSafe, certNestedDest,
+    		cert, certDb, keySafe, keyNestedDest, shroudKey, pwItem, 
+		algorithm, PR_TRUE);
+}
+
 
 
 
@@ -2230,144 +2072,4 @@ SEC_PKCS12DestroyExportContext(SEC_PKCS12ExportContext *p12ecx)
 
     PORT_FreeArena(p12ecx->arena, PR_TRUE);
 }
-
-
-
-
-
-struct inPlaceEncodeInfo {
-    PRBool error;
-    SECItem outItem;
-};
-
-static void 
-sec_pkcs12_in_place_encoder_output(void *arg, const char *buf, unsigned long len)
-{
-    struct inPlaceEncodeInfo *outInfo = (struct inPlaceEncodeInfo*)arg;
-
-    if(!outInfo || !len || outInfo->error) {
-	return;
-    }
-
-    if(!outInfo->outItem.data) {
-	outInfo->outItem.data = (unsigned char*)PORT_ZAlloc(len);
-	outInfo->outItem.len = 0;
-    } else {
-	if(!PORT_Realloc(&(outInfo->outItem.data), (outInfo->outItem.len + len))) {
-	    SECITEM_ZfreeItem(&(outInfo->outItem), PR_FALSE);
-	    outInfo->outItem.data = NULL;
-	    PORT_SetError(SEC_ERROR_NO_MEMORY);
-	    outInfo->error = PR_TRUE;
-	    return;
-	}
-    }
-
-    PORT_Memcpy(&(outInfo->outItem.data[outInfo->outItem.len]), buf, len);
-    outInfo->outItem.len += len;
-
-    return;
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-SECItem *
-SEC_PKCS12ExportCertificateAndKeyUsingPassword(
-				SECKEYGetPasswordKey pwfn, void *pwfnarg,
-				CERTCertificate *cert, PK11SlotInfo *slot,
-				CERTCertDBHandle *certDb, SECItem *pwitem,
-				PRBool shroudKey, SECOidTag shroudAlg,
-				PRBool encryptCert, SECOidTag certEncAlg,
-				SECOidTag integrityAlg, void *wincx)
-{
-    struct inPlaceEncodeInfo outInfo;
-    SEC_PKCS12ExportContext *p12ecx = NULL;
-    SEC_PKCS12SafeInfo *keySafe, *certSafe;
-    SECItem *returnItem = NULL;
-
-    if(!cert || !pwitem || !slot) {
-	return NULL;
-    }
-
-    outInfo.error = PR_FALSE;
-    outInfo.outItem.data = NULL;
-    outInfo.outItem.len = 0;
-
-    p12ecx = SEC_PKCS12CreateExportContext(pwfn, pwfnarg, slot, wincx);
-    if(!p12ecx) {
-	return NULL;
-    }
-
-    
-    if(encryptCert) {
-	certSafe = SEC_PKCS12CreatePasswordPrivSafe(p12ecx, pwitem, certEncAlg);
-    } else {
-	certSafe = SEC_PKCS12CreateUnencryptedSafe(p12ecx);
-    }
-    if(!certSafe) {
-	goto loser;
-    }
-
-    
-    if(shroudKey) {
-	keySafe = SEC_PKCS12CreateUnencryptedSafe(p12ecx);
-    } else {
-	keySafe = certSafe;
-    }
-    if(!keySafe) {
-	goto loser;
-    }
-
-    
-    if(SEC_PKCS12AddPasswordIntegrity(p12ecx, pwitem, integrityAlg) 
-		!= SECSuccess) {
-	goto loser;
-    }
-
-    
-    if(SEC_PKCS12AddCertAndKey(p12ecx, certSafe, NULL, cert, certDb, 
-			       keySafe, NULL, shroudKey, pwitem, shroudAlg)
-		!= SECSuccess) {
-	goto loser;
-    }
-
-    
-    if(SEC_PKCS12Encode(p12ecx, sec_pkcs12_in_place_encoder_output, &outInfo)
-		!= SECSuccess) {
-	goto loser;
-    }
-    if(outInfo.error) {
-	goto loser;
-    }
-
-    SEC_PKCS12DestroyExportContext(p12ecx);
-	
-    returnItem = SECITEM_DupItem(&outInfo.outItem);
-    SECITEM_ZfreeItem(&outInfo.outItem, PR_FALSE);
-
-    return returnItem;
-
-loser:
-    if(outInfo.outItem.data) {
-	SECITEM_ZfreeItem(&(outInfo.outItem), PR_TRUE);
-    }
-
-    if(p12ecx) {
-	SEC_PKCS12DestroyExportContext(p12ecx);
-    }
-
-    return NULL;
-}
-
 

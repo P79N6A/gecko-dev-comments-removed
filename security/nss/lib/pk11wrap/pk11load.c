@@ -37,6 +37,7 @@
 
 
 
+#define FORCE_PR_LOG 1
 #include "seccomon.h"
 #include "pkcs11.h"
 #include "secmod.h"
@@ -48,9 +49,7 @@
 #include "secerr.h"
 #include "prenv.h"
 
-#ifdef DEBUG
 #define DEBUG_MODULE 1
-#endif
 
 #ifdef DEBUG_MODULE
 static char *modToDBG = NULL;

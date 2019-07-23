@@ -35,7 +35,7 @@
 
 
 #ifdef DEBUG
-static const char CVS_ID[] = "@(#) $RCSfile: wrap.c,v $ $Revision: 1.16 $ $Date: 2008/02/25 20:35:23 $";
+static const char CVS_ID[] = "@(#) $RCSfile: wrap.c,v $ $Revision: 1.17 $ $Date: 2008/08/25 22:47:32 $";
 #endif 
 
 
@@ -274,6 +274,17 @@ NSSCKFWC_Finalize
     break;
   }
 
+  
+
+
+
+
+
+
+
+
+
+  nss_DestroyErrorStack();
   return error;
 }
 

@@ -360,7 +360,8 @@ static int jar_physical_inflate
 
   unsigned long prev_total, ochunk, tin;
 
-  if ((inbuf = (char *) PORT_ZAlloc (ICHUNK)) == NULL)
+  
+  if ((inbuf = (char *) PORT_ZAlloc (ICHUNK + 1)) == NULL)
     return JAR_ERR_MEMORY;
 
   if ((outbuf = (char *) PORT_ZAlloc (OCHUNK)) == NULL)
@@ -399,6 +400,12 @@ static int jar_physical_inflate
         }
 
       at += chunk;
+
+      if (at == length)
+        {
+        
+        inbuf[chunk++] = 0xDD;
+        }
 
       zs.next_in = (Bytef *) inbuf;
       zs.avail_in = chunk;
@@ -631,7 +638,7 @@ static int jar_extract_mf (JAR *jar, jarArch format, JAR_FILE fp, char *ext)
   ZZList *list;
 
   char *fn, *e;
-  char ZHUGEP *manifest = NULL;
+  char ZHUGEP *manifest;
 
   long length;
   int status, ret = 0, num;
@@ -676,17 +683,16 @@ static int jar_extract_mf (JAR *jar, jarArch format, JAR_FILE fp, char *ext)
         continue;
         }
 
-      if (phy->length == 0)
+      if (phy->length == 0 || phy->length > 0xFFFF)
         {
+        
         
         return JAR_ERR_CORRUPT;
         }
 
       
       
-      if (phy->length <= 0xFFFF) {
-          manifest = (char ZHUGEP *) PORT_ZAlloc (phy->length + 1);
-      }
+      manifest = (char ZHUGEP *) PORT_ZAlloc (phy->length + 1);
       if (manifest)
         {
         JAR_FSEEK (fp, phy->offset, (PRSeekWhence)0);
@@ -702,6 +708,8 @@ static int jar_extract_mf (JAR *jar, jarArch format, JAR_FILE fp, char *ext)
         if (phy->compression == 8)
           {
           length = phy->length;
+          
+          manifest[length++] = 0xDD;
 
           status = jar_inflate_memory ((unsigned int) phy->compression, &length,  phy->uncompressed_length, &manifest);
 
