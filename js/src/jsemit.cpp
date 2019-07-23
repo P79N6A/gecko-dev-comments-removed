@@ -6699,16 +6699,24 @@ js_EmitTree(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn)
         ok = EmitNumberOp(cx, pn->pn_dval, cg);
         break;
 
-      case TOK_REGEXP:
+      case TOK_REGEXP: {
         
 
 
 
 
 
-
         JS_ASSERT(pn->pn_op == JSOP_REGEXP);
-        if (cg->flags & TCF_COMPILE_N_GO) {
+        bool singleton = !cg->fun && (cg->flags & TCF_COMPILE_N_GO);
+        if (singleton) {
+            for (JSStmtInfo *stmt = cg->topStmt; stmt; stmt = stmt->down) {
+                if (STMT_IS_LOOP(stmt)) {
+                    singleton = false;
+                    break;
+                }
+            }
+        }
+        if (singleton) {
             ok = EmitObjectOp(cx, pn->pn_objbox, JSOP_OBJECT, cg);
         } else {
             ok = EmitIndexOp(cx, JSOP_REGEXP,
@@ -6716,6 +6724,7 @@ js_EmitTree(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn)
                              cg);
         }
         break;
+      }
 
 #if JS_HAS_XML_SUPPORT
       case TOK_ANYNAME:
