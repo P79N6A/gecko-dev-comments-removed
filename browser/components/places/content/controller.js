@@ -598,7 +598,7 @@ PlacesController.prototype = {
       if (item.localName != "menuseparator") {
         
         item.hidden = (item.getAttribute("hideifnoinsertionpoint") == "true" &&
-                       noIp && !(ip.isTag && item.id == "placesContext_paste")) ||
+                       noIp && !(ip && ip.isTag && item.id == "placesContext_paste")) ||
                       !this._shouldShowMenuItem(item, metadata);
 
         if (!item.hidden) {
