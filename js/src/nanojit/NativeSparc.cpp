@@ -330,11 +330,9 @@ namespace nanojit
     {
         switch (ins->opcode()) {
             case LIR_ldf:
-            case LIR_ldfc:
                 
                 break;
             case LIR_ld32f:
-            case LIR_ldc32f:
                 NanoAssertMsg(0, "NJ_EXPANDED_LOADSTORE_SUPPORTED not yet supported for this architecture");
                 return;
             default:
@@ -398,7 +396,7 @@ namespace nanojit
                 return;
             }
 
-        if (value->isop(LIR_ldf) || value->isop(LIR_ldfc))
+        if (value->isop(LIR_ldf))
             {
                 
                 
@@ -737,21 +735,16 @@ namespace nanojit
         Register ra = getBaseReg(base, d, GpRegs);
         switch(op) {
             case LIR_ldzb:
-            case LIR_ldcb:
                 LDUB32(ra, d, rr);
                 break;
             case LIR_ldzs:
-            case LIR_ldcs:
                 LDUH32(ra, d, rr);
                 break;
             case LIR_ld:
-            case LIR_ldc:
                 LDSW32(ra, d, rr);
                 break;
             case LIR_ldsb:
             case LIR_ldss:
-            case LIR_ldcsb:
-            case LIR_ldcss:
                 NanoAssertMsg(0, "NJ_EXPANDED_LOADSTORE_SUPPORTED not yet supported for this architecture");
                 return;
             default:
