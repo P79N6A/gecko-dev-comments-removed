@@ -47,27 +47,6 @@ extern "C" {
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-int fish_sound_set_interleave (FishSound * fsound, int interleave);
-
-
-
-
-
-
-
 typedef FishSoundDecoded_Float FishSoundDecoded;
 
 
