@@ -57,8 +57,12 @@
 
 
 struct PropertyDescriptor {
+  friend class AutoDescriptorArray;
+
+  private:
     PropertyDescriptor();
 
+  public:
     
     bool initialize(JSContext* cx, jsid id, jsval v);
 
