@@ -637,11 +637,10 @@ private:
   nsIRange* GetNextCellRange();
   nsIContent* GetFirstCellNodeInRange(nsIRange *aRange) const;
   
-  PRBool   IsInSameTable(nsIContent *aContent1, nsIContent *aContent2,
-                         nsIContent **aTableNode) const;
-  nsresult GetParentTable(nsIContent *aCellNode,
-                          nsIContent **aTableNode) const;
-  nsresult SelectCellElement(nsIDOMElement* aCellElement);
+  nsIContent* IsInSameTable(nsIContent *aContent1, nsIContent *aContent2) const;
+  
+  nsIContent* GetParentTable(nsIContent *aCellNode) const;
+  nsresult SelectCellElement(nsIContent* aCellElement);
   nsresult CreateAndAddRange(nsINode *aParentNode, PRInt32 aOffset);
   nsresult ClearNormalSelection();
 
