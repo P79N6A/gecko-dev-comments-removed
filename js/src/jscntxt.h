@@ -126,6 +126,13 @@ typedef struct JSFragmentCacheEntry {
 
 
 typedef struct JSTraceMonitor {
+    
+
+
+
+
+
+    JSBool                  onTrace;
     CLS(nanojit::Fragmento) fragmento;
     CLS(TraceRecorder)      recorder;
     uint32                  globalShape;
@@ -133,6 +140,12 @@ typedef struct JSTraceMonitor {
     CLS(TypeMap)            globalTypeMap;
     JSFragmentCacheEntry    fcache[JS_FRAGMENT_CACHE_SIZE];
 } JSTraceMonitor;
+
+#ifdef JS_TRACER
+# define JS_ON_TRACE(cx)   (JS_TRACE_MONITOR(cx).onTrace)
+#else
+# define JS_ON_TRACE(cx)   JS_FALSE
+#endif
 
 #ifdef JS_THREADSAFE
 
@@ -735,17 +748,10 @@ struct JSContext {
 
 
     uint8               xmlSettingFlags;
-#else
     uint8               padding;
+#else
+    uint16              padding;
 #endif
-
-    
-
-
-
-
-
-    JSPackedBool        executingTrace;
 
     
 

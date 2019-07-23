@@ -2570,7 +2570,7 @@ js_Interpret(JSContext *cx)
 #ifdef JS_TRACER
     
     TraceRecorder *tr = NULL;
-    if (cx->executingTrace) {
+    if (JS_TRACE_MONITOR(cx).onTrace) {
         tr = JS_TRACE_MONITOR(cx).recorder;
         JS_TRACE_MONITOR(cx).recorder = NULL;
     }
