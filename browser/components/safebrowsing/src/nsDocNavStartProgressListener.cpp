@@ -75,19 +75,19 @@ nsDocNavStartProgressListener::nsDocNavStartProgressListener() :
 
 nsDocNavStartProgressListener::~nsDocNavStartProgressListener()
 {
-  
+  ClearPendingEvents();
+}
+
+void
+nsDocNavStartProgressListener::ClearPendingEvents()
+{
   mRequests.Clear();
 
-  
   PRUint32 length = mTimers.Count();
-
   for (PRUint32 i = 0; i < length; ++i) {
     mTimers[i]->Cancel();
   }
-
   mTimers.Clear();
-  
-  mCallback = nsnull;
 }
 
 
@@ -198,6 +198,17 @@ nsDocNavStartProgressListener::SetCallback(
     nsIDocNavStartProgressCallback* aCallback)
 {
   mCallback = aCallback;
+
+  
+  
+  
+  
+  
+  
+  
+  if (!aCallback)
+    ClearPendingEvents();
+
   return NS_OK;
 }
 

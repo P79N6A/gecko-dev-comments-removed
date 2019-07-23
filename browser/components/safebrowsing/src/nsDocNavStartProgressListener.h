@@ -74,5 +74,8 @@ protected:
   nsresult DetachListeners();
 
   
+  void ClearPendingEvents();
+
+  
   nsresult GetRequestUri(nsIRequest* aReq, nsIURI** uri);
 };
