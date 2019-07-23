@@ -3222,10 +3222,13 @@ js_GC(JSContext *cx, JSGCInvocationKind gckind)
         memset(acx->thread->gcFreeLists, 0, sizeof acx->thread->gcFreeLists);
         GSN_CACHE_CLEAR(&acx->thread->gsnCache);
         js_FlushPropertyCache(acx);
+        js_FlushJITCache(acx);
     }
 #else
     
     GSN_CACHE_CLEAR(&rt->gsnCache);
+    
+    js_FlushJITCache(cx);
 #endif
 
   restart:
@@ -3236,9 +3239,6 @@ js_GC(JSContext *cx, JSGCInvocationKind gckind)
     
     rt->shapeGen = 0;
 
-    
-    js_FlushJITCache(cx);
-    
     
 
 
