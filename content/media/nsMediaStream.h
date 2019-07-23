@@ -411,7 +411,7 @@ protected:
   nsRefPtr<Listener> mListener;
   
   
-  nsRevocableEventPtr<nsNonOwningRunnableMethod<nsMediaChannelStream> > mDataReceivedEvent;
+  nsRevocableEventPtr<nsRunnableMethod<nsMediaChannelStream, void, false> > mDataReceivedEvent;
   PRUint32           mSuspendCount;
   
   
