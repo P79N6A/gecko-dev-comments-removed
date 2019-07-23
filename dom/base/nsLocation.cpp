@@ -194,7 +194,6 @@ nsLocation::CheckURL(nsIURI* aURI, nsIDocShellLoadInfo** aLoadInfo)
     return NS_ERROR_FAILURE;
 
   nsCOMPtr<nsISupports> owner;
-  nsCOMPtr<nsIURI> sourceURI;
 
   if (cx) {
     
@@ -222,7 +221,6 @@ nsLocation::CheckURL(nsIURI* aURI, nsIDocShellLoadInfo** aLoadInfo)
         !principal)
       return NS_ERROR_FAILURE;
     owner = do_QueryInterface(principal);
-    principal->GetURI(getter_AddRefs(sourceURI));
   }
 
   
@@ -233,9 +231,11 @@ nsLocation::CheckURL(nsIURI* aURI, nsIDocShellLoadInfo** aLoadInfo)
   loadInfo->SetOwner(owner);
 
   
-  if (sourceURI) {
+  
+  nsCOMPtr<nsIURI> sourceURI;
+  result = GetURI(getter_AddRefs(sourceURI));
+  if (NS_SUCCEEDED(result))
     loadInfo->SetReferrer(sourceURI);
-  }
 
   loadInfo.swap(*aLoadInfo);
 

@@ -366,6 +366,10 @@ protected:
 
     
     
+    nsresult StringifyJSValVariant(nsIVariant *aData, nsAString &aResult);
+
+    
+    
     
     
     
@@ -465,8 +469,11 @@ protected:
                                        PRUint32 aStateFlags);
 
     
+
     nsresult AddToGlobalHistory(nsIURI * aURI, PRBool aRedirect,
                                 nsIChannel * aChannel);
+    nsresult AddToGlobalHistory(nsIURI * aURI, PRBool aRedirect,
+                                nsIURI * aReferrer);
 
     
     nsresult   ConfirmRepost(PRBool * aRepost);
@@ -514,6 +521,11 @@ protected:
     virtual nsresult EndPageLoad(nsIWebProgress * aProgress,
                                  nsIChannel * aChannel,
                                  nsresult aResult);
+
+    
+    
+    
+    nsresult SetDocPendingStateObj(nsISHEntry *shEntry);
 
     nsresult CheckLoadingPermissions();
 

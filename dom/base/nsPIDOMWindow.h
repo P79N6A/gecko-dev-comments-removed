@@ -461,6 +461,10 @@ public:
 
   virtual nsresult DispatchSyncHashchange() = 0;
 
+  
+
+
+  virtual nsresult DispatchSyncPopState() = 0;
 
   
 

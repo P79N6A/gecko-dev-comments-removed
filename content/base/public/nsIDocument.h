@@ -106,8 +106,8 @@ class nsIBoxObject;
 
 
 #define NS_IDOCUMENT_IID      \
-  { 0xb04d9176, 0xf087, 0x4d3c, \
-    { 0x87, 0x11, 0x13, 0x9d, 0x19, 0x95, 0x43, 0x55 } }
+{ 0x6b2f1996, 0x95d4, 0x48db, \
+  {0xaf, 0xd1, 0xfd, 0xaa, 0x75, 0x4c, 0x79, 0x92 } }
 
 
 #define NS_STYLESHEET_FROM_CATALOG                (1 << 0)
@@ -1231,6 +1231,28 @@ public:
 
 
 
+
+
+
+  nsAString& GetPendingStateObject()
+  {
+    return mPendingStateObject;
+  }
+
+  
+
+
+  void SetPendingStateObject(nsAString &obj)
+  {
+    mPendingStateObject.Assign(obj);
+  }
+
+  
+
+
+
+
+
   virtual int GetDocumentLWTheme() { return Doc_Theme_None; }
 
   
@@ -1388,6 +1410,8 @@ protected:
   nsCOMPtr<nsIDocument> mDisplayDocument;
 
   PRUint32 mEventsSuppressed;
+
+  nsString mPendingStateObject;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsIDocument, NS_IDOCUMENT_IID)

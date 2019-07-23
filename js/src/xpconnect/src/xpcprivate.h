@@ -4198,6 +4198,10 @@ public:
 
     static XPCVariant* newVariant(XPCCallContext& ccx, jsval aJSVal);
 
+    
+
+
+
     jsval GetJSVal() const {return mJSVal;}
 
     XPCVariant(XPCCallContext& ccx, jsval aJSVal);

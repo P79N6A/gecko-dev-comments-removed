@@ -79,6 +79,7 @@
 #include "nsCycleCollector.h"
 #include "nsCCUncollectableMarker.h"
 #include "nsDOMThreadService.h"
+#include "nsAutoJSValHolder.h"
 
 
 #include "nsIFrame.h"
@@ -112,6 +113,7 @@
 #include "nsIDOMKeyEvent.h"
 #include "nsIDOMMessageEvent.h"
 #include "nsIDOMPopupBlockedEvent.h"
+#include "nsIDOMPopStateEvent.h"
 #include "nsIDOMOfflineResourceList.h"
 #include "nsIDOMGeoGeolocation.h"
 #include "nsPIDOMStorage.h"
@@ -169,6 +171,7 @@
 #include "nsIXULAppInfo.h"
 #include "nsNetUtil.h"
 #include "nsFocusManager.h"
+#include "nsIJSON.h"
 #ifdef MOZ_XUL
 #include "nsXULPopupManager.h"
 #include "nsIDOMXULControlElement.h"
@@ -360,6 +363,8 @@ static const char sJSStackContractID[] = "@mozilla.org/js/xpc/ContextStack;1";
 
 static const char kCryptoContractID[] = NS_CRYPTO_CONTRACTID;
 static const char kPkcs11ContractID[] = NS_PKCS11_CONTRACTID;
+
+static const char sPopStatePrefStr[] = "browser.history.allowPopState";
 
 static PRBool
 IsAboutBlank(nsIURI* aURI)
@@ -6978,13 +6983,125 @@ nsGlobalWindow::DispatchSyncHashchange()
 
   
   if (IsFrozen())
-      return NS_OK;
+    return NS_OK;
 
   
   
   return nsContentUtils::DispatchTrustedEvent(mDoc, GetOuterWindow(),
                                               NS_LITERAL_STRING("hashchange"),
                                               PR_FALSE, PR_FALSE);
+}
+
+nsresult
+nsGlobalWindow::DispatchSyncPopState()
+{
+  FORWARD_TO_INNER(DispatchSyncPopState, (), NS_OK);
+
+  NS_ASSERTION(nsContentUtils::IsSafeToRunScript(),
+               "Must be safe to run script here.");
+
+  
+  if (!nsContentUtils::GetBoolPref(sPopStatePrefStr, PR_FALSE))
+    return NS_OK;
+
+  nsresult rv = NS_OK;
+
+  
+  if (IsFrozen()) {
+    return NS_OK;
+  }
+
+  
+  if (!mDoc) {
+    return NS_OK;
+  }
+
+  nsIDocument::ReadyState readyState = mDoc->GetReadyStateEnum();
+  if (readyState != nsIDocument::READYSTATE_COMPLETE) {
+    return NS_OK;
+  }
+
+  
+  
+  
+  nsAString& stateObjJSON = mDoc->GetPendingStateObject();
+
+  nsCOMPtr<nsIVariant> stateObj;
+  
+  if (!stateObjJSON.IsEmpty()) {
+    
+    
+    nsCOMPtr<nsIDocument> document = do_QueryInterface(mDocument);
+    NS_ENSURE_TRUE(document, NS_ERROR_FAILURE);
+
+    
+    
+    nsIScriptGlobalObject *sgo = document->GetScopeObject();
+    NS_ENSURE_TRUE(sgo, NS_ERROR_FAILURE);
+
+    nsIScriptContext *scx = sgo->GetContext();
+    NS_ENSURE_TRUE(scx, NS_ERROR_FAILURE);
+
+    JSContext *cx = (JSContext*) scx->GetNativeContext();
+
+    
+    
+    nsCxPusher cxPusher;
+
+    jsval jsStateObj = JSVAL_NULL;
+    
+    nsAutoGCRoot(&jsStateObj, &rv);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    
+    nsCOMPtr<nsIJSON> json = do_GetService("@mozilla.org/dom/json;1");
+    NS_ENSURE_TRUE(cxPusher.Push(cx), NS_ERROR_FAILURE);
+    rv = json->DecodeToJSVal(stateObjJSON, cx, &jsStateObj);
+    NS_ENSURE_SUCCESS(rv, rv);
+    cxPusher.Pop();
+
+    nsCOMPtr<nsIXPConnect> xpconnect = do_GetService(nsIXPConnect::GetCID());
+    NS_ENSURE_TRUE(xpconnect, NS_ERROR_FAILURE);
+    rv = xpconnect->JSValToVariant(cx, &jsStateObj, getter_AddRefs(stateObj));
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
+
+  
+  nsIPresShell *shell = mDoc->GetPrimaryShell();
+  nsCOMPtr<nsPresContext> presContext;
+  if (shell) {
+    presContext = shell->GetPresContext();
+  }
+
+  
+  nsCOMPtr<nsIDOMEvent> domEvent;
+  rv = nsEventDispatcher::CreateEvent(presContext, nsnull,
+                                      NS_LITERAL_STRING("popstateevent"),
+                                      getter_AddRefs(domEvent));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  nsCOMPtr<nsIPrivateDOMEvent> privateEvent = do_QueryInterface(domEvent);
+  NS_ENSURE_TRUE(privateEvent, NS_ERROR_FAILURE);
+
+  
+  nsCOMPtr<nsIDOMPopStateEvent> popstateEvent = do_QueryInterface(domEvent);
+  rv = popstateEvent->InitPopStateEvent(NS_LITERAL_STRING("popstate"),
+                                        PR_TRUE, PR_FALSE,
+                                        stateObj);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  rv = privateEvent->SetTrusted(PR_TRUE);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  nsCOMPtr<nsIDOMEventTarget> outerWindow =
+    do_QueryInterface(GetOuterWindow());
+  NS_ENSURE_TRUE(outerWindow, NS_ERROR_UNEXPECTED);
+
+  rv = privateEvent->SetTarget(outerWindow);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  PRBool dummy; 
+  return DispatchEvent(popstateEvent, &dummy);
 }
 
 

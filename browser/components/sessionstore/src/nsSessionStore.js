@@ -1334,7 +1334,15 @@ SessionStoreService.prototype = {
       }
       catch (ex) { debug(ex); }
     }
-    
+
+    if (aEntry.docIdentifier) {
+      entry.docIdentifier = aEntry.docIdentifier;
+    }
+
+    if (aEntry.stateData) {
+      entry.stateData = aEntry.stateData;
+    }
+
     if (!(aEntry instanceof Ci.nsISHContainer)) {
       return entry;
     }
@@ -2039,8 +2047,10 @@ SessionStoreService.prototype = {
     }
     
     
+    
     var idMap = { used: {} };
-    this.restoreHistory(aWindow, aTabs, aTabData, idMap);
+    var docIdentMap = {};
+    this.restoreHistory(aWindow, aTabs, aTabData, idMap, docIdentMap);
   },
 
   
@@ -2054,7 +2064,8 @@ SessionStoreService.prototype = {
 
 
 
-  restoreHistory: function sss_restoreHistory(aWindow, aTabs, aTabData, aIdMap) {
+  restoreHistory:
+    function sss_restoreHistory(aWindow, aTabs, aTabData, aIdMap, aDocIdentMap) {
     var _this = this;
     while (aTabs.length > 0 && (!aTabData[0]._tabStillLoading || !aTabs[0].parentNode)) {
       aTabs.shift(); 
@@ -2090,7 +2101,8 @@ SessionStoreService.prototype = {
       
       if (!tabData.entries[i].url)
         continue;
-      history.addEntry(this._deserializeHistoryEntry(tabData.entries[i], aIdMap), true);
+      history.addEntry(this._deserializeHistoryEntry(tabData.entries[i],
+                                                     aIdMap, aDocIdentMap), true);
     }
     
     
@@ -2152,7 +2164,9 @@ SessionStoreService.prototype = {
         browser.loadURI(tabData.userTypedValue, null, null, true);
     }
 
-    aWindow.setTimeout(function(){ _this.restoreHistory(aWindow, aTabs, aTabData, aIdMap); }, 0);
+    aWindow.setTimeout(function(){
+      _this.restoreHistory(aWindow, aTabs, aTabData, aIdMap, aDocIdentMap);
+    }, 0);
   },
 
   
@@ -2163,7 +2177,9 @@ SessionStoreService.prototype = {
 
 
 
-  _deserializeHistoryEntry: function sss_deserializeHistoryEntry(aEntry, aIdMap) {
+  _deserializeHistoryEntry:
+    function sss_deserializeHistoryEntry(aEntry, aIdMap, aDocIdentMap) {
+
     var shEntry = Cc["@mozilla.org/browser/session-history-entry;1"].
                   createInstance(Ci.nsISHEntry);
 
@@ -2195,7 +2211,11 @@ SessionStoreService.prototype = {
       }
       shEntry.ID = id;
     }
-    
+
+    if (aEntry.stateData) {
+      shEntry.stateData = aEntry.stateData;
+    }
+
     if (aEntry.scroll) {
       var scrollPos = (aEntry.scroll || "0,0").split(",");
       scrollPos = [parseInt(scrollPos[0]) || 0, parseInt(scrollPos[1]) || 0];
@@ -2214,6 +2234,28 @@ SessionStoreService.prototype = {
                    createInstance(Ci.nsIStringInputStream);
       stream.setData(postdata, postdata.length);
       shEntry.postData = stream;
+    }
+
+    if (aEntry.docIdentifier) {
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      let ident = aDocIdentMap[aEntry.docIdentifier];
+      if (!ident) {
+        shEntry.setUniqueDocIdentifier();
+        aDocIdentMap[aEntry.docIdentifier] = shEntry.docIdentifier;
+      }
+      else {
+        shEntry.docIdentifier = ident;
+      }
     }
 
     if (aEntry.owner_b64) {  
@@ -2237,7 +2279,8 @@ SessionStoreService.prototype = {
         
         if (!aEntry.children[i].url)
           continue;
-        shEntry.AddChild(this._deserializeHistoryEntry(aEntry.children[i], aIdMap), i);
+        shEntry.AddChild(this._deserializeHistoryEntry(aEntry.children[i], aIdMap,
+                                                       aDocIdentMap), i);
       }
     }
     
