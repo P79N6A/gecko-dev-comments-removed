@@ -105,7 +105,6 @@
 #include "nsIPrincipal.h"
 
 #include "nsNetCID.h"
-#include "nsICookieService.h"
 #include "nsIDOMPlugin.h"
 #include "nsIDOMMimeType.h"
 #include "nsMimeTypes.h"
@@ -136,7 +135,6 @@
 #include "nsUnicharUtils.h"
 #include "nsPluginManifestLineReader.h"
 
-#include "imgILoader.h"
 #include "nsDefaultPlugin.h"
 #include "nsWeakReference.h"
 #include "nsIDOMElement.h"
@@ -160,11 +158,6 @@
 
 #if defined(XP_UNIX) && defined(MOZ_WIDGET_GTK2) & defined(MOZ_X11)
 #include <gdk/gdkx.h> 
-#endif
-
-#ifdef XP_MACOSX
-#include <mach-o/loader.h>
-#include <mach-o/fat.h>
 #endif
 
 
@@ -1037,6 +1030,47 @@ void nsPluginTag::TryUnloadPlugin()
   
   
   mLibrary = nsnull;
+}
+
+void nsPluginTag::Mark(PRUint32 mask)
+{
+  PRBool wasEnabled = IsEnabled();
+  mFlags |= mask;
+  
+  if (mPluginHost && wasEnabled != IsEnabled()) {
+    if (wasEnabled)
+      RegisterWithCategoryManager(PR_FALSE, nsPluginTag::ePluginUnregister);
+    else
+      RegisterWithCategoryManager(PR_FALSE, nsPluginTag::ePluginRegister);
+  }
+}
+
+void nsPluginTag::UnMark(PRUint32 mask)
+{
+  PRBool wasEnabled = IsEnabled();
+  mFlags &= ~mask;
+  
+  if (mPluginHost && wasEnabled != IsEnabled()) {
+    if (wasEnabled)
+      RegisterWithCategoryManager(PR_FALSE, nsPluginTag::ePluginUnregister);
+    else
+      RegisterWithCategoryManager(PR_FALSE, nsPluginTag::ePluginRegister);
+  }
+}
+
+PRBool nsPluginTag::HasFlag(PRUint32 flag)
+{
+  return (mFlags & flag) != 0;
+}
+
+PRUint32 nsPluginTag::Flags()
+{
+  return mFlags;
+}
+
+PRBool nsPluginTag::IsEnabled()
+{
+  return HasFlag(NS_PLUGIN_FLAG_ENABLED) && !HasFlag(NS_PLUGIN_FLAG_BLOCKLISTED);
 }
 
 PRBool nsPluginTag::Equals(nsPluginTag *aPluginTag)
@@ -4062,7 +4096,6 @@ NS_IMETHODIMP nsPluginHost::GetPluginFactory(const char *aMimeType, nsIPlugin** 
       rv = CreateNPAPIPlugin(pluginTag, &plugin);
       if (NS_SUCCEEDED(rv))
         pluginTag->mEntryPoint = plugin;
-      pluginTag->Mark(NS_PLUGIN_FLAG_NPAPI);
     }
 
     if (plugin) {
@@ -5489,11 +5522,8 @@ NS_IMETHODIMP nsPluginHost::Observe(nsISupports *aSubject,
   if (!nsCRT::strcmp(NS_PRIVATE_BROWSING_SWITCH_TOPIC, aTopic)) {
     
     for (nsPluginInstanceTag* ap = mPluginInstanceTagList.mFirst; ap; ap = ap->mNext) {
-      nsPluginTag* pt = ap->mPluginTag;
-      if (pt->HasFlag(NS_PLUGIN_FLAG_NPAPI)) {
-        nsNPAPIPluginInstance* pi = static_cast<nsNPAPIPluginInstance*>(ap->mInstance);
-        pi->PrivateModeStateChanged();
-      }
+      nsNPAPIPluginInstance* pi = static_cast<nsNPAPIPluginInstance*>(ap->mInstance);
+      pi->PrivateModeStateChanged();
     }
   }
   if (!nsCRT::strcmp(NS_PREFBRANCH_PREFCHANGE_TOPIC_ID, aTopic)) {

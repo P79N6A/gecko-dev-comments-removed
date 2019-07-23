@@ -35,28 +35,25 @@
 
 
 
+
 #ifndef nsPluginHost_h_
 #define nsPluginHost_h_
 
 #include "nsIPluginHost.h"
 #include "nsIObserver.h"
-#include "nsCRT.h"
 #include "nsCOMPtr.h"
 #include "prlink.h"
 #include "prclist.h"
 #include "npapi.h"
 #include "nsNPAPIPluginInstance.h"
-
 #include "nsIPlugin.h"
 #include "nsIPluginTag.h"
-
 #include "nsPluginsDir.h"
 #include "nsPluginDirServiceProvider.h"
 #include "nsAutoPtr.h"
 #include "nsWeakPtr.h"
 #include "nsIPrompt.h"
 #include "nsISupportsArray.h"
-#include "nsPluginNativeWindow.h"
 #include "nsIPrefBranch.h"
 #include "nsWeakReference.h"
 #include "nsThreadUtils.h"
@@ -67,11 +64,12 @@ class nsNPAPIPlugin;
 class nsIComponentManager;
 class nsIFile;
 class nsIChannel;
-class nsIRegistry;
 class nsPluginHost;
 
+
+
 #define NS_PLUGIN_FLAG_ENABLED      0x0001    // is this plugin enabled?
-#define NS_PLUGIN_FLAG_NPAPI        0x0002    // is this an NPAPI plugin?
+
 #define NS_PLUGIN_FLAG_FROMCACHE    0x0004    // this plugintag info was loaded from cache
 #define NS_PLUGIN_FLAG_UNWANTED     0x0008    // this is an unwanted plugin
 #define NS_PLUGIN_FLAG_BLOCKLISTED  0x0010    // this is a blocklisted plugin
@@ -81,12 +79,16 @@ class nsPluginHost;
 class nsPluginTag : public nsIPluginTag
 {
 public:
+  enum nsRegisterType {
+    ePluginRegister,
+    ePluginUnregister
+  };
+
   NS_DECL_ISUPPORTS
   NS_DECL_NSIPLUGINTAG
 
   nsPluginTag(nsPluginTag* aPluginTag);
   nsPluginTag(nsPluginInfo* aPluginInfo);
-
   nsPluginTag(const char* aName,
               const char* aDescription,
               const char* aFileName,
@@ -99,46 +101,20 @@ public:
               PRInt64 aLastModifiedTime = 0,
               PRBool aCanUnload = PR_TRUE,
               PRBool aArgsAreUTF8 = PR_FALSE);
-
   ~nsPluginTag();
 
   void SetHost(nsPluginHost * aHost);
   void TryUnloadPlugin();
-  void Mark(PRUint32 mask) {
-    PRBool wasEnabled = IsEnabled();
-    mFlags |= mask;
-    
-    if (mPluginHost && wasEnabled != IsEnabled()) {
-      if (wasEnabled)
-        RegisterWithCategoryManager(PR_FALSE, nsPluginTag::ePluginUnregister);
-      else
-        RegisterWithCategoryManager(PR_FALSE, nsPluginTag::ePluginRegister);
-    }
-  }
-  void UnMark(PRUint32 mask) {
-    PRBool wasEnabled = IsEnabled();
-    mFlags &= ~mask;
-    
-    if (mPluginHost && wasEnabled != IsEnabled()) {
-      if (wasEnabled)
-        RegisterWithCategoryManager(PR_FALSE, nsPluginTag::ePluginUnregister);
-      else
-        RegisterWithCategoryManager(PR_FALSE, nsPluginTag::ePluginRegister);
-    }
-  }
-  PRBool HasFlag(PRUint32 flag) { return (mFlags & flag) != 0; }
-  PRUint32 Flags() { return mFlags; }
+  void Mark(PRUint32 mask);
+  void UnMark(PRUint32 mask);
+  PRBool HasFlag(PRUint32 flag);
+  PRUint32 Flags();
   PRBool Equals(nsPluginTag* aPluginTag);
-  PRBool IsEnabled() { return HasFlag(NS_PLUGIN_FLAG_ENABLED) && !HasFlag(NS_PLUGIN_FLAG_BLOCKLISTED); }
-
-  enum nsRegisterType {
-    ePluginRegister,
-    ePluginUnregister
-  };
+  PRBool IsEnabled();
   void RegisterWithCategoryManager(PRBool aOverrideInternalTypes,
                                    nsRegisterType aType = ePluginRegister);
 
-  nsRefPtr<nsPluginTag>   mNext;
+  nsRefPtr<nsPluginTag> mNext;
   nsPluginHost *mPluginHost;
   nsCString     mName; 
   nsCString     mDescription; 
@@ -371,7 +347,7 @@ private:
   
   nsresult AddPrefObserver();
   
-  char        *mPluginPath;
+  char *mPluginPath;
   nsRefPtr<nsPluginTag> mPlugins;
   nsRefPtr<nsPluginTag> mCachedPlugins;
   PRPackedBool mPluginsLoaded;
