@@ -1615,15 +1615,6 @@ nsPluginInstanceOwner::~nsPluginInstanceOwner()
     mTagText = nsnull;
   }
 
-#if defined(XP_UNIX) && !defined(XP_MACOSX)
-  
-  
-  if (mPluginWindow && mPluginWindow->ws_info) {
-    PR_Free(mPluginWindow->ws_info);
-    mPluginWindow->ws_info = nsnull;
-  }
-#endif
-
   
   nsCOMPtr<nsIPluginHost> ph = do_GetService(kCPluginManagerCID);
   nsCOMPtr<nsPIPluginHost> pph(do_QueryInterface(ph));
