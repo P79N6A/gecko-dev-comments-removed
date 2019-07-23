@@ -123,9 +123,9 @@ typedef struct CapturingContentInfo {
 } CapturingContentInfo;
 
 
-#define NS_IPRESSHELL_IID     \
-{ 0x7190dd0b, 0x4278, 0x4ad6, \
-  { 0xbe, 0xe5, 0x6d, 0xef, 0xef, 0x4c, 0x56, 0x47 } }
+ #define NS_IPRESSHELL_IID     \
+{ 0x4e8724b5, 0x14f9, 0x4bb0, \
+  { 0xb5, 0xa0, 0x24, 0x04, 0x1d, 0x65, 0x3c, 0x9f } }
 
 
 #define NS_PRESSHELL_SCROLL_TOP      0
@@ -888,11 +888,13 @@ public:
 
 
 
+
   virtual nsresult AddCanvasBackgroundColorItem(nsDisplayListBuilder& aBuilder,
                                                 nsDisplayList& aList,
                                                 nsIFrame* aFrame,
                                                 nsRect* aBounds = nsnull,
-                                                nscolor aBackstopColor = NS_RGBA(0,0,0,0)) = 0;
+                                                nscolor aBackstopColor = NS_RGBA(0,0,0,0),
+                                                PRBool aForceDraw = PR_FALSE) = 0;
 
   void ObserveNativeAnonMutationsForPrint(PRBool aObserve)
   {

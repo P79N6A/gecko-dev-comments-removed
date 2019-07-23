@@ -902,7 +902,8 @@ public:
                                                 nsDisplayList& aList,
                                                 nsIFrame* aFrame,
                                                 nsRect* aBounds,
-                                                nscolor aBackstopColor);
+                                                nscolor aBackstopColor,
+                                                PRBool aForceDraw);
 
 protected:
   virtual ~PresShell();
@@ -5795,7 +5796,8 @@ nsresult PresShell::AddCanvasBackgroundColorItem(nsDisplayListBuilder& aBuilder,
                                                  nsDisplayList&        aList,
                                                  nsIFrame*             aFrame,
                                                  nsRect*               aBounds,
-                                                 nscolor               aBackstopColor)
+                                                 nscolor               aBackstopColor,
+                                                 PRBool                aForceDraw)
 {
   
   
@@ -5803,7 +5805,7 @@ nsresult PresShell::AddCanvasBackgroundColorItem(nsDisplayListBuilder& aBuilder,
   
   
   
-  if (!nsCSSRendering::IsCanvasFrame(aFrame))
+  if (!aForceDraw && !nsCSSRendering::IsCanvasFrame(aFrame))
     return NS_OK;
 
   nscolor bgcolor = NS_ComposeColors(aBackstopColor, mCanvasBackgroundColor);
