@@ -114,7 +114,7 @@ public:
     
 
 
-    PRBool IsSingular() {
+    PRBool IsSingular() const {
         
         return (xx * yy) == (yx * xy);
     }
