@@ -40,6 +40,7 @@
 
 
 
+
 var MSG_PATTERN = '\nregexp = ';
 var MSG_STRING = '\nstring = ';
 var MSG_EXPECT = '\nExpect: ';

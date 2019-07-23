@@ -52,6 +52,7 @@
 
 
 
+
 var cnNoObject = 'Unexpected Error!!! Parameter to this function must be an object';
 var cnNoClass = 'Unexpected Error!!! Cannot find Class property';
 var cnObjectToString = Object.prototype.toString;

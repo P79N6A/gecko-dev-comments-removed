@@ -40,6 +40,7 @@
 
 
 
+
 var CHAR_LBRACKET = '[';
 var CHAR_RBRACKET = ']';
 var CHAR_QT_DBL = '"';
@@ -100,15 +101,15 @@ function toSource(arr)
 
     switch(true)
     {
-      case (typeof elt === TYPE_STRING) :
-        ret += doubleQuote(elt);
-        break;
+    case (typeof elt === TYPE_STRING) :
+      ret += doubleQuote(elt);
+      break;
 
-      case (elt === undefined || elt === null) :
-        break; 
+    case (elt === undefined || elt === null) :
+      break; 
 
-      default:
-        ret += elt.toString();
+    default:
+      ret += elt.toString();
     }
 
     if ((i < len-1) || (elt === undefined))
