@@ -49,13 +49,11 @@ function test() {
     
     
     if (!tabToDetach ||
-         tabToDetach.linkedBrowser.contentDocument != event.target) {
-        return;
-    }
+        tabToDetach.linkedBrowser.contentDocument != event.target)
+      return;
 
     if (!newWindow) {
-      var pageShowFunc = arguments.callee;
-      gBrowser.removeEventListener("pageshow", pageShowFunc, false);
+      gBrowser.removeEventListener("pageshow", onPageShow, false);
 
       
       
@@ -69,7 +67,7 @@ function test() {
         
         function onLoad(event) {
           newWindow.gBrowser
-                   .addEventListener("pageshow", pageShowFunc, false);
+                   .addEventListener("pageshow", onPageShow, false);
           newWindow.removeEventListener("load", arguments.callee, false);
         }
         newWindow.addEventListener("load", onLoad, false);
@@ -80,7 +78,6 @@ function test() {
     is(newWindow.gBrowser.selectedTab.hasAttribute("busy"), true);
     is(newWindow.gBrowser.selectedTab.linkedBrowser.mIconURL,iconURLSpec);
     newWindow.close();
-    gBrowser.removeEventListener("pageshow", onPageShow, false);
     finish();
   }
 
