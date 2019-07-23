@@ -80,9 +80,6 @@ class imgIContainer;
 
 
 
-
-
-
    
    #define   nsWindowState_ePrecreate      0x00000001
    
@@ -244,7 +241,6 @@ protected:
    virtual PRBool OnResize( PRInt32 aX, PRInt32 aY);
    virtual PRBool OnMove( PRInt32 aX, PRInt32 aY);
    virtual PRBool OnKey( MPARAM mp1, MPARAM mp2);
-   virtual PRBool OnRealizePalette();
    virtual PRBool DispatchFocus( PRUint32 aEventType, PRBool isMozWindowTakingFocus);
    virtual PRBool OnScroll( ULONG msgid, MPARAM mp1, MPARAM mp2);
    virtual PRBool OnVScroll( MPARAM mp1, MPARAM mp2);
@@ -382,29 +378,5 @@ protected:
 extern PRUint32 WMChar2KeyCode( MPARAM mp1, MPARAM mp2);
 
 extern nsWindow *NS_HWNDToWindow( HWND hwnd);
-
-#define NSCANVASCLASS "WarpzillaCanvas"
-
-#if 0
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#ifndef _nscanvas_h
-#include "nsCanvas.h"
-typedef nsCanvas ChildWindow;
-#endif
-
-#endif
 
 #endif
