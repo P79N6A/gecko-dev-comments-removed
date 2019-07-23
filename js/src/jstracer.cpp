@@ -4560,8 +4560,36 @@ static struct {
 
 JS_STATIC_ASSERT(sizeof(binary_imacros) < IMACRO_PC_ADJ_LIMIT);
 
+JS_REQUIRES_STACK void
+TraceRecorder::strictEquality(bool equal)
+{
+    jsval& r = stackval(-1);
+    jsval& l = stackval(-2);
+    LIns* l_ins = get(&l);
+    LIns* r_ins = get(&r);
+
+    uint8 ltag = getPromotedType(l);
+    if (ltag != getPromotedType(r)) {
+        set(&l, lir->insImm(!equal));
+        return;
+    }
+
+    LIns* x;
+    if (ltag == JSVAL_STRING) {
+        LIns* args[] = { r_ins, l_ins };
+        x = lir->ins2i(LIR_eq, lir->insCall(&js_EqualStrings_ci, args), equal);
+    } else {
+        LOpcode op = (ltag != JSVAL_DOUBLE) ? LIR_eq : LIR_feq;
+        x = lir->ins2(op, l_ins, r_ins);
+        if (!equal)
+            x = lir->ins_eq0(x);
+    }
+
+    set(&l, x);
+}
+
 JS_REQUIRES_STACK bool
-TraceRecorder::cmp(LOpcode op, int flags)
+TraceRecorder::equality(int flags)
 {
     jsval& r = stackval(-1);
     jsval& l = stackval(-2);
@@ -4572,28 +4600,10 @@ TraceRecorder::cmp(LOpcode op, int flags)
     LIns* r_ins = get(&r);
     bool fp = false;
 
-    if (op != LIR_feq) {
-        if (JSVAL_IS_OBJECT(l) && hasValueOfMethod(l)) {
-            if (JSVAL_IS_OBJECT(r) && hasValueOfMethod(r))
-                return call_imacro(binary_imacros.obj_obj);
-            return call_imacro(binary_imacros.obj_any);
-        }
-        if (JSVAL_IS_OBJECT(r) && hasValueOfMethod(r))
-            return call_imacro(binary_imacros.any_obj);
-    }
-
-    
-    
-    
-    
-    if ((flags & CMP_STRICT) && getPromotedType(l) != getPromotedType(r)) {
-        x = INS_CONST(negate);
-        cond = negate;
-    } else if (JSVAL_IS_STRING(l) || JSVAL_IS_STRING(r)) {
+    if (JSVAL_IS_STRING(l) || JSVAL_IS_STRING(r)) {
         
-        if (op == LIR_feq &&
-            ((JSVAL_IS_NULL(l) && l_ins->isconst()) ||
-             (JSVAL_IS_NULL(r) && r_ins->isconst()))) {
+        if ((JSVAL_IS_NULL(l) && l_ins->isconst()) ||
+            (JSVAL_IS_NULL(r) && r_ins->isconst())) {
             x = INS_CONST(negate);
             cond = negate;
         } else {
@@ -4601,12 +4611,9 @@ TraceRecorder::cmp(LOpcode op, int flags)
                 ABORT_TRACE("unsupported type for cmp vs string");
 
             LIns* args[] = { r_ins, l_ins };
-            if (op == LIR_feq)
-                l_ins = lir->ins_eq0(lir->insCall(&js_EqualStrings_ci, args));
-            else
-                l_ins = lir->insCall(&js_CompareStrings_ci, args);
+            l_ins = lir->ins_eq0(lir->insCall(&js_EqualStrings_ci, args));
             r_ins = lir->insImm(0);
-            cond = evalCmp(op, JSVAL_TO_STRING(l), JSVAL_TO_STRING(r));
+            cond = js_EqualStrings(JSVAL_TO_STRING(l), JSVAL_TO_STRING(r));
         }
     } else if (isNumber(l) || isNumber(r)) {
         jsval tmp[2] = {l, r};
@@ -4615,12 +4622,10 @@ TraceRecorder::cmp(LOpcode op, int flags)
         fp = true;
 
         
-        jsdouble lnum;
-        jsdouble rnum;
         LIns* args[] = { l_ins, cx_ins };
         if (l == JSVAL_NULL && l_ins->isconst()) {
             jsdpun u;
-            u.d = (op == LIR_feq) ? js_NaN : 0.0;
+            u.d = js_NaN;
             l_ins = lir->insImmq(u.u64);
         } else if (JSVAL_IS_STRING(l)) {
             l_ins = lir->insCall(&js_StringToNumber_ci, args);
@@ -4636,13 +4641,13 @@ TraceRecorder::cmp(LOpcode op, int flags)
         } else if (!isNumber(l)) {
             ABORT_TRACE("unsupported LHS type for cmp vs number");
         }
-        lnum = js_ValueToNumber(cx, &tmp[0]);
+        jsdouble lnum = js_ValueToNumber(cx, &tmp[0]);
 
         args[0] = r_ins;
         args[1] = cx_ins;
         if (r == JSVAL_NULL && r_ins->isconst()) {
             jsdpun u;
-            u.d = (op == LIR_feq) ? js_NaN : 0.0;
+            u.d = js_NaN;
             r_ins = lir->insImmq(u.u64);
         } else if (JSVAL_IS_STRING(r)) {
             r_ins = lir->insCall(&js_StringToNumber_ci, args);
@@ -4652,22 +4657,10 @@ TraceRecorder::cmp(LOpcode op, int flags)
         } else if (!isNumber(r)) {
             ABORT_TRACE("unsupported RHS type for cmp vs number");
         }
-        rnum = js_ValueToNumber(cx, &tmp[1]);
-        cond = evalCmp(op, lnum, rnum);
-    } else if ((JSVAL_TAG(l) == JSVAL_BOOLEAN) && (JSVAL_TAG(r) == JSVAL_BOOLEAN)) {
-        
-        
-        
-        cond = evalCmp(op, l, r);
-        
-        
-        
-        
-    } else if (JSVAL_IS_OBJECT(l) && JSVAL_IS_OBJECT(r)) {
-        if (op != LIR_feq) {
-            JS_NOT_REACHED("we should have converted to numbers already");
-            return false;
-        }
+        jsdouble rnum = js_ValueToNumber(cx, &tmp[1]);
+        cond = (lnum == rnum);
+    } else if ((JSVAL_TAG(l) == JSVAL_BOOLEAN && JSVAL_TAG(r) == JSVAL_BOOLEAN) ||
+               (JSVAL_IS_OBJECT(l) && JSVAL_IS_OBJECT(r))) {
         cond = (l == r); 
     } else {
         ABORT_TRACE("unsupported operand types for cmp");
@@ -4676,48 +4669,143 @@ TraceRecorder::cmp(LOpcode op, int flags)
     
     if (!x) {
         
-        if (!fp) {
-            JS_ASSERT(op >= LIR_feq && op <= LIR_fge);
-            op = LOpcode(op + (LIR_eq - LIR_feq));
-        }
+        LOpcode op = fp ? LIR_feq : LIR_eq;
         x = lir->ins2(op, l_ins, r_ins);
         if (negate) {
             x = lir->ins_eq0(x);
             cond = !cond;
         }
-        
-        
-        if (op != LIR_eq && (JSVAL_TAG(l) == JSVAL_BOOLEAN) && (JSVAL_TAG(r) == JSVAL_BOOLEAN)) {
-            x = lir->ins_choose(lir->ins2i(LIR_eq, 
-                                           lir->ins2i(LIR_and, 
-                                                      lir->ins2(LIR_or, l_ins, r_ins),
-                                                      JSVAL_TO_BOOLEAN(JSVAL_VOID)),
-                                           JSVAL_TO_BOOLEAN(JSVAL_VOID)),
-                                lir->insImm(JSVAL_TO_BOOLEAN(JSVAL_FALSE)),
-                                x);
-            x = lir->ins_eq0(lir->ins_eq0(x));
-            if ((l == JSVAL_VOID) || (r == JSVAL_VOID))
-                cond = false;
-        }
     }
-    
-    
-    if (!x->isconst()) {
-        if (flags & CMP_CASE) {
-            guard(cond, x, BRANCH_EXIT);
-            return true;
-        }
 
+    if (flags & CMP_CASE) {
         
-
-        if (flags & CMP_TRY_BRANCH_AFTER_COND) {
-            fuseIf(cx->fp->regs->pc + 1, cond, x);
-        }
-    } else if (flags & CMP_CASE) {
+        if (!x->isconst())
+            guard(cond, x, BRANCH_EXIT);
         return true;
     }
 
     
+
+
+
+
+    if ((flags & CMP_TRY_BRANCH_AFTER_COND) && !x->isconst())
+        fuseIf(cx->fp->regs->pc + 1, cond, x);
+
+    
+
+
+
+
+
+    set(&l, x);
+    return true;
+}
+
+JS_REQUIRES_STACK bool
+TraceRecorder::relational(LOpcode op, int flags)
+{
+    jsval& r = stackval(-1);
+    jsval& l = stackval(-2);
+    LIns* x = NULL;
+    bool cond;
+    LIns* l_ins = get(&l);
+    LIns* r_ins = get(&r);
+    bool fp = false;
+    jsdouble lnum, rnum;
+
+    
+
+
+
+
+    if (JSVAL_IS_OBJECT(l) && hasValueOfMethod(l)) {
+        if (JSVAL_IS_OBJECT(r) && hasValueOfMethod(r))
+            return call_imacro(binary_imacros.obj_obj);
+        return call_imacro(binary_imacros.obj_any);
+    }
+    if (JSVAL_IS_OBJECT(r) && hasValueOfMethod(r))
+        return call_imacro(binary_imacros.any_obj);
+    if (JSVAL_IS_OBJECT(l) || JSVAL_IS_OBJECT(r))
+        ABORT_TRACE("comparing two objects with non-function valueOf");
+
+    
+    if (JSVAL_IS_STRING(l) && JSVAL_IS_STRING(r)) {
+        LIns* args[] = { r_ins, l_ins };
+        l_ins = lir->insCall(&js_CompareStrings_ci, args);
+        r_ins = lir->insImm(0);
+        cond = evalCmp(op, JSVAL_TO_STRING(l), JSVAL_TO_STRING(r));
+        goto do_comparison;
+    }
+
+    
+    if (!JSVAL_IS_NUMBER(l)) {
+        LIns* args[] = { l_ins, cx_ins };
+        switch (JSVAL_TAG(l)) {
+          case JSVAL_BOOLEAN:
+            l_ins = lir->insCall(&js_BooleanOrUndefinedToNumber_ci, args);
+            break;
+          case JSVAL_STRING:
+            l_ins = lir->insCall(&js_StringToNumber_ci, args);
+            break;
+          case JSVAL_INT:
+          case JSVAL_DOUBLE:
+          case JSVAL_OBJECT:
+          default:
+            JS_NOT_REACHED("JSVAL_IS_NUMBER if int/double, objects should "
+                           "have been handled at start of method");
+            ABORT_TRACE("safety belt");
+        }
+    }    
+    if (!JSVAL_IS_NUMBER(r)) {
+        LIns* args[] = { r_ins, cx_ins };
+        switch (JSVAL_TAG(r)) {
+          case JSVAL_BOOLEAN:
+            r_ins = lir->insCall(&js_BooleanOrUndefinedToNumber_ci, args);
+            break;
+          case JSVAL_STRING:
+            r_ins = lir->insCall(&js_StringToNumber_ci, args);
+            break;
+          case JSVAL_INT:
+          case JSVAL_DOUBLE:
+          case JSVAL_OBJECT:
+          default:
+            JS_NOT_REACHED("JSVAL_IS_NUMBER if int/double, objects should "
+                           "have been handled at start of method");
+            ABORT_TRACE("safety belt");
+        }
+    }
+    {
+        jsval tmp = JSVAL_NULL;
+        JSAutoTempValueRooter tvr(cx, 1, &tmp);
+
+        tmp = l;
+        lnum = js_ValueToNumber(cx, &tmp);
+        tmp = r;
+        rnum = js_ValueToNumber(cx, &tmp);
+    }
+    cond = evalCmp(op, lnum, rnum);
+    fp = true;
+
+    
+  do_comparison:
+    
+    if (!fp) {
+        JS_ASSERT(op >= LIR_feq && op <= LIR_fge);
+        op = LOpcode(op + (LIR_eq - LIR_feq));
+    }
+    x = lir->ins2(op, l_ins, r_ins);
+
+    
+
+
+
+
+    if ((flags & CMP_TRY_BRANCH_AFTER_COND) && !x->isconst())
+        fuseIf(cx->fp->regs->pc + 1, cond, x);
+
+    
+
 
 
 
@@ -5525,37 +5613,37 @@ TraceRecorder::record_JSOP_BITAND()
 JS_REQUIRES_STACK bool
 TraceRecorder::record_JSOP_EQ()
 {
-    return cmp(LIR_feq, CMP_TRY_BRANCH_AFTER_COND);
+    return equality(CMP_TRY_BRANCH_AFTER_COND);
 }
 
 JS_REQUIRES_STACK bool
 TraceRecorder::record_JSOP_NE()
 {
-    return cmp(LIR_feq, CMP_NEGATE | CMP_TRY_BRANCH_AFTER_COND);
+    return equality(CMP_NEGATE | CMP_TRY_BRANCH_AFTER_COND);
 }
 
 JS_REQUIRES_STACK bool
 TraceRecorder::record_JSOP_LT()
 {
-    return cmp(LIR_flt, CMP_TRY_BRANCH_AFTER_COND);
+    return relational(LIR_flt, CMP_TRY_BRANCH_AFTER_COND);
 }
 
 JS_REQUIRES_STACK bool
 TraceRecorder::record_JSOP_LE()
 {
-    return cmp(LIR_fle, CMP_TRY_BRANCH_AFTER_COND);
+    return relational(LIR_fle, CMP_TRY_BRANCH_AFTER_COND);
 }
 
 JS_REQUIRES_STACK bool
 TraceRecorder::record_JSOP_GT()
 {
-    return cmp(LIR_fgt, CMP_TRY_BRANCH_AFTER_COND);
+    return relational(LIR_fgt, CMP_TRY_BRANCH_AFTER_COND);
 }
 
 JS_REQUIRES_STACK bool
 TraceRecorder::record_JSOP_GE()
 {
-    return cmp(LIR_fge, CMP_TRY_BRANCH_AFTER_COND);
+    return relational(LIR_fge, CMP_TRY_BRANCH_AFTER_COND);
 }
 
 JS_REQUIRES_STACK bool
@@ -7020,13 +7108,15 @@ TraceRecorder::record_JSOP_LOOKUPSWITCH()
 JS_REQUIRES_STACK bool
 TraceRecorder::record_JSOP_STRICTEQ()
 {
-    return cmp(LIR_feq, CMP_STRICT);
+    strictEquality(true);
+    return true;
 }
 
 JS_REQUIRES_STACK bool
 TraceRecorder::record_JSOP_STRICTNE()
 {
-    return cmp(LIR_feq, CMP_STRICT | CMP_NEGATE);
+    strictEquality(false);
+    return true;
 }
 
 JS_REQUIRES_STACK bool
@@ -7524,7 +7614,7 @@ TraceRecorder::record_JSOP_CONDSWITCH()
 JS_REQUIRES_STACK bool
 TraceRecorder::record_JSOP_CASE()
 {
-    return cmp(LIR_feq, CMP_CASE);
+    return equality(CMP_CASE);
 }
 
 JS_REQUIRES_STACK bool
@@ -7717,7 +7807,7 @@ TraceRecorder::record_JSOP_GOSUBX()
 JS_REQUIRES_STACK bool
 TraceRecorder::record_JSOP_CASEX()
 {
-    return cmp(LIR_feq, CMP_CASE);
+    return equality(CMP_CASE);
 }
 
 JS_REQUIRES_STACK bool

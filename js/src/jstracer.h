@@ -355,8 +355,10 @@ class TraceRecorder : public avmplus::GCObject {
     JS_REQUIRES_STACK bool incElem(jsint incr, bool pre = true);
     JS_REQUIRES_STACK bool incName(jsint incr, bool pre = true);
 
-    enum { CMP_NEGATE = 1, CMP_TRY_BRANCH_AFTER_COND = 2, CMP_CASE = 4, CMP_STRICT = 8 };
-    JS_REQUIRES_STACK bool cmp(nanojit::LOpcode op, int flags = 0);
+    enum { CMP_NEGATE = 1, CMP_TRY_BRANCH_AFTER_COND = 2, CMP_CASE = 4 };
+    JS_REQUIRES_STACK void strictEquality(bool equal);
+    JS_REQUIRES_STACK bool equality(int flags);
+    JS_REQUIRES_STACK bool relational(nanojit::LOpcode op, int flags);
 
     JS_REQUIRES_STACK bool unary(nanojit::LOpcode op);
     JS_REQUIRES_STACK bool binary(nanojit::LOpcode op);
