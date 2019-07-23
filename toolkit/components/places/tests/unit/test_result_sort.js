@@ -133,8 +133,8 @@ function run_test() {
   
   
 
-  annosvc.setItemAnnotationString(id1, "testAnno", "a", 0, 0);
-  annosvc.setItemAnnotationString(id3, "testAnno", "b", 0, 0);
+  annosvc.setItemAnnotation(id1, "testAnno", "a", 0, 0);
+  annosvc.setItemAnnotation(id3, "testAnno", "b", 0, 0);
   result.sortingAnnotation = "testAnno";
   result.sortingMode = NHQO.SORT_BY_ANNOTATION_DESCENDING;
 
@@ -145,6 +145,6 @@ function run_test() {
   
   
   
-  annosvc.setItemAnnotationString(id1, "testAnno", "c", 0, 0);
+  annosvc.setItemAnnotation(id1, "testAnno", "c", 0, 0);
   checkOrder(id1, id3, id2);
 }

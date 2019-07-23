@@ -139,7 +139,7 @@ function LivemarkService() {
   for (var i = 0; i < livemarks.length; i++) {
     var feedURI =
       gIoService.newURI(
-        this._ans.getItemAnnotationString(livemarks[i], LMANNO_FEEDURI),
+        this._ans.getItemAnnotation(livemarks[i], LMANNO_FEEDURI),
         null, null
       );
     this._pushLivemark(livemarks[i], feedURI);
@@ -208,8 +208,8 @@ LivemarkService.prototype = {
       
       
       
-      var exprTime = this._ans.getPageAnnotationInt64(livemark.feedURI,
-                                                      LMANNO_EXPIRATION);
+      var exprTime = this._ans.getPageAnnotation(livemark.feedURI,
+                                                 LMANNO_EXPIRATION);
       if (!forceUpdate && exprTime > Date.now()) {
         
         livemark.locked = false;
@@ -280,8 +280,8 @@ LivemarkService.prototype = {
     var livemarkID = bms.createContainer(folder, name, LS_CONTRACTID, index);
 
     
-    this._ans.setItemAnnotationString(livemarkID, LMANNO_FEEDURI, feedURI.spec, 0,
-                                      this._ans.EXPIRE_NEVER);
+    this._ans.setItemAnnotation(livemarkID, LMANNO_FEEDURI, feedURI.spec, 0,
+                                this._ans.EXPIRE_NEVER);
     
     var faviconService = Cc[FAV_CONTRACTID].getService(Ci.nsIFaviconService);
     var livemarkURI = bms.getFolderURI(livemarkID);
@@ -289,8 +289,8 @@ LivemarkService.prototype = {
 
     if (siteURI) {
       
-      this._ans.setItemAnnotationString(livemarkID, LMANNO_SITEURI, siteURI.spec,
-                                        0, this._ans.EXPIRE_NEVER);
+      this._ans.setItemAnnotation(livemarkID, LMANNO_SITEURI, siteURI.spec,
+                                  0, this._ans.EXPIRE_NEVER);
     }
 
     return livemarkID;
@@ -317,7 +317,7 @@ LivemarkService.prototype = {
       
       
       var siteURIString =
-        this._ans.getItemAnnotationString(container, LMANNO_SITEURI);
+        this._ans.getItemAnnotation(container, LMANNO_SITEURI);
 
       return gIoService.newURI(siteURIString, null, null);
     }
@@ -337,15 +337,15 @@ LivemarkService.prototype = {
       return;
     }
 
-    this._ans.setItemAnnotationString(container, LMANNO_SITEURI, siteURI.spec,
+    this._ans.setItemAnnotation(container, LMANNO_SITEURI, siteURI.spec,
                                       0, this._ans.EXPIRE_NEVER);
   },
 
   getFeedURI: function LS_getFeedURI(container) {
     try {
       
-      var feedURIString = this._ans.getItemAnnotationString(container,
-                                                            LMANNO_FEEDURI);
+      var feedURIString = this._ans.getItemAnnotation(container,
+                                                      LMANNO_FEEDURI);
        
       return gIoService.newURI(feedURIString, null, null);
     }
@@ -361,8 +361,8 @@ LivemarkService.prototype = {
     if (!feedURI)
       throw Cr.NS_ERROR_INVALID_ARG;
 
-    this._ans.setItemAnnotationString(container, LMANNO_FEEDURI, feedURI.spec,
-                                      0, this._ans.EXPIRE_NEVER);
+    this._ans.setItemAnnotation(container, LMANNO_FEEDURI, feedURI.spec, 0,
+                                this._ans.EXPIRE_NEVER);
 
     
     var livemarkIndex = this._getLivemarkIndex(container);  
@@ -527,8 +527,8 @@ LivemarkLoadListener.prototype = {
   function LS_insertLivemarkChild(folderId, uri, title) {
     var id = this._bms.insertBookmark(folderId, uri, this._bms.DEFAULT_INDEX,
                                       title);
-    this._ans.setItemAnnotationString(id, LMANNO_BMANNO, uri.spec, 0,
-                                      this._ans.EXPIRE_NEVER);
+    this._ans.setItemAnnotation(id, LMANNO_BMANNO, uri.spec, 0,
+                                this._ans.EXPIRE_NEVER);
   },
 
   
@@ -596,9 +596,9 @@ LivemarkLoadListener.prototype = {
 
   _setResourceTTL: function LLL__setResourceTTL(milliseconds) {
     var exptime = Date.now() + milliseconds;
-    this._ans.setPageAnnotationInt64(this._livemark.feedURI,
-                                     LMANNO_EXPIRATION, exptime, 0,
-                                     Ci.nsIAnnotationService.EXPIRE_NEVER);
+    this._ans.setPageAnnotation(this._livemark.feedURI, LMANNO_EXPIRATION,
+                                exptime, 0,
+                                Ci.nsIAnnotationService.EXPIRE_NEVER);
   },
   
   

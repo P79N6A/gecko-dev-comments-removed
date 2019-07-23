@@ -101,7 +101,7 @@ function run_test() {
 
   
   try {
-    annosvc.setPageAnnotationString(testURI, testAnnoName, testAnnoVal, 0, 0);
+    annosvc.setPageAnnotation(testURI, testAnnoName, testAnnoVal, 0, 0);
   } catch(ex) {
     do_throw("unable to add page-annotation");
   }
@@ -110,15 +110,15 @@ function run_test() {
 
   
   do_check_true(annosvc.pageHasAnnotation(testURI, testAnnoName));
-  var storedAnnoVal = annosvc.getPageAnnotationString(testURI, testAnnoName);
-  do_check_eq(testAnnoVal, storedAnnoVal);
+  var storedAnnoVal = annosvc.getPageAnnotation(testURI, testAnnoName);
+  do_check_true(testAnnoVal === storedAnnoVal);
 
   
   try {
     var lastModified = bmsvc.getItemLastModified(testItemId);
     
     do_check_eq(lastModified, 0);
-    annosvc.setItemAnnotationString(testItemId, testAnnoName, testAnnoVal, 0, 0);
+    annosvc.setItemAnnotation(testItemId, testAnnoName, testAnnoVal, 0, 0);
     var lastModified2 = bmsvc.getItemLastModified(testItemId);
     
     do_check_true(lastModified2 > lastModified);
@@ -130,16 +130,16 @@ function run_test() {
 
   try {
     var lastModified = bmsvc.getItemLastModified(testItemId);
-    var annoVal = annosvc.getItemAnnotationString(testItemId, testAnnoName);
+    var annoVal = annosvc.getItemAnnotation(testItemId, testAnnoName);
     
-    do_check_eq(testAnnoVal, annoVal);
+    do_check_true(testAnnoVal === annoVal);
   } catch(ex) {
     do_throw("unable to get item annotation");
   }
 
   
   var uri2 = uri("http://www.tests.tld");
-  annosvc.setPageAnnotationString(uri2, testAnnoName, testAnnoVal, 0, 0);
+  annosvc.setPageAnnotation(uri2, testAnnoName, testAnnoVal, 0, 0);
   var pages = annosvc.getPagesWithAnnotation(testAnnoName, { });
   do_check_eq(pages.length, 2);
   
@@ -149,7 +149,7 @@ function run_test() {
 
   
   var testItemId2 = bmsvc.insertBookmark(bmsvc.bookmarksRoot, uri2, -1, "");
-  annosvc.setItemAnnotationString(testItemId2, testAnnoName, testAnnoVal, 0, 0);
+  annosvc.setItemAnnotation(testItemId2, testAnnoName, testAnnoVal, 0, 0);
   var items = annosvc.getItemsWithAnnotation(testAnnoName, { });
   do_check_eq(items.length, 2);
   
@@ -159,11 +159,11 @@ function run_test() {
 
   
   try {
-    annosvc.getPageAnnotationString(testURI, "blah");
+    annosvc.getPageAnnotation(testURI, "blah");
     do_throw("fetching page-annotation that doesn't exist, should've thrown");
   } catch(ex) {}
   try {
-    annosvc.getItemAnnotationString(testURI, "blah");
+    annosvc.getItemAnnotation(testURI, "blah");
     do_throw("fetching item-annotation that doesn't exist, should've thrown");
   } catch(ex) {}
 
@@ -201,7 +201,7 @@ function run_test() {
   
   var int32Key = testAnnoName + "/types/Int32";
   var int32Val = 23;
-  annosvc.setPageAnnotationInt32(testURI, int32Key, int32Val, 0, 0);
+  annosvc.setPageAnnotation(testURI, int32Key, int32Val, 0, 0);
   do_check_true(annosvc.pageHasAnnotation(testURI, int32Key));
   var flags = {}, exp = {}, mimeType = {}, storageType = {};
   annosvc.getPageAnnotationInfo(testURI, int32Key, flags, exp, mimeType,
@@ -210,53 +210,49 @@ function run_test() {
   do_check_eq(exp.value, 0);
   do_check_eq(mimeType.value, null);
   do_check_eq(storageType.value, Ci.nsIAnnotationService.TYPE_INT32);
-  var storedVal = annosvc.getPageAnnotationInt32(testURI, int32Key);
+  var storedVal = annosvc.getPageAnnotation(testURI, int32Key);
   do_check_true(int32Val === storedVal);
-  annosvc.setItemAnnotationInt32(testItemId, int32Key, int32Val, 0, 0);
+  annosvc.setItemAnnotation(testItemId, int32Key, int32Val, 0, 0);
   do_check_true(annosvc.itemHasAnnotation(testItemId, int32Key));
   annosvc.getItemAnnotationInfo(testItemId, int32Key, flags, exp, mimeType,
                                 storageType);
   do_check_eq(flags.value, 0);
   do_check_eq(exp.value, 0);
   do_check_eq(mimeType.value, null);
-  do_check_eq(storageType.value, Ci.nsIAnnotationService.TYPE_INT32);
-  storedVal = annosvc.getItemAnnotationInt32(testItemId, int32Key);
+  storedVal = annosvc.getItemAnnotation(testItemId, int32Key);
   do_check_true(int32Val === storedVal);
 
   
   var int64Key = testAnnoName + "/types/Int64";
   var int64Val = 4294967296;
-  annosvc.setPageAnnotationInt64(testURI, int64Key, int64Val, 0, 0);
+  annosvc.setPageAnnotation(testURI, int64Key, int64Val, 0, 0);
   annosvc.getPageAnnotationInfo(testURI, int64Key, flags, exp, mimeType, storageType);
   do_check_eq(flags.value, 0);
   do_check_eq(exp.value, 0);
   do_check_eq(mimeType.value, null);
-  do_check_eq(storageType.value, Ci.nsIAnnotationService.TYPE_INT64);
-  storedVal = annosvc.getPageAnnotationInt64(testURI, int64Key);
+  storedVal = annosvc.getPageAnnotation(testURI, int64Key);
   do_check_true(int64Val === storedVal);
-  annosvc.setItemAnnotationInt64(testItemId, int64Key, int64Val, 0, 0);
+  annosvc.setItemAnnotation(testItemId, int64Key, int64Val, 0, 0);
   do_check_true(annosvc.itemHasAnnotation(testItemId, int64Key));
   annosvc.getItemAnnotationInfo(testItemId, int64Key, flags, exp, mimeType,
                                 storageType);
   do_check_eq(flags.value, 0);
   do_check_eq(exp.value, 0);
   do_check_eq(mimeType.value, null);
-  do_check_eq(storageType.value, Ci.nsIAnnotationService.TYPE_INT64);
-  storedVal = annosvc.getItemAnnotationInt64(testItemId, int64Key);
+  storedVal = annosvc.getItemAnnotation(testItemId, int64Key);
   do_check_true(int64Val === storedVal);
 
   
   var doubleKey = testAnnoName + "/types/Double";
   var doubleVal = 0.000002342;
-  annosvc.setPageAnnotationDouble(testURI, doubleKey, doubleVal, 0, 0);
+  annosvc.setPageAnnotation(testURI, doubleKey, doubleVal, 0, 0);
   annosvc.getPageAnnotationInfo(testURI, doubleKey, flags, exp, mimeType, storageType);
   do_check_eq(flags.value, 0);
   do_check_eq(exp.value, 0);
   do_check_eq(mimeType.value, null);
-  do_check_eq(storageType.value, Ci.nsIAnnotationService.TYPE_DOUBLE);
-  storedVal = annosvc.getPageAnnotationDouble(testURI, doubleKey);
+  storedVal = annosvc.getPageAnnotation(testURI, doubleKey);
   do_check_true(doubleVal === storedVal);
-  annosvc.setItemAnnotationDouble(testItemId, doubleKey, doubleVal, 0, 0);
+  annosvc.setItemAnnotation(testItemId, doubleKey, doubleVal, 0, 0);
   do_check_true(annosvc.itemHasAnnotation(testItemId, doubleKey));
   annosvc.getItemAnnotationInfo(testItemId, doubleKey, flags, exp, mimeType,
                                 storageType);
@@ -264,7 +260,7 @@ function run_test() {
   do_check_eq(exp.value, 0);
   do_check_eq(mimeType.value, null);
   do_check_eq(storageType.value, Ci.nsIAnnotationService.TYPE_DOUBLE);
-  storedVal = annosvc.getItemAnnotationDouble(testItemId, doubleKey);
+  storedVal = annosvc.getItemAnnotation(testItemId, doubleKey);
   do_check_true(doubleVal === storedVal);
 
   
@@ -295,34 +291,6 @@ function run_test() {
 
   
   try {
-    annosvc.getPageAnnotationString(testURI, int32Key);
-    do_throw("page-annotation string accessor didn't throw for a wrong type!");
-    annosvc.getItemAnnotationString(testItemId, int32Key);
-    do_throw("item-annotation string accessor didn't throw for a wrong type!");
-  } catch(ex) {}
-
-  try {
-    annosvc.getPageAnnotationInt32(testURI, int64Key);
-    do_throw("page-annotation int32 accessor didn't throw for a wrong type!");
-    annosvc.getItemAnnotationInt32(testItemId, int64Key);
-    do_throw("item-annotation int32 accessor didn't throw for a wrong type!");
-  } catch(ex) {}
-
-  try {
-    annosvc.getPageAnnotationInt64(testURI, int32Key);
-    do_throw("page-annotation int64 accessor didn't throw for a wrong type!");
-    annosvc.getItemAnnotationInt64(testItemId, int32Key);
-    do_throw("item-annotation int64 accessor didn't throw for a wrong type!");   
-  } catch(ex) {}
-
-  try {
-    annosvc.getPageAnnotationDouble(testURI, int32Key);
-    do_throw("page-annotation double accessor didn't throw for a wrong type!");
-    annosvc.getItemAnnotationDouble(testItemId, int32Key);
-    do_throw("item-annotation double accessor didn't throw for a wrong type!");
-  } catch(ex) {}
-
-  try {
     var data = {}, length = {}, mimeType = {};
     annosvc.getPageAnnotationBinary(testURI, int32Key, data, length, mimeType);
     do_throw("page-annotation binary accessor didn't throw for a wrong type!");
@@ -334,7 +302,7 @@ function run_test() {
   
   annosvc.removePageAnnotation(testURI, int32Key);
 
-  annosvc.setItemAnnotationString(testItemId, testAnnoName, testAnnoVal, 0, 0);
+  annosvc.setItemAnnotation(testItemId, testAnnoName, testAnnoVal, 0, 0);
   
   var lastModified3 = bmsvc.getItemLastModified(testItemId);
   annosvc.removeItemAnnotation(testItemId, int32Key);
@@ -359,7 +327,7 @@ function run_test() {
   var invalidIds = [-1, 0, 37643];
   for each (var id in invalidIds) {
     try {
-      annosvc.setItemAnnotationString(id, "foo", "bar", 0, 0);
+      annosvc.setItemAnnotation(id, "foo", "bar", 0, 0);
       do_throw("setItemAnnotation* should throw for invalid item id: " + id)
     }
     catch(ex) { }
