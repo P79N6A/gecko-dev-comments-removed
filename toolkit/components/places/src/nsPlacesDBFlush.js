@@ -222,7 +222,7 @@ nsPlacesDBFlush.prototype = {
     this._timer = this._newTimer();
 
     
-    this._delayedFlushWithQueries([kQuerySyncPlacesId, kQuerySyncHistoryVisitsId]);
+    this._flushWithQueries([kQuerySyncPlacesId, kQuerySyncHistoryVisitsId]);
   },
 
   onItemAdded: function(aItemId, aParentId, aIndex)
@@ -231,14 +231,14 @@ nsPlacesDBFlush.prototype = {
     
     if (!this._inBatchMode &&
         this._bs.getItemType(aItemId) == this._bs.TYPE_BOOKMARK)
-      this._delayedFlushWithQueries([kQuerySyncPlacesId]);
+      this._flushWithQueries([kQuerySyncPlacesId]);
   },
 
   onItemChanged: function DBFlush_onItemChanged(aItemId, aProperty,
                                                 aIsAnnotationProperty, aValue)
   {
     if (!this._inBatchMode && aProperty == "uri")
-      this._delayedFlushWithQueries([kQuerySyncPlacesId]);
+      this._flushWithQueries([kQuerySyncPlacesId]);
   },
 
   onBeforeItemRemoved: function() { },
@@ -348,22 +348,6 @@ nsPlacesDBFlush.prototype = {
 
     
     this._db.executeAsync(statements, statements.length, this);
-  },
-
-  
-
-
-
-  _delayedFlushWithQueries: function DBFlush_delayedflushWithQueries(aQueryNames)
-  {
-    let tm = Cc["@mozilla.org/thread-manager;1"].
-             getService(Ci.nsIThreadManager);
-    let self = this;
-    tm.mainThread.dispatch({
-      run: function() {
-        self._flushWithQueries(aQueryNames);
-      }
-    }, Ci.nsIThread.DISPATCH_NORMAL);
   },
 
   
