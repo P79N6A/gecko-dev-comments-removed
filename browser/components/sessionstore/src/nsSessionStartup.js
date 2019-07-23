@@ -65,7 +65,6 @@
 
 
 
-
 const Cc = Components.classes;
 const Ci = Components.interfaces;
 const Cr = Components.results;
@@ -96,12 +95,6 @@ SessionStartup.prototype = {
 
 
   init: function sss_init() {
-    
-    let pbs = Cc["@mozilla.org/privatebrowsing;1"].
-              getService(Ci.nsIPrivateBrowsingService);
-    if (pbs.autoStarted)
-      return;
-
     let prefBranch = Cc["@mozilla.org/preferences-service;1"].
                      getService(Ci.nsIPrefService).getBranch("browser.");
 
