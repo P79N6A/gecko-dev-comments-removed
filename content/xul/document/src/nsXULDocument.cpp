@@ -1185,13 +1185,15 @@ nsXULDocument::AddForwardReference(nsForwardReference* aRef)
     return NS_OK;
 }
 
-
 nsresult
 nsXULDocument::ResolveForwardReferences()
 {
     if (mResolutionPhase == nsForwardReference::eDone)
         return NS_OK;
 
+    NS_ASSERTION(mResolutionPhase == nsForwardReference::eStart,
+                 "nested ResolveForwardReferences()");
+        
     
     
     
@@ -1223,6 +1225,13 @@ nsXULDocument::ResolveForwardReferences()
                     case nsForwardReference::eResolve_Later:
                         
                         ;
+                    }
+
+                    if (mResolutionPhase == nsForwardReference::eStart) {
+                        
+                        
+                        
+                        return NS_OK;
                     }
                 }
             }
