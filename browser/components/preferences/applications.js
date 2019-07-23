@@ -1022,7 +1022,7 @@ var gApplicationsPane = {
 
     
     var showPlugins = this._prefSvc.getBoolPref(PREF_SHOW_PLUGINS_IN_LIST);
-    var hideTypesWithoutExtensions =
+    var hidePluginsWithoutExtensions =
       this._prefSvc.getBoolPref(PREF_HIDE_PLUGINS_WITHOUT_EXTENSIONS);
 
     for (let type in this._handledTypes) {
@@ -1034,7 +1034,8 @@ var gApplicationsPane = {
       
       
       
-      if (hideTypesWithoutExtensions &&
+      
+      if (hidePluginsWithoutExtensions && handlerInfo.handledOnlyByPlugin &&
           handlerInfo.wrappedHandlerInfo instanceof Ci.nsIMIMEInfo &&
           !handlerInfo.primaryExtension)
         continue;
