@@ -429,7 +429,7 @@ nsHttpChannel::HandleAsyncRedirect()
     if (mCacheEntry) {
         if (NS_FAILED(rv))
             mCacheEntry->Doom();
-        CloseCacheEntry();
+        CloseCacheEntry(PR_FALSE);
     }
 
     mIsPending = PR_FALSE;
@@ -454,7 +454,7 @@ nsHttpChannel::HandleAsyncNotModified()
 
     DoNotifyListener();
 
-    CloseCacheEntry();
+    CloseCacheEntry(PR_TRUE);
 
     mIsPending = PR_FALSE;
 
@@ -836,7 +836,7 @@ nsHttpChannel::ProcessResponse()
         rv = ProcessRedirection(httpStatus);
         if (NS_SUCCEEDED(rv)) {
             InitCacheEntry();
-            CloseCacheEntry();
+            CloseCacheEntry(PR_FALSE);
 
             if (mCacheForOfflineUse) {
                 
@@ -893,7 +893,7 @@ nsHttpChannel::ProcessNormal()
     if (mCacheEntry) {
         rv = InitCacheEntry();
         if (NS_FAILED(rv))
-            CloseCacheEntry();
+            CloseCacheEntry(PR_TRUE);
     }
 
     
@@ -1970,7 +1970,7 @@ nsHttpChannel::ReadFromCache()
 }
 
 void
-nsHttpChannel::CloseCacheEntry()
+nsHttpChannel::CloseCacheEntry(PRBool doomOnFailure)
 {
     if (!mCacheEntry)
         return;
@@ -1985,7 +1985,8 @@ nsHttpChannel::CloseCacheEntry()
     PRBool doom = PR_FALSE;
     if (mInitedCacheEntry) {
         NS_ASSERTION(mResponseHead, "oops");
-        if (NS_FAILED(mStatus) && (mCacheAccess & nsICache::ACCESS_WRITE) &&
+        if (NS_FAILED(mStatus) && doomOnFailure &&
+            (mCacheAccess & nsICache::ACCESS_WRITE) &&
             !mResponseHead->IsResumable())
             doom = PR_TRUE;
     }
@@ -3761,7 +3762,7 @@ nsHttpChannel::AsyncOpen(nsIStreamListener *listener, nsISupports *context)
         rv = Connect();
     if (NS_FAILED(rv)) {
         LOG(("Calling AsyncAbort [rv=%x mCanceled=%i]\n", rv, mCanceled));
-        CloseCacheEntry();
+        CloseCacheEntry(PR_TRUE);
         AsyncAbort(rv);
     }
     return NS_OK;
@@ -4496,7 +4497,7 @@ nsHttpChannel::OnStopRequest(nsIRequest *request, nsISupports *ctxt, nsresult st
     }
 
     if (mCacheEntry)
-        CloseCacheEntry();
+        CloseCacheEntry(PR_TRUE);
 
     if (mOfflineCacheEntry)
         CloseOfflineCacheEntry();
@@ -4859,7 +4860,7 @@ nsHttpChannel::OnCacheEntryAvailable(nsICacheEntryDescriptor *entry,
 
     
     if (NS_FAILED(rv)) {
-        CloseCacheEntry();
+        CloseCacheEntry(PR_TRUE);
         AsyncAbort(rv);
     }
 
