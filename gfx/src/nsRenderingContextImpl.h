@@ -47,23 +47,10 @@
 class gfxContext;
 #endif
 
-typedef struct {	
-    double x;	  
-    double dx;	
-    int i;	    
-} Edge;
-
 class nsRenderingContextImpl : public nsIRenderingContext
 {
 
 
-public:
-
-
-protected:
-  nsTransform2D		  *mTranMatrix;				
-  int               mAct;		        		
-  Edge              *mActive;	      		
 
 public:
   nsRenderingContextImpl();
@@ -72,72 +59,18 @@ public:
 
 
   
-  NS_IMETHOD FlushRect(const nsRect& aRect);
-  NS_IMETHOD FlushRect(nscoord aX, nscoord aY, nscoord aWidth, nscoord aHeight);
+
+
+
+
+
+  virtual PRInt32 GetMaxStringLength() = 0;
 
   
 
 
 
-
-  NS_IMETHOD GetPenMode(nsPenMode &aPenMode) { return NS_ERROR_FAILURE;}
-
-  virtual void* GetNativeGraphicData(nsIRenderingContext::GraphicDataType aType)
-  { return nsnull; }
-
-  
-
-
-
-
-  NS_IMETHOD SetPenMode(nsPenMode aPenMode) { return NS_ERROR_FAILURE;}
-  
-  NS_IMETHOD PushTranslation(PushedTranslation* aState);
-  NS_IMETHOD PopTranslation(PushedTranslation* aState);
-  NS_IMETHOD SetTranslation(nscoord aX, nscoord aY);
-
-  
-
-
-
-
-
-  virtual PRInt32 GetMaxStringLength() { return 1; }
-
-  
-
-
-
-  NS_IMETHOD SetRightToLeftText(PRBool aIsRTL);
   NS_IMETHOD GetRightToLeftText(PRBool* aIsRTL);
-
-#ifndef MOZ_CAIRO_GFX
-  NS_IMETHOD DrawImage(imgIContainer *aImage, const nsRect & aSrcRect, const nsRect & aDestRect);
-#endif
-  NS_IMETHOD DrawTile(imgIContainer *aImage, nscoord aXOffset, nscoord aYOffset, const nsRect * aTargetRect);
-
-  NS_IMETHOD GetClusterInfo(const PRUnichar *aText,
-                            PRUint32 aLength,
-                            PRUint8 *aClusterStarts);
-  virtual PRInt32 GetPosition(const PRUnichar *aText,
-                              PRUint32 aLength,
-                              nsPoint aPt);
-
-  NS_IMETHOD GetRangeWidth(const PRUnichar *aText,
-                           PRUint32 aLength,
-                           PRUint32 aStart,
-                           PRUint32 aEnd,
-                           PRUint32 &aWidth);
-  NS_IMETHOD GetRangeWidth(const char *aText,
-                           PRUint32 aLength,
-                           PRUint32 aStart,
-                           PRUint32 aEnd,
-                           PRUint32 &aWidth);
-
-  
-  NS_IMETHOD GetWidth(char aC, nscoord &aWidth) = 0;
-  NS_IMETHOD GetWidth(PRUnichar aC, nscoord &aWidth,
-                      PRInt32 *aFontID = nsnull) = 0;
 
   
   
@@ -260,8 +193,6 @@ public:
                                 const nscoord* aSpacing = nsnull)
   { return NS_ERROR_NOT_IMPLEMENTED; }
 
-  NS_IMETHOD RenderEPS(const nsRect& aRect, FILE *aDataFile);
-
 #ifdef MOZ_CAIRO_GFX
   NS_IMETHOD Init(nsIDeviceContext* aContext, gfxASurface* aThebesSurface) { return NS_ERROR_NOT_IMPLEMENTED; }
   NS_IMETHOD Init(nsIDeviceContext* aContext, gfxContext* aThebesContext) { return NS_ERROR_NOT_IMPLEMENTED; }
@@ -269,56 +200,6 @@ public:
 
 protected:
   virtual ~nsRenderingContextImpl();
-
-  
-
-
-
-
-
-
-
-
-  PRBool RectFitsInside(const nsRect& aRect, PRInt32 aWidth, PRInt32 aHeight) const;
-
-  
-
-
-
-
-
-
-
-
-  PRBool BothRectsFitInside(const nsRect& aRect1, const nsRect& aRect2, PRInt32 aWidth, PRInt32 aHeight, nsRect& aNewSize) const;
-
-  
-
-
-
-
-
-
-
-
-  void CalculateDiscreteSurfaceSize(const nsRect& aMaxBackbufferSize, const nsRect& aRequestedSize, nsRect& aSize);
-
-  
-
-
-
-
-
-
-  void GetDrawingSurfaceSize(const nsRect& aMaxBackbufferSize, const nsRect& aRequestedSize, nsRect& aSurfaceSize);
-
-public:
-
-protected:
-  nsPenMode   mPenMode;
-private:
-  
-  static nsSize gLargestRequestedSize;
 
 };
 
