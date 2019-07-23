@@ -73,6 +73,20 @@ public:
   NS_IMETHOD GetDescription(nsAString& aDescription);
   NS_IMETHOD GetAccessibleRelated(PRUint32 aRelationType, nsIAccessible **aRelated);
 
+  
+
+
+
+
+  PRBool IsValidColumn(PRInt32 aColumn);
+
+  
+
+
+
+
+  PRBool IsValidRow(PRInt32 aRow);
+
 protected:
 
   
