@@ -683,9 +683,9 @@ gfxAtsuiFontGroup::GuessMaximumStringLength()
     
     
     
-    if (gfxPlatformMac::GetPlatform()->OSXVersion() >= MAC_OS_X_VERSION_10_5_HEX) {
-        realGuessMax = PR_MIN(500, realGuessMax);
-    }
+    
+    
+    realGuessMax = PR_MIN(500, realGuessMax);
 
     return realGuessMax;
 }
