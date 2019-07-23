@@ -6880,6 +6880,7 @@ nsDocShell::InternalLoad(nsIURI * aURI,
             OnNewURI(aURI, nsnull, mLoadType, PR_TRUE);
             nsCOMPtr<nsIInputStream> postData;
             PRUint32 pageIdent = PR_UINT32_MAX;
+            nsCOMPtr<nsISupports> cacheKey;
             
             if (mOSHE) {
                 
@@ -6893,6 +6894,7 @@ nsDocShell::InternalLoad(nsIURI * aURI,
                 if (aLoadType & LOAD_CMD_NORMAL) {
                     mOSHE->GetPostData(getter_AddRefs(postData));
                     mOSHE->GetPageIdentifier(&pageIdent);
+                    mOSHE->GetCacheKey(getter_AddRefs(cacheKey));
                 }
             }
             
@@ -6907,6 +6909,11 @@ nsDocShell::InternalLoad(nsIURI * aURI,
                 
                 if (postData)
                     mOSHE->SetPostData(postData);
+
+                
+                
+                if (cacheKey)
+                    mOSHE->SetCacheKey(cacheKey);
                 
                 
                 
