@@ -2935,9 +2935,6 @@ js_DeleteRecorder(JSContext* cx)
     JSTraceMonitor* tm = &JS_TRACE_MONITOR(cx);
 
     
-    JS_ASSERT(tm->onTrace);
-    tm->onTrace = false;
-
     delete tm->recorder;
     tm->recorder = NULL;
 }
@@ -2964,15 +2961,6 @@ js_StartRecorder(JSContext* cx, VMSideExit* anchor, Fragment* f, TreeInfo* ti,
                  VMSideExit* expectedInnerExit, Fragment* outer)
 {
     JSTraceMonitor* tm = &JS_TRACE_MONITOR(cx);
-
-    
-
-
-
-
-
-    JS_ASSERT(!tm->onTrace);
-    tm->onTrace = true;
 
     
     tm->recorder = new (&gc) TraceRecorder(cx, anchor, f, ti,
@@ -3871,11 +3859,8 @@ js_ExecuteTree(JSContext* cx, Fragment* f, uintN& inlineCallCount,
 
 
 
-
-    bool onTrace = tm->onTrace;
-    if (!onTrace)
-        tm->onTrace = true;
-    VMSideExit* lr;
+    JS_ASSERT(!tm->onTrace);
+    tm->onTrace = true;
     
     debug_only(fflush(NULL);)
     GuardRecord* rec;
@@ -3884,13 +3869,13 @@ js_ExecuteTree(JSContext* cx, Fragment* f, uintN& inlineCallCount,
 #else
     rec = u.func(&state, NULL);
 #endif
-    lr = (VMSideExit*)rec->exit;
+    VMSideExit* lr = (VMSideExit*)rec->exit;
 
     AUDIT(traceTriggered);
 
     JS_ASSERT(lr->exitType != LOOP_EXIT || !lr->calldepth);
 
-    tm->onTrace = onTrace;
+    tm->onTrace = false;
 
     
 
@@ -4460,7 +4445,7 @@ js_FlushJITCache(JSContext* cx)
 JS_FORCES_STACK JSStackFrame *
 js_GetTopStackFrame(JSContext *cx)
 {
-    if (JS_EXECUTING_TRACE(cx)) {
+    if (JS_ON_TRACE(cx)) {
         
 
 
@@ -5035,7 +5020,7 @@ TraceRecorder::equalityHelper(jsval l, jsval r, LIns* l_ins, LIns* r_ins,
             args[0] = l_ins, args[1] = cx_ins;
             l_ins = lir->insCall(&js_BooleanOrUndefinedToNumber_ci, args);
             l = (l == JSVAL_VOID)
-                ? DOUBLE_TO_JSVAL(cx->runtime->jsNaN)
+                ? DOUBLE_TO_JSVAL(&cx->runtime->jsNaN)
                 : INT_TO_JSVAL(l == JSVAL_TRUE);
             return equalityHelper(l, r, l_ins, r_ins, negate,
                                   tryBranchAfterCond, rval);
@@ -5044,7 +5029,7 @@ TraceRecorder::equalityHelper(jsval l, jsval r, LIns* l_ins, LIns* r_ins,
             args[0] = r_ins, args[1] = cx_ins;
             r_ins = lir->insCall(&js_BooleanOrUndefinedToNumber_ci, args);
             r = (r == JSVAL_VOID)
-                ? DOUBLE_TO_JSVAL(cx->runtime->jsNaN)
+                ? DOUBLE_TO_JSVAL(&cx->runtime->jsNaN)
                 : INT_TO_JSVAL(r == JSVAL_TRUE);
             return equalityHelper(l, r, l_ins, r_ins, negate,
                                   tryBranchAfterCond, rval);
