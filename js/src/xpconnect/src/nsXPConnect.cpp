@@ -1114,9 +1114,8 @@ nsXPConnect::InitClassesWithNewWrappedGlobal(JSContext * aJSContext,
         nsresult rv;
         if(!XPCConvert::NativeInterface2JSObject(ccx, &v,
                                                  getter_AddRefs(holder),
-                                                 aCOMObj, &aIID, nsnull,
-                                                 tempGlobal, PR_FALSE,
-                                                 OBJ_IS_GLOBAL, &rv))
+                                                 aCOMObj, &aIID, tempGlobal,
+                                                 PR_FALSE, OBJ_IS_GLOBAL, &rv))
             return UnexpectedFailure(rv);
 
         NS_ASSERTION(NS_SUCCEEDED(rv) && holder, "Didn't wrap properly");
@@ -1188,7 +1187,7 @@ nsXPConnect::WrapNative(JSContext * aJSContext,
     NS_ASSERTION(aHolder, "bad param");
 
     jsval v;
-    return WrapNativeToJSVal(aJSContext, aScope, aCOMObj, &aIID, &v, aHolder);
+    return WrapNativeToJSVal(aJSContext, aScope, aCOMObj, aIID, &v, aHolder);
 }
 
 
@@ -1196,7 +1195,7 @@ NS_IMETHODIMP
 nsXPConnect::WrapNativeToJSVal(JSContext * aJSContext,
                                JSObject * aScope,
                                nsISupports *aCOMObj,
-                               const nsIID * aIID,
+                               const nsIID & aIID,
                                jsval *aVal,
                                nsIXPConnectJSObjectHolder **aHolder)
 {
@@ -1212,8 +1211,8 @@ nsXPConnect::WrapNativeToJSVal(JSContext * aJSContext,
         return UnexpectedFailure(NS_ERROR_FAILURE);
 
     nsresult rv;
-    if(!XPCConvert::NativeInterface2JSObject(ccx, aVal, aHolder, aCOMObj, aIID,
-                                             nsnull, aScope, PR_FALSE,
+    if(!XPCConvert::NativeInterface2JSObject(ccx, aVal, aHolder, aCOMObj, &aIID,
+                                             aScope, PR_FALSE,
                                              OBJ_IS_NOT_GLOBAL, &rv))
         return rv;
 
