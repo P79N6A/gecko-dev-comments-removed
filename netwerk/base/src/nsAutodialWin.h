@@ -52,21 +52,21 @@ typedef struct tagRASAUTODIALENTRYA {
     DWORD dwSize;
     DWORD dwFlags;
     DWORD dwDialingLocation;
-    PRUnichar szEntry[RAS_MaxEntryName + 1];
-} RASAUTODIALENTRYW, *LPRASAUTODIALENTRYW;
-typedef RASAUTODIALENTRYW RASAUTODIALENTRY, *LPRASAUTODIALENTRY;
+    CHAR szEntry[RAS_MaxEntryName + 1];
+} RASAUTODIALENTRYA, *LPRASAUTODIALENTRYA;
+typedef RASAUTODIALENTRYA RASAUTODIALENTRY, *LPRASAUTODIALENTRY;
 
 #define RASADP_LoginSessionDisable              1
 
 #endif  
 
 
-typedef DWORD (WINAPI* tRASPHONEBOOKDLG)(LPWSTR,LPWSTR,LPRASPBDLG);
-typedef DWORD (WINAPI* tRASDIALDLG)(LPWSTR,LPWSTR,LPWSTR,LPRASDIALDLG);
+typedef DWORD (WINAPI* tRASPHONEBOOKDLG)(LPTSTR,LPTSTR,LPRASPBDLG);
+typedef DWORD (WINAPI* tRASDIALDLG)(LPTSTR,LPTSTR,LPTSTR,LPRASDIALDLG);
 typedef DWORD (WINAPI* tRASENUMCONNECTIONS)(LPRASCONN,LPDWORD,LPDWORD);
-typedef DWORD (WINAPI* tRASENUMENTRIES)(LPWSTR,LPWSTR,LPRASENTRYNAMEW,LPDWORD,LPDWORD);
-typedef DWORD (WINAPI* tRASSETAUTODIALADDRESS)(LPCWSTR,DWORD,LPRASAUTODIALENTRYW,DWORD,DWORD);
-typedef DWORD (WINAPI* tRASGETAUTODIALADDRESS)(LPCWSTR,LPDWORD,LPRASAUTODIALENTRYW,LPDWORD,LPDWORD);
+typedef DWORD (WINAPI* tRASENUMENTRIES)(LPTSTR,LPTSTR,LPRASENTRYNAME,LPDWORD,LPDWORD);
+typedef DWORD (WINAPI* tRASSETAUTODIALADDRESS)(LPCTSTR,DWORD,LPRASAUTODIALENTRY,DWORD,DWORD);
+typedef DWORD (WINAPI* tRASGETAUTODIALADDRESS)(LPCTSTR,LPDWORD,LPRASAUTODIALENTRY,LPDWORD,LPDWORD);
 typedef DWORD (WINAPI* tRASGETAUTODIALENABLE)(DWORD,LPBOOL);
 typedef DWORD (WINAPI* tRASGETAUTODIALPARAM)(DWORD,LPVOID,LPDWORD);
 
@@ -107,10 +107,10 @@ private:
     int NumRASEntries();
 
     
-    nsresult GetDefaultEntryName(PRUnichar* entryName, int bufferSize);
+    nsresult GetDefaultEntryName(char* entryName, int bufferSize);
 
     
-    nsresult GetFirstEntryName(PRUnichar* entryName, int bufferSize);
+    nsresult GetFirstEntryName(char* entryName, int bufferSize);
 
     
     PRBool IsRASConnected();
@@ -119,7 +119,7 @@ private:
     int QueryAutodialBehavior();
 
     
-    PRBool AddAddressToAutodialDirectory(const PRUnichar* hostName);
+    PRBool AddAddressToAutodialDirectory(const char* hostName);
 
     
     int GetCurrentLocation();
@@ -145,7 +145,7 @@ private:
     int mNumRASConnectionEntries;
 
     
-    PRUnichar mDefaultEntryName[RAS_MaxEntryName + 1];  
+    char mDefaultEntryName[RAS_MaxEntryName + 1];  
 
     
     static PRIntervalTime mDontRetryUntil;
@@ -184,7 +184,7 @@ public:
     nsresult Init();
 
     
-    nsresult DialDefault(const PRUnichar* hostName);
+    nsresult DialDefault(const char* hostName);
 
     
     PRBool ShouldDialOnNetworkError();
