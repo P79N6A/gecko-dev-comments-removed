@@ -127,9 +127,9 @@ nsDisplayXULTreeColSplitterTarget::HitTest(nsDisplayListBuilder* aBuilder,
   
   PRBool left = PR_FALSE;
   PRBool right = PR_FALSE;
-  if (mFrame->GetSize().width - 60 < pt.x)
+  if (mFrame->GetSize().width - nsPresContext::CSSPixelsToAppUnits(4) <= pt.x)
     right = PR_TRUE;
-  else if (60 > pt.x)
+  else if (nsPresContext::CSSPixelsToAppUnits(4) > pt.x)
     left = PR_TRUE;
 
   if (left || right) {
