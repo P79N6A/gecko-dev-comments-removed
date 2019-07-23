@@ -50,8 +50,8 @@
 
 
 
-class nsDOMMessageEvent : public nsIDOMMessageEvent,
-                          public nsDOMEvent
+class nsDOMMessageEvent : public nsDOMEvent,
+                          public nsIDOMMessageEvent
 {
 public:
   nsDOMMessageEvent(nsPresContext* aPresContext, nsEvent* aEvent)

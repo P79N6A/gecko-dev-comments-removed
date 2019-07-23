@@ -49,8 +49,8 @@
 
 
 
-class nsDOMProgressEvent : public nsIDOMProgressEvent,
-                           public nsDOMEvent
+class nsDOMProgressEvent : public nsDOMEvent,
+                           public nsIDOMProgressEvent
 {
 public:
   nsDOMProgressEvent(nsPresContext* aPresContext, nsEvent* aEvent)
