@@ -73,8 +73,15 @@ struct nsMediaFeature {
     };
     ValueType mValueType;
 
-    
-    const PRInt32* mKeywordTable;
+    union {
+      
+      
+      
+      const void* mInitializer_;
+      
+      
+      const PRInt32* mKeywordTable;
+    } mData;
 
     
     
