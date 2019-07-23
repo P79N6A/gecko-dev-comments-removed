@@ -2139,6 +2139,7 @@ nsBlockFrame::ReflowDirtyLines(nsBlockReflowState& aState)
       if (aState.mPrevChild) {
         aState.mPrevChild->SetNextSibling(toMove->mFirstChild);
       }
+      aState.mPrevChild = toMove->LastChild();
 
       line = mLines.before_insert(end_lines(), toMove);
 
