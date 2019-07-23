@@ -701,12 +701,6 @@ nsTextStore::SendTextEventForCompositionString()
 
   nsAutoTArray<nsTextRange, 4> textRanges;
   nsTextRange newRange;
-  newRange.mStartOffset =
-    PRUint32(mCompositionSelection.acpStart - mCompositionStart);
-  newRange.mEndOffset =
-    PRUint32(mCompositionSelection.acpEnd - mCompositionStart);
-  newRange.mRangeType = NS_TEXTRANGE_CARETPOSITION;
-  textRanges.AppendElement(newRange);
   
   
   newRange.mStartOffset = 0;
@@ -762,6 +756,39 @@ nsTextStore::SendTextEventForCompositionString()
       textRanges.AppendElement(newRange);
     }
   }
+
+  
+  
+  
+  
+  
+  
+  
+  
+  if (mCompositionSelection.acpStart != mCompositionSelection.acpEnd &&
+      textRanges.Length() == 1) {
+    nsTextRange& range = textRanges[0];
+    LONG start = PR_MIN(mCompositionSelection.acpStart,
+                        mCompositionSelection.acpEnd);
+    LONG end = PR_MAX(mCompositionSelection.acpStart,
+                      mCompositionSelection.acpEnd);
+    if (range.mStartOffset == start - mCompositionStart &&
+        range.mEndOffset == end - mCompositionStart &&
+        range.mRangeStyle.IsNoChangeStyle()) {
+      range.mRangeStyle.Clear();
+      
+      range.mRangeType = NS_TEXTRANGE_SELECTEDRAWTEXT;
+    }
+  }
+
+  
+  LONG caretPosition = PR_MAX(mCompositionSelection.acpStart,
+                              mCompositionSelection.acpEnd);
+  caretPosition -= mCompositionStart;
+  nsTextRange caretRange;
+  caretRange.mStartOffset = caretRange.mEndOffset = PRUint32(caretPosition);
+  caretRange.mRangeType = NS_TEXTRANGE_CARETPOSITION;
+  textRanges.AppendElement(caretRange);
 
   event.theText = mCompositionString;
   event.rangeArray = textRanges.Elements();
