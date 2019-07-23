@@ -151,7 +151,7 @@ nsDOMNodeAllocator::Alloc(size_t aSize)
         mPool = new PLArenaPool();
         NS_ENSURE_TRUE(mPool, nsnull);
         PL_InitArenaPool(mPool, "nsDOMNodeAllocator",
-                         4096 * (sizeof(void*)/2), 0);
+                         4096 * (sizeof(void*)/4), 0);
       }
       
       PL_ARENA_ALLOCATE(result, mPool, aSize);
