@@ -14,13 +14,13 @@ function test() {
   ok(Application.extensions, "Check for the 'Extensions' object");
 
   
-  ok(!Application.extensions.has(testdata.dummyid), "Check non-existant extension for existance");
+  ok(!Application.extensions.has(testdata.dummyid), "Check non-existant extension for existence");
 
   
   return;
 
   
-  ok(Application.extensions.has(testdata.inspectorid), "Check extension for existance");
+  ok(Application.extensions.has(testdata.inspectorid), "Check extension for existence");
 
   var inspector = Application.extensions.get(testdata.inspectorid);
   is(inspector.id, testdata.inspectorid, "Check 'Extension.id' for known extension");
@@ -98,7 +98,7 @@ function test() {
   is(itemValue, "default", "Check 'Extension.prefs.getValue' for reset pref");
 
   
-  ok(!inspector.prefs.has(testdata.dummy), "Check non-existant property for existance");
+  ok(!inspector.prefs.has(testdata.dummy), "Check non-existant property for existence");
 
   waitForExplicitFinish();
   inspector.prefs.events.addListener("change", onPrefChange);

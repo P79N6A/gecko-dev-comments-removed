@@ -35,12 +35,12 @@ function test() {
   is(itemValue, "default", "Check 'Application.prefs.getValue' for reset pref");
 
   
-  ok(!Application.prefs.has(testdata.dummy), "Check non-existant property for existance");
+  ok(!Application.prefs.has(testdata.dummy), "Check non-existant property for existence");
 
   
 
   
-  ok(Application.prefs.has(testdata.string), "Check existing string property for existance");
+  ok(Application.prefs.has(testdata.string), "Check existing string property for existence");
 
   
   var val = Application.prefs.getValue(testdata.dummy, "default");
@@ -67,7 +67,7 @@ function test() {
   
 
   
-  ok(Application.prefs.has(testdata.integer), "Check existing integer property for existance");
+  ok(Application.prefs.has(testdata.integer), "Check existing integer property for existence");
 
   
   var val = Application.prefs.getValue(testdata.dummy, 0);
@@ -94,7 +94,7 @@ function test() {
   
 
   
-  ok(Application.prefs.has(testdata.boolean), "Check existing boolean property for existance");
+  ok(Application.prefs.has(testdata.boolean), "Check existing boolean property for existence");
 
   
   var val = Application.prefs.getValue(testdata.dummy, true);
