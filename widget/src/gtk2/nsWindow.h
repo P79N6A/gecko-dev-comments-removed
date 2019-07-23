@@ -452,10 +452,6 @@ protected:
     
     PRPackedBool        mPlaced;
 
-    
-    PRUint32            mPreferredWidth;
-    PRUint32            mPreferredHeight;
-
 private:
     void               GetToplevelWidget(GtkWidget **aWidget);
     GtkWidget         *GetMozContainerWidget();

@@ -241,10 +241,6 @@ protected:
     PRBool              mPlaced;
 
     
-    PRUint32            mPreferredWidth;
-    PRUint32            mPreferredHeight;
-
-    
 
 
 
