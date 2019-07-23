@@ -479,30 +479,22 @@ NS_IMETHODIMP nsXULWindow::Destroy()
 
 #if defined(XP_WIN) || defined(XP_OS2)
   
-  
   nsCOMPtr<nsIBaseWindow> parent(do_QueryReferent(mParentWindow));
   if (parent) {
-    PRBool parentVisible = PR_TRUE;
-    nsCOMPtr<nsIWidget> parentWidget;
-    parent->GetMainWidget(getter_AddRefs(parentWidget));
-    if (parentWidget)
-      parentWidget->IsVisible(parentVisible);
-    if (parentVisible) {
-      nsCOMPtr<nsIBaseWindow> baseHiddenWindow;
-      if (appShell) {
-        nsCOMPtr<nsIXULWindow> hiddenWindow;
-        appShell->GetHiddenWindow(getter_AddRefs(hiddenWindow));
-        if (hiddenWindow)
-          baseHiddenWindow = do_GetInterface(hiddenWindow);
-      }
-      
-      
-      if (baseHiddenWindow != parent) {
-        nsCOMPtr<nsIWidget> parentWidget;
-        parent->GetMainWidget(getter_AddRefs(parentWidget));
-        if (parentWidget)
-          parentWidget->PlaceBehind(eZPlacementTop, 0, PR_TRUE);
-      }
+    nsCOMPtr<nsIBaseWindow> baseHiddenWindow;
+    if (appShell) {
+      nsCOMPtr<nsIXULWindow> hiddenWindow;
+      appShell->GetHiddenWindow(getter_AddRefs(hiddenWindow));
+      if (hiddenWindow)
+        baseHiddenWindow = do_GetInterface(hiddenWindow);
+    }
+    
+    
+    if (baseHiddenWindow != parent) {
+      nsCOMPtr<nsIWidget> parentWidget;
+      parent->GetMainWidget(getter_AddRefs(parentWidget));
+      if (parentWidget)
+        parentWidget->PlaceBehind(eZPlacementTop, 0, PR_TRUE);
     }
   }
 #endif

@@ -693,7 +693,6 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(nsEventStateManager)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMPTR(mLastFocus);
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMPTR(mLastContentFocus);
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMPTR(mFirstBlurEvent);
-  NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMPTR(mFirstDocumentBlurEvent);
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMPTR(mFirstFocusEvent);
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMPTR(mFirstMouseOverEventElement);
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMPTR(mFirstMouseOutEventElement);
@@ -717,7 +716,6 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(nsEventStateManager)
   NS_IMPL_CYCLE_COLLECTION_UNLINK_NSCOMPTR(mLastFocus);
   NS_IMPL_CYCLE_COLLECTION_UNLINK_NSCOMPTR(mLastContentFocus);
   NS_IMPL_CYCLE_COLLECTION_UNLINK_NSCOMPTR(mFirstBlurEvent);
-  NS_IMPL_CYCLE_COLLECTION_UNLINK_NSCOMPTR(mFirstDocumentBlurEvent);
   NS_IMPL_CYCLE_COLLECTION_UNLINK_NSCOMPTR(mFirstFocusEvent);
   NS_IMPL_CYCLE_COLLECTION_UNLINK_NSCOMPTR(mFirstMouseOverEventElement);
   NS_IMPL_CYCLE_COLLECTION_UNLINK_NSCOMPTR(mFirstMouseOutEventElement);
@@ -1093,31 +1091,28 @@ nsEventStateManager::PreHandleEvent(nsPresContext* aPresContext,
           }
 
           
-          
-          nsCOMPtr<nsIDocument> lastFocusedDocument;
-          lastFocusedDocument.swap(gLastFocusedDocument);
-          nsCOMPtr<nsPresContext> lastFocusedPresContext;
-          lastFocusedPresContext.swap(gLastFocusedPresContext);
-          mCurrentTarget = nsnull;
-
-          
-          if (lastFocusedDocument) {
+          if (gLastFocusedDocument) {
             
             
 
-            nsCOMPtr<nsPIDOMWindow> window(lastFocusedDocument->GetWindow());
+            nsCOMPtr<nsPIDOMWindow> window(gLastFocusedDocument->GetWindow());
 
             event.target = nsnull;
-            nsEventDispatcher::Dispatch(lastFocusedDocument,
-                                        lastFocusedPresContext,
+            nsEventDispatcher::Dispatch(gLastFocusedDocument,
+                                        gLastFocusedPresContext,
                                         &event, nsnull, &status);
 
             if (window) {
               event.target = nsnull;
-              nsEventDispatcher::Dispatch(window, lastFocusedPresContext,
+              nsEventDispatcher::Dispatch(window, gLastFocusedPresContext,
                                           &event, nsnull, &status);
             }
           }
+
+          
+          mCurrentTarget = nsnull;
+          NS_IF_RELEASE(gLastFocusedDocument);
+          gLastFocusedPresContext = nsnull;
         }
       }
 #endif
@@ -1238,15 +1233,8 @@ nsEventStateManager::PreHandleEvent(nsPresContext* aPresContext,
 
       
 
-      if (gLastFocusedDocument && gLastFocusedDocument == mDocument &&
-          gLastFocusedDocument != mFirstDocumentBlurEvent) {
+      if (gLastFocusedDocument && gLastFocusedDocument == mDocument) {
 
-        PRBool clearFirstDocumentBlurEvent = PR_FALSE;
-        if (!mFirstDocumentBlurEvent) {
-          mFirstDocumentBlurEvent = gLastFocusedDocument;
-          clearFirstDocumentBlurEvent = PR_TRUE;
-        }
-          
         nsEventStatus status = nsEventStatus_eIgnore;
         nsEvent event(PR_TRUE, NS_BLUR_CONTENT);
         event.flags |= NS_EVENT_FLAG_CANT_BUBBLE;
@@ -1277,12 +1265,6 @@ nsEventStateManager::PreHandleEvent(nsPresContext* aPresContext,
         }
 
         
-        
-        mCurrentTarget = nsnull;
-        NS_IF_RELEASE(gLastFocusedDocument);
-        gLastFocusedPresContext = nsnull;
-
-        
         event.target = nsnull;
         nsEventDispatcher::Dispatch(mDocument, aPresContext, &event, nsnull,
                                     &status);
@@ -1292,9 +1274,11 @@ nsEventStateManager::PreHandleEvent(nsPresContext* aPresContext,
           nsEventDispatcher::Dispatch(ourWindow, aPresContext, &event, nsnull,
                                       &status);
         }
-        if (clearFirstDocumentBlurEvent) {
-          mFirstDocumentBlurEvent = nsnull;
-        }
+
+        
+        mCurrentTarget = nsnull;
+        NS_IF_RELEASE(gLastFocusedDocument);
+        gLastFocusedPresContext = nsnull;
       }
 
       if (focusController) {
