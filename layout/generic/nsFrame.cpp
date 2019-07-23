@@ -5776,7 +5776,9 @@ void nsFrame::FillCursorInformationFromStyle(const nsStyleUserInterface* ui,
 NS_IMETHODIMP
 nsFrame::RefreshSizeCache(nsBoxLayoutState& aState)
 {
-
+  
+  
+  
   
   
   
@@ -5851,6 +5853,8 @@ nsFrame::RefreshSizeCache(nsBoxLayoutState& aState)
 
          count++;
       } while(firstFrame);
+    } else {
+      metrics->mBlockMinSize.height = desiredSize.height;
     }
 
     metrics->mBlockPrefSize.height = metrics->mBlockMinSize.height;
@@ -6151,8 +6155,9 @@ nsFrame::BoxReflow(nsBoxLayoutState&        aState,
 
     
     
+    nsSize availSize(aWidth, NS_INTRINSICSIZE);
     nsHTMLReflowState reflowState(aPresContext, this, aRenderingContext,
-                                  nsSize(aWidth, NS_INTRINSICSIZE));
+                                  availSize);
 
     
     
@@ -6172,6 +6177,18 @@ nsFrame::BoxReflow(nsBoxLayoutState&        aState,
         aHeight - reflowState.mComputedBorderPadding.TopBottom();
       if (reflowState.mComputedHeight < 0)
         reflowState.mComputedHeight = 0;
+    } else {
+      reflowState.mComputedHeight =
+        ComputeSize(aRenderingContext, availSize, availSize.width,
+                    nsSize(reflowState.mComputedMargin.LeftRight(),
+                           reflowState.mComputedMargin.TopBottom()),
+                    nsSize(reflowState.mComputedBorderPadding.LeftRight() -
+                             reflowState.mComputedPadding.LeftRight(),
+                           reflowState.mComputedBorderPadding.TopBottom() -
+                             reflowState.mComputedPadding.TopBottom()),
+                    nsSize(reflowState.mComputedPadding.LeftRight(),
+                           reflowState.mComputedPadding.TopBottom()),
+                    PR_FALSE).height;
     }
 
     
