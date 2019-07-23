@@ -196,6 +196,9 @@ function OnRefTestLoad()
         DoneTests();
     }
 
+    
+    gBrowser.focus();
+
     StartTests();
 }
 
