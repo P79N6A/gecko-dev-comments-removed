@@ -412,7 +412,8 @@ nsSMILAnimationFunction::InterpolateResult(const nsSMILValueArray& aValues,
 
   
   
-  if (HasAttr(nsGkAtoms::keyTimes)) {
+  if (HasAttr(nsGkAtoms::keyTimes) &&
+      GetCalcMode() != CALC_PACED) {
     double first = mKeyTimes[0];
     if (first > 0.0 && simpleProgress < first) {
       if (!IsToAnimation())
@@ -429,20 +430,22 @@ nsSMILAnimationFunction::InterpolateResult(const nsSMILValueArray& aValues,
     }
   }
 
-  ScaleSimpleProgress(simpleProgress);
-
   if (GetCalcMode() != CALC_DISCRETE) {
     
     const nsSMILValue* from = nsnull;
     const nsSMILValue* to = nsnull;
     double intervalProgress;
     if (IsToAnimation()) {
-      
-      
       from = &aBaseValue;
       to = &aValues[0];
-      intervalProgress = simpleProgress;
-      ScaleIntervalProgress(intervalProgress, 0, 1);
+      if (GetCalcMode() == CALC_PACED) {
+        
+        intervalProgress = simpleProgress;
+      } else {
+        ScaleSimpleProgress(simpleProgress);
+        intervalProgress = simpleProgress;
+        ScaleIntervalProgress(intervalProgress, 0, 1);
+      }
     } else {
       if (GetCalcMode() == CALC_PACED) {
         rv = ComputePacedPosition(aValues, simpleProgress,
@@ -452,6 +455,7 @@ nsSMILAnimationFunction::InterpolateResult(const nsSMILValueArray& aValues,
         
         
       } else { 
+        ScaleSimpleProgress(simpleProgress);
         PRUint32 index = (PRUint32)floor(simpleProgress *
                                          (aValues.Length() - 1));
         from = &aValues[index];
