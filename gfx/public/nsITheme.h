@@ -139,11 +139,11 @@ public:
                                   PRBool* aIsOverridable)=0;
 
 
-  typedef enum {
+  typedef enum Transparency {
     eOpaque = 0,
     eTransparent,
     eUnknownTransparency
-  } Transparency;
+  };
 
   
 
