@@ -1170,7 +1170,7 @@ StringMatch(const jschar *text, jsuint textlen,
     if (textlen < patlen)
         return -1;
 
-#if defined(__i386__) || defined(_M_IX86)
+#if defined(__i386__) || defined(_M_IX86) || defined(__i386)
     
 
 

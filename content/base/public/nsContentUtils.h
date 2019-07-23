@@ -47,6 +47,10 @@
 #include <float.h>
 #endif
 
+#if defined(SOLARIS)
+#include <ieeefp.h>
+#endif
+
 #include "nsAString.h"
 #include "nsIStatefulFrame.h"
 #include "nsINodeInfo.h"
@@ -1554,6 +1558,28 @@ public:
   }
 
   static void StripNullChars(const nsAString& aInStr, nsAString& aOutStr);
+
+  
+
+
+
+
+
+
+
+
+  static nsresult CreateStructuredClone(JSContext* cx, jsval val, jsval* rval);
+
+  
+
+
+
+
+
+
+  static nsresult ReparentClonedObjectToScope(JSContext* cx, JSObject* obj,
+                                              JSObject* scope);
+
 private:
 
   static PRBool InitializeEventTable();
@@ -1742,9 +1768,6 @@ private:
 #define NS_AUTO_GCROOT(ptr, result) \ \
   nsAutoGCRoot NS_AUTO_GCROOT_PASTE(_autoGCRoot_, __LINE__) \
   (ptr, result)
-
-#define NS_INTERFACE_MAP_ENTRY_CONTENT_CLASSINFO(_class)                      \
-  NS_DOM_INTERFACE_MAP_ENTRY_CLASSINFO(_class)
 
 #define NS_INTERFACE_MAP_ENTRY_TEAROFF(_interface, _allocator)                \
   if (aIID.Equals(NS_GET_IID(_interface))) {                                  \

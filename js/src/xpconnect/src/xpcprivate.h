@@ -401,34 +401,6 @@ private:
 
 
 
-class XPCAutoJSContext
-{
-public:
-    XPCAutoJSContext(JSContext *aContext, PRBool aGCOnDestroy)
-        : mContext(aContext), mGCOnDestroy(aGCOnDestroy)
-    {
-    }
-
-    ~XPCAutoJSContext()
-    {
-        if(!mContext)
-            return;
-
-        if(mGCOnDestroy)
-            JS_DestroyContext(mContext);
-        else
-            JS_DestroyContextNoGC(mContext);
-    }
-
-    operator JSContext * () {return mContext;}
-
-private:
-    JSContext *mContext;
-    PRBool mGCOnDestroy;
-};
-
-
-
 
 
 
@@ -1389,6 +1361,24 @@ xpc_TraceForValidWrapper(JSTracer *trc, XPCWrappedNative* wrapper);
 
 
 
+namespace XPCWrapper {
+
+enum WrapperType {
+    UNKNOWN         = 0,
+    NONE            = 0,
+    XPCNW_IMPLICIT  = 1 << 0,
+    XPCNW_EXPLICIT  = 1 << 1,
+    XPCNW           = (XPCNW_IMPLICIT | XPCNW_EXPLICIT),
+    SJOW            = 1 << 2,
+    
+
+    XOW             = 1 << 3,
+    COW             = 1 << 4,
+    SOW             = 1 << 5
+};
+
+}
+
 
 
 
@@ -1491,6 +1481,14 @@ public:
 
     JSBool
     IsValid() const {return mRuntime != nsnull;}
+
+    
+
+
+
+    XPCWrapper::WrapperType
+    GetWrapperFor(JSContext *cx, JSObject *obj, XPCWrapper::WrapperType hint,
+                  XPCWrappedNative **wn);
 
     static JSBool
     IsDyingScope(XPCWrappedNativeScope *scope);

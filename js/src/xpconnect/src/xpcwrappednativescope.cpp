@@ -41,6 +41,7 @@
 
 
 #include "xpcprivate.h"
+#include "XPCWrapper.h"
 #ifdef DEBUG
 #include "XPCNativeWrapper.h"
 #endif
@@ -1003,4 +1004,148 @@ XPCWrappedNativeScope::DebugDump(PRInt16 depth)
         }
     XPC_LOG_OUTDENT();
 #endif
+}
+
+XPCWrapper::WrapperType
+XPCWrappedNativeScope::GetWrapperFor(JSContext *cx, JSObject *obj,
+                                     XPCWrapper::WrapperType hint,
+                                     XPCWrappedNative **wn)
+{
+    using namespace XPCWrapper;
+
+    
+    XPCWrappedNativeScope *other = FindInJSObjectScope(cx, obj);
+
+    
+    nsIPrincipal *principal = GetPrincipal();
+    PRBool system;
+    XPCWrapper::GetSecurityManager()->IsSystemPrincipal(principal, &system);
+
+    PRBool principalEqual = (this == other);
+    if(!principalEqual)
+    {
+        nsIPrincipal *otherprincipal = other->GetPrincipal();
+        if(otherprincipal)
+            otherprincipal->Equals(principal, &principalEqual);
+        else
+            principalEqual = PR_TRUE;
+    }
+
+    if(wn)
+        *wn = nsnull;
+
+    
+    
+    
+    if(system || mGlobalJSObject->isSystem())
+    {
+        NS_ASSERTION(hint != XOW && hint != SOW && hint != COW,
+                     "bad hint in chrome code");
+
+        
+        
+        
+        
+        
+        
+        
+        JSBool wantsXOW =
+            XPCCrossOriginWrapper::ClassNeedsXOW(obj->getClass()->name);
+
+        
+        JSObject *obj2;
+        XPCWrappedNative *wrapper =
+            XPCWrappedNative::GetWrappedNativeOfJSObject(cx, obj, nsnull, &obj2);
+        if(principalEqual || obj->isSystem())
+        {
+            if(hint & XPCNW)
+                return (wrapper || obj2) ? hint : NONE;
+            return wantsXOW ? SJOW : NONE;
+        }
+
+        
+        
+
+        if(!wrapper && !obj2)
+            hint = SJOW;
+
+        if(wn)
+            *wn = wrapper;
+        if(hint == UNKNOWN)
+            hint = XPCNW_IMPLICIT;
+
+        NS_ASSERTION(hint <= SJOW, "returning the wrong wrapper for chrome code");
+        return hint;
+    }
+
+    
+    
+
+    JSObject *obj2;
+    XPCWrappedNative *wrapper =
+        XPCWrappedNative::GetWrappedNativeOfJSObject(cx, obj, nsnull, &obj2);
+    if(wn)
+        *wn = wrapper;
+
+    nsIPrincipal *otherprincipal = other->GetPrincipal();
+    XPCWrapper::GetSecurityManager()->IsSystemPrincipal(otherprincipal, &system);
+    if(system)
+    {
+        
+        NS_ASSERTION(hint != XOW, "bad edge in object graph");
+
+        if(wrapper)
+        {
+            NS_ASSERTION(!wrapper->IsDoubleWrapper(),
+                         "chrome object that's double wrapped makes no sense");
+            if(wrapper->NeedsChromeWrapper())
+                return WrapperType(SOW | hint);
+        }
+
+        return COW;
+    }
+
+    
+    
+    if(!wrapper && !obj2)
+    {
+#if 0
+        
+        
+        NS_ASSERTION(principalEqual || hint == COW,
+                     "touching non-wrappednative object cross origin?");
+        NS_ASSERTION(hint == SJOW || hint == COW || hint == UNKNOWN, "bad hint");
+#endif
+        return hint;
+    }
+
+    
+    if(wrapper)
+    {
+        if(wrapper->NeedsChromeWrapper())
+            return WrapperType(SOW | (hint & (SJOW | XPCNW_EXPLICIT | COW)));
+        if(wrapper->IsDoubleWrapper())
+        {
+#ifdef DEBUG
+            {
+                const char *name = obj->getClass()->name;
+                NS_ASSERTION(!XPCCrossOriginWrapper::ClassNeedsXOW(name),
+                             "bad object combination");
+            }
+#endif
+            return COW; 
+        }
+    }
+
+    if(!principalEqual ||
+       XPCCrossOriginWrapper::ClassNeedsXOW(obj->getClass()->name))
+    {
+        
+        
+        
+        
+        return (hint & XPCNW) ? XPCNW_EXPLICIT : XOW;
+    }
+
+    return (hint & XPCNW) ? XPCNW_EXPLICIT : (hint == SJOW) ? SJOW : NONE;
 }

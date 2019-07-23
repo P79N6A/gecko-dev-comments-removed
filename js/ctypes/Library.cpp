@@ -40,9 +40,8 @@
 
 #include "jscntxt.h"
 #include "Library.h"
-#include "Function.h"
+#include "CTypes.h"
 #include "nsServiceManagerUtils.h"
-#include "nsString.h"
 #include "nsIXPConnect.h"
 #include "nsILocalFile.h"
 #include "nsNativeCharsetUtils.h"
@@ -54,12 +53,24 @@ namespace ctypes {
 
 
 
+namespace Library
+{
+  static void Finalize(JSContext* cx, JSObject* obj);
+
+  static JSBool Close(JSContext* cx, uintN argc, jsval* vp);
+  static JSBool Declare(JSContext* cx, uintN argc, jsval* vp);
+}
+
+
+
+
+
 static JSClass sLibraryClass = {
   "Library",
   JSCLASS_HAS_RESERVED_SLOTS(LIBRARY_SLOTS) | JSCLASS_MARK_IS_TRACE,
   JS_PropertyStub, JS_PropertyStub, JS_PropertyStub, JS_PropertyStub,
   JS_EnumerateStub,JS_ResolveStub, JS_ConvertStub, Library::Finalize,
-  NULL, NULL, NULL, NULL, NULL, NULL, JS_CLASS_TRACE(Library::Trace), NULL
+  JSCLASS_NO_OPTIONAL_MEMBERS
 };
 
 #define CTYPESFN_FLAGS \
@@ -81,11 +92,6 @@ Library::Create(JSContext* cx, jsval aPath)
 
   
   if (!JS_SetReservedSlot(cx, libraryObj, SLOT_LIBRARY, PRIVATE_TO_JSVAL(NULL)))
-    return NULL;
-
-  
-  if (!JS_SetReservedSlot(cx, libraryObj, SLOT_FUNCTIONLIST,
-         PRIVATE_TO_JSVAL(NULL)))
     return NULL;
 
   
@@ -153,45 +159,20 @@ Library::Create(JSContext* cx, jsval aPath)
   return libraryObj;
 }
 
+bool
+Library::IsLibrary(JSContext* cx, JSObject* obj)
+{
+  return JS_GET_CLASS(cx, obj) == &sLibraryClass;
+}
+
 PRLibrary*
 Library::GetLibrary(JSContext* cx, JSObject* obj)
 {
-  JS_ASSERT(JS_GET_CLASS(cx, obj) == &sLibraryClass);
+  JS_ASSERT(IsLibrary(cx, obj));
 
   jsval slot;
   JS_GetReservedSlot(cx, obj, SLOT_LIBRARY, &slot);
   return static_cast<PRLibrary*>(JSVAL_TO_PRIVATE(slot));
-}
-
-static Function*
-GetFunctionList(JSContext* cx, JSObject* obj)
-{
-  JS_ASSERT(JS_GET_CLASS(cx, obj) == &sLibraryClass);
-
-  jsval slot;
-  JS_GetReservedSlot(cx, obj, SLOT_FUNCTIONLIST, &slot);
-  return static_cast<Function*>(JSVAL_TO_PRIVATE(slot));
-}
-
-JSBool
-Library::AddFunction(JSContext* cx, JSObject* aLibrary, Function* aFunction)
-{
-  
-  aFunction->Next() = GetFunctionList(cx, aLibrary);
-  return JS_SetReservedSlot(cx, aLibrary, SLOT_FUNCTIONLIST,
-           PRIVATE_TO_JSVAL(aFunction));
-}
-
-void
-Library::Trace(JSTracer *trc, JSObject* obj)
-{
-  
-  
-  Function* current = GetFunctionList(trc->context, obj);
-  while (current) {
-    current->Trace(trc);
-    current = current->Next();
-  }
 }
 
 void
@@ -201,14 +182,6 @@ Library::Finalize(JSContext* cx, JSObject* obj)
   PRLibrary* library = GetLibrary(cx, obj);
   if (library)
     PR_UnloadLibrary(library);
-
-  
-  Function* current = GetFunctionList(cx, obj);
-  while (current) {
-    Function* next = current->Next();
-    delete current;
-    current = next;
-  }
 }
 
 JSBool
@@ -231,7 +204,7 @@ JSBool
 Library::Close(JSContext* cx, uintN argc, jsval* vp)
 {
   JSObject* obj = JS_THIS_OBJECT(cx, vp);
-  if (JS_GET_CLASS(cx, obj) != &sLibraryClass) {
+  if (!IsLibrary(cx, obj)) {
     JS_ReportError(cx, "not a library");
     return JS_FALSE;
   }
@@ -244,7 +217,6 @@ Library::Close(JSContext* cx, uintN argc, jsval* vp)
   
   Finalize(cx, obj);
   JS_SetReservedSlot(cx, obj, SLOT_LIBRARY, PRIVATE_TO_JSVAL(NULL));
-  JS_SetReservedSlot(cx, obj, SLOT_FUNCTIONLIST, PRIVATE_TO_JSVAL(NULL));
 
   JS_SET_RVAL(cx, vp, JSVAL_VOID);
   return JS_TRUE;
@@ -254,7 +226,7 @@ JSBool
 Library::Declare(JSContext* cx, uintN argc, jsval* vp)
 {
   JSObject* obj = JS_THIS_OBJECT(cx, vp);
-  if (JS_GET_CLASS(cx, obj) != &sLibraryClass) {
+  if (!IsLibrary(cx, obj)) {
     JS_ReportError(cx, "not a library");
     return JS_FALSE;
   }
@@ -287,13 +259,26 @@ Library::Declare(JSContext* cx, uintN argc, jsval* vp)
     return JS_FALSE;
   }
 
-  JSObject* fn = Function::Create(cx, obj, func, name, argv[1], argv[2],
-                   &argv[3], argc - 3);
+  
+  JSObject* typeObj = FunctionType::CreateInternal(cx,
+                        argv[1], argv[2], &argv[3], argc - 3);
+  if (!typeObj)
+    return JS_FALSE;
+  js::AutoValueRooter root(cx, typeObj);
+
+  JSObject* fn = CData::Create(cx, typeObj, obj, &func, true);
   if (!fn)
     return JS_FALSE;
 
   JS_SET_RVAL(cx, vp, OBJECT_TO_JSVAL(fn));
-  return JS_TRUE;
+
+  
+  
+  
+  
+  
+  
+  return JS_SealObject(cx, fn, JS_FALSE);
 }
 
 }

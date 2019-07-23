@@ -244,6 +244,9 @@ XPC_COW_Iterator(JSContext *cx, JSObject *obj, JSBool keysonly);
 static JSObject *
 XPC_COW_WrappedObject(JSContext *cx, JSObject *obj);
 
+static JSBool
+WrapFunction(JSContext *cx, JSObject *scope, JSObject *funobj, jsval *vp);
+
 using namespace XPCWrapper;
 
 namespace ChromeObjectWrapper {
@@ -275,6 +278,10 @@ JSExtendedClass COWClass = {
 JSBool
 WrapObject(JSContext *cx, JSObject *parent, jsval v, jsval *vp)
 {
+  if (JS_ObjectIsFunction(cx, JSVAL_TO_OBJECT(v))) {
+    return WrapFunction(cx, parent, JSVAL_TO_OBJECT(v), vp);
+  }
+
   JSObject *wrapperObj =
     JS_NewObjectWithGivenProto(cx, &COWClass.base, NULL, parent);
   if (!wrapperObj) {
@@ -360,9 +367,9 @@ GetWrappedObject(JSContext *cx, JSObject *wrapper)
 
 
 JSBool
-XPC_COW_RewrapForChrome(JSContext *cx, JSObject *wrapperObj, jsval *vp);
+RewrapForChrome(JSContext *cx, JSObject *wrapperObj, jsval *vp);
 JSBool
-XPC_COW_RewrapForContent(JSContext *cx, JSObject *wrapperObj, jsval *vp);
+RewrapForContent(JSContext *cx, JSObject *wrapperObj, jsval *vp);
 
 
 
@@ -370,57 +377,51 @@ static JSBool
 XPC_COW_FunctionWrapper(JSContext *cx, JSObject *obj, uintN argc, jsval *argv,
                         jsval *rval)
 {
-  JSObject *wrappedObj;
-
-  
-  
-
-  wrappedObj = GetWrapper(obj);
-  if (wrappedObj) {
-    wrappedObj = GetWrappedObject(cx, wrappedObj);
-    if (!wrappedObj) {
-      return ThrowException(NS_ERROR_ILLEGAL_VALUE, cx);
-    }
-  } else {
-    wrappedObj = obj;
-  }
-
   jsval funToCall;
   if (!JS_GetReservedSlot(cx, JSVAL_TO_OBJECT(argv[-2]),
                           XPCWrapper::eWrappedFunctionSlot, &funToCall)) {
     return JS_FALSE;
   }
 
+  JSObject *scope = JS_GetGlobalForObject(cx, JSVAL_TO_OBJECT(funToCall));
   for (uintN i = 0; i < argc; ++i) {
-    if (!XPC_COW_RewrapForChrome(cx, obj, &argv[i])) {
+    if (!JSVAL_IS_PRIMITIVE(argv[i]) &&
+        !RewrapObject(cx, scope, JSVAL_TO_OBJECT(argv[i]), UNKNOWN, &argv[i])) {
       return JS_FALSE;
     }
   }
 
-  if (!JS_CallFunctionValue(cx, wrappedObj, funToCall, argc, argv, rval)) {
+  if (!RewrapObject(cx, scope, obj, UNKNOWN, rval) ||
+      !JS_CallFunctionValue(cx, JSVAL_TO_OBJECT(*rval), funToCall, argc, argv,
+                            rval)) {
     return JS_FALSE;
   }
 
-  return XPC_COW_RewrapForContent(cx, obj, rval);
+  return RewrapForContent(cx, obj, rval);
 }
 
-JSBool
-XPC_COW_WrapFunction(JSContext *cx, JSObject *outerObj, JSObject *funobj,
-                     jsval *rval)
+static JSBool
+WrapFunction(JSContext *cx, JSObject *scope, JSObject *funobj, jsval *rval)
 {
+  scope = JS_GetGlobalForObject(cx, scope);
   jsval funobjVal = OBJECT_TO_JSVAL(funobj);
   JSFunction *wrappedFun =
     reinterpret_cast<JSFunction *>(xpc_GetJSPrivate(funobj));
   JSNative native = JS_GetFunctionNative(cx, wrappedFun);
-  if (!native || native == XPC_COW_FunctionWrapper) {
-    *rval = funobjVal;
-    return JS_TRUE;
+  if (native == XPC_COW_FunctionWrapper) {
+    if (funobj->getParent() == scope) {
+      *rval = funobjVal;
+      return JS_TRUE;
+    }
+
+    JS_GetReservedSlot(cx, funobj, XPCWrapper::eWrappedFunctionSlot, &funobjVal);
+    funobj = JSVAL_TO_OBJECT(funobjVal);
   }
 
   JSFunction *funWrapper =
     JS_NewFunction(cx, XPC_COW_FunctionWrapper,
                    JS_GetFunctionArity(wrappedFun), 0,
-                   JS_GetGlobalForObject(cx, outerObj),
+                   scope,
                    JS_GetFunctionName(wrappedFun));
   if (!funWrapper) {
     return JS_FALSE;
@@ -435,77 +436,60 @@ XPC_COW_WrapFunction(JSContext *cx, JSObject *outerObj, JSObject *funobj,
 }
 
 JSBool
-XPC_COW_RewrapForChrome(JSContext *cx, JSObject *wrapperObj, jsval *vp)
+RewrapForChrome(JSContext *cx, JSObject *wrapperObj, jsval *vp)
 {
   jsval v = *vp;
   if (JSVAL_IS_PRIMITIVE(v)) {
     return JS_TRUE;
   }
 
-  
-  JSObject *obj = GetWrappedJSObject(cx, JSVAL_TO_OBJECT(v));
-  if (!obj) {
-    *vp = JSVAL_NULL;
-    return JS_TRUE;
-  }
-
-  XPCWrappedNative *wn;
-  JSBool ok;
-
-  
-  
-  JSStackFrame *fp = JS_SaveFrameChain(cx);
-
-  if (IS_WN_WRAPPER(obj) &&
-      (wn = (XPCWrappedNative*)xpc_GetJSPrivate(obj)) &&
-      !nsXPCWrappedJSClass::IsWrappedJS(wn->Native())) {
-    
-    
-    ok = XPCNativeWrapper::CreateExplicitWrapper(cx, wn, JS_TRUE, vp);
-  } else {
-    
-    ok = XPCSafeJSObjectWrapper::WrapObject(cx, GetWrappedObject(cx, wrapperObj),
-                                            *vp, vp);
-  }
-
-  JS_RestoreFrameChain(cx, fp);
-
-  return ok;
+  return RewrapObject(cx, JS_GetGlobalForObject(cx, GetWrappedObject(cx, wrapperObj)),
+                      JSVAL_TO_OBJECT(v), UNKNOWN, vp);
 }
 
 JSBool
-XPC_COW_RewrapForContent(JSContext *cx, JSObject *wrapperObj, jsval *vp)
+RewrapForContent(JSContext *cx, JSObject *wrapperObj, jsval *vp)
 {
   jsval v = *vp;
   if (JSVAL_IS_PRIMITIVE(v)) {
     return JS_TRUE;
   }
 
-  JSObject *obj = GetWrappedJSObject(cx, JSVAL_TO_OBJECT(v));
-  if (!obj) {
-    *vp = JSVAL_NULL;
-    return JS_TRUE;
+  JSObject *scope = JS_GetScopeChain(cx);
+  if (!scope) {
+    return JS_FALSE;
   }
 
-  if (JS_ObjectIsFunction(cx, obj)) {
-    return XPC_COW_WrapFunction(cx, wrapperObj, obj, vp);
-  }
+  return RewrapObject(cx, JS_GetGlobalForObject(cx, scope),
+                      JSVAL_TO_OBJECT(v), COW, vp);
+}
 
-  return WrapObject(cx, JS_GetScopeChain(cx), OBJECT_TO_JSVAL(obj), vp);
+static JSBool
+CheckSOW(JSContext *cx, JSObject *wrapperObj, jsval idval)
+{
+  jsval flags;
+  JS_GetReservedSlot(cx, wrapperObj, sFlagsSlot, &flags);
+
+  return HAS_FLAGS(flags, FLAG_SOW)
+         ? SystemOnlyWrapper::AllowedToAct(cx, idval) : JS_TRUE;
 }
 
 static JSBool
 XPC_COW_AddProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 {
   obj = GetWrapper(obj);
-  jsval resolving;
-  if (!JS_GetReservedSlot(cx, obj, XPCWrapper::sFlagsSlot, &resolving)) {
+  jsval flags;
+  if (!JS_GetReservedSlot(cx, obj, XPCWrapper::sFlagsSlot, &flags)) {
     return JS_FALSE;
   }
 
-  if (HAS_FLAGS(resolving, FLAG_RESOLVING)) {
+  if (HAS_FLAGS(flags, FLAG_RESOLVING)) {
     
     return JS_TRUE;
+  }
+
+  if (!CheckSOW(cx, obj, id)) {
+    return JS_FALSE;
   }
 
   
@@ -528,12 +512,13 @@ XPC_COW_AddProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 
   if (desc.attrs & (JSPROP_GETTER | JSPROP_SETTER)) {
     
-    if (!SystemOnlyWrapper::AllowedToAct(cx, id)) {
+    
+    if (!HAS_FLAGS(flags, FLAG_SOW) && !SystemOnlyWrapper::AllowedToAct(cx, id)) {
       return JS_FALSE;
     }
   }
 
-  return XPC_COW_RewrapForChrome(cx, obj, vp) &&
+  return RewrapForChrome(cx, obj, vp) &&
          JS_DefinePropertyById(cx, wrappedObj, interned_id, *vp,
                                desc.getter, desc.setter, desc.attrs);
 }
@@ -541,6 +526,10 @@ XPC_COW_AddProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 static JSBool
 XPC_COW_DelProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 {
+  if (!CheckSOW(cx, obj, id)) {
+    return JS_FALSE;
+  }
+
   JSObject *wrappedObj = GetWrappedObject(cx, obj);
   if (!wrappedObj) {
     return ThrowException(NS_ERROR_ILLEGAL_VALUE, cx);
@@ -580,6 +569,10 @@ XPC_COW_GetOrSetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp,
     return ThrowException(NS_ERROR_FAILURE, cx);
   }
 
+  if (!CheckSOW(cx, obj, id)) {
+    return JS_FALSE;
+  }
+
   AUTO_MARK_JSVAL(ccx, vp);
 
   JSObject *wrappedObj = GetWrappedObject(cx, obj);
@@ -608,7 +601,7 @@ XPC_COW_GetOrSetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp,
     return ThrowException(NS_ERROR_XPC_SECURITY_MANAGER_VETO, cx);
   }
 
-  if (!XPC_COW_RewrapForChrome(cx, obj, vp)) {
+  if (isSet && !RewrapForChrome(cx, obj, vp)) {
     return JS_FALSE;
   }
 
@@ -619,7 +612,7 @@ XPC_COW_GetOrSetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp,
     return JS_FALSE;
   }
 
-  return XPC_COW_RewrapForContent(cx, obj, vp);
+  return RewrapForContent(cx, obj, vp);
 }
 
 static JSBool
@@ -644,6 +637,10 @@ XPC_COW_Enumerate(JSContext *cx, JSObject *obj)
     return JS_TRUE;
   }
 
+  if (!CheckSOW(cx, obj, JSVAL_VOID)) {
+    return JS_FALSE;
+  }
+
   XPCCallContext ccx(JS_CALLER, cx);
   if (!ccx.IsValid()) {
     return ThrowException(NS_ERROR_FAILURE, cx);
@@ -657,6 +654,10 @@ XPC_COW_NewResolve(JSContext *cx, JSObject *obj, jsval idval, uintN flags,
                    JSObject **objp)
 {
   obj = GetWrapper(obj);
+
+  if (!CheckSOW(cx, obj, idval)) {
+    return JS_FALSE;
+  }
 
   JSObject *wrappedObj = GetWrappedObject(cx, obj);
   if (!wrappedObj) {
@@ -682,7 +683,8 @@ XPC_COW_NewResolve(JSContext *cx, JSObject *obj, jsval idval, uintN flags,
     return ThrowException(NS_ERROR_XPC_SECURITY_MANAGER_VETO, cx);
   }
 
-  return XPCWrapper::NewResolve(cx, obj, JS_TRUE, wrappedObj, id, flags, objp);
+  return XPCWrapper::NewResolve(cx, obj, JS_FALSE, wrappedObj, id, flags,
+                                objp);
 }
 
 static JSBool
@@ -711,7 +713,7 @@ XPC_COW_Convert(JSContext *cx, JSObject *obj, JSType type, jsval *vp)
     return JS_FALSE;
   }
 
-  return XPC_COW_RewrapForContent(cx, obj, vp);
+  return RewrapForContent(cx, obj, vp);
 }
 
 static JSBool
@@ -771,24 +773,24 @@ XPC_COW_Iterator(JSContext *cx, JSObject *obj, JSBool keysonly)
     return nsnull;
   }
 
-  JSObject *wrapperIter = JS_NewObject(cx, &COWClass.base, nsnull,
-                                       JS_GetGlobalForObject(cx, obj));
-  if (!wrapperIter) {
-    return nsnull;
+  jsval exposedProps;
+  if (!JS_GetReservedSlot(cx, obj, sExposedPropsSlot, &exposedProps)) {
+    return JS_FALSE;
   }
 
-  js::AutoObjectRooter tvr(cx, wrapperIter);
-
-  
-  jsval v = OBJECT_TO_JSVAL(wrappedObj);
-  if (!JS_SetReservedSlot(cx, wrapperIter, XPCWrapper::sWrappedObjSlot, v) ||
-      !JS_SetReservedSlot(cx, wrapperIter, XPCWrapper::sFlagsSlot,
-                          JSVAL_ZERO)) {
-    return nsnull;
+  JSObject *propertyContainer;
+  if (JSVAL_IS_VOID(exposedProps)) {
+    
+    propertyContainer = wrappedObj;
+  } else if (JSVAL_IS_PRIMITIVE(exposedProps)) {
+    
+    propertyContainer = nsnull;
+  } else {
+    
+    propertyContainer = JSVAL_TO_OBJECT(exposedProps);
   }
 
-  return XPCWrapper::CreateIteratorObj(cx, wrapperIter, obj, wrappedObj,
-                                       keysonly);
+  return CreateSimpleIterator(cx, obj, keysonly, propertyContainer);
 }
 
 static JSObject *
