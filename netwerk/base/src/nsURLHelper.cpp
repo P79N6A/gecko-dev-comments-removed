@@ -830,16 +830,25 @@ net_ParseMediaType(const nsACString &aMediaTypeStr,
             aContentType.Assign(type, typeEnd - type);
             ToLowerCase(aContentType);
         }
+
         if ((!eq && *aHadCharset) || typeHasCharset) {
             *aHadCharset = PR_TRUE;
             aContentCharset.Assign(charset, charsetEnd - charset);
             if (typeHasCharset) {
                 *aCharsetStart = charsetParamStart + aOffset;
                 *aCharsetEnd = charsetParamEnd + aOffset;
-            } else {
-                *aCharsetStart = -1;
-                *aCharsetEnd = -1;
             }
+        }
+        
+        
+        
+        
+        if (!eq && !typeHasCharset) {
+            PRInt32 charsetStart = PRInt32(paramStart);
+            if (charsetStart == kNotFound)
+                charsetStart =  flatStr.Length();
+
+            *aCharsetEnd = *aCharsetStart = charsetStart + aOffset;
         }
     }
 }
