@@ -73,8 +73,6 @@ function waitForEvent(aEventType, aTarget, aFunc, aContext, aArg1, aArg2)
 function registerA11yEventListener(aEventType, aEventHandler)
 {
   listenA11yEvents(true);
-
-  gA11yEventApplicantsCount++;
   addA11yEventListener(aEventType, aEventHandler);
 }
 
@@ -86,8 +84,6 @@ function registerA11yEventListener(aEventType, aEventHandler)
 function unregisterA11yEventListener(aEventType, aEventHandler)
 {
   removeA11yEventListener(aEventType, aEventHandler);
-
-  gA11yEventApplicantsCount--;
   listenA11yEvents(false);
 }
 
@@ -173,7 +169,6 @@ function eventQueue(aEventType)
   this.invoke = function eventQueue_invoke()
   {
     listenA11yEvents(true);
-    gA11yEventApplicantsCount++;
 
     
     
@@ -244,7 +239,6 @@ function eventQueue(aEventType)
 
     
     if (testFailed || this.mIndex == this.mInvokers.length - 1) {
-      gA11yEventApplicantsCount--;
       listenA11yEvents(false);
 
       var res = this.onFinish();
@@ -774,7 +768,9 @@ var gA11yEventObserver =
 {
   
   
-  observerService : null,
+  observerService :
+    Components.classes["@mozilla.org/observer-service;1"]
+              .getService(nsIObserverService),
 
   observe: function observe(aSubject, aTopic, aData)
   {
@@ -823,17 +819,17 @@ var gA11yEventObserver =
 
 function listenA11yEvents(aStartToListen)
 {
-  if (aStartToListen && !gA11yEventObserver.observerService) {
-    gA11yEventObserver.observerService =
-        Components.classes["@mozilla.org/observer-service;1"].getService(nsIObserverService);
+  if (aStartToListen) {
     
-    gA11yEventObserver.observerService
-                      .addObserver(gA11yEventObserver, "accessible-event", false);
-  } else if (!gA11yEventApplicantsCount) {
-    gA11yEventObserver.observerService
-                      .removeObserver(gA11yEventObserver, "accessible-event");
+    if (!(gA11yEventApplicantsCount++))
+      gA11yEventObserver.observerService
+                        .addObserver(gA11yEventObserver, "accessible-event", false);
+  } else {
     
-    gA11yEventObserver.observerService = null;
+    
+    if (--gA11yEventApplicantsCount <= 0)
+      gA11yEventObserver.observerService
+                        .removeObserver(gA11yEventObserver, "accessible-event");
   }
 }
 
