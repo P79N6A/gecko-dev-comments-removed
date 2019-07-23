@@ -52,6 +52,8 @@
 #include "nsCRT.h"
 #include "nsVoidArray.h"
 #include "nsStringEnumerator.h"
+#include "nsThreadUtils.h"
+#include "nsIProxyObjectManager.h"
 
 #include "nsXPCOM.h"
 #include "nsISupportsPrimitives.h"
@@ -369,6 +371,18 @@ nsCharsetConverterManager::GetCharsetAlias(const char * aCharset,
   NS_PRECONDITION(aCharset, "null param");
   if (!aCharset)
     return NS_ERROR_NULL_POINTER;
+
+  
+  if (!NS_IsMainThread()) {
+    nsCOMPtr<nsICharsetConverterManager> self;
+    nsresult rv =
+    NS_GetProxyForObject(NS_PROXY_TO_MAIN_THREAD,
+                         NS_GET_IID(nsICharsetConverterManager),
+                         this, NS_PROXY_SYNC | NS_PROXY_ALWAYS,
+                         getter_AddRefs(self));
+    NS_ENSURE_SUCCESS(rv, rv);
+    return self->GetCharsetAlias(aCharset, aResult);
+  }
 
   
   
