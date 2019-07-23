@@ -79,7 +79,7 @@ def GetPidsByName(process_name):
 
   matchingPids = []
   
-  command = ['ps -ac']
+  command = ['ps -Ac']
   handle = subprocess.Popen(command, stdout=subprocess.PIPE, universal_newlines=True, shell=True)
   
   
@@ -88,6 +88,9 @@ def GetPidsByName(process_name):
   
   
   for line in data:
+    
+    if line.find("crashreporterd") >= 0:
+      continue
     if line.find(process_name) >= 0:
       
       pid = int(line.split()[0])
@@ -125,9 +128,6 @@ def TerminateProcess(pid):
       time.sleep(5)
       if ProcessesWithNameExist(str(pid)):
         os.kill(pid, signal.SIGKILL)
-        time.sleep(5)
-        if ProcessesWithNameExist(str(pid)):
-          print 'WARNING: failed to terminate: %s' % (str(pid))
   except OSError, (errno, strerror):
     print 'WARNING: failed os.kill: %s : %s' % (errno, strerror)
 
