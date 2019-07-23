@@ -68,7 +68,7 @@ public:
   
   
   
-  void SetDuration(PRInt64 aDuration);
+  void SetLastFrameTime(PRInt64 aTime);
 
   nsIPrincipal* GetCurrentPrincipal();
   
@@ -84,7 +84,8 @@ public:
   nsAutoPtr<nsMediaStream> mStream;
 
   
-  PRInt64 mDuration;
+  
+  PRInt64 mLastFrameTime;
 };
 
 #endif
