@@ -35,6 +35,7 @@
 
 
 
+
 const Cc = Components.classes;
 const Ci = Components.interfaces;
 
@@ -322,6 +323,39 @@ LoginManagerPrompter.prototype = {
 
 
 
+    _showLoginNotification : function (aNotifyBox, aName, aText, aButtons) {
+        var oldBar = aNotifyBox.getNotificationWithValue(aName);
+        const priority = aNotifyBox.PRIORITY_INFO_MEDIUM;
+
+        this.log("Adding new " + aName + " notification bar");
+        var newBar = aNotifyBox.appendNotification(
+                                aText, aName,
+                                "chrome://mozapps/skin/passwordmgr/key.png",
+                                priority, aButtons);
+
+        
+        
+        newBar.persistence++;
+
+        
+        
+        
+        
+        newBar.timeout = Date.now() + 20000; 
+
+        if (oldBar) {
+            this.log("(...and removing old " + aName + " notification bar)");
+            aNotifyBox.removeNotification(oldBar);
+        }
+    },
+
+
+    
+
+
+
+
+
 
 
     _showSaveLoginNotification : function (aNotifyBox, aLogin) {
@@ -384,30 +418,8 @@ LoginManagerPrompter.prototype = {
             }
         ];
 
-
-        var oldBar = aNotifyBox.getNotificationWithValue("password-save");
-        const priority = aNotifyBox.PRIORITY_INFO_MEDIUM;
-
-        this.log("Adding new save-password notification bar");
-        var newBar = aNotifyBox.appendNotification(
-                                notificationText, "password-save",
-                                "chrome://mozapps/skin/passwordmgr/key.png",
-                                priority, buttons);
-
-        
-        
-        newBar.persistence++;
-
-        
-        
-        
-        
-        newBar.timeout = Date.now() + 20000; 
-
-        if (oldBar) {
-            this.log("(...and removing old save-password notification bar)");
-            aNotifyBox.removeNotification(oldBar);
-        }
+        this._showLoginNotification(aNotifyBox, "password-save",
+             notificationText, buttons);
     },
 
 
@@ -485,6 +497,79 @@ LoginManagerPrompter.prototype = {
 
 
     promptToChangePassword : function (aOldLogin, aNewLogin) {
+        var notifyBox = this._getNotifyBox();
+
+        if (notifyBox)
+            this._showChangeLoginNotification(notifyBox, aOldLogin, aNewLogin);
+        else
+            this._showChangeLoginDialog(aOldLogin, aNewLogin);
+    },
+
+
+    
+
+
+
+
+
+    _showChangeLoginNotification : function (notifyBox, aOldLogin, aNewLogin) {
+        var notificationText;
+        if (aOldLogin.username)
+            notificationText  = this._getLocalizedString(
+                                          "passwordChangeText",
+                                          [aOldLogin.username]);
+        else
+            notificationText  = this._getLocalizedString(
+                                          "passwordChangeTextNoUser");
+
+        var changeButtonText =
+              this._getLocalizedString("notifyBarChangeButtonText");
+        var changeButtonAccessKey =
+              this._getLocalizedString("notifyBarChangeButtonAccessKey");
+        var dontChangeButtonText =
+              this._getLocalizedString("notifyBarDontChangeButtonText");
+        var dontChangeButtonAccessKey =
+              this._getLocalizedString("notifyBarDontChangeButtonAccessKey");
+
+        
+        
+        
+        var pwmgr = this._pwmgr;
+
+        var buttons = [
+            
+            {
+                label:     changeButtonText,
+                accessKey: changeButtonAccessKey,
+                popup:     null,
+                callback:  function(aNotificationBar, aButton) {
+                    pwmgr.modifyLogin(aOldLogin, aNewLogin);
+                }
+            },
+
+            
+            {
+                label:     dontChangeButtonText,
+                accessKey: dontChangeButtonAccessKey,
+                popup:     null,
+                callback:  function(aNotificationBar, aButton) {
+                    
+                }
+            }
+        ];
+
+        this._showLoginNotification(aNotifyBox, "password-change",
+             notificationText, buttons);
+    },
+
+
+    
+
+
+
+
+
+    _showChangeLoginDialog : function (aOldLogin, aNewLogin) {
         const buttonFlags = Ci.nsIPrompt.STD_YES_NO_BUTTONS;
 
         var dialogText;
