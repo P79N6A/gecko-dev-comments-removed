@@ -75,47 +75,17 @@ Link::LinkState() const
   return 0;
 }
 
-already_AddRefed<nsIURI>
-Link::GetURI() const
-{
-  nsCOMPtr<nsIURI> uri(mCachedURI);
-
-  
-  if (uri) {
-    return uri.forget();
-  }
-
-  
-  Link *self = const_cast<Link *>(this);
-  nsCOMPtr<nsIContent> content(do_QueryInterface(self));
-  NS_ASSERTION(content, "Why isn't this an nsIContent node?!");
-  uri = content->GetHrefURI();
-
-  
-  if (uri && content->IsInDoc()) {
-    mCachedURI = uri;
-  }
-
-  return uri.forget();
-}
-
 void
 Link::ResetLinkState()
 {
   nsCOMPtr<nsIContent> content(do_QueryInterface(this));
   NS_ASSERTION(content, "Why isn't this an nsIContent node?!");
 
-  
   nsIDocument *doc = content->GetCurrentDoc();
   if (doc) {
     doc->ForgetLink(content);
   }
-
-  
   mLinkState = defaultState;
-
-  
-  mCachedURI = nsnull;
 }
 
 } 

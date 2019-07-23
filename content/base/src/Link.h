@@ -64,11 +64,6 @@ public:
 
   PRInt32 LinkState() const;
 
-  
-
-
-  already_AddRefed<nsIURI> GetURI() const;
-
 protected:
   
 
@@ -76,9 +71,6 @@ protected:
   virtual void ResetLinkState();
 
   nsLinkState mLinkState;
-
-private:
-  mutable nsCOMPtr<nsIURI> mCachedURI;
 };
 
 } 
