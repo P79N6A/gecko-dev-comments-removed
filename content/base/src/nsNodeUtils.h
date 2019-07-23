@@ -195,10 +195,8 @@ public:
                         JSObject *aNewScope,
                         nsCOMArray<nsINode> &aNodesWithProperties)
   {
-    nsCOMPtr<nsIDOMNode> dummy;
     return CloneAndAdopt(aNode, PR_FALSE, PR_TRUE, aNewNodeInfoManager, aCx,
-                         aOldScope, aNewScope, aNodesWithProperties,
-                         getter_AddRefs(dummy));
+                         aOldScope, aNewScope, aNodesWithProperties, nsnull);
   }
 
   
@@ -321,6 +319,10 @@ private:
                                 nsCOMArray<nsINode> &aNodesWithProperties,
                                 nsIDOMNode **aResult)
   {
+    NS_ASSERTION(!aClone == !aResult,
+                 "aResult must be null when adopting and non-null when "
+                 "cloning");
+
     nsCOMPtr<nsINode> clone;
     nsresult rv = CloneAndAdopt(aNode, aClone, aDeep, aNewNodeInfoManager,
                                 aCx, aOldScope, aNewScope, aNodesWithProperties,
@@ -331,6 +333,8 @@ private:
   }
 
   
+
+
 
 
 
