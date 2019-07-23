@@ -172,7 +172,7 @@ private:
 
     PRBool CanPropagate(eHTMLTags aParent,
                         eHTMLTags aChild,
-                        PRBool aParentContains);
+                        PRInt32 aParentContains);
 
     
 
@@ -186,7 +186,7 @@ private:
 
     PRBool CanOmit(eHTMLTags aParent, 
                    eHTMLTags aChild,
-                   PRBool& aParentContains);
+                   PRInt32& aParentContains);
 
     
 
