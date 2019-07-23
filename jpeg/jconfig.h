@@ -74,13 +74,6 @@
 
 #undef RIGHT_SHIFT_IS_UNSIGNED
 
-#ifdef XP_MAC                   
-
-#define ALIGN_TYPE long         /* for sane memory alignment */
-#define NO_GETENV
-
-#endif 
-
 #endif 
 
 
