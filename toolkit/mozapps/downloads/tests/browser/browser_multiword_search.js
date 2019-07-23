@@ -108,14 +108,14 @@ function test()
         
         testPhase++;
         return doTest();
-      default:
+      case 1:
         
         ok(downloadView.itemCount > 0, "Search found something");
 
         
         testPhase++;
         return doTest();
-      case 4:
+      case 2:
         
         ok(downloadView.itemCount == 2, "Search matched both downloads");
 
@@ -126,7 +126,7 @@ function test()
         
         testPhase++;
         return doTest();
-      case 5:
+      case 3:
         
         ok(downloadView.itemCount == 1, "Found the single download");
 
