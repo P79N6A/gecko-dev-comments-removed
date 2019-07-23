@@ -243,12 +243,12 @@ typedef struct JSInlineFrame {
 
 #define SHAPE_OVERFLOW_BIT      JS_BIT(32 - PCVCAP_TAGBITS)
 
-#ifndef JS_THREADSAFE
-# define js_GenerateShape(cx, gcLocked)    js_GenerateShape (cx)
-#endif
+
+
+
 
 extern uint32
-js_GenerateShape(JSContext *cx, JSBool gcLocked);
+js_GenerateShape(JSContext *cx, JSBool gcLocked, JSScopeProperty *sprop);
 
 struct JSPropCacheEntry {
     jsbytecode          *kpc;           
@@ -264,6 +264,7 @@ struct JSPropCacheEntry {
 typedef struct JSPropertyCache {
     JSPropCacheEntry    table[PROPERTY_CACHE_SIZE];
     JSBool              empty;
+    jsrefcount          disabled;       
 #ifdef JS_PROPERTY_CACHE_METERING
     uint32              fills;          
     uint32              nofills;        
@@ -407,6 +408,12 @@ js_PurgePropertyCache(JSContext *cx, JSPropertyCache *cache);
 
 extern void
 js_PurgePropertyCacheForScript(JSContext *cx, JSScript *script);
+
+extern void
+js_DisablePropertyCache(JSContext *cx);
+
+extern void
+js_EnablePropertyCache(JSContext *cx);
 
 
 

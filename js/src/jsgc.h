@@ -250,16 +250,6 @@ js_TraceContext(JSTracer *trc, JSContext *acx);
 
 
 
-#ifndef JS_THREADSAFE
-# define js_TriggerGC(cx, gcLocked)    js_TriggerGC (cx)
-#endif
-
-extern void
-js_TriggerGC(JSContext *cx, JSBool gcLocked);
-
-
-
-
 typedef enum JSGCInvocationKind {
     
     GC_NORMAL           = 0,
