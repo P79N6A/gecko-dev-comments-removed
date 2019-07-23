@@ -88,6 +88,21 @@ NS_HIDDEN_(void) likeFunction(sqlite3_context *aCtx,
                               int aArgc,
                               sqlite3_value **aArgv);
 
+
+
+
+
+
+
+
+
+
+
+
+NS_HIDDEN_(void) levenshteinDistanceFunction(sqlite3_context *aCtx,
+                                             int aArgc,
+                                             sqlite3_value **aArgv);
+
 } 
 } 
 

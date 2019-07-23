@@ -149,6 +149,159 @@ likeCompare(nsAString::const_iterator aPatternItr,
   return aStringItr == aStringEnd;
 }
 
+
+
+
+
+
+
+
+
+
+
+template <class T, size_t N> class AutoArray
+{
+
+public:
+
+  AutoArray(size_t size)
+  : mBuffer(size <= N ? mAutoBuffer : new T[size])
+  {
+  }
+
+  ~AutoArray()
+  { 
+    if (mBuffer != mAutoBuffer)
+      delete[] mBuffer; 
+  }
+
+  
+
+
+
+
+
+  T *get() 
+  {
+    return mBuffer; 
+  }
+
+private:
+  T *mBuffer;           
+  T mAutoBuffer[N];     
+};
+
+
+
+
+
+
+
+
+
+
+
+
+int
+levenshteinDistance(const nsAString &aStringS,
+                    const nsAString &aStringT,
+                    int *_result)
+{
+    
+    *_result = -1;
+
+    const PRUint32 sLen = aStringS.Length();
+    const PRUint32 tLen = aStringT.Length();
+
+    if (sLen == 0) {
+      *_result = tLen;
+      return SQLITE_OK;
+    }
+    if (tLen == 0) {
+      *_result = sLen;
+      return SQLITE_OK;
+    }
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+
+    
+    
+    
+    AutoArray<int, nsAutoString::kDefaultStorageSize> row1(sLen + 1);
+    AutoArray<int, nsAutoString::kDefaultStorageSize> row2(sLen + 1);
+
+    
+    int *prevRow = row1.get();
+    NS_ENSURE_TRUE(prevRow, SQLITE_NOMEM);
+    int *currRow = row2.get();
+    NS_ENSURE_TRUE(currRow, SQLITE_NOMEM);
+
+    
+    for (PRUint32 i = 0; i <= sLen; i++)
+        prevRow[i] = i;
+
+    const PRUnichar *s = aStringS.BeginReading();
+    const PRUnichar *t = aStringT.BeginReading();
+
+    
+    
+    for (PRUint32 ti = 1; ti <= tLen; ti++) {
+
+        
+        currRow[0] = ti;
+
+        
+        const PRUnichar tch = t[ti - 1];
+
+        
+        
+        for (PRUint32 si = 1; si <= sLen; si++) {
+            
+            
+            
+            const PRUnichar sch = s[si - 1];
+            int cost = (sch == tch) ? 0 : 1;
+
+            
+            
+            
+            
+            int aPrime = prevRow[si - 1] + cost;
+            int bPrime = prevRow[si] + 1;
+            int cPrime = currRow[si - 1] + 1;
+            currRow[si] = NS_MIN(aPrime, NS_MIN(bPrime, cPrime));
+        }
+
+        
+        
+        
+        
+        int *oldPrevRow = prevRow;
+        prevRow = currRow;
+        currRow = oldPrevRow;
+    }
+
+    
+    
+    *_result = prevRow[sLen];
+    return SQLITE_OK;
+}
+
 } 
 
 
@@ -163,16 +316,61 @@ registerFunctions(sqlite3 *aDB)
     int enc;
     void *pContext;
     void (*xFunc)(::sqlite3_context*, int, sqlite3_value**);
-  } functions[] = {
-    {"lower", 1, SQLITE_UTF16, 0,        caseFunction},
-    {"lower", 1, SQLITE_UTF8,  0,        caseFunction},
-    {"upper", 1, SQLITE_UTF16, (void*)1, caseFunction},
-    {"upper", 1, SQLITE_UTF8,  (void*)1, caseFunction},
+  };
+  
+  Functions functions[] = {
+    {"lower",               
+      1, 
+      SQLITE_UTF16, 
+      0,        
+      caseFunction},
+    {"lower",               
+      1, 
+      SQLITE_UTF8,  
+      0,        
+      caseFunction},
+    {"upper",               
+      1, 
+      SQLITE_UTF16, 
+      (void*)1, 
+      caseFunction},
+    {"upper",               
+      1, 
+      SQLITE_UTF8,  
+      (void*)1, 
+      caseFunction},
 
-    {"like",  2, SQLITE_UTF16, 0,        likeFunction},
-    {"like",  2, SQLITE_UTF8,  0,        likeFunction},
-    {"like",  3, SQLITE_UTF16, 0,        likeFunction},
-    {"like",  3, SQLITE_UTF8,  0,        likeFunction},
+    {"like",                
+      2, 
+      SQLITE_UTF16, 
+      0,        
+      likeFunction},
+    {"like",                
+      2, 
+      SQLITE_UTF8,  
+      0,        
+      likeFunction},
+    {"like",                
+      3, 
+      SQLITE_UTF16, 
+      0,        
+      likeFunction},
+    {"like",                
+      3, 
+      SQLITE_UTF8,  
+      0,        
+      likeFunction},
+
+    {"levenshteinDistance", 
+      2, 
+      SQLITE_UTF16, 
+      0,        
+      levenshteinDistanceFunction},
+    {"levenshteinDistance", 
+      2, 
+      SQLITE_UTF8,  
+      0,        
+      levenshteinDistanceFunction},
   };
 
   int rv = SQLITE_OK;
@@ -244,6 +442,41 @@ likeFunction(sqlite3_context *aCtx,
   B.EndReading(endPattern);
   ::sqlite3_result_int(aCtx, likeCompare(itrPattern, endPattern, itrString,
                                          endString, E));
+}
+
+void levenshteinDistanceFunction(sqlite3_context *aCtx,
+                                 int aArgc,
+                                 sqlite3_value **aArgv)
+{
+  NS_ASSERTION(2 == aArgc, "Invalid number of arguments!");
+
+  
+  if (::sqlite3_value_type(aArgv[0]) == SQLITE_NULL ||
+      ::sqlite3_value_type(aArgv[1]) == SQLITE_NULL) {
+    ::sqlite3_result_null(aCtx);
+    return;
+  }
+
+  int aLen = ::sqlite3_value_bytes16(aArgv[0]) / sizeof(PRUnichar);
+  const PRUnichar *a = static_cast<const PRUnichar *>(::sqlite3_value_text16(aArgv[0]));
+
+  int bLen = ::sqlite3_value_bytes16(aArgv[1]) / sizeof(PRUnichar);
+  const PRUnichar *b = static_cast<const PRUnichar *>(::sqlite3_value_text16(aArgv[1]));
+
+  
+  int distance = -1;
+  const nsDependentString A(a, aLen);
+  const nsDependentString B(b, bLen);
+  int status = levenshteinDistance(A, B, &distance);
+  if (status == SQLITE_OK) {
+    ::sqlite3_result_int(aCtx, distance);    
+  }
+  else if (status == SQLITE_NOMEM) {
+    ::sqlite3_result_error_nomem(aCtx);
+  }
+  else {
+    ::sqlite3_result_error(aCtx, "User function returned error code", -1);
+  }
 }
 
 } 
