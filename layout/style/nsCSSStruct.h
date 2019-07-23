@@ -307,13 +307,13 @@ struct nsCSSColor : public nsCSSStruct  {
   ~nsCSSColor(void);
 
   nsCSSValue      mColor;
-  nsCSSValuePair  mBackColor;
-  nsCSSValueList* mBackImage;
-  nsCSSValueList* mBackRepeat;
-  nsCSSValueList* mBackAttachment;
-  nsCSSValuePairList* mBackPosition;
-  nsCSSValueList* mBackClip;
-  nsCSSValueList* mBackOrigin;
+  nsCSSValue      mBackColor;
+  nsCSSValue      mBackImage;
+  nsCSSValue      mBackRepeat;
+  nsCSSValue      mBackAttachment;
+  nsCSSValuePair  mBackPosition;
+  nsCSSValue      mBackClip;
+  nsCSSValue      mBackOrigin;
   nsCSSValue      mBackInlinePolicy;
 private:
   nsCSSColor(const nsCSSColor& aOther); 
@@ -321,11 +321,6 @@ private:
 
 struct nsRuleDataColor : public nsCSSColor {
   nsRuleDataColor() {}
-
-  
-  
-  
-  nsCSSValueList mTempBackImage;
 private:
   nsRuleDataColor(const nsRuleDataColor& aOther); 
 };

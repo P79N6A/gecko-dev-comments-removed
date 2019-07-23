@@ -547,18 +547,14 @@ nsFrame::DidSetStyleContext(nsStyleContext* aOldStyleContext)
     
     
     
-    const nsStyleBackground *oldBG = aOldStyleContext->GetStyleBackground();
-    const nsStyleBackground *newBG = GetStyleBackground();
-    NS_FOR_VISIBLE_BACKGROUND_LAYERS_BACK_TO_FRONT(i, oldBG) {
-      imgIRequest *oldImage = oldBG->mLayers[i].mImage.mRequest;
-      imgIRequest *newImage =
-        (i < newBG->mImageCount) ? newBG->mLayers[i].mImage.mRequest : nsnull;
-      if (oldImage && !EqualImages(oldImage, newImage)) {
-        
-        PresContext()->SetImageLoaders(this,
-          nsPresContext::BACKGROUND_IMAGE, nsnull);
-        break;
-      }
+    imgIRequest *oldBackgroundImage =
+      aOldStyleContext->GetStyleBackground()->mBackgroundImage;
+    if (oldBackgroundImage &&
+        !EqualImages(oldBackgroundImage,
+                     GetStyleBackground()->mBackgroundImage)) {
+      
+      PresContext()->SetImageLoaders(this,
+        nsPresContext::BACKGROUND_IMAGE, nsnull);
     }
   }
 
@@ -4029,14 +4025,11 @@ nsIFrame::CheckInvalidateSizeChange(const nsRect& aOldRect,
 
   
   
-  const nsStyleBackground *bg = GetStyleBackground();
-  NS_FOR_VISIBLE_BACKGROUND_LAYERS_BACK_TO_FRONT(i, bg) {
-    const nsStyleBackground::Layer &layer = bg->mLayers[i];
-    if (layer.mImage.mRequest &&
-        (layer.mPosition.mXIsPercent || layer.mPosition.mYIsPercent)) {
-      Invalidate(nsRect(0, 0, aOldRect.width, aOldRect.height));
-      return;
-    }
+  const nsStyleBackground* background = GetStyleBackground();
+  if (background->mBackgroundFlags &
+      (NS_STYLE_BG_X_POSITION_PERCENT | NS_STYLE_BG_Y_POSITION_PERCENT)) {
+    Invalidate(nsRect(0, 0, aOldRect.width, aOldRect.height));
+    return;
   }
 }
 
