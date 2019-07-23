@@ -112,7 +112,17 @@ public:
   NS_HIDDEN_(already_AddRefed<nsStyleContext>)
   FindChildWithRules(const nsIAtom* aPseudoTag, nsRuleNode* aRules);
 
-  PRBool    HasTextDecorations() { return !!(mBits & NS_STYLE_HAS_TEXT_DECORATIONS); }
+  
+  
+  PRBool HasTextDecorations() const
+    { return !!(mBits & NS_STYLE_HAS_TEXT_DECORATIONS); }
+
+  
+  
+  
+  
+  PRBool HasPseudoElementData() const
+    { return !!(mBits & NS_STYLE_HAS_PSEUDO_ELEMENT_DATA); }
 
   NS_HIDDEN_(void) SetStyle(nsStyleStructID aSID, void* aStruct);
 
