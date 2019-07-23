@@ -93,8 +93,27 @@ public:
 protected:
   nsresult CopyPreferences(PRBool aReplace);
   nsresult CopyCookies(PRBool aReplace);
+  
+
+
+
+
+
+
+
   nsresult CopyHistory(PRBool aReplace);
+  nsresult CopyHistoryBatched(PRBool aReplace);
+  
+
+
+
+
+
+
+
+
   nsresult CopyBookmarks(PRBool aReplace);
+  nsresult CopyBookmarksBatched(PRBool aReplace);
   nsresult ParseBookmarksFolder(CFArrayRef aChildren, 
                                 PRInt64 aParentFolder,
                                 nsINavBookmarksService * aBookmarksService,

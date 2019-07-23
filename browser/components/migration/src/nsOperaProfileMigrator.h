@@ -98,17 +98,37 @@ public:
 
 protected:
   nsresult CopyPreferences(PRBool aReplace);
-  nsresult ParseColor(nsINIParser &aParser, const char* aSectionName, char** aResult);
+  nsresult ParseColor(nsINIParser &aParser, const char* aSectionName,
+                      char** aResult);
   nsresult CopyUserContentSheet(nsINIParser &aParser);
   nsresult CopyProxySettings(nsINIParser &aParser, nsIPrefBranch* aBranch);
   nsresult GetInteger(nsINIParser &aParser, const char* aSectionName, 
                       const char* aKeyName, PRInt32* aResult);
 
   nsresult CopyCookies(PRBool aReplace);
+  
+
+
+
+
+
+
+
   nsresult CopyHistory(PRBool aReplace);
+  nsresult CopyHistoryBatched(PRBool aReplace);
+  
+
+
+
+
+
+
+
 
   nsresult CopyBookmarks(PRBool aReplace);
-  void     ClearToolbarFolder(nsINavBookmarksService * aBookmarksService, PRInt64 aToolbarFolder);
+  nsresult CopyBookmarksBatched(PRBool aReplace);
+  void     ClearToolbarFolder(nsINavBookmarksService * aBookmarksService,
+                              PRInt64 aToolbarFolder);
   nsresult ParseBookmarksFolder(nsILineInputStream* aStream, 
                                 PRInt64 aFolder,
                                 PRInt64 aToolbar, 
@@ -197,7 +217,6 @@ private:
   PRBool   mCookieOpen;
   Cookie   mCurrCookie;
   PRUint8  mCurrHandlingInfo;
-
 };
 
 #endif

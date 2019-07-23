@@ -79,7 +79,16 @@ protected:
   nsresult CopyCookies(PRBool aReplace);
   nsresult CopyProxyPreferences(nsIPrefBranch* aPrefs);
   nsresult CopySecurityPrefs(nsIPrefBranch* aPrefs);
+  
+
+
+
+
+
+
+
   nsresult CopyHistory(PRBool aReplace);
+  nsresult CopyHistoryBatched(PRBool aReplace);
 
   PRBool   KeyIsURI(const nsAString& aKey, char** aRealm);
 
@@ -92,15 +101,25 @@ protected:
 
   nsresult CopyFormData(PRBool aReplace);
   nsresult AddDataToFormHistory(const nsAString& aKey, PRUnichar* data, unsigned long len);
+  
+
+
+
+
+
+
+
 
   nsresult CopyFavorites(PRBool aReplace);
+  nsresult CopyFavoritesBatched(PRBool aReplace);
   void     ResolveShortcut(const nsString &aFileName, char** aOutURL);
   nsresult ParseFavoritesFolder(nsIFile* aDirectory, 
                                 PRInt64 aParentFolder,
                                 nsINavBookmarksService* aBookmarksService,
                                 const nsAString& aPersonalToolbarFolderName,
                                 PRBool aIsAtRootLevel);
-  nsresult CopySmartKeywords(PRInt64 aParentFolder);
+  nsresult CopySmartKeywords(nsINavBookmarksService* aBMS,
+                             PRInt64 aParentFolder);
 
   nsresult CopyCookiesFromBuffer(char *aBuffer, PRUint32 aBufferLength,
                                  nsICookieManager2 *aCookieManager);
