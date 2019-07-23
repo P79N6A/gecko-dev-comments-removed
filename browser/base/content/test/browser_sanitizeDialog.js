@@ -284,9 +284,9 @@ var gAllTests = [
   
 
 
+
   function () {
     let wh = new WindowHelper();
-
     wh.onload = function () {
       
       this.toggleDetails();
@@ -294,7 +294,9 @@ var gAllTests = [
       this.cancelDialog();
     };
     wh.open();
-
+  },
+  function () {
+    let wh = new WindowHelper();
     wh.onload = function () {
       
       this.checkDetails(true);
