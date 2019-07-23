@@ -1756,6 +1756,9 @@ NS_IMETHODIMP nsDocAccessible::InvalidateCacheSubtree(nsIContent *aChild,
   NS_ENSURE_TRUE(mDOMNode, NS_ERROR_FAILURE);
   nsCOMPtr<nsIDOMNode> childNode = aChild ? do_QueryInterface(aChild) : mDOMNode;
 
+  nsCOMPtr<nsIPresShell> presShell = GetPresShell();
+  NS_ENSURE_TRUE(presShell, NS_ERROR_FAILURE);
+  
   if (!mIsContentLoaded) {
     
     if (mAccessNodeCache.Count() <= 1) {
@@ -1769,8 +1772,6 @@ NS_IMETHODIMP nsDocAccessible::InvalidateCacheSubtree(nsIContent *aChild,
       return InvalidateChildren();
     }
     if (aChangeEventType == nsIAccessibleEvent::EVENT_DOM_CREATE) {
-      nsCOMPtr<nsIPresShell> presShell = GetPresShell();
-      NS_ENSURE_TRUE(presShell, NS_ERROR_FAILURE);
       nsIEventStateManager *esm = presShell->GetPresContext()->EventStateManager();
       NS_ENSURE_TRUE(esm, NS_ERROR_FAILURE);
       if (!esm->IsHandlingUserInputExternal()) {
@@ -1834,9 +1835,8 @@ NS_IMETHODIMP nsDocAccessible::InvalidateCacheSubtree(nsIContent *aChild,
 
   if (!isShowing) {
     
-    nsCOMPtr<nsIContent> content(do_QueryInterface(childNode));
     if (isHiding) {
-      nsCOMPtr<nsIPresShell> presShell = GetPresShell();
+      nsCOMPtr<nsIContent> content(do_QueryInterface(childNode));
       if (content) {
         nsIFrame *frame = presShell->GetPrimaryFrameFor(content);
         if (frame) {
