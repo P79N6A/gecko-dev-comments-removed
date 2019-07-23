@@ -74,5 +74,5 @@ void nsAccessNodeWrap::ShutdownAccessibility()
   nsAccessNode::ShutdownXPAccessibility();
 
   
-  nsApplicationAccessibleWrap::Unload();
+  nsAppRootAccessible::Unload();
 }

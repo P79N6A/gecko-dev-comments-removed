@@ -44,11 +44,22 @@
 
 #include "nsRootAccessible.h"
 
-typedef nsRootAccessible nsRootAccessibleWrap;
 
 
 
 
+
+
+class nsRootAccessibleWrap: public nsRootAccessible
+{
+public:
+    nsRootAccessibleWrap(nsIDOMNode *aDOMNode, nsIWeakReference* aShell);
+    virtual ~nsRootAccessibleWrap();
+
+    NS_IMETHOD Init();
+    NS_IMETHOD Shutdown();
+    NS_IMETHOD GetParent(nsIAccessible **  aParent);
+};
 
 
 class nsNativeRootAccessibleWrap: public nsRootAccessible
