@@ -1102,29 +1102,42 @@ nsChangeHint nsStylePosition::CalcDifference(const nsStylePosition& aOther) cons
     
     return NS_STYLE_HINT_REFLOW;
   }
-  
+
+  if (mBoxSizing != aOther.mBoxSizing) {
+    return nsChangeHint_ReflowFrame;
+  }
+
+  nsChangeHint heightHint = NS_STYLE_HINT_NONE;
+  if (mHeight != aOther.mHeight ||
+      mMinHeight != aOther.mMinHeight ||
+      mMaxHeight != aOther.mMaxHeight) {
+    
+    
+    
+    heightHint =
+      NS_CombineHint(nsChangeHint_NeedReflow, nsChangeHint_NeedDirtyReflow);
+  }
+
   if ((mWidth == aOther.mWidth) &&
       (mMinWidth == aOther.mMinWidth) &&
-      (mMaxWidth == aOther.mMaxWidth) &&
-      (mHeight == aOther.mHeight) &&
-      (mMinHeight == aOther.mMinHeight) &&
-      (mMaxHeight == aOther.mMaxHeight) &&
-      (mBoxSizing == aOther.mBoxSizing)) {
+      (mMaxWidth == aOther.mMaxWidth)) {
     if (mOffset == aOther.mOffset) {
-      return NS_STYLE_HINT_NONE;
+      return heightHint;
     } else {
       
       
       
-      return nsChangeHint_NeedReflow;
+      return NS_CombineHint(heightHint, nsChangeHint_NeedReflow);
     }
   }
 
   
   
-  return NS_SubtractHint(nsChangeHint_ReflowFrame,
-                         NS_CombineHint(nsChangeHint_ClearDescendantIntrinsics,
-                                        nsChangeHint_NeedDirtyReflow));
+  return
+    NS_CombineHint(heightHint,
+                   NS_SubtractHint(nsChangeHint_ReflowFrame,
+                                   NS_CombineHint(nsChangeHint_ClearDescendantIntrinsics,
+                                                  nsChangeHint_NeedDirtyReflow)));
 }
 
 #ifdef DEBUG
