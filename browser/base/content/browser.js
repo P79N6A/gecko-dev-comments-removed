@@ -4511,19 +4511,19 @@ function asyncOpenWebPanel(event)
          
          
          
+#ifndef MOZ_PLACES_BOOKMARKS
          var dialogArgs = {
            name: wrapper.getAttribute("title"),
            url: wrapper.href,
            bWebPanel: true
          }
-#ifndef MOZ_PLACES_BOOKMARKS
          openDialog("chrome://browser/content/bookmarks/addBookmark2.xul", "",
                     BROWSER_ADD_BM_FEATURES, dialogArgs);
          event.preventDefault();
 #else
-         PlacesUtils.showAddBookmarkUI(makeURI(wrapper.href),
-                                       wrapper.getAttribute("title"),
-                                       null, null, true, true);
+         PlacesUtils.showMinimalAddBookmarkUI(makeURI(wrapper.href),
+                                              wrapper.getAttribute("title"),
+                                              null, null, true, true);
          event.preventDefault();
 #endif
          return false;
