@@ -1109,12 +1109,21 @@ LoginManager.prototype = {
         
         
         
+        var didntFillReason = null;
+
+        
+        
+        
         if (usernameField)
             this._attachToInput(usernameField);
 
         
-        if (passwordField.value)
+        if (passwordField.value) {
+            didntFillReason = "existingPassword";
+            this._notifyFoundLogins(didntFillReason, usernameField,
+                                    passwordField, foundLogins, null);
             return [false, foundLogins];
+        }
 
         
         
@@ -1141,11 +1150,13 @@ LoginManager.prototype = {
 
             let matchingLogins = logins.filter(function(l)
                                      l.username.toLowerCase() == username);
-            if (matchingLogins.length)
+            if (matchingLogins.length) {
                 selectedLogin = matchingLogins[0];
-            else
+            } else {
+                didntFillReason = "existingUsername";
                 this.log("Password not filled. None of the stored " +
                          "logins match the username already present.");
+            }
         } else if (logins.length == 1) {
             selectedLogin = logins[0];
         } else {
@@ -1158,10 +1169,12 @@ LoginManager.prototype = {
                 matchingLogins = logins.filter(function(l) l.username);
             else
                 matchingLogins = logins.filter(function(l) !l.username);
-            if (matchingLogins.length == 1)
+            if (matchingLogins.length == 1) {
                 selectedLogin = matchingLogins[0];
-            else
+            } else {
+                didntFillReason = "multipleLogins";
                 this.log("Multiple logins for form, so not filling any.");
+            }
         }
 
         var didFillForm = false;
@@ -1174,18 +1187,74 @@ LoginManager.prototype = {
         } else if (selectedLogin && !autofillForm) {
             
             
-            this._observerService.notifyObservers(form, "passwordmgr-found-form", "noAutofillForms");
+            didntFillReason = "noAutofillForms";
+            this._observerService.notifyObservers(form, "passwordmgr-found-form", didntFillReason);
             this.log("autofillForms=false but form can be filled; notified observers");
         } else if (selectedLogin && isFormDisabled) {
             
             
-            this._observerService.notifyObservers(form, "passwordmgr-found-form", "autocompleteOff");
+            didntFillReason = "autocompleteOff";
+            this._observerService.notifyObservers(form, "passwordmgr-found-form", didntFillReason);
             this.log("autocomplete=off but form can be filled; notified observers");
         }
+
+        this._notifyFoundLogins(didntFillReason, usernameField, passwordField,
+                                foundLogins, selectedLogin);
 
         return [didFillForm, foundLogins];
     },
 
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    _notifyFoundLogins : function (didntFillReason, usernameField,
+                                   passwordField, foundLogins, selectedLogin) {
+        let formInfo = Cc["@mozilla.org/hash-property-bag;1"].
+                       createInstance(Ci.nsIWritablePropertyBag2);
+
+        formInfo.setPropertyAsACString("didntFillReason", didntFillReason);
+        formInfo.setPropertyAsInterface("usernameField", usernameField);
+        formInfo.setPropertyAsInterface("passwordField", passwordField);
+        formInfo.setPropertyAsInterface("foundLogins", foundLogins.concat());
+        formInfo.setPropertyAsInterface("selectedLogin", selectedLogin);
+
+        this._observerService.notifyObservers(formInfo,
+                                              "passwordmgr-found-logins",
+                                              null);
+    },
 
     
 
