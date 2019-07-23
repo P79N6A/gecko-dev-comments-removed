@@ -847,6 +847,36 @@ pref("browser.bookmarks.editDialog.firstEditField", "namePicker");
 
 pref("geo.wifi.uri", "https://www.google.com/loc/json");
 
+#ifdef WINCE
+
+
+
+pref("browser.urlbar.search.chunkSize", 100);
+pref("browser.urlbar.search.timeout", 500);
+pref("browser.urlbar.delay", 1000);
+
+
+pref("browser.safebrowsing.enabled", false);
+
+
+pref("browser.shell.checkDefaultBrowser", false);
+
+
+pref("browser.sessionhistory.max_total_viewers", 0);
+
+
+pref("content.sink.interactive_deflect_count", 10); 
+pref("content.sink.perf_deflect_count", 50); 
+pref("content.sink.interactive_parse_time", 5000); 
+pref("content.sink.perf_parse_time", 150000); 
+pref("content.sink.pending_event_mode", 0); 
+pref("content.sink.event_probe_rate", 1); 
+pref("content.sink.interactive_time", 750000); 
+pref("content.sink.initial_perf_time", 500000); 
+pref("content.sink.enable_perf_mode", 0); 
+
+#endif 
+
 
 #ifdef XP_MACOSX
 pref("toolbar.customization.usesheet", true);
