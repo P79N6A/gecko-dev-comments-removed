@@ -1211,7 +1211,7 @@ nsresult nsOSHelperAppService::OSProtocolHandlerExists(const char * aProtocolSch
 #ifdef MOZ_WIDGET_GTK2
   
   *aHandlerExists = nsGNOMERegistry::HandlerExists(aProtocolScheme);
-#ifdef MOZ_PLATFORM_HILDON
+#ifdef MOZ_PLATFORM_MAEMO
   *aHandlerExists = nsMIMEInfoUnix::HandlerExists(aProtocolScheme);
 #endif
 #endif

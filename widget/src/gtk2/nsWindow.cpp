@@ -38,7 +38,7 @@
 
 
 
-#ifdef MOZ_PLATFORM_HILDON
+#ifdef MOZ_PLATFORM_MAEMO
 #define MAEMO_CHANGES
 #endif
 
@@ -305,7 +305,7 @@ static GdkEventKey *gKeyEvent = NULL;
 static PRBool       gKeyEventCommitted = PR_FALSE;
 static PRBool       gKeyEventChanged = PR_FALSE;
 static PRBool       gIMESuppressCommit = PR_FALSE;
-#ifdef MOZ_PLATFORM_HILDON
+#ifdef MOZ_PLATFORM_MAEMO
 static PRBool       gIMEVirtualKeyboardOpened = PR_FALSE;
 #endif
 
@@ -3500,7 +3500,7 @@ nsWindow::OnVisibilityNotifyEvent(GtkWidget *aWidget,
 
         mIsFullyObscured = PR_FALSE;
 
-#ifdef MOZ_PLATFORM_HILDON
+#ifdef MOZ_PLATFORM_MAEMO
 #ifdef USE_XIM
         
         
@@ -6853,7 +6853,7 @@ nsWindow::IMEGetContext()
 static PRBool
 IsIMEEnabledState(PRUint32 aState)
 {
-#ifdef MOZ_PLATFORM_HILDON
+#ifdef MOZ_PLATFORM_MAEMO
     return aState == nsIWidget::IME_STATUS_ENABLED ||
            aState == nsIWidget::IME_STATUS_PLUGIN  ||
            aState == nsIWidget::IME_STATUS_PASSWORD;
@@ -7061,7 +7061,7 @@ nsWindow::SetIMEEnabled(PRUint32 aState)
         
         
         focusedWin->IMESetFocus();
-#ifdef MOZ_PLATFORM_HILDON
+#ifdef MOZ_PLATFORM_MAEMO
         if (mIMEData->mEnabled) {
             
             
@@ -7437,7 +7437,7 @@ IM_get_input_context(nsWindow *aWindow)
         data->mEnabled == nsIWidget::IME_STATUS_PLUGIN)
         return data->mContext;
     if (data->mEnabled == nsIWidget::IME_STATUS_PASSWORD)
-#ifdef MOZ_PLATFORM_HILDON
+#ifdef MOZ_PLATFORM_MAEMO
         return data->mContext;
 #else
         return data->mSimpleContext;

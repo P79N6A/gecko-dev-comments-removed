@@ -53,7 +53,7 @@
 #include <glib-object.h>
 #endif
 
-#ifdef MOZ_PLATFORM_HILDON
+#ifdef MOZ_PLATFORM_MAEMO
 #include <libintl.h>
 #endif
 
@@ -192,7 +192,7 @@ nsGNOMERegistry::GetFromType(const nsACString& aMIMEType)
   else 
     gnomeHandlerApp->GetName(name);
 
-#ifdef MOZ_PLATFORM_HILDON
+#ifdef MOZ_PLATFORM_MAEMO
   
   
   

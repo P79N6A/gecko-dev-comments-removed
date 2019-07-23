@@ -1170,7 +1170,7 @@ nsDownloadManager::GetDefaultDownloadsDirectory(nsILocalFile **aResult)
     }
   }
 #elif defined(XP_UNIX)
-#if defined(NS_OSSO)
+#if defined(MOZ_PLATFORM_MAEMO)
     
     
     
