@@ -40,6 +40,9 @@
 
 
 
+
+
+
 let kURIs = [
   "http://url/",
   "http://url/2",
@@ -88,7 +91,7 @@ markTyped([0,3,10]);
 let gTests = [
   
   ["0: History restrict",
-   "^", [0,1,2,3,5,10]],
+   "^", [0,1,2,3,5,10], ignoreTags],
   ["1: Star restrict",
    "*", [4,5,6,7,8,9,10,11]],
   ["2: Tag restrict",
@@ -96,15 +99,15 @@ let gTests = [
 
   
   ["3: Special as first word",
-   "^ foo bar", [1,2,3,5,10]],
+   "^ foo bar", [1,2,3,5,10], ignoreTags],
   ["4: Special as middle word",
-   "foo ^ bar", [1,2,3,5,10]],
+   "foo ^ bar", [1,2,3,5,10], ignoreTags],
   ["5: Special as last word",
-   "foo bar ^", [1,2,3,5,10]],
+   "foo bar ^", [1,2,3,5,10], ignoreTags],
 
   
   ["6: foo ^ -> history",
-   "foo ^", [1,2,3,5,10]],
+   "foo ^", [1,2,3,5,10], ignoreTags],
   ["7: foo * -> is star",
    "foo *", [5,6,7,8,9,10,11]],
   ["8: foo # -> in title",
@@ -120,13 +123,13 @@ let gTests = [
   ["11: foo ^ * -> history, is star",
    "foo ^ *", [5,10]],
   ["12: foo ^ # -> history, in title",
-   "foo ^ #", [1,3,5,10]],
+   "foo ^ #", [1,3,5,10], ignoreTags],
   ["13: foo ^ @ -> history, in url",
-   "foo ^ @", [2,3,10]],
+   "foo ^ @", [2,3,10], ignoreTags],
   ["14: foo ^ + -> history, is tag",
    "foo ^ +", [10]],
   ["14.1: foo ^ ~ -> history, is typed",
-   "foo ^ ~", [3,10]],
+   "foo ^ ~", [3,10], ignoreTags],
   ["15: foo * # -> is star, in title",
    "foo * #", [5,7,8,9,10,11]],
   ["16: foo * @ -> is star, in url",
@@ -166,5 +169,9 @@ let gTests = [
 ];
 
 function makeDefault(aDefault) {
+  
+  if ((aDefault & 1) && !((aDefault & 2) || (aDefault & 4)))
+    ignoreTags();
+
   prefs.setIntPref("browser.urlbar.default.behavior", aDefault);
 }

@@ -1142,6 +1142,13 @@ nsNavHistory::AutoCompleteProcessSearch(mozIStorageStatement* aQuery,
       PRBool showTags = !entryTags.IsEmpty();
 
       
+      
+      if (GET_BEHAVIOR(History) && !(GET_BEHAVIOR(Bookmark) || GET_BEHAVIOR(Tag))) {
+        showTags = PR_FALSE;
+        style = NS_LITERAL_STRING("favicon");
+      }
+
+      
       if (showTags)
         title += TITLE_TAGS_SEPARATOR + entryTags;
 
