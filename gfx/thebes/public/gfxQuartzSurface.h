@@ -58,8 +58,6 @@ public:
 
     virtual PRInt32 GetDefaultContextFlags() const;
 
-    already_AddRefed<gfxImageSurface> GetImageSurface();
-
 protected:
     CGContextRef mCGContext;
     gfxSize      mSize;

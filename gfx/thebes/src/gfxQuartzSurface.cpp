@@ -44,11 +44,14 @@ gfxQuartzSurface::gfxQuartzSurface(const gfxSize& size, gfxImageFormat format,
                                    PRBool aForPrinting)
     : mSize(size), mForPrinting(aForPrinting)
 {
-    if (!CheckSurfaceSize(gfxIntSize((int)size.width, (int)size.height)))
+    unsigned int width = (unsigned int) floor(size.width);
+    unsigned int height = (unsigned int) floor(size.height);
+
+    if (!CheckSurfaceSize(gfxIntSize(width, height)))
         return;
 
     cairo_surface_t *surf = cairo_quartz_surface_create
-        ((cairo_format_t) format, floor(size.width), floor(size.height));
+        ((cairo_format_t) format, width, height);
 
     mCGContext = cairo_quartz_surface_get_cg_context (surf);
 
@@ -62,10 +65,12 @@ gfxQuartzSurface::gfxQuartzSurface(CGContextRef context,
                                    PRBool aForPrinting)
     : mCGContext(context), mSize(size), mForPrinting(aForPrinting)
 {
+    unsigned int width = (unsigned int) floor(size.width);
+    unsigned int height = (unsigned int) floor(size.height);
+
     cairo_surface_t *surf = 
         cairo_quartz_surface_create_for_cg_context(context,
-                                                   floor(size.width),
-                                                   floor(size.height));
+                                                   width, height);
 
     CGContextRetain(mCGContext);
 
@@ -93,24 +98,4 @@ PRInt32 gfxQuartzSurface::GetDefaultContextFlags() const
 gfxQuartzSurface::~gfxQuartzSurface()
 {
     CGContextRelease(mCGContext);
-}
-
-already_AddRefed<gfxImageSurface>
-gfxQuartzSurface::GetImageSurface()
-{
-    if (!mSurfaceValid) {
-        NS_WARNING ("GetImageSurface on an invalid (null) surface; who's calling this without checking for surface errors?");
-        return nsnull;
-    }
-
-    NS_ASSERTION(CairoSurface() != nsnull, "CairoSurface() shouldn't be nsnull when mSurfaceValid is TRUE!");
-
-    cairo_surface_t *isurf = cairo_quartz_surface_get_image(CairoSurface());
-    if (!isurf)
-        return nsnull;
-
-    nsRefPtr<gfxASurface> asurf = gfxASurface::Wrap(isurf);
-    gfxImageSurface *imgsurf = (gfxImageSurface*) asurf.get();
-    NS_ADDREF(imgsurf);
-    return imgsurf;
 }

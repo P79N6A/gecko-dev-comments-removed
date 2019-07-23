@@ -81,6 +81,9 @@ public:
 
     unsigned char* Data() { return mData; } 
 
+    
+    PRBool CopyFrom (gfxImageSurface *other);
+
 private:
     long ComputeStride() const;
 
