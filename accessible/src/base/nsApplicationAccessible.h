@@ -69,6 +69,9 @@ public:
   NS_DECL_ISUPPORTS_INHERITED
 
   
+  NS_IMETHOD GetRootDocument(nsIAccessibleDocument **aRootDocument);
+
+  
   NS_IMETHOD GetName(nsAString& aName);
   NS_IMETHOD GetDescription(nsAString& aValue);
   NS_IMETHOD GetRole(PRUint32 *aRole);

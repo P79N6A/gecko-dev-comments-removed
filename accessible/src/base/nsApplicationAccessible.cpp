@@ -62,6 +62,18 @@ NS_IMPL_ISUPPORTS_INHERITED1(nsApplicationAccessible, nsAccessible,
 
 
 NS_IMETHODIMP
+nsApplicationAccessible::GetRootDocument(nsIAccessibleDocument **aRootDocument)
+{
+  NS_ENSURE_ARG_POINTER(aRootDocument);
+  *aRootDocument = nsnull;
+
+  return NS_OK;
+}
+
+
+
+
+NS_IMETHODIMP
 nsApplicationAccessible::GetName(nsAString& aName)
 {
   aName.Truncate();
