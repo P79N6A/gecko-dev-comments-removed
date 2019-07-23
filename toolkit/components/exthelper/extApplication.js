@@ -128,7 +128,7 @@ Events.prototype = {
     this._listeners = this._listeners.filter(hasFilter);
 
     function hasFilter(element) {
-      return element.event != aEvent && element.listener != aListener;
+      return (element.event != aEvent) || (element.listener != aListener);
     }
   },
 
@@ -696,7 +696,7 @@ extApplication.prototype = {
     os.notifyObservers(cancelQuit, "quit-application-requested", null);
     if (cancelQuit.data)
       return false; 
-    
+
     let appStartup = Components.classes['@mozilla.org/toolkit/app-startup;1']
                                .getService(Components.interfaces.nsIAppStartup);
     appStartup.quit(aFlags);

@@ -35,18 +35,20 @@ function test() {
     gPageA.events.removeListener("load", onPageAFirstLoad);
 
     gPageB = activeWin.open(url("chrome://mochikit/content/browser/browser/fuel/test/ContentB.html"));
-    gPageB.events.addListener("load", function() {
-      executeSoon(afterOpen);
-    });
+    gPageB.events.addListener("load", delayAfterOpen);
     gPageB.focus();
 
     is(activeWin.tabs.length, 3, "Checking length of 'Browser.tabs' after opening a second additional tab");
     is(activeWin.activeTab.index, gPageB.index, "Checking 'Browser.activeTab' after setting focus");
   }
 
+  function delayAfterOpen() {
+    executeSoon(afterOpen);
+  }
+
   
   function afterOpen(event) {
-    gPageB.events.removeListener("load", afterOpen);
+    gPageB.events.removeListener("load", delayAfterOpen);
 
     is(gPageA.uri.spec, "chrome://mochikit/content/browser/browser/fuel/test/ContentA.html", "Checking 'BrowserTab.uri' after opening");
     is(gPageB.uri.spec, "chrome://mochikit/content/browser/browser/fuel/test/ContentB.html", "Checking 'BrowserTab.uri' after opening");
@@ -58,6 +60,9 @@ function test() {
     var test1 = gPageA.document.getElementById("test1");
     ok(test1, "Checking existence of element in content DOM");
     is(test1.innerHTML, "A", "Checking content of element in content DOM");
+
+    
+    is(gTabMoveCount, 0, "Checking initial tab move count");
 
     
     gPageA.moveToEnd();
