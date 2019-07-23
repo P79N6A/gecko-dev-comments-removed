@@ -220,7 +220,7 @@ public:
   
   
   nsMediaCacheStream(nsMediaChannelStream* aClient)
-    : mClient(aClient), mChannelOffset(0),
+    : mClient(aClient), mResourceID(0), mChannelOffset(0),
       mStreamOffset(0), mStreamLength(-1), mPlaybackBytesPerSecond(10000),
       mPinCount(0), mCurrentMode(MODE_PLAYBACK),
       mInitialized(PR_FALSE), mClosed(PR_FALSE),
@@ -301,6 +301,8 @@ public:
   
   
   PRInt64 GetLength();
+  
+  PRInt64 GetResourceID() { return mResourceID; }
   
   
   PRInt64 GetCachedDataEnd(PRInt64 aOffset);
@@ -426,6 +428,10 @@ private:
   
   nsMediaChannelStream*  mClient;
   nsCOMPtr<nsIPrincipal> mPrincipal;
+  
+  
+  
+  PRInt64                mResourceID;
 
   
   

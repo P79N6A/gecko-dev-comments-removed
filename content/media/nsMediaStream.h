@@ -312,6 +312,14 @@ public:
   
   
   
+  void CacheClientNotifyDataReceived();
+  
+  
+  
+  void CacheClientNotifyDataEnded(nsresult aStatus);
+  
+  
+  
   
   nsresult CacheClientSeek(PRInt64 aOffset, PRBool aResume);
   
@@ -346,7 +354,6 @@ public:
   virtual PRBool  IsDataCachedToEndOfStream(PRInt64 aOffset);
   virtual PRBool  IsSuspendedByCache();
 
-protected:
   class Listener : public nsIStreamListener,
                    public nsIInterfaceRequestor,
                    public nsIChannelEventSink
@@ -367,6 +374,7 @@ protected:
   };
   friend class Listener;
 
+protected:
   
   nsresult OnStartRequest(nsIRequest* aRequest);
   nsresult OnStopRequest(nsIRequest* aRequest, nsresult aStatus);
@@ -383,6 +391,8 @@ protected:
   
   void CloseChannel();
 
+  void DoNotifyDataReceived();
+
   static NS_METHOD CopySegmentToCache(nsIInputStream *aInStream,
                                       void *aClosure,
                                       const char *aFromSegment,
@@ -393,6 +403,9 @@ protected:
   
   PRInt64            mOffset;
   nsRefPtr<Listener> mListener;
+  
+  
+  nsRevocableEventPtr<nsNonOwningRunnableMethod<nsMediaChannelStream> > mDataReceivedEvent;
   PRUint32           mSuspendCount;
   
   
