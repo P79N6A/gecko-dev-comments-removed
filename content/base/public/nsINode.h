@@ -148,8 +148,9 @@ inline nsINode* NODE_FROM(C& aContent, D& aDocument)
 
 
 #define NS_INODE_IID \
-{ 0x6f69dd90, 0x318d, 0x40ac, \
-  { 0xb8, 0xb8, 0x99, 0xb8, 0xa7, 0xbb, 0x9a, 0x58 } }
+{ 0x2593b0d5, 0x9a06, 0x4d6b, \
+  { 0x9a, 0x10, 0xb1, 0x39, 0x9f, 0x1b, 0xa0, 0x8e } }
+
 
 
 
@@ -232,6 +233,16 @@ public:
 
 
   virtual nsIContent* GetChildAt(PRUint32 aIndex) const = 0;
+
+  
+
+
+
+
+
+
+
+  virtual nsIContent * const * GetChildArray() const = 0;
 
   
 
