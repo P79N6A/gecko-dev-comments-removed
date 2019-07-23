@@ -943,8 +943,10 @@ PlacesTreeView.prototype = {
 
       
       if (PlacesUtils.nodeIsQuery(node)) {
-        asQuery(node);
-        return node.queryOptions.expandQueries;
+        var parent = node.parent;
+        if(PlacesUtils.nodeIsQuery(parent) ||
+           PlacesUtils.nodeIsFolder(parent))
+          return asQuery(parent).queryOptions.expandQueries;
       }
       return true;
     }
