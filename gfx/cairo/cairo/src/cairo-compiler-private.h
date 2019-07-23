@@ -173,7 +173,7 @@
 #define inline __inline
 #endif
 
-#if defined(_MSC_VER) && !defined(WINCE)
+#if defined(_MSC_VER) && defined(_M_IX86)
 
 
 
