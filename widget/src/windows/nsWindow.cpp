@@ -453,10 +453,7 @@ static BYTE  gLastMouseButton = 0;
 
 
 
-#ifdef WINCE
-static
-#endif
-PRUint32 gLastInputEventTime = 0;
+static PRUint32 gLastInputEventTime = 0;
 
 static int gTrimOnMinimize = 2; 
 
