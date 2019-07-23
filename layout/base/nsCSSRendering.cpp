@@ -3650,6 +3650,11 @@ nsContextBoxBlur::Init(const nsRect& aRect, nscoord aBlurRadius,
                        gfxContext* aDestinationCtx,
                        const nsRect& aDirtyRect)
 {
+  if (aRect.IsEmpty()) {
+    mContext = nsnull;
+    return nsnull;
+  }
+
   PRInt32 blurRadius = static_cast<PRInt32>(aBlurRadius / aAppUnitsPerDevPixel);
   mDestinationCtx = aDestinationCtx;
 
@@ -3662,11 +3667,6 @@ nsContextBoxBlur::Init(const nsRect& aRect, nscoord aBlurRadius,
   
   gfxRect rect = RectToGfxRect(aRect, aAppUnitsPerDevPixel);
   rect.RoundOut();
-
-  if (rect.IsEmpty()) {
-    mContext = aDestinationCtx;
-    return mContext;
-  }
 
   gfxRect dirtyRect = RectToGfxRect(aDirtyRect, aAppUnitsPerDevPixel);
   dirtyRect.RoundOut();
