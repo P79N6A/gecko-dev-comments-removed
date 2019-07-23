@@ -320,7 +320,8 @@ nsSVGOuterSVGFrame::ComputeSize(nsIRenderingContext *aRenderingContext,
                                 nsSize aMargin, nsSize aBorder, nsSize aPadding,
                                 PRBool aShrinkWrap)
 {
-  if (EmbeddedByReference()) {
+  if (mContent->HasAttr(kNameSpaceID_None, nsGkAtoms::viewBox) &&
+      EmbeddedByReference()) {
     
     
     return aCBSize;
