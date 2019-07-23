@@ -923,6 +923,9 @@ const uintN JSDNP_DONT_PURGE   = 2;
 const uintN JSDNP_SET_METHOD   = 4; 
 
 
+const uintN JSDNP_UNQUALIFIED  = 8; 
+
+
 
 
 
@@ -1048,8 +1051,10 @@ js_GetMethod(JSContext *cx, JSObject *obj, jsid id, uintN getHow, jsval *vp);
 
 
 
+
+
 extern JS_FRIEND_API(bool)
-js_CheckUndeclaredVarAssignment(JSContext *cx);
+js_CheckUndeclaredVarAssignment(JSContext *cx, jsval propname);
 
 extern JSBool
 js_SetPropertyHelper(JSContext *cx, JSObject *obj, jsid id, uintN defineHow,
