@@ -389,15 +389,6 @@ struct nsStyleBorder {
     return mActualBorder.side(aSide);
   }
 
-  
-  
-  
-  
-  nscoord GetComputedBorderWidth(PRUint8 aSide) const
-  {
-    return mActualBorder.side(aSide) ? mBorder.side(aSide) : 0;
-  }
-
   PRUint8 GetBorderStyle(PRUint8 aSide) const
   {
     NS_ASSERTION(aSide <= NS_SIDE_LEFT, "bad side"); 
