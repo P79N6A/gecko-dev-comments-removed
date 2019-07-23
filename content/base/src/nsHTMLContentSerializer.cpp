@@ -195,7 +195,7 @@ nsHTMLContentSerializer::SerializeHTMLAttributes(nsIContent* aContent,
         valueStr = tempURI;
     }
 
-    if (mIsWholeDocument && aTagName == nsGkAtoms::meta &&
+    if (mRewriteEncodingDeclaration && aTagName == nsGkAtoms::meta &&
         attrName == nsGkAtoms::content) {
       
       

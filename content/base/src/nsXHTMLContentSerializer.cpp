@@ -99,7 +99,7 @@ nsXHTMLContentSerializer::~nsXHTMLContentSerializer()
 NS_IMETHODIMP
 nsXHTMLContentSerializer::Init(PRUint32 aFlags, PRUint32 aWrapColumn,
                               const char* aCharSet, PRBool aIsCopying,
-                              PRBool aIsWholeDocument)
+                              PRBool aRewriteEncodingDeclaration)
 {
   
   
@@ -113,10 +113,10 @@ nsXHTMLContentSerializer::Init(PRUint32 aFlags, PRUint32 aWrapColumn,
   }
 
   nsresult rv;
-  rv = nsXMLContentSerializer::Init(aFlags, aWrapColumn, aCharSet, aIsCopying, aIsWholeDocument);
+  rv = nsXMLContentSerializer::Init(aFlags, aWrapColumn, aCharSet, aIsCopying, aRewriteEncodingDeclaration);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  mIsWholeDocument = aIsWholeDocument;
+  mRewriteEncodingDeclaration = aRewriteEncodingDeclaration;
   mIsCopying = aIsCopying;
   mIsFirstChildOfOL = PR_FALSE;
   mInBody = 0;
@@ -420,7 +420,7 @@ nsXHTMLContentSerializer::SerializeAttributes(nsIContent* aContent,
           valueStr = tempURI;
       }
 
-      if (mIsWholeDocument && aTagName == nsGkAtoms::meta &&
+      if (mRewriteEncodingDeclaration && aTagName == nsGkAtoms::meta &&
           attrName == nsGkAtoms::content) {
         
         
@@ -493,7 +493,7 @@ nsXHTMLContentSerializer::AfterElementStart(nsIContent * aContent,
 {
   nsIAtom *name = aContent->Tag();
   if (aContent->GetNameSpaceID() == kNameSpaceID_XHTML &&
-      mIsWholeDocument &&
+      mRewriteEncodingDeclaration &&
       name == nsGkAtoms::head) {
 
     
