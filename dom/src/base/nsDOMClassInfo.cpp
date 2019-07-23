@@ -59,8 +59,6 @@
 #include "prprf.h"
 #include "nsTArray.h"
 #include "nsCSSValue.h"
-#include "nsIRunnable.h"
-#include "nsThreadUtils.h"
 
 
 #include "jsapi.h"
@@ -7141,17 +7139,20 @@ nsElementSH::PostCreate(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
   
   
 
+  nsRefPtr<nsXBLBinding> binding;
   if (content->HasFlag(NODE_MAY_BE_IN_BINDING_MNGR) &&
-      doc->BindingManager()->GetBinding(content)) {
+      (binding = doc->BindingManager()->GetBinding(content))) {
+    
+    
+    
+    
+    
+    
+    
     
     
 
-    
-    
-    
-    
-
-    return NS_OK;
+    return binding->EnsureScriptAPI();
   }
 
   
@@ -7175,7 +7176,6 @@ nsElementSH::PostCreate(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
 
   
   
-  nsRefPtr<nsXBLBinding> binding;
   {
     
     nsRefPtr<nsStyleContext> sc = pctx->StyleSet()->ResolveStyleFor(content,
@@ -7200,13 +7200,17 @@ nsElementSH::PostCreate(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
   }
   
   if (binding) {
-    if (nsContentUtils::IsSafeToRunScript()) {
-      binding->ExecuteAttachedHandler();
-    }
-    else {
-      nsContentUtils::AddScriptRunner(new nsRunnableMethod<nsXBLBinding>(
-        binding, &nsXBLBinding::ExecuteAttachedHandler));
-    }
+
+#ifdef DEBUG
+    PRBool safeToRunScript = PR_FALSE;
+    pctx->PresShell()->IsSafeToFlush(safeToRunScript);
+    NS_ASSERTION(safeToRunScript, "Wrapping when it's not safe to flush");
+#endif
+
+    rv = binding->EnsureScriptAPI();
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    binding->ExecuteAttachedHandler();
   }
 
   return NS_OK;
@@ -8797,24 +8801,17 @@ nsHTMLSelectElementSH::SetProperty(nsIXPConnectWrappedNative *wrapper,
 
 
 nsresult
-nsHTMLPluginObjElementSH::GetPluginInstanceIfSafe(nsIXPConnectWrappedNative *wrapper,
-                                                  nsIPluginInstance **_result)
+nsHTMLPluginObjElementSH::GetPluginInstance(nsIXPConnectWrappedNative *wrapper,
+                                            nsIPluginInstance **_result)
 {
   *_result = nsnull;
 
   nsCOMPtr<nsIContent> content(do_QueryWrappedNative(wrapper));
   NS_ENSURE_TRUE(content, NS_ERROR_UNEXPECTED);
 
+  
   nsCOMPtr<nsIObjectLoadingContent> objlc(do_QueryInterface(content));
   NS_ASSERTION(objlc, "Object nodes must implement nsIObjectLoadingContent");
-
-  
-  
-  if (!nsContentUtils::IsSafeToRunScript()) {
-    return objlc->GetPluginInstance(_result);
-  }
-
-  
   return objlc->EnsureInstantiation(_result);
 }
 
@@ -8840,51 +8837,22 @@ IsObjInProtoChain(JSContext *cx, JSObject *obj, JSObject *proto)
   return PR_FALSE;
 }
 
-class nsPluginProtoChainInstallRunner : public nsIRunnable
+
+
+
+
+
+
+
+NS_IMETHODIMP
+nsHTMLPluginObjElementSH::PostCreate(nsIXPConnectWrappedNative *wrapper,
+                                     JSContext *cx, JSObject *obj)
 {
-public:
-  NS_DECL_ISUPPORTS
-
-  nsPluginProtoChainInstallRunner(nsIXPConnectWrappedNative* wrapper,
-                                  nsIScriptContext* scriptContext)
-    : mWrapper(wrapper),
-      mContext(scriptContext)
-  {
-  }
-
-  NS_IMETHOD Run()
-  {
-    JSObject* obj = nsnull;
-    mWrapper->GetJSObject(&obj);
-    NS_ASSERTION(obj, "Should never be null");
-    nsHTMLPluginObjElementSH::SetupProtoChain(
-      mWrapper, (JSContext*)mContext->GetNativeContext(), obj);
-    return NS_OK;
-  }
-
-private:
-  nsCOMPtr<nsIXPConnectWrappedNative> mWrapper;
-  nsCOMPtr<nsIScriptContext> mContext;
-};
-
-NS_IMPL_ISUPPORTS1(nsPluginProtoChainInstallRunner, nsIRunnable)
-
-
-nsresult
-nsHTMLPluginObjElementSH::SetupProtoChain(nsIXPConnectWrappedNative *wrapper,
-                                          JSContext *cx,
-                                          JSObject *obj)
-{
-  NS_ASSERTION(nsContentUtils::IsSafeToRunScript(),
-               "Shouldn't have gotten in here");
-
-  nsCxPusher cxPusher;
-  if (!cxPusher.Push(cx)) {
-    return NS_OK;
-  }
+  nsresult rv = nsElementSH::PostCreate(wrapper, cx, obj);
+  NS_ENSURE_SUCCESS(rv, rv);
 
   nsCOMPtr<nsIPluginInstance> pi;
-  nsresult rv = GetPluginInstanceIfSafe(wrapper, getter_AddRefs(pi));
+  rv = GetPluginInstance(wrapper, getter_AddRefs(pi));
   NS_ENSURE_SUCCESS(rv, rv);
 
   if (!pi) {
@@ -8998,26 +8966,6 @@ nsHTMLPluginObjElementSH::SetupProtoChain(nsIXPConnectWrappedNative *wrapper,
   return NS_OK;
 }
 
-NS_IMETHODIMP
-nsHTMLPluginObjElementSH::PostCreate(nsIXPConnectWrappedNative *wrapper,
-                                     JSContext *cx, JSObject *obj)
-{
-  nsresult rv = nsElementSH::PostCreate(wrapper, cx, obj);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  if (nsContentUtils::IsSafeToRunScript()) {
-    return SetupProtoChain(wrapper, cx, obj);
-  }
-
-  nsCOMPtr<nsIScriptContext> scriptContext =
-    GetScriptContextFromJSContext(cx);
-  NS_ENSURE_TRUE(scriptContext, NS_ERROR_UNEXPECTED);
-
-  nsContentUtils::AddScriptRunner(
-      new nsPluginProtoChainInstallRunner(wrapper, scriptContext));
-
-  return NS_OK;
-}
 
 NS_IMETHODIMP
 nsHTMLPluginObjElementSH::GetProperty(nsIXPConnectWrappedNative *wrapper,
@@ -9119,7 +9067,7 @@ nsHTMLPluginObjElementSH::Call(nsIXPConnectWrappedNative *wrapper,
                                jsval *argv, jsval *vp, PRBool *_retval)
 {
   nsCOMPtr<nsIPluginInstance> pi;
-  nsresult rv = GetPluginInstanceIfSafe(wrapper, getter_AddRefs(pi));
+  nsresult rv = GetPluginInstance(wrapper, getter_AddRefs(pi));
   NS_ENSURE_SUCCESS(rv, rv);
 
   if (!pi) {
@@ -9336,7 +9284,7 @@ nsHTMLPluginObjElementSH::NewResolve(nsIXPConnectWrappedNative *wrapper,
   
 
   nsCOMPtr<nsIPluginInstance> pi;
-  nsresult rv = GetPluginInstanceIfSafe(wrapper, getter_AddRefs(pi));
+  nsresult rv = GetPluginInstance(wrapper, getter_AddRefs(pi));
   NS_ENSURE_SUCCESS(rv, rv);
 
   nsCOMPtr<nsIPluginInstanceInternal> plugin_internal =

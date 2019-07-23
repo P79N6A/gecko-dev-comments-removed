@@ -270,7 +270,6 @@ class nsObjectLoadingContent : public nsImageLoadingContent
 
     void GetObjectBaseURI(nsIContent* thisContent, nsIURI** aURI);
 
-
     
 
 
@@ -278,19 +277,7 @@ class nsObjectLoadingContent : public nsImageLoadingContent
 
 
 
-
-
-
-
-
-
-
-    enum FlushType {
-      eFlushContent,
-      eFlushLayout,
-      eDontFlush
-    };
-    nsIObjectFrame* GetExistingFrame(FlushType aFlushType);
+    nsIObjectFrame* GetFrame(PRBool aFlushLayout);
 
     
 
@@ -408,7 +395,7 @@ class nsObjectLoadingContent : public nsImageLoadingContent
     
     PRBool                      mTypeUnsupported:1;
 
-    friend class nsAsyncInstantiateEvent;
+    friend struct nsAsyncInstantiateEvent;
 };
 
 

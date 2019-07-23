@@ -130,8 +130,7 @@ nsAsyncInstantiateEvent::Run()
   
   
   
-  nsIObjectFrame* frame = mContent->
-    GetExistingFrame(nsObjectLoadingContent::eFlushContent);
+  nsIObjectFrame* frame = mContent->GetFrame(PR_FALSE);
   if (frame == mFrame &&
       mContent->mURI == mURI &&
       mContent->mContentType.Equals(mContentType)) {
@@ -517,7 +516,7 @@ nsObjectLoadingContent::OnStartRequest(nsIRequest *aRequest, nsISupports *aConte
         notifier.Notify();
       }
       nsIObjectFrame* frame;
-      frame = GetExistingFrame(eFlushLayout);
+      frame = GetFrame(PR_TRUE);
       if (!frame) {
         
         
@@ -583,7 +582,7 @@ nsObjectLoadingContent::OnStartRequest(nsIRequest *aRequest, nsISupports *aConte
 #endif
       Fallback(PR_FALSE);
     } else if (mType == eType_Plugin) {
-      nsIObjectFrame* frame = GetExistingFrame(eFlushContent);
+      nsIObjectFrame* frame = GetFrame(PR_FALSE);
       if (frame) {
         
         
@@ -672,7 +671,7 @@ nsObjectLoadingContent::EnsureInstantiation(nsIPluginInstance** aInstance)
     return NS_OK;
   }
 
-  nsIObjectFrame* frame = GetExistingFrame(eFlushContent);
+  nsIObjectFrame* frame = GetFrame(PR_FALSE);
   if (frame) {
     
     
@@ -709,7 +708,7 @@ nsObjectLoadingContent::EnsureInstantiation(nsIPluginInstance** aInstance)
 
     mInstantiating = PR_FALSE;
 
-    frame = GetExistingFrame(eFlushContent);
+    frame = GetFrame(PR_FALSE);
     if (!frame) {
       return NS_OK;
     }
@@ -770,19 +769,6 @@ nsObjectLoadingContent::HasNewFrame(nsIObjectFrame* aFrame)
     }
   }
   return NS_OK;
-}
-
-NS_IMETHODIMP
-nsObjectLoadingContent::GetPluginInstance(nsIPluginInstance** aInstance)
-{
-  *aInstance = nsnull;
-
-  nsIObjectFrame* objFrame = GetExistingFrame(eDontFlush);
-  if (!objFrame) {
-    return NS_OK;
-  }
-
-  return objFrame->GetPluginInstance(*aInstance);
 }
 
 NS_IMETHODIMP
@@ -1541,12 +1527,13 @@ nsObjectLoadingContent::GetObjectBaseURI(nsIContent* thisContent, nsIURI** aURI)
 }
 
 nsIObjectFrame*
-nsObjectLoadingContent::GetExistingFrame(FlushType aFlushType)
+nsObjectLoadingContent::GetFrame(PRBool aFlushLayout)
 {
   nsCOMPtr<nsIContent> thisContent = 
     do_QueryInterface(static_cast<nsIImageLoadingContent*>(this));
   NS_ASSERTION(thisContent, "must be a content");
 
+  PRBool flushed = PR_FALSE;
   nsIFrame* frame;
   do {
     nsIDocument* doc = thisContent->GetCurrentDoc();
@@ -1564,17 +1551,17 @@ nsObjectLoadingContent::GetExistingFrame(FlushType aFlushType)
       return nsnull;
     }
 
-    if (aFlushType == eDontFlush) {
+    if (flushed) {
       break;
     }
     
     
     
     mozFlushType flushType =
-      aFlushType == eFlushLayout ? Flush_Layout : Flush_ContentAndNotify;
+      aFlushLayout ? Flush_Layout : Flush_ContentAndNotify;
     doc->FlushPendingNotifications(flushType);
 
-    aFlushType = eDontFlush;
+    flushed = PR_TRUE;
   } while (1);
 
   nsIObjectFrame* objFrame;
@@ -1603,7 +1590,7 @@ nsresult
 nsObjectLoadingContent::TryInstantiate(const nsACString& aMIMEType,
                                        nsIURI* aURI)
 {
-  nsIObjectFrame* frame = GetExistingFrame(eFlushContent);
+  nsIObjectFrame* frame = GetFrame(PR_FALSE);
   if (!frame) {
     LOG(("OBJLC [%p]: No frame yet\n", this));
     return NS_OK; 
