@@ -2575,6 +2575,16 @@ nsTextControlFrame::SetValue(const nsAString& aValue)
   
   if (mEditor && mUseEditor) 
   {
+    
+    
+    
+    
+    
+    nsString val;
+    GetText(&val);
+    PRBool focusValueInit = !mFireChangeEventState &&
+      mFocusedValue.Equals(val);
+
     nsCOMPtr<nsIEditor> editor = mEditor;
     nsWeakFrame weakFrame(this);
     nsAutoString currentValue;
@@ -2669,10 +2679,7 @@ nsTextControlFrame::SetValue(const nsAString& aValue)
       if (outerTransaction)
         mNotifyOnInput = PR_TRUE;
 
-      
-      
-      
-      if (!mFireChangeEventState) {
+      if (focusValueInit) {
         
         InitFocusedValue();
       }
