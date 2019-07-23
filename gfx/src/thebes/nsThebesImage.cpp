@@ -48,6 +48,15 @@
 
 static PRBool gDisableOptimize = PR_FALSE;
 
+#ifdef XP_WIN
+static PRUint32 gTotalDDBs = 0;
+static PRUint32 gTotalDDBSize = 0;
+
+#define kMaxDDBSize (64*1024*1024)
+
+#define kMaxSingleDDBSize (4*1024*1024)
+#endif
+
 NS_IMPL_ISUPPORTS1(nsThebesImage, nsIImage)
 
 nsThebesImage::nsThebesImage()
@@ -66,6 +75,10 @@ nsThebesImage::nsThebesImage()
         }
         hasCheckedOptimize = PR_TRUE;
     }
+
+#ifdef XP_WIN
+    mIsDDBSurface = PR_FALSE;
+#endif
 }
 
 nsresult
@@ -127,6 +140,12 @@ nsThebesImage::Init(PRInt32 aWidth, PRInt32 aHeight, PRInt32 aDepth, nsMaskRequi
 
 nsThebesImage::~nsThebesImage()
 {
+#ifdef XP_WIN
+    if (mIsDDBSurface) {
+        gTotalDDBs--;
+        gTotalDDBSize -= mWidth*mHeight*4;
+    }
+#endif
 }
 
 PRInt32
@@ -244,9 +263,28 @@ nsThebesImage::Optimize(nsIDeviceContext* aContext)
         
         
         
-        if (mWidth <= 1024 && mHeight <= 1024) {
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+
+        
+        PRUint32 ddbSize = mWidth * mHeight * 4;
+        if (ddbSize <= kMaxSingleDDBSize &&
+            ddbSize + gTotalDDBSize <= kMaxDDBSize)
+        {
             nsRefPtr<gfxWindowsSurface> wsurf = mWinSurface->OptimizeToDDB(nsnull, gfxIntSize(mWidth, mHeight), mFormat);
             if (wsurf) {
+                gTotalDDBs++;
+                gTotalDDBSize += ddbSize;
+                mIsDDBSurface = PR_TRUE;
                 mOptSurface = wsurf;
             }
         }
