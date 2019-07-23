@@ -1813,7 +1813,7 @@ BuildNativeGlobalFrame(JSContext* cx, unsigned ngslots, uint16* gslots, uint8* m
 
 
 static JS_REQUIRES_STACK void
-BuildNativeStackFrame(JSContext* cx, unsigned callDepth, uint8* mp, double* np)
+BuildNativeStackFrames(JSContext* cx, unsigned callDepth, uint8* mp, double* np)
 {
     debug_only_v(printf("stack: ");)
     FORALL_SLOTS_IN_PENDING_FRAMES(cx, callDepth,
@@ -1895,8 +1895,8 @@ js_GetUpvarOnTrace(JSContext *cx, uint32 level, uint32 cookie, double* result)
 
 
 static JS_REQUIRES_STACK int
-FlushNativeStackFrame(JSContext* cx, unsigned callDepth, uint8* mp, double* np,
-                      JSStackFrame* stopFrame)
+FlushNativeStackFrames(JSContext* cx, unsigned callDepth, uint8* mp, double* np,
+                       JSStackFrame* stopFrame)
 {
     jsval* stopAt = stopFrame ? &stopFrame->argv[-2] : NULL;
     uint8* mp_base = mp;
@@ -1927,7 +1927,16 @@ skip:
         for (; n != 0; fp = fp->down) {
             --n;
             if (fp->callee) {
+                
+
+
+
                 JS_ASSERT(JSVAL_IS_OBJECT(fp->argv[-1]));
+                JS_ASSERT(HAS_FUNCTION_CLASS(JSVAL_TO_OBJECT(fp->argv[-2])));
+                JS_ASSERT(GET_FUNCTION_PRIVATE(cx, JSVAL_TO_OBJECT(fp->argv[-2])) ==
+                          GET_FUNCTION_PRIVATE(cx, fp->callee));
+                fp->callee = JSVAL_TO_OBJECT(fp->argv[-2]);
+                fp->scopeChain = OBJ_GET_PARENT(cx, fp->callee);
                 fp->thisp = JSVAL_TO_OBJECT(fp->argv[-1]);
                 if (fp->flags & JSFRAME_CONSTRUCTING) 
                     fp->flags |= JSFRAME_COMPUTED_THIS;
@@ -3534,7 +3543,7 @@ js_SynthesizeFrame(JSContext* cx, const FrameInfo& fi)
     newifp->frame.argsobj = NULL;
     newifp->frame.varobj = NULL;
     newifp->frame.script = script;
-    newifp->frame.callee = fi.callee;
+    newifp->frame.callee = fi.callee; 
     newifp->frame.fun = fun;
 
     bool constructing = (fi.s.argc & 0x8000) != 0;
@@ -3563,7 +3572,7 @@ js_SynthesizeFrame(JSContext* cx, const FrameInfo& fi)
     newifp->frame.rval = JSVAL_VOID;
     newifp->frame.down = fp;
     newifp->frame.annotation = NULL;
-    newifp->frame.scopeChain = OBJ_GET_PARENT(cx, fi.callee);
+    newifp->frame.scopeChain = NULL; 
     newifp->frame.sharpDepth = 0;
     newifp->frame.sharpArray = NULL;
     newifp->frame.flags = constructing ? JSFRAME_CONSTRUCTING : 0;
@@ -4351,7 +4360,7 @@ js_ExecuteTree(JSContext* cx, Fragment* f, uintN& inlineCallCount,
 
     if (ngslots)
         BuildNativeGlobalFrame(cx, ngslots, gslots, ti->globalTypeMap(), global);
-    BuildNativeStackFrame(cx, 0, ti->typeMap.data(), stack_buffer);
+    BuildNativeStackFrames(cx, 0, ti->typeMap.data(), stack_buffer);
 
     union { NIns *code; GuardRecord* (FASTCALL *func)(InterpState*, Fragment*); } u;
     u.code = f->code();
@@ -4497,7 +4506,7 @@ LeaveTree(InterpState& state, VMSideExit* lr)
         
 
         js_SynthesizeFrame(cx, **callstack);
-        int slots = FlushNativeStackFrame(cx, 1, (uint8*)(*callstack+1), stack, cx->fp);
+        int slots = FlushNativeStackFrames(cx, 1, (uint8*)(*callstack+1), stack, cx->fp);
 #ifdef DEBUG
         JSStackFrame* fp = cx->fp;
         debug_only_v(printf("synthesized deep frame for %s:%u@%u, slots=%d\n",
@@ -4593,22 +4602,26 @@ LeaveTree(InterpState& state, VMSideExit* lr)
     }
 
     
-    double* global = (double*)(&state + 1);
-    FlushNativeGlobalFrame(cx, ngslots, gslots, globalTypeMap, global);
-    JS_ASSERT(*(uint64*)&global[STOBJ_NSLOTS(JS_GetGlobalForObject(cx, cx->fp->scopeChain))] ==
-              0xdeadbeefdeadbeefLL);
-
-    
 #ifdef DEBUG
     int slots =
 #endif
-        FlushNativeStackFrame(cx, innermost->calldepth,
-                              getStackTypeMap(innermost),
-                              stack, NULL);
+        FlushNativeStackFrames(cx, innermost->calldepth,
+                               getStackTypeMap(innermost),
+                               stack, NULL);
     JS_ASSERT(unsigned(slots) == innermost->numStackSlots);
 
     if (innermost->nativeCalleeWord)
         SynthesizeSlowNativeFrame(cx, innermost);
+
+    
+
+
+
+
+    double* global = (double*)(&state + 1);
+    FlushNativeGlobalFrame(cx, ngslots, gslots, globalTypeMap, global);
+    JS_ASSERT(*(uint64*)&global[STOBJ_NSLOTS(JS_GetGlobalForObject(cx, cx->fp->scopeChain))] ==
+              0xdeadbeefdeadbeefLL);
 
     cx->nativeVp = NULL;
 
@@ -6658,15 +6671,14 @@ TraceRecorder::unbox_jsval(jsval v, LIns*& v_ins, VMSideExit* exit)
 JS_REQUIRES_STACK JSRecordingStatus
 TraceRecorder::getThis(LIns*& this_ins)
 {
-    JSObject* thisObj = js_ComputeThisForFrame(cx, cx->fp);
-    if (!thisObj)
-        ABORT_TRACE_ERROR("js_ComputeThisForName failed");
-
     
 
 
     if (!cx->fp->callee) {
         JS_ASSERT(callDepth == 0);
+        JSObject* thisObj = js_ComputeThisForFrame(cx, cx->fp);
+        if (!thisObj)
+            ABORT_TRACE_ERROR("error in js_ComputeThisForFrame");
         this_ins = INS_CONSTPTR(thisObj);
 
         
@@ -6685,6 +6697,9 @@ TraceRecorder::getThis(LIns*& this_ins)
 
 
     if (JSVAL_IS_NULL(thisv)) {
+        JSObject* thisObj = js_ComputeThisForFrame(cx, cx->fp);
+        if (!thisObj)
+            ABORT_TRACE_ERROR("js_ComputeThisForName failed");
         JS_ASSERT(!JSVAL_IS_PRIMITIVE(thisv));
         if (thisObj != globalObj)
             ABORT_TRACE("global object was wrapped while recording");
