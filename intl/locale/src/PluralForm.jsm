@@ -139,8 +139,11 @@ let PluralForm = {
       
       if ((ret == undefined) || (ret == "")) {
         
+        let caller = this.get.caller ? this.get.caller.name : "top";
+
+        
         log(["Index #", index, " of '", aWords, "' for value ", aNum,
-            " is invalid -- plural rule #", ruleNum]);
+            " is invalid -- plural rule #", ruleNum, "; called by ", caller]);
 
         
         ret = words[0];
