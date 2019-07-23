@@ -2098,6 +2098,14 @@ BindNameToSlot(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn)
             if (op != JSOP_NAME)
                 return JS_TRUE;
 
+            
+
+
+
+
+            if (cg->flags & TCF_FUN_IS_GENERATOR)
+                return JS_TRUE;
+
             return MakeUpvarForEval(pn, cg);
         }
         return JS_TRUE;
