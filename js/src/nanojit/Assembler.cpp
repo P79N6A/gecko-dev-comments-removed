@@ -112,35 +112,61 @@ namespace nanojit
 #endif
     }
 
-    Register Assembler::registerAlloc(RegisterMask allow)
+    
+    
+    
+    Register Assembler::registerAlloc(LIns* ins, RegisterMask allow)
     {
-        RegAlloc &regs = _allocator;
-        RegisterMask allowedAndFree = allow & regs.free;
+        RegisterMask allowedAndFree = allow & _allocator.free;
+        Register r;
+        NanoAssert(ins->isUsed());
 
-        if (allowedAndFree)
-        {
+        if (allowedAndFree) {
             
             
             RegisterMask preferredAndFree = allowedAndFree & SavedRegs;
             RegisterMask set = ( preferredAndFree ? preferredAndFree : allowedAndFree );
-            Register r = nRegisterAllocFromSet(set);
-            return r;
+            r = nRegisterAllocFromSet(set);
+            _allocator.addActive(r, ins);
+            ins->setReg(r);
+        } else {
+            counter_increment(steals);
+
+            
+            
+            LIns* vicIns = findVictim(allow);
+            NanoAssert(vicIns->isUsed());
+            r = vicIns->getReg();
+
+            _allocator.removeActive(r);
+            vicIns->setReg(UnknownReg);
+
+            
+            asm_restore(vicIns, vicIns->resv(), r);
+
+            
+            _allocator.addActive(r, ins);
+            ins->setReg(r);
         }
-        counter_increment(steals);
-
-        
-        
-        LIns* vic = findVictim(allow);
-        NanoAssert(vic);
-
-        
-        Register r = vic->getReg();
-        regs.removeActive(r);
-        vic->setReg(UnknownReg);
-
-        asm_restore(vic, vic->resv(), r);
         return r;
     }
+
+    
+    
+    
+    
+    
+    Register Assembler::registerAllocTmp(RegisterMask allow)
+    {
+        LIns dummyIns;
+        dummyIns.markAsUsed();
+        Register r = registerAlloc(&dummyIns, allow); 
+
+        
+        _allocator.removeActive(r);
+        _allocator.addFree(r);
+        return r;
+     }
 
     
 
@@ -352,17 +378,13 @@ namespace nanojit
             
             ins->markAsUsed();
             RegisterMask prefer = hint(ins, allow);
-            r = registerAlloc(prefer);
-            ins->setReg(r);
-            _allocator.addActive(r, ins);
+            r = registerAlloc(ins, prefer);
 
         } else if (!ins->hasKnownReg()) {
             
             
             RegisterMask prefer = hint(ins, allow);
-            r = registerAlloc(prefer);
-            ins->setReg(r);
-            _allocator.addActive(r, ins);
+            r = registerAlloc(ins, prefer);
 
         } else if (rmask(r = ins->getReg()) & allow) {
             
@@ -380,9 +402,7 @@ namespace nanojit
                 
                 
                 evict(r, ins);
-                r = registerAlloc(prefer);
-                ins->setReg(r);
-                _allocator.addActive(r, ins);
+                r = registerAlloc(ins, prefer);
             } else
 #elif defined(NANOJIT_PPC)
             if (((rmask(r)&GpRegs) && !(allow&GpRegs)) ||
@@ -405,9 +425,7 @@ namespace nanojit
                 
                 _allocator.retire(r);
                 Register s = r;
-                r = registerAlloc(prefer);
-                ins->setReg(r);
-                _allocator.addActive(r, ins);
+                r = registerAlloc(ins, prefer);
                 if ((rmask(s) & GpRegs) && (rmask(r) & GpRegs)) {
 #ifdef NANOJIT_ARM
                     MOV(s, r);  

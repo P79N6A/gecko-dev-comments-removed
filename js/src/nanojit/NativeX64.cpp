@@ -1758,8 +1758,7 @@ namespace nanojit
             emitrxb_imm(X64_jmpx, (Register)0, indexreg, (Register)5, (int32_t)(uintptr_t)table);
         } else {
             
-            Register tablereg = registerAlloc(GpRegs & ~(rmask(indexreg)|rmask(R13)));
-            _allocator.addFree(tablereg);
+            Register tablereg = registerAllocTmp(GpRegs & ~(rmask(indexreg)|rmask(R13)));
             
             emitxb(X64_jmpxb, indexreg, tablereg);
             

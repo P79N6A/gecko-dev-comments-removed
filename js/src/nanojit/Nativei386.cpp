@@ -616,16 +616,14 @@ namespace nanojit
         if (config.sse2)
         {
             
-            Register t = registerAlloc(XmmRegs);
-            _allocator.addFree(t);
+            Register t = registerAllocTmp(XmmRegs);
             SSE_STQ(dd, rd, t);
             SSE_LDQ(t, ds, rs);
         }
         else
         {
             
-            Register t = registerAlloc(GpRegs & ~(rmask(rd)|rmask(rs)));
-            _allocator.addFree(t);
+            Register t = registerAllocTmp(GpRegs & ~(rmask(rd)|rmask(rs)));
             ST(rd, dd+4, t);
             LD(t, ds+4, rs);
             ST(rd, dd, t);
@@ -1187,11 +1185,10 @@ namespace nanojit
                     LDSDm(rr, &k_ONE);
                 } else if (d && d == (int)d) {
                     
-                    Register gr = registerAlloc(GpRegs);
+                    Register gr = registerAllocTmp(GpRegs);
                     SSE_CVTSI2SD(rr, gr);
                     SSE_XORPDr(rr,rr);  
                     LDi(gr, (int)d);
-                    _allocator.addFree(gr);
                 } else {
                     findMemFor(ins);
                     const int d = disp(ins);
@@ -1559,7 +1556,7 @@ namespace nanojit
         {
             
             
-            Register gr = registerAlloc(GpRegs);
+            Register gr = registerAllocTmp(GpRegs);
 
             
             
@@ -1597,9 +1594,6 @@ namespace nanojit
                 SUBi(gr, 0x80000000);
                 LD(gr, d, FP);
             }
-
-            
-            _allocator.addFree(gr);
         }
         else
         {
