@@ -474,47 +474,52 @@ CNavDTD::GetType()
   return NS_IPARSER_FLAG_HTML; 
 }
 
-
-
-
-
+static PRBool
+ValueIsHidden(const nsAString& aValue)
+{
+  
+  
+  nsAutoString str(aValue);
+  str.Trim("\n\r\t\b");
+  return str.LowerCaseEqualsLiteral("hidden");
+}
 
 
 
 
 static PRBool
-DoesRequireBody(CToken* aToken, nsITokenizer* aTokenizer)
+IsHiddenInput(CToken* aToken, nsITokenizer* aTokenizer)
 {
-  PRBool result = PR_FALSE;
-
-  if (aToken) {
-    eHTMLTags theTag = (eHTMLTags)aToken->GetTypeID();
-    if (gHTMLElements[theTag].HasSpecialProperty(kRequiresBody)) {
-      if (theTag == eHTMLTag_input) {
-        
-        PRInt32 ac = aToken->GetAttributeCount();
-        for(PRInt32 i = 0; i < ac; ++i) {
-          CAttributeToken* attr = static_cast<CAttributeToken*>
-                                             (aTokenizer->GetTokenAt(i));
-          const nsSubstring& name = attr->GetKey();
-          const nsAString& value = attr->GetValue();
-
-          if ((name.EqualsLiteral("type") || 
-               name.EqualsLiteral("TYPE"))    
-              && 
-              !(value.EqualsLiteral("hidden") || 
-              value.EqualsLiteral("HIDDEN"))) {
-            result = PR_TRUE; 
-            break;
-          }
-        }
-      } else {
-        result = PR_TRUE;
-      }
+  NS_PRECONDITION(eHTMLTokenTypes(aToken->GetTokenType()) == eToken_start,
+                  "Must be start token");
+  NS_PRECONDITION(eHTMLTags(aToken->GetTypeID()) == eHTMLTag_input,
+                  "Must be <input> tag");
+  
+  PRInt32 ac = aToken->GetAttributeCount();
+  NS_ASSERTION(ac <= aTokenizer->GetCount(),
+               "Not enough tokens in the tokenizer");
+  
+  ac = PR_MIN(ac, aTokenizer->GetCount());
+  
+  for (PRInt32 i = 0; i < ac; ++i) {
+    NS_ASSERTION(eHTMLTokenTypes(aTokenizer->GetTokenAt(i)->GetTokenType()) ==
+                   eToken_attribute, "Unexpected token type");
+    
+    if (eHTMLTokenTypes(aTokenizer->GetTokenAt(i)->GetTokenType()) !=
+        eToken_attribute) {
+      break;
     }
+    
+    CAttributeToken* attrToken =
+      static_cast<CAttributeToken*>(aTokenizer->GetTokenAt(i));
+    if (!attrToken->GetKey().LowerCaseEqualsLiteral("type")) {
+      continue;
+    }
+
+    return ValueIsHidden(attrToken->GetValue());
   }
- 
-  return result;
+
+  return PR_FALSE;    
 }
 
 
@@ -566,7 +571,6 @@ CNavDTD::HandleToken(CToken* aToken, nsIParser* aParser)
     }
 
     eHTMLTags theParentTag = mBodyContext->Last();
-    theTag = (eHTMLTags)theToken->GetTypeID();
     if (FindTagInSet(theTag, gLegalElements,
                      NS_ARRAY_LENGTH(gLegalElements)) ||
         (gHTMLElements[theParentTag].CanContain(theTag, mDTDMode) &&
@@ -581,7 +585,11 @@ CNavDTD::HandleToken(CToken* aToken, nsIParser* aParser)
          
          
          (!gHTMLElements[theTag].HasSpecialProperty(kLegalOpen) ||
-          theTag == eHTMLTag_script))) {
+          theTag == eHTMLTag_script)) ||
+        (theTag == eHTMLTag_input && theType == eToken_start &&
+         FindTagInSet(theParentTag, gLegalElements,
+                      NS_ARRAY_LENGTH(gLegalElements)) &&
+         IsHiddenInput(theToken, mTokenizer))) {
       
       
       mFlags &= ~NS_DTD_FLAG_MISPLACED_CONTENT;
@@ -677,7 +685,9 @@ CNavDTD::HandleToken(CToken* aToken, nsIParser* aParser)
               
             }
 
-            if (DoesRequireBody(aToken, mTokenizer)) {
+            if (gHTMLElements[theTag].HasSpecialProperty(kRequiresBody) &&
+                ((theTag != eHTMLTag_input) ||
+                 !IsHiddenInput(aToken, mTokenizer))) {
               CToken* theBodyToken =
                 mTokenAllocator->CreateTokenOfType(eToken_start,
                                                    eHTMLTag_body,
@@ -876,8 +886,32 @@ CNavDTD::HandleDefaultStartToken(CToken* aToken, eHTMLTags aChildTag,
       eHTMLTags theParentTag = mBodyContext->TagAt(--theIndex);
 
       
-      theParentContains = CanContain(theParentTag, aChildTag);
-      if (CanOmit(theParentTag, aChildTag, theParentContains)) {
+      
+      static eHTMLTags sTableElements[] = {
+        eHTMLTag_table, eHTMLTag_thead, eHTMLTag_tbody,
+        eHTMLTag_tr, eHTMLTag_tfoot
+      };
+
+      PRBool isHiddenInputInsideTableElement = PR_FALSE;
+      if (aChildTag == eHTMLTag_input &&
+          FindTagInSet(theParentTag, sTableElements,
+                       NS_ARRAY_LENGTH(sTableElements))) {
+        PRInt32 attrCount = aNode->GetAttributeCount();
+        for (PRInt32 attrIndex = 0; attrIndex < attrCount; ++attrIndex) {
+          const nsAString& key = aNode->GetKeyAt(attrIndex);
+          if (key.LowerCaseEqualsLiteral("type")) {
+            isHiddenInputInsideTableElement =
+              ValueIsHidden(aNode->GetValueAt(attrIndex));
+            break;
+          }
+        }
+      }
+      
+      
+      theParentContains =
+        isHiddenInputInsideTableElement || CanContain(theParentTag, aChildTag);
+      if (!isHiddenInputInsideTableElement &&
+          CanOmit(theParentTag, aChildTag, theParentContains)) {
         HandleOmittedTag(aToken, aChildTag, theParentTag, aNode);
         return NS_OK;
       }
