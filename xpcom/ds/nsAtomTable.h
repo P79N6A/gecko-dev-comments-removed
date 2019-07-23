@@ -39,7 +39,7 @@
 #define nsAtomTable_h__
 
 #include "nsIAtom.h"
-
+#include "nsStringBuffer.h"
 
 
 
@@ -48,9 +48,24 @@
 
 class AtomImpl : public nsIAtom {
 public:
-  AtomImpl();
+  AtomImpl(const nsACString& aString);
+
+  
+  
+  AtomImpl(nsStringBuffer* aData, PRUint32 aLength);
 
 protected:
+  
+  
+  AtomImpl() {
+    
+    
+    NS_ASSERTION((mLength + 1) * sizeof(char) <=
+                 nsStringBuffer::FromData(mString)->StorageSize() &&
+                 mString[mLength] == 0,
+                 "Not initialized atom");
+  }
+
   
   
   ~AtomImpl();
@@ -68,12 +83,6 @@ public:
     return mRefCnt == REFCNT_PERMANENT_SENTINEL;
   }
 
-  void* operator new(size_t size, const nsACString& aString) CPP_THROW_NEW;
-
-  void operator delete(void* ptr) {
-    ::operator delete(ptr);
-  }
-
   
   nsrefcnt GetRefCount() { return mRefCnt; }
 
@@ -81,8 +90,7 @@ public:
   PRUint32 mLength;
 
   
-  
-  char mString[1];
+  char* mString;
 };
 
 
@@ -91,17 +99,26 @@ public:
 
 class PermanentAtomImpl : public AtomImpl {
 public:
-  PermanentAtomImpl();
+  PermanentAtomImpl(const nsACString& aString)
+    : AtomImpl(aString)
+  {}
+  PermanentAtomImpl(nsStringBuffer* aData, PRUint32 aLength)
+    : AtomImpl(aData, aLength)
+  {}
+  PermanentAtomImpl()
+  {}
+
   ~PermanentAtomImpl();
   NS_IMETHOD_(nsrefcnt) AddRef();
   NS_IMETHOD_(nsrefcnt) Release();
 
   virtual PRBool IsPermanent();
 
-  void* operator new(size_t size, const nsACString& aString) CPP_THROW_NEW {
-    return AtomImpl::operator new(size, aString);
-  }
   void* operator new(size_t size, AtomImpl* aAtom) CPP_THROW_NEW;
+  void* operator new(size_t size) CPP_THROW_NEW
+  {
+    return ::operator new(size);
+  }
 
 };
 
