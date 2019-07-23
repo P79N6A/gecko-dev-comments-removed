@@ -114,22 +114,23 @@ nsFileProtocolHandler::ReadURLFile(nsIFile* aFile, nsIURI** aURI)
 
     rv = NS_ERROR_NOT_AVAILABLE;
 
-    IUniformResourceLocatorW* urlLink = nsnull;
+    IUniformResourceLocator* urlLink = nsnull;
     result = ::CoCreateInstance(CLSID_InternetShortcut, NULL, CLSCTX_INPROC_SERVER,
-                                IID_IUniformResourceLocatorW, (void**)&urlLink);
+                                IID_IUniformResourceLocator, (void**)&urlLink);
     if (SUCCEEDED(result) && urlLink) {
         IPersistFile* urlFile = nsnull;
         result = urlLink->QueryInterface(IID_IPersistFile, (void**)&urlFile);
         if (SUCCEEDED(result) && urlFile) {
             result = urlFile->Load(path.get(), STGM_READ);
             if (SUCCEEDED(result) ) {
-                LPWSTR lpTemp = nsnull;
+                LPSTR lpTemp = nsnull;
 
                 
                 
                 result = urlLink->GetURL(&lpTemp);
                 if (SUCCEEDED(result) && lpTemp) {
-                    rv = NS_NewURI(aURI, NS_ConvertUTF16toUTF8(lpTemp));
+                    rv = NS_NewURI(aURI, lpTemp);
+
                     
                     CoTaskMemFree(lpTemp);
                 }
