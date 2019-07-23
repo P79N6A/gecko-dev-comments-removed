@@ -150,6 +150,9 @@ public:
   static JSCList  gClassLRUList;             
   static PRUint32 gClassLRUListLength;       
   static PRUint32 gClassLRUListQuota;        
+  static PRBool   gAllowDataURIs;            
+                                             
+                                             
 
   nsFixedSizeAllocator mPool;
 };
