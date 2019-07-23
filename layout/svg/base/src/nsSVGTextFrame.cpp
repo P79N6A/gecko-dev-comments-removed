@@ -406,6 +406,10 @@ nsSVGTextFrame::UpdateGlyphPositioning(PRBool aForceGlobalTransform)
     
     nsSVGTextPathFrame *textPath = firstFragment->FindTextPathParent();
     if (textPath) {
+      if (!textPath->GetPathFrame()) {
+        
+        return;
+      }
       x = textPath->GetStartOffset();
     }
 
