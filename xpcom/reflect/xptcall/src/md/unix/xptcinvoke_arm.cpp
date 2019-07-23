@@ -45,6 +45,19 @@
 
 
 
+
+
+
+#ifdef __ARM_EABI__
+#define DOUBLEWORD_ALIGN(p) ((PRUint32 *)((((PRUint32)(p)) + 7) & 0xfffffff8))
+#define VAR_STACK_SIZE_64 3
+#else
+#define DOUBLEWORD_ALIGN(p) (p)
+#define VAR_STACK_SIZE_64 2
+#endif
+
+
+
 static PRUint32
 invoke_count_words(PRUint32 paramCount, nsXPTCVariant* s)
 {
@@ -64,7 +77,7 @@ invoke_count_words(PRUint32 paramCount, nsXPTCVariant* s)
             result++;
             break;
         case nsXPTType::T_I64    :
-            result+=2;
+            result+=VAR_STACK_SIZE_64;
             break;
         case nsXPTType::T_U8     :
         case nsXPTType::T_U16    :
@@ -72,13 +85,13 @@ invoke_count_words(PRUint32 paramCount, nsXPTCVariant* s)
             result++;
             break;
         case nsXPTType::T_U64    :
-            result+=2;
+            result+=VAR_STACK_SIZE_64;
             break;
         case nsXPTType::T_FLOAT  :
             result++;
             break;
         case nsXPTType::T_DOUBLE :
-            result+=2;
+            result+=VAR_STACK_SIZE_64;
             break;
         case nsXPTType::T_BOOL   :
         case nsXPTType::T_CHAR   :
@@ -91,6 +104,15 @@ invoke_count_words(PRUint32 paramCount, nsXPTCVariant* s)
             break;
         }
     }
+
+#ifdef __ARM_EABI__
+    
+
+
+    if (result % 2 == 0)
+        result++;
+#endif
+
     return result;
 }
 
@@ -109,13 +131,16 @@ invoke_copy_to_stack(PRUint32* d, PRUint32 paramCount, nsXPTCVariant* s)
         case nsXPTType::T_I8     : *((PRInt8*)  d) = s->val.i8;          break;
         case nsXPTType::T_I16    : *((PRInt16*) d) = s->val.i16;         break;
         case nsXPTType::T_I32    : *((PRInt32*) d) = s->val.i32;         break;
-        case nsXPTType::T_I64    : *((PRInt64*) d) = s->val.i64; d++;    break;
+        case nsXPTType::T_I64    : d = DOUBLEWORD_ALIGN(d);
+                                   *((PRInt64*) d) = s->val.i64; d++;    break;
         case nsXPTType::T_U8     : *((PRUint8*) d) = s->val.u8;          break;
         case nsXPTType::T_U16    : *((PRUint16*)d) = s->val.u16;         break;
         case nsXPTType::T_U32    : *((PRUint32*)d) = s->val.u32;         break;
-        case nsXPTType::T_U64    : *((PRUint64*)d) = s->val.u64; d++;    break;
+        case nsXPTType::T_U64    : d = DOUBLEWORD_ALIGN(d);
+                                   *((PRUint64*)d) = s->val.u64; d++;    break;
         case nsXPTType::T_FLOAT  : *((float*)   d) = s->val.f;           break;
-        case nsXPTType::T_DOUBLE : *((double*)  d) = s->val.d;   d++;    break;
+        case nsXPTType::T_DOUBLE : d = DOUBLEWORD_ALIGN(d);
+                                   *((double*)  d) = s->val.d;   d++;    break;
         case nsXPTType::T_BOOL   : *((PRBool*)  d) = s->val.b;           break;
         case nsXPTType::T_CHAR   : *((char*)    d) = s->val.c;           break;
         case nsXPTType::T_WCHAR  : *((wchar_t*) d) = s->val.wc;          break;
