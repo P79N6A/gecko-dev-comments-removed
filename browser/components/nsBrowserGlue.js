@@ -359,6 +359,20 @@ BrowserGlue.prototype = {
 
     var bookmarksFile = dirService.get("BMarks", Ci.nsILocalFile);
 
+    var overwriteBookmarks = 
+      prefBranch.getBoolPref("browser.bookmarks.overwrite");
+
+    
+    
+    
+    
+    if (!overwriteBookmarks) {
+      bookmarksFile.leafName = "bookmarks.postplaces.html";
+      
+      if (!bookmarksFile.exists())
+        bookmarksFile = dirService.get("BMarks", Ci.nsILocalFile);
+    }
+
     if (bookmarksFile.exists()) {
       
       try {
@@ -372,7 +386,7 @@ BrowserGlue.prototype = {
       }
 
       
-      if (prefBranch.getBoolPref("browser.bookmarks.overwrite")) {
+      if (overwriteBookmarks) {
         
         
         var profDir = dirService.get("ProfD", Ci.nsILocalFile);

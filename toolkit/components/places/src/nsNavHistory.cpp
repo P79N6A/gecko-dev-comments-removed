@@ -113,6 +113,7 @@
 #define PREF_BROWSER_IMPORT_DEFAULTS            "browser.places.importDefaults"
 #define PREF_BROWSER_CREATEDSMARTBOOKMARKS      "browser.places.createdSmartBookmarks"
 #define PREF_BROWSER_LEFTPANEFOLDERID           "browser.places.leftPaneFolderId"
+#define PREF_BROWSER_BOOKMARKS_OVERWRITE        "browser.bookmarks.overwrite"
       
 
 
@@ -510,8 +511,20 @@ nsNavHistory::InitDBFile(PRBool aForceInit)
       NS_ENSURE_SUCCESS(rv, rv);  
 
       
-      rv = prefs->SetBoolPref(PREF_BROWSER_CREATEDSMARTBOOKMARKS, PR_FALSE);
-      NS_ENSURE_SUCCESS(rv, rv);  
+      
+      
+      
+      
+      PRBool overwriteBookmarks = PR_FALSE;
+      rv = prefs->GetBoolPref(PREF_BROWSER_BOOKMARKS_OVERWRITE, 
+                              &overwriteBookmarks);
+      NS_ENSURE_SUCCESS(rv, rv);
+
+      if (overwriteBookmarks) {
+        rv = prefs->SetBoolPref(PREF_BROWSER_CREATEDSMARTBOOKMARKS, PR_FALSE);
+        NS_ENSURE_SUCCESS(rv, rv);
+      }
+      
       
       
       rv = prefs->SetIntPref(PREF_BROWSER_LEFTPANEFOLDERID, -1);
