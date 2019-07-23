@@ -86,16 +86,6 @@
 
 const PRInt32 kMaxZ = 0x7fffffff; 
 
-static nsPopupSetFrame*
-GetPopupSetFrame(nsPresContext* aPresContext)
-{
-  nsIRootBox* rootBox = nsIRootBox::GetRootBox(aPresContext->PresShell());
-  if (!rootBox)
-    return nsnull;
-
-  return rootBox->GetPopupSetFrame();
-}
-
 
 
 
@@ -630,7 +620,6 @@ nsMenuPopupFrame::GetRootViewForPopup(nsIFrame* aStartFrame)
 {
   nsIView* view = aStartFrame->GetClosestView();
   NS_ASSERTION(view, "frame must have a closest view!");
-  nsIView* rootView = nsnull;
   while (view) {
     
     
