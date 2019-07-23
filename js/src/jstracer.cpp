@@ -11339,6 +11339,33 @@ TraceRecorder::setCallProp(JSObject *callobj, LIns *callobj_ins, JSScopeProperty
         RETURN_STOP("can't trace special CallClass setter");
     }
 
+    if (!callobj->getPrivate()) {
+        
+        
+        
+        
+        
+        JS_ASSERT(sprop->flags & SPROP_HAS_SHORTID);
+        int32 offset = sprop->shortid;
+        if (sprop->setter == SetCallArg) {
+            JS_ASSERT(offset < ArgClosureTraits::slot_count(callobj));
+            offset += ArgClosureTraits::slot_offset(callobj);
+        } else if (sprop->setter == SetCallVar) {
+            JS_ASSERT(offset < VarClosureTraits::slot_count(obj));
+            offset += VarClosureTraits::slot_offset(callobj);
+        } else {
+            RETURN_STOP("can't trace special CallClass setter");
+        }
+
+        LIns* base = lir->insLoad(LIR_ldp, callobj_ins, offsetof(JSObject, dslots));
+        lir->insStorei(box_jsval(v, v_ins), base, offset * sizeof(jsval));
+        return RECORD_CONTINUE;
+    }
+
+    
+    
+    
+
     
     const CallInfo* ci = NULL;
     if (sprop->setter == SetCallArg)
