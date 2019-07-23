@@ -198,7 +198,7 @@ protected:
 protected: 
 
   mork_bool  CellVectorIsFull() const
-  { return ( mBuilder_CellsVecFill == morkBuilder_kCellsVecSize ); };
+  { return ( mBuilder_CellsVecFill == morkBuilder_kCellsVecSize ); }
   
 
 public: 
