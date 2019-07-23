@@ -491,12 +491,23 @@ var PlacesUtils = {
 
 
 
-  _getBookmarkItemCopyTransaction: function (aId, aContainer, aIndex) {
+
+
+
+  _getBookmarkItemCopyTransaction:
+  function PU__getBookmarkItemCopyTransaction(aId, aContainer, aIndex,
+                                              aExcludeAnnotations) {
     var bookmarks = this.bookmarks;
     var itemURL = bookmarks.getBookmarkURI(aId);
     var itemTitle = bookmarks.getItemTitle(aId);
     var keyword = bookmarks.getKeywordForBookmark(aId);
     var annos = this.getAnnotationsForURI(bookmarks.getItemURI(aId));
+    if (aExcludeAnnotations) {
+      annos =
+        annos.filter(function(aValue, aIndex, aArray) {
+                       return aExcludeAnnotations.indexOf(aValue.name) == -1;
+                    });
+    }
     var createTxn =
       new PlacesCreateItemTransaction(itemURL, aContainer, aIndex, itemTitle,
                                       keyword, annos);
@@ -640,9 +651,14 @@ var PlacesUtils = {
       }
     case this.TYPE_X_MOZ_PLACE:
       if (data.id > 0) {
-        if (copy)
-          return this._getBookmarkItemCopyTransaction(data.id, container, index);
-
+        if (copy) {
+          
+          
+          var copyBookmarkAnno = 
+            this._getBookmarkItemCopyTransaction(data.id, container, index,
+                                                 ["livemark/bookmarkFeedURI"]);
+          return copyBookmarkAnno;
+        }
         return new PlacesMoveItemTransaction(data.id, data.uri, data.parent,
                                              data.index, container,
                                              index);
