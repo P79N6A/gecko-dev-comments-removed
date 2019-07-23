@@ -2300,12 +2300,23 @@ nsTableFrame::InsertFrames(nsIAtom*        aListName,
   
   
   
-  NS_PRECONDITION(!aFrameList->GetNextSibling(), "expected only one child frame");
+ 
   NS_ASSERTION(!aPrevFrame || aPrevFrame->GetParent() == this,
                "inserting after sibling frame with different parent");
 
   
   const nsStyleDisplay* display = aFrameList->GetStyleDisplay();
+#ifdef DEBUG
+  
+  nsIFrame* nextFrame = aFrameList->GetNextSibling();
+  while (nextFrame) {
+    const nsStyleDisplay* nextDisplay = nextFrame->GetStyleDisplay();
+    NS_ASSERTION((display->mDisplay == NS_STYLE_DISPLAY_TABLE_COLUMN_GROUP) ==
+        (nextDisplay->mDisplay == NS_STYLE_DISPLAY_TABLE_COLUMN_GROUP),
+      "heterogenous childlist");  
+    nextFrame = nextFrame->GetNextSibling();    
+  }
+#endif  
   if (aPrevFrame) {
     const nsStyleDisplay* prevDisplay = aPrevFrame->GetStyleDisplay();
     
@@ -2365,7 +2376,7 @@ nsTableFrame::InsertFrames(nsIAtom*        aListName,
     
     nsFrameList frames(aFrameList); 
     nsIFrame* lastFrame = frames.LastChild();
-    mColGroups.InsertFrame(nsnull, aPrevFrame, aFrameList);
+    mColGroups.InsertFrames(nsnull, aPrevFrame, aFrameList);
     
     PRInt32 startColIndex = 0;
     if (aPrevFrame) {
@@ -2382,13 +2393,13 @@ nsTableFrame::InsertFrames(nsIAtom*        aListName,
     nsFrameList newList(aFrameList);
     nsIFrame* lastSibling = newList.LastChild();
     
-    mFrames.InsertFrame(nsnull, aPrevFrame, aFrameList);
+    mFrames.InsertFrames(nsnull, aPrevFrame, aFrameList);
 
     InsertRowGroups(aFrameList, lastSibling);
   } else {
     NS_ASSERTION(!aListName, "unexpected child list");
     
-    mFrames.InsertFrame(nsnull, aPrevFrame, aFrameList);
+    mFrames.InsertFrames(nsnull, aPrevFrame, aFrameList);
     return NS_OK;
   }
 
