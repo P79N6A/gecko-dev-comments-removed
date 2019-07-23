@@ -66,6 +66,8 @@
 # define NS_LogCOMPtrRelease         NS_LogCOMPtrRelease_P
 # define NS_CycleCollectorSuspect    NS_CycleCollectorSuspect_P
 # define NS_CycleCollectorForget     NS_CycleCollectorForget_P
+# define NS_CycleCollectorSuspect2   NS_CycleCollectorSuspect2_P
+# define NS_CycleCollectorForget2    NS_CycleCollectorForget2_P
 #endif
 
 #include "nscore.h"
@@ -73,8 +75,10 @@
 
 #ifdef __cplusplus
 #define DECL_CLASS(c) class c
+#define DECL_STRUCT(c) struct c
 #else
 #define DECL_CLASS(c) typedef struct c c
+#define DECL_STRUCT(c) typedef struct c c
 #endif
 
 DECL_CLASS(nsAString);
@@ -91,6 +95,7 @@ DECL_CLASS(nsIDirectoryServiceProvider);
 DECL_CLASS(nsIMemory);
 DECL_CLASS(nsIDebug);
 DECL_CLASS(nsITraceRefcnt);
+DECL_STRUCT(nsPurpleBufferEntry);
 
 
 
@@ -460,11 +465,20 @@ NS_LogCOMPtrRelease(void *aCOMPtr, nsISupports *aObject);
 
 
 
+
+
+
 XPCOM_API(PRBool)
 NS_CycleCollectorSuspect(nsISupports *n);
 
 XPCOM_API(PRBool)
 NS_CycleCollectorForget(nsISupports *n);
+
+XPCOM_API(nsPurpleBufferEntry*)
+NS_CycleCollectorSuspect2(nsISupports *n);
+
+XPCOM_API(PRBool)
+NS_CycleCollectorForget2(nsPurpleBufferEntry *e);
 
 
 
