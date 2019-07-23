@@ -779,6 +779,13 @@ JS_DestroyRuntime(JSRuntime *rt)
 
 
 
+
+    js_FinishUnitStrings(rt);
+
+    
+
+
+
     js_FinishDeflatedStringCache(rt);
     js_FinishGC(rt);
 #ifdef JS_THREADSAFE
