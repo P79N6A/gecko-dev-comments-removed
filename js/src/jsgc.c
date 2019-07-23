@@ -2597,40 +2597,46 @@ restart:
                     *flagp &= ~GCF_MARK;
                     allClear = JS_FALSE;
                     METER(++arenaList->stats.nthings);
-                } else if (!(flags & GCF_FINAL)) {
-                    
+                } else {
                     thing = FLAGP_TO_THING(flagp, thingSize);
-                    *flagp = (uint8)(flags | GCF_FINAL);
-                    type = flags & GCF_TYPEMASK;
-                    switch (type) {
-                      case GCX_OBJECT:
-                        js_FinalizeObject(cx, (JSObject *) thing);
-                        break;
-                      case GCX_DOUBLE:
+                    if (!(flags & GCF_FINAL)) {
                         
-                        break;
-                      case GCX_FUNCTION:
-                        js_FinalizeFunction(cx, (JSFunction *) thing);
-                        break;
+
+
+                        *flagp = (uint8)(flags | GCF_FINAL);
+                        type = flags & GCF_TYPEMASK;
+                        switch (type) {
+                          case GCX_OBJECT:
+                            js_FinalizeObject(cx, (JSObject *) thing);
+                            break;
+                          case GCX_DOUBLE:
+                            
+                            break;
+                          case GCX_FUNCTION:
+                            js_FinalizeFunction(cx, (JSFunction *) thing);
+                            break;
 #if JS_HAS_XML_SUPPORT
-                      case GCX_NAMESPACE:
-                        js_FinalizeXMLNamespace(cx, (JSXMLNamespace *) thing);
-                        break;
-                      case GCX_QNAME:
-                        js_FinalizeXMLQName(cx, (JSXMLQName *) thing);
-                        break;
-                      case GCX_XML:
-                        js_FinalizeXML(cx, (JSXML *) thing);
-                        break;
+                          case GCX_NAMESPACE:
+                            js_FinalizeXMLNamespace(cx,
+                                                    (JSXMLNamespace *) thing);
+                            break;
+                          case GCX_QNAME:
+                            js_FinalizeXMLQName(cx, (JSXMLQName *) thing);
+                            break;
+                          case GCX_XML:
+                            js_FinalizeXML(cx, (JSXML *) thing);
+                            break;
 #endif
-                      default:
-                        JS_ASSERT(type == GCX_STRING ||
-                                  type - GCX_EXTERNAL_STRING <
-                                  GCX_NTYPES - GCX_EXTERNAL_STRING);
-                        js_FinalizeStringRT(rt, (JSString *) thing,
-                                            (intN) (type - GCX_EXTERNAL_STRING),
-                                            cx);
-                        break;
+                          default:
+                            JS_ASSERT(type == GCX_STRING ||
+                                      type - GCX_EXTERNAL_STRING <
+                                      GCX_NTYPES - GCX_EXTERNAL_STRING);
+                            js_FinalizeStringRT(rt, (JSString *) thing,
+                                                (intN) (type -
+                                                        GCX_EXTERNAL_STRING),
+                                                cx);
+                            break;
+                        }
                     }
                     thing->flagp = flagp;
                     thing->next = freeList;
