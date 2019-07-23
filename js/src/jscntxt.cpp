@@ -45,7 +45,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include "jstypes.h"
-#include "jsstdint.h"
 #include "jsarena.h" 
 #include "jsutil.h" 
 #include "jsclist.h"
@@ -1503,4 +1502,34 @@ js_GetScriptedCaller(JSContext *cx, JSStackFrame *fp)
         fp = fp->down;
     }
     return NULL;
+}
+
+jsbytecode*
+js_GetCurrentBytecodePC(JSContext* cx)
+{
+    jsbytecode *pc, *imacpc;
+
+#ifdef JS_TRACER
+    if (JS_ON_TRACE(cx)) {
+        pc = cx->bailExit->pc;
+        imacpc = cx->bailExit->imacpc;
+    } else
+#endif
+    {
+        JS_ASSERT_NOT_ON_TRACE(cx);  
+        JSStackFrame* fp = cx->fp;
+        if (fp && fp->regs) {
+            pc = fp->regs->pc;
+            imacpc = fp->imacpc;
+        } else {
+            return NULL;
+        }
+    }
+
+    
+
+
+
+
+    return (*pc == JSOP_CALL && imacpc) ? imacpc : pc;
 }

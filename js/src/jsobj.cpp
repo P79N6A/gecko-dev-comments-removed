@@ -44,7 +44,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include "jstypes.h"
-#include "jsstdint.h"
 #include "jsarena.h" 
 #include "jsbit.h"
 #include "jsutil.h" 
@@ -4201,35 +4200,6 @@ js_NativeSet(JSContext *cx, JSObject *obj, JSScopeProperty *sprop, jsval *vp)
     }
 
     return JS_TRUE;
-}
-
-static jsbytecode*
-js_GetCurrentBytecodePC(JSContext* cx)
-{
-    jsbytecode *pc, *imacpc;
-
-#ifdef JS_TRACER
-    if (JS_ON_TRACE(cx)) {
-        pc = cx->bailExit->pc;
-        imacpc = cx->bailExit->imacpc;
-    } else
-#endif
-    {
-        JS_ASSERT_NOT_ON_TRACE(cx);  
-        if (cx->fp && cx->fp->regs) {
-            pc = cx->fp->regs->pc;
-            imacpc = cx->fp->imacpc;
-        } else {
-            return NULL;
-        }
-    }
-
-    
-
-
-
-
-    return (*pc == JSOP_CALL && imacpc) ? imacpc : pc;
 }
 
 JSBool
