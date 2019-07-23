@@ -92,7 +92,6 @@ const kKeyFilename = "kf.txt";
 function PROT_UrlCryptoKeyManager(opt_keyFilename, opt_testing) {
   this.debugZone = "urlcryptokeymanager";
   this.testing_ = !!opt_testing;
-  this.base64_ = new G_Base64();
   this.clientKey_ = null;          
   this.clientKeyArray_ = null;     
   this.wrappedKey_ = null;         
@@ -254,7 +253,8 @@ PROT_UrlCryptoKeyManager.prototype.replaceKey_ = function(clientKey,
     G_Debug(this, "Replacing " + this.clientKey_ + " with " + clientKey);
 
   this.clientKey_ = clientKey;
-  this.clientKeyArray_ = this.base64_.decodeString(this.clientKey_);
+  this.clientKeyArray_ = Array.map(atob(clientKey),
+                                   function(c) { return c.charCodeAt(0); });
   this.wrappedKey_ = wrappedKey;
 
   this.serializeKey_(this.clientKey_, this.wrappedKey_);
