@@ -415,18 +415,7 @@ private:
                           const nsStyleDisplay*    aDisplay,
                           nsFrameItems&            aFrameItems,
                           nsIFrame**               aNewFrame);
-  
-  
 
-
-
-  nsresult ConstructTablePart(nsFrameConstructorState& aState,
-                              FrameConstructionItem&   aItem,
-                              nsIFrame*                aParentFrame,
-                              const nsStyleDisplay*    aDisplay,
-                              nsFrameItems&            aFrameItems,
-                              nsIFrame**               aNewFrame);
-  
   
 
 
@@ -446,34 +435,18 @@ private:
                                nsIFrame*&               aNewOuterFrame,
                                nsIFrame*&               aNewInnerFrame);
 
-  nsresult ConstructTableCaptionFrame(nsFrameConstructorState& aState,
-                                      nsIContent*              aContent,
-                                      nsIFrame*                aParent,
-                                      nsStyleContext*          aStyleContext,
-                                      PRInt32                  aNameSpaceID,
-                                      nsFrameItems&            aChildItems,
-                                      nsIFrame*&               aNewFrame,
-                                      PRBool*                  aHasPseudoParent);
+  
 
-  nsresult ConstructTableRowGroupFrame(nsFrameConstructorState& aState,
-                                       nsIContent*              aContent,
-                                       nsIFrame*                aParent,
-                                       nsStyleContext*          aStyleContext,
-                                       PRInt32                  aNameSpaceID,
-                                       PRBool                   aIsPseudo,
-                                       nsFrameItems&            aChildItems,
-                                       nsIFrame*&               aNewFrame,
-                                       PRBool*                  aHasPseudoParent);
 
-  nsresult ConstructTableColGroupFrame(nsFrameConstructorState& aState,
-                                       nsIContent*              aContent,
-                                       nsIFrame*                aParent,
-                                       nsStyleContext*          aStyleContext,
-                                       PRInt32                  aNameSpaceID,
-                                       PRBool                   aIsPseudo,
-                                       nsFrameItems&            aChildItems,
-                                       nsIFrame*&               aNewFrame,
-                                       PRBool*                  aHasPseudoParent);
+  nsresult ConstructTableRow(nsFrameConstructorState& aState,
+                             FrameConstructionItem&   aItem,
+                             nsIFrame*                aParentFrame,
+                             const nsStyleDisplay*    aStyleDisplay,
+                             nsFrameItems&            aFrameItems,
+                             nsIFrame**               aNewFrame);
+
+  
+
 
   nsresult ConstructTableRowFrame(nsFrameConstructorState& aState,
                                   nsIContent*              aContent,
@@ -482,18 +455,30 @@ private:
                                   PRInt32                  aNameSpaceID,
                                   PRBool                   aIsPseudo,
                                   nsFrameItems&            aChildItems,
-                                  nsIFrame*&               aNewFrame,
-                                  PRBool*                  aHasPseudoParent);
+                                  nsIFrame*&               aNewFrame);
 
-  nsresult ConstructTableColFrame(nsFrameConstructorState& aState,
-                                  nsIContent*              aContent,
-                                  nsIFrame*                aParent,
-                                  nsStyleContext*          aStyleContext,
-                                  PRInt32                  aNameSpaceID,
-                                  PRBool                   aIsPseudo,
-                                  nsFrameItems&            aChildItems,
-                                  nsIFrame*&               aNewFrame,
-                                  PRBool*                  aHasPseudoParent);
+  
+
+
+  nsresult ConstructTableCol(nsFrameConstructorState& aState,
+                             FrameConstructionItem&   aItem,
+                             nsIFrame*                aParentFrame,
+                             const nsStyleDisplay*    aStyleDisplay,
+                             nsFrameItems&            aFrameItems,
+                             nsIFrame**               aNewFrame);
+
+  
+
+
+  nsresult ConstructTableCell(nsFrameConstructorState& aState,
+                              FrameConstructionItem&   aItem,
+                              nsIFrame*                aParentFrame,
+                              const nsStyleDisplay*    aStyleDisplay,
+                              nsFrameItems&            aFrameItems,
+                              nsIFrame**               aNewFrame);
+
+  
+
 
   nsresult ConstructTableCellFrame(nsFrameConstructorState& aState,
                                    nsIContent*              aContent,
@@ -503,8 +488,7 @@ private:
                                    PRBool                   aIsPseudo,
                                    nsFrameItems&            aChildItems,
                                    nsIFrame*&               aNewCellOuterFrame,
-                                   nsIFrame*&               aNewCellInnerFrame,
-                                   PRBool*                  aHasPseudoParent);
+                                   nsIFrame*&               aNewCellInnerFrame);
 
   nsresult CreatePseudoTableFrame(PRInt32                  aNameSpaceID,
                                   nsFrameConstructorState& aState, 
@@ -667,6 +651,9 @@ private:
   
 
 #define FCDATA_IS_LINE_PARTICIPANT 0x4000
+  
+
+#define FCDATA_ALLOW_BLOCK_STYLES 0x8000
 
   
 
@@ -1118,7 +1105,8 @@ private:
   
 
   const FrameConstructionData*
-    FindDisplayData(const nsStyleDisplay* aDisplay, nsIContent* aContent);
+    FindDisplayData(const nsStyleDisplay* aDisplay, nsIContent* aContent,
+                    nsStyleContext* aStyleContext);
 
   
 
