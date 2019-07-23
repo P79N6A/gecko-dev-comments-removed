@@ -338,6 +338,7 @@ protected:
                         nsPresContext* aPresContext,
                         PRInt32 aIndex,
                         PRBool aSelected,
+                        PRBool aChangeOptionState,
                         PRBool aNotify);
   
 
