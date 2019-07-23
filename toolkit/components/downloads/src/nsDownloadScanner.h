@@ -7,7 +7,7 @@
 #undef WIN32_LEAN_AND_MEAN
 #endif
 #define INITGUID
-#include <Windows.h>
+#include <windows.h>
 #define AVVENDOR
 #include <msoav.h>
 
