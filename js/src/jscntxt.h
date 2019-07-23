@@ -937,6 +937,15 @@ struct JSContext {
 
 #ifdef __cplusplus
 
+static inline JSAtom **
+FrameAtomBase(JSContext *cx, JSStackFrame *fp)
+{
+    return fp->imacpc
+           ? COMMON_ATOMS_START(&cx->runtime->atomState)
+           : fp->script->atomMap.vector;
+}
+
+
 class JSAutoTempValueRooter
 {
   public:
@@ -983,7 +992,8 @@ class JSAutoResolveFlags
     JSContext *mContext;
     uintN mSaved;
 };
-#endif
+
+#endif 
 
 
 
