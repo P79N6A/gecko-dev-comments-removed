@@ -145,6 +145,14 @@ nsCategoryObserver::Observe(nsISupports* aSubject, const char* aTopic,
     strWrapper->GetData(str);
 
   if (strcmp(aTopic, NS_XPCOM_CATEGORY_ENTRY_ADDED_OBSERVER_ID) == 0) {
+    
+    
+    
+    
+    
+    if (mHash.Get(str, nsnull))
+      return NS_OK;
+
     nsCOMPtr<nsICategoryManager> catMan =
       do_GetService(NS_CATEGORYMANAGER_CONTRACTID);
     if (!catMan)
