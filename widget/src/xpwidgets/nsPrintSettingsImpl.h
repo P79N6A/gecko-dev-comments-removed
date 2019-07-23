@@ -81,8 +81,11 @@ protected:
   
   nsWeakPtr     mSession; 
  
+  
   nsMargin      mMargin;
   nsMargin      mEdge;
+  nsMargin      mUnwriteableMargin;
+
   PRInt32       mPrintOptions;
 
   

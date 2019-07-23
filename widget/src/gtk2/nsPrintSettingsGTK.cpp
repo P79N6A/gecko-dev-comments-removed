@@ -82,6 +82,7 @@ nsPrintSettingsGTK::nsPrintSettingsGTK() :
   
   mPrintSettings = gtk_print_settings_new();
   mPageSetup = gtk_page_setup_new();
+  InitUnwriteableMargin();
 
   SetOutputFormat(nsIPrintSettings::kOutputFormatNative);
 
@@ -134,6 +135,9 @@ nsPrintSettingsGTK& nsPrintSettingsGTK::operator=(const nsPrintSettingsGTK& rhs)
   if (mPageSetup)
     g_object_unref(mPageSetup);
   mPageSetup = gtk_page_setup_copy(rhs.mPageSetup);
+  
+  
+  
 
   if (mPrintSettings)
     g_object_unref(mPrintSettings);
@@ -185,6 +189,7 @@ nsPrintSettingsGTK::SetGtkPageSetup(GtkPageSetup *aPageSetup)
     g_object_unref(mPageSetup);
   
   mPageSetup = (GtkPageSetup*) g_object_ref(aPageSetup);
+  InitUnwriteableMargin();
 
   
   
@@ -508,66 +513,6 @@ nsPrintSettingsGTK::SetNumCopies(PRInt32 aNumCopies)
 
 
 NS_IMETHODIMP
-nsPrintSettingsGTK::GetEdgeTop(double *aEdgeTop)
-{
-  NS_ENSURE_ARG_POINTER(aEdgeTop);
-  *aEdgeTop = gtk_page_setup_get_top_margin(mPageSetup, GTK_UNIT_INCH);
-  return NS_OK;
-}
-NS_IMETHODIMP
-nsPrintSettingsGTK::SetEdgeTop(double aEdgeTop)
-{
-  gtk_page_setup_set_top_margin(mPageSetup, aEdgeTop, GTK_UNIT_INCH);
-  return NS_OK;
-}
-
-
-NS_IMETHODIMP
-nsPrintSettingsGTK::GetEdgeLeft(double *aEdgeLeft)
-{
-  NS_ENSURE_ARG_POINTER(aEdgeLeft);
-  *aEdgeLeft = gtk_page_setup_get_left_margin(mPageSetup, GTK_UNIT_INCH);
-  return NS_OK;
-}
-NS_IMETHODIMP
-nsPrintSettingsGTK::SetEdgeLeft(double aEdgeLeft)
-{
-  gtk_page_setup_set_left_margin(mPageSetup, aEdgeLeft, GTK_UNIT_INCH);
-  return NS_OK;
-}
-
-
-NS_IMETHODIMP
-nsPrintSettingsGTK::GetEdgeBottom(double *aEdgeBottom)
-{
-  NS_ENSURE_ARG_POINTER(aEdgeBottom);
-  *aEdgeBottom = gtk_page_setup_get_bottom_margin(mPageSetup, GTK_UNIT_INCH);
-  return NS_OK;
-}
-NS_IMETHODIMP
-nsPrintSettingsGTK::SetEdgeBottom(double aEdgeBottom)
-{
-  gtk_page_setup_set_bottom_margin(mPageSetup, aEdgeBottom, GTK_UNIT_INCH);
-  return NS_OK;
-}
-
-
-NS_IMETHODIMP
-nsPrintSettingsGTK::GetEdgeRight(double *aEdgeRight)
-{
-  NS_ENSURE_ARG_POINTER(aEdgeRight);
-  *aEdgeRight = gtk_page_setup_get_right_margin(mPageSetup, GTK_UNIT_INCH);
-  return NS_OK;
-}
-NS_IMETHODIMP
-nsPrintSettingsGTK::SetEdgeRight(double aEdgeRight)
-{
-  gtk_page_setup_set_right_margin(mPageSetup, aEdgeRight, GTK_UNIT_INCH);
-  return NS_OK;
-}
-
-
-NS_IMETHODIMP
 nsPrintSettingsGTK::GetScaling(double *aScaling)
 {
   *aScaling = gtk_print_settings_get_scale(mPrintSettings) / 100.0;
@@ -633,6 +578,84 @@ nsPrintSettingsGTK::SaveNewPageSize()
   gtk_page_setup_set_paper_size(mPageSetup, mPaperSize);
 }
 
+void
+nsPrintSettingsGTK::InitUnwriteableMargin()
+{
+  mUnwriteableMargin.SizeTo(
+   NS_INCHES_TO_TWIPS(gtk_page_setup_get_left_margin(mPageSetup, GTK_UNIT_INCH)),
+   NS_INCHES_TO_TWIPS(gtk_page_setup_get_top_margin(mPageSetup, GTK_UNIT_INCH)),
+   NS_INCHES_TO_TWIPS(gtk_page_setup_get_right_margin(mPageSetup, GTK_UNIT_INCH)),
+   NS_INCHES_TO_TWIPS(gtk_page_setup_get_bottom_margin(mPageSetup, GTK_UNIT_INCH))
+  );
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+NS_IMETHODIMP 
+nsPrintSettingsGTK::SetUnwriteableMarginInTwips(nsMargin& aUnwriteableMargin)
+{
+  nsPrintSettings::SetUnwriteableMarginInTwips(aUnwriteableMargin);
+  gtk_page_setup_set_top_margin(mPageSetup,
+           NS_TWIPS_TO_INCHES(mUnwriteableMargin.top), GTK_UNIT_INCH);
+  gtk_page_setup_set_left_margin(mPageSetup,
+           NS_TWIPS_TO_INCHES(mUnwriteableMargin.left), GTK_UNIT_INCH);
+  gtk_page_setup_set_bottom_margin(mPageSetup,
+           NS_TWIPS_TO_INCHES(mUnwriteableMargin.bottom), GTK_UNIT_INCH);
+  gtk_page_setup_set_right_margin(mPageSetup,
+           NS_TWIPS_TO_INCHES(mUnwriteableMargin.right), GTK_UNIT_INCH);
+  return NS_OK;
+}
+
+
+NS_IMETHODIMP
+nsPrintSettingsGTK::SetUnwriteableMarginTop(double aUnwriteableMarginTop)
+{
+  nsPrintSettings::SetUnwriteableMarginTop(aUnwriteableMarginTop);
+  gtk_page_setup_set_top_margin(mPageSetup,
+           NS_TWIPS_TO_INCHES(mUnwriteableMargin.top), GTK_UNIT_INCH);
+  return NS_OK;
+}
+
+
+NS_IMETHODIMP
+nsPrintSettingsGTK::SetUnwriteableMarginLeft(double aUnwriteableMarginLeft)
+{
+  nsPrintSettings::SetUnwriteableMarginLeft(aUnwriteableMarginLeft);
+  gtk_page_setup_set_left_margin(mPageSetup,
+           NS_TWIPS_TO_INCHES(mUnwriteableMargin.left), GTK_UNIT_INCH);
+  return NS_OK;
+}
+
+
+NS_IMETHODIMP
+nsPrintSettingsGTK::SetUnwriteableMarginBottom(double aUnwriteableMarginBottom)
+{
+  nsPrintSettings::SetUnwriteableMarginBottom(aUnwriteableMarginBottom);
+  gtk_page_setup_set_bottom_margin(mPageSetup,
+           NS_TWIPS_TO_INCHES(mUnwriteableMargin.bottom), GTK_UNIT_INCH);
+  return NS_OK;
+}
+
+
+NS_IMETHODIMP
+nsPrintSettingsGTK::SetUnwriteableMarginRight(double aUnwriteableMarginRight)
+{
+  nsPrintSettings::SetUnwriteableMarginRight(aUnwriteableMarginRight);
+  gtk_page_setup_set_right_margin(mPageSetup,
+           NS_TWIPS_TO_INCHES(mUnwriteableMargin.right), GTK_UNIT_INCH);
+  return NS_OK;
+}
+
 
 NS_IMETHODIMP
 nsPrintSettingsGTK::GetPaperWidth(double *aPaperWidth)
@@ -683,27 +706,6 @@ nsPrintSettingsGTK::SetPaperSizeUnit(PRInt16 aPaperSizeUnit)
   SaveNewPageSize();
 
   mPaperSizeUnit = aPaperSizeUnit;
-  return NS_OK;
-}
-
-
-NS_IMETHODIMP
-nsPrintSettingsGTK::SetEdgeInTwips(nsMargin& aEdge)
-{
-  gtk_page_setup_set_top_margin(mPageSetup, NS_TWIPS_TO_INCHES(aEdge.top), GTK_UNIT_INCH);
-  gtk_page_setup_set_left_margin(mPageSetup, NS_TWIPS_TO_INCHES(aEdge.left), GTK_UNIT_INCH);
-  gtk_page_setup_set_bottom_margin(mPageSetup, NS_TWIPS_TO_INCHES(aEdge.bottom), GTK_UNIT_INCH);
-  gtk_page_setup_set_right_margin(mPageSetup, NS_TWIPS_TO_INCHES(aEdge.right), GTK_UNIT_INCH);
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsPrintSettingsGTK::GetEdgeInTwips(nsMargin& aEdge)
-{
-  aEdge.SizeTo(NS_INCHES_TO_TWIPS(gtk_page_setup_get_left_margin(mPageSetup, GTK_UNIT_INCH)),
-               NS_INCHES_TO_TWIPS(gtk_page_setup_get_top_margin(mPageSetup, GTK_UNIT_INCH)),
-               NS_INCHES_TO_TWIPS(gtk_page_setup_get_right_margin(mPageSetup, GTK_UNIT_INCH)),
-               NS_INCHES_TO_TWIPS(gtk_page_setup_get_bottom_margin(mPageSetup, GTK_UNIT_INCH)));
   return NS_OK;
 }
 

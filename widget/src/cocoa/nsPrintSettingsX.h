@@ -66,6 +66,12 @@ protected:
   nsresult _Assign(nsIPrintSettings *aPS);
   
   
+
+
+
+  nsresult InitUnwriteableMargin();
+
+  
   OSStatus CreateDefaultPageFormat(PMPrintSession aSession, PMPageFormat& outFormat);
   OSStatus CreateDefaultPrintSettings(PMPrintSession aSession, PMPrintSettings& outSettings);
 
