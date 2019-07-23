@@ -45,14 +45,16 @@ function run_test()
 
     
     var types = {
-        "image/jpeg": "jpg",
-        "image/gif": "gif",
-        "image/png": "png"
+        "image/jpeg": ["jpg", "jpeg"], 
+        "image/gif": ["gif"],
+        "image/png": ["png"]
     };
 
     
     for (var mimetype in types) {
-        var ext = types[mimetype];
-        do_check_true (ms.getFromTypeAndExtension(mimetype, null).primaryExtension.toLowerCase() == ext);
+        var exts = types[mimetype];
+        var primary = ms.getFromTypeAndExtension(mimetype, null).primaryExtension.toLowerCase();
+
+        do_check_true (exts.indexOf(primary) != -1);
     }
 }
