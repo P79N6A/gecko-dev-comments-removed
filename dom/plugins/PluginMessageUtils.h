@@ -425,6 +425,27 @@ struct ParamTraits<mozilla::plugins::IPCByteRange>
   }
 };
 
+
 } 
+
+
+
+
+
+
+
+
+#if defined(XP_MACOSX)
+#  include "mozilla/plugins/NPEventOSX.h"
+#elif defined(XP_WIN)
+#  include "mozilla/plugins/NPEventWindows.h"
+#elif defined(XP_OS2)
+#  error Sorry, OS/2 is not supported
+#elif defined(XP_UNIX) && defined(MOZ_X11)
+#  include "mozilla/plugins/NPEventX11.h"
+#else
+#  error Unsupported platform
+#endif
+
 
 #endif 
