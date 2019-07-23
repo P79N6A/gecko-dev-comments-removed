@@ -56,8 +56,7 @@ let lms = Cc["@mozilla.org/browser/livemark-service;2"].
 
 const kSyncFinished = "places-sync-finished";
 
-
-const EXPECTED_SYNCS = 5;
+const EXPECTED_SYNCS = 4;
 
 function add_fake_livemark() {
   let lmId = lms.createLivemarkFolderOnly(bs.bookmarksToolbarId, "Livemark",

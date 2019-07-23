@@ -175,13 +175,19 @@ nsPlacesDBFlush.prototype = {
     this._syncTables(["places", "historyvisits"]);
   },
 
-  onItemAdded: function() this._syncTables(["places"]),
+  onItemAdded: function(aItemId, aParentId, aIndex)
+  {
+    
+    if (!this._inBatchMode &&
+        this._bs.getItemType(aItemId) == this._bs.TYPE_BOOKMARK)
+      this._syncTables(["places"]);
+  },
 
   onItemChanged: function DBFlush_onItemChanged(aItemId, aProperty,
                                                          aIsAnnotationProperty,
                                                          aValue)
   {
-    if (aProperty == "uri")
+    if (!this._inBatchMode && aProperty == "uri")
       this._syncTables(["places"]);
   },
 
@@ -231,24 +237,7 @@ nsPlacesDBFlush.prototype = {
       statements.push(this._getSyncTableStatement(aTableNames[i]));
 
     
-    
-    
-    
-
-    let self = this;
-    let listener = {
-      
-      _count: statements.length,
-      handleError: function(aError) self.handleError(aError),
-      handleCompletion: function(aReason) {
-        this._count--;
-        if (this._count == 0) {
-          
-          self.handleCompletion(aReason);
-        }
-      }
-    };
-    statements.forEach(function(stmt) stmt.executeAsync(listener));
+    this._db.executeAsync(statements, statements.length, this);
 
     
     statements.forEach(function(stmt) stmt.finalize());
