@@ -7939,10 +7939,7 @@ nsWindow :: DealWithPopups ( HWND inWnd, UINT inMsg, WPARAM inWParam, LPARAM inL
         inMsg == WM_NCMBUTTONDOWN ||
         inMsg == WM_MOUSEACTIVATE ||
         inMsg == WM_ACTIVATEAPP ||
-        inMsg == WM_MENUSELECT ||
-        
-        
-        (inMsg == WM_GETMINMAXINFO && !::GetParent(inWnd))
+        inMsg == WM_MENUSELECT
 #endif
         )
     {
