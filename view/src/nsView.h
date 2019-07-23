@@ -178,23 +178,6 @@ public:
 
   virtual ~nsView();
 
-  
-  
-  
-  nsPoint ViewToWidgetOffset() const {
-    if (mParent && mParent->GetViewManager() != GetViewManager()) {
-      
-      
-      
-      
-      
-      
-      
-      return mParent->ViewToWidgetOffset();
-    }
-    return mViewToWidgetOffset;
-  }
-
 protected:
   
   

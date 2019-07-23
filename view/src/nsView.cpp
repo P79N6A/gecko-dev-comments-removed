@@ -347,25 +347,35 @@ nsIntRect nsIView::CalcWidgetBounds(nsWindowType aType)
   nsRect viewBounds(mDimBounds);
 
   if (GetParent()) {
-    
     nsPoint offset;
     nsIWidget* parentWidget = GetParent()->GetNearestWidget(&offset);
+    
     viewBounds += offset;
 
     if (parentWidget && aType == eWindowType_popup &&
         IsEffectivelyVisible()) {
+      
       nsIntPoint screenPoint = parentWidget->WidgetToScreenOffset();
       viewBounds += nsPoint(NSIntPixelsToAppUnits(screenPoint.x, p2a),
                             NSIntPixelsToAppUnits(screenPoint.y, p2a));
     }
   }
 
+  
   nsIntRect newBounds = viewBounds.ToNearestPixels(p2a);
 
+  
+  
   nsPoint roundedOffset(NSIntPixelsToAppUnits(newBounds.x, p2a),
                         NSIntPixelsToAppUnits(newBounds.y, p2a));
+
   
-  mViewToWidgetOffset = roundedOffset - viewBounds.TopLeft();
+  
+  
+  
+  
+  mViewToWidgetOffset = nsPoint(mPosX, mPosY)
+    - mDimBounds.TopLeft() + viewBounds.TopLeft() - roundedOffset;
 
   return newBounds;
 }

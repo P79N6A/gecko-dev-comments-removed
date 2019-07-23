@@ -339,6 +339,24 @@ public:
 
   PRBool IsEffectivelyVisible();
 
+  
+  
+  
+  nsPoint ViewToWidgetOffset() const {
+    nsIView* parent = reinterpret_cast<nsIView*>(mParent);
+    if (parent && parent->GetViewManager() != GetViewManager()) {
+      
+      
+      
+      
+      
+      
+      
+      return parent->ViewToWidgetOffset();
+    }
+    return mViewToWidgetOffset;
+  }
+
 protected:
   friend class nsWeakView;
   nsViewManager     *mViewManager;
