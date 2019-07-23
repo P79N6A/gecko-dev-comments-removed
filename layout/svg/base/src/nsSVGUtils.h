@@ -263,7 +263,10 @@ public:
 
 
 
-  static nsRect FindFilterInvalidation(nsIFrame *aFrame);
+
+
+
+  static nsRect FindFilterInvalidation(nsIFrame *aFrame, const nsRect& aRect);
 
   
 

@@ -241,6 +241,17 @@ nsSVGFE::ComputeNeededSourceBBoxes(const nsIntRect& aTargetBBox,
   }
 }
 
+nsIntRect
+nsSVGFE::ComputeChangeBBox(const nsTArray<nsIntRect>& aSourceChangeBoxes,
+                           const nsSVGFilterInstance& aInstance)
+{
+  nsIntRect r;
+  for (PRUint32 i = 0; i < aSourceChangeBoxes.Length(); ++i) {
+    r.UnionRect(r, aSourceChangeBoxes[i]);
+  }
+  return r;
+}
+
 void
 nsSVGFE::GetSourceImageNames(nsTArray<nsSVGString*>* aSources)
 {
@@ -319,6 +330,8 @@ public:
           const nsSVGFilterInstance& aInstance);
   virtual void ComputeNeededSourceBBoxes(const nsIntRect& aTargetBBox,
           nsTArray<nsIntRect>& aSourceBBoxes, const nsSVGFilterInstance& aInstance);
+  virtual nsIntRect ComputeChangeBBox(const nsTArray<nsIntRect>& aSourceChangeBoxes,
+          const nsSVGFilterInstance& aInstance);
 
   
   NS_DECL_NSIDOMSVGFEGAUSSIANBLURELEMENT
@@ -344,7 +357,7 @@ protected:
 
 private:
   nsresult GetDXY(PRUint32 *aDX, PRUint32 *aDY, const nsSVGFilterInstance& aInstance);
-  void InflateRectForBlur(nsIntRect* aRect, const nsSVGFilterInstance& aInstance);
+  nsIntRect InflateRectForBlur(const nsIntRect& aRect, const nsSVGFilterInstance& aInstance);
 
   void GaussianBlur(const Image *aSource, const Image *aTarget,
                     const nsIntRect& aDataRect,
@@ -695,33 +708,38 @@ nsSVGFEGaussianBlurElement::GetSourceImageNames(nsTArray<nsSVGString*>* aSources
   aSources->AppendElement(&mStringAttributes[IN1]);
 }
 
-void
-nsSVGFEGaussianBlurElement::InflateRectForBlur(nsIntRect* aRect,
+nsIntRect
+nsSVGFEGaussianBlurElement::InflateRectForBlur(const nsIntRect& aRect,
                                                const nsSVGFilterInstance& aInstance)
 {
   PRUint32 dX, dY;
   nsresult rv = GetDXY(&dX, &dY, aInstance);
+  nsIntRect result = aRect;
   if (NS_SUCCEEDED(rv)) {
-    InflateRectForBlurDXY(aRect, dX, dY);
+    InflateRectForBlurDXY(&result, dX, dY);
   }
+  return result;
 }
 
 nsIntRect
 nsSVGFEGaussianBlurElement::ComputeTargetBBox(const nsTArray<nsIntRect>& aSourceBBoxes,
         const nsSVGFilterInstance& aInstance)
 {
-  nsIntRect r = aSourceBBoxes[0];
-  InflateRectForBlur(&r, aInstance);
-  return r;
+  return InflateRectForBlur(aSourceBBoxes[0], aInstance);
 }
 
 void
 nsSVGFEGaussianBlurElement::ComputeNeededSourceBBoxes(const nsIntRect& aTargetBBox,
           nsTArray<nsIntRect>& aSourceBBoxes, const nsSVGFilterInstance& aInstance)
 {
-  nsIntRect r = aTargetBBox;
-  InflateRectForBlur(&r, aInstance);
-  aSourceBBoxes[0] = r;
+  aSourceBBoxes[0] = InflateRectForBlur(aTargetBBox, aInstance);
+}
+
+nsIntRect
+nsSVGFEGaussianBlurElement::ComputeChangeBBox(const nsTArray<nsIntRect>& aSourceChangeBoxes,
+                                              const nsSVGFilterInstance& aInstance)
+{
+  return InflateRectForBlur(aSourceChangeBoxes[0], aInstance);
 }
 
 
@@ -2389,6 +2407,8 @@ public:
           const nsSVGFilterInstance& aInstance);
   virtual void ComputeNeededSourceBBoxes(const nsIntRect& aTargetBBox,
           nsTArray<nsIntRect>& aSourceBBoxes, const nsSVGFilterInstance& aInstance);
+  virtual nsIntRect ComputeChangeBBox(const nsTArray<nsIntRect>& aSourceChangeBoxes,
+          const nsSVGFilterInstance& aInstance);
 
   
   NS_DECL_NSIDOMSVGFEOFFSETELEMENT
@@ -2524,6 +2544,13 @@ nsSVGFEOffsetElement::ComputeTargetBBox(const nsTArray<nsIntRect>& aSourceBBoxes
         const nsSVGFilterInstance& aInstance)
 {
   return aSourceBBoxes[0] + GetOffset(aInstance);
+}
+
+nsIntRect
+nsSVGFEOffsetElement::ComputeChangeBBox(const nsTArray<nsIntRect>& aSourceChangeBoxes,
+                                        const nsSVGFilterInstance& aInstance)
+{
+  return aSourceChangeBoxes[0] + GetOffset(aInstance);
 }
 
 void
@@ -2722,6 +2749,8 @@ public:
           const nsSVGFilterInstance& aInstance);
   virtual void ComputeNeededSourceBBoxes(const nsIntRect& aTargetBBox,
           nsTArray<nsIntRect>& aSourceBBoxes, const nsSVGFilterInstance& aInstance);
+  virtual nsIntRect ComputeChangeBBox(const nsTArray<nsIntRect>& aSourceChangeBoxes,
+          const nsSVGFilterInstance& aInstance);
 
   
   NS_DECL_NSIDOMSVGFETILEELEMENT
@@ -2798,6 +2827,13 @@ nsSVGFETileElement::ComputeNeededSourceBBoxes(const nsIntRect& aTargetBBox,
           nsTArray<nsIntRect>& aSourceBBoxes, const nsSVGFilterInstance& aInstance)
 {
   
+}
+
+nsIntRect
+nsSVGFETileElement::ComputeChangeBBox(const nsTArray<nsIntRect>& aSourceChangeBoxes,
+                                      const nsSVGFilterInstance& aInstance)
+{
+  return GetMaxRect();
 }
 
 static PRInt32 WrapInterval(PRInt32 aVal, PRInt32 aMax)
@@ -3413,6 +3449,8 @@ public:
           const nsSVGFilterInstance& aInstance);
   virtual void ComputeNeededSourceBBoxes(const nsIntRect& aTargetBBox,
           nsTArray<nsIntRect>& aSourceBBoxes, const nsSVGFilterInstance& aInstance);
+  virtual nsIntRect ComputeChangeBBox(const nsTArray<nsIntRect>& aSourceChangeBoxes,
+          const nsSVGFilterInstance& aInstance);
 
   
   NS_DECL_NSIDOMSVGFEMORPHOLOGYELEMENT
@@ -3426,7 +3464,7 @@ public:
 
 protected:
   void GetRXY(PRInt32 *aRX, PRInt32 *aRY, const nsSVGFilterInstance& aInstance);
-  void InflateRect(nsIntRect* aRect, const nsSVGFilterInstance& aInstance);
+  nsIntRect InflateRect(const nsIntRect& aRect, const nsSVGFilterInstance& aInstance);
 
   virtual NumberAttributesInfo GetNumberInfo();
   virtual EnumAttributesInfo GetEnumInfo();
@@ -3538,31 +3576,36 @@ nsSVGFEMorphologyElement::GetSourceImageNames(nsTArray<nsSVGString*>* aSources)
   aSources->AppendElement(&mStringAttributes[IN1]);
 }
 
-void
-nsSVGFEMorphologyElement::InflateRect(nsIntRect* aRect,
+nsIntRect
+nsSVGFEMorphologyElement::InflateRect(const nsIntRect& aRect,
                                       const nsSVGFilterInstance& aInstance)
 {
   PRInt32 rx, ry;
   GetRXY(&rx, &ry, aInstance);
-  aRect->Inflate(PR_MAX(0, rx), PR_MAX(0, ry));
+  nsIntRect result = aRect;
+  result.Inflate(PR_MAX(0, rx), PR_MAX(0, ry));
+  return result;
 }
 
 nsIntRect
 nsSVGFEMorphologyElement::ComputeTargetBBox(const nsTArray<nsIntRect>& aSourceBBoxes,
         const nsSVGFilterInstance& aInstance)
 {
-  nsIntRect r = aSourceBBoxes[0];
-  InflateRect(&r, aInstance);
-  return r;
+  return InflateRect(aSourceBBoxes[0], aInstance);
 }
 
 void
 nsSVGFEMorphologyElement::ComputeNeededSourceBBoxes(const nsIntRect& aTargetBBox,
           nsTArray<nsIntRect>& aSourceBBoxes, const nsSVGFilterInstance& aInstance)
 {
-  nsIntRect r = aTargetBBox;
-  InflateRect(&r, aInstance);
-  aSourceBBoxes[0] = r;
+  aSourceBBoxes[0] = InflateRect(aTargetBBox, aInstance);
+}
+
+nsIntRect
+nsSVGFEMorphologyElement::ComputeChangeBBox(const nsTArray<nsIntRect>& aSourceChangeBoxes,
+                                            const nsSVGFilterInstance& aInstance)
+{
+  return InflateRect(aSourceChangeBoxes[0], aInstance);
 }
 
 #define MORPHOLOGY_EPSILON 0.0001
@@ -3728,6 +3771,8 @@ public:
           const nsSVGFilterInstance& aInstance);
   virtual void ComputeNeededSourceBBoxes(const nsIntRect& aTargetBBox,
           nsTArray<nsIntRect>& aSourceBBoxes, const nsSVGFilterInstance& aInstance);
+  virtual nsIntRect ComputeChangeBBox(const nsTArray<nsIntRect>& aSourceChangeBoxes,
+          const nsSVGFilterInstance& aInstance);
 
   
   NS_DECL_NSIDOMSVGFECONVOLVEMATRIXELEMENT
@@ -3957,6 +4002,15 @@ nsSVGFEConvolveMatrixElement::ComputeNeededSourceBBoxes(const nsIntRect& aTarget
   
   
   
+}
+
+nsIntRect
+nsSVGFEConvolveMatrixElement::ComputeChangeBBox(const nsTArray<nsIntRect>& aSourceChangeBoxes,
+                                                const nsSVGFilterInstance& aInstance)
+{
+  
+  
+  return GetMaxRect();
 }
 
 static PRInt32 BoundInterval(PRInt32 aVal, PRInt32 aMax)
@@ -4492,8 +4546,12 @@ public:
                           const nsIntRect& aDataRect);
   virtual nsSVGString* GetResultImageName() { return &mStringAttributes[RESULT]; }
   virtual void GetSourceImageNames(nsTArray<nsSVGString*>* aSources);
+  
+  
   virtual void ComputeNeededSourceBBoxes(const nsIntRect& aTargetBBox,
           nsTArray<nsIntRect>& aSourceBBoxes, const nsSVGFilterInstance& aInstance);
+  virtual nsIntRect ComputeChangeBBox(const nsTArray<nsIntRect>& aSourceChangeBoxes,
+          const nsSVGFilterInstance& aInstance);
 
   NS_FORWARD_NSIDOMSVGELEMENT(nsSVGFELightingElementBase::)
   NS_FORWARD_NSIDOMNODE(nsSVGFELightingElementBase::)
@@ -4541,7 +4599,7 @@ nsSVGElement::StringInfo nsSVGFELightingElement::sStringInfo[2] =
 NS_IMPL_ADDREF_INHERITED(nsSVGFELightingElement,nsSVGFELightingElementBase)
 NS_IMPL_RELEASE_INHERITED(nsSVGFELightingElement,nsSVGFELightingElementBase)
 
-NS_INTERFACE_MAP_BEGIN(nsSVGFELightingElement)
+NS_INTERFACE_MAP_BEGIN(nsSVGFELightingElement) 
 NS_INTERFACE_MAP_END_INHERITING(nsSVGFELightingElementBase)
 
 
@@ -4571,6 +4629,14 @@ nsSVGFELightingElement::ComputeNeededSourceBBoxes(const nsIntRect& aTargetBBox,
   
   
   
+}
+
+nsIntRect
+nsSVGFELightingElement::ComputeChangeBBox(const nsTArray<nsIntRect>& aSourceChangeBoxes,
+                                          const nsSVGFilterInstance& aInstance)
+{
+  
+  return GetMaxRect();
 }
 
 #define DOT(a,b) (a[0] * b[0] + a[1] * b[1] + a[2] * b[2])
@@ -5444,6 +5510,8 @@ public:
           const nsSVGFilterInstance& aInstance);
   virtual void ComputeNeededSourceBBoxes(const nsIntRect& aTargetBBox,
           nsTArray<nsIntRect>& aSourceBBoxes, const nsSVGFilterInstance& aInstance);
+  virtual nsIntRect ComputeChangeBBox(const nsTArray<nsIntRect>& aSourceChangeBoxes,
+          const nsSVGFilterInstance& aInstance);
 
   
   NS_DECL_NSIDOMSVGFEDISPLACEMENTMAPELEMENT
@@ -5663,6 +5731,15 @@ nsSVGFEDisplacementMapElement::ComputeNeededSourceBBoxes(const nsIntRect& aTarge
   
   
   
+}
+
+nsIntRect
+nsSVGFEDisplacementMapElement::ComputeChangeBBox(const nsTArray<nsIntRect>& aSourceChangeBoxes,
+                                                 const nsSVGFilterInstance& aInstance)
+{
+  
+  
+  return GetMaxRect();
 }
 
 

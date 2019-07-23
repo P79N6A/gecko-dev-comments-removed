@@ -157,7 +157,14 @@ public:
   
   virtual void ComputeNeededSourceBBoxes(const nsIntRect& aTargetBBox,
           nsTArray<nsIntRect>& aSourceBBoxes, const nsSVGFilterInstance& aInstance);
-
+  
+  
+  
+  
+  
+  virtual nsIntRect ComputeChangeBBox(const nsTArray<nsIntRect>& aSourceChangeBoxes,
+          const nsSVGFilterInstance& aInstance);
+  
   
   
   

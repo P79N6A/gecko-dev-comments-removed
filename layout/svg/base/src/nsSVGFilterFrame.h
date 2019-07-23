@@ -58,7 +58,9 @@ public:
   
   
   
-  nsRect GetInvalidationRegion(nsIFrame *aTarget);
+  
+  
+  nsRect GetInvalidationRegion(nsIFrame *aTarget, const nsRect& aRect);
 
   
 
@@ -69,8 +71,10 @@ public:
 
 private:
   
-  void FilterFailCleanup(nsSVGRenderState *aContext,
-                         nsISVGChildFrame *aTarget);
+  nsresult CreateInstance(nsISVGChildFrame *aTarget,
+                          const nsRect *aDirtyOutputRect,
+                          const nsRect *aDirtyInputRect,
+                          nsSVGFilterInstance **aInstance);
 };
 
 nsIContent *

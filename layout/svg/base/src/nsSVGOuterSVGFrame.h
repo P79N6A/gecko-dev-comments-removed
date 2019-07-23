@@ -132,6 +132,12 @@ public:
 
   void InvalidateCoveredRegion(nsIFrame *aFrame);
   
+  
+  
+  
+  PRBool UpdateAndInvalidateCoveredRegion(nsIFrame *aFrame);
+
+  
   void InvalidateRect(nsRect aRect);
   PRBool IsRedrawSuspended();
 
