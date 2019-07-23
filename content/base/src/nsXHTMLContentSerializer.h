@@ -200,6 +200,7 @@ class nsXHTMLContentSerializer : public nsXMLContentSerializer {
   
   nsAutoTArray<olState, 8> mOLStateStack;
 
+  PRBool HasNoChildren(nsIContent* aContent);
 };
 
 nsresult

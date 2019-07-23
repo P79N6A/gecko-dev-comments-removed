@@ -461,18 +461,26 @@ nsXHTMLContentSerializer::AppendEndOfElementStart(nsIDOMElement *aOriginalElemen
     return;
   }
 
-  nsIParserService* parserService = nsContentUtils::GetParserService();
+  nsCOMPtr<nsIContent> content = do_QueryInterface(aOriginalElement);
 
-  if (parserService) {
-    PRBool isContainer;
-    parserService->IsContainer(parserService->HTMLAtomTagToId(aName),
-                             isContainer);
-    if (!isContainer) {
-      
-      
-      
-      AppendToString(NS_LITERAL_STRING(" />"), aStr);
-      return;
+  
+  
+  
+  if (HasNoChildren(content)) {
+
+    nsIParserService* parserService = nsContentUtils::GetParserService();
+  
+    if (parserService) {
+      PRBool isContainer;
+      parserService->IsContainer(parserService->HTMLAtomTagToId(aName),
+                                 isContainer);
+      if (!isContainer) {
+        
+        
+        
+        AppendToString(NS_LITERAL_STRING(" />"), aStr);
+        return;
+      }
     }
   }
   AppendToString(kGreaterThan, aStr);
@@ -605,17 +613,19 @@ nsXHTMLContentSerializer::CheckElementEnd(nsIContent * aContent,
       }
     }
 
-    nsIParserService* parserService = nsContentUtils::GetParserService();
+    if (HasNoChildren(aContent)) {
+      nsIParserService* parserService = nsContentUtils::GetParserService();
 
-    if (parserService) {
-      PRBool isContainer;
+      if (parserService) {
+        PRBool isContainer;
 
-      parserService->IsContainer(parserService->HTMLAtomTagToId(name),
-                                 isContainer);
-      if (!isContainer) {
-        
-        
-        return PR_FALSE;
+        parserService->IsContainer(parserService->HTMLAtomTagToId(name),
+                                   isContainer);
+        if (!isContainer) {
+          
+          
+          return PR_FALSE;
+        }
       }
     }
     
@@ -1065,4 +1075,23 @@ nsXHTMLContentSerializer::IsFirstChildOfOL(nsIDOMElement* aElement)
   }
   else
     return PR_FALSE;
+}
+
+PRBool
+nsXHTMLContentSerializer::HasNoChildren(nsIContent * aContent) {
+
+  PRUint32 i, childCount = aContent->GetChildCount();
+
+  for (i = 0; i < childCount; ++i) {
+
+    nsIContent* child = aContent->GetChildAt(i);
+
+    if (!child->IsNodeOfType(nsINode::eTEXT))
+      return PR_FALSE;
+
+    if (child->TextLength())
+      return PR_FALSE;
+  }
+
+  return PR_TRUE;
 }
