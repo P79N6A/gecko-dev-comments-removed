@@ -176,13 +176,24 @@ BrowserGlue.prototype = {
   _onProfileStartup: function() 
   {
     
+
+    
+    var prefBranch = Cc["@mozilla.org/preferences-service;1"].
+                     getService(Ci.nsIPrefBranch);
+    var mustDisplayEULA = true;
     try {
-      var mustDisplayEULA = true;
-      var prefBranch = Cc["@mozilla.org/preferences-service;1"].
-                       getService(Ci.nsIPrefBranch);
-      var EULAVersion = prefBranch.getIntPref("browser.EULA.version");
-      mustDisplayEULA = !prefBranch.getBoolPref("browser.EULA." + EULAVersion + ".accepted");
-    } catch(ex) {
+      mustDisplayEULA = !prefBranch.getBoolPref("browser.EULA.override");
+    } catch (e) {
+      
+    }
+
+    
+    if (mustDisplayEULA) {
+      try {
+        var EULAVersion = prefBranch.getIntPref("browser.EULA.version");
+        mustDisplayEULA = !prefBranch.getBoolPref("browser.EULA." + EULAVersion + ".accepted");
+      } catch(ex) {
+      }
     }
 
     if (mustDisplayEULA) {

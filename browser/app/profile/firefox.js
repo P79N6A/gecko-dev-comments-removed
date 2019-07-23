@@ -653,9 +653,7 @@ pref("browser.EULA.3.accepted", true);
 #elifdef XP_WIN
 pref("browser.EULA.3.accepted", true);
 #else
-# Need to fix the unittest and talos machine profiles before flipping this by default
-#pref("browser.EULA.3.accepted", false);
-pref("browser.EULA.3.accepted", true);
+pref("browser.EULA.3.accepted", false);
 #endif
 
 
