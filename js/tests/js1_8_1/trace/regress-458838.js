@@ -1,0 +1,96 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+var gTestfile = 'regress-458838.js';
+
+var BUGNUMBER = 458838;
+var summary = 'TM: do not fall off trace when nested function accesses var of outer function';
+var actual = '';
+var expect = '';
+
+
+test();
+
+
+function test()
+{
+  enterFunc ('test');
+  printBugNumber(BUGNUMBER);
+  printStatus (summary);
+
+  jit(true);
+
+  function f() {
+    var a = 1;
+    function g() {
+      var b = 0
+        for (var i = 0; i < 10; ++i) {
+          b += a;
+        }
+      return b;
+    }
+
+    return g();
+  }
+
+  expect = 10;
+  actual  = f();
+
+  var recorderStarted;
+  var recorderAborted;
+  var traceCompleted;
+
+  if (this.tracemonkey)
+  {
+    recorderStarted = this.tracemonkey.recorderStarted;
+    recorderAborted = this.tracemonkey.recorderAborted;
+    traceCompleted  = this.tracemonkey.traceCompleted;
+  }
+
+  jit(false);
+
+  reportCompare(expect, actual, summary + ': return value 10');
+
+  if (this.tracemonkey)
+  {
+    expect = 'recorderStarted=1, recorderAborted=0, traceCompleted=1';
+    actual = 'recorderStarted=' + recorderStarted + ', recorderAborted=' + recorderAborted + ', traceCompleted=' + traceCompleted;
+    reportCompare(expect, actual, summary + ': trace');
+  }
+
+  exitFunc ('test');
+}
