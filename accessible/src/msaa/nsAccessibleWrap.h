@@ -296,6 +296,8 @@ class nsAccessibleWrap : public nsAccessible,
   
   static PRInt32 GetChildIDFor(nsIAccessible* aAccessible);
   static HWND GetHWNDFor(nsIAccessible *aAccessible);
+  static HRESULT ConvertToIA2Attributes(nsIPersistentProperties *aAttributes,
+                                        BSTR *aIA2Attributes);
 
   
 

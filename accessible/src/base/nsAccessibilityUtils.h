@@ -145,6 +145,16 @@ public:
 
 
 
+
+  static already_AddRefed<nsIDOMElement> GetDOMElementFor(nsIDOMNode *aNode);
+
+  
+
+
+
+
+
+
    static PRBool IsAncestorOf(nsIDOMNode *aPossibleAncestorNode,
                               nsIDOMNode *aPossibleDescendantNode);
 
@@ -301,6 +311,16 @@ public:
 
 
   static PRBool IsXLink(nsIContent *aContent);
+
+  
+
+
+
+
+
+
+  static void GetLanguageFor(nsIContent *aContent, nsIContent *aRootContent,
+                             nsAString& aLanguage);
 
   
 

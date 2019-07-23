@@ -42,6 +42,7 @@
 #include "nsIAccessibleText.h"
 #include "nsIDOMNode.h"
 #include "nsISelectionListener.h"
+#include "nsISelectionController.h"
 #include "nsRect.h"
 
 class nsRootAccessible;
@@ -120,13 +121,19 @@ public:
 
   nsRect GetCaretRect(nsIWidget **aOutWidget);
 
+protected:
+  nsresult NormalSelectionChanged(nsIDOMDocument *aDoc, nsISelection *aSel);
+  nsresult SpellcheckSelectionChanged(nsIDOMDocument *aDoc, nsISelection *aSel);
+
+  already_AddRefed<nsISelectionController>
+  GetSelectionControllerForNode(nsIDOMNode *aNode);
+
 private:
   
   
   
   
   nsCOMPtr<nsIDOMNode> mCurrentControl;  
-  nsCOMPtr<nsIWeakReference> mCurrentControlSelection;
 
   
   

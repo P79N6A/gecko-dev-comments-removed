@@ -41,6 +41,8 @@
 #include "nsAccessibilityAtoms.h"
 #include "nsAccessibilityService.h"
 #include "nsAccessibleTreeWalker.h"
+#include "nsTextUtils.h"
+
 #include "nsPIAccessNode.h"
 #include "nsIClipboard.h"
 #include "nsContentCID.h"
@@ -50,6 +52,7 @@
 #include "nsPIDOMWindow.h"        
 #include "nsIDOMDocumentView.h"
 #include "nsIDOMRange.h"
+#include "nsIDOMNSRange.h"
 #include "nsIDOMWindowInternal.h"
 #include "nsIDOMXULDocument.h"
 #include "nsIEditingSession.h"
@@ -671,7 +674,7 @@ nsresult nsHyperTextAccessible::DOMPointToHypertextOffset(nsIDOMNode* aNode, PRI
       
       
       
-      addTextOffset = (TextLength(descendantAccessible) == addTextOffset) ? 1 : 0;
+      addTextOffset = (TextLength(descendantAccessible) == static_cast<PRInt32>(addTextOffset)) ? 1 : 0;
     }
     descendantAccessible = parentAccessible;
   }  
@@ -696,6 +699,18 @@ nsresult nsHyperTextAccessible::DOMPointToHypertextOffset(nsIDOMNode* aNode, PRI
   }
 
   return NS_OK;
+}
+
+nsresult
+nsHyperTextAccessible::HypertextOffsetToDOMPoint(PRInt32 aHTOffset,
+                                                 nsIDOMNode **aNode,
+                                                 PRInt32 *aOffset)
+{
+  nsCOMPtr<nsIDOMNode> endNode;
+  PRInt32 endOffset;
+
+  return HypertextOffsetsToDOMRange(aHTOffset, aHTOffset, aNode, aOffset,
+                                    getter_AddRefs(endNode), &endOffset);
 }
 
 nsresult
@@ -888,11 +903,15 @@ nsresult nsHyperTextAccessible::GetTextHelper(EGetTextType aType, nsAccessibleTe
       
       
       nsCOMPtr<nsISelection> domSel;
-      nsresult rv = GetSelections(nsnull, getter_AddRefs(domSel));
+      nsresult rv = GetSelections(nsISelectionController::SELECTION_NORMAL,
+                                  nsnull, getter_AddRefs(domSel));
+      NS_ENSURE_SUCCESS(rv, rv);
+
       nsCOMPtr<nsISelectionPrivate> privateSelection(do_QueryInterface(domSel));
       nsCOMPtr<nsFrameSelection> frameSelection;
       rv = privateSelection->GetFrameSelection(getter_AddRefs(frameSelection));
       NS_ENSURE_SUCCESS(rv, rv);
+
       if (frameSelection->GetHint() == nsFrameSelection::HINTLEFT) {
         -- aOffset;  
       }
@@ -1071,31 +1090,103 @@ NS_IMETHODIMP nsHyperTextAccessible::GetTextAfterOffset(PRInt32 aOffset, nsAcces
   return GetTextHelper(eGetAfter, aBoundaryType, aOffset, aStartOffset, aEndOffset, aText);
 }
 
-NS_IMETHODIMP nsHyperTextAccessible::GetAttributeRange(PRInt32 aOffset, PRInt32 *aRangeStartOffset, 
-                                                       PRInt32 *aRangeEndOffset, nsIAccessible **aAccessibleWithAttrs)
+
+
+
+
+
+NS_IMETHODIMP
+nsHyperTextAccessible::GetTextAttributes(PRBool aIncludeDefAttrs,
+                                         PRInt32 aOffset,
+                                         PRInt32 *aStartOffset,
+                                         PRInt32 *aEndOffset,
+                                         nsIPersistentProperties **aAttributes)
 {
   
-  *aRangeStartOffset = *aRangeEndOffset = 0;
-  *aAccessibleWithAttrs = nsnull;
-
-  if (!mDOMNode) {
-    return NS_ERROR_FAILURE;
-  }
-
-  nsCOMPtr<nsIAccessible> accessible;
   
-  while (NextChild(accessible)) {
-    PRInt32 length = TextLength(accessible);
-    NS_ENSURE_TRUE(length >= 0, NS_ERROR_FAILURE);
-    if (*aRangeStartOffset + length > aOffset) {
-      *aRangeEndOffset = *aRangeStartOffset + length;
-      NS_ADDREF(*aAccessibleWithAttrs = accessible);
-      return NS_OK;
-    }
-    *aRangeStartOffset += length;
-  }
+  
+  
+  
+  
+  
+  
+  
+  
 
-  return NS_ERROR_FAILURE;
+  NS_ENSURE_ARG_POINTER(aStartOffset);
+  *aStartOffset = 0;
+
+  NS_ENSURE_ARG_POINTER(aEndOffset);
+  nsresult rv = GetCharacterCount(aEndOffset);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  NS_ENSURE_ARG_POINTER(aAttributes);
+  *aAttributes = nsnull;
+
+  nsCOMPtr<nsIPersistentProperties> attributes =
+    do_CreateInstance(NS_PERSISTENTPROPERTIES_CONTRACTID);
+  NS_ENSURE_TRUE(attributes, NS_ERROR_OUT_OF_MEMORY);
+
+  NS_ADDREF(*aAttributes = attributes);
+
+  if (!mDOMNode)
+    return NS_ERROR_FAILURE;
+
+  nsCOMPtr<nsIDOMNode> node;
+  PRInt32 nodeOffset = 0;
+  rv = HypertextOffsetToDOMPoint(aOffset, getter_AddRefs(node), &nodeOffset);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  rv = GetSpellTextAttribute(node, nodeOffset, aStartOffset, aEndOffset,
+                             *aAttributes);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  nsCOMPtr<nsIContent> content(do_QueryInterface(node));
+  if (content && content->IsNodeOfType(nsINode::eELEMENT))
+    node = do_QueryInterface(content->GetChildAt(nodeOffset));
+
+  if (!node)
+    return NS_OK;
+
+  
+  rv =  GetLangTextAttributes(aIncludeDefAttrs, node,
+                              aStartOffset, aEndOffset, *aAttributes);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  rv = GetCSSTextAttributes(aIncludeDefAttrs, node,
+                            aStartOffset, aEndOffset, *aAttributes);
+  return rv;
+}
+
+
+
+NS_IMETHODIMP
+nsHyperTextAccessible::GetDefaultTextAttributes(nsIPersistentProperties **aAttributes)
+{
+  NS_ENSURE_ARG_POINTER(aAttributes);
+  *aAttributes = nsnull;
+
+  nsCOMPtr<nsIPersistentProperties> attributes =
+    do_CreateInstance(NS_PERSISTENTPROPERTIES_CONTRACTID);
+  NS_ENSURE_TRUE(attributes, NS_ERROR_OUT_OF_MEMORY);
+
+  NS_ADDREF(*aAttributes = attributes);
+
+  if (!mDOMNode)
+    return NS_ERROR_FAILURE;
+
+  nsCOMPtr<nsIDOMElement> element = nsAccUtils::GetDOMElementFor(mDOMNode);
+
+  nsCSSTextAttr textAttr(PR_TRUE, element, nsnull);
+  while (textAttr.iterate()) {
+    nsCAutoString name;
+    nsAutoString value, oldValue;
+    if (textAttr.get(name, value))
+      attributes->SetStringProperty(name, value, oldValue);
+  }
+  return NS_OK;
 }
 
 nsresult
@@ -1474,7 +1565,8 @@ nsresult nsHyperTextAccessible::SetSelectionRange(PRInt32 aStartPos, PRInt32 aEn
   
   nsCOMPtr<nsISelection> domSel;
   nsCOMPtr<nsISelectionController> selCon;
-  GetSelections(getter_AddRefs(selCon), getter_AddRefs(domSel));
+  GetSelections(nsISelectionController::SELECTION_NORMAL,
+                getter_AddRefs(selCon), getter_AddRefs(domSel));
   if (domSel) {
     PRInt32 numRanges;
     domSel->GetRangeCount(&numRanges);
@@ -1509,7 +1601,8 @@ NS_IMETHODIMP nsHyperTextAccessible::GetCaretOffset(PRInt32 *aCaretOffset)
   *aCaretOffset = 0;
 
   nsCOMPtr<nsISelection> domSel;
-  nsresult rv = GetSelections(nsnull, getter_AddRefs(domSel));
+  nsresult rv = GetSelections(nsISelectionController::SELECTION_NORMAL,
+                              nsnull, getter_AddRefs(domSel));
   NS_ENSURE_SUCCESS(rv, rv);
 
   nsCOMPtr<nsIDOMNode> caretNode;
@@ -1527,7 +1620,8 @@ PRInt32 nsHyperTextAccessible::GetCaretLineNumber()
   
   
   nsCOMPtr<nsISelection> domSel;
-  GetSelections(nsnull, getter_AddRefs(domSel));
+  GetSelections(nsISelectionController::SELECTION_NORMAL, nsnull,
+                getter_AddRefs(domSel));
   nsCOMPtr<nsISelectionPrivate> privateSelection(do_QueryInterface(domSel));
   NS_ENSURE_TRUE(privateSelection, -1);
   nsCOMPtr<nsFrameSelection> frameSelection;
@@ -1590,9 +1684,11 @@ PRInt32 nsHyperTextAccessible::GetCaretLineNumber()
   return lineNumber;
 }
 
-nsresult nsHyperTextAccessible::GetSelections(nsISelectionController **aSelCon,
-                                              nsISelection **aDomSel,
-                                              nsCOMArray<nsIDOMRange>* aRanges)
+nsresult
+nsHyperTextAccessible::GetSelections(PRInt16 aType,
+                                     nsISelectionController **aSelCon,
+                                     nsISelection **aDomSel,
+                                     nsCOMArray<nsIDOMRange>* aRanges)
 {
   if (!mDOMNode) {
     return NS_ERROR_FAILURE;
@@ -1610,7 +1706,6 @@ nsresult nsHyperTextAccessible::GetSelections(nsISelectionController **aSelCon,
   nsCOMPtr<nsISelection> domSel;
   nsCOMPtr<nsISelectionController> selCon;
 
-  nsCOMPtr<nsIDOMNode> startNode;
   nsCOMPtr<nsIEditor> editor;
   GetAssociatedEditor(getter_AddRefs(editor));
   nsCOMPtr<nsIPlaintextEditor> peditor(do_QueryInterface(editor));
@@ -1619,18 +1714,7 @@ nsresult nsHyperTextAccessible::GetSelections(nsISelectionController **aSelCon,
     
     
     
-    if (aSelCon) {
-      editor->GetSelectionController(getter_AddRefs(selCon));
-      NS_ENSURE_TRUE(*aSelCon, NS_ERROR_FAILURE);
-    }
-
-    editor->GetSelection(getter_AddRefs(domSel));
-    NS_ENSURE_TRUE(domSel, NS_ERROR_FAILURE);
-
-    nsCOMPtr<nsIDOMElement> editorRoot;
-    editor->GetRootElement(getter_AddRefs(editorRoot));
-    startNode = do_QueryInterface(editorRoot);
-    NS_ENSURE_STATE(startNode);
+    editor->GetSelectionController(getter_AddRefs(selCon));
   }
   else {
     
@@ -1641,13 +1725,11 @@ nsresult nsHyperTextAccessible::GetSelections(nsISelectionController **aSelCon,
     
     frame->GetSelectionController(GetPresContext(),
                                   getter_AddRefs(selCon));
-    NS_ENSURE_TRUE(selCon, NS_ERROR_FAILURE);
-    selCon->GetSelection(nsISelectionController::SELECTION_NORMAL,
-                         getter_AddRefs(domSel));
-    NS_ENSURE_TRUE(domSel, NS_ERROR_FAILURE);
-
-    startNode = mDOMNode;
   }
+  NS_ENSURE_TRUE(selCon, NS_ERROR_FAILURE);
+
+  selCon->GetSelection(aType, getter_AddRefs(domSel));
+  NS_ENSURE_TRUE(domSel, NS_ERROR_FAILURE);
 
   if (aSelCon) {
     NS_ADDREF(*aSelCon = selCon);
@@ -1655,9 +1737,18 @@ nsresult nsHyperTextAccessible::GetSelections(nsISelectionController **aSelCon,
   if (aDomSel) {
     NS_ADDREF(*aDomSel = domSel);
   }
+
   if (aRanges) {
     nsCOMPtr<nsISelection2> selection2(do_QueryInterface(domSel));
     NS_ENSURE_TRUE(selection2, NS_ERROR_FAILURE);
+
+    nsCOMPtr<nsIDOMNode> startNode(mDOMNode);
+    if (peditor) {
+      nsCOMPtr<nsIDOMElement> editorRoot;
+      editor->GetRootElement(getter_AddRefs(editorRoot));
+      startNode = do_QueryInterface(editorRoot);
+    }
+    NS_ENSURE_STATE(startNode);
 
     nsCOMPtr<nsIDOMNodeList> childNodes;
     nsresult rv = startNode->GetChildNodes(getter_AddRefs(childNodes));
@@ -1692,7 +1783,8 @@ NS_IMETHODIMP nsHyperTextAccessible::GetSelectionCount(PRInt32 *aSelectionCount)
 {
   nsCOMPtr<nsISelection> domSel;
   nsCOMArray<nsIDOMRange> ranges;
-  nsresult rv = GetSelections(nsnull, nsnull, &ranges);
+  nsresult rv = GetSelections(nsISelectionController::SELECTION_NORMAL,
+                              nsnull, nsnull, &ranges);
   NS_ENSURE_SUCCESS(rv, rv);
 
   *aSelectionCount = ranges.Count();
@@ -1709,7 +1801,8 @@ NS_IMETHODIMP nsHyperTextAccessible::GetSelectionBounds(PRInt32 aSelectionNum, P
 
   nsCOMPtr<nsISelection> domSel;
   nsCOMArray<nsIDOMRange> ranges;
-  nsresult rv = GetSelections(nsnull, getter_AddRefs(domSel), &ranges);
+  nsresult rv = GetSelections(nsISelectionController::SELECTION_NORMAL,
+                              nsnull, getter_AddRefs(domSel), &ranges);
   NS_ENSURE_SUCCESS(rv, rv);
 
   PRInt32 rangeCount = ranges.Count();
@@ -1762,7 +1855,8 @@ nsHyperTextAccessible::SetSelectionBounds(PRInt32 aSelectionNum,
                                           PRInt32 aEndOffset)
 {
   nsCOMPtr<nsISelection> domSel;
-  nsresult rv = GetSelections(nsnull, getter_AddRefs(domSel));
+  nsresult rv = GetSelections(nsISelectionController::SELECTION_NORMAL,
+                              nsnull, getter_AddRefs(domSel));
   NS_ENSURE_SUCCESS(rv, rv);
 
   
@@ -1810,7 +1904,8 @@ nsHyperTextAccessible::SetSelectionBounds(PRInt32 aSelectionNum,
 NS_IMETHODIMP nsHyperTextAccessible::AddSelection(PRInt32 aStartOffset, PRInt32 aEndOffset)
 {
   nsCOMPtr<nsISelection> domSel;
-  nsresult rv = GetSelections(nsnull, getter_AddRefs(domSel));
+  nsresult rv = GetSelections(nsISelectionController::SELECTION_NORMAL,
+                              nsnull, getter_AddRefs(domSel));
   NS_ENSURE_SUCCESS(rv, rv);
 
   PRInt32 rangeCount;
@@ -1825,7 +1920,8 @@ NS_IMETHODIMP nsHyperTextAccessible::AddSelection(PRInt32 aStartOffset, PRInt32 
 NS_IMETHODIMP nsHyperTextAccessible::RemoveSelection(PRInt32 aSelectionNum)
 {
   nsCOMPtr<nsISelection> domSel;
-  nsresult rv = GetSelections(nsnull, getter_AddRefs(domSel));
+  nsresult rv = GetSelections(nsISelectionController::SELECTION_NORMAL,
+                              nsnull, getter_AddRefs(domSel));
   NS_ENSURE_SUCCESS(rv, rv);
 
   PRInt32 rangeCount;
@@ -2037,3 +2133,352 @@ nsHyperTextAccessible::GetDOMPointByFrameOffset(nsIFrame *aFrame,
   return NS_OK;
 }
 
+
+nsresult
+nsHyperTextAccessible::DOMRangeBoundToHypertextOffset(nsIDOMRange *aRange,
+                                                      PRBool aIsStartBound,
+                                                      PRBool aIsStartHTOffset,
+                                                      PRInt32 *aHTOffset)
+{
+  nsCOMPtr<nsIDOMNode> node;
+  PRInt32 nodeOffset = 0;
+
+  nsresult rv;
+  if (aIsStartBound) {
+    rv = aRange->GetStartContainer(getter_AddRefs(node));
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    rv = aRange->GetStartOffset(&nodeOffset);
+    NS_ENSURE_SUCCESS(rv, rv);
+  } else {
+    rv = aRange->GetEndContainer(getter_AddRefs(node));
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    rv = aRange->GetEndOffset(&nodeOffset);
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
+
+  nsCOMPtr<nsIAccessible> startAcc;
+  rv = DOMPointToHypertextOffset(node, nodeOffset, aHTOffset,
+                                 getter_AddRefs(startAcc));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  if (aIsStartHTOffset && !startAcc)
+    *aHTOffset = 0;
+
+  return NS_OK;
+}
+
+
+nsresult
+nsHyperTextAccessible::GetSpellTextAttribute(nsIDOMNode *aNode,
+                                             PRInt32 aNodeOffset,
+                                             PRInt32 *aHTStartOffset,
+                                             PRInt32 *aHTEndOffset,
+                                             nsIPersistentProperties *aAttributes)
+{
+  nsCOMArray<nsIDOMRange> ranges;
+  nsresult rv = GetSelections(nsISelectionController::SELECTION_SPELLCHECK,
+                              nsnull, nsnull, &ranges);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  PRInt32 rangeCount = ranges.Count();
+  if (!rangeCount)
+    return NS_OK;
+
+  for (PRInt32 index = 0; index < rangeCount; index++) {
+    nsCOMPtr<nsIDOMRange> range = ranges[index];
+    nsCOMPtr<nsIDOMNSRange> nsrange(do_QueryInterface(range));
+    NS_ENSURE_STATE(nsrange);
+
+    PRInt16 result;
+    rv = nsrange->ComparePoint(aNode, aNodeOffset, &result);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    if (result == 1) { 
+      PRInt32 startHTOffset = 0;
+      rv = DOMRangeBoundToHypertextOffset(range, PR_FALSE, PR_TRUE,
+                                          &startHTOffset);
+      NS_ENSURE_SUCCESS(rv, rv);
+
+      if (startHTOffset > *aHTStartOffset)
+        *aHTStartOffset = startHTOffset;
+
+    } else if (result == -1) { 
+      PRInt32 endHTOffset = 0;
+      rv = DOMRangeBoundToHypertextOffset(range, PR_TRUE, PR_FALSE,
+                                          &endHTOffset);
+      NS_ENSURE_SUCCESS(rv, rv);
+
+      if (endHTOffset < *aHTEndOffset)
+        *aHTEndOffset = endHTOffset;
+
+    } else { 
+      PRInt32 startHTOffset = 0;
+      rv = DOMRangeBoundToHypertextOffset(range, PR_TRUE, PR_TRUE,
+                                          &startHTOffset);
+      NS_ENSURE_SUCCESS(rv, rv);
+
+      PRInt32 endHTOffset = 0;
+      rv = DOMRangeBoundToHypertextOffset(range, PR_FALSE, PR_FALSE,
+                                          &endHTOffset);
+      NS_ENSURE_SUCCESS(rv, rv);
+
+      if (startHTOffset > *aHTStartOffset)
+        *aHTStartOffset = startHTOffset;
+      if (endHTOffset < *aHTEndOffset)
+        *aHTEndOffset = endHTOffset;
+
+      nsAccUtils::SetAccAttr(aAttributes, nsAccessibilityAtoms::invalid,
+                             NS_LITERAL_STRING("spelling"));
+
+      return NS_OK;
+    }
+  }
+
+  return NS_OK;
+}
+
+
+nsresult
+nsHyperTextAccessible::GetLangTextAttributes(PRBool aIncludeDefAttrs,
+                                             nsIDOMNode *aSourceNode,
+                                             PRInt32 *aStartHTOffset,
+                                             PRInt32 *aEndHTOffset,
+                                             nsIPersistentProperties *aAttributes)
+{
+  nsCOMPtr<nsIDOMElement> sourceElm(nsAccUtils::GetDOMElementFor(aSourceNode));
+
+  nsCOMPtr<nsIContent> content(do_QueryInterface(sourceElm));
+  nsCOMPtr<nsIContent> rootContent(do_QueryInterface(mDOMNode));
+
+  nsAutoString lang;
+  nsAccUtils::GetLanguageFor(content, rootContent, lang);
+
+  nsAutoString rootLang;
+  nsresult rv = GetLanguage(rootLang);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  
+  
+  const nsAString& resultLang = lang.IsEmpty() ? rootLang : lang;
+  if (!resultLang.IsEmpty() && (aIncludeDefAttrs || lang != rootLang))
+    nsAccUtils::SetAccAttr(aAttributes, nsAccessibilityAtoms::language,
+                           resultLang);
+
+  nsLangTextAttr textAttr(lang, rootContent);
+  return GetRangeForTextAttr(aSourceNode, &textAttr,
+                             aStartHTOffset, aEndHTOffset);
+}
+
+
+nsresult
+nsHyperTextAccessible::GetCSSTextAttributes(PRBool aIncludeDefAttrs,
+                                            nsIDOMNode *aSourceNode,
+                                            PRInt32 *aStartHTOffset,
+                                            PRInt32 *aEndHTOffset,
+                                            nsIPersistentProperties *aAttributes)
+{
+  nsCOMPtr<nsIDOMElement> sourceElm(nsAccUtils::GetDOMElementFor(aSourceNode));
+  nsCOMPtr<nsIDOMElement> rootElm(nsAccUtils::GetDOMElementFor(mDOMNode));
+
+  nsCSSTextAttr textAttr(aIncludeDefAttrs, sourceElm, rootElm);
+  while (textAttr.iterate()) {
+    nsCAutoString name;
+    nsAutoString value, oldValue;
+    if (textAttr.get(name, value))
+      aAttributes->SetStringProperty(name, value, oldValue);
+
+    nsresult rv = GetRangeForTextAttr(aSourceNode, &textAttr,
+                                      aStartHTOffset, aEndHTOffset);
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
+
+  return NS_OK;
+}
+
+
+nsresult
+nsHyperTextAccessible::GetRangeForTextAttr(nsIDOMNode *aNode,
+                                           nsTextAttr *aComparer,
+                                           PRInt32 *aStartHTOffset,
+                                           PRInt32 *aEndHTOffset)
+{
+  nsCOMPtr<nsIDOMElement> rootElm(nsAccUtils::GetDOMElementFor(mDOMNode));
+  NS_ENSURE_STATE(rootElm);
+
+  nsCOMPtr<nsIDOMNode> tmpNode(aNode);
+  nsCOMPtr<nsIDOMNode> currNode(aNode);
+
+  
+  
+  
+  
+  
+  
+  
+
+  
+  while (currNode && currNode != rootElm) {
+    nsCOMPtr<nsIDOMElement> currElm(nsAccUtils::GetDOMElementFor(currNode));
+    NS_ENSURE_STATE(currElm);
+
+    if (currNode != aNode && !aComparer->equal(currElm)) {
+      PRInt32 startHTOffset = 0;
+      nsCOMPtr<nsIAccessible> startAcc;
+      nsresult rv = DOMPointToHypertextOffset(tmpNode, -1, &startHTOffset,
+                                              getter_AddRefs(startAcc));
+      NS_ENSURE_SUCCESS(rv, rv);
+
+      if (!startAcc)
+        startHTOffset = 0;
+
+      if (startHTOffset > *aStartHTOffset)
+        *aStartHTOffset = startHTOffset;
+
+      break;
+    }
+
+    currNode->GetPreviousSibling(getter_AddRefs(tmpNode));
+    if (tmpNode) {
+      
+      
+      FindStartOffsetInSubtree(tmpNode, currNode, aComparer, aStartHTOffset);
+    }
+
+    currNode->GetParentNode(getter_AddRefs(tmpNode));
+    currNode.swap(tmpNode);
+  }
+
+  
+  PRBool moveIntoSubtree = PR_TRUE;
+  currNode = aNode;
+  while (currNode && currNode != rootElm) {
+    nsCOMPtr<nsIDOMElement> currElm(nsAccUtils::GetDOMElementFor(currNode));
+    NS_ENSURE_STATE(currElm);
+
+    
+    
+    if (!aComparer->equal(currElm)) {
+      PRInt32 endHTOffset = 0;
+      nsresult rv = DOMPointToHypertextOffset(currNode, -1, &endHTOffset);
+      NS_ENSURE_SUCCESS(rv, rv);
+
+      if (endHTOffset < *aEndHTOffset)
+        *aEndHTOffset = endHTOffset;
+
+      break;
+    }
+
+    if (moveIntoSubtree) {
+      
+      
+      currNode->GetFirstChild(getter_AddRefs(tmpNode));
+      if (tmpNode)
+        FindEndOffsetInSubtree(tmpNode, aComparer, aEndHTOffset);
+    }
+
+    currNode->GetNextSibling(getter_AddRefs(tmpNode));
+    moveIntoSubtree = PR_TRUE;
+    if (!tmpNode) {
+      currNode->GetParentNode(getter_AddRefs(tmpNode));
+      moveIntoSubtree = PR_FALSE;
+    }
+
+    currNode.swap(tmpNode);
+  }
+
+  return NS_OK;
+}
+
+
+PRBool
+nsHyperTextAccessible::FindEndOffsetInSubtree(nsIDOMNode *aCurrNode,
+                                              nsTextAttr *aComparer,
+                                              PRInt32 *aHTOffset)
+{
+  if (!aCurrNode)
+    return PR_FALSE;
+
+  nsCOMPtr<nsIDOMElement> currElm(nsAccUtils::GetDOMElementFor(aCurrNode));
+  NS_ENSURE_STATE(currElm);
+
+  
+  
+  if (!aComparer->equal(currElm)) {
+    PRInt32 endHTOffset = 0;
+    nsresult rv = DOMPointToHypertextOffset(aCurrNode, -1, &endHTOffset);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    if (endHTOffset < *aHTOffset)
+      *aHTOffset = endHTOffset;
+
+    return PR_TRUE;
+  }
+
+  
+  nsCOMPtr<nsIDOMNode> nextNode;
+  aCurrNode->GetFirstChild(getter_AddRefs(nextNode));
+  if (nextNode) {
+    PRBool res = FindEndOffsetInSubtree(nextNode, aComparer, aHTOffset);
+    if (res)
+      return res;
+  }
+
+  aCurrNode->GetNextSibling(getter_AddRefs(nextNode));
+  if (nextNode) {
+    if (FindEndOffsetInSubtree(nextNode, aComparer, aHTOffset))
+      return PR_TRUE;
+  }
+
+  return PR_FALSE;
+}
+
+PRBool
+nsHyperTextAccessible::FindStartOffsetInSubtree(nsIDOMNode *aCurrNode,
+                                                nsIDOMNode *aPrevNode,
+                                                nsTextAttr *aComparer,
+                                                PRInt32 *aHTOffset)
+{
+  if (!aCurrNode)
+    return PR_FALSE;
+
+  
+  nsCOMPtr<nsIDOMNode> nextNode;
+  aCurrNode->GetLastChild(getter_AddRefs(nextNode));
+  if (nextNode) {
+    if (FindStartOffsetInSubtree(nextNode, aPrevNode, aComparer, aHTOffset))
+      return PR_TRUE;
+  }
+
+  nsCOMPtr<nsIDOMElement> currElm(nsAccUtils::GetDOMElementFor(aCurrNode));
+  NS_ENSURE_STATE(currElm);
+
+  
+  
+  if (!aComparer->equal(currElm)) {
+    PRInt32 startHTOffset = 0;
+    nsCOMPtr<nsIAccessible> startAcc;
+    nsresult rv = DOMPointToHypertextOffset(aPrevNode, -1, &startHTOffset,
+                                            getter_AddRefs(startAcc));
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    if (!startAcc)
+      startHTOffset = 0;
+
+    if (startHTOffset > *aHTOffset)
+      *aHTOffset = startHTOffset;
+
+    return PR_TRUE;
+  }
+
+  
+  aCurrNode->GetPreviousSibling(getter_AddRefs(nextNode));
+  if (nextNode) {
+    if (FindStartOffsetInSubtree(nextNode, aCurrNode, aComparer, aHTOffset))
+      return PR_TRUE;
+  }
+
+  return PR_FALSE;
+}

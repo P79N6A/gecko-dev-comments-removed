@@ -187,6 +187,10 @@ ACCESSIBILITY_ATOM(type, "type")
 ACCESSIBILITY_ATOM(value, "value")
 
   
+ACCESSIBILITY_ATOM(invalid, "invalid")
+ACCESSIBILITY_ATOM(language, "language")
+
+  
   
   
 ACCESSIBILITY_ATOM(role, "role")

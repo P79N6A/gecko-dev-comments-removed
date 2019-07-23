@@ -45,6 +45,8 @@
 #include "nsIAccessibleHyperText.h"
 #include "nsIAccessibleEditableText.h"
 #include "nsAccessibleEventData.h"
+#include "nsTextUtils.h"
+
 #include "nsFrameSelection.h"
 #include "nsISelectionController.h"
 
@@ -67,7 +69,6 @@ const PRUnichar kForcedNewLineChar = '\n';
 
 
 
-
 class nsHyperTextAccessible : public nsAccessibleWrap,
                               public nsIAccessibleText,
                               public nsIAccessibleHyperText,
@@ -81,8 +82,11 @@ public:
   NS_DECL_NSIACCESSIBLEEDITABLETEXT
   NS_DECLARE_STATIC_IID_ACCESSOR(NS_HYPERTEXTACCESSIBLE_IMPL_CID)
 
+  
   NS_IMETHOD GetRole(PRUint32 *aRole);
   NS_IMETHOD GetState(PRUint32 *aState, PRUint32 *aExtraState);
+
+  
   virtual nsresult GetAttributesInternal(nsIPersistentProperties *aAttributes);
   void CacheChildren();
 
@@ -123,6 +127,17 @@ public:
                                      PRInt32 *aHypertextOffset,
                                      nsIAccessible **aFinalAccessible = nsnull,
                                      PRBool aIsEndOffset = PR_FALSE);
+
+  
+
+
+
+
+
+
+  nsresult HypertextOffsetToDOMPoint(PRInt32 aHTOffset,
+                                     nsIDOMNode **aNode,
+                                     PRInt32 *aOffset);
 
   
 
@@ -211,15 +226,23 @@ protected:
 
   
 
-  
+    
 
 
 
 
 
-  nsresult GetSelections(nsISelectionController **aSelCon,
+
+
+
+
+
+
+  nsresult GetSelections(PRInt16 aType,
+                         nsISelectionController **aSelCon,
                          nsISelection **aDomSel = nsnull,
                          nsCOMArray<nsIDOMRange>* aRanges = nsnull);
+
   nsresult SetSelectionRange(PRInt32 aStartPos, PRInt32 aEndPos);
 
   
@@ -233,6 +256,125 @@ protected:
   nsresult GetDOMPointByFrameOffset(nsIFrame *aFrame, PRInt32 aOffset,
                                     nsIAccessible *aAccessible,
                                     nsIDOMNode **aNode, PRInt32 *aNodeOffset);
+
+  
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  nsresult DOMRangeBoundToHypertextOffset(nsIDOMRange *aRange,
+                                          PRBool aIsStartBound,
+                                          PRBool aIsStartOffset,
+                                          PRInt32 *aHTOffset);
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  nsresult GetSpellTextAttribute(nsIDOMNode *aNode, PRInt32 aNodeOffset,
+                                 PRInt32 *aStartOffset,
+                                 PRInt32 *aEndOffset,
+                                 nsIPersistentProperties *aAttributes);
+
+  
+
+
+
+
+
+
+
+
+
+
+  nsresult GetLangTextAttributes(PRBool aIncludeDefAttrs,
+                                 nsIDOMNode *aSourceNode,
+                                 PRInt32 *aStartOffset,
+                                 PRInt32 *aEndOffset,
+                                 nsIPersistentProperties *aAttributes);
+
+  
+
+
+
+
+
+
+
+
+
+
+  nsresult GetCSSTextAttributes(PRBool aIncludeDefAttrs,
+                                nsIDOMNode *aSourceNode,
+                                PRInt32 *aStartOffset,
+                                PRInt32 *aEndOffset,
+                                nsIPersistentProperties *aAttributes);
+
+  
+
+
+
+
+
+
+
+
+
+
+  nsresult GetRangeForTextAttr(nsIDOMNode *aNode,
+                               nsTextAttr *aComparer,
+                               PRInt32 *aStartHTOffset,
+                               PRInt32 *aEndHTOffset);
+
+  
+
+
+
+
+
+
+
+
+
+  PRBool FindEndOffsetInSubtree(nsIDOMNode *aCurrNode,
+                                nsTextAttr *aComparer,
+                                PRInt32 *aHTOffset);
+
+  
+
+
+
+
+
+
+
+
+
+
+
+  PRBool FindStartOffsetInSubtree(nsIDOMNode *aCurrNode,
+                                  nsIDOMNode *aPrevNode,
+                                  nsTextAttr *aComparer,
+                                  PRInt32 *aHTOffset);
+
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsHyperTextAccessible,
