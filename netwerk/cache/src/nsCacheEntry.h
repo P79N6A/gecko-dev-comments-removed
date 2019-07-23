@@ -295,17 +295,9 @@ public:
     nsresult      AddEntry( nsCacheEntry *entry);
     void          RemoveEntry( nsCacheEntry *entry);
     
-    
-    class Visitor {
-    public:
-        virtual PRBool VisitEntry( nsCacheEntry *entry) = 0;
-    };
-    
-    void          VisitEntries( Visitor *visitor);
-    
-private:
-    friend class nsCacheService; 
+    void          VisitEntries( PLDHashEnumerator etor, void *arg);
 
+private:
     
     static PLDHashNumber  PR_CALLBACK HashKey( PLDHashTable *table, const void *key);
 
