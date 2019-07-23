@@ -73,6 +73,7 @@
 #include "nsIWebNavigation.h"
 #include "nsIWindowMediator.h"
 #include "nsNativeCharsetUtils.h"
+#include "nsIAppStartup.h"
 
 #include <windows.h>
 #include <shellapi.h>
@@ -593,7 +594,7 @@ struct MessageWindow {
     static long CALLBACK WindowProc( HWND msgWindow, UINT msg, WPARAM wp, LPARAM lp ) {
         if ( msg == WM_COPYDATA ) {
             if (!nsNativeAppSupportWin::mCanHandleRequests)
-                return 0;
+                return FALSE;
 
             
             COPYDATASTRUCT *cds = (COPYDATASTRUCT*)lp;
@@ -627,19 +628,37 @@ struct MessageWindow {
             return win ? (long)hwndForDOMWindow( win ) : 0;
         } else if ( msg == WM_QUERYENDSESSION ) {
             if (!nsNativeAppSupportWin::mCanHandleRequests)
-                return 0;
-            
-            
-            
-            
-            nsCOMPtr<nsICommandLineRunner> cmdLine
-                (do_CreateInstance("@mozilla.org/toolkit/command-line;1"));
-            char* argv[] = { "-killAll", 0 };
-            if (cmdLine &&
-                NS_SUCCEEDED(cmdLine->Init(1, argv, nsnull,
-                                           nsICommandLine::STATE_REMOTE_AUTO))) {
-                return cmdLine->Run() != NS_ERROR_ABORT;
-            }
+                return FALSE;
+
+            nsCOMPtr<nsIObserverService> obsServ =
+                do_GetService("@mozilla.org/observer-service;1");
+            nsCOMPtr<nsISupportsPRBool> cancelQuit =
+                do_CreateInstance(NS_SUPPORTS_PRBOOL_CONTRACTID);
+            cancelQuit->SetData(PR_FALSE);
+            obsServ->NotifyObservers(cancelQuit, "quit-application-requested", nsnull);
+
+            PRBool abortQuit;
+            cancelQuit->GetData(&abortQuit);
+            return !abortQuit;
+        } else if ( msg == WM_ENDSESSION ) {
+            if (!nsNativeAppSupportWin::mCanHandleRequests)
+                return FALSE;
+
+            if (wp == FALSE)
+                return TRUE;
+
+            nsCOMPtr<nsIObserverService> obsServ =
+                do_GetService("@mozilla.org/observer-service;1");
+            nsCOMPtr<nsIAppStartup> appService =
+                do_GetService("@mozilla.org/toolkit/app-startup;1");
+
+            if (obsServ)
+                obsServ->NotifyObservers(nsnull, "quit-application-granted", nsnull);
+
+            if (appService)
+                appService->Quit(nsIAppStartup::eForceQuit);
+
+            return TRUE;
         }
         return DefWindowProc( msgWindow, msg, wp, lp );
     }
