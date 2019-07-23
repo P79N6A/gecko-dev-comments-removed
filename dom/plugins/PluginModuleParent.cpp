@@ -149,6 +149,8 @@ PluginModuleParent::WriteExtraDataForMinidump(nsIFile* dumpFile)
                         pluginFile.substr(filePos).c_str());
     
     
+    WriteExtraDataEntry(stream, "PluginName", "");
+    WriteExtraDataEntry(stream, "PluginVersion", "");
     stream->Close();
 }
 
