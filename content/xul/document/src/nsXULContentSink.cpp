@@ -959,16 +959,9 @@ XULContentSinkImpl::OpenTag(const PRUnichar** aAttributes,
         
         
         element->mScriptTypeID = nsIProgrammingLanguage::JAVASCRIPT;
-        rv = OpenScript(aAttributes, aLineNumber);
-        NS_ENSURE_SUCCESS(rv, rv);
-
-        NS_ASSERTION(mState == eInScript || mState == eInDocumentElement,
-                     "Unexpected state");
-        if (mState == eInScript) {
-            
-            
-            return NS_OK;
-        }
+        
+        
+        return OpenScript(aAttributes, aLineNumber);
     }
 
     
@@ -1011,15 +1004,7 @@ XULContentSinkImpl::OpenScript(const PRUnichar** aAttributes,
           rv = mimeHdrParser->GetParameter(typeAndParams, nsnull,
                                            EmptyCString(), PR_FALSE, nsnull,
                                            mimeType);
-          if (NS_FAILED(rv)) {
-              if (rv == NS_ERROR_INVALID_ARG) {
-                  
-                  
-                  return NS_OK;
-              }
-              
-              NS_ENSURE_SUCCESS(rv, rv);
-          }
+          NS_ENSURE_SUCCESS(rv, rv);
 
           
           

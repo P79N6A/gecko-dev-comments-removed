@@ -105,12 +105,6 @@ protected:
                      const PRUint32 aLineNumber,
                      nsINodeInfo *aNodeInfo);
 
-    
-    
-    
-    
-    
-    
     nsresult OpenScript(const PRUnichar** aAttributes,
                         const PRUint32 aLineNumber);
 
