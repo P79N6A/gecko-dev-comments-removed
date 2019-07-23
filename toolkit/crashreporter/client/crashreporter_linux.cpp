@@ -267,7 +267,7 @@ static void LoadProxyinfo()
 
   g_object_unref(conf);
 
-  dlclose(gconfLib);
+  
 }
 #endif
 
@@ -637,10 +637,9 @@ bool UIInit()
 
 void UIShutdown()
 {
-  if (gnomeLib)
-    dlclose(gnomeLib);
   if (gnomeuiLib)
     dlclose(gnomeuiLib);
+  
 }
 
 void UIShowDefaultUI()
