@@ -892,19 +892,10 @@ nsMathMLmoFrame::Stretch(nsIRenderingContext& aRenderingContext,
   
   GatherAndStoreOverflow(&aDesiredStretchSize);
 
-  if (mFrames.GetLength() != 1)
-    return NS_OK;
+  
+  
+  
 
-  nsRect rect = firstChild->GetRect();
-  if (useMathMLChar) {
-    
-    
-    
-    mMathMLChar.GetRect(rect);
-    rect.y = 0;
-  }
-  rect.height = aDesiredStretchSize.height;
-  firstChild->SetRect(rect);
   return NS_OK;
 }
 
