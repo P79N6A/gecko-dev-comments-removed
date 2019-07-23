@@ -35,6 +35,7 @@
 
 
 
+
 #include "nsAboutBlank.h"
 #include "nsIIOService.h"
 #include "nsIServiceManager.h"
@@ -42,9 +43,6 @@
 #include "nsNetUtil.h"
 
 NS_IMPL_ISUPPORTS1(nsAboutBlank, nsIAboutModule)
-
-static const char kBlankPage[] = "<!DOCTYPE html PUBLIC \"-//W3C//DTD HTML 4.01 Transitional//EN\">"
-"<html><head><title></title></head><body></body></html>";
 
 NS_IMETHODIMP
 nsAboutBlank::NewChannel(nsIURI *aURI, nsIChannel **result)
@@ -54,7 +52,7 @@ nsAboutBlank::NewChannel(nsIURI *aURI, nsIChannel **result)
     nsIChannel* channel;
 
     nsCOMPtr<nsIInputStream> in;
-    rv = NS_NewCStringInputStream(getter_AddRefs(in), NS_LITERAL_CSTRING(kBlankPage));
+    rv = NS_NewCStringInputStream(getter_AddRefs(in), EmptyCString());
     if (NS_FAILED(rv)) return rv;
 
     rv = NS_NewInputStreamChannel(&channel, aURI, in,
