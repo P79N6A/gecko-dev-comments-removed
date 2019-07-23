@@ -1758,6 +1758,10 @@ public:
 
 
 
+
+
+
+
   enum {
   	INVALIDATE_IMMEDIATE = 0x1,
   	INVALIDATE_CROSS_DOC = 0x2,
