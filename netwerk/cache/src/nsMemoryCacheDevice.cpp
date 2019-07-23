@@ -107,7 +107,7 @@ nsMemoryCacheDevice::Shutdown()
     for (int i = kQueueCount - 1; i >= 0; --i) {
         entry = (nsCacheEntry *)PR_LIST_HEAD(&mEvictionList[i]);
         while (entry != &mEvictionList[i]) {
-            NS_ASSERTION(entry->IsInUse() == PR_FALSE, "### shutting down with active entries.\n");
+            NS_ASSERTION(entry->IsInUse() == PR_FALSE, "### shutting down with active entries");
             next = (nsCacheEntry *)PR_NEXT_LINK(entry);
             PR_REMOVE_AND_INIT_LINK(entry);
         
@@ -126,8 +126,8 @@ nsMemoryCacheDevice::Shutdown()
 
 
 
-    NS_ASSERTION(mInactiveSize == 0, "### mem cache leaking entries?\n");
-    NS_ASSERTION(mEntryCount == 0, "### mem cache leaking entries?\n");
+    NS_ASSERTION(mInactiveSize == 0, "### mem cache leaking entries?");
+    NS_ASSERTION(mEntryCount == 0, "### mem cache leaking entries?");
     
     mInitialized = PR_FALSE;
 
