@@ -606,6 +606,12 @@ public:
   PRBool NeedColSpanExpansion() const;
   void SetNeedColSpanExpansion(PRBool aValue);
 
+  
+
+
+
+
+
   void SetGeometryDirty() { mBits.mGeometryDirty = PR_TRUE; }
   void ClearGeometryDirty() { mBits.mGeometryDirty = PR_FALSE; }
   PRBool IsGeometryDirty() const { return mBits.mGeometryDirty; }

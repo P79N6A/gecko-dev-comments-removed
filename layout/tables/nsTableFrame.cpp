@@ -1871,6 +1871,17 @@ NS_METHOD nsTableFrame::Reflow(nsPresContext*          aPresContext,
   PRBool haveDesiredHeight = PR_FALSE;
   PRBool reflowedChildren  = PR_FALSE;
 
+  if (aReflowState.mComputedHeight != NS_UNCONSTRAINEDSIZE) {
+    
+    
+    
+    
+    
+    
+    
+    SetGeometryDirty();
+  }
+
   
   
   
@@ -2728,7 +2739,8 @@ nsTableFrame::ReflowChildren(nsTableReflowState& aReflowState,
   aOverflowArea = nsRect (0, 0, 0, 0);
 
   PRBool reflowAllKids = aReflowState.reflowState.ShouldReflowAllKids() ||
-                         mBits.mResizedColumns;
+                         mBits.mResizedColumns ||
+                         IsGeometryDirty();
 
   nsAutoVoidArray rowGroups;
   PRUint32 numRowGroups;
@@ -3017,13 +3029,11 @@ nsTableFrame::CalcDesiredHeight(const nsHTMLReflowState& aReflowState, nsHTMLRef
         (tableSpecifiedHeight > desiredHeight)) {
       
       
-      if (NS_UNCONSTRAINEDSIZE != aReflowState.availableWidth) { 
-        DistributeHeightToRows(aReflowState, tableSpecifiedHeight - desiredHeight);
-        
-        for (nsIFrame* kidFrame = mFrames.FirstChild(); kidFrame; kidFrame = kidFrame->GetNextSibling()) {
-          ConsiderChildOverflow(aDesiredSize.mOverflowArea, kidFrame);
-        } 
-      }
+      DistributeHeightToRows(aReflowState, tableSpecifiedHeight - desiredHeight);
+      
+      for (nsIFrame* kidFrame = mFrames.FirstChild(); kidFrame; kidFrame = kidFrame->GetNextSibling()) {
+        ConsiderChildOverflow(aDesiredSize.mOverflowArea, kidFrame);
+      } 
       desiredHeight = tableSpecifiedHeight;
     }
   }
