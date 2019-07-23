@@ -114,6 +114,7 @@ protected:
   HWND             mHWnd;
   PRBool           mCanMove;
   PRBool           mMovePreferred;
+  PRBool           mTookOwnRef;
 
   
   nsIWidget      * mWindow;

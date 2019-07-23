@@ -76,7 +76,7 @@ static POINTL gDragLastPoint;
 
 
 nsNativeDragTarget::nsNativeDragTarget(nsIWidget * aWnd)
-  : m_cRef(0), mWindow(aWnd), mCanMove(PR_TRUE),
+  : m_cRef(0), mWindow(aWnd), mCanMove(PR_TRUE), mTookOwnRef(PR_FALSE),
   mDropTargetHelper(nsnull), mDragCancelled(PR_FALSE)
 {
   mHWnd = (HWND)mWindow->GetNativeData(NS_NATIVE_WINDOW);
@@ -98,6 +98,7 @@ nsNativeDragTarget::nsNativeDragTarget(nsIWidget * aWnd)
 nsNativeDragTarget::~nsNativeDragTarget()
 {
   NS_RELEASE(mDragService);
+
   if (mDropTargetHelper) {
     mDropTargetHelper->Release();
     mDropTargetHelper = nsnull;
@@ -283,6 +284,11 @@ nsNativeDragTarget::DragEnter(LPDATAOBJECT pIDataSource,
   }
 
   
+  NS_ASSERTION(!mTookOwnRef, "own ref already taken!");
+  this->AddRef();
+  mTookOwnRef = PR_TRUE;
+
+  
   
   mDragService->StartDragSession();
 
@@ -385,6 +391,13 @@ nsNativeDragTarget::DragLeave()
     }
   }
 
+  
+  NS_ASSERTION(mTookOwnRef, "want to release own ref, but not taken!");
+  if (mTookOwnRef) {
+    this->Release();
+    mTookOwnRef = PR_FALSE;
+  }
+
   return S_OK;
 }
 
@@ -428,5 +441,13 @@ nsNativeDragTarget::Drop(LPDATAOBJECT pData,
 
   
   serv->EndDragSession(PR_TRUE);
+
+  
+  NS_ASSERTION(mTookOwnRef, "want to release own ref, but not taken!");
+  if (mTookOwnRef) {
+    this->Release();
+    mTookOwnRef = PR_FALSE;
+  }
+
   return S_OK;
 }
