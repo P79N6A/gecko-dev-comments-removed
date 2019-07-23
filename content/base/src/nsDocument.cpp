@@ -1644,8 +1644,10 @@ nsDocument::GetActiveElement(nsIDOMElement **aElement)
     if (bodyElement) {
       *aElement = bodyElement;
       NS_ADDREF(*aElement);
-      return NS_OK;
     }
+    
+    
+    return NS_OK;
   }
 
   
