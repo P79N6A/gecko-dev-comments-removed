@@ -356,7 +356,10 @@ nsDownloadManager::InitDB(PRBool *aDoImport)
     }
     
 
+  
+#ifndef DEBUG
   case DM_SCHEMA_VERSION:
+#endif
     break;
 
   case 0:
