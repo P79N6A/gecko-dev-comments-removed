@@ -144,6 +144,55 @@ write_indent(FILE *outfile) {
     fputs("  ", outfile);
 }
 
+static GSList*
+add_deprecated(GSList *comments)
+{
+    GSList *last;
+    char *buffer;
+    char *replaced;
+    const char deprecated[] = "* @deprecated */";
+
+    
+    if (comments == NULL) {
+        buffer = malloc(sizeof(deprecated)+2);
+        buffer[0] = '/';
+        buffer[1] = '*';
+        strcpy(buffer+2, deprecated);
+
+        return g_slist_append(comments, buffer);
+    }
+
+    
+
+
+
+
+    
+
+
+    last = g_slist_last(comments);
+    buffer = last->data;
+    replaced = (char *)malloc(strlen(buffer) + sizeof(deprecated));
+    strcpy(replaced, buffer);
+    last->data = replaced;
+    free(buffer);
+    
+    
+
+
+
+    buffer = strrchr(replaced, '/');
+    if (buffer == NULL || buffer == replaced || buffer[-1] == '*') {
+        
+
+
+        return comments;
+    }
+    
+    strcpy(buffer-1, deprecated);
+    return comments;
+}
+
 static gboolean
 write_classname_iid_define(FILE *file, const char *className)
 {
@@ -328,6 +377,13 @@ interface_declaration(TreeState *state)
         IDL_tree_error(state->tree, "interface %s lacks a uuid attribute\n", 
                        interface_name);
         return FALSE;
+    }
+
+    
+
+
+    if (IDL_tree_property_get(IDL_INTERFACE(interface).ident, "deprecated")) {
+        doc_comments = add_deprecated(doc_comments);
     }
 
     
@@ -776,6 +832,13 @@ method_declaration(TreeState *state)
     }
 #endif
 
+    
+
+
+    if (IDL_tree_property_get(method->ident, "deprecated")) {
+        doc_comments = add_deprecated(doc_comments);
+    }
+
     if (doc_comments != NULL) {
         write_indent(state->file);
         printlist(state->file, doc_comments);
@@ -1013,6 +1076,14 @@ attribute_declaration(TreeState *state)
     doc_comments =
         IDL_IDENT(IDL_LIST(IDL_ATTR_DCL
                            (state->tree).simple_declarations).data).comments;
+
+    
+
+
+    if (IDL_tree_property_get(ATTR_PROPS(state->tree), "deprecated")) {
+        doc_comments = add_deprecated(doc_comments);
+    }
+
     if (doc_comments != NULL) {
         write_indent(state->file);
         printlist(state->file, doc_comments);

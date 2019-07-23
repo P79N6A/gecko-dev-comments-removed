@@ -247,6 +247,26 @@
 
 
 
+#if (__GNUC__ > 3 || (__GNUC__ == 3 && __GNUC_MINOR__ >= 1))
+# define NS_DEPRECATED __attribute__((deprecated))
+#elif defined(_MSC_VER) && (_MSC_VER >= 1300)
+# define NS_DEPRECATED __declspec(deprecated)
+#else
+# define NS_DEPRECATED
+#endif
+
+
+
+
+#ifdef DEHYDRA_GCC
+# define NS_SCRIPTABLE __attribute__((user("script")))
+#else
+# define NS_SCRIPTABLE
+#endif
+
+
+
+
 #define NS_IMETHOD          NS_IMETHOD_(nsresult)
 #define NS_IMETHODIMP       NS_IMETHODIMP_(nsresult)
 #define NS_METHOD           NS_METHOD_(nsresult)
@@ -469,20 +489,6 @@ typedef PRUint32 nsrefcnt;
 
 #if defined(XPCOM_GLUE) && !defined(XPCOM_GLUE_USE_NSPR)
 #define XPCOM_GLUE_AVOID_NSPR
-#endif
-
-
-
-
-
-
-
-#ifdef NS_STATIC_CHECKING
-#define NS_STACK_CLASS __attribute__((user("NS_stack")))
-#define NS_FINAL_CLASS __attribute__((user("NS_final")))
-#else
-#define NS_STACK_CLASS
-#define NS_FINAL_CLASS
 #endif
 
 #endif

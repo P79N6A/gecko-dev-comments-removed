@@ -277,13 +277,59 @@ matches_nsIFoo(const char* attribute_name)
     return matches_IFoo(attribute_name + 3);
 }
 
+
+
+
+
+
+gboolean
+is_method_scriptable(IDL_tree method_tree, IDL_tree ident)
+{
+    IDL_tree iface;
+    gboolean scriptable_interface;
+    
+    
+
+
+
+
+    if (IDL_NODE_UP(method_tree) && IDL_NODE_UP(IDL_NODE_UP(method_tree)) &&
+        IDL_NODE_TYPE(iface = IDL_NODE_UP(IDL_NODE_UP(method_tree))) 
+        == IDLN_INTERFACE)
+    {
+        scriptable_interface =
+            (IDL_tree_property_get(IDL_INTERFACE(iface).ident, "scriptable")
+             != NULL);
+    } else {
+        IDL_tree_error(method_tree,
+                       "is_method_scriptable called on a non-interface?");
+        return FALSE;
+    }
+
+    
+    if (!scriptable_interface)
+      return FALSE;
+
+    
+    if (IDL_tree_property_get(ident, "notxpcom") != NULL)
+      return FALSE;
+
+    
+    if (IDL_tree_property_get(ident, "noscript") != NULL)
+      return FALSE;
+
+    
+
+
+    return TRUE;
+}
+
 gboolean
 verify_attribute_declaration(IDL_tree attr_tree)
 {
     IDL_tree iface;
     IDL_tree ident;
     IDL_tree attr_type;
-    gboolean scriptable_interface;
 
     
 
@@ -299,22 +345,6 @@ verify_attribute_declaration(IDL_tree attr_tree)
                        "ordering problems");
         return FALSE;
     }
-    
-
-
-
-    if (IDL_NODE_UP(attr_tree) && IDL_NODE_UP(IDL_NODE_UP(attr_tree)) &&
-        IDL_NODE_TYPE(iface = IDL_NODE_UP(IDL_NODE_UP(attr_tree))) 
-        == IDLN_INTERFACE)
-    {
-        scriptable_interface =
-            (IDL_tree_property_get(IDL_INTERFACE(iface).ident, "scriptable")
-             != NULL);
-    } else {
-        IDL_tree_error(attr_tree,
-                    "verify_attribute_declaration called on a non-interface?");
-        return FALSE;
-    }
 
     
 
@@ -326,8 +356,8 @@ verify_attribute_declaration(IDL_tree attr_tree)
 
 
 
-    if (!scriptable_interface ||
-        IDL_tree_property_get(ident, "noscript") != NULL)
+
+    if (!is_method_scriptable(attr_tree, ident))
         return TRUE;
 
     
@@ -536,7 +566,6 @@ check_param_attribute(IDL_tree method_tree, IDL_tree param,
 
 
 
-
 gboolean
 verify_method_declaration(IDL_tree method_tree)
 {
@@ -544,7 +573,6 @@ verify_method_declaration(IDL_tree method_tree)
     IDL_tree iface;
     IDL_tree iter;
     gboolean notxpcom;
-    gboolean scriptable_interface;
     gboolean scriptable_method;
     gboolean seen_retval = FALSE;
     gboolean hasoptional = PR_FALSE;
@@ -571,32 +599,8 @@ verify_method_declaration(IDL_tree method_tree)
 
 
 
-    if (IDL_NODE_UP(method_tree) && IDL_NODE_UP(IDL_NODE_UP(method_tree)) &&
-        IDL_NODE_TYPE(iface = IDL_NODE_UP(IDL_NODE_UP(method_tree))) 
-        == IDLN_INTERFACE)
-    {
-        scriptable_interface =
-            (IDL_tree_property_get(IDL_INTERFACE(iface).ident, "scriptable")
-             != NULL);
-    } else {
-        IDL_tree_error(method_tree,
-                       "verify_method_declaration called on a non-interface?");
-        return FALSE;
-    }
-
-    
-
-
-
-
-
-
-
+    scriptable_method = is_method_scriptable(method_tree, op->ident);
     notxpcom = IDL_tree_property_get(op->ident, "notxpcom") != NULL;
-
-    scriptable_method = scriptable_interface &&
-        !notxpcom &&
-        IDL_tree_property_get(op->ident, "noscript") == NULL;
 
     
     for (iter = op->parameter_dcls; iter; iter = IDL_LIST(iter).next) {
