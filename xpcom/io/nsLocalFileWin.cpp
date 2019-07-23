@@ -523,6 +523,20 @@ OpenDir(const nsAFlatString &name, nsDir * *dir)
     if ( d->handle == INVALID_HANDLE_VALUE )
     {
         PR_Free(d);
+
+#ifdef WINCE
+        
+
+
+
+
+
+
+
+        if (GetLastError() == ERROR_NO_MORE_FILES)
+            return NS_OK;
+#endif
+
         return ConvertWinError(GetLastError());
     }
     d->firstEntry = PR_TRUE;
