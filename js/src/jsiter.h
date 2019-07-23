@@ -58,17 +58,17 @@ JS_BEGIN_EXTERN_C
 
 
 
-extern JSBool
+extern JS_FRIEND_API(JSBool)
 js_ValueToIterator(JSContext *cx, uintN flags, jsval *vp);
 
-extern JSBool
+extern JS_FRIEND_API(JSBool)
 js_CloseIterator(JSContext *cx, jsval v);
 
 
 
 
 
-extern JSBool
+extern JS_FRIEND_API(JSBool)
 js_CallIteratorNext(JSContext *cx, JSObject *iterobj, jsval *rval);
 
 
