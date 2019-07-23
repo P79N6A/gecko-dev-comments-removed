@@ -467,10 +467,11 @@ PluginModuleParent::NP_Shutdown(NPError* error)
     _MOZ_LOG(__FUNCTION__);
 
     
-    
 
-    *error = NPERR_NO_ERROR;
-    return NS_OK;
+    bool ok = CallNP_Shutdown(error);
+    Close();
+
+    return ok ? NS_OK : NS_ERROR_FAILURE;
 }
 
 nsresult

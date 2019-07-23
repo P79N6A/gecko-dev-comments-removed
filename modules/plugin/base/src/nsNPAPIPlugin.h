@@ -80,7 +80,7 @@ private:
 
 public:
   nsNPAPIPlugin(NPPluginFuncs* callbacks,
-                PluginLibrary* aLibrary);
+                PluginLibrary* aLibrary );
   virtual ~nsNPAPIPlugin();
 
   NS_DECL_ISUPPORTS

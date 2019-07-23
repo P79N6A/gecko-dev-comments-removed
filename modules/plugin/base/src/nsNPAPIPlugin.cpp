@@ -357,6 +357,8 @@ nsNPAPIPlugin::~nsNPAPIPlugin()
 {
   
   memset((void*) &fCallbacks, 0, sizeof(fCallbacks));
+  delete fLibrary;
+  fLibrary = NULL;
 }
 
 
@@ -480,8 +482,10 @@ nsNPAPIPlugin::CreatePlugin(const char* aFilePath, PRLibrary* aLibrary,
 #endif
 
 #ifdef XP_OS2
+  PluginLibrary* pluginLib = GetNewPluginLibrary(aFilePath, aLibrary);
+
   
-  *aResult = new nsNPAPIPlugin(nsnull, aLibrary);
+  *aResult = new nsNPAPIPlugin(nsnull, pluginLib);
 
   if (*aResult == NULL)
     return NS_ERROR_OUT_OF_MEMORY;
@@ -598,6 +602,8 @@ nsNPAPIPlugin::CreatePlugin(const char* aFilePath, PRLibrary* aLibrary,
 
 #ifdef XP_BEOS
   
+  
+
   
 
   nsNPAPIPlugin *plptr;

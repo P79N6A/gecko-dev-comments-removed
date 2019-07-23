@@ -105,6 +105,8 @@ public:
     {
         if (mTransport)
             Close();
+        
+        
         mTransport = 0;
     }
 
@@ -114,7 +116,6 @@ public:
     
     
     bool Open(Transport* aTransport, MessageLoop* aIOLoop=0);
-    
     
     
     void Close();

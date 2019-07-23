@@ -106,9 +106,12 @@ AsyncChannel::Open(Transport* aTransport, MessageLoop* aIOLoop)
 void
 AsyncChannel::Close()
 {
+    mTransport->Close();
     
+    if (ChannelError != mChannelState)
+        mChannelState = ChannelClosed;
 
-    mChannelState = ChannelClosed;
+    mTransport = NULL;
 }
 
 bool
