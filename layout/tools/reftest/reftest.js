@@ -104,7 +104,7 @@ function OnRefTestLoad()
         StartCurrentTest();
     } catch (ex) {
         
-        dump("REFTEST EXCEPTION: " + ex);
+        dump("REFTEST EXCEPTION: " + ex + "\n");
         DoneTests();
     }
 }
