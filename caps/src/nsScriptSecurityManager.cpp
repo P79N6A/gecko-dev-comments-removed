@@ -316,7 +316,118 @@ PRBool
 nsScriptSecurityManager::SecurityCompareURIs(nsIURI* aSourceURI,
                                              nsIURI* aTargetURI)
 {
-    return NS_SecurityCompareURIs(aSourceURI, aTargetURI, sStrictFileOriginPolicy);
+    
+    
+    
+    
+    
+    if (aSourceURI && aSourceURI == aTargetURI)
+    {
+        return PR_TRUE;
+    }
+
+    if (!aTargetURI || !aSourceURI) 
+    {
+        return PR_FALSE;
+    }
+
+    
+    nsCOMPtr<nsIURI> sourceBaseURI = NS_GetInnermostURI(aSourceURI);
+    nsCOMPtr<nsIURI> targetBaseURI = NS_GetInnermostURI(aTargetURI);
+
+    if (!sourceBaseURI || !targetBaseURI)
+        return PR_FALSE;
+
+    
+    nsCAutoString targetScheme;
+    PRBool sameScheme = PR_FALSE;
+    if (NS_FAILED( targetBaseURI->GetScheme(targetScheme) ) ||
+        NS_FAILED( sourceBaseURI->SchemeIs(targetScheme.get(), &sameScheme) ) ||
+        !sameScheme)
+    {
+        
+        return PR_FALSE;
+    }
+
+    
+    if (targetScheme.EqualsLiteral("file"))
+    {
+        
+        if (!sStrictFileOriginPolicy)
+            return PR_TRUE;
+
+        nsCOMPtr<nsIFileURL> sourceFileURL(do_QueryInterface(sourceBaseURI));
+        nsCOMPtr<nsIFileURL> targetFileURL(do_QueryInterface(targetBaseURI));
+
+        if (!sourceFileURL || !targetFileURL)
+            return PR_FALSE;
+
+        nsCOMPtr<nsIFile> sourceFile, targetFile;
+
+        sourceFileURL->GetFile(getter_AddRefs(sourceFile));
+        targetFileURL->GetFile(getter_AddRefs(targetFile));
+
+        if (!sourceFile || !targetFile)
+            return PR_FALSE;
+
+        
+        PRBool filesAreEqual = PR_FALSE;
+        nsresult rv = sourceFile->Equals(targetFile, &filesAreEqual);
+        return NS_SUCCEEDED(rv) && filesAreEqual;
+    }
+
+    
+    if (targetScheme.EqualsLiteral("imap") ||
+        targetScheme.EqualsLiteral("mailbox") ||
+        targetScheme.EqualsLiteral("news"))
+    {
+        
+        
+        nsCAutoString targetSpec;
+        nsCAutoString sourceSpec;
+        return ( NS_SUCCEEDED( targetBaseURI->GetSpec(targetSpec) ) &&
+                 NS_SUCCEEDED( sourceBaseURI->GetSpec(sourceSpec) ) &&
+                 targetSpec.Equals(sourceSpec) );
+    }
+
+    
+    nsCAutoString targetHost;
+    nsCAutoString sourceHost;
+    if (NS_FAILED( targetBaseURI->GetHost(targetHost) ) ||
+        NS_FAILED( sourceBaseURI->GetHost(sourceHost) ) ||
+        !targetHost.Equals(sourceHost, nsCaseInsensitiveCStringComparator()))
+    {
+        
+        return PR_FALSE;
+    }
+
+    
+    PRInt32 targetPort;
+    nsresult rv = targetBaseURI->GetPort(&targetPort);
+    PRInt32 sourcePort;
+    if (NS_SUCCEEDED(rv))
+        rv = sourceBaseURI->GetPort(&sourcePort);
+    PRBool result = NS_SUCCEEDED(rv) && targetPort == sourcePort;
+    
+    
+    
+    if (NS_SUCCEEDED(rv) && !result &&
+        (sourcePort == -1 || targetPort == -1))
+    {
+        NS_ENSURE_TRUE(sIOService, PR_FALSE);
+
+        PRInt32 defaultPort = NS_GetDefaultPort(targetScheme.get());
+        if (defaultPort == -1)
+            return PR_FALSE; 
+
+        if (sourcePort == -1)
+            sourcePort = defaultPort;
+        else if (targetPort == -1)
+            targetPort = defaultPort;
+        result = targetPort == sourcePort;
+    }
+
+    return result;
 }
 
 NS_IMETHODIMP

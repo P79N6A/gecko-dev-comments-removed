@@ -76,7 +76,6 @@ class nsIContent;
 class nsIViewManager;
 class nsNodeInfoManager;
 class nsScriptLoader;
-class nsIApplicationCache;
 
 #ifdef NS_DEBUG
 
@@ -151,25 +150,6 @@ protected:
   nsContentSink();
   virtual ~nsContentSink();
 
-  enum CacheSelectionAction {
-    
-    
-    
-    
-    
-    CACHE_SELECTION_NONE = 0,
-
-    
-    CACHE_SELECTION_UPDATE = 1,
-
-    
-    
-    
-    
-    
-    CACHE_SELECTION_RELOAD = 2
-  };
-
   nsresult Init(nsIDocument* aDoc, nsIURI* aURI,
                 nsISupports* aContainer, nsIChannel* aChannel);
 
@@ -191,60 +171,6 @@ protected:
 
   void PrefetchHref(const nsAString &aHref, nsIContent *aSource,
                     PRBool aExplicit);
-
-  
-  nsresult GetChannelCacheKey(nsIChannel* aChannel, nsACString& aCacheKey);
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  nsresult SelectDocAppCache(nsIApplicationCache *aLoadApplicationCache,
-                             nsIURI *aManifestURI,
-                             PRBool aIsTopDocument,
-                             PRBool aFetchedWithHTTPGetOrEquiv,
-                             CacheSelectionAction *aAction);
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  nsresult SelectDocAppCacheNoManifest(nsIApplicationCache *aLoadApplicationCache,
-                                       PRBool aIsTopDocument,
-                                       nsIURI **aManifestURI,
-                                       CacheSelectionAction *aAction);
-
-  
-  
-  
-  
   void ProcessOfflineManifest(nsIContent *aElement);
 
   
