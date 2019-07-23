@@ -185,7 +185,7 @@ void nsPNGDecoder::EndImageFrame()
     
     PRInt32 width, height;
     mFrame->GetWidth(&width);
-    mFrame->GetWidth(&height);
+    mFrame->GetHeight(&height);
 
     nsIntRect r(0, 0, width, height);
     nsCOMPtr<nsIImage> img(do_GetInterface(mFrame));
