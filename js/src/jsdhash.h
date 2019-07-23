@@ -576,6 +576,25 @@ typedef JSDHashOperator
 extern JS_PUBLIC_API(uint32)
 JS_DHashTableEnumerate(JSDHashTable *table, JSDHashEnumerator etor, void *arg);
 
+#ifdef DEBUG
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+extern JS_PUBLIC_API(void)
+JS_DHashMarkTableImmutable(JSDHashTable *table);
+#endif
+
 #ifdef JS_DHASHMETER
 #include <stdio.h>
 

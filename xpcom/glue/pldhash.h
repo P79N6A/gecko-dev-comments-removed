@@ -577,6 +577,25 @@ typedef PLDHashOperator
 NS_COM_GLUE PRUint32
 PL_DHashTableEnumerate(PLDHashTable *table, PLDHashEnumerator etor, void *arg);
 
+#ifdef DEBUG
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+NS_COM_GLUE void
+PL_DHashMarkTableImmutable(PLDHashTable *table);
+#endif
+
 #ifdef PL_DHASHMETER
 #include <stdio.h>
 
