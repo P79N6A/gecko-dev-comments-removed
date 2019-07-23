@@ -850,10 +850,8 @@ ComputeThis(JSContext *cx, JSBool lazy, jsval *argv)
         thisp = JSVAL_TO_OBJECT(argv[-1]);
     } else {
         thisp = JSVAL_TO_OBJECT(argv[-1]);
-        if (OBJ_GET_CLASS(cx, thisp) == &js_CallClass ||
-            OBJ_GET_CLASS(cx, thisp) == &js_BlockClass) {
+        if (OBJ_GET_CLASS(cx, thisp) == &js_CallClass)
             return js_ComputeGlobalThis(cx, lazy, argv);
-        }
 
         if (thisp->map->ops->thisObject) {
             
@@ -2650,7 +2648,9 @@ js_Interpret(JSContext *cx)
             ENABLE_TRACER(js_MonitorLoopEdge(cx, inlineCallCount));           \
             fp = cx->fp;                                                      \
             script = fp->script;                                              \
-            atoms = script->atomMap.vector;                                   \
+            atoms = fp->imacpc                                                \
+                    ? COMMON_ATOMS_START(&rt->atomState)                      \
+                    : script->atomMap.vector;                                 \
             currentVersion = (JSVersion) script->version;                     \
             JS_ASSERT(fp->regs == &regs);                                     \
             if (cx->throwing)                                                 \
@@ -3077,7 +3077,9 @@ js_Interpret(JSContext *cx)
 
                 
                 script = fp->script;
-                atoms = script->atomMap.vector;
+                atoms = fp->imacpc
+                        ? COMMON_ATOMS_START(&rt->atomState)
+                        : script->atomMap.vector;
 
                 
                 inlineCallCount--;
@@ -6485,6 +6487,19 @@ js_Interpret(JSContext *cx)
             fp->slots[slot] = POP_OPND();
           END_CASE(JSOP_SETLOCALPOP)
 
+          BEGIN_CASE(JSOP_IFPRIMTOP)
+            
+
+
+
+            JS_ASSERT(regs.sp > StackBase(fp));
+            rval = FETCH_OPND(-1);
+            if (JSVAL_IS_PRIMITIVE(rval)) {
+                len = GET_JUMP_OFFSET(regs.pc);
+                BRANCH(len);
+            }
+          END_CASE(JSOP_IFPRIMTOP)
+
           BEGIN_CASE(JSOP_INSTANCEOF)
             rval = FETCH_OPND(-1);
             if (JSVAL_IS_PRIMITIVE(rval) ||
@@ -6936,7 +6951,6 @@ js_Interpret(JSContext *cx)
           L_JSOP_DEFXMLNS:
 # endif
 
-          L_JSOP_UNUSED131:
           L_JSOP_UNUSED201:
           L_JSOP_UNUSED202:
           L_JSOP_UNUSED203:
