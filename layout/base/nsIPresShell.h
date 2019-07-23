@@ -123,9 +123,9 @@ typedef struct CapturingContentInfo {
 } CapturingContentInfo;
 
 
- #define NS_IPRESSHELL_IID     \
-{ 0x4e8724b5, 0x14f9, 0x4bb0, \
-  { 0xb5, 0xa0, 0x24, 0x04, 0x1d, 0x65, 0x3c, 0x9f } }
+#define NS_IPRESSHELL_IID     \
+{ 0x06aa90c2, 0x5234, 0x4f1c, \
+ { 0x81, 0xd7, 0x77, 0x3b, 0x5e, 0x4c, 0xbb, 0x8b } }
 
 
 #define NS_PRESSHELL_SCROLL_TOP      0
@@ -356,21 +356,6 @@ public:
 
 
   NS_IMETHOD GetPageSequenceFrame(nsIPageSequenceFrame** aResult) const = 0;
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-  virtual NS_HIDDEN_(nsIFrame*) GetPrimaryFrameFor(nsIContent* aContent) const = 0;
 
   
 

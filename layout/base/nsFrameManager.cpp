@@ -247,8 +247,6 @@ nsFrameManager::Destroy()
   
   mPresShell->SetIgnoreFrameDestruction(PR_TRUE);
 
-  mIsDestroying = PR_TRUE;  
-
   
   nsFrameManager::ClearPlaceholderFrameMap();
 
@@ -289,27 +287,6 @@ nsFrameManager::GetCanvasFrame()
 }
 
 
-
-
-nsIFrame*
-nsFrameManager::GetPrimaryFrameFor(nsIContent* aContent,
-                                   PRInt32 aIndexHint)
-{
-  NS_ASSERTION(!mIsDestroyingFrames,
-               "GetPrimaryFrameFor() called while frames are being destroyed!");
-  NS_ENSURE_TRUE(aContent, nsnull);
-
-  if (mIsDestroying) {
-    NS_ERROR("GetPrimaryFrameFor() called while nsFrameManager is being destroyed!");
-    return nsnull;
-  }
-
-  if (aContent->GetCurrentDoc() != mPresShell->GetDocument()) {
-    return nsnull;
-  }
-
-  return aContent->GetPrimaryFrame();
-}
 
 void
 nsFrameManager::RemoveAsPrimaryFrame(nsIContent* aContent,

@@ -110,8 +110,6 @@ public:
   NS_HIDDEN_(nsIFrame*) GetCanvasFrame();
 
   
-  NS_HIDDEN_(nsIFrame*) GetPrimaryFrameFor(nsIContent* aContent,
-                                           PRInt32 aIndexHint);
   
   
   NS_HIDDEN_(void)      RemoveAsPrimaryFrame(nsIContent* aContent,
