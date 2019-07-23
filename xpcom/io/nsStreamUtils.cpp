@@ -41,6 +41,7 @@
 #include "nsIPipe.h"
 #include "nsIEventTarget.h"
 #include "nsIRunnable.h"
+#include "nsISafeOutputStream.h"
 #include "nsAutoLock.h"
 #include "nsString.h"
 
@@ -312,11 +313,14 @@ public:
         }
 
         
+        
         for (;;) {
-            PRUint32 n;
+            
+            
+            
             PRBool copyFailed = PR_FALSE;
             if (!canceled) {
-                n = DoCopy(&sourceCondition, &sinkCondition);
+                PRUint32 n = DoCopy(&sourceCondition, &sinkCondition);
                 copyFailed = NS_FAILED(sourceCondition) ||
                              NS_FAILED(sinkCondition) || n == 0;
 
@@ -366,8 +370,18 @@ public:
                     if (mAsyncSink)
                         mAsyncSink->CloseWithStatus(canceled ? cancelStatus :
                                                                sourceCondition);
-                    else
-                        mSink->Close();
+                    else {
+                        
+                        
+                        
+                        nsCOMPtr<nsISafeOutputStream> sostream =
+                            do_QueryInterface(mSink);
+                        if (sostream && NS_SUCCEEDED(sourceCondition) &&
+                            NS_SUCCEEDED(sinkCondition))
+                            sostream->Finish();
+                        else
+                            mSink->Close();
+                    }
                 }
                 mAsyncSink = nsnull;
                 mSink = nsnull;

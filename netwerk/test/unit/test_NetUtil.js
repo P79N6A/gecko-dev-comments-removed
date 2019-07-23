@@ -110,11 +110,48 @@ function test_async_write_file()
   });
 }
 
+function test_async_write_file_nsISafeOutputStream()
+{
+  do_test_pending();
+
+  
+  let file = Cc["@mozilla.org/file/directory_service;1"].
+             getService(Ci.nsIProperties).
+             get("TmpD", Ci.nsIFile);
+  file.append("NetUtil-async-test-file.tmp");
+  file.createUnique(Ci.nsIFile.NORMAL_FILE_TYPE, 0666);
+
+  
+  let ostream = Cc["@mozilla.org/network/safe-file-output-stream;1"].
+                createInstance(Ci.nsIFileOutputStream);
+  ostream.init(file, -1, -1, 0);
+
+  
+  const TEST_DATA = "this is a test string";
+  let istream = Cc["@mozilla.org/io/string-input-stream;1"].
+                createInstance(Ci.nsIStringInputStream);
+  istream.setData(TEST_DATA, TEST_DATA.length);
+
+  NetUtil.asyncCopy(istream, ostream, function(aResult) {
+    
+    do_check_true(Components.isSuccessCode(aResult));
+
+    
+    do_check_eq(TEST_DATA, getFileContents(file));
+
+    
+    file.remove(false);
+    do_test_finished();
+    run_next_test();
+  });
+}
+
 
 
 
 let tests = [
   test_async_write_file,
+  test_async_write_file_nsISafeOutputStream,
 ];
 let index = 0;
 
