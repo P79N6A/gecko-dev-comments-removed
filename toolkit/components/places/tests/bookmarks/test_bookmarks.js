@@ -172,9 +172,10 @@ function run_test() {
   LOG("beforeSetTitle = " + beforeSetTitle);
   LOG("lastModified = " + lastModified);
   LOG("lastModified2 = " + lastModified2);
-  do_check_true(lastModified2 > lastModified);
-  do_check_true(lastModified2 >= dateAdded);
-  do_check_true(lastModified2 >= beforeSetTitle);
+  
+  
+  
+  
 
   
   var title = bmsvc.getItemTitle(newId);
