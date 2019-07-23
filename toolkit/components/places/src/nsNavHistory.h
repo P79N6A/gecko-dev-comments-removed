@@ -272,6 +272,9 @@ public:
   
   mozIStorageStatement* DBGetIdPageInfo() { return mDBGetIdPageInfo; }
 
+  mozIStorageStatement* DBGetTags() { return mDBGetTags; }
+  PRInt64 GetTagsFolder();
+
   
   
   static const PRInt32 kGetInfoIndex_VisitDate;
@@ -819,7 +822,6 @@ protected:
   nsresult OnIdle();
 
   PRInt64 mTagsFolder;
-  PRInt64 GetTagsFolder();
 
   PRBool mInPrivateBrowsing;
 };
