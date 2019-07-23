@@ -141,7 +141,7 @@ function run_test() {
   
   var uri2 = uri("http://www.tests.tld");
   annosvc.setPageAnnotation(uri2, testAnnoName, testAnnoVal, 0, 0);
-  var pages = annosvc.getPagesWithAnnotation(testAnnoName, { });
+  var pages = annosvc.getPagesWithAnnotation(testAnnoName);
   do_check_eq(pages.length, 2);
   
   do_check_false(pages[0].equals(pages[1]));
@@ -151,7 +151,7 @@ function run_test() {
   
   var testItemId2 = bmsvc.insertBookmark(bmsvc.bookmarksMenuFolder, uri2, -1, "");
   annosvc.setItemAnnotation(testItemId2, testAnnoName, testAnnoVal, 0, 0);
-  var items = annosvc.getItemsWithAnnotation(testAnnoName, { });
+  var items = annosvc.getItemsWithAnnotation(testAnnoName);
   do_check_eq(items.length, 2);
   
   do_check_true(items[0] != items[1]);
@@ -182,12 +182,12 @@ function run_test() {
   do_check_eq(storageType.value, Ci.nsIAnnotationService.TYPE_STRING);
 
   
-  var annoNames = annosvc.getPageAnnotationNames(testURI, {});
+  var annoNames = annosvc.getPageAnnotationNames(testURI);
   do_check_eq(annoNames.length, 1);
   do_check_eq(annoNames[0], "moz-test-places/annotations");
 
   
-  var annoNames = annosvc.getItemAnnotationNames(testItemId, {});
+  var annoNames = annosvc.getItemAnnotationNames(testItemId);
   do_check_eq(annoNames.length, 1);
   do_check_eq(annoNames[0], "moz-test-places/annotations");
 
@@ -322,8 +322,8 @@ function run_test() {
 
   
   
-  do_check_eq(annosvc.getItemsWithAnnotation(int32Key, { }).length, 0);
-  do_check_eq(annosvc.getPagesWithAnnotation(int32Key, { }).length, 0);
+  do_check_eq(annosvc.getItemsWithAnnotation(int32Key).length, 0);
+  do_check_eq(annosvc.getPagesWithAnnotation(int32Key).length, 0);
 
   
   var invalidIds = [-1, 0, 37643];

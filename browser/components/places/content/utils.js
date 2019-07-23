@@ -231,7 +231,7 @@ var PlacesUIUtils = {
       var tags = aData.tags.split(", ");
       
       
-      var storedTags = PlacesUtils.tagging.getTagsForURI(itemURL, {});
+      var storedTags = PlacesUtils.tagging.getTagsForURI(itemURL);
       tags = tags.filter(function (aTag) {
         return (storedTags.indexOf(aTag) == -1);
       }, this);
@@ -1147,7 +1147,7 @@ var PlacesUIUtils = {
 
     
     
-    var items = as.getItemsWithAnnotation(ORGANIZER_FOLDER_ANNO, {});
+    var items = as.getItemsWithAnnotation(ORGANIZER_FOLDER_ANNO);
     if (items.length > 1) {
       
       
@@ -1182,7 +1182,7 @@ var PlacesUIUtils = {
       
       delete this.leftPaneQueries;
       this.leftPaneQueries = {};
-      var items = as.getItemsWithAnnotation(ORGANIZER_QUERY_ANNO, {});
+      var items = as.getItemsWithAnnotation(ORGANIZER_QUERY_ANNO);
       
       for (var i = 0; i < items.length; i++) {
         var queryName = as.getItemAnnotation(items[i], ORGANIZER_QUERY_ANNO);

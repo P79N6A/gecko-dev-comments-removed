@@ -1002,7 +1002,7 @@ BrowserGlue.prototype = {
                  newInVersion: 1 };
         smartBookmarks.push(smart);
 
-        var smartBookmarkItemIds = annosvc.getItemsWithAnnotation(SMART_BOOKMARKS_ANNO, {});
+        var smartBookmarkItemIds = annosvc.getItemsWithAnnotation(SMART_BOOKMARKS_ANNO);
         
         
         

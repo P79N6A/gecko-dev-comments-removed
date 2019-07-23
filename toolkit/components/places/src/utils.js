@@ -286,7 +286,7 @@ var PlacesUtils = {
     
     this.observerSvc.addObserver(this, "xpcom-shutdown", false);
 
-    var readOnly = this.annotations.getItemsWithAnnotation(READ_ONLY_ANNO, {});
+    var readOnly = this.annotations.getItemsWithAnnotation(READ_ONLY_ANNO);
     this.__defineGetter__("_readOnly", function() readOnly);
     return this._readOnly;
   },
@@ -478,8 +478,8 @@ var PlacesUtils = {
     else if (PlacesUtils.nodeIsTagQuery(aNode)) {
       
       
-      var queries = aNode.getQueries({});
-      var folders = queries[0].getFolders({});
+      var queries = aNode.getQueries();
+      var folders = queries[0].getFolders();
       return folders[0];
     }
     return aNode.itemId;
@@ -766,7 +766,7 @@ var PlacesUtils = {
   getAnnotationsForURI: function PU_getAnnotationsForURI(aURI) {
     var annosvc = this.annotations;
     var annos = [], val = null;
-    var annoNames = annosvc.getPageAnnotationNames(aURI, {});
+    var annoNames = annosvc.getPageAnnotationNames(aURI);
     for (var i = 0; i < annoNames.length; i++) {
       var flags = {}, exp = {}, mimeType = {}, storageType = {};
       annosvc.getPageAnnotationInfo(aURI, annoNames[i], flags, exp, mimeType, storageType);
@@ -800,7 +800,7 @@ var PlacesUtils = {
   getAnnotationsForItem: function PU_getAnnotationsForItem(aItemId) {
     var annosvc = this.annotations;
     var annos = [], val = null;
-    var annoNames = annosvc.getItemAnnotationNames(aItemId, {});
+    var annoNames = annosvc.getItemAnnotationNames(aItemId);
     for (var i = 0; i < annoNames.length; i++) {
       var flags = {}, exp = {}, mimeType = {}, storageType = {};
       annosvc.getItemAnnotationInfo(aItemId, annoNames[i], flags, exp, mimeType, storageType);
@@ -967,7 +967,7 @@ var PlacesUtils = {
       var uri = this.bookmarks.getURIForKeyword(aKeyword);
       if (uri) {
         url = uri.spec;
-        var bookmarks = this.bookmarks.getBookmarkIdsForURI(uri, {});
+        var bookmarks = this.bookmarks.getBookmarkIdsForURI(uri);
         for (let i = 0; i < bookmarks.length; i++) {
           var bookmark = bookmarks[i];
           var kw = this.bookmarks.getKeywordForBookmark(bookmark);
@@ -987,7 +987,7 @@ var PlacesUtils = {
 
   getBookmarksForURI:
   function PU_getBookmarksForURI(aURI) {
-    var bmkIds = this.bookmarks.getBookmarkIdsForURI(aURI, {});
+    var bmkIds = this.bookmarks.getBookmarkIdsForURI(aURI);
 
     
     return bmkIds.filter(function(aID) {
@@ -1013,7 +1013,7 @@ var PlacesUtils = {
 
   getMostRecentBookmarkForURI:
   function PU_getMostRecentBookmarkForURI(aURI) {
-    var bmkIds = this.bookmarks.getBookmarkIdsForURI(aURI, {});
+    var bmkIds = this.bookmarks.getBookmarkIdsForURI(aURI);
     for (var i = 0; i < bmkIds.length; i++) {
       
       var itemId = bmkIds[i];
@@ -1048,7 +1048,7 @@ var PlacesUtils = {
     if (this.__lookupGetter__("livemarks")) {
       var feedSpec = aFeedURI.spec
       var annosvc = this.annotations;
-      var livemarks = annosvc.getItemsWithAnnotation(LMANNO_FEEDURI, {});
+      var livemarks = annosvc.getItemsWithAnnotation(LMANNO_FEEDURI);
       for (var i = 0; i < livemarks.length; i++) {
         if (annosvc.getItemAnnotation(livemarks[i], LMANNO_FEEDURI) == feedSpec)
           return livemarks[i];
@@ -1205,7 +1205,7 @@ var PlacesUtils = {
           
           
           var excludeItems = this._utils.annotations
-                                 .getItemsWithAnnotation(EXCLUDE_FROM_BACKUP_ANNO, {});
+                                 .getItemsWithAnnotation(EXCLUDE_FROM_BACKUP_ANNO);
           
           
           
@@ -1910,7 +1910,7 @@ var PlacesUtils = {
 
       
       let excludeItems =
-        PlacesUtils.annotations.getItemsWithAnnotation(EXCLUDE_FROM_BACKUP_ANNO, {});
+        PlacesUtils.annotations.getItemsWithAnnotation(EXCLUDE_FROM_BACKUP_ANNO);
 
       
       let options = PlacesUtils.history.getNewQueryOptions();

@@ -205,7 +205,7 @@ function search(aFolderId, aSearchStr, aExpectedScopeButtonId) {
       
       
       var query = queryStringToQuery(contentTree.getResult().root.uri);
-      is(query.getFolders({}, {})[0], aFolderId,
+      is(query.getFolders()[0], aFolderId,
          "Content tree's folder should be what was selected in the left pane");
     }
   }

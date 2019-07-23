@@ -131,7 +131,7 @@ function add_bookmarks() {
 
 function check_bookmarks(aFolderId) {
   
-  var bookmarks = bmSvc.getBookmarkIdsForURI(bookmarkedURI, {});
+  var bookmarks = bmSvc.getBookmarkIdsForURI(bookmarkedURI);
   for(var i = 0; i < bookmarks.length; i++) {
     do_check_eq(bmSvc.getItemTitle(bookmarks[i]), validItemName);
     do_check_true(annoSvc.itemHasAnnotation(bookmarks[i],validAnnoName));
@@ -155,7 +155,7 @@ function check_bookmarks(aFolderId) {
   do_check_true(pastDate < bmSvc.getItemLastModified(aFolderId));
 
   
-  var deletedItems = annoSvc.getItemsWithAnnotation(deletedAnnoName, {});
+  var deletedItems = annoSvc.getItemsWithAnnotation(deletedAnnoName);
   do_check_eq(deletedItems.length, 0);
 
   

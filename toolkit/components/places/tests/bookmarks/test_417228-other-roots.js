@@ -112,7 +112,7 @@ tests.push({
 
   validate: function validate() {
     
-    var tags = PlacesUtils.tagging.getTagsForURI(this._testURI, {});
+    var tags = PlacesUtils.tagging.getTagsForURI(this._testURI);
     
     do_check_eq(this._tags.toString(), tags.toString());
 

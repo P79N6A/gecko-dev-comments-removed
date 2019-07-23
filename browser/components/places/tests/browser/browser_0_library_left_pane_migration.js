@@ -60,7 +60,7 @@ var windowObserver = {
              "Left pane folder correctly created");
           var leftPaneItems =
             PlacesUtils.annotations
-                       .getItemsWithAnnotation(ORGANIZER_FOLDER_ANNO, {});
+                       .getItemsWithAnnotation(ORGANIZER_FOLDER_ANNO);
           is(leftPaneItems.length, 1,
              "We correctly have only 1 left pane folder");
           var leftPaneRoot = leftPaneItems[0];
@@ -99,7 +99,7 @@ function test() {
 
   
   var leftPaneItems = PlacesUtils.annotations
-                                 .getItemsWithAnnotation(ORGANIZER_FOLDER_ANNO, {});
+                                 .getItemsWithAnnotation(ORGANIZER_FOLDER_ANNO);
   if (leftPaneItems.length > 0) {
     
     
@@ -125,7 +125,7 @@ function test() {
 
   
   var leftPaneItems =
-    PlacesUtils.annotations.getItemsWithAnnotation(ORGANIZER_FOLDER_ANNO, {});
+    PlacesUtils.annotations.getItemsWithAnnotation(ORGANIZER_FOLDER_ANNO);
   is(leftPaneItems.length, 1, "We correctly have only 1 left pane folder");
   is(leftPaneItems[0], fakeLeftPaneRoot, "left pane root itemId is correct");
 
