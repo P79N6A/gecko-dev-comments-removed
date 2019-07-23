@@ -3855,9 +3855,13 @@ nsDocument::RemoveIDTargetObserver(nsIAtom* aID,
   if (!CheckGetElementByIdArg(aID))
     return;
 
-  nsIdentifierMapEntry *entry = GetElementByIdInternal(aID);
-  if (!entry)
+  nsIdentifierMapEntry *entry = mIdentifierMap.GetEntry(aID);
+  if (!entry) {
+    
+    
+    
     return;
+  }
 
   entry->RemoveContentChangeCallback(aObserver, aData);
 }
