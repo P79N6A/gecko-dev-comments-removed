@@ -335,23 +335,24 @@ PlacesTreeView.prototype = {
   },
 
   _convertPRTimeToString: function PTV__convertPRTimeToString(aTime) {
-    var timeInMilliseconds = aTime / 1000; 
+    const MS_PER_MINUTE = 60000;
+    const MS_PER_DAY = 86400000;
+    let timeMs = aTime / 1000; 
 
     
     
     
     
-    
-    var dateObj = new Date();
-    var timeZoneOffsetInMs = dateObj.getTimezoneOffset() * 60000;
-    var now = dateObj.getTime() - timeZoneOffsetInMs;
-    var midnight = now - (now % (86400000));
+    let dateObj = new Date();
+    let now = dateObj.getTime() - dateObj.getTimezoneOffset() * MS_PER_MINUTE;
+    let midnight = now - (now % MS_PER_DAY);
+    midnight += new Date(midnight).getTimezoneOffset() * MS_PER_MINUTE;
 
-    var dateFormat = timeInMilliseconds - timeZoneOffsetInMs >= midnight ?
+    let dateFormat = timeMs >= midnight ?
                       Ci.nsIScriptableDateFormat.dateFormatNone :
                       Ci.nsIScriptableDateFormat.dateFormatShort;
 
-    var timeObj = new Date(timeInMilliseconds);
+    let timeObj = new Date(timeMs);
     return (this._dateService.FormatDateTime("", dateFormat,
       Ci.nsIScriptableDateFormat.timeFormatNoSeconds,
       timeObj.getFullYear(), timeObj.getMonth() + 1,
