@@ -345,8 +345,6 @@ protected:
     
     eSelectorParsingStatus_Continue,
     
-    eSelectorParsingStatus_Empty,
-    
     
     eSelectorParsingStatus_Error
   };
@@ -385,14 +383,13 @@ protected:
   nsSelectorParsingStatus ParseNegatedSimpleSelector(PRInt32&       aDataMask,
                                                      nsCSSSelector& aSelector);
 
-  nsSelectorParsingStatus ParseSelector(nsCSSSelectorList* aList,
-                                        PRUnichar aPrevCombinator);
-
   
   
   PRBool ParseSelectorList(nsCSSSelectorList*& aListHead,
                            PRBool aTerminateAtBrace);
   PRBool ParseSelectorGroup(nsCSSSelectorList*& aListHead);
+  PRBool ParseSelector(nsCSSSelectorList* aList, PRUnichar aPrevCombinator);
+
   nsCSSDeclaration* ParseDeclarationBlock(PRBool aCheckForBraces);
   PRBool ParseDeclaration(nsCSSDeclaration* aDeclaration,
                           PRBool aCheckForBraces,
@@ -2519,56 +2516,44 @@ PRBool
 CSSParserImpl::ParseSelectorGroup(nsCSSSelectorList*& aList)
 {
   PRUnichar combinator = 0;
-  nsSelectorParsingStatus parsingStatus;
   nsAutoPtr<nsCSSSelectorList> list(new nsCSSSelectorList());
 
-  do {
-    parsingStatus = ParseSelector(list, combinator);
-    if (parsingStatus == eSelectorParsingStatus_Error ||
-        parsingStatus == eSelectorParsingStatus_Empty) {
-      break;
+  for (;;) {
+    if (!ParseSelector(list, combinator)) {
+      return PR_FALSE;
     }
-    NS_ASSERTION(parsingStatus != eSelectorParsingStatus_Continue,
-                 "should not have left ParseSelector then");
 
     
-    combinator = PRUnichar(0);
     if (!GetToken(PR_FALSE)) {
-      break;
+      break; 
     }
+
+    combinator = PRUnichar(0);
     if (mToken.mType == eCSSToken_WhiteSpace) {
       if (!GetToken(PR_TRUE)) {
-        break;
+        break; 
       }
       combinator = PRUnichar(' ');
     }
 
-    if (mToken.mType == eCSSToken_Symbol &&
-        (mToken.mSymbol == '+' ||
-         mToken.mSymbol == '>' ||
-         mToken.mSymbol == '~')) {
-      combinator = mToken.mSymbol;
-    } else {
-      if (mToken.mType == eCSSToken_Symbol &&
-          (mToken.mSymbol == '{' ||
-           mToken.mSymbol == ',')) {
-        combinator = PRUnichar(0); 
-      }
+    if (mToken.mType != eCSSToken_Symbol) {
       UngetToken(); 
-                    
-    }
-  } while (combinator);
-
-  if (parsingStatus == eSelectorParsingStatus_Error) {
-    return PR_FALSE;
-  }
-  if (parsingStatus == eSelectorParsingStatus_Empty) {
-    if (list->mSelectors) {
-      REPORT_UNEXPECTED(PESelectorGroupExtraCombinator);
     } else {
-      REPORT_UNEXPECTED(PESelectorGroupNoSelector);
+      PRUnichar symbol = mToken.mSymbol;
+      if (symbol == '+' || symbol == '>' || symbol == '~') {
+        combinator = mToken.mSymbol;
+      } else {
+        UngetToken(); 
+        if (symbol == ',' || symbol == '{') {
+          break; 
+        }
+      }
     }
-    return PR_FALSE;
+
+    if (!combinator) {
+      REPORT_UNEXPECTED_TOKEN(PESelectorListExtra);
+      return PR_FALSE;
+    }
   }
 
   aList = list.forget();
@@ -3422,13 +3407,13 @@ CSSParserImpl::ParsePseudoClassWithNthPairArg(nsCSSSelector& aSelector,
 
 
 
-CSSParserImpl::nsSelectorParsingStatus
+PRBool
 CSSParserImpl::ParseSelector(nsCSSSelectorList* aList,
                              PRUnichar aPrevCombinator)
 {
   if (! GetToken(PR_TRUE)) {
     REPORT_UNEXPECTED_EOF(PESelectorEOF);
-    return eSelectorParsingStatus_Error;
+    return PR_FALSE;
   }
 
   nsCSSSelector* selector = aList->AddSelector(aPrevCombinator);
@@ -3474,10 +3459,16 @@ CSSParserImpl::ParseSelector(nsCSSSelectorList* aList,
   }
 
   if (parsingStatus == eSelectorParsingStatus_Error) {
-    return parsingStatus;
+    return PR_FALSE;
   }
+
   if (!dataMask) {
-    return eSelectorParsingStatus_Empty;
+    if (selector->mNext) {
+      REPORT_UNEXPECTED(PESelectorGroupExtraCombinator);
+    } else {
+      REPORT_UNEXPECTED(PESelectorGroupNoSelector);
+    }
+    return PR_FALSE;
   }
 
   if (pseudoElementType == nsCSSPseudoElements::ePseudo_AnonBox) {
@@ -3485,7 +3476,7 @@ CSSParserImpl::ParseSelector(nsCSSSelectorList* aList,
     
     if (selector->mNext || !IsUniversalSelector(*selector)) {
       REPORT_UNEXPECTED(PEAnonBoxNotAlone);
-      return eSelectorParsingStatus_Error;
+      return PR_FALSE;
     }
 
     
@@ -3493,7 +3484,7 @@ CSSParserImpl::ParseSelector(nsCSSSelectorList* aList,
     selector->mLowercaseTag.swap(pseudoElement);
     selector->mPseudoClassList = pseudoElementArgs.forget();
     selector->SetPseudoType(pseudoElementType);
-    return parsingStatus;
+    return PR_TRUE;
   }
 
   aList->mWeight += selector->CalcWeight();
@@ -3508,7 +3499,7 @@ CSSParserImpl::ParseSelector(nsCSSSelectorList* aList,
     selector->SetPseudoType(pseudoElementType);
   }
 
-  return parsingStatus;
+  return PR_TRUE;
 }
 
 nsCSSDeclaration*
