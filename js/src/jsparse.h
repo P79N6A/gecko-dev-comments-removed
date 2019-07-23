@@ -260,6 +260,9 @@ JS_BEGIN_EXTERN_C
 
 
 
+
+
+
 typedef enum JSParseNodeArity {
     PN_FUNC     = -3,
     PN_LIST     = -2,
@@ -309,7 +312,7 @@ struct JSParseNode {
             JSAtom      *atom;          
             JSParseNode *expr;          
             jsint       slot;           
-            JSBool      constslot;      
+            JSBool      isconst;        
         } name;
         struct {                        
             JSParsedObjectBox *pob;     
@@ -349,7 +352,7 @@ struct JSParseNode {
 #define pn_atom         pn_u.name.atom
 #define pn_expr         pn_u.name.expr
 #define pn_slot         pn_u.name.slot
-#define pn_const        pn_u.name.constslot
+#define pn_const        pn_u.name.isconst
 #define pn_dval         pn_u.dval
 #define pn_atom2        pn_u.apair.atom2
 #define pn_pob          pn_u.object.pob
@@ -366,6 +369,9 @@ struct JSParseNode {
 #define PNX_NEEDBRACES  0x80            /* braces necessary due to closure */
 #define PNX_FUNCDEFS   0x100            /* contains top-level function
                                            statements */
+#define PNX_SHORTHAND  0x200            /* shorthand syntax used, at present
+                                           object destructuring ({x,y}) only */
+
 
 
 
