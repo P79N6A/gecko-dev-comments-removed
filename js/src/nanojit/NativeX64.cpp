@@ -171,9 +171,9 @@ namespace nanojit
     static inline uint64_t mod_disp32(uint64_t op, Register r, Register b, int32_t d) {
         NanoAssert(IsGpReg(r) && IsGpReg(b));
         NanoAssert((b & 7) != 4); 
-        if (isS8(d)) {
+        uint64_t mod = (((op>>24)&255)>>6); 
+        if (mod == 2 && isS8(d)) {
             
-            NanoAssert((((op>>24)&255)>>6) == 2); 
             int len = oplen(op);
             op = (op & ~0xff000000LL) | (0x40 | (r&7)<<3 | (b&7))<<24; 
             return op<<24 | int64_t(d)<<56 | (len-3); 
