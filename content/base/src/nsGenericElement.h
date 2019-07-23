@@ -670,6 +670,7 @@ public:
   static nsresult doQuerySelectorAll(nsINode* aRoot,
                                      const nsAString& aSelector,
                                      nsIDOMNodeList **aReturn);
+  static PRBool doMatchesSelector(nsIContent* aNode, const nsAString& aSelector);
 
   
 
