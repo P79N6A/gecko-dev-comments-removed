@@ -81,17 +81,26 @@ function test() {
   tab_A.linkedBrowser.addEventListener("load", function (aEvent) {
     this.removeEventListener("load", arguments.callee, true);
 
-    let prePBModeTimeStamp = getSessionstorejsModificationTime();
+    
+    
+    let profilePath = Cc["@mozilla.org/file/directory_service;1"].
+                      getService(Ci.nsIProperties).
+                      get("ProfD", Ci.nsIFile);
+    let sessionStoreJS = profilePath.clone();
+    sessionStoreJS.append("sessionstore.js");
+    ok(sessionStoreJS.exists(),
+      "sessionstore.js should exist prior to entering the private browsing mode");
+    sessionStoreJS.remove(false);
+
     
     pb.privateBrowsingEnabled = true;
     ok(pb.privateBrowsingEnabled, "private browsing enabled");
 
     
-    
-
-
-
-
+    sessionStoreJS = profilePath.clone();
+    sessionStoreJS.append("sessionstore.js");
+    ok(sessionStoreJS.exists(),
+      "sessionstore.js should be re-created after entering the private browsing mode");
 
     
     let startPBModeTimeStamp = getSessionstorejsModificationTime();
