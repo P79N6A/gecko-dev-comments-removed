@@ -131,36 +131,6 @@ function openFileOutputStream(file, flags) {
 
 
 
-
-
-
-
-
-
-
-
-function canonicalRecursiveContains(aParent, aChild)
-{ 
-  try {
-    var current = aChild;
-    while (current) {
-      if (aParent.equals(current))
-        return true;
-
-      var newCurrent = current.parent;
-      if (newCurrent.equals(current))
-        return false;
-
-      current = newCurrent;
-    }
-  }
-  catch (ex) {
-  }
-  return false;
-}
-
-
-
 const PREFIX_FILE = "File: ";
 
 function InstallLogWriter() {
@@ -222,7 +192,7 @@ InstallLogWriter.prototype = {
                                 .getService(Components.interfaces.nsIProperties);
     var programFilesDir = fileLocator.get(KEY_PROGRAMFILES,
         Components.interfaces.nsILocalFile);
-    if (canonicalRecursiveContains(programFilesDir, updRoot)) {
+    if (programFilesDir.contains(updRoot, true)) {
       var relativePath = updRoot.QueryInterface(Components.interfaces.nsILocalFile).
           getRelativeDescriptor(programFilesDir);
       var userLocalDir = fileLocator.get(KEY_LOCALDATA,
