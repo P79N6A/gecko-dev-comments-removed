@@ -166,6 +166,9 @@
 #define TEXT_BLINK_ON              0x20000000
 
 
+#define TEXT_IN_TEXTRUN_USER_DATA  0x40000000
+
+
 
 
 
@@ -319,7 +322,10 @@ DestroyUserData(void* aUserData)
 static void
 ClearAllTextRunReferences(nsTextFrame* aFrame, gfxTextRun* aTextRun)
 {
+  aFrame->RemoveStateBits(TEXT_IN_TEXTRUN_USER_DATA);
   while (aFrame) {
+    NS_ASSERTION(aFrame->GetType() == nsGkAtoms::textFrame,
+                 "Bad frame");
     if (aFrame->GetTextRun() != aTextRun)
       break;
     aFrame->SetTextRun(nsnull);
@@ -1532,6 +1538,11 @@ BuildTextRunsScanner::BuildTextRunForFrames(void* aTextBuffer)
 
     TextRunMappedFlow* newFlow = &userData->mMappedFlows[i];
     newFlow->mStartFrame = mappedFlow->mStartFrame;
+    if (!mSkipIncompleteTextRuns) {
+      
+      
+      newFlow->mStartFrame->AddStateBits(TEXT_IN_TEXTRUN_USER_DATA);
+    }
     newFlow->mDOMOffsetToBeforeTransformOffset = builder.GetCharCount() -
       mappedFlow->mStartFrame->GetContentOffset();
     newFlow->mContentLength = contentLength;
@@ -3389,10 +3400,21 @@ nsContinuingTextFrame::Init(nsIContent* aContent,
 void
 nsContinuingTextFrame::Destroy()
 {
-  ClearTextRun();
-  if (mPrevContinuation || mNextContinuation) {
-    nsSplittableFrame::RemoveFromFlow(this);
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  if ((GetStateBits() & TEXT_IN_TEXTRUN_USER_DATA) ||
+      !mPrevContinuation ||
+      mPrevContinuation->GetStyleContext() != GetStyleContext()) {
+    ClearTextRun();
   }
+  nsSplittableFrame::RemoveFromFlow(this);
   
   nsFrame::Destroy();
 }
