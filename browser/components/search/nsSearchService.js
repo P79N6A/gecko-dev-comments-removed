@@ -1365,6 +1365,10 @@ Engine.prototype = {
         this._type = SEARCH_TYPE_SHERLOCK;
         this._parseAsSherlock();
     }
+
+    
+    
+    this._data = null;
   },
 
   
