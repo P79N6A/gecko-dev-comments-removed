@@ -1081,7 +1081,7 @@ namespace nanojit
 
         
         
-        LIns*        ins_choose(LIns* cond, LIns* iftrue, LIns* iffalse);
+        LIns*        ins_choose(LIns* cond, LIns* iftrue, LIns* iffalse, bool use_cmov);
         
         LIns*        ins_eq0(LIns* oprnd1);
         
