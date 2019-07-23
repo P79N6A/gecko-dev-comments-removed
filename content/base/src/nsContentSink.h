@@ -152,6 +152,8 @@ class nsContentSink : public nsICSSLoaderObserver,
 
   PRBool IsTimeToNotify();
 
+  static void InitializeStatics();
+
 protected:
   nsContentSink();
   virtual ~nsContentSink();
@@ -278,7 +280,7 @@ protected:
       return 1000;
     }
 
-    return mNotificationInterval;
+    return sNotificationInterval;
   }
 
   
@@ -319,17 +321,11 @@ protected:
   PRInt32 mBackoffCount;
 
   
-  PRInt32 mNotificationInterval;
-
-  
   
   PRTime mLastNotificationTime;
 
   
   nsCOMPtr<nsITimer> mNotificationTimer;
-
-  
-  PRPackedBool mNotifyOnTimer;
 
   
   PRUint8 mBeganUpdate : 1;
@@ -358,34 +354,10 @@ protected:
   PRUint32 mDeflectedCount;
 
   
-  PRUint32 mInteractiveDeflectCount;
-  PRUint32 mPerfDeflectCount;
-
-  
-  
-  
-  PRUint32 mPendingEventMode;
-
-  
-  PRUint32 mEventProbeRate;
-
-  
   PRBool mHasPendingEvent;
 
   
   PRUint32 mCurrentParseEndTime;
-
-  
-  PRUint32 mInteractiveParseTime;
-  PRUint32 mPerfParseTime;
-
-  
-  PRUint32 mInteractiveTime;
-  
-  PRUint32 mInitialPerfTime;
-
-  
-  PRBool mEnablePerfMode;
 
   PRInt32 mBeginLoadTime;
 
@@ -402,6 +374,32 @@ protected:
 
   nsRevocableEventPtr<nsRunnableMethod<nsContentSink, void, false> >
     mProcessLinkHeaderEvent;
+
+  
+  static PRBool sNotifyOnTimer;
+  
+  static PRInt32 sBackoffCount;
+  
+  static PRInt32 sNotificationInterval;
+  
+  static PRInt32 sInteractiveDeflectCount;
+  static PRInt32 sPerfDeflectCount;
+  
+  
+  
+  static PRInt32 sPendingEventMode;
+  
+  static PRInt32 sEventProbeRate;
+  
+  static PRInt32 sInteractiveParseTime;
+  static PRInt32 sPerfParseTime;
+  
+  static PRInt32 sInteractiveTime;
+  
+  static PRInt32 sInitialPerfTime;
+  
+  static PRInt32 sEnablePerfMode;
+  static PRBool sCanInterruptParser;
 };
 
 
