@@ -883,6 +883,21 @@ LoginManagerPrompter.prototype = {
 
 
     _getNotifyBox : function () {
+        var notifyBox = null;
+
+        
+        function getChromeWindow(aWindow) {
+            var chromeWin = aWindow 
+                                .QueryInterface(Ci.nsIInterfaceRequestor)
+                                .getInterface(Ci.nsIWebNavigation)
+                                .QueryInterface(Ci.nsIDocShellTreeItem)
+                                .rootTreeItem
+                                .QueryInterface(Ci.nsIInterfaceRequestor)
+                                .getInterface(Ci.nsIDOMWindow)
+                                .QueryInterface(Ci.nsIDOMChromeWindow);
+            return chromeWin;
+        }
+
         try {
             
             var notifyWindow = this._window.top
@@ -891,15 +906,11 @@ LoginManagerPrompter.prototype = {
             
             
             if (notifyWindow.opener) {
+                var chromeDoc = getChromeWindow(notifyWindow)
+                                    .document.documentElement;
                 var webnav = notifyWindow
                                     .QueryInterface(Ci.nsIInterfaceRequestor)
                                     .getInterface(Ci.nsIWebNavigation);
-                var chromeWin = webnav
-                                    .QueryInterface(Ci.nsIDocShellTreeItem)
-                                    .rootTreeItem
-                                    .QueryInterface(Ci.nsIInterfaceRequestor)
-                                    .getInterface(Ci.nsIDOMWindow);
-                var chromeDoc = chromeWin.document.documentElement;
 
                 
                 
@@ -915,29 +926,19 @@ LoginManagerPrompter.prototype = {
 
             
             
-            var wm = Cc["@mozilla.org/appshell/window-mediator;1"].
-                     getService(Ci.nsIWindowMediator);
-            var enumerator = wm.getEnumerator("navigator:browser");
-            var tabbrowser = null;
-            var foundBrowser = null;
+            var chromeWin = getChromeWindow(notifyWindow).wrappedJSObject;
 
-            while (!foundBrowser && enumerator.hasMoreElements()) {
-                var win = enumerator.getNext();
-                tabbrowser = win.getBrowser(); 
-                foundBrowser = tabbrowser.getBrowserForDocument(
-                                                  notifyWindow.document);
-            }
-
-            
-            if (foundBrowser)
-                return tabbrowser.getNotificationBox(foundBrowser)
+            if (chromeWin.getNotificationBox)
+                notifyBox = chromeWin.getNotificationBox(notifyWindow);
+            else
+                this.log("getNotificationBox() not available on window");
 
         } catch (e) {
             
             this.log("No notification box available: " + e)
         }
 
-        return null;
+        return notifyBox;
     },
 
 
