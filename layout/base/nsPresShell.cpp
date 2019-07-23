@@ -2286,12 +2286,14 @@ static void CheckForFocus(nsPIDOMWindow* aOurWindow,
   if (!aFocusController)
     return;
 
+  nsCOMPtr<nsIDOMWindowInternal> ourWin = do_QueryInterface(aOurWindow);
+
   nsCOMPtr<nsIDOMWindowInternal> focusedWindow;
   aFocusController->GetFocusedWindow(getter_AddRefs(focusedWindow));
   if (!focusedWindow) {
     
     
-    return;
+    focusedWindow = ourWin;
   }
 
   
@@ -2319,7 +2321,7 @@ static void CheckForFocus(nsPIDOMWindow* aOurWindow,
   while (curDoc) {
     nsPIDOMWindow *curWin = curDoc->GetWindow();
 
-    if (!curWin || curWin == aOurWindow)
+    if (!curWin || curWin == ourWin)
       break;
 
     curDoc = curDoc->GetParentDocument();
@@ -2337,11 +2339,11 @@ static void CheckForFocus(nsPIDOMWindow* aOurWindow,
   PRBool active;
   aFocusController->GetActive(&active);
   if (active)
-    aOurWindow->Focus();
+    ourWin->Focus();
 
   
   
-  aFocusController->SetFocusedWindow(aOurWindow);
+  aFocusController->SetFocusedWindow(ourWin);
 }
 
 NS_IMETHODIMP
