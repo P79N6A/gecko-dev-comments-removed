@@ -83,7 +83,7 @@ const PREF_EXTENSIONS_GETMOREPLUGINSURL     = "extensions.getMorePluginsURL";
 const PREF_EXTENSIONS_DSS_ENABLED           = "extensions.dss.enabled";
 const PREF_EXTENSIONS_DSS_SWITCHPENDING     = "extensions.dss.switchPending";
 const PREF_EXTENSIONS_HIDE_INSTALL_BTN      = "extensions.hideInstallButton";
-const PREF_EM_LAST_SELECTED_SKIN            = "extensions.lastSelectedSkin";
+const PREF_DSS_SKIN_TO_SELECT               = "extensions.lastSelectedSkin";
 const PREF_GENERAL_SKINS_SELECTEDSKIN       = "general.skins.selectedSkin";
 const PREF_UPDATE_NOTIFYUSER                = "extensions.update.notifyUser";
 const PREF_GETADDONS_SHOWPANE               = "extensions.getAddons.showPane";
@@ -116,6 +116,19 @@ function setElementDisabledByID(aID, aDoDisable) {
     else
       element.removeAttribute("disabled");
   }
+}
+
+
+
+
+
+function getItemForInternalName(aInternalName) {
+  var property = gRDF.GetResource(PREFIX_NS_EM + "internalName");
+  var name = gRDF.GetLiteral(aInternalName);
+  var id = gExtensionManager.datasource.GetSource(property, name, true)
+  if (id && id instanceof Components.interfaces.nsIRDFResource)
+    return document.getElementById(id.ValueUTF8);
+  return null;
 }
 
 function isSafeURI(aURI) {
@@ -467,8 +480,15 @@ function showView(aView) {
   else
     document.getElementById("continueDialogButton").removeAttribute("default");
 
-  if (isThemes)
+  if (isThemes) {
+    if (gPref.getBoolPref(PREF_EXTENSIONS_DSS_SWITCHPENDING)) {
+      var item = getItemForInternalName(gCurrentTheme);
+      if (item)
+        setRestartMessage(item);
+    }
+
     onAddonSelect();
+  }
   updateGlobalCommands();
 }
 
@@ -547,11 +567,8 @@ function noUpdatesDismiss(aEvent)
     document.getElementById("addonsMsg").removeCurrentNotification();
 }
 
-function setRestartMessage(aItem)
+function clearRestartMessage()
 {
-  var themeName = aItem.getAttribute("name");
-  var restartMessage = getExtensionString("dssSwitchAfterRestart",
-                                          [getBrandShortName()]);
   var children = gExtensionsView.children;
   for (var i = 0; i < children.length; ++i) {
     var item = children[i];
@@ -560,6 +577,13 @@ function setRestartMessage(aItem)
       item.removeAttribute("oldDescription");
     }
   }
+}
+
+function setRestartMessage(aItem)
+{
+  var themeName = aItem.getAttribute("name");
+  var restartMessage = getExtensionString("dssSwitchAfterRestart",
+                                          [getBrandShortName()]);
   aItem.setAttribute("oldDescription", aItem.getAttribute("description"));
   aItem.setAttribute("description", restartMessage);
 }
@@ -947,12 +971,14 @@ function Startup()
 {
   gExtensionStrings = document.getElementById("extensionsStrings");
   gPref = Components.classes["@mozilla.org/preferences-service;1"]
-                    .getService(Components.interfaces.nsIPrefBranch);
+                    .getService(Components.interfaces.nsIPrefBranch2);
   var defaultPref = gPref.QueryInterface(Components.interfaces.nsIPrefService)
                          .getDefaultBranch(null);
   try {
     gCurrentTheme = gPref.getCharPref(PREF_GENERAL_SKINS_SELECTEDSKIN);
     gDefaultTheme = defaultPref.getCharPref(PREF_GENERAL_SKINS_SELECTEDSKIN);
+    if (gPref.getBoolPref(PREF_EXTENSIONS_DSS_SWITCHPENDING))
+      gCurrentTheme = gPref.getCharPref(PREF_DSS_SKIN_TO_SELECT);
   }
   catch (e) { }
 
@@ -972,6 +998,9 @@ function Startup()
   try {
     gCheckUpdateSecurity = gPref.getBoolPref(PREF_EM_CHECK_UPDATE_SECURITY);
   } catch(e) { }
+
+  gPref.addObserver(PREF_DSS_SKIN_TO_SELECT, gPrefObserver, false);
+  gPref.addObserver(PREF_GENERAL_SKINS_SELECTEDSKIN, gPrefObserver, false);
 
   try {
     gShowGetAddonsPane = gPref.getBoolPref(PREF_GETADDONS_SHOWPANE);
@@ -1087,6 +1116,8 @@ function Startup()
 
 function Shutdown()
 {
+  gPref.removeObserver(PREF_DSS_SKIN_TO_SELECT, gPrefObserver);
+  gPref.removeObserver(PREF_GENERAL_SKINS_SELECTEDSKIN, gPrefObserver);
   if (gAddonRepository && gAddonRepository.isSearching)
     gAddonRepository.cancelSearch();
 
@@ -1883,6 +1914,25 @@ const gAddonsMsgObserver = {
   }
 };
 
+const gPrefObserver = {
+  observe: function (aSubject, aTopic, aData)
+  {
+    if (aData == PREF_GENERAL_SKINS_SELECTEDSKIN) {
+      
+      gCurrentTheme = gPref.getCharPref(PREF_GENERAL_SKINS_SELECTEDSKIN);
+    }
+    else if (aData == PREF_DSS_SKIN_TO_SELECT) {
+      
+      if (gPref.getBoolPref(PREF_EXTENSIONS_DSS_SWITCHPENDING))
+        gCurrentTheme = gPref.getCharPref(PREF_DSS_SKIN_TO_SELECT);
+      else
+        gCurrentTheme = gPref.getCharPref(PREF_GENERAL_SKINS_SELECTEDSKIN);
+      updateOptionalViews();
+      updateGlobalCommands();
+    }
+  }
+};
+
 const gPluginObserver = {
   observe: function (aSubject, aTopic, aData)
   {
@@ -2365,20 +2415,27 @@ var gExtensionsViewController = {
     cmd_useTheme: function (aSelectedItem)
     {
       gCurrentTheme = aSelectedItem.getAttribute("internalName");
-      
-      gPref.setCharPref(PREF_EM_LAST_SELECTED_SKIN, gCurrentTheme);
 
-      if (gPref.getBoolPref(PREF_EXTENSIONS_DSS_ENABLED)) {
-        gPref.setCharPref(PREF_GENERAL_SKINS_SELECTEDSKIN, gCurrentTheme);
+      
+      if (gCurrentTheme == gPref.getCharPref(PREF_GENERAL_SKINS_SELECTEDSKIN)) {
+        gPref.clearUserPref(PREF_EXTENSIONS_DSS_SWITCHPENDING);
+        gPref.clearUserPref(PREF_DSS_SKIN_TO_SELECT);
+        clearRestartMessage();
       }
       else {
-        
-        
-        
-        
-        gPref.setBoolPref(PREF_EXTENSIONS_DSS_SWITCHPENDING, true);
-        
-        setRestartMessage(aSelectedItem);
+        if (gPref.getBoolPref(PREF_EXTENSIONS_DSS_ENABLED)) {
+          gPref.setCharPref(PREF_GENERAL_SKINS_SELECTEDSKIN, gCurrentTheme);
+        }
+        else {
+          
+          
+          
+          
+          gPref.setBoolPref(PREF_EXTENSIONS_DSS_SWITCHPENDING, true);
+          gPref.setCharPref(PREF_DSS_SKIN_TO_SELECT, gCurrentTheme);
+          clearRestartMessage();
+          setRestartMessage(aSelectedItem);
+        }
       }
 
       
@@ -2488,14 +2545,38 @@ var gExtensionsViewController = {
         return;
 
       if (aSelectedItem.type == nsIUpdateItem.TYPE_THEME) {
+        var theme = aSelectedItem.getAttribute("internalName");
+        var selectedTheme = gPref.getCharPref(PREF_GENERAL_SKINS_SELECTEDSKIN);
+        if (theme == gCurrentTheme) {
+          if (gPref.getBoolPref(PREF_EXTENSIONS_DSS_SWITCHPENDING)) {
+            var item = getItemForInternalName(selectedTheme);
+            if (item && item.getAttribute("opType") == OP_NEEDS_UNINSTALL) {
+              
+              
+              
+              this.cmd_useTheme(document.getElementById(PREFIX_ITEM_URI + "{972ce4c6-7e08-4474-a285-3208198ce6fd}"));
+            }
+            else {
+              
+              
+              gPref.clearUserPref(PREF_EXTENSIONS_DSS_SWITCHPENDING);
+              gPref.clearUserPref(PREF_DSS_SKIN_TO_SELECT);
+              clearRestartMessage();
+            }
+          }
+          else {
+            
+            
+            this.cmd_useTheme(document.getElementById(PREFIX_ITEM_URI + "{972ce4c6-7e08-4474-a285-3208198ce6fd}"));
+          }
+        }
+
         
         
-        
-        var currentTheme = gPref.getCharPref(PREF_GENERAL_SKINS_SELECTEDSKIN);
-        if (aSelectedItem.getAttribute("internalName") == currentTheme)
-          this.cmd_useTheme(document.getElementById(PREFIX_ITEM_URI + "{972ce4c6-7e08-4474-a285-3208198ce6fd}"));
-        else if (!gExtensionsView.goDown())
-          gExtensionsView.goUp();
+        if (theme != selectedTheme) {
+          if (!gExtensionsView.goDown())
+            gExtensionsView.goUp();
+        }
       }
       gExtensionManager.uninstallItem(getIDFromResourceURI(aSelectedItem.id));
       gExtensionsViewController.onCommandUpdate();
