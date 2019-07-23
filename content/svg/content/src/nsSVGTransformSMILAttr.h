@@ -52,8 +52,9 @@ class nsSVGSMILTransform;
 class nsSVGTransformSMILAttr : public nsISMILAttr
 {
 public:
-  nsSVGTransformSMILAttr(nsSVGAnimatedTransformList* aTransform)
-    : mVal(aTransform) {}
+  nsSVGTransformSMILAttr(nsSVGAnimatedTransformList* aTransform,
+                         nsSVGElement* aSVGElement)
+    : mVal(aTransform), mSVGElement(aSVGElement) {}
 
   
   virtual nsresult ValueFromString(const nsAString& aStr,
@@ -83,6 +84,7 @@ private:
   
   
   nsSVGAnimatedTransformList* mVal;
+  nsSVGElement* mSVGElement;
 };
 
 #endif 
