@@ -2959,7 +2959,7 @@ nsGlobalWindow::GetOpener(nsIDOMWindowInternal** aOpener)
 
   *aOpener = nsnull;
 
-  nsCOMPtr<nsIDOMWindowInternal> opener = do_QueryReferent(mOpener);
+  nsCOMPtr<nsPIDOMWindow> opener = do_QueryReferent(mOpener);
   if (!opener) {
     return NS_OK;
   }
@@ -2970,27 +2970,36 @@ nsGlobalWindow::GetOpener(nsIDOMWindowInternal** aOpener)
     return NS_OK;
   }
 
-  
-  
-  
   nsCOMPtr<nsPIDOMWindow> openerPwin(do_QueryInterface(opener));
-  if (openerPwin) {
-    nsCOMPtr<nsIDocShellTreeItem> docShellAsItem =
-      do_QueryInterface(openerPwin->GetDocShell());
+  if (!openerPwin) {
+    return NS_OK;
+  }
 
-    if (docShellAsItem) {
-      nsCOMPtr<nsIDocShellTreeItem> openerRootItem;
-      docShellAsItem->GetRootTreeItem(getter_AddRefs(openerRootItem));
-      nsCOMPtr<nsIDocShell> openerRootDocShell(do_QueryInterface(openerRootItem));
-      if (openerRootDocShell) {
-        PRUint32 appType;
-        nsresult rv = openerRootDocShell->GetAppType(&appType);
-        if (NS_SUCCEEDED(rv) && appType != nsIDocShell::APP_TYPE_MAIL) {
-          *aOpener = opener;
-        }
+  
+  nsGlobalWindow *win = static_cast<nsGlobalWindow *>(openerPwin.get());
+  if (win->IsChromeWindow()) {
+    return NS_OK;
+  }
+
+  
+  
+  
+  nsCOMPtr<nsIDocShellTreeItem> docShellAsItem =
+    do_QueryInterface(openerPwin->GetDocShell());
+
+  if (docShellAsItem) {
+    nsCOMPtr<nsIDocShellTreeItem> openerRootItem;
+    docShellAsItem->GetRootTreeItem(getter_AddRefs(openerRootItem));
+    nsCOMPtr<nsIDocShell> openerRootDocShell(do_QueryInterface(openerRootItem));
+    if (openerRootDocShell) {
+      PRUint32 appType;
+      nsresult rv = openerRootDocShell->GetAppType(&appType);
+      if (NS_SUCCEEDED(rv) && appType != nsIDocShell::APP_TYPE_MAIL) {
+        *aOpener = opener;
       }
     }
   }
+
   NS_IF_ADDREF(*aOpener);
   return NS_OK;
 }
