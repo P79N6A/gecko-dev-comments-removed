@@ -45,8 +45,10 @@
 
 #include "nscore.h"
 #include <windows.h>
+#include <process.h>
 #include <stdio.h>
 #include "plstr.h"
+#include "nsMemory.h" 
 
 #include "nspr.h"
 #ifdef _M_IX86
@@ -180,15 +182,18 @@ PRBool EnsureImageHlpInitialized();
 BOOL SymGetModuleInfoEspecial(HANDLE aProcess, DWORD aAddr, PIMAGEHLP_MODULE aModuleInfo, PIMAGEHLP_LINE aLineInfo);
 
 struct WalkStackData {
-  NS_WalkStackCallback callback;
   PRUint32 skipFrames;
-  void *closure;
   HANDLE thread;
   HANDLE process;
+  HANDLE eventStart;
+  HANDLE eventEnd;
+  void **pcs;
+  PRUint32 pc_size;
+  PRUint32 pc_count;
 };
 
 void PrintError(char *prefix, WalkStackData* data);
-DWORD WINAPI  WalkStackThread(LPVOID data);
+unsigned int WINAPI WalkStackThread(void* data);
 void WalkStackMain64(struct WalkStackData* data);
 void WalkStackMain(struct WalkStackData* data);
 
@@ -264,7 +269,8 @@ SYMGETLINEFROMADDRPROC64 _SymGetLineFromAddr64;
 #define _SymGetLineFromAddr64 0
 #endif
 
-HANDLE hStackWalkMutex;
+DWORD gStackWalkThread;
+CRITICAL_SECTION gDbgHelpCS;
 
 PR_END_EXTERN_C
 
@@ -298,15 +304,28 @@ EnsureImageHlpInitialized()
         return gInitialized;
 
     
-    hStackWalkMutex = CreateMutex(
-      NULL,                       
-      FALSE,                      
-      NULL);                      
-
-    if (hStackWalkMutex == NULL) {
-        PrintError("CreateMutex");
+    
+    
+    
+    
+    HANDLE readyEvent = ::CreateEvent(NULL, FALSE ,
+                            FALSE , NULL);
+    unsigned int threadID;
+    HANDLE hStackWalkThread = (HANDLE)
+      _beginthreadex(NULL, 0, WalkStackThread, (void*)readyEvent,
+                     0, &threadID);
+    gStackWalkThread = threadID;
+    if (hStackWalkThread == NULL) {
+        PrintError("CreateThread");
         return PR_FALSE;
     }
+    ::CloseHandle(hStackWalkThread);
+
+    
+    ::WaitForSingleObject(readyEvent, INFINITE);
+    ::CloseHandle(readyEvent);
+
+    ::InitializeCriticalSection(&gDbgHelpCS);
 
     HMODULE module = ::LoadLibrary("DBGHELP.DLL");
     if (!module) {
@@ -415,8 +434,7 @@ WalkStackMain64(struct WalkStackData* data)
     frame64.AddrStack.Offset = context.SP;
     frame64.AddrFrame.Offset = context.RsBSP;
 #else
-    PrintError("Unknown platform. No stack walking.");
-    return;
+#error "Should not have compiled this code"
 #endif
     frame64.AddrPC.Mode      = AddrModeFlat;
     frame64.AddrStack.Mode   = AddrModeFlat;
@@ -426,64 +444,50 @@ WalkStackMain64(struct WalkStackData* data)
     
     while (1) {
 
-        ok = 0;
-
         
-        DWORD dwWaitResult;
-        dwWaitResult = WaitForSingleObject(hStackWalkMutex, INFINITE);
-        if (dwWaitResult == WAIT_OBJECT_0) {
-
-            ok = _StackWalk64(
+        EnterCriticalSection(&gDbgHelpCS);
+        ok = _StackWalk64(
 #ifdef _M_AMD64
-              IMAGE_FILE_MACHINE_AMD64,
+          IMAGE_FILE_MACHINE_AMD64,
 #elif defined _M_IA64
-              IMAGE_FILE_MACHINE_IA64,
+          IMAGE_FILE_MACHINE_IA64,
 #elif defined _M_IX86
-              IMAGE_FILE_MACHINE_I386,
+          IMAGE_FILE_MACHINE_I386,
 #else
-              0,
+#error "Should not have compiled this code"
 #endif
-              myProcess,
-              myThread,
-              &frame64,
-              &context,
-              NULL,
-              _SymFunctionTableAccess64, 
-              _SymGetModuleBase64,       
-              0
-            );
+          myProcess,
+          myThread,
+          &frame64,
+          &context,
+          NULL,
+          _SymFunctionTableAccess64, 
+          _SymGetModuleBase64,       
+          0
+        );
+        LeaveCriticalSection(&gDbgHelpCS);
 
-            ReleaseMutex(hStackWalkMutex);  
-
-            if (ok)
-                addr = frame64.AddrPC.Offset;
-            else {
-                addr = 0;
-                PrintError("WalkStack64");
-            }
-
-            if (!ok || (addr == 0)) {
-                break;
-            }
-
-            if (skip-- > 0) {
-                continue;
-            }
-
-            (*data->callback)((void*)addr, data->closure);
-
-#if 0
-            
-            if (strcmp(modInfo.ModuleName, "kernel32") == 0)
-                break;
-#else
-            if (frame64.AddrReturn.Offset == 0)
-                break;
-#endif
-        }
+        if (ok)
+            addr = frame64.AddrPC.Offset;
         else {
-            PrintError("LockError64");
-        } 
+            addr = 0;
+            PrintError("WalkStack64");
+        }
+
+        if (!ok || (addr == 0)) {
+            break;
+        }
+
+        if (skip-- > 0) {
+            continue;
+        }
+
+        if (data->pc_count < data->pc_size)
+            data->pcs[data->pc_count] = (void*)addr;
+        ++data->pc_count;
+
+        if (frame64.AddrReturn.Offset == 0)
+            break;
     }
     return;
 #endif
@@ -529,83 +533,95 @@ WalkStackMain(struct WalkStackData* data)
     
     while (1) {
 
-        ok = 0;
-
         
-        DWORD dwWaitResult;
-        dwWaitResult = WaitForSingleObject(hStackWalkMutex, INFINITE);
-        if (dwWaitResult == WAIT_OBJECT_0) {
+        EnterCriticalSection(&gDbgHelpCS);
+        ok = _StackWalk(
+            IMAGE_FILE_MACHINE_I386,
+            myProcess,
+            myThread,
+            &frame,
+            &context,
+            0,                        
+            _SymFunctionTableAccess,  
+            _SymGetModuleBase,        
+            0                         
+          );
+        LeaveCriticalSection(&gDbgHelpCS);
 
-            ok = _StackWalk(
-                IMAGE_FILE_MACHINE_I386,
-                myProcess,
-                myThread,
-                &frame,
-                &context,
-                0,                        
-                _SymFunctionTableAccess,  
-                _SymGetModuleBase,        
-                0                         
-              );
-
-            ReleaseMutex(hStackWalkMutex);  
-
-            if (ok)
-                addr = frame.AddrPC.Offset;
-            else {
-                addr = 0;
-                PrintError("WalkStack");
-            }
-
-            if (!ok || (addr == 0)) {
-                break;
-            }
-
-            if (skip-- > 0) {
-                continue;
-            }
-
-            (*data->callback)((void*)addr, data->closure);
-
-#if 0
-            
-            if (strcmp(modInfo.ImageName, "kernel32.dll") == 0)
-                break;
-#else
-            if (frame.AddrReturn.Offset == 0)
-                break;
-#endif
-        }
+        if (ok)
+            addr = frame.AddrPC.Offset;
         else {
-            PrintError("LockError");
+            addr = 0;
+            PrintError("WalkStack");
         }
-        
+
+        if (!ok || (addr == 0)) {
+            break;
+        }
+
+        if (skip-- > 0) {
+            continue;
+        }
+
+        if (data->pc_count < data->pc_size)
+            data->pcs[data->pc_count] = (void*)addr;
+        ++data->pc_count;
+
+        if (frame.AddrReturn.Offset == 0)
+            break;
     }
 
     return;
 
 }
 
-DWORD WINAPI
-WalkStackThread(LPVOID lpdata)
+unsigned int WINAPI
+WalkStackThread(void* aData)
 {
-    struct WalkStackData *data = (WalkStackData *)lpdata;
-    DWORD ret ;
+    BOOL msgRet;
+    MSG msg;
 
     
     
-    ret = ::SuspendThread( data->thread );
-    if (ret == -1) {
-        PrintError("ThreadSuspend");
-    }
-    else {
-        if (_StackWalk64)
-            WalkStackMain64(data);
-        else
-            WalkStackMain(data);
-        ret = ::ResumeThread(data->thread);
-        if (ret == -1) {
-            PrintError("ThreadResume");
+    ::PeekMessage(&msg, NULL, WM_USER, WM_USER, PM_NOREMOVE);
+
+    
+    HANDLE readyEvent = (HANDLE)aData;
+    ::SetEvent(readyEvent);
+
+    while ((msgRet = ::GetMessage(&msg, (HWND)-1, 0, 0)) != 0) {
+        if (msgRet == -1) {
+            PrintError("GetMessage");
+        } else {
+            DWORD ret;
+
+            struct WalkStackData *data = (WalkStackData *)msg.lParam;
+
+            
+            
+            ret = ::WaitForSingleObject(data->eventStart, INFINITE);
+            if (ret != WAIT_OBJECT_0)
+                PrintError("WaitForSingleObject");
+
+            
+            
+            ret = ::SuspendThread( data->thread );
+            if (ret == -1) {
+                PrintError("ThreadSuspend");
+            }
+            else {
+                if (_StackWalk64)
+                    WalkStackMain64(data);
+                else
+                    WalkStackMain(data);
+
+                ret = ::ResumeThread(data->thread);
+                if (ret == -1) {
+                    PrintError("ThreadResume");
+                }
+            }
+
+            ::SetEvent(data->eventEnd);
         }
     }
 
@@ -624,7 +640,7 @@ EXPORT_XPCOM_API(nsresult)
 NS_StackWalk(NS_WalkStackCallback aCallback, PRUint32 aSkipFrames,
              void *aClosure)
 {
-    HANDLE myProcess, myThread, walkerThread;
+    HANDLE myProcess, myThread;
     DWORD walkerReturn;
     struct WalkStackData data;
 
@@ -650,24 +666,46 @@ NS_StackWalk(NS_WalkStackCallback aCallback, PRUint32 aSkipFrames,
         return NS_ERROR_FAILURE;
     }
 
-    data.callback = aCallback;
     data.skipFrames = aSkipFrames;
-    data.closure = aClosure;
     data.thread = myThread;
     data.process = myProcess;
-    walkerThread = ::CreateThread( NULL, 0, WalkStackThread, (LPVOID) &data, 0, NULL ) ;
-    if (walkerThread) {
-        walkerReturn = ::WaitForSingleObject(walkerThread, 2000); 
-        if (walkerReturn != WAIT_OBJECT_0) {
-            PrintError("ThreadWait");
-        }
-        ::CloseHandle(walkerThread);
+    data.eventStart = ::CreateEvent(NULL, FALSE ,
+                          FALSE , NULL);
+    data.eventEnd = ::CreateEvent(NULL, FALSE ,
+                        FALSE , NULL);
+    void *local_pcs[1024];
+    data.pcs = local_pcs;
+    data.pc_count = 0;
+    data.pc_size = NS_ARRAY_LENGTH(local_pcs);
+
+    ::PostThreadMessage(gStackWalkThread, WM_USER, 0, (LPARAM)&data);
+
+    walkerReturn = ::SignalObjectAndWait(data.eventStart,
+                       data.eventEnd, INFINITE, FALSE);
+    if (walkerReturn != WAIT_OBJECT_0)
+        PrintError("SignalObjectAndWait (1)");
+    if (data.pc_count > data.pc_size) {
+        data.pcs = (void**) malloc(data.pc_count * sizeof(void*));
+        data.pc_size = data.pc_count;
+        data.pc_count = 0;
+        ::PostThreadMessage(gStackWalkThread, WM_USER, 0, (LPARAM)&data);
+        walkerReturn = ::SignalObjectAndWait(data.eventStart,
+                           data.eventEnd, INFINITE, FALSE);
+        if (walkerReturn != WAIT_OBJECT_0)
+            PrintError("SignalObjectAndWait (2)");
     }
-    else {
-        PrintError("ThreadCreate");
-    }
+
     ::CloseHandle(myThread);
     ::CloseHandle(myProcess);
+    ::CloseHandle(data.eventStart);
+    ::CloseHandle(data.eventEnd);
+
+    for (PRUint32 i = 0; i < data.pc_count; ++i)
+        (*aCallback)(data.pcs[i], aClosure);
+
+    if (data.pc_size > NS_ARRAY_LENGTH(local_pcs))
+        free(data.pcs);
+
     return NS_OK;
 }
 
@@ -916,10 +954,7 @@ NS_DescribeCodeAddress(void *aPC, nsCodeAddressDetails *aDetails)
     BOOL ok;
 
     
-    DWORD dwWaitResult;
-    dwWaitResult = WaitForSingleObject(hStackWalkMutex, INFINITE);
-    if (dwWaitResult != WAIT_OBJECT_0)
-        return NS_ERROR_UNEXPECTED;
+    EnterCriticalSection(&gDbgHelpCS);
 
 #ifdef USING_WXP_VERSION
     if (_StackWalk64) {
@@ -1011,7 +1046,7 @@ NS_DescribeCodeAddress(void *aPC, nsCodeAddressDetails *aDetails)
         }
     }
 
-    ReleaseMutex(hStackWalkMutex);  
+    LeaveCriticalSection(&gDbgHelpCS); 
     return NS_OK;
 }
 
