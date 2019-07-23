@@ -493,6 +493,9 @@ protected:
   PRBool ParseNonNegativeVariant(nsCSSValue& aValue,
                                  PRInt32 aVariantMask,
                                  const PRInt32 aKeywordTable[]);
+  PRBool ParsePositiveNonZeroVariant(nsCSSValue& aValue,
+                                     PRInt32 aVariantMask,
+                                     const PRInt32 aKeywordTable[]);
   PRBool ParseCounter(nsCSSValue& aValue);
   PRBool ParseAttr(nsCSSValue& aValue);
   PRBool ParseURL(nsCSSValue& aValue);
@@ -4295,11 +4298,34 @@ CSSParserImpl::TranslateDimension(nsCSSValue& aValue,
   return PR_FALSE;
 }
 
+#define VARIANT_ALL_NONNUMERIC \
+  VARIANT_KEYWORD | \
+  VARIANT_COLOR | \
+  VARIANT_URL | \
+  VARIANT_STRING | \
+  VARIANT_COUNTER | \
+  VARIANT_ATTR | \
+  VARIANT_IDENTIFIER | \
+  VARIANT_AUTO | \
+  VARIANT_INHERIT | \
+  VARIANT_NONE | \
+  VARIANT_NORMAL | \
+  VARIANT_SYSFONT
+
 PRBool
 CSSParserImpl::ParseNonNegativeVariant(nsCSSValue& aValue,
                                        PRInt32 aVariantMask,
                                        const PRInt32 aKeywordTable[])
 {
+  
+  
+  NS_ABORT_IF_FALSE((aVariantMask & ~(VARIANT_ALL_NONNUMERIC |
+                                      VARIANT_NUMBER |
+                                      VARIANT_LENGTH |
+                                      VARIANT_PERCENT |
+                                      VARIANT_INTEGER)) == 0,
+                    "need to update code below to handle additional variants");
+
   if (ParseVariant(aValue, aVariantMask, aKeywordTable)) {
     if (eCSSUnit_Number == aValue.GetUnit() ||
         aValue.IsLengthUnit()){
@@ -4315,6 +4341,29 @@ CSSParserImpl::ParseNonNegativeVariant(nsCSSValue& aValue,
       }
     } else if (aValue.GetUnit() == eCSSUnit_Integer) {
       if (aValue.GetIntValue() < 0) {
+        UngetToken();
+        return PR_FALSE;
+      }
+    }
+    return PR_TRUE;
+  }
+  return PR_FALSE;
+}
+
+PRBool
+CSSParserImpl::ParsePositiveNonZeroVariant(nsCSSValue& aValue,
+                                           PRInt32 aVariantMask,
+                                           const PRInt32 aKeywordTable[])
+{
+  
+  
+  NS_ABORT_IF_FALSE((aVariantMask & ~(VARIANT_ALL_NONNUMERIC |
+                                      VARIANT_INTEGER)) == 0,
+                    "need to update code below to handle additional variants");
+
+  if (ParseVariant(aValue, aVariantMask, aKeywordTable)) {
+    if (aValue.GetUnit() == eCSSUnit_Integer) {
+      if (aValue.GetIntValue() <= 0) {
         UngetToken();
         return PR_FALSE;
       }
@@ -5394,11 +5443,7 @@ CSSParserImpl::ParseSingleValueProperty(nsCSSValue& aValue,
   case eCSSProperty__moz_column_count:
     
     
-    
-    return ParseVariant(aValue, VARIANT_AHI, nsnull) &&
-           (aValue.GetUnit() != eCSSUnit_Integer ||
-            aValue.GetIntValue() > 0 ||
-            (UngetToken(), PR_FALSE));
+    return ParsePositiveNonZeroVariant(aValue, VARIANT_AHI, nsnull);
   case eCSSProperty__moz_column_width:
     return ParseNonNegativeVariant(aValue, VARIANT_AHL, nsnull);
   case eCSSProperty__moz_column_gap:
@@ -5603,7 +5648,7 @@ CSSParserImpl::ParseSingleValueProperty(nsCSSValue& aValue,
     return ParseVariant(aValue, VARIANT_HN, nsnull);
   case eCSSProperty_orphans:
   case eCSSProperty_widows:
-    return ParseVariant(aValue, VARIANT_HI, nsnull);
+    return ParsePositiveNonZeroVariant(aValue, VARIANT_HI, nsnull);
   case eCSSProperty_outline_color:
     return ParseVariant(aValue, VARIANT_HCK,
                         nsCSSProps::kOutlineColorKTable);
