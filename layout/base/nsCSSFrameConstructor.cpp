@@ -3626,7 +3626,8 @@ nsCSSFrameConstructor::ConstructTableCellFrame(nsFrameConstructorState& aState,
   else
 #endif
   {
-    aNewCellInnerFrame = NS_NewTableCellInnerFrame(mPresShell, innerPseudoStyle);
+    aNewCellInnerFrame = NS_NewBlockFormattingContext(mPresShell,
+                                                      innerPseudoStyle);
     isBlock = PR_TRUE;
   }
 
@@ -5834,7 +5835,6 @@ nsCSSFrameConstructor::ConstructFrameByDisplayType(nsFrameConstructorState& aSta
                                                    nsFrameItems&            aFrameItems,
                                                    PRBool                   aHasPseudoParent)
 {
-  PRBool    primaryFrameSet = PR_FALSE;
   nsIFrame* newFrame = nsnull;  
   PRBool    addToHashTable = PR_TRUE;
   PRBool    addedToFrameList = PR_FALSE;
@@ -5861,6 +5861,8 @@ nsCSSFrameConstructor::ConstructFrameByDisplayType(nsFrameConstructorState& aSta
   
   
   
+  
+  
   if (aDisplay->IsBlockInside() &&
       aDisplay->IsScrollableOverflow() &&
       !propagatedScrollToViewport) {
@@ -5878,8 +5880,7 @@ nsCSSFrameConstructor::ConstructFrameByDisplayType(nsFrameConstructorState& aSta
     
     
     nsIFrame* scrolledFrame =
-        NS_NewBlockFrame(mPresShell, aStyleContext,
-                         NS_BLOCK_FLOAT_MGR | NS_BLOCK_MARGIN_ROOT);
+      NS_NewBlockFormattingContext(mPresShell, aStyleContext);
 
     nsFrameItems blockItem;
     rv = ConstructBlock(aState,
@@ -5892,129 +5893,52 @@ nsCSSFrameConstructor::ConstructFrameByDisplayType(nsFrameConstructorState& aSta
 
     rv = aState.AddChild(newFrame, aFrameItems, aContent, aStyleContext,
                          aParentFrame);
-    if (NS_FAILED(rv)) {
-      return rv;
-    }
-
     addedToFrameList = PR_TRUE;
   }
   
-  else if (aDisplay->IsAbsolutelyPositioned() &&
-           (NS_STYLE_DISPLAY_BLOCK == aDisplay->mDisplay ||
-            NS_STYLE_DISPLAY_LIST_ITEM == aDisplay->mDisplay)) {
+  else if (aDisplay->IsBlockInside() ||
+           NS_STYLE_DISPLAY_RUN_IN == aDisplay->mDisplay ||
+           NS_STYLE_DISPLAY_COMPACT == aDisplay->mDisplay) {
 
     if (!aHasPseudoParent && !aState.mPseudoFrames.IsEmpty()) {
       ProcessPseudoFrames(aState, aFrameItems); 
     }
 
-    
-    
-    newFrame = NS_NewAbsoluteItemWrapperFrame(mPresShell, aStyleContext);
+    if (aDisplay->IsAbsolutelyPositioned() ||
+        aDisplay->IsFloating() ||
+        NS_STYLE_DISPLAY_INLINE_BLOCK == aDisplay->mDisplay) {
+      newFrame = NS_NewBlockFormattingContext(mPresShell, aStyleContext);
+    } else {
+      newFrame = NS_NewBlockFrame(mPresShell, aStyleContext);
+    }
 
     rv = ConstructBlock(aState, aDisplay, aContent,
-                        aState.GetGeometricParent(aDisplay, aParentFrame), aParentFrame,
-                        aStyleContext, &newFrame, aFrameItems, PR_TRUE);
-    if (NS_FAILED(rv)) {
-      return rv;
-    }
-
-    addedToFrameList = PR_TRUE;
-  }
-  
-  else if (aDisplay->IsFloating() &&
-           (NS_STYLE_DISPLAY_BLOCK == aDisplay->mDisplay ||
-            NS_STYLE_DISPLAY_LIST_ITEM == aDisplay->mDisplay)) {
-    if (!aHasPseudoParent && !aState.mPseudoFrames.IsEmpty()) {
-      ProcessPseudoFrames(aState, aFrameItems); 
-    }
-    
-    
-    newFrame = NS_NewFloatingItemWrapperFrame(mPresShell, aStyleContext);
-
-    rv = ConstructBlock(aState, aDisplay, aContent, 
                         aState.GetGeometricParent(aDisplay, aParentFrame),
-                        aParentFrame, aStyleContext, &newFrame, aFrameItems,
-                        aDisplay->mPosition == NS_STYLE_POSITION_RELATIVE ||
-                        aDisplay->HasTransform());
-    if (NS_FAILED(rv)) {
-      return rv;
-    }
-
+                        aParentFrame, aStyleContext, &newFrame,
+                        aFrameItems, aDisplay->IsPositioned());
     addedToFrameList = PR_TRUE;
   }
   
-  else if ((NS_STYLE_POSITION_RELATIVE == aDisplay->mPosition ||
-            aDisplay->HasTransform()) &&
-           (aDisplay->IsBlockInside() ||
-            (NS_STYLE_DISPLAY_INLINE == aDisplay->mDisplay))) {
+  else if (NS_STYLE_DISPLAY_INLINE == aDisplay->mDisplay ||
+           NS_STYLE_DISPLAY_MARKER == aDisplay->mDisplay) {
     if (!aHasPseudoParent && !aState.mPseudoFrames.IsEmpty()) {
       ProcessPseudoFrames(aState, aFrameItems); 
-    }
-    
-    if (aDisplay->IsBlockInside()) {
-      
-      PRUint32 flags = (aDisplay->mDisplay == NS_STYLE_DISPLAY_INLINE_BLOCK ?
-                        NS_BLOCK_FLOAT_MGR | NS_BLOCK_MARGIN_ROOT : 0);
-      newFrame = NS_NewRelativeItemWrapperFrame(mPresShell, aStyleContext, 
-                                                flags);
-      
-      ConstructBlock(aState, aDisplay, aContent,
-                     aParentFrame, nsnull, aStyleContext, &newFrame,
-                     aFrameItems, PR_TRUE);
-      addedToFrameList = PR_TRUE;
-    } else {
-      
-      newFrame = NS_NewPositionedInlineFrame(mPresShell, aStyleContext);
-      
-      
-      ConstructInline(aState, aDisplay, aContent,
-                      aParentFrame, aStyleContext, PR_TRUE, newFrame);
-    }
-  }
-  
-  else if ((NS_STYLE_DISPLAY_BLOCK == aDisplay->mDisplay) ||
-           (NS_STYLE_DISPLAY_LIST_ITEM == aDisplay->mDisplay) ||
-           (NS_STYLE_DISPLAY_RUN_IN == aDisplay->mDisplay) ||
-           (NS_STYLE_DISPLAY_COMPACT == aDisplay->mDisplay) ||
-           (NS_STYLE_DISPLAY_INLINE_BLOCK == aDisplay->mDisplay)) {
-    if (!aHasPseudoParent && !aState.mPseudoFrames.IsEmpty()) {
-      ProcessPseudoFrames(aState, aFrameItems); 
-    }
-    PRUint32 flags = 0;
-    if (NS_STYLE_DISPLAY_INLINE_BLOCK == aDisplay->mDisplay) {
-      flags = NS_BLOCK_FLOAT_MGR | NS_BLOCK_MARGIN_ROOT;
-    }
-    
-    newFrame = NS_NewBlockFrame(mPresShell, aStyleContext, flags);
-    if (newFrame) { 
-      
-      rv = ConstructBlock(aState, aDisplay, aContent,
-                          aParentFrame, nsnull, aStyleContext, &newFrame,
-                          aFrameItems, PR_FALSE);
-      addedToFrameList = PR_TRUE;
-    }
-    else {
-      rv = NS_ERROR_OUT_OF_MEMORY;
-    }
-  }
-  
-  else if ((NS_STYLE_DISPLAY_INLINE == aDisplay->mDisplay) ||
-           (NS_STYLE_DISPLAY_MARKER == aDisplay->mDisplay)) {
-    if (!aHasPseudoParent && !aState.mPseudoFrames.IsEmpty()) {
-      ProcessPseudoFrames(aState, aFrameItems); 
-    }
-    
-    newFrame = NS_NewInlineFrame(mPresShell, aStyleContext);
-    if (newFrame) { 
-      
-      
-      rv = ConstructInline(aState, aDisplay, aContent,
-                           aParentFrame, aStyleContext, PR_FALSE, newFrame);
-    }
-    else {
-      rv = NS_ERROR_OUT_OF_MEMORY;
     }
 
+    PRBool positioned =
+      NS_STYLE_DISPLAY_INLINE == aDisplay->mDisplay &&
+      (NS_STYLE_POSITION_RELATIVE == aDisplay->mPosition ||
+       aDisplay->HasTransform());
+    if (positioned) {
+      newFrame = NS_NewPositionedInlineFrame(mPresShell, aStyleContext);
+    } else {
+      newFrame = NS_NewInlineFrame(mPresShell, aStyleContext);
+    }
+
+    rv = ConstructInline(aState, aDisplay, aContent, aParentFrame,
+                         aStyleContext, positioned, newFrame);
+
+    
     
     
     
@@ -6116,6 +6040,10 @@ nsCSSFrameConstructor::ConstructFrameByDisplayType(nsFrameConstructorState& aSta
     }
   }
 
+  if (NS_UNLIKELY(NS_FAILED(rv))) {
+    return rv;
+  }
+
   if (!addedToFrameList) {
     
     NS_ASSERTION(!aDisplay->IsAbsolutelyPositioned() &&
@@ -6133,9 +6061,7 @@ nsCSSFrameConstructor::ConstructFrameByDisplayType(nsFrameConstructorState& aSta
     
     
     
-    if (!primaryFrameSet) {
-      aState.mFrameManager->SetPrimaryFrameFor(aContent, newFrame);
-    }
+    aState.mFrameManager->SetPrimaryFrameFor(aContent, newFrame);
   }
 
   return rv;
@@ -11726,17 +11652,14 @@ nsCSSFrameConstructor::ConstructInline(nsFrameConstructorState& aState,
     
     blockSC = mPresShell->StyleSet()->
       ResolvePseudoStyleFor(aContent, blockStyle, aStyleContext);
-      
-    blockFrame = NS_NewRelativeItemWrapperFrame(mPresShell, blockSC, 0);
   }
   else {
     blockStyle = nsCSSAnonBoxes::mozAnonymousBlock;
 
     blockSC = mPresShell->StyleSet()->
       ResolvePseudoStyleFor(aContent, blockStyle, aStyleContext);
-
-    blockFrame = NS_NewBlockFrame(mPresShell, blockSC);
   }
+  blockFrame = NS_NewBlockFrame(mPresShell, blockSC);
 
   InitAndRestoreFrame(aState, aContent, aParentFrame, nsnull, blockFrame, PR_FALSE);  
 

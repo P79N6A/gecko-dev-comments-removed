@@ -100,29 +100,12 @@ NS_NewAttributeContent(nsNodeInfoManager *aNodeInfoManager,
 nsIFrame*
 NS_NewSelectsAreaFrame(nsIPresShell* aPresShell, nsStyleContext* aContext, PRUint32 aFlags);
 
-inline nsIFrame*
-NS_NewTableCellInnerFrame(nsIPresShell* aPresShell, nsStyleContext* aContext) {
-  return NS_NewBlockFrame(aPresShell, aContext);
-}
 
-
-inline nsIFrame*
-NS_NewAbsoluteItemWrapperFrame(nsIPresShell* aPresShell, nsStyleContext* aContext) {
-  return NS_NewBlockFrame(aPresShell, aContext, NS_BLOCK_FLOAT_MGR|NS_BLOCK_MARGIN_ROOT);
-}
-
-
-inline nsIFrame*
-NS_NewFloatingItemWrapperFrame(nsIPresShell* aPresShell, nsStyleContext* aContext) {
-  return NS_NewBlockFrame(aPresShell, aContext,
-    NS_BLOCK_FLOAT_MGR|NS_BLOCK_MARGIN_ROOT);
-}
-
-
-
-inline nsIFrame*
-NS_NewRelativeItemWrapperFrame(nsIPresShell* aPresShell, nsStyleContext* aContext, PRUint32 aFlags) {
-  return NS_NewBlockFrame(aPresShell, aContext, aFlags);
+inline nsIFrame* NS_NewBlockFormattingContext(nsIPresShell* aPresShell,
+                                              nsStyleContext* aStyleContext)
+{
+  return NS_NewBlockFrame(aPresShell, aStyleContext,
+                          NS_BLOCK_FLOAT_MGR | NS_BLOCK_MARGIN_ROOT);
 }
 
 nsIFrame*
