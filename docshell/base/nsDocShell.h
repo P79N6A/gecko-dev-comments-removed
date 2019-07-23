@@ -476,6 +476,10 @@ protected:
     nsresult BeginRestoreChildren();
 
     
+    void DoGetPositionAndSize(PRInt32 * x, PRInt32 * y, PRInt32 * cx,
+                              PRInt32 * cy);
+    
+    
     static nsresult URIInheritsSecurityContext(nsIURI* aURI, PRBool* aResult);
 
     
