@@ -4618,7 +4618,12 @@ js_FindIdentifierBase(JSContext *cx, JSObject *scopeChain, jsid id)
 
 
 
-    for (int scopeIndex = 0; js_IsCacheableNonGlobalScope(obj); scopeIndex++) {
+
+
+
+    for (int scopeIndex = 0;
+         !obj->getParent() || js_IsCacheableNonGlobalScope(obj);
+         scopeIndex++) {
         JSObject *pobj;
         JSProperty *prop;
         int protoIndex = js_LookupPropertyWithFlags(cx, obj, id,
@@ -4628,7 +4633,8 @@ js_FindIdentifierBase(JSContext *cx, JSObject *scopeChain, jsid id)
             return NULL;
         if (prop) {
             JS_ASSERT(pobj->isNative());
-            JS_ASSERT(pobj->getClass() == obj->getClass());
+            JS_ASSERT(!obj->getParent() ||
+                      pobj->getClass() == obj->getClass());
 #ifdef DEBUG
             PropertyCacheEntry *entry =
 #endif
@@ -4639,10 +4645,10 @@ js_FindIdentifierBase(JSContext *cx, JSObject *scopeChain, jsid id)
             return obj;
         }
 
-        
-        obj = obj->getParent();
-        if (!obj->getParent())
+        JSObject *parent = obj->getParent();
+        if (!parent)
             return obj;
+        obj = parent;
     }
 
     
