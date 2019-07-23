@@ -66,17 +66,6 @@ namespace nanojit
         0
     };
 
-    extern const uint8_t insSizes[] = {
-#define OPDEF(op, number, operands, repkind) \
-            sizeof(LIns##repkind),
-#define OPDEF64(op, number, operands, repkind) \
-            OPDEF(op, number, operands, repkind)
-#include "LIRopcode.tbl"
-#undef OPDEF
-#undef OPDEF64
-            0
-    };
-
     
     #ifdef NJ_VERBOSE
 
@@ -372,33 +361,30 @@ namespace nanojit
     
     LInsp LirReader::read()
     {
-        NanoAssert(_i);
+        static const uint8_t insSizes[] = {
+        
+#define OPDEF(op, number, operands, repkind) \
+            ((number) == LIR_start ? 0 : sizeof(LIns##repkind)),
+#define OPDEF64(op, number, operands, repkind) \
+            OPDEF(op, number, operands, repkind)
+#include "LIRopcode.tbl"
+#undef OPDEF
+#undef OPDEF64
+            0
+        };
+
+        
+        NanoAssert(_i && !_i->isop(LIR_skip));
+
+        
+        
+        
+        
         LInsp ret = _i;
+        _i = (LInsp)(uintptr_t(_i) - insSizes[_i->opcode()]);
 
         
-        LOpcode iop = _i->opcode();
-        NanoAssert(iop != LIR_skip);
-
-#ifdef DEBUG
-        if (iop == LIR_start) {
-            
-            
-            
-            
-            
-            _i = 0;
-            return ret;
-        }
-        else 
-#endif
-        {
-            
-            
-            _i = (LInsp)(uintptr_t(_i) - insSizes[iop]);
-        }
-
-        
-        while (LIR_skip == _i->opcode()) {
+        while (_i->isop(LIR_skip)) {
             NanoAssert(_i->prevLIns() != _i);
             _i = _i->prevLIns();
         }
