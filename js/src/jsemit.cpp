@@ -106,6 +106,8 @@ js_FinishCodeGenerator(JSContext *cx, JSCodeGenerator *cg)
     TREE_CONTEXT_FINISH(&cg->treeContext);
     JS_ARENA_RELEASE(cg->codePool, cg->codeMark);
     JS_ARENA_RELEASE(cg->notePool, cg->noteMark);
+    if (cg->spanDeps) 
+        JS_free(cx, cg->spanDeps);
 }
 
 static ptrdiff_t
@@ -262,6 +264,7 @@ static const char *statementName[] = {
     "label statement",       
     "if statement",          
     "else statement",        
+    "destructuring body",    
     "switch statement",      
     "block",                 
     js_with_statement_str,   
@@ -274,6 +277,8 @@ static const char *statementName[] = {
     "for/in loop",           
     "while loop",            
 };
+
+JS_STATIC_ASSERT(JS_ARRAY_LENGTH(statementName) == STMT_LIMIT);
 
 static const char *
 StatementName(JSCodeGenerator *cg)
@@ -519,17 +524,10 @@ AddSpanDep(JSContext *cx, JSCodeGenerator *cg, jsbytecode *pc, jsbytecode *pc2,
 
     if ((index & (index - 1)) == 0 &&
         (!(sdbase = cg->spanDeps) || index >= SPANDEPS_MIN)) {
-        if (!sdbase) {
-            size = SPANDEPS_SIZE_MIN;
-            JS_ARENA_ALLOCATE_CAST(sdbase, JSSpanDep *, &cx->tempPool, size);
-        } else {
-            size = SPANDEPS_SIZE(index);
-            JS_ARENA_GROW_CAST(sdbase, JSSpanDep *, &cx->tempPool, size, size);
-        }
-        if (!sdbase) {
-            js_ReportOutOfScriptQuota(cx);
+        size = sdbase ? SPANDEPS_SIZE(index) : SPANDEPS_SIZE_MIN / 2;
+        sdbase = (JSSpanDep *) JS_realloc(cx, sdbase, size + size);
+        if (!sdbase)
             return JS_FALSE;
-        }
         cg->spanDeps = sdbase;
     }
 
@@ -617,7 +615,7 @@ BuildSpanDepTable(JSContext *cx, JSCodeGenerator *cg)
         op = (JSOp)*pc;
         cs = &js_CodeSpec[op];
 
-        switch (cs->format & JOF_TYPEMASK) {
+        switch (JOF_TYPE(cs->format)) {
           case JOF_TABLESWITCH:
           case JOF_LOOKUPSWITCH:
             pc = AddSwitchSpanDeps(cx, cg, pc);
@@ -793,7 +791,7 @@ OptimizeSpanDeps(JSContext *cx, JSCodeGenerator *cg)
                 pivot = sd->offset;
                 pc = base + top;
                 op = (JSOp) *pc;
-                type = (js_CodeSpec[op].format & JOF_TYPEMASK);
+                type = JOF_OPTYPE(op);
                 if (JOF_TYPE_IS_EXTENDED_JUMP(type)) {
                     
 
@@ -926,7 +924,7 @@ OptimizeSpanDeps(JSContext *cx, JSCodeGenerator *cg)
         if (sd->top != top) {
             top = sd->top;
             op = (JSOp) base[top];
-            type = (js_CodeSpec[op].format & JOF_TYPEMASK);
+            type = JOF_OPTYPE(op);
 
             for (sd2 = sd - 1; sd2 >= sdbase && sd2->top == top; sd2--)
                 continue;
@@ -1109,7 +1107,7 @@ OptimizeSpanDeps(JSContext *cx, JSCodeGenerator *cg)
             top = sd->top;
             JS_ASSERT(top == sd->before);
             op = (JSOp) base[offset];
-            type = (js_CodeSpec[op].format & JOF_TYPEMASK);
+            type = JOF_OPTYPE(op);
             JS_ASSERT(type == JOF_JUMP ||
                       type == JOF_JUMPX ||
                       type == JOF_TABLESWITCH ||
@@ -1143,8 +1141,7 @@ OptimizeSpanDeps(JSContext *cx, JSCodeGenerator *cg)
 
 
     size = SPANDEPS_SIZE(JS_BIT(JS_CeilingLog2(cg->numSpanDeps)));
-    JS_ArenaFreeAllocation(&cx->tempPool, cg->spanDeps,
-                           JS_MAX(size, SPANDEPS_SIZE_MIN));
+    JS_free(cx, cg->spanDeps);
     cg->spanDeps = NULL;
     FreeJumpTargets(cg, cg->jumpTargets);
     cg->jumpTargets = NULL;
@@ -1323,56 +1320,11 @@ FlushPops(JSContext *cx, JSCodeGenerator *cg, intN *npops)
 
 
 
-
-
 static JSBool
-EmitNonLocalJumpFixup(JSContext *cx, JSCodeGenerator *cg, JSStmtInfo *toStmt,
-                      JSOp *returnop)
+EmitNonLocalJumpFixup(JSContext *cx, JSCodeGenerator *cg, JSStmtInfo *toStmt)
 {
     intN depth, npops;
     JSStmtInfo *stmt;
-    ptrdiff_t jmp;
-
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    if (returnop) {
-        JS_ASSERT(*returnop == JSOP_RETURN);
-        for (stmt = cg->treeContext.topStmt; stmt != toStmt;
-             stmt = stmt->down) {
-            if (stmt->type == STMT_FINALLY ||
-                ((cg->treeContext.flags & TCF_FUN_HEAVYWEIGHT) &&
-                 STMT_MAYBE_SCOPE(stmt)) ||
-                stmt->type == STMT_FOR_IN_LOOP) {
-                if (js_Emit1(cx, cg, JSOP_SETRVAL) < 0)
-                    return JS_FALSE;
-                *returnop = JSOP_RETRVAL;
-                break;
-            }
-        }
-
-        
-
-
-
-
-        if (*returnop == JSOP_RETURN)
-            return JS_TRUE;
-    }
 
     
 
@@ -1391,8 +1343,7 @@ EmitNonLocalJumpFixup(JSContext *cx, JSCodeGenerator *cg, JSStmtInfo *toStmt,
             FLUSH_POPS();
             if (js_NewSrcNote(cx, cg, SRC_HIDDEN) < 0)
                 return JS_FALSE;
-            jmp = EmitBackPatchOp(cx, cg, JSOP_BACKPATCH, &GOSUBS(*stmt));
-            if (jmp < 0)
+            if (EmitBackPatchOp(cx, cg, JSOP_BACKPATCH, &GOSUBS(*stmt)) < 0)
                 return JS_FALSE;
             break;
 
@@ -1452,7 +1403,7 @@ EmitGoto(JSContext *cx, JSCodeGenerator *cg, JSStmtInfo *toStmt,
 {
     intN index;
 
-    if (!EmitNonLocalJumpFixup(cx, cg, toStmt, NULL))
+    if (!EmitNonLocalJumpFixup(cx, cg, toStmt))
         return -1;
 
     if (label)
@@ -1773,7 +1724,11 @@ EmitAtomOp(JSContext *cx, JSParseNode *pn, JSOp op, JSCodeGenerator *cg)
 {
     JSAtomListElement *ale;
 
-    JS_ASSERT((js_CodeSpec[op].format & JOF_TYPEMASK) == JOF_ATOM);
+    JS_ASSERT(JOF_OPTYPE(op) == JOF_ATOM);
+    if (op == JSOP_GETPROP &&
+        pn->pn_atom == cx->runtime->atomState.lengthAtom) {
+        return js_Emit1(cx, cg, JSOP_LENGTH) >= 0;
+    }
     ale = js_IndexAtom(cx, pn->pn_atom, &cg->atomList);
     if (!ale)
         return JS_FALSE;
@@ -1787,7 +1742,7 @@ static JSBool
 EmitObjectOp(JSContext *cx, JSParsedObjectBox *pob, JSOp op,
              JSCodeGenerator *cg)
 {
-    JS_ASSERT((js_CodeSpec[op].format & JOF_TYPEMASK) == JOF_OBJECT);
+    JS_ASSERT(JOF_OPTYPE(op) == JOF_OBJECT);
     return EmitIndexOp(cx, op, IndexParsedObject(pob, &cg->objectList), cg);
 }
 
@@ -1809,8 +1764,8 @@ EmitSlotIndexOp(JSContext *cx, JSOp op, uintN slot, uintN index,
     ptrdiff_t off;
     jsbytecode *pc;
 
-    JS_ASSERT((js_CodeSpec[op].format & JOF_TYPEMASK) == JOF_SLOTATOM ||
-              (js_CodeSpec[op].format & JOF_TYPEMASK) == JOF_SLOTOBJECT);
+    JS_ASSERT(JOF_OPTYPE(op) == JOF_SLOTATOM ||
+              JOF_OPTYPE(op) == JOF_SLOTOBJECT);
     bigSuffix = EmitBigIndexPrefix(cx, cg, index);
     if (bigSuffix == JSOP_FALSE)
         return JS_FALSE;
@@ -2285,7 +2240,7 @@ EmitNameOp(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn,
     if (op == JSOP_ARGUMENTS) {
         if (js_Emit1(cx, cg, op) < 0)
             return JS_FALSE;
-        if (callContext && js_Emit1(cx, cg, JSOP_GLOBALTHIS) < 0)
+        if (callContext && js_Emit1(cx, cg, JSOP_NULL) < 0)
             return JS_FALSE;
     } else {
         if (pn->pn_slot >= 0) {
@@ -3250,7 +3205,7 @@ MaybeEmitVarDecl(JSContext *cx, JSCodeGenerator *cg, JSOp prologOp,
         atomIndex = ALE_INDEX(ale);
     }
 
-    if ((js_CodeSpec[pn->pn_op].format & JOF_TYPEMASK) == JOF_ATOM &&
+    if (JOF_OPTYPE(pn->pn_op) == JOF_ATOM &&
         (!(cg->treeContext.flags & TCF_IN_FUNCTION) ||
          (cg->treeContext.flags & TCF_FUN_HEAVYWEIGHT))) {
         
@@ -3279,7 +3234,7 @@ EmitDestructuringDecl(JSContext *cx, JSCodeGenerator *cg, JSOp prologOp,
     JSOp decltype;
 
     JS_ASSERT(pn->pn_type == TOK_NAME);
-    decltype = (prologOp == JSOP_NOP) ? (JSOp) LET_DECL : (JSOp) VAR_DECL;
+    decltype = (JSOp) ((prologOp == JSOP_NOP) ? LET_DECL : VAR_DECL);
     if (!BindNameToSlot(cx, cg, pn, decltype))
         return JS_FALSE;
 
@@ -3953,12 +3908,8 @@ js_EmitTree(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn)
     JSOp op;
     JSTokenType type;
     uint32 argc;
-    int stackDummy;
 
-    if (!JS_CHECK_STACK_SIZE(cx, stackDummy)) {
-        js_ReportOverRecursed(cx);
-        return JS_FALSE;
-    }
+    JS_CHECK_RECURSION(cx, return JS_FALSE);
 
     ok = JS_TRUE;
     cg->emitLevel++;
@@ -3999,8 +3950,8 @@ js_EmitTree(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn)
         }
 
         
-        cg2mark = JS_ARENA_MARK(&cx->tempPool);
-        JS_ARENA_ALLOCATE_TYPE(cg2, JSCodeGenerator, &cx->tempPool);
+        cg2mark = JS_ARENA_MARK(cg->codePool);
+        JS_ARENA_ALLOCATE_TYPE(cg2, JSCodeGenerator, cg->codePool);
         if (!cg2) {
             js_ReportOutOfScriptQuota(cx);
             return JS_FALSE;
@@ -4025,10 +3976,8 @@ js_EmitTree(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn)
             }
         }
         js_FinishCodeGenerator(cx, cg2);
-        JS_ASSERT(js_GuardedArenaMark(&cx->tempPool, cg2mark,
-                                      cg->treeContext.
-                                      parseContext->lastAllocMark));
-        JS_ARENA_RELEASE(&cx->tempPool, cg2mark);
+        JS_ARENA_RELEASE(cg->codePool, cg2mark);
+        cg2 = NULL;
         if (!pn)
             return JS_FALSE;
 
@@ -5118,11 +5067,19 @@ js_EmitTree(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn)
 
 
 
-        op = JSOP_RETURN;
-        if (!EmitNonLocalJumpFixup(cx, cg, NULL, &op))
+
+
+
+        top = CG_OFFSET(cg);
+        if (js_Emit1(cx, cg, JSOP_RETURN) < 0)
             return JS_FALSE;
-        if (js_Emit1(cx, cg, op) < 0)
+        if (!EmitNonLocalJumpFixup(cx, cg, NULL))
             return JS_FALSE;
+        if (top + JSOP_RETURN_LENGTH != CG_OFFSET(cg)) {
+            CG_BASE(cg)[top] = JSOP_SETRVAL;
+            if (js_Emit1(cx, cg, JSOP_RETRVAL) < 0)
+                return JS_FALSE;
+        }
         break;
 
 #if JS_HAS_GENERATORS
@@ -5411,14 +5368,19 @@ js_EmitTree(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn)
                                        atomIndex);
                     break;
                 }
-                
+                if (js_Emit1(cx, cg, JSOP_DUP) < 0)
+                    return JS_FALSE;
+                EMIT_INDEX_OP(JSOP_GETXPROP, atomIndex);
+                break;
               case TOK_DOT:
                 if (js_Emit1(cx, cg, JSOP_DUP) < 0)
                     return JS_FALSE;
-                EMIT_INDEX_OP((pn2->pn_type == TOK_NAME)
-                              ? JSOP_GETXPROP
-                              : JSOP_GETPROP,
-                              atomIndex);
+                if (pn2->pn_atom == cx->runtime->atomState.lengthAtom) {
+                    if (js_Emit1(cx, cg, JSOP_LENGTH) < 0)
+                        return JS_FALSE;
+                } else {
+                    EMIT_INDEX_OP(JSOP_GETPROP, atomIndex);
+                }
                 break;
               case TOK_LB:
 #if JS_HAS_LVALUE_RETURN
@@ -5718,7 +5680,7 @@ js_EmitTree(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn)
             if (pn2->pn_slot >= 0) {
                 if (pn2->pn_const) {
                     
-                    op = ((js_CodeSpec[op].format & JOF_TYPEMASK) == JOF_ATOM)
+                    op = (JOF_OPTYPE(op) == JOF_ATOM)
                          ? JSOP_GETGVAR
                          : JSOP_GETVAR;
                 }
@@ -5859,11 +5821,12 @@ js_EmitTree(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn)
         jmp = js_Emit3(cx, cg, JSOP_FILTER, 0, 0);
         if (jmp < 0)
             return JS_FALSE;
+        top = CG_OFFSET(cg);
         if (!js_EmitTree(cx, cg, pn->pn_right))
             return JS_FALSE;
-        if (js_Emit1(cx, cg, JSOP_ENDFILTER) < 0)
-            return JS_FALSE;
         CHECK_AND_SET_JUMP_OFFSET_AT(cx, cg, jmp);
+        if (EmitJump(cx, cg, JSOP_ENDFILTER, top - CG_OFFSET(cg)) < 0)
+            return JS_FALSE;
         break;
 #endif
 
@@ -5928,13 +5891,8 @@ js_EmitTree(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn)
 
 
 
-
-
-
-            if (!js_EmitTree(cx, cg, pn2) ||
-                !js_Emit1(cx, cg, JSOP_GLOBALTHIS) < 0) {
+            if (!js_EmitTree(cx, cg, pn2) || !js_Emit1(cx, cg, JSOP_NULL) < 0)
                 return JS_FALSE;
-            }
         }
 
         
@@ -6141,6 +6099,13 @@ js_EmitTree(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn)
         break;
 
       case TOK_RC:
+#if JS_HAS_DESTRUCTURING_SHORTHAND
+        if (pn->pn_extra & PNX_SHORTHAND) {
+            js_ReportCompileErrorNumber(cx, CG_TS(cg), pn, JSREPORT_ERROR,
+                                        JSMSG_BAD_OBJECT_INIT);
+            return JS_FALSE;
+        }
+#endif
         
 
 

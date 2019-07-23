@@ -496,7 +496,7 @@ JS_ConvertValue(JSContext *cx, jsval v, JSType type, jsval *vp)
         }
         break;
       case JSTYPE_BOOLEAN:
-        *vp = js_ValueToBoolean(v);
+        *vp = BOOLEAN_TO_JSVAL(js_ValueToBoolean(v));
         return JS_TRUE;
       default: {
         char numBuf[12];
@@ -732,16 +732,10 @@ JS_NewRuntime(uint32 maxbytes)
     rt->stateChange = JS_NEW_CONDVAR(rt->gcLock);
     if (!rt->stateChange)
         goto bad;
-    rt->setSlotLock = JS_NEW_LOCK();
-    if (!rt->setSlotLock)
+    rt->titleSharingDone = JS_NEW_CONDVAR(rt->gcLock);
+    if (!rt->titleSharingDone)
         goto bad;
-    rt->setSlotDone = JS_NEW_CONDVAR(rt->setSlotLock);
-    if (!rt->setSlotDone)
-        goto bad;
-    rt->scopeSharingDone = JS_NEW_CONDVAR(rt->gcLock);
-    if (!rt->scopeSharingDone)
-        goto bad;
-    rt->scopeSharingTodo = NO_SCOPE_SHARING_TODO;
+    rt->titleSharingTodo = NO_TITLE_SHARING_TODO;
     rt->debuggerLock = JS_NEW_LOCK();
     if (!rt->debuggerLock)
         goto bad;
@@ -798,12 +792,8 @@ JS_DestroyRuntime(JSRuntime *rt)
         JS_DESTROY_LOCK(rt->rtLock);
     if (rt->stateChange)
         JS_DESTROY_CONDVAR(rt->stateChange);
-    if (rt->setSlotLock)
-        JS_DESTROY_LOCK(rt->setSlotLock);
-    if (rt->setSlotDone)
-        JS_DESTROY_CONDVAR(rt->setSlotDone);
-    if (rt->scopeSharingDone)
-        JS_DESTROY_CONDVAR(rt->scopeSharingDone);
+    if (rt->titleSharingDone)
+        JS_DESTROY_CONDVAR(rt->titleSharingDone);
     if (rt->debuggerLock)
         JS_DESTROY_LOCK(rt->debuggerLock);
 #else
@@ -841,11 +831,10 @@ JS_SetRuntimePrivate(JSRuntime *rt, void *data)
     rt->data = data;
 }
 
-#ifdef JS_THREADSAFE
-
 JS_PUBLIC_API(void)
 JS_BeginRequest(JSContext *cx)
 {
+#ifdef JS_THREADSAFE
     JSRuntime *rt;
 
     JS_ASSERT(cx->thread->id == js_CurrentThreadId());
@@ -869,14 +858,16 @@ JS_BeginRequest(JSContext *cx)
     }
     cx->requestDepth++;
     cx->outstandingRequests++;
+#endif
 }
 
 JS_PUBLIC_API(void)
 JS_EndRequest(JSContext *cx)
 {
+#ifdef JS_THREADSAFE
     JSRuntime *rt;
-    JSScope *scope, **todop;
-    uintN nshares;
+    JSTitle *title, **todop;
+    JSBool shared;
 
     CHECK_REQUEST(cx);
     JS_ASSERT(cx->requestDepth > 0);
@@ -889,15 +880,15 @@ JS_EndRequest(JSContext *cx)
         cx->outstandingRequests--;
 
         
-        todop = &rt->scopeSharingTodo;
-        nshares = 0;
-        while ((scope = *todop) != NO_SCOPE_SHARING_TODO) {
-            if (scope->ownercx != cx) {
-                todop = &scope->u.link;
+        todop = &rt->titleSharingTodo;
+        shared = JS_FALSE;
+        while ((title = *todop) != NO_TITLE_SHARING_TODO) {
+            if (title->ownercx != cx) {
+                todop = &title->u.link;
                 continue;
             }
-            *todop = scope->u.link;
-            scope->u.link = NULL;       
+            *todop = title->u.link;
+            title->u.link = NULL;       
 
             
 
@@ -906,15 +897,15 @@ JS_EndRequest(JSContext *cx)
 
 
 
-            if (js_DropObjectMap(cx, &scope->map, NULL)) {
-                js_InitLock(&scope->lock);
-                scope->u.count = 0;                 
-                js_FinishSharingScope(cx, scope);   
-                nshares++;
+            if (js_DropObjectMap(cx, TITLE_TO_MAP(title), NULL)) {
+                js_InitLock(&title->lock);
+                title->u.count = 0;   
+                js_FinishSharingTitle(cx, title); 
+                shared = JS_TRUE;
             }
         }
-        if (nshares)
-            JS_NOTIFY_ALL_CONDVAR(rt->scopeSharingDone);
+        if (shared)
+            JS_NOTIFY_ALL_CONDVAR(rt->titleSharingDone);
 
         
         JS_ASSERT(rt->requestCount > 0);
@@ -928,54 +919,47 @@ JS_EndRequest(JSContext *cx)
 
     cx->requestDepth--;
     cx->outstandingRequests--;
+#endif
 }
 
 
 JS_PUBLIC_API(void)
 JS_YieldRequest(JSContext *cx)
 {
-    JSRuntime *rt;
-
+#ifdef JS_THREADSAFE
     JS_ASSERT(cx->thread);
     CHECK_REQUEST(cx);
-
-    rt = cx->runtime;
-    JS_LOCK_GC(rt);
-    JS_ASSERT(rt->requestCount > 0);
-    rt->requestCount--;
-    if (rt->requestCount == 0)
-        JS_NOTIFY_REQUEST_DONE(rt);
-    JS_UNLOCK_GC(rt);
-    
-
-    JS_LOCK_GC(rt);
-    if (rt->gcThread != cx->thread) {
-        while (rt->gcLevel > 0)
-            JS_AWAIT_GC_DONE(rt);
-    }
-    rt->requestCount++;
-    JS_UNLOCK_GC(rt);
+    JS_ResumeRequest(cx, JS_SuspendRequest(cx));
+#endif
 }
 
 JS_PUBLIC_API(jsrefcount)
 JS_SuspendRequest(JSContext *cx)
 {
+#ifdef JS_THREADSAFE
     jsrefcount saveDepth = cx->requestDepth;
 
-    while (cx->requestDepth)
+    while (cx->requestDepth) {
+        cx->outstandingRequests++;  
         JS_EndRequest(cx);
+    }
     return saveDepth;
+#else
+    return 0;
+#endif
 }
 
 JS_PUBLIC_API(void)
 JS_ResumeRequest(JSContext *cx, jsrefcount saveDepth)
 {
+#ifdef JS_THREADSAFE
     JS_ASSERT(!cx->requestDepth);
-    while (--saveDepth >= 0)
+    while (--saveDepth >= 0) {
         JS_BeginRequest(cx);
+        cx->outstandingRequests--;  
+    }
+#endif
 }
-
-#endif 
 
 JS_PUBLIC_API(void)
 JS_Lock(JSRuntime *rt)
@@ -1722,6 +1706,14 @@ JS_GetGlobalForObject(JSContext *cx, JSObject *obj)
     return obj;
 }
 
+JS_PUBLIC_API(jsval)
+JS_ComputeThis(JSContext *cx, jsval *vp)
+{
+    if (!js_ComputeThis(cx, JS_FALSE, vp + 2))
+        return JSVAL_NULL;
+    return vp[1];
+}
+
 JS_PUBLIC_API(void *)
 JS_malloc(JSContext *cx, size_t nbytes)
 {
@@ -2018,12 +2010,17 @@ JS_PrintTraceThingInfo(char *buf, size_t bufsize, JSTracer *trc,
           case JSTRACE_OBJECT:
           {
             JSObject  *obj = (JSObject *)thing;
-            jsval     privateValue = STOBJ_GET_SLOT(obj, JSSLOT_PRIVATE);
-            void      *privateThing = JSVAL_IS_VOID(privateValue)
-                                      ? NULL
-                                      : JSVAL_TO_PRIVATE(privateValue);
+            JSClass *clasp = STOBJ_GET_CLASS(obj);
+            if (clasp->flags & JSCLASS_HAS_PRIVATE) {
+                jsval     privateValue = STOBJ_GET_SLOT(obj, JSSLOT_PRIVATE);
+                void      *privateThing = JSVAL_IS_VOID(privateValue)
+                                          ? NULL
+                                          : JSVAL_TO_PRIVATE(privateValue);
 
-            JS_snprintf(buf, bufsize, "%p", privateThing);
+                JS_snprintf(buf, bufsize, "%p", privateThing);
+            } else {
+                JS_snprintf(buf, bufsize, "<no private>");
+            }
             break;
           }
 
@@ -2470,6 +2467,7 @@ JS_MaybeGC(JSContext *cx)
 JS_PUBLIC_API(JSGCCallback)
 JS_SetGCCallback(JSContext *cx, JSGCCallback cb)
 {
+    CHECK_REQUEST(cx);
     return JS_SetGCCallbackRT(cx->runtime, cb);
 }
 
@@ -2499,6 +2497,9 @@ JS_SetGCParameter(JSRuntime *rt, JSGCParamKey key, uint32 value)
         break;
       case JSGC_MAX_MALLOC_BYTES:
         rt->gcMaxMallocBytes = value;
+        break;
+      case JSGC_STACKPOOL_LIFESPAN:
+        rt->gcStackPoolLifespan = value;
         break;
     }
 }
@@ -2776,7 +2777,7 @@ JS_InstanceOf(JSContext *cx, JSObject *obj, JSClass *clasp, jsval *argv)
     JSFunction *fun;
 
     CHECK_REQUEST(cx);
-    if (OBJ_GET_CLASS(cx, obj) == clasp)
+    if (obj && OBJ_GET_CLASS(cx, obj) == clasp)
         return JS_TRUE;
     if (argv) {
         fun = js_ValueToFunction(cx, &argv[-2], 0);
@@ -2784,7 +2785,9 @@ JS_InstanceOf(JSContext *cx, JSObject *obj, JSClass *clasp, jsval *argv)
             JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL,
                                  JSMSG_INCOMPATIBLE_PROTO,
                                  clasp->name, JS_GetFunctionName(fun),
-                                 OBJ_GET_CLASS(cx, obj)->name);
+                                 obj
+                                 ? OBJ_GET_CLASS(cx, obj)->name
+                                 : js_null_str);
         }
     }
     return JS_FALSE;
@@ -2841,8 +2844,30 @@ JS_PUBLIC_API(JSBool)
 JS_SetPrototype(JSContext *cx, JSObject *obj, JSObject *proto)
 {
     CHECK_REQUEST(cx);
+#ifdef DEBUG
+    
+
+
+
+
+
+
+
+
     if (obj->map->ops->setProto)
         return obj->map->ops->setProto(cx, obj, JSSLOT_PROTO, proto);
+#else
+    if (OBJ_IS_NATIVE(obj)) {
+        JS_LOCK_OBJ(cx, obj);
+        if (!js_GetMutableScope(cx, obj)) {
+            JS_UNLOCK_OBJ(cx, obj);
+            return JS_FALSE;
+        }
+        LOCKED_OBJ_SET_PROTO(obj, proto);
+        JS_UNLOCK_OBJ(cx, obj);
+        return JS_TRUE;
+    }
+#endif
     OBJ_SET_PROTO(cx, obj, proto);
     return JS_TRUE;
 }
@@ -2862,8 +2887,11 @@ JS_PUBLIC_API(JSBool)
 JS_SetParent(JSContext *cx, JSObject *obj, JSObject *parent)
 {
     CHECK_REQUEST(cx);
+#ifdef DEBUG
+    
     if (obj->map->ops->setParent)
         return obj->map->ops->setParent(cx, obj, JSSLOT_PARENT, parent);
+#endif
     OBJ_SET_PARENT(cx, obj, parent);
     return JS_TRUE;
 }
@@ -2904,6 +2932,16 @@ JS_NewObject(JSContext *cx, JSClass *clasp, JSObject *proto, JSObject *parent)
     return js_NewObject(cx, clasp, proto, parent);
 }
 
+JS_PUBLIC_API(JSObject *)
+JS_NewObjectWithGivenProto(JSContext *cx, JSClass *clasp, JSObject *proto,
+                           JSObject *parent)
+{
+    CHECK_REQUEST(cx);
+    if (!clasp)
+        clasp = &js_ObjectClass;    
+    return js_NewObjectWithGivenProto(cx, clasp, proto, parent);
+}
+
 JS_PUBLIC_API(JSBool)
 JS_SealObject(JSContext *cx, JSObject *obj, JSBool deep)
 {
@@ -2923,10 +2961,10 @@ JS_SealObject(JSContext *cx, JSObject *obj, JSBool deep)
 
 #if defined JS_THREADSAFE && defined DEBUG
     
-    if (scope->ownercx != cx) {
+    if (scope->title.ownercx != cx) {
         JS_LOCK_OBJ(cx, obj);
         JS_ASSERT(OBJ_SCOPE(obj) == scope);
-        JS_ASSERT(scope->ownercx == cx);
+        JS_ASSERT(scope->title.ownercx == cx);
         JS_UNLOCK_SCOPE(cx, scope);
     }
 #endif
@@ -2944,8 +2982,10 @@ JS_SealObject(JSContext *cx, JSObject *obj, JSBool deep)
     
     JS_LOCK_OBJ(cx, obj);
     scope = js_GetMutableScope(cx, obj);
-    if (scope)
+    if (scope) {
         SCOPE_SET_SEALED(scope);
+        SCOPE_GENERATE_PCTYPE(cx, scope);
+    }
     JS_UNLOCK_OBJ(cx, obj);
     if (!scope)
         return JS_FALSE;
@@ -3630,7 +3670,7 @@ JS_NewArrayObject(JSContext *cx, jsint length, jsval *vector)
 JS_PUBLIC_API(JSBool)
 JS_IsArrayObject(JSContext *cx, JSObject *obj)
 {
-    return OBJ_GET_CLASS(cx, obj) == &js_ArrayClass;
+    return OBJ_IS_ARRAY(cx, obj);
 }
 
 JS_PUBLIC_API(JSBool)
@@ -4008,7 +4048,7 @@ JS_NextProperty(JSContext *cx, JSObject *iterobj, jsid *idp)
             *idp = JSVAL_VOID;
         } else {
             *idp = ida->vector[--i];
-            OBJ_SET_SLOT(cx, iterobj, JSSLOT_ITER_INDEX, INT_TO_JSVAL(i));
+            STOBJ_SET_SLOT(iterobj, JSSLOT_ITER_INDEX, INT_TO_JSVAL(i));
         }
     }
     return JS_TRUE;
@@ -4232,7 +4272,7 @@ js_generic_fast_native_method_dispatcher(JSContext *cx, uintN argc, jsval *vp)
 
 
 
-    if (!js_ComputeThis(cx, vp + 2))
+    if (!js_ComputeThis(cx, JS_FALSE, vp + 2))
         return JS_FALSE;
     
 
@@ -4288,7 +4328,7 @@ js_generic_native_method_dispatcher(JSContext *cx, JSObject *obj,
 
 
     JS_ASSERT(cx->fp->argv == argv);
-    if (!js_ComputeThis(cx, argv))
+    if (!js_ComputeThis(cx, JS_TRUE, argv))
         return JS_FALSE;
     cx->fp->thisp = JSVAL_TO_OBJECT(argv[-1]);
 
@@ -4565,6 +4605,9 @@ JS_NewScriptObject(JSContext *cx, JSScript *script)
     if (obj) {
         JS_SetPrivate(cx, obj, script);
         script->object = obj;
+#ifdef CHECK_SCRIPT_OWNER
+        script->owner = NULL;
+#endif
     }
     JS_POP_TEMP_ROOT(cx, &tvr);
     return obj;
@@ -5648,7 +5691,6 @@ JS_ThrowStopIteration(JSContext *cx)
     return js_ThrowStopIteration(cx);
 }
 
-#ifdef JS_THREADSAFE
 
 
 
@@ -5656,7 +5698,11 @@ JS_ThrowStopIteration(JSContext *cx)
 JS_PUBLIC_API(jsword)
 JS_GetContextThread(JSContext *cx)
 {
+#ifdef JS_THREADSAFE
     return JS_THREAD_ID(cx);
+#else
+    return 0;
+#endif
 }
 
 
@@ -5666,20 +5712,27 @@ JS_GetContextThread(JSContext *cx)
 JS_PUBLIC_API(jsword)
 JS_SetContextThread(JSContext *cx)
 {
+#ifdef JS_THREADSAFE
     jsword old = JS_THREAD_ID(cx);
     if (!js_SetContextThread(cx))
         return -1;
     return old;
+#else
+    return 0;
+#endif
 }
 
 JS_PUBLIC_API(jsword)
 JS_ClearContextThread(JSContext *cx)
 {
+#ifdef JS_THREADSAFE
     jsword old = JS_THREAD_ID(cx);
     js_ClearContextThread(cx);
     return old;
-}
+#else
+    return 0;
 #endif
+}
 
 #ifdef JS_GC_ZEAL
 JS_PUBLIC_API(void)
@@ -5691,38 +5744,16 @@ JS_SetGCZeal(JSContext *cx, uint8 zeal)
 
 
 
-#if defined(XP_WIN)
+#if !defined(STATIC_JS_API) && defined(XP_WIN)
+
 #include <windows.h>
 
 
 
 
-
-
-
-
-
-
-
-
-#ifdef _WIN32
 BOOL WINAPI DllMain (HINSTANCE hDLL, DWORD dwReason, LPVOID lpReserved)
 {
     return TRUE;
 }
 
-#else  
-
-int CALLBACK LibMain( HINSTANCE hInst, WORD wDataSeg,
-                      WORD cbHeapSize, LPSTR lpszCmdLine )
-{
-    return TRUE;
-}
-
-BOOL CALLBACK __loadds WEP(BOOL fSystemExit)
-{
-    return TRUE;
-}
-
-#endif 
-#endif 
+#endif

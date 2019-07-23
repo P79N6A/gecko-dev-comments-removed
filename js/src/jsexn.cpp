@@ -338,7 +338,7 @@ InitExnPrivate(JSContext *cx, JSObject *exnObject, JSString *message,
     JS_ASSERT(priv->stackElems + stackDepth == elem);
     JS_ASSERT(GetStackTraceValueBuffer(priv) + valueCount == values);
 
-    OBJ_SET_SLOT(cx, exnObject, JSSLOT_PRIVATE, PRIVATE_TO_JSVAL(priv));
+    STOBJ_SET_SLOT(exnObject, JSSLOT_PRIVATE, PRIVATE_TO_JSVAL(priv));
 
     if (report) {
         
@@ -759,7 +759,7 @@ Exception(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 
 
     if (OBJ_GET_CLASS(cx, obj) == &js_ErrorClass)
-        OBJ_SET_SLOT(cx, obj, JSSLOT_PRIVATE, JSVAL_VOID);
+        STOBJ_SET_SLOT(obj, JSSLOT_PRIVATE, JSVAL_VOID);
 
     
     if (argc != 0) {
@@ -819,8 +819,9 @@ exn_toString(JSContext *cx, uintN argc, jsval *vp)
     jschar *chars, *cp;
     size_t name_length, message_length, length;
 
-    obj = JSVAL_TO_OBJECT(vp[1]);
-    if (!OBJ_GET_PROPERTY(cx, obj,
+    obj = JS_THIS_OBJECT(cx, vp);
+    if (!obj ||
+        !OBJ_GET_PROPERTY(cx, obj,
                           ATOM_TO_JSID(cx->runtime->atomState.nameAtom),
                           &v)) {
         return JS_FALSE;
@@ -880,7 +881,8 @@ exn_toSource(JSContext *cx, uintN argc, jsval *vp)
     jschar *chars, *cp;
 
     obj = JS_THIS_OBJECT(cx, vp);
-    if (!OBJ_GET_PROPERTY(cx, obj,
+    if (!obj ||
+        !OBJ_GET_PROPERTY(cx, obj,
                           ATOM_TO_JSID(cx->runtime->atomState.nameAtom),
                           vp)) {
         return JS_FALSE;
@@ -1048,12 +1050,11 @@ js_InitExceptionClasses(JSContext *cx, JSObject *obj)
             break;
 
         
-        OBJ_SET_SLOT(cx, protos[i], JSSLOT_PRIVATE, JSVAL_VOID);
+        STOBJ_SET_SLOT(protos[i], JSSLOT_PRIVATE, JSVAL_VOID);
 
         
         atom = cx->runtime->atomState.classAtoms[exceptions[i].key];
-        fun = js_DefineFunction(cx, obj, atom, exceptions[i].native, 3,
-                                JSPROP_READONLY | JSPROP_PERMANENT);
+        fun = js_DefineFunction(cx, obj, atom, exceptions[i].native, 3, 0);
         if (!fun)
             break;
 

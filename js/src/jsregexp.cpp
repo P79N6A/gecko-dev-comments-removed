@@ -237,7 +237,7 @@ GetCompactIndexWidth(size_t index)
     return width;
 }
 
-static jsbytecode *
+static JS_INLINE jsbytecode *
 WriteCompactIndex(jsbytecode *pc, size_t index)
 {
     size_t next;
@@ -250,7 +250,7 @@ WriteCompactIndex(jsbytecode *pc, size_t index)
     return pc;
 }
 
-static jsbytecode *
+static JS_INLINE jsbytecode *
 ReadCompactIndex(jsbytecode *pc, size_t *result)
 {
     size_t nextByte;
@@ -353,7 +353,7 @@ typedef struct REGlobalData {
 
 
 
-static uintN
+static JS_INLINE uintN
 upcase(uintN ch)
 {
     uintN cu;
@@ -369,7 +369,7 @@ upcase(uintN ch)
     return (cu < 128) ? ch : cu;
 }
 
-static uintN
+static JS_INLINE uintN
 downcase(uintN ch)
 {
     JS_ASSERT((uintN) (jschar) ch == ch);
@@ -1055,7 +1055,10 @@ lexHex:
             break;
         }
         if (state->flags & JSREG_FOLD) {
-            c = (jschar) JS_MAX(upcase(localMax), downcase(localMax));
+            jschar uc = upcase(localMax);
+            jschar dc = downcase(localMax);
+
+            c = JS_MAX(uc, dc);
             if (c > localMax)
                 localMax = c;
         }
@@ -2149,7 +2152,7 @@ FlatNMatcher(REGlobalData *gData, REMatchState *x, jschar *matchChars,
 }
 #endif
 
-static REMatchState *
+static JS_INLINE REMatchState *
 FlatNIMatcher(REGlobalData *gData, REMatchState *x, jschar *matchChars,
               size_t length)
 {
@@ -2508,7 +2511,7 @@ ReallocStateStack(REGlobalData *gData)
 
 
 
-static REMatchState *
+static JS_INLINE REMatchState *
 SimpleMatch(REGlobalData *gData, REMatchState *x, REOp op,
             jsbytecode **startpc, JSBool updatecp)
 {
@@ -2717,7 +2720,7 @@ SimpleMatch(REGlobalData *gData, REMatchState *x, REOp op,
     return NULL;
 }
 
-static REMatchState *
+static JS_INLINE REMatchState *
 ExecuteREBytecode(REGlobalData *gData, REMatchState *x)
 {
     REMatchState *result = NULL;
@@ -3434,7 +3437,7 @@ js_ExecuteRegExp(JSContext *cx, JSRegExp *re, JSString *str, size_t *indexp,
 
 
 
-        obj = js_NewArrayObject(cx, 0, NULL);
+        obj = js_NewSlowArrayObject(cx);
         if (!obj) {
             ok = JS_FALSE;
             goto out;
@@ -3966,7 +3969,10 @@ js_regexp_toString(JSContext *cx, JSObject *obj, jsval *vp)
 static JSBool
 regexp_toString(JSContext *cx, uintN argc, jsval *vp)
 {
-    return js_regexp_toString(cx, JS_THIS_OBJECT(cx, vp), vp);
+    JSObject *obj;
+
+    obj = JS_THIS_OBJECT(cx, vp);
+    return obj && js_regexp_toString(cx, obj, vp);
 }
 
 static JSBool
@@ -4091,7 +4097,10 @@ created:
 static JSBool
 regexp_compile(JSContext *cx, uintN argc, jsval *vp)
 {
-    return regexp_compile_sub(cx, JS_THIS_OBJECT(cx, vp), argc, vp + 2, vp);
+    JSObject *obj;
+
+    obj = JS_THIS_OBJECT(cx, vp);
+    return obj && regexp_compile_sub(cx, obj, argc, vp + 2, vp);
 }
 
 static JSBool

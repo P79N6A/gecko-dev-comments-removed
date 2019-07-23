@@ -339,72 +339,6 @@ JS_ArenaRelease(JSArenaPool *pool, char *mark)
 }
 
 JS_PUBLIC_API(void)
-JS_ArenaFreeAllocation(JSArenaPool *pool, void *p, size_t size)
-{
-    JSArena **ap, *a, *b;
-    jsuword q;
-
-    
-
-
-
-
-    if (size > pool->arenasize) {
-        ap = *PTR_TO_HEADER(pool, p);
-        a = *ap;
-    } else {
-        q = (jsuword)p + size;
-        q = JS_ARENA_ALIGN(pool, q);
-        ap = &pool->first.next;
-        while ((a = *ap) != NULL) {
-            JS_ASSERT(a->base <= a->avail && a->avail <= a->limit);
-
-            if (a->avail == q) {
-                
-
-
-
-                if (a->base == (jsuword)p)
-                    break;
-
-                
-
-
-
-                a->avail = (jsuword)p;
-                return;
-            }
-            ap = &a->next;
-        }
-    }
-
-    
-
-
-
-
-
-
-    if (pool->current == a)
-        pool->current = (JSArena *) ((char *)ap - offsetof(JSArena, next));
-
-    
-
-
-
-    *ap = b = a->next;
-    if (b && b->avail - b->base > pool->arenasize) {
-        JS_ASSERT(GET_HEADER(pool, b) == &a->next);
-        SET_HEADER(pool, b, ap);
-    }
-    if (pool->quotap)
-        *pool->quotap += a->limit - (jsuword) a;
-    JS_CLEAR_ARENA(a);
-    JS_COUNT_ARENA(pool,--);
-    free(a);
-}
-
-JS_PUBLIC_API(void)
 JS_FreeArenaPool(JSArenaPool *pool)
 {
     FreeArenaList(pool, &pool->first);
@@ -514,31 +448,3 @@ JS_DumpArenaStats(FILE *fp)
     }
 }
 #endif 
-
-#ifdef DEBUG
-
-JSBool
-js_GuardedArenaMark(JSArenaPool *pool, void *mark, void *guardMark)
-{
-    JSArena *a;
-
-    a = pool->current;
-    if (JS_ARENA_MARK_MATCH(a, mark)) {
-        return !JS_ARENA_MARK_MATCH(a, guardMark) ||
-               (uint8 *)guardMark <= (uint8 *)mark;
-    }
-
-    for (a = &pool->first; !JS_ARENA_MARK_MATCH(a, guardMark); a = a->next) {
-        if (JS_ARENA_MARK_MATCH(a, mark))
-            return JS_FALSE;
-    }
-
-    
-
-
-
-    return !JS_ARENA_MARK_MATCH(a, mark) ||
-           (uint8 *)guardMark <= (uint8 *)mark;
-}
-
-#endif

@@ -184,7 +184,10 @@
 
 
 template <class T>
-class nsDerivedSafe : public T
+class
+  NS_FINAL_CLASS
+  NS_STACK_CLASS
+nsDerivedSafe : public T
     
 
 
@@ -341,7 +344,11 @@ class nsCOMPtr_helper
 
 
 
-class NS_COM_GLUE nsQueryInterface
+class
+  NS_COM_GLUE
+  NS_STACK_CLASS
+  NS_FINAL_CLASS
+nsQueryInterface
   {
     public:
       explicit
@@ -475,7 +482,8 @@ class NS_COM_GLUE nsGetServiceByContractIDWithError
     nsresult*                   mErrorPtr;
 };
 
-class nsCOMPtr_base
+class
+nsCOMPtr_base
     
 
 
@@ -535,7 +543,9 @@ class nsCOMPtr_base
 
 
 template <class T>
-class nsCOMPtr
+class
+  NS_FINAL_CLASS
+nsCOMPtr
 #ifdef NSCAP_FEATURE_USE_BASE
     : private nsCOMPtr_base
 #endif

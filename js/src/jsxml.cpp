@@ -496,6 +496,8 @@ qname_toString(JSContext *cx, uintN argc, jsval *vp)
     jschar *chars;
 
     obj = JS_THIS_OBJECT(cx, vp);
+    if (!obj)
+        return JS_FALSE;
     clasp = OBJ_GET_CLASS(cx, obj);
     if (clasp == &js_AttributeNameClass || clasp == &js_AnyNameClass) {
         qn = (JSXMLQName *) JS_GetPrivate(cx, obj);
@@ -3432,6 +3434,8 @@ DeepCopyInLRS(JSContext *cx, JSXML *xml, uintN flags)
     
     JS_ASSERT(cx->localRootStack);
 
+    JS_CHECK_RECURSION(cx, return JS_FALSE);
+
     copy = js_NewXML(cx, (JSXMLClass) xml->xml_class);
     if (!copy)
         return NULL;
@@ -3532,6 +3536,8 @@ DescendantsHelper(JSContext *cx, JSXML *xml, JSXMLQName *nameqn, JSXML *list)
 {
     uint32 i, n;
     JSXML *attr, *kid;
+
+    JS_CHECK_RECURSION(cx, return JS_FALSE);
 
     if (xml->xml_class == JSXML_CLASS_ELEMENT &&
         OBJ_GET_CLASS(cx, nameqn->object) == &js_AttributeNameClass) {
@@ -6068,7 +6074,7 @@ xml_hasOwnProperty(JSContext *cx, uintN argc, jsval *vp)
     jsval name;
     JSBool found;
 
-    obj = JSVAL_TO_OBJECT(vp[1]);
+    obj = JS_THIS_OBJECT(cx, vp);
     if (!JS_InstanceOf(cx, obj, &js_XMLClass, vp + 2))
         return JS_FALSE;
 
@@ -7147,9 +7153,13 @@ xml_toString_helper(JSContext *cx, JSXML *xml)
 static JSBool
 xml_toSource(JSContext *cx, uintN argc, jsval *vp)
 {
+    jsval thisv;
     JSString *str;
 
-    str = ToXMLString(cx, vp[1], TO_SOURCE_FLAG);
+    thisv = JS_THIS(cx, vp);
+    if (JSVAL_IS_NULL(thisv))
+        return JS_FALSE;
+    str = ToXMLString(cx, thisv, TO_SOURCE_FLAG);
     if (!str)
         return JS_FALSE;
     *vp = STRING_TO_JSVAL(str);
@@ -7173,9 +7183,13 @@ xml_toString(JSContext *cx, uintN argc, jsval *vp)
 static JSBool
 xml_toXMLString(JSContext *cx, uintN argc, jsval *vp)
 {
+    jsval thisv;
     JSString *str;
 
-    str = ToXMLString(cx, vp[1], 0);
+    thisv = JS_THIS(cx, vp);
+    if (JSVAL_IS_NULL(thisv))
+        return JS_FALSE;
+    str = ToXMLString(cx, thisv, 0);
     if (!str)
         return JS_FALSE;
     *vp = STRING_TO_JSVAL(str);
@@ -7186,8 +7200,8 @@ xml_toXMLString(JSContext *cx, uintN argc, jsval *vp)
 static JSBool
 xml_valueOf(JSContext *cx, uintN argc, jsval *vp)
 {
-    *vp = vp[1];
-    return JS_TRUE;
+    *vp = JS_THIS(cx, vp);
+    return !JSVAL_IS_NULL(*vp);
 }
 
 static JSFunctionSpec xml_methods[] = {
@@ -7276,12 +7290,14 @@ static JSBool
 xml_settings(JSContext *cx, uintN argc, jsval *vp)
 {
     JSObject *settings;
+    JSObject *obj;
 
     settings = JS_NewObject(cx, NULL, NULL, NULL);
     if (!settings)
         return JS_FALSE;
     *vp = OBJECT_TO_JSVAL(settings);
-    return CopyXMLSettings(cx, JS_THIS_OBJECT(cx, vp), settings);
+    obj = JS_THIS_OBJECT(cx, vp);
+    return obj && CopyXMLSettings(cx, obj, settings);
 }
 
 static JSBool
@@ -7292,6 +7308,8 @@ xml_setSettings(JSContext *cx, uintN argc, jsval *vp)
     JSBool ok;
 
     obj = JS_THIS_OBJECT(cx, vp);
+    if (!obj)
+        return JS_FALSE;
     v = vp[2];
     if (JSVAL_IS_NULL(v) || JSVAL_IS_VOID(v)) {
         cx->xmlSettingFlags = 0;
@@ -7713,6 +7731,8 @@ js_InitXMLClasses(JSContext *cx, JSObject *obj)
         return NULL;
     if (!js_InitAnyNameClass(cx, obj))
         return NULL;
+    if (!js_InitXMLFilterClass(cx, obj))
+        return NULL;
     return js_InitXMLClass(cx, obj);
 }
 
@@ -7977,7 +7997,7 @@ js_GetAnyName(JSContext *cx, jsval *vp)
                     break;
                 }
 
-                obj = js_NewObject(cx, &js_AnyNameClass, NULL, NULL);
+                obj = js_NewObjectWithGivenProto(cx, &js_AnyNameClass, NULL, NULL);
                 if (!obj || !JS_SetPrivate(cx, obj, qn)) {
                     cx->weakRoots.newborn[GCX_OBJECT] = NULL;
                     ok = JS_FALSE;
@@ -7998,7 +8018,7 @@ js_GetAnyName(JSContext *cx, jsval *vp)
                     ok = JS_FALSE;
                     break;
                 }
-                OBJ_SET_PROTO(cx, obj, NULL);
+                JS_ASSERT(!OBJ_GET_PROTO(cx, obj));
                 JS_ASSERT(!OBJ_GET_PARENT(cx, obj));
             } while (0);
 
@@ -8184,87 +8204,175 @@ js_DeleteXMLListElements(JSContext *cx, JSObject *listobj)
     return JS_TRUE;
 }
 
-JSBool
-js_FilterXMLList(JSContext *cx, JSObject *obj, jsbytecode *pc, jsval *vp)
+typedef struct JSXMLFilter {
+    JSXML               *list;
+    JSXML               *result;
+    JSXML               *kid;
+    JSXMLArrayCursor    cursor;
+
+} JSXMLFilter;
+
+static void
+xmlfilter_trace(JSTracer *trc, JSObject *obj)
 {
-    JSBool ok;
-    JSStackFrame *fp;
-    uint32 flags;
-    JSObject *scobj, *listobj, *resobj, *withobj, *kidobj;
-    JSXML *xml, *list, *result, *kid;
-    JSXMLArrayCursor cursor;
+    JSXMLFilter *filter;
 
-    ok = js_EnterLocalRootScope(cx);
-    if (!ok)
-        return JS_FALSE;
+    filter = (JSXMLFilter *) JS_GetPrivate(trc->context, obj);
+    if (!filter)
+        return;
+
+    JS_ASSERT(filter->list);
+    JS_CALL_TRACER(trc, filter->list, JSTRACE_XML, "list");
+    if (filter->result)
+        JS_CALL_TRACER(trc, filter->result, JSTRACE_XML, "result");
+    if (filter->kid)
+        JS_CALL_TRACER(trc, filter->kid, JSTRACE_XML, "kid");
 
     
-    *vp = JSVAL_NULL;
-    fp = cx->fp;
-    flags = fp->flags;
-    fp->flags = flags | JSFRAME_FILTERING;
-    scobj = js_GetScopeChain(cx, fp);
-    withobj = NULL;
-    if (!scobj)
-        goto bad;
-    xml = GetPrivate(cx, obj, "filtering predicate operator");
-    if (!xml)
-        goto bad;
 
-    if (xml->xml_class == JSXML_CLASS_LIST) {
-        list = xml;
+
+
+}
+
+static void
+xmlfilter_finalize(JSContext *cx, JSObject *obj)
+{
+    JSXMLFilter *filter;
+
+    filter = (JSXMLFilter *) JS_GetPrivate(cx, obj);
+    if (!filter)
+        return;
+
+    XMLArrayCursorFinish(&filter->cursor);
+    JS_free(cx, filter);
+}
+
+JSClass js_XMLFilterClass = {
+    "XMLFilter",
+    JSCLASS_HAS_PRIVATE |
+    JSCLASS_IS_ANONYMOUS |
+    JSCLASS_MARK_IS_TRACE |
+    JSCLASS_HAS_CACHED_PROTO(JSProto_XMLFilter),
+    JS_PropertyStub,  JS_PropertyStub,  JS_PropertyStub,   JS_PropertyStub,
+    JS_EnumerateStub, JS_ResolveStub,   JS_ConvertStub,    xmlfilter_finalize,
+    NULL,              NULL,            NULL,              NULL,
+    NULL,              NULL,            JS_CLASS_TRACE(xmlfilter_trace), NULL
+};
+
+JSObject *
+js_InitXMLFilterClass(JSContext *cx, JSObject *obj)
+{
+    JSObject *proto;
+
+    proto = JS_InitClass(cx, obj, NULL, &js_XMLFilterClass, NULL, 0, NULL,
+                         NULL, NULL, NULL);
+    if (!proto)
+        return NULL;
+
+    OBJ_SET_PROTO(cx, proto, NULL);
+    return proto;
+}
+
+JSBool
+js_StepXMLListFilter(JSContext *cx, JSBool initialized)
+{
+    jsval *sp;
+    JSObject *obj, *filterobj, *resobj, *kidobj;
+    JSXML *xml, *list;
+    JSXMLFilter *filter;
+
+    sp = cx->fp->sp;
+    if (!initialized) {
+        
+
+
+
+        if (!VALUE_IS_XML(cx, sp[-2])) {
+            js_ReportValueError(cx, JSMSG_NON_XML_FILTER, -2, sp[-2], NULL);
+            return JS_FALSE;
+        }
+        obj = JSVAL_TO_OBJECT(sp[-2]);
+        xml = (JSXML *) JS_GetPrivate(cx, obj);
+
+        if (xml->xml_class == JSXML_CLASS_LIST) {
+            list = xml;
+        } else {
+            obj = js_NewXMLObject(cx, JSXML_CLASS_LIST);
+            if (!obj)
+                return JS_FALSE;
+
+            
+
+
+
+            sp[-1] = OBJECT_TO_JSVAL(obj);
+            list = (JSXML *) JS_GetPrivate(cx, obj);
+            if (!Append(cx, list, xml))
+                return JS_FALSE;
+        }
+
+        filterobj = js_NewObject(cx, &js_XMLFilterClass, NULL, NULL);
+        if (!filterobj)
+            return JS_FALSE;
+
+        filter = (JSXMLFilter *) JS_malloc(cx, sizeof *filter);
+        if (!filter)
+            return JS_FALSE;
+
+        
+
+
+
+        filter->list = list;
+        filter->result = NULL;
+        filter->kid = NULL;
+        XMLArrayCursorInit(&filter->cursor, &list->xml_kids);
+        JS_SetPrivate(cx, filterobj, filter);
+
+        
+        sp[-2] = OBJECT_TO_JSVAL(filterobj);
+
+        resobj = js_NewXMLObject(cx, JSXML_CLASS_LIST);
+        if (!resobj)
+            return JS_FALSE;
+
+        
+        filter->result = (JSXML *) JS_GetPrivate(cx, resobj);
     } else {
-        listobj = js_NewXMLObject(cx, JSXML_CLASS_LIST);
-        if (!listobj)
-            goto bad;
-        list = (JSXML *) JS_GetPrivate(cx, listobj);
-        ok = Append(cx, list, xml);
-        if (!ok)
-            goto out;
-    }
+        
+        JS_ASSERT(!JSVAL_IS_PRIMITIVE(sp[-2]));
+        JS_ASSERT(OBJ_GET_CLASS(cx, JSVAL_TO_OBJECT(sp[-2])) ==
+                                &js_XMLFilterClass);
+        filter = (JSXMLFilter *) JS_GetPrivate(cx, JSVAL_TO_OBJECT(sp[-2]));
+        JS_ASSERT(filter->kid);
 
-    resobj = js_NewXMLObject(cx, JSXML_CLASS_LIST);
-    if (!resobj)
-        goto bad;
-    result = (JSXML *) JS_GetPrivate(cx, resobj);
+        
+        if (js_ValueToBoolean(sp[-1]) &&
+            !Append(cx, filter->result, filter->kid)) {
+            return JS_FALSE;
+        }
+    }
 
     
-    withobj = js_NewWithObject(cx, NULL, scobj, -1);
-    if (!withobj)
-        goto bad;
-    fp->scopeChain = withobj;
+    filter->kid = (JSXML *) XMLArrayCursorNext(&filter->cursor);
+    if (!filter->kid) {
+        
 
-    XMLArrayCursorInit(&cursor, &list->xml_kids);
-    while ((kid = (JSXML *) XMLArrayCursorNext(&cursor)) != NULL) {
-        kidobj = js_GetXMLObject(cx, kid);
+
+
+        XMLArrayCursorFinish(&filter->cursor);
+        JS_ASSERT(filter->result->object);
+        sp[-2] = OBJECT_TO_JSVAL(filter->result->object);
+        kidobj = NULL;
+    } else {
+        kidobj = js_GetXMLObject(cx, filter->kid);
         if (!kidobj)
-            break;
-        OBJ_SET_PROTO(cx, withobj, kidobj);
-        ok = js_Interpret(cx, pc, vp);
-        if (ok && js_ValueToBoolean(*vp))
-            ok = Append(cx, result, kid);
-        if (!ok)
-            break;
+            return JS_FALSE;
     }
-    XMLArrayCursorFinish(&cursor);
-    if (!ok)
-        goto out;
-    if (kid)
-        goto bad;
 
-    *vp = OBJECT_TO_JSVAL(resobj);
-
-out:
-    fp->flags = flags | (fp->flags & JSFRAME_POP_BLOCKS);
-    if (withobj) {
-        fp->scopeChain = scobj;
-        JS_SetPrivate(cx, withobj, NULL);
-    }
-    js_LeaveLocalRootScopeWithResult(cx, *vp);
-    return ok;
-bad:
-    ok = JS_FALSE;
-    goto out;
+    
+    sp[-1] = OBJECT_TO_JSVAL(kidobj);
+    return JS_TRUE;
 }
 
 JSObject *

@@ -149,15 +149,6 @@ static JSParenParser   ParenExpr;
         }                                                                     \
     JS_END_MACRO
 
-#define CHECK_RECURSION()                                                     \
-    JS_BEGIN_MACRO                                                            \
-        int stackDummy;                                                       \
-        if (!JS_CHECK_STACK_SIZE(cx, stackDummy)) {                           \
-            js_ReportOverRecursed(cx);                                        \
-            return NULL;                                                      \
-        }                                                                     \
-    JS_END_MACRO
-
 #ifdef METER_PARSENODES
 static uint32 parsenodes = 0;
 static uint32 maxparsenodes = 0;
@@ -219,18 +210,12 @@ js_NewParsedObjectBox(JSContext *cx, JSParseContext *pc, JSObject *obj)
 
 
 
-
-
-
     JS_ASSERT(obj);
     JS_ARENA_ALLOCATE_TYPE(pob, JSParsedObjectBox, &cx->tempPool);
     if (!pob) {
         js_ReportOutOfScriptQuota(cx);
         return NULL;
     }
-#ifdef DEBUG
-    pc->lastAllocMark = JS_ARENA_MARK(&cx->tempPool);
-#endif
     pob->traceLink = pc->traceListHead;
     pob->emitLink = NULL;
     pob->object = obj;
@@ -281,9 +266,6 @@ NewOrRecycledNode(JSContext *cx, JSTreeContext *tc)
         JS_ARENA_ALLOCATE_TYPE(pn, JSParseNode, &cx->tempPool);
         if (!pn)
             js_ReportOutOfScriptQuota(cx);
-#ifdef DEBUG
-        tc->parseContext->lastAllocMark = JS_ARENA_MARK(&cx->tempPool);
-#endif
     } else {
         tc->parseContext->nodeList = pn->pn_next;
 
@@ -1451,7 +1433,7 @@ Statements(JSContext *cx, JSTokenStream *ts, JSTreeContext *tc)
     JSParseNode *pn, *pn2, *saveBlock;
     JSTokenType tt;
 
-    CHECK_RECURSION();
+    JS_CHECK_RECURSION(cx, return NULL);
 
     pn = NewParseNode(cx, ts, PN_LIST, tc);
     if (!pn)
@@ -2242,7 +2224,8 @@ ReturnOrYield(JSContext *cx, JSTokenStream *ts, JSTreeContext *tc,
     if (tt2 != TOK_EOF && tt2 != TOK_EOL && tt2 != TOK_SEMI && tt2 != TOK_RC
 #if JS_HAS_GENERATORS
         && (tt != TOK_YIELD ||
-            (tt2 != tt && tt2 != TOK_RB && tt2 != TOK_RP && tt2 != TOK_COLON))
+            (tt2 != tt && tt2 != TOK_RB && tt2 != TOK_RP &&
+             tt2 != TOK_COLON && tt2 != TOK_COMMA))
 #endif
         ) {
         pn2 = operandParser(cx, ts, tc);
@@ -2387,7 +2370,7 @@ Statement(JSContext *cx, JSTokenStream *ts, JSTreeContext *tc)
     JSStmtInfo stmtInfo, *stmt, *stmt2;
     JSAtom *label;
 
-    CHECK_RECURSION();
+    JS_CHECK_RECURSION(cx, return NULL);
 
     ts->flags |= TSF_OPERAND;
     tt = js_GetToken(cx, ts);
@@ -3655,7 +3638,7 @@ AssignExpr(JSContext *cx, JSTokenStream *ts, JSTreeContext *tc)
     JSTokenType tt;
     JSOp op;
 
-    CHECK_RECURSION();
+    JS_CHECK_RECURSION(cx, return NULL);
 
 #if JS_HAS_GENERATORS
     ts->flags |= TSF_OPERAND;
@@ -4010,7 +3993,7 @@ UnaryExpr(JSContext *cx, JSTokenStream *ts, JSTreeContext *tc)
     JSTokenType tt;
     JSParseNode *pn, *pn2;
 
-    CHECK_RECURSION();
+    JS_CHECK_RECURSION(cx, return NULL);
 
     ts->flags |= TSF_OPERAND;
     tt = js_GetToken(cx, ts);
@@ -4357,7 +4340,8 @@ ArgumentList(JSContext *cx, JSTokenStream *ts, JSTreeContext *tc,
             if (!argNode)
                 return JS_FALSE;
 #if JS_HAS_GENERATORS
-            if (argNode->pn_type == TOK_YIELD) {
+            if (argNode->pn_type == TOK_YIELD &&
+                js_PeekToken(cx, ts) == TOK_COMMA) {
                 js_ReportCompileErrorNumber(cx, ts, argNode, JSREPORT_ERROR,
                                             JSMSG_BAD_GENERATOR_SYNTAX,
                                             js_yield_str);
@@ -4400,7 +4384,7 @@ MemberExpr(JSContext *cx, JSTokenStream *ts, JSTreeContext *tc,
     JSParseNode *pn, *pn2, *pn3;
     JSTokenType tt;
 
-    CHECK_RECURSION();
+    JS_CHECK_RECURSION(cx, return NULL);
 
     
     ts->flags |= TSF_OPERAND;
@@ -5063,7 +5047,7 @@ XMLElementOrList(JSContext *cx, JSTokenStream *ts, JSTreeContext *tc,
     JSTokenType tt;
     JSAtom *startAtom, *endAtom;
 
-    CHECK_RECURSION();
+    JS_CHECK_RECURSION(cx, return NULL);
 
     JS_ASSERT(CURRENT_TOKEN(ts).type == TOK_XMLSTAGO);
     pn = NewParseNode(cx, ts, PN_LIST, tc);
@@ -5264,11 +5248,14 @@ PrimaryExpr(JSContext *cx, JSTokenStream *ts, JSTreeContext *tc,
 {
     JSParseNode *pn, *pn2, *pn3;
     JSOp op;
-
 #if JS_HAS_SHARP_VARS
     JSParseNode *defsharp;
     JSBool notsharp;
+#endif
 
+    JS_CHECK_RECURSION(cx, return NULL);
+
+#if JS_HAS_SHARP_VARS
     defsharp = NULL;
     notsharp = JS_FALSE;
   again:
@@ -5278,8 +5265,6 @@ PrimaryExpr(JSContext *cx, JSTokenStream *ts, JSTreeContext *tc,
 
 
 #endif
-
-    CHECK_RECURSION();
 
 #if JS_HAS_GETTER_SETTER
     if (tt == TOK_NAME) {
@@ -5447,6 +5432,7 @@ PrimaryExpr(JSContext *cx, JSTokenStream *ts, JSTreeContext *tc,
       case TOK_LC:
       {
         JSBool afterComma;
+        JSParseNode *pnval;
 
         pn = NewParseNode(cx, ts, PN_LIST, tc);
         if (!pn)
@@ -5535,13 +5521,38 @@ PrimaryExpr(JSContext *cx, JSTokenStream *ts, JSTreeContext *tc,
                     return NULL;
             }
 #endif
+
             if (tt != TOK_COLON) {
-                js_ReportCompileErrorNumber(cx, ts, NULL, JSREPORT_ERROR,
-                                            JSMSG_COLON_AFTER_ID);
-                return NULL;
+#if JS_HAS_DESTRUCTURING_SHORTHAND
+                if (tt != TOK_COMMA && tt != TOK_RC) {
+#endif
+                    js_ReportCompileErrorNumber(cx, ts, NULL, JSREPORT_ERROR,
+                                                JSMSG_COLON_AFTER_ID);
+                    return NULL;
+#if JS_HAS_DESTRUCTURING_SHORTHAND
+                }
+
+                
+
+
+
+                js_UngetToken(ts);
+                pn->pn_extra |= PNX_SHORTHAND;
+                pnval = pn3;
+                if (pnval->pn_type == TOK_NAME) {
+                    pnval->pn_arity = PN_NAME;
+                    pnval->pn_expr = NULL;
+                    pnval->pn_slot = -1;
+                    pnval->pn_const = JS_FALSE;
+                }
+                op = JSOP_NOP;
+#endif
+            } else {
+                op = CURRENT_TOKEN(ts).t_op;
+                pnval = AssignExpr(cx, ts, tc);
             }
-            op = CURRENT_TOKEN(ts).t_op;
-            pn2 = NewBinary(cx, TOK_COLON, op, pn3, AssignExpr(cx, ts, tc), tc);
+
+            pn2 = NewBinary(cx, TOK_COLON, op, pn3, pnval, tc);
 #if JS_HAS_GETTER_SETTER
           skip:
 #endif
@@ -6200,12 +6211,8 @@ JSBool
 js_FoldConstants(JSContext *cx, JSParseNode *pn, JSTreeContext *tc)
 {
     JSParseNode *pn1 = NULL, *pn2 = NULL, *pn3 = NULL;
-    int stackDummy;
 
-    if (!JS_CHECK_STACK_SIZE(cx, stackDummy)) {
-        js_ReportOverRecursed(cx);
-        return JS_FALSE;
-    }
+    JS_CHECK_RECURSION(cx, return JS_FALSE);
 
     switch (pn->pn_arity) {
       case PN_FUNC:

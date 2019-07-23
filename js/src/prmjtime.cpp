@@ -110,13 +110,7 @@ PRMJ_LocalGMTDifference()
     memset((char *)&ltime,0,sizeof(ltime));
     ltime.tm_mday = 2;
     ltime.tm_year = 70;
-#ifdef SUNOS4
-    ltime.tm_zone = 0;
-    ltime.tm_gmtoff = 0;
-    return timelocal(&ltime) - (24 * 3600);
-#else
     return (JSInt32)mktime(&ltime) - (24L * 3600L);
-#endif
 }
 
 
@@ -637,18 +631,6 @@ PRMJ_FormatTime(char *buf, int buflen, const char *fmt, PRMJTime *prtm)
 
 
 
-
-#if defined(SUNOS4)
-    if (mktime(&a) == -1) {
-        
-
-
-
-
-
-        return 0;
-    }
-#endif
 
 #ifdef NS_HAVE_INVALID_PARAMETER_HANDLER
     oldHandler = _set_invalid_parameter_handler(PRMJ_InvalidParameterHandler);

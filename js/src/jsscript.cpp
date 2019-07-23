@@ -416,6 +416,7 @@ js_XDRScript(JSXDRState *xdr, JSScript **scriptp, JSBool *hasMagic)
     uint32 length, lineno, depth, magic;
     uint32 natoms, nsrcnotes, ntrynotes, nobjects, nregexps, i;
     uint32 prologLength, version;
+    JSTempValueRooter tvr;
     JSPrincipals *principals;
     uint32 encodeable;
     JSBool filenameWasSaved;
@@ -503,6 +504,7 @@ js_XDRScript(JSXDRState *xdr, JSScript **scriptp, JSBool *hasMagic)
         
         notes = SCRIPT_NOTES(script);
         *scriptp = script;
+        JS_PUSH_TEMP_ROOT_SCRIPT(cx, script, &tvr);
     }
 
     
@@ -611,10 +613,13 @@ js_XDRScript(JSXDRState *xdr, JSScript **scriptp, JSBool *hasMagic)
     }
 
     xdr->script = oldscript;
+    if (xdr->mode == JSXDR_DECODE)
+        JS_POP_TEMP_ROOT(cx, &tvr);
     return JS_TRUE;
 
   error:
     if (xdr->mode == JSXDR_DECODE) {
+        JS_POP_TEMP_ROOT(cx, &tvr);
         if (script->filename && !filenameWasSaved) {
             JS_free(cx, (void *) script->filename);
             script->filename = NULL;
@@ -644,7 +649,7 @@ script_freeze(JSContext *cx, uintN argc, jsval *vp)
     void *buf;
     JSString *str;
 
-    obj = JSVAL_TO_OBJECT(vp[1]);
+    obj = JS_THIS_OBJECT(cx, vp);
     if (!JS_InstanceOf(cx, obj, &js_ScriptClass, vp + 2))
         return JS_FALSE;
     script = (JSScript *) JS_GetPrivate(cx, obj);
@@ -710,7 +715,7 @@ script_thaw(JSContext *cx, uintN argc, jsval *vp)
     JSBool ok, hasMagic;
     jsint execDepth;
 
-    obj = JSVAL_TO_OBJECT(vp[1]);
+    obj = JS_THIS_OBJECT(cx, vp);
     if (!JS_InstanceOf(cx, obj, &js_ScriptClass, vp + 2))
         return JS_FALSE;
 
@@ -1385,6 +1390,9 @@ js_NewScript(JSContext *cx, uint32 length, uint32 nsrcnotes, uint32 natoms,
               nsrcnotes * sizeof(jssrcnote) ==
               (uint8 *)script + size);
 
+#ifdef CHECK_SCRIPT_OWNER
+    script->owner = cx->thread;
+#endif
     return script;
 }
 
@@ -1449,6 +1457,9 @@ js_NewScriptFromCG(JSContext *cx, JSCodeGenerator *cg)
         JS_ASSERT(FUN_INTERPRETED(fun) && !FUN_SCRIPT(fun));
         js_FreezeLocalNames(cx, fun);
         fun->u.i.script = script;
+#ifdef CHECK_SCRIPT_OWNER
+        script->owner = NULL;
+#endif
         if (cg->treeContext.flags & TCF_FUN_HEAVYWEIGHT)
             fun->flags |= JSFUN_HEAVYWEIGHT;
         if (fun->flags & JSFUN_HEAVYWEIGHT)
@@ -1497,12 +1508,40 @@ void
 js_DestroyScript(JSContext *cx, JSScript *script)
 {
     js_CallDestroyScriptHook(cx, script);
-
     JS_ClearScriptTraps(cx, script);
+
     if (script->principals)
         JSPRINCIPALS_DROP(cx, script->principals);
+
     if (JS_GSN_CACHE(cx).script == script)
         JS_CLEAR_GSN_CACHE(cx);
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+#ifdef CHECK_SCRIPT_OWNER
+    JS_ASSERT_IF(cx->runtime->gcRunning, !script->owner);
+#endif
+
+    if (!cx->runtime->gcRunning &&
+        !(cx->fp && (cx->fp->flags & JSFRAME_EVAL))) {
+#ifdef CHECK_SCRIPT_OWNER
+        JS_ASSERT(script->owner == cx->thread);
+#endif
+        js_FlushPropertyCacheForScript(cx, script);
+    }
+
     JS_free(cx, script);
 }
 
@@ -1531,8 +1570,10 @@ js_TraceScript(JSTracer *trc, JSScript *script)
         i = objarray->length;
         do {
             --i;
-            JS_SET_TRACING_INDEX(trc, "objects", i);
-            JS_CallTracer(trc, objarray->vector[i], JSTRACE_OBJECT);
+            if (objarray->vector[i]) {
+                JS_SET_TRACING_INDEX(trc, "objects", i);
+                JS_CallTracer(trc, objarray->vector[i], JSTRACE_OBJECT);
+            }
         } while (i != 0);
     }
 
@@ -1541,8 +1582,10 @@ js_TraceScript(JSTracer *trc, JSScript *script)
         i = objarray->length;
         do {
             --i;
-            JS_SET_TRACING_INDEX(trc, "regexps", i);
-            JS_CallTracer(trc, objarray->vector[i], JSTRACE_OBJECT);
+            if (objarray->vector[i]) {
+                JS_SET_TRACING_INDEX(trc, "regexps", i);
+                JS_CallTracer(trc, objarray->vector[i], JSTRACE_OBJECT);
+            }
         } while (i != 0);
     }
 

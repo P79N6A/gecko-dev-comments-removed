@@ -92,6 +92,7 @@ js_GetMutableScope(JSContext *cx, JSObject *obj)
 static void
 InitMinimalScope(JSScope *scope)
 {
+    scope->shape = 0;
     scope->hashShift = JS_DHASH_BITS - MIN_SCOPE_SIZE_LOG2;
     scope->entryCount = scope->removedCount = 0;
     scope->table = NULL;
@@ -152,21 +153,8 @@ js_NewScope(JSContext *cx, jsrefcount nrefs, JSObjectOps *ops, JSClass *clasp,
     InitMinimalScope(scope);
 
 #ifdef JS_THREADSAFE
-    scope->ownercx = cx;
-    memset(&scope->lock, 0, sizeof scope->lock);
-
-    
-
-
-
-    scope->u.link = NULL;
-
-#ifdef DEBUG
-    scope->file[0] = scope->file[1] = scope->file[2] = scope->file[3] = NULL;
-    scope->line[0] = scope->line[1] = scope->line[2] = scope->line[3] = 0;
+    js_InitTitle(cx, &scope->title);
 #endif
-#endif
-
     JS_RUNTIME_METER(cx->runtime, liveScopes);
     JS_RUNTIME_METER(cx->runtime, totalScopes);
     return scope;
@@ -192,10 +180,7 @@ js_DestroyScope(JSContext *cx, JSScope *scope)
 #endif
 
 #ifdef JS_THREADSAFE
-    
-    JS_ASSERT(scope->u.count == 0);
-    scope->ownercx = cx;
-    js_FinishLock(&scope->lock);
+    js_FinishTitle(cx, &scope->title);
 #endif
     if (scope->table)
         JS_free(cx, scope->table);
@@ -390,7 +375,7 @@ ChangeScope(JSContext *cx, JSScope *scope, int change)
 
 
 
-#define SPROP_FLAGS_NOT_MATCHED SPROP_MARK
+#define SPROP_FLAGS_NOT_MATCHED (SPROP_MARK | SPROP_FLAG_SHAPE_REGEN)
 
 JS_STATIC_DLL_CALLBACK(JSDHashNumber)
 js_HashScopeProperty(JSDHashTable *table, const void *key)
@@ -403,18 +388,18 @@ js_HashScopeProperty(JSDHashTable *table, const void *key)
     hash = 0;
     gsop = sprop->getter;
     if (gsop)
-        hash = (hash >> (JS_DHASH_BITS - 4)) ^ (hash << 4) ^ (jsword)gsop;
+        hash = JS_ROTATE_LEFT32(hash, 4) ^ (jsword)gsop;
     gsop = sprop->setter;
     if (gsop)
-        hash = (hash >> (JS_DHASH_BITS - 4)) ^ (hash << 4) ^ (jsword)gsop;
+        hash = JS_ROTATE_LEFT32(hash, 4) ^ (jsword)gsop;
 
-    hash = (hash >> (JS_DHASH_BITS - 4)) ^ (hash << 4)
+    hash = JS_ROTATE_LEFT32(hash, 4)
            ^ (sprop->flags & ~SPROP_FLAGS_NOT_MATCHED);
 
-    hash = (hash >> (JS_DHASH_BITS - 4)) ^ (hash << 4) ^ sprop->attrs;
-    hash = (hash >> (JS_DHASH_BITS - 4)) ^ (hash << 4) ^ sprop->shortid;
-    hash = (hash >> (JS_DHASH_BITS - 4)) ^ (hash << 4) ^ sprop->slot;
-    hash = (hash >> (JS_DHASH_BITS - 4)) ^ (hash << 4) ^ sprop->id;
+    hash = JS_ROTATE_LEFT32(hash, 4) ^ sprop->attrs;
+    hash = JS_ROTATE_LEFT32(hash, 4) ^ sprop->shortid;
+    hash = JS_ROTATE_LEFT32(hash, 4) ^ sprop->slot;
+    hash = JS_ROTATE_LEFT32(hash, 4) ^ sprop->id;
     return hash;
 }
 
@@ -903,6 +888,8 @@ locked_not_found:
     sprop->flags = child->flags;
     sprop->shortid = child->shortid;
     sprop->parent = sprop->kids = NULL;
+    sprop->shape = js_GenerateShape(cx);
+
     if (!parent) {
         entry->child = sprop;
     } else {
@@ -1099,6 +1086,7 @@ js_AddScopeProperty(JSContext *cx, JSScope *scope, jsid id,
             }
             SCOPE_SET_MIDDLE_DELETE(scope);
         }
+        SCOPE_GENERATE_PCTYPE(cx, scope);
 
         
 
@@ -1235,11 +1223,10 @@ js_AddScopeProperty(JSContext *cx, JSScope *scope, jsid id,
 
 
 
-
-                if (slot != SPROP_INVALID_SLOT)
-                    JS_ASSERT(overwriting);
-                else if (!js_AllocSlot(cx, scope->object, &slot))
+                if (slot == SPROP_INVALID_SLOT &&
+                    !js_AllocSlot(cx, scope->object, &slot)) {
                     goto fail_overwrite;
+                }
             }
         }
 
@@ -1268,6 +1255,16 @@ js_AddScopeProperty(JSContext *cx, JSScope *scope, jsid id,
         sprop = GetPropertyTreeChild(cx, scope->lastProp, &child);
         if (!sprop)
             goto fail_overwrite;
+
+        
+
+
+
+
+        if (!scope->lastProp || scope->shape == scope->lastProp->shape)
+            scope->shape = sprop->shape;
+        else
+            SCOPE_GENERATE_PCTYPE(cx, scope);
 
         
         if (scope->table)
@@ -1402,8 +1399,14 @@ js_ChangeScopePropertyAttrs(JSContext *cx, JSScope *scope,
                                        child.attrs, child.flags, child.shortid);
     }
 
+    if (newsprop) {
+        if (scope->shape == sprop->shape)
+            scope->shape = newsprop->shape;
+        else
+            SCOPE_GENERATE_PCTYPE(cx, scope);
+    }
 #ifdef JS_DUMP_PROPTREE_STATS
-    if (!newsprop)
+    else
         METER(changeFailures);
 #endif
     return newsprop;
@@ -1470,6 +1473,7 @@ js_RemoveScopeProperty(JSContext *cx, JSScope *scope, jsid id)
     } else if (!SCOPE_HAD_MIDDLE_DELETE(scope)) {
         SCOPE_SET_MIDDLE_DELETE(scope);
     }
+    SCOPE_GENERATE_PCTYPE(cx, scope);
     CHECK_ANCESTOR_LINE(scope, JS_TRUE);
 
     
@@ -1708,8 +1712,21 @@ js_SweepScopeProperties(JSContext *cx)
                 continue;
 
             
+
+
+
+
+
+
+
             if (sprop->flags & SPROP_MARK) {
                 sprop->flags &= ~SPROP_MARK;
+                if (sprop->flags & SPROP_FLAG_SHAPE_REGEN) {
+                    sprop->flags &= ~SPROP_FLAG_SHAPE_REGEN;
+                } else {
+                    sprop->shape = ++cx->runtime->shapeGen;
+                    JS_ASSERT(sprop->shape != 0);
+                }
                 liveCount++;
                 continue;
             }
