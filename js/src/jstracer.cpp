@@ -1904,7 +1904,7 @@ TraceRecorder::checkType(jsval& v, uint8 t, bool& unstable)
         if (!isNumber(v))
             return false; 
         LIns* i = get(&v);
-        if (!isi2f(i)) {
+        if (!isPromoteInt(i)) {
             debug_only_v(printf("int slot is !isInt32, slot #%d, triggering re-compilation\n",
                                 !isGlobal(&v)
                                 ? nativeStackOffset(&v)
@@ -1914,11 +1914,9 @@ TraceRecorder::checkType(jsval& v, uint8 t, bool& unstable)
             return true; 
         }
         
-        JS_ASSERT(isInt32(v) && (i->isop(LIR_i2f) || i->isop(LIR_qjoin)));
+        JS_ASSERT(isInt32(v) && isPromoteInt(i));
         
-
-
-        set(&v, iu2fArg(i));
+        set(&v, f2i(i));
         return true;
     }
     if (t == JSVAL_DOUBLE) {
