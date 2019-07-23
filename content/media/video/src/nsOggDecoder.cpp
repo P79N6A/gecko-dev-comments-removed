@@ -910,6 +910,7 @@ void nsOggDecodeStateMachine::PlayFrame() {
       }
 
       double time;
+      double prevTime = -1.0;
       for (;;) {
         
         
@@ -919,6 +920,12 @@ void nsOggDecodeStateMachine::PlayFrame() {
         time = hwtime < 0.0 ?
           (TimeStamp::Now() - mPlayStartTime - mPauseDuration).ToSeconds() :
           hwtime;
+        
+        
+        
+        if (time == prevTime)
+          break;
+        prevTime = time;
         if (time < frame->mTime) {
           mon.Wait(PR_MillisecondsToInterval(PRInt64((frame->mTime - time)*1000)));
           if (mState == DECODER_STATE_SHUTDOWN)
