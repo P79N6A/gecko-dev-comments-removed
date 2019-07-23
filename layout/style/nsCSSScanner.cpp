@@ -969,12 +969,26 @@ nsCSSScanner::ParseAndAppendEscape(nsString& aOutput)
     if (6 == i) { 
       ch = Peek();
       if (IsWhitespace(ch)) {
-        ch = Read();
+        (void) Read();
       }
     }
     NS_ASSERTION(rv >= 0, "How did rv become negative?");
+    
+    
+    
+    
+    
+    
+    
+    
+    
     if (rv > 0) {
       AppendUCS4ToUTF16(ENSURE_VALID_CHAR(rv), aOutput);
+    } else {
+      while (i--)
+        aOutput.Append('0');
+      if (IsWhitespace(ch))
+        Pushback(ch);
     }
     return;
   } else {
