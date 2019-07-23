@@ -111,6 +111,8 @@ BUILTINS_CFLAGS += $(BUILTINS_OPTIMIZER) $(OS_CFLAGS) $(DEFINES) $(INCLUDES) $(X
 LDFLAGS		= $(XLDFLAGS)
 LDFLAGS += $(OS_LDFLAGS)
 
+MOZ_SHARK=1
+
 ifdef MOZ_SHARK
 DEFINES += -DMOZ_SHARK
 CFLAGS += -F/System/Library/PrivateFrameworks
@@ -175,6 +177,7 @@ JS_HFILES =		\
 	jsarray.h	\
 	jsatom.h	\
 	jsbool.h	\
+	jsconfig.h	\
 	jscntxt.h	\
 	jsdate.h	\
 	jsemit.h	\
@@ -204,7 +207,6 @@ JS_HFILES =		\
 	jsscope.h	\
 	jsscript.h	\
 	jsstr.h		\
-	jsversion.h	\
 	jsxdrapi.h	\
 	jsxml.h		\
 	$(NULL)

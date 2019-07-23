@@ -1182,9 +1182,24 @@ FlushNativeGlobalFrame(JSContext* cx, unsigned ngslots, uint16* gslots, uint8* m
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
 static int
-FlushNativeStackFrame(JSContext* cx, unsigned callDepth, uint8* mp, double* np, jsval* stopAt)
+FlushNativeStackFrame(JSContext* cx, unsigned callDepth, uint8* mp, double* np,
+                      JSStackFrame* stopFrame)
 {
+    jsval* stopAt = stopFrame ? &stopFrame->argv[-2] : NULL;
     uint8* mp_base = mp;
     double* np_base = np;
     
@@ -1196,9 +1211,29 @@ FlushNativeStackFrame(JSContext* cx, unsigned callDepth, uint8* mp, double* np, 
     );
 skip1:
     
-    unsigned n = callDepth;
-    for (JSStackFrame* fp = cx->fp; n-- != 0; fp = fp->down)
-        fp->thisp = JSVAL_TO_OBJECT(fp->argv[-1]);
+    
+    
+    {
+        unsigned n = callDepth+1; 
+        JSStackFrame* fp = cx->fp;
+        if (stopFrame) {
+            for (; fp != stopFrame; fp = fp->down) {
+                JS_ASSERT(n != 0);
+                --n;
+            }
+            
+            JS_ASSERT(n != 0);
+            --n;
+            fp = fp->down;
+        }
+        for (; n != 0; fp = fp->down) {
+            --n;
+            if (fp->callee) { 
+                JS_ASSERT(JSVAL_IS_OBJECT(fp->argv[-1]));
+                fp->thisp = JSVAL_TO_OBJECT(fp->argv[-1]);
+            }
+        }
+    }
 
     
 
@@ -2324,13 +2359,14 @@ js_ExecuteTree(JSContext* cx, Fragment** treep, uintN& inlineCallCount,
             unsigned calldepth = lr->calldepth;
             if (calldepth > 0) {
                 
+
                 for (unsigned i = 0; i < calldepth; ++i)
                     js_SynthesizeFrame(cx, callstack[i]);
                 
 
                 slots = FlushNativeStackFrame(cx, calldepth,
                                               lr->exit->typeMap + lr->exit->numGlobalSlots,
-                                              stack, &cx->fp->argv[-2]);
+                                              stack, cx->fp);
                 if (slots < 0)
                     return NULL;
                 callstack += calldepth;
