@@ -125,6 +125,9 @@ union nsPluginPort;
 
 - (void)viewsWindowDidBecomeKey;
 - (void)viewsWindowDidResignKey;
+
+
+- (void)delayedTearDown;
 @end
 
 
