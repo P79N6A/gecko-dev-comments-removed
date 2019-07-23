@@ -454,6 +454,35 @@ nsDragService::GetData(nsITransferable * aTransferable,
             }
             else {
                 PR_LOG(sDragLm, PR_LOG_DEBUG, ("dataFound = PR_FALSE\n"));
+
+                
+                
+                if ( strcmp(flavorStr, kFileMime) == 0 ) {
+                    gdkFlavor = gdk_atom_intern(kTextMime, FALSE);
+                    GetTargetDragData(gdkFlavor);
+                    if (mTargetDragData) {
+                        const char* text = static_cast<char*>(mTargetDragData);
+                        NS_ConvertUTF8toUTF16 fileUrl = NS_ConvertUTF8toUTF16(text);
+                        if (StringBeginsWith(fileUrl, NS_LITERAL_STRING("file://")))
+                            fileUrl.Cut(0, strlen("file://"));
+
+                        
+                        fileUrl.StripChars("\r\n");
+
+                        nsCOMPtr<nsILocalFile> file;
+                        nsresult rv = NS_NewLocalFile(fileUrl, PR_TRUE, getter_AddRefs(file));
+                        if (NS_SUCCEEDED(rv)) {
+                            
+                            
+                            
+                            aTransferable->SetTransferData(flavorStr, file,
+                                                           fileUrl.Length() * sizeof(PRUnichar));
+                            return NS_OK;
+                        }
+                        continue;
+                    }
+                }
+
                 
                 
                 
@@ -690,10 +719,11 @@ nsDragService::IsDataFlavorSupported(const char *aDataFlavor,
         if (*_retval == PR_FALSE && 
             name &&
             (strcmp(name, kTextMime) == 0) &&
-            (strcmp(aDataFlavor, kUnicodeMime) == 0)) {
+            ((strcmp(aDataFlavor, kUnicodeMime) == 0) ||
+             (strcmp(aDataFlavor, kFileMime) == 0))) {
             PR_LOG(sDragLm, PR_LOG_DEBUG,
                    ("good! ( it's text plain and we're checking \
-                   against text/unicode )\n"));
+                   against text/unicode or application/x-moz-file)\n"));
             *_retval = PR_TRUE;
         }
         g_free(name);
