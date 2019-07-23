@@ -64,6 +64,8 @@
 # define NS_LogDtor                  NS_LogDtor_P
 # define NS_LogCOMPtrAddRef          NS_LogCOMPtrAddRef_P
 # define NS_LogCOMPtrRelease         NS_LogCOMPtrRelease_P
+# define NS_CycleCollectorSuspect    NS_CycleCollectorSuspect_P
+# define NS_CycleCollectorForget     NS_CycleCollectorForget_P
 #endif
 
 #include "nscore.h"
@@ -452,6 +454,17 @@ NS_LogCOMPtrAddRef(void *aCOMPtr, nsISupports *aObject);
 
 XPCOM_API(void)
 NS_LogCOMPtrRelease(void *aCOMPtr, nsISupports *aObject);
+
+
+
+
+
+
+XPCOM_API(PRBool)
+NS_CycleCollectorSuspect(nsISupports *n);
+
+XPCOM_API(PRBool)
+NS_CycleCollectorForget(nsISupports *n);
 
 
 
