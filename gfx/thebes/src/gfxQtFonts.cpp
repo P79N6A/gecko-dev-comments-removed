@@ -47,11 +47,10 @@
 #include "gfxQtFonts.h"
 #include "qdebug.h"
 #include "qrect.h"
-#include <QFont>
 #include <locale.h>
-#include <cairo.h>
+#include <QFont>
 #include <QFontMetrics>
-
+#include "cairo-ft.h"
 
 
 
@@ -107,60 +106,6 @@ GetOrMakeFont(const nsAString& aName, const gfxFontStyle *aStyle)
     return static_cast<gfxQtFont *>(f);
 }
 
-void
-gfxQtFont::RealizeQFont()
-{
-    
-    if (mQFont)
-        return;
-
-
-	printf( " gfxQtFont::RealizeQFont mQFont %p \n", mQFont );
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-}
 
 gfxQtFontGroup::gfxQtFontGroup (const nsAString& families,
                                 const gfxFontStyle *aStyle)
@@ -468,23 +413,26 @@ gfxQtFontGroup::MakeTextRun(const PRUnichar *aString, PRUint32 aLength,
 gfxQtFont::gfxQtFont(const nsAString &aName,
                      const gfxFontStyle *aFontStyle)
     : gfxFont(aName, aFontStyle),
-      mQFont(nsnull), mCairoFont(nsnull),
+      mCairoFont(nsnull),
       mHasMetrics(PR_FALSE), mAdjustedSize(0)
 {
-}
-
-gfxQtFont::gfxQtFont(QFont *aQFont, const nsAString &aName,
-                     const gfxFontStyle *aFontStyle)
-        : gfxFont(aName, aFontStyle),
-        mQFont(aQFont), mCairoFont(nsnull),
-        mHasMetrics(PR_FALSE), mAdjustedSize(aFontStyle->size)
-{
-
-
+    mQFont = new QFont();
+    mQFont->setFamily(QString( NS_ConvertUTF16toUTF8(mName).get() ) );
+    mQFont->setPixelSize((int) GetStyle()->size);
+    int weight = GetStyle()->weight/10;
+    if( weight > 99 )
+    {
+        
+        weight = 99;
+    }
+    mQFont->setWeight(weight);
+    mQFont->setItalic(bool( GetStyle()->style == FONT_STYLE_ITALIC ));
 }
 
 gfxQtFont::~gfxQtFont()
 {
+    delete mQFont;
+    cairo_scaled_font_destroy(mCairoFont);
 }
 
 const gfxFont::Metrics&
@@ -493,12 +441,7 @@ gfxQtFont::GetMetrics()
      if (mHasMetrics)
         return mMetrics;
 
-    QFont font( QString( NS_ConvertUTF16toUTF8(mName).get() ), 
-                (int) GetStyle()->size, 
-                (int) GetStyle()->weight,
-                bool( GetStyle()->style == FONT_STYLE_ITALIC ) );
-
-    QFontMetrics fontMetrics( font );
+    QFontMetrics fontMetrics( *mQFont );
 
     mMetrics.maxAscent = fontMetrics.ascent();
     mMetrics.maxDescent = fontMetrics.descent();
@@ -555,65 +498,54 @@ gfxQtFont::GetMetrics()
 nsString
 gfxQtFont::GetUniqueName()
 {
-    qDebug("QTFONT NOT_IMPLEMENTED!!!! Func:%s::%d\n", __PRETTY_FUNCTION__, __LINE__);
-    nsString result;
+    return mName;
+}
 
+PRUint32 gfxQtFont::GetSpaceGlyph ()
+{
+    NS_ASSERTION (GetStyle ()->size != 0,
+    "forgot to short-circuit a text run with zero-sized font?");
 
-
-
-
-
-
-
-
-    return result;
+    if(!mHasSpaceGlyph)
+    {
+        FT_UInt gid = 0; 
+        FT_Face face = mQFont->freetypeFace();
+        gid = FT_Get_Char_Index(face, ' ');
+        mSpaceGlyph = gid;
+        mHasSpaceGlyph = PR_TRUE;
+    }
+    return mSpaceGlyph;
 }
 
 
-
-
-
-
-
-static cairo_scaled_font_t*
-CreateScaledFont(cairo_t *aCR, cairo_matrix_t *aCTM, void *aQFont)
+cairo_scaled_font_t*
+gfxQtFont::CreateScaledFont(cairo_t *aCR, cairo_matrix_t *aCTM, QFont &aQFont)
 {
-printf( "CreateScaledFont\n" );
+    FT_Face ftFace = aQFont.freetypeFace();
 
-    
-    
-    
-    
+    double size = mAdjustedSize ? mAdjustedSize : GetStyle()->size;
+    cairo_matrix_t fontMatrix;
+    cairo_matrix_init_scale(&fontMatrix, size, size);
+    cairo_font_options_t *fontOptions = cairo_font_options_create();
 
+    cairo_font_face_t *cairoFontFace = 
+                cairo_ft_font_face_create_for_ft_face( ftFace, 0 );
 
+    cairo_scaled_font_t* scaledFont = 
+                cairo_scaled_font_create( cairoFontFace, 
+                                          &fontMatrix,
+                                          aCTM,
+                                          fontOptions);
 
+    cairo_font_options_destroy(fontOptions);
+    cairo_font_face_destroy(cairoFontFace);
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    return nsnull;
+    return scaledFont;
 }
 
 PRBool
 gfxQtFont::SetupCairoFont(gfxContext *aContext)
 {
-printf("gfxQtFont::SetupCairoFont\n");
 
     cairo_t *cr = aContext->GetCairo();
     cairo_matrix_t currentCTM;
@@ -631,8 +563,7 @@ printf("gfxQtFont::SetupCairoFont\n");
         }
     }
     if (!mCairoFont) {
-
-        mCairoFont = CreateScaledFont(cr, &currentCTM, GetQFont());
+        mCairoFont = CreateScaledFont(cr, &currentCTM, *mQFont);
         return PR_FALSE;
     }
     if (cairo_scaled_font_status(mCairoFont) != CAIRO_STATUS_SUCCESS) {
