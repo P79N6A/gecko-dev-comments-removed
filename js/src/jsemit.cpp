@@ -6284,22 +6284,30 @@ js_EmitTree(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn)
 
 
 
+
+
+
+
+
 #if JS_HAS_SHARP_VARS
         sharpnum = -1;
       do_emit_array:
 #endif
 
-#if JS_HAS_GENERATORS || JS_HAS_SHARP_VARS
-        op = JSOP_NEWARRAY;
-# if JS_HAS_GENERATORS
+        op = (JS_LIKELY(pn->pn_count < JS_BIT(16)) && (cg->flags & TCF_IN_FUNCTION))
+             ? JSOP_NEWARRAY
+             : JSOP_NEWINIT;
+
+#if JS_HAS_GENERATORS
         if (pn->pn_type == TOK_ARRAYCOMP)
             op = JSOP_NEWINIT;
-# endif
-# if JS_HAS_SHARP_VARS
+#endif
+#if JS_HAS_SHARP_VARS
         JS_ASSERT_IF(sharpnum >= 0, cg->flags & TCF_HAS_SHARPS);
         if (cg->flags & TCF_HAS_SHARPS)
             op = JSOP_NEWINIT;
-# endif
+#endif
+
         if (op == JSOP_NEWINIT) {
             if (js_Emit2(cx, cg, op, (jsbytecode) JSProto_Array) < 0)
                 return JS_FALSE;
@@ -6308,7 +6316,6 @@ js_EmitTree(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn)
                 EMIT_UINT16_IMM_OP(JSOP_DEFSHARP, (jsatomid) sharpnum);
 # endif
         }
-#endif
 
 #if JS_HAS_GENERATORS
         if (pn->pn_type == TOK_ARRAYCOMP) {
@@ -6335,10 +6342,8 @@ js_EmitTree(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn)
 
         pn2 = pn->pn_head;
         for (atomIndex = 0; pn2; atomIndex++, pn2 = pn2->pn_next) {
-#if JS_HAS_SHARP_VARS
             if (op == JSOP_NEWINIT && !EmitNumberOp(cx, atomIndex, cg))
                 return JS_FALSE;
-#endif
             if (pn2->pn_type == TOK_COMMA) {
                 if (js_Emit1(cx, cg, JSOP_HOLE) < 0)
                     return JS_FALSE;
@@ -6346,10 +6351,8 @@ js_EmitTree(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn)
                 if (!js_EmitTree(cx, cg, pn2))
                     return JS_FALSE;
             }
-#if JS_HAS_SHARP_VARS
             if (op == JSOP_NEWINIT && js_Emit1(cx, cg, JSOP_INITELEM) < 0)
                 return JS_FALSE;
-#endif
         }
         JS_ASSERT(atomIndex == pn->pn_count);
 
@@ -6359,20 +6362,18 @@ js_EmitTree(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn)
                 return JS_FALSE;
         }
 
-#if JS_HAS_SHARP_VARS
         if (op == JSOP_NEWINIT) {
             
+
+
+
             if (js_Emit1(cx, cg, JSOP_ENDINIT) < 0)
                 return JS_FALSE;
             break;
         }
-#endif
-        off = js_EmitN(cx, cg, JSOP_NEWARRAY, 3);
-        if (off < 0)
-            return JS_FALSE;
-        pc = CG_CODE(cg, off);
-        SET_UINT24(pc, atomIndex);
-        UpdateDepth(cx, cg, off);
+
+        JS_ASSERT(atomIndex < JS_BIT(16));
+        EMIT_UINT16_IMM_OP(JSOP_NEWARRAY, atomIndex);
         break;
 
       case TOK_RC:
