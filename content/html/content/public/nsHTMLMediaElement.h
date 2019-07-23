@@ -106,7 +106,9 @@ public:
 
   
   
-  void FirstFrameLoaded();
+  
+  
+  void FirstFrameLoaded(PRBool aResourceFullyLoaded);
 
   
   
