@@ -81,13 +81,9 @@
 
 #define PUSH(v)         (*sp++ = (v))
 #define POP()           (*--sp)
-#ifdef DEBUG
 #define SAVE_SP(fp)                                                           \
     (JS_ASSERT((fp)->script || !(fp)->spbase || (sp) == (fp)->spbase),        \
      (fp)->sp = sp)
-#else
-#define SAVE_SP(fp)     ((fp)->sp = sp)
-#endif
 #define RESTORE_SP(fp)  (sp = (fp)->sp)
 
 
@@ -265,6 +261,35 @@
         v = sp[n];                                                            \
     JS_END_MACRO
 
+
+
+
+
+static JSBool
+AllocateAfterSP(JSContext *cx, jsval *sp, uintN nslots)
+{
+    uintN surplus;
+    jsval *sp2;
+
+    JS_ASSERT((jsval *) cx->stackPool.current->base <= sp);
+    JS_ASSERT(sp <= (jsval *) cx->stackPool.current->avail);
+    surplus = (jsval *) cx->stackPool.current->avail - sp;
+    if (nslots <= surplus)
+        return JS_TRUE;
+
+    
+
+
+
+    if (nslots > (size_t) ((jsval *) cx->stackPool.current->limit - sp))
+        return JS_FALSE;
+
+    JS_ARENA_ALLOCATE_CAST(sp2, jsval *, &cx->stackPool,
+                           (nslots - surplus) * sizeof(jsval));
+    JS_ASSERT(sp2 == sp + surplus);
+    return JS_TRUE;
+}
+
 JS_FRIEND_API(jsval *)
 js_AllocRawStack(JSContext *cx, uintN nslots, void **markp)
 {
@@ -291,10 +316,9 @@ js_FreeRawStack(JSContext *cx, void *mark)
 JS_FRIEND_API(jsval *)
 js_AllocStack(JSContext *cx, uintN nslots, void **markp)
 {
-    jsval *sp, *vp, *end;
+    jsval *sp;
     JSArena *a;
     JSStackHeader *sh;
-    JSStackFrame *fp;
 
     
     if (nslots == 0) {
@@ -319,21 +343,6 @@ js_AllocStack(JSContext *cx, uintN nslots, void **markp)
 
 
 
-
-
-        fp = cx->fp;
-        if (fp && fp->script && fp->spbase) {
-#ifdef DEBUG
-            jsuword depthdiff = fp->script->depth * sizeof(jsval);
-            JS_ASSERT(JS_UPTRDIFF(fp->sp, fp->spbase) <= depthdiff);
-            JS_ASSERT(JS_UPTRDIFF(*markp, fp->spbase) >= depthdiff);
-#endif
-            end = fp->spbase + fp->script->depth;
-            for (vp = fp->sp; vp < end; vp++)
-                *vp = JSVAL_VOID;
-        }
-
-        
         sh = (JSStackHeader *)sp;
         sh->nslots = nslots;
         sh->down = cx->stackHeaders;
@@ -604,9 +613,9 @@ js_ComputeThis(JSContext *cx, jsval *argv)
 #if JS_HAS_NO_SUCH_METHOD
 
 static JSBool
-NoSuchMethod(JSContext *cx, JSStackFrame *fp, jsval *vp, uint32 flags,
-             uintN argc)
+NoSuchMethod(JSContext *cx, uintN argc, jsval *vp, uint32 flags)
 {
+    JSStackFrame *fp;
     JSObject *thisp, *argsobj;
     JSAtom *atom;
     jsval *sp, roots[3];
@@ -618,6 +627,7 @@ NoSuchMethod(JSContext *cx, JSStackFrame *fp, jsval *vp, uint32 flags,
     
     JS_ASSERT(JSVAL_IS_PRIMITIVE(vp[0]));
     JS_ASSERT(!JSVAL_IS_PRIMITIVE(vp[1]));
+    fp = cx->fp;
     RESTORE_SP(fp);
 
     
@@ -1029,11 +1039,6 @@ LogCall(JSContext *cx, jsval callee, uintN argc, jsval *argv)
 # define ASSERT_NOT_THROWING(cx)
 #endif
 
-#define START_FAST_CALL(fp) (JS_ASSERT(!((fp)->flags & JSFRAME_IN_FAST_CALL)),\
-                             (fp)->flags |= JSFRAME_IN_FAST_CALL)
-#define END_FAST_CALL(fp)   (JS_ASSERT((fp)->flags & JSFRAME_IN_FAST_CALL),   \
-                             (fp)->flags &= ~JSFRAME_IN_FAST_CALL)
-
 
 
 
@@ -1065,12 +1070,12 @@ static const uint16 PrimitiveTestFlags[] = {
 
 
 JS_FRIEND_API(JSBool)
-js_Invoke(JSContext *cx, uintN argc, uintN flags)
+js_Invoke(JSContext *cx, uintN argc, jsval *vp, uintN flags)
 {
     void *mark;
-    JSStackFrame *fp, frame;
-    jsval *sp, *newsp, *limit;
-    jsval *vp, v;
+    JSStackFrame frame;
+    jsval *sp, *argv, *newvp;
+    jsval v;
     JSObject *funobj, *parent;
     JSBool ok;
     JSClass *clasp;
@@ -1078,24 +1083,21 @@ js_Invoke(JSContext *cx, uintN argc, uintN flags)
     JSNative native;
     JSFunction *fun;
     JSScript *script;
-    uintN nslots, nvars, nalloc, surplus;
+    uintN nslots, nvars, i;
+    uint32 rootedArgsFlag;
     JSInterpreterHook hook;
     void *hookData;
 
     
-    mark = JS_ARENA_MARK(&cx->stackPool);
-    fp = cx->fp;
-    sp = fp->sp;
+    JS_ASSERT((jsval *) cx->stackPool.current->base <= vp);
+    JS_ASSERT(vp + 2 + argc <= (jsval *) cx->stackPool.current->avail);
 
     
 
 
 
-
-
-    vp = sp - (2 + argc);
+    mark = JS_ARENA_MARK(&cx->stackPool);
     v = *vp;
-    frame.rval = JSVAL_VOID;
 
     
 
@@ -1110,10 +1112,8 @@ js_Invoke(JSContext *cx, uintN argc, uintN flags)
 
     if (JSVAL_IS_PRIMITIVE(v)) {
 #if JS_HAS_NO_SUCH_METHOD
-        if (fp->script && !(flags & JSINVOKE_INTERNAL)) {
-            ok = NoSuchMethod(cx, fp, vp, flags, argc);
-            if (ok)
-                frame.rval = *vp;
+        if (cx->fp && cx->fp->script && !(flags & JSINVOKE_INTERNAL)) {
+            ok = NoSuchMethod(cx, argc, vp, flags);
             goto out2;
         }
 #endif
@@ -1170,8 +1170,8 @@ js_Invoke(JSContext *cx, uintN argc, uintN flags)
 have_fun:
         
         fun = (JSFunction *) OBJ_GET_PRIVATE(cx, funobj);
-        nalloc = FUN_MINARGS(fun);
-        nslots = (nalloc > argc) ? nalloc - argc : 0;
+        nslots = FUN_MINARGS(fun);
+        nslots = (nslots > argc) ? nslots - argc : 0;
         if (FUN_INTERPRETED(fun)) {
             native = NULL;
             script = fun->u.i.script;
@@ -1189,14 +1189,12 @@ have_fun:
         } else if (!JSVAL_IS_OBJECT(vp[1])) {
             JS_ASSERT(!(flags & JSINVOKE_CONSTRUCT));
             if (PRIMITIVE_THIS_TEST(fun, vp[1]))
-                goto init_frame;
+                goto init_slots;
         }
     }
 
     if (flags & JSINVOKE_CONSTRUCT) {
-        
         JS_ASSERT(!JSVAL_IS_PRIMITIVE(vp[1]));
-        frame.rval = vp[1];
     } else {
         
 
@@ -1208,7 +1206,78 @@ have_fun:
             goto out2;
     }
 
-  init_frame:
+  init_slots:
+    argv = vp + 2;
+    sp = argv + argc;
+
+    rootedArgsFlag = JSFRAME_ROOTED_ARGV;
+    if (nslots != 0) {
+        
+
+
+
+
+
+        if (!AllocateAfterSP(cx, sp, nslots)) {
+            rootedArgsFlag = 0;
+            newvp = js_AllocRawStack(cx, 2 + argc + nslots, NULL);
+            if (!newvp) {
+                ok = JS_FALSE;
+                goto out2;
+            }
+            memcpy(newvp, vp, (2 + argc) * sizeof(jsval));
+            argv = newvp + 2;
+            sp = argv + argc;
+        }
+
+        
+        i = nslots;
+        do {
+            PUSH(JSVAL_VOID);
+        } while (--i != 0);
+    }
+
+    if (native && fun && (fun->flags & JSFUN_FAST_NATIVE)) {
+        JSTempValueRooter tvr;
+#ifdef DEBUG_NOT_THROWING
+        JSBool alreadyThrowing = cx->throwing;
+#endif
+#if JS_HAS_LVALUE_RETURN
+        
+        cx->rval2set = JS_FALSE;
+#endif
+        
+        i = rootedArgsFlag ? 2 + argc : 0;
+        JS_PUSH_TEMP_ROOT(cx, 2 + argc + nslots - i, argv - 2 + i, &tvr);
+        ok = ((JSFastNative) native)(cx, argc, argv - 2);
+        JS_POP_TEMP_ROOT(cx, &tvr);
+
+        JS_RUNTIME_METER(cx->runtime, nativeCalls);
+#ifdef DEBUG_NOT_THROWING
+        if (ok && !alreadyThrowing)
+            ASSERT_NOT_THROWING(cx);
+#endif
+        goto out2;
+    }
+
+    
+    if (nvars) {
+        if (!AllocateAfterSP(cx, sp, nvars)) {
+            
+            sp = js_AllocRawStack(cx, nvars, NULL);
+            if (!sp) {
+                ok = JS_FALSE;
+                goto out2;
+            }
+        }
+
+        
+        i = nvars;
+        do {
+            PUSH(JSVAL_VOID);
+        } while (--i != 0);
+    }
+
     
 
 
@@ -1223,17 +1292,20 @@ have_fun:
     frame.callee = funobj;
     frame.fun = fun;
     frame.argc = argc;
-    frame.argv = sp - argc;
+    frame.argv = argv;
+
+    
+    frame.rval = (flags & JSINVOKE_CONSTRUCT) ? vp[1] : JSVAL_VOID;
     frame.nvars = nvars;
-    frame.vars = sp;
-    frame.down = fp;
+    frame.vars = sp - nvars;
+    frame.down = cx->fp;
     frame.annotation = NULL;
     frame.scopeChain = NULL;    
     frame.pc = NULL;
     frame.spbase = NULL;
     frame.sharpDepth = 0;
     frame.sharpArray = NULL;
-    frame.flags = flags;
+    frame.flags = flags | rootedArgsFlag;
     frame.dormantNext = NULL;
     frame.xmlNamespace = NULL;
     frame.blockChain = NULL;
@@ -1244,77 +1316,6 @@ have_fun:
     
     hook = cx->debugHooks->callHook;
     hookData = NULL;
-
-    
-    if (nslots) {
-        
-        nalloc = nslots;
-        limit = (jsval *) cx->stackPool.current->limit;
-        JS_ASSERT((jsval *) cx->stackPool.current->base <= sp && sp <= limit);
-        if (sp + nslots > limit) {
-            
-            nalloc += 2 + argc;
-        } else {
-            
-            JS_ASSERT((jsval *)mark >= sp);
-            surplus = (jsval *)mark - sp;
-            nalloc -= surplus;
-        }
-
-        
-        if ((intN)nalloc > 0) {
-            
-            newsp = js_AllocRawStack(cx, nalloc, NULL);
-            if (!newsp) {
-                ok = JS_FALSE;
-                goto out;
-            }
-
-            
-            if (newsp != mark) {
-                JS_ASSERT(sp + nslots > limit);
-                JS_ASSERT(2 + argc + nslots == nalloc);
-                *newsp++ = vp[0];
-                *newsp++ = vp[1];
-                if (argc)
-                    memcpy(newsp, frame.argv, argc * sizeof(jsval));
-                frame.argv = newsp;
-                sp = frame.vars = newsp + argc;
-            }
-        }
-
-        
-        frame.vars += nslots;
-
-        
-        do {
-            PUSH(JSVAL_VOID);
-        } while (--nslots != 0);
-    }
-    JS_ASSERT(nslots == 0);
-
-    
-    if (nvars) {
-        JS_ASSERT((jsval *)cx->stackPool.current->avail >= frame.vars);
-        surplus = (jsval *)cx->stackPool.current->avail - frame.vars;
-        if (surplus < nvars) {
-            newsp = js_AllocRawStack(cx, nvars, NULL);
-            if (!newsp) {
-                ok = JS_FALSE;
-                goto out;
-            }
-            if (newsp != sp) {
-                
-                sp = frame.vars = newsp;
-            }
-        }
-
-        
-        do {
-            PUSH(JSVAL_VOID);
-        } while (--nvars != 0);
-    }
-    JS_ASSERT(nvars == 0);
 
     
     SAVE_SP(&frame);
@@ -1335,23 +1336,20 @@ have_fun:
 #endif
 
         
-        frame.varobj = fp->varobj;
-        frame.scopeChain = fp->scopeChain;
+        if (cx->fp) {
+            frame.varobj = cx->fp->varobj;
+            frame.scopeChain = cx->fp->scopeChain;
+        } else {
+            frame.varobj = NULL;
+            frame.scopeChain = NULL;
+        }
 
         
         if (!frame.scopeChain)
             frame.scopeChain = parent;
 
-        if (fun && (fun->flags & JSFUN_FAST_NATIVE)) {
-            
-
-
-
-
-            ok = ((JSFastNative) native)(cx, argc, frame.argv - 2);
-            frame.rval = frame.argv[-2];
-        } else {
 #ifdef DEBUG_brendan
+        {
             static FILE *fp;
             if (!fp) {
                 fp = fopen("/tmp/slow-natives.dump", "w");
@@ -1374,9 +1372,9 @@ have_fun:
                         ? JS_GetFunctionName(fun)
                         : "???");
             }
-#endif
-            ok = native(cx, frame.thisp, argc, frame.argv, &frame.rval);
         }
+#endif
+        ok = native(cx, frame.thisp, argc, frame.argv, &frame.rval);
 
         JS_RUNTIME_METER(cx->runtime, nativeCalls);
 #ifdef DEBUG_NOT_THROWING
@@ -1418,24 +1416,16 @@ out:
     if (frame.argsobj)
         ok &= js_PutArgsObject(cx, &frame);
 
+    *vp = frame.rval;
+
     
-    cx->fp = fp;
+    cx->fp = frame.down;
 
 out2:
     
     JS_ARENA_RELEASE(&cx->stackPool, mark);
-
-    
-    *vp = frame.rval;
-    fp->sp = vp + 1;
-
-    
-
-
-
-
-    if (fp->script && !(flags & JSINVOKE_INTERNAL))
-        vp[-(intN)fp->script->depth] = (jsval)fp->pc;
+    if (!ok)
+        *vp = JSVAL_NULL;
     return ok;
 
 bad:
@@ -1448,33 +1438,20 @@ JSBool
 js_InternalInvoke(JSContext *cx, JSObject *obj, jsval fval, uintN flags,
                   uintN argc, jsval *argv, jsval *rval)
 {
-    JSStackFrame *fp, *oldfp, frame;
-    jsval *oldsp, *sp;
+    jsval *invokevp;
     void *mark;
-    uintN i;
     JSBool ok;
 
-    fp = oldfp = cx->fp;
-    if (!fp) {
-        memset(&frame, 0, sizeof frame);
-        cx->fp = fp = &frame;
-    }
-    oldsp = fp->sp;
-    sp = js_AllocStack(cx, 2 + argc, &mark);
-    if (!sp) {
-        ok = JS_FALSE;
-        goto out;
-    }
+    invokevp = js_AllocStack(cx, 2 + argc, &mark);
+    if (!invokevp)
+        return JS_FALSE;
 
-    PUSH(fval);
-    PUSH(OBJECT_TO_JSVAL(obj));
-    for (i = 0; i < argc; i++)
-        PUSH(argv[i]);
-    SAVE_SP(fp);
-    ok = js_Invoke(cx, argc, flags | JSINVOKE_INTERNAL);
+    invokevp[0] = fval;
+    invokevp[1] = OBJECT_TO_JSVAL(obj);
+    memcpy(invokevp + 2, argv, argc * sizeof *argv);
+
+    ok = js_Invoke(cx, argc, invokevp, flags | JSINVOKE_INTERNAL);
     if (ok) {
-        RESTORE_SP(fp);
-
         
 
 
@@ -1482,7 +1459,7 @@ js_InternalInvoke(JSContext *cx, JSObject *obj, jsval fval, uintN flags,
 
 
 
-        *rval = POP_OPND();
+        *rval = *invokevp;
         if (JSVAL_IS_GCTHING(*rval) && *rval != JSVAL_NULL) {
             if (cx->localRootStack) {
                 if (js_PushLocalRoot(cx, cx->localRootStack, *rval) < 0)
@@ -1494,11 +1471,6 @@ js_InternalInvoke(JSContext *cx, JSObject *obj, jsval fval, uintN flags,
     }
 
     js_FreeStack(cx, mark);
-out:
-    fp->sp = oldsp;
-    if (oldfp != fp)
-        cx->fp = oldfp;
-
     return ok;
 }
 
@@ -1956,7 +1928,7 @@ js_InvokeConstructor(JSContext *cx, jsval *vp, uintN argc)
 
     
     vp[1] = OBJECT_TO_JSVAL(obj);
-    if (!js_Invoke(cx, argc, JSINVOKE_CONSTRUCT)) {
+    if (!js_Invoke(cx, argc, vp, JSINVOKE_CONSTRUCT)) {
         cx->weakRoots.newborn[GCX_OBJECT] = NULL;
         return JS_FALSE;
     }
@@ -3516,7 +3488,8 @@ interrupt:
             ok = js_InvokeConstructor(cx, vp, argc);
             if (!ok)
                 goto out;
-            RESTORE_SP(fp);
+            sp = vp + 1;
+            vp[-depth] = (jsval)pc;
             LOAD_INTERRUPT_HANDLER(cx);
             obj = JSVAL_TO_OBJECT(*vp);
             len = js_CodeSpec[op].length;
@@ -4088,7 +4061,12 @@ interrupt:
                         if (sp + nargs > fp->spbase + depth)
                             goto do_invoke;
                         do {
-                            PUSH(JSVAL_VOID);
+                            
+
+
+
+
+                            PUSH_OPND(JSVAL_VOID);
                         } while (--nargs != 0);
                         SAVE_SP(fp);
                     }
@@ -4096,9 +4074,7 @@ interrupt:
                     JS_ASSERT(!JSVAL_IS_PRIMITIVE(vp[1]) ||
                               PRIMITIVE_THIS_TEST(fun, vp[1]));
 
-                    START_FAST_CALL(fp);
                     ok = ((JSFastNative) fun->u.n.native)(cx, argc, vp);
-                    END_FAST_CALL(fp);
                     if (!ok)
                         goto out;
                     sp = vp + 1;
@@ -4108,8 +4084,9 @@ interrupt:
             }
 
           do_invoke:
-            ok = js_Invoke(cx, argc, 0);
-            RESTORE_SP(fp);
+            ok = js_Invoke(cx, argc, vp, 0);
+            sp = vp + 1;
+            vp[-depth] = (jsval)pc;
             LOAD_INTERRUPT_HANDLER(cx);
             if (!ok)
                 goto out;
@@ -4146,8 +4123,10 @@ interrupt:
           BEGIN_CASE(JSOP_SETCALL)
             argc = GET_ARGC(pc);
             SAVE_SP_AND_PC(fp);
-            ok = js_Invoke(cx, argc, 0);
-            RESTORE_SP(fp);
+            vp = sp - argc - 2;
+            ok = js_Invoke(cx, argc, vp, 0);
+            sp = vp + 1;
+            vp[-depth] = (jsval)pc;
             LOAD_INTERRUPT_HANDLER(cx);
             if (!ok)
                 goto out;
