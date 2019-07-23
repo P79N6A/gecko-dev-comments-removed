@@ -670,6 +670,19 @@ protected:
 
 
 
+
+  NS_HIDDEN_(nsresult) GetEnumAttr(nsIAtom* aAttr,
+                                   const char* aDefault,
+                                   nsAString& aResult);
+
+  
+
+
+
+
+
+
+
   virtual already_AddRefed<nsIEditor> GetAssociatedEditor();
 
   
@@ -1061,6 +1074,23 @@ NS_NewHTML##_elementName##Element(nsINodeInfo *aNodeInfo, PRBool aFromParser)\
       return NS_ERROR_DOM_INDEX_SIZE_ERR;                                 \
     }                                                                     \
     return SetIntAttr(nsGkAtoms::_atom, aValue);                          \
+  }
+
+
+
+
+
+
+#define NS_IMPL_ENUM_ATTR_DEFAULT_VALUE(_class, _method, _atom, _default) \
+  NS_IMETHODIMP                                                           \
+  _class::Get##_method(nsAString& aValue)                                 \
+  {                                                                       \
+    return GetEnumAttr(nsGkAtoms::_atom, _default, aValue);               \
+  }                                                                       \
+  NS_IMETHODIMP                                                           \
+  _class::Set##_method(const nsAString& aValue)                           \
+  {                                                                       \
+    return SetAttrHelper(nsGkAtoms::_atom, aValue);                       \
   }
 
 

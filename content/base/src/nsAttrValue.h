@@ -155,6 +155,14 @@ public:
   inline float GetFloatValue() const;
 
   
+
+
+
+
+
+  void GetEnumString(nsAString& aResult, PRBool aRealTag) const;
+
+  
   
   
   PRInt32 GetAtomCount() const;
@@ -204,7 +212,7 @@ public:
 
   PRBool ParseEnumValue(const nsAString& aValue,
                         const EnumTable* aTable,
-                        PRBool aCaseSensitive = PR_FALSE);
+                        PRBool aCaseSensitive);
 
   
 
@@ -305,6 +313,17 @@ private:
   };
 
   inline ValueBaseType BaseType() const;
+
+  
+
+
+
+
+
+
+
+
+  PRBool GetEnumTableIndex(const EnumTable* aTable, PRInt16& aResult);
 
   inline void SetPtrValueAndType(void* aValue, ValueBaseType aType);
   void SetIntValueAndType(PRInt32 aValue, ValueType aType,
