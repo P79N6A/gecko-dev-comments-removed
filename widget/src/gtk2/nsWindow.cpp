@@ -136,6 +136,10 @@ D_DEBUG_DOMAIN( ns_Window, "nsWindow", "nsWindow" );
 #endif
 
 
+
+#define MAX_RECTS_IN_REGION 100
+
+
 static NS_DEFINE_IID(kDeviceContextCID, NS_DEVICE_CONTEXT_CID);
 
 
@@ -2126,6 +2130,12 @@ nsWindow::OnExposeEvent(GtkWidget *aWidget, GdkEventExpose *aEvent)
     gdk_region_get_rectangles(aEvent->region, &rects, &nrects);
     if (NS_UNLIKELY(!rects)) 
         return FALSE;
+
+    if (nrects > MAX_RECTS_IN_REGION) {
+        
+        rects[0] = aEvent->area;
+        nrects = 1;
+    }
 
     LOGDRAW(("sending expose event [%p] %p 0x%lx (rects follow):\n",
              (void *)this, (void *)aEvent->window,
