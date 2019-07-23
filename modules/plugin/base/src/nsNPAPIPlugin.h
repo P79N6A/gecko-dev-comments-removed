@@ -43,7 +43,7 @@
 #include "npfunctions.h"
 #include "nsPluginHost.h"
 
-#include "mozilla/SharedLibrary.h"
+#include "mozilla/PluginLibrary.h"
 
 
 
@@ -76,16 +76,11 @@ typedef NS_NPAPIPLUGIN_CALLBACK(NPError, NP_MAIN) (NPNetscapeFuncs* nCallbacks, 
 class nsNPAPIPlugin : public nsIPlugin
 {
 private:
-  typedef mozilla::SharedLibrary SharedLibrary;
+  typedef mozilla::PluginLibrary PluginLibrary;
 
 public:
-  
-  
-  
   nsNPAPIPlugin(NPPluginFuncs* callbacks,
-                SharedLibrary* aLibrary,
-                PRLibrary* aPRLibrary,
-                NP_PLUGINSHUTDOWN aShutdown);
+                PluginLibrary* aLibrary);
   virtual ~nsNPAPIPlugin();
 
   NS_DECL_ISUPPORTS
@@ -110,10 +105,8 @@ protected:
   
   
   NPPluginFuncs fCallbacks;
-  SharedLibrary* fLibrary;
+  PluginLibrary* fLibrary;
   PRLibrary* fPRLibrary;
-
-  NP_PLUGINSHUTDOWN fShutdownEntry;
 
   
   static NPNetscapeFuncs CALLBACKS;
