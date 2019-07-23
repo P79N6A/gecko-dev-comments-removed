@@ -141,9 +141,18 @@
 #include "nsContentCID.h"
 static NS_DEFINE_CID(kRangeCID, NS_RANGE_CID);
 
+#ifdef MOZ_X11
+#include <X11/Xlib.h>
 
+enum { XKeyPress = KeyPress };
 #ifdef KeyPress
 #undef KeyPress
+#endif
+#include "gfxXlibNativeRenderer.h"
+#ifdef MOZ_WIDGET_GTK2
+#include <gdk/gdkwindow.h>
+#include <gdk/gdkx.h>
+#endif
 #endif
 
 #ifdef XP_WIN
@@ -335,7 +344,14 @@ public:
   
   nsEventStatus ProcessEvent(const nsGUIEvent & anEvent);
   
-  void Paint(const nsRect& aDirtyRect, PRUint32 ndc = 0);
+#ifdef XP_WIN
+  void Paint(const nsRect& aDirtyRect, HDC ndc);
+#elif defined(XP_MACOSX)
+  void Paint(const nsRect& aDirtyRect);  
+#elif defined(MOZ_X11)
+  void Paint(nsIRenderingContext& aRenderingContext,
+             const nsRect& aDirtyRect);
+#endif
 
   
   NS_DECL_NSITIMERCALLBACK
@@ -389,10 +405,28 @@ private:
   nsresult DispatchFocusToPlugin(nsIDOMEvent* aFocusEvent);
 
   nsresult EnsureCachedAttrParamArrays();
+
+#ifdef MOZ_X11
+  class Renderer : public gfxXlibNativeRenderer {
+  public:
+    Renderer(nsPluginWindow* aWindow, nsIPluginInstance* aInstance,
+             const nsIntRect& aDirtyRect)
+      : mWindow(aWindow), mInstance(aInstance), mDirtyRect(aDirtyRect)
+    {}
+    virtual nsresult NativeDraw(Display* dpy, Drawable drawable, Visual* visual,
+                                short offsetX, short offsetY,
+                                XRectangle* clipRects, PRUint32 numClipRects);
+  private:
+    nsPluginWindow* mWindow;
+    nsIPluginInstance* mInstance;
+    const nsIntRect& mDirtyRect;
+  };
+#endif
+
 };
 
-#if defined(XP_WIN) || (defined(DO_DIRTY_INTERSECT) && defined(XP_MACOSX))
-static void ConvertAppUnitsToPixels(nsPresContext& aPresContext, nsRect& aTwipsRect, nsRect& aPixelRect);
+#if defined(XP_WIN) || (defined(DO_DIRTY_INTERSECT) && defined(XP_MACOSX)) || defined(MOZ_X11)
+static void ConvertAppUnitsToPixels(const nsPresContext& aPresContext, const nsRect& aTwipsRect, nsIntRect& aPixelRect);
 #endif
 
   
@@ -845,6 +879,10 @@ nsPoint nsObjectFrame::GetWindowOriginInPixels(PRBool aWindowless)
   
   
   if (aWindowless && parentWithView) {
+    
+    
+    
+
     nsIViewManager* parentVM = parentWithView->GetViewManager();
 
     
@@ -914,7 +952,32 @@ nsObjectFrame::DidReflow(nsPresContext*            aPresContext,
   window->y = origin.y;
 
   
-  window->window = mInstanceOwner->GetPluginPort();
+#ifdef MOZ_X11
+  if(windowless) {
+    
+    
+    nsIWidget* widget = GetWindow();
+    if (widget) {
+      NPSetWindowCallbackStruct* ws_info = 
+        NS_STATIC_CAST(NPSetWindowCallbackStruct*, window->ws_info);
+      ws_info->display =
+        NS_STATIC_CAST(Display*, widget->GetNativeData(NS_NATIVE_DISPLAY));
+#ifdef MOZ_WIDGET_GTK2
+      GdkWindow* gdkWindow =
+        NS_STATIC_CAST(GdkWindow*, widget->GetNativeData(NS_NATIVE_WINDOW));
+      GdkColormap* gdkColormap = gdk_drawable_get_colormap(gdkWindow);
+      ws_info->colormap = gdk_x11_colormap_get_xcolormap(gdkColormap);
+      GdkVisual* gdkVisual = gdk_colormap_get_visual(gdkColormap);
+      ws_info->visual = gdk_x11_visual_get_xvisual(gdkVisual);
+      ws_info->depth = gdkVisual->depth;
+#endif
+    }
+  }
+  else
+#endif
+  {
+    window->window = mInstanceOwner->GetPluginPort();
+  }
 
   
   
@@ -936,7 +999,12 @@ static void PaintPlugin(nsIFrame* aFrame, nsIRenderingContext* aCtx,
                         const nsRect& aDirtyRect, nsPoint aPt)
 {
   nsIRenderingContext::AutoPushTranslation translate(aCtx, aPt.x, aPt.y);
+#ifdef MOZ_X11 
+  nsRect relativeDirtyRect = aDirtyRect - aPt;
+  NS_STATIC_CAST(nsObjectFrame*, aFrame)->PaintPlugin(*aCtx, relativeDirtyRect);
+#else
   NS_STATIC_CAST(nsObjectFrame*, aFrame)->PaintPlugin(*aCtx, aDirtyRect);
+#endif
 }
 
 NS_IMETHODIMP
@@ -1105,6 +1173,15 @@ nsObjectFrame::PaintPlugin(nsIRenderingContext& aRenderingContext,
   
   if (mInstanceOwner)
       mInstanceOwner->Paint(aDirtyRect);
+#elif defined(MOZ_X11)
+  if (mInstanceOwner)
+    {
+      nsPluginWindow * window;
+      mInstanceOwner->GetWindow(window);
+
+      if (window->type == nsPluginWindowType_Drawable)
+        mInstanceOwner->Paint(aRenderingContext, aDirtyRect);
+    }
 #elif defined (XP_WIN) 
   
   
@@ -1196,6 +1273,11 @@ nsObjectFrame::PaintPlugin(nsIRenderingContext& aRenderingContext,
 
               origin = GetWindowOriginInPixels(PR_TRUE);
               nsRect winlessRect = nsRect(origin, nsSize(window->width, window->height));
+              
+              
+              
+              
+              
               if (mWindowlessRect != winlessRect) {
                 mWindowlessRect = winlessRect;
 
@@ -1223,7 +1305,8 @@ nsObjectFrame::PaintPlugin(nsIRenderingContext& aRenderingContext,
       
       
       
-      mInstanceOwner->Paint(aDirtyRect, (PRUint32)(HDC)hdc);
+      
+      mInstanceOwner->Paint(aDirtyRect, hdc);
 
 #ifdef MOZ_CAIRO_GFX
       RestoreDC(hdc, -1);
@@ -3142,12 +3225,12 @@ nsPluginInstanceOwner::Destroy()
 
 
 
-void nsPluginInstanceOwner::Paint(const nsRect& aDirtyRect, PRUint32 ndc)
+#ifdef XP_MACOSX
+void nsPluginInstanceOwner::Paint(const nsRect& aDirtyRect)
 {
   if (!mInstance || !mOwner)
     return;
  
-#ifdef XP_MACOSX
 #ifdef DO_DIRTY_INTERSECT   
   nsPoint rel(aDirtyRect.x, aDirtyRect.y);
   nsPoint abs(0,0);
@@ -3159,9 +3242,9 @@ void nsPluginInstanceOwner::Paint(const nsRect& aDirtyRect, PRUint32 ndc)
   nsRect absDirtyRect = nsRect(abs.x, abs.y, aDirtyRect.width, aDirtyRect.height);
 
   
-  nsRect absDirtyRectInPixels;
+  nsIntRect absDirtyRectInPixels;
   ConvertAppUnitsToPixels(*mOwner->GetPresContext(), absDirtyRect,
-                       absDirtyRectInPixels);
+                          absDirtyRectInPixels);
 #endif
 
   nsCOMPtr<nsIPluginWidget> pluginWidget = do_QueryInterface(mWidget);
@@ -3179,13 +3262,19 @@ void nsPluginInstanceOwner::Paint(const nsRect& aDirtyRect, PRUint32 ndc)
     }
     pluginWidget->EndDrawPlugin();
   }
+}
 #endif
 
 #ifdef XP_WIN
+void nsPluginInstanceOwner::Paint(const nsRect& aDirtyRect, HDC ndc)
+{
+  if (!mInstance || !mOwner)
+    return;
+
   nsPluginWindow * window;
   GetWindow(window);
   nsRect relDirtyRect = nsRect(aDirtyRect.x, aDirtyRect.y, aDirtyRect.width, aDirtyRect.height);
-  nsRect relDirtyRectInPixels;
+  nsIntRect relDirtyRectInPixels;
   ConvertAppUnitsToPixels(*mOwner->PresContext(), relDirtyRect,
                           relDirtyRectInPixels);
 
@@ -3203,8 +3292,136 @@ void nsPluginInstanceOwner::Paint(const nsRect& aDirtyRect, PRUint32 ndc)
   pluginEvent.lParam = (uint32)&drc;
   PRBool eventHandled = PR_FALSE;
   mInstance->HandleEvent(&pluginEvent, &eventHandled);
-#endif
 }
+#endif
+
+#ifdef MOZ_X11
+void nsPluginInstanceOwner::Paint(nsIRenderingContext& aRenderingContext,
+                                  const nsRect& aDirtyRect)
+{
+  if (!mInstance || !mOwner)
+    return;
+ 
+  nsPluginWindow* window;
+  GetWindow(window);
+
+  nsIntRect dirtyRectInPixels;
+  ConvertAppUnitsToPixels(*mOwner->PresContext(), aDirtyRect,
+                          dirtyRectInPixels);
+  
+  
+  nsIntRect pluginDirtyRect;
+  if (!pluginDirtyRect.IntersectRect(nsIntRect(0, 0, window->width, window->height), dirtyRectInPixels))
+    return;
+
+  Renderer renderer(window, mInstance, pluginDirtyRect);
+  PRUint32 rendererFlags =
+    Renderer::DRAW_SUPPORTS_OFFSET |
+    Renderer::DRAW_SUPPORTS_CLIP_RECT |
+    Renderer::DRAW_SUPPORTS_NONDEFAULT_VISUAL |
+    Renderer::DRAW_SUPPORTS_ALTERNATE_DISPLAY;
+
+  PRBool transparent = PR_TRUE;
+  mInstance->GetValue(nsPluginInstanceVariable_TransparentBool,
+                      (void *)&transparent);
+  if (!transparent)
+    rendererFlags |= Renderer::DRAW_IS_OPAQUE;
+
+  gfxContext* ctx =
+    NS_STATIC_CAST(gfxContext*,
+                   aRenderingContext.GetNativeGraphicData(nsIRenderingContext::NATIVE_THEBES_CONTEXT));
+
+  
+  
+  
+  
+  NPSetWindowCallbackStruct* ws_info = 
+    NS_STATIC_CAST(NPSetWindowCallbackStruct*, window->ws_info);
+  renderer.Draw(ws_info->display, ctx, window->width, window->height,
+                rendererFlags, nsnull);
+}
+
+nsresult
+nsPluginInstanceOwner::Renderer::NativeDraw(Display* dpy, Drawable drawable,
+                                            Visual* visual,
+                                            short offsetX, short offsetY,
+                                            XRectangle* clipRects,
+                                            PRUint32 numClipRects)
+{
+  
+  PRBool doupdatewindow = PR_FALSE;
+
+  if (mWindow->x != offsetX || mWindow->y != offsetY) {
+    mWindow->x = offsetX;
+    mWindow->y = offsetY;
+    doupdatewindow = PR_TRUE;
+  }
+
+  NS_ASSERTION(numClipRects <= 1, "We don't support multiple clip rectangles!");
+  nsPluginRect newClipRect;
+  if (numClipRects) {
+    newClipRect.left = clipRects[0].x;
+    newClipRect.top = clipRects[0].y;
+    newClipRect.right  = clipRects[0].x + clipRects[0].width;
+    newClipRect.bottom = clipRects[0].y + clipRects[0].height;
+  }
+  else {
+    
+    NS_ASSERTION(offsetX >= 0 && offsetY >= 0,
+                 "Clip rectangle offsets are negative!");
+    newClipRect.left = offsetX;
+    newClipRect.top  = offsetY;
+    newClipRect.right  = offsetX + mWindow->width;
+    newClipRect.bottom = offsetY + mWindow->height;
+  }
+
+  if (mWindow->clipRect.left    != newClipRect.left   ||
+      mWindow->clipRect.top     != newClipRect.top    ||
+      mWindow->clipRect.right   != newClipRect.right  ||
+      mWindow->clipRect.bottom  != newClipRect.bottom) {
+    mWindow->clipRect = newClipRect;
+    doupdatewindow = PR_TRUE;
+  }
+
+  NPSetWindowCallbackStruct* ws_info = 
+    NS_STATIC_CAST(NPSetWindowCallbackStruct*, mWindow->ws_info);
+  if ( ws_info->visual != visual) {
+    
+    
+    
+    
+    NS_ASSERTION(ws_info->visual == visual,
+                 "Visual changed: colormap may not match");
+    ws_info->visual = visual;
+    doupdatewindow = PR_TRUE;
+  }
+
+  if (doupdatewindow)
+      mInstance->SetWindow(mWindow);
+
+  nsPluginEvent pluginEvent;
+  XGraphicsExposeEvent& exposeEvent = pluginEvent.event.xgraphicsexpose;
+  
+  exposeEvent.type = GraphicsExpose;
+  exposeEvent.display = dpy;
+  exposeEvent.drawable = drawable;
+  exposeEvent.x = mDirtyRect.x + offsetX;
+  exposeEvent.y = mDirtyRect.y + offsetY;
+  exposeEvent.width  = mDirtyRect.width;
+  exposeEvent.height = mDirtyRect.height;
+  exposeEvent.count = 0;
+  
+  exposeEvent.serial = 0;
+  exposeEvent.send_event = False;
+  exposeEvent.major_code = 0;
+  exposeEvent.minor_code = 0;
+
+  PRBool eventHandled = PR_FALSE;
+  mInstance->HandleEvent(&pluginEvent, &eventHandled);
+
+  return NS_OK;
+}
+#endif
 
 
 
@@ -3423,9 +3640,9 @@ void nsPluginInstanceOwner::SetPluginHost(nsIPluginHost* aHost)
   mPluginHost = aHost;
 }
 
-#if defined(XP_WIN) || (defined(DO_DIRTY_INTERSECT) && defined(XP_MACOSX))
+#if defined(XP_WIN) || (defined(DO_DIRTY_INTERSECT) && defined(XP_MACOSX)) || defined(MOZ_X11)
 
-static void ConvertAppUnitsToPixels(nsPresContext& aPresContext, nsRect& aTwipsRect, nsRect& aPixelRect)
+static void ConvertAppUnitsToPixels(const nsPresContext& aPresContext, const nsRect& aTwipsRect, nsIntRect& aPixelRect)
 {
   aPixelRect.x = aPresContext.AppUnitsToDevPixels(aTwipsRect.x);
   aPixelRect.y = aPresContext.AppUnitsToDevPixels(aTwipsRect.y);
