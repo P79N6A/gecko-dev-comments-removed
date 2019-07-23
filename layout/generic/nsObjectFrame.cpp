@@ -108,7 +108,6 @@
 #include "nsDisplayList.h"
 #include "nsAttrName.h"
 #include "nsDataHashtable.h"
-#include "nsGlobalWindow.h"
 
 
 #include "nsIScriptGlobalObject.h"
@@ -1404,21 +1403,6 @@ nsObjectFrame::PrepareInstanceOwner()
 
   NS_ADDREF(mInstanceOwner);
   mInstanceOwner->Init(PresContext(), this, GetContent());
-
-#ifdef OJI
-  if (mContent->Tag() == nsGkAtoms::applet) {
-    nsGlobalWindow *win =
-      (nsGlobalWindow *)mContent->GetOwnerDoc()->GetScriptGlobalObject();
-
-    if (win) {
-      
-      
-      
-
-      win->InitJavaProperties();
-    }
-  }
-#endif
 
   return NS_OK;
 }
