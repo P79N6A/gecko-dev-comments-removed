@@ -46,6 +46,7 @@
 #include "gfxContext.h"
 #include "gfxRect.h"
 #include "nsITimer.h"
+#include "ImageLayers.h"
 
 class nsHTMLMediaElement;
 class nsMediaStream;
@@ -59,6 +60,8 @@ class nsMediaDecoder : public nsIObserver
 public:
   typedef mozilla::TimeStamp TimeStamp;
   typedef mozilla::TimeDuration TimeDuration;
+  typedef mozilla::layers::ImageContainer ImageContainer;
+  typedef mozilla::layers::Image Image;
 
   nsMediaDecoder();
   virtual ~nsMediaDecoder();
@@ -110,15 +113,6 @@ public:
   
   virtual nsresult Load(nsMediaStream* aStream,
                         nsIStreamListener **aListener) = 0;
-
-  
-  
-  
-  
-  
-  virtual void Paint(gfxContext* aContext,
-                     gfxPattern::GraphicsFilter aFilter,
-                     const gfxRect& aRect);
 
   
   virtual void ResourceLoaded() = 0;
@@ -229,6 +223,11 @@ public:
   
   virtual void MoveLoadsToBackground()=0;
 
+  
+  
+  
+  ImageContainer* GetImageContainer() { return mImageContainer; }
+
 protected:
 
   
@@ -239,13 +238,9 @@ protected:
 
   
   
-  
-  
-  void SetRGBData(PRInt32 aWidth,
-                  PRInt32 aHeight,
-                  float aFramerate,
-                  float aAspectRatio,
-                  unsigned char* aRGBBuffer);
+  void SetVideoData(const gfxIntSize& aSize,
+                    float aAspectRatio,
+                    Image* aImage);
 
 protected:
   
@@ -256,13 +251,10 @@ protected:
   
   nsHTMLMediaElement* mElement;
 
-  
-  
-  
-  nsAutoArrayPtr<unsigned char> mRGB;
-
   PRInt32 mRGBWidth;
   PRInt32 mRGBHeight;
+
+  nsRefPtr<ImageContainer> mImageContainer;
 
   
   

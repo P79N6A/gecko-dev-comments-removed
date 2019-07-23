@@ -44,6 +44,7 @@
 #include "nsCycleCollectionParticipant.h"
 #include "nsILoadGroup.h"
 #include "nsIObserver.h"
+#include "ImageLayers.h"
 
 
 
@@ -54,6 +55,8 @@ typedef PRUint16 nsMediaReadyState;
 class nsHTMLMediaElement : public nsGenericHTMLElement,
                            public nsIObserver
 {
+  typedef mozilla::layers::ImageContainer ImageContainer;
+
 public:
   nsHTMLMediaElement(nsINodeInfo *aNodeInfo, PRBool aFromParser = PR_FALSE);
   virtual ~nsHTMLMediaElement();
@@ -161,9 +164,11 @@ public:
 
   
   
-  void Paint(gfxContext* aContext,
-             gfxPattern::GraphicsFilter aFilter,
-             const gfxRect& aRect);
+  ImageContainer* GetImageContainer();
+
+  
+  
+  gfxASurface* GetPrintSurface() { return mPrintSurface; }
 
   
   nsresult DispatchSimpleEvent(const nsAString& aName);
@@ -392,6 +397,10 @@ protected:
   void DoRemoveSelfReference();
 
   nsRefPtr<nsMediaDecoder> mDecoder;
+
+  
+  
+  nsRefPtr<ImageContainer> mImageContainer;
 
   
   
