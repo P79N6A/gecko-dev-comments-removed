@@ -421,6 +421,22 @@ void nsCSSScanner::ReportUnexpectedEOF(const char* aLookingFor)
 }
 
 
+void nsCSSScanner::ReportUnexpectedEOF(PRUnichar aLookingFor)
+{
+  ENSURE_STRINGBUNDLE;
+
+  const PRUnichar lookingForStr[] = {
+    PRUnichar('\''), aLookingFor, PRUnichar('\''), PRUnichar(0)
+  };
+  const PRUnichar *params[] = { lookingForStr };
+  nsXPIDLString str;
+  gStringBundle->FormatStringFromName(NS_LITERAL_STRING("PEUnexpEOF2").get(),
+                                      params, NS_ARRAY_LENGTH(params),
+                                      getter_Copies(str));
+  AddToError(str);
+}
+
+
 
 void nsCSSScanner::ReportUnexpectedToken(nsCSSToken& tok,
                                          const char *aMessage)

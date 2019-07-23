@@ -160,6 +160,8 @@ class nsCSSScanner {
   
   NS_HIDDEN_(void) ReportUnexpectedEOF(const char* aLookingFor);
   
+  NS_HIDDEN_(void) ReportUnexpectedEOF(PRUnichar aLookingFor);
+  
   
   NS_HIDDEN_(void) ReportUnexpectedToken(nsCSSToken& tok,
                                          const char *aMessage);

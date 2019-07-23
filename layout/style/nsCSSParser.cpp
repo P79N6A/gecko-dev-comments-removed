@@ -524,6 +524,9 @@ NS_NewCSSParser(nsICSSParser** aInstancePtrResult)
 #define REPORT_UNEXPECTED_EOF(lf_) \
   mScanner.ReportUnexpectedEOF(#lf_)
 
+#define REPORT_UNEXPECTED_EOF_CHAR(ch_) \
+  mScanner.ReportUnexpectedEOF(ch_)
+
 #define REPORT_UNEXPECTED_TOKEN(msg_) \
   mScanner.ReportUnexpectedToken(mToken, #msg_)
 
@@ -543,6 +546,7 @@ NS_NewCSSParser(nsICSSParser** aInstancePtrResult)
 #define REPORT_UNEXPECTED(msg_)
 #define REPORT_UNEXPECTED_P(msg_, params_)
 #define REPORT_UNEXPECTED_EOF(lf_)
+#define REPORT_UNEXPECTED_EOF_CHAR(ch_)
 #define REPORT_UNEXPECTED_TOKEN(msg_)
 #define REPORT_UNEXPECTED_TOKEN_P(msg_, params_)
 #define OUTPUT_ERROR()
@@ -1171,7 +1175,17 @@ PRBool CSSParserImpl::ExpectSymbol(nsresult& aErrorCode,
                                    PRBool aSkipWS)
 {
   if (!GetToken(aErrorCode, aSkipWS)) {
-    return PR_FALSE;
+    
+    
+    
+    
+    if (aSymbol == ')' || aSymbol == ']' ||
+        aSymbol == '}' || aSymbol == ';') {
+      REPORT_UNEXPECTED_EOF_CHAR(aSymbol);
+      return PR_TRUE;
+    }
+    else
+      return PR_FALSE;
   }
   if (mToken.IsSymbol(aSymbol)) {
     return PR_TRUE;
@@ -1365,9 +1379,16 @@ PRBool CSSParserImpl::GatherMedia(nsresult& aErrorCode,
     aMedia->AppendAtom(medium);
 
     if (!GetToken(aErrorCode, PR_TRUE)) {
+      
       if (aStopSymbol == PRUnichar(0))
         return PR_TRUE;
+
+      
+      
+      
       REPORT_UNEXPECTED_EOF(PEGatherMediaEOF);
+      if (aStopSymbol == PRUnichar(';'))
+        return PR_TRUE;
       break;
     }
 
