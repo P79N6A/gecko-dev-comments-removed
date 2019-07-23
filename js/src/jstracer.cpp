@@ -285,6 +285,7 @@ js_InitJITStatsClass(JSContext *cx, JSObject *glob)
 #define INS_ATOM(atom)        INS_CONSTSTR(ATOM_TO_STRING(atom))
 #define INS_NULL()            INS_CONSTPTR(NULL)
 #define INS_VOID()            INS_CONST(JSVAL_TO_SPECIAL(JSVAL_VOID))
+#define INS_DSLOTSNULL(ins)   lir->ins2(LIR_pult, (ins), INS_CONSTPTR((jsval*) DSLOTS_NULL_LIMIT))
 
 static avmplus::AvmCore s_core = avmplus::AvmCore();
 static avmplus::AvmCore* core = &s_core;
@@ -12569,7 +12570,7 @@ TraceRecorder::denseArrayElement(jsval& oval, jsval& ival, jsval*& vp, LIns*& v_
                                    NULL);
 
         
-        LIns* br3 = lir->insBranch(LIR_jt, lir->ins_peq0(dslots_ins), NULL);
+        LIns* br3 = lir->insBranch(LIR_jt, INS_DSLOTSNULL(dslots_ins), NULL);
 
         
         LIns* br4 = lir->insBranch(LIR_jf,
@@ -12611,7 +12612,7 @@ TraceRecorder::denseArrayElement(jsval& oval, jsval& ival, jsval*& vp, LIns*& v_
 
     
     guard(false,
-          lir->ins_peq0(dslots_ins),
+          INS_DSLOTSNULL(dslots_ins),
           exit);
 
     
