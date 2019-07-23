@@ -176,10 +176,10 @@ _callHook(JSDContext *jsdc, JSContext *cx, JSStackFrame *fp, JSBool before,
                             
 
                             jsdc->callingFunctionPData = pdata;
-                            jsdc->lastReturnTime = JSLL_ZERO;
+                            jsdc->lastReturnTime = 0;
                             
 
-                            pdata->runningTime = JSLL_ZERO;
+                            pdata->runningTime = 0;
                             pdata->lastCallStart = now;
                         } else {
                             if (++pdata->recurseDepth > pdata->maxRecurseDepth)
@@ -238,7 +238,7 @@ _callHook(JSDContext *jsdc, JSContext *cx, JSStackFrame *fp, JSBool before,
                         
 
                         jsdc->lastReturnTime = now;
-                        pdata->lastCallStart = JSLL_ZERO;
+                        pdata->lastCallStart = 0;
                         ++pdata->callCount;
                     } else if (pdata->recurseDepth) {
                         --pdata->recurseDepth;
