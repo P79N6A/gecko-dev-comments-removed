@@ -1583,6 +1583,7 @@ nsSocketTransport::OnSocketDetached(PRFileDesc *fd)
 
     
     
+    
     {
         nsAutoLock lock(mLock);
         if (mFD) {
@@ -1591,6 +1592,8 @@ nsSocketTransport::OnSocketDetached(PRFileDesc *fd)
             
             mFDconnected = PR_FALSE;
         }
+        mCallbacks = nsnull;
+        mEventSink = nsnull;
     }
 }
 
