@@ -48,7 +48,7 @@ class nsStyleContext;
 class nsIRadioControlFrame
 {
 public:
-  NS_DECL_QUERYFRAME_TARGET(nsIRadioControlFrame)
+  NS_DECLARE_FRAME_ACCESSOR(nsIRadioControlFrame)
 
    
 

@@ -53,7 +53,7 @@ class nsSVGRenderState;
 class nsISVGChildFrame : public nsQueryFrame
 {
 public:
-  NS_DECL_QUERYFRAME_TARGET(nsISVGChildFrame)
+  NS_DECLARE_FRAME_ACCESSOR(nsISVGChildFrame)
 
   
   

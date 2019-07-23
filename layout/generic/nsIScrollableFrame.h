@@ -55,7 +55,7 @@ class nsBoxLayoutState;
 class nsIScrollableFrame : public nsIScrollableViewProvider {
 public:
 
-  NS_DECL_QUERYFRAME_TARGET(nsIScrollableFrame)
+  NS_DECLARE_FRAME_ACCESSOR(nsIScrollableFrame)
 
   
 

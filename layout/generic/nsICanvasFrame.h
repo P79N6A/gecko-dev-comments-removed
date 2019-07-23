@@ -45,7 +45,7 @@
 class nsICanvasFrame
 {
 public:
-  NS_DECL_QUERYFRAME_TARGET(nsICanvasFrame)
+  NS_DECLARE_FRAME_ACCESSOR(nsICanvasFrame)
 
   
 

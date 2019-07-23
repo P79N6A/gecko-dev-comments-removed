@@ -14,7 +14,7 @@ class nsPresState;
 class nsIStatefulFrame
 {
  public: 
-  NS_DECL_QUERYFRAME_TARGET(nsIStatefulFrame)
+  NS_DECLARE_FRAME_ACCESSOR(nsIStatefulFrame)
 
   
   

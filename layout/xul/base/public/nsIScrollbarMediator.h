@@ -47,7 +47,7 @@ class nsIScrollbarFrame;
 class nsIScrollbarMediator
 {
 public:
-  NS_DECL_QUERYFRAME_TARGET(nsIScrollbarMediator)
+  NS_DECLARE_FRAME_ACCESSOR(nsIScrollbarMediator)
 
   
   
