@@ -2181,6 +2181,14 @@ nsWindow::OnContainerFocusOutEvent(GtkWidget *aWidget, GdkEventFocus *aEvent)
     LOGFOCUS(("Done with container focus out [%p]\n", (void *)this));
 }
 
+inline PRBool
+is_latin_shortcut_key(guint aKeyval)
+{
+    return ((GDK_0 <= aKeyval && aKeyval <= GDK_9) ||
+            (GDK_A <= aKeyval && aKeyval <= GDK_Z) ||
+            (GDK_a <= aKeyval && aKeyval <= GDK_z));
+}
+
 gboolean
 nsWindow::OnKeyPressEvent(GtkWidget *aWidget, GdkEventKey *aEvent)
 {
@@ -2257,6 +2265,62 @@ nsWindow::OnKeyPressEvent(GtkWidget *aWidget, GdkEventKey *aEvent)
         
 
         if (event.isControl || event.isAlt || event.isMeta) {
+            GdkEventKey tmpEvent = *aEvent;
+
+            
+            
+            
+            
+            
+            
+            
+            
+            if (!is_latin_shortcut_key(event.charCode)) {
+                
+                GdkKeymapKey *keys;
+                guint *keyvals;
+                gint n_entries;
+                PRUint32 latinCharCode;
+                gint level;
+
+                if (gdk_keymap_translate_keyboard_state(NULL,
+                                                        tmpEvent.hardware_keycode,
+                                                        (GdkModifierType)tmpEvent.state,
+                                                        tmpEvent.group,
+                                                        NULL, NULL, &level, NULL)
+                    && gdk_keymap_get_entries_for_keycode(NULL,
+                                                          tmpEvent.hardware_keycode,
+                                                          &keys, &keyvals,
+                                                          &n_entries)) {
+                    gint n;
+                    for (n=0; n<n_entries; n++) {
+                        if (keys[n].group == tmpEvent.group) {
+                            
+                            continue;
+                        }
+                        if (keys[n].level != level) {
+                            
+                            continue;
+                        }
+                        if (is_latin_shortcut_key(keyvals[n])) {
+                            
+                            if (event.isShift)
+                                tmpEvent.keyval = gdk_keyval_to_upper(keyvals[n]);
+                            else
+                                tmpEvent.keyval = gdk_keyval_to_lower(keyvals[n]);
+                            tmpEvent.group = keys[n].group;
+                            latinCharCode = nsConvertCharCodeToUnicode(&tmpEvent);
+                            if (latinCharCode) {
+                                event.charCode = latinCharCode;
+                                break;
+                            }
+                        }
+                    }
+                    g_free(keys);
+                    g_free(keyvals);
+                }
+            }
+
            
            
            
@@ -2274,14 +2338,11 @@ nsWindow::OnKeyPressEvent(GtkWidget *aWidget, GdkEventKey *aEvent)
            
            if (!event.isControl && event.isShift &&
                (event.charCode < GDK_0 || event.charCode > GDK_9)) {
-               GdkKeymapKey k = { aEvent->hardware_keycode, aEvent->group, 0 };
-               guint savedKeyval = aEvent->keyval;
-               aEvent->keyval = gdk_keymap_lookup_key(gdk_keymap_get_default(), &k);
-               PRUint32 unshiftedCharCode = nsConvertCharCodeToUnicode(aEvent);
+               GdkKeymapKey k = { tmpEvent.hardware_keycode, tmpEvent.group, 0 };
+               tmpEvent.keyval = gdk_keymap_lookup_key(gdk_keymap_get_default(), &k);
+               PRUint32 unshiftedCharCode = nsConvertCharCodeToUnicode(&tmpEvent);
                if (unshiftedCharCode)
                    event.charCode = unshiftedCharCode;
-               else
-                   aEvent->keyval = savedKeyval;
            }
         }
     }
