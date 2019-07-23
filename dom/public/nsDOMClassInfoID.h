@@ -425,10 +425,6 @@ enum nsDOMClassInfoID {
   eDOMClassInfo_MessageEvent_id,
 
   
-  eDOMClassInfo_Geolocation_id,
-  eDOMClassInfo_Geolocator_id,
-
-  
 #if defined(MOZ_MEDIA)
   eDOMClassInfo_HTMLVideoElement_id,
   eDOMClassInfo_HTMLSourceElement_id,
