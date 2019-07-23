@@ -8835,7 +8835,8 @@ nsCSSFrameConstructor::MaybeRecreateContainerForFrameRemoval(nsIFrame* aFrame,
   
   
   
-  nsIFrame* nextSibling = inFlowFrame->GetNextSibling();
+  nsIFrame* nextSibling =
+    FindNextNonWhitespaceSibling(inFlowFrame->GetLastContinuation());
   NS_ASSERTION(!IsTablePseudo(inFlowFrame), "Shouldn't happen here");
   if (nextSibling && IsTablePseudo(nextSibling)) {
 #ifdef DEBUG
