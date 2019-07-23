@@ -189,7 +189,19 @@ nsAbsoluteContainingBlock::Reflow(nsContainerFrame*        aDelegatingFrame,
       }
     }
 
-    if (kidNeedsReflow && aPresContext->HasPendingInterrupt()) {
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    if (kidNeedsReflow && aPresContext->CheckForInterrupt(aDelegatingFrame)) {
       if (aDelegatingFrame->GetStateBits() & NS_FRAME_IS_DIRTY) {
         kidFrame->AddStateBits(NS_FRAME_IS_DIRTY);
       } else {

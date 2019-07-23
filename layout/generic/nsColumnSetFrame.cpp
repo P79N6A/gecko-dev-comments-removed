@@ -755,7 +755,13 @@ nsColumnSetFrame::ReflowChildren(nsHTMLReflowMetrics&     aDesiredSize,
       }
     }
 
-    if (PresContext()->HasPendingInterrupt()) {
+    if (PresContext()->CheckForInterrupt(this)) {
+      
+      
+      
+      
+      
+      
       
       
       
