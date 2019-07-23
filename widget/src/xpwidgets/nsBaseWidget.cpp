@@ -612,13 +612,9 @@ nsIRenderingContext* nsBaseWidget::GetRenderingContext()
 
   rv = mContext->CreateRenderingContextInstance(*getter_AddRefs(renderingCtx));
   if (NS_SUCCEEDED(rv)) {
-#if defined(MOZ_CAIRO_GFX)
     gfxASurface* surface = GetThebesSurface();
     NS_ENSURE_TRUE(surface, nsnull);
     rv = renderingCtx->Init(mContext, surface);
-#else
-    rv = renderingCtx->Init(mContext, this);
-#endif
     if (NS_SUCCEEDED(rv)) {
       nsIRenderingContext *ret = renderingCtx;
       
@@ -658,7 +654,6 @@ nsIDeviceContext* nsBaseWidget::GetDeviceContext()
   return mContext; 
 }
 
-#ifdef MOZ_CAIRO_GFX
 
 
 
@@ -666,15 +661,11 @@ nsIDeviceContext* nsBaseWidget::GetDeviceContext()
 
 gfxASurface *nsBaseWidget::GetThebesSurface()
 {
-  nsIWidget *parent = GetParent();
-  if (!parent)
-    return nsnull;
-
   
   
   return nsnull;
 }
-#endif
+
 
 
 
