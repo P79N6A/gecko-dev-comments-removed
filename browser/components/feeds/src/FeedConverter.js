@@ -447,10 +447,22 @@ var FeedResultService = {
       else
         spec = "feed:" + spec;
 
-      var ss = 
-          Cc["@mozilla.org/browser/shell-service;1"].
-          getService(Ci.nsIShellService);
-      ss.openApplicationWithURI(clientApp, spec);
+      
+      
+      try {
+        var ss =
+            Cc["@mozilla.org/browser/shell-service;1"].
+            getService(Ci.nsIShellService);
+        ss.openApplicationWithURI(clientApp, spec);
+      } catch(e) {
+        
+        
+        var p =
+            Cc["@mozilla.org/process/util;1"].
+            createInstance(Ci.nsIProcess);
+        p.init(clientApp);
+        p.run(false, [spec], 1);
+      }
       break;
 
     default:
