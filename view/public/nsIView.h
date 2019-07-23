@@ -299,14 +299,6 @@ public:
 
   PRBool HasWidget() const { return mWindow != nsnull; }
 
-  
-
-
-
-  void DisownWidget() {
-    mWidgetDisowned = PR_TRUE;
-  }
-
 #ifdef DEBUG
   
 
@@ -337,7 +329,6 @@ protected:
   nsRect            mDimBounds; 
   float             mOpacity;
   PRUint32          mVFlags;
-  PRBool            mWidgetDisowned;
 
   virtual ~nsIView() {}
 };

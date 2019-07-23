@@ -112,14 +112,6 @@ public:
   virtual nsresult Instantiate(const char* aMimeType, nsIURI* aURI);
   virtual void StopPlugin();
 
-  
-
-
-
-
-
-  void StopPluginInternal(PRBool aDelayedStop);
-
 
   
   NS_IMETHOD GetCursor(const nsPoint& aPoint, nsIFrame::Cursor& aCursor) 
