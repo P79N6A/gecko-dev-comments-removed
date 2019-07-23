@@ -3029,7 +3029,7 @@ nsPrintEngine::FinishPrintPreview()
     mPrt->OnEndPrinting();
     TurnScriptingOn(PR_TRUE);
 
-    return CleanupOnFailure(rv, PR_FALSE); 
+    return rv;
   }
 
   
@@ -3094,6 +3094,9 @@ nsPrintEngine::Observe(nsISupports *aSubject, const char *aTopic, const PRUnicha
     }
   } else {
     rv = FinishPrintPreview();
+    if (NS_FAILED(rv)) {
+      CleanupOnFailure(rv, PR_FALSE);
+    }
     if (mPrtPreview) {
       mPrtPreview->OnEndPrinting();
     }
