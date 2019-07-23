@@ -169,6 +169,12 @@ class ExceptionHandler {
   static bool WriteMinidump(const wstring &dump_path,
                             MinidumpCallback callback, void *callback_context);
 
+  
+  
+  
+  
+  DWORD get_requesting_thread_id() const { return requesting_thread_id_; }
+
  private:
   friend class AutoExceptionHandler;
 

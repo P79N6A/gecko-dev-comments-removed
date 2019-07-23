@@ -153,7 +153,7 @@ class DynamicImage {
   friend class DynamicImages;
 
   
-  bool IsValid() {return GetVMAddr() != 0;}
+  bool IsValid() {return GetVMSize() != 0;}
 
   
   void InitializeFilePath(char *inFilePath) {

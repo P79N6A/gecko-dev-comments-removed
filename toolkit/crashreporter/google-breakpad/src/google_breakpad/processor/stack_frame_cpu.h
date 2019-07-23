@@ -98,6 +98,30 @@ struct StackFramePPC : public StackFrame {
   int context_validity;
 };
 
+struct StackFrameSPARC : public StackFrame {
+  
+  enum ContextValidity {
+    CONTEXT_VALID_NONE = 0,
+    CONTEXT_VALID_PC   = 0 << 0,
+    CONTEXT_VALID_SP   = 0 << 1,
+    CONTEXT_VALID_FP   = 0 << 2,
+    CONTEXT_VALID_ALL  = -1
+  };
+
+  StackFrameSPARC() : context(), context_validity(CONTEXT_VALID_NONE) {}
+
+  
+  
+  
+  
+  MDRawContextSPARC context;
+
+  
+  
+  
+  int context_validity;
+};
+
 }  
 
 #endif  

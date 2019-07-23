@@ -34,6 +34,20 @@
 #include "client/mac/handler/minidump_generator.h"
 #include "common/mac/macho_utilities.h"
 
+#ifndef USE_PROTECTED_ALLOCATIONS
+#define USE_PROTECTED_ALLOCATIONS 0
+#endif
+
+
+
+
+
+#if USE_PROTECTED_ALLOCATIONS
+  #include "protected_memory_allocator.h"
+  extern ProtectedMemoryAllocator *gBreakpadAllocator;
+#endif
+
+
 namespace google_breakpad {
 
 using std::map;
@@ -70,7 +84,7 @@ struct ExceptionReplyMessage {
 
 
 exception_mask_t s_exception_mask = EXC_MASK_BAD_ACCESS | 
-EXC_MASK_BAD_INSTRUCTION | EXC_MASK_ARITHMETIC;
+EXC_MASK_BAD_INSTRUCTION | EXC_MASK_ARITHMETIC | EXC_MASK_BREAKPOINT;
 
 extern "C"
 {
@@ -360,6 +374,8 @@ void *ExceptionHandler::WaitForMessage(void *exception_handler_class) {
                                     MACH_RCV_MSG | MACH_RCV_LARGE, 0,
                                     sizeof(receive), self->handler_port_,
                                     MACH_MSG_TIMEOUT_NONE, MACH_PORT_NULL);
+
+    
     if (result == KERN_SUCCESS) {
       
       
@@ -373,23 +389,32 @@ void *ExceptionHandler::WaitForMessage(void *exception_handler_class) {
       
       
       if (!receive.exception) {
-        self->UninstallHandler(false);
-      
         if (self->is_in_teardown_)
           return NULL;
 
         self->SuspendThreads();
 
+#if USE_PROTECTED_ALLOCATIONS
+        if(gBreakpadAllocator)
+          gBreakpadAllocator->Unprotect();
+#endif
+
         
         self->last_minidump_write_result_ =
           self->WriteMinidumpWithException(0, 0, 0);
+
+        self->UninstallHandler(false);
+
+#if USE_PROTECTED_ALLOCATIONS
+        if(gBreakpadAllocator)
+          gBreakpadAllocator->Protect();
+#endif
 
         self->ResumeThreads();
 
         if (self->use_minidump_write_mutex_)
           pthread_mutex_unlock(&self->minidump_write_mutex_);
       } else {
-        self->UninstallHandler(true);
 
         
         
@@ -399,10 +424,22 @@ void *ExceptionHandler::WaitForMessage(void *exception_handler_class) {
         if (receive.task.name == mach_task_self()) {
           self->SuspendThreads();
           
+#if USE_PROTECTED_ALLOCATIONS
+        if(gBreakpadAllocator)
+          gBreakpadAllocator->Unprotect();
+#endif
+
           
           self->WriteMinidumpWithException(receive.exception, receive.code[0],
                                            receive.thread.name);
         
+          self->UninstallHandler(true);
+
+#if USE_PROTECTED_ALLOCATIONS
+        if(gBreakpadAllocator)
+          gBreakpadAllocator->Protect();
+#endif
+
           
           
           
@@ -426,7 +463,13 @@ void *ExceptionHandler::WaitForMessage(void *exception_handler_class) {
 
 bool ExceptionHandler::InstallHandler() {
   try {
+#if USE_PROTECTED_ALLOCATIONS
+    previous_ = new (gBreakpadAllocator->Allocate(sizeof(ExceptionParameters)) )
+      ExceptionParameters();    
+#else
     previous_ = new ExceptionParameters();
+#endif
+  
   }
   catch (std::bad_alloc) {
     return false;
@@ -472,7 +515,11 @@ bool ExceptionHandler::UninstallHandler(bool in_exception) {
     
     
     if (!in_exception) {
+#if USE_PROTECTED_ALLOCATIONS
+      previous_->~ExceptionParameters();
+#else
       delete previous_; 
+#endif
     }
     
     previous_ = NULL;

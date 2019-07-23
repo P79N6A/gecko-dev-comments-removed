@@ -219,6 +219,87 @@ typedef struct {
 
 
 
+#define MD_FLOATINGSAVEAREA_SPARC_FPR_COUNT 32
+
+typedef struct {
+
+  
+  u_int64_t	regs[MD_FLOATINGSAVEAREA_SPARC_FPR_COUNT];
+
+  u_int64_t	filler;
+  u_int64_t	fsr;        
+} MDFloatingSaveAreaSPARC;  
+
+#define MD_CONTEXT_SPARC_GPR_COUNT 32
+
+typedef struct {
+  
+
+
+  u_int32_t	context_flags;
+  u_int32_t	flag_pad;
+  
+
+
+
+
+
+
+  
+
+  
+
+
+
+
+  u_int64_t     g_r[MD_CONTEXT_SPARC_GPR_COUNT];
+
+  
+
+  
+
+
+  u_int64_t     ccr;
+
+  u_int64_t     pc;     
+  u_int64_t     npc;    
+  u_int64_t     y;      
+
+  
+
+
+  u_int64_t     asi;
+
+  
+
+
+  u_int64_t     fprs;
+
+  
+  MDFloatingSaveAreaSPARC float_save;
+
+} MDRawContextSPARC;  
+
+
+
+
+
+#define MD_CONTEXT_SPARC                 0x10000000
+#define MD_CONTEXT_SPARC_CONTROL         (MD_CONTEXT_SPARC | 0x00000001)
+#define MD_CONTEXT_SPARC_INTEGER         (MD_CONTEXT_SPARC | 0x00000002)
+#define MD_CONTEXT_SAPARC_FLOATING_POINT (MD_CONTEXT_SPARC | 0x00000004)
+#define MD_CONTEXT_SAPARC_EXTRA          (MD_CONTEXT_SPARC | 0x00000008)
+
+#define MD_CONTEXT_SPARC_FULL            (MD_CONTEXT_SPARC_CONTROL | \
+                                          MD_CONTEXT_SPARC_INTEGER)
+
+#define MD_CONTEXT_SPARC_ALL             (MD_CONTEXT_SPARC_FULL | \
+                                          MD_CONTEXT_SAPARC_FLOATING_POINT | \
+                                          MD_CONTEXT_SAPARC_EXTRA)
+
+
+
+
 
 
 
@@ -928,6 +1009,54 @@ typedef enum {
   MD_EXCEPTION_CODE_LIN_SIGPWR = 30,     
   MD_EXCEPTION_CODE_LIN_SIGSYS = 31      
 } MDExceptionCodeLinux;
+
+
+
+typedef enum {
+  MD_EXCEPTION_CODE_SOL_SIGHUP = 1,      
+  MD_EXCEPTION_CODE_SOL_SIGINT = 2,      
+  MD_EXCEPTION_CODE_SOL_SIGQUIT = 3,     
+  MD_EXCEPTION_CODE_SOL_SIGILL = 4,      
+  MD_EXCEPTION_CODE_SOL_SIGTRAP = 5,     
+  MD_EXCEPTION_CODE_SOL_SIGIOT = 6,      
+  MD_EXCEPTION_CODE_SOL_SIGABRT = 6,     
+  MD_EXCEPTION_CODE_SOL_SIGEMT = 7,      
+  MD_EXCEPTION_CODE_SOL_SIGFPE = 8,      
+  MD_EXCEPTION_CODE_SOL_SIGKILL = 9,     
+  MD_EXCEPTION_CODE_SOL_SIGBUS = 10,     
+  MD_EXCEPTION_CODE_SOL_SIGSEGV = 11,    
+  MD_EXCEPTION_CODE_SOL_SIGSYS = 12,     
+  MD_EXCEPTION_CODE_SOL_SIGPIPE = 13,    
+  MD_EXCEPTION_CODE_SOL_SIGALRM = 14,    
+  MD_EXCEPTION_CODE_SOL_SIGTERM = 15,    
+  MD_EXCEPTION_CODE_SOL_SIGUSR1 = 16,    
+  MD_EXCEPTION_CODE_SOL_SIGUSR2 = 17,    
+  MD_EXCEPTION_CODE_SOL_SIGCLD = 18,     
+  MD_EXCEPTION_CODE_SOL_SIGCHLD = 18,    
+  MD_EXCEPTION_CODE_SOL_SIGPWR = 19,     
+  MD_EXCEPTION_CODE_SOL_SIGWINCH = 20,   
+  MD_EXCEPTION_CODE_SOL_SIGURG = 21,     
+  MD_EXCEPTION_CODE_SOL_SIGPOLL = 22,    
+  MD_EXCEPTION_CODE_SOL_SIGIO = 22,      
+  MD_EXCEPTION_CODE_SOL_SIGSTOP = 23,    
+  MD_EXCEPTION_CODE_SOL_SIGTSTP = 24,    
+  MD_EXCEPTION_CODE_SOL_SIGCONT = 25,    
+  MD_EXCEPTION_CODE_SOL_SIGTTIN = 26,    
+  MD_EXCEPTION_CODE_SOL_SIGTTOU = 27,    
+  MD_EXCEPTION_CODE_SOL_SIGVTALRM = 28,  
+  MD_EXCEPTION_CODE_SOL_SIGPROF = 29,    
+  MD_EXCEPTION_CODE_SOL_SIGXCPU = 30,    
+  MD_EXCEPTION_CODE_SOL_SIGXFSZ = 31,    
+  MD_EXCEPTION_CODE_SOL_SIGWAITING = 32, 
+  MD_EXCEPTION_CODE_SOL_SIGLWP = 33,     
+  MD_EXCEPTION_CODE_SOL_SIGFREEZE = 34,  
+  MD_EXCEPTION_CODE_SOL_SIGTHAW = 35,    
+  MD_EXCEPTION_CODE_SOL_SIGCANCEL = 36,  
+  MD_EXCEPTION_CODE_SOL_SIGLOST = 37,    
+  MD_EXCEPTION_CODE_SOL_SIGXRES = 38,    
+  MD_EXCEPTION_CODE_SOL_SIGJVM1 = 39,    
+  MD_EXCEPTION_CODE_SOL_SIGJVM2 = 40     
+} MDExceptionCodeSolaris;
 
 typedef struct {
   u_int32_t            thread_id;         

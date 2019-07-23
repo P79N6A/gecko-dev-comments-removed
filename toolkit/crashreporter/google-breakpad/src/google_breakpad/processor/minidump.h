@@ -177,7 +177,8 @@ class MinidumpContext : public MinidumpStream {
   
   const MDRawContextX86* GetContextX86() const;
   const MDRawContextPPC* GetContextPPC() const;
-
+  const MDRawContextSPARC* GetContextSPARC() const;
+ 
   
   void Print();
 
@@ -204,6 +205,9 @@ class MinidumpContext : public MinidumpStream {
     MDRawContextBase* base;
     MDRawContextX86*  x86;
     MDRawContextPPC*  ppc;
+    
+    
+    MDRawContextSPARC*  ctx_sparc;
   } context_;
 };
 

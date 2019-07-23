@@ -27,14 +27,107 @@
 
 
 
-#include <mach-o/nlist.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <algorithm>
+extern "C" { 
+  #include <mach-o/nlist.h>
+  #include <stdlib.h>
+  #include <stdio.h>
+}
 
+#include <algorithm>
 #include "client/mac/handler/dynamic_images.h"
 
 namespace google_breakpad {
+  
+
+
+
+
+
+
+
+
+static vm_size_t GetMemoryRegionSize(task_port_t target_task,
+                                     const void* address,
+                                     vm_size_t *size_to_end) {
+  vm_address_t region_base = (vm_address_t)address;
+  vm_size_t region_size;
+  natural_t nesting_level = 0;
+  vm_region_submap_info submap_info;
+  mach_msg_type_number_t info_count = VM_REGION_SUBMAP_INFO_COUNT;
+  
+  
+  kern_return_t result = 
+    vm_region_recurse(target_task,
+                      &region_base,
+                      &region_size,
+                      &nesting_level, 
+                      reinterpret_cast<vm_region_recurse_info_t>(&submap_info),
+                      &info_count);
+  
+  if (result == KERN_SUCCESS) {
+    
+    *size_to_end = region_base + region_size -(vm_address_t)address;
+
+    
+    
+    
+    
+    if (*size_to_end < 4096) {
+      
+      vm_address_t region_base2 =
+        (vm_address_t)(region_base + region_size);
+      vm_size_t region_size2;
+
+      
+      result = 
+        vm_region_recurse(
+                      target_task,
+                      &region_base2,
+                      &region_size2,
+                      &nesting_level, 
+                      reinterpret_cast<vm_region_recurse_info_t>(&submap_info),
+                      &info_count);
+      
+      
+      if (result == KERN_SUCCESS
+          && region_base2 == region_base + region_size) {
+        region_size += region_size2;
+      }
+    }
+
+    *size_to_end = region_base + region_size -(vm_address_t)address;
+  } else {
+    region_size = 0;
+    *size_to_end = 0;
+  }
+  
+  return region_size;   
+}
+
+#define kMaxStringLength 8192
+
+
+
+
+
+static void* ReadTaskString(task_port_t target_task,
+                            const void* address) {
+  
+  
+  
+  
+  vm_size_t size_to_end;
+  GetMemoryRegionSize(target_task, address, &size_to_end);
+  
+  if (size_to_end > 0) {
+    vm_size_t size_to_read =
+      size_to_end > kMaxStringLength ? kMaxStringLength : size_to_end;
+
+    return ReadTaskMemory(target_task, address, size_to_read);
+  }
+  
+  return NULL;
+}
 
 
 
@@ -63,7 +156,7 @@ void* ReadTaskMemory(task_port_t target_task,
     }
     vm_deallocate(mach_task_self(), (uintptr_t)local_start, local_length);
   }
-
+  
   return result;
 }
 
@@ -131,7 +224,7 @@ DynamicImages::DynamicImages(mach_port_t task)
 void DynamicImages::ReadImageInfoForTask() {
   struct nlist l[8];
   memset(l, 0, sizeof(l) );
-  
+
   
   
   
@@ -163,7 +256,7 @@ void DynamicImages::ReadImageInfoForTask() {
                         count*sizeof(dyld_image_info)));
 
       image_list_.reserve(count);
-      
+
       for (int i = 0; i < count; ++i) {
         dyld_image_info &info = infoArray[i];
 
@@ -173,7 +266,7 @@ void DynamicImages::ReadImageInfoForTask() {
 
         if (!header)
           break;   
-        
+		
         
         
         
@@ -182,7 +275,7 @@ void DynamicImages::ReadImageInfoForTask() {
 
         header = reinterpret_cast<mach_header*>
           (ReadTaskMemory(task_, info.load_address_, header_size));
-        
+
         
         char *file_path = NULL;
         if (info.file_path_) {
@@ -190,11 +283,9 @@ void DynamicImages::ReadImageInfoForTask() {
           
           
           file_path = reinterpret_cast<char*>
-            (ReadTaskMemory(task_,
-                            info.file_path_,
-                            0x2000));
+            (ReadTaskString(task_, info.file_path_));
         }
-        
+ 
         
         DynamicImage *new_image = new DynamicImage(header,
                                                    header_size,
@@ -220,7 +311,7 @@ void DynamicImages::ReadImageInfoForTask() {
       
       sort(image_list_.begin(), image_list_.end() );
     }
-  }
+  }  
 }
 
 

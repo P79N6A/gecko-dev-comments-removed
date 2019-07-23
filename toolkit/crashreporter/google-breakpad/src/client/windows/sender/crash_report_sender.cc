@@ -30,6 +30,8 @@
 
 #pragma warning( disable : 4530 )
 
+#include <errno.h>
+
 #include "client/windows/sender/crash_report_sender.h"
 #include "common/windows/http_upload.h"
 
@@ -124,6 +126,9 @@ int CrashReportSender::GetCurrentDate() const {
 }
 
 int CrashReportSender::OpenCheckpointFile(const wchar_t *mode, FILE **fd) {
+  if (checkpoint_file_.empty()) {
+    return ENOENT;
+  }
 #if _MSC_VER >= 1400  
   return _wfopen_s(fd, checkpoint_file_.c_str(), mode);
 #else

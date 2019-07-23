@@ -49,7 +49,17 @@
 
 
 
-#if defined(__GNUC__) && (defined(__i386__) || defined(__ppc__))
+#include "processor/logging.h"
+
+#if defined(__i386) && !defined(__i386__)
+#define __i386__
+#endif
+#if defined(__sparc) && !defined(__sparc__)
+#define __sparc__
+#endif
+ 
+#if (defined(__SUNPRO_CC) || defined(__GNUC__)) && \
+    (defined(__i386__) || defined(__ppc__) || defined(__sparc__))
 
 
 #include <cstdio>
@@ -61,7 +71,6 @@
 #include "google_breakpad/processor/memory_region.h"
 #include "google_breakpad/processor/stack_frame.h"
 #include "google_breakpad/processor/stack_frame_cpu.h"
-#include "processor/logging.h"
 #include "processor/scoped_ptr.h"
 
 using google_breakpad::BasicSourceLineResolver;
@@ -71,6 +80,7 @@ using google_breakpad::scoped_ptr;
 using google_breakpad::StackFrame;
 using google_breakpad::StackFramePPC;
 using google_breakpad::StackFrameX86;
+using google_breakpad::StackFrameSPARC;
 
 #if defined(__i386__)
 #include "processor/stackwalker_x86.h"
@@ -78,6 +88,9 @@ using google_breakpad::StackwalkerX86;
 #elif defined(__ppc__)
 #include "processor/stackwalker_ppc.h"
 using google_breakpad::StackwalkerPPC;
+#elif defined(__sparc__)
+#include "processor/stackwalker_sparc.h"
+using google_breakpad::StackwalkerSPARC;
 #endif  
 
 #define RECURSION_DEPTH 100
@@ -115,6 +128,9 @@ class SelfMemoryRegion : public MemoryRegion {
     return true;
   }
 };
+
+
+#if defined(__GNUC__)
 
 
 #if defined(__i386__)
@@ -210,14 +226,87 @@ static u_int32_t GetPC() {
 }
 
 
+#elif defined(__sparc__)
+
+
+
+
+
+
+
+
+
+static u_int32_t GetSP() __attribute__((noinline));
+static u_int32_t GetSP() {
+  u_int32_t sp;
+  __asm__ __volatile__(
+    "mov %%fp, %0"
+    : "=r" (sp)
+  );
+  return sp;
+}
+
+
+
+
+
+
+
+
+static u_int32_t GetFP() __attribute__((noinline));
+static u_int32_t GetFP() {
+  u_int32_t fp;
+  __asm__ __volatile__(
+    "ld [%%fp+56], %0"
+    : "=r" (fp)
+  );
+  return fp;
+}
+
+
+
+
+
+
+static u_int32_t GetPC() __attribute__((noinline));
+static u_int32_t GetPC() {
+  u_int32_t pc;
+  __asm__ __volatile__(
+    "mov %%i7, %0"
+    : "=r" (pc)
+  );
+  return pc + 8;
+}
+
 #endif  
 
+#elif defined(__SUNPRO_CC)
+
+#if defined(__i386__)
+extern "C" {
+extern u_int32_t GetEIP();
+extern u_int32_t GetEBP();
+extern u_int32_t GetESP();
+}
+#elif defined(__sparc__)
+extern "C" {
+extern u_int32_t GetPC();
+extern u_int32_t GetFP();
+extern u_int32_t GetSP();
+}
+#endif 
+
+#endif 
 
 
 
 
 
+#if defined(__GNUC__)
 static unsigned int CountCallerFrames() __attribute__((noinline));
+#elif defined(__SUNPRO_CC)
+static unsigned int CountCallerFrames();
+#endif
 static unsigned int CountCallerFrames() {
   SelfMemoryRegion memory;
   BasicSourceLineResolver resolver;
@@ -237,6 +326,14 @@ static unsigned int CountCallerFrames() {
 
   StackwalkerPPC stackwalker = StackwalkerPPC(NULL, &context, &memory, NULL,
                                               NULL, &resolver);
+#elif defined(__sparc__)
+  MDRawContextSPARC context = MDRawContextSPARC();
+  context.pc = GetPC();
+  context.g_r[14] = GetSP();
+  context.g_r[30] = GetFP();
+
+  StackwalkerSPARC stackwalker = StackwalkerSPARC(NULL, &context, &memory,
+                                                  NULL, NULL, &resolver);
 #endif  
 
   CallStack stack;
@@ -257,6 +354,10 @@ static unsigned int CountCallerFrames() {
 #elif defined(__ppc__)
     StackFramePPC *frame_ppc = reinterpret_cast<StackFramePPC*>(frame);
     printf("  gpr[1] = 0x%08x\n", frame_ppc->context.gpr[1]);
+#elif defined(__sparc__)
+    StackFrameSPARC *frame_sparc = reinterpret_cast<StackFrameSPARC*>(frame);
+    printf("  sp = 0x%08x  fp = 0x%08x\n",
+           frame_sparc->context.g_r[14], frame_sparc->context.g_r[30]);
 #endif  
   }
 #endif  
@@ -273,8 +374,12 @@ static unsigned int CountCallerFrames() {
 
 
 
+#if defined(__GNUC__)
 static bool Recursor(unsigned int depth, unsigned int parent_callers)
     __attribute__((noinline));
+#elif defined(__SUNPRO_CC)
+static bool Recursor(unsigned int depth, unsigned int parent_callers);
+#endif
 static bool Recursor(unsigned int depth, unsigned int parent_callers) {
   unsigned int callers = CountCallerFrames();
   if (callers != parent_callers + 1)
@@ -291,7 +396,11 @@ static bool Recursor(unsigned int depth, unsigned int parent_callers) {
 
 
 
+#if defined(__GNUC__)
 int main(int argc, char** argv) __attribute__((noinline));
+#elif defined(__SUNPRO_CC)
+int main(int argc, char** argv);
+#endif
 int main(int argc, char** argv) {
   BPLOG_INIT(&argc, &argv);
 
@@ -299,8 +408,7 @@ int main(int argc, char** argv) {
 }
 
 
-#else  
-
+#else
 
 
 

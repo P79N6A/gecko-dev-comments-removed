@@ -217,7 +217,7 @@ int SolarisLwp::Lwp_iter_all(int pid,
   lwpsinfo_t *Lpsp;
   long nstat;
   long ninfo;
-  int rv;
+  int rv = 0;
 
   
 
@@ -240,8 +240,9 @@ int SolarisLwp::Lwp_iter_all(int pid,
       sp = NULL;
     }
     if (callback_param &&
-        !(rv = (callback_param->call_back)(sp, callback_param->context)))
+        !(callback_param->call_back)(sp, callback_param->context))
       break;
+    ++rv;
     Lpsp = (lwpsinfo_t *)((uintptr_t)Lpsp + Lphp->pr_entsize);
   }
 
@@ -281,14 +282,12 @@ int SolarisLwp::ListModules(
   
 
 
+
   size = status.st_size;
   if ((num = (int)(size / sizeof (prmap_t))) > MAP_MAX) {
     print_message1(2, "map size overflow\n");
     return -1;
   }
-
-  if (!callback_param)
-    return num;           
 
   if (read(fd, (void *)maps, size) < 0) {
     print_message2(2, "failed to read %d\n", fd);
@@ -297,7 +296,8 @@ int SolarisLwp::ListModules(
 
   prmap_t *_maps;
   int _num;
-
+  int module_count = 0;
+  
   
 
 
@@ -313,15 +313,17 @@ int SolarisLwp::ListModules(
     memset(&module, 0, sizeof (module));
     module.start_addr = _maps->pr_vaddr;
     module.size = _maps->pr_size;
-    if (name && (strcmp(name, "a.out") != 0))
+    if ((strlen(name) > 0) && (strcmp(name, "a.out") != 0)) {
       strncpy(module.name, name, sizeof (module.name) - 1);
+      ++module_count;
+    }
     if (callback_param &&
         (!callback_param->call_back(module, callback_param->context))) {
       break;
     }
   }
 
-  return num;
+  return module_count;
 }
 
 }  
