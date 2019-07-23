@@ -82,6 +82,8 @@
 #include "nsXPIDLString.h"
 #include "prcmon.h"
 #include "xptinfo.h" 
+#include "nsThreadUtils.h"
+#include "prthread.h"
 
 #include "nsInt64.h"
 #include "nsManifestLineReader.h"
@@ -101,7 +103,6 @@ NS_COM PRLogModuleInfo* nsComponentManagerLog = nsnull;
 #if 0 || defined (DEBUG_timeless)
  #define SHOW_DENIED_ON_SHUTDOWN
  #define SHOW_CI_ON_EXISTING_SERVICE
- #define XPCOM_CHECK_PENDING_CIDS
 #endif
 
 
@@ -1041,46 +1042,6 @@ nsComponentManagerImpl::ReadPersistentRegistry()
         contractIDTableEntry->mFactoryEntry = cidEntry;
     }
 
-#ifdef XPCOM_CHECK_PENDING_CIDS
-    {
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        static char abusedContracts[][128] = {
-        
-
-
-
-
-
-            0
-        };
-        for (int i=0; abusedContracts[i] && *abusedContracts[i]; i++) {
-            nsFactoryEntry *entry = nsnull;
-            nsContractIDTableEntry* contractIDTableEntry =
-                static_cast<nsContractIDTableEntry*>
-                           (PL_DHashTableOperate(&mContractIDs, abusedContracts[i],
-                                                    PL_DHASH_LOOKUP));
-
-            if (PL_DHASH_ENTRY_IS_BUSY(contractIDTableEntry)) {
-                entry = contractIDTableEntry->mFactoryEntry;
-                AddPendingCID(entry->mCid);
-            }
-        }
-    }
-#endif
-
     if (ReadSectionHeader(reader, "CATEGORIES"))
         goto out;
 
@@ -1581,40 +1542,6 @@ nsComponentManagerImpl::CLSIDToContractID(const nsCID &aClass,
     return rv;
 }
 
-#ifdef XPCOM_CHECK_PENDING_CIDS
-
-
-nsresult
-nsComponentManagerImpl::AddPendingCID(const nsCID &aClass)
-{
-    int max = mPendingCIDs.Count();
-    for (int index = 0; index < max; index++)
-    {
-        nsCID *cidp = (nsCID*) mPendingCIDs.ElementAt(index);
-        NS_ASSERTION(cidp, "Bad CID in pending list");
-        if (cidp->Equals(aClass)) {
-            nsXPIDLCString cid;
-            cid.Adopt(aClass.ToString());
-            nsCAutoString message;
-            message = NS_LITERAL_CSTRING("Creation of \"") +
-                      cid + NS_LITERAL_CSTRING("\" in progress (Reentrant GS - see bug 194568)");
-            
-            
-            NS_WARNING(message.get());
-            return NS_ERROR_NOT_AVAILABLE;
-        }
-    }
-    mPendingCIDs.AppendElement((void*)&aClass);
-    return NS_OK;
-}
-
-
-void
-nsComponentManagerImpl::RemovePendingCID(const nsCID &aClass)
-{
-    mPendingCIDs.RemoveElement((void*)&aClass);
-}
-#endif
 
 
 
@@ -1831,6 +1758,47 @@ nsComponentManagerImpl::FreeServices()
     return NS_OK;
 }
 
+
+nsComponentManagerImpl::PendingServiceInfo*
+nsComponentManagerImpl::AddPendingService(const nsCID& aServiceCID,
+                                          PRThread* aThread)
+{
+  PendingServiceInfo* newInfo = mPendingServices.AppendElement();
+  if (newInfo) {
+    newInfo->cid = &aServiceCID;
+    newInfo->thread = aThread;
+  }
+  return newInfo;
+}
+
+
+void
+nsComponentManagerImpl::RemovePendingService(const nsCID& aServiceCID)
+{
+  PRUint32 pendingCount = mPendingServices.Length();
+  for (PRUint32 index = 0; index < pendingCount; ++index) {
+    const PendingServiceInfo& info = mPendingServices.ElementAt(index);
+    if (info.cid->Equals(aServiceCID)) {
+      mPendingServices.RemoveElementAt(index);
+      return;
+    }
+  }
+}
+
+
+PRThread*
+nsComponentManagerImpl::GetPendingServiceThread(const nsCID& aServiceCID) const
+{
+  PRUint32 pendingCount = mPendingServices.Length();
+  for (PRUint32 index = 0; index < pendingCount; ++index) {
+    const PendingServiceInfo& info = mPendingServices.ElementAt(index);
+    if (info.cid->Equals(aServiceCID)) {
+      return info.thread;
+    }
+  }
+  return nsnull;
+}
+
 NS_IMETHODIMP
 nsComponentManagerImpl::GetService(const nsCID& aClass,
                                    const nsIID& aIID,
@@ -1853,7 +1821,6 @@ nsComponentManagerImpl::GetService(const nsCID& aClass,
 
     nsAutoMonitor mon(mMon);
 
-    nsresult rv = NS_OK;
     nsIDKey key(aClass);
     nsFactoryEntry* entry = nsnull;
     nsFactoryTableEntry* factoryTableEntry =
@@ -1871,24 +1838,78 @@ nsComponentManagerImpl::GetService(const nsCID& aClass,
         return supports->QueryInterface(aIID, result);
     }
 
-#ifdef XPCOM_CHECK_PENDING_CIDS
-    rv = AddPendingCID(aClass);
-    if (NS_FAILED(rv))
-        return rv; 
+    PRThread* currentPRThread = PR_GetCurrentThread();
+    NS_ASSERTION(currentPRThread, "This should never be null!");
+
+    
+    nsIThread* currentThread = nsnull;
+
+    PRThread* pendingPRThread;
+    while ((pendingPRThread = GetPendingServiceThread(aClass))) {
+        if (pendingPRThread == currentPRThread) {
+            NS_ERROR("Recursive GetService!");
+            return NS_ERROR_NOT_AVAILABLE;
+        }
+
+        mon.Exit();
+
+        if (!currentThread) {
+            currentThread = NS_GetCurrentThread();
+            NS_ASSERTION(currentThread, "This should never be null!");
+        }
+
+        
+        
+        if (!NS_ProcessNextEvent(currentThread, PR_FALSE)) {
+            PR_Sleep(PR_INTERVAL_NO_WAIT);
+        }
+
+        mon.Enter();
+    }
+
+    if (currentThread) {
+        
+        
+        if (!entry) {
+            factoryTableEntry = static_cast<nsFactoryTableEntry*>
+                (PL_DHashTableOperate(&mFactories, &aClass, PL_DHASH_LOOKUP));
+
+            if (PL_DHASH_ENTRY_IS_BUSY(factoryTableEntry)) {
+                entry = factoryTableEntry->mFactoryEntry;
+            }
+        }
+
+        
+        
+        if (entry && entry->mServiceObject) {
+            nsCOMPtr<nsISupports> supports = entry->mServiceObject;
+            mon.Exit();
+            return supports->QueryInterface(aIID, result);
+        }
+    }
+
+#ifdef DEBUG
+    PendingServiceInfo* newInfo =
 #endif
+    AddPendingService(aClass, currentPRThread);
+    NS_ASSERTION(newInfo, "Failed to add info to the array!");
+
     nsCOMPtr<nsISupports> service;
     
     
     
     mon.Exit();
 
-    rv = CreateInstance(aClass, nsnull, aIID, getter_AddRefs(service));
+    nsresult rv = CreateInstance(aClass, nsnull, aIID, getter_AddRefs(service));
 
     mon.Enter();
 
-#ifdef XPCOM_CHECK_PENDING_CIDS
-    RemovePendingCID(aClass);
+#ifdef DEBUG
+    pendingPRThread = GetPendingServiceThread(aClass);
+    NS_ASSERTION(pendingPRThread == currentPRThread,
+                 "Pending service array has been changed!");
 #endif
+    RemovePendingService(aClass);
 
     if (NS_FAILED(rv))
         return rv;
@@ -1904,6 +1925,8 @@ nsComponentManagerImpl::GetService(const nsCID& aClass,
         NS_ASSERTION(entry, "we should have a factory entry since CI succeeded - we should not get here");
         if (!entry) return NS_ERROR_FAILURE;
     }
+
+    NS_ASSERTION(!entry->mServiceObject, "Created two instances of a service!");
 
     entry->mServiceObject = service;
     *result = service.get();
@@ -2154,34 +2177,71 @@ nsComponentManagerImpl::GetServiceByContractID(const char* aContractID,
 
     nsAutoMonitor mon(mMon);
 
-    nsresult rv = NS_OK;
     nsFactoryEntry *entry = nsnull;
     nsContractIDTableEntry* contractIDTableEntry =
         static_cast<nsContractIDTableEntry*>
                    (PL_DHashTableOperate(&mContractIDs, aContractID,
                                             PL_DHASH_LOOKUP));
 
-    if (PL_DHASH_ENTRY_IS_BUSY(contractIDTableEntry)) {
-        entry = contractIDTableEntry->mFactoryEntry;
+    if (!PL_DHASH_ENTRY_IS_BUSY(contractIDTableEntry))
+        return NS_ERROR_FACTORY_NOT_REGISTERED;
+
+    entry = contractIDTableEntry->mFactoryEntry;
+    NS_ASSERTION(entry, "This should never be null!");
+
+    if (entry->mServiceObject) {
+        nsCOMPtr<nsISupports> serviceObject = entry->mServiceObject;
+
+        
+        
+        
+        
+        mon.Exit();
+        return serviceObject->QueryInterface(aIID, result);
     }
 
-    if (entry) {
-        if (entry->mServiceObject) {
-            nsCOMPtr<nsISupports> serviceObject = entry->mServiceObject;
+    PRThread* currentPRThread = PR_GetCurrentThread();
+    NS_ASSERTION(currentPRThread, "This should never be null!");
 
-            
-            
-            
-            
-            mon.Exit();
-            return serviceObject->QueryInterface(aIID, result);
+    
+    nsIThread* currentThread = nsnull;
+
+    PRThread* pendingPRThread;
+    while ((pendingPRThread = GetPendingServiceThread(entry->mCid))) {
+        if (pendingPRThread == currentPRThread) {
+            NS_ERROR("Recursive GetService!");
+            return NS_ERROR_NOT_AVAILABLE;
         }
-#ifdef XPCOM_CHECK_PENDING_CIDS
-        rv = AddPendingCID(entry->mCid);
-        if (NS_FAILED(rv))
-            return rv; 
-#endif
+
+        mon.Exit();
+
+        if (!currentThread) {
+            currentThread = NS_GetCurrentThread();
+            NS_ASSERTION(currentThread, "This should never be null!");
+        }
+
+        
+        
+        if (!NS_ProcessNextEvent(currentThread, PR_FALSE)) {
+            PR_Sleep(PR_INTERVAL_NO_WAIT);
+        }
+
+        mon.Enter();
     }
+
+    if (currentThread && entry->mServiceObject) {
+        
+        
+        nsCOMPtr<nsISupports> serviceObject = entry->mServiceObject;
+        mon.Exit();
+        return serviceObject->QueryInterface(aIID, result);
+    }
+
+#ifdef DEBUG
+    PendingServiceInfo* newInfo =
+#endif
+    AddPendingService(entry->mCid, currentPRThread);
+    NS_ASSERTION(newInfo, "Failed to add info to the array!");
 
     nsCOMPtr<nsISupports> service;
     
@@ -2189,30 +2249,22 @@ nsComponentManagerImpl::GetServiceByContractID(const char* aContractID,
     
     mon.Exit();
 
-    rv = CreateInstanceByContractID(aContractID, nsnull, aIID, getter_AddRefs(service));
+    nsresult rv = CreateInstanceByContractID(aContractID, nsnull, aIID,
+                                             getter_AddRefs(service));
 
     mon.Enter();
 
-#ifdef XPCOM_CHECK_PENDING_CIDS 
-    if (entry)
-        RemovePendingCID(entry->mCid);
+#ifdef DEBUG
+    pendingPRThread = GetPendingServiceThread(entry->mCid);
+    NS_ASSERTION(pendingPRThread == currentPRThread,
+                 "Pending service array has been changed!");
 #endif
+    RemovePendingService(entry->mCid);
 
     if (NS_FAILED(rv))
         return rv;
 
-    if (!entry) { 
-        nsContractIDTableEntry* contractIDTableEntry =
-            static_cast<nsContractIDTableEntry*>
-                       (PL_DHashTableOperate(&mContractIDs, aContractID,
-                                                PL_DHASH_LOOKUP));
-
-        if (PL_DHASH_ENTRY_IS_BUSY(contractIDTableEntry)) {
-            entry = contractIDTableEntry->mFactoryEntry;
-        }
-        NS_ASSERTION(entry, "we should have a factory entry since CI succeeded - we should not get here");
-        if (!entry) return NS_ERROR_FAILURE;
-    }
+    NS_ASSERTION(!entry->mServiceObject, "Created two instances of a service!");
 
     entry->mServiceObject = service;
     *result = service.get();
