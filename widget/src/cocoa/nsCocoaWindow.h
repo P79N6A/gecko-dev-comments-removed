@@ -152,7 +152,7 @@ public:
     NS_IMETHOD              AddMenuListener(nsIMenuListener * aListener);
     NS_IMETHOD              Enable(PRBool aState);
     NS_IMETHOD              IsEnabled(PRBool *aState);
-    NS_IMETHOD              SetModal(PRBool aState) { return NS_OK; }
+    NS_IMETHOD              SetModal(PRBool aState);
     NS_IMETHOD              IsVisible(PRBool & aState);
     NS_IMETHOD              SetFocus(PRBool aState=PR_FALSE);
     NS_IMETHOD              SetMenuBar(nsIMenuBar * aMenuBar);
@@ -217,6 +217,7 @@ protected:
   PRPackedBool         mWindowMadeHere; 
   PRPackedBool         mVisible;        
   PRPackedBool         mSheetNeedsShow; 
+  PRPackedBool         mModal;
 };
 
 
