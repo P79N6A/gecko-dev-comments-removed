@@ -980,10 +980,14 @@ namespace nanojit
 					return 0; 
 				}
 				else {
-					
 #ifdef JS_TRACER
-				    NanoAssertMsg(0, "need a way to EOT now, since this is trace end");
-#endif				    
+					
+					
+					
+					
+					
+					NanoAssertMsg(0, "Constantly false guard detected");
+#endif
 					return out->insGuard(LIR_x, out->insImm(1), x);
 				}
 			}
