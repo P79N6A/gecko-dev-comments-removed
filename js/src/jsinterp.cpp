@@ -3639,25 +3639,7 @@ js_Interpret(JSContext *cx)
             do {
                 JSPropCacheEntry *entry;
 
-                
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
                 obj = fp->scopeChain;
-                if (!OBJ_GET_PARENT(cx, obj))
-                    break;
                 if (JS_LIKELY(OBJ_IS_NATIVE(obj))) {
                     PROPERTY_CACHE_TEST(cx, regs.pc, obj, obj2, entry, atom);
                     if (!atom) {
@@ -3670,7 +3652,7 @@ js_Interpret(JSContext *cx)
                     LOAD_ATOM(0);
                 }
                 id = ATOM_TO_JSID(atom);
-                obj = js_FindIdentifierBase(cx, fp->scopeChain, id, entry);
+                obj = js_FindIdentifierBase(cx, id, entry);
                 if (!obj)
                     goto error;
             } while (0);
@@ -4776,10 +4758,8 @@ js_Interpret(JSContext *cx)
                     LOAD_ATOM(0);
                 id = ATOM_TO_JSID(atom);
                 if (entry) {
-                    if (!js_SetPropertyHelper(cx, obj, id, op == JSOP_SETNAME,
-                                              &rval, &entry)) {
+                    if (!js_SetPropertyHelper(cx, obj, id, &rval, &entry))
                         goto error;
-                    }
 #ifdef JS_TRACER
                     if (entry)
                         TRACE_1(SetPropMiss, entry);
@@ -6433,7 +6413,7 @@ js_Interpret(JSContext *cx)
                     goto error;
                 }
                 if (JS_UNLIKELY(atom == cx->runtime->atomState.protoAtom)
-                    ? !js_SetPropertyHelper(cx, obj, id, false, &rval, &entry)
+                    ? !js_SetPropertyHelper(cx, obj, id, &rval, &entry)
                     : !js_DefineNativeProperty(cx, obj, id, rval, NULL, NULL,
                                                JSPROP_ENUMERATE, 0, 0, NULL,
                                                &entry)) {

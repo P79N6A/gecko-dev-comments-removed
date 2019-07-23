@@ -4070,68 +4070,45 @@ js_FindProperty(JSContext *cx, jsid id, JSObject **objp, JSObject **pobjp,
 }
 
 JS_REQUIRES_STACK JSObject *
-js_FindIdentifierBase(JSContext *cx, JSObject *scopeChain, jsid id,
-                      JSPropCacheEntry *entry)
+js_FindIdentifierBase(JSContext *cx, jsid id, JSPropCacheEntry *entry)
 {
-    
-
-
-
-    JSObject *parent = OBJ_GET_PARENT(cx, scopeChain);
-    JS_ASSERT(parent);
-    JS_ASSERT(!JS_ON_TRACE(cx));
-    JS_ASSERT_IF(OBJ_IS_NATIVE(scopeChain), entry);
+    JSObject *obj, *pobj;
+    JSProperty *prop;
 
     
 
 
 
+    if (js_FindPropertyHelper(cx, id, &obj, &pobj, &prop, &entry) < 0)
+        return NULL;
+    if (prop) {
+        OBJ_DROP_PROPERTY(cx, pobj, prop);
+        return obj;
+    }
 
-    JSObject *obj = scopeChain;
-    for (int scopeIndex = 0; ; scopeIndex++) {
-        JSClass *clasp = OBJ_GET_CLASS(cx, obj);
-        if (clasp != &js_CallClass && clasp != &js_BlockClass)
-            break;
+    
 
-        JSObject *pobj;
-        JSProperty *prop;
-        int protoIndex = js_LookupPropertyWithFlags(cx, obj, id, 0,
-                                                    &pobj, &prop);
-        if (protoIndex < 0)
+
+
+    JS_ASSERT(obj);
+
+    
+
+
+
+    if (JS_HAS_STRICT_OPTION(cx)) {
+        JSString *str = JSVAL_TO_STRING(ID_TO_VALUE(id));
+        const char *bytes = js_GetStringBytes(cx, str);
+
+        if (!bytes ||
+            !JS_ReportErrorFlagsAndNumber(cx,
+                                          JSREPORT_WARNING | JSREPORT_STRICT,
+                                          js_GetErrorMessage, NULL,
+                                          JSMSG_UNDECLARED_VAR, bytes)) {
             return NULL;
-        if (prop) {
-            JS_ASSERT(OBJ_IS_NATIVE(pobj));
-            JS_ASSERT(OBJ_GET_CLASS(cx, pobj) == clasp);
-            js_FillPropertyCache(cx, scopeChain, OBJ_SHAPE(scopeChain),
-                                 scopeIndex, protoIndex, pobj,
-                                 (JSScopeProperty *) prop, &entry);
-            JS_UNLOCK_OBJ(cx, pobj);
-            return obj;
-        }
-
-        obj = parent;
-        parent = OBJ_GET_PARENT(cx, parent);
-        if (!parent) {
-            
-
-
-
-            return obj;
         }
     }
 
-    do {
-        JSObject *pobj;
-        JSProperty *prop;
-        if (!OBJ_LOOKUP_PROPERTY(cx, obj, id, &pobj, &prop))
-            return NULL;
-        if (prop) {
-            OBJ_DROP_PROPERTY(cx, pobj, prop);
-            break;
-        }
-        obj = parent;
-        parent = OBJ_GET_PARENT(cx, parent);
-    } while (parent);
     return obj;
 }
 
@@ -4360,8 +4337,8 @@ js_GetMethod(JSContext *cx, JSObject *obj, jsid id, jsval *vp,
 }
 
 JSBool
-js_SetPropertyHelper(JSContext *cx, JSObject *obj, jsid id,
-                     JSBool unqualified, jsval *vp, JSPropCacheEntry **entryp)
+js_SetPropertyHelper(JSContext *cx, JSObject *obj, jsid id, jsval *vp,
+                     JSPropCacheEntry **entryp)
 {
     uint32 shape;
     int protoIndex;
@@ -4391,28 +4368,10 @@ js_SetPropertyHelper(JSContext *cx, JSObject *obj, jsid id,
                                             &pobj, &prop);
     if (protoIndex < 0)
         return JS_FALSE;
-    if (prop) {
-        if (!OBJ_IS_NATIVE(pobj)) {
-            OBJ_DROP_PROPERTY(cx, pobj, prop);
-            prop = NULL;
-        }
-    } else {
-        
-        JS_ASSERT(OBJ_GET_CLASS(cx, obj) != &js_BlockClass);
 
-        if (unqualified && !OBJ_GET_PARENT(cx, obj) &&
-            JS_HAS_STRICT_OPTION(cx)) {
-            JSString *str = JSVAL_TO_STRING(ID_TO_VALUE(id));
-            const char *bytes = js_GetStringBytes(cx, str);
-            if (!bytes ||
-                !JS_ReportErrorFlagsAndNumber(cx,
-                                              JSREPORT_WARNING |
-                                              JSREPORT_STRICT,
-                                              js_GetErrorMessage, NULL,
-                                              JSMSG_UNDECLARED_VAR, bytes)) {
-                return NULL;
-            }
-        }
+    if (prop && !OBJ_IS_NATIVE(pobj)) {
+        OBJ_DROP_PROPERTY(cx, pobj, prop);
+        prop = NULL;
     }
     sprop = (JSScopeProperty *) prop;
 
@@ -4529,6 +4488,9 @@ js_SetPropertyHelper(JSContext *cx, JSObject *obj, jsid id,
 
     if (!sprop) {
         
+        JS_ASSERT(OBJ_GET_CLASS(cx, obj) != &js_BlockClass);
+
+        
 
 
 
@@ -4587,7 +4549,7 @@ js_SetPropertyHelper(JSContext *cx, JSObject *obj, jsid id,
 JSBool
 js_SetProperty(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 {
-    return js_SetPropertyHelper(cx, obj, id, false, vp, NULL);
+    return js_SetPropertyHelper(cx, obj, id, vp, NULL);
 }
 
 JSBool
