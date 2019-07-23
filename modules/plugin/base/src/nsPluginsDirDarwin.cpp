@@ -305,6 +305,7 @@ static char* GetNextPluginStringFromHandle(Handle h, short *index)
   return ret;
 }
 
+#ifndef __LP64__
 static char* GetPluginString(short id, short index)
 {
   Str255 str;
@@ -359,6 +360,7 @@ public:
 private:
   short mRefNum;
 };
+#endif
 
 
 
@@ -372,9 +374,12 @@ nsresult nsPluginFile::GetPluginInfo(nsPluginInfo& info)
 
   
 
+#ifndef __LP64__
   
   nsAutoCloseResourceObject resourceObject(mPlugin);
   bool resourceOpened = resourceObject.ResourceOpened();
+#endif
+
   
   nsCAutoString path;
   if (NS_FAILED(rv = mPlugin->GetNativePath(path)))
@@ -400,10 +405,12 @@ nsresult nsPluginFile::GetPluginInfo(nsPluginInfo& info)
     if (name && ::CFGetTypeID(name) == ::CFStringGetTypeID())
       info.fName = CFStringRefToUTF8Buffer(static_cast<CFStringRef>(name));
   }
+#ifndef __LP64__
   if (!info.fName && resourceOpened) {
     
     info.fName = GetPluginString(126, 2);
   }
+#endif
 
   
   if (bundle) {
@@ -411,10 +418,12 @@ nsresult nsPluginFile::GetPluginInfo(nsPluginInfo& info)
     if (description && ::CFGetTypeID(description) == ::CFStringGetTypeID())
       info.fDescription = CFStringRefToUTF8Buffer(static_cast<CFStringRef>(description));
   }
+#ifndef __LP64__
   if (!info.fDescription && resourceOpened) {
     
     info.fDescription = GetPluginString(126, 1);
   }
+#endif
 
   
   if (bundle) {
@@ -465,6 +474,7 @@ nsresult nsPluginFile::GetPluginInfo(nsPluginInfo& info)
     }
   }
 
+#ifndef __LP64__
   
   if (!info.fVariantCount && resourceObject.ResourceOpened()) {
     mi.typeStrings = ::Get1Resource('STR#', 128);
@@ -483,6 +493,7 @@ nsresult nsPluginFile::GetPluginInfo(nsPluginInfo& info)
       ::HLock(mi.infoStrings);
     }
   }
+#endif
 
   
   int variantCount = info.fVariantCount;

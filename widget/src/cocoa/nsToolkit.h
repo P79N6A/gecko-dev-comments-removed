@@ -59,7 +59,7 @@ public:
   NS_DECL_NSITOOLKIT
 
   
-  static long        OSXVersion();
+  static PRInt32     OSXVersion();
   
   
   static PRBool      OnLeopardOrLater();
