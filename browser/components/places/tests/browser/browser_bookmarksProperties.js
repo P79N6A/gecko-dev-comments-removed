@@ -531,6 +531,10 @@ gTests.push({
 function test() {
   waitForExplicitFinish();
   
+  
+  requestLongerTimeout(2);
+
+  
   ok(PlacesUtils, "PlacesUtils in context");
   ok(PlacesUIUtils, "PlacesUIUtils in context");
 
