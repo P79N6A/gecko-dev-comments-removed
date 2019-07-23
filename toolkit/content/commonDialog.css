@@ -1,0 +1,45 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+@namespace url("http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"); 
+
+#info\.box > description {
+  -moz-user-focus: normal;
+  -moz-user-select: text;
+  cursor: text !important;
+  white-space: -moz-pre-wrap;
+}
