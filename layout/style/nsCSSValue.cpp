@@ -422,9 +422,24 @@ nsCSSValue::URL::operator==(const URL& aOther) const
            (mURI && aOther.mURI &&
             NS_SUCCEEDED(mURI->Equals(aOther.mURI, &eq)) &&
             eq)) &&
-          NS_SUCCEEDED(mOriginPrincipal->Equals(aOther.mOriginPrincipal,
-                                                &eq)) &&
-          eq;
+          (mOriginPrincipal == aOther.mOriginPrincipal ||
+           (NS_SUCCEEDED(mOriginPrincipal->Equals(aOther.mOriginPrincipal,
+                                                  &eq)) && eq));
+}
+
+PRBool
+nsCSSValue::URL::URIEquals(const URL& aOther) const
+{
+  PRBool eq;
+  
+  
+  
+  
+  return (mURI == aOther.mURI ||
+          (NS_SUCCEEDED(mURI->Equals(aOther.mURI, &eq)) && eq)) &&
+         (mOriginPrincipal == aOther.mOriginPrincipal ||
+          (NS_SUCCEEDED(mOriginPrincipal->Equals(aOther.mOriginPrincipal,
+                                                 &eq)) && eq));
 }
 
 nsCSSValue::Image::Image(nsIURI* aURI, nsStringBuffer* aString,
