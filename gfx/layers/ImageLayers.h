@@ -220,9 +220,6 @@ protected:
 
 
 
-
-
-
 class THEBES_API PlanarYCbCrImage : public Image {
 public:
   struct Data {
