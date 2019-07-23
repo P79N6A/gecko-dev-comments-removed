@@ -37,9 +37,8 @@
 
 
 
-
-#ifndef dom_plugins_NPAPIPluginChild_h
-#define dom_plugins_NPAPIPluginChild_h 1
+#ifndef dom_plugins_PluginModuleChild_h
+#define dom_plugins_PluginModuleChild_h 1
 
 #include <string>
 #include <vector>
@@ -54,8 +53,8 @@
 
 #include "nsAutoPtr.h"
 
-#include "mozilla/plugins/NPAPIProtocolChild.h"
-#include "mozilla/plugins/NPPInstanceChild.h"
+#include "mozilla/plugins/PPluginModuleProtocolChild.h"
+#include "mozilla/plugins/PluginInstanceChild.h"
 
 
 
@@ -94,26 +93,26 @@ namespace mozilla {
 namespace plugins {
 
 
-class NPAPIPluginChild : public NPAPIProtocolChild
+class PluginModuleChild : public PPluginModuleProtocolChild
 {
 protected:
     
     virtual nsresult AnswerNP_Initialize(NPError* rv);
 
-    virtual NPPProtocolChild* NPPConstructor(
-        const nsCString& aMimeType,
-        const uint16_t& aMode,
-        const nsTArray<nsCString>& aNames,
-        const nsTArray<nsCString>& aValues,
-        NPError* rv);
+    virtual PPluginInstanceProtocolChild*
+    PPluginInstanceConstructor(const nsCString& aMimeType,
+                               const uint16_t& aMode,
+                               const nsTArray<nsCString>& aNames,
+                               const nsTArray<nsCString>& aValues,
+                               NPError* rv);
 
-    virtual nsresult NPPDestructor(
-        NPPProtocolChild* actor,
-        NPError* rv);
+    virtual nsresult
+    PPluginInstanceDestructor(PPluginInstanceProtocolChild* actor,
+                              NPError* rv);
 
 public:
-    NPAPIPluginChild();
-    virtual ~NPAPIPluginChild();
+    PluginModuleChild();
+    virtual ~PluginModuleChild();
 
     bool Init(const std::string& aPluginFilename,
               MessageLoop* aIOLoop,

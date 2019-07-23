@@ -36,8 +36,8 @@
 
 
 
-#ifndef dom_plugins_NPAPIPluginParent_h
-#define dom_plugins_NPAPIPluginParent_h
+#ifndef dom_plugins_PluginModuleParent_h
+#define dom_plugins_PluginModuleParent_h 1
 
 #include <cstring>
 
@@ -52,15 +52,14 @@
 #include "base/string_util.h"
 
 #include "mozilla/SharedLibrary.h"
-#include "mozilla/plugins/NPAPIProtocol.h"
-#include "mozilla/plugins/NPAPIProtocolParent.h"
-#include "mozilla/plugins/NPPInstanceParent.h"
+#include "mozilla/plugins/PPluginModuleProtocolParent.h"
+#include "mozilla/plugins/PluginInstanceParent.h"
 #include "mozilla/plugins/PluginProcessParent.h"
 
 #include "nsAutoPtr.h"
 
 #undef _MOZ_LOG
-#define _MOZ_LOG(s) printf("[NPAPIPluginParent] %s\n", s)
+#define _MOZ_LOG(s) printf("[PluginModuleParent] %s\n", s)
 
 namespace mozilla {
 namespace plugins {
@@ -77,27 +76,27 @@ namespace plugins {
 
 
 
-class NPAPIPluginParent : public NPAPIProtocolParent
+class PluginModuleParent : public PPluginModuleProtocolParent
 {
 private:
     typedef mozilla::SharedLibrary SharedLibrary;
 
 protected:
-    NPPProtocolParent* NPPConstructor(
-                const nsCString& aMimeType,
-                const uint16_t& aMode,
-                const nsTArray<nsCString>& aNames,
-                const nsTArray<nsCString>& aValues,
-                NPError* rv);
+    PPluginInstanceProtocolParent*
+    PPluginInstanceConstructor(const nsCString& aMimeType,
+                               const uint16_t& aMode,
+                               const nsTArray<nsCString>& aNames,
+                               const nsTArray<nsCString>& aValues,
+                               NPError* rv);
 
-    virtual nsresult NPPDestructor(
-                NPPProtocolParent* __a,
-                NPError* rv);
+    virtual nsresult
+    PPluginInstanceDestructor(PPluginInstanceProtocolParent* aActor,
+                              NPError* _retval);
 
 public:
-    NPAPIPluginParent(const char* aFilePath);
+    PluginModuleParent(const char* aFilePath);
 
-    virtual ~NPAPIPluginParent();
+    virtual ~PluginModuleParent();
 
     
 
@@ -181,17 +180,17 @@ private:
 
     NPError NPP_Destroy(NPP instance, NPSavedData** save);
 
-    static inline NPPInstanceParent& InstCast(void* p)
+    static inline PluginInstanceParent& InstCast(void* p)
     {
-        return *static_cast<NPPInstanceParent*>(p);
+        return *static_cast<PluginInstanceParent*>(p);
     }
 
-    static NPPInstanceParent* InstCast(NPP instance);
-    static NPBrowserStreamParent* StreamCast(NPP instance, NPStream* s);
+    static PluginInstanceParent* InstCast(NPP instance);
+    static PluginStreamParent* StreamCast(NPP instance, NPStream* s);
 
-    static inline const NPPInstanceParent& InstCast(const void* p)
+    static inline const PluginInstanceParent& InstCast(const void* p)
     {
-        return *static_cast<const NPPInstanceParent*>(p);
+        return *static_cast<const PluginInstanceParent*>(p);
     }
 
     NPError NPP_SetWindow(NPP instance, NPWindow* window)
@@ -449,7 +448,7 @@ private:
     class Shim : public SharedLibrary
     {
     public:
-        Shim(NPAPIPluginParent* aTarget) :
+        Shim(PluginModuleParent* aTarget) :
             mTarget(aTarget)
         {
             HACK_target = mTarget;
@@ -500,7 +499,7 @@ private:
         }
 
     private:
-        NPAPIPluginParent* mTarget;
+        PluginModuleParent* mTarget;
 
         
 
@@ -586,8 +585,8 @@ private:
             return HACK_target->NPP_SetValue(instance, variable, value);
         }
 
-        static NPAPIPluginParent* HACK_target;
-        friend class NPAPIPluginParent;
+        static PluginModuleParent* HACK_target;
+        friend class PluginModuleParent;
     };
 
     friend class Shim;

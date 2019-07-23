@@ -1,20 +1,57 @@
 
 
-#include "NPBrowserStreamChild.h"
-#include "NPPInstanceChild.h"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#include "PluginStreamChild.h"
+#include "PluginInstanceChild.h"
 
 namespace mozilla {
 namespace plugins {
 
-NPBrowserStreamChild::NPBrowserStreamChild(NPPInstanceChild* instance,
-                                           const nsCString& url,
-                                           const uint32_t& length,
-                                           const uint32_t& lastmodified,
-                                           const nsCString& headers,
-                                           const nsCString& mimeType,
-                                           const bool& seekable,
-                                           NPError* rv,
-                                           uint16_t* stype)
+PluginStreamChild::PluginStreamChild(PluginInstanceChild* instance,
+                                     const nsCString& url,
+                                     const uint32_t& length,
+                                     const uint32_t& lastmodified,
+                                     const nsCString& headers,
+                                     const nsCString& mimeType,
+                                     const bool& seekable,
+                                     NPError* rv,
+                                     uint16_t* stype)
   : mInstance(instance)
   , mClosed(false)
   , mURL(url)
@@ -37,8 +74,8 @@ NPBrowserStreamChild::NPBrowserStreamChild(NPPInstanceChild* instance,
 }
 
 nsresult
-NPBrowserStreamChild::AnswerNPP_WriteReady(const int32_t& newlength,
-                                           int32_t *size)
+PluginStreamChild::AnswerNPP_WriteReady(const int32_t& newlength,
+                                        int32_t *size)
 {
   if (mClosed) {
     *size = 0;
@@ -52,8 +89,9 @@ NPBrowserStreamChild::AnswerNPP_WriteReady(const int32_t& newlength,
 }
 
 nsresult
-NPBrowserStreamChild::AnswerNPP_Write(const int32_t& offset, const Buffer& data,
-                                      int32_t* consumed)
+PluginStreamChild::AnswerNPP_Write(const int32_t& offset,
+                                   const Buffer& data,
+                                   int32_t* consumed)
 {
   if (mClosed) {
     *consumed = -1;
@@ -70,7 +108,7 @@ NPBrowserStreamChild::AnswerNPP_Write(const int32_t& offset, const Buffer& data,
 }
 
 nsresult
-NPBrowserStreamChild::AnswerNPP_StreamAsFile(const nsCString& fname)
+PluginStreamChild::AnswerNPP_StreamAsFile(const nsCString& fname)
 {
   if (mClosed)
     return NS_OK;
@@ -80,5 +118,5 @@ NPBrowserStreamChild::AnswerNPP_StreamAsFile(const nsCString& fname)
   return NS_OK;
 }
 
-}
-}
+} 
+} 

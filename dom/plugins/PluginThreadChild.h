@@ -46,7 +46,7 @@
 #include "base/file_path.h"
 
 #include "mozilla/ipc/GeckoThread.h"
-#include "mozilla/plugins/NPAPIPluginChild.h"
+#include "mozilla/plugins/PluginModuleChild.h"
 
 #undef _MOZ_LOG
 #define _MOZ_LOG(s)  printf("[PluginThreadChild] %s", s)
@@ -71,7 +71,7 @@ private:
     
     
     
-    NPAPIPluginChild mPlugin;
+    PluginModuleChild mPlugin;
     IPC::Channel* mChannel;
 
     DISALLOW_EVIL_CONSTRUCTORS(PluginThreadChild);
