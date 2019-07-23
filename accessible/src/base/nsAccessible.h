@@ -167,7 +167,21 @@ protected:
 
   
   nsresult GetTextFromRelationID(nsIAtom *aIDAttrib, nsString &aName);
+
+  
+
+
+
+
+
+
+
+
+
+
+
   already_AddRefed<nsIDOMNode> FindNeighbourPointingToThis(nsIAtom *aRelationAttr,
+                                                           PRUint32 aRelationNameSpaceID = kNameSpaceID_None,
                                                            PRUint32 aAncestorLevelsToSearch = 0);
 
   
@@ -182,9 +196,12 @@ protected:
 
 
 
+
+
   static nsIContent *FindNeighbourPointingToNode(nsIContent *aForNode,
                                                  nsIAtom *aTagName,
-                                                 nsIAtom *aAttr,
+                                                 nsIAtom *aRelationAttr,
+                                                 PRUint32 aRelationNameSpaceID = kNameSpaceID_None,
                                                  PRUint32 aAncestorLevelsToSearch = 5);
 
   
@@ -202,9 +219,9 @@ protected:
 
   static nsIContent *FindDescendantPointingToID(const nsAString *aId,
                                                 nsIContent *aLookContent,
-                                                nsIAtom *forAttrib,
+                                                nsIAtom *aRelationAttr,
+                                                PRUint32 aRelationNamespaceID = kNameSpaceID_None,
                                                 nsIContent *aExcludeContent = nsnull,
-                                                PRUint32 aForAttribNamespace = kNameSpaceID_None,
                                                 nsIAtom *aTagType = nsAccessibilityAtoms::label);
 
   static nsIContent *GetHTMLLabelContent(nsIContent *aForNode);
