@@ -495,7 +495,7 @@ namespace nanojit
 
         return out->ins1(v, i);
     }
-    
+
     
     
     
@@ -544,7 +544,7 @@ namespace nanojit
             int32_t r;
 
             switch (v) {
-            case LIR_qjoin: 
+            case LIR_qjoin:
                 return insImmf(do_join(c1, c2));
             case LIR_eq:
                 return insImm(c1 == c2);
