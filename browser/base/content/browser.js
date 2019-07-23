@@ -2955,8 +2955,13 @@ const BrowserSearch = {
 
   updateSearchButton: function() {
     var searchBar = this.searchBar;
-    if (!searchBar)
+    
+    
+    
+    
+    if (!searchBar || !searchBar.searchButton)
       return;
+
     var engines = gBrowser.mCurrentBrowser.engines;
     if (engines && engines.length > 0)
       searchBar.searchButton.setAttribute("addengines", "true");
