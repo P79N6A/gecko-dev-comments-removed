@@ -116,6 +116,10 @@ function test() {
   
 
   
+  testRootNode.containerOpen = false;
+  toolbarNode.containerOpen = false;
+
+  
   PlacesUIUtils.ptm.undoTransaction();
   PlacesUtils.bookmarks.removeItem(testRootId);
 }

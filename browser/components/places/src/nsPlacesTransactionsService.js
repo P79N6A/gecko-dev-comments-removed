@@ -37,6 +37,7 @@
 
 
 
+
 let Ci = Components.interfaces;
 let Cc = Components.classes;
 let Cr = Components.results;
@@ -392,10 +393,12 @@ placesCreateFolderTransactions.prototype = {
   },
 
   undoTransaction: function PCFT_undoTransaction() {
-    for (var i = 0; i < this._childItemsTransactions.length; ++i) {
+    
+    for (var i = this._childItemsTransactions.length - 1; i >= 0 ; i--) {
       var txn = this._childItemsTransactions[i];
       txn.undoTransaction();
     }
+    
     PlacesUtils.bookmarks.removeFolder(this._id);
   }
 };
@@ -436,11 +439,13 @@ placesCreateItemTransactions.prototype = {
   },
 
   undoTransaction: function PCIT_undoTransaction() {
-    PlacesUtils.bookmarks.removeItem(this._id);
-    for (var i = 0; i < this._childTransactions.length; ++i) {
+    
+    for (var i = this._childTransactions.length - 1; i >= 0; i--) {
       var txn = this._childTransactions[i];
       txn.undoTransaction();
     }
+    
+    PlacesUtils.bookmarks.removeItem(this._id);
   }
 };
 

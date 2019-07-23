@@ -103,6 +103,10 @@ function test() {
   validate(folderBNode);
 
   
+  testRootNode.containerOpen = false;
+  toolbarNode.containerOpen = false;
+
+  
   PlacesUIUtils.ptm.undoTransaction();
   PlacesUtils.bookmarks.removeItem(folderAId);
 }
