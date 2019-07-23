@@ -2559,7 +2559,7 @@ NS_IMETHODIMP nsPluginInstanceOwner::GetValue(nsPluginInstancePeerVariable varia
       if (mOwner) {
 #if defined(XP_WIN) || defined(XP_OS2)
         void** pvalue = (void**)value;
-        nsIViewManager* vm = mOwner->PresContext()->GetViewManager();
+        nsIViewManager* vm = mOwner->PresContext()->GetPresShell()->GetViewManager();
         if (vm) {
 #if defined(XP_WIN)
           
