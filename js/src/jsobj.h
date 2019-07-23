@@ -97,7 +97,7 @@ const uint32 JSSLOT_PROTO   = 0;
 const uint32 JSSLOT_PARENT  = 1;
 const uint32 JSSLOT_PRIVATE = 2;
 
-const uint32 JSSLOT_CLASS_MASK_BITS = 3;
+const uintptr_t JSSLOT_CLASS_MASK_BITS = 3;
 
 
 
@@ -289,8 +289,6 @@ struct JSObject {
 
 
 
-
-#define JSSLOT_CLASS_MASK_BITS 3
 
 JS_ALWAYS_INLINE JSClass*
 STOBJ_GET_CLASS(const JSObject* obj)
