@@ -87,6 +87,9 @@ _cairo_output_stream_create (cairo_write_func_t		write_func,
 			     cairo_close_func_t		close_func,
 			     void			*closure);
 
+cairo_private cairo_output_stream_t *
+_cairo_output_stream_create_in_error (cairo_status_t status);
+
 
 
 

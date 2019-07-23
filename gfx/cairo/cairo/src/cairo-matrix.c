@@ -753,6 +753,10 @@ _cairo_matrix_to_pixman_matrix (const cairo_matrix_t	*matrix,
         *pixman_transform = pixman_identity_transform;
     }
     else {
+        cairo_matrix_t inv = *matrix;
+        double x = 0, y = 0;
+        pixman_vector_t vector;
+
         pixman_transform->matrix[0][0] = _cairo_fixed_16_16_from_double (matrix->xx);
         pixman_transform->matrix[0][1] = _cairo_fixed_16_16_from_double (matrix->xy);
         pixman_transform->matrix[0][2] = _cairo_fixed_16_16_from_double (matrix->x0);
@@ -764,5 +768,36 @@ _cairo_matrix_to_pixman_matrix (const cairo_matrix_t	*matrix,
         pixman_transform->matrix[2][0] = 0;
         pixman_transform->matrix[2][1] = 0;
         pixman_transform->matrix[2][2] = 1 << 16;
+
+        
+
+
+
+
+
+
+
+
+
+        
+        if (cairo_matrix_invert (&inv) != CAIRO_STATUS_SUCCESS)
+            return;
+
+        
+        cairo_matrix_transform_point (&inv, &x, &y);
+
+        
+
+        vector.vector[0] = _cairo_fixed_16_16_from_double (x);
+        vector.vector[1] = _cairo_fixed_16_16_from_double (y);
+        vector.vector[2] = 1 << 16;
+
+        if (!pixman_transform_point_3d (pixman_transform, &vector))
+            return;
+
+        
+
+        pixman_transform->matrix[0][2] -= vector.vector[0];
+        pixman_transform->matrix[1][2] -= vector.vector[1];
     }
 }

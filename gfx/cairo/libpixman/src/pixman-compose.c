@@ -3695,8 +3695,8 @@ static void fbFetchTransformed(bits_image_t * pict, int x, int y, int width, uin
     stride = pict->rowstride;
 
     
-    v.vector[0] = pixman_int_to_fixed(x) + pixman_fixed_1 / 2;
-    v.vector[1] = pixman_int_to_fixed(y) + pixman_fixed_1 / 2;
+    v.vector[0] = pixman_int_to_fixed(x) + pixman_fixed_1 / 2 - 1;
+    v.vector[1] = pixman_int_to_fixed(y) + pixman_fixed_1 / 2 - 1;
     v.vector[2] = pixman_fixed_1;
 
     

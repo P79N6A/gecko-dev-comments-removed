@@ -67,7 +67,6 @@
 #endif
 
 #define PELS_72DPI  ((LONG)(72. / 0.0254))
-#define NIL_SURFACE ((cairo_surface_t*)&_cairo_surface_nil)
 
 static const cairo_surface_backend_t cairo_win32_surface_backend;
 
@@ -333,10 +332,8 @@ _cairo_win32_surface_create_for_dc (HDC             original_dc,
     int rowstride;
 
     surface = malloc (sizeof (cairo_win32_surface_t));
-    if (surface == NULL) {
-	_cairo_error_throw (CAIRO_STATUS_NO_MEMORY);
-	return NIL_SURFACE;
-    }
+    if (surface == NULL)
+	return _cairo_surface_create_in_error (_cairo_error (CAIRO_STATUS_NO_MEMORY));
 
     status = _create_dc_and_bitmap (surface, original_dc, format,
 				    width, height,
@@ -346,10 +343,9 @@ _cairo_win32_surface_create_for_dc (HDC             original_dc,
 
     surface->image = cairo_image_surface_create_for_data (bits, format,
 							  width, height, rowstride);
-    if (surface->image->status) {
-	status = _cairo_error (CAIRO_STATUS_NO_MEMORY);
+    status = surface->image->status;
+    if (status)
 	goto FAIL;
-    }
 
     surface->format = format;
 
@@ -358,14 +354,15 @@ _cairo_win32_surface_create_for_dc (HDC             original_dc,
     surface->clip_rect.width = width;
     surface->clip_rect.height = height;
 
-    surface->saved_clip = NULL;
+    surface->initial_clip_rgn = NULL;
+    surface->had_simple_clip = FALSE;
 
     surface->extents = surface->clip_rect;
 
     _cairo_surface_init (&surface->base, &cairo_win32_surface_backend,
 			 _cairo_content_from_format (format));
 
-    return (cairo_surface_t *)surface;
+    return &surface->base;
 
  FAIL:
     if (surface->bitmap) {
@@ -373,10 +370,9 @@ _cairo_win32_surface_create_for_dc (HDC             original_dc,
 	DeleteObject (surface->bitmap);
 	DeleteDC (surface->dc);
     }
-    if (surface)
-	free (surface);
+    free (surface);
 
-    return NIL_SURFACE;
+    return _cairo_surface_create_in_error (status);
 }
 
 static cairo_surface_t *
@@ -478,26 +474,11 @@ _cairo_win32_surface_finish (void *abstract_surface)
 	DeleteObject (surface->bitmap);
 	DeleteDC (surface->dc);
     } else {
-	
-	SelectClipRgn (surface->dc, surface->saved_clip);
-
-	if (surface->saved_clip == NULL) {
-	    
-
-	    if (surface->clip_rect.width != 0 &&
-		surface->clip_rect.height != 0)
-	    {
-		IntersectClipRect (surface->dc,
-				   surface->clip_rect.x,
-				   surface->clip_rect.y,
-				   surface->clip_rect.x + surface->clip_rect.width,
-				   surface->clip_rect.y + surface->clip_rect.height);
-	    }
-	}
+	_cairo_win32_restore_initial_clip (surface);
     }
 
-    if (surface->saved_clip)
-	DeleteObject (surface->saved_clip);
+    if (surface->initial_clip_rgn)
+	DeleteObject (surface->initial_clip_rgn);
 
     return CAIRO_STATUS_SUCCESS;
 }
@@ -570,8 +551,8 @@ _cairo_win32_surface_acquire_source_image (void                    *abstract_sur
     }
 
     status = _cairo_win32_surface_get_subimage (abstract_surface, 0, 0,
-						surface->clip_rect.width,
-						surface->clip_rect.height, &local);
+						surface->extents.width,
+						surface->extents.height, &local);
     if (status)
 	return status;
 
@@ -610,8 +591,8 @@ _cairo_win32_surface_acquire_dest_image (void                    *abstract_surfa
 
 	image_rect->x = 0;
 	image_rect->y = 0;
-	image_rect->width = surface->clip_rect.width;
-	image_rect->height = surface->clip_rect.height;
+	image_rect->width = surface->extents.width;
+	image_rect->height = surface->extents.height;
 
 	*image_out = (cairo_image_surface_t *)surface->image;
 	*image_extra = NULL;
@@ -1445,13 +1426,11 @@ _cairo_win32_surface_set_clip_region (void           *abstract_surface,
 
 
 
-    if (region == NULL) {
-	
-	if (SelectClipRgn (surface->dc, surface->saved_clip) == ERROR)
-	    return _cairo_win32_print_gdi_error ("_cairo_win32_surface_set_clip_region (reset)");
+    
+    status = _cairo_win32_restore_initial_clip (surface);
 
-	status = CAIRO_STATUS_SUCCESS;
-    } else {
+    
+    if (region) {
 	cairo_rectangle_int_t extents;
 	cairo_box_int_t *boxes;
 	int num_boxes;
@@ -1485,6 +1464,13 @@ _cairo_win32_surface_set_clip_region (void           *abstract_surface,
 
 	    _cairo_region_boxes_fini (region, boxes);
 	} else {
+	    
+
+
+
+
+
+
 	    data_size = sizeof (RGNDATAHEADER) + num_boxes * sizeof (RECT);
 	    data = malloc (data_size);
 	    if (!data) {
@@ -1518,16 +1504,8 @@ _cairo_win32_surface_set_clip_region (void           *abstract_surface,
 		return _cairo_error (CAIRO_STATUS_NO_MEMORY);
 
 	    
-	    if (surface->saved_clip) {
-		if (CombineRgn (gdi_region, gdi_region, surface->saved_clip, RGN_AND) == ERROR)
-		    status = _cairo_win32_print_gdi_error ("_cairo_win32_surface_set_clip_region");
-	    }
-
-	    
-	    if (status == CAIRO_STATUS_SUCCESS) {
-		if (SelectClipRgn (surface->dc, gdi_region) == ERROR)
-		    status = _cairo_win32_print_gdi_error ("_cairo_win32_surface_set_clip_region");
-	    }
+	    if (ExtSelectClipRgn (surface->dc, gdi_region, RGN_AND) == ERROR)
+		status = _cairo_win32_print_gdi_error ("_cairo_win32_surface_set_clip_region");
 
 	    DeleteObject (gdi_region);
 	}
@@ -1709,20 +1687,10 @@ cairo_surface_t *
 cairo_win32_surface_create (HDC hdc)
 {
     cairo_win32_surface_t *surface;
-    RECT rect;
+
     int depth;
     cairo_format_t format;
-    int clipBoxType;
-
-    
-
-    clipBoxType = GetClipBox (hdc, &rect);
-    if (clipBoxType == ERROR) {
-	_cairo_win32_print_gdi_error ("cairo_win32_surface_create");
-	
-	_cairo_error_throw (CAIRO_STATUS_NO_MEMORY);
-	return NIL_SURFACE;
-    }
+    RECT rect;
 
     if (GetDeviceCaps(hdc, TECHNOLOGY) == DT_RASDISPLAY) {
 	depth = GetDeviceCaps(hdc, BITSPIXEL);
@@ -1738,17 +1706,19 @@ cairo_win32_surface_create (HDC hdc)
 	    format = CAIRO_FORMAT_A1;
 	else {
 	    _cairo_win32_print_gdi_error("cairo_win32_surface_create(bad BITSPIXEL)");
-	    _cairo_error_throw (CAIRO_STATUS_NO_MEMORY);
-	    return NIL_SURFACE;
+	    return _cairo_surface_create_in_error (_cairo_error (CAIRO_STATUS_INVALID_FORMAT));
 	}
     } else {
 	format = CAIRO_FORMAT_RGB24;
     }
 
     surface = malloc (sizeof (cairo_win32_surface_t));
-    if (surface == NULL) {
-	_cairo_error_throw (CAIRO_STATUS_NO_MEMORY);
-	return NIL_SURFACE;
+    if (surface == NULL)
+	return _cairo_surface_create_in_error (_cairo_error (CAIRO_STATUS_NO_MEMORY));
+
+    if (_cairo_win32_save_initial_clip (hdc, surface) != CAIRO_STATUS_SUCCESS) {
+	free (surface);
+	return _cairo_surface_create_in_error (_cairo_error (CAIRO_STATUS_NO_MEMORY));
     }
 
     surface->image = NULL;
@@ -1761,26 +1731,13 @@ cairo_win32_surface_create (HDC hdc)
     surface->brush = NULL;
     surface->old_brush = NULL;
 
-    surface->clip_rect.x = (int16_t) rect.left;
-    surface->clip_rect.y = (int16_t) rect.top;
-    surface->clip_rect.width = (uint16_t) (rect.right - rect.left);
-    surface->clip_rect.height = (uint16_t) (rect.bottom - rect.top);
-
-    if (clipBoxType == COMPLEXREGION) {
-	surface->saved_clip = CreateRectRgn (0, 0, 0, 0);
-	if (GetClipRgn (hdc, surface->saved_clip) == 0) {
-	    
-	    DeleteObject(surface->saved_clip);
-	    surface->saved_clip = NULL;
-	}
-    } else {
-	surface->saved_clip = NULL;
-    }
-
-    surface->extents = surface->clip_rect;
+    GetClipBox(hdc, &rect);
+    surface->extents.x = rect.left;
+    surface->extents.y = rect.top;
+    surface->extents.width = rect.right - rect.left;
+    surface->extents.height = rect.bottom - rect.top;
 
     surface->flags = _cairo_win32_flags_for_dc (surface->dc);
-    surface->clip_saved_dc = 0;
 
     _cairo_surface_init (&surface->base, &cairo_win32_surface_backend,
 			 _cairo_content_from_format (format));
@@ -1837,7 +1794,7 @@ cairo_win32_surface_create_with_ddb (HDC hdc,
     HBITMAP saved_dc_bitmap;
 
     if (format != CAIRO_FORMAT_RGB24)
-	return NIL_SURFACE;
+	return _cairo_surface_create_in_error (_cairo_error (CAIRO_STATUS_INVALID_FORMAT));
 
 
 
@@ -1853,7 +1810,7 @@ cairo_win32_surface_create_with_ddb (HDC hdc,
     ddb_dc = CreateCompatibleDC (hdc);
     if (ddb_dc == NULL) {
 	_cairo_win32_print_gdi_error("CreateCompatibleDC");
-	new_surf = (cairo_win32_surface_t*) NIL_SURFACE;
+	new_surf = (cairo_win32_surface_t*) _cairo_surface_create_in_error (_cairo_error (CAIRO_STATUS_NO_MEMORY));
 	goto FINISH;
     }
 
@@ -1866,7 +1823,7 @@ cairo_win32_surface_create_with_ddb (HDC hdc,
 
 
 	_cairo_win32_print_gdi_error("CreateCompatibleBitmap");
-	new_surf = (cairo_win32_surface_t*) NIL_SURFACE;
+	new_surf = (cairo_win32_surface_t*) _cairo_surface_create_in_error (_cairo_error (CAIRO_STATUS_NO_MEMORY));
 	goto FINISH;
     }
 
@@ -2050,3 +2007,120 @@ DllMain (HINSTANCE hinstDLL,
 
 #endif
 
+cairo_int_status_t
+_cairo_win32_save_initial_clip (HDC hdc, cairo_win32_surface_t *surface)
+{
+    RECT rect;
+    int clipBoxType;
+    int gm;
+    XFORM saved_xform;
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+    gm = GetGraphicsMode (hdc);
+    if (gm == GM_ADVANCED) {
+	GetWorldTransform (hdc, &saved_xform);
+	ModifyWorldTransform (hdc, NULL, MWT_IDENTITY);
+    }
+
+    clipBoxType = GetClipBox (hdc, &rect);
+    if (clipBoxType == ERROR) {
+	_cairo_win32_print_gdi_error ("cairo_win32_surface_create");
+	SetGraphicsMode (hdc, gm);
+	
+	return _cairo_error (CAIRO_STATUS_NO_MEMORY);
+    }
+
+    surface->clip_rect.x = rect.left;
+    surface->clip_rect.y = rect.top;
+    surface->clip_rect.width = rect.right - rect.left;
+    surface->clip_rect.height = rect.bottom - rect.top;
+
+    surface->initial_clip_rgn = NULL;
+    surface->had_simple_clip = FALSE;
+
+    if (clipBoxType == COMPLEXREGION) {
+	surface->initial_clip_rgn = CreateRectRgn (0, 0, 0, 0);
+	if (GetClipRgn (hdc, surface->initial_clip_rgn) == -1) {
+	    
+	    DeleteObject(surface->initial_clip_rgn);
+	    surface->initial_clip_rgn = NULL;
+	}
+    } else if (clipBoxType == SIMPLEREGION) {
+	surface->had_simple_clip = TRUE;
+    }
+
+    if (gm == GM_ADVANCED)
+	SetWorldTransform (hdc, &saved_xform);
+
+    return CAIRO_STATUS_SUCCESS;
+}
+
+cairo_int_status_t
+_cairo_win32_restore_initial_clip (cairo_win32_surface_t *surface)
+{
+    cairo_int_status_t status = CAIRO_STATUS_SUCCESS;
+
+    XFORM saved_xform;
+    int gm = GetGraphicsMode (surface->dc);
+    if (gm == GM_ADVANCED) {
+	GetWorldTransform (surface->dc, &saved_xform);
+	ModifyWorldTransform (surface->dc, NULL, MWT_IDENTITY);
+    }
+
+    
+    SelectClipRgn (surface->dc, surface->initial_clip_rgn);
+
+    if (surface->had_simple_clip) {
+	
+	IntersectClipRect (surface->dc,
+			   surface->clip_rect.x,
+			   surface->clip_rect.y,
+			   surface->clip_rect.x + surface->clip_rect.width,
+			   surface->clip_rect.y + surface->clip_rect.height);
+    }
+
+    if (gm == GM_ADVANCED)
+	SetWorldTransform (surface->dc, &saved_xform);
+
+    return status;
+}
+
+void
+_cairo_win32_debug_dump_hrgn (HRGN rgn, char *header)
+{
+    RGNDATA *rd;
+    int z;
+
+    if (header)
+	fprintf (stderr, "%s\n", header);
+
+    if (rgn == NULL) {
+	fprintf (stderr, " NULL\n");
+    }
+
+    z = GetRegionData(rgn, 0, NULL);
+    rd = (RGNDATA*) malloc(z);
+    z = GetRegionData(rgn, z, rd);
+
+    fprintf (stderr, " %d rects, bounds: %d %d %d %d\n", rd->rdh.nCount, rd->rdh.rcBound.left, rd->rdh.rcBound.top, rd->rdh.rcBound.right - rd->rdh.rcBound.left, rd->rdh.rcBound.bottom - rd->rdh.rcBound.top);
+
+    for (z = 0; z < rd->rdh.nCount; z++) {
+	RECT r = ((RECT*)rd->Buffer)[z];
+	fprintf (stderr, " [%d]: [%d %d %d %d]\n", z, r.left, r.top, r.right - r.left, r.bottom - r.top);
+    }
+
+    free(rd);
+    fflush (stderr);
+}

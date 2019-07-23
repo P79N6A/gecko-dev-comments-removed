@@ -397,7 +397,6 @@ _cairo_user_data_array_get_data (cairo_user_data_array_t     *array,
     cairo_user_data_slot_t *slots;
 
     
-
     if (array == NULL)
 	return NULL;
 

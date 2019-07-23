@@ -147,7 +147,11 @@ fbRasterizeEdges8 (pixman_image_t       *image,
 	    lx = 0;
 	rx = r->x;
 	if (pixman_fixed_to_int (rx) >= width)
-	    rx = pixman_int_to_fixed (width);
+	    
+
+
+
+	    rx = pixman_int_to_fixed (width) - 1;
 
 	
 	if (rx > lx)
@@ -235,11 +239,7 @@ fbRasterizeEdges8 (pixman_image_t       *image,
 		    add_saturate_8 (ap + lxi, N_X_FRAC(8), rxi - lxi);
 		}
 
-		
-
-
-		if (rxs)
-		    WRITE(image, ap + rxi, clip255 (READ(image, ap + rxi) + rxs));
+		WRITE(image, ap + rxi, clip255 (READ(image, ap + rxi) + rxs));
 	    }
 	}
 

@@ -722,6 +722,7 @@ cairo_os2_surface_create (HPS hps_client_window,
                           int height)
 {
     cairo_os2_surface_t *local_os2_surface;
+    cairo_status_t status;
     int rc;
 
     
@@ -729,15 +730,13 @@ cairo_os2_surface_create (HPS hps_client_window,
         (height <= 0))
     {
         
-        _cairo_error (CAIRO_STATUS_NO_MEMORY);
-        return (cairo_surface_t *) &_cairo_surface_nil;
+	return _cairo_surface_create_in_error (_cairo_error (CAIRO_STATUS_NO_MEMORY));
     }
 
     local_os2_surface = (cairo_os2_surface_t *) malloc (sizeof (cairo_os2_surface_t));
     if (!local_os2_surface) {
         
-        _cairo_error (CAIRO_STATUS_NO_MEMORY);
-        return (cairo_surface_t *) &_cairo_surface_nil;
+	return _cairo_surface_create_in_error (_cairo_error (CAIRO_STATUS_NO_MEMORY));
     }
 
     
@@ -749,8 +748,7 @@ cairo_os2_surface_create (HPS hps_client_window,
                             FALSE);
     if (rc != NO_ERROR) {
         
-        _cairo_error (CAIRO_STATUS_NO_MEMORY);
-        return (cairo_surface_t *) &_cairo_surface_nil;
+	return _cairo_surface_create_in_error (_cairo_error (CAIRO_STATUS_NO_MEMORY));
     }
 
     
@@ -769,8 +767,7 @@ cairo_os2_surface_create (HPS hps_client_window,
         
         DosCloseMutexSem (local_os2_surface->hmtx_use_private_fields);
         free (local_os2_surface);
-        _cairo_error (CAIRO_STATUS_NO_MEMORY);
-        return (cairo_surface_t *) &_cairo_surface_nil;
+	return _cairo_surface_create_in_error (_cairo_error (CAIRO_STATUS_NO_MEMORY));
     }
 
     
@@ -788,8 +785,7 @@ cairo_os2_surface_create (HPS hps_client_window,
         DosCloseEventSem (local_os2_surface->hev_pixel_array_came_back);
         DosCloseMutexSem (local_os2_surface->hmtx_use_private_fields);
         free (local_os2_surface);
-        _cairo_error (CAIRO_STATUS_NO_MEMORY);
-        return (cairo_surface_t *) &_cairo_surface_nil;
+	return _cairo_surface_create_in_error (_cairo_error (CAIRO_STATUS_NO_MEMORY));
     }
 
     
@@ -800,14 +796,14 @@ cairo_os2_surface_create (HPS hps_client_window,
                                              height,     
                                              width * 4); 
 
-    if (local_os2_surface->image_surface->base.status) {
+    status = local_os2_surface->image_surface->base.status;
+    if (status) {
         
         _buffer_free (local_os2_surface->pixels);
         DosCloseEventSem (local_os2_surface->hev_pixel_array_came_back);
         DosCloseMutexSem (local_os2_surface->hmtx_use_private_fields);
         free (local_os2_surface);
-        _cairo_error (CAIRO_STATUS_NO_MEMORY);
-        return (cairo_surface_t *) &_cairo_surface_nil;
+        return _cairo_surface_create_in_error (status);
     }
 
     

@@ -45,13 +45,28 @@ rasterizeEdges (pixman_image_t  *image,
 	int	lxi;
 	int rxi;
 
-	
 	lx = l->x;
+	rx = r->x;
+#if N_BITS == 1
+	
+
+
+	lx += X_FRAC_FIRST(1);
+	rx += X_FRAC_FIRST(1);
+#endif
+	
 	if (lx < 0)
 	    lx = 0;
-	rx = r->x;
 	if (pixman_fixed_to_int (rx) >= width)
+#if N_BITS == 1
 	    rx = pixman_int_to_fixed (width);
+#else
+	    
+
+
+
+	    rx = pixman_int_to_fixed (width) - 1;
+#endif
 
 	
 	if (rx > lx)
@@ -109,12 +124,7 @@ rasterizeEdges (pixman_image_t  *image,
 			AddAlpha (N_X_FRAC(N_BITS));
 			StepAlpha;
 		    }
-		    
-
-
-
-		    if (rxs != 0)
-			AddAlpha (rxs);
+		    AddAlpha (rxs);
 		}
 	    }
 #endif

@@ -882,7 +882,7 @@ _cairo_stroker_curve_to (void *closure,
 
     status = _cairo_spline_init (&spline, a, b, c, d);
     if (status == CAIRO_INT_STATUS_DEGENERATE)
-	return CAIRO_STATUS_SUCCESS;
+	return _cairo_stroker_line_to (closure, d);
 
     status = _cairo_pen_init_copy (&pen, &stroker->pen);
     if (status)
@@ -966,7 +966,7 @@ _cairo_stroker_curve_to_dashed (void *closure,
 
     status = _cairo_spline_init (&spline, a, b, c, d);
     if (status == CAIRO_INT_STATUS_DEGENERATE)
-	return CAIRO_STATUS_SUCCESS;
+	return _cairo_stroker_line_to_dashed (closure, d);
 
     
 
@@ -1357,6 +1357,12 @@ _cairo_path_fixed_stroke_rectilinear (cairo_path_fixed_t	*path,
     if (path->has_curve_to)
 	return CAIRO_INT_STATUS_UNSUPPORTED;
     if (stroke_style->line_join	!= CAIRO_LINE_JOIN_MITER)
+	return CAIRO_INT_STATUS_UNSUPPORTED;
+    
+
+
+
+    if (stroke_style->miter_limit < M_SQRT2)
 	return CAIRO_INT_STATUS_UNSUPPORTED;
     if (stroke_style->dash)
 	return CAIRO_INT_STATUS_UNSUPPORTED;
