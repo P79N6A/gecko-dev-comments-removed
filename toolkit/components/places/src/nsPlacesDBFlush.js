@@ -51,8 +51,22 @@ const Cu = Components.utils;
 const kQuitApplication = "quit-application";
 const kSyncFinished = "places-sync-finished";
 
-const kSyncPrefName = "syncDBTableIntervalInSecs";
+const kSyncPrefName = "places.syncDBTableIntervalInSecs";
 const kDefaultSyncInterval = 120;
+const kExpireDaysPrefName = "browser.history_expire_days";
+const kDefaultExpireDays = 90;
+
+
+const kMSPerDay = 86400000;
+
+
+const kMaxExpire = 24;
+
+
+const kQuerySyncPlacesId = 0;
+const kQuerySyncHistoryVisitsId = 1;
+const kQuerySelectExpireVisitsId = 2;
+const kQueryExpireVisitsId = 3;
 
 
 
@@ -60,8 +74,7 @@ const kDefaultSyncInterval = 120;
 function nsPlacesDBFlush()
 {
   this._prefs = Cc["@mozilla.org/preferences-service;1"].
-                getService(Ci.nsIPrefService).
-                getBranch("places.");
+                getService(Ci.nsIPrefBranch);
 
   
   try {
@@ -77,6 +90,19 @@ function nsPlacesDBFlush()
   }
 
   
+  try {
+    
+    
+    this._expireDays = this._prefs.getIntPref(kExpireDaysPrefName);
+    if (this._expireDays <= 0)
+      this._expireDays = kDefaultExpireDays;
+  }
+  catch (e) {
+    
+    this._expireDays = kDefaultExpireDays;
+  }
+
+  
   this._bs = Cc["@mozilla.org/browser/nav-bookmarks-service;1"].
              getService(Ci.nsINavBookmarksService);
   this._bs.addObserver(this, false);
@@ -85,8 +111,10 @@ function nsPlacesDBFlush()
              getService(Ci.nsIObserverService);
   this._os.addObserver(this, kQuitApplication, false);
 
-  this._prefs.QueryInterface(Ci.nsIPrefBranch2)
-             .addObserver("", this, false);
+  let (pb2 = this._prefs.QueryInterface(Ci.nsIPrefBranch2)) {
+    pb2.addObserver(kSyncPrefName, this, false);
+    pb2.addObserver(kExpireDaysPrefName, this, false);
+  }
 
   
   this._timer = this._newTimer();
@@ -101,6 +129,17 @@ function nsPlacesDBFlush()
                       DBConnection;
   });
 
+  this.__defineGetter__("_ios", function() {
+    delete this._ios;
+    return this._ios = Cc["@mozilla.org/network/io-service;1"].
+                       getService(Ci.nsIIOService);
+  });
+
+  this.__defineGetter__("_hsn", function() {
+    delete this._hsn;
+    return this._hsn = Cc["@mozilla.org/browser/nav-history-service;1"].
+                       getService(Ci.nsPIPlacesHistoryListenersNotifier);
+  });
 }
 
 nsPlacesDBFlush.prototype = {
@@ -112,7 +151,10 @@ nsPlacesDBFlush.prototype = {
     if (aTopic == kQuitApplication) {
       this._bs.removeObserver(this);
       this._os.removeObserver(this, kQuitApplication);
-      this._prefs.QueryInterface(Ci.nsIPrefBranch2).removeObserver("", this);
+      let (pb2 = this._prefs.QueryInterface(Ci.nsIPrefBranch2)) {
+        pb2.removeObserver(kSyncPrefName, this);
+        pb2.removeObserver(kExpireDaysPrefName, this);
+      }
       this._timer.cancel();
       this._timer = null;
       
@@ -127,7 +169,7 @@ nsPlacesDBFlush.prototype = {
           let pip = Cc["@mozilla.org/browser/nav-history-service;1"].
                     getService(Ci.nsPIPlacesDatabase);
           pip.commitPendingChanges();
-          this._self._syncTables(["places", "historyvisits"]);
+          this._self._flushWithQueries([kQuerySyncPlacesId, kQuerySyncHistoryVisitsId]);
           
           
           pip.finalizeInternalStatements();
@@ -139,7 +181,7 @@ nsPlacesDBFlush.prototype = {
     }
     else if (aTopic == "nsPref:changed" && aData == kSyncPrefName) {
       
-      this._syncInterval = aSubject.getIntPref(kSyncPrefName);
+      this._syncInterval = this._prefs.getIntPref(kSyncPrefName);
       if (this._syncInterval <= 0)
         this._syncInterval = kDefaultSyncInterval;
 
@@ -150,6 +192,12 @@ nsPlacesDBFlush.prototype = {
 
       this._timer.cancel();
       this._timer = this._newTimer();
+    }
+    else if (aTopic == "nsPref:changed" && aData == kExpireDaysPrefName) {
+      
+      this._expireDays = this._prefs.getIntPref(kExpireDaysPrefName);
+      if (this._expireDays <= 0)
+        this._expireDays = kDefaultExpireDays;
     }
   },
 
@@ -173,23 +221,23 @@ nsPlacesDBFlush.prototype = {
     this._timer = this._newTimer();
 
     
-    this._syncTables(["places", "historyvisits"]);
+    this._flushWithQueries([kQuerySyncPlacesId, kQuerySyncHistoryVisitsId]);
   },
 
   onItemAdded: function(aItemId, aParentId, aIndex)
   {
     
+    
     if (!this._inBatchMode &&
         this._bs.getItemType(aItemId) == this._bs.TYPE_BOOKMARK)
-      this._syncTables(["places"]);
+      this._flushWithQueries([kQuerySyncPlacesId]);
   },
 
   onItemChanged: function DBFlush_onItemChanged(aItemId, aProperty,
-                                                         aIsAnnotationProperty,
-                                                         aValue)
+                                                aIsAnnotationProperty, aValue)
   {
     if (!this._inBatchMode && aProperty == "uri")
-      this._syncTables(["places"]);
+      this._flushWithQueries([kQuerySyncPlacesId]);
   },
 
   onItemRemoved: function() { },
@@ -199,10 +247,38 @@ nsPlacesDBFlush.prototype = {
   
   
 
-  notify: function() this._syncTables(["places", "historyvisits"]),
+  notify: function DBFlush_timerCallback()
+  {
+    let queries = [
+      kQuerySelectExpireVisitsId,
+      kQueryExpireVisitsId,
+      kQuerySyncPlacesId,
+      kQuerySyncHistoryVisitsId,
+    ];
+    this._flushWithQueries(queries);
+  },
 
   
   
+
+  handleResult: function DBFlush_handleResult(aResultSet)
+  {
+    
+    if (!this._expiredResults)
+      this._expiredResults = [];
+
+    let row;
+    while (row = aResultSet.getNextRow()) {
+      if (row.getResultByName("hidden"))
+        continue;
+
+      this._expiredResults.push({
+        uri: this._ios.newURI(row.getResultByName("url"), null, null),
+        visitDate: row.getResultByName("visit_date"),
+        wholeEntry: (row.getResultByName("visit_count") == 1)
+      });
+    }
+  },
 
   handleError: function DBFlush_handleError(aError)
   {
@@ -213,6 +289,18 @@ nsPlacesDBFlush.prototype = {
   handleCompletion: function DBFlush_handleCompletion(aReason)
   {
     if (aReason == Ci.mozIStorageStatementCallback.REASON_FINISHED) {
+      
+      if (this._expiredResults) {
+        while (this._expiredResults.length) {
+          let visit = this._expiredResults.shift();
+          this._hsn.notifyOnPageExpired(visit.uri, visit.visitDate,
+                                        visit.wholeEntry);
+        }
+
+        
+        delete this._expiredResults;
+      }
+
       
       this._os.notifyObservers(null, kSyncFinished, null);
     }
@@ -227,15 +315,16 @@ nsPlacesDBFlush.prototype = {
 
 
 
-  _syncTables: function DBFlush_syncTables(aTableNames)
+
+  _flushWithQueries: function DBFlush_flushWithQueries(aQueryNames)
   {
     
     if (this._inBatchMode)
       return;
 
     let statements = [];
-    for (let i = 0; i < aTableNames.length; i++)
-      statements.push(this._getSyncTableStatement(aTableNames[i]));
+    for (let i = 0; i < aQueryNames.length; i++)
+      statements.push(this._getQuery(aQueryNames[i]));
 
     
     this._db.executeAsync(statements, statements.length, this);
@@ -261,39 +350,92 @@ nsPlacesDBFlush.prototype = {
 
 
 
-  _cachedStatements: {},
-  _getSyncTableStatement: function DBFlush_getSyncTableStatement(aTableName)
+
+  _cachedStatements: [],
+  _getQuery: function DBFlush_getQuery(aQueryType)
   {
     
-    if (aTableName in this._cachedStatements)
-      return this._cachedStatements[aTableName];
+    if (aQueryType in this._cachedStatements) {
+      let stmt = this._cachedStatements[aQueryType];
 
-    
-    
-    
-    let condition = "";
-    switch(aTableName) {
-      case "historyvisits":
-        
-        
-        condition = "WHERE visit_type <> " + Ci.nsINavHistoryService.TRANSITION_EMBED;
-        break;
-      case "places":
-        
-        
-        
-        condition = "WHERE id IN (SELECT id FROM moz_places_temp h " +
-                                  "WHERE h.hidden <> 1 OR NOT EXISTS ( " +
-                                    "SELECT id FROM moz_historyvisits_temp " +
-                                    "WHERE place_id = h.id AND visit_type = " +
-                                    Ci.nsINavHistoryService.TRANSITION_EMBED +
-                                    " LIMIT 1) " +
-                                  ")";
-        break;
+      
+      let params = stmt.params;
+      switch (aQueryType) {
+        case kQuerySyncHistoryVisitsId:
+        case kQuerySyncPlacesId:
+          params.transition_type = Ci.nsINavHistoryService.TRANSITION_EMBED;
+          break;
+        case kQuerySelectExpireVisitsId:
+        case kQueryExpireVisitsId:
+          params.visit_date = (Date.now() - (this._expireDays * kMSPerDay)) * 1000;
+          params.max_expire = kMaxExpire;
+          break;
+      }
+
+      return stmt;
     }
 
-    let sql = "DELETE FROM moz_" + aTableName + "_temp " + condition;
-    return this._cachedStatements[aTableName] = this._db.createStatement(sql);
+    switch(aQueryType) {
+      case kQuerySyncHistoryVisitsId:
+        
+        
+        this._cachedStatements[aQueryType] = this._db.createStatement(
+          "DELETE FROM moz_historyvisits_temp " +
+          "WHERE visit_type <> :transition_type"
+        );
+        break;
+
+      case kQuerySyncPlacesId:
+        
+        
+        
+        this._cachedStatements[aQueryType] = this._db.createStatement(
+          "DELETE FROM moz_places_temp " +
+          "WHERE id IN ( " +
+            "SELECT id FROM moz_places_temp h " +
+            "WHERE h.hidden <> 1 OR NOT EXISTS ( " +
+              "SELECT id FROM moz_historyvisits_temp " +
+              "WHERE place_id = h.id AND visit_type = :transition_type " +
+              "LIMIT 1 " +
+            ") " +
+          ")"
+        );
+        break;
+
+      case kQuerySelectExpireVisitsId:
+        
+        
+        this._cachedStatements[aQueryType] = this._db.createStatement(
+          "SELECT h.url, v.visit_date, h.hidden, h.visit_count " +
+          "FROM moz_places h " +
+          "JOIN moz_historyvisits v ON h.id = v.place_id " +
+          "WHERE v.visit_date < :visit_date " +
+          "ORDER BY v.visit_date ASC " +
+          "LIMIT :max_expire"
+        );
+        break;
+
+      case kQueryExpireVisitsId:
+        
+        this._cachedStatements[aQueryType] = this._db.createStatement(
+          "DELETE FROM moz_historyvisits " +
+          "WHERE id IN ( " +
+            "SELECT id " +
+            "FROM moz_historyvisits " +
+            "WHERE visit_date < :visit_date " +
+            "ORDER BY visit_date ASC " +
+            "LIMIT :max_expire " +
+          ")"
+        );
+        break;
+
+      default:
+        throw "Unexpected statement!";
+    }
+
+    
+    
+    return this._getQuery(aQueryType);
   },
 
   
