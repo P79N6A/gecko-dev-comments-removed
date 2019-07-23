@@ -1973,8 +1973,9 @@ nsXULDocument::StartLayout(void)
         return NS_OK;
     }
 
-    PRUint32 count = GetNumberOfShells();
-    for (PRUint32 i = 0; i < count; ++i) {
+    
+    
+    for (PRUint32 i = 0; i < GetNumberOfShells(); ++i) {
         nsIPresShell *shell = GetShellAt(i);
 
         
@@ -2000,6 +2001,7 @@ nsXULDocument::StartLayout(void)
         
         
         
+        
         nsresult rv = NS_OK;
         nsIViewManager* vm = shell->GetViewManager();
         if (vm) {
@@ -2014,9 +2016,15 @@ nsXULDocument::StartLayout(void)
             }
         }
 
+        
+        
+        nsCOMPtr<nsIPresShell> shellGrip = shell;
         rv = shell->InitialReflow(r.width, r.height);
         NS_ENSURE_SUCCESS(rv, rv);
 
+        
+        
+        
         
         
         

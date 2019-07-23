@@ -254,6 +254,7 @@ public:
   nsFrameSelection* FrameSelection() { return mSelection; }
 
   
+  
   NS_IMETHOD BeginObservingDocument() = 0;
 
   
@@ -267,6 +268,10 @@ public:
   NS_IMETHOD GetDidInitialReflow(PRBool *aDidInitialReflow) = 0;
 
   
+
+
+
+
 
 
 

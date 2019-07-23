@@ -267,6 +267,8 @@ nsresult
 nsMediaDocument::StartLayout()
 {
   PRUint32 numberOfShells = GetNumberOfShells();
+  
+  
   for (PRUint32 i = 0; i < numberOfShells; i++) {
     nsIPresShell *shell = GetShellAt(i);
 
@@ -275,9 +277,11 @@ nsMediaDocument::StartLayout()
 
     
     nsRect visibleArea = shell->GetPresContext()->GetVisibleArea();
+    nsCOMPtr<nsIPresShell> shellGrip = shell;
     nsresult rv = shell->InitialReflow(visibleArea.width, visibleArea.height);
     NS_ENSURE_SUCCESS(rv, rv);
 
+    
     
     nsIViewManager* vm = shell->GetViewManager();
     if (vm) {
