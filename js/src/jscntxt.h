@@ -533,9 +533,9 @@ struct JSRuntime {
     JSSetSlotRequest    *setSlotRequests;
 
     
-    jsval               NaNValue;
-    jsval               negativeInfinityValue;
-    jsval               positiveInfinityValue;
+    jsdouble            *jsNaN;
+    jsdouble            *jsNegativeInfinity;
+    jsdouble            *jsPositiveInfinity;
 
 #ifdef JS_THREADSAFE
     JSLock              *deflatedStringCacheLock;
