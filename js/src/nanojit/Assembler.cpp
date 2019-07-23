@@ -328,9 +328,8 @@ namespace nanojit
         if (i->isop(LIR_alloc)) {
             d += findMemFor(i);
             return FP;
-        } else {
-            return findRegFor(i, allow);
         }
+        return findRegFor(i, allow);
     }
 
     Register Assembler::findRegFor(LIns* i, RegisterMask allow)
@@ -844,7 +843,9 @@ namespace nanojit
         NanoAssert(reader->pos()->isop(LIR_x) ||
                    reader->pos()->isop(LIR_loop) ||
                    reader->pos()->isop(LIR_ret) ||
-                   reader->pos()->isop(LIR_xtbl));
+                   reader->pos()->isop(LIR_fret) ||
+                   reader->pos()->isop(LIR_xtbl) ||
+                   reader->pos()->isop(LIR_live));
 
         InsList pending_lives(alloc);
 
@@ -895,12 +896,24 @@ namespace nanojit
             switch(op)
             {
                 default:
-                    NanoAssertMsgf(false, "unsupported LIR instruction: %d (~0x40: %d)", op, op&~LIR64);
+                    NanoAssertMsgf(false, "unsupported LIR instruction: %d (~0x40: %d)\n", op, op&~LIR64);
                     break;
 
                 case LIR_live: {
                     countlir_live();
-                    pending_lives.add(ins->oprnd1());
+                    LInsp op1 = ins->oprnd1();
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    if (op1->isop(LIR_alloc)) {
+                        findMemFor(op1);
+                    } else {
+                        pending_lives.add(op1);
+                    }
                     break;
                 }
 
@@ -972,7 +985,7 @@ namespace nanojit
                     break;
                 }
 #endif
-                case LIR_iparam:
+                case LIR_param:
                 {
                     countlir_param();
                     asm_param(ins);
@@ -1059,6 +1072,7 @@ namespace nanojit
                     asm_arith(ins);
                     break;
                 }
+#ifndef NJ_SOFTFLOAT
                 case LIR_fneg:
                 {
                     countlir_fpu();
@@ -1093,6 +1107,7 @@ namespace nanojit
                     asm_promote(ins);
                     break;
                 }
+#endif 
                 case LIR_sti:
                 {
                     countlir_st();
@@ -1242,6 +1257,7 @@ namespace nanojit
                     break;
                 }
 
+#ifndef NJ_SOFTFLOAT
                 case LIR_feq:
                 case LIR_fle:
                 case LIR_flt:
@@ -1252,6 +1268,7 @@ namespace nanojit
                     asm_fcond(ins);
                     break;
                 }
+#endif
                 case LIR_eq:
                 case LIR_ov:
                 case LIR_le:
@@ -1279,21 +1296,25 @@ namespace nanojit
                     break;
                 }
 
+            #ifndef NJ_SOFTFLOAT
                 case LIR_fcall:
-#if defined NANOJIT_64BIT
-                case LIR_callh:
-#endif
-                case LIR_call:
+            #endif
+            #ifdef NANOJIT_64BIT
+                case LIR_qcall:
+            #endif
+                case LIR_icall:
                 {
                     countlir_call();
                     Register rr = UnknownReg;
-                    if ((op&LIR64))
+#ifndef NJ_SOFTFLOAT
+                    if (op == LIR_fcall)
                     {
                         
                         Reservation* rR = getresv(ins);
                         rr = asm_prep_fcall(rR, ins);
                     }
                     else
+#endif
                     {
                         rr = retRegs[0];
                         prepResultReg(ins, rmask(rr));
@@ -1474,8 +1495,7 @@ namespace nanojit
 
     uint32_t Assembler::arReserve(LIns* l)
     {
-        
-        int32_t size = l->isop(LIR_alloc) ? (l->size()>>2) : l->isQuad() ? 2 : sizeof(intptr_t)>>2;
+        int32_t size = l->isop(LIR_alloc) ? (l->size()>>2) : l->isQuad() ? 2 : 1;
         AR &ar = _activation;
         const int32_t tos = ar.tos;
         int32_t start = ar.lowwatermark;
