@@ -329,6 +329,10 @@ namespace nanojit
     static const int NumSavedRegs = 5; 
     static const int NumArgRegs = 6;
 #endif
+    
+    
+    
+    static const int SingleByteStoreRegs = GpRegs & ~(1<<RSP | 1<<RBP | 1<<RSI | 1<<RDI);
 
     static inline bool IsFpReg(Register r) {
         return ((1<<r) & FpRegs) != 0;

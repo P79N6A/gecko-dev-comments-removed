@@ -774,7 +774,7 @@ namespace nanojit
 
         prepResultReg(div, rmask(RAX));
 
-        Register rhsReg = findRegFor(rhs, (GpRegs ^ (rmask(RAX)|rmask(RDX))));
+        Register rhsReg = findRegFor(rhs, GpRegs & ~(rmask(RAX)|rmask(RDX)));
         Register lhsReg = lhs->isUnusedOrHasUnknownReg()
                           ? findSpecificRegForUnallocated(lhs, RAX)
                           : lhs->getReg();
@@ -1385,23 +1385,20 @@ namespace nanojit
     }
 
     void Assembler::asm_load64(LIns *ins) {
-
         Register rr, rb;
         int32_t dr;
         switch (ins->opcode()) {
             case LIR_ldq:
             case LIR_ldqc:
+                regalloc_load(ins, GpRegs, rr, dr, rb);
+                NanoAssert(IsGpReg(rr));
+                MOVQRM(rr, dr, rb);     
+                break;
             case LIR_ldf:
             case LIR_ldfc:
-                regalloc_load(ins, GpRegs, rr, dr, rb);
-                if (IsGpReg(rr)) {
-                    
-                    MOVQRM(rr, dr, rb);
-                } else {
-                    NanoAssert(IsFpReg(rr));
-                    
-                    MOVSDRM(rr, dr, rb);
-                }
+                regalloc_load(ins, FpRegs, rr, dr, rb);
+                NanoAssert(IsFpReg(rr));
+                MOVSDRM(rr, dr, rb);    
                 break;
             case LIR_ld32f:
             case LIR_ldc32f:
@@ -1454,58 +1451,25 @@ namespace nanojit
         NanoAssert(value->isQuad());
 
         Register b = getBaseReg(base, d, BaseRegs);
-        Register r;
-
-        
-        if (value->isUnusedOrHasUnknownReg()) {
-            RegisterMask allow;
-            
-            
-            
-            if (op == LIR_st32f || value->isFloat() || value->isop(LIR_float) || value->isop(LIR_fmod)) {
-                allow = FpRegs;
-            } else {
-                allow = GpRegs;
-            }
-            r = findRegFor(value, allow & ~rmask(b));
-        } else {
-            r = value->getReg();
-        }
 
         switch (op) {
-            case LIR_stqi:
-            case LIR_stfi:
-            {
-                if (IsGpReg(r)) {
-                    
-                    MOVQMR(r, d, b);
-                }
-                else {
-                    
-                    MOVSDMR(r, d, b);
-                }
+            case LIR_stqi: {
+                Register r = findRegFor(value, GpRegs & ~rmask(b));
+                MOVQMR(r, d, b);    
                 break;
             }
-            case LIR_st32f:
-            {
-                
+            case LIR_stfi: {
+                Register r = findRegFor(value, FpRegs);
+                MOVSDMR(r, d, b);   
+                break;
+            }
+            case LIR_st32f: {
+                Register r = findRegFor(value, FpRegs);
                 Register t = registerAllocTmp(FpRegs & ~rmask(r));
 
-                
-                MOVSSMR(t, d, b);
-
-                
-                if (IsGpReg(r))
-                {
-                    CVTSD2SS(t, t);
-                    MOVQXR(t, r); 
-                }
-                else
-                {
-                    NanoAssert(IsFpReg(r));
-                    CVTSD2SS(t, r);
-                }
-                XORPS(t); 
+                MOVSSMR(t, d, b);   
+                CVTSD2SS(t, r);     
+                XORPS(t);           
                 break;
             }
             default:
@@ -1518,10 +1482,7 @@ namespace nanojit
 
         
         
-        const RegisterMask SrcRegs =
-                        (op == LIR_stb) ?
-                        (GpRegs & ~(1<<RSP | 1<<RBP | 1<<RSI | 1<<RDI)) :
-                        GpRegs;
+        const RegisterMask SrcRegs = (op == LIR_stb) ? SingleByteStoreRegs : GpRegs;
 
         NanoAssert(!value->isQuad());
         Register b = getBaseReg(base, d, BaseRegs);
