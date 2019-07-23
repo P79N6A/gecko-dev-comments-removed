@@ -43,12 +43,6 @@ namespace nanojit
 	#ifdef FEATURE_NANOJIT
 
 
-	#ifdef AVMPLUS_WIN32
-		#define AVMPLUS_ALIGN16(type) __declspec(align(16)) type
-	#else
-		#define AVMPLUS_ALIGN16(type) type __attribute__ ((aligned (16)))
-	#endif
-
 	class DeadCodeFilter: public LirFilter
 	{
 		Assembler *assm;
@@ -480,19 +474,10 @@ namespace nanojit
             if (rmask(r) & GpRegs) {
     			MR(r, s);
             } 
-#ifdef NANOJIT_IA32
-            else if ((rmask(r) & XmmRegs) && (rmask(s) & XmmRegs)) {
-                MOVSD(r, s);
-            } else {
-                if (rmask(r) & XmmRegs) {
-                    
-                    NanoAssert(false);
-                } else {
-                    
-                    NanoAssert(false);
-                }
-            }
-#endif
+			else
+			{
+				asm_nongp_copy(r, s);
+			}
 			return s;
 		}
 	}
@@ -568,86 +553,6 @@ namespace nanojit
 			CMP(ra, rb);
 		}
 	}
-
-#ifndef NJ_SOFTFLOAT
-	void Assembler::asm_fcmp(LIns *cond)
-	{
-		LOpcode condop = cond->opcode();
-		NanoAssert(condop >= LIR_feq && condop <= LIR_fge);
-	    LIns* lhs = cond->oprnd1();
-	    LIns* rhs = cond->oprnd2();
-
-        int mask;
-	    if (condop == LIR_feq)
-		    mask = 0x44;
-	    else if (condop == LIR_fle)
-		    mask = 0x41;
-	    else if (condop == LIR_flt)
-		    mask = 0x05;
-        else if (condop == LIR_fge) {
-            
-            LIns* t = lhs; lhs = rhs; rhs = t;
-            mask = 0x41;
-        } else { 
-            
-            LIns* t = lhs; lhs = rhs; rhs = t;
-		    mask = 0x05;
-        }
-
-        if (sse2)
-        {
-            
-            
-            
-            
-
-            if (condop == LIR_feq && lhs == rhs) {
-                
-                Register r = findRegFor(lhs, XmmRegs);
-                UCOMISD(r, r);
-            } else {
-                evict(EAX);
-                TEST_AH(mask);
-                LAHF();
-                Reservation *rA, *rB;
-                findRegFor2(XmmRegs, lhs, rA, rhs, rB);
-                UCOMISD(rA->reg, rB->reg);
-            }
-        }
-        else
-        {
-            evict(EAX);
-            TEST_AH(mask);
-		    FNSTSW_AX();
-
-		    NanoAssert(lhs->isQuad() && rhs->isQuad());
-		    Reservation *rA;
-		    if (lhs != rhs)
-		    {
-			    
-			    int d = findMemFor(rhs);
-			    rA = getresv(lhs);
-			    int pop = !rA || rA->reg == UnknownReg; 
-			    findSpecificRegFor(lhs, FST0);
-			    
-			    FCOM(pop, d, FP);
-		    }
-		    else
-		    {
-			    
-			    rA = getresv(lhs);
-			    int pop = !rA || rA->reg == UnknownReg; 
-			    findSpecificRegFor(lhs, FST0);
-			    
-			    if (pop)
-				    FCOMPP();
-			    else
-				    FCOMP();
-			    FLDr(FST0); 
-		    }
-        }
-	}
-#endif 
 
     void Assembler::patch(GuardRecord *lr)
     {
@@ -884,10 +789,10 @@ namespace nanojit
 	
 	void Assembler::gen(LirFilter* reader,  NInsList& loopJumps)
 	{
-		const CallInfo* call = 0;		
-		uint32_t iargs = 0;
-		uint32_t fargs = 0;
-		int32_t stackUsed = 0;	
+		_call = NULL;
+		_iargs = 0;
+		_fargs = 0;
+		_stackUsed = 0;
 
 		
 		NanoAssert(reader->pos()->isop(LIR_x) || reader->pos()->isop(LIR_loop));
@@ -919,50 +824,7 @@ namespace nanojit
 				}
 				case LIR_quad:
 				{
-#ifdef NANOJIT_IA32
-					Register rr = rR->reg;
-                    if (rr != UnknownReg)
-                    {
-						
-						_allocator.retire(rr);
-						rR->reg = UnknownReg;
-						NanoAssert((rmask(rr) & FpRegs) != 0);
-
-						const double d = ins->constvalf();
-                        if (rmask(rr) & XmmRegs) {
-						    if (d == 0.0) {
-								XORPDr(rr, rr);
-						    } else if (d == 1.0) {
-								
-								static const double k_ONE = 1.0;
-								LDSDm(rr, &k_ONE);
-							} else {
-								findMemFor(ins);
-								const int d = disp(rR);
-                                LDQ(rr, d, FP);
-							}
-                        } else {
-						    if (d == 0.0) {
-							    FLDZ();
-						    } else if (d == 1.0) {
-							    FLD1();
-						    } else {
-							    findMemFor(ins);
-							    int d = disp(rR);
-							    FLDQ(d,FP);
-						    }
-                        }
-                    }
-#endif
-					
-                    int d = disp(rR);
-					freeRsrcOf(ins, false);
-					if (d)
-					{
-						const int32_t* p = (const int32_t*) (ins-2);
-						STi(FP,d+4,p[1]);
-						STi(FP,d,p[0]);
-					}
+					asm_quad(ins);
 					break;
 				}
 				case LIR_callh:
@@ -984,24 +846,8 @@ namespace nanojit
 				case LIR_qlo:
                 {
 					LIns *q = ins->oprnd1();
-#ifdef NANOJIT_IA32
-                    if (sse2) {
-                        Reservation *resv = getresv(ins);
-   		                Register rr = resv->reg;
-                        if (rr == UnknownReg) {
-                            
-                            int d = disp(resv);
-                            freeRsrcOf(ins, false);
-                            Register qr = findRegFor(q, XmmRegs);
-                            STD(d, FP, qr);
-                        } else {
-    		                freeRsrcOf(ins, false);
-                            Register qr = findRegFor(q, XmmRegs);
-                            MOVD(rr,qr);
-                        }
-                    }
-					else
-#endif
+
+					if (!asm_qlo(ins, q))
 					{
     					Register rr = prepResultReg(ins, GpRegs);
 				        int d = findMemFor(q);
@@ -1213,45 +1059,7 @@ namespace nanojit
 #ifndef NJ_SOFTFLOAT
 				case LIR_fneg:
 				{
-					if (sse2)
-					{
-                        LIns *lhs = ins->oprnd1();
-
-                        Register rr = prepResultReg(ins, XmmRegs);
-                        Reservation *rA = getresv(lhs);
-                        Register ra;
-
-					    
-					    if (rA == 0 || (ra = rA->reg) == UnknownReg)
-						    ra = findSpecificRegFor(lhs, rr);
-					    
-
-						static const AVMPLUS_ALIGN16(uint32_t) negateMask[] = {0,0x80000000,0,0};
-						XORPD(rr, negateMask);
-
-                        if (rr != ra)
-                            MOVSD(rr, ra);
-					}
-					else
-					{
-						Register rr = prepResultReg(ins, FpRegs);
-
-						LIns* lhs = ins->oprnd1();
-
-						
-						Reservation* rA = getresv(lhs);
-						
-						if (rA == 0 || rA->reg == UnknownReg)
-							findSpecificRegFor(lhs, rr);
-						
-
-						NanoAssert(getresv(lhs)!=0 && getresv(lhs)->reg==FST0);
-						
-						FCHS();
-
-						
-						
-					}
+					asm_fneg(ins);
 					break;
 				}
 				case LIR_fadd:
@@ -1259,153 +1067,17 @@ namespace nanojit
 				case LIR_fmul:
 				case LIR_fdiv:
 				{
-                    if (sse2) 
-                    {
-                        LIns *lhs = ins->oprnd1();
-                        LIns *rhs = ins->oprnd2();
-
-                        RegisterMask allow = XmmRegs;
-                        Register rb = UnknownReg;
-                        if (lhs != rhs) {
-                            rb = findRegFor(rhs,allow);
-                            allow &= ~rmask(rb);
-                        }
-
-                        Register rr = prepResultReg(ins, allow);
-                        Reservation *rA = getresv(lhs);
-                        Register ra;
-
-					    
-					    if (rA == 0 || (ra = rA->reg) == UnknownReg)
-						    ra = findSpecificRegFor(lhs, rr);
-					    
-
-                        if (lhs == rhs)
-                            rb = ra;
-
-                        if (op == LIR_fadd)
-                            ADDSD(rr, rb);
-                        else if (op == LIR_fsub)
-                            SUBSD(rr, rb);
-                        else if (op == LIR_fmul)
-                            MULSD(rr, rb);
-                        else 
-                            DIVSD(rr, rb);
-
-                        if (rr != ra)
-                            MOVSD(rr, ra);
-                    }
-                    else
-                    {
-                        
-					    
-					    LIns* rhs = ins->oprnd1();
-					    LIns* lhs = ins->oprnd2();
-                        Register rr = prepResultReg(ins, rmask(FST0));
-
-					    
-					    int db = findMemFor(rhs);
-
-					    
-					    Reservation* rA = getresv(lhs);
-					    
-					    if (rA == 0 || rA->reg == UnknownReg)
-						    findSpecificRegFor(lhs, rr);
-					    
-
-					    NanoAssert(getresv(lhs)!=0 && getresv(lhs)->reg==FST0);
-					    
-					    if (op == LIR_fadd)
-						    { FADD(db, FP); }
-					    else if (op == LIR_fsub)
-						    { FSUBR(db, FP); }
-					    else if (op == LIR_fmul)
-						    { FMUL(db, FP); }
-					    else if (op == LIR_fdiv)
-						    { FDIVR(db, FP); }
-                    }
+					asm_fop(ins);
                     break;
 				}
 				case LIR_i2f:
 				{
-					
-					Register rr = prepResultReg(ins, FpRegs);
-                    if (rmask(rr) & XmmRegs) 
-					{
-                        
-                        Register gr = findRegFor(ins->oprnd1(), GpRegs);
-						CVTSI2SD(rr, gr);
-                    } 
-					else 
-					{
-       					int d = findMemFor(ins->oprnd1());
-						FILD(d, FP);
-                    }
+					asm_i2f(ins);
 					break;
 				}
 				case LIR_u2f:
 				{
-					
-					Register rr = prepResultReg(ins, FpRegs);
-					const int disp = -8;
-					const Register base = ESP;
-                    if (rmask(rr) & XmmRegs) 
-					{
-						
-						
-						Register gr = registerAlloc(GpRegs);
-
-						
-						
-						
-						
-						
-						
-						
-						
-						
-						
-						
-						
-						
-						
-						
-						
-						
-						
-						static const double k_NEGONE = 2147483648.0;
-						ADDSDm(rr, &k_NEGONE);
-						CVTSI2SD(rr, gr);
-
-						Reservation* resv = getresv(ins->oprnd1());
-						Register xr;
-						if (resv && (xr = resv->reg) != UnknownReg && (rmask(xr) & GpRegs))
-						{
-#ifdef NANOJIT_IA32
-							LEA(gr, 0x80000000, xr);
-#else
-							SUBi(gr, 0x80000000);
-							MR(gr, xr);
-#endif
-						}
-						else
-						{
-							const int d = findMemFor(ins->oprnd1());
-							SUBi(gr, 0x80000000);
-							LD(gr, d, FP);
-						}
-						
-						
-						_allocator.addFree(gr); 
-                    } 
-					else 
-					{
-						Register gr = findRegFor(ins->oprnd1(), GpRegs);
-						NanoAssert(rr == FST0);
-						FILDQ(disp, base);
-						STi(base, disp+4, 0);	
-						ST(base, disp, gr);		
-                    }
+					asm_u2f(ins);
 					break;
 				}
 #endif 
@@ -1481,7 +1153,7 @@ namespace nanojit
 					}
 					else 
 					{
-                        if (condop == LIR_eq)
+						if (condop == LIR_eq)
 							JE(exit);
                         else if (condop == LIR_ov)
                             JO(exit);
@@ -1504,7 +1176,7 @@ namespace nanojit
 						else 
 							JAE(exit);
 					}
-                    asm_cmp(cond);
+					asm_cmp(cond);
 					break;
 				}
 				case LIR_x:
@@ -1588,7 +1260,7 @@ namespace nanojit
 						SETA(r);
 					else 
 						SETAE(r);
-                    asm_cmp(ins);
+					asm_cmp(ins);
 					break;
 				}
 				case LIR_ref:
@@ -1606,8 +1278,8 @@ namespace nanojit
 					{
 						NanoAssert(0); 
 					}
-					++iargs;
-					nArgEmitted(call, 0, iargs, fargs);
+					++_iargs;
+					nArgEmitted(_call, 0, _iargs, _fargs);
 					break;
 				}
 				case LIR_arg:
@@ -1625,27 +1297,16 @@ namespace nanojit
 					else
 					{
 						asm_pusharg(p);
-						stackUsed += 1;
+						_stackUsed += 1;
 					}
-					++iargs;
-					nArgEmitted(call, stackUsed, iargs, fargs);
+					++_iargs;
+					nArgEmitted(_call, _stackUsed, _iargs, _fargs);
 					break;
 				}
-#ifdef NANOJIT_IA32
+#if defined NANOJIT_IA32 || defined NANOJIT_AMD64
 				case LIR_farg:
 				{
-					LIns* p = ins->oprnd1();
-					Register r = findRegFor(p, FpRegs);
-                    if (rmask(r) & XmmRegs) {
-                        STQ(0, SP, r); 
-                    } else {
-    					FSTPQ(0, SP);
-                    }
-					PUSHr(ECX); 
-					PUSHr(ECX);
-					stackUsed += 2;
-					++fargs;
-					nArgEmitted(call, stackUsed, iargs, fargs);
+					asm_farg(ins);
 					break;
 				}
 #endif
@@ -1658,20 +1319,15 @@ namespace nanojit
 					const FunctionID fid = (FunctionID) ins->imm8();
 				
 				
-					call = &_functions[ fid ];
-					iargs = 0;
-					fargs = 0;
+					_call = &_functions[ fid ];
+					_iargs = 0;
+					_fargs = 0;
 
                     Register rr = UnknownReg;
 #ifndef NJ_SOFTFLOAT
                     if (op == LIR_fcall)
                     {
-                        if (rR) {
-                            if ((rr=rR->reg) != UnknownReg && (rmask(rr) & XmmRegs))
-                                evict(rr);
-                        }
-                        rr = FST0;
-						prepResultReg(ins, rmask(rr));
+						rr = asm_prep_fcall(rR, ins);
                     }
                     else
 #endif
@@ -1684,14 +1340,14 @@ namespace nanojit
 					
 					restoreCallerSaved();
 
-					nPostCallCleanup(call);
+					nPostCallCleanup(_call);
 			#ifdef NJ_VERBOSE
-					CALL(call->_address, call->_name);
+					CALL(_call->_address, _call->_name);
 			#else
-					CALL(call->_address, "");
+					CALL(_call->_address, "");
 			#endif
 
-					stackUsed = 0;
+					_stackUsed = 0;
 					LirReader argReader(reader->pos());
 
 #ifdef NANOJIT_ARM
@@ -1714,7 +1370,7 @@ namespace nanojit
 					NanoAssert(_allocator.isFree(FST0));
 					
 					
-					const uint32_t iargs = call->count_iargs();
+					const uint32_t iargs = _call->count_iargs();
 					const int max_regs = (iargs < 2) ? iargs : 2;
 					int n = 0;
 					for(LIns* a = argReader.read(); a->isArg() && n<max_regs; a = argReader.read())

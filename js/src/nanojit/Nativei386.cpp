@@ -80,37 +80,43 @@ namespace nanojit
 				savingCount++;
 
 		
-		uint32_t stackPushed = 4 * (3+savingCount);
+		
+		uint32_t stackPushed = 4 * (1+savingCount);
 		uint32_t aligned = alignUp(stackNeeded + stackPushed, NJ_ALIGN_STACK);
 		uint32_t amt = aligned - stackPushed;
 
+		
+		
 		if (amt) 
 			SUBi(SP, amt);
 
 		verbose_only( verbose_outputf("        %p:",_nIns); )
 		verbose_only( verbose_output("        patch entry:"); )
         NIns *patchEntry = _nIns;
-		MR(FP, SP);
-		PUSHr(FP); 
+		MR(FP, SP); 
+
+		
+		
+		
+		
+		
 		PUSHr(FP);
 
 		for(Register i=FirstReg; i <= LastReg; i = nextreg(i))
 			if (needSaving&rmask(i))
 				PUSHr(i);
 
-        
-        
-        
-        
-        
-        
-        #if ! defined(DARWIN) && ! defined(__GNUC__)
 		
-		PUSHr(FP);
+		
+		
+		
+		
+		
+		
+		
 		ANDi(SP, -NJ_ALIGN_STACK);
 		MR(FP,SP);
-		PUSHr(FP);
-		#endif
+		PUSHr(FP); 
 
 		return patchEntry;
 	}
@@ -182,18 +188,14 @@ namespace nanojit
     NIns *Assembler::genEpilogue(RegisterMask restore)
     {
         RET();
+        POP(FP); 
+        MR(SP,FP); 
 
-		#ifndef DARWIN
 		
-		POP(FP);
-		MR(SP,FP);
-		#endif
-
 		for (Register i=UnknownReg; i >= FirstReg; i = prevreg(i))
 			if (restore&rmask(i)) { POP(i); } 
-
-		POP(FP);
-		POP(FP);
+		
+		POP(FP); 
         return  _nIns;
     }
 	
@@ -538,6 +540,121 @@ namespace nanojit
         }
     }
 
+	void Assembler::asm_quad(LInsp ins)
+	{
+    	Reservation *rR = getresv(ins);
+		Register rr = rR->reg;
+		if (rr != UnknownReg)
+		{
+			
+			_allocator.retire(rr);
+			rR->reg = UnknownReg;
+			NanoAssert((rmask(rr) & FpRegs) != 0);
+
+			const double d = ins->constvalf();
+			if (rmask(rr) & XmmRegs) {
+				if (d == 0.0) {
+					XORPDr(rr, rr);
+				} else if (d == 1.0) {
+					
+					static const double k_ONE = 1.0;
+					LDSDm(rr, &k_ONE);
+				} else {
+					findMemFor(ins);
+					const int d = disp(rR);
+					LDQ(rr, d, FP);
+				}
+			} else {
+				if (d == 0.0) {
+					FLDZ();
+				} else if (d == 1.0) {
+					FLD1();
+				} else {
+					findMemFor(ins);
+					int d = disp(rR);
+					FLDQ(d,FP);
+				}
+			}
+		}
+
+		
+		int d = disp(rR);
+		freeRsrcOf(ins, false);
+		if (d)
+		{
+			const int32_t* p = (const int32_t*) (ins-2);
+			STi(FP,d+4,p[1]);
+			STi(FP,d,p[0]);
+		}
+	}
+	
+	bool Assembler::asm_qlo(LInsp ins, LInsp q)
+	{
+		if (!sse2)
+		{
+			return false;
+		}
+
+		Reservation *resv = getresv(ins);
+		Register rr = resv->reg;
+		if (rr == UnknownReg) {
+			
+			int d = disp(resv);
+			freeRsrcOf(ins, false);
+			Register qr = findRegFor(q, XmmRegs);
+			STD(d, FP, qr);
+		} else {
+			freeRsrcOf(ins, false);
+			Register qr = findRegFor(q, XmmRegs);
+			MOVD(rr,qr);
+		}
+
+		return true;
+	}
+
+	void Assembler::asm_fneg(LInsp ins)
+	{
+		if (sse2)
+		{
+			LIns *lhs = ins->oprnd1();
+
+			Register rr = prepResultReg(ins, XmmRegs);
+			Reservation *rA = getresv(lhs);
+			Register ra;
+
+			
+			if (rA == 0 || (ra = rA->reg) == UnknownReg)
+				ra = findSpecificRegFor(lhs, rr);
+			
+
+			static const AVMPLUS_ALIGN16(uint32_t) negateMask[] = {0,0x80000000,0,0};
+			XORPD(rr, negateMask);
+
+			if (rr != ra)
+				MOVSD(rr, ra);
+		}
+		else
+		{
+			Register rr = prepResultReg(ins, FpRegs);
+
+			LIns* lhs = ins->oprnd1();
+
+			
+			Reservation* rA = getresv(lhs);
+			
+			if (rA == 0 || rA->reg == UnknownReg)
+				findSpecificRegFor(lhs, rr);
+			
+
+			NanoAssert(getresv(lhs)!=0 && getresv(lhs)->reg==FST0);
+			
+			FCHS();
+
+			
+			
+		}
+	}
+
 	void Assembler::asm_pusharg(LInsp p)
 	{
 		
@@ -563,6 +680,272 @@ namespace nanojit
 		{
 			PUSHr(rA->reg);
 		}
+	}
+
+	void Assembler::asm_farg(LInsp ins)
+	{
+		LIns* p = ins->oprnd1();
+		Register r = findRegFor(p, FpRegs);
+		if (rmask(r) & XmmRegs) {
+			STQ(0, SP, r); 
+		} else {
+			FSTPQ(0, SP);
+		}
+		PUSHr(ECX); 
+		PUSHr(ECX);
+		_stackUsed += 2;
+		++_fargs;
+		nArgEmitted(_call, _stackUsed, _iargs, _fargs);
+	}
+
+	void Assembler::asm_fop(LInsp ins)
+	{
+		LOpcode op = ins->opcode();
+		if (sse2) 
+		{
+			LIns *lhs = ins->oprnd1();
+			LIns *rhs = ins->oprnd2();
+
+			RegisterMask allow = XmmRegs;
+			Register rb = UnknownReg;
+			if (lhs != rhs) {
+				rb = findRegFor(rhs,allow);
+				allow &= ~rmask(rb);
+			}
+
+			Register rr = prepResultReg(ins, allow);
+			Reservation *rA = getresv(lhs);
+			Register ra;
+
+			
+			if (rA == 0 || (ra = rA->reg) == UnknownReg)
+				ra = findSpecificRegFor(lhs, rr);
+			
+
+			if (lhs == rhs)
+				rb = ra;
+
+			if (op == LIR_fadd)
+				ADDSD(rr, rb);
+			else if (op == LIR_fsub)
+				SUBSD(rr, rb);
+			else if (op == LIR_fmul)
+				MULSD(rr, rb);
+			else 
+				DIVSD(rr, rb);
+
+			if (rr != ra)
+				MOVSD(rr, ra);
+		}
+		else
+		{
+			
+			
+			LIns* rhs = ins->oprnd1();
+			LIns* lhs = ins->oprnd2();
+			Register rr = prepResultReg(ins, rmask(FST0));
+
+			
+			int db = findMemFor(rhs);
+
+			
+			Reservation* rA = getresv(lhs);
+			
+			if (rA == 0 || rA->reg == UnknownReg)
+				findSpecificRegFor(lhs, rr);
+			
+
+			NanoAssert(getresv(lhs)!=0 && getresv(lhs)->reg==FST0);
+			
+			if (op == LIR_fadd)
+				{ FADD(db, FP); }
+			else if (op == LIR_fsub)
+				{ FSUBR(db, FP); }
+			else if (op == LIR_fmul)
+				{ FMUL(db, FP); }
+			else if (op == LIR_fdiv)
+				{ FDIVR(db, FP); }
+		}
+	}
+
+	void Assembler::asm_i2f(LInsp ins)
+	{
+		
+		Register rr = prepResultReg(ins, FpRegs);
+		if (rmask(rr) & XmmRegs) 
+		{
+			
+			Register gr = findRegFor(ins->oprnd1(), GpRegs);
+			CVTSI2SD(rr, gr);
+		} 
+		else 
+		{
+			int d = findMemFor(ins->oprnd1());
+			FILD(d, FP);
+		}
+	}
+
+	Register Assembler::asm_prep_fcall(Reservation *rR, LInsp ins)
+	{
+		Register rr;
+		if (rR) {
+			if ((rr=rR->reg) != UnknownReg && (rmask(rr) & XmmRegs))
+				evict(rr);
+		}
+		prepResultReg(ins, rmask(FST0));
+		return FST0;
+	}
+
+	void Assembler::asm_u2f(LInsp ins)
+	{
+		
+		Register rr = prepResultReg(ins, FpRegs);
+		const int disp = -8;
+		const Register base = ESP;
+		if (rmask(rr) & XmmRegs) 
+		{
+			
+			
+			Register gr = registerAlloc(GpRegs);
+
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			static const double k_NEGONE = 2147483648.0;
+			ADDSDm(rr, &k_NEGONE);
+			CVTSI2SD(rr, gr);
+
+			Reservation* resv = getresv(ins->oprnd1());
+			Register xr;
+			if (resv && (xr = resv->reg) != UnknownReg && (rmask(xr) & GpRegs))
+			{
+				LEA(gr, 0x80000000, xr);
+			}
+			else
+			{
+				const int d = findMemFor(ins->oprnd1());
+				SUBi(gr, 0x80000000);
+				LD(gr, d, FP);
+			}
+			
+			
+			_allocator.addFree(gr); 
+		} 
+		else 
+		{
+			Register gr = findRegFor(ins->oprnd1(), GpRegs);
+			NanoAssert(rr == FST0);
+			FILDQ(disp, base);
+			STi(base, disp+4, 0);	
+			ST(base, disp, gr);		
+		}
+	}
+
+	void Assembler::asm_nongp_copy(Register r, Register s)
+	{
+		if ((rmask(r) & XmmRegs) && (rmask(s) & XmmRegs)) {
+			MOVSD(r, s);
+		} else {
+			if (rmask(r) & XmmRegs) {
+				
+				NanoAssert(false);
+			} else {
+				
+				NanoAssert(false);
+			}
+		}
+	}
+
+	void Assembler::asm_fcmp(LIns *cond)
+	{
+		LOpcode condop = cond->opcode();
+		NanoAssert(condop >= LIR_feq && condop <= LIR_fge);
+	    LIns* lhs = cond->oprnd1();
+	    LIns* rhs = cond->oprnd2();
+
+        int mask;
+	    if (condop == LIR_feq)
+		    mask = 0x44;
+	    else if (condop == LIR_fle)
+		    mask = 0x41;
+	    else if (condop == LIR_flt)
+		    mask = 0x05;
+        else if (condop == LIR_fge) {
+            
+            LIns* t = lhs; lhs = rhs; rhs = t;
+            mask = 0x41;
+        } else { 
+            
+            LIns* t = lhs; lhs = rhs; rhs = t;
+		    mask = 0x05;
+        }
+
+        if (sse2)
+        {
+            
+            
+            
+            
+
+            if (condop == LIR_feq && lhs == rhs) {
+                
+                Register r = findRegFor(lhs, XmmRegs);
+                UCOMISD(r, r);
+            } else {
+                evict(EAX);
+                TEST_AH(mask);
+                LAHF();
+                Reservation *rA, *rB;
+                findRegFor2(XmmRegs, lhs, rA, rhs, rB);
+                UCOMISD(rA->reg, rB->reg);
+            }
+        }
+        else
+        {
+            evict(EAX);
+            TEST_AH(mask);
+		    FNSTSW_AX();
+		    NanoAssert(lhs->isQuad() && rhs->isQuad());
+		    Reservation *rA;
+		    if (lhs != rhs)
+		    {
+			    
+			    int d = findMemFor(rhs);
+			    rA = getresv(lhs);
+			    int pop = !rA || rA->reg == UnknownReg; 
+			    findSpecificRegFor(lhs, FST0);
+			    
+			    FCOM(pop, d, FP);
+		    }
+		    else
+		    {
+			    
+			    rA = getresv(lhs);
+			    int pop = !rA || rA->reg == UnknownReg; 
+			    findSpecificRegFor(lhs, FST0);
+			    
+			    if (pop)
+				    FCOMPP();
+			    else
+				    FCOMP();
+			    FLDr(FST0); 
+		    }
+        }
 	}
 	
 	NIns* Assembler::asm_adjustBranch(NIns* at, NIns* target)

@@ -316,9 +316,10 @@ namespace nanojit
 	class LirFilter;
 	struct CallInfo;
 
-	class LirWriter
+	
+	class LirWriter : public GCObject
 	{
-	protected:
+	public:
 		LirWriter *out;
 	public:
         const CallInfo *_functions;
