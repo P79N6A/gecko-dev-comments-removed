@@ -49,8 +49,85 @@
 
 
 #include "jshash.h" 
-#include "jsprvtd.h"
 #include "jspubtd.h"
+#include "jsprvtd.h"
+#include "jsstdint.h"
+
+
+
+
+
+struct PropertyDescriptor {
+    PropertyDescriptor();
+
+    
+    bool initialize(JSContext* cx, jsid id, jsval v);
+
+    
+    bool isAccessorDescriptor() const {
+        return hasGet || hasSet;
+    }
+
+    
+    bool isDataDescriptor() const {
+        return hasValue || hasWritable;
+    }
+
+    
+    bool isGenericDescriptor() const {
+        return !isAccessorDescriptor() && !isDataDescriptor();
+    }
+
+    bool configurable() const {
+        return (attrs & JSPROP_PERMANENT) == 0;
+    }
+
+    bool enumerable() const {
+        return (attrs & JSPROP_ENUMERATE) != 0;
+    }
+
+    bool writable() const {
+        return (attrs & JSPROP_READONLY) == 0;
+    }
+
+    JSObject* getterObject() const {
+        return get != JSVAL_VOID ? JSVAL_TO_OBJECT(get) : NULL;
+    }
+    JSObject* setterObject() const {
+        return set != JSVAL_VOID ? JSVAL_TO_OBJECT(set) : NULL;
+    }
+
+    jsval getterValue() const {
+        return get;
+    }
+    jsval setterValue() const {
+        return set;
+    }
+
+    JSPropertyOp getter() const {
+        return js_CastAsPropertyOp(getterObject());
+    }
+    JSPropertyOp setter() const {
+        return js_CastAsPropertyOp(setterObject());
+    }
+
+    static void traceDescriptorArray(JSTracer* trc, JSObject* obj);
+    static void finalizeDescriptorArray(JSContext* cx, JSObject* obj);
+
+    jsid id;
+    jsval value, get, set;
+
+    
+    uint8_t attrs;
+
+    
+    bool hasGet : 1;
+    bool hasSet : 1;
+    bool hasValue : 1;
+    bool hasWritable : 1;
+    bool hasEnumerable : 1;
+    bool hasConfigurable : 1;
+};
 
 JS_BEGIN_EXTERN_C
 
@@ -581,7 +658,7 @@ js_HasOwnPropertyHelper(JSContext *cx, JSLookupPropOp lookup, uintN argc,
 
 extern JSBool
 js_HasOwnProperty(JSContext *cx, JSLookupPropOp lookup, JSObject *obj, jsid id,
-                  JSBool *foundp);
+                  JSObject **objp, JSProperty **propp);
 
 extern JSBool
 js_PropertyIsEnumerable(JSContext *cx, JSObject *obj, jsid id, jsval *vp);

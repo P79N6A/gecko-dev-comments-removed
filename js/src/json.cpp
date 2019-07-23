@@ -312,14 +312,17 @@ JO(JSContext *cx, jsval *vp, StringifyContext *scx)
         
         
         jsid id;
-        JSBool found = JS_FALSE;
+        JSObject *obj2;
+        JSProperty *prop;
         if (!js_ValueToStringId(cx, STRING_TO_JSVAL(ks), &id) ||
-            !js_HasOwnProperty(cx, obj->map->ops->lookupProperty, obj, id, &found)) {
+            !js_HasOwnProperty(cx, obj->map->ops->lookupProperty, obj, id, &obj2, &prop)) {
             goto error_break;
         }
 
-        if (!found)
+        if (!prop)
             continue;
+
+        obj2->dropProperty(cx, prop);
 
         if (!JS_GetPropertyById(cx, obj, id, &outputValue))
             goto error_break;
