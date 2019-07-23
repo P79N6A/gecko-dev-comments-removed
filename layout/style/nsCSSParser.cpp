@@ -1660,6 +1660,11 @@ PRBool CSSParserImpl::ParseMediaQueryExpression(nsresult& aErrorCode, nsMediaQue
 
   if (mToken.mSymbol == PRUnichar(')')) {
     
+    
+    if (expr->mRange != nsMediaExpression::eEqual) {
+      REPORT_UNEXPECTED(PEMQNoMinMaxWithoutValue);
+      return PR_FALSE;
+    }
     expr->mValue.Reset();
     return PR_TRUE;
   }
