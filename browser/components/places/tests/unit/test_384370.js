@@ -62,7 +62,7 @@ function run_test() {
 
   
   Cc["@mozilla.org/preferences-service;1"].getService(Ci.nsIPrefBranch).
-  setBoolPref("browser.places.createdSmartBookmarks", true);
+  setIntPref("browser.places.smartBookmarksVersion", -1);
 
   
   

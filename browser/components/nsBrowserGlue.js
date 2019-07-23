@@ -396,6 +396,8 @@ BrowserGlue.prototype = {
 
 
 
+
+
   _initPlaces: function bg__initPlaces() {
     
     
@@ -444,7 +446,7 @@ BrowserGlue.prototype = {
         
 
         
-        prefBranch.setBoolPref("browser.places.createdSmartBookmarks", false);
+        prefBranch.setIntPref("browser.places.smartBookmarksVersion", 0);
 
         var dirService = Cc["@mozilla.org/file/directory_service;1"].
                          getService(Ci.nsIProperties);
@@ -597,19 +599,31 @@ BrowserGlue.prototype = {
   },
 
   ensurePlacesDefaultQueriesInitialized: function() {
+    const SMART_BOOKMARKS_VERSION = 1;
+    const SMART_BOOKMARKS_ANNO = "Places/SmartBookmark";
+    const SMART_BOOKMARKS_PREF = "browser.places.smartBookmarksVersion";
+
     
+    const MAX_RESULTS = 10;
+
     var prefBranch = Cc["@mozilla.org/preferences-service;1"].
                      getService(Ci.nsIPrefBranch);
-    var createdSmartBookmarks = false;
-    try {
-      createdSmartBookmarks = prefBranch.getBoolPref("browser.places.createdSmartBookmarks");
-    } catch(ex) { }
 
-    if (createdSmartBookmarks)
+    
+    var smartBookmarksCurrentVersion = -1;
+    try {
+      smartBookmarksCurrentVersion = prefBranch.getIntPref(SMART_BOOKMARKS_PREF);
+    } catch(ex) {}
+
+    
+    if (smartBookmarksCurrentVersion == -1 ||
+        smartBookmarksCurrentVersion >= SMART_BOOKMARKS_VERSION)
       return;
 
     var bmsvc = Cc["@mozilla.org/browser/nav-bookmarks-service;1"].
                 getService(Ci.nsINavBookmarksService);
+    var annosvc = Cc["@mozilla.org/browser/annotation-service;1"].
+                  getService(Ci.nsIAnnotationService);
 
     var callback = {
       _placesBundle: Cc["@mozilla.org/intl/stringbundle;1"].
@@ -623,54 +637,91 @@ BrowserGlue.prototype = {
       },
 
       runBatched: function() {
-        var smartBookmarksFolderTitle =
-          this._placesBundle.GetStringFromName("smartBookmarksFolderTitle");
-        var mostVisitedTitle =
-          this._placesBundle.GetStringFromName("mostVisitedTitle");
-        var recentlyBookmarkedTitle =
-          this._placesBundle.GetStringFromName("recentlyBookmarkedTitle");
-        var recentTagsTitle =
-          this._placesBundle.GetStringFromName("recentTagsTitle");
-
-        var defaultIndex = bmsvc.DEFAULT_INDEX;
+        var smartBookmarks = [];
+        var bookmarksMenuIndex = 0;
+        var bookmarksToolbarIndex = 0;
 
         
-        var placesFolder = bmsvc.createFolder(bmsvc.toolbarFolder, smartBookmarksFolderTitle,
-                                              0);
+        var smart = {queryId: "MostVisited", 
+                     itemId: null,
+                     title: this._placesBundle.GetStringFromName("mostVisitedTitle"),
+                     uri: this._uri("place:queryType=" +
+                                    Ci.nsINavHistoryQueryOptions.QUERY_TYPE_HISTORY +
+                                    "&sort=" +
+                                    Ci.nsINavHistoryQueryOptions.SORT_BY_VISITCOUNT_DESCENDING +
+                                    "&maxResults=" + MAX_RESULTS),
+                     parent: bmsvc.toolbarFolder,
+                     position: bookmarksToolbarIndex++};
+        smartBookmarks.push(smart);
 
         
-        var maxResults = 10;
-
-        var mostVisitedItem = bmsvc.insertBookmark(placesFolder,
-          this._uri("place:queryType=" +
-              Ci.nsINavHistoryQueryOptions.QUERY_TYPE_HISTORY +
-              "&sort=" +
-              Ci.nsINavHistoryQueryOptions.SORT_BY_VISITCOUNT_DESCENDING +
-              "&maxResults=" + maxResults),
-              defaultIndex, mostVisitedTitle);
+        smart = {queryId: "RecentlyBookmarked", 
+                 itemId: null,
+                 title: this._placesBundle.GetStringFromName("recentlyBookmarkedTitle"),
+                 uri: this._uri("place:folder=BOOKMARKS_MENU" +
+                                "&folder=UNFILED_BOOKMARKS" +
+                                "&folder=TOOLBAR" +
+                                "&queryType=" +
+                                Ci.nsINavHistoryQueryOptions.QUERY_TYPE_BOOKMARKS +
+                                "&sort=" +
+                                Ci.nsINavHistoryQueryOptions.SORT_BY_DATEADDED_DESCENDING +
+                                "&excludeItemIfParentHasAnnotation=livemark%2FfeedURI" +
+                                "&maxResults=" + MAX_RESULTS +
+                                "&excludeQueries=1"),
+                 parent: bmsvc.bookmarksMenuFolder,
+                 position: bookmarksMenuIndex++};
+        smartBookmarks.push(smart);
 
         
+        smart = {queryId: "RecentTags", 
+                 itemId: null,
+                 title: this._placesBundle.GetStringFromName("recentTagsTitle"),
+                 uri: this._uri("place:"+
+                    "type=" +
+                    Ci.nsINavHistoryQueryOptions.RESULTS_AS_TAG_QUERY +
+                    "&sort=" +
+                    Ci.nsINavHistoryQueryOptions.SORT_BY_LASTMODIFIED_DESCENDING +
+                    "&maxResults=" + MAX_RESULTS),
+                 parent: bmsvc.bookmarksMenuFolder,
+                 position: bookmarksMenuIndex++};
+        smartBookmarks.push(smart);
+
+        var smartBookmarkItemIds = annosvc.getItemsWithAnnotation(SMART_BOOKMARKS_ANNO, {});
         
-        var recentlyBookmarkedItem = bmsvc.insertBookmark(placesFolder,
-          this._uri("place:folder=BOOKMARKS_MENU" + 
-              "&folder=UNFILED_BOOKMARKS" +
-              "&folder=TOOLBAR" +
-              "&queryType=" + Ci.nsINavHistoryQueryOptions.QUERY_TYPE_BOOKMARKS +
-              "&sort=" +
-              Ci.nsINavHistoryQueryOptions.SORT_BY_DATEADDED_DESCENDING +
-              "&excludeItemIfParentHasAnnotation=livemark%2FfeedURI" +
-              "&maxResults=" + maxResults +
-              "&excludeQueries=1"),
-              defaultIndex, recentlyBookmarkedTitle);
+        for each(var itemId in smartBookmarkItemIds) {
+          var queryId = annosvc.getItemAnnotation(itemId, SMART_BOOKMARKS_ANNO);
+          for (var i = 0; i < smartBookmarks.length; i++){
+            if (smartBookmarks[i].queryId == queryId) {
+              smartBookmarks[i].itemId = itemId;
+              smartBookmarks[i].parent = bmsvc.getFolderIdForItem(itemId);
+              smartBookmarks[i].position = bmsvc.getItemIndex(itemId);
+              
+              bmsvc.removeItem(itemId);
+              break;
+            }
+            
+            
+            
+            if (i == smartBookmarks.length - 1)
+              annosvc.removeItemAnnotation(itemId, SMART_BOOKMARKS_ANNO);
+          }
+        }
 
-        var sep =  bmsvc.insertSeparator(placesFolder, defaultIndex);
-
-        var recentTagsItem = bmsvc.insertBookmark(placesFolder,
-          this._uri("place:"+
-              "type=" + Ci.nsINavHistoryQueryOptions.RESULTS_AS_TAG_QUERY +
-              "&sort=" + Ci.nsINavHistoryQueryOptions.SORT_BY_LASTMODIFIED_DESCENDING +
-              "&maxResults=" + maxResults),
-          defaultIndex, recentTagsTitle);
+        
+        for each(var smartBookmark in smartBookmarks) {
+          smartBookmark.itemId = bmsvc.insertBookmark(smartBookmark.parent,
+                                                      smartBookmark.uri,
+                                                      smartBookmark.position,
+                                                      smartBookmark.title);
+          annosvc.setItemAnnotation(smartBookmark.itemId,
+                                    SMART_BOOKMARKS_ANNO, smartBookmark.queryId,
+                                    0, annosvc.EXPIRE_NEVER);
+        }
+        
+        
+        
+        if (smartBookmarkItemIds.length == 0)
+          bmsvc.insertSeparator(bmsvc.bookmarksMenuFolder, bookmarksMenuIndex);
       }
     };
 
@@ -681,7 +732,7 @@ BrowserGlue.prototype = {
       Components.utils.reportError(ex);
     }
     finally {
-      prefBranch.setBoolPref("browser.places.createdSmartBookmarks", true);
+      prefBranch.setIntPref(SMART_BOOKMARKS_PREF, SMART_BOOKMARKS_VERSION);
       prefBranch.QueryInterface(Ci.nsIPrefService).savePrefFile(null);
     }
   },
