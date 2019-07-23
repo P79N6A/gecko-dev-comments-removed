@@ -52,6 +52,79 @@ class nsIDocShell;
 class nsIPresShell;
 class nsIContent;
 
+class nsAccessibilityService : public nsIAccessibilityService,
+                               public nsIObserver,
+                               public nsIWebProgressListener,
+                               public nsSupportsWeakReference
+{
+public:
+  nsAccessibilityService();
+  virtual ~nsAccessibilityService();
+
+  NS_DECL_ISUPPORTS
+  NS_DECL_NSIACCESSIBLERETRIEVAL
+  NS_DECL_NSIACCESSIBILITYSERVICE
+  NS_DECL_NSIOBSERVER
+  NS_DECL_NSIWEBPROGRESSLISTENER
+
+  
+
+
+
+
+  static nsresult GetShellFromNode(nsIDOMNode *aNode,
+                                   nsIWeakReference **weakShell);
+
+  
+
+
+  static nsresult GetAccessibilityService(nsIAccessibilityService** aResult);
+
+private:
+  
+
+
+
+
+
+
+
+
+  nsresult GetInfo(nsISupports *aFrame, nsIFrame **aRealFrame,
+                   nsIWeakReference **aShell,
+                   nsIDOMNode **aContent);
+
+  
+
+
+
+
+
+  nsresult InitAccessible(nsIAccessible *aAccessibleIn, nsIAccessible **aAccessibleOut);
+
+  
+
+
+
+
+
+  nsresult GetAccessibleByType(nsIDOMNode *aNode, nsIAccessible **aAccessible);
+
+  
+
+
+
+
+  nsresult GetAccessibleForDeckChildren(nsIDOMNode *aNode,
+                                        nsIAccessible **aAccessible);
+
+  static nsAccessibilityService *gAccessibilityService;
+};
+
+
+
+
+
 static const char kRoleNames[][20] = {
   "nothing",             
   "titlebar",            
@@ -172,42 +245,102 @@ static const char kRoleNames[][20] = {
   "image map"            
 };
 
-class nsAccessibilityService : public nsIAccessibilityService, 
-                               public nsIObserver,
-                               public nsIWebProgressListener,
-                               public nsSupportsWeakReference
-{
-public:
-  nsAccessibilityService();
-  virtual ~nsAccessibilityService();
-
-  NS_DECL_ISUPPORTS
-  NS_DECL_NSIACCESSIBLERETRIEVAL
-  NS_DECL_NSIACCESSIBILITYSERVICE
-  NS_DECL_NSIOBSERVER
-  NS_DECL_NSIWEBPROGRESSLISTENER
-
-  static nsresult GetShellFromNode(nsIDOMNode *aNode, nsIWeakReference **weakShell);
-  static nsresult GetAccessibilityService(nsIAccessibilityService** aResult);
-
-private:
-  nsresult GetInfo(nsISupports* aFrame, nsIFrame** aRealFrame, nsIWeakReference** aShell, nsIDOMNode** aContent);
-  void GetOwnerFor(nsIPresShell *aPresShell, nsIPresShell **aOwnerShell, nsIContent **aOwnerContent);
-  nsIContent* FindContentForDocShell(nsIPresShell* aPresShell, nsIContent* aContent, nsIDocShell*  aDocShell);
-  static nsAccessibilityService *gAccessibilityService;
-  nsresult InitAccessible(nsIAccessible *aAccessibleIn, nsIAccessible **aAccessibleOut);
-
-  
 
 
 
-  nsresult GetAccessibleByType(nsIDOMNode *aNode, nsIAccessible **aAccessible);
-  PRBool HasListener(nsIContent *aContent, nsAString& aEventType);
 
-  
-
-
-  nsresult GetAccessibleForDeckChildren(nsIDOMNode *aNode, nsIAccessible **aAccessible);
+static const char kEventTypeNames[][40] = {
+  "unknown",                                 
+  "DOM node create",                         
+  "DOM node destroy",                        
+  "DOM node significant change",             
+  "async show",                              
+  "async hide",                              
+  "async significant change",                
+  "active decendent change",                 
+  "focus",                                   
+  "state change",                            
+  "location change",                         
+  "name changed",                            
+  "description change",                      
+  "value change",                            
+  "help change",                             
+  "default action change",                   
+  "action change",                           
+  "accelerator change",                      
+  "selection",                               
+  "selection add",                           
+  "selection remove",                        
+  "selection within",                        
+  "alert",                                   
+  "foreground",                              
+  "menu start",                              
+  "menu end",                                
+  "menupopup start",                         
+  "menupopup end",                           
+  "capture start",                           
+  "capture end",                             
+  "movesize start",                          
+  "movesize end",                            
+  "contexthelp start",                       
+  "contexthelp end",                         
+  "dragdrop start",                          
+  "dragdrop end",                            
+  "dialog start",                            
+  "dialog end",                              
+  "scrolling start",                         
+  "scrolling end",                           
+  "minimize start",                          
+  "minimize end",                            
+  "document load start",                     
+  "document load complete",                  
+  "document reload",                         
+  "document load stopped",                   
+  "document attributes changed",             
+  "document content changed",                
+  "property changed",                        
+  "selection changed",                       
+  "text attribute changed",                  
+  "text caret moved",                        
+  "text changed",                            
+  "text inserted",                           
+  "text removed",                            
+  "text updated",                            
+  "text selection changed",                  
+  "visible data changed",                    
+  "text column changed",                     
+  "section changed",                         
+  "table caption changed",                   
+  "table model changed",                     
+  "table summary changed",                   
+  "table row description changed",           
+  "table row header changed",                
+  "table row insert",                        
+  "table row delete",                        
+  "table row reorder",                       
+  "table column description changed",        
+  "table column header changed",             
+  "table column insert",                     
+  "table column delete",                     
+  "table column reorder",                    
+  "window activate",                         
+  "window create",                           
+  "window deactivate",                       
+  "window destroy",                          
+  "window maximize",                         
+  "window minimize",                         
+  "window resize",                           
+  "window restore",                          
+  "hyperlink end index changed",             
+  "hyperlink number of anchors changed",     
+  "hyperlink selected link changed",         
+  "hypertext link activated",                
+  "hypertext link selected",                 
+  "hyperlink start index changed",           
+  "hypertext changed",                       
+  "hypertext links count changed",           
+  "object attribute changed",                
+  "internal load"                            
 };
 
 #endif 
