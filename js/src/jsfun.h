@@ -71,8 +71,7 @@ struct JSFunction {
     union {
         struct {
             uint16      extra;  
-            uint16      minargs;
-
+            uint16      spare;  
             JSNative    native; 
             JSClass     *clasp; 
         } n;
@@ -100,7 +99,7 @@ struct JSFunction {
                               ? (JSFastNative) (fun)->u.n.native              \
                               : NULL)
 #define FUN_MINARGS(fun)     (((fun)->flags & JSFUN_FAST_NATIVE)              \
-                              ? (fun)->u.n.minargs                            \
+                              ? 0                                             \
                               : (fun)->nargs)
 
 extern JSClass js_ArgumentsClass;
