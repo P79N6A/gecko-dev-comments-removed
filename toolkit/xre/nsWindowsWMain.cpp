@@ -52,7 +52,18 @@ int wmain(int argc, WCHAR **argv)
   }
   argvConverted[argc] = NULL;
   
+  
+  char **deleteUs = new char*[argc+1];
+  if (!deleteUs) {
+    FreeAllocStrings(argc, argvConverted);
+    return 127;
+  }
+  for (int i=0; i<argc; i++)
+    deleteUs[i] = argvConverted[i];
   int result = main(argc, argvConverted);
-  FreeAllocStrings(argc, argvConverted);
+ 
+  delete[] argvConverted;
+  FreeAllocStrings(argc, deleteUs);
+  
   return result;
 }
