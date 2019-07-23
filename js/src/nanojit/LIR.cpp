@@ -605,10 +605,12 @@ namespace nanojit
                 goto fold;
             CASE86(LIR_div:)
             CASE86(LIR_mod:)
+                #if defined NANOJIT_IA32 || defined NANOJIT_X64
                 
                 
                 
                 NanoAssert(0);
+                #endif
             default:
                 ;
             }
