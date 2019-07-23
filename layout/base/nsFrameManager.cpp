@@ -1372,7 +1372,8 @@ nsFrameManager::ReResolveStyleContext(nsPresContext    *aPresContext,
 
 #ifdef ACCESSIBILITY
   if (isAccessibilityActive &&
-      aFrame->GetStyleVisibility()->IsVisible() != isVisible) {
+      aFrame->GetStyleVisibility()->IsVisible() != isVisible &&
+      !aFrame->GetPrevContinuation()) { 
     
     
     

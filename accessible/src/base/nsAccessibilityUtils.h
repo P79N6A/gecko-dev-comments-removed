@@ -113,6 +113,16 @@ public:
 
   static nsresult FireAccEvent(PRUint32 aEventType, nsIAccessible *aAccessible,
                                PRBool aIsAsynch = PR_FALSE);
+
+  
+
+
+
+
+
+
+  static PRBool IsAncestorOf(nsIDOMNode *aPossibleAncestorNode,
+                             nsIDOMNode *aPossibleDescendantNode);
 };
 
 #endif

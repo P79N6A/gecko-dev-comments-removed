@@ -1006,7 +1006,7 @@ nsDocAccessible::AttributeChanged(nsIDocument *aDocument, nsIContent* aContent,
       multiSelectAccessNode->GetDOMNode(getter_AddRefs(multiSelectDOMNode));
       NS_ASSERTION(multiSelectDOMNode, "A new accessible without a DOM node!");
       FireDelayedToolkitEvent(nsIAccessibleEvent::EVENT_SELECTION_WITHIN,
-                              multiSelectDOMNode, nsnull, PR_TRUE);
+                              multiSelectDOMNode, nsnull, eAllowDupes);
 
       static nsIContent::AttrValuesArray strings[] =
         {&nsAccessibilityAtoms::_empty, &nsAccessibilityAtoms::_false, nsnull};
@@ -1381,7 +1381,7 @@ nsDocAccessible::FireTextChangedEventOnDOMNodeRemoved(nsIContent *aChild,
 nsresult nsDocAccessible::FireDelayedToolkitEvent(PRUint32 aEvent,
                                                   nsIDOMNode *aDOMNode,
                                                   void *aData,
-                                                  PRBool aAllowDupes,
+                                                  EDupeEventRule aAllowDupes,
                                                   PRBool aIsAsynch)
 {
   nsCOMPtr<nsIAccessibleEvent> event =
@@ -1393,8 +1393,8 @@ nsresult nsDocAccessible::FireDelayedToolkitEvent(PRUint32 aEvent,
 
 nsresult
 nsDocAccessible::FireDelayedAccessibleEvent(nsIAccessibleEvent *aEvent,
-                                           PRBool aAllowDupes,
-                                           PRBool aIsAsynch)
+                                            EDupeEventRule aAllowDupes,
+                                            PRBool aIsAsynch)
 {
   PRBool isTimerStarted = PR_TRUE;
   PRInt32 numQueuedEvents = mEventsToFire.Count();
@@ -1419,7 +1419,36 @@ nsDocAccessible::FireDelayedAccessibleEvent(nsIAccessibleEvent *aEvent,
 
   if (numQueuedEvents == 0) {
     isTimerStarted = PR_FALSE;
-  } else if (!aAllowDupes) {
+  } else if (aAllowDupes == eCoalesceFromSameSubtree) {
+    
+    
+    
+    for (PRInt32 index = 0; index < numQueuedEvents; index ++) {
+      nsIAccessibleEvent *accessibleEvent = mEventsToFire[index];
+      NS_ASSERTION(accessibleEvent, "Array item is not an accessible event");
+      if (!accessibleEvent) {
+        continue;
+      }
+      PRUint32 eventType;
+      accessibleEvent->GetEventType(&eventType);
+      if (eventType == newEventType) {
+        nsCOMPtr<nsIDOMNode> domNode;
+        accessibleEvent->GetDOMNode(getter_AddRefs(domNode));
+        if (newEventDOMNode == domNode || nsAccUtils::IsAncestorOf(newEventDOMNode, domNode)) {
+          mEventsToFire.RemoveObjectAt(index);
+          
+          
+          
+          -- index;
+          -- numQueuedEvents;
+        }
+        else if (nsAccUtils::IsAncestorOf(domNode, newEventDOMNode)) {
+          
+          return NS_OK;
+        }
+      }    
+    }
+  } else if (aAllowDupes == eRemoveDupes) {
     
     
     
@@ -1506,6 +1535,16 @@ NS_IMETHODIMP nsDocAccessible::FlushPendingEvents()
         
         nsAccEvent::PrepareForEvent(accessibleEvent);
         FireAccessibleEvent(accessibleEvent);
+        
+        if (eventType == nsIAccessibleEvent::EVENT_ASYNCH_HIDE ||
+            eventType == nsIAccessibleEvent::EVENT_DOM_DESTROY) {
+          
+          nsCOMPtr<nsIDOMNode> hidingNode;
+          accessibleEvent->GetDOMNode(getter_AddRefs(hidingNode));
+          if (hidingNode) {
+            RefreshNodes(hidingNode); 
+          }
+        }
       }
     }
   }
@@ -1637,7 +1676,7 @@ NS_IMETHODIMP nsDocAccessible::InvalidateCacheSubtree(nsIContent *aChild,
   nsCOMPtr<nsIAccessNode> childAccessNode;
   GetCachedAccessNode(childNode, getter_AddRefs(childAccessNode));
   nsCOMPtr<nsIAccessible> childAccessible = do_QueryInterface(childAccessNode);
-  if (!childAccessible && isHiding) {
+  if (!childAccessible && !isHiding) {
     
     
     GetAccService()->GetAccessibleFor(childNode, getter_AddRefs(childAccessible));
@@ -1671,11 +1710,13 @@ NS_IMETHODIMP nsDocAccessible::InvalidateCacheSubtree(nsIContent *aChild,
     
     
     if (childAccessible) {
-      PRUint32 removalEvent = isAsynch ? nsIAccessibleEvent::EVENT_ASYNCH_HIDE : nsIAccessibleEvent::EVENT_DOM_DESTROY;
-      nsAccUtils::FireAccEvent(removalEvent, childAccessible, isAsynch);
+      PRUint32 removalEventType = isAsynch ? nsIAccessibleEvent::EVENT_ASYNCH_HIDE :
+                                  nsIAccessibleEvent::EVENT_DOM_DESTROY;
+      nsCOMPtr<nsIAccessibleEvent> removalEvent =
+        new nsAccEvent(removalEventType, childAccessible, nsnull, PR_TRUE);
+      NS_ENSURE_TRUE(removalEvent, NS_ERROR_OUT_OF_MEMORY);
+      FireDelayedAccessibleEvent(removalEvent, eCoalesceFromSameSubtree, isAsynch);
     }
-    
-    RefreshNodes(childNode);
   }
 
   
@@ -1704,18 +1745,15 @@ NS_IMETHODIMP nsDocAccessible::InvalidateCacheSubtree(nsIContent *aChild,
     
     PRUint32 additionEvent = isAsynch ? nsIAccessibleEvent::EVENT_ASYNCH_SHOW :
                                         nsIAccessibleEvent::EVENT_DOM_CREATE;
-    if (!isAsynch) {
-      
-      nsAccEvent::PrepareForEvent(childNode);
-    }
-    FireDelayedToolkitEvent(additionEvent, childNode, nsnull, PR_TRUE, isAsynch);
+    FireDelayedToolkitEvent(additionEvent, childNode, nsnull,
+                            eCoalesceFromSameSubtree, isAsynch);
 
     
     nsAutoString role;
     if (GetRoleAttribute(aChild, role) &&
         StringEndsWith(role, NS_LITERAL_STRING(":menu"), nsCaseInsensitiveStringComparator())) {
       FireDelayedToolkitEvent(nsIAccessibleEvent::EVENT_MENUPOPUP_START,
-                              childNode, nsnull, PR_TRUE, isAsynch);
+                              childNode, nsnull, eAllowDupes, isAsynch);
     }
 
     
@@ -1724,7 +1762,8 @@ NS_IMETHODIMP nsDocAccessible::InvalidateCacheSubtree(nsIContent *aChild,
       if (GetRoleAttribute(ancestor, role) &&
           StringEndsWith(role, NS_LITERAL_STRING(":alert"), nsCaseInsensitiveStringComparator())) {
         nsCOMPtr<nsIDOMNode> alertNode(do_QueryInterface(ancestor));
-        FireDelayedToolkitEvent(nsIAccessibleEvent::EVENT_ALERT, alertNode, nsnull, PR_FALSE, isAsynch);
+        FireDelayedToolkitEvent(nsIAccessibleEvent::EVENT_ALERT, alertNode, nsnull,
+                                eRemoveDupes, isAsynch);
         break;
       }
       ancestor = ancestor->GetParent();
