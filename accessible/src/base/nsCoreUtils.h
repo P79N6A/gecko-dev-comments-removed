@@ -49,6 +49,7 @@
 #include "nsIFrame.h"
 #include "nsIDocShellTreeItem.h"
 #include "nsIArray.h"
+#include "nsIMutableArray.h"
 #include "nsPoint.h"
 
 class nsCoreUtils
@@ -251,6 +252,27 @@ public:
   
 
 
+
+
+
+
+
+  static void GetElementsHavingIDRefsAttr(nsIContent *aRootContent,
+                                          nsIContent *aContent,
+                                          nsIAtom *aIDRefsAttr,
+                                          nsIArray **aElements);
+
+  
+
+
+  static void GetElementsHavingIDRefsAttrImpl(nsIContent *aRootContent,
+                                              nsCString& aIdWithSpaces,
+                                              nsIAtom *aIDRefsAttr,
+                                              nsIMutableArray *aElements);
+
+  
+
+
   static void GetComputedStyleDeclaration(const nsAString& aPseudoElt,
                                           nsIDOMNode *aNode,
                                           nsIDOMCSSStyleDeclaration **aCssDecl);
@@ -339,6 +361,15 @@ public:
 
   static already_AddRefed<nsIBoxObject>
     GetTreeBodyBoxObject(nsITreeBoxObject *aTreeBoxObj);
+
+  
+
+
+  static PRBool IsHTMLTableHeader(nsIContent *aContent)
+  {
+    return aContent->NodeInfo()->Equals(nsAccessibilityAtoms::th) ||
+      aContent->HasAttr(kNameSpaceID_None, nsAccessibilityAtoms::scope);
+  }
 };
 
 #endif

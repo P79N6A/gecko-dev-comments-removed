@@ -137,6 +137,23 @@ public:
   
 
 
+
+
+
+
+
+
+
+  static nsresult
+    AddTargetFromChildrenHavingIDRefsAttr(PRUint32 aRelationType,
+                                          nsIAccessibleRelation **aRelation,
+                                          nsIContent *aRootContent,
+                                          nsIContent *aContent,
+                                          nsIAtom *aIDRefsAttr);
+
+  
+
+
   static already_AddRefed<nsAccessibleRelation>
   QueryAccRelation(nsIAccessibleRelation *aRelation)
   {
