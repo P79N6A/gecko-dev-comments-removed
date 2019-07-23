@@ -738,6 +738,7 @@ public:
   {
     return NS_ERROR_NOT_IMPLEMENTED;
   }
+  virtual PRBool IsEqualNode(nsINode* aOther);
 
   
   NS_IMETHOD WalkRadioGroup(const nsAString& aName,

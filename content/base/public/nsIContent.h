@@ -911,6 +911,10 @@ public:
 
   nsIAtom* LookupPrefix(const nsAString& aNamespaceURI);
 
+  PRBool IsEqual(nsIContent *aOther);
+
+  virtual PRBool IsEqualNode(nsINode* aOther);
+
 private:
   
 

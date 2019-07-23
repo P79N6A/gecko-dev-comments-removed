@@ -1009,6 +1009,35 @@ public:
                       const nsAString& aVersion,
                       nsISupports** aReturn);
 
+  
+
+
+
+
+
+
+
+
+
+
+
+  PRUint16 CompareDocumentPosition(nsINode* aOtherNode);
+  nsresult CompareDocumentPosition(nsINode* aOtherNode, PRUint16* aResult)
+  {
+    NS_ENSURE_ARG(aOtherNode);
+
+    *aResult = CompareDocumentPosition(aOtherNode);
+
+    return NS_OK;
+  }
+
+  PRBool IsSameNode(nsINode *aOtherNode)
+  {
+    return aOtherNode == this;
+  }
+
+  virtual PRBool IsEqualNode(nsINode *aOtherNode) = 0;
+
   void LookupPrefix(const nsAString& aNamespaceURI, nsAString& aPrefix);
   PRBool IsDefaultNamespace(const nsAString& aNamespaceURI)
   {

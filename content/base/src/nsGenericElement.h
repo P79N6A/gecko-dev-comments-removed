@@ -159,17 +159,6 @@ public:
   {
   }
 
-  
-
-
-
-
-
-
-
-  static PRBool AreNodesEqual(nsIContent* aContent1,
-                              nsIContent* aContent2);
-
 protected:
   virtual ~nsNode3Tearoff() {}
 
