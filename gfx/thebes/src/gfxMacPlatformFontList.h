@@ -116,9 +116,6 @@ private:
     
     void EliminateDuplicateFaces(const nsAString& aFamilyName);
 
-    
-    void GetLocalizedFamilyName(gfxFontFamily *aFamily, nsAString& aLocalizedName);
-
     static void ATSNotification(ATSFontNotificationInfoRef aInfo, void* aUserArg);
 
     
