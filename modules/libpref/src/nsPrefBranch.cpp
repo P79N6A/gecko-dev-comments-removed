@@ -67,6 +67,7 @@ struct PrefCallbackData {
   nsPrefBranch     *pBranch;
   nsIObserver      *pObserver;
   nsIWeakReference *pWeakRef;
+  char pDomain[1];
 };
 
 
@@ -591,7 +592,7 @@ NS_IMETHODIMP nsPrefBranch::AddObserver(const char *aDomain, nsIObserver *aObser
       return NS_ERROR_OUT_OF_MEMORY;
   }
 
-  pCallback = (PrefCallbackData *)nsMemory::Alloc(sizeof(PrefCallbackData));
+  pCallback = (PrefCallbackData *)NS_Alloc(sizeof(PrefCallbackData) + strlen(aDomain));
   if (nsnull == pCallback)
     return NS_ERROR_OUT_OF_MEMORY;
 
@@ -613,8 +614,8 @@ NS_IMETHODIMP nsPrefBranch::AddObserver(const char *aDomain, nsIObserver *aObser
     NS_ADDREF(pCallback->pObserver);
   }
 
+  strcpy(pCallback->pDomain, aDomain);
   mObservers->AppendElement(pCallback);
-  mObserverDomains.AppendElement(nsCString(aDomain));
 
   
   pref = getPrefName(aDomain); 
@@ -644,28 +645,24 @@ NS_IMETHODIMP nsPrefBranch::RemoveObserver(const char *aDomain, nsIObserver *aOb
 
   for (i = 0; i < count; i++) {
     pCallback = (PrefCallbackData *)mObservers->ElementAt(i);
-    if (pCallback) {
-      if (pCallback->pObserver == aObserver) {
-        domain = mObserverDomains[i];
-        if (domain.Equals(aDomain)) {
-          
-          pref = getPrefName(aDomain); 
-          rv = PREF_UnregisterCallback(pref, NotifyObserver, pCallback);
-          if (NS_SUCCEEDED(rv)) {
-            
-            
-            mObservers->RemoveElementAt(i);
-            mObserverDomains.RemoveElementAt(i);
-            if (pCallback->pWeakRef) {
-              NS_RELEASE(pCallback->pWeakRef);
-            } else {
-              NS_RELEASE(pCallback->pObserver);
-            }
-            nsMemory::Free(pCallback);
-          }
-          return rv;
+    if (pCallback &&
+        pCallback->pObserver == aObserver &&
+        !strcmp(pCallback->pDomain, aDomain)) {
+      
+      pref = getPrefName(aDomain); 
+      rv = PREF_UnregisterCallback(pref, NotifyObserver, pCallback);
+      if (NS_SUCCEEDED(rv)) {
+        
+        
+        mObservers->RemoveElementAt(i);
+        if (pCallback->pWeakRef) {
+          NS_RELEASE(pCallback->pWeakRef);
+        } else {
+          NS_RELEASE(pCallback->pObserver);
         }
+        NS_Free(pCallback);
       }
+      return rv;
     }
   }
 
@@ -695,7 +692,7 @@ static nsresult NotifyObserver(const char *newpref, void *data)
     observer = do_QueryReferent(pData->pWeakRef);
     if (!observer) {
       
-      pData->pBranch->RemoveObserver(newpref, pData->pObserver);
+      pData->pBranch->RemoveObserver(pData->pDomain, pData->pObserver);
       return NS_OK;
     }
   } else {
@@ -725,9 +722,8 @@ void nsPrefBranch::freeObserverList(void)
       for (i = 0; i < count; ++i) {
         pCallback = (PrefCallbackData *)mObservers->ElementAt(i);
         if (pCallback) {
-          domain = mObserverDomains[i];
           
-          pref = getPrefName(domain.get()); 
+          pref = getPrefName(pCallback->pDomain);
           
           
           mObservers->ReplaceElementAt(nsnull, i);
@@ -740,9 +736,6 @@ void nsPrefBranch::freeObserverList(void)
           nsMemory::Free(pCallback);
         }
       }
-
-      
-      mObserverDomains.Clear();
     }
     delete mObservers;
     mObservers = 0;
