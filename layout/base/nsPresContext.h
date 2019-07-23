@@ -271,6 +271,19 @@ public:
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
   virtual NS_HIDDEN_(const nsFont*) GetDefaultFontExternal(PRUint8 aFontID) const;
   NS_HIDDEN_(const nsFont*) GetDefaultFontInternal(PRUint8 aFontID) const;
 #ifdef _IMPL_NS_LAYOUT

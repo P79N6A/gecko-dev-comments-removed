@@ -1917,8 +1917,8 @@ nsRuleNode::AdjustLogicalBoxProp(nsStyleContext* aContext,
  void
 nsRuleNode::SetFont(nsPresContext* aPresContext, nsStyleContext* aContext,
                     nscoord aMinFontSize,
-                    PRBool aIsGeneric, const nsRuleDataFont& aFontData,
-                    const nsFont& aDefaultFont, const nsStyleFont* aParentFont,
+                    PRUint8 aGenericFontID, const nsRuleDataFont& aFontData,
+                    const nsStyleFont* aParentFont,
                     nsStyleFont* aFont, PRBool& aInherited)
 {
   const nsFont* defaultVariableFont =
@@ -1997,33 +1997,51 @@ nsRuleNode::SetFont(nsPresContext* aPresContext, nsStyleContext* aContext,
   if (eCSSUnit_String == aFontData.mFamily.GetUnit()) {
     
     
-    if (!aIsGeneric) {
+    if (aGenericFontID == kGenericFont_NONE) {
       
       if (!aFont->mFont.name.IsEmpty())
         aFont->mFont.name.Append((PRUnichar)',');
       
-      aFont->mFont.name.Append(aDefaultFont.name);
+      aFont->mFont.name.Append(defaultVariableFont->name);
     }
     aFont->mFont.familyNameQuirks =
         (aPresContext->CompatibilityMode() == eCompatibility_NavQuirks &&
          aFontData.mFamilyFromHTML);
     aFont->mFont.systemFont = PR_FALSE;
+    aFont->mFlags &= ~NS_STYLE_FONT_FACE_MASK;
+    
+    
+    
+    aFont->mFlags |= aGenericFontID;
   }
   else if (eCSSUnit_System_Font == aFontData.mFamily.GetUnit()) {
     aFont->mFont.name = systemFont.name;
     aFont->mFont.familyNameQuirks = PR_FALSE;
     aFont->mFont.systemFont = PR_TRUE;
+    aFont->mFlags &= ~NS_STYLE_FONT_FACE_MASK;
   }
   else if (eCSSUnit_Inherit == aFontData.mFamily.GetUnit()) {
     aInherited = PR_TRUE;
     aFont->mFont.name = aParentFont->mFont.name;
     aFont->mFont.familyNameQuirks = aParentFont->mFont.familyNameQuirks;
     aFont->mFont.systemFont = aParentFont->mFont.systemFont;
+    aFont->mFlags &= ~NS_STYLE_FONT_FACE_MASK;
+    aFont->mFlags |= (aParentFont->mFlags & NS_STYLE_FONT_FACE_MASK);
   }
   else if (eCSSUnit_Initial == aFontData.mFamily.GetUnit()) {
     aFont->mFont.name = defaultVariableFont->name;
     aFont->mFont.familyNameQuirks = PR_FALSE;
     aFont->mFont.systemFont = defaultVariableFont->systemFont;
+    aFont->mFlags &= ~NS_STYLE_FONT_FACE_MASK;
+  }
+
+  
+  
+  
+  
+  if (aGenericFontID != kGenericFont_NONE) {
+    aFont->mFlags &= ~NS_STYLE_FONT_FACE_MASK;
+    aFont->mFlags |= aGenericFontID;
   }
 
   
@@ -2096,6 +2114,8 @@ nsRuleNode::SetFont(nsPresContext* aPresContext, nsStyleContext* aContext,
 
   
   PRBool zoom = PR_FALSE;
+  PRInt32 baseSize = (PRInt32) aPresContext->
+    GetDefaultFont(aFont->mFlags & NS_STYLE_FONT_FACE_MASK)->size;
   if (eCSSUnit_Enumerated == aFontData.mSize.GetUnit()) {
     PRInt32 value = aFontData.mSize.GetIntValue();
     PRInt32 scaler = aPresContext->FontScaler();
@@ -2104,11 +2124,13 @@ nsRuleNode::SetFont(nsPresContext* aPresContext, nsStyleContext* aContext,
     zoom = PR_TRUE;
     if ((NS_STYLE_FONT_SIZE_XXSMALL <= value) && 
         (value <= NS_STYLE_FONT_SIZE_XXLARGE)) {
-      aFont->mSize = nsStyleUtil::CalcFontPointSize(value, (PRInt32)aDefaultFont.size, scaleFactor, aPresContext, eFontSize_CSS);
+      aFont->mSize = nsStyleUtil::CalcFontPointSize(value, baseSize,
+                       scaleFactor, aPresContext, eFontSize_CSS);
     }
     else if (NS_STYLE_FONT_SIZE_XXXLARGE == value) {
       
-      aFont->mSize = nsStyleUtil::CalcFontPointSize(value, (PRInt32)aDefaultFont.size, scaleFactor, aPresContext);
+      aFont->mSize = nsStyleUtil::CalcFontPointSize(value, baseSize,
+                       scaleFactor, aPresContext);
     }
     else if (NS_STYLE_FONT_SIZE_LARGER      == value ||
              NS_STYLE_FONT_SIZE_SMALLER     == value) {
@@ -2121,15 +2143,17 @@ nsRuleNode::SetFont(nsPresContext* aPresContext, nsStyleContext* aContext,
           nsStyleFont::UnZoomText(aPresContext, aParentFont->mSize);
 
       if (NS_STYLE_FONT_SIZE_LARGER == value) {
-        aFont->mSize = nsStyleUtil::FindNextLargerFontSize(parentSize, (PRInt32)aDefaultFont.size,
-                                                           scaleFactor, aPresContext, eFontSize_CSS);
-        NS_ASSERTION(aFont->mSize > parentSize, "FindNextLargerFontSize failed.");
+        aFont->mSize = nsStyleUtil::FindNextLargerFontSize(parentSize,
+                         baseSize, scaleFactor, aPresContext, eFontSize_CSS);
+        NS_ASSERTION(aFont->mSize > parentSize,
+                     "FindNextLargerFontSize failed");
       } 
       else {
-        aFont->mSize = nsStyleUtil::FindNextSmallerFontSize(parentSize, (PRInt32)aDefaultFont.size,
-                                                            scaleFactor, aPresContext, eFontSize_CSS);
-        NS_ASSERTION(aFont->mSize < parentSize, 
-            "FindNextSmallerFontSize failed; this is expected if parentFont size <= 1px");
+        aFont->mSize = nsStyleUtil::FindNextSmallerFontSize(parentSize,
+                         baseSize, scaleFactor, aPresContext, eFontSize_CSS);
+        NS_ASSERTION(aFont->mSize < parentSize ||
+                     parentSize <= nsPresContext::CSSPixelsToAppUnits(1), 
+                     "FindNextSmallerFontSize failed");
       }
     } else {
       NS_NOTREACHED("unexpected value");
@@ -2159,7 +2183,7 @@ nsRuleNode::SetFont(nsPresContext* aPresContext, nsStyleContext* aContext,
   else if (eCSSUnit_Initial == aFontData.mSize.GetUnit()) {
     
     
-    aFont->mSize = aDefaultFont.size;
+    aFont->mSize = baseSize;
     zoom = PR_TRUE;
   }
 
@@ -2260,8 +2284,7 @@ nsRuleNode::SetGenericFont(nsPresContext* aPresContext,
     fontData.mFamily.Reset(); 
 
     nsRuleNode::SetFont(aPresContext, context, aMinFontSize,
-                        PR_TRUE, fontData, *defaultFont,
-                        &parentFont, aFont, dummy);
+                        aGenericFontID, fontData, &parentFont, aFont, dummy);
 
     
     
@@ -2277,8 +2300,7 @@ nsRuleNode::SetGenericFont(nsPresContext* aPresContext,
   
   
   nsRuleNode::SetFont(aPresContext, aContext, aMinFontSize,
-                      PR_TRUE, aFontData, *defaultFont,
-                      &parentFont, aFont, dummy);
+                      aGenericFontID, aFontData, &parentFont, aFont, dummy);
 }
 
 static PRBool ExtractGeneric(const nsString& aFamily, PRBool aGeneric,
@@ -2359,12 +2381,8 @@ nsRuleNode::ComputeFontData(nsStyleStruct* aStartStruct,
   
   if (generic == kGenericFont_NONE) {
     
-    
-    const nsFont* defaultFont =
-      mPresContext->GetDefaultFont(kPresContext_DefaultVariableFont_ID);
-
-    nsRuleNode::SetFont(mPresContext, aContext, minimumFontSize, PR_FALSE,
-                        fontData, *defaultFont, parentFont, font, inherited);
+    nsRuleNode::SetFont(mPresContext, aContext, minimumFontSize, generic,
+                        fontData, parentFont, font, inherited);
   }
   else {
     
@@ -2372,9 +2390,6 @@ nsRuleNode::ComputeFontData(nsStyleStruct* aStartStruct,
     nsRuleNode::SetGenericFont(mPresContext, aContext, fontData, generic,
                                minimumFontSize, font);
   }
-  
-  font->mFlags &= ~NS_STYLE_FONT_FACE_MASK;
-  font->mFlags |= generic;
 
   COMPUTE_END_INHERITED(Font, font)
 }
