@@ -148,10 +148,9 @@ JSD_SetContextFlags(JSDContext *jsdc, uint32 flags)
         
         if (!(flags & JSD_DISABLE_OBJECT_TRACE)) {
             
-            if (jsd_InitObjectManager(jsdc))
-                JS_SetObjectHook(jsdc->jsrt, jsd_ObjectHook, jsdc);
+            JS_SetObjectHook(jsdc->jsrt, jsd_ObjectHook, jsdc);
         } else {
-            jsd_DestroyObjectManager(jsdc);
+            jsd_DestroyObjects(jsdc);
             JS_SetObjectHook(jsdc->jsrt, NULL, NULL);
         }
     }
