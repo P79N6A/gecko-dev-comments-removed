@@ -891,9 +891,9 @@ nsDocAccessible::FireDocLoadEvents(PRUint32 aEventType)
         nsCOMPtr<nsIDocShellTreeItem> sameTypeRootOfFocus;
         focusedTreeItem->GetSameTypeRootTreeItem(getter_AddRefs(sameTypeRootOfFocus));
         if (sameTypeRoot == sameTypeRootOfFocus) {
-          nsCOMPtr<nsIAccessibleEvent> accEvent =
+          nsRefPtr<nsAccEvent> accEvent =
             new nsAccStateChangeEvent(this, nsIAccessibleStates::STATE_BUSY, PR_FALSE, PR_FALSE);
-          FireAccessibleEvent(accEvent);
+          nsEventShell::FireEvent(accEvent);
         }
       }
     }
@@ -904,10 +904,10 @@ nsDocAccessible::FireDocLoadEvents(PRUint32 aEventType)
     if (!isFinished) {
       
       
-      nsCOMPtr<nsIAccessibleEvent> accEvent =
+      nsRefPtr<nsAccEvent> accEvent =
         new nsAccStateChangeEvent(this, nsIAccessibleStates::STATE_BUSY,
                                   PR_FALSE, PR_TRUE);
-      FireAccessibleEvent(accEvent);
+      nsEventShell::FireEvent(accEvent);
     }
 
     nsEventShell::FireEvent(aEventType, this);
@@ -998,10 +998,10 @@ NS_IMETHODIMP nsDocAccessible::Observe(nsISupports *aSubject, const char *aTopic
 {
   if (!nsCRT::strcmp(aTopic,"obs_documentCreated")) {    
     
-    nsCOMPtr<nsIAccessibleEvent> event =
+    nsRefPtr<nsAccEvent> event =
       new nsAccStateChangeEvent(this, nsIAccessibleStates::EXT_STATE_EDITABLE,
                                 PR_TRUE, PR_TRUE);
-    FireAccessibleEvent(event);
+    nsEventShell::FireEvent(event);
   }
 
   return NS_OK;
@@ -1505,17 +1505,17 @@ nsDocAccessible::FireTextChangeEventForText(nsIContent *aContent,
     if (NS_FAILED(rv))
       return;
 
-    nsCOMPtr<nsIAccessibleEvent> event =
+    nsRefPtr<nsAccEvent> event =
       new nsAccTextChangeEvent(accessible, offset,
                                renderedEndOffset - renderedStartOffset,
                                aIsInserted, PR_FALSE);
-    textAccessible->FireAccessibleEvent(event);
+    nsEventShell::FireEvent(event);
 
     FireValueChangeForTextFields(accessible);
   }
 }
 
-already_AddRefed<nsIAccessibleEvent>
+already_AddRefed<nsAccEvent>
 nsDocAccessible::CreateTextChangeEventForNode(nsIAccessible *aContainerAccessible,
                                               nsIDOMNode *aChangeNode,
                                               nsIAccessible *aAccessibleForChangeNode,
@@ -1585,8 +1585,9 @@ nsDocAccessible::CreateTextChangeEventForNode(nsIAccessible *aContainerAccessibl
     return nsnull;
   }
 
-  nsIAccessibleEvent *event =
-    new nsAccTextChangeEvent(aContainerAccessible, offset, length, aIsInserting, aIsAsynch);
+  nsAccEvent *event =
+    new nsAccTextChangeEvent(aContainerAccessible, offset, length, aIsInserting,
+                             aIsAsynch);
   NS_IF_ADDREF(event);
 
   return event;
@@ -1753,14 +1754,14 @@ nsDocAccessible::FlushPendingEvents()
       
       
       if (domNode && domNode != mDOMNode) {
-        nsCOMPtr<nsIAccessibleEvent> textChangeEvent =
+        nsRefPtr<nsAccEvent> textChangeEvent =
           CreateTextChangeEventForNode(containerAccessible, domNode, accessible, PR_TRUE, PR_TRUE);
         if (textChangeEvent) {
           nsAccEvent::PrepareForEvent(textChangeEvent, isFromUserInput);
           
           
           
-          FireAccessibleEvent(textChangeEvent);
+          nsEventShell::FireEvent(textChangeEvent);
         }
       }
 
@@ -1795,12 +1796,12 @@ nsDocAccessible::FlushPendingEvents()
           GetAccService()->GetAccessibleFor(gLastFocusedNode, getter_AddRefs(accForFocus));
           nsEventShell::FireEvent(nsIAccessibleEvent::EVENT_ALERT, accForFocus);
 #endif
-          nsCOMPtr<nsIAccessibleEvent> caretMoveEvent =
+          nsRefPtr<nsAccEvent> caretMoveEvent =
             new nsAccCaretMoveEvent(accessible, caretOffset);
           if (!caretMoveEvent)
             break; 
 
-          FireAccessibleEvent(caretMoveEvent);
+          nsEventShell::FireEvent(caretMoveEvent);
 
           PRInt32 selectionCount;
           accessibleText->GetSelectionCount(&selectionCount);
@@ -1818,14 +1819,14 @@ nsDocAccessible::FlushPendingEvents()
         if (reorderEvent->IsUnconditionalEvent() ||
             reorderEvent->HasAccessibleInReasonSubtree()) {
           nsAccEvent::PrepareForEvent(accEvent);
-          FireAccessibleEvent(accEvent);
+          nsEventShell::FireEvent(accEvent);
         }
       }
       else {
         
         
         nsAccEvent::PrepareForEvent(accEvent);
-        FireAccessibleEvent(accEvent);
+        nsEventShell::FireEvent(accEvent);
         
         if (eventType == nsIAccessibleEvent::EVENT_HIDE) {
           
@@ -2113,11 +2114,11 @@ nsDocAccessible::InvalidateCacheSubtree(nsIContent *aChild,
       
       
       
-      nsCOMPtr<nsIAccessibleEvent> textChangeEvent =
+      nsRefPtr<nsAccEvent> textChangeEvent =
         CreateTextChangeEventForNode(containerAccessible, childNode, childAccessible,
                                      PR_FALSE, isAsynch);
       if (textChangeEvent) {
-        FireAccessibleEvent(textChangeEvent);
+        nsEventShell::FireEvent(textChangeEvent);
       }
     }
   }
@@ -2273,7 +2274,7 @@ nsDocAccessible::FireShowHideEvents(nsIDOMNode *aDOMNode,
   if (accessible) {
     
     
-    nsCOMPtr<nsIAccessibleEvent> event =
+    nsRefPtr<nsAccEvent> event =
       new nsAccEvent(aEventType, accessible, aIsAsyncChange,
                      nsAccEvent::eCoalesceFromSameSubtree);
     NS_ENSURE_TRUE(event, NS_ERROR_OUT_OF_MEMORY);
@@ -2285,7 +2286,8 @@ nsDocAccessible::FireShowHideEvents(nsIDOMNode *aDOMNode,
     if (aDelayedOrNormal == eDelayedEvent)
       return FireDelayedAccessibleEvent(event);
 
-    return FireAccessibleEvent(event);
+    nsEventShell::FireEvent(event);
+    return NS_OK;
   }
 
   

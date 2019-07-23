@@ -243,7 +243,7 @@ protected:
 
 
 
-    already_AddRefed<nsIAccessibleEvent>
+    already_AddRefed<nsAccEvent>
     CreateTextChangeEventForNode(nsIAccessible *aContainerAccessible,
                                  nsIDOMNode *aChangeNode,
                                  nsIAccessible *aAccessibleForNode,
