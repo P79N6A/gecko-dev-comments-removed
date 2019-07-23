@@ -4512,6 +4512,20 @@ PRBool nsWindow::ProcessMessage(UINT msg, WPARAM wParam, LPARAM lParam, LRESULT 
       }
       break;
 
+    case WM_MOUSEACTIVATE:
+      if (mWindowType == eWindowType_popup) {
+        
+        
+        
+        
+        HWND owner = ::GetWindow(mWnd, GW_OWNER);
+        if (owner && owner == ::GetForegroundWindow()) {
+          *aRetValue = MA_NOACTIVATE;
+          result = PR_TRUE;
+        }
+      }
+      break;
+
 #ifndef WINCE
     case WM_WINDOWPOSCHANGING:
     {
