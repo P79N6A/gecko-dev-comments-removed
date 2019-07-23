@@ -46,20 +46,33 @@ function testmath(funcname, args, expected) {
         mapfunc(dummies_and_input);
         return dummies_and_input[RUNLOOP];
     }
-    testfunc.name = funcname + "(" + args + ")";
-    testfunc.expected = expected;
 
-    
-    
-    
-    
-    
-    
-    
-    
-    
+    assertEq(close_enough(testfunc(), expected), true);
+}
 
-    test(testfunc);
+function close_enough(expected, actual)
+{
+  if (typeof expected != typeof actual)
+    return false;
+  if (typeof expected != 'number')
+    return actual == expected;
+
+  
+  
+  if (actual != actual)
+    return expected != expected
+  if (expected != expected)
+    return false;
+
+  
+  if (actual != expected)
+    return Math.abs(actual - expected) <= 1E-10;
+
+  
+  if (actual == 0)
+    return (1 / actual > 0) == (1 / expected > 0);
+
+  return true;
 }
 
 testmath("Math.abs", "void 0", Number.NaN)
