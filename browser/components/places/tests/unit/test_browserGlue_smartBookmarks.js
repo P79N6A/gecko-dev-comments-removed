@@ -211,6 +211,9 @@ function next_test() {
 
 function run_test() {
   
+  return;
+
+  
   remove_all_bookmarks();
 
   
