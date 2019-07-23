@@ -607,6 +607,10 @@ var PlacesUtils = {
         for (var i = 0; i < parts.length; i++) {
           var uriString = parts[i];
           
+          
+          if (uriString.substr(0, 1) == '\x23')
+            continue;
+          
           if (uriString != "" && this._uri(uriString))
             nodes.push({ uri: uriString,
                          title: uriString,

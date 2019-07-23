@@ -1810,12 +1810,6 @@ toolbarbutton.bookmark-item[dragover="true"][open="true"] {
 }
 
 
-.bookmark-item[dragover-into="true"] > .menu-iconic-text {
-  background: Highlight !important;
-  color: HighlightText !important;
-}
-
-
 .menupopup-drop-indicator-bar {
   position: relative;
   

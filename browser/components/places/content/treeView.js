@@ -996,33 +996,12 @@ PlacesTreeView.prototype = {
     if (!this._result)
       throw Cr.NS_ERROR_UNEXPECTED;
 
-    var node = aRow != -1 ? this.nodeForTreeIndex(aRow) : this._result.root;
+    
+    if (this.isSorted())
+      return false;
 
-    if (aOrientation == Ci.nsITreeView.DROP_ON) {
-      
-      var dragService =  Cc["@mozilla.org/widget/dragservice;1"].
-                         getService(Ci.nsIDragService);
-      var dragSession = dragService.getCurrentSession();
-      var elt = dragSession.sourceNode.parentNode;
-      if (elt.localName == "tree" && elt.view == this &&
-          this.selection.isSelected(aRow))
-        return false;
-    }
-  
     var ip = this._getInsertionPoint(aRow, aOrientation);
     return ip && PlacesControllerDragHelper.canDrop(ip);
-  },
-
-  
-  
-  
-  _disallowInsertion: function PTV__disallowInsertion(aContainer) {
-    
-    if (PlacesUtils.nodeIsTagQuery(aContainer))
-      return false;
-    
-    return (!PlacesUtils.nodeIsFolder(aContainer) ||
-            PlacesUtils.nodeIsReadOnly(aContainer));
   },
 
   _getInsertionPoint: function PTV__getInsertionPoint(index, orientation) {
@@ -1038,14 +1017,13 @@ PlacesTreeView.prototype = {
         container = lastSelected;
         index = -1;
       }
-      else if (!this._disallowInsertion(lastSelected) &&
-               lastSelected.containerOpen &&
+      else if (lastSelected.containerOpen &&
                orientation == Ci.nsITreeView.DROP_AFTER &&
                lastSelected.hasChildren) {
         
         
         container = lastSelected;
-        orientation = Ci.nsITreeView.DROP_BEFORE;
+        orientation = Ci.nsITreeView.DROP_ON;
         index = 0;
       }
       else {
@@ -1056,11 +1034,12 @@ PlacesTreeView.prototype = {
 
         
         
-        if (this._disallowInsertion(container))
+        if (PlacesControllerDragHelper.disallowInsertion(container))
           return null;
 
         var queryOptions = asQuery(this._result.root).queryOptions;
-        if (queryOptions.sortingMode != Ci.nsINavHistoryQueryOptions.SORT_BY_NONE) {
+        if (queryOptions.sortingMode !=
+              Ci.nsINavHistoryQueryOptions.SORT_BY_NONE) {
           
           index = -1;
         }
@@ -1080,7 +1059,7 @@ PlacesTreeView.prototype = {
       }
     }
 
-    if (this._disallowInsertion(container))
+    if (PlacesControllerDragHelper.disallowInsertion(container))
       return null;
 
     return new InsertionPoint(PlacesUtils.getConcreteItemId(container),
@@ -1095,7 +1074,7 @@ PlacesTreeView.prototype = {
     
     var ip = this._getInsertionPoint(aRow, aOrientation);
     if (!ip)
-      throw Cr.NS_ERROR_NOT_AVAILABLE;
+      return;
     PlacesControllerDragHelper.onDrop(ip);
   },
 

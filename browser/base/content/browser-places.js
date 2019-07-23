@@ -711,7 +711,6 @@ var BookmarksEventHandler = {
     if (!target._endOptSeparator) {
       
       target._endOptSeparator = document.createElement("menuseparator");
-      target._endOptSeparator.setAttribute("builder", "end");
       target._endMarker = target.childNodes.length;
       target.appendChild(target._endOptSeparator);
     }
@@ -789,7 +788,8 @@ var BookmarksMenuDropHandler = {
 
 
   onDragOver: function BMDH_onDragOver(event, flavor, session) {
-    session.canDrop = this.canDrop(event, session);
+    if (!this.canDrop(event, session))
+      event.dataTransfer.effectAllowed = "none";
   },
 
   
@@ -812,6 +812,8 @@ var BookmarksMenuDropHandler = {
 
 
   canDrop: function BMDH_canDrop(event, session) {
+    PlacesControllerDragHelper.currentDataTransfer = event.dataTransfer;
+
     var ip = new InsertionPoint(PlacesUtils.bookmarksMenuFolderId, -1);  
     return ip && PlacesControllerDragHelper.canDrop(ip);
   },
@@ -826,9 +828,21 @@ var BookmarksMenuDropHandler = {
 
 
   onDrop: function BMDH_onDrop(event, data, session) {
-    
-    var ip = new InsertionPoint(PlacesUtils.bookmarksMenuFolderId, -1);
+    PlacesControllerDragHelper.currentDataTransfer = event.dataTransfer;
+
+  
+    var ip = new InsertionPoint(PlacesUtils.bookmarksMenuFolderId, -1,
+                                Ci.nsITreeView.DROP_ON);
     PlacesControllerDragHelper.onDrop(ip);
+  },
+
+  
+
+
+
+
+  onDragExit: function BMDH_onDragExit(event, session) {
+    PlacesControllerDragHelper.currentDataTransfer = null;
   }
 };
 
@@ -903,8 +917,9 @@ var PlacesMenuDNDController = {
 
 
   _isContainer: function PMDC__isContainer(node) {
-    return node.localName == "menu" || 
-           node.localName == "toolbarbutton" && node.getAttribute("type") == "menu";
+    return node.localName == "menu" ||
+           (node.localName == "toolbarbutton" &&
+            node.getAttribute("type") == "menu");
   },
   
   

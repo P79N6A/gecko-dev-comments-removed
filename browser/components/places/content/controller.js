@@ -298,7 +298,7 @@ PlacesController.prototype = {
         return false;
 
       if (PlacesUtils.nodeIsFolder(nodes[i]) &&
-          !PlacesControllerDragHelper.canMoveContainerNode(nodes[i]))
+          !PlacesControllerDragHelper.canMoveNode(nodes[i]))
         return false;
 
       
@@ -351,7 +351,7 @@ PlacesController.prototype = {
     
     
 
-    var flavors = PlacesUIUtils.placesFlavors;
+    var flavors = PlacesControllerDragHelper.placesFlavors;
     var clipboard = PlacesUIUtils.clipboard;
     var hasPlacesData =
       clipboard.hasDataMatchingFlavors(flavors, flavors.length,
@@ -1020,57 +1020,45 @@ PlacesController.prototype = {
 
 
 
+  setDataTransfer: function PC_setDataTransfer(aEvent) {
+    var dt = aEvent.dataTransfer;
+    var doCopy = dt.effectAllowed == "copyLink" || dt.effectAllowed == "copy";
 
-
-  getTransferData: function PC_getTransferData(dragAction) {
-    var copy = dragAction == Ci.nsIDragService.DRAGDROP_ACTION_COPY;
     var result = this._view.getResult();
     var oldViewer = result.viewer;
     try {
       result.viewer = null;
       var nodes = this._view.getDragableSelection();
-      if (dragAction == Ci.nsIDragService.DRAGDROP_ACTION_MOVE) {
-        nodes = nodes.filter(function(node) {
-          var parent = node.parent;
-          return parent && !PlacesUtils.nodeIsReadOnly(parent);
-        });
-      }
 
-      var dataSet = new TransferDataSet();
       for (var i = 0; i < nodes.length; ++i) {
         var node = nodes[i];
 
-        var data = new TransferData();
-        function addData(type, overrideURI) {
-          data.addDataForFlavour(type, PlacesUIUtils._wrapString(
-                                 PlacesUtils.wrapNode(node, type, overrideURI, copy)));
+        function addData(type, index, overrideURI) {
+          var wrapNode = PlacesUtils.wrapNode(node, type, overrideURI, doCopy);
+          dt.mozSetDataAt(type, wrapNode, index);
         }
 
-        function addURIData(overrideURI) {
-          addData(PlacesUtils.TYPE_X_MOZ_URL, overrideURI);
-          addData(PlacesUtils.TYPE_UNICODE, overrideURI);
-          addData(PlacesUtils.TYPE_HTML, overrideURI);
+        function addURIData(index, overrideURI) {
+          addData(PlacesUtils.TYPE_X_MOZ_URL, index, overrideURI);
+          addData(PlacesUtils.TYPE_UNICODE, index, overrideURI);
+          addData(PlacesUtils.TYPE_HTML, index, overrideURI);
         }
 
         
         
-        addData(PlacesUtils.TYPE_X_MOZ_PLACE);
-      
-        var uri;
-      
+        addData(PlacesUtils.TYPE_X_MOZ_PLACE, i);
+
         
         if (PlacesUtils.nodeIsLivemarkContainer(node))
-          uri = PlacesUtils.livemarks.getFeedURI(node.itemId).spec;
-      
-        addURIData(uri);
-        dataSet.push(data);
+          addURIData(i, PlacesUtils.livemarks.getFeedURI(node.itemId).spec);
+        else if (node.uri)
+          addURIData(i);
       }
     }
     finally {
       if (oldViewer)
         result.viewer = oldViewer;
     }
-    return dataSet;
   },
 
   
@@ -1111,7 +1099,7 @@ PlacesController.prototype = {
                                                  uri) + suffix);
 
           var placeSuffix = i < (nodes.length - 1) ? "," : "";
-          var resolveShortcuts = !PlacesControllerDragHelper.canMoveContainerNode(node);
+          var resolveShortcuts = !PlacesControllerDragHelper.canMoveNode(node);
           return PlacesUtils.wrapNode(node, type, overrideURI, resolveShortcuts) + placeSuffix;
         }
 
@@ -1248,6 +1236,18 @@ PlacesController.prototype = {
 
 
 var PlacesControllerDragHelper = {
+  
+
+
+  currentDropTarget: null,
+
+  
+
+
+
+
+
+  currentDataTransfer: null,
 
   
 
@@ -1271,11 +1271,6 @@ var PlacesControllerDragHelper = {
   
 
 
-  currentDropTarget: null,
-
-  
-
-
   getSession: function PCDH__getSession() {
     var dragService = Cc["@mozilla.org/widget/dragservice;1"].
                       getService(Ci.nsIDragService);
@@ -1287,37 +1282,43 @@ var PlacesControllerDragHelper = {
 
 
 
+  getFirstValidFlavor: function PCDH_getFirstValidFlavor(aFlavors) {
+    for (var i = 0; i < aFlavors.length; i++) {
+      if (this.GENERIC_VIEW_DROP_TYPES.indexOf(aFlavors[i]) != -1)
+        return aFlavors[i];
+    }
+    return null;
+  },
+
+  
+
+
+
+
 
   canDrop: function PCDH_canDrop(ip) {
-    var session = this.getSession();
-    if (!session)
-      return false;
-
-    var types = PlacesUIUtils.GENERIC_VIEW_DROP_TYPES;
-    var foundType = false;
-    for (var i = 0; i < types.length && !foundType; ++i) {
-      if (session.isDataFlavorSupported(types[i]))
-        foundType = true;
-    }
-
-    if (!foundType)
-      return false;
+    var dt = this.currentDataTransfer;
+    var dropCount = dt.mozItemCount;
 
     
-    var xferable = this._initTransferable(session);
-    var dropCount = session.numDropItems;
-    for (i = 0; i < dropCount; i++) {
-      
-      session.getData(xferable, i);
-      var data = { }, flavor = { };
-      xferable.getAnyTransferData(flavor, data, { });
-      data.value.QueryInterface(Ci.nsISupportsString);
-      var dragged = PlacesUtils.unwrapNodes(data.value.data, flavor.value)[0];
+    for (var i = 0; i < dropCount; i++) {
+      var flavor = this.getFirstValidFlavor(dt.mozTypesAt(i));
+      if (!flavor)
+        return false;
+
+      var data = dt.mozGetDataAt(flavor, i);
+
+      try {
+        var dragged = PlacesUtils.unwrapNodes(data, flavor)[0];
+      } catch (e) {
+        return false;
+      }
 
       
-      if (ip.isTag && dragged.type != PlacesUtils.TYPE_X_MOZ_URL &&
-                      (dragged.type != PlacesUtils.TYPE_X_MOZ_PLACE ||
-                       /^place:/.test(dragged.uri)))
+      if (ip.isTag && ip.orientation == Ci.nsITreeView.DROP_ON &&
+          dragged.type != PlacesUtils.TYPE_X_MOZ_URL &&
+          (dragged.type != PlacesUtils.TYPE_X_MOZ_PLACE ||
+           /^place:/.test(dragged.uri)))
         return false;
 
       
@@ -1332,7 +1333,6 @@ var PlacesControllerDragHelper = {
         }
       }
     }
-
     return true;
   },
 
@@ -1343,20 +1343,17 @@ var PlacesControllerDragHelper = {
 
 
 
-
-
-  canMoveContainerNode:
-  function PCDH_canMoveContainerNode(aNode, aInsertionPoint) {
+  canMoveNode:
+  function PCDH_canMoveNode(aNode) {
     
     if (!aNode.parent)
       return false;
 
-    var targetId = aInsertionPoint ? aInsertionPoint.itemId : -1;
     var parentId = PlacesUtils.getConcreteItemId(aNode.parent);
     var concreteId = PlacesUtils.getConcreteItemId(aNode);
 
     
-    if (PlacesUtils.nodeIsTagQuery(aNode))
+    if (PlacesUtils.nodeIsTagQuery(aNode.parent))
       return false;
 
     
@@ -1364,7 +1361,8 @@ var PlacesControllerDragHelper = {
       return false;
 
     
-    if (!this.canMoveContainer(aNode.itemId, parentId))
+    if (PlacesUtils.nodeIsContainer(aNode) &&
+        !this.canMoveContainer(concreteId, parentId))
       return false;
 
     return true;
@@ -1395,7 +1393,7 @@ var PlacesControllerDragHelper = {
     if (aParentId == null || aParentId == -1)
       aParentId = PlacesUtils.bookmarks.getFolderIdForItem(aId);
 
-    if(PlacesUtils.bookmarks.getFolderReadonly(aParentId))
+    if (PlacesUtils.bookmarks.getFolderReadonly(aParentId))
       return false;
 
     return true;
@@ -1406,18 +1404,48 @@ var PlacesControllerDragHelper = {
 
 
 
+  onDrop: function PCDH_onDrop(insertionPoint) {
+    var dt = this.currentDataTransfer;
+    var doCopy = dt.dropEffect == "copy";
 
+    var transactions = [];
+    var dropCount = dt.mozItemCount;
+    var movedCount = 0;
+    for (var i = 0; i < dropCount; ++i) {
+      var flavor = this.getFirstValidFlavor(dt.mozTypesAt(i));
+      if (!flavor)
+        return false;
 
+      var data = dt.mozGetDataAt(flavor, i);
+      
+      var unwrapped = PlacesUtils.unwrapNodes(data, flavor)[0];
 
-  _initTransferable: function PCDH__initTransferable(session) {
-    var xferable = Cc["@mozilla.org/widget/transferable;1"].
-                   createInstance(Ci.nsITransferable);
-    var types = PlacesUIUtils.GENERIC_VIEW_DROP_TYPES;
-    for (var i = 0; i < types.length; ++i) {
-      if (session.isDataFlavorSupported(types[i]))
-        xferable.addDataFlavor(types[i]);
+      var index = insertionPoint.index;
+
+      
+      
+      
+      var dragginUp = insertionPoint.itemId == unwrapped.parent &&
+                      index < PlacesUtils.bookmarks.getItemIndex(unwrapped.id);
+      if (index != -1 && dragginUp)
+        index+= movedCount++;
+
+      
+      if (insertionPoint.isTag &&
+          insertionPoint.orientation == Ci.nsITreeView.DROP_ON) {
+        var uri = PlacesUtils._uri(unwrapped.uri);
+        var tagItemId = insertionPoint.itemId;
+        transactions.push(PlacesUIUtils.ptm.tagURI(uri,[tagItemId]));
+      }
+      else {
+        transactions.push(PlacesUIUtils.makeTransaction(unwrapped,
+                          flavor, insertionPoint.itemId,
+                          index, doCopy));
+      }
     }
-    return xferable;
+
+    var txn = PlacesUIUtils.ptm.aggregateTransactions("DropItems", transactions);
+    PlacesUIUtils.ptm.doTransaction(txn);
   },
 
   
@@ -1425,59 +1453,35 @@ var PlacesControllerDragHelper = {
 
 
 
-  onDrop: function PCDH_onDrop(insertionPoint) {
-    var session = this.getSession();
+  disallowInsertion: function(aContainer) {
+    NS_ASSERT(aContainer, "empty container");
     
+    if (PlacesUtils.nodeIsTagQuery(aContainer))
+      return false;
     
-    var copy = session.dragAction & Ci.nsIDragService.DRAGDROP_ACTION_COPY;
-    var transactions = [];
-    var xferable = this._initTransferable(session);
-    var dropCount = session.numDropItems;
+    return (!PlacesUtils.nodeIsFolder(aContainer) ||
+             PlacesUtils.nodeIsReadOnly(aContainer));
+  },
 
-    var movedCount = 0;
+  placesFlavors: [PlacesUtils.TYPE_X_MOZ_PLACE_CONTAINER,
+                  PlacesUtils.TYPE_X_MOZ_PLACE_SEPARATOR,
+                  PlacesUtils.TYPE_X_MOZ_PLACE],
 
-    for (var i = 0; i < dropCount; ++i) {
-      session.getData(xferable, i);
+  GENERIC_VIEW_DROP_TYPES: [PlacesUtils.TYPE_X_MOZ_PLACE_CONTAINER,
+                            PlacesUtils.TYPE_X_MOZ_PLACE_SEPARATOR,
+                            PlacesUtils.TYPE_X_MOZ_PLACE,
+                            PlacesUtils.TYPE_X_MOZ_URL,
+                            PlacesUtils.TYPE_UNICODE],
 
-      var data = { }, flavor = { };
-      xferable.getAnyTransferData(flavor, data, { });
-      data.value.QueryInterface(Ci.nsISupportsString);
+  
 
-      
-      var unwrapped = PlacesUtils.unwrapNodes(data.value.data, 
-                                              flavor.value)[0];
 
-      var index = insertionPoint.index;
-
-      
-      
-      
-      if (index != -1 && index < unwrapped.index) {
-        index = index + movedCount;
-        movedCount++;
-      }
-
-      
-      if (insertionPoint.isTag) {
-        var uri = PlacesUtils._uri(unwrapped.uri);
-        var tagItemId = insertionPoint.itemId;
-        transactions.push(PlacesUIUtils.ptm.tagURI(uri,[tagItemId]));
-      }
-      else {
-        if (unwrapped.id && !this.canMoveContainer(unwrapped.id, null))
-          copy = true;
-        else if (unwrapped.concreteId &&
-                 !this.canMoveContainer(unwrapped.concreteId, null))
-          copy = true;
-
-        transactions.push(PlacesUIUtils.makeTransaction(unwrapped,
-                          flavor.value, insertionPoint.itemId,
-                          index, copy));
-      }
-    }
-
-    var txn = PlacesUIUtils.ptm.aggregateTransactions("DropItems", transactions);
-    PlacesUIUtils.ptm.doTransaction(txn);
+  get flavourSet() {
+    delete this.flavourSet;
+    var flavourSet = new FlavourSet();
+    var acceptedDropFlavours = this.GENERIC_VIEW_DROP_TYPES;
+    acceptedDropFlavours.forEach(flavourSet.appendFlavour, flavourSet);
+    return this.flavourSet = flavourSet;
   }
 };
 

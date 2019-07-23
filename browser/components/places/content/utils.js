@@ -39,6 +39,7 @@
 
 
 
+
 function LOG(str) {
   dump("*** " + str + "\n");
 }
@@ -377,10 +378,12 @@ var PlacesUIUtils = {
         return this.ptm.moveItem(data.id, container, index);
         break;
       default:
-        if (type == PlacesUtils.TYPE_X_MOZ_URL || type == PlacesUtils.TYPE_UNICODE) {
-          var title = (type == PlacesUtils.TYPE_X_MOZ_URL) ? data.title : data.uri;
-          return this.ptm.createItem(PlacesUtils._uri(data.uri), container, index,
-                                     title);
+        if (type == PlacesUtils.TYPE_X_MOZ_URL ||
+            type == PlacesUtils.TYPE_UNICODE) {
+          var title = (type == PlacesUtils.TYPE_X_MOZ_URL) ? data.title :
+                                                             data.uri;
+          return this.ptm.createItem(PlacesUtils._uri(data.uri),
+                                     container, index, title);
         }
     }
     return null;
@@ -1037,48 +1040,42 @@ var PlacesUIUtils = {
   cleanPlacesPopup: function PU_cleanPlacesPopup(aPopup) {
     
     
-    
+    var start = aPopup._startMarker != -1 ? aPopup._startMarker + 1 : 0;
+    var end = aPopup._endMarker != -1 ? aPopup._endMarker :
+                                        aPopup.childNodes.length;
     var items = [];
-    aPopup._startMarker = -1;
-    aPopup._endMarker = -1;
-    for (var i = 0; i < aPopup.childNodes.length; ++i) {
+    var placesNodeFound = false;
+    for (var i = start; i < end; ++i) {
       var item = aPopup.childNodes[i];
-      if (item.getAttribute("builder") == "start") {
-        aPopup._startMarker = i;
-        continue;
-      }
       if (item.getAttribute("builder") == "end") {
-        aPopup._endMarker = i;
-        continue;
-      }
-      if ((aPopup._startMarker != -1) && (aPopup._endMarker == -1))
-        items.push(item);
-    }
-
-    
-    
-    for (var i = 0; i < items.length; ++i) {
-      
-      if (aPopup._emptyMenuItem != items[i]) {
-        aPopup.removeChild(items[i]);
-        if (aPopup._endMarker > 0)
-          --aPopup._endMarker;
-      }
-    }
-
-    
-    
-    if (aPopup._startMarker == -1) {
-      var end = aPopup._endMarker == -1 ?
-                aPopup.childNodes.length - 1 : aPopup._endMarker - 1;
-      for (var i = end; i >= 0; i--) {
         
-        if (aPopup._emptyMenuItem != aPopup.childNodes[i]) {
-          aPopup.removeChild(aPopup.childNodes[i]);
-          if (aPopup._endMarker > 0)
-            --aPopup._endMarker;
+        
+        
+        aPopup._endMarker = i;
+        break;
+      }
+      if (item.node) {
+        items.push(item);
+        placesNodeFound = true;
+      }
+      else {
+        
+        if (!placesNodeFound)
+          
+          
+          aPopup._startMarker++;
+        else {
+          
+          aPopup._endMarker = i;
+          break;
         }
       }
+    }
+
+    for (var i = 0; i < items.length; ++i) {
+      aPopup.removeChild(items[i]);
+      if (aPopup._endMarker != -1)
+        aPopup._endMarker--;
     }
   },
 
@@ -1232,13 +1229,3 @@ var PlacesUIUtils = {
     return this.allBookmarksFolderId = this.leftPaneQueries["AllBookmarks"];
   }
 };
-
-PlacesUIUtils.placesFlavors = [PlacesUtils.TYPE_X_MOZ_PLACE_CONTAINER,
-                             PlacesUtils.TYPE_X_MOZ_PLACE_SEPARATOR,
-                             PlacesUtils.TYPE_X_MOZ_PLACE];
-
-PlacesUIUtils.GENERIC_VIEW_DROP_TYPES = [PlacesUtils.TYPE_X_MOZ_PLACE_CONTAINER,
-                                       PlacesUtils.TYPE_X_MOZ_PLACE_SEPARATOR,
-                                       PlacesUtils.TYPE_X_MOZ_PLACE,
-                                       PlacesUtils.TYPE_X_MOZ_URL,
-                                       PlacesUtils.TYPE_UNICODE];
