@@ -2530,6 +2530,8 @@ CSSParserImpl::ParseSelectorGroup(nsCSSSelectorList*& aList)
           return PR_FALSE;
         }
         list->AddSelector(empty);
+        
+        weight += listSel->CalcWeight();
         listSel = list->mSelectors; 
       }
       NS_ASSERTION(!listSel->mLowercaseTag &&
@@ -2538,6 +2540,7 @@ CSSParserImpl::ParseSelectorGroup(nsCSSSelectorList*& aList)
                    "already initialized");
       listSel->mLowercaseTag.swap(pseudoElement);
       listSel->mPseudoClassList = pseudoElementArgs.forget();
+      havePseudoElement = PR_TRUE;
     }
 
     combinator = PRUnichar(0);
