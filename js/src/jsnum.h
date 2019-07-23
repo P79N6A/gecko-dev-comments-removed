@@ -207,21 +207,26 @@ js_ValueToNumber(JSContext *cx, jsval v, jsdouble *dp);
 
 
 
-extern JSBool
-js_ValueToECMAInt32(JSContext *cx, jsval v, int32 *ip);
+
+extern int32
+js_ValueToECMAInt32(JSContext *cx, jsval *vp);
+
+extern uint32
+js_ValueToECMAUint32(JSContext *cx, jsval *vp);
+
+
+
 
 extern int32
 js_DoubleToECMAInt32(jsdouble d);
 
-
-
-
-
-extern JSBool
-js_ValueToECMAUint32(JSContext *cx, jsval v, uint32 *ip);
-
 extern uint32
 js_DoubleToECMAUint32(jsdouble d);
+
+
+
+
+
 
 
 
