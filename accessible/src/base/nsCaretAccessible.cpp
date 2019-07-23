@@ -247,8 +247,17 @@ nsCaretAccessible::NormalSelectionChanged(nsIDOMDocument *aDoc,
     return NS_OK;  
   }
 
-  nsCOMPtr<nsIDOMNode> nodeWithCaret = focusNode;
+  
+  nsCOMPtr<nsIContent> focusContainer(do_QueryInterface(focusNode));
+  if (focusContainer && focusContainer->IsNodeOfType(nsINode::eELEMENT)) {
+    PRInt32 focusOffset = 0;
+    aSel->GetFocusOffset(&focusOffset);
 
+    nsCOMPtr<nsIContent> focusContent = focusContainer->GetChildAt(focusOffset);
+    focusNode = do_QueryInterface(focusContent);
+  }
+
+  
   nsCOMPtr<nsIAccessibleText> textAcc;
   while (focusNode) {
     
@@ -306,6 +315,16 @@ nsCaretAccessible::SpellcheckSelectionChanged(nsIDOMDocument *aDoc,
   aSel->GetFocusNode(getter_AddRefs(targetNode));
   if (!targetNode)
     return NS_OK;
+
+  
+  nsCOMPtr<nsIContent> focusContainer(do_QueryInterface(targetNode));
+  if (focusContainer && focusContainer->IsNodeOfType(nsINode::eELEMENT)) {
+    PRInt32 focusOffset = 0;
+    aSel->GetFocusOffset(&focusOffset);
+    
+    nsCOMPtr<nsIContent> focusContent = focusContainer->GetChildAt(focusOffset);
+    targetNode = do_QueryInterface(focusContent);
+  }
 
   nsCOMPtr<nsIAccessibleDocument> docAccessible =
     nsAccessNode::GetDocAccessibleFor(targetNode);
