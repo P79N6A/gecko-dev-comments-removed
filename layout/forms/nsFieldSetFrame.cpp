@@ -539,43 +539,35 @@ nsFieldSetFrame::Reflow(nsPresContext*           aPresContext,
     mLegendSpace = 0;
   } 
 
-  nsRect contentRect;
-
   
   if (reflowContent) {
     nsHTMLReflowState kidReflowState(aPresContext, aReflowState, mContentFrame,
                                      availSize);
+    
+    
+    
+    if (aReflowState.ComputedHeight() != NS_UNCONSTRAINEDSIZE) {
+      kidReflowState.SetComputedHeight(PR_MAX(0, aReflowState.ComputedHeight() - mLegendSpace));
+    }
 
     nsHTMLReflowMetrics kidDesiredSize(aDesiredSize.mFlags);
     
+    NS_ASSERTION(kidReflowState.mComputedMargin == nsMargin(0,0,0,0),
+                 "Margins on anonymous fieldset child not supported!");
+    nsPoint pt(borderPadding.left, borderPadding.top + mLegendSpace);
     ReflowChild(mContentFrame, aPresContext, kidDesiredSize, kidReflowState,
-                borderPadding.left + kidReflowState.mComputedMargin.left,
-                borderPadding.top + mLegendSpace + kidReflowState.mComputedMargin.top,
-                0, aStatus);
-
-    
-    contentRect.SetRect(borderPadding.left,borderPadding.top + mLegendSpace,kidDesiredSize.width ,kidDesiredSize.height);
-    if (aReflowState.ComputedHeight() != NS_INTRINSICSIZE &&
-        borderPadding.top + mLegendSpace+kidDesiredSize.height > aReflowState.ComputedHeight()) {
-      kidDesiredSize.height = aReflowState.ComputedHeight()-(borderPadding.top + mLegendSpace);
-    }
+                pt.x, pt.y, 0, aStatus);
 
     FinishReflowChild(mContentFrame, aPresContext, &kidReflowState, 
-                      kidDesiredSize, contentRect.x, contentRect.y, 0);
+                      kidDesiredSize, pt.x, pt.y, 0);
     NS_FRAME_TRACE_REFLOW_OUT("FieldSet::Reflow", aStatus);
+  }
 
-  } else if (mContentFrame) {
-    
+  nsRect contentRect(0,0,0,0);
+  if (mContentFrame) {
     
     
     contentRect = mContentFrame->GetRect();
-    const nsStyleMargin* marginStyle = mContentFrame->GetStyleMargin();
-
-    nsMargin m(0,0,0,0);
-    marginStyle->GetMargin(m);
-    contentRect.Inflate(m);
-  } else {
-    contentRect.Empty();
   }
 
   
