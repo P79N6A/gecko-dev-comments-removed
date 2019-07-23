@@ -467,6 +467,9 @@ JS_ValueToSource(JSContext *cx, jsval v);
 extern JS_PUBLIC_API(JSBool)
 JS_ValueToNumber(JSContext *cx, jsval v, jsdouble *dp);
 
+extern JS_PUBLIC_API(JSBool)
+JS_DoubleIsInt32(jsdouble d, jsint *ip);
+
 
 
 
@@ -2015,10 +2018,9 @@ JS_DropPrincipals(JSContext *cx, JSPrincipals *principals);
 
 
 struct JSSecurityCallbacks {
-    JSCheckAccessOp            checkObjectAccess;
-    JSPrincipalsTranscoder     principalsTranscoder;
-    JSObjectPrincipalsFinder   findObjectPrincipals;
-    JSCSPEvalChecker           contentSecurityPolicyAllows;
+  JSCheckAccessOp            checkObjectAccess;
+  JSPrincipalsTranscoder     principalsTranscoder;
+  JSObjectPrincipalsFinder   findObjectPrincipals;
 };
 
 extern JS_PUBLIC_API(JSSecurityCallbacks *)

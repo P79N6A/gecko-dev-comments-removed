@@ -40,7 +40,6 @@
 #include "jsapi.h"
 #include "jsdtoa.h"
 #include "jsprvtd.h"
-#include "jsnum.h"
 #include "jsbool.h"
 #include "jsarena.h"
 #include "jscntxt.h"
@@ -63,7 +62,7 @@
 
 static const char kXPConnectServiceCID[] = "@mozilla.org/js/xpc/XPConnect;1";
 
-#define JSON_STREAM_BUFSIZE 4096
+#define JSON_STREAM_BUFSIZE 1024
 
 NS_INTERFACE_MAP_BEGIN(nsJSON)
   NS_INTERFACE_MAP_ENTRY_AMBIGUOUS(nsISupports, nsIJSON)
