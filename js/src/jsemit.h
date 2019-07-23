@@ -226,6 +226,8 @@ struct JSTreeContext {
     
     bool inStatement(JSStmtType type);
 
+    inline bool needStrictChecks();
+
     
 
 
@@ -301,6 +303,15 @@ struct JSTreeContext {
                                  TCF_FUN_USES_OWN_NAME   |                    \
                                  TCF_HAS_SHARPS          |                    \
                                  TCF_STRICT_MODE_CODE)
+
+
+
+
+
+inline bool JSTreeContext::needStrictChecks() {
+    return JS_HAS_STRICT_OPTION(compiler->context) ||
+           (flags & TCF_STRICT_MODE_CODE);
+}
 
 
 
