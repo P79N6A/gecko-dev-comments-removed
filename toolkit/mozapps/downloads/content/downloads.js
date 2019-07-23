@@ -56,8 +56,9 @@ const nsLocalFile = Components.Constructor("@mozilla.org/file/local;1",
 var Cc = Components.classes;
 var Ci = Components.interfaces;
 
-var gDownloadManager  = Cc["@mozilla.org/download-manager;1"].
-                        getService(Ci.nsIDownloadManager);
+const nsIDM = Ci.nsIDownloadManager;
+
+let gDownloadManager = Cc["@mozilla.org/download-manager;1"].getService(nsIDM);
 var gDownloadListener     = null;
 var gDownloadsView        = null;
 var gDownloadsActiveArea  = null;
@@ -102,7 +103,7 @@ function fireEventForElement(aElement, aEventType)
 {
   var e = document.createEvent("Events");
   e.initEvent("download-" + aEventType, true, true);
-  
+
   aElement.dispatchEvent(e);
 }
 
@@ -148,7 +149,7 @@ function getDownload(aID)
 
 
 
-function downloadCompleted(aDownload) 
+function downloadCompleted(aDownload)
 {
   
   
@@ -206,7 +207,7 @@ function autoRemoveAndClose(aDownload)
       return true;
     }
   }
-  
+
   return false;
 }
 
@@ -232,7 +233,7 @@ function cancelDownload(aDownload)
   
   var f = getLocalFileFromNativePathOrUrl(aDownload.getAttribute("file"));
 
-  if (f.exists()) 
+  if (f.exists())
     f.remove(false);
 }
 
@@ -280,18 +281,18 @@ function onDownloadDblClick(aEvent)
   if (item.getAttribute("type") == "download" && aEvent.button == 0) {
     var state = parseInt(item.getAttribute("state"));
     switch (state) {
-      case Ci.nsIDownloadManager.DOWNLOAD_FINISHED:
+      case nsIDM.DOWNLOAD_FINISHED:
         gDownloadViewController.doCommand("cmd_open");
         break;
-      case Ci.nsIDownloadManager.DOWNLOAD_DOWNLOADING:  
+      case nsIDM.DOWNLOAD_DOWNLOADING:
         gDownloadViewController.doCommand("cmd_pause");
         break;
-      case Ci.nsIDownloadManager.DOWNLOAD_PAUSED:
+      case nsIDM.DOWNLOAD_PAUSED:
         gDownloadViewController.doCommand("cmd_resume");
         break;
-      case Ci.nsIDownloadManager.DOWNLOAD_CANCELED:
-      case Ci.nsIDownloadManager.DOWNLOAD_BLOCKED:
-      case Ci.nsIDownloadManager.DOWNLOAD_FAILED:
+      case nsIDM.DOWNLOAD_CANCELED:
+      case nsIDM.DOWNLOAD_BLOCKED:
+      case nsIDM.DOWNLOAD_FAILED:
         gDownloadViewController.doCommand("cmd_retry");
         break;
     }
@@ -322,10 +323,10 @@ function openDownload(aDownload)
       var checkbox = { value: false };
       var open = promptSvc.confirmCheck(window, title, message, dontAsk, checkbox);
 
-      if (!open) 
+      if (!open)
         return;
       pref.setBoolPref(PREF_BDM_ALERTONEXEOPEN, !checkbox.value);
-    }       
+    }
   }
   try {
     f.launch();
@@ -351,7 +352,7 @@ function showDownloadInfo(aDownload)
 
   
   var dts = Cc["@mozilla.org/intl/scriptabledateformat;1"].
-            getService(Ci.nsIScriptableDateFormat);  
+            getService(Ci.nsIScriptableDateFormat);
   var dateStarted = new Date(parseInt(aDownload.getAttribute("startTime")));
   dateStarted = dts.FormatDateTime("",
                                    dts.dateFormatLong,
@@ -435,7 +436,8 @@ function onUpdateProgress()
 
 
 
-function Startup() 
+
+function Startup()
 {
   gDownloadsView        = document.getElementById("downloadView");
   gDownloadsActiveArea  = document.getElementById("active-downloads-area");
@@ -469,7 +471,7 @@ function Startup()
   obs.addObserver(gDownloadObserver, "download-manager-remove-download", false);
 }
 
-function Shutdown() 
+function Shutdown()
 {
   gDownloadManager.removeListener(gDownloadListener);
 
@@ -497,6 +499,7 @@ let gDownloadObserver = {
     }
   }
 };
+
 
 
 
@@ -530,23 +533,23 @@ function buildContextMenu(aEvent)
 {
   if (aEvent.target.id != "downloadContextMenu")
     return false;
-    
+
   var popup = document.getElementById("downloadContextMenu");
   while (popup.hasChildNodes())
     popup.removeChild(popup.firstChild);
-  
+
   if (gDownloadsView.selectedItem) {
     var idx = parseInt(gDownloadsView.selectedItem.getAttribute("state"));
     if (idx < 0)
       idx = 0;
-    
+
     var menus = gContextMenus[idx];
     for (var i = 0; i < menus.length; ++i)
       popup.appendChild(document.getElementById(menus[i]).cloneNode(true));
-    
+
     return true;
   }
-  
+
   return false;
 }
 
@@ -559,7 +562,7 @@ var gDownloadDNDObserver =
   {
     aDragSession.canDrop = true;
   },
-  
+
   onDrop: function(aEvent, aXferData, aDragSession)
   {
     var split = aXferData.data.split("\n");
@@ -569,7 +572,7 @@ var gDownloadDNDObserver =
       saveURL(url, name, null, true, true);
     }
   },
-  _flavourSet: null,  
+  _flavourSet: null,
   getSupportedFlavours: function ()
   {
     if (!this._flavourSet) {
@@ -591,12 +594,12 @@ var gDownloadViewController = {
     return commandNode && commandNode.parentNode ==
                             document.getElementById("downloadsCommands");
   },
-  
+
   isCommandEnabled: function(aCommand)
   {
     if (!window.gDownloadsView)
       return false;
-    
+
     
     switch (aCommand) {
       case "cmd_clearList":
@@ -630,28 +633,28 @@ var gDownloadViewController = {
     }
     return false;
   },
-  
+
   doCommand: function(aCommand)
   {
     if (this.isCommandEnabled(aCommand))
       this.commands[aCommand](gDownloadsView.selectedItem);
-  },  
-  
+  },
+
   onCommandUpdate: function ()
   {
     var downloadsCommands = document.getElementById("downloadsCommands");
     for (var i = 0; i < downloadsCommands.childNodes.length; ++i)
       this.updateCommand(downloadsCommands.childNodes[i]);
   },
-  
-  updateCommand: function (command) 
+
+  updateCommand: function (command)
   {
     if (this.isCommandEnabled(command.id))
       command.removeAttribute("disabled");
     else
       command.setAttribute("disabled", "true");
   },
-  
+
   commands: {
     cmd_cancel: function(aSelectedItem) {
       cancelDownload(aSelectedItem);
@@ -730,8 +733,8 @@ function updateStatus(aItem, aDownload) {
 
   let state = Number(aItem.getAttribute("state"));
   switch (state) {
-    case Ci.nsIDownloadManager.DOWNLOAD_PAUSED:
-    case Ci.nsIDownloadManager.DOWNLOAD_DOWNLOADING:
+    case nsIDM.DOWNLOAD_PAUSED:
+    case nsIDM.DOWNLOAD_DOWNLOADING:
       let currBytes = Number(aItem.getAttribute("currBytes"));
       let maxBytes = Number(aItem.getAttribute("maxBytes"));
 
@@ -751,7 +754,7 @@ function updateStatus(aItem, aDownload) {
         transfer = replaceInsert(transfer, 3, total);
         transfer = replaceInsert(transfer, 4, totalUnits);
 
-        if (state == Ci.nsIDownloadManager.DOWNLOAD_PAUSED) {
+        if (state == nsIDM.DOWNLOAD_PAUSED) {
           status = replaceInsert(gStr.paused, 1, transfer);
 
           
@@ -922,9 +925,9 @@ function buildDownloadList(aStmt, aRef)
     let id = aStmt.getInt64(0);
     let state = aStmt.getInt32(4);
     let percentComplete = 100;
-    if (state == Ci.nsIDownloadManager.DOWNLOAD_NOTSTARTED ||
-        state == Ci.nsIDownloadManager.DOWNLOAD_DOWNLOADING ||
-        state == Ci.nsIDownloadManager.DOWNLOAD_PAUSED) {
+    if (state == nsIDM.DOWNLOAD_NOTSTARTED ||
+        state == nsIDM.DOWNLOAD_DOWNLOADING ||
+        state == nsIDM.DOWNLOAD_PAUSED) {
       
       
       
@@ -964,11 +967,11 @@ function buildActiveDownloadsList()
   }
 
   try {
-    stmt.bindInt32Parameter(0, Ci.nsIDownloadManager.DOWNLOAD_NOTSTARTED);
-    stmt.bindInt32Parameter(1, Ci.nsIDownloadManager.DOWNLOAD_DOWNLOADING);
-    stmt.bindInt32Parameter(2, Ci.nsIDownloadManager.DOWNLOAD_PAUSED);
-    stmt.bindInt32Parameter(3, Ci.nsIDownloadManager.DOWNLOAD_QUEUED);
-    stmt.bindInt32Parameter(4, Ci.nsIDownloadManager.DOWNLOAD_SCANNING);
+    stmt.bindInt32Parameter(0, nsIDM.DOWNLOAD_NOTSTARTED);
+    stmt.bindInt32Parameter(1, nsIDM.DOWNLOAD_DOWNLOADING);
+    stmt.bindInt32Parameter(2, nsIDM.DOWNLOAD_PAUSED);
+    stmt.bindInt32Parameter(3, nsIDM.DOWNLOAD_QUEUED);
+    stmt.bindInt32Parameter(4, nsIDM.DOWNLOAD_SCANNING);
     buildDownloadList(stmt, gDownloadsActiveArea);
   } finally {
     stmt.reset();
@@ -995,10 +998,10 @@ function buildDownloadListWithTime(aTime)
 
   try {
     stmt.bindInt64Parameter(0, aTime * 1000);
-    stmt.bindInt32Parameter(1, Ci.nsIDownloadManager.DOWNLOAD_FINISHED);
-    stmt.bindInt32Parameter(2, Ci.nsIDownloadManager.DOWNLOAD_FAILED);
-    stmt.bindInt32Parameter(3, Ci.nsIDownloadManager.DOWNLOAD_CANCELED);
-    stmt.bindInt32Parameter(4, Ci.nsIDownloadManager.DOWNLOAD_BLOCKED);
+    stmt.bindInt32Parameter(1, nsIDM.DOWNLOAD_FINISHED);
+    stmt.bindInt32Parameter(2, nsIDM.DOWNLOAD_FAILED);
+    stmt.bindInt32Parameter(3, nsIDM.DOWNLOAD_CANCELED);
+    stmt.bindInt32Parameter(4, nsIDM.DOWNLOAD_BLOCKED);
     buildDownloadList(stmt, gDownloadsDoneArea);
   } finally {
     stmt.reset();
@@ -1034,8 +1037,8 @@ function buildDownloadListWithSearch(aTerms)
   try {
     var paramForLike = stmt.escapeStringForLIKE(aTerms, '/');
     stmt.bindStringParameter(0, "%" + paramForLike + "%");
-    stmt.bindInt32Parameter(1, Ci.nsIDownloadManager.DOWNLOAD_DOWNLOADING);
-    stmt.bindInt32Parameter(2, Ci.nsIDownloadManager.DOWNLOAD_PAUSED);
+    stmt.bindInt32Parameter(1, nsIDM.DOWNLOAD_DOWNLOADING);
+    stmt.bindInt32Parameter(2, nsIDM.DOWNLOAD_PAUSED);
     buildDownloadList(stmt, gDownloadsDoneArea);
   } finally {
     stmt.reset();
@@ -1086,4 +1089,3 @@ function getLocalFileFromNativePathOrUrl(aPathOrUrl)
     return f;
   }
 }
-
