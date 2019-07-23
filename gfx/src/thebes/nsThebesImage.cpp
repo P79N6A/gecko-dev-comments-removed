@@ -424,6 +424,10 @@ nsThebesImage::Draw(nsIRenderingContext &aContext,
     }
 
     
+    if (srcRect.IsEmpty() || destRect.IsEmpty())
+        return NS_OK;
+
+    
     if (!AllowedImageSize(destRect.size.width + 1, destRect.size.height + 1))
         return NS_ERROR_FAILURE;
 
@@ -438,8 +442,16 @@ nsThebesImage::Draw(nsIRenderingContext &aContext,
     {
         gfxIntSize dim(NS_lroundf(destRect.size.width),
                        NS_lroundf(destRect.size.height));
+
+        
+        if (dim.width == 0 || dim.height == 0)
+            return NS_OK;
+
         nsRefPtr<gfxASurface> temp =
             gfxPlatform::GetPlatform()->CreateOffscreenSurface (dim,  mFormat);
+        if (!temp || temp->CairoStatus() != 0)
+            return NS_ERROR_FAILURE;
+
         gfxContext tempctx(temp);
 
         gfxPattern srcpat(ThebesSurface());
