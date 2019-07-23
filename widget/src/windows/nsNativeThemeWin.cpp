@@ -1547,6 +1547,13 @@ nsNativeThemeWin::GetMinimumWidgetSize(nsIRenderingContext* aContext, nsIFrame* 
                  
                  
 
+  
+  
+  
+  if (aWidgetType == NS_THEME_BUTTON &&
+      aFrame->GetContent()->IsNodeOfType(nsINode::eHTML))
+    sizeReq = 0; 
+
   SIZE sz;
   getThemePartSize(theme, hdc, part, state, NULL, sizeReq, &sz);
   aResult->width = sz.cx;
