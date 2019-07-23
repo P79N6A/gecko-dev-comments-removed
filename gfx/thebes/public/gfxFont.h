@@ -312,7 +312,6 @@ public:
         RunMetrics() {
             mAdvanceWidth = mAscent = mDescent = 0.0;
             mBoundingBox = gfxRect(0,0,0,0);
-            mClusterCount = 0;
         }
 
         void CombineWith(const RunMetrics& aOtherOnRight) {
@@ -321,7 +320,6 @@ public:
             mBoundingBox =
                 mBoundingBox.Union(aOtherOnRight.mBoundingBox + gfxPoint(mAdvanceWidth, 0));
             mAdvanceWidth += aOtherOnRight.mAdvanceWidth;
-            mClusterCount += aOtherOnRight.mClusterCount;
         }
 
         
@@ -341,10 +339,6 @@ public:
         
         
         gfxRect  mBoundingBox;
-        
-        
-        
-        PRInt32  mClusterCount;
     };
 
     
@@ -520,6 +514,11 @@ public:
 
     virtual ~gfxTextRunFactory() {}
 };
+
+
+
+
+
 
 
 
@@ -1098,6 +1097,22 @@ public:
 
     nsExpirationState *GetExpirationState() { return &mExpirationState; }
 
+    struct LigatureData {
+        
+        PRUint32 mLigatureStart;
+        PRUint32 mLigatureEnd;
+        
+        
+        gfxFloat mPartAdvance;
+        
+        
+        
+        gfxFloat mPartWidth;
+        
+        PRPackedBool mPartIsStartOfLigature;
+        PRPackedBool mPartIsEndOfLigature;
+    };
+
 private:
     
 
@@ -1107,34 +1122,36 @@ private:
     
     PRInt32 ComputeClusterAdvance(PRUint32 aClusterOffset);
 
+    void GetAdjustedSpacing(PRUint32 aStart, PRUint32 aEnd,
+                            PropertyProvider *aProvider, PropertyProvider::Spacing *aSpacing);
+    
+    
+    
+    
+    PRBool GetAdjustedSpacingArray(PRUint32 aStart, PRUint32 aEnd,
+                                   PropertyProvider *aProvider,
+                                   PRUint32 aSpacingStart, PRUint32 aSpacingEnd,
+                                   nsTArray<PropertyProvider::Spacing> *aSpacing);
+
     
     
     
 
-    struct LigatureData {
-        PRUint32 mStartOffset;
-        PRUint32 mEndOffset;
-        PRUint32 mClusterCount;
-        PRUint32 mPartClusterIndex;
-        PRInt32  mLigatureWidth;  
-        gfxFloat mBeforeSpacing;  
-        gfxFloat mAfterSpacing;   
-    };
     
-    LigatureData ComputeLigatureData(PRUint32 aPartOffset, PropertyProvider *aProvider);
-    void GetAdjustedSpacing(PRUint32 aStart, PRUint32 aEnd,
-                            PropertyProvider *aProvider, PropertyProvider::Spacing *aSpacing);
-    PRBool GetAdjustedSpacingArray(PRUint32 aStart, PRUint32 aEnd,
-                                   PropertyProvider *aProvider,
-                                   nsTArray<PropertyProvider::Spacing> *aSpacing);
-    void DrawPartialLigature(gfxFont *aFont, gfxContext *aCtx, PRUint32 aOffset,
-                             const gfxRect *aDirtyRect, gfxPoint *aPt,
+    LigatureData ComputeLigatureData(PRUint32 aPartStart, PRUint32 aPartEnd,
+                                     PropertyProvider *aProvider);
+    gfxFloat ComputePartialLigatureWidth(PRUint32 aPartStart, PRUint32 aPartEnd,
+                                         PropertyProvider *aProvider);
+    void DrawPartialLigature(gfxFont *aFont, gfxContext *aCtx, PRUint32 aStart,
+                             PRUint32 aEnd, const gfxRect *aDirtyRect, gfxPoint *aPt,
                              PropertyProvider *aProvider);
+    
+    
     void ShrinkToLigatureBoundaries(PRUint32 *aStart, PRUint32 *aEnd);
     
     gfxFloat GetPartialLigatureWidth(PRUint32 aStart, PRUint32 aEnd, PropertyProvider *aProvider);
     void AccumulatePartialLigatureMetrics(gfxFont *aFont,
-                                          PRUint32 aOffset, PRBool aTight,
+                                          PRUint32 aStart, PRUint32 aEnd, PRBool aTight,
                                           PropertyProvider *aProvider,
                                           Metrics *aMetrics);
 
@@ -1142,12 +1159,14 @@ private:
     void AccumulateMetricsForRun(gfxFont *aFont, PRUint32 aStart,
                                  PRUint32 aEnd, PRBool aTight,
                                  PropertyProvider *aProvider,
+                                 PRUint32 aSpacingStart, PRUint32 aSpacingEnd,
                                  Metrics *aMetrics);
 
     
     void DrawGlyphs(gfxFont *aFont, gfxContext *aContext, PRBool aDrawToPath,
                     gfxPoint *aPt, PRUint32 aStart, PRUint32 aEnd,
-                    PropertyProvider *aProvider);
+                    PropertyProvider *aProvider,
+                    PRUint32 aSpacingStart, PRUint32 aSpacingEnd);
 
     
     nsAutoArrayPtr<CompressedGlyph>                mCharacterGlyphs;
