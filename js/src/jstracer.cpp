@@ -11389,14 +11389,19 @@ TraceRecorder::record_JSOP_BINDNAME()
         }
     }
 
-    
+    if (obj != globalObj) {
+        if (OBJ_GET_CLASS(cx, obj) != &js_CallClass)
+            ABORT_TRACE("Can only trace JSOP_BINDNAME with global or call object");
+
+        
 
 
 
 
-
-    if (obj != globalObj && OBJ_GET_CLASS(cx, obj) != &js_CallClass)
-        ABORT_TRACE("Can only trace JSOP_BINDNAME with global or call object");
+        JS_ASSERT(obj == cx->fp->scopeChain);
+        stack(0, stobj_get_parent(get(&cx->fp->argv[-2])));
+        return JSRS_CONTINUE;
+    }
 
     
 
