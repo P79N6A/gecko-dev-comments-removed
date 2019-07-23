@@ -55,26 +55,10 @@ NS_IMPL_CI_INTERFACE_GETTER2(XPCVariant, XPCVariant, nsIVariant)
 NS_IMPL_CYCLE_COLLECTING_ADDREF(XPCVariant)
 NS_IMPL_CYCLE_COLLECTING_RELEASE(XPCVariant)
 
-XPCVariant::XPCVariant(XPCCallContext& ccx, jsval aJSVal)
+XPCVariant::XPCVariant(jsval aJSVal)
     : mJSVal(aJSVal)
 {
     nsVariant::Initialize(&mData);
-    if(!JSVAL_IS_PRIMITIVE(mJSVal))
-    {
-        
-        
-        
-
-        JSObject* proto;
-        XPCWrappedNative* wn =
-            XPCWrappedNative::GetWrappedNativeOfJSObject(ccx,
-                                                         JSVAL_TO_OBJECT(mJSVal),
-                                                         nsnull,
-                                                         &proto);
-        mReturnRawObject = !wn && !proto;
-    }
-    else
-        mReturnRawObject = JS_FALSE;
 }
 
 XPCTraceableVariant::~XPCTraceableVariant()
@@ -135,9 +119,9 @@ XPCVariant* XPCVariant::newVariant(XPCCallContext& ccx, jsval aJSVal)
     XPCVariant* variant;
 
     if(!JSVAL_IS_TRACEABLE(aJSVal))
-        variant = new XPCVariant(ccx, aJSVal);
+        variant = new XPCVariant(aJSVal);
     else
-        variant = new XPCTraceableVariant(ccx, aJSVal);
+        variant = new XPCTraceableVariant(ccx.GetRuntime(), aJSVal);
 
     if(!variant)
         return nsnull;
@@ -417,15 +401,6 @@ XPCVariant::VariantDataToJS(XPCCallContext& ccx,
             return JS_TRUE;
         }
 
-        if(xpcvariant->mReturnRawObject)
-        {
-            NS_ASSERTION(type == nsIDataType::VTYPE_INTERFACE ||
-                         type == nsIDataType::VTYPE_INTERFACE_IS,
-                         "Weird variant");
-            *pJSVal = realVal;
-            return JS_TRUE;
-        }
-
         
         
         
@@ -666,10 +641,40 @@ VARIANT_DONE:
     }
     else
     {
-        success = XPCConvert::NativeData2JS(ccx, pJSVal,
-                                            (const void*)&xpctvar.val,
-                                            xpctvar.type,
-                                            &iid, scope, pErr);
+        
+        
+        
+        *pJSVal = JSVAL_VOID;
+        if(type == nsIDataType::VTYPE_INTERFACE ||
+           type == nsIDataType::VTYPE_INTERFACE_IS)
+        {
+            nsISupports *src = reinterpret_cast<nsISupports *>(xpctvar.val.p);
+            if(nsXPCWrappedJSClass::IsWrappedJS(src))
+            {
+                
+                nsCOMPtr<nsISupports> wrapper;
+                nsresult rv = src->QueryInterface(iid, getter_AddRefs(wrapper));
+                NS_ENSURE_SUCCESS(rv, JS_FALSE);
+
+                
+                nsCOMPtr<nsIXPConnectJSObjectHolder> holder =
+                    do_QueryInterface(wrapper);
+                NS_ENSURE_TRUE(holder, JS_FALSE);
+
+                JSObject *obj;
+                holder->GetJSObject(&obj);
+                NS_ASSERTION(obj, "No JS object but the QIs above succeeded?");
+                *pJSVal = OBJECT_TO_JSVAL(obj);
+                success = JS_TRUE;
+            }
+        }
+        if(!JSVAL_IS_OBJECT(*pJSVal))
+        {
+            success = XPCConvert::NativeData2JS(ccx, pJSVal,
+                                                (const void*)&xpctvar.val,
+                                                xpctvar.type,
+                                                &iid, scope, pErr);
+        }
     }
 
     if(xpctvar.IsValAllocated())
