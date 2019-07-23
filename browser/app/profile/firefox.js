@@ -553,7 +553,7 @@ pref("browser.EULA.2.accepted", true);
 
 pref("browser.EULA.version", 2);
 
-pref("browser.sessionstore.enabled", true);
+pref("browser.sessionstore.enabled", false);
 pref("browser.sessionstore.resume_from_crash", true);
 pref("browser.sessionstore.resume_session_once", false);
  
