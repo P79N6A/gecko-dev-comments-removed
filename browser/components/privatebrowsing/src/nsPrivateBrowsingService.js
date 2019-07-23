@@ -35,12 +35,33 @@
 #
 # ***** END LICENSE BLOCK *****
 
+Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
+
+
+
+
+String.prototype.endsWith = function endsWith(aString)
+{
+  let index = this.indexOf(aString);
+  
+  if (index == -1)
+    return false;
+
+  
+  
+  return index == (this.length - aString.length);
+}
+
+
+
+
 const Cc = Components.classes;
 const Ci = Components.interfaces;
 const Cu = Components.utils;
 const Cr = Components.results;
 
-Cu.import("resource://gre/modules/XPCOMUtils.jsm");
+
+
 
 function PrivateBrowsingService() {
   this._obs.addObserver(this, "profile-after-change", true);
@@ -283,6 +304,138 @@ PrivateBrowsingService.prototype = {
 
   get autoStarted PBS_get_autoStarted() {
     return this._autoStarted;
+  },
+
+  removeDataFromDomain: function PBS_removeDataFromDomain(aDomain)
+  {
+    
+    let (bh = Cc["@mozilla.org/browser/global-history;2"].
+              getService(Ci.nsIBrowserHistory)) {
+      bh.removePagesFromHost(aDomain, true);
+    }
+
+    
+    let (cs = Cc["@mozilla.org/network/cache-service;1"].
+              getService(Ci.nsICacheService)) {
+      
+      
+      cs.evictEntries(Ci.nsICache.STORE_ANYWHERE);
+    }
+
+    
+    let (cm = Cc["@mozilla.org/cookiemanager;1"].
+              getService(Ci.nsICookieManager)) {
+      let enumerator = cm.enumerator;
+      while (enumerator.hasMoreElements()) {
+        let cookie = enumerator.getNext().QueryInterface(Ci.nsICookie);
+        if (cookie.host.endsWith(aDomain))
+          cm.remove(cookie.host, cookie.name, cookie.path, false);
+      }
+    }
+
+    
+    let (dm = Cc["@mozilla.org/download-manager;1"].
+              getService(Ci.nsIDownloadManager)) {
+      
+      let enumerator = dm.activeDownloads;
+      while (enumerator.hasMoreElements()) {
+        let dl = enumerator.getNext().QueryInterface(Ci.nsIDownload);
+        if (dl.source.host.endsWith(aDomain)) {
+          dm.cancelDownload(dl.id);
+          dm.removeDownload(dl.id);
+        }
+      }
+
+      
+      let db = dm.DBConnection;
+      
+      
+      
+      let stmt = db.createStatement(
+        "DELETE FROM moz_downloads " +
+        "WHERE source LIKE ?1 ESCAPE '/' " +
+        "AND state NOT IN (?2, ?3, ?4)"
+      );
+      let pattern = stmt.escapeStringForLIKE(aDomain, "/");
+      stmt.bindStringParameter(0, "%" + pattern + "%");
+      stmt.bindInt32Parameter(1, Ci.nsIDownloadManager.DOWNLOAD_DOWNLOADING);
+      stmt.bindInt32Parameter(2, Ci.nsIDownloadManager.DOWNLOAD_PAUSED);
+      stmt.bindInt32Parameter(3, Ci.nsIDownloadManager.DOWNLOAD_QUEUED);
+      try {
+        stmt.execute();
+      }
+      finally {
+        stmt.finalize();
+      }
+
+      
+      
+      let os = Cc["@mozilla.org/observer-service;1"].
+               getService(Ci.nsIObserverService);
+      os.notifyObservers(null, "download-manager-remove-download", null);
+    }
+
+    
+    let (lm = Cc["@mozilla.org/login-manager;1"].
+              getService(Ci.nsILoginManager)) {
+      
+      let logins = lm.getAllLogins({});
+      for (let i = 0; i < logins.length; i++)
+        if (logins[i].hostname.endsWith(aDomain))
+          lm.removeLogin(logins[i]);
+
+      
+      let disabledHosts = lm.getAllDisabledHosts({});
+      for (let i = 0; i < disabledHosts.length; i++)
+        if (disabledHosts[i].endsWith(aDomain))
+          lm.setLoginSavingEnabled(disabledHosts, true);
+    }
+
+    
+    let (pm = Cc["@mozilla.org/permissionmanager;1"].
+              getService(Ci.nsIPermissionManager)) {
+      
+      let enumerator = pm.enumerator;
+      while (enumerator.hasMoreElements()) {
+        let perm = enumerator.getNext().QueryInterface(Ci.nsIPermission);
+        if (perm.host.endsWith(aDomain))
+          pm.remove(perm.host, perm.type);
+      }
+    }
+
+    
+    let (cp = Cc["@mozilla.org/content-pref/service;1"].
+              getService(Ci.nsIContentPrefService)) {
+      let db = cp.DBConnection;
+      
+      let names = [];
+      let stmt = db.createStatement(
+        "SELECT name " +
+        "FROM groups " +
+        "WHERE name LIKE ?1 ESCAPE '/'"
+      );
+      let pattern = stmt.escapeStringForLIKE(aDomain, "/");
+      stmt.bindStringParameter(0, "%" + pattern);
+      try {
+        while (stmt.executeStep())
+          names.push(stmt.getString(0));
+      }
+      finally {
+        stmt.finalize();
+      }
+
+      
+      for (let i = 0; i < names.length; i++) {
+        
+        
+        let uri = { host: names[i]};
+        let enumerator = cp.getPrefs(uri).enumerator;
+        while (enumerator.hasMoreElements()) {
+          let pref = enumerator.getNext().QueryInterface(Ci.nsIProperty);
+          cp.removePref(uri, pref.name);
+        }
+      }
+    }
   }
 };
 
