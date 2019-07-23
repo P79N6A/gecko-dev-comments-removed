@@ -283,6 +283,9 @@ nsFTPDirListingConv::DigestBufferLines(char *aBuffer, nsCString &aString) {
     char *eol;
     PRBool cr = PR_FALSE;
 
+    list_state state;
+    state.magic = 0;
+
     
     while ( line && (eol = PL_strchr(line, nsCRT::LF)) ) {
         
@@ -295,7 +298,6 @@ nsFTPDirListingConv::DigestBufferLines(char *aBuffer, nsCString &aString) {
             cr = PR_FALSE;
         }
 
-        list_state state;
         list_result result;
 
         int type = ParseFTPList(line, &state, &result );
