@@ -137,7 +137,8 @@ namespace nanojit
         verbose_only ( const char* _name; )
 
         uint32_t _count_args(uint32_t mask) const;
-        uint32_t get_sizes(ArgSize*) const;
+        
+        uint32_t get_sizes(ArgSize* sizes) const;
 
         inline ArgSize returnType() const {
             return ArgSize(_argtypes & ARGSIZE_MASK_ANY);
@@ -188,11 +189,13 @@ namespace nanojit
     
     extern const uint8_t repKinds[];
 
-    enum LTy {
-        LTy_Void,        
-        LTy_I32,         
-        LTy_I64,         
-        LTy_F64          
+    enum LTy {          
+        LTy_Void = 0,   
+        LTy_I32  = 1,   
+        LTy_I64  = 2,   
+        LTy_F64  = 3,   
+
+        LTy_Ptr  = PTR_SIZE(LTy_I32, LTy_I64)   
     };
 
     
@@ -428,7 +431,7 @@ namespace nanojit
         inline void     setSize(int32_t nbytes);
 
         
-        inline LIns*    arg(uint32_t i)         const;
+        inline LIns*    arg(uint32_t i)         const;  
         inline uint32_t argc()                  const;
         inline LIns*    callArgN(uint32_t n)    const;
         inline const CallInfo* callInfo()       const;
@@ -504,7 +507,10 @@ namespace nanojit
             return opcode() == o;
         }
         bool isCond() const {
-            return (isop(LIR_ov)) || isCmp();
+            return isop(LIR_ov) || isCmp();
+        }
+        bool isOverflowable() const {
+            return isop(LIR_neg) || isop(LIR_add) || isop(LIR_sub) || isop(LIR_mul);
         }
         bool isCmp() const {
             LOpcode op = opcode();
@@ -556,17 +562,20 @@ namespace nanojit
             return isop(LIR_jt) || isop(LIR_jf) || isop(LIR_j) || isop(LIR_jtbl);
         }
 
+        LTy retType() const {
+            return retTypes[opcode()];
+        }
         bool isVoid() const {
-            return retTypes[opcode()] == LTy_Void;
+            return retType() == LTy_Void;
         }
         bool isI32() const {
-            return retTypes[opcode()] == LTy_I32;
+            return retType() == LTy_I32;
         }
         bool isI64() const {
-            return retTypes[opcode()] == LTy_I64;
+            return retType() == LTy_I64;
         }
         bool isF64() const {
-            return retTypes[opcode()] == LTy_F64;
+            return retType() == LTy_F64;
         }
         bool isQuad() const {
             return isI64() || isF64();
@@ -784,6 +793,7 @@ namespace nanojit
         LIns* getLIns() { return &ins; };
     };
 
+    
     
     
     class LInsJtbl
@@ -1509,7 +1519,6 @@ namespace nanojit
 
     class StackFilter: public LirFilter
     {
-        LirBuffer *lirbuf;
         LInsp sp;
         LInsp rp;
         BitSet spStk;
@@ -1519,7 +1528,7 @@ namespace nanojit
         void getTops(LInsp br, int& spTop, int& rpTop);
 
     public:
-        StackFilter(LirFilter *in, Allocator& alloc, LirBuffer *lirbuf, LInsp sp, LInsp rp);
+        StackFilter(LirFilter *in, Allocator& alloc, LInsp sp, LInsp rp);
         bool ignoreStore(LInsp ins, int top, BitSet* stk);
         LInsp read();
     };
@@ -1556,15 +1565,61 @@ namespace nanojit
     };
 
 #ifdef DEBUG
-    class SanityFilter : public LirWriter
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    class ValidateWriter : public LirWriter
     {
+    private:
+        const char* _whereInPipeline;
+
+        const char* type2string(LTy type);
+        void typeCheckArgs(LOpcode op, int nArgs, LTy formals[], LIns* args[]);
+        void errorStructureShouldBe(LOpcode op, const char* argDesc, int argN, LIns* arg,
+                                    const char* shouldBeDesc);
+        void errorPlatformShouldBe(LOpcode op, int nBits);
+        void checkLInsHasOpcode(LOpcode op, int argN, LIns* ins, LOpcode op2);
+        void checkLInsIsACondOrConst(LOpcode op, int argN, LIns* ins);
+        void checkLInsIsNull(LOpcode op, int argN, LIns* ins);
+        void checkLInsIsOverflowable(LOpcode op, int argN, LIns* ins);
+        void checkIs32BitPlatform(LOpcode op);
+        void checkIs64BitPlatform(LOpcode op);
+        void checkOprnd1ImmediatelyPrecedes(LIns* ins);
+
     public:
-        SanityFilter(LirWriter* out) : LirWriter(out)
-        { }
+        ValidateWriter(LirWriter* out, const char* stageName);
+        LIns* insLoad(LOpcode op, LIns* base, int32_t d);
+        LIns* insStore(LOpcode op, LIns* value, LIns* base, int32_t d);
+        LIns* ins0(LOpcode v);
+        LIns* ins1(LOpcode v, LIns* a);
+        LIns* ins2(LOpcode v, LIns* a, LIns* b);
+        LIns* ins3(LOpcode v, LIns* a, LIns* b, LIns* c);
+        LIns* insParam(int32_t arg, int32_t kind);
+        LIns* insImm(int32_t imm);
+        LIns* insImmq(uint64_t imm);
+        LIns* insImmf(double d);
+        LIns* insCall(const CallInfo *call, LIns* args[]);
+        LIns* insGuard(LOpcode v, LIns *c, GuardRecord *gr);
+        LIns* insBranch(LOpcode v, LIns* condition, LIns* to);
+        LIns* insAlloc(int32_t size);
+        LIns* insJtbl(LIns* index, uint32_t size);
+    };
+
+    
+    
+    class ValidateReader: public LirFilter {
     public:
-        LIns* ins1(LOpcode v, LIns* s0);
-        LIns* ins2(LOpcode v, LIns* s0, LIns* s1);
-        LIns* ins3(LOpcode v, LIns* s0, LIns* s1, LIns* s2);
+        ValidateReader(LirFilter* in);
+        LIns* read();
     };
 #endif
 
