@@ -855,6 +855,11 @@ var gEditItemOverlay = {
 
   onFolderTreeSelect: function EIO_onFolderTreeSelect() {
     var selectedNode = this._folderTree.selectedNode;
+
+    
+    this._element("newFolderButton")
+        .disabled = !this._folderTree.insertionPoint || !selectedNode;
+
     if (!selectedNode)
       return;
 
@@ -971,11 +976,10 @@ var gEditItemOverlay = {
     var ip = this._folderTree.insertionPoint;
 
     
-    if (!ip ||
-        ip.itemId == PlacesUIUtils.allBookmarksFolderId ||
-        ip.itemId == PlacesUIUtils.unfiledBookmarksFolderId) {
-      ip.itemId = PlacesUtils.bookmarksMenuFolderId;
-      ip.index = -1;
+    if (!ip || ip.itemId == PlacesUIUtils.allBookmarksFolderId) {
+        ip = new InsertionPoint(PlacesUtils.bookmarksMenuFolderId,
+                                PlacesUtils.bookmarks.DEFAULT_INDEX,
+                                Ci.nsITreeView.DROP_ON);
     }
 
     
