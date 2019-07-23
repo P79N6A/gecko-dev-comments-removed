@@ -107,7 +107,7 @@ public:
 
 
 
-  virtual void ClearForm(PRBool aRemoveFromForm, PRBoqol aNotify) = 0;
+  virtual void ClearForm(PRBool aRemoveFromForm, PRBool aNotify) = 0;
 
   
 
