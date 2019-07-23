@@ -81,27 +81,22 @@
 
 
 
-static nsresult EnsureNSSInitialized(PRBool triggeredByNSSComponent)
+static void EnsureNSSInitialized(PRBool triggeredByNSSComponent)
 {
   static PRBool haveLoaded = PR_FALSE;
   if (haveLoaded)
-    return NS_OK;
+    return;
 
+  haveLoaded = PR_TRUE;
+  
   if (triggeredByNSSComponent) {
     
     
-    return NS_OK;
+    return;
   }
-
-  nsresult rv;
+  
   nsCOMPtr<nsISupports> nssComponent 
-    = do_GetService(PSM_COMPONENT_CONTRACTID, &rv);
-
-  if (NS_FAILED(rv))
-    return rv;
-
-  haveLoaded = PR_TRUE;
-  return NS_OK;
+    = do_GetService(PSM_COMPONENT_CONTRACTID);
 }
 
 
@@ -115,9 +110,7 @@ _InstanceClass##Constructor(nsISupports *aOuter, REFNSIID aIID,               \
     nsresult rv;                                                              \
     _InstanceClass * inst;                                                    \
                                                                               \
-    rv = EnsureNSSInitialized(triggeredByNSSComponent);                       \
-    if (NS_FAILED(rv))                                                        \
-        return rv;                                                            \
+    EnsureNSSInitialized(triggeredByNSSComponent);                            \
                                                                               \
     *aResult = NULL;                                                          \
     if (NULL != aOuter) {                                                     \
@@ -147,9 +140,7 @@ _InstanceClass##Constructor(nsISupports *aOuter, REFNSIID aIID,               \
     nsresult rv;                                                              \
     _InstanceClass * inst;                                                    \
                                                                               \
-    rv = EnsureNSSInitialized(triggeredByNSSComponent);                       \
-    if (NS_FAILED(rv))                                                        \
-        return rv;                                                            \
+    EnsureNSSInitialized(triggeredByNSSComponent);                            \
                                                                               \
     *aResult = NULL;                                                          \
     if (NULL != aOuter) {                                                     \
