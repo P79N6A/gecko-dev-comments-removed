@@ -178,6 +178,11 @@ function run_test() {
   do_check_true(beforeSetTitle >= beforeInsert);
 
   
+  
+  bmsvc.setItemLastModified(newId, --lastModified);
+  bmsvc.setItemDateAdded(newId, --dateAdded);
+
+  
   bmsvc.setItemTitle(newId, "Google");
   do_check_eq(observer._itemChangedId, newId);
   do_check_eq(observer._itemChangedProperty, "title");
@@ -194,10 +199,8 @@ function run_test() {
   LOG("beforeSetTitle = " + beforeSetTitle);
   LOG("lastModified = " + lastModified);
   LOG("lastModified2 = " + lastModified2);
-  
-  
-  
-  
+  do_check_true(lastModified2 > lastModified);
+  do_check_true(lastModified2 > dateAdded);
 
   
   var title = bmsvc.getItemTitle(newId);
@@ -371,6 +374,11 @@ function run_test() {
     var lastModified = bmsvc.getItemLastModified(kwTestItemId);
     do_check_eq(lastModified, dateAdded);
 
+    
+    
+    bmsvc.setItemLastModified(kwTestItemId, --lastModified);
+    bmsvc.setItemDateAdded(kwTestItemId, --dateAdded);
+
     bmsvc.setKeywordForBookmark(kwTestItemId, "bar");
 
     var lastModified2 = bmsvc.getItemLastModified(kwTestItemId);
@@ -378,9 +386,8 @@ function run_test() {
     LOG("dateAdded = " + dateAdded);
     LOG("lastModified = " + lastModified);
     LOG("lastModified2 = " + lastModified2);
-    
-    
-    
+    do_check_true(lastModified2 > lastModified);
+    do_check_true(lastModified2 > dateAdded);
   } catch(ex) {
     do_throw("setKeywordForBookmark: " + ex);
   }
@@ -494,6 +501,11 @@ function run_test() {
   var lastModified = bmsvc.getItemLastModified(newId10);
   do_check_eq(lastModified, dateAdded);
 
+  
+  
+  bmsvc.setItemLastModified(newId10, --lastModified);
+  bmsvc.setItemDateAdded(newId10, --dateAdded);
+
   bmsvc.changeBookmarkURI(newId10, uri("http://foo11.com/"));
 
   
@@ -502,9 +514,8 @@ function run_test() {
   LOG("dateAdded = " + dateAdded);
   LOG("lastModified = " + lastModified);
   LOG("lastModified2 = " + lastModified2);
-  
-  
-  
+  do_check_true(lastModified2 > lastModified);
+  do_check_true(lastModified2 > dateAdded);
 
   do_check_eq(observer._itemChangedId, newId10);
   do_check_eq(observer._itemChangedProperty, "uri");
@@ -656,36 +667,32 @@ function run_test() {
 
 function testSimpleFolderResult() {
   
-  var beforeCreate = Date.now() * 1000;
+  
+  var beforeCreate = Date.now() * 1000 - 1;
   do_check_true(beforeCreate > 0);
 
   
   var parent = bmsvc.createFolder(root, "test", bmsvc.DEFAULT_INDEX);
 
   var dateCreated = bmsvc.getItemDateAdded(parent);
-  do_check_true(dateCreated > 0);
-  
   LOG("check that the folder was created with a valid dateAdded");
   LOG("beforeCreate = " + beforeCreate);
   LOG("dateCreated = " + dateCreated);
-  
-  
+  do_check_true(dateCreated > beforeCreate);
 
   
-  var beforeInsert = Date.now() * 1000;
+  
+  var beforeInsert = Date.now() * 1000 - 1;
   do_check_true(beforeInsert > 0);
 
   
   var sep = bmsvc.insertSeparator(parent, bmsvc.DEFAULT_INDEX);
 
   var dateAdded = bmsvc.getItemDateAdded(sep);
-  do_check_true(dateAdded > 0);
-  
   LOG("check that the separator was created with a valid dateAdded");
   LOG("beforeInsert = " + beforeInsert);
   LOG("dateAdded = " + dateAdded);
-  
-  
+  do_check_true(dateAdded > beforeInsert);
 
   
   var item = bmsvc.insertBookmark(parent, uri("about:blank"),
