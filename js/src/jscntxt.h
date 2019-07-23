@@ -250,6 +250,9 @@ struct JSThreadData {
     
     JSPropertyCache     propertyCache;
 
+    
+    int64               rngSeed;
+
 #ifdef JS_TRACER
     
     JSTraceMonitor      traceMonitor;
@@ -455,14 +458,6 @@ struct JSRuntime {
 
 
     JSSetSlotRequest    *setSlotRequests;
-
-    
-    JSBool              rngInitialized;
-    int64               rngMultiplier;
-    int64               rngAddend;
-    int64               rngMask;
-    int64               rngSeed;
-    jsdouble            rngDscale;
 
     
     jsdouble            *jsNaN;
