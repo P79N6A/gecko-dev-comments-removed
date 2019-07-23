@@ -186,6 +186,20 @@ js_NumberToString(JSContext *cx, jsdouble d);
 
 
 
+char *
+js_IntToCString(jsint i, char *buf, size_t bufSize);
+
+
+
+
+
+char *
+js_NumberToCString(JSContext *cx, jsdouble d, char *buf, size_t bufSize);
+
+
+
+
+
 extern JSBool
 js_ValueToNumber(JSContext *cx, jsval v, jsdouble *dp);
 
