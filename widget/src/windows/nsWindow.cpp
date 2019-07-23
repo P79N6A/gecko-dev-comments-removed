@@ -6487,6 +6487,30 @@ nsWindow::OnIMESelectionChange(void)
 #ifdef ACCESSIBILITY
 already_AddRefed<nsIAccessible> nsWindow::GetRootAccessible()
 {
+  
+  
+  
+  
+  
+  
+  
+  static int accForceDisable = -1;
+
+  if (accForceDisable == -1) {
+    nsCOMPtr<nsIPrefBranch> prefs = do_GetService(NS_PREFSERVICE_CONTRACTID);
+    PRBool b = PR_FALSE;
+    nsresult rv = prefs->GetBoolPref("accessibility.win32.force_disabled", &b);
+    if (NS_SUCCEEDED(rv) && b) {
+      accForceDisable = 1;
+    } else {
+      accForceDisable = 0;
+    }
+  }
+
+  
+  if (accForceDisable)
+      return nsnull;
+
   nsWindow::sIsAccessibilityOn = TRUE;
 
   if (mInDtor || mOnDestroyCalled || mWindowType == eWindowType_invisible) {

@@ -192,6 +192,10 @@ pref("accessibility.tabfocus_applies_to_xul", false);
 
 
 
+pref("accessibility.win32.force_disabled", false);
+
+
+
 pref("ui.scrollToClick", 0);
 
 #else
