@@ -92,11 +92,6 @@
 #include "nsIWindowWatcher.h"
 #include "nsCommaSeparatedTokenizer.h"
 
-
-
-#include <nsIApplicationCache.h>
-#include <nsIApplicationCacheChannel.h>
-
 #define LOAD_STR "load"
 #define ERROR_STR "error"
 #define ABORT_STR "abort"
@@ -2338,33 +2333,6 @@ nsXMLHttpRequest::OnStopRequest(nsIRequest *request, nsISupports *ctxt, nsresult
     
     
     Error(nsnull);
-
-    {
-      
-      
-
-      
-      
-      nsCOMPtr<nsIApplicationCacheChannel> appCacheChannel =
-        do_QueryInterface(request);
-      nsCOMPtr<nsIApplicationCache> appCache;
-      if (appCacheChannel) {
-        appCacheChannel->GetApplicationCache(getter_AddRefs(appCache));
-      }
-
-      nsCAutoString spec;
-      nsCOMPtr<nsIURI> uri;
-      channel->GetURI(getter_AddRefs(uri));
-      if (uri) {
-        uri->GetSpec(spec);
-      }
-
-      nsCOMPtr<nsIApplicationCacheContainer> container;
-      NS_QueryNotificationCallbacks(channel, container);
-
-      printf("(Bug 471227): XHR failed for %s: status: %x, appcache: %p, doc: %p\n",
-             spec.get(), status, appCache.get(), container.get());
-    }
 
     
     
