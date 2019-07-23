@@ -57,16 +57,37 @@
 
 
 
+class FontEntry;
+class FontFamily
+{
+public:
+    THEBES_INLINE_DECL_REFCOUNTING(FontFamily)
+
+    FontFamily(const nsAString& aName) :
+        mName(aName)
+    {
+    }
+
+    nsTArray<nsRefPtr<FontEntry> > mVariations;
+    nsString mName;
+};
+
+
+
 class FontEntry
 {
 public:
     THEBES_INLINE_DECL_REFCOUNTING(FontEntry)
 
-    FontEntry(const nsAString& aName) : 
-        mName(aName), mDefaultWeight(0),
-        mUnicodeFont(PR_FALSE), mSymbolFont(PR_FALSE), mIsType1(PR_FALSE),
+    FontEntry(FontFamily *aFontFamily) : 
+        mFamily(aFontFamily), mUnicodeFont(PR_FALSE), mSymbolFont(PR_FALSE),
+        mTrueType(PR_FALSE), mIsType1(PR_FALSE),
         mIsBadUnderlineFont(PR_FALSE), mCharset(0), mUnicodeRanges(0)
     {
+    }
+
+    const nsString& GetName() const {
+        return mFamily->mName;
     }
 
     PRBool IsCrappyFont() const {
@@ -80,18 +101,18 @@ public:
 
         
         
-        if (mFamily == FF_ROMAN && mPitch & FIXED_PITCH) {
+        if (mWindowsFamily == FF_ROMAN && mWindowsPitch & FIXED_PITCH) {
             return aGeneric.EqualsLiteral("monospace");
         }
 
         
         
-        if (mFamily == FF_MODERN && mPitch & VARIABLE_PITCH) {
+        if (mWindowsFamily == FF_MODERN && mWindowsPitch & VARIABLE_PITCH) {
             return aGeneric.EqualsLiteral("sans-serif");
         }
 
         
-        switch (mFamily) {
+        switch (mWindowsFamily) {
         case FF_DONTCARE:
             return PR_TRUE;
         case FF_ROMAN:
@@ -158,51 +179,28 @@ public:
         return mUnicodeRanges[range];
     }
 
-    class WeightTable
-    {
-    public:
-        THEBES_INLINE_DECL_REFCOUNTING(WeightTable)
-            
-        WeightTable() : mWeights(0) {}
-        ~WeightTable() {}
-        PRBool TriedWeight(PRUint8 aWeight) {
-            return mWeights[aWeight - 1 + 10];
-        }
-        PRBool HasWeight(PRUint8 aWeight) {
-            return mWeights[aWeight - 1];
-        }
-        void SetWeight(PRUint8 aWeight, PRBool aValue) {
-            mWeights[aWeight - 1] = aValue;
-            mWeights[aWeight - 1 + 10] = PR_TRUE;
-        }
-    private:
-        std::bitset<20> mWeights;
-    };
-
     
     PRBool IsBadUnderlineFont() { return mIsBadUnderlineFont != 0; }
 
     
-    nsString mName;
+    FontFamily *mFamily;
 
-    PRUint16 mDefaultWeight;
-
-    PRUint8 mFamily;
-    PRUint8 mPitch;
+    PRUint8 mWindowsFamily;
+    PRUint8 mWindowsPitch;
 
     PRPackedBool mUnicodeFont;
     PRPackedBool mSymbolFont;
+    PRPackedBool mTrueType;
     PRPackedBool mIsType1;
     PRPackedBool mIsBadUnderlineFont;
+    PRPackedBool mItalic;
+    PRUint16 mWeight;
 
     std::bitset<256> mCharset;
     std::bitset<128> mUnicodeRanges;
 
-    WeightTable mWeightTable;
-
     gfxSparseBitSet mCharacterMap;
 };
-
 
 
 
@@ -238,7 +236,7 @@ public:
 
 protected:
     HFONT MakeHFONT();
-    void FillLogFont(gfxFloat aSize, PRInt16 aWeight);
+    void FillLogFont(gfxFloat aSize);
 
     HFONT    mFont;
     gfxFloat mAdjustedSize;
@@ -297,6 +295,11 @@ public:
 
     virtual gfxWindowsFont *GetFontAt(PRInt32 i);
 
+    void GroupFamilyListToArrayList(nsTArray<nsRefPtr<FontEntry> > *list);
+    void FamilyListToArrayList(const nsString& aFamilies,
+                               const nsCString& aLangGroup,
+                               nsTArray<nsRefPtr<FontEntry> > *list);
+
 protected:
     void InitTextRunGDI(gfxContext *aContext, gfxTextRun *aRun, const char *aString, PRUint32 aLength);
     void InitTextRunGDI(gfxContext *aContext, gfxTextRun *aRun, const PRUnichar *aString, PRUint32 aLength);
@@ -304,6 +307,7 @@ protected:
     void InitTextRunUniscribe(gfxContext *aContext, gfxTextRun *aRun, const PRUnichar *aString, PRUint32 aLength);
 
 private:
+
     nsCString mGenericFamily;
     nsTArray<nsRefPtr<FontEntry> > mFontEntries;
 };
