@@ -44,6 +44,7 @@
 #include "nsRect.h"
 #include "nsCOMPtr.h"
 #include "nsAlgorithm.h"
+#include "nsAutoPtr.h"
 
 #undef DEBUG_TABLE_CELLMAP
 
@@ -610,7 +611,7 @@ protected:
   PRBool mIsBC;
 
   
-  nsCOMPtr<nsPresContext> mPresContext;
+  nsRefPtr<nsPresContext> mPresContext;
 };
 
 

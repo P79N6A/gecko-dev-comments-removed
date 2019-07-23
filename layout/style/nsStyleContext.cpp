@@ -554,7 +554,7 @@ void
 nsStyleContext::Destroy()
 {
   
-  nsCOMPtr<nsPresContext> presContext = mRuleNode->GetPresContext();
+  nsRefPtr<nsPresContext> presContext = mRuleNode->GetPresContext();
 
   
   this->~nsStyleContext();

@@ -392,7 +392,7 @@ nsHTMLFormElement::Submit()
 {
   
   nsresult rv = NS_OK;
-  nsCOMPtr<nsPresContext> presContext = GetPresContext();
+  nsRefPtr<nsPresContext> presContext = GetPresContext();
   if (mPendingSubmission) {
     
     

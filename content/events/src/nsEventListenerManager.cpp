@@ -1314,7 +1314,7 @@ nsEventListenerManager::DispatchEvent(nsIDOMEvent* aEvent, PRBool *_retval)
 
   
   nsIPresShell *shell = document->GetPrimaryShell();
-  nsCOMPtr<nsPresContext> context;
+  nsRefPtr<nsPresContext> context;
   if (shell) {
     context = shell->GetPresContext();
   }

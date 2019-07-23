@@ -437,7 +437,7 @@ nsXULCommandDispatcher::UpdateCommands(const nsAString& aEventName)
     if (shell) {
 
       
-      nsCOMPtr<nsPresContext> context = shell->GetPresContext();
+      nsRefPtr<nsPresContext> context = shell->GetPresContext();
 
       
       nsEventStatus status = nsEventStatus_eIgnore;

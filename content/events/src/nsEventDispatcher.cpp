@@ -507,7 +507,7 @@ nsEventDispatcher::Dispatch(nsISupports* aTarget,
 
   
   
-  nsCOMPtr<nsPresContext> kungFuDeathGrip(aPresContext);
+  nsRefPtr<nsPresContext> kungFuDeathGrip(aPresContext);
   ChainItemPool pool;
   NS_ENSURE_TRUE(pool.GetPool(), NS_ERROR_OUT_OF_MEMORY);
 

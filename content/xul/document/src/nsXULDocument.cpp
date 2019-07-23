@@ -948,7 +948,7 @@ nsXULDocument::ExecuteOnBroadcastHandlerFor(nsIContent* aBroadcaster,
         nsCOMPtr<nsIPresShell> shell = GetPrimaryShell();
         if (shell) {
 
-            nsCOMPtr<nsPresContext> aPresContext = shell->GetPresContext();
+            nsRefPtr<nsPresContext> aPresContext = shell->GetPresContext();
 
             
             nsEventStatus status = nsEventStatus_eIgnore;
