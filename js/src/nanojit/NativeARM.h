@@ -229,6 +229,7 @@ verbose_only( extern const char* shiftNames[]; )
     int *       _nSlot;                                                         \
     int *       _startingSlot;                                                  \
     int *       _nExitSlot;                                                     \
+    bool        blx_lr_bug;                                                     \
     int         max_out_args; /* bytes */                                      
 
 

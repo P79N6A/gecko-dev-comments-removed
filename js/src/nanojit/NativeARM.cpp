@@ -452,6 +452,11 @@ Assembler::asm_eor_imm(Register rd, Register rn, int32_t imm, int stat )
 void
 Assembler::nInit(AvmCore*)
 {
+#ifdef UNDER_CE
+    blx_lr_bug = blx_lr_broken();
+#else
+    blx_lr_bug = 0;
+#endif
 }
 
 void Assembler::nBeginAssembly()
@@ -802,26 +807,10 @@ Assembler::asm_stkarg(LInsp arg, int stkd)
 void
 Assembler::asm_call(LInsp ins)
 {
-    CallInfo const *    call = ins->callInfo();
+    const CallInfo*     call = ins->callInfo();
     ArgSize             sizes[MAXARGS];
     uint32_t            argc = call->get_sizes(sizes);
-
-    
-    
-    
-    Register            indirect_reg = UnknownReg;
-#if 0   
-    
-    
-    if (call->isIndirect()) {
-        
-        
-        
-        RegisterMask    allow = SavedRegs & GpRegs;
-        indirect_reg = findRegFor(ins->arg(--argc), allow);
-        NanoAssert(indirect_reg != UnknownReg);
-    }
-#endif
+    bool indirect = call->isIndirect();
 
     
     
@@ -831,7 +820,7 @@ Assembler::asm_call(LInsp ins)
     
     
     
-    if(ARM_VFP) {
+    if (ARM_VFP) {
         
         ArgSize         rsize = (ArgSize)(call->_argtypes & ARGSIZE_MASK_ANY);
 
@@ -867,18 +856,32 @@ Assembler::asm_call(LInsp ins)
     }
 
     
-    if (indirect_reg == UnknownReg) {
+    if (!indirect) {
         verbose_only(if (_logc->lcbits & LC_Assembly)
             outputf("        %p:", _nIns);
         )
 
         
         
-        BranchWithLink((NIns*)(call->_address));
+        
+        
+        
+        BranchWithLink((NIns*)call->_address);
     } else {
         
         
-        BLX(indirect_reg);
+        
+        
+        
+        if (blx_lr_bug) {
+            
+            underrunProtect(8);
+            BLX(IP);
+            MOV(IP,LR);
+        } else {
+            BLX(LR);
+        }
+        asm_regarg(ARGSIZE_LO, ins->arg(--argc), LR);
     }
 
     
