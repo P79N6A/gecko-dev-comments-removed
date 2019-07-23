@@ -143,6 +143,7 @@ nsAbsoluteContainingBlock::Reflow(nsContainerFrame*        aDelegatingFrame,
                                   nsReflowStatus&          aReflowStatus,
                                   nscoord                  aContainingBlockWidth,
                                   nscoord                  aContainingBlockHeight,
+                                  PRBool                   aConstrainHeight,
                                   PRBool                   aCBWidthChanged,
                                   PRBool                   aCBHeightChanged,
                                   nsRect*                  aChildBounds)
@@ -164,7 +165,7 @@ nsAbsoluteContainingBlock::Reflow(nsContainerFrame*        aDelegatingFrame,
       nsReflowStatus  kidStatus = NS_FRAME_COMPLETE;
       ReflowAbsoluteFrame(aDelegatingFrame, aPresContext, aReflowState,
                           aContainingBlockWidth, aContainingBlockHeight,
-                          kidFrame, kidStatus, aChildBounds);
+                          aConstrainHeight, kidFrame, kidStatus, aChildBounds);
       nsIFrame* nextFrame = kidFrame->GetNextInFlow();
       if (!NS_FRAME_IS_FULLY_COMPLETE(kidStatus)) {
         
@@ -358,6 +359,7 @@ nsAbsoluteContainingBlock::ReflowAbsoluteFrame(nsIFrame*                aDelegat
                                                const nsHTMLReflowState& aReflowState,
                                                nscoord                  aContainingBlockWidth,
                                                nscoord                  aContainingBlockHeight,
+                                               PRBool                   aConstrainHeight,
                                                nsIFrame*                aKidFrame,
                                                nsReflowStatus&          aStatus,
                                                nsRect*                  aChildBounds)
@@ -415,7 +417,7 @@ nsAbsoluteContainingBlock::ReflowAbsoluteFrame(nsIFrame*                aDelegat
   aKidFrame->WillReflow(aPresContext);
 
   PRBool constrainHeight = (aReflowState.availableHeight != NS_UNCONSTRAINEDSIZE)
-    && (nsGkAtoms::fixedList != GetChildListName())
+    && aConstrainHeight
        
     && (aDelegatingFrame->GetType() != nsGkAtoms::positionedInlineFrame)
        

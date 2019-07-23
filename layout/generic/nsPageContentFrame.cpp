@@ -149,7 +149,7 @@ nsPageContentFrame::Reflow(nsPresContext*           aPresContext,
   mFixedContainer.Reflow(this, aPresContext, aReflowState, aStatus,
                          aReflowState.availableWidth,
                          aReflowState.availableHeight,
-                         PR_TRUE, PR_TRUE); 
+                         PR_FALSE, PR_TRUE, PR_TRUE); 
 
   
   aDesiredSize.width = aReflowState.availableWidth;
