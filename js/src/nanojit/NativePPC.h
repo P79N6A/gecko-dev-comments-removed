@@ -226,6 +226,8 @@ namespace nanojit
         PPC_srawi   = 0x7C000670, 
         PPC_srd     = 0x7C000436, 
         PPC_srw     = 0x7C000430, 
+        PPC_stb     = 0x98000000, 
+        PPC_stbx    = 0x7C0001AE, 
         PPC_std     = 0xF8000000, 
         PPC_stdu    = 0xF8000001, 
         PPC_stdux   = 0x7C00016A, 
@@ -437,7 +439,7 @@ namespace nanojit
     #define MFCTR(r) MFSPR(r, ctr)
 
     #define MEMd(op, r, d, a) do {\
-        NanoAssert(isS16(d) && (d&3)==0);\
+        NanoAssert(isS16(d));\
         EMIT1(PPC_##op | GPR(r)<<21 | GPR(a)<<16 | uint16_t(d), "%s %s,%d(%s)", #op, gpn(r), int16_t(d), gpn(a));\
         } while(0) /* no addr */
 
@@ -463,11 +465,17 @@ namespace nanojit
     #define LWZX(r, a, b) MEMx(lwzx, r, a, b)
     #define LDX(r,  a, b) MEMx(ldx,  r, a, b)
 
+    
     #define STW(r,  d, b)     MEMd(stw,    r, d, b)
     #define STWU(r, d, b)     MEMd(stwu,   r, d, b)
     #define STWX(s, a, b)     MEMx(stwx,   s, a, b)
     #define STWUX(s, a, b)    MEMux(stwux, s, a, b)
 
+    
+    #define STB(r,  d, b)     MEMd(stb,    r, d, b)
+    #define STBX(s, a, b)     MEMx(stbx,   s, a, b)
+
+    
     #define STD(r,  d, b)     MEMd(std,    r, d, b)
     #define STDU(r, d, b)     MEMd(stdu,   r, d, b)
     #define STDX(s, a, b)     MEMx(stdx,   s, a, b)
