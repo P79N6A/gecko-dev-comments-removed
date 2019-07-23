@@ -1206,7 +1206,7 @@ nsObjectLoadingContent::LoadObject(nsIURI* aURI,
 
     
     
-    if (!aTypeHint.IsEmpty()) {
+    if (!aTypeHint.IsEmpty() && GetTypeOfContent(aTypeHint) == eType_Null) {
       UpdateFallbackState(thisContent, fallback, aTypeHint);
     }
 
