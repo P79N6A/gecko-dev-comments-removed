@@ -122,7 +122,7 @@ struct JSXML {
     } u;
 };
 
-JS_STATIC_ASSERT(JS_ROUNDUP(sizeof(JSXML), sizeof(JSGCThing)) == sizeof(JSXML));
+JS_STATIC_ASSERT(sizeof(JSXML) % JSVAL_ALIGN == 0);
 
 
 #define xml_kids        u.list.kids
