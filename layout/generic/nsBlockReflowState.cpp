@@ -142,21 +142,10 @@ nsBlockReflowState::nsBlockReflowState(const nsHTMLReflowState& aReflowState,
   mMinLineHeight = aReflowState.CalcLineHeight();
 }
 
-void
-nsBlockReflowState::SetupOverflowPlaceholdersProperty()
-{
-  if (mReflowState.availableHeight != NS_UNCONSTRAINEDSIZE ||
-      !mOverflowPlaceholders.IsEmpty()) {
-    mBlock->SetProperty(nsGkAtoms::overflowPlaceholdersProperty,
-                        &mOverflowPlaceholders, nsnull);
-    mBlock->AddStateBits(NS_BLOCK_HAS_OVERFLOW_PLACEHOLDERS);
-  }
-}
-
 nsBlockReflowState::~nsBlockReflowState()
 {
-  NS_ASSERTION(mOverflowPlaceholders.IsEmpty(),
-               "Leaking overflow placeholder frames");
+  NS_ASSERTION(mFloatContinuations.IsEmpty(),
+               "Leaking float continuation frames");
 
   
   
@@ -165,9 +154,8 @@ nsBlockReflowState::~nsBlockReflowState()
     mFloatManager->Translate(-borderPadding.left, -borderPadding.top);
   }
 
-  if (mBlock->GetStateBits() & NS_BLOCK_HAS_OVERFLOW_PLACEHOLDERS) {
-    mBlock->UnsetProperty(nsGkAtoms::overflowPlaceholdersProperty);
-    mBlock->RemoveStateBits(NS_BLOCK_HAS_OVERFLOW_PLACEHOLDERS);
+  if (GetFlag(BRS_PROPTABLE_FLOATCLIST)) {
+    mBlock->UnsetProperty(nsGkAtoms::floatContinuationProperty);
   }
 }
 
@@ -438,6 +426,16 @@ nsBlockReflowState::ReconstructMarginAbove(nsLineList::iterator aLine)
   }
 }
 
+void
+nsBlockReflowState::SetupFloatContinuationList()
+{
+  if (!GetFlag(BRS_PROPTABLE_FLOATCLIST)) {
+    mBlock->SetProperty(nsGkAtoms::floatContinuationProperty,
+                        &mFloatContinuations, nsnull);
+    SetFlag(BRS_PROPTABLE_FLOATCLIST, PR_TRUE);
+  }
+}
+
 
 
 
@@ -480,38 +478,7 @@ nsBlockReflowState::RecoverFloats(nsLineList::iterator aLine,
       fc = fc->Next();
     }
   } else if (aLine->IsBlock()) {
-    nsBlockFrame *kid = nsLayoutUtils::GetAsBlock(aLine->mFirstChild);
-    
-    
-    
-    if (kid && !nsBlockFrame::BlockNeedsFloatManager(kid)) {
-      nscoord tx = kid->mRect.x, ty = kid->mRect.y;
-
-      
-      
-      
-      if (NS_STYLE_POSITION_RELATIVE == kid->GetStyleDisplay()->mPosition) {
-        nsPoint *offsets = static_cast<nsPoint*>
-                                      (mPresContext->PropertyTable()->GetProperty(kid,
-                                       nsGkAtoms::computedOffsetProperty));
-
-        if (offsets) {
-          tx -= offsets->x;
-          ty -= offsets->y;
-        }
-      }
- 
-      mFloatManager->Translate(tx, ty);
-      for (nsBlockFrame::line_iterator line = kid->begin_lines(),
-                                   line_end = kid->end_lines();
-           line != line_end;
-           ++line)
-        
-        
-        
-        RecoverFloats(line, 0);
-      mFloatManager->Translate(-tx, -ty);
-    }
+    nsBlockFrame::RecoverFloatsFor(aLine->mFirstChild, *mFloatManager);
   }
 }
 
@@ -565,12 +532,12 @@ nsBlockReflowState::RecoverStateFrom(nsLineList::iterator aLine,
 
 
 PRBool
-nsBlockReflowState::AddFloat(nsLineLayout&       aLineLayout,
+nsBlockReflowState::AddFloat(nsLineLayout*       aLineLayout,
                              nsIFrame*           aFloat,
                              nscoord             aAvailableWidth,
                              nsReflowStatus&     aReflowStatus)
 {
-  NS_PRECONDITION(mBlock->end_lines() != mCurrentLine, "null ptr");
+  NS_PRECONDITION(!aLineLayout || mBlock->end_lines() != mCurrentLine, "null ptr");
   NS_PRECONDITION(aFloat->GetStateBits() & NS_FRAME_OUT_OF_FLOW,
                   "aFloat must be an out-of-flow frame");
 
@@ -578,9 +545,6 @@ nsBlockReflowState::AddFloat(nsLineLayout&       aLineLayout,
   aFloat->SetParent(mBlock);
 
   aReflowStatus = NS_FRAME_COMPLETE;
-  
-  nsFloatCache* fc = mFloatCacheFreeList.Alloc();
-  fc->mFloat = aFloat;
 
   
   
@@ -601,14 +565,16 @@ nsBlockReflowState::AddFloat(nsLineLayout&       aLineLayout,
   
   
   nsRect floatAvailableSpace = GetFloatAvailableSpace().mRect;
-  if (mBelowCurrentLineFloats.IsEmpty() &&
-      (aLineLayout.LineIsEmpty() ||
-       mBlock->ComputeFloatWidth(*this, floatAvailableSpace, aFloat) <=
-         aAvailableWidth)) {
+  if (!aLineLayout ||
+      (mBelowCurrentLineFloats.IsEmpty() &&
+       (aLineLayout->LineIsEmpty() ||
+        mBlock->ComputeFloatWidth(*this, floatAvailableSpace, aFloat)
+        <= aAvailableWidth))) {
     
     
     
-    PRBool forceFit = IsAdjacentWithTop() && !aLineLayout.LineIsBreakable();
+    PRBool forceFit = !aLineLayout ||
+                      (IsAdjacentWithTop() && !aLineLayout->LineIsBreakable());
     placed = FlowAndPlaceFloat(aFloat, aReflowStatus, forceFit);
     NS_ASSERTION(placed || !forceFit,
                  "If we asked for force-fit, it should have been placed");
@@ -619,10 +585,11 @@ nsBlockReflowState::AddFloat(nsLineLayout&       aLineLayout,
       nsRect availSpace(nsPoint(floatAvailSpace.mRect.x + BorderPadding().left,
                                 mY),
                         floatAvailSpace.mRect.Size());
-      aLineLayout.UpdateBand(availSpace, aFloat);
-
-      
-      mCurrentLineFloats.Append(fc);
+      if (aLineLayout) {
+        aLineLayout->UpdateBand(availSpace, aFloat);
+        
+        mCurrentLineFloats.Append(mFloatCacheFreeList.Alloc(aFloat));
+      }
       
       
       aReflowStatus &= ~NS_FRAME_TRUNCATED;
@@ -631,7 +598,7 @@ nsBlockReflowState::AddFloat(nsLineLayout&       aLineLayout,
       if (IsAdjacentWithTop()) {
         
         
-        NS_ASSERTION(aLineLayout.LineIsBreakable(),
+        NS_ASSERTION(aLineLayout->LineIsBreakable(),
                      "We can't get here unless forceFit is false");
         aReflowStatus = NS_INLINE_LINE_BREAK_BEFORE();
       } else {
@@ -639,7 +606,6 @@ nsBlockReflowState::AddFloat(nsLineLayout&       aLineLayout,
         
         aReflowStatus |= NS_FRAME_TRUNCATED;
       }
-      delete fc;
     }
   }
   else {
@@ -648,7 +614,7 @@ nsBlockReflowState::AddFloat(nsLineLayout&       aLineLayout,
     placed = PR_TRUE;
     
     
-    mBelowCurrentLineFloats.Append(fc);
+    mBelowCurrentLineFloats.Append(mFloatCacheFreeList.Alloc(aFloat));
   }
 
   
@@ -1029,8 +995,11 @@ nsBlockReflowState::PlaceBelowCurrentLineFloats(nsFloatCacheFreeList& aList, PRB
         
         return PR_FALSE;
       }
-      else if (NS_FRAME_IS_NOT_COMPLETE(reflowStatus)) {
+      else if (!NS_FRAME_IS_FULLY_COMPLETE(reflowStatus)) {
         
+        nsresult rv = mBlock->SplitFloat(*this, fc->mFloat, reflowStatus);
+        if (NS_FAILED(rv))
+          return PR_FALSE;
       } else {
         
         

@@ -936,11 +936,10 @@ nsBlockFrame::Reflow(nsPresContext*           aPresContext,
   
   
   
-  nsRect overflowContainerBounds;
+  nsRect ocBounds;
   nsReflowStatus ocStatus = NS_FRAME_COMPLETE;
   if (GetPrevInFlow()) {
-    ReflowOverflowContainerChildren(aPresContext, aReflowState,
-                                    overflowContainerBounds, 0,
+    ReflowOverflowContainerChildren(aPresContext, aReflowState, ocBounds, 0,
                                     ocStatus);
   }
 
@@ -964,8 +963,14 @@ nsBlockFrame::Reflow(nsPresContext*           aPresContext,
   
   
   DrainOverflowLines(state);
-  state.SetupOverflowPlaceholdersProperty();
- 
+  DrainFloatContinuations(state);
+
+  
+  nsRect fcBounds;
+  nsReflowStatus fcStatus = NS_FRAME_COMPLETE;
+  rv = ReflowFloatContinuations(state, fcBounds, fcStatus);
+  NS_ENSURE_SUCCESS(rv, rv);
+
   
   
   
@@ -980,10 +985,11 @@ nsBlockFrame::Reflow(nsPresContext*           aPresContext,
   if (NS_FAILED(rv)) return rv;
 
   NS_MergeReflowStatusInto(&state.mReflowStatus, ocStatus);
+  NS_MergeReflowStatusInto(&state.mReflowStatus, fcStatus);
 
   
-  
-  NS_ASSERTION(state.mOverflowPlaceholders.IsEmpty(), "Where are these coming from? XXXfr");
+  if (state.mFloatContinuations.NotEmpty())
+    mFloats.AppendFrames(nsnull, state.mFloatContinuations);
 
   if (!NS_FRAME_IS_FULLY_COMPLETE(state.mReflowStatus)) {
     if (GetOverflowLines()) {
@@ -1042,8 +1048,9 @@ nsBlockFrame::Reflow(nsPresContext*           aPresContext,
   ComputeFinalSize(aReflowState, state, aMetrics, &bottomEdgeOfChildren);
   ComputeCombinedArea(aReflowState, aMetrics, bottomEdgeOfChildren);
   
-  aMetrics.mOverflowArea.UnionRect(aMetrics.mOverflowArea,
-                                   overflowContainerBounds);
+  aMetrics.mOverflowArea.UnionRect(aMetrics.mOverflowArea, ocBounds);
+  
+  aMetrics.mOverflowArea.UnionRect(aMetrics.mOverflowArea, fcBounds);
 
   
   
@@ -3783,15 +3790,19 @@ nsBlockFrame::ReflowInlineFrame(nsBlockReflowState& aState,
     *aLineReflowStatus = LINE_REFLOW_TRUNCATED;
   }
 
-  if (NS_FRAME_IS_NOT_COMPLETE(frameReflowStatus)) {
+  if (!NS_FRAME_IS_FULLY_COMPLETE(frameReflowStatus)) {
     
     
     nsIAtom* frameType = aFrame->GetType();
 
     PRBool madeContinuation;
-    if (nsGkAtoms::placeholderFrame == frameType)
-      NS_ASSERTION(0, "float splitting unimplemented"); 
-    rv = CreateContinuationFor(aState, aLine, aFrame, madeContinuation);
+    if (nsGkAtoms::placeholderFrame == frameType) {
+      nsPlaceholderFrame* placeholder = static_cast<nsPlaceholderFrame*>(aFrame);
+      rv = SplitFloat(aState, placeholder->GetOutOfFlowFrame(), frameReflowStatus);
+    }
+    else {
+      rv = CreateContinuationFor(aState, aLine, aFrame, madeContinuation);
+    }
     NS_ENSURE_SUCCESS(rv, rv);
 
     
@@ -3848,13 +3859,20 @@ nsBlockFrame::CreateContinuationFor(nsBlockReflowState& aState,
 }
 
 nsresult
-nsBlockFrame::SplitPlaceholder(nsBlockReflowState& aState,
-                               nsIFrame*           aPlaceholder)
+nsBlockFrame::SplitFloat(nsBlockReflowState& aState,
+                         nsIFrame*           aFloat,
+                         nsReflowStatus      aFloatStatus)
 {
-  NS_PRECONDITION(0,"Unexpected call to SplitPlaceholder, replace with SplitFloat XXXfr");
   nsIFrame* nextInFlow;
-  nsresult rv = CreateNextInFlow(aState.mPresContext, this, aPlaceholder, nextInFlow);
+  nsresult rv = CreateNextInFlow(aState.mPresContext, this, aFloat, nextInFlow);
   NS_ENSURE_SUCCESS(rv, rv);
+  if (NS_FRAME_OVERFLOW_IS_INCOMPLETE(aFloatStatus))
+    aFloat->GetNextInFlow()->AddStateBits(NS_FRAME_IS_OVERFLOW_CONTAINER);
+
+  
+  NS_FRAME_SET_OVERFLOW_INCOMPLETE(aFloatStatus);
+  
+  NS_MergeReflowStatusInto(&aState.mReflowStatus, aFloatStatus);
 
   if (!nextInFlow) {
     
@@ -3862,13 +3880,12 @@ nsBlockFrame::SplitPlaceholder(nsBlockReflowState& aState,
   }
 
   
-  nsIFrame *contFrame = aPlaceholder->GetNextSibling();
+  nsIFrame *contFrame = aFloat->GetNextSibling();
   nsIFrame *next = contFrame->GetNextSibling();
-  aPlaceholder->SetNextSibling(next);
+  aFloat->SetNextSibling(next);
   contFrame->SetNextSibling(nsnull);
 
-  
-  
+  aState.AppendFloatContinuation(contFrame);
   return NS_OK;
 }
 
@@ -4346,9 +4363,6 @@ nsBlockFrame::DrainOverflowLines(nsBlockReflowState& aState)
     return PR_FALSE;
   }
 
-  NS_ASSERTION(aState.mOverflowPlaceholders.IsEmpty(),
-               "Should have no overflow placeholders yet");
-
   
   if (overflowLines) {
     if (!overflowLines->empty()) {
@@ -4381,6 +4395,65 @@ nsBlockFrame::DrainOverflowLines(nsBlockReflowState& aState)
   }
 
   return PR_TRUE;
+}
+
+
+
+
+void
+nsBlockFrame::DrainFloatContinuations(nsBlockReflowState& aState)
+{
+  
+  
+  
+  nsFrameList floatContinuations;
+  nsPresContext* presContext = PresContext();
+  for (nsIFrame* f = mFloats.FirstChild(); f; f = f->GetNextSibling()) {
+    nsIFrame* nif = f->GetNextInFlow();
+    if (!nif) continue;
+    if (nif->GetParent() == this) {
+      NS_ASSERTION(!nif->GetNextInFlow(),
+                   "Unexpected next-in-flow for float continuation");
+      StealFrame(presContext, nif);
+      floatContinuations.AppendFrame(nsnull, nif);
+    }
+  }
+  if (floatContinuations.NotEmpty()) {
+    aState.SetupFloatContinuationList();
+    aState.mFloatContinuations.AppendFrames(nsnull, floatContinuations);
+  }
+
+  
+  
+  
+  
+  nsBlockFrame* prevBlock = static_cast<nsBlockFrame*>(GetPrevInFlow());
+  if (!prevBlock)
+    return;
+  for (nsIFrame* pf = prevBlock->mFloats.FirstChild(); pf; pf = pf->GetNextSibling()) {
+    nsIFrame* nif = pf->GetNextInFlow();
+    if (!nif)
+      continue;
+    nsContainerFrame* nifParent = static_cast<nsContainerFrame*>(nif->GetParent());
+    nifParent->StealFrame(presContext, nif);
+    if (nif->GetParent() != this) {
+      NS_ASSERTION(!nif->GetNextInFlow(),
+                   "Unexpected next-in-flow for float continuation");
+      ReparentFrame(nif, nifParent, this);
+    }
+    floatContinuations.AppendFrame(this, nif);
+  }
+  if (floatContinuations.NotEmpty())
+    mFloats.InsertFrames(nsnull, nsnull, floatContinuations);
+
+#ifdef DEBUG
+  for (nsIFrame* f = mFloats.FirstChild(); f ; f = f->GetNextSibling()) {
+    for (nsIFrame* c = f->GetFirstInFlow(); c ; c = c->GetNextInFlow()) {
+      NS_ASSERTION(c == f || c->GetParent() != this || !mFloats.ContainsFrame(c),
+                   "Two floats with same parent in same floats list, expect weird errors.");
+    }
+  }
+#endif
 }
 
 nsLineList*
@@ -4476,18 +4549,6 @@ nsBlockFrame::SetOverflowOutOfFlows(const nsFrameList& aList)
                 aList.FirstChild(), nsnull);
     AddStateBits(NS_BLOCK_HAS_OVERFLOW_OUT_OF_FLOWS);
   }
-}
-
-nsFrameList*
-nsBlockFrame::GetOverflowPlaceholders() const
-{
-  if (!(GetStateBits() & NS_BLOCK_HAS_OVERFLOW_PLACEHOLDERS)) {
-    return nsnull;
-  }
-  nsFrameList* result = static_cast<nsFrameList*>
-                                   (GetProperty(nsGkAtoms::overflowPlaceholdersProperty));
-  NS_ASSERTION(result, "value should always be non-empty when state set");
-  return result;
 }
 
 
@@ -4772,11 +4833,8 @@ nsBlockFrame::RemoveFloat(nsIFrame* aFloat) {
       return line_end;
     }
   }
-  
-  
-  
-  
-  aFloat->Destroy();
+
+  NS_ERROR("Destroying float without removing from a child list.");
   return line_end;
 }
 
@@ -4890,9 +4948,10 @@ nsBlockFrame::DoRemoveOutOfFlowFrame(nsIFrame* aFrame)
   }
   else {
     
-    nsIFrame* nextInFlow = aFrame->GetNextInFlow();
-    if (nextInFlow) {
-      nsBlockFrame::DoRemoveOutOfFlowFrame(nextInFlow);
+    nsIFrame* nif = aFrame->GetNextInFlow();
+    if (nif) {
+      static_cast<nsContainerFrame*>(nif->GetParent())
+        ->DeleteNextInFlowChild(aFrame->PresContext(), nif, PR_FALSE);
     }
     
     
@@ -5094,34 +5153,22 @@ nsBlockFrame::DoRemoveFrame(nsIFrame* aDeletedFrame, PRUint32 aFlags)
   ClearLineCursor();
 
   nsPresContext* presContext = PresContext();
-  if (NS_FRAME_IS_OVERFLOW_CONTAINER & aDeletedFrame->GetStateBits()) {
-    nsIFrame* nif = aDeletedFrame->GetNextInFlow();
-    if (nif)
-      static_cast<nsContainerFrame*>(nif->GetParent())
-        ->nsContainerFrame::DeleteNextInFlowChild(presContext, nif,
-            (aFlags & FRAMES_ARE_EMPTY) != 0);
-    nsresult rv = nsContainerFrame::StealFrame(presContext, aDeletedFrame);
-    NS_ENSURE_SUCCESS(rv, rv);
-    aDeletedFrame->Destroy();
+  if (aDeletedFrame->GetStateBits() &
+      (NS_FRAME_OUT_OF_FLOW | NS_FRAME_IS_OVERFLOW_CONTAINER)) {
+    if (!aDeletedFrame->GetPrevInFlow()) {
+      NS_ASSERTION(aDeletedFrame->GetStateBits() & NS_FRAME_OUT_OF_FLOW,
+                   "Expected out-of-flow frame");
+      DoRemoveOutOfFlowFrame(aDeletedFrame);
+    }
+    else {
+      nsContainerFrame::DeleteNextInFlowChild(presContext, aDeletedFrame,
+                                              (aFlags & FRAMES_ARE_EMPTY) != 0);
+    }
     return NS_OK;
   }
 
-  if (aDeletedFrame->GetStateBits() & NS_FRAME_OUT_OF_FLOW) {
-    DoRemoveOutOfFlowFrame(aDeletedFrame);
-    return NS_OK;
-  }
-  
   nsIPresShell* presShell = presContext->PresShell();
 
-  PRBool isPlaceholder = nsGkAtoms::placeholderFrame == aDeletedFrame->GetType();
-  if (isPlaceholder) {
-    nsFrameList* overflowPlaceholders = GetOverflowPlaceholders();
-    if (overflowPlaceholders && overflowPlaceholders->RemoveFrame(aDeletedFrame)) {
-      NS_ASSERTION(!aDeletedFrame->GetNextContinuation(), "Placeholders can't have continuations.");
-      aDeletedFrame->Destroy();
-    }
-  }
-  
   
   
   nsLineList::iterator line_start = mLines.begin(),
@@ -5335,6 +5382,19 @@ nsBlockFrame::StealFrame(nsPresContext* aPresContext,
 {
   NS_PRECONDITION(aPresContext && aChild, "null pointer");
 
+  if ((aChild->GetStateBits() & NS_FRAME_OUT_OF_FLOW) &&
+      aChild->GetStyleDisplay()->IsFloating()) {
+    PRBool removed = mFloats.RemoveFrame(aChild);
+    if (!removed) {
+      nsFrameList* list = GetPropTableFrames(aPresContext,
+                                          nsGkAtoms::floatContinuationProperty);
+      if (list) {
+        removed = list->RemoveFrame(aChild);
+      }
+    }
+    return (removed) ? NS_OK : NS_ERROR_UNEXPECTED;
+  }
+
   if ((aChild->GetStateBits() & NS_FRAME_IS_OVERFLOW_CONTAINER)
       && !aForceNormal)
     return nsContainerFrame::StealFrame(aPresContext, aChild);
@@ -5408,7 +5468,8 @@ nsBlockFrame::DeleteNextInFlowChild(nsPresContext* aPresContext,
 {
   NS_PRECONDITION(aNextInFlow->GetPrevInFlow(), "bad next-in-flow");
 
-  if (NS_FRAME_IS_OVERFLOW_CONTAINER & aNextInFlow->GetStateBits()) {
+  if (aNextInFlow->GetPrevInFlow() && (aNextInFlow->GetStateBits() &
+      (NS_FRAME_OUT_OF_FLOW | NS_FRAME_IS_OVERFLOW_CONTAINER))) {
     nsContainerFrame::DeleteNextInFlowChild(aPresContext,
         aNextInFlow, aDeletingEmptyFrames);
   }
@@ -5465,7 +5526,6 @@ nsBlockFrame::AdjustFloatAvailableSpace(nsBlockReflowState& aState,
     availHeight = NS_UNCONSTRAINEDSIZE;
   }
 #endif
-  availHeight = NS_UNCONSTRAINEDSIZE; 
 
   return nsRect(aState.BorderPadding().left,
                 aState.BorderPadding().top,
@@ -5595,6 +5655,103 @@ nsBlockFrame::ReflowFloat(nsBlockReflowState& aState,
 #endif
 
   return NS_OK;
+}
+
+nsresult
+nsBlockFrame::ReflowFloatContinuations(nsBlockReflowState& aState,
+                                       nsRect&             aBounds,
+                                       nsReflowStatus&     aStatus)
+{
+  nsresult rv = NS_OK;
+  for (nsIFrame* f = mFloats.FirstChild(); f && f->GetPrevInFlow();
+       f = f->GetNextSibling()) {
+    if (NS_SUBTREE_DIRTY(f) || aState.mReflowState.ShouldReflowAllKids()) {
+      
+      nsRect oldRect = f->GetRect();
+      nsRect oldOverflow = f->GetOverflowRect();
+
+      
+      nsReflowStatus fStatus = NS_FRAME_COMPLETE;
+      aState.AddFloat(nsnull, f, aState.mContentArea.width, fStatus);
+      if (!NS_FRAME_IS_FULLY_COMPLETE(fStatus)) {
+        rv = SplitFloat(aState, f, fStatus);
+        NS_ENSURE_SUCCESS(rv, rv);
+        NS_FRAME_SET_OVERFLOW_INCOMPLETE(fStatus);
+      }
+      NS_MergeReflowStatusInto(&aStatus, fStatus);
+
+      
+      nsRect rect = f->GetRect();
+      if (rect != oldRect) {
+        nsRect dirtyRect = oldOverflow;
+        dirtyRect.MoveBy(oldRect.x, oldRect.y);
+        Invalidate(dirtyRect);
+
+        dirtyRect = f->GetOverflowRect();
+        dirtyRect.MoveBy(rect.x, rect.y);
+        Invalidate(dirtyRect);
+      }
+    }
+    else {
+      
+      nsRect region = nsFloatManager::GetRegionFor(f);
+      aState.mFloatManager->AddFloat(f, region);
+      if (f->GetNextInFlow())
+        NS_MergeReflowStatusInto(&aStatus, NS_FRAME_OVERFLOW_INCOMPLETE);
+    }
+
+    ConsiderChildOverflow(aBounds, f);
+  }
+
+  return rv;
+}
+
+void
+nsBlockFrame::RecoverFloats(nsFloatManager& aFloatManager)
+{
+  
+  nsIFrame* stop = nsnull; 
+                           
+  for (nsIFrame* f = mFloats.FirstChild(); f && f != stop; f = f->GetNextSibling()) {
+    nsRect region = nsFloatManager::GetRegionFor(f);
+    aFloatManager.AddFloat(f, region);
+    if (!stop && f->GetNextInFlow())
+      stop = f->GetNextInFlow();
+  }
+
+  
+  for (nsIFrame* oc = GetFirstChild(nsGkAtoms::overflowContainersList);
+       oc; oc = oc->GetNextSibling()) {
+    RecoverFloatsFor(oc, aFloatManager);
+  }
+
+  
+  for (nsBlockFrame::line_iterator line = begin_lines(); line != end_lines(); ++line) {
+    if (line->IsBlock()) {
+      RecoverFloatsFor(line->mFirstChild, aFloatManager);
+    }
+  }
+}
+
+void
+nsBlockFrame::RecoverFloatsFor(nsIFrame*       aFrame,
+                               nsFloatManager& aFloatManager)
+{
+  NS_PRECONDITION(aFrame, "null frame");
+  
+  nsBlockFrame* block = nsLayoutUtils::GetAsBlock(aFrame);
+  
+  
+  
+  if (block && !nsBlockFrame::BlockNeedsFloatManager(block)) {
+    
+    
+    
+    nsPoint pos = block->GetPosition() - block->GetRelativeOffset();
+    aFloatManager.Translate(pos.x, pos.y);
+    block->RecoverFloats(aFloatManager);
+    aFloatManager.Translate(-pos.x, -pos.y);
+  }
 }
 
 
@@ -5816,6 +5973,10 @@ nsBlockFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
 
   if (GetPrevInFlow()) {
     DisplayOverflowContainers(aBuilder, aDirtyRect, aLists);
+    for (nsIFrame* f = mFloats.FirstChild(); f; f = f->GetNextSibling()) {
+      if (f->GetPrevInFlow())
+         BuildDisplayListForChild(aBuilder, f, aDirtyRect, aLists);
+    }
   }
 
   aBuilder->MarkFramesForDisplayList(this, mFloats, aDirtyRect);
@@ -6449,6 +6610,8 @@ nsBlockFrame::CheckFloats(nsBlockReflowState& aState)
   PRBool equal = PR_TRUE;
   PRUint32 i = 0;
   for (nsIFrame* f = mFloats.FirstChild(); f; f = f->GetNextSibling()) {
+    if (f->GetPrevInFlow())
+      continue;
     storedFloats.AppendElement(f);
     if (i < lineFloats.Length() && lineFloats.ElementAt(i) != f) {
       equal = PR_FALSE;

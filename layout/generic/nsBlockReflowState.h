@@ -62,7 +62,9 @@
 
 #define BRS_LINE_LAYOUT_EMPTY     0x00000080
 #define BRS_ISOVERFLOWCONTAINER   0x00000100
-#define BRS_LASTFLAG              BRS_ISOVERFLOWCONTAINER
+
+#define BRS_PROPTABLE_FLOATCLIST  0x00000200
+#define BRS_LASTFLAG              BRS_PROPTABLE_FLOATCLIST
 
 class nsBlockReflowState {
 public:
@@ -74,13 +76,6 @@ public:
                      PRBool aBlockNeedsFloatManager);
 
   ~nsBlockReflowState();
-
-  
-  
-  
-  
-  
-  void SetupOverflowPlaceholdersProperty();
 
   
 
@@ -109,7 +104,9 @@ public:
 
 
 
-  PRBool AddFloat(nsLineLayout&       aLineLayout,
+
+
+  PRBool AddFloat(nsLineLayout*       aLineLayout,
                   nsIFrame*           aFloat,
                   nscoord             aAvailableWidth,
                   nsReflowStatus&     aReflowStatus);
@@ -232,10 +229,15 @@ public:
   
   
   
+  nsFrameList mFloatContinuations;
   
   
+  void SetupFloatContinuationList();
   
-  nsFrameList mOverflowPlaceholders;
+  void AppendFloatContinuation(nsIFrame* aFloatCont) {
+    SetupFloatContinuationList();
+    mFloatContinuations.AppendFrame(mBlock, aFloatCont);
+  }
 
   
   nsOverflowContinuationTracker mOverflowTracker;

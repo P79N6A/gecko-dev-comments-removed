@@ -452,7 +452,8 @@ protected:
 
 #define IS_TRUE_OVERFLOW_CONTAINER(frame)                      \
   (  (frame->GetStateBits() & NS_FRAME_IS_OVERFLOW_CONTAINER)  \
-  && !(frame->GetStateBits() & NS_FRAME_OUT_OF_FLOW)           )
+  && !( (frame->GetStateBits() & NS_FRAME_OUT_OF_FLOW) &&      \
+        frame->GetStyleDisplay()->IsAbsolutelyPositioned()  )  )
 
 
 

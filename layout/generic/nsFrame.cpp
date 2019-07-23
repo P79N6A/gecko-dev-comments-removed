@@ -5879,8 +5879,8 @@ nsFrame::DoGetParentStyleContextFrame(nsPresContext* aPresContext,
   
   
   nsIFrame* oofFrame = this;
-  if ((oofFrame->GetStateBits() & NS_FRAME_IS_OVERFLOW_CONTAINER)
-      && (oofFrame->GetStateBits() & NS_FRAME_OUT_OF_FLOW)) {
+  if ((oofFrame->GetStateBits() & NS_FRAME_OUT_OF_FLOW) &&
+      GetPrevInFlow()) {
     
     
     oofFrame = oofFrame->GetFirstInFlow();

@@ -163,7 +163,7 @@ public:
 
   
   
-  nsFloatCache* Alloc();
+  nsFloatCache* Alloc(nsIFrame* aFloat);
   
 protected:
   nsFloatCache* mTail;

@@ -115,20 +115,15 @@ class nsIntervalSet;
 
 
 
-
-
-
-
 #define NS_BLOCK_NEEDS_BIDI_RESOLUTION      0x00100000 
 #define NS_BLOCK_HAS_LINE_CURSOR            0x01000000
 #define NS_BLOCK_HAS_OVERFLOW_LINES         0x02000000
 #define NS_BLOCK_HAS_OVERFLOW_OUT_OF_FLOWS  0x04000000
-#define NS_BLOCK_HAS_OVERFLOW_PLACEHOLDERS  0x08000000
 
 
 
 
-#define NS_BLOCK_HAS_CLEAR_CHILDREN         0x10000000
+#define NS_BLOCK_HAS_CLEAR_CHILDREN         0x08000000
 
 #define nsBlockFrameSuper nsHTMLContainerFrame
 
@@ -256,7 +251,7 @@ public:
 
   virtual nsresult StealFrame(nsPresContext* aPresContext,
                               nsIFrame*      aChild,
-                              PRBool         aForceNormal);
+                              PRBool         aForceNormal = PR_FALSE);
 
   virtual void DeleteNextInFlowChild(nsPresContext* aPresContext,
                                      nsIFrame*      aNextInFlow,
@@ -276,10 +271,6 @@ public:
   nsIFrame* GetTopBlockChild(nsPresContext *aPresContext);
 
   static nsresult GetCurrentLine(nsBlockReflowState *aState, nsLineBox **aOutCurrentLine);
-
-  
-  
-  nsresult SplitPlaceholder(nsBlockReflowState& aState, nsIFrame* aPlaceholder);
 
   static PRBool BlockIsMarginRoot(nsIFrame* aBlock);
   static PRBool BlockNeedsFloatManager(nsIFrame* aBlock);
@@ -306,6 +297,17 @@ public:
     WidthToClearPastFloats(nsBlockReflowState& aState,
                            const nsRect& aFloatAvailableSpace,
                            nsIFrame* aFrame);
+
+  
+
+
+
+
+
+
+  nsresult SplitFloat(nsBlockReflowState& aState,
+                      nsIFrame*           aFloat,
+                      nsReflowStatus      aFloatStatus);
 
   
 
@@ -431,6 +433,14 @@ public:
                       nsBlockFrame* aOldParent, PRBool aFromOverflow,
                       PRBool aReparentSiblings);
 
+  
+
+
+
+
+  static void RecoverFloatsFor(nsIFrame*       aFrame,
+                               nsFloatManager& aFloatManager);
+
 protected:
 
   
@@ -438,6 +448,22 @@ protected:
 
 
   PRBool DrainOverflowLines(nsBlockReflowState& aState);
+
+  
+
+
+  void DrainFloatContinuations(nsBlockReflowState& aState);
+
+  
+
+
+  void RecoverFloats(nsFloatManager& aFloatManager);
+
+  
+
+  nsresult ReflowFloatContinuations(nsBlockReflowState& aState,
+                                    nsRect&             aBounds,
+                                    nsReflowStatus&     aStatus);
 
   
 
@@ -623,8 +649,6 @@ public:
 protected:
   nsLineList* RemoveOverflowLines();
   nsresult SetOverflowLines(nsLineList* aOverflowLines);
-
-  nsFrameList* GetOverflowPlaceholders() const;
 
   
 
