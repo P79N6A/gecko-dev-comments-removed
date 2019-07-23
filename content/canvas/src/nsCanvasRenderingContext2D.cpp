@@ -939,6 +939,10 @@ nsCanvasRenderingContext2D::InitializeWithSurface(nsIDocShell *docShell, gfxASur
 
     mThebes->NewPath();
 
+    
+    
+    Redraw();
+
     return NS_OK;
 }
 
