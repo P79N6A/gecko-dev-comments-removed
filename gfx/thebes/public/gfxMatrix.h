@@ -41,6 +41,7 @@
 #include "gfxPoint.h"
 #include "gfxTypes.h"
 #include "gfxRect.h"
+#include "gfxUtils.h"
 
 
 
@@ -179,8 +180,8 @@ public:
 
 
     bool HasNonTranslation() const {
-        return ((xx != 1.0) || (yy != 1.0) ||
-                (xy != 0.0) || (yx != 0.0));
+        return !gfxUtils::FuzzyEqual(xx, 1.0) || !gfxUtils::FuzzyEqual(yy, 1.0) ||
+               !gfxUtils::FuzzyEqual(xy, 0.0) || !gfxUtils::FuzzyEqual(yx, 0.0);
     }
 
     
@@ -188,8 +189,9 @@ public:
 
 
     bool HasNonTranslationOrFlip() const {
-        return ((xx != 1.0) || ((yy != 1.0) && (yy != -1.0)) ||
-                (xy != 0.0) || (yx != 0.0));
+        return !gfxUtils::FuzzyEqual(xx, 1.0) ||
+               (!gfxUtils::FuzzyEqual(yy, 1.0) && !gfxUtils::FuzzyEqual(yy, -1.0)) ||
+               !gfxUtils::FuzzyEqual(xy, 0.0) || !gfxUtils::FuzzyEqual(yx, 0.0);
     }
 
     
@@ -198,7 +200,7 @@ public:
 
 
     bool HasNonAxisAlignedTransform() const {
-        return ((xy != 0.0) || (yx != 0.0));
+        return !gfxUtils::FuzzyEqual(xy, 0.0) || !gfxUtils::FuzzyEqual(yx, 0.0);
     }
 
     
