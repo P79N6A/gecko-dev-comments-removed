@@ -730,24 +730,22 @@ nsListControlFrame::ReflowAsDropdown(nsPresContext*           aPresContext,
     
     
     
-    nscoord screenHeightInPixels = 0;
-    if (NS_SUCCEEDED(nsFormControlFrame::GetScreenHeight(aPresContext, screenHeightInPixels))) {
-      nscoord screenHeight = aPresContext->DevPixelsToAppUnits(screenHeightInPixels);
-      
-      nscoord availDropHgt = (screenHeight / 2) - (heightOfARow*2); 
-      availDropHgt -= aReflowState.mComputedBorderPadding.top + aReflowState.mComputedBorderPadding.bottom;
-      
-      nscoord hgt = visibleHeight + aReflowState.mComputedBorderPadding.top + aReflowState.mComputedBorderPadding.bottom;
-      if (heightOfARow > 0) {
-        if (hgt > availDropHgt) {
-          visibleHeight = (availDropHgt / heightOfARow) * heightOfARow;
-        }
-        mNumDisplayRows = visibleHeight / heightOfARow;
-      } else {
-        
-        visibleHeight   = 1;
-        mNumDisplayRows = 1;
+    nsRect screen = nsFormControlFrame::GetUsableScreenRect(aPresContext);
+    nscoord screenHeight = screen.height;
+
+    nscoord availDropHgt = (screenHeight / 2) - (heightOfARow*2); 
+    availDropHgt -= aReflowState.mComputedBorderPadding.top + aReflowState.mComputedBorderPadding.bottom;
+
+    nscoord hgt = visibleHeight + aReflowState.mComputedBorderPadding.top + aReflowState.mComputedBorderPadding.bottom;
+    if (heightOfARow > 0) {
+      if (hgt > availDropHgt) {
+        visibleHeight = (availDropHgt / heightOfARow) * heightOfARow;
       }
+      mNumDisplayRows = visibleHeight / heightOfARow;
+    } else {
+      
+      visibleHeight   = 1;
+      mNumDisplayRows = 1;
     }
 
     state.SetComputedHeight(mNumDisplayRows * heightOfARow);

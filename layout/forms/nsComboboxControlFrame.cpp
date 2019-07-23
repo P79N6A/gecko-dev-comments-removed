@@ -504,19 +504,14 @@ nsComboboxControlFrame::AbsolutelyPositionDropDown()
    
    
   nscoord dropdownYOffset = GetRect().height;
-  nsPresContext* presContext = PresContext();
-
   nsSize dropdownSize = mDropdownFrame->GetSize();
 
-  nscoord screenHeightInPixels = 0;
-  if (NS_SUCCEEDED(nsFormControlFrame::GetScreenHeight(presContext, screenHeightInPixels))) {
+  nsRect screen = nsFormControlFrame::GetUsableScreenRect(PresContext());
+
+  
+  if (GetScreenRectInAppUnits().YMost() + dropdownSize.height > screen.YMost()) {
     
-    nscoord absoluteDropDownHeight = presContext->AppUnitsToDevPixels(dropdownSize.height);
-    
-    if (GetScreenRect().YMost() + absoluteDropDownHeight > screenHeightInPixels) {
-      
-      dropdownYOffset = - (dropdownSize.height);
-    }
+    dropdownYOffset = - (dropdownSize.height);
   }
 
   nsPoint dropdownPosition;

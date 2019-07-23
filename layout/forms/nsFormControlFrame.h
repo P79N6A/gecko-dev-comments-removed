@@ -103,7 +103,7 @@ public:
 
 
 
-  static nsresult GetScreenHeight(nsPresContext* aPresContext, nscoord& aHeight);
+  static nsRect GetUsableScreenRect(nsPresContext* aPresContext);
 
 protected:
 
