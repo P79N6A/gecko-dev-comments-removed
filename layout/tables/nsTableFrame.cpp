@@ -6385,7 +6385,8 @@ nsTableFrame::PaintBCBorders(nsIRenderingContext& aRenderingContext,
 
   PRInt32 startRowY = (GetPrevInFlow()) ? 0 : childAreaOffset.top; 
 
-  const nsStyleBackground* bgColor = nsCSSRendering::FindNonTransparentBackground(mStyleContext);
+  nsStyleContext* bgContext = nsCSSRendering::FindNonTransparentBackground(mStyleContext);
+  const nsStyleBackground* bgColor = bgContext->GetStyleBackground();
   
   PRUint32 startRowIndex, endRowIndex, startColIndex, endColIndex;
   startRowIndex = endRowIndex = startColIndex = endColIndex = 0;

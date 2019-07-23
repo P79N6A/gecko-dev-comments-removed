@@ -130,7 +130,10 @@ struct nsCSSRendering {
 
 
 
-  static const nsStyleBackground*
+
+
+
+  static nsStyleContext*
   FindNonTransparentBackground(nsStyleContext* aContext,
                                PRBool aStartAtParent = PR_FALSE);
 
