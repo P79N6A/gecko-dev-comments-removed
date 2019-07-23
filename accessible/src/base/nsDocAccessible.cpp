@@ -1507,14 +1507,22 @@ NS_IMETHODIMP nsDocAccessible::FlushPendingEvents()
     accessibleEvent->GetEventType(&eventType);
     if (eventType == nsIAccessibleEvent::EVENT_DOM_CREATE || 
         eventType == nsIAccessibleEvent::EVENT_ASYNCH_SHOW) {
+      nsCOMPtr<nsIDOMNode> domNode;
+      accessibleEvent->GetDOMNode(getter_AddRefs(domNode));
       nsCOMPtr<nsIAccessible> containerAccessible;
-      if (accessible && eventType == nsIAccessibleEvent::EVENT_ASYNCH_SHOW) {
+      if (eventType == nsIAccessibleEvent::EVENT_ASYNCH_SHOW) {
+        if (accessible) {
+          
+          accessible->GetParent(getter_AddRefs(containerAccessible));
+          nsCOMPtr<nsPIAccessible> privateContainerAccessible =
+            do_QueryInterface(containerAccessible);
+          if (privateContainerAccessible)
+            privateContainerAccessible->InvalidateChildren();
+        }
         
-        accessible->GetParent(getter_AddRefs(containerAccessible));
-        nsCOMPtr<nsPIAccessible> privateContainerAccessible =
-          do_QueryInterface(containerAccessible);
-        if (privateContainerAccessible)
-          privateContainerAccessible->InvalidateChildren();
+        
+        
+        InvalidateChildrenInSubtree(domNode);
       }
 
       
@@ -1522,8 +1530,6 @@ NS_IMETHODIMP nsDocAccessible::FlushPendingEvents()
       
       
       
-      nsCOMPtr<nsIDOMNode> domNode;
-      accessibleEvent->GetDOMNode(getter_AddRefs(domNode));
       PRBool isFromUserInput;
       accessibleEvent->GetIsFromUserInput(&isFromUserInput);
       if (domNode && domNode != mDOMNode) {
@@ -1619,6 +1625,24 @@ void nsDocAccessible::FlushEventsCallback(nsITimer *aTimer, void *aClosure)
     
     
     accessibleDoc->FlushPendingEvents();
+  }
+}
+
+void nsDocAccessible::InvalidateChildrenInSubtree(nsIDOMNode *aStartNode)
+{
+  nsCOMPtr<nsIAccessNode> accessNode;
+  GetCachedAccessNode(aStartNode, getter_AddRefs(accessNode));
+  nsCOMPtr<nsPIAccessible> accessible(do_QueryInterface(accessNode));
+  if (accessible)
+    accessible->InvalidateChildren();
+
+  
+  nsCOMPtr<nsINode> node = do_QueryInterface(aStartNode);
+  PRInt32 index, numChildren = node->GetChildCount();
+  for (index = 0; index < numChildren; index ++) {
+    nsCOMPtr<nsIDOMNode> childNode = do_QueryInterface(node->GetChildAt(index));
+    if (childNode)
+      InvalidateChildrenInSubtree(childNode);
   }
 }
 

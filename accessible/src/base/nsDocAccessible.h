@@ -143,6 +143,13 @@ class nsDocAccessible : public nsHyperTextAccessibleWrap,
     virtual nsresult RemoveEventListeners();
     void AddScrollListener();
     void RemoveScrollListener();
+
+    
+
+
+
+
+    void InvalidateChildrenInSubtree(nsIDOMNode *aStartNode);
     void RefreshNodes(nsIDOMNode *aStartNode);
     static void ScrollTimerCallback(nsITimer *aTimer, void *aClosure);
 
