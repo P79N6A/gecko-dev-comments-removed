@@ -48,6 +48,7 @@
 #include "nsCOMPtr.h"
 #include "prio.h" 
 
+#include "nsCRT.h"
 #include "nsIURI.h"
 #include "nsIInputStream.h"
 #include "nsIOutputStream.h"
@@ -1466,6 +1467,60 @@ NS_OfflineAppAllowed(nsIURI *aURI, nsIPrefBranch *aPrefBranch = nsnull)
     return allowed;
 }
 
+static inline PRInt32
+GetEffectivePort(nsIURI* aURI)
+{
+    PRInt32 port;
+
+    nsCOMPtr<nsIURI> baseURI = NS_GetInnermostURI(aURI);
+    if (NS_SUCCEEDED(baseURI->GetPort(&port)) && port != -1)
+        return port;
+
+    nsCAutoString scheme;
+    if (NS_FAILED(baseURI->GetScheme(scheme)))
+        return -1;
+
+    return NS_GetDefaultPort(scheme.get());
+}
+
+
+
+
+
+inline PRUint32
+NS_SecurityHashURI(nsIURI* aURI)
+{
+    nsCOMPtr<nsIURI> baseURI = NS_GetInnermostURI(aURI);
+
+    nsCAutoString scheme;
+    PRUint32 schemeHash = 0;
+    if (NS_SUCCEEDED(baseURI->GetScheme(scheme)))
+        schemeHash = nsCRT::HashCode(scheme.get());
+
+    
+    if (scheme.EqualsLiteral("file"))
+        return schemeHash; 
+
+    if (scheme.EqualsLiteral("imap") ||
+        scheme.EqualsLiteral("mailbox") ||
+        scheme.EqualsLiteral("news"))
+    {
+        nsCAutoString spec;
+        PRUint32 specHash = baseURI->GetSpec(spec);
+        if (NS_SUCCEEDED(specHash))
+            specHash = nsCRT::HashCode(spec.get());
+        return specHash;
+    }
+
+    nsCAutoString host;
+    PRUint32 hostHash = 0;
+    if (NS_SUCCEEDED(baseURI->GetHost(host)))
+        hostHash = nsCRT::HashCode(host.get());
+
+    
+    return schemeHash ^ hostHash ^ GetEffectivePort(aURI);
+}
+
 inline PRBool
 NS_SecurityCompareURIs(nsIURI* aSourceURI,
                        nsIURI* aTargetURI,
@@ -1563,31 +1618,7 @@ NS_SecurityCompareURIs(nsIURI* aSourceURI,
         return PR_FALSE;
     }
 
-    
-    PRInt32 targetPort;
-    nsresult rv = targetBaseURI->GetPort(&targetPort);
-    PRInt32 sourcePort;
-    if (NS_SUCCEEDED(rv))
-        rv = sourceBaseURI->GetPort(&sourcePort);
-    PRBool result = NS_SUCCEEDED(rv) && targetPort == sourcePort;
-    
-    
-    
-    if (NS_SUCCEEDED(rv) && !result &&
-        (sourcePort == -1 || targetPort == -1))
-    {
-        PRInt32 defaultPort = NS_GetDefaultPort(targetScheme.get());
-        if (defaultPort == -1)
-            return PR_FALSE; 
-
-        if (sourcePort == -1)
-            sourcePort = defaultPort;
-        else if (targetPort == -1)
-            targetPort = defaultPort;
-        result = targetPort == sourcePort;
-    }
-
-    return result;
+    return GetEffectivePort(targetBaseURI) == GetEffectivePort(sourceBaseURI);
 }
 
 #endif 

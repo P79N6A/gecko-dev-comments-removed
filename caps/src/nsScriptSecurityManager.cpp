@@ -319,6 +319,14 @@ nsScriptSecurityManager::SecurityCompareURIs(nsIURI* aSourceURI,
     return NS_SecurityCompareURIs(aSourceURI, aTargetURI, sStrictFileOriginPolicy);
 }
 
+
+
+PRUint32
+nsScriptSecurityManager::SecurityHashURI(nsIURI* aURI)
+{
+    return NS_SecurityHashURI(aURI);
+}
+
 NS_IMETHODIMP
 nsScriptSecurityManager::GetChannelPrincipal(nsIChannel* aChannel,
                                              nsIPrincipal** aPrincipal)
@@ -900,6 +908,27 @@ nsScriptSecurityManager::CheckSameOriginPrincipal(nsIPrincipal* aSubject,
     return NS_ERROR_DOM_PROP_ACCESS_DENIED;
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
+ PRUint32
+nsScriptSecurityManager::HashPrincipalByOrigin(nsIPrincipal* aPrincipal)
+{
+    nsCOMPtr<nsIURI> uri;
+    aPrincipal->GetDomain(getter_AddRefs(uri));
+    if (!uri)
+        aPrincipal->GetURI(getter_AddRefs(uri));
+    return SecurityHashURI(uri);
+}
 
 nsresult
 nsScriptSecurityManager::CheckSameOriginDOMProp(nsIPrincipal* aSubject,
