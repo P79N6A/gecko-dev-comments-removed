@@ -1469,7 +1469,7 @@ JSScope::changeProperty(JSContext *cx, JSScopeProperty *sprop,
               !(attrs & JSPROP_SHARED));
 
     
-    JS_ASSERT(!sprop->isMethod());
+    JS_ASSERT_IF(getter != sprop->getter, !sprop->isMethod());
 
     if (getter == JS_PropertyStub)
         getter = NULL;
