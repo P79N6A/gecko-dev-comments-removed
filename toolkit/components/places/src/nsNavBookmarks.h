@@ -198,6 +198,54 @@ private:
                                  PRInt64 aGrandParentId,
                                  nsTArray<folderChildrenInfo>& aFolderChildrenArray);
 
+  enum ItemType {
+    BOOKMARK = TYPE_BOOKMARK,
+    FOLDER = TYPE_FOLDER,
+    SEPARATOR = TYPE_SEPARATOR,
+    DYNAMIC_CONTAINER = TYPE_DYNAMIC_CONTAINER
+  };
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  nsresult InsertBookmarkInDB(PRInt64 aItemId,
+                              PRInt64 aPlaceId,
+                              enum ItemType aItemType,
+                              PRInt64 aParentId,
+                              PRInt32 aIndex,
+                              const nsACString &aTitle,
+                              PRTime aDateAdded,
+                              PRTime aLastModified,
+                              const nsAString &aServiceContractId,
+                              PRInt64 *_retval);
+
   
   nsCOMPtr<mozIStorageStatement> mDBGetChildren;
   static const PRInt32 kGetChildrenIndex_Position;
@@ -233,7 +281,18 @@ private:
 
   nsCOMPtr<mozIStorageStatement> mDBGetItemIdForGUID;
   nsCOMPtr<mozIStorageStatement> mDBGetRedirectDestinations;
+
   nsCOMPtr<mozIStorageStatement> mDBInsertBookmark;
+  static const PRInt32 kInsertBookmarkIndex_Id;
+  static const PRInt32 kInsertBookmarkIndex_PlaceId;
+  static const PRInt32 kInsertBookmarkIndex_Type;
+  static const PRInt32 kInsertBookmarkIndex_Parent;
+  static const PRInt32 kInsertBookmarkIndex_Position;
+  static const PRInt32 kInsertBookmarkIndex_Title;
+  static const PRInt32 kInsertBookmarkIndex_ServiceContractId;
+  static const PRInt32 kInsertBookmarkIndex_DateAdded;
+  static const PRInt32 kInsertBookmarkIndex_LastModified;
+
   nsCOMPtr<mozIStorageStatement> mDBIsBookmarkedInDatabase;
   nsCOMPtr<mozIStorageStatement> mDBIsRealBookmark;
   nsCOMPtr<mozIStorageStatement> mDBGetLastBookmarkID;

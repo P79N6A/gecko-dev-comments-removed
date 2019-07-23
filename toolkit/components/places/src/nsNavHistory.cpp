@@ -729,7 +729,7 @@ nsNavHistory::InitDBFile(PRBool aForceInit)
 
 
 
-#define PLACES_SCHEMA_VERSION 9
+#define PLACES_SCHEMA_VERSION 10
 
 nsresult
 nsNavHistory::InitDB()
@@ -888,6 +888,12 @@ nsNavHistory::InitDB()
       
       if (DBSchemaVersion < 9) {
         rv = MigrateV9Up(mDBConn);
+        NS_ENSURE_SUCCESS(rv, rv);
+      }
+
+      
+      if (DBSchemaVersion < 10) {
+        rv = MigrateV10Up(mDBConn);
         NS_ENSURE_SUCCESS(rv, rv);
       }
 
@@ -1865,6 +1871,19 @@ nsNavHistory::MigrateV9Up(mozIStorageConnection *aDBConn)
   }
 
   return transaction.Commit();
+}
+
+nsresult
+nsNavHistory::MigrateV10Up(mozIStorageConnection *aDBConn)
+{
+  
+  
+  nsresult rv = mDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
+      "UPDATE moz_bookmarks SET lastModified = dateAdded "
+      "WHERE lastModified IS NULL"));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  return NS_OK;
 }
    
 

@@ -89,11 +89,12 @@ function run_test() {
   do_check_eq(observer._itemChangedProperty, "dateAdded");
   do_check_eq(observer._itemChangedValue, newDate);
   
-  do_check_eq(bmsvc.getItemDateAdded(bookmarkId), newDate);
+  var dateAdded = bmsvc.getItemDateAdded(bookmarkId);
+  do_check_eq(dateAdded, newDate);
 
   
   var lastModified = bmsvc.getItemLastModified(bookmarkId);
-  do_check_eq(lastModified, 0);
+  do_check_eq(lastModified, dateAdded);
 
   bmsvc.setItemLastModified(bookmarkId, newDate);
   
