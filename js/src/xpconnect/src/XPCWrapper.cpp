@@ -55,6 +55,11 @@ XPCWrapper::sNumSlots = 2;
 JSNative
 XPCWrapper::sEvalNative = nsnull;
 
+const PRUint32
+XPCWrapper::sSecMgrSetProp = nsIXPCSecurityManager::ACCESS_SET_PROPERTY;
+const PRUint32
+XPCWrapper::sSecMgrGetProp = nsIXPCSecurityManager::ACCESS_GET_PROPERTY;
+
 static void
 IteratorFinalize(JSContext *cx, JSObject *obj)
 {
@@ -551,6 +556,12 @@ XPCWrapper::ResolveNativeProperty(JSContext *cx, JSObject *wrapperObj,
                       isNativeWrapper)) {
       return JS_FALSE;
     }
+
+    
+    
+    
+    
+    JS_SetReservedSlot(cx, JSVAL_TO_OBJECT(v), eAllAccessSlot, JSVAL_TRUE);
   }
 
   
