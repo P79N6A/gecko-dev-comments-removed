@@ -1122,7 +1122,7 @@ nsHttpChannel::DoReplaceWithProxy(nsIProxyInfo* pi)
     if (NS_FAILED(rv))
         return rv;
 
-    rv = SetupReplacementChannel(mURI, newChannel, PR_TRUE);
+    rv = SetupReplacementChannel(mURI, newChannel, PR_TRUE, PR_TRUE);
     if (NS_FAILED(rv))
         return rv;
 
@@ -1441,7 +1441,7 @@ nsHttpChannel::ProcessFallback(PRBool *fallingBack)
     rv = gHttpHandler->NewChannel(mURI, getter_AddRefs(newChannel));
     NS_ENSURE_SUCCESS(rv, rv);
 
-    rv = SetupReplacementChannel(mURI, newChannel, PR_TRUE);
+    rv = SetupReplacementChannel(mURI, newChannel, PR_TRUE, PR_FALSE);
     NS_ENSURE_SUCCESS(rv, rv);
 
     
@@ -2560,7 +2560,8 @@ CopyProperties(const nsAString& aKey, nsIVariant *aData, void *aClosure)
 nsresult
 nsHttpChannel::SetupReplacementChannel(nsIURI       *newURI, 
                                        nsIChannel   *newChannel,
-                                       PRBool        preserveMethod)
+                                       PRBool        preserveMethod,
+                                       PRBool        forProxy)
 {
     PRUint32 newLoadFlags = mLoadFlags | LOAD_REPLACE;
     
@@ -2611,6 +2612,7 @@ nsHttpChannel::SetupReplacementChannel(nsIURI       *newURI,
     
     if (mReferrer)
         httpChannel->SetReferrer(mReferrer);
+
     
     httpChannel->SetAllowPipelining(mAllowPipelining);
     
@@ -2656,6 +2658,39 @@ nsHttpChannel::SetupReplacementChannel(nsIURI       *newURI,
     nsCOMPtr<nsIWritablePropertyBag> bag(do_QueryInterface(newChannel));
     if (bag)
         mPropertyHash.EnumerateRead(CopyProperties, bag.get());
+
+    if (forProxy) {
+      
+      
+      
+      
+      PRUint32 count = mRequestHead.Headers().Count();
+      for (PRUint32 i = 0; i < count; ++i) {
+        nsHttpAtom header;
+        const char *value = mRequestHead.Headers().PeekHeaderAt(i, header);
+
+        httpChannel->SetRequestHeader(nsDependentCString(header),
+                                      nsDependentCString(value), PR_FALSE);
+      }
+
+      
+      nsCOMPtr<nsICachingChannel> cachingChannel = do_QueryInterface(newChannel);
+      if (cachingChannel) {
+        
+        
+        if (mPostID) {
+          nsCOMPtr<nsISupports> cacheKey;
+          GetCacheKey(getter_AddRefs(cacheKey));
+          if (cacheKey) {
+            cachingChannel->SetCacheKey(cacheKey);
+          }
+        }
+
+        
+        cachingChannel->SetOfflineCacheClientID(mOfflineCacheClientID);
+        cachingChannel->SetCacheForOfflineUse(mCacheForOfflineUse);
+      }
+    }
 
     return NS_OK;
 }
@@ -2742,7 +2777,7 @@ nsHttpChannel::ProcessRedirection(PRUint32 redirectType)
     rv = ioService->NewChannelFromURI(newURI, getter_AddRefs(newChannel));
     if (NS_FAILED(rv)) return rv;
 
-    rv = SetupReplacementChannel(newURI, newChannel, preserveMethod);
+    rv = SetupReplacementChannel(newURI, newChannel, preserveMethod, PR_FALSE);
     if (NS_FAILED(rv)) return rv;
 
     PRUint32 redirectFlags;

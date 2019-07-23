@@ -924,7 +924,8 @@ nsProtocolProxyService::NewProxyInfo(const nsACString &aType,
         kProxyType_HTTP,
         kProxyType_SOCKS,
         kProxyType_SOCKS4,
-        kProxyType_DIRECT
+        kProxyType_DIRECT,
+        kProxyType_UNKNOWN
     };
 
     
