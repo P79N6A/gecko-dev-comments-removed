@@ -69,13 +69,9 @@ public:
       mCommitOnComplete(aCommitOnComplete),
       mCompleted(PR_FALSE)
   {
-    if (mConnection) {
-      PRBool transactionInProgress = PR_FALSE;
-      mConnection->GetTransactionInProgress(&transactionInProgress);
-      mHasTransaction = ! transactionInProgress;
-      if (mHasTransaction)
-        mConnection->BeginTransactionAs(aType);
-    }
+    
+    if (mConnection)
+      mHasTransaction = NS_SUCCEEDED(mConnection->BeginTransactionAs(aType));
   }
   ~mozStorageTransaction()
   {
