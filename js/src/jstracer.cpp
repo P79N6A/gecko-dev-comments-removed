@@ -209,14 +209,14 @@ static inline uint8 getCoercedType(jsval v)
 
 
 void
-Oracle::markGlobalSlotUndemotable(unsigned slot)
+Oracle::markGlobalSlotUndemotable(JSScript* script, unsigned slot)
 {
     _dontDemote.set(&gc, (slot % ORACLE_SIZE));
 }
 
 
 bool
-Oracle::isGlobalSlotUndemotable(unsigned slot) const
+Oracle::isGlobalSlotUndemotable(JSScript* script, unsigned slot) const
 {
     return _dontDemote.get(slot % ORACLE_SIZE);
 }
@@ -545,7 +545,7 @@ TypeMap::captureGlobalTypes(JSContext* cx, SlotList& slots)
     uint8* m = map;
     FORALL_GLOBAL_SLOTS(cx, ngslots, gslots, 
         uint8 type = getCoercedType(*vp);
-        if ((type == JSVAL_INT) && oracle.isGlobalSlotUndemotable(gslots[n]))
+        if ((type == JSVAL_INT) && oracle.isGlobalSlotUndemotable(cx->fp->script, gslots[n]))
             type = JSVAL_DOUBLE;
         *m++ = type;
     );
@@ -1010,7 +1010,7 @@ TraceRecorder::lazilyImportGlobalSlot(unsigned slot)
     unsigned index = treeInfo->globalSlots.length();
     treeInfo->globalSlots.add(slot);
     uint8 type = getCoercedType(*vp);
-    if ((type == JSVAL_INT) && oracle.isGlobalSlotUndemotable(slot))
+    if ((type == JSVAL_INT) && oracle.isGlobalSlotUndemotable(cx->fp->script, slot))
         type = JSVAL_DOUBLE;
     treeInfo->globalTypeMap.add(type);
     import(gp_ins, slot*sizeof(double), vp, treeInfo->globalTypeMap.data()[index],
@@ -1211,7 +1211,7 @@ TraceRecorder::verifyTypeStability()
         if (!checkType(*vp, *m, demote))
             return false;
         if (demote) {
-            oracle.markGlobalSlotUndemotable(gslots[n]);
+            oracle.markGlobalSlotUndemotable(cx->fp->script, gslots[n]);
             recompile = true;
         }
         ++m
