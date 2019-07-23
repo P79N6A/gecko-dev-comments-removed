@@ -72,6 +72,7 @@
 
 #ifdef XP_WIN
 #include <shlobj.h>
+#include "nsDownloadScanner.h"
 #endif
 
 static PRBool gStoppingDownloads = PR_FALSE;
@@ -122,6 +123,9 @@ nsDownloadManager::GetSingleton()
 
 nsDownloadManager::~nsDownloadManager()
 {
+#ifdef XP_WIN
+  delete mScanner;
+#endif
   gDownloadManagerService = nsnull;
 }
 
@@ -141,28 +145,13 @@ nsDownloadManager::CancelAllDownloads()
   return rv;
 }
 
-nsresult
-nsDownloadManager::FinishDownload(nsDownload *aDownload, DownloadState aState,
-                                  const char *aTopic) {
-  
-  nsRefPtr<nsDownload> kungFuDeathGrip = aDownload;
-
+void
+nsDownloadManager::CompleteDownload(nsDownload *aDownload)
+{
   
   aDownload->mCancelable = nsnull;
 
-  
-  
-  
-  
-  
   (void)mCurrentDownloads.RemoveObject(aDownload);
-
-  nsresult rv = aDownload->SetState(aState);
-  if (NS_FAILED(rv)) return rv;
-  
-  (void)mObserverService->NotifyObservers(aDownload, aTopic, nsnull);
-
-  return NS_OK;
 }
 
 nsresult
@@ -573,6 +562,17 @@ nsDownloadManager::Init()
                                    getter_AddRefs(mBundle));
   NS_ENSURE_SUCCESS(rv, rv);
 
+#ifdef XP_WIN
+  mScanner = new nsDownloadScanner();
+  if (!mScanner)
+    return NS_ERROR_OUT_OF_MEMORY;
+  rv = mScanner->Init();
+  if (NS_FAILED(rv)) {
+    delete mScanner;
+    mScanner = nsnull;
+  }
+#endif
+
   rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING(
     "UPDATE moz_downloads "
     "SET startTime = ?1, endTime = ?2, state = ?3, referrer = ?4 "
@@ -689,6 +689,12 @@ nsDownloadManager::GetDownloadFromDB(PRUint32 aID, nsDownload **retVal)
   
   NS_ADDREF(*retVal = dl);
   return NS_OK;
+}
+
+void
+nsDownloadManager::SendEvent(nsDownload *aDownload, const char *aTopic)
+{
+  (void)mObserverService->NotifyObservers(aDownload, aTopic, nsnull);
 }
 
 
@@ -1010,8 +1016,7 @@ nsDownloadManager::CancelDownload(PRUint32 aID)
       dl->mTempFile->Remove(PR_FALSE);
   }
 
-  nsresult rv = FinishDownload(dl, nsIDownloadManager::DOWNLOAD_CANCELED,
-                               "dl-cancel");
+  nsresult rv = dl->SetState(nsIDownloadManager::DOWNLOAD_CANCELED);
   NS_ENSURE_SUCCESS(rv, rv);
 
   return NS_OK;
@@ -1507,13 +1512,150 @@ nsDownload::SetState(DownloadState aState)
   PRInt16 oldState = mDownloadState;
   mDownloadState = aState;
 
+  nsresult rv;
+
+  nsCOMPtr<nsIPrefBranch> pref = do_GetService(NS_PREFSERVICE_CONTRACTID);
+
+  
+  nsRefPtr<nsDownload> kungFuDeathGrip = this;
+
   
   
-  nsresult rv = UpdateDB();
+  
+  
+  
+  
+  switch (aState) {
+    case nsIDownloadManager::DOWNLOAD_BLOCKED:
+    case nsIDownloadManager::DOWNLOAD_CANCELED:
+      mDownloadManager->CompleteDownload(this);
+      break;
+#ifdef XP_WIN
+    case nsIDownloadManager::DOWNLOAD_SCANNING:
+    {
+      nsresult rv = mDownloadManager->mScanner ? mDownloadManager->mScanner->ScanDownload(this) : NS_ERROR_NOT_INITIALIZED;
+      
+      if (NS_SUCCEEDED(rv))
+        break;
+      mDownloadState = aState = nsIDownloadManager::DOWNLOAD_FINISHED;
+    }
+#endif
+    case nsIDownloadManager::DOWNLOAD_FINISHED:
+    {
+      mDownloadManager->CompleteDownload(this);
+
+      
+      PRBool showTaskbarAlert = PR_TRUE;
+      if (pref)
+        pref->GetBoolPref(PREF_BDM_SHOWALERTONCOMPLETE, &showTaskbarAlert);
+
+      if (showTaskbarAlert) {
+        PRInt32 alertInterval = 2000;
+        if (pref)
+          pref->GetIntPref(PREF_BDM_SHOWALERTINTERVAL, &alertInterval);
+
+        PRInt64 alertIntervalUSec = alertInterval * PR_USEC_PER_MSEC;
+        PRInt64 goat = PR_Now() - mStartTime;
+        showTaskbarAlert = goat > alertIntervalUSec;
+       
+        PRInt32 size = mDownloadManager->mCurrentDownloads.Count();
+        if (showTaskbarAlert && size == 0) {
+          nsCOMPtr<nsIAlertsService> alerts =
+            do_GetService("@mozilla.org/alerts-service;1");
+          if (alerts) {
+              nsXPIDLString title, message;
+
+              mDownloadManager->mBundle->GetStringFromName(
+                  NS_LITERAL_STRING("downloadsCompleteTitle").get(),
+                  getter_Copies(title));
+              mDownloadManager->mBundle->GetStringFromName(
+                  NS_LITERAL_STRING("downloadsCompleteMsg").get(),
+                  getter_Copies(message));
+
+              PRBool removeWhenDone =
+                mDownloadManager->GetRetentionBehavior() == 0;
+
+
+              
+              
+              
+              
+              alerts->ShowAlertNotification(
+                  NS_LITERAL_STRING(DOWNLOAD_MANAGER_ALERT_ICON), title,
+                  message, !removeWhenDone, EmptyString(), mDownloadManager);
+            }
+        }
+      }
+#ifdef XP_WIN
+      PRBool addToRecentDocs = PR_TRUE;
+      if (pref)
+        pref->GetBoolPref(PREF_BDM_ADDTORECENTDOCS, &addToRecentDocs);
+
+      if (addToRecentDocs) {
+        LPSHELLFOLDER lpShellFolder = NULL;
+
+        if (SUCCEEDED(::SHGetDesktopFolder(&lpShellFolder))) {
+          nsresult rv;
+          nsCOMPtr<nsIFileURL> fileURL = do_QueryInterface(mTarget, &rv);
+          NS_ENSURE_SUCCESS(rv, rv);
+
+          nsCOMPtr<nsIFile> file;
+          rv = fileURL->GetFile(getter_AddRefs(file));
+          NS_ENSURE_SUCCESS(rv, rv);
+          
+          nsAutoString path;
+          rv = file->GetPath(path);
+          NS_ENSURE_SUCCESS(rv, rv);
+
+          PRUnichar *filePath = ToNewUnicode(path);
+          LPITEMIDLIST lpItemIDList = NULL;
+          if (SUCCEEDED(lpShellFolder->ParseDisplayName(NULL, NULL, filePath,
+                  NULL, &lpItemIDList, NULL))) {
+            ::SHAddToRecentDocs(SHARD_PIDL, lpItemIDList);
+            ::CoTaskMemFree(lpItemIDList);
+          }
+          nsMemory::Free(filePath);
+          lpShellFolder->Release();
+        }
+      }
+#endif
+
+      
+      if (mDownloadManager->GetRetentionBehavior() == 0)
+        mDownloadManager->RemoveDownload(mID);
+
+    }
+    break;
+  default:
+    break;
+  }
+  
+  
+  
+  rv = UpdateDB();
   NS_ENSURE_SUCCESS(rv, rv);
-  
+
   mDownloadManager->NotifyListenersOnDownloadStateChange(oldState, this);
 
+  switch (mDownloadState) {
+    case nsIDownloadManager::DOWNLOAD_DOWNLOADING:
+      mDownloadManager->SendEvent(this, "dl-start");
+      break;
+    case nsIDownloadManager::DOWNLOAD_FAILED:
+      mDownloadManager->SendEvent(this, "dl-failed");
+      break;
+    case nsIDownloadManager::DOWNLOAD_SCANNING:
+      mDownloadManager->SendEvent(this, "dl-scanning");
+      break;
+    case nsIDownloadManager::DOWNLOAD_FINISHED:
+      mDownloadManager->SendEvent(this, "dl-done");
+      break;
+    case nsIDownloadManager::DOWNLOAD_BLOCKED:
+      mDownloadManager->SendEvent(this, "dl-blocked");
+      break;
+    default:
+      break;
+  }
   return NS_OK;
 }
 
@@ -1577,7 +1719,6 @@ nsDownload::OnProgressChange64(nsIWebProgress *aWebProgress,
     
     rv = SetState(nsIDownloadManager::DOWNLOAD_DOWNLOADING);
     NS_ENSURE_SUCCESS(rv, rv);
-    mDownloadManager->mObserverService->NotifyObservers(this, "dl-start", nsnull);
   }
 
   
@@ -1661,9 +1802,7 @@ nsDownload::OnStatusChange(nsIWebProgress *aWebProgress,
     
     nsRefPtr<nsDownload> kungFuDeathGrip = this;
 
-    (void)mDownloadManager->FinishDownload(this,
-                                           nsIDownloadManager::DOWNLOAD_FAILED,
-                                           "dl-failed");
+    (void)SetState(nsIDownloadManager::DOWNLOAD_FAILED);
 
     
     nsXPIDLString title;
@@ -1705,7 +1844,6 @@ nsDownload::OnStateChange(nsIWebProgress* aWebProgress,
   
   
   
-  nsCOMPtr<nsIPrefBranch> pref = do_GetService(NS_PREFSERVICE_CONTRACTID);
 
   if (aStateFlags & STATE_START) {
     nsresult rv;
@@ -1721,9 +1859,7 @@ nsDownload::OnStateChange(nsIWebProgress* aWebProgress,
           (void)mCancelable->Cancel(NS_BINDING_ABORTED);
 
         
-        mDownloadManager->FinishDownload(this, 
-                                         nsIDownloadManager::DOWNLOAD_BLOCKED,
-                                         "dl-blocked");
+        (void)SetState(nsIDownloadManager::DOWNLOAD_BLOCKED);
 
         mDownloadManager->NotifyListenersOnStateChange(aWebProgress, aRequest,
                                                        aStateFlags, aStatus, this);
@@ -1745,88 +1881,17 @@ nsDownload::OnStateChange(nsIWebProgress* aWebProgress,
 
       mPercentComplete = 100;
 
-      (void)mDownloadManager->FinishDownload(this,
-                                             nsIDownloadManager::DOWNLOAD_FINISHED,
-                                             "dl-done");
-
-      
-      PRBool showTaskbarAlert = PR_TRUE;
-      if (pref)
-        pref->GetBoolPref(PREF_BDM_SHOWALERTONCOMPLETE, &showTaskbarAlert);
-
-      if (showTaskbarAlert) {
-        PRInt32 alertInterval = -1;
-        pref->GetIntPref(PREF_BDM_SHOWALERTINTERVAL, &alertInterval);
-
-        PRInt64 alertIntervalUSec = alertInterval * PR_USEC_PER_MSEC;
-        PRInt64 goat = PR_Now() - mStartTime;
-        showTaskbarAlert = goat > alertIntervalUSec;
-       
-        PRInt32 size = mDownloadManager->mCurrentDownloads.Count();
-        if (showTaskbarAlert && size == 0) {
-          nsCOMPtr<nsIAlertsService> alerts =
-            do_GetService("@mozilla.org/alerts-service;1");
-        if (alerts) {
-            nsXPIDLString title, message;
-
-            mDownloadManager->mBundle->GetStringFromName(NS_LITERAL_STRING("downloadsCompleteTitle").get(), getter_Copies(title));
-            mDownloadManager->mBundle->GetStringFromName(NS_LITERAL_STRING("downloadsCompleteMsg").get(), getter_Copies(message));
-
-            PRBool removeWhenDone = mDownloadManager->GetRetentionBehavior() == 0;
-
-
-            
-            
-            
-            
-            alerts->ShowAlertNotification(NS_LITERAL_STRING(DOWNLOAD_MANAGER_ALERT_ICON), title, message, !removeWhenDone, 
-                                          EmptyString(), mDownloadManager);
-          }
-        }
-      }
 #ifdef XP_WIN
-      PRBool addToRecentDocs = PR_TRUE;
-      if (pref)
-        pref->GetBoolPref(PREF_BDM_ADDTORECENTDOCS, &addToRecentDocs);
-
-      if (addToRecentDocs) {
-        LPSHELLFOLDER lpShellFolder = NULL;
-
-        if (SUCCEEDED(::SHGetDesktopFolder(&lpShellFolder))) {
-          nsresult rv;
-          nsCOMPtr<nsIFileURL> fileURL = do_QueryInterface(mTarget, &rv);
-          NS_ENSURE_SUCCESS(rv, rv);
-
-          nsCOMPtr<nsIFile> file;
-          rv = fileURL->GetFile(getter_AddRefs(file));
-          NS_ENSURE_SUCCESS(rv, rv);
-        
-          nsAutoString path;
-          rv = file->GetPath(path);
-          NS_ENSURE_SUCCESS(rv, rv);
-
-          PRUnichar *filePath = ToNewUnicode(path);
-          LPITEMIDLIST lpItemIDList = NULL;
-          if (SUCCEEDED(lpShellFolder->ParseDisplayName(NULL, NULL, filePath, NULL, &lpItemIDList, NULL))) {
-            ::SHAddToRecentDocs(SHARD_PIDL, lpItemIDList);
-            ::CoTaskMemFree(lpItemIDList);
-          }
-          nsMemory::Free(filePath);
-          lpShellFolder->Release();
-        }
-      }
+      (void)SetState(nsIDownloadManager::DOWNLOAD_SCANNING);
+#else
+      (void)SetState(nsIDownloadManager::DOWNLOAD_FINISHED);
 #endif
     }
-
-    
-    if (mDownloadManager->GetRetentionBehavior() == 0)
-      mDownloadManager->RemoveDownload(mID);
   }
 
   mDownloadManager->NotifyListenersOnStateChange(aWebProgress, aRequest,
                                                  aStateFlags, aStatus, this);
-
-  return UpdateDB();
+  return NS_OK;
 }
 
 NS_IMETHODIMP

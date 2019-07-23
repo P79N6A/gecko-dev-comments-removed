@@ -71,6 +71,10 @@ typedef PRInt16 DownloadType;
 
 class nsDownload;
 
+#ifdef XP_WIN
+class nsDownloadScanner;
+#endif
+
 class nsDownloadManager : public nsIDownloadManager,
                           public nsIObserver
 {
@@ -84,6 +88,11 @@ public:
   static nsDownloadManager *GetSingleton();
 
   virtual ~nsDownloadManager();
+#ifdef XP_WIN
+  nsDownloadManager() : mScanner(nsnull) { };
+private:
+  nsDownloadScanner *mScanner;
+#endif
 
 protected:
   struct TimerParams {
@@ -102,6 +111,8 @@ protected:
 
     return NS_OK;
   }
+
+  void SendEvent(nsDownload *aDownload, const char *aTopic);
 
 
   
@@ -141,9 +152,7 @@ protected:
 
 
 
-
-  nsresult FinishDownload(nsDownload *aDownload, DownloadState aState,
-                          const char *aTopic);
+  void CompleteDownload(nsDownload *aDownload);
 
   void     ConfirmCancelDownloads(PRInt32 aCount,
                                   nsISupportsPRBool* aCancelDownloads,

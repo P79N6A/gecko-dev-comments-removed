@@ -1,0 +1,313 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 
+#include "nsDownloadScanner.h"
+#include <comcat.h>
+#include <process.h>
+#include "nsDownloadManager.h"
+#include "nsIXULAppInfo.h"
+#include "nsXULAppAPI.h"
+#include "nsIPrefService.h"
+#include "nsNetUtil.h"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#define PREF_BDA_DONTCLEAN "browser.download.antivirus.dontclean"
+
+nsDownloadScanner::nsDownloadScanner()
+  : mHaveAVScanner(PR_FALSE)
+{
+}
+
+nsresult
+nsDownloadScanner::Init()
+{
+  
+  
+  nsresult rv = NS_OK;
+  CoInitialize(NULL);
+  if (FindCLSID() < 0)
+    rv = NS_ERROR_NOT_AVAILABLE;
+  CoUninitialize();
+  return rv;
+}
+
+PRInt32
+nsDownloadScanner::FindCLSID()
+{
+  nsRefPtr<ICatInformation> catInfo;
+  HRESULT hr;
+  hr = CoCreateInstance(CLSID_StdComponentCategoriesMgr, NULL, CLSCTX_INPROC,
+                        IID_ICatInformation, getter_AddRefs(catInfo));
+  if (FAILED(hr)) {
+    NS_WARNING("Could not create category information class\n");
+    return -1;
+  }
+  nsRefPtr<IEnumCLSID> clsidEnumerator;
+  GUID guids [1] = { CATID_MSOfficeAntiVirus };
+  hr = catInfo->EnumClassesOfCategories(1, guids, 0, NULL,
+      getter_AddRefs(clsidEnumerator));
+  if (FAILED(hr)) {
+    NS_WARNING("Could not get class enumerator for category\n");
+    return -2;
+  }
+  ULONG nReceived;
+  clsidEnumerator->Next(1, &mScannerCLSID, &nReceived);
+  if (nReceived == 0) {
+    
+    return -3;
+  }
+  mHaveAVScanner = PR_TRUE;
+  return 0;
+}
+
+unsigned int __stdcall
+nsDownloadScanner::ScannerThreadFunction(void *p)
+{
+  NS_ASSERTION(!NS_IsMainThread(), "Antivirus scan should not be run on the main thread");
+  nsDownloadScanner::Scan *scan = static_cast<nsDownloadScanner::Scan*>(p);
+  scan->DoScan();
+  _endthreadex(0);
+  return 0;
+}
+
+nsDownloadScanner::Scan::Scan(nsDownloadScanner *scanner, nsDownload *download)
+  : mDLScanner(scanner), mAVScanner(NULL), mThread(NULL), 
+    mDownload(download), mStatus(AVSCAN_NOTSTARTED)
+{
+}
+
+nsresult
+nsDownloadScanner::Scan::Start()
+{
+  mThread = (HANDLE)_beginthreadex(NULL, 0, ScannerThreadFunction,
+      this, CREATE_SUSPENDED, NULL);
+  if (!mThread)
+    return NS_ERROR_OUT_OF_MEMORY;
+
+  nsresult rv = NS_OK;
+
+  
+  mIsReadOnlyRequest = PR_FALSE;
+
+  nsCOMPtr<nsIPrefBranch> pref =
+    do_GetService(NS_PREFSERVICE_CONTRACTID);
+  if (pref)
+    rv = pref->GetBoolPref(PREF_BDA_DONTCLEAN, &mIsReadOnlyRequest);
+
+  
+  nsCOMPtr<nsILocalFile> file;
+  rv = mDownload->GetTargetFile(getter_AddRefs(file));
+  NS_ENSURE_SUCCESS(rv, rv);
+  rv = file->GetPath(mPath);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+
+  
+  nsCOMPtr<nsIXULAppInfo> appinfo =
+    do_GetService(XULAPPINFO_SERVICE_CONTRACTID, &rv);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  nsCAutoString name;
+  rv = appinfo->GetName(name);
+  NS_ENSURE_SUCCESS(rv, rv);
+  CopyUTF8toUTF16(name, mName);
+
+
+  
+  nsCOMPtr<nsIURI> uri;
+  rv = mDownload->GetSource(getter_AddRefs(uri));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  nsCAutoString origin;
+  rv = uri->GetSpec(origin);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  CopyUTF8toUTF16(origin, mOrigin);
+
+
+  
+  PRBool isHttp(PR_FALSE), isFtp(PR_FALSE), isHttps(PR_FALSE);
+  nsCOMPtr<nsIURI> innerURI = NS_GetInnermostURI(uri);
+  (void)innerURI->SchemeIs("http", &isHttp);
+  (void)innerURI->SchemeIs("ftp", &isFtp);
+  (void)innerURI->SchemeIs("https", &isHttps);
+  mIsHttpDownload = isHttp || isFtp || isHttps;
+
+  
+  if (1 != ::ResumeThread(mThread)) {
+    CloseHandle(mThread);
+    return NS_ERROR_UNEXPECTED;
+  }
+  return NS_OK;
+}
+
+nsresult
+nsDownloadScanner::Scan::Run()
+{
+  
+  WaitForSingleObject(mThread, INFINITE);
+  CloseHandle(mThread);
+
+  DownloadState downloadState = 0;
+  switch (mStatus) {
+    case AVSCAN_BAD:
+      downloadState = nsIDownloadManager::DOWNLOAD_BLOCKED;
+      break;
+    default:
+    case AVSCAN_FAILED:
+    case AVSCAN_GOOD:
+    case AVSCAN_UGLY:
+      downloadState = nsIDownloadManager::DOWNLOAD_FINISHED;
+      break;
+  }
+  (void)mDownload->SetState(downloadState);
+
+  NS_RELEASE_THIS();
+  return NS_OK;
+}
+
+void
+nsDownloadScanner::Scan::DoScan()
+{
+  HRESULT hr;
+  MSOAVINFO info;
+  info.cbsize = sizeof(MSOAVINFO);
+  info.fPath = TRUE;
+  info.fInstalled = FALSE;
+  info.fReadOnlyRequest = mIsReadOnlyRequest;
+  info.fHttpDownload = mIsHttpDownload;
+  info.hwnd = NULL;
+
+  info.pwzHostName = mName.BeginWriting();
+  info.u.pwzFullPath = mPath.BeginWriting();
+
+  info.pwzOrigURL = mOrigin.BeginWriting();
+
+  CoInitialize(NULL);
+  hr = CoCreateInstance(mDLScanner->mScannerCLSID, NULL, CLSCTX_ALL,
+                        IID_IOfficeAntiVirus, getter_AddRefs(mAVScanner));
+  if (FAILED(hr)) {
+    NS_WARNING("Could not instantiate antivirus scanner");
+    mStatus = AVSCAN_FAILED;
+  } else {
+    mStatus = AVSCAN_SCANNING;
+    hr = mAVScanner->Scan(&info);
+    switch (hr) {
+    case S_OK:
+      mStatus = AVSCAN_GOOD;
+      break;
+    case S_FALSE:
+      mStatus = AVSCAN_UGLY;
+      break;
+    case E_FAIL:
+      mStatus = AVSCAN_BAD;
+      break;
+    default:
+    case ERROR_FILE_NOT_FOUND:
+      NS_WARNING("Downloaded file disappeared before it could be scanned");
+      mStatus = AVSCAN_FAILED;
+      break;
+    }
+  }
+  CoUninitialize();
+
+  
+  NS_DispatchToMainThread(this);
+}
+
+nsresult
+nsDownloadScanner::ScanDownload(nsDownload *download)
+{
+  if (!mHaveAVScanner)
+    return NS_ERROR_NOT_AVAILABLE;
+
+  
+  Scan *scan = new Scan(this, download);
+  if (!scan)
+    return NS_ERROR_OUT_OF_MEMORY;
+
+  NS_ADDREF(scan);
+
+  nsresult rv = scan->Start();
+
+  
+  
+  if (NS_FAILED(rv))
+    NS_RELEASE(scan);
+
+  return rv;
+}
