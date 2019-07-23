@@ -237,6 +237,11 @@ nsTextBoxFrame::UpdateAccesskey(nsWeakFrame& aWeakThis)
     nsCOMPtr<nsIDOMXULLabelElement> labelElement = do_QueryInterface(mContent);
     if (labelElement) {
         
+        
+        
+        
+        
+        nsCxPusher cx(mContent);
         labelElement->GetAccessKey(accesskey);
         NS_ENSURE_TRUE(aWeakThis.IsAlive(), PR_FALSE);
     }
