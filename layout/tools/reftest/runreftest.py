@@ -143,6 +143,7 @@ Are you executing $objdir/_tests/reftest/runreftest.py?""" \
     
     
     automation.log.info("REFTEST INFO | runreftest.py | Performing extension manager registration: start.\n")
+    
     status = automation.runApp(None, browserEnv, options.app, profileDir,
                                extraArgs = ["-silent"],
                                symbolsPath=options.symbolsPath)
