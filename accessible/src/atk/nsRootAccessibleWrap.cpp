@@ -140,40 +140,6 @@ nsresult nsRootAccessibleWrap::HandleEventWithTarget(nsIDOMEvent *aEvent,
 
     nsCOMPtr<nsPIAccessible> privAcc(do_QueryInterface(accessible));
 
-    if (eventType.EqualsLiteral("CheckboxStateChange") || 
-        eventType.EqualsLiteral("RadioStateChange")) { 
-
-        PRUint32 state = State(accessible);
-
-        
-        
-        PRBool isEnabled = (state & (nsIAccessibleStates::STATE_CHECKED |
-                            nsIAccessibleStates::STATE_SELECTED)) != 0;
-
-        nsCOMPtr<nsIAccessibleStateChangeEvent> accEvent =
-            new nsAccStateChangeEvent(accessible,
-                                      nsIAccessibleStates::STATE_CHECKED,
-                                      PR_FALSE, isEnabled);
-        FireAccessibleEvent(accEvent);
-
-        
-        if (eventType.EqualsLiteral("RadioStateChange") && isEnabled) {
-            FireAccessibleFocusEvent(accessible, aTargetNode, aEvent);
-        }
-        return NS_OK;
-    }
-
-    if (eventType.EqualsLiteral("OpenStateChange")) {
-        PRUint32 state = State(accessible); 
-        PRBool isEnabled = (state & nsIAccessibleStates::STATE_EXPANDED) != 0;
-
-        nsCOMPtr<nsIAccessibleStateChangeEvent> accEvent =
-            new nsAccStateChangeEvent(accessible,
-                                      nsIAccessibleStates::STATE_EXPANDED,
-                                      PR_FALSE, isEnabled);
-        return FireAccessibleEvent(accEvent);
-    }
-
 #ifdef MOZ_XUL
   
     nsCOMPtr<nsIAccessible> treeItemAccessible;
