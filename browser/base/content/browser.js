@@ -4920,8 +4920,9 @@ var contentAreaDNDObserver = {
             dragData.ownerDocument.defaultView == window) {
           
           
+          
           if (aEvent.screenY > gBrowser.mPanelContainer.boxObject.screenY +
-                               dragData.boxObject.height) {
+                               dragData.boxObject.height / 2) {
             gBrowser.replaceTabWithWindow(dragData);
             aEvent.dataTransfer.dropEffect = "move";
             return;
