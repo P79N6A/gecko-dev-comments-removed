@@ -295,7 +295,6 @@ nsPresContext::~nsPresContext()
   NS_IF_RELEASE(mDeviceContext);
   NS_IF_RELEASE(mLookAndFeel);
   NS_IF_RELEASE(mLangGroup);
-  NS_IF_RELEASE(mUserFontSet);
 }
 
 NS_IMPL_CYCLE_COLLECTION_CLASS(nsPresContext)
@@ -913,6 +912,12 @@ nsPresContext::Init(nsIDeviceContext* aDeviceContext)
 void
 nsPresContext::SetShell(nsIPresShell* aShell)
 {
+  if (mUserFontSet) {
+    
+    mUserFontSet->Destroy();
+    NS_RELEASE(mUserFontSet);
+  }
+
   if (mShell) {
     
     
@@ -1841,10 +1846,13 @@ nsPresContext::FlushUserFontSet()
 
       
       if (differ) {
-        NS_IF_RELEASE(mUserFontSet);
+        if (mUserFontSet) {
+          mUserFontSet->Destroy();
+          NS_RELEASE(mUserFontSet);
+        }
 
         if (rules.Length() > 0) {
-          gfxUserFontSet *fs = new nsUserFontSet(this);
+          nsUserFontSet *fs = new nsUserFontSet(this);
           if (!fs)
             return;
           mUserFontSet = fs;

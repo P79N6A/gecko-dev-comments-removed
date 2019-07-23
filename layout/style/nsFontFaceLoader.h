@@ -46,7 +46,10 @@
 #include "nsIPresShell.h"
 #include "nsIStreamLoader.h"
 #include "nsIURI.h"
+#include "nsIChannel.h"
 #include "gfxUserFontSet.h"
+#include "nsHashKeys.h"
+#include "nsTHashtable.h"
 
 class nsIRequest;
 class nsISupports;
@@ -54,31 +57,7 @@ class nsIPresShell;
 class nsPresContext;
 class nsIPrincipal;
 
-class nsFontFaceLoader : public nsIStreamLoaderObserver
-{
-public:
-
-  nsFontFaceLoader(gfxFontEntry *aFontToLoad, nsIURI *aFontURI, 
-                   nsIPresShell *aShell);
-  virtual ~nsFontFaceLoader();
-
-  NS_DECL_ISUPPORTS
-  NS_DECL_NSISTREAMLOADEROBSERVER 
-
-  
-  nsresult Init();  
-
-  static nsresult CheckLoadAllowed(nsIPrincipal* aSourcePrincipal,
-                                   nsIURI* aTargetURI,
-                                   nsISupports* aContext);
-  
-private:
-
-  nsRefPtr<gfxFontEntry>  mFontEntry;
-  nsCOMPtr<nsIURI>        mFontURI;
-  nsCOMPtr<nsIPresShell>  mShell;
-};
-
+class nsFontFaceLoader;
 
 
 class nsUserFontSet : public gfxUserFontSet
@@ -86,13 +65,55 @@ class nsUserFontSet : public gfxUserFontSet
 public:
   nsUserFontSet(nsPresContext *aContext);
   ~nsUserFontSet();
+
   
+  void Destroy();
+
   
   
   nsresult StartLoad(gfxFontEntry *aFontToLoad, 
                      const gfxFontFaceSrc *aFontFaceSrc);
+
+  
+  
+  void RemoveLoader(nsFontFaceLoader *aLoader);
+
+  nsPresContext *GetPresContext() { return mPresContext; }
+
 protected:
   nsPresContext *mPresContext;  
+
+  
+  
+  
+  nsTHashtable< nsPtrHashKey<nsFontFaceLoader> > mLoaders;
+};
+
+class nsFontFaceLoader : public nsIStreamLoaderObserver
+{
+public:
+
+  nsFontFaceLoader(gfxFontEntry *aFontToLoad, nsIURI *aFontURI, 
+                   nsUserFontSet *aFontSet, nsIChannel *aChannel);
+  virtual ~nsFontFaceLoader();
+
+  NS_DECL_ISUPPORTS
+  NS_DECL_NSISTREAMLOADEROBSERVER 
+
+  
+  nsresult Init();
+  
+  void Cancel();
+
+  static nsresult CheckLoadAllowed(nsIPrincipal* aSourcePrincipal,
+                                   nsIURI* aTargetURI,
+                                   nsISupports* aContext);
+  
+private:
+  nsRefPtr<gfxFontEntry>  mFontEntry;
+  nsCOMPtr<nsIURI>        mFontURI;
+  nsRefPtr<nsUserFontSet> mFontSet;
+  nsCOMPtr<nsIChannel>    mChannel;
 };
 
 #endif 

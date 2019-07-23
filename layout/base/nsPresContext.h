@@ -95,6 +95,7 @@ struct nsStyleBackground;
 template <class T> class nsRunnableMethod;
 class nsIRunnable;
 class gfxUserFontSet;
+class nsUserFontSet;
 struct nsFontFaceRuleContainer;
 
 #ifdef MOZ_REFLOW_PERF
@@ -870,7 +871,7 @@ protected:
   nsRegion              mCrossDocDirtyRegion;
 
   
-  gfxUserFontSet* mUserFontSet;
+  nsUserFontSet*        mUserFontSet;
   
   nsTArray<nsFontFaceRuleContainer> mFontFaceRules;
   
