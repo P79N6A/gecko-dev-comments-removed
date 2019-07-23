@@ -363,7 +363,7 @@ struct JSThread {
     
     JSTitle             *titleToShare;
 
-    JSGCThing           *gcFreeLists[GC_NUM_FREELISTS];
+    JSGCThing           *gcFreeLists[FINALIZE_LIMIT];
 
     
     JSThreadData        data;
@@ -450,7 +450,7 @@ struct JSRuntime {
 
     
     JSGCChunkInfo       *gcChunkList;
-    JSGCArenaList       gcArenaList[GC_NUM_FREELISTS];
+    JSGCArenaList       gcArenaList[FINALIZE_LIMIT];
     JSGCDoubleArenaList gcDoubleArenaList;
     JSDHashTable        gcRootsHash;
     JSDHashTable        *gcLocksHash;
