@@ -46,7 +46,6 @@
 #include "nsClassHashtable.h"
 #include "nsTArray.h"
 #include "nsCycleCollectionParticipant.h"
-#include "nsISupportsImpl.h"
 
 class nsXBLPrototypeBinding;
 class nsIContent;
@@ -78,7 +77,24 @@ public:
 
 
 
-  NS_INLINE_DECL_REFCOUNTING(nsXBLBinding)
+  nsrefcnt AddRef()
+  {
+    ++mRefCnt;
+    NS_LOG_ADDREF(this, mRefCnt, "nsXBLBinding", sizeof(nsXBLBinding));
+    return mRefCnt;
+  }
+
+  nsrefcnt Release()
+  {
+    --mRefCnt;
+    NS_LOG_RELEASE(this, mRefCnt, "nsXBLBinding");
+    if (mRefCnt == 0) {
+      mRefCnt = 1;
+      delete this;
+      return 0;
+    }
+    return mRefCnt;
+  }
 
   NS_DECL_CYCLE_COLLECTION_NATIVE_CLASS(nsXBLBinding)
 
@@ -156,6 +172,7 @@ public:
 
 protected:
 
+  nsAutoRefCnt mRefCnt;
   nsXBLPrototypeBinding* mPrototypeBinding; 
   nsCOMPtr<nsIContent> mContent; 
   nsRefPtr<nsXBLBinding> mNextBinding; 

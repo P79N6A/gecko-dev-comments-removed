@@ -64,8 +64,7 @@ class txDriver : public txACompileObserver
                           const XML_Char *aSystemId,
                           const XML_Char *aPublicId);
 
-    TX_DECL_ACOMPILEOBSERVER
-    NS_INLINE_DECL_REFCOUNTING(txDriver)
+    TX_DECL_ACOMPILEOBSERVER;
 
     nsRefPtr<txStylesheetCompiler> mCompiler;
   protected:
@@ -74,6 +73,7 @@ class txDriver : public txACompileObserver
     
     nsresult mRV;
     XML_Parser mExpatParser;
+    nsAutoRefCnt mRefCnt;
 };
 
 nsresult
@@ -337,6 +337,23 @@ txDriver::createErrorString()
 
 
 
+
+nsrefcnt
+txDriver::AddRef()
+{
+    return ++mRefCnt;
+}
+
+nsrefcnt
+txDriver::Release()
+{
+    if (--mRefCnt == 0) {
+        mRefCnt = 1; 
+        delete this;
+        return 0;
+    }
+    return mRefCnt;
+}
 
 void
 txDriver::onDoneCompiling(txStylesheetCompiler* aCompiler, nsresult aResult,
