@@ -816,8 +816,14 @@ nsListBoxBodyFrame::ScrollToIndex(PRInt32 aRowIndex)
 
   mCurrentIndex = newIndex;
 
+  nsWeakFrame weak(this);
+
   
   DoInternalPositionChangedSync(up, delta);
+
+  if (!weak.IsAlive()) {
+    return NS_OK;
+  }
 
   
   
@@ -869,7 +875,9 @@ nsListBoxBodyFrame::DoInternalPositionChangedSync(PRBool aUp, PRInt32 aDelta)
   nsTArray< nsRefPtr<nsPositionChangedEvent> > temp;
   temp.SwapElements(mPendingPositionChangeEvents);
   for (PRUint32 i = 0; i < temp.Length(); ++i) {
-    temp[i]->Run();
+    if (weak.IsAlive()) {
+      temp[i]->Run();
+    }
     temp[i]->Revoke();
   }
 
@@ -885,6 +893,8 @@ nsListBoxBodyFrame::DoInternalPositionChanged(PRBool aUp, PRInt32 aDelta)
 {
   if (aDelta == 0)
     return NS_OK;
+
+  nsAutoScriptBlocker scriptBlocker;
 
   nsPresContext *presContext = PresContext();
   nsBoxLayoutState state(presContext);
