@@ -584,8 +584,19 @@ var PlacesCommandHook = {
 var HistoryMenu = {
   get _ss() {
     delete this._ss;
-    return this._ss = Components.classes["@mozilla.org/browser/sessionstore;1"].
-                      getService(Components.interfaces.nsISessionStore);
+    return this._ss = Cc["@mozilla.org/browser/sessionstore;1"].
+                      getService(Ci.nsISessionStore);
+  },
+
+  toggleRecentlyClosedTabs: function PHM_toggleRecentlyClosedTabs() {
+    
+    var undoPopup = document.getElementById("historyUndoPopup");
+
+    
+    if (this._ss.getClosedTabCount(window) == 0)
+      undoPopup.parentNode.setAttribute("disabled", true);
+    else
+      undoPopup.parentNode.removeAttribute("disabled");
   },
 
   
@@ -593,15 +604,152 @@ var HistoryMenu = {
 
 
 
-  onPopupShowing: function PHM_onPopupShowing(aMenuPopup) {
-    var resultNode = aMenuPopup.getResultNode();
+
+  _undoCloseMiddleClick: function PHM__undoCloseMiddleClick(aEvent) {
+    if (aEvent.button != 1)
+      return;
+
+    undoCloseTab(aEvent.originalTarget.value);
+    gBrowser.moveTabToEnd();
+  },
+
+  
+
+
+  populateUndoSubmenu: function PHM_populateUndoSubmenu() {
+    var undoPopup = document.getElementById("historyUndoPopup");
+
+    
+    while (undoPopup.hasChildNodes())
+      undoPopup.removeChild(undoPopup.firstChild);
+
+    
+    if (this._ss.getClosedTabCount(window) == 0) {
+      undoPopup.parentNode.setAttribute("disabled", true);
+      return;
+    }
+
+    
+    undoPopup.parentNode.removeAttribute("disabled");
+
+    
+    var undoItems = eval("(" + this._ss.getClosedTabData(window) + ")");
+    for (var i = 0; i < undoItems.length; i++) {
+      var m = document.createElement("menuitem");
+      m.setAttribute("label", undoItems[i].title);
+      if (undoItems[i].image) {
+        let iconURL = undoItems[i].image;
+        
+        if (/^https?:/.test(iconURL))
+          iconURL = "moz-anno:favicon:" + iconURL;
+        m.setAttribute("image", iconURL);
+      }
+      m.setAttribute("class", "menuitem-iconic bookmark-item");
+      m.setAttribute("value", i);
+      m.setAttribute("oncommand", "undoCloseTab(" + i + ");");
+      m.addEventListener("click", this._undoCloseMiddleClick, false);
+      if (i == 0)
+        m.setAttribute("key", "key_undoCloseTab");
+      undoPopup.appendChild(m);
+    }
+
+    
+    var strings = gNavigatorBundle;
+    undoPopup.appendChild(document.createElement("menuseparator"));
+    m = undoPopup.appendChild(document.createElement("menuitem"));
+    m.setAttribute("label", strings.getString("menuOpenAllInTabs.label"));
+    m.setAttribute("accesskey", strings.getString("menuOpenAllInTabs.accesskey"));
+    m.addEventListener("command", function() {
+      for (var i = 0; i < undoItems.length; i++)
+        undoCloseTab();
+    }, false);
+  },
+
+  toggleRecentlyClosedWindows: function PHM_toggleRecentlyClosedWindows() {
+    
+    let undoPopup = document.getElementById("historyUndoWindowPopup");
+
+    
+    if (this._ss.getClosedWindowCount() == 0)
+      undoPopup.parentNode.setAttribute("disabled", true);
+    else
+      undoPopup.parentNode.removeAttribute("disabled");
+  },
+
+  
+
+
+  populateUndoWindowSubmenu: function PHM_populateUndoWindowSubmenu() {
+    let undoPopup = document.getElementById("historyUndoWindowPopup");
+    let menuLabelString = gNavigatorBundle.getString("menuUndoCloseWindowLabel");
+    let menuLabelStringSingleTab =
+      gNavigatorBundle.getString("menuUndoCloseWindowSingleTabLabel");
+
+    
+    while (undoPopup.hasChildNodes())
+      undoPopup.removeChild(undoPopup.firstChild);
+
+    
+    if (this._ss.getClosedWindowCount() == 0) {
+      undoPopup.parentNode.setAttribute("disabled", true);
+      return;
+    }
+
+    
+    undoPopup.parentNode.removeAttribute("disabled");
+
+    
+    let undoItems = JSON.parse(this._ss.getClosedWindowData());
+    for (let i = 0; i < undoItems.length; i++) {
+      let undoItem = undoItems[i];
+      let otherTabsCount = undoItem.tabs.length - 1;
+      let label = (otherTabsCount == 0) ? menuLabelStringSingleTab
+                                        : PluralForm.get(otherTabsCount, menuLabelString);
+      let menuLabel = label.replace("#1", undoItem.title)
+                           .replace("#2", otherTabsCount);
+      let m = document.createElement("menuitem");
+      m.setAttribute("label", menuLabel);
+      let selectedTab = undoItem.tabs[undoItem.selected - 1];
+      if (selectedTab.attributes.image) {
+        let iconURL = selectedTab.attributes.image;
+        
+        if (/^https?:/.test(iconURL))
+          iconURL = "moz-anno:favicon:" + iconURL;
+        m.setAttribute("image", iconURL);
+      }
+      m.setAttribute("class", "menuitem-iconic bookmark-item");
+      m.setAttribute("oncommand", "undoCloseWindow(" + i + ");");
+      if (i == 0)
+        m.setAttribute("key", "key_undoCloseWindow");
+      undoPopup.appendChild(m);
+    }
+
+    
+    undoPopup.appendChild(document.createElement("menuseparator"));
+    let m = undoPopup.appendChild(document.createElement("menuitem"));
+    m.setAttribute("label", gNavigatorBundle.getString("menuRestoreAllWindows.label"));
+    m.setAttribute("accesskey", gNavigatorBundle.getString("menuRestoreAllWindows.accesskey"));
+    m.setAttribute("oncommand",
+      "for (var i = 0; i < " + undoItems.length + "; i++) undoCloseWindow();");
+  },
+
+  
+
+
+
+
+  onPopupShowing: function PHM_onPopupShowing(aEvent) {
+    
+    if (aEvent.target != aEvent.currentTarget)
+      return;
+
+    var menuPopup = aEvent.target;
+    var resultNode = menuPopup.getResultNode();
     var wasOpen = resultNode.containerOpen;
     resultNode.containerOpen = true;
     document.getElementById("endHistorySeparator").hidden =
       resultNode.childCount == 0;
 
-    
-    
     this.toggleRecentlyClosedTabs();
     this.toggleRecentlyClosedWindows();
   },
@@ -611,8 +759,13 @@ var HistoryMenu = {
 
 
 
-  onPopupHidden: function PHM_onPopupHidden(aMenuPopup) {
-    var resultNode = aMenuPopup.getResultNode();
+  onPopupHidden: function PHM_onPopupHidden(aEvent) {
+    
+    if (aEvent.target != aEvent.currentTarget)
+      return;
+
+    var menuPopup = aEvent.target;
+    var resultNode = menuPopup.getResultNode();
     if (resultNode.containerOpen)
       resultNode.containerOpen = false;
   }
