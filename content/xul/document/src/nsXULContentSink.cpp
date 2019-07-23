@@ -969,8 +969,6 @@ XULContentSinkImpl::OpenTag(const PRUnichar** aAttributes,
             
             return NS_OK;
         }
-
-        *((int*)0) = 1;  
     }
 
     
