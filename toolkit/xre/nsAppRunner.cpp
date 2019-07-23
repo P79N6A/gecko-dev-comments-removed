@@ -50,8 +50,6 @@
 
 #ifdef XP_MACOSX
 #include "MacLaunchHelper.h"
-#endif
-#ifdef MOZ_WIDGET_COCOA
 #include "MacApplicationDelegate.h"
 #endif
 
@@ -2342,6 +2340,11 @@ XRE_main(int argc, char* argv[], const nsXREAppData* aAppData)
 
 #ifdef XP_MACOSX
   if (PR_GetEnv("MOZ_LAUNCHED_CHILD")) {
+    
+    
+    
+    EnsureUseCocoaDockAPI();
+
     
     
     
