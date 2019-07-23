@@ -101,8 +101,8 @@ function makeTagFunc(tagName)
 
 function makeTags() {
   
-  for each(var tag in tags) {
-      this[tag] = makeTagFunc(tag);
+  for each (var tag in tags) {
+      this[tag] = makeTagFunc(tag.toLowerCase());
   }
 }
 
@@ -137,8 +137,7 @@ function runServer()
   server = new nsHttpServer();
   server.registerDirectory("/", serverBasePath);
 
-  if (environment["CLOSE_WHEN_DONE"])
-    server.registerPathHandler("/server/shutdown", serverShutdown);
+  server.registerPathHandler("/server/shutdown", serverShutdown);
 
   server.registerPathHandler("/redirect", redirect);
 
