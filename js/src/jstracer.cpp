@@ -1885,8 +1885,20 @@ js_ExecuteTree(JSContext* cx, Fragment* f, uintN& inlineCallCount)
 #endif
 
     
-    FlushNativeGlobalFrame(cx, e->numGlobalSlots, ti->globalSlots.data(), e->typeMap, global);
-    JS_ASSERT(ti->globalSlots.length() >= e->numGlobalSlots);
+
+
+
+    unsigned exit_gslots = e->numGlobalSlots;
+    unsigned tree_gslots = ti->globalTypeMap.length();
+    JS_ASSERT(tree_gslots >= exit_gslots);
+    uint8* globalTypeMap = e->typeMap;
+    if (exit_gslots < tree_gslots)
+        mergeTypeMaps(&globalTypeMap, &exit_gslots, ti->globalTypeMap.data(), tree_gslots,
+                      (uint8*)alloca(sizeof(uint8) * tree_gslots));
+    JS_ASSERT(tree_gslots == ti->globalTypeMap.length());
+    
+    
+    FlushNativeGlobalFrame(cx, exit_gslots, ti->globalSlots.data(), globalTypeMap, global);
     JS_ASSERT(globalFrameSize == STOBJ_NSLOTS(globalObj));
     JS_ASSERT(*(uint64*)&global[globalFrameSize] == 0xdeadbeefdeadbeefLL);
     
