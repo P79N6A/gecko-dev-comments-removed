@@ -77,7 +77,6 @@ nsPopupSetFrame::Init(nsIContent*      aContent,
   
   
   nsIRootBox *rootBox = nsIRootBox::GetRootBox(PresContext()->GetPresShell());
-  NS_ASSERTION(rootBox, "must have root box");
   if (rootBox) {
     rootBox->SetPopupSetFrame(this);
   }
@@ -148,7 +147,6 @@ nsPopupSetFrame::Destroy()
   
   
   nsIRootBox *rootBox = nsIRootBox::GetRootBox(PresContext()->GetPresShell());
-  NS_ASSERTION(rootBox, "must have root box");
   if (rootBox) {
     rootBox->SetPopupSetFrame(nsnull);
   }
