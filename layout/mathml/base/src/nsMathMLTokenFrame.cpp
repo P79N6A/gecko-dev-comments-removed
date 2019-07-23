@@ -254,7 +254,7 @@ nsMathMLTokenFrame::ProcessTextData(PRBool aComputeStyleChange)
     return;
 
   
-  GetPresContext()->PresShell()->FrameConstructor()->
+  PresContext()->PresShell()->FrameConstructor()->
     PostRestyleEvent(mContent, eReStyle_Self, NS_STYLE_HINT_NONE);
 }
 
