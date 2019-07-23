@@ -385,7 +385,7 @@ namespace nanojit
             mem = &branch[6] + *(int32_t *)&branch[2];
             *(intptr_t *)mem = intptr_t(location);
         } else {
-            NanoAssert(0);
+            NanoAssertMsg(0, "Unknown branch type in nPatchBranch");
         }
 #endif
 	}
@@ -1136,10 +1136,10 @@ namespace nanojit
 		} else {
 			if (rmask(r) & XmmRegs) {
 				
-				NanoAssert(false);
+				NanoAssertMsg(false, "Should not move data from GPR to XMM");
 			} else {
 				
-				NanoAssert(false);
+				NanoAssertMsg(false, "Should not move data from GPR/XMM to x87 FPU");
 			}
 		}
 	}
@@ -1324,7 +1324,6 @@ namespace nanojit
                 ORQ(rr, rv);
             } else {
                 NanoAssert(rhs->isconst());
-                NanoAssert(false);
             }
         }
 
