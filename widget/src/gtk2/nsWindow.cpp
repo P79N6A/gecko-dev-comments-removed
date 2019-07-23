@@ -1721,14 +1721,58 @@ nsWindow::Scroll(const nsIntPoint& aDelta,
     
     
     
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    GdkRegion* updateArea = gdk_window_get_update_area(mGdkWindow);
+    if (!updateArea) {
+        updateArea = gdk_region_new(); 
+    }
+
+    
+    
+    
+    
     for (PRUint32 i = 0; i < aDestRects.Length(); ++i) {
         const nsIntRect& r = aDestRects[i];
         GdkRectangle gdkSource =
             { r.x - aDelta.x, r.y - aDelta.y, r.width, r.height };
-        GdkRegion* region = gdk_region_rectangle(&gdkSource);
-        gdk_window_move_region(GDK_WINDOW(mGdkWindow), region, aDelta.x, aDelta.y);
-        gdk_region_destroy(region);
+        GdkRegion* rectRegion = gdk_region_rectangle(&gdkSource);
+        gdk_window_move_region(GDK_WINDOW(mGdkWindow), rectRegion,
+                               aDelta.x, aDelta.y);
+
+        
+        GdkRegion* updateChanges = gdk_region_copy(rectRegion);
+        gdk_region_intersect(updateChanges, updateArea);
+        gdk_region_offset(updateChanges, aDelta.x, aDelta.y);
+
+        
+        gdk_region_offset(rectRegion, aDelta.x, aDelta.y);
+        
+        gdk_region_subtract(updateArea, rectRegion);
+        gdk_region_destroy(rectRegion);
+
+        
+        
+        
+        
+        GdkRegion* newUpdates = gdk_window_get_update_area(mGdkWindow);
+        if (newUpdates) {
+            gdk_region_union(updateChanges, newUpdates);
+            gdk_region_destroy(newUpdates);
+        }
+        gdk_region_union(updateArea, updateChanges);
+        gdk_region_destroy(updateChanges);
     }
+
+    gdk_window_invalidate_region(mGdkWindow, updateArea, FALSE);
+    gdk_region_destroy(updateArea);
 
     ConfigureChildren(aConfigurations);
 
@@ -5746,16 +5790,16 @@ hierarchy_changed_cb (GtkWidget *widget,
         g_signal_handlers_disconnect_by_func(previous_toplevel,
                                              FuncToGpointer(window_state_event_cb),
                                              widget);
-        if (widget->window) {
-            old_window_state = gdk_window_get_state(widget->window);
+        if (previous_toplevel->window) {
+            old_window_state = gdk_window_get_state(previous_toplevel->window);
         }
     }
 
     if (GTK_IS_WINDOW(toplevel)) {
         g_signal_connect_swapped(toplevel, "window-state-event",
                                  G_CALLBACK(window_state_event_cb), widget);
-        if (widget->window) {
-            event.new_window_state = gdk_window_get_state(widget->window);
+        if (toplevel->window) {
+            event.new_window_state = gdk_window_get_state(toplevel->window);
         }
     }
 

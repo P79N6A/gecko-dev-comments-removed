@@ -2109,9 +2109,17 @@ _getvalue(NPP npp, NPNVariable variable, void *result)
 
     return NPERR_GENERIC_ERROR;
   }
+#else
+  case NPNVDOMElement:
+    
+  case NPNVDOMWindow:
+    
 #endif 
-
-  case NPNVserviceManager: 
+  case NPNVserviceManager:
+    
+    
+    *(nsISupports**)result = nsnull;
+    
   default:
     return NPERR_GENERIC_ERROR;
   }
@@ -2476,9 +2484,9 @@ _getvalueforurl(NPP instance, NPNURLVariable variable, const char *url,
       }
 
       nsXPIDLCString cookieStr;
-      if (NS_FAILED(cookieService->GetCookieString(uri, nsnull,
-                                                   getter_Copies(cookieStr))) ||
-          !cookieStr) {
+      nsresult cookieReturn = cookieService->GetCookieString(uri, nsnull,
+                                                             getter_Copies(cookieStr));
+      if (NS_FAILED(cookieReturn) || !cookieStr) {
         return NPERR_GENERIC_ERROR;
       }
 
