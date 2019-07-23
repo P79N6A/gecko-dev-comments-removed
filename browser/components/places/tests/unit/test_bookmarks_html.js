@@ -102,7 +102,7 @@ function run_test() {
   setIntPref("browser.places.smartBookmarksVersion", -1);
 
   
-  var bookmarksFileOld = do_get_file("browser/components/places/tests/unit/bookmarks.preplaces.html");
+  var bookmarksFileOld = do_get_file("bookmarks.preplaces.html");
   
   var bookmarksFileNew = dirSvc.get("ProfD", Ci.nsILocalFile);
   bookmarksFileNew.append("bookmarks.exported.html");

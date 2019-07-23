@@ -1,7 +1,7 @@
 
 
 
-do_import_script("netwerk/test/httpserver/httpd.js");
+do_load_httpd_js();
 
 const NS_BINDING_ABORTED = 0x804b0002;
 

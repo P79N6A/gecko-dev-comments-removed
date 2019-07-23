@@ -1,6 +1,6 @@
 
 
-do_import_script("netwerk/test/httpserver/httpd.js");
+do_load_httpd_js();
 
 var httpserver = null;
 

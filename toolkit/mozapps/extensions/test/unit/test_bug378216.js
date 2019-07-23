@@ -64,7 +64,7 @@
 
 
 
-do_import_script("netwerk/test/httpserver/httpd.js");
+do_load_httpd_js();
 var server;
 
 
@@ -216,7 +216,7 @@ function run_test()
   do_check_neq(gEM.getItemForID("test_bug378216_13@tests.mozilla.org"), null);
 
   server = new nsHttpServer();
-  server.registerDirectory("/", do_get_file("toolkit/mozapps/extensions/test/unit/data"));
+  server.registerDirectory("/", do_get_file("data"));
   server.start(4444);
   
   var updates = [

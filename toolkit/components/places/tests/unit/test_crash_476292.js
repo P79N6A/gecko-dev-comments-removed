@@ -49,7 +49,7 @@ function run_test()
   
   
   
-  let dbFile = do_get_file("toolkit/components/places/tests/unit/bug476292.sqlite");
+  let dbFile = do_get_file("bug476292.sqlite");
   let profD = Cc["@mozilla.org/file/directory_service;1"].
              getService(Ci.nsIProperties).
              get(NS_APP_USER_PROFILE_50_DIR, Ci.nsIFile);

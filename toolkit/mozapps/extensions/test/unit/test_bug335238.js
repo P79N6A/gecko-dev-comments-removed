@@ -42,7 +42,7 @@ const PREF_SELECTED_LOCALE = "general.useragent.locale";
 
 gPrefs.setBoolPref("extensions.checkUpdateSecurity", false);
 
-do_import_script("netwerk/test/httpserver/httpd.js");
+do_load_httpd_js();
 
 
 var EXPECTED = [

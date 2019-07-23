@@ -63,7 +63,7 @@ function run_test() {
 
   
   
-  gTestDir = fileLocator.get("CurWorkD", AUS_Ci.nsIFile);
+  gTestDir = do_get_cwd();
   
   
   gTestDir.append("mar_test");
@@ -211,7 +211,7 @@ function run_test_pt2() {
   do_check_eq(getFileBytes(getTestFile("text1")), "ToBeModified\n");
   do_check_eq(getFileBytes(getTestFile("text2")), "ToBeDeleted\n");
 
-  var refImage = do_get_file("toolkit/mozapps/update/test/unit/data/aus-0110_general_ref_image1.png");
+  var refImage = do_get_file("data/aus-0110_general_ref_image1.png");
   var srcImage = getTestFile("image1.png");
   do_check_eq(getFileBytes(srcImage), getFileBytes(refImage));
 
@@ -235,7 +235,7 @@ function run_test_pt4() {
   do_check_false(getTestFile("text2").exists()); 
   do_check_eq(getFileBytes(getTestFile("text3")), "Added\n");
 
-  var refImage = do_get_file("toolkit/mozapps/update/test/unit/data/aus-0110_general_ref_image2.png");
+  var refImage = do_get_file("data/aus-0110_general_ref_image2.png");
   var srcImage = getTestFile("image1.png");
   do_check_eq(getFileBytes(srcImage), getFileBytes(refImage));
 

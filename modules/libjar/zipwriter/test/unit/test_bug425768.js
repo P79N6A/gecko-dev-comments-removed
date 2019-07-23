@@ -42,7 +42,7 @@ const time = Date.now();
 function run_test()
 {
   
-  var source = do_get_file("modules/libjar/zipwriter/test/unit/data/test.zip");
+  var source = do_get_file("data/test.zip");
   source.copyTo(tmpFile.parent, tmpFile.leafName);
 
   

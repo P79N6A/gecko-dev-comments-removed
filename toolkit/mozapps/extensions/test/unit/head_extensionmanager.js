@@ -144,14 +144,7 @@ function getManifestProperty(id, property) {
 
 function do_get_addon(name)
 {
-  var lf = gTestRoot.clone();
-  lf.append("unit");
-  lf.append("addons");
-  lf.append(name + ".xpi");
-  if (!lf.exists())
-    do_throw("Addon "+name+" does not exist.");
-
-  return lf;
+  return do_get_file("addons/" + name + ".xpi");
 }
 
 
@@ -260,11 +253,8 @@ function restartEM()
 var gDirSvc = Components.classes["@mozilla.org/file/directory_service;1"]
                         .getService(Components.interfaces.nsIProperties);
 
-var gTestRoot = __LOCATION__.parent.parent;
-gTestRoot.normalize();
 
-
-var gProfD = gTestRoot.clone();
+var gProfD = do_get_cwd();
 gProfD.append("profile");
 if (gProfD.exists())
   gProfD.remove(true);

@@ -85,7 +85,7 @@ bs.addObserver(bookmarksObserver, false);
 function run_test()
 {
   
-  do_load_module("/toolkit/components/places/tests/unit/nsDynamicContainerServiceSample.js");
+  do_load_module("../unit/nsDynamicContainerServiceSample.js");
 
   
   prefs.setIntPref(kSyncPrefName, SYNC_INTERVAL);

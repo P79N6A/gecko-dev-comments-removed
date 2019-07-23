@@ -72,7 +72,7 @@ bms.addObserver(observer, false);
 
 function run_test() {
   
-  do_load_module("/toolkit/components/places/tests/unit/nsDynamicContainerServiceSample.js");
+  do_load_module("nsDynamicContainerServiceSample.js");
   var testRoot = bms.createFolder(bms.placesRoot, "test root", bms.DEFAULT_INDEX);
 
   var options = hs.getNewQueryOptions();

@@ -71,7 +71,7 @@ function run_test() {
 
   
   
-  var bookmarksFileOld = do_get_file("browser/components/places/tests/unit/bookmarks.preplaces.html");
+  var bookmarksFileOld = do_get_file("bookmarks.preplaces.html");
   
   var jsonFile = dirSvc.get("ProfD", Ci.nsILocalFile);
   jsonFile.append("bookmarks.exported.json");

@@ -4,7 +4,7 @@
 
 
 
-do_import_script("netwerk/test/httpserver/httpd.js");
+do_load_httpd_js();
 const BUGID = "203271";
 
 var httpserver = new nsHttpServer();

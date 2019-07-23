@@ -1,6 +1,6 @@
 
 
-do_import_script("netwerk/test/httpserver/httpd.js");
+do_load_httpd_js();
 
 function check_request_header(chan, name, value) {
   var chanValue;

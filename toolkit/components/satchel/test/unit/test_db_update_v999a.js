@@ -50,7 +50,7 @@ function run_test()
   var testnum = 0;
 
   
-  var testfile = do_get_file("toolkit/components/satchel/test/unit/formhistory_v999a.sqlite");
+  var testfile = do_get_file("formhistory_v999a.sqlite");
   var profileDir = dirSvc.get("ProfD", Ci.nsIFile);
 
   
