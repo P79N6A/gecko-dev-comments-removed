@@ -1375,7 +1375,8 @@ nsresult
 nsObjectFrame::PrepareInstanceOwner()
 {
   
-  
+  StopPluginInternal(PR_FALSE);
+
   NS_ASSERTION(!mInstanceOwner, "Must not have an instance owner here");
 
   mInstanceOwner = new nsPluginInstanceOwner();
@@ -1544,10 +1545,7 @@ nsObjectFrame::StopPluginInternal(PRBool aDelayedStop)
     return;
   }
 
-  nsRefPtr<nsPluginInstanceOwner> owner;
-  owner.swap(mInstanceOwner);
-
-  owner->PrepareToStop(aDelayedStop);
+  mInstanceOwner->PrepareToStop(aDelayedStop);
 
 #ifdef XP_WIN
   
@@ -1556,7 +1554,7 @@ nsObjectFrame::StopPluginInternal(PRBool aDelayedStop)
   if (aDelayedStop) {
     
     
-    nsCOMPtr<nsIRunnable> evt = new nsStopPluginRunnable(owner);
+    nsCOMPtr<nsIRunnable> evt = new nsStopPluginRunnable(mInstanceOwner);
     NS_DispatchToCurrentThread(evt);
 
     
@@ -1570,13 +1568,13 @@ nsObjectFrame::StopPluginInternal(PRBool aDelayedStop)
   } else
 #endif
   {
-    DoStopPlugin(owner);
-    
-    
+    DoStopPlugin(mInstanceOwner);
   }
 
   
-  owner->SetOwner(nsnull);
+  mInstanceOwner->SetOwner(nsnull);
+
+  NS_RELEASE(mInstanceOwner);
 }
 
 void

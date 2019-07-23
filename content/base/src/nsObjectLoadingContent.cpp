@@ -142,8 +142,6 @@ nsAsyncInstantiateEvent::Run()
            mContent, mContentType.get(), mURI.get(), spec.get()));
     }
 
-    
-    
     nsresult rv = mContent->Instantiate(frame, mContentType, mURI);
     if (NS_FAILED(rv)) {
       mContent->Fallback(PR_TRUE);
@@ -525,8 +523,6 @@ nsObjectLoadingContent::OnStartRequest(nsIRequest *aRequest, nsISupports *aConte
         mInstantiating = PR_FALSE;
         return NS_BINDING_ABORTED;
       }
-      
-      
       rv = frame->Instantiate(chan, getter_AddRefs(mFinalListener));
       mInstantiating = PR_FALSE;
       break;
@@ -1518,21 +1514,6 @@ nsObjectLoadingContent::TryInstantiate(const nsACString& aMIMEType,
     LOG(("OBJLC [%p]: Frame hasn't been reflown yet\n", this));
     return NS_OK; 
   }
-  
-  
-  frame->StopPlugin();
-
-  frame = GetFrame(PR_FALSE);
-  if (!frame) {
-    LOG(("OBJLC [%p]: No frame anymore\n", this));
-    return NS_OK; 
-  }
-  CallQueryInterface(frame, &iframe);
-  if (iframe->GetStateBits() & NS_FRAME_FIRST_REFLOW) {
-    LOG(("OBJLC [%p]: New frame hasn't been reflown yet\n", this));
-    return NS_OK; 
-  }
-
   return Instantiate(frame, aMIMEType, aURI);
 }
 
