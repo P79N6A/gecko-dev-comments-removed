@@ -1651,8 +1651,8 @@ nsDOMWorker::CompileGlobalObject(JSContext* aCx)
                                 nsDOMWorkerFunctions::CTypesLazyGetter, nsnull,
                                 0);
     NS_ENSURE_TRUE(success, PR_FALSE);
-  }
 #endif
+  }
 
   
   
