@@ -36,7 +36,7 @@
 
 
 
-#ifndef nsProxyRelease_h_
+#ifndef nsProxyRelease_h__
 #define nsProxyRelease_h__
 
 #include "nsIEventTarget.h"

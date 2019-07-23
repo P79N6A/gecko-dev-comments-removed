@@ -36,7 +36,7 @@
 
 
 #ifndef macieprofilemigrator___h___
-#define maciebprofilemigrator___h___
+#define macieprofilemigrator___h___
 
 #include "nsIBrowserProfileMigrator.h"
 #include "nsIObserverService.h"
