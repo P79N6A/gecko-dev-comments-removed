@@ -1627,12 +1627,20 @@ nsXULPopupManager::KeyPress(nsIDOMEvent* aKeyEvent)
   }
   else if (theChar == NS_VK_ESCAPE) {
     
+    
+    
+    
     nsMenuChainItem* item = GetTopVisibleMenu();
     if (item)
       HidePopup(item->Content(), PR_FALSE, PR_FALSE, PR_FALSE);
+    else if (mActiveMenuBar)
+      mActiveMenuBar->MenuClosed();
   }
   else if (theChar == NS_VK_TAB) {
-    Rollup();
+    if (mCurrentMenu)
+      Rollup();
+    else if (mActiveMenuBar)
+      mActiveMenuBar->MenuClosed();
   }
   else if (theChar == NS_VK_ENTER ||
            theChar == NS_VK_RETURN) {
