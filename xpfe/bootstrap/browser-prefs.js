@@ -87,9 +87,6 @@ pref("browser.toolbars.showbutton.home",    true);
 pref("browser.toolbars.showbutton.print",   true);
 pref("browser.toolbars.showbutton.search",  true);
 
-
-pref("browser.show_about_as_stupid_modal_window", false);
-
 pref("browser.download.progressDnldDialog.keepAlive", true); 
 pref("browser.download.progressDnldDialog.enable_launch_reveal_buttons", true);
 pref("browser.download.progressDnlgDialog.dontAskForLaunch", false);
