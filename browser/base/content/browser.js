@@ -5429,10 +5429,25 @@ var OfflineApps = {
   },
 
   
-  _getOfflineAppUsage: function (host)
+  _getOfflineAppUsage: function (host, groups)
   {
-    
+    var cacheService = Components.classes["@mozilla.org/network/application-cache-service;1"].
+                       getService(Components.interfaces.nsIApplicationCacheService);
+    if (!groups) {
+      groups = cacheService.getGroups({});
+    }
+    var ios = Components.classes["@mozilla.org/network/io-service;1"].
+              getService(Components.interfaces.nsIIOService);
+
     var usage = 0;
+    for (var i = 0; i < groups.length; i++) {
+      var uri = ios.newURI(groups[i], null, null);
+      if (uri.asciiHost == host) {
+        var cache = cacheService.getActiveCache(groups[i]);
+        usage += cache.usage;
+      }
+    }
+
     var storageManager = Components.classes["@mozilla.org/dom/storagemanager;1"].
                          getService(Components.interfaces.nsIDOMStorageManager);
     usage += storageManager.getUsage(host);
