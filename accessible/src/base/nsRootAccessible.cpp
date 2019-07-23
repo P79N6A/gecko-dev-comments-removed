@@ -523,6 +523,9 @@ PRBool nsRootAccessible::FireAccessibleFocusEvent(nsIAccessible *aAccessible,
 void nsRootAccessible::FireCurrentFocusEvent()
 {
   nsCOMPtr<nsIDOMNode> focusedNode = GetCurrentFocus();
+  if (!focusedNode) {
+    return; 
+  }
 
   
   nsCOMPtr<nsIDOMDocumentEvent> docEvent = do_QueryInterface(mDocument);
