@@ -36,11 +36,7 @@
 
 
 
-#ifdef WIN32
-#include "config_win32.h"
-#else
 #include "config.h"
-#endif
 
 #if OGGZ_CONFIG_READ
 

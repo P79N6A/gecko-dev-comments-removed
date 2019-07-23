@@ -30,11 +30,7 @@
 
 
 
-#ifdef WIN32
-#include "config_win32.h"
-#else
 #include "config.h"
-#endif
 #include <stdlib.h>
 
 #include "oggz_dlist.h"

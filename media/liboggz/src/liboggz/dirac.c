@@ -2,11 +2,7 @@
 
 
 
-#ifdef WIN32
-#include "config_win32.h"
-#else
 #include "config.h"
-#endif
 
 #ifdef HAVE_STDINT_H
 #include <stdint.h>
