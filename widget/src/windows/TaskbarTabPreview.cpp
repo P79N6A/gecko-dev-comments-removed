@@ -167,20 +167,38 @@ TaskbarTabPreview::WndProc(UINT nMsg, WPARAM wParam, LPARAM lParam) {
       return 0;
     case WM_ACTIVATE:
       if (LOWORD(wParam) == WA_ACTIVE) {
+        
+        
         PRBool activateWindow;
         nsresult rv = mController->OnActivate(&activateWindow);
         if (NS_SUCCEEDED(rv) && activateWindow) {
-          ::SetActiveWindow(mWnd);
-          if (::IsIconic(mWnd))
-            ::ShowWindow(mWnd, SW_RESTORE);
-          else
-            ::BringWindowToTop(mWnd);
+          nsWindow* win = nsWindow::GetNSWindowPtr(mWnd);
+          if (win) {
+            nsWindow * parent = win->GetTopLevelWindow(true);
+            if (parent) {
+              parent->Show(true);
+            }
+          }
         }
       }
       return 0;
     case WM_GETICON:
       return (LRESULT)mIcon;
     case WM_SYSCOMMAND:
+      
+      
+      if (wParam == SC_RESTORE || wParam == SC_MAXIMIZE) {
+        PRBool activateWindow;
+        nsresult rv = mController->OnActivate(&activateWindow);
+        if (NS_SUCCEEDED(rv) && activateWindow) {
+          
+          
+          
+          ::SendMessageW(mWnd, WM_SYSCOMMAND, wParam, lParam);
+        }
+        return 0;
+      }
+      
       
       
       return wParam == SC_CLOSE
