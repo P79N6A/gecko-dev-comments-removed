@@ -49,6 +49,33 @@
 
 
 
+#if defined(_WIN32) && (_MSC_VER >= 1300) && defined(_M_IX86)
+#  include <stdlib.h>
+#  pragma intrinsic(_byteswap_ushort,_byteswap_ulong)
+#  define GFX_BYTESWAP16(x) _byteswap_ushort(x)
+#  define GFX_BYTESWAP32(x) _byteswap_ulong(x)
+#  define _GFX_USE_INTRIN_BYTESWAP_
+#elif defined(__GNUC__) && (__GNUC__ >= 2) && defined(__i386__) && !defined(XP_OS2)
+#  include <byteswap.h>
+#  define GFX_BYTESWAP16(x) bswap_16(x)
+#  define GFX_BYTESWAP32(x) bswap_32(x)
+#  define _GFX_USE_INTRIN_BYTESWAP_
+#else
+#  define GFX_BYTESWAP16(x) ( (((x) & 0xff) << 8) | (((x) >> 8) & 0xff) )
+#  define GFX_BYTESWAP32(x) ( (GFX_BYTESWAP16((x) & 0xffff) << 16) | GFX_BYTESWAP16(x >> 16) )
+#endif
+
+
+
+
+#define GFX_0XFF_PPIXEL_FROM_BPTR(pbptr) \
+   (GFX_BYTESWAP32(*((PRUint32 *)(pbptr))) >> 8) | (0xFF << 24)
+
+
+
+
+
+
 
 
 
