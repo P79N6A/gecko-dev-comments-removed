@@ -1553,6 +1553,9 @@ nsPresContext::FireDOMPaintEvent()
     
     
     eventTarget = ourWindow->GetChromeEventHandler();
+    if (!eventTarget) {
+      return;
+    }
   }
   
   
