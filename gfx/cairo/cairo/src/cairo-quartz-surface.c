@@ -713,10 +713,10 @@ CreateGradientFunction (const cairo_gradient_pattern_t *gpat)
 }
 
 static CGFunctionRef
-CreateRepeatingGradientFunction (cairo_quartz_surface_t *surface,
-				 const cairo_gradient_pattern_t *gpat,
-				 CGPoint *start, CGPoint *end,
-				 CGAffineTransform matrix)
+CreateRepeatingLinearGradientFunction (cairo_quartz_surface_t *surface,
+				       const cairo_gradient_pattern_t *gpat,
+				       CGPoint *start, CGPoint *end,
+				       CGAffineTransform matrix)
 {
     cairo_pattern_t *pat;
     float input_value_range[2];
@@ -794,6 +794,146 @@ CreateRepeatingGradientFunction (cairo_quartz_surface_t *surface,
 			     4,
 			     output_value_ranges,
 			     &callbacks);
+}
+
+static void
+UpdateRadialParameterToIncludePoint(double *max_t, CGPoint *center,
+                                    double dr, double dx, double dy,
+                                    double x, double y)
+{
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    double px = x - center->x;
+    double py = y - center->y;
+    double dx_py_minus_dy_px = dx*py - dy*px;
+    double numerator = dx*px + dy*py -
+        sqrt (dr*dr*(px*px + py*py) - dx_py_minus_dy_px*dx_py_minus_dy_px);
+    double denominator = dx*dx + dy*dy - dr*dr;
+    double t = numerator/denominator;
+
+    if (*max_t < t) {
+        *max_t = t;
+    }
+}
+
+
+static CGFunctionRef
+CreateRepeatingRadialGradientFunction (cairo_quartz_surface_t *surface,
+                                       const cairo_gradient_pattern_t *gpat,
+                                       CGPoint *start, double *start_radius,
+                                       CGPoint *end, double *end_radius)
+{
+    CGRect clip = CGContextGetClipBoundingBox (surface->cgContext);
+    CGAffineTransform transform;
+    cairo_pattern_t *pat;
+    float input_value_range[2];
+    float output_value_ranges[8] = { 0.f, 1.f, 0.f, 1.f, 0.f, 1.f, 0.f, 1.f };
+    CGFunctionCallbacks callbacks = {
+        0, ComputeGradientValue, (CGFunctionReleaseInfoCallback) cairo_pattern_destroy
+    };
+    CGPoint *inner;
+    double *inner_radius;
+    CGPoint *outer;
+    double *outer_radius;
+    
+
+    double t_min, t_max, t_temp;
+    
+    double dr, dx, dy;
+
+    _cairo_quartz_cairo_matrix_to_quartz (&gpat->base.matrix, &transform);
+    
+    clip = CGRectApplyAffineTransform (clip, transform);
+
+    if (*start_radius < *end_radius) {
+        
+        inner = start;
+        outer = end;
+        inner_radius = start_radius;
+        outer_radius = end_radius;
+    } else {
+        
+        inner = end;
+        outer = start;
+        inner_radius = end_radius;
+        outer_radius = start_radius;
+    }
+
+    dr = *outer_radius - *inner_radius;
+    dx = outer->x - inner->x;
+    dy = outer->y - inner->y;
+
+    t_min = -(*inner_radius/dr);
+    inner->x += t_min*dx;
+    inner->y += t_min*dy;
+    *inner_radius = 0.;
+
+    t_temp = 0.;
+    UpdateRadialParameterToIncludePoint(&t_temp, inner, dr, dx, dy,
+                                        clip.origin.x, clip.origin.y);
+    UpdateRadialParameterToIncludePoint(&t_temp, inner, dr, dx, dy,
+                                        clip.origin.x + clip.size.width, clip.origin.y);
+    UpdateRadialParameterToIncludePoint(&t_temp, inner, dr, dx, dy,
+                                        clip.origin.x + clip.size.width, clip.origin.y + clip.size.height);
+    UpdateRadialParameterToIncludePoint(&t_temp, inner, dr, dx, dy,
+                                        clip.origin.x, clip.origin.y + clip.size.height);
+    
+
+
+
+
+    t_temp += 1e-6;
+    t_max = t_min + t_temp;
+    outer->x = inner->x + t_temp*dx;
+    outer->y = inner->y + t_temp*dy;
+    *outer_radius = t_temp*dr;
+
+    
+
+    if (*start_radius < *end_radius) {
+        input_value_range[0] = t_min;
+        input_value_range[1] = t_max;
+    } else {
+        input_value_range[0] = -t_max;
+        input_value_range[1] = -t_min;
+    }
+
+    if (_cairo_pattern_create_copy (&pat, &gpat->base))
+  
+
+  return NULL;
+
+    return CGFunctionCreate (pat,
+           1,
+           input_value_range,
+           4,
+           output_value_ranges,
+           &callbacks);
 }
 
 
@@ -1117,13 +1257,14 @@ _cairo_quartz_setup_linear_source (cairo_quartz_surface_t *surface,
 		       _cairo_fixed_to_double (lpat->p2.y));
 
     if (abspat->extend == CAIRO_EXTEND_NONE ||
-	abspat->extend == CAIRO_EXTEND_PAD)
+        abspat->extend == CAIRO_EXTEND_PAD) 
     {
 	gradFunc = CreateGradientFunction (&lpat->base);
     } else {
-	gradFunc = CreateRepeatingGradientFunction (surface,
-						    &lpat->base,
-						    &start, &end, surface->sourceTransform);
+	gradFunc = CreateRepeatingLinearGradientFunction (surface,
+						          &lpat->base,
+						          &start, &end,
+						          surface->sourceTransform);
     }
 
     surface->sourceShading = CGShadingCreateAxial (rgb,
@@ -1147,6 +1288,15 @@ _cairo_quartz_setup_radial_source (cairo_quartz_surface_t *surface,
     CGFunctionRef gradFunc;
     CGColorSpaceRef rgb;
     bool extend = abspat->extend == CAIRO_EXTEND_PAD;
+    double c1x = _cairo_fixed_to_double (rpat->c1.x);
+    double c1y = _cairo_fixed_to_double (rpat->c1.y);
+    double c2x = _cairo_fixed_to_double (rpat->c2.x);
+    double c2y = _cairo_fixed_to_double (rpat->c2.y);
+    double r1 = _cairo_fixed_to_double (rpat->r1);
+    double r2 = _cairo_fixed_to_double (rpat->r2);
+    double dx = c1x - c2x;
+    double dy = c1y - c2y;
+    double centerDistance = sqrt (dx*dx + dy*dy);
 
     if (rpat->base.n_stops == 0) {
 	CGContextSetRGBStrokeColor (surface->cgContext, 0., 0., 0., 0.);
@@ -1154,15 +1304,15 @@ _cairo_quartz_setup_radial_source (cairo_quartz_surface_t *surface,
 	return DO_SOLID;
     }
 
-    if (abspat->extend == CAIRO_EXTEND_REPEAT ||
-	abspat->extend == CAIRO_EXTEND_REFLECT)
-    {
+    if (r2 <= centerDistance + r1 + 1e-6 && 
+        r1 <= centerDistance + r2 + 1e-6) { 
 	
 
 
 
 
-	return _cairo_quartz_setup_fallback_source (surface, &rpat->base.base);
+
+	return _cairo_quartz_setup_fallback_source (surface, abspat);
     }
 
     mat = abspat->matrix;
@@ -1171,18 +1321,25 @@ _cairo_quartz_setup_radial_source (cairo_quartz_surface_t *surface,
 
     rgb = CGColorSpaceCreateDeviceRGB();
 
-    start = CGPointMake (_cairo_fixed_to_double (rpat->c1.x),
-			 _cairo_fixed_to_double (rpat->c1.y));
-    end = CGPointMake (_cairo_fixed_to_double (rpat->c2.x),
-		       _cairo_fixed_to_double (rpat->c2.y));
+    start = CGPointMake (c1x, c1y);
+    end = CGPointMake (c2x, c2y);
 
-    gradFunc = CreateGradientFunction (&rpat->base);
+    if (abspat->extend == CAIRO_EXTEND_NONE ||
+        abspat->extend == CAIRO_EXTEND_PAD)
+    {
+	gradFunc = CreateGradientFunction (&rpat->base);
+    } else {
+	gradFunc = CreateRepeatingRadialGradientFunction (surface,
+						          &rpat->base,
+						          &start, &r1,
+						          &end, &r2);
+    }
 
     surface->sourceShading = CGShadingCreateRadial (rgb,
 						    start,
-						    _cairo_fixed_to_double (rpat->r1),
+						    r1,
 						    end,
-						    _cairo_fixed_to_double (rpat->r2),
+						    r2,
 						    gradFunc,
 						    extend, extend);
 
