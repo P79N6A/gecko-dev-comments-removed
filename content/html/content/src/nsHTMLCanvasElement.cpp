@@ -330,7 +330,7 @@ nsHTMLCanvasElement::ToDataURL(nsAString& aDataURL)
 
   
   if (argc == 2) {
-    if (!JSVAL_IS_STRING(argv[0]) && !JSVAL_IS_STRING(argv[1]))
+    if (!JSVAL_IS_STRING(argv[0]) || !JSVAL_IS_STRING(argv[1]))
       return NS_ERROR_DOM_SYNTAX_ERR;
 
     JSString *type, *params;
