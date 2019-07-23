@@ -42,6 +42,8 @@
 #include "nsRect.h"
 #include "nsPoint.h"
 
+class nsIntRegion;
+
 
 
 
@@ -176,6 +178,7 @@ public:
   PRBool IsEqual (const nsRegion& aRegion) const;
   PRUint32 GetNumRects () const { return mRectCount; }
   const nsRect& GetBounds () const { return mBoundRect; }
+  nsIntRegion ToOutsidePixels (nscoord aAppUnitsPerPixel) const;
 
   
 

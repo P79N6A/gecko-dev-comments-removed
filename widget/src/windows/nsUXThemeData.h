@@ -37,6 +37,8 @@
 
 
 
+#ifndef __UXThemeData_h__
+#define __UXThemeData_h__
 #include <windows.h>
 #include <uxtheme.h>
 
@@ -190,3 +192,4 @@ public:
   }
 #endif 
 };
+#endif 

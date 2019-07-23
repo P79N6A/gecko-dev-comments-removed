@@ -43,6 +43,7 @@
 #include "nsCoord.h"
 #include "nsRect.h"
 #include "nsPoint.h"
+#include "nsRegion.h"
 
 #include "prthread.h"
 #include "nsEvent.h"
@@ -587,6 +588,16 @@ class nsIWidget : public nsISupports {
 
 
     virtual nsTransparencyMode GetTransparencyMode() = 0;
+
+    
+
+
+
+
+
+
+    virtual void UpdatePossiblyTransparentRegion(const nsIntRegion &aDirtyRegion,
+                                                 const nsIntRegion &aPossiblyTransparentRegion) {};
 
     
 
