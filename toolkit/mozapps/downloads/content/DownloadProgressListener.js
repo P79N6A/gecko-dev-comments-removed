@@ -22,6 +22,8 @@
 # Contributor(s):
 #   Blake Ross <blakeross@telocity.com> (Original Author) 
 #   Ben Goodger <ben@bengoodger.com> (v2.0) 
+#   Edward Lee <edilee@gmail.com>
+#   Shawn Wilsher <me@shawnwilsher.com> (v3.0)
 # 
 # Alternatively, the contents of this file may be used under the terms of
 # either the GNU General Public License Version 2 or later (the "GPL"), or
@@ -37,79 +39,110 @@
 # 
 # ***** END LICENSE BLOCK *****
 
-var gStrings = [];
-const interval = 500; 
-
-function DownloadProgressListener (aDocument, aStringBundle) 
+function DownloadProgressListener() 
 {
-  this.doc = aDocument;
-
-  this._statusFormat = aStringBundle.getString("statusFormat2");
-  this._transferSameUnits = aStringBundle.getString("transferSameUnits");
-  this._transferDiffUnits = aStringBundle.getString("transferDiffUnits");
-  this._transferNoTotal = aStringBundle.getString("transferNoTotal");
-  this._timeLeft = aStringBundle.getString("timeLeft");
-  this._timeLessMinute = aStringBundle.getString("timeLessMinute");
-  this._timeUnknown = aStringBundle.getString("timeUnknown");
-  this._units = [aStringBundle.getString("bytes"),
-                 aStringBundle.getString("kilobyte"),
-                 aStringBundle.getString("megabyte"),
-                 aStringBundle.getString("gigabyte")];
+  var sb = document.getElementById("downloadStrings");
+  this._statusFormat = sb.getString("statusFormat2");
+  this._transferSameUnits = sb.getString("transferSameUnits");
+  this._transferDiffUnits = sb.getString("transferDiffUnits");
+  this._transferNoTotal = sb.getString("transferNoTotal");
+  this._timeLeft = sb.getString("timeLeft");
+  this._timeLessMinute = sb.getString("timeLessMinute");
+  this._timeUnknown = sb.getString("timeUnknown");
+  this._units = [sb.getString("bytes"),
+                 sb.getString("kilobyte"),
+                 sb.getString("megabyte"),
+                 sb.getString("gigabyte")];
 }
 
 DownloadProgressListener.prototype = 
 {
-  doc: null,
-
   onDownloadStateChange: function dlPL_onDownloadStateChange(aState, aDownload)
   {
-    var downloadID = "dl" + aDownload.id;
-    var download = this.doc.getElementById(downloadID);
-    if (download)
-      download.setAttribute("state", aDownload.state);
+    var dl = getDownload(aDownload.id);
+    switch (aDownload.state) {
+      case Ci.nsIDownloadManager.DOWNLOAD_NOTSTARTED:
+        
+        gDownloadsActiveLabel.hidden = false;
+      case Ci.nsIDownloadManager.DOWNLOAD_DOWNLOADING:
+        
+        
+        if (!dl) {
+          
+          let uri = Cc["@mozilla.org/network/util;1"].
+                    getService(Ci.nsIIOService).
+                    newFileURI(aDownload.targetFile);
+          dl = createDownloadItem(aDownload.id,
+                                  uri.spec,
+                                  aDownload.displayName,
+                                  aDownload.source.spec,
+                                  aDownload.state,
+                                  "",
+                                  aDownload.percentComplete,
+                                  Math.round(aDownload.startTime / 1000));
+        }
+        gDownloadsView.insertBefore(dl, gDownloadsActiveLabel.nextSibling);
+        break;
+      case Ci.nsIDownloadManager.DOWNLOAD_FAILED:
+      case Ci.nsIDownloadManager.DOWNLOAD_CANCELED:
+        downloadCompleted(aDownload);
+        break;
+      case Ci.nsIDownloadManager.DOWNLOAD_FINISHED:
+        downloadCompleted(aDownload);
+
+        autoRemoveAndClose(aDownload);
+        break;
+    }
+
+    
+    try {
+      dl.setAttribute("state", aDownload.state);
+      gDownloadViewController.onCommandUpdate();
+    } catch (e) { }
   },
 
   onStateChange: function(aWebProgress, aRequest, aStateFlags, aStatus, aDownload)
   {
     if (aStateFlags & Components.interfaces.nsIWebProgressListener.STATE_STOP) {
-      var downloadID = "dl" + aDownload.id;
-      var download = this.doc.getElementById(downloadID);
-      if (download)
-        download.setAttribute("status", "");
+      let dl = getDownload(aDownload.id);
+      if (dl)
+        dl.setAttribute("status", "");
     }
   },
 
   onProgressChange: function(aWebProgress, aRequest, aCurSelfProgress, aMaxSelfProgress,
                               aCurTotalProgress, aMaxTotalProgress, aDownload)
   {
-    var overallProgress = aCurTotalProgress;
-
-    var downloadID = "dl" + aDownload.id;
-    var download = this.doc.getElementById(downloadID);
-
-    
-    var percent;
-    if (aMaxTotalProgress > 0) {
-      percent = Math.floor((overallProgress*100.0)/aMaxTotalProgress);
-      if (percent > 100)
-        percent = 100;
-
+    var download = getDownload(aDownload.id);
+    if (!download) {
       
-      if (download) {
-        download.setAttribute("progress", percent);
-
-        download.setAttribute("progressmode", "normal");
-        
-        onUpdateProgress();
-      }
-    } else {
-      percent = -1;
-
-      
-      download.setAttribute("progressmode", "undetermined");
+      let uri = Cc["@mozilla.org/network/util;1"].
+                getService(Ci.nsIIOService).newFileURI(aDownload.targetFile);
+      let itm = createDownloadItem(aDownload.id, uri.spec,
+                                   aDownload.displayName,
+                                   aDownload.source.spec,
+                                   aDownload.state,
+                                   aDownload.percentComplete);
+      download = gDownloadsView.insertBefore(itm, gDownloadsActiveLabel.nextSibling);
     }
 
     
+    gDownloadsActiveLabel.hidden = false;
+
+    
+    if (aDownload.percentComplete == -1)
+      download.setAttribute("progressmode", "undetermined");
+    else {
+      download.setAttribute("progressmode", "normal");
+      download.setAttribute("progress", aDownload.percentComplete);
+    }
+
+    
+    var event = document.createEvent("Events");
+    event.initEvent("ValueChange", true, true);
+    document.getAnonymousElementByAttribute(download, "anonid", "progressmeter")
+            .dispatchEvent(event);
+
     
     
     let status = this._statusFormat;
@@ -133,8 +166,7 @@ DownloadProgressListener.prototype =
       
       status = this._replaceInsert(status, 1, transfer);
 
-      if (download)
-        download.setAttribute("status-internal", transfer);
+      download.setAttribute("status-internal", transfer);
     }
 
     
@@ -162,8 +194,7 @@ DownloadProgressListener.prototype =
       status = this._replaceInsert(status, 4, remain);
     }
     
-    if (download)
-      download.setAttribute("status", status);
+    download.setAttribute("status", status);
   },
   onLocationChange: function(aWebProgress, aRequest, aLocation, aDownload)
   {
@@ -178,9 +209,9 @@ DownloadProgressListener.prototype =
   {
     if (iid.equals(Components.interfaces.nsIDownloadProgressListener) ||
         iid.equals(Components.interfaces.nsISupports))
-    return this;
+      return this;
 
-    throw Components.results.NS_NOINTERFACE;
+    throw Cr.NS_NOINTERFACE;
   },
 
   _replaceInsert: function ( text, index, value ) 
