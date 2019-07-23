@@ -51,8 +51,8 @@
 
 
 #define NS_FRAME_SELECTION_IID      \
-{ 0xd78edc5a, 0x28d0, 0x48f0, \
-  { 0x8a, 0xbb, 0x15, 0x97, 0xb1, 0x59, 0x15, 0x56 } }
+{ 0xea74459, 0xe3f9, 0x48b0, \
+  { 0x8a, 0xa4, 0x5d, 0xfe, 0xf5, 0x3b, 0xf1, 0xf7 } }
 
 #ifdef IBMBIDI 
 #define BIDI_LEVEL_UNDEFINED 0x80
@@ -75,6 +75,7 @@ struct SelectionDetails
   PRInt32 mStart;
   PRInt32 mEnd;
   SelectionType mType;
+  nsTextRangeStyle mTextRangeStyle;
   SelectionDetails *mNext;
 };
 

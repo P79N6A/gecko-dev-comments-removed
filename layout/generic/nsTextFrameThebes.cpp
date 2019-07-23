@@ -4090,23 +4090,58 @@ static const SelectionType SelectionTypesWithDecorations =
   nsISelectionController::SELECTION_IME_CONVERTEDTEXT |
   nsISelectionController::SELECTION_IME_SELECTEDCONVERTEDTEXT;
 
+static PRUint8
+GetTextDecorationStyle(const nsTextRangeStyle &aRangeStyle)
+{
+  NS_PRECONDITION(aRangeStyle.IsLineStyleDefined(),
+                  "aRangeStyle.mLineStyle have to be defined");
+  switch (aRangeStyle.mLineStyle) {
+    case nsTextRangeStyle::LINESTYLE_NONE:
+      return nsCSSRendering::DECORATION_STYLE_NONE;
+    case nsTextRangeStyle::LINESTYLE_SOLID:
+      return nsCSSRendering::DECORATION_STYLE_SOLID;
+    case nsTextRangeStyle::LINESTYLE_DOTTED:
+      return nsCSSRendering::DECORATION_STYLE_DOTTED;
+    case nsTextRangeStyle::LINESTYLE_DASHED:
+      return nsCSSRendering::DECORATION_STYLE_DASHED;
+    case nsTextRangeStyle::LINESTYLE_DOUBLE:
+      return nsCSSRendering::DECORATION_STYLE_DOUBLE;
+    case nsTextRangeStyle::LINESTYLE_WAVY:
+      return nsCSSRendering::DECORATION_STYLE_WAVY;
+    default:
+      NS_WARNING("Requested underline style is not valid");
+      return nsCSSRendering::DECORATION_STYLE_SOLID;
+  }
+}
+
 
 
 
 
 static void DrawSelectionDecorations(gfxContext* aContext, SelectionType aType,
-    nsTextPaintStyle& aTextPaintStyle, const gfxPoint& aPt, gfxFloat aWidth,
+    nsTextPaintStyle& aTextPaintStyle,
+    const nsTextRangeStyle &aRangeStyle,
+    const gfxPoint& aPt, gfxFloat aWidth,
     gfxFloat aAscent, const gfxFont::Metrics& aFontMetrics)
 {
   gfxPoint pt(aPt);
   gfxSize size(aWidth, aFontMetrics.underlineSize);
   gfxFloat descentLimit = aFontMetrics.maxDescent;
 
+  float relativeSize;
+  PRUint8 style;
+  nscolor color;
+  PRInt32 index =
+    nsTextPaintStyle::GetUnderlineStyleIndexForSelectionType(aType);
+  PRBool weDefineSelectionUnderline =
+    aTextPaintStyle.GetSelectionUnderlineForPaint(index, &color,
+                                                  &relativeSize, &style);
+
   switch (aType) {
     case nsISelectionController::SELECTION_IME_RAWINPUT:
     case nsISelectionController::SELECTION_IME_SELECTEDRAWTEXT:
     case nsISelectionController::SELECTION_IME_CONVERTEDTEXT:
-    case nsISelectionController::SELECTION_IME_SELECTEDCONVERTEDTEXT:
+    case nsISelectionController::SELECTION_IME_SELECTEDCONVERTEDTEXT: {
       
       
       
@@ -4122,26 +4157,46 @@ static void DrawSelectionDecorations(gfxContext* aContext, SelectionType aType,
       
       pt.x += 1.0;
       size.width -= 2.0;
-    case nsISelectionController::SELECTION_SPELLCHECK: {
-      float relativeSize;
-      PRUint8 style;
-      nscolor color;
-      PRInt32 index =
-        nsTextPaintStyle::GetUnderlineStyleIndexForSelectionType(aType);
-      if (aTextPaintStyle.GetSelectionUnderlineForPaint(index, &color,
-                                                        &relativeSize,
-                                                        &style)) {
-        size.height *= relativeSize;
-        nsCSSRendering::PaintDecorationLine(
-          aContext, color, pt, size, aAscent, aFontMetrics.underlineOffset,
-          NS_STYLE_TEXT_DECORATION_UNDERLINE, style, descentLimit);
+      if (aRangeStyle.IsDefined()) {
+        
+        if (aRangeStyle.IsLineStyleDefined()) {
+          if (aRangeStyle.mLineStyle == nsTextRangeStyle::LINESTYLE_NONE) {
+            return;
+          }
+          style = GetTextDecorationStyle(aRangeStyle);
+          relativeSize = aRangeStyle.mIsBoldLine ? 2.0f : 1.0f;
+        } else if (!weDefineSelectionUnderline) {
+          
+          return;
+        }
+        if (aRangeStyle.IsUnderlineColorDefined()) {
+          color = aRangeStyle.mUnderlineColor;
+        } else if (aRangeStyle.IsForegroundColorDefined()) {
+          color = aRangeStyle.mForegroundColor;
+        } else {
+          NS_ASSERTION(!aRangeStyle.IsBackgroundColorDefined(),
+                       "Only the background color is defined");
+          color = aTextPaintStyle.GetTextColor();
+        }
+      } else if (!weDefineSelectionUnderline) {
+        
+        
+        return;
       }
       break;
     }
+    case nsISelectionController::SELECTION_SPELLCHECK:
+      if (!weDefineSelectionUnderline)
+        return;
+      break;
     default:
       NS_WARNING("Requested selection decorations when there aren't any");
-      break;
+      return;
   }
+  size.height *= relativeSize;
+  nsCSSRendering::PaintDecorationLine(
+    aContext, color, pt, size, aAscent, aFontMetrics.underlineOffset,
+    NS_STYLE_TEXT_DECORATION_UNDERLINE, style, descentLimit);
 }
 
 
@@ -4152,7 +4207,9 @@ static void DrawSelectionDecorations(gfxContext* aContext, SelectionType aType,
 
 
 
-static PRBool GetSelectionTextColors(SelectionType aType, nsTextPaintStyle& aTextPaintStyle,
+static PRBool GetSelectionTextColors(SelectionType aType,
+                                     nsTextPaintStyle& aTextPaintStyle,
+                                     const nsTextRangeStyle &aRangeStyle,
                                      nscolor* aForeground, nscolor* aBackground)
 {
   switch (aType) {
@@ -4165,11 +4222,25 @@ static PRBool GetSelectionTextColors(SelectionType aType, nsTextPaintStyle& aTex
     case nsISelectionController::SELECTION_IME_SELECTEDRAWTEXT:
     case nsISelectionController::SELECTION_IME_CONVERTEDTEXT:
     case nsISelectionController::SELECTION_IME_SELECTEDCONVERTEDTEXT:
+      if (aRangeStyle.IsDefined()) {
+        *aForeground = aTextPaintStyle.GetTextColor();
+        *aBackground = NS_RGBA(0,0,0,0);
+        if (!aRangeStyle.IsForegroundColorDefined() &&
+            !aRangeStyle.IsBackgroundColorDefined()) {
+          return PR_FALSE;
+        }
+        if (aRangeStyle.IsForegroundColorDefined()) {
+          *aForeground = aRangeStyle.mForegroundColor;
+        }
+        if (aRangeStyle.IsBackgroundColorDefined()) {
+          *aBackground = aRangeStyle.mBackgroundColor;
+        }
+        return PR_TRUE;
+      }
       aTextPaintStyle.GetIMESelectionColors(
         nsTextPaintStyle::GetUnderlineStyleIndexForSelectionType(aType),
         aForeground, aBackground);
       return PR_TRUE;
-      
     default:
       *aForeground = aTextPaintStyle.GetTextColor();
       *aBackground = NS_RGBA(0,0,0,0);
@@ -4190,11 +4261,12 @@ public:
 
 
 
-  SelectionIterator(SelectionType* aSelectionBuffer, PRInt32 aStart,
-                    PRInt32 aLength, PropertyProvider& aProvider,
-                    gfxTextRun* aTextRun);
+  SelectionIterator(SelectionDetails** aSelectionDetails,
+                    PRInt32 aStart, PRInt32 aLength,
+                    PropertyProvider& aProvider, gfxTextRun* aTextRun);
+
   
-  
+
 
 
 
@@ -4207,13 +4279,14 @@ public:
 
 
   PRBool GetNextSegment(gfxFloat* aXOffset, PRUint32* aOffset, PRUint32* aLength,
-                        gfxFloat* aHyphenWidth, SelectionType* aType);
+                        gfxFloat* aHyphenWidth, SelectionType* aType,
+                        nsTextRangeStyle* aStyle);
   void UpdateWithAdvance(gfxFloat aAdvance) {
     mXOffset += aAdvance*mTextRun->GetDirection();
   }
 
 private:
-  SelectionType*          mSelectionBuffer;
+  SelectionDetails**      mSelectionDetails;
   PropertyProvider&       mProvider;
   gfxTextRun*             mTextRun;
   gfxSkipCharsIterator    mIterator;
@@ -4222,10 +4295,10 @@ private:
   gfxFloat                mXOffset;
 };
 
-SelectionIterator::SelectionIterator(SelectionType* aSelectionBuffer,
+SelectionIterator::SelectionIterator(SelectionDetails** aSelectionDetails,
     PRInt32 aStart, PRInt32 aLength, PropertyProvider& aProvider,
     gfxTextRun* aTextRun)
-  : mSelectionBuffer(aSelectionBuffer), mProvider(aProvider),
+  : mSelectionDetails(aSelectionDetails), mProvider(aProvider),
     mTextRun(aTextRun), mIterator(aProvider.GetStart()),
     mOriginalStart(aStart), mOriginalEnd(aStart + aLength),
     mXOffset(mTextRun->IsRightToLeft() ? aProvider.GetFrame()->GetSize().width : 0)
@@ -4234,7 +4307,8 @@ SelectionIterator::SelectionIterator(SelectionType* aSelectionBuffer,
 }
 
 PRBool SelectionIterator::GetNextSegment(gfxFloat* aXOffset,
-    PRUint32* aOffset, PRUint32* aLength, gfxFloat* aHyphenWidth, SelectionType* aType)
+    PRUint32* aOffset, PRUint32* aLength, gfxFloat* aHyphenWidth,
+    SelectionType* aType, nsTextRangeStyle* aStyle)
 {
   if (mIterator.GetOriginalOffset() >= mOriginalEnd)
     return PR_FALSE;
@@ -4243,13 +4317,19 @@ PRBool SelectionIterator::GetNextSegment(gfxFloat* aXOffset,
   PRUint32 runOffset = mIterator.GetSkippedOffset();
   
   PRInt32 index = mIterator.GetOriginalOffset() - mOriginalStart;
-  SelectionType type = mSelectionBuffer[index];
+  SelectionDetails* sdptr = mSelectionDetails[index];
+  SelectionType type =
+    sdptr ? sdptr->mType : nsISelectionController::SELECTION_NONE;
+  nsTextRangeStyle style;
+  if (sdptr) {
+    style = sdptr->mTextRangeStyle;
+  }
   for (++index; mOriginalStart + index < mOriginalEnd; ++index) {
-    if (mSelectionBuffer[index] != type)
+    if (sdptr != mSelectionDetails[index])
       break;
   }
   mIterator.SetOriginalOffset(index + mOriginalStart);
-  
+
   
   while (mIterator.GetOriginalOffset() < mOriginalEnd &&
          !mIterator.IsOriginalCharSkipped() &&
@@ -4267,6 +4347,7 @@ PRBool SelectionIterator::GetNextSegment(gfxFloat* aXOffset,
     *aHyphenWidth = mProvider.GetHyphenWidth();
   }
   *aType = type;
+  *aStyle = style;
   return PR_TRUE;
 }
 
@@ -4362,14 +4443,15 @@ nsTextFrame::PaintTextWithSelectionColors(gfxContext* aCtx,
   PRInt32 contentLength = aProvider.GetOriginalLength();
 
   
-  nsAutoTArray<SelectionType,BIG_TEXT_NODE_SIZE> prevailingSelectionsBuffer;
+  nsAutoTArray<SelectionDetails*,BIG_TEXT_NODE_SIZE> prevailingSelectionsBuffer;
   if (!prevailingSelectionsBuffer.AppendElements(contentLength))
     return;
-  SelectionType* prevailingSelections = prevailingSelectionsBuffer.Elements();
+  SelectionDetails** prevailingSelections = prevailingSelectionsBuffer.Elements();
+
   PRInt32 i;
   SelectionType allTypes = 0;
   for (i = 0; i < contentLength; ++i) {
-    prevailingSelections[i] = nsISelectionController::SELECTION_NONE;
+    prevailingSelections[i] = nsnull;
   }
 
   SelectionDetails *sdptr = aDetails;
@@ -4382,16 +4464,16 @@ nsTextFrame::PaintTextWithSelectionColors(gfxContext* aCtx,
       allTypes |= type;
       
       nscolor foreground, background;
-      if (GetSelectionTextColors(type, aTextPaintStyle, &foreground, &background)) {
+      if (GetSelectionTextColors(type, aTextPaintStyle, sdptr->mTextRangeStyle,
+                                 &foreground, &background)) {
         if (NS_GET_A(background) > 0) {
           anyBackgrounds = PR_TRUE;
         }
         for (i = start; i < end; ++i) {
-          PRInt16 currentPrevailingSelection = prevailingSelections[i];
           
-          if (currentPrevailingSelection == nsISelectionController::SELECTION_NONE ||
-              type < currentPrevailingSelection) {
-            prevailingSelections[i] = type;
+          if (!prevailingSelections[i] ||
+              type < prevailingSelections[i]->mType) {
+            prevailingSelections[i] = sdptr;
           }
         }
       }
@@ -4403,13 +4485,16 @@ nsTextFrame::PaintTextWithSelectionColors(gfxContext* aCtx,
   gfxFloat xOffset, hyphenWidth;
   PRUint32 offset, length; 
   SelectionType type;
+  nsTextRangeStyle rangeStyle;
   
   if (anyBackgrounds) {
     SelectionIterator iterator(prevailingSelections, contentOffset, contentLength,
                                aProvider, mTextRun);
-    while (iterator.GetNextSegment(&xOffset, &offset, &length, &hyphenWidth, &type)) {
+    while (iterator.GetNextSegment(&xOffset, &offset, &length, &hyphenWidth,
+                                   &type, &rangeStyle)) {
       nscolor foreground, background;
-      GetSelectionTextColors(type, aTextPaintStyle, &foreground, &background);
+      GetSelectionTextColors(type, aTextPaintStyle, rangeStyle,
+                             &foreground, &background);
       
       gfxFloat advance = hyphenWidth +
         mTextRun->GetAdvanceWidth(offset, length, &aProvider);
@@ -4426,9 +4511,11 @@ nsTextFrame::PaintTextWithSelectionColors(gfxContext* aCtx,
   
   SelectionIterator iterator(prevailingSelections, contentOffset, contentLength,
                              aProvider, mTextRun);
-  while (iterator.GetNextSegment(&xOffset, &offset, &length, &hyphenWidth, &type)) {
+  while (iterator.GetNextSegment(&xOffset, &offset, &length, &hyphenWidth,
+                                 &type, &rangeStyle)) {
     nscolor foreground, background;
-    GetSelectionTextColors(type, aTextPaintStyle, &foreground, &background);
+    GetSelectionTextColors(type, aTextPaintStyle, rangeStyle,
+                           &foreground, &background);
     
     aCtx->SetColor(gfxRGBA(foreground));
     gfxFloat advance;
@@ -4454,14 +4541,13 @@ nsTextFrame::PaintTextSelectionDecorations(gfxContext* aCtx,
   PRInt32 contentLength = aProvider.GetOriginalLength();
 
   
-  
-  nsAutoTArray<SelectionType,BIG_TEXT_NODE_SIZE> selectedCharsBuffer;
+  nsAutoTArray<SelectionDetails*, BIG_TEXT_NODE_SIZE> selectedCharsBuffer;
   if (!selectedCharsBuffer.AppendElements(contentLength))
     return;
-  SelectionType* selectedChars = selectedCharsBuffer.Elements();
+  SelectionDetails** selectedChars = selectedCharsBuffer.Elements();
   PRInt32 i;
   for (i = 0; i < contentLength; ++i) {
-    selectedChars[i] = nsISelectionController::SELECTION_NONE;
+    selectedChars[i] = nsnull;
   }
 
   SelectionDetails *sdptr = aDetails;
@@ -4470,7 +4556,7 @@ nsTextFrame::PaintTextSelectionDecorations(gfxContext* aCtx,
       PRInt32 start = PR_MAX(0, sdptr->mStart - contentOffset);
       PRInt32 end = PR_MIN(contentLength, sdptr->mEnd - contentOffset);
       for (i = start; i < end; ++i) {
-        selectedChars[i] = aSelectionType;
+        selectedChars[i] = sdptr;
       }
     }
     sdptr = sdptr->mNext;
@@ -4491,7 +4577,9 @@ nsTextFrame::PaintTextSelectionDecorations(gfxContext* aCtx,
   
   gfxPoint pt(0.0, (aTextBaselinePt.y - mAscent) / app);
   SelectionType type;
-  while (iterator.GetNextSegment(&xOffset, &offset, &length, &hyphenWidth, &type)) {
+  nsTextRangeStyle selectedStyle;
+  while (iterator.GetNextSegment(&xOffset, &offset, &length, &hyphenWidth,
+                                 &type, &selectedStyle)) {
     gfxFloat advance = hyphenWidth +
       mTextRun->GetAdvanceWidth(offset, length, &aProvider);
     if (type == aSelectionType) {
@@ -4499,6 +4587,7 @@ nsTextFrame::PaintTextSelectionDecorations(gfxContext* aCtx,
              (mTextRun->IsRightToLeft() ? advance : 0)) / app;
       gfxFloat width = PR_ABS(advance) / app;
       DrawSelectionDecorations(aCtx, aSelectionType, aTextPaintStyle,
+                               selectedStyle,
                                pt, width, mAscent / app, decorationMetrics);
     }
     iterator.UpdateWithAdvance(advance);
@@ -4799,9 +4888,26 @@ nsTextFrame::CombineSelectionUnderlineRect(nsPresContext* aPresContext,
     float relativeSize;
     PRInt32 index =
       nsTextPaintStyle::GetUnderlineStyleIndexForSelectionType(sd->mType);
-    if (!nsTextPaintStyle::GetSelectionUnderline(aPresContext, index, nsnull,
-                                                &relativeSize, &style)) {
-      continue;
+    if (sd->mType == nsISelectionController::SELECTION_SPELLCHECK) {
+      if (!nsTextPaintStyle::GetSelectionUnderline(aPresContext, index, nsnull,
+                                                   &relativeSize, &style)) {
+        continue;
+      }
+    } else {
+      
+      nsTextRangeStyle& rangeStyle = sd->mTextRangeStyle;
+      if (rangeStyle.IsDefined()) {
+        if (!rangeStyle.IsLineStyleDefined() ||
+            rangeStyle.mLineStyle == nsTextRangeStyle::LINESTYLE_NONE) {
+          continue;
+        }
+        style = GetTextDecorationStyle(rangeStyle);
+        relativeSize = rangeStyle.mIsBoldLine ? 2.0f : 1.0f;
+      } else if (!nsTextPaintStyle::GetSelectionUnderline(aPresContext, index,
+                                                          nsnull, &relativeSize,
+                                                          &style)) {
+        continue;
+      }
     }
     nsRect decorationArea;
     gfxSize size(aPresContext->AppUnitsToGfxUnits(aRect.width),
