@@ -249,8 +249,10 @@ private:
 
   
   
-  
   PRUint32 mSampleSize;
+
+  
+  nsAudioStream::SampleFormat mSampleFormat;
 
   
   
@@ -305,6 +307,7 @@ nsWaveStateMachine::nsWaveStateMachine(nsWaveDecoder* aDecoder, nsMediaStream* a
     mSampleRate(0),
     mChannels(0),
     mSampleSize(0),
+    mSampleFormat(nsAudioStream::FORMAT_S16_LE),
     mWaveLength(0),
     mWavePCMOffset(0),
     mMonitor(nsnull),
@@ -531,7 +534,11 @@ nsWaveStateMachine::Run()
             ChangeState(STATE_ENDED);
           }
 
-          mAudioStream->Write(reinterpret_cast<short*>(buf.get()), len / sizeof(short));
+          PRUint32 lengthInSamples = len;
+          if (mSampleFormat == nsAudioStream::FORMAT_S16_LE) {
+            lengthInSamples /= sizeof(short);
+          }
+          mAudioStream->Write(buf.get(), lengthInSamples);
           monitor.Enter();
         }
 
@@ -647,7 +654,9 @@ nsWaveStateMachine::OpenAudioStream()
   if (!mAudioStream) {
     LOG(PR_LOG_ERROR, ("Could not create audio stream"));
   } else {
-    mAudioStream->Init(mChannels, mSampleRate);
+    NS_ABORT_IF_FALSE(mMetadataValid,
+                      "Attempting to initialize audio stream with invalid metadata");
+    mAudioStream->Init(mChannels, mSampleRate, mSampleFormat);
     mAudioStream->SetVolume(mInitialVolume);
     mAudioBufferSize = mAudioStream->Available() * sizeof(short);
   }
@@ -743,7 +752,7 @@ nsWaveStateMachine::LoadRIFFChunk()
 PRBool
 nsWaveStateMachine::LoadFormatChunk()
 {
-  PRUint32 rate, channels, sampleSize;
+  PRUint32 rate, channels, sampleSize, sampleFormat;
   char waveFormat[WAVE_FORMAT_SIZE];
   const char* p = waveFormat;
 
@@ -775,12 +784,7 @@ nsWaveStateMachine::LoadFormatChunk()
 
   sampleSize = ReadUint16LE(&p);
 
-  
-  
-  if (ReadUint16LE(&p) != 16) {
-    NS_WARNING("WAVE is not 16-bit, other bit rates are not supported");
-    return PR_FALSE;
-  }
+  sampleFormat = ReadUint16LE(&p);
 
   
   
@@ -796,7 +800,7 @@ nsWaveStateMachine::LoadFormatChunk()
     }
 
     PRUint16 extra = ReadUint16LE(&p);
-    if (fmtsize - WAVE_FORMAT_CHUNK_SIZE + 2 != extra) {
+    if (fmtsize - (WAVE_FORMAT_CHUNK_SIZE + 2) != extra) {
       NS_WARNING("Invalid extended format chunk size");
       return PR_FALSE;
     }
@@ -817,10 +821,10 @@ nsWaveStateMachine::LoadFormatChunk()
   
   
   
-  
   if (rate < 100 || rate > 96000 ||
       channels < 1 || channels > 2 ||
-      sampleSize < 2 || sampleSize > 4) {
+      (sampleSize != 1 && sampleSize != 2 && sampleSize != 4) ||
+      (sampleFormat != 8 && sampleFormat != 16)) {
     NS_WARNING("Invalid WAVE metadata");
     return PR_FALSE;
   }
@@ -829,6 +833,11 @@ nsWaveStateMachine::LoadFormatChunk()
   mSampleRate = rate;
   mChannels = channels;
   mSampleSize = sampleSize;
+  if (sampleFormat == 8) {
+    mSampleFormat = nsAudioStream::FORMAT_U8;
+  } else {
+    mSampleFormat = nsAudioStream::FORMAT_S16_LE;
+  }
   return PR_TRUE;
 }
 

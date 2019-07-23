@@ -46,6 +46,13 @@ extern PRLogModuleInfo* gAudioStreamLog;
 class nsAudioStream 
 {
  public:
+  enum SampleFormat
+  {
+    FORMAT_U8,
+    FORMAT_S16_LE,
+    FORMAT_FLOAT32_LE
+  };
+
   
   
   static void InitLibrary();
@@ -59,7 +66,7 @@ class nsAudioStream
   
   
   
-  void Init(PRInt32 aNumChannels, PRInt32 aRate);
+  void Init(PRInt32 aNumChannels, PRInt32 aRate, SampleFormat aFormat);
 
   
   void Shutdown();
@@ -67,12 +74,7 @@ class nsAudioStream
   
   
   
-  void Write(const float* aBuf, PRUint32 aCount);
-
-  
-  
-  
-  void Write(const short* aBuf, PRUint32 aCount);
+  void Write(const void* aBuf, PRUint32 aCount);
 
   
   
@@ -112,6 +114,8 @@ class nsAudioStream
   float mStartTime;
   float mPauseTime;
   PRInt64 mSamplesBuffered;
+
+  SampleFormat mFormat;
 
   PRPackedBool mPaused;
 };

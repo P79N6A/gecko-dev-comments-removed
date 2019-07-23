@@ -133,8 +133,6 @@
 
 
 
-
-
 class nsWaveStateMachine;
 
 class nsWaveDecoder : public nsMediaDecoder
