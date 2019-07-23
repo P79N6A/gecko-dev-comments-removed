@@ -891,6 +891,77 @@ class nsTArray : public nsTArray_base {
       Sort(nsDefaultComparator<elem_type, elem_type>());
     }
 
+    
+    
+    
+
+    
+    
+    template<class Comparator>
+    void MakeHeap(const Comparator& comp) {
+      if (!Length()) {
+        return;
+      }
+      elem_type *elem = Elements();
+      index_type index = (Length() - 1) / 2;
+      do {
+        SiftDown(index, comp);
+      } while (index--);
+    }
+
+    
+    void MakeHeap() {
+      MakeHeap(nsDefaultComparator<elem_type, elem_type>());
+    }
+
+    
+    
+    
+    template<class Item, class Comparator>
+    elem_type *PushHeap(const Item& item, const Comparator& comp) {
+      if (!nsTArray_base::InsertSlotsAt(Length(), 1, sizeof(elem_type))) {
+        return nsnull;
+      }
+      
+      elem_type *elem = Elements();
+      index_type index = Length() - 1;
+      index_type parent_index = (index - 1) / 2;
+      while (index && comp.LessThan(elem[parent_index], item)) {
+        elem[index] = elem[parent_index];
+        index = parent_index;
+        parent_index = (index - 1) / 2;
+      }
+      elem[index] = item;
+      return &elem[index];
+    }
+
+    
+    template<class Item>
+    elem_type *PushHeap(const Item& item) {
+      return PushHeap(item, nsDefaultComparator<elem_type, Item>());
+    }
+
+    
+    
+    template<class Comparator>
+    void PopHeap(const Comparator& comp) {
+      if (!Length()) {
+        return;
+      }
+      index_type last_index = Length() - 1;
+      elem_type *elem = Elements();
+      elem[0] = elem[last_index];
+      TruncateLength(last_index);
+      if (Length()) {
+        SiftDown(0, comp);
+      }
+    }
+
+    
+    void PopHeap() {
+      PopHeap(nsDefaultComparator<elem_type, elem_type>());
+    }
+
   protected:
 
     
@@ -914,6 +985,36 @@ class nsTArray : public nsTArray_base {
       for (; iter != end; ++iter, ++values) {
         elem_traits::Construct(iter, *values);
       }
+    }
+
+    
+    
+    
+    template<class Comparator>
+    void SiftDown(index_type index, const Comparator& comp) {
+      elem_type *elem = Elements();
+      elem_type item = elem[index];
+      index_type end = Length() - 1;
+      while ((index * 2) < end) {
+        const index_type left = (index * 2) + 1;
+        const index_type right = (index * 2) + 2;
+        const index_type parent_index = index;
+        if (comp.LessThan(item, elem[left])) {
+          if (left < end &&
+              comp.LessThan(elem[left], elem[right])) {
+            index = right;
+          } else {
+            index = left;
+          }
+        } else if (left < end &&
+                   comp.LessThan(item, elem[right])) {
+          index = right;
+        } else {
+          break;
+        }
+        elem[parent_index] = elem[index];
+      }
+      elem[index] = item;
     }
 };
 
