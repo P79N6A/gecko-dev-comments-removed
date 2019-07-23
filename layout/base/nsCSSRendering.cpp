@@ -2261,10 +2261,18 @@ nsCSSRendering::PaintBorder(nsPresContext* aPresContext,
                 oRect.size.width - (border.left + border.right) / (2.0 * twipsPerPixel),
                 oRect.size.height - (border.top + border.bottom) / (2.0 * twipsPerPixel));
 
-
   S(" oRect: "), S(oRect), SN();
   S(" iRect: "), S(iRect), SN();
   S(" lRect: "), S(lRect), SN();
+
+  
+  
+  oRect.Condition();
+  if (oRect.IsEmpty())
+    return;
+
+  iRect.Condition();
+  lRect.Condition();
 
   ctx->Save();
 
@@ -2538,6 +2546,15 @@ nsCSSRendering::PaintOutline(nsPresContext* aPresContext,
                 oRect.pos.y + width / (2.0 * twipsPerPixel),
                 oRect.size.width - (2*width) / (2.0 * twipsPerPixel),
                 oRect.size.height - (2*width) / (2.0 * twipsPerPixel));
+
+  
+  
+  oRect.Condition();
+  if (oRect.IsEmpty())
+    return;
+
+  iRect.Condition();
+  lRect.Condition();
 
   nscolor outlineColor;
 

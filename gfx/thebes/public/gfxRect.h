@@ -86,6 +86,12 @@ struct THEBES_API gfxRect {
     gfxPoint TopRight() const { return pos + gfxSize(size.width, 0.0); }
     gfxPoint BottomLeft() const { return pos + gfxSize(0.0, size.height); }
     gfxPoint BottomRight() const { return pos + size; }
+
+    
+
+
+
+    void Condition();
 };
 
 #endif 
