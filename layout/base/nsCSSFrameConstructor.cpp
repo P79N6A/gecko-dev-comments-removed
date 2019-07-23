@@ -8880,8 +8880,7 @@ PRBool NotifyListBoxBody(nsPresContext*    aPresContext,
   }
 
   PRInt32 namespaceID;
-  nsIAtom* tag =
-    aDocument->BindingManager()->ResolveTag(aContainer, &namespaceID);
+  aDocument->BindingManager()->ResolveTag(aContainer, &namespaceID);
 
   
   
