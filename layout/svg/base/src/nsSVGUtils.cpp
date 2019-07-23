@@ -911,19 +911,19 @@ nsSVGUtils::GetCanvasTM(nsIFrame *aFrame)
 void 
 nsSVGUtils::NotifyChildrenOfSVGChange(nsIFrame *aFrame, PRUint32 aFlags)
 {
-  nsIFrame *aKid = aFrame->GetFirstChild(nsnull);
+  nsIFrame *kid = aFrame->GetFirstChild(nsnull);
 
-  while (aKid) {
-    nsISVGChildFrame* SVGFrame = do_QueryFrame(aKid);
+  while (kid) {
+    nsISVGChildFrame* SVGFrame = do_QueryFrame(kid);
     if (SVGFrame) {
       SVGFrame->NotifySVGChanged(aFlags); 
     } else {
-      NS_ASSERTION(aKid->IsFrameOfType(nsIFrame::eSVG), "SVG frame expected");
+      NS_ASSERTION(kid->IsFrameOfType(nsIFrame::eSVG), "SVG frame expected");
       
       
-      nsSVGUtils::NotifyChildrenOfSVGChange(aKid, aFlags);
+      nsSVGUtils::NotifyChildrenOfSVGChange(kid, aFlags);
     }
-    aKid = aKid->GetNextSibling();
+    kid = kid->GetNextSibling();
   }
 }
 
