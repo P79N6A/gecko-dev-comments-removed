@@ -158,7 +158,9 @@ public:
   void EndUpdate();
   void RecalcQuotesAndCounters();
 
-  void WillDestroyFrameTree(PRBool aDestroyingPresShell);
+  
+  
+  void WillDestroyFrameTree();
 
   
   

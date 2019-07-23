@@ -76,9 +76,13 @@ nsIFrame*
 nsSVGRenderingObserver::GetReferencedFrame()
 {
   if (mReferencedFrame && !mReferencedFramePresShell->IsDestroying()) {
-    NS_ASSERTION(mElement.get() &&
-                 static_cast<nsGenericElement*>(mElement.get())->GetPrimaryFrame() == mReferencedFrame,
-                 "Cached frame is incorrect!");
+    
+    
+    if (!mReferencedFramePresShell->FrameManager()->IsDestroyingFrames()) {
+      NS_ASSERTION(mElement.get() &&
+                   static_cast<nsGenericElement*>(mElement.get())->GetPrimaryFrame() == mReferencedFrame,
+                   "Cached frame is incorrect!");
+    }
     return mReferencedFrame;
   }
 
