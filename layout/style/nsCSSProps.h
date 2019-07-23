@@ -70,6 +70,10 @@
 
 enum nsStyleAnimType {
   
+  
+  eStyleAnimType_Custom,
+
+  
   eStyleAnimType_Coord,
 
   
