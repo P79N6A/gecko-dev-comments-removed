@@ -2160,7 +2160,11 @@ nsGenericHTMLElement::GetURIAttr(nsIAtom* aAttr, nsIAtom* aBaseAttr,
                                               attr->GetStringValue(),
                                             GetOwnerDoc(), baseURI);
 
-  if (isURIAttr) {
+  
+  
+  
+  
+  if (isURIAttr && GetOwnerDoc() == GetCurrentDoc()) {
     const_cast<nsAttrValue*>(attr)->CacheURIValue(*aURI);
   }
   return PR_TRUE;
