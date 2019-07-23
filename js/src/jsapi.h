@@ -217,7 +217,7 @@ JS_BEGIN_EXTERN_C
 
 
 extern JS_PUBLIC_API(int64)
-JS_Now();
+JS_Now(void);
 
 
 extern JS_PUBLIC_API(jsval)
@@ -1215,10 +1215,10 @@ struct JSExtendedClass {
     JSObjectOp          outerObject;
     JSObjectOp          innerObject;
     JSIteratorOp        iteratorObject;
-    void                (*reserved0)();
-    void                (*reserved1)();
-    void                (*reserved2)();
-    void                (*reserved3)();
+    void                (*reserved0)(void);
+    void                (*reserved1)(void);
+    void                (*reserved2)(void);
+    void                (*reserved3)(void);
 };
 
 #define JSCLASS_HAS_PRIVATE             (1<<0)  /* objects have private slot */
@@ -2235,7 +2235,7 @@ JS_MakeStringImmutable(JSContext *cx, JSString *str);
 
 
 JS_PUBLIC_API(JSBool)
-JS_CStringsAreUTF8();
+JS_CStringsAreUTF8(void);
 
 
 
