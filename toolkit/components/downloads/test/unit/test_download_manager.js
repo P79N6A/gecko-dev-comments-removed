@@ -218,10 +218,12 @@ var httpserv = null;
 function run_test()
 {
   print("*** DOWNLOAD MANAGER TEST - starting tests");
-  httpserv = new nsHttpServer();
-  httpserv.registerDirectory("/", dirSvc.get("ProfD", Ci.nsILocalFile));
-  httpserv.start(4444);
-  print("*** DOWNLOAD MANAGER TEST - server started");
+
+
+
+
+
+
 
   
   var listener = {
@@ -294,13 +296,19 @@ function run_test()
 
   cleanup();
 
-  var thread = Cc["@mozilla.org/thread-manager;1"]
-               .getService().currentThread;
 
-  while (!httpserv.isStopped())
-    thread.processNextEvent(true);
 
-  
-  while (thread.hasPendingEvents())
-    thread.processNextEvent(true);
+
+
+
+
+
+
+
+
+
+
+
+
+
 }
