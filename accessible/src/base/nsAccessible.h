@@ -197,7 +197,22 @@ protected:
   
   static nsresult GetFullKeyName(const nsAString& aModifierName, const nsAString& aKeyName, nsAString& aStringOut);
   static nsresult GetTranslatedString(const nsAString& aKey, nsAString& aStringOut);
-  nsresult AppendFlatStringFromSubtreeRecurse(nsIContent *aContent, nsAString *aFlatString);
+
+  
+
+
+
+
+
+
+
+
+
+
+
+  nsresult AppendFlatStringFromSubtreeRecurse(nsIContent *aContent,
+                                              nsAString *aFlatString,
+                                              PRBool aIsRootHidden);
 
   
   virtual void CacheChildren();
