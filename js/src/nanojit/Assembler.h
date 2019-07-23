@@ -349,6 +349,13 @@ namespace nanojit
 
             
             
+            
+            
+            
+            
+            
+            
+            
             static bool canRemat(LIns*);
 
             bool deprecated_isKnownReg(Register r) {
@@ -415,7 +422,12 @@ namespace nanojit
             NIns*       asm_leave_trace(LInsp guard);
             void        asm_store32(LOpcode op, LIns *val, int d, LIns *base);
             void        asm_store64(LOpcode op, LIns *val, int d, LIns *base);
+
+            
+            
+            
             void        asm_restore(LInsp, Register);
+
             void        asm_maybe_spill(LInsp ins, bool pop);
             void        asm_spill(Register rr, int d, bool pop, bool quad);
             void        asm_load64(LInsp ins);
