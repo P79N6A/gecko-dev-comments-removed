@@ -339,14 +339,15 @@ BrowserGlue.prototype = {
     
     var histsvc = Cc["@mozilla.org/browser/nav-history-service;1"].
                   getService(Ci.nsINavHistoryService);
-
+                  
     var importBookmarks = false;
+
     try {
       var prefBranch = Cc["@mozilla.org/preferences-service;1"].
                        getService(Ci.nsIPrefBranch);
       importBookmarks = prefBranch.getBoolPref("browser.places.importBookmarksHTML");
     } catch(ex) {}
-
+    
     if (!importBookmarks) {
       
       
@@ -358,7 +359,7 @@ BrowserGlue.prototype = {
                      getService(Ci.nsIProperties);
 
     var bookmarksFile = dirService.get("BMarks", Ci.nsILocalFile);
-
+ 
     if (bookmarksFile.exists()) {
       
       try {
@@ -387,6 +388,11 @@ BrowserGlue.prototype = {
           }
         }
       }
+    }
+    else {
+      
+      
+      this.ensurePlacesDefaultQueriesInitialized();
     }
   },
 
