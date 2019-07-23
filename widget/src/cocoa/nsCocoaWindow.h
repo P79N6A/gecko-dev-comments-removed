@@ -59,6 +59,30 @@ typedef struct _nsCocoaWindowList {
   nsCocoaWindow *window; 
 } nsCocoaWindowList;
 
+
+
+
+
+
+
+
+@interface BaseWindow : NSWindow
+{
+  NSMutableDictionary* mState;
+  BOOL mDrawsIntoWindowFrame;
+  NSColor* mActiveTitlebarColor;
+  NSColor* mInactiveTitlebarColor;
+}
+
+- (void)importState:(NSDictionary*)aState;
+- (NSMutableDictionary*)exportState;
+- (void)setDrawsContentsIntoWindowFrame:(BOOL)aState;
+- (BOOL)drawsContentsIntoWindowFrame;
+- (void)setTitlebarColor:(NSColor*)aColor forActiveWindow:(BOOL)aActive;
+- (NSColor*)titlebarColorForActiveWindow:(BOOL)aActive;
+
+@end
+
 @interface NSWindow (Undocumented)
 
 
@@ -75,7 +99,7 @@ typedef struct _nsCocoaWindowList {
 
 @end
 
-@interface PopupWindow : NSWindow
+@interface PopupWindow : BaseWindow
 {
 @private
   BOOL mIsContextMenu;
@@ -88,7 +112,7 @@ typedef struct _nsCocoaWindowList {
 
 @end
 
-@interface BorderlessWindow : NSWindow
+@interface BorderlessWindow : BaseWindow
 {
 }
 
@@ -129,35 +153,21 @@ struct UnifiedGradientInfo {
 
 @interface TitlebarAndBackgroundColor : NSColor
 {
-  NSColor *mActiveTitlebarColor;
-  NSColor *mInactiveTitlebarColor;
-  NSColor *mBackgroundColor;
   ToolbarWindow *mWindow; 
 }
 
-- (id)initWithActiveTitlebarColor:(NSColor*)aActiveTitlebarColor
-            inactiveTitlebarColor:(NSColor*)aInactiveTitlebarColor
-                  backgroundColor:(NSColor*)aBackgroundColor
-                        forWindow:(ToolbarWindow*)aWindow;
+- (id)initWithWindow:(ToolbarWindow*)aWindow;
 
-
-- (void)setTitlebarColor:(NSColor*)aColor forActiveWindow:(BOOL)aActive;
-- (NSColor*)activeTitlebarColor;
-- (NSColor*)inactiveTitlebarColor;
-
-- (void)setBackgroundColor:(NSColor*)aColor;
-- (NSColor*)backgroundColor;
-
-- (ToolbarWindow*)window;
 @end
 
 
-@interface ToolbarWindow : NSWindow
+@interface ToolbarWindow : BaseWindow
 {
   TitlebarAndBackgroundColor *mColor;
   float mUnifiedToolbarHeight;
-  BOOL mDrawsIntoWindowFrame;
+  NSColor *mBackgroundColor;
 }
+
 - (void)setTitlebarColor:(NSColor*)aColor forActiveWindow:(BOOL)aActive;
 - (void)setUnifiedToolbarHeight:(float)aToolbarHeight;
 - (float)unifiedToolbarHeight;
@@ -166,10 +176,6 @@ struct UnifiedGradientInfo {
 - (void)setTitlebarNeedsDisplayInRect:(NSRect)aRect sync:(BOOL)aSync;
 - (void)setTitlebarNeedsDisplayInRect:(NSRect)aRect;
 - (void)setDrawsContentsIntoWindowFrame:(BOOL)aState;
-- (BOOL)drawsContentsIntoWindowFrame;
-
-
-- (NSColor*)windowBackgroundColor;
 @end
 
 class nsCocoaWindow : public nsBaseWidget, public nsPIWidgetCocoa
@@ -286,7 +292,7 @@ protected:
   void                 DestroyNativeWindow();
 
   nsIWidget*           mParent;         
-  NSWindow*            mWindow;         
+  BaseWindow*          mWindow;         
   WindowDelegate*      mDelegate;       
   nsRefPtr<nsMenuBarX> mMenuBar;
   NSWindow*            mSheetWindowParent; 
