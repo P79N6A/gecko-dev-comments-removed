@@ -923,7 +923,7 @@ NS_IMPL_CYCLE_COLLECTING_RELEASE(nsText3Tearoff)
 NS_IMETHODIMP
 nsText3Tearoff::GetIsElementContentWhitespace(PRBool *aReturn)
 {
-  *aReturn = mNode->TextIsOnlyWhitespace();
+  *aReturn = mNode->IsElementContentWhitespace();
   return NS_OK;
 }
 
@@ -937,7 +937,10 @@ NS_IMETHODIMP
 nsText3Tearoff::ReplaceWholeText(const nsAString& aContent,
                                  nsIDOMText **aReturn)
 {
-  return mNode->ReplaceWholeText(PromiseFlatString(aContent), aReturn);
+  nsresult rv;
+  nsIContent* result = mNode->ReplaceWholeText(PromiseFlatString(aContent),
+                                               &rv);
+  return result ? CallQueryInterface(result, aReturn) : rv;
 }
 
 
@@ -968,7 +971,7 @@ nsGenericDOMDataNode::LastLogicallyAdjacentTextNode(nsIContent* aParent,
 }
 
 nsresult
-nsGenericDOMDataNode::GetWholeText(nsAString& aWholeText)
+nsGenericTextNode::GetWholeText(nsAString& aWholeText)
 {
   nsIContent* parent = GetParent();
 
@@ -999,10 +1002,12 @@ nsGenericDOMDataNode::GetWholeText(nsAString& aWholeText)
   return NS_OK;
 }
 
-nsresult
-nsGenericDOMDataNode::ReplaceWholeText(const nsAFlatString& aContent,
-                                       nsIDOMText **aReturn)
+nsIContent*
+nsGenericTextNode::ReplaceWholeText(const nsAFlatString& aContent,
+                                    nsresult* aResult)
 {
+  *aResult = NS_OK;
+
   
   mozAutoSubtreeModified subtree(GetOwnerDoc(), nsnull);
   mozAutoDocUpdate updateBatch(GetCurrentDoc(), UPDATE_CONTENT_MODEL, PR_TRUE);
@@ -1012,19 +1017,20 @@ nsGenericDOMDataNode::ReplaceWholeText(const nsAFlatString& aContent,
   
   if (!parent) {
     if (aContent.IsEmpty()) {
-      *aReturn = nsnull;
-      return NS_OK;
+      return nsnull;
     }
 
     SetText(aContent.get(), aContent.Length(), PR_TRUE);
-    return CallQueryInterface(this, aReturn);
+    return this;
   }
 
   PRInt32 index = parent->IndexOf(this);
-  NS_WARN_IF_FALSE(index >= 0,
-                   "Trying to use .replaceWholeText with an anonymous"
-                   "text node child of a binding parent?");
-  NS_ENSURE_TRUE(index >= 0, NS_ERROR_DOM_NOT_SUPPORTED_ERR);
+  if (index < 0) {
+    NS_WARNING("Trying to use .replaceWholeText with an anonymous text node "
+               "child of a binding parent?");
+    *aResult = NS_ERROR_DOM_NOT_SUPPORTED_ERR;
+    return nsnull;
+  }
 
   
   
@@ -1043,12 +1049,11 @@ nsGenericDOMDataNode::ReplaceWholeText(const nsAFlatString& aContent,
 
   
   if (aContent.IsEmpty()) {
-    *aReturn = nsnull;
-    return NS_OK;
+    return nsnull;
   }
 
   SetText(aContent.get(), aContent.Length(), PR_TRUE);
-  return CallQueryInterface(this, aReturn);
+  return this;
 }
 
 

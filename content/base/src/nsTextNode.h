@@ -53,7 +53,7 @@
 
 
 
-class nsTextNode : public nsGenericDOMDataNode,
+class nsTextNode : public nsGenericTextNode,
                    public nsIDOMText
 {
 public:
