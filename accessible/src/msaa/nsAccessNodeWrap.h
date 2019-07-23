@@ -171,5 +171,10 @@ class nsAccessNodeWrap :  public nsAccessNode,
     static nsIAccessibleTextChangeEvent *gTextEvent;
 };
 
+
+
+
+HRESULT GetHRESULT(nsresult aResult);
+
 #endif
 
