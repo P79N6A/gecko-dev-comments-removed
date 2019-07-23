@@ -2879,7 +2879,9 @@ interrupt:
 
                 
                 regs = ifp->callerRegs;
-                regs.sp += 1 - 2 - ifp->frame.argc;
+
+                
+                regs.sp -= (ptrdiff_t) (1 + ifp->frame.argc);
                 regs.sp[-1] = fp->rval;
 
                 
