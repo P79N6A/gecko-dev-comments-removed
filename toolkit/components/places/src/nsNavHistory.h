@@ -88,6 +88,13 @@
 #define QUERYUPDATE_COMPLEX 2
 #define QUERYUPDATE_COMPLEX_WITH_BOOKMARKS 3
 
+
+
+
+#define SQL_STR_FRAGMENT_MAX_VISIT_DATE( place_relation ) \
+  "(SELECT visit_date FROM moz_historyvisits WHERE place_id = " place_relation \
+  " AND visit_type NOT IN (0,4) ORDER BY visit_date DESC LIMIT 1)"
+
 struct AutoCompleteIntermediateResult;
 class AutoCompleteResultComparator;
 class mozIAnnotationService;
@@ -222,15 +229,7 @@ public:
   static const PRInt32 kGetInfoIndex_ItemLastModified;
 
   
-  mozIStorageStatement* DBGetURLPageInfoFull()
-  { return mDBGetURLPageInfoFull; }
-
-  
   mozIStorageStatement* DBGetIdPageInfo() { return mDBGetIdPageInfo; }
-
-  
-  mozIStorageStatement* DBGetIdPageInfoFull()
-  { return mDBGetIdPageInfoFull; }
 
   
   
@@ -261,9 +260,7 @@ public:
   nsresult VisitIdToResultNode(PRInt64 visitId,
                                nsNavHistoryQueryOptions* aOptions,
                                nsNavHistoryResultNode** aResult);
-  nsresult UriToResultNode(nsIURI* aUri,
-                           nsNavHistoryQueryOptions* aOptions,
-                           nsNavHistoryResultNode** aResult);
+
   nsresult BookmarkIdToResultNode(PRInt64 aBookmarkId,
                                   nsNavHistoryQueryOptions* aOptions,
                                   nsNavHistoryResultNode** aResult);
@@ -369,9 +366,7 @@ protected:
   nsCOMPtr<nsIFile> mDBFile;
 
   nsCOMPtr<mozIStorageStatement> mDBGetURLPageInfo;   
-  nsCOMPtr<mozIStorageStatement> mDBGetURLPageInfoFull; 
   nsCOMPtr<mozIStorageStatement> mDBGetIdPageInfo;     
-  nsCOMPtr<mozIStorageStatement> mDBGetIdPageInfoFull; 
 
   nsCOMPtr<mozIStorageStatement> mDBRecentVisitOfURL; 
   nsCOMPtr<mozIStorageStatement> mDBInsertVisit; 
@@ -394,6 +389,7 @@ protected:
   nsresult ForceMigrateBookmarksDB(mozIStorageConnection *aDBConn);
   nsresult MigrateV3Up(mozIStorageConnection *aDBConn);
   nsresult MigrateV6Up(mozIStorageConnection *aDBConn);
+  nsresult EnsureCurrentSchema(mozIStorageConnection* aDBConn);
   nsresult CleanUpOnQuit();
 
 #ifdef IN_MEMORY_LINKS
