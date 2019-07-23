@@ -39,6 +39,8 @@
 #ifdef DEBUG_hsivonen
     static PRUint32 sInsertionBatchMaxLength;
     static PRUint32 sAppendBatchMaxSize;
+    static PRUint32 sAppendBatchSlotsExamined;
+    static PRUint32 sAppendBatchExaminations;
 #endif
     nsHtml5Parser* mParser; 
     PRBool         mHasProcessedBase;
@@ -53,38 +55,30 @@
     void Flush();
     
     inline void PostPendingAppendNotification(nsIContent* aParent, nsIContent* aChild) {
-      nsIContent* parent = aParent; 
-      nsIContent* child = aChild->IsNodeOfType(nsINode::eELEMENT) ? aChild : nsnull; 
-      const nsIContentPtr* start = mElementsSeenInThisAppendBatch.Elements();
-      const nsIContentPtr* end = start + mElementsSeenInThisAppendBatch.Length();
-      
-      for (const nsIContentPtr* iter = start; iter < end; ++iter) {
-        if (*iter == parent) {
-          parent = nsnull;
-        }
-        if (*iter == child) {
-          child = nsnull;
-        }
-        if (!(parent || child)) {
+      PRBool newParent = PR_TRUE;
+      const nsIContentPtr* first = mElementsSeenInThisAppendBatch.Elements();
+      const nsIContentPtr* last = first + (mElementsSeenInThisAppendBatch.Length() - 1);
+      for (const nsIContentPtr* iter = last; iter >= first; --iter) {
+#ifdef DEBUG_hsivonen
+        sAppendBatchSlotsExamined++;
+#endif
+        if (*iter == aParent) {
+          newParent = PR_FALSE;
           break;
-        } 
-      }
-      if (child) {
-        mElementsSeenInThisAppendBatch.AppendElement(child);
-      }
-      if (parent) {
-        
-        
-        const nsHtml5PendingNotification* startNotifications = mPendingNotifications.Elements();
-        const nsHtml5PendingNotification* endNotifications = startNotifications + mPendingNotifications.Length();
-        
-        for (nsHtml5PendingNotification* iter = (nsHtml5PendingNotification*)startNotifications; iter < endNotifications; ++iter) {
-          if (iter->Contains(parent)) {
-            return;
-          }
         }
-        mPendingNotifications.AppendElement(parent);
       }
+      if (aChild->IsNodeOfType(nsINode::eELEMENT)) {
+        mElementsSeenInThisAppendBatch.AppendElement(aChild);
+      }
+      mElementsSeenInThisAppendBatch.AppendElement(aParent);
+      if (newParent) {
+        mPendingNotifications.AppendElement(aParent);
+      }
+
+#ifdef DEBUG_hsivonen
+      sAppendBatchExaminations++;
+#endif
+
     }
     
     inline void FlushPendingAppendNotifications() {
