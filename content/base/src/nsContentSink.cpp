@@ -349,20 +349,19 @@ nsContentSink::ScriptAvailable(nsresult aResult,
     mParser->ScriptExecuting();
   }
 
+  if (count == 0) {
+    return NS_OK;
+  }
+
   
   
   
-  NS_ASSERTION(count == 0 ||
-               mScriptElements.IndexOf(aElement) == PRUint32(count - 1) ||
+  NS_ASSERTION(mScriptElements.IndexOf(aElement) == PRUint32(count - 1) ||
                mScriptElements.IndexOf(aElement) == PRUint32(-1),
                "script found at unexpected position");
 
   
-  if (count == 0 || aElement != mScriptElements[count - 1]) {
-    if (mDidGetReadyToCallDidBuildModelCall &&
-        !mScriptLoader->HasPendingOrCurrentScripts()) {
-      ContinueInterruptedParsingAsyncIfEnabled();
-    }
+  if (aElement != mScriptElements[count - 1]) {
     return NS_OK;
   }
 
@@ -388,7 +387,7 @@ nsContentSink::ScriptAvailable(nsresult aResult,
       
       
       
-      ContinueInterruptedParsingAsyncIfEnabled();
+      ContinueInterruptedParsingAsync();
     }
   }
 
@@ -407,10 +406,6 @@ nsContentSink::ScriptEvaluated(nsresult aResult,
   
   PRInt32 count = mScriptElements.Count();
   if (count == 0 || aElement != mScriptElements[count - 1]) {
-    if (mDidGetReadyToCallDidBuildModelCall &&
-        !mScriptLoader->HasPendingOrCurrentScripts()) {
-      ContinueInterruptedParsingAsyncIfEnabled();
-    }
     return NS_OK;
   }
 
@@ -421,7 +416,9 @@ nsContentSink::ScriptEvaluated(nsresult aResult,
     PostEvaluateScript(aElement);
   }
 
-  ContinueInterruptedParsingAsyncIfEnabled();
+  if (mParser && mParser->IsParserEnabled()) {
+    ContinueInterruptedParsingAsync();
+  }
 
   return NS_OK;
 }
@@ -1744,25 +1741,12 @@ nsContentSink::ContinueInterruptedParsingIfEnabled()
 }
 
 void
-nsContentSink::ContinueInterruptedParsingAsyncIfEnabled()
+nsContentSink::ContinueInterruptedParsingAsync()
 {
-  if (mParser && mParser->IsParserEnabled()) {
-    nsCOMPtr<nsIRunnable> ev = new nsRunnableMethod<nsContentSink>(this,
-      &nsContentSink::ContinueInterruptedParsingIfEnabled);
+  nsCOMPtr<nsIRunnable> ev = new nsRunnableMethod<nsContentSink>(this,
+    &nsContentSink::ContinueInterruptedParsingIfEnabled);
 
-    NS_DispatchToCurrentThread(ev);
-  }
-}
-
-PRBool
-nsContentSink::ReadyToCallDidBuildModelImpl()
-{
-  if (!mDidGetReadyToCallDidBuildModelCall && mDocument) {
-    mDocument->DispatchContentLoadedEvents();
-  }
-  mDidGetReadyToCallDidBuildModelCall = PR_TRUE;
-  
-  return !mScriptLoader || !mScriptLoader->HasPendingOrCurrentScripts();
+  NS_DispatchToCurrentThread(ev);
 }
 
 
