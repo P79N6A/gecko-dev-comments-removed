@@ -977,7 +977,7 @@ nsSafariProfileMigrator::CopyBookmarks(PRBool aReplace)
       if (children) {
         rv = ParseBookmarksFolder(children, folder, bms, PR_TRUE);
 #ifdef MOZ_PLACES_BOOKMARKS
-        if (NS_SUCCEEDED(rv) {
+        if (NS_SUCCEEDED(rv)) {
           
           
           
