@@ -72,7 +72,7 @@
 
 
 #if !defined(ARM_VFP)
-    #if defined(AVMPLUS_ARM)
+    #ifdef AVMPLUS_ARM
         #if defined(NJ_ARM_VFP)
             #define ARM_VFP      1
         #else
@@ -81,7 +81,7 @@
     #else
         
         
-        #define ARM_VFP          1
+        #define ARM_VFP 1
     #endif
 #endif
 
