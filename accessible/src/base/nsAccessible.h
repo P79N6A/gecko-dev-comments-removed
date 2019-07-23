@@ -304,6 +304,7 @@ public:
   
 
 
+
   void TestChildCache(nsAccessible *aCachedChild);
 
 protected:

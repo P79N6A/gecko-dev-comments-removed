@@ -3000,20 +3000,15 @@ void
 nsAccessible::TestChildCache(nsAccessible *aCachedChild)
 {
 #ifdef DEBUG
-  
-  
-  
-  
   PRUint32 childCount = mChildren.Length();
   if (childCount == 0) {
-    NS_ASSERTION(mAreChildrenInitialized,
-                 "Children are stored but not initialized!");
+    NS_ASSERTION(!mAreChildrenInitialized, "No children but initialized!");
     return;
   }
 
-  nsAccessible *child;
+  nsAccessible *child = nsnull;
   for (PRInt32 childIdx = 0; childIdx < childCount; childIdx++) {
-    child = GetChildAt(childIdx);
+    child = mChildren[childIdx];
     if (child == aCachedChild)
       break;
   }
