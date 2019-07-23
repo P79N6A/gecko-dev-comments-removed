@@ -785,11 +785,7 @@ DWORD nsWindow::WindowStyle()
 
     case eWindowType_popup:
       style = WS_POPUP;
-      if (mTransparencyMode == eTransparencyGlass) {
-        
-
-        style |= WS_THICKFRAME;
-      } else {
+      if (mTransparencyMode != eTransparencyGlass) {
         style |= WS_OVERLAPPED;
       }
       break;
@@ -4188,6 +4184,7 @@ PRBool nsWindow::ProcessMessage(UINT msg, WPARAM &wParam, LPARAM &lParam,
     break;
 
 #ifndef WINCE
+#if MOZ_WINSDK_TARGETVER >= MOZ_NTDDI_LONGHORN
   case WM_DWMCOMPOSITIONCHANGED:
     BroadcastMsg(mWnd, WM_DWMCOMPOSITIONCHANGED);
     DispatchStandardEvent(NS_THEMECHANGED);
@@ -4199,7 +4196,6 @@ PRBool nsWindow::ProcessMessage(UINT msg, WPARAM &wParam, LPARAM &lParam,
     break;
 #endif
 
-#if !defined(WINCE)
   
   case WM_TABLET_QUERYSYSTEMGESTURESTATUS:
     
@@ -6118,12 +6114,19 @@ void nsWindow::SetWindowTranslucencyInner(nsTransparencyMode aMode)
   mTransparencyMode = aMode;
 
   SetupTranslucentWindowMemoryBitmap(aMode);
-  MARGINS margins = { 0, 0, 0, 0 };
-  if(eTransparencyGlass == aMode)
-    margins.cxLeftWidth = -1;
-  if(nsUXThemeData::sHaveCompositor)
+#if MOZ_WINSDK_TARGETVER >= MOZ_NTDDI_LONGHORN
+   MARGINS margins = { 0, 0, 0, 0 };
+  DWMNCRENDERINGPOLICY policy = DWMNCRP_USEWINDOWSTYLE;
+  if(eTransparencyGlass == aMode) {
+     margins.cxLeftWidth = -1;
+    policy = DWMNCRP_ENABLED;
+  }
+  if(nsUXThemeData::sHaveCompositor) {
     nsUXThemeData::dwmExtendFrameIntoClientAreaPtr(hWnd, &margins);
-#endif
+    nsUXThemeData::dwmSetWindowAttributePtr(hWnd, DWMWA_NCRENDERING_POLICY, &policy, sizeof policy);
+  }
+#endif 
+#endif 
 }
 
 void nsWindow::SetupTranslucentWindowMemoryBitmap(nsTransparencyMode aMode)
