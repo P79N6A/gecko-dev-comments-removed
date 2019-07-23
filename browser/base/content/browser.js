@@ -6693,6 +6693,12 @@ let DownloadMonitorPanel = {
   _lastTime: Infinity,
   _listening: false,
 
+  get DownloadUtils() {
+    delete this.DownloadUtils;
+    Cu.import("resource://gre/modules/DownloadUtils.jsm", this);
+    return this.DownloadUtils;
+  },
+
   
   
 
@@ -6700,9 +6706,6 @@ let DownloadMonitorPanel = {
 
 
   init: function DMP_init() {
-    
-    Cu.import("resource://gre/modules/DownloadUtils.jsm");
-
     
     this._panel = document.getElementById("download-monitor");
 
@@ -6754,7 +6757,8 @@ let DownloadMonitorPanel = {
 
     
     let timeLeft;
-    [timeLeft, this._lastTime] = DownloadUtils.getTimeLeft(maxTime, this._lastTime);
+    [timeLeft, this._lastTime] =
+      this.DownloadUtils.getTimeLeft(maxTime, this._lastTime);
 
     
     let numDls = numActive - numPaused;
