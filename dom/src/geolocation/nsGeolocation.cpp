@@ -60,6 +60,10 @@
 
 
 
+#define MAX_GEO_REQUESTS_PER_WINDOW  1500
+
+
+
 
 
 class nsDOMGeoPositionError : public nsIDOMGeoPositionError
@@ -724,9 +728,11 @@ nsGeolocation::GetCurrentPosition(nsIDOMGeoPositionCallback *callback,
                                   nsIDOMGeoPositionErrorCallback *errorCallback,
                                   nsIDOMGeoPositionOptions *options)
 {
-
   nsCOMPtr<nsIGeolocationPrompt> prompt = do_GetService(NS_GEOLOCATION_PROMPT_CONTRACTID);
   if (prompt == nsnull)
+    return NS_ERROR_NOT_AVAILABLE;
+
+  if (mPendingCallbacks.Length() > MAX_GEO_REQUESTS_PER_WINDOW)
     return NS_ERROR_NOT_AVAILABLE;
 
   nsRefPtr<nsGeolocationRequest> request = new nsGeolocationRequest(this, callback, errorCallback, options);
@@ -751,6 +757,9 @@ nsGeolocation::WatchPosition(nsIDOMGeoPositionCallback *aCallback,
 {
   nsCOMPtr<nsIGeolocationPrompt> prompt = do_GetService(NS_GEOLOCATION_PROMPT_CONTRACTID);
   if (prompt == nsnull)
+    return NS_ERROR_NOT_AVAILABLE;
+
+  if (mWatchingCallbacks.Length() > MAX_GEO_REQUESTS_PER_WINDOW)
     return NS_ERROR_NOT_AVAILABLE;
 
   nsRefPtr<nsGeolocationRequest> request = new nsGeolocationRequest(this, aCallback, aErrorCallback, aOptions);
