@@ -205,6 +205,11 @@ PlacesController.prototype = {
 #endif
       }
       return false;
+    case "placesCmd_sortBy:name":
+      var selectedNode = this._view.selectedNode;
+      return selectedNode &&
+             PlacesUtils.nodeIsFolder(selectedNode) &&
+             !PlacesUtils.nodeIsReadOnly(selectedNode);
     case "placesCmd_setAsBookmarksToolbarFolder":
       if (this._view.hasSingleSelection) {
         var selectedNode = this._view.selectedNode;
@@ -296,6 +301,9 @@ PlacesController.prototype = {
       break;
     case "placesCmd_reload":
       this.reloadSelectedLivemarks();
+      break;
+    case "placesCmd_sortBy:name":
+      this.sortFolderByName();
       break;
     case "placesCmd_setAsBookmarksToolbarFolder":
       this.setBookmarksToolbarFolder();
@@ -396,71 +404,6 @@ PlacesController.prototype = {
     }
     return false;
   },
-
-#ifdef BROKEN_SORT_CODE
-  
-
-
-
-
-
-
-
-
-
-
-
-  _updateSortCommands: 
-  function PC__updateSortCommands(inSysArea, hasSingleSelection, selectedNode, 
-                                  canInsert) {
-    
-    
-    var result = this._view.getResult();
-    var viewIsFolder = result ? PlacesUtils.nodeIsFolder(result.root) : false;
-
-    
-    
-    
-    
-    var sortingChildren = false;
-    var name = result.root.title;
-    var sortFolder = result.root;
-    if (selectedNode && selectedNode.parent) {
-      name = selectedNode.parent.title;
-      sortFolder = selectedNode.parent;
-    }
-    if (hasSingleSelection && PlacesUtils.nodeIsFolder(selectedNode)) {
-      name = selectedNode.title;
-      sortFolder = selectedNode;
-      sortingChildren = true;
-    }
-
-    
-    
-    
-    
-    
-    var enoughChildrenToSort = false;
-    if (PlacesUtils.nodeIsFolder(sortFolder)) {
-      var folder = asFolder(sortFolder);
-      var contents = this.getFolderContents(folder.folderId, false, false);
-      enoughChildrenToSort = contents.childCount > 1;
-    }
-    var metadata = this._buildSelectionMetadata();
-    this._setEnabled("placesCmd_sortby:name", 
-      (sortingChildren || !inSysArea) && canInsert && viewIsFolder && 
-      !("mixed" in metadata) && enoughChildrenToSort);
-
-    var command = document.getElementById("placesCmd_sortby:name");
-    
-    if (name) {
-      command.setAttribute("label", 
-        PlacesUtils.getFormattedString("sortByName", [name]));
-    }
-    else
-      command.setAttribute("label", PlacesUtils.getString("sortByNameGeneric"));
-  },
-#endif
 
   
 
@@ -1040,6 +983,15 @@ PlacesController.prototype = {
     window.openDialog("chrome://browser/content/places/moveBookmarks.xul",
                       "", "chrome, modal",
                       this._view.getSelectionNodes(), PlacesUtils.tm);
+  },
+
+  
+
+
+  sortFolderByName: function PC_sortFolderByName() {
+    var selectedNode = this._view.selectedNode;
+    var txn = new PlacesSortFolderByNameTransaction(selectedNode.folderId, selectedNode.bookmarkIndex);
+    PlacesUtils.tm.doTransaction(txn);
   },
 
   
@@ -2228,6 +2180,47 @@ PlacesEditBookmarkMicrosummaryTransaction.prototype = {
 
 
 
+function PlacesSortFolderByNameTransaction(aFolderId, aFolderIndex) {
+  this._folderId = aFolderId;
+  this._folderIndex = aFolderIndex;
+  this._oldOrder = null,
+  this.redoTransaction = this.doTransaction;
+}
+PlacesSortFolderByNameTransaction.prototype = {
+  __proto__: PlacesBaseTransaction.prototype,
+
+  doTransaction: function PSSFBN_doTransaction() {
+    this._oldOrder = [];
+
+    var items = [];
+    var contents = this.utils.getFolderContents(this._folderId, false, false);
+    var count = contents.childCount;
+    for (var i = 0; i < count; ++i) {
+      var item = contents.getChild(i);
+      this._oldOrder[item.itemId] = i;
+      items.push(item);
+    }
+
+    function sortItems(a, b) {
+      var atitle = a.title;
+      var btitle = b.title;
+      return (atitle == btitle) ? 0 : ((atitle < btitle) ? -1 : 1);
+    }
+    items.sort(sortItems);
+
+    for (var i = 0; i < count; ++i)
+      this.bookmarks.setItemIndex(items[i].itemId, i);
+  },
+
+  undoTransaction: function PSSFBN_undoTransaction() {
+    for (item in this._oldOrder)
+      this.bookmarks.setItemIndex(item, this._oldOrder[item]);
+  }
+};
+
+
+
+
 function PlacesSetBookmarksToolbarTransaction(aFolderId) {
   this._folderId = aFolderId;
   this._oldFolderId = this.utils.toolbarFolder;
@@ -2259,6 +2252,6 @@ function goUpdatePlacesCommands() {
   goUpdateCommand("placesCmd_moveBookmarks");
   goUpdateCommand("placesCmd_setAsBookmarksToolbarFolder");
   goUpdateCommand("placesCmd_reload");
-  
+  goUpdateCommand("placesCmd_sortBy:name");
 #endif
 }
