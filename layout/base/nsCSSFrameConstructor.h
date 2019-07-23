@@ -316,6 +316,9 @@ private:
   already_AddRefed<nsStyleContext>
   ResolveStyleContext(nsIFrame*         aParentFrame,
                       nsIContent*       aContent);
+  already_AddRefed<nsStyleContext>
+  ResolveStyleContext(nsStyleContext* aParentStyleContext,
+                      nsIContent* aContent);
 
   nsresult ConstructFrame(nsFrameConstructorState& aState,
                           nsIContent*              aContent,
@@ -383,6 +386,7 @@ private:
                                                       nsStyleContext* aStyleContext,
                                                       PRUint32        aContentIndex);
 
+  
   void CreateGeneratedContentItem(nsFrameConstructorState& aState,
                                   nsIFrame*                aFrame,
                                   nsIContent*              aContent,
@@ -613,6 +617,7 @@ private:
   
 
 
+
 #define FCDATA_DISALLOW_OUT_OF_FLOW 0x8
   
 
@@ -655,6 +660,9 @@ private:
 
 
 #define FCDATA_IS_TABLE_PART 0x1000
+  
+
+#define FCDATA_IS_INLINE 0x2000
 
   
 
@@ -747,6 +755,18 @@ private:
     PRPackedBool mIsGeneratedContent;
     
     PRPackedBool mIsRootPopupgroup;
+    
+    
+    PRPackedBool mIsAllInline;
+    
+    
+    PRPackedBool mIsPopup;
+
+    
+    
+    
+    
+    nsTArray<FrameConstructionItem> mChildItems;
 
   private:
     FrameConstructionItem(const FrameConstructionItem& aOther); 
@@ -824,6 +844,8 @@ private:
                                   nsFrameItems&            aFrameItems,
                                   nsIFrame**               aNewFrame);
 
+  
+  
   static const FrameConstructionData* FindTextData(nsIFrame* aParentFrame);
 
   nsresult ConstructTextFrame(const FrameConstructionData* aData,
@@ -838,6 +860,8 @@ private:
                         nsStyleContext* aMainStyleContext,
                         nsTArray<FrameConstructionItem>& aItems);
 
+  
+  
   
   
   static const FrameConstructionData* FindHTMLData(nsIContent* aContent,
@@ -881,6 +905,8 @@ private:
 #define ITEM_ALLOW_PAGE_BREAK 0x2
   
 #define ITEM_IS_GENERATED_CONTENT 0x4
+  
+  
   
   void AddFrameConstructionItemsInternal(nsFrameConstructorState& aState,
                                          nsIContent*              aContent,
@@ -1202,12 +1228,25 @@ private:
                                 nsIFrame* aBlockPart,
                                 nsFrameConstructorState* aTargetState);
 
-  nsresult ProcessInlineChildren(nsFrameConstructorState& aState,
-                                 nsIContent*              aContent,
-                                 nsIFrame*                aFrame,
-                                 PRBool                   aCanHaveGeneratedContent,
-                                 nsFrameItems&            aFrameItems,
-                                 PRBool*                  aKidsAllInline);
+  
+
+
+
+  void BuildInlineChildItems(nsFrameConstructorState& aState,
+                             FrameConstructionItem& aParentItem);
+
+  
+
+
+
+
+
+  nsresult ConstructFramesFromItemSublist(nsFrameConstructorState& aState,
+                                          nsTArray<FrameConstructionItem>& aItems,
+                                          PRUint32 aStart,
+                                          PRUint32 aEnd,
+                                          nsIFrame* aParentFrame,
+                                          nsFrameItems& aFrameItems);
 
   
   
