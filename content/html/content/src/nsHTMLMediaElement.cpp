@@ -172,6 +172,12 @@ void nsHTMLMediaElement::QueueLoadFromSourceTask()
   NS_DispatchToMainThread(event);
 }
 
+
+
+
+
+
+
 class nsHTMLMediaElement::MediaLoadListener : public nsIStreamListener,
                                               public nsIChannelEventSink,
                                               public nsIInterfaceRequestor
@@ -201,39 +207,40 @@ NS_IMPL_ISUPPORTS4(nsHTMLMediaElement::MediaLoadListener, nsIRequestObserver,
 NS_IMETHODIMP nsHTMLMediaElement::MediaLoadListener::OnStartRequest(nsIRequest* aRequest, nsISupports* aContext)
 {
   
+  
+  nsRefPtr<nsHTMLMediaElement> element;
+  element.swap(mElement);
+
+  
   nsresult rv;
   nsresult status;
   rv = aRequest->GetStatus(&status);
   NS_ENSURE_SUCCESS(rv, rv);
   if (NS_FAILED(status)) {
-    if (mElement)
-      mElement->NotifyLoadError();
+    if (element)
+      element->NotifyLoadError();
     return status;
   }
 
   nsCOMPtr<nsIChannel> channel = do_QueryInterface(aRequest);
   if (channel &&
-      mElement &&
+      element &&
       NS_SUCCEEDED(rv = mElement->InitializeDecoderForChannel(channel, getter_AddRefs(mNextListener))) &&
       mNextListener) {
     rv = mNextListener->OnStartRequest(aRequest, aContext);
   } else {
     
     
-    if (NS_FAILED(rv) && !mNextListener && mElement) {
+    if (NS_FAILED(rv) && !mNextListener && element) {
       
       
-      mElement->NotifyLoadError();
+      element->NotifyLoadError();
     }
     
     
     
     rv = NS_BINDING_ABORTED;
   }
-
-  
-  
-  mElement = nsnull;
 
   return rv;
 }
