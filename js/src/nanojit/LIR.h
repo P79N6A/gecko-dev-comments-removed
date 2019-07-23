@@ -91,6 +91,8 @@ namespace nanojit
 		LIR_ji      = 25, 
 		
 
+		LIR_ldcs    = 25, 
+		
 		
 		
 		LIR_feq		= 26, 
@@ -266,7 +268,7 @@ namespace nanojit
     }
 
     inline bool isLoad(LOpcode op) {
-        return op == LIR_ldq || op == LIR_ld || op == LIR_ldc || op == LIR_ldqc;
+        return op == LIR_ldq || op == LIR_ld || op == LIR_ldc || op == LIR_ldqc || op == LIR_ldcs;
     }
 
 	
