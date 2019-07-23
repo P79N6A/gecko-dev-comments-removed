@@ -38,6 +38,7 @@
 
 
 #include "nsWifiAccessPoint.h"
+#include "nsString.h"
 #include "nsMemory.h"
 #include "prlog.h"
 
@@ -71,11 +72,7 @@ NS_IMETHODIMP nsWifiAccessPoint::GetSsid(nsAString& aSsid)
 {
   
   
-
-  nsString tempStr;
-  tempStr.AssignWithConversion(mSsid, mSsidLen);
-  aSsid = tempStr;
-
+  CopyASCIItoUTF16(mSsid, aSsid);
   return NS_OK;
 }
 
