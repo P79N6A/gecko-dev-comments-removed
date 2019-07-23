@@ -806,7 +806,16 @@ nsresult nsHyperTextAccessible::GetTextHelper(EGetTextType aType, nsAccessibleTe
   if (!startFrame) {
     PRInt32 textLength;
     GetCharacterCount(&textLength);
-    return (aOffset < 0 || aOffset > textLength) ? NS_ERROR_FAILURE : NS_OK;
+    if (aBoundaryType == BOUNDARY_LINE_START && aOffset > 0 && aOffset == textLength) {
+      
+      nsCOMPtr<nsPIAccessNode> startAccessNode = do_QueryInterface(startAcc);
+      if (startAccessNode) {
+        startFrame = startAccessNode->GetFrame();
+      }
+    }
+    if (!startFrame) {
+      return (aOffset < 0 || aOffset > textLength) ? NS_ERROR_FAILURE : NS_OK;
+    }
   }
 
   nsSelectionAmount amount;
@@ -901,10 +910,14 @@ nsresult nsHyperTextAccessible::GetTextHelper(EGetTextType aType, nsAccessibleTe
         
         return GetTextHelper(eGetAfter, aBoundaryType, aOffset, aStartOffset, aEndOffset, aText);
       }
-      
-      
-      
-      ++ finalEndOffset;
+      PRInt32 textLength;
+      GetCharacterCount(&textLength);
+      if (finalEndOffset < textLength) {
+        
+        
+        
+        ++ finalEndOffset;
+      }
     }
   }
 
@@ -914,7 +927,8 @@ nsresult nsHyperTextAccessible::GetTextHelper(EGetTextType aType, nsAccessibleTe
   NS_ASSERTION((finalStartOffset < aOffset && finalEndOffset >= aOffset) || aType != eGetBefore, "Incorrect results for GetTextHelper");
   NS_ASSERTION((finalStartOffset <= aOffset && finalEndOffset > aOffset) || aType == eGetBefore, "Incorrect results for GetTextHelper");
 
-  return GetPosAndText(finalStartOffset, finalEndOffset, &aText) ? NS_OK : NS_ERROR_FAILURE;
+  GetPosAndText(finalStartOffset, finalEndOffset, &aText);
+  return NS_OK;
 }
 
 
