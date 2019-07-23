@@ -7563,8 +7563,19 @@ nsCSSFrameConstructor::ReconstructDocElementHierarchyInternal()
       
       
       
-      rv = RemoveFixedItems(state);
+      rv = RemoveFixedItems(state, docElementFrame);
+
       if (NS_SUCCEEDED(rv)) {
+        nsPlaceholderFrame* placeholderFrame = nsnull;
+        if (docElementFrame &&
+            (docElementFrame->GetStateBits() & NS_FRAME_OUT_OF_FLOW)) {
+          
+          
+          placeholderFrame =
+            state.mFrameManager->GetPlaceholderFrameFor(docElementFrame);
+          NS_ASSERTION(placeholderFrame, "No placeholder for out-of-flow?");
+        }
+
         
         
         state.mFrameManager->ClearPrimaryFrameMap();
@@ -7573,7 +7584,6 @@ nsCSSFrameConstructor::ReconstructDocElementHierarchyInternal()
 
         if (docElementFrame) {
           
-        
           
 
           
@@ -7581,9 +7591,17 @@ nsCSSFrameConstructor::ReconstructDocElementHierarchyInternal()
           
           PRBool wasDestroyingFrameTree = mIsDestroyingFrameTree;
           WillDestroyFrameTree();
-          
+
           rv = state.mFrameManager->RemoveFrame(docElementFrame->GetParent(),
                     GetChildListNameFor(docElementFrame), docElementFrame);
+          
+          if (placeholderFrame) {
+            
+            
+            rv |= state.mFrameManager->RemoveFrame(placeholderFrame->GetParent(),
+                                            nsnull, placeholderFrame);
+          }
+
           mIsDestroyingFrameTree = wasDestroyingFrameTree;
           if (NS_FAILED(rv)) {
             return rv;
@@ -12838,7 +12856,9 @@ nsCSSFrameConstructor::ReframeContainingBlock(nsIFrame* aFrame)
   return ReconstructDocElementHierarchyInternal();
 }
 
-nsresult nsCSSFrameConstructor::RemoveFixedItems(const nsFrameConstructorState& aState)
+nsresult
+nsCSSFrameConstructor::RemoveFixedItems(const nsFrameConstructorState& aState,
+                                        nsIFrame *aRootElementFrame)
 {
   nsresult rv=NS_OK;
 
@@ -12846,6 +12866,12 @@ nsresult nsCSSFrameConstructor::RemoveFixedItems(const nsFrameConstructorState& 
     nsIFrame *fixedChild = nsnull;
     do {
       fixedChild = mFixedContainingBlock->GetFirstChild(nsGkAtoms::fixedList);
+      if (fixedChild == aRootElementFrame) {
+        
+        
+        
+        fixedChild = fixedChild->GetNextSibling();
+      }
       if (fixedChild) {
         
         

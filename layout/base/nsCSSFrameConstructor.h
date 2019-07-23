@@ -1049,7 +1049,8 @@ private:
                                  nsIFrame*                aPrevSibling,
                                  nsFrameItems&            aFrameItems);
 
-  nsresult RemoveFixedItems(const nsFrameConstructorState& aState);
+  nsresult RemoveFixedItems(const nsFrameConstructorState& aState,
+                            nsIFrame*                      aRootElementFrame);
 
   
   
