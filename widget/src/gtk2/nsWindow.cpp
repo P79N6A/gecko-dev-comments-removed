@@ -350,19 +350,6 @@ static PRBool gForce24bpp = PR_FALSE;
 
 nsWindow::nsWindow()
 {
-    mIsTopLevel       = PR_FALSE;
-    mIsDestroyed      = PR_FALSE;
-    mNeedsResize      = PR_FALSE;
-    mNeedsMove        = PR_FALSE;
-    mListenForResizes = PR_FALSE;
-    mIsShown          = PR_FALSE;
-    mNeedsShow        = PR_FALSE;
-    mEnabled          = PR_TRUE;
-    mCreated          = PR_FALSE;
-    mPlaced           = PR_FALSE;
-
-    mPreferredWidth   = 0;
-    mPreferredHeight  = 0;
     mContainer           = nsnull;
     mDrawingarea         = nsnull;
     mShell               = nsnull;
@@ -468,146 +455,8 @@ nsWindow::ReleaseGlobals()
   }
 }
 
-NS_IMPL_ISUPPORTS_INHERITED1(nsWindow, nsBaseWidget,
+NS_IMPL_ISUPPORTS_INHERITED1(nsWindow, nsCommonWidget,
                              nsISupportsWeakReference)
-
-void
-nsWindow::CommonCreate(nsIWidget *aParent, PRBool aListenForResizes)
-{
-    mParent = aParent;
-    mListenForResizes = aListenForResizes;
-    mCreated = PR_TRUE;
-}
-
-void
-nsWindow::InitKeyEvent(nsKeyEvent &aEvent, GdkEventKey *aGdkEvent)
-{
-    aEvent.keyCode   = GdkKeyCodeToDOMKeyCode(aGdkEvent->keyval);
-    aEvent.isShift   = (aGdkEvent->state & GDK_SHIFT_MASK)
-        ? PR_TRUE : PR_FALSE;
-    aEvent.isControl = (aGdkEvent->state & GDK_CONTROL_MASK)
-        ? PR_TRUE : PR_FALSE;
-    aEvent.isAlt     = (aGdkEvent->state & GDK_MOD1_MASK)
-        ? PR_TRUE : PR_FALSE;
-    aEvent.isMeta    = (aGdkEvent->state & GDK_MOD4_MASK)
-        ? PR_TRUE : PR_FALSE;
-    
-    
-    
-    
-    aEvent.nativeMsg = (void *)aGdkEvent;
-
-    aEvent.time      = aGdkEvent->time;
-}
-
-void
-nsWindow::DispatchGotFocusEvent(void)
-{
-    nsGUIEvent event(PR_TRUE, NS_GOTFOCUS, this);
-    nsEventStatus status;
-    DispatchEvent(&event, status);
-}
-
-void
-nsWindow::DispatchLostFocusEvent(void)
-{
-    nsGUIEvent event(PR_TRUE, NS_LOSTFOCUS, this);
-    nsEventStatus status;
-    DispatchEvent(&event, status);
-}
-
-
-void
-nsWindow::DispatchResizeEvent(nsRect &aRect, nsEventStatus &aStatus)
-{
-    nsSizeEvent event(PR_TRUE, NS_SIZE, this);
-
-    event.windowSize = &aRect;
-    event.refPoint.x = aRect.x;
-    event.refPoint.y = aRect.y;
-    event.mWinWidth = aRect.width;
-    event.mWinHeight = aRect.height;
-
-    nsEventStatus status;
-    DispatchEvent(&event, status); 
-}
-
-void
-nsWindow::DispatchActivateEvent(void)
-{
-#ifdef ACCESSIBILITY
-    DispatchActivateEventAccessible();
-#endif 
-    nsGUIEvent event(PR_TRUE, NS_ACTIVATE, this);
-    nsEventStatus status;
-    DispatchEvent(&event, status);
-}
-
-void
-nsWindow::DispatchDeactivateEvent(void)
-{
-    nsGUIEvent event(PR_TRUE, NS_DEACTIVATE, this);
-    nsEventStatus status;
-    DispatchEvent(&event, status);
-
-#ifdef ACCESSIBILITY
-    DispatchDeactivateEventAccessible();
-#endif 
-}
-
-
-
-nsresult
-nsWindow::DispatchEvent(nsGUIEvent *aEvent,
-                              nsEventStatus &aStatus)
-{
-#ifdef DEBUG
-    debug_DumpEvent(stdout, aEvent->widget, aEvent,
-                    nsCAutoString("something"), 0);
-#endif
-
-    aStatus = nsEventStatus_eIgnore;
-
-    
-    if (mEventCallback)
-        aStatus = (* mEventCallback)(aEvent);
-
-    
-    if ((aStatus != nsEventStatus_eIgnore) && mEventListener)
-        aStatus = mEventListener->ProcessEvent(*aEvent);
-
-    return NS_OK;
-}
-
-void
-nsWindow::OnDestroy(void)
-{
-    if (mOnDestroyCalled)
-        return;
-
-    mOnDestroyCalled = PR_TRUE;
-
-    
-    nsBaseWidget::OnDestroy();
-
-    
-    mParent = nsnull;
-
-    nsCOMPtr<nsIWidget> kungFuDeathGrip = this;
-
-    nsGUIEvent event(PR_TRUE, NS_DESTROY, this);
-    nsEventStatus status;
-    DispatchEvent(&event, status);
-}
-
-PRBool
-nsWindow::AreBoundsSane(void)
-{
-    if (mBounds.width > 0 && mBounds.height > 0)
-        return PR_TRUE;
-
-    return PR_FALSE;
-}
 
 NS_IMETHODIMP
 nsWindow::Create(nsIWidget        *aParent,
@@ -750,12 +599,6 @@ nsWindow::Destroy(void)
     return NS_OK;
 }
 
-nsIWidget *
-nsWindow::GetParent(void)
-{
-    return mParent;
-}
-
 NS_IMETHODIMP
 nsWindow::SetParent(nsIWidget *aNewParent)
 {
@@ -854,215 +697,6 @@ nsWindow::ConstrainPosition(PRBool aAllowSlop, PRInt32 *aX, PRInt32 *aY)
     }
     return NS_OK;
 }
-
-NS_IMETHODIMP
-nsWindow::Show(PRBool aState)
-{
-    mIsShown = aState;
-
-    LOG(("nsWindow::Show [%p] state %d\n", (void *)this, aState));
-
-    
-    
-    
-    if ((aState && !AreBoundsSane()) || !mCreated) {
-        LOG(("\tbounds are insane or window hasn't been created yet\n"));
-        mNeedsShow = PR_TRUE;
-        return NS_OK;
-    }
-
-    
-    if (!aState)
-        mNeedsShow = PR_FALSE;
-
-    
-    
-    if (aState) {
-        if (mNeedsMove) {
-            LOG(("\tresizing\n"));
-            NativeResize(mBounds.x, mBounds.y, mBounds.width, mBounds.height,
-                         PR_FALSE);
-        } else if (mNeedsResize) {
-            NativeResize(mBounds.width, mBounds.height, PR_FALSE);
-        }
-    }
-
-    NativeShow(aState);
-
-    return NS_OK;
-}
-
-NS_IMETHODIMP
-nsWindow::Resize(PRInt32 aWidth, PRInt32 aHeight, PRBool aRepaint)
-{
-    mBounds.SizeTo(GetSafeWindowSize(nsSize(aWidth, aHeight)));
-
-    if (!mCreated)
-        return NS_OK;
-
-    
-    
-    
-
-    
-    if (mIsShown) {
-        
-        if (AreBoundsSane()) {
-            
-            
-
-            
-            
-            
-            
-            if (mIsTopLevel || mNeedsShow)
-                NativeResize(mBounds.x, mBounds.y,
-                             mBounds.width, mBounds.height, aRepaint);
-            else
-                NativeResize(mBounds.width, mBounds.height, aRepaint);
-
-            
-            if (mNeedsShow)
-                NativeShow(PR_TRUE);
-        }
-        else {
-            
-            
-            
-            
-            
-            
-            if (!mNeedsShow) {
-                mNeedsShow = PR_TRUE;
-                NativeShow(PR_FALSE);
-            }
-        }
-    }
-    
-    
-    else {
-        if (AreBoundsSane() && mListenForResizes) {
-            
-            
-            
-            NativeResize(aWidth, aHeight, aRepaint);
-        }
-        else {
-            mNeedsResize = PR_TRUE;
-        }
-    }
-
-    
-    if (mIsTopLevel || mListenForResizes) {
-        nsRect rect(mBounds.x, mBounds.y, aWidth, aHeight);
-        nsEventStatus status;
-        DispatchResizeEvent(rect, status);
-    }
-
-    return NS_OK;
-}
-
-NS_IMETHODIMP
-nsWindow::Resize(PRInt32 aX, PRInt32 aY, PRInt32 aWidth, PRInt32 aHeight,
-                       PRBool aRepaint)
-{
-    mBounds.x = aX;
-    mBounds.y = aY;
-    mBounds.SizeTo(GetSafeWindowSize(nsSize(aWidth, aHeight)));
-
-    mPlaced = PR_TRUE;
-
-    if (!mCreated)
-        return NS_OK;
-
-    
-    
-    
-
-    
-    if (mIsShown) {
-        
-        if (AreBoundsSane()) {
-            
-            NativeResize(aX, aY, aWidth, aHeight, aRepaint);
-            
-            if (mNeedsShow)
-                NativeShow(PR_TRUE);
-        }
-        else {
-            
-            
-            
-            
-            
-            
-            if (!mNeedsShow) {
-                mNeedsShow = PR_TRUE;
-                NativeShow(PR_FALSE);
-            }
-        }
-    }
-    
-    
-    else {
-        if (AreBoundsSane() && mListenForResizes){
-            
-            
-            
-            NativeResize(aX, aY, aWidth, aHeight, aRepaint);
-        }
-        else {
-            mNeedsResize = PR_TRUE;
-            mNeedsMove = PR_TRUE;
-        }
-    }
-
-    if (mIsTopLevel || mListenForResizes) {
-        
-        nsRect rect(aX, aY, aWidth, aHeight);
-        nsEventStatus status;
-        DispatchResizeEvent(rect, status);
-    }
-
-    return NS_OK;
-}
-
-NS_IMETHODIMP
-nsWindow::GetPreferredSize(PRInt32 &aWidth,
-                                 PRInt32 &aHeight)
-{
-    aWidth  = mPreferredWidth;
-    aHeight = mPreferredHeight;
-    return (mPreferredWidth != 0 && mPreferredHeight != 0) ? 
-        NS_OK : NS_ERROR_FAILURE;
-}
-
-NS_IMETHODIMP
-nsWindow::SetPreferredSize(PRInt32 aWidth,
-                                 PRInt32 aHeight)
-{
-    mPreferredWidth  = aWidth;
-    mPreferredHeight = aHeight;
-    return NS_OK;
-}
-
-NS_IMETHODIMP
-nsWindow::Enable(PRBool aState)
-{
-    mEnabled = aState;
-
-    return NS_OK;
-}
-
-NS_IMETHODIMP
-nsWindow::IsEnabled(PRBool *aState)
-{
-    *aState = mEnabled;
-
-    return NS_OK;
-}
-
-
 
 NS_IMETHODIMP
 nsWindow::Move(PRInt32 aX, PRInt32 aY)
@@ -1171,6 +805,12 @@ nsWindow::SetSizeMode(PRInt32 aMode)
     mSizeState = mSizeMode;
 
     return rv;
+}
+
+NS_IMETHODIMP
+nsWindow::Enable(PRBool aState)
+{
+    return NS_ERROR_NOT_IMPLEMENTED;
 }
 
 typedef void (* SetUserTimeFunc)(GdkWindow* aWindow, guint32 aTimestamp);
@@ -2557,29 +2197,23 @@ nsWindow::OnMotionNotifyEvent(GtkWidget *aWidget, GdkEventMotion *aEvent)
     sIsDraggingOutOf = PR_FALSE;
 
     
+    
+    
     PRPackedBool synthEvent = PR_FALSE;
-    GdkEvent* gdkevent = NULL;
+#ifdef MOZ_X11
+    XEvent xevent;
 
-    while (GdkEvent *peeked = gdk_display_peek_event (gdk_drawable_get_display (GDK_DRAWABLE(aEvent->window)))) {
-        PRPackedBool wrongType = PR_FALSE;
-
-        if (peeked->any.window != aEvent->window
-            || peeked->type != GDK_MOTION_NOTIFY)
-            wrongType = PR_TRUE;
-
-        gdk_event_free (peeked);
-
-        if (wrongType)
+    while (XPending (GDK_WINDOW_XDISPLAY(aEvent->window))) {
+        XEvent peeked;
+        XPeekEvent (GDK_WINDOW_XDISPLAY(aEvent->window), &peeked);
+        if (peeked.xany.window != GDK_WINDOW_XWINDOW(aEvent->window)
+            || peeked.type != MotionNotify)
             break;
 
         synthEvent = PR_TRUE;
-        if (gdkevent)
-            gdk_event_free (gdkevent);
-        gdkevent = gdk_event_get ();
-        aEvent = &gdkevent->motion;
+        XNextEvent (GDK_WINDOW_XDISPLAY(aEvent->window), &xevent);
     }
 
-#if MOZ_X11
     
     if (gPluginFocusWindow && gPluginFocusWindow != this) {
         nsRefPtr<nsWindow> kungFuDeathGrip = gPluginFocusWindow;
@@ -2589,29 +2223,55 @@ nsWindow::OnMotionNotifyEvent(GtkWidget *aWidget, GdkEventMotion *aEvent)
 
     nsMouseEvent event(PR_TRUE, NS_MOUSE_MOVE, this, nsMouseEvent::eReal);
 
-    
-    if (synthEvent || aEvent->window == mDrawingarea->inner_window) {
+    if (synthEvent) {
+#ifdef MOZ_X11
+        event.refPoint.x = nscoord(xevent.xmotion.x);
+        event.refPoint.y = nscoord(xevent.xmotion.y);
+
+        event.isShift   = (xevent.xmotion.state & GDK_SHIFT_MASK)
+            ? PR_TRUE : PR_FALSE;
+        event.isControl = (xevent.xmotion.state & GDK_CONTROL_MASK)
+            ? PR_TRUE : PR_FALSE;
+        event.isAlt     = (xevent.xmotion.state & GDK_MOD1_MASK)
+            ? PR_TRUE : PR_FALSE;
+
+        event.time = xevent.xmotion.time;
+#else
         event.refPoint.x = nscoord(aEvent->x);
         event.refPoint.y = nscoord(aEvent->y);
-    } else {
-        nsRect windowRect;
-        ScreenToWidget(nsRect(nscoord(aEvent->x_root), nscoord(aEvent->y_root), 1, 1), windowRect);
 
-        event.refPoint.x = windowRect.x;
-        event.refPoint.y = windowRect.y;
+        event.isShift   = (aEvent->state & GDK_SHIFT_MASK)
+            ? PR_TRUE : PR_FALSE;
+        event.isControl = (aEvent->state & GDK_CONTROL_MASK)
+            ? PR_TRUE : PR_FALSE;
+        event.isAlt     = (aEvent->state & GDK_MOD1_MASK)
+            ? PR_TRUE : PR_FALSE;
+
+        event.time = aEvent->time;
+#endif 
     }
+    else {
+        
+        if (aEvent->window == mDrawingarea->inner_window) {
+            event.refPoint.x = nscoord(aEvent->x);
+            event.refPoint.y = nscoord(aEvent->y);
+        } else {
+            nsRect windowRect;
+            ScreenToWidget(nsRect(nscoord(aEvent->x_root), nscoord(aEvent->y_root), 1, 1), windowRect);
 
-    event.isShift   = (aEvent->state & GDK_SHIFT_MASK)
-        ? PR_TRUE : PR_FALSE;
-    event.isControl = (aEvent->state & GDK_CONTROL_MASK)
-        ? PR_TRUE : PR_FALSE;
-    event.isAlt     = (aEvent->state & GDK_MOD1_MASK)
-        ? PR_TRUE : PR_FALSE;
+            event.refPoint.x = windowRect.x;
+            event.refPoint.y = windowRect.y;
+        }
 
-    event.time = aEvent->time;
+        event.isShift   = (aEvent->state & GDK_SHIFT_MASK)
+            ? PR_TRUE : PR_FALSE;
+        event.isControl = (aEvent->state & GDK_CONTROL_MASK)
+            ? PR_TRUE : PR_FALSE;
+        event.isAlt     = (aEvent->state & GDK_MOD1_MASK)
+            ? PR_TRUE : PR_FALSE;
 
-    if (synthEvent)
-        gdk_event_free (gdkevent);
+        event.time = aEvent->time;
+    }
 
     nsEventStatus status;
     DispatchEvent(&event, status);
@@ -5994,7 +5654,7 @@ nsWindow::DispatchAccessibleEvent(nsIAccessible** aAccessible)
 }
 
 void
-nsWindow::DispatchActivateEventAccessible(void)
+nsWindow::DispatchActivateEvent(void)
 {
     if (sAccessibilityEnabled) {
         nsCOMPtr<nsIAccessible> rootAcc;
@@ -6006,11 +5666,15 @@ nsWindow::DispatchActivateEventAccessible(void)
                          rootAcc);
         }
     }
+
+    nsCommonWidget::DispatchActivateEvent();
 }
 
 void
-nsWindow::DispatchDeactivateEventAccessible(void)
+nsWindow::DispatchDeactivateEvent(void)
 {
+    nsCommonWidget::DispatchDeactivateEvent();
+
     if (sAccessibilityEnabled) {
         nsCOMPtr<nsIAccessible> rootAcc;
         GetRootAccessible(getter_AddRefs(rootAcc));
@@ -6022,7 +5686,6 @@ nsWindow::DispatchDeactivateEventAccessible(void)
         }
     }
 }
-
 #endif 
 
 
