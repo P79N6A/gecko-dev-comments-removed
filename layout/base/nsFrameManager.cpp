@@ -1097,13 +1097,23 @@ ShouldStopImage(imgIRequest *aOldImage, imgIRequest *aNewImage)
   return stopImages;
 }
 
+
+
+
+
+
+
+
+
 nsChangeHint
-nsFrameManager::ReResolveStyleContext(nsPresContext    *aPresContext,
+nsFrameManager::ReResolveStyleContext(nsPresContext     *aPresContext,
                                       nsIFrame          *aFrame,
                                       nsIContent        *aParentContent,
                                       nsStyleChangeList *aChangeList, 
                                       nsChangeHint       aMinChange)
 {
+  NS_ASSERTION(aFrame->GetContent() || !aFrame->GetParent(),
+               "frame must have content (unless viewport)");
   
   
   
@@ -1126,6 +1136,10 @@ nsFrameManager::ReResolveStyleContext(nsPresContext    *aPresContext,
     oldContext->AddRef();
     nsIAtom* const pseudoTag = oldContext->GetPseudoType();
     nsIContent* localContent = aFrame->GetContent();
+    
+    
+    
+    
     nsIContent* content = localContent ? localContent : aParentContent;
 
     nsStyleContext* parentContext;
@@ -1152,7 +1166,8 @@ nsFrameManager::ReResolveStyleContext(nsPresContext    *aPresContext,
       
       
       assumeDifferenceHint = ReResolveStyleContext(aPresContext, providerFrame,
-                                                   content, aChangeList, aMinChange);
+                                                   aParentContent, aChangeList,
+                                                   aMinChange);
 
       
       
