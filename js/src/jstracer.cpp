@@ -1773,8 +1773,11 @@ js_ExecuteTree(JSContext* cx, Fragment* f, uintN& inlineCallCount)
     
 
 
-    if (lr->exit->exitType == NESTED_EXIT)
+    if (lr->exit->exitType == NESTED_EXIT) {
+        debug_only(printf("nested side exit, using guard %p instead of %p\n",
+                          state.nestedExit, lr);)
         lr = state.nestedExit;
+    }
 
     
 
@@ -1816,7 +1819,8 @@ js_ExecuteTree(JSContext* cx, Fragment* f, uintN& inlineCallCount)
     JS_ASSERT(*(uint64*)&global[globalFrameSize] == 0xdeadbeefdeadbeefLL);
     
     
-    FlushNativeStackFrame(cx, e->calldepth, e->typeMap + e->numGlobalSlots, stack);
+    FlushNativeStackFrame(cx, e->calldepth, e->typeMap + e->numGlobalSlots, 
+                          stack + (((double*)state.sp) - ((double*)entry_sp)));
     
     AUDIT(sideExitIntoInterpreter);
 
