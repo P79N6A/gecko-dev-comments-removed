@@ -44,6 +44,7 @@ Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
 
 const Ci = Components.interfaces;
 const Cr = Components.results;
+const Cc = Components.classes;
 
 
 
@@ -96,24 +97,61 @@ nsWebHandlerApp.prototype = {
     var escapedUriSpecToHandle = encodeURIComponent(aURI.spec);
 
     
-    var uriToSend = this.uriTemplate.replace("%s", escapedUriSpecToHandle);
+    var uriSpecToSend = this.uriTemplate.replace("%s", escapedUriSpecToHandle);
+    var ioService = Cc["@mozilla.org/network/io-service;1"].
+                    getService(Ci.nsIIOService);
+    var uriToSend = ioService.newURI(uriSpecToSend, null, null);
+    
+    
+    if (aWindowContext) {
+
+      
+      var channel = ioService.newChannelFromURI(uriToSend);
+      channel.loadFlags = Ci.nsIChannel.LOAD_DOCUMENT_URI;
+
+      
+      var uriLoader = Cc["@mozilla.org/uriloader;1"].
+                      getService(Ci.nsIURILoader);
+      
+      
+      
+      
+      
+      uriLoader.openURI(channel, true, aWindowContext);
+      return;
+    } 
 
     
-    var ioService = Components.classes["@mozilla.org/network/io-service;1"].
-                    getService(Components.interfaces.nsIIOService);
-    var channel = ioService.newChannel(uriToSend, null, null);
-    channel.loadFlags = Components.interfaces.nsIChannel.LOAD_DOCUMENT_URI;
+    var windowMediator = Cc["@mozilla.org/appshell/window-mediator;1"].
+      getService(Ci.nsIWindowMediator);
 
     
-    var uriLoader = Components.classes["@mozilla.org/uriloader;1"].
-                    getService(Components.interfaces.nsIURILoader);
-    
-    
-    
-    
-    
-    uriLoader.openURI(channel, true, aWindowContext);
+    var browserDOMWin = windowMediator.getMostRecentWindow("navigator:browser")
+                        .QueryInterface(Ci.nsIDOMChromeWindow)
+                        .browserDOMWindow;
 
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+
+    
+    browserDOMWin.openURI(uriToSend,
+                          null, 
+                          Ci.nsIBrowserDOMWindow.OPEN_DEFAULT_WINDOW,
+                          Ci.nsIBrowserDOMWindow.OPEN_NEW);
+      
     return;
   },
 

@@ -66,8 +66,14 @@ function test() {
   webHandler.launchWithURI(uri, windowContext); 
 
   
-  ok(true, "webHandler launchWithURI test");
+  
+  ok(true, "webHandler launchWithURI (existing window/tab) started");
 
+  
+  webHandler.launchWithURI(uri);
+  
+  
+  ok(true, "webHandler launchWithURI (new window/tab) test started");
 
   
   var localHandler = 
