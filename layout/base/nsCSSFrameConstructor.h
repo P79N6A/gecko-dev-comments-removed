@@ -566,6 +566,8 @@ private:
 
   
 
+
+
 #define FCDATA_SKIP_FRAMEMAP 0x1
   
 
@@ -589,7 +591,24 @@ private:
 
 
 #define FCDATA_WRAP_KIDS_IN_BLOCKS 0x20
-#endif
+#endif 
+  
+
+
+#define FCDATA_SUPPRESS_FRAME 0x40
+  
+
+
+
+#define FCDATA_MAY_NEED_SCROLLFRAME 0x80
+#ifdef MOZ_XUL
+  
+
+#define FCDATA_IS_POPUP 0x100
+#endif 
+  
+
+#define FCDATA_SKIP_ABSPOS_PUSH 0x200
 
   
 
@@ -789,11 +808,13 @@ private:
 
 
 
+
   nsresult ConstructFrameFromData(const FrameConstructionData* aData,
                                   nsFrameConstructorState& aState,
                                   nsIContent* aContent,
                                   nsIFrame* aParentFrame,
                                   nsIAtom* aTag,
+                                  PRInt32 aNameSpaceID,
                                   nsStyleContext* aStyleContext,
                                   nsFrameItems& aFrameItems,
                                   PRBool aHasPseudoParent);
@@ -840,15 +861,41 @@ private:
                                                      nsStyleContext* aStyleContext);
 #endif
 
-  nsresult ConstructXULFrame(nsFrameConstructorState& aState,
-                             nsIContent*              aContent,
-                             nsIFrame*                aParentFrame,
-                             nsIAtom*                 aTag,
-                             PRInt32                  aNameSpaceID,
-                             nsStyleContext*          aStyleContext,
-                             nsFrameItems&            aFrameItems,
-                             PRBool                   aHasPseudoParent,
-                             PRBool*                  aHaltProcessing);
+  
+  
+  static const FrameConstructionData* FindXULTagData(nsIContent* aContent,
+                                                     nsIAtom* aTag,
+                                                     PRInt32 aNameSpaceID,
+                                                     nsStyleContext* aStyleContext);
+  
+#ifdef MOZ_XUL
+  static const FrameConstructionData*
+    FindPopupGroupData(nsIContent* aContent, nsStyleContext* aStyleContext);
+  
+  static const FrameConstructionData sXULTextBoxData;
+  static const FrameConstructionData*
+    FindXULLabelData(nsIContent* aContent, nsStyleContext* aStyleContext);
+  static const FrameConstructionData*
+    FindXULDescriptionData(nsIContent* aContent, nsStyleContext* aStyleContext);
+#ifdef XP_MACOSX
+  static const FrameConstructionData*
+    FindXULMenubarData(nsIContent* aContent, nsStyleContext* aStyleContext);
+#endif 
+  static const FrameConstructionData*
+    FindXULListBoxBodyData(nsIContent* aContent, nsStyleContext* aStyleContext);
+  static const FrameConstructionData*
+    FindXULListItemData(nsIContent* aContent, nsStyleContext* aStyleContext);
+#endif 
+
+  
+  
+  
+  
+  
+  static const FrameConstructionData* FindXULData(nsIContent* aContent,
+                                                  nsIAtom* aTag,
+                                                  PRInt32 aNameSpaceID,
+                                                  nsStyleContext* aStyleContext);
 
 
 #ifdef MOZ_SVG

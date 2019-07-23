@@ -3109,46 +3109,10 @@ nsCSSFrameConstructor::IsSpecialContent(nsIContent*     aContent,
   
   
   
-  if (FindHTMLData(aContent, aTag, aNameSpaceID, aStyleContext)) {
+  if (FindHTMLData(aContent, aTag, aNameSpaceID, aStyleContext) ||
+      FindXULTagData(aContent, aTag, aNameSpaceID, aStyleContext)) {
     return PR_TRUE;
   }
-
-
-  if (aNameSpaceID == kNameSpaceID_XUL)
-    return
-#ifdef MOZ_XUL
-      aTag == nsGkAtoms::button ||
-      aTag == nsGkAtoms::checkbox ||
-      aTag == nsGkAtoms::radio ||
-      aTag == nsGkAtoms::autorepeatbutton ||
-      aTag == nsGkAtoms::titlebar ||
-      aTag == nsGkAtoms::resizer ||
-      aTag == nsGkAtoms::image ||
-      aTag == nsGkAtoms::spring ||
-      aTag == nsGkAtoms::spacer ||
-      aTag == nsGkAtoms::treechildren ||
-      aTag == nsGkAtoms::treecol ||
-      aTag == nsGkAtoms::text ||
-      aTag == nsGkAtoms::description ||
-      aTag == nsGkAtoms::label ||
-      aTag == nsGkAtoms::menu ||
-      aTag == nsGkAtoms::menuitem ||
-      aTag == nsGkAtoms::menubutton ||
-      aTag == nsGkAtoms::menubar ||
-      (aTag == nsGkAtoms::popupgroup &&
-       aContent->IsRootOfNativeAnonymousSubtree()) ||
-      aTag == nsGkAtoms::iframe ||
-      aTag == nsGkAtoms::editor ||
-      aTag == nsGkAtoms::browser ||
-      aTag == nsGkAtoms::progressmeter ||
-#endif
-      aTag == nsGkAtoms::slider ||
-      aTag == nsGkAtoms::scrollbar ||
-      aTag == nsGkAtoms::scrollbarbutton ||
-#ifdef MOZ_XUL
-      aTag == nsGkAtoms::splitter ||
-#endif
-      PR_FALSE;
 
 #ifdef MOZ_SVG
   if (aNameSpaceID == kNameSpaceID_SVG && NS_SVGEnabled()) {
@@ -5033,6 +4997,7 @@ nsCSSFrameConstructor::FindDataByTag(nsIAtom* aTag,
 #define FCDATA_DECL(_flags, _func) \
   { _flags, { (FrameCreationFunc)_func } }
 #define SIMPLE_FCDATA(_func) FCDATA_DECL(0, _func)
+#define SUPPRESS_FCDATA() FCDATA_DECL(FCDATA_SUPPRESS_FRAME, nsnull)
 #define SIMPLE_INT_CREATE(_int, _func) { _int, SIMPLE_FCDATA(_func) }
 #define SIMPLE_INT_CHAIN(_int, _func)                       \
   { _int, FCDATA_DECL(FCDATA_FUNC_IS_DATA_GETTER, _func) }
@@ -5193,6 +5158,7 @@ nsCSSFrameConstructor::ConstructFrameFromData(const FrameConstructionData* aData
                                               nsIContent* aContent,
                                               nsIFrame* aParentFrame,
                                               nsIAtom* aTag,
+                                              PRInt32 aNameSpaceID,
                                               nsStyleContext* aStyleContext,
                                               nsFrameItems& aFrameItems,
                                               PRBool aHasPseudoParent)
@@ -5206,6 +5172,19 @@ nsCSSFrameConstructor::ConstructFrameFromData(const FrameConstructionData* aData
 
   NS_ASSERTION(!(bits & FCDATA_FUNC_IS_DATA_GETTER),
                "Should have dealt with this inside the data finder");
+
+  
+#define CHECK_ONLY_ONE_BIT(_bit1, _bit2)               \
+  NS_ASSERTION(!(bits & _bit1) || !(bits & _bit2),     \
+               "Only one of these bits should be set")
+  CHECK_ONLY_ONE_BIT(FCDATA_SKIP_FRAMEMAP, FCDATA_MAY_NEED_SCROLLFRAME);
+  CHECK_ONLY_ONE_BIT(FCDATA_FUNC_IS_FULL_CTOR, FCDATA_DISALLOW_OUT_OF_FLOW);
+  CHECK_ONLY_ONE_BIT(FCDATA_FUNC_IS_FULL_CTOR, FCDATA_FORCE_NULL_ABSPOS_CONTAINER);
+  CHECK_ONLY_ONE_BIT(FCDATA_FUNC_IS_FULL_CTOR, FCDATA_WRAP_KIDS_IN_BLOCKS);
+  CHECK_ONLY_ONE_BIT(FCDATA_FUNC_IS_FULL_CTOR, FCDATA_MAY_NEED_SCROLLFRAME);
+  CHECK_ONLY_ONE_BIT(FCDATA_FUNC_IS_FULL_CTOR, FCDATA_IS_POPUP);
+  CHECK_ONLY_ONE_BIT(FCDATA_FUNC_IS_FULL_CTOR, FCDATA_SKIP_ABSPOS_PUSH);
+#undef CHECK_ONLY_ONE_BIT
 
   
   
@@ -5232,21 +5211,63 @@ nsCSSFrameConstructor::ConstructFrameFromData(const FrameConstructionData* aData
     }
 
     PRBool allowOutOfFlow = !(bits & FCDATA_DISALLOW_OUT_OF_FLOW);
+#ifdef MOZ_XUL
+    PRBool isPopup = (bits & FCDATA_IS_POPUP) &&
+                     aParentFrame->GetType() != nsGkAtoms::menuFrame;
+#else
+    PRBool isPopup = PR_FALSE;
+#endif
+    NS_ASSERTION(!isPopup ||
+                 (aState.mPopupItems.containingBlock &&
+                  aState.mPopupItems.containingBlock->GetType() ==
+                    nsGkAtoms::popupSetFrame),
+                 "Should have a containing block here!");
+
+    PRBool isXUL = (aNameSpaceID == kNameSpaceID_XUL);
 
     nsIFrame* geometricParent =
-      allowOutOfFlow ? aState.GetGeometricParent(display, aParentFrame)
-                     : aParentFrame;
-    nsresult rv = InitAndRestoreFrame(aState, aContent, geometricParent, nsnull,
-                                      newFrame);
-    NS_ASSERTION(NS_SUCCEEDED(rv), "InitAndRestoreFrame failed");
-    
-    nsHTMLContainerFrame::CreateViewForFrame(newFrame, PR_FALSE);
+      isPopup ? aState.mPopupItems.containingBlock :
+      (allowOutOfFlow ? aState.GetGeometricParent(display, aParentFrame)
+                      : aParentFrame);
 
-    rv = aState.AddChild(newFrame, aFrameItems, aContent, aStyleContext,
-                         aParentFrame, allowOutOfFlow, allowOutOfFlow);
+    nsresult rv = NS_OK;
+
+    
+    nsIFrame* frameToAddToList = nsnull;
+    if ((bits & FCDATA_MAY_NEED_SCROLLFRAME) &&
+        display->IsScrollableOverflow()) {
+      BuildScrollFrame(aState, aContent, aStyleContext, newFrame,
+                       geometricParent, frameToAddToList);
+      
+      
+      bits |= FCDATA_SKIP_FRAMEMAP;
+    } else {
+      rv = InitAndRestoreFrame(aState, aContent, geometricParent, nsnull,
+                               newFrame);
+      NS_ASSERTION(NS_SUCCEEDED(rv), "InitAndRestoreFrame failed");
+      
+      nsHTMLContainerFrame::CreateViewForFrame(newFrame, PR_FALSE);
+      frameToAddToList = newFrame;
+    }
+
+    rv = aState.AddChild(frameToAddToList, aFrameItems, aContent, aStyleContext,
+                         aParentFrame, allowOutOfFlow, allowOutOfFlow, isPopup);
     if (NS_FAILED(rv)) {
       return rv;
     }
+
+#ifdef MOZ_XUL
+    
+    if (isXUL && aTag == nsGkAtoms::popupgroup &&
+        aContent->IsRootOfNativeAnonymousSubtree()) {
+      nsIRootBox* rootBox = nsIRootBox::GetRootBox(mPresShell);
+      if (rootBox) {
+        NS_ASSERTION(rootBox->GetPopupSetFrame() == newFrame,
+                     "Unexpected PopupSetFrame");
+        aState.mPopupItems.containingBlock = rootBox->GetPopupSetFrame();
+      }
+    }
+#endif 
 
     
     nsFrameItems childItems;
@@ -5254,7 +5275,7 @@ nsCSSFrameConstructor::ConstructFrameFromData(const FrameConstructionData* aData
 
     if (bits & FCDATA_FORCE_NULL_ABSPOS_CONTAINER) {
       aState.PushAbsoluteContainingBlock(nsnull, absoluteSaveState);
-    } else if (display->IsPositioned()) {
+    } else if (!(bits & FCDATA_SKIP_ABSPOS_PUSH) && display->IsPositioned()) {
       aState.PushAbsoluteContainingBlock(newFrame, absoluteSaveState);
     }
 
@@ -5263,6 +5284,19 @@ nsCSSFrameConstructor::ConstructFrameFromData(const FrameConstructionData* aData
     
     rv = ProcessChildren(aState, aContent, aStyleContext, newFrame, PR_TRUE,
                          childItems, PR_FALSE);
+
+#ifdef MOZ_XUL
+    
+    if (isXUL &&
+        (aTag == nsGkAtoms::treechildren || 
+         aContent->HasAttr(kNameSpaceID_None, nsGkAtoms::tooltiptext) ||
+         aContent->HasAttr(kNameSpaceID_None, nsGkAtoms::tooltip))) {
+      nsIRootBox* rootBox = nsIRootBox::GetRootBox(mPresShell);
+      if (rootBox) {
+        rootBox->AddTooltipSupport(aContent);
+      }
+    }
+#endif
 
 #ifdef MOZ_MATHML
     if (NS_SUCCEEDED(rv) && (bits & FCDATA_WRAP_KIDS_IN_BLOCKS)) {
@@ -5432,410 +5466,256 @@ PRBool IsXULDisplayType(const nsStyleDisplay* aDisplay)
           );
 }
 
-nsresult
-nsCSSFrameConstructor::ConstructXULFrame(nsFrameConstructorState& aState,
-                                         nsIContent*              aContent,
-                                         nsIFrame*                aParentFrame,
-                                         nsIAtom*                 aTag,
-                                         PRInt32                  aNameSpaceID,
-                                         nsStyleContext*          aStyleContext,
-                                         nsFrameItems&            aFrameItems,
-                                         PRBool                   aHasPseudoParent,
-                                         PRBool*                  aHaltProcessing)
+
+
+#define SIMPLE_XUL_FCDATA(_func)                                        \
+  FCDATA_DECL(FCDATA_DISALLOW_OUT_OF_FLOW | FCDATA_SKIP_ABSPOS_PUSH,    \
+              _func)
+#define SCROLLABLE_XUL_FCDATA(_func)                                    \
+  FCDATA_DECL(FCDATA_DISALLOW_OUT_OF_FLOW | FCDATA_SKIP_ABSPOS_PUSH |   \
+              FCDATA_MAY_NEED_SCROLLFRAME, _func)
+#define SIMPLE_XUL_CREATE(_tag, _func)            \
+  { &nsGkAtoms::_tag, SIMPLE_XUL_FCDATA(_func) }
+#define SCROLLABLE_XUL_CREATE(_tag, _func)            \
+  { &nsGkAtoms::_tag, SCROLLABLE_XUL_FCDATA(_func) }
+#define SIMPLE_XUL_INT_CREATE(_int, _func)      \
+  { _int, SIMPLE_XUL_FCDATA(_func) }
+#define SCROLLABLE_XUL_INT_CREATE(_int, _func)                          \
+  { _int, SCROLLABLE_XUL_FCDATA(_func) }
+
+static
+nsIFrame* NS_NewGridBoxFrame(nsIPresShell* aPresShell,
+                             nsStyleContext* aStyleContext)
 {
-  *aHaltProcessing = PR_FALSE;
-
-  PRBool    primaryFrameSet = PR_FALSE;
-  nsresult  rv = NS_OK;
-  PRBool    isPopup = PR_FALSE;
-  PRBool    frameHasBeenInitialized = PR_FALSE;
-
-  
-  
-  
-  nsIFrame* newFrame = nsnull;
-  
-  
-  
-  
-  nsIFrame* topFrame = nsnull;
-
-  NS_ASSERTION(aTag != nsnull, "null XUL tag");
-  if (aTag == nsnull)
-    return NS_OK;
-
-  const nsStyleDisplay* display = aStyleContext->GetStyleDisplay();
-  
-  PRBool isXULNS = (aNameSpaceID == kNameSpaceID_XUL);
-  PRBool isXULDisplay = IsXULDisplayType(display);
-
-   
-  if (isXULDisplay && !isXULNS) {
-    isXULDisplay = !IsSpecialContent(aContent, aTag, aNameSpaceID, aStyleContext);
+  nsCOMPtr<nsIBoxLayout> layout;
+  NS_NewGridLayout2(aPresShell, getter_AddRefs(layout));
+  if (!layout) {
+    return nsnull;
   }
 
-  PRBool triedFrame = PR_FALSE;
+  return NS_NewBoxFrame(aPresShell, aStyleContext, PR_FALSE, layout);
+}
 
-  if (isXULNS || isXULDisplay) {
-    PRBool mayBeScrollable = PR_FALSE;
 
-    if (isXULNS) {
-      triedFrame = PR_TRUE;
-    
-      
-      
+const nsCSSFrameConstructor::FrameConstructionData*
+nsCSSFrameConstructor::FindXULTagData(nsIContent* aContent,
+                                      nsIAtom* aTag,
+                                      PRInt32 aNameSpaceID,
+                                      nsStyleContext* aStyleContext)
+{
+  if (aNameSpaceID != kNameSpaceID_XUL) {
+    return nsnull;
+  }
+
+  static const FrameConstructionDataByTag sXULTagData[] = {
 #ifdef MOZ_XUL
-      
-      if (aTag == nsGkAtoms::button || aTag == nsGkAtoms::checkbox || aTag == nsGkAtoms::radio) {
-        newFrame = NS_NewButtonBoxFrame(mPresShell, aStyleContext);
-
-        
-        mayBeScrollable = PR_TRUE;
-      } 
-      
-      else if (aTag == nsGkAtoms::autorepeatbutton) {
-        newFrame = NS_NewAutoRepeatBoxFrame(mPresShell, aStyleContext);
-
-        
-        mayBeScrollable = PR_TRUE;
-      } 
-
-      
-      else if (aTag == nsGkAtoms::titlebar) {
-        newFrame = NS_NewTitleBarFrame(mPresShell, aStyleContext);
-
-        
-        mayBeScrollable = PR_TRUE;
-      } 
-
-      
-      else if (aTag == nsGkAtoms::resizer) {
-        newFrame = NS_NewResizerFrame(mPresShell, aStyleContext);
-
-        
-        mayBeScrollable = PR_TRUE;
-      } 
-
-      else if (aTag == nsGkAtoms::image) {
-        newFrame = NS_NewImageBoxFrame(mPresShell, aStyleContext);
-      }
-      else if (aTag == nsGkAtoms::spring ||
-               aTag == nsGkAtoms::spacer) {
-        newFrame = NS_NewLeafBoxFrame(mPresShell, aStyleContext);
-      }
-       else if (aTag == nsGkAtoms::treechildren) {
-        newFrame = NS_NewTreeBodyFrame(mPresShell, aStyleContext);
-      }
-      else if (aTag == nsGkAtoms::treecol) {
-        newFrame = NS_NewTreeColFrame(mPresShell, aStyleContext);
-      }
-      
-      else if (aTag == nsGkAtoms::text || aTag == nsGkAtoms::label ||
-               aTag == nsGkAtoms::description) {
-        if ((aTag == nsGkAtoms::label || aTag == nsGkAtoms::description) && 
-            (! aContent->HasAttr(kNameSpaceID_None, nsGkAtoms::value))) {
-          
-          
-          if (aTag == nsGkAtoms::label) {
-            newFrame = NS_NewXULLabelFrame(mPresShell, aStyleContext);
-          } else {
-            newFrame = NS_NewBlockFrame(mPresShell, aStyleContext,
-                                        NS_BLOCK_FLOAT_MGR |
-                                        NS_BLOCK_MARGIN_ROOT);
-          }
-        }
-        else {
-          newFrame = NS_NewTextBoxFrame(mPresShell, aStyleContext);
-        }
-      }
-      
-
-       
-      else if (aTag == nsGkAtoms::menu ||
-               aTag == nsGkAtoms::menubutton) {
-        
-        
-        
-        newFrame = NS_NewMenuFrame(mPresShell, aStyleContext);
-      }
-      else if (aTag == nsGkAtoms::menuitem) {
-        newFrame = NS_NewMenuItemFrame(mPresShell, aStyleContext);
-      }
-      else if (aTag == nsGkAtoms::menubar) {
-  #ifdef XP_MACOSX
-        
-        
-        PRBool isRootChromeShell = PR_FALSE;
-        nsCOMPtr<nsISupports> container = aState.mPresContext->GetContainer();
-        if (container) {
-          nsCOMPtr<nsIDocShellTreeItem> treeItem(do_QueryInterface(container));
-          if (treeItem) {
-            PRInt32 type;
-            treeItem->GetItemType(&type);
-            if (nsIDocShellTreeItem::typeChrome == type) {
-              nsCOMPtr<nsIDocShellTreeItem> parent;
-              treeItem->GetParent(getter_AddRefs(parent));
-              isRootChromeShell = !parent;
-            }
-          }
-        }
-
-        if (isRootChromeShell) {
-          *aHaltProcessing = PR_TRUE;
-          return NS_OK;
-        }
-  #endif
-
-        newFrame = NS_NewMenuBarFrame(mPresShell, aStyleContext);
-      }
-      else if (aTag == nsGkAtoms::popupgroup &&
-               aContent->IsRootOfNativeAnonymousSubtree()) {
-        
-        newFrame = NS_NewPopupSetFrame(mPresShell, aStyleContext);
-      }
-      else if (aTag == nsGkAtoms::iframe || aTag == nsGkAtoms::editor ||
-               aTag == nsGkAtoms::browser) {
-        newFrame = NS_NewSubDocumentFrame(mPresShell, aStyleContext);
-      }
-      
-      else if (aTag == nsGkAtoms::progressmeter) {
-        newFrame = NS_NewProgressMeterFrame(mPresShell, aStyleContext);
-      }
-      
-      else
-#endif
-      
-      if (aTag == nsGkAtoms::slider) {
-        newFrame = NS_NewSliderFrame(mPresShell, aStyleContext);
-      }
-      
-
-      
-      else if (aTag == nsGkAtoms::scrollbar) {
-        newFrame = NS_NewScrollbarFrame(mPresShell, aStyleContext);
-      }
-      
-
-      
-      else if (aTag == nsGkAtoms::scrollbarbutton) {
-        newFrame = NS_NewScrollbarButtonFrame(mPresShell, aStyleContext);
-      }
-      
-
-#ifdef MOZ_XUL
-      
-      else if (aTag == nsGkAtoms::splitter) {
-        newFrame = NS_NewSplitterFrame(mPresShell, aStyleContext);
-      }
-      
-
-      else {
-        triedFrame = PR_FALSE;
-      }
-#endif
-    }
-
-    
-    
-    
-    if (!newFrame && isXULDisplay) {
-      triedFrame = PR_TRUE;
-  
-      if (display->mDisplay == NS_STYLE_DISPLAY_INLINE_BOX ||
-               display->mDisplay == NS_STYLE_DISPLAY_BOX) {
-        newFrame = NS_NewBoxFrame(mPresShell, aStyleContext);
-
-        
-        mayBeScrollable = PR_TRUE;
-      } 
-#ifdef MOZ_XUL
-      
-      else if (display->mDisplay == NS_STYLE_DISPLAY_INLINE_GRID ||
-               display->mDisplay == NS_STYLE_DISPLAY_GRID) {
-        nsCOMPtr<nsIBoxLayout> layout;
-        NS_NewGridLayout2(mPresShell, getter_AddRefs(layout));
-        newFrame = NS_NewBoxFrame(mPresShell, aStyleContext, PR_FALSE, layout);
-
-        
-        mayBeScrollable = PR_TRUE;
-      } 
-
-      
-      else if (display->mDisplay == NS_STYLE_DISPLAY_GRID_GROUP) {
-        if (isXULNS && aTag == nsGkAtoms::listboxbody) {
-          newFrame = NS_NewListBoxBodyFrame(mPresShell, aStyleContext);
-        }
-        else
-        {
-          newFrame = NS_NewGridRowGroupFrame(mPresShell, aStyleContext);
-        }
-
-        
-        mayBeScrollable = PR_TRUE;
-      } 
-
-      
-      else if (display->mDisplay == NS_STYLE_DISPLAY_GRID_LINE) {
-        if (isXULNS && aTag == nsGkAtoms::listitem)
-          newFrame = NS_NewListItemFrame(mPresShell, aStyleContext);
-        else
-          newFrame = NS_NewGridRowLeafFrame(mPresShell, aStyleContext);
-
-        
-        mayBeScrollable = PR_TRUE;
-      } 
-      
-       
-      else if (display->mDisplay == NS_STYLE_DISPLAY_DECK) {
-        newFrame = NS_NewDeckFrame(mPresShell, aStyleContext);
-      }
-      
-      else if (display->mDisplay == NS_STYLE_DISPLAY_GROUPBOX) {
-        newFrame = NS_NewGroupBoxFrame(mPresShell, aStyleContext);
-
-        
-        mayBeScrollable = PR_TRUE;
-      } 
-      
-      else if (display->mDisplay == NS_STYLE_DISPLAY_STACK ||
-               display->mDisplay == NS_STYLE_DISPLAY_INLINE_STACK) {
-        newFrame = NS_NewStackFrame(mPresShell, aStyleContext);
-
-        mayBeScrollable = PR_TRUE;
-      }
-      else if (display->mDisplay == NS_STYLE_DISPLAY_POPUP) {
-        
-        
-        
-        
-        
-        
-        if (aParentFrame->GetType() != nsGkAtoms::menuFrame) {
-          if (!aState.mPopupItems.containingBlock) {
-            
-            
-            *aHaltProcessing = PR_TRUE;
-            return NS_OK;
-          }
-
-#ifdef NS_DEBUG
-          NS_ASSERTION(aState.mPopupItems.containingBlock->GetType() ==
-                       nsGkAtoms::popupSetFrame,
-                       "Popup containing block isn't a nsIPopupSetFrame");
-#endif
-          isPopup = PR_TRUE;
-        }
-
-        
-        newFrame = NS_NewMenuPopupFrame(mPresShell, aStyleContext);
-      }
-      
-      else {
-        triedFrame = PR_FALSE;
-      }
+    SCROLLABLE_XUL_CREATE(button, NS_NewButtonBoxFrame),
+    SCROLLABLE_XUL_CREATE(checkbox, NS_NewButtonBoxFrame),
+    SCROLLABLE_XUL_CREATE(radio, NS_NewButtonBoxFrame),
+    SCROLLABLE_XUL_CREATE(autorepeatbutton, NS_NewAutoRepeatBoxFrame),
+    SCROLLABLE_XUL_CREATE(titlebar, NS_NewTitleBarFrame),
+    SCROLLABLE_XUL_CREATE(resizer, NS_NewResizerFrame),
+    SIMPLE_XUL_CREATE(image, NS_NewImageBoxFrame),
+    SIMPLE_XUL_CREATE(spring, NS_NewLeafBoxFrame),
+    SIMPLE_XUL_CREATE(spacer, NS_NewLeafBoxFrame),
+    SIMPLE_XUL_CREATE(treechildren, NS_NewTreeBodyFrame),
+    SIMPLE_XUL_CREATE(treecol, NS_NewTreeColFrame),
+    SIMPLE_XUL_CREATE(text, NS_NewTextBoxFrame),
+    SIMPLE_TAG_CHAIN(label, nsCSSFrameConstructor::FindXULLabelData),
+    SIMPLE_TAG_CHAIN(description, nsCSSFrameConstructor::FindXULDescriptionData),
+    SIMPLE_XUL_CREATE(menu, NS_NewMenuFrame),
+    SIMPLE_XUL_CREATE(menubutton, NS_NewMenuFrame),
+    SIMPLE_XUL_CREATE(menuitem, NS_NewMenuItemFrame),
+#ifdef XP_MACOSX
+    SIMPLE_TAG_CHAIN(menubar, nsCSSFrameConstructor::FindXULMenubarData),
+#else
+    SIMPLE_XUL_CREATE(menubar, NS_NewMenuBarFrame),
 #endif 
-    }
+    SIMPLE_TAG_CHAIN(popupgroup, nsCSSFrameConstructor::FindPopupGroupData),
+    SIMPLE_XUL_CREATE(iframe, NS_NewSubDocumentFrame),
+    SIMPLE_XUL_CREATE(editor, NS_NewSubDocumentFrame),
+    SIMPLE_XUL_CREATE(browser, NS_NewSubDocumentFrame),
+    SIMPLE_XUL_CREATE(progressmeter, NS_NewProgressMeterFrame),
+    SIMPLE_XUL_CREATE(splitter, NS_NewSplitterFrame),
+    SIMPLE_TAG_CHAIN(listboxbody,
+                     nsCSSFrameConstructor::FindXULListBoxBodyData),
+    SIMPLE_TAG_CHAIN(listitem, nsCSSFrameConstructor::FindXULListItemData),
+#endif 
+    SIMPLE_XUL_CREATE(slider, NS_NewSliderFrame),
+    SIMPLE_XUL_CREATE(scrollbar, NS_NewScrollbarFrame),
+    SIMPLE_XUL_CREATE(scrollbarbutton, NS_NewScrollbarButtonFrame)
+};
 
-    if (mayBeScrollable && display->IsScrollableOverflow()) {
-      
-      BuildScrollFrame(aState, aContent, aStyleContext, newFrame,
-                       aParentFrame, topFrame);
-
-      
-      
-      
-      primaryFrameSet = PR_TRUE;
-      frameHasBeenInitialized = PR_TRUE;
-    }
-  }
-  
-  if (NS_UNLIKELY(triedFrame && !newFrame))
-  {
-    rv = NS_ERROR_OUT_OF_MEMORY;
-  }
-
-  
-  
-  if (NS_SUCCEEDED(rv) && newFrame != nsnull) {
-
-    
-    if (topFrame == nsnull)
-        topFrame = newFrame;
-
-    
-    if (!frameHasBeenInitialized) {
-      
-      nsIFrame* geometricParent;
-#ifdef MOZ_XUL
-      if (isPopup) {
-        NS_ASSERTION(aState.mPopupItems.containingBlock, "How did we get here?");
-        geometricParent = aState.mPopupItems.containingBlock;
-      }
-      else
-#endif
-      { 
-        geometricParent = aParentFrame;
-      }
-    
-      rv = InitAndRestoreFrame(aState, aContent, geometricParent, nsnull, newFrame);
-
-      if (NS_FAILED(rv)) {
-        newFrame->Destroy();
-        return rv;
-      }
-      
-      nsHTMLContainerFrame::CreateViewForFrame(newFrame, PR_FALSE);
-    }
-
-    
-    
-    rv = aState.AddChild(topFrame, aFrameItems, aContent, aStyleContext,
-                         aParentFrame, PR_FALSE, PR_FALSE, isPopup);
-    if (NS_FAILED(rv)) {
-      return rv;
-    }
+  return FindDataByTag(aTag, aContent, aStyleContext, sXULTagData,
+                       NS_ARRAY_LENGTH(sXULTagData));
+}
 
 #ifdef MOZ_XUL
-    if (isXULNS && aTag == nsGkAtoms::popupgroup &&
-        aContent->IsRootOfNativeAnonymousSubtree()) {
-      nsIRootBox* rootBox = nsIRootBox::GetRootBox(mPresShell);
-      if (rootBox) {
-        NS_ASSERTION(rootBox->GetPopupSetFrame() == newFrame,
-                     "Unexpected PopupSetFrame");
-        aState.mPopupItems.containingBlock = rootBox->GetPopupSetFrame();
-      }      
-    }
-#endif
 
-    
-    nsFrameItems childItems;
-    rv = ProcessChildren(aState, aContent, aStyleContext, newFrame, PR_TRUE,
-                         childItems, PR_FALSE);
-
-    
-    newFrame->SetInitialChildList(nsnull, childItems.childList);
+const nsCSSFrameConstructor::FrameConstructionData*
+nsCSSFrameConstructor::FindPopupGroupData(nsIContent* aContent,
+                                          nsStyleContext* )
+{
+  if (!aContent->IsRootOfNativeAnonymousSubtree()) {
+    return nsnull;
   }
 
-#ifdef MOZ_XUL
+  static const FrameConstructionData sPopupSetData =
+    SIMPLE_XUL_FCDATA(NS_NewPopupSetFrame);
+  return &sPopupSetData;
+}
+
+
+const nsCSSFrameConstructor::FrameConstructionData
+nsCSSFrameConstructor::sXULTextBoxData = SIMPLE_XUL_FCDATA(NS_NewTextBoxFrame);
+
+
+const nsCSSFrameConstructor::FrameConstructionData*
+nsCSSFrameConstructor::FindXULLabelData(nsIContent* aContent,
+                                        nsStyleContext* )
+{
+  if (aContent->HasAttr(kNameSpaceID_None, nsGkAtoms::value)) {
+    return &sXULTextBoxData;
+  }
+
+  static const FrameConstructionData sLabelData =
+    SIMPLE_XUL_FCDATA(NS_NewXULLabelFrame);
+  return &sLabelData;
+}
+
+static nsIFrame*
+NS_NewXULDescriptionFrame(nsIPresShell* aPresShell, nsStyleContext *aContext)
+{
   
-  if (isXULNS &&
-      (aTag == nsGkAtoms::treechildren || 
-       aContent->HasAttr(kNameSpaceID_None, nsGkAtoms::tooltiptext) ||
-       aContent->HasAttr(kNameSpaceID_None, nsGkAtoms::tooltip)))
-  {
-    nsIRootBox* rootBox = nsIRootBox::GetRootBox(mPresShell);
-    if (rootBox)
-      rootBox->AddTooltipSupport(aContent);
-  }
-#endif
+  
+  return NS_NewBlockFrame(aPresShell, aContext,
+                          NS_BLOCK_FLOAT_MGR | NS_BLOCK_MARGIN_ROOT);
+}
 
 
-  if (topFrame) {
-    if (!primaryFrameSet)
-        aState.mFrameManager->SetPrimaryFrameFor(aContent, topFrame);
+const nsCSSFrameConstructor::FrameConstructionData*
+nsCSSFrameConstructor::FindXULDescriptionData(nsIContent* aContent,
+                                              nsStyleContext* )
+{
+  if (aContent->HasAttr(kNameSpaceID_None, nsGkAtoms::value)) {
+    return &sXULTextBoxData;
   }
 
-  return rv;
+  static const FrameConstructionData sDescriptionData =
+    SIMPLE_XUL_FCDATA(NS_NewXULDescriptionFrame);
+  return &sDescriptionData;
+}
+
+#ifdef XP_MACOSX
+
+const nsCSSFrameConstructor::FrameConstructionData*
+nsCSSFrameConstructor::FindXULMenubarData(nsIContent* aContent,
+                                          nsStyleContext* aStyleContext)
+{
+  nsCOMPtr<nsISupports> container =
+    aStyleContext->PresContext()->GetContainer();
+  if (container) {
+    nsCOMPtr<nsIDocShellTreeItem> treeItem(do_QueryInterface(container));
+    if (treeItem) {
+      PRInt32 type;
+      treeItem->GetItemType(&type);
+      if (nsIDocShellTreeItem::typeChrome == type) {
+        nsCOMPtr<nsIDocShellTreeItem> parent;
+        treeItem->GetParent(getter_AddRefs(parent));
+        if (!parent) {
+          
+          
+          static const FrameConstructionData sSuppressData = SUPPRESS_FCDATA();
+          return &sSuppressData;
+        }
+      }
+    }
+  }
+
+  static const FrameConstructionData sMenubarData =
+    SIMPLE_XUL_FCDATA(NS_NewMenuBarFrame);
+  return &sMenubarData;
+}
+#endif 
+
+
+const nsCSSFrameConstructor::FrameConstructionData*
+nsCSSFrameConstructor::FindXULListBoxBodyData(nsIContent* aContent,
+                                              nsStyleContext* aStyleContext)
+{
+  if (aStyleContext->GetStyleDisplay()->mDisplay !=
+        NS_STYLE_DISPLAY_GRID_GROUP) {
+    return nsnull;
+  }
+
+  static const FrameConstructionData sListBoxBodyData =
+    SCROLLABLE_XUL_FCDATA(NS_NewListBoxBodyFrame);
+  return &sListBoxBodyData;
+}
+
+
+const nsCSSFrameConstructor::FrameConstructionData*
+nsCSSFrameConstructor::FindXULListItemData(nsIContent* aContent,
+                                           nsStyleContext* aStyleContext)
+{
+  if (aStyleContext->GetStyleDisplay()->mDisplay !=
+        NS_STYLE_DISPLAY_GRID_LINE) {
+    return nsnull;
+  }
+
+  static const FrameConstructionData sListItemData =
+    SCROLLABLE_XUL_FCDATA(NS_NewListItemFrame);
+  return &sListItemData;
+}
+
+#endif 
+
+
+const nsCSSFrameConstructor::FrameConstructionData*
+nsCSSFrameConstructor::FindXULData(nsIContent* aContent,
+                                   nsIAtom* aTag,
+                                   PRInt32 aNameSpaceID,
+                                   nsStyleContext* aStyleContext)
+{
+  const FrameConstructionData* data =
+    FindXULTagData(aContent, aTag, aNameSpaceID, aStyleContext);
+  if (data) {
+    return data;
+  }
+
+  
+  const nsStyleDisplay* display = aStyleContext->GetStyleDisplay();
+  PRBool isXULDisplay = IsXULDisplayType(display) &&
+    (aNameSpaceID == kNameSpaceID_XUL ||
+     !IsSpecialContent(aContent, aTag, aNameSpaceID, aStyleContext));
+
+  if (!isXULDisplay) {
+    return nsnull;
+  }
+
+  static const FrameConstructionDataByInt sXULDisplayData[] = {
+    SCROLLABLE_XUL_INT_CREATE(NS_STYLE_DISPLAY_INLINE_BOX, NS_NewBoxFrame),
+    SCROLLABLE_XUL_INT_CREATE(NS_STYLE_DISPLAY_BOX, NS_NewBoxFrame),
+#ifdef MOZ_XUL
+    SCROLLABLE_XUL_INT_CREATE(NS_STYLE_DISPLAY_INLINE_GRID, NS_NewGridBoxFrame),
+    SCROLLABLE_XUL_INT_CREATE(NS_STYLE_DISPLAY_GRID, NS_NewGridBoxFrame),
+    SCROLLABLE_XUL_INT_CREATE(NS_STYLE_DISPLAY_GRID_GROUP,
+                              NS_NewGridRowGroupFrame),
+    SCROLLABLE_XUL_INT_CREATE(NS_STYLE_DISPLAY_GRID_LINE,
+                              NS_NewGridRowLeafFrame),
+    SIMPLE_XUL_INT_CREATE(NS_STYLE_DISPLAY_DECK, NS_NewDeckFrame),
+    SCROLLABLE_XUL_INT_CREATE(NS_STYLE_DISPLAY_GROUPBOX, NS_NewGroupBoxFrame),
+    SCROLLABLE_XUL_INT_CREATE(NS_STYLE_DISPLAY_INLINE_STACK, NS_NewStackFrame),
+    SCROLLABLE_XUL_INT_CREATE(NS_STYLE_DISPLAY_STACK, NS_NewStackFrame),
+    { NS_STYLE_DISPLAY_POPUP,
+      FCDATA_DECL(FCDATA_DISALLOW_OUT_OF_FLOW | FCDATA_IS_POPUP |
+                  FCDATA_SKIP_ABSPOS_PUSH, NS_NewMenuPopupFrame) }
+#endif 
+  };
+
+  
+  return FindDataByInt(display->mDisplay, aContent, aStyleContext,
+                       sXULDisplayData, NS_ARRAY_LENGTH(sXULDisplayData));
 }
 
 nsresult
@@ -6958,38 +6838,32 @@ nsCSSFrameConstructor::ConstructFrameInternal( nsFrameConstructorState& aState,
   nsIFrame* lastChild = frameItems->lastChild;
 
   
-  rv = ConstructFrameFromData(FindHTMLData(aContent, aTag, aNameSpaceID,
-                                           styleContext),
-                              aState, aContent, adjParentFrame, aTag,
-                              styleContext, *frameItems, pseudoParent);
-
-  
-  
-  
-  if (NS_SUCCEEDED(rv) &&
-      (!frameItems->childList || lastChild == frameItems->lastChild)) {
-    PRBool haltProcessing;
-
-    rv = ConstructXULFrame(aState, aContent, adjParentFrame, aTag,
-                           aNameSpaceID, styleContext,
-                           *frameItems, pseudoParent,
-                           &haltProcessing);
-
-    if (haltProcessing) {
-      return rv;
-    }
-  } 
-
+  const FrameConstructionData* data = FindHTMLData(aContent, aTag, aNameSpaceID,
+                                                   styleContext);
+  if (!data) {
+    data = FindXULData(aContent, aTag, aNameSpaceID, styleContext);
+  }
 
 #ifdef MOZ_MATHML
-  if (NS_SUCCEEDED(rv) &&
-      (!frameItems->childList || lastChild == frameItems->lastChild)) {
-    rv = ConstructFrameFromData(FindMathMLData(aContent, aTag, aNameSpaceID,
-                                               styleContext),
-                                aState, aContent, adjParentFrame, aTag,
-                                styleContext, *frameItems, pseudoParent);
+  if (!data) {
+    data = FindMathMLData(aContent, aTag, aNameSpaceID, styleContext);
   }
-#endif
+#endif 
+
+  if (data &&
+      ((data->mBits & FCDATA_SUPPRESS_FRAME)
+#ifdef MOZ_XUL
+       || ((data->mBits & FCDATA_IS_POPUP) &&
+           adjParentFrame->GetType() != nsGkAtoms::menuFrame &&
+           !aState.mPopupItems.containingBlock)
+#endif 
+       )) {
+    return NS_OK;
+  }
+
+  rv = ConstructFrameFromData(data, aState, aContent, adjParentFrame, aTag,
+                              aNameSpaceID, styleContext, *frameItems,
+                              pseudoParent);
 
 
 #ifdef MOZ_SVG
