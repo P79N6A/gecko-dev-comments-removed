@@ -2232,15 +2232,7 @@ nsCSSFrameConstructor::CreateInputFrame(nsFrameConstructorState& aState,
     case NS_FORM_INPUT_FILE:
     {
       *aFrame = NS_NewFileControlFrame(mPresShell, aStyleContext);
-
-      if (*aFrame) {
-        
-        (*aFrame)->AddStateBits(NS_BLOCK_FLOAT_MGR);
-        return NS_OK;
-      }
-      else {
-        return NS_ERROR_OUT_OF_MEMORY;
-      }
+      return *aFrame ? NS_OK : NS_ERROR_OUT_OF_MEMORY;
     }
 
     case NS_FORM_INPUT_HIDDEN:
