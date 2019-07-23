@@ -5,14 +5,14 @@ wizard[description=""] .wizard-header-description {
   display: none;
 }
 
-link {
-  -moz-binding: url("chrome://mozapps/content/update/updates.xml#link");
-  -moz-user-focus: normal;
-  cursor: pointer;
-}
 
-link > label {
-  cursor: inherit;
+
+
+#updates:not([currentpageid="checking"]) #checkingProgress,
+#updates:not([currentpageid="incompatibleCheck"]) #incompatibleCheckProgress,
+#updates:not([currentpageid="downloading"]) #downloadThrobber,
+#updates:not([currentpageid="downloading"]) #downloadProgress {
+  display: none;
 }
 
 

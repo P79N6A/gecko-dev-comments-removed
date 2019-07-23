@@ -1232,7 +1232,7 @@ UpdateService.prototype = {
       update.statusText = gUpdateBundle.GetStringFromName("patchApplyFailure");
       var oldType = update.selectedPatch ? update.selectedPatch.type
                                          : "complete";
-      if (update.selectedPatch && oldType == "partial") {
+      if (update.selectedPatch && oldType == "partial" && update.patchCount == 2) {
         
         
         LOG("UpdateService:_postUpdateProcessing - install of partial patch " +
@@ -1718,6 +1718,28 @@ UpdateManager.prototype = {
 
 
 
+
+
+
+  observe: function UM_observe(subject, topic, data) {
+    
+    if (topic == "um-reload-update-data") {
+      this._updates = this._loadXMLFileIntoArray(getUpdateFile(
+                        [FILE_UPDATES_DB]));
+      this._activeUpdate = null;
+      var updates = this._loadXMLFileIntoArray(getUpdateFile(
+                      [FILE_UPDATE_ACTIVE]));
+      if (updates.length > 0)
+        this._activeUpdate = updates[0];
+    }
+  },
+
+  
+
+
+
+
+
   _loadXMLFileIntoArray: function UM__loadXMLFileIntoArray(file) {
     if (!file.exists()) {
       LOG("UpdateManager:_loadXMLFileIntoArray: XML file does not exist");
@@ -1912,7 +1934,7 @@ UpdateManager.prototype = {
   classDescription: "Update Manager",
   contractID: "@mozilla.org/updates/update-manager;1",
   classID: Components.ID("{093C2356-4843-4C65-8709-D7DBCBBE7DFB}"),
-  QueryInterface: XPCOMUtils.generateQI([Ci.nsIUpdateManager])
+  QueryInterface: XPCOMUtils.generateQI([Ci.nsIUpdateManager, Ci.nsIObserver])
 };
 
 
@@ -2195,10 +2217,8 @@ Downloader.prototype = {
 
 
   cancel: function Downloader_cancel() {
-    if (this._request && this._request instanceof Ci.nsIRequest) {
-      const NS_BINDING_ABORTED = 0x804b0002;
-      this._request.cancel(NS_BINDING_ABORTED);
-    }
+    if (this._request && this._request instanceof Ci.nsIRequest)
+      this._request.cancel(Cr.NS_BINDING_ABORTED);
   },
 
   
@@ -2466,8 +2486,7 @@ Downloader.prototype = {
 
   onProgress: function Downloader_onProgress(request, context, progress,
                                              maxProgress) {
-    LOG("Downloader.onProgress:onProgress - progress: " + progress + "/" +
-        maxProgress);
+    LOG("Downloader:onProgress - progress: " + progress + "/" + maxProgress);
 
     var listenerCount = this._listeners.length;
     for (var i = 0; i < listenerCount; ++i) {
@@ -2517,8 +2536,6 @@ Downloader.prototype = {
     var state = this._patch.state;
     var shouldShowPrompt = false;
     var deleteActiveUpdate = false;
-    const NS_BINDING_ABORTED = 0x804b0002;
-    const NS_ERROR_ABORT = 0x80004004;
     if (Components.isSuccessCode(status)) {
       if (this._verifyDownload()) {
         state = STATE_PENDING;
@@ -2554,8 +2571,8 @@ Downloader.prototype = {
         cleanUpUpdatesDir();
       }
     }
-    else if (status != NS_BINDING_ABORTED &&
-             status != NS_ERROR_ABORT) {
+    else if (status != Cr.NS_BINDING_ABORTED &&
+             status != Cr.NS_ERROR_ABORT) {
       LOG("Downloader:onStopRequest - non-verification failure");
       
       state = STATE_DOWNLOAD_FAILED;
@@ -2845,7 +2862,8 @@ UpdatePrompt.prototype = {
             this.updatePrompt._showUI(parent, uri, features, name, page, update);
             
           case "quit-application":
-            this.timer.cancel();
+            if (this.timer)
+              this.timer.cancel();
             this.service.removeObserver(this, "quit-application");
             break;
         }
