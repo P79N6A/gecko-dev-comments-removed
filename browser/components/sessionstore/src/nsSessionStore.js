@@ -174,7 +174,7 @@ SessionStoreService.prototype = {
   _loadState: STATE_STOPPED,
 
   
-  _interval: 10000,
+  _interval: 15000,
 
   
   _resume_from_crash: true,
