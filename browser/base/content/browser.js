@@ -1736,8 +1736,13 @@ function getShortcutOrURI(aURL, aPostDataRef) {
       aPostDataRef.value = getPostDataStream(postData, param, encodedParam,
                                              "application/x-www-form-urlencoded");
   }
-  else
+  else if (param) {
+    
+    
     aPostDataRef.value = null;
+
+    return aURL;
+  }
 
   return shortcutURL;
 }
