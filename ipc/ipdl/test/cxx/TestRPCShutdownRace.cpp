@@ -121,6 +121,10 @@ TestRPCShutdownRaceChild::RecvStart()
     if (!SendStartDeath())
         fail("sending StartDeath");
 
+    
+    
+    PR_Sleep(1000);
+
     if (!SendOrphan())
         fail("sending Orphan");
 
