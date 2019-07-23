@@ -5856,6 +5856,8 @@ IdentityHandler.prototype = {
 
 
   handleIdentityClick : function(event) {
+    event.stopPropagation();
+
     if (event.button != 0)
       return; 
         
