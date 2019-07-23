@@ -1351,7 +1351,7 @@ nsObjectFrame::PaintPlugin(nsIRenderingContext& aRenderingContext,
   if (mInstanceOwner) {
     
     nsIRenderingContext::AutoPushTranslation
-      translate(aRenderingContext, aFramePt.x, aFramePt.y);
+      translate(&aRenderingContext, aFramePt.x, aFramePt.y);
 
     if (mInstanceOwner->GetDrawingModel() == NPDrawingModelCoreGraphics) {
       PRInt32 p2a = PresContext()->AppUnitsPerDevPixel();
@@ -1423,7 +1423,7 @@ nsObjectFrame::PaintPlugin(nsIRenderingContext& aRenderingContext,
     if (window->type == nsPluginWindowType_Drawable) {
       
       nsIRenderingContext::AutoPushTranslation
-        translate(aRenderingContext, aFramePt.x, aFramePt.y);
+        translate(&aRenderingContext, aFramePt.x, aFramePt.y);
 
       
       PRBool doupdatewindow = PR_FALSE;
