@@ -116,12 +116,16 @@ public:
 protected:
   nsresult GetFilesInternal(const char* aProperty, nsISimpleEnumerator** aResult);
   static nsresult GetUserDataDirectory(nsILocalFile* *aFile, PRBool aLocal);
+  static nsresult GetUserDataDirectoryHome(nsILocalFile* *aFile, PRBool aLocal);
+  static nsresult GetSysUserExtensionsDirectory(nsILocalFile* *aFile);
   static nsresult EnsureDirectoryExists(nsIFile* aDirectory);
   void EnsureProfileFileExists(nsIFile* aFile);
 
   
   
   static nsresult AppendProfilePath(nsIFile* aFile);
+
+  static nsresult AppendSysUserExtensionPath(nsIFile* aFile);
 
   
   

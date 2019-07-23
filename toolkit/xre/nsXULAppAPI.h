@@ -255,6 +255,28 @@ struct nsXREAppData
 
 
 
+#define XRE_SYS_LOCAL_EXTENSION_PARENT_DIR "XRESysLExtPD"
+
+
+
+
+
+
+
+
+#define XRE_SYS_SHARE_EXTENSION_PARENT_DIR "XRESysSExtPD"
+
+
+
+
+
+#define XRE_USER_SYS_EXTENSION_DIR "XREUSysExt"
+
+
+
+
+
+
 
 
 
