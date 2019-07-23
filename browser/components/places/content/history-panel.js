@@ -102,7 +102,7 @@ function historyAddBookmarks()
   
   var node = gHistoryTree.selectedNode;
   if (node && PlacesUtils.nodeIsURI(node))
-    PlacesUtils.showMinimalAddBookmarkUI(PlacesUtils._uri(node.uri), node.title);
+    PlacesUIUtils.showMinimalAddBookmarkUI(PlacesUtils._uri(node.uri), node.title);
 }
 
 function searchHistory(aInput)
