@@ -92,6 +92,28 @@ function compareArrays(aArray1, aArray2) {
 }
 
 
+
+
+
+
+
+
+function checkExpectedError (aExpectedError, aActualError) {
+  if (aExpectedError) {
+      if (!aActualError)
+          throw "Didn't throw as expected (" + aExpectedError + ")";
+
+      if (!aExpectedError.test(aActualError))
+          throw "Threw (" + aActualError + "), not (" + aExpectedError;
+
+      
+      dump("...that error was expected.\n\n");
+  } else if (aActualError) {
+      throw "Threw unexpected error: " + aActualError;
+  }
+}
+
+
 function run_test() {
 
 try {
@@ -100,6 +122,7 @@ try {
 
 var testnum = 0;
 var testdesc = "imgITools setup";
+var err = null;
 
 var imgTools = Cc["@mozilla.org/image/tools;1"].
                getService(Ci.imgITools);
@@ -297,6 +320,35 @@ referenceBytes = streamToArray(istream);
 
 
 compareArrays(encodedBytes, referenceBytes);
+
+
+
+
+
+testnum = 413512;
+testdesc = "test decoding bad favicon (bug 413512)";
+
+imgName = "bug413512.ico";
+inMimeType = "image/x-icon";
+imgFile = do_get_file(TESTDIR + imgName);
+
+istream = getFileInputStream(imgFile);
+do_check_eq(istream.available(), 17759);
+
+
+
+
+outParam = { value: null };
+imgTools.decodeImageData(istream, inMimeType, outParam);
+container = outParam.value;
+
+try {
+    istream = imgTools.encodeImage(container, "image/png");
+} catch (e) {
+    err = e;
+}
+checkExpectedError(/NS_ERROR_NOT_AVAILABLE/, err);
+
 
 
 
