@@ -1081,11 +1081,10 @@ namespace nanojit
         LIns* insGuard(LOpcode op, LInsp cond, LIns *x);
     };
 
-    class LirBuffer : public GCFinalizedObject
+    class LirBuffer
     {
         public:
             LirBuffer(Allocator&);
-            ~LirBuffer();
             void        clear();
             uintptr_t   makeRoom(size_t szB);   
 
@@ -1137,7 +1136,7 @@ namespace nanojit
 
     class LirBufWriter : public LirWriter
     {
-        DWB(LirBuffer*)    _buf;        
+        LirBuffer*    _buf;        
 
         public:
             LirBufWriter(LirBuffer* buf)
