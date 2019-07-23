@@ -2730,6 +2730,7 @@ nsresult nsWebBrowserPersist::OnWalkDOMNode(nsIDOMNode *aNode)
                 StoreURI(NS_ConvertUTF16toUTF8(href).get());
             }
         }
+        return NS_OK;
     }
 
     
