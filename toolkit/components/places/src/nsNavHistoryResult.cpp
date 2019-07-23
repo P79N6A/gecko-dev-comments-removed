@@ -1643,13 +1643,6 @@ nsNavHistoryContainerResultNode::UpdateURIs(PRBool aRecursive, PRBool aOnlyOne,
   if (matches.Count() == 0)
     return;
 
-  SortComparator comparator = nsnull;
-  nsCAutoString sortingAnnotation;
-  if (aUpdateSort) {
-    comparator = GetSortingComparator(GetSortType());
-    GetSortingAnnotation(sortingAnnotation);
-  }
-
   
   
   
