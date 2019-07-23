@@ -125,6 +125,21 @@ public:
     NS_OVERRIDE virtual void OnChannelError();
 
 protected:
+    
+    void AssertWorkerThread()
+    {
+        if (mWorkerLoop != MessageLoop::current()) {
+            NS_ERROR("not on worker thread!");
+        }
+    }
+
+    void AssertIOThread()
+    {
+        if (mIOLoop != MessageLoop::current()) {
+            NS_ERROR("not on IO thread!");
+        }
+    }
+
     bool Connected() {
         return ChannelConnected == mChannelState;
     }
