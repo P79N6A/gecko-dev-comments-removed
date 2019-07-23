@@ -2068,6 +2068,13 @@ nsNavHistoryQueryResultNode::nsNavHistoryQueryResultNode(
 PRBool
 nsNavHistoryQueryResultNode::CanExpand()
 {
+  if (IsContainersQuery())
+    return PR_TRUE;
+
+  
+  if (mResult && mResult->mRootNode->mOptions->ExcludeItems())
+    return PR_FALSE;
+
   nsNavHistoryQueryOptions* options = GetGeneratingOptions();
   if (options) {
     if (options->ExcludeItems())
@@ -2080,6 +2087,20 @@ nsNavHistoryQueryResultNode::CanExpand()
   return PR_FALSE;
 }
 
+
+
+
+
+
+PRBool
+nsNavHistoryQueryResultNode::IsContainersQuery()
+{
+  PRUint16 resultType = mOptions->ResultType();
+  return resultType == nsINavHistoryQueryOptions::RESULTS_AS_DATE_QUERY ||
+         resultType == nsINavHistoryQueryOptions::RESULTS_AS_DATE_SITE_QUERY ||
+         resultType == nsINavHistoryQueryOptions::RESULTS_AS_TAG_QUERY ||
+         resultType == nsINavHistoryQueryOptions::RESULTS_AS_SITE_QUERY;
+}
 
 
 
@@ -2140,10 +2161,49 @@ nsNavHistoryQueryResultNode::OpenContainer()
 NS_IMETHODIMP
 nsNavHistoryQueryResultNode::GetHasChildren(PRBool* aHasChildren)
 {
-  if (! CanExpand()) {
+  if (!CanExpand()) {
     *aHasChildren = PR_FALSE;
     return NS_OK;
   }
+
+  PRUint16 resultType = mOptions->ResultType();
+  
+  if (resultType == nsINavHistoryQueryOptions::RESULTS_AS_TAG_QUERY) {
+    nsNavHistory* history = nsNavHistory::GetHistoryService();
+    NS_ENSURE_TRUE(history, NS_ERROR_OUT_OF_MEMORY);
+    mozIStorageConnection *dbConn = history->GetStorageConnection();
+
+    nsNavBookmarks* bookmarks = nsNavBookmarks::GetBookmarksService();
+    NS_ENSURE_TRUE(bookmarks, NS_ERROR_OUT_OF_MEMORY);
+    PRInt64 tagsFolderId;
+    nsresult rv = bookmarks->GetTagsFolder(&tagsFolderId);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    nsCOMPtr<mozIStorageStatement> hasTagsStatement;
+    rv = dbConn->CreateStatement(NS_LITERAL_CSTRING(
+        "SELECT id FROM moz_bookmarks WHERE parent = ?1 LIMIT 1"),
+      getter_AddRefs(hasTagsStatement));
+    NS_ENSURE_SUCCESS(rv, rv);
+    rv = hasTagsStatement->BindInt64Parameter(0, tagsFolderId);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    return hasTagsStatement->ExecuteStep(aHasChildren);
+  }
+
+  
+  if (resultType == nsINavHistoryQueryOptions::RESULTS_AS_DATE_QUERY ||
+      resultType == nsINavHistoryQueryOptions::RESULTS_AS_DATE_SITE_QUERY ||
+      resultType == nsINavHistoryQueryOptions::RESULTS_AS_SITE_QUERY) {
+    nsNavHistory* history = nsNavHistory::GetHistoryService();
+    NS_ENSURE_TRUE(history, NS_ERROR_OUT_OF_MEMORY);
+    return history->GetHasHistoryEntries(aHasChildren);
+  }
+
+  
+  
+  
+  
+
   if (mContentsValid) {
     *aHasChildren = (mChildren.Count() > 0);
     return NS_OK;
@@ -2372,6 +2432,12 @@ nsNavHistoryQueryResultNode::ClearChildren(PRBool aUnregister)
 nsresult
 nsNavHistoryQueryResultNode::Refresh()
 {
+  
+  
+  
+  if (mOptions->ResultType() == nsINavHistoryQueryOptions::RESULTS_AS_TAG_CONTENTS)
+    return NS_OK;
+
   
   
   if (mBatchInProgress)
@@ -2657,7 +2723,10 @@ nsNavHistoryQueryResultNode::OnTitleChanged(nsIURI* aURI,
   nsCAutoString newTitle = NS_ConvertUTF16toUTF8(aPageTitle);
 
   PRBool onlyOneEntry = (mOptions->ResultType() ==
-                         nsINavHistoryQueryOptions::RESULTS_AS_URI);
+                         nsINavHistoryQueryOptions::RESULTS_AS_URI ||
+                         mOptions->ResultType() ==
+                         nsINavHistoryQueryOptions::RESULTS_AS_TAG_CONTENTS
+                         );
   return ChangeTitles(aURI, newTitle, PR_TRUE, onlyOneEntry);
 }
 
@@ -2671,7 +2740,9 @@ NS_IMETHODIMP
 nsNavHistoryQueryResultNode::OnDeleteURI(nsIURI *aURI)
 {
   PRBool onlyOneEntry = (mOptions->ResultType() ==
-                         nsINavHistoryQueryOptions::RESULTS_AS_URI);
+                         nsINavHistoryQueryOptions::RESULTS_AS_URI ||
+                         mOptions->ResultType() ==
+                         nsINavHistoryQueryOptions::RESULTS_AS_TAG_CONTENTS);
   nsCAutoString spec;
   nsresult rv = aURI->GetSpec(spec);
   NS_ENSURE_SUCCESS(rv, rv);
@@ -2736,7 +2807,9 @@ nsNavHistoryQueryResultNode::OnPageChanged(nsIURI *aURI, PRUint32 aWhat,
     case nsINavHistoryObserver::ATTRIBUTE_FAVICON: {
       nsCString newFavicon = NS_ConvertUTF16toUTF8(aValue);
       PRBool onlyOneEntry = (mOptions->ResultType() ==
-                             nsINavHistoryQueryOptions::RESULTS_AS_URI);
+                             nsINavHistoryQueryOptions::RESULTS_AS_URI ||
+                             mOptions->ResultType() ==
+                             nsINavHistoryQueryOptions::RESULTS_AS_TAG_CONTENTS);
       UpdateURIs(PR_TRUE, onlyOneEntry, PR_FALSE, spec, setFaviconCallback,
                  &newFavicon);
       break;
@@ -2810,6 +2883,7 @@ nsNavHistoryQueryResultNode::OnItemVisited(PRInt64 aItemId,
     NS_NOTREACHED("history observers should not get OnItemVisited, but should get OnVisit instead");
   return NS_OK;
 }
+
 NS_IMETHODIMP
 nsNavHistoryQueryResultNode::OnItemMoved(PRInt64 aFolder, PRInt64 aOldParent,
                                             PRInt32 aOldIndex, PRInt64 aNewParent,

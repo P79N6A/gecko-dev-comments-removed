@@ -998,7 +998,8 @@ PlacesTreeView.prototype = {
       if (elt.localName == "tree" && elt.view == this &&
           this.selection.isSelected(aRow))
         return false;
-      if (node.parent && PlacesUtils.nodeIsReadOnly(node.parent))
+      if (node.parent && PlacesUtils.nodeIsReadOnly(node.parent) &&
+          !PlacesUtils.nodeIsTagQuery(node))
         return false;
     }
   
@@ -1010,6 +1011,9 @@ PlacesTreeView.prototype = {
   
   
   _disallowInsertion: function PTV__disallowInsertion(aContainer) {
+    
+    if (PlacesUtils.nodeIsTagQuery(aContainer))
+      return false;
     
     return (!PlacesUtils.nodeIsFolder(aContainer) ||
             PlacesUtils.nodeIsReadOnly(aContainer));
@@ -1056,7 +1060,8 @@ PlacesTreeView.prototype = {
       return null;
 
     return new InsertionPoint(PlacesUtils.getConcreteItemId(container),
-                              index, orientation);
+                              index, orientation,
+                              PlacesUtils.nodeIsTagQuery(container));
   },
 
   drop: function PTV_drop(aRow, aOrientation) {
