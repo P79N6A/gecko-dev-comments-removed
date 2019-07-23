@@ -1353,8 +1353,16 @@ TraceRecorder::checkType(jsval& v, uint8 t, bool& unstable)
         set(&v, i->oprnd1());
         return true;
     }
-    if (t == JSVAL_DOUBLE)
-        return isNumber(v);
+    if (t == JSVAL_DOUBLE) {
+        if (!isNumber(v))
+            return false; 
+        LIns* i = get(&v);
+        
+
+        if (isPromoteInt(i)) 
+            set(&v, lir->ins1(LIR_i2f, i));
+        return true;
+    }
     
 #ifdef DEBUG
     if (JSVAL_TAG(v) != t) {
