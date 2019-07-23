@@ -151,6 +151,16 @@ public:
 
 
 
+
+
+
+
+
+
+  static PRBool UncomputeValue(nsCSSProperty aProperty,
+                               nsPresContext* aPresContext,
+                               const nsStyleCoord& aComputedValue,
+                               void* aSpecifiedValue);
   static PRBool UncomputeValue(nsCSSProperty aProperty,
                                nsPresContext* aPresContext,
                                const nsStyleCoord& aComputedValue,
@@ -168,21 +178,6 @@ public:
   static PRBool ExtractComputedValue(nsCSSProperty aProperty,
                                      nsStyleContext* aStyleContext,
                                      nsStyleCoord& aComputedValue);
-
-  
-
-
-
-
-
-
-
-
-
-  static PRBool StoreComputedValue(nsCSSProperty aProperty,
-                                   nsPresContext* aPresContext,
-                                   void* aStyleStruct,
-                                   const nsStyleCoord& aComputedValue);
 };
 
 #endif

@@ -175,6 +175,11 @@ public:
                                        const nsCSSValue& aValue,
                                        nsAString& aResult);
 
+  
+  static PRBool AppendStorageToString(nsCSSProperty aProperty,
+                                      const void* aStorage,
+                                      nsAString& aResult);
+
 private:
   
   nsCSSDeclaration& operator=(const nsCSSDeclaration& aCopy);
