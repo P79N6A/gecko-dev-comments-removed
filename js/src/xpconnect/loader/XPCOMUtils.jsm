@@ -99,6 +99,8 @@
 
 
 
+
+
 var EXPORTED_SYMBOLS = [ "XPCOMUtils" ];
 
 const Ci = Components.interfaces;
@@ -112,7 +114,8 @@ var XPCOMUtils = {
 
 
   generateQI: function(interfaces) {
-    return makeQI([i.name for each (i in interfaces) if (i)]);
+    
+    return makeQI([Ci[i].name for each (i in interfaces) if (Ci[i])]);
   },
 
   
