@@ -105,7 +105,7 @@ public:
   NS_FORWARD_NSIDOMSVGELEMENT(nsSVGSVGElementBase::)
 
   
-  NS_IMETHOD GetCurrentScaleNumber(nsIDOMSVGNumber **aResult);
+  nsresult GetCurrentScaleNumber(nsIDOMSVGNumber **aResult);
 
   
 
@@ -125,15 +125,15 @@ public:
 
 
 
-  NS_IMETHOD_(void) RecordCurrentScaleTranslate();
+  void RecordCurrentScaleTranslate();
 
   
 
 
 
-  NS_IMETHOD_(float) GetPreviousTranslate_x();
-  NS_IMETHOD_(float) GetPreviousTranslate_y();
-  NS_IMETHOD_(float) GetPreviousScale();
+  float GetPreviousTranslate_x() { return mPreviousTranslate_x; }
+  float GetPreviousTranslate_y() { return mPreviousTranslate_y; }
+  float GetPreviousScale() { return mPreviousScale; }
 
 #ifdef MOZ_SMIL
   nsSMILTimeContainer* GetTimedDocumentRoot();
