@@ -114,14 +114,6 @@ using namespace js;
 
 
 
-
-JS_STATIC_ASSERT(sizeof(JSTempValueUnion) == sizeof(jsval));
-JS_STATIC_ASSERT(sizeof(JSTempValueUnion) == sizeof(void *));
-
-
-
-
-
 JS_STATIC_ASSERT(JSTRACE_OBJECT == 0);
 JS_STATIC_ASSERT(JSTRACE_DOUBLE == 1);
 JS_STATIC_ASSERT(JSTRACE_STRING == 2);
@@ -2439,36 +2431,6 @@ js_TraceContext(JSTracer *trc, JSContext *acx)
         METER(trc->context->runtime->gcStats.stackseg++);
         METER(trc->context->runtime->gcStats.segslots += sh->nslots);
         TraceValues(trc, sh->nslots, JS_STACK_SEGMENT(sh), "stack");
-    }
-
-    for (JSTempValueRooter *tvr = acx->tempValueRooters; tvr; tvr = tvr->down) {
-        switch (tvr->count) {
-          case JSTVU_SINGLE:
-            JS_SET_TRACING_NAME(trc, "tvr->u.value");
-            js_CallValueTracerIfGCThing(trc, tvr->u.value);
-            break;
-          case JSTVU_TRACE:
-            tvr->u.trace(trc, tvr);
-            break;
-          case JSTVU_SPROP:
-            tvr->u.sprop->trace(trc);
-            break;
-          case JSTVU_WEAK_ROOTS:
-            tvr->u.weakRoots->mark(trc);
-            break;
-          case JSTVU_COMPILER:
-            tvr->u.compiler->trace(trc);
-            break;
-          case JSTVU_SCRIPT:
-            js_TraceScript(trc, tvr->u.script);
-            break;
-          case JSTVU_ENUMERATOR:
-            static_cast<JSAutoEnumStateRooter *>(tvr)->mark(trc);
-            break;
-          default:
-            JS_ASSERT(tvr->count >= 0);
-            TraceValues(trc, tvr->count, tvr->u.array, "tvr->u.array");
-        }
     }
 
     for (js::AutoGCRooter *gcr = acx->autoGCRooters; gcr; gcr = gcr->down)
