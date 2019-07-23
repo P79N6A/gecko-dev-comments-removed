@@ -2438,7 +2438,7 @@
 
 
             index = GET_FULL_INDEX(0);
-            JS_ASSERT(index < JS_SCRIPT_REGEXPS(script)->length);
+            JS_ASSERT(index < script->regexps()->length);
 
             slot = index;
             if (fp->fun) {
@@ -2451,7 +2451,7 @@
                 funobj = JSVAL_TO_OBJECT(fp->argv[-2]);
                 slot += JSCLASS_RESERVED_SLOTS(&js_FunctionClass);
                 if (script->upvarsOffset != 0)
-                    slot += JS_SCRIPT_UPVARS(script)->length;
+                    slot += script->upvars()->length;
                 if (!JS_GetReservedSlot(cx, funobj, slot, &rval))
                     goto error;
                 if (JSVAL_IS_VOID(rval))
@@ -2502,7 +2502,7 @@
 
 
 
-                JS_GET_SCRIPT_REGEXP(script, index, obj);
+                obj = script->getRegExp(index);
                 if (OBJ_GET_PARENT(cx, obj) != obj2) {
                     obj = js_CloneRegExpObject(cx, obj, obj2);
                     if (!obj)
@@ -2766,7 +2766,7 @@
           BEGIN_CASE(JSOP_GETUPVAR)
           BEGIN_CASE(JSOP_CALLUPVAR)
           {
-            JSUpvarArray *uva = JS_SCRIPT_UPVARS(script);
+            JSUpvarArray *uva = script->upvars();
 
             index = GET_UINT16(regs.pc);
             JS_ASSERT(index < uva->length);
