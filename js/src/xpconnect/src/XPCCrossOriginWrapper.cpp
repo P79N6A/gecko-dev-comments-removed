@@ -40,7 +40,6 @@
 #include "xpcprivate.h"
 #include "nsDOMError.h"
 #include "jsdbgapi.h"
-#include "jsobj.h"    
 #include "jscntxt.h"  
 #include "XPCWrapper.h"
 #include "nsIDOMWindow.h"
@@ -705,8 +704,8 @@ XPC_XOW_GetOrSetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp,
   }
 
   JSBool ok = isSet
-              ? OBJ_SET_PROPERTY(cx, wrappedObj, asId, vp)
-              : OBJ_GET_PROPERTY(cx, wrappedObj, asId, vp);
+              ? JS_SetPropertyById(cx, wrappedObj, asId, vp)
+              : JS_GetPropertyById(cx, wrappedObj, asId, vp);
   if (!ok) {
     return JS_FALSE;
   }

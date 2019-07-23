@@ -58,6 +58,7 @@
 #include <string.h>
 
 #include "jsapi.h"
+#include "jscntxt.h"
 #include "jsobj.h"
 #include "jsj_private.h"      
 #include "jsj_hash.h"         
@@ -501,6 +502,10 @@ lookup_member_by_id(JSContext *cx, JNIEnv *jEnv, JSObject *obj,
     JavaClassDescriptor *class_descriptor;
     JSObject *proto_chain;
     JSBool found_in_proto;
+
+    
+    
+    js_LeaveTrace(cx);
 
     found_in_proto = JS_FALSE;
     member_descriptor = NULL;
