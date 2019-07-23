@@ -2283,27 +2283,30 @@ nsLineLayout::TrimTrailingWhiteSpaceIn(PerSpanData* psd,
       *aDeltaWidth = 0;
       return PR_TRUE;
     }
-    else if (pfd->GetFlag(PFD_ISNONEMPTYTEXTFRAME)) {
-      nscoord deltaWidth = 0;
-      PRBool lastCharIsJustifiable = PR_FALSE;
-      pfd->mFrame->TrimTrailingWhiteSpace(mPresContext,
-                                          *mBlockReflowState->rendContext,
-                                          deltaWidth,
-                                          lastCharIsJustifiable);
+    else if (pfd->GetFlag(PFD_ISTEXTFRAME)) {
+      
+      
+      
+      nsTextFrame::TrimOutput trimOutput = static_cast<nsTextFrame*>(pfd->mFrame)->
+          TrimTrailingWhiteSpace(mBlockReflowState->rendContext);
 #ifdef NOISY_TRIM
       nsFrame::ListTag(stdout, (psd == mRootSpan
                                 ? mBlockReflowState->frame
                                 : psd->mFrame->mFrame));
       printf(": trim of ");
       nsFrame::ListTag(stdout, pfd->mFrame);
-      printf(" returned %d\n", deltaWidth);
+      printf(" returned %d\n", trimOutput.mDeltaWidth);
 #endif
-      if (lastCharIsJustifiable && pfd->mJustificationNumSpaces > 0) {
+      if (trimOutput.mLastCharIsJustifiable && pfd->mJustificationNumSpaces > 0) {
         pfd->mJustificationNumSpaces--;
       }
+      
+      if (trimOutput.mChanged) {
+        pfd->SetFlag(PFD_RECOMPUTEOVERFLOW, PR_TRUE);
+      }
 
-      if (deltaWidth) {
-        pfd->mBounds.width -= deltaWidth;
+      if (trimOutput.mDeltaWidth) {
+        pfd->mBounds.width -= trimOutput.mDeltaWidth;
 
         
         if (psd != mRootSpan) {
@@ -2313,7 +2316,7 @@ nsLineLayout::TrimTrailingWhiteSpaceIn(PerSpanData* psd,
         }
 
         
-        psd->mX -= deltaWidth;
+        psd->mX -= trimOutput.mDeltaWidth;
 
         
         
@@ -2321,7 +2324,7 @@ nsLineLayout::TrimTrailingWhiteSpaceIn(PerSpanData* psd,
         
         while (pfd->mNext) {
           pfd = pfd->mNext;
-          pfd->mBounds.x -= deltaWidth;
+          pfd->mBounds.x -= trimOutput.mDeltaWidth;
           if (psd != mRootSpan) {
             
             
@@ -2329,14 +2332,16 @@ nsLineLayout::TrimTrailingWhiteSpaceIn(PerSpanData* psd,
             
             
             
-            SlideSpanFrameRect(pfd->mFrame, deltaWidth);
+            SlideSpanFrameRect(pfd->mFrame, trimOutput.mDeltaWidth);
           }
         }
       }
 
-      
-      *aDeltaWidth = deltaWidth;
-      return PR_TRUE;
+      if (pfd->GetFlag(PFD_ISNONEMPTYTEXTFRAME) || trimOutput.mChanged) {
+        
+        *aDeltaWidth = trimOutput.mDeltaWidth;
+        return PR_TRUE;
+      }
     }
     pfd = pfd->mPrev;
   }

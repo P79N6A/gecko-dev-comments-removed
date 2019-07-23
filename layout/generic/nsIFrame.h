@@ -105,9 +105,9 @@ typedef class nsIFrame nsIBox;
 
 
 
-#define NS_IFRAME_IID \
-{ 0x95f75c0a, 0xde85, 0x437a, \
-  { 0xa1, 0x95, 0x03, 0x04, 0xdf, 0x3f, 0x62, 0xce } }
+  #define NS_IFRAME_IID \
+{ 0x04a7dee5, 0x3435, 0x47dc, \
+  { 0xbd, 0x42, 0xa3, 0x6c, 0x0f, 0x66, 0xa4, 0x2c } }
 
 
 
@@ -1429,13 +1429,6 @@ public:
 
 
   virtual PRBool CanContinueTextRun() const = 0;
-
-  
-  
-  NS_IMETHOD TrimTrailingWhiteSpace(nsPresContext* aPresContext,
-                                    nsIRenderingContext& aRC,
-                                    nscoord& aDeltaWidth,
-                                    PRBool& aLastCharIsJustifiable) = 0;
 
   
 

@@ -208,10 +208,21 @@ public:
                     const nsHTMLReflowState& aReflowState,
                     nsReflowStatus& aStatus);
   virtual PRBool CanContinueTextRun() const;
-  NS_IMETHOD TrimTrailingWhiteSpace(nsPresContext* aPresContext,
-                                    nsIRenderingContext& aRC,
-                                    nscoord& aDeltaWidth,
-                                    PRBool& aLastCharIsJustifiable);
+  
+  
+  
+  struct TrimOutput {
+    
+    
+    PRPackedBool mChanged;
+    
+    
+    
+    PRPackedBool mLastCharIsJustifiable;
+    
+    nscoord      mDeltaWidth;
+  };
+  TrimOutput TrimTrailingWhiteSpace(nsIRenderingContext* aRC);
   virtual nsresult GetRenderedText(nsAString* aString = nsnull,
                                    gfxSkipChars* aSkipChars = nsnull,
                                    gfxSkipCharsIterator* aSkipIter = nsnull,

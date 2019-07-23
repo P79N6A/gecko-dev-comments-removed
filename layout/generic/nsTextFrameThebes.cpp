@@ -2017,6 +2017,11 @@ public:
 
 
   PRUint32 ComputeJustifiableCharacters(PRInt32 aOffset, PRInt32 aLength);
+  
+
+
+
+
   void FindJustificationRange(gfxSkipCharsIterator* aStart,
                               gfxSkipCharsIterator* aEnd);
 
@@ -4883,7 +4888,6 @@ nsTextFrame::AddInlineMinWidthForFlow(nsIRenderingContext *aRenderingContext,
       aData->atStartOfLine = PR_FALSE;
 
       if (collapseWhitespace) {
-        nscoord trailingWhitespaceWidth;
         PRUint32 trimStart = GetEndOfTrimmedText(frag, wordStart, i, &iter);
         if (trimStart == start) {
           
@@ -5513,39 +5517,39 @@ nsTextFrame::CanContinueTextRun() const
   return PR_TRUE;
 }
 
-NS_IMETHODIMP
-nsTextFrame::TrimTrailingWhiteSpace(nsPresContext* aPresContext,
-                                    nsIRenderingContext& aRC,
-                                    nscoord& aDeltaWidth,
-                                    PRBool& aLastCharIsJustifiable)
+nsTextFrame::TrimOutput
+nsTextFrame::TrimTrailingWhiteSpace(nsIRenderingContext* aRC)
 {
-  aLastCharIsJustifiable = PR_FALSE;
-  aDeltaWidth = 0;
+  TrimOutput result;
+  result.mChanged = PR_FALSE;
+  result.mLastCharIsJustifiable = PR_FALSE;
+  result.mDeltaWidth = 0;
 
   AddStateBits(TEXT_END_OF_LINE);
 
   PRInt32 contentLength = GetContentLength();
   if (!contentLength)
-    return NS_OK;
+    return result;
 
   gfxContext* ctx = static_cast<gfxContext*>
-    (aRC.GetNativeGraphicData(nsIRenderingContext::NATIVE_THEBES_CONTEXT));
+    (aRC->GetNativeGraphicData(nsIRenderingContext::NATIVE_THEBES_CONTEXT));
   gfxSkipCharsIterator start = EnsureTextRun(ctx);
-  if (!mTextRun)
-    return NS_ERROR_FAILURE;
+  NS_ENSURE_TRUE(mTextRun, result);
+
   PRUint32 trimmedStart = start.GetSkippedOffset();
 
   const nsTextFragment* frag = mContent->GetText();
   TrimmedOffsets trimmed = GetTrimmedOffsets(frag, PR_TRUE);
-  gfxSkipCharsIterator iter = start;
+  gfxSkipCharsIterator trimmedEndIter = start;
   const nsStyleText* textStyle = GetStyleText();
   gfxFloat delta = 0;
-  PRUint32 trimmedEnd = iter.ConvertOriginalToSkipped(trimmed.GetEnd());
+  PRUint32 trimmedEnd = trimmedEndIter.ConvertOriginalToSkipped(trimmed.GetEnd());
   
   if (GetStateBits() & TEXT_TRIMMED_TRAILING_WHITESPACE) {
-    aLastCharIsJustifiable = PR_TRUE;
+    
+    result.mLastCharIsJustifiable = PR_TRUE;
   } else if (trimmed.GetEnd() < GetContentEnd()) {
-    gfxSkipCharsIterator end = iter;
+    gfxSkipCharsIterator end = trimmedEndIter;
     PRUint32 endOffset = end.ConvertOriginalToSkipped(GetContentOffset() + contentLength);
     if (trimmedEnd < endOffset) {
       
@@ -5556,23 +5560,36 @@ nsTextFrame::TrimTrailingWhiteSpace(nsPresContext* aPresContext,
       
       
       
-      aLastCharIsJustifiable = PR_TRUE;
+      result.mLastCharIsJustifiable = PR_TRUE;
+      result.mChanged = PR_TRUE;
     }
   }
 
-  if (!aLastCharIsJustifiable &&
+  if (trimmed.GetEnd() == GetContentEnd() &&
+      HasSoftHyphenBefore(frag, mTextRun, trimmed.mStart, trimmedEndIter)) {
+    
+    
+    result.mChanged = PR_TRUE;
+    gfxTextRunCache::AutoTextRun hyphenTextRun(GetHyphenTextRun(mTextRun, ctx, this));
+    if (hyphenTextRun.get()) {
+      delta = -hyphenTextRun->GetAdvanceWidth(0, hyphenTextRun->GetLength(), nsnull);
+    }
+    AddStateBits(TEXT_HYPHEN_BREAK);
+  }
+
+  if (!result.mLastCharIsJustifiable &&
       NS_STYLE_TEXT_ALIGN_JUSTIFY == textStyle->mTextAlign) {
     
     PropertyProvider provider(mTextRun, textStyle, frag, this, start, contentLength,
                               nsnull, 0);
     PRBool isCJK = IsChineseJapaneseLangGroup(this);
-    gfxSkipCharsIterator justificationStart(iter), justificationEnd(iter);
+    gfxSkipCharsIterator justificationStart(start), justificationEnd(trimmedEndIter);
     provider.FindJustificationRange(&justificationStart, &justificationEnd);
 
     PRInt32 i;
     for (i = justificationEnd.GetOriginalOffset(); i < trimmed.GetEnd(); ++i) {
       if (IsJustifiableCharacter(frag, i, isCJK)) {
-        aLastCharIsJustifiable = PR_TRUE;
+        result.mLastCharIsJustifiable = PR_TRUE;
       }
     }
   }
@@ -5581,31 +5598,36 @@ nsTextFrame::TrimTrailingWhiteSpace(nsPresContext* aPresContext,
   mTextRun->SetLineBreaks(trimmedStart, trimmedEnd - trimmedStart,
                           (GetStateBits() & TEXT_START_OF_LINE) != 0, PR_TRUE,
                           &advanceDelta, ctx);
-
-  
-  
-  
-  aDeltaWidth = NSToCoordFloor(delta - advanceDelta);
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  if (aDeltaWidth < 0) {
-    NS_WARNING("Negative deltawidth, something odd is happening");
+  if (advanceDelta != 0) {
+    result.mChanged = PR_TRUE;
   }
 
   
+  
+  
+  result.mDeltaWidth = NSToCoordFloor(delta - advanceDelta);
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  NS_WARN_IF_FALSE(result.mDeltaWidth >= 0 || (GetStateBits() & TEXT_HYPHEN_BREAK),
+                   "Negative deltawidth in a non-hyphen case, something odd is happening");
 
 #ifdef NOISY_TRIM
   ListTag(stdout);
-  printf(": trim => %d\n", aDeltaWidth);
+  printf(": trim => %d\n", result.mDeltaWidth);
 #endif
-  return NS_OK;
+  return result;
 }
 
 nsRect
