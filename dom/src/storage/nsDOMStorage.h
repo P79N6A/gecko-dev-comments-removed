@@ -43,8 +43,8 @@
 
 #include "nscore.h"
 #include "nsAutoPtr.h"
+#include "nsIDOMStorageObsolete.h"
 #include "nsIDOMStorage.h"
-#include "nsIDOMStorage2.h"
 #include "nsIDOMStorageList.h"
 #include "nsIDOMStorageItem.h"
 #include "nsInterfaceHashtable.h"
@@ -62,7 +62,7 @@
 #endif
 
 class nsDOMStorage;
-class nsIDOMStorage2;
+class nsIDOMStorage;
 class nsDOMStorageItem;
 
 class nsDOMStorageEntry : public nsVoidPtrHashKey
@@ -120,7 +120,7 @@ protected:
   PRBool mInPrivateBrowsing;
 };
 
-class nsDOMStorage : public nsIDOMStorage,
+class nsDOMStorage : public nsIDOMStorageObsolete,
                      public nsPIDOMStorage
 {
 public:
@@ -130,10 +130,10 @@ public:
 
   
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
-  NS_DECL_CYCLE_COLLECTION_CLASS_AMBIGUOUS(nsDOMStorage, nsIDOMStorage)
+  NS_DECL_CYCLE_COLLECTION_CLASS_AMBIGUOUS(nsDOMStorage, nsIDOMStorageObsolete)
 
   
-  NS_DECL_NSIDOMSTORAGE
+  NS_DECL_NSIDOMSTORAGEOBSOLETE
 
   
   nsresult GetItem(const nsAString& key, nsAString& aData);
@@ -143,7 +143,7 @@ public:
   virtual nsresult InitAsLocalStorage(nsIPrincipal *aPrincipal);
   virtual nsresult InitAsGlobalStorage(const nsACString &aDomainDemanded);
   virtual nsresult InitAsSessionStorage(nsIURI* aURI);
-  virtual already_AddRefed<nsIDOMStorage> Clone();
+  virtual already_AddRefed<nsIDOMStorageObsolete> Clone();
   virtual nsTArray<nsString> *GetKeys();
   virtual const nsCString &Domain();
   virtual PRBool CanAccess(nsIPrincipal *aPrincipal);
@@ -194,7 +194,7 @@ public:
 
   static nsDOMStorage* FromSupports(nsISupports* aSupports)
   {
-    return static_cast<nsDOMStorage*>(static_cast<nsIDOMStorage*>(aSupports));
+    return static_cast<nsDOMStorage*>(static_cast<nsIDOMStorageObsolete*>(aSupports));
   }
 
 protected:
@@ -256,21 +256,21 @@ public:
  #endif
 };
 
-class nsDOMStorage2 : public nsIDOMStorage2,
+class nsDOMStorage2 : public nsIDOMStorage,
                       public nsPIDOMStorage
 {
 public:
   
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
-  NS_DECL_CYCLE_COLLECTION_CLASS_AMBIGUOUS(nsDOMStorage2, nsIDOMStorage2)
+  NS_DECL_CYCLE_COLLECTION_CLASS_AMBIGUOUS(nsDOMStorage2, nsIDOMStorage)
 
-  NS_DECL_NSIDOMSTORAGE2
+  NS_DECL_NSIDOMSTORAGE
 
   
   virtual nsresult InitAsLocalStorage(nsIPrincipal *aPrincipal);
   virtual nsresult InitAsGlobalStorage(const nsACString &aDomainDemanded);
   virtual nsresult InitAsSessionStorage(nsIURI* aURI);
-  virtual already_AddRefed<nsIDOMStorage> Clone();
+  virtual already_AddRefed<nsIDOMStorageObsolete> Clone();
   virtual nsTArray<nsString> *GetKeys();
   virtual const nsCString &Domain();
   virtual PRBool CanAccess(nsIPrincipal *aPrincipal);
@@ -299,7 +299,7 @@ public:
   
   NS_DECL_NSIDOMSTORAGELIST
 
-  nsIDOMStorage* GetNamedItem(const nsAString& aDomain, nsresult* aResult);
+  nsIDOMStorageObsolete* GetNamedItem(const nsAString& aDomain, nsresult* aResult);
 
   
 
@@ -320,7 +320,7 @@ protected:
 
 
 
-  nsIDOMStorage*
+  nsIDOMStorageObsolete*
   GetStorageForDomain(const nsACString& aRequestedDomain,
                       const nsACString& aCurrentDomain,
                       PRBool aNoCurrentDomainCheck,
@@ -333,7 +333,7 @@ protected:
   ConvertDomainToArray(const nsACString& aDomain,
                        nsTArray<nsCString>* aArray);
 
-  nsInterfaceHashtable<nsCStringHashKey, nsIDOMStorage> mStorages;
+  nsInterfaceHashtable<nsCStringHashKey, nsIDOMStorageObsolete> mStorages;
 };
 
 class nsDOMStorageItem : public nsIDOMStorageItem,

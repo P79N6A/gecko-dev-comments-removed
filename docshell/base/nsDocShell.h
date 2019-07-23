@@ -606,7 +606,7 @@ protected:
 
     nsresult GetSessionStorageForURI(nsIURI* aURI,
                                      PRBool create,
-                                     nsIDOMStorage** aStorage);
+                                     nsIDOMStorageObsolete** aStorage);
 
     
     nsresult GetControllerForCommand(const char *inCommand,
@@ -726,7 +726,7 @@ protected:
     nsRevocableEventPtr<RestorePresentationEvent> mRestorePresentationEvent;
 
     
-    nsInterfaceHashtable<nsCStringHashKey, nsIDOMStorage> mStorages;
+    nsInterfaceHashtable<nsCStringHashKey, nsIDOMStorageObsolete> mStorages;
 
     
     
