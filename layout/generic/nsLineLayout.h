@@ -352,6 +352,11 @@ public:
 
 
 
+
+
+
+
+
   nscoord GetCurrentFrameXDistanceFromBlock();
 
 protected:
