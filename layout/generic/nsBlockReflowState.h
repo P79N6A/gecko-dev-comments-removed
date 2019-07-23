@@ -94,7 +94,13 @@ public:
   PRBool GetFloatAvailableSpace(nsRect& aResult) const
     { return GetFloatAvailableSpace(mY, PR_FALSE, aResult); }
   PRBool GetFloatAvailableSpace(nscoord aY, PRBool aRelaxHeightConstraint,
-                                nsRect& aResult) const;
+                                nsRect& aResult) const
+    { return GetFloatAvailableSpaceWithState(aY, aRelaxHeightConstraint,
+                                             nsnull, aResult); }
+  PRBool GetFloatAvailableSpaceWithState(nscoord aY,
+                                         PRBool aRelaxHeightConstraint,
+                                         nsFloatManager::SavedState *aState,
+                                         nsRect& aResult) const;
   
   void GetAvailableSpace() { GetAvailableSpace(mY, PR_FALSE); }
   void GetAvailableSpace(nscoord aY, PRBool aRelaxHeightConstraint) {
@@ -220,8 +226,7 @@ public:
   
   
   
-  
-  nscoord mOutsideBulletX;
+  nsFloatManager::SavedState mFloatManagerStateBefore;
 
   nscoord mBottomEdge;
 

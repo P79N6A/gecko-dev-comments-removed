@@ -65,6 +65,18 @@ public:
   static void Shutdown();
 
   
+  
+  struct SavedState;
+  friend struct SavedState;
+  struct SavedState {
+  private:
+    PRUint32 mFloatInfoCount;
+    nscoord mX, mY;
+    
+    friend class nsFloatManager;
+  };
+
+  
 
 
 
@@ -102,8 +114,11 @@ public:
 
 
 
+
+
+
   nsRect GetBand(nscoord aY, nscoord aMaxHeight, nscoord aContentAreaWidth,
-                 PRBool* aHasFloats) const;
+                 SavedState* aState, PRBool* aHasFloats) const;
 
   
 
@@ -127,18 +142,6 @@ public:
 private:
   struct FloatInfo;
 public:
-
-  
-  
-  struct SavedState;
-  friend struct SavedState;
-  struct SavedState {
-  private:
-    PRUint32 mFloatInfoCount;
-    nscoord mX, mY;
-    
-    friend class nsFloatManager;
-  };
 
   PRBool HasAnyFloats() const { return !mFloats.IsEmpty(); }
 
@@ -167,6 +170,8 @@ public:
   void PushState(SavedState* aState);
 
   
+
+
 
 
 

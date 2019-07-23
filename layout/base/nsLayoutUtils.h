@@ -782,6 +782,28 @@ public:
 
 
 
+  struct LinePosition {
+    nscoord mTop, mBaseline, mBottom;
+
+    LinePosition operator+(nscoord aOffset) const {
+      LinePosition result;
+      result.mTop = mTop + aOffset;
+      result.mBaseline = mBaseline + aOffset;
+      result.mBottom = mBottom + aOffset;
+      return result;
+    }
+  };
+  static PRBool GetFirstLinePosition(const nsIFrame* aFrame,
+                                     LinePosition* aResult);
+
+
+  
+
+
+
+
+
+
 
   static PRBool GetLastLineBaseline(const nsIFrame* aFrame, nscoord* aResult);
 

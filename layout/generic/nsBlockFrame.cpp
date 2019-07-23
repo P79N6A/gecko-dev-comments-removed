@@ -1076,13 +1076,13 @@ nsBlockFrame::Reflow(nsPresContext*           aPresContext,
     
     nsHTMLReflowMetrics metrics;
     
-    
-    
-    
-    ReflowBullet(state, metrics, aReflowState.mComputedBorderPadding.top);
+    nsLayoutUtils::LinePosition position;
+    PRBool havePosition = nsLayoutUtils::GetFirstLinePosition(this, &position);
+    nscoord lineTop = havePosition ? position.mTop
+                                   : aReflowState.mComputedBorderPadding.top;
+    ReflowBullet(state, metrics, lineTop);
 
-    nscoord baseline;
-    if (nsLayoutUtils::GetFirstLineBaseline(this, &baseline)) {
+    if (havePosition) {
       
 
       
@@ -1090,7 +1090,7 @@ nsBlockFrame::Reflow(nsPresContext*           aPresContext,
     
       
       nsRect bbox = mBullet->GetRect();
-      bbox.y = baseline - metrics.ascent;
+      bbox.y = position.mBaseline - metrics.ascent;
       mBullet->SetRect(bbox);
     }
     
@@ -6655,17 +6655,38 @@ nsBlockFrame::ReflowBullet(nsBlockReflowState& aState,
   
   
   
+  nsRect floatAvailSpace;
+  aState.GetFloatAvailableSpaceWithState(aLineTop, PR_FALSE,
+                                         &aState.mFloatManagerStateBefore,
+                                         floatAvailSpace);
   
   
-  nscoord x = rs.mStyleVisibility->mDirection == NS_STYLE_DIRECTION_LTR ?
-    PR_MIN(aState.mOutsideBulletX, aState.mAvailSpaceRect.x)
-      - reflowState.mComputedMargin.right - aMetrics.width :
-    PR_MAX(aState.mOutsideBulletX, aState.mAvailSpaceRect.XMost())
-      + reflowState.mComputedMargin.left;
 
   
   
-  aState.GetAvailableSpace();
+  
+  
+  
+  
+  
+  
+  nscoord x;
+  if (rs.mStyleVisibility->mDirection == NS_STYLE_DIRECTION_LTR) {
+    
+    
+    
+    
+    
+    x = floatAvailSpace.x - reflowState.mComputedMargin.right - aMetrics.width;
+  } else {
+    
+    
+    
+    
+    x = PR_MIN(rs.ComputedWidth(), floatAvailSpace.XMost())
+        + rs.mComputedBorderPadding.LeftRight()
+        + reflowState.mComputedMargin.left;
+  }
 
   
   

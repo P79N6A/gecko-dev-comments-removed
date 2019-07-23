@@ -139,6 +139,7 @@ nsRect
 nsFloatManager::GetBand(nscoord aYOffset,
                         nscoord aMaxHeight,
                         nscoord aContentAreaWidth,
+                        SavedState* aState,
                         PRBool* aHasFloats) const
 {
   NS_ASSERTION(aMaxHeight >= 0, "unexpected max height");
@@ -151,8 +152,18 @@ nsFloatManager::GetBand(nscoord aYOffset,
   }
 
   
+  PRUint32 floatCount;
+  if (aState) {
+    
+    floatCount = aState->mFloatInfoCount;
+    NS_ABORT_IF_FALSE(floatCount <= mFloats.Length(), "bad state");
+  } else {
+    
+    floatCount = mFloats.Length();
+  }
+
   
-  PRUint32 floatCount = mFloats.Length();
+  
   if (floatCount == 0 ||
       (mFloats[floatCount-1].mLeftYMost <= top &&
        mFloats[floatCount-1].mRightYMost <= top)) {
@@ -180,7 +191,7 @@ nsFloatManager::GetBand(nscoord aYOffset,
   
   
   PRBool haveFloats = PR_FALSE;
-  for (PRUint32 i = mFloats.Length(); i > 0; --i) {
+  for (PRUint32 i = floatCount; i > 0; --i) {
     const FloatInfo &fi = mFloats[i-1];
     if (fi.mLeftYMost <= top && fi.mRightYMost <= top) {
       
