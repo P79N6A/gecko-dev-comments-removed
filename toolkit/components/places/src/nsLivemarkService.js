@@ -59,8 +59,7 @@ const LS_CONTRACTID = "@mozilla.org/browser/livemark-service;2";
 
 const LIVEMARK_TIMEOUT = 15000; 
 const LIVEMARK_ICON_URI = "chrome://browser/skin/places/livemarkItem.png";
-const PLACES_BUNDLE_URI = 
-  "chrome://browser/locale/places/places.properties";
+const PLACES_BUNDLE_URI = "chrome://browser/locale/places/places.properties";
 const DEFAULT_LOAD_MSG = "Live Bookmark loading...";
 const DEFAULT_FAIL_MSG = "Live Bookmark feed failed to load.";
 const LMANNO_FEEDURI = "livemark/feedURI";
@@ -98,7 +97,7 @@ function GetString(name)
 {
   try {
     if (!gStringBundle) {
-      var bundleService = Cc[SB_CONTRACTID].getService(); 
+      var bundleService = Cc[SB_CONTRACTID].getService();
       bundleService = bundleService.QueryInterface(Ci.nsIStringBundleService);
       gStringBundle = bundleService.createBundle(PLACES_BUNDLE_URI);
     }
@@ -124,19 +123,18 @@ function MarkLivemarkLoadFailed(aFolderId) {
   bms.insertBookmark(aFolderId, failedURI, 0, failedMsg);
   ans.setItemAnnotation(aFolderId, LMANNO_LOADFAILED, true, 0,
                         ans.EXPIRE_NEVER);
-} 
+}
 
-var gLivemarkService;
 function LivemarkService() {
 
   try {
     var prefs = Cc[PS_CONTRACTID].getService(Ci.nsIPrefBranch);
-    var livemarkRefresh = 
+    var livemarkRefresh =
       prefs.getIntPref("browser.bookmarks.livemark_refresh_seconds");
     
     
     gExpiration = Math.max(livemarkRefresh * 1000, 60000);
-  } 
+  }
   catch (ex) { }
 
   
@@ -148,7 +146,7 @@ function LivemarkService() {
     new G_ObserverServiceObserver('xpcom-shutdown',
                                   BindToObject(this._shutdown, this),
                                   true );
-  new G_Alarm(BindToObject(this._fireTimer, this), LIVEMARK_TIMEOUT, 
+  new G_Alarm(BindToObject(this._fireTimer, this), LIVEMARK_TIMEOUT,
               true );
 
   if (IS_CONTRACTID in Cc)
@@ -202,7 +200,7 @@ LivemarkService.prototype = {
     this._bms.removeObserver(this);
 
     for (var livemark in this._livemarks) {
-      if (livemark.loadGroup) 
+      if (livemark.loadGroup)
         livemark.loadGroup.cancel(NS_BINDING_ABORTED);
     }
   },
@@ -269,7 +267,7 @@ LivemarkService.prototype = {
       loadgroup = Cc[LG_CONTRACTID].createInstance(Ci.nsILoadGroup);
       var uriChannel = gIoService.newChannel(livemark.feedURI.spec, null, null);
       uriChannel.loadGroup = loadgroup;
-      uriChannel.loadFlags |= Ci.nsIRequest.LOAD_BACKGROUND | 
+      uriChannel.loadFlags |= Ci.nsIRequest.LOAD_BACKGROUND |
                               Ci.nsIRequest.VALIDATE_ALWAYS;
       var httpChannel = uriChannel.QueryInterface(Ci.nsIHttpChannel);
       httpChannel.requestMethod = "GET";
@@ -285,7 +283,7 @@ LivemarkService.prototype = {
         this._bms.removeItem(livemark.loadingId);
         livemark.loadingId = -1;
       }
-      MarkLivemarkLoadFailed(livemark.folderId);      
+      MarkLivemarkLoadFailed(livemark.folderId);
       livemark.locked = false;
       LOG("exception: " + ex);
       throw ex;
@@ -300,7 +298,7 @@ LivemarkService.prototype = {
       throw Cr.NS_ERROR_INVALID_ARG;
     var livemarkID = this._createFolder(this._bms, folder, name, siteURI,
                                         feedURI, index);
-  
+
     
     this._updateLivemarkChildren(
       this._pushLivemark(livemarkID, feedURI) - 1,
@@ -319,7 +317,7 @@ LivemarkService.prototype = {
     var livemarkIndex = this._getLivemarkIndex(livemarkID);
     var livemark = this._livemarks[livemarkIndex];
     this.insertLivemarkLoadingItem(bms, livemark);
-    
+
     return livemarkID;
   },
 
@@ -346,15 +344,9 @@ LivemarkService.prototype = {
   },
 
   _ensureLivemark: function LS__ensureLivemark(container) {
-    if (!this.isLivemark(container)) 
+    if (!this.isLivemark(container))
       throw Cr.NS_ERROR_INVALID_ARG;
   },
-
-  
-
-
-
-
 
   getSiteURI: function LS_getSiteURI(container) {
     this._ensureLivemark(container);
@@ -370,7 +362,7 @@ LivemarkService.prototype = {
 
   setSiteURI: function LS_setSiteURI(container, siteURI) {
     this._ensureLivemark(container);
-    
+
     if (!siteURI) {
       this._ans.removeItemAnnotation(container, LMANNO_SITEURI);
       return;
@@ -381,18 +373,11 @@ LivemarkService.prototype = {
   },
 
   getFeedURI: function LS_getFeedURI(container) {
-    try {
-      
-      var feedURIString = this._ans.getItemAnnotation(container,
-                                                      LMANNO_FEEDURI);
-       
-      return gIoService.newURI(feedURIString, null, null);
-    }
-    catch (ex) {
-      
-      LOG("getFeedURI failed: " + ex);
-      LOG("feedURIString: " + feedURIString);
-    }
+    if (this._ans.itemHasAnnotation(container, LMANNO_FEEDURI))
+      return gIoService.newURI(this._ans.getItemAnnotation(container,
+                                                           LMANNO_FEEDURI),
+                               null, null);
+
     return null;
   },
 
@@ -404,7 +389,7 @@ LivemarkService.prototype = {
                                 this._ans.EXPIRE_NEVER);
 
     
-    var livemarkIndex = this._getLivemarkIndex(container);  
+    var livemarkIndex = this._getLivemarkIndex(container);
     this._livemarks[livemarkIndex].feedURI = feedURI;
   },
 
@@ -415,7 +400,7 @@ LivemarkService.prototype = {
   },
 
   reloadLivemarkFolder: function LS_reloadLivemarkFolder(folderID) {
-    var livemarkIndex = this._getLivemarkIndex(folderID);  
+    var livemarkIndex = this._getLivemarkIndex(folderID);
     this._updateLivemarkChildren(livemarkIndex, true);
   },
 
@@ -439,7 +424,7 @@ LivemarkService.prototype = {
 
     var stillInUse = false;
     stillInUse = this._livemarks.some(
-                 function(mark) { return mark.feedURI.equals(livemark.feedURI) } 
+                 function(mark) { return mark.feedURI.equals(livemark.feedURI) }
                  );
     if (!stillInUse) {
       
@@ -447,7 +432,7 @@ LivemarkService.prototype = {
       this._ans.removePageAnnotation(livemark.feedURI, LMANNO_EXPIRATION);
     }
 
-    if (livemark.loadGroup) 
+    if (livemark.loadGroup)
       livemark.loadGroup.cancel(NS_BINDING_ABORTED);
     this._livemarks.splice(livemarkIndex, 1);
   },
@@ -457,7 +442,7 @@ LivemarkService.prototype = {
       throw Cr.NS_ERROR_NO_AGGREGATION;
     return this.QueryInterface(iid);
   },
-  
+
   QueryInterface: function LS_QueryInterface(iid) {
     if (iid.equals(Ci.nsILivemarkService) ||
         iid.equals(Ci.nsIFactory) ||
@@ -503,8 +488,6 @@ LivemarkLoadListener.prototype = {
     var secMan = Cc[SEC_CONTRACTID].getService(Ci.nsIScriptSecurityManager);
     var feedPrincipal = secMan.getCodebasePrincipal(this._livemark.feedURI);
 
-    
-    
     var lmService = Cc[LS_CONTRACTID].getService(Ci.nsILivemarkService);
 
     
@@ -518,6 +501,8 @@ LivemarkLoadListener.prototype = {
       throw Cr.NS_ERROR_FAILURE;
     }
 
+    
+    
     this.deleteLivemarkChildren(this._livemark.folderId);
     this._livemark.loadingId = -1;
     
@@ -569,7 +554,7 @@ LivemarkLoadListener.prototype = {
       this._livemark.locked = false;
     }
   },
-  
+
   deleteLivemarkChildren: LivemarkService.prototype.deleteLivemarkChildren,
 
   insertLivemarkChild:
@@ -581,12 +566,12 @@ LivemarkLoadListener.prototype = {
   
 
 
-  onDataAvailable: function LLL_onDataAvailable(request, context, inputStream, 
+  onDataAvailable: function LLL_onDataAvailable(request, context, inputStream,
                                                 sourceOffset, count) {
     this._processor.onDataAvailable(request, context, inputStream,
                                     sourceOffset, count);
   },
-  
+
   
 
 
@@ -595,15 +580,15 @@ LivemarkLoadListener.prototype = {
       throw Cr.NS_ERROR_UNEXPECTED;
 
     var channel = request.QueryInterface(Ci.nsIChannel);
- 
+
     
     this._processor = Cc[FP_CONTRACTID].createInstance(Ci.nsIFeedProcessor);
     this._processor.listener = this;
     this._processor.parseAsync(null, channel.URI);
-    
+
     this._processor.onStartRequest(request, context);
   },
-  
+
   
 
 
@@ -621,7 +606,7 @@ LivemarkLoadListener.prototype = {
       return;
     }
     
-    try { 
+    try {
       this._processor.onStopRequest(request, context, status);
 
       
@@ -633,7 +618,7 @@ LivemarkLoadListener.prototype = {
           
           var expiresTime = entryInfo.expirationTime * 1000;
           var nowTime = Date.now();
-          
+
           
           if (expiresTime > nowTime) {
             this._setResourceTTL(Math.max((expiresTime - nowTime),
@@ -653,7 +638,7 @@ LivemarkLoadListener.prototype = {
                                 exptime, 0,
                                 Ci.nsIAnnotationService.EXPIRE_NEVER);
   },
-  
+
   
 
 
@@ -695,7 +680,7 @@ GenericComponentFactory.prototype = {
 
 var Module = {
   QueryInterface: function(iid) {
-    if (iid.equals(Ci.nsIModule) || 
+    if (iid.equals(Ci.nsIModule) ||
         iid.equals(Ci.nsISupports))
       return this;
 
@@ -713,16 +698,16 @@ var Module = {
 
   registerSelf: function(cm, file, location, type) {
     var cr = cm.QueryInterface(Ci.nsIComponentRegistrar);
- 
+
     cr.registerFactoryLocation(LS_CLASSID, LS_CLASSNAME,
-      LS_CONTRACTID, file, location, type);    
+      LS_CONTRACTID, file, location, type);
   },
 
   unregisterSelf: function M_unregisterSelf(cm, location, type) {
     var cr = cm.QueryInterface(Ci.nsIComponentRegistrar);
     cr.unregisterFactoryLocation(LS_CLASSID, location);
   },
-  
+
   canUnload: function M_canUnload(cm) {
     return true;
   }
