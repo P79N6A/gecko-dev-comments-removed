@@ -203,10 +203,6 @@ nsAppStartup::Quit(PRUint32 aMode)
     
   }
 
-  mShuttingDown = PR_TRUE;
-  if (!mRestart) 
-    mRestart = aMode & eRestart;
-
   
   if (ferocity == eConsiderQuit) {
     if (mConsiderQuitStopper == 0) {
@@ -235,6 +231,10 @@ nsAppStartup::Quit(PRUint32 aMode)
     }
 #endif
   }
+
+  mShuttingDown = PR_TRUE;
+  if (!mRestart) 
+      mRestart = aMode & eRestart;
 
   
 
