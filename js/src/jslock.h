@@ -316,16 +316,9 @@ js_CompareAndSwap(jsword *w, jsword ov, jsword nv)
 
 #endif
 
-static inline void
-js_AtomicSetMask(jsword *w, jsword mask)
-{
-    jsword ov, nv;
 
-    do {
-        ov = *w;
-        nv = ov | mask;
-    } while (!js_CompareAndSwap(w, ov, nv));
-}
+extern void
+js_AtomicSetMask(jsword *w, jsword mask);
 
 JS_END_EXTERN_C
 
