@@ -472,10 +472,12 @@ gfxPangoFont::GetCharSize(char aChar, gfxSize& aInkSize, gfxSize& aLogSize,
                           PRUint32 *aGlyphID)
 {
     PangoAnalysis analysis;
+    
+    
+    
+    
+    memset(&analysis, 0, sizeof(analysis));
     analysis.font = GetPangoFont();
-    analysis.level = 0;
-    analysis.lang_engine = nsnull;
-    analysis.extra_attrs = nsnull;
     analysis.language = pango_language_from_string("en");
     analysis.shape_engine = pango_font_find_shaper(analysis.font, analysis.language, aChar);
 
