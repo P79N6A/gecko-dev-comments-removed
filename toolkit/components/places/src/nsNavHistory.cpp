@@ -1014,9 +1014,15 @@ nsNavHistory::InitStatements()
   
   
   
+  
   rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING(
-    "SELECT visit_date, visit_type FROM moz_historyvisits " 
-    "WHERE place_id = ?1 ORDER BY visit_date DESC LIMIT ") +
+    "SELECT IFNULL(r.visit_date, v.visit_date) date, IFNULL(r.visit_type, v.visit_type) "
+    "FROM moz_historyvisits v "
+    "LEFT OUTER JOIN moz_historyvisits r "
+      "ON r.id = v.from_visit AND v.visit_type IN ") +
+      nsPrintfCString("(%d,%d) ", TRANSITION_REDIRECT_PERMANENT,
+      TRANSITION_REDIRECT_TEMPORARY) + NS_LITERAL_CSTRING(
+    "WHERE v.place_id = ?1 ORDER BY date DESC LIMIT ") +
      nsPrintfCString("%d", mNumVisitsForFrecency),
     getter_AddRefs(mDBVisitsForFrecency));
   NS_ENSURE_SUCCESS(rv, rv);
