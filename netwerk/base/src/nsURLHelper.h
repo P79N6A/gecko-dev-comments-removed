@@ -67,6 +67,9 @@ enum netCoalesceFlags
 
 
 NS_HIDDEN_(void) net_ShutdownURLHelper();
+#ifdef XP_MACOSX
+NS_HIDDEN_(void) net_ShutdownURLHelperOSX();
+#endif
 
 
 NS_HIDDEN_(nsIURLParser *) net_GetAuthURLParser();

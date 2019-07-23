@@ -47,6 +47,8 @@
 #include "nsReadableUtils.h"
 #include <Files.h>
 
+static nsCStringArray *gVolumeList = nsnull;
+
 static PRBool pathBeginsWithVolName(const nsACString& path, nsACString& firstPathComponent)
 {
   
@@ -54,10 +56,15 @@ static PRBool pathBeginsWithVolName(const nsACString& path, nsACString& firstPat
   
   
   
-  static nsCStringArray gVolumeList; 
+  if (!gVolumeList) {
+    gVolumeList = new nsCStringArray;
+    if (!gVolumeList) {
+      return PR_FALSE; 
+    }
+  }
 
   
-  if (!gVolumeList.Count()) {
+  if (!gVolumeList->Count()) {
     OSErr err;
     ItemCount volumeIndex = 1;
     
@@ -68,7 +75,7 @@ static PRBool pathBeginsWithVolName(const nsACString& path, nsACString& firstPat
       if (err == noErr) {
         NS_ConvertUTF16toUTF8 volNameStr(Substring((PRUnichar *)volName.unicode,
                                                    (PRUnichar *)volName.unicode + volName.length));
-        gVolumeList.AppendCString(volNameStr);
+        gVolumeList->AppendCString(volNameStr);
         volumeIndex++;
       }
     } while (err == noErr);
@@ -85,9 +92,16 @@ static PRBool pathBeginsWithVolName(const nsACString& path, nsACString& firstPat
   
   nsCAutoString flatComponent((Substring(start, component_end)));
   NS_UnescapeURL(flatComponent);
-  PRInt32 foundIndex = gVolumeList.IndexOf(flatComponent);
+  PRInt32 foundIndex = gVolumeList->IndexOf(flatComponent);
   firstPathComponent = flatComponent;
   return (foundIndex != -1);
+}
+
+void
+net_ShutdownURLHelperOSX()
+{
+  delete gVolumeList;
+  gVolumeList = nsnull;
 }
 
 static nsresult convertHFSPathtoPOSIX(const nsACString& hfsPath, nsACString& posixPath)
