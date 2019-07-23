@@ -243,25 +243,21 @@
 #define NS_COLOR_CURRENTCOLOR                   -4
 
 
-
-#define NS_STYLE_BG_IMAGE_NONE                  0x02
-#define NS_STYLE_BG_X_POSITION_PERCENT          0x04
-#define NS_STYLE_BG_X_POSITION_LENGTH           0x08
-#define NS_STYLE_BG_Y_POSITION_PERCENT          0x10
-#define NS_STYLE_BG_Y_POSITION_LENGTH           0x20
-
-
 #define NS_STYLE_BG_ATTACHMENT_SCROLL     0
 #define NS_STYLE_BG_ATTACHMENT_FIXED      1
+
 
 
 #define NS_STYLE_BG_CLIP_BORDER           0
 #define NS_STYLE_BG_CLIP_PADDING          1
 
 
+
+
 #define NS_STYLE_BG_INLINE_POLICY_EACH_BOX      0
 #define NS_STYLE_BG_INLINE_POLICY_CONTINUOUS    1
 #define NS_STYLE_BG_INLINE_POLICY_BOUNDING_BOX  2
+
 
 
 #define NS_STYLE_BG_ORIGIN_BORDER         0
