@@ -8014,7 +8014,8 @@ nsDocShell::LoadHistoryEntry(nsISHEntry * aEntry, PRUint32 aLoadType)
         
         
         
-        rv = CreateAboutBlankContentViewer(nsnull);
+        nsCOMPtr<nsIPrincipal> prin = do_QueryInterface(owner);
+        rv = CreateAboutBlankContentViewer(prin);
 
         if (NS_FAILED(rv)) {
             
