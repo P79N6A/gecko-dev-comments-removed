@@ -1706,11 +1706,9 @@ TraceRecorder::TraceRecorder(JSContext* cx, VMSideExit* _anchor, Fragment* _frag
     this->wasRootFragment = _fragment == _fragment->root;
     this->outer = outer;
     this->outerArgc = outerArgc;
-    this->pendingTraceableNative = NULL;
+    this->pendingSpecializedNative = NULL;
     this->newobj_ins = NULL;
     this->loopLabel = NULL;
-    this->generatedTraceableNative = new JSTraceableNative();
-    JS_ASSERT(generatedTraceableNative);
 
 #ifdef JS_JIT_SPEW
     debug_only_print0(LC_TMMinimal, "\n");
@@ -1842,7 +1840,6 @@ TraceRecorder::~TraceRecorder()
     delete func_filter;
     delete float_filter;
     delete lir_buf_writer;
-    delete generatedTraceableNative;
 }
 
 void
@@ -3287,8 +3284,8 @@ TraceRecorder::snapshot(ExitType exitType)
 
 
 
-    bool resumeAfter = (pendingTraceableNative &&
-                        JSTN_ERRTYPE(pendingTraceableNative) == FAIL_STATUS);
+    bool resumeAfter = (pendingSpecializedNative &&
+                        JSTN_ERRTYPE(pendingSpecializedNative) == FAIL_STATUS);
     if (resumeAfter) {
         JS_ASSERT(*pc == JSOP_CALL || *pc == JSOP_APPLY || *pc == JSOP_NEW ||
                   *pc == JSOP_SETPROP || *pc == JSOP_SETNAME || *pc == JSOP_SETMETHOD);
@@ -3336,7 +3333,7 @@ TraceRecorder::snapshot(ExitType exitType)
 
 
     if (pendingUnboxSlot ||
-        (pendingTraceableNative && (pendingTraceableNative->flags & JSTN_UNBOX_AFTER))) {
+        (pendingSpecializedNative && (pendingSpecializedNative->flags & JSTN_UNBOX_AFTER))) {
         unsigned pos = stackSlots - 1;
         if (pendingUnboxSlot == cx->fp->regs->sp - 2)
             pos = stackSlots - 2;
@@ -6159,7 +6156,7 @@ TraceRecorder::monitorRecording(JSContext* cx, TraceRecorder* tr, JSOp op)
 
 
 
-    tr->pendingTraceableNative = NULL;
+    tr->pendingSpecializedNative = NULL;
     tr->newobj_ins = NULL;
 
     
@@ -9127,7 +9124,7 @@ TraceRecorder::getClassPrototype(JSProtoKey key, LIns*& proto_ins)
     return JSRS_CONTINUE;
 }
 
-#define IGNORE_NATIVE_CALL_COMPLETE_CALLBACK ((JSTraceableNative*)1)
+#define IGNORE_NATIVE_CALL_COMPLETE_CALLBACK ((JSSpecializedNative*)1)
 
 JSRecordingStatus
 TraceRecorder::newString(JSObject* ctor, uint32 argc, jsval* argv, jsval* rval)
@@ -9147,7 +9144,7 @@ TraceRecorder::newString(JSObject* ctor, uint32 argc, jsval* argv, jsval* rval)
     guard(false, lir->ins_eq0(obj_ins), OOM_EXIT);
 
     set(rval, obj_ins);
-    pendingTraceableNative = IGNORE_NATIVE_CALL_COMPLETE_CALLBACK;
+    pendingSpecializedNative = IGNORE_NATIVE_CALL_COMPLETE_CALLBACK;
     return JSRS_CONTINUE;
 }
 
@@ -9188,7 +9185,7 @@ TraceRecorder::newArray(JSObject* ctor, uint32 argc, jsval* argv, jsval* rval)
     }
 
     set(rval, arr_ins);
-    pendingTraceableNative = IGNORE_NATIVE_CALL_COMPLETE_CALLBACK;
+    pendingSpecializedNative = IGNORE_NATIVE_CALL_COMPLETE_CALLBACK;
     return JSRS_CONTINUE;
 }
 
@@ -9269,14 +9266,14 @@ TraceRecorder::emitNativePropertyOp(JSScope* scope, JSScopeProperty* sprop, LIns
 }
 
 JS_REQUIRES_STACK JSRecordingStatus
-TraceRecorder::emitNativeCall(JSTraceableNative* known, uintN argc, LIns* args[])
+TraceRecorder::emitNativeCall(JSSpecializedNative* sn, uintN argc, LIns* args[])
 {
-    bool constructing = known->flags & JSTN_CONSTRUCTOR;
+    bool constructing = sn->flags & JSTN_CONSTRUCTOR;
 
-    if (JSTN_ERRTYPE(known) == FAIL_STATUS) {
+    if (JSTN_ERRTYPE(sn) == FAIL_STATUS) {
         
         
-        JS_ASSERT(!pendingTraceableNative);
+        JS_ASSERT(!pendingSpecializedNative);
 
         
         
@@ -9294,9 +9291,9 @@ TraceRecorder::emitNativeCall(JSTraceableNative* known, uintN argc, LIns* args[]
         lir->insGuard(LIR_xbarrier, NULL, guardRec);
     }
 
-    LIns* res_ins = lir->insCall(known->builtin, args);
+    LIns* res_ins = lir->insCall(sn->builtin, args);
     rval_ins = res_ins;
-    switch (JSTN_ERRTYPE(known)) {
+    switch (JSTN_ERRTYPE(sn)) {
       case FAIL_NULL:
         guard(false, lir->ins_eq0(res_ins), OOM_EXIT);
         break;
@@ -9320,7 +9317,7 @@ TraceRecorder::emitNativeCall(JSTraceableNative* known, uintN argc, LIns* args[]
 
 
 
-    pendingTraceableNative = known;
+    pendingSpecializedNative = sn;
 
     return JSRS_CONTINUE;
 }
@@ -9330,11 +9327,9 @@ TraceRecorder::emitNativeCall(JSTraceableNative* known, uintN argc, LIns* args[]
 
 
 JS_REQUIRES_STACK JSRecordingStatus
-TraceRecorder::callTraceableNative(JSFunction* fun, uintN argc, bool constructing)
+TraceRecorder::callSpecializedNative(JSNativeTraceInfo *trcinfo, uintN argc,
+                                     bool constructing)
 {
-    JSTraceableNative* known = FUN_TRCINFO(fun);
-    JS_ASSERT(known && (JSFastNative)fun->u.n.native == known->native);
-
     JSStackFrame* fp = cx->fp;
     jsbytecode *pc = fp->regs->pc;
 
@@ -9344,15 +9339,17 @@ TraceRecorder::callTraceableNative(JSFunction* fun, uintN argc, bool constructin
     LIns* this_ins = get(&tval);
 
     LIns* args[nanojit::MAXARGS];
+    JSSpecializedNative *sn = trcinfo->specializations;
+    JS_ASSERT(sn);
     do {
-        if (((known->flags & JSTN_CONSTRUCTOR) != 0) != constructing)
+        if (((sn->flags & JSTN_CONSTRUCTOR) != 0) != constructing)
             continue;
 
-        uintN knownargc = strlen(known->argtypes);
+        uintN knownargc = strlen(sn->argtypes);
         if (argc != knownargc)
             continue;
 
-        intN prefixc = strlen(known->prefix);
+        intN prefixc = strlen(sn->prefix);
         JS_ASSERT(prefixc <= 3);
         LIns** argp = &args[argc + prefixc - 1];
         char argtype;
@@ -9363,7 +9360,7 @@ TraceRecorder::callTraceableNative(JSFunction* fun, uintN argc, bool constructin
 
         uintN i;
         for (i = prefixc; i--; ) {
-            argtype = known->prefix[i];
+            argtype = sn->prefix[i];
             if (argtype == 'C') {
                 *argp = cx_ins;
             } else if (argtype == 'T') { 
@@ -9401,7 +9398,7 @@ TraceRecorder::callTraceableNative(JSFunction* fun, uintN argc, bool constructin
             jsval& arg = stackval(0 - (i + 1));
             *argp = get(&arg);
 
-            argtype = known->argtypes[i];
+            argtype = sn->argtypes[i];
             if (argtype == 'd' || argtype == 'i') {
                 if (!isNumber(arg))
                     goto next_specialization;
@@ -9429,10 +9426,10 @@ TraceRecorder::callTraceableNative(JSFunction* fun, uintN argc, bool constructin
 #if defined DEBUG
         JS_ASSERT(args[0] != (LIns *)0xcdcdcdcd);
 #endif
-        return emitNativeCall(known, argc, args);
+        return emitNativeCall(sn, argc, args);
 
 next_specialization:;
-    } while ((known++)->flags & JSTN_MORE);
+    } while ((sn++)->flags & JSTN_MORE);
 
     return JSRS_STOP;
 }
@@ -9456,7 +9453,7 @@ TraceRecorder::callNative(uintN argc, JSOp mode)
             LIns* a = get(&vp[2]);
             if (isPromote(a)) {
                 set(&vp[0], a);
-                pendingTraceableNative = IGNORE_NATIVE_CALL_COMPLETE_CALLBACK;
+                pendingSpecializedNative = IGNORE_NATIVE_CALL_COMPLETE_CALLBACK;
                 return JSRS_CONTINUE;
             }
         }
@@ -9476,17 +9473,23 @@ TraceRecorder::callNative(uintN argc, JSOp mode)
                                                         ? LIR_lt
                                                         : LIR_gt, a, b),
                                               a, b)));
-                pendingTraceableNative = IGNORE_NATIVE_CALL_COMPLETE_CALLBACK;
+                pendingSpecializedNative = IGNORE_NATIVE_CALL_COMPLETE_CALLBACK;
                 return JSRS_CONTINUE;
             }
         }
         break;
     }
 
-    if (fun->flags & JSFUN_TRACEABLE) {
-        JSRecordingStatus status;
-        if ((status = callTraceableNative(fun, argc, mode == JSOP_NEW)) != JSRS_STOP)
-            return status;
+    if (fun->flags & JSFUN_TRCINFO) {
+        JSNativeTraceInfo *trcinfo = FUN_TRCINFO(fun);
+        JS_ASSERT(trcinfo && (JSFastNative)fun->u.n.native == trcinfo->native);
+
+        
+        if (trcinfo->specializations) {
+            JSRecordingStatus status = callSpecializedNative(trcinfo, argc, mode == JSOP_NEW);
+            if (status != JSRS_STOP)
+                return status;
+        }
     }
 
     if (native == js_fun_apply || native == js_fun_call)
@@ -9624,18 +9627,17 @@ TraceRecorder::callNative(uintN argc, JSOp mode)
  #endif
 
     
-    generatedTraceableNative->builtin = ci;
-    generatedTraceableNative->native = (JSFastNative)fun->u.n.native;
-    generatedTraceableNative->flags = FAIL_STATUS | ((mode == JSOP_NEW)
-                                                     ? JSTN_CONSTRUCTOR
-                                                     : JSTN_UNBOX_AFTER);
-
-    generatedTraceableNative->prefix = generatedTraceableNative->argtypes = NULL;
+    generatedSpecializedNative.builtin = ci;
+    generatedSpecializedNative.flags = FAIL_STATUS | ((mode == JSOP_NEW)
+                                                        ? JSTN_CONSTRUCTOR
+                                                        : JSTN_UNBOX_AFTER);
+    generatedSpecializedNative.prefix = NULL;
+    generatedSpecializedNative.argtypes = NULL;
 
     
     
     JSRecordingStatus status;
-    if ((status = emitNativeCall(generatedTraceableNative, argc, args)) != JSRS_CONTINUE)
+    if ((status = emitNativeCall(&generatedSpecializedNative, argc, args)) != JSRS_CONTINUE)
         return status;
 
     
@@ -9697,7 +9699,7 @@ TraceRecorder::functionCall(uintN argc, JSOp mode)
                 return call_imacro(call_imacros.String);
             }
             set(&fval, stringify(argv[0]));
-            pendingTraceableNative = IGNORE_NATIVE_CALL_COMPLETE_CALLBACK;
+            pendingSpecializedNative = IGNORE_NATIVE_CALL_COMPLETE_CALLBACK;
             return JSRS_CONTINUE;
         }
     }
@@ -11042,12 +11044,12 @@ JS_DEFINE_TRCINFO_1(CatchStopIteration_tn,
 JS_REQUIRES_STACK JSRecordingStatus
 TraceRecorder::record_NativeCallComplete()
 {
-    if (pendingTraceableNative == IGNORE_NATIVE_CALL_COMPLETE_CALLBACK)
+    if (pendingSpecializedNative == IGNORE_NATIVE_CALL_COMPLETE_CALLBACK)
         return JSRS_CONTINUE;
 
     jsbytecode* pc = cx->fp->regs->pc;
 
-    JS_ASSERT(pendingTraceableNative);
+    JS_ASSERT(pendingSpecializedNative);
     JS_ASSERT(*pc == JSOP_CALL || *pc == JSOP_APPLY || *pc == JSOP_NEW || *pc == JSOP_SETPROP);
 
     jsval& v = stackval(-1);
@@ -11067,12 +11069,12 @@ TraceRecorder::record_NativeCallComplete()
 
 
 
-    if (JSTN_ERRTYPE(pendingTraceableNative) == FAIL_STATUS) {
+    if (JSTN_ERRTYPE(pendingSpecializedNative) == FAIL_STATUS) {
         
         lir->insStorei(INS_NULL(), cx_ins, (int) offsetof(JSContext, bailExit));
 
         LIns* status = lir->insLoad(LIR_ld, lirbuf->state, (int) offsetof(InterpState, builtinStatus));
-        if (pendingTraceableNative == generatedTraceableNative) {
+        if (pendingSpecializedNative == &generatedSpecializedNative) {
             LIns* ok_ins = v_ins;
 
             
@@ -11104,7 +11106,7 @@ TraceRecorder::record_NativeCallComplete()
     }
 
     JSRecordingStatus ok = JSRS_CONTINUE;
-    if (pendingTraceableNative->flags & JSTN_UNBOX_AFTER) {
+    if (pendingSpecializedNative->flags & JSTN_UNBOX_AFTER) {
         
 
 
@@ -11112,13 +11114,13 @@ TraceRecorder::record_NativeCallComplete()
 
         JS_ASSERT(&v == &cx->fp->regs->sp[-1] && get(&v) == v_ins);
         set(&v, unbox_jsval(v, v_ins, snapshot(BRANCH_EXIT)));
-    } else if (JSTN_ERRTYPE(pendingTraceableNative) == FAIL_NEG) {
+    } else if (JSTN_ERRTYPE(pendingSpecializedNative) == FAIL_NEG) {
         
         JS_ASSERT(JSVAL_IS_NUMBER(v));
     } else {
         
         if (JSVAL_IS_NUMBER(v) &&
-            (pendingTraceableNative->builtin->_argtypes & ARGSIZE_MASK_ANY) == ARGSIZE_I) {
+            (pendingSpecializedNative->builtin->_argtypes & ARGSIZE_MASK_ANY) == ARGSIZE_I) {
             set(&v, lir->ins1(LIR_i2f, v_ins));
         }
     }
@@ -13044,11 +13046,11 @@ JS_DEFINE_TRCINFO_1(CallIteratorNext,
     (3, (static, JSVAL_FAIL,  CallIteratorNext_tn, CONTEXT, PC, THIS,        0, 0)))
 
 static const struct BuiltinFunctionInfo {
-    JSTraceableNative *tn;
+    JSNativeTraceInfo *ti;
     int nargs;
 } builtinFunctionInfo[JSBUILTIN_LIMIT] = {
-    {ObjectToIterator_trcinfo,   1},
-    {CallIteratorNext_trcinfo,   0},
+    {&ObjectToIterator_trcinfo,   1},
+    {&CallIteratorNext_trcinfo,   0},
 };
 
 JSObject *
@@ -13063,9 +13065,9 @@ js_GetBuiltinFunction(JSContext *cx, uintN index)
         const BuiltinFunctionInfo *bfi = &builtinFunctionInfo[index];
         JSFunction *fun = js_NewFunction(cx,
                                          NULL,
-                                         JS_DATA_TO_FUNC_PTR(JSNative, bfi->tn),
+                                         JS_DATA_TO_FUNC_PTR(JSNative, bfi->ti),
                                          bfi->nargs,
-                                         JSFUN_FAST_NATIVE | JSFUN_TRACEABLE,
+                                         JSFUN_FAST_NATIVE | JSFUN_TRCINFO,
                                          NULL,
                                          NULL);
         if (fun) {
