@@ -1082,6 +1082,7 @@ DocumentViewerImpl::LoadComplete(nsresult aStatus)
   
   
   if (mPresShell && !mStopped) {
+    nsCOMPtr<nsIPresShell> shellDeathGrip(mPresShell); 
     mPresShell->UnsuppressPainting();
   }
 
@@ -1261,8 +1262,10 @@ DocumentViewerImpl::PageHide(PRBool aIsUnload)
 
   
   
-  if (mPresShell)
+  if (mPresShell) {
+    nsCOMPtr<nsIPresShell> kungFuDeathGrip = mPresShell;
     mPresShell->HidePopups();
+  }
 
   return NS_OK;
 }
@@ -1634,6 +1637,7 @@ DocumentViewerImpl::Stop(void)
 
   if (!mLoaded && mPresShell) {
     
+    nsCOMPtr<nsIPresShell> shellDeathGrip(mPresShell); 
     mPresShell->UnsuppressPainting();
   }
 
@@ -1982,6 +1986,7 @@ DocumentViewerImpl::Show(void)
     
     
 
+    nsCOMPtr<nsIPresShell> shellDeathGrip(mPresShell); 
     mPresShell->UnsuppressPainting();
   }
 
