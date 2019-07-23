@@ -71,10 +71,17 @@ public:
 
 private:
   void normalizeFullStops(nsAString& s);
-  nsresult stringPrepAndACE(const nsAString& in, nsACString& out);
+  nsresult stringPrepAndACE(const nsAString& in, nsACString& out,
+                            PRBool allowUnassigned);
   nsresult encodeToACE(const nsAString& in, nsACString& out);
-  nsresult stringPrep(const nsAString& in, nsAString& out);
-  nsresult decodeACE(const nsACString& in, nsACString& out);
+  nsresult stringPrep(const nsAString& in, nsAString& out,
+                      PRBool allowUnassigned);
+  nsresult decodeACE(const nsACString& in, nsACString& out,
+                     PRBool allowUnassigned);
+  nsresult UTF8toACE(const nsACString& in, nsACString& out,
+                     PRBool allowUnassigned);
+  nsresult ACEtoUTF8(const nsACString& in, nsACString& out,
+                     PRBool allowUnassigned);
   PRBool isInWhitelist(const nsACString &host);
   void prefsChanged(nsIPrefBranch *prefBranch, const PRUnichar *pref);
 
