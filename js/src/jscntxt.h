@@ -122,6 +122,7 @@ typedef struct JSTraceMonitor {
 
 
     JSBool                  onTrace;
+    CLS(nanojit::LirBuffer) lirbuf;
     CLS(nanojit::Fragmento) fragmento;
     CLS(TraceRecorder)      recorder;
     uint32                  globalShape;
