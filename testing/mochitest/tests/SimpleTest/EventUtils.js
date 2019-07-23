@@ -135,19 +135,21 @@ function __doEventDispatch(aTarget, aCharCode, aKeyCode, aHasShift) {
   var accepted = $(aTarget).dispatchEvent(event);
 
   
-  if (accepted) {
-    event = document.createEvent("KeyEvents");
-    if (aCharCode) {
-      event.initKeyEvent("keypress", true, true, document.defaultView,
-                         false, false, aHasShift, false,
-                         0, aCharCode);
-    } else {
-      event.initKeyEvent("keypress", true, true, document.defaultView,
-                         false, false, aHasShift, false,
-                         aKeyCode, 0);
-    }
-    accepted = $(aTarget).dispatchEvent(event);
+  
+  event = document.createEvent("KeyEvents");
+  if (aCharCode) {
+    event.initKeyEvent("keypress", true, true, document.defaultView,
+                       false, false, aHasShift, false,
+                       0, aCharCode);
+  } else {
+    event.initKeyEvent("keypress", true, true, document.defaultView,
+                       false, false, aHasShift, false,
+                       aKeyCode, 0);
   }
+  if (!accepted) {
+    event.preventDefault();
+  }
+  accepted = $(aTarget).dispatchEvent(event);
 
   
   var event = document.createEvent("KeyEvents");
@@ -311,8 +313,10 @@ function synthesizeKey(aKey, aEvent, aWindow)
       utils.sendKeyEvent(aEvent.type, keyCode, charCode, modifiers);
     }
     else {
-      utils.sendKeyEvent("keydown", keyCode, charCode, modifiers);
-      utils.sendKeyEvent("keypress", keyCode, charCode, modifiers);
+      var keyDownDefaultHappened =
+          utils.sendKeyEvent("keydown", keyCode, charCode, modifiers);
+      utils.sendKeyEvent("keypress", keyCode, charCode, modifiers,
+                         !keyDownDefaultHappened);
       utils.sendKeyEvent("keyup", keyCode, charCode, modifiers);
     }
   }
