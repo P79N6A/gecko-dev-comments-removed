@@ -141,6 +141,15 @@ public:
       MOZ_COUNT_DTOR(FrameData);
     }
 
+    
+    void Write(nsAudioStream* aStream)
+    {
+      PRUint32 length = mAudioData.Length();
+      if (length == 0)
+        return;
+
+      aStream->Write(mAudioData.Elements(), length);
+    }
 
     nsAutoArrayPtr<unsigned char> mVideoData;
     nsTArray<float> mAudioData;
@@ -261,8 +270,7 @@ public:
 
   
   
-  
-  PRBool PlayAudio(FrameData* aFrame);
+  void PlayAudio(FrameData* aFrame);
 
   
   
@@ -629,13 +637,13 @@ void nsOggDecodeStateMachine::PlayFrame() {
 
       double time = (PR_IntervalToMilliseconds(PR_IntervalNow()-mPlayStartTime-mPauseDuration)/1000.0);
       if (time >= frame->mTime) {
-        mDecodedFrames.Pop();
         
         
         
         
-        PlayVideo(mDecodedFrames.IsEmpty() ? frame : mDecodedFrames.Peek());
         PlayAudio(frame);
+        mDecodedFrames.Pop();
+        PlayVideo(mDecodedFrames.IsEmpty() ? frame : mDecodedFrames.Peek());
         UpdatePlaybackPosition(frame->mDecodedFrameTime);
         delete frame;
       }
@@ -677,17 +685,13 @@ void nsOggDecodeStateMachine::PlayVideo(FrameData* aFrame)
   }
 }
 
-PRBool nsOggDecodeStateMachine::PlayAudio(FrameData* aFrame)
+void nsOggDecodeStateMachine::PlayAudio(FrameData* aFrame)
 {
   
-  if (mAudioStream && aFrame && !aFrame->mAudioData.IsEmpty()) {
-    if (PRUint32(mAudioStream->Available()) < aFrame->mAudioData.Length())
-      return PR_FALSE;
+  if (!mAudioStream)
+    return;
 
-    mAudioStream->Write(aFrame->mAudioData.Elements(), aFrame->mAudioData.Length());
-  }
-
-  return PR_TRUE;
+  aFrame->Write(mAudioStream);
 }
 
 void nsOggDecodeStateMachine::OpenAudioStream()
@@ -1053,6 +1057,14 @@ nsresult nsOggDecodeStateMachine::Run()
 
         if (mState != DECODER_STATE_COMPLETED)
           continue;
+
+        if (mAudioStream) {
+          mon.Exit();
+          mAudioStream->Drain();
+          mon.Enter();
+          if (mState != DECODER_STATE_COMPLETED)
+            continue;
+        }
 
         nsCOMPtr<nsIRunnable> event =
           NS_NEW_RUNNABLE_METHOD(nsOggDecoder, mDecoder, PlaybackEnded);

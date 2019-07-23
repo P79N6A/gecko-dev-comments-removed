@@ -40,6 +40,7 @@
 
 #include "nscore.h"
 #include "prlog.h"
+#include "nsTArray.h"
 
 extern PRLogModuleInfo* gAudioStreamLog;
 
@@ -116,6 +117,12 @@ class nsAudioStream
   PRInt64 mSamplesBuffered;
 
   SampleFormat mFormat;
+
+  
+  
+  
+  
+  nsTArray<short> mBufferOverflow;
 
   PRPackedBool mPaused;
 };
