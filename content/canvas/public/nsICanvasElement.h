@@ -39,7 +39,9 @@
 #define nsICanvasElement_h___
 
 #include "nsISupports.h"
+#include "nsRect.h"
 
+class gfxContext;
 class nsIFrame;
 
 
@@ -68,14 +70,8 @@ public:
 
 
 
-  NS_IMETHOD RenderContexts (nsIRenderingContext *rc) = 0;
+  NS_IMETHOD RenderContexts (gfxContext *ctx) = 0;
 
-  
-
-
-
-  NS_IMETHOD RenderContextsToSurface (struct _cairo_surface *surf) = 0;
-  
   
 
 
@@ -85,6 +81,17 @@ public:
 
 
   virtual void SetWriteOnly() = 0;
+
+  
+
+
+  NS_IMETHOD InvalidateFrame () = 0;
+
+  
+
+
+
+  NS_IMETHOD InvalidateFrameSubrect (const nsRect& damageRect) = 0;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsICanvasElement, NS_ICANVASELEMENT_IID)
