@@ -463,7 +463,9 @@ PRBool nsRootAccessible::FireAccessibleFocusEvent(nsIAccessible *aAccessible,
       domDoc->GetElementById(id, getter_AddRefs(relatedEl));
       finalFocusNode = do_QueryInterface(relatedEl);
       if (!finalFocusNode) {
-        return PR_FALSE;
+        
+        
+        finalFocusNode = aNode;
       }
       finalFocusAccessible = nsnull;
     }
