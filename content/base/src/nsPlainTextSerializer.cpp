@@ -1594,7 +1594,7 @@ nsPlainTextSerializer::Write(const nsAString& aStr)
   
   if (mFlags & nsIDocumentEncoder::OutputFormatFlowed) {
     PRUnichar nbsp = 160;
-    for (PRUint32 i = totLen-1; i >= 0; i--) {
+    for (PRInt32 i = totLen-1; i >= 0; i--) {
       PRUnichar c = str[i];
       if ('\n' == c || '\r' == c || ' ' == c || '\t' == c)
         continue;
