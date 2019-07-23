@@ -2456,6 +2456,9 @@ nsWindow::OnKeyPressEvent(GtkWidget *aWidget, GdkEventKey *aEvent)
                     g_free(keys);
                 }
                 if (minGroup >= 0) {
+                    PRUint32 unmodifiedCh =
+                               event.isShift ? altCharCodes.mShiftedCharCode :
+                                               altCharCodes.mUnshiftedCharCode;
                     
                     PRUint32 ch =
                         GetCharCodeFor(aEvent, baseState, minGroup);
@@ -2469,6 +2472,17 @@ nsWindow::OnKeyPressEvent(GtkWidget *aWidget, GdkEventKey *aEvent)
                     if (altCharCodes.mUnshiftedCharCode ||
                         altCharCodes.mShiftedCharCode) {
                         event.alternativeCharCodes.AppendElement(altCharCodes);
+                    }
+                    
+                    
+                    
+                    
+                    
+                    ch = event.isShift ? altCharCodes.mShiftedCharCode :
+                                         altCharCodes.mUnshiftedCharCode;
+                    if (ch && !(event.isAlt || event.isMeta) &&
+                        event.charCode == unmodifiedCh) {
+                        event.charCode = ch;
                     }
                 }
             }
