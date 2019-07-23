@@ -340,7 +340,9 @@ public:
 
   protected:
 #ifdef DEBUG
-    const Slice& mSlice;
+    
+
+    const Slice mSlice;
 #endif
     nsIFrame* mFrame; 
     const nsIFrame* const mEnd; 
