@@ -176,7 +176,6 @@ var WebContentConverterRegistrar = {
   },
 
   _contentTypes: { },
-  _protocols: { },
 
   
 
@@ -265,13 +264,23 @@ var WebContentConverterRegistrar = {
 
 
   removeProtocolHandler: 
-  function WCCR_removeProtocolHandler(protocol, uri) {
-    function notURI(currentURI) {
-      return currentURI != uri;
+  function WCCR_removeProtocolHandler(aProtocol, aURITemplate) {
+    var eps = Cc["@mozilla.org/uriloader/external-protocol-service;1"].
+              getService(Ci.nsIExternalProtocolService);
+    var handlerInfo = eps.getProtocolHandlerInfo(aProtocol);
+    var handlers =  handlerInfo.possibleApplicationHandlers;
+    for (let i = 0; i < handlers.length; i++) {
+      try { 
+        let handler = handlers.queryElementAt(i, Ci.nsIWebHandlerApp);
+        if (handler.uriTemplate == aURITemplate) {
+          handlers.removeElementAt(i);
+          var hs = Cc["@mozilla.org/uriloader/handler-service;1"].
+                   getService(Ci.nsIHandlerService);
+          hs.store(handlerInfo);
+          return;
+        }
+      } catch (e) {  }
     }
-  
-    if (protocol in this._protocols) 
-      this._protocols[protocol] = this._protocols[protocol].filter(notURI);
   },
   
   
@@ -324,13 +333,118 @@ var WebContentConverterRegistrar = {
     return ioService.newURI(aURL, aOriginCharset, aBaseURI);
   },
 
+  _checkAndGetURI:
+  function WCCR_checkAndGetURI(aURIString)
+  {
+    try {
+      var uri = this._makeURI(aURIString);
+    } catch (ex) {
+      
+      return; 
+    }
+ 
+    
+    if (uri.spec.indexOf("%s") < 0)
+      throw NS_ERROR_DOM_SYNTAX_ERR; 
+
+    return uri;
+  },
+
+  
+
+
+
+
+
+
+
+
+  _protocolHandlerRegistered:
+  function WCCR_protocolHandlerRegistered(aProtocol, aURITemplate) {
+    var eps = Cc["@mozilla.org/uriloader/external-protocol-service;1"].
+              getService(Ci.nsIExternalProtocolService);
+    var handlerInfo = eps.getProtocolHandlerInfo(aProtocol);
+    var handlers =  handlerInfo.possibleApplicationHandlers;
+    for (let i = 0; i < handlers.length; i++) {
+      try { 
+        let handler = handlers.queryElementAt(i, Ci.nsIWebHandlerApp);
+        if (handler.uriTemplate == aURITemplate)
+          return true;
+      } catch (e) {  }
+    }
+    return false;
+  },
+
   
 
 
   registerProtocolHandler: 
-  function WCCR_registerProtocolHandler(aProtocol, aURI, aTitle, aContentWindow) {
+  function WCCR_registerProtocolHandler(aProtocol, aURIString, aTitle, aContentWindow) {
+    LOG("registerProtocolHandler(" + aProtocol + "," + aURIString + "," + aTitle + ")");
     
-    return;
+    
+    
+    var ios = Cc["@mozilla.org/network/io-service;1"].
+              getService(Ci.nsIIOService);
+    var handler = ios.getProtocolHandler(aProtocol);
+    if (!(handler instanceof Ci.nsIExternalProtocolHandler)) {
+      
+      
+      
+      throw("Permission denied to add " + aURIString + "as a protocol handler");
+    }
+ 
+    var uri = this._checkAndGetURI(aURIString);
+
+    var buttons, message;
+    if (this._protocolHandlerRegistered(aProtocol, uri.spec))
+      message = this._getFormattedString("protocolHandlerRegistered",
+                                         [aTitle, aProtocol]);
+    else {
+      
+      message = this._getFormattedString("addProtocolHandler",
+                                         [aTitle, uri.host, aProtocol]);
+      var fis = Cc["@mozilla.org/browser/favicon-service;1"].
+                getService(Ci.nsIFaviconService);
+      var notificationIcon = fis.getFaviconLinkForIcon(uri);
+      var notificationValue = "Protocol Registration: " + aProtocol;
+      var addButton = {
+        label: this._getString("addProtocolHandlerAddButton"),
+        accessKey: this._getString("addHandlerAddButtonAccesskey"),
+        protocolInfo: { protocol: aProtocol, uri: uri.spec, name: aTitle },
+
+        callback:
+        function WCCR_addProtocolHandlerButtonCallback(aNotification, aButtonInfo) {
+          var protocol = aButtonInfo.protocolInfo.protocol;
+          var uri      = aButtonInfo.protocolInfo.uri;
+          var name     = aButtonInfo.protocolInfo.name;
+
+          var handler = Cc["@mozilla.org/uriloader/web-handler-app;1"].
+                        createInstance(Ci.nsIWebHandlerApp);
+          handler.name = name;
+          handler.uriTemplate = uri;
+
+          var eps = Cc["@mozilla.org/uriloader/external-protocol-service;1"].
+                    getService(Ci.nsIExternalProtocolService);
+          var handlerInfo = eps.getProtocolHandlerInfo(protocol);
+          handlerInfo.possibleApplicationHandlers.appendElement(handler, false);
+
+          var hs = Cc["@mozilla.org/uriloader/handler-service;1"].
+                   getService(Ci.nsIHandlerService);
+          hs.store(handlerInfo);
+        }
+      };
+      buttons = [addButton];
+    }
+
+    var browserWindow = this._getBrowserWindowForContentWindow(aContentWindow);
+    var browserElement = this._getBrowserForContentWindow(browserWindow, aContentWindow);
+    var notificationBox = browserWindow.getBrowser().getNotificationBox(browserElement);
+    notificationBox.appendNotification(message,
+                                       notificationValue,
+                                       notificationIcon,
+                                       notificationBox.PRIORITY_INFO_LOW,
+                                       buttons);
   },
 
   
@@ -350,16 +464,7 @@ var WebContentConverterRegistrar = {
     if (contentType != TYPE_MAYBE_FEED)
       return;
 
-    try {
-      var uri = this._makeURI(aURIString);
-    } catch (ex) {
-      
-      return; 
-    }
-    
-    
-    if (uri.spec.indexOf("%s") < 0)
-      throw NS_ERROR_DOM_SYNTAX_ERR; 
+    var uri = this._checkAndGetURI(aURIString);
             
     
     
