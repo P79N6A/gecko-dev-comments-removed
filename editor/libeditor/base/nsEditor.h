@@ -368,6 +368,10 @@ public:
   nsresult RestorePreservedSelection(nsISelection *aSel);
   void     StopPreservingSelection();
 
+
+  
+  static nsresult GetTextNodeTag(nsAString& aOutString);
+
   
 
 
