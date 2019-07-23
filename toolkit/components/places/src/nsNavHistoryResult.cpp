@@ -3006,8 +3006,7 @@ nsNavHistoryQueryResultNode::OnPageChanged(nsIURI *aURI, PRUint32 aWhat,
 
 
 NS_IMETHODIMP
-nsNavHistoryQueryResultNode::OnPageExpired(nsIURI* aURI, PRTime aVisitTime,
-                                           PRBool aWholeEntry)
+nsNavHistoryQueryResultNode::OnDeleteVisits(nsIURI* aURI, PRTime aVisitTime)
 {
   return NS_OK;
 }
@@ -4639,10 +4638,8 @@ nsNavHistoryResult::OnPageChanged(nsIURI *aURI,
 
 
 
-
 NS_IMETHODIMP
-nsNavHistoryResult::OnPageExpired(nsIURI* aURI, PRTime aVisitTime,
-                                  PRBool aWholeEntry)
+nsNavHistoryResult::OnDeleteVisits(nsIURI* aURI, PRTime aVisitTime)
 {
   return NS_OK;
 }

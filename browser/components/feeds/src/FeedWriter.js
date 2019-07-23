@@ -1415,7 +1415,7 @@ FeedWriter.prototype = {
    onBeforeDeleteURI: function() { },
    onDeleteURI: function() { },
    onClearHistory: function() { },
-   onPageExpired: function() { },
+   onDeleteVisits: function() { },
 
   
   getInterfaces: function FW_getInterfaces(countRef) {

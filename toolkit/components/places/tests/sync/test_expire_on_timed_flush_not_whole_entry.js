@@ -87,15 +87,12 @@ os.addObserver(observer, kSyncFinished, false);
 
 var historyObserver = {
   visitTime: -1,
-  onPageExpired: function(aURI, aVisitTime, aWholeEntry)
+  onDeleteVisits: function(aURI, aVisitTime)
   {
     do_check_true(aURI.equals(uri(TEST_URI)));
 
     
     do_check_eq(this.visitTime, aVisitTime);
-
-    
-    do_check_false(aWholeEntry);
 
     
     do_check_false(observer.notificationReceived);

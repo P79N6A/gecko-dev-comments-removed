@@ -336,8 +336,7 @@ nsNavHistoryExpire::ExpireItems(PRUint32 aNumToExpire)
 
     ENUMERATE_OBSERVERS(mHistory->canNotify(), mHistory->mCacheObservers,
                         mHistory->mObservers, nsINavHistoryObserver,
-                        OnPageExpired(uri, expiredVisits[i].visitDate,
-                                      expiredVisits[i].erased));
+                        OnDeleteVisits(uri, expiredVisits[i].visitDate));
   }
 
   

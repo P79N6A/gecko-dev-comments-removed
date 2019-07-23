@@ -72,7 +72,7 @@ var observer = {
   onPageChanged: function(aURI, aWhat, aValue) {
   },
   expiredURI: null,
-  onPageExpired: function(aURI, aVisitTime, aWholeEntry) {
+  onDeleteVisits: function(aURI, aVisitTime) {
     this.expiredURI = aURI.spec;
   },
   QueryInterface: function(iid) {

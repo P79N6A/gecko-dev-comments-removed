@@ -3181,8 +3181,7 @@ nsNavBookmarks::OnPageChanged(nsIURI *aURI, PRUint32 aWhat,
 }
 
 NS_IMETHODIMP
-nsNavBookmarks::OnPageExpired(nsIURI* aURI, PRTime aVisitTime,
-                              PRBool aWholeEntry)
+nsNavBookmarks::OnDeleteVisits(nsIURI* aURI, PRTime aVisitTime)
 {
   
   return NS_OK;

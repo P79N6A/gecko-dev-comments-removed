@@ -1851,14 +1851,10 @@ nsDownloadManager::OnPageChanged(nsIURI *aURI, PRUint32 aWhat,
 }
 
 NS_IMETHODIMP
-nsDownloadManager::OnPageExpired(nsIURI *aURI, PRTime aVisitTime,
-                                 PRBool aWholeEntry)
+nsDownloadManager::OnDeleteVisits(nsIURI *aURI, PRTime aVisitTime)
 {
   
-  if (!aWholeEntry)
-    return NS_OK;
-
-  return RemoveDownloadsForURI(aURI);
+  return NS_OK;
 }
 
 
