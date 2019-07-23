@@ -94,7 +94,7 @@ public:
   
   void RemoveGroupCellMap(nsTableRowGroupFrame* aRowGroup);
 
-  void InsertGroupCellMap(nsTableRowGroupFrame&  aNewRowGroup,
+  void InsertGroupCellMap(nsTableRowGroupFrame*  aNewRowGroup,
                           nsTableRowGroupFrame*& aPrevRowGroup);
 
   
@@ -140,7 +140,7 @@ public:
                   nsRect&           aDamageArea);
   
   void ClearCols();
-  void InsertRows(nsTableRowGroupFrame&       aRowGroup,
+  void InsertRows(nsTableRowGroupFrame*       aRowGroup,
                   nsTArray<nsTableRowFrame*>& aRows,
                   PRInt32                     aFirstRowIndex,
                   PRBool                      aConsiderSpans,
@@ -306,7 +306,7 @@ public:
 
 
 
-  nsCellMap(nsTableRowGroupFrame& aRowGroupFrame, PRBool aIsBC);
+  nsCellMap(nsTableRowGroupFrame* aRowGroupFrame, PRBool aIsBC);
 
   
 

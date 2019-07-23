@@ -65,7 +65,6 @@
 #include "nsIDOMElement.h"
 #include "nsIDOMHTMLElement.h"
 #include "nsIDOMHTMLBodyElement.h"
-#include "nsIScrollableFrame.h"
 #include "nsFrameManager.h"
 #include "nsCSSRendering.h"
 #include "nsLayoutErrors.h"
@@ -522,30 +521,24 @@ void nsTableFrame::ResetRowIndices(const nsFrameList::Slice& aRowGroupsToExclude
 {
   
   
-  
-  
-  
   RowGroupArray rowGroups;
   OrderRowGroups(rowGroups);
 
   PRInt32 rowIndex = 0;
-  nsTableRowGroupFrame* newRgFrame = nsnull;
+  nsTHashtable<nsPtrHashKey<nsTableRowGroupFrame> > excludeRowGroups;
+  if (!excludeRowGroups.Init()) {
+    NS_ERROR("Failed to initialize excludeRowGroups hash.");
+    return;
+  }
   nsFrameList::Enumerator excludeRowGroupsEnumerator(aRowGroupsToExclude);
-  if (!excludeRowGroupsEnumerator.AtEnd()) {
-    newRgFrame = GetRowGroupFrame(excludeRowGroupsEnumerator.get());
+  while (!excludeRowGroupsEnumerator.AtEnd()) {
+    excludeRowGroups.PutEntry(static_cast<nsTableRowGroupFrame*>(excludeRowGroupsEnumerator.get()));
     excludeRowGroupsEnumerator.Next();
   }
 
   for (PRUint32 rgX = 0; rgX < rowGroups.Length(); rgX++) {
     nsTableRowGroupFrame* rgFrame = rowGroups[rgX];
-    if (rgFrame == newRgFrame) {
-      
-      if (!excludeRowGroupsEnumerator.AtEnd()) {
-        newRgFrame = GetRowGroupFrame(excludeRowGroupsEnumerator.get());
-        excludeRowGroupsEnumerator.Next();
-      }
-    }
-    else {
+    if (!excludeRowGroups.GetEntry(rgFrame)) {
       const nsFrameList& rowFrames = rgFrame->GetChildList(nsnull);
       for (nsFrameList::Enumerator rows(rowFrames); !rows.AtEnd(); rows.Next()) {
         if (NS_STYLE_DISPLAY_TABLE_ROW==rows.get()->GetStyleDisplay()->mDisplay) {
@@ -881,7 +874,7 @@ void nsTableFrame::RemoveCell(nsTableCellFrame* aCellFrame,
 }
 
 PRInt32
-nsTableFrame::GetStartRowIndex(nsTableRowGroupFrame& aRowGroupFrame)
+nsTableFrame::GetStartRowIndex(nsTableRowGroupFrame* aRowGroupFrame)
 {
   RowGroupArray orderedRowGroups;
   OrderRowGroups(orderedRowGroups);
@@ -889,7 +882,7 @@ nsTableFrame::GetStartRowIndex(nsTableRowGroupFrame& aRowGroupFrame)
   PRInt32 rowIndex = 0;
   for (PRUint32 rgIndex = 0; rgIndex < orderedRowGroups.Length(); rgIndex++) {
     nsTableRowGroupFrame* rgFrame = orderedRowGroups[rgIndex];
-    if (rgFrame == &aRowGroupFrame) {
+    if (rgFrame == aRowGroupFrame) {
       break;
     }
     PRInt32 numRows = rgFrame->GetRowCount();
@@ -899,7 +892,7 @@ nsTableFrame::GetStartRowIndex(nsTableRowGroupFrame& aRowGroupFrame)
 }
 
 
-void nsTableFrame::AppendRows(nsTableRowGroupFrame&       aRowGroupFrame,
+void nsTableFrame::AppendRows(nsTableRowGroupFrame*       aRowGroupFrame,
                               PRInt32                     aRowIndex,
                               nsTArray<nsTableRowFrame*>& aRowFrames)
 {
@@ -910,20 +903,9 @@ void nsTableFrame::AppendRows(nsTableRowGroupFrame&       aRowGroupFrame,
   }
 }
 
-PRInt32
-nsTableFrame::InsertRow(nsTableRowGroupFrame& aRowGroupFrame,
-                        nsIFrame&             aRowFrame,
-                        PRInt32               aRowIndex,
-                        PRBool                aConsiderSpans)
-{
-  nsAutoTArray<nsTableRowFrame*, 1> rows;
-  rows.AppendElement((nsTableRowFrame*)&aRowFrame);
-  return InsertRows(aRowGroupFrame, rows, aRowIndex, aConsiderSpans);
-}
-
 
 PRInt32
-nsTableFrame::InsertRows(nsTableRowGroupFrame&       aRowGroupFrame,
+nsTableFrame::InsertRows(nsTableRowGroupFrame*       aRowGroupFrame,
                          nsTArray<nsTableRowFrame*>& aRowFrames,
                          PRInt32                     aRowIndex,
                          PRBool                      aConsiderSpans)
@@ -1004,53 +986,18 @@ void nsTableFrame::RemoveRows(nsTableRowFrame& aFirstRowFrame,
 #endif
 }
 
-nsTableRowGroupFrame*
-nsTableFrame::GetRowGroupFrame(nsIFrame* aFrame,
-                               nsIAtom*  aFrameTypeIn)
-{
-  nsIFrame* rgFrame = nsnull;
-  nsIAtom* frameType = aFrameTypeIn;
-  if (!aFrameTypeIn) {
-    frameType = aFrame->GetType();
-  }
-  if (nsGkAtoms::tableRowGroupFrame == frameType) {
-    rgFrame = aFrame;
-  }
-  else if (nsGkAtoms::scrollFrame == frameType) {
-    nsIScrollableFrame* scrollable = do_QueryFrame(aFrame);
-    if (scrollable) {
-      nsIFrame* scrolledFrame = scrollable->GetScrolledFrame();
-      if (scrolledFrame) {
-        if (nsGkAtoms::tableRowGroupFrame == scrolledFrame->GetType()) {
-          rgFrame = scrolledFrame;
-        }
-      }
-    }
-  }
-  return (nsTableRowGroupFrame*)rgFrame;
-}
-
 
 PRInt32
 nsTableFrame::CollectRows(nsIFrame*                   aFrame,
                           nsTArray<nsTableRowFrame*>& aCollection)
 {
-  if (!aFrame) return 0;
+  NS_PRECONDITION(aFrame, "null frame");
   PRInt32 numRows = 0;
-  nsTableRowGroupFrame* rgFrame = GetRowGroupFrame(aFrame);
-  if (rgFrame) {
-    nsIFrame* childFrame = rgFrame->GetFirstChild(nsnull);
-    while (childFrame) {
-      nsTableRowFrame *rowFrame = do_QueryFrame(childFrame);
-      if (rowFrame) {
-        aCollection.AppendElement(rowFrame);
-        numRows++;
-      }
-      else {
-        numRows += CollectRows(childFrame, aCollection);
-      }
-      childFrame = childFrame->GetNextSibling();
-    }
+  nsIFrame* childFrame = aFrame->GetFirstChild(nsnull);
+  while (childFrame) {
+    aCollection.AppendElement(static_cast<nsTableRowFrame*>(childFrame));
+    numRows++;
+    childFrame = childFrame->GetNextSibling();
   }
   return numRows;
 }
@@ -1076,13 +1023,11 @@ nsTableFrame::InsertRowGroups(const nsFrameList::Slice& aRowGroups)
     for (rgIndex = 0; rgIndex < orderedRowGroups.Length(); rgIndex++) {
       for (nsFrameList::Enumerator rowgroups(aRowGroups); !rowgroups.AtEnd();
            rowgroups.Next()) {
-        nsTableRowGroupFrame* rgFrame = GetRowGroupFrame(rowgroups.get());
-
-        if (orderedRowGroups[rgIndex] == rgFrame) {
+        if (orderedRowGroups[rgIndex] == rowgroups.get()) {
           nsTableRowGroupFrame* priorRG =
             (0 == rgIndex) ? nsnull : orderedRowGroups[rgIndex - 1]; 
           
-          cellMap->InsertGroupCellMap(*rgFrame, priorRG);
+          cellMap->InsertGroupCellMap(orderedRowGroups[rgIndex], priorRG);
         
           break;
         }
@@ -1095,9 +1040,7 @@ nsTableFrame::InsertRowGroups(const nsFrameList::Slice& aRowGroups)
     for (rgIndex = 0; rgIndex < orderedRowGroups.Length(); rgIndex++) {
       for (nsFrameList::Enumerator rowgroups(aRowGroups); !rowgroups.AtEnd();
            rowgroups.Next()) {
-        nsTableRowGroupFrame* rgFrame = GetRowGroupFrame(rowgroups.get());
-
-        if (orderedRowGroups[rgIndex] == rgFrame) {
+        if (orderedRowGroups[rgIndex] == rowgroups.get()) {
           nsTableRowGroupFrame* priorRG =
             (0 == rgIndex) ? nsnull : orderedRowGroups[rgIndex - 1]; 
           
@@ -1108,7 +1051,7 @@ nsTableFrame::InsertRowGroups(const nsFrameList::Slice& aRowGroups)
               PRInt32 priorNumRows = priorRG->GetRowCount();
               rowIndex = priorRG->GetStartRowIndex() + priorNumRows;
             }
-            InsertRows(*rgFrame, rows, rowIndex, PR_TRUE);
+            InsertRows(orderedRowGroups[rgIndex], rows, rowIndex, PR_TRUE);
             rows.Clear();
           }
           break;
@@ -1697,7 +1640,6 @@ nsTableFrame::RequestSpecialHeightReflow(const nsHTMLReflowState& aReflowState)
     NS_ASSERTION(IS_TABLE_CELL(frameType) ||
                  nsGkAtoms::tableRowFrame == frameType ||
                  nsGkAtoms::tableRowGroupFrame == frameType ||
-                 nsGkAtoms::scrollFrame == frameType ||
                  nsGkAtoms::tableFrame == frameType,
                  "unexpected frame type");
                  
@@ -1993,7 +1935,7 @@ nsTableFrame::GetFirstBodyRowGroupFrame()
 
 
 void
-nsTableFrame::PushChildren(const FrameArray& aFrames,
+nsTableFrame::PushChildren(const RowGroupArray& aRowGroups,
                            PRInt32 aPushFrom)
 {
   NS_PRECONDITION(aPushFrom > 0, "pushing first child");
@@ -2001,17 +1943,11 @@ nsTableFrame::PushChildren(const FrameArray& aFrames,
   
   nsFrameList frames;
   PRUint32 childX;
-  for (childX = aPushFrom; childX < aFrames.Length(); ++childX) {
-    nsIFrame* f = aFrames[childX];
-    
-    
-    
-    
-    nsTableRowGroupFrame* rgFrame = GetRowGroupFrame(f);
-    NS_ASSERTION(rgFrame, "Unexpected non-row-group frame");
+  for (childX = aPushFrom; childX < aRowGroups.Length(); ++childX) {
+    nsTableRowGroupFrame* rgFrame = aRowGroups[childX];
     if (!rgFrame || !rgFrame->IsRepeatable()) {
-      mFrames.RemoveFrame(f);
-      frames.AppendFrame(nsnull, f);
+      mFrames.RemoveFrame(rgFrame);
+      frames.AppendFrame(nsnull, rgFrame);
     }
   }
 
@@ -2351,31 +2287,27 @@ nsTableFrame::RemoveFrame(nsIAtom*        aListName,
 
   } else {
     NS_ASSERTION(!aListName, "unexpected child list");
-    nsTableRowGroupFrame* rgFrame = GetRowGroupFrame(aOldFrame);
-    if (rgFrame) {
-      
-      nsTableCellMap* cellMap = GetCellMap();
-      if (cellMap) {
-        cellMap->RemoveGroupCellMap(rgFrame);
-      }
-
-       
-      mFrames.DestroyFrame(aOldFrame);
-     
-      
-      if (cellMap) {
-        cellMap->Synchronize(this);
-        
-        ResetRowIndices(nsFrameList::Slice(mFrames, nsnull, nsnull));
-        nsRect damageArea;
-        cellMap->RebuildConsideringCells(nsnull, nsnull, 0, 0, PR_FALSE, damageArea);
-      }
-
-      MatchCellMapToColCache(cellMap);
-    } else {
-      
-      mFrames.DestroyFrame(aOldFrame);
+    nsTableRowGroupFrame* rgFrame =
+      static_cast<nsTableRowGroupFrame*>(aOldFrame);
+    
+    nsTableCellMap* cellMap = GetCellMap();
+    if (cellMap) {
+      cellMap->RemoveGroupCellMap(rgFrame);
     }
+
+    
+    mFrames.DestroyFrame(aOldFrame);
+
+    
+    if (cellMap) {
+      cellMap->Synchronize(this);
+      
+      ResetRowIndices(nsFrameList::Slice(mFrames, nsnull, nsnull));
+      nsRect damageArea;
+      cellMap->RebuildConsideringCells(nsnull, nsnull, 0, 0, PR_FALSE, damageArea);
+    }
+
+    MatchCellMapToColCache(cellMap);
   }
   
   
@@ -2502,10 +2434,9 @@ nsTableFrame::InitChildReflowState(nsHTMLReflowState& aReflowState)
   nsMargin* pCollapseBorder = nsnull;
   nsPresContext* presContext = PresContext();
   if (IsBorderCollapse()) {
-    nsTableRowGroupFrame* rgFrame = GetRowGroupFrame(aReflowState.frame);
-    if (rgFrame) {
-      pCollapseBorder = rgFrame->GetBCBorderWidth(collapseBorder);
-    }
+    nsTableRowGroupFrame* rgFrame =
+       static_cast<nsTableRowGroupFrame*>(aReflowState.frame);
+    pCollapseBorder = rgFrame->GetBCBorderWidth(collapseBorder);
   }
   aReflowState.Init(presContext, -1, -1, pCollapseBorder, &padding);
 
@@ -2545,7 +2476,9 @@ void nsTableFrame::PlaceChild(nsTableReflowState&  aReflowState,
 }
 
 void
-nsTableFrame::OrderRowGroups(RowGroupArray& aChildren) const
+nsTableFrame::OrderRowGroups(RowGroupArray& aChildren,
+                             nsTableRowGroupFrame** aHead,
+                             nsTableRowGroupFrame** aFoot) const
 {
   aChildren.Clear();
   nsTableRowGroupFrame* head = nsnull;
@@ -2554,33 +2487,33 @@ nsTableFrame::OrderRowGroups(RowGroupArray& aChildren) const
   nsIFrame* kidFrame = mFrames.FirstChild();
   while (kidFrame) {
     const nsStyleDisplay* kidDisplay = kidFrame->GetStyleDisplay();
-    nsTableRowGroupFrame* rowGroup = GetRowGroupFrame(kidFrame);
-    if (NS_LIKELY(rowGroup)) {
-      switch(kidDisplay->mDisplay) {
-      case NS_STYLE_DISPLAY_TABLE_HEADER_GROUP:
-        if (head) { 
-          aChildren.AppendElement(rowGroup);
-        }
-        else {
-          head = rowGroup;
-        }
-        break;
-      case NS_STYLE_DISPLAY_TABLE_FOOTER_GROUP:
-        if (foot) { 
-          aChildren.AppendElement(rowGroup);
-        }
-        else {
-          foot = rowGroup;
-        }
-        break;
-      case NS_STYLE_DISPLAY_TABLE_ROW_GROUP:
+    nsTableRowGroupFrame* rowGroup =
+      static_cast<nsTableRowGroupFrame*>(kidFrame);
+
+    switch (kidDisplay->mDisplay) {
+    case NS_STYLE_DISPLAY_TABLE_HEADER_GROUP:
+      if (head) { 
         aChildren.AppendElement(rowGroup);
-        break;
-      default:
-        NS_NOTREACHED("How did this produce an nsTableRowGroupFrame?");
-        
-        break;
       }
+      else {
+        head = rowGroup;
+      }
+      break;
+    case NS_STYLE_DISPLAY_TABLE_FOOTER_GROUP:
+      if (foot) { 
+        aChildren.AppendElement(rowGroup);
+      }
+      else {
+        foot = rowGroup;
+      }
+      break;
+    case NS_STYLE_DISPLAY_TABLE_ROW_GROUP:
+      aChildren.AppendElement(rowGroup);
+      break;
+    default:
+      NS_NOTREACHED("How did this produce an nsTableRowGroupFrame?");
+      
+      break;
     }
     
     
@@ -2596,88 +2529,14 @@ nsTableFrame::OrderRowGroups(RowGroupArray& aChildren) const
   if (head) {
     aChildren.InsertElementAt(0, head);
   }
-
+  if (aHead)
+    *aHead = head;
   
   if (foot) {
     aChildren.AppendElement(foot);
   }
-}
-
-PRUint32
-nsTableFrame::OrderRowGroups(FrameArray& aChildren,
-                             nsTableRowGroupFrame** aHead,
-                             nsTableRowGroupFrame** aFoot) const
-{
-  aChildren.Clear();
-  
-  *aHead = nsnull;
-  *aFoot = nsnull;
-
-  FrameArray nonRowGroups;
-
-  nsIFrame* head = nsnull;
-  nsIFrame* foot = nsnull;
-  
-  nsIFrame* kidFrame = mFrames.FirstChild();
-  while (kidFrame) {
-    const nsStyleDisplay* kidDisplay = kidFrame->GetStyleDisplay();
-    nsTableRowGroupFrame* rowGroup = GetRowGroupFrame(kidFrame);
-    if (NS_LIKELY(rowGroup)) {
-      switch(kidDisplay->mDisplay) {
-      case NS_STYLE_DISPLAY_TABLE_HEADER_GROUP:
-        if (head) { 
-          aChildren.AppendElement(kidFrame);
-        }
-        else {
-          head = kidFrame;
-          *aHead = rowGroup;
-        }
-        break;
-      case NS_STYLE_DISPLAY_TABLE_FOOTER_GROUP:
-        if (foot) { 
-          aChildren.AppendElement(kidFrame);
-        }
-        else {
-          foot = kidFrame;
-          *aFoot = rowGroup;
-        }
-        break;
-      case NS_STYLE_DISPLAY_TABLE_ROW_GROUP:
-        aChildren.AppendElement(kidFrame);
-        break;
-      default:
-        break;
-      }
-    } else {
-      NS_NOTREACHED("Non-row-group primary frame list child of an "
-                    "nsTableFrame?  How come?");
-      nonRowGroups.AppendElement(kidFrame);
-    }
-
-    
-    
-    while (kidFrame) {
-      nsIFrame* nif = kidFrame->GetNextInFlow();
-      kidFrame = kidFrame->GetNextSibling();
-      if (kidFrame != nif) 
-        break;
-    }
-  }
-  
-  
-  if (head) {
-    aChildren.InsertElementAt(0, head);
-  }
-
-  
-  if (foot) {
-    aChildren.AppendElement(foot);
-  }
-
-  PRUint32 rowGroupCount = aChildren.Length();
-  aChildren.AppendElements(nonRowGroups);
-
-  return rowGroupCount;
+  if (aFoot)
+    *aFoot = foot;
 }
 
 nsTableRowGroupFrame*
@@ -2687,10 +2546,7 @@ nsTableFrame::GetTHead() const
   while (kidFrame) {
     if (kidFrame->GetStyleDisplay()->mDisplay ==
           NS_STYLE_DISPLAY_TABLE_HEADER_GROUP) {
-      nsTableRowGroupFrame* rg = GetRowGroupFrame(kidFrame);
-      if (rg) {
-        return rg;
-      }
+      return static_cast<nsTableRowGroupFrame*>(kidFrame);
     }
 
     
@@ -2713,10 +2569,7 @@ nsTableFrame::GetTFoot() const
   while (kidFrame) {
     if (kidFrame->GetStyleDisplay()->mDisplay ==
           NS_STYLE_DISPLAY_TABLE_FOOTER_GROUP) {
-      nsTableRowGroupFrame* rg = GetRowGroupFrame(kidFrame);
-      if (rg) {
-        return rg;
-      }
+      return static_cast<nsTableRowGroupFrame*>(kidFrame);
     }
 
     
@@ -2745,13 +2598,6 @@ nsTableFrame::SetupHeaderFooterChild(const nsTableReflowState& aReflowState,
 {
   nsPresContext* presContext = PresContext();
   nscoord pageHeight = presContext->GetPageSize().height;
-
-  if (aFrame->GetParent() != this || pageHeight == NS_UNCONSTRAINEDSIZE) {
-    
-    
-    *aDesiredHeight = 0;
-    return NS_OK;
-  }
 
   
   nsHTMLReflowState kidReflowState(presContext, aReflowState.reflowState,
@@ -2798,9 +2644,9 @@ nsTableFrame::ReflowChildren(nsTableReflowState& aReflowState,
                          mBits.mResizedColumns ||
                          IsGeometryDirty();
 
-  FrameArray rowGroups;
+  RowGroupArray rowGroups;
   nsTableRowGroupFrame *thead, *tfoot;
-  PRUint32 numRowGroups = OrderRowGroups(rowGroups, &thead, &tfoot);
+  OrderRowGroups(rowGroups, &thead, &tfoot);
   PRBool pageBreak = PR_FALSE;
   nscoord footerHeight = 0;
 
@@ -2826,7 +2672,7 @@ nsTableFrame::ReflowChildren(nsTableReflowState& aReflowState,
     }
   }
 
-  for (PRUint32 childX = 0; childX < numRowGroups; childX++) {
+  for (PRUint32 childX = 0; childX < rowGroups.Length(); childX++) {
     nsIFrame* kidFrame = rowGroups[childX];
     
     
@@ -2845,7 +2691,8 @@ nsTableFrame::ReflowChildren(nsTableReflowState& aReflowState,
       
       PRBool allowRepeatedFooter = PR_FALSE;
       if (isPaginated && (NS_UNCONSTRAINEDSIZE != kidAvailSize.height)) {
-        nsTableRowGroupFrame* kidRG = GetRowGroupFrame(kidFrame);
+        nsTableRowGroupFrame* kidRG =
+          static_cast<nsTableRowGroupFrame*>(kidFrame);
         if (kidRG != thead && kidRG != tfoot && tfoot && tfoot->IsRepeatable()) {
           
           NS_ASSERTION(tfoot == rowGroups[rowGroups.Length() - 1], "Missing footer!");
@@ -2894,11 +2741,11 @@ nsTableFrame::ReflowChildren(nsTableReflowState& aReflowState,
 
       if (reorder) {
         
-        numRowGroups = OrderRowGroups(rowGroups, &thead, &tfoot);
+        OrderRowGroups(rowGroups, &thead, &tfoot);
         childX = rowGroups.IndexOf(kidFrame);
         if (childX == RowGroupArray::NoIndex) {
           
-          childX = numRowGroups;
+          childX = rowGroups.Length();
         }
       }
       
@@ -2938,7 +2785,7 @@ nsTableFrame::ReflowChildren(nsTableReflowState& aReflowState,
       if (NS_FRAME_IS_COMPLETE(aStatus) && isPaginated && 
           (NS_UNCONSTRAINEDSIZE != kidReflowState.availableHeight)) {
         nsIFrame* nextKid =
-          (childX + 1 < numRowGroups) ? rowGroups[childX + 1] : nsnull;
+          (childX + 1 < rowGroups.Length()) ? rowGroups[childX + 1] : nsnull;
         pageBreak = PageBreakAfter(*kidFrame, nextKid);
       }
 
@@ -2972,7 +2819,8 @@ nsTableFrame::ReflowChildren(nsTableReflowState& aReflowState,
         }
 
         
-        rowGroups.InsertElementAt(childX + 1, kidNextInFlow);
+        rowGroups.InsertElementAt(childX + 1,
+                           static_cast <nsTableRowGroupFrame*>(kidNextInFlow));
 
         
         
@@ -3067,14 +2915,9 @@ nsTableFrame::CalcDesiredHeight(const nsHTMLReflowState& aReflowState, nsHTMLRef
   nsMargin borderPadding = GetChildAreaOffset(&aReflowState);
 
   
-  FrameArray rowGroups;
-  PRUint32 numRowGroups;
-  {
-    
-    nsTableRowGroupFrame *dummy1, *dummy2;
-    numRowGroups = OrderRowGroups(rowGroups, &dummy1, &dummy2);
-  }
-  if (numRowGroups == 0) {
+  RowGroupArray rowGroups;
+  OrderRowGroups(rowGroups);
+  if (rowGroups.IsEmpty()) {
     
     nscoord tableSpecifiedHeight = CalcBorderBoxHeight(aReflowState);
     if ((NS_UNCONSTRAINEDSIZE != tableSpecifiedHeight) &&
@@ -3092,7 +2935,7 @@ nsTableFrame::CalcDesiredHeight(const nsHTMLReflowState& aReflowState, nsHTMLRef
   nscoord desiredHeight = borderPadding.top + borderPadding.bottom;
   if (rowCount > 0 && colCount > 0) {
     desiredHeight += cellSpacingY;
-    for (PRUint32 rgX = 0; rgX < numRowGroups; rgX++) {
+    for (PRUint32 rgX = 0; rgX < rowGroups.Length(); rgX++) {
       desiredHeight += rowGroups[rgX]->GetSize().height + cellSpacingY;
     }
   }
@@ -3388,7 +3231,6 @@ nsTableFrame::DistributeHeightToRows(const nsHTMLReflowState& aReflowState,
                                       PR_FALSE);
       }
       
-      
     }
     else if (amountUsed > 0 && yOriginRG != rgRect.y) {
       rgFrame->InvalidateOverflowRect();
@@ -3478,8 +3320,6 @@ nsTableFrame::GetBaseline() const
   OrderRowGroups(orderedRowGroups);
   nsTableRowFrame* firstRow = nsnull;
   for (PRUint32 rgIndex = 0; rgIndex < orderedRowGroups.Length(); rgIndex++) {
-    
-    
     nsTableRowGroupFrame* rgFrame = orderedRowGroups[rgIndex];
     if (rgFrame->GetRowCount()) {
       firstRow = rgFrame->GetFirstRow(); 
@@ -3625,30 +3465,30 @@ nsTableFrame::GetFrameAtOrBefore(nsIFrame*       aParentFrame,
 void 
 nsTableFrame::DumpRowGroup(nsIFrame* aKidFrame)
 {
-  nsTableRowGroupFrame* rgFrame = GetRowGroupFrame(aKidFrame);
-  if (rgFrame) {
-    nsIFrame* cFrame = rgFrame->GetFirstChild(nsnull);
-    while (cFrame) {
-      nsTableRowFrame *rowFrame = do_QueryFrame(cFrame);
-      if (rowFrame) {
-        printf("row(%d)=%p ", rowFrame->GetRowIndex(), rowFrame);
-        nsIFrame* childFrame = cFrame->GetFirstChild(nsnull);
-        while (childFrame) {
-          nsTableCellFrame *cellFrame = do_QueryFrame(childFrame);
-          if (cellFrame) {
-            PRInt32 colIndex;
-            cellFrame->GetColIndex(colIndex);
-            printf("cell(%d)=%p ", colIndex, childFrame);
-          }
-          childFrame = childFrame->GetNextSibling();
+  if (!aKidFrame)
+    return;
+
+  nsIFrame* cFrame = aKidFrame->GetFirstChild(nsnull);
+  while (cFrame) {
+    nsTableRowFrame *rowFrame = do_QueryFrame(cFrame);
+    if (rowFrame) {
+      printf("row(%d)=%p ", rowFrame->GetRowIndex(), rowFrame);
+      nsIFrame* childFrame = cFrame->GetFirstChild(nsnull);
+      while (childFrame) {
+        nsTableCellFrame *cellFrame = do_QueryFrame(childFrame);
+        if (cellFrame) {
+          PRInt32 colIndex;
+          cellFrame->GetColIndex(colIndex);
+          printf("cell(%d)=%p ", colIndex, childFrame);
         }
-        printf("\n");
+        childFrame = childFrame->GetNextSibling();
       }
-      else {
-        DumpRowGroup(rowFrame);
-      }
-      cFrame = cFrame->GetNextSibling();
+      printf("\n");
     }
+    else {
+      DumpRowGroup(rowFrame);
+    }
+    cFrame = cFrame->GetNextSibling();
   }
 }
 
@@ -4327,7 +4167,7 @@ BCMapCellInfo::SetInfo(nsTableRowFrame*   aNewRow,
   
   PRUint32 rgStart  = aIter->mRowGroupStart;
   PRUint32 rgEnd    = aIter->mRowGroupEnd;
-  mRowGroup = mTableFrame->GetRowGroupFrame(mTopRow->GetParent());
+  mRowGroup = static_cast<nsTableRowGroupFrame*>(mTopRow->GetParent());
   if (mRowGroup != aIter->GetCurrentRowGroup()) {
     rgStart = mRowGroup->GetStartRowIndex();
     rgEnd   = rgStart + mRowGroup->GetRowCount() - 1;

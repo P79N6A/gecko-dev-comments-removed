@@ -480,16 +480,11 @@ public:
   virtual void RemoveCell(nsTableCellFrame* aCellFrame,
                           PRInt32           aRowIndex);
 
-  void AppendRows(nsTableRowGroupFrame&       aRowGroupFrame,
+  void AppendRows(nsTableRowGroupFrame*       aRowGroupFrame,
                   PRInt32                     aRowIndex,
                   nsTArray<nsTableRowFrame*>& aRowFrames);
 
-  PRInt32 InsertRow(nsTableRowGroupFrame& aRowGroupFrame,
-                    nsIFrame&             aFrame,
-                    PRInt32               aRowIndex,
-                    PRBool                aConsiderSpans);
-
-  PRInt32 InsertRows(nsTableRowGroupFrame&       aRowGroupFrame,
+  PRInt32 InsertRows(nsTableRowGroupFrame*       aRowGroupFrame,
                      nsTArray<nsTableRowFrame*>& aFrames,
                      PRInt32                     aRowIndex,
                      PRBool                      aConsiderSpans);
@@ -629,13 +624,15 @@ protected:
                   const nsRect&        aOriginalKidOverflowRect);
 
   nsIFrame* GetFirstBodyRowGroupFrame();
+public:
+  typedef nsAutoTPtrArray<nsTableRowGroupFrame, 8> RowGroupArray;
   
 
 
 
 
-  typedef nsAutoTPtrArray<nsIFrame, 8> FrameArray;
-  void PushChildren(const FrameArray& aFrames, PRInt32 aPushFrom);
+protected:
+  void PushChildren(const RowGroupArray& aRowGroups, PRInt32 aPushFrom);
 
 public:
   
@@ -643,8 +640,10 @@ public:
   
   
   
-  typedef nsAutoTPtrArray<nsTableRowGroupFrame, 8> RowGroupArray;
-  void OrderRowGroups(RowGroupArray& aChildren) const;
+
+  void OrderRowGroups(RowGroupArray& aChildren,
+                      nsTableRowGroupFrame** aHead = nsnull,
+                      nsTableRowGroupFrame** aFoot = nsnull) const;
 
   
   nsTableRowGroupFrame* GetTHead() const;
@@ -652,25 +651,6 @@ public:
   
   nsTableRowGroupFrame* GetTFoot() const;
 
-protected:
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  PRUint32 OrderRowGroups(FrameArray& aChildren,
-                          nsTableRowGroupFrame** aHead,
-                          nsTableRowGroupFrame** aFoot) const;
-
-public:
   
   
   
@@ -742,11 +722,6 @@ public:
 
   nsTArray<nsTableColFrame*>& GetColCache();
 
-  
-
-  static nsTableRowGroupFrame* GetRowGroupFrame(nsIFrame* aFrame,
-                                                nsIAtom*  aFrameTypeIn = nsnull);
-
 protected:
 
   void SetBorderCollapse(PRBool aValue);
@@ -763,7 +738,7 @@ protected:
 
 public: 
 
-  PRInt32 GetStartRowIndex(nsTableRowGroupFrame& aRowGroupFrame);
+  PRInt32 GetStartRowIndex(nsTableRowGroupFrame* aRowGroupFrame);
 
   
 

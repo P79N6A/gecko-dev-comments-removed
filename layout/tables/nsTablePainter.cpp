@@ -454,8 +454,7 @@ TableBackgroundPainter::PaintTable(nsTableFrame*   aTableFrame,
     
     mRowGroup.mRect.MoveTo(rg->GetOffsetTo(aTableFrame));
     if (mRowGroup.mRect.Intersects(mDirtyRect - mRenderPt)) {
-      nsresult rv = PaintRowGroup(rg,
-              rg->IsPseudoStackingContextFromStyle() || rg->IsScrolled());
+      nsresult rv = PaintRowGroup(rg, rg->IsPseudoStackingContextFromStyle());
       if (NS_FAILED(rv)) return rv;
     }
   }

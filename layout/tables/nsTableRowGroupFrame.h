@@ -43,7 +43,6 @@
 #include "nsILineIterator.h"
 #include "nsTablePainter.h"
 #include "nsTArray.h"
-#include "nsCSSAnonBoxes.h"
 
 class nsTableFrame;
 class nsTableRowFrame;
@@ -359,13 +358,6 @@ public:
 
 
   FrameCursorData* SetupRowCursor();
-  
-  PRBool IsScrolled() {
-    
-    
-    return GetStyleContext()->GetPseudo() == nsCSSAnonBoxes::scrolledContent ||
-           GetStyleDisplay()->mOverflowY == NS_STYLE_OVERFLOW_CLIP;
-  }
 
   virtual nsILineIterator* GetLineIterator() { return this; }
 
