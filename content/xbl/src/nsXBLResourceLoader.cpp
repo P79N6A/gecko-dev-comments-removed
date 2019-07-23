@@ -122,7 +122,7 @@ nsXBLResourceLoader::LoadResources(PRBool* aResult)
       continue;
 
     if (curr->mType == nsGkAtoms::image) {
-      if (!nsContentUtils::CanLoadImage(url, doc, doc)) {
+      if (!nsContentUtils::CanLoadImage(url, doc, doc, doc->NodePrincipal())) {
         
         continue;
       }
@@ -131,7 +131,7 @@ nsXBLResourceLoader::LoadResources(PRBool* aResult)
       
       
       nsCOMPtr<imgIRequest> req;
-      nsContentUtils::LoadImage(url, doc, docURL, nsnull,
+      nsContentUtils::LoadImage(url, doc, doc->NodePrincipal(), docURL, nsnull,
                                 nsIRequest::LOAD_BACKGROUND,
                                 getter_AddRefs(req));
     }

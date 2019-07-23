@@ -186,6 +186,11 @@ protected:
   nsresult WillDirty();
   void     DidDirty();
 
+  
+  
+  
+  nsresult SubjectSubsumesInnerPrincipal() const;
+
 protected:
   nsString              mTitle;
   nsCOMPtr<nsMediaList> mMedia;

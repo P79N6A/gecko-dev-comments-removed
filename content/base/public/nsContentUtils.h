@@ -540,9 +540,11 @@ public:
 
 
 
+
   static PRBool CanLoadImage(nsIURI* aURI,
                              nsISupports* aContext,
                              nsIDocument* aLoadingDocument,
+                             nsIPrincipal* aLoadingPrincipal,
                              PRInt16* aImageBlockingStatus = nsnull);
   
 
@@ -553,8 +555,11 @@ public:
 
 
 
+
+
   static nsresult LoadImage(nsIURI* aURI,
                             nsIDocument* aLoadingDocument,
+                            nsIPrincipal* aLoadingPrincipal,
                             nsIURI* aReferrer,
                             imgIDecoderObserver* aObserver,
                             PRInt32 aLoadFlags,

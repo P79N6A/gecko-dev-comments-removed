@@ -2056,10 +2056,12 @@ nsContentUtils::SplitExpatName(const PRUnichar *aExpatName, nsIAtom **aPrefix,
 PRBool
 nsContentUtils::CanLoadImage(nsIURI* aURI, nsISupports* aContext,
                              nsIDocument* aLoadingDocument,
+                             nsIPrincipal* aLoadingPrincipal,
                              PRInt16* aImageBlockingStatus)
 {
   NS_PRECONDITION(aURI, "Must have a URI");
   NS_PRECONDITION(aLoadingDocument, "Must have a document");
+  NS_PRECONDITION(aLoadingPrincipal, "Must have a loading principal");
 
   nsresult rv;
 
@@ -2085,8 +2087,9 @@ nsContentUtils::CanLoadImage(nsIURI* aURI, nsISupports* aContext,
   if (appType != nsIDocShell::APP_TYPE_EDITOR) {
     
     
+    
     rv = sSecurityManager->
-      CheckLoadURIWithPrincipal(aLoadingDocument->NodePrincipal(), aURI,
+      CheckLoadURIWithPrincipal(aLoadingPrincipal, aURI,
                                 nsIScriptSecurityManager::ALLOW_CHROME);
     if (NS_FAILED(rv)) {
       if (aImageBlockingStatus) {
@@ -2098,11 +2101,15 @@ nsContentUtils::CanLoadImage(nsIURI* aURI, nsISupports* aContext,
     }
   }
 
+  nsCOMPtr<nsIURI> loadingURI;
+  nsresult rv = aLoadingPrincipal->GetURI(getter_AddRefs(loadingURI));
+  NS_ENSURE_SUCCESS(rv, PR_FALSE);
+
   PRInt16 decision = nsIContentPolicy::ACCEPT;
 
   rv = NS_CheckContentLoadPolicy(nsIContentPolicy::TYPE_IMAGE,
                                  aURI,
-                                 aLoadingDocument->GetDocumentURI(),
+                                 loadingURI,
                                  aContext,
                                  EmptyCString(), 
                                  nsnull,         
@@ -2119,11 +2126,13 @@ nsContentUtils::CanLoadImage(nsIURI* aURI, nsISupports* aContext,
 
 nsresult
 nsContentUtils::LoadImage(nsIURI* aURI, nsIDocument* aLoadingDocument,
-                          nsIURI* aReferrer, imgIDecoderObserver* aObserver,
-                          PRInt32 aLoadFlags, imgIRequest** aRequest)
+                          nsIPrincipal* aLoadingPrincipal, nsIURI* aReferrer,
+                          imgIDecoderObserver* aObserver, PRInt32 aLoadFlags,
+                          imgIRequest** aRequest)
 {
   NS_PRECONDITION(aURI, "Must have a URI");
   NS_PRECONDITION(aLoadingDocument, "Must have a document");
+  NS_PRECONDITION(aLoadingPrincipal, "Must have a principal");
   NS_PRECONDITION(aRequest, "Null out param");
 
   if (!sImgLoader) {
@@ -2135,6 +2144,9 @@ nsContentUtils::LoadImage(nsIURI* aURI, nsIDocument* aLoadingDocument,
   NS_ASSERTION(loadGroup, "Could not get loadgroup; onload may fire too early");
 
   nsIURI *documentURI = aLoadingDocument->GetDocumentURI();
+
+  
+  
 
   
   

@@ -2125,9 +2125,13 @@ nsTreeBodyFrame::GetImage(PRInt32 aRowIndex, nsTreeColumn* aCol, PRBool aUseCont
       if (!srcURI)
         return NS_ERROR_FAILURE;
 
-      if (nsContentUtils::CanLoadImage(srcURI, mContent, doc)) {
+      
+      
+      if (nsContentUtils::CanLoadImage(srcURI, mContent, doc,
+                                       mContent->NodePrincipal())) {
         nsresult rv = nsContentUtils::LoadImage(srcURI,
                                                 doc,
+                                                mContent->NodePrincipal(),
                                                 doc->GetDocumentURI(),
                                                 imgDecoderObserver,
                                                 nsIRequest::LOAD_NORMAL,

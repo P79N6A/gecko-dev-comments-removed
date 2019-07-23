@@ -535,6 +535,15 @@ nsImageLoadingContent::LoadImage(nsIURI* aNewURI,
 
   
   
+#ifdef DEBUG
+  nsCOMPtr<nsIContent> thisContent = do_QueryInterface(this);
+  NS_ASSERTION(thisContent &&
+               thisContent->NodePrincipal() == aDocument->NodePrincipal(),
+               "Principal mismatch?");
+#endif
+  
+  
+  
   
   
   
@@ -543,6 +552,7 @@ nsImageLoadingContent::LoadImage(nsIURI* aNewURI,
 
   PRInt16 newImageStatus;
   PRBool loadImage = nsContentUtils::CanLoadImage(aNewURI, this, aDocument,
+                                                  aDocument->NodePrincipal(),
                                                   &newImageStatus);
   NS_ASSERTION(loadImage || !NS_CP_ACCEPTED(newImageStatus),
                "CanLoadImage lied");
@@ -569,6 +579,7 @@ nsImageLoadingContent::LoadImage(nsIURI* aNewURI,
   nsCOMPtr<imgIRequest> & req = mCurrentRequest ? mPendingRequest : mCurrentRequest;
 
   rv = nsContentUtils::LoadImage(aNewURI, aDocument,
+                                 aDocument->NodePrincipal(),
                                  aDocument->GetDocumentURI(),
                                  this, aLoadFlags,
                                  getter_AddRefs(req));

@@ -1321,6 +1321,35 @@ nsCSSStyleSheet::DidDirty()
   mDirty = PR_TRUE;
 }
 
+nsresult
+nsCSSStyleSheet::SubjectSubsumesInnerPrincipal() const
+{
+  
+  nsIScriptSecurityManager *securityManager =
+    nsContentUtils::GetSecurityManager();
+
+  nsCOMPtr<nsIPrincipal> subjectPrincipal;
+  securityManager->GetSubjectPrincipal(getter_AddRefs(subjectPrincipal));
+
+  if (!subjectPrincipal) {
+    return NS_OK;
+  }
+
+  PRBool subsumes;
+  nsresult rv = subjectPrincipal->Subsumes(mInner->mPrincipal, &subsumes);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  if (subsumes) {
+    return NS_OK;
+  }
+  
+  if (!nsContentUtils::IsCallerTrustedForWrite()) {
+    return NS_ERROR_DOM_SECURITY_ERR;
+  }
+
+  return NS_OK;
+}
+
 NS_IMETHODIMP 
 nsCSSStyleSheet::IsModified(PRBool* aSheetModified) const
 {
@@ -1454,27 +1483,8 @@ nsCSSStyleSheet::GetCssRules(nsIDOMCSSRuleList** aCssRules)
   
   
   
-
-  
-  nsIScriptSecurityManager *securityManager =
-    nsContentUtils::GetSecurityManager();
-
-  nsCOMPtr<nsIPrincipal> subjectPrincipal;
-  securityManager->GetSubjectPrincipal(getter_AddRefs(subjectPrincipal));
-
-  nsresult rv = NS_OK;
-  if (subjectPrincipal) {
-    PRBool subsumes;
-    rv = subjectPrincipal->Subsumes(mInner->mPrincipal, &subsumes);
-    if (NS_SUCCEEDED(rv) && !subsumes &&
-        !nsContentUtils::IsCallerTrustedForRead()) {
-      rv = NS_ERROR_DOM_SECURITY_ERR;
-    }
-
-    if (NS_FAILED(rv)) {
-      return rv;
-    }
-  }
+  nsresult rv = SubjectSubsumesInnerPrincipal();
+  NS_ENSURE_SUCCESS(rv, rv);
 
   
   if (nsnull == mRuleCollection) {
@@ -1502,6 +1512,11 @@ nsCSSStyleSheet::InsertRule(const nsAString& aRule,
   if (!complete) {
     return NS_ERROR_DOM_INVALID_ACCESS_ERR;
   }
+
+  
+  
+  nsresult rv = SubjectSubsumesInnerPrincipal();
+  NS_ENSURE_SUCCESS(rv, rv);
 
   if (aRule.IsEmpty()) {
     
@@ -1672,6 +1687,11 @@ nsCSSStyleSheet::DeleteRule(PRUint32 aIndex)
   if (!complete) {
     return NS_ERROR_DOM_INVALID_ACCESS_ERR;
   }
+
+  
+  
+  nsresult rv = SubjectSubsumesInnerPrincipal();
+  NS_ENSURE_SUCCESS(rv, rv);
 
   
   mozAutoDocUpdate updateBatch(mDocument, UPDATE_STYLE, PR_TRUE);
