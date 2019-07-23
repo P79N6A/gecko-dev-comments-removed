@@ -81,7 +81,13 @@ private:
   static nsIDOMNode* gLastEventNodeWeak;
 
 public:
+  static void ResetLastInputState()
+   {gLastEventFromUserInput = PR_FALSE; gLastEventNodeWeak = nsnull; }
+
   
+
+
+
 
 
 
@@ -95,7 +101,8 @@ public:
 
 
 
-  static void PrepareForEvent(nsIAccessibleEvent *aEvent);
+  static void PrepareForEvent(nsIAccessibleEvent *aEvent,
+                              PRBool aForceIsFromUserInput = PR_FALSE);
 };
 
 class nsAccStateChangeEvent: public nsAccEvent,

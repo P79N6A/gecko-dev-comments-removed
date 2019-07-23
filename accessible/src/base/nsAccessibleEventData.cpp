@@ -95,14 +95,14 @@ void nsAccEvent::CaptureIsFromUserInput(PRBool aIsAsynch)
     return;
   }
 
-  if (aIsAsynch) {
-    
-    gLastEventNodeWeak = eventNode;
-  }
-  else {
+  if (!aIsAsynch) {
     PrepareForEvent(eventNode);
+    mIsFromUserInput = gLastEventFromUserInput;
   }
   
+  
+  
+
   mIsFromUserInput = gLastEventFromUserInput;
 }
 
@@ -113,13 +113,30 @@ nsAccEvent::GetIsFromUserInput(PRBool *aIsFromUserInput)
   return NS_OK;
 }
 
-void nsAccEvent::PrepareForEvent(nsIAccessibleEvent *aEvent)
+NS_IMETHODIMP
+nsAccEvent::SetIsFromUserInput(PRBool aIsFromUserInput)
 {
+  mIsFromUserInput = aIsFromUserInput;
+  return NS_OK;
+}
+
+void nsAccEvent::PrepareForEvent(nsIAccessibleEvent *aEvent,
+                                 PRBool aForceIsFromUserInput)
+{
+  gLastEventFromUserInput = aForceIsFromUserInput;
   nsCOMPtr<nsIDOMNode> eventNode;
   aEvent->GetDOMNode(getter_AddRefs(eventNode));
-  PRBool isFromUserInput;
-  aEvent->GetIsFromUserInput(&isFromUserInput);
-  PrepareForEvent(eventNode, isFromUserInput);
+  if (!gLastEventFromUserInput) {  
+    aEvent->GetIsFromUserInput(&gLastEventFromUserInput);
+    if (!gLastEventFromUserInput) {
+      
+      
+      PrepareForEvent(eventNode);  
+    }
+  }
+  gLastEventNodeWeak = eventNode;
+  
+  aEvent->SetIsFromUserInput(gLastEventFromUserInput);
 }
 
 void nsAccEvent::PrepareForEvent(nsIDOMNode *aEventNode,
@@ -154,7 +171,7 @@ void nsAccEvent::PrepareForEvent(nsIDOMNode *aEventNode,
 
   nsIEventStateManager *esm = presShell->GetPresContext()->EventStateManager();
   if (!esm) {
-    NS_NOTREACHED("Threre should always be an ESM for an event");
+    NS_NOTREACHED("There should always be an ESM for an event");
     return;
   }
 

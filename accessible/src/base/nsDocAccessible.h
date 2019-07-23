@@ -129,11 +129,8 @@ class nsDocAccessible : public nsHyperTextAccessibleWrap,
 
 
 
-
-
     nsresult FireDelayedAccessibleEvent(nsIAccessibleEvent *aEvent,
-                                        EDupeEventRule aAllowDupes = eRemoveDupes,
-                                        PRBool aIsAsynch = PR_FALSE);
+                                        EDupeEventRule aAllowDupes = eRemoveDupes);
 
     void ShutdownChildDocuments(nsIDocShellTreeItem *aStart);
 
