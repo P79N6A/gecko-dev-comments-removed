@@ -33,7 +33,7 @@
 #define NS_THEME_TOOLBAR_DUAL_BUTTON                       14
 
 
-#define NS_THEME_TOOLBAR_DUAL_BUTTON_DROPDOWN              15
+#define NS_THEME_TOOLBAR_BUTTON_DROPDOWN                   15
 
 
 #define NS_THEME_TOOLBAR_SEPARATOR                         16
