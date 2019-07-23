@@ -374,6 +374,7 @@ private:
   nsresult GetDocumentSelection(nsISelection **aSelection);
 
   nsresult GetClipboardEventTarget(nsIDOMNode **aEventTarget);
+  nsresult FireClipboardEvent(PRUint32 msg, PRBool* aPreventDefault);
 
 #ifdef NS_PRINTING
   
@@ -2317,26 +2318,10 @@ NS_IMETHODIMP DocumentViewerImpl::SelectAll()
 
 NS_IMETHODIMP DocumentViewerImpl::CopySelection()
 {
-  NS_ENSURE_TRUE(mPresShell, NS_ERROR_NOT_INITIALIZED);
-
-  
-  nsresult rv;
-  nsCOMPtr<nsIDOMNode> eventTarget;
-  rv = GetClipboardEventTarget(getter_AddRefs(eventTarget));
-  
-  if (NS_SUCCEEDED(rv)) {
-    nsEventStatus status = nsEventStatus_eIgnore;
-    nsEvent evt(PR_TRUE, NS_COPY);
-    nsEventDispatcher::Dispatch(eventTarget, mPresContext, &evt, nsnull,
-                                &status);
-    
-    if (status == nsEventStatus_eConsumeNoDefault)
-      
-      return NS_OK;
-    
-    if (!mPresShell)
-      return NS_OK;
-  }
+  PRBool preventDefault;
+  nsresult rv = FireClipboardEvent(NS_COPY, &preventDefault);
+  if (NS_FAILED(rv) || preventDefault)
+    return rv;
 
   return mPresShell->DoCopy();
 }
@@ -2389,36 +2374,54 @@ nsresult DocumentViewerImpl::GetClipboardEventTarget(nsIDOMNode** aEventTarget)
   return nsCopySupport::GetClipboardEventTarget(sel, aEventTarget);
 }
 
+nsresult DocumentViewerImpl::FireClipboardEvent(PRUint32 msg,
+                                                PRBool* aPreventDefault)
+{
+  *aPreventDefault = PR_FALSE;
+
+  NS_ENSURE_TRUE(mPresContext, NS_ERROR_NOT_INITIALIZED);
+  NS_ENSURE_TRUE(mPresShell, NS_ERROR_NOT_INITIALIZED);
+
+  
+  PRBool isReflowing = PR_TRUE;
+  nsresult rv = mPresShell->IsReflowLocked(&isReflowing);
+  if (NS_FAILED(rv) || isReflowing)
+    return NS_OK;
+
+  nsCOMPtr<nsIDOMNode> eventTarget;
+  rv = GetClipboardEventTarget(getter_AddRefs(eventTarget));
+  if (NS_FAILED(rv))
+    
+    return NS_OK;
+
+  nsEventStatus status = nsEventStatus_eIgnore;
+  nsEvent evt(PR_TRUE, msg);
+  nsEventDispatcher::Dispatch(eventTarget, mPresContext, &evt, nsnull,
+                              &status);
+  
+  if (status == nsEventStatus_eConsumeNoDefault)
+    *aPreventDefault = PR_TRUE;
+
+  
+  
+  NS_ENSURE_STATE(mPresShell);
+
+  return NS_OK;
+}
+
 NS_IMETHODIMP DocumentViewerImpl::GetCopyable(PRBool *aCopyable)
 {
   NS_ENSURE_ARG_POINTER(aCopyable);
   *aCopyable = PR_FALSE;
 
-  NS_ENSURE_TRUE(mPresShell, NS_ERROR_NOT_INITIALIZED);
-
-  
-  
-  nsCOMPtr<nsIDOMNode> eventTarget;
-  nsresult rv = GetClipboardEventTarget(getter_AddRefs(eventTarget));
-  
-  if (NS_SUCCEEDED(rv)) {
-    nsEventStatus status = nsEventStatus_eIgnore;
-    nsEvent evt(PR_TRUE, NS_BEFORECOPY);
-    nsEventDispatcher::Dispatch(eventTarget, mPresContext, &evt, nsnull,
-                                &status);
-    
-    if (status == nsEventStatus_eConsumeNoDefault) {
-      *aCopyable = PR_TRUE;
-      return NS_OK;
-    }
-    
-    if (!mPresShell)
-      return NS_OK;
-  }
+  nsresult rv = FireClipboardEvent(NS_BEFORECOPY, aCopyable);
+  if (NS_FAILED(rv) || *aCopyable)
+    return rv;
 
   nsCOMPtr<nsISelection> selection;
   rv = mPresShell->GetSelectionForCopy(getter_AddRefs(selection));
-  if (NS_FAILED(rv)) return rv;
+  if (NS_FAILED(rv))
+    return rv;
 
   PRBool isCollapsed;
   selection->GetIsCollapsed(&isCollapsed);
@@ -2429,21 +2432,10 @@ NS_IMETHODIMP DocumentViewerImpl::GetCopyable(PRBool *aCopyable)
 
 NS_IMETHODIMP DocumentViewerImpl::CutSelection()
 {
-  NS_ENSURE_TRUE(mPresContext, NS_ERROR_NOT_INITIALIZED);
-
   
-  nsresult rv;
-  nsCOMPtr<nsIDOMNode> eventTarget;
-  rv = GetClipboardEventTarget(getter_AddRefs(eventTarget));
   
-  if (NS_SUCCEEDED(rv)) {
-    nsEvent evt(PR_TRUE, NS_CUT);
-    nsEventDispatcher::Dispatch(eventTarget, mPresContext, &evt);
-    
-    
-  }
-
-  return NS_OK;
+  PRBool preventDefault;
+  return FireClipboardEvent(NS_CUT, &preventDefault);
 }
 
 NS_IMETHODIMP DocumentViewerImpl::GetCutable(PRBool *aCutable)
@@ -2451,46 +2443,17 @@ NS_IMETHODIMP DocumentViewerImpl::GetCutable(PRBool *aCutable)
   NS_ENSURE_ARG_POINTER(aCutable);
   *aCutable = PR_FALSE;
 
-  NS_ENSURE_TRUE(mPresContext, NS_ERROR_NOT_INITIALIZED);
-
   
   
-  nsCOMPtr<nsIDOMNode> eventTarget;
-  nsresult rv = GetClipboardEventTarget(getter_AddRefs(eventTarget));
-  
-  if (NS_SUCCEEDED(rv)) {
-    nsEventStatus status = nsEventStatus_eIgnore;
-    nsEvent evt(PR_TRUE, NS_BEFORECUT);
-    nsEventDispatcher::Dispatch(eventTarget, mPresContext, &evt, nsnull,
-                                &status);
-    
-    if (status == nsEventStatus_eConsumeNoDefault) {
-      *aCutable = PR_TRUE;
-      return NS_OK;
-    }
-  }
-
-  *aCutable = PR_FALSE;  
-  return NS_OK;
+  return FireClipboardEvent(NS_BEFORECUT, aCutable);
 }
 
 NS_IMETHODIMP DocumentViewerImpl::Paste()
 {
-  NS_ENSURE_TRUE(mPresContext, NS_ERROR_NOT_INITIALIZED);
-
   
-  nsresult rv;
-  nsCOMPtr<nsIDOMNode> eventTarget;
-  rv = GetClipboardEventTarget(getter_AddRefs(eventTarget));
   
-  if (NS_SUCCEEDED(rv)) {
-    nsEvent evt(PR_TRUE, NS_PASTE);
-    nsEventDispatcher::Dispatch(eventTarget, mPresContext, &evt);
-    
-    
-  }
-
-  return NS_OK;
+  PRBool preventDefault;
+  return FireClipboardEvent(NS_PASTE, &preventDefault);
 }
 
 NS_IMETHODIMP DocumentViewerImpl::GetPasteable(PRBool *aPasteable)
@@ -2498,27 +2461,9 @@ NS_IMETHODIMP DocumentViewerImpl::GetPasteable(PRBool *aPasteable)
   NS_ENSURE_ARG_POINTER(aPasteable);
   *aPasteable = PR_FALSE;
 
-  NS_ENSURE_TRUE(mPresContext, NS_ERROR_NOT_INITIALIZED);
-
   
   
-  nsCOMPtr<nsIDOMNode> eventTarget;
-  nsresult rv = GetClipboardEventTarget(getter_AddRefs(eventTarget));
-  
-  if (NS_SUCCEEDED(rv)) {
-    nsEventStatus status = nsEventStatus_eIgnore;
-    nsEvent evt(PR_TRUE, NS_BEFOREPASTE);
-    nsEventDispatcher::Dispatch(eventTarget, mPresContext, &evt, nsnull,
-                                &status);
-    
-    if (status == nsEventStatus_eConsumeNoDefault) {
-      *aPasteable = PR_TRUE;
-      return NS_OK;
-    }
-  }
-
-  *aPasteable = PR_FALSE;
-  return NS_OK;
+  return FireClipboardEvent(NS_BEFOREPASTE, aPasteable);
 }
 
 
