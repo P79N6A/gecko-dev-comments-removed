@@ -1325,13 +1325,6 @@ public:
     XPCContext *GetContext() { return mContext; }
     void SetContext(XPCContext *xpcc) { mContext = nsnull; }
 
-#ifndef XPCONNECT_STANDALONE
-    
-
-
-    static void TraverseScopes(XPCCallContext& ccx);
-#endif
-
 protected:
     XPCWrappedNativeScope(XPCCallContext& ccx, JSObject* aGlobal);
     virtual ~XPCWrappedNativeScope();
@@ -1371,7 +1364,7 @@ private:
     
     
     
-    nsCOMPtr<nsIScriptObjectPrincipal> mScriptObjectPrincipal;
+    nsIScriptObjectPrincipal* mScriptObjectPrincipal;
 #endif
 };
 
