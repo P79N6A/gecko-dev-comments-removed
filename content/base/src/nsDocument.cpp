@@ -5996,7 +5996,8 @@ nsDocument::PreHandleEvent(nsEventChainPreVisitor& aVisitor)
 
   
   if (aVisitor.mEvent->message != NS_LOAD) {
-    aVisitor.mParentTarget = GetWindow();
+    nsCOMPtr<nsPIDOMEventTarget> parentTarget = do_QueryInterface(GetWindow());
+    aVisitor.mParentTarget = parentTarget;
   }
   return NS_OK;
 }

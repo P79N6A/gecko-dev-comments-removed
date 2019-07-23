@@ -132,13 +132,15 @@ public:
                          nsEventStatus aEventStatus = nsEventStatus_eIgnore)
   : nsEventChainVisitor(aPresContext, aEvent, aDOMEvent, aEventStatus),
     mCanHandle(PR_TRUE), mForceContentDispatch(PR_FALSE),
-    mRelatedTargetIsInAnon(PR_FALSE) {}
+    mRelatedTargetIsInAnon(PR_FALSE), mWantsWillHandleEvent(PR_FALSE),
+    mParentTarget(nsnull), mEventTargetAtParent(nsnull) {}
 
   void Reset() {
     mItemFlags = 0;
     mItemData = nsnull;
     mCanHandle = PR_TRUE;
     mForceContentDispatch = PR_FALSE;
+    mWantsWillHandleEvent = PR_FALSE;
     mParentTarget = nsnull;
     mEventTargetAtParent = nsnull;
   }
@@ -163,17 +165,24 @@ public:
 
 
   PRPackedBool          mRelatedTargetIsInAnon;
-
   
-
-
-  nsCOMPtr<nsISupports> mParentTarget;
 
   
 
 
 
-  nsCOMPtr<nsISupports> mEventTargetAtParent;
+  PRPackedBool          mWantsWillHandleEvent;
+
+  
+
+
+  nsPIDOMEventTarget*   mParentTarget;
+
+  
+
+
+
+  nsPIDOMEventTarget*   mEventTargetAtParent;
 };
 
 class nsEventChainPostVisitor : public nsEventChainVisitor {

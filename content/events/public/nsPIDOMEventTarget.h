@@ -96,6 +96,7 @@ public:
   
 
 
+
   virtual nsresult WillHandleEvent(nsEventChainPostVisitor& aVisitor)
   {
     return NS_OK;
