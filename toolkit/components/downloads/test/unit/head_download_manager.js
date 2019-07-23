@@ -106,7 +106,12 @@ function cleanup()
 }
 
 var gDownloadCount = 0;
-function addDownload()
+
+
+
+
+
+function addDownload(aResultFileName)
 {
   const nsIWBP = Ci.nsIWebBrowserPersist;
   var persist = Cc["@mozilla.org/embedding/browser/nsWebBrowserPersist;1"]
@@ -116,7 +121,7 @@ function addDownload()
                          nsIWBP.PERSIST_FLAGS_AUTODETECT_APPLY_CONVERSION;
 
   var destFile = dirSvc.get("ProfD", Ci.nsIFile);
-  destFile.append("download.result");
+  destFile.append(aResultFileName || "download.result");
   var srcFile = dirSvc.get("ProfD", Ci.nsIFile);
   srcFile.append("LICENSE");
 
