@@ -390,6 +390,8 @@ nsPingListener::OnChannelRedirect(nsIChannel *oldChan, nsIChannel *newChan,
   if (!mRequireSameHost)
     return NS_OK;
 
+  
+  
   nsCOMPtr<nsIURI> oldURI;
   oldChan->GetURI(getter_AddRefs(oldURI));
   NS_ENSURE_STATE(oldURI && newURI);

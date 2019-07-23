@@ -102,7 +102,6 @@ nsBaseChannel::Redirect(nsIChannel *newChannel, PRUint32 redirectFlags,
 
   
 
-  newChannel->SetOriginalURI(OriginalURI());
   newChannel->SetLoadGroup(mLoadGroup);
   newChannel->SetNotificationCallbacks(mCallbacks);
   newChannel->SetLoadFlags(mLoadFlags | LOAD_REPLACE);
@@ -144,6 +143,9 @@ nsBaseChannel::Redirect(nsIChannel *newChannel, PRUint32 redirectFlags,
     if (NS_FAILED(rv))
       return rv;
   }
+
+  
+  newChannel->SetOriginalURI(OriginalURI());
 
   
   

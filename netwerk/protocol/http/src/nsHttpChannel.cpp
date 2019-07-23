@@ -1134,6 +1134,9 @@ nsHttpChannel::DoReplaceWithProxy(nsIProxyInfo* pi)
         return rv;
 
     
+    newChannel->SetOriginalURI(mOriginalURI);
+
+    
     rv = newChannel->AsyncOpen(mListener, mListenerContext);
     if (NS_FAILED(rv))
         return rv;
@@ -1463,6 +1466,9 @@ nsHttpChannel::ProcessFallback(PRBool *fallingBack)
     if (NS_FAILED(rv))
         return rv;
 
+    
+    newChannel->SetOriginalURI(mOriginalURI);
+    
     rv = newChannel->AsyncOpen(mListener, mListenerContext);
     NS_ENSURE_SUCCESS(rv, rv);
 
@@ -2582,7 +2588,6 @@ nsHttpChannel::SetupReplacementChannel(nsIURI       *newURI,
     
     newLoadFlags &= ~LOAD_CHECK_OFFLINE_CACHE;
 
-    newChannel->SetOriginalURI(mOriginalURI);
     newChannel->SetLoadGroup(mLoadGroup); 
     newChannel->SetNotificationCallbacks(mCallbacks);
     newChannel->SetLoadFlags(newLoadFlags);
@@ -2762,6 +2767,9 @@ nsHttpChannel::ProcessRedirection(PRUint32 redirectType)
     rv = gHttpHandler->OnChannelRedirect(this, newChannel, redirectFlags);
     if (NS_FAILED(rv))
         return rv;
+
+    
+    newChannel->SetOriginalURI(mOriginalURI);    
 
     
     nsCOMPtr<nsIHttpEventSink> httpEventSink;
