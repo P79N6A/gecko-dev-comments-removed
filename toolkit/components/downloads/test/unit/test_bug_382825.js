@@ -82,14 +82,4 @@ function run_test()
     tests[i]();
   
   cleanup();
-
-  var thread = Cc["@mozilla.org/thread-manager;1"]
-               .getService().currentThread;
-
-  while (!httpserv.isStopped())
-    thread.processNextEvent(true);
-
-  
-  while (thread.hasPendingEvents())
-    thread.processNextEvent(true);
 }
