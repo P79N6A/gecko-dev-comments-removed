@@ -168,7 +168,9 @@ function goNext()
   gTestIndex++;
   gTestStepIndex = 0;
   if (gTestIndex < gPopupTests.length) {
-    var test = gPopupTests[gTestIndex]
+    var test = gPopupTests[gTestIndex];
+    
+    document.location.hash = test.testname;
 
     
     if ("condition" in test && !test.condition()) {
