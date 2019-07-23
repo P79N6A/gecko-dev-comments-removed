@@ -897,6 +897,62 @@ FindInReadable_Impl( const StringT& aPattern, IteratorT& aSearchStart, IteratorT
     return found_it;
   }
 
+  
+
+
+template <class StringT, class IteratorT, class Comparator>
+PRBool
+RFindInReadable_Impl( const StringT& aPattern, IteratorT& aSearchStart, IteratorT& aSearchEnd, const Comparator& compare )
+  {
+    IteratorT patternStart, patternEnd, searchEnd = aSearchEnd;
+    aPattern.BeginReading(patternStart);
+    aPattern.EndReading(patternEnd);
+
+      
+    --patternEnd;
+      
+    while ( aSearchStart != searchEnd )
+      {
+          
+        --searchEnd;
+    
+          
+        if ( compare(*patternEnd, *searchEnd) == 0 )
+          {  
+              
+            IteratorT testPattern(patternEnd);
+            IteratorT testSearch(searchEnd);
+
+              
+            do
+              {
+                  
+                if ( testPattern == patternStart )
+                  {
+                    aSearchStart = testSearch;  
+                    aSearchEnd = ++searchEnd;   
+                    return PR_TRUE;
+                  }
+    
+                  
+                  
+                if ( testSearch == aSearchStart )
+                  {
+                    aSearchStart = aSearchEnd;
+                    return PR_FALSE;
+                  }
+    
+                  
+                --testPattern;
+                --testSearch;
+              }
+            while ( compare(*testPattern, *testSearch) == 0 );
+          }
+      }
+
+    aSearchStart = aSearchEnd;
+    return PR_FALSE;
+  }
 
 NS_COM
 PRBool
@@ -919,75 +975,18 @@ CaseInsensitiveFindInReadable( const nsACString& aPattern, nsACString::const_ite
     return FindInReadable_Impl(aPattern, aSearchStart, aSearchEnd, nsCaseInsensitiveCStringComparator());
   }
 
-  
-
-
-
-
 NS_COM
 PRBool
 RFindInReadable( const nsAString& aPattern, nsAString::const_iterator& aSearchStart, nsAString::const_iterator& aSearchEnd, const nsStringComparator& aComparator)
   {
-    PRBool found_it = PR_FALSE;
-
-    nsAString::const_iterator savedSearchEnd(aSearchEnd);
-    nsAString::const_iterator searchStart(aSearchStart), searchEnd(aSearchEnd);
-
-    while ( searchStart != searchEnd )
-      {
-        if ( FindInReadable(aPattern, searchStart, searchEnd, aComparator) )
-          {
-            found_it = PR_TRUE;
-
-              
-            aSearchStart = searchStart;
-            aSearchEnd = searchEnd;
-
-              
-              
-            ++searchStart;
-            searchEnd = savedSearchEnd;
-          }
-      }
-
-      
-    if ( !found_it )
-      aSearchStart = aSearchEnd;
-
-    return found_it;
+    return RFindInReadable_Impl(aPattern, aSearchStart, aSearchEnd, aComparator);
   }
 
 NS_COM
 PRBool
 RFindInReadable( const nsACString& aPattern, nsACString::const_iterator& aSearchStart, nsACString::const_iterator& aSearchEnd, const nsCStringComparator& aComparator)
   {
-    PRBool found_it = PR_FALSE;
-
-    nsACString::const_iterator savedSearchEnd(aSearchEnd);
-    nsACString::const_iterator searchStart(aSearchStart), searchEnd(aSearchEnd);
-
-    while ( searchStart != searchEnd )
-      {
-        if ( FindInReadable(aPattern, searchStart, searchEnd, aComparator) )
-          {
-            found_it = PR_TRUE;
-
-              
-            aSearchStart = searchStart;
-            aSearchEnd = searchEnd;
-
-              
-              
-            ++searchStart;
-            searchEnd = savedSearchEnd;
-          }
-      }
-
-      
-    if ( !found_it )
-      aSearchStart = aSearchEnd;
-
-    return found_it;
+    return RFindInReadable_Impl(aPattern, aSearchStart, aSearchEnd, aComparator);
   }
 
 NS_COM 

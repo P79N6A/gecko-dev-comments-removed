@@ -311,8 +311,6 @@ NS_COM PRBool CaseInsensitiveFindInReadable( const nsACString& aPattern, nsACStr
 
 
 
-
-
 NS_COM PRBool RFindInReadable( const nsAString& aPattern, nsAString::const_iterator&, nsAString::const_iterator&, const nsStringComparator& = nsDefaultStringComparator() );
 NS_COM PRBool RFindInReadable( const nsACString& aPattern, nsACString::const_iterator&, nsACString::const_iterator&, const nsCStringComparator& = nsDefaultCStringComparator() );
 
