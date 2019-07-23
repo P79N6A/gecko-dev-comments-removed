@@ -160,11 +160,23 @@ protected:
         PRUint32    mHashedByFont:1;
     };
     
+    
+    
+    struct DeferredWord {
+        gfxTextRun *mSourceTextRun;
+        PRUint32    mSourceOffset;
+        PRUint32    mDestOffset;
+        PRUint32    mLength;
+        PRUint32    mHash;
+    };
+    
     PRBool LookupWord(gfxTextRun *aTextRun, gfxFont *aFirstFont,
-                      PRUint32 aStart, PRUint32 aEnd, PRUint32 aHash);
-    void AddWord(gfxTextRun *aTextRun, PRUint32 aDestOffset,
-                 gfxTextRun *aNewRun, PRUint32 aSourceOffset, PRUint32 aLength,
-                 PRUint32 aHash, const gfxFontGroup::Parameters *aParams);
+                      PRUint32 aStart, PRUint32 aEnd, PRUint32 aHash,
+                      nsTArray<DeferredWord>* aDeferredWords);
+    void FinishTextRun(gfxTextRun *aTextRun, gfxTextRun *aNewRun,
+                       const gfxFontGroup::Parameters *aParams,
+                       const nsTArray<DeferredWord>& aDeferredWords,
+                       PRBool aSuccessful);
     void RemoveWord(gfxTextRun *aTextRun, PRUint32 aStart,
                     PRUint32 aEnd, PRUint32 aHash);    
 
@@ -227,29 +239,73 @@ IsWordBoundary(PRUnichar aChar)
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 PRBool
 TextRunWordCache::LookupWord(gfxTextRun *aTextRun, gfxFont *aFirstFont,
-                             PRUint32 aStart, PRUint32 aEnd, PRUint32 aHash)
+                             PRUint32 aStart, PRUint32 aEnd, PRUint32 aHash,
+                             nsTArray<DeferredWord>* aDeferredWords)
 {
     if (aEnd <= aStart)
         return PR_TRUE;
 
-    
     CacheHashKey key(aTextRun, aFirstFont, aStart, aEnd - aStart, aHash);
-    CacheHashEntry *existingEntry = mCache.GetEntry(key);
-    if (!existingEntry) {
+    CacheHashEntry *fontEntry = mCache.PutEntry(key);
+    if (!fontEntry)
+        return PR_FALSE;
+    CacheHashEntry *existingEntry = nsnull;
+
+    if (fontEntry->mTextRun) {
+        existingEntry = fontEntry;
+    } else {
+        PR_LOG(gWordCacheLog, PR_LOG_DEBUG, ("%p(%d-%d,%d): added using font", aTextRun, aStart, aEnd - aStart, aHash));
         key.mFontOrGroup = aTextRun->GetFontGroup();
-        existingEntry = mCache.GetEntry(key);
+        CacheHashEntry *groupEntry = mCache.GetEntry(key);
+        if (groupEntry) {
+            existingEntry = groupEntry;
+            mCache.RawRemoveEntry(fontEntry);
+            PR_LOG(gWordCacheLog, PR_LOG_DEBUG, ("%p(%d-%d,%d): removed using font", aTextRun, aStart, aEnd - aStart, aHash));
+            fontEntry = nsnull;
+        }
+    }
+    
+    
+    
+    
+
+    if (existingEntry) {
+        if (aDeferredWords) {
+            DeferredWord word = { existingEntry->mTextRun,
+                  existingEntry->mWordOffset, aStart, aEnd - aStart, aHash };
+            aDeferredWords->AppendElement(word);
+        } else {
+            aTextRun->CopyGlyphDataFrom(existingEntry->mTextRun,
+                existingEntry->mWordOffset, aEnd - aStart, aStart, PR_FALSE);
+        }
+        return PR_TRUE;
     }
 
-    if (!existingEntry)
-        return PR_FALSE;
-
+#ifdef DEBUG
+    ++aTextRun->mCachedWords;
+#endif
     
-    aTextRun->CopyGlyphDataFrom(existingEntry->mTextRun,
-                                existingEntry->mWordOffset,
-                                aEnd - aStart, aStart, PR_FALSE);
-    return PR_TRUE;
+    
+    fontEntry->mTextRun = aTextRun;
+    fontEntry->mWordOffset = aStart;
+    fontEntry->mHashedByFont = PR_TRUE;
+    return PR_FALSE;
 }
 
 
@@ -257,77 +313,123 @@ TextRunWordCache::LookupWord(gfxTextRun *aTextRun, gfxFont *aFirstFont,
 
 
 
+
+
+
+
+
+
+
 void
-TextRunWordCache::AddWord(gfxTextRun *aTextRun, PRUint32 aDestOffset,
-                          gfxTextRun *aNewRun, PRUint32 aSourceOffset,
-                          PRUint32 aLength, PRUint32 aHash,
-                          const gfxFontGroup::Parameters *aParams)
+TextRunWordCache::FinishTextRun(gfxTextRun *aTextRun, gfxTextRun *aNewRun,
+                                const gfxFontGroup::Parameters *aParams,
+                                const nsTArray<DeferredWord>& aDeferredWords,
+                                PRBool aSuccessful)
 {
-    gfxTextRun *source = aNewRun;
-    PRUint32 sourceOffset = aSourceOffset;
-    PRUint32 destOffset = aDestOffset;
-    PRUint32 length = aLength;
-    nsAutoPtr<gfxTextRun> tmpTextRun;
+    aTextRun->SetFlagBits(gfxTextRunWordCache::TEXT_IN_CACHE);
 
+    PRUint32 i;
+    gfxFontGroup *fontGroup = aTextRun->GetFontGroup();
+    gfxFont *font = fontGroup->GetFontAt(0);
     
-    
-    PRBool wordStartsInsideCluster =
-        aNewRun && !aNewRun->IsClusterStart(aSourceOffset);
-
-    if (!wordStartsInsideCluster) {
-        CacheHashKey key(aTextRun,
-                         GetWordFontOrGroup(aNewRun, aSourceOffset, aLength),
-                         aDestOffset, aLength, aHash);
-        CacheHashEntry *entry = mCache.PutEntry(key);
-        NS_ASSERTION(!entry->mTextRun, "Entry shouldn't have existed!");
-
-        if (entry) {
-            aTextRun->SetFlagBits(gfxTextRunWordCache::TEXT_IN_CACHE);
-
-            entry->mTextRun = aTextRun;
-            entry->mWordOffset = aDestOffset;
-            gfxFontGroup *fontGroup = aTextRun->GetFontGroup();
-            entry->mHashedByFont = key.mFontOrGroup != fontGroup;
+    for (i = 0; i < aDeferredWords.Length(); ++i) {
+        const DeferredWord *word = &aDeferredWords[i];
+        gfxTextRun *source = word->mSourceTextRun;
+        if (!source) {
+            source = aNewRun;
+        }
+        
+        
+        PRBool wordStartsInsideCluster =
+            !source->IsClusterStart(word->mSourceOffset);
+        if (source == aNewRun) {
+            
+            
+            
+            
+            PRBool rekeyWithFontGroup =
+                GetWordFontOrGroup(aNewRun, word->mSourceOffset, word->mLength) != font;
+            if (!aSuccessful || wordStartsInsideCluster || rekeyWithFontGroup) {
+                
+                CacheHashKey key(aTextRun, font, word->mDestOffset, word->mLength,
+                                 word->mHash);
+                NS_ASSERTION(mCache.GetEntry(key),
+                             "This entry should have been added previously!");
+                mCache.RemoveEntry(key);
 #ifdef DEBUG
-            ++aTextRun->mCachedWords;
-            PR_LOG(gWordCacheLog, PR_LOG_DEBUG,
-                   ("%p(%d-%d,%d): added using %s",
-                    aTextRun, aDestOffset, aLength, aHash,
-                    entry->mHashedByFont ? "font" :"fontgroup"));
-            NS_ASSERTION(mCache.GetEntry(key),
-                         "We should find the thing we just added!");
+                --aTextRun->mCachedWords;
 #endif
+                PR_LOG(gWordCacheLog, PR_LOG_DEBUG, ("%p(%d-%d,%d): removed using font", aTextRun, word->mDestOffset, word->mLength, word->mHash));
+                
+                if (aSuccessful && !wordStartsInsideCluster) {
+                    key.mFontOrGroup = fontGroup;
+                    CacheHashEntry *groupEntry = mCache.PutEntry(key);
+                    if (groupEntry) {
+#ifdef DEBUG
+                        ++aTextRun->mCachedWords;
+#endif
+                        PR_LOG(gWordCacheLog, PR_LOG_DEBUG, ("%p(%d-%d,%d): added using fontgroup", aTextRun, word->mDestOffset, word->mLength, word->mHash));
+                        groupEntry->mTextRun = aTextRun;
+                        groupEntry->mWordOffset = word->mDestOffset;
+                        groupEntry->mHashedByFont = PR_FALSE;
+                        NS_ASSERTION(mCache.GetEntry(key),
+                                     "We should find the thing we just added!");
+                    }
+                }
+            }
+        }
+        if (aSuccessful) {
+            
+            
+            
+            PRUint32 sourceOffset = word->mSourceOffset;
+            PRUint32 destOffset = word->mDestOffset;
+            PRUint32 length = word->mLength;
+            nsAutoPtr<gfxTextRun> tmpTextRun;
+            PRBool stealData = source == aNewRun;
+            if (wordStartsInsideCluster) {
+                NS_ASSERTION(sourceOffset > 0, "How can the first character be inside a cluster?");
+                if (destOffset > 0 && IsBoundarySpace(aTextRun->GetChar(destOffset - 1))) {
+                    
+                    
+                    
+                    --sourceOffset;
+                    --destOffset;
+                    ++length;
+                } else {
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    tmpTextRun = aNewRun->GetFontGroup()->MakeTextRun(
+                        aTextRun->GetTextUnicode(), length, aParams,
+                        aNewRun->GetFlags());
+                    source = tmpTextRun;
+                    sourceOffset = 0;
+                    stealData = PR_TRUE;
+                }
+            }
+            aTextRun->CopyGlyphDataFrom(source, sourceOffset, length,
+                destOffset, stealData);
+            
+            PRUint32 endCharIndex;
+            if (i + 1 < aDeferredWords.Length()) {
+                endCharIndex = aDeferredWords[i + 1].mDestOffset;
+            } else {
+                endCharIndex = aTextRun->GetLength();
+            }
+            PRUint32 charIndex;
+            for (charIndex = word->mDestOffset + word->mLength;
+                 charIndex < endCharIndex; ++charIndex) {
+                if (IsBoundarySpace(aTextRun->GetChar(charIndex))) {
+                    aTextRun->SetSpaceGlyph(font, aParams->mContext, charIndex);
+                }
+            }
         }
     }
-    else { 
-        NS_ASSERTION(sourceOffset > 0, "How can the first character be inside a cluster?");
-        if (destOffset > 0 && IsBoundarySpace(aTextRun->GetChar(destOffset - 1))) {
-            
-            
-            
-            --sourceOffset;
-            --destOffset;
-            ++length;
-        } else {
-            
-            
-            
-            
-            
-            
-            
-            tmpTextRun = aNewRun->GetFontGroup()->
-                MakeTextRun(aTextRun->GetTextUnicode(), length, aParams,
-                            aNewRun->GetFlags());
-            source = tmpTextRun;
-            sourceOffset = 0;
-        }
-    }
-    
-    
-    
-    aTextRun->CopyGlyphDataFrom(source, sourceOffset, length,
-                                destOffset, PR_TRUE);
 }
 
 static gfxTextRun *
@@ -370,47 +472,38 @@ TextRunWordCache::MakeTextRun(const PRUnichar *aText, PRUint32 aLength,
     nsresult rv = textRun->AddGlyphRun(font, 0);
     NS_ENSURE_SUCCESS(rv, nsnull);
 
-    gfxTextRunFactory::Parameters params =
-        { aParams->mContext, nsnull, nsnull, nsnull, 0, aParams->mAppUnitsPerDevUnit };
     nsAutoTArray<PRUnichar,200> tempString;
+    nsAutoTArray<DeferredWord,50> deferredWords;
     PRUint32 i;
     PRUint32 wordStart = 0;
     PRUint32 hash = 0;
     for (i = 0; i <= aLength; ++i) {
         PRUnichar ch = i < aLength ? aText[i] : ' ';
         if (IsWordBoundary(ch)) {
-            PRBool hit = LookupWord(textRun, font, wordStart, i, hash);
+            PRBool hit = LookupWord(textRun, font, wordStart, i, hash,
+                                    deferredWords.Length() == 0 ? nsnull : &deferredWords);
             if (!hit) {
                 
                 
                 tempString.AppendElement(' ');
                 PRUint32 offset = tempString.Length();
                 PRUint32 length = i - wordStart;
-
                 PRUnichar *chars = tempString.AppendElements(length);
-                if (!chars)
+                if (!chars) {
+                    FinishTextRun(textRun, nsnull, nsnull, deferredWords, PR_FALSE);
                     return nsnull;
-                memcpy(chars, aText + wordStart, length*sizeof(PRUnichar));
-
-                
-                nsAutoPtr<gfxTextRun> newRun;
-                newRun = aFontGroup->
-                    MakeTextRun(tempString.Elements(), tempString.Length(),
-                                &params,
-                                aFlags | gfxTextRunFactory::TEXT_IS_PERSISTENT);
-
-                if (newRun) {
-                    AddWord(textRun, wordStart, newRun, offset, length, hash,
-                            aParams);
                 }
-                tempString.Clear();
+                memcpy(chars, aText + wordStart, length*sizeof(PRUnichar));
+                DeferredWord word = { nsnull, offset, wordStart, length, hash };
+                deferredWords.AppendElement(word);
             }
             
-            if (IsBoundarySpace(ch) && i < aLength) {
-                textRun->SetSpaceGlyph(font, aParams->mContext, i);
-            } 
-              
-
+            if (deferredWords.Length() == 0) {
+                if (IsBoundarySpace(ch) && i < aLength) {
+                    textRun->SetSpaceGlyph(font, aParams->mContext, i);
+                } 
+                  
+            }
             hash = 0;
             wordStart = i + 1;
         } else {
@@ -418,6 +511,21 @@ TextRunWordCache::MakeTextRun(const PRUnichar *aText, PRUint32 aLength,
         }
     }
 
+    if (deferredWords.Length() == 0) {
+        
+        
+        
+        return textRun.forget();
+    }
+
+    
+    gfxTextRunFactory::Parameters params =
+        { aParams->mContext, nsnull, nsnull, nsnull, 0, aParams->mAppUnitsPerDevUnit };
+    nsAutoPtr<gfxTextRun> newRun;
+    newRun = aFontGroup->MakeTextRun(tempString.Elements(), tempString.Length(),
+                                     &params, aFlags | gfxTextRunFactory::TEXT_IS_PERSISTENT);
+
+    FinishTextRun(textRun, newRun, aParams, deferredWords, newRun != nsnull);
     return textRun.forget();
 }
 
@@ -447,34 +555,38 @@ TextRunWordCache::MakeTextRun(const PRUint8 *aText, PRUint32 aLength,
     nsresult rv = textRun->AddGlyphRun(font, 0);
     NS_ENSURE_SUCCESS(rv, nsnull);
 
-    gfxTextRunFactory::Parameters params =
-        { aParams->mContext, nsnull, nsnull, nsnull, 0, aParams->mAppUnitsPerDevUnit };
+    nsAutoTArray<PRUint8,200> tempString;
+    nsAutoTArray<DeferredWord,50> deferredWords;
     PRUint32 i;
     PRUint32 wordStart = 0;
     PRUint32 hash = 0;
     for (i = 0; i <= aLength; ++i) {
         PRUint8 ch = i < aLength ? aText[i] : ' ';
         if (IsWordBoundary(ch)) {
-            PRBool hit = LookupWord(textRun, font, wordStart, i, hash);
+            PRBool hit = LookupWord(textRun, font, wordStart, i, hash,
+                                    deferredWords.Length() == 0 ? nsnull : &deferredWords);
             if (!hit) {
-                PRUint32 length = i - wordStart;
-
-                
-                nsAutoPtr<gfxTextRun> newRun;
-                newRun = aFontGroup->
-                    MakeTextRun(aText + wordStart, length, &params,
-                                aFlags | gfxTextRunFactory::TEXT_IS_PERSISTENT);
-                if (newRun) {
-                    AddWord(textRun, wordStart, newRun, 0, length, hash,
-                            aParams);
+                if (tempString.Length() > 0) {
+                    tempString.AppendElement(' ');
                 }
+                PRUint32 offset = tempString.Length();
+                PRUint32 length = i - wordStart;
+                PRUint8 *chars = tempString.AppendElements(length);
+                if (!chars) {
+                    FinishTextRun(textRun, nsnull, nsnull, deferredWords, PR_FALSE);
+                    return nsnull;
+                }
+                memcpy(chars, aText + wordStart, length*sizeof(PRUint8));
+                DeferredWord word = { nsnull, offset, wordStart, length, hash };
+                deferredWords.AppendElement(word);
             }
             
-            if (IsBoundarySpace(ch) && i < aLength) {
-                textRun->SetSpaceGlyph(font, aParams->mContext, i);
-            } 
-              
-
+            if (deferredWords.Length() == 0) {
+                if (IsBoundarySpace(ch) && i < aLength) {
+                    textRun->SetSpaceGlyph(font, aParams->mContext, i);
+                } 
+                  
+            }
             hash = 0;
             wordStart = i + 1;
         } else {
@@ -482,6 +594,21 @@ TextRunWordCache::MakeTextRun(const PRUint8 *aText, PRUint32 aLength,
         }
     }
 
+    if (deferredWords.Length() == 0) {
+        
+        
+        
+        return textRun.forget();
+    }
+
+    
+    gfxTextRunFactory::Parameters params =
+        { aParams->mContext, nsnull, nsnull, nsnull, 0, aParams->mAppUnitsPerDevUnit };
+    nsAutoPtr<gfxTextRun> newRun;
+    newRun = aFontGroup->MakeTextRun(tempString.Elements(), tempString.Length(),
+                                     &params, aFlags | gfxTextRunFactory::TEXT_IS_PERSISTENT);
+
+    FinishTextRun(textRun, newRun, aParams, deferredWords, newRun != nsnull);
     return textRun.forget();
 }
 
@@ -612,7 +739,7 @@ TextRunWordCache::CacheDumpEntry(CacheHashEntry* aEntry, void* userArg)
         fprintf(output, "<EMPTY>\n");
         return PL_DHASH_NEXT;
     }
-    fprintf(output, "Word at %p:%d => ", static_cast<void*>(aEntry->mTextRun), aEntry->mWordOffset);
+    fprintf(output, "Word at %x:%d => ", aEntry->mTextRun, aEntry->mWordOffset);
     aEntry->mTextRun->Dump(output);
     fprintf(output, " (hashed by %s)\n", aEntry->mHashedByFont ? "font" : "fontgroup");
     return PL_DHASH_NEXT;
