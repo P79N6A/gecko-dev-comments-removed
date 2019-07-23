@@ -1800,7 +1800,7 @@ main(int argc, char **argv, char **envp)
     
     if (crashReporter) {
         crashReporter->SetEnabled(PR_FALSE);
-        crashReporter = null;
+        crashReporter = nsnull;
     }
 #endif
 
