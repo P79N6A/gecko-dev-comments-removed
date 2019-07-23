@@ -132,14 +132,10 @@ __defineGetter__("gPrefService", function() {
 
 
 
-
-function pageShowEventHandlers(event)
-{
+function pageShowEventHandlers(event) {
   
   if (event.originalTarget == content.document) {
-    checkForDirectoryListing();
     charsetLoadListener(event);
-    
     XULBrowserWindow.asyncUpdateUI();
   }
 }
@@ -2000,15 +1996,6 @@ function traceVerbose(verbose)
   leakDetector.verbose = (verbose == "true");
 }
 #endif
-
-function checkForDirectoryListing()
-{
-  if ( "HTTPIndex" in content &&
-       content.HTTPIndex instanceof Components.interfaces.nsIHTTPIndex ) {
-    content.wrappedJSObject.defaultCharacterset =
-      getMarkupDocumentViewer().defaultCharacterSet;
-  }
-}
 
 function URLBarSetURI(aURI, aValid) {
   var value = gBrowser.userTypedValue;
