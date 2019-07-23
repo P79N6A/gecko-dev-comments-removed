@@ -75,7 +75,7 @@ public:
 
 
 
-  static const nsAdoptingString * const kIgnoreSystemLanguage;
+  static const nsString * const kIgnoreSystemLanguage;
 
   
 
@@ -91,7 +91,7 @@ public:
 
   static PRBool
   PassesConditionalProcessingTests(nsIContent *aContent,
-                                   const nsAdoptingString *aAcceptLangs = nsnull);
+                                   const nsString *aAcceptLangs = nsnull);
 
 private:
   
