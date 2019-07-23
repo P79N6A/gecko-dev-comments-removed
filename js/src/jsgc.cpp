@@ -2879,6 +2879,24 @@ js_TraceRuntime(JSTracer *trc, JSBool allAtoms)
 
     if (rt->gcExtraRootsTraceOp)
         rt->gcExtraRootsTraceOp(trc, rt->gcExtraRootsData);
+
+
+#ifdef JS_TRACER    
+#ifdef JS_THREADSAFE
+    
+   while ((acx = js_ContextIterator(rt, JS_FALSE, &iter)) != NULL) {
+       if (!acx->thread || acx->thread == cx->thread)
+           continue;
+       JSTraceMonitor* tm = &acx->thread->traceMonitor;
+       TRACE_JSVALS(trc, tm->loopTableSize, tm->loopTable,
+                    "thread->traceMonitor.loopTable");
+   }
+#else
+   JSTraceMonitor* tm = &rt->traceMonitor;
+   TRACE_JSVALS(trc, tm->loopTableSize, tm->loopTable,
+                "rt->traceMonitor.loopTable");
+#endif    
+#endif   
 }
 
 static void

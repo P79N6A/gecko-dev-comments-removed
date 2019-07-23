@@ -2628,7 +2628,6 @@ JS_INTERPRET(JSContext *cx)
                 if (!js_ResetOperationCount(cx))                              \
                     goto error;                                               \
             }                                                                 \
-            monitor_branch(cx, regs, len);                                    \
         }                                                                     \
     JS_END_MACRO
 
@@ -2801,14 +2800,38 @@ JS_INTERPRET(JSContext *cx)
           END_EMPTY_CASES
 
           BEGIN_CASE(JSOP_HEADER)
-            i = GET_UINT8(regs.pc);
-            vp = &fp->spbase[-1 - i];
-            lval = *vp;
-            if (JSVAL_IS_NULL(lval)) {
-                *vp = JSVAL_ONE;
+            i = GET_UINT24(regs.pc);
+            JS_ASSERT((i > 0) && (i <= (jsint)rt->loopTableIndexGen));
+            JSTraceMonitor *tm = &JS_TRACE_MONITOR(cx);
+            if (i >= (jsint)tm->loopTableSize) 
+                js_GrowLoopTableIfNeeded(cx, i);
+            vp = &rt->traceMonitor.loopTable[i];
+            rval = *vp;
+            if (JSVAL_IS_INT(rval)) {
+                
+
+
+
+                if (JSVAL_TO_INT(rval) >= TRACE_THRESHOLD) {
+                    
+
+
+
+
+
+                    *vp = OBJECT_TO_JSVAL(js_NewObject(cx, &js_ObjectClass, NULL, NULL, 0));
+                } else {
+                    
+
+
+
+
+
+                    JS_ATOMIC_ADD(vp, 2);
+                }
             } else {
-                JS_ASSERT(JSVAL_IS_INT(lval));
-                *vp = lval + 2;
+                JS_ASSERT(JSVAL_IS_GCTHING(rval));
+                
             }
           END_CASE(JSOP_HEADER)
 

@@ -36,8 +36,8 @@
 
 
 
-#ifndef jstracer_h__
-#define jstracer_h__
+#ifndef jstracer_h___
+#define jstracer_h___
 
 #include "jsstddef.h"
 #include "jslock.h"
@@ -55,9 +55,6 @@
 
 
 struct JSTraceMonitor {
-#ifdef JS_THREADSAFE    
-    JSLock             *lock;
-#endif    
     jsval              *loopTable;
     uint32              loopTableSize;
 };
@@ -68,4 +65,4 @@ JSBool js_InitTracer(JSRuntime *rt);
 uint32 js_AllocateLoopTableSlot(JSRuntime *rt);
 void   js_GrowLoopTableIfNeeded(JSContext *cx, uint32 index);
 
-#endif
+#endif 
