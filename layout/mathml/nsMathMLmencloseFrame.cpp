@@ -461,7 +461,7 @@ nsMathMLmencloseFrame::PlaceInternal(nsIRenderingContext& aRenderingContext,
   
   
   if (IsToDraw(NOTATION_CIRCLE)) {
-    double ratio = (sqrt(2) - 1) / 2;
+    double ratio = (sqrt(2.0) - 1.0) / 2.0;
     nscoord padding2;
 
     
