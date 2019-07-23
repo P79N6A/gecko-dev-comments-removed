@@ -1354,22 +1354,23 @@ TraceRecorder::emitTreeCall(Fragment* inner, GuardRecord* lr)
 
         ptrdiff_t sp_adj = nativeStackOffset(&cx->fp->argv[-2]);
         
-
-        sp_adj -= treeInfo->nativeStackBase;
-        sp_adj += ti->nativeStackBase;
-        
         ptrdiff_t rp_adj = callDepth * sizeof(FrameInfo);
         
 
-        LIns* sp_top = lir->ins2i(LIR_add, lirbuf->sp, sp_adj + 
-                ti->maxNativeStackSlots * sizeof(double));
+        LIns* sp_top = lir->ins2i(LIR_add, lirbuf->sp, 
+                - treeInfo->nativeStackBase 
+                + sp_adj 
+                + ti->maxNativeStackSlots * sizeof(double)); 
         guard(true, lir->ins2(LIR_lt, sp_top, eos_ins), OOM_EXIT);
         
         LIns* rp_top = lir->ins2i(LIR_add, lirbuf->rp, rp_adj + 
                 ti->maxCallDepth * sizeof(FrameInfo));
         guard(true, lir->ins2(LIR_lt, rp_top, eor_ins), OOM_EXIT);
         
-        lir->insStorei(inner_sp = lir->ins2i(LIR_add, lirbuf->sp, sp_adj), 
+        lir->insStorei(inner_sp = lir->ins2i(LIR_add, lirbuf->sp, 
+                - treeInfo->nativeStackBase 
+                + sp_adj 
+                + ti->nativeStackBase),  
                 lirbuf->state, offsetof(InterpState, sp));
         lir->insStorei(lir->ins2i(LIR_add, lirbuf->rp, rp_adj),
                 lirbuf->state, offsetof(InterpState, rp));
@@ -2171,9 +2172,6 @@ TraceRecorder::cmp(LOpcode op, bool negate)
             return false;
         }
     } else if (isNumber(l) || isNumber(r)) {
-        jsval temp_r = r;
-        jsval temp_l = l;
-
         
         LIns* l_ins = get(&l);
         LIns* r_ins = get(&r);
@@ -2194,7 +2192,7 @@ TraceRecorder::cmp(LOpcode op, bool negate)
         } else if (!isNumber(l)) {
             ABORT_TRACE("unsupported LHS type for cmp vs number");
         }
-        lnum = js_ValueToNumber(cx, &temp_l);
+        lnum = js_ValueToNumber(cx, &l);
 
         args[0] = get(&r);
         if (JSVAL_IS_STRING(r)) {
@@ -2205,10 +2203,9 @@ TraceRecorder::cmp(LOpcode op, bool negate)
         } else if (!isNumber(r)) {
             ABORT_TRACE("unsupported RHS type for cmp vs number");
         }
-        rnum = js_ValueToNumber(cx, &temp_r);
+        rnum = js_ValueToNumber(cx, &r);
 
         x = lir->ins2(op, l_ins, r_ins);
-
         if (negate)
             x = lir->ins_eq0(x);
         switch (op) {
