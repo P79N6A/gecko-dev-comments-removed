@@ -66,6 +66,12 @@ class   imgIContainer;
 class   gfxASurface;
 class   nsIContent;
 
+namespace mozilla {
+namespace layers {
+class LayerManager;
+}
+}
+
 
 
 
@@ -103,7 +109,7 @@ typedef nsEventStatus (* EVENT_CALLBACK)(nsGUIEvent *event);
 #endif
 
 #define NS_IWIDGET_IID \
-{ 0x6bdb96ba, 0x1727, 0x40ae, \
+{ 0x9383831, 0x1039, 0x010f9, \
   { 0x85, 0x55, 0x9c, 0x53, 0x4b, 0x95, 0x23, 0x98 } }
 
 
@@ -180,6 +186,7 @@ enum nsTopLevelWidgetZPlacement {
 class nsIWidget : public nsISupports {
 
   public:
+    typedef mozilla::layers::LayerManager LayerManager;
 
     NS_DECLARE_STATIC_IID_ACCESSOR(NS_IWIDGET_IID)
 
@@ -666,6 +673,14 @@ class nsIWidget : public nsISupports {
 
 
     virtual nsIToolkit* GetToolkit() = 0;    
+
+    
+
+
+
+
+
+    virtual LayerManager* GetLayerManager() = 0;
 
     
 

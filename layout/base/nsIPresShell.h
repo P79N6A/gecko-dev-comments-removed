@@ -829,10 +829,18 @@ public:
 
 
 
+
+
+
+
+
+
+
   enum {
     RENDER_IS_UNTRUSTED = 0x01,
     RENDER_IGNORE_VIEWPORT_SCROLLING = 0x02,
-    RENDER_CARET = 0x04
+    RENDER_CARET = 0x04,
+    RENDER_USE_WIDGET_LAYERS = 0x08
   };
   NS_IMETHOD RenderDocument(const nsRect& aRect, PRUint32 aFlags,
                             nscolor aBackgroundColor,

@@ -47,8 +47,8 @@ class nsIRenderingContext;
 class nsGUIEvent;
 
 #define NS_IVIEWOBSERVER_IID  \
-  { 0xba1357b6, 0xe3c7, 0x426a, \
-    { 0xb3, 0x68, 0xfe, 0xe8, 0x24, 0x8c, 0x08, 0x38 } }
+  { 0xac43a985, 0xcae6, 0x499d, \
+    { 0xae, 0x8f, 0x9c, 0x92, 0xec, 0x6f, 0x2c, 0x47 } }
 
 class nsIViewObserver : public nsISupports
 {
@@ -67,28 +67,15 @@ public:
 
 
 
-  NS_IMETHOD Paint(nsIView*             aRootView,
-                   nsIRenderingContext* aRenderingContext,
-                   const nsRegion&      aDirtyRegion) = 0;
-
-  
 
 
 
 
-
-
-
-
-
-
-
-
-
-
-  NS_IMETHOD PaintDefaultBackground(nsIView*             aRootView,
-                                    nsIRenderingContext* aRenderingContext,
-                                    const nsRect&        aDirtyRect) = 0;
+  NS_IMETHOD Paint(nsIView*        aDisplayRoot,
+                   nsIView*        aViewToPaint,
+                   nsIWidget*      aWidgetToPaint,
+                   const nsRegion& aDirtyRegion,
+                   PRBool          aPaintDefaultBackground) = 0;
 
   
 

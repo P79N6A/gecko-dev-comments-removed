@@ -1192,7 +1192,11 @@ nsLayoutUtils::PaintFrame(nsIRenderingContext* aRenderingContext, nsIFrame* aFra
   }
 #endif
 
-  list.Paint(&builder, aRenderingContext);
+  PRUint32 flags = nsDisplayList::PAINT_DEFAULT;
+  if (aFlags & PAINT_WIDGET_LAYERS) {
+    flags |= nsDisplayList::PAINT_USE_WIDGET_LAYERS;
+  }
+  list.Paint(&builder, aRenderingContext, flags);
   
   list.DeleteAll();
   return NS_OK;

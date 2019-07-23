@@ -551,6 +551,7 @@ public:
 
 
 
+
   virtual void Paint(nsDisplayListBuilder* aBuilder, nsIRenderingContext* aCtx) {}
   
 
@@ -850,7 +851,18 @@ public:
 
 
 
-  void Paint(nsDisplayListBuilder* aBuilder, nsIRenderingContext* aCtx) const;
+
+
+
+
+
+
+  enum {
+    PAINT_DEFAULT = 0,
+    PAINT_USE_WIDGET_LAYERS = 0x01
+  };
+  void Paint(nsDisplayListBuilder* aBuilder, nsIRenderingContext* aCtx,
+             PRUint32 aFlags) const;
   
 
 

@@ -206,6 +206,8 @@
 #include "nsContentCID.h"
 static NS_DEFINE_IID(kRangeCID,     NS_RANGE_CID);
 
+using namespace mozilla::layers;
+
 PRBool nsIPresShell::gIsAccessibilityActive = PR_FALSE;
 CapturingContentInfo nsIPresShell::gCaptureInfo;
 
@@ -784,12 +786,11 @@ public:
 
   
 
-  NS_IMETHOD Paint(nsIView *aView,
-                   nsIRenderingContext* aRenderingContext,
-                   const nsRegion& aDirtyRegion);
-  NS_IMETHOD PaintDefaultBackground(nsIView *aView,
-                                    nsIRenderingContext* aRenderingContext,
-                                    const nsRect& aDirtyRect);
+  NS_IMETHOD Paint(nsIView* aDisplayRoot,
+                   nsIView* aViewToPaint,
+                   nsIWidget* aWidget,
+                   const nsRegion& aDirtyRegion,
+                   PRBool aPaintDefaultBackground);
   NS_IMETHOD ComputeRepaintRegionForCopy(nsIView*      aRootView,
                                          nsIView*      aMovingView,
                                          nsPoint       aDelta,
@@ -1287,7 +1288,7 @@ private:
 
 
 
-  nscolor ComputeBackstopColor(nsIView* aView);
+  nscolor ComputeBackstopColor(nsIView* aDisplayRoot);
 
 #ifdef DEBUG
   
@@ -5279,7 +5280,11 @@ PresShell::RenderDocument(const nsRect& aRect, PRUint32 aFlags,
       devCtx->CreateRenderingContextInstance(*getter_AddRefs(rc));
       rc->Init(devCtx, aThebesContext);
 
-      list.Paint(&builder, rc);
+      PRUint32 flags = nsDisplayList::PAINT_DEFAULT;
+      if (aFlags & RENDER_USE_WIDGET_LAYERS) {
+        flags |= nsDisplayList::PAINT_USE_WIDGET_LAYERS;
+      }
+      list.Paint(&builder, rc, flags);
       
       list.DeleteAll();
 
@@ -5572,7 +5577,7 @@ PresShell::PaintRangePaintInfo(nsTArray<nsAutoPtr<RangePaintInfo> >* aItems,
     aArea.MoveBy(-rangeInfo->mRootOffset.x, -rangeInfo->mRootOffset.y);
     nsRegion visible(aArea);
     rangeInfo->mList.ComputeVisibility(&rangeInfo->mBuilder, &visible, nsnull);
-    rangeInfo->mList.Paint(&rangeInfo->mBuilder, rc);
+    rangeInfo->mList.Paint(&rangeInfo->mBuilder, rc, nsDisplayList::PAINT_DEFAULT);
     aArea.MoveBy(rangeInfo->mRootOffset.x, rangeInfo->mRootOffset.y);
   }
 
@@ -5716,9 +5721,9 @@ void PresShell::UpdateCanvasBackground()
   }
 }
 
-nscolor PresShell::ComputeBackstopColor(nsIView* aView)
+nscolor PresShell::ComputeBackstopColor(nsIView* aDisplayRoot)
 {
-  nsIWidget* widget = aView->GetNearestWidget(nsnull);
+  nsIWidget* widget = aDisplayRoot->GetWidget();
   if (widget && widget->GetTransparencyMode() != eTransparencyOpaque) {
     
     
@@ -5731,46 +5736,80 @@ nscolor PresShell::ComputeBackstopColor(nsIView* aView)
 }
 
 NS_IMETHODIMP
-PresShell::Paint(nsIView*             aView,
-                 nsIRenderingContext* aRenderingContext,
-                 const nsRegion&      aDirtyRegion)
+PresShell::Paint(nsIView*        aDisplayRoot,
+                 nsIView*        aViewToPaint,
+                 nsIWidget*      aWidgetToPaint,
+                 const nsRegion& aDirtyRegion,
+                 PRBool          aPaintDefaultBackground)
 {
-  AUTO_LAYOUT_PHASE_ENTRY_POINT(GetPresContext(), Paint);
+  nsPresContext* presContext = GetPresContext();
+  AUTO_LAYOUT_PHASE_ENTRY_POINT(presContext, Paint);
 
   NS_ASSERTION(!mIsDestroying, "painting a destroyed PresShell");
-  NS_ASSERTION(aView, "null view");
+  NS_ASSERTION(aDisplayRoot, "null view");
+  NS_ASSERTION(aViewToPaint, "null view");
+  NS_ASSERTION(aWidgetToPaint, "Can't paint without a widget");
 
-  nscolor bgcolor = ComputeBackstopColor(aView);
+  nscolor bgcolor = ComputeBackstopColor(aDisplayRoot);
 
-  nsIFrame* frame = static_cast<nsIFrame*>(aView->GetClientData());
-  if (frame) {
-    nsLayoutUtils::PaintFrame(aRenderingContext, frame, aDirtyRegion, bgcolor);
-  } else {
-    bgcolor = NS_ComposeColors(bgcolor, mCanvasBackgroundColor);
-    aRenderingContext->SetColor(bgcolor);
-    aRenderingContext->FillRect(aDirtyRegion.GetBounds());
+  nsIFrame* frame = aPaintDefaultBackground
+      ? nsnull : static_cast<nsIFrame*>(aDisplayRoot->GetClientData());
+
+  if (frame && aViewToPaint == aDisplayRoot) {
+    
+    
+    
+    
+    nsLayoutUtils::PaintFrame(nsnull, frame, aDirtyRegion, bgcolor,
+                              nsLayoutUtils::PAINT_WIDGET_LAYERS);
+    return NS_OK;
   }
-  return NS_OK;
-}
 
-NS_IMETHODIMP
-PresShell::PaintDefaultBackground(nsIView*             aView,
-                                  nsIRenderingContext* aRenderingContext,
-                                  const nsRect&        aDirtyRect)
-{
-  AUTO_LAYOUT_PHASE_ENTRY_POINT(GetPresContext(), Paint);
+  LayerManager* layerManager = aWidgetToPaint->GetLayerManager();
+  NS_ASSERTION(layerManager, "Must be in paint event");
 
-  NS_ASSERTION(!mIsDestroying, "painting a destroyed PresShell");
-  NS_ASSERTION(aView, "null view");
+  layerManager->BeginTransaction();
+  nsRefPtr<ThebesLayer> root = layerManager->CreateThebesLayer();
+  nsIntRect dirtyRect = aDirtyRegion.GetBounds().
+    ToOutsidePixels(presContext->AppUnitsPerDevPixel());
+  if (root) {
+    root->SetVisibleRegion(dirtyRect);
+    layerManager->SetRoot(root);
+  }
+  layerManager->EndConstruction();
+  if (root) {
+    nsIntRegion toDraw;
+    gfxContext* ctx = root->BeginDrawing(&toDraw);
+    if (ctx) {
+      if (frame) {
+        
+        
+        
+        nsIDeviceContext* devCtx = GetPresContext()->DeviceContext();
+        nsCOMPtr<nsIRenderingContext> rc;
+        nsresult rv = devCtx->CreateRenderingContextInstance(*getter_AddRefs(rc));
+        if (NS_SUCCEEDED(rv)) {
+          rc->Init(devCtx, ctx);
+          
+          nsPoint offsetToRoot = aViewToPaint->GetOffsetTo(aDisplayRoot);
+          nsRegion dirtyRegion = aDirtyRegion;
+          dirtyRegion.MoveBy(offsetToRoot);
+          nsIRenderingContext::AutoPushTranslation
+            push(rc, -offsetToRoot.x, -offsetToRoot.y);
+          nsLayoutUtils::PaintFrame(rc, frame, dirtyRegion, bgcolor);
+        }
+      } else {
+        bgcolor = NS_ComposeColors(bgcolor, mCanvasBackgroundColor);
+        ctx->NewPath();
+        ctx->SetColor(gfxRGBA(bgcolor));
+        ctx->Rectangle(gfxRect(dirtyRect.x, dirtyRect.y, dirtyRect.width, dirtyRect.height));
+        ctx->Fill();
+      }
+    }
+    root->EndDrawing();
+  }
+  layerManager->EndTransaction();
 
-  
-  
-
-  nscolor bgcolor = NS_ComposeColors(ComputeBackstopColor(aView),
-                                     mCanvasBackgroundColor);
-
-  aRenderingContext->SetColor(bgcolor);
-  aRenderingContext->FillRect(aDirtyRect);
   return NS_OK;
 }
 

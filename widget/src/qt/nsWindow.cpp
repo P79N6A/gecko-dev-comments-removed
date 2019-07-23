@@ -1,4 +1,4 @@
-
+.
 
 
 
@@ -1012,23 +1012,18 @@ nsWindow::DoPaint(QPainter* aPainter, const QStyleOptionGraphicsItem* aOption)
 
     nsRefPtr<gfxContext> ctx = new gfxContext(targetSurface);
 
-    nsCOMPtr<nsIRenderingContext> rc;
-    GetDeviceContext()->CreateRenderingContextInstance(*getter_AddRefs(rc));
-    if (NS_UNLIKELY(!rc))
-        return nsEventStatus_eIgnore;
-
-    rc->Init(GetDeviceContext(), ctx);
-
     nsPaintEvent event(PR_TRUE, NS_PAINT, this);
 
     nsIntRect rect(r.x(), r.y(), r.width(), r.height());
     event.refPoint.x = r.x();
     event.refPoint.y = r.y();
-    event.rect = &rect;
-    event.region = nsnull;
-    event.renderingContext = rc;
+    event.region = nsIntRegion(rect);
 
-    nsEventStatus status = DispatchEvent(&event);
+    nsEventStatus status;
+    {
+      AutoLayerManagerSetup setupLayerManager(this, ctx);
+      status = DispatchEvent(&event);
+    }
 
     
     

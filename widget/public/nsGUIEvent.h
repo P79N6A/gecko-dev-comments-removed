@@ -59,7 +59,6 @@
 #include "nsIVariant.h"
 
 class nsIRenderingContext;
-class nsIRegion;
 class nsIMenuItem;
 class nsIAccessible;
 class nsIContent;
@@ -636,17 +635,12 @@ class nsPaintEvent : public nsGUIEvent
 {
 public:
   nsPaintEvent(PRBool isTrusted, PRUint32 msg, nsIWidget *w)
-    : nsGUIEvent(isTrusted, msg, w, NS_PAINT_EVENT),
-      renderingContext(nsnull), region(nsnull), rect(nsnull)
+    : nsGUIEvent(isTrusted, msg, w, NS_PAINT_EVENT)
   {
   }
 
   
-  nsIRenderingContext *renderingContext;
-  
-  nsIRegion           *region;
-  
-  nsIntRect           *rect;
+  nsIntRegion region;
 };
 
 

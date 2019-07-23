@@ -477,10 +477,32 @@ public:
 
   enum {
     PAINT_IN_TRANSFORM = 0x01,
-    PAINT_SYNC_DECODE_IMAGES = 0x02
+    PAINT_SYNC_DECODE_IMAGES = 0x02,
+    PAINT_WIDGET_LAYERS = 0x04
   };
 
   
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
