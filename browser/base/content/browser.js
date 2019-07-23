@@ -1074,6 +1074,9 @@ function delayedStartup()
   
   gBrowser.addEventListener("command", BrowserOnCommand, false);
 
+  tabPreviews.init();
+  ctrlTab.init();
+
   
   
   
@@ -1104,6 +1107,9 @@ function delayedStartup()
 
 function BrowserShutdown()
 {
+  tabPreviews.uninit();
+  ctrlTab.uninit();
+
   try {
     FullZoom.destroy();
   }
@@ -6138,6 +6144,8 @@ var FeedHandler = {
 #include browser-places.js
 
 #include browser-textZoom.js
+
+#include browser-tabPreviews.js
 
 HistoryMenu.toggleRecentlyClosedTabs = function PHM_toggleRecentlyClosedTabs() {
   

@@ -327,6 +327,9 @@ pref("browser.tabs.closeButtons", 1);
 
 pref("browser.tabs.selectOwnerOnClose", true);
 
+pref("browser.ctrlTab.previewsCount", 3);
+pref("browser.ctrlTab.smoothScroll", true);
+
 
 pref("browser.bookmarks.sort.direction", "descending");
 pref("browser.bookmarks.sort.resource", "rdf:http://home.netscape.com/NC-rdf#Name");
