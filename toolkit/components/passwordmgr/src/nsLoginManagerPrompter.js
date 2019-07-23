@@ -338,6 +338,10 @@ LoginManagerPrompter.prototype = {
               this._getLocalizedString("notifyBarRememberButtonText");
         var rememberButtonAccessKey =
               this._getLocalizedString("notifyBarRememberButtonAccessKey");
+        var notNowButtonText =
+              this._getLocalizedString("notifyBarNotNowButtonText");
+        var notNowButtonAccessKey =
+              this._getLocalizedString("notifyBarNotNowButtonAccessKey");
 
         var brandShortName =
               this._brandBundle.GetStringFromName("brandShortName");
@@ -369,9 +373,15 @@ LoginManagerPrompter.prototype = {
                 callback: function(aNotificationBar, aButton) {
                     pwmgr.setLoginSavingEnabled(aLogin.hostname, false);
                 }
-            }
+            },
 
             
+            {
+                label:     notNowButtonText,
+                accessKey: notNowButtonAccessKey,
+                popup:     null,
+                callback:  function() {  } 
+            }
         ];
 
 
