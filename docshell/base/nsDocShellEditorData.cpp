@@ -73,7 +73,7 @@ nsDocShellEditorData::~nsDocShellEditorData()
     nsCOMPtr<nsIDOMWindow> domWindow = do_GetInterface(mDocShell);
     
     
-    mEditingSession->TearDownEditorOnWindow(domWindow, PR_TRUE);
+    mEditingSession->TearDownEditorOnWindow(domWindow);
   }
   else if (mEditor) 
   {

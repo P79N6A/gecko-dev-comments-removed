@@ -3922,7 +3922,7 @@ nsHTMLDocument::TurnEditingOff()
   NS_ENSURE_SUCCESS(rv, rv);
 
   
-  rv = editSession->TearDownEditorOnWindow(window, PR_TRUE);
+  rv = editSession->TearDownEditorOnWindow(window);
   NS_ENSURE_SUCCESS(rv, rv);
 
   nsCOMPtr<nsIEditor> editor;
@@ -3932,14 +3932,6 @@ nsHTMLDocument::TurnEditingOff()
     editorss->RemoveOverrideStyleSheet(NS_LITERAL_STRING("resource://gre/res/contenteditable.css"));
     if (mEditingState == eDesignMode)
       editorss->RemoveOverrideStyleSheet(NS_LITERAL_STRING("resource://gre/res/designmode.css"));
-  }
-
-  if (mEditingState == eDesignMode) {
-    rv = docshell->SetAllowJavascript(mScriptsEnabled);
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    rv = docshell->SetAllowPlugins(mPluginsEnabled);
-    NS_ENSURE_SUCCESS(rv, rv);
   }
 
   mEditingState = eOff;
@@ -4039,21 +4031,7 @@ nsHTMLDocument::EditingStateChanged()
     editorss->AddOverrideStyleSheet(NS_LITERAL_STRING("resource://gre/res/designmode.css"));
 
     
-    PRBool tmp;
-    rv = docshell->GetAllowJavascript(&tmp);
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    mScriptsEnabled = tmp;
-
-    rv = docshell->SetAllowJavascript(PR_FALSE);
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    rv = docshell->GetAllowPlugins(&tmp);
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    mPluginsEnabled = tmp;
-
-    rv = docshell->SetAllowPlugins(PR_FALSE);
+    rv = editSession->DisableJSAndPlugins(window);
     NS_ENSURE_SUCCESS(rv, rv);
 
     updateState = PR_TRUE;
@@ -4063,10 +4041,7 @@ nsHTMLDocument::EditingStateChanged()
     
     editorss->RemoveOverrideStyleSheet(NS_LITERAL_STRING("resource://gre/res/designmode.css"));
 
-    rv = docshell->SetAllowJavascript(mScriptsEnabled);
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    rv = docshell->SetAllowPlugins(mPluginsEnabled);
+    rv = editSession->RestoreJSAndPlugins(window);
     NS_ENSURE_SUCCESS(rv, rv);
 
     updateState = PR_TRUE;
@@ -4089,7 +4064,7 @@ nsHTMLDocument::EditingStateChanged()
     if (NS_FAILED(rv)) {
       
       
-      editSession->TearDownEditorOnWindow(window, PR_TRUE);
+      editSession->TearDownEditorOnWindow(window);
       mEditingState = eOff;
 
       return rv;

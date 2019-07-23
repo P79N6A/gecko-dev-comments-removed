@@ -132,6 +132,8 @@ protected:
   PRPackedBool    mInteractive;
   PRPackedBool    mMakeWholeDocumentEditable;
 
+  PRPackedBool    mDisabledJSAndPlugins;
+
   
   
   PRPackedBool    mScriptsEnabled;
