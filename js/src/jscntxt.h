@@ -394,13 +394,7 @@ struct JSRuntime {
 
 
 
-    JSCheckAccessOp     checkObjectAccess;
-
-    
-    JSPrincipalsTranscoder principalsTranscoder;
-
-    
-    JSObjectPrincipalsFinder findObjectPrincipals;
+    JSSecurityCallbacks *securityCallbacks;
 
     
 
@@ -887,6 +881,9 @@ struct JSContext {
 
     
     JSDebugHooks        *debugHooks;
+
+    
+    JSSecurityCallbacks *securityCallbacks;
 };
 
 #ifdef JS_THREADSAFE

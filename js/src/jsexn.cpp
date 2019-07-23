@@ -248,6 +248,7 @@ static JSBool
 InitExnPrivate(JSContext *cx, JSObject *exnObject, JSString *message,
                JSString *filename, uintN lineno, JSErrorReport *report)
 {
+    JSSecurityCallbacks *callbacks;
     JSCheckAccessOp checkAccess;
     JSErrorReporter older;
     JSExceptionState *state;
@@ -268,7 +269,10 @@ InitExnPrivate(JSContext *cx, JSObject *exnObject, JSString *message,
 
 
 
-    checkAccess = cx->runtime->checkObjectAccess;
+    callbacks = JS_GetSecurityCallbacks(cx);
+    checkAccess = callbacks
+                  ? callbacks->checkObjectAccess
+                  : NULL;
     older = JS_SetErrorReporter(cx, NULL);
     state = JS_SaveExceptionState(cx);
 
