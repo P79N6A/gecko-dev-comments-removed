@@ -20,4 +20,7 @@ function test()
   var dt = EventUtils.synthesizeDragStart(proxyicon, expected);
   is(dt, null, "drag on proxy icon");
   proxyicon.setAttribute("pageproxystate", oldstate);
+  
+  
+  EventUtils.synthesizeKey("VK_ESCAPE", {}, window);
 }

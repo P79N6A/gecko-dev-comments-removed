@@ -1075,7 +1075,24 @@ nsFocusManager::SetFocusInner(nsIContent* aNewContent, PRInt32 aFlags,
 
   
   
-  if (isElementInActiveWindow && allowFrameSwitch && IsWindowVisible(newWindow)) {
+  PRBool sendFocusEvent =
+    isElementInActiveWindow && allowFrameSwitch && IsWindowVisible(newWindow);
+
+  
+  
+  
+  
+  
+  if (sendFocusEvent && mFocusedContent &&
+      mFocusedContent->GetOwnerDoc() != aNewContent->GetOwnerDoc()) {
+    
+    
+    
+    nsCOMPtr<nsIDOMNode> domNode(do_QueryInterface(mFocusedContent));
+    sendFocusEvent = nsContentUtils::CanCallerAccess(domNode);
+  }
+
+  if (sendFocusEvent) {
     
     if (mFocusedWindow) {
       
@@ -1112,7 +1129,7 @@ nsFocusManager::SetFocusInner(nsIContent* aNewContent, PRInt32 aFlags,
     
     
     if (allowFrameSwitch)
-      AdjustWindowFocus(newWindow);
+      AdjustWindowFocus(newWindow, PR_TRUE);
 
     
     PRUint32 focusMethod = aFocusChanged ? aFlags & FOCUSMETHOD_MASK :
@@ -1201,7 +1218,8 @@ nsFocusManager::GetCommonAncestor(nsPIDOMWindow* aWindow1,
 }
 
 void
-nsFocusManager::AdjustWindowFocus(nsPIDOMWindow* aWindow)
+nsFocusManager::AdjustWindowFocus(nsPIDOMWindow* aWindow,
+                                  PRBool aCheckPermission)
 {
   PRBool isVisible = IsWindowVisible(aWindow);
 
@@ -1225,6 +1243,12 @@ nsFocusManager::AdjustWindowFocus(nsPIDOMWindow* aWindow)
       
       
       if (IsWindowVisible(window) != isVisible)
+        break;
+
+      
+      
+      
+      if (aCheckPermission && !nsContentUtils::CanCallerAccess(window))
         break;
 
       window->SetFocusedNode(frameContent);
@@ -1528,7 +1552,7 @@ nsFocusManager::Focus(nsPIDOMWindow* aWindow,
   
   
   if (aIsNewDocument)
-    AdjustWindowFocus(aWindow);
+    AdjustWindowFocus(aWindow, PR_FALSE);
 
   
   if (aWindow->TakeFocus(PR_TRUE, focusMethod))

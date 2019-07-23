@@ -150,7 +150,7 @@ protected:
 
 
 
-  void AdjustWindowFocus(nsPIDOMWindow* aNewWindow);
+  void AdjustWindowFocus(nsPIDOMWindow* aNewWindow, PRBool aCheckPermission);
 
   
 

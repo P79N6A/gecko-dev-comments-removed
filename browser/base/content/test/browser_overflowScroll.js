@@ -16,6 +16,13 @@ function nextRightElement()  elementFromPoint(right(scrollbox) + 1);
 function test() {
   waitForExplicitFinish();
 
+  
+  
+  
+  setTimeout(doTest, 0);
+}
+
+function doTest() {
   tabstrip.smoothScroll = false;
 
   var tabMinWidth = gPrefService.getIntPref("browser.tabs.tabMinWidth");
