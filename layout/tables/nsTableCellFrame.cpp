@@ -692,7 +692,7 @@ PRInt32 nsTableCellFrame::GetRowSpan()
   nsGenericHTMLElement *hc = nsGenericHTMLElement::FromContent(mContent);
 
   
-  if (hc && !GetStyleContext()->GetPseudoType()) {
+  if (hc && !GetStyleContext()->GetPseudo()) {
     const nsAttrValue* attr = hc->GetParsedAttr(nsGkAtoms::rowspan);
     
     
@@ -709,7 +709,7 @@ PRInt32 nsTableCellFrame::GetColSpan()
   nsGenericHTMLElement *hc = nsGenericHTMLElement::FromContent(mContent);
 
   
-  if (hc && !GetStyleContext()->GetPseudoType()) {
+  if (hc && !GetStyleContext()->GetPseudo()) {
     const nsAttrValue* attr = hc->GetParsedAttr(nsGkAtoms::colspan); 
     
     

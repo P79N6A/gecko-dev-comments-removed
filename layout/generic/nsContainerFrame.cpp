@@ -617,7 +617,7 @@ nsContainerFrame::FrameNeedsView(nsIFrame* aFrame)
 {
   
   
-  if (aFrame->GetStyleContext()->GetPseudoType() ==
+  if (aFrame->GetStyleContext()->GetPseudo() ==
       nsCSSAnonBoxes::scrolledContent) {
     return PR_TRUE;
   }
@@ -1597,7 +1597,7 @@ nsContainerFrame::List(FILE* out, PRInt32 aIndent) const
             overflowArea.width, overflowArea.height);
   }
   fprintf(out, " [sc=%p]", static_cast<void*>(mStyleContext));
-  nsIAtom* pseudoTag = mStyleContext->GetPseudoType();
+  nsIAtom* pseudoTag = mStyleContext->GetPseudo();
   if (pseudoTag) {
     nsAutoString atomString;
     pseudoTag->ToString(atomString);

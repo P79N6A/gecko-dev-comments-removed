@@ -392,7 +392,7 @@ nsBlockFrame::List(FILE* out, PRInt32 aIndent) const
   }
   fprintf(out, " sc=%p(i=%d,b=%d)",
           static_cast<void*>(mStyleContext), numInlineLines, numBlockLines);
-  nsIAtom* pseudoTag = mStyleContext->GetPseudoType();
+  nsIAtom* pseudoTag = mStyleContext->GetPseudo();
   if (pseudoTag) {
     nsAutoString atomString;
     pseudoTag->ToString(atomString);
@@ -582,7 +582,7 @@ nsBlockFrame::IsContainingBlock() const
   
   
   
-  nsIAtom *pseudoType = GetStyleContext()->GetPseudoType();
+  nsIAtom *pseudoType = GetStyleContext()->GetPseudo();
   return pseudoType != nsCSSAnonBoxes::mozAnonymousBlock &&
          pseudoType != nsCSSAnonBoxes::mozAnonymousPositionedBlock;
 }
@@ -1419,7 +1419,7 @@ nsBlockFrame::ComputeCombinedArea(const nsHTMLReflowState& aReflowState,
     
     
     nscoord bottomEdgeOfContents = aBottomEdgeOfChildren;
-    if (GetStyleContext()->GetPseudoType() == nsCSSAnonBoxes::scrolledContent) {
+    if (GetStyleContext()->GetPseudo() == nsCSSAnonBoxes::scrolledContent) {
       
       
       bottomEdgeOfContents += aReflowState.mComputedPadding.bottom;
@@ -6314,11 +6314,11 @@ nsBlockFrame::SetInitialChildList(nsIAtom*        aListName,
     
     
     
-    nsIAtom *pseudo = GetStyleContext()->GetPseudoType();
+    nsIAtom *pseudo = GetStyleContext()->GetPseudo();
     PRBool haveFirstLetterStyle =
       (!pseudo ||
        (pseudo == nsCSSAnonBoxes::cellContent &&
-        mParent->GetStyleContext()->GetPseudoType() == nsnull) ||
+        mParent->GetStyleContext()->GetPseudo() == nsnull) ||
        pseudo == nsCSSAnonBoxes::fieldsetContent ||
        pseudo == nsCSSAnonBoxes::scrolledContent ||
        pseudo == nsCSSAnonBoxes::columnContent) &&

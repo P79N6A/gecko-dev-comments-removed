@@ -347,8 +347,8 @@ nsTransitionManager::StyleContextChanged(nsIContent *aElement,
                                          nsStyleContext *aOldStyleContext,
                                          nsStyleContext *aNewStyleContext)
 {
-  NS_PRECONDITION(aOldStyleContext->GetPseudoType() ==
-                      aNewStyleContext->GetPseudoType(),
+  NS_PRECONDITION(aOldStyleContext->GetPseudo() ==
+                      aNewStyleContext->GetPseudo(),
                   "pseudo type mismatch");
   
   
@@ -372,7 +372,7 @@ nsTransitionManager::StyleContextChanged(nsIContent *aElement,
     return nsnull;
   }
   
-  nsIAtom *pseudo = aNewStyleContext->GetPseudoType();
+  nsIAtom *pseudo = aNewStyleContext->GetPseudo();
   if (pseudo && (pseudo != nsCSSPseudoElements::before &&
                  pseudo != nsCSSPseudoElements::after)) {
     return nsnull;
@@ -398,7 +398,7 @@ nsTransitionManager::StyleContextChanged(nsIContent *aElement,
     
     if (t.GetDelay() != 0.0f || t.GetDuration() != 0.0f) {
       et = GetElementTransitions(aElement,
-                                 aNewStyleContext->GetPseudoType(),
+                                 aNewStyleContext->GetPseudo(),
                                  PR_FALSE);
 
       
@@ -613,7 +613,7 @@ nsTransitionManager::ConsiderStartingTransition(nsCSSProperty aProperty,
 
   if (!aElementTransitions) {
     aElementTransitions =
-      GetElementTransitions(aElement, aNewStyleContext->GetPseudoType(),
+      GetElementTransitions(aElement, aNewStyleContext->GetPseudo(),
                             PR_TRUE);
     if (!aElementTransitions) {
       NS_WARNING("allocating ElementTransitions failed");

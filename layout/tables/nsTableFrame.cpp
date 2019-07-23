@@ -167,7 +167,7 @@ nsTableFrame::GetParentStyleContextFrame(nsPresContext*  aPresContext,
   
 
   NS_PRECONDITION(mParent, "table constructed without outer table");
-  if (!mContent->GetParent() && !GetStyleContext()->GetPseudoType()) {
+  if (!mContent->GetParent() && !GetStyleContext()->GetPseudo()) {
     
     *aIsChild = PR_FALSE;
     *aProviderFrame = nsnull;

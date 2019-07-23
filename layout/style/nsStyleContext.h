@@ -107,7 +107,7 @@ public:
 
   nsStyleContext* GetParent() const { return mParent; }
 
-  nsIAtom* GetPseudoType() const { return mPseudoTag; }
+  nsIAtom* GetPseudo() const { return mPseudoTag; }
 
   NS_HIDDEN_(already_AddRefed<nsStyleContext>)
   FindChildWithRules(const nsIAtom* aPseudoTag, nsRuleNode* aRules);

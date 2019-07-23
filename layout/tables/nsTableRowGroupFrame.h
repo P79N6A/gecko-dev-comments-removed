@@ -363,7 +363,7 @@ public:
   PRBool IsScrolled() {
     
     
-    return GetStyleContext()->GetPseudoType() == nsCSSAnonBoxes::scrolledContent ||
+    return GetStyleContext()->GetPseudo() == nsCSSAnonBoxes::scrolledContent ||
            GetStyleDisplay()->mOverflowY == NS_STYLE_OVERFLOW_CLIP;
   }
 

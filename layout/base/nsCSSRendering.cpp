@@ -719,7 +719,7 @@ nsCSSRendering::PaintOutline(nsPresContext* aPresContext,
   
   nsIFrame *frameForArea = aForFrame;
   do {
-    nsIAtom *pseudoType = frameForArea->GetStyleContext()->GetPseudoType();
+    nsIAtom *pseudoType = frameForArea->GetStyleContext()->GetPseudo();
     if (pseudoType != nsCSSAnonBoxes::mozAnonymousBlock &&
         pseudoType != nsCSSAnonBoxes::mozAnonymousPositionedBlock)
       break;
@@ -1066,7 +1066,7 @@ FindElementBackground(nsIFrame* aForFrame, nsIFrame* aRootElementFrame,
   
   
 
-  if (aForFrame->GetStyleContext()->GetPseudoType())
+  if (aForFrame->GetStyleContext()->GetPseudo())
     return PR_TRUE; 
 
   
