@@ -774,6 +774,9 @@ public:
         PRBool IsComplex(PRUint32 aTag) const { return (mValue & (FLAG_IS_SIMPLE_GLYPH|TAG_MASK))  == aTag; }
         PRBool IsMissing() const { return IsComplex(TAG_MISSING); }
         PRBool IsComplexCluster() const { return IsComplex(TAG_COMPLEX_CLUSTER); }
+        PRBool IsComplexOrMissing() const {
+            return IsComplex(TAG_COMPLEX_CLUSTER) || IsComplex(TAG_MISSING);
+        }
         PRBool IsLigatureContinuation() const { return IsComplex(TAG_LIGATURE_CONTINUATION); }
         PRBool IsClusterContinuation() const { return IsComplex(TAG_CLUSTER_CONTINUATION); }
         PRBool IsLowSurrogate() const { return IsComplex(TAG_LOW_SURROGATE); }
@@ -821,6 +824,8 @@ public:
         
 
         PRUint32 mIsLastGlyph:1;
+        
+
         PRUint32 mGlyphID:31;
         
         PRInt32  mAdvance;
@@ -867,6 +872,8 @@ public:
 
 
 
+
+
     nsresult AddGlyphRun(gfxFont *aFont, PRUint32 aStartCharIndex);
     void ResetGlyphRuns() { mGlyphRuns.Clear(); }
     
@@ -892,6 +899,7 @@ public:
 
     void SetDetailedGlyphs(PRUint32 aCharIndex, const DetailedGlyph *aGlyphs,
                            PRUint32 aNumGlyphs);
+    void SetMissingGlyph(PRUint32 aCharIndex, PRUnichar aChar);
 
     
     
@@ -911,6 +919,8 @@ public:
 private:
     
 
+    
+    DetailedGlyph *AllocateDetailedGlyphs(PRUint32 aCharIndex, PRUint32 aCount);
     
     
     PRUint32 FindFirstGlyphRunContaining(PRUint32 aOffset);
