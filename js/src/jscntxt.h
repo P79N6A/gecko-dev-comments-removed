@@ -134,13 +134,7 @@ struct JSTraceMonitor {
 
 
 
-
-
-
-    JSPackedBool            onTrace;
-
-    
-    JSPackedBool            useReservedObjects;
+    JSContext               *tracecx;
 
     CLS(nanojit::LirBuffer) lirbuf;
     CLS(nanojit::Fragmento) fragmento;
@@ -151,19 +145,19 @@ struct JSTraceMonitor {
     struct GlobalState globalStates[MONITOR_N_GLOBAL_STATES];
     struct VMFragment* vmfragments[FRAGMENT_TABLE_SIZE];
 
-
     
 
 
 
 
     uintN                   prohibitFlush;
-    JSBool                  needFlush;
+    JSPackedBool            needFlush;
 
     
 
 
 
+    JSPackedBool            useReservedObjects;
     JSObject                *reservedObjects;
 
     
@@ -184,7 +178,7 @@ typedef struct InterpStruct InterpStruct;
 
 
 #ifdef JS_TRACER
-# define JS_ON_TRACE(cx)            (JS_TRACE_MONITOR(cx).onTrace)
+# define JS_ON_TRACE(cx)            (JS_TRACE_MONITOR(cx).tracecx != NULL)
 #else
 # define JS_ON_TRACE(cx)            JS_FALSE
 #endif

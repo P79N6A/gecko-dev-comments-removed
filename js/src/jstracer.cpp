@@ -4116,6 +4116,10 @@ js_ExecuteTree(JSContext* cx, Fragment* f, uintN& inlineCallCount,
     if (!js_ReserveObjects(cx, MAX_CALL_STACK_ENTRIES))
         return NULL;
 
+#ifdef DEBUG
+    uintN savedProhibitFlush = JS_TRACE_MONITOR(cx).prohibitFlush;
+#endif
+
     
     InterpState* state = (InterpState*)alloca(sizeof(InterpState) + (globalFrameSize+1)*sizeof(double));
     state->cx = cx;
@@ -4174,12 +4178,8 @@ js_ExecuteTree(JSContext* cx, Fragment* f, uintN& inlineCallCount,
     state->startTime = rdtsc();
 #endif
 
-    
-
-
-
-    JS_ASSERT(!tm->onTrace);
-    tm->onTrace = true;
+    JS_ASSERT(!tm->tracecx);
+    tm->tracecx = cx;
     cx->interpState = state;
 
     debug_only(fflush(NULL);)
@@ -4198,8 +4198,9 @@ js_ExecuteTree(JSContext* cx, Fragment* f, uintN& inlineCallCount,
 #endif
 
     JS_ASSERT(lr->exitType != LOOP_EXIT || !lr->calldepth);
-    tm->onTrace = false;
+    tm->tracecx = NULL;
     LeaveTree(*state, lr);
+    JS_ASSERT(JS_TRACE_MONITOR(cx).prohibitFlush == savedProhibitFlush);
     return state->innermost;
 }
 
@@ -5034,30 +5035,14 @@ js_DeepBail(JSContext *cx)
 
 
 
-    JSContext *tracecx = NULL;
-#ifdef JS_THREADSAFE
-    JSCList *head = &cx->thread->contextList;
-    for (JSCList *link = head->next; link != head; link = link->next) {
-        JSContext *acx = CX_FROM_THREAD_LINKS(link);
-        JS_ASSERT(!(acx->requestDepth == 0 && acx->bailExit));
-#else
-    JSContext *acx, *iter = NULL;
-    while ((acx = js_ContextIterator(cx->runtime, JS_TRUE, &iter)) != NULL) {
-#endif
-        if (acx->bailExit) {
-            JS_ASSERT(!tracecx);
-            tracecx = acx;
-#ifndef DEBUG
-            break;
-#endif
-        }
-    }
+    JSTraceMonitor *tm = &JS_TRACE_MONITOR(cx);
+    JSContext *tracecx = tm->tracecx;
 
     
     JS_ASSERT(tracecx->bailExit);
 
-    JS_TRACE_MONITOR(tracecx).onTrace = false;
-    JS_TRACE_MONITOR(tracecx).prohibitFlush++;
+    tm->tracecx = NULL;
+    tm->prohibitFlush++;
     debug_only_v(printf("Deep bail.\n");)
     LeaveTree(*tracecx->interpState, tracecx->bailExit);
     tracecx->bailExit = NULL;
