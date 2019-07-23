@@ -225,21 +225,46 @@ nsAccUtils::SetAccAttrsForXULContainerItem(nsIDOMNode *aNode,
   
   PRInt32 indexOf = 0;
   container->GetIndexOfItem(item, &indexOf);
+
   
-  PRUint32 setSize = itemsCount, posInSet = indexOf;
-  for (PRUint32 index = 0; index < itemsCount; index++) {
-    nsCOMPtr<nsIDOMXULElement> currItem;
-    container->GetItemAtIndex(index, getter_AddRefs(currItem));
-    nsCOMPtr<nsIDOMNode> currNode(do_QueryInterface(currItem));
+  PRUint32 setSize = 0, posInSet = 0;
+  for (PRInt32 index = indexOf; index >= 0; index--) {
+    nsCOMPtr<nsIDOMXULElement> item;
+    container->GetItemAtIndex(index, getter_AddRefs(item));
+
+    nsCOMPtr<nsIAccessible> itemAcc;
+    nsAccessNode::GetAccService()->GetAccessibleFor(item,
+                                                    getter_AddRefs(itemAcc));
+
+    if (itemAcc) {
+      PRUint32 itemRole = nsAccessible::Role(itemAcc);
+      if (itemRole == nsIAccessibleRole::ROLE_SEPARATOR)
+        break; 
+
+      PRUint32 itemState = nsAccessible::State(itemAcc);
+      if (!(itemState & nsIAccessibleStates::STATE_INVISIBLE)) {
+        setSize++;
+        posInSet++;
+      }
+    }
+  }
+
+  for (PRInt32 index = indexOf + 1; index < itemsCount; index++) {
+    nsCOMPtr<nsIDOMXULElement> item;
+    container->GetItemAtIndex(index, getter_AddRefs(item));
     
     nsCOMPtr<nsIAccessible> itemAcc;
-    nsAccessNode::GetAccService()->GetAccessibleFor(currNode,
+    nsAccessNode::GetAccService()->GetAccessibleFor(item,
                                                     getter_AddRefs(itemAcc));
-    if (!itemAcc ||
-        nsAccessible::State(itemAcc) & nsIAccessibleStates::STATE_INVISIBLE) {
-      setSize--;
-      if (index < static_cast<PRUint32>(indexOf))
-        posInSet--;
+
+    if (itemAcc) {
+      PRUint32 itemRole = nsAccessible::Role(itemAcc);
+      if (itemRole == nsIAccessibleRole::ROLE_SEPARATOR)
+        break; 
+
+      PRUint32 itemState = nsAccessible::State(itemAcc);
+      if (!(itemState & nsIAccessibleStates::STATE_INVISIBLE))
+        setSize++;
     }
   }
 
@@ -253,7 +278,7 @@ nsAccUtils::SetAccAttrsForXULContainerItem(nsIDOMNode *aNode,
     parentContainer.swap(container);
   }
   
-  SetAccGroupAttrs(aAttributes, level, posInSet + 1, setSize);
+  SetAccGroupAttrs(aAttributes, level, posInSet, setSize);
 }
 
 PRBool
