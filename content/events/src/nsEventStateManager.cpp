@@ -1869,8 +1869,8 @@ nsEventStateManager::DoScrollText(nsPresContext* aPresContext,
   
   nsIFrame* lastScrollFrame = nsMouseWheelTransaction::GetTargetFrame();
   if (lastScrollFrame) {
-    nsCOMPtr<nsIScrollableViewProvider> svp =
-      do_QueryInterface(lastScrollFrame);
+    nsIScrollableViewProvider* svp;
+    CallQueryInterface(lastScrollFrame, &svp);
     if (svp) {
       scrollView = svp->GetScrollableView();
       nsMouseWheelTransaction::UpdateTransaction();
@@ -1885,7 +1885,8 @@ nsEventStateManager::DoScrollText(nsPresContext* aPresContext,
        scrollFrame = GetParentFrameToScroll(aPresContext, scrollFrame)) {
     
     scrollView = nsnull;
-    nsCOMPtr<nsIScrollableViewProvider> svp = do_QueryInterface(scrollFrame);
+    nsIScrollableViewProvider* svp;
+    CallQueryInterface(scrollFrame, &svp);
     if (svp) {
       scrollView = svp->GetScrollableView();
     }
