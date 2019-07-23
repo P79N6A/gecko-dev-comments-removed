@@ -1664,6 +1664,14 @@ nsRuleNode::WalkRuleTree(const nsStyleStructID aSID,
     
     
     nsStyleContext* parentContext = aContext->GetParent();
+    if (isReset) {
+      
+      
+      while (parentContext &&
+             parentContext->GetPseudoType() == nsCSSPseudoElements::firstLine) {
+        parentContext = parentContext->GetParent();
+      }
+    }
     if (parentContext) {
       
       
@@ -2036,9 +2044,10 @@ nsRuleNode::AdjustLogicalBoxProp(nsStyleContext* aContext,
                "should not have bothered calling Compute*Data");              \
                                                                               \
   nsStyleContext* parentContext = aContext->GetParent();                      \
-  if (parentContext &&                                                        \
-      parentContext->GetPseudoType() == nsCSSPseudoElements::firstLine) {     \
-    /* Reset structs don't inherit from first-line */                         \
+  /* Reset structs don't inherit from first-line */                           \
+  /* See similar code in WalkRuleTree */                                      \
+  while (parentContext &&                                                     \
+         parentContext->GetPseudoType() == nsCSSPseudoElements::firstLine) {  \
     parentContext = parentContext->GetParent();                               \
   }                                                                           \
                                                                               \
