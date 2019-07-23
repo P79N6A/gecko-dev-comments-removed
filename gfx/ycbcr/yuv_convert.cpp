@@ -15,7 +15,6 @@
 
 
 
-
 #include "yuv_convert.h"
 
 
@@ -39,19 +38,16 @@ void ConvertYCbCrToRGB32(const uint8* y_buf,
                          int uv_pitch,
                          int rgb_pitch,
                          YUVType yuv_type) {
-  unsigned int y_shift = yuv_type == YV12 ? 1 : 0;
-  unsigned int x_shift = yuv_type == YV24 ? 0 : 1;
-  
-  
-  bool has_mmx = supports_mmx() && yuv_type != YV24;
-  bool odd_pic_x = yuv_type != YV24 && pic_x % 2 != 0;
+  unsigned int y_shift = yuv_type;
+  bool has_mmx = supports_mmx();
+  bool odd_pic_x = pic_x % 2 != 0;
   int x_width = odd_pic_x ? pic_width - 1 : pic_width;
 
   for (int y = pic_y; y < pic_height + pic_y; ++y) {
     uint8* rgb_row = rgb_buf + (y - pic_y) * rgb_pitch;
     const uint8* y_ptr = y_buf + y * y_pitch + pic_x;
-    const uint8* u_ptr = u_buf + (y >> y_shift) * uv_pitch + (pic_x >> x_shift);
-    const uint8* v_ptr = v_buf + (y >> y_shift) * uv_pitch + (pic_x >> x_shift);
+    const uint8* u_ptr = u_buf + (y >> y_shift) * uv_pitch + (pic_x >> 1);
+    const uint8* v_ptr = v_buf + (y >> y_shift) * uv_pitch + (pic_x >> 1);
 
     if (odd_pic_x) {
       
@@ -60,8 +56,7 @@ void ConvertYCbCrToRGB32(const uint8* y_buf,
                                  u_ptr++,
                                  v_ptr++,
                                  rgb_row,
-                                 1,
-                                 x_shift);
+                                 1);
       rgb_row += 4;
     }
 
@@ -76,8 +71,7 @@ void ConvertYCbCrToRGB32(const uint8* y_buf,
                                  u_ptr,
                                  v_ptr,
                                  rgb_row,
-                                 x_width,
-                                 x_shift);
+                                 x_width);
   }
 
   
