@@ -60,7 +60,6 @@
 #include <unistd.h>
 #include <fcntl.h>
 
-#include <Carbon/Carbon.h>
 #include <CoreServices/CoreServices.h>
 #include <mach-o/loader.h>
 #include <mach-o/fat.h>
@@ -158,12 +157,12 @@ PRBool nsPluginsDir::IsPluginFile(nsIFile* file)
   
   PRBool isPluginFile = PR_FALSE;
   
-  CFBundleRef pluginBundle = CFBundleCreate(kCFAllocatorDefault, pluginURL);
+  CFBundleRef pluginBundle = ::CFBundleCreate(kCFAllocatorDefault, pluginURL);
   if (pluginBundle) {
     UInt32 packageType, packageCreator;
     CFBundleGetPackageInfo(pluginBundle, &packageType, &packageCreator);
     if (packageType == 'BRPL' || packageType == 'IEPL' || packageType == 'NSPL') {
-      CFURLRef executableURL = CFBundleCopyExecutableURL(pluginBundle);
+      CFURLRef executableURL = ::CFBundleCopyExecutableURL(pluginBundle);
       if (executableURL) {
         isPluginFile = IsLoadablePlugin(executableURL);
         ::CFRelease(executableURL);
@@ -317,60 +316,6 @@ static char* GetNextPluginStringFromHandle(Handle h, short *index)
   return ret;
 }
 
-static char* GetPluginString(short id, short index)
-{
-  Str255 str;
-  ::GetIndString(str, id, index);
-  return p2cstrdup(str);
-}
-
-
-
-static short OpenPluginResourceFork(nsIFile *pluginFile)
-{
-  FSSpec spec;
-  OSErr err = toFSSpec(pluginFile, spec);
-  Boolean targetIsFolder, wasAliased;
-  err = ::ResolveAliasFile(&spec, true, &targetIsFolder, &wasAliased);
-  short refNum = ::FSpOpenResFile(&spec, fsRdPerm);
-  if (refNum < 0) {
-    nsCString path;
-    pluginFile->GetNativePath(path);
-    CFBundleRef bundle = getPluginBundle(path.get());
-    if (bundle) {
-      refNum = CFBundleOpenBundleResourceMap(bundle);
-      ::CFRelease(bundle);
-    }
-  }
-  return refNum;
-}
-
-short nsPluginFile::OpenPluginResource()
-{
-  return OpenPluginResourceFork(mPlugin);
-}
-
-class nsAutoCloseResourceObject {
-public:
-  nsAutoCloseResourceObject(nsIFile *pluginFile)
-  {
-    mRefNum = OpenPluginResourceFork(pluginFile);
-  }
-  ~nsAutoCloseResourceObject()
-  {
-    if (mRefNum > 0)
-      ::CloseResFile(mRefNum);
-  }
-  PRBool ResourceOpened()
-  {
-    return (mRefNum > 0);
-  }
-private:
-  short mRefNum;
-};
-
-
-
 
 nsresult nsPluginFile::GetPluginInfo(nsPluginInfo& info)
 {
@@ -378,18 +323,11 @@ nsresult nsPluginFile::GetPluginInfo(nsPluginInfo& info)
   memset(&info, 0, sizeof(info));
 
   
-
-  
-  nsAutoCloseResourceObject resourceObject(mPlugin);
-  bool resourceOpened = resourceObject.ResourceOpened();
-  
   nsCString path;
   mPlugin->GetNativePath(path);
   CFBundleRef bundle = getPluginBundle(path.get());
-
-  
-  if (bundle)
-    info.fBundle = PR_TRUE;
+  if (!bundle)
+    return NS_ERROR_FAILURE;
 
   
   if (bundle) {
@@ -397,20 +335,12 @@ nsresult nsPluginFile::GetPluginInfo(nsPluginInfo& info)
     if (name && ::CFGetTypeID(name) == ::CFStringGetTypeID())
       info.fName = CFStringRefToUTF8Buffer(static_cast<CFStringRef>(name));
   }
-  if (!info.fName && resourceOpened) {
-    
-    info.fName = GetPluginString(126, 2);
-  }
 
   
   if (bundle) {
     CFTypeRef description = ::CFBundleGetValueForInfoDictionaryKey(bundle, CFSTR("WebPluginDescription"));
     if (description && ::CFGetTypeID(description) == ::CFStringGetTypeID())
       info.fDescription = CFStringRefToUTF8Buffer(static_cast<CFStringRef>(description));
-  }
-  if (!info.fDescription && resourceOpened) {
-    
-    info.fDescription = GetPluginString(126, 1);
   }
 
   
@@ -470,24 +400,8 @@ nsresult nsPluginFile::GetPluginInfo(nsPluginInfo& info)
     }
   }
 
-  
-  if (!info.fVariantCount && resourceObject.ResourceOpened()) {
-    mi.typeStrings = ::Get1Resource('STR#', 128);
-    if (mi.typeStrings) {
-      info.fVariantCount = (**(short**)mi.typeStrings) / 2;
-      ::DetachResource(mi.typeStrings);
-      ::HLock(mi.typeStrings);
-    } else {
-      
-      return NS_ERROR_FAILURE;
-    }
-    
-    mi.infoStrings = ::Get1Resource('STR#', 127);
-    if (mi.infoStrings) {
-      ::DetachResource(mi.infoStrings);
-      ::HLock(mi.infoStrings);
-    }
-  }
+  if (!info.fVariantCount)
+    return NS_ERROR_FAILURE;
 
   
   int variantCount = info.fVariantCount;
