@@ -3114,12 +3114,12 @@ cairo_quartz_get_cg_context_with_clip (cairo_t *cr)
 	if (clip->all_clipped) {
 	    
 
+	    CGContextSaveGState (quartz->cgContext);
 
 	    
 
 	    CGRect empty = {{0,0}, {0,0}};
 	    CGContextClipToRect (quartz->cgContext, empty);
-	    CGContextSaveGState (quartz->cgContext);
 
 	    return quartz->cgContext;
 	}
