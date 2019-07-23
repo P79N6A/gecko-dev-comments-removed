@@ -204,6 +204,9 @@ public:
   nsresult WalkRules(nsIStyleRuleProcessor::EnumFunc aFunc,
                      RuleProcessorData* aData,
                      PRBool* aCutOffInheritance);
+
+  void WalkAllRules(nsIStyleRuleProcessor::EnumFunc aFunc,
+                    RuleProcessorData* aData);
   
 
 

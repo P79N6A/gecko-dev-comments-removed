@@ -333,7 +333,8 @@ class nsStyleSet
   
   
   void WalkRuleProcessors(nsIStyleRuleProcessor::EnumFunc aFunc,
-                          RuleProcessorData* aData);
+                          RuleProcessorData* aData,
+                          PRBool aWalkAllXBLStylesheets);
 
   already_AddRefed<nsStyleContext> GetContext(nsPresContext* aPresContext,
                                               nsStyleContext* aParentContext,
