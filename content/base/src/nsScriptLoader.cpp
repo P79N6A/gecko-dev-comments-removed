@@ -171,6 +171,12 @@ nsScriptLoader::~nsScriptLoader()
   for (PRInt32 i = 0; i < mPendingRequests.Count(); i++) {
     mPendingRequests[i]->FireScriptAvailable(NS_ERROR_ABORT);
   }
+
+  
+  
+  for (PRUint32 j = 0; j < mPendingChildLoaders.Length(); ++j) {
+    mPendingChildLoaders[j]->RemoveExecuteBlocker();
+  }  
 }
 
 NS_IMPL_ISUPPORTS1(nsScriptLoader, nsIStreamLoaderObserver)
@@ -636,7 +642,7 @@ nsScriptLoader::EvaluateScript(nsScriptLoadRequest* aRequest,
 void
 nsScriptLoader::ProcessPendingRequestsAsync()
 {
-  if (mPendingRequests.Count()) {
+  if (mPendingRequests.Count() || !mPendingChildLoaders.IsEmpty()) {
     nsCOMPtr<nsIRunnable> ev = new nsRunnableMethod<nsScriptLoader>(this,
       &nsScriptLoader::ProcessPendingRequests);
 
@@ -653,6 +659,33 @@ nsScriptLoader::ProcessPendingRequests()
     mPendingRequests.RemoveObjectAt(0);
     ProcessRequest(request);
   }
+
+  while (ReadyToExecuteScripts() && !mPendingChildLoaders.IsEmpty()) {
+    nsRefPtr<nsScriptLoader> child = mPendingChildLoaders[0];
+    mPendingChildLoaders.RemoveElementAt(0);
+    child->RemoveExecuteBlocker();
+  }
+}
+
+PRBool
+nsScriptLoader::ReadyToExecuteScripts()
+{
+  
+  
+  if (!SelfReadyToExecuteScripts()) {
+    return PR_FALSE;
+  }
+  
+  for (nsIDocument* doc = mDocument; doc; doc = doc->GetParentDocument()) {
+    nsScriptLoader* ancestor = doc->ScriptLoader();
+    if (!ancestor->SelfReadyToExecuteScripts() &&
+        ancestor->AddPendingChildLoader(this)) {
+      AddExecuteBlocker();
+      return PR_FALSE;
+    }
+  }
+
+  return PR_TRUE;
 }
 
 
