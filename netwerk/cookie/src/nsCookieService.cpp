@@ -469,7 +469,7 @@ nsCookieService::InitDB()
         
         nsCAutoString stmtString(NS_LITERAL_CSTRING("PRAGMA user_version="));
         stmtString.AppendInt(COOKIES_SCHEMA_VERSION);
-        nsresult rv = mDBConn->ExecuteSimpleSQL(stmtString);
+        rv = mDBConn->ExecuteSimpleSQL(stmtString);
         NS_ENSURE_SUCCESS(rv, rv);
 
         
