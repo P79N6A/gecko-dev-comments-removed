@@ -249,12 +249,9 @@ protected:
   
   
   
-  
-  
-  
-  void SetRGBData(PRInt32 aWidth, 
-                  PRInt32 aHeight, 
-                  float aFramerate, 
+  void SetRGBData(PRInt32 aWidth,
+                  PRInt32 aHeight,
+                  float aFramerate,
                   unsigned char* aRGBBuffer);
 
   
