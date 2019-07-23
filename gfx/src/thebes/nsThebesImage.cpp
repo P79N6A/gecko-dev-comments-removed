@@ -397,6 +397,21 @@ nsThebesImage::Draw(nsIRenderingContext &aContext,
     nsRefPtr<gfxPattern> pat = new gfxPattern(ThebesSurface());
     pat->SetMatrix(mat);
 
+    
+#ifndef XP_MACOSX
+    if (xscale > 1.0 || yscale > 1.0) {
+        
+        
+        
+        
+        
+        
+        
+        
+        pat->SetFilter(0);
+    }
+#endif
+
     ctx->NewPath();
     ctx->SetPattern(pat);
     ctx->Rectangle(destRect);
@@ -503,6 +518,14 @@ nsThebesImage::ThebesDrawTile(gfxContext *thebesContext,
         pat = new gfxPattern(surface);
         pat->SetExtend(gfxPattern::EXTEND_REPEAT);
         pat->SetMatrix(patMat);
+
+#ifndef XP_MACOSX
+        if (scale > 1.0) {
+            
+            
+            pat->SetFilter(0);
+        }
+#endif
 
         thebesContext->SetPattern(pat);
     }
