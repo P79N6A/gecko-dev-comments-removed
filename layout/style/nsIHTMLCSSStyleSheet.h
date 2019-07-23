@@ -39,7 +39,6 @@
 
 
 
-
 #ifndef nsIHTMLCSSStyleSheet_h___
 #define nsIHTMLCSSStyleSheet_h___
 

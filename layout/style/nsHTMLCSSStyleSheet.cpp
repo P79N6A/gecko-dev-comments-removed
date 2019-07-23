@@ -40,7 +40,6 @@
 
 
 
-
 #include "nsIHTMLCSSStyleSheet.h"
 #include "nsCRT.h"
 #include "nsIAtom.h"
@@ -55,284 +54,6 @@
 #include "nsCOMPtr.h"
 #include "nsRuleWalker.h"
 #include "nsRuleData.h"
-
-
-
-
-
-
-
-
-
-
-class CSSDisablePropsRule : public nsIStyleRule {
-public:
-  CSSDisablePropsRule();
-  virtual ~CSSDisablePropsRule();
-
-  NS_DECL_ISUPPORTS
-
-  
-  
-  void CommonMapRuleInfoInto(nsRuleData* aRuleData);
-
-#ifdef DEBUG
-  NS_IMETHOD List(FILE* out = stdout, PRInt32 aIndent = 0) const;
-#endif
-protected:
-  nsCSSValueList mInheritList;
-  nsCSSValueList mNoneList;
-  nsCSSValuePairList mInheritQuotes;
-  nsCSSValuePairList mNoneCounter;
-};
-
-CSSDisablePropsRule::CSSDisablePropsRule()
-{
-  nsCSSValue none(eCSSUnit_None);
-  mNoneCounter.mXValue = none;
-  mNoneList.mValue = none;
-  nsCSSValue inherit(eCSSUnit_Inherit);
-  mInheritList.mValue = inherit;
-  mInheritQuotes.mXValue = inherit;
-}
-
-class CSSFirstLineRule : public CSSDisablePropsRule {
-public:
-  CSSFirstLineRule() {}
-
-  NS_IMETHOD MapRuleInfoInto(nsRuleData* aRuleData);
-};
-
-class CSSFirstLetterRule : public CSSDisablePropsRule {
-public:
-  CSSFirstLetterRule() {}
-
-  NS_IMETHOD MapRuleInfoInto(nsRuleData* aRuleData);
-};
-
-CSSDisablePropsRule::~CSSDisablePropsRule()
-{
-}
-
-NS_IMPL_ISUPPORTS1(CSSDisablePropsRule, nsIStyleRule)
-
-#ifdef DEBUG
-NS_IMETHODIMP
-CSSDisablePropsRule::List(FILE* out, PRInt32 aIndent) const
-{
-  return NS_OK;
-}
-#endif
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-void
-CSSDisablePropsRule::CommonMapRuleInfoInto(nsRuleData* aData)
-{
-  
-
-
-
-
-  
-  if (aData->mSIDs & NS_STYLE_INHERIT_BIT(TextReset)) {
-    nsCSSValue normal(eCSSUnit_Normal);
-    aData->mTextData->mUnicodeBidi = normal;
-  }
-
-  
-  
-
-  
-  if (aData->mSIDs & NS_STYLE_INHERIT_BIT(Visibility)) {
-    nsCSSValue inherit(eCSSUnit_Inherit);
-    aData->mDisplayData->mVisibility = inherit;
-    aData->mDisplayData->mDirection = inherit;
-  }
-
-  if (aData->mSIDs & NS_STYLE_INHERIT_BIT(Display)) {
-    nsCSSValue none(eCSSUnit_None);
-    aData->mDisplayData->mAppearance = none;
-
-    nsCSSValue autovalue(eCSSUnit_Auto);
-    aData->mDisplayData->mClip.mTop = autovalue;
-    aData->mDisplayData->mClip.mRight = autovalue;
-    aData->mDisplayData->mClip.mBottom = autovalue;
-    aData->mDisplayData->mClip.mLeft = autovalue;
-
-    nsCSSValue one(1.0f, eCSSUnit_Number);
-    aData->mDisplayData->mOpacity = one;
-
-    nsCSSValue inlinevalue(NS_STYLE_DISPLAY_INLINE, eCSSUnit_Enumerated);
-    aData->mDisplayData->mDisplay = inlinevalue;
-
-    aData->mDisplayData->mBinding = none;
-
-    nsCSSValue staticposition(NS_STYLE_POSITION_STATIC, eCSSUnit_Enumerated);
-    aData->mDisplayData->mPosition = staticposition;
-
-    nsCSSValue visible(NS_STYLE_OVERFLOW_VISIBLE, eCSSUnit_Enumerated);
-    aData->mDisplayData->mOverflowX = visible;
-    aData->mDisplayData->mOverflowY = visible;
-
-    aData->mDisplayData->mClear = none;
-
-    aData->mDisplayData->mTransform = &mNoneList;
-
-    nsCSSValue fiftyPercent(0.5f, eCSSUnit_Percent);
-    aData->mDisplayData->mTransformOrigin.mXValue = fiftyPercent;
-    aData->mDisplayData->mTransformOrigin.mYValue = fiftyPercent;
-
-    
-    
-  }
-
-  
-  
-  
-
-  
-  if (aData->mSIDs & NS_STYLE_INHERIT_BIT(Position)) {
-    nsCSSValue autovalue(eCSSUnit_Auto);
-    nsCSSValue none(eCSSUnit_None);
-    nsCSSValue zero(0.0f, eCSSUnit_Point);
-    aData->mPositionData->mOffset.mTop = autovalue;
-    aData->mPositionData->mOffset.mRight = autovalue;
-    aData->mPositionData->mOffset.mBottom = autovalue;
-    aData->mPositionData->mOffset.mLeft = autovalue;
-    aData->mPositionData->mWidth = autovalue;
-    aData->mPositionData->mMinWidth = zero;
-    aData->mPositionData->mMaxWidth = none;
-    aData->mPositionData->mHeight = autovalue;
-    aData->mPositionData->mMinHeight = zero;
-    aData->mPositionData->mMaxHeight = none;
-    nsCSSValue content(NS_STYLE_BOX_SIZING_CONTENT, eCSSUnit_Enumerated);
-    aData->mPositionData->mBoxSizing = content;
-    aData->mPositionData->mZIndex = autovalue;
-  }
-
-  
-  if (aData->mSIDs & NS_STYLE_INHERIT_BIT(Content)) {
-    
-
-    aData->mContentData->mCounterIncrement = &mNoneCounter;
-    aData->mContentData->mCounterReset = &mNoneCounter;
-
-    nsCSSValue autovalue(eCSSUnit_Auto);
-    aData->mContentData->mMarkerOffset = autovalue;
-  }
-
-  if (aData->mSIDs & NS_STYLE_INHERIT_BIT(Quotes)) {
-    aData->mContentData->mQuotes = &mInheritQuotes;
-  }
-
-  
-  if (aData->mSIDs & NS_STYLE_INHERIT_BIT(UserInterface)) {
-    nsCSSValue inherit(eCSSUnit_Inherit);
-    aData->mUserInterfaceData->mUserInput = inherit;
-    aData->mUserInterfaceData->mUserModify = inherit;
-    aData->mUserInterfaceData->mUserFocus = inherit;
-    aData->mUserInterfaceData->mCursor = &mInheritList;
-  }
-
-  if (aData->mSIDs & NS_STYLE_INHERIT_BIT(UIReset)) {
-    nsCSSValue autovalue(eCSSUnit_Auto);
-    nsCSSValue none(eCSSUnit_None);
-    
-    
-    
-    
-  }
-
-  
-  if (aData->mSIDs & NS_STYLE_INHERIT_BIT(Outline)) {
-    nsCSSValue none(NS_STYLE_BORDER_STYLE_NONE, eCSSUnit_Enumerated);
-    aData->mMarginData->mOutlineStyle = none;
-  }
-
-}
-
-NS_IMETHODIMP
-CSSFirstLineRule::MapRuleInfoInto(nsRuleData* aData)
-{
-  
-
-
-
-
-
-
-
-
-
-  CommonMapRuleInfoInto(aData);
-
-  
-  if (aData->mSIDs & NS_STYLE_INHERIT_BIT(Display)) {
-    nsCSSValue none(eCSSUnit_None);
-    aData->mDisplayData->mFloat = none;
-  }
-
-  
-  
-  if (aData->mSIDs & NS_STYLE_INHERIT_BIT(Border)) {
-    nsCSSValue none(NS_STYLE_BORDER_STYLE_NONE, eCSSUnit_Enumerated);
-    aData->mMarginData->mBorderStyle.mTop = none;
-    aData->mMarginData->mBorderStyle.mRight = none;
-    aData->mMarginData->mBorderStyle.mBottom = none;
-    aData->mMarginData->mBorderStyle.mLeft = none;
-  }
-
-  if (aData->mSIDs & NS_STYLE_INHERIT_BIT(Margin)) {
-    nsCSSValue zero(0.0f, eCSSUnit_Point);
-    aData->mMarginData->mMargin.mTop = zero;
-    aData->mMarginData->mMargin.mRight = zero;
-    aData->mMarginData->mMargin.mBottom = zero;
-    aData->mMarginData->mMargin.mLeft = zero;
-  }
-
-  if (aData->mSIDs & NS_STYLE_INHERIT_BIT(Padding)) {
-    nsCSSValue zero(0.0f, eCSSUnit_Point);
-    aData->mMarginData->mPadding.mTop = zero;
-    aData->mMarginData->mPadding.mRight = zero;
-    aData->mMarginData->mPadding.mBottom = zero;
-    aData->mMarginData->mPadding.mLeft = zero;
-  }
-
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-CSSFirstLetterRule::MapRuleInfoInto(nsRuleData* aData)
-{
-  
-
-
-
-
-
-
-
-
-  CommonMapRuleInfoInto(aData);
-
-  
-  
-  
-
-  return NS_OK;
-}
 
 
 
@@ -392,9 +113,6 @@ protected:
 protected:
   nsIURI*         mURL;
   nsIDocument*    mDocument;
-
-  CSSFirstLineRule* mFirstLineRule;
-  CSSFirstLetterRule* mFirstLetterRule;
 };
 
 
@@ -402,18 +120,13 @@ HTMLCSSStyleSheetImpl::HTMLCSSStyleSheetImpl()
   : nsIHTMLCSSStyleSheet(),
     mRefCnt(0),
     mURL(nsnull),
-    mDocument(nsnull),
-    mFirstLineRule(nsnull),
-    mFirstLetterRule(nsnull)
+    mDocument(nsnull)
 {
 }
 
 HTMLCSSStyleSheetImpl::~HTMLCSSStyleSheetImpl()
 {
   NS_RELEASE(mURL);
-
-  NS_IF_RELEASE(mFirstLineRule);
-  NS_IF_RELEASE(mFirstLetterRule);
 }
 
 NS_IMPL_ISUPPORTS3(HTMLCSSStyleSheetImpl,
@@ -439,32 +152,6 @@ HTMLCSSStyleSheetImpl::RulesMatching(ElementRuleProcessorData* aData)
 NS_IMETHODIMP
 HTMLCSSStyleSheetImpl::RulesMatching(PseudoRuleProcessorData* aData)
 {
-  
-  
-  
-  
-  if (aData->mRuleWalker->AtRoot())
-    return NS_OK;
-
-  nsIAtom* pseudoTag = aData->mPseudoTag;
-  if (pseudoTag == nsCSSPseudoElements::firstLine) {
-    if (!mFirstLineRule) {
-      mFirstLineRule = new CSSFirstLineRule();
-      if (!mFirstLineRule)
-        return NS_ERROR_OUT_OF_MEMORY;
-      NS_ADDREF(mFirstLineRule);
-    }
-    aData->mRuleWalker->Forward(mFirstLineRule);
-  }
-  else if (pseudoTag == nsCSSPseudoElements::firstLetter) {
-    if (!mFirstLetterRule) {
-      mFirstLetterRule = new CSSFirstLetterRule();
-      if (!mFirstLetterRule)
-        return NS_ERROR_OUT_OF_MEMORY;
-      NS_ADDREF(mFirstLetterRule);
-    }
-    aData->mRuleWalker->Forward(mFirstLetterRule);
-  } 
   return NS_OK;
 }
 
@@ -518,8 +205,6 @@ HTMLCSSStyleSheetImpl::Reset(nsIURI* aURL)
   mURL = aURL;
   NS_ADDREF(mURL);
 
-  NS_IF_RELEASE(mFirstLineRule);
-  NS_IF_RELEASE(mFirstLetterRule);
   return NS_OK;
 }
 
@@ -556,8 +241,8 @@ HTMLCSSStyleSheetImpl::GetType(nsString& aType) const
 NS_IMETHODIMP_(PRBool)
 HTMLCSSStyleSheetImpl::HasRules() const
 {
-  return PR_TRUE;  
-                   
+  
+  return PR_TRUE;
 }
 
 NS_IMETHODIMP

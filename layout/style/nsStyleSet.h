@@ -54,9 +54,19 @@
 #include "nsTArray.h"
 #include "nsCOMArray.h"
 #include "nsAutoPtr.h"
+#include "nsIStyleRule.h"
 
 class nsIURI;
 class nsCSSFontFaceRule;
+
+class nsEmptyStyleRule : public nsIStyleRule
+{
+  NS_DECL_ISUPPORTS
+  NS_IMETHOD MapRuleInfoInto(nsRuleData* aRuleData);
+#ifdef DEBUG
+  NS_IMETHOD List(FILE* out = stdout, PRInt32 aIndent = 0) const;
+#endif
+};
 
 
 
@@ -232,6 +242,10 @@ class nsStyleSet
   void AddImportantRules(nsRuleNode* aCurrLevelNode,
                          nsRuleNode* aLastPrevLevelNode);
 
+  
+  
+  void WalkRestrictionRule(nsIAtom* aPseudoType);
+
 #ifdef DEBUG
   
   
@@ -286,6 +300,10 @@ class nsStyleSet
 
   PRInt32 mDestroyedCount; 
   nsTArray<nsStyleContext*> mRoots; 
+
+  
+  
+  nsRefPtr<nsEmptyStyleRule> mFirstLineRule, mFirstLetterRule;
 
   PRUint16 mBatching;
 
