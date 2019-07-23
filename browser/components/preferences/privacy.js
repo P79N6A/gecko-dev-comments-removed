@@ -40,6 +40,7 @@
 
 
 
+
 var gPrivacyPane = {
 
   
@@ -49,6 +50,7 @@ var gPrivacyPane = {
   init: function ()
   {
     this._updateHistoryDaysUI();
+    this._updateSanitizeSettingsButton();
   },
 
   
@@ -315,6 +317,17 @@ var gPrivacyPane = {
     var glue = Cc["@mozilla.org/browser/browserglue;1"]
                  .getService(Ci.nsIBrowserGlue);
     glue.sanitize(window || null);
-  }
+  },
+  
+  
+
+
+
+  _updateSanitizeSettingsButton: function () {
+    var settingsButton = document.getElementById("clearDataSettings");
+    var sanitizeOnShutdownPref = document.getElementById("privacy.sanitize.sanitizeOnShutdown");
+    
+    settingsButton.disabled = !sanitizeOnShutdownPref.value;  	
+   }
 
 };
