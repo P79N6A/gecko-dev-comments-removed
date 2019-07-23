@@ -52,7 +52,8 @@
 #include "nsAutoPtr.h"
 
 class mozIStorageCompletionCallback;
-class mozIStorageStatement;
+class mozIStorageBaseStatement;
+class mozIStorageBindingParams;
 class nsIRunnable;
 
 namespace mozilla {
@@ -99,9 +100,7 @@ void checkAndLogStatementPerformance(sqlite3_stmt *aStatement);
 
 
 
-
-bool bindJSValue(JSContext *aCtx, mozIStorageStatement *aStatement, int aIdx,
-                 jsval aValue);
+nsIVariant *convertJSValToVariant(JSContext *aCtx, jsval aValue);
 
 
 
@@ -110,8 +109,9 @@ bool bindJSValue(JSContext *aCtx, mozIStorageStatement *aStatement, int aIdx,
 
 
 
-already_AddRefed<nsIRunnable>
-newCompletionEvent(mozIStorageCompletionCallback *aCallback);
+already_AddRefed<nsIRunnable> newCompletionEvent(
+  mozIStorageCompletionCallback *aCallback
+);
 
 } 
 } 

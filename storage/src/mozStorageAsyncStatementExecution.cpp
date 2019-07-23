@@ -140,6 +140,8 @@ private:
 
 
 
+
+
 class CompletionNotifier : public nsRunnable
 {
 public:
@@ -148,21 +150,26 @@ public:
 
 
   CompletionNotifier(mozIStorageStatementCallback *aCallback,
-                     ExecutionState aReason) :
-      mCallback(aCallback)
+                     ExecutionState aReason,
+                     AsyncExecuteStatements *aKeepAsyncAlive)
+    : mKeepAsyncAlive(aKeepAsyncAlive)
+    , mCallback(aCallback)
     , mReason(aReason)
   {
   }
 
   NS_IMETHOD Run()
   {
-    (void)mCallback->HandleCompletion(mReason);
-    NS_RELEASE(mCallback);
+    if (mCallback) {
+      (void)mCallback->HandleCompletion(mReason);
+      NS_RELEASE(mCallback);
+    }
 
     return NS_OK;
   }
 
 private:
+  nsRefPtr<AsyncExecuteStatements> mKeepAsyncAlive;
   mozIStorageStatementCallback *mCallback;
   ExecutionState mReason;
 };
@@ -185,7 +192,7 @@ AsyncExecuteStatements::execute(StatementDataArray &aStatements,
   NS_ENSURE_TRUE(event, NS_ERROR_OUT_OF_MEMORY);
 
   
-  nsCOMPtr<nsIEventTarget> target(aConnection->getAsyncExecutionTarget());
+  nsIEventTarget *target = aConnection->getAsyncExecutionTarget();
   NS_ENSURE_TRUE(target, NS_ERROR_NOT_AVAILABLE);
   nsresult rv = target->Dispatch(event, NS_DISPATCH_NORMAL);
   NS_ENSURE_SUCCESS(rv, rv);
@@ -207,6 +214,7 @@ AsyncExecuteStatements::AsyncExecuteStatements(StatementDataArray &aStatements,
 , mState(PENDING)
 , mCancelRequested(false)
 , mMutex(aConnection->sharedAsyncExecutionMutex)
+, mDBMutex(aConnection->sharedDBMutex)
 {
   (void)mStatements.SwapElements(aStatements);
   NS_ASSERTION(mStatements.Length(), "We weren't given any statements!");
@@ -236,7 +244,10 @@ AsyncExecuteStatements::bindExecuteAndProcessStatement(StatementData &aData,
 {
   mMutex.AssertNotCurrentThreadOwns();
 
-  sqlite3_stmt *stmt(aData);
+  sqlite3_stmt *aStatement = nsnull;
+  
+  (void)aData.getSqliteStatement(&aStatement);
+  NS_ASSERTION(aStatement, "You broke the code; do not call here like that!");
   BindingParamsArray *paramsArray(aData);
 
   
@@ -245,8 +256,9 @@ AsyncExecuteStatements::bindExecuteAndProcessStatement(StatementData &aData,
   BindingParamsArray::iterator end = paramsArray->end();
   while (itr != end && continueProcessing) {
     
-    nsCOMPtr<mozIStorageError> error;
-    error = (*itr)->bind(stmt);
+    nsCOMPtr<IStorageBindingParamsInternal> bindingInternal = 
+      do_QueryInterface(*itr);
+    nsCOMPtr<mozIStorageError> error = bindingInternal->bind(aStatement);
     if (error) {
       
       mState = ERROR;
@@ -259,10 +271,10 @@ AsyncExecuteStatements::bindExecuteAndProcessStatement(StatementData &aData,
     
     itr++;
     bool lastStatement = aLastStatement && itr == end;
-    continueProcessing = executeAndProcessStatement(stmt, lastStatement);
+    continueProcessing = executeAndProcessStatement(aStatement, lastStatement);
 
     
-    (void)::sqlite3_reset(stmt);
+    (void)::sqlite3_reset(aStatement);
   }
 
   return continueProcessing;
@@ -327,6 +339,9 @@ AsyncExecuteStatements::executeStatement(sqlite3_stmt *aStatement)
   mMutex.AssertNotCurrentThreadOwns();
 
   while (true) {
+    
+    SQLiteMutexAutoLock lockedScope(mDBMutex);
+
     int rc = ::sqlite3_step(aStatement);
     
     if (rc == SQLITE_DONE)
@@ -339,6 +354,9 @@ AsyncExecuteStatements::executeStatement(sqlite3_stmt *aStatement)
     
     if (rc == SQLITE_BUSY) {
       
+      SQLiteMutexAutoUnlock unlockedScope(mDBMutex);
+
+      
       (void)::PR_Sleep(PR_INTERVAL_NO_WAIT);
       continue;
     }
@@ -347,8 +365,12 @@ AsyncExecuteStatements::executeStatement(sqlite3_stmt *aStatement)
     mState = ERROR;
 
     
-    sqlite3 *db = ::sqlite3_db_handle(aStatement);
-    (void)notifyError(rc, ::sqlite3_errmsg(db));
+    
+    sqlite3 *db = mConnection->GetNativeConnection();
+    nsCOMPtr<mozIStorageError> errorObj(new Error(rc, ::sqlite3_errmsg(db)));
+    
+    SQLiteMutexAutoUnlock unlockedScope(mDBMutex);
+    (void)notifyError(errorObj);
 
     
     return false;
@@ -424,16 +446,15 @@ AsyncExecuteStatements::notifyComplete()
   }
 
   
-  if (mCallback) {
-    nsRefPtr<CompletionNotifier> completionEvent =
-      new CompletionNotifier(mCallback, mState);
-    NS_ENSURE_TRUE(completionEvent, NS_ERROR_OUT_OF_MEMORY);
+  
+  nsRefPtr<CompletionNotifier> completionEvent =
+    new CompletionNotifier(mCallback, mState, this);
+  NS_ENSURE_TRUE(completionEvent, NS_ERROR_OUT_OF_MEMORY);
 
-    
-    mCallback = nsnull;
+  
+  mCallback = nsnull;
 
-    (void)mCallingThread->Dispatch(completionEvent, NS_DISPATCH_NORMAL);
-  }
+  (void)mCallingThread->Dispatch(completionEvent, NS_DISPATCH_NORMAL);
 
   return NS_OK;
 }
@@ -443,6 +464,7 @@ AsyncExecuteStatements::notifyError(PRInt32 aErrorCode,
                                     const char *aMessage)
 {
   mMutex.AssertNotCurrentThreadOwns();
+  mDBMutex.assertNotCurrentThreadOwns();
 
   if (!mCallback)
     return NS_OK;
@@ -457,6 +479,7 @@ nsresult
 AsyncExecuteStatements::notifyError(mozIStorageError *aError)
 {
   mMutex.AssertNotCurrentThreadOwns();
+  mDBMutex.assertNotCurrentThreadOwns();
 
   if (!mCallback)
     return NS_OK;
@@ -546,13 +569,36 @@ AsyncExecuteStatements::Run()
   for (PRUint32 i = 0; i < mStatements.Length(); i++) {
     bool finished = (i == (mStatements.Length() - 1));
 
+    sqlite3_stmt *stmt;
+    { 
+      SQLiteMutexAutoLock lockedScope(mDBMutex);
+
+      int rc = mStatements[i].getSqliteStatement(&stmt);
+      if (rc != SQLITE_OK) {
+        
+        mState = ERROR;
+
+        
+        sqlite3 *db = mConnection->GetNativeConnection();
+        nsCOMPtr<mozIStorageError> errorObj(
+          new Error(rc, ::sqlite3_errmsg(db))
+        );
+        {
+          
+          SQLiteMutexAutoUnlock unlockedScope(mDBMutex);
+          (void)notifyError(errorObj);
+        }
+        break;
+      }
+    }
+
     
     if (mStatements[i].hasParametersToBeBound()) {
       if (!bindExecuteAndProcessStatement(mStatements[i], finished))
         break;
     }
     
-    else if (!executeAndProcessStatement(mStatements[i], finished)) {
+    else if (!executeAndProcessStatement(stmt, finished)) {
       break;
     }
   }

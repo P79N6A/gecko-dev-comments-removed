@@ -37,17 +37,178 @@
 
 
 
+
+
+
+
 const INTEGER = 1;
 const TEXT = "this is test text";
 const REAL = 3.23;
 const BLOB = [1, 2];
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function execAsync(aStmt, aOptions, aResults)
+{
+  let caller = Components.stack.caller;
+  if (aOptions == null)
+    aOptions = {};
+
+  let resultsExpected;
+  let resultsChecker;
+  if (aResults == null) {
+    resultsExpected = 0;
+  }
+  else if (typeof(aResults) == "number") {
+    resultsExpected = aResults;
+  }
+  else if (typeof(aResults) == "function") {
+    resultsChecker = aResults;
+  }
+  else { 
+    resultsExpected = aResults.length;
+    resultsChecker = function(aResultNum, aTup, aCaller) {
+      aResults[aResultNum](aTup, aCaller);
+    };
+  }
+  let resultsSeen = 0;
+
+  let errorCodeExpected = false;
+  let reasonExpected = Ci.mozIStorageStatementCallback.REASON_FINISHED;
+  let altReasonExpected = null;
+  if ("error" in aOptions) {
+    errorCodeExpected = aOptions.error;
+    if (errorCodeExpected)
+      reasonExpected = Ci.mozIStorageStatementCallback.REASON_ERROR;
+  }
+  let errorCodeSeen = false;
+
+  if ("cancel" in aOptions && aOptions.cancel)
+    altReasonExpected = Ci.mozIStorageStatementCallback.REASON_CANCELED;
+
+  let completed = false;
+
+  let listener = {
+    handleResult: function(aResultSet)
+    {
+      let row, resultsSeenThisCall = 0;
+      while ((row = aResultSet.getNextRow()) != null) {
+        if (resultsChecker)
+          resultsChecker(resultsSeen, row, caller);
+        resultsSeen++;
+        resultsSeenThisCall++;
+      }
+
+      if (!resultsSeenThisCall)
+        do_throw("handleResult invoked with 0 result rows!");
+    },
+    handleError: function(aError)
+    {
+      if (errorCodeSeen != false)
+        do_throw("handleError called when we already had an error!");
+      errorCodeSeen = aError.result;
+    },
+    handleCompletion: function(aReason)
+    {
+      if (completed) 
+        do_throw("Received a second handleCompletion notification!", caller);
+
+      if (resultsSeen != resultsExpected)
+        do_throw("Expected " + resultsExpected + " rows of results but " +
+                 "got " + resultsSeen + " rows!", caller);
+
+      if (errorCodeExpected == true && errorCodeSeen == false)
+        do_throw("Expected an error, but did not see one.", caller);
+      else if (errorCodeExpected != errorCodeSeen)
+        do_throw("Expected error code " + errorCodeExpected + " but got " +
+                 errorCodeSeen, caller);
+
+      if (aReason != reasonExpected && aReason != altReasonExpected)
+        do_throw("Expected reason " + reasonExpected +
+                 (altReasonExpected ? (" or " + altReasonExpected) : "") +
+                 " but got " + aReason, caller);
+
+      completed = true;
+    }
+  };
+
+  let pending;
+  
+  
+  if (("cancel" in aOptions && aOptions.cancel) ||
+      ("returnPending" in aOptions && aOptions.returnPending)) {
+    pending = aStmt.executeAsync(listener);
+  }
+  else {
+    aStmt.executeAsync(listener);
+  }
+
+  if ("cancel" in aOptions && aOptions.cancel)
+    pending.cancel();
+
+  let curThread = Components.classes["@mozilla.org/thread-manager;1"]
+                            .getService().currentThread;
+  while (!completed && !_quit)
+    curThread.processNextEvent(true);
+
+  return pending;
+}
+
+
+
+
+
+
+function test_illegal_sql_async_deferred()
+{
+  
+  let stmt = makeTestStatement("I AM A ROBOT. DO AS I SAY.");
+  execAsync(stmt, {error: Ci.mozIStorageError.ERROR});
+  stmt.finalize();
+
+  
+  stmt = makeTestStatement("SELECT destination FROM funkytown");
+  execAsync(stmt, {error: Ci.mozIStorageError.ERROR});
+  stmt.finalize();
+
+  run_next_test();
+}
+test_illegal_sql_async_deferred.asyncOnly = true;
 
 function test_create_table()
 {
   
   do_check_false(getOpenedDatabase().tableExists("test"));
 
-  var stmt = getOpenedDatabase().createStatement(
+  var stmt = makeTestStatement(
     "CREATE TABLE test (" +
       "id INTEGER, " +
       "string TEXT, " +
@@ -56,43 +217,23 @@ function test_create_table()
       "blober BLOB" +
     ")"
   );
-
-  stmt.executeAsync({
-    handleResult: function(aResultSet)
-    {
-      dump("handleResult("+aResultSet+");\n");
-      do_throw("unexpected results obtained!");
-    },
-    handleError: function(aError)
-    {
-      print("error code " + aerror.result + " with message '" +
-            aerror.message + "' returned.");
-      do_throw("unexpected error!");
-    },
-    handleCompletion: function(aReason)
-    {
-      print("handleCompletion(" + aReason + ") for test_create_table");
-      do_check_eq(Ci.mozIStorageStatementCallback.REASON_FINISHED, aReason);
-
-      
-      do_check_true(getOpenedDatabase().tableExists("test"));
-
-      
-      var stmt = getOpenedDatabase().createStatement(
-        "SELECT id, string, number, nuller, blober FROM test"
-      );
-      stmt.finalize();
-
-      
-      run_next_test();
-    }
-  });
+  execAsync(stmt);
   stmt.finalize();
+
+  
+  do_check_true(getOpenedDatabase().tableExists("test"));
+
+  
+  let checkStmt = getOpenedDatabase().createStatement(
+    "SELECT id, string, number, nuller, blober FROM test"
+  );
+  checkStmt.finalize();
+  run_next_test();
 }
 
 function test_add_data()
 {
-  var stmt = getOpenedDatabase().createStatement(
+  var stmt = makeTestStatement(
     "INSERT INTO test (id, string, number, nuller, blober) " +
     "VALUES (?, ?, ?, ?, ?)"
   );
@@ -102,68 +243,25 @@ function test_add_data()
   stmt.bindStringParameter(1, TEXT);
   stmt.bindInt32Parameter(0, INTEGER);
 
-  stmt.executeAsync({
-    handleResult: function(aResultSet)
-    {
-      do_throw("unexpected results obtained!");
-    },
-    handleError: function(aError)
-    {
-      print("error code " + aerror.result + " with message '" +
-            aerror.message + "' returned.");
-      do_throw("unexpected error!");
-    },
-    handleCompletion: function(aReason)
-    {
-      print("handleCompletion(" + aReason + ") for test_add_data");
-      do_check_eq(Ci.mozIStorageStatementCallback.REASON_FINISHED, aReason);
-
-      
-      var stmt = getOpenedDatabase().createStatement(
-        "SELECT string, number, nuller, blober FROM test WHERE id = ?"
-      );
-      stmt.bindInt32Parameter(0, INTEGER);
-      try {
-        do_check_true(stmt.executeStep());
-        do_check_eq(TEXT, stmt.getString(0));
-        do_check_eq(REAL, stmt.getDouble(1));
-        do_check_true(stmt.getIsNull(2));
-        var count = { value: 0 };
-        var blob = { value: null };
-        stmt.getBlob(3, count, blob);
-        do_check_eq(BLOB.length, count.value);
-        for (var i = 0; i < BLOB.length; i++)
-          do_check_eq(BLOB[i], blob.value[i]);
-      }
-      finally {
-        stmt.reset();
-        stmt.finalize();
-      }
-
-      
-      run_next_test();
-    }
-  });
+  execAsync(stmt);
   stmt.finalize();
+
+  
+  verifyQuery("SELECT string, number, nuller, blober FROM test WHERE id = ?",
+              INTEGER,
+              [TEXT, REAL, null, BLOB]);
+  run_next_test();
 }
 
 function test_get_data()
 {
-  var stmt = getOpenedDatabase().createStatement(
+  var stmt = makeTestStatement(
     "SELECT string, number, nuller, blober, id FROM test WHERE id = ?"
   );
   stmt.bindInt32Parameter(0, INTEGER);
-
-  stmt.executeAsync({
-    resultObtained: false,
-    handleResult: function(aResultSet)
+  execAsync(stmt, {}, [
+    function(tuple)
     {
-      dump("handleResult("+aResultSet+");\n");
-      do_check_false(this.resultObtained);
-      this.resultObtained = true;
-
-      
-      var tuple = aResultSet.getNextRow();
       do_check_neq(null, tuple);
 
       
@@ -208,46 +306,18 @@ function test_get_data()
       do_check_eq(INTEGER, tuple.getResultByName("id"));
       do_check_eq(Ci.mozIStorageValueArray.VALUE_TYPE_INTEGER,
                   tuple.getTypeOfIndex(4));
-
-      
-      tuple = aResultSet.getNextRow();
-      do_check_eq(null, tuple);
-    },
-    handleError: function(aError)
-    {
-      print("error code " + aerror.result + " with message '" +
-            aerror.message + "' returned.");
-      do_throw("unexpected error!");
-    },
-    handleCompletion: function(aReason)
-    {
-      print("handleCompletion(" + aReason + ") for test_get_data");
-      do_check_eq(Ci.mozIStorageStatementCallback.REASON_FINISHED, aReason);
-      do_check_true(this.resultObtained);
-
-      
-      run_next_test();
-    }
-  });
+    }]);
   stmt.finalize();
+  run_next_test();
 }
 
 function test_tuple_out_of_bounds()
 {
-  var stmt = getOpenedDatabase().createStatement(
+  var stmt = makeTestStatement(
     "SELECT string FROM test"
   );
-
-  stmt.executeAsync({
-    resultObtained: false,
-    handleResult: function(aResultSet)
-    {
-      dump("handleResult("+aResultSet+");\n");
-      do_check_false(this.resultObtained);
-      this.resultObtained = true;
-
-      
-      var tuple = aResultSet.getNextRow();
+  execAsync(stmt, {}, [
+    function(tuple) {
       do_check_neq(null, tuple);
 
       
@@ -280,30 +350,14 @@ function test_tuple_out_of_bounds()
       catch (e) {
         do_check_eq(Cr.NS_ERROR_ILLEGAL_VALUE, e.result);
       }
-    },
-    handleError: function(aError)
-    {
-      print("Error code " + aError.result + " with message '" +
-            aError.message + "' returned.");
-      do_throw("unexpected error!");
-    },
-    handleCompletion: function(aReason)
-    {
-      print("handleCompletion(" + aReason +
-            ") for test_tuple_out_of_bounds");
-      do_check_eq(Ci.mozIStorageStatementCallback.REASON_FINISHED, aReason);
-      do_check_true(this.resultObtained);
-
-      
-      run_next_test();
-    }
-  });
+    }]);
   stmt.finalize();
+  run_next_test();
 }
 
 function test_no_listener_works_on_success()
 {
-  var stmt = getOpenedDatabase().createStatement(
+  var stmt = makeTestStatement(
     "DELETE FROM test WHERE id = ?"
   );
   stmt.bindInt32Parameter(0, 0);
@@ -316,7 +370,7 @@ function test_no_listener_works_on_success()
 
 function test_no_listener_works_on_results()
 {
-  var stmt = getOpenedDatabase().createStatement(
+  var stmt = makeTestStatement(
     "SELECT ?"
   );
   stmt.bindInt32Parameter(0, 1);
@@ -330,7 +384,7 @@ function test_no_listener_works_on_results()
 function test_no_listener_works_on_error()
 {
   
-  var stmt = getOpenedDatabase().createStatement(
+  var stmt = makeTestStatement(
     "COMMIT"
   );
   stmt.executeAsync();
@@ -342,7 +396,7 @@ function test_no_listener_works_on_error()
 
 function test_partial_listener_works()
 {
-  var stmt = getOpenedDatabase().createStatement(
+  var stmt = makeTestStatement(
     "DELETE FROM test WHERE id = ?"
   );
   stmt.bindInt32Parameter(0, 0);
@@ -367,130 +421,80 @@ function test_partial_listener_works()
   run_next_test();
 }
 
+
+
+
+
+
+
 function test_immediate_cancellation()
 {
-  var stmt = getOpenedDatabase().createStatement(
+  var stmt = makeTestStatement(
     "DELETE FROM test WHERE id = ?"
   );
   stmt.bindInt32Parameter(0, 0);
-  var pendingStatement = stmt.executeAsync({
-    handleResult: function(aResultSet)
-    {
-      do_throw("unexpected result!");
-    },
-    handleError: function(aError)
-    {
-      print("Error code " + aError.result + " with message '" +
-            aError.message + "' returned.");
-      do_throw("unexpected error!");
-    },
-    handleCompletion: function(aReason)
-    {
-      print("handleCompletion(" + aReason +
-            ") for test_immediate_cancellation");
-      
-      do_check_true(aReason == Ci.mozIStorageStatementCallback.REASON_FINISHED ||
-                    aReason == Ci.mozIStorageStatementCallback.REASON_CANCELED);
-
-      
-      run_next_test();
-    }
-  });
-
-  
-  pendingStatement.cancel()
-
+  execAsync(stmt, {cancel: true});
   stmt.finalize();
+  run_next_test();
 }
+
+
+
 
 function test_double_cancellation()
 {
-  var stmt = getOpenedDatabase().createStatement(
+  var stmt = makeTestStatement(
     "DELETE FROM test WHERE id = ?"
   );
   stmt.bindInt32Parameter(0, 0);
-  var pendingStatement = stmt.executeAsync({
-    handleResult: function(aResultSet)
-    {
-      do_throw("unexpected result!");
-    },
-    handleError: function(aError)
-    {
-      print("Error code " + aError.result + " with message '" +
-            aError.message + "' returned.");
-      do_throw("unexpected error!");
-    },
-    handleCompletion: function(aReason)
-    {
-      print("handleCompletion(" + aReason +
-            ") for test_double_cancellation");
-      
-      do_check_true(aReason == Ci.mozIStorageStatementCallback.REASON_FINISHED ||
-                    aReason == Ci.mozIStorageStatementCallback.REASON_CANCELED);
-
-      
-      run_next_test();
-    }
-  });
-
+  let pendingStatement = execAsync(stmt, {cancel: true});
   
-  pendingStatement.cancel()
-
-  
-  try {
-    pendingStatement.cancel();
-    do_throw("function call should have thrown!");
-  }
-  catch (e) {
-    do_check_eq(Cr.NS_ERROR_UNEXPECTED, e.result);
-  }
+  expectError(Cr.NS_ERROR_UNEXPECTED,
+              function() pendingStatement.cancel());
 
   stmt.finalize();
+  run_next_test();
 }
+
+
+
+
+
+function test_cancellation_after_execution()
+{
+  var stmt = makeTestStatement(
+    "DELETE FROM test WHERE id = ?"
+  );
+  stmt.bindInt32Parameter(0, 0);
+  let pendingStatement = execAsync(stmt, {returnPending: true});
+  
+  
+  pendingStatement.cancel();
+
+  stmt.finalize();
+  run_next_test();
+}
+
+
+
+
+
+
 
 function test_double_execute()
 {
-  var stmt = getOpenedDatabase().createStatement(
-    "SELECT * FROM test"
+  var stmt = makeTestStatement(
+    "SELECT 1"
   );
-
-  var listener = {
-    _timesCompleted: 0,
-    _hasResults: false,
-    handleResult: function(aResultSet)
-    {
-      do_check_false(this._hasResults);
-      this._hasResults = true;
-    },
-    handleError: function(aError)
-    {
-      print("Error code " + aError.result + " with message '" +
-            aError.message + "' returned.");
-      do_throw("unexpected error!");
-    },
-    handleCompletion: function(aReason)
-    {
-      print("handleCompletion(" + aReason +
-            ") for test_double_execute (iteration " +
-            (this._timesCompleted + 1) + ")");
-      do_check_eq(Ci.mozIStorageStatementCallback.REASON_FINISHED, aReason);
-      do_check_true(this._hasResults);
-      this._hasResults = false;
-      this._timesCompleted++;
-
-      
-      if (this._timesCompleted == 2)
-        run_next_test();
-    }
-  }
-  stmt.executeAsync(listener);
-  stmt.executeAsync(listener);
+  execAsync(stmt, null, 1);
+  execAsync(stmt, null, 1);
   stmt.finalize();
+  run_next_test();
 }
 
 function test_finalized_statement_does_not_crash()
 {
-  var stmt = getOpenedDatabase().createStatement(
+  var stmt = makeTestStatement(
     "SELECT * FROM TEST"
   );
   stmt.finalize();
@@ -504,10 +508,94 @@ function test_finalized_statement_does_not_crash()
   run_next_test();
 }
 
+
+
+
+function test_bind_direct_binding_params_by_index()
+{
+  var stmt = makeTestStatement(
+    "INSERT INTO test (id, string, number, nuller, blober) " +
+    "VALUES (?, ?, ?, ?, ?)"
+  );
+  let insertId = nextUniqueId++;
+  stmt.bindByIndex(0, insertId);
+  stmt.bindByIndex(1, TEXT);
+  stmt.bindByIndex(2, REAL);
+  stmt.bindByIndex(3, null);
+  stmt.bindBlobByIndex(4, BLOB, BLOB.length);
+  execAsync(stmt);
+  stmt.finalize();
+  verifyQuery("SELECT string, number, nuller, blober FROM test WHERE id = ?",
+              insertId,
+              [TEXT, REAL, null, BLOB]);
+  run_next_test();
+}
+
+
+
+
+function test_bind_direct_binding_params_by_name()
+{
+  var stmt = makeTestStatement(
+    "INSERT INTO test (id, string, number, nuller, blober) " +
+    "VALUES (:int, :text, :real, :null, :blob)"
+  );
+  let insertId = nextUniqueId++;
+  stmt.bindByName("int", insertId);
+  stmt.bindByName("text", TEXT);
+  stmt.bindByName("real", REAL);
+  stmt.bindByName("null", null);
+  stmt.bindBlobByName("blob", BLOB, BLOB.length);
+  execAsync(stmt);
+  stmt.finalize();
+  verifyQuery("SELECT string, number, nuller, blober FROM test WHERE id = ?",
+              insertId,
+              [TEXT, REAL, null, BLOB]);
+  run_next_test();
+}
+
+function test_bind_js_params_helper_by_index()
+{
+  var stmt = makeTestStatement(
+    "INSERT INTO test (id, string, number, nuller, blober) " +
+    "VALUES (?, ?, ?, ?, NULL)"
+  );
+  let insertId = nextUniqueId++;
+  
+  stmt.params[3] = null;
+  stmt.params[2] = REAL;
+  stmt.params[1] = TEXT;
+  stmt.params[0] = insertId;
+  execAsync(stmt);
+  stmt.finalize();
+  verifyQuery("SELECT string, number, nuller FROM test WHERE id = ?", insertId,
+              [TEXT, REAL, null]);
+  run_next_test();
+}
+
+function test_bind_js_params_helper_by_name()
+{
+  var stmt = makeTestStatement(
+    "INSERT INTO test (id, string, number, nuller, blober) " +
+    "VALUES (:int, :text, :real, :null, NULL)"
+  );
+  let insertId = nextUniqueId++;
+  
+  stmt.params.null = null;
+  stmt.params.real = REAL;
+  stmt.params.text = TEXT;
+  stmt.params.int = insertId;
+  execAsync(stmt);
+  stmt.finalize();
+  verifyQuery("SELECT string, number, nuller FROM test WHERE id = ?", insertId,
+              [TEXT, REAL, null]);
+  run_next_test();
+}
+
 function test_bind_multiple_rows_by_index()
 {
   const AMOUNT_TO_ADD = 5;
-  var stmt = getOpenedDatabase().createStatement(
+  var stmt = makeTestStatement(
     "INSERT INTO test (id, string, number, nuller, blober) " +
     "VALUES (?, ?, ?, ?, ?)"
   );
@@ -524,60 +612,17 @@ function test_bind_multiple_rows_by_index()
   }
   stmt.bindParameters(array);
 
-  
-  var currentRows = 0;
-  var countStmt = getOpenedDatabase().createStatement(
-    "SELECT COUNT(1) AS count FROM test"
-  );
-  try {
-    do_check_true(countStmt.executeStep());
-    currentRows = countStmt.row.count;
-    print("We have " + currentRows + " rows in test_bind_multiple_rows_by_index");
-  }
-  finally {
-    countStmt.reset();
-  }
-
-  
-  stmt.executeAsync({
-    handleResult: function(aResultSet)
-    {
-      do_throw("Unexpected call to handleResult!");
-    },
-    handleError: function(aError)
-    {
-      print("Error code " + aError.result + " with message '" +
-            aError.message + "' returned.");
-      do_throw("unexpected error!");
-    },
-    handleCompletion: function(aReason)
-    {
-      print("handleCompletion(" + aReason +
-            ") for test_bind_multiple_rows_by_index");
-      do_check_eq(Ci.mozIStorageStatementCallback.REASON_FINISHED, aReason);
-
-      
-      try {
-        do_check_true(countStmt.executeStep());
-        print("We now have " + currentRows +
-              " rows in test_bind_multiple_rows_by_index");
-        do_check_eq(currentRows + AMOUNT_TO_ADD, countStmt.row.count);
-      }
-      finally {
-        countStmt.finalize();
-      }
-
-      
-      run_next_test();
-    }
-  });
+  let rowCount = getTableRowCount("test");
+  execAsync(stmt);
+  do_check_eq(rowCount + AMOUNT_TO_ADD, getTableRowCount("test"));
   stmt.finalize();
+  run_next_test();
 }
 
 function test_bind_multiple_rows_by_name()
 {
   const AMOUNT_TO_ADD = 5;
-  var stmt = getOpenedDatabase().createStatement(
+  var stmt = makeTestStatement(
     "INSERT INTO test (id, string, number, nuller, blober) " +
     "VALUES (:int, :text, :real, :null, :blob)"
   );
@@ -594,59 +639,20 @@ function test_bind_multiple_rows_by_name()
   }
   stmt.bindParameters(array);
 
-  
-  var currentRows = 0;
-  var countStmt = getOpenedDatabase().createStatement(
-    "SELECT COUNT(1) AS count FROM test"
-  );
-  try {
-    do_check_true(countStmt.executeStep());
-    currentRows = countStmt.row.count;
-    print("We have " + currentRows + " rows in test_bind_multiple_rows_by_name");
-  }
-  finally {
-    countStmt.reset();
-  }
-
-  
-  stmt.executeAsync({
-    handleResult: function(aResultSet)
-    {
-      do_throw("Unexpected call to handleResult!");
-    },
-    handleError: function(aError)
-    {
-      print("Error code " + aError.result + " with message '" +
-            aError.message + "' returned.");
-      do_throw("unexpected error!");
-    },
-    handleCompletion: function(aReason)
-    {
-      print("handleCompletion(" + aReason +
-            ") for test_bind_multiple_rows_by_name");
-      do_check_eq(Ci.mozIStorageStatementCallback.REASON_FINISHED, aReason);
-
-      
-      try {
-        do_check_true(countStmt.executeStep());
-        print("We now have " + currentRows +
-              " rows in test_bind_multiple_rows_by_name");
-        do_check_eq(currentRows + AMOUNT_TO_ADD, countStmt.row.count);
-      }
-      finally {
-        countStmt.finalize();
-      }
-
-      
-      run_next_test();
-    }
-  });
+  let rowCount = getTableRowCount("test");
+  execAsync(stmt);
+  do_check_eq(rowCount + AMOUNT_TO_ADD, getTableRowCount("test"));
   stmt.finalize();
+  run_next_test();
 }
 
-function test_bind_out_of_bounds()
+
+
+
+
+function test_bind_out_of_bounds_sync_immediate()
 {
-  let stmt = getOpenedDatabase().createStatement(
+  let stmt = makeTestStatement(
     "INSERT INTO test (id) " +
     "VALUES (?)"
   );
@@ -655,38 +661,45 @@ function test_bind_out_of_bounds()
   let bp = array.newBindingParams();
 
   
-  let exceptionCaught = false;
-  try {
-    bp.bindByIndex(1, INTEGER);
-    do_throw("we should have an exception!");
-  }
-  catch(e) {
-    do_check_eq(e.result, Cr.NS_ERROR_INVALID_ARG);
-    exceptionCaught = true;
-  }
-  do_check_true(exceptionCaught);
-
+  expectError(Cr.NS_ERROR_INVALID_ARG,
+              function() bp.bindByIndex(1, INTEGER));
   
-  exceptionCaught = false;
-  try {
-    bp.bindBlobByIndex(1, BLOB, BLOB.length);
-    do_throw("we should have an exception!");
-  }
-  catch(e) {
-    do_check_eq(e.result, Cr.NS_ERROR_INVALID_ARG);
-    exceptionCaught = true;
-  }
-  do_check_true(exceptionCaught);
+  expectError(Cr.NS_ERROR_INVALID_ARG,
+              function() bp.bindBlobByIndex(1, BLOB, BLOB.length));
 
   stmt.finalize();
-
-  
   run_next_test();
 }
+test_bind_out_of_bounds_sync_immediate.syncOnly = true;
 
-function test_bind_no_such_name()
+
+
+
+
+function test_bind_out_of_bounds_async_deferred()
 {
-  let stmt = getOpenedDatabase().createStatement(
+  let stmt = makeTestStatement(
+    "INSERT INTO test (id) " +
+    "VALUES (?)"
+  );
+
+  let array = stmt.newBindingParamsArray();
+  let bp = array.newBindingParams();
+
+  
+  bp.bindByIndex(1, INTEGER);
+  array.addParams(bp);
+  stmt.bindParameters(array);
+  execAsync(stmt, {error: Ci.mozIStorageError.RANGE});
+
+  stmt.finalize();
+  run_next_test();
+}
+test_bind_out_of_bounds_async_deferred.asyncOnly = true;
+
+function test_bind_no_such_name_sync_immediate()
+{
+  let stmt = makeTestStatement(
     "INSERT INTO test (id) " +
     "VALUES (:foo)"
   );
@@ -695,122 +708,82 @@ function test_bind_no_such_name()
   let bp = array.newBindingParams();
 
   
-  let exceptionCaught = false;
-  try {
-    bp.bindByName("doesnotexist", INTEGER);
-    do_throw("we should have an exception!");
-  }
-  catch(e) {
-    do_check_eq(e.result, Cr.NS_ERROR_INVALID_ARG);
-    exceptionCaught = true;
-  }
-  do_check_true(exceptionCaught);
-
+  expectError(Cr.NS_ERROR_INVALID_ARG,
+              function() bp.bindByName("doesnotexist", INTEGER));
   
-  exceptionCaught = false;
-  try {
-    bp.bindBlobByName("doesnotexist", BLOB, BLOB.length);
-    do_throw("we should have an exception!");
-  }
-  catch(e) {
-    do_check_eq(e.result, Cr.NS_ERROR_INVALID_ARG);
-    exceptionCaught = true;
-  }
-  do_check_true(exceptionCaught);
+  expectError(Cr.NS_ERROR_INVALID_ARG,
+              function() bp.bindBlobByName("doesnotexist", BLOB, BLOB.length));
 
   stmt.finalize();
-
-  
   run_next_test();
 }
+test_bind_no_such_name_sync_immediate.syncOnly = true;
+
+function test_bind_no_such_name_async_deferred()
+{
+  let stmt = makeTestStatement(
+    "INSERT INTO test (id) " +
+    "VALUES (:foo)"
+  );
+
+  let array = stmt.newBindingParamsArray();
+  let bp = array.newBindingParams();
+
+  bp.bindByName("doesnotexist", INTEGER);
+  array.addParams(bp);
+  stmt.bindParameters(array);
+  execAsync(stmt, {error: Ci.mozIStorageError.RANGE});
+
+  stmt.finalize();
+  run_next_test();
+}
+test_bind_no_such_name_async_deferred.asyncOnly = true;
 
 function test_bind_bogus_type_by_index()
 {
   
-  let stmt = getOpenedDatabase().createStatement(
+  let stmt = makeTestStatement(
     "INSERT INTO test (blober) " +
     "VALUES (?)"
   );
 
-  
   let array = stmt.newBindingParamsArray();
   let bp = array.newBindingParams();
+  
   bp.bindByIndex(0, run_test);
   array.addParams(bp);
   stmt.bindParameters(array);
 
-  stmt.executeAsync({
-    _errorObtained: false,
-    handleResult: function(aResultSet)
-    {
-      do_throw("Unexpected call to handleResult!");
-    },
-    handleError: function(aError)
-    {
-      print("Error code " + aError.result + " with message '" +
-            aError.message + "' returned.");
-      this._errorObtained = true;
-      do_check_eq(aError.result, Ci.mozIStorageError.MISMATCH);
-    },
-    handleCompletion: function(aReason)
-    {
-      print("handleCompletion(" + aReason +
-            ") for test_bind_bogus_type_by_index");
-      do_check_eq(Ci.mozIStorageStatementCallback.REASON_ERROR, aReason);
-      do_check_true(this._errorObtained);
+  execAsync(stmt, {error: Ci.mozIStorageError.MISMATCH});
 
-      
-      run_next_test();
-    }
-  });
   stmt.finalize();
+  run_next_test();
 }
 
 function test_bind_bogus_type_by_name()
 {
   
-  let stmt = getOpenedDatabase().createStatement(
+  let stmt = makeTestStatement(
     "INSERT INTO test (blober) " +
     "VALUES (:blob)"
   );
 
-  
   let array = stmt.newBindingParamsArray();
   let bp = array.newBindingParams();
+  
   bp.bindByName("blob", run_test);
   array.addParams(bp);
   stmt.bindParameters(array);
 
-  stmt.executeAsync({
-    _errorObtained: false,
-    handleResult: function(aResultSet)
-    {
-      do_throw("Unexpected call to handleResult!");
-    },
-    handleError: function(aError)
-    {
-      print("Error code " + aError.result + " with message '" +
-            aError.message + "' returned.");
-      this._errorObtained = true;
-      do_check_eq(aError.result, Ci.mozIStorageError.MISMATCH);
-    },
-    handleCompletion: function(aReason)
-    {
-      print("handleCompletion(" + aReason +
-            ") for test_bind_bogus_type_by_name");
-      do_check_eq(Ci.mozIStorageStatementCallback.REASON_ERROR, aReason);
-      do_check_true(this._errorObtained);
+  execAsync(stmt, {error: Ci.mozIStorageError.MISMATCH});
 
-      
-      run_next_test();
-    }
-  });
   stmt.finalize();
+  run_next_test();
 }
 
 function test_bind_params_already_locked()
 {
-  let stmt = getOpenedDatabase().createStatement(
+  let stmt = makeTestStatement(
     "INSERT INTO test (id) " +
     "VALUES (:int)"
   );
@@ -821,24 +794,16 @@ function test_bind_params_already_locked()
   array.addParams(bp);
 
   
-  let exceptionCaught = false;
-  try {
-    bp.bindByName("int", INTEGER);
-    do_throw("we should have an exception!");
-  }
-  catch(e) {
-    do_check_eq(e.result, Cr.NS_ERROR_UNEXPECTED);
-    exceptionCaught = true;
-  }
-  do_check_true(exceptionCaught);
+  expectError(Cr.NS_ERROR_UNEXPECTED,
+              function() bp.bindByName("int", INTEGER));
 
-  
+  stmt.finalize();
   run_next_test();
 }
 
 function test_bind_params_array_already_locked()
 {
-  let stmt = getOpenedDatabase().createStatement(
+  let stmt = makeTestStatement(
     "INSERT INTO test (id) " +
     "VALUES (:int)"
   );
@@ -852,24 +817,16 @@ function test_bind_params_array_already_locked()
   bp2.bindByName("int", INTEGER);
 
   
-  let exceptionCaught = false;
-  try {
-    array.addParams(bp2);
-    do_throw("we should have an exception!");
-  }
-  catch(e) {
-    do_check_eq(e.result, Cr.NS_ERROR_UNEXPECTED);
-    exceptionCaught = true;
-  }
-  do_check_true(exceptionCaught);
+  expectError(Cr.NS_ERROR_UNEXPECTED,
+              function() array.addParams(bp2));
 
-  
+  stmt.finalize();
   run_next_test();
 }
 
 function test_no_binding_params_from_locked_array()
 {
-  let stmt = getOpenedDatabase().createStatement(
+  let stmt = makeTestStatement(
     "INSERT INTO test (id) " +
     "VALUES (:int)"
   );
@@ -882,24 +839,16 @@ function test_no_binding_params_from_locked_array()
 
   
   
-  let exceptionCaught = false;
-  try {
-    bp = array.newBindingParams();
-    do_throw("we should have an exception!");
-  }
-  catch(e) {
-    do_check_eq(e.result, Cr.NS_ERROR_UNEXPECTED);
-    exceptionCaught = true;
-  }
-  do_check_true(exceptionCaught);
+  expectError(Cr.NS_ERROR_UNEXPECTED,
+              function() array.newBindingParams());
 
-  
+  stmt.finalize();
   run_next_test();
 }
 
 function test_not_right_owning_array()
 {
-  let stmt = getOpenedDatabase().createStatement(
+  let stmt = makeTestStatement(
     "INSERT INTO test (id) " +
     "VALUES (:int)"
   );
@@ -910,28 +859,20 @@ function test_not_right_owning_array()
   bp.bindByName("int", INTEGER);
 
   
-  let exceptionCaught = false;
-  try {
-    array2.addParams(bp);
-    do_throw("we should have an exception!");
-  }
-  catch(e) {
-    do_check_eq(e.result, Cr.NS_ERROR_UNEXPECTED);
-    exceptionCaught = true;
-  }
-  do_check_true(exceptionCaught);
+  expectError(Cr.NS_ERROR_UNEXPECTED,
+              function() array2.addParams(bp));
 
-  
+  stmt.finalize();
   run_next_test();
 }
 
 function test_not_right_owning_statement()
 {
-  let stmt1 = getOpenedDatabase().createStatement(
+  let stmt1 = makeTestStatement(
     "INSERT INTO test (id) " +
     "VALUES (:int)"
   );
-  let stmt2 = getOpenedDatabase().createStatement(
+  let stmt2 = makeTestStatement(
     "INSERT INTO test (id) " +
     "VALUES (:int)"
   );
@@ -943,24 +884,17 @@ function test_not_right_owning_statement()
   array1.addParams(bp);
 
   
-  let exceptionCaught = false;
-  try {
-    stmt2.bindParameters(array1);
-    do_throw("we should have an exception!");
-  }
-  catch(e) {
-    do_check_eq(e.result, Cr.NS_ERROR_UNEXPECTED);
-    exceptionCaught = true;
-  }
-  do_check_true(exceptionCaught);
+  expectError(Cr.NS_ERROR_UNEXPECTED,
+              function() stmt2.bindParameters(array1));
 
-  
+  stmt1.finalize();
+  stmt2.finalize();
   run_next_test();
 }
 
 function test_bind_empty_array()
 {
-  let stmt = getOpenedDatabase().createStatement(
+  let stmt = makeTestStatement(
     "INSERT INTO test (id) " +
     "VALUES (:int)"
   );
@@ -969,72 +903,61 @@ function test_bind_empty_array()
 
   
   
-  let exceptionCaught = false;
-  try {
-    stmt.bindParameters(paramsArray);
-    do_throw("we should have an exception!");
-  }
-  catch(e) {
-    do_check_eq(e.result, Cr.NS_ERROR_UNEXPECTED);
-    exceptionCaught = true;
-  }
-  do_check_true(exceptionCaught);
+  expectError(Cr.NS_ERROR_UNEXPECTED,
+              function() stmt.bindParameters(paramsArray));
 
-  
+  stmt.finalize();
   run_next_test();
 }
 
 function test_multiple_results()
 {
-  
-  let stmt = createStatement("SELECT COUNT(1) FROM test");
-  try {
-    do_check_true(stmt.executeStep());
-    var expectedResults = stmt.getInt32(0);
-  }
-  finally {
-    stmt.finalize();
-  }
-
+  let expectedResults = getTableRowCount("test");
   
   do_check_true(expectedResults > 1);
 
   
-  stmt = createStatement("SELECT * FROM test");
-  stmt.executeAsync({
-    _results: 0,
-    handleResult: function(aResultSet)
-    {
-      while (aResultSet.getNextRow())
-        this._results++;
-    },
-    handleError: function(aError)
-    {
-      print("Error code " + aError.result + " with message '" +
-            aError.message + "' returned.");
-      do_throw("Unexpected call to handleError!");
-    },
-    handleCompletion: function(aReason)
-    {
-      print("handleCompletion(" + aReason +
-            ") for test_multiple_results");
-      do_check_eq(Ci.mozIStorageStatementCallback.REASON_FINISHED, aReason);
+  let stmt = makeTestStatement("SELECT * FROM test");
+  execAsync(stmt, {}, expectedResults);
 
-      
-      do_check_eq(this._results, expectedResults);
-
-      
-      run_next_test();
-    }
-  });
   stmt.finalize();
+  run_next_test();
 }
 
 
 
 
+
+const TEST_PASS_SYNC = 0;
+const TEST_PASS_ASYNC = 1;
+
+
+
+
+
+
+
+
+
+let testPass = TEST_PASS_SYNC;
+
+
+
+
+
+
+
+
+function makeTestStatement(aSQL) {
+  if (testPass == TEST_PASS_SYNC)
+    return getOpenedDatabase().createStatement(aSQL);
+  else
+    return getOpenedDatabase().createAsyncStatement(aSQL);
+}
+
 var tests =
 [
+  test_illegal_sql_async_deferred,
   test_create_table,
   test_add_data,
   test_get_data,
@@ -1045,12 +968,19 @@ var tests =
   test_partial_listener_works,
   test_immediate_cancellation,
   test_double_cancellation,
+  test_cancellation_after_execution,
   test_double_execute,
   test_finalized_statement_does_not_crash,
+  test_bind_direct_binding_params_by_index,
+  test_bind_direct_binding_params_by_name,
+  test_bind_js_params_helper_by_index,
+  test_bind_js_params_helper_by_name,
   test_bind_multiple_rows_by_index,
   test_bind_multiple_rows_by_name,
-  test_bind_out_of_bounds,
-  test_bind_no_such_name,
+  test_bind_out_of_bounds_sync_immediate,
+  test_bind_out_of_bounds_async_deferred,
+  test_bind_no_such_name_sync_immediate,
+  test_bind_no_such_name_async_deferred,
   test_bind_bogus_type_by_index,
   test_bind_bogus_type_by_name,
   test_bind_params_already_locked,
@@ -1063,22 +993,53 @@ var tests =
 ];
 let index = 0;
 
+const STARTING_UNIQUE_ID = 2;
+let nextUniqueId = STARTING_UNIQUE_ID;
+
 function run_next_test()
 {
-  if (index < tests.length) {
-    do_test_pending();
-    print("Running the next test: " + tests[index].name);
+  function _run_next_test() {
+    
+    while (index < tests.length) {
+      let test = tests[index++];
+      
+      if ((testPass == TEST_PASS_SYNC && ("asyncOnly" in test)) ||
+          (testPass == TEST_PASS_ASYNC && ("syncOnly" in test)))
+        continue;
+
+      
+      try {
+        print("****** Running the next test: " + test.name);
+        test();
+        return;
+      }
+      catch (e) {
+        do_throw(e);
+      }
+    }
 
     
-    try {
-      tests[index++]();
+    if (testPass == TEST_PASS_SYNC) {
+      print("********* Beginning mozIStorageAsyncStatement pass.");
+      testPass++;
+      index = 0;
+      
+      asyncCleanup();
+      nextUniqueId = STARTING_UNIQUE_ID;
+      _run_next_test();
+      return;
     }
-    catch (e) {
-      do_throw(e);
-    }
+
+    
+    asyncCleanup();
+    do_test_finished();
   }
 
-  do_test_finished();
+  
+  if (!_quit) {
+    
+    do_execute_soon(_run_next_test);
+  }
 }
 
 function run_test()

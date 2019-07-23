@@ -456,7 +456,7 @@ nsFaviconService::ExpireAllFavicons()
   
   
 
-  mozIStorageStatement *stmts[] = {
+  mozIStorageBaseStatement *stmts[] = {
     GetStatement(mDBRemoveOnDiskReferences),
     GetStatement(mDBRemoveTempReferences),
     GetStatement(mDBRemoveAllFavicons),

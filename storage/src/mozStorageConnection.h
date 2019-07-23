@@ -92,7 +92,7 @@ public:
 
 
 
-  already_AddRefed<nsIEventTarget> getAsyncExecutionTarget();
+  nsIEventTarget *getAsyncExecutionTarget();
 
   
 
@@ -101,6 +101,14 @@ public:
 
 
   Mutex sharedAsyncExecutionMutex;
+
+  
+
+
+
+
+
+  SQLiteMutex sharedDBMutex;
 
   
 
@@ -173,11 +181,6 @@ private:
 
 
   bool mAsyncExecutionThreadShuttingDown;
-
-  
-
-
-  SQLiteMutex mDBMutex;
 
   
 

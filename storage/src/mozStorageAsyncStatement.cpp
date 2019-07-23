@@ -1,0 +1,456 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#include <limits.h>
+#include <stdio.h>
+
+#include "nsError.h"
+#include "nsMemory.h"
+#include "nsProxyRelease.h"
+#include "nsThreadUtils.h"
+#include "nsIClassInfoImpl.h"
+#include "nsIProgrammingLanguage.h"
+#include "Variant.h"
+
+#include "mozIStorageError.h"
+
+#include "mozStorageBindingParams.h"
+#include "mozStorageConnection.h"
+#include "mozStorageAsyncStatementJSHelper.h"
+#include "mozStorageAsyncStatementParams.h"
+#include "mozStoragePrivateHelpers.h"
+#include "mozStorageStatementRow.h"
+#include "mozStorageStatement.h"
+
+#include "prlog.h"
+
+#ifdef PR_LOGGING
+extern PRLogModuleInfo *gStorageLog;
+#endif
+
+namespace mozilla {
+namespace storage {
+
+
+
+
+NS_IMPL_CI_INTERFACE_GETTER4(
+  AsyncStatement
+, mozIStorageAsyncStatement
+, mozIStorageBaseStatement
+, mozIStorageBindingParams
+, mozilla::storage::StorageBaseStatementInternal
+)
+
+class AsyncStatementClassInfo : public nsIClassInfo
+{
+public:
+  NS_DECL_ISUPPORTS
+
+  NS_IMETHODIMP
+  GetInterfaces(PRUint32 *_count, nsIID ***_array)
+  {
+    return NS_CI_INTERFACE_GETTER_NAME(AsyncStatement)(_count, _array);
+  }
+
+  NS_IMETHODIMP
+  GetHelperForLanguage(PRUint32 aLanguage, nsISupports **_helper)
+  {
+    if (aLanguage == nsIProgrammingLanguage::JAVASCRIPT) {
+      static AsyncStatementJSHelper sJSHelper;
+      *_helper = &sJSHelper;
+      return NS_OK;
+    }
+
+    *_helper = nsnull;
+    return NS_OK;
+  }
+
+  NS_IMETHODIMP
+  GetContractID(char **_contractID)
+  {
+    *_contractID = nsnull;
+    return NS_OK;
+  }
+
+  NS_IMETHODIMP
+  GetClassDescription(char **_desc)
+  {
+    *_desc = nsnull;
+    return NS_OK;
+  }
+
+  NS_IMETHODIMP
+  GetClassID(nsCID **_id)
+  {
+    *_id = nsnull;
+    return NS_OK;
+  }
+
+  NS_IMETHODIMP
+  GetImplementationLanguage(PRUint32 *_language)
+  {
+    *_language = nsIProgrammingLanguage::CPLUSPLUS;
+    return NS_OK;
+  }
+
+  NS_IMETHODIMP
+  GetFlags(PRUint32 *_flags)
+  {
+    *_flags = nsnull;
+    return NS_OK;
+  }
+
+  NS_IMETHODIMP
+  GetClassIDNoAlloc(nsCID *_cid)
+  {
+    return NS_ERROR_NOT_AVAILABLE;
+  }
+};
+
+NS_IMETHODIMP_(nsrefcnt) AsyncStatementClassInfo::AddRef() { return 2; }
+NS_IMETHODIMP_(nsrefcnt) AsyncStatementClassInfo::Release() { return 1; }
+NS_IMPL_QUERY_INTERFACE1(AsyncStatementClassInfo, nsIClassInfo)
+
+static AsyncStatementClassInfo sAsyncStatementClassInfo;
+
+
+
+
+AsyncStatement::AsyncStatement()
+: StorageBaseStatementInternal()
+, mFinalized(false)
+{
+}
+
+nsresult
+AsyncStatement::initialize(Connection *aDBConnection,
+                           const nsACString &aSQLStatement)
+{
+  NS_ASSERTION(aDBConnection, "No database connection given!");
+  NS_ASSERTION(aDBConnection->GetNativeConnection(),
+               "We should never be called with a null sqlite3 database!");
+
+  mDBConnection = aDBConnection;
+  mSQLString = aSQLStatement;
+
+#ifdef PR_LOGGING
+  PR_LOG(gStorageLog, PR_LOG_NOTICE, ("Inited async statement '%s' (0x%p)",
+                                      mSQLString.get()));
+#endif
+
+#ifdef DEBUG
+  
+  
+  
+  
+  const nsCaseInsensitiveCStringComparator c;
+  nsACString::const_iterator start, end, e;
+  aSQLStatement.BeginReading(start);
+  aSQLStatement.EndReading(end);
+  e = end;
+  while (::FindInReadable(NS_LITERAL_CSTRING(" LIKE"), start, e, c)) {
+    
+    
+    
+    nsACString::const_iterator s1, s2, s3;
+    s1 = s2 = s3 = start;
+
+    if (!(::FindInReadable(NS_LITERAL_CSTRING(" LIKE ?"), s1, end, c) ||
+          ::FindInReadable(NS_LITERAL_CSTRING(" LIKE :"), s2, end, c) ||
+          ::FindInReadable(NS_LITERAL_CSTRING(" LIKE @"), s3, end, c))) {
+      
+      
+      
+      NS_WARNING("Unsafe use of LIKE detected!  Please ensure that you "
+                 "are using mozIStorageAsyncStatement::escapeStringForLIKE "
+                 "and that you are binding that result to the statement "
+                 "to prevent SQL injection attacks.");
+    }
+
+    
+    start = e;
+    e = end;
+  }
+#endif
+
+  return NS_OK;
+}
+
+mozIStorageBindingParams *
+AsyncStatement::getParams()
+{
+  nsresult rv;
+
+  
+  if (!mParamsArray) {
+    nsCOMPtr<mozIStorageBindingParamsArray> array;
+    rv = NewBindingParamsArray(getter_AddRefs(array));
+    NS_ENSURE_SUCCESS(rv, nsnull);
+
+    mParamsArray = static_cast<BindingParamsArray *>(array.get());
+  }
+
+  
+  if (mParamsArray->length() == 0) {
+    nsRefPtr<AsyncBindingParams> params(new AsyncBindingParams(mParamsArray));
+    NS_ENSURE_TRUE(params, nsnull);
+
+    rv = mParamsArray->AddParams(params);
+    NS_ENSURE_SUCCESS(rv, nsnull);
+
+    
+    
+    params->unlock(nsnull);
+
+    
+    
+    mParamsArray->lock();
+  }
+
+  return *mParamsArray->begin();
+}
+
+
+
+
+
+
+
+
+
+
+AsyncStatement::~AsyncStatement()
+{
+  internalAsyncFinalize();
+  cleanupJSHelpers();
+
+  
+  
+  PRBool onCallingThread = PR_FALSE;
+  (void)mDBConnection->threadOpenedOn->IsOnCurrentThread(&onCallingThread);
+  if (!onCallingThread) {
+    
+    
+    Connection *forgottenConn = nsnull;
+    mDBConnection.swap(forgottenConn);
+    (void)::NS_ProxyRelease(mDBConnection->threadOpenedOn, forgottenConn);
+  }
+}
+
+void
+AsyncStatement::cleanupJSHelpers()
+{
+  
+  
+  if (mStatementParamsHolder) {
+    nsCOMPtr<nsIXPConnectWrappedNative> wrapper =
+      do_QueryInterface(mStatementParamsHolder);
+    nsCOMPtr<mozIStorageStatementParams> iParams =
+      do_QueryWrappedNative(wrapper);
+    AsyncStatementParams *params =
+      static_cast<AsyncStatementParams *>(iParams.get());
+    params->mStatement = nsnull;
+    mStatementParamsHolder = nsnull;
+  }
+}
+
+
+
+
+NS_IMPL_THREADSAFE_ADDREF(AsyncStatement)
+NS_IMPL_THREADSAFE_RELEASE(AsyncStatement)
+
+NS_INTERFACE_MAP_BEGIN(AsyncStatement)
+  NS_INTERFACE_MAP_ENTRY(mozIStorageAsyncStatement)
+  NS_INTERFACE_MAP_ENTRY(mozIStorageBaseStatement)
+  NS_INTERFACE_MAP_ENTRY(mozIStorageBindingParams)
+  NS_INTERFACE_MAP_ENTRY(mozilla::storage::StorageBaseStatementInternal)
+  if (aIID.Equals(NS_GET_IID(nsIClassInfo))) {
+    foundInterface = static_cast<nsIClassInfo *>(&sAsyncStatementClassInfo);
+  }
+  else
+  NS_INTERFACE_MAP_ENTRY_AMBIGUOUS(nsISupports, mozIStorageAsyncStatement)
+NS_INTERFACE_MAP_END
+
+
+
+
+
+Connection *
+AsyncStatement::getOwner()
+{
+  return mDBConnection;
+}
+
+int
+AsyncStatement::getAsyncStatement(sqlite3_stmt **_stmt)
+{
+#ifdef DEBUG
+  
+  PRBool onOpenedThread = PR_FALSE;
+  (void)mDBConnection->threadOpenedOn->IsOnCurrentThread(&onOpenedThread);
+  NS_ASSERTION(!onOpenedThread,
+               "We should only be called on the async thread!");
+#endif
+
+  if (!mAsyncStatement) {
+    int rc = ::sqlite3_prepare_v2(mDBConnection->GetNativeConnection(),
+                                  mSQLString.get(), -1,
+                                  &mAsyncStatement, NULL);
+    if (rc != SQLITE_OK) {
+#ifdef PR_LOGGING
+      PR_LOG(gStorageLog, PR_LOG_ERROR,
+             ("Sqlite statement prepare error: %d '%s'", rc,
+              ::sqlite3_errmsg(mDBConnection->GetNativeConnection())));
+      PR_LOG(gStorageLog, PR_LOG_ERROR,
+             ("Statement was: '%s'", mSQLString.get()));
+#endif
+      *_stmt = nsnull;
+      return rc;
+    }
+
+#ifdef PR_LOGGING
+    PR_LOG(gStorageLog, PR_LOG_NOTICE, ("Initialized statement '%s' (0x%p)",
+                                        mSQLString.get(),
+                                        mAsyncStatement));
+#endif
+  }
+
+  *_stmt = mAsyncStatement;
+  return SQLITE_OK;
+}
+
+nsresult
+AsyncStatement::getAsynchronousStatementData(StatementData &_data)
+{
+  if (mFinalized)
+    return NS_ERROR_UNEXPECTED;
+
+  
+  
+  _data = StatementData(nsnull, bindingParamsArray(), this);
+
+  return NS_OK;
+}
+
+already_AddRefed<mozIStorageBindingParams>
+AsyncStatement::newBindingParams(mozIStorageBindingParamsArray *aOwner)
+{
+  if (mFinalized)
+    return nsnull;
+
+  nsCOMPtr<mozIStorageBindingParams> params(new AsyncBindingParams(aOwner));
+  return params.forget();
+}
+
+
+
+
+
+
+
+
+
+
+
+MIXIN_IMPL_STORAGEBASESTATEMENTINTERNAL(
+  AsyncStatement,
+  if (mFinalized) return NS_ERROR_UNEXPECTED;)
+
+NS_IMETHODIMP
+AsyncStatement::Finalize()
+{
+  if (mFinalized)
+    return NS_OK;
+
+  mFinalized = true;
+
+#ifdef PR_LOGGING
+  PR_LOG(gStorageLog, PR_LOG_NOTICE, ("Finalizing statement '%s'",
+                                      mSQLString.get()));
+#endif
+
+  asyncFinalize();
+  cleanupJSHelpers();
+
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+AsyncStatement::BindParameters(mozIStorageBindingParamsArray *aParameters)
+{
+  if (mFinalized)
+    return NS_ERROR_UNEXPECTED;
+
+  BindingParamsArray *array = static_cast<BindingParamsArray *>(aParameters);
+  if (array->getOwner() != this)
+    return NS_ERROR_UNEXPECTED;
+
+  if (array->length() == 0)
+    return NS_ERROR_UNEXPECTED;
+
+  mParamsArray = array;
+  mParamsArray->lock();
+
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+AsyncStatement::GetState(PRInt32 *_state)
+{
+  if (mFinalized)
+    *_state = MOZ_STORAGE_STATEMENT_INVALID;
+  else
+    *_state = MOZ_STORAGE_STATEMENT_READY;
+
+  return NS_OK;
+}
+
+
+
+
+BOILERPLATE_BIND_PROXIES(
+  AsyncStatement, 
+  if (mFinalized) return NS_ERROR_UNEXPECTED;
+)
+
+} 
+} 

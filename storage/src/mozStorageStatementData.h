@@ -46,6 +46,9 @@
 #include "nsTArray.h"
 
 #include "mozStorageBindingParamsArray.h"
+#include "mozIStorageBaseStatement.h"
+#include "mozStorageConnection.h"
+#include "StorageBaseStatementInternal.h"
 
 struct sqlite3_stmt;
 
@@ -57,7 +60,7 @@ class StatementData
 public:
   StatementData(sqlite3_stmt *aStatement,
                 already_AddRefed<BindingParamsArray> aParamsArray,
-                nsISupports *aStatementOwner)
+                StorageBaseStatementInternal *aStatementOwner)
   : mStatement(aStatement)
   , mParamsArray(aParamsArray)
   , mStatementOwner(aStatementOwner)
@@ -73,24 +76,50 @@ public:
   {
   }
 
-  operator sqlite3_stmt *() const
+  
+
+
+
+  inline int getSqliteStatement(sqlite3_stmt **_stmt)
   {
-    NS_ASSERTION(mStatement, "NULL sqlite3_stmt being handed off!");
-    return mStatement;
+    if (!mStatement) {
+      int rc = mStatementOwner->getAsyncStatement(&mStatement);
+      NS_ENSURE_TRUE(rc == SQLITE_OK, rc);
+    }
+    *_stmt = mStatement;
+    return SQLITE_OK;
   }
+
   operator BindingParamsArray *() const { return mParamsArray; }
 
   
 
 
 
+  operator sqlite3 *() const
+  {
+    return mStatementOwner->getOwner()->GetNativeConnection();
+  }
+
+  
+
+
+
+
+
+
+
+
   inline void finalize()
   {
-    (void)::sqlite3_reset(mStatement);
-    (void)::sqlite3_clear_bindings(mStatement);
-    mStatement = NULL;
-    mParamsArray = nsnull;
-    mStatementOwner = nsnull;
+    
+    
+    
+    if (mStatement) {
+      (void)::sqlite3_reset(mStatement);
+      (void)::sqlite3_clear_bindings(mStatement);
+      mStatement = NULL;
+    }
   }
 
   
@@ -119,7 +148,7 @@ private:
 
 
 
-  nsCOMPtr<nsISupports> mStatementOwner;
+  nsCOMPtr<StorageBaseStatementInternal> mStatementOwner;
 };
 
 } 

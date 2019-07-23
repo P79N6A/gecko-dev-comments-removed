@@ -47,6 +47,7 @@
 #include "mozilla/Mutex.h"
 #include "mozilla/TimeStamp.h"
 
+#include "SQLiteMutex.h"
 #include "mozIStoragePendingStatement.h"
 #include "mozIStorageStatementCallback.h"
 
@@ -189,6 +190,7 @@ private:
 
 
 
+
   nsresult notifyError(PRInt32 aErrorCode, const char *aMessage);
   nsresult notifyError(mozIStorageError *aError);
 
@@ -235,6 +237,14 @@ private:
 
 
   Mutex &mMutex;
+
+  
+
+
+
+
+
+  SQLiteMutex &mDBMutex;
 };
 
 } 

@@ -37,28 +37,31 @@
 
 
 
+
 #ifndef _mozStorageBindingParams_h_
 #define _mozStorageBindingParams_h_
 
-#include "nsAutoPtr.h"
 #include "nsCOMArray.h"
 #include "nsIVariant.h"
+#include "nsTHashtable.h"
 
 #include "mozStorageBindingParamsArray.h"
 #include "mozStorageStatement.h"
-#include "mozIStorageBindingParams.h"
+#include "mozStorageAsyncStatement.h"
 
-class mozIStorageError;
-struct sqlite3_stmt;
+#include "mozIStorageBindingParams.h"
+#include "IStorageBindingParamsInternal.h"
 
 namespace mozilla {
 namespace storage {
 
 class BindingParams : public mozIStorageBindingParams
+                    , public IStorageBindingParamsInternal
 {
 public:
   NS_DECL_ISUPPORTS
   NS_DECL_MOZISTORAGEBINDINGPARAMS
+  NS_DECL_ISTORAGEBINDINGPARAMSINTERNAL
 
   
 
@@ -69,32 +72,81 @@ public:
   
 
 
-  void unlock();
+
+
+
+
+
+  void unlock(Statement *aOwningStatement);
 
   
 
 
-  const BindingParamsArray *getOwner() const;
 
-  
+  const mozIStorageBindingParamsArray *getOwner() const;
 
-
-
-
-
-
-
-  already_AddRefed<mozIStorageError> bind(sqlite3_stmt *aStatement);
-
-  BindingParams(BindingParamsArray *aOwningArray,
+  BindingParams(mozIStorageBindingParamsArray *aOwningArray,
                 Statement *aOwningStatement);
+  virtual ~BindingParams() {}
+
+protected:
+  BindingParams(mozIStorageBindingParamsArray *aOwningArray);
+  nsCOMArray<nsIVariant> mParameters;
+  bool mLocked;
 
 private:
-  nsRefPtr<BindingParamsArray> mOwningArray;
+
+  
+
+
+
+
+
+
+  nsCOMPtr<mozIStorageBindingParamsArray> mOwningArray;
+  
+
+
+
+
   Statement *mOwningStatement;
-  nsCOMArray<nsIVariant> mParameters;
   PRUint32 mParamCount;
-  bool mLocked;
+};
+
+
+
+
+
+
+
+
+
+
+class AsyncBindingParams : public BindingParams
+{
+public:
+  NS_SCRIPTABLE NS_IMETHOD BindByName(const nsACString & aName,
+                                      nsIVariant *aValue);
+  NS_SCRIPTABLE NS_IMETHOD BindByIndex(PRUint32 aIndex, nsIVariant *aValue);
+
+  virtual already_AddRefed<mozIStorageError> bind(sqlite3_stmt * aStatement);
+
+  AsyncBindingParams(mozIStorageBindingParamsArray *aOwningArray);
+  virtual ~AsyncBindingParams() {}
+
+private:
+  nsInterfaceHashtable<nsCStringHashKey, nsIVariant> mNamedParameters;
+
+  struct NamedParameterIterationClosureThunk
+  {
+    AsyncBindingParams *self;
+    sqlite3_stmt *statement;
+    nsCOMPtr<mozIStorageError> err;
+  };
+
+  static PLDHashOperator iterateOverNamedParameters(const nsACString &aName,
+                                                    nsIVariant *aValue,
+                                                    void *voidClosureThunk);
 };
 
 } 

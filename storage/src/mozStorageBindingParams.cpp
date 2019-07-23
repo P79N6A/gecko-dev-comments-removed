@@ -37,6 +37,7 @@
 
 
 
+
 #include <limits.h>
 
 #include "nsString.h"
@@ -136,14 +137,30 @@ sqlite3_T_blob(BindingColumnData aData,
 
 
 
-BindingParams::BindingParams(BindingParamsArray *aOwningArray,
+BindingParams::BindingParams(mozIStorageBindingParamsArray *aOwningArray,
                              Statement *aOwningStatement)
-: mOwningArray(aOwningArray)
+: mLocked(false)
+, mOwningArray(aOwningArray)
 , mOwningStatement(aOwningStatement)
-, mLocked(false)
 {
   (void)mOwningStatement->GetParameterCount(&mParamCount);
   (void)mParameters.SetCapacity(mParamCount);
+}
+
+BindingParams::BindingParams(mozIStorageBindingParamsArray *aOwningArray)
+: mLocked(false)
+, mOwningArray(aOwningArray)
+, mOwningStatement(nsnull)
+, mParamCount(0)
+{
+}
+
+AsyncBindingParams::AsyncBindingParams(
+  mozIStorageBindingParamsArray *aOwningArray
+)
+: BindingParams(aOwningArray)
+{
+  mNamedParameters.Init();
 }
 
 void
@@ -160,17 +177,74 @@ BindingParams::lock()
 }
 
 void
-BindingParams::unlock()
+BindingParams::unlock(Statement *aOwningStatement)
 {
   NS_ASSERTION(mLocked == true, "Parameters were not yet locked!");
   mLocked = false;
+  mOwningStatement = aOwningStatement;
 }
 
-const BindingParamsArray *
+const mozIStorageBindingParamsArray *
 BindingParams::getOwner() const
 {
   return mOwningArray;
 }
+
+PLDHashOperator
+AsyncBindingParams::iterateOverNamedParameters(const nsACString &aName,
+                                               nsIVariant *aValue,
+                                               void *voidClosureThunk)
+{
+  NamedParameterIterationClosureThunk *closureThunk =
+    static_cast<NamedParameterIterationClosureThunk *>(voidClosureThunk);
+
+  
+  
+  nsCAutoString name(":");
+  name.Append(aName);
+  int oneIdx = ::sqlite3_bind_parameter_index(closureThunk->statement,
+                                              name.get());
+
+  if (oneIdx == 0) {
+    nsCAutoString errMsg(aName);
+    errMsg.Append(NS_LITERAL_CSTRING(" is not a valid named parameter."));
+    closureThunk->err = new Error(SQLITE_RANGE, errMsg.get());
+    return PL_DHASH_STOP;
+  }
+
+  
+  
+  
+  
+  int rc = variantToSQLiteT(BindingColumnData(closureThunk->statement,
+                                              oneIdx - 1),
+                            aValue);
+  if (rc != SQLITE_OK) {
+    
+    
+    
+    const char *msg = "Could not covert nsIVariant to SQLite type.";
+    if (rc != SQLITE_MISMATCH)
+      msg = ::sqlite3_errmsg(::sqlite3_db_handle(closureThunk->statement));
+
+    closureThunk->err = new Error(rc, msg);
+    return PL_DHASH_STOP;
+  }
+  return PL_DHASH_NEXT;
+}
+
+
+
+
+NS_IMPL_THREADSAFE_ISUPPORTS2(
+  BindingParams
+, mozIStorageBindingParams
+, IStorageBindingParamsInternal
+)
+
+
+
+
 
 already_AddRefed<mozIStorageError>
 BindingParams::bind(sqlite3_stmt *aStatement)
@@ -191,14 +265,26 @@ BindingParams::bind(sqlite3_stmt *aStatement)
     }
   }
 
-  
   return nsnull;
 }
 
-NS_IMPL_THREADSAFE_ISUPPORTS1(
-  BindingParams,
-  mozIStorageBindingParams
-)
+already_AddRefed<mozIStorageError>
+AsyncBindingParams::bind(sqlite3_stmt * aStatement)
+{
+  
+  
+  if (!mNamedParameters.Count())
+    return BindingParams::bind(aStatement);
+
+  
+  
+  NamedParameterIterationClosureThunk closureThunk = {this, aStatement, nsnull};
+  (void)mNamedParameters.EnumerateRead(iterateOverNamedParameters,
+                                       (void *)&closureThunk);
+
+  return closureThunk.err.forget();
+}
+
 
 
 
@@ -216,6 +302,18 @@ BindingParams::BindByName(const nsACString &aName,
 
   return BindByIndex(index, aValue);
 }
+
+NS_IMETHODIMP
+AsyncBindingParams::BindByName(const nsACString &aName,
+                               nsIVariant *aValue)
+{
+  NS_ENSURE_FALSE(mLocked, NS_ERROR_UNEXPECTED);
+
+  if (!mNamedParameters.Put(aName, aValue))
+    return NS_ERROR_OUT_OF_MEMORY;
+  return NS_OK;
+}
+
 
 NS_IMETHODIMP
 BindingParams::BindUTF8StringByName(const nsACString &aName,
@@ -298,6 +396,20 @@ BindingParams::BindByIndex(PRUint32 aIndex,
 {
   NS_ENSURE_FALSE(mLocked, NS_ERROR_UNEXPECTED);
   ENSURE_INDEX_VALUE(aIndex, mParamCount);
+
+  
+  NS_ENSURE_TRUE(mParameters.ReplaceObjectAt(aValue, aIndex),
+                 NS_ERROR_OUT_OF_MEMORY);
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+AsyncBindingParams::BindByIndex(PRUint32 aIndex,
+                                nsIVariant *aValue)
+{
+  NS_ENSURE_FALSE(mLocked, NS_ERROR_UNEXPECTED);
+  
+  
 
   
   NS_ENSURE_TRUE(mParameters.ReplaceObjectAt(aValue, aIndex),

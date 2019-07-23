@@ -48,6 +48,8 @@
 #include "mozStorageBindingParamsArray.h"
 #include "mozStorageStatementData.h"
 #include "mozIStorageStatement.h"
+#include "mozIStorageValueArray.h"
+#include "StorageBaseStatementInternal.h"
 
 class nsIXPConnectJSObjectHolder;
 struct sqlite3_stmt;
@@ -56,14 +58,18 @@ namespace mozilla {
 namespace storage {
 class StatementJSHelper;
 class Connection;
-class BindingParams;
 
 class Statement : public mozIStorageStatement
+                , public mozIStorageValueArray
+                , public StorageBaseStatementInternal
 {
 public:
   NS_DECL_ISUPPORTS
   NS_DECL_MOZISTORAGESTATEMENT
-  NS_DECL_MOZISTORAGEVALUEARRAY
+  NS_DECL_MOZISTORAGEBASESTATEMENT
+  NS_DECL_MOZISTORAGEBINDINGPARAMS
+  
+  NS_DECL_STORAGEBASESTATEMENTINTERNAL
 
   Statement();
 
@@ -94,20 +100,9 @@ public:
     return mParamsArray.forget();
   }
 
-  
-
-
-
-
-
-
-
-  nsresult getAsynchronousStatementData(StatementData &_data);
-
 private:
     ~Statement();
 
-    nsRefPtr<Connection> mDBConnection;
     sqlite3_stmt *mDBStatement;
     PRUint32 mParamCount;
     PRUint32 mResultColumnCount;
@@ -118,7 +113,7 @@ private:
 
 
 
-    BindingParams *getParams();
+    mozIStorageBindingParams *getParams();
 
     
 
@@ -130,24 +125,18 @@ private:
 
 
 
-
-    sqlite3_stmt *mCachedAsyncStatement;
-
-    
-
-
-
-
-
-
-    int getAsyncStatement(sqlite3_stmt **_stmt);
-
-    
-
-
-
     nsCOMPtr<nsIXPConnectJSObjectHolder> mStatementParamsHolder;
     nsCOMPtr<nsIXPConnectJSObjectHolder> mStatementRowHolder;
+
+  
+
+
+
+
+
+
+
+  nsresult internalFinalize(bool aDestructing);
 
     friend class StatementJSHelper;
 };
