@@ -160,6 +160,9 @@ public:
 private:
     nsCOMPtr<nsIChannel> mChannel;
     nsCOMPtr<nsIChannel> mSuspendedChannel;
+
+    void MarkEntryClassified(nsresult status);
+    PRBool HasBeenClassified();
 };
 
 
@@ -275,11 +278,13 @@ protected:
                                PRBool firstParty,
                                nsIDocShell ** aDocShell,
                                nsIRequest ** aRequest,
-                               PRBool aIsNewWindowTarget);
+                               PRBool aIsNewWindowTarget,
+                               PRBool aBypassClassifier);
     NS_IMETHOD AddHeadersToChannel(nsIInputStream * aHeadersData, 
                                   nsIChannel * aChannel);
     virtual nsresult DoChannelLoad(nsIChannel * aChannel,
-                                   nsIURILoader * aURILoader);
+                                   nsIURILoader * aURILoader,
+                                   PRBool aBypassClassifier);
 
     
     

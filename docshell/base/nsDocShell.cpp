@@ -149,6 +149,7 @@
 #include "nsIDOMDocument.h"
 #include "nsICachingChannel.h"
 #include "nsICacheVisitor.h"
+#include "nsICacheEntryDescriptor.h"
 #include "nsIMultiPartChannel.h"
 #include "nsIWyciwygChannel.h"
 
@@ -883,6 +884,9 @@ nsDocShell::LoadURI(nsIURI * aURI,
         if (aLoadFlags & LOAD_FLAGS_FIRST_LOAD)
             flags |= INTERNAL_LOAD_FLAGS_FIRST_LOAD;
 
+        if (aLoadFlags & LOAD_FLAGS_BYPASS_CLASSIFIER)
+            flags |= INTERNAL_LOAD_FLAGS_BYPASS_CLASSIFIER;
+
         rv = InternalLoad(aURI,
                           referrer,
                           owner,
@@ -951,7 +955,8 @@ nsDocShell::LoadStream(nsIInputStream *aStream, nsIURI * aURI,
         uriLoader(do_GetService(NS_URI_LOADER_CONTRACTID));
     NS_ENSURE_TRUE(uriLoader, NS_ERROR_FAILURE);
 
-    NS_ENSURE_SUCCESS(DoChannelLoad(channel, uriLoader), NS_ERROR_FAILURE);
+    NS_ENSURE_SUCCESS(DoChannelLoad(channel, uriLoader, PR_FALSE),
+                      NS_ERROR_FAILURE);
     return NS_OK;
 }
 
@@ -7051,7 +7056,8 @@ nsDocShell::InternalLoad(nsIURI * aURI,
                    !(aFlags & INTERNAL_LOAD_FLAGS_DONT_SEND_REFERRER),
                    owner, aTypeHint, aPostData, aHeadersData, aFirstParty,
                    aDocShell, getter_AddRefs(req),
-                   (aFlags & INTERNAL_LOAD_FLAGS_FIRST_LOAD) != 0);
+                   (aFlags & INTERNAL_LOAD_FLAGS_FIRST_LOAD) != 0,
+                   (aFlags & INTERNAL_LOAD_FLAGS_BYPASS_CLASSIFIER) != 0);
     if (req && aRequest)
         NS_ADDREF(*aRequest = req);
 
@@ -7121,7 +7127,8 @@ nsDocShell::DoURILoad(nsIURI * aURI,
                       PRBool aFirstParty,
                       nsIDocShell ** aDocShell,
                       nsIRequest ** aRequest,
-                      PRBool aIsNewWindowTarget)
+                      PRBool aIsNewWindowTarget,
+                      PRBool aBypassClassifier)
 {
     nsresult rv;
     nsCOMPtr<nsIURILoader> uriLoader;
@@ -7311,7 +7318,7 @@ nsDocShell::DoURILoad(nsIURI * aURI,
         }
     }
 
-    rv = DoChannelLoad(channel, uriLoader);
+    rv = DoChannelLoad(channel, uriLoader, aBypassClassifier);
     
     
     
@@ -7404,7 +7411,8 @@ nsDocShell::AddHeadersToChannel(nsIInputStream *aHeadersData,
 }
 
 nsresult nsDocShell::DoChannelLoad(nsIChannel * aChannel,
-                                   nsIURILoader * aURILoader)
+                                   nsIURILoader * aURILoader,
+                                   PRBool aBypassClassifier)
 {
     nsresult rv;
     
@@ -7467,10 +7475,12 @@ nsresult nsDocShell::DoChannelLoad(nsIChannel * aChannel,
                              this);
     NS_ENSURE_SUCCESS(rv, rv);
 
-    rv = CheckClassifier(aChannel);
-    if (NS_FAILED(rv)) {
-        aChannel->Cancel(rv);
-        return rv;
+    if (!aBypassClassifier) {
+        rv = CheckClassifier(aChannel);
+        if (NS_FAILED(rv)) {
+            aChannel->Cancel(rv);
+            return rv;
+        }
     }
 
     return NS_OK;
@@ -9307,13 +9317,8 @@ nsClassifierCallback::Run()
 
     
     
-    nsCOMPtr<nsICachingChannel> cachingChannel = do_QueryInterface(channel);
-    if (cachingChannel) {
-        PRBool fromCache;
-        if (NS_SUCCEEDED(cachingChannel->IsFromCache(&fromCache)) &&
-            fromCache) {
-            return NS_OK;
-        }
+    if (HasBeenClassified()) {
+        return NS_OK;
     }
 
     nsCOMPtr<nsIURI> uri;
@@ -9370,10 +9375,72 @@ nsClassifierCallback::Run()
     return NS_OK;
 }
 
+
+
+void
+nsClassifierCallback::MarkEntryClassified(nsresult status)
+{
+    nsCOMPtr<nsICachingChannel> cachingChannel =
+        do_QueryInterface(mSuspendedChannel);
+    if (!cachingChannel) {
+        return;
+    }
+
+    nsCOMPtr<nsISupports> cacheToken;
+    cachingChannel->GetCacheToken(getter_AddRefs(cacheToken));
+    if (!cacheToken) {
+        return;
+    }
+
+    nsCOMPtr<nsICacheEntryDescriptor> cacheEntry =
+        do_QueryInterface(cacheToken);
+    if (!cacheEntry) {
+        return;
+    }
+
+    cacheEntry->SetMetaDataElement("docshell:classified",
+                                   NS_SUCCEEDED(status) ? "1" : nsnull);
+}
+
+PRBool
+nsClassifierCallback::HasBeenClassified()
+{
+    nsCOMPtr<nsICachingChannel> cachingChannel =
+        do_QueryInterface(mSuspendedChannel);
+    if (!cachingChannel) {
+        return PR_FALSE;
+    }
+
+    
+    
+    PRBool fromCache;
+    if (NS_FAILED(cachingChannel->IsFromCache(&fromCache)) || !fromCache) {
+        return PR_FALSE;
+    }
+
+    nsCOMPtr<nsISupports> cacheToken;
+    cachingChannel->GetCacheToken(getter_AddRefs(cacheToken));
+    if (!cacheToken) {
+        return PR_FALSE;
+    }
+
+    nsCOMPtr<nsICacheEntryDescriptor> cacheEntry =
+        do_QueryInterface(cacheToken);
+    if (!cacheEntry) {
+        return PR_FALSE;
+    }
+
+    nsXPIDLCString tag;
+    cacheEntry->GetMetaDataElement("docshell:classified", getter_Copies(tag));
+    return tag.EqualsLiteral("1");
+}
+
 NS_IMETHODIMP
 nsClassifierCallback::OnClassifyComplete(nsresult aErrorCode)
 {
     if (mSuspendedChannel) {
+        MarkEntryClassified(aErrorCode);
+
         if (NS_FAILED(aErrorCode)) {
 #ifdef DEBUG
             PR_LOG(gDocShellLog, PR_LOG_DEBUG,
