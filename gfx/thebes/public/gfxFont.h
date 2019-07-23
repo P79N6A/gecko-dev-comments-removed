@@ -1018,8 +1018,6 @@ public:
 
 class THEBES_API gfxTextRun {
 public:
-    
-    void operator delete(void* aPtr);
     virtual ~gfxTextRun();
 
     typedef gfxFont::RunMetrics Metrics;
@@ -1616,17 +1614,23 @@ public:
 
 protected:
     
-    
-    void *operator new(size_t aSize, PRUint32 aLength, PRUint32 aFlags);
 
-    
 
 
 
 
     gfxTextRun(const gfxTextRunFactory::Parameters *aParams, const void *aText,
                PRUint32 aLength, gfxFontGroup *aFontGroup, PRUint32 aFlags,
-               PRUint32 aObjectSize);
+               CompressedGlyph *aGlyphStorage);
+
+    
+
+
+
+
+    static CompressedGlyph* AllocateStorage(const void*& aText,
+                                            PRUint32 aLength,
+                                            PRUint32 aFlags);
 
 private:
     
@@ -1681,6 +1685,7 @@ private:
                     PropertyProvider *aProvider,
                     PRUint32 aSpacingStart, PRUint32 aSpacingEnd);
 
+    
     
     
     

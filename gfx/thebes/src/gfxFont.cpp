@@ -2216,46 +2216,90 @@ AccountStorageForTextRun(gfxTextRun *aTextRun, PRInt32 aSign)
     
     
     
-    PRInt32 bytesPerChar = sizeof(gfxTextRun::CompressedGlyph);
+    PRUint32 length = aTextRun->GetLength();
+    PRInt32 bytes = length * sizeof(gfxTextRun::CompressedGlyph);
     if (aTextRun->GetFlags() & gfxTextRunFactory::TEXT_IS_PERSISTENT) {
-      bytesPerChar += (aTextRun->GetFlags() & gfxTextRunFactory::TEXT_IS_8BIT) ? 1 : 2;
+      bytes += length * ((aTextRun->GetFlags() & gfxTextRunFactory::TEXT_IS_8BIT) ? 1 : 2);
+      bytes += sizeof(gfxTextRun::CompressedGlyph) - 1;
+      bytes &= ~(sizeof(gfxTextRun::CompressedGlyph) - 1);
     }
-    PRInt32 bytes = sizeof(gfxTextRun) + aTextRun->GetLength()*bytesPerChar;
+    bytes += sizeof(gfxTextRun);
     gTextRunStorage += bytes*aSign;
     gTextRunStorageHighWaterMark = PR_MAX(gTextRunStorageHighWaterMark, gTextRunStorage);
 }
 #endif
 
+
+
+
+
+
+
+gfxTextRun::CompressedGlyph *
+gfxTextRun::AllocateStorage(const void*& aText, PRUint32 aLength, PRUint32 aFlags)
+{
+    
+    
+    
+    
+
+    
+    PRUint64 allocCount = aLength;
+
+    
+    if (!(aFlags & gfxTextRunFactory::TEXT_IS_PERSISTENT)) {
+        
+        
+        if (aFlags & gfxTextRunFactory::TEXT_IS_8BIT) {
+            allocCount += (aLength + sizeof(CompressedGlyph)-1)
+                          / sizeof(CompressedGlyph);
+        } else {
+            allocCount += (aLength*sizeof(PRUnichar) + sizeof(CompressedGlyph)-1)
+                          / sizeof(CompressedGlyph);
+        }
+    }
+
+    
+    
+    CompressedGlyph *storage = new (std::nothrow) CompressedGlyph[allocCount];
+    if (!storage) {
+        NS_WARNING("failed to allocate glyph/text storage for text run!");
+        return nsnull;
+    }
+
+    
+    if (!(aFlags & gfxTextRunFactory::TEXT_IS_PERSISTENT)) {
+        if (aFlags & gfxTextRunFactory::TEXT_IS_8BIT) {
+            PRUint8 *newText = reinterpret_cast<PRUint8*>(storage + aLength);
+            memcpy(newText, aText, aLength);
+            aText = newText;
+        } else {
+            PRUnichar *newText = reinterpret_cast<PRUnichar*>(storage + aLength);
+            memcpy(newText, aText, aLength*sizeof(PRUnichar));
+            aText = newText;
+        }
+    }
+
+    return storage;
+}
+
 gfxTextRun *
 gfxTextRun::Create(const gfxTextRunFactory::Parameters *aParams, const void *aText,
                    PRUint32 aLength, gfxFontGroup *aFontGroup, PRUint32 aFlags)
 {
-    return new (aLength, aFlags)
-        gfxTextRun(aParams, aText, aLength, aFontGroup, aFlags, sizeof(gfxTextRun));
-}
-
-void *
-gfxTextRun::operator new(size_t aSize, PRUint32 aLength, PRUint32 aFlags)
-{
-    NS_ASSERTION(aSize % sizeof(CompressedGlyph) == 0, "Alignment broken!");
-    aSize += sizeof(CompressedGlyph)*aLength;
-    if (!(aFlags & gfxTextRunFactory::TEXT_IS_PERSISTENT)) {
-        NS_ASSERTION(aSize % 2 == 0, "Alignment broken!");
-        aSize += ((aFlags & gfxTextRunFactory::TEXT_IS_8BIT) ? 1 : 2)*aLength;
+    CompressedGlyph *glyphStorage = AllocateStorage(aText, aLength, aFlags);
+    if (!glyphStorage) {
+        return nsnull;
     }
 
-    return new PRUint8[aSize];
-}
-
-void gfxTextRun::operator delete(void *p)
-{
-    delete[] static_cast<PRUint8*>(p);
+    return new gfxTextRun(aParams, aText, aLength, aFontGroup, aFlags, glyphStorage);
 }
 
 gfxTextRun::gfxTextRun(const gfxTextRunFactory::Parameters *aParams, const void *aText,
                        PRUint32 aLength, gfxFontGroup *aFontGroup, PRUint32 aFlags,
-                       PRUint32 aObjectSize)
-  : mUserData(aParams->mUserData),
+                       CompressedGlyph *aGlyphStorage)
+  : mCharacterGlyphs(aGlyphStorage),
+    mUserData(aParams->mUserData),
     mFontGroup(aFontGroup),
     mAppUnitsPerDevUnit(aParams->mAppUnitsPerDevUnit),
     mFlags(aFlags), mCharacterCount(aLength), mHashCode(0)
@@ -2267,24 +2311,10 @@ gfxTextRun::gfxTextRun(const gfxTextRunFactory::Parameters *aParams, const void 
         mSkipChars.TakeFrom(aParams->mSkipChars);
     }
 
-    mCharacterGlyphs = reinterpret_cast<CompressedGlyph*>
-        (reinterpret_cast<PRUint8*>(this) + aObjectSize);
-    memset(mCharacterGlyphs, 0, sizeof(CompressedGlyph)*aLength);
-
     if (mFlags & gfxTextRunFactory::TEXT_IS_8BIT) {
         mText.mSingle = static_cast<const PRUint8 *>(aText);
-        if (!(mFlags & gfxTextRunFactory::TEXT_IS_PERSISTENT)) {
-            PRUint8 *newText = reinterpret_cast<PRUint8*>(mCharacterGlyphs + aLength);
-            memcpy(newText, aText, aLength);
-            mText.mSingle = newText;    
-        }
     } else {
         mText.mDouble = static_cast<const PRUnichar *>(aText);
-        if (!(mFlags & gfxTextRunFactory::TEXT_IS_PERSISTENT)) {
-            PRUnichar *newText = reinterpret_cast<PRUnichar*>(mCharacterGlyphs + aLength);
-            memcpy(newText, aText, aLength*sizeof(PRUnichar));
-            mText.mDouble = newText;    
-        }
     }
 #ifdef DEBUG_TEXT_RUN_STORAGE_METRICS
     AccountStorageForTextRun(this, 1);
@@ -2302,6 +2332,11 @@ gfxTextRun::~gfxTextRun()
     
     mFlags = 0xFFFFFFFF;
 #endif
+
+    
+    
+    delete [] mCharacterGlyphs;
+
     NS_RELEASE(mFontGroup);
     MOZ_COUNT_DTOR(gfxTextRun);
 }
