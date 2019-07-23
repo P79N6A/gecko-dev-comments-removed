@@ -138,9 +138,25 @@ TimerManager.prototype = {
 
 
   observe: function TM_observe(aSubject, aTopic, aData) {
+    
+    var minInterval = 60000;
     switch (aTopic) {
+    case "utm-test-init":
+      
+      
+      minInterval = 500;
     case "profile-after-change":
-      this._start();
+      
+      
+      if (this._timer) {
+        this._timer.cancel();
+        this._timer = null;
+      }
+      this._timerInterval = Math.max(getPref("getIntPref", PREF_APP_UPDATE_TIMER, 600000),
+                                     minInterval);
+      this._timer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
+      this._timer.initWithCallback(this, this._timerInterval,
+                                   Ci.nsITimer.TYPE_REPEATING_SLACK);
       break;
     case "xpcom-shutdown":
       let os = getObserverService();
@@ -158,12 +174,6 @@ TimerManager.prototype = {
     }
   },
 
-  _start: function TM__start() {
-    this._timerInterval = getPref("getIntPref", "app.update.timer", 600000);
-    this._timer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
-    this._timer.initWithCallback(this, this._timerInterval,
-                                 Ci.nsITimer.TYPE_REPEATING_SLACK);
-  },
   
 
 
