@@ -170,6 +170,12 @@ public:
 
 
 
+  virtual nsresult GetAttributesInternal(nsIPersistentProperties *aAttributes);
+
+  
+
+
+
 
   nsresult GetARIAState(PRUint32 *aState);
 

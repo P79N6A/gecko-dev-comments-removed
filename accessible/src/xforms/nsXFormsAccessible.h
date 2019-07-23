@@ -87,7 +87,7 @@ public:
 
   
   
-  NS_IMETHOD GetAttributes(nsIPersistentProperties **aAttributes);
+  virtual nsresult GetAttributesInternal(nsIPersistentProperties *aAttributes);
 
   
   
