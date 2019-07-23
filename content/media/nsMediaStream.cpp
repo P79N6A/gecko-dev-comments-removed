@@ -201,11 +201,16 @@ nsMediaChannelStream::OnStartRequest(nsIRequest* aRequest)
       
       
       
+      
+      
       nsCAutoString durationText;
       PRInt32 ec = 0;
-      rv = hc->GetResponseHeader(NS_LITERAL_CSTRING("X-Content-Duration"), durationText);
+      rv = hc->GetResponseHeader(NS_LITERAL_CSTRING("Content-Duration"), durationText);
       if (NS_FAILED(rv)) {
         rv = hc->GetResponseHeader(NS_LITERAL_CSTRING("X-AMZ-Meta-Content-Duration"), durationText);
+      }
+      if (NS_FAILED(rv)) {
+        rv = hc->GetResponseHeader(NS_LITERAL_CSTRING("X-Content-Duration"), durationText);
       }
 
       if (NS_SUCCEEDED(rv)) {
