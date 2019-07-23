@@ -2232,10 +2232,14 @@ nsGenericElement::PreHandleEvent(nsEventChainPreVisitor& aVisitor)
 }
 
 static nsIContent*
-FindFirstNonNativeAnonymousAncestor(nsIContent* aContent)
+FindNativeAnonymousSubtreeOwner(nsIContent* aContent)
 {
-  while (aContent && aContent->IsNativeAnonymous()) {
-    aContent = aContent->GetParent();
+  if (aContent->IsInNativeAnonymousSubtree()) {
+    PRBool isNativeAnon = PR_FALSE;
+    while (aContent && !isNativeAnon) {
+      isNativeAnon = aContent->IsNativeAnonymous();
+      aContent = aContent->GetParent();
+    }
   }
   return aContent;
 }
@@ -2250,8 +2254,11 @@ nsGenericElement::doPreHandleEvent(nsIContent* aContent,
   
   
   PRBool isAnonForEvents = aContent->IsNativeAnonymous();
-  if (aVisitor.mEvent->message == NS_MOUSE_ENTER_SYNTH ||
-      aVisitor.mEvent->message == NS_MOUSE_EXIT_SYNTH) {
+  if ((aVisitor.mEvent->message == NS_MOUSE_ENTER_SYNTH ||
+       aVisitor.mEvent->message == NS_MOUSE_EXIT_SYNTH) &&
+      
+      
+      static_cast<nsISupports*>(aContent) == aVisitor.mEvent->target) {
      nsCOMPtr<nsIContent> relatedTarget =
        do_QueryInterface(static_cast<nsMouseEvent*>
                                     (aVisitor.mEvent)->relatedTarget);
@@ -2267,17 +2274,33 @@ nsGenericElement::doPreHandleEvent(nsIContent* aContent,
           (aVisitor.mEvent->originalTarget == aContent &&
            (aVisitor.mRelatedTargetIsInAnon =
             relatedTarget->IsInNativeAnonymousSubtree()))) {
-        nsIContent* nonAnon = FindFirstNonNativeAnonymousAncestor(aContent);
-        if (nonAnon) {
-          nsIContent* nonAnonRelated =
-            FindFirstNonNativeAnonymousAncestor(relatedTarget);
-          if (nonAnonRelated) {
-            if (nonAnon == nonAnonRelated ||
-                nsContentUtils::ContentIsDescendantOf(nonAnonRelated, nonAnon)) {
-              aVisitor.mParentTarget = nsnull;
+        nsIContent* anonOwner = FindNativeAnonymousSubtreeOwner(aContent);
+        if (anonOwner) {
+          nsIContent* anonOwnerRelated =
+            FindNativeAnonymousSubtreeOwner(relatedTarget);
+          if (anonOwnerRelated) {
+            
+            
+            
+            
+            while (anonOwner != anonOwnerRelated &&
+                   anonOwnerRelated->IsInNativeAnonymousSubtree()) {
+              anonOwnerRelated = FindNativeAnonymousSubtreeOwner(anonOwnerRelated);
+            }
+            if (anonOwner == anonOwnerRelated) {
+              nsCOMPtr<nsIContent> target =
+                do_QueryInterface(aVisitor.mEvent->originalTarget);
               
-              aVisitor.mCanHandle = isAnonForEvents;
-              return NS_OK;
+              
+              
+              
+              if (relatedTarget->FindFirstNonNativeAnonymous() ==
+                  target->FindFirstNonNativeAnonymous()) {
+                aVisitor.mParentTarget = nsnull;
+                
+                aVisitor.mCanHandle = isAnonForEvents;
+                return NS_OK;
+              }
             }
           }
         }
