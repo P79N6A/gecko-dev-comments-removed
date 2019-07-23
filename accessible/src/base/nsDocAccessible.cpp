@@ -1807,9 +1807,7 @@ NS_IMETHODIMP nsDocAccessible::InvalidateCacheSubtree(nsIContent *aChild,
                             eCoalesceFromSameSubtree, isAsynch);
 
     
-    nsAutoString role;
-    if (GetRoleAttribute(aChild, role) &&
-        StringEndsWith(role, NS_LITERAL_STRING(":menu"), nsCaseInsensitiveStringComparator())) {
+    if (ARIARoleEquals(aChild, "menu")) {
       FireDelayedToolkitEvent(nsIAccessibleEvent::EVENT_MENUPOPUP_START,
                               childNode, nsnull, eAllowDupes, isAsynch);
     }
@@ -1817,8 +1815,7 @@ NS_IMETHODIMP nsDocAccessible::InvalidateCacheSubtree(nsIContent *aChild,
     
     nsIContent *ancestor = aChild;
     while (ancestor) {
-      if (GetRoleAttribute(ancestor, role) &&
-          StringEndsWith(role, NS_LITERAL_STRING(":alert"), nsCaseInsensitiveStringComparator())) {
+      if (ARIARoleEquals(ancestor, "alert")) {
         nsCOMPtr<nsIDOMNode> alertNode(do_QueryInterface(ancestor));
         FireDelayedToolkitEvent(nsIAccessibleEvent::EVENT_ALERT, alertNode, nsnull,
                                 eRemoveDupes, isAsynch);

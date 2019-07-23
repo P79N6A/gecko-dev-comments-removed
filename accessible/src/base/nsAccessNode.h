@@ -71,6 +71,16 @@ class nsApplicationAccessibleWrap;
 typedef nsInterfaceHashtable<nsVoidPtrHashKey, nsIAccessNode>
         nsAccessNodeHashtable;
 
+
+
+
+
+
+
+
+#define ARIARoleEquals(aContent, aRoleName) \
+  nsAccessNode::ARIARoleEqualsImpl(aContent, aRoleName, NS_ARRAY_LENGTH(aRoleName) - 1)
+
 class nsAccessNode: public nsIAccessNode, public nsPIAccessNode
 {
   public: 
@@ -115,13 +125,15 @@ class nsAccessNode: public nsIAccessNode, public nsPIAccessNode
     }
 
     
-    static PRBool GetRoleAttribute(nsIContent *aContent, nsAString& aRole)
-    {
-      aRole.Truncate();
-      return (aContent->IsNodeOfType(nsINode::eHTML) && aContent->GetAttr(kNameSpaceID_None, nsAccessibilityAtoms::role, aRole)) ||
-              aContent->GetAttr(kNameSpaceID_XHTML, nsAccessibilityAtoms::role, aRole) ||
-              aContent->GetAttr(kNameSpaceID_XHTML2_Unofficial, nsAccessibilityAtoms::role, aRole);
-    }
+
+
+
+
+
+    static PRBool GetARIARole(nsIContent *aContent, nsString& aRole);
+
+    static PRBool ARIARoleEqualsImpl(nsIContent* aContent, const char* aRoleName, PRUint32 aLen)
+      { nsAutoString role; return GetARIARole(aContent, role) && role.EqualsASCII(aRoleName, aLen); }
 
     static void GetComputedStyleDeclaration(const nsAString& aPseudoElt,
                                             nsIDOMElement *aElement,

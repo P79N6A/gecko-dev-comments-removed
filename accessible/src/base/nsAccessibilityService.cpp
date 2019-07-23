@@ -434,7 +434,6 @@ nsresult
 nsAccessibilityService::CreateHTMLAccessibleByMarkup(nsIFrame *aFrame,
                                                      nsIWeakReference *aWeakShell,
                                                      nsIDOMNode *aNode,
-                                                     const nsAString& aRole,
                                                      nsIAccessible **aAccessible)
 {
   
@@ -1337,9 +1336,7 @@ NS_IMETHODIMP nsAccessibilityService::GetAccessible(nsIDOMNode *aNode,
   }
 
   nsAutoString role;
-  if (nsAccessNode::GetRoleAttribute(content, role) &&
-      StringEndsWith(role, NS_LITERAL_STRING(":presentation")) &&
-      !content->IsFocusable()) {
+  if (nsAccessNode::GetARIARole(content, role) && role.EqualsLiteral("presentation") && !content->IsFocusable()) {
     
     
     
@@ -1366,7 +1363,7 @@ NS_IMETHODIMP nsAccessibilityService::GetAccessible(nsIDOMNode *aNode,
   } else if (!newAcc) {  
     
     
-    CreateHTMLAccessibleByMarkup(frame, aWeakShell, aNode, role, getter_AddRefs(newAcc));
+    CreateHTMLAccessibleByMarkup(frame, aWeakShell, aNode, getter_AddRefs(newAcc));
 
     PRBool tryFrame = (newAcc == nsnull);
     if (!content->IsFocusable()) { 

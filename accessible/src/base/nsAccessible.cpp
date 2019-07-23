@@ -45,7 +45,6 @@
 #include "nsIAccessibleHyperText.h"
 #include "nsAccessibleTreeWalker.h"
 
-#include "nsIDOM3Node.h"
 #include "nsIDOMElement.h"
 #include "nsIDOMDocument.h"
 #include "nsIDOMDocumentXBL.h"
@@ -53,7 +52,6 @@
 #include "nsIDOMHTMLDocument.h"
 #include "nsIDOMHTMLFormElement.h"
 #include "nsIDOMNodeFilter.h"
-#include "nsIDOMNSDocument.h"
 #include "nsIDOMNSHTMLElement.h"
 #include "nsIDOMTreeWalker.h"
 #include "nsIDOMXULButtonElement.h"
@@ -475,45 +473,18 @@ NS_IMETHODIMP nsAccessible::Init()
 {
   nsIContent *content = GetRoleContent(mDOMNode);
   nsAutoString roleString;
-  if (content && GetRoleAttribute(content, roleString)) {
-    
-    
-    
-    nsCOMPtr<nsIDOM3Node> dom3Node(do_QueryInterface(content));
-    if (dom3Node) {
-      nsAutoString prefix;
-      NS_NAMED_LITERAL_STRING(kWAIRoles_Namespace, "http://www.w3.org/2005/01/wai-rdf/GUIRoleTaxonomy#");
-      dom3Node->LookupPrefix(kWAIRoles_Namespace, prefix);
-      if (prefix.IsEmpty()) {
-        
-        
-        
-        nsCOMPtr<nsIDOMNSDocument> doc(do_QueryInterface(content->GetDocument()));
-        if (doc) {
-          nsAutoString mimeType;
-          doc->GetContentType(mimeType);
-          if (mimeType.EqualsLiteral("text/html")) {
-            prefix = NS_LITERAL_STRING("wairole");
-          }
-        }
-      }
-      prefix += ':';
-      PRUint32 length = prefix.Length();
-      if (length > 1 && StringBeginsWith(roleString, prefix)) {
-        roleString.Cut(0, length);
-        nsCString utf8Role = NS_ConvertUTF16toUTF8(roleString); 
-        ToLowerCase(utf8Role);
-        PRUint32 index;
-        for (index = 0; nsARIAMap::gWAIRoleMap[index].roleString; index ++) {
-          if (utf8Role.Equals(nsARIAMap::gWAIRoleMap[index].roleString)) {
-            break; 
-          }
-        }
-        
-        
-        mRoleMapEntry = &nsARIAMap::gWAIRoleMap[index];
+  if (content && GetARIARole(content, roleString)) {
+    nsCString utf8Role = NS_ConvertUTF16toUTF8(roleString); 
+    ToLowerCase(utf8Role);
+    PRUint32 index;
+    for (index = 0; nsARIAMap::gWAIRoleMap[index].roleString; index ++) {
+      if (utf8Role.Equals(nsARIAMap::gWAIRoleMap[index].roleString)) {
+        break; 
       }
     }
+    
+    
+    mRoleMapEntry = &nsARIAMap::gWAIRoleMap[index];
   }
 
   return nsAccessNodeWrap::Init();
@@ -2067,7 +2038,7 @@ nsAccessible::GetAttributes(nsIPersistentProperties **aAttributes)
     
     
     nsAutoString xmlRole;
-    if (GetRoleAttribute(content, xmlRole)) {
+    if (GetARIARole(content, xmlRole)) {
       attributes->SetStringProperty(NS_LITERAL_CSTRING("xml-roles"), xmlRole, oldValueUnused);          
     }
 
