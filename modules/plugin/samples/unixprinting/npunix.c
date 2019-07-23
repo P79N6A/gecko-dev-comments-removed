@@ -352,6 +352,17 @@ Private_Print(NPP instance, NPPrint* platformPrint)
 
 
 
+char *
+NP_GetPluginVersion(void)
+{
+    return "1.0.0";
+}
+
+
+
+
+
+
 
 char *
 NP_GetMIMEDescription(void)

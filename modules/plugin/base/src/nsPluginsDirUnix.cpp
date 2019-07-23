@@ -441,6 +441,7 @@ nsresult nsPluginFile::GetPluginInfo(nsPluginInfo& info)
 
     nsCOMPtr<nsIPlugin> plugin;
 
+    info.fVersion = nsnull;
     if (nsGetFactory) {
         
         
@@ -473,6 +474,11 @@ nsresult nsPluginFile::GetPluginInfo(nsPluginInfo& info)
     }
 
     if (plugin) {
+        const char* (*npGetPluginVersion)() =
+          (const char* (*)()) PR_FindFunctionSymbol(pLibrary, "NP_GetPluginVersion");
+        if (npGetPluginVersion)
+            info.fVersion = PL_strdup(npGetPluginVersion());
+
         plugin->GetMIMEDescription(&mimedescr);
 #ifdef NS_DEBUG
         printf("GetMIMEDescription() returned \"%s\"\n", mimedescr);
@@ -522,6 +528,9 @@ nsresult nsPluginFile::FreePluginInfo(nsPluginInfo& info)
 
     if (info.fFileName != nsnull)
         PL_strfree(info.fFileName);
+
+    if (info.fVersion != nsnull)
+        PL_strfree(info.fVersion);
 
     return NS_OK;
 }

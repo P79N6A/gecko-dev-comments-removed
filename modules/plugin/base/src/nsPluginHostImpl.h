@@ -104,6 +104,7 @@ public:
               const char* aDescription,
               const char* aFileName,
               const char* aFullPath,
+              const char* aVersion,
               const char* const* aMimeTypes,
               const char* const* aMimeDescriptions,
               const char* const* aExtensions,
@@ -166,6 +167,7 @@ public:
   PRPackedBool  mIsNPRuntimeEnabledJavaPlugin;
   nsCString     mFileName; 
   nsCString     mFullPath; 
+  nsCString     mVersion;  
   PRInt64       mLastModifiedTime;
 private:
   PRUint32      mFlags;
