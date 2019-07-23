@@ -278,7 +278,8 @@ nsToolkit::Startup(HMODULE hModule)
 void
 nsToolkit::Shutdown()
 {
-    nsUXThemeData::Teardown();
+    
+    
     
     ::UnregisterClassW(L"nsToolkitClass", nsToolkit::mDllInstance);
 }
