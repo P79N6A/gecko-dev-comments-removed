@@ -45,6 +45,7 @@
 #include "XPCWrapper.h"
 #include "nsDOMJSUtils.h"
 #include "nsIScriptGlobalObject.h"
+#include "nsNullPrincipal.h"
 
 
 
@@ -226,12 +227,13 @@ XPCJSContextStack::GetSafeJSContext(JSContext * *aSafeJSContext)
 #ifndef XPCONNECT_STANDALONE
         
         
-        nsCOMPtr<nsIPrincipal> principal =
-            do_CreateInstance("@mozilla.org/nullprincipal;1");
+        nsRefPtr<nsNullPrincipal> principal = new nsNullPrincipal();
         nsCOMPtr<nsIScriptObjectPrincipal> sop;
         if(principal)
         {
-            sop = new PrincipalHolder(principal);
+            nsresult rv = principal->Init();
+            if(NS_SUCCEEDED(rv))
+              sop = new PrincipalHolder(principal);
         }
         if(!sop)
         {
