@@ -172,6 +172,14 @@ static PRLogModuleInfo* gJSDiagnostics;
 
 
 
+
+
+
+#define NS_GC_ACCEL_TIME_1          60
+#define NS_GC_ACCEL_TIME_2          600
+
+
+
 static PRUint32 sDelayedCCollectCount;
 static PRUint32 sCCollectCount;
 static PRBool sUserIsActive;
@@ -182,6 +190,7 @@ static PRUint32 sCCSuspectChanges;
 static PRUint32 sCCSuspectedCount;
 static nsITimer *sGCTimer;
 static PRBool sReadyForGC;
+static PRTime sPreviousGCTime;
 
 
 
@@ -859,12 +868,21 @@ MaybeGC(JSContext *cx)
 {
   size_t bytes = cx->runtime->gcBytes;
   size_t lastBytes = cx->runtime->gcLastBytes;
+  PRTime now = PR_Now();
 
-  if ((bytes > 8192 && bytes / 16 > lastBytes)
+  PRInt32 factor = 16;
+  if (sPreviousGCTime) {
+    PRInt64 usec = now - sPreviousGCTime;
+    if (usec >= PRInt64(NS_GC_ACCEL_TIME_1 * PR_USEC_PER_SEC))
+      factor = usec < PRInt64(NS_GC_ACCEL_TIME_2 * PR_USEC_PER_SEC) ? 4 : 1;
+  }
+  
+  if ((bytes > 8192 && bytes > lastBytes * factor)
 #ifdef DEBUG
       || cx->runtime->gcZeal > 0
 #endif
       ) {
+    sPreviousGCTime = now;
     JS_GC(cx);
   }
 }
@@ -3702,6 +3720,7 @@ nsJSRuntime::Startup()
   sCCollectCount = 0;
   sUserIsActive = PR_FALSE;
   sPreviousCCTime = 0;
+  sPreviousGCTime = 0;
   sCollectedObjectsCounts = 0;
   sSavedGCCount = 0;
   sCCSuspectChanges = 0;
