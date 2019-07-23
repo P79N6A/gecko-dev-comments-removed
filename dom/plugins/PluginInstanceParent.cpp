@@ -375,7 +375,6 @@ PluginInstanceParent::NPP_HandleEvent(void* event)
     if (!CallNPP_HandleEvent(*npevent, &handled)) {
         return 0;               
     }
-
     return handled;
 }
 
