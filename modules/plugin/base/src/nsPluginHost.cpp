@@ -466,24 +466,11 @@ void nsPluginInstanceTagList::stopRunning(nsISupportsArray* aReloadDocs,
   if (!mFirst)
     return;
 
-  PRBool doCallSetWindowAfterDestroy = PR_FALSE;
-
   for (nsPluginInstanceTag * p = mFirst; p != nsnull; p = p->mNext) {
     if (!p->mStopped && p->mInstance &&
        (!aPluginTag || aPluginTag == p->mPluginTag)) {
-      
-      
-      p->mInstance->GetValue(nsPluginInstanceVariable_CallSetWindowAfterDestroyBool,
-                             (void *) &doCallSetWindowAfterDestroy);
-      if (doCallSetWindowAfterDestroy) {
-        p->mInstance->Stop();
-        p->mInstance->SetWindow(nsnull);
-      }
-      else {
-        p->mInstance->SetWindow(nsnull);
-        p->mInstance->Stop();
-      }
-      doCallSetWindowAfterDestroy = PR_FALSE;
+      p->mInstance->SetWindow(nsnull);
+      p->mInstance->Stop();
       p->setStopped(PR_TRUE);
 
       
@@ -524,14 +511,8 @@ void nsPluginInstanceTagList::removeAllStopped()
 nsPluginInstanceTag * nsPluginInstanceTagList::find(nsIPluginInstance* instance)
 {
   for (nsPluginInstanceTag * p = mFirst; p != nsnull; p = p->mNext) {
-    if (p->mInstance == instance) {
-#ifdef NS_DEBUG
-      PRBool doCache = PR_TRUE;
-      p->mInstance->GetValue(nsPluginInstanceVariable_DoCacheBool, (void *) &doCache);
-      NS_ASSERTION(!p->mStopped || doCache, "This plugin is not supposed to be cached!");
-#endif
+    if (p->mInstance == instance)
       return p;
-    }
   }
   return nsnull;
 }
@@ -554,14 +535,8 @@ nsPluginInstanceTag * nsPluginInstanceTagList::find(const char * mimetype)
     if (NS_FAILED(rv))
       continue;
 
-    if (PL_strcasecmp(mt, mimetype) == 0) {
-#ifdef NS_DEBUG
-      PRBool doCache = PR_TRUE;
-      p->mInstance->GetValue(nsPluginInstanceVariable_DoCacheBool, (void *) &doCache);
-      NS_ASSERTION(!p->mStopped || doCache, "This plugin is not supposed to be cached!");
-#endif
+    if (PL_strcasecmp(mt, mimetype) == 0)
       return p;
-    }
   }
   return nsnull;
 }
@@ -569,14 +544,8 @@ nsPluginInstanceTag * nsPluginInstanceTagList::find(const char * mimetype)
 nsPluginInstanceTag * nsPluginInstanceTagList::findStopped(const char * url)
 {
   for (nsPluginInstanceTag * p = mFirst; p != nsnull; p = p->mNext) {
-    if (!PL_strcmp(url, p->mURL) && p->mStopped) {
-#ifdef NS_DEBUG
-      PRBool doCache = PR_TRUE;
-      p->mInstance->GetValue(nsPluginInstanceVariable_DoCacheBool, (void *) &doCache);
-      NS_ASSERTION(doCache, "This plugin is not supposed to be cached!");
-#endif
+    if (!PL_strcmp(url, p->mURL) && p->mStopped)
        return p;
-    }
   }
   return nsnull;
 }
@@ -604,14 +573,6 @@ nsPluginInstanceTag * nsPluginInstanceTagList::findOldestStopped()
       res = p;
     }
   }
-
-#ifdef NS_DEBUG
-  if (res) {
-    PRBool doCache = PR_TRUE;
-    res->mInstance->GetValue(nsPluginInstanceVariable_DoCacheBool, (void *) &doCache);
-    NS_ASSERTION(doCache, "This plugin is not supposed to be cached!");
-  }
-#endif
 
   return res;
 }
@@ -1123,7 +1084,7 @@ public:
   GetURL(const char** result);
 
   NS_IMETHOD
-  RequestRead(nsByteRange* rangeList);
+  RequestRead(NPByteRange* rangeList);
 
   NS_IMETHOD
   GetStreamOffset(PRInt32 *result);
@@ -1155,7 +1116,7 @@ public:
   SetPluginStreamListenerPeer(nsPluginStreamListenerPeer * aPluginStreamListenerPeer);
 
   void
-  MakeByteRangeString(nsByteRange* aRangeList, nsACString &string, PRInt32 *numRequests);
+  MakeByteRangeString(NPByteRange* aRangeList, nsACString &string, PRInt32 *numRequests);
 
   PRBool
   UseExistingPluginCacheFile(nsPluginStreamInfo* psi);
@@ -1241,7 +1202,7 @@ private:
   
   char                    *mMIMEType;
   PRUint32                mLength;
-  nsPluginStreamType      mStreamType;
+  PRInt32                 mStreamType;
   nsIPluginHost           *mHost;
 
   
@@ -1335,7 +1296,7 @@ nsPluginStreamInfo::GetURL(const char** result)
 }
 
 void
-nsPluginStreamInfo::MakeByteRangeString(nsByteRange* aRangeList, nsACString &rangeRequest, PRInt32 *numRequests)
+nsPluginStreamInfo::MakeByteRangeString(NPByteRange* aRangeList, nsACString &rangeRequest, PRInt32 *numRequests)
 {
   rangeRequest.Truncate();
   *numRequests  = 0;
@@ -1346,7 +1307,7 @@ nsPluginStreamInfo::MakeByteRangeString(nsByteRange* aRangeList, nsACString &ran
   PRInt32 requestCnt = 0;
   nsCAutoString string("bytes=");
 
-  for (nsByteRange * range = aRangeList; range != nsnull; range = range->next) {
+  for (NPByteRange * range = aRangeList; range != nsnull; range = range->next) {
     
     if (!range->length)
       continue;
@@ -1370,7 +1331,7 @@ nsPluginStreamInfo::MakeByteRangeString(nsByteRange* aRangeList, nsACString &ran
 }
 
 NS_IMETHODIMP
-nsPluginStreamInfo::RequestRead(nsByteRange* rangeList)
+nsPluginStreamInfo::RequestRead(NPByteRange* rangeList)
 {
   nsCAutoString rangeString;
   PRInt32 numRequests;
@@ -1576,7 +1537,7 @@ nsPluginStreamListenerPeer::nsPluginStreamListenerPeer()
   mInstance = nsnull;
   mPStreamListener = nsnull;
   mHost = nsnull;
-  mStreamType = nsPluginStreamType_Normal;
+  mStreamType = NP_NORMAL;
   mStartBinding = PR_FALSE;
   mAbort = PR_FALSE;
   mRequestFailed = PR_FALSE;
@@ -1887,8 +1848,8 @@ nsPluginStreamListenerPeer::OnStartRequest(nsIRequest *request,
 
     if (responseCode > 206) { 
       PRBool bWantsAllNetworkStreams = PR_FALSE;
-      mInstance->GetValue(nsPluginInstanceVariable_WantsAllNetworkStreams,
-                          (void *)&bWantsAllNetworkStreams);
+      mInstance->GetValueFromPlugin(NPPVpluginWantsAllNetworkStreams,
+                                    (void*)&bWantsAllNetworkStreams);
       if (!bWantsAllNetworkStreams) {
         mRequestFailed = PR_TRUE;
         return NS_ERROR_FAILURE;
@@ -1966,7 +1927,7 @@ nsPluginStreamListenerPeer::OnStartRequest(nsIRequest *request,
   PR_LogFlush();
 #endif
 
-  nsPluginWindow    *window = nsnull;
+  NPWindow* window = nsnull;
 
   
   
@@ -1980,9 +1941,9 @@ nsPluginStreamListenerPeer::OnStartRequest(nsIRequest *request,
     mOwner->GetWindow(window);
     if (!mInstance && mHost && window) {
       
-      nsPluginMode mode;
+      PRInt32 mode;
       mOwner->GetMode(&mode);
-      if (mode == nsPluginMode_Embedded)
+      if (mode == NP_EMBED)
         rv = mHost->InstantiateEmbeddedPlugin(aContentType.get(), aURL, mOwner);
       else
         rv = mHost->SetUpPluginInstance(aContentType.get(), aURL, mOwner);
@@ -2084,7 +2045,7 @@ NS_IMETHODIMP nsPluginStreamListenerPeer::OnDataAvailable(nsIRequest *request,
 
   
   
-  if (mStreamType != nsPluginStreamType_AsFileOnly) {
+  if (mStreamType != NP_ASFILEONLY) {
     
     nsCOMPtr<nsIByteRangeRequest> brr = do_QueryInterface(request);
     if (brr) {
@@ -2227,7 +2188,7 @@ NS_IMETHODIMP nsPluginStreamListenerPeer::OnStopRequest(nsIRequest *request,
   }
 
   
-  if (mStreamType >= nsPluginStreamType_AsFile) {
+  if (mStreamType >= NP_ASFILE) {
     nsCOMPtr<nsIFile> localFile = do_QueryInterface(mLocalCachedFile);
     if (!localFile) {
       nsCOMPtr<nsICachingChannel> cacheChannel = do_QueryInterface(request);
@@ -2392,7 +2353,7 @@ nsresult nsPluginStreamListenerPeer::SetUpStreamListener(nsIRequest *request,
 
   mPStreamListener->GetStreamType(&mStreamType);
 
-  if (!useLocalCache && mStreamType >= nsPluginStreamType_AsFile) {
+  if (!useLocalCache && mStreamType >= NP_ASFILE) {
     
     nsCOMPtr<nsIFileChannel> fileChannel = do_QueryInterface(request);
     if (!fileChannel) {
@@ -3194,7 +3155,7 @@ NS_IMETHODIMP nsPluginHost::InstantiateEmbeddedPlugin(const char *aMimeType,
   
   
 
-  nsPluginWindow    *window = nsnull;
+  NPWindow *window = nsnull;
 
   
   aOwner->GetWindow(window);
@@ -3279,7 +3240,7 @@ NS_IMETHODIMP nsPluginHost::InstantiateFullPagePlugin(const char *aMimeType,
 
   if (NS_OK == rv) {
     nsCOMPtr<nsIPluginInstance> instance;
-    nsPluginWindow * win = nsnull;
+    NPWindow* win = nsnull;
 
     aOwner->GetInstance(*getter_AddRefs(instance));
     aOwner->GetWindow(win);
@@ -3321,7 +3282,7 @@ nsresult nsPluginHost::FindStoppedPluginForURL(nsIURI* aURL,
 
   if (plugin && plugin->mStopped) {
     nsIPluginInstance* instance = plugin->mInstance;
-    nsPluginWindow    *window = nsnull;
+    NPWindow* window = nsnull;
     aOwner->GetWindow(window);
 
     aOwner->SetInstance(instance);
@@ -5326,8 +5287,7 @@ nsPluginHost::StopPluginInstance(nsIPluginInstance* aInstance)
 
     
     PRBool doCache = PR_TRUE;
-    aInstance->GetValue(nsPluginInstanceVariable_DoCacheBool, (void *) &doCache);
-
+    aInstance->ShouldCache(&doCache);
     if (!doCache) {
       PRLibrary * library = nsnull;
       if (plugin->mPluginTag)
@@ -5891,7 +5851,7 @@ nsresult nsPluginStreamListenerPeer::ServeStreamAsFile(nsIRequest *request,
   nsCOMPtr<nsIPluginInstanceOwner> owner;
   mInstance->GetOwner(getter_AddRefs(owner));
   if (owner) {
-    nsPluginWindow    *window = nsnull;
+    NPWindow* window = nsnull;
     owner->GetWindow(window);
 #if defined (MOZ_WIDGET_GTK2)
     
@@ -5899,7 +5859,7 @@ nsresult nsPluginStreamListenerPeer::ServeStreamAsFile(nsIRequest *request,
     nsCOMPtr<nsIWidget> widget;
     ((nsPluginNativeWindow*)window)->GetPluginWidget(getter_AddRefs(widget));
     if (widget) {
-      window->window = (nsPluginPort*) widget->GetNativeData(NS_NATIVE_PLUGIN_PORT);
+      window->window = widget->GetNativeData(NS_NATIVE_PLUGIN_PORT);
     }
 #endif
     if (window->window) {
@@ -5913,7 +5873,7 @@ nsresult nsPluginStreamListenerPeer::ServeStreamAsFile(nsIRequest *request,
   mPluginStreamInfo->SetStreamOffset(0);
 
   
-  mStreamType = nsPluginStreamType_AsFile;
+  mStreamType = NP_ASFILE;
 
   
   nsCOMPtr<nsICachingChannel> cacheChannel = do_QueryInterface(request);
@@ -5985,8 +5945,8 @@ nsPluginByteRangeStreamListener::OnStartRequest(nsIRequest *request, nsISupports
   if (responseCode != 200) {
     PRBool bWantsAllNetworkStreams = PR_FALSE;
     pslp->GetPluginInstance()->
-      GetValue(nsPluginInstanceVariable_WantsAllNetworkStreams,
-               (void *)&bWantsAllNetworkStreams);
+      GetValueFromPlugin(NPPVpluginWantsAllNetworkStreams,
+                         (void*)&bWantsAllNetworkStreams);
     if (!bWantsAllNetworkStreams){
       return NS_ERROR_FAILURE;
     }

@@ -92,6 +92,14 @@ pref("browser.dictionaries.download.url", "https://%LOCALE%.add-ons.mozilla.com/
 
 
 
+pref("app.update.timer", 600000);
+
+
+
+
+
+
+
 pref("app.update.enabled", true);
 
 
@@ -128,9 +136,6 @@ pref("app.update.url", "https://aus2.mozilla.org/update/3/%PRODUCT%/%VERSION%/%B
 pref("app.update.nagTimer.restart", 86400);
 
 
-
-pref("app.update.timer", 600000);
-
 pref("app.update.promptWaitTime", 43200);
 
 pref("app.update.idletime", 60);
@@ -155,9 +160,8 @@ pref("app.update.incompatible.mode", 0);
 
 
 
-
 pref("extensions.update.enabled", true);
-pref("extensions.update.url", "https://versioncheck.addons.mozilla.org/update/VersionCheck.php?reqVersion=%REQ_VERSION%&id=%ITEM_ID%&version=%ITEM_VERSION%&maxAppVersion=%ITEM_MAXAPPVERSION%&status=%ITEM_STATUS%&appID=%APP_ID%&appVersion=%APP_VERSION%&appOS=%APP_OS%&appABI=%APP_ABI%&locale=%APP_LOCALE%&currentAppVersion=%CURRENT_APP_VERSION%");
+pref("extensions.update.url", "https://versioncheck.addons.mozilla.org/update/VersionCheck.php?reqVersion=%REQ_VERSION%&id=%ITEM_ID%&version=%ITEM_VERSION%&maxAppVersion=%ITEM_MAXAPPVERSION%&status=%ITEM_STATUS%&appID=%APP_ID%&appVersion=%APP_VERSION%&appOS=%APP_OS%&appABI=%APP_ABI%&locale=%APP_LOCALE%&currentAppVersion=%CURRENT_APP_VERSION%&updateType=%UPDATE_TYPE%");
 pref("extensions.update.interval", 86400);  
                                             
 
@@ -329,6 +333,7 @@ pref("browser.tabs.autoHide", false);
 pref("browser.tabs.autoHide", true);
 #endif
 pref("browser.tabs.closeWindowWithLastTab", true);
+pref("browser.tabs.insertRelatedAfterCurrent", true);
 pref("browser.tabs.warnOnClose", true);
 pref("browser.tabs.warnOnOpen", true);
 pref("browser.tabs.maxOpenBeforeWarn", 15);
@@ -857,7 +862,7 @@ pref("geo.wifi.uri", "https://www.google.com/loc/json");
 #ifdef WINCE
 
 
-pref("browser.urlbar.delay", 1000);
+pref("browser.urlbar.delay", 250);
 
 
 pref("browser.safebrowsing.enabled", false);
