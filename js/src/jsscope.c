@@ -796,6 +796,9 @@ HashChunks(PropTreeKidsChunk *chunk, uintN n)
 
 
 
+
+
+
 static JSScopeProperty *
 GetPropertyTreeChild(JSContext *cx, JSScopeProperty *parent,
                      JSScopeProperty *child)
@@ -809,7 +812,7 @@ GetPropertyTreeChild(JSContext *cx, JSScopeProperty *parent,
 
     rt = cx->runtime;
     if (!parent) {
-        JS_LOCK_RUNTIME(rt);
+        JS_LOCK_GC(rt);
 
         table = &rt->propertyTreeHash;
         entry = (JSPropertyTreeEntry *)
@@ -842,12 +845,12 @@ GetPropertyTreeChild(JSContext *cx, JSScopeProperty *parent,
 
                 table = chunk->table;
                 if (table) {
-                    JS_LOCK_RUNTIME(rt);
+                    JS_LOCK_GC(rt);
                     entry = (JSPropertyTreeEntry *)
                             JS_DHashTableOperate(table, child, JS_DHASH_LOOKUP);
                     sprop = entry->child;
                     if (sprop) {
-                        JS_UNLOCK_RUNTIME(rt);
+                        JS_UNLOCK_GC(rt);
                         return sprop;
                     }
                     goto locked_not_found;
@@ -863,7 +866,7 @@ GetPropertyTreeChild(JSContext *cx, JSScopeProperty *parent,
                                 chunk = KIDS_TO_CHUNK(parent->kids);
                                 if (!chunk->table) {
                                     table = HashChunks(chunk, n);
-                                    JS_LOCK_RUNTIME(rt);
+                                    JS_LOCK_GC(rt);
                                     if (!table)
                                         goto out_of_memory;
                                     if (chunk->table)
@@ -888,7 +891,7 @@ GetPropertyTreeChild(JSContext *cx, JSScopeProperty *parent,
         }
 
     not_found:
-        JS_LOCK_RUNTIME(rt);
+        JS_LOCK_GC(rt);
     }
 
 locked_not_found:
@@ -904,7 +907,7 @@ locked_not_found:
     sprop->flags = child->flags;
     sprop->shortid = child->shortid;
     sprop->parent = sprop->kids = NULL;
-    sprop->shape = js_GenerateShape(cx);
+    sprop->shape = js_GenerateShape(cx, JS_TRUE);
 
     if (!parent) {
         entry->child = sprop;
@@ -914,11 +917,11 @@ locked_not_found:
     }
 
 out:
-    JS_UNLOCK_RUNTIME(rt);
+    JS_UNLOCK_GC(rt);
     return sprop;
 
 out_of_memory:
-    JS_UNLOCK_RUNTIME(rt);
+    JS_UNLOCK_GC(rt);
     JS_ReportOutOfMemory(cx);
     return NULL;
 }

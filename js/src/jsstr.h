@@ -89,8 +89,6 @@ JS_BEGIN_EXTERN_C
 
 
 
-
-
 struct JSString {
     size_t          length;
     union {
