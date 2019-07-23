@@ -145,6 +145,9 @@ function OutparamCheck(cfg, psem_list, outparam_list, retvar, retvar_set, finall
   this.outparam_list = outparam_list
   this.outparams = create_decl_set(outparam_list);
   this.psvar_list = outparam_list.slice(0);
+  
+  
+  this.retvar_set = retvar_set;
   for (let v in retvar_set.items()) {
     this.psvar_list.push(v);
   }
@@ -433,9 +436,19 @@ OutparamCheck.prototype.processCall = function(dest, expr, blame, state) {
     
     
     
+    if (TREE_CODE(arg) == ADDR_EXPR) {
+      let v = arg.operands()[0];
+      if (DECL_P(v) && this.retvar_set.has(v)) {
+        dest = v;
+      }
+    }
+    
+    
+    
     arg = unwrap_outparam(arg, state);
     let sem = psem[i];
     if (sem == ps.CONST) continue;
+    
     
     
     if (TREE_CODE(arg) == ADDR_EXPR) {
