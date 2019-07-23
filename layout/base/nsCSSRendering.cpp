@@ -2554,7 +2554,7 @@ FindCanvasBackground(nsIFrame* aForFrame,
             
             
             if (bodyContent) {
-              nsIFrame *bodyFrame = aForFrame->GetPresContext()->GetPresShell()->
+              nsIFrame *bodyFrame = aForFrame->PresContext()->GetPresShell()->
                 GetPrimaryFrameFor(bodyContent);
               if (bodyFrame)
                 result = bodyFrame->GetStyleBackground();

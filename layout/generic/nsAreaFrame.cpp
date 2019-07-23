@@ -96,7 +96,7 @@ nsAreaFrame::RegUnregAccessKey(PRBool aDoReg)
 
   
   
-  nsIEventStateManager *esm = GetPresContext()->EventStateManager();
+  nsIEventStateManager *esm = PresContext()->EventStateManager();
   nsresult rv;
 
   PRUint32 key = accessKey.First();

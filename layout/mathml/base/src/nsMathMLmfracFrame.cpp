@@ -104,7 +104,7 @@ nsMathMLmfracFrame::Init(nsIContent*      aContent,
     
     mSlashChar = new nsMathMLChar();
     if (mSlashChar) {
-      nsPresContext* presContext = GetPresContext();
+      nsPresContext* presContext = PresContext();
     
       nsAutoString slashChar; slashChar.Assign(kSlashChar);
       mSlashChar->SetData(presContext, slashChar);
@@ -288,7 +288,7 @@ nsMathMLmfracFrame::Place(nsIRenderingContext& aRenderingContext,
   
   
 
-  nsPresContext* presContext = GetPresContext();
+  nsPresContext* presContext = PresContext();
   nscoord onePixel = nsPresContext::CSSPixelsToAppUnits(1);
 
   aRenderingContext.SetFont(GetStyleFont()->mFont, nsnull);
@@ -465,7 +465,7 @@ nsMathMLmfracFrame::AttributeChanged(PRInt32         aNameSpaceID,
       if (!mSlashChar) {
         mSlashChar = new nsMathMLChar();
         if (mSlashChar) {
-          nsPresContext* presContext = GetPresContext();
+          nsPresContext* presContext = PresContext();
           nsAutoString slashChar; slashChar.Assign(kSlashChar);
           mSlashChar->SetData(presContext, slashChar);
           ResolveMathMLCharStyle(presContext, mContent, mStyleContext, mSlashChar, PR_TRUE);

@@ -188,7 +188,7 @@ nsMenuBarFrame::SetActive(PRBool aActiveFlag)
   
   
   do {
-    nsIPresShell *presShell = GetPresContext()->GetPresShell();
+    nsIPresShell *presShell = PresContext()->GetPresShell();
     if (!presShell)
       break;
 
@@ -294,7 +294,7 @@ nsMenuBarFrame::FindMenuWithShortcut(nsIDOMKeyEvent* aKeyEvent)
 
   
   nsIFrame* immediateParent = nsnull;
-  GetInsertionPoint(GetPresContext()->PresShell(), this, nsnull, &immediateParent);
+  GetInsertionPoint(PresContext()->PresShell(), this, nsnull, &immediateParent);
   if (!immediateParent)
     immediateParent = this;
 
@@ -442,7 +442,7 @@ nsMenuBarFrame::KeyboardNavigation(PRUint32 aKeyCode, PRBool& aHandledFlag)
 nsMenuBarFrame::GetNextMenuItem(nsIMenuFrame* aStart)
 {
   nsIFrame* immediateParent = nsnull;
-  GetInsertionPoint(GetPresContext()->PresShell(), this, nsnull, &immediateParent);
+  GetInsertionPoint(PresContext()->PresShell(), this, nsnull, &immediateParent);
   if (!immediateParent)
     immediateParent = this;
 
@@ -492,7 +492,7 @@ nsMenuBarFrame::GetNextMenuItem(nsIMenuFrame* aStart)
 nsMenuBarFrame::GetPreviousMenuItem(nsIMenuFrame* aStart)
 {
   nsIFrame* immediateParent = nsnull;
-  GetInsertionPoint(GetPresContext()->PresShell(), this, nsnull, &immediateParent);
+  GetInsertionPoint(PresContext()->PresShell(), this, nsnull, &immediateParent);
   if (!immediateParent)
     immediateParent = this;
 

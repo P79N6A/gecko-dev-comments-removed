@@ -261,7 +261,7 @@ nsTableOuterFrame::AppendFrames(nsIAtom*        aListName,
     
     
     AddStateBits(NS_FRAME_HAS_DIRTY_CHILDREN);
-    GetPresContext()->PresShell()->
+    PresContext()->PresShell()->
       FrameNeedsReflow(mCaptionFrame, nsIPresShell::eTreeChange);
     
   }
@@ -315,7 +315,7 @@ nsTableOuterFrame::RemoveFrame(nsIAtom*        aListName,
   mCaptionFrame = mCaptionFrames.FirstChild();
   
   AddStateBits(NS_FRAME_HAS_DIRTY_CHILDREN); 
-  GetPresContext()->PresShell()->
+  PresContext()->PresShell()->
     FrameNeedsReflow(this, nsIPresShell::eTreeChange);
 
   return NS_OK;

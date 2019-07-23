@@ -94,7 +94,7 @@ nsNativeScrollbarFrame::Init(nsIContent*     aContent,
   
   
   static NS_DEFINE_IID(kScrollbarCID,  NS_NATIVESCROLLBAR_CID);
-  if ( NS_SUCCEEDED(CreateViewForFrame(GetPresContext(), this, GetStyleContext(), PR_TRUE)) ) {
+  if ( NS_SUCCEEDED(CreateViewForFrame(PresContext(), this, GetStyleContext(), PR_TRUE)) ) {
     nsIView* myView = GetView();
     if ( myView ) {
       nsWidgetInitData widgetData;

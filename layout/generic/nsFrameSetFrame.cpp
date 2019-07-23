@@ -321,7 +321,7 @@ nsHTMLFramesetFrame::Init(nsIContent*      aContent,
     }
   }
 
-  nsPresContext* aPresContext = GetPresContext();
+  nsPresContext* aPresContext = PresContext();
 
   
   nsIViewManager* viewMan = aPresContext->GetViewManager();

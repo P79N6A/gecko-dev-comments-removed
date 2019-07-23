@@ -428,7 +428,7 @@ nsSVGGradientFrame::GetRefedGradientFromHref()
   
   nsIFrame *nextGrad;
   if (NS_SUCCEEDED(nsSVGUtils::GetReferencedFrame(&nextGrad, targetURI, mContent,
-                                                  GetPresContext()->PresShell()))) {
+                                                  PresContext()->PresShell()))) {
     nsIAtom* frameType = nextGrad->GetType();
     if (frameType != nsGkAtoms::svgLinearGradientFrame && 
         frameType != nsGkAtoms::svgRadialGradientFrame)

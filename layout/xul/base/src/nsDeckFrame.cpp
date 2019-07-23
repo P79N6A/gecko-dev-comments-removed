@@ -91,7 +91,7 @@ nsDeckFrame::AttributeChanged(PRInt32         aNameSpaceID,
 
    
   if (aAttribute == nsGkAtoms::selectedIndex) {
-    IndexChanged(GetPresContext());
+    IndexChanged(PresContext());
   }
 
   return rv;

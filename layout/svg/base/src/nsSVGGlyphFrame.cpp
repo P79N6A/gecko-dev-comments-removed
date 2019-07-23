@@ -672,7 +672,7 @@ nsSVGGlyphFrame::GetHighlight(PRUint32 *charnum, PRUint32 *nchars,
     return NS_ERROR_FAILURE;
   }
 
-  nsPresContext *presContext = GetPresContext();
+  nsPresContext *presContext = PresContext();
 
   
   
@@ -1293,7 +1293,7 @@ void nsSVGGlyphFrame::SelectFont(gfxContext *aContext)
   
   
   
-  nsPresContext *presContext = GetPresContext();
+  nsPresContext *presContext = PresContext();
   float textZoom = presContext->TextZoom();
 
   cairo_set_font_size(ctx, presContext->AppUnitsToDevPixels(fontData->mSize) / textZoom);

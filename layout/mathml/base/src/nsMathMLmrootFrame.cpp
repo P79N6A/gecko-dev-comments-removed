@@ -92,7 +92,7 @@ nsMathMLmrootFrame::Init(nsIContent*      aContent,
 {
   nsresult rv = nsMathMLContainerFrame::Init(aContent, aParent, aPrevInFlow);
   
-  nsPresContext *presContext = GetPresContext();
+  nsPresContext *presContext = PresContext();
 
   
   

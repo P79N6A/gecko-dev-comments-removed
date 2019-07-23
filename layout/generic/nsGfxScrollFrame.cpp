@@ -252,7 +252,7 @@ struct ScrollReflowState {
   ScrollReflowState(nsIScrollableFrame* aFrame,
                     const nsHTMLReflowState& aState) :
     mReflowState(aState),
-    mBoxState(aState.frame->GetPresContext(), aState.rendContext),
+    mBoxState(aState.frame->PresContext(), aState.rendContext),
     mStyles(aFrame->GetScrollbarStyles()) {
   }
 };
@@ -427,7 +427,7 @@ nsHTMLScrollFrame::ReflowScrolledFrame(const ScrollReflowState& aState,
     availWidth = PR_MAX(0, availWidth - vScrollbarPrefSize.width);
   }
   
-  nsPresContext* presContext = GetPresContext();
+  nsPresContext* presContext = PresContext();
   nscoord twp = nsPresContext::CSSPixelsToAppUnits(1);
   availWidth -=  availWidth % twp;
 
@@ -641,7 +641,7 @@ nsHTMLScrollFrame::PlaceScrollArea(const ScrollReflowState& aState)
   
   
   
-  nsContainerFrame::SyncFrameViewAfterReflow(scrolledFrame->GetPresContext(),
+  nsContainerFrame::SyncFrameViewAfterReflow(scrolledFrame->PresContext(),
                                              scrolledFrame,
                                              scrolledView,
                                              &scrolledArea,
@@ -670,7 +670,7 @@ nsHTMLScrollFrame::GetPrefWidth(nsIRenderingContext *aRenderingContext)
   nsGfxScrollFrameInner::ScrollbarStyles ss = GetScrollbarStyles();
   if (ss.mVertical != NS_STYLE_OVERFLOW_HIDDEN && 
       mInner.mVScrollbarBox) {
-    nsBoxLayoutState bls(GetPresContext(), aRenderingContext);
+    nsBoxLayoutState bls(PresContext(), aRenderingContext);
     nsSize vScrollbarPrefSize(0, 0);
     GetScrollbarMetrics(bls, mInner.mVScrollbarBox,
                         nsnull, &vScrollbarPrefSize, PR_TRUE);
@@ -1420,7 +1420,7 @@ nsGfxScrollFrameInner::GetScrollbarStylesFromFrame() const
 {
   ScrollbarStyles result;
 
-  nsPresContext* presContext = mOuter->GetPresContext();
+  nsPresContext* presContext = mOuter->PresContext();
   if (!presContext->IsDynamic() &&
       !(mIsRoot && presContext->HasPaginatedScrolling())) {
     return ScrollbarStyles(NS_STYLE_OVERFLOW_HIDDEN, NS_STYLE_OVERFLOW_HIDDEN);
@@ -1514,7 +1514,7 @@ nsresult
 nsGfxScrollFrameInner::FireScrollPortEvent()
 {
   mAsyncScrollPortEvent.Forget();
-  mOuter->GetPresContext()->GetPresShell()->
+  mOuter->PresContext()->GetPresShell()->
     FlushPendingNotifications(Flush_OnlyReflow);
   if (mAsyncScrollPortEvent.IsPending()) {
     return NS_OK;
@@ -1565,7 +1565,7 @@ nsGfxScrollFrameInner::FireScrollPortEvent()
                           nsnull);
   event.orient = orient;
   return nsEventDispatcher::Dispatch(mOuter->GetContent(),
-                                     mOuter->GetPresContext(), &event);
+                                     mOuter->PresContext(), &event);
 }
 
 void
@@ -1608,7 +1608,7 @@ nsGfxScrollFrameInner::ReloadChildFrames()
 nsresult
 nsGfxScrollFrameInner::CreateAnonymousContent(nsTArray<nsIContent*>& aElements)
 {
-  nsPresContext* presContext = mOuter->GetPresContext();
+  nsPresContext* presContext = mOuter->PresContext();
   nsIFrame* parent = mOuter->GetParent();
 
   
@@ -1711,7 +1711,7 @@ nsGfxScrollFrameInner::Destroy()
   mScrollEvent.Revoke();
   mAsyncScrollPortEvent.Revoke();
   if (mPostedReflowCallback) {
-    mOuter->GetPresContext()->PresShell()->CancelReflowCallback(this);
+    mOuter->PresContext()->PresShell()->CancelReflowCallback(this);
     mPostedReflowCallback = PR_FALSE;
   }
   nsIScrollableView *view = GetScrollableView();
@@ -1837,7 +1837,7 @@ void nsGfxScrollFrameInner::CurPosAttributeChanged(nsIContent* aContent)
       InternalScrollPositionDidChange(curPosX, curPosY);
       mFrameInitiatedScroll = PR_FALSE;
     }
-    ScrollbarChanged(mOuter->GetPresContext(), x, y, isSmooth ? NS_VMREFRESH_SMOOTHSCROLL : 0);
+    ScrollbarChanged(mOuter->PresContext(), x, y, isSmooth ? NS_VMREFRESH_SMOOTHSCROLL : 0);
   }
 }
 
@@ -1859,7 +1859,7 @@ nsGfxScrollFrameInner::FireScrollEvent()
   nsScrollbarEvent event(PR_TRUE, NS_SCROLL_EVENT, nsnull);
   nsEventStatus status = nsEventStatus_eIgnore;
   nsIContent* content = mOuter->GetContent();
-  nsPresContext* prescontext = mOuter->GetPresContext();
+  nsPresContext* prescontext = mOuter->PresContext();
   
   
   if (mIsRoot) {
@@ -2047,7 +2047,7 @@ nsXULScrollFrame::LayoutScrollArea(nsBoxLayoutState& aState, const nsRect& aRect
     
     
     mInner.mScrolledFrame->SetBounds(aState, childRect);
-    GetPresContext()->PropertyTable()->
+    PresContext()->PropertyTable()->
         DeleteProperty(mInner.mScrolledFrame, nsGkAtoms::overflowAreaProperty);
     mInner.mScrolledFrame->RemoveStateBits(NS_FRAME_OUTSIDE_CHILDREN);
   }
@@ -2075,7 +2075,7 @@ nsGfxScrollFrameInner::IsLTR() const
   
   if (mIsRoot) {
     
-    nsPresContext *presContext = mOuter->GetPresContext();
+    nsPresContext *presContext = mOuter->PresContext();
     nsIDocument *document = presContext->Document();
     nsIContent *root = document->GetRootContent();
 
@@ -2103,7 +2103,7 @@ nsGfxScrollFrameInner::IsLTR() const
 PRBool
 nsGfxScrollFrameInner::IsScrollbarOnRight() const
 {
-  nsPresContext *presContext = mOuter->GetPresContext();
+  nsPresContext *presContext = mOuter->PresContext();
   switch (presContext->GetCachedIntPref(kPresContext_ScrollbarSide)) {
     default:
     case 0: 
@@ -2326,7 +2326,7 @@ nsGfxScrollFrameInner::ReflowFinished()
   mPostedReflowCallback = PR_FALSE;
 
   
-  nsPresContext* presContext = mOuter->GetPresContext();
+  nsPresContext* presContext = mOuter->PresContext();
 
   nsIScrollableView* scrollable = GetScrollableView();
   nsRect scrollArea = scrollable->View()->GetBounds();
@@ -2602,7 +2602,7 @@ nsGfxScrollFrameInner::GetCoordAttribute(nsIBox* aBox, nsIAtom* atom, PRInt32 de
 
 static nsIURI* GetDocURI(nsIFrame* aFrame)
 {
-  nsIPresShell* shell = aFrame->GetPresContext()->GetPresShell();
+  nsIPresShell* shell = aFrame->PresContext()->GetPresShell();
   if (!shell)
     return nsnull;
   nsIDocument* doc = shell->GetDocument();

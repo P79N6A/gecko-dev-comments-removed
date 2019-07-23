@@ -91,7 +91,7 @@ nsAbsoluteContainingBlock::AppendFrames(nsIFrame*      aDelegatingFrame,
   aDelegatingFrame->AddStateBits(NS_FRAME_HAS_DIRTY_CHILDREN);
   
   
-  return aDelegatingFrame->GetPresContext()->PresShell()->
+  return aDelegatingFrame->PresContext()->PresShell()->
     FrameNeedsReflow(aDelegatingFrame, nsIPresShell::eResize);
 }
 
@@ -113,7 +113,7 @@ nsAbsoluteContainingBlock::InsertFrames(nsIFrame*      aDelegatingFrame,
   aDelegatingFrame->AddStateBits(NS_FRAME_HAS_DIRTY_CHILDREN);
   
   
-  return aDelegatingFrame->GetPresContext()->PresShell()->
+  return aDelegatingFrame->PresContext()->PresShell()->
     FrameNeedsReflow(aDelegatingFrame, nsIPresShell::eResize);
 }
 

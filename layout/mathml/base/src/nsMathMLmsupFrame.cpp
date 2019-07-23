@@ -87,7 +87,7 @@ nsMathMLmsupFrame::Place(nsIRenderingContext& aRenderingContext,
                          nsHTMLReflowMetrics& aDesiredSize)
 {
   
-  nscoord scriptSpace = GetPresContext()->PointsToAppUnits(0.5f); 
+  nscoord scriptSpace = PresContext()->PointsToAppUnits(0.5f); 
 
   
   nsAutoString value;
@@ -97,11 +97,11 @@ nsMathMLmsupFrame::Place(nsIRenderingContext& aRenderingContext,
   if (!value.IsEmpty()) {
     nsCSSValue cssValue;
     if (ParseNumericValue(value, cssValue) && cssValue.IsLengthUnit()) {
-      supScriptShift = CalcLength(GetPresContext(), mStyleContext, cssValue);
+      supScriptShift = CalcLength(PresContext(), mStyleContext, cssValue);
     }
   }
 
-  return nsMathMLmsupFrame::PlaceSuperScript(GetPresContext(), 
+  return nsMathMLmsupFrame::PlaceSuperScript(PresContext(), 
                                              aRenderingContext,
                                              aPlaceOrigin,
                                              aDesiredSize,

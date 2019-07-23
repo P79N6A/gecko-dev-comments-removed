@@ -170,7 +170,7 @@ nsMathMLmoFrame::ProcessTextData(PRBool aComputeStyleChange)
 
   
   
-  nsPresContext* presContext = GetPresContext();
+  nsPresContext* presContext = PresContext();
   if (NS_MATHML_OPERATOR_IS_INVISIBLE(mFlags) || mFrames.GetLength() != 1) {
     data.Truncate(); 
     mMathMLChar.SetData(presContext, data);
@@ -317,7 +317,7 @@ nsMathMLmoFrame::ProcessOperatorData()
      return;
   }
 
-  nsPresContext* presContext = GetPresContext();
+  nsPresContext* presContext = PresContext();
 
   
   
@@ -747,7 +747,7 @@ nsMathMLmoFrame::Stretch(nsIRenderingContext& aRenderingContext,
     }
 
     
-    nsresult res = mMathMLChar.Stretch(GetPresContext(), aRenderingContext,
+    nsresult res = mMathMLChar.Stretch(PresContext(), aRenderingContext,
                                        aStretchDirection, container, charSize, stretchHint);
     if (NS_FAILED(res)) {
       
