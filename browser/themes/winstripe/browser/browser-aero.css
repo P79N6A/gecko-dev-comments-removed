@@ -47,7 +47,7 @@
 
 
 #identity-popup[chromedir="ltr"]:-moz-system-metric(windows-default-theme) {
-  -moz-margin-start: 5px;
+  -moz-margin-start: 6px;
 }
 
 
