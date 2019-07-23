@@ -46,12 +46,11 @@
 
 
 #define NS_IMENUITEM_IID \
-{ 0x7DF81BE2, 0x51F4, 0x4CAA, \
-  { 0x9F, 0xD7, 0x3F, 0x97, 0x4A, 0x7A, 0xEA, 0x51 } }
+{ 0xCC986E81, 0x9F46, 0x4AA2, \
+  { 0xB8, 0x09, 0xC5, 0x44, 0x78, 0x9E, 0x6F, 0x06 } }
 
 class nsIMenu;
 class nsIWidget;
-class nsIMenuListener;
 class nsIChangeManager;
 class nsIContent;
 
@@ -127,18 +126,6 @@ class nsIMenuItem : public nsISupports {
 
 
     NS_IMETHOD GetNativeData(void*& aData) = 0;
-
-   
-
-
-
-    NS_IMETHOD AddMenuListener(nsIMenuListener * aMenuListener) = 0;
-
-   
-
-
-
-    NS_IMETHOD RemoveMenuListener(nsIMenuListener * aMenuListener) = 0;
 
    
 

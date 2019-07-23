@@ -40,20 +40,21 @@
 
 #include "nsISupports.h"
 #include "nsStringFwd.h"
+#include "nsEvent.h"
 
 class nsIMenuBar;
 class nsIMenu;
 class nsIMenuItem;
-class nsIMenuListener;
 class nsIChangeManager;
 class nsIContent;
 class nsIMenuCommandDispatcher;
+class nsIWidget;
 
 
 
 #define NS_IMENU_IID \
-{ 0x9188038F, 0xD392, 0x43BD, \
-  { 0xAE, 0xE7, 0x73, 0x0C, 0x37, 0x23, 0x64, 0x3F } }
+{ 0x9225136B, 0x3F56, 0x4CA3, \
+  { 0x92, 0xE0, 0x62, 0x3D, 0x5F, 0xB8, 0x35, 0x6B } }
 
 
 
@@ -176,18 +177,6 @@ class nsIMenu : public nsISupports {
 
 
     NS_IMETHOD  SetNativeData(void* aData) = 0;
-    
-   
-
-
-
-    NS_IMETHOD AddMenuListener(nsIMenuListener * aMenuListener) = 0;
-
-   
-
-
-
-    NS_IMETHOD RemoveMenuListener(nsIMenuListener * aMenuListener) = 0;
 
    
 
@@ -213,7 +202,38 @@ class nsIMenu : public nsISupports {
    
 
 
+
     NS_IMETHOD SetupIcon() = 0;
+    
+   
+
+
+
+    virtual nsEventStatus MenuSelected(const nsMenuEvent & aMenuEvent) = 0;
+    
+   
+
+
+
+    virtual void MenuDeselected(const nsMenuEvent & aMenuEvent) = 0;
+
+   
+
+
+
+    virtual void MenuConstruct(const nsMenuEvent & aMenuEvent, nsIWidget * aParentWindow, void * aMenuNode) = 0;
+
+   
+
+
+
+    virtual void MenuDestruct(const nsMenuEvent & aMenuEvent) = 0;
+    
+   
+
+
+
+    virtual void SetRebuild(PRBool aMenuEvent) = 0;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsIMenu, NS_IMENU_IID)

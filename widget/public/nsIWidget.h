@@ -40,8 +40,6 @@
 
 #include "nsISupports.h"
 #include "nsColor.h"
-#include "nsIMouseListener.h"
-#include "nsIMenuListener.h"
 #include "nsCoord.h"
 
 #include "prthread.h"
@@ -64,6 +62,7 @@ class   nsGUIEvent;
 struct  nsColorMap;
 class   imgIContainer;
 class   gfxASurface;
+class   nsIMouseListener;
 
 
 
@@ -96,10 +95,9 @@ typedef nsEventStatus (*PR_CALLBACK EVENT_CALLBACK)(nsGUIEvent *event);
 #endif
 
 
-
 #define NS_IWIDGET_IID \
-{ 0xd9d02313, 0x6a10, 0x4b6d, \
-  { 0x9f, 0x15, 0x18, 0x17, 0x7e, 0x94, 0x04, 0x7a } }
+{ 0x3B4E560A, 0x11E6, 0x4EBD, \
+  { 0xB9, 0x87, 0x35, 0x38, 0x56, 0x24, 0x97, 0x0D } }
 
 
 
@@ -765,15 +763,6 @@ class nsIWidget : public nsISupports {
 
     NS_IMETHOD AddEventListener(nsIEventListener * aListener) = 0;
 
-    
-
-
-
-
-
-
-    NS_IMETHOD AddMenuListener(nsIMenuListener * aListener) = 0;
-    
     
 
 

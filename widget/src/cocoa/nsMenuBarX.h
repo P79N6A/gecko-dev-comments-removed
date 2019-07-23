@@ -40,7 +40,6 @@
 #define nsMenuBarX_h_
 
 #include "nsIMenuBar.h"
-#include "nsIMenuListener.h"
 #include "nsIMutationObserver.h"
 #include "nsIChangeManager.h"
 #include "nsIMenuCommandDispatcher.h"
@@ -82,7 +81,6 @@ namespace MenuHelpersX
 
 
 class nsMenuBarX : public nsIMenuBar,
-                   public nsIMenuListener,
                    public nsIMutationObserver,
                    public nsIChangeManager,
                    public nsIMenuCommandDispatcher,
@@ -102,21 +100,10 @@ public:
     NS_DECL_NSIMENUCOMMANDDISPATCHER
 
     
-    nsEventStatus MenuItemSelected(const nsMenuEvent & aMenuEvent);
-    nsEventStatus MenuSelected(const nsMenuEvent & aMenuEvent);
-    nsEventStatus MenuDeselected(const nsMenuEvent & aMenuEvent);
-    nsEventStatus MenuConstruct(const nsMenuEvent & aMenuEvent, nsIWidget * aParentWindow, 
-                                void * aMenuNode);
-    nsEventStatus MenuDestruct(const nsMenuEvent & aMenuEvent);
-    nsEventStatus CheckRebuild(PRBool & aMenuEvent);
-    nsEventStatus SetRebuild(PRBool aMenuEvent);
-
-    
     NS_DECL_NSIMUTATIONOBSERVER
 
-    NS_IMETHOD Create(nsIWidget * aParent);
-
     
+    NS_IMETHOD Create(nsIWidget * aParent);
     NS_IMETHOD GetParent(nsIWidget *&aParent);
     NS_IMETHOD SetParent(nsIWidget * aParent);
     NS_IMETHOD AddMenu(nsIMenu * aMenu);
@@ -128,7 +115,8 @@ public:
     NS_IMETHOD GetNativeData(void*& aData);
     NS_IMETHOD Paint();
     NS_IMETHOD SetNativeData(void* aData);
-    
+    NS_IMETHOD MenuConstruct(const nsMenuEvent & aMenuEvent, nsIWidget * aParentWindow, void * aMenuNode);
+
 protected:
     
     

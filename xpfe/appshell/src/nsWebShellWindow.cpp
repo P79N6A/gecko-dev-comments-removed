@@ -109,7 +109,6 @@
 #include "nsIMarkupDocumentViewer.h"
 
 #if defined(XP_MACOSX)
-#include "nsIMenuListener.h"
 #include "nsIMenuBar.h"
 #define USE_NATIVE_MENUS
 #endif
@@ -515,11 +514,8 @@ static void LoadNativeMenus(nsIDOMDocument *aDOMDoc, nsIWidget *aParentWindow)
     return;
 
   
-  nsCOMPtr<nsIMenuListener> menuListener = do_QueryInterface(pnsMenuBar);
-
-  
   nsMenuEvent fake(PR_TRUE, 0, nsnull);
-  menuListener->MenuConstruct(fake, aParentWindow, menubarNode);
+  pnsMenuBar->MenuConstruct(fake, aParentWindow, menubarNode);
 }
 #endif
 
