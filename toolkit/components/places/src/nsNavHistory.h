@@ -663,7 +663,6 @@ protected:
   static const PRInt32 kAutoCompleteIndex_ParentId;
   static const PRInt32 kAutoCompleteIndex_BookmarkTitle;
   nsCOMPtr<mozIStorageStatement> mDBAutoCompleteQuery; 
-  nsCOMPtr<mozIStorageStatement> mDBTagAutoCompleteQuery; 
 
   nsresult InitAutoComplete();
   nsresult CreateAutoCompleteQueries();
