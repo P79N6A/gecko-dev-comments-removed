@@ -77,6 +77,7 @@ public:
 
   virtual PRBool IsDoneAddingChildren();
   virtual nsresult DoneAddingChildren(PRBool aHaveNotified);
+  virtual void DestroyContent();
 
   
   
