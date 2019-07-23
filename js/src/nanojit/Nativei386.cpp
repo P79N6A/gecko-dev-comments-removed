@@ -1417,6 +1417,15 @@ namespace nanojit
         } else {
             FSTPQ(stkd, SP);
             
+            
+            
+            
+            
+            
+            
+            
+            
+            
 
 
 
