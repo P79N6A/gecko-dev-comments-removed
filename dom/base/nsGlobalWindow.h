@@ -108,7 +108,7 @@ class nsIDOMBarProp;
 class nsIDocument;
 class nsPresContext;
 class nsIDOMEvent;
-class nsIScrollableView;
+class nsIScrollableFrame;
 class nsIControllers;
 
 class nsBarProp;
@@ -562,7 +562,7 @@ protected:
   nsresult GetWebBrowserChrome(nsIWebBrowserChrome** aBrowserChrome);
   
   
-  nsresult GetScrollInfo(nsIScrollableView** aScrollableView);
+  nsIScrollableFrame *GetScrollFrame();
   nsresult SecurityCheckURL(const char *aURL);
   nsresult BuildURIfromBase(const char *aURL,
                             nsIURI **aBuiltURI,

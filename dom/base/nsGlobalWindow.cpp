@@ -129,7 +129,7 @@
 #include "nsIServiceManager.h"
 #include "nsIScriptGlobalObjectOwner.h"
 #include "nsIScriptSecurityManager.h"
-#include "nsIScrollableView.h"
+#include "nsIScrollableFrame.h"
 #include "nsIView.h"
 #include "nsIViewManager.h"
 #include "nsISelectionController.h"
@@ -3730,26 +3730,19 @@ nsGlobalWindow::GetScrollMaxXY(PRInt32* aScrollMaxX, PRInt32* aScrollMaxY)
   FORWARD_TO_OUTER(GetScrollMaxXY, (aScrollMaxX, aScrollMaxY),
                    NS_ERROR_NOT_INITIALIZED);
 
-  nsresult rv;
-  nsIScrollableView *view = nsnull;      
-
   FlushPendingNotifications(Flush_Layout);
-  GetScrollInfo(&view);
-  if (!view)
-    return NS_OK;      
+  nsIScrollableFrame *sf = GetScrollFrame();
+  if (!sf)
+    return NS_OK;
 
-  nsSize scrolledSize;
-  rv = view->GetContainerSize(&scrolledSize.width, &scrolledSize.height);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  nsRect portRect = view->View()->GetBounds();
+  nsRect scrollRange = sf->GetScrollRange();
 
   if (aScrollMaxX)
     *aScrollMaxX = PR_MAX(0,
-      (PRInt32)floor(nsPresContext::AppUnitsToFloatCSSPixels(scrolledSize.width - portRect.width)));
+      (PRInt32)floor(nsPresContext::AppUnitsToFloatCSSPixels(scrollRange.XMost())));
   if (aScrollMaxY)
     *aScrollMaxY = PR_MAX(0,
-      (PRInt32)floor(nsPresContext::AppUnitsToFloatCSSPixels(scrolledSize.height - portRect.height)));
+      (PRInt32)floor(nsPresContext::AppUnitsToFloatCSSPixels(scrollRange.YMost())));
 
   return NS_OK;
 }
@@ -3777,34 +3770,28 @@ nsGlobalWindow::GetScrollXY(PRInt32* aScrollX, PRInt32* aScrollY,
   FORWARD_TO_OUTER(GetScrollXY, (aScrollX, aScrollY, aDoFlush),
                    NS_ERROR_NOT_INITIALIZED);
 
-  nsresult rv;
-  nsIScrollableView *view = nsnull;      
-
   if (aDoFlush) {
     FlushPendingNotifications(Flush_Layout);
   } else {
     EnsureSizeUpToDate();
   }
-  
-  GetScrollInfo(&view);
-  if (!view)
-    return NS_OK;      
 
-  nscoord xPos, yPos;
-  rv = view->GetScrollPosition(xPos, yPos);
-  NS_ENSURE_SUCCESS(rv, rv);
+  nsIScrollableFrame *sf = GetScrollFrame();
+  if (!sf)
+    return NS_OK;
 
-  if ((xPos != 0 || yPos != 0) && !aDoFlush) {
+  nsPoint scrollPos = sf->GetScrollPosition();
+  if (scrollPos != nsPoint(0,0) && !aDoFlush) {
     
     
     
     return GetScrollXY(aScrollX, aScrollY, PR_TRUE);
   }
-  
+
   if (aScrollX)
-    *aScrollX = nsPresContext::AppUnitsToIntCSSPixels(xPos);
+    *aScrollX = nsPresContext::AppUnitsToIntCSSPixels(scrollPos.x);
   if (aScrollY)
-    *aScrollY = nsPresContext::AppUnitsToIntCSSPixels(yPos);
+    *aScrollY = nsPresContext::AppUnitsToIntCSSPixels(scrollPos.y);
 
   return NS_OK;
 }
@@ -4801,13 +4788,10 @@ nsGlobalWindow::Scroll(PRInt32 aXScroll, PRInt32 aYScroll)
 NS_IMETHODIMP
 nsGlobalWindow::ScrollTo(PRInt32 aXScroll, PRInt32 aYScroll)
 {
-  nsresult result;
-  nsIScrollableView *view = nsnull;      
-
   FlushPendingNotifications(Flush_Layout);
-  result = GetScrollInfo(&view);
+  nsIScrollableFrame *sf = GetScrollFrame();
 
-  if (view) {
+  if (sf) {
     
     
     
@@ -4822,64 +4806,62 @@ nsGlobalWindow::ScrollTo(PRInt32 aXScroll, PRInt32 aYScroll)
     if (aYScroll > maxpx) {
       aYScroll = maxpx;
     }
-
-    result = view->ScrollTo(nsPresContext::CSSPixelsToAppUnits(aXScroll),
-                            nsPresContext::CSSPixelsToAppUnits(aYScroll),
-                            0);
+    sf->ScrollTo(nsPoint(nsPresContext::CSSPixelsToAppUnits(aXScroll),
+                         nsPresContext::CSSPixelsToAppUnits(aYScroll)),
+                 nsIScrollableFrame::INSTANT);
   }
 
-  return result;
+  return NS_OK;
 }
 
 NS_IMETHODIMP
 nsGlobalWindow::ScrollBy(PRInt32 aXScrollDif, PRInt32 aYScrollDif)
 {
-  nsresult result;
-  nsIScrollableView *view = nsnull;      
-
   FlushPendingNotifications(Flush_Layout);
-  result = GetScrollInfo(&view);
+  nsIScrollableFrame *sf = GetScrollFrame();
 
-  if (view) {
-    nscoord xPos, yPos;
-    result = view->GetScrollPosition(xPos, yPos);
-    if (NS_SUCCEEDED(result)) {
-      result = ScrollTo(nsPresContext::AppUnitsToIntCSSPixels(xPos) + aXScrollDif,
-                        nsPresContext::AppUnitsToIntCSSPixels(yPos) + aYScrollDif);
-    }
+  if (sf) {
+    nsPoint scrollPos = sf->GetScrollPosition();
+    
+    
+    
+    return ScrollTo(nsPresContext::AppUnitsToIntCSSPixels(scrollPos.x) + aXScrollDif,
+                    nsPresContext::AppUnitsToIntCSSPixels(scrollPos.y) + aYScrollDif);
   }
 
-  return result;
+  return NS_OK;
 }
 
 NS_IMETHODIMP
 nsGlobalWindow::ScrollByLines(PRInt32 numLines)
 {
-  nsresult result;
-  nsIScrollableView *view = nsnull;   
-
   FlushPendingNotifications(Flush_Layout);
-  result = GetScrollInfo(&view);
-  if (view) {
-    result = view->ScrollByLines(0, numLines);
+  nsIScrollableFrame *sf = GetScrollFrame();
+  if (sf) {
+    
+    
+    
+    sf->ScrollBy(nsIntPoint(0, numLines), nsIScrollableFrame::LINES,
+                 nsIScrollableFrame::INSTANT);
   }
 
-  return result;
+  return NS_OK;
 }
 
 NS_IMETHODIMP
 nsGlobalWindow::ScrollByPages(PRInt32 numPages)
 {
-  nsresult result;
-  nsIScrollableView *view = nsnull;   
-
   FlushPendingNotifications(Flush_Layout);
-  result = GetScrollInfo(&view);
-  if (view) {
-    result = view->ScrollByPages(0, numPages);
+  nsIScrollableFrame *sf = GetScrollFrame();
+  if (sf) {
+    
+    
+    
+    sf->ScrollBy(nsIntPoint(0, numPages), nsIScrollableFrame::PAGES,
+                 nsIScrollableFrame::INSTANT);
   }
 
-  return result;
+  return NS_OK;
 }
 
 NS_IMETHODIMP
@@ -8516,26 +8498,21 @@ nsGlobalWindow::GetWebBrowserChrome(nsIWebBrowserChrome **aBrowserChrome)
   return NS_OK;
 }
 
-nsresult
-nsGlobalWindow::GetScrollInfo(nsIScrollableView **aScrollableView)
+nsIScrollableFrame *
+nsGlobalWindow::GetScrollFrame()
 {
-  FORWARD_TO_OUTER(GetScrollInfo, (aScrollableView),
-                   NS_ERROR_NOT_INITIALIZED);
-
-  *aScrollableView = nsnull;
+  FORWARD_TO_OUTER(GetScrollFrame, (), nsnull);
 
   if (!mDocShell) {
-    return NS_OK;
+    return nsnull;
   }
 
   nsCOMPtr<nsIPresShell> presShell;
   mDocShell->GetPresShell(getter_AddRefs(presShell));
   if (presShell) {
-    nsIViewManager* vm = presShell->GetViewManager();
-    if (vm)
-      return vm->GetRootScrollableView(aScrollableView);
+    return presShell->GetRootScrollFrameAsScrollable();
   }
-  return NS_OK;
+  return nsnull;
 }
 
 nsresult
