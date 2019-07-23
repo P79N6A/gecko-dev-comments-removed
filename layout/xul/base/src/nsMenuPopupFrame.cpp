@@ -1195,6 +1195,7 @@ nsMenuPopupFrame::SetPopupPosition(nsIFrame* aAnchorFrame)
 
     
     
+    
     if ( screenViewLocY < screenTopTwips ) {
       PRInt32 moveDistY = screenTopTwips - screenViewLocY;
       ypos += moveDistY;
@@ -1208,19 +1209,7 @@ nsMenuPopupFrame::SetPopupPosition(nsIFrame* aAnchorFrame)
       
       
       
-      if (screenViewLocY > screenBottomTwips) {
-        
-        
-        
-        
-
-        
-        
-        NS_ASSERTION(mRect.height <= screenBottomTwips - screenTopTwips, "height too large");
-        ypos += screenBottomTwips - screenViewLocY - mRect.height;
-      }
-      else if (screenBottomTwips - screenViewLocY >
-               screenViewLocY - screenTopTwips) {
+      if (screenBottomTwips - screenViewLocY > screenViewLocY - screenTopTwips) {
         
         
         
@@ -1229,16 +1218,20 @@ nsMenuPopupFrame::SetPopupPosition(nsIFrame* aAnchorFrame)
         
         
         
-        screenViewLocY -= 2*offsetForContextMenu;
-        ypos -= 2*offsetForContextMenu;
-        if (mRect.height > screenViewLocY - screenTopTwips) {
+        nscoord newBottomY =
+          screenViewLocY - 2*offsetForContextMenu - margin.TopBottom();
+        
+        newBottomY = PR_MIN(newBottomY, screenBottomTwips);
+        newBottomY = PR_MAX(newBottomY, screenTopTwips);
+        if (mRect.height > newBottomY - screenTopTwips) {
           
-          mRect.height = screenViewLocY - screenTopTwips;
+          mRect.height = newBottomY - screenTopTwips;
         }
-        ypos -= (mRect.height + margin.top + margin.bottom);
+        
+        ypos += newBottomY - screenViewLocY - mRect.height;
       }
     }
-  }  
+  }
 
   presContext->GetViewManager()->MoveViewTo(GetView(), xpos, ypos); 
 
