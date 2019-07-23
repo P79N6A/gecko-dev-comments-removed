@@ -1213,14 +1213,11 @@ nsNavBookmarks::RemoveItem(PRInt64 aItemId)
   rv = UpdateBookmarkHashOnRemove(placeId);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  
-  
-  
-  
-  
-  
   if (itemType == TYPE_BOOKMARK) {
-    rv = History()->UpdateFrecency(placeId, PR_FALSE );
+    
+    
+    
+    rv = History()->UpdateFrecency(placeId, IsRealBookmark(placeId));
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
@@ -1840,10 +1837,7 @@ nsNavBookmarks::RemoveFolderChildren(PRInt64 aFolderId)
       
       
       
-      
-      
-      
-      rv = History()->UpdateFrecency(placeId, PR_FALSE );
+      rv = History()->UpdateFrecency(placeId, IsRealBookmark(placeId));
       NS_ENSURE_SUCCESS(rv, rv);
     }
   }
