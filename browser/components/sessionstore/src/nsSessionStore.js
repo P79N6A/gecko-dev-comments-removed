@@ -1397,7 +1397,7 @@ SessionStoreService.prototype = {
         
         
         
-        storage = aDocShell.getSessionStorageForPrincipal(principal, false);
+        storage = aDocShell.getSessionStorageForPrincipal(principal, "", false);
         if (storage)
           storageItemCount = storage.length;
       }
@@ -2254,7 +2254,7 @@ SessionStoreService.prototype = {
   _deserializeSessionStorage: function sss_deserializeSessionStorage(aStorageData, aDocShell) {
     for (let url in aStorageData) {
       let uri = IOSvc.newURI(url, null, null);
-      let storage = aDocShell.getSessionStorageForURI(uri);
+      let storage = aDocShell.getSessionStorageForURI(uri, "");
       for (let key in aStorageData[url]) {
         try {
           storage.setItem(key, aStorageData[url][key]);
