@@ -257,7 +257,6 @@ struct JSTreeContext {
 #define TCF_NO_SCRIPT_RVAL    0x4000 /* API caller does not want result value
                                         from global script */
 #define TCF_HAS_SHARPS        0x8000 /* source contains sharp defs or uses */
-#define TCF_FUN_PARAM_EVAL   0x10000 /* function has parameter named 'eval' */
 
 
 
@@ -286,7 +285,10 @@ struct JSTreeContext {
 
 
 
-#define TCF_STRICT_MODE_CODE       0x40000
+#define TCF_STRICT_MODE_CODE 0x40000
+
+
+#define TCF_FUN_PARAM_EVAL 0x80000
 
 
 
