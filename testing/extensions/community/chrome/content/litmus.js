@@ -38,8 +38,59 @@
         });
     },
     
+    
+    
+    lastTestRunSummary : "",
+    lastTestGroupSummary : "",
+    lastSubgroupObject: null,    
+    lastTestcaseObject: null,    
+    lastTestcaseIndex: null,
+    
+    preDialogSubgroupObject: null,  
+    preDialogTestcaseObject: null,
+    
+    storeSubgroup : function(subgroup) {
+        litmus.lastSubgroupObject = subgroup;
+    },
+    storeTestcase : function(testcase) {
+        litmus.lastTestcaseObject = testcase;
+    },
+    
     handleDialog : function() {
-        var newWindow = window.openDialog('chrome://qa/content/tabs/selecttests.xul', '_blank', 'chrome,all,dialog=yes', litmus.readStateFromPref);
+        if ($("qa-testrun-label").value != "") {
+            litmus.lastTestRunSummary = $("qa-testrun-label").value;
+            litmus.lastTestGroupSummary = $("qa-testgroup-label").value;
+            lastTestcaseIndex = $("testlist").selectedIndex;
+        }
+        litmus.preDialogueSubgroupObject = litmus.lastSubgroupObject;
+        litmus.preDialogTestcaseObject = litmus.lastTestcaseObject;
+        var newWindow = window.openDialog('chrome://qa/content/tabs/selecttests.xul', '_blank', 'chrome,all,dialog=yes',
+                                          litmus.readStateFromPref, litmus.handleDialogCancel);
+    },
+    
+    handleDialogCancel : function() {
+        if (litmus.lastTestRunSummary == "") return;
+        
+        
+        
+        $("qa-testrun-label").value = litmus.lastTestRunSummary;
+        $("qa-testgroup-label").value = litmus.lastTestGroupSummary;
+        litmus.lastSubgroupObject = litmus.preDialogueSubgroupObject;
+        litmus.lastTestcaseObject = litmus.preDialogTestcaseObject;
+        
+        if (litmus.lastSubgroupObject != null)
+            litmus.populatePreviewBox(litmus.lastSubgroupObject.testcases);
+        if (litmus.lastTestcaseObject != null) {
+            litmus.populateTestcase(litmus.lastTestcaseObject);
+        }
+        
+        $("testlist").setAttribute("suppressonselect", "true");
+        $("testlist").selectedIndex = lastTestcaseIndex;
+        $("testlist").setAttribute("suppressonselect", "false");
+        
+        
+        litmus.writeStateToPref(litmus.lastTestRunSummary, litmus.lastTestGroupSummary,
+                                litmus.lastSubgroupObject.subgroup_id, lastTestcaseIndex);
     },
     
 	validateLogin : function(uname, passwd, callback) {
@@ -69,7 +120,6 @@
 		});
 	},
     
-    currentTestCaseIndex: 0, 
     currentSubgroupID: null,	
     
     writeStateToPref : function(testrunSummary, testgroupSummary, subgroupID, index) {
@@ -94,29 +144,31 @@
     },
     
     prevButton : function() {
-        litmus.currentTestCaseIndex--;
-        litmus.selectCurrentTestCase();
+        $("testlist").selectedIndex--;
+        
     },
 	nextButton: function() {
 		
 		if ($('qa-testcase-result').selectedItem) {
 			litmus.submitResult();
 		}
-        litmus.currentTestCaseIndex++;
-		litmus.selectCurrentTestCase();
+        $("testlist").selectedIndex++;
+		
 	},
     handleSelect : function() {
-        var menu = document.getElementById('testlist');
-        if (menu.selectedIndex == litmus.currentTestCaseIndex || menu.selectedIndex == -1)
-            return; 
+        if ($("testlist").selectedIndex == -1)
+            return;
         
-        litmus.currentTestCaseIndex = menu.selectedIndex;
+        
+          
+        
+        
         litmus.selectCurrentTestCase();
     },
     selectCurrentTestCase : function() {
-        var menu = document.getElementById('testlist');
-        menu.selectedIndex = litmus.currentTestCaseIndex;
-        litmus.getTestcase(menu.selectedItem.value, litmus.populateTestcase);
+        
+        
+        litmus.getTestcase($("testlist").selectedItem.value, litmus.populateTestcase);
     },
 	populatePreviewBox : function(testcases) {
         
@@ -144,6 +196,7 @@
         }
     },
     populateTestcase : function(testcase) {
+        litmus.lastTestcaseObject = testcase;
         if (testcase == undefined) {
                 return;
             }
@@ -160,14 +213,16 @@
         litmus.checkRadioButtons();
     },
 	populateFields : function(subgroup) {
+        litmus.lastSubgroupObject = subgroup;
 		litmus.populatePreviewBox(subgroup.testcases);
-        litmus.currentTestCaseIndex = 0;
+        $("testlist").selectedIndex = 0;
         litmus.selectCurrentTestCase();
 	},
     statePopulateFields : function(subgroup) {  
+        litmus.lastSubgroupObject = subgroup;
         litmus.populatePreviewBox(subgroup.testcases);
         
-        litmus.currentTestCaseIndex = qaPref.getPref(qaPref.prefBase + ".currentTestcase.testcaseIndex", "int");
+        $("testlist").selectedIndex = qaPref.getPref(qaPref.prefBase + ".currentTestcase.testcaseIndex", "int");
         litmus.selectCurrentTestCase();
     },
 	submitResult : function() {
