@@ -209,14 +209,6 @@ struct JSTreeContext {
                                  TCF_FUN_USES_NONLOCALS |                     \
                                  TCF_FUN_CLOSURE_VS_VAR)
 
-
-
-
-
-#define TCF_STATIC_DEPTH_MASK   0xffff0000
-#define TCF_GET_STATIC_DEPTH(f) ((uint32)(f) >> 16)
-#define TCF_PUT_STATIC_DEPTH(d) ((uint16)(d) << 16)
-
 #ifdef JS_SCOPE_DEPTH_METER
 # define JS_SCOPE_DEPTH_METERING(code) ((void) (code))
 #else
@@ -571,6 +563,7 @@ js_EmitFunctionScript(JSContext *cx, JSCodeGenerator *cg, JSParseNode *body);
 typedef enum JSSrcNoteType {
     SRC_NULL        = 0,        
     SRC_IF          = 1,        
+    SRC_BREAK       = 1,        
     SRC_INITPROP    = 1,        
 
 
