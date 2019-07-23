@@ -69,6 +69,9 @@
 
 #define HOTEXIT 0
 
+
+#define MAX_XJUMPS 5
+
 #ifdef DEBUG
 #define ABORT_TRACE(msg)   do { fprintf(stdout, "abort: %d: %s\n", __LINE__, msg); return false; } while(0)
 #else
@@ -395,8 +398,6 @@ public:
 
 
 
-
-
 #define FORALL_SLOTS_IN_PENDING_FRAMES(cx, callDepth, code)                   \
     JS_BEGIN_MACRO                                                            \
         DEF_VPNAME;                                                           \
@@ -416,6 +417,8 @@ public:
         for (fsp = fstack; fsp < fspstop; ++fsp) {                            \
             JSStackFrame* f = *fsp;                                           \
             jsval* vpstop;                                                    \
+            SET_VPNAME("rval");                                               \
+            vp = &f->rval; code;                                              \
             if (f->callee) {                                                  \
                 SET_VPNAME("this");                                           \
                 vp = &f->argv[-1];                                            \
@@ -501,6 +504,7 @@ TraceRecorder::TraceRecorder(JSContext* cx, GuardRecord* _anchor,
 #endif
 
     recompileFlag = false;
+    backEdgeCount = 0;
 }
 
 TraceRecorder::~TraceRecorder()
@@ -585,7 +589,7 @@ static unsigned nativeStackSlots(unsigned callDepth,
 {
     unsigned slots = 0;
     for (;;) {
-        slots += (regs.sp - StackBase(fp));
+        slots += 1 + (regs.sp - StackBase(fp));
         if (fp->callee)
             slots += 1 + fp->fun->nargs + fp->script->nfixed;
         if (callDepth-- == 0)
@@ -641,6 +645,9 @@ done:
     for (;; fp = fp->down) { *fsp-- = fp; if (fp == entryFrame) break; }
     for (fsp = fstack; fsp < fspstop; ++fsp) {
         JSStackFrame* f = *fsp;
+        if (p == &f->rval)
+            RETURN(offset);
+        offset += sizeof(double);
         if (f->callee) {
             if (size_t(p - &f->argv[-1]) < (unsigned)f->fun->nargs+1)
                 RETURN(offset + size_t(p - &f->argv[-1]) * sizeof(double));
@@ -1069,6 +1076,12 @@ TraceRecorder::verifyTypeStability(uint8* map)
     return !recompileFlag;
 }
 
+bool
+TraceRecorder::isLoopHeader(JSContext* cx) const
+{
+    return cx->fp->regs->pc == fragment->root->ip;
+}
+
 void
 TraceRecorder::closeLoop(Fragmento* fragmento)
 {
@@ -1272,19 +1285,22 @@ js_LoopEdge(JSContext* cx, jsbytecode* oldpc)
             return false; 
         }
 #endif
-        if (cx->fp->regs->pc == r->getFragment()->root->ip) { 
+        if (r->isLoopHeader(cx)) { 
             AUDIT(traceCompleted);
             r->closeLoop(JS_TRACE_MONITOR(cx).fragmento);
             js_DeleteRecorder(cx);
-        } else {
+            return false; 
+        }
+        if (++r->backEdgeCount >= MAX_XJUMPS) {
             AUDIT(returnToDifferentLoopHeader);
             debug_only(printf("loop edge %d -> %d, header %d\n",
                               oldpc - cx->fp->script->code,
                               cx->fp->regs->pc - cx->fp->script->code,
                               (jsbytecode*)r->getFragment()->root->ip - cx->fp->script->code));
             js_AbortRecording(cx, oldpc, "Loop edge does not return to header");
+            return false; 
         }
-        return false; 
+        return true; 
     }
 
     Fragment* f = tm->fragmento->getLoop(cx->fp->regs->pc);
@@ -1929,6 +1945,7 @@ TraceRecorder::clearFrameSlotsFromCache()
 
 
     JSStackFrame* fp = cx->fp;
+    nativeFrameTracker.set(&fp->rval, (LIns*)0);
     jsval* vp;
     jsval* vpstop;
     for (vp = &fp->argv[-1], vpstop = &fp->argv[fp->fun->nargs]; vp < vpstop; ++vp)
@@ -1943,6 +1960,7 @@ TraceRecorder::record_EnterFrame()
     ++callDepth;
     JSStackFrame* fp = cx->fp;
     LIns* void_ins = lir->insImm(JSVAL_TO_BOOLEAN(JSVAL_VOID));
+    set(&fp->rval, void_ins, true);
     unsigned n;
     for (n = 0; n < fp->script->nfixed; ++n)
         set(&fp->slots[n], void_ins, true);
@@ -1970,8 +1988,9 @@ bool TraceRecorder::record_JSOP_PUSH()
 }
 bool TraceRecorder::record_JSOP_POPV()
 {
-    
-    return false;
+    jsval& v = stackval(-1);
+    set(&cx->fp->rval, get(&v));
+    return true;
 }
 bool TraceRecorder::record_JSOP_ENTERWITH()
 {
@@ -2990,7 +3009,6 @@ bool TraceRecorder::record_JSOP_THROWING()
 }
 bool TraceRecorder::record_JSOP_SETRVAL()
 {
-    
     return false;
 }
 bool TraceRecorder::record_JSOP_RETRVAL()
@@ -3231,8 +3249,7 @@ bool TraceRecorder::record_JSOP_CALLELEM()
 
 bool TraceRecorder::record_JSOP_STOP()
 {
-    
-    rval_ins = lir->insImm(JSVAL_TO_BOOLEAN(JSVAL_VOID));
+    rval_ins = get(&cx->fp->rval);
     clearFrameSlotsFromCache();
     return true;
 }
