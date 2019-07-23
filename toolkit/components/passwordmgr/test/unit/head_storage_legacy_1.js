@@ -127,11 +127,6 @@ const LoginTest = {
         found = false;
         for (j = 0; !found && j < stor_logins.length; j++) {
             found = ref_logins[i].equals(stor_logins[j]);
-            
-            
-            
-            if (ref_logins[i].formSubmitURL != stor_logins[j].formSubmitURL)
-                found = false;
         }
         do_check_true(found);
     }
