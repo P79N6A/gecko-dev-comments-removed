@@ -3201,6 +3201,7 @@ js_GC(JSContext *cx, JSGCInvocationKind gckind)
 
     
     js_FlushPropertyCache(cx);
+    js_FlushJITCache(cx);
 
 #ifdef JS_THREADSAFE
     
@@ -3227,8 +3228,6 @@ js_GC(JSContext *cx, JSGCInvocationKind gckind)
 #else
     
     GSN_CACHE_CLEAR(&rt->gsnCache);
-    
-    js_FlushJITCache(cx);
 #endif
 
   restart:
