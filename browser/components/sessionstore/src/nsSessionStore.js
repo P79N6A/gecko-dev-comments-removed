@@ -1290,8 +1290,18 @@ SessionStoreService.prototype = {
 
       let storage, storageItemCount = 0;
       try {
-        storage = aDocShell.getSessionStorageForURI(uri);
-        storageItemCount = storage.length;
+        var principal = Cc["@mozilla.org/scriptsecuritymanager;1"].
+                        getService(Ci.nsIScriptSecurityManager).
+                        getCodebasePrincipal(uri);
+
+        
+        
+        
+        
+        
+        storage = aDocShell.getSessionStorageForPrincipal(principal, false);
+        if (storage)
+          storageItemCount = storage.length;
       }
       catch (ex) {  }
       if (storageItemCount == 0)
