@@ -1183,14 +1183,6 @@ FullTrustSecMan::CheckSameOriginURI(nsIURI *aSourceURI, nsIURI *aTargetURI,
 
 
 NS_IMETHODIMP
-FullTrustSecMan::CheckSameOriginPrincipal(nsIPrincipal *aSourcePrincipal,
-                                          nsIPrincipal *aTargetPrincipal)
-{
-    return NS_OK;
-}
-
-
-NS_IMETHODIMP
 FullTrustSecMan::GetPrincipalFromContext(JSContext * cx, nsIPrincipal **_retval)
 {
     NS_IF_ADDREF(*_retval = mSystemPrincipal);
