@@ -53,10 +53,6 @@
 #include <usp10.h>
 #include <cairo-win32.h>
 
-
-
-#include <bitset>
-
 class GDIFontEntry;
 
 

@@ -421,8 +421,8 @@ gfxWindowsFont::Measure(gfxTextRun *aTextRun,
         
         
         
-        nsAutoPtr<gfxWindowsFont> tempFont =
-            new gfxWindowsFont(GetFontEntry(), GetStyle(), CAIRO_ANTIALIAS_NONE);
+        nsAutoPtr<gfxWindowsFont> tempFont(
+            new gfxWindowsFont(GetFontEntry(), GetStyle(), CAIRO_ANTIALIAS_NONE));
         if (tempFont) {
             return tempFont->Measure(aTextRun, aStart, aEnd,
                                      TIGHT_HINTED_OUTLINE_EXTENTS,
