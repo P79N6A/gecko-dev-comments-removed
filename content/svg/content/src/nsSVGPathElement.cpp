@@ -513,7 +513,7 @@ nsSVGPathElement::GetFlattenedPath(nsIDOMSVGMatrix *aMatrix)
 
 
 PRBool
-nsSVGPathElement::IsDependentAttribute(nsIAtom *aName)
+nsSVGPathElement::AttributeDefinesGeometry(const nsIAtom *aName)
 {
   if (aName == nsGkAtoms::d)
     return PR_TRUE;

@@ -42,7 +42,7 @@ nsSVGPathGeometryElement::nsSVGPathGeometryElement(nsINodeInfo *aNodeInfo)
 }
 
 PRBool
-nsSVGPathGeometryElement::IsDependentAttribute(nsIAtom *aName)
+nsSVGPathGeometryElement::AttributeDefinesGeometry(const nsIAtom *aName)
 {
   
   LengthAttributesInfo info = GetLengthInfo();
