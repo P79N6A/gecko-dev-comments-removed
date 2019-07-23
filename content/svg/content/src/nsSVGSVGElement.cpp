@@ -1091,13 +1091,13 @@ nsSVGSVGElement::WillBeOutermostSVG(nsIContent* aParent,
 void
 nsSVGSVGElement::InvalidateTransformNotifyFrame()
 {
-  nsISVGSVGFrame* svgframe = do_QueryFrame(GetPrimaryFrame());
+  nsIFrame* frame = GetPrimaryFrame();
+  nsISVGSVGFrame* svgframe = do_QueryFrame(frame);
   if (svgframe) {
     svgframe->NotifyViewportChange();
   }
 #ifdef DEBUG
-  else {
-    
+  else if (frame) {
     
     
     NS_WARNING("wrong frame type");
