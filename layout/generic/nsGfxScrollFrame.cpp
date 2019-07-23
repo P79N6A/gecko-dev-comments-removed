@@ -420,19 +420,6 @@ nsHTMLScrollFrame::ReflowScrolledFrame(const ScrollReflowState& aState,
 
   nscoord availWidth = aState.mReflowState.ComputedWidth() + paddingLR;
 
-  nscoord computedHeight = aState.mReflowState.ComputedHeight();
-  nscoord computedMinHeight = aState.mReflowState.mComputedMinHeight;
-  nscoord computedMaxHeight = aState.mReflowState.mComputedMaxHeight;
-  if (aAssumeHScroll) {
-    nsSize hScrollbarPrefSize = 
-      mInner.mHScrollbarBox->GetPrefSize(const_cast<nsBoxLayoutState&>(aState.mBoxState));
-    if (computedHeight != NS_UNCONSTRAINEDSIZE)
-      computedHeight = PR_MAX(0, computedHeight - hScrollbarPrefSize.height);
-    computedMinHeight = PR_MAX(0, computedMinHeight - hScrollbarPrefSize.height);
-    if (computedMaxHeight != NS_UNCONSTRAINEDSIZE)
-      computedMaxHeight = PR_MAX(0, computedMaxHeight - hScrollbarPrefSize.height);
-  }
-  
   if (aAssumeVScroll) {
     nsSize vScrollbarPrefSize = 
       mInner.mVScrollbarBox->GetPrefSize(const_cast<nsBoxLayoutState&>(aState.mBoxState));
@@ -456,9 +443,6 @@ nsHTMLScrollFrame::ReflowScrolledFrame(const ScrollReflowState& aState,
                       &aState.mReflowState.mComputedPadding);
   kidReflowState.mFlags.mAssumingHScrollbar = aAssumeHScroll;
   kidReflowState.mFlags.mAssumingVScrollbar = aAssumeVScroll;
-  kidReflowState.SetComputedHeight(computedHeight);
-  kidReflowState.mComputedMinHeight = computedMinHeight;
-  kidReflowState.mComputedMaxHeight = computedMaxHeight;
 
   nsReflowStatus status;
   nsresult rv = ReflowChild(mInner.mScrolledFrame, presContext, *aMetrics,
@@ -542,15 +526,14 @@ nsresult
 nsHTMLScrollFrame::ReflowContents(ScrollReflowState* aState,
                                   const nsHTMLReflowMetrics& aDesiredSize)
 {
-  PRBool lastUsedVScrollbar = GuessVScrollbarNeeded(*aState);
-  PRBool lastUsedHScrollbar = mInner.mHasHorizontalScrollbar; 
+  PRBool currentlyUsingVScrollbar = GuessVScrollbarNeeded(*aState);
   nsHTMLReflowMetrics kidDesiredSize(aDesiredSize.mFlags);
-  nsresult rv = ReflowScrolledFrame(*aState, lastUsedHScrollbar, lastUsedVScrollbar,
+  nsresult rv = ReflowScrolledFrame(*aState, PR_FALSE, currentlyUsingVScrollbar,
                                     &kidDesiredSize, PR_TRUE);
-  NS_ENSURE_SUCCESS(rv, rv);
+  if (NS_FAILED(rv))
+    return rv;
+  PRBool didUseScrollbar = currentlyUsingVScrollbar;
 
-  PRBool relativeHeight = (mInner.mScrolledFrame->GetStateBits() & NS_FRAME_CONTAINS_RELATIVE_HEIGHT) != 0;
-
   
   
   
@@ -560,17 +543,14 @@ nsHTMLScrollFrame::ReflowContents(ScrollReflowState* aState,
   
   
   
-  
-  
-  
-
   
   
   
 
   
   
-  if ((lastUsedVScrollbar || (lastUsedHScrollbar && relativeHeight)) &&
+  
+  if (currentlyUsingVScrollbar &&
       aState->mStyles.mVertical != NS_STYLE_OVERFLOW_SCROLL &&
       aState->mStyles.mHorizontal != NS_STYLE_OVERFLOW_SCROLL) {
     nsSize insideBorderSize =
@@ -579,66 +559,56 @@ nsHTMLScrollFrame::ReflowContents(ScrollReflowState* aState,
     nsRect scrolledRect = mInner.GetScrolledRect(insideBorderSize);
     if (nsRect(nsPoint(0, 0), insideBorderSize).Contains(scrolledRect)) {
       
-      rv = ReflowScrolledFrame(*aState, PR_FALSE, PR_FALSE,
+      currentlyUsingVScrollbar = PR_FALSE;
+      rv = ReflowScrolledFrame(*aState, PR_FALSE, currentlyUsingVScrollbar,
                                &kidDesiredSize, PR_FALSE);
-      NS_ENSURE_SUCCESS(rv, rv);
-      lastUsedVScrollbar = PR_FALSE;
-      lastUsedHScrollbar = PR_FALSE;
+      if (NS_FAILED(rv))
+        return rv;
+      didUseScrollbar = PR_FALSE;
     }
   }
 
   
-  if (!relativeHeight) {
-    if (TryLayout(aState, kidDesiredSize, lastUsedVScrollbar, PR_FALSE, PR_FALSE))
-      return NS_OK;
-
-    if (TryLayout(aState, kidDesiredSize, lastUsedVScrollbar, PR_TRUE, PR_FALSE))
-      return NS_OK;
-  } else {
-    if (TryLayout(aState, kidDesiredSize, lastUsedVScrollbar, lastUsedHScrollbar, PR_FALSE))
-      return NS_OK;
-  }
+  if (TryLayout(aState, kidDesiredSize, didUseScrollbar, PR_FALSE, PR_FALSE))
+    return NS_OK;
+  
+  
+  
+  if (TryLayout(aState, kidDesiredSize, didUseScrollbar, PR_TRUE, PR_FALSE))
+    return NS_OK;
 
   PRBool canHaveVerticalScrollbar =
     aState->mStyles.mVertical != NS_STYLE_OVERFLOW_HIDDEN;
-  PRBool canHaveHorizontalScrollbar =
-    aState->mStyles.mHorizontal != NS_STYLE_OVERFLOW_HIDDEN;
-
   
   
-  if (lastUsedVScrollbar || canHaveVerticalScrollbar) {
-    rv = ReflowScrolledFrame(*aState, PR_FALSE, !lastUsedVScrollbar,
-                             &kidDesiredSize, PR_FALSE);
-    NS_ENSURE_SUCCESS(rv, rv);
-    lastUsedHScrollbar = PR_FALSE;
-    lastUsedVScrollbar = !lastUsedVScrollbar;
-    if (!relativeHeight) {
-      if (TryLayout(aState, kidDesiredSize, lastUsedVScrollbar, PR_FALSE, PR_FALSE))
-        return NS_OK;
-      if (TryLayout(aState, kidDesiredSize, lastUsedVScrollbar, PR_TRUE, PR_FALSE))
-        return NS_OK;
-    } else {
-      if (TryLayout(aState, kidDesiredSize, lastUsedVScrollbar, lastUsedHScrollbar, PR_FALSE))
-        return NS_OK;
-    }
-  }
-
-  if ((lastUsedHScrollbar || canHaveHorizontalScrollbar) && relativeHeight) {
-    rv = ReflowScrolledFrame(*aState, PR_TRUE, PR_FALSE,
-                             &kidDesiredSize, PR_FALSE);
-    lastUsedHScrollbar = PR_TRUE;
-    lastUsedVScrollbar = PR_FALSE;
-    NS_ENSURE_SUCCESS(rv, rv);
-    if (TryLayout(aState, kidDesiredSize, lastUsedVScrollbar, lastUsedHScrollbar, PR_FALSE))
+  if (currentlyUsingVScrollbar || canHaveVerticalScrollbar) {
+    nsHTMLReflowMetrics kidRetrySize(aDesiredSize.mFlags);
+    rv = ReflowScrolledFrame(*aState, PR_FALSE, !currentlyUsingVScrollbar,
+                             &kidRetrySize, PR_FALSE);
+    if (NS_FAILED(rv))
+      return rv;
+    didUseScrollbar = !currentlyUsingVScrollbar;
+    
+    
+    
+    if (TryLayout(aState, kidRetrySize, didUseScrollbar, PR_FALSE, PR_FALSE))
       return NS_OK;
+    if (TryLayout(aState, kidRetrySize, didUseScrollbar, PR_TRUE, PR_FALSE))
+      return NS_OK;
+
+    NS_WARNING("Strange content ... we can't find logically consistent scrollbar settings");
+  } else {
+    NS_WARNING("Strange content ... we can't find logically consistent scrollbar settings");
   }
 
-  rv = ReflowScrolledFrame(*aState, PR_TRUE, PR_TRUE,
-                           &kidDesiredSize, PR_FALSE);
-  lastUsedHScrollbar = PR_TRUE;
-  lastUsedVScrollbar = PR_TRUE;
-  NS_ENSURE_SUCCESS(rv, rv);
-  TryLayout(aState, kidDesiredSize, lastUsedVScrollbar, lastUsedHScrollbar, PR_TRUE);
+  
+  
+  if (didUseScrollbar) {
+    rv = ReflowScrolledFrame(*aState, PR_FALSE, PR_FALSE, &kidDesiredSize, PR_FALSE);
+    if (NS_FAILED(rv))
+      return rv;
+  }
+  TryLayout(aState, kidDesiredSize, PR_FALSE, PR_FALSE, PR_TRUE);
   return NS_OK;
 }
 
