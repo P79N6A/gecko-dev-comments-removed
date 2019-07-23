@@ -660,8 +660,7 @@ TagAutoCompleteSearch.prototype = {
   },
 
   
-  QueryInterface: XPCOMUtils.generateQI([Ci.nsIAutoCompleteSearch,
-                                         Ci.nsITimerCallback]), 
+  QueryInterface: XPCOMUtils.generateQI([Ci.nsIAutoCompleteSearch]), 
 
   classDescription: "Places Tag AutoComplete",
   contractID: "@mozilla.org/autocomplete/search;1?name=places-tag-autocomplete",
