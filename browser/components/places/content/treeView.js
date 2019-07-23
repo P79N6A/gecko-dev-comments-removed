@@ -1019,6 +1019,7 @@ PlacesTreeView.prototype = {
 
   _getInsertionPoint: function PTV__getInsertionPoint(index, orientation) {
     var container = this._result.root;
+    var dropNearItemId = -1;
     
     
     if (index != -1) {
@@ -1031,7 +1032,8 @@ PlacesTreeView.prototype = {
       }
       else if (!this._disallowInsertion(lastSelected) &&
                lastSelected.containerOpen &&
-               orientation == Ci.nsITreeView.DROP_AFTER) {
+               orientation == Ci.nsITreeView.DROP_AFTER &&
+               lastSelected.hasChildren) {
         
         
         container = lastSelected;
@@ -1049,8 +1051,24 @@ PlacesTreeView.prototype = {
         if (this._disallowInsertion(container))
           return null;
 
-        var lsi = PlacesUtils.getIndexOfNode(lastSelected);
-        index = orientation == Ci.nsITreeView.DROP_BEFORE ? lsi : lsi + 1;
+        var queryOptions = asQuery(this._result.root).queryOptions;
+        if (queryOptions.sortingMode != Ci.nsINavHistoryQueryOptions.SORT_BY_NONE) {
+          
+          index = -1;
+        }
+        else if (queryOptions.excludeItems ||
+                 queryOptions.excludeQueries ||
+                 queryOptions.excludeReadOnlyFolders) {
+          
+          
+          
+          index = -1;
+          dropNearItemId = lastSelected.itemId;
+        }
+        else {
+          var lsi = PlacesUtils.getIndexOfNode(lastSelected);
+          index = orientation == Ci.nsITreeView.DROP_BEFORE ? lsi : lsi + 1;
+        }
       }
     }
 
@@ -1059,7 +1077,8 @@ PlacesTreeView.prototype = {
 
     return new InsertionPoint(PlacesUtils.getConcreteItemId(container),
                               index, orientation,
-                              PlacesUtils.nodeIsTagQuery(container));
+                              PlacesUtils.nodeIsTagQuery(container),
+                              dropNearItemId);
   },
 
   drop: function PTV_drop(aRow, aOrientation) {

@@ -79,14 +79,31 @@ const REMOVE_PAGES_MAX_SINGLEREMOVES = 10;
 
 
 
-function InsertionPoint(aItemId, aIndex, aOrientation, aIsTag) {
+
+
+function InsertionPoint(aItemId, aIndex, aOrientation, aIsTag,
+                        aDropNearItemId) {
   this.itemId = aItemId;
-  this.index = aIndex;
+  this._index = aIndex;
   this.orientation = aOrientation;
   this.isTag = aIsTag;
+  this.dropNearItemId = aDropNearItemId;
 }
-InsertionPoint.prototype.toString = function IP_toString() {
-  return "[object InsertionPoint(folder:" + this.itemId + ",index:" + this.index + ",orientation:" + this.orientation + ",isTag:" + this.isTag + ")]";
+
+InsertionPoint.prototype = {
+  set index(val) {
+    return this._index = val;
+  },
+
+  get index() {
+    if (this.dropNearItemId > 0) {
+      
+      
+      var index = PlacesUtils.bookmarks.getItemIndex(this.dropNearItemId);
+      return this.orientation == Ci.nsITreeView.DROP_BEFORE ? index : index + 1;
+    }
+    return this._index;
+  }
 };
 
 
