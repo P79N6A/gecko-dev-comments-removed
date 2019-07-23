@@ -37,6 +37,7 @@
 
 
 
+
 #include <windows.h>
 #include "nsNativeThemeWin.h"
 #include "nsIRenderingContext.h"
@@ -138,6 +139,9 @@
 #define CBP_DROPMARKER       1
 
 
+#define RP_BAND              3
+
+
 #ifdef DFCS_HOT
 #undef DFCS_HOT
 #endif
@@ -155,7 +159,9 @@
 
 
 #define DFCS_RTL             0x00010000
-#define DFCS_CONTAINER       0x00020000
+
+
+#define TB_SEPARATOR_HEIGHT  2
 
 NS_IMPL_ISUPPORTS1(nsNativeThemeWin, nsITheme)
 
@@ -165,9 +171,9 @@ typedef HRESULT (WINAPI*DrawThemeBackgroundPtr)(HANDLE hTheme, HDC hdc, int iPar
                                           int iStateId, const RECT *pRect,
                                           const RECT* pClipRect);
 typedef HRESULT (WINAPI*DrawThemeEdgePtr)(HANDLE hTheme, HDC hdc, int iPartId, 
-                                          int iStateId, const RECT *pRect,
+                                          int iStateId, const RECT *pDestRect,
                                           uint uEdge, uint uFlags,
-                                          const RECT* pClipRect);
+                                          const RECT* pContentRect);
 typedef HRESULT (WINAPI*GetThemeContentRectPtr)(HANDLE hTheme, HDC hdc, int iPartId,
                                           int iStateId, const RECT* pRect,
                                           RECT* pContentRect);
@@ -698,6 +704,7 @@ nsNativeThemeWin::GetThemePartAndState(nsIFrame* aFrame, PRUint8 aWidgetType,
       if (aFrame) {
         nsIContent* content = aFrame->GetContent();
         nsIContent* parent = content->GetParent();
+        
         if (parent && parent->GetChildAt(0) == content) {
           aState = 1;
         }
@@ -892,13 +899,6 @@ RENDER_AGAIN:
       
       widgetRect.left -= edgeSize;
   }
-  else if (aWidgetType == NS_THEME_TOOLBOX) {
-    
-    
-    
-    
-    widgetRect.bottom -= 1;
-  }
 
   
   
@@ -953,14 +953,15 @@ RENDER_AGAIN:
         ::SetTextColor(hdc, oldColor);
       }
   }
-  else if (aWidgetType == NS_THEME_TOOLBAR) {
+  else if (aWidgetType == NS_THEME_TOOLBAR && state == 0) {
     
     
-    if (state == 1) {
-      drawThemeEdge(theme, hdc, 0, 0, &widgetRect, BDR_RAISEDINNER, BF_BOTTOM, &clipRect);
-    } else {
-      drawThemeEdge(theme, hdc, 0, 0, &widgetRect, BDR_RAISEDINNER, BF_TOP | BF_BOTTOM, &clipRect);
-    }
+    theme = GetTheme(NS_THEME_TOOLBOX);
+    if (!theme)
+      return NS_ERROR_FAILURE;
+
+    widgetRect.bottom = widgetRect.top + TB_SEPARATOR_HEIGHT;
+    drawThemeEdge(theme, hdc, RP_BAND, 0, &widgetRect, EDGE_ETCHED, BF_TOP, NULL);
   }
 
   nativeDrawing.EndNativeDrawing();
@@ -993,21 +994,6 @@ nsNativeThemeWin::GetWidgetBorder(nsIDeviceContext* aContext,
       aWidgetType == NS_THEME_SCROLLBAR_TRACK_VERTICAL)
     return NS_OK; 
 
-  if (aWidgetType == NS_THEME_TOOLBAR) {
-    
-    
-    aResult->top = aResult->bottom = 1;
-    aResult->left = 2;
-    if (aFrame) {
-      nsIContent* content = aFrame->GetContent();
-      nsIContent* parent = content->GetParent();
-      if (parent && parent->GetChildAt(0) == content) {
-        aResult->top = 0;
-      }
-    }
-    return NS_OK;
-  }
-
   if (!getThemeContentRect)
     return NS_ERROR_FAILURE;
 
@@ -1015,6 +1001,13 @@ nsNativeThemeWin::GetWidgetBorder(nsIDeviceContext* aContext,
   nsresult rv = GetThemePartAndState(aFrame, aWidgetType, part, state);
   if (NS_FAILED(rv))
     return rv;
+
+  if (aWidgetType == NS_THEME_TOOLBAR) {
+    
+    if (state == 0)
+      aResult->top = TB_SEPARATOR_HEIGHT;
+    return NS_OK;
+  }
 
   
   RECT outerRect; 
@@ -1308,6 +1301,11 @@ nsNativeThemeWin::ClassicThemeSupportsWidget(nsPresContext* aPresContext,
                                       PRUint8 aWidgetType)
 {
   switch (aWidgetType) {
+    case NS_THEME_MENUBAR:
+    case NS_THEME_MENUPOPUP:
+      
+      if (!mFlatMenus)
+        return PR_FALSE;
     case NS_THEME_BUTTON:
     case NS_THEME_TEXTFIELD:
     case NS_THEME_TEXTFIELD_MULTILINE:
@@ -1348,11 +1346,12 @@ nsNativeThemeWin::ClassicThemeSupportsWidget(nsPresContext* aPresContext,
     case NS_THEME_TAB_RIGHT_EDGE:
     case NS_THEME_TAB_PANEL:
     case NS_THEME_TAB_PANELS:
-    case NS_THEME_MENUBAR:
-    case NS_THEME_MENUPOPUP:
     case NS_THEME_MENUITEM:
     case NS_THEME_CHECKMENUITEM:
     case NS_THEME_RADIOMENUITEM:
+    case NS_THEME_MENUCHECKBOX:
+    case NS_THEME_MENURADIO:
+    case NS_THEME_MENUARROW:
       return PR_TRUE;
   }
   return PR_FALSE;
@@ -1410,30 +1409,33 @@ nsNativeThemeWin::ClassicGetWidgetBorder(nsIDeviceContext* aContext,
       (*aResult).top = (*aResult).left = (*aResult).bottom = (*aResult).right = 0;
       break;
     case NS_THEME_MENUPOPUP:
-      (*aResult).top = (*aResult).left = (*aResult).bottom = (*aResult).right = 2;
+      (*aResult).top = (*aResult).left = (*aResult).bottom = (*aResult).right = 3;
       break;
     case NS_THEME_MENUITEM:
     case NS_THEME_CHECKMENUITEM:
     case NS_THEME_RADIOMENUITEM: {
-      PRBool isTopLevel = PR_FALSE;
-      nsIMenuFrame *menuFrame = nsnull;
-      CallQueryInterface(aFrame, &menuFrame);
+      PRInt32 part, state;
+      PRBool focused;
+      nsresult rv;
 
-      if (menuFrame) {
-        
-        
-        isTopLevel = menuFrame->IsOnMenuBar();
+      rv = ClassicGetThemePartAndState(aFrame, aWidgetType, part, state, focused);
+      if (NS_FAILED(rv))
+        return rv;
+
+      if (part == 1) { 
+        if (mFlatMenus || !(state & DFCS_PUSHED)) {
+          (*aResult).top = (*aResult).bottom = (*aResult).left = (*aResult).right = 2;
+        }
+        else {
+          
+          (*aResult).top = (*aResult).left = 3;
+          (*aResult).bottom = (*aResult).right = 1;
+        }
       }
-
-      
-      
-      if (isTopLevel) {
-        (*aResult).top = (*aResult).bottom = 1;
-        (*aResult).left = 3;
-        (*aResult).right = 4;
-      } else {
-        (*aResult).top = 0;
-        (*aResult).bottom = (*aResult).left = (*aResult).right = 1;
+      else {
+        (*aResult).top = 1;
+        (*aResult).bottom = 3;
+        (*aResult).left = (*aResult).right = 2;
       }
       break;
     }
@@ -1457,6 +1459,12 @@ nsNativeThemeWin::ClassicGetMinimumWidgetSize(nsIRenderingContext* aContext, nsI
     case NS_THEME_CHECKBOX:
     case NS_THEME_CHECKBOX_SMALL:
       (*aResult).width = (*aResult).height = 13;
+      break;
+    case NS_THEME_MENUCHECKBOX:
+    case NS_THEME_MENURADIO:
+    case NS_THEME_MENUARROW:
+      (*aResult).width = ::GetSystemMetrics(SM_CXMENUCHECK);
+      (*aResult).height = ::GetSystemMetrics(SM_CYMENUCHECK);
       break;
     case NS_THEME_SCROLLBAR_BUTTON_UP:
     case NS_THEME_SCROLLBAR_BUTTON_DOWN:
@@ -1654,25 +1662,29 @@ nsresult nsNativeThemeWin::ClassicGetThemePartAndState(nsIFrame* aFrame, PRUint8
         aPart = 1;
         if (isOpen)
           aState |= DFCS_PUSHED;
-      } else {
-        if (isContainer)
-          aState |= DFCS_CONTAINER;
-        if (aFrame->GetStyleVisibility()->mDirection == NS_STYLE_DIRECTION_RTL)
-          aState |= DFCS_RTL;
       }
 
       if (CheckBooleanAttr(aFrame, nsWidgetAtoms::mozmenuactive))
         aState |= DFCS_HOT;
 
-      
-      if (aWidgetType == NS_THEME_CHECKMENUITEM ||
-          aWidgetType == NS_THEME_RADIOMENUITEM) {
-        if (IsCheckedButton(aFrame))
-          aState |= DFCS_CHECKED;
-      }
-
       return NS_OK;
     }
+    case NS_THEME_MENUCHECKBOX:
+    case NS_THEME_MENURADIO:
+    case NS_THEME_MENUARROW:
+      aState = 0;
+      if (IsDisabled(aFrame))
+        aState |= DFCS_INACTIVE;
+      if (CheckBooleanAttr(aFrame, nsWidgetAtoms::mozmenuactive))
+        aState |= DFCS_HOT;
+      if (aWidgetType == NS_THEME_MENUCHECKBOX || aWidgetType == NS_THEME_MENURADIO) {
+        if (IsCheckedButton(aFrame))
+          aState |= DFCS_CHECKED;
+      } else {
+        if (aFrame->GetStyleVisibility()->mDirection == NS_STYLE_DIRECTION_RTL)
+          aState |= DFCS_RTL;
+      }
+      return NS_OK;
     case NS_THEME_LISTBOX:
     case NS_THEME_TREEVIEW:
     case NS_THEME_TEXTFIELD:
@@ -1912,6 +1924,10 @@ static void DrawMenuImage(HDC hdc, const RECT& rc, PRInt32 aComponent, PRUint32 
               rc.left + (rc.right  - rc.left - checkW) / 2,
               rc.top  + (rc.bottom - rc.top  - checkH) / 2
             };
+
+        
+        if (aComponent == DFCS_MENUCHECK || aComponent == DFCS_MENUBULLET)
+          imgPos.y++;
 
         ::DrawFrameControl(hMemoryDC, &imgRect, DFC_MENU, aComponent);
         COLORREF oldTextCol = ::SetTextColor(hdc, 0x00000000);
@@ -2188,16 +2204,13 @@ RENDER_AGAIN:
     case NS_THEME_MENUBAR:
       break;
     case NS_THEME_MENUPOPUP:
-      if (mFlatMenus) {
-        ::FillRect(hdc, &widgetRect, (HBRUSH) (COLOR_MENU+1));
-        ::FrameRect(hdc, &widgetRect, ::GetSysColorBrush(COLOR_BTNSHADOW));
-      } else {
-        ::DrawEdge(hdc, &widgetRect, EDGE_RAISED, BF_RECT | BF_MIDDLE);
-      }
+      NS_ASSERTION(mFlatMenus, "Classic menus are styled entirely through CSS");
+      ::FillRect(hdc, &widgetRect, (HBRUSH) (COLOR_MENU+1));
+      ::FrameRect(hdc, &widgetRect, ::GetSysColorBrush(COLOR_BTNSHADOW));
       break;
     case NS_THEME_MENUITEM:
     case NS_THEME_CHECKMENUITEM:
-    case NS_THEME_RADIOMENUITEM: {
+    case NS_THEME_RADIOMENUITEM:
       
       
       if (mFlatMenus) {
@@ -2221,46 +2234,30 @@ RENDER_AGAIN:
           }
         }
       }
-      if (((state & DFCS_CHECKED) != 0) || ((state & DFCS_CONTAINER) != 0)) {
-        RECT menuRectStart, menuRectEnd;
-        PRUint32 color = COLOR_MENUTEXT;
-
-        if ((state & DFCS_INACTIVE) != 0)
-          color = COLOR_GRAYTEXT;
-        else if ((state & DFCS_HOT) != 0)
-          color = COLOR_HIGHLIGHTTEXT;
-
-        ::CopyRect(&menuRectStart, &widgetRect);
-        ::InflateRect(&menuRectStart, -1, -1);
-        ::CopyRect(&menuRectEnd, &menuRectStart);
-
-        
-        if ((state & DFCS_RTL) == 0) {
-          menuRectStart.right = menuRectStart.left  + 15;  
-          menuRectEnd.left    = menuRectEnd.right   - 15;  
-        } else {
-          menuRectStart.left  = menuRectStart.right - 15;  
-          menuRectEnd.right   = menuRectEnd.left    + 15;  
-        }
-
+      break;
 #ifndef WINCE
-        if ((state & DFCS_CHECKED) != 0) {
-          if (aWidgetType == NS_THEME_CHECKMENUITEM) {
-            DrawMenuImage(hdc, menuRectStart, DFCS_MENUCHECK, color);
-          } else if (aWidgetType == NS_THEME_RADIOMENUITEM) {
-            DrawMenuImage(hdc, menuRectStart, DFCS_MENUBULLET, color);
-          }
-        }
-        if ((state & DFCS_CONTAINER) != 0) {
-          if ((state & DFCS_RTL) == 0)
-            DrawMenuImage(hdc, menuRectEnd, DFCS_MENUARROW, color);
-          else
-            DrawMenuImage(hdc, menuRectEnd, DFCS_MENUARROWRIGHT, color);
-        }
-#endif
-      }
+    case NS_THEME_MENUCHECKBOX:
+    case NS_THEME_MENURADIO:
+      if (!(state & DFCS_CHECKED))
+        break; 
+    case NS_THEME_MENUARROW: {
+      PRUint32 color = COLOR_MENUTEXT;
+      if ((state & DFCS_INACTIVE))
+        color = COLOR_GRAYTEXT;
+      else if ((state & DFCS_HOT))
+        color = COLOR_HIGHLIGHTTEXT;
+      
+      if (aWidgetType == NS_THEME_MENUCHECKBOX)
+        DrawMenuImage(hdc, widgetRect, DFCS_MENUCHECK, color);
+      else if (aWidgetType == NS_THEME_MENURADIO)
+        DrawMenuImage(hdc, widgetRect, DFCS_MENUBULLET, color);
+      else if (aWidgetType == NS_THEME_MENUARROW)
+        DrawMenuImage(hdc, widgetRect, 
+                      (state & DFCS_RTL) ? DFCS_MENUARROWRIGHT : DFCS_MENUARROW,
+                      color);
       break;
     }
+#endif
     default:
       rv = NS_ERROR_FAILURE;
       break;
@@ -2341,6 +2338,9 @@ nsNativeThemeWin::GetWidgetNativeDrawingFlags(PRUint8 aWidgetType)
     case NS_THEME_RADIO_SMALL:
     case NS_THEME_CHECKMENUITEM:
     case NS_THEME_RADIOMENUITEM:
+    case NS_THEME_MENUCHECKBOX:
+    case NS_THEME_MENURADIO:
+    case NS_THEME_MENUARROW:
       return
         gfxWindowsNativeDrawing::CANNOT_DRAW_TO_COLOR_ALPHA |
         gfxWindowsNativeDrawing::CANNOT_AXIS_ALIGNED_SCALE |
