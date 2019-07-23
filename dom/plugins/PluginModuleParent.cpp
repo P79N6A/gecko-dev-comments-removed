@@ -299,10 +299,8 @@ PluginModuleParent::NotifyPluginCrashed()
         return;
     }
 
-    
-    
     if (mPlugin)
-        mPlugin->PluginCrashed(mPluginDumpID);
+        mPlugin->PluginCrashed(mPluginDumpID, mBrowserDumpID);
 }
 
 PPluginIdentifierParent*

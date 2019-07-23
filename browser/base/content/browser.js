@@ -263,7 +263,7 @@ function SetClickAndHoldHandlers() {
     var forwardButton = document.getElementById("forward-button");
     popup = popup.cloneNode(true);
     forwardButton.setAttribute("type", "menu");
-    forwardButton.appendChild(popup);    
+    forwardButton.appendChild(popup);
     _addClickAndHoldListenersOnElement(forwardButton);
     unifiedButton._clickHandlersAttached = true;
   }
@@ -309,7 +309,7 @@ function findChildShell(aDocument, aDocShell, aSoughtURI) {
   aDocShell.QueryInterface(Components.interfaces.nsIWebNavigation);
   aDocShell.QueryInterface(Components.interfaces.nsIInterfaceRequestor);
   var doc = aDocShell.getInterface(Components.interfaces.nsIDOMDocument);
-  if ((aDocument && doc == aDocument) || 
+  if ((aDocument && doc == aDocument) ||
       (aSoughtURI && aSoughtURI.spec == aDocShell.currentURI.spec))
     return aDocShell;
 
@@ -896,7 +896,7 @@ let gGestureSupport = {
     try {
       
       let type = typeof aDef;
-      let getFunc = "get" + (type == "boolean" ? "Bool" : 
+      let getFunc = "get" + (type == "boolean" ? "Bool" :
                              type == "number" ? "Int" : "Char") + "Pref";
       return gPrefService[getFunc](branch + aPref);
     }
@@ -926,7 +926,7 @@ function BrowserStartup() {
 
   prepareForStartup();
 
-  if (uriToLoad && !isLoadingBlank) { 
+  if (uriToLoad && !isLoadingBlank) {
     if (uriToLoad instanceof Ci.nsISupportsArray) {
       let count = uriToLoad.Count();
       let specs = [];
@@ -1197,7 +1197,7 @@ function delayedStartup(isLoadingBlank, mustLoadSidebar) {
   }
 
   UpdateUrlbarSearchSplitterState();
-  
+
   PlacesStarButton.init();
 
   
@@ -1496,7 +1496,7 @@ function nonBrowserWindowDelayedStartup()
 {
   
   BrowserOffline.init();
-  
+
   
   initializeSanitizer();
 
@@ -1739,7 +1739,7 @@ function loadOneOrMoreURIs(aURIString)
   
   try {
     gBrowser.loadTabs(aURIString.split("|"), false, true);
-  } 
+  }
   catch (e) {
   }
 }
@@ -1976,13 +1976,13 @@ function getShortcutOrURI(aURL, aPostDataRef) {
 
   return shortcutURL;
 }
- 
+
 function getPostDataStream(aStringData, aKeyword, aEncKeyword, aType) {
   var dataStream = Cc["@mozilla.org/io/string-input-stream;1"].
                    createInstance(Ci.nsIStringInputStream);
   aStringData = aStringData.replace(/%s/g, aEncKeyword).replace(/%S/g, aKeyword);
   dataStream.data = aStringData;
- 
+
   var mimeStream = Cc["@mozilla.org/network/mime-input-stream;1"].
                    createInstance(Ci.nsIMIMEInputStream);
   mimeStream.addHeader("Content-Type", aType);
@@ -2334,7 +2334,7 @@ function BrowserOnCommand(event) {
     if (/^about:certerror/.test(errorDoc.documentURI)) {
       if (ot == errorDoc.getElementById('exceptionDialogButton')) {
         var params = { exceptionAdded : false, handlePrivateBrowsing : true };
-        
+
         try {
           switch (gPrefService.getIntPref("browser.ssl_override_behavior")) {
             case 2 : 
@@ -2345,10 +2345,10 @@ function BrowserOnCommand(event) {
         } catch (e) {
           Components.utils.reportError("Couldn't get ssl_override pref: " + e);
         }
-        
+
         window.openDialog('chrome://pippki/content/exceptionDialog.xul',
                           '','chrome,centerscreen,modal', params);
-        
+
         
         if (params.exceptionAdded)
           errorDoc.location.reload();
@@ -2362,7 +2362,7 @@ function BrowserOnCommand(event) {
       
       
       var isMalware = /e=malwareBlocked/.test(errorDoc.documentURI);
-      
+
       if (ot == errorDoc.getElementById('getMeOutButton')) {
         getMeOutOfHere();
       }
@@ -2423,7 +2423,7 @@ function BrowserOnCommand(event) {
             }
           };
         }
-        
+
         let notificationBox = gBrowser.getNotificationBox();
         let value = "blocked-badware-page";
 
@@ -2637,7 +2637,7 @@ function FillInHTMLTooltip(tipElement)
           (tipElement instanceof SVGAElement && tipElement.hasAttributeNS(XLinkNS, "href"))) {
         XLinkTitleText = tipElement.getAttributeNS(XLinkNS, "title");
       }
-      if (lookingForSVGTitle && 
+      if (lookingForSVGTitle &&
           !(tipElement instanceof SVGElement &&
             tipElement.parentNode instanceof SVGElement &&
             !(tipElement.parentNode instanceof SVGForeignObjectElement))) {
@@ -2666,7 +2666,7 @@ function FillInHTMLTooltip(tipElement)
 
   var tipNode = document.getElementById("aHTMLTooltip");
   tipNode.style.direction = direction;
-  
+
   [titleText, XLinkTitleText, SVGTitleText].forEach(function (t) {
     if (t && /\S/.test(t)) {
 
@@ -3060,7 +3060,7 @@ const BrowserSearch = {
 
   updateSearchButton: function() {
     var searchBar = this.searchBar;
-    
+
     
     
     
@@ -3128,14 +3128,14 @@ const BrowserSearch = {
 
   loadSearch: function BrowserSearch_search(searchText, useNewTab) {
     var engine;
-  
+
     
     
     if (isElementVisible(this.searchBar))
       engine = Services.search.currentEngine;
     else
       engine = Services.search.defaultEngine;
-  
+
     var submission = engine.getSubmission(searchText, null); 
 
     
@@ -3144,7 +3144,7 @@ const BrowserSearch = {
     
     if (!submission)
       return;
-  
+
     if (useNewTab) {
       gBrowser.loadOneTab(submission.uri.spec, {
                           postData: submission.postData,
@@ -3905,7 +3905,7 @@ var XULBrowserWindow = {
       this.statusText = text;
     }
   },
-  
+
   onLinkIconAvailable: function (aBrowser, aIconURL) {
     if (gProxyFavIcon && gBrowser.userTypedValue === null)
       PageProxySetIcon(aIconURL); 
@@ -4144,7 +4144,7 @@ var XULBrowserWindow = {
     else
       this.asyncUpdateUI();
   },
-  
+
   asyncUpdateUI: function () {
     FeedHandler.updateFeeds();
     BrowserSearch.updateSearchButton();
@@ -4171,7 +4171,7 @@ var XULBrowserWindow = {
         var contentHost = gBrowser.contentWindow.location.host;
         if (this._host !== undefined && this._host != contentHost) {
             Components.utils.reportError(
-              "ASSERTION: browser.js host is inconsistent. Content window has " + 
+              "ASSERTION: browser.js host is inconsistent. Content window has " +
               "<" + contentHost + "> but cached host is <" + this._host + ">.\n"
             );
         }
@@ -4276,7 +4276,7 @@ var XULBrowserWindow = {
     gBrowser.selectedBrowser.feeds = null;
 
     
-    gBrowser.selectedBrowser.engines = null;    
+    gBrowser.selectedBrowser.engines = null;
 
     var uri = aRequest.QueryInterface(Ci.nsIChannel).URI;
 
@@ -4402,7 +4402,7 @@ var TabsProgressListener = {
     if (aBrowser.contentWindow == aWebProgress.DOMWindow)
       FullZoom.onLocationChange(aLocationURI, false, aBrowser);
   },
-  
+
   onStatusChange: function (aBrowser, aWebProgress, aRequest, aStatus, aMessage) {
   },
 
@@ -4905,7 +4905,7 @@ function asyncOpenWebPanel(event)
          }
          catch(ex) {
            return false;
-         } 
+         }
 
          var postData = { };
          var url = getShortcutOrURI(wrapper.href, postData);
@@ -4978,14 +4978,14 @@ function handleLinkClick(event, href, linkNode)
       }
 
       if (event.shiftKey && event.altKey) {
-        var feedService = 
+        var feedService =
             Cc["@mozilla.org/browser/feeds/result-service;1"].
             getService(Ci.nsIFeedResultService);
         feedService.forcePreviewPage = true;
         loadURI(href, null, null, false);
         return false;
       }
-                                                       
+
       if (event.shiftKey) {
         openNewWindowWith(href, doc, null, false);
         event.stopPropagation();
@@ -5346,7 +5346,7 @@ var BrowserOffline = {
       ioService.manageOfflineStatus = false;
     } catch (ex) {
     }
-  
+
     if (!ioService.offline && !this._canGoOffline()) {
       this._updateOfflineUI(false);
       return;
@@ -5800,7 +5800,7 @@ function AddKeywordForSearchField() {
 
   var spec = formURI.spec;
 
-  var isURLEncoded = 
+  var isURLEncoded =
                (node.form.method.toUpperCase() == "POST"
                 && (node.form.enctype == "application/x-www-form-urlencoded" ||
                     node.form.enctype == ""));
@@ -5833,7 +5833,7 @@ function AddKeywordForSearchField() {
     }
 
     type = el.type.toLowerCase();
-    
+
     if ((type == "text" || type == "hidden" || type == "textarea") ||
         ((type == "checkbox" || type == "radio") && el.checked)) {
       formData.push(escapeNameValuePair(el.name, el.value, isURLEncoded));
@@ -5882,7 +5882,7 @@ function getPluginInfo(pluginElement)
       var docShell = findChildShell(doc, gBrowser.docShell, null);
       try {
         pluginsPage = makeURI(pluginsPage, doc.characterSet, docShell.currentURI).spec;
-      } catch (ex) { 
+      } catch (ex) {
         pluginsPage = "";
       }
     }
@@ -5914,17 +5914,18 @@ var gMissingPluginInstaller = {
     return this.crashReportHelpURL;
   },
 
-  addLinkClickCallback: function (linkNode, callbackName, callbackArg) {
+  addLinkClickCallback: function (linkNode, callbackName ) {
     
     let self = this;
+    let callbackArgs = Array.prototype.slice.call(arguments).slice(2);
     linkNode.addEventListener("click",
                               function(evt) {
                                 if (!evt.isTrusted)
                                   return;
                                 evt.preventDefault();
-                                if (callbackArg == undefined)
-                                  callbackArg = evt;
-                                (self[callbackName])(callbackArg);
+                                if (callbackArgs.length == 0)
+                                  callbackArgs = [ evt ];
+                                (self[callbackName]).apply(self, callbackArgs);
                               },
                               true);
 
@@ -5934,10 +5935,10 @@ var gMissingPluginInstaller = {
                                   return;
                                 if (evt.keyCode == evt.DOM_VK_RETURN) {
                                   evt.preventDefault();
-                                  if (callbackArg == undefined)
-                                    callbackArg = evt;
+                                  if (callbackArgs.length == 0)
+                                    callbackArgs = [ evt ];
                                   evt.preventDefault();
-                                  (self[callbackName])(callbackArg);
+                                  (self[callbackName]).apply(self, callbackArgs);
                                 }
                               },
                               true);
@@ -5961,10 +5962,12 @@ var gMissingPluginInstaller = {
   },
 
   
-  submitReport : function(minidumpID) {
+  submitReport : function(pluginDumpID, browserDumpID) {
     
     
-    this.CrashSubmit.submit(minidumpID, gBrowser, null, null);
+    this.CrashSubmit.submit(pluginDumpID, gBrowser, null, null);
+    if (browserDumpID)
+      this.CrashSubmit.submit(browserDumpID, gBrowser, null, null);
   },
 
   
@@ -6103,7 +6106,7 @@ var gMissingPluginInstaller = {
         popup: null,
         callback: showPluginsMissing
       }];
-    
+
       notificationBox.appendNotification(messageString, "missing-plugins",
                                          iconURL, priority, buttons);
     }
@@ -6127,13 +6130,14 @@ var gMissingPluginInstaller = {
      return;
 
 #ifdef MOZ_CRASHREPORTER
-    let minidumpID   = propertyBag.getPropertyAsAString("minidumpID");
+    let pluginDumpID = propertyBag.getPropertyAsAString("pluginDumpID");
+    let browserDumpID= propertyBag.getPropertyAsAString("browserDumpID");
     let shouldSubmit = gCrashReporter.submitReports;
     let doPrompt     = true; 
 
     
-    if (minidumpID && shouldSubmit && !doPrompt) {
-      this.submitReport(minidumpID);
+    if (pluginDumpID && shouldSubmit && !doPrompt) {
+      this.submitReport(pluginDumpID, browserDumpID);
       
       propertyBag.setPropertyAsBool("submittedCrashReport", true);
     }
@@ -6156,7 +6160,8 @@ var gMissingPluginInstaller = {
     let doPrompt        = true; 
     let submitReports   = true; 
     let pluginName      = aEvent.getData("pluginName");
-    let minidumpID      = aEvent.getData("minidumpID");
+    let pluginDumpID    = aEvent.getData("pluginDumpID");
+    let browserDumpID   = aEvent.getData("browserDumpID");
 
     
     let plugin = aEvent.target;
@@ -6193,12 +6198,13 @@ var gMissingPluginInstaller = {
       
       let pleaseLink = doc.getAnonymousElementByAttribute(
                             plugin, "class", "pleaseSubmitLink");
-      self.addLinkClickCallback(pleaseLink, "submitReport", minidumpID);
+      self.addLinkClickCallback(pleaseLink, "submitReport",
+                                pluginDumpID, browserDumpID);
     }
 
     
     
-    if (!minidumpID) {
+    if (!pluginDumpID) {
         showClass = "msg msgNoCrashReport";
     }
 
@@ -6222,7 +6228,7 @@ var gMissingPluginInstaller = {
           if (!(propertyBag instanceof Ci.nsIPropertyBag2))
             return;
           
-          if (propertyBag.get("minidumpID") != minidumpID)
+          if (propertyBag.get("minidumpID") != pluginDumpID)
             return;
           self.updateSubmissionStatus(plugin, propertyBag, data);
         },
@@ -6266,7 +6272,7 @@ var gMissingPluginInstaller = {
         
         
         if (!doc.mozNoPluginCrashedNotification)
-          showNotificationBar(minidumpID);
+          showNotificationBar(pluginDumpID, browserDumpID);
     } else {
         
         
@@ -6281,7 +6287,7 @@ var gMissingPluginInstaller = {
         notificationBox.removeNotification(notification, true);
     }
 
-    function showNotificationBar(minidumpID) {
+    function showNotificationBar(pluginDumpID, browserDumpID) {
       
       let notification = notificationBox.getNotificationWithValue("plugin-crashed");
       if (notification)
@@ -6306,7 +6312,7 @@ var gMissingPluginInstaller = {
         label: submitLabel,
         accessKey: submitKey,
         popup: null,
-        callback: function() { gMissingPluginInstaller.submitReport(minidumpID); },
+          callback: function() { gMissingPluginInstaller.submitReport(pluginDumpID, browserDumpID); },
       };
       if (minidumpID)
         buttons.push(submitButton);
@@ -6380,7 +6386,7 @@ function convertFromUnicode(charset, str)
     str = unicodeConverter.ConvertFromUnicode(str);
     return str + unicodeConverter.Finish();
   } catch(ex) {
-    return null; 
+    return null;
   }
 }
 
@@ -6404,7 +6410,7 @@ var FeedHandler = {
         this.subscribeToFeed(null, event);
     }
   },
-  
+
   
 
 
@@ -6453,7 +6459,7 @@ var FeedHandler = {
     }
     return true;
   },
-  
+
   
 
 
@@ -6517,7 +6523,7 @@ var FeedHandler = {
     } else {
       if (feedButton)
         feedButton.collapsed = false;
-      
+
       if (feeds.length > 1) {
         this._feedMenuitem.setAttribute("hidden", "true");
         this._feedMenupopup.removeAttribute("hidden");
@@ -6533,7 +6539,7 @@ var FeedHandler = {
         this._feedMenupopup.setAttribute("hidden", "true");
       }
     }
-  }, 
+  },
 
   addFeed: function(link, targetDoc) {
     
@@ -6578,11 +6584,11 @@ function undoCloseTab(aIndex) {
            getService(Ci.nsISessionStore);
   if (ss.getClosedTabCount(window) > (aIndex || 0)) {
     tab = ss.undoCloseTab(window, aIndex || 0);
-    
+
     if (blankTabToRemove)
       gBrowser.removeTab(blankTabToRemove);
   }
-  
+
   return tab;
 }
 
@@ -6751,7 +6757,7 @@ var gIdentityHandler = {
     displaySecurityInfo();
     event.stopPropagation();
   },
-  
+
   
 
 
@@ -6760,10 +6766,10 @@ var gIdentityHandler = {
     var result = {};
     var status = this._lastStatus.QueryInterface(Components.interfaces.nsISSLStatus);
     var cert = status.serverCert;
-    
+
     
     result.subjectOrg = cert.organization;
-    
+
     
     if (cert.subjectName) {
       result.subjectNameFields = {};
@@ -6771,20 +6777,20 @@ var gIdentityHandler = {
         var field = v.split("=");
         this[field[0]] = field[1];
       }, result.subjectNameFields);
-      
+
       
       result.city = result.subjectNameFields.L;
       result.state = result.subjectNameFields.ST;
       result.country = result.subjectNameFields.C;
     }
-    
+
     
     result.caOrg =  cert.issuerOrganization || cert.issuerCommonName;
     result.cert = cert;
-    
+
     return result;
   },
-  
+
   
 
 
@@ -6811,7 +6817,7 @@ var gIdentityHandler = {
     else
       this.setMode(this.IDENTITY_MODE_UNKNOWN);
   },
-  
+
   
 
 
@@ -6828,7 +6834,7 @@ var gIdentityHandler = {
       return this._lastLocation.hostname;
     }
   },
-  
+
   
 
 
@@ -6842,12 +6848,12 @@ var gIdentityHandler = {
 
     this._identityBox.className = newMode;
     this.setIdentityMessages(newMode);
-    
+
     
     if (this._identityPopup.state == "open")
       this.setPopupMessages(newMode);
   },
-  
+
   
 
 
@@ -6856,8 +6862,8 @@ var gIdentityHandler = {
 
   setIdentityMessages : function(newMode) {
     if (newMode == this.IDENTITY_MODE_DOMAIN_VERIFIED) {
-      var iData = this.getIdentityData();     
-      
+      var iData = this.getIdentityData();
+
       
       
       
@@ -6874,7 +6880,7 @@ var gIdentityHandler = {
         case 1 : 
           icon_label = this.getEffectiveHost();
       }
-      
+
       
       
       var lookupHost = this._lastLocation.host;
@@ -6885,12 +6891,12 @@ var gIdentityHandler = {
       
       var tooltip = gNavigatorBundle.getFormattedString("identity.identified.verifier",
                                                         [iData.caOrg]);
+
       
       
       
       
-      
-      if (this._overrideService.hasMatchingOverride(this._lastLocation.hostname, 
+      if (this._overrideService.hasMatchingOverride(this._lastLocation.hostname,
                                                     (this._lastLocation.port || 443),
                                                     iData.cert, {}, {}))
         tooltip = gNavigatorBundle.getString("identity.identified.verified_by_you");
@@ -6918,7 +6924,7 @@ var gIdentityHandler = {
       icon_country_label = "";
       icon_labels_dir = "ltr";
     }
-    
+
     
     this._identityBox.tooltipText = tooltip;
     this._identityIconLabel.value = icon_label;
@@ -6929,7 +6935,7 @@ var gIdentityHandler = {
     
     this._identityIconLabel.parentNode.hidden = icon_label ? false : true;
   },
-  
+
   
 
 
@@ -6938,17 +6944,17 @@ var gIdentityHandler = {
 
 
   setPopupMessages : function(newMode) {
-      
+
     this._identityPopup.className = newMode;
     this._identityPopupContentBox.className = newMode;
-    
+
     
     this._identityPopupEncLabel.textContent = this._encryptionLabel[newMode];
-    
+
     
     var supplemental = "";
     var verifier = "";
-    
+
     if (newMode == this.IDENTITY_MODE_DOMAIN_VERIFIED) {
       var iData = this.getIdentityData();
       var host = this.getEffectiveHost();
@@ -6960,12 +6966,12 @@ var gIdentityHandler = {
       
       iData = this.getIdentityData();
       host = this.getEffectiveHost();
-      owner = iData.subjectOrg; 
+      owner = iData.subjectOrg;
       verifier = this._identityBox.tooltipText;
 
       
       if (iData.city)
-        supplemental += iData.city + "\n";        
+        supplemental += iData.city + "\n";
       if (iData.state && iData.country)
         supplemental += gNavigatorBundle.getFormattedString("identity.identified.state_and_country",
                                                             [iData.state, iData.country]);
@@ -6979,7 +6985,7 @@ var gIdentityHandler = {
       host = "";
       owner = "";
     }
-    
+
     
     this._identityPopupContentHost.textContent = host;
     this._identityPopupContentOwner.textContent = owner;
@@ -6995,9 +7001,9 @@ var gIdentityHandler = {
 
 
   handleIdentityButtonEvent : function(event) {
-  
+
     event.stopPropagation();
- 
+
     if ((event.type == "click" && event.button != 0) ||
         (event.type == "keypress" && event.charCode != KeyEvent.DOM_VK_SPACE &&
          event.keyCode != KeyEvent.DOM_VK_RETURN))
@@ -7009,14 +7015,14 @@ var gIdentityHandler = {
     
     
     this._identityPopup.hidden = false;
-    
+
     
     this._identityPopup.popupBoxObject
         .setConsumeRollupEvent(Ci.nsIPopupBoxObject.ROLLUP_CONSUME);
-    
+
     
     this.setPopupMessages(this._identityBox.className);
-    
+
     
     
     var position = (getComputedStyle(gNavToolbox, "").direction == "rtl") ? 'after_end' : 'after_start';
@@ -7095,7 +7101,7 @@ let DownloadMonitorPanel = {
 
       return;
     }
-  
+
     
     let numPaused = 0;
     let maxTime = -Infinity;
@@ -7296,7 +7302,7 @@ let gPrivateBrowsingUI = {
     this._setPBMenuTitle("stop");
 
     document.getElementById("menu_import").setAttribute("disabled", "true");
-    
+
     
     
     document.getElementById("Tools:Sanitize").setAttribute("disabled", "true");

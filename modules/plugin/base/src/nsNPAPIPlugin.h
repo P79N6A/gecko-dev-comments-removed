@@ -95,7 +95,9 @@ public:
   
   
   
-  void PluginCrashed(const nsAString& dumpID);
+  
+  void PluginCrashed(const nsAString& pluginDumpID,
+                     const nsAString& browserDumpID);
 #endif
 
 protected:
