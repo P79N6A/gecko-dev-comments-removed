@@ -1216,8 +1216,9 @@ NS_IMETHODIMP nsAccessibilityService::GetAccessible(nsIDOMNode *aNode,
   
   nsresult rv = GetAccessibleByType(aNode, getter_AddRefs(newAcc));
   NS_ENSURE_SUCCESS(rv, rv);
-
-  if (!newAcc && !content->IsNodeOfType(nsINode::eHTML)) {
+  
+  PRBool isHTML = content->IsNodeOfType(nsINode::eHTML);
+  if (!newAcc && !isHTML) {
     if (content->GetNameSpaceID() == kNameSpaceID_SVG &&
              content->Tag() == nsAccessibilityAtoms::svg) {
       newAcc = new nsEnumRoleAccessible(aNode, aWeakShell,
@@ -1278,7 +1279,7 @@ NS_IMETHODIMP nsAccessibilityService::GetAccessible(nsIDOMNode *aNode,
   
   if (!newAcc && content->Tag() != nsAccessibilityAtoms::body && content->GetParent() && 
       (content->IsFocusable() ||
-       nsAccessibilityUtils::HasListener(content, NS_LITERAL_STRING("click")) ||
+      (isHTML && nsAccessibilityUtils::HasListener(content, NS_LITERAL_STRING("click"))) ||
        content->HasAttr(kNameSpaceID_WAIProperties, nsAccessibilityAtoms::describedby) ||
        content->HasAttr(kNameSpaceID_WAIProperties, nsAccessibilityAtoms::labelledby) ||
        content->HasAttr(kNameSpaceID_WAIProperties, nsAccessibilityAtoms::required) ||
@@ -1287,7 +1288,7 @@ NS_IMETHODIMP nsAccessibilityService::GetAccessible(nsIDOMNode *aNode,
     
     
     
-    if (content->IsNodeOfType(nsINode::eHTML)) {
+    if (isHTML) {
       
       CreateHyperTextAccessible(frame, getter_AddRefs(newAcc));
     }
