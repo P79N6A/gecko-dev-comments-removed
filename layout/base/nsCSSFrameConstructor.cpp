@@ -6100,13 +6100,6 @@ nsCSSFrameConstructor::ContentAppended(nsIContent*     aContainer,
       
       PRUint32 containerCount = aContainer->GetChildCount();
       for (PRUint32 i = aNewIndexInContainer; i < containerCount; i++) {
-        nsIContent* content = aContainer->GetChildAt(i);
-        if (mPresShell->GetPrimaryFrameFor(content)) {
-          
-          
-          
-          continue;
-        }
         LAYOUT_PHASE_TEMP_EXIT();
         
         ContentInserted(aContainer, aContainer->GetChildAt(i), i,
