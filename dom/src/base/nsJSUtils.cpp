@@ -56,6 +56,7 @@
 #include "nsIXPConnect.h"
 #include "nsCOMPtr.h"
 #include "nsContentUtils.h"
+#include "nsIScriptSecurityManager.h"
 
 #include "nsDOMJSUtils.h" 
 
@@ -78,10 +79,27 @@ nsJSUtils::GetCallingLocation(JSContext* aContext, const char* *aFilename,
     
     
     if (aPrincipals) {
+      
+      
       JSPrincipals* scriptPrins = JS_GetScriptPrincipals(aContext, script);
+      if (!scriptPrins) {
+        JSObject *callee = JS_GetFrameCalleeObject(aContext, frame);
+        nsCOMPtr<nsIPrincipal> prin;
+        nsIScriptSecurityManager *ssm = nsContentUtils::GetSecurityManager();
+        if (NS_FAILED(ssm->GetObjectPrincipal(aContext, callee,
+                                              getter_AddRefs(prin))) ||
+            !prin) {
+          return JS_FALSE;
+        }
+
+        prin->GetJSPrincipals(aContext, &scriptPrins);
+
+        
+        JSPRINCIPALS_DROP(aContext, scriptPrins);
+      }
 
       
-      if (scriptPrins && scriptPrins != aPrincipals &&
+      if (scriptPrins != aPrincipals &&
           scriptPrins->subsume(scriptPrins, aPrincipals)) {
         *aFilename = aPrincipals->codebase;
         *aLineno = 0;
