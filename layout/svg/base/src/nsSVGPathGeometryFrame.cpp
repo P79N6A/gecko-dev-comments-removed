@@ -258,6 +258,12 @@ nsSVGPathGeometryFrame::DidSetStyleContext()
 {
   nsSVGPathGeometryFrameBase::DidSetStyleContext();
 
+  nsSVGOuterSVGFrame *outerSVGFrame = nsSVGUtils::GetOuterSVGFrame(this);
+  if (outerSVGFrame) {
+    
+    outerSVGFrame->InvalidateRect(nsSVGUtils::FindFilterInvalidation(this));
+  }
+
   RemovePathProperties();
 
   
@@ -462,9 +468,6 @@ nsSVGPathGeometryFrame::InitialUpdate()
 NS_IMETHODIMP
 nsSVGPathGeometryFrame::NotifyCanvasTMChanged(PRBool suppressInvalidation)
 {
-  if (!suppressInvalidation)
-    nsSVGUtils::UpdateFilterRegion(this);
-
   UpdateGraphic(suppressInvalidation);
 
   return NS_OK;
@@ -758,17 +761,13 @@ nsSVGPathGeometryFrame::UpdateGraphic(PRBool suppressInvalidation)
     if (suppressInvalidation)
       return NS_OK;
 
-    outerSVGFrame->InvalidateRect(mRect);
+    outerSVGFrame->InvalidateRect(nsSVGUtils::FindFilterInvalidation(this));
 
     UpdateMarkerProperty();
     UpdateCoveredRegion();
+    nsSVGUtils::UpdateFilterRegion(this);
 
-    nsRect filterRect = nsSVGUtils::FindFilterInvalidation(this);
-    if (!filterRect.IsEmpty()) {
-      outerSVGFrame->InvalidateRect(filterRect);
-    } else {
-      outerSVGFrame->InvalidateRect(mRect);
-    }
+    outerSVGFrame->InvalidateRect(nsSVGUtils::FindFilterInvalidation(this));
   }
 
   return NS_OK;
