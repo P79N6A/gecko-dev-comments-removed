@@ -749,8 +749,7 @@ nsXULContentBuilder::BuildContentFromTemplate(nsIContent *aTemplateNode,
                                               nsnull );
                 if (NS_FAILED(rv)) return rv;
 
-                if (isGenerationElement && !(mFlags & eDontRecurse)) {
-                    
+                if (isGenerationElement) {
                     
                     rv = CreateContainerContents(realKid, aChild, PR_FALSE,
                                                  PR_FALSE, PR_FALSE);
@@ -1022,16 +1021,9 @@ nsXULContentBuilder::CreateTemplateAndContainerContents(nsIContent* aElement,
         
         
         nsTemplateMatch *match = nsnull;
-        if (mContentSupportMap.Get(aElement, &match)) {
-            
-            PRBool mayProcessChildren;
-            nsresult rv = match->mResult->GetMayProcessChildren(&mayProcessChildren);
-            if (NS_FAILED(rv) || !mayProcessChildren)
-                return rv;
-
+        if (mContentSupportMap.Get(aElement, &match))
             CreateContainerContents(aElement, match->mResult, aForceCreation,
                                     PR_FALSE, PR_TRUE);
-        }
     }
 
     PR_LOG(gXULTemplateLog, PR_LOG_ALWAYS,
@@ -1049,6 +1041,17 @@ nsXULContentBuilder::CreateContainerContents(nsIContent* aElement,
 {
     if (!aForceCreation && !IsOpen(aElement))
         return NS_OK;
+
+    
+    if (aResult != mRootResult) {
+        if (mFlags & eDontRecurse)
+            return NS_OK;
+
+        PRBool mayProcessChildren;
+        nsresult rv = aResult->GetMayProcessChildren(&mayProcessChildren);
+        if (NS_FAILED(rv) || !mayProcessChildren)
+            return rv;
+    }
 
     nsCOMPtr<nsIRDFResource> refResource;
     GetResultResource(aResult, getter_AddRefs(refResource));
