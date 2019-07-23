@@ -716,6 +716,11 @@ public:
   NS_IMETHOD ScrollContentIntoView(nsIContent* aContent,
                                    PRIntn      aVPercent,
                                    PRIntn      aHPercent);
+  virtual PRBool ScrollFrameRectIntoView(nsIFrame*     aFrame,
+                                         const nsRect& aRect,
+                                         PRIntn        aVPercent,
+                                         PRIntn        aHPercent,
+                                         PRUint32      aFlags);
   virtual nsRectVisibility GetRectVisibility(nsIFrame *aFrame,
                                              const nsRect &aRect, 
                                              nscoord aMinTwips);
@@ -3962,89 +3967,99 @@ AccumulateFrameBounds(nsIFrame* aContainerFrame,
 
 
 
+
+
 static void ScrollToShowRect(nsIScrollableFrame* aScrollFrame,
                              const nsRect&       aRect,
                              PRIntn              aVPercent,
-                             PRIntn              aHPercent)
+                             PRIntn              aHPercent,
+                             PRUint32            aFlags)
 {
   nsPoint scrollPt = aScrollFrame->GetScrollPosition();
   nsRect visibleRect(scrollPt, aScrollFrame->GetScrollPortRect().Size());
   nsSize lineSize = aScrollFrame->GetLineScrollAmount();
-  
-  
-  if (NS_PRESSHELL_SCROLL_ANYWHERE == aVPercent ||
-      (NS_PRESSHELL_SCROLL_IF_NOT_VISIBLE == aVPercent &&
-       aRect.height < lineSize.height)) {
+  nsPresContext::ScrollbarStyles ss = aScrollFrame->GetScrollbarStyles();
+
+  if ((aFlags & nsIPresShell::SCROLL_OVERFLOW_HIDDEN) ||
+      ss.mVertical != NS_STYLE_OVERFLOW_HIDDEN) {
     
-    
-    if (aRect.y < visibleRect.y) {
-      
-      scrollPt.y = aRect.y;
-    } else if (aRect.YMost() > visibleRect.YMost()) {
+    if (NS_PRESSHELL_SCROLL_ANYWHERE == aVPercent ||
+        (NS_PRESSHELL_SCROLL_IF_NOT_VISIBLE == aVPercent &&
+         aRect.height < lineSize.height)) {
       
       
-      scrollPt.y += aRect.YMost() - visibleRect.YMost();
-      if (scrollPt.y > aRect.y) {
+      if (aRect.y < visibleRect.y) {
+        
         scrollPt.y = aRect.y;
+      } else if (aRect.YMost() > visibleRect.YMost()) {
+        
+        
+        scrollPt.y += aRect.YMost() - visibleRect.YMost();
+        if (scrollPt.y > aRect.y) {
+          scrollPt.y = aRect.y;
+        }
       }
-    }
-  } else if (NS_PRESSHELL_SCROLL_IF_NOT_VISIBLE == aVPercent) {
-    
-    if (aRect.YMost() - lineSize.height < visibleRect.y) {
+    } else if (NS_PRESSHELL_SCROLL_IF_NOT_VISIBLE == aVPercent) {
       
-      scrollPt.y = aRect.y;
-    }  else if (aRect.y + lineSize.height > visibleRect.YMost()) {
-      
-      
-      scrollPt.y += aRect.YMost() - visibleRect.YMost();
-      if (scrollPt.y > aRect.y) {
+      if (aRect.YMost() - lineSize.height < visibleRect.y) {
+        
         scrollPt.y = aRect.y;
+      }  else if (aRect.y + lineSize.height > visibleRect.YMost()) {
+        
+        
+        scrollPt.y += aRect.YMost() - visibleRect.YMost();
+        if (scrollPt.y > aRect.y) {
+          scrollPt.y = aRect.y;
+        }
       }
+    } else {
+      
+      nscoord frameAlignY =
+        NSToCoordRound(aRect.y + aRect.height * (aVPercent / 100.0f));
+      scrollPt.y =
+        NSToCoordRound(frameAlignY - visibleRect.height * (aVPercent / 100.0f));
     }
-  } else {
-    
-    nscoord frameAlignY =
-      NSToCoordRound(aRect.y + aRect.height * (aVPercent / 100.0f));
-    scrollPt.y =
-      NSToCoordRound(frameAlignY - visibleRect.height * (aVPercent / 100.0f));
   }
 
-  
-  if (NS_PRESSHELL_SCROLL_ANYWHERE == aHPercent ||
-      (NS_PRESSHELL_SCROLL_IF_NOT_VISIBLE == aHPercent &&
-       aRect.width < lineSize.width)) {
+  if ((aFlags & nsIPresShell::SCROLL_OVERFLOW_HIDDEN) ||
+      ss.mHorizontal != NS_STYLE_OVERFLOW_HIDDEN) {
     
-    
-    if (aRect.x < visibleRect.x) {
-      
-      scrollPt.x = aRect.x;
-    } else if (aRect.XMost() > visibleRect.XMost()) {
+    if (NS_PRESSHELL_SCROLL_ANYWHERE == aHPercent ||
+        (NS_PRESSHELL_SCROLL_IF_NOT_VISIBLE == aHPercent &&
+         aRect.width < lineSize.width)) {
       
       
-      scrollPt.x += aRect.XMost() - visibleRect.XMost();
-      if (scrollPt.x > aRect.x) {
+      if (aRect.x < visibleRect.x) {
+        
         scrollPt.x = aRect.x;
+      } else if (aRect.XMost() > visibleRect.XMost()) {
+        
+        
+        scrollPt.x += aRect.XMost() - visibleRect.XMost();
+        if (scrollPt.x > aRect.x) {
+          scrollPt.x = aRect.x;
+        }
       }
-    }
-  } else if (NS_PRESSHELL_SCROLL_IF_NOT_VISIBLE == aHPercent) {
-    
-    if (aRect.XMost() - lineSize.width < visibleRect.x) {
+    } else if (NS_PRESSHELL_SCROLL_IF_NOT_VISIBLE == aHPercent) {
       
-      scrollPt.x = aRect.x;
-    }  else if (aRect.x + lineSize.width > visibleRect.XMost()) {
-      
-      
-      scrollPt.x += aRect.XMost() - visibleRect.XMost();
-      if (scrollPt.x > aRect.x) {
+      if (aRect.XMost() - lineSize.width < visibleRect.x) {
+        
         scrollPt.x = aRect.x;
+      }  else if (aRect.x + lineSize.width > visibleRect.XMost()) {
+        
+        
+        scrollPt.x += aRect.XMost() - visibleRect.XMost();
+        if (scrollPt.x > aRect.x) {
+          scrollPt.x = aRect.x;
+        }
       }
+    } else {
+      
+      nscoord frameAlignX =
+        NSToCoordRound(aRect.x + (aRect.width) * (aHPercent / 100.0f));
+      scrollPt.x =
+        NSToCoordRound(frameAlignX - visibleRect.width * (aHPercent / 100.0f));
     }
-  } else {
-    
-    nscoord frameAlignX =
-      NSToCoordRound(aRect.x + (aRect.width) * (aHPercent / 100.0f));
-    scrollPt.x =
-      NSToCoordRound(frameAlignX - visibleRect.width * (aHPercent / 100.0f));
   }
 
   aScrollFrame->ScrollTo(scrollPt, nsIScrollableFrame::INSTANT);
@@ -4124,20 +4139,57 @@ PresShell::DoScrollContentIntoView(nsIContent* aContent,
                           frameBounds, haveRect);
   } while ((frame = frame->GetNextContinuation()));
 
+  ScrollFrameRectIntoView(container, frameBounds, aVPercent, aHPercent,
+                          SCROLL_OVERFLOW_HIDDEN);
+}
+
+PRBool
+PresShell::ScrollFrameRectIntoView(nsIFrame*     aFrame,
+                                   const nsRect& aRect,
+                                   PRIntn        aVPercent,
+                                   PRIntn        aHPercent,
+                                   PRUint32      aFlags)
+{
+  PRBool didScroll = PR_FALSE;
+  
+  nsRect rect = aRect;
+  nsIFrame* container = aFrame;
   
   
-  while (container) {
+  do {
     nsIScrollableFrame* sf = do_QueryFrame(container);
     if (sf) {
       nsPoint oldPosition = sf->GetScrollPosition();
-      ScrollToShowRect(sf, frameBounds - sf->GetScrolledFrame()->GetPosition(),
-                       aVPercent, aHPercent);
+      ScrollToShowRect(sf, rect - sf->GetScrolledFrame()->GetPosition(),
+                       aVPercent, aHPercent, aFlags);
       nsPoint newPosition = sf->GetScrollPosition();
-      frameBounds += newPosition - oldPosition;
+      rect += newPosition - oldPosition;
+
+      if (oldPosition != newPosition) {
+        didScroll = PR_TRUE;
+      }
+
+      nsRect scrollPort = sf->GetScrollPortRect();
+      if (rect.XMost() < scrollPort.x ||
+          rect.x > scrollPort.XMost() ||
+          rect.YMost() < scrollPort.y ||
+          rect.y > scrollPort.YMost()) {
+        
+        
+        
+        break;
+      }
+
+      
+      
+      
+      rect.IntersectRect(rect, sf->GetScrollPortRect());
     }
-    frameBounds += container->GetPosition();
+    rect += container->GetPosition();
     container = container->GetParent();
-  }
+  } while (container && !(aFlags & SCROLL_FIRST_ANCESTOR_ONLY));
+
+  return didScroll;
 }
 
 nsRectVisibility

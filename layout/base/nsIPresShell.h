@@ -123,8 +123,8 @@ typedef struct CapturingContentInfo {
 } CapturingContentInfo;
 
 #define NS_IPRESSHELL_IID     \
-  { 0xe092e019, 0x1aa2, 0x4f36, \
-    { 0x8c, 0x2e, 0xc6, 0xb0, 0xfe, 0x74, 0x7c, 0x78 } }
+  { 0x20b82adf, 0x1f5c, 0x44f7, \
+    { 0x9b, 0x74, 0xc0, 0xa3, 0x14, 0xd8, 0xcf, 0x91 } }
 
 
 #define NS_PRESSHELL_SCROLL_TOP      0
@@ -506,6 +506,32 @@ public:
   NS_IMETHOD ScrollContentIntoView(nsIContent* aContent,
                                    PRIntn      aVPercent,
                                    PRIntn      aHPercent) = 0;
+
+  enum {
+    SCROLL_FIRST_ANCESTOR_ONLY = 0x01,
+    SCROLL_OVERFLOW_HIDDEN = 0x02
+  };
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  virtual PRBool ScrollFrameRectIntoView(nsIFrame*     aFrame,
+                                         const nsRect& aRect,
+                                         PRIntn        aVPercent,
+                                         PRIntn        aHPercent,
+                                         PRUint32      aFlags) = 0;
 
   
 
