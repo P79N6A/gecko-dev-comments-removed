@@ -97,14 +97,15 @@ template<class E> class nsCOMArray;
 class nsWeakFrame;
 class nsIScrollableFrame;
 class gfxASurface;
+class gfxContext;
 
 typedef short SelectionType;
 typedef PRUint32 nsFrameState;
 
 
 #define NS_IPRESSHELL_IID \
-{ 0xdc543b71, 0x6f1a, 0x4b9f, \
-  { 0xb4, 0xcf, 0x69, 0x3a, 0xec, 0x4b, 0xa2, 0x4a } }
+{ 0x9562bb2b, 0x990c, 0x4875, \
+  { 0xaa, 0xfd, 0xbd, 0x46, 0xfc, 0x9a, 0x4f, 0xc1 } }
 
 
 #define NS_PRESSHELL_SCROLL_TOP      0
@@ -689,10 +690,10 @@ public:
 
 
 
-  NS_IMETHOD RenderOffscreen(nsRect aRect, PRBool aUntrusted,
-                             PRBool aIgnoreViewportScrolling,
-                             nscolor aBackgroundColor,
-                             nsIRenderingContext** aRenderedContext) = 0;
+  NS_IMETHOD RenderDocument(const nsRect& aRect, PRBool aUntrusted,
+                            PRBool aIgnoreViewportScrolling,
+                            nscolor aBackgroundColor,
+                            gfxContext* aRenderedContext) = 0;
 
   
 

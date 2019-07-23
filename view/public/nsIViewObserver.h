@@ -95,15 +95,6 @@ public:
 
 
 
-  NS_IMETHOD RenderOffscreen(nsRect aRect, PRBool aUntrusted,
-                             PRBool aIgnoreViewportScrolling,
-                             nscolor aBackgroundColor,
-                             nsIRenderingContext** aRenderedContext) = 0;
-
-  
-
-
-
 
 
   NS_IMETHOD ResizeReflow(nsIView * aView, nscoord aWidth, nscoord aHeight) = 0;
