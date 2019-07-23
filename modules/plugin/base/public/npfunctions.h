@@ -58,8 +58,6 @@ typedef void         (*NPP_StreamAsFileProcPtr)(NPP instance, NPStream* stream, 
 typedef void         (*NPP_PrintProcPtr)(NPP instance, NPPrint* platformPrint);
 typedef int16_t      (*NPP_HandleEventProcPtr)(NPP instance, void* event);
 typedef void         (*NPP_URLNotifyProcPtr)(NPP instance, const char* url, NPReason reason, void* notifyData);
-
-
 typedef NPError      (*NPP_GetValueProcPtr)(NPP instance, NPPVariable variable, void *ret_value);
 typedef NPError      (*NPP_SetValueProcPtr)(NPP instance, NPNVariable variable, void *ret_value);
 
@@ -74,8 +72,6 @@ typedef NPError      (*NPN_NewStreamProcPtr)(NPP instance, NPMIMEType type, cons
 typedef int32_t      (*NPN_WriteProcPtr)(NPP instance, NPStream* stream, int32_t len, void* buffer);
 typedef NPError      (*NPN_DestroyStreamProcPtr)(NPP instance, NPStream* stream, NPReason reason);
 typedef void         (*NPN_StatusProcPtr)(NPP instance, const char* message);
-
-
 typedef const char*  (*NPN_UserAgentProcPtr)(NPP instance);
 typedef void*        (*NPN_MemAllocProcPtr)(uint32_t size);
 typedef void         (*NPN_MemFreeProcPtr)(void* ptr);
@@ -245,7 +241,7 @@ typedef struct _NPPluginData {
 NPError OSCALL NP_GetPluginData(NPPluginData * pPluginData);
 #endif
 NPError OSCALL NP_GetEntryPoints(NPPluginFuncs* pFuncs);
-NPError OSCALL NP_Initialize(NPNetscapeFuncs* bFuncs);
+NPError OSCALL NP_Initialize(NPNetscapeFuncs* pFuncs);
 NPError OSCALL NP_Shutdown();
 char*          NP_GetMIMEDescription();
 #ifdef __cplusplus
