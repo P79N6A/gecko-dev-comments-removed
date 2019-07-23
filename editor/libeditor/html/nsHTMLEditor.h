@@ -172,14 +172,9 @@ public:
 
   NS_IMETHOD LoadHTML(const nsAString &aInputString);
 
-  NS_IMETHOD GetParentBlockTags(nsTArray<nsString> *aTagList, PRBool aGetLists);
-
   nsresult GetCSSBackgroundColorState(PRBool *aMixed, nsAString &aOutColor,
                                       PRBool aBlockLevel);
   NS_IMETHOD GetHTMLBackgroundColorState(PRBool *aMixed, nsAString &outColor);
-  NS_IMETHOD GetHighlightColor(PRBool *mixed, PRUnichar **_retval);
-
-  NS_IMETHOD GetNextElementByTagName(nsIDOMElement *aCurrentElement, const nsAString *aTagName, nsIDOMElement **aReturn);
 
   
 
@@ -231,8 +226,6 @@ public:
                            PRBool* aIsSelected);
   NS_IMETHOD GetFirstRow(nsIDOMElement* aTableElement, nsIDOMNode** aRowNode);
   NS_IMETHOD GetNextRow(nsIDOMNode* aCurrentRowNode, nsIDOMNode** aRowNode);
-  NS_IMETHOD GetFirstCellInRow(nsIDOMNode* aRowNode, nsIDOMNode** aCellNode);
-  NS_IMETHOD GetNextCellInRow(nsIDOMNode* aCurrentCellNode, nsIDOMNode** aRowNode);
   NS_IMETHOD GetLastCellInRow(nsIDOMNode* aRowNode, nsIDOMNode** aCellNode);
 
   NS_IMETHOD SetSelectionAfterTableEdit(nsIDOMElement* aTable, PRInt32 aRow, PRInt32 aCol, 
@@ -265,7 +258,6 @@ public:
 
   
   static nsCOMPtr<nsIDOMNode> GetBlockNodeParent(nsIDOMNode *aNode);
-  static PRBool HasSameBlockNodeParent(nsIDOMNode *aNode1, nsIDOMNode *aNode2);
   
 
 
@@ -393,14 +385,6 @@ public:
                                    PRInt32 &aStartOffset, 
                                    PRInt32 &aEndOffset);
 
-  nsresult GetAbsoluteOffsetsForPoints(nsIDOMNode *aInStartNode,
-                                       PRInt32 aInStartOffset,
-                                       nsIDOMNode *aInEndNode,
-                                       PRInt32 aInEndOffset,
-                                       nsIDOMNode *aInCommonParentNode,
-                                       PRInt32 &aOutStartOffset, 
-                                       PRInt32 &aEndOffset);
-  
   
   
   
@@ -426,7 +410,6 @@ public:
                            PRBool *aSeenBR);
 
   
-  nsresult AddCSSStyleSheet(nsICSSStyleSheet* aSheet);
   nsresult GetCSSLoader(const nsAString& aURL, nsICSSLoader** aCSSLoader);
 
   
@@ -543,8 +526,6 @@ protected:
   
   NS_IMETHOD IsRootTag(nsString &aTag, PRBool &aIsTag);
 
-  NS_IMETHOD IsSubordinateBlock(nsString &aTag, PRBool &aIsTag);
-
   virtual PRBool IsBlockNode(nsIDOMNode *aNode);
   
   static nsCOMPtr<nsIDOMNode> GetEnclosingTable(nsIDOMNode *aNode);
@@ -571,11 +552,6 @@ protected:
                                           PRBool            &aIsSet,
                                           nsIDOMNode       **aStyleNode,
                                           nsAString *outValue = nsnull);
-
-  void ResetTextSelectionForRange(nsIDOMNode *aParent,
-                                  PRInt32     aStartOffset,
-                                  PRInt32     aEndOffset,
-                                  nsISelection *aSelection);
 
   
   NS_IMETHOD PasteAsPlaintextQuotation(PRInt32 aSelectionType);

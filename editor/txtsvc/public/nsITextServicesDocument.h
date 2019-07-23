@@ -80,16 +80,6 @@ public:
 
 
 
-
-
-
-
-  NS_IMETHOD InitWithDocument(nsIDOMDocument *aDOMDocument, nsIPresShell *aPresShell) = 0;
-
-  
-
-
-
   NS_IMETHOD GetDocument(nsIDOMDocument **aDocument) = 0;
 
   
@@ -110,18 +100,7 @@ public:
 
 
 
-
   NS_IMETHOD SetExtent(nsIDOMRange* aDOMRange) = 0;
-
-  
-
-
-
-
-
-
-
-  NS_IMETHOD GetExtent(nsIDOMRange** aDOMRange) = 0;
 
   
 
@@ -142,14 +121,6 @@ public:
 
 
 
-
-  NS_IMETHOD CanEdit(PRBool *aCanEdit) = 0;
-
-  
-
-
-
-
   NS_IMETHOD GetCurrentTextBlock(nsString *aStr) = 0;
 
   
@@ -159,27 +130,6 @@ public:
 
 
   NS_IMETHOD FirstBlock() = 0;
-
-  
-
-
-
-
-
-  NS_IMETHOD LastBlock() = 0;
-
-  
-
-
-
-
-
-
-
-
-
-
-  NS_IMETHOD FirstSelectedBlock(TSDBlockSelectionStatus *aSelectionStatus, PRInt32 *aSelectionOffset, PRInt32 *aSelectionLength) = 0;
 
   
 
@@ -259,21 +209,6 @@ public:
 
 
   NS_IMETHOD InsertText(const nsString *aText) = 0;
-
-  
-
-
-
-
-  NS_IMETHOD SetDisplayStyle(TSDDisplayStyle aStyle) = 0;
-
-  
-
-
-
-
-
-  NS_IMETHOD GetDOMRangeFor(PRInt32 aOffset, PRInt32 aLength, nsIDOMRange** aRange) = 0;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsITextServicesDocument,
