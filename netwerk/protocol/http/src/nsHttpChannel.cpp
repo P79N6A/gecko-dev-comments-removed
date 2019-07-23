@@ -2106,6 +2106,7 @@ nsHttpChannel::CheckCache()
     }
 
     PRBool doValidation = PR_FALSE;
+    PRBool canAddImsHeader = PR_TRUE;
 
     
     mRequestHead.ClearHeader(nsHttp::If_Modified_Since);
@@ -2146,6 +2147,7 @@ nsHttpChannel::CheckCache()
 
     else if (ResponseWouldVary()) {
         LOG(("Validating based on Vary headers returning TRUE\n"));
+        canAddImsHeader = PR_FALSE;
         doValidation = PR_TRUE;
     }
     
@@ -2229,10 +2231,13 @@ nsHttpChannel::CheckCache()
              mRequestHead.Method() == nsHttp::Head)) {
             const char *val;
             
-            val = mCachedResponseHead->PeekHeader(nsHttp::Last_Modified);
-            if (val)
-                mRequestHead.SetHeader(nsHttp::If_Modified_Since,
-                                       nsDependentCString(val));
+            
+            if (canAddImsHeader) {
+                val = mCachedResponseHead->PeekHeader(nsHttp::Last_Modified);
+                if (val)
+                    mRequestHead.SetHeader(nsHttp::If_Modified_Since,
+                                           nsDependentCString(val));
+            }
             
             val = mCachedResponseHead->PeekHeader(nsHttp::ETag);
             if (val)
