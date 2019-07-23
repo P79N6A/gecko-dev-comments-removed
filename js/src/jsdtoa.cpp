@@ -139,8 +139,9 @@ JS_strtod(const char *s00, char **se, int *err)
 }
 
 JS_FRIEND_API(char *)
-JS_dtostr(char *buffer, size_t bufferSize, JSDToStrMode mode, int precision, double d)
+JS_dtostr(char *buffer, size_t bufferSize, JSDToStrMode mode, int precision, double dinput)
 {
+    U d;
     int decPt;        
     int sign;         
     int nDigits;      
@@ -155,10 +156,11 @@ JS_dtostr(char *buffer, size_t bufferSize, JSDToStrMode mode, int precision, dou
 
 
 
-    if (mode == DTOSTR_FIXED && (d >= 1e21 || d <= -1e21))
+    if (mode == DTOSTR_FIXED && (dinput >= 1e21 || dinput <= -1e21))
         mode = DTOSTR_STANDARD;
 
     LOCK_DTOA();
+    dval(d) = dinput;
     numBegin = dtoa(d, dtoaModes[mode], precision, &decPt, &sign, &numEnd);
     if (!numBegin) {
         UNLOCK_DTOA();
@@ -352,28 +354,30 @@ static uint32 quorem2(Bigint *b, int32 k)
 #define BASEDIGIT(digit) ((char)(((digit) >= 10) ? 'a' - 10 + (digit) : '0' + (digit)))
 
 JS_FRIEND_API(char *)
-JS_dtobasestr(int base, double d)
+JS_dtobasestr(int base, double dinput)
 {
+    U d;
     char *buffer;        
     char *p;             
     char *pInt;          
     char *q;
     uint32 digit;
-    double di;           
-    double df;           
+    U di;                
+    U df;                
 
     JS_ASSERT(base >= 2 && base <= 36);
 
+    dval(d) = dinput;
     buffer = (char*) malloc(DTOBASESTR_BUFFER_SIZE);
     if (buffer) {
         p = buffer;
-        if (d < 0.0
+        if (dval(d) < 0.0
 #if defined(XP_WIN) || defined(XP_OS2)
             && !((word0(d) & Exp_mask) == Exp_mask && ((word0(d) & Frac_mask) || word1(d))) 
 #endif
            ) {
             *p++ = '-';
-            d = -d;
+            dval(d) = -dval(d);
         }
 
         
@@ -385,9 +389,9 @@ JS_dtobasestr(int base, double d)
         LOCK_DTOA();
         
         pInt = p;
-        di = fd_floor(d);
-        if (di <= 4294967295.0) {
-            uint32 n = (uint32)di;
+        dval(di) = fd_floor(dval(d));
+        if (dval(di) <= 4294967295.0) {
+            uint32 n = (uint32)dval(di);
             if (n)
                 do {
                     uint32 m = n / base;
@@ -426,8 +430,8 @@ JS_dtobasestr(int base, double d)
             *q-- = ch;
         }
 
-        df = d - di;
-        if (df != 0.0) {
+        dval(df) = dval(d) - dval(di);
+        if (dval(df) != 0.0) {
             
             int e, bbits;
             int32 s2, done;
