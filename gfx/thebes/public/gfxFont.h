@@ -1855,6 +1855,9 @@ protected:
     void SetUserFontSet(gfxUserFontSet *aUserFontSet);
 
     
+    void BuildFontList();
+
+    
     
     
     void InitMetricsForBadFont(gfxFont* aBadFont);

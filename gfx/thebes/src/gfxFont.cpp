@@ -1417,24 +1417,29 @@ gfxFontGroup::gfxFontGroup(const nsAString& aFamilies, const gfxFontStyle *aStyl
     mUserFontSet = nsnull;
     SetUserFontSet(aUserFontSet);
 
+    mPageLang = gfxPlatform::GetFontPrefLangFor(mStyle.langGroup.get());
+    BuildFontList();
+}
+
+void
+gfxFontGroup::BuildFontList()
+{
 
 
 #if defined(XP_MACOSX) || defined(XP_WIN)
     ForEachFont(FindPlatformFont, this);
-    
+
     if (mFonts.Length() == 0) {
         PRBool needsBold;
         gfxFontEntry *defaultFont = 
-            gfxPlatformFontList::PlatformFontList()->GetDefaultFont(aStyle, needsBold);
+            gfxPlatformFontList::PlatformFontList()->GetDefaultFont(&mStyle, needsBold);
         NS_ASSERTION(defaultFont, "invalid default font returned by GetDefaultFont");
 
-        nsRefPtr<gfxFont> font = defaultFont->FindOrMakeFont(aStyle, needsBold);
+        nsRefPtr<gfxFont> font = defaultFont->FindOrMakeFont(&mStyle, needsBold);
         if (font) {
             mFonts.AppendElement(font);
         }
     }
-
-    mPageLang = gfxPlatform::GetFontPrefLangFor(mStyle.langGroup.get());
 
     if (!mStyle.systemFont) {
         for (PRUint32 i = 0; i < mFonts.Length(); ++i) {
@@ -2010,7 +2015,13 @@ gfxFontGroup::UpdateFontList()
         
         mFonts.Clear();
         mUnderlineOffset = UNDERLINE_OFFSET_NOT_SET;
+
+        
+#if defined(XP_MACOSX) || defined(XP_WIN)
+        BuildFontList();
+#else
         ForEachFont(FindPlatformFont, this);
+#endif
         mCurrGeneration = GetGeneration();
     }
 }
