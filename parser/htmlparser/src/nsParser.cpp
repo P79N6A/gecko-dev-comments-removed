@@ -1707,6 +1707,13 @@ nsParser::ContinueInterruptedParsing()
   
   
   
+  if (mScriptsExecuting) {
+    return NS_OK;
+  }
+
+  
+  
+  
   
   nsresult result=NS_OK;
   nsCOMPtr<nsIParser> kungFuDeathGrip(this);
