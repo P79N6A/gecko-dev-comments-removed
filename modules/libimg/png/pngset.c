@@ -1238,7 +1238,6 @@ png_set_rows(png_structp png_ptr, png_infop info_ptr, png_bytepp row_pointers)
 }
 #endif
 
-#ifdef PNG_WRITE_SUPPORTED
 void PNGAPI
 png_set_compression_buffer_size(png_structp png_ptr,
     png_size_t size)
@@ -1251,7 +1250,6 @@ png_set_compression_buffer_size(png_structp png_ptr,
     png_ptr->zstream.next_out = png_ptr->zbuf;
     png_ptr->zstream.avail_out = (uInt)png_ptr->zbuf_size;
 }
-#endif
 
 void PNGAPI
 png_set_invalid(png_structp png_ptr, png_infop info_ptr, int mask)
@@ -1278,17 +1276,23 @@ png_set_user_limits (png_structp png_ptr, png_uint_32 user_width_max,
    png_ptr->user_height_max = user_height_max;
 }
 
+
 void PNGAPI
 png_set_chunk_cache_max (png_structp png_ptr,
    png_uint_32 user_chunk_cache_max)
 {
-    if (png_ptr == NULL)
-      return;
-    png_ptr->user_chunk_cache_max = user_chunk_cache_max;
-    if (user_chunk_cache_max == 0x7fffffffL)  
-       png_ptr->user_chunk_cache_max = 0;
-    else
-       png_ptr->user_chunk_cache_max = user_chunk_cache_max + 1;
+    if (png_ptr)
+       png_ptr->user_chunk_cache_max = user_chunk_cache_max;
+}
+
+
+void PNGAPI
+png_set_chunk_malloc_max (png_structp png_ptr,
+   png_alloc_size_t user_chunk_malloc_max)
+{
+    if (png_ptr)
+       png_ptr->user_chunk_malloc_max =
+          (png_size_t)user_chunk_malloc_max;
 }
 #endif 
 

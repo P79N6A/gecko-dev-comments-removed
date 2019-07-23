@@ -436,7 +436,8 @@ png_write_IHDR(png_structp png_ptr, png_uint_32 width, png_uint_32 height,
             case 4:
             case 8:
             case 16: png_ptr->channels = 1; break;
-            default: png_error(png_ptr, "Invalid bit depth for grayscale image");
+            default: png_error(png_ptr,
+                         "Invalid bit depth for grayscale image");
          }
          break;
       case PNG_COLOR_TYPE_RGB:
@@ -645,6 +646,8 @@ png_write_PLTE(png_structp png_ptr, png_colorp palette, png_uint_32 num_pal)
    }
 #else
    
+
+
    pal_ptr=palette;
    for (i = 0; i < num_pal; i++)
    {
@@ -1743,9 +1746,7 @@ void
 png_write_acTL(png_structp png_ptr,
    png_uint_32 num_frames, png_uint_32 num_plays)
 {
-#ifdef PNG_USE_LOCAL_ARRAYS
     PNG_acTL;
-#endif
     png_byte data[16];
     
     png_debug(1, "in png_write_acTL");
@@ -1767,9 +1768,7 @@ png_write_fcTL(png_structp png_ptr, png_uint_32 width, png_uint_32 height,
     png_uint_16 delay_num, png_uint_16 delay_den, png_byte dispose_op, 
     png_byte blend_op)
 {
-#ifdef PNG_USE_LOCAL_ARRAYS
     PNG_fcTL;
-#endif
     png_byte data[26];
     
     png_debug(1, "in png_write_fcTL");
