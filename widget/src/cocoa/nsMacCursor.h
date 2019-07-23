@@ -95,6 +95,14 @@
 
 
 
+
+
+- (BOOL) isSet;
+
+
+
+
+
 - (void) set;
 
 
