@@ -489,6 +489,12 @@ js_FreeSlot(JSContext *cx, JSObject *obj, uint32 slot);
 
 #define JSVAL_INT_MAX_STRING "1073741823"
 
+
+
+
+
+
+
 #define CHECK_FOR_STRING_INDEX(id)                                            \
     JS_BEGIN_MACRO                                                            \
         if (JSID_IS_ATOM(id)) {                                               \

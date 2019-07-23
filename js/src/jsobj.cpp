@@ -2592,10 +2592,6 @@ js_NewObjectWithGivenProto(JSContext *cx, JSClass *clasp, JSObject *proto,
     }
 
     
-    JS_ASSERT_IF(clasp->flags & JSCLASS_IS_EXTENDED,
-                 ((JSExtendedClass *)clasp)->equality);
-
-    
 
 
 
@@ -3034,10 +3030,15 @@ js_CheckForStringIndex(jsid id, const jschar *cp, const jschar *end,
             cp++;
         }
     }
-    if (cp == end &&
-        (oldIndex < (JSVAL_INT_MAX / 10) ||
-         (oldIndex == (JSVAL_INT_MAX / 10) &&
-          c <= (JSVAL_INT_MAX % 10)))) {
+
+    
+
+
+
+    if (cp != end || (negative && index == 0))
+        return id;
+    if (oldIndex < JSVAL_INT_MAX / 10 ||
+        (oldIndex == JSVAL_INT_MAX / 10 && c <= (JSVAL_INT_MAX % 10))) {
         if (negative)
             index = 0 - index;
         id = INT_TO_JSID((jsint)index);
@@ -3552,8 +3553,6 @@ js_FindPropertyHelper(JSContext *cx, jsid id, JSObject **objp,
             protoIndex =
                 js_LookupPropertyWithFlags(cx, obj, id, cx->resolveFlags,
                                            &pobj, &prop);
-            if (protoIndex < 0)
-                return -1;
         } else {
             if (!OBJ_LOOKUP_PROPERTY(cx, obj, id, &pobj, &prop))
                 return -1;
@@ -3849,15 +3848,6 @@ js_SetPropertyHelper(JSContext *cx, JSObject *obj, jsid id, jsval *vp,
     CHECK_FOR_STRING_INDEX(id);
     JS_COUNT_OPERATION(cx, JSOW_SET_PROPERTY);
 
-    
-
-
-
-    if (SCOPE_IS_SEALED(OBJ_SCOPE(obj)) && OBJ_SCOPE(obj)->object == obj) {
-        flags = JSREPORT_ERROR;
-        goto read_only_error;
-    }
-
     shape = OBJ_SHAPE(obj);
     protoIndex = js_LookupPropertyWithFlags(cx, obj, id, cx->resolveFlags,
                                             &pobj, &prop);
@@ -3895,7 +3885,7 @@ js_SetPropertyHelper(JSContext *cx, JSObject *obj, jsid id, jsval *vp,
 
         attrs = sprop->attrs;
         if ((attrs & JSPROP_READONLY) ||
-            (SCOPE_IS_SEALED(scope) && (attrs & JSPROP_SHARED))) {
+            (SCOPE_IS_SEALED(scope) && pobj == obj)) {
             JS_UNLOCK_SCOPE(cx, scope);
 
             
@@ -3982,6 +3972,11 @@ js_SetPropertyHelper(JSContext *cx, JSObject *obj, jsid id, jsval *vp,
     }
 
     if (!sprop) {
+        if (SCOPE_IS_SEALED(OBJ_SCOPE(obj)) && OBJ_SCOPE(obj)->object == obj) {
+            flags = JSREPORT_ERROR;
+            goto read_only_error;
+        }
+
         
 
 
