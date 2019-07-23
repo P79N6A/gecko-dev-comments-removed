@@ -1982,8 +1982,15 @@ nsEditor::QueryComposition(nsTextEventReply* aReply)
 
       
 
-      result = caretP->GetCaretCoordinates(nsCaret::eIMECoordinates, selection,
-		                      &(aReply->mCursorPosition), &(aReply->mCursorIsCollapsed), nsnull);
+      nsIView *view = nsnull;
+      result =
+        caretP->GetCaretCoordinates(nsCaret::eIMECoordinates,
+                                    selection,
+                                    &(aReply->mCursorPosition),
+                                    &(aReply->mCursorIsCollapsed),
+                                    &view);
+      if (NS_SUCCEEDED(result) && view)
+        aReply->mReferenceWidget = view->GetWidget();
     }
   }
   return result;

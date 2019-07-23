@@ -294,6 +294,7 @@ public:
     nsWindow*          IMEComposingWindow(void);
     void               IMECreateContext  (void);
     PRBool             IMEFilterEvent    (GdkEventKey *aEvent);
+    void               IMESetCursorPosition(const nsTextEventReply& aReply);
 
     
 
