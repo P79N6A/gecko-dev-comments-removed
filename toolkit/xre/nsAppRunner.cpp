@@ -2995,9 +2995,11 @@ XRE_main(int argc, char* argv[], const nsXREAppData* aAppData)
 #endif
         }
       }
-
-      profileLock->Unlock();
     }
+
+    
+    
+    profileLock->Unlock();
 
     
     if (needsRestart) {
