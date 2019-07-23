@@ -430,12 +430,18 @@ void nsTableFrame::AttributeChangedFor(nsIFrame*       aFrame,
 PRInt32 nsTableFrame::GetEffectiveColCount() const
 {
   PRInt32 colCount = GetColCount();
-  
-  for (PRInt32 colX = colCount - 1; colX >= 0; colX--) {
-    if (GetNumCellsOriginatingInCol(colX) <= 0) { 
+  if (LayoutStrategy()->GetType() == nsITableLayoutStrategy::Auto) {
+    nsTableCellMap* cellMap = GetCellMap();
+    if (!cellMap) {
+      return 0;
+    }
+    
+    for (PRInt32 colX = colCount - 1; colX >= 0; colX--) {
+      if (cellMap->GetNumCellsOriginatingInCol(colX) > 0) { 
+        break;
+      }
       colCount--;
     }
-    else break;
   }
   return colCount;
 }
@@ -1613,8 +1619,7 @@ nsTableFrame::ProcessRowInserted(nscoord aNewHeight)
  void
 nsTableFrame::MarkIntrinsicWidthsDirty()
 {
-  static_cast<nsTableFrame*>(GetFirstInFlow())->
-    mTableLayoutStrategy->MarkIntrinsicWidthsDirty();
+  LayoutStrategy()->MarkIntrinsicWidthsDirty();
 
   
 
@@ -2212,7 +2217,7 @@ nsTableFrame::GetCollapsedWidth(nsMargin aBorderPadding)
         PRInt32 colWidth = GetColumnWidth(colX);
         if (!collapseGroup && !collapseCol) {
           width += colWidth;
-          if (GetNumCellsOriginatingInCol(colX) > 0)
+          if (ColumnHasCellSpacingBefore(colX))
             width += cellSpacingX;
         }
       }
@@ -4017,22 +4022,17 @@ nsTableFrame::GetRowAndColumnByIndex(PRInt32 aIndex,
 
 
 
-PRInt32 nsTableFrame::GetNumCellsOriginatingInCol(PRInt32 aColIndex) const
+PRBool
+nsTableFrame::ColumnHasCellSpacingBefore(PRInt32 aColIndex) const
 {
+  
+  
+  if (LayoutStrategy()->GetType() == nsITableLayoutStrategy::Fixed)
+    return PR_TRUE;
   nsTableCellMap* cellMap = GetCellMap();
-  if (cellMap) 
-    return cellMap->GetNumCellsOriginatingInCol(aColIndex);
-  else
-    return 0;
-}
-
-PRInt32 nsTableFrame::GetNumCellsOriginatingInRow(PRInt32 aRowIndex) const
-{
-  nsTableCellMap* cellMap = GetCellMap();
-  if (cellMap) 
-    return cellMap->GetNumCellsOriginatingInRow(aRowIndex);
-  else
-    return 0;
+  if (!cellMap) 
+    return PR_FALSE;
+  return cellMap->GetNumCellsOriginatingInCol(aColIndex) > 0;
 }
 
 static void

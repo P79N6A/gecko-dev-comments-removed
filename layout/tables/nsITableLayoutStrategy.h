@@ -70,6 +70,18 @@ public:
 
 
     virtual void ComputeColumnWidths(const nsHTMLReflowState& aReflowState) = 0;
+
+    
+
+
+
+    enum Type { Auto, Fixed };
+    Type GetType() const { return mType; }
+
+protected:
+    nsITableLayoutStrategy(Type aType) : mType(aType) {}
+private:
+    Type mType;
 };
 
 #endif 

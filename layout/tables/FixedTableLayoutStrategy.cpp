@@ -47,7 +47,8 @@
 #include "nsTableCellFrame.h"
 
 FixedTableLayoutStrategy::FixedTableLayoutStrategy(nsTableFrame *aTableFrame)
-  : mTableFrame(aTableFrame)
+  : nsITableLayoutStrategy(nsITableLayoutStrategy::Fixed)
+  , mTableFrame(aTableFrame)
 {
     MarkIntrinsicWidthsDirty();
 }
@@ -72,21 +73,20 @@ FixedTableLayoutStrategy::GetMinWidth(nsIRenderingContext* aRenderingContext)
     
     
     
+    
+    
+    
 
+    
     
 
     nsTableCellMap *cellMap = mTableFrame->GetCellMap();
     PRInt32 colCount = cellMap->GetColCount();
     nscoord spacing = mTableFrame->GetCellSpacingX();
 
-    
-
     nscoord result = 0;
 
-    
-
     if (colCount > 0) {
-        
         result += spacing * (colCount + 1);
     }
 
@@ -153,6 +153,9 @@ FixedTableLayoutStrategy::GetPrefWidth(nsIRenderingContext* aRenderingContext,
     
     
     
+    
+    
+    
     nscoord result = nscoord_MAX;
     DISPLAY_PREF_WIDTH(mTableFrame, result);
     return result;
@@ -178,17 +181,13 @@ FixedTableLayoutStrategy::ComputeColumnWidths(const nsHTMLReflowState& aReflowSt
     PRInt32 colCount = cellMap->GetColCount();
     nscoord spacing = mTableFrame->GetCellSpacingX();
 
-    
-
-    
-    if (colCount > 0) {
-        
-        nscoord subtract = spacing * (colCount + 1);
-        tableWidth -= subtract;
-    } else {
+    if (colCount == 0) {
         
         return;
     }
+
+    
+    tableWidth -= spacing * (colCount + 1);
 
     
     
