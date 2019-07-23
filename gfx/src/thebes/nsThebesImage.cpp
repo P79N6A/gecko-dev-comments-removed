@@ -562,28 +562,6 @@ nsThebesImage::ThebesDrawTile(gfxContext *thebesContext,
     return NS_OK;
 }
 
-
-NS_IMETHODIMP
-nsThebesImage::DrawToImage(nsIImage* aDstImage, PRInt32 aDX, PRInt32 aDY, PRInt32 aDWidth, PRInt32 aDHeight)
-{
-    nsThebesImage *dstThebesImage = static_cast<nsThebesImage*>(aDstImage);
-
-    nsRefPtr<gfxContext> dst = new gfxContext(dstThebesImage->ThebesSurface());
-
-    dst->NewPath();
-    
-    
-    
-    dst->Translate(gfxPoint(aDX, aDY));
-    dst->Rectangle(gfxRect(0, 0, aDWidth, aDHeight), PR_TRUE);
-    dst->Scale(double(aDWidth)/mWidth, double(aDHeight)/mHeight);
-
-    dst->SetSource(ThebesSurface());
-    dst->Paint();
-
-    return NS_OK;
-}
-
 PRBool
 nsThebesImage::ShouldUseImageSurfaces()
 {

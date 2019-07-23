@@ -271,6 +271,17 @@ private:
   static PRBool CopyFrameImage(gfxIImageFrame *aSrcFrame,
                                gfxIImageFrame *aDstFrame);
   
+  
+
+
+
+
+
+
+  static nsresult DrawFrameTo(gfxIImageFrame *aSrcFrame,
+                              gfxIImageFrame *aDstFrame,
+                              nsIntRect& aRect);
+
   nsIntSize                  mSize;
   
   

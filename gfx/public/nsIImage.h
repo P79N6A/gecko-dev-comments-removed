@@ -209,18 +209,6 @@ public:
 
 
 
-
-
-
-
-
-  NS_IMETHOD DrawToImage(nsIImage* aDstImage, PRInt32 aDX, PRInt32 aDY, PRInt32 aDWidth, PRInt32 aDHeight) = 0;
-
-  
-
-
-
-
   virtual PRInt8 GetAlphaDepth() = 0;
 
   

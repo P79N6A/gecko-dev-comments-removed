@@ -447,21 +447,6 @@ NS_IMETHODIMP gfxImageFrame::UnlockAlphaData()
 }
 
 
-
-
-
-
-NS_IMETHODIMP gfxImageFrame::DrawTo(gfxIImageFrame* aDst, PRInt32 aDX, PRInt32 aDY, PRInt32 aDWidth, PRInt32 aDHeight)
-{
-  if (!mInitialized)
-    return NS_ERROR_NOT_INITIALIZED;
-
-  nsCOMPtr<nsIImage> img(do_GetInterface(aDst));
-  return mImage->DrawToImage(img, aDX, aDY, aDWidth, aDHeight);
-}
-
-
-
 NS_IMETHODIMP gfxImageFrame::GetTimeout(PRInt32 *aTimeout)
 {
   if (!mInitialized)
