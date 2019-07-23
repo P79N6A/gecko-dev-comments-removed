@@ -71,7 +71,7 @@ var gLogEnabled = { };
 
 
 
-  
+
 function LOG(module, string) {
   if (module in gLogEnabled || "all" in gLogEnabled) {
     dump("*** " + module + ":" + string + "\n");
@@ -110,17 +110,17 @@ var gUpdates = {
 
 
   update: null,
-  
+
   
 
 
   strings: null,
-  
+
   
 
 
   brandName: null,
-  
+
   
 
 
@@ -143,7 +143,7 @@ var gUpdates = {
       button.setAttribute("accesskey", button.defaultAccesskey);
     }
   },
-  
+
   
 
 
@@ -218,14 +218,14 @@ var gUpdates = {
 
     
     
-    bc.hidden   = hideBackAndCancelButtons;  
+    bc.hidden   = hideBackAndCancelButtons;
     bb.hidden   = hideBackAndCancelButtons;
 
     
     be1.hidden = extraButton1String == null;
     be2.hidden = extraButton2String == null;
   },
-  
+
   never: function () {
     
     
@@ -260,7 +260,7 @@ var gUpdates = {
     if ("onWizardFinish" in this._pages[pageid])
       this._pages[pageid].onWizardFinish();
   },
-  
+
   
 
 
@@ -270,20 +270,20 @@ var gUpdates = {
     if ("onWizardCancel" in this._pages[pageid])
       this._pages[pageid].onWizardCancel();
   },
-  
+
   
 
 
 
   onWizardNext: function() {
     var cp = document.documentElement.currentPage;
-    if (!cp)  
+    if (!cp)
       return;
     var pageid = cp.pageid;
     if ("onWizardNext" in this._pages[pageid])
       this._pages[pageid].onWizardNext();
   },
-  
+
   
 
 
@@ -297,7 +297,7 @@ var gUpdates = {
 
 
   sourceEvent: SRCEVT_FOREGROUND,
-  
+
   
 
 
@@ -313,17 +313,17 @@ var gUpdates = {
     button.defaultLabel = button.label;
     button.defaultAccesskey = button.getAttribute("accesskey");
   },
-  
+
   
 
 
   onLoad: function() {
     this.wiz = document.documentElement;
-    
+
     gPref = Components.classes["@mozilla.org/preferences-service;1"]
                       .getService(Components.interfaces.nsIPrefBranch2);
     gConsole = Components.classes["@mozilla.org/consoleservice;1"]
-                         .getService(Components.interfaces.nsIConsoleService);  
+                         .getService(Components.interfaces.nsIConsoleService);
     this._initLoggingPrefs();
 
     this.strings = document.getElementById("updateStrings");
@@ -333,10 +333,10 @@ var gUpdates = {
     var pages = gUpdates.wiz.childNodes;
     for (var i = 0; i < pages.length; ++i) {
       var page = pages[i];
-      if (page.localName == "wizardpage") 
+      if (page.localName == "wizardpage")
         this._pages[page.pageid] = eval(page.getAttribute("object"));
     }
-  
+
     
     this._cacheButtonStrings("back");
     this._cacheButtonStrings("next");
@@ -344,7 +344,7 @@ var gUpdates = {
     this._cacheButtonStrings("cancel");
     this._cacheButtonStrings("extra1");
     this._cacheButtonStrings("extra2");
-    
+
     
     gUpdates.wiz.currentPage = this.startPage;
   },
@@ -368,7 +368,7 @@ var gUpdates = {
     catch (e) {
     }
   },
-    
+
   
 
 
@@ -405,7 +405,7 @@ var gUpdates = {
               
               
               
-              state = STATE_FAILED; 
+              state = STATE_FAILED;
             }
             else if (patchFailed == "complete") {
               
@@ -415,7 +415,7 @@ var gUpdates = {
               state = STATE_DOWNLOAD_FAILED;
             }
           }
-          
+
           
           
           switch (state) {
@@ -427,7 +427,7 @@ var gUpdates = {
           case STATE_DOWNLOADING:
             return document.getElementById("downloading");
           case STATE_FAILED:
-            window.getAttention();            
+            window.getAttention();
             return document.getElementById("errorpatching");
           case STATE_DOWNLOAD_FAILED:
           case STATE_APPLYING:
@@ -438,7 +438,7 @@ var gUpdates = {
       }
     }
     else {
-      var um = 
+      var um =
           Components.classes["@mozilla.org/updates/update-manager;1"].
           getService(Components.interfaces.nsIUpdateManager);
       if (um.activeUpdate) {
@@ -448,7 +448,7 @@ var gUpdates = {
     }
     return document.getElementById("checking");
   },
-  
+
   
 
 
@@ -459,7 +459,7 @@ var gUpdates = {
     if (this.update)
       this.update.QueryInterface(Components.interfaces.nsIWritablePropertyBag);
   },
-  
+
   
 
 
@@ -471,10 +471,10 @@ var gUpdates = {
 
   registerNagTimer: function(timerID, timerInterval, methodName) {
     
-    var tm = 
+    var tm =
         Components.classes["@mozilla.org/updates/timer-manager;1"].
         getService(Components.interfaces.nsIUpdateTimerManager);
-    
+
     
 
 
@@ -489,37 +489,37 @@ var gUpdates = {
     function Callback(update, methodName) {
       this._update = update;
       this._methodName = methodName;
-      this._prompter = 
+      this._prompter =
         Components.classes["@mozilla.org/updates/update-prompt;1"].
-        createInstance(Components.interfaces.nsIUpdatePrompt);      
+        createInstance(Components.interfaces.nsIUpdatePrompt);
     }
     Callback.prototype = {
       
 
 
       _update: null,
-      
+
       
 
 
       _prompter: null,
-      
+
       
 
 
       _methodName: "",
-      
+
       
 
 
 
 
       notify: function(timerCallback) {
-        if (methodName in this._prompter) 
+        if (methodName in this._prompter)
           this._prompter[methodName](null, this._update);
       }
     }
-    tm.registerTimer(timerID, (new Callback(gUpdates.update, methodName)), 
+    tm.registerTimer(timerID, (new Callback(gUpdates.update, methodName)),
                      timerInterval);
   }
 }
@@ -534,20 +534,20 @@ var gCheckingPage = {
 
 
   _checker: null,
-  
+
   
 
 
   onPageShow: function() {
-    gUpdates.setButtons(null, true, null, true, null, true, 
-                        null, false, false, null, 
+    gUpdates.setButtons(null, true, null, true, null, true,
+                        null, false, false, null,
                         false, null, false);
-    this._checker = 
+    this._checker =
       Components.classes["@mozilla.org/updates/update-checker;1"].
       createInstance(Components.interfaces.nsIUpdateChecker);
     this._checker.checkForUpdates(this.updateListener, true);
   },
-  
+
   
 
 
@@ -558,7 +558,7 @@ var gCheckingPage = {
       this._checker.stopChecking(nsIUpdateChecker.CURRENT_CHECK);
     }
   },
-  
+
   
 
 
@@ -581,8 +581,8 @@ var gCheckingPage = {
                           .getService(Components.interfaces.nsIApplicationUpdateService);
       gUpdates.setUpdate(aus.selectUpdate(updates, updates.length));
       if (!gUpdates.update) {
-        LOG("UI:CheckingPage", 
-            "Could not select an appropriate update, either because there " + 
+        LOG("UI:CheckingPage",
+            "Could not select an appropriate update, either because there " +
             "were none, or |selectUpdate| failed.");
         var checking = document.getElementById("checking");
         checking.setAttribute("next", "noupdatesfound");
@@ -601,7 +601,7 @@ var gCheckingPage = {
 
       gUpdates.wiz.currentPage = document.getElementById("errors");
     },
-    
+
     
 
 
@@ -643,7 +643,7 @@ var gUpdatesAvailablePage = {
 
 
   _updateMoreInfoContent: null,
-  
+
   
 
 
@@ -657,7 +657,7 @@ var gUpdatesAvailablePage = {
     gUpdates.wiz.getButton("next").disabled = true;
     gUpdates.wiz.getButton("back").disabled = true;
 
-    var updateName = gUpdates.strings.getFormattedString("updateName", 
+    var updateName = gUpdates.strings.getFormattedString("updateName",
       [gUpdates.brandName, gUpdates.update.version]);
     if (gUpdates.update.channel == "nightly")
       updateName = updateName + " nightly (" + gUpdates.update.buildID + ")";
@@ -666,15 +666,15 @@ var gUpdatesAvailablePage = {
     var severity = gUpdates.update.type;
     var updateTypeElement = document.getElementById("updateType");
     updateTypeElement.setAttribute("severity", severity);
- 
+
     var intro;
     if (severity == "major") {
       
       intro = gUpdates.strings.getFormattedString(
-        "introType_major_app_and_version", 
+        "introType_major_app_and_version",
         [gUpdates.brandName, gUpdates.update.version]);
 
-      this._updateMoreInfoContent = 
+      this._updateMoreInfoContent =
         document.getElementById("updateMoreInfoContent");
 
       
@@ -691,7 +691,7 @@ var gUpdatesAvailablePage = {
         "introType_minor_app", [gUpdates.brandName]);
 
       var updateMoreInfoURL = document.getElementById("updateMoreInfoURL");
-      updateMoreInfoURL.href = gUpdates.update.detailsURL; 
+      updateMoreInfoURL.href = gUpdates.update.detailsURL;
     }
 
     var updateTitle = gUpdates.strings
@@ -704,21 +704,22 @@ var gUpdatesAvailablePage = {
     while (updateTypeElement.hasChildNodes())
       updateTypeElement.removeChild(updateTypeElement.firstChild);
     updateTypeElement.appendChild(document.createTextNode(intro));
-    
+
     var em = Components.classes["@mozilla.org/extensions/manager;1"]
                        .getService(Components.interfaces.nsIExtensionManager);
     var items = em.getIncompatibleItemList("", gUpdates.update.version,
-                                           nsIUpdateItem.TYPE_ADDON, false, 
+                                           gUpdates.update.platformVersion,
+                                           nsIUpdateItem.TYPE_ADDON, false,
                                            { });
     if (items.length > 0) {
       
       
       var incompatibleWarning = document.getElementById("incompatibleWarning");
       incompatibleWarning.hidden = false;
-      
+
       this._incompatibleItems = items;
     }
-    
+
     
     
     this.onShowMoreDetails();
@@ -731,20 +732,20 @@ var gUpdatesAvailablePage = {
       gUpdates.update.setProperty("licenseAccepted", "false");
       licenseAccepted = false;
     }
-    
+
     
     if (gUpdates.update.type == "major" &&
         gUpdates.update.licenseURL && !licenseAccepted)
       gUpdates.wiz.currentPage.setAttribute("next", "license");
 
-    gUpdates.setButtons(null, true, "downloadButton_" + severity, 
+    gUpdates.setButtons(null, true, "downloadButton_" + severity,
                         false, null, false,
-                        null, false, true, 
-                        "laterButton", false, 
+                        null, false, true,
+                        "laterButton", false,
                         severity == "major" ? "neverButton" : null, false);
     gUpdates.wiz.getButton("next").focus();
   },
-  
+
   
 
 
@@ -803,7 +804,7 @@ var gUpdatesAvailablePage = {
 
 
   showIncompatibleItems: function() {
-    openDialog("chrome://mozapps/content/update/incompatible.xul", "", 
+    openDialog("chrome://mozapps/content/update/incompatible.xul", "",
                "dialog,centerscreen,modal,resizable,titlebar", this._incompatibleItems);
   }
 };
@@ -824,11 +825,11 @@ var gLicensePage = {
 
   onPageShow: function() {
     this._licenseContent = document.getElementById("licenseContent");
-    
+
     
     document.getElementById("acceptDeclineLicense").disabled = true;
 
-    gUpdates.setButtons(null, true, null, true, null, true, null, 
+    gUpdates.setButtons(null, true, null, true, null, true, null,
                         false, false, null, false, null, false);
 
     this._licenseContent.addEventListener("load", this.onLicenseLoad, false);
@@ -839,7 +840,7 @@ var gLicensePage = {
     this._licenseContent.update_version = gUpdates.update.version;
     this._licenseContent.url = gUpdates.update.licenseURL;
   },
-  
+
   
 
 
@@ -862,14 +863,14 @@ var gLicensePage = {
     gUpdates.wiz.getButton("next").disabled = !licenseAccepted;
     gUpdates.wiz.canAdvance = licenseAccepted;
   },
-  
+
   
 
 
   onWizardNext: function() {
     try {
       gUpdates.update.setProperty("licenseAccepted", "true");
-      var um = 
+      var um =
         Components.classes["@mozilla.org/updates/update-manager;1"].
         getService(Components.interfaces.nsIUpdateManager);
       um.saveUpdates();
@@ -878,7 +879,7 @@ var gLicensePage = {
       dump("XXX ex " + ex + "\n");
     }
   },
-  
+
   
 
 
@@ -902,7 +903,7 @@ var gLicensePage = {
 function DownloadStatusFormatter() {
   this._startTime = Math.floor((new Date()).getTime() / 1000);
   this._elapsed = 0;
-  
+
   var us = gUpdates.strings;
   this._statusFormat = us.getString("statusFormat");
 
@@ -934,22 +935,22 @@ DownloadStatusFormatter.prototype = {
 
 
   _elapsed: -1,
-  
+
   
 
 
   _rate: 0,
-  
+
   
 
 
   _rateFormatted: "",
-  
+
   
 
 
   _rateFormattedContainer: "",
-  
+
   
 
 
@@ -968,14 +969,14 @@ DownloadStatusFormatter.prototype = {
 
   formatStatus: function(currSize, finalSize) {
     var now = Math.floor((new Date()).getTime() / 1000);
-    
+
     
     var total = parseInt(finalSize/1024 + 0.5);
     this.progress = this._formatKBytes(parseInt(currSize/1024 + 0.5), total);
-    
+
     var progress = this._replaceInsert(this._progressFormat, 1, this.progress);
     var rateFormatted = "";
-    
+
     
     var oldElapsed = this._elapsed;
     this._elapsed = now - this._startTime;
@@ -988,7 +989,7 @@ DownloadStatusFormatter.prototype = {
       }
       if (this._rate > 100)
         this._rate = Math.round(this._rate);
-      
+
       if (this._rate) {
         var format = isKB ? this._rateFormatKBSec : this._rateFormatMBSec;
         this._rateFormatted = this._replaceInsert(format, 1, this._rate);
@@ -996,7 +997,7 @@ DownloadStatusFormatter.prototype = {
       }
     }
     progress = this._replaceInsert(progress, 2, this._rateFormattedContainer);
-    
+
 
     
     var remainingTime = "";
@@ -1006,7 +1007,7 @@ DownloadStatusFormatter.prototype = {
       remainingTime = this._replaceInsert(this._timeFormat, 1, remainingTime)
       remainingTime = this._replaceInsert(remainingTime, 2, this._remain);
     }
-    
+
     
     
     
@@ -1035,7 +1036,7 @@ DownloadStatusFormatter.prototype = {
 
 
 
-  
+
   _replaceInsert: function(format, index, value) {
     return format.replace(new RegExp("#" + index), value);
   },
@@ -1057,7 +1058,7 @@ DownloadStatusFormatter.prototype = {
   _formatKBytes: function(currentKB, totalKB) {
     var progressHasMB = parseInt(currentKB / 1024) > 0;
     var totalHasMB = parseInt(totalKB / 1024) > 0;
-    
+
     var format = "";
     if (!progressHasMB && !totalHasMB) {
       if (!totalKB) {
@@ -1083,7 +1084,7 @@ DownloadStatusFormatter.prototype = {
       format = this._progressFormatUnknownMB;
       format = this._replaceInsert(format, 1, (currentKB / 1024).toFixed(1));
     }
-    return format;  
+    return format;
   },
 
   
@@ -1098,7 +1099,7 @@ DownloadStatusFormatter.prototype = {
     seconds -= hours * 3600;
     var minutes = (seconds - (seconds % 60)) / 60;
     seconds -= minutes * 60;
-    
+
     
     if (hours < 10)
       hours = "0" + hours;
@@ -1106,7 +1107,7 @@ DownloadStatusFormatter.prototype = {
       minutes = "0" + minutes;
     if (seconds < 10)
       seconds = "0" + seconds;
-    
+
     
     var result = parseInt(hours) ? this._longTimeFormat : this._shortTimeFormat;
     result = this._replaceInsert(result, 1, hours);
@@ -1130,7 +1131,7 @@ var gDownloadingPage = {
   _downloadProgress : null,
   _downloadThrobber : null,
   _pauseButton      : null,
-  
+
   
 
 
@@ -1141,11 +1142,11 @@ var gDownloadingPage = {
 
   _statusFormatter  : null,
   get statusFormatter() {
-    if (!this._statusFormatter) 
+    if (!this._statusFormatter)
       this._statusFormatter = new DownloadStatusFormatter();
     return this._statusFormatter;
   },
-  
+
   
 
 
@@ -1156,29 +1157,29 @@ var gDownloadingPage = {
     this._downloadThrobber = document.getElementById("downloadThrobber");
     this._pauseButton = document.getElementById("pauseButton");
     this._label_downloadStatus = this._downloadStatus.textContent;
-  
-    var updates = 
+
+    var updates =
         Components.classes["@mozilla.org/updates/update-service;1"].
         getService(Components.interfaces.nsIApplicationUpdateService);
 
-    var um = 
+    var um =
         Components.classes["@mozilla.org/updates/update-manager;1"].
         getService(Components.interfaces.nsIUpdateManager);
     var activeUpdate = um.activeUpdate;
     if (activeUpdate)
       gUpdates.setUpdate(activeUpdate);
-    
+
     if (!gUpdates.update) {
       LOG("UI:DownloadingPage", "onPageShow: no valid update to download?!");
       return;
     }
-    
+
     try {
     
     
     gUpdates.update.QueryInterface(Components.interfaces.nsIWritablePropertyBag);
     gUpdates.update.setProperty("foregroundDownload", "true");
-  
+
     
     
     updates.pauseDownload();
@@ -1194,7 +1195,7 @@ var gDownloadingPage = {
       
       updates.addDownloadListener(this);
     }
-    
+
     if (activeUpdate)
       this._setUIState(!updates.isDownloading);
 
@@ -1208,7 +1209,7 @@ var gDownloadingPage = {
     gUpdates.setButtons(null, true, null, true, null, true, "hideButton",
                         false, false, null, false, null, false);
   },
-  
+
   
 
 
@@ -1221,12 +1222,12 @@ var gDownloadingPage = {
       this._downloadStatus.removeChild(this._downloadStatus.firstChild);
     this._downloadStatus.appendChild(document.createTextNode(status));
   },
-  
+
   
 
 
   _paused       : false,
-  
+
   
 
 
@@ -1264,7 +1265,7 @@ var gDownloadingPage = {
 
 
   onPause: function() {
-    var updates = 
+    var updates =
         Components.classes["@mozilla.org/updates/update-service;1"].
         getService(Components.interfaces.nsIApplicationUpdateService);
     if (this._paused)
@@ -1273,16 +1274,16 @@ var gDownloadingPage = {
       var patch = gUpdates.update.selectedPatch;
       patch.QueryInterface(Components.interfaces.nsIWritablePropertyBag);
       patch.setProperty("status",
-        gUpdates.strings.getFormattedString("pausedStatus", 
+        gUpdates.strings.getFormattedString("pausedStatus",
         [this.statusFormatter.progress]));
       updates.pauseDownload();
     }
     this._paused = !this._paused;
-    
+
     
     this._setUIState(this._paused);
   },
-  
+
   
 
 
@@ -1290,16 +1291,16 @@ var gDownloadingPage = {
     
     
     
-    var updates = 
+    var updates =
         Components.classes["@mozilla.org/updates/update-service;1"].
         getService(Components.interfaces.nsIApplicationUpdateService);
     updates.removeDownloadListener(this);
-    
-    var um = 
+
+    var um =
         Components.classes["@mozilla.org/updates/update-manager;1"]
                   .getService(Components.interfaces.nsIUpdateManager);
     um.activeUpdate = gUpdates.update;
-    
+
     
     
     var downloadInBackground = true;
@@ -1327,7 +1328,7 @@ var gDownloadingPage = {
       updates.downloadUpdate(gUpdates.update, false);
     }
   },
-  
+
   
 
 
@@ -1338,12 +1339,12 @@ var gDownloadingPage = {
   onStartRequest: function(request, context) {
     request.QueryInterface(nsIIncrementalDownload);
     LOG("UI:DownloadingPage", "onStartRequest: " + request.URI.spec);
-    
+
     
     
     if (this._paused)
       return;
-      
+
     if (!(this._downloadThrobber.hasAttribute("state") &&
           (this._downloadThrobber.getAttribute("state") == "loading")))
       this._downloadThrobber.setAttribute("state", "loading");
@@ -1351,7 +1352,7 @@ var gDownloadingPage = {
       this._downloadProgress.mode = "undetermined";
     this._setStatus(this._label_downloadStatus);
   },
-  
+
   
 
 
@@ -1365,7 +1366,7 @@ var gDownloadingPage = {
 
   onProgress: function(request, context, progress, maxProgress) {
     request.QueryInterface(nsIIncrementalDownload);
-    LOG("UI:DownloadingPage.onProgress", " " + request.URI.spec + ", " + progress + 
+    LOG("UI:DownloadingPage.onProgress", " " + request.URI.spec + ", " + progress +
         "/" + maxProgress);
 
     var name = gUpdates.strings.getFormattedString("downloadingPrefix", [gUpdates.update.name]);
@@ -1376,7 +1377,7 @@ var gDownloadingPage = {
     p.QueryInterface(Components.interfaces.nsIWritablePropertyBag);
     p.setProperty("progress", progress);
     p.setProperty("status", status);
-    
+
     
     
     if (this._paused)
@@ -1392,7 +1393,7 @@ var gDownloadingPage = {
     this._downloadName.value = name;
     this._setStatus(status);
   },
-  
+
   
 
 
@@ -1406,11 +1407,11 @@ var gDownloadingPage = {
 
   onStatus: function(request, context, status, statusText) {
     request.QueryInterface(nsIIncrementalDownload);
-    LOG("UI:DownloadingPage", "onStatus: " + request.URI.spec + " status = " + 
+    LOG("UI:DownloadingPage", "onStatus: " + request.URI.spec + " status = " +
         status + ", text = " + statusText);
     this._setStatus(statusText);
   },
-  
+
   
 
 
@@ -1422,9 +1423,9 @@ var gDownloadingPage = {
 
   onStopRequest: function(request, context, status) {
     request.QueryInterface(nsIIncrementalDownload);
-    LOG("UI:DownloadingPage", "onStopRequest: " + request.URI.spec + 
+    LOG("UI:DownloadingPage", "onStopRequest: " + request.URI.spec +
         ", status = " + status);
-    
+
     if (this._downloadThrobber.hasAttribute("state"))
       this._downloadThrobber.removeAttribute("state");
     if (this._downloadProgress.mode != "normal")
@@ -1434,7 +1435,7 @@ var gDownloadingPage = {
     const NS_BINDING_ABORTED = 0x804b0002;
     switch (status) {
     case Components.results.NS_ERROR_UNEXPECTED:
-      if (u.selectedPatch.state == STATE_DOWNLOAD_FAILED && 
+      if (u.selectedPatch.state == STATE_DOWNLOAD_FAILED &&
           u.isCompleteUpdate) {
         
         
@@ -1443,12 +1444,12 @@ var gDownloadingPage = {
       else {
         
         
-        
+
         
         
         this._downloadProgress.mode = "undetermined";
         this._pauseButton.disabled = true;
-        
+
         var verificationFailed = document.getElementById("verificationFailed");
         verificationFailed.hidden = false;
 
@@ -1473,12 +1474,12 @@ var gDownloadingPage = {
       break;
     }
 
-    var updates = 
+    var updates =
         Components.classes["@mozilla.org/updates/update-service;1"].
         getService(Components.interfaces.nsIApplicationUpdateService);
     updates.removeDownloadListener(this);
   },
-  
+
   
 
 
@@ -1502,7 +1503,7 @@ var gErrorsPage = {
     gUpdates.setButtons(null, true, null, true, null, false, "hideButton",
                         true, false, null, false, null, false);
     gUpdates.wiz.getButton("finish").focus();
-    
+
     var errorReason = document.getElementById("errorReason");
     errorReason.value = gUpdates.update.statusText;
     var formatter = Components.classes["@mozilla.org/toolkit/URLFormatterService;1"]
@@ -1512,7 +1513,7 @@ var gErrorsPage = {
     errorLinkLabel.value = manualURL;
     errorLinkLabel.href = manualURL;
   },
-  
+
   
 
 
@@ -1571,7 +1572,7 @@ var gFinishedPage = {
 
 
 
-  onPageShow: function(aDelayRestart) {  
+  onPageShow: function(aDelayRestart) {
     gUpdates.setButtons(null, true, null, true, "restartButton", aDelayRestart,
                         "laterButton", false, false, null, false, null, false);
     if (aDelayRestart)
@@ -1579,7 +1580,7 @@ var gFinishedPage = {
     else
       gUpdates.wiz.getButton("finish").focus();
   },
-  
+
   
 
 
@@ -1591,10 +1592,10 @@ var gFinishedPage = {
     gUpdates.wiz._adjustWizardHeader();
     var updateFinishedName = document.getElementById("updateFinishedName");
     updateFinishedName.value = gUpdates.update.name;
-    
+
     var link = document.getElementById("finishedBackgroundLink");
     link.href = gUpdates.update.detailsURL;
-    
+
     this.onPageShow(true);
 
     if (getPref("getBoolPref", PREF_UPDATE_TEST_LOOP, false)) {
@@ -1604,7 +1605,7 @@ var gFinishedPage = {
       setTimeout("restart();", UPDATE_TEST_LOOP_INTERVAL);
     }
   },
-  
+
   
 
 
@@ -1622,7 +1623,7 @@ var gFinishedPage = {
   onWizardFinish: function() {
     
     LOG("UI:FinishedPage" , "onWizardFinish: Restarting Application...");
-    
+
     
     
     
@@ -1646,7 +1647,7 @@ var gFinishedPage = {
     
     var os = Components.classes["@mozilla.org/observer-service;1"]
                        .getService(Components.interfaces.nsIObserverService);
-    var cancelQuit = 
+    var cancelQuit =
         Components.classes["@mozilla.org/supports-PRBool;1"].
         createInstance(Components.interfaces.nsISupportsPRBool);
     os.notifyObservers(cancelQuit, "quit-application-requested", "restart");
@@ -1654,13 +1655,13 @@ var gFinishedPage = {
     
     if (cancelQuit.data)
       return;
-    
-    var appStartup = 
+
+    var appStartup =
         Components.classes["@mozilla.org/toolkit/app-startup;1"].
         getService(Components.interfaces.nsIAppStartup);
     appStartup.quit(appStartup.eAttemptQuit | appStartup.eRestart);
   },
-  
+
   
 
 
@@ -1670,11 +1671,11 @@ var gFinishedPage = {
                        .getService(Components.interfaces.nsIPromptService);
     var message = gUpdates.strings.getFormattedString("restartLaterMsg",
       [gUpdates.brandName]);
-    ps.alert(window, gUpdates.strings.getString("restartLaterTitle"), 
+    ps.alert(window, gUpdates.strings.getString("restartLaterTitle"),
              message);
 
     var interval = getPref("getIntPref", PREF_UPDATE_NAGTIMER_RESTART, 1800);
-    gUpdates.registerNagTimer("restart-nag-timer", interval, 
+    gUpdates.registerNagTimer("restart-nag-timer", interval,
                               "showUpdateComplete");
   }
 };
@@ -1687,10 +1688,10 @@ var gInstalledPage = {
 
 
   onPageShow: function() {
-    var ai = 
+    var ai =
         Components.classes["@mozilla.org/xre/app-info;1"].
         getService(Components.interfaces.nsIXULAppInfo);
-    
+
     var branding = document.getElementById("brandStrings");
     try {
       var url = branding.getFormattedString("whatsNewURL", [ai.version]);
@@ -1700,7 +1701,7 @@ var gInstalledPage = {
     }
     catch (e) {
     }
-    
+
     gUpdates.setButtons(null, true, null, true, null, false, "hideButton",
                         true, false, null, false, null, false);
     gUpdates.wiz.getButton("finish").focus();
