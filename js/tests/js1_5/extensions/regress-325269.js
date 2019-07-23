@@ -60,27 +60,34 @@ Redirector.__defineGetter__('prototype', function() {
 			    });
 
 
-Array = Function('');
-Array.prototype = 1;
-Array.__defineGetter__('prototype', function() {
+try {
+    Array = Function('');
+} catch (e) { }
 
-			 Array = Redirector;
-			 gc();
-			 new Object();
-			 new Object();
-			 return undefined;
-		       });
+if (Array === SavedArray) {
+  
+  actual = expect;
+} else {
+  Array.prototype = 1;
+  Array.__defineGetter__('prototype', function() {
 
-new Object();
+      Array = Redirector;
+      gc();
+      new Object();
+      new Object();
+      return undefined;
+    });
 
-try
-{
-  var y = "test".split('');
+  new Object();
+
+  try
+  {
+    var y = "test".split('');
+  }
+  catch(ex)
+  {
+    printStatus(ex + '');
+  }
 }
-catch(ex)
-{
-  printStatus(ex + '');
-}
-
 
 reportCompare(expect, actual, summary);
