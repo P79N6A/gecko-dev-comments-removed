@@ -36,6 +36,7 @@
 
 
 
+
 #ifndef nsAnnoProtocolHandler_h___
 #define nsAnnoProtocolHandler_h___
 
@@ -63,7 +64,22 @@ private:
 
 protected:
   nsresult ParseAnnoURI(nsIURI* aURI, nsIURI** aResultURI, nsCString& aName);
-  nsresult GetDefaultIcon(nsIChannel** aChannel);
+
+  
+
+
+
+
+
+
+
+
+
+
+
+  nsresult NewFaviconChannel(nsIURI *aURI,
+                             nsIURI *aAnnotationURI,
+                             nsIChannel **_channel);
 };
 
 #endif 

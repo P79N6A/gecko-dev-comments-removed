@@ -47,6 +47,14 @@
 #include "nsIObserver.h"
 
 
+
+
+#define MAX_FAVICON_SIZE 10240
+
+
+class mozIStorageStatementCallback;
+
+
 class FaviconLoadListener;
 
 class nsFaviconService : public nsIFaviconService
@@ -92,6 +100,19 @@ public:
   static nsresult OptimizeFaviconImage(const PRUint8* aData, PRUint32 aDataLen,
                                        const nsACString& aMimeType,
                                        nsACString& aNewData, nsACString& aNewMimeType);
+
+  
+
+
+
+
+
+
+
+
+
+  nsresult GetFaviconDataAsync(nsIURI *aFaviconURI,
+                               mozIStorageStatementCallback *aCallback);
 
   
 

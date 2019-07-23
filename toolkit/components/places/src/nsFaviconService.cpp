@@ -88,11 +88,6 @@
 
 
 
-#define MAX_FAVICON_SIZE 10240
-
-
-
-
 
 
 
@@ -1144,6 +1139,18 @@ nsFaviconService::FinalizeStatements() {
   }
 
   return NS_OK;
+}
+
+nsresult
+nsFaviconService::GetFaviconDataAsync(nsIURI* aFaviconURI,
+                                      mozIStorageStatementCallback *aCallback)
+{
+  NS_ASSERTION(aCallback, "Doesn't make sense to call this without a callback");
+  nsresult rv = BindStatementURI(mDBGetData, 0, aFaviconURI);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  nsCOMPtr<mozIStoragePendingStatement> pendingStatement;
+  return mDBGetData->ExecuteAsync(aCallback, getter_AddRefs(pendingStatement));
 }
 
 NS_IMPL_ISUPPORTS4(FaviconLoadListener,

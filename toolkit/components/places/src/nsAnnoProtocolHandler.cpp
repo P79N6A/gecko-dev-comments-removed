@@ -45,6 +45,7 @@
 
 
 
+
 #include "nsAnnoProtocolHandler.h"
 #include "nsFaviconService.h"
 #include "nsIChannel.h"
@@ -57,6 +58,196 @@
 #include "nsNetUtil.h"
 #include "nsServiceManagerUtils.h"
 #include "nsStringStream.h"
+#include "mozIStorageStatementCallback.h"
+#include "mozIStorageResultSet.h"
+#include "mozIStorageRow.h"
+#include "mozIStorageError.h"
+#include "nsIPipe.h"
+
+
+
+
+
+
+
+static
+nsresult
+GetDefaultIcon(nsIChannel **aChannel)
+{
+  nsCOMPtr<nsIURI> defaultIconURI;
+  nsresult rv = NS_NewURI(getter_AddRefs(defaultIconURI),
+                          NS_LITERAL_CSTRING(FAVICON_DEFAULT_URL));
+  NS_ENSURE_SUCCESS(rv, rv);
+  return NS_NewChannel(aChannel, defaultIconURI);
+}
+
+
+
+
+namespace {
+
+
+
+
+
+
+
+
+
+
+
+
+class faviconAsyncLoader : public mozIStorageStatementCallback
+                         , public nsIRequestObserver
+{
+public:
+  NS_DECL_ISUPPORTS
+
+  faviconAsyncLoader(nsIChannel *aChannel, nsIOutputStream *aOutputStream) :
+      mChannel(aChannel)
+    , mOutputStream(aOutputStream)
+    , mReturnDefaultIcon(true)
+  {
+    NS_ASSERTION(aChannel,
+                 "Not providing a channel will result in crashes!");
+    NS_ASSERTION(aOutputStream,
+                 "Not providing an output stream will result in crashes!");
+  }
+
+  
+  
+
+  NS_IMETHOD HandleResult(mozIStorageResultSet *aResultSet)
+  {
+    
+    nsCOMPtr<mozIStorageRow> row;
+    nsresult rv = aResultSet->GetNextRow(getter_AddRefs(row));
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    
+    
+    nsCAutoString mimeType;
+    (void)row->GetUTF8String(1, mimeType);
+    NS_ENSURE_FALSE(mimeType.IsEmpty(), NS_OK);
+
+    
+    rv = mChannel->SetContentType(mimeType);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    
+    PRUint8 *favicon;
+    PRUint32 size = 0;
+    rv = row->GetBlob(0, &size, &favicon);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    PRUint32 totalWritten = 0;
+    do {
+      PRUint32 bytesWritten;
+      rv = mOutputStream->Write(
+        &(reinterpret_cast<const char *>(favicon)[totalWritten]),
+        size - totalWritten,
+        &bytesWritten
+      );
+      if (NS_FAILED(rv) || !bytesWritten)
+        break;
+      totalWritten += bytesWritten;
+    } while (size != totalWritten);
+    NS_ASSERTION(NS_FAILED(rv) || size == totalWritten,
+                 "Failed to write all of our data out to the stream!");
+
+    
+    NS_Free(favicon);
+
+    
+    
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    
+    
+    mReturnDefaultIcon = false;
+    return NS_OK;
+  }
+
+  NS_IMETHOD HandleError(mozIStorageError *aError)
+  {
+#ifdef DEBUG
+    PRInt32 result;
+    nsresult rv = aError->GetResult(&result);
+    NS_ENSURE_SUCCESS(rv, rv);
+    nsCAutoString message;
+    rv = aError->GetMessage(message);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    nsCAutoString warnMsg;
+    warnMsg.Append("An error occurred while trying to get a favicon: ");
+    warnMsg.Append(result);
+    warnMsg.Append(" ");
+    warnMsg.Append(message);
+    NS_WARNING(warnMsg.get());
+#endif
+
+    return NS_OK;
+  }
+
+  NS_IMETHOD HandleCompletion(PRUint16 aReason)
+  {
+    if (!mReturnDefaultIcon)
+      return mOutputStream->Close();
+
+    
+    
+    
+    nsCOMPtr<nsIStreamListener> listener;
+    nsresult rv = NS_NewSimpleStreamListener(getter_AddRefs(listener),
+                                             mOutputStream, this);
+    NS_ENSURE_SUCCESS(rv, mOutputStream->Close());
+
+    nsCOMPtr<nsIChannel> newChannel;
+    rv = GetDefaultIcon(getter_AddRefs(newChannel));
+    NS_ENSURE_SUCCESS(rv, mOutputStream->Close());
+
+    rv = newChannel->AsyncOpen(listener, nsnull);
+    NS_ENSURE_SUCCESS(rv, mOutputStream->Close());
+
+    return NS_OK;
+  }
+
+  
+  
+
+  NS_IMETHOD OnStartRequest(nsIRequest *, nsISupports *)
+  {
+    return NS_OK;
+  }
+
+  NS_IMETHOD OnStopRequest(nsIRequest *, nsISupports *, nsresult aStatusCode)
+  {
+    
+    (void)mOutputStream->Close();
+
+    
+    NS_WARN_IF_FALSE(NS_SUCCEEDED(aStatusCode),
+                     "Got an error when trying to load our default favicon!");
+
+    return NS_OK;
+  }
+
+private:
+  nsCOMPtr<nsIChannel> mChannel;
+  nsCOMPtr<nsIOutputStream> mOutputStream;
+  bool mReturnDefaultIcon;
+};
+
+NS_IMPL_ISUPPORTS2(
+  faviconAsyncLoader,
+  mozIStorageStatementCallback,
+  nsIRequestObserver
+)
+
+} 
+
+
+
 
 NS_IMPL_ISUPPORTS1(nsAnnoProtocolHandler, nsIProtocolHandler)
 
@@ -136,37 +327,24 @@ nsAnnoProtocolHandler::NewChannel(nsIURI *aURI, nsIChannel **_retval)
   NS_ENSURE_SUCCESS(rv, rv);
 
   
+  
+  if (annoName.EqualsLiteral(FAVICON_ANNOTATION_NAME))
+    return NewFaviconChannel(aURI, annoURI, _retval);
+
+  
   PRUint8* data;
   PRUint32 dataLen;
   nsCAutoString mimeType;
 
-  if (annoName.EqualsLiteral(FAVICON_ANNOTATION_NAME)) {
-    
-    nsFaviconService* faviconService = nsFaviconService::GetFaviconService();
-    if (! faviconService) {
-      NS_WARNING("Favicon service is unavailable.");
-      return GetDefaultIcon(_retval);
-    }
-    rv = faviconService->GetFaviconData(annoURI, mimeType, &dataLen, &data);
-    if (NS_FAILED(rv))
-      return GetDefaultIcon(_retval);
+  
+  rv = annotationService->GetPageAnnotationBinary(annoURI, annoName, &data,
+                                                  &dataLen, mimeType);
+  NS_ENSURE_SUCCESS(rv, rv);
 
-    
-    if (mimeType.IsEmpty()) {
-      NS_Free(data);
-      return GetDefaultIcon(_retval);
-    }
-  } else {
-    
-    rv = annotationService->GetPageAnnotationBinary(annoURI, annoName, &data,
-                                                    &dataLen, mimeType);
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    
-    if (mimeType.IsEmpty()) {
-      NS_Free(data);
-      return NS_ERROR_NOT_AVAILABLE;
-    }
+  
+  if (mimeType.IsEmpty()) {
+    NS_Free(data);
+    return NS_ERROR_NOT_AVAILABLE;
   }
 
   nsCOMPtr<nsIStringInputStream> stream = do_CreateInstance(
@@ -228,17 +406,37 @@ nsAnnoProtocolHandler::ParseAnnoURI(nsIURI* aURI,
   return NS_OK;
 }
 
-
-
-
-
-
 nsresult
-nsAnnoProtocolHandler::GetDefaultIcon(nsIChannel** aChannel)
+nsAnnoProtocolHandler::NewFaviconChannel(nsIURI *aURI, nsIURI *aAnnotationURI,
+                                         nsIChannel **_channel)
 {
-  nsresult rv;
-  nsCOMPtr<nsIURI> uri;
-  rv = NS_NewURI(getter_AddRefs(uri), NS_LITERAL_CSTRING(FAVICON_DEFAULT_URL));
-  NS_ENSURE_SUCCESS(rv, rv);
-  return NS_NewChannel(aChannel, uri);
+  
+  
+  nsCOMPtr<nsIInputStream> inputStream;
+  nsCOMPtr<nsIOutputStream> outputStream;
+  nsresult rv = NS_NewPipe(getter_AddRefs(inputStream),
+                           getter_AddRefs(outputStream),
+                           MAX_FAVICON_SIZE, MAX_FAVICON_SIZE, PR_TRUE,
+                           PR_TRUE);
+  NS_ENSURE_SUCCESS(rv, GetDefaultIcon(_channel));
+
+  
+  
+  nsCOMPtr<nsIChannel> channel;
+  rv = NS_NewInputStreamChannel(getter_AddRefs(channel), aURI, inputStream,
+                                EmptyCString());
+  NS_ENSURE_SUCCESS(rv, GetDefaultIcon(_channel));
+
+  
+  nsCOMPtr<mozIStorageStatementCallback> callback =
+    new faviconAsyncLoader(channel, outputStream);
+  NS_ENSURE_TRUE(callback, GetDefaultIcon(_channel));
+  nsFaviconService* faviconService = nsFaviconService::GetFaviconService();
+  NS_ENSURE_TRUE(faviconService, GetDefaultIcon(_channel));
+
+  rv = faviconService->GetFaviconDataAsync(aAnnotationURI, callback);
+  NS_ENSURE_SUCCESS(rv, GetDefaultIcon(_channel));
+
+  channel.forget(_channel);
+  return NS_OK;
 }
