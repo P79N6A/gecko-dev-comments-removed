@@ -62,6 +62,8 @@
 #include "nsReadableUtils.h"
 #include "nsIObserverService.h"
 #include "nsIPrefService.h"
+#include "nsICommandLineRunner.h"
+#include "nsDirectoryServiceDefs.h"
 
 #include "nsAEEventHandling.h"
 #include "nsXPFEComponentsCID.h"
@@ -357,16 +359,33 @@ OSErr nsMacCommandLine::HandleOpenOneDoc(const FSSpec& inFileSpec, OSType inFile
     
     
     
-    return AddToCommandLine("-url", inFileSpec);
+    rv = AddToCommandLine("-url", inFileSpec);
+    return (NS_SUCCEEDED(rv)) ? noErr : errAEEventNotHandled;
   }
 
   
-  nsCAutoString specBuf;
-  rv = NS_GetURLSpecFromFile(inFile, specBuf);
+  nsCOMPtr<nsICommandLineRunner> cmdLine
+    (do_CreateInstance("@mozilla.org/toolkit/command-line;1"));
+  if (!cmdLine) {
+    NS_ERROR("Couldn't create command line!");
+    return errAEEventNotHandled;
+  }
+  nsCString filePath;
+  rv = inFile->GetNativePath(filePath);
   if (NS_FAILED(rv))
     return errAEEventNotHandled;
-  
-  return OpenURL(specBuf.get());
+
+  nsCOMPtr<nsIFile> workingDir;
+  rv = NS_GetSpecialDirectory(NS_OS_CURRENT_WORKING_DIR, getter_AddRefs(workingDir));
+  if (NS_FAILED(rv))
+    return errAEEventNotHandled;
+
+  const char *argv[3] = {nsnull, "-file", filePath.get()};
+  rv = cmdLine->Init(3, const_cast<char**>(argv), workingDir, nsICommandLine::STATE_REMOTE_EXPLICIT);
+  if (NS_FAILED(rv))
+    return errAEEventNotHandled;
+  rv = cmdLine->Run();
+  return (NS_SUCCEEDED(rv)) ? noErr : errAEEventNotHandled;
 }
 
 OSErr nsMacCommandLine::OpenURL(const char* aURL)
