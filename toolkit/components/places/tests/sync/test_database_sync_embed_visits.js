@@ -74,10 +74,7 @@ var observer = {
     if (aTopic == kSyncFinished && this.visitId != -1) {
       
       os.removeObserver(this, kSyncFinished);
-      dump("\n\n");
-      dump_table("moz_places_temp");
-      dump_table("moz_places");
-      dump("\n\n");
+
       
       var stmt = dbConn.createStatement(
         "SELECT id FROM moz_places WHERE url = :url");
@@ -135,7 +132,7 @@ var observer = {
       do_check_false(stmt.executeStep());
       stmt.finalize();
 
-      do_test_finished();
+      finish_test();
     }
   }
 }
