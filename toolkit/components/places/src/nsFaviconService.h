@@ -144,7 +144,7 @@ private:
 
   
   
-  bool mExpirationRunning;
+  bool mFaviconsExpirationRunning;
 
   
   
