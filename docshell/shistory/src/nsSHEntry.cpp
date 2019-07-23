@@ -161,13 +161,15 @@ nsSHEntry::~nsSHEntry()
     viewer->Destroy();
   }
 
-#ifdef DEBUG
   nsExpirationTracker<nsSHEntry,3>::Iterator iterator(gHistoryTracker);
   nsSHEntry* elem;
   while ((elem = iterator.Next()) != nsnull) {
     NS_ASSERTION(elem != this, "Found dead entry still in the tracker!");
+    if (elem == this) {
+      
+      *(int*)0 = 0;
+    }
   }
-#endif
 }
 
 
@@ -233,6 +235,13 @@ nsSHEntry::SetContentViewer(nsIContentViewer *aViewer)
   mContentViewer = aViewer;
 
   if (mContentViewer) {
+    if (mExpirationState.IsTracked()) {
+      NS_ERROR("This object should not already be in the tracker!!!");
+      *(int*)0 = 0; 
+    } else {
+      gHistoryTracker->AddObject(this);
+    }
+
     nsCOMPtr<nsIDOMDocument> domDoc;
     mContentViewer->GetDOMDocument(getter_AddRefs(domDoc));
     
@@ -242,8 +251,6 @@ nsSHEntry::SetContentViewer(nsIContentViewer *aViewer)
       mDocument->SetShellsHidden(PR_TRUE);
       mDocument->AddMutationObserver(this);
     }
-    
-    gHistoryTracker->AddObject(this);
   }
 
   return NS_OK;
