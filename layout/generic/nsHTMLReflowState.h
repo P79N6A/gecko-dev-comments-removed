@@ -366,10 +366,6 @@ public:
                                      
   } mFlags;
 
-#ifdef IBMBIDI
-  nscoord mRightEdge;
-#endif
-
   
   
   
