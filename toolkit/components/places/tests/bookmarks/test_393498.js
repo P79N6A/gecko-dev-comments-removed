@@ -123,13 +123,14 @@ function run_test() {
 
   
   
+  
+  var pastDate = Date.now() * 1000 - 1;
+  bmsvc.setItemLastModified(bookmarkId, pastDate);
+  
   var oldLastModified = bmsvc.getItemLastModified(bookmarkId);
-  
-  
-  bmsvc.setItemTitle(bookmarkId, "Google"); 
   bmsvc.setItemTitle(bookmarkId, "Google");
   
-  do_check_neq(oldLastModified, childNode.lastModified);
+  do_check_true(oldLastModified < childNode.lastModified);
   
   do_check_eq(bmsvc.getItemLastModified(bookmarkId), childNode.lastModified);
 
