@@ -1276,11 +1276,11 @@ nsHTMLReflowState::InitAbsoluteConstraints(nsPresContext* aPresContext,
         mComputedMargin.right = availMarginSpace - mComputedMargin.left;
       } else {
         
-        mComputedMargin.left = availMarginSpace - mComputedMargin.right;
+        mComputedMargin.left = availMarginSpace;
       }
     } else {
       
-      mComputedMargin.right = availMarginSpace - mComputedMargin.left;
+      mComputedMargin.right = availMarginSpace;
     }
   }
 
