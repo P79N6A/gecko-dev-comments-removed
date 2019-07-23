@@ -11,10 +11,8 @@
 %charsetDTD;
 <!ENTITY % textcontextDTD SYSTEM "chrome:
 %textcontextDTD;
-#ifdef TOOLBAR_CUSTOMIZATION_SHEET
 <!ENTITY % customizeToolbarDTD SYSTEM "chrome:
   %customizeToolbarDTD;
-#endif
 <!ENTITY % placesDTD SYSTEM "chrome:
 %placesDTD;
 #ifdef MOZ_SAFE_BROWSING

@@ -822,3 +822,10 @@ pref("browser.bookmarks.editDialog.firstEditField", "namePicker");
 
 
 pref("geo.wifi.uri", "https://www.google.com/loc/json");
+
+
+#ifdef XP_MACOSX
+pref("toolbar.customization.usesheet", true);
+#else
+pref("toolbar.customization.usesheet", false);
+#endif

@@ -3275,6 +3275,7 @@ function OpenBrowserWindow()
   return win;
 }
 
+var gCustomizeSheet = false;
 
 
 function BrowserCustomizeToolbar()
@@ -3292,38 +3293,42 @@ function BrowserCustomizeToolbar()
     splitter.parentNode.removeChild(splitter);
 
   var customizeURL = "chrome://global/content/customizeToolbar.xul";
-#ifdef TOOLBAR_CUSTOMIZATION_SHEET
-  var sheetFrame = document.getElementById("customizeToolbarSheetIFrame");
-  sheetFrame.hidden = false;
+  gCustomizeSheet = getBoolPref("toolbar.customization.usesheet", false);
 
-  
-  
-  
-  if (sheetFrame.getAttribute("src") == customizeURL)
-    sheetFrame.contentWindow.location.reload()
-  else
-    sheetFrame.setAttribute("src", customizeURL);
+  if (gCustomizeSheet) {
+    var sheetFrame = document.getElementById("customizeToolbarSheetIFrame");
+    sheetFrame.hidden = false;
+    sheetFrame.toolbox = gNavToolbox;
 
-  
-  
-  var sheetWidth = sheetFrame.style.width.match(/([0-9]+)px/)[1];
-  document.getElementById("customizeToolbarSheetPopup")
-          .openPopup(gNavToolbox, "after_start", (window.innerWidth - sheetWidth) / 2, 0);
+    
+    
+    
+    if (sheetFrame.getAttribute("src") == customizeURL)
+      sheetFrame.contentWindow.location.reload()
+    else
+      sheetFrame.setAttribute("src", customizeURL);
 
-  return sheetFrame.contentWindow;
-#else
-  return window.openDialog(customizeURL,
-                           "CustomizeToolbar",
-                           "chrome,titlebar,toolbar,location,resizable,dependent",
-                           gNavToolbox);
-#endif
+    
+    
+    var sheetWidth = sheetFrame.style.width.match(/([0-9]+)px/)[1];
+    document.getElementById("customizeToolbarSheetPopup")
+            .openPopup(gNavToolbox, "after_start",
+                       (window.innerWidth - sheetWidth) / 2, 0);
+
+    return sheetFrame.contentWindow;
+  } else {
+    return window.openDialog(customizeURL,
+                             "CustomizeToolbar",
+                             "chrome,titlebar,toolbar,location,resizable,dependent",
+                             gNavToolbox);
+  }
 }
 
 function BrowserToolboxCustomizeDone(aToolboxChanged) {
-#ifdef TOOLBAR_CUSTOMIZATION_SHEET
-  document.getElementById("customizeToolbarSheetIFrame").hidden = true;
-  document.getElementById("customizeToolbarSheetPopup").hidePopup();
-#endif
+  if (gCustomizeSheet) {
+    document.getElementById("customizeToolbarSheetIFrame").hidden = true;
+    document.getElementById("customizeToolbarSheetPopup").hidePopup();
+  }
 
   
   if (aToolboxChanged) {
@@ -3379,10 +3384,10 @@ function BrowserToolboxCustomizeDone(aToolboxChanged) {
     SetClickAndHoldHandlers();
 #endif
 
-#ifndef TOOLBAR_CUSTOMIZATION_SHEET
   
-  window.focus();
-#endif
+  if (!gCustomizeSheet)
+    window.focus();
+
 }
 
 function BrowserToolboxCustomizeChange() {
