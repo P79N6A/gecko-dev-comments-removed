@@ -4983,8 +4983,17 @@ nsBlockFrame::RemoveFrame(nsIAtom*  aListName,
     return mAbsoluteContainer.RemoveFrame(this, aListName, aOldFrame);
   }
   else if (nsGkAtoms::floatList == aListName) {
-    RemoveFloat(aOldFrame);
-    MarkSameSpaceManagerLinesDirty(this);
+    nsIFrame* curFrame = aOldFrame;
+    
+    
+    
+    do {
+      nsIFrame* continuation = curFrame->GetNextContinuation();
+      nsBlockFrame* curParent = static_cast<nsBlockFrame*>(curFrame->GetParent());
+      curParent->RemoveFloat(curFrame);
+      MarkSameSpaceManagerLinesDirty(curParent);
+      curFrame = continuation;
+    } while (curFrame);
   }
 #ifdef IBMBIDI
   else if (nsGkAtoms::nextBidi == aListName) {
