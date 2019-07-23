@@ -850,11 +850,7 @@ Assembler::asm_call(LInsp ins)
 
     
     
-    
-    
-    
-    
-    NanoAssert(AvmCore::config.vfp || ins->isop(LIR_call));
+    NanoAssert(AvmCore::config.vfp || ins->isop(LIR_icall));
 
     
     
