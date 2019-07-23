@@ -958,7 +958,7 @@ static const char* gOggCodecs[] = {
 
 static const char* gOggMaybeCodecs[] = {
   nsnull
-}; 
+};
 
 static PRBool IsOggEnabled()
 {
@@ -1034,6 +1034,21 @@ PRBool nsHTMLMediaElement::CanHandleMediaType(const char* aMIMEType,
     return PR_TRUE;
   }
 #endif
+  return PR_FALSE;
+}
+
+
+PRBool nsHTMLMediaElement::ShouldHandleMediaType(const char* aMIMEType)
+{
+#ifdef MOZ_OGG
+  if (IsOggType(nsDependentCString(aMIMEType)))
+    return PR_TRUE;
+#endif
+  
+  
+  
+  
+  
   return PR_FALSE;
 }
 
