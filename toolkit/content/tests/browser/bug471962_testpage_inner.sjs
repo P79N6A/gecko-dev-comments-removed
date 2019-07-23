@@ -53,7 +53,7 @@ function handleRequest(request, response)
    body += String.fromCharCode.apply(String, bodyStream.readByteArray(avail));
 
   body +=
-    '<form id="postForm" action="post_form_inner.sjs" method="post">\
+    '<form id="postForm" action="bug471962_testpage_inner.sjs" method="post">\
      <input type="text" name="inputfield" value="inner">\
      <input type="submit">\
      </form>\
