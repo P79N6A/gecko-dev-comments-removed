@@ -2499,12 +2499,14 @@ nsAccessible::GetRelationByType(PRUint32 aRelationType,
       
       
       
+      
+      
       nsIFrame *frame = GetFrame();
       if (frame) {
         nsIView *view = frame->GetViewExternal();
         if (view) {
           nsIScrollableFrame *scrollFrame = do_QueryFrame(frame);
-          if (scrollFrame || view->GetWidget()) {
+          if (scrollFrame || view->GetWidget() || !frame->GetParent()) {
             nsCOMPtr<nsIAccessible> accTarget;
             GetParent(getter_AddRefs(accTarget));
             return nsRelUtils::AddTarget(aRelationType, aRelation, accTarget);
