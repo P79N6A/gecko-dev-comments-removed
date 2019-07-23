@@ -606,17 +606,6 @@ tabs {
   -moz-box-orient: horizontal;
 }
 
-
-
-
-
-
-
-
-tabs[closebutton="true"] {
-  -moz-binding: url("chrome://global/content/bindings/tabbox.xml#tabs-closebutton");
-}
-
 tab {
   -moz-binding: url("chrome://global/content/bindings/tabbox.xml#tab");
   -moz-box-align: center;
