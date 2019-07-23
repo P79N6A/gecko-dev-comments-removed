@@ -48,6 +48,7 @@
 #include <ieeefp.h>
 #endif
 
+#include "jsstdint.h"
 #include "jsstr.h"
 
 
@@ -58,8 +59,6 @@
 
 
 
-
-JS_BEGIN_EXTERN_C
 
 
 
@@ -187,7 +186,7 @@ js_FinishRuntimeNumberState(JSContext *cx);
 
 extern JSClass js_NumberClass;
 
-extern JSObject *
+extern "C" JSObject *
 js_InitNumberClass(JSContext *cx, JSObject *obj);
 
 
@@ -224,6 +223,26 @@ js_NumberToString(JSContext *cx, jsdouble d);
 extern JSBool JS_FASTCALL
 js_NumberValueToCharBuffer(JSContext *cx, jsval v, JSCharBuffer &cb);
 
+namespace js {
+
+
+
+
+
+JS_ALWAYS_INLINE bool
+ValueToNumber(JSContext *cx, jsval v, double *out)
+{
+    if (JSVAL_IS_INT(v)) {
+        *out = JSVAL_TO_INT(v);
+        return true;
+    }
+    if (JSVAL_IS_DOUBLE(v)) {
+        *out = *JSVAL_TO_DOUBLE(v);
+        return true;
+    }
+    extern jsval ValueToNumberSlow(JSContext *, jsval, double *);
+    return !JSVAL_IS_NULL(ValueToNumberSlow(cx, v, out));
+}
 
 
 
@@ -231,8 +250,22 @@ js_NumberValueToCharBuffer(JSContext *cx, jsval v, JSCharBuffer &cb);
 
 
 
-extern jsdouble
-js_ValueToNumber(JSContext *cx, jsval* vp);
+
+JS_ALWAYS_INLINE bool
+ValueToNumberValue(JSContext *cx, jsval *vp, double *out)
+{
+    jsval v = *vp;
+    if (JSVAL_IS_INT(v)) {
+        *out = JSVAL_TO_INT(v);
+        return true;
+    }
+    if (JSVAL_IS_DOUBLE(v)) {
+        *out = *JSVAL_TO_DOUBLE(v);
+        return true;
+    }
+    extern bool ValueToNumberValueSlow(JSContext *, jsval *, double *);
+    return ValueToNumberValueSlow(cx, vp, out);
+}
 
 
 
@@ -241,12 +274,78 @@ js_ValueToNumber(JSContext *cx, jsval* vp);
 
 
 
+JS_ALWAYS_INLINE bool
+ValueToNumberValue(JSContext *cx, jsval *vp)
+{
+    jsval v = *vp;
+    if (JSVAL_IS_INT(v))
+        return true;
+    if (JSVAL_IS_DOUBLE(v))
+        return true;
+    extern bool ValueToNumberValueSlow(JSContext *, jsval *);
+    return ValueToNumberValueSlow(cx, vp);
+}
 
-extern int32
-js_ValueToECMAInt32(JSContext *cx, jsval *vp);
 
-extern uint32
-js_ValueToECMAUint32(JSContext *cx, jsval *vp);
+
+
+
+
+JS_ALWAYS_INLINE bool
+ValueToECMAInt32(JSContext *cx, jsval v, int32_t *out)
+{
+    if (JSVAL_IS_INT(v)) {
+        *out = JSVAL_TO_INT(v);
+        return true;
+    }
+    extern bool ValueToECMAInt32Slow(JSContext *, jsval, int32_t *);
+    return ValueToECMAInt32Slow(cx, v, out);
+}
+
+JS_ALWAYS_INLINE bool
+ValueToECMAUint32(JSContext *cx, jsval v, uint32_t *out)
+{
+    if (JSVAL_IS_INT(v)) {
+        *out = (uint32_t)JSVAL_TO_INT(v);
+        return true;
+    }
+    extern bool ValueToECMAUint32Slow(JSContext *, jsval, uint32_t *);
+    return ValueToECMAUint32Slow(cx, v, out);
+}
+
+
+
+
+
+
+JS_ALWAYS_INLINE bool
+ValueToInt32(JSContext *cx, jsval v, int32_t *out)
+{
+    if (JSVAL_IS_INT(v)) {
+        *out = JSVAL_TO_INT(v);
+        return true;
+    }
+    extern bool ValueToInt32Slow(JSContext *, jsval, int32_t *);
+    return ValueToInt32Slow(cx, v, out);
+}
+
+
+
+
+
+
+JS_ALWAYS_INLINE bool
+ValueToUint16(JSContext *cx, jsval v, uint16_t *out)
+{
+    if (JSVAL_IS_INT(v)) {
+        *out = (uint16_t)JSVAL_TO_INT(v);
+        return true;
+    }
+    extern bool ValueToUint16Slow(JSContext *, jsval, uint16_t *);
+    return ValueToUint16Slow(cx, v, out);
+}
+
+}  
 
 
 
@@ -355,27 +454,8 @@ js_DoubleToECMAInt32(jsdouble d)
 #endif
 }
 
-extern uint32
+uint32
 js_DoubleToECMAUint32(jsdouble d);
-
-
-
-
-
-
-
-
-
-extern int32
-js_ValueToInt32(JSContext *cx, jsval *vp);
-
-
-
-
-
-
-extern uint16
-js_ValueToUint16(JSContext *cx, jsval *vp);
 
 
 
@@ -426,9 +506,8 @@ extern JSBool
 js_strtointeger(JSContext *cx, const jschar *s, const jschar *send,
                 const jschar **ep, jsint radix, jsdouble *dp);
 
-JS_END_EXTERN_C
-
 namespace js {
+
 template<typename T> struct NumberTraits { };
 template<> struct NumberTraits<int32> {
   static JS_ALWAYS_INLINE int32 NaN() { return 0; }
