@@ -1620,8 +1620,13 @@ pref("intl.enable_tsf_support", false);
 pref("intl.tsf.on_layout_change_interval", 100);
 #endif
 
+#ifdef WINCE
+
+pref("ui.panel.default_level_parent", true);
+#else
 
 pref("ui.panel.default_level_parent", false);
+#endif
 
 pref("mousewheel.system_scroll_override_on_root_content.enabled", true);
 
