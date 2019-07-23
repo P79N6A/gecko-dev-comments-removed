@@ -763,7 +763,7 @@ JSScope::addProperty(JSContext *cx, jsid id,
 
 
 static inline bool
-NormalizeGetterAndSetter(JSContext *cx, JSScope *scope,
+NormalizeGetterAndSetter(JSContext *cx, const JSScope *scope,
                          jsid id, uintN attrs, uintN flags,
                          JSPropertyOp &getter,
                          JSPropertyOp &setter)
@@ -853,6 +853,25 @@ JSScope::addPropertyHelper(JSContext *cx, jsid id,
 
     METER(addFails);
     return NULL;
+}
+
+JSScopeProperty *
+JSScope::prepareAddProperty(JSContext *cx, jsid id, JSPropertyOp getter, JSPropertyOp setter,
+                            uint32 slot, uintN attrs, uintN flags, intN shortid) const
+{
+    NormalizeGetterAndSetter(cx, this, id, attrs, flags, getter, setter);
+
+    
+    
+    
+    if (inDictionaryMode()) {
+        JSScopeProperty *sprop = JS_PROPERTY_TREE(cx).newScopeProperty(cx, true);
+        if (sprop)
+            new (sprop) JSScopeProperty(id, getter, setter, slot, attrs, flags, shortid);
+        return sprop;
+    }
+    JSScopeProperty child(id, getter, setter, slot, attrs, flags, shortid);
+    return JS_PROPERTY_TREE(cx).getChild(cx, lastProp, shape, child);
 }
 
 JSScopeProperty *
