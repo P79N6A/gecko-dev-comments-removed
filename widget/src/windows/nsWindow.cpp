@@ -1167,22 +1167,8 @@ LRESULT CALLBACK nsWindow::WindowProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM
     }
   }
 
-#if defined(STRICT)
-  return ::CallWindowProcW((WNDPROC)someWindow->GetPrevWindowProc(), hWnd,
-                                    msg, wParam, lParam);
-#else
-  return ::CallWindowProcW((FARPROC)someWindow->GetPrevWindowProc(), hWnd,
-                                    msg, wParam, lParam);
-#endif
-}
-
-
-
-
-LRESULT CALLBACK nsWindow::DefaultWindowProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
-{
-  
-  return ::DefWindowProcW(hWnd, msg, wParam, lParam);
+  return ::CallWindowProcW(someWindow->GetPrevWindowProc(),
+                           hWnd, msg, wParam, lParam);
 }
 
 
@@ -5204,8 +5190,8 @@ PRBool nsWindow::ProcessMessage(UINT msg, WPARAM wParam, LPARAM lParam, LRESULT 
           break;
         }
 
-        LONG proc = ::GetWindowLongW(destWnd, GWL_WNDPROC);
-        if (proc != (LONG)&nsWindow::WindowProc) {
+        nsWindow* destWindow = GetNSWindowPtr(destWnd);
+        if (!destWindow || destWindow->mIsPluginWindow) {
           
           
           
@@ -5217,8 +5203,8 @@ PRBool nsWindow::ProcessMessage(UINT msg, WPARAM wParam, LPARAM lParam, LRESULT 
           
           HWND parentWnd = ::GetParent(destWnd);
           while (parentWnd) {
-            LONG parentWndProc = ::GetClassLongW(parentWnd, GCL_WNDPROC);
-            if (parentWndProc == (LONG)&nsWindow::DefaultWindowProc || parentWndProc == (LONG)&nsWindow::WindowProc) {
+            nsWindow* parentWindow = GetNSWindowPtr(parentWnd);
+            if (parentWindow) {
               
               
               
@@ -5226,6 +5212,7 @@ PRBool nsWindow::ProcessMessage(UINT msg, WPARAM wParam, LPARAM lParam, LRESULT 
               
               if (mIsInMouseWheelProcessing) {
                 destWnd = parentWnd;
+                destWindow = parentWindow;
               } else {
                 
                 
@@ -5246,7 +5233,6 @@ PRBool nsWindow::ProcessMessage(UINT msg, WPARAM wParam, LPARAM lParam, LRESULT 
         if (destWnd == nsnull)
           break; 
         if (destWnd != mWnd) {
-          nsWindow* destWindow = GetNSWindowPtr(destWnd);
           if (destWindow) {
             return destWindow->ProcessMessage(msg, wParam, lParam, aRetValue);
           }
@@ -5353,12 +5339,11 @@ LPCWSTR nsWindow::WindowClassW()
 
 
     wc.style         = CS_DBLCLKS;
-    wc.lpfnWndProc   = nsWindow::DefaultWindowProc;
+    wc.lpfnWndProc   = ::DefWindowProcW;
     wc.cbClsExtra    = 0;
     wc.cbWndExtra    = 0;
     wc.hInstance     = nsToolkit::mDllInstance;
-    
-    wc.hIcon         = ::LoadIcon(::GetModuleHandle(NULL), IDI_APPLICATION);
+    wc.hIcon         = ::LoadIconW(NULL, (LPWSTR)IDI_APPLICATION);
     wc.hCursor       = NULL;
     wc.hbrBackground = mBrush;
     wc.lpszMenuName  = NULL;
@@ -5421,12 +5406,11 @@ LPCWSTR nsWindow::WindowPopupClassW()
     WNDCLASSW wc;
 
     wc.style = CS_DBLCLKS | CS_XP_DROPSHADOW;
-    wc.lpfnWndProc   = nsWindow::DefaultWindowProc;
+    wc.lpfnWndProc   = ::DefWindowProcW;
     wc.cbClsExtra    = 0;
     wc.cbWndExtra    = 0;
     wc.hInstance     = nsToolkit::mDllInstance;
-    
-    wc.hIcon         = ::LoadIcon(::GetModuleHandle(NULL), IDI_APPLICATION);
+    wc.hIcon         = ::LoadIconW(NULL, (LPWSTR)IDI_APPLICATION);
     wc.hCursor       = NULL;
     wc.hbrBackground = mBrush;
     wc.lpszMenuName  = NULL;
