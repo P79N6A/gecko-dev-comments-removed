@@ -858,6 +858,13 @@ nsBaseWidget::EndSecureKeyboardInput()
   return NS_OK;
 }
 
+NS_IMETHODIMP
+nsBaseWidget::SetWindowTitlebarColor(nscolor aColor)
+{
+  return NS_ERROR_NOT_IMPLEMENTED;
+}
+
+
 
 
 

@@ -36,6 +36,7 @@
 
 
 
+
 #ifndef nsCocoaWindow_h_
 #define nsCocoaWindow_h_
 
@@ -69,6 +70,11 @@ class nsChildView;
 
 
 - (void)_setWindowNumber:(int)aNumber;
+
+
+
+
+- (void)setBottomCornerRounded:(BOOL)rounded;
 
 @end
 
@@ -108,9 +114,41 @@ class nsChildView;
 @end
 
 
+
+
+@interface TitlebarAndBackgroundColor : NSColor
+{
+  NSColor *mTitlebarColor;
+  NSColor *mBackgroundColor;
+  NSWindow *mWindow; 
+  float mTitlebarHeight;
+}
+
+- (id)initWithTitlebarColor:(NSColor*)aTitlebarColor 
+         andBackgroundColor:(NSColor*)aBackgroundColor
+                  forWindow:(NSWindow*)aWindow;
+
+
+- (void)setTitlebarColor:(NSColor*)aColor;
+- (NSColor*)titlebarColor;
+
+- (void)setBackgroundColor:(NSColor*)aColor;
+- (NSColor*)backgroundColor;
+
+- (NSWindow*)window;
+- (float)titlebarHeight;
+@end
+
+
 @interface ToolbarWindow : NSWindow
 {
+  TitlebarAndBackgroundColor *mColor;
 }
+- (void)setTitlebarColor:(NSColor*)aColor;
+- (NSColor*)titlebarColor;
+
+
+- (NSColor*)windowBackgroundColor;
 @end
 
 class nsCocoaWindow : public nsBaseWidget, public nsPIWidgetCocoa
@@ -199,6 +237,7 @@ public:
     NS_IMETHOD DispatchEvent(nsGUIEvent* event, nsEventStatus & aStatus) ;
     NS_IMETHOD CaptureRollupEvents(nsIRollupListener * aListener, PRBool aDoCapture, PRBool aConsumeRollupEvent);
     NS_IMETHOD GetAttention(PRInt32 aCycleCount);
+    NS_IMETHOD SetWindowTitlebarColor(nscolor aColor);
 
     virtual gfxASurface* GetThebesSurface();
 

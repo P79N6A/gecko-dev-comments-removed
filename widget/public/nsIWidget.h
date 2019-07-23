@@ -98,8 +98,8 @@ typedef nsEventStatus (*PR_CALLBACK EVENT_CALLBACK)(nsGUIEvent *event);
 
 
 #define NS_IWIDGET_IID \
-{ 0x15800FBD, 0x650A, 0x4F67, \
-  { 0x81, 0xFB, 0x18, 0x6E, 0x73, 0xF4, 0x5B, 0xE1 } }
+{ 0xd9d02313, 0x6a10, 0x4b6d, \
+  { 0x9f, 0x15, 0x18, 0x17, 0x7e, 0x94, 0x04, 0x7a } }
 
 
 
@@ -1033,7 +1033,23 @@ class nsIWidget : public nsISupports {
     
 
 
+
+
+
+
+
+
+
+
+
+
+    NS_IMETHOD SetWindowTitlebarColor(nscolor aColor) = 0;
+
+    
+
+
     virtual gfxASurface *GetThebesSurface() = 0;
+
 
 protected:
     
