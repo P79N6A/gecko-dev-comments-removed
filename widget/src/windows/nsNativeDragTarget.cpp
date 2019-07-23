@@ -234,6 +234,10 @@ nsNativeDragTarget::ProcessDrag(LPDATAOBJECT pData,
   
   nsCOMPtr<nsIDragSession> currSession;
   mDragService->GetCurrentSession(getter_AddRefs(currSession));
+  if (!currSession) {
+    return;
+  }
+
   currSession->SetDragAction(geckoAction);
 
   
