@@ -371,10 +371,15 @@ namespace nanojit
     }
     #endif 
 
-    void Assembler::findRegFor2(RegisterMask allow, LIns* ia, Register& ra, LIns* ib, Register& rb)
+    void Assembler::findRegFor2(RegisterMask allowa, LIns* ia, Register& ra,
+                                RegisterMask allowb, LIns* ib, Register& rb)
     {
+        
+        
+        NanoAssert(allowa & allowb);
+
         if (ia == ib) {
-            ra = rb = findRegFor(ia, allow);
+            ra = rb = findRegFor(ia, allowa & allowb);  
         } else {
             
             
@@ -391,14 +396,14 @@ namespace nanojit
             
             
             
-            bool rbDone = !ib->isUnusedOrHasUnknownReg() && (rb = ib->getReg(), allow & rmask(rb));
+            bool rbDone = !ib->isUnusedOrHasUnknownReg() && (rb = ib->getReg(), allowb & rmask(rb));
             if (rbDone) {
-                allow &= ~rmask(rb);    
+                allowa &= ~rmask(rb);   
             }
-            ra = findRegFor(ia, allow);
+            ra = findRegFor(ia, allowa);
             if (!rbDone) {
-                allow &= ~rmask(ra);
-                rb = findRegFor(ib, allow);
+                allowb &= ~rmask(ra);
+                rb = findRegFor(ib, allowb);
             }
         }
     }
@@ -430,6 +435,27 @@ namespace nanojit
         (void) d;
     #endif
         return findRegFor(i, allow);
+    }
+
+    
+    
+    
+    
+    
+    void Assembler::getBaseReg2(RegisterMask allowValue, LIns* value, Register& rv,
+                                RegisterMask allowBase, LIns* base, Register& rb, int &d)
+    {
+    #if !PEDANTIC
+        if (base->isop(LIR_alloc)) {
+            rb = FP;
+            d += findMemFor(base);
+            rv = findRegFor(value, allowValue);
+            return;
+        }
+    #else
+        (void) d;
+    #endif
+        findRegFor2(allowValue, value, rv, allowBase, base, rb);
     }
 
     
