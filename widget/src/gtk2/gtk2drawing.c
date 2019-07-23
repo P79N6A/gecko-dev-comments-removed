@@ -2397,16 +2397,37 @@ moz_gtk_tabpanels_paint(GdkDrawable* drawable, GdkRectangle* rect,
 
 
 
+
+
+
+
     GtkStyle* style;
 
     ensure_tab_widget();
     gtk_widget_set_direction(gTabWidget, direction);
 
     style = gTabWidget->style;
-
     TSOffsetStyleGCs(style, rect->x, rect->y);
+
+    
+
+
+
+
+
+    GdkRectangle halfClipRect;
+    if (!gdk_rectangle_intersect(rect, cliprect, &halfClipRect))
+      return MOZ_GTK_SUCCESS;
+
+    halfClipRect.width = (halfClipRect.width / 2) + 1;
     gtk_paint_box_gap(style, drawable, GTK_STATE_NORMAL, GTK_SHADOW_OUT,
-                      cliprect, gTabWidget, "notebook", rect->x, rect->y,
+                      &halfClipRect, gTabWidget, "notebook", rect->x, rect->y,
+                      rect->width, rect->height,
+                      GTK_POS_TOP, halfClipRect.width + 1, 0);
+
+    halfClipRect.x += halfClipRect.width;
+    gtk_paint_box_gap(style, drawable, GTK_STATE_NORMAL, GTK_SHADOW_OUT,
+                      &halfClipRect, gTabWidget, "notebook", rect->x, rect->y,
                       rect->width, rect->height,
                       GTK_POS_TOP, -10, 0);
 
