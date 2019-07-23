@@ -234,6 +234,8 @@ nsListControlFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
   DO_GLOBAL_REFLOW_COUNT_DSP("nsListControlFrame");
 
   if (IsInDropDownMode()) {
+    NS_ASSERTION(NS_GET_A(mLastDropdownBackstopColor) == 255,
+                 "need an opaque backstop color");
     
     
     
@@ -1175,6 +1177,8 @@ nsListControlFrame::Init(nsIContent*     aContent,
   mStartSelectionIndex = kNothingSelected;
   mEndSelectionIndex = kNothingSelected;
 
+  mLastDropdownBackstopColor = PresContext()->DefaultBackgroundColor();
+
   return result;
 }
 
@@ -1744,14 +1748,6 @@ nsListControlFrame::AboutToDropDown()
   NS_ASSERTION(IsInDropDownMode(),
     "AboutToDropDown called without being in dropdown mode");
 
-  if (mIsAllContentHere && mIsAllFramesHere && mHasBeenInitialized) {
-    ScrollToIndex(GetSelectedIndex());
-#ifdef ACCESSIBILITY
-    FireMenuItemActiveEvent(); 
-#endif
-  }
-  mItemSelectionStarted = PR_FALSE;
-
   
   
   
@@ -1773,6 +1769,14 @@ nsListControlFrame::AboutToDropDown()
   mLastDropdownBackstopColor =
     NS_ComposeColors(PresContext()->DefaultBackgroundColor(),
                      mLastDropdownBackstopColor);
+
+  if (mIsAllContentHere && mIsAllFramesHere && mHasBeenInitialized) {
+    ScrollToIndex(GetSelectedIndex());
+#ifdef ACCESSIBILITY
+    FireMenuItemActiveEvent(); 
+#endif
+  }
+  mItemSelectionStarted = PR_FALSE;
 }
 
 
