@@ -1273,11 +1273,35 @@ JS_EvaluateUCInStackFrame(JSContext *cx, JSStackFrame *fp,
         memcpy(displayCopy, cx->display, sizeof displayCopy);
 
         
-        for (JSStackFrame *fp2 = cx->fp; fp2 != fp; fp2 = fp2->down) {
-            if (fp2->displaySave) {
-                JS_ASSERT(fp2->script->staticLevel < JS_DISPLAY_SIZE);
-                cx->display[fp2->script->staticLevel] = fp2->displaySave;
-            }
+
+
+
+
+
+
+
+
+
+
+        JSStackFrame *fp2 = fp, *last = NULL;
+        while (fp2) {
+            JSStackFrame *next = fp2->down;
+            fp2->down = last;
+            last = fp2;
+            fp2 = next;
+        }
+
+        fp2 = last;
+        last = NULL;
+        while (fp2) {
+            JSStackFrame *next = fp2->down;
+            fp2->down = last;
+            last = fp2;
+
+            JSScript *script = fp2->script;
+            if (script && script->staticLevel < JS_DISPLAY_SIZE)
+                cx->display[script->staticLevel] = fp2;
+            fp2 = next;
         }
     }
 
