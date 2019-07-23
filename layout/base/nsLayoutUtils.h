@@ -326,7 +326,7 @@ public:
 
 
 
-  static nsPoint GetEventCoordinatesRelativeTo(nsEvent* aEvent,
+  static nsPoint GetEventCoordinatesRelativeTo(const nsEvent* aEvent,
                                                nsIFrame* aFrame);
 
 
