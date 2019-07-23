@@ -144,15 +144,19 @@ public:
 
 
 
-   static PRBool IsAncestorOf(nsIDOMNode *aPossibleAncestorNode,
-                              nsIDOMNode *aPossibleDescendantNode);
+
+
+
+
+   static PRBool IsAncestorOf(nsINode *aPossibleAncestorNode,
+                              nsINode *aPossibleDescendantNode);
 
   
 
 
 
-   static PRBool AreSiblings(nsIDOMNode *aDOMNode1,
-                             nsIDOMNode *aDOMNode2);
+
+   static PRBool AreSiblings(nsINode *aNode1, nsINode *aNode2);
 
   
 

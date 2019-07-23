@@ -1141,8 +1141,11 @@ nsRootAccessible::HandlePopupHidingEvent(nsIDOMNode *aNode,
   
   
   
+  nsCOMPtr<nsINode> node(do_QueryInterface(aNode));
+  nsCOMPtr<nsINode> lastFocusedNode(do_QueryInterface(gLastFocusedNode));
+
   if (gLastFocusedNode &&
-      nsCoreUtils::IsAncestorOf(aNode, gLastFocusedNode)) {
+      nsCoreUtils::IsAncestorOf(node, lastFocusedNode)) {
     
     FireCurrentFocusEvent();
   }
@@ -1168,7 +1171,6 @@ nsRootAccessible::HandlePopupHidingEvent(nsIDOMNode *aNode,
                                 PR_FALSE, PR_FALSE);
     NS_ENSURE_TRUE(event, NS_ERROR_OUT_OF_MEMORY);
 
-    nsRefPtr<nsAccessible> acc(nsAccUtils::QueryAccessible(comboboxAcc));
     nsEventShell::FireEvent(event);
     return NS_OK;
   }

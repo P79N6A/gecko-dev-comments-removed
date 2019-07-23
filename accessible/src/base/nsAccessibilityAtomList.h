@@ -153,6 +153,7 @@ ACCESSIBILITY_ATOM(toolbarspring, "toolbarspring")
 ACCESSIBILITY_ATOM(toolbarspacer, "toolbarspacer")   
 ACCESSIBILITY_ATOM(tooltip, "tooltip")   
 ACCESSIBILITY_ATOM(tr, "tr")
+ACCESSIBILITY_ATOM(tree, "tree")
 ACCESSIBILITY_ATOM(ul, "ul")
 
   
