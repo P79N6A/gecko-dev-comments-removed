@@ -38,7 +38,7 @@
 #define NSSBASET_H
 
 #ifdef DEBUG
-static const char NSSBASET_CVS_ID[] = "@(#) $RCSfile: nssbaset.h,v $ $Revision: 1.7 $ $Date: 2008/10/05 20:59:16 $";
+static const char NSSBASET_CVS_ID[] = "@(#) $RCSfile: nssbaset.h,v $ $Revision: 1.8 $ $Date: 2009/04/07 23:52:05 $";
 #endif 
 
 
@@ -49,7 +49,6 @@ static const char NSSBASET_CVS_ID[] = "@(#) $RCSfile: nssbaset.h,v $ $Revision: 
 
 #include "nspr.h"
 #include "nssilock.h"
-
 
 
 

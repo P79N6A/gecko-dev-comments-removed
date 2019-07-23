@@ -1718,7 +1718,9 @@ sdb_init(char *dbname, char *table, sdbDataType type, int *inUpdate,
 
     if (create) {
 	
+#ifndef WINCE
 	chmod (dbname, 0600);
+#endif
     }
 
     if (flags != SDB_RDONLY) {

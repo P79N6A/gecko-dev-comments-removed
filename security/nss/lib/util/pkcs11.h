@@ -209,39 +209,6 @@ extern "C" {
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "pkcs11t.h"
 
 #define __PASTE(x,y)      x##y

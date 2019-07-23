@@ -761,14 +761,17 @@ DecodeDBCertEntry(certDBEntryCert *entry, SECItem *dbentry)
     entry->derCert.len = ( ( dbentry->data[lenoff] << 8 ) |
 			  dbentry->data[lenoff+1] );
     nnlen = ( ( dbentry->data[lenoff+2] << 8 ) | dbentry->data[lenoff+3] );
-    if ( ( entry->derCert.len + nnlen + headerlen )
-	!= dbentry->len) {
-	PORT_SetError(SEC_ERROR_BAD_DATABASE);
-	goto loser;
+    lenoff = dbentry->len - ( entry->derCert.len + nnlen + headerlen );
+    if ( lenoff ) {
+	if ( lenoff < 0 || (lenoff & 0xffff) != 0 ) {
+	    PORT_SetError(SEC_ERROR_BAD_DATABASE);
+	    goto loser;
+	}
+	
+	entry->derCert.len += lenoff;
     }
     
     
-
     entry->derCert.data = pkcs11_copyStaticData(&dbentry->data[headerlen],
 	entry->derCert.len,entry->derCertSpace,sizeof(entry->derCertSpace));
     if ( entry->derCert.data == NULL ) {
@@ -1175,8 +1178,9 @@ loser:
 static SECStatus
 DecodeDBCrlEntry(certDBEntryRevocation *entry, SECItem *dbentry)
 {
-    unsigned int nnlen;
-    
+    unsigned int urlLen;
+    int lenDiff;
+
     
     if ( dbentry->len < DB_CRL_ENTRY_HEADER_LEN ) {
 	PORT_SetError(SEC_ERROR_BAD_DATABASE);
@@ -1185,17 +1189,16 @@ DecodeDBCrlEntry(certDBEntryRevocation *entry, SECItem *dbentry)
     
     
     entry->derCrl.len = ( ( dbentry->data[0] << 8 ) | dbentry->data[1] );
-    nnlen = ( ( dbentry->data[2] << 8 ) | dbentry->data[3] );
-    if ( ( entry->derCrl.len + nnlen + DB_CRL_ENTRY_HEADER_LEN )
-	!= dbentry->len) {
-      
-      if (dbentry->len >= (0xffff - DB_CRL_ENTRY_HEADER_LEN) - nnlen) {
-          entry->derCrl.len = 
-                      (dbentry->len - DB_CRL_ENTRY_HEADER_LEN) - nnlen;
-      } else {
-          PORT_SetError(SEC_ERROR_BAD_DATABASE);
-          goto loser;
-      }    
+    urlLen =            ( ( dbentry->data[2] << 8 ) | dbentry->data[3] );
+    lenDiff = dbentry->len - 
+			(entry->derCrl.len + urlLen + DB_CRL_ENTRY_HEADER_LEN);
+    if (lenDiff) {
+    	if (lenDiff < 0 || (lenDiff & 0xffff) != 0) {
+	    PORT_SetError(SEC_ERROR_BAD_DATABASE);
+	    goto loser;
+	}    
+	
+	entry->derCrl.len += lenDiff;
     }
     
     
@@ -1210,15 +1213,15 @@ DecodeDBCrlEntry(certDBEntryRevocation *entry, SECItem *dbentry)
 
     
     entry->url = NULL;
-    if (nnlen != 0) {
-	entry->url = (char *)PORT_ArenaAlloc(entry->common.arena, nnlen);
+    if (urlLen != 0) {
+	entry->url = (char *)PORT_ArenaAlloc(entry->common.arena, urlLen);
 	if ( entry->url == NULL ) {
 	    PORT_SetError(SEC_ERROR_NO_MEMORY);
 	    goto loser;
 	}
 	PORT_Memcpy(entry->url,
 	      &dbentry->data[DB_CRL_ENTRY_HEADER_LEN + entry->derCrl.len],
-	      nnlen);
+	      urlLen);
     }
     
     return(SECSuccess);
@@ -1500,6 +1503,8 @@ static SECStatus
 DecodeDBNicknameEntry(certDBEntryNickname *entry, SECItem *dbentry,
                       char *nickname)
 {
+    int lenDiff;
+
     
     if ( dbentry->len < DB_NICKNAME_ENTRY_HEADER_LEN ) {
 	PORT_SetError(SEC_ERROR_BAD_DATABASE);
@@ -1508,12 +1513,17 @@ DecodeDBNicknameEntry(certDBEntryNickname *entry, SECItem *dbentry,
     
     
     entry->subjectName.len = ( ( dbentry->data[0] << 8 ) | dbentry->data[1] );
-    if (( entry->subjectName.len + DB_NICKNAME_ENTRY_HEADER_LEN ) !=
-	dbentry->len ){
-	PORT_SetError(SEC_ERROR_BAD_DATABASE);
-	goto loser;
+    lenDiff = dbentry->len - 
+	      (entry->subjectName.len + DB_NICKNAME_ENTRY_HEADER_LEN);
+    if (lenDiff) {
+	if (lenDiff < 0 || (lenDiff & 0xffff) != 0 ) { 
+	    PORT_SetError(SEC_ERROR_BAD_DATABASE);
+	    goto loser;
+	}
+	
+	entry->subjectName.len += lenDiff;
     }
-    
+
     
     entry->subjectName.data =
 	(unsigned char *)PORT_ArenaAlloc(entry->common.arena,
@@ -1828,6 +1838,8 @@ loser:
 static SECStatus
 DecodeDBSMimeEntry(certDBEntrySMime *entry, SECItem *dbentry, char *emailAddr)
 {
+    int lenDiff;
+
     
     if ( dbentry->len < DB_SMIME_ENTRY_HEADER_LEN ) {
 	PORT_SetError(SEC_ERROR_BAD_DATABASE);
@@ -1835,15 +1847,22 @@ DecodeDBSMimeEntry(certDBEntrySMime *entry, SECItem *dbentry, char *emailAddr)
     }
     
     
-    entry->subjectName.len = ( ( dbentry->data[0] << 8 ) | dbentry->data[1] );
-    entry->smimeOptions.len = ( ( dbentry->data[2] << 8 ) | dbentry->data[3] );
-    entry->optionsDate.len = ( ( dbentry->data[4] << 8 ) | dbentry->data[5] );
-    if (( entry->subjectName.len + entry->smimeOptions.len +
-	 entry->optionsDate.len + DB_SMIME_ENTRY_HEADER_LEN ) != dbentry->len){
-	PORT_SetError(SEC_ERROR_BAD_DATABASE);
-	goto loser;
+    entry->subjectName.len  = (( dbentry->data[0] << 8 ) | dbentry->data[1] );
+    entry->smimeOptions.len = (( dbentry->data[2] << 8 ) | dbentry->data[3] );
+    entry->optionsDate.len  = (( dbentry->data[4] << 8 ) | dbentry->data[5] );
+    lenDiff = dbentry->len - (entry->subjectName.len + 
+                              entry->smimeOptions.len + 
+			      entry->optionsDate.len + 
+			      DB_SMIME_ENTRY_HEADER_LEN);
+    if (lenDiff) {
+	if (lenDiff < 0 || (lenDiff & 0xffff) != 0 ) { 
+	    PORT_SetError(SEC_ERROR_BAD_DATABASE);
+	    goto loser;
+	}
+	
+	entry->subjectName.len += lenDiff;
     }
-    
+
     
     entry->subjectName.data =
 	(unsigned char *)PORT_ArenaAlloc(entry->common.arena,
@@ -4223,7 +4242,7 @@ nsslowcert_TraverseDBEntries(NSSLOWCERTCertDBHandle *handle,
 {
     DBT data;
     DBT key;
-    SECStatus rv;
+    SECStatus rv = SECSuccess;
     int ret;
     SECItem dataitem;
     SECItem keyitem;
@@ -4231,11 +4250,12 @@ nsslowcert_TraverseDBEntries(NSSLOWCERTCertDBHandle *handle,
     unsigned char *keybuf;
     
     ret = certdb_Seq(handle->permCertDB, &key, &data, R_FIRST);
-
     if ( ret ) {
 	return(SECFailure);
     }
     
+
+
     do {
 	buf = (unsigned char *)data.data;
 	
@@ -4250,13 +4270,15 @@ nsslowcert_TraverseDBEntries(NSSLOWCERTCertDBHandle *handle,
 	    
 
 	    rv = (* callback)(&dataitem, &keyitem, type, udata);
-	    if ( rv != SECSuccess ) {
-		return(rv);
+	    if ( rv == SECSuccess ) {
+		++ret;
 	    }
 	}
     } while ( certdb_Seq(handle->permCertDB, &key, &data, R_NEXT) == 0 );
+    
 
-    return(SECSuccess);
+
+    return (ret ? SECSuccess : rv);
 }
 
 
