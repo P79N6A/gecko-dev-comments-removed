@@ -2630,8 +2630,10 @@ FlushNativeStackFrame(JSContext* cx, unsigned callDepth, JSTraceType* mp, double
         for (; n != 0; fp = fp->down) {
             --n;
             if (fp->callee) {
-                if (fp->argsobj)
-                    JS_SetPrivate(cx, JSVAL_TO_OBJECT(fp->argsobj), fp);
+                
+                if (fp->argsobj && !JSVAL_TO_OBJECT(fp->argsobj)->getPrivate()) {
+                    JSVAL_TO_OBJECT(fp->argsobj)->setPrivate(fp);
+                }
 
                 
 
