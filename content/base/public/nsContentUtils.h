@@ -1394,6 +1394,16 @@ public:
                                nsString& aOrigin);
   static nsresult GetUTFOrigin(nsIURI* aURI, nsString& aOrigin);
 
+  
+
+
+
+
+
+
+  static already_AddRefed<nsIDocument>
+  GetDocumentFromScriptContext(nsIScriptContext *aScriptContext);
+
 private:
 
   static PRBool InitializeEventTable();
