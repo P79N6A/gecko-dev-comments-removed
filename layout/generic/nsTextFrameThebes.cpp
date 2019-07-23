@@ -1941,6 +1941,8 @@ static PRBool IsInBounds(const gfxSkipCharsIterator& aStart, PRInt32 aContentLen
                          PRUint32 aOffset, PRUint32 aLength) {
   if (aStart.GetSkippedOffset() > aOffset)
     return PR_FALSE;
+  if (aContentLength == PR_INT32_MAX)
+    return PR_TRUE;
   gfxSkipCharsIterator iter(aStart);
   iter.AdvanceOriginal(aContentLength);
   return iter.GetSkippedOffset() >= aOffset + aLength;
@@ -1950,6 +1952,11 @@ static PRBool IsInBounds(const gfxSkipCharsIterator& aStart, PRInt32 aContentLen
 class PropertyProvider : public gfxTextRun::PropertyProvider {
 public:
   
+
+
+
+
+
 
 
 
@@ -2019,7 +2026,11 @@ public:
   
   
   const gfxSkipCharsIterator& GetStart() { return mStart; }
-  PRUint32 GetOriginalLength() { return mLength; }
+  
+  PRUint32 GetOriginalLength() {
+    NS_ASSERTION(mLength != PR_INT32_MAX, "Length not known");
+    return mLength;
+  }
   const nsTextFragment* GetFragment() { return mFrag; }
 
   gfxFontGroup* GetFontGroup() {
@@ -2316,6 +2327,7 @@ PropertyProvider::GetHyphenationBreaks(PRUint32 aStart, PRUint32 aLength,
                                        PRPackedBool* aBreakBefore)
 {
   NS_PRECONDITION(IsInBounds(mStart, mLength, aStart, aLength), "Range out of bounds");
+  NS_PRECONDITION(mLength != PR_INT32_MAX, "Can't call this with undefined length");
 
   if (!mTextStyle->WhiteSpaceCanWrap()) {
     memset(aBreakBefore, PR_FALSE, aLength);
@@ -2375,7 +2387,9 @@ void
 PropertyProvider::FindJustificationRange(gfxSkipCharsIterator* aStart,
                                          gfxSkipCharsIterator* aEnd)
 {
+  NS_PRECONDITION(mLength != PR_INT32_MAX, "Can't call this with undefined length");
   NS_ASSERTION(aStart && aEnd, "aStart or/and aEnd is null");
+
   aStart->SetOriginalOffset(mStart.GetOriginalOffset());
   aEnd->SetOriginalOffset(mStart.GetOriginalOffset() + mLength);
 
@@ -2403,6 +2417,8 @@ PropertyProvider::FindJustificationRange(gfxSkipCharsIterator* aStart,
 void
 PropertyProvider::SetupJustificationSpacing()
 {
+  NS_PRECONDITION(mLength != PR_INT32_MAX, "Can't call this with undefined length");
+
   if (NS_STYLE_TEXT_ALIGN_JUSTIFY != mTextStyle->mTextAlign ||
       mTextStyle->WhiteSpaceIsSignificant())
     return;
@@ -4837,7 +4853,7 @@ nsTextFrame::AddInlineMinWidthForFlow(nsIRenderingContext *aRenderingContext,
   
   const nsTextFragment* frag = mContent->GetText();
   PropertyProvider provider(mTextRun, GetStyleText(), frag, this,
-                            iter, GetInFlowContentLength(), nsnull, 0);
+                            iter, PR_INT32_MAX, nsnull, 0);
 
   PRBool collapseWhitespace = !provider.GetStyleText()->WhiteSpaceIsSignificant();
   PRUint32 start =
@@ -4938,7 +4954,7 @@ nsTextFrame::AddInlinePrefWidthForFlow(nsIRenderingContext *aRenderingContext,
   
   
   PropertyProvider provider(mTextRun, GetStyleText(), mContent->GetText(), this,
-                            iter, GetInFlowContentLength(), nsnull, 0);
+                            iter, PR_INT32_MAX, nsnull, 0);
 
   PRBool collapseWhitespace = !provider.GetStyleText()->WhiteSpaceIsSignificant();
   PRUint32 start =
