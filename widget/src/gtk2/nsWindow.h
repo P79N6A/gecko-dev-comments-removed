@@ -81,15 +81,15 @@
 #include "prlog.h"
 #include "nsTArray.h"
 
+#include "nsGtkIMModule.h"
+
 extern PRLogModuleInfo *gWidgetLog;
 extern PRLogModuleInfo *gWidgetFocusLog;
-extern PRLogModuleInfo *gWidgetIMLog;
 extern PRLogModuleInfo *gWidgetDragLog;
 extern PRLogModuleInfo *gWidgetDrawLog;
 
 #define LOG(args) PR_LOG(gWidgetLog, 4, args)
 #define LOGFOCUS(args) PR_LOG(gWidgetFocusLog, 4, args)
-#define LOGIM(args) PR_LOG(gWidgetIMLog, 4, args)
 #define LOGDRAG(args) PR_LOG(gWidgetDragLog, 4, args)
 #define LOGDRAW(args) PR_LOG(gWidgetDrawLog, 4, args)
 
@@ -97,7 +97,6 @@ extern PRLogModuleInfo *gWidgetDrawLog;
 
 #define LOG(args)
 #define LOGFOCUS(args)
-#define LOGIM(args)
 #define LOGDRAG(args)
 #define LOGDRAW(args)
 
@@ -310,90 +309,21 @@ public:
 
     NS_IMETHOD         BeginResizeDrag   (nsGUIEvent* aEvent, PRInt32 aHorizontal, PRInt32 aVertical);
 
-#ifdef USE_XIM
-    void               IMEInitData       (void);
-    void               IMEReleaseData    (void);
-    void               IMEDestroyContext (void);
-    void               IMESetFocus       (void);
-    void               IMELoseFocus      (void);
-    void               IMEComposeStart   (void);
-    void               IMEComposeText    (const PRUnichar *aText,
-                                          const PRInt32 aLen,
-                                          const gchar *aPreeditString,
-                                          const gint aCursorPos,
-                                          const PangoAttrList *aFeedback);
-    void               IMEComposeEnd     (void);
-    GtkIMContext*      IMEGetContext     (void);
-    
-    
-    PRBool             IMEIsEnabledState (void);
-    
-    
-    
-    
-    PRBool             IMEIsEditableState(void);
-    nsWindow*          IMEComposingWindow(void);
-    void               IMECreateContext  (void);
-    PRBool             IMEFilterEvent    (GdkEventKey *aEvent);
-    void               IMESetCursorPosition(const nsTextEventReply& aReply);
+    MozContainer*      GetMozContainer() { return mContainer; }
+    GdkWindow*         GetGdkWindow() { return mGdkWindow; }
+    PRBool             IsDestroyed() { return mIsDestroyed; }
 
     
-
-
-
-
-
-
-    struct nsIMEData {
-        
-        GtkIMContext       *mContext;
-        
-        
-        
-        
-        GtkIMContext       *mSimpleContext;
-        
-        
-        
-        
-        GtkIMContext       *mDummyContext;
-        
-        
-        
-        
-        
-        
-        
-        nsWindow           *mComposingWindow;
-        
-        
-        nsWindow           *mOwner;
-        
-        
-        PRUint32           mRefCount;
-        
-        PRUint32           mEnabled;
-        nsIMEData(nsWindow* aOwner) {
-            mContext         = nsnull;
-            mSimpleContext   = nsnull;
-            mDummyContext    = nsnull;
-            mComposingWindow = nsnull;
-            mOwner           = aOwner;
-            mRefCount        = 1;
-            mEnabled         = nsIWidget::IME_STATUS_ENABLED;
-        }
-    };
-    nsIMEData          *mIMEData;
+    
+    PRBool             DispatchKeyDownEvent(GdkEventKey *aEvent,
+                                            PRBool *aIsCancelled);
 
     NS_IMETHOD ResetInputState();
-    NS_IMETHOD SetIMEOpenState(PRBool aState);
-    NS_IMETHOD GetIMEOpenState(PRBool* aState);
     NS_IMETHOD SetIMEEnabled(PRUint32 aState);
     NS_IMETHOD GetIMEEnabled(PRUint32* aState);
     NS_IMETHOD CancelIMEComposition();
+    NS_IMETHOD OnIMEFocusChange(PRBool aFocus);
     NS_IMETHOD GetToggledKeyState(PRUint32 aKeyCode, PRBool* aLEDState);
-
-#endif
 
    void                ResizeTransparencyBitmap(PRInt32 aNewWidth, PRInt32 aNewHeight);
    void                ApplyTransparencyBitmap();
@@ -568,6 +498,20 @@ private:
         *flag &= ~mask;
     }
 
+    
+
+
+
+
+
+
+
+
+
+
+
+
+    nsRefPtr<nsGtkIMModule> mIMModule;
 };
 
 class nsChildWindow : public nsWindow {

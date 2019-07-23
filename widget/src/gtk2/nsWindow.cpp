@@ -297,36 +297,8 @@ static PRBool                      gConsumeRollupEvent;
 
 #define NS_WINDOW_TITLE_MAX_LENGTH 4095
 
-#ifdef USE_XIM
-
-static nsWindow    *gIMEFocusWindow = NULL;
-static GdkEventKey *gKeyEvent = NULL;
-static PRBool       gKeyEventCommitted = PR_FALSE;
-static PRBool       gKeyEventChanged = PR_FALSE;
-static PRBool       gIMESuppressCommit = PR_FALSE;
-#ifdef MOZ_PLATFORM_MAEMO
-static PRBool       gIMEVirtualKeyboardOpened = PR_FALSE;
-#endif
-
-static void IM_commit_cb              (GtkIMContext *aContext,
-                                       const gchar *aString,
-                                       nsWindow *aWindow);
-static void IM_commit_cb_internal     (const gchar *aString,
-                                       nsWindow *aWindow);
-static void IM_preedit_changed_cb     (GtkIMContext *aContext,
-                                       nsWindow *aWindow);
-static void IM_set_text_range         (const PRInt32 aLen,
-                                       const gchar *aPreeditString,
-                                       const gint aCursorPos,
-                                       const PangoAttrList *aFeedback,
-                                       PRUint32 *aTextRangeListLengthResult,
-                                       nsTextRangeArray *aTextRangeListResult);
-
-static GtkIMContext *IM_get_input_context(nsWindow *window);
 
 
-
-#endif
 
 
 
@@ -449,10 +421,6 @@ nsWindow::nsWindow()
     mDragMotionTime = 0;
     mDragMotionTimerID = 0;
     mLastMotionPressure = 0;
-
-#ifdef USE_XIM
-    mIMEData = nsnull;
-#endif
 
 #ifdef ACCESSIBILITY
     mRootAccessible  = nsnull;
@@ -769,9 +737,9 @@ nsWindow::Destroy(void)
 
     NativeShow(PR_FALSE);
 
-#ifdef USE_XIM
-    IMEDestroyContext();
-#endif
+    if (mIMModule) {
+        mIMModule->OnDestroyWindow(this);
+    }
 
     
     if (gFocusWindow == this) {
@@ -1428,24 +1396,12 @@ nsWindow::SetFocus(PRBool aRaise)
         return NS_OK;
     }
 
-#ifdef USE_XIM
-    if (gFocusWindow) {
-        
-        
-        
-        nsRefPtr<nsWindow> kungFuDeathGrip = gFocusWindow;
-        if (IM_get_input_context(this) !=
-            IM_get_input_context(gFocusWindow))
-            gFocusWindow->IMELoseFocus();
-    }
-#endif
-
     
     gFocusWindow = this;
 
-#ifdef USE_XIM
-    IMESetFocus();
-#endif
+    if (mIMModule) {
+        mIMModule->OnFocusWindow(this);
+    }
 
     LOGFOCUS(("  widget now has focus in SetFocus() [%p]\n",
               (void *)this));
@@ -3111,9 +3067,9 @@ nsWindow::OnContainerFocusOutEvent(GtkWidget *aWidget, GdkEventFocus *aEvent)
  foundit:
 
     nsRefPtr<nsWindow> kungFuDeathGrip = gFocusWindow;
-#ifdef USE_XIM
-    gFocusWindow->IMELoseFocus();
-#endif
+    if (gFocusWindow->mIMModule) {
+        gFocusWindow->mIMModule->OnBlurWindow(gFocusWindow);
+    }
 
     
     
@@ -3173,26 +3129,56 @@ IsBasicLatinLetterOrNumeral(PRUint32 aChar)
            (aChar >= '0' && aChar <= '9');
 }
 
+static PRBool
+IsCtrlAltTab(GdkEventKey *aEvent)
+{
+    return aEvent->keyval == GDK_Tab &&
+        aEvent->state & GDK_CONTROL_MASK && aEvent->state & GDK_MOD1_MASK;
+}
+
+PRBool
+nsWindow::DispatchKeyDownEvent(GdkEventKey *aEvent, PRBool *aCancelled)
+{
+    NS_PRECONDITION(aCancelled, "aCancelled must not be null");
+
+    *aCancelled = PR_FALSE;
+
+    if (IsCtrlAltTab(aEvent)) {
+        return PR_FALSE;
+    }
+
+    PRUint32 domVirtualKeyCode = GdkKeyCodeToDOMKeyCode(aEvent->keyval);
+
+    if (IsKeyDown(domVirtualKeyCode)) {
+        return PR_FALSE;
+    }
+
+    SetKeyDownFlag(domVirtualKeyCode);
+
+    
+    nsEventStatus status;
+    nsKeyEvent downEvent(PR_TRUE, NS_KEY_DOWN, this);
+    InitKeyEvent(downEvent, aEvent);
+    DispatchEvent(&downEvent, status);
+    *aCancelled = (status == nsEventStatus_eConsumeNoDefault);
+    return PR_TRUE;
+}
+
 gboolean
 nsWindow::OnKeyPressEvent(GtkWidget *aWidget, GdkEventKey *aEvent)
 {
     LOGFOCUS(("OnKeyPressEvent [%p]\n", (void *)this));
 
-#ifdef USE_XIM
     
     
-   LOGIM(("key press [%p]: composing %d val %d\n",
-           (void *)this, IMEComposingWindow() != nsnull, aEvent->keyval));
-   if (IMEFilterEvent(aEvent))
-       return TRUE;
-   LOGIM(("sending as regular key press event\n"));
-#endif
+    if (mIMModule && mIMModule->OnKeyEvent(this, aEvent)) {
+        return TRUE;
+    }
 
     nsEventStatus status;
 
     
-    if (aEvent->keyval == GDK_Tab && aEvent->state & GDK_CONTROL_MASK &&
-        aEvent->state & GDK_MOD1_MASK) {
+    if (IsCtrlAltTab(aEvent)) {
         return TRUE;
     }
 
@@ -3205,19 +3191,9 @@ nsWindow::OnKeyPressEvent(GtkWidget *aWidget, GdkEventKey *aEvent)
     
 
     PRBool isKeyDownCancelled = PR_FALSE;
-
-    PRUint32 domVirtualKeyCode = GdkKeyCodeToDOMKeyCode(aEvent->keyval);
-
-    if (!IsKeyDown(domVirtualKeyCode)) {
-        SetKeyDownFlag(domVirtualKeyCode);
-
-        
-        nsKeyEvent downEvent(PR_TRUE, NS_KEY_DOWN, this);
-        InitKeyEvent(downEvent, aEvent);
-        DispatchEvent(&downEvent, status);
-        if (NS_UNLIKELY(mIsDestroyed))
-            return PR_TRUE;
-        isKeyDownCancelled = (status == nsEventStatus_eConsumeNoDefault);
+    if (DispatchKeyDownEvent(aEvent, &isKeyDownCancelled) &&
+        NS_UNLIKELY(mIsDestroyed)) {
+        return TRUE;
     }
 
     
@@ -3355,9 +3331,7 @@ nsWindow::OnKeyPressEvent(GtkWidget *aWidget, GdkEventKey *aEvent)
     }
 
     
-    LOGIM(("status %d\n", status));
     if (status == nsEventStatus_eConsumeNoDefault) {
-        LOGIM(("key press consumed\n"));
         return TRUE;
     }
 
@@ -3369,10 +3343,9 @@ nsWindow::OnKeyReleaseEvent(GtkWidget *aWidget, GdkEventKey *aEvent)
 {
     LOGFOCUS(("OnKeyReleaseEvent [%p]\n", (void *)this));
 
-#ifdef USE_XIM
-    if (IMEFilterEvent(aEvent))
+    if (mIMModule && mIMModule->OnKeyEvent(this, aEvent)) {
         return TRUE;
-#endif
+    }
 
     
     nsKeyEvent event(PR_TRUE, NS_KEY_UP, this);
@@ -3386,7 +3359,6 @@ nsWindow::OnKeyReleaseEvent(GtkWidget *aWidget, GdkEventKey *aEvent)
 
     
     if (status == nsEventStatus_eConsumeNoDefault) {
-        LOGIM(("key release consumed\n"));
         return TRUE;
     }
 
@@ -3466,19 +3438,16 @@ nsWindow::OnVisibilityNotifyEvent(GtkWidget *aWidget,
 
         mIsFullyObscured = PR_FALSE;
 
-#ifdef MOZ_PLATFORM_MAEMO
-#ifdef USE_XIM
         
         
         
         
         
         
-        if(!gIMEVirtualKeyboardOpened)
-#endif 
-#endif 
-        
-        EnsureGrabs();
+        if (!nsGtkIMModule::IsVirtualKeyboardOpened()) {
+            
+            EnsureGrabs();
+        }
         break;
     default: 
         mIsFullyObscured = PR_TRUE;
@@ -4238,12 +4207,16 @@ nsWindow::Create(nsIWidget        *aParent,
         g_signal_connect(G_OBJECT(mContainer), "drag_data_received",
                          G_CALLBACK(drag_data_received_event_cb), NULL);
 
-#ifdef USE_XIM
         
         
-        if (mWindowType != eWindowType_popup)
-            IMECreateContext();
-#endif
+        if (mWindowType != eWindowType_popup) {
+            mIMModule = new nsGtkIMModule(this);
+        }
+    } else if (!mIMModule) {
+        nsWindow *container = GetContainerWindow();
+        if (container) {
+            mIMModule = container->mIMModule;
+        }
     }
 
     LOG(("nsWindow [%p]\n", (void *)this));
@@ -6535,583 +6508,41 @@ nsChildWindow::~nsChildWindow()
 {
 }
 
-#ifdef USE_XIM
-
-void
-nsWindow::IMEInitData(void)
-{
-    if (mIMEData)
-        return;
-    nsWindow *win = GetContainerWindow();
-    if (!win)
-        return;
-    mIMEData = win->mIMEData;
-    if (!mIMEData)
-        return;
-    mIMEData->mRefCount++;
-}
-
-void
-nsWindow::IMEReleaseData(void)
-{
-    if (!mIMEData)
-        return;
-
-    mIMEData->mRefCount--;
-    if (mIMEData->mRefCount != 0)
-        return;
-
-    delete mIMEData;
-    mIMEData = nsnull;
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-static void workaround_gtk_im_display_closed(GtkWidget *aGtkWidget,
-                                             GtkIMContext *aContext)
-{
-    GtkIMMulticontext *multicontext = GTK_IM_MULTICONTEXT (aContext);
-    GtkIMContext *slave = multicontext->slave;
-    if (!slave)
-        return;
-
-    GType slaveType = G_TYPE_FROM_INSTANCE(slave);
-    const gchar *im_type_name = g_type_name(slaveType);
-    if (strcmp(im_type_name, "GtkIMContextXIM") == 0) {
-        if (gtk_check_version(2, 12, 1) == NULL) 
-            return;
-
-        struct GtkIMContextXIM
-        {
-            GtkIMContext parent;
-            gpointer private_data;
-            
-        };
-        gpointer signal_data =
-            reinterpret_cast<GtkIMContextXIM*>(slave)->private_data;
-        if (!signal_data)
-            return; 
-
-        g_signal_handlers_disconnect_matched(gtk_widget_get_display(aGtkWidget),
-                                             G_SIGNAL_MATCH_DATA, 0, 0, NULL,
-                                             NULL, signal_data);
-
-        
-        
-        
-        static gpointer gtk_xim_context_class =
-            g_type_class_ref(slaveType);
-        
-        gtk_xim_context_class = gtk_xim_context_class;
-    }
-    else if (strcmp(im_type_name, "GtkIMContextIIIM") == 0) {
-        
-        static gpointer gtk_iiim_context_class =
-            g_type_class_ref(slaveType);
-        
-        gtk_iiim_context_class = gtk_iiim_context_class;
-    }
-}
-
-void
-nsWindow::IMEDestroyContext(void)
-{
-    if (!mIMEData || mIMEData->mOwner != this) {
-        
-        if (IMEComposingWindow() == this)
-            CancelIMEComposition();
-        if (gIMEFocusWindow == this)
-            gIMEFocusWindow = nsnull;
-        IMEReleaseData();
-        return;
-    }
-
-    
-
-
-
-
-
-
-
-    
-    
-    GtkIMContext *im = IMEGetContext();
-    if (im && gIMEFocusWindow && gIMEFocusWindow->IMEGetContext() == im) {
-        gIMEFocusWindow->IMELoseFocus();
-        gIMEFocusWindow = nsnull;
-    }
-
-    mIMEData->mOwner   = nsnull;
-    mIMEData->mEnabled = nsIWidget::IME_STATUS_DISABLED;
-
-    if (mIMEData->mContext) {
-        workaround_gtk_im_display_closed(GTK_WIDGET(mContainer),
-                                         mIMEData->mContext);
-        gtk_im_context_set_client_window(mIMEData->mContext, nsnull);
-        g_object_unref(G_OBJECT(mIMEData->mContext));
-        mIMEData->mContext = nsnull;
-    }
-
-    if (mIMEData->mSimpleContext) {
-        gtk_im_context_set_client_window(mIMEData->mSimpleContext, nsnull);
-        g_object_unref(G_OBJECT(mIMEData->mSimpleContext));
-        mIMEData->mSimpleContext = nsnull;
-    }
-
-    if (mIMEData->mDummyContext) {
-        
-        
-        
-        gtk_im_context_set_client_window(mIMEData->mDummyContext, nsnull);
-        g_object_unref(G_OBJECT(mIMEData->mDummyContext));
-        mIMEData->mDummyContext = nsnull;
-    }
-
-    IMEReleaseData();
-}
-
-void
-nsWindow::IMESetFocus(void)
-{
-    IMEInitData();
-
-    LOGIM(("IMESetFocus %p\n", (void *)this));
-    GtkIMContext *im = IMEGetContext();
-    if (!im)
-        return;
-
-    gtk_im_context_focus_in(im);
-    gIMEFocusWindow = this;
-
-    if (!IMEIsEnabledState()) {
-        
-        
-        IMELoseFocus();
-    }
-}
-
-void
-nsWindow::IMELoseFocus(void)
-{
-    LOGIM(("IMELoseFocus %p\n", (void *)this));
-    GtkIMContext *im = IMEGetContext();
-    if (!im)
-        return;
-
-    gtk_im_context_focus_out(im);
-}
-
-void
-nsWindow::IMEComposeStart(void)
-{
-    LOGIM(("IMEComposeStart [%p]\n", (void *)this));
-
-    if (!mIMEData) {
-        NS_ERROR("This widget doesn't support IM");
-        return;
-    }
-
-    if (IMEComposingWindow()) {
-        NS_WARNING("tried to re-start text composition\n");
-        return;
-    }
-
-    mIMEData->mComposingWindow = this;
-
-    nsCompositionEvent compEvent(PR_TRUE, NS_COMPOSITION_START, this);
-
-    nsEventStatus status;
-    DispatchEvent(&compEvent, status);
-
-    if (NS_UNLIKELY(mIsDestroyed))
-        return;
-
-    IMESetCursorPosition(compEvent.theReply);
-}
-
-void
-nsWindow::IMEComposeText(const PRUnichar *aText,
-                         const PRInt32 aLen,
-                         const gchar *aPreeditString,
-                         const gint aCursorPos,
-                         const PangoAttrList *aFeedback)
-{
-    if (!mIMEData) {
-        NS_ERROR("This widget doesn't support IM");
-        return;
-    }
-
-    
-    if (!IMEComposingWindow()) {
-        IMEComposeStart();
-        if (NS_UNLIKELY(mIsDestroyed))
-            return;
-    }
-
-
-    LOGIM(("IMEComposeText\n"));
-    nsTextEvent textEvent(PR_TRUE, NS_TEXT_TEXT, this);
-
-    if (aLen != 0) {
-        textEvent.theText = (PRUnichar*)aText;
-
-        if (aPreeditString && aFeedback && (aLen > 0)) {
-            IM_set_text_range(aLen, aPreeditString, aCursorPos, aFeedback,
-                              &(textEvent.rangeCount),
-                              &(textEvent.rangeArray));
-        }
-    }
-
-    nsEventStatus status;
-    DispatchEvent(&textEvent, status);
-
-    if (textEvent.rangeArray) {
-        delete[] textEvent.rangeArray;
-    }
-
-    if (NS_UNLIKELY(mIsDestroyed))
-        return;
-
-    IMESetCursorPosition(textEvent.theReply);
-}
-
-void
-nsWindow::IMEComposeEnd(void)
-{
-    LOGIM(("IMEComposeEnd [%p]\n", (void *)this));
-    NS_ASSERTION(mIMEData, "This widget doesn't support IM");
-
-    if (!IMEComposingWindow()) {
-        NS_WARNING("tried to end text composition before it was started");
-        return;
-    }
-
-    mIMEData->mComposingWindow = nsnull;
-
-    nsCompositionEvent compEvent(PR_TRUE, NS_COMPOSITION_END, this);
-
-    nsEventStatus status;
-    DispatchEvent(&compEvent, status);
-}
-
-GtkIMContext*
-nsWindow::IMEGetContext()
-{
-    return IM_get_input_context(this);
-}
-
-static PRBool
-IsIMEEnabledState(PRUint32 aState)
-{
-#ifdef MOZ_PLATFORM_MAEMO
-    return aState == nsIWidget::IME_STATUS_ENABLED ||
-           aState == nsIWidget::IME_STATUS_PLUGIN  ||
-           aState == nsIWidget::IME_STATUS_PASSWORD;
-#else
-    return aState == nsIWidget::IME_STATUS_ENABLED ||
-           aState == nsIWidget::IME_STATUS_PLUGIN;
-#endif
-}
-
-PRBool
-nsWindow::IMEIsEnabledState(void)
-{
-    return mIMEData ? IsIMEEnabledState(mIMEData->mEnabled) : PR_FALSE;
-}
-
-static PRBool
-IsIMEEditableState(PRUint32 aState)
-{
-    return aState == nsIWidget::IME_STATUS_ENABLED ||
-           aState == nsIWidget::IME_STATUS_PLUGIN ||
-           aState == nsIWidget::IME_STATUS_PASSWORD;
-}
-
-PRBool
-nsWindow::IMEIsEditableState(void)
-{
-    return mIMEData ? IsIMEEditableState(mIMEData->mEnabled) : PR_FALSE;
-}
-
-nsWindow*
-nsWindow::IMEComposingWindow(void)
-{
-    return mIMEData ? mIMEData->mComposingWindow : nsnull;
-}
-
-void
-nsWindow::IMECreateContext(void)
-{
-    mIMEData = new nsIMEData(this);
-    if (!mIMEData)
-        return;
-
-    mIMEData->mContext = gtk_im_multicontext_new();
-    mIMEData->mSimpleContext = gtk_im_context_simple_new();
-    mIMEData->mDummyContext = gtk_im_multicontext_new();
-    if (!mIMEData->mContext || !mIMEData->mSimpleContext ||
-        !mIMEData->mDummyContext) {
-        NS_ERROR("failed to create IM context.");
-        IMEDestroyContext();
-        return;
-    }
-
-    gtk_im_context_set_client_window(mIMEData->mContext,
-                                     GTK_WIDGET(mContainer)->window);
-    gtk_im_context_set_client_window(mIMEData->mSimpleContext,
-                                     GTK_WIDGET(mContainer)->window);
-    gtk_im_context_set_client_window(mIMEData->mDummyContext,
-                                     GTK_WIDGET(mContainer)->window);
-
-    g_signal_connect(G_OBJECT(mIMEData->mContext), "preedit_changed",
-                     G_CALLBACK(IM_preedit_changed_cb), this);
-    g_signal_connect(G_OBJECT(mIMEData->mContext), "commit",
-                     G_CALLBACK(IM_commit_cb), this);
-    g_signal_connect(G_OBJECT(mIMEData->mSimpleContext), "preedit_changed",
-                     G_CALLBACK(IM_preedit_changed_cb), this);
-    g_signal_connect(G_OBJECT(mIMEData->mSimpleContext), "commit",
-                     G_CALLBACK(IM_commit_cb), this);
-}
-
-PRBool
-nsWindow::IMEFilterEvent(GdkEventKey *aEvent)
-{
-    if (!IMEIsEditableState())
-        return FALSE;
-
-    GtkIMContext *im = IMEGetContext();
-    if (!im)
-        return FALSE;
-
-    gKeyEvent = aEvent;
-    gboolean filtered = gtk_im_context_filter_keypress(im, aEvent);
-    gKeyEvent = NULL;
-
-    LOGIM(("key filtered: %d committed: %d changed: %d\n",
-           filtered, gKeyEventCommitted, gKeyEventChanged));
-
-    
-    
-    
-    
-    
-
-    PRBool retval = PR_FALSE;
-    if (filtered &&
-        (!gKeyEventCommitted || (gKeyEventCommitted && gKeyEventChanged)))
-        retval = PR_TRUE;
-
-    gKeyEventChanged = PR_FALSE;
-    gKeyEventCommitted = PR_FALSE;
-    gKeyEventChanged = PR_FALSE;
-
-    return retval;
-}
-
-void
-nsWindow::IMESetCursorPosition(const nsTextEventReply& aReply)
-{
-    nsIWidget *refWidget = aReply.mReferenceWidget;
-    if (!refWidget) {
-        NS_WARNING("mReferenceWidget is null");
-        refWidget = this;
-    }
-    nsWindow* refWindow = static_cast<nsWindow*>(refWidget);
-
-    nsWindow* ownerWindow = GetContainerWindow();
-    if (!ownerWindow) {
-        NS_ERROR("there is no owner");
-        return;
-    }
-
-    
-    gint refX, refY;
-    gdk_window_get_origin(refWindow->mGdkWindow, &refX, &refY);
-
-    
-    gint ownerX, ownerY;
-    gdk_window_get_origin(ownerWindow->mGdkWindow, &ownerX, &ownerY);
-
-    
-    GdkRectangle area;
-    area.x = aReply.mCursorPosition.x + refX - ownerX;
-    area.y = aReply.mCursorPosition.y + refY - ownerY;
-    area.width  = 0;
-    area.height = aReply.mCursorPosition.height;
-
-    gtk_im_context_set_cursor_location(IMEGetContext(), &area);
-}
-
 NS_IMETHODIMP
 nsWindow::ResetInputState()
 {
-    IMEInitData();
-
-    nsRefPtr<nsWindow> win = IMEComposingWindow();
-    if (win) {
-        GtkIMContext *im = IMEGetContext();
-        if (!im)
-            return NS_OK;
-
-        gchar *preedit_string;
-        gint cursor_pos;
-        PangoAttrList *feedback_list;
-        gtk_im_context_get_preedit_string(im, &preedit_string,
-                                          &feedback_list, &cursor_pos);
-        if (preedit_string && *preedit_string) {
-            IM_commit_cb_internal(preedit_string, win);
-            g_free(preedit_string);
-        }
-        if (feedback_list)
-            pango_attr_list_unref(feedback_list);
-    }
-
-    CancelIMEComposition();
-
-    return NS_OK;
-}
-
-NS_IMETHODIMP
-nsWindow::SetIMEOpenState(PRBool aState)
-{
-    return NS_ERROR_NOT_IMPLEMENTED;
-}
-
-NS_IMETHODIMP
-nsWindow::GetIMEOpenState(PRBool* aState)
-{
-    return NS_ERROR_NOT_IMPLEMENTED;
+    return mIMModule ? mIMModule->ResetInputState(this) : NS_OK;
 }
 
 NS_IMETHODIMP
 nsWindow::SetIMEEnabled(PRUint32 aState)
 {
-    IMEInitData();
-    if (!mIMEData)
-        return NS_OK;
-
-    if (aState == mIMEData->mEnabled)
-        return NS_OK;
-
-    GtkIMContext *focusedIm = nsnull;
-    
-    nsRefPtr<nsWindow> focusedWin = gIMEFocusWindow;
-    if (focusedWin && focusedWin->mIMEData)
-        focusedIm = focusedWin->mIMEData->mContext;
-
-    if (focusedIm && focusedIm == mIMEData->mContext) {
-        
-        if (IsIMEEditableState(mIMEData->mEnabled)) {
-            focusedWin->ResetInputState();
-            focusedWin->IMELoseFocus();
-        }
-
-        mIMEData->mEnabled = aState;
-
-        
-        
-        focusedWin->IMESetFocus();
-#ifdef MOZ_PLATFORM_MAEMO
-        if (mIMEData->mEnabled) {
-            
-            
-            
-            int mode;
-            g_object_get (G_OBJECT(IMEGetContext()), "hildon-input-mode", &mode, NULL);
-
-            if (mIMEData->mEnabled == nsIWidget::IME_STATUS_ENABLED ||
-                mIMEData->mEnabled == nsIWidget::IME_STATUS_PLUGIN)
-                mode &= ~HILDON_GTK_INPUT_MODE_INVISIBLE;
-            else if (mIMEData->mEnabled == nsIWidget::IME_STATUS_PASSWORD)
-               mode |= HILDON_GTK_INPUT_MODE_INVISIBLE;
-
-            
-            mode &= ~HILDON_GTK_INPUT_MODE_AUTOCAP;
-
-            g_object_set (G_OBJECT(IMEGetContext()), "hildon-input-mode", (HildonGtkInputMode)mode, NULL);
-            gIMEVirtualKeyboardOpened = PR_TRUE;
-            hildon_gtk_im_context_show (IMEGetContext());
-        } else {
-            gIMEVirtualKeyboardOpened = PR_FALSE;
-            hildon_gtk_im_context_hide (IMEGetContext());
-        }
-        nsCOMPtr<nsIObserverService> observerService = do_GetService("@mozilla.org/observer-service;1");
-        if (observerService) {
-            nsAutoString rectBuf;
-            PRInt32 x, y, w, h;
-            gdk_window_get_position(mGdkWindow, &x, &y);
-            gdk_window_get_size(mGdkWindow, &w, &h);
-            rectBuf.Assign(NS_LITERAL_STRING("{\"left\": "));
-            rectBuf.AppendInt(x);
-            rectBuf.Append(NS_LITERAL_STRING(" \"top\": "));
-            rectBuf.AppendInt(y);
-            rectBuf.Append(NS_LITERAL_STRING(", \"right\": "));
-            rectBuf.AppendInt(w);
-            rectBuf.Append(NS_LITERAL_STRING(", \"bottom\": "));
-            rectBuf.AppendInt(h);
-            rectBuf.Append(NS_LITERAL_STRING("}"));
-            observerService->NotifyObservers(nsnull, "softkb-change", rectBuf.get());
-        }
-#endif
-    } else {
-        if (IsIMEEditableState(mIMEData->mEnabled))
-            ResetInputState();
-        mIMEData->mEnabled = aState;
-    }
-
-    return NS_OK;
+    return mIMModule ? mIMModule->SetIMEEnabled(this, aState) : NS_OK;
 }
 
 NS_IMETHODIMP
 nsWindow::GetIMEEnabled(PRUint32* aState)
 {
-    NS_ENSURE_ARG_POINTER(aState);
-
-    IMEInitData();
-
-    *aState =
-      mIMEData ? mIMEData->mEnabled : nsIWidget::IME_STATUS_DISABLED;
-    return NS_OK;
+  NS_ENSURE_ARG_POINTER(aState);
+  if (!mIMModule) {
+      *aState = nsIWidget::IME_STATUS_DISABLED;
+      return NS_OK;
+  }
+  return mIMModule->GetIMEEnabled(aState);
 }
 
 NS_IMETHODIMP
 nsWindow::CancelIMEComposition()
 {
-    IMEInitData();
+    return mIMModule ? mIMModule->CancelIMEComposition(this) : NS_OK;
+}
 
-    GtkIMContext *im = IMEGetContext();
-    if (!im)
-        return NS_OK;
-
-    NS_ASSERTION(!gIMESuppressCommit,
-                 "CancelIMEComposition is already called!");
-    gIMESuppressCommit = PR_TRUE;
-    gtk_im_context_reset(im);
-    gIMESuppressCommit = PR_FALSE;
-
-    nsRefPtr<nsWindow> win = IMEComposingWindow();
-    if (win) {
-        win->IMEComposeText(nsnull, 0, nsnull, 0, nsnull);
-        win->IMEComposeEnd();
+NS_IMETHODIMP
+nsWindow::OnIMEFocusChange(PRBool aFocus)
+{
+    if (mIMModule) {
+      mIMModule->OnFocusChangeInGecko(aFocus);
     }
-
     return NS_OK;
 }
 
@@ -7145,274 +6576,6 @@ nsWindow::GetToggledKeyState(PRUint32 aKeyCode, PRBool* aLEDState)
     return NS_ERROR_NOT_IMPLEMENTED;
 #endif 
 }
-
-
-void
-IM_preedit_changed_cb(GtkIMContext *aContext,
-                      nsWindow     *aWindow)
-{
-    gchar *preedit_string;
-    gint cursor_pos;
-    PangoAttrList *feedback_list;
-
-    
-    nsRefPtr<nsWindow> window = gFocusWindow ? gFocusWindow : gIMEFocusWindow;
-    if (!window || IM_get_input_context(window) != aContext)
-        return;
-
-    
-    
-    gtk_im_context_get_preedit_string(aContext, &preedit_string,
-                                      &feedback_list, &cursor_pos);
-
-    LOGIM(("preedit string is: %s   length is: %d\n",
-           preedit_string, strlen(preedit_string)));
-
-    if (!preedit_string || !*preedit_string) {
-        LOGIM(("preedit ended\n"));
-        window->IMEComposeText(NULL, 0, NULL, 0, NULL);
-        window->IMEComposeEnd();
-        return;
-    }
-
-    LOGIM(("preedit len %d\n", strlen(preedit_string)));
-
-    gunichar2 * uniStr;
-    glong uniStrLen;
-
-    uniStr = NULL;
-    uniStrLen = 0;
-    uniStr = g_utf8_to_utf16(preedit_string, -1, NULL, &uniStrLen, NULL);
-
-    if (!uniStr) {
-        g_free(preedit_string);
-        LOG(("utf8-utf16 string tranfer failed!\n"));
-        if (feedback_list)
-            pango_attr_list_unref(feedback_list);
-        return;
-    }
-
-    if (uniStrLen) {
-        window->IMEComposeText(static_cast<const PRUnichar *>(uniStr),
-                               uniStrLen, preedit_string, cursor_pos, feedback_list);
-    }
-
-    g_free(preedit_string);
-    g_free(uniStr);
-
-    if (feedback_list)
-        pango_attr_list_unref(feedback_list);
-}
-
-
-void
-IM_commit_cb(GtkIMContext *aContext,
-             const gchar  *aUtf8_str,
-             nsWindow     *aWindow)
-{
-    if (gIMESuppressCommit)
-        return;
-
-    LOGIM(("IM_commit_cb\n"));
-
-    gKeyEventCommitted = PR_TRUE;
-
-    
-    nsRefPtr<nsWindow> window = gFocusWindow ? gFocusWindow : gIMEFocusWindow;
-
-    if (!window || IM_get_input_context(window) != aContext)
-        return;
-
-    
-
-
-
-    if (gKeyEvent) {
-        char keyval_utf8[8]; 
-        gint keyval_utf8_len;
-        guint32 keyval_unicode;
-
-        keyval_unicode = gdk_keyval_to_unicode(gKeyEvent->keyval);
-        keyval_utf8_len = g_unichar_to_utf8(keyval_unicode, keyval_utf8);
-        keyval_utf8[keyval_utf8_len] = '\0';
-
-        if (!strcmp(aUtf8_str, keyval_utf8)) {
-            gKeyEventChanged = PR_FALSE;
-            return;
-        }
-    }
-
-    gKeyEventChanged = PR_TRUE;
-    IM_commit_cb_internal(aUtf8_str, window);
-}
-
-
-void
-IM_commit_cb_internal(const gchar  *aUtf8_str,
-                      nsWindow     *aWindow)
-{
-    gunichar2 *uniStr = nsnull;
-    glong uniStrLen = 0;
-    uniStr = g_utf8_to_utf16(aUtf8_str, -1, NULL, &uniStrLen, NULL);
-
-    if (!uniStr) {
-        LOGIM(("utf80utf16 string tranfer failed!\n"));
-        return;
-    }
-
-    if (uniStrLen) {
-        aWindow->IMEComposeText((const PRUnichar *)uniStr,
-                                (PRInt32)uniStrLen, nsnull, 0, nsnull);
-        aWindow->IMEComposeEnd();
-    }
-
-    g_free(uniStr);
-}
-
-#define	START_OFFSET(I)	\
-    (*aTextRangeListResult)[I].mStartOffset
-
-#define	END_OFFSET(I) \
-    (*aTextRangeListResult)[I].mEndOffset
-
-#define	SET_FEEDBACKTYPE(I,T) (*aTextRangeListResult)[I].mRangeType = T
-
-
-void
-IM_set_text_range(const PRInt32 aLen,
-                  const gchar *aPreeditString,
-                  const gint aCursorPos,
-                  const PangoAttrList *aFeedback,
-                  PRUint32 *aTextRangeListLengthResult,
-                  nsTextRangeArray *aTextRangeListResult)
-{
-    if (aLen == 0) {
-        aTextRangeListLengthResult = 0;
-        aTextRangeListResult = NULL;
-        return;
-    }
-
-    PangoAttrIterator * aFeedbackIterator;
-    aFeedbackIterator = pango_attr_list_get_iterator((PangoAttrList*)aFeedback);
-    
-    
-    if (aFeedbackIterator == NULL) return;
-
-    
-
-
-
-
-
-    PRInt32 aMaxLenOfTextRange;
-    aMaxLenOfTextRange = 2*aLen + 1;
-    *aTextRangeListResult = new nsTextRange[aMaxLenOfTextRange];
-    NS_ASSERTION(*aTextRangeListResult, "No enough memory.");
-
-    
-    SET_FEEDBACKTYPE(0, NS_TEXTRANGE_CARETPOSITION);
-    START_OFFSET(0) = aCursorPos;
-    END_OFFSET(0) = aCursorPos;
-
-    int count = 0;
-    PangoAttribute * aPangoAttr;
-    PangoAttribute * aPangoAttrReverse, * aPangoAttrUnderline;
-    
-
-
-
-
-
-
-
-
-    gint start, end;
-    gunichar2 * uniStr;
-    glong uniStrLen;
-    do {
-        aPangoAttrUnderline = pango_attr_iterator_get(aFeedbackIterator,
-                                                      PANGO_ATTR_UNDERLINE);
-        aPangoAttrReverse = pango_attr_iterator_get(aFeedbackIterator,
-                                                    PANGO_ATTR_FOREGROUND);
-        if (!aPangoAttrUnderline && !aPangoAttrReverse)
-            continue;
-
-        
-        pango_attr_iterator_range(aFeedbackIterator, &start, &end);
-
-        PRUint32 feedbackType = 0;
-        
-        if (aPangoAttrUnderline && aPangoAttrReverse) {
-            feedbackType = NS_TEXTRANGE_SELECTEDCONVERTEDTEXT;
-            
-            
-            
-            aPangoAttr = aPangoAttrUnderline;
-        }
-        
-        else if (aPangoAttrUnderline) {
-            feedbackType = NS_TEXTRANGE_CONVERTEDTEXT;
-            aPangoAttr = aPangoAttrUnderline;
-        }
-        
-        else if (aPangoAttrReverse) {
-            feedbackType = NS_TEXTRANGE_SELECTEDRAWTEXT;
-            aPangoAttr = aPangoAttrReverse;
-        }
-
-        count++;
-        START_OFFSET(count) = 0;
-        END_OFFSET(count) = 0;
-
-        uniStr = NULL;
-        if (start > 0) {
-            uniStr = g_utf8_to_utf16(aPreeditString, start,
-                                     NULL, &uniStrLen, NULL);
-        }
-        if (uniStr) {
-            START_OFFSET(count) = uniStrLen;
-            g_free(uniStr);
-        }
-
-        uniStr = NULL;
-        uniStr = g_utf8_to_utf16(aPreeditString + start, end - start,
-                                 NULL, &uniStrLen, NULL);
-        if (uniStr) {
-            END_OFFSET(count) = START_OFFSET(count) + uniStrLen;
-            SET_FEEDBACKTYPE(count, feedbackType);
-            g_free(uniStr);
-        }
-
-    } while ((count < aMaxLenOfTextRange - 1) &&
-             (pango_attr_iterator_next(aFeedbackIterator)));
-
-   *aTextRangeListLengthResult = count + 1;
-
-   pango_attr_iterator_destroy(aFeedbackIterator);
-}
-
-
-GtkIMContext *
-IM_get_input_context(nsWindow *aWindow)
-{
-    if (!aWindow)
-        return nsnull;
-    nsWindow::nsIMEData *data = aWindow->mIMEData;
-    if (!data)
-        return nsnull;
-    if (data->mEnabled == nsIWidget::IME_STATUS_ENABLED ||
-        data->mEnabled == nsIWidget::IME_STATUS_PLUGIN)
-        return data->mContext;
-    if (data->mEnabled == nsIWidget::IME_STATUS_PASSWORD)
-#ifdef MOZ_PLATFORM_MAEMO
-        return data->mContext;
-#else
-        return data->mSimpleContext;
-#endif
-    return data->mDummyContext;
-}
-
-#endif
 
 #ifdef MOZ_X11
  already_AddRefed<gfxASurface>
