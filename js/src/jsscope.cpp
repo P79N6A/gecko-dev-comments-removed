@@ -1022,27 +1022,8 @@ JSScope::reportReadOnlyScope(JSContext *cx)
 void
 JSScope::generateOwnShape(JSContext *cx)
 {
-#ifdef JS_TRACER
-    if (object) {
-         js_LeaveTraceIfGlobalObject(cx, object);
-
-        
-
-
-
-
-        JS_ASSERT_IF(JS_ON_TRACE(cx), cx->bailExit);
-
-        
-
-
-
-
-        JSTraceMonitor *tm = &JS_TRACE_MONITOR(cx);
-        if (TraceRecorder *tr = tm->recorder)
-            tr->forgetGuardedShapesForObject(object);
-    }
-#endif
+    if (object)
+        js_LeaveTraceIfGlobalObject(cx, object);
 
     shape = js_GenerateShape(cx, false);
     setOwnShape();
