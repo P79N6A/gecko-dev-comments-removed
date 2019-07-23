@@ -4824,13 +4824,19 @@ nsContextBoxBlur::Init(const gfxRect& aRect, nscoord aBlurRadius,
     return mContext;
   }
 
-  mDestinationCtx = aDestinationCtx;
-
   
   mRect = aRect;
   mRect.Outset(aBlurRadius);
   mRect.ScaleInverse(aAppUnitsPerDevPixel);
   mRect.RoundOut();
+
+  if (mRect.IsEmpty()) {
+    mBlurRadius = 0;
+    mContext = aDestinationCtx;
+    return mContext;
+  }
+
+  mDestinationCtx = aDestinationCtx;
 
   
   
