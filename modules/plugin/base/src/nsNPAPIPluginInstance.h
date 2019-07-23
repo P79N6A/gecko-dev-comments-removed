@@ -50,7 +50,7 @@
 #include "nsITimer.h"
 
 #include "npfunctions.h"
-#include "prlink.h"
+#include "mozilla/SharedLibrary.h"
 
 class nsNPAPIPluginStreamListener;
 class nsPIDOMWindow;
@@ -86,15 +86,13 @@ public:
 
   NPError SetWindowless(PRBool aWindowless);
 
-  NPError SetWindowlessLocal(PRBool aWindowlessLocal);
-
   NPError SetTransparent(PRBool aTransparent);
 
   NPError SetWantsAllNetworkStreams(PRBool aWantsAllNetworkStreams);
 
 #ifdef XP_MACOSX
   void SetDrawingModel(NPDrawingModel aModel);
-  void SetEventModel(NPEventModel aModel);
+  NPDrawingModel GetDrawingModel();
 #endif
 
   nsresult NewNotifyStream(nsIPluginStreamListener** listener, 
@@ -102,7 +100,7 @@ public:
                            PRBool aCallNotify,
                            const char * aURL);
 
-  nsNPAPIPluginInstance(NPPluginFuncs* callbacks, PRLibrary* aLibrary);
+  nsNPAPIPluginInstance(NPPluginFuncs* callbacks, mozilla::SharedLibrary* aLibrary);
 
   
   virtual ~nsNPAPIPluginInstance();
@@ -111,7 +109,7 @@ public:
   PRBool IsStarted();
 
   
-  nsresult SetCached(PRBool aCache);
+  nsresult SetCached(PRBool aCache) { mCached = aCache; return NS_OK; }
 
   already_AddRefed<nsPIDOMWindow> GetDOMWindow();
 
@@ -122,17 +120,18 @@ public:
   nsNPAPITimer* TimerWithID(uint32_t id, PRUint32* index);
   uint32_t      ScheduleTimer(uint32_t interval, NPBool repeat, void (*timerFunc)(NPP npp, uint32_t timerID));
   void          UnscheduleTimer(uint32_t timerID);
-  NPError       PopUpContextMenu(NPMenu* menu);
-  NPBool        ConvertPoint(double sourceX, double sourceY, NPCoordinateSpace sourceSpace, double *destX, double *destY, NPCoordinateSpace destSpace);
 protected:
   nsresult InitializePlugin();
+
+  
+  nsresult GetValueInternal(NPPVariable variable, void* value);
 
   nsresult GetTagType(nsPluginTagType *result);
   nsresult GetAttributes(PRUint16& n, const char*const*& names,
                          const char*const*& values);
   nsresult GetParameters(PRUint16& n, const char*const*& names,
                          const char*const*& values);
-  nsresult GetMode(PRInt32 *result);
+  nsresult GetMode(nsPluginMode *result);
 
   
   
@@ -150,7 +149,6 @@ protected:
   
   
   PRPackedBool mWindowless;
-  PRPackedBool mWindowlessLocal;
   PRPackedBool mTransparent;
   PRPackedBool mStarted;
   PRPackedBool mCached;
@@ -159,7 +157,7 @@ protected:
 public:
   
   PRPackedBool mInPluginInitCall;
-  PRLibrary* mLibrary;
+  mozilla::SharedLibrary* mLibrary;
   nsInstanceStream *mStreams;
 
 private:
@@ -172,9 +170,6 @@ private:
   nsIPluginInstanceOwner *mOwner;
 
   nsTArray<nsNPAPITimer*> mTimers;
-
-  
-  void* mCurrentPluginEvent;
 };
 
 #endif 

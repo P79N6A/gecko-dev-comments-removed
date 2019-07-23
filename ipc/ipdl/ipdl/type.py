@@ -791,10 +791,110 @@ class CheckTypes(TcheckVisitor):
 class CheckStateMachine(TcheckVisitor):
     def __init__(self, symtab, errors):
         TcheckVisitor.__init__(self, symtab, errors)
+        self.p = None
 
     def visitProtocol(self, p):
+        self.p = p
         self.checkReachability(p)
+        for ts in p.transitionStmts:
+            ts.accept(self)
 
+    def visitTransitionStmt(self, ts):
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        syncdirection = None
+        syncok = True
+        for trans in ts.transitions:
+            if not trans.msg.type.isSync(): continue
+            if syncdirection is None:
+                syncdirection = trans.trigger.direction()
+            elif syncdirection is not trans.trigger.direction():
+                self.error(
+                    trans.loc,
+                    "sync trigger at state `%s' in protocol `%s' has different direction from earlier sync trigger at same state",
+                    ts.state.name, self.p.name)
+                syncok = False
+        
+        if not syncok:
+            return
+
+        def triggerTarget(S, t):
+            '''Return the state transitioned to from state |S|
+upon trigger |t|, or None if |t| is not a trigger in |S|.'''
+            for trans in self.p.states[S].transitions:
+                if t.trigger is trans.trigger and t.msg is trans.msg:
+                    return trans.toState
+            return None
+
+        ntrans = len(ts.transitions)
+        for i, t1 in enumerate(ts.transitions):
+            for j in xrange(i+1, ntrans):
+                t2 = ts.transitions[j]
+                
+                
+                
+                if t1.trigger.direction() == t2.trigger.direction():
+                    continue
+
+                T1 = t1.toState
+                T2 = t2.toState
+
+                U1 = triggerTarget(T1, t2)
+                U2 = triggerTarget(T2, t1)
+
+                if U1 is None or U1 != U2:
+                    self.error(
+                        t2.loc,
+                        "trigger `%s' potentially races (does not commute) with `%s' at state `%s' in protocol `%s'",
+                        t1.msg.progname, t2.msg.progname,
+                        ts.state.name, self.p.name)
+                    
+                    
+                    
+                    
+                    
+                    
+                    return
 
     def checkReachability(self, p):
         visited = set()         

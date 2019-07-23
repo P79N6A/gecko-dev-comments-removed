@@ -527,10 +527,10 @@ XRE_RunTestShell(int aArgc, char* aArgv[])
 static void
 IPCTestHarnessMain(TestProcessParent* subprocess)
 {
-    TestParent parent;
+    TestParent* parent = new TestParent(); 
 
-    parent.Open(subprocess->GetChannel());
-    parent.DoStuff();
+    parent->Open(subprocess->GetChannel());
+    parent->DoStuff();
 }
 
 static void

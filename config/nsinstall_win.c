@@ -6,14 +6,6 @@
 
 
 
-
-
-
-
-
-
-
-
 #include <direct.h>
 #include <stdio.h>
 #include <string.h>
@@ -47,6 +39,7 @@ static BOOL sh_DoCopy(wchar_t *srcFileName, DWORD srcFileAttributes,
 
 #define LONGPATH_PREFIX L"\\\\?\\"
 #define ARRAY_LEN(a) (sizeof(a) / sizeof(a[0]))
+#define STR_LEN(a) (ARRAY_LEN(a) - 1)
 
 
 void changeForwardSlashesTpBackSlashes ( wchar_t *arg )
@@ -254,7 +247,7 @@ sh_DoCopy(wchar_t *srcFileName,
         DWORD r;
         wchar_t longSrc[1004] = LONGPATH_PREFIX;
         wchar_t longDst[1004] = LONGPATH_PREFIX;
-        r = GetFullPathName(srcFileName, 1000, longSrc + ARRAY_LEN(LONGPATH_PREFIX) - 1, NULL);
+        r = GetFullPathName(srcFileName, 1000, longSrc + STR_LEN(LONGPATH_PREFIX), NULL);
         if (!r) {
             fprintf(stderr, "nsinstall: couldn't get full path of %ls: %s\n",
                     srcFileName, sh_GetLastErrorMessage());
