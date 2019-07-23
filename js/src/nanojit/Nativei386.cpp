@@ -102,7 +102,9 @@ namespace nanojit
         
         
         if (amt)
+        {
             SUBi(SP, amt);
+        }
 
         verbose_only( outputAddr=true; asm_output("[frag entry]"); )
         NIns *fragEntry = _nIns;
@@ -145,6 +147,7 @@ namespace nanojit
                 lr->jmp = _nIns;
             }
         }
+
         
         MR(SP,FP);
 
@@ -155,13 +158,11 @@ namespace nanojit
     NIns *Assembler::genEpilogue()
     {
         RET();
-
         if (!_thisfrag->lirbuf->explicitSavedRegs) {
             for (int i = NumSavedRegs - 1; i >= 0; --i)
                 POPr(savedRegs[i]);
             POPr(FP); 
         }
-
         POPr(FP); 
         MR(SP,FP); 
         return  _nIns;
@@ -298,7 +299,7 @@ namespace nanojit
         asm(
             "bsf    %1, %%eax\n\t"
             "btr    %%eax, %2\n\t"
-            "movl    %%eax, %0\n\t"
+            "movl   %%eax, %0\n\t"
             : "=m"(r) : "m"(set), "m"(regs.free) : "%eax", "memory" );
     #endif 
         return r;
@@ -393,7 +394,7 @@ namespace nanojit
             ST(FP, d, r);
         }
 
-        freeRsrcOf(ins, false);    
+        freeRsrcOf(ins, false); 
     }
 
     void Assembler::asm_load(int d, Register r)
@@ -563,13 +564,13 @@ namespace nanojit
 
             if (config.sse2) {
                 Register rv = findRegFor(value, XmmRegs);
-        Register rb;
-        if (base->isop(LIR_ialloc)) {
-            rb = FP;
-            dr += findMemFor(base);
-        } else {
-            rb = findRegFor(base, GpRegs);
-        }
+                Register rb;
+                if (base->isop(LIR_ialloc)) {
+                    rb = FP;
+                    dr += findMemFor(base);
+                } else {
+                    rb = findRegFor(base, GpRegs);
+                }
                 SSE_STQ(dr, rb, rv);
                 return;
             }
@@ -577,10 +578,10 @@ namespace nanojit
             int da = findMemFor(value);
             Register rb;
             if (base->isop(LIR_ialloc)) {
-                    rb = FP;
-                    dr += findMemFor(base);
+                rb = FP;
+                dr += findMemFor(base);
             } else {
-                    rb = findRegFor(base, GpRegs);
+                rb = findRegFor(base, GpRegs);
             }
             asm_mmq(rb, dr, FP, da);
             return;
@@ -645,12 +646,10 @@ namespace nanojit
         NIns* at = 0;
         LOpcode condop = cond->opcode();
         NanoAssert(cond->isCond());
-
         if (condop >= LIR_feq && condop <= LIR_fge)
         {
             return asm_jmpcc(branchOnFalse, cond, targ);
         }
-
         
         if (branchOnFalse)
         {
@@ -698,7 +697,6 @@ namespace nanojit
             else 
                 JAE(targ, isfar);
         }
-
         at = _nIns;
         asm_cmp(cond);
         return at;
@@ -709,14 +707,14 @@ namespace nanojit
         LIns* diff = ins->oprnd1();
         findSpecificRegFor(diff, EBX);
         JMP(exit);
-       }
+    }
 
     void Assembler::asm_cmp(LIns *cond)
     {
         LOpcode condop = cond->opcode();
 
         
-        if ((condop == LIR_ov))
+        if (condop == LIR_ov)
             return;
 
         LInsp lhs = cond->oprnd1();
@@ -866,7 +864,6 @@ namespace nanojit
         Register rr = prepResultReg(ins, allow);
         Reservation* rA = getresv(lhs);
         Register ra;
-
         
         if (rA == 0 || (ra = rA->reg) == UnknownReg)
             ra = findSpecificRegFor(lhs, rr);
@@ -1074,17 +1071,17 @@ namespace nanojit
             switch (condval->opcode())
             {
                 
-                case LIR_eq:    MRNE(rr, iffalsereg);    break;
+                case LIR_eq:    MRNE(rr, iffalsereg);   break;
                 case LIR_ov:    MRNO(rr, iffalsereg);   break;
-                case LIR_lt:    MRGE(rr, iffalsereg);    break;
+                case LIR_lt:    MRGE(rr, iffalsereg);   break;
                 case LIR_le:    MRG(rr, iffalsereg);    break;
-                case LIR_gt:    MRLE(rr, iffalsereg);    break;
+                case LIR_gt:    MRLE(rr, iffalsereg);   break;
                 case LIR_ge:    MRL(rr, iffalsereg);    break;
-                case LIR_ult:    MRAE(rr, iffalsereg);    break;
-                case LIR_ule:    MRA(rr, iffalsereg);    break;
-                case LIR_ugt:    MRBE(rr, iffalsereg);    break;
-                case LIR_uge:    MRB(rr, iffalsereg);    break;
-                default: debug_only( NanoAssert(0); ) break;
+                case LIR_ult:   MRAE(rr, iffalsereg);   break;
+                case LIR_ule:   MRA(rr, iffalsereg);    break;
+                case LIR_ugt:   MRBE(rr, iffalsereg);   break;
+                case LIR_uge:   MRB(rr, iffalsereg);    break;
+                debug_only( default: NanoAssert(0); break; )
             }
         } else if (op == LIR_qcmov) {
             NanoAssert(0);
@@ -1530,8 +1527,8 @@ namespace nanojit
             Register gr = findRegFor(ins->oprnd1(), GpRegs);
             NanoAssert(rr == FST0);
             FILDQ(disp, base);
-            STi(base, disp+4, 0);    
-            ST(base, disp, gr);        
+            STi(base, disp+4, 0);   
+            ST(base, disp, gr);     
         }
     }
 
@@ -1663,7 +1660,6 @@ namespace nanojit
                 evict(EAX);
                 TEST_AH(mask);
                 LAHF();
-
                 Reservation *rA, *rB;
                 findRegFor2(XmmRegs, lhs, rA, rhs, rB);
                 SSE_UCOMISD(rA->reg, rB->reg);
