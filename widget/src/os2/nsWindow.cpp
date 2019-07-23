@@ -918,17 +918,20 @@ NS_METHOD nsWindow::Create(nsIWidget *aParent,
                            nsIToolkit *aToolkit,
                            nsWidgetInitData *aInitData)
 {
-  HWND hwndP = (HWND)aNativeParent;
-  if (!hwndP) {
-    HWND hwndP = aParent ? (HWND)aParent->GetNativeData(NS_NATIVE_WINDOW) :
-                           HWND_DESKTOP;
-  }
+  HWND hwndP;
+  nsWindow *pParent;
 
-  
-  
-  nsWindow *pParent = (nsWindow*)aParent;
-  if (!pParent && hwndP && hwndP != HWND_DESKTOP) {
-    pParent = GetNSWindowPtr(hwndP);
+  if (aParent) {
+    hwndP = (HWND)aParent->GetNativeData(NS_NATIVE_WINDOW);
+    pParent = (nsWindow*)aParent;
+  } else {
+    if (aNativeParent && (HWND)aNativeParent != HWND_DESKTOP) {
+      hwndP = (HWND)aNativeParent;
+      pParent = GetNSWindowPtr(hwndP);
+    } else {
+      hwndP = HWND_DESKTOP;
+      pParent = 0;
+    }
   }
 
   DoCreate(hwndP, pParent, aRect, aHandleEventFunction,
