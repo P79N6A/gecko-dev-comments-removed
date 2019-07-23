@@ -1817,7 +1817,6 @@ nsGenericElement::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
       
       if (aBindingParent) {
         nsXBLBinding* binding = bmgr->GetBinding(aBindingParent);
-        NS_ASSERTION(binding, "huh, no binding?");
         if (binding) {
           
           nsInsertionPointList* inserts =
