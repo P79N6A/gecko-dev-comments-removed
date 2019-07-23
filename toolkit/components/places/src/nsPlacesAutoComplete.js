@@ -105,11 +105,6 @@ const kQueryTypeFiltered = 1;
 
 const kTitleTagsSeparator = " \u2013 ";
 
-
-const kMozPlacesColumns =
-  "id, url, title, rev_host, visit_count, hidden, typed, favicon_id, " +
-  "frecency, last_visit_date"
-
 const kBrowserUrlbarBranch = "browser.urlbar.";
 
 
@@ -214,23 +209,24 @@ function nsPlacesAutoComplete()
   
   
   
-  const SQL_BASE =
-    "SELECT h.url, h.title, f.url, " + kBookTagSQLFragment + ", h.visit_count, " +
-           "h.typed, h.id, :query_type " +
-    "FROM ( " +
-      "SELECT " + kMozPlacesColumns + " FROM moz_places_temp " +
-      "UNION ALL " +
-      "SELECT " + kMozPlacesColumns + " FROM moz_places " +
-      "WHERE +id NOT IN (SELECT id FROM moz_places_temp) " +
-      "ORDER BY frecency DESC " +
-    ") AS h " +
-    "LEFT OUTER JOIN moz_favicons f " +
-    "ON f.id = h.favicon_id " +
-    "WHERE h.frecency <> 0 " +
-    "AND AUTOCOMPLETE_MATCH(:searchString, h.url, IFNULL(bookmark, h.title), " +
-                           "tags, h.visit_count, h.typed, parent, " +
-                           ":matchBehavior, :searchBehavior) " +
-    "{ADDITIONAL_CONDITIONS}";
+  function sql_base_fragment(aTableName) {
+    return "SELECT h.url, h.title, f.url, " + kBookTagSQLFragment + ", " +
+                  "h.visit_count, h.typed, h.id, :query_type, h.frecency " +
+           "FROM " + aTableName + " h " +
+           "LEFT OUTER JOIN moz_favicons f ON f.id = h.favicon_id " +
+           "WHERE h.frecency <> 0 " +
+           "AND AUTOCOMPLETE_MATCH(:searchString, h.url, " +
+                                  "IFNULL(bookmark, h.title), tags, " +
+                                  "h.visit_count, h.typed, parent, " +
+                                  ":matchBehavior, :searchBehavior) " +
+          "{ADDITIONAL_CONDITIONS} ";
+  }
+  const SQL_BASE = sql_base_fragment("moz_places_temp") +
+                   "UNION ALL " +
+                   sql_base_fragment("moz_places") +
+                   "AND +h.id NOT IN (SELECT id FROM moz_places_temp) " +
+                   "ORDER BY h.frecency DESC " +
+                   "LIMIT :maxResults";
 
   
   
@@ -809,6 +805,10 @@ nsPlacesAutoComplete.prototype = {
       
       
       params.searchString = aTokens.join(" ");
+
+      
+      
+      params.maxResults = this._maxRichResults;
     }
 
     return query;
