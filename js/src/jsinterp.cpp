@@ -241,7 +241,9 @@ js_FillPropertyCache(JSContext *cx, JSObject *obj, jsuword kshape,
         }
 
         
-        if (!(cs->format & (JOF_SET | JOF_INCDEC | JOF_FOR)) &&
+        if (!(cs->format & JOF_SET) &&
+            !((cs->format & (JOF_INCDEC | JOF_FOR)) &&
+              (sprop->attrs & JSPROP_READONLY)) &&
             SPROP_HAS_STUB_GETTER(sprop) &&
             SPROP_HAS_VALID_SLOT(sprop, scope)) {
             
@@ -2574,16 +2576,21 @@ js_Interpret(JSContext *cx)
 
 #ifdef JS_TRACER
     
-    TraceRecorder *tr = TRACE_RECORDER(cx);
-
-    
-
-    if (tr) {
+    TraceRecorder *tr = NULL;
+    if (JS_ON_TRACE(cx)) {
+        tr = TRACE_RECORDER(cx);
         SET_TRACE_RECORDER(cx, NULL);
-        if (tr->wasDeepAborted())
-            tr->removeFragmentoReferences();
-        else
-            tr->pushAbortStack();
+        JS_TRACE_MONITOR(cx).onTrace = JS_FALSE;
+        
+
+
+
+        if (tr) {
+            if (tr->wasDeepAborted())
+                tr->removeFragmentoReferences();
+            else
+                tr->pushAbortStack();
+        }
     }
 #endif
 
@@ -2640,7 +2647,9 @@ js_Interpret(JSContext *cx)
             }                                                                 \
             fp = cx->fp;                                                      \
             script = fp->script;                                              \
-            atoms = FrameAtomBase(cx, fp);                                    \
+            atoms = fp->imacpc                                                \
+                    ? COMMON_ATOMS_START(&rt->atomState)                      \
+                    : script->atomMap.vector;                                 \
             currentVersion = (JSVersion) script->version;                     \
             JS_ASSERT(fp->regs == &regs);                                     \
             if (cx->throwing)                                                 \
@@ -3047,7 +3056,9 @@ js_Interpret(JSContext *cx)
 
                 
                 script = fp->script;
-                atoms = FrameAtomBase(cx, fp);
+                atoms = fp->imacpc
+                        ? COMMON_ATOMS_START(&rt->atomState)
+                        : script->atomMap.vector;
 
                 
                 inlineCallCount--;
@@ -7084,6 +7095,7 @@ js_Interpret(JSContext *cx)
 
 #ifdef JS_TRACER
     if (tr) {
+        JS_TRACE_MONITOR(cx).onTrace = JS_TRUE;
         SET_TRACE_RECORDER(cx, tr);
         if (!tr->wasDeepAborted()) {
             tr->popAbortStack();

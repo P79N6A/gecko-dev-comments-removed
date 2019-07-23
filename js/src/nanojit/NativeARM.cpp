@@ -66,13 +66,6 @@ const Register Assembler::argRegs[] = { R0, R1, R2, R3 };
 const Register Assembler::retRegs[] = { R0, R1 };
 const Register Assembler::savedRegs[] = { R4, R5, R6, R7, R8, R9, R10 };
 
-const char *ccName(ConditionCode cc)
-{
-    const char *ccNames[] = { "eq", "ne", "cs", "cc", "mi", "pl", "vs", "vc",
-                              "hi", "ls", "ge", "lt", "gt", "le", "al", "nv" };
-    return ccNames[(int)cc];
-}
-
 void
 Assembler::nInit(AvmCore*)
 {
@@ -1046,6 +1039,63 @@ Assembler::asm_fcmp(LInsp ins)
     Register ra = findRegFor(lhs, FpRegs);
     Register rb = findRegFor(rhs, FpRegs);
 
+    
+    
+    
+    if (op == LIR_fge) {
+        Register temp = ra;
+        ra = rb;
+        rb = temp;
+        op = LIR_flt;
+    } else if (op == LIR_fle) {
+        Register temp = ra;
+        ra = rb;
+        rb = temp;
+        op = LIR_fgt;
+    }
+
+    
+    
+    
+    
+    uint8_t mask = 0x0;
+
+    
+    
+    if (op == LIR_feq)
+        
+        mask = 0x6;
+    else if (op == LIR_flt)
+        
+        mask = 0x8;
+    else if (op == LIR_fgt)
+        
+        mask = 0x2;
+    else
+        NanoAssert(0);
+
+
+
+
+
+
+
+
+
+
+    
+    
+    
+    
+
+    
+    
+    CMPi(Scratch, mask);
+    
+    SHRi(Scratch, 28);
+    MRS(Scratch);
+
+    
     FMSTAT();
     FCMPD(ra, rb);
 }
@@ -1070,28 +1120,10 @@ Assembler::asm_branch(bool branchOnFalse, LInsp cond, NIns* targ, bool isfar)
 
     if (condop >= LIR_feq && condop <= LIR_fge)
     {
-        ConditionCode cc = NV;
-
-        if (branchOnFalse) {
-            switch (condop) {
-                case LIR_feq: cc = NE; break;
-                case LIR_flt: cc = PL; break;
-                case LIR_fgt: cc = LE; break;
-                case LIR_fle: cc = HI; break;
-                case LIR_fge: cc = LT; break;
-            }
-        } else {
-            switch (condop) {
-                case LIR_feq: cc = EQ; break;
-                case LIR_flt: cc = MI; break;
-                case LIR_fgt: cc = GT; break;
-                case LIR_fle: cc = LS; break;
-                case LIR_fge: cc = GE; break;
-            }
-        }
-
-        B_cond(cc, targ);
-        asm_output("b(%d) 0x%08x", cc, (unsigned int) targ);
+        if (branchOnFalse)
+            JNE(targ);
+        else
+            JE(targ);
 
         NIns *at = _nIns;
         asm_fcmp(cond);
@@ -1208,14 +1240,7 @@ Assembler::asm_fcond(LInsp ins)
     
     Register r = prepResultReg(ins, AllowableFlagRegs);
 
-    switch (ins->opcode()) {
-        case LIR_feq: SET(r,EQ,NE); break;
-        case LIR_flt: SET(r,MI,PL); break;
-        case LIR_fgt: SET(r,GT,LE); break;
-        case LIR_fle: SET(r,LS,HI); break;
-        case LIR_fge: SET(r,GE,LT); break;
-    }
-
+    SETE(r);
     asm_fcmp(ins);
 }
 

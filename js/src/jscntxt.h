@@ -148,8 +148,10 @@ typedef struct JSTraceMonitor {
 
 #ifdef JS_TRACER
 # define JS_ON_TRACE(cx)            (JS_TRACE_MONITOR(cx).onTrace)
+# define JS_EXECUTING_TRACE(cx)     (JS_ON_TRACE(cx) && !JS_TRACE_MONITOR(cx).recorder)
 #else
 # define JS_ON_TRACE(cx)            JS_FALSE
+# define JS_EXECUTING_TRACE(cx)     JS_FALSE
 #endif
 
 #ifdef JS_THREADSAFE
@@ -921,15 +923,6 @@ struct JSContext {
 
 #ifdef __cplusplus
 
-static inline JSAtom **
-FrameAtomBase(JSContext *cx, JSStackFrame *fp)
-{
-    return fp->imacpc
-           ? COMMON_ATOMS_START(&cx->runtime->atomState)
-           : fp->script->atomMap.vector;
-}
-
-
 class JSAutoTempValueRooter
 {
   public:
@@ -976,8 +969,7 @@ class JSAutoResolveFlags
     JSContext *mContext;
     uintN mSaved;
 };
-
-#endif 
+#endif
 
 
 

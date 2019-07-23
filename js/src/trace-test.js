@@ -4025,28 +4025,6 @@ test(testLetWithUnstableGlobal);
 delete b;
 delete q;
 
-for each (testBug474769_b in [1, 1, 1, 1.5, 1, 1]) {
-    (function() { for each (let testBug474769_h in [0, 0, 1.4, ""]) {} })()
-}
-function testBug474769() {
-    return testBug474769_b;
-}
-testBug474769.expected = 1;
-test(testBug474769);
-
-undeclaredGlobal = -1;
-function testGlobalAliasCheck() {
-    var q;
-    for (var i = 0; i < 10; ++i) {
-        undeclaredGlobal = i;
-        q = this.undeclaredGlobal;
-    }
-    return q;
-}
-testGlobalAliasCheck.expected = 9;
-test(testGlobalAliasCheck);
-delete undeclaredGlobal;
-
 
 
 
