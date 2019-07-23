@@ -133,8 +133,21 @@ public:
 
 
 
-  nsFlowAreaRect GetBand(nscoord aY, nscoord aMaxHeight,
-                         nscoord aContentAreaWidth, SavedState* aState) const;
+
+
+
+
+
+
+
+
+
+
+
+  enum BandInfoType { BAND_FROM_POINT, WIDTH_WITHIN_HEIGHT };
+  nsFlowAreaRect GetFlowArea(nscoord aY, BandInfoType aInfoType,
+                             nscoord aHeight, nscoord aContentAreaWidth,
+                             SavedState* aState) const;
 
   
 
