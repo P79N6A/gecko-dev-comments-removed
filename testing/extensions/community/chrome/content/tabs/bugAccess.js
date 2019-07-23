@@ -52,7 +52,6 @@ function bugAccess()
   var onloadBugSave;
   var onloadLogin;
 
-
   this.getBugSpecs = function(inputId,inUrl,onloadFunc)
   {
     if(onloadFunc!=undefined)
@@ -138,7 +137,7 @@ function bugAccess()
       xmlHttp.onload=this.parseBugSearch;
   }
 
-
+  
   this.parseBugList = function(e)
   {
     var bugData = parseList(e.target.responseText);
@@ -293,6 +292,23 @@ function bugAccess()
 
   bugData=new Array();
   
+  
+  
+  
+  
+  
+  
+  
+  
+  endLoc = xmlHttp.search(/<table class=\"bz_buglist sortable\"/);
+  if (endLoc <= 0) {
+    
+    
+    
+    alert("ERROR: No Bugs Found.");
+    return bugData;
+  }
+
   for(var i = 0;(beginLoc = xmlHttp.indexOf('show_bug.cgi?id',endLoc)) != -1; i++)
   {
     endLoc = xmlHttp.indexOf('"',beginLoc);
