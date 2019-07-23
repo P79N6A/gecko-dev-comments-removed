@@ -120,6 +120,9 @@ function addDownload()
   var srcFile = dirSvc.get("ProfD", Ci.nsIFile);
   srcFile.append("LICENSE");
 
+  
+  gDownloadCount++;
+
   var dl = dm.addDownload(nsIDownloadManager.DOWNLOAD_TYPE_DOWNLOAD,
                           createURI("http://localhost:4444/LICENSE"),
                           createURI(destFile), null, null,
@@ -128,9 +131,6 @@ function addDownload()
   
   
   var test = dm.getDownload(dl.id);
-
-  
-  gDownloadCount++;
 
   persist.progressListener = dl.QueryInterface(Ci.nsIWebProgressListener);
   persist.saveURI(dl.source, null, null, null, null, dl.targetFile);
