@@ -4240,6 +4240,7 @@ js_RecordLoopEdge(JSContext* cx, TraceRecorder* r, uintN& inlineCallCount)
         oracle.markInstructionUndemotable(cx->fp->regs->pc);
         
       case BRANCH_EXIT:
+      case CASE_EXIT:
         
         js_AbortRecording(cx, "Inner tree is trying to grow, abort outer recording");
         return js_AttemptToExtendTree(cx, lr, NULL, outer);
