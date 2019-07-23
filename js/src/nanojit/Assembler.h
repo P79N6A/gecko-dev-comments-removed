@@ -206,8 +206,6 @@ namespace nanojit
             
             
             LogControl* _logc;
-            size_t codeBytes;
-            size_t exitBytes;
             #endif 
 
             #ifdef VTUNE
@@ -295,10 +293,30 @@ namespace nanojit
             NInsMap             _patches;
             LabelStateMap       _labels;
 
-            NIns        *codeStart, *codeEnd;       
-            NIns        *exitStart, *exitEnd;       
-            NIns*       _nIns;          
-            NIns*       _nExitIns;      
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            bool        _inExit, vpad2[3];
+            NIns        *codeStart, *codeEnd;   
+            NIns        *exitStart, *exitEnd;   
+            NIns*       _nIns;                  
+            NIns*       _nExitIns;              
+        #ifdef NJ_VERBOSE
+        public:
+            size_t      codeBytes;              
+            size_t      exitBytes;              
+        #endif
+
+        private:
+            #define     SWAP(t, a, b)   do { t tmp = a; a = b; b = tmp; } while (0)
+            void        swapCodeChunks();
+
             NIns*       _epilogue;
             AssmError   _err;           
         #if PEDANTIC
@@ -307,8 +325,6 @@ namespace nanojit
 
             AR          _activation;
             RegAlloc    _allocator;
-
-            bool        _inExit, vpad2[3];
 
             verbose_only( void asm_inc_m32(uint32_t*); )
             void        asm_mmq(Register rd, int dd, Register rs, int ds);

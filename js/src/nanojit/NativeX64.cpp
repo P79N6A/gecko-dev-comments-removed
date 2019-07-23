@@ -1681,7 +1681,7 @@ namespace nanojit
     void Assembler::underrunProtect(ptrdiff_t bytes) {
         NanoAssertMsg(bytes<=LARGEST_UNDERRUN_PROT, "constant LARGEST_UNDERRUN_PROT is too small");
         NIns *pc = _nIns;
-        NIns *top = _inExit ? this->exitStart : this->codeStart;
+        NIns *top = codeStart;  
 
     #if PEDANTIC
         
@@ -1696,10 +1696,8 @@ namespace nanojit
             if (pc - bytes - br_size < top) {
                 
                 verbose_only(if (_logc->lcbits & LC_Assembly) outputf("newpage %p:", pc);)
-                if (_inExit)
-                    codeAlloc(exitStart, exitEnd, _nIns verbose_only(, exitBytes));
-                else
-                    codeAlloc(codeStart, codeEnd, _nIns verbose_only(, codeBytes));
+                
+                codeAlloc(codeStart, codeEnd, _nIns verbose_only(, codeBytes));
             }
             
             
@@ -1710,10 +1708,8 @@ namespace nanojit
     #else
         if (pc - bytes < top) {
             verbose_only(if (_logc->lcbits & LC_Assembly) outputf("newpage %p:", pc);)
-            if (_inExit)
-                codeAlloc(exitStart, exitEnd, _nIns verbose_only(, exitBytes));
-            else
-                codeAlloc(codeStart, codeEnd, _nIns verbose_only(, codeBytes));
+            
+            codeAlloc(codeStart, codeEnd, _nIns verbose_only(, codeBytes));
             
             
             JMP(pc);
@@ -1726,6 +1722,7 @@ namespace nanojit
     }
 
     void Assembler::nativePageSetup() {
+        NanoAssert(!_inExit);
         if (!_nIns) {
             codeAlloc(codeStart, codeEnd, _nIns verbose_only(, codeBytes));
             IF_PEDANTIC( pedanticTop = _nIns; )
@@ -1764,6 +1761,13 @@ namespace nanojit
             
             asm_quad(tablereg, (uint64_t)table);
         }
+    }
+
+    void Assembler::swapCodeChunks() {
+        SWAP(NIns*, _nIns, _nExitIns);
+        SWAP(NIns*, codeStart, exitStart);
+        SWAP(NIns*, codeEnd, exitEnd);
+        verbose_only( SWAP(size_t, codeBytes, exitBytes); )
     }
 
 } 

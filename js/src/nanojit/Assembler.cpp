@@ -217,7 +217,7 @@ namespace nanojit
     {
         if (error()) return;
         
-        NanoAssertMsg(_inExit ? containsPtr(exitStart, exitEnd, _nIns) : containsPtr(codeStart, codeEnd, _nIns),
+        NanoAssertMsg(containsPtr(codeStart, codeEnd, _nIns),
                      "Native instruction pointer overstep paging bounds; check overrideProtect for last instruction");
     }
     #endif
@@ -621,7 +621,7 @@ namespace nanojit
         
         releaseRegisters();
 
-        swapptrs();
+        swapCodeChunks();
         _inExit = true;
 
 #ifdef NANOJIT_IA32
@@ -644,7 +644,7 @@ namespace nanojit
         NIns* jmpTarget = _nIns;     
 
         
-        swapptrs();
+        swapCodeChunks();
         _inExit = false;
 
         
@@ -783,6 +783,7 @@ namespace nanojit
             }
         )
 
+        NanoAssert(!_inExit);
         
 #ifdef NANOJIT_ARM
         
