@@ -291,54 +291,34 @@ PluginInstanceChild::NPN_SetValue(NPPVariable aVar, void* aValue)
     }
 }
 
-
-bool
-PluginInstanceChild::AnswerNPP_GetValue_NPPVpluginWindow(
-    bool* windowed, NPError* rv)
-{
-    AssertPluginThread();
-
-    NPBool isWindowed;
-    *rv = mPluginIface->getvalue(GetNPP(), NPPVpluginWindowBool,
-                                 reinterpret_cast<void*>(&isWindowed));
-    *windowed = isWindowed;
-    return true;
-}
-
-bool
-PluginInstanceChild::AnswerNPP_GetValue_NPPVpluginTransparent(
-    bool* transparent, NPError* rv)
-{
-    AssertPluginThread();
-
-    NPBool isTransparent;
-    *rv = mPluginIface->getvalue(GetNPP(), NPPVpluginTransparentBool,
-                                 reinterpret_cast<void*>(&isTransparent));
-    *transparent = isTransparent;
-    return true;
-}
-
 bool
 PluginInstanceChild::AnswerNPP_GetValue_NPPVpluginNeedsXEmbed(
     bool* needs, NPError* rv)
 {
     AssertPluginThread();
 
-#ifdef OS_LINUX
-
+#ifdef MOZ_X11
     
     
     
     
-    unsigned long needsXEmbed = 0;
-    *rv = mPluginIface->getvalue(GetNPP(), NPPVpluginNeedsXEmbed,
-                                 reinterpret_cast<void*>(&needsXEmbed));
+    
+    
+    
+    PRBool needsXEmbed = 0;
+    if (!mPluginIface->getvalue) {
+        *rv = NPERR_GENERIC_ERROR;
+    }
+    else {
+        *rv = mPluginIface->getvalue(GetNPP(), NPPVpluginNeedsXEmbed,
+                                     &needsXEmbed);
+    }
     *needs = needsXEmbed;
     return true;
 
 #else
 
-    NS_RUNTIMEABORT("shouldn't be called on non-linux platforms");
+    NS_RUNTIMEABORT("shouldn't be called on non-X11 platforms");
     return false;               
 
 #endif
@@ -352,9 +332,11 @@ PluginInstanceChild::AnswerNPP_GetValue_NPPVpluginScriptableNPObject(
     AssertPluginThread();
 
     NPObject* object;
-    NPError result = mPluginIface->getvalue(GetNPP(),
-                                            NPPVpluginScriptableNPObject,
-                                            &object);
+    NPError result = NPERR_GENERIC_ERROR;
+    if (mPluginIface->getvalue) {
+        result = mPluginIface->getvalue(GetNPP(), NPPVpluginScriptableNPObject,
+                                        &object);
+    }
     if (result == NPERR_NO_ERROR && object) {
         PluginScriptableObjectChild* actor = GetActorForNPObject(object);
 
