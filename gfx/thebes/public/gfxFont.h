@@ -1615,7 +1615,6 @@ public:
     void ComputeRanges(nsTArray<gfxTextRange>& mRanges, const PRUnichar *aString, PRUint32 begin, PRUint32 end);
 
     gfxUserFontSet* GetUserFontSet();
-    void SetUserFontSet(gfxUserFontSet *aUserFontSet);
 
     
     
@@ -1623,6 +1622,8 @@ public:
     
     PRUint64 GetGeneration();
 
+    
+    
     virtual void UpdateFontList() { }
 
 protected:
@@ -1633,6 +1634,10 @@ protected:
 
     gfxUserFontSet* mUserFontSet;
     PRUint64 mCurrGeneration;  
+
+    
+    
+    void SetUserFontSet(gfxUserFontSet *aUserFontSet);
 
     
     

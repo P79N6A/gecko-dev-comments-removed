@@ -116,7 +116,7 @@ nsFontFaceLoader::OnStreamComplete(nsIStreamLoader* aLoader,
   PRBool fontUpdate;
 
   
-  fontUpdate = mLoaderContext->mUserFontSet->OnLoadComplete(mFontEntry, 
+  fontUpdate = mLoaderContext->mUserFontSet->OnLoadComplete(mFontEntry, aLoader,
                                                             aString, aStringLen,
                                                             aStatus);
 

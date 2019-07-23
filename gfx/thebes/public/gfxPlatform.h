@@ -61,6 +61,7 @@ class gfxFontGroup;
 struct gfxFontStyle;
 class gfxUserFontSet;
 class gfxFontEntry;
+class gfxProxyFontEntry;
 class nsIURI;
 
 
@@ -194,13 +195,22 @@ public:
     
 
 
+
+
+
     virtual gfxFontEntry* LookupLocalFont(const nsAString& aFontName) { return nsnull; }
 
     
 
 
 
-    virtual gfxFontEntry* MakePlatformFont(const gfxFontEntry *aProxyEntry, const PRUint8 *aFontData, PRUint32 aLength) { return nsnull; }
+
+
+    virtual gfxFontEntry* MakePlatformFont(const gfxProxyFontEntry *aProxyEntry,
+                                           nsISupports *aLoader,
+                                           const PRUint8 *aFontData,
+                                           PRUint32 aLength)
+    { return nsnull; }
 
     
 

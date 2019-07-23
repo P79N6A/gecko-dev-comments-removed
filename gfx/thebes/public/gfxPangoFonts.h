@@ -46,7 +46,6 @@
 #include "nsAutoRef.h"
 
 #include <pango/pango.h>
-#include <fontconfig/fontconfig.h>
 
 
 
@@ -58,6 +57,9 @@
 
 
 class gfxFcPangoFontSet;
+class gfxProxyFontEntry;
+typedef struct _FcPattern FcPattern;
+typedef struct FT_FaceRec_* FT_Face;
 
 class THEBES_API gfxPangoFontGroup : public gfxFontGroup {
 public:
@@ -76,7 +78,15 @@ public:
 
     virtual gfxFont *GetFontAt(PRInt32 i);
 
+    virtual void UpdateFontList();
+
     static void Shutdown();
+
+    
+    static gfxFontEntry *NewFontEntry(const gfxProxyFontEntry &aProxyEntry,
+                                      nsISupports *aLoader,
+                                      const PRUint8 *aFontData,
+                                      PRUint32 aLength);
 
     
     
@@ -136,7 +146,7 @@ protected:
                                  const gchar *aUTF8, PRUint32 aUTF8Length);
 #endif
 
-    void GetFcFamilies(nsStringArray *aFcFamilyList,
+    void GetFcFamilies(nsTArray<nsString> *aFcFamilyList,
                        const nsACString& aLangGroup);
 
     

@@ -194,6 +194,12 @@ public:
                      gfxSparseBitSet *aUnicodeRanges = nsnull);
 
     
+    PRBool HasFamily(const nsAString& aFamilyName) const
+    {
+        return GetFamily(aFamilyName) != nsnull;
+    }
+
+    
     gfxFontEntry *FindFontEntry(const nsAString& aName, 
                                 const gfxFontStyle& aFontStyle, PRBool& aNeedsBold);
 
@@ -201,7 +207,7 @@ public:
     
     
     
-    PRBool OnLoadComplete(gfxFontEntry *aFontToLoad, 
+    PRBool OnLoadComplete(gfxFontEntry *aFontToLoad, nsISupports *aLoader,
                           const PRUint8 *aFontData, PRUint32 aLength,
                           nsresult aDownloadStatus);
 
@@ -216,6 +222,8 @@ protected:
 
     
     void IncrementGeneration();
+
+    gfxMixedFontFamily *GetFamily(const nsAString& aName) const;
 
     
     void RemoveFamily(const nsAString& aFamilyName);
@@ -235,6 +243,7 @@ class gfxProxyFontEntry : public gfxFontEntry {
 
 public:
     gfxProxyFontEntry(const nsTArray<gfxFontFaceSrc>& aFontFaceSrcList, 
+                      gfxMixedFontFamily *aFamily,
                       PRUint32 aWeight, 
                       PRUint32 aStretch, 
                       PRUint32 aItalicStyle, 

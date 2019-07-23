@@ -64,17 +64,27 @@ gfxFontconfigUtils::Shutdown() {
 }
 
  PRUint8
+gfxFontconfigUtils::FcSlantToThebesStyle(int aFcSlant)
+{
+    switch (aFcSlant) {
+        case FC_SLANT_ITALIC:
+            return FONT_STYLE_ITALIC;
+        case FC_SLANT_OBLIQUE:
+            return FONT_STYLE_OBLIQUE;
+        default:
+            return FONT_STYLE_NORMAL;
+    }
+}
+
+ PRUint8
 gfxFontconfigUtils::GetThebesStyle(FcPattern *aPattern)
 {
     int slant;
-    if (FcPatternGetInteger(aPattern, FC_SLANT, 0, &slant) == FcResultMatch) {
-        if (slant == FC_SLANT_ITALIC)
-            return FONT_STYLE_ITALIC;
-        if (slant == FC_SLANT_OBLIQUE)
-            return FONT_STYLE_OBLIQUE;
+    if (FcPatternGetInteger(aPattern, FC_SLANT, 0, &slant) != FcResultMatch) {
+        return FONT_STYLE_NORMAL;
     }
 
-    return FONT_STYLE_NORMAL;
+    return FcSlantToThebesStyle(slant);
 }
 
  int
@@ -209,10 +219,8 @@ GuessFcWeight(const gfxFontStyle& aFontStyle)
 static void
 AddString(FcPattern *aPattern, const char *object, const char *aString)
 {
-    
-    const FcChar8 *fcString = gfxFontconfigUtils::ToFcChar8(aString);
-    
-    FcPatternAddString(aPattern, object, const_cast<FcChar8*>(fcString));
+    FcPatternAddString(aPattern, object,
+                       gfxFontconfigUtils::ToFcChar8(aString));
 }
 
 static void
@@ -229,7 +237,7 @@ AddLangGroup(FcPattern *aPattern, const nsACString& aLangGroup)
 
 
 nsReturnRef<FcPattern>
-gfxFontconfigUtils::NewPattern(const nsStringArray& aFamilies,
+gfxFontconfigUtils::NewPattern(const nsTArray<nsString>& aFamilies,
                                const gfxFontStyle& aFontStyle,
                                const char *aLang)
 {
@@ -245,8 +253,8 @@ gfxFontconfigUtils::NewPattern(const nsStringArray& aFamilies,
         AddString(pattern, FC_LANG, aLang);
     }
 
-    for (PRInt32 i = 0; i < aFamilies.Count(); ++i) {
-        NS_ConvertUTF16toUTF8 family(*aFamilies[i]);
+    for (PRUint32 i = 0; i < aFamilies.Length(); ++i) {
+        NS_ConvertUTF16toUTF8 family(aFamilies[i]);
         AddString(pattern, FC_FAMILY, family.get());
     }
 
@@ -790,11 +798,18 @@ gfxFontconfigUtils::GetLangSupport(FcPattern *aFont, const FcChar8 *aLang)
     
     
     
+    
+    
+    
+    
+    
+    
+    
     FcValue value;
     FcLangResult best = FcLangDifferentLang;
-    int v = 0;
-    while (FcPatternGet(aFont, FC_LANG, v, &value) == FcResultMatch) {
-        ++v;
+    for (int v = 0;
+         FcPatternGet(aFont, FC_LANG, v, &value) == FcResultMatch;
+         ++v) {
 
         FcLangResult support;
         switch (value.type) {
@@ -806,7 +821,7 @@ gfxFontconfigUtils::GetLangSupport(FcPattern *aFont, const FcChar8 *aLang)
                 break;
             default:
                 
-                return FcLangEqual;
+                continue;
         }
 
         if (support < best) { 
@@ -815,11 +830,6 @@ gfxFontconfigUtils::GetLangSupport(FcPattern *aFont, const FcChar8 *aLang)
             best = support;
         }        
     }
-
-    
-    
-    if (v == 0)
-        return FcLangEqual;        
 
     return best;
 }
