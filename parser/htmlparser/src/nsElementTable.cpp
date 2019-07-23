@@ -875,15 +875,6 @@ const nsHTMLElement gHTMLElements[] = {
                 &gOptgroupParents,&gContainedInOpt,
   },
   {
-                                 eHTMLTag_output,
-                    eHTMLTag_unknown,eHTMLTag_unknown,
-              &gRootTags,&gRootTags,
-     0,0,0,0,
-              kSpecial, (kInlineEntity|kSelf), kNone,
-           0,kDefaultPropRange,
-                0,0,
-  },
-  {
                                  eHTMLTag_p,
               eHTMLTag_unknown,eHTMLTag_unknown,
               &gRootTags,&gRootTags,
