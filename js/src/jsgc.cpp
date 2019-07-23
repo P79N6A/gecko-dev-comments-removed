@@ -3202,7 +3202,9 @@ js_GC(JSContext *cx, JSGCInvocationKind gckind)
 
     
     js_FlushPropertyCache(cx);
+#ifdef JS_TRACER
     js_FlushJITCache(cx);
+#endif
 
 #ifdef JS_THREADSAFE
     
