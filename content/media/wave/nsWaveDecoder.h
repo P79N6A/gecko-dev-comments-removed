@@ -247,9 +247,6 @@ private:
   
   void DecodeError();
 
-  void RegisterShutdownObserver();
-  void UnregisterShutdownObserver();
-
   
   float mInitialVolume;
 

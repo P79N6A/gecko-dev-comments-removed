@@ -469,11 +469,6 @@ protected:
 
 private:
   
-  
-  void RegisterShutdownObserver();
-  void UnregisterShutdownObserver();
-
-  
   void DecodeError();
 
   

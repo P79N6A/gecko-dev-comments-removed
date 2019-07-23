@@ -43,6 +43,7 @@
 #include "nsIDOMRange.h"
 #include "nsCycleCollectionParticipant.h"
 #include "nsILoadGroup.h"
+#include "nsIObserver.h"
 
 
 
@@ -50,7 +51,8 @@
 typedef PRUint16 nsMediaNetworkState;
 typedef PRUint16 nsMediaReadyState;
 
-class nsHTMLMediaElement : public nsGenericHTMLElement
+class nsHTMLMediaElement : public nsGenericHTMLElement,
+                           public nsIObserver
 {
 public:
   nsHTMLMediaElement(nsINodeInfo *aNodeInfo, PRBool aFromParser = PR_FALSE);
@@ -68,6 +70,8 @@ public:
 
   
   NS_DECL_NSIDOMHTMLMEDIAELEMENT
+
+  NS_DECL_NSIOBSERVER
 
   
   NS_DECL_ISUPPORTS_INHERITED
@@ -385,9 +389,7 @@ protected:
   
 
 
-
-
-  void DoRelease() { Release(); }
+  void DoRemoveSelfReference();
 
   nsRefPtr<nsMediaDecoder> mDecoder;
 
@@ -520,6 +522,10 @@ protected:
   
   
   PRPackedBool mHasSelfReference;
+
+  
+  
+  PRPackedBool mShuttingDown;
 
   nsRefPtr<gfxASurface> mPrintSurface;
 };
