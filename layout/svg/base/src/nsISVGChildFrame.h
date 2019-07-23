@@ -51,8 +51,8 @@ class nsIDOMSVGMatrix;
 class nsSVGRenderState;
 
 #define NS_ISVGCHILDFRAME_IID \
-{ 0x8b80b2a0, 0x2e1f, 0x4775, \
-  { 0xab, 0x47, 0xbe, 0xeb, 0x4b, 0x81, 0x63, 0x6d } }
+{ 0x91253119, 0x4fe4, 0x4628, \
+  { 0xaf, 0x25, 0x4e, 0x4b, 0x43, 0x5f, 0x66, 0xf2 } }
 
 class nsISVGChildFrame : public nsISupports {
 public:
@@ -99,12 +99,6 @@ public:
   
   NS_IMETHOD SetMatrixPropagation(PRBool aPropagate)=0;
   virtual PRBool GetMatrixPropagation()=0;
-
-  
-  
-  
-  NS_IMETHOD SetOverrideCTM(nsIDOMSVGMatrix *aCTM)=0;
-  virtual already_AddRefed<nsIDOMSVGMatrix> GetOverrideCTM()=0;
 
   
   NS_IMETHOD GetBBox(nsIDOMSVGRect **_retval)=0; 
