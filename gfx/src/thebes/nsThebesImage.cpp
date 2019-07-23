@@ -392,8 +392,8 @@ nsThebesImage::Draw(nsIRenderingContext &aContext,
 
 
 
-    if (aDestRect.pos.x * (1.0 / xscale) > 32768.0 ||
-        aDestRect.pos.y * (1.0 / yscale) > 32768.0)
+    if (aDestRect.pos.x * (1.0 / xscale) >= 32768.0 ||
+        aDestRect.pos.y * (1.0 / yscale) >= 32768.0)
     {
         gfxIntSize dim(NS_lroundf(destRect.size.width),
                        NS_lroundf(destRect.size.height));
