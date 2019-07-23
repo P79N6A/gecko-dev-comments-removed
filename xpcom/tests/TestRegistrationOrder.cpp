@@ -38,7 +38,6 @@
 
 
 #include "TestHarness.h"
-#include "nsStringAPI.h"
 #include "nsILocalFile.h"
 #include "nsIDirectoryService.h"
 #include "nsDirectoryServiceDefs.h"
