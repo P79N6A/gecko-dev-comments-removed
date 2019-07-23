@@ -286,6 +286,66 @@ XPC_SOW_WrapFunction(JSContext *cx, JSObject *outerObj, JSObject *funobj,
 }
 
 static JSBool
+XPC_SOW_RewrapValue(JSContext *cx, JSObject *wrapperObj, jsval *vp)
+{
+  jsval v = *vp;
+  if (JSVAL_IS_PRIMITIVE(v)) {
+    return JS_TRUE;
+  }
+
+  JSObject *obj = JSVAL_TO_OBJECT(v);
+
+  if (JS_ObjectIsFunction(cx, obj)) {
+    
+    JSNative native = JS_GetFunctionNative(cx, JS_ValueToFunction(cx, v));
+
+    
+    
+    
+    if (!native) {
+     return JS_TRUE;
+    }
+
+    if (native == XPC_SOW_FunctionWrapper) {
+      
+      
+      if (STOBJ_GET_PROTO(wrapperObj) == STOBJ_GET_PARENT(obj)) {
+        return JS_TRUE;
+      }
+
+      
+      if (!JS_GetReservedSlot(cx, obj, XPCWrapper::eWrappedFunctionSlot, &v)) {
+        return JS_FALSE;
+      }
+      obj = JSVAL_TO_OBJECT(v);
+    }
+
+    return XPC_SOW_WrapFunction(cx, wrapperObj, obj, vp);
+  }
+
+  if (STOBJ_GET_CLASS(obj) == &sXPC_SOW_JSClass.base) {
+    
+    
+    
+    
+    if (STOBJ_GET_PARENT(wrapperObj) == STOBJ_GET_PARENT(obj)) {
+      
+      return JS_TRUE;
+    }
+
+    obj = GetWrappedObject(cx, obj);
+    if (!obj) {
+      
+      *vp = JSVAL_NULL;
+      return JS_TRUE;
+    }
+    v = *vp = OBJECT_TO_JSVAL(obj);
+  }
+
+  return XPC_SOW_WrapObject(cx, STOBJ_GET_PARENT(wrapperObj), v, vp);
+}
+
+static JSBool
 XPC_SOW_AddProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 {
   NS_ASSERTION(STOBJ_GET_CLASS(obj) == &sXPC_SOW_JSClass.base, "Wrong object");
@@ -361,9 +421,14 @@ XPC_SOW_GetOrSetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp,
     return JS_FALSE;
   }
 
-  return isSet
-         ? JS_SetPropertyById(cx, wrappedObj, interned_id, vp)
-         : JS_GetPropertyById(cx, wrappedObj, interned_id, vp);
+  JSBool ok = isSet
+              ? JS_SetPropertyById(cx, wrappedObj, interned_id, vp)
+              : JS_GetPropertyById(cx, wrappedObj, interned_id, vp);
+  if (!ok) {
+    return JS_FALSE;
+  }
+
+  return XPC_SOW_RewrapValue(cx, obj, vp);
 }
 
 static JSBool
