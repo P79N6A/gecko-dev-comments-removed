@@ -81,6 +81,8 @@ public:
   nsresult OnQueryContentState(nsQueryContentEvent* aEvent);
   
   nsresult OnQuerySelectionAsTransferable(nsQueryContentEvent* aEvent);
+  
+  nsresult OnQueryCharacterAtPoint(nsQueryContentEvent* aEvent);
 
   
   nsresult OnSelectionEvent(nsSelectionEvent* aEvent);

@@ -205,7 +205,7 @@ nsIMM32Handler::GetKeyboardCodePage()
 #define NO_IME_CARET -1
 
 nsIMM32Handler::nsIMM32Handler() :
-  mCursorPosition(NO_IME_CARET), mIsComposing(PR_FALSE),
+  mCursorPosition(NO_IME_CARET), mCompositionStart(0), mIsComposing(PR_FALSE),
   mNativeCaretIsCreated(PR_FALSE)
 {
   PR_LOG(gIMM32Log, PR_LOG_ALWAYS, ("IMM32: nsIMM32Handler is created\n"));
@@ -645,42 +645,29 @@ nsIMM32Handler::HandleStartComposition(nsWindow* aWindow,
   NS_PRECONDITION(!aWindow->PluginHasFocus(),
     "HandleStartComposition should not be called when a plug-in has focus");
 
+  nsQueryContentEvent selection(PR_TRUE, NS_QUERY_SELECTED_TEXT, aWindow);
+  aWindow->InitEvent(selection, &nsIntPoint(0, 0));
+  aWindow->DispatchWindowEvent(&selection);
+  if (!selection.mSucceeded) {
+    PR_LOG(gIMM32Log, PR_LOG_ALWAYS,
+      ("IMM32: HandleStartComposition, FAILED (NS_QUERY_SELECTED_TEXT)\n"));
+    return;
+  }
+
+  mCompositionStart = selection.mReply.mOffset;
+
   nsCompositionEvent event(PR_TRUE, NS_COMPOSITION_START, aWindow);
   nsIntPoint point(0, 0);
   aWindow->InitEvent(event, &point);
   aWindow->DispatchWindowEvent(&event);
-
-  
-  
-  
 
   SetIMERelatedWindowsPos(aWindow, aIMEContext);
 
   mIsComposing = PR_TRUE;
 
   PR_LOG(gIMM32Log, PR_LOG_ALWAYS,
-    ("IMM32: HandleStartComposition, START composition\n"));
-
-  if (event.theReply.mCursorPosition.width <= 0 &&
-      event.theReply.mCursorPosition.height <= 0) {
-    PR_LOG(gIMM32Log, PR_LOG_ALWAYS,
-      ("IMM32: HandleStartComposition, mCursorPosition is empty\n"));
-    
-    
-    
-    return;
-  }
-
-  nsIntRect cursorPosition;
-  ResolveIMECaretPos(event.theReply.mReferenceWidget,
-                     event.theReply.mCursorPosition, aWindow, cursorPosition);
-
-#ifdef ENABLE_IME_MOUSE_HANDLING
-  memset(mCompCharPos, -1, sizeof(RECT) * IME_MAX_CHAR_POS);
-  mCompCharPos[0].left = cursorPosition.x;
-  mCompCharPos[0].top = cursorPosition.y;
-  mCompCharPos[0].bottom = cursorPosition.YMost();
-#endif 
+    ("IMM32: HandleStartComposition, START composition, mCompositionStart=%ld\n",
+     mCompositionStart));
 }
 
 PRBool
@@ -1126,45 +1113,7 @@ nsIMM32Handler::DispatchTextEvent(nsWindow* aWindow,
 
   aWindow->DispatchWindowEvent(&event);
 
-  
-  
-  
-
   SetIMERelatedWindowsPos(aWindow, aIMEContext);
-
-  if (event.theReply.mCursorPosition.width <= 0 &&
-      event.theReply.mCursorPosition.height <= 0) {
-    PR_LOG(gIMM32Log, PR_LOG_ALWAYS,
-      ("IMM32: DispatchTextEvent, mCursorPosition is empty\n"));
-    
-    
-    
-    return;
-  }
-
-  nsIntRect cursorPosition;
-  ResolveIMECaretPos(event.theReply.mReferenceWidget,
-                     event.theReply.mCursorPosition, aWindow, cursorPosition);
-
-#ifdef ENABLE_IME_MOUSE_HANDLING
-  if (mCursorPosition <= 0 || mCursorPosition >= IME_MAX_CHAR_POS) {
-    return;
-  }
-
-  
-  
-  
-  mCompCharPos[mCursorPosition-1].right = cursorPosition.x;
-  mCompCharPos[mCursorPosition-1].top = cursorPosition.y;
-  mCompCharPos[mCursorPosition-1].bottom = cursorPosition.YMost();
-  if (mCompCharPos[mCursorPosition-1].top != cursorPosition.y) {
-    
-    mCompCharPos[mCursorPosition-1].left = -1;
-  }
-  mCompCharPos[mCursorPosition].left = cursorPosition.x;
-  mCompCharPos[mCursorPosition].top = cursorPosition.y;
-  mCompCharPos[mCursorPosition].bottom = cursorPosition.YMost();
-#endif 
 }
 
 void
@@ -1475,10 +1424,6 @@ nsIMM32Handler::ResolveIMECaretPos(nsIWidget* aReferenceWidget,
 
 #ifdef ENABLE_IME_MOUSE_HANDLING
 
-#define PT_IN_RECT(pt, rc) \
-          ((pt).x>(rc).left && (pt).x <(rc).right && \
-           (pt).y>(rc).top && (pt).y<(rc).bottom)
-
 PRBool
 nsIMM32Handler::OnMouseEvent(nsWindow* aWindow, LPARAM lParam, int aAction)
 {
@@ -1486,38 +1431,37 @@ nsIMM32Handler::OnMouseEvent(nsWindow* aWindow, LPARAM lParam, int aAction)
     return PR_FALSE;
   }
 
-  POINT ptPos;
-  ptPos.x = (short)LOWORD(lParam);
-  ptPos.y = (short)HIWORD(lParam);
-
-  if (!IMECompositionHitTest(ptPos)) {
+  nsIntPoint cursor(LOWORD(lParam), HIWORD(lParam));
+  nsQueryContentEvent charAtPt(PR_TRUE, NS_QUERY_CHARACTER_AT_POINT, aWindow);
+  aWindow->InitEvent(charAtPt, &cursor);
+  aWindow->DispatchWindowEvent(&charAtPt);
+  if (!charAtPt.mSucceeded ||
+      charAtPt.mReply.mOffset == nsQueryContentEvent::NOT_FOUND ||
+      charAtPt.mReply.mOffset < mCompositionStart ||
+      charAtPt.mReply.mOffset >
+        mCompositionStart + mCompositionString.Length()) {
     return PR_FALSE;
   }
 
-  int positioning = 0;
-  int offset = 0;
+  
+  
+  
+  
+  nsIntRect cursorInTopLevel;
+  ResolveIMECaretPos(aWindow, nsIntRect(cursor, nsIntSize(0, 0)),
+                     aWindow->GetTopLevelWindow(PR_FALSE), cursorInTopLevel);
+  PRInt32 cursorXInChar = cursorInTopLevel.x - charAtPt.mReply.mRect.x;
+  int positioning = cursorXInChar * 4 / charAtPt.mReply.mRect.width;
+  positioning = (positioning + 2) % 4;
 
-  
-  
-  
-  
-
-  
-  
-  PRUint32 len = mCompositionString.Length();
-  PRUint32 i = 0;
-  for (i = 0; i < len; ++i) {
-    if (PT_IN_RECT(ptPos, mCompCharPos[i]))
-      break;
-  }
-  offset = i;
-  if (ptPos.x - mCompCharPos[i].left > mCompCharPos[i].right - ptPos.x) {
+  int offset = charAtPt.mReply.mOffset - mCompositionStart;
+  if (positioning < 2) {
     offset++;
   }
 
-  positioning = (ptPos.x - mCompCharPos[i].left) * 4 /
-                  (mCompCharPos[i].right - mCompCharPos[i].left);
-  positioning = (positioning + 2) % 4;
+  PR_LOG(gIMM32Log, PR_LOG_ALWAYS,
+    ("IMM32: OnMouseEvent, x,y=%ld,%ld, offset=%ld, positioning=%ld\n",
+     cursor.x, cursor.y, offset, positioning));
 
   
   HWND imeWnd = ::ImmGetDefaultIMEWnd(aWindow->GetWindowHandle());
@@ -1527,45 +1471,4 @@ nsIMM32Handler::OnMouseEvent(nsWindow* aWindow, LPARAM lParam, int aAction)
                         (LPARAM) IMEContext.get()) == 1;
 }
 
-
-PRBool
-nsIMM32Handler::IMECompositionHitTest(const POINT& aPos)
-{
-  
-  
-  PRInt32 len = mCompositionString.Length();
-  if (len > IME_MAX_CHAR_POS)
-    len = IME_MAX_CHAR_POS;
-
-  PRInt32 i;
-  PRInt32 aveWidth = 0;
-  
-  for (i = 0; i < len; i++) {
-    if (mCompCharPos[i].left >= 0 && mCompCharPos[i].right > 0) {
-      aveWidth = mCompCharPos[i].right - mCompCharPos[i].left;
-      break;
-    }
-  }
-
-  
-  for (i = 0; i < len; i++) {
-    if (mCompCharPos[i].left < 0) {
-      if (i != 0 && mCompCharPos[i-1].top == mCompCharPos[i].top)
-        mCompCharPos[i].left = mCompCharPos[i-1].right;
-      else
-        mCompCharPos[i].left = mCompCharPos[i].right - aveWidth;
-    }
-    if (mCompCharPos[i].right < 0)
-      mCompCharPos[i].right = mCompCharPos[i].left + aveWidth;
-    if (mCompCharPos[i].top < 0) {
-      mCompCharPos[i].top = mCompCharPos[i-1].top;
-      mCompCharPos[i].bottom = mCompCharPos[i-1].bottom;
-    }
-
-    if (PT_IN_RECT(aPos, mCompCharPos[i])) {
-      return PR_TRUE;
-    }
-  }
-  return PR_FALSE;
-}
 #endif 

@@ -173,6 +173,7 @@ private:
 
 
 
+
 #define RWM_MOUSE           TEXT("MSIMEMouseOperation")
 
 #define IMEMOUSE_NONE       0x00    // no mouse button was pushed
