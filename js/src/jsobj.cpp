@@ -41,6 +41,7 @@
 
 
 
+#include "jsstddef.h"
 #include <stdlib.h>
 #include <string.h>
 #include "jstypes.h"
@@ -2019,13 +2020,15 @@ static JS_REQUIRES_STACK JSBool
 Detecting(JSContext *cx, jsbytecode *pc)
 {
     JSScript *script;
+    jsbytecode *endpc;
     JSOp op;
     JSAtom *atom;
 
-    if (!cx->fp)
-        return JS_FALSE;
     script = cx->fp->script;
+    endpc = script->code + script->length;
     for (;; pc += js_CodeSpec[op].length) {
+        JS_ASSERT(pc < endpc);
+
         
         op = js_GetOpcode(cx, script, pc);
         if (js_CodeSpec[op].format & JOF_DETECTING)
@@ -2037,9 +2040,11 @@ Detecting(JSContext *cx, jsbytecode *pc)
 
 
 
-            pc++;
-            op = js_GetOpcode(cx, script, pc);
-            return op == JSOP_EQ || op == JSOP_NE;
+            if (++pc < endpc) {
+                op = js_GetOpcode(cx, script, pc);
+                return *pc == JSOP_EQ || *pc == JSOP_NE;
+            }
+            return JS_FALSE;
 
           case JSOP_NAME:
             
@@ -2048,8 +2053,8 @@ Detecting(JSContext *cx, jsbytecode *pc)
 
 
             GET_ATOM_FROM_BYTECODE(script, pc, 0, atom);
-            if (atom == cx->runtime->atomState.typeAtoms[JSTYPE_VOID]) {
-                pc += js_CodeSpec[op].length;
+            if (atom == cx->runtime->atomState.typeAtoms[JSTYPE_VOID] &&
+                (pc += js_CodeSpec[op].length) < endpc) {
                 op = js_GetOpcode(cx, script, pc);
                 return op == JSOP_EQ || op == JSOP_NE ||
                        op == JSOP_STRICTEQ || op == JSOP_STRICTNE;
@@ -2096,7 +2101,7 @@ InferFlags(JSContext *cx, uintN defaultFlags)
         flags |= JSRESOLVE_ASSIGNING;
     } else {
         pc += cs->length;
-        if (Detecting(cx, pc))
+        if (pc < cx->fp->script->code + cx->fp->script->length && Detecting(cx, pc))
             flags |= JSRESOLVE_DETECTING;
     }
     if (format & JOF_DECLARING)
