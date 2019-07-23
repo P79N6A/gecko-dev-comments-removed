@@ -2574,6 +2574,12 @@ IsMarginZero(nsStyleUnit aUnit, nsStyleCoord &aCoord)
  PRBool
 nsBlockFrame::IsSelfEmpty()
 {
+  
+  
+  
+  if (GetStateBits() & NS_BLOCK_MARGIN_ROOT)
+    return PR_FALSE;
+
   const nsStylePosition* position = GetStylePosition();
 
   switch (position->mMinHeight.GetUnit()) {
