@@ -56,12 +56,10 @@ class   nsIToolkit;
 class   nsIFontMetrics;
 class   nsIRenderingContext;
 class   nsIDeviceContext;
-class   nsIRegion;
 struct  nsFont;
 class   nsIEventListener;
 class   nsIRollupListener;
 class   nsGUIEvent;
-struct  nsColorMap;
 class   imgIContainer;
 class   gfxASurface;
 class   nsIContent;
@@ -84,7 +82,6 @@ typedef nsEventStatus (* EVENT_CALLBACK)(nsGUIEvent *event);
 
 #define NS_NATIVE_WINDOW      0
 #define NS_NATIVE_GRAPHIC     1
-#define NS_NATIVE_COLORMAP    2
 #define NS_NATIVE_WIDGET      3
 #define NS_NATIVE_DISPLAY     4
 #define NS_NATIVE_REGION      5
@@ -105,13 +102,8 @@ typedef nsEventStatus (* EVENT_CALLBACK)(nsGUIEvent *event);
 
 
 #define NS_IWIDGET_IID \
-{ 0x0dda48db, 0x4f61, 0x44a7, \
-  { 0x9f, 0x92, 0x04, 0x1c, 0xd9, 0x2b, 0x8a, 0x9c } }
-
-
-
-
-typedef void* nsNativeWidget;
+{ 0xaf70b716, 0x2e34, 0x463f, \
+  { 0x8f, 0x1c, 0x27, 0x3d, 0xbd, 0xdd, 0x84, 0x5b } }
 
 
 
@@ -527,14 +519,6 @@ class nsIWidget : public nsISupports {
 
 
 
-    NS_IMETHOD GetBorderSize(PRInt32 &aWidth, PRInt32 &aHeight) = 0;
-
-    
-
-
-
-
-
     virtual nscolor GetForegroundColor(void) = 0;
 
     
@@ -671,15 +655,6 @@ class nsIWidget : public nsISupports {
 
 
 
-
-    NS_IMETHOD InvalidateRegion(const nsIRegion* aRegion, PRBool aIsSynchronous) = 0;
-
-    
-
-
-
-
-
      NS_IMETHOD Update() = 0;
 
     
@@ -708,43 +683,9 @@ class nsIWidget : public nsISupports {
 
 
 
-    NS_IMETHOD SetColorMap(nsColorMap *aColorMap) = 0;
-
-    
-
-
-
-
-
-
-
 
 
     NS_IMETHOD Scroll(PRInt32 aDx, PRInt32 aDy, nsIntRect *aClipRect) = 0;
-
-    
-
-
-
-
-
-
-
-
-
-    NS_IMETHOD ScrollWidgets(PRInt32 aDx, PRInt32 aDy) = 0;
-
-    
-
-
-
-
-
-
-
-
-
-    NS_IMETHOD ScrollRect(nsIntRect &aSrcRect, PRInt32 aDx, PRInt32 aDy) = 0;
 
     
 
@@ -796,23 +737,6 @@ class nsIWidget : public nsISupports {
 
 
 
-
-    NS_IMETHOD SetMenuBar(void* aMenuBar) = 0;
-
-    
-
-
-
-
-
-    NS_IMETHOD ShowMenuBar(PRBool aShow) = 0;
-
-    
-
-
-
-
-
     virtual nsIntPoint WidgetToScreenOffset() = 0;
 
     
@@ -837,18 +761,6 @@ class nsIWidget : public nsISupports {
 
 
 
-    NS_IMETHOD GetPreferredSize(PRInt32& aWidth, PRInt32& aHeight) = 0;
-
-    
-
-
-
-    NS_IMETHOD SetPreferredSize(PRInt32 aWidth, PRInt32 aHeight) = 0;
-
-    
-
-
-
     NS_IMETHOD DispatchEvent(nsGUIEvent* event, nsEventStatus & aStatus) = 0;
 
     
@@ -857,8 +769,6 @@ class nsIWidget : public nsISupports {
 
     NS_IMETHOD EnableDragDrop(PRBool aEnable) = 0;
    
-    virtual void  ConvertToDeviceCoordinates(nscoord &aX,nscoord &aY) = 0;
-
     
 
 
@@ -880,19 +790,6 @@ class nsIWidget : public nsISupports {
 
 
     NS_IMETHOD CaptureRollupEvents(nsIRollupListener * aListener, PRBool aDoCapture, PRBool aConsumeRollupEvent) = 0;
-
-    
-
-
-
-
-
-
-
-
-
-
-    NS_IMETHOD ModalEventFilter(PRBool aRealEvent, void *aEvent, PRBool *aForWindow) = 0;
 
     
 

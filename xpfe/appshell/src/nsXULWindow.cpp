@@ -2077,10 +2077,6 @@ NS_IMETHODIMP nsXULWindow::ApplyChromeFlags()
     
     
     
-    mWindow->ShowMenuBar(mChromeFlags & nsIWebBrowserChrome::CHROME_MENUBAR ? 
-                         PR_TRUE : PR_FALSE);
-
-    
     SetContentScrollbarVisibility(mChromeFlags &
                                   nsIWebBrowserChrome::CHROME_SCROLLBARS ?
                                     PR_TRUE : PR_FALSE);

@@ -212,8 +212,6 @@ nsWindow::nsWindow() : nsBaseWidget()
     mIsDestroying       = PR_FALSE;
     mOnDestroyCalled    = PR_FALSE;
 
-    mPreferredWidth     = 0;
-    mPreferredHeight    = 0;
     mWindowState        = nsWindowState_ePrecreate;
     mWindowType         = eWindowType_child;
     mBorderStyle        = eBorderStyle_default;
@@ -1282,61 +1280,6 @@ NS_IMETHODIMP nsWindow::SetSizeMode(PRInt32 aMode)
 
 
 
-NS_METHOD nsWindow::ModalEventFilter(PRBool aRealEvent, void *aEvent,
-                                     PRBool *aForWindow)
-{
-  if( PR_FALSE == aRealEvent) {
-    *aForWindow = PR_FALSE;
-    return NS_OK;
-  }
-#if 0
-  
-  
-  
-  
- 
-  PRBool isMouseEvent = PR_FALSE;
-  PRBool isInWindow = PR_FALSE;
- 
-  
-  
-  HWND hwnd = (HWND)GetNativeData(NS_NATIVE_WINDOW);
-  hwnd = WinQueryWindow(hwnd, QW_PARENT);
- 
-  if( hwnd == mQmsg.hwnd || WinIsChild( mQmsg.hwnd, hwnd))
-     isInWindow = PR_TRUE;
-  else if (!isInWindow && gRollupWidget &&
-           EventIsInsideWindow((nsWindow*)gRollupWidget))
-     
-     isInWindow = PR_TRUE;
- 
-  
- 
-  if( !isInWindow)
-  {
-     
-     if( mQmsg.msg >= WM_MOUSEFIRST && mQmsg.msg <= WM_MOUSELAST)
-        isMouseEvent = PR_TRUE;
-     else if( mQmsg.msg >= WM_MOUSETRANSLATEFIRST &&
-              mQmsg.msg <= WM_MOUSETRANSLATELAST)
-        isMouseEvent = PR_TRUE;
-     else if( mQmsg.msg == WM_MOUSEENTER || mQmsg.msg == WM_MOUSELEAVE)
-        isMouseEvent = PR_TRUE;
-  }
- 
-  
-  *aForWindow = isInWindow || !isMouseEvent;
-#else
-  *aForWindow = PR_TRUE;
-#endif
-
-  return NS_OK;
-}
-
-
-
-
-
 
 NS_METHOD nsWindow::ConstrainPosition(PRBool aAllowSlop,
                                       PRInt32 *aX, PRInt32 *aY)
@@ -2076,29 +2019,6 @@ NS_METHOD nsWindow::Invalidate(const nsIntRect &aRect, PRBool aIsSynchronous)
   return NS_OK;
 }
 
-NS_IMETHODIMP 
-nsWindow::InvalidateRegion(const nsIRegion *aRegion, PRBool aIsSynchronous)
-
-{
-  nsresult rv = NS_OK;
-  if (mWnd) {
-    PRInt32 aX, aY, aWidth, aHeight;
-    ((nsIRegion*)aRegion)->GetBoundingBox (&aX, &aY, &aWidth, &aHeight);
-
-    RECTL rcl = { aX, aY, aX + aWidth, aY + aHeight };
-    NS2PM (rcl);
-    WinInvalidateRect (mWnd, &rcl, FALSE);
-
-#if 0
-        if( PR_TRUE == aIsSynchronous) {
-          Update();
-        }
-#endif
-
-  }
-  return rv;  
-}
-
 
 
 
@@ -2141,7 +2061,6 @@ void* nsWindow::GetNativeData(PRUint32 aDataType)
             return (void*)hps;
         }
 
-        case NS_NATIVE_COLORMAP:
         default: 
             break;
     }
@@ -2162,25 +2081,10 @@ void nsWindow::FreeNativeData(void * data, PRUint32 aDataType)
     case NS_NATIVE_WIDGET:
     case NS_NATIVE_WINDOW:
     case NS_NATIVE_PLUGIN_PORT:
-    case NS_NATIVE_COLORMAP:
       break;
     default: 
       break;
   }
-}
-
-
-
-
-
-
-NS_METHOD nsWindow::SetColorMap(nsColorMap *aColorMap)
-{
-   
-   
-   
-   
-   return NS_ERROR_NOT_IMPLEMENTED;
 }
 
 
@@ -2229,7 +2133,6 @@ void nsWindow::ScrollChildWindows(PRInt32 aX, PRInt32 aY)
 
 
 
-
 NS_METHOD nsWindow::Scroll(PRInt32 aDx, PRInt32 aDy, nsIntRect *aClipRect)
 {
   RECTL rcl;
@@ -2261,53 +2164,6 @@ NS_METHOD nsWindow::Scroll(PRInt32 aDx, PRInt32 aDy, nsIntRect *aClipRect)
 
   return NS_OK;
 }
-
-NS_IMETHODIMP nsWindow::ScrollWidgets(PRInt32 aDx, PRInt32 aDy)
-{
-    
-    
-    
-  HPS hps = 0;
-  CheckDragStatus(ACTION_SCROLL, &hps);
-
-    
-  WinScrollWindow( mWnd, aDx, -aDy, 0, 0, 0, 0,
-                   SW_INVALIDATERGN | SW_SCROLLCHILDREN);
-  Update(); 
-
-  if (hps)
-    ReleaseIfDragHPS(hps);
-
-  return NS_OK;
-}
-
-NS_IMETHODIMP nsWindow::ScrollRect(nsIntRect &aRect, PRInt32 aDx, PRInt32 aDy)
-{
-  RECTL rcl;
-
-  rcl.xLeft = aRect.x;
-  rcl.yBottom = aRect.y + aRect.height;
-  rcl.xRight = rcl.xLeft + aRect.width;
-  rcl.yTop = rcl.yBottom + aRect.height;
-  NS2PM( rcl);
-
-    
-    
-    
-  HPS hps = 0;
-  CheckDragStatus(ACTION_SCROLL, &hps);
-
-    
-    
-  WinScrollWindow(mWnd, aDx, -aDy, &rcl, 0, 0, 0, SW_INVALIDATERGN);
-  Update(); 
-
-  if (hps)
-    ReleaseIfDragHPS(hps);
-
-  return NS_OK;
-}
-
 
 
 
@@ -3531,20 +3387,6 @@ NS_METHOD nsWindow::SetIcon(const nsAString& aIconSpec)
   }
 
   WinSendMsg(mFrameWnd, WM_SETICON, (MPARAM)hWorkingIcon, (MPARAM)0);
-  return NS_OK;
-}
-
-NS_METHOD nsWindow::GetPreferredSize(PRInt32& aWidth, PRInt32& aHeight)
-{
-  aWidth = mPreferredWidth;
-  aHeight = mPreferredHeight;
-  return NS_OK;
-}
-
-NS_METHOD nsWindow::SetPreferredSize(PRInt32 aWidth, PRInt32 aHeight)
-{
-  mPreferredWidth = aWidth;
-  mPreferredHeight = aHeight;
   return NS_OK;
 }
 
