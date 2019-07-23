@@ -271,6 +271,11 @@ public:
   static void UpdateFilterRegion(nsIFrame *aFrame);
 
   
+
+
+  static void NotifyAncestorsOfFilterRegionChange(nsIFrame *aFrame);
+
+  
   enum ctxDirection { X, Y, XY };
 
   

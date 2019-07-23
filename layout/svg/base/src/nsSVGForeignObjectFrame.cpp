@@ -391,7 +391,8 @@ nsSVGForeignObjectFrame::NotifySVGChanged(PRUint32 aFlags)
     
     
     
-    reflow = PR_TRUE;
+    
+    
     mCanvasTM = nsnull;
 
   } else if (aFlags & COORD_CONTEXT_CHANGED) {
@@ -572,19 +573,15 @@ void nsSVGForeignObjectFrame::UpdateGraphic()
     
     
     
-    outerSVGFrame->InvalidateRect(mRect);
+    outerSVGFrame->InvalidateCoveredRegion(this);
 
     UpdateCoveredRegion();
 
     
     
     
-    nsRect filterRect = nsSVGUtils::FindFilterInvalidation(this);
-    if (!filterRect.IsEmpty()) {
-      outerSVGFrame->InvalidateRect(filterRect);
-    } else {
-      outerSVGFrame->InvalidateRect(mRect);
-    }
+    outerSVGFrame->InvalidateCoveredRegion(this);
+    nsSVGUtils::NotifyAncestorsOfFilterRegionChange(this);
   }
 
   
@@ -708,6 +705,11 @@ nsSVGForeignObjectFrame::FlushDirtyRegion()
   r.ScaleRoundOut(1.0f / PresContext()->AppUnitsPerDevPixel());
   float x = r.x, y = r.y, w = r.width, h = r.height;
   r = GetTransformedRegion(x, y, w, h, tm);
+
+  
+  
+  r.UnionRect(r, mRect);
+
   outerSVGFrame->InvalidateRect(r);
 
   mDirtyRegion.SetEmpty();
