@@ -579,8 +579,19 @@ js_CallTree(InterpState* state, Fragment* f)
     lr = u.func(state, NULL);
 #endif
 
-    if (lr->exit->exitType == NESTED_EXIT)
-        lr = state->nestedExit;
+    if (lr->exit->exitType == NESTED_EXIT) {
+        
+
+
+        if (!state->lastTreeCallGuard)
+            state->lastTreeCallGuard = lr;
+    } else {
+        
+
+
+        state->lastTreeExitGuard = lr;
+    }
+
     return lr;
 }
 

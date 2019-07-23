@@ -871,7 +871,8 @@ TraceRecorder::TraceRecorder(JSContext* cx, GuardRecord* _anchor, Fragment* _fra
 
     if (_anchor && _anchor->exit->exitType == NESTED_EXIT) {
         LIns* nested_ins = addName(lir->insLoad(LIR_ldp, lirbuf->state, 
-                                                offsetof(InterpState, nestedExit)), "nestedExit");
+                                                offsetof(InterpState, lastTreeExitGuard)), 
+                                                "lastTreeExitGuard");
         guard(true, lir->ins2(LIR_eq, nested_ins, INS_CONSTPTR(innermostNestedGuard)), NESTED_EXIT);
     }
 }
@@ -1838,8 +1839,6 @@ TraceRecorder::emitTreeCall(Fragment* inner, GuardRecord* lr)
     import(ti, inner_sp_ins, exit->numGlobalSlots, exit->calldepth,
            exit->typeMap, exit->typeMap + exit->numGlobalSlots);
     
-    lir->insStorei(ret, lirbuf->state, offsetof(InterpState, nestedExit));
-    
     if (callDepth > 0) {
         lir->insStorei(lirbuf->sp, lirbuf->state, offsetof(InterpState, sp));
         lir->insStorei(lirbuf->rp, lirbuf->state, offsetof(InterpState, rp));
@@ -2353,9 +2352,8 @@ js_ExecuteTree(JSContext* cx, Fragment** treep, uintN& inlineCallCount,
     state.eor = callstack + MAX_CALL_STACK_ENTRIES;
     state.gp = global;
     state.cx = cx;
-#ifdef DEBUG
-    state.nestedExit = NULL;
-#endif    
+    state.lastTreeExitGuard = NULL;
+    state.lastTreeCallGuard = NULL;
     union { NIns *code; GuardRecord* (FASTCALL *func)(InterpState*, Fragment*); } u;
     u.code = f->code();
 
@@ -2393,8 +2391,14 @@ js_ExecuteTree(JSContext* cx, Fragment** treep, uintN& inlineCallCount,
 
 
     FrameInfo* rp = (FrameInfo*)state.rp;
-    if (lr->exit->exitType == NESTED_EXIT)
+    if (lr->exit->exitType == NESTED_EXIT) {
+        if (state.lastTreeCallGuard)
+            lr = state.lastTreeCallGuard;
+        JS_ASSERT(lr->exit->exitType == NESTED_EXIT);
+        if (innermostNestedGuardp)
+            *innermostNestedGuardp = lr;
         rp += lr->calldepth;
+    }
     while (callstack < rp) {
         
 
@@ -2414,20 +2418,12 @@ js_ExecuteTree(JSContext* cx, Fragment** treep, uintN& inlineCallCount,
         ++callstack;
         stack += slots;
     }
-    
+
     
 
-
-    if (lr->exit->exitType == NESTED_EXIT) {
-        do {
-            if (innermostNestedGuardp)
-                *innermostNestedGuardp = lr;
-            JS_ASSERT(lr->guard->oprnd1()->oprnd2()->isconstp());
-            lr = (GuardRecord*)lr->guard->oprnd1()->oprnd2()->constvalp();
-        } while (lr->exit->exitType == NESTED_EXIT);
-        lr = state.nestedExit;
-        JS_ASSERT(lr);
-    }
+    if (lr->exit->exitType == NESTED_EXIT)
+        lr = state.lastTreeExitGuard;
+    JS_ASSERT(lr->exit->exitType != NESTED_EXIT);
 
     
 

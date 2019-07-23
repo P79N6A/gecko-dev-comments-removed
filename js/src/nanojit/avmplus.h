@@ -347,7 +347,9 @@ namespace avmplus
         JSContext *cx; 
         void* eos; 
         void* eor; 
-        nanojit::GuardRecord* nestedExit; 
+        nanojit::GuardRecord* lastTreeExitGuard; 
+        nanojit::GuardRecord* lastTreeCallGuard; 
+
     };
 
     class String
