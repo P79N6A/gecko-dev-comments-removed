@@ -525,28 +525,17 @@ nsHTMLInputElement::AfterSetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
     
     
     
-    if (aName == nsGkAtoms::checked) {
-      if (aNotify &&
-          (mType == NS_FORM_INPUT_RADIO || mType == NS_FORM_INPUT_CHECKBOX)) {
-        
-        
-        nsIDocument* document = GetCurrentDoc();
-        if (document) {
-          MOZ_AUTO_DOC_UPDATE(document, UPDATE_CONTENT_STATE, aNotify);
-          document->ContentStatesChanged(this, nsnull, NS_EVENT_STATE_DEFAULT);
-        }
-      }
-      if (!GET_BOOLBIT(mBitField, BF_CHECKED_CHANGED)) {
-        
-        
-        if (GET_BOOLBIT(mBitField, BF_PARSER_CREATING)) {
-          SET_BOOLBIT(mBitField, BF_SHOULD_INIT_CHECKED, PR_TRUE);
-        } else {
-          PRBool defaultChecked;
-          GetDefaultChecked(&defaultChecked);
-          DoSetChecked(defaultChecked);
-          SetCheckedChanged(PR_FALSE);
-        }
+    if (aName == nsGkAtoms::checked &&
+        !GET_BOOLBIT(mBitField, BF_CHECKED_CHANGED)) {
+      
+      
+      if (GET_BOOLBIT(mBitField, BF_PARSER_CREATING)) {
+        SET_BOOLBIT(mBitField, BF_SHOULD_INIT_CHECKED, PR_TRUE);
+      } else {
+        PRBool defaultChecked;
+        GetDefaultChecked(&defaultChecked);
+        DoSetChecked(defaultChecked);
+        SetCheckedChanged(PR_FALSE);
       }
     }
 
@@ -592,6 +581,8 @@ nsHTMLInputElement::AfterSetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
       }
 
       if (aNotify && document) {
+        
+        
         
         
         

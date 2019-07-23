@@ -490,6 +490,9 @@ nsHTMLImageElement::SetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
 
     
     
+    
+    
+    
     LoadImage(aValue, PR_TRUE, aNotify);
 
     if (mCurrentRequest && !mPendingRequest &&

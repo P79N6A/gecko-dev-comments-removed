@@ -192,7 +192,8 @@ public:
   
   NS_HIDDEN_(nsReStyleHint) HasAttributeDependentStyle(nsIContent *aContent,
                                                        nsIAtom *aAttribute,
-                                                       PRInt32 aModType);
+                                                       PRInt32 aModType,
+                                                       PRUint32 aStateMask);
 
   
 

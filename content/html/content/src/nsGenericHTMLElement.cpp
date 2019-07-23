@@ -2904,6 +2904,9 @@ nsGenericHTMLFormElement::BeforeSetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
     }
 
     if (mForm && aName == nsGkAtoms::type) {
+      nsIDocument* doc = GetCurrentDoc();
+      MOZ_AUTO_DOC_UPDATE(doc, UPDATE_CONTENT_STATE, aNotify);
+      
       GetAttr(kNameSpaceID_None, nsGkAtoms::name, tmp);
 
       if (!tmp.IsEmpty()) {
@@ -2917,6 +2920,14 @@ nsGenericHTMLFormElement::BeforeSetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
       }
 
       mForm->RemoveElement(this, aNotify);
+
+      
+      
+      
+      
+      if (doc && aNotify) {
+        doc->ContentStatesChanged(this, nsnull, NS_EVENT_STATE_DEFAULT);
+      }
     }
   }
 
@@ -2960,19 +2971,10 @@ nsGenericHTMLFormElement::AfterSetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
 
       
       
+      
+      
       if (doc && aNotify) {
         doc->ContentStatesChanged(this, nsnull, NS_EVENT_STATE_DEFAULT);
-      }
-    }
-
-    
-    
-    if (aNotify && aName == nsGkAtoms::disabled && CanBeDisabled()) {
-      nsIDocument* document = GetCurrentDoc();
-      if (document) {
-        mozAutoDocUpdate upd(document, UPDATE_CONTENT_STATE, PR_TRUE);
-        document->ContentStatesChanged(this, nsnull, NS_EVENT_STATE_DISABLED |
-                                       NS_EVENT_STATE_ENABLED);
       }
     }
   }

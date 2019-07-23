@@ -534,6 +534,10 @@ nsHTMLStyleSheet::HasAttributeDependentStyle(AttributeRuleProcessorData* aData,
                                              nsReStyleHint* aResult)
 {
   
+  
+  
+
+  
   nsIContent *content = aData->mContent;
   if (aData->mAttribute == nsGkAtoms::href &&
       (mLinkRule || mVisitedRule || mActiveRule) &&

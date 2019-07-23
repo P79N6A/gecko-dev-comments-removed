@@ -136,9 +136,10 @@ class nsStyleSet
 
   
   nsReStyleHint HasAttributeDependentStyle(nsPresContext* aPresContext,
-                                           nsIContent*     aContent,
-                                           nsIAtom*        aAttribute,
-                                           PRInt32         aModType);
+                                           nsIContent*    aContent,
+                                           nsIAtom*       aAttribute,
+                                           PRInt32        aModType,
+                                           PRUint32       aStateMask);
 
   
   

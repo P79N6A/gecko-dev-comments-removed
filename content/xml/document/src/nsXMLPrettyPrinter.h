@@ -54,18 +54,13 @@ public:
     
     virtual void BeginUpdate(nsIDocument* aDocument, nsUpdateType aUpdateType);
     virtual void EndUpdate(nsIDocument* aDocument, nsUpdateType aUpdateType);
-    virtual void AttributeChanged(nsIDocument* aDocument, nsIContent* aContent,
-                                  PRInt32 aNameSpaceID, nsIAtom* aAttribute,
-                                  PRInt32 aModType);
-    virtual void ContentAppended(nsIDocument* aDocument,
-                                 nsIContent* aContainer,
-                                 PRInt32 aNewIndexInContainer);
-    virtual void ContentInserted(nsIDocument* aDocument,
-                                 nsIContent* aContainer, nsIContent* aChild,
-                                 PRInt32 aIndexInContainer);
-    virtual void ContentRemoved(nsIDocument* aDocument, nsIContent* aContainer,
-                                nsIContent* aChild, PRInt32 aIndexInContainer);
-    virtual void NodeWillBeDestroyed(const nsINode* aNode);
+
+    
+    NS_DECL_NSIMUTATIONOBSERVER_ATTRIBUTECHANGED
+    NS_DECL_NSIMUTATIONOBSERVER_CONTENTAPPENDED
+    NS_DECL_NSIMUTATIONOBSERVER_CONTENTINSERTED
+    NS_DECL_NSIMUTATIONOBSERVER_CONTENTREMOVED
+    NS_DECL_NSIMUTATIONOBSERVER_NODEWILLBEDESTROYED
     
     
 

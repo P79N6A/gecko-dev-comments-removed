@@ -130,22 +130,11 @@ public:
   virtual PRBool IsCaseSensitive();
 
   
-  virtual void ContentAppended(nsIDocument* aDocument,
-                               nsIContent* aContainer,
-                               PRInt32 aNewIndexInContainer);
-  virtual void ContentInserted(nsIDocument* aDocument,
-                               nsIContent* aContainer,
-                               nsIContent* aChild,
-                               PRInt32 aIndexInContainer);
-  virtual void ContentRemoved(nsIDocument* aDocument,
-                              nsIContent* aContainer,
-                              nsIContent* aChild,
-                              PRInt32 aIndexInContainer);
-  virtual void AttributeChanged(nsIDocument* aDocument,
-                                nsIContent* aChild,
-                                PRInt32 aNameSpaceID,
-                                nsIAtom* aAttribute,
-                                PRInt32 aModType);
+  NS_DECL_NSIMUTATIONOBSERVER_CONTENTAPPENDED
+  NS_DECL_NSIMUTATIONOBSERVER_CONTENTINSERTED
+  NS_DECL_NSIMUTATIONOBSERVER_CONTENTREMOVED
+  NS_DECL_NSIMUTATIONOBSERVER_ATTRIBUTECHANGED
+
   
   NS_DECL_NSIDOMDOCUMENT
 

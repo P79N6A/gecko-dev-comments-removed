@@ -152,17 +152,20 @@ struct StateRuleProcessorData : public RuleProcessorData {
 
 struct AttributeRuleProcessorData : public RuleProcessorData {
   AttributeRuleProcessorData(nsPresContext* aPresContext,
-                         nsIContent* aContent,
-                         nsIAtom* aAttribute,
-                         PRInt32 aModType)
+                             nsIContent* aContent,
+                             nsIAtom* aAttribute,
+                             PRInt32 aModType,
+                             PRUint32 aStateMask)
     : RuleProcessorData(aPresContext, aContent, nsnull),
       mAttribute(aAttribute),
-      mModType(aModType)
+      mModType(aModType),
+      mStateMask(aStateMask)
   {
     NS_PRECONDITION(aContent, "null pointer");
   }
   nsIAtom* mAttribute; 
   PRInt32 mModType;    
+  PRUint32 mStateMask; 
 };
 
 

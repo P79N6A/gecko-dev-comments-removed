@@ -138,13 +138,8 @@ public:
                                    nsIXULTemplateResult** aResult);
 
     
-    virtual void AttributeChanged(nsIDocument* aDocument,
-                                  nsIContent*  aContent,
-                                  PRInt32      aNameSpaceID,
-                                  nsIAtom*     aAttribute,
-                                  PRInt32      aModType);
-
-    void NodeWillBeDestroyed(const nsINode* aNode);
+    NS_DECL_NSIMUTATIONOBSERVER_ATTRIBUTECHANGED
+    NS_DECL_NSIMUTATIONOBSERVER_NODEWILLBEDESTROYED
 
 protected:
     friend NS_IMETHODIMP
@@ -1771,7 +1766,8 @@ nsXULContentBuilder::AttributeChanged(nsIDocument* aDocument,
                                       nsIContent*  aContent,
                                       PRInt32      aNameSpaceID,
                                       nsIAtom*     aAttribute,
-                                      PRInt32      aModType)
+                                      PRInt32      aModType,
+                                      PRUint32     aStateMask)
 {
     
     
@@ -1795,7 +1791,7 @@ nsXULContentBuilder::AttributeChanged(nsIDocument* aDocument,
 
     
     nsXULTemplateBuilder::AttributeChanged(aDocument, aContent, aNameSpaceID,
-                                           aAttribute, aModType);
+                                           aAttribute, aModType, aStateMask);
 }
 
 void
