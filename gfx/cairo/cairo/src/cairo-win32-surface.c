@@ -387,9 +387,12 @@ _cairo_win32_surface_create_similar_internal (void	    *abstract_src,
 {
     cairo_win32_surface_t *src = abstract_src;
     cairo_format_t format = _cairo_format_from_content (content);
-    cairo_win32_surface_t *new_surf;
+    cairo_surface_t *new_surf = NULL;
 
     
+
+
+
 
 
 
@@ -401,30 +404,19 @@ _cairo_win32_surface_create_similar_internal (void	    *abstract_src,
 	force_dib = TRUE;
     }
 
-    if (force_dib) {
-	new_surf = (cairo_win32_surface_t*)
-	    _cairo_win32_surface_create_for_dc (src->dc, format, width, height);
-    } else {
+    if (!force_dib) {
 	
-	HBITMAP ddb = CreateCompatibleBitmap (src->dc, width, height);
-	HDC ddb_dc = CreateCompatibleDC (src->dc);
-	HBITMAP saved_dc_bitmap;
+	new_surf = cairo_win32_surface_create_with_ddb (src->dc, CAIRO_FORMAT_RGB24, width, height);
 
-	saved_dc_bitmap = SelectObject (ddb_dc, ddb);
-
-	new_surf = (cairo_win32_surface_t*) cairo_win32_surface_create (ddb_dc);
-	if (new_surf->base.status == CAIRO_STATUS_SUCCESS) {
-	    new_surf->bitmap = ddb;
-	    new_surf->saved_dc_bitmap = saved_dc_bitmap;
-	    new_surf->is_dib = FALSE;
-	} else {
-	    SelectObject (ddb_dc, saved_dc_bitmap);
-	    DeleteDC (ddb_dc);
-	    DeleteObject (ddb);
-	}
+	if (new_surf->status != CAIRO_STATUS_SUCCESS)
+	    new_surf = NULL;
     }
 
-    return (cairo_surface_t*) new_surf;
+    if (new_surf == NULL) {
+	new_surf = _cairo_win32_surface_create_for_dc (src->dc, format, width, height);
+    }
+
+    return new_surf;
 }
 
 cairo_surface_t *
@@ -1831,7 +1823,6 @@ cairo_win32_surface_create_with_ddb (HDC hdc,
 
     ddb_dc = CreateCompatibleDC (hdc);
     if (ddb_dc == NULL) {
-	_cairo_win32_print_gdi_error("CreateCompatibleDC");
 	new_surf = (cairo_win32_surface_t*) _cairo_surface_create_in_error (_cairo_error (CAIRO_STATUS_NO_MEMORY));
 	goto FINISH;
     }
@@ -1844,7 +1835,7 @@ cairo_win32_surface_create_with_ddb (HDC hdc,
 
 
 
-	_cairo_win32_print_gdi_error("CreateCompatibleBitmap");
+
 	new_surf = (cairo_win32_surface_t*) _cairo_surface_create_in_error (_cairo_error (CAIRO_STATUS_NO_MEMORY));
 	goto FINISH;
     }
