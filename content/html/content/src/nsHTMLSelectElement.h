@@ -349,11 +349,6 @@ protected:
 
   void RestoreStateTo(nsSelectState* aNewSelected);
 
-#ifdef DEBUG_john
-  
-  nsresult PrintOptions(nsIContent* aOptions, PRInt32 tabs);
-#endif
-
   
   
 
