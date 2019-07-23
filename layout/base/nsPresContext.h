@@ -64,7 +64,6 @@ class nsImageLoader;
 #ifdef IBMBIDI
 class nsBidiPresUtils;
 #endif 
-#include "nsTArray.h"
 
 struct nsRect;
 
@@ -703,23 +702,6 @@ public:
   
   PRBool IsChrome();
 
-  const nsTArray<nsIFrame*>& GetActivePopups() {
-    NS_ASSERTION(this == RootPresContext(), "Only on root prescontext");
-    return mActivePopups;
-  }
-  void NotifyAddedActivePopupToTop(nsIFrame* aFrame) {
-    NS_ASSERTION(this == RootPresContext(), "Only on root prescontext");
-    mActivePopups.AppendElement(aFrame);
-  }
-  PRBool ContainsActivePopup(nsIFrame* aFrame) {
-    NS_ASSERTION(this == RootPresContext(), "Only on root prescontext");
-    return mActivePopups.IndexOf(aFrame) >= 0;
-  }
-  void NotifyRemovedActivePopup(nsIFrame* aFrame) {
-    NS_ASSERTION(this == RootPresContext(), "Only on root prescontext");
-    mActivePopups.RemoveElement(aFrame);
-  }
-
 protected:
   friend class nsRunnableMethod<nsPresContext>;
   NS_HIDDEN_(void) ThemeChangedInternal();
@@ -761,11 +743,6 @@ protected:
 
   nsInterfaceHashtable<nsVoidPtrHashKey, nsImageLoader> mImageLoaders;
   nsWeakPtr             mContainer;
-
-  
-  
-  
-  nsTArray<nsIFrame*>   mActivePopups;
 
   float                 mTextZoom;      
 

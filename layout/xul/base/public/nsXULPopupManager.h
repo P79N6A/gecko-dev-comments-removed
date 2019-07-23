@@ -47,6 +47,7 @@
 #include "nsIMenuRollup.h"
 #include "nsIDOMKeyListener.h"
 #include "nsCOMPtr.h"
+#include "nsTArray.h"
 #include "nsITimer.h"
 #include "nsThreadUtils.h"
 
@@ -468,6 +469,12 @@ public:
 
 
   PRBool IsPopupOpenForMenuParent(nsIMenuParent* aMenuParent);
+
+  
+
+
+
+  nsTArray<nsIFrame *> GetOpenPopups();
 
   
 
