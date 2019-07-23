@@ -93,7 +93,6 @@ function test() {
   waitForExplicitFinish();
   
   
-  let privacy_level = gPrefService.getIntPref("browser.sessionstore.privacy_level");
   gPrefService.setIntPref("browser.sessionstore.privacy_level", 2);
   
   let testURL = "chrome://mochikit/content/browser/" +
@@ -120,7 +119,7 @@ function test() {
             ok(!compareFormValue(tab, xpath, fieldList[xpath]),
                "The value for \"" + xpath + "\" was correctly discarded");
         
-        gPrefService.setIntPref("browser.sessionstore.privacy_level", privacy_level);
+        gPrefService.clearUserPref("browser.sessionstore.privacy_level");
         
         
         if (tabbrowser.tabContainer.childNodes.length == 1)

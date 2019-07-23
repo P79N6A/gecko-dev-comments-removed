@@ -45,7 +45,6 @@ function test() {
   };
   
   
-  let privacy_level = gPrefService.getIntPref("browser.sessionstore.privacy_level");
   gPrefService.setIntPref("browser.sessionstore.privacy_level", 0);
   
   let testURL = "chrome://mochikit/content/browser/" +
@@ -70,7 +69,7 @@ function test() {
       }
       
       
-      gPrefService.setIntPref("browser.sessionstore.privacy_level", privacy_level);
+      gPrefService.clearUserPref("browser.sessionstore.privacy_level");
       
       
       if (gBrowser.tabContainer.childNodes.length == 1)
