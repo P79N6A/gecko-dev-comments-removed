@@ -531,7 +531,8 @@ nsStyleSet::AssertNoCSSRules(nsRuleNode* aCurrLevelNode,
 
 void
 nsStyleSet::FileRules(nsIStyleRuleProcessor::EnumFunc aCollectorFunc, 
-                      RuleProcessorData* aData, nsRuleWalker* aRuleWalker)
+                      void* aData, nsIContent* aContent,
+                      nsRuleWalker* aRuleWalker)
 {
   
   
@@ -564,7 +565,7 @@ nsStyleSet::FileRules(nsIStyleRuleProcessor::EnumFunc aCollectorFunc,
 
   aRuleWalker->SetLevel(eUserSheet, PR_FALSE, PR_TRUE);
   PRBool skipUserStyles =
-    aData->mContent && aData->mContent->IsInNativeAnonymousSubtree();
+    aContent && aContent->IsInNativeAnonymousSubtree();
   if (!skipUserStyles && mRuleProcessors[eUserSheet]) 
     (*aCollectorFunc)(mRuleProcessors[eUserSheet], aData);
   nsRuleNode* lastUserRN = aRuleWalker->GetCurrentNode();
@@ -577,9 +578,11 @@ nsStyleSet::FileRules(nsIStyleRuleProcessor::EnumFunc aCollectorFunc,
   
   aRuleWalker->SetLevel(eDocSheet, PR_FALSE, PR_TRUE);
   PRBool cutOffInheritance = PR_FALSE;
-  if (mBindingManager) {
+  if (mBindingManager && aContent) {
     
-    mBindingManager->WalkRules(aCollectorFunc, aData, &cutOffInheritance);
+    mBindingManager->WalkRules(aCollectorFunc,
+                               static_cast<RuleProcessorData*>(aData),
+                               &cutOffInheritance);
   }
   if (!skipUserStyles && !cutOffInheritance &&
       mRuleProcessors[eDocSheet]) 
@@ -746,7 +749,7 @@ nsStyleSet::ResolveStyleFor(nsIContent* aContent,
   if (aContent && presContext) {
     nsRuleWalker ruleWalker(mRuleTree);
     ElementRuleProcessorData data(presContext, aContent, &ruleWalker);
-    FileRules(EnumRulesMatching, &data, &ruleWalker);
+    FileRules(EnumRulesMatching, &data, aContent, &ruleWalker);
     result = GetContext(presContext, aParentContext,
                         ruleWalker.GetCurrentNode(), nsnull,
                         nsCSSPseudoElements::ePseudo_NotPseudoElement).get();
@@ -849,7 +852,7 @@ nsStyleSet::ResolvePseudoStyleFor(nsIContent* aParentContent,
     nsRuleWalker ruleWalker(mRuleTree);
     PseudoRuleProcessorData data(presContext, aParentContent, aPseudoTag,
                                  aComparator, &ruleWalker);
-    FileRules(EnumPseudoRulesMatching, &data, &ruleWalker);
+    FileRules(EnumPseudoRulesMatching, &data, aParentContent, &ruleWalker);
 
     result = GetContext(presContext, aParentContext,
                         ruleWalker.GetCurrentNode(), aPseudoTag,
@@ -887,7 +890,7 @@ nsStyleSet::ResolvePseudoElementStyle(nsIContent* aParentContent,
   PseudoElementRuleProcessorData data(presContext, aParentContent, &ruleWalker,
                                       aType);
   WalkRestrictionRule(aType, &ruleWalker);
-  FileRules(EnumPseudoElementRulesMatching, &data, &ruleWalker);
+  FileRules(EnumPseudoElementRulesMatching, &data, aParentContent, &ruleWalker);
 
   return GetContext(presContext, aParentContext, ruleWalker.GetCurrentNode(),
                     nsCSSPseudoElements::GetPseudoAtom(aType), aType);
@@ -916,7 +919,7 @@ nsStyleSet::ProbePseudoElementStyle(nsIContent* aParentContent,
   WalkRestrictionRule(aType, &ruleWalker);
   
   nsRuleNode *adjustedRoot = ruleWalker.GetCurrentNode();
-  FileRules(EnumPseudoElementRulesMatching, &data, &ruleWalker);
+  FileRules(EnumPseudoElementRulesMatching, &data, aParentContent, &ruleWalker);
 
   nsRuleNode *ruleNode = ruleWalker.GetCurrentNode();
   if (ruleNode == adjustedRoot) {
@@ -942,6 +945,40 @@ nsStyleSet::ProbePseudoElementStyle(nsIContent* aParentContent,
   }
   
   return result.forget();
+}
+
+static PRBool
+EnumAnonBoxRulesMatching(nsIStyleRuleProcessor* aProcessor, void* aData)
+{
+  AnonBoxRuleProcessorData* data =
+    static_cast<AnonBoxRuleProcessorData*>(aData);
+
+  aProcessor->RulesMatching(data);
+  return PR_TRUE;
+}
+
+already_AddRefed<nsStyleContext>
+nsStyleSet::ResolveAnonymousBoxStyle(nsIAtom* aPseudoTag,
+                                     nsStyleContext* aParentContext)
+{
+  NS_ENSURE_FALSE(mInShutdown, nsnull);
+
+#ifdef DEBUG
+    PRBool isAnonBox = nsCSSAnonBoxes::IsAnonBox(aPseudoTag)
+#ifdef MOZ_XUL
+                 && !nsCSSAnonBoxes::IsTreePseudoElement(aPseudoTag)
+#endif
+      ;
+    NS_PRECONDITION(isAnonBox, "Unexpected pseudo");
+#endif
+
+  nsRuleWalker ruleWalker(mRuleTree);
+  nsPresContext *presContext = PresContext();
+  AnonBoxRuleProcessorData data(presContext, aPseudoTag, &ruleWalker);
+  FileRules(EnumAnonBoxRulesMatching, &data, nsnull, &ruleWalker);
+
+  return GetContext(presContext, aParentContext, ruleWalker.GetCurrentNode(),
+                    aPseudoTag, nsCSSPseudoElements::ePseudo_AnonBox);
 }
 
 PRBool
