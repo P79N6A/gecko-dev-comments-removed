@@ -423,14 +423,33 @@ public:
 
 
 
-
+#define FORALL_FRAME_SLOTS(f, depth, code)                                    \
+    JS_BEGIN_MACRO                                                            \
+        jsval* vp;                                                            \
+        jsval* vpstop;                                                        \
+        if (f->callee) {                                                      \
+            if (depth == 0) {                                                 \
+                SET_VPNAME("this");                                           \
+                vp = &f->argv[-1];                                            \
+                code;                                                         \
+                SET_VPNAME("argv");                                           \
+                vp = &f->argv[0]; vpstop = &f->argv[f->fun->nargs];           \
+                while (vp < vpstop) { code; ++vp; INC_VPNUM(); }              \
+            }                                                                 \
+            SET_VPNAME("vars");                                               \
+            vp = f->slots; vpstop = &f->slots[f->script->nfixed];             \
+            while (vp < vpstop) { code; ++vp; INC_VPNUM(); }                  \
+        }                                                                     \
+        SET_VPNAME("stack");                                                  \
+        vp = StackBase(f); vpstop = f->regs->sp;                              \
+        while (vp < vpstop) { code; ++vp; INC_VPNUM(); }                      \
+    JS_END_MACRO
 
 
 #define FORALL_SLOTS_IN_PENDING_FRAMES(cx, callDepth, code)                   \
     JS_BEGIN_MACRO                                                            \
         DEF_VPNAME;                                                           \
         unsigned n;                                                           \
-        jsval* vp;                                                            \
         JSStackFrame* currentFrame = cx->fp;                                  \
         JSStackFrame* entryFrame;                                             \
         JSStackFrame* fp = currentFrame;                                      \
@@ -442,25 +461,10 @@ public:
         JSStackFrame** fsp = fspstop-1;                                       \
         fp = currentFrame;                                                    \
         for (;; fp = fp->down) { *fsp-- = fp; if (fp == entryFrame) break; }  \
-        for (fsp = fstack; fsp < fspstop; ++fsp) {                            \
-            JSStackFrame* f = *fsp;                                           \
-            jsval* vpstop;                                                    \
-            if (f->callee) {                                                  \
-                if (fsp == fstack) {                                          \
-                    SET_VPNAME("this");                                       \
-                    vp = &f->argv[-1];                                        \
-                    code;                                                     \
-                    SET_VPNAME("argv");                                       \
-                    vp = &f->argv[0]; vpstop = &f->argv[f->fun->nargs];       \
-                    while (vp < vpstop) { code; ++vp; INC_VPNUM(); }          \
-                }                                                             \
-                SET_VPNAME("vars");                                           \
-                vp = f->slots; vpstop = &f->slots[f->script->nfixed];         \
-                while (vp < vpstop) { code; ++vp; INC_VPNUM(); }              \
-            }                                                                 \
-            SET_VPNAME("stack");                                              \
-            vp = StackBase(f); vpstop = f->regs->sp;                          \
-            while (vp < vpstop) { code; ++vp; INC_VPNUM(); }                  \
+        unsigned depth;                                                       \
+        for (depth = 0, fsp = fstack; fsp < fspstop; ++fsp, ++depth) {        \
+            JSStackFrame* f = (*fsp);                                         \
+            FORALL_FRAME_SLOTS(f, depth, code);                               \
         }                                                                     \
     JS_END_MACRO
 
