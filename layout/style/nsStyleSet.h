@@ -275,11 +275,13 @@ class nsStyleSet
   nsresult GatherRuleProcessors(sheetType aType);
 
   void AddImportantRules(nsRuleNode* aCurrLevelNode,
-                         nsRuleNode* aLastPrevLevelNode);
+                         nsRuleNode* aLastPrevLevelNode,
+                         nsRuleWalker* aRuleWalker);
 
   
   
-  void WalkRestrictionRule(nsIAtom* aPseudoType);
+  void WalkRestrictionRule(nsIAtom* aPseudoType,
+                           nsRuleWalker* aRuleWalker);
 
 #ifdef DEBUG
   
@@ -298,7 +300,7 @@ class nsStyleSet
   
   
   void FileRules(nsIStyleRuleProcessor::EnumFunc aCollectorFunc,
-                 RuleProcessorData* aData);
+                 RuleProcessorData* aData, nsRuleWalker* aRuleWalker);
 
   
   
@@ -307,6 +309,7 @@ class nsStyleSet
 
   already_AddRefed<nsStyleContext> GetContext(nsPresContext* aPresContext,
                                               nsStyleContext* aParentContext,
+                                              nsRuleNode* aRuleNode,
                                               nsIAtom* aPseudoTag);
 
   nsPresContext* PresContext() { return mRuleTree->GetPresContext(); }
@@ -330,8 +333,6 @@ class nsStyleSet
   nsRuleNode* mRuleTree; 
                          
                          
-  nsRuleWalker* mRuleWalker; 
-                             
 
   PRUint32 mUnusedRuleNodeCount; 
   nsTArray<nsStyleContext*> mRoots; 
