@@ -69,6 +69,8 @@
 #ifndef PIXMAN_H__
 #define PIXMAN_H__
 
+#include <pixman-version.h>
+
 
 
 
@@ -271,6 +273,12 @@ typedef enum
     PIXMAN_REGION_IN,
     PIXMAN_REGION_PART
 } pixman_region_overlap_t;
+
+PIXMAN_EXPORT
+int			pixman_version (void);
+
+PIXMAN_EXPORT
+const char*		pixman_version_string (void);
 
 
 
@@ -497,6 +505,13 @@ typedef enum {
 
 
 PIXMAN_EXPORT
+pixman_bool_t	pixman_format_supported_destination (pixman_format_code_t format);
+
+PIXMAN_EXPORT
+pixman_bool_t	pixman_format_supported_source (pixman_format_code_t format);
+
+
+PIXMAN_EXPORT
 pixman_image_t *pixman_image_create_solid_fill       (pixman_color_t               *color);
 PIXMAN_EXPORT
 pixman_image_t *pixman_image_create_linear_gradient  (pixman_point_fixed_t         *p1,
@@ -547,10 +562,6 @@ pixman_bool_t   pixman_image_set_filter              (pixman_image_t            
 						      pixman_filter_t               filter,
 						      const pixman_fixed_t         *filter_params,
 						      int                           n_filter_params);
-PIXMAN_EXPORT
-void            pixman_image_set_filter_params       (pixman_image_t               *image,
-						      pixman_fixed_t               *params,
-						      int                           n_params);
 PIXMAN_EXPORT
 void		pixman_image_set_source_clipping     (pixman_image_t		   *image,
 						      pixman_bool_t                 source_clipping);

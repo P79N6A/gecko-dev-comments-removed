@@ -26,6 +26,9 @@
 
 
 
+#ifndef _PIXMAN_MMX_H_
+#define _PIXMAN_MMX_H_
+
 #ifdef HAVE_DIX_CONFIG_H
 #include <dix-config.h>
 #endif
@@ -311,5 +314,7 @@ fbCompositeOver_x888x8x8888mmx (pixman_op_t      op,
 				int16_t      yDst,
 				uint16_t     width,
 				uint16_t     height);
+
+#endif 
 
 #endif 

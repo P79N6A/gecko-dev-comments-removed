@@ -407,3 +407,183 @@ pixman_malloc_abc (unsigned int a,
     else
 	return malloc (a * b * c);
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int
+pixman_version (void)
+{
+    return PIXMAN_VERSION;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+const char*
+pixman_version_string (void)
+{
+    return PIXMAN_VERSION_STRING;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+pixman_bool_t
+pixman_format_supported_destination (pixman_format_code_t format)
+{
+    switch (format) {
+    
+    case PIXMAN_a8r8g8b8:
+    case PIXMAN_x8r8g8b8:
+    case PIXMAN_a8b8g8r8:
+    case PIXMAN_x8b8g8r8:
+    case PIXMAN_r8g8b8:
+    case PIXMAN_b8g8r8:
+    case PIXMAN_r5g6b5:
+    case PIXMAN_b5g6r5:
+    
+    case PIXMAN_a1r5g5b5:
+    case PIXMAN_x1r5g5b5:
+    case PIXMAN_a1b5g5r5:
+    case PIXMAN_x1b5g5r5:
+    case PIXMAN_a4r4g4b4:
+    case PIXMAN_x4r4g4b4:
+    case PIXMAN_a4b4g4r4:
+    case PIXMAN_x4b4g4r4:
+    
+    case PIXMAN_a8:
+    case PIXMAN_r3g3b2:
+    case PIXMAN_b2g3r3:
+    case PIXMAN_a2r2g2b2:
+    case PIXMAN_a2b2g2r2:
+    case PIXMAN_c8:
+    case PIXMAN_g8:
+    case PIXMAN_x4a4:
+    
+
+
+    
+
+
+    
+    case PIXMAN_a4:
+    case PIXMAN_r1g2b1:
+    case PIXMAN_b1g2r1:
+    case PIXMAN_a1r1g1b1:
+    case PIXMAN_a1b1g1r1:
+    case PIXMAN_c4:
+    case PIXMAN_g4:
+    
+    case PIXMAN_a1:
+    case PIXMAN_g1:
+	return TRUE;
+	
+    
+    case PIXMAN_yuy2:
+    case PIXMAN_yv12:
+    default:
+	return FALSE;
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+pixman_bool_t
+pixman_format_supported_source (pixman_format_code_t format)
+{
+    switch (format) {
+    
+    case PIXMAN_a8r8g8b8:
+    case PIXMAN_x8r8g8b8:
+    case PIXMAN_a8b8g8r8:
+    case PIXMAN_x8b8g8r8:
+    case PIXMAN_r8g8b8:
+    case PIXMAN_b8g8r8:
+    case PIXMAN_r5g6b5:
+    case PIXMAN_b5g6r5:
+    
+    case PIXMAN_a1r5g5b5:
+    case PIXMAN_x1r5g5b5:
+    case PIXMAN_a1b5g5r5:
+    case PIXMAN_x1b5g5r5:
+    case PIXMAN_a4r4g4b4:
+    case PIXMAN_x4r4g4b4:
+    case PIXMAN_a4b4g4r4:
+    case PIXMAN_x4b4g4r4:
+    
+    case PIXMAN_a8:
+    case PIXMAN_r3g3b2:
+    case PIXMAN_b2g3r3:
+    case PIXMAN_a2r2g2b2:
+    case PIXMAN_a2b2g2r2:
+    case PIXMAN_c8:
+    case PIXMAN_g8:
+    case PIXMAN_x4a4:
+    
+
+
+    
+
+
+    
+    case PIXMAN_a4:
+    case PIXMAN_r1g2b1:
+    case PIXMAN_b1g2r1:
+    case PIXMAN_a1r1g1b1:
+    case PIXMAN_a1b1g1r1:
+    case PIXMAN_c4:
+    case PIXMAN_g4:
+    
+    case PIXMAN_a1:
+    case PIXMAN_g1:
+    
+    case PIXMAN_yuy2:
+    case PIXMAN_yv12:
+	return TRUE;
+
+    default:
+	return FALSE;
+    }
+}
