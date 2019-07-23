@@ -530,6 +530,13 @@ js_InternNonIntElementId(JSContext *cx, JSObject *obj, jsval idval, jsid *idp);
 
 
 
+extern jsval
+js_GetUpvar(JSContext *cx, uintN level, uintN cookie);
+
+
+
+
+
 
 
 
@@ -605,13 +612,6 @@ js_OnUnknownMethod(JSContext *cx, jsval *vp);
 
 extern JSBool
 js_DoIncDec(JSContext *cx, const JSCodeSpec *cs, jsval *vp, jsval *vp2);
-
-
-
-
-
-extern jsval
-js_GetUpvar(JSContext *cx, uintN level, uintN cookie);
 
 
 
