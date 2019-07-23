@@ -2693,3 +2693,10 @@ pref("image.cache.timeweight", 500);
 pref("network.tcp.sendbuffer", 131072);
 #endif
 #endif
+
+#ifdef WINCE
+
+
+pref("javascript.options.jit.content",      false);
+pref("mozilla.widget.disable-native-theme", true);
+#endif
