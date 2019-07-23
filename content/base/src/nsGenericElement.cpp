@@ -125,6 +125,12 @@
 #include "nsContentCreatorFunctions.h"
 #include "nsIFocusController.h"
 #include "nsIControllers.h"
+#include "nsLayoutUtils.h"
+#include "nsIView.h"
+#include "nsIViewManager.h"
+#include "nsIScrollableFrame.h"
+#include "nsIScrollableView.h"
+#include "nsIScrollableViewProvider.h"
 #include "nsXBLInsertionPoint.h"
 #include "nsICSSStyleRule.h" 
 #include "nsCSSRuleProcessor.h"
@@ -796,6 +802,315 @@ nsNSElementTearoff::GetElementsByClassName(const nsAString& aClasses,
                                            nsIDOMNodeList** aReturn)
 {
   return nsDocument::GetElementsByClassNameHelper(mContent, aClasses, aReturn);
+}
+
+nsIFrame*
+nsGenericElement::GetStyledFrame()
+{
+  nsIFrame *frame = GetPrimaryFrame(Flush_Layout);
+
+  return (frame && frame->GetType() == nsGkAtoms::tableOuterFrame) ?
+    frame->GetFirstChild(nsnull) : frame;
+}
+
+void
+nsGenericElement::GetOffsetRect(nsRect& aRect, nsIContent** aOffsetParent)
+{
+  *aOffsetParent = nsnull;
+  aRect = nsRect();
+
+  nsIFrame* frame = GetStyledFrame();
+  if (!frame) {
+    return;
+  }
+
+  nsPoint origin = frame->GetPosition();
+  aRect.x = nsPresContext::AppUnitsToIntCSSPixels(origin.x);
+  aRect.y = nsPresContext::AppUnitsToIntCSSPixels(origin.y);
+
+  
+  
+  
+  
+  nsRect rcFrame = nsLayoutUtils::GetAllInFlowRectsUnion(frame, nsnull);
+  aRect.width = nsPresContext::AppUnitsToIntCSSPixels(rcFrame.width);
+  aRect.height = nsPresContext::AppUnitsToIntCSSPixels(rcFrame.height);
+}
+
+void
+nsNSElementTearoff::GetScrollInfo(nsIScrollableView **aScrollableView,
+                                  nsIFrame **aFrame)
+{
+  *aScrollableView = nsnull;
+
+  
+  if (mContent->IsNodeOfType(nsINode::eSVG)) {
+    if (aFrame)
+      *aFrame = nsnull;
+    return;
+  }
+
+  nsIFrame* frame =
+    (static_cast<nsGenericElement*>(mContent))->GetStyledFrame();
+
+  if (aFrame) {
+    *aFrame = frame;
+  }
+  if (!frame) {
+    return;
+  }
+
+  
+  nsIScrollableFrame *scrollFrame = nsnull;
+  CallQueryInterface(frame, &scrollFrame);
+
+  if (!scrollFrame) {
+    nsIScrollableViewProvider *scrollProvider = nsnull;
+    CallQueryInterface(frame, &scrollProvider);
+    
+    
+    if (scrollProvider && frame->GetType() != nsGkAtoms::menuFrame) {
+      *aScrollableView = scrollProvider->GetScrollableView();
+      if (*aScrollableView) {
+        return;
+      }
+    }
+
+    nsIDocument* doc = mContent->GetCurrentDoc();
+    PRBool quirksMode = doc &&
+                        doc->GetCompatibilityMode() == eCompatibility_NavQuirks;
+    if ((quirksMode && mContent->NodeInfo()->Equals(nsGkAtoms::body)) ||
+        (!quirksMode && mContent->NodeInfo()->Equals(nsGkAtoms::html))) {
+      
+      
+      
+      
+      
+      
+
+      do {
+        frame = frame->GetParent();
+
+        if (!frame) {
+          break;
+        }
+
+        CallQueryInterface(frame, &scrollFrame);
+      } while (!scrollFrame);
+    }
+
+    if (!scrollFrame) {
+      return;
+    }
+  }
+
+  
+  *aScrollableView = scrollFrame->GetScrollableView();
+}
+
+nsresult
+nsNSElementTearoff::GetScrollTop(PRInt32* aScrollTop)
+{
+  NS_ENSURE_ARG_POINTER(aScrollTop);
+  *aScrollTop = 0;
+
+  nsIScrollableView *view;
+  nsresult rv = NS_OK;
+
+  GetScrollInfo(&view);
+
+  if (view) {
+    nscoord xPos, yPos;
+    rv = view->GetScrollPosition(xPos, yPos);
+
+    *aScrollTop = nsPresContext::AppUnitsToIntCSSPixels(yPos);
+  }
+
+  return rv;
+}
+
+nsresult
+nsNSElementTearoff::SetScrollTop(PRInt32 aScrollTop)
+{
+  nsIScrollableView *view;
+  nsresult rv = NS_OK;
+
+  GetScrollInfo(&view);
+
+  if (view) {
+    nscoord xPos, yPos;
+
+    rv = view->GetScrollPosition(xPos, yPos);
+
+    if (NS_SUCCEEDED(rv)) {
+      rv = view->ScrollTo(xPos, nsPresContext::CSSPixelsToAppUnits(aScrollTop),
+                          NS_VMREFRESH_IMMEDIATE);
+    }
+  }
+
+  return rv;
+}
+
+nsresult
+nsNSElementTearoff::GetScrollLeft(PRInt32* aScrollLeft)
+{
+  NS_ENSURE_ARG_POINTER(aScrollLeft);
+  *aScrollLeft = 0;
+
+  nsIScrollableView *view;
+  nsresult rv = NS_OK;
+
+  GetScrollInfo(&view);
+
+  if (view) {
+    nscoord xPos, yPos;
+    rv = view->GetScrollPosition(xPos, yPos);
+
+    *aScrollLeft = nsPresContext::AppUnitsToIntCSSPixels(xPos);
+  }
+
+  return rv;
+}
+
+nsresult
+nsNSElementTearoff::SetScrollLeft(PRInt32 aScrollLeft)
+{
+  nsIScrollableView *view;
+  nsresult rv = NS_OK;
+
+  GetScrollInfo(&view);
+
+  if (view) {
+    nscoord xPos, yPos;
+    rv = view->GetScrollPosition(xPos, yPos);
+
+    if (NS_SUCCEEDED(rv)) {
+      rv = view->ScrollTo(nsPresContext::CSSPixelsToAppUnits(aScrollLeft),
+                          yPos, NS_VMREFRESH_IMMEDIATE);
+    }
+  }
+
+  return rv;
+}
+
+nsresult
+nsNSElementTearoff::GetScrollHeight(PRInt32* aScrollHeight)
+{
+  NS_ENSURE_ARG_POINTER(aScrollHeight);
+  *aScrollHeight = 0;
+
+  if (mContent->IsNodeOfType(nsINode::eSVG))
+    return NS_OK;
+
+  nsIScrollableView *scrollView;
+  nsresult rv = NS_OK;
+
+  GetScrollInfo(&scrollView);
+
+  if (!scrollView) {
+    nsRect rcFrame;
+    nsCOMPtr<nsIContent> parent;
+    (static_cast<nsGenericElement *>(mContent))->GetOffsetRect(rcFrame, getter_AddRefs(parent));
+    *aScrollHeight = rcFrame.height;
+    return NS_OK;
+  }
+
+  
+  nscoord xMax, yMax;
+  rv = scrollView->GetContainerSize(&xMax, &yMax);
+
+  *aScrollHeight = nsPresContext::AppUnitsToIntCSSPixels(yMax);
+
+  return rv;
+}
+
+nsresult
+nsNSElementTearoff::GetScrollWidth(PRInt32* aScrollWidth)
+{
+  NS_ENSURE_ARG_POINTER(aScrollWidth);
+  *aScrollWidth = 0;
+
+  if (mContent->IsNodeOfType(nsINode::eSVG))
+    return NS_OK;
+
+  nsIScrollableView *scrollView;
+  nsresult rv = NS_OK;
+
+  GetScrollInfo(&scrollView);
+
+  if (!scrollView) {
+    nsRect rcFrame;
+    nsCOMPtr<nsIContent> parent;
+    (static_cast<nsGenericElement *>(mContent))->GetOffsetRect(rcFrame, getter_AddRefs(parent));
+    *aScrollWidth = rcFrame.width;
+    return NS_OK;
+  }
+
+  nscoord xMax, yMax;
+  rv = scrollView->GetContainerSize(&xMax, &yMax);
+
+  *aScrollWidth = nsPresContext::AppUnitsToIntCSSPixels(xMax);
+
+  return rv;
+}
+
+nsRect
+nsNSElementTearoff::GetClientAreaRect()
+{
+  nsIScrollableView *scrollView;
+  nsIFrame *frame;
+
+  
+  if (mContent->IsNodeOfType(nsINode::eSVG))
+    return nsRect(0, 0, 0, 0);
+
+  GetScrollInfo(&scrollView, &frame);
+
+  if (scrollView) {
+    return scrollView->View()->GetBounds();
+  }
+
+  if (frame &&
+      (frame->GetStyleDisplay()->mDisplay != NS_STYLE_DISPLAY_INLINE ||
+       frame->IsFrameOfType(nsIFrame::eReplaced))) {
+    
+    
+    return frame->GetPaddingRect() - frame->GetPositionIgnoringScrolling();
+  }
+
+  return nsRect(0, 0, 0, 0);
+}
+
+nsresult
+nsNSElementTearoff::GetClientTop(PRInt32* aLength)
+{
+  NS_ENSURE_ARG_POINTER(aLength);
+  *aLength = nsPresContext::AppUnitsToIntCSSPixels(GetClientAreaRect().y);
+  return NS_OK;
+}
+
+nsresult
+nsNSElementTearoff::GetClientLeft(PRInt32* aLength)
+{
+  NS_ENSURE_ARG_POINTER(aLength);
+  *aLength = nsPresContext::AppUnitsToIntCSSPixels(GetClientAreaRect().x);
+  return NS_OK;
+}
+
+nsresult
+nsNSElementTearoff::GetClientHeight(PRInt32* aLength)
+{
+  NS_ENSURE_ARG_POINTER(aLength);
+  *aLength = nsPresContext::AppUnitsToIntCSSPixels(GetClientAreaRect().height);
+  return NS_OK;
+}
+
+nsresult
+nsNSElementTearoff::GetClientWidth(PRInt32* aLength)
+{
+  NS_ENSURE_ARG_POINTER(aLength);
+  *aLength = nsPresContext::AppUnitsToIntCSSPixels(GetClientAreaRect().width);
+  return NS_OK;
 }
 
 static nsIFrame*

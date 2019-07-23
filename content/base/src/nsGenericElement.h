@@ -78,6 +78,8 @@ class nsINodeInfo;
 class nsIControllers;
 class nsIDOMNSFeatureFactory;
 class nsIEventListenerManager;
+class nsIScrollableView;
+struct nsRect;
 
 typedef unsigned long PtrBits;
 
@@ -395,6 +397,8 @@ class nsGenericElement : public nsIContent
 public:
   nsGenericElement(nsINodeInfo *aNodeInfo);
   virtual ~nsGenericElement();
+
+  friend class nsNSElementTearoff;
 
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
 
@@ -946,6 +950,17 @@ protected:
 
   virtual const nsAttrName* InternalGetExistingAttrNameFromQName(const nsAString& aStr) const;
 
+  
+
+
+
+
+
+
+  virtual void GetOffsetRect(nsRect& aRect, nsIContent** aOffsetParent);
+
+  nsIFrame* GetStyledFrame();
+
 public:
   
   
@@ -1127,6 +1142,24 @@ public:
   
 private:
   nsRefPtr<nsGenericElement> mContent;
+
+  
+
+
+
+  nsRect GetClientAreaRect();
+
+private:
+
+  
+
+
+
+
+
+
+  void GetScrollInfo(nsIScrollableView **aScrollableView,
+                     nsIFrame **aFrame = nsnull);
 };
 
 #endif 
