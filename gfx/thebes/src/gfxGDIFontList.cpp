@@ -45,7 +45,6 @@
 #include "gfxFontUtils.h"
 #include "gfxWindowsFonts.h"
 
-#include "nsIPref.h"  
 #include "nsServiceManagerUtils.h"
 #include "nsTArray.h"
 #include "nsUnicharUtils.h"
