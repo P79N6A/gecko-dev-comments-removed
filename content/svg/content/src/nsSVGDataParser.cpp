@@ -184,6 +184,10 @@ nsresult nsSVGDataParser::MatchNumber(float* aX)
   }
 
   char* end;
+  
+
+
+
   *aX = float(PR_strtod(pos, &end));
   if (pos != end && NS_FloatIsFinite(*aX)) {
     return NS_OK;
