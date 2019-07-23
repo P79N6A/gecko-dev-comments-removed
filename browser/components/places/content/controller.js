@@ -278,17 +278,8 @@ PlacesController.prototype = {
       if (nodes[i] == root)
         return false;
 
-      
-      var nodeItemId = nodes[i].itemId;
-      if (PlacesUtils.annotations
-                     .itemHasAnnotation(nodeItemId, ORGANIZER_QUERY_ANNO))
-        return false;
-
-      
-      if (!aIsMoveCommand &&
-           (nodeItemId == PlacesUtils.toolbarFolderId ||
-            nodeItemId == PlacesUtils.unfiledBookmarksFolderId ||
-            nodeItemId == PlacesUtils.bookmarksMenuFolderId))
+      if (PlacesUtils.nodeIsFolder(nodes[i]) &&
+          !PlacesControllerDragHelper.canMoveContainerNode(nodes[i]))
         return false;
 
       
@@ -1006,6 +997,7 @@ PlacesController.prototype = {
 
 
   getTransferData: function PC_getTransferData(dragAction) {
+    var copy = dragAction == Ci.nsIDragService.DRAGDROP_ACTION_COPY;
     var result = this._view.getResult();
     var oldViewer = result.viewer;
     try {
@@ -1025,7 +1017,7 @@ PlacesController.prototype = {
         var data = new TransferData();
         function addData(type, overrideURI) {
           data.addDataForFlavour(type, PlacesUIUtils._wrapString(
-                                 PlacesUtils.wrapNode(node, type, overrideURI)));
+                                 PlacesUtils.wrapNode(node, type, overrideURI, copy)));
         }
 
         function addURIData(overrideURI) {
@@ -1093,7 +1085,8 @@ PlacesController.prototype = {
                                                  uri) + suffix);
 
           var placeSuffix = i < (nodes.length - 1) ? "," : "";
-          return PlacesUtils.wrapNode(node, type, overrideURI) + placeSuffix;
+          var resolveShortcuts = !PlacesControllerDragHelper.canMoveContainerNode(node);
+          return PlacesUtils.wrapNode(node, type, overrideURI, resolveShortcuts) + placeSuffix;
         }
 
         
@@ -1325,6 +1318,71 @@ var PlacesControllerDragHelper = {
 
 
 
+
+  canMoveContainerNode:
+  function PCDH_canMoveContainerNode(aNode, aInsertionPoint) {
+    
+    if (!aNode.parent)
+      return false;
+
+    var targetId = aInsertionPoint ? aInsertionPoint.itemId : -1;
+    var parentId = PlacesUtils.getConcreteItemId(aNode.parent);
+    var concreteId = PlacesUtils.getConcreteItemId(aNode);
+
+    
+    if (PlacesUtils.nodeIsTagQuery(aNode))
+      return false;
+
+    
+    if (PlacesUtils.nodeIsReadOnly(aNode.parent))
+      return false;
+
+    
+    if (!this.canMoveContainer(aNode.itemId, parentId))
+      return false;
+
+    return true;
+  },
+
+  
+
+
+
+
+
+
+
+
+  canMoveContainer:
+  function PCDH_canMoveContainer(aId, aParentId) {
+    if (aId == -1)
+      return false;
+
+    
+    const ROOTS = [PlacesUtils.placesRootId, PlacesUtils.bookmarksMenuFolderId,
+                   PlacesUtils.tagsFolderId, PlacesUtils.unfiledBookmarksFolderId,
+                   PlacesUtils.toolbarFolderId];
+    if (ROOTS.indexOf(aId) != -1)
+      return false;
+
+    
+    if (aParentId == null || aParentId == -1)
+      aParentId = PlacesUtils.bookmarks.getFolderIdForItem(aId);
+
+    if(PlacesUtils.bookmarks.getFolderReadonly(aParentId))
+      return false;
+
+    return true;
+  },
+
+  
+
+
+
+
+
+
+
   _initTransferable: function PCDH__initTransferable(session) {
     var xferable = Cc["@mozilla.org/widget/transferable;1"].
                    createInstance(Ci.nsITransferable);
@@ -1343,6 +1401,8 @@ var PlacesControllerDragHelper = {
 
   onDrop: function PCDH_onDrop(insertionPoint) {
     var session = this.getSession();
+    
+    
     var copy = session.dragAction & Ci.nsIDragService.DRAGDROP_ACTION_COPY;
     var transactions = [];
     var xferable = this._initTransferable(session);
@@ -1360,13 +1420,13 @@ var PlacesControllerDragHelper = {
       
       var unwrapped = PlacesUtils.unwrapNodes(data.value.data, 
                                               flavor.value)[0];
+
       var index = insertionPoint.index;
 
       
       
       
-      if ((index != -1) && ((index < unwrapped.index) ||
-                           (unwrapped.folder && (index < unwrapped.folder.index)))) {
+      if (index != -1 && index < unwrapped.index) {
         index = index + movedCount;
         movedCount++;
       }
@@ -1378,6 +1438,12 @@ var PlacesControllerDragHelper = {
         transactions.push(PlacesUIUtils.ptm.tagURI(uri,[tagItemId]));
       }
       else {
+        if (!this.canMoveContainer(unwrapped.id, null))
+          copy = true;
+        else if (unwrapped.concreteId &&
+                 !this.canMoveContainer(unwrapped.concreteId, null))
+          copy = true;
+
         transactions.push(PlacesUIUtils.makeTransaction(unwrapped,
                           flavor.value, insertionPoint.itemId,
                           index, copy));

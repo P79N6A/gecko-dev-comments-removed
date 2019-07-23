@@ -60,7 +60,7 @@ const LMANNO_FEEDURI = "livemark/feedURI";
 const LMANNO_SITEURI = "livemark/siteURI";
 const ORGANIZER_FOLDER_ANNO = "PlacesOrganizer/OrganizerFolder";
 const ORGANIZER_QUERY_ANNO = "PlacesOrganizer/OrganizerQuery";
-const ORGANIZER_LEFTPANE_VERSION = 3;
+const ORGANIZER_LEFTPANE_VERSION = 4;
 
 #ifdef XP_MACOSX
 
@@ -1169,6 +1169,8 @@ var PlacesUIUtils = {
 
         
         leftPaneRoot = PlacesUtils.bookmarks.createFolder(PlacesUtils.placesRootId, "", -1);
+        
+        PlacesUtils.bookmarks.setFolderReadonly(leftPaneRoot, true);
 
         
         let uri = PlacesUtils._uri("place:sort=4&");

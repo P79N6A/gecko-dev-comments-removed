@@ -50,6 +50,7 @@ var Cc = Components.classes;
 var Cr = Components.results;
 
 const POST_DATA_ANNO = "bookmarkProperties/POSTData";
+const READ_ONLY_ANNO = "placesInternal/READ_ONLY";
 const LMANNO_FEEDURI = "livemark/feedURI";
 const LMANNO_SITEURI = "livemark/siteURI";
 
@@ -441,7 +442,9 @@ var PlacesUtils = {
 
 
 
-  wrapNode: function PU_wrapNode(aNode, aType, aOverrideURI) {
+
+
+  wrapNode: function PU_wrapNode(aNode, aType, aOverrideURI, aForceCopy) {
     var self = this;
 
     
@@ -449,8 +452,10 @@ var PlacesUtils = {
     
     
     function convertNode(cNode) {
-      if (self.nodeIsFolder(cNode) && asQuery(cNode).queryOptions.excludeItems)
-        return self.getFolderContents(cNode.itemId, false, true).root;
+      if (self.nodeIsFolder(cNode) && asQuery(cNode).queryOptions.excludeItems) {
+        var concreteId = self.getConcreteItemId(cNode);
+        return self.getFolderContents(concreteId, false, true).root;
+      }
       return cNode;
     }
 
@@ -464,7 +469,7 @@ var PlacesUtils = {
             this.value += aStr;
           }
         };
-        self.serializeNodeAsJSONToOutputStream(convertNode(aNode), writer, true);
+        self.serializeNodeAsJSONToOutputStream(convertNode(aNode), writer, true, aForceCopy);
         return writer.value;
       case this.TYPE_X_MOZ_URL:
         function gatherDataUrl(bNode) {
@@ -490,7 +495,7 @@ var PlacesUtils = {
             return s;
           }
           
-          var escapedTitle = htmlEscape(bNode.title);
+          var escapedTitle = bNode.title ? htmlEscape(bNode.title) : "";
           if (self.nodeIsLivemarkContainer(bNode)) {
             var siteURI = self.livemarks.getSiteURI(bNode.itemId).spec;
             return "<A HREF=\"" + siteURI + "\">" + escapedTitle + "</A>" + NEWLINE;
@@ -1191,8 +1196,10 @@ var PlacesUtils = {
 
 
 
+
+
   serializeNodeAsJSONToOutputStream:
-  function PU_serializeNodeAsJSONToOutputStream(aNode, aStream, aIsUICommand) {
+  function PU_serializeNodeAsJSONToOutputStream(aNode, aStream, aIsUICommand, aResolveShortcuts) {
     var self = this;
     
     function addGenericProperties(aPlacesNode, aJSNode) {
@@ -1219,8 +1226,12 @@ var PlacesUtils = {
             
             
             
-            if (anno.name == "livemark/feedURI")
+            if (anno.name == LMANNO_FEEDURI)
               aJSNode.livemark = 1;
+            if (anno.name == READ_ONLY_ANNO && aResolveShortcuts) {
+              
+              return false;
+            }
             return anno.name != "placesInternal/GUID";
           });
         } catch(ex) {
@@ -1259,14 +1270,17 @@ var PlacesUtils = {
 
     function addContainerProperties(aPlacesNode, aJSNode) {
       
-      if (aJSNode.id != -1 &&
-          self.bookmarks.getItemType(aJSNode.id) == self.bookmarks.TYPE_BOOKMARK) {
+      var concreteId = PlacesUtils.getConcreteItemId(aPlacesNode);
+      if (aJSNode.id != -1 && (PlacesUtils.nodeIsQuery(aPlacesNode) ||
+          (concreteId != aPlacesNode.itemId && !aResolveShortcuts))) {
         aJSNode.type = self.TYPE_X_MOZ_PLACE;
         aJSNode.uri = aPlacesNode.uri;
-        aJSNode.concreteId = PlacesUtils.getConcreteItemId(aPlacesNode);
+        aJSNode.concreteId = concreteId;
         return;
       }
       else if (aJSNode.id != -1) { 
+        if (concreteId != aPlacesNode.itemId)
+        aJSNode.type = self.TYPE_X_MOZ_PLACE;
         aJSNode.type = self.TYPE_X_MOZ_PLACE_CONTAINER;
         
         if (aJSNode.id == self.bookmarks.placesRoot)
