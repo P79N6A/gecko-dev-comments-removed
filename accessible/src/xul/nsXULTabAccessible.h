@@ -46,7 +46,7 @@
 
 
 
-class nsXULTabAccessible : public nsLeafAccessible
+class nsXULTabAccessible : public nsAccessibleWrap
 {
 public:
   enum { eAction_Switch = 0 };

@@ -48,11 +48,13 @@
 
 
 
-
-nsXULTabAccessible::nsXULTabAccessible(nsIDOMNode* aNode, nsIWeakReference* aShell):
-nsLeafAccessible(aNode, aShell)
-{ 
+nsXULTabAccessible::
+  nsXULTabAccessible(nsIDOMNode* aNode, nsIWeakReference* aShell) :
+  nsAccessibleWrap(aNode, aShell)
+{
 }
+
+
 
 
 NS_IMETHODIMP nsXULTabAccessible::GetNumActions(PRUint8 *_retval)
@@ -87,6 +89,8 @@ NS_IMETHODIMP nsXULTabAccessible::DoAction(PRUint8 index)
 }
 
 
+
+
 nsresult
 nsXULTabAccessible::GetRoleInternal(PRUint32 *aRole)
 {
@@ -94,14 +98,13 @@ nsXULTabAccessible::GetRoleInternal(PRUint32 *aRole)
   return NS_OK;
 }
 
-
-
-
 nsresult
 nsXULTabAccessible::GetStateInternal(PRUint32 *aState, PRUint32 *aExtraState)
 {
   
-  nsresult rv = nsLeafAccessible::GetStateInternal(aState, aExtraState);
+
+  
+  nsresult rv = nsAccessibleWrap::GetStateInternal(aState, aExtraState);
   NS_ENSURE_A11Y_SUCCESS(rv, rv);
 
   
@@ -129,11 +132,12 @@ nsXULTabAccessible::GetStateInternal(PRUint32 *aState, PRUint32 *aExtraState)
   return NS_OK;
 }
 
+
 NS_IMETHODIMP
 nsXULTabAccessible::GetRelationByType(PRUint32 aRelationType,
                                       nsIAccessibleRelation **aRelation)
 {
-  nsresult rv = nsLeafAccessible::GetRelationByType(aRelationType,
+  nsresult rv = nsAccessibleWrap::GetRelationByType(aRelationType,
                                                     aRelation);
   NS_ENSURE_SUCCESS(rv, rv);
 
