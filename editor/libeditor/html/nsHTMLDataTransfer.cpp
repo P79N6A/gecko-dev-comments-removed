@@ -1933,6 +1933,30 @@ NS_IMETHODIMP nsHTMLEditor::Paste(PRInt32 aSelectionType)
   return rv;
 }
 
+NS_IMETHODIMP nsHTMLEditor::PasteTransferable(nsITransferable *aTransferable)
+{
+  ForceCompositionEnd();
+
+  PRBool preventDefault;
+  nsresult rv = FireClipboardEvent(NS_PASTE, &preventDefault);
+  if (NS_FAILED(rv) || preventDefault)
+    return rv;
+
+  
+  nsCOMPtr<nsIDOMDocument> domdoc;
+  GetDocument(getter_AddRefs(domdoc));
+  if (!nsEditorHookUtils::DoInsertionHook(domdoc, nsnull, aTransferable))
+    return NS_OK;
+
+  
+  
+  nsAutoString contextStr, infoStr;
+  rv = InsertFromTransferable(aTransferable, nsnull, contextStr, infoStr,
+                              nsnull, 0, PR_TRUE);
+
+  return rv;
+}
+
 
 
 
@@ -1967,6 +1991,14 @@ NS_IMETHODIMP nsHTMLEditor::PasteNoFormatting(PRInt32 aSelectionType)
 }
 
 
+
+
+
+static const char* textEditorFlavors[] = { kUnicodeMime };
+static const char* textHtmlEditorFlavors[] = { kUnicodeMime, kHTMLMime,
+                                               kJPEGImageMime, kPNGImageMime,
+                                               kGIFImageMime };
+
 NS_IMETHODIMP nsHTMLEditor::CanPaste(PRInt32 aSelectionType, PRBool *aCanPaste)
 {
   NS_ENSURE_ARG_POINTER(aCanPaste);
@@ -1980,11 +2012,6 @@ NS_IMETHODIMP nsHTMLEditor::CanPaste(PRInt32 aSelectionType, PRBool *aCanPaste)
   nsCOMPtr<nsIClipboard> clipboard(do_GetService("@mozilla.org/widget/clipboard;1", &rv));
   if (NS_FAILED(rv)) return rv;
   
-  
-  const char* textEditorFlavors[] = { kUnicodeMime };
-  const char* textHtmlEditorFlavors[] = { kUnicodeMime, kHTMLMime,
-                                          kJPEGImageMime, kPNGImageMime, kGIFImageMime };
-
   PRUint32 editorFlags;
   GetFlags(&editorFlags);
   
@@ -2003,6 +2030,54 @@ NS_IMETHODIMP nsHTMLEditor::CanPaste(PRInt32 aSelectionType, PRBool *aCanPaste)
   if (NS_FAILED(rv)) return rv;
   
   *aCanPaste = haveFlavors;
+  return NS_OK;
+}
+
+NS_IMETHODIMP nsHTMLEditor::CanPasteTransferable(nsITransferable *aTransferable, PRBool *aCanPaste)
+{
+  NS_ENSURE_ARG_POINTER(aCanPaste);
+
+  
+  if (!IsModifiable()) {
+    *aCanPaste = PR_FALSE;
+    return NS_OK;
+  }
+
+  
+  if (!aTransferable) {
+    *aCanPaste = PR_TRUE;
+    return NS_OK;
+  }
+
+  
+
+  PRUint32 editorFlags;
+  GetFlags(&editorFlags);
+  
+  
+  const char ** flavors;
+  unsigned length;
+  if ((editorFlags & eEditorPlaintextMask)) {
+    flavors = textEditorFlavors;
+    length = NS_ARRAY_LENGTH(textEditorFlavors);
+  } else {
+    flavors = textHtmlEditorFlavors;
+    length = NS_ARRAY_LENGTH(textHtmlEditorFlavors);
+  }
+
+  for (unsigned int i = 0; i < length; i++, flavors++) {
+    nsCOMPtr<nsISupports> data;
+    PRUint32 dataLen;
+    nsresult rv = aTransferable->GetTransferData(*flavors,
+                                                 getter_AddRefs(data),
+                                                 &dataLen);
+    if (NS_SUCCEEDED(rv) && data) {
+      *aCanPaste = PR_TRUE;
+      return NS_OK;
+    }
+  }
+  
+  *aCanPaste = PR_FALSE;
   return NS_OK;
 }
 
