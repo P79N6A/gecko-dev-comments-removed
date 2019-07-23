@@ -63,6 +63,9 @@ typedef struct {
   guint8 disabled;
   guint8 isDefault;
   guint8 canDefault;
+  
+
+  guint8 depressed;
   gint32 curpos; 
   gint32 maxpos;
 } GtkWidgetState;

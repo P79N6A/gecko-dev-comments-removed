@@ -227,6 +227,7 @@ nsNativeThemeGTK::GetGtkWidgetAndState(PRUint8 aWidgetType, nsIFrame* aFrame,
       aState->inHover = (eventState & NS_EVENT_STATE_HOVER) == NS_EVENT_STATE_HOVER;
       aState->isDefault = IsDefaultButton(aFrame);
       aState->canDefault = FALSE; 
+      aState->depressed = FALSE;
 
       if (aFrame && aFrame->GetContent()->IsNodeOfType(nsINode::eXUL)) {
         
@@ -296,6 +297,17 @@ nsNativeThemeGTK::GetGtkWidgetAndState(PRUint8 aWidgetType, nsIFrame* aFrame,
               AttrValueIs(kNameSpaceID_None, nsWidgetAtoms::checked,
                           nsWidgetAtoms::_true, eIgnoreCase);
           }
+        }
+
+        
+        
+        if (aWidgetType == NS_THEME_BUTTON ||
+            aWidgetType == NS_THEME_TOOLBAR_BUTTON ||
+            aWidgetType == NS_THEME_TOOLBAR_DUAL_BUTTON) {
+          PRBool menuOpen = CheckBooleanAttr(aFrame, nsWidgetAtoms::open);
+          aState->depressed = IsCheckedButton(aFrame) || menuOpen;
+          
+          aState->inHover = aState->inHover && !menuOpen;
         }
       }
     }
