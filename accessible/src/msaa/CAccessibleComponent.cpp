@@ -88,8 +88,8 @@ CAccessibleComponent::get_locationInParent(long *aX, long *aY)
     return E_FAIL;
 
   
-  PRUint32 states = 0, extraStates = 0;
-  nsresult rv = acc->GetFinalState(&states, &extraStates);
+  PRUint32 states = 0;
+  nsresult rv = acc->GetFinalState(&states, nsnull);
   if (NS_FAILED(rv))
     return E_FAIL;
 
