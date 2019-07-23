@@ -44,6 +44,16 @@ function run_test() {
   do_check_eq(typeof(scope.XPCOMUtils.generateModule), "function");
   
   
+  
+  var module = Components.utils.import("resource://gre/modules/XPCOMUtils.jsm",
+                                       null);
+  do_check_eq(typeof(XPCOMUtils), "undefined");
+  do_check_eq(typeof(module), "object");
+  do_check_eq(typeof(module.XPCOMUtils), "object");
+  do_check_eq(typeof(module.XPCOMUtils.generateModule), "function");
+  do_check_true(scope.XPCOMUtils == module.XPCOMUtils);
+
+  
   do_check_eq(typeof(Components.utils.import), "function");
   Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
   do_check_eq(typeof(XPCOMUtils), "object");
