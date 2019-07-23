@@ -7069,6 +7069,10 @@ _malloc_postfork(void)
 
 
 
+#ifdef HAVE_LIBDL
+#  include <dlfcn.h>
+#endif
+
 #ifdef MOZ_MEMORY_DARWIN
 static malloc_zone_t zone;
 static struct malloc_introspection_t zone_introspect;
@@ -7229,4 +7233,27 @@ jemalloc_darwin_init(void)
 		sizeof(malloc_zone_t *) * (malloc_num_zones - 1));
 	malloc_zones[0] = &zone;
 }
+
+#elif defined(__GLIBC__) && !defined(__UCLIBC__)
+
+
+
+
+
+
+
+
+
+void (*__free_hook)(void *ptr) = free;
+void *(*__malloc_hook)(size_t size) = malloc;
+void *(*__realloc_hook)(void *ptr, size_t size) = realloc;
+void *(*__memalign_hook)(size_t alignment, size_t size) = memalign;
+
+#elif defined(RTLD_DEEPBIND)
+
+
+
+
+
+#  error "Interposing malloc is unsafe on this system without libc malloc hooks."
 #endif
