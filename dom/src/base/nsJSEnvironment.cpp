@@ -3097,6 +3097,16 @@ static JSFunctionSpec JProfFunctions[] = {
 
 #endif 
 
+#ifdef MOZ_SHARK
+static JSFunctionSpec SharkFunctions[] = {
+    {"startShark",                 StartShark,                 0, 0, 0},
+    {"stopShark",                  StopShark,                  0, 0, 0},
+    {"connectShark",               ConnectShark,               0, 0, 0},
+    {"disconnectShark",            DisconnectShark,            0, 0, 0},
+    {nsnull,                       nsnull,                     0, 0, 0}
+};
+#endif
+
 nsresult
 nsJSContext::InitClasses(void *aGlobalObj)
 {
@@ -3127,6 +3137,11 @@ nsJSContext::InitClasses(void *aGlobalObj)
 #ifdef MOZ_JPROF
   
   ::JS_DefineFunctions(mContext, globalObj, JProfFunctions);
+#endif
+
+#ifdef MOZ_SHARK
+  
+  ::JS_DefineFunctions(mContext, globalObj, SharkFunctions);
 #endif
 
   JSOptionChangedCallback(js_options_dot_str, this);
