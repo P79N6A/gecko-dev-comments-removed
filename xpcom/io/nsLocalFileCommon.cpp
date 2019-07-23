@@ -133,9 +133,16 @@ nsLocalFile::CreateUnique(PRUint32 type, PRUint32 attributes)
 
     if (longName)
     {
-        PRUint32 maxRootLength = (kMaxFilenameLength -
-                                  (pathName.Length() - leafName.Length()) -
-                                  suffix.Length() - kMaxSequenceNumberLength);
+        PRInt32 maxRootLength = (kMaxFilenameLength -
+                                 (pathName.Length() - leafName.Length()) -
+                                 suffix.Length() - kMaxSequenceNumberLength);
+
+        
+        
+        
+        if (maxRootLength < 2)
+            return NS_ERROR_FILE_UNRECOGNIZED_PATH;
+
 #ifdef XP_WIN
         
         rootName.SetLength(NS_IS_LOW_SURROGATE(rootName[maxRootLength]) ?
@@ -143,9 +150,17 @@ nsLocalFile::CreateUnique(PRUint32 type, PRUint32 attributes)
         SetLeafName(rootName + suffix);
 #else
         if (NS_IsNativeUTF8())
+        {
+            
             
             while (UTF8traits::isInSeq(rootName[maxRootLength]))
                 --maxRootLength;
+
+            
+            if (maxRootLength == 0 && suffix.IsEmpty())
+                return NS_ERROR_FILE_UNRECOGNIZED_PATH;
+        }
+
         rootName.SetLength(maxRootLength);
         SetNativeLeafName(rootName + suffix);
 #endif
