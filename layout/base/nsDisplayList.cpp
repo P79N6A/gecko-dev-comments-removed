@@ -597,8 +597,7 @@ nsDisplayCaret::Paint(nsDisplayListBuilder* aBuilder,
     nsIRenderingContext* aCtx, const nsRect& aDirtyRect) {
   
   
-  mCaret->PaintCaret(aBuilder, aCtx, aBuilder->ToReferenceFrame(mFrame),
-                     mFrame->GetStyleColor()->mColor);
+  mCaret->PaintCaret(aBuilder, aCtx, mFrame, aBuilder->ToReferenceFrame(mFrame));
 }
 
 PRBool

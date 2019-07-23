@@ -300,7 +300,11 @@ public:
     eMetricFloat_ListHorizontalInsidePadding,
     eMetricFloat_ButtonVerticalInsidePadding,
     eMetricFloat_ButtonHorizontalInsidePadding,
-    eMetricFloat_IMEUnderlineRelativeSize
+    eMetricFloat_IMEUnderlineRelativeSize,
+
+    
+    
+    eMetricFloat_CaretAspectRatio
   } nsMetricFloatID;
 
   NS_IMETHOD GetColor(const nsColorID aID, nscolor &aColor) = 0;

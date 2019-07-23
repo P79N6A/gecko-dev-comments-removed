@@ -104,8 +104,8 @@ class nsCaret : public nsICaret,
 
     void      PaintCaret(nsDisplayListBuilder *aBuilder,
                          nsIRenderingContext *aCtx,
-                         const nsPoint &aOffset,
-                         nscolor aColor);
+                         nsIFrame *aForFrame,
+                         const nsPoint &aOffset);
 
     void SetIgnoreUserModify(PRBool aIgnoreUserModify);
 
@@ -146,7 +146,7 @@ protected:
       nscoord mBidiIndicatorSize; 
       nscoord mCaretWidth;        
     };
-    Metrics ComputeMetrics(nsIFrame* aFrame, PRInt32 aOffset);
+    Metrics ComputeMetrics(nsIFrame* aFrame, PRInt32 aOffset, nscoord aCaretHeight);
 
     
     
@@ -196,6 +196,7 @@ protected:
     
     PRUint32              mBlinkRate;         
     nscoord               mCaretWidthCSSPx;   
+    float                 mCaretAspectRatio;  
     
     PRPackedBool          mVisible;           
 
