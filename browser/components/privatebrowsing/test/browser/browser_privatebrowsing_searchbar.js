@@ -56,26 +56,19 @@ function test() {
 
   is(searchBar.value, kTestSearchString,
     "entering the private browsing mode should not clear the search bar");
+  ok(searchBar.textbox.editor.transactionManager.numberOfUndoItems > 0,
+    "entering the private browsing mode should not reset the undo list of the searchbar control");
+
   
-
-
-
-
-
-
+  searchBar.value = "something else";
 
   
   pb.privateBrowsingEnabled = false;
 
-  is(searchBar.value, "",
-    "leaving the private browsing mode should clear the search bar");
-  
-
-
-
-
-
-
+  is(searchBar.value, kTestSearchString,
+    "leaving the private browsing mode should restore the search bar contents");
+  is(searchBar.textbox.editor.transactionManager.numberOfUndoItems, 1,
+    "leaving the private browsing mode should only leave 1 item in the undo list of the searchbar control");
 
   
   prefBranch.clearUserPref("browser.privatebrowsing.keep_current_session");

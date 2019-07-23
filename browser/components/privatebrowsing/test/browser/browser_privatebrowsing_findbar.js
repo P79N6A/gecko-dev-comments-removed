@@ -68,12 +68,15 @@ function test() {
     "entering the private browsing mode should not reset the undo list of the findbar control");
 
   
+  findBox.value = "something else";
+
+  
   pb.privateBrowsingEnabled = false;
 
-  is(findBox.value, "",
-    "leaving the private browsing mode should clear the findbar");
-  is(findBox.editor.transactionManager.numberOfUndoItems, 0,
-    "leaving the private browsing mode should reset the undo list of the findbar control");
+  is(findBox.value, kTestSearchString,
+    "leaving the private browsing mode should restore the findbar contents");
+  is(findBox.editor.transactionManager.numberOfUndoItems, 1,
+    "leaving the private browsing mode should only leave 1 item in the undo list of the findbar control");
 
   
   prefBranch.clearUserPref("browser.privatebrowsing.keep_current_session");
