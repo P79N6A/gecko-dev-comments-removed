@@ -520,6 +520,8 @@ static inline bool
 guard_can_do_fast_inc_dec(JSContext* cx, JSFrameRegs& regs, jsval& v)
 {
     bool ok = interp_guard_can_do_fast_inc_dec(cx, regs, v);
+    
+    
     return ok;
 }
 

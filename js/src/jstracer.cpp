@@ -298,6 +298,11 @@ TraceRecorder::iinc(void* a, int incr, void* v, JSFrameRegs& regs)
     LIns* ov = lir->ins2(LIR_add, get(a), lir->insImm(incr));
     
     
+    
+    
+    
+    
+    guard_ov(false, a, regs);
     set(v, ov);
 }
 
@@ -309,20 +314,33 @@ TraceRecorder::snapshot(SideExit& exit, JSFrameRegs& regs)
     return &exit;
 }
 
-#define G(ok)           (ok ? LIR_xf : LIR_xt)
-
 void
 TraceRecorder::guard_0(bool ok, void* a, JSFrameRegs& regs)
 {
     SideExit exit;
-    lir->insGuard(G(ok), get(a), snapshot(exit, regs));
+    lir->insGuard(ok ? LIR_xf : LIR_xt, 
+            get(a), 
+            snapshot(exit, regs));
 }
 
 void
 TraceRecorder::guard_h(bool ok, void* a, JSFrameRegs& regs)
 {
     SideExit exit;
-    lir->insGuard(G(ok), lir->ins1(LIR_callh, get(a)), snapshot(exit, regs));
+    lir->insGuard(ok ? LIR_xf : LIR_xt, 
+            lir->ins1(LIR_callh, get(a)), 
+            snapshot(exit, regs));
+}
+
+void
+TraceRecorder::guard_ov(bool ok, void* a, JSFrameRegs& regs)
+{
+#if 0    
+    SideExit exit;
+    lir->insGuard(ok ? LIR_xf : LIR_xt, 
+            lir->ins1(LIR_ov, get(a)), 
+            snapshot(exit, regs));
+#endif    
 }
 
 bool
