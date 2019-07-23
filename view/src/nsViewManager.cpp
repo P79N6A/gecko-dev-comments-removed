@@ -1215,6 +1215,10 @@ NS_IMETHODIMP nsViewManager::DispatchEvent(nsGUIEvent *aEvent, nsEventStatus *aS
                 BeginUpdateViewBatch();
                 observer->WillPaint();
                 EndUpdateViewBatch(NS_VMREFRESH_NO_SYNC);
+
+                
+                
+                view = nsView::GetViewFor(aEvent->widget);
               }
             }
             
@@ -1222,8 +1226,11 @@ NS_IMETHODIMP nsViewManager::DispatchEvent(nsGUIEvent *aEvent, nsEventStatus *aS
             if (rootVM->mHasPendingUpdates) {
               rootVM->ProcessPendingUpdates(mRootView, PR_FALSE);
             }
-            Refresh(view, event->renderingContext, region,
-                    NS_VMREFRESH_DOUBLE_BUFFER);
+            
+            if (view) {
+              Refresh(view, event->renderingContext, region,
+                      NS_VMREFRESH_DOUBLE_BUFFER);
+            }
           }
         } else {
           
