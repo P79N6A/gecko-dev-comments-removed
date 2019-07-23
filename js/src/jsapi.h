@@ -2354,17 +2354,6 @@ JS_IsAssigning(JSContext *cx);
 
 
 
-extern JS_PUBLIC_API(void)
-JS_SetCallReturnValue2(JSContext *cx, jsval v);
-
-
-
-
-
-
-
-
-
 
 
 
