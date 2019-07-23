@@ -757,8 +757,9 @@ class TraceRecorder : public avmplus::GCObject {
         
         
         bool             tracked;
+        jsval            v;              
         JSObject         *obj;           
-        jsint            scopeIndex;     
+        nanojit::LIns    *obj_ins;       
         JSScopeProperty  *sprop;         
     };
 
@@ -766,6 +767,7 @@ class TraceRecorder : public avmplus::GCObject {
     JS_REQUIRES_STACK JSStackFrame* frameIfInRange(JSObject* obj, unsigned* depthp = NULL) const;
     JS_REQUIRES_STACK JSRecordingStatus traverseScopeChain(JSObject *obj, nanojit::LIns *obj_ins, JSObject *obj2, nanojit::LIns *&obj2_ins);
     JS_REQUIRES_STACK JSRecordingStatus scopeChainProp(JSObject* obj, jsval*& vp, nanojit::LIns*& ins, NameResult& nr);
+    JS_REQUIRES_STACK JSRecordingStatus callProp(JSObject* obj, JSObject* obj2, JSProperty* sprop, jsid id, jsval*& vp, nanojit::LIns*& ins, NameResult& nr);
 
     JS_REQUIRES_STACK nanojit::LIns* arg(unsigned n);
     JS_REQUIRES_STACK void arg(unsigned n, nanojit::LIns* i);
