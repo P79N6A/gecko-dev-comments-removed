@@ -156,6 +156,7 @@ struct JSTraceMonitor {
     JSContext               *tracecx;
 
     CLS(VMAllocator)        dataAlloc;   
+    CLS(VMAllocator)        tempAlloc;   
     CLS(nanojit::CodeAlloc) codeAlloc;   
     CLS(nanojit::Assembler) assembler;
     CLS(nanojit::LirBuffer) lirbuf;
@@ -196,6 +197,11 @@ struct JSTraceMonitor {
 
 
     CLS(REHashMap)          reFragments;
+
+    
+
+
+    CLS(VMAllocator)        reTempAlloc;
 
     
     CLS(TraceRecorder)      abortStack;
