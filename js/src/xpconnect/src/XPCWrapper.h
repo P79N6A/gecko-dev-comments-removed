@@ -204,7 +204,7 @@ extern const PRUint32 sNumSlots;
 
 
 
-extern JSNative sEvalNative;
+extern JSFastNative sEvalNative;
 
 enum FunctionObjectSlot {
   eWrappedFunctionSlot = 0,
@@ -245,7 +245,7 @@ FindEval(XPCCallContext &ccx, JSObject *obj)
   }
 
   sEvalNative =
-    ::JS_GetFunctionNative(ccx, ::JS_ValueToFunction(ccx, eval_val));
+    ::JS_GetFunctionFastNative(ccx, ::JS_ValueToFunction(ccx, eval_val));
 
   if (!sEvalNative) {
     return DoThrowException(NS_ERROR_UNEXPECTED, ccx);

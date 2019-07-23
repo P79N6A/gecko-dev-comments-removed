@@ -1244,33 +1244,21 @@ EvalCacheHash(JSContext *cx, JSString *str)
 }
 
 static JSBool
-obj_eval(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+obj_eval(JSContext *cx, uintN argc, jsval *vp)
 {
-    JSStackFrame *fp, *caller, *callerFrame;
-    JSBool indirectCall;
-    JSPrincipals *principals;
-    const char *file;
-    uintN line;
-    JSString *str;
-    JSScript *script;
-    JSBool ok;
-    JSScript **bucket = NULL;   
-#if JS_HAS_EVAL_THIS_SCOPE
-    JSObject *callerScopeChain = NULL;
-    JSBool setCallerScopeChain = JS_FALSE;
-    JSTempValueRooter scopetvr;
-#endif
-    JSObject *withObject = NULL;
+    if (argc < 1) {
+        *vp = JSVAL_VOID;
+        return JS_TRUE;
+    }
 
-    fp = js_GetTopStackFrame(cx);
-    caller = js_GetScriptedCaller(cx, fp);
+    JSStackFrame *caller = js_GetTopStackFrame(cx);
     if (!caller) {
         JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL,
                              JSMSG_BAD_INDIRECT_CALL, js_eval_str);
         return JS_FALSE;
     }
 
-    indirectCall = (caller->regs && *caller->regs->pc != JSOP_EVAL);
+    bool indirectCall = (caller->regs && *caller->regs->pc != JSOP_EVAL);
 
     
 
@@ -1281,6 +1269,10 @@ obj_eval(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 
 
 
+    jsval *argv = JS_ARGV(cx, vp);
+    JSObject *obj = JS_THIS_OBJECT(cx, vp);
+    if (!obj)
+        return JS_FALSE;
     obj = js_GetWrappedObject(cx, obj);
 
     
@@ -1303,7 +1295,7 @@ obj_eval(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
     }
 
     if (!JSVAL_IS_STRING(argv[0])) {
-        *rval = argv[0];
+        *vp = argv[0];
         return JS_TRUE;
     }
 
@@ -1324,6 +1316,13 @@ obj_eval(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
     }
 
     
+    struct WithGuard {
+        JSObject *obj;
+        WithGuard() : obj(NULL) {}
+        ~WithGuard() { if (obj) obj->setPrivate(NULL); }
+    } withGuard;
+
+    
     MUST_FLOW_THROUGH("out");
     uintN staticLevel = caller->script->staticLevel + 1;
     if (!scopeobj) {
@@ -1331,11 +1330,9 @@ obj_eval(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 
 
 
-        callerScopeChain = js_GetScopeChain(cx, caller);
-        if (!callerScopeChain) {
-            ok = JS_FALSE;
-            goto out;
-        }
+        JSObject *callerScopeChain = js_GetScopeChain(cx, caller);
+        if (!callerScopeChain)
+            return JS_FALSE;
 
 #if JS_HAS_EVAL_THIS_SCOPE
         
@@ -1348,24 +1345,18 @@ obj_eval(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
             staticLevel = 0;
 
             OBJ_TO_INNER_OBJECT(cx, obj);
-            if (!obj) {
-                ok = JS_FALSE;
-                goto out;
-            }
+            if (!obj)
+                return JS_FALSE;
 
-            ok = js_CheckPrincipalsAccess(cx, obj,
+            if (!js_CheckPrincipalsAccess(cx, obj,
                                           JS_StackFramePrincipals(cx, caller),
-                                          cx->runtime->atomState.evalAtom);
-            if (!ok)
-                goto out;
+                                          cx->runtime->atomState.evalAtom)) {
+                return JS_FALSE;
+            }
 
             
             JS_ASSERT(!OBJ_GET_PARENT(cx, obj));
-            caller->scopeChain = scopeobj = obj;
-
-            
-            setCallerScopeChain = JS_TRUE;
-            JS_PUSH_TEMP_ROOT_OBJECT(cx, callerScopeChain, &scopetvr);
+            scopeobj = obj;
         } else {
             
 
@@ -1379,33 +1370,27 @@ obj_eval(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
     } else {
         scopeobj = js_GetWrappedObject(cx, scopeobj);
         OBJ_TO_INNER_OBJECT(cx, scopeobj);
-        if (!scopeobj) {
-            ok = JS_FALSE;
-            goto out;
-        }
+        if (!scopeobj)
+            return JS_FALSE;
 
-        ok = js_CheckPrincipalsAccess(cx, scopeobj,
+        if (!js_CheckPrincipalsAccess(cx, scopeobj,
                                       JS_StackFramePrincipals(cx, caller),
-                                      cx->runtime->atomState.evalAtom);
-        if (!ok)
-            goto out;
+                                      cx->runtime->atomState.evalAtom))
+            return JS_FALSE;
 
         
 
 
 
         if (scopeobj->getParent()) {
-            withObject = js_NewWithObject(cx, scopeobj,
-                                          JS_GetGlobalForObject(cx, scopeobj),
-                                          0);
-            if (!withObject) {
-                ok = JS_FALSE;
-                goto out;
-            }
-            scopeobj = withObject;
+            JSObject *global = JS_GetGlobalForObject(cx, scopeobj);
+            withGuard.obj = js_NewWithObject(cx, scopeobj, global, 0);
+            if (!withGuard.obj)
+                return JS_FALSE;
 
+            scopeobj = withGuard.obj;
             JS_ASSERT(argc >= 2);
-            argv[1] = OBJECT_TO_JSVAL(scopeobj);
+            argv[1] = OBJECT_TO_JSVAL(withGuard.obj);
         }
 
         
@@ -1413,17 +1398,18 @@ obj_eval(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
     }
 
     
-    scopeobj = js_CheckScopeChainValidity(cx, scopeobj, js_eval_str);
-    if (!scopeobj) {
-        ok = JS_FALSE;
-        goto out;
-    }
+    JSObject *result = js_CheckScopeChainValidity(cx, scopeobj, js_eval_str);
+    JS_ASSERT_IF(result, result == scopeobj);
+    if (!result)
+        return JS_FALSE;
 
-    principals = JS_EvalFramePrincipals(cx, fp, caller);
-    file = js_ComputeFilename(cx, caller, principals, &line);
+    JSObject *callee = JSVAL_TO_OBJECT(vp[0]);
+    JSPrincipals *principals = js_EvalFramePrincipals(cx, callee, caller);
+    uintN line;
+    const char *file = js_ComputeFilename(cx, caller, principals, &line);
 
-    str = JSVAL_TO_STRING(argv[0]);
-    script = NULL;
+    JSString *str = JSVAL_TO_STRING(argv[0]);
+    JSScript *script = NULL;
 
     
 
@@ -1434,7 +1420,7 @@ obj_eval(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 
 
 
-    bucket = EvalCacheHash(cx, str);
+    JSScript **bucket = EvalCacheHash(cx, str);
     if (!indirectCall && caller->fun) {
         uintN count = 0;
         JSScript **scriptp = bucket;
@@ -1506,32 +1492,24 @@ obj_eval(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 
 
 
-    callerFrame = (staticLevel != 0) ? caller : NULL;
+    JSStackFrame *callerFrame = (staticLevel != 0) ? caller : NULL;
     if (!script) {
         script = JSCompiler::compileScript(cx, scopeobj, callerFrame,
                                            principals,
                                            TCF_COMPILE_N_GO | TCF_NEED_MUTABLE_SCRIPT,
                                            str->chars(), str->length(),
                                            NULL, file, line, str, staticLevel);
-        if (!script) {
-            ok = JS_FALSE;
-            goto out;
-        }
-    }
-
-    if (argc < 2) {
-        
-        scopeobj = caller->scopeChain;
+        if (!script)
+            return JS_FALSE;
     }
 
     
 
 
 
-    ok = js_CheckPrincipalsAccess(cx, scopeobj, principals,
-                                  cx->runtime->atomState.evalAtom);
-    if (ok)
-        ok = js_Execute(cx, scopeobj, script, callerFrame, JSFRAME_EVAL, rval);
+    JSBool ok = js_CheckPrincipalsAccess(cx, scopeobj, principals,
+                                         cx->runtime->atomState.evalAtom) &&
+                js_Execute(cx, scopeobj, script, callerFrame, JSFRAME_EVAL, vp);
 
     script->u.nextToGC = *bucket;
     *bucket = script;
@@ -1539,16 +1517,6 @@ obj_eval(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
     script->owner = NULL;
 #endif
 
-out:
-#if JS_HAS_EVAL_THIS_SCOPE
-    
-    if (setCallerScopeChain) {
-        caller->scopeChain = callerScopeChain;
-        JS_POP_TEMP_ROOT(cx, &scopetvr);
-    }
-#endif
-    if (withObject)
-        withObject->setPrivate(NULL);
     return ok;
 }
 
@@ -3703,7 +3671,8 @@ js_InitEval(JSContext *cx, JSObject *obj)
 {
     
     if (!js_DefineFunction(cx, obj, cx->runtime->atomState.evalAtom,
-                           obj_eval, 1, 0)) {
+                           (JSNative)obj_eval, 1,
+                           JSFUN_FAST_NATIVE | JSFUN_STUB_GSOPS)) {
         return NULL;
     }
 
