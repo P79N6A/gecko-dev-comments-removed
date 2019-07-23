@@ -77,23 +77,11 @@ function test() {
     
     let ww = Cc["@mozilla.org/embedcomp/window-watcher;1"].
              getService(Ci.nsIWindowWatcher);
-    let obs = {
-        observe: function(aSubject, aTopic, aData) {
-            
-            ww.unregisterNotification(this);
-
-            let win = aSubject.QueryInterface(Ci.nsIDOMEventTarget);
-            win.addEventListener("focus", function() {
-                win.removeEventListener("focus", arguments.callee, true);
-                setTimeout(doTest, 0);
-            }, true);
-        }
-    };
-    ww.registerNotification(obs);
 
     
     const PWMGR_DLG = "chrome://passwordmgr/content/passwordManager.xul";
     let pwmgrdlg = window.openDialog(PWMGR_DLG, "Toolkit:PasswordManager", "");
+    SimpleTest.waitForFocus(doTest, pwmgrdlg);
 
     
     function doTest() {
@@ -143,12 +131,9 @@ function test() {
                             ww.unregisterNotification(this);
                         else if (aTopic == "domwindowopened") {
                             let win = aSubject.QueryInterface(Ci.nsIDOMEventTarget);
-                            win.addEventListener("focus", function() {
-                                win.removeEventListener("focus", arguments.callee, true);
-                                setTimeout(function() {
-                                    EventUtils.synthesizeKey("VK_RETURN", {}, win)
-                                }, 0);
-                            }, true);
+                            SimpleTest.waitForFocus(function() {
+                                EventUtils.synthesizeKey("VK_RETURN", {}, win)
+                            }, win);
                         }
                     }
                 };
@@ -239,9 +224,16 @@ function test() {
 
         function lastStep() {
             
+            ww.registerNotification({
+                observe: function(aSubject, aTopic, aData) {
+                    
+                    ww.unregisterNotification(this);
+
+                    pwmgr.removeAllLogins();
+                    finish();
+                }
+            });
             pwmgrdlg.close();
-            pwmgr.removeAllLogins();
-            finish();
         }
 
         step1();
