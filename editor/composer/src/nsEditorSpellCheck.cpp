@@ -247,6 +247,8 @@ nsEditorSpellCheck::GetNextMisspelledWord(PRUnichar **aNextMisspelledWord)
   nsAutoString nextMisspelledWord;
   
   DeleteSuggestedWordList();
+  
+  
   nsresult rv = mSpellChecker->NextMisspelledWord(nextMisspelledWord,
                                                   &mSuggestedWordList);
 
