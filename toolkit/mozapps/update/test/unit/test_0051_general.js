@@ -169,7 +169,13 @@ function run_test_pt9() {
 
 
 function run_test_pt10() {
-  run_test_helper("aus-0051_general-10.xml", "default onload error message",
+  run_test_helper("aus-0051_general-10.xml", "server certificate expired",
+                  2153390069, getStatusText("2153390069"), run_test_pt11);
+}
+
+
+function run_test_pt11() {
+  run_test_helper("aus-0051_general-11.xml", "default onload error message",
                   1152398920, getStatusText("404"), end_test);
 }
 
