@@ -91,7 +91,7 @@ private:
 
 
 
-  nsRefPtr<gfxImageSurface> mSoftwareSurface;
+  nsRefPtr<gfxASurface> mDestinationSurface;
 
   
 
