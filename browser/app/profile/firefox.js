@@ -385,6 +385,11 @@ pref("general.warnOnAboutConfig",                 false);
 pref("javascript.options.showInConsole",          false);
 #endif
 
+#ifdef WINCE
+
+pref("dom.max_script_run_time",                   20);
+#endif
+
 
 pref("dom.disable_window_open_feature.status",    true);
 
