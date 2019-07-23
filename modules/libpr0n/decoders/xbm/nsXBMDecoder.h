@@ -86,11 +86,10 @@ private:
     PRUint32 mXHotspot;
     PRUint32 mYHotspot;
 
-    PRUint8* mAlphaRow; 
+    PRUint32* mImageData;    
 
     PRPackedBool mIsCursor;
     PRPackedBool mIsX10; 
-    PRPackedBool mHasNoAlpha;
 
     enum {
         RECV_HEADER,
