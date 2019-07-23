@@ -2561,6 +2561,14 @@ nsDocument::GetScriptGlobalObject() const
        do_QueryReferent(mDocumentContainer);
      if (requestor) {
        nsCOMPtr<nsIScriptGlobalObject> globalObject = do_GetInterface(requestor);
+
+       
+       
+
+       nsCOMPtr<nsPIDOMWindow> pwin = do_QueryInterface(globalObject);
+       NS_ASSERTION(pwin, "What kind of global object do we have?");
+
+       globalObject = do_QueryInterface(pwin->GetCurrentInnerWindow());
        return globalObject;
      }
    }
