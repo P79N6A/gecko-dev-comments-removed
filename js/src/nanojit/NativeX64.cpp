@@ -1154,7 +1154,7 @@ namespace nanojit
         if (kind == 0) {
             
             
-            if (a < NumArgRegs) {
+            if (a < (uint32_t)NumArgRegs) {
                 
                 prepResultReg(ins, rmask(argRegs[a]));
             } else {
