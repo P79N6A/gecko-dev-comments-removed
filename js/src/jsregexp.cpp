@@ -2207,6 +2207,8 @@ class RegExpNativeCompiler {
                     pos = compileFlatSingleChar(node->u.flat.chr, pos, fails);
                 } else {
                     for (size_t i = 0; i < node->u.flat.length; ++i) {
+                        if (fragment->lirbuf->outOMem()) 
+                            return JS_FALSE;
                         pos = compileFlatSingleChar(((jschar*) node->kid)[i], pos, fails);
                         if (!pos) break;
                     }
@@ -4008,7 +4010,6 @@ js_ExecuteRegExp(JSContext *cx, JSRegExp *re, JSString *str, size_t *indexp,
     i = cp - gData.cpbegin;
     *indexp = i;
     matchlen = i - (start + gData.skipped);
-    JS_ASSERT(matchlen >= 0);
     ep = cp;
     cp -= matchlen;
 
@@ -4046,8 +4047,7 @@ js_ExecuteRegExp(JSContext *cx, JSRegExp *re, JSString *str, size_t *indexp,
     }                                                                         \
 }
 
-        matchstr = js_NewDependentString(cx, str, cp - JSSTRING_CHARS(str),
-                                         matchlen);
+        matchstr = js_NewStringCopyN(cx, cp, matchlen);
         if (!matchstr) {
             cx->weakRoots.newborn[GCX_OBJECT] = NULL;
             ok = JS_FALSE;
@@ -4107,10 +4107,8 @@ js_ExecuteRegExp(JSContext *cx, JSRegExp *re, JSString *str, size_t *indexp,
                                        JSVAL_VOID, NULL, NULL,
                                        JSPROP_ENUMERATE, NULL);
             } else {
-                parstr = js_NewDependentString(cx, str,
-                                               gData.cpbegin + parsub->index -
-                                               JSSTRING_CHARS(str),
-                                               parsub->length);
+                parstr = js_NewStringCopyN(cx, gData.cpbegin + parsub->index,
+                                           parsub->length);
                 if (!parstr) {
                     cx->weakRoots.newborn[GCX_OBJECT] = NULL;
                     cx->weakRoots.newborn[GCX_STRING] = NULL;
