@@ -1552,6 +1552,10 @@ void nsViewManager::UpdateWidgetsForView(nsView* aView)
 {
   NS_PRECONDITION(aView, "Must have view!");
 
+  
+  if (!IsRefreshEnabled())
+    return;  
+
   nsWeakView parentWeakView = aView;
   if (aView->HasWidget()) {
     aView->GetWidget()->Update();  
