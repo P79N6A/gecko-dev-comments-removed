@@ -53,8 +53,19 @@ class LockFile(object):
   def __init__(self, lockfile):
     self.lockfile = lockfile
   def __del__(self):
-    os.remove(self.lockfile)
-
+    while True:
+      try:
+        os.remove(self.lockfile)
+        break
+      except OSError, e:
+        if e.errno == errno.EACCES:
+          
+          
+          
+          time.sleep(0.1)
+        else:
+          
+          raise
 
 def lockFile(lockfile, max_wait = 600):
   '''Create and hold a lockfile of the given name, with the given timeout.
@@ -80,18 +91,19 @@ def lockFile(lockfile, max_wait = 600):
       f = open(lockfile, "r")
       s = os.stat(lockfile)
     except EnvironmentError, e:
-      if e.errno != errno.ENOENT:
-        sys.exit("%s exists but stat() failed: %s" %
-                 (lockfile, e.strerror))
-      
-      
-      continue
+      if e.errno == errno.ENOENT or \
+         (sys.platform == "win32" and e.errno == errno.EACCES):
+        
+        
+        continue
+      sys.exit("%s exists but stat() failed: %s" %
+               (lockfile, e.strerror))
   
     
     
     now = int(time.time())
     if now - s[stat.ST_MTIME] > max_wait:
-      pid = f.readline()
+      pid = f.readline().rstrip()
       sys.exit("%s has been locked for more than " \
                "%d seconds (PID %s)" % (lockfile, max_wait,
                                         pid))
