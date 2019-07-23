@@ -512,11 +512,8 @@ png_get_sPLT(png_structp png_ptr, png_infop info_ptr,
              png_sPLT_tpp spalettes)
 {
    if (png_ptr != NULL && info_ptr != NULL && spalettes != NULL)
-   {
      *spalettes = info_ptr->splt_palettes;
-     return ((png_uint_32)info_ptr->splt_palettes_num);
-   }
-   return (0);
+   return ((png_uint_32)info_ptr->splt_palettes_num);
 }
 #endif
 
@@ -952,7 +949,7 @@ png_get_first_frame_is_hidden(png_structp png_ptr, png_infop info_ptr)
     png_debug(1, "in png_first_frame_is_hidden()\n");
     
     if (png_ptr != NULL)
-       return (png_byte)(png_ptr->apng_flags & PNG_FIRST_FRAME_HIDDEN);
+        return png_ptr->apng_flags & PNG_FIRST_FRAME_HIDDEN;
     
     return 0;
 }
@@ -964,11 +961,8 @@ png_get_unknown_chunks(png_structp png_ptr, png_infop info_ptr,
              png_unknown_chunkpp unknowns)
 {
    if (png_ptr != NULL && info_ptr != NULL && unknowns != NULL)
-   {
      *unknowns = info_ptr->unknown_chunks;
-     return ((png_uint_32)info_ptr->unknown_chunks_num);
-   }
-   return (0);
+   return ((png_uint_32)info_ptr->unknown_chunks_num);
 }
 #endif
 
@@ -1002,44 +996,105 @@ png_get_compression_buffer_size(png_structp png_ptr)
 png_uint_32 PNGAPI
 png_get_asm_flags (png_structp png_ptr)
 {
-    
+#ifdef PNG_MMX_CODE_SUPPORTED
+    return (png_uint_32)(png_ptr? png_ptr->asm_flags : 0L);
+#else
     return (png_ptr? 0L: 0L);
+#endif
 }
 
 
 png_uint_32 PNGAPI
 png_get_asm_flagmask (int flag_select)
 {
+#ifdef PNG_MMX_CODE_SUPPORTED
+    png_uint_32 settable_asm_flags = 0;
+
+    if (flag_select & PNG_SELECT_READ)
+        settable_asm_flags |=
+          PNG_ASM_FLAG_MMX_READ_COMBINE_ROW  |
+          PNG_ASM_FLAG_MMX_READ_INTERLACE    |
+          PNG_ASM_FLAG_MMX_READ_FILTER_SUB   |
+          PNG_ASM_FLAG_MMX_READ_FILTER_UP    |
+          PNG_ASM_FLAG_MMX_READ_FILTER_AVG   |
+          PNG_ASM_FLAG_MMX_READ_FILTER_PAETH ;
+          
+
+#if 0
     
-    flag_select=flag_select;
-    return 0L;
+    if (flag_select & PNG_SELECT_WRITE)
+        settable_asm_flags |=
+          PNG_ASM_FLAG_MMX_WRITE_ [whatever] ;
+#endif 
+
+    return settable_asm_flags;  
+#else
+    return (0L);
+#endif 
 }
+
 
     
 
 png_uint_32 PNGAPI
 png_get_mmx_flagmask (int flag_select, int *compilerID)
 {
+#if defined(PNG_MMX_CODE_SUPPORTED)
+    png_uint_32 settable_mmx_flags = 0;
+
+    if (flag_select & PNG_SELECT_READ)
+        settable_mmx_flags |=
+          PNG_ASM_FLAG_MMX_READ_COMBINE_ROW  |
+          PNG_ASM_FLAG_MMX_READ_INTERLACE    |
+          PNG_ASM_FLAG_MMX_READ_FILTER_SUB   |
+          PNG_ASM_FLAG_MMX_READ_FILTER_UP    |
+          PNG_ASM_FLAG_MMX_READ_FILTER_AVG   |
+          PNG_ASM_FLAG_MMX_READ_FILTER_PAETH ;
+#if 0
     
-    flag_select=flag_select;
-    *compilerID = -1;   
-    return 0L;
+    if (flag_select & PNG_SELECT_WRITE)
+        settable_mmx_flags |=
+          PNG_ASM_FLAG_MMX_WRITE_ [whatever] ;
+#endif 
+
+    if (compilerID != NULL) {
+#ifdef PNG_USE_PNGVCRD
+        *compilerID = 1;    
+#else
+#ifdef PNG_USE_PNGGCCRD
+        *compilerID = 2;    
+#else
+        *compilerID = -1;   
+#endif
+#endif
+    }
+
+    return settable_mmx_flags;  
+#else
+    return (0L);
+#endif 
 }
 
 
 png_byte PNGAPI
 png_get_mmx_bitdepth_threshold (png_structp png_ptr)
 {
-    
+#if defined(PNG_MMX_CODE_SUPPORTED)
+    return (png_byte)(png_ptr? png_ptr->mmx_bitdepth_threshold : 0);
+#else
     return (png_ptr? 0: 0);
+#endif 
 }
 
 
 png_uint_32 PNGAPI
 png_get_mmx_rowbytes_threshold (png_structp png_ptr)
 {
-    
+#if defined(PNG_MMX_CODE_SUPPORTED)
+    return (png_uint_32)(png_ptr? png_ptr->mmx_rowbytes_threshold : 0L);
+#else
     return (png_ptr? 0L: 0L);
+#endif 
 }
 #endif 
 #endif 
@@ -1057,6 +1112,5 @@ png_get_user_height_max (png_structp png_ptr)
     return (png_ptr? png_ptr->user_height_max : 0);
 }
 #endif 
- 
 
 #endif 

@@ -20,18 +20,15 @@
 static void 
 png_default_error PNGARG((png_structp png_ptr,
   png_const_charp error_message));
-#ifndef PNG_NO_WARNINGS
 static void 
 png_default_warning PNGARG((png_structp png_ptr,
   png_const_charp warning_message));
-#endif 
 
 
 
 
 
 
-#ifndef PNG_NO_ERROR_TEXT
 void PNGAPI
 png_error(png_structp png_ptr, png_const_charp error_message)
 {
@@ -78,20 +75,7 @@ png_error(png_structp png_ptr, png_const_charp error_message)
 
    png_default_error(png_ptr, error_message);
 }
-#else
-void PNGAPI
-png_err(png_structp png_ptr)
-{
-   if (png_ptr != NULL && png_ptr->error_fn != NULL)
-      (*(png_ptr->error_fn))(png_ptr, '\0');
 
-   
-
-   png_default_error(png_ptr, '\0');
-}
-#endif 
-
-#ifndef PNG_NO_WARNINGS
 
 
 
@@ -121,8 +105,6 @@ png_warning(png_structp png_ptr, png_const_charp warning_message)
    else
       png_default_warning(png_ptr, warning_message+offset);
 }
-#endif 
-
 
 
 
@@ -136,7 +118,6 @@ static PNG_CONST char png_digit[16] = {
    'A', 'B', 'C', 'D', 'E', 'F'
 };
 
-#if !defined(PNG_NO_WARNINGS) || !defined(PNG_NO_ERROR_TEXT)
 static void 
 png_format_buffer(png_structp png_ptr, png_charp buffer, png_const_charp
    error_message)
@@ -170,7 +151,6 @@ png_format_buffer(png_structp png_ptr, png_charp buffer, png_const_charp
    }
 }
 
-#ifdef PNG_READ_SUPPORTED
 void PNGAPI
 png_chunk_error(png_structp png_ptr, png_const_charp error_message)
 {
@@ -183,10 +163,7 @@ png_chunk_error(png_structp png_ptr, png_const_charp error_message)
      png_error(png_ptr, msg);
    }
 }
-#endif 
-#endif 
 
-#ifndef PNG_NO_WARNINGS
 void PNGAPI
 png_chunk_warning(png_structp png_ptr, png_const_charp warning_message)
 {
@@ -199,8 +176,6 @@ png_chunk_warning(png_structp png_ptr, png_const_charp warning_message)
      png_warning(png_ptr, msg);
    }
 }
-#endif 
-
 
 
 
@@ -242,7 +217,7 @@ png_default_error(png_structp png_ptr, png_const_charp error_message)
 #  ifdef USE_FAR_KEYWORD
    {
       jmp_buf jmpbuf;
-      png_memcpy(jmpbuf, png_ptr->jmpbuf, png_sizeof(jmp_buf));
+      png_memcpy(jmpbuf,png_ptr->jmpbuf,png_sizeof(jmp_buf));
       longjmp(jmpbuf, 1);
    }
 #  else
@@ -253,11 +228,12 @@ png_default_error(png_structp png_ptr, png_const_charp error_message)
    PNG_ABORT();
 #endif
 #ifdef PNG_NO_CONSOLE_IO
-   error_message = error_message; 
+    ;
+   if (&error_message != NULL)
+      return;
 #endif
 }
 
-#ifndef PNG_NO_WARNINGS
 
 
 
@@ -291,11 +267,14 @@ png_default_warning(png_structp png_ptr, png_const_charp warning_message)
 #  endif
      fprintf(stderr, "libpng warning: %s\n", warning_message);
 #else
-   warning_message = warning_message; 
+    ;
+   if (warning_message)
+     return;
 #endif
-   png_ptr = png_ptr; 
+    ;
+   if (png_ptr)
+      return;
 }
-#endif 
 
 
 

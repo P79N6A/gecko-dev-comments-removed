@@ -90,11 +90,6 @@
 
 
 
-
-
-
-
-
 #ifndef PNG_ZBUF_SIZE
 #  define PNG_ZBUF_SIZE 8192
 #endif
@@ -282,7 +277,6 @@
 #else
 #  define PNGARG(arglist) arglist
 #endif 
-
 
 #endif 
 
@@ -602,10 +596,10 @@
 #endif 
 
 #if !defined(PNG_NO_PROGRESSIVE_READ) && \
- !defined(PNG_PROGRESSIVE_READ_SUPPORTED) 
+ !defined(PNG_PROGRESSIVE_READ_NOT_SUPPORTED)  
 #  define PNG_PROGRESSIVE_READ_SUPPORTED
-#endif                            
-           
+#endif                               
+              
 
 #define PNG_READ_INTERLACING_SUPPORTED
 
@@ -733,41 +727,32 @@
 
 
 
-#if defined(PNG_READ_SUPPORTED) && !defined(PNG_NO_OPTIMIZED_CODE)
-#  ifndef PNG_OPTIMIZED_CODE_SUPPORTED
-#    define PNG_OPTIMIZED_CODE_SUPPORTED
-#  endif
-#endif
+
+
+
 
 #if defined(PNG_READ_SUPPORTED) && !defined(PNG_NO_ASSEMBLER_CODE)
 #  ifndef PNG_ASSEMBLER_CODE_SUPPORTED
 #    define PNG_ASSEMBLER_CODE_SUPPORTED
 #  endif
-
-#  if defined(__GNUC__) && defined(__x86_64__) && (__GNUC__ < 4)
+#  if defined(XP_MACOSX) && !defined(PNG_NO_MMX_CODE)
      
-#    if !defined(PNG_MMX_CODE_SUPPORTED) && !defined(PNG_NO_MMX_CODE)
-#      define PNG_NO_MMX_CODE
-#    endif
+#    define PNG_NO_MMX_CODE
 #  endif
-
-#  if defined(__APPLE__)
-#    if !defined(PNG_MMX_CODE_SUPPORTED) && !defined(PNG_NO_MMX_CODE)
-#      define PNG_NO_MMX_CODE
-#    endif
-#  endif
-
-#  if (defined(__MWERKS__) && ((__MWERKS__ < 0x0900) || macintosh))
-#    if !defined(PNG_MMX_CODE_SUPPORTED) && !defined(PNG_NO_MMX_CODE)
-#      define PNG_NO_MMX_CODE
-#    endif
-#  endif
-
-#  if !defined(PNG_MMX_CODE_SUPPORTED) && !defined(PNG_NO_MMX_CODE)
+#  if !defined(PNG_MMX_CODE_SUPPORTED) && !defined(PNG_NO_MMX_CODE) && \
+     defined(__MMX__)
 #    define PNG_MMX_CODE_SUPPORTED
 #  endif
-
+#  if !defined(PNG_USE_PNGGCCRD) && !defined(PNG_NO_MMX_CODE) && \
+     !defined(PNG_USE_PNGVCRD) && defined(__MMX__)
+#    define PNG_USE_PNGGCCRD
+#  endif
 #endif
+
+
+
+
+
 
 
 #if !defined(PNG_1_0_X)
@@ -1300,8 +1285,7 @@ typedef z_stream FAR *  png_zstreamp;
 
 
 #if !defined(PNG_USE_LOCAL_ARRAYS) && !defined(PNG_USE_GLOBAL_ARRAYS)
-#  if defined(PNG_NO_GLOBAL_ARRAYS) || \
-      (defined(__GNUC__) && defined(PNG_DLL)) || defined(_MSC_VER)
+#  if defined(PNG_NO_GLOBAL_ARRAYS) || (defined(__GNUC__) && defined(PNG_DLL))
 #    define PNG_USE_LOCAL_ARRAYS
 #  else
 #    define PNG_USE_GLOBAL_ARRAYS
@@ -1438,7 +1422,6 @@ typedef z_stream FAR *  png_zstreamp;
 #  define NOCHECK 0
 #  define CVT_PTR(ptr) (png_far_to_near(png_ptr,ptr,CHECK))
 #  define CVT_PTR_NOCHECK(ptr) (png_far_to_near(png_ptr,ptr,NOCHECK))
-#  define png_snprintf _fsnprintf   /* Added to v 1.2.19 */
 #  define png_strcpy  _fstrcpy
 #  define png_strncpy _fstrncpy   /* Added to v 1.2.6 */
 #  define png_strlen  _fstrlen
@@ -1448,27 +1431,6 @@ typedef z_stream FAR *  png_zstreamp;
 #else 
 #  define CVT_PTR(ptr)         (ptr)
 #  define CVT_PTR_NOCHECK(ptr) (ptr)
-#  ifndef PNG_NO_SNPRINTF
-#    ifdef _MSC_VER
-#      define png_snprintf _snprintf   /* Added to v 1.2.19 */
-#      define png_snprintf2 _snprintf
-#      define png_snprintf6 _snprintf
-#    else
-#      define png_snprintf snprintf   /* Added to v 1.2.19 */
-#      define png_snprintf2 snprintf
-#      define png_snprintf6 snprintf
-#    endif
-#  else
-     
-
-
-
-
-#    define png_snprintf(s1,n,fmt,x1) sprintf(s1,fmt,x1)
-#    define png_snprintf2(s1,n,fmt,x1,x2) sprintf(s1,fmt,x1,x2)
-#    define png_snprintf6(s1,n,fmt,x1,x2,x3,x4,x5,x6) \
-        sprintf(s1,fmt,x1,x2,x3,x4,x5,x6)
-#  endif
 #  define png_strcpy  strcpy
 #  define png_strncpy strncpy     /* Added to v 1.2.6 */
 #  define png_strlen  strlen
@@ -1485,6 +1447,47 @@ typedef z_stream FAR *  png_zstreamp;
 #  undef PNG_ZBUF_SIZE
 #  define PNG_ZBUF_SIZE 65536L
 #endif
+
+#ifdef PNG_READ_SUPPORTED
+
+#if defined(PNG_INTERNAL)
+
+
+
+
+
+
+
+#ifndef PNG_MMX_ROWBYTES_THRESHOLD_DEFAULT
+#  define PNG_MMX_ROWBYTES_THRESHOLD_DEFAULT  128  /*  >=  */
+#endif
+#ifndef PNG_MMX_BITDEPTH_THRESHOLD_DEFAULT
+#  define PNG_MMX_BITDEPTH_THRESHOLD_DEFAULT  9    /*  >=  */   
+#endif
+
+
+
+
+
+#ifdef PNG_USE_PNGVCRD
+#  define PNG_HAVE_ASSEMBLER_COMBINE_ROW
+#  define PNG_HAVE_ASSEMBLER_READ_INTERLACE
+#  define PNG_HAVE_ASSEMBLER_READ_FILTER_ROW
+#endif
+
+
+
+
+
+#ifdef PNG_USE_PNGGCCRD
+#  define PNG_HAVE_ASSEMBLER_COMBINE_ROW
+#  define PNG_HAVE_ASSEMBLER_READ_INTERLACE
+#  define PNG_HAVE_ASSEMBLER_READ_FILTER_ROW
+#endif
+
+
+#endif 
+#endif 
 
 
 #endif 
