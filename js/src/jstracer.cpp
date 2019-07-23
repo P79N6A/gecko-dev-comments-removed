@@ -355,34 +355,18 @@ public:
         return out->insGuard(v, c, x);
     }
 
-    LIns* seeThroughCastChain(LIns* value) {
-        do {
-            if (value->isop(LIR_i2f)) {
-                value = value->oprnd1();
-                JS_ASSERT(!value->isQuad());
-                continue;
-             }
-            if (value->isCall() && value->imm8() == F_doubleToInt32) {
-                value = callArgN(value, 1);
-                JS_ASSERT(value->isQuad());
-                continue;
-            }
-        } while (false);
-        return value;
-    }
-    
     
 
 
     virtual LInsp insStore(LIns* value, LIns* base, LIns* disp) {
-        if (base == recorder.getFragment()->sp)
-            value = seeThroughCastChain(value);
+        if (base == recorder.getFragment()->sp && isPromote(value))
+            value = demote(out, value);
         return out->insStore(value, base, disp);
     }
     
     virtual LInsp insStorei(LIns* value, LIns* base, int32_t d) {
-        if (base == recorder.getFragment()->sp)
-            value = seeThroughCastChain(value);
+        if (base == recorder.getFragment()->sp && isPromote(value))
+            value = demote(out, value);
         return out->insStorei(value, base, d);
     }
 };
@@ -561,26 +545,33 @@ TraceRecorder::trackNativeFrameUse(unsigned slots)
 static bool
 unbox_jsval(jsval v, int t, double* slot)
 {
-    if (JSVAL_IS_INT(v)) {
-        if (t == JSVAL_INT || t == JSVAL_DOUBLE) {
-            JS_ASSERT(t == JSVAL_INT || t == JSVAL_DOUBLE);
-            jsint i = JSVAL_TO_INT(v);
-            if (t == JSVAL_INT)
-                *(jsint*)slot = i;
-            else
-                *(jsdouble*)slot = (jsdouble)i;
-            return true;
-        }
-        return false;
+    jsuint type = TYPEMAP_GET_TYPE(t);
+    if (type == JSVAL_INT) {
+        jsint i;
+        if (JSVAL_IS_INT(v))
+            *(jsint*)slot = JSVAL_TO_INT(v);
+        else if (JSDOUBLE_IS_INT(*JSVAL_TO_DOUBLE(v), i))
+            *(jsint*)slot = i;
+        else
+            return false;
+        return true;
     }
-    if (JSVAL_TAG(v) != (jsuint)t)
+    if (type == JSVAL_DOUBLE) {
+        jsdouble d;
+        if (JSVAL_IS_INT(v))
+            d = JSVAL_TO_INT(v);
+        else if (JSVAL_IS_DOUBLE(v))
+            d = *JSVAL_TO_DOUBLE(v);
+        else
+            return false;
+        *(jsdouble*)slot = d;
+        return true;
+    }        
+    if (JSVAL_TAG(v) != type)
         return false;
     switch (JSVAL_TAG(v)) {
     case JSVAL_BOOLEAN:
         *(bool*)slot = JSVAL_TO_BOOLEAN(v);
-        break;
-    case JSVAL_DOUBLE:
-        *(jsdouble*)slot = *JSVAL_TO_DOUBLE(v);
         break;
     case JSVAL_STRING:
         *(JSString**)slot = JSVAL_TO_STRING(v);
@@ -676,11 +667,8 @@ TraceRecorder::import(jsval* p, uint8& t, char *prefix, int index)
 
 
     size_t offset = -fragmentInfo->nativeStackBase + nativeFrameOffset(p) + 8;
-    
-
-    if (TYPEMAP_GET_TYPE(t) == JSVAL_DOUBLE &&
-            !TYPEMAP_GET_FLAG(t, TYPEMAP_FLAG_DONT_DEMOTE) &&
-            TYPEMAP_GET_FLAG(t, TYPEMAP_FLAG_DEMOTE)) {
+    if (TYPEMAP_GET_TYPE(t) == JSVAL_INT) { 
+        JS_ASSERT(isInt32(*p));
         
 
 
@@ -778,8 +766,7 @@ TraceRecorder::checkType(jsval& v, uint8& t)
 
 
         LIns* i = get(&v);
-        if (TYPEMAP_GET_TYPE(t) == JSVAL_DOUBLE && 
-                !TYPEMAP_GET_FLAG(t, TYPEMAP_FLAG_DEMOTE)) {
+        if (TYPEMAP_GET_TYPE(t) == JSVAL_DOUBLE) {
             if (isInt32(v)) { 
                 
 
@@ -796,6 +783,7 @@ TraceRecorder::checkType(jsval& v, uint8& t)
                     JS_ASSERT(!TYPEMAP_GET_FLAG(t, TYPEMAP_FLAG_DEMOTE) ||
                             TYPEMAP_GET_FLAG(t, TYPEMAP_FLAG_DONT_DEMOTE));
                     TYPEMAP_SET_FLAG(t, TYPEMAP_FLAG_DEMOTE);
+                    TYPEMAP_SET_TYPE(t, JSVAL_INT);
                     recompileFlag = true;
                     return true; 
                 }
@@ -807,7 +795,7 @@ TraceRecorder::checkType(jsval& v, uint8& t)
 
 
 
-        JS_ASSERT(TYPEMAP_GET_TYPE(t) == JSVAL_DOUBLE &&
+        JS_ASSERT(TYPEMAP_GET_TYPE(t) == JSVAL_INT &&
                 TYPEMAP_GET_FLAG(t, TYPEMAP_FLAG_DEMOTE) &&
                 !TYPEMAP_GET_FLAG(t, TYPEMAP_FLAG_DONT_DEMOTE));
         if (!i->isop(LIR_i2f)) {
@@ -816,6 +804,7 @@ TraceRecorder::checkType(jsval& v, uint8& t)
                     nativeFrameOffset(&v));
 #endif
             TYPEMAP_SET_FLAG(t, TYPEMAP_FLAG_DONT_DEMOTE);
+            TYPEMAP_SET_TYPE(t, JSVAL_DOUBLE);
             recompileFlag = true;
             return true; 
 
