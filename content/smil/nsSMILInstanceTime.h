@@ -41,6 +41,8 @@
 #include "nsSMILTimeValue.h"
 #include "nsAutoPtr.h"
 
+class nsSMILInterval;
+class nsSMILTimeContainer;
 class nsSMILTimeValueSpec;
 
 
@@ -83,22 +85,24 @@ public:
   };
 
   nsSMILInstanceTime(const nsSMILTimeValue& aTime,
-                     const nsSMILInstanceTime* aDependentTime,
-                     nsSMILInstanceTimeSource aSource = SOURCE_NONE);
+                     nsSMILInstanceTimeSource aSource = SOURCE_NONE,
+                     nsSMILTimeValueSpec* aCreator = nsnull,
+                     nsSMILInterval* aBaseInterval = nsnull);
+  ~nsSMILInstanceTime();
+  void Unlink();
+  void HandleChangedInterval(const nsSMILTimeContainer* aSrcContainer,
+                             PRBool aBeginObjectChanged,
+                             PRBool aEndObjectChanged);
+  void HandleDeletedInterval();
 
   const nsSMILTimeValue& Time() const { return mTime; }
-
-  const nsSMILInstanceTime* GetDependentTime() const { return mDependentTime; }
-  void SetDependentTime(const nsSMILInstanceTime* aDependentTime);
+  const nsSMILTimeValueSpec* GetCreator() const { return mCreator; }
 
   PRBool ClearOnReset() const { return !!(mFlags & kClearOnReset); }
   PRBool MayUpdate() const { return !!(mFlags & kMayUpdate); }
   PRBool FromDOM() const { return !!(mFlags & kFromDOM); }
 
-  void MarkNoLongerUpdating()
-  {
-    mFlags &= ~kMayUpdate;
-  }
+  void MarkNoLongerUpdating() { mFlags &= ~kMayUpdate; }
 
   void DependentUpdate(const nsSMILTimeValue& aNewTime)
   {
@@ -110,9 +114,9 @@ public:
   PRBool IsDependent(const nsSMILInstanceTime& aOther,
                      PRUint32 aRecursionDepth = 0) const;
 
-  PRBool SameTimeAndDependency(const nsSMILInstanceTime& aOther) const
+  PRBool SameTimeAndBase(const nsSMILInstanceTime& aOther) const
   {
-    return mTime == aOther.mTime && mDependentTime == aOther.mDependentTime;
+    return mTime == aOther.mTime && GetBaseTime() == aOther.GetBaseTime();
   }
 
   
@@ -152,7 +156,9 @@ public:
   }
 
 protected:
-  void BreakPotentialCycle(const nsSMILInstanceTime* aNewTail);
+  void SetBaseInterval(nsSMILInterval* aBaseInterval);
+  void BreakPotentialCycle(const nsSMILInstanceTime* aNewTail) const;
+  const nsSMILInstanceTime* GetBaseTime() const;
 
   nsSMILTimeValue mTime;
 
@@ -179,13 +185,18 @@ protected:
     
     kFromDOM = 4
   };
-  PRUint8  mFlags; 
-  PRUint32 mSerial; 
-                    
+  PRUint8       mFlags; 
+  PRUint32      mSerial; 
+                         
+                         
+  PRPackedBool  mVisited;
+  PRPackedBool  mChainEnd;
 
-  
-  
-  nsRefPtr<nsSMILInstanceTime> mDependentTime;
+  nsSMILTimeValueSpec* mCreator; 
+                                 
+                                 
+  nsSMILInterval* mBaseInterval; 
+                                 
 };
 
 #endif

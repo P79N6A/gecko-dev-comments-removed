@@ -69,11 +69,16 @@ public:
   nsresult SetSpec(const nsAString& aStringSpec, nsIContent* aContextNode);
   void     ResolveReferences(nsIContent* aContextNode);
 
-  void     HandleNewInterval(const nsSMILInterval& aInterval,
+  void     HandleNewInterval(nsSMILInterval& aInterval,
                              const nsSMILTimeContainer* aSrcContainer);
-  void     HandleChangedInterval(const nsSMILInterval& aInterval,
-                                 const nsSMILTimeContainer* aSrcContainer);
-  void     HandleDeletedInterval();
+
+  
+  PRBool   DependsOnBegin() const;
+  void     HandleChangedInstanceTime(const nsSMILInstanceTime& aBaseTime,
+                                     const nsSMILTimeContainer* aSrcContainer,
+                                     nsSMILInstanceTime& aInstanceTimeToUpdate,
+                                     PRBool aObjectChanged);
+  void     HandleDeletedInstanceTime(nsSMILInstanceTime& aInstanceTime);
 
   
   void Traverse(nsCycleCollectionTraversalCallback* aCallback);
@@ -93,13 +98,7 @@ protected:
                                           
                                           
                                           
-  PRPackedBool                  mVisited;
-  PRPackedBool                  mChainEnd;
   nsSMILTimeValueSpecParams     mParams;
-
-  
-  
-  nsRefPtr<nsSMILInstanceTime>  mLatestInstanceTime;
 
   class TimebaseElement : public nsReferencedElement {
   public:

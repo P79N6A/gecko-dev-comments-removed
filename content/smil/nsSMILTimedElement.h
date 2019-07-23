@@ -63,6 +63,7 @@ class nsSMILTimedElement
 {
 public:
   nsSMILTimedElement();
+  ~nsSMILTimedElement();
 
   
 
@@ -156,7 +157,6 @@ public:
 
   void UpdateInstanceTime(nsSMILInstanceTime* aInstanceTime,
                           nsSMILTimeValue& aUpdatedTime,
-                          const nsSMILInstanceTime* aDependentTime,
                           PRBool aIsBegin);
 
   
@@ -169,6 +169,19 @@ public:
 
 
   void RemoveInstanceTime(nsSMILInstanceTime* aInstanceTime, PRBool aIsBegin);
+
+  
+
+
+
+
+
+
+
+
+
+  void RemoveInstanceTimesForCreator(const nsSMILTimeValueSpec* aSpec,
+                                     PRBool aIsBegin);
 
   
 
@@ -314,6 +327,7 @@ protected:
   
   typedef nsTArray<nsAutoPtr<nsSMILTimeValueSpec> > TimeValueSpecList;
   typedef nsTArray<nsRefPtr<nsSMILInstanceTime> >   InstanceTimeList;
+  typedef nsTArray<nsAutoPtr<nsSMILInterval> >      IntervalList;
   typedef nsPtrHashKey<nsSMILTimeValueSpec> TimeValueSpecPtrKey;
   typedef nsTHashtable<TimeValueSpecPtrKey> TimeValueSpecHashSet;
 
@@ -410,19 +424,13 @@ protected:
 
   void              NotifyNewInterval();
   void              NotifyChangedInterval();
-  void              NotifyDeletedInterval();
   const nsSMILInstanceTime* GetEffectiveBeginInstance() const;
+  const nsSMILInterval* GetPreviousInterval() const;
+  PRBool            HasPlayed() const { return !mOldIntervals.IsEmpty(); }
 
   
   PR_STATIC_CALLBACK(PLDHashOperator) NotifyNewIntervalCallback(
       TimeValueSpecPtrKey* aKey, void* aData);
-  PR_STATIC_CALLBACK(PLDHashOperator) NotifyChangedIntervalCallback(
-      TimeValueSpecPtrKey* aKey, void* aData);
-  PR_STATIC_CALLBACK(PLDHashOperator) NotifyDeletedIntervalCallback(
-      TimeValueSpecPtrKey* aKey, void* );
-  static inline void SanityCheckTimeDependentCallbackArgs(
-      TimeValueSpecPtrKey* aKey, NotifyTimeDependentsParams* aParams,
-      PRBool aExpectingParams);
 
   
   
@@ -471,8 +479,8 @@ protected:
   PRUint32                        mInstanceSerialIndex;
 
   nsSMILAnimationFunction*        mClient;
-  nsSMILInterval                  mCurrentInterval;
-  nsSMILInterval                  mPrevInterval;
+  nsAutoPtr<nsSMILInterval>       mCurrentInterval;
+  IntervalList                    mOldIntervals;
   nsSMILMilestone                 mPrevRegisteredMilestone;
   static const nsSMILMilestone    sMaxMilestone;
 
