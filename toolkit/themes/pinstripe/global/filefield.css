@@ -1,0 +1,62 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+.fileFieldIcon {
+  width: 16px;
+  height: 16px;
+}
+
+filefield {
+  margin: 2px 4px 2px 27px;
+  -moz-appearance: textfield;
+}
+
+.fileFieldContentBox {
+  background-color: -moz-Dialog;
+  color: -moz-DialogText;
+  padding: 0px 0px 0px 3px;
+}
+
+.fileFieldLabel {
+  -moz-appearance: none;
+  background-color: transparent;
+  border: none;
+}
