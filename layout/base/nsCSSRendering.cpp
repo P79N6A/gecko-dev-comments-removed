@@ -1299,21 +1299,24 @@ nsCSSRendering::PaintBackground(nsPresContext* aPresContext,
 
   nsIViewManager* vm = aPresContext->GetViewManager();
 
-  if (NS_GET_A(canvasColor.mBackgroundColor) == 0) {
-    nsIView* rootView;
-    vm->GetRootView(rootView);
-    if (!rootView->GetParent()) {
-      PRBool widgetIsTransparent = PR_FALSE;
+  if (NS_GET_A(canvasColor.mBackgroundColor) < 255) {
+    
+    
+    
+    
+    
+    
+    nsIView* rView;
+    vm->GetRootView(rView);
+    if (!rView->GetParent() &&
+        (!rView->HasWidget() ||
+         rView->GetWidget()->GetTransparencyMode() == eTransparencyOpaque)) {
+      nscolor backColor =
+        NS_ComposeColors(NS_RGB(255,255,255),
+                         aPresContext->DefaultBackgroundColor());
 
-      if (rootView->HasWidget())
-        
-        widgetIsTransparent = eTransparencyOpaque != rootView->GetWidget()->GetTransparencyMode();
-      
-      if (!widgetIsTransparent) {
-        
-        
-        canvasColor.mBackgroundColor = aPresContext->DefaultBackgroundColor();
-      }
+      canvasColor.mBackgroundColor =
+        NS_ComposeColors(backColor, canvasColor.mBackgroundColor);
     }
   }
 
