@@ -810,6 +810,8 @@ StyleWithDeclarationAdded(nsCSSProperty aProperty,
     return nsnull;
   }
 
+  styleRule->RuleMatched();
+
   
   nsCOMArray<nsIStyleRule> ruleArray;
   ruleArray.AppendObject(styleRule);

@@ -279,9 +279,9 @@ private:
 };
 
 
-#define NS_ICSS_STYLE_RULE_IID     \
-{ 0x3ffbd89e, 0x3c83, 0x4e9b, \
- { 0x9b, 0x1f, 0x42, 0x4c, 0x6c, 0xeb, 0xac, 0x1b } }
+#define NS_ICSS_STYLE_RULE_IID \
+{ 0xe665007e, 0x5d4a, 0x433a, \
+  { 0x90, 0x56, 0x43, 0x10, 0x70, 0x1c, 0x08, 0xb9 } }
 
 class nsICSSStyleRule : public nsICSSRule {
 public:
@@ -306,6 +306,12 @@ public:
 
   virtual already_AddRefed<nsICSSStyleRule>
     DeclarationChanged(PRBool aHandleContainer) = 0;
+
+  
+
+
+
+  virtual void RuleMatched() = 0;
 
   
   virtual nsresult GetCssText(nsAString& aCssText) = 0;
