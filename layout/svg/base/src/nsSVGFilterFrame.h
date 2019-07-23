@@ -52,6 +52,10 @@ protected:
 public:
   nsresult FilterPaint(nsSVGRenderState *aContext,
                        nsISVGChildFrame *aTarget);
+
+  
+  
+  
   nsRect GetInvalidationRegion(nsIFrame *aTarget);
 
   

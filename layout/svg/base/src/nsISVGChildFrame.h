@@ -74,6 +74,7 @@ public:
   
   NS_IMETHOD GetFrameForPointSVG(float x, float y, nsIFrame** hit)=0;
 
+  
   NS_IMETHOD_(nsRect) GetCoveredRegion()=0;
   NS_IMETHOD UpdateCoveredRegion()=0;
 

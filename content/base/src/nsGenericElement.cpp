@@ -739,7 +739,7 @@ TryGetSVGBoundingRect(nsIFrame* aFrame, nsRect* aRect)
 
   
   
-  r.ScaleRoundOut(1.0/aFrame->PresContext()->AppUnitsPerCSSPixel());
+  r.ScaleRoundOut(1.0/aFrame->PresContext()->AppUnitsPerDevPixel());
   *aRect = r + GetOffsetFromInitialContainingBlock(outer);
   return PR_TRUE;
 #else

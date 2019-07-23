@@ -54,6 +54,7 @@ protected:
     nsSVGContainerFrameBase(aContext) {}
 
 public:
+  
   virtual already_AddRefed<nsIDOMSVGMatrix> GetCanvasTM() { return nsnull; }
 
   

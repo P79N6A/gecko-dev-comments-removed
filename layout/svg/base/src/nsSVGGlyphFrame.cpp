@@ -122,7 +122,8 @@ nsSVGGlyphFrame::DidSetStyleContext()
   
   nsPresContext *presContext = PresContext();
   float textZoom = presContext->TextZoom();
-  double size = presContext->AppUnitsToDevPixels(fontData->mSize) / textZoom;
+  double size =
+    presContext->AppUnitsToFloatCSSPixels(fontData->mSize) / textZoom;
 
   nsCAutoString langGroup;
   nsIAtom *langGroupAtom = presContext->GetLangGroup();

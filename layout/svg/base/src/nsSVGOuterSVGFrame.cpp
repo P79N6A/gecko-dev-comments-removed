@@ -157,6 +157,7 @@ NS_NewSVGOuterSVGFrame(nsIPresShell* aPresShell, nsIContent* aContent, nsStyleCo
 nsSVGOuterSVGFrame::nsSVGOuterSVGFrame(nsStyleContext* aContext)
     : nsSVGOuterSVGFrameBase(aContext),
       mRedrawSuspendCount(0),
+      mFullZoom(0),
       mViewportInitialized(PR_FALSE)
 {
 }
@@ -351,8 +352,10 @@ nsSVGOuterSVGFrame::Reflow(nsPresContext*           aPresContext,
 
   nsSVGSVGElement *svgElem = static_cast<nsSVGSVGElement*>(mContent);
 
-  if (newViewportSize != svgElem->GetViewportSize()) {
+  if (newViewportSize != svgElem->GetViewportSize() ||
+      mFullZoom != PresContext()->GetFullZoom()) {
     svgElem->SetViewportSize(newViewportSize);
+    mFullZoom = PresContext()->GetFullZoom();
     NotifyViewportChange();
   }
 
@@ -710,8 +713,15 @@ already_AddRefed<nsIDOMSVGMatrix>
 nsSVGOuterSVGFrame::GetCanvasTM()
 {
   if (!mCanvasTM) {
+    nsCOMPtr<nsIDOMSVGMatrix> vb2vp;
     nsSVGSVGElement *svgElement = static_cast<nsSVGSVGElement*>(mContent);
-    svgElement->GetViewboxToViewportTransform(getter_AddRefs(mCanvasTM));
+    svgElement->GetViewboxToViewportTransform(getter_AddRefs(vb2vp));
+
+    
+    float devPxPerCSSPx =
+      1 / PresContext()->AppUnitsToFloatCSSPixels(
+                                PresContext()->AppUnitsPerDevPixel());
+    vb2vp->Scale(devPxPerCSSPx, getter_AddRefs(mCanvasTM));
 
     
     

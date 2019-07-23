@@ -75,6 +75,8 @@ struct gfxMatrix;
 struct gfxSize;
 struct gfxIntSize;
 struct nsStyleFont;
+class nsSVGEnum;
+class nsISVGChildFrame;
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
@@ -302,6 +304,7 @@ public:
   
 
 
+
   static PRBool
   HitTestClip(nsIFrame *aFrame, float x, float y);
 
@@ -390,6 +393,12 @@ public:
   
   static float
   MaxExpansion(nsIDOMSVGMatrix *aMatrix);
+
+  
+  static already_AddRefed<nsIDOMSVGMatrix>
+  AdjustMatrixForUnits(nsIDOMSVGMatrix *aMatrix,
+                       nsSVGEnum *aUnits,
+                       nsISVGChildFrame *aFrame);
 
 #ifdef DEBUG
   static void
