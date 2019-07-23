@@ -938,10 +938,8 @@ public:
 
 
 
-
-  static nsresult GetListenerManager(nsINode *aNode,
-                                     PRBool aCreateIfNotFound,
-                                     nsIEventListenerManager **aResult);
+  static nsIEventListenerManager* GetListenerManager(nsINode* aNode,
+                                                     PRBool aCreateIfNotFound);
 
   
 

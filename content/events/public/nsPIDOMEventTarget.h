@@ -52,8 +52,8 @@ class nsIScriptContext;
 
 
 #define NS_PIDOMEVENTTARGET_IID \
-  { 0x358f2990, 0x5107, 0x49ba, \
-    { 0x88, 0x94, 0x14, 0x34, 0x86, 0xd5, 0x99, 0x85 } }
+  { 0xe6579895, 0xa23c, 0x4afc, \
+    { 0x87, 0x2a, 0xd5, 0x3d, 0xa7, 0x1d, 0xef, 0x5d } }
 
 class nsPIDOMEventTarget : public nsISupports
 {
@@ -140,9 +140,7 @@ public:
 
 
 
-
-  virtual nsresult GetListenerManager(PRBool aCreateIfNotFound,
-                                      nsIEventListenerManager** aResult) = 0;
+  virtual nsIEventListenerManager* GetListenerManager(PRBool aMayCreate) = 0;
 
   
 
