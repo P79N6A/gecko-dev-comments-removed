@@ -52,6 +52,7 @@
 #include "mozStorageRow.h"
 #include "mozStorageConnection.h"
 #include "mozStorageError.h"
+#include "mozStoragePrivateHelpers.h"
 #include "mozStorageEvents.h"
 
 
@@ -425,6 +426,11 @@ private:
       (void)NotifyError(mozIStorageError::ERROR, "");
       return PR_FALSE;
     }
+
+#ifdef DEBUG
+    
+    CheckAndLogStatementPerformance(aStatement);
+#endif
 
     
     
