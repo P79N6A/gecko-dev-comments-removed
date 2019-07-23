@@ -402,6 +402,7 @@ public:
 
 
 
+
   void UpdateViewAfterScroll(nsView *aView, const nsRegion& aUpdateRegion);
 
   

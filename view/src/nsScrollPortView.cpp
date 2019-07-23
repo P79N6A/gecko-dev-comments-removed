@@ -546,7 +546,7 @@ void nsScrollPortView::Scroll(nsView *aScrolledView, nsPoint aTwipsDelta, nsPoin
       
       
       
-      mViewManager->UpdateView(this, 0);
+      mViewManager->UpdateView(this, NS_VMREFRESH_DEFERRED);
     } else if (!canBitBlit) {
       
       
@@ -557,7 +557,7 @@ void nsScrollPortView::Scroll(nsView *aScrolledView, nsPoint aTwipsDelta, nsPoin
                          GetPosition() - topLeft, aP2A, PR_FALSE);
       
       
-      mViewManager->UpdateView(this, 0);
+      mViewManager->UpdateView(this, NS_VMREFRESH_DEFERRED);
     } else { 
       nsRect* toScrollPtr = nsnull;
 
