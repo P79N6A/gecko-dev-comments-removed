@@ -6632,7 +6632,8 @@ nsPluginHostImpl::ScanForRealInComponentsFolder(nsIComponentManager * aCompManag
 
   
   nsPluginFile pluginFile(localfile);
-  nsPluginInfo info = { sizeof(info) };
+  nsPluginInfo info;
+  memset(&info, 0, sizeof(info));
   if (NS_FAILED(pluginFile.GetPluginInfo(info)))
     return rv;
 
