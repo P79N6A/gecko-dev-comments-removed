@@ -156,10 +156,7 @@ public:
     NPN_NewStream(NPMIMEType aMIMEType, const char* aWindow,
                   NPStream** aStream);
 
-    
-    
-    bool
-    InternalInvalidateRect(NPRect* aInvalidRect);
+    void InvalidateRect(NPRect* aInvalidRect);
 
     bool NotifyStream(StreamNotifyChild* notifyData, NPReason reason);
 

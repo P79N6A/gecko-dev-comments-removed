@@ -1056,8 +1056,8 @@ PluginInstanceChild::NPN_NewStream(NPMIMEType aMIMEType, const char* aWindow,
     return NPERR_NO_ERROR;
 }
 
-bool
-PluginInstanceChild::InternalInvalidateRect(NPRect* aInvalidRect)
+void
+PluginInstanceChild::InvalidateRect(NPRect* aInvalidRect)
 {
     NS_ASSERTION(aInvalidRect, "Null pointer!");
 
@@ -1068,13 +1068,9 @@ PluginInstanceChild::InternalInvalidateRect(NPRect* aInvalidRect)
       RECT rect = { aInvalidRect->left, aInvalidRect->top,
                     aInvalidRect->right, aInvalidRect->bottom };
       InvalidateRect(mPluginWindowHWND, &rect, FALSE);
-      return false;
+      return;
     }
-    
-    
-    return true;
 #endif
 
-    
-    return false;
+    SendNPN_InvalidateRect(*aInvalidRect);
 }
