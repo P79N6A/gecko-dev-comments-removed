@@ -182,47 +182,55 @@ namespace nanojit
         return  _nIns;
     }
 	
-	void Assembler::nArgEmitted(const CallInfo* call, uint32_t stackSlotCount, uint32_t iargs, uint32_t fargs)
+	void Assembler::asm_call(LInsp ins)
 	{
+        uint32_t fid = ins->fid();
+        const CallInfo* call = callInfoFor(fid);
 		
-		
-		const uint32_t istack = call->count_iargs();
-		const uint32_t fstack = call->count_args() - istack;
-		
-		AvmAssert(iargs <= istack);
-		AvmAssert(fargs <= fstack);
-		if (iargs == istack && fargs == fstack)
-		{
-			const int32_t size = 4*stackSlotCount;
-			const int32_t extra = alignUp(size, NJ_ALIGN_STACK) - size; 
-			if (extra > 0)
-				SUBi(SP, extra);
-		}
-	}
-	
-	void Assembler::nPostCallCleanup(const CallInfo* call)
-	{
-		
-		int32_t istack = call->count_iargs();
-		int32_t fstack = call->count_args() - istack;
+		const uint32_t iargs = call->count_iargs();
+		int32_t fstack = call->count_args() - iargs;
 
-		istack -= 2;  
+        int32_t extra = 0;
+		int32_t istack = iargs-2;  
 		if (istack <= 0)
 		{
 			istack = 0;
-			if (fstack == 0)
-				return;  
 		}
 
 		const int32_t size = 4*istack + 8*fstack; 
-		NanoAssert( size > 0 );
-		
-		const int32_t extra = alignUp(size, NJ_ALIGN_STACK) - (size); 
+        if (size) {
+		    
+		    
+		    extra = alignUp(size, NJ_ALIGN_STACK) - (size); 
+		    if (extra > 0)
+			    ADDi(SP, extra);
+        }
+
+		CALL(call);
 
 		
+		NanoAssert(_allocator.isFree(FST0));
 		
+        
+		
+		const int max_regs = (iargs < 2) ? iargs : 2;
+		int n = 0;
+
+        ArgSize sizes[10];
+        uint32_t argc = call->get_sizes(sizes);
+
+		for(uint32_t i=0; i < argc; i++)
+		{
+			uint32_t j = argc-i-1;
+            ArgSize sz = sizes[j];
+            Register r = UnknownReg;
+            if (n < max_regs && sz != ARGSIZE_F) 
+			    r = argRegs[n++]; 
+            asm_arg(sz, ins->arg(j), r);
+		}
+
 		if (extra > 0)
-			{ ADDi(SP, extra); }
+			SUBi(SP, extra);
 	}
 	
 	void Assembler::nMarkExecute(Page* page, int32_t count, bool enable)
@@ -669,9 +677,8 @@ namespace nanojit
 		}
 	}
 
-	void Assembler::asm_farg(LInsp ins)
+	void Assembler::asm_farg(LInsp p)
 	{
-		LIns* p = ins->oprnd1();
 		Register r = findRegFor(p, FpRegs);
 		if (rmask(r) & XmmRegs) {
 			STQ(0, SP, r); 
@@ -680,9 +687,6 @@ namespace nanojit
 		}
 		PUSHr(ECX); 
 		PUSHr(ECX);
-		_stackUsed += 2;
-		++_fargs;
-		nArgEmitted(_call, _stackUsed, _iargs, _fargs);
 	}
 
 	void Assembler::asm_fop(LInsp ins)
@@ -774,13 +778,12 @@ namespace nanojit
 
 	Register Assembler::asm_prep_fcall(Reservation *rR, LInsp ins)
 	{
-		Register rr;
 		if (rR) {
+    		Register rr;
 			if ((rr=rR->reg) != UnknownReg && (rmask(rr) & XmmRegs))
 				evict(rr);
 		}
-		prepResultReg(ins, rmask(FST0));
-		return FST0;
+		return prepResultReg(ins, rmask(FST0));
 	}
 
 	void Assembler::asm_u2f(LInsp ins)
