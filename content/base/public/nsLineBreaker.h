@@ -99,7 +99,7 @@ public:
     
 
 
-    BREAK_ALLOW_INSIDE = 0x02,
+    BREAK_ALLOW_INSIDE = 0x02
   };
 
   
