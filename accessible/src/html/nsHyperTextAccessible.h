@@ -111,9 +111,17 @@ public:
 
 
 
+
+
+
+
+
+
+
   nsresult DOMPointToHypertextOffset(nsIDOMNode* aNode, PRInt32 aNodeOffset,
                                      PRInt32 *aHypertextOffset,
-                                     nsIAccessible **aFinalAccessible = nsnull);
+                                     nsIAccessible **aFinalAccessible = nsnull,
+                                     PRBool aIsEndOffset = PR_FALSE);
 
 protected:
   
@@ -184,7 +192,16 @@ protected:
   nsIntRect GetBoundsForString(nsIFrame *aFrame, PRUint32 aStartRenderedOffset, PRUint32 aEndRenderedOffset);
 
   
-  nsresult GetSelections(nsISelectionController **aSelCon, nsISelection **aDomSel);
+
+  
+
+
+
+
+
+  nsresult GetSelections(nsISelectionController **aSelCon,
+                         nsISelection **aDomSel = nsnull,
+                         nsCOMArray<nsIDOMRange>* aRanges = nsnull);
   nsresult SetSelectionRange(PRInt32 aStartPos, PRInt32 aEndPos);
 };
 
