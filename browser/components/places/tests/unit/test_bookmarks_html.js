@@ -299,12 +299,4 @@ function testCanonicalBookmarks(aFolder) {
               livemarksvc.getFeedURI(livemark.itemId).spec);
 
   toolbar.containerOpen = false;
-  
-  
-  query.setFolders([bmsvc.unfiledBookmarksFolder], 1);
-  result = histsvc.executeQuery(query, histsvc.getNewQueryOptions());
-  var unfiledBookmarks = result.root;
-  unfiledBookmarks.containerOpen = true;
-  do_check_eq(unfiledBookmarks.childCount, 1);
-  unfiledBookmarks.containerOpen = false;
 }
