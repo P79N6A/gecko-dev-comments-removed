@@ -180,8 +180,8 @@ function run_test() {
 
   
   
-  bmsvc.setItemLastModified(newId, --lastModified);
-  bmsvc.setItemDateAdded(newId, --dateAdded);
+  bmsvc.setItemLastModified(newId, (lastModified -= 1000));
+  bmsvc.setItemDateAdded(newId, (dateAdded -= 1000));
 
   
   bmsvc.setItemTitle(newId, "Google");
@@ -356,8 +356,8 @@ function run_test() {
 
     
     
-    bmsvc.setItemLastModified(kwTestItemId, --lastModified);
-    bmsvc.setItemDateAdded(kwTestItemId, --dateAdded);
+    bmsvc.setItemLastModified(kwTestItemId, (lastModified -= 1000));
+    bmsvc.setItemDateAdded(kwTestItemId, (dateAdded -= 1000));
 
     bmsvc.setKeywordForBookmark(kwTestItemId, "bar");
 
@@ -483,8 +483,8 @@ function run_test() {
 
   
   
-  bmsvc.setItemLastModified(newId10, --lastModified);
-  bmsvc.setItemDateAdded(newId10, --dateAdded);
+  bmsvc.setItemLastModified(newId10, (lastModified -= 1000));
+  bmsvc.setItemDateAdded(newId10, (dateAdded -= 1000));
 
   bmsvc.changeBookmarkURI(newId10, uri("http://foo11.com/"));
 
@@ -648,7 +648,7 @@ function run_test() {
 function testSimpleFolderResult() {
   
   
-  var beforeCreate = Date.now() * 1000 - 1;
+  var beforeCreate = (Date.now() - 1) * 1000;
   do_check_true(beforeCreate > 0);
 
   
@@ -662,7 +662,7 @@ function testSimpleFolderResult() {
 
   
   
-  var beforeInsert = Date.now() * 1000 - 1;
+  var beforeInsert = (Date.now() - 1) * 1000;
   do_check_true(beforeInsert > 0);
 
   
