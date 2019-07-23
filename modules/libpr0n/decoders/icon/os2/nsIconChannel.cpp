@@ -455,8 +455,10 @@ static HPOINTER GetIcon(nsCString& file, PRBool fExists,
   HPOINTER hRtn = 0;
   *fWpsIcon = PR_FALSE;
 
-  if (file.IsEmpty())
-    return 0;
+  if (file.IsEmpty()) {
+    
+    file.Append("pmwrlw");
+  }
 
   
   if (sUseRws) {
