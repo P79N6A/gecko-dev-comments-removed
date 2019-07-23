@@ -209,6 +209,41 @@ const NetUtil = {
 
 
 
+
+
+
+
+
+
+
+
+
+    newChannel: function NetUtil_newChannel(aWhatToLoad, aOriginCharset,
+                                            aBaseURI)
+    {
+        if (!aWhatToLoad) {
+            let exception = new Components.Exception(
+                "Must have a non-null string spec, nsIURI, or nsIFile object",
+                Cr.NS_ERROR_INVALID_ARG,
+                Components.stack.caller
+            );
+            throw exception;
+        }
+
+        let uri = aWhatToLoad;
+        if (!(aWhatToLoad instanceof Ci.nsIURI)) {
+            
+            uri = this.newURI(aWhatToLoad, aOriginCharset, aBaseURI);
+        }
+
+        return this.ioService.newChannelFromURI(uri);
+    },
+
+    
+
+
+
+
     get ioService()
     {
         delete this.ioService;
