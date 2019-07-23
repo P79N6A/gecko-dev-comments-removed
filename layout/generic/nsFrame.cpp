@@ -3852,6 +3852,11 @@ SetRectProperty(nsIFrame* aFrame, nsIAtom* aProp, const nsRect& aRect)
   aFrame->SetProperty(aProp, r, DestroyRectFunc);
 }
 
+
+
+
+
+
 static nsRect
 ComputeOutlineAndEffectsRect(nsIFrame* aFrame, PRBool* aAnyOutlineOrEffects,
                              const nsRect& aOverflowRect,
@@ -3874,6 +3879,7 @@ ComputeOutlineAndEffectsRect(nsIFrame* aFrame, PRBool* aAnyOutlineOrEffects,
       shadows.UnionRect(shadows, tmpRect);
     }
     r.UnionRect(r, shadows);
+    *aAnyOutlineOrEffects = PR_TRUE;
   }
 
   const nsStyleOutline* outline = aFrame->GetStyleOutline();
@@ -3961,17 +3967,18 @@ nsIFrame::GetOverflowRectRelativeToSelf() const
   return *static_cast<nsRect*>
     (GetProperty(nsGkAtoms::preEffectsBBoxProperty));
 }
-  
+
 void
 nsFrame::CheckInvalidateSizeChange(nsHTMLReflowMetrics& aNewDesiredSize)
 {
-  nsIFrame::CheckInvalidateSizeChange(mRect, GetOverflowRect(), aNewDesiredSize);
+  nsIFrame::CheckInvalidateSizeChange(mRect, GetOverflowRect(),
+      nsSize(aNewDesiredSize.width, aNewDesiredSize.height));
 }
 
 void
 nsIFrame::CheckInvalidateSizeChange(const nsRect& aOldRect,
-                                   const nsRect& aOldOverflowRect,
-                                   nsHTMLReflowMetrics& aNewDesiredSize)
+                                    const nsRect& aOldOverflowRect,
+                                    const nsSize& aNewDesiredSize)
 {
   if (aNewDesiredSize.width == aOldRect.width &&
       aNewDesiredSize.height == aOldRect.height)
@@ -5593,12 +5600,11 @@ IsInlineFrame(nsIFrame *aFrame)
 
 nsRect
 nsIFrame::GetAdditionalOverflow(const nsRect& aOverflowArea,
-                                const nsSize& aNewSize)
+                                const nsSize& aNewSize,
+                                PRBool* aHasOutlineOrEffects)
 {
-  
-  PRBool hasOutlineOrEffects;
   nsRect overflowRect =
-    ComputeOutlineAndEffectsRect(this, &hasOutlineOrEffects,
+    ComputeOutlineAndEffectsRect(this, aHasOutlineOrEffects,
                                  aOverflowArea, PR_TRUE);
 
   
@@ -5654,7 +5660,9 @@ nsIFrame::FinishAndStoreOverflow(nsRect* aOverflowArea, nsSize aNewSize)
     geometricOverflow = PR_FALSE;
   }
 
-  *aOverflowArea = GetAdditionalOverflow(*aOverflowArea, aNewSize);
+  PRBool hasOutlineOrEffects;
+  *aOverflowArea = GetAdditionalOverflow(*aOverflowArea, aNewSize,
+      &hasOutlineOrEffects);
 
   
   if ((mState & NS_FRAME_MAY_BE_TRANSFORMED_OR_HAVE_RENDERING_OBSERVERS) && 
@@ -5669,19 +5677,39 @@ nsIFrame::FinishAndStoreOverflow(nsRect* aOverflowArea, nsSize aNewSize)
     nsRect newBounds(nsPoint(0, 0), aNewSize);
     *aOverflowArea = nsDisplayTransform::TransformRect(*aOverflowArea, this, nsPoint(0, 0), &newBounds);
   }
-  
+
+  PRBool overflowChanged;
   if (*aOverflowArea != nsRect(nsPoint(0, 0), aNewSize)) {
     mState |= NS_FRAME_OUTSIDE_CHILDREN;
     nsRect* overflowArea = GetOverflowAreaProperty(PR_TRUE); 
     NS_ASSERTION(overflowArea, "should have created rect");
+    overflowChanged = *overflowArea != *aOverflowArea;
     *overflowArea = *aOverflowArea;
   }
   else {
     if (mState & NS_FRAME_OUTSIDE_CHILDREN) {
       
       DeleteProperty(nsGkAtoms::overflowAreaProperty);
+      overflowChanged = PR_TRUE;
+      mState &= ~NS_FRAME_OUTSIDE_CHILDREN;
+    } else {
+      overflowChanged = PR_FALSE;
     }
-    mState &= ~NS_FRAME_OUTSIDE_CHILDREN;
+  }
+
+  if (overflowChanged && hasOutlineOrEffects) {
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    Invalidate(*aOverflowArea);
   }
 }
 
