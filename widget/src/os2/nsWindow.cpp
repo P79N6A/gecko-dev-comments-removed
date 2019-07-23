@@ -145,11 +145,6 @@ static HPOINTER gPtrArray[IDC_COUNT];
 static PRBool gIsTrackPoint = PR_FALSE;
 static PRBool gIsDBCS = PR_FALSE;
 
-
-
-
-static PRUint32 gLastInputEventTime = 0;
-
 #ifdef DEBUG_FOCUS
 int currentWindowIdentifier = 0;
 #endif
@@ -205,9 +200,6 @@ nsWindow::nsWindow() : nsBaseWidget()
     mPrevWndProc        = NULL;
     mParent             = 0;
     mNextID             = 1;
-    mSWPs               = 0;
-    mlHave              = 0;
-    mlUsed              = 0;
     mFrameIcon          = 0;
     mDeadKey            = 0;
     mHaveDeadKey        = FALSE;
@@ -1362,9 +1354,9 @@ NS_METHOD nsWindow::Resize(PRInt32 aX,
          ptl.y = WinQuerySysValue(HWND_DESKTOP, SV_CYSCREEN) - h - 1 - aY;
       }
 
-      if( !SetWindowPos( 0, ptl.x, ptl.y, w, h, SWP_MOVE | SWP_SIZE))
-         if( aRepaint)
-            Invalidate(PR_FALSE);
+      WinSetWindowPos(GetMainWindow(), 0, ptl.x, ptl.y, w, h, SWP_MOVE | SWP_SIZE);
+      if (aRepaint)
+         Invalidate(PR_FALSE);
 
 #if DEBUG_sobotka
       printf("+++++++++++Resized 0x%lx at %ld, %ld to %d x %d (%d,%d)\n",
@@ -2789,11 +2781,6 @@ void nsWindow::OnDestroy()
    mWnd = 0;
 
    
-   if( mSWPs) free( mSWPs);
-   mSWPs = 0;
-   mlHave = mlUsed = 0;
-
-   
    nsBaseWidget::OnDestroy();
 
    
@@ -3345,23 +3332,6 @@ nsWindow::HasPendingInputEvent()
 
 
 
-
-BOOL nsWindow::SetWindowPos( HWND ib, long x, long y, long cx, long cy, ULONG flags)
-{
-   BOOL bDeferred = FALSE;
-
-   if( mParent && mParent->mSWPs) 
-   {
-      mParent->DeferPosition( GetMainWindow(), ib, x, y, cx, cy, flags);
-      bDeferred = TRUE;
-   }
-   else 
-      WinSetWindowPos( GetMainWindow(), ib, x, y, cx, cy, GetSWPFlags(flags));
-
-   
-
-   return bDeferred;
-}
 
 nsresult nsWindow::GetWindowText( nsString &aStr, PRUint32 *rc)
 {

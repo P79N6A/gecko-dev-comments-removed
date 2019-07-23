@@ -205,16 +205,12 @@ protected:
    
    virtual void     PostCreateWidget()            {}
    virtual PRInt32  GetClientHeight()             { return mBounds.height; }
-   virtual ULONG    GetSWPFlags( ULONG flags)     { return flags; }
    virtual void     SetupForPrint( HWND ) {}
 
    
    virtual nsresult GetWindowText( nsString &str, PRUint32 *rc);
    virtual void     AddToStyle( ULONG style);
    virtual void     RemoveFromStyle( ULONG style);
-   
-   virtual BOOL     SetWindowPos( HWND hwndInsertBehind, long x, long y,
-                                  long cx, long cy, unsigned long flags);
 
    
    
@@ -244,8 +240,6 @@ protected:
    PFNWP     mPrevWndProc;    
    nsWindow *mParent;         
    ULONG     mNextID;         
-   PSWP      mSWPs;           
-   ULONG     mlHave, mlUsed;  
    HPOINTER  mFrameIcon;      
    VDKEY     mDeadKey;        
    BOOL      mHaveDeadKey;    
@@ -302,7 +296,6 @@ protected:
                                      PRInt16 aButton = nsMouseEvent::eLeftButton);
    virtual PRBool DispatchResizeEvent( PRInt32 aClientX, PRInt32 aClientY);
    void GetNonClientBounds(nsIntRect &aRect);
-   void    DeferPosition( HWND, HWND, long, long, long, long, ULONG);
    void ConstrainZLevel(HWND *aAfter);
 
    PRBool   CheckDragStatus(PRUint32 aAction, HPS * oHps);
