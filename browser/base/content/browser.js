@@ -2042,7 +2042,7 @@ function canonizeUrl(aTriggeringEvent, aPostDataRef) {
   
   
   
-  if (!/^(www|https?)\b|\/\s*$/i.test(url) &&
+  if (!/^\s*(www|https?)\b|\/\s*$/i.test(url) &&
       (aTriggeringEvent instanceof KeyEvent)) {
 #ifdef XP_MACOSX
     var accel = aTriggeringEvent.metaKey;
