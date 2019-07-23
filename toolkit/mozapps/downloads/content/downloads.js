@@ -504,8 +504,14 @@ let gDownloadObserver = {
         break;
       case "private-browsing":
         if (aData == "enter" || aData == "exit") {
-          initStatement();
-          buildDownloadList(true);
+          
+          
+          
+          
+          setTimeout(function() {
+            initStatement();
+            buildDownloadList(true);
+          }, 0);
         }
         break;
     }
