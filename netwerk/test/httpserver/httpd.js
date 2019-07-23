@@ -185,6 +185,17 @@ function dumpStack()
 var gThreadManager = null;
 
 
+var gRootPrefBranch = null;
+function getRootPrefBranch()
+{
+  if (!gRootPrefBranch)
+  {
+    gRootPrefBranch = Cc["@mozilla.org/preferences-service;1"]
+                        .getService(Ci.nsIPrefBranch);
+  }
+  return gRootPrefBranch;
+}
+
 
 
 
@@ -474,16 +485,21 @@ nsHttpServer.prototype =
     this._port = port;
     this._doQuit = this._socketClosed = false;
 
+    
+    
+    
+    
+    var prefs = getRootPrefBranch();
+    var maxConnections =
+      prefs.getIntPref("network.http.max-connections-per-server") + 5;
+
     try
     {
       var socket = new ServerSocket(this._port,
                                     true, 
-                                    20);  
-                                          
-                                          
-                                          
-
-      dumpn(">>> listening on port " + socket.port);
+                                    maxConnections);
+      dumpn(">>> listening on port " + socket.port + ", " + maxConnections +
+            " pending connections");
       socket.asyncListen(this);
       this._identity._initialize(port, true);
       this._socket = socket;
