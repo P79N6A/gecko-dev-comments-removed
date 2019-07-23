@@ -60,7 +60,12 @@ var gUpdateHistory = {
         var update = um.getUpdateAt(i);
         if (!update || !update.name)
           continue;
+
         
+        
+        if (update.statusText == "" || update.statusText == "undefined")
+          continue;
+
         var element = document.createElementNS(NS_XUL, "update");
         this._view.appendChild(element);
         element.name = bundle.getFormattedString("updateFullName", 
