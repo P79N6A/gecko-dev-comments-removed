@@ -840,7 +840,7 @@ struct JSContext {
 
 
 
-    volatile int32      operationCount;
+    volatile jsint      operationCallbackFlag;
 
     
     JSCList             link;
@@ -951,11 +951,6 @@ struct JSContext {
     JSErrorReporter     errorReporter;
 
     
-
-
-
-    uint32              branchCallbackWasSet   :    1;
-    uint32              operationLimit         :    31;
     JSOperationCallback operationCallback;
 
     
@@ -1161,14 +1156,6 @@ js_CleanupThreadPrivateData();
 
 
 
-
-extern void
-js_SyncOptionsToVersion(JSContext *cx);
-
-
-
-
-
 extern void
 js_OnVersionChange(JSContext *cx);
 
@@ -1209,6 +1196,14 @@ js_ContextFromLinkField(JSCList *link)
 
 extern JSContext *
 js_ContextIterator(JSRuntime *rt, JSBool unlocked, JSContext **iterp);
+
+
+
+
+
+
+extern JS_FRIEND_API(JSContext *)
+js_NextActiveContext(JSRuntime *, JSContext *);
 
 
 
@@ -1365,68 +1360,15 @@ extern JSErrorFormatString js_ErrorFormatString[JSErr_Limit];
 
 
 
-
-
-
-
-#define JS_CHECK_OPERATION_LIMIT(cx, weight)                                  \
-    (JS_CHECK_OPERATION_WEIGHT(weight),                                       \
-     (((cx)->operationCount -= (weight)) > 0 || js_ResetOperationCount(cx)))
-
-
-
-
-
-
-
-#define JS_COUNT_OPERATION(cx, weight)                                        \
-    ((void)(JS_CHECK_OPERATION_WEIGHT(weight),                                \
-            (cx)->operationCount = ((cx)->operationCount > 0)                 \
-                                   ? (cx)->operationCount - (weight)          \
-                                   : 0))
-
-
-
-
-
-#define JS_CHECK_OPERATION_WEIGHT(weight)                                     \
-    (JS_ASSERT((uint32) (weight) > 0),                                        \
-     JS_ASSERT((uint32) (weight) < JS_BIT(30)))
-
-
-#define JSOW_JUMP                   1
-#define JSOW_ALLOCATION             100
-#define JSOW_LOOKUP_PROPERTY        5
-#define JSOW_GET_PROPERTY           10
-#define JSOW_SET_PROPERTY           20
-#define JSOW_NEW_PROPERTY           200
-#define JSOW_DELETE_PROPERTY        30
-#define JSOW_ENTER_SHARP            JS_OPERATION_WEIGHT_BASE
-#define JSOW_SCRIPT_JUMP            JS_OPERATION_WEIGHT_BASE
+#define JS_CHECK_OPERATION_LIMIT(cx) \
+    (!(cx)->operationCallbackFlag || js_InvokeOperationCallback(cx))
 
 
 
 
 
 extern JSBool
-js_ResetOperationCount(JSContext *cx);
-
-static JS_INLINE void
-js_InitOperationLimit(JSContext *cx)
-{
-    
-
-
-
-    cx->operationCount = (int32) JS_MAX_OPERATION_LIMIT + 1;
-    cx->operationLimit = JS_MAX_OPERATION_LIMIT + 1;
-}
-
-static JS_INLINE JSBool
-js_HasOperationLimit(JSContext *cx)
-{
-    return cx->operationLimit <= JS_MAX_OPERATION_LIMIT;
-}
+js_InvokeOperationCallback(JSContext *cx);
 
 
 

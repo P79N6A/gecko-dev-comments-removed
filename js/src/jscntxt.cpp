@@ -61,7 +61,6 @@
 #include "jsnum.h"
 #include "jsobj.h"
 #include "jsopcode.h"
-#include "jspubtd.h"
 #include "jsscan.h"
 #include "jsscope.h"
 #include "jsscript.h"
@@ -79,9 +78,6 @@
 
 static PRUintn threadTPIndex;
 static JSBool  tpIndexInited = JS_FALSE;
-
-static void
-InitOperationLimit(JSContext *cx);
 
 JS_BEGIN_EXTERN_C
 JSBool
@@ -208,38 +204,6 @@ js_InitContextThread(JSContext *cx, JSThread *thread)
 
 #endif 
 
-
-
-
-
-
-
-void
-js_SyncOptionsToVersion(JSContext* cx)
-{
-    if (cx->options & JSOPTION_XML)
-        cx->version |= JSVERSION_HAS_XML;
-    else
-        cx->version &= ~JSVERSION_HAS_XML;
-    if (cx->options & JSOPTION_ANONFUNFIX)
-        cx->version |= JSVERSION_ANONFUNFIX;
-    else
-        cx->version &= ~JSVERSION_ANONFUNFIX;
-}
-
-inline void
-js_SyncVersionToOptions(JSContext* cx)
-{
-    if (cx->version & JSVERSION_HAS_XML)
-        cx->options |= JSOPTION_XML;
-    else
-        cx->options &= ~JSOPTION_XML;
-    if (cx->version & JSVERSION_ANONFUNFIX)
-        cx->options |= JSOPTION_ANONFUNFIX;
-    else
-        cx->options &= ~JSOPTION_ANONFUNFIX;
-}
-
 void
 js_OnVersionChange(JSContext *cx)
 {
@@ -254,7 +218,6 @@ void
 js_SetVersion(JSContext *cx, JSVersion version)
 {
     cx->version = version;
-    js_SyncVersionToOptions(cx);
     js_OnVersionChange(cx);
 }
 
@@ -271,47 +234,32 @@ js_NewContext(JSRuntime *rt, size_t stackChunkSize)
         return NULL;
 #endif
 
-    
-
-
-
-
-    cx = (JSContext *) calloc(1, sizeof *cx);
+    cx = (JSContext *) malloc(sizeof *cx);
     if (!cx)
         return NULL;
+    memset(cx, 0, sizeof *cx);
 
     cx->runtime = rt;
-    js_InitOperationLimit(cx);
     cx->debugHooks = &rt->globalDebugHooks;
 #if JS_STACK_GROWTH_DIRECTION > 0
-    cx->stackLimit = (jsuword) -1;
+    cx->stackLimit = (jsuword)-1;
 #endif
     cx->scriptStackQuota = JS_DEFAULT_SCRIPT_STACK_QUOTA;
 #ifdef JS_THREADSAFE
     cx->gcLocalFreeLists = (JSGCFreeListSet *) &js_GCEmptyFreeListSet;
+
+    
+
+
+
     js_InitContextThread(cx, thread);
 #endif
-    JS_STATIC_ASSERT(JSVERSION_DEFAULT == 0);
-    JS_ASSERT(cx->version == JSVERSION_DEFAULT);
-    VOUCH_DOES_NOT_REQUIRE_STACK();
-    JS_INIT_ARENA_POOL(&cx->stackPool, "stack", stackChunkSize, sizeof(jsval),
-                       &cx->scriptStackQuota);
-
-    JS_INIT_ARENA_POOL(&cx->tempPool, "temp",
-                       1024,  
-                       sizeof(jsdouble), &cx->scriptStackQuota);
-
-    js_InitRegExpStatics(cx);
-    JS_ASSERT(cx->resolveFlags == 0);
 
     JS_LOCK_GC(rt);
     for (;;) {
         first = (rt->contextList.next == &rt->contextList);
         if (rt->state == JSRTS_UP) {
             JS_ASSERT(!first);
-
-            
-            js_WaitForGC(rt);
             break;
         }
         if (rt->state == JSRTS_DOWN) {
@@ -323,6 +271,26 @@ js_NewContext(JSRuntime *rt, size_t stackChunkSize)
     }
     JS_APPEND_LINK(&cx->link, &rt->contextList);
     JS_UNLOCK_GC(rt);
+
+    
+
+
+
+
+
+
+    cx->version = JSVERSION_DEFAULT;
+    VOUCH_DOES_NOT_REQUIRE_STACK();
+    JS_INIT_ARENA_POOL(&cx->stackPool, "stack", stackChunkSize, sizeof(jsval),
+                       &cx->scriptStackQuota);
+
+    JS_INIT_ARENA_POOL(&cx->tempPool, "temp",
+                       1024,  
+                       sizeof(jsdouble), &cx->scriptStackQuota);
+
+    js_InitRegExpStatics(cx);
+
+    cx->resolveFlags = 0;
 
     
 
@@ -465,21 +433,16 @@ js_DestroyContext(JSContext *cx, JSDestroyContextMode mode)
         }
     }
 
+    
     JS_LOCK_GC(rt);
     JS_ASSERT(rt->state == JSRTS_UP || rt->state == JSRTS_LAUNCHING);
-#ifdef JS_THREADSAFE
-    
-
-
-
-    if (cx->requestDepth == 0)
-        js_WaitForGC(rt);
-    js_RevokeGCLocalFreeLists(cx);
-#endif
     JS_REMOVE_LINK(&cx->link);
     last = (rt->contextList.next == &rt->contextList);
     if (last)
         rt->state = JSRTS_LANDING;
+#ifdef JS_THREADSAFE
+    js_RevokeGCLocalFreeLists(cx);
+#endif
     JS_UNLOCK_GC(rt);
 
     if (last) {
@@ -621,6 +584,21 @@ js_ContextIterator(JSRuntime *rt, JSBool unlocked, JSContext **iterp)
     if (unlocked)
         JS_UNLOCK_GC(rt);
     return cx;
+}
+
+JS_FRIEND_API(JSContext *)
+js_NextActiveContext(JSRuntime *rt, JSContext *cx)
+{
+    JSContext *iter = cx;
+#ifdef JS_THREADSAFE
+    while ((cx = js_ContextIterator(rt, JS_FALSE, &iter)) != NULL) {
+        if (cx->requestDepth)
+            break;
+    }
+    return cx;
+#else
+    return js_ContextIterator(rt, JS_FALSE, &iter);
+#endif           
 }
 
 static JSDHashNumber
@@ -1446,31 +1424,37 @@ js_GetErrorMessage(void *userRef, const char *locale, const uintN errorNumber)
 }
 
 JSBool
-js_ResetOperationCount(JSContext *cx)
+js_InvokeOperationCallback(JSContext *cx)
 {
-    JSScript *script;
-    JSStackFrame *fp;
+    JS_ASSERT(cx->operationCallbackFlag);
+    
+    
 
-    JS_ASSERT(cx->operationCount <= 0);
-    JS_ASSERT(cx->operationLimit > 0);
 
-    cx->operationCount = (int32) cx->operationLimit;
+
+
+    cx->operationCallbackFlag = 0;
+
+    
+
+
+
+
+
+
+#ifdef JS_THREADSAFE    
+    JS_YieldRequest(cx);
+#endif
+
     JSOperationCallback cb = cx->operationCallback;
-    if (cb) {
-        if (!cx->branchCallbackWasSet)
-            return cb(cx);
 
-        
+    
 
 
 
 
-        fp = js_GetTopStackFrame(cx);
-        script = fp ? fp->script : NULL;
-        if (script || JS_HAS_OPTION(cx, JSOPTION_NATIVE_BRANCH_CALLBACK))
-            return ((JSBranchCallback) cb)(cx, script);
-    }
-    return JS_TRUE;
+
+    return !cb || cb(cx);
 }
 
 #ifndef JS_TRACER

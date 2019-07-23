@@ -134,6 +134,8 @@ private:
     GetPoolForGlobal(nsIScriptGlobalObject* aGlobalObject,
                      PRBool aRemove);
 
+  void TriggerOperationCallbackForPool(nsDOMWorkerPool* aPool);
+
   void NoteEmptyPool(nsDOMWorkerPool* aPool);
 
   void TimeoutReady(nsDOMWorkerTimeout* aTimeout);
@@ -158,6 +160,10 @@ private:
 
   
   nsRefPtrHashtable<nsVoidPtrHashKey, nsDOMWorkerRunnable> mWorkersInProgress;
+
+  
+  
+  nsTArray<JSContext*> mJSContexts;
 
   nsString mAppName;
   nsString mAppVersion;
