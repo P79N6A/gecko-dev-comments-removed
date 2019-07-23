@@ -2435,7 +2435,7 @@ var gExtensionsViewController = {
       var homepageURL = aSelectedItem.getAttribute("homepageURL");
       
       if (isSafeURI(homepageURL))
-        openURL(uri.spec);
+        openURL(homepageURL);
     },
 
     cmd_about: function (aSelectedItem)
