@@ -1283,9 +1283,16 @@ nsDocAccessible::ARIAAttributeChanged(nsIContent* aContent, nsIAtom* aAttribute)
     return;
   }
 
-  if (aAttribute == nsAccessibilityAtoms::aria_valuenow) {
-    FireDelayedToolkitEvent(nsIAccessibleEvent::EVENT_VALUE_CHANGE,
-                            targetNode);
+  
+  
+  if (aAttribute == nsAccessibilityAtoms::aria_valuetext ||      
+      (aAttribute == nsAccessibilityAtoms::aria_valuenow &&
+       (!aContent->HasAttr(kNameSpaceID_None,
+           nsAccessibilityAtoms::aria_valuetext) ||
+        aContent->AttrValueIs(kNameSpaceID_None,
+            nsAccessibilityAtoms::aria_valuetext, nsAccessibilityAtoms::_empty,
+            eCaseMatters)))) {
+    FireDelayedToolkitEvent(nsIAccessibleEvent::EVENT_VALUE_CHANGE, targetNode);
     return;
   }
 
