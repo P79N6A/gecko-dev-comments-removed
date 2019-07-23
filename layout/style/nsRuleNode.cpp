@@ -4194,6 +4194,13 @@ nsRuleNode::ComputeVisibilityData(void* aStartStruct,
               NS_STYLE_VISIBILITY_VISIBLE, 0, 0, 0, 0);
 
   
+  SetDiscrete(displayData.mPointerEvents, visibility->mPointerEvents,
+              canStoreInRuleTree,
+              SETDSC_ENUMERATED | SETDSC_NONE, parentVisibility->mPointerEvents,
+              NS_STYLE_POINTER_EVENTS_AUTO, 0,
+              NS_STYLE_POINTER_EVENTS_NONE, 0, 0);
+  
+  
   
   if (eCSSUnit_Ident == displayData.mLang.GetUnit()) {
     if (!gLangService) {
@@ -5813,12 +5820,6 @@ nsRuleNode::ComputeSVGData(void* aStartStruct,
     canStoreInRuleTree = PR_FALSE;
     svg->mMarkerStart = parentSVG->mMarkerStart;
   }
-
-  
-  SetDiscrete(SVGData.mPointerEvents, svg->mPointerEvents, canStoreInRuleTree,
-              SETDSC_ENUMERATED | SETDSC_NONE, parentSVG->mPointerEvents,
-              NS_STYLE_POINTER_EVENTS_VISIBLEPAINTED, 0,
-              NS_STYLE_POINTER_EVENTS_NONE, 0, 0);
 
   
   SetDiscrete(SVGData.mShapeRendering, svg->mShapeRendering, canStoreInRuleTree,

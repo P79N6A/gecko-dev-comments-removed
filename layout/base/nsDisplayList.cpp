@@ -428,7 +428,8 @@ nsIFrame* nsDisplayList::HitTest(nsDisplayListBuilder* aBuilder, nsPoint aPt,
       nsIFrame* f = item->HitTest(aBuilder, aPt, aState);
       
       if (f) {
-        if (!f->GetMouseThrough()) {
+        if (!f->GetMouseThrough() &&
+            f->GetStyleVisibility()->mPointerEvents != NS_STYLE_POINTER_EVENTS_NONE) {
           aState->mItemBuffer.SetLength(itemBufferStart);
           return f;
         }

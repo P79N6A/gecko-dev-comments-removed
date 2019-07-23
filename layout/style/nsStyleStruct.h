@@ -1113,7 +1113,8 @@ struct nsStyleVisibility {
   PRUint8 mDirection;                  
   PRUint8   mVisible;                  
   nsCOMPtr<nsIAtom> mLangGroup;        
- 
+  PRUint8 mPointerEvents;              
+
   PRBool IsVisible() const {
     return (mVisible == NS_STYLE_VISIBILITY_VISIBLE);
   }
@@ -1778,7 +1779,6 @@ struct nsStyleSVG {
   PRUint8          mColorInterpolationFilters; 
   PRUint8          mFillRule;         
   PRUint8          mImageRendering;   
-  PRUint8          mPointerEvents;    
   PRUint8          mShapeRendering;   
   PRUint8          mStrokeLinecap;    
   PRUint8          mStrokeLinejoin;   

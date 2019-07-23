@@ -1,0 +1,46 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+GOOD { pointer-events: visiblePainted; }
+GOOD { pointer-events: visibleFill; }
+GOOD { pointer-events: visibleStroke; }
+GOOD { pointer-events: visible; }
+GOOD { pointer-events: painted; }
+GOOD { pointer-events: fill; }
+GOOD { pointer-events: stroke; }
+GOOD { pointer-events: all; }
+GOOD { pointer-events: none; }
+GOOD { pointer-events: inherit; }
+GOOD { pointer-events: auto; }
