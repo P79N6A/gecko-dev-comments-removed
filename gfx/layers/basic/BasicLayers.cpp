@@ -349,7 +349,8 @@ NeedsGroup(Layer* aLayer)
 static PRBool
 NeedsState(Layer* aLayer)
 {
-  return aLayer->GetClipRect() != nsnull;
+  return aLayer->GetClipRect() != nsnull ||
+         !aLayer->GetTransform().IsIdentity();
 }
 
 
@@ -379,19 +380,38 @@ BasicLayerManager::BeginPaintingLayer(Layer* aLayer)
 {
   PRBool needsGroup = NeedsGroup(aLayer);
   if ((needsGroup || NeedsState(aLayer)) && mTarget) {
-    
-    
-    nsIntRect bbox = ToData(aLayer)->GetVisibleRegion().GetBounds();
+    mTarget->Save();
+
     if (aLayer->GetClipRect()) {
-      bbox.IntersectRect(bbox, *aLayer->GetClipRect());
+      const nsIntRect& r = *aLayer->GetClipRect();
+      mTarget->NewPath();
+      mTarget->Rectangle(gfxRect(r.x, r.y, r.width, r.height));
+      mTarget->Clip();
     }
 
-    mTarget->Save();
-    mTarget->NewPath();
-    mTarget->Rectangle(gfxRect(bbox.x, bbox.y, bbox.width, bbox.height));
-    mTarget->Clip();
+    gfxMatrix transform;
+    
+    
+    NS_ASSERTION(aLayer->GetTransform().Is2D(),
+                 "Only 2D transforms supported currently");
+    aLayer->GetTransform().Is2D(&transform);
+    mTarget->Multiply(transform);
 
     if (needsGroup) {
+      
+      
+      nsIntRect bbox = ToData(aLayer)->GetVisibleRegion().GetBounds();
+      gfxRect deviceRect =
+        mTarget->UserToDevice(gfxRect(bbox.x, bbox.y, bbox.width, bbox.height));
+      deviceRect.RoundOut();
+
+      gfxMatrix currentMatrix = mTarget->CurrentMatrix();
+      mTarget->IdentityMatrix();
+      mTarget->NewPath();
+      mTarget->Rectangle(deviceRect);
+      mTarget->Clip();
+      mTarget->SetMatrix(currentMatrix);
+
       gfxASurface::gfxContentType type = UseOpaqueSurface(aLayer)
           ? gfxASurface::CONTENT_COLOR : gfxASurface::CONTENT_COLOR_ALPHA;
       mTarget->PushGroup(type);

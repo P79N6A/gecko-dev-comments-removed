@@ -42,6 +42,7 @@
 #include "nsRegion.h"
 #include "nsPoint.h"
 #include "nsRect.h"
+#include "gfx3DMatrix.h"
 
 class gfxContext;
 class nsPaintEvent;
@@ -229,6 +230,15 @@ public:
   }
 
   
+
+
+
+
+
+
+  void SetTransform(const gfx3DMatrix& aMatrix) { mTransform = aMatrix; }
+
+  
   float GetOpacity() { return mOpacity; }
   const nsIntRect* GetClipRect() { return mUseClipRect ? &mClipRect : nsnull; }
   PRBool IsOpaqueContent() { return mIsOpaqueContent; }
@@ -236,6 +246,7 @@ public:
   Layer* GetNextSibling() { return mNextSibling; }
   Layer* GetPrevSibling() { return mPrevSibling; }
   virtual Layer* GetFirstChild() { return nsnull; }
+  const gfx3DMatrix& GetTransform() { return mTransform; }
 
   
 
@@ -268,6 +279,7 @@ protected:
   Layer* mNextSibling;
   Layer* mPrevSibling;
   void* mImplData;
+  gfx3DMatrix mTransform;
   float mOpacity;
   nsIntRect mClipRect;
   PRPackedBool mUseClipRect;
