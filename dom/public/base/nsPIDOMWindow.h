@@ -272,6 +272,9 @@ public:
   virtual nsresult RestoreWindowState(nsISupports *aState) = 0;
 
   
+  virtual void SuspendTimeouts() = 0;
+
+  
   virtual nsresult ResumeTimeouts() = 0;
   
   
