@@ -149,6 +149,24 @@ XPCConvert::IsMethodReflectable(const XPTMethodDescriptor& info)
 
 
 
+
+JSBool
+XPCConvert::GetISupportsFromJSObject(JSObject* obj, nsISupports** iface)
+{
+    JSClass* jsclass = STOBJ_GET_CLASS(obj);
+    NS_ASSERTION(jsclass, "obj has no class");
+    if(jsclass &&
+       (jsclass->flags & JSCLASS_HAS_PRIVATE) &&
+       (jsclass->flags & JSCLASS_PRIVATE_IS_NSISUPPORTS))
+    {
+        *iface = (nsISupports*) xpc_GetJSPrivate(obj);
+        return JS_TRUE;
+    }
+    return JS_FALSE;
+}
+
+
+
 static void
 FinalizeXPCOMUCString(JSContext *cx, JSString *str)
 {
@@ -1442,38 +1460,31 @@ XPCConvert::JSObject2NativeInterface(XPCCallContext& ccx,
         
 
         
-        
-        
-        JSObject* inner = nsnull;
-        if(XPCWrapper::IsSecurityWrapper(src))
-        {
-            inner = XPCWrapper::Unwrap(cx, src);
-            if(!inner)
-            {
-                if(pErr)
-                    *pErr = NS_ERROR_XPC_SECURITY_MANAGER_VETO;
-                return JS_FALSE;
-            }
-        }
-
-        
         XPCWrappedNative* wrappedNative =
-                    XPCWrappedNative::GetWrappedNativeOfJSObject(cx,
-                                                                 inner
-                                                                 ? inner
-                                                                 : src);
+                    XPCWrappedNative::GetWrappedNativeOfJSObject(cx, src);
         if(wrappedNative)
         {
             iface = wrappedNative->GetIdentityObject();
             return NS_SUCCEEDED(iface->QueryInterface(*iid, dest));
         }
         
-
+        
         
         
         
         if(JS_TypeOfValue(cx, OBJECT_TO_JSVAL(src)) == JSTYPE_XML)
             return JS_FALSE;
+
+        
+        
+        
+        if(GetISupportsFromJSObject(src, &iface))
+        {
+            if(iface)
+                return NS_SUCCEEDED(iface->QueryInterface(*iid, dest));
+
+            return JS_FALSE;
+        }
     }
 
     
