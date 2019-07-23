@@ -625,12 +625,15 @@ nsNavHistory::StartSearch(const nsAString & aSearchString,
   
   
   
-  if (!prevSearchString.IsEmpty() &&
-      StringBeginsWith(mCurrentSearchString, prevSearchString) &&
-      (StartsWithJS(prevSearchString) == StartsWithJS(mCurrentSearchString))) {
+  
+  if (mAutoCompleteSearchSources == SEARCH_NONE ||
+      (!prevSearchString.IsEmpty() &&
+       StringBeginsWith(mCurrentSearchString, prevSearchString) &&
+       (StartsWithJS(prevSearchString) == StartsWithJS(mCurrentSearchString)))) {
 
     
-    if (mAutoCompleteFinishedSearch && prevMatchCount == 0) {
+    if (mAutoCompleteSearchSources == SEARCH_NONE ||
+        (mAutoCompleteFinishedSearch && prevMatchCount == 0)) {
       
       mCurrentResult->SetSearchResult(nsIAutoCompleteResult::RESULT_NOMATCH);
       mCurrentResult->SetDefaultIndex(-1);
@@ -794,6 +797,13 @@ nsNavHistory::ProcessTokensForSpecialSearch()
   mRestrictTag = mAutoCompleteRestrictTag.IsEmpty();
   mMatchTitle = mAutoCompleteMatchTitle.IsEmpty();
   mMatchUrl = mAutoCompleteMatchUrl.IsEmpty();
+
+  
+  if (mAutoCompleteSearchSources == SEARCH_HISTORY)
+    mRestrictHistory = PR_TRUE;
+  else if (mAutoCompleteSearchSources == SEARCH_BOOKMARK)
+    mRestrictBookmark = PR_TRUE;
+  
 
   
   for (PRInt32 i = mCurrentSearchTokens.Count(); --i >= 0; ) {

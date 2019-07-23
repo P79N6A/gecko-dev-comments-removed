@@ -220,6 +220,11 @@ pref("browser.urlbar.matchOnlyTyped", false);
 
 
 pref("browser.urlbar.matchBehavior", 1);
+
+
+
+
+pref("browser.urlbar.search.sources", 3);
 pref("browser.urlbar.filter.javascript", true);
 
 
