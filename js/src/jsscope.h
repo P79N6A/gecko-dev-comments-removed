@@ -377,7 +377,10 @@ struct JSScope : public JSObjectMap
 
 
 
-        SHAPE_REGEN             = 0x0040
+        SHAPE_REGEN             = 0x0040,
+
+        
+        GENERIC                 = 0x0080
     };
 
     bool inDictionaryMode()     { return flags & DICTIONARY_MODE; }
@@ -397,8 +400,11 @@ struct JSScope : public JSObjectMap
 
 
 
-    bool branded()              { return flags & BRANDED; }
+    bool branded()              { JS_ASSERT(!generic()); return flags & BRANDED; }
     void setBranded()           { flags |= BRANDED; }
+
+    bool generic()              { return flags & GENERIC; }
+    void setGeneric()           { flags |= GENERIC; }
 
     bool hadIndexedProperties() { return flags & INDEXED_PROPERTIES; }
     void setIndexedProperties() { flags |= INDEXED_PROPERTIES; }

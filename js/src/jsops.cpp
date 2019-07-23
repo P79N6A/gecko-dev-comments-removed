@@ -1685,6 +1685,14 @@ BEGIN_CASE(JSOP_CALLPROP)
 }
 END_CASE(JSOP_CALLPROP)
 
+BEGIN_CASE(JSOP_UNBRAND)
+    JS_ASSERT(regs.sp - fp->slots >= 1);
+    lval = FETCH_OPND(-1);
+    obj = JSVAL_TO_OBJECT(lval);
+    if (!obj->unbrand(cx))
+        goto error;
+END_CASE(JSOP_UNBRAND)
+
 BEGIN_CASE(JSOP_SETNAME)
 BEGIN_CASE(JSOP_SETPROP)
 BEGIN_CASE(JSOP_SETMETHOD)
@@ -2836,17 +2844,8 @@ BEGIN_CASE(JSOP_DEFVAR)
     
     id = ATOM_TO_JSID(atom);
     prop = NULL;
-    if (op == JSOP_DEFVAR) {
-        
-
-
-
-        if (!obj->lookupProperty(cx, id, &obj2, &prop))
-            goto error;
-    } else {
-        if (!js_CheckRedeclaration(cx, obj, id, attrs, &obj2, &prop))
-            goto error;
-    }
+    if (!js_CheckRedeclaration(cx, obj, id, attrs, &obj2, &prop))
+        goto error;
 
     
     if (!prop) {

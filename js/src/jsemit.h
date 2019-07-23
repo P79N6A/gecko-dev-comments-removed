@@ -286,11 +286,19 @@ struct JSTreeContext {
 
 
 
+#define TCF_STRICT_MODE_CODE    0x40000
 
-#define TCF_STRICT_MODE_CODE 0x40000
+
+#define TCF_FUN_PARAM_EVAL      0x80000
 
 
-#define TCF_FUN_PARAM_EVAL 0x80000
+
+
+
+
+
+
+#define TCF_FUN_UNBRAND_THIS   0x100000
 
 
 

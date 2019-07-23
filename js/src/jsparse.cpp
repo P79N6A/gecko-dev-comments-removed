@@ -300,6 +300,7 @@ JSCompiler::newFunctionBox(JSObject *obj, JSParseNode *fn, JSTreeContext *tc)
     ++tc->compiler->functionCount;
     funbox->kids = NULL;
     funbox->parent = tc->funbox;
+    funbox->methods = NULL;
     funbox->queued = false;
     funbox->inLoop = false;
     for (JSStmtInfo *stmt = tc->topStmt; stmt; stmt = stmt->down) {
@@ -311,6 +312,27 @@ JSCompiler::newFunctionBox(JSObject *obj, JSParseNode *fn, JSTreeContext *tc)
     funbox->level = tc->staticLevel;
     funbox->tcflags = (TCF_IN_FUNCTION | (tc->flags & (TCF_COMPILE_N_GO | TCF_STRICT_MODE_CODE)));
     return funbox;
+}
+
+bool
+JSFunctionBox::joinable() const
+{
+    return FUN_NULL_CLOSURE((JSFunction *) object) &&
+           !(tcflags & (TCF_FUN_USES_ARGUMENTS | TCF_FUN_USES_OWN_NAME));
+}
+
+bool
+JSFunctionBox::shouldUnbrand(uintN methods, uintN slowMethods) const
+{
+    if (slowMethods != 0) {
+        for (const JSFunctionBox *funbox = this; funbox; funbox = funbox->parent) {
+            if (!(funbox->node->pn_dflags & PND_MODULEPAT))
+                return true;
+            if (funbox->inLoop)
+                return true;
+        }
+    }
+    return false;
 }
 
 void
@@ -2037,15 +2059,48 @@ JSCompiler::setFunctionKinds(JSFunctionBox *funbox, uint32& tcflags)
 #else
 # define FUN_METER(x)   ((void)0)
 #endif
-    JSFunctionBox *parent = funbox->parent;
 
     for (;;) {
         JSParseNode *fn = funbox->node;
+        JSParseNode *pn = fn->pn_body;
 
-        if (funbox->kids)
+        if (funbox->kids) {
             setFunctionKinds(funbox->kids, tcflags);
 
-        JSParseNode *pn = fn->pn_body;
+            
+
+
+
+
+
+
+
+
+
+            JSParseNode *pn2 = pn;
+            if (PN_TYPE(pn2) == TOK_UPVARS)
+                pn2 = pn2->pn_tree;
+            if (PN_TYPE(pn2) == TOK_ARGSBODY)
+                pn2 = pn2->last();
+
+#if JS_HAS_EXPR_CLOSURES
+            if (PN_TYPE(pn2) == TOK_LC)
+#endif
+            if (!(funbox->tcflags & TCF_RETURN_EXPR)) {
+                uintN methodSets = 0, slowMethodSets = 0;
+
+                for (JSParseNode *method = funbox->methods; method; method = method->pn_link) {
+                    JS_ASSERT(PN_OP(method) == JSOP_LAMBDA || PN_OP(method) == JSOP_LAMBDA_FC);
+                    ++methodSets;
+                    if (!funbox->joinable())
+                        ++slowMethodSets;
+                }
+
+                if (funbox->shouldUnbrand(methodSets, slowMethodSets))
+                    funbox->tcflags |= TCF_FUN_UNBRAND_THIS;
+            }
+        }
+
         JSFunction *fun = (JSFunction *) funbox->object;
 
         FUN_METER(allfun);
@@ -2333,18 +2388,8 @@ JSCompiler::setFunctionKinds(JSFunctionBox *funbox, uint32& tcflags)
             }
         }
 
-        if (FUN_KIND(fun) == JSFUN_INTERPRETED) {
-            if (pn->pn_type != TOK_UPVARS) {
-                if (parent)
-                    parent->tcflags |= TCF_FUN_HEAVYWEIGHT;
-            } else {
-                JSAtomList upvars(pn->pn_names);
-                JS_ASSERT(upvars.count != 0);
-
-                JSAtomListIterator iter(&upvars);
-                JSAtomListElement *ale;
-
-                
+        if (FUN_KIND(fun) == JSFUN_INTERPRETED && pn->pn_type == TOK_UPVARS) {
+            
 
 
 
@@ -2353,15 +2398,21 @@ JSCompiler::setFunctionKinds(JSFunctionBox *funbox, uint32& tcflags)
 
 
 
-                while ((ale = iter()) != NULL) {
-                    JSDefinition *lexdep = ALE_DEFN(ale)->resolve();
+            JSAtomList upvars(pn->pn_names);
+            JS_ASSERT(upvars.count != 0);
 
-                    if (!lexdep->isFreeVar()) {
-                        JSFunctionBox *afunbox = funbox->parent;
-                        uintN lexdepLevel = lexdep->frameLevel();
+            JSAtomListIterator iter(&upvars);
+            JSAtomListElement *ale;
 
-                        while (afunbox) {
-                            
+            while ((ale = iter()) != NULL) {
+                JSDefinition *lexdep = ALE_DEFN(ale)->resolve();
+
+                if (!lexdep->isFreeVar()) {
+                    JSFunctionBox *afunbox = funbox->parent;
+                    uintN lexdepLevel = lexdep->frameLevel();
+
+                    while (afunbox) {
+                        
 
 
 
@@ -2369,16 +2420,15 @@ JSCompiler::setFunctionKinds(JSFunctionBox *funbox, uint32& tcflags)
 
 
 
-                            if (afunbox->level + 1U == lexdepLevel ||
-                                (lexdepLevel == 0 && lexdep->isLet())) {
-                                afunbox->tcflags |= TCF_FUN_HEAVYWEIGHT;
-                                break;
-                            }
-                            afunbox = afunbox->parent;
+                        if (afunbox->level + 1U == lexdepLevel ||
+                            (lexdepLevel == 0 && lexdep->isLet())) {
+                            afunbox->tcflags |= TCF_FUN_HEAVYWEIGHT;
+                            break;
                         }
-                        if (!afunbox && (tcflags & TCF_IN_FUNCTION))
-                            tcflags |= TCF_FUN_HEAVYWEIGHT;
+                        afunbox = afunbox->parent;
                     }
+                    if (!afunbox && (tcflags & TCF_IN_FUNCTION))
+                        tcflags |= TCF_FUN_HEAVYWEIGHT;
                 }
             }
         }
@@ -2386,8 +2436,8 @@ JSCompiler::setFunctionKinds(JSFunctionBox *funbox, uint32& tcflags)
         funbox = funbox->siblings;
         if (!funbox)
             break;
-        JS_ASSERT(funbox->parent == parent);
     }
+
 #undef FUN_METER
 }
 
@@ -2440,7 +2490,8 @@ LeaveFunction(JSParseNode *fn, JSTreeContext *funtc, JSTreeContext *tc,
 {
     tc->blockidGen = funtc->blockidGen;
 
-    fn->pn_funbox->tcflags |= funtc->flags & (TCF_FUN_FLAGS | TCF_COMPILE_N_GO);
+    JSFunctionBox *funbox = fn->pn_funbox;
+    funbox->tcflags |= funtc->flags & (TCF_FUN_FLAGS | TCF_COMPILE_N_GO | TCF_RETURN_EXPR);
 
     fn->pn_dflags |= PND_INITIALIZED;
     JS_ASSERT_IF(tc->atTopLevel() && lambda == 0 && funAtom,
@@ -2475,12 +2526,12 @@ LeaveFunction(JSParseNode *fn, JSTreeContext *funtc, JSTreeContext *tc,
 
 
                 if (dn->isFunArg())
-                    fn->pn_funbox->tcflags |= TCF_FUN_USES_OWN_NAME;
+                    funbox->tcflags |= TCF_FUN_USES_OWN_NAME;
                 foundCallee = 1;
                 continue;
             }
 
-            if (!(fn->pn_funbox->tcflags & TCF_FUN_SETS_OUTER_NAME) &&
+            if (!(funbox->tcflags & TCF_FUN_SETS_OUTER_NAME) &&
                 dn->isAssigned()) {
                 
 
@@ -2490,7 +2541,7 @@ LeaveFunction(JSParseNode *fn, JSTreeContext *funtc, JSTreeContext *tc,
 
                 for (JSParseNode *pnu = dn->dn_uses; pnu; pnu = pnu->pn_link) {
                     if (pnu->isAssigned() && pnu->pn_blockid >= funtc->bodyid) {
-                        fn->pn_funbox->tcflags |= TCF_FUN_SETS_OUTER_NAME;
+                        funbox->tcflags |= TCF_FUN_SETS_OUTER_NAME;
                         break;
                     }
                 }
@@ -5701,18 +5752,35 @@ Statement(JSContext *cx, JSTokenStream *ts, JSTreeContext *tc)
         pn->pn_pos = pn2->pn_pos;
         pn->pn_kid = pn2;
 
-        
+        switch (PN_TYPE(pn2)) {
+          case TOK_LP:
+            
+
+
+
+            if (PN_TYPE(pn2->pn_head) == TOK_FUNCTION &&
+                !pn2->pn_head->pn_funbox->node->isFunArg()) {
+                pn2->pn_head->pn_funbox->node->pn_dflags |= PND_MODULEPAT;
+            }
+            break;
+          case TOK_ASSIGN:
+            
 
 
 
 
-
-        if (PN_TYPE(pn2) == TOK_ASSIGN && PN_OP(pn2) == JSOP_NOP &&
-            PN_OP(pn2->pn_left) == JSOP_SETPROP &&
-            PN_OP(pn2->pn_right) == JSOP_LAMBDA &&
-            !(pn2->pn_right->pn_funbox->tcflags
-              & (TCF_FUN_USES_ARGUMENTS | TCF_FUN_USES_OWN_NAME))) {
-            pn2->pn_left->pn_op = JSOP_SETMETHOD;
+            if (tc->funbox &&
+                PN_OP(pn2) == JSOP_NOP &&
+                PN_OP(pn2->pn_left) == JSOP_SETPROP &&
+                PN_OP(pn2->pn_left->pn_expr) == JSOP_THIS &&
+                PN_OP(pn2->pn_right) == JSOP_LAMBDA) {
+                JS_ASSERT(!pn2->pn_defn);
+                JS_ASSERT(!pn2->pn_used);
+                pn2->pn_right->pn_link = tc->funbox->methods;
+                tc->funbox->methods = pn2->pn_right;
+            }
+            break;
+          default:;
         }
         break;
     }
@@ -6990,8 +7058,6 @@ ArgumentList(JSContext *cx, JSTokenStream *ts, JSTreeContext *tc,
 static JSParseNode *
 CheckForImmediatelyAppliedLambda(JSParseNode *pn)
 {
-    while (pn->pn_type == TOK_RP)
-        pn = pn->pn_kid;
     if (pn->pn_type == TOK_FUNCTION) {
         JS_ASSERT(pn->pn_arity == PN_FUNC);
 
@@ -7177,7 +7243,6 @@ MemberExpr(JSContext *cx, JSTokenStream *ts, JSTreeContext *tc,
                 return NULL;
             pn2->pn_op = JSOP_CALL;
 
-            
             pn = CheckForImmediatelyAppliedLambda(pn);
             if (pn->pn_op == JSOP_NAME) {
                 if (pn->pn_atom == cx->runtime->atomState.evalAtom) {
@@ -8177,15 +8242,19 @@ PrimaryExpr(JSContext *cx, JSTokenStream *ts, JSTreeContext *tc,
             }
 
             tt = js_GetToken(cx, ts);
+            op = JSOP_INITPROP;
 #if JS_HAS_GETTER_SETTER
             if (tt == TOK_NAME) {
                 tt = CheckGetterOrSetter(cx, ts, TOK_COLON);
                 if (tt == TOK_ERROR)
                     return NULL;
+                op = CURRENT_TOKEN(ts).t_op;
             }
 #endif
 
-            if (tt != TOK_COLON) {
+            if (tt == TOK_COLON) {
+                pnval = AssignExpr(cx, ts, tc);
+            } else {
 #if JS_HAS_DESTRUCTURING_SHORTHAND
                 if (tt != TOK_COMMA && tt != TOK_RC) {
 #endif
@@ -8206,11 +8275,7 @@ PrimaryExpr(JSContext *cx, JSTokenStream *ts, JSTreeContext *tc,
                     pnval->pn_arity = PN_NAME;
                     InitNameNodeCommon(pnval, tc);
                 }
-                op = JSOP_NOP;
 #endif
-            } else {
-                op = CURRENT_TOKEN(ts).t_op;
-                pnval = AssignExpr(cx, ts, tc);
             }
 
             pn2 = NewBinary(TOK_COLON, op, pn3, pnval, tc);
@@ -8228,13 +8293,13 @@ PrimaryExpr(JSContext *cx, JSTokenStream *ts, JSTreeContext *tc,
  
             if (tc->needStrictChecks()) {
                 unsigned attributesMask;
-                if (op == JSOP_NOP)
+                if (op == JSOP_INITPROP) {
                     attributesMask = JSPROP_GETTER | JSPROP_SETTER;
-                else if (op == JSOP_GETTER)
+                } else if (op == JSOP_GETTER) {
                     attributesMask = JSPROP_GETTER;
-                else if (op == JSOP_SETTER)
+                } else if (op == JSOP_SETTER) {
                     attributesMask = JSPROP_SETTER;
-                else {
+                } else {
                     JS_NOT_REACHED("bad opcode in object initializer");
                     attributesMask = 0;
                 }

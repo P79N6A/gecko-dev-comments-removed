@@ -1231,8 +1231,13 @@ class TraceRecorder
     }
 
     JS_REQUIRES_STACK AbortableRecordingStatus name(jsval*& vp, nanojit::LIns*& ins, NameResult& nr);
-    JS_REQUIRES_STACK AbortableRecordingStatus prop(JSObject* obj, nanojit::LIns* obj_ins, uint32 *slotp,
-                                                      nanojit::LIns** v_insp, jsval* outp);
+    JS_REQUIRES_STACK AbortableRecordingStatus prop(JSObject* obj, nanojit::LIns* obj_ins,
+                                                    uint32 *slotp, nanojit::LIns** v_insp,
+                                                    jsval* outp);
+    JS_REQUIRES_STACK AbortableRecordingStatus propTail(JSObject* obj, nanojit::LIns* obj_ins,
+                                                        JSObject* obj2, jsuword pcval,
+                                                        uint32 *slotp, nanojit::LIns** v_insp,
+                                                        jsval* outp);
     JS_REQUIRES_STACK RecordingStatus denseArrayElement(jsval& oval, jsval& idx, jsval*& vp,
                                                           nanojit::LIns*& v_ins,
                                                           nanojit::LIns*& addr_ins);
@@ -1297,7 +1302,6 @@ class TraceRecorder
     JS_REQUIRES_STACK RecordingStatus guardCallee(jsval& callee);
     JS_REQUIRES_STACK JSStackFrame      *guardArguments(JSObject *obj, nanojit::LIns* obj_ins,
                                                         unsigned *depthp);
-    JS_REQUIRES_STACK nanojit::LIns* guardArgsLengthNotAssigned(nanojit::LIns* argsobj_ins);
     JS_REQUIRES_STACK RecordingStatus getClassPrototype(JSObject* ctor,
                                                           nanojit::LIns*& proto_ins);
     JS_REQUIRES_STACK RecordingStatus getClassPrototype(JSProtoKey key,

@@ -302,6 +302,8 @@ struct JSParseNode {
     int32               pn_offset;      
     JSParseNode         *pn_next;       
     JSParseNode         *pn_link;       
+
+
     union {
         struct {                        
             JSParseNode *head;          
@@ -417,6 +419,9 @@ struct JSParseNode {
 #define PND_PLACEHOLDER 0x80            /* placeholder definition for lexdep */
 #define PND_FUNARG     0x100            /* downward or upward funarg usage */
 #define PND_BOUND      0x200            /* bound to a stack or global slot */
+#define PND_MODULEPAT  0x400            /* "module pattern", i.e., a lambda
+                                           that is immediately applied and the
+                                           whole of an expression statement */
 
 
 #define PND_USE2DEF_FLAGS (PND_ASSIGNED | PND_FUNARG)
@@ -795,10 +800,29 @@ struct JSFunctionBox : public JSObjectBox
     JSFunctionBox       *siblings;
     JSFunctionBox       *kids;
     JSFunctionBox       *parent;
+    JSParseNode         *methods;               
+
+
+
+
     uint32              queued:1,
                         inLoop:1,               
                         level:JSFB_LEVEL_BITS;
     uint32              tcflags;
+
+    bool joinable() const;
+
+    
+
+
+
+
+
+
+
+
+
+    bool shouldUnbrand(uintN methods, uintN slowMethods) const;
 };
 
 struct JSFunctionBoxQueue {
