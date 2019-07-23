@@ -79,6 +79,19 @@ public:
 
   PRBool IsMenuOpen() { return mCurrentMenu && mCurrentMenu->IsOpen(); }
 
+  
+  
+  PRBool IsRecentlyClosed(nsMenuFrame* aMenuFrame)
+  {
+    PRBool match = (aMenuFrame == mRecentlyClosedMenu);
+    mRecentlyClosedMenu = nsnull;
+    return match;
+  }
+  void SetRecentlyClosed(nsMenuFrame* aRecentlyClosedMenu)
+  {
+    mRecentlyClosedMenu = aRecentlyClosedMenu;
+  }
+
   void InstallKeyboardNavigator();
   void RemoveKeyboardNavigator();
 
@@ -136,6 +149,12 @@ protected:
   
   
   nsMenuFrame* mCurrentMenu;
+
+  
+  
+  
+  
+  nsMenuFrame* mRecentlyClosedMenu;
 
   nsIDOMEventTarget* mTarget;
 

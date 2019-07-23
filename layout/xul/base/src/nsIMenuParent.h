@@ -85,6 +85,10 @@ public:
   
   
   virtual PRBool MenuClosed() = 0;
+
+  
+  
+  virtual PRBool IsRecentlyClosed(nsMenuFrame* aMenuFrame) = 0;
 };
 
 #endif
