@@ -362,9 +362,18 @@ NS_DebugBreak(PRUint32 aSeverity, const char *aStr, const char *aExpr,
 }
 
 static void
+TouchBadMemory()
+{
+  
+  gAssertionCount += *((PRInt32 *) 0); 
+                                       
+}
+
+static void
 Abort(const char *aMsg)
 {
 #if defined(_WIN32)
+  TouchBadMemory();
 
 #ifndef WINCE
   
@@ -386,9 +395,7 @@ Abort(const char *aMsg)
 #endif
 
   
-  
-  gAssertionCount += *((PRInt32 *) 0); 
-                                       
+  TouchBadMemory();
 
   
   PR_ProcessExit(127);
