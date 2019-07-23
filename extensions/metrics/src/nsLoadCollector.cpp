@@ -52,28 +52,7 @@
 #include "nsIDOMDocument.h"
 
 
-#ifdef MOZILLA_1_8_BRANCH
-
-typedef nsString nsAFlatString;
-typedef nsCString nsAFlatCString;
-
-
-typedef nsCString nsXPIDLCString;
-
-inline void CopyASCIItoUCS2(const nsACString &src, nsAString &dest) {
-  NS_CStringToUTF16(src, NS_CSTRING_ENCODING_ASCII, dest);
-}
-
-#define nsAString_h___
-#define nsString_h___
-#define nsReadableUtils_h___
-#endif
 #include "nsIDocument.h"
-#ifdef MOZILLA_1_8_BRANCH
-#undef nsAString_h___
-#undef nsString_h___
-#undef nsReadableUtils_h___
-#endif
 
 
 #define MOZILLA_INTERNAL_API
@@ -506,9 +485,6 @@ nsLoadCollector::OnNewLog()
 }
 
 NS_IMPL_NSIDOCUMENTOBSERVER_LOAD_STUB(nsLoadCollector)
-#ifdef MOZILLA_1_8_BRANCH
-NS_IMPL_NSIDOCUMENTOBSERVER_REFLOW_STUB(nsLoadCollector)
-#endif
 NS_IMPL_NSIDOCUMENTOBSERVER_STATE_STUB(nsLoadCollector)
 NS_IMPL_NSIDOCUMENTOBSERVER_CONTENT(nsLoadCollector)
 NS_IMPL_NSIDOCUMENTOBSERVER_STYLE_STUB(nsLoadCollector)
