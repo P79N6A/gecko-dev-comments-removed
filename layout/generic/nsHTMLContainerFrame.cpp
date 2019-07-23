@@ -38,6 +38,7 @@
 
 
 #include "nsHTMLContainerFrame.h"
+#include "nsFirstLetterFrame.h"
 #include "nsIRenderingContext.h"
 #include "nsPresContext.h"
 #include "nsIPresShell.h"
@@ -109,21 +110,37 @@ nsDisplayTextDecoration::Paint(nsDisplayListBuilder* aBuilder,
     return; 
   const gfxFont::Metrics& metrics = firstFont->GetMetrics();
 
+  gfxFloat ascent;
+  
+  
+  
+  if (mFrame->GetType() == nsGkAtoms::letterFrame) {
+    
+    
+    
+    nsFirstLetterFrame* letterFrame = static_cast<nsFirstLetterFrame*>(mFrame);
+    nscoord tmp = letterFrame->GetFirstLetterBaseline();
+    tmp -= letterFrame->GetUsedBorderAndPadding().top;
+    ascent = letterFrame->PresContext()->AppUnitsToGfxUnits(tmp);
+  } else {
+    ascent = metrics.maxAscent;
+  }
+
   nsPoint pt = aBuilder->ToReferenceFrame(mFrame);
 
   nsHTMLContainerFrame* f = static_cast<nsHTMLContainerFrame*>(mFrame);
   if (mDecoration == NS_STYLE_TEXT_DECORATION_UNDERLINE) {
     gfxFloat underlineOffset = fontGroup->GetUnderlineOffset();
     f->PaintTextDecorationLine(*aCtx, pt, mLine, mColor,
-                               underlineOffset, metrics.maxAscent,
+                               underlineOffset, ascent,
                                metrics.underlineSize, mDecoration);
   } else if (mDecoration == NS_STYLE_TEXT_DECORATION_OVERLINE) {
     f->PaintTextDecorationLine(*aCtx, pt, mLine, mColor,
-                               metrics.maxAscent, metrics.maxAscent,
+                               metrics.maxAscent, ascent,
                                metrics.underlineSize, mDecoration);
   } else {
     f->PaintTextDecorationLine(*aCtx, pt, mLine, mColor,
-                               metrics.strikeoutOffset, metrics.maxAscent,
+                               metrics.strikeoutOffset, ascent,
                                metrics.strikeoutSize, mDecoration);
   }
 }
