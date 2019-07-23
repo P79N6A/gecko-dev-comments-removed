@@ -1709,12 +1709,23 @@ nsPrintEngine::SetupToPrintContent()
   
   if (!mPrt->mDebugFilePtr && mIsDoingPrinting) {
     rv = mPrt->mPrintDC->BeginDocument(docTitleStr, fileName, startPage, endPage);
+  } 
+
+  if (mIsDoingPrintPreview) {
+    
+    
+    nsIPageSequenceFrame *seqFrame = nsnull;
+    mPrt->mPrintObject->mPresShell->GetPageSequenceFrame(&seqFrame);
+    if (seqFrame) {
+      seqFrame->StartPrint(mPrt->mPrintObject->mPresContext, 
+                           mPrt->mPrintSettings, docTitleStr, docURLStr);
+    }
+  } else {
+    if (docTitleStr) nsMemory::Free(docTitleStr);
+    if (docURLStr) nsMemory::Free(docURLStr);
   }
 
   PR_PL(("****************** Begin Document ************************\n"));
-
-  if (docTitleStr) nsMemory::Free(docTitleStr);
-  if (docURLStr) nsMemory::Free(docURLStr);
 
   NS_ENSURE_SUCCESS(rv, rv);
 
