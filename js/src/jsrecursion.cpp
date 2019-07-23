@@ -309,9 +309,8 @@ TraceRecorder::upRecursion()
 
     LIns* rval_ins;
     if (*cx->fp->regs->pc == JSOP_RETURN) {
-        rval_ins = (!anchor || anchor->exitType != RECURSIVE_SLURP_FAIL_EXIT) ?
-                   get(&stackval(-1)) :
-                   NULL;
+        JS_ASSERT(!anchor || anchor->exitType != RECURSIVE_SLURP_FAIL_EXIT);
+        rval_ins = get(&stackval(-1));
         JS_ASSERT(rval_ins);
     } else {
         rval_ins = INS_VOID();
@@ -354,6 +353,27 @@ public:
     VMSideExit* exit;
     unsigned slurpFailSlot;
 };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 JS_REQUIRES_STACK AbortableRecordingStatus
 TraceRecorder::slurpDownFrames(jsbytecode* return_pc)
@@ -501,12 +521,24 @@ TraceRecorder::slurpDownFrames(jsbytecode* return_pc)
     TraceType returnType = exit->stackTypeMap()[downPostSlots];
 
     if (!anchor || anchor->exitType != RECURSIVE_SLURP_FAIL_EXIT) {
-        rval_ins = get(&stackval(-1));
-        if (returnType == TT_INT32) {
-            JS_ASSERT(determineSlotType(&stackval(-1)) == TT_INT32);
-            JS_ASSERT(isPromoteInt(rval_ins));
-            rval_ins = demote(lir, rval_ins);
+        
+
+
+
+        JSOp op = JSOp(*cx->fp->regs->pc);
+        JS_ASSERT(op == JSOP_RETURN || op == JSOP_STOP);
+
+        if (op == JSOP_RETURN) {
+            rval_ins = get(&stackval(-1));
+            if (returnType == TT_INT32) {
+                JS_ASSERT(determineSlotType(&stackval(-1)) == TT_INT32);
+                JS_ASSERT(isPromoteInt(rval_ins));
+                rval_ins = demote(lir, rval_ins);
+            }
+        } else {
+            rval_ins = INS_VOID();
         }
+
         
 
 
