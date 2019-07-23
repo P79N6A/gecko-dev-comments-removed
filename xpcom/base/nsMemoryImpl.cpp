@@ -57,6 +57,9 @@
 #define NS_MEMORY_FLUSHER
 #elif defined (NS_OSSO)
 #include <osso-mem.h>
+#include <fcntl.h>
+#include <unistd.h>
+const char* kHighMark = "/sys/kernel/high_watermark";
 #else
 
 #undef NS_MEMORY_FLUSHER
@@ -192,15 +195,15 @@ nsMemoryImpl::IsLowMemory(PRBool *result)
     GlobalMemoryStatus(&stat);
     *result = ((float)stat.dwAvailPageFile / stat.dwTotalPageFile) < 0.1;
 #elif defined(NS_OSSO)
-    osso_mem_usage_t usage;
-    osso_mem_get_usage(&usage);
-    
-    
-    
-    if (usage.low == 0 || usage.low > usage.total)
-      *result = PR_FALSE;
-    else
-      *result = (PRBool) usage.low <= usage.used;
+    int fd = open (kHighMark, O_RDONLY);
+    if (fd == -1) {
+        *result = PR_FALSE;
+        return NS_OK;
+    }
+    int c = 0;
+    read (fd, &c, 1);
+    close(fd);
+    *result = (c == '1');
 #else
     *result = PR_FALSE;
 #endif
