@@ -391,7 +391,7 @@ LoginManagerPrompter.prototype = {
         
         
         
-        newBar.timeout = Date.now() + 10000; 
+        newBar.timeout = Date.now() + 20000; 
 
         if (oldBar) {
             this.log("(...and removing old save-password notification bar)");
