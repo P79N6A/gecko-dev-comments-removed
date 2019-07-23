@@ -1490,14 +1490,17 @@ NS_METHOD nsWindow::Resize(PRInt32 aX,
                       PRInt32 h,
                       PRBool   aRepaint)
 {
-  
-  
-
    
-   mBounds.x      = aX;
-   mBounds.y      = aY;
-   mBounds.width  = w;
-   mBounds.height = h;
+   
+   
+   if( !mWnd || mWindowType == eWindowType_child) 
+   {
+      
+      mBounds.x      = aX ;
+      mBounds.y      = aY ;
+      mBounds.width  = w  ;
+      mBounds.height = h  ;
+   }
 
    
    if( mWnd)
