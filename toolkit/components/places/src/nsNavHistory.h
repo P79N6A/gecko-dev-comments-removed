@@ -64,7 +64,7 @@
 
 #include "nsINavBookmarksService.h"
 #include "nsIPrivateBrowsingService.h"
-
+#include "nsIFaviconService.h"
 #include "nsNavHistoryResult.h"
 #include "nsNavHistoryQuery.h"
 
@@ -168,8 +168,10 @@ public:
 
 
 
-  nsresult AddLazyLoadFaviconMessage(nsIURI* aPage, nsIURI* aFavicon,
-                                     PRBool aForceReload);
+  nsresult AddLazyLoadFaviconMessage(nsIURI* aPageURI,
+                                     nsIURI* aFaviconURI,
+                                     PRBool aForceReload,
+                                     nsIFaviconDataCallback* aCallback);
 #endif
 
   
@@ -587,6 +589,7 @@ protected:
     
     nsCOMPtr<nsIURI> favicon;
     PRBool alwaysLoadFavicon;
+    nsCOMPtr<nsIFaviconDataCallback> callback;
   };
   nsTArray<LazyMessage> mLazyMessages;
   nsCOMPtr<nsITimer> mLazyTimer;

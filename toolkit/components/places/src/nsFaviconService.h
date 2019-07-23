@@ -106,8 +106,10 @@ public:
   }
 
   
-  nsresult DoSetAndLoadFaviconForPage(nsIURI* aPage, nsIURI* aFavicon,
-                                      PRBool aForceReload);
+  nsresult DoSetAndLoadFaviconForPage(nsIURI* aPageURI,
+                                      nsIURI* aFaviconURI,
+                                      PRBool aForceReload,
+                                      nsIFaviconDataCallback* aCallback);
 
   
   nsresult GetFaviconLinkForIconString(const nsCString& aIcon, nsIURI** aOutput);
