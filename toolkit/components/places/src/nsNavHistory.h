@@ -330,9 +330,6 @@ public:
   PRInt32 mBatchLevel;
 
   
-  PRLock* mLock;
-
-  
   
   PRBool mBatchHasTransaction;
 

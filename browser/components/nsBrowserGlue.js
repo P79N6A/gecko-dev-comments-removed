@@ -538,9 +538,6 @@ BrowserGlue.prototype = {
     var bmsvc = Cc["@mozilla.org/browser/nav-bookmarks-service;1"].
                 getService(Ci.nsINavBookmarksService);
 
-    
-    
-    
     var callback = {
       _placesBundle: Cc["@mozilla.org/intl/stringbundle;1"].
                      getService(Ci.nsIStringBundleService).
@@ -612,9 +609,7 @@ BrowserGlue.prototype = {
     };
 
     try {
-      callback.runBatched();
-      
-      
+      bmsvc.runInBatchMode(callback, null);
     }
     catch(ex) {
       Components.utils.reportError(ex);
