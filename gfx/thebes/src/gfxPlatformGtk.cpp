@@ -69,6 +69,13 @@
 PRInt32 gfxPlatformGtk::sDPI = -1;
 gfxFontconfigUtils *gfxPlatformGtk::sFontconfigUtils = nsnull;
 
+static cairo_user_data_key_t cairo_gdk_pixmap_key;
+static void do_gdk_pixmap_unref (void *data)
+{
+    GdkPixmap *pmap = (GdkPixmap*)data;
+    gdk_pixmap_unref (pmap);
+}
+
 gfxPlatformGtk::gfxPlatformGtk()
 {
 #ifdef MOZ_ENABLE_GLITZ
@@ -134,6 +141,7 @@ gfxPlatformGtk::CreateOffscreenSurface(const gfxIntSize& size,
         GdkPixmap* pixmap = nsnull;
         XRenderPictFormat* xrenderFormat =
             XRenderFindStandardFormat(display, xrenderFormatID);
+
         if (!xrenderFormat) {
             
             
@@ -151,19 +159,38 @@ gfxPlatformGtk::CreateOffscreenSurface(const gfxIntSize& size,
                                                 GDK_PIXMAP_XID(GDK_DRAWABLE(pixmap)),
                                                 GDK_VISUAL_XVISUAL(vis),
                                                 size);
-            } else {
-                
-                newSurface = new gfxImageSurface(gfxIntSize(size.width, size.height), imageFormat);
             }
         } else {
             pixmap = gdk_pixmap_new(nsnull, size.width, size.height,
                                     xrenderFormat->depth);
-            gdk_drawable_set_colormap(GDK_DRAWABLE(pixmap), nsnull);
 
-            newSurface = new gfxXlibSurface(display,
-                                            GDK_PIXMAP_XID(GDK_DRAWABLE(pixmap)),
-                                            xrenderFormat,
-                                            size);
+            if (pixmap) {
+                gdk_drawable_set_colormap(GDK_DRAWABLE(pixmap), nsnull);
+                newSurface = new gfxXlibSurface(display,
+                                                GDK_PIXMAP_XID(GDK_DRAWABLE(pixmap)),
+                                                xrenderFormat,
+                                                size);
+            }
+        }
+
+        if (newSurface && newSurface->CairoStatus() == 0) {
+            
+            
+            newSurface->SetData(&cairo_gdk_pixmap_key,
+                                pixmap,
+                                do_gdk_pixmap_unref);
+        } else {
+            
+            
+            if (pixmap)
+                gdk_pixmap_unref(pixmap);
+            newSurface = nsnull;
+        }
+
+        if (!newSurface) {
+            
+            
+            newSurface = new gfxImageSurface(gfxIntSize(size.width, size.height), imageFormat);
         }
 
     } else {
