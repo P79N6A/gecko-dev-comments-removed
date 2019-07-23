@@ -50,6 +50,7 @@ TestSyncWakeupParent::RecvSync1()
     
     
     
+    puts(" (sleeping for 5 seconds. sorry!)");
     sleep(5);
 #endif
 
@@ -65,6 +66,7 @@ TestSyncWakeupParent::RecvSync2()
 #if defined(OS_POSIX)
     
     sleep(5);
+    puts(" (sleeping for 5 seconds. sorry!)");
 #endif
 
     return true;
