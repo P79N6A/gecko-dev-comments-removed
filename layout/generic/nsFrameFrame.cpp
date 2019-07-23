@@ -74,7 +74,7 @@
 #include "nsIDOMHTMLFrameElement.h"
 #include "nsIDOMHTMLIFrameElement.h"
 #include "nsIDOMXULElement.h"
-#include "nsFrameLoader.h"
+#include "nsIFrameLoader.h"
 #include "nsIScriptSecurityManager.h"
 #include "nsXPIDLString.h"
 #include "nsIScrollable.h"
@@ -190,10 +190,9 @@ protected:
   
   nsIntSize GetMarginAttributes();
 
-  nsFrameLoader* FrameLoader();
-
   PRBool IsInline() { return mIsInline; }
-  nsIView* CreateViewAndWidget(nsContentType aContentType);
+  nsresult ShowDocShell();
+  nsresult CreateViewAndWidget(nsContentType aContentType);
 
   virtual nscoord GetIntrinsicWidth();
   virtual nscoord GetIntrinsicHeight();
@@ -214,18 +213,16 @@ protected:
 
   nsIFrame* ObtainIntrinsicSizeFrame();
 
-  nsRefPtr<nsFrameLoader> mFrameLoader;
+  nsCOMPtr<nsIFrameLoader> mFrameLoader;
   nsIView* mInnerView;
+  PRPackedBool mDidCreateDoc;
   PRPackedBool mIsInline;
   PRPackedBool mPostedReflowCallback;
-  bool mDidCreateDoc;
 };
 
 nsSubDocumentFrame::nsSubDocumentFrame(nsStyleContext* aContext)
-  : nsLeafFrame(aContext)
-  , mIsInline(PR_FALSE)
-  , mPostedReflowCallback(PR_FALSE)
-  , mDidCreateDoc(false)
+  : nsLeafFrame(aContext), mDidCreateDoc(PR_FALSE),
+    mIsInline(PR_FALSE), mPostedReflowCallback(PR_FALSE)
 {
 }
 
@@ -290,39 +287,22 @@ nsSubDocumentFrame::Init(nsIContent*     aContent,
   return NS_OK;
 }
 
-inline PRInt32 ConvertOverflow(PRUint8 aOverflow)
-{
-  switch (aOverflow) {
-    case NS_STYLE_OVERFLOW_VISIBLE:
-    case NS_STYLE_OVERFLOW_AUTO:
-      return nsIScrollable::Scrollbar_Auto;
-    case NS_STYLE_OVERFLOW_HIDDEN:
-    case NS_STYLE_OVERFLOW_CLIP:
-      return nsIScrollable::Scrollbar_Never;
-    case NS_STYLE_OVERFLOW_SCROLL:
-      return nsIScrollable::Scrollbar_Always;
-  }
-  NS_NOTREACHED("invalid overflow value passed to ConvertOverflow");
-  return nsIScrollable::Scrollbar_Auto;
-}
-
 void
 nsSubDocumentFrame::ShowViewer()
 {
   if (!PresContext()->IsDynamic()) {
     
     
-    (void) CreateViewAndWidget(eContentTypeContent);
-  } else {
-    nsFrameLoader* frameloader = FrameLoader();
-    if (frameloader) {
-      nsIntSize margin = GetMarginAttributes();
-      const nsStyleDisplay* disp = GetStyleDisplay();
-      mDidCreateDoc = frameloader->Show(margin.width, margin.height,
-                                        ConvertOverflow(disp->mOverflowX),
-                                        ConvertOverflow(disp->mOverflowY),
-                                        this);
+    nsresult rv = CreateViewAndWidget(eContentTypeContent);
+    if (NS_FAILED(rv)) {
+      return;
     }
+  } else {
+    nsresult rv = ShowDocShell();
+    if (NS_FAILED(rv)) {
+      return;
+    }
+    mDidCreateDoc = PR_TRUE;
   }
 }
 
@@ -391,8 +371,7 @@ nsSubDocumentFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
   if (!aBuilder->IsForEventDelivery()) {
     
     rv = presShell->AddCanvasBackgroundColorItem(
-           *aBuilder, childItems, f ? f : this, &shellBounds, NS_RGBA(0,0,0,0),
-           PR_TRUE);
+           *aBuilder, childItems, f ? f : this, &shellBounds);
   }
 
   if (f && NS_SUCCEEDED(rv)) {
@@ -421,7 +400,7 @@ nsSubDocumentFrame::GetIntrinsicWidth()
     return 0;  
   }
 
-  if (mContent->IsXUL()) {
+  if (mContent->IsNodeOfType(nsINode::eXUL)) {
     return 0;  
   }
 
@@ -439,7 +418,7 @@ nsSubDocumentFrame::GetIntrinsicHeight()
   
   NS_ASSERTION(IsInline(), "Shouldn't have been called");
 
-  if (mContent->IsXUL()) {
+  if (mContent->IsNodeOfType(nsINode::eXUL)) {
     return 0;
   }
 
@@ -627,52 +606,16 @@ nsSubDocumentFrame::Reflow(nsPresContext*           aPresContext,
 PRBool
 nsSubDocumentFrame::ReflowFinished()
 {
-  nsCOMPtr<nsIDocShell> docShell;
-  GetDocShell(getter_AddRefs(docShell));
-
-  nsCOMPtr<nsIBaseWindow> baseWindow(do_QueryInterface(docShell));
-
-  
-  if (baseWindow) {
-    PRInt32 x = 0;
-    PRInt32 y = 0;
-
+  if (mFrameLoader) {
     nsWeakFrame weakFrame(this);
-    
-    nsPresContext* presContext = PresContext();
-    baseWindow->GetPositionAndSize(&x, &y, nsnull, nsnull);
 
-    if (!weakFrame.IsAlive()) {
+    mFrameLoader->UpdatePositionAndSize(this);
+
+    if (weakFrame.IsAlive()) {
       
-      return PR_FALSE;
+      mPostedReflowCallback = PR_FALSE;
     }
-
-    
-    
-    mPostedReflowCallback = PR_FALSE;
-  
-    nsSize innerSize(GetSize());
-    if (IsInline()) {
-      nsMargin usedBorderPadding = GetUsedBorderAndPadding();
-
-      
-      
-      
-      innerSize.width  -= usedBorderPadding.LeftRight();
-      innerSize.width = NS_MAX(innerSize.width, 0);
-      
-      innerSize.height -= usedBorderPadding.TopBottom();
-      innerSize.height = NS_MAX(innerSize.height, 0);
-    }  
-
-    PRInt32 cx = presContext->AppUnitsToDevPixels(innerSize.width);
-    PRInt32 cy = presContext->AppUnitsToDevPixels(innerSize.height);
-    baseWindow->SetPositionAndSize(x, y, cx, cy, PR_FALSE);
-  } else {
-    
-    mPostedReflowCallback = PR_FALSE;
   }
-
   return PR_FALSE;
 }
 
@@ -712,7 +655,7 @@ nsSubDocumentFrame::AttributeChanged(PRInt32 aNameSpaceID,
     if (!mFrameLoader) 
       return NS_OK;
 
-    if (!mContent->IsXUL()) {
+    if (!mContent->IsNodeOfType(nsINode::eXUL)) {
       return NS_OK;
     }
 
@@ -798,8 +741,39 @@ nsSubDocumentFrame::Destroy()
 void
 nsSubDocumentFrame::HideViewer()
 {
-  if (mFrameLoader && mDidCreateDoc)
-    mFrameLoader->Hide();
+  if (mFrameLoader && mDidCreateDoc) {
+    
+    
+    
+
+    nsCOMPtr<nsIDocShell> docShell;
+    mFrameLoader->GetDocShell(getter_AddRefs(docShell));
+
+    if (docShell) {
+      nsCOMPtr<nsIContentViewer> content_viewer;
+      docShell->GetContentViewer(getter_AddRefs(content_viewer));
+
+      if (content_viewer) {
+        
+        
+
+        content_viewer->SetSticky(PR_FALSE);
+      }
+
+      nsCOMPtr<nsIBaseWindow> baseWin = do_QueryInterface(docShell);
+      NS_ASSERTION(baseWin, "Docshell must be an nsIBaseWindow");
+
+      
+      
+      
+
+      
+      baseWin->SetVisibility(PR_FALSE);
+
+      
+      baseWin->SetParentWidget(nsnull);
+    }
+  }
 }
 
 nsIntSize
@@ -818,24 +792,6 @@ nsSubDocumentFrame::GetMarginAttributes()
   return result;
 }
 
-nsFrameLoader*
-nsSubDocumentFrame::FrameLoader()
-{
-  nsIContent* content = GetContent();
-  if (!content)
-    return nsnull;
-
-  if (!mFrameLoader) {
-    nsCOMPtr<nsIFrameLoaderOwner> loaderOwner = do_QueryInterface(content);
-    if (loaderOwner) {
-      nsCOMPtr<nsIFrameLoader> loader;
-      loaderOwner->GetFrameLoader(getter_AddRefs(loader));
-      mFrameLoader = static_cast<nsFrameLoader*>(loader.get());
-    }
-  }
-  return mFrameLoader;
-}
-
 
 
 NS_IMETHODIMP
@@ -843,7 +799,23 @@ nsSubDocumentFrame::GetDocShell(nsIDocShell **aDocShell)
 {
   *aDocShell = nsnull;
 
-  NS_ENSURE_STATE(FrameLoader());
+  nsIContent* content = GetContent();
+  if (!content) {
+    
+    
+    return NS_OK;
+  }
+
+  if (!mFrameLoader) {
+    nsCOMPtr<nsIFrameLoaderOwner> loaderOwner = do_QueryInterface(content);
+
+    if (loaderOwner) {
+      loaderOwner->GetFrameLoader(getter_AddRefs(mFrameLoader));
+    }
+
+    NS_ENSURE_STATE(mFrameLoader);
+  }
+
   return mFrameLoader->GetDocShell(aDocShell);
 }
 
@@ -887,14 +859,122 @@ nsSubDocumentFrame::EndSwapDocShells(nsIFrame* aOther)
   other->InvalidateOverflowRect();
 }
 
-nsIView*
+inline PRInt32 ConvertOverflow(PRUint8 aOverflow)
+{
+  switch (aOverflow) {
+    case NS_STYLE_OVERFLOW_VISIBLE:
+    case NS_STYLE_OVERFLOW_AUTO:
+      return nsIScrollable::Scrollbar_Auto;
+    case NS_STYLE_OVERFLOW_HIDDEN:
+    case NS_STYLE_OVERFLOW_CLIP:
+      return nsIScrollable::Scrollbar_Never;
+    case NS_STYLE_OVERFLOW_SCROLL:
+      return nsIScrollable::Scrollbar_Always;
+  }
+  NS_NOTREACHED("invalid overflow value passed to ConvertOverflow");
+  return nsIScrollable::Scrollbar_Auto;
+}
+
+nsresult
+nsSubDocumentFrame::ShowDocShell()
+{
+  nsCOMPtr<nsIDocShell> docShell;
+  nsresult rv = GetDocShell(getter_AddRefs(docShell));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  nsCOMPtr<nsIPresShell> presShell;
+  docShell->GetPresShell(getter_AddRefs(presShell));
+
+  if (presShell) {
+    
+    NS_ASSERTION(mInnerView, "What's going on?");
+    return NS_OK;
+  }
+
+  
+  
+  nsIntSize margin = GetMarginAttributes();
+  docShell->SetMarginWidth(margin.width);
+  docShell->SetMarginHeight(margin.height);
+
+  
+  
+  
+  nsCOMPtr<nsIScrollable> sc(do_QueryInterface(docShell));
+
+  if (sc) {
+    const nsStyleDisplay *disp = GetStyleDisplay();
+    sc->SetDefaultScrollbarPreferences(nsIScrollable::ScrollOrientation_X,
+                                       ConvertOverflow(disp->mOverflowX));
+    sc->SetDefaultScrollbarPreferences(nsIScrollable::ScrollOrientation_Y,
+                                       ConvertOverflow(disp->mOverflowY));
+  }
+
+  PRInt32 itemType = nsIDocShellTreeItem::typeContent;
+  nsCOMPtr<nsIDocShellTreeItem> treeItem(do_QueryInterface(docShell));
+  if (treeItem) {
+    treeItem->GetItemType(&itemType);
+  }
+
+  nsContentType contentType;
+  if (itemType == nsIDocShellTreeItem::typeChrome) {
+    contentType = eContentTypeUI;
+  }
+  else {
+    nsCOMPtr<nsIDocShellTreeItem> sameTypeParent;
+    treeItem->GetSameTypeParent(getter_AddRefs(sameTypeParent));
+    contentType = sameTypeParent ? eContentTypeContentFrame : eContentTypeContent;
+  }
+  rv = CreateViewAndWidget(contentType);
+  if (NS_FAILED(rv)) {
+    return rv;
+  }
+
+  nsCOMPtr<nsIBaseWindow> baseWindow(do_QueryInterface(docShell));
+
+  if (baseWindow) {
+    baseWindow->InitWindow(nsnull, mInnerView->GetWidget(), 0, 0, 10, 10);
+
+    
+    
+    
+
+    baseWindow->Create();
+
+    baseWindow->SetVisibility(PR_TRUE);
+  }
+
+  
+  
+  
+  
+  docShell->GetPresShell(getter_AddRefs(presShell));
+  if (presShell) {
+    nsCOMPtr<nsIDOMNSHTMLDocument> doc =
+      do_QueryInterface(presShell->GetDocument());
+
+    if (doc) {
+      nsAutoString designMode;
+      doc->GetDesignMode(designMode);
+
+      if (designMode.EqualsLiteral("on")) {
+        doc->SetDesignMode(NS_LITERAL_STRING("off"));
+        doc->SetDesignMode(NS_LITERAL_STRING("on"));
+      }
+    }
+  }
+
+  return NS_OK;
+}
+
+nsresult
 nsSubDocumentFrame::CreateViewAndWidget(nsContentType aContentType)
 {
   if (mInnerView) {
     
-    return mInnerView;
+    return NS_OK;
   }
-
+  
   
   nsIView* outerView = GetView();
   NS_ASSERTION(outerView, "Must have an outer view already");
@@ -904,21 +984,18 @@ nsSubDocumentFrame::CreateViewAndWidget(nsContentType aContentType)
   nsIView* innerView = viewMan->CreateView(viewBounds, outerView);
   if (!innerView) {
     NS_ERROR("Could not create inner view");
-    return nsnull;
+    return NS_ERROR_OUT_OF_MEMORY;
   }
   mInnerView = innerView;
   viewMan->InsertChild(outerView, innerView, nsnull, PR_TRUE);
 
-  if (aContentType != eContentTypeContentFrame) {
+  if (aContentType == eContentTypeContentFrame) {
     
-    nsresult rv = innerView->CreateWidget(kCChildCID, nsnull, nsnull,
-                                          PR_TRUE, PR_TRUE, aContentType);
-    if (NS_FAILED(rv)) {
-      NS_WARNING("Couldn't create widget for frame.");
-      mInnerView = nsnull;
-    }
+    return NS_OK;
   }
-  return mInnerView;
+
+  return innerView->CreateWidget(kCChildCID, nsnull, nsnull, PR_TRUE, PR_TRUE,
+                                 aContentType);
 }
 
 nsIFrame*
