@@ -40,8 +40,16 @@
 #include "npfunctions.h"
 #include "npruntime.h"
 
+typedef enum  {
+  DM_DEFAULT,
+  DM_SOLID_COLOR
+} DrawMode;
+
 typedef struct TestNPObject : NPObject {
   NPP npp;
+  DrawMode drawMode;
+  
+  PRUint32 drawColor;
 } TestNPObject;
 
 typedef struct InstanceData {
