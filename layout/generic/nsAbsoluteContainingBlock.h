@@ -71,24 +71,20 @@ class nsAbsoluteContainingBlock
 {
 public:
   nsAbsoluteContainingBlock(nsIAtom* aChildListName)
-#ifdef DEBUG
     : mChildListName(aChildListName)
-#endif
   {
     NS_ASSERTION(mChildListName == nsGkAtoms::absoluteList ||
                  mChildListName == nsGkAtoms::fixedList,
                  "should either represent position:fixed or absolute content");
   }
 
-#ifdef DEBUG
   nsIAtom* GetChildListName() const { return mChildListName; }
-#endif
 
   nsresult FirstChild(const nsIFrame* aDelegatingFrame,
                       nsIAtom*        aListName,
                       nsIFrame**      aFirstChild) const;
   nsIFrame* GetFirstChild() { return mAbsoluteFrames.FirstChild(); }
-  
+
   nsresult SetInitialChildList(nsIFrame*       aDelegatingFrame,
                                nsIAtom*        aListName,
                                nsIFrame*       aChildList);
@@ -148,13 +144,11 @@ protected:
 protected:
   nsFrameList mAbsoluteFrames;  
 
-#ifdef DEBUG
   nsIAtom* const mChildListName; 
 
   
   void PrettyUC(nscoord aSize,
                 char*   aBuf);
-#endif
 };
 
 #endif 
