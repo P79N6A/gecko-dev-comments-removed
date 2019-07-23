@@ -55,6 +55,7 @@
 #include "nsGkAtoms.h"
 #include "nsTHashtable.h"
 #include "nsHashKeys.h"
+#include "nsTArray.h"
 #include "nsITimer.h"
 #include "nsStubDocumentObserver.h"
 #include "nsIParserService.h"
@@ -106,10 +107,6 @@ extern PRLogModuleInfo* gContentSinkLogModuleInfo;
 
 #define NS_DELAY_FOR_WINDOW_CREATION  500000
 
-
-
-#define NS_MAX_TOKENS_DEFLECTED_IN_LOW_FREQ_MODE 200
-
 class nsContentSink : public nsICSSLoaderObserver,
                       public nsIScriptLoaderObserver,
                       public nsSupportsWeakReference,
@@ -137,6 +134,7 @@ class nsContentSink : public nsICSSLoaderObserver,
   NS_HIDDEN_(nsresult) DidProcessATokenImpl(void);
   NS_HIDDEN_(void) WillBuildModelImpl(void);
   NS_HIDDEN_(void) DidBuildModelImpl(void);
+  NS_HIDDEN_(PRBool) ReadyToCallDidBuildModelImpl(PRBool aTerminated);
   NS_HIDDEN_(void) DropParserAndPerfHint(void);
 
   void NotifyAppend(nsIContent* aContent, PRUint32 aStartIndex);
@@ -351,6 +349,8 @@ protected:
   
   PRUint8 mDeferredFlushTags : 1;
   
+  PRUint8 mDidGetReadyToCallDidBuildModelCall : 1;
+  
   
   PRUint32 mDelayTimerStart;
 
@@ -359,6 +359,8 @@ protected:
 
   
   PRInt32 mDynamicIntervalSwitchThreshold;
+
+  PRInt32 mMaxTokensDeflectedInLowFreqMode;
 
   PRInt32 mBeginLoadTime;
 

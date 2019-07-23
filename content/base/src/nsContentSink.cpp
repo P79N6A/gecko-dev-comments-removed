@@ -298,6 +298,11 @@ nsContentSink::Init(nsIDocument* aDoc,
   mCanInterruptParser =
     nsContentUtils::GetBoolPref("content.interrupt.parsing", PR_TRUE);
 
+  
+  
+  mMaxTokensDeflectedInLowFreqMode =
+    nsContentUtils::GetIntPref("content.max.deflected.tokens", 200);
+
   return NS_OK;
 
 }
@@ -349,19 +354,21 @@ nsContentSink::ScriptAvailable(nsresult aResult,
     mParser->ScriptExecuting();
   }
 
-  if (count == 0) {
-    return NS_OK;
-  }
-
   
   
   
-  NS_ASSERTION(mScriptElements.IndexOf(aElement) == count - 1 ||
-               mScriptElements.IndexOf(aElement) == PRUint32(-1),
+  NS_ASSERTION(count == 0 ||
+               mScriptElements.IndexOf(aElement) == PRInt32(count - 1) ||
+               mScriptElements.IndexOf(aElement) == -1,
                "script found at unexpected position");
 
   
-  if (aElement != mScriptElements[count - 1]) {
+  if (count == 0 || aElement != mScriptElements[count - 1]) {
+    if (mDidGetReadyToCallDidBuildModelCall &&
+        !mScriptLoader->HasPendingOrCurrentScripts() &&
+        mParser && mParser->IsParserEnabled()) {
+      ContinueInterruptedParsingAsync();
+    }
     return NS_OK;
   }
 
@@ -406,6 +413,11 @@ nsContentSink::ScriptEvaluated(nsresult aResult,
   
   PRInt32 count = mScriptElements.Count();
   if (count == 0 || aElement != mScriptElements[count - 1]) {
+    if (mDidGetReadyToCallDidBuildModelCall &&
+        !mScriptLoader->HasPendingOrCurrentScripts() &&
+        mParser && mParser->IsParserEnabled()) {
+      ContinueInterruptedParsingAsync();
+    }
     return NS_OK;
   }
 
@@ -719,25 +731,25 @@ nsContentSink::ProcessLink(nsIContent* aElement,
                            const nsSubstring& aMedia)
 {
   
-  nsStringArray linkTypes;
+  nsTArray<nsString> linkTypes;
   nsStyleLinkElement::ParseLinkTypes(aRel, linkTypes);
 
-  PRBool hasPrefetch = (linkTypes.IndexOf(NS_LITERAL_STRING("prefetch")) != -1);
+  PRBool hasPrefetch = linkTypes.Contains(NS_LITERAL_STRING("prefetch"));
   
-  if (hasPrefetch || linkTypes.IndexOf(NS_LITERAL_STRING("next")) != -1) {
+  if (hasPrefetch || linkTypes.Contains(NS_LITERAL_STRING("next"))) {
     PrefetchHref(aHref, aElement, hasPrefetch);
   }
 
-  if ((!aHref.IsEmpty()) && linkTypes.IndexOf(NS_LITERAL_STRING("dns-prefetch")) != -1) {
+  if ((!aHref.IsEmpty()) && linkTypes.Contains(NS_LITERAL_STRING("dns-prefetch"))) {
     PrefetchDNS(aHref);
   }
 
   
-  if (linkTypes.IndexOf(NS_LITERAL_STRING("stylesheet")) == -1) {
+  if (!linkTypes.Contains(NS_LITERAL_STRING("stylesheet"))) {
     return NS_OK;
   }
 
-  PRBool isAlternate = linkTypes.IndexOf(NS_LITERAL_STRING("alternate")) != -1;
+  PRBool isAlternate = linkTypes.Contains(NS_LITERAL_STRING("alternate"));
   return ProcessStyleLink(aElement, aHref, isAlternate, aTitle, aType,
                           aMedia);
 }
@@ -1046,6 +1058,12 @@ nsContentSink::ProcessOfflineManifest(nsIContent *aElement)
     return;
   }
 
+  
+  
+  if (!mDocShell) {
+    return;
+  }
+
   nsresult rv;
 
   
@@ -1276,9 +1294,7 @@ nsContentSink::StartLayout(PRBool aIgnorePendingSheets)
     
     
 
-    PRBool didInitialReflow = PR_FALSE;
-    shell->GetDidInitialReflow(&didInitialReflow);
-    if (didInitialReflow) {
+    if (shell->DidInitialReflow()) {
       
       
       
@@ -1537,9 +1553,7 @@ nsContentSink::DidProcessATokenImpl()
       
       
       rv = vm->GetLastUserEventTime(eventTime);
-      NS_ENSURE_SUCCESS(rv , NS_ERROR_FAILURE);
   }
-
 
   NS_ENSURE_SUCCESS(rv, NS_ERROR_FAILURE);
 
@@ -1548,7 +1562,8 @@ nsContentSink::DidProcessATokenImpl()
     
     
     
-    if (mDeflectedCount < NS_MAX_TOKENS_DEFLECTED_IN_LOW_FREQ_MODE) {
+    
+    if (mDeflectedCount < mMaxTokensDeflectedInLowFreqMode) {
       mDeflectedCount++;
       
       
@@ -1759,6 +1774,26 @@ nsContentSink::ContinueInterruptedParsingAsync()
     &nsContentSink::ContinueInterruptedParsingIfEnabled);
 
   NS_DispatchToCurrentThread(ev);
+}
+
+PRBool
+nsContentSink::ReadyToCallDidBuildModelImpl(PRBool aTerminated)
+{
+  if (!mDidGetReadyToCallDidBuildModelCall) {
+    if (mDocument && !aTerminated) {
+      mDocument->SetReadyStateInternal(nsIDocument::READYSTATE_INTERACTIVE);
+    }
+
+    if (mScriptLoader) {
+      mScriptLoader->EndDeferringScripts(aTerminated);
+    }
+  }
+
+  mDidGetReadyToCallDidBuildModelCall = PR_TRUE;
+  
+  
+  return aTerminated || !mScriptLoader ||
+         !mScriptLoader->HasPendingOrCurrentScripts();
 }
 
 
