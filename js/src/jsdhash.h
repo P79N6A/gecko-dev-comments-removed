@@ -238,26 +238,25 @@ struct JSDHashTable {
 
 
 typedef void *
-(* JS_DLL_CALLBACK JSDHashAllocTable)(JSDHashTable *table, uint32 nbytes);
+(* JSDHashAllocTable)(JSDHashTable *table, uint32 nbytes);
 
 typedef void
-(* JS_DLL_CALLBACK JSDHashFreeTable) (JSDHashTable *table, void *ptr);
+(* JSDHashFreeTable) (JSDHashTable *table, void *ptr);
 
 
 
 
 
 typedef JSDHashNumber
-(* JS_DLL_CALLBACK JSDHashHashKey)   (JSDHashTable *table, const void *key);
+(* JSDHashHashKey)   (JSDHashTable *table, const void *key);
 
 
 
 
 
 typedef JSBool
-(* JS_DLL_CALLBACK JSDHashMatchEntry)(JSDHashTable *table,
-                                      const JSDHashEntryHdr *entry,
-                                      const void *key);
+(* JSDHashMatchEntry)(JSDHashTable *table, const JSDHashEntryHdr *entry,
+                      const void *key);
 
 
 
@@ -266,9 +265,8 @@ typedef JSBool
 
 
 typedef void
-(* JS_DLL_CALLBACK JSDHashMoveEntry)(JSDHashTable *table,
-                                     const JSDHashEntryHdr *from,
-                                     JSDHashEntryHdr *to);
+(* JSDHashMoveEntry)(JSDHashTable *table, const JSDHashEntryHdr *from,
+                     JSDHashEntryHdr *to);
 
 
 
@@ -276,8 +274,7 @@ typedef void
 
 
 typedef void
-(* JS_DLL_CALLBACK JSDHashClearEntry)(JSDHashTable *table,
-                                      JSDHashEntryHdr *entry);
+(* JSDHashClearEntry)(JSDHashTable *table, JSDHashEntryHdr *entry);
 
 
 
@@ -285,7 +282,7 @@ typedef void
 
 
 typedef void
-(* JS_DLL_CALLBACK JSDHashFinalize)  (JSDHashTable *table);
+(* JSDHashFinalize)  (JSDHashTable *table);
 
 
 
@@ -295,9 +292,8 @@ typedef void
 
 
 typedef JSBool
-(* JS_DLL_CALLBACK JSDHashInitEntry)(JSDHashTable *table,
-                                     JSDHashEntryHdr *entry,
-                                     const void *key);
+(* JSDHashInitEntry)(JSDHashTable *table, JSDHashEntryHdr *entry,
+                     const void *key);
 
 
 
@@ -574,8 +570,8 @@ JS_DHashTableRawRemove(JSDHashTable *table, JSDHashEntryHdr *entry);
 
 
 typedef JSDHashOperator
-(* JS_DLL_CALLBACK JSDHashEnumerator)(JSDHashTable *table, JSDHashEntryHdr *hdr,
-                                      uint32 number, void *arg);
+(* JSDHashEnumerator)(JSDHashTable *table, JSDHashEntryHdr *hdr, uint32 number,
+                      void *arg);
 
 extern JS_PUBLIC_API(uint32)
 JS_DHashTableEnumerate(JSDHashTable *table, JSDHashEnumerator etor, void *arg);

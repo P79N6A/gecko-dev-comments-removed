@@ -63,7 +63,7 @@
 
 
 
-JSJHashNumber JS_DLL_CALLBACK
+JSJHashNumber
 jsj_HashJavaObject(const void *key, void* env)
 {
     JSHashNumber hash_code;
@@ -93,7 +93,7 @@ jsj_HashJavaObject(const void *key, void* env)
 
 
 
-intN JS_DLL_CALLBACK
+intN
 jsj_JavaObjectComparator(const void *v1, const void *v2, void *arg)
 {
     jobject java_obj1, java_obj2;

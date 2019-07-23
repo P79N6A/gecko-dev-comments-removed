@@ -213,7 +213,7 @@ private:
 
 
 
-JSBool JS_DLL_CALLBACK
+JSBool
 XPC_IDispatch_CallMethod(JSContext *cx, JSObject *obj, uintN argc,
                          jsval *argv, jsval *vp);
 
@@ -225,7 +225,7 @@ XPC_IDispatch_CallMethod(JSContext *cx, JSObject *obj, uintN argc,
 
 
 
-JSBool JS_DLL_CALLBACK
+JSBool
 XPC_IDispatch_GetterSetter(JSContext *cx, JSObject *obj, uintN argc, 
                            jsval *argv, jsval *vp);
 

@@ -73,7 +73,7 @@
 #define LOAD_ERROR_NOSPEC "Failed to get URI spec.  This is bad."
 
 
-extern void JS_DLL_CALLBACK
+extern void
 mozJSLoaderErrorReporter(JSContext *cx, const char *message, JSErrorReport *rep);
 
 mozJSSubScriptLoader::mozJSSubScriptLoader() : mSystemPrincipal(nsnull)

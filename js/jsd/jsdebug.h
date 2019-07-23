@@ -108,7 +108,7 @@ typedef struct JSDObject         JSDObject;
 
 
 typedef void
-(* JS_DLL_CALLBACK JSD_SetContextProc)(JSDContext* jsdc, void* user);
+(* JSD_SetContextProc)(JSDContext* jsdc, void* user);
 
 
 typedef struct
@@ -434,10 +434,10 @@ JSD_GetScriptLineExtent(JSDContext* jsdc, JSDScript *jsdscript);
 
 
 typedef void
-(* JS_DLL_CALLBACK JSD_ScriptHookProc)(JSDContext* jsdc,
-                                       JSDScript*  jsdscript,
-                                       JSBool      creating,
-                                       void*       callerdata);
+(* JSD_ScriptHookProc)(JSDContext* jsdc,
+                       JSDScript*  jsdscript,
+                       JSBool      creating,
+                       void*       callerdata);
 
 
 
@@ -713,11 +713,11 @@ JSD_AddFullSourceText(JSDContext* jsdc,
 
 
 typedef uintN
-(* JS_DLL_CALLBACK JSD_ExecutionHookProc)(JSDContext*     jsdc,
-                                          JSDThreadState* jsdthreadstate,
-                                          uintN           type,
-                                          void*           callerdata,
-                                          jsval*          rval);
+(* JSD_ExecutionHookProc)(JSDContext*     jsdc,
+                          JSDThreadState* jsdthreadstate,
+                          uintN           type,
+                          void*           callerdata,
+                          jsval*          rval);
 
 
 #define JSD_HOOK_TOPLEVEL_START  0   /* about to evaluate top level script */
@@ -732,10 +732,10 @@ typedef uintN
 
 
 typedef JSBool
-(* JS_DLL_CALLBACK JSD_CallHookProc)(JSDContext*     jsdc,
-                                     JSDThreadState* jsdthreadstate,
-                                     uintN           type,
-                                     void*           callerdata);
+(* JSD_CallHookProc)(JSDContext*     jsdc,
+                     JSDThreadState* jsdthreadstate,
+                     uintN           type,
+                     void*           callerdata);
 
 
 
@@ -1050,11 +1050,11 @@ JSD_SetException(JSDContext* jsdc, JSDThreadState* jsdthreadstate,
 
 
 typedef uintN
-(* JS_DLL_CALLBACK JSD_ErrorReporter)(JSDContext*     jsdc,
-                                      JSContext*      cx,
-                                      const char*     message,
-                                      JSErrorReport*  report,
-                                      void*           callerdata);
+(* JSD_ErrorReporter)(JSDContext*     jsdc,
+                      JSContext*      cx,
+                      const char*     message,
+                      JSErrorReport*  report,
+                      void*           callerdata);
 
 
 extern JSD_PUBLIC_API(JSBool)

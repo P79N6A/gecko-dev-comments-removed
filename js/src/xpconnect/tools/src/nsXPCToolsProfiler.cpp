@@ -130,7 +130,7 @@ nsXPCToolsProfiler::~nsXPCToolsProfiler()
 
 
 
-JS_STATIC_DLL_CALLBACK(void)
+static void
 xpctools_JSNewScriptHook(JSContext  *cx,
                          const char *filename,  
                          uintN      lineno,     
@@ -172,7 +172,7 @@ xpctools_JSNewScriptHook(JSContext  *cx,
 }
 
 
-JS_STATIC_DLL_CALLBACK(void)
+static void
 xpctools_JSDestroyScriptHook(JSContext  *cx,
                              JSScript   *script,
                              void       *callerdata)
@@ -188,7 +188,7 @@ xpctools_JSDestroyScriptHook(JSContext  *cx,
 
 
 
-JS_STATIC_DLL_CALLBACK(void*)
+static void*
 xpctools_InterpreterHook(JSContext *cx, JSStackFrame *fp, JSBool before,
                          JSBool *ok, void *closure)
 {

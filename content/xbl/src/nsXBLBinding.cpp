@@ -113,7 +113,7 @@
 
 
 
-JS_STATIC_DLL_CALLBACK(void)
+static void
 XBLFinalize(JSContext *cx, JSObject *obj)
 {
   nsIXBLDocumentInfo* docInfo =
@@ -124,7 +124,7 @@ XBLFinalize(JSContext *cx, JSObject *obj)
   c->Drop();
 }
 
-JS_STATIC_DLL_CALLBACK(JSBool)
+static JSBool
 XBLResolve(JSContext *cx, JSObject *obj, jsval id, uintN flags,
            JSObject **objp)
 {
