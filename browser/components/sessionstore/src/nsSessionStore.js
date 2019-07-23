@@ -509,9 +509,7 @@ SessionStoreService.prototype = {
           this.onTabAdd(aEvent.currentTarget.ownerDocument.defaultView, tabpanel);
         }
         else {
-          
-          if (!aEvent.detail)
-            this.onTabClose(aEvent.currentTarget.ownerDocument.defaultView, aEvent.originalTarget);
+          this.onTabClose(aEvent.currentTarget.ownerDocument.defaultView, aEvent.originalTarget);
           this.onTabRemove(aEvent.currentTarget.ownerDocument.defaultView, tabpanel);
         }
         break;
@@ -641,11 +639,8 @@ SessionStoreService.prototype = {
       }
       
       
-      if (winData.tabs.length > 1 ||
-          (winData.tabs.length == 1 && winData.tabs[0].entries.length > 0)) {
-        this._closedWindows.unshift(winData);
-        this._capClosedWindows();
-      }
+      this._closedWindows.unshift(winData);
+      this._capClosedWindows();
       
       
       delete this._windows[aWindow.__SSi];
