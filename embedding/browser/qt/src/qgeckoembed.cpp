@@ -226,6 +226,8 @@ QGeckoEmbedPrivate::init()
 
     
     ApplyChromeMask();
+    
+    window->SetVisibility(PR_TRUE);
 }
 
 void
@@ -538,7 +540,6 @@ QGeckoEmbed::resizeEvent(QResizeEvent *e)
 {
     d->window->SetDimensions(nsIEmbeddingSiteWindow::DIM_FLAGS_SIZE_INNER,
                               0, 0, e->size().width(), e->size().height());
-    d->window->SetVisibility(PR_TRUE);
 }
 
 nsIDOMDocument*
@@ -595,13 +596,6 @@ QGeckoEmbed::contentFinishedLoading()
 
         
         domWindow->SizeToContent();
-
-        
-        
-        PRBool visibility;
-        d->window->GetVisibility(&visibility);
-        if (visibility)
-            d->window->SetVisibility(PR_TRUE);
     }
 }
 
