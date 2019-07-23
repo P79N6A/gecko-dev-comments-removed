@@ -198,7 +198,8 @@ public:
       if (!MayHaveListenerManager() && !aMayHaveNewListenerManagers) {
         return NS_OK;
       }
-      mManager = mTarget->GetListenerManager(PR_FALSE);
+      mManager =
+        static_cast<nsEventListenerManager*>(mTarget->GetListenerManager(PR_FALSE));
     }
     if (mManager) {
       NS_ASSERTION(aVisitor.mEvent->currentTarget == nsnull,
@@ -240,7 +241,7 @@ public:
   
   nsCOMPtr<nsPIDOMEventTarget>      mNewTarget;
   
-  nsCOMPtr<nsIEventListenerManager> mManager;
+  nsRefPtr<nsEventListenerManager>  mManager;
 
   static PRUint32                   sMaxEtciCount;
   static PRUint32                   sCurrentEtciCount;

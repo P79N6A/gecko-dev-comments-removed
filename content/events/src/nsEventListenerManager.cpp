@@ -1095,34 +1095,14 @@ static const EventDispatchData* sLatestEventDispData = nsnull;
 
 
 nsresult
-nsEventListenerManager::HandleEvent(nsPresContext* aPresContext,
-                                    nsEvent* aEvent, nsIDOMEvent** aDOMEvent,
-                                    nsPIDOMEventTarget* aCurrentTarget,
-                                    PRUint32 aFlags,
-                                    nsEventStatus* aEventStatus,
-                                    nsCxPusher* aPusher)
+nsEventListenerManager::HandleEventInternal(nsPresContext* aPresContext,
+                                            nsEvent* aEvent,
+                                            nsIDOMEvent** aDOMEvent,
+                                            nsPIDOMEventTarget* aCurrentTarget,
+                                            PRUint32 aFlags,
+                                            nsEventStatus* aEventStatus,
+                                            nsCxPusher* aPusher)
 {
-  if (mListeners.IsEmpty() || aEvent->flags & NS_EVENT_FLAG_STOP_DISPATCH) {
-    return NS_OK;
-  }
-
-  if (!mMayHaveCapturingListeners &&
-      !(aEvent->flags & NS_EVENT_FLAG_BUBBLE)) {
-    return NS_OK;
-  }
-  
-  if (!mMayHaveSystemGroupListeners &&
-      aFlags & NS_EVENT_FLAG_SYSTEM_EVENT) {
-    return NS_OK;
-  }
-
-  
-  if (mNoListenerForEvent == aEvent->message &&
-      (mNoListenerForEvent != NS_USER_DEFINED_EVENT ||
-       mNoListenerForEventAtom == aEvent->userType)) {
-    return NS_OK;
-  }
-
   
   if (*aEventStatus == nsEventStatus_eConsumeNoDefault) {
     aEvent->flags |= NS_EVENT_FLAG_NO_DEFAULT;
