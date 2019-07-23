@@ -790,7 +790,7 @@ const nsHTMLElement gHTMLElements[] = {
               eHTMLTag_unknown,eHTMLTag_unknown,
               &gInHead,&gInHead,
      0,0,0,0,
-              kAllTags - kHeadContent, kNone, kNone,
+              kHeadContent, kNone, kNone,
            kNonContainer,kDefaultPropRange,
            &gInHead,0,eHTMLTag_unknown,
                         0
