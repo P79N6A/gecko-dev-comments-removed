@@ -200,10 +200,6 @@ nsHttpChannel::Init(nsIURI *uri,
     NS_ADDREF(mConnectionInfo);
 
     
-    if (usingSSL && !gHttpHandler->IsPersistentHttpsCachingEnabled()) 
-        mLoadFlags |= INHIBIT_PERSISTENT_CACHING;
-
-    
     mRequestHead.SetMethod(nsHttp::Get);
 
     
@@ -2015,6 +2011,10 @@ nsHttpChannel::InitCacheEntry()
 
     
     
+    if (!gHttpHandler->CanCacheAllSSLContent() &&
+        mConnectionInfo->UsingSSL() && !mResponseHead->CacheControlPublic())
+        mLoadFlags |= INHIBIT_PERSISTENT_CACHING;
+
     if (mLoadFlags & INHIBIT_PERSISTENT_CACHING) {
         rv = mCacheEntry->SetStoragePolicy(nsICache::STORE_IN_MEMORY);
         if (NS_FAILED(rv)) return rv;
@@ -3462,12 +3462,6 @@ NS_IMETHODIMP
 nsHttpChannel::SetLoadFlags(nsLoadFlags aLoadFlags)
 {
     mLoadFlags = aLoadFlags;
-
-    
-    if (mConnectionInfo && mConnectionInfo->UsingSSL() 
-        && !gHttpHandler->IsPersistentHttpsCachingEnabled())
-        mLoadFlags |= INHIBIT_PERSISTENT_CACHING;
-
     return NS_OK;
 }
 
