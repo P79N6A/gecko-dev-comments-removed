@@ -6783,7 +6783,7 @@ nsCSSFrameConstructor::ConstructMathMLFrame(nsFrameConstructorState& aState,
     
     nsRefPtr<nsStyleContext> blockContext;
     blockContext = styleSet->ResolvePseudoStyleFor(aContent,
-                                                   nsCSSAnonBoxes::mozAnonymousBlock,
+                                                   nsCSSAnonBoxes::mozMathMLAnonymousBlock,
                                                    mrowContext);
     
     
