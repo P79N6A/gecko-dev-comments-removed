@@ -6308,6 +6308,36 @@ IsSynthesizedMouseMove(nsEvent* aEvent)
          static_cast<nsMouseEvent*>(aEvent)->reason != nsMouseEvent::eReal;
 }
 
+static PRBool CanHandleContextMenuEvent(nsMouseEvent* aMouseEvent,
+                                        nsIFrame* aFrame)
+{
+#if defined(XP_MACOSX) && defined(MOZ_XUL)
+  nsXULPopupManager* pm = nsXULPopupManager::GetInstance();
+  if (pm) {
+    nsIFrame* popupFrame = pm->GetTopPopup(ePopupTypeMenu);
+    if (popupFrame) {
+      
+      
+      if (aMouseEvent->context == nsMouseEvent::eContextMenuKey) {
+        return PR_FALSE;
+      } else if (aMouseEvent->widget) {
+         nsWindowType windowType;
+         aMouseEvent->widget->GetWindowType(windowType);
+         if (windowType == eWindowType_popup) {
+           for (nsIFrame* current = aFrame; current;
+                current = nsLayoutUtils::GetCrossDocParentFrame(current)) {
+             if (current->GetType() == nsGkAtoms::menuPopupFrame) {
+               return PR_FALSE;
+             }
+           }
+         }
+      }
+    }
+  }
+#endif
+  return PR_TRUE;
+}
+
 nsresult
 PresShell::HandleEventInternal(nsEvent* aEvent, nsIView *aView,
                                nsEventStatus* aStatus)
@@ -6358,11 +6388,16 @@ PresShell::HandleEventInternal(nsEvent* aEvent, nsIView *aView,
       }
     }
 
-    if (aEvent->message == NS_CONTEXTMENU &&
-        static_cast<nsMouseEvent*>(aEvent)->context == nsMouseEvent::eContextMenuKey) {
-      if (!AdjustContextMenuKeyEvent(static_cast<nsMouseEvent*>(aEvent)))
+    if (aEvent->message == NS_CONTEXTMENU) {
+      nsMouseEvent* me = static_cast<nsMouseEvent*>(aEvent);
+      if (!CanHandleContextMenuEvent(me, GetCurrentEventFrame())) {
         return NS_OK;
-    }
+      }
+      if (me->context == nsMouseEvent::eContextMenuKey &&
+          !AdjustContextMenuKeyEvent(me)) {
+        return NS_OK;
+      }
+    }                                
 
     nsAutoHandlingUserInputStatePusher userInpStatePusher(isHandlingUserInput);
 
@@ -6461,17 +6496,10 @@ PresShell::AdjustContextMenuKeyEvent(nsMouseEvent* aEvent)
 {
 #ifdef MOZ_XUL
   
-  
-  
   nsXULPopupManager* pm = nsXULPopupManager::GetInstance();
   if (pm) {
     nsIFrame* popupFrame = pm->GetTopPopup(ePopupTypeMenu);
     if (popupFrame) {
-#ifdef XP_MACOSX
-      
-      
-      return PR_FALSE;
-#else
       nsIFrame* itemFrame = 
         (static_cast<nsMenuPopupFrame *>(popupFrame))->GetCurrentMenuItem();
       if (!itemFrame)
@@ -6486,7 +6514,6 @@ PresShell::AdjustContextMenuKeyEvent(nsMouseEvent* aEvent)
       mCurrentEventFrame = itemFrame;
 
       return PR_TRUE;
-#endif
     }
   }
 #endif
