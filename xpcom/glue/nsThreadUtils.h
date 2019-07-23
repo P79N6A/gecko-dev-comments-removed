@@ -321,6 +321,60 @@ ns_new_runnable_method(ClassType* obj, ReturnType (ClassType::*method)())
   return new nsRunnableMethod<ClassType, ReturnType>(obj, method);
 }
 
+
+
+
+
+template <class ClassType, typename ReturnType = void>
+class nsNonOwningRunnableMethod : public nsRunnable
+{
+public:
+  typedef ReturnType (ClassType::*Method)();
+
+  nsNonOwningRunnableMethod(ClassType *obj, Method method)
+    : mObj(obj), mMethod(method) {
+  }
+
+  NS_IMETHOD Run() {
+    if (!mObj)
+      return NS_OK;
+    (mObj->*mMethod)();
+    return NS_OK;
+  }
+
+  void Revoke() {
+    mObj = nsnull;
+  }
+
+  
+  
+  
+  template <typename OtherReturnType>
+  class ReturnTypeEnforcer
+  {
+  public:
+    typedef int ReturnTypeIsSafe;
+  };
+
+  template <class T>
+  class ReturnTypeEnforcer<already_AddRefed<T> >
+  {
+    
+  };
+
+  
+  typedef typename ReturnTypeEnforcer<ReturnType>::ReturnTypeIsSafe check;
+
+protected:
+  virtual ~nsNonOwningRunnableMethod() {
+  }
+
+private:
+  ClassType* mObj;
+  Method mMethod;
+};
+
+
 #endif  
 
 
