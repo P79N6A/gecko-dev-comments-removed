@@ -830,7 +830,10 @@ namespace nanojit
 
     
     void Assembler::asm_fop(LIns *ins) {
-        Register rr, ra, rb;
+        
+        
+        
+        Register rr, ra, rb = UnspecifiedReg;
         regalloc_binary(ins, FpRegs, rr, ra, rb);
         switch (ins->opcode()) {
         default:       TODO(asm_fop);
