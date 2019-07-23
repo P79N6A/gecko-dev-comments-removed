@@ -6644,6 +6644,18 @@ GeneratorExpr(JSParseNode *pn, JSParseNode *kid, JSTreeContext *tc)
 
 
 
+        if (tc->flags & TCF_HAS_SHARPS) {
+            gentc.flags |= TCF_IN_FUNCTION;
+            if (!gentc.ensureSharpSlots())
+                return NULL;
+        }
+
+        
+
+
+
+
+
 
         gentc.flags |= TCF_FUN_IS_GENERATOR | TCF_GENEXP_LAMBDA |
                        (tc->flags & (TCF_FUN_FLAGS & ~TCF_FUN_PARAM_ARGUMENTS));
