@@ -106,7 +106,7 @@ struct JSRegExp {
     size_t       classCount;    
     RECharSet    *classList;    
     JSString     *source;       
-    jsbytecode   program[1];    
+    jsbytecode   *bytecode;     
 };
 
 extern JSRegExp *
