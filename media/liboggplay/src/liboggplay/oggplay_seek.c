@@ -155,22 +155,21 @@ oggplay_seek_cleanup(OggPlay* me, ogg_int64_t milliseconds)
   
 
 
-  if (me->buffer == NULL)
-    return;
-  
-  trash->old_buffer = (OggPlayBuffer *)me->buffer;
+  if (me->buffer != NULL) {
 
-  
+    trash->old_buffer = (OggPlayBuffer *)me->buffer;
 
+    
 
 
-  me->buffer = oggplay_buffer_new_buffer(me->buffer->buffer_size);
 
-  if (me->buffer == NULL)
-  {
-    return;
+    me->buffer = oggplay_buffer_new_buffer(me->buffer->buffer_size);
+
+    if (me->buffer == NULL) {
+      return;
+    }
   }
-
+  
   
 
 
