@@ -200,12 +200,6 @@ CreateIteratorObj(JSContext *cx, JSObject *tempWrapper,
     return nsnull;
   }
 
-  
-  if (!JS_DefineFunction(cx, iterObj, "next", (JSNative)IteratorNext, 0,
-                         JSFUN_FAST_NATIVE)) {
-    return nsnull;
-  }
-
   if (XPCNativeWrapper::IsNativeWrapper(wrapperObj)) {
     
     
@@ -230,6 +224,12 @@ CreateIteratorObj(JSContext *cx, JSObject *tempWrapper,
 
   JSIdArray *ida = JS_Enumerate(cx, iterObj);
   if (!ida) {
+    return nsnull;
+  }
+
+  
+  if (!JS_DefineFunction(cx, iterObj, "next", (JSNative)IteratorNext, 0,
+                         JSFUN_FAST_NATIVE)) {
     return nsnull;
   }
 
