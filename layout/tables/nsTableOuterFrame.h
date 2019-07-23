@@ -263,11 +263,11 @@ protected:
 
   
   
-  void GetMargin(nsPresContext*           aPresContext,
-                 const nsHTMLReflowState& aOuterRS,
-                 nsIFrame*                aChildFrame,
-                 nscoord                  aAvailableWidth,
-                 nsMargin&                aMargin);
+  void GetChildMargin(nsPresContext*           aPresContext,
+                      const nsHTMLReflowState& aOuterRS,
+                      nsIFrame*                aChildFrame,
+                      nscoord                  aAvailableWidth,
+                      nsMargin&                aMargin);
 
 private:
   

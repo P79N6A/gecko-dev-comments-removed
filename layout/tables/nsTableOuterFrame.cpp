@@ -452,11 +452,11 @@ nsTableOuterFrame::InitChildReflowState(nsPresContext&    aPresContext,
 
 
 void
-nsTableOuterFrame::GetMargin(nsPresContext*           aPresContext,
-                             const nsHTMLReflowState& aOuterRS,
-                             nsIFrame*                aChildFrame,
-                             nscoord                  aAvailWidth,
-                             nsMargin&                aMargin)
+nsTableOuterFrame::GetChildMargin(nsPresContext*           aPresContext,
+                                  const nsHTMLReflowState& aOuterRS,
+                                  nsIFrame*                aChildFrame,
+                                  nscoord                  aAvailWidth,
+                                  nsMargin&                aMargin)
 {
   
   
@@ -963,8 +963,8 @@ nsTableOuterFrame::OuterBeginReflowChild(nsPresContext*           aPresContext,
       availHeight = NS_UNCONSTRAINEDSIZE;
     } else {
       nsMargin margin;
-      GetMargin(aPresContext, aOuterRS, aChildFrame, aOuterRS.availableWidth,
-                margin);
+      GetChildMargin(aPresContext, aOuterRS, aChildFrame,
+                     aOuterRS.availableWidth, margin);
     
       NS_ASSERTION(NS_UNCONSTRAINEDSIZE != margin.top, "No unconstrainedsize arithmetic, please");
       availHeight -= margin.top;
