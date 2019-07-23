@@ -6269,6 +6269,7 @@ js_EmitTree(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn)
       case TOK_NEW:
       case TOK_LP:
       {
+        bool callop = (PN_TYPE(pn) == TOK_LP);
         uintN oldflags;
 
         
@@ -6276,19 +6277,31 @@ js_EmitTree(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn)
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
         pn2 = pn->pn_head;
         switch (pn2->pn_type) {
           case TOK_NAME:
-            if (!EmitNameOp(cx, cg, pn2, JS_TRUE))
+            if (!EmitNameOp(cx, cg, pn2, callop))
                 return JS_FALSE;
             break;
           case TOK_DOT:
-            if (!EmitPropOp(cx, pn2, PN_OP(pn2), cg, JS_TRUE))
+            if (!EmitPropOp(cx, pn2, PN_OP(pn2), cg, callop))
                 return JS_FALSE;
             break;
           case TOK_LB:
             JS_ASSERT(pn2->pn_op == JSOP_GETELEM);
-            if (!EmitElemOp(cx, pn2, JSOP_CALLELEM, cg))
+            if (!EmitElemOp(cx, pn2, callop ? JSOP_CALLELEM : JSOP_GETELEM, cg))
                 return JS_FALSE;
             break;
           case TOK_UNARYOP:
@@ -6296,6 +6309,7 @@ js_EmitTree(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn)
             if (pn2->pn_op == JSOP_XMLNAME) {
                 if (!EmitXMLName(cx, pn2, JSOP_CALLXMLNAME, cg))
                     return JS_FALSE;
+                callop = true;          
                 break;
             }
 #endif
@@ -6307,9 +6321,11 @@ js_EmitTree(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn)
 
             if (!js_EmitTree(cx, cg, pn2))
                 return JS_FALSE;
-            if (js_Emit1(cx, cg, JSOP_NULL) < 0)
-                return JS_FALSE;
+            callop = false;             
+            break;
         }
+        if (!callop && js_Emit1(cx, cg, JSOP_NULL) < 0)
+            return JS_FALSE;
 
         
         off = top;
