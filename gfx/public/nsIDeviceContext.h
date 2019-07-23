@@ -465,9 +465,30 @@ public:
 
   virtual PRBool CheckDPIChange() = 0;
 
+  
+
+
+
+
+  virtual PRBool SetPixelScale(float aScale) = 0;
+
+  
+
+
+
+  float GetPixelScale() const { return mPixelScale; }
+
+  
+
+
+
+  PRInt32 UnscaledAppUnitsPerDevPixel() { return mAppUnitsPerDevNotScaledPixel; }
+
 protected:
   PRInt32 mAppUnitsPerDevPixel;
   PRInt32 mAppUnitsPerInch;
+  PRInt32 mAppUnitsPerDevNotScaledPixel;
+  float  mPixelScale;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsIDeviceContext, NS_IDEVICE_CONTEXT_IID)
