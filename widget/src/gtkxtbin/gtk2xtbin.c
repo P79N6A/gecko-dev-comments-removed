@@ -387,6 +387,15 @@ gtk_xtbin_new (GdkWindow *parent_window, String * f)
   if (user_data)
     gtk_container_add(GTK_CONTAINER(user_data), GTK_WIDGET(xtbin));
 
+  
+
+
+
+
+
+  gtk_widget_realize(GTK_WIDGET(xtbin));
+  gdk_window_set_back_pixmap(GTK_WIDGET(xtbin)->window, NULL, FALSE);
+
   return GTK_WIDGET (xtbin);
 }
 

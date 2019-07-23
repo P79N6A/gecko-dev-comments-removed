@@ -262,6 +262,13 @@ nsresult nsPluginNativeWindowGtk2::CreateXEmbedWindow() {
   gtk_widget_realize(mSocketWidget);
 
   
+  
+  
+  
+  
+  gdk_window_set_back_pixmap(mSocketWidget->window, NULL, FALSE);
+
+  
   SetAllocation();
 
   gtk_widget_show(mSocketWidget);
