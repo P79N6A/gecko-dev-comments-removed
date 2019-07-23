@@ -1475,7 +1475,7 @@ moz_gtk_entry_paint(GdkDrawable* drawable, GdkRectangle* rect,
 
     
     gdk_draw_rectangle(drawable, style->base_gc[bg_state], TRUE,
-                       rect->x, rect->y, rect->width, rect->height);
+                       cliprect->x, cliprect->y, cliprect->width, cliprect->height);
 
     
     x = XTHICKNESS(style);
