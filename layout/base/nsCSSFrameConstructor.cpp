@@ -1905,14 +1905,14 @@ nsCSSFrameConstructor::CreateAttributeContent(nsIContent* aParentContent,
                                        getter_AddRefs(content));
   NS_ENSURE_SUCCESS(rv, rv);
 
+  content->SetNativeAnonymous(PR_TRUE);
+
   
   rv = content->BindToTree(mDocument, aParentContent, content, PR_TRUE);
   if (NS_FAILED(rv)) {
     content->UnbindFromTree();
     return rv;
   }
-
-  content->SetNativeAnonymous(PR_TRUE);
 
   
   nsIFrame* textFrame = NS_NewTextFrame(mPresShell, aStyleContext);
@@ -1967,6 +1967,8 @@ nsCSSFrameConstructor::CreateGeneratedFrameFor(nsIFrame*             aParentFram
                                            data.mContent.mImage);
     NS_ENSURE_SUCCESS(rv, rv);
 
+    content->SetNativeAnonymous(PR_TRUE);
+  
     
     
     
@@ -1978,8 +1980,6 @@ nsCSSFrameConstructor::CreateGeneratedFrameFor(nsIFrame*             aParentFram
       return rv;
     }
     
-    content->SetNativeAnonymous(PR_TRUE);
-  
     
     nsIFrame* imageFrame = NS_NewImageFrame(mPresShell, aStyleContext);
     if (NS_UNLIKELY(!imageFrame)) {
@@ -2149,6 +2149,8 @@ nsCSSFrameConstructor::CreateGeneratedFrameFor(nsIFrame*             aParentFram
           NS_ASSERTION(*textPtr, "must implement nsIDOMCharacterData");
         }
 
+        textContent->SetNativeAnonymous(PR_TRUE);
+
         
         nsresult rv = textContent->BindToTree(mDocument, aContent, textContent,
                                               PR_TRUE);
@@ -2156,8 +2158,6 @@ nsCSSFrameConstructor::CreateGeneratedFrameFor(nsIFrame*             aParentFram
           textContent->UnbindFromTree();
           return rv;
         }
-
-        textContent->SetNativeAnonymous(PR_TRUE);
 
         
         textFrame = NS_NewTextFrame(mPresShell, aStyleContext);
