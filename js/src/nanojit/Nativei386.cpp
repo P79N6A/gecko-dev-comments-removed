@@ -330,7 +330,7 @@ namespace nanojit
         LIns* lo = ins->oprnd1();
         LIns* hi = ins->oprnd2();
 
-        Reservation *resv = getresv(ins);
+        Reservation *resv = ins->resvUsed();
         Register rr = resv->reg;
 
         if (rr != UnknownReg && (rmask(rr) & FpRegs))
@@ -460,7 +460,7 @@ namespace nanojit
     {
         LIns* base = ins->oprnd1();
         int db = ins->disp();
-        Reservation *resv = getresv(ins);
+        Reservation *resv = ins->resvUsed();
         Register rr = resv->reg;
 
         if (rr != UnknownReg && rmask(rr) & XmmRegs)
@@ -560,9 +560,9 @@ namespace nanojit
 
         
         
-        Reservation* rA = getresv(value);
+        Reservation* rA = value->resv();
         Register rv;
-        int pop = !rA || rA->reg==UnknownReg;
+        int pop = !rA->used || rA->reg==UnknownReg;
         if (pop) {
             rv = findRegFor(value, config.sse2 ? XmmRegs : FpRegs);
         } else {
@@ -813,10 +813,10 @@ namespace nanojit
         }
 
         Register rr = prepResultReg(ins, allow);
-        Reservation* rA = getresv(lhs);
+        Reservation* rA = lhs->resv();
         Register ra;
         
-        if (rA == 0 || (ra = rA->reg) == UnknownReg)
+        if (!rA->used || (ra = rA->reg) == UnknownReg)
             ra = findSpecificRegFor(lhs, rr);
         
 
@@ -912,10 +912,10 @@ namespace nanojit
         Register rr = prepResultReg(ins, GpRegs);
 
         LIns* lhs = ins->oprnd1();
-        Reservation *rA = getresv(lhs);
+        Reservation *rA = lhs->resv();
         
         Register ra;
-        if (rA == 0 || (ra=rA->reg) == UnknownReg)
+        if (!rA->used || (ra=rA->reg) == UnknownReg)
             ra = findSpecificRegFor(lhs, rr);
         
 
@@ -965,21 +965,21 @@ namespace nanojit
             }
 
             Register rleft;
-            Reservation *rL = getresv(lhs);
+            Reservation *rL = lhs->resv();
 
             
 
 
-            if (rL == NULL || rL->reg == UnknownReg)
+            if (!rL->used || rL->reg == UnknownReg)
                 rleft = findSpecificRegFor(lhs, rr);
             else
                 rleft = rL->reg;
 
             Register rright = UnknownReg;
-            Reservation *rR = getresv(rhs);
+            Reservation *rR = rhs->resv();
 
             
-            if (rr != rleft && (rR == NULL || rR->reg == UnknownReg))
+            if (rr != rleft && (!rR->used || rR->reg == UnknownReg))
                 rright = findSpecificRegFor(rhs, rr);
             if (rright == UnknownReg)
                 rright = findRegFor(rhs, GpRegs & ~(rmask(rleft)));
@@ -1085,7 +1085,7 @@ namespace nanojit
 
     void Assembler::asm_quad(LInsp ins)
     {
-        Reservation *rR = getresv(ins);
+        Reservation *rR = ins->resvUsed();
         Register rr = rR->reg;
         if (rr != UnknownReg)
         {
@@ -1145,7 +1145,7 @@ namespace nanojit
         }
         else
         {
-            Reservation *resv = getresv(ins);
+            Reservation *resv = ins->resvUsed();
             Register rr = resv->reg;
             if (rr == UnknownReg) {
                 
@@ -1168,11 +1168,11 @@ namespace nanojit
             LIns *lhs = ins->oprnd1();
 
             Register rr = prepResultReg(ins, XmmRegs);
-            Reservation *rA = getresv(lhs);
+            Reservation *rA = lhs->resv();
             Register ra;
 
             
-            if (rA == 0 || (ra = rA->reg) == UnknownReg) {
+            if (!rA->used || (ra = rA->reg) == UnknownReg) {
                 ra = findSpecificRegFor(lhs, rr);
             } else if ((rmask(ra) & XmmRegs) == 0) {
                 
@@ -1203,13 +1203,13 @@ namespace nanojit
             LIns* lhs = ins->oprnd1();
 
             
-            Reservation* rA = getresv(lhs);
+            Reservation* rA = lhs->resv();
             
-            if (rA == 0 || rA->reg == UnknownReg)
+            if (!rA->used || rA->reg == UnknownReg)
                 findSpecificRegFor(lhs, rr);
             
 
-            NanoAssert(getresv(lhs)!=0 && getresv(lhs)->reg==FST0);
+            NanoAssert(rA->used && rA->reg==FST0);
             
             FCHS();
 
@@ -1241,8 +1241,8 @@ namespace nanojit
                 if (p->isconst()) {
                     LDi(r, p->imm32());
                 } else {
-                    Reservation* rA = getresv(p);
-                    if (rA) {
+                    Reservation* rA = p->resv();
+                    if (rA->used) {
                         if (rA->reg == UnknownReg) {
                             
                             int d = findMemFor(p);
@@ -1277,13 +1277,13 @@ namespace nanojit
     void Assembler::asm_pusharg(LInsp p)
     {
         
-        Reservation* rA = getresv(p);
-        if (rA == 0 && p->isconst())
+        Reservation* rA = p->resv();
+        if (!rA->used && p->isconst())
         {
             
             PUSHi(p->imm32());
         }
-        else if (rA == 0 || p->isop(LIR_alloc))
+        else if (!rA->used || p->isop(LIR_alloc))
         {
             Register ra = findRegFor(p, GpRegs);
             PUSHr(ra);
@@ -1331,11 +1331,11 @@ namespace nanojit
             }
 
             Register rr = prepResultReg(ins, allow);
-            Reservation *rA = getresv(lhs);
+            Reservation *rA = lhs->resv();
             Register ra;
 
             
-            if (rA == 0 || (ra = rA->reg) == UnknownReg) {
+            if (!rA->used || (ra = rA->reg) == UnknownReg) {
                 ra = findSpecificRegFor(lhs, rr);
             } else if ((rmask(ra) & XmmRegs) == 0) {
                 
@@ -1376,13 +1376,13 @@ namespace nanojit
             int db = findMemFor(rhs);
 
             
-            Reservation* rA = getresv(lhs);
+            Reservation* rA = lhs->resv();
             
-            if (rA == 0 || rA->reg == UnknownReg)
+            if (!rA->used || rA->reg == UnknownReg)
                 findSpecificRegFor(lhs, rr);
             
 
-            NanoAssert(getresv(lhs)!=0 && getresv(lhs)->reg==FST0);
+            NanoAssert(rA->used && rA->reg==FST0);
             
             if (op == LIR_fadd)
                 { FADD(db, FP); }
@@ -1455,9 +1455,9 @@ namespace nanojit
 
             SSE_CVTSI2SD(rr, gr);
 
-            Reservation* resv = getresv(ins->oprnd1());
+            Reservation* resv = ins->oprnd1()->resv();
             Register xr;
-            if (resv && (xr = resv->reg) != UnknownReg && (rmask(xr) & GpRegs))
+            if (resv->used && (xr = resv->reg) != UnknownReg && (rmask(xr) & GpRegs))
             {
                 LEA(gr, 0x80000000, xr);
             }
@@ -1627,8 +1627,8 @@ namespace nanojit
             {
                 
                 int d = findMemFor(rhs);
-                rA = getresv(lhs);
-                int pop = !rA || rA->reg == UnknownReg;
+                rA = lhs->resv();
+                int pop = !rA->used || rA->reg == UnknownReg;
                 findSpecificRegFor(lhs, FST0);
                 
                 FCOM(pop, d, FP);
@@ -1636,8 +1636,8 @@ namespace nanojit
             else
             {
                 
-                rA = getresv(lhs);
-                int pop = !rA || rA->reg == UnknownReg;
+                rA = lhs->resv();
+                int pop = !rA->used || rA->reg == UnknownReg;
                 findSpecificRegFor(lhs, FST0);
                 
                 if (pop)

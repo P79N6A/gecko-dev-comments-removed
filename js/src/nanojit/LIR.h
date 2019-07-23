@@ -677,6 +677,12 @@ namespace nanojit
         uint64_t       imm64()     const;
         double         imm64f()    const;
         Reservation*   resv()            { return &lastWord; }
+        
+        Reservation*   resvUsed() {
+            Reservation* r = resv();
+            NanoAssert(r->used);
+            return r;
+        }
         void*          payload()   const;
         inline int32_t size()      const {
             NanoAssert(isop(LIR_alloc));
