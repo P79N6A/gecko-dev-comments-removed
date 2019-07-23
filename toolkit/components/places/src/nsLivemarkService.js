@@ -654,7 +654,12 @@ LivemarkLoadListener.prototype = {
     this._processor.listener = this;
     this._processor.parseAsync(null, channel.URI);
 
-    this._processor.onStartRequest(aRequest, aContext);
+    try {
+      this._processor.onStartRequest(aRequest, aContext);
+    }
+    catch (ex) {
+      Components.utils.reportError("Livemark Service: feed processor received an invalid channel for " + channel.URI.spec);
+    }
   },
 
   
@@ -662,11 +667,16 @@ LivemarkLoadListener.prototype = {
 
   onStopRequest: function LLL_onStopRequest(aRequest, aContext, aStatus) {
     if (!Components.isSuccessCode(aStatus)) {
-      
-      this._setResourceTTL(ERROR_EXPIRATION);
       this._isAborted = true;
-      MarkLivemarkLoadFailed(this._livemark.folderId);
       this._livemark.locked = false;
+      var lmService = Cc[LS_CONTRACTID].getService(Ci.nsILivemarkService);
+      
+      
+      if (lmService.isLivemark(this._livemark.folderId)) {
+        
+        this._setResourceTTL(ERROR_EXPIRATION);
+        MarkLivemarkLoadFailed(this._livemark.folderId);
+      }
       return;
     }
     

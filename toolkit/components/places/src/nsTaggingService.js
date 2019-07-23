@@ -412,9 +412,16 @@ TaggingService.prototype = {
              getService(Ci.nsIThreadManager);
     tm.mainThread.dispatch({
       run: function() {
-        if (!self._tagFolders[aItemId] &&
-            self._bms.getItemType(aItemId) == self._bms.TYPE_FOLDER)
-          self._tagFolders[aItemId] = self._bms.getItemTitle(aItemId);
+        try {
+          if (!self._tagFolders[aItemId] &&
+              self._bms.getItemType(aItemId) == self._bms.TYPE_FOLDER)
+            self._tagFolders[aItemId] = self._bms.getItemTitle(aItemId);
+        }
+        catch(ex) {
+          
+          
+          
+        }
       }
     }, Ci.nsIThread.DISPATCH_NORMAL);
   },
