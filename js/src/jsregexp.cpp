@@ -45,7 +45,6 @@
 #include <string.h>
 #include <stdarg.h>
 #include "jstypes.h"
-#include "jsstdint.h"
 #include "jsarena.h" 
 #include "jsutil.h" 
 #include "jsapi.h"
@@ -1267,7 +1266,14 @@ ParseTerm(CompilerState *state)
                 
                 goto doOctal;
             }
-            JS_ASSERT(1 <= num && num <= 0x10000);
+
+            
+
+
+
+
+            JS_ASSERT_IF(!(state->flags & JSREG_FIND_PAREN_COUNT),
+                         1 <= num && num <= 0x10000);
             state->result = NewRENode(state, REOP_BACKREF);
             if (!state->result)
                 return JS_FALSE;
