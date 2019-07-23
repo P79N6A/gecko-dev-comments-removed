@@ -717,6 +717,32 @@ pref_LoadPrefsInDir(nsIFile* aDir, char const *const *aSpecialFiles, PRUint32 aS
   return rv;
 }
 
+static nsresult pref_LoadPrefsInDirList(const char *listId)
+{
+  nsresult rv;
+  nsCOMPtr<nsIProperties> dirSvc(do_GetService(NS_DIRECTORY_SERVICE_CONTRACTID, &rv));
+  if (NS_FAILED(rv)) return rv;
+
+  nsCOMPtr<nsISimpleEnumerator> dirList;
+  dirSvc->Get(listId,
+              NS_GET_IID(nsISimpleEnumerator),
+              getter_AddRefs(dirList));
+  if (dirList) {
+    PRBool hasMore;
+    while (NS_SUCCEEDED(dirList->HasMoreElements(&hasMore)) && hasMore) {
+      nsCOMPtr<nsISupports> elem;
+      dirList->GetNext(getter_AddRefs(elem));
+      if (elem) {
+        nsCOMPtr<nsIFile> dir = do_QueryInterface(elem);
+        if (dir) {
+          
+          pref_LoadPrefsInDir(dir, nsnull, 0); 
+        }
+      }
+    }
+  }
+  return NS_OK;
+}
 
 
 
@@ -773,30 +799,19 @@ static nsresult pref_InitInitialObjects()
     NS_WARNING("Error parsing application default preferences.");
   }
 
+  rv = pref_LoadPrefsInDirList(NS_APP_PREFS_DEFAULTS_DIR_LIST);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  NS_CreateServicesFromCategory(NS_PREFSERVICE_APPDEFAULTS_TOPIC_ID,
+                                nsnull, NS_PREFSERVICE_APPDEFAULTS_TOPIC_ID);
+
+  nsCOMPtr<nsIObserverService> observerService = 
+    do_GetService("@mozilla.org/observer-service;1", &rv);
   
-  
+  if (NS_FAILED(rv) || !observerService)
+    return rv;
 
-  nsCOMPtr<nsIProperties> dirSvc(do_GetService(NS_DIRECTORY_SERVICE_CONTRACTID, &rv));
-  if (NS_FAILED(rv)) return rv;
+  observerService->NotifyObservers(nsnull, NS_PREFSERVICE_APPDEFAULTS_TOPIC_ID, nsnull);
 
-  nsCOMPtr<nsISimpleEnumerator> dirList;
-  dirSvc->Get(NS_APP_PREFS_DEFAULTS_DIR_LIST,
-              NS_GET_IID(nsISimpleEnumerator),
-              getter_AddRefs(dirList));
-  if (dirList) {
-    PRBool hasMore;
-    while (NS_SUCCEEDED(dirList->HasMoreElements(&hasMore)) && hasMore) {
-      nsCOMPtr<nsISupports> elem;
-      dirList->GetNext(getter_AddRefs(elem));
-      if (elem) {
-        nsCOMPtr<nsIFile> dir = do_QueryInterface(elem);
-        if (dir) {
-          
-          pref_LoadPrefsInDir(dir, nsnull, 0); 
-        }
-      }
-    }
-  }
-
-  return NS_OK;
+  return pref_LoadPrefsInDirList(NS_EXT_PREFS_DEFAULTS_DIR_LIST);
 }
