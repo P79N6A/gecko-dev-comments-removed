@@ -349,7 +349,7 @@ var PlacesUtils = {
            type == NHRN.RESULT_TYPE_QUERY ||
            type == NHRN.RESULT_TYPE_FOLDER ||
            type == NHRN.RESULT_TYPE_DAY ||
-           type == NHRN.RESULT_TYPE_REMOTE_CONTAINER;
+           type == NHRN.RESULT_TYPE_DYNAMIC_CONTAINER;
   },
 
   
@@ -361,19 +361,10 @@ var PlacesUtils = {
 
 
 
-
-
-
-
-
-  nodeIsRemoteContainer: function PU_nodeIsRemoteContainer(aNode) {
+  nodeIsDynamicContainer: function PU_nodeIsDynamicContainer(aNode) {
     NS_ASSERT(aNode, "null node");
-
-    const NHRN = Ci.nsINavHistoryResultNode;
-    if (aNode.type == NHRN.RESULT_TYPE_REMOTE_CONTAINER)
+    if (aNode.type == NHRN.RESULT_TYPE_DYNAMIC_CONTAINER)
       return true;
-    if (this.nodeIsFolder(aNode))
-      return asContainer(aNode).remoteContainerType != "";
     return false;
   },
 
@@ -385,9 +376,8 @@ var PlacesUtils = {
 
 
   nodeIsLivemarkContainer: function PU_nodeIsLivemarkContainer(aNode) {
-    return (this.nodeIsRemoteContainer(aNode) &&
-            asContainer(aNode).remoteContainerType ==
-               "@mozilla.org/browser/livemark-service;2");
+    return this.nodeIsFolder(aNode) &&
+           this.annotations.itemHasAnnotation(aNode.itemId, "livemark/feedURI");
   },
 
  

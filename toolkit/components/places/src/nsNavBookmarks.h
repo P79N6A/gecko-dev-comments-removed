@@ -77,8 +77,8 @@ public:
 
   nsresult AddBookmarkToHash(PRInt64 aBookmarkId, PRTime aMinTime);
 
-  nsresult ResultNodeForFolder(PRInt64 aID, nsNavHistoryQueryOptions *aOptions,
-                               nsNavHistoryResultNode **aNode);
+  nsresult ResultNodeForContainer(PRInt64 aID, nsNavHistoryQueryOptions *aOptions,
+                                  nsNavHistoryResultNode **aNode);
 
   
   
@@ -90,19 +90,12 @@ public:
   
   
   
-  
-  nsresult CreateFolderWithID(PRInt64 aFolder, PRInt64 aParent, 
-                              const nsAString& title,
-                              PRBool aSendNotifications,
-                              PRInt32 *aIndex, PRInt64* aNewFolder);
-
-  
-  
-  
-  
-  nsresult CreateContainerWithID(PRInt64 aFolder, PRInt64 aParent,
-                                 const nsAString& title, const nsAString& type,
-                                 PRInt32 aIndex, PRInt64* aNewFolder);
+  nsresult CreateContainerWithID(PRInt64 aId, PRInt64 aParent,
+                                 const nsAString& aName,
+                                 const nsAString& aContractId,
+                                 PRBool aIsBookmarkFolder,
+                                 PRInt32* aIndex,
+                                 PRInt64* aNewFolder);
 
   
   nsresult OnQuit();
@@ -200,7 +193,7 @@ private:
   static const PRInt32 kGetItemPropertiesIndex_PlaceID;
   static const PRInt32 kGetItemPropertiesIndex_Parent;
   static const PRInt32 kGetItemPropertiesIndex_Type;
-  static const PRInt32 kGetItemPropertiesIndex_FolderType;
+  static const PRInt32 kGetItemPropertiesIndex_ServiceContractId;
   static const PRInt32 kGetItemPropertiesIndex_DateAdded;
   static const PRInt32 kGetItemPropertiesIndex_LastModified;
 
@@ -219,7 +212,7 @@ private:
   public:
     RemoveFolderTransaction(PRInt64 aID, PRInt64 aParent, 
                             const nsAString& aTitle, PRInt32 aIndex,
-                            const nsACString& aType) 
+                            const nsAString& aType) 
                             : mID(aID),
                               mParent(aParent),
                               mIndex(aIndex){
@@ -237,12 +230,8 @@ private:
     NS_IMETHOD UndoTransaction() {
       nsNavBookmarks* bookmarks = nsNavBookmarks::GetBookmarksService();
       PRInt64 newFolder;
-      
-      
-      if (mType.IsEmpty())
-        return bookmarks->CreateFolderWithID(mID, mParent, mTitle, PR_TRUE, &mIndex, &newFolder);
-      nsAutoString type; type.AssignWithConversion(mType);
-      return bookmarks->CreateContainerWithID(mID, mParent, mTitle, type, mIndex, &newFolder); 
+      return bookmarks->CreateContainerWithID(mID, mParent, mTitle, mType, PR_TRUE,
+                                              &mIndex, &newFolder); 
     }
 
     NS_IMETHOD RedoTransaction() {
@@ -263,7 +252,7 @@ private:
     PRInt64 mID;
     PRInt64 mParent;
     nsString mTitle;
-    nsCString mType;
+    nsString mType;
     PRInt32 mIndex;
   };
 };
