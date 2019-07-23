@@ -44,7 +44,6 @@
 #include "nsMenuPopupFrame.h"
 #include "nsGkAtoms.h"
 #include "nsIContent.h"
-#include "nsContentUtils.h"
 #include "prtypes.h"
 #include "nsIAtom.h"
 #include "nsPresContext.h"
@@ -54,7 +53,9 @@
 #include "nsIViewManager.h"
 #include "nsWidgetsCID.h"
 #include "nsMenuFrame.h"
-#include "nsIPopupSetFrame.h"
+#include "nsMenuBarFrame.h"
+#include "nsPopupSetFrame.h"
+#include "nsEventDispatcher.h"
 #include "nsPIDOMWindow.h"
 #include "nsIDOMScreen.h"
 #include "nsIPresShell.h"
@@ -62,7 +63,6 @@
 #include "nsIDocument.h"
 #include "nsIDeviceContext.h"
 #include "nsRect.h"
-#include "nsIDOMXULDocument.h"
 #include "nsILookAndFeel.h"
 #include "nsIComponentManager.h"
 #include "nsBoxLayoutState.h"
@@ -73,7 +73,9 @@
 #include "nsIDocShellTreeItem.h"
 #include "nsReadableUtils.h"
 #include "nsUnicharUtils.h"
+#include "nsLayoutUtils.h"
 #include "nsCSSFrameConstructor.h"
+#include "nsIEventStateManager.h"
 #include "nsIBoxLayout.h"
 #include "nsIPopupBoxObject.h"
 #include "nsIReflowCallback.h"
@@ -83,23 +85,15 @@
 
 const PRInt32 kMaxZ = 0x7fffffff; 
 
-
-static nsIPopupSetFrame*
+static nsPopupSetFrame*
 GetPopupSetFrame(nsPresContext* aPresContext)
 {
   nsIRootBox* rootBox = nsIRootBox::GetRootBox(aPresContext->PresShell());
   if (!rootBox)
     return nsnull;
 
-  nsIFrame* popupSetFrame = rootBox->GetPopupSetFrame();
-  if (!popupSetFrame)
-    return nsnull;
-
-  nsIPopupSetFrame* popupSet = nsnull;
-  CallQueryInterface(popupSetFrame, &popupSet);
-  return popupSet;
+  return rootBox->GetPopupSetFrame();
 }
-
 
 
 
@@ -111,42 +105,25 @@ NS_NewMenuPopupFrame(nsIPresShell* aPresShell, nsStyleContext* aContext)
   return new (aPresShell) nsMenuPopupFrame (aPresShell, aContext);
 }
 
-NS_IMETHODIMP_(nsrefcnt) 
-nsMenuPopupFrame::AddRef(void)
-{
-  return NS_OK;
-}
-
-NS_IMETHODIMP_(nsrefcnt) 
-nsMenuPopupFrame::Release(void)
-{
-    return NS_OK;
-}
-
-
-
-
-
-NS_INTERFACE_MAP_BEGIN(nsMenuPopupFrame)
-  NS_INTERFACE_MAP_ENTRY(nsIMenuParent)
-NS_INTERFACE_MAP_END_INHERITING(nsBoxFrame)
-
-
 
 
 
 nsMenuPopupFrame::nsMenuPopupFrame(nsIPresShell* aShell, nsStyleContext* aContext)
   :nsBoxFrame(aShell, aContext),
   mCurrentMenu(nsnull),
-  mTimerMenu(nsnull),
-  mCloseTimer(nsnull),
+  mPopupAlignment(POPUPALIGNMENT_NONE),
+  mPopupAnchor(POPUPALIGNMENT_NONE),
+  mPopupType(ePopupTypePanel),
+  mIsOpen(PR_FALSE),
+  mIsOpenChanged(PR_FALSE),
+  mIsOpenPending(PR_FALSE),
+  mIsContextMenu(PR_FALSE),
+  mGeneratedChildren(PR_FALSE),
   mMenuCanOverlapOSBar(PR_FALSE),
   mShouldAutoPosition(PR_TRUE),
-  mShouldRollup(PR_TRUE),
   mConsumeRollupEvent(nsIPopupBoxObject::ROLLUP_DEFAULT),
   mInContentShell(PR_TRUE)
 {
-  SetIsContextMenu(PR_FALSE);   
 } 
 
 
@@ -157,11 +134,6 @@ nsMenuPopupFrame::Init(nsIContent*      aContent,
 {
   nsresult rv = nsBoxFrame::Init(aContent, aParent, aPrevInFlow);
   NS_ENSURE_SUCCESS(rv, rv);
-
-  
-  mTimerMediator = new nsMenuPopupTimerMediator(this);
-  if (NS_UNLIKELY(!mTimerMediator))
-    return NS_ERROR_OUT_OF_MEMORY;
 
   nsPresContext* presContext = PresContext();
 
@@ -195,6 +167,19 @@ nsMenuPopupFrame::Init(nsIContent*      aContent,
   
   viewManager->SetViewFloating(ourView, PR_TRUE);
 
+  mPopupType = ePopupTypePanel;
+  nsIDocument* doc = aContent->GetOwnerDoc();
+  if (doc) {
+    PRInt32 namespaceID;
+    nsCOMPtr<nsIAtom> tag = doc->BindingManager()->ResolveTag(aContent, &namespaceID);
+    if (namespaceID == kNameSpaceID_XUL) {
+      if (tag == nsGkAtoms::menupopup || tag == nsGkAtoms::popup)
+        mPopupType = ePopupTypeMenu;
+      else if (tag == nsGkAtoms::tooltip)
+        mPopupType = ePopupTypeTooltip;
+    }
+  }
+
   nsCOMPtr<nsISupports> cont = PresContext()->GetContainer();
   nsCOMPtr<nsIDocShellTreeItem> dsti = do_QueryInterface(cont);
   PRInt32 type = -1;
@@ -207,8 +192,6 @@ nsMenuPopupFrame::Init(nsIContent*      aContent,
   if (!ourView->HasWidget()) {
     CreateWidgetForView(ourView);
   }
-
-  MoveToAttributePosition();
 
   return rv;
 }
@@ -240,6 +223,345 @@ nsMenuPopupFrame::CreateWidgetForView(nsIView* aView)
 #endif
   aView->GetWidget()->SetWindowTranslucency(viewHasTransparentContent);
   return NS_OK;
+}
+
+
+class nsXULPopupShownEvent : public nsRunnable
+{
+public:
+  nsXULPopupShownEvent(nsIContent *aPopup, nsPresContext* aPresContext)
+    : mPopup(aPopup), mPresContext(aPresContext)
+  {
+  }
+
+  NS_IMETHOD Run()
+  {
+    nsMouseEvent event(PR_TRUE, NS_XUL_POPUP_SHOWN, nsnull, nsMouseEvent::eReal);
+    return nsEventDispatcher::Dispatch(mPopup, mPresContext, &event);                 
+  }
+
+private:
+  nsCOMPtr<nsIContent> mPopup;
+  nsRefPtr<nsPresContext> mPresContext;
+};
+
+NS_IMETHODIMP
+nsMenuPopupFrame::SetInitialChildList(nsIAtom* aListName,
+                                      nsIFrame* aChildList)
+{
+  
+  if (aChildList)
+    mGeneratedChildren = PR_TRUE;
+  return nsBoxFrame::SetInitialChildList(aListName, aChildList);
+}
+
+void
+nsMenuPopupFrame::AdjustView()
+{
+  if (mIsOpen) {
+    
+    if (mIsOpenChanged) {
+      nsIBox* child = GetChildBox();
+      nsCOMPtr<nsIScrollableFrame> scrollframe(do_QueryInterface(child));
+      if (scrollframe)
+        scrollframe->ScrollTo(nsPoint(0,0));
+    }
+
+    nsIView* view = GetView();
+    nsIViewManager* viewManager = view->GetViewManager();
+    nsRect rect = GetRect();
+    rect.x = rect.y = 0;
+    viewManager->ResizeView(view, rect);
+    viewManager->SetViewVisibility(view, nsViewVisibility_kShow);
+
+    nsPresContext* pc = PresContext();
+    nsContainerFrame::SyncFrameViewProperties(pc, this, nsnull, view, 0);
+
+    
+    if (mIsOpenChanged) {
+      mIsOpenChanged = PR_FALSE;
+      nsCOMPtr<nsIRunnable> event = new nsXULPopupShownEvent(GetContent(), pc);
+      NS_DispatchToCurrentThread(event);
+    }
+  }
+}
+
+void
+nsMenuPopupFrame::InitPositionFromAnchorAlign(const nsAString& aAnchor,
+                                              const nsAString& aAlign)
+{
+  if (aAnchor.EqualsLiteral("topleft"))
+    mPopupAnchor = POPUPALIGNMENT_TOPLEFT;
+  else if (aAnchor.EqualsLiteral("topright"))
+    mPopupAnchor = POPUPALIGNMENT_TOPRIGHT;
+  else if (aAnchor.EqualsLiteral("bottomleft"))
+    mPopupAnchor = POPUPALIGNMENT_BOTTOMLEFT;
+  else if (aAnchor.EqualsLiteral("bottomright"))
+    mPopupAnchor = POPUPALIGNMENT_BOTTOMRIGHT;
+  else
+    mPopupAnchor = POPUPALIGNMENT_NONE;
+
+  if (aAlign.EqualsLiteral("topleft"))
+    mPopupAlignment = POPUPALIGNMENT_TOPLEFT;
+  else if (aAlign.EqualsLiteral("topright"))
+    mPopupAlignment = POPUPALIGNMENT_TOPRIGHT;
+  else if (aAlign.EqualsLiteral("bottomleft"))
+    mPopupAlignment = POPUPALIGNMENT_BOTTOMLEFT;
+  else if (aAlign.EqualsLiteral("bottomright"))
+    mPopupAlignment = POPUPALIGNMENT_BOTTOMRIGHT;
+  else
+    mPopupAlignment = POPUPALIGNMENT_NONE;
+}
+
+void
+nsMenuPopupFrame::InitializePopup(nsIContent* aAnchorContent,
+                                  const nsAString& aPosition,
+                                  PRInt32 aXPos, PRInt32 aYPos,
+                                  PRBool aAttributesOverride)
+{
+  mIsOpenPending = PR_TRUE;
+  mAnchorContent = aAnchorContent;
+  mXPos = aXPos;
+  mYPos = aYPos;
+
+  
+  
+  
+  if (aAnchorContent) {
+    nsAutoString anchor, align, position;
+    mContent->GetAttr(kNameSpaceID_None, nsGkAtoms::popupanchor, anchor);
+    mContent->GetAttr(kNameSpaceID_None, nsGkAtoms::popupalign, align);
+    mContent->GetAttr(kNameSpaceID_None, nsGkAtoms::position, position);
+
+    if (aAttributesOverride) {
+      
+      
+      if (anchor.IsEmpty() && align.IsEmpty() && position.IsEmpty())
+        position.Assign(aPosition);
+      else
+        mXPos = mYPos = 0;
+    }
+    else if (!aPosition.IsEmpty()) {
+      position.Assign(aPosition);
+    }
+
+    if (position.EqualsLiteral("before_start")) {
+      mPopupAnchor = POPUPALIGNMENT_TOPLEFT;
+      mPopupAlignment = POPUPALIGNMENT_BOTTOMLEFT;
+    }
+    else if (position.EqualsLiteral("before_end")) {
+      mPopupAnchor = POPUPALIGNMENT_TOPRIGHT;
+      mPopupAlignment = POPUPALIGNMENT_BOTTOMRIGHT;
+    }
+    else if (position.EqualsLiteral("after_start")) {
+      mPopupAnchor = POPUPALIGNMENT_BOTTOMLEFT;
+      mPopupAlignment = POPUPALIGNMENT_TOPLEFT;
+    }
+    else if (position.EqualsLiteral("after_end")) {
+      mPopupAnchor = POPUPALIGNMENT_BOTTOMRIGHT;
+      mPopupAlignment = POPUPALIGNMENT_TOPRIGHT;
+    }
+    else if (position.EqualsLiteral("start_before")) {
+      mPopupAnchor = POPUPALIGNMENT_TOPLEFT;
+      mPopupAlignment = POPUPALIGNMENT_TOPRIGHT;
+    }
+    else if (position.EqualsLiteral("start_after")) {
+      mPopupAnchor = POPUPALIGNMENT_BOTTOMLEFT;
+      mPopupAlignment = POPUPALIGNMENT_BOTTOMRIGHT;
+    }
+    else if (position.EqualsLiteral("end_before")) {
+      mPopupAnchor = POPUPALIGNMENT_TOPRIGHT;
+      mPopupAlignment = POPUPALIGNMENT_TOPLEFT;
+    }
+    else if (position.EqualsLiteral("end_after")) {
+      mPopupAnchor = POPUPALIGNMENT_BOTTOMRIGHT;
+      mPopupAlignment = POPUPALIGNMENT_BOTTOMLEFT;
+    }
+    else if (position.EqualsLiteral("overlap")) {
+      mPopupAnchor = POPUPALIGNMENT_TOPLEFT;
+      mPopupAlignment = POPUPALIGNMENT_TOPLEFT;
+    }
+    else if (position.EqualsLiteral("after_pointer")) {
+      mPopupAnchor = POPUPALIGNMENT_NONE;
+      mPopupAlignment = POPUPALIGNMENT_NONE;
+      
+      
+      mYPos += 21;
+    }
+    else {
+      InitPositionFromAnchorAlign(anchor, align);
+    }
+  }
+
+  mScreenXPos = -1;
+  mScreenYPos = -1;
+
+  if (aAttributesOverride) {
+    
+    
+    nsAutoString left, top;
+    mContent->GetAttr(kNameSpaceID_None, nsGkAtoms::left, left);
+    mContent->GetAttr(kNameSpaceID_None, nsGkAtoms::top, top);
+
+    PRInt32 err;
+    if (!left.IsEmpty()) {
+      PRInt32 x = left.ToInteger(&err);
+      if (NS_SUCCEEDED(err))
+        mScreenXPos = x;
+    }
+    if (!top.IsEmpty()) {
+      PRInt32 y = top.ToInteger(&err);
+      if (NS_SUCCEEDED(err))
+        mScreenYPos = y;
+    }
+  }
+}
+
+void
+nsMenuPopupFrame::InitializePopupAtScreen(PRInt32 aXPos, PRInt32 aYPos)
+{
+  mIsOpenPending = PR_TRUE;
+  mAnchorContent = nsnull;
+  mScreenXPos = aXPos;
+  mScreenYPos = aYPos;
+  mPopupAnchor = POPUPALIGNMENT_NONE;
+  mPopupAlignment = POPUPALIGNMENT_NONE;
+}
+
+void
+nsMenuPopupFrame::InitializePopupWithAnchorAlign(nsIContent* aAnchorContent,
+                                                 nsAString& aAnchor,
+                                                 nsAString& aAlign,
+                                                 PRInt32 aXPos, PRInt32 aYPos)
+{
+  mIsOpenPending = PR_TRUE;
+  mXPos = aXPos;
+  mYPos = aYPos;
+
+  
+  
+  
+  if (aXPos == -1 && aYPos == -1) {
+    mAnchorContent = aAnchorContent;
+    mScreenXPos = -1;
+    mScreenYPos = -1;
+    InitPositionFromAnchorAlign(aAnchor, aAlign);
+  }
+  else {
+    mAnchorContent = nsnull;
+    mPopupAnchor = POPUPALIGNMENT_NONE;
+    mPopupAlignment = POPUPALIGNMENT_NONE;
+    mScreenXPos = aXPos;
+    mScreenYPos = aYPos;
+  }
+}
+
+void PR_CALLBACK
+LazyGeneratePopupDone(nsIContent* aPopup, nsIFrame* aFrame, void* aArg)
+{
+  
+  if (aFrame->GetType() == nsGkAtoms::menuPopupFrame) {
+    nsWeakFrame weakFrame(aFrame);
+    nsMenuPopupFrame* popupFrame = NS_STATIC_CAST(nsMenuPopupFrame*, aFrame);
+
+    popupFrame->SetGeneratedChildren();
+
+    nsXULPopupManager* pm = nsXULPopupManager::GetInstance();
+    if (pm && popupFrame->IsMenu()) {
+      nsCOMPtr<nsIContent> popup = aPopup;
+      PRBool selectFirstItem = (PRBool)aArg;
+      if (selectFirstItem) {
+        nsMenuFrame* next = pm->GetNextMenuItem(popupFrame, nsnull, PR_TRUE);
+        popupFrame->SetCurrentMenuItem(next);
+      }
+
+      pm->UpdateMenuItems(popup);
+    }
+
+    if (weakFrame.IsAlive()) {
+      popupFrame->PresContext()->PresShell()->
+        FrameNeedsReflow(popupFrame, nsIPresShell::eTreeChange,
+                         NS_FRAME_HAS_DIRTY_CHILDREN);
+    }
+  }
+}
+
+
+PRBool
+nsMenuPopupFrame::ShowPopup(PRBool aIsContextMenu, PRBool aSelectFirstItem)
+{
+  mIsContextMenu = aIsContextMenu;
+
+  PRBool hasChildren = PR_FALSE;
+
+  if (!mIsOpen) {
+    mIsOpen = PR_TRUE;
+    mIsOpenChanged = PR_TRUE;
+
+    nsIFrame* parent = GetParent();
+    if (parent && parent->GetType() == nsGkAtoms::menuFrame) {
+      nsWeakFrame weakFrame(this);
+      (NS_STATIC_CAST(nsMenuFrame*, parent))->PopupOpened();
+      if (!weakFrame.IsAlive())
+        return PR_FALSE;
+      PresContext()->RootPresContext()->NotifyAddedActivePopupToTop(this);
+    }
+
+    
+    
+    if (mFrames.IsEmpty() && !mGeneratedChildren) {
+      PresContext()->PresShell()->FrameConstructor()->
+        AddLazyChildren(mContent, LazyGeneratePopupDone, (void *)aSelectFirstItem);
+    }
+    else {
+      hasChildren = PR_TRUE;
+      PresContext()->PresShell()->
+        FrameNeedsReflow(this, nsIPresShell::eTreeChange,
+                         NS_FRAME_HAS_DIRTY_CHILDREN);
+    }
+  }
+
+  mShouldAutoPosition = PR_TRUE;
+  return hasChildren;
+}
+
+void
+nsMenuPopupFrame::HidePopup(PRBool aDeselectMenu)
+{
+  if (mIsOpen) {
+    if (IsMenu())
+      SetCurrentMenuItem(nsnull);
+
+    mIncrementalString.Truncate();
+
+    mIsOpen = PR_FALSE;
+    mIsOpenChanged = PR_FALSE;
+    mCurrentMenu = nsnull; 
+ 
+    nsIView* view = GetView();
+    nsIViewManager* viewManager = view->GetViewManager();
+    viewManager->SetViewVisibility(view, nsViewVisibility_kHide);
+    viewManager->ResizeView(view, nsRect(0, 0, 0, 0));
+
+    FireDOMEvent(NS_LITERAL_STRING("DOMMenuInactive"), mContent);
+  }
+
+  
+  
+  
+  nsIEventStateManager *esm = PresContext()->EventStateManager();
+
+  PRInt32 state;
+  esm->GetContentState(mContent, state);
+
+  if (state & NS_EVENT_STATE_HOVER)
+    esm->SetContentState(nsnull, NS_EVENT_STATE_HOVER);
+
+  nsIFrame* parent = GetParent();
+  if (parent && parent->GetType() == nsGkAtoms::menuFrame) {
+    (NS_STATIC_CAST(nsMenuFrame*, parent))->PopupClosed(aDeselectMenu);
+    PresContext()->RootPresContext()->NotifyRemovedActivePopup(this);
+  }
 }
 
 void
@@ -284,13 +606,10 @@ nsMenuPopupFrame::GetViewOffset(nsIView* aView, nsPoint& aPoint)
 
 
 
-void
+nsIView*
 nsMenuPopupFrame::GetRootViewForPopup(nsIFrame* aStartFrame,
-                                      PRBool    aStopAtViewManagerRoot,
-                                      nsIView** aResult)
+                                      PRBool    aStopAtViewManagerRoot)
 {
-  *aResult = nsnull;
-
   nsIView* view = aStartFrame->GetClosestView();
   NS_ASSERTION(view, "frame must have a closest view!");
   if (view) {
@@ -308,25 +627,25 @@ nsMenuPopupFrame::GetRootViewForPopup(nsIFrame* aStartFrame,
         nsWindowType wtype;
         widget->GetWindowType(wtype);
         if (wtype == eWindowType_popup) {
-          *aResult = view;
-          return;
+          return view;
         }
       }
 
       if (aStopAtViewManagerRoot && view == rootView) {
-        *aResult = view;
-        return;
+        return view;
       }
 
       nsIView* temp = view->GetParent();
       if (!temp) {
         
         
-        *aResult = view;
+        return view;
       }
       view = temp;
     }
   }
+
+  return nsnull;
 }
 
 
@@ -337,181 +656,67 @@ nsMenuPopupFrame::GetRootViewForPopup(nsIFrame* aStartFrame,
 
 
 
-
-
 void
-nsMenuPopupFrame::AdjustClientXYForNestedDocuments ( nsIDOMXULDocument* inPopupDoc, nsIPresShell* inPopupShell, 
-                                                         PRInt32 inClientX, PRInt32 inClientY, 
-                                                         PRInt32* outAdjX, PRInt32* outAdjY )
+nsMenuPopupFrame::AdjustPositionForAnchorAlign(PRInt32* ioXPos, PRInt32* ioYPos, const nsRect & inParentRect,
+                                               PRBool* outFlushWithTopBottom)
 {
-  if ( !inPopupDoc || !outAdjX || !outAdjY )
-    return;
-
-  
-  nsIWidget* popupDocumentWidget = nsnull;
-  nsIViewManager* viewManager = inPopupShell->GetViewManager();
-  if ( viewManager ) {  
-    nsIView* rootView;
-    viewManager->GetRootView(rootView);
-    if ( rootView )
-      popupDocumentWidget = rootView->GetNearestWidget(nsnull);
-  }
-  NS_ASSERTION(popupDocumentWidget, "ACK, BAD WIDGET");
-  
-  
-  
-  
-  
-
-  nsCOMPtr<nsIDOMNode> targetNode;
-  if (mContent->Tag() == nsGkAtoms::tooltip)
-    inPopupDoc->TrustedGetTooltipNode(getter_AddRefs(targetNode));
-  else
-    inPopupDoc->TrustedGetPopupNode(getter_AddRefs(targetNode));
-
-  
-  nsCOMPtr<nsIContent> targetAsContent ( do_QueryInterface(targetNode) );
-  nsIWidget* targetDocumentWidget = nsnull;
-  if ( targetAsContent ) {
-    nsCOMPtr<nsIDocument> targetDocument = targetAsContent->GetDocument();
-    if (targetDocument) {
-      nsIPresShell *shell = targetDocument->GetPrimaryShell();
-      if ( shell ) {
-        
-        
-        nsIFrame* targetFrame = shell->GetPrimaryFrameFor(targetAsContent);
-        nsIView* parentView = nsnull;
-        if (targetFrame) {
-          GetRootViewForPopup(targetFrame, PR_TRUE, &parentView);
-          if (parentView) {
-            targetDocumentWidget = parentView->GetNearestWidget(nsnull);
-          }
-        }
-        if (!targetDocumentWidget) {
-          
-          
-          nsIViewManager* viewManagerTarget = shell->GetViewManager();
-          if ( viewManagerTarget ) {
-            nsIView* rootViewTarget;
-            viewManagerTarget->GetRootView(rootViewTarget);
-            if ( rootViewTarget ) {
-              targetDocumentWidget = rootViewTarget->GetNearestWidget(nsnull);
-            }
-          }
-        }
-      }
-    }
-  }
-  
-
-  
-  
-  nsRect popupDocTopLeft;
-  if ( popupDocumentWidget ) {
-    nsRect topLeftClient ( 0, 0, 10, 10 );
-    popupDocumentWidget->WidgetToScreen ( topLeftClient, popupDocTopLeft );
-  }
-  nsRect targetDocTopLeft;
-  if ( targetDocumentWidget ) {
-    nsRect topLeftClient ( 0, 0, 10, 10 );
-    targetDocumentWidget->WidgetToScreen ( topLeftClient, targetDocTopLeft );
-  }
-  nsPoint pixelOffset ( targetDocTopLeft.x - popupDocTopLeft.x, targetDocTopLeft.y - popupDocTopLeft.y );
-
-  nsPresContext* context = PresContext();
-  *outAdjX = nsPresContext::CSSPixelsToAppUnits(inClientX) +
-             context->DevPixelsToAppUnits(pixelOffset.x);
-  *outAdjY = nsPresContext::CSSPixelsToAppUnits(inClientY) +
-             context->DevPixelsToAppUnits(pixelOffset.y);
-  
-} 
-
-
-
-
-
-
-
-
-
-
-void
-nsMenuPopupFrame::AdjustPositionForAnchorAlign ( PRInt32* ioXPos, PRInt32* ioYPos, const nsRect & inParentRect,
-                                                    const nsString& aPopupAnchor, const nsString& aPopupAlign,
-                                                    PRBool* outFlushWithTopBottom )
-{
-  nsAutoString popupAnchor(aPopupAnchor);
-  nsAutoString popupAlign(aPopupAlign);
+  PRInt8 popupAnchor(mPopupAnchor);
+  PRInt8 popupAlign(mPopupAlignment);
 
   if (GetStyleVisibility()->mDirection == NS_STYLE_DIRECTION_RTL) {
-    if (popupAnchor.EqualsLiteral("topright"))
-      popupAnchor.AssignLiteral("topleft");
-    else if (popupAnchor.EqualsLiteral("topleft"))
-      popupAnchor.AssignLiteral("topright");
-    else if (popupAnchor.EqualsLiteral("bottomleft"))
-      popupAnchor.AssignLiteral("bottomright");
-    else if (popupAnchor.EqualsLiteral("bottomright"))
-      popupAnchor.AssignLiteral("bottomleft");
-
-    if (popupAlign.EqualsLiteral("topright"))
-      popupAlign.AssignLiteral("topleft");
-    else if (popupAlign.EqualsLiteral("topleft"))
-      popupAlign.AssignLiteral("topright");
-    else if (popupAlign.EqualsLiteral("bottomleft"))
-      popupAlign.AssignLiteral("bottomright");
-    else if (popupAnchor.EqualsLiteral("bottomright"))
-      popupAlign.AssignLiteral("bottomleft");
+    popupAnchor = -popupAnchor;
+    popupAlign = -popupAlign;
   }
 
   
   nsMargin margin;
   GetStyleMargin()->GetMargin(margin);
-  if (popupAlign.EqualsLiteral("topleft")) {
+  if (popupAlign == POPUPALIGNMENT_TOPLEFT) {
     *ioXPos += margin.left;
     *ioYPos += margin.top;
-  } else if (popupAlign.EqualsLiteral("topright")) {
+  } else if (popupAlign == POPUPALIGNMENT_TOPRIGHT) {
     *ioXPos += margin.right;
     *ioYPos += margin.top;
-  } else if (popupAlign.EqualsLiteral("bottomleft")) {
+  } else if (popupAlign == POPUPALIGNMENT_BOTTOMLEFT) {
     *ioXPos += margin.left;
     *ioYPos += margin.bottom;
-  } else if (popupAlign.EqualsLiteral("bottomright")) {
+  } else if (popupAlign == POPUPALIGNMENT_BOTTOMRIGHT) {
     *ioXPos += margin.right;
     *ioYPos += margin.bottom;
   }
   
-  if (popupAnchor.EqualsLiteral("topright") && popupAlign.EqualsLiteral("topleft")) {
+  if (popupAnchor == POPUPALIGNMENT_TOPRIGHT && popupAlign == POPUPALIGNMENT_TOPLEFT) {
     *ioXPos += inParentRect.width;
   }
-  else if (popupAnchor.EqualsLiteral("topleft") && popupAlign.EqualsLiteral("topleft")) {
+  else if (popupAnchor == POPUPALIGNMENT_TOPLEFT && popupAlign == POPUPALIGNMENT_TOPLEFT) {
     *outFlushWithTopBottom = PR_TRUE;
   }
-  else if (popupAnchor.EqualsLiteral("topright") && popupAlign.EqualsLiteral("bottomright")) {
+  else if (popupAnchor == POPUPALIGNMENT_TOPRIGHT && popupAlign == POPUPALIGNMENT_BOTTOMRIGHT) {
     *ioXPos -= (mRect.width - inParentRect.width);
     *ioYPos -= mRect.height;
     *outFlushWithTopBottom = PR_TRUE;
   }
-  else if (popupAnchor.EqualsLiteral("bottomright") && popupAlign.EqualsLiteral("bottomleft")) {
+  else if (popupAnchor == POPUPALIGNMENT_BOTTOMRIGHT && popupAlign == POPUPALIGNMENT_BOTTOMLEFT) {
     *ioXPos += inParentRect.width;
     *ioYPos -= (mRect.height - inParentRect.height);
   }
-  else if (popupAnchor.EqualsLiteral("bottomright") && popupAlign.EqualsLiteral("topright")) {
+  else if (popupAnchor == POPUPALIGNMENT_BOTTOMRIGHT && popupAlign == POPUPALIGNMENT_TOPRIGHT) {
     *ioXPos -= (mRect.width - inParentRect.width);
     *ioYPos += inParentRect.height;
     *outFlushWithTopBottom = PR_TRUE;
   }
-  else if (popupAnchor.EqualsLiteral("topleft") && popupAlign.EqualsLiteral("topright")) {
+  else if (popupAnchor == POPUPALIGNMENT_TOPLEFT && popupAlign == POPUPALIGNMENT_TOPRIGHT) {
     *ioXPos -= mRect.width;
   }
-  else if (popupAnchor.EqualsLiteral("topleft") && popupAlign.EqualsLiteral("bottomleft")) {
+  else if (popupAnchor == POPUPALIGNMENT_TOPLEFT && popupAlign == POPUPALIGNMENT_BOTTOMLEFT) {
     *ioYPos -= mRect.height;
     *outFlushWithTopBottom = PR_TRUE;
   }
-  else if (popupAnchor.EqualsLiteral("bottomleft") && popupAlign.EqualsLiteral("bottomright")) {
+  else if (popupAnchor == POPUPALIGNMENT_BOTTOMLEFT && popupAlign == POPUPALIGNMENT_BOTTOMRIGHT) {
     *ioXPos -= mRect.width;
     *ioYPos -= (mRect.height - inParentRect.height);
   }
-  else if (popupAnchor.EqualsLiteral("bottomleft") && popupAlign.EqualsLiteral("topleft")) {
+  else if (popupAnchor == POPUPALIGNMENT_BOTTOMLEFT && popupAlign == POPUPALIGNMENT_TOPLEFT) {
     *ioYPos += inParentRect.height;
     *outFlushWithTopBottom = PR_TRUE;
   }
@@ -617,45 +822,42 @@ nsMenuPopupFrame::MovePopupToOtherSideOfParent ( PRBool inFlushAboveBelow, PRInt
 
 } 
 
-class nsASyncMenuActivation : public nsIReflowCallback
+
+
+
+nsresult
+nsMenuPopupFrame::SetPopupPosition(nsIFrame* aAnchorFrame)
 {
-public:
-  nsASyncMenuActivation(nsIContent* aContent)
-    : mContent(aContent)
-  {
-  }
-
-  virtual PRBool ReflowFinished() {
-    PRBool shouldFlush = PR_FALSE;
-    if (mContent &&
-        !mContent->AttrValueIs(kNameSpaceID_None, nsGkAtoms::menuactive,
-                               nsGkAtoms::_true, eCaseMatters) &&
-        mContent->AttrValueIs(kNameSpaceID_None, nsGkAtoms::menutobedisplayed,
-                              nsGkAtoms::_true, eCaseMatters)) {
-      mContent->SetAttr(kNameSpaceID_None, nsGkAtoms::menuactive,
-                        NS_LITERAL_STRING("true"), PR_TRUE);
-      shouldFlush = PR_TRUE;
-    }
-
-    delete this;
-    return shouldFlush;
-  }
-
-  nsCOMPtr<nsIContent> mContent;
-};
-
-nsresult 
-nsMenuPopupFrame::SyncViewWithFrame(nsPresContext* aPresContext,
-                                    const nsString& aPopupAnchor,
-                                    const nsString& aPopupAlign,
-                                    nsIFrame* aFrame, 
-                                    PRInt32 aXPos, PRInt32 aYPos)
-{
-  NS_ENSURE_ARG(aPresContext);
-  NS_ENSURE_ARG(aFrame);
-
   if (!mShouldAutoPosition && !mInContentShell) 
     return NS_OK;
+
+  PRBool sizedToPopup = PR_FALSE;
+
+  nsPresContext* presContext = PresContext();
+
+  
+  
+  
+  if (!aAnchorFrame) {
+    if (mAnchorContent) {
+      nsCOMPtr<nsIDocument> document = mAnchorContent->GetDocument();
+      nsIPresShell *shell = document->GetPrimaryShell();
+      if (!shell)
+        return NS_ERROR_FAILURE;
+      
+      aAnchorFrame = shell->GetPrimaryFrameFor(mAnchorContent);
+    }
+    else {
+      aAnchorFrame = presContext->PresShell()->FrameManager()->GetRootFrame();
+    }
+
+    if (!aAnchorFrame)
+      return NS_OK;
+  }
+  else {
+    
+    sizedToPopup = nsMenuFrame::IsSizedToPopup(aAnchorFrame->GetContent(), PR_FALSE);
+  }
 
   
   
@@ -664,14 +866,9 @@ nsMenuPopupFrame::SyncViewWithFrame(nsPresContext* aPresContext,
   nsIView* containingView = nsnull;
   nsPoint offset;
   nsMargin margin;
-  containingView = aFrame->GetClosestView(&offset);
+  containingView = aAnchorFrame->GetClosestView(&offset);
   if (!containingView)
     return NS_OK;
-
-  
-  
-  
-  nsIView* view = GetView();
 
   
   
@@ -681,14 +878,11 @@ nsMenuPopupFrame::SyncViewWithFrame(nsPresContext* aPresContext,
 
   
   
-  nsRect parentRect = aFrame->GetRect();
+  nsRect parentRect = aAnchorFrame->GetRect();
 
   
-  nsIPresShell *presShell = aPresContext->PresShell();
+  nsIPresShell *presShell = presContext->PresShell();
   nsIDocument *document = presShell->GetDocument();
-
-  PRBool sizedToPopup = (mContent->Tag() != nsGkAtoms::tooltip) &&
-    (nsMenuFrame::IsSizedToPopup(aFrame->GetContent(), PR_FALSE));
 
   
   
@@ -698,41 +892,79 @@ nsMenuPopupFrame::SyncViewWithFrame(nsPresContext* aPresContext,
 
   
   
-  PRInt32 xpos = 0, ypos = 0;
+  nsPoint parentViewWidgetOffset;
+  nsIWidget* parentViewWidget = containingView->GetNearestWidget(&parentViewWidgetOffset);
+  nsRect localParentWidgetRect(0,0,0,0), screenParentWidgetRect;
+  parentViewWidget->WidgetToScreen ( localParentWidgetRect, screenParentWidgetRect );
 
   
   
-  
-  
-  
-  PRBool anchoredToParent = PR_FALSE;
   PRBool readjustAboveBelow = PR_FALSE;
+  PRInt32 xpos = 0, ypos = 0;
+  PRInt32 screenViewLocX, screenViewLocY;
 
-  if ( aXPos != -1 || aYPos != -1 ) {
-  
+  if (mScreenXPos == -1 && mScreenYPos == -1) {
     
     
     
-    nsCOMPtr<nsIDOMXULDocument> xulDoc ( do_QueryInterface(document) );
-    AdjustClientXYForNestedDocuments ( xulDoc, presShell, aXPos, aYPos, &xpos, &ypos );
+    
+    
 
+    if (mAnchorContent) {
+      xpos = parentPos.x + offset.x;
+      ypos = parentPos.y + offset.y;
+
+      
+      
+      AdjustPositionForAnchorAlign(&xpos, &ypos, parentRect, &readjustAboveBelow);
+
+      
+      xpos += presContext->DevPixelsToAppUnits(mXPos);
+      ypos += presContext->DevPixelsToAppUnits(mYPos);
+    }
+    else {
+      GetStyleMargin()->GetMargin(margin);
+      xpos = presContext->DevPixelsToAppUnits(mXPos) + margin.left;
+      ypos = presContext->DevPixelsToAppUnits(mYPos) + margin.top;
+    }
+
+    
+    
+    
+    
+    
+    
+    
+
+    
+    
+    
+    
+    
+    nsIView* parentView = GetRootViewForPopup(aAnchorFrame, PR_FALSE);
+    if (!parentView)
+      return NS_OK;
+
+    screenViewLocX = presContext->DevPixelsToAppUnits(screenParentWidgetRect.x) +
+      (xpos - parentPos.x) + parentViewWidgetOffset.x;
+    screenViewLocY = presContext->DevPixelsToAppUnits(screenParentWidgetRect.y) +
+      (ypos - parentPos.y) + parentViewWidgetOffset.y;
+  }
+  else {
     
     GetStyleMargin()->GetMargin(margin);
+    screenViewLocX = nsPresContext::CSSPixelsToAppUnits(mScreenXPos) + margin.left;
+    screenViewLocY = nsPresContext::CSSPixelsToAppUnits(mScreenYPos) + margin.top;
 
-    xpos += margin.left;
-    ypos += margin.top;
-  } 
-  else {
-    anchoredToParent = PR_TRUE;
+    xpos = screenViewLocX - presContext->DevPixelsToAppUnits(screenParentWidgetRect.x) -
+           parentViewWidgetOffset.x - parentPos.x;
+    ypos = screenViewLocY - presContext->DevPixelsToAppUnits(screenParentWidgetRect.y) -
+           parentViewWidgetOffset.y - parentPos.y;
 
-    xpos = parentPos.x + offset.x;
-    ypos = parentPos.y + offset.y;
     
-    
-    
-    AdjustPositionForAnchorAlign ( &xpos, &ypos, parentRect, aPopupAnchor, aPopupAlign, &readjustAboveBelow );    
+    mShouldAutoPosition = PR_FALSE;
   }
-  
+
   
   
   
@@ -756,7 +988,7 @@ nsMenuPopupFrame::SyncViewWithFrame(nsPresContext* aPresContext,
   
   if (mInContentShell) {
     nsRect rootScreenRect = presShell->GetRootFrame()->GetScreenRect();
-    rootScreenRect.ScaleRoundIn(aPresContext->AppUnitsPerDevPixel());
+    rootScreenRect.ScaleRoundIn(presContext->AppUnitsPerDevPixel());
     rect.IntersectRect(rect, rootScreenRect);
   }
 
@@ -766,39 +998,8 @@ nsMenuPopupFrame::SyncViewWithFrame(nsPresContext* aPresContext,
   PRInt32 screenHeightTwips = rect.height;
   PRInt32 screenRightTwips  = rect.XMost();
   PRInt32 screenBottomTwips = rect.YMost();
-  
-  
-  
-  
-  
-  
-  
-  
 
-  
-  
-  
-  
-  
-  nsIView* parentView = nsnull;
-  GetRootViewForPopup(aFrame, PR_FALSE, &parentView);
-  if (!parentView)
-    return NS_OK;
-
-  
-  
-
-  nsPoint parentViewWidgetOffset;
-  nsIWidget* parentViewWidget = containingView->GetNearestWidget(&parentViewWidgetOffset);
-  nsRect localParentWidgetRect(0,0,0,0), screenParentWidgetRect;
-  parentViewWidget->WidgetToScreen ( localParentWidgetRect, screenParentWidgetRect );
-  PRInt32 screenViewLocX = aPresContext->DevPixelsToAppUnits(screenParentWidgetRect.x) +
-    (xpos - parentPos.x) + parentViewWidgetOffset.x;
-  PRInt32 screenViewLocY = aPresContext->DevPixelsToAppUnits(screenParentWidgetRect.y) +
-    (ypos - parentPos.y) + parentViewWidgetOffset.y;
-
-  if ( anchoredToParent ) {
-    
+  if (mPopupAnchor != POPUPALIGNMENT_NONE) {
     
     
     
@@ -825,11 +1026,11 @@ nsMenuPopupFrame::SyncViewWithFrame(nsPresContext* aPresContext,
 
     
     
-    nsRect screenParentFrameRect (aPresContext->AppUnitsToDevPixels(offset.x), aPresContext->AppUnitsToDevPixels(offset.y),
+    nsRect screenParentFrameRect (presContext->AppUnitsToDevPixels(offset.x), presContext->AppUnitsToDevPixels(offset.y),
                                     parentRect.width, parentRect.height );
     parentViewWidget->WidgetToScreen ( screenParentFrameRect, screenParentFrameRect );
-    screenParentFrameRect.x = aPresContext->DevPixelsToAppUnits(screenParentFrameRect.x);
-    screenParentFrameRect.y = aPresContext->DevPixelsToAppUnits(screenParentFrameRect.y);
+    screenParentFrameRect.x = presContext->DevPixelsToAppUnits(screenParentFrameRect.x);
+    screenParentFrameRect.y = presContext->DevPixelsToAppUnits(screenParentFrameRect.y);
 
     
     if (screenViewLocY < screenTopTwips) {
@@ -943,10 +1144,10 @@ nsMenuPopupFrame::SyncViewWithFrame(nsPresContext* aPresContext,
     
 
     
-    if(mRect.width > screenWidthTwips) 
-        mRect.width = screenWidthTwips;    
+    if(mRect.width > screenWidthTwips)
+       mRect.width = screenWidthTwips;
     if(mRect.height > screenHeightTwips)
-        mRect.height = screenHeightTwips;   
+       mRect.height = screenHeightTwips;
 
     
     
@@ -991,7 +1192,7 @@ nsMenuPopupFrame::SyncViewWithFrame(nsPresContext* aPresContext,
     }
   }  
 
-  aPresContext->GetViewManager()->MoveViewTo(view, xpos, ypos); 
+  presContext->GetViewManager()->MoveViewTo(GetView(), xpos, ypos); 
 
   
   nsPoint frameOrigin = GetPosition();
@@ -1001,189 +1202,45 @@ nsMenuPopupFrame::SyncViewWithFrame(nsPresContext* aPresContext,
   nsBoxFrame::SetPosition(frameOrigin);
 
   if (sizedToPopup) {
-      nsBoxLayoutState state(PresContext());
-      SetBounds(state, nsRect(mRect.x, mRect.y, parentRect.width, mRect.height));
-  }
-    
-  if (!mContent->AttrValueIs(kNameSpaceID_None, nsGkAtoms::menuactive,
-                             nsGkAtoms::_true, eCaseMatters) &&
-      mContent->AttrValueIs(kNameSpaceID_None, nsGkAtoms::menutobedisplayed,
-                            nsGkAtoms::_true, eCaseMatters)) {
-    nsIReflowCallback* cb = new nsASyncMenuActivation(mContent);
-    NS_ENSURE_TRUE(cb, NS_ERROR_OUT_OF_MEMORY);
-    PresContext()->PresShell()->PostReflowCallback(cb);
+    nsBoxLayoutState state(PresContext());
+    SetBounds(state, nsRect(mRect.x, mRect.y, parentRect.width, mRect.height));
   }
 
   return NS_OK;
 }
 
-static void GetInsertionPoint(nsIPresShell* aShell, nsIFrame* aFrame, nsIFrame* aChild,
-                              nsIFrame** aResult)
-{
-  nsIContent* child = nsnull;
-  if (aChild)
-    child = aChild->GetContent();
-  aShell->FrameConstructor()->GetInsertionPoint(aFrame, child, aResult);
-}
-
- nsIMenuFrame*
-nsMenuPopupFrame::GetNextMenuItem(nsIMenuFrame* aStart)
-{
-  nsIFrame* immediateParent = nsnull;
-  GetInsertionPoint(PresContext()->PresShell(), this, nsnull,
-                    &immediateParent);
-  if (!immediateParent)
-    immediateParent = this;
-
-  nsIFrame* currFrame = nsnull;
-  nsIFrame* startFrame = nsnull;
-  if (aStart) {
-    aStart->QueryInterface(NS_GET_IID(nsIFrame), (void**)&currFrame); 
-    if (currFrame) {
-      startFrame = currFrame;
-      currFrame = currFrame->GetNextSibling();
-    }
-  }
-  else 
-    currFrame = immediateParent->GetFirstChild(nsnull);
-  
-  while (currFrame) {
-    
-    if (IsValidItem(currFrame->GetContent())) {
-      nsIMenuFrame *menuFrame;
-      if (NS_FAILED(CallQueryInterface(currFrame, &menuFrame)))
-        menuFrame = nsnull;
-      return menuFrame;
-    }
-    currFrame = currFrame->GetNextSibling();
-  }
-
-  currFrame = immediateParent->GetFirstChild(nsnull);
-
-  
-  while (currFrame && currFrame != startFrame) {
-    
-    if (IsValidItem(currFrame->GetContent())) {
-      nsIMenuFrame *menuFrame;
-      if (NS_FAILED(CallQueryInterface(currFrame, &menuFrame)))
-        menuFrame = nsnull;
-      return menuFrame;
-    }
-
-    currFrame = currFrame->GetNextSibling();
-  }
-
-  
-  return aStart;
-}
-
- nsIMenuFrame*
-nsMenuPopupFrame::GetPreviousMenuItem(nsIMenuFrame* aStart)
-{
-  nsIFrame* immediateParent = nsnull;
-  GetInsertionPoint(PresContext()->PresShell(), this, nsnull,
-                    &immediateParent);
-  if (!immediateParent)
-    immediateParent = this;
-
-  nsFrameList frames(immediateParent->GetFirstChild(nsnull));
-                              
-  nsIFrame* currFrame = nsnull;
-  nsIFrame* startFrame = nsnull;
-  if (aStart) {
-    aStart->QueryInterface(NS_GET_IID(nsIFrame), (void**)&currFrame);
-    if (currFrame) {
-      startFrame = currFrame;
-      currFrame = frames.GetPrevSiblingFor(currFrame);
-    }
-  }
-  else currFrame = frames.LastChild();
-
-  while (currFrame) {
-    
-    if (IsValidItem(currFrame->GetContent())) {
-      nsIMenuFrame *menuFrame;
-      if (NS_FAILED(CallQueryInterface(currFrame, &menuFrame)))
-        menuFrame = nsnull;
-      return menuFrame;
-    }
-    currFrame = frames.GetPrevSiblingFor(currFrame);
-  }
-
-  currFrame = frames.LastChild();
-
-  
-  while (currFrame && currFrame != startFrame) {
-    
-    if (IsValidItem(currFrame->GetContent())) {
-      nsIMenuFrame *menuFrame;
-      if (NS_FAILED(CallQueryInterface(currFrame, &menuFrame)))
-        menuFrame = nsnull;
-      return menuFrame;
-    }
-
-    currFrame = frames.GetPrevSiblingFor(currFrame);
-  }
-
-  
-  return aStart;
-}
-
- nsIMenuFrame*
+ nsMenuFrame*
 nsMenuPopupFrame::GetCurrentMenuItem()
 {
   return mCurrentMenu;
 }
 
-NS_IMETHODIMP nsMenuPopupFrame::ConsumeOutsideClicks(PRBool& aConsumeOutsideClicks)
+PRBool nsMenuPopupFrame::ConsumeOutsideClicks()
 {
   
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  
-  if (mConsumeRollupEvent != nsIPopupBoxObject::ROLLUP_DEFAULT) {
-    aConsumeOutsideClicks = mConsumeRollupEvent == nsIPopupBoxObject::ROLLUP_CONSUME;
-    return NS_OK;
-  }
-
-  aConsumeOutsideClicks = PR_TRUE;
+  if (mConsumeRollupEvent != nsIPopupBoxObject::ROLLUP_DEFAULT)
+    return (mConsumeRollupEvent == nsIPopupBoxObject::ROLLUP_CONSUME);
 
   nsCOMPtr<nsIContent> parentContent = mContent->GetParent();
-
   if (parentContent) {
-    nsIAtom *parentTag = parentContent->Tag();
-    if (parentTag == nsGkAtoms::menulist)
-      return NS_OK;  
-    if (parentTag == nsGkAtoms::menu || parentTag == nsGkAtoms::popupset) {
+    nsINodeInfo *ni = parentContent->NodeInfo();
+    if (ni->Equals(nsGkAtoms::menulist, kNameSpaceID_XUL))
+      return PR_TRUE;  
 #if defined(XP_WIN) || defined(XP_OS2)
-      
-      aConsumeOutsideClicks = PR_FALSE;
+    
+    if (ni->Equals(nsGkAtoms::menu, kNameSpaceID_XUL) ||
+       (ni->Equals(nsGkAtoms::popupset, kNameSpaceID_XUL)))
+      return PR_FALSE;
 #endif
-      return NS_OK;
-    }
-    if (parentTag == nsGkAtoms::textbox) {
+    if (ni->Equals(nsGkAtoms::textbox, kNameSpaceID_XUL)) {
       
       if (parentContent->AttrValueIs(kNameSpaceID_None, nsGkAtoms::type,
                                      nsGkAtoms::autocomplete, eCaseMatters))
-        aConsumeOutsideClicks = PR_FALSE;
+        return PR_FALSE;
     }
   }
 
-  return NS_OK;
+  return PR_TRUE;
 }
 
 static nsIScrollableView* GetScrollableViewForFrame(nsIFrame* aFrame)
@@ -1228,20 +1285,17 @@ nsIScrollableView* nsMenuPopupFrame::GetScrollableView(nsIFrame* aStart)
   return nsnull;
 }
 
-void nsMenuPopupFrame::EnsureMenuItemIsVisible(nsIMenuFrame* aMenuItem)
+void nsMenuPopupFrame::EnsureMenuItemIsVisible(nsMenuFrame* aMenuItem)
 {
-  nsIFrame* frame=nsnull;
-  aMenuItem->QueryInterface(NS_GET_IID(nsIFrame), (void**)&frame);
-  if ( frame ) {
-    nsIFrame* childFrame=nsnull;
-    childFrame = GetFirstChild(nsnull);
+  if (aMenuItem) {
+    nsIFrame* childFrame = GetFirstChild(nsnull);
     nsIScrollableView *scrollableView;
-    scrollableView=GetScrollableView(childFrame);
-    if ( scrollableView ) {
+    scrollableView = GetScrollableView(childFrame);
+    if (scrollableView) {
       nscoord scrollX, scrollY;
 
       nsRect viewRect = scrollableView->View()->GetBounds();
-      nsRect itemRect = frame->GetRect();
+      nsRect itemRect = aMenuItem->GetRect();
       scrollableView->GetScrollPosition(scrollX, scrollY);
   
       
@@ -1255,36 +1309,53 @@ void nsMenuPopupFrame::EnsureMenuItemIsVisible(nsIMenuFrame* aMenuItem)
   }
 }
 
-NS_IMETHODIMP nsMenuPopupFrame::SetCurrentMenuItem(nsIMenuFrame* aMenuItem)
+NS_IMETHODIMP nsMenuPopupFrame::SetCurrentMenuItem(nsMenuFrame* aMenuItem)
 {
-  
-  
-  nsIMenuParent *contextMenu = GetContextMenu();
-  if (contextMenu)
-    return NS_OK;
-
   if (mCurrentMenu == aMenuItem)
     return NS_OK;
+
+  if (mCurrentMenu) {
+    mCurrentMenu->SelectMenu(PR_FALSE);
+  }
+
+  if (aMenuItem) {
+    EnsureMenuItemIsVisible(aMenuItem);
+    aMenuItem->SelectMenu(PR_TRUE);
+  }
+
+  mCurrentMenu = aMenuItem;
+
+  return NS_OK;
+}
+
+void
+nsMenuPopupFrame::CurrentMenuIsBeingDestroyed()
+{
+  mCurrentMenu = nsnull;
+}
+
+NS_IMETHODIMP
+nsMenuPopupFrame::ChangeMenuItem(nsMenuFrame* aMenuItem,
+                                 PRBool aSelectFirstItem)
+{
+  if (mCurrentMenu == aMenuItem)
+    return NS_OK;
+
   
+  
+  nsXULPopupManager* pm = nsXULPopupManager::GetInstance();
+  if (!mIsContextMenu && pm && pm->HasContextMenu(this))
+    return NS_OK;
+
   
   if (mCurrentMenu) {
-    PRBool isOpen = PR_FALSE;
-    mCurrentMenu->MenuIsOpen(isOpen);
     mCurrentMenu->SelectMenu(PR_FALSE);
-    
-    if (mCurrentMenu && isOpen) {
-      
-      
-      KillCloseTimer(); 
-      PRInt32 menuDelay = 300;   
-
-      PresContext()->LookAndFeel()->
-        GetMetric(nsILookAndFeel::eMetric_SubmenuDelay, menuDelay);
-
-      
-      mCloseTimer = do_CreateInstance("@mozilla.org/timer;1");
-      mCloseTimer->InitWithCallback(mTimerMediator, menuDelay, nsITimer::TYPE_ONE_SHOT);
-      mTimerMenu = mCurrentMenu;
+    nsMenuPopupFrame* popup = mCurrentMenu->GetPopup();
+    if (popup) {
+      if (mCurrentMenu->IsOpen()) {
+        if (pm)
+          pm->HidePopupAfterDelay(popup);
+      }
     }
   }
 
@@ -1299,74 +1370,19 @@ NS_IMETHODIMP nsMenuPopupFrame::SetCurrentMenuItem(nsIMenuFrame* aMenuItem)
   return NS_OK;
 }
 
-
-NS_IMETHODIMP
-nsMenuPopupFrame::Escape(PRBool& aHandledFlag)
-{
-  mIncrementalString.Truncate();
-
-  
-  nsIMenuParent* contextMenu = GetContextMenu();
-  if (contextMenu) {
-    
-    nsIFrame* childFrame;
-    CallQueryInterface(contextMenu, &childFrame);
-    nsIPopupSetFrame* popupSetFrame = GetPopupSetFrame(PresContext());
-    if (popupSetFrame)
-      
-      popupSetFrame->DestroyPopup(childFrame, PR_FALSE);
-    aHandledFlag = PR_TRUE;
-    return NS_OK;
-  }
-
-  if (!mCurrentMenu)
-    return NS_OK;
-
-  
-  PRBool isOpen = PR_FALSE;
-  mCurrentMenu->MenuIsOpen(isOpen);
-  if (isOpen) {
-    
-    mCurrentMenu->Escape(aHandledFlag);
-    if (!aHandledFlag) {
-      
-      mCurrentMenu->OpenMenu(PR_FALSE);
-      
-      mCurrentMenu->SelectMenu(PR_TRUE);
-      aHandledFlag = PR_TRUE;
-    }
-  }
-
-  return NS_OK;
-}
-
-NS_IMETHODIMP
+nsMenuFrame*
 nsMenuPopupFrame::Enter()
 {
   mIncrementalString.Truncate();
 
   
-  nsIMenuParent *contextMenu = GetContextMenu();
-  if (contextMenu)
-    return contextMenu->Enter();
-
-  
   if (mCurrentMenu)
-    mCurrentMenu->Enter();
+    return mCurrentMenu->Enter();
 
-  return NS_OK;
+  return nsnull;
 }
 
-nsIMenuParent*
-nsMenuPopupFrame::GetContextMenu()
-{
-  if (mIsContextMenu)
-    return nsnull;
-
-  return nsMenuFrame::GetContextMenu();
-}
-
-nsIMenuFrame*
+nsMenuFrame*
 nsMenuPopupFrame::FindMenuWithShortcut(nsIDOMKeyEvent* aKeyEvent, PRBool& doAction)
 {
   PRUint32 charCode, keyCode;
@@ -1377,22 +1393,22 @@ nsMenuPopupFrame::FindMenuWithShortcut(nsIDOMKeyEvent* aKeyEvent, PRBool& doActi
 
   
   nsIFrame* immediateParent = nsnull;
-  GetInsertionPoint(PresContext()->PresShell(), this, nsnull,
-                    &immediateParent);
+  PresContext()->PresShell()->
+    FrameConstructor()->GetInsertionPoint(this, nsnull, &immediateParent);
   if (!immediateParent)
     immediateParent = this;
 
   PRUint32 matchCount = 0, matchShortcutCount = 0;
   PRBool foundActive = PR_FALSE;
   PRBool isShortcut;
-  nsIMenuFrame* frameBefore = nsnull;
-  nsIMenuFrame* frameAfter = nsnull;
-  nsIMenuFrame* frameShortcut = nsnull;
+  nsMenuFrame* frameBefore = nsnull;
+  nsMenuFrame* frameAfter = nsnull;
+  nsMenuFrame* frameShortcut = nsnull;
 
   nsIContent* parentContent = mContent->GetParent();
 
-  PRBool isMenu =
-    parentContent && parentContent->Tag() != nsGkAtoms::menulist;
+  PRBool isMenu = parentContent &&
+                  !parentContent->NodeInfo()->Equals(nsGkAtoms::menulist, kNameSpaceID_XUL);
 
   static DOMTimeStamp lastKeyTime = 0;
   DOMTimeStamp keyTime;
@@ -1445,16 +1461,21 @@ nsMenuPopupFrame::FindMenuWithShortcut(nsIDOMKeyEvent* aKeyEvent, PRBool& doActi
   
   currFrame = immediateParent->GetFirstChild(nsnull);
 
+  PRInt32 menuAccessKey = -1;
+  nsMenuBarListener::GetMenuAccessKey(&menuAccessKey);
+
   
   
   while (currFrame) {
     nsIContent* current = currFrame->GetContent();
     
     
-    if (IsValidItem(current)) {
+    if (nsXULPopupManager::IsValidMenuItem(PresContext(), current, PR_TRUE)) {
       nsAutoString textKey;
-      
-      current->GetAttr(kNameSpaceID_None, nsGkAtoms::accesskey, textKey);
+      if (menuAccessKey >= 0) {
+        
+        current->GetAttr(kNameSpaceID_None, nsGkAtoms::accesskey, textKey);
+      }
       if (textKey.IsEmpty()) { 
         isShortcut = PR_FALSE;
         current->GetAttr(kNameSpaceID_None, nsGkAtoms::label, textKey);
@@ -1467,25 +1488,24 @@ nsMenuPopupFrame::FindMenuWithShortcut(nsIDOMKeyEvent* aKeyEvent, PRBool& doActi
       if (StringBeginsWith(textKey, incrementalString,
                            nsCaseInsensitiveStringComparator())) {
         
-        nsIMenuFrame* menuFrame;
-        if (NS_SUCCEEDED(CallQueryInterface(currFrame, &menuFrame))) {
+        if (currFrame->GetType() == nsGkAtoms::menuFrame) {
           
           matchCount++;
           if (isShortcut) {
             
             matchShortcutCount++;
             
-            frameShortcut = menuFrame;
+            frameShortcut = NS_STATIC_CAST(nsMenuFrame *, currFrame);
           }
           if (!foundActive) {
             
             if (!frameBefore)
-              frameBefore = menuFrame;
+              frameBefore = NS_STATIC_CAST(nsMenuFrame *, currFrame);
           }
           else {
             
             if (!frameAfter)
-              frameAfter = menuFrame;
+              frameAfter = NS_STATIC_CAST(nsMenuFrame *, currFrame);
           }
         }
         else
@@ -1499,11 +1519,8 @@ nsMenuPopupFrame::FindMenuWithShortcut(nsIDOMKeyEvent* aKeyEvent, PRBool& doActi
         if (stringLength > 1) {
           
           
-          nsIMenuFrame* menuFrame;
-          if (NS_SUCCEEDED(CallQueryInterface(currFrame, &menuFrame)) &&
-              menuFrame == frameBefore) {
+          if (currFrame == frameBefore)
             return frameBefore;
-          }
         }
       }
     }
@@ -1536,237 +1553,12 @@ nsMenuPopupFrame::FindMenuWithShortcut(nsIDOMKeyEvent* aKeyEvent, PRBool& doActi
   return nsnull;
 }
 
-NS_IMETHODIMP 
-nsMenuPopupFrame::ShortcutNavigation(nsIDOMKeyEvent* aKeyEvent, PRBool& aHandledFlag)
-{
-  
-  nsIMenuParent *contextMenu = GetContextMenu();
-  if (contextMenu)
-    return contextMenu->ShortcutNavigation(aKeyEvent, aHandledFlag);
-
-  if (mCurrentMenu) {
-    PRBool isOpen = PR_FALSE;
-    mCurrentMenu->MenuIsOpen(isOpen);
-    if (isOpen) {
-      
-      mCurrentMenu->ShortcutNavigation(aKeyEvent, aHandledFlag);
-      return NS_OK;
-    }
-  }
-
-  
-  PRBool action;
-  nsIMenuFrame* result = FindMenuWithShortcut(aKeyEvent, action);
-  if (result) {
-    
-    nsIFrame* frame = nsnull;
-    CallQueryInterface(result, &frame);
-    nsWeakFrame weakResult(frame);
-    aHandledFlag = PR_TRUE;
-    SetCurrentMenuItem(result);
-    if (action && weakResult.IsAlive()) {
-      result->Enter();
-    }
-  }
-
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsMenuPopupFrame::KeyboardNavigation(PRUint32 aKeyCode, PRBool& aHandledFlag)
-{
-  
-  nsIMenuParent *contextMenu = GetContextMenu();
-  if (contextMenu)
-    return contextMenu->KeyboardNavigation(aKeyCode, aHandledFlag);
-
-  nsNavigationDirection theDirection;
-  NS_DIRECTION_FROM_KEY_CODE(theDirection, aKeyCode);
-
-  mIncrementalString.Truncate();
-
-  
-  if (!mCurrentMenu && NS_DIRECTION_IS_INLINE(theDirection)) {
-    
-    
-    if (theDirection == eNavigationDirection_End) {
-      nsIMenuFrame* nextItem = GetNextMenuItem(nsnull);
-      if (nextItem) {
-        aHandledFlag = PR_TRUE;
-        SetCurrentMenuItem(nextItem);
-      }
-    }
-    return NS_OK;
-  }
-
-  PRBool isContainer = PR_FALSE;
-  PRBool isOpen = PR_FALSE;
-  PRBool isDisabled = PR_FALSE;
-  nsWeakFrame weakFrame(this);
-  if (mCurrentMenu) {
-    mCurrentMenu->MenuIsContainer(isContainer);
-    mCurrentMenu->MenuIsOpen(isOpen);
-    mCurrentMenu->MenuIsDisabled(isDisabled);
-
-    if (isOpen) {
-      
-      mCurrentMenu->KeyboardNavigation(aKeyCode, aHandledFlag);
-      NS_ENSURE_TRUE(weakFrame.IsAlive(), NS_OK);
-    }
-    else if (theDirection == eNavigationDirection_End &&
-             isContainer && !isDisabled) {
-      
-      aHandledFlag = PR_TRUE;
-      nsIFrame* frame = nsnull;
-      CallQueryInterface(mCurrentMenu, &frame);
-      nsWeakFrame weakCurrentFrame(frame);
-      mCurrentMenu->OpenMenu(PR_TRUE);
-      NS_ENSURE_TRUE(weakCurrentFrame.IsAlive(), NS_OK);
-      mCurrentMenu->SelectFirstItem();
-      NS_ENSURE_TRUE(weakFrame.IsAlive(), NS_OK);
-    }
-  }
-
-  if (aHandledFlag)
-    return NS_OK; 
-
-  
-  if (NS_DIRECTION_IS_BLOCK(theDirection) ||
-      NS_DIRECTION_IS_BLOCK_TO_EDGE(theDirection)) {
-
-    nsIMenuFrame* nextItem;
-    
-    if (theDirection == eNavigationDirection_Before)
-      nextItem = GetPreviousMenuItem(mCurrentMenu);
-    else if (theDirection == eNavigationDirection_After)
-      nextItem = GetNextMenuItem(mCurrentMenu);
-    else if (theDirection == eNavigationDirection_First)
-      nextItem = GetNextMenuItem(nsnull);
-    else
-      nextItem = GetPreviousMenuItem(nsnull);
-
-    if (nextItem) {
-      aHandledFlag = PR_TRUE;
-      SetCurrentMenuItem(nextItem);
-    }
-  }
-  else if (mCurrentMenu && isContainer && isOpen) {
-    if (theDirection == eNavigationDirection_Start) {
-      
-      mCurrentMenu->OpenMenu(PR_FALSE);
-      NS_ENSURE_TRUE(weakFrame.IsAlive(), NS_OK);
-      
-      mCurrentMenu->SelectMenu(PR_TRUE);
-      aHandledFlag = PR_TRUE;
-    }
-  }
-
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsMenuPopupFrame::GetParentPopup(nsIMenuParent** aMenuParent)
-{
-  *aMenuParent = nsnull;
-  nsIFrame* parent = GetParent();
-  while (parent) {
-    nsCOMPtr<nsIMenuParent> menuParent = do_QueryInterface(parent);
-    if (menuParent) {
-      *aMenuParent = menuParent.get();
-      NS_ADDREF(*aMenuParent);
-      return NS_OK;
-    }
-    parent = parent->GetParent();
-  }
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsMenuPopupFrame::HideChain()
-{
-  if (!mShouldRollup)
-    return NS_OK;
-
-  
-  
-  
-  nsMenuDismissalListener::Shutdown();
-  
-  nsIFrame* frame = GetParent();
-  if (frame) {
-    nsWeakFrame weakMenu(frame);
-    nsIMenuFrame* menuFrame;
-    if (NS_FAILED(CallQueryInterface(frame, &menuFrame))) {
-      nsIPopupSetFrame* popupSetFrame = GetPopupSetFrame(PresContext());
-      if (popupSetFrame)
-        
-        popupSetFrame->HidePopup(this);
-      return NS_OK;
-    }
-   
-    menuFrame->ActivateMenu(PR_FALSE);
-    NS_ENSURE_TRUE(weakMenu.IsAlive(), NS_OK);
-    menuFrame->SelectMenu(PR_FALSE);
-    NS_ENSURE_TRUE(weakMenu.IsAlive(), NS_OK);
-
-    
-    nsIMenuParent *menuParent = menuFrame->GetMenuParent();
-    if (menuParent)
-      menuParent->HideChain();
-  }
-
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsMenuPopupFrame::DismissChain()
-{
-  if (!mShouldRollup)
-    return NS_OK;
-
-  
-  nsMenuDismissalListener::Shutdown();
-  
-  
-  nsIFrame* frame = GetParent();
-  if (frame) {
-    nsIMenuFrame *menuFrame = nsnull;
-    CallQueryInterface(frame, &menuFrame);
-    if (!menuFrame) {
-      nsIPopupSetFrame* popupSetFrame = GetPopupSetFrame(PresContext());
-      if (popupSetFrame) {
-        
-        if (mCurrentMenu) {
-          PRBool wasOpen;
-          mCurrentMenu->MenuIsOpen(wasOpen);
-          if (wasOpen)
-            mCurrentMenu->OpenMenu(PR_FALSE);
-          mCurrentMenu->SelectMenu(PR_FALSE);
-        }
-        
-        popupSetFrame->DestroyPopup(this, PR_TRUE);
-      }
-      return NS_OK;
-    }
-  
-    menuFrame->OpenMenu(PR_FALSE);
-
-    
-    nsIMenuParent* menuParent = menuFrame->GetMenuParent();
-    if (menuParent)
-      menuParent->DismissChain();
-  }
-
-  return NS_OK;
-}
-
 NS_IMETHODIMP
 nsMenuPopupFrame::GetWidget(nsIWidget **aWidget)
 {
   
-  nsIView * view = nsnull;
   
-  nsMenuPopupFrame::GetRootViewForPopup(this, PR_FALSE, &view);
+  nsIView * view = GetRootViewForPopup(this, PR_FALSE);
   if (!view)
     return NS_OK;
 
@@ -1775,78 +1567,13 @@ nsMenuPopupFrame::GetWidget(nsIWidget **aWidget)
   return NS_OK;
 }
 
-NS_IMETHODIMP
+void
 nsMenuPopupFrame::AttachedDismissalListener()
 {
   mConsumeRollupEvent = nsIPopupBoxObject::ROLLUP_DEFAULT;
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsMenuPopupFrame::InstallKeyboardNavigator()
-{
-  if (mKeyboardNavigator)
-    return NS_OK;
-
-  nsCOMPtr<nsIDOMEventTarget> target = do_QueryInterface(mContent->GetDocument());
-  
-  mTarget = target;
-  mKeyboardNavigator = new nsMenuListener(this);
-  NS_IF_ADDREF(mKeyboardNavigator);
-
-  target->AddEventListener(NS_LITERAL_STRING("keypress"), (nsIDOMKeyListener*)mKeyboardNavigator, PR_TRUE); 
-  target->AddEventListener(NS_LITERAL_STRING("keydown"), (nsIDOMKeyListener*)mKeyboardNavigator, PR_TRUE);  
-  target->AddEventListener(NS_LITERAL_STRING("keyup"), (nsIDOMKeyListener*)mKeyboardNavigator, PR_TRUE);   
-
-  nsContentUtils::NotifyInstalledMenuKeyboardListener(PR_TRUE);
-
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsMenuPopupFrame::RemoveKeyboardNavigator()
-{
-  if (!mKeyboardNavigator)
-    return NS_OK;
-
-  mTarget->RemoveEventListener(NS_LITERAL_STRING("keypress"), (nsIDOMKeyListener*)mKeyboardNavigator, PR_TRUE);
-  mTarget->RemoveEventListener(NS_LITERAL_STRING("keydown"), (nsIDOMKeyListener*)mKeyboardNavigator, PR_TRUE);
-  mTarget->RemoveEventListener(NS_LITERAL_STRING("keyup"), (nsIDOMKeyListener*)mKeyboardNavigator, PR_TRUE);
-
-  NS_IF_RELEASE(mKeyboardNavigator);
-
-  nsContentUtils::NotifyInstalledMenuKeyboardListener(PR_FALSE);
-
-  return NS_OK;
 }
 
 
-
-PRBool 
-nsMenuPopupFrame::IsValidItem(nsIContent* aContent)
-{
-  nsIAtom *tag = aContent->Tag();
-  
-  PRBool skipNavigatingDisabledMenuItem;
-  PresContext()->LookAndFeel()->
-    GetMetric(nsILookAndFeel::eMetric_SkipNavigatingDisabledMenuItem,
-              skipNavigatingDisabledMenuItem);
-
-  PRBool result = (tag == nsGkAtoms::menu ||
-                   tag == nsGkAtoms::menuitem ||
-                   tag == nsGkAtoms::option);
-  if (skipNavigatingDisabledMenuItem)
-    result = result && !IsDisabled(aContent);
-
-  return result;
-}
-
-PRBool 
-nsMenuPopupFrame::IsDisabled(nsIContent* aContent)
-{
-  return aContent->AttrValueIs(kNameSpaceID_None, nsGkAtoms::disabled,
-                               nsGkAtoms::_true, eCaseMatters);
-}
 
 NS_IMETHODIMP 
 nsMenuPopupFrame::AttributeChanged(PRInt32 aNameSpaceID,
@@ -1859,11 +1586,19 @@ nsMenuPopupFrame::AttributeChanged(PRInt32 aNameSpaceID,
   
   if (aAttribute == nsGkAtoms::left || aAttribute == nsGkAtoms::top)
     MoveToAttributePosition();
+
+  
+  
+  if (aAttribute == nsGkAtoms::menugenerated &&
+      mFrames.IsEmpty() && !mGeneratedChildren) {
+    PresContext()->PresShell()->FrameConstructor()->
+      AddLazyChildren(mContent, LazyGeneratePopupDone, nsnull);
+  }
   
   return rv;
 }
 
-void 
+void
 nsMenuPopupFrame::MoveToAttributePosition()
 {
   
@@ -1873,143 +1608,27 @@ nsMenuPopupFrame::MoveToAttributePosition()
   nsAutoString left, top;
   mContent->GetAttr(kNameSpaceID_None, nsGkAtoms::left, left);
   mContent->GetAttr(kNameSpaceID_None, nsGkAtoms::top, top);
-  PRInt32 err1, err2, xPos, yPos;
-  xPos = left.ToInteger(&err1);
-  yPos = top.ToInteger(&err2);
+  PRInt32 err1, err2;
+  mScreenXPos = left.ToInteger(&err1);
+  mScreenYPos = top.ToInteger(&err2);
 
-  if (NS_SUCCEEDED(err1) && NS_SUCCEEDED(err2)) {
-    MoveToInternal(xPos, yPos);
-  }
-}
-
-
-NS_IMETHODIMP 
-nsMenuPopupFrame::HandleEvent(nsPresContext* aPresContext, 
-                              nsGUIEvent*     aEvent,
-                              nsEventStatus*  aEventStatus)
-{
-  return nsBoxFrame::HandleEvent(aPresContext, aEvent, aEventStatus);
+  if (NS_SUCCEEDED(err1) && NS_SUCCEEDED(err2))
+    MoveToInternal(mScreenXPos, mScreenYPos);
 }
 
 void
 nsMenuPopupFrame::Destroy()
 {
-  
-  
-  mTimerMediator->ClearFrame();
-
-  if (mCloseTimer)
-    mCloseTimer->Cancel();
+  nsXULPopupManager* pm = nsXULPopupManager::GetInstance();
+  if (pm)
+    pm->PopupDestroyed(this);
 
   nsPresContext* rootPresContext = PresContext()->RootPresContext();
   if (rootPresContext->ContainsActivePopup(this)) {
     rootPresContext->NotifyRemovedActivePopup(this);
   }
 
-  RemoveKeyboardNavigator();
   nsBoxFrame::Destroy();
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-nsresult
-nsMenuPopupFrame::Notify(nsITimer* aTimer)
-{
-  
-  if (aTimer == mCloseTimer.get()) {
-    PRBool menuOpen = PR_FALSE;
-    mTimerMenu->MenuIsOpen(menuOpen);
-    if (menuOpen)
-      mTimerMenu->OpenMenu(PR_FALSE);
-
-    if (mCloseTimer)
-      mCloseTimer->Cancel();
-  }
-  
-  mCloseTimer = nsnull;
-  mTimerMenu = nsnull;
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsMenuPopupFrame::KillCloseTimer()
-{
-  if (mCloseTimer && mTimerMenu) {
-    PRBool menuOpen = PR_FALSE;
-    mTimerMenu->MenuIsOpen(menuOpen);
-    if (menuOpen) {
-      mTimerMenu->OpenMenu(PR_FALSE);
-    }
-    mCloseTimer->Cancel();
-    mCloseTimer = nsnull;
-    mTimerMenu = nsnull;
-  }
-  return NS_OK;
-}
-
-
-
-NS_IMETHODIMP
-nsMenuPopupFrame::KillPendingTimers ( )
-{
-  return KillCloseTimer();
-
-} 
-
-NS_IMETHODIMP
-nsMenuPopupFrame::CancelPendingTimers()
-{
-  if (mCloseTimer && mTimerMenu) {
-    if (mTimerMenu != mCurrentMenu) {
-      SetCurrentMenuItem(mTimerMenu);
-    }
-    mCloseTimer->Cancel();
-    mCloseTimer = nsnull;
-    mTimerMenu = nsnull;
-  }
-  return NS_OK;
 }
 
 void
@@ -2042,9 +1661,13 @@ nsMenuPopupFrame::MoveToInternal(PRInt32 aLeft, PRInt32 aTop)
 
   nsIView* view = GetView();
   NS_ASSERTION(view->GetParent(), "Must have parent!");
-  
+
   
   nsIntPoint screenPos = view->GetParent()->GetScreenPosition();
+
+  nsPresContext* context = PresContext();
+  aLeft = context->AppUnitsToDevPixels(nsPresContext::CSSPixelsToAppUnits(aLeft));
+  aTop = context->AppUnitsToDevPixels(nsPresContext::CSSPixelsToAppUnits(aTop));
 
   
   
@@ -2064,59 +1687,7 @@ nsMenuPopupFrame::SetAutoPosition(PRBool aShouldAutoPosition)
 }
 
 void
-nsMenuPopupFrame::EnableRollup(PRBool aShouldRollup)
-{
-  if (!nsMenuDismissalListener::sInstance ||
-       nsMenuDismissalListener::sInstance->GetCurrentMenuParent() != this)
-    return;
-
-  if (aShouldRollup)
-    nsMenuDismissalListener::sInstance->Register();
-  else
-    nsMenuDismissalListener::sInstance->Unregister();
-}
-
-void
 nsMenuPopupFrame::SetConsumeRollupEvent(PRUint32 aConsumeMode)
 {
   mConsumeRollupEvent = aConsumeMode;
-}
-
-
-NS_IMPL_ISUPPORTS1(nsMenuPopupTimerMediator, nsITimerCallback)
-
-
-
-
-
-nsMenuPopupTimerMediator::nsMenuPopupTimerMediator(nsMenuPopupFrame *aFrame) :
-  mFrame(aFrame)
-{
-  NS_ASSERTION(mFrame, "Must have frame");
-}
-
-nsMenuPopupTimerMediator::~nsMenuPopupTimerMediator()
-{
-}
-
-
-
-
-
-
-NS_IMETHODIMP nsMenuPopupTimerMediator::Notify(nsITimer* aTimer)
-{
-  if (!mFrame)
-    return NS_ERROR_FAILURE;
-
-  return mFrame->Notify(aTimer);
-}
-
-
-
-
-
-void nsMenuPopupTimerMediator::ClearFrame()
-{
-  mFrame = nsnull;
 }
