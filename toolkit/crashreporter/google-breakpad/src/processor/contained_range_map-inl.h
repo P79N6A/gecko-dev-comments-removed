@@ -40,7 +40,7 @@
 #include "processor/contained_range_map.h"
 
 
-namespace google_airbag {
+namespace google_breakpad {
 
 
 template<typename AddressType, typename EntryType>

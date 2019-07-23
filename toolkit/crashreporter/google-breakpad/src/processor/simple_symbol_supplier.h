@@ -65,38 +65,55 @@
 
 
 
+
+
+
+
+
+
+
+
 #ifndef PROCESSOR_SIMPLE_SYMBOL_SUPPLIER_H__
 #define PROCESSOR_SIMPLE_SYMBOL_SUPPLIER_H__
 
 #include <string>
+#include <vector>
 
-#include "google_airbag/processor/symbol_supplier.h"
+#include "google_breakpad/processor/symbol_supplier.h"
 
-namespace google_airbag {
+namespace google_breakpad {
 
 using std::string;
+using std::vector;
 
-class MinidumpModule;
+class CodeModule;
 
 class SimpleSymbolSupplier : public SymbolSupplier {
  public:
   
   
-  explicit SimpleSymbolSupplier(const string &path) : path_(path) {}
+  explicit SimpleSymbolSupplier(const string &path) : paths_(1, path) {}
+
+  
+  
+  explicit SimpleSymbolSupplier(const vector<string> &paths) : paths_(paths) {}
 
   virtual ~SimpleSymbolSupplier() {}
 
   
   
-  virtual string GetSymbolFile(MinidumpModule *module) {
-    return GetSymbolFileAtPath(module, path_);
-  }
+  SymbolResult GetSymbolFile(const CodeModule *module,
+                             const SystemInfo *system_info,
+                             string *symbol_file);
 
  protected:
-  string GetSymbolFileAtPath(MinidumpModule *module, const string &root_path);
+  SymbolResult GetSymbolFileAtPath(const CodeModule *module,
+                                   const SystemInfo *system_info,
+                                   const string &root_path,
+                                   string *symbol_file);
 
  private:
-  string path_;
+  vector<string> paths_;
 };
 
 }  

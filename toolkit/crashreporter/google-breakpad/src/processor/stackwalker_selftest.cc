@@ -34,32 +34,49 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #if defined(__GNUC__) && (defined(__i386__) || defined(__ppc__))
 
 
 #include <cstdio>
 
-#include "google_airbag/common/airbag_types.h"
-#include "google_airbag/common/minidump_format.h"
-#include "google_airbag/processor/call_stack.h"
-#include "google_airbag/processor/memory_region.h"
-#include "google_airbag/processor/stack_frame.h"
-#include "google_airbag/processor/stack_frame_cpu.h"
+#include "google_breakpad/common/breakpad_types.h"
+#include "google_breakpad/common/minidump_format.h"
+#include "google_breakpad/processor/basic_source_line_resolver.h"
+#include "google_breakpad/processor/call_stack.h"
+#include "google_breakpad/processor/memory_region.h"
+#include "google_breakpad/processor/stack_frame.h"
+#include "google_breakpad/processor/stack_frame_cpu.h"
 #include "processor/scoped_ptr.h"
 
-using google_airbag::CallStack;
-using google_airbag::MemoryRegion;
-using google_airbag::scoped_ptr;
-using google_airbag::StackFrame;
-using google_airbag::StackFramePPC;
-using google_airbag::StackFrameX86;
+using google_breakpad::BasicSourceLineResolver;
+using google_breakpad::CallStack;
+using google_breakpad::MemoryRegion;
+using google_breakpad::scoped_ptr;
+using google_breakpad::StackFrame;
+using google_breakpad::StackFramePPC;
+using google_breakpad::StackFrameX86;
 
 #if defined(__i386__)
 #include "processor/stackwalker_x86.h"
-using google_airbag::StackwalkerX86;
+using google_breakpad::StackwalkerX86;
 #elif defined(__ppc__)
 #include "processor/stackwalker_ppc.h"
-using google_airbag::StackwalkerPPC;
+using google_breakpad::StackwalkerPPC;
 #endif  
 
 #define RECURSION_DEPTH 100
@@ -202,6 +219,7 @@ static u_int32_t GetPC() {
 static unsigned int CountCallerFrames() __attribute__((noinline));
 static unsigned int CountCallerFrames() {
   SelfMemoryRegion memory;
+  BasicSourceLineResolver resolver;
 
 #if defined(__i386__)
   MDRawContextX86 context = MDRawContextX86();
@@ -209,23 +227,26 @@ static unsigned int CountCallerFrames() {
   context.ebp = GetEBP();
   context.esp = GetESP();
 
-  StackwalkerX86 stackwalker = StackwalkerX86(&context, &memory, NULL, NULL);
+  StackwalkerX86 stackwalker = StackwalkerX86(NULL, &context, &memory, NULL,
+                                              NULL, &resolver);
 #elif defined(__ppc__)
   MDRawContextPPC context = MDRawContextPPC();
   context.srr0 = GetPC();
   context.gpr[1] = GetSP();
 
-  StackwalkerPPC stackwalker = StackwalkerPPC(&context, &memory, NULL, NULL);
+  StackwalkerPPC stackwalker = StackwalkerPPC(NULL, &context, &memory, NULL,
+                                              NULL, &resolver);
 #endif  
 
-  scoped_ptr<CallStack> stack(stackwalker.Walk());
+  CallStack stack;
+  stackwalker.Walk(&stack);
 
 #ifdef PRINT_STACKS
   printf("\n");
   for (unsigned int frame_index = 0;
-      frame_index < stack->frames()->size();
+      frame_index < stack.frames()->size();
       ++frame_index) {
-    StackFrame *frame = stack->frames()->at(frame_index);
+    StackFrame *frame = stack.frames()->at(frame_index);
     printf("frame %-3d  instruction = 0x%08llx",
            frame_index, frame->instruction);
 #if defined(__i386__)
@@ -242,7 +263,7 @@ static unsigned int CountCallerFrames() {
   
   
   
-  return stack->frames()->size() - 2;
+  return stack.frames()->size() - 2;
 }
 
 

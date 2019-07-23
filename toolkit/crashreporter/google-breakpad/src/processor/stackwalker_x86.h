@@ -39,14 +39,13 @@
 #define PROCESSOR_STACKWALKER_X86_H__
 
 
-#include "google_airbag/common/airbag_types.h"
-#include "google_airbag/common/minidump_format.h"
-#include "google_airbag/processor/stackwalker.h"
+#include "google_breakpad/common/breakpad_types.h"
+#include "google_breakpad/common/minidump_format.h"
+#include "google_breakpad/processor/stackwalker.h"
 
-namespace google_airbag {
+namespace google_breakpad {
 
-class MinidumpContext;
-class MinidumpModuleList;
+class CodeModules;
 
 
 class StackwalkerX86 : public Stackwalker {
@@ -55,10 +54,12 @@ class StackwalkerX86 : public Stackwalker {
   
   
   
-  StackwalkerX86(const MDRawContextX86 *context,
+  StackwalkerX86(const SystemInfo *system_info,
+                 const MDRawContextX86 *context,
                  MemoryRegion *memory,
-                 MinidumpModuleList *modules,
-                 SymbolSupplier *supplier);
+                 const CodeModules *modules,
+                 SymbolSupplier *supplier,
+                 SourceLineResolverInterface *resolver);
 
  private:
   

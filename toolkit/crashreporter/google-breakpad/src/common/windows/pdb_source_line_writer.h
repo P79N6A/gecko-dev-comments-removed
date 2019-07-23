@@ -41,9 +41,29 @@ struct IDiaEnumLineNumbers;
 struct IDiaSession;
 struct IDiaSymbol;
 
-namespace google_airbag {
+namespace google_breakpad {
 
 using std::wstring;
+
+
+struct PDBModuleInfo {
+ public:
+  
+  wstring debug_file;
+
+  
+  
+  
+  
+  
+  
+  
+  wstring debug_identifier;
+
+  
+  
+  wstring cpu;
+};
 
 class PDBSourceLineWriter {
  public:
@@ -76,9 +96,14 @@ class PDBSourceLineWriter {
 
   
   
+  bool GetModuleInfo(PDBModuleInfo *info);
+
   
   
-  bool GetModuleInfo(wstring *guid, int *age, wstring *filename);
+  
+  
+  
+  bool UsesGUID(bool *uses_guid);
 
  private:
   
@@ -108,9 +133,6 @@ class PDBSourceLineWriter {
   
   
   bool PrintPDBInfo();
-
-  
-  static wstring GetBaseName(const wstring &filename);
 
   
   

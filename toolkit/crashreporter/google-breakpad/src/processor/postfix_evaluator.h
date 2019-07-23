@@ -55,7 +55,7 @@
 #include <string>
 #include <vector>
 
-namespace google_airbag {
+namespace google_breakpad {
 
 using std::map;
 using std::string;

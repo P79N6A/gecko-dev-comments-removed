@@ -48,16 +48,19 @@ typedef SSIZE_T ssize_t;
 #define O_BINARY 0
 #endif  
 
+#include <cassert>
 #include <map>
 #include <vector>
 
 #include "processor/range_map-inl.h"
 
-#include "google_airbag/processor/minidump.h"
+#include "google_breakpad/processor/minidump.h"
+#include "processor/basic_code_module.h"
+#include "processor/basic_code_modules.h"
 #include "processor/scoped_ptr.h"
 
 
-namespace google_airbag {
+namespace google_breakpad {
 
 
 using std::vector;
@@ -114,16 +117,21 @@ static inline void Swap(u_int64_t* value) {
 
 
 
+static void Normalize128(u_int128_t* value, bool is_big_endian) {
+  
+  
+  if (!is_big_endian) {
+    u_int64_t temp = value->low;
+    value->low = value->high;
+    value->high = temp;
+  }
+}
+
 
 
 static void Swap(u_int128_t* value) {
-  Swap(&value->half[0]);
-  Swap(&value->half[1]);
-
-  
-  u_int64_t temp = value->half[0];
-  value->half[0] = value->half[1];
-  value->half[1] = temp;
+  Swap(&value->low);
+  Swap(&value->high);
 }
 
 
@@ -374,6 +382,14 @@ bool MinidumpContext::Read(u_int32_t expected_size) {
       
       if (!CheckAgainstSystemInfo(cpu_type))
         return false;
+
+      
+      
+      for (unsigned int vr_index = 0;
+           vr_index < MD_VECTORSAVEAREA_PPC_VR_COUNT;
+           ++vr_index) {
+        Normalize128(&context_ppc->vector_save.save_vr[vr_index], true);
+      }
 
       if (minidump_->swap()) {
         
@@ -643,6 +659,9 @@ const u_int8_t* MinidumpMemoryRegion::GetMemory() {
     return NULL;
 
   if (!memory_) {
+    if (descriptor_->memory.data_size == 0)
+      return NULL;
+
     if (!minidump_->SeekSet(descriptor_->memory.rva))
       return NULL;
 
@@ -920,31 +939,34 @@ bool MinidumpThreadList::Read(u_int32_t expected_size) {
     return false;
   }
 
-  
-  scoped_ptr<MinidumpThreads> threads(
-      new MinidumpThreads(thread_count, MinidumpThread(minidump_)));
-
-  for (unsigned int thread_index = 0;
-       thread_index < thread_count;
-       ++thread_index) {
-    MinidumpThread* thread = &(*threads)[thread_index];
-
+  if (thread_count) {
     
-    if (!thread->Read())
-      return false;
+    scoped_ptr<MinidumpThreads> threads(
+        new MinidumpThreads(thread_count, MinidumpThread(minidump_)));
 
-    u_int32_t thread_id;
-    if (!thread->GetThreadID(&thread_id))
-      return false;
+    for (unsigned int thread_index = 0;
+         thread_index < thread_count;
+         ++thread_index) {
+      MinidumpThread* thread = &(*threads)[thread_index];
 
-    if (GetThreadByID(thread_id)) {
       
-      return false;
+      if (!thread->Read())
+        return false;
+
+      u_int32_t thread_id;
+      if (!thread->GetThreadID(&thread_id))
+        return false;
+
+      if (GetThreadByID(thread_id)) {
+        
+        return false;
+      }
+      id_to_thread_map_[thread_id] = thread;
     }
-    id_to_thread_map_[thread_id] = thread;
+
+    threads_ = threads.release();
   }
 
-  threads_ = threads.release();
   thread_count_ = thread_count;
 
   valid_ = true;
@@ -993,11 +1015,12 @@ void MinidumpThreadList::Print() {
 
 MinidumpModule::MinidumpModule(Minidump* minidump)
     : MinidumpObject(minidump),
+      module_valid_(false),
       module_(),
       name_(NULL),
       cv_record_(NULL),
-      misc_record_(NULL),
-      debug_filename_(NULL) {
+      cv_record_signature_(MD_CVINFOUNKNOWN_SIGNATURE),
+      misc_record_(NULL) {
 }
 
 
@@ -1005,7 +1028,6 @@ MinidumpModule::~MinidumpModule() {
   delete name_;
   delete cv_record_;
   delete misc_record_;
-  delete debug_filename_;
 }
 
 
@@ -1015,11 +1037,11 @@ bool MinidumpModule::Read() {
   name_ = NULL;
   delete cv_record_;
   cv_record_ = NULL;
+  cv_record_signature_ = MD_CVINFOUNKNOWN_SIGNATURE;
   delete misc_record_;
   misc_record_ = NULL;
-  delete debug_filename_;
-  debug_filename_ = NULL;
 
+  module_valid_ = false;
   valid_ = false;
 
   if (!minidump_->ReadBytes(&module_, MD_MODULE_SIZE))
@@ -1056,30 +1078,257 @@ bool MinidumpModule::Read() {
   if (module_.size_of_image == 0 || high_address < module_.base_of_image)
     return false;
 
+  module_valid_ = true;
+  return true;
+}
+
+
+bool MinidumpModule::ReadAuxiliaryData() {
+  if (!module_valid_)
+    return false;
+
+  
+  name_ = minidump_->ReadString(module_.module_name_rva);
+  if (!name_)
+    return false;
+
+  
+  
+  if (module_.cv_record.data_size && !GetCVRecord(NULL))
+    return false;
+
+  if (module_.misc_record.data_size && !GetMiscRecord(NULL))
+    return false;
+
   valid_ = true;
   return true;
 }
 
 
-const string* MinidumpModule::GetName() {
+string MinidumpModule::code_file() const {
   if (!valid_)
-    return NULL;
+    return "";
 
-  if (!name_)
-    name_ = minidump_->ReadString(module_.module_name_rva);
-
-  return name_;
+  return *name_;
 }
 
 
-const u_int8_t* MinidumpModule::GetCVRecord() {
+string MinidumpModule::code_identifier() const {
   if (!valid_)
+    return "";
+
+  MinidumpSystemInfo *minidump_system_info = minidump_->GetSystemInfo();
+  if (!minidump_system_info)
+    return "";
+
+  const MDRawSystemInfo *raw_system_info = minidump_system_info->system_info();
+  if (!raw_system_info)
+    return "";
+
+  string identifier;
+
+  switch (raw_system_info->platform_id) {
+    case MD_OS_WIN32_NT:
+    case MD_OS_WIN32_WINDOWS: {
+      
+      
+      char identifier_string[17];
+      snprintf(identifier_string, sizeof(identifier_string), "%08X%x",
+               module_.time_date_stamp, module_.size_of_image);
+      identifier = identifier_string;
+      break;
+    }
+
+    case MD_OS_MAC_OS_X: {
+      
+      
+      
+      identifier = "id";
+      break;
+    }
+
+    default: {
+      
+      
+      break;
+    }
+  }
+
+  return identifier;
+}
+
+
+string MinidumpModule::debug_file() const {
+  if (!valid_)
+    return "";
+
+  string file;
+  
+  if (cv_record_) {
+    if (cv_record_signature_ == MD_CVINFOPDB70_SIGNATURE) {
+      
+      const MDCVInfoPDB70* cv_record_70 =
+          reinterpret_cast<const MDCVInfoPDB70*>(&(*cv_record_)[0]);
+      assert(cv_record_70->cv_signature == MD_CVINFOPDB70_SIGNATURE);
+
+      
+      file = reinterpret_cast<const char*>(cv_record_70->pdb_file_name);
+    } else if (cv_record_signature_ == MD_CVINFOPDB20_SIGNATURE) {
+      
+      const MDCVInfoPDB20* cv_record_20 =
+          reinterpret_cast<const MDCVInfoPDB20*>(&(*cv_record_)[0]);
+      assert(cv_record_20->cv_header.signature == MD_CVINFOPDB20_SIGNATURE);
+
+      
+      file = reinterpret_cast<const char*>(cv_record_20->pdb_file_name);
+    }
+
+    
+    
+  }
+
+  if (file.empty()) {
+    
+    if (misc_record_) {
+      const MDImageDebugMisc* misc_record =
+          reinterpret_cast<const MDImageDebugMisc *>(&(*misc_record_)[0]);
+      if (!misc_record->unicode) {
+        
+        
+        file = string(
+            reinterpret_cast<const char*>(misc_record->data),
+            module_.misc_record.data_size - sizeof(MDImageDebugMisc));
+      } else {
+        
+        
+        
+        
+        
+
+        unsigned int bytes =
+            module_.misc_record.data_size - sizeof(MDImageDebugMisc);
+        if (bytes % 2 == 0) {
+          unsigned int utf16_words = bytes / 2;
+
+          
+          
+          vector<u_int16_t> string_utf16(utf16_words);
+          if (utf16_words)
+            memcpy(&string_utf16[0], &misc_record->data, bytes);
+
+          
+          
+          scoped_ptr<string> new_file(UTF16ToUTF8(string_utf16, false));
+          file = *new_file;
+        }
+      }
+    }
+  }
+
+  return file;
+}
+
+
+string MinidumpModule::debug_identifier() const {
+  if (!valid_)
+    return "";
+
+  string identifier;
+
+  
+  if (cv_record_) {
+    if (cv_record_signature_ == MD_CVINFOPDB70_SIGNATURE) {
+      
+      const MDCVInfoPDB70* cv_record_70 =
+          reinterpret_cast<const MDCVInfoPDB70*>(&(*cv_record_)[0]);
+      assert(cv_record_70->cv_signature == MD_CVINFOPDB70_SIGNATURE);
+
+      
+      
+      char identifier_string[41];
+      snprintf(identifier_string, sizeof(identifier_string),
+               "%08X%04X%04X%02X%02X%02X%02X%02X%02X%02X%02X%x",
+               cv_record_70->signature.data1,
+               cv_record_70->signature.data2,
+               cv_record_70->signature.data3,
+               cv_record_70->signature.data4[0],
+               cv_record_70->signature.data4[1],
+               cv_record_70->signature.data4[2],
+               cv_record_70->signature.data4[3],
+               cv_record_70->signature.data4[4],
+               cv_record_70->signature.data4[5],
+               cv_record_70->signature.data4[6],
+               cv_record_70->signature.data4[7],
+               cv_record_70->age);
+      identifier = identifier_string;
+    } else if (cv_record_signature_ == MD_CVINFOPDB20_SIGNATURE) {
+      
+      const MDCVInfoPDB20* cv_record_20 =
+          reinterpret_cast<const MDCVInfoPDB20*>(&(*cv_record_)[0]);
+      assert(cv_record_20->cv_header.signature == MD_CVINFOPDB20_SIGNATURE);
+
+      
+      
+      char identifier_string[17];
+      snprintf(identifier_string, sizeof(identifier_string),
+               "%08X%x", cv_record_20->signature, cv_record_20->age);
+      identifier = identifier_string;
+    }
+  }
+
+  
+  
+  
+  
+  
+  
+
+  
+
+  return identifier;
+}
+
+
+string MinidumpModule::version() const {
+  if (!valid_)
+    return "";
+
+  string version;
+
+  if (module_.version_info.signature == MD_VSFIXEDFILEINFO_SIGNATURE &&
+      module_.version_info.struct_version & MD_VSFIXEDFILEINFO_VERSION) {
+    char version_string[24];
+    snprintf(version_string, sizeof(version_string), "%u.%u.%u.%u",
+             module_.version_info.file_version_hi >> 16,
+             module_.version_info.file_version_hi & 0xffff,
+             module_.version_info.file_version_lo >> 16,
+             module_.version_info.file_version_lo & 0xffff);
+    version = version_string;
+  }
+
+  
+  
+  
+  
+  
+
+  return version;
+}
+
+
+const CodeModule* MinidumpModule::Copy() const {
+  return new BasicCodeModule(this);
+}
+
+
+const u_int8_t* MinidumpModule::GetCVRecord(u_int32_t* size) {
+  if (!module_valid_)
     return NULL;
 
   if (!cv_record_) {
     
     
-    if (sizeof(MDCVInfoPDB20) > module_.cv_record.data_size)
+    if (!module_.cv_record.data_size)
       return NULL;
 
     if (!minidump_->SeekSet(module_.cv_record.rva))
@@ -1100,11 +1349,14 @@ const u_int8_t* MinidumpModule::GetCVRecord() {
     if (!minidump_->ReadBytes(&(*cv_record)[0], module_.cv_record.data_size))
       return NULL;
 
-    MDCVInfoPDB70* cv_record_70 =
-        reinterpret_cast<MDCVInfoPDB70*>(&(*cv_record)[0]);
-    u_int32_t signature = cv_record_70->cv_signature;
-    if (minidump_->swap())
-      Swap(&signature);
+    u_int32_t signature = MD_CVINFOUNKNOWN_SIGNATURE;
+    if (module_.cv_record.data_size > sizeof(signature)) {
+      MDCVInfoPDB70* cv_record_signature =
+          reinterpret_cast<MDCVInfoPDB70*>(&(*cv_record)[0]);
+      signature = cv_record_signature->cv_signature;
+      if (minidump_->swap())
+        Swap(&signature);
+    }
 
     if (signature == MD_CVINFOPDB70_SIGNATURE) {
       
@@ -1112,16 +1364,26 @@ const u_int8_t* MinidumpModule::GetCVRecord() {
         return NULL;
 
       if (minidump_->swap()) {
+        MDCVInfoPDB70* cv_record_70 =
+            reinterpret_cast<MDCVInfoPDB70*>(&(*cv_record)[0]);
         Swap(&cv_record_70->cv_signature);
         Swap(&cv_record_70->signature);
         Swap(&cv_record_70->age);
         
         
       }
+
+      
+      
+      if ((*cv_record)[module_.cv_record.data_size - 1] != '\0')
+        return NULL;
     } else if (signature == MD_CVINFOPDB20_SIGNATURE) {
+      
+      if (sizeof(MDCVInfoPDB20) > module_.cv_record.data_size)
+        return NULL;
       if (minidump_->swap()) {
         MDCVInfoPDB20* cv_record_20 =
-         reinterpret_cast<MDCVInfoPDB20*>(&(*cv_record)[0]);
+            reinterpret_cast<MDCVInfoPDB20*>(&(*cv_record)[0]);
         Swap(&cv_record_20->cv_header.signature);
         Swap(&cv_record_20->cv_header.offset);
         Swap(&cv_record_20->signature);
@@ -1129,29 +1391,34 @@ const u_int8_t* MinidumpModule::GetCVRecord() {
         
         
       }
-    } else {
+
       
       
-      
-      return NULL;
+      if ((*cv_record)[module_.cv_record.data_size - 1] != '\0')
+        return NULL;
     }
 
     
     
-    if ((*cv_record)[module_.cv_record.data_size - 1] != '\0')
-      return NULL;
+    
+    
+    
 
     
     
     cv_record_ = cv_record.release();
+    cv_record_signature_ = signature;
   }
+
+  if (size)
+    *size = module_.cv_record.data_size;
 
   return &(*cv_record_)[0];
 }
 
 
-const MDImageDebugMisc* MinidumpModule::GetMiscRecord() {
-  if (!valid_)
+const MDImageDebugMisc* MinidumpModule::GetMiscRecord(u_int32_t* size) {
+  if (!module_valid_)
     return NULL;
 
   if (!misc_record_) {
@@ -1206,83 +1473,10 @@ const MDImageDebugMisc* MinidumpModule::GetMiscRecord() {
     misc_record_ = misc_record_mem.release();
   }
 
+  if (size)
+    *size = module_.misc_record.data_size;
+
   return reinterpret_cast<MDImageDebugMisc*>(&(*misc_record_)[0]);
-}
-
-
-
-
-
-const string* MinidumpModule::GetDebugFilename() {
-  if (!valid_)
-    return NULL;
-
-  if (!debug_filename_) {
-    
-    const MDCVInfoPDB70* cv_record_70 =
-        reinterpret_cast<const MDCVInfoPDB70*>(GetCVRecord());
-    if (cv_record_70) {
-      if (cv_record_70->cv_signature == MD_CVINFOPDB70_SIGNATURE) {
-        
-        debug_filename_ = new string(
-            reinterpret_cast<const char*>(cv_record_70->pdb_file_name));
-
-        return debug_filename_;
-      } else if (cv_record_70->cv_signature == MD_CVINFOPDB20_SIGNATURE) {
-        
-        const MDCVInfoPDB20* cv_record_20 =
-            reinterpret_cast<const MDCVInfoPDB20*>(cv_record_70);
-
-        
-        debug_filename_ = new string(
-            reinterpret_cast<const char*>(cv_record_20->pdb_file_name));
-
-        return debug_filename_;
-      }
-
-      
-      
-      
-      
-    }
-
-    
-    const MDImageDebugMisc* misc_record = GetMiscRecord();
-    if (!misc_record)
-      return NULL;
-
-    if (!misc_record->unicode) {
-      
-      
-      debug_filename_ = new string(
-          reinterpret_cast<const char*>(misc_record->data),
-          module_.misc_record.data_size - sizeof(MDImageDebugMisc));
-
-      return debug_filename_;
-    }
-
-    
-    
-    
-    
-
-    unsigned int bytes =
-        module_.misc_record.data_size - sizeof(MDImageDebugMisc);
-    if (bytes % 2 != 0)
-      return NULL;
-    unsigned int utf16_words = bytes / 2;
-
-    
-    
-    vector<u_int16_t> string_utf16(utf16_words);
-    memcpy(&string_utf16[0], &misc_record->data, bytes);
-
-    
-    
-    debug_filename_ = UTF16ToUTF8(string_utf16, false);
-  }
-
-  return debug_filename_;
 }
 
 
@@ -1333,37 +1527,41 @@ void MinidumpModule::Print() {
   printf("  misc_record.rva                 = 0x%x\n",
          module_.misc_record.rva);
 
-  const char* module_name = GetName()->c_str();
-  if (module_name)
-    printf("  (module_name)                   = \"%s\"\n", module_name);
-  else
-    printf("  (module_name)                   = (null)\n");
+  printf("  (code_file)                     = \"%s\"\n", code_file().c_str());
+  printf("  (code_identifier)               = \"%s\"\n",
+         code_identifier().c_str());
 
-  const MDCVInfoPDB70* cv_record =
-      reinterpret_cast<const MDCVInfoPDB70*>(GetCVRecord());
+  u_int32_t cv_record_size;
+  const u_int8_t *cv_record = GetCVRecord(&cv_record_size);
   if (cv_record) {
-    if (cv_record->cv_signature == MD_CVINFOPDB70_SIGNATURE) {
+    if (cv_record_signature_ == MD_CVINFOPDB70_SIGNATURE) {
+      const MDCVInfoPDB70* cv_record_70 =
+          reinterpret_cast<const MDCVInfoPDB70*>(cv_record);
+      assert(cv_record_70->cv_signature == MD_CVINFOPDB70_SIGNATURE);
+
       printf("  (cv_record).cv_signature        = 0x%x\n",
-             cv_record->cv_signature);
+             cv_record_70->cv_signature);
       printf("  (cv_record).signature           = %08x-%04x-%04x-%02x%02x-",
-             cv_record->signature.data1,
-             cv_record->signature.data2,
-             cv_record->signature.data3,
-             cv_record->signature.data4[0],
-             cv_record->signature.data4[1]);
+             cv_record_70->signature.data1,
+             cv_record_70->signature.data2,
+             cv_record_70->signature.data3,
+             cv_record_70->signature.data4[0],
+             cv_record_70->signature.data4[1]);
       for (unsigned int guidIndex = 2;
            guidIndex < 8;
            ++guidIndex) {
-        printf("%02x", cv_record->signature.data4[guidIndex]);
+        printf("%02x", cv_record_70->signature.data4[guidIndex]);
       }
       printf("\n");
       printf("  (cv_record).age                 = %d\n",
-             cv_record->age);
+             cv_record_70->age);
       printf("  (cv_record).pdb_file_name       = \"%s\"\n",
-             cv_record->pdb_file_name);
-    } else {
+             cv_record_70->pdb_file_name);
+    } else if (cv_record_signature_ == MD_CVINFOPDB20_SIGNATURE) {
       const MDCVInfoPDB20* cv_record_20 =
-       reinterpret_cast<const MDCVInfoPDB20*>(cv_record);
+          reinterpret_cast<const MDCVInfoPDB20*>(cv_record);
+      assert(cv_record_20->cv_header.signature == MD_CVINFOPDB20_SIGNATURE);
+
       printf("  (cv_record).cv_header.signature = 0x%x\n",
              cv_record_20->cv_header.signature);
       printf("  (cv_record).cv_header.offset    = 0x%x\n",
@@ -1374,12 +1572,20 @@ void MinidumpModule::Print() {
              cv_record_20->age);
       printf("  (cv_record).pdb_file_name       = \"%s\"\n",
              cv_record_20->pdb_file_name);
+    } else {
+      printf("  (cv_record)                     = ");
+      for (unsigned int cv_byte_index = 0;
+           cv_byte_index < cv_record_size;
+           ++cv_byte_index) {
+        printf("%02x", cv_record[cv_byte_index]);
+      }
+      printf("\n");
     }
   } else {
     printf("  (cv_record)                     = (null)\n");
   }
 
-  const MDImageDebugMisc* misc_record = GetMiscRecord();
+  const MDImageDebugMisc* misc_record = GetMiscRecord(NULL);
   if (misc_record) {
     printf("  (misc_record).data_type         = 0x%x\n",
            misc_record->data_type);
@@ -1398,13 +1604,10 @@ void MinidumpModule::Print() {
     printf("  (misc_record)                   = (null)\n");
   }
 
-  const string* debug_filename = GetDebugFilename();
-  if (debug_filename) {
-    printf("  (debug_filename)                = \"%s\"\n",
-           debug_filename->c_str());
-  } else {
-    printf("  (debug_filename)                = (null)\n");
-  }
+  printf("  (debug_file)                    = \"%s\"\n", debug_file().c_str());
+  printf("  (debug_identifier)              = \"%s\"\n",
+         debug_identifier().c_str());
+  printf("  (version)                       = \"%s\"\n", version().c_str());
   printf("\n");
 }
 
@@ -1451,29 +1654,46 @@ bool MinidumpModuleList::Read(u_int32_t expected_size) {
     return false;
   }
 
-  
-  scoped_ptr<MinidumpModules> modules(
-      new MinidumpModules(module_count, MinidumpModule(minidump_)));
+  if (module_count) {
+    
+    scoped_ptr<MinidumpModules> modules(
+        new MinidumpModules(module_count, MinidumpModule(minidump_)));
 
-  for (unsigned int module_index = 0;
-       module_index < module_count;
-       ++module_index) {
-    MinidumpModule* module = &(*modules)[module_index];
+    for (unsigned int module_index = 0;
+         module_index < module_count;
+         ++module_index) {
+      MinidumpModule* module = &(*modules)[module_index];
+
+      
+      if (!module->Read())
+        return false;
+    }
 
     
-    if (!module->Read())
-      return false;
+    
+    
+    
+    
+    for (unsigned int module_index = 0;
+         module_index < module_count;
+         ++module_index) {
+      MinidumpModule* module = &(*modules)[module_index];
 
-    u_int64_t base_address = module->base_address();
-    u_int64_t module_size = module->size();
-    if (base_address == (u_int64_t)-1)
-      return false;
+      if (!module->ReadAuxiliaryData())
+        return false;
 
-    if (!range_map_->StoreRange(base_address, module_size, module_index))
-      return false;
+      u_int64_t base_address = module->base_address();
+      u_int64_t module_size = module->size();
+      if (base_address == static_cast<u_int64_t>(-1))
+        return false;
+
+      if (!range_map_->StoreRange(base_address, module_size, module_index))
+        return false;
+    }
+
+    modules_ = modules.release();
   }
 
-  modules_ = modules.release();
   module_count_ = module_count;
 
   valid_ = true;
@@ -1481,16 +1701,8 @@ bool MinidumpModuleList::Read(u_int32_t expected_size) {
 }
 
 
-MinidumpModule* MinidumpModuleList::GetModuleAtIndex(unsigned int index)
-    const {
-  if (!valid_ || index >= module_count_)
-    return NULL;
-
-  return &(*modules_)[index];
-}
-
-
-MinidumpModule* MinidumpModuleList::GetModuleForAddress(u_int64_t address) {
+const MinidumpModule* MinidumpModuleList::GetModuleForAddress(
+    u_int64_t address) const {
   if (!valid_)
     return NULL;
 
@@ -1499,6 +1711,43 @@ MinidumpModule* MinidumpModuleList::GetModuleForAddress(u_int64_t address) {
     return NULL;
 
   return GetModuleAtIndex(module_index);
+}
+
+
+const MinidumpModule* MinidumpModuleList::GetMainModule() const {
+  if (!valid_)
+    return NULL;
+
+  
+  
+  return GetModuleAtSequence(0);
+}
+
+
+const MinidumpModule* MinidumpModuleList::GetModuleAtSequence(
+    unsigned int sequence) const {
+  if (!valid_ || sequence >= module_count_)
+    return NULL;
+
+  unsigned int module_index;
+  if (!range_map_->RetrieveRangeAtIndex(sequence, &module_index, NULL, NULL))
+    return NULL;
+
+  return GetModuleAtIndex(module_index);
+}
+
+
+const MinidumpModule* MinidumpModuleList::GetModuleAtIndex(
+    unsigned int index) const {
+  if (!valid_ || index >= module_count_)
+    return NULL;
+
+  return &(*modules_)[index];
+}
+
+
+const CodeModules* MinidumpModuleList::Copy() const {
+  return new BasicCodeModules(this);
 }
 
 
@@ -1566,46 +1815,49 @@ bool MinidumpMemoryList::Read(u_int32_t expected_size) {
     return false;
   }
 
-  
-  scoped_ptr<MemoryDescriptors> descriptors(
-      new MemoryDescriptors(region_count));
-
-  
-  
-  if (!minidump_->ReadBytes(&(*descriptors)[0],
-                            sizeof(MDMemoryDescriptor) * region_count)) {
-    return false;
-  }
-
-  scoped_ptr<MemoryRegions> regions(
-      new MemoryRegions(region_count, MinidumpMemoryRegion(minidump_)));
-
-  for (unsigned int region_index = 0;
-       region_index < region_count;
-       ++region_index) {
-    MDMemoryDescriptor* descriptor = &(*descriptors)[region_index];
-
-    if (minidump_->swap())
-      Swap(&*descriptor);
-
-    u_int64_t base_address = descriptor->start_of_memory_range;
-    u_int32_t region_size = descriptor->memory.data_size;
+  if (region_count) {
+    
+    scoped_ptr<MemoryDescriptors> descriptors(
+        new MemoryDescriptors(region_count));
 
     
     
-    u_int64_t high_address = base_address + region_size - 1;
-    if (region_size == 0 || high_address < base_address)
+    if (!minidump_->ReadBytes(&(*descriptors)[0],
+                              sizeof(MDMemoryDescriptor) * region_count)) {
       return false;
+    }
 
-    if (!range_map_->StoreRange(base_address, region_size, region_index))
-      return false;
+    scoped_ptr<MemoryRegions> regions(
+        new MemoryRegions(region_count, MinidumpMemoryRegion(minidump_)));
 
-    (*regions)[region_index].SetDescriptor(descriptor);
+    for (unsigned int region_index = 0;
+         region_index < region_count;
+         ++region_index) {
+      MDMemoryDescriptor* descriptor = &(*descriptors)[region_index];
+
+      if (minidump_->swap())
+        Swap(descriptor);
+
+      u_int64_t base_address = descriptor->start_of_memory_range;
+      u_int32_t region_size = descriptor->memory.data_size;
+
+      
+      
+      u_int64_t high_address = base_address + region_size - 1;
+      if (region_size == 0 || high_address < base_address)
+        return false;
+
+      if (!range_map_->StoreRange(base_address, region_size, region_index))
+        return false;
+
+      (*regions)[region_index].SetDescriptor(descriptor);
+    }
+
+    descriptors_ = descriptors.release();
+    regions_ = regions.release();
   }
 
   region_count_ = region_count;
-  descriptors_ = descriptors.release();
-  regions_ = regions.release();
 
   valid_ = true;
   return true;
@@ -1852,6 +2104,52 @@ bool MinidumpSystemInfo::Read(u_int32_t expected_size) {
 }
 
 
+string MinidumpSystemInfo::GetOS() {
+  if (!valid_)
+    return NULL;
+
+  string os;
+
+  switch (system_info_.platform_id) {
+    case MD_OS_WIN32_NT:
+    case MD_OS_WIN32_WINDOWS:
+      os = "windows";
+      break;
+
+    case MD_OS_MAC_OS_X:
+      os = "mac";
+      break;
+
+    case MD_OS_LINUX:
+      os = "linux";
+      break;
+  }
+
+  return os;
+}
+
+
+string MinidumpSystemInfo::GetCPU() {
+  if (!valid_)
+    return "";
+
+  string cpu;
+
+  switch (system_info_.processor_architecture) {
+    case MD_CPU_ARCHITECTURE_X86:
+    case MD_CPU_ARCHITECTURE_X86_WIN64:
+      cpu = "x86";
+      break;
+
+    case MD_CPU_ARCHITECTURE_PPC:
+      cpu = "ppc";
+      break;
+  }
+
+  return cpu;
+}
+
+
 const string* MinidumpSystemInfo::GetCSDVersion() {
   if (!valid_)
     return NULL;
@@ -2029,25 +2327,25 @@ void MinidumpMiscInfo::Print() {
 
 
 
-MinidumpAirbagInfo::MinidumpAirbagInfo(Minidump* minidump)
+MinidumpBreakpadInfo::MinidumpBreakpadInfo(Minidump* minidump)
     : MinidumpStream(minidump),
-      airbag_info_() {
+      breakpad_info_() {
 }
 
 
-bool MinidumpAirbagInfo::Read(u_int32_t expected_size) {
+bool MinidumpBreakpadInfo::Read(u_int32_t expected_size) {
   valid_ = false;
 
-  if (expected_size != sizeof(airbag_info_))
+  if (expected_size != sizeof(breakpad_info_))
     return false;
 
-  if (!minidump_->ReadBytes(&airbag_info_, sizeof(airbag_info_)))
+  if (!minidump_->ReadBytes(&breakpad_info_, sizeof(breakpad_info_)))
     return false;
 
   if (minidump_->swap()) {
-    Swap(&airbag_info_.validity);
-    Swap(&airbag_info_.dump_thread_id);
-    Swap(&airbag_info_.requesting_thread_id);
+    Swap(&breakpad_info_.validity);
+    Swap(&breakpad_info_.dump_thread_id);
+    Swap(&breakpad_info_.requesting_thread_id);
   }
 
   valid_ = true;
@@ -2055,45 +2353,45 @@ bool MinidumpAirbagInfo::Read(u_int32_t expected_size) {
 }
 
 
-bool MinidumpAirbagInfo::GetDumpThreadID(u_int32_t *thread_id) const {
+bool MinidumpBreakpadInfo::GetDumpThreadID(u_int32_t *thread_id) const {
   if (!thread_id || !valid_ ||
-      !(airbag_info_.validity & MD_AIRBAG_INFO_VALID_DUMP_THREAD_ID)) {
+      !(breakpad_info_.validity & MD_BREAKPAD_INFO_VALID_DUMP_THREAD_ID)) {
     return false;
   }
 
-  *thread_id = airbag_info_.dump_thread_id;
+  *thread_id = breakpad_info_.dump_thread_id;
   return true;
 }
 
 
-bool MinidumpAirbagInfo::GetRequestingThreadID(u_int32_t *thread_id)
+bool MinidumpBreakpadInfo::GetRequestingThreadID(u_int32_t *thread_id)
     const {
   if (!thread_id || !valid_ ||
-      !(airbag_info_.validity & MD_AIRBAG_INFO_VALID_REQUESTING_THREAD_ID)) {
+      !(breakpad_info_.validity & MD_BREAKPAD_INFO_VALID_REQUESTING_THREAD_ID)) {
     return false;
   }
 
-  *thread_id = airbag_info_.requesting_thread_id;
+  *thread_id = breakpad_info_.requesting_thread_id;
   return true;
 }
 
 
-void MinidumpAirbagInfo::Print() {
+void MinidumpBreakpadInfo::Print() {
   if (!valid_)
     return;
 
-  printf("MDRawAirbagInfo\n");
-  printf("  validity             = 0x%x\n", airbag_info_.validity);
+  printf("MDRawBreakpadInfo\n");
+  printf("  validity             = 0x%x\n", breakpad_info_.validity);
 
-  if (airbag_info_.validity & MD_AIRBAG_INFO_VALID_DUMP_THREAD_ID) {
-    printf("  dump_thread_id       = 0x%x\n", airbag_info_.dump_thread_id);
+  if (breakpad_info_.validity & MD_BREAKPAD_INFO_VALID_DUMP_THREAD_ID) {
+    printf("  dump_thread_id       = 0x%x\n", breakpad_info_.dump_thread_id);
   } else {
     printf("  dump_thread_id       = (invalid)\n");
   }
 
-  if (airbag_info_.validity & MD_AIRBAG_INFO_VALID_DUMP_THREAD_ID) {
+  if (breakpad_info_.validity & MD_BREAKPAD_INFO_VALID_DUMP_THREAD_ID) {
     printf("  requesting_thread_id = 0x%x\n",
-           airbag_info_.requesting_thread_id);
+           breakpad_info_.requesting_thread_id);
   } else {
     printf("  requesting_thread_id = (invalid)\n");
   }
@@ -2110,7 +2408,7 @@ void MinidumpAirbagInfo::Print() {
 Minidump::Minidump(const string& path)
     : header_(),
       directory_(NULL),
-      stream_map_(NULL),
+      stream_map_(new MinidumpStreamMap()),
       path_(path),
       fd_(-1),
       swap_(false),
@@ -2147,8 +2445,7 @@ bool Minidump::Read() {
   
   delete directory_;
   directory_ = NULL;
-  delete stream_map_;
-  stream_map_ = NULL;
+  stream_map_->clear();
 
   valid_ = false;
 
@@ -2195,57 +2492,56 @@ bool Minidump::Read() {
   if (!SeekSet(header_.stream_directory_rva))
     return false;
 
-  
-  scoped_ptr<MinidumpDirectoryEntries> directory(
-      new MinidumpDirectoryEntries(header_.stream_count));
-
-  
-  
-  if (!ReadBytes(&(*directory)[0],
-                 sizeof(MDRawDirectory) * header_.stream_count))
-    return false;
-
-  scoped_ptr<MinidumpStreamMap> stream_map(new MinidumpStreamMap());
-
-  for (unsigned int stream_index = 0;
-       stream_index < header_.stream_count;
-       ++stream_index) {
-    MDRawDirectory* directory_entry = &(*directory)[stream_index];
-
-    if (swap_) {
-      Swap(&directory_entry->stream_type);
-      Swap(&directory_entry->location);
-    }
+  if (header_.stream_count) {
+    
+    scoped_ptr<MinidumpDirectoryEntries> directory(
+        new MinidumpDirectoryEntries(header_.stream_count));
 
     
     
-    unsigned int stream_type = directory_entry->stream_type;
-    switch (stream_type) {
-      case MD_THREAD_LIST_STREAM:
-      case MD_MODULE_LIST_STREAM:
-      case MD_MEMORY_LIST_STREAM:
-      case MD_EXCEPTION_STREAM:
-      case MD_SYSTEM_INFO_STREAM:
-      case MD_MISC_INFO_STREAM:
-      case MD_AIRBAG_INFO_STREAM: {
-        if (stream_map->find(stream_type) != stream_map->end()) {
+    if (!ReadBytes(&(*directory)[0],
+                   sizeof(MDRawDirectory) * header_.stream_count))
+      return false;
+
+    for (unsigned int stream_index = 0;
+         stream_index < header_.stream_count;
+         ++stream_index) {
+      MDRawDirectory* directory_entry = &(*directory)[stream_index];
+
+      if (swap_) {
+        Swap(&directory_entry->stream_type);
+        Swap(&directory_entry->location);
+      }
+
+      
+      
+      unsigned int stream_type = directory_entry->stream_type;
+      switch (stream_type) {
+        case MD_THREAD_LIST_STREAM:
+        case MD_MODULE_LIST_STREAM:
+        case MD_MEMORY_LIST_STREAM:
+        case MD_EXCEPTION_STREAM:
+        case MD_SYSTEM_INFO_STREAM:
+        case MD_MISC_INFO_STREAM:
+        case MD_BREAKPAD_INFO_STREAM: {
+          if (stream_map_->find(stream_type) != stream_map_->end()) {
+            
+            
+            return false;
+          }
           
-          
-          return false;
         }
-        
-      }
 
-      default: {
-        
-        
-        (*stream_map)[stream_type].stream_index = stream_index;
+        default: {
+          
+          
+          (*stream_map_)[stream_type].stream_index = stream_index;
+        }
       }
     }
-  }
 
-  directory_ = directory.release();
-  stream_map_ = stream_map.release();
+    directory_ = directory.release();
+  }
 
   valid_ = true;
   return true;
@@ -2288,9 +2584,9 @@ MinidumpMiscInfo* Minidump::GetMiscInfo() {
 }
 
 
-MinidumpAirbagInfo* Minidump::GetAirbagInfo() {
-  MinidumpAirbagInfo* airbag_info;
-  return GetStream(&airbag_info);
+MinidumpBreakpadInfo* Minidump::GetBreakpadInfo() {
+  MinidumpBreakpadInfo* breakpad_info;
+  return GetStream(&breakpad_info);
 }
 
 
@@ -2304,10 +2600,10 @@ void Minidump::Print() {
   printf("  stream_count         = %d\n",      header_.stream_count);
   printf("  stream_directory_rva = 0x%x\n",    header_.stream_directory_rva);
   printf("  checksum             = 0x%x\n",    header_.checksum);
-  struct tm* timestruct =
-      gmtime(reinterpret_cast<time_t*>(&header_.time_date_stamp));
+  struct tm timestruct;
+  gmtime_r(reinterpret_cast<time_t*>(&header_.time_date_stamp), &timestruct);
   char timestr[20];
-  strftime(timestr, 20, "%Y-%m-%d %H:%M:%S", timestruct);
+  strftime(timestr, 20, "%Y-%m-%d %H:%M:%S", &timestruct);
   printf("  time_date_stamp      = 0x%x %s\n", header_.time_date_stamp,
                                                timestr);
   printf("  flags                = 0x%llx\n",  header_.flags);
@@ -2391,8 +2687,11 @@ string* Minidump::ReadString(off_t offset) {
   
   vector<u_int16_t> string_utf16(utf16_words);
 
-  if (!ReadBytes(&string_utf16[0], bytes))
-    return NULL;
+  if (utf16_words) {
+    if (!ReadBytes(&string_utf16[0], bytes)) {
+      return NULL;
+    }
+  }
 
   return UTF16ToUTF8(string_utf16, swap_);
 }

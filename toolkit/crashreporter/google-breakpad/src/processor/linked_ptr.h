@@ -53,7 +53,7 @@
 #ifndef PROCESSOR_LINKED_PTR_H__
 #define PROCESSOR_LINKED_PTR_H__
 
-namespace google_airbag {
+namespace google_breakpad {
 
 
 

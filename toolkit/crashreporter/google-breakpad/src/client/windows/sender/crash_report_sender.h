@@ -45,10 +45,17 @@
 #include <map>
 #include <string>
 
-namespace google_airbag {
+namespace google_breakpad {
 
 using std::wstring;
 using std::map;
+
+typedef enum {
+  RESULT_FAILED = 0,  
+  RESULT_REJECTED,    
+                      
+  RESULT_SUCCEEDED    
+} ReportResult;
 
 class CrashReportSender {
  public:
@@ -58,9 +65,14 @@ class CrashReportSender {
   
   
   
-  static bool SendCrashReport(const wstring &url,
-                              const map<wstring, wstring> &parameters,
-                              const wstring &dump_file_name);
+  
+  
+  
+  
+  static ReportResult SendCrashReport(const wstring &url,
+                                      const map<wstring, wstring> &parameters,
+                                      const wstring &dump_file_name,
+                                      wstring *report_code);
 
  private:
   
