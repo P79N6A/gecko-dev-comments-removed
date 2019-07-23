@@ -232,9 +232,10 @@ nsPoint
   if (scrollingFrame) {
     nsMargin scrollbars = scrollingFrame->GetActualScrollbarSizes();
     aReflowState->SetComputedWidth(aReflowState->ComputedWidth() -
-                                   (scrollbars.left + scrollbars.right));
-    aReflowState->availableWidth -= scrollbars.left + scrollbars.right;
-    aReflowState->mComputedHeight -= scrollbars.top + scrollbars.bottom;
+                                   scrollbars.LeftRight());
+    aReflowState->availableWidth -= scrollbars.LeftRight();
+    aReflowState->SetComputedHeight(aReflowState->ComputedHeight() -
+                                    scrollbars.TopBottom());
     
     return nsPoint(scrollbars.left, scrollbars.top);
   }
@@ -280,7 +281,7 @@ ViewportFrame::Reflow(nsPresContext*          aPresContext,
                                          kidFrame, availableSpace);
 
       
-      kidReflowState.mComputedHeight = aReflowState.availableHeight;
+      kidReflowState.SetComputedHeight(aReflowState.availableHeight);
       rv = ReflowChild(kidFrame, aPresContext, kidDesiredSize, kidReflowState,
                        0, 0, 0, aStatus);
       kidRect.width = kidDesiredSize.width;
@@ -317,7 +318,7 @@ ViewportFrame::Reflow(nsPresContext*          aPresContext,
   
   rv = mFixedContainer.Reflow(this, aPresContext, reflowState,
                               reflowState.ComputedWidth(),
-                              reflowState.mComputedHeight,
+                              reflowState.ComputedHeight(),
                               PR_TRUE, PR_TRUE); 
 
   

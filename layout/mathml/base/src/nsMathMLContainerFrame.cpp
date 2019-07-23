@@ -1050,7 +1050,7 @@ nsMathMLContainerFrame::Reflow(nsPresContext*          aPresContext,
   
 
   nsReflowStatus childStatus;
-  nsSize availSize(aReflowState.ComputedWidth(), aReflowState.mComputedHeight);
+  nsSize availSize(aReflowState.ComputedWidth(), aReflowState.ComputedHeight());
   nsHTMLReflowMetrics childDesiredSize(
                       aDesiredSize.mFlags | NS_REFLOW_CALC_BOUNDING_METRICS);
   nsIFrame* childFrame = mFrames.FirstChild();

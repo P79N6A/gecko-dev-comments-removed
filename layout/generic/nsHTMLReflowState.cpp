@@ -264,6 +264,32 @@ nsHTMLReflowState::SetComputedWidth(nscoord aComputedWidth)
 }
 
 void
+nsHTMLReflowState::SetComputedHeight(nscoord aComputedHeight)
+{
+  NS_ASSERTION(frame, "Must have a frame!");
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+
+  NS_PRECONDITION(aComputedHeight >= 0, "Invalid computed height");
+  if (mComputedHeight != aComputedHeight) {
+    mComputedHeight = aComputedHeight;
+    if (frame->GetType() != nsGkAtoms::viewportFrame) { 
+      InitResizeFlags(frame->PresContext());
+    }
+  }
+}
+
+void
 nsHTMLReflowState::Init(nsPresContext* aPresContext,
                         nscoord         aContainingBlockWidth,
                         nscoord         aContainingBlockHeight,
@@ -346,7 +372,7 @@ IsQuirkContainingBlockHeight(const nsHTMLReflowState* rs)
     
     
     
-    if (NS_AUTOHEIGHT == rs->mComputedHeight) {
+    if (NS_AUTOHEIGHT == rs->ComputedHeight()) {
       if (!rs->frame->GetStyleDisplay()->IsAbsolutelyPositioned()) {
         return PR_FALSE;
       }
@@ -1400,7 +1426,7 @@ CalcQuirkContainingBlockHeight(const nsHTMLReflowState* aCBReflowState)
       
       
       
-      if (NS_AUTOHEIGHT == rs->mComputedHeight) {
+      if (NS_AUTOHEIGHT == rs->ComputedHeight()) {
         if (rs->frame->GetStyleDisplay()->IsAbsolutelyPositioned()) {
           break;
         } else {
@@ -1429,7 +1455,7 @@ CalcQuirkContainingBlockHeight(const nsHTMLReflowState* aCBReflowState)
     
     
     result = (nsGkAtoms::pageContentFrame == frameType)
-             ? rs->availableHeight : rs->mComputedHeight;
+             ? rs->availableHeight : rs->ComputedHeight();
     
     if (NS_AUTOHEIGHT == result) return result;
 

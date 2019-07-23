@@ -225,8 +225,8 @@ nsColumnSetFrame::ChooseColumnStrategy(const nsHTMLReflowState& aReflowState)
     availContentWidth = aReflowState.ComputedWidth();
   }
   nscoord colHeight = GetAvailableContentHeight(aReflowState);
-  if (aReflowState.mComputedHeight != NS_INTRINSICSIZE) {
-    colHeight = aReflowState.mComputedHeight;
+  if (aReflowState.ComputedHeight() != NS_INTRINSICSIZE) {
+    colHeight = aReflowState.ComputedHeight();
   }
 
   nscoord colGap = GetColumnGap(this, colStyle);
@@ -282,7 +282,7 @@ nsColumnSetFrame::ChooseColumnStrategy(const nsHTMLReflowState& aReflowState)
 
   
   
-  if (aReflowState.mComputedHeight == NS_INTRINSICSIZE) {
+  if (aReflowState.ComputedHeight() == NS_INTRINSICSIZE) {
     
     if (numColumns <= 0) {
       
@@ -488,7 +488,7 @@ nsColumnSetFrame::ReflowChildren(nsHTMLReflowMetrics&     aDesiredSize,
 
       nsHTMLReflowState kidReflowState(PresContext(), aReflowState, child,
                                        availSize, availSize.width,
-                                       aReflowState.mComputedHeight);
+                                       aReflowState.ComputedHeight());
       kidReflowState.mFlags.mIsTopOfPage = PR_TRUE;
       kidReflowState.mFlags.mTableIsSplittable = PR_FALSE;
           
@@ -638,8 +638,8 @@ nsColumnSetFrame::ReflowChildren(nsHTMLReflowMetrics&     aDesiredSize,
   nsSize contentSize = nsSize(contentRect.XMost(), contentRect.YMost());
 
   
-  if (aReflowState.mComputedHeight != NS_INTRINSICSIZE) {
-    contentSize.height = aReflowState.mComputedHeight;
+  if (aReflowState.ComputedHeight() != NS_INTRINSICSIZE) {
+    contentSize.height = aReflowState.ComputedHeight();
   } else {
     if (NS_UNCONSTRAINEDSIZE != aReflowState.mComputedMaxHeight) {
       contentSize.height = PR_MIN(aReflowState.mComputedMaxHeight, contentSize.height);

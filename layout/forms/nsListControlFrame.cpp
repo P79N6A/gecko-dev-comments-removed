@@ -565,7 +565,7 @@ nsListControlFrame::Reflow(nsPresContext*           aPresContext,
 
 
 
-  PRBool autoHeight = (aReflowState.mComputedHeight == NS_UNCONSTRAINEDSIZE);
+  PRBool autoHeight = (aReflowState.ComputedHeight() == NS_UNCONSTRAINEDSIZE);
 
   mMightNeedSecondPass = autoHeight && NS_SUBTREE_DIRTY(this);
   
@@ -577,8 +577,9 @@ nsListControlFrame::Reflow(nsPresContext*           aPresContext,
   if (!(GetStateBits() & NS_FRAME_FIRST_REFLOW) && autoHeight) {
     
     
-    state.mComputedHeight = CalcIntrinsicHeight(oldHeightOfARow, length);
-    state.ApplyMinMaxConstraints(nsnull, &state.mComputedHeight);
+    nscoord computedHeight = CalcIntrinsicHeight(oldHeightOfARow, length);
+    state.ApplyMinMaxConstraints(nsnull, &computedHeight);
+    state.SetComputedHeight(computedHeight);
   }
 
   nsresult rv = nsHTMLScrollFrame::Reflow(aPresContext, aDesiredSize,
@@ -615,8 +616,9 @@ nsListControlFrame::Reflow(nsPresContext*           aPresContext,
   nsHTMLScrollFrame::DidReflow(aPresContext, &state, aStatus);
 
   
-  state.mComputedHeight = CalcIntrinsicHeight(HeightOfARow(), length);
-  state.ApplyMinMaxConstraints(nsnull, &state.mComputedHeight);
+  nscoord computedHeight = CalcIntrinsicHeight(HeightOfARow(), length); 
+  state.ApplyMinMaxConstraints(nsnull, &computedHeight);
+  state.SetComputedHeight(computedHeight);
 
   nsHTMLScrollFrame::WillReflow(aPresContext);
 
@@ -632,7 +634,7 @@ nsListControlFrame::ReflowAsDropdown(nsPresContext*           aPresContext,
                                      const nsHTMLReflowState& aReflowState, 
                                      nsReflowStatus&          aStatus)
 {
-  NS_PRECONDITION(aReflowState.mComputedHeight == NS_UNCONSTRAINEDSIZE,
+  NS_PRECONDITION(aReflowState.ComputedHeight() == NS_UNCONSTRAINEDSIZE,
                   "We should not have a computed height here!");
   
   mMightNeedSecondPass = NS_SUBTREE_DIRTY(this);
@@ -648,7 +650,7 @@ nsListControlFrame::ReflowAsDropdown(nsPresContext*           aPresContext,
     
     
     
-    state.mComputedHeight = mLastDropdownComputedHeight;
+    state.SetComputedHeight(mLastDropdownComputedHeight);
     oldVisibleHeight = GetScrolledFrame()->GetSize().height;
   } else {
     
@@ -729,22 +731,22 @@ nsListControlFrame::ReflowAsDropdown(nsPresContext*           aPresContext,
       }
     }
 
-    state.mComputedHeight = mNumDisplayRows * heightOfARow;
+    state.SetComputedHeight(mNumDisplayRows * heightOfARow);
     
     
     
   } else if (visibleHeight == 0) {
     
-    state.mComputedHeight = heightOfARow;
+    state.SetComputedHeight(heightOfARow);
   } else {
     
-    state.mComputedHeight = NS_UNCONSTRAINEDSIZE;
+    state.SetComputedHeight(NS_UNCONSTRAINEDSIZE);
   }
 
   
   
   
-  mLastDropdownComputedHeight = state.mComputedHeight;
+  mLastDropdownComputedHeight = state.ComputedHeight();
 
   nsHTMLScrollFrame::WillReflow(aPresContext);
   return nsHTMLScrollFrame::Reflow(aPresContext, aDesiredSize, state, aStatus);

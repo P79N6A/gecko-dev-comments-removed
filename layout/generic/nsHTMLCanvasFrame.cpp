@@ -137,7 +137,7 @@ nsHTMLCanvasFrame::Reflow(nsPresContext*           aPresContext,
   aStatus = NS_FRAME_COMPLETE;
 
   aMetrics.width = aReflowState.ComputedWidth();
-  aMetrics.height = aReflowState.mComputedHeight;
+  aMetrics.height = aReflowState.ComputedHeight();
 
   
   mBorderPadding   = aReflowState.mComputedBorderPadding;

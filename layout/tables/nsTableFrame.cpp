@@ -1721,8 +1721,8 @@ void
 nsTableFrame::CheckRequestSpecialHeightReflow(const nsHTMLReflowState& aReflowState)
 {
   if (!aReflowState.frame->GetPrevInFlow() &&  
-      (NS_UNCONSTRAINEDSIZE == aReflowState.mComputedHeight ||  
-       0                    == aReflowState.mComputedHeight) && 
+      (NS_UNCONSTRAINEDSIZE == aReflowState.ComputedHeight() ||  
+       0                    == aReflowState.ComputedHeight()) && 
       eStyleUnit_Percent == aReflowState.mStylePosition->mHeight.GetUnit() && 
       nsTableFrame::AncestorsHaveStyleHeight(*aReflowState.parentReflowState)) {
     nsTableFrame::RequestSpecialHeightReflow(aReflowState);
@@ -1845,7 +1845,7 @@ NS_METHOD nsTableFrame::Reflow(nsPresContext*          aPresContext,
   PRBool haveDesiredHeight = PR_FALSE;
   PRBool reflowedChildren  = PR_FALSE;
 
-  if (aReflowState.mComputedHeight != NS_UNCONSTRAINEDSIZE ||
+  if (aReflowState.ComputedHeight() != NS_UNCONSTRAINEDSIZE ||
       
       
       
@@ -3187,7 +3187,7 @@ nsTableFrame::DistributeHeightToRows(const nsHTMLReflowState& aReflowState,
   
   
   
-  nscoord pctBasis = aReflowState.mComputedHeight - (GetCellSpacingY() * (GetRowCount() + 1));
+  nscoord pctBasis = aReflowState.ComputedHeight() - (GetCellSpacingY() * (GetRowCount() + 1));
   nscoord yOriginRG = borderPadding.top + GetCellSpacingY();
   nscoord yEndRG = yOriginRG;
   PRUint32 rgX;
@@ -3505,7 +3505,7 @@ nsTableFrame::IsAutoHeight()
 nscoord 
 nsTableFrame::CalcBorderBoxHeight(const nsHTMLReflowState& aState)
 {
-  nscoord height = aState.mComputedHeight;
+  nscoord height = aState.ComputedHeight();
   if (NS_AUTOHEIGHT != height) {
     nsMargin borderPadding = GetContentAreaOffset(&aState);
     height += borderPadding.top + borderPadding.bottom;

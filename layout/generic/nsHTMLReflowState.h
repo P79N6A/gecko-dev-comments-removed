@@ -278,7 +278,6 @@ private:
   
   nscoord          mComputedWidth; 
 
-public:
   
   
   
@@ -294,6 +293,7 @@ public:
   
   nscoord          mComputedHeight;
 
+public:
   
   
   nsMargin         mComputedOffsets;
@@ -447,7 +447,12 @@ public:
   }
 
   nscoord ComputedWidth() const { return mComputedWidth; }
+  
   void SetComputedWidth(nscoord aComputedWidth);
+
+  nscoord ComputedHeight() const { return mComputedHeight; }
+  
+  void SetComputedHeight(nscoord aComputedHeight);
 
   void SetTruncated(const nsHTMLReflowMetrics& aMetrics, nsReflowStatus* aStatus) const;
 

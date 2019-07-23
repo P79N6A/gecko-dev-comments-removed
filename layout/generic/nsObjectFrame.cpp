@@ -644,7 +644,7 @@ nsObjectFrame::GetDesiredSize(nsPresContext* aPresContext,
   }
   
   aMetrics.width = aReflowState.ComputedWidth();
-  aMetrics.height = aReflowState.mComputedHeight;
+  aMetrics.height = aReflowState.ComputedHeight();
 
   
   nsIAtom *atom = mContent->Tag();

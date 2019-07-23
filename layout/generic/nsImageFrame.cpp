@@ -158,7 +158,7 @@ inline PRBool HaveFixedSize(const nsHTMLReflowState& aReflowState)
   
   nsStyleUnit heightUnit = (*(aReflowState.mStylePosition)).mHeight.GetUnit();
   nsStyleUnit widthUnit = (*(aReflowState.mStylePosition)).mWidth.GetUnit();
-  return ((eStyleUnit_Percent == heightUnit && NS_UNCONSTRAINEDSIZE == aReflowState.mComputedHeight) ||
+  return ((eStyleUnit_Percent == heightUnit && NS_UNCONSTRAINEDSIZE == aReflowState.ComputedHeight()) ||
           (eStyleUnit_Percent == widthUnit && (NS_UNCONSTRAINEDSIZE == aReflowState.ComputedWidth() ||
            0 == aReflowState.ComputedWidth())))
           ? PR_FALSE
@@ -792,7 +792,7 @@ nsImageFrame::Reflow(nsPresContext*          aPresContext,
   }
 
   mComputedSize = 
-    nsSize(aReflowState.ComputedWidth(), aReflowState.mComputedHeight);
+    nsSize(aReflowState.ComputedWidth(), aReflowState.ComputedHeight());
   RecalculateTransform();
 
   aMetrics.width = mComputedSize.width;

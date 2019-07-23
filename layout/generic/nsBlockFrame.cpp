@@ -824,9 +824,9 @@ CalculateContainingBlockSizeForAbsolutes(const nsHTMLReflowState& aReflowState,
         cbSize.width = PR_MAX(0,
           aLastRS->ComputedWidth() + aLastRS->mComputedPadding.LeftRight() - scrollbars.LeftRight());
       }
-      if (aLastRS->mComputedHeight != NS_UNCONSTRAINEDSIZE) {
+      if (aLastRS->ComputedHeight() != NS_UNCONSTRAINEDSIZE) {
         cbSize.height = PR_MAX(0,
-          aLastRS->mComputedHeight + aLastRS->mComputedPadding.TopBottom() - scrollbars.TopBottom());
+          aLastRS->ComputedHeight() + aLastRS->mComputedPadding.TopBottom() - scrollbars.TopBottom());
       }
     }
   }
@@ -848,7 +848,7 @@ nsBlockFrame::Reflow(nsPresContext*           aPresContext,
     ListTag(stdout);
     printf(": begin reflow availSize=%d,%d computedSize=%d,%d\n",
            aReflowState.availableWidth, aReflowState.availableHeight,
-           aReflowState.ComputedWidth(), aReflowState.mComputedHeight);
+           aReflowState.ComputedWidth(), aReflowState.ComputedHeight());
   }
   AutoNoisyIndenter indent(gNoisy);
   PRTime start = LL_ZERO; 
@@ -1130,7 +1130,7 @@ nsBlockFrame::Reflow(nsPresContext*           aPresContext,
     
     
     PRBool cbHeightChanged =
-      !(isRoot && NS_UNCONSTRAINEDSIZE == aReflowState.mComputedHeight) &&
+      !(isRoot && NS_UNCONSTRAINEDSIZE == aReflowState.ComputedHeight()) &&
       aMetrics.height != oldSize.height;
 
     rv = mAbsoluteContainer.Reflow(this, aPresContext, aReflowState,
@@ -1263,10 +1263,10 @@ nsBlockFrame::ComputeFinalSize(const nsHTMLReflowState& aReflowState,
   }
 
   
-  if (NS_UNCONSTRAINEDSIZE != aReflowState.mComputedHeight) {
+  if (NS_UNCONSTRAINEDSIZE != aReflowState.ComputedHeight()) {
     
     
-    nscoord computedHeightLeftOver = aReflowState.mComputedHeight;
+    nscoord computedHeightLeftOver = aReflowState.ComputedHeight();
     if (GetPrevInFlow()) {
       
       for (nsIFrame* prev = GetPrevInFlow(); prev; prev = prev->GetPrevInFlow()) {

@@ -679,7 +679,7 @@ nsComboboxControlFrame::Reflow(nsPresContext*          aPresContext,
   nsRect buttonRect = mButtonFrame->GetRect();
   
   
-  if (aReflowState.mComputedHeight == NS_INTRINSICSIZE) {
+  if (aReflowState.ComputedHeight() == NS_INTRINSICSIZE) {
     
     
     nsRect displayRect = mDisplayFrame->GetRect();
@@ -694,10 +694,10 @@ nsComboboxControlFrame::Reflow(nsPresContext*          aPresContext,
     
     
     NS_ASSERTION(buttonHeight == displayHeight ||
-                 (aReflowState.mComputedHeight < buttonHeight &&
+                 (aReflowState.ComputedHeight() < buttonHeight &&
                   buttonHeight ==
                     mButtonFrame->GetUsedBorderAndPadding().TopBottom()) ||
-                 (aReflowState.mComputedHeight < displayHeight &&
+                 (aReflowState.ComputedHeight() < displayHeight &&
                   displayHeight ==
                     mDisplayFrame->GetUsedBorderAndPadding().TopBottom()),
                  "Different heights?");
@@ -1098,11 +1098,11 @@ nsComboboxDisplayFrame::Reflow(nsPresContext*           aPresContext,
                                nsReflowStatus&          aStatus)
 {
   nsHTMLReflowState state(aReflowState);
-  if (state.mComputedHeight == NS_INTRINSICSIZE) {
+  if (state.ComputedHeight() == NS_INTRINSICSIZE) {
     
     
     
-    state.mComputedHeight = mComboBox->mListControlFrame->GetHeightOfARow();
+    state.SetComputedHeight(mComboBox->mListControlFrame->GetHeightOfARow());
   }
   nscoord computedWidth = mComboBox->mDisplayWidth -
     state.mComputedBorderPadding.LeftRight(); 
