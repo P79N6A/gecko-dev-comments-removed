@@ -53,12 +53,12 @@ function handleRequest(request, response)
    body += String.fromCharCode.apply(String, bodyStream.readByteArray(avail));
 
   body +=
-    '<form id="postForm" action="bug471962_testpage_outer.sjs" method="post">\
+    '<form id="postForm" action="post_form_outer.sjs" method="post">\
      <input type="text" name="inputfield" value="outer">\
      <input type="submit">\
      </form>\
      \
-     <iframe id="innerFrame" src="bug471962_testpage_inner.sjs" width="400" height="200">\
+     <iframe id="innerFrame" src="post_form_inner.sjs" width="400" height="200">\
      \
      </body>\
      </html>';
