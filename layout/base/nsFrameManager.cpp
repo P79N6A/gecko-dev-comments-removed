@@ -534,7 +534,7 @@ nsFrameManager::RemoveFrame(nsIAtom*        aListName,
   
   
   
-  aOldFrame->Invalidate(aOldFrame->GetOverflowRect());
+  aOldFrame->InvalidateOverflowRect();
 
   NS_ASSERTION(!aOldFrame->GetPrevContinuation() ||
                

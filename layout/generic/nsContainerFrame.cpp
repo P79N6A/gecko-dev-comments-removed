@@ -1120,7 +1120,7 @@ nsContainerFrame::DeleteNextInFlowChild(nsPresContext* aPresContext,
     }
   }
 
-  aNextInFlow->Invalidate(aNextInFlow->GetOverflowRect());
+  aNextInFlow->InvalidateOverflowRect();
 
   
 #ifdef DEBUG
