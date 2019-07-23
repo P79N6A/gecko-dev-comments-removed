@@ -1671,6 +1671,10 @@ pref("mousewheel.system_scroll_override_on_root_content.enabled", true);
 
 
 
+pref("mousewheel.emulate_at_wm_scroll", false);
+
+
+
 
 pref("ui.trackpoint_hack.enabled", -1);
 # WINNT

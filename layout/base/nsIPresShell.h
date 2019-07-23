@@ -127,8 +127,8 @@ typedef struct CapturingContentInfo {
 } CapturingContentInfo;
 
 #define NS_IPRESSHELL_IID     \
-  { 0x20b82adf, 0x1f5c, 0x44f7, \
-    { 0x9b, 0x74, 0xc0, 0xa3, 0x14, 0xd8, 0xcf, 0x91 } }
+  { 0xe5e070ce, 0xbc17, 0x4b5f, \
+    { 0xb2, 0x21, 0xbf, 0xc3, 0xe1, 0x68, 0xbe, 0x9b } }
 
 
 #define NS_PRESSHELL_SCROLL_TOP      0
@@ -361,6 +361,16 @@ public:
 
 
   virtual nsIScrollableFrame* GetRootScrollFrameAsScrollableExternal() const;
+
+  
+
+
+
+
+
+
+  enum ScrollDirection { eHorizontal, eVertical, eEither };
+  nsIScrollableFrame* GetFrameToScrollAsScrollable(ScrollDirection aDirection);
 
   
 

@@ -443,6 +443,13 @@ class nsHashKey;
 #define NS_CONTENT_COMMAND_PASTE_TRANSFERABLE (NS_CONTENT_COMMAND_EVENT_START+6)
 
 
+
+
+
+
+#define NS_CONTENT_COMMAND_SCROLL       (NS_CONTENT_COMMAND_EVENT_START+7)
+
+
 #define NS_GESTURENOTIFY_EVENT_START 3900
 
 #define NS_ORIENTATION_EVENT         4000
@@ -1231,7 +1238,28 @@ public:
   {
   }
 
+  
   nsCOMPtr<nsITransferable> mTransferable;                 
+
+  
+  
+  enum {
+    eCmdScrollUnit_Line,
+    eCmdScrollUnit_Page,
+    eCmdScrollUnit_Whole
+  };
+
+  struct ScrollInfo {
+    ScrollInfo() :
+      mAmount(0), mUnit(eCmdScrollUnit_Line), mIsHorizontal(PR_FALSE)
+    {
+    }
+
+    PRInt32      mAmount;                                  
+    PRUint8      mUnit;                                    
+    PRPackedBool mIsHorizontal;                            
+  } mScroll;
+
   PRPackedBool mOnlyEnabledCheck;                          
 
   PRPackedBool mSucceeded;                                 
