@@ -47,6 +47,9 @@
     nsCOMPtr<nsITimer> mFlushTimer;
     nsHtml5Parser*     mParser; 
     PRBool             mHasProcessedBase;
+#ifdef DEBUG
+    PRBool             mActive;
+#endif
     nsTArray<nsHtml5TreeOperation>       mOpQueue;
     nsTArray<nsIContentPtr>              mElementsSeenInThisAppendBatch;
     nsTArray<nsHtml5PendingNotification> mPendingNotifications;
