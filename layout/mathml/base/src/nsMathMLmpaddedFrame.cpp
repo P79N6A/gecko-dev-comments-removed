@@ -38,6 +38,7 @@
 
 
 
+
 #include "nsCOMPtr.h"
 #include "nsCRT.h"  
 #include "nsFrame.h"
@@ -293,12 +294,12 @@ nsMathMLmpaddedFrame::ParseAttribute(nsString&   aString,
 }
 
 void
-nsMathMLmpaddedFrame::UpdateValue(PRInt32              aSign,
-                                  PRInt32              aPseudoUnit,
-                                  nsCSSValue&          aCSSValue,
-                                  nscoord              aLeftSpace,
-                                  nsBoundingMetrics&   aBoundingMetrics,
-                                  nscoord&             aValueToUpdate) const
+nsMathMLmpaddedFrame::UpdateValue(PRInt32                  aSign,
+                                  PRInt32                  aPseudoUnit,
+                                  const nsCSSValue&        aCSSValue,
+                                  nscoord                  aLeftSpace,
+                                  const nsBoundingMetrics& aBoundingMetrics,
+                                  nscoord&                 aValueToUpdate) const
 {
   nsCSSUnit unit = aCSSValue.GetUnit();
   if (NS_MATHML_SIGN_INVALID != aSign && eCSSUnit_Null != unit) {
@@ -378,8 +379,7 @@ nsMathMLmpaddedFrame::Place(nsIRenderingContext& aRenderingContext,
                             nsHTMLReflowMetrics& aDesiredSize)
 {
   nsresult rv =
-    nsMathMLContainerFrame::Place(aRenderingContext, aPlaceOrigin,
-                                  aDesiredSize);
+    nsMathMLContainerFrame::Place(aRenderingContext, PR_FALSE, aDesiredSize);
   if (NS_MATHML_HAS_ERROR(mPresentationData.flags) || NS_FAILED(rv)) {
     DidReflowChildren(GetFirstChild(nsnull));
     return rv;
@@ -387,8 +387,27 @@ nsMathMLmpaddedFrame::Place(nsIRenderingContext& aRenderingContext,
 
   nscoord height = mBoundingMetrics.ascent;
   nscoord depth  = mBoundingMetrics.descent;
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  nscoord lspace = 0;
+  
+  
+  
+  
   nscoord width  = mBoundingMetrics.width;
-  nscoord lspace = 0; 
 
   PRInt32 pseudoUnit;
 
@@ -448,12 +467,9 @@ nsMathMLmpaddedFrame::Place(nsIRenderingContext& aRenderingContext,
   mReference.x = 0;
   mReference.y = aDesiredSize.ascent;
 
-  if (aPlaceOrigin && (dx || dy)) {
-    nsIFrame* childFrame = mFrames.FirstChild();
-    while (childFrame) {
-      childFrame->SetPosition(childFrame->GetPosition() + nsPoint(dx, dy));
-      childFrame = childFrame->GetNextSibling();
-    }
+  if (aPlaceOrigin) {
+    
+    PositionRowChildFrames(dx, aDesiredSize.ascent);
   }
 
   return NS_OK;

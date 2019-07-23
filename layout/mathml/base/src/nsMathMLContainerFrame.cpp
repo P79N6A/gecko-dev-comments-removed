@@ -38,6 +38,7 @@
 
 
 
+
 #include "nsCOMPtr.h"
 #include "nsHTMLParts.h"
 #include "nsFrame.h"
@@ -1264,73 +1265,111 @@ GetInterFrameSpacing(PRInt32           aScriptLevel,
   return space;
 }
 
+static nscoord GetThinSpace(const nsStyleFont* aStyleFont)
+{
+  return NSToCoordRound(float(aStyleFont->mFont.size)*float(3) / float(18));
+}
+
+class nsMathMLContainerFrame::RowChildFrameIterator {
+public:
+  explicit RowChildFrameIterator(nsMathMLContainerFrame* aParentFrame) :
+    mParentFrame(aParentFrame),
+    mChildFrame(aParentFrame->mFrames.FirstChild()),
+    mX(0),
+    mCarrySpace(0),
+    mFromFrameType(eMathMLFrameType_UNKNOWN)
+  {
+    if (!mChildFrame)
+      return;
+
+    InitMetricsForChild();
+    
+    
+    if (mParentFrame->GetContent()->Tag() == nsGkAtoms::msqrt_) {
+      mX = 0;
+    }
+  }
+
+  RowChildFrameIterator& operator++()
+  {
+    
+    mX += mSize.mBoundingMetrics.width + mItalicCorrection;
+
+    mChildFrame = mChildFrame->GetNextSibling();
+    if (!mChildFrame)
+      return *this;
+
+    eMathMLFrameType prevFrameType = mChildFrameType;
+    InitMetricsForChild();
+
+    
+    nscoord space =
+      GetInterFrameSpacing(mParentFrame->mPresentationData.scriptLevel,
+                           prevFrameType, mChildFrameType,
+                           &mFromFrameType, &mCarrySpace);
+    mX += space * GetThinSpace(mParentFrame->GetStyleFont());
+    return *this;
+  }
+
+  nsIFrame* Frame() const { return mChildFrame; }
+  nscoord X() const { return mX; }
+  const nsHTMLReflowMetrics& ReflowMetrics() const { return mSize; }
+  nscoord Ascent() const { return mSize.ascent; }
+  nscoord Descent() const { return mSize.height - mSize.ascent; }
+  const nsBoundingMetrics& BoundingMetrics() const {
+    return mSize.mBoundingMetrics;
+  }
+
+private:
+  const nsMathMLContainerFrame* mParentFrame;
+  nsIFrame* mChildFrame;
+  nsHTMLReflowMetrics mSize;
+  nscoord mX;
+
+  nscoord mItalicCorrection;
+  eMathMLFrameType mChildFrameType;
+  PRInt32 mCarrySpace;
+  eMathMLFrameType mFromFrameType;
+
+  void InitMetricsForChild()
+  {
+    GetReflowAndBoundingMetricsFor(mChildFrame, mSize, mSize.mBoundingMetrics,
+                                   &mChildFrameType);
+    nscoord leftCorrection;
+    GetItalicCorrection(mSize.mBoundingMetrics, leftCorrection,
+                        mItalicCorrection);
+    
+    
+    mX += leftCorrection;
+  }
+};
+
 NS_IMETHODIMP
 nsMathMLContainerFrame::Place(nsIRenderingContext& aRenderingContext,
                               PRBool               aPlaceOrigin,
                               nsHTMLReflowMetrics& aDesiredSize)
 {
   
-  aDesiredSize.width = aDesiredSize.height = 0;
-  aDesiredSize.ascent = 0;
   mBoundingMetrics.Clear();
 
-  
-  const nsStyleFont* font = GetStyleFont();
-  nscoord thinSpace = NSToCoordRound(float(font->mFont.size)*float(3) / float(18));
-
-  PRInt32 count = 0;
-  PRInt32 carrySpace = 0;
-  nsHTMLReflowMetrics childSize;
-  nsBoundingMetrics bmChild;
-  nscoord leftCorrection = 0, italicCorrection = 0;
-  eMathMLFrameType fromFrameType = eMathMLFrameType_UNKNOWN;
-  eMathMLFrameType prevFrameType = eMathMLFrameType_UNKNOWN;
-  eMathMLFrameType childFrameType;
-
-  nsIFrame* childFrame = mFrames.FirstChild();
+  RowChildFrameIterator child(this);
   nscoord ascent = 0, descent = 0;
-  while (childFrame) {
-    GetReflowAndBoundingMetricsFor(childFrame, childSize, bmChild, &childFrameType);
-    GetItalicCorrection(bmChild, leftCorrection, italicCorrection);
-    if (0 == count) {
-      ascent = childSize.ascent;
-      descent = childSize.height - ascent;
-      mBoundingMetrics = bmChild;
-      
-      
-
-      if (mContent->Tag() == nsGkAtoms::msqrt_)
-        leftCorrection = 0;
-      else
-        mBoundingMetrics.leftBearing += leftCorrection;
-    }
-    else {
-      nscoord childDescent = childSize.height - childSize.ascent;
-      if (descent < childDescent)
-        descent = childDescent;
-      if (ascent < childSize.ascent)
-        ascent = childSize.ascent;
-      
-      nscoord space = GetInterFrameSpacing(mPresentationData.scriptLevel,
-        prevFrameType, childFrameType, &fromFrameType, &carrySpace);
-      mBoundingMetrics.width += space * thinSpace;
-      
-      mBoundingMetrics += bmChild;
-    }
-    count++;
-    prevFrameType = childFrameType;
+  while (child.Frame()) {
+    if (descent < child.Descent())
+      descent = child.Descent();
+    if (ascent < child.Ascent())
+      ascent = child.Ascent();
     
-    
-    mBoundingMetrics.width += leftCorrection;
-    mBoundingMetrics.rightBearing += leftCorrection;
-    
-    
-    
-    
-    mBoundingMetrics.width += italicCorrection;
-
-    childFrame = childFrame->GetNextSibling();
+    mBoundingMetrics.width = child.X();
+    mBoundingMetrics += child.BoundingMetrics();
+    ++child;
   }
+  
+  
+  
+  
+  mBoundingMetrics.width = child.X();
+
   aDesiredSize.width = mBoundingMetrics.width;
   aDesiredSize.height = ascent + descent;
   aDesiredSize.ascent = ascent;
@@ -1343,41 +1382,24 @@ nsMathMLContainerFrame::Place(nsIRenderingContext& aRenderingContext,
   
 
   if (aPlaceOrigin) {
-    count = 0;
-    nscoord dx = 0, dy = 0;
-    italicCorrection = 0;
-    carrySpace = 0;
-    fromFrameType = eMathMLFrameType_UNKNOWN;
-    childFrame = mFrames.FirstChild();
-    while (childFrame) {
-      GetReflowAndBoundingMetricsFor(childFrame, childSize, bmChild, &childFrameType);
-      GetItalicCorrection(bmChild, leftCorrection, italicCorrection);
-      dy = aDesiredSize.ascent - childSize.ascent;
-      if (0 == count) {
-        
-
-        if (mContent->Tag() == nsGkAtoms::msqrt_)
-          leftCorrection = 0;
-      }
-      else {
-        
-        nscoord space = GetInterFrameSpacing(mPresentationData.scriptLevel,
-          prevFrameType, childFrameType, &fromFrameType, &carrySpace);
-        dx += space * thinSpace;
-      }
-      count++;
-      prevFrameType = childFrameType;
-      
-      dx += leftCorrection;
-      FinishReflowChild(childFrame, PresContext(), nsnull, childSize,
-                        dx, dy, 0);
-      
-      dx += bmChild.width + italicCorrection;
-      childFrame = childFrame->GetNextSibling();
-    }
+    PositionRowChildFrames(0, aDesiredSize.ascent);
   }
 
   return NS_OK;
+}
+
+void
+nsMathMLContainerFrame::PositionRowChildFrames(nscoord aOffsetX,
+                                               nscoord aBaseline)
+{
+  RowChildFrameIterator child(this);
+  while (child.Frame()) {
+    nscoord dx = aOffsetX + child.X();
+    nscoord dy = aBaseline - child.Ascent();
+    FinishReflowChild(child.Frame(), PresContext(), nsnull,
+                      child.ReflowMetrics(), dx, dy, 0);
+    ++child;
+  }
 }
 
 
@@ -1405,8 +1427,7 @@ GetInterFrameSpacingFor(PRInt32         aScriptLevel,
     if (aChildFrame == childFrame) {
       
       nsStyleContext* parentContext = aParentFrame->GetStyleContext();
-      const nsStyleFont* font = parentContext->GetStyleFont();
-      nscoord thinSpace = NSToCoordRound(float(font->mFont.size)*float(3) / float(18));
+      nscoord thinSpace = GetThinSpace(parentContext->GetStyleFont());
       
       return space * thinSpace;
     }

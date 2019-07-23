@@ -38,6 +38,7 @@
 
 
 
+
 #ifndef nsMathMLContainerFrame_h___
 #define nsMathMLContainerFrame_h___
 
@@ -307,6 +308,12 @@ protected:
   
   
   
+  void
+  PositionRowChildFrames(nscoord aOffsetX, nscoord aBaseline);
+
+  
+  
+  
   void GatherAndStoreOverflow(nsHTMLReflowMetrics* aMetrics);
 
   
@@ -316,6 +323,10 @@ protected:
 
 
   void DidReflowChildren(nsIFrame* aFirst, nsIFrame* aStop = nsnull);
+
+private:
+  class RowChildFrameIterator;
+  friend class RowChildFrameIterator;
 };
 
 

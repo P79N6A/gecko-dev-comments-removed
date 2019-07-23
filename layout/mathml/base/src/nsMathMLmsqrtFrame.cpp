@@ -40,6 +40,7 @@
 
 
 
+
 #include "nsCOMPtr.h"
 #include "nsFrame.h"
 #include "nsPresContext.h"
@@ -172,7 +173,7 @@ nsMathMLmsqrtFrame::Place(nsIRenderingContext& aRenderingContext,
   
   nsHTMLReflowMetrics baseSize;
   nsresult rv =
-    nsMathMLContainerFrame::Place(aRenderingContext, aPlaceOrigin, baseSize);
+    nsMathMLContainerFrame::Place(aRenderingContext, PR_FALSE, baseSize);
   if (NS_MATHML_HAS_ERROR(mPresentationData.flags) || NS_FAILED(rv)) {
     DidReflowChildren(GetFirstChild(nsnull));
     return rv;
@@ -274,14 +275,8 @@ nsMathMLmsqrtFrame::Place(nsIRenderingContext& aRenderingContext,
   if (aPlaceOrigin) {
     
     
-
-    dx = radicalSize.width;
-    dy = aDesiredSize.ascent - baseSize.ascent;
-    nsIFrame* childFrame = mFrames.FirstChild();
-    while (childFrame) {
-      childFrame->SetPosition(childFrame->GetPosition() + nsPoint(dx, dy));
-      childFrame = childFrame->GetNextSibling();
-    }
+    
+    PositionRowChildFrames(radicalSize.width, aDesiredSize.ascent);
   }
 
   return NS_OK;

@@ -189,13 +189,13 @@ public:
 
 
 
-  static nsresult FinishReflowChild(nsIFrame*                 aKidFrame,
-                                    nsPresContext*            aPresContext,
-                                    const nsHTMLReflowState*  aReflowState,
-                                    nsHTMLReflowMetrics&      aDesiredSize,
-                                    nscoord                   aX,
-                                    nscoord                   aY,
-                                    PRUint32                  aFlags);
+  static nsresult FinishReflowChild(nsIFrame*                  aKidFrame,
+                                    nsPresContext*             aPresContext,
+                                    const nsHTMLReflowState*   aReflowState,
+                                    const nsHTMLReflowMetrics& aDesiredSize,
+                                    nscoord                    aX,
+                                    nscoord                    aY,
+                                    PRUint32                   aFlags);
 
   
   static void PositionChildViews(nsIFrame* aFrame);

@@ -37,6 +37,7 @@
 
 
 
+
 #ifndef nsMathMLmpaddedFrame_h___
 #define nsMathMLmpaddedFrame_h___
 
@@ -98,12 +99,12 @@ private:
                  PRInt32&    aPseudoUnit);
 
   void
-  UpdateValue(PRInt32              aSign,
-              PRInt32              aPseudoUnit,
-              nsCSSValue&          aCSSValue,
-              nscoord              aLeftSpace,
-              nsBoundingMetrics&   aBoundingMetrics,
-              nscoord&             aValueToUpdate) const;
+  UpdateValue(PRInt32                  aSign,
+              PRInt32                  aPseudoUnit,
+              const nsCSSValue&        aCSSValue,
+              nscoord                  aLeftSpace,
+              const nsBoundingMetrics& aBoundingMetrics,
+              nscoord&                 aValueToUpdate) const;
 };
 
 #endif 
