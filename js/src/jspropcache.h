@@ -150,7 +150,6 @@ private:
     JSBool              empty;
 
 #ifdef JS_PROPERTY_CACHE_METERING
-public:
     JSPropCacheEntry    *pctestentry;   
     uint32              fills;          
     uint32              nofills;        
