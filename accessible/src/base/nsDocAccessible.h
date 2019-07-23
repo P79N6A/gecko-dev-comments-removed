@@ -135,6 +135,27 @@ class nsDocAccessible : public nsHyperTextAccessibleWrap,
 
     void ARIAAttributeChanged(nsIContent* aContent, nsIAtom* aAttribute);
 
+    
+
+
+    void FireTextChangedEventOnDOMCharacterDataModified(nsIContent *aContent,
+                                                        CharacterDataChangeInfo* aInfo);
+    
+
+
+
+    void FireTextChangedEventOnDOMNodeInserted(nsIContent *aChild,
+                                               nsIContent *aContainer,
+                                               PRInt32 aIndexInContainer);
+
+    
+
+
+
+    void FireTextChangedEventOnDOMNodeRemoved(nsIContent *aChild,
+                                              nsIContent *aContainer,
+                                              PRInt32 aIndexInContainer);
+
     nsAccessNodeHashtable mAccessNodeCache;
     void *mWnd;
     nsCOMPtr<nsIDocument> mDocument;
