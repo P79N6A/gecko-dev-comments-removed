@@ -161,8 +161,26 @@ protected:
     PRUint32 GuessMaximumStringLength();
 
     
-    PRBool InitTextRun(gfxTextRun *aRun, const PRUnichar *aString, PRUint32 aLength,
-                       PRBool aWrapped, PRUint32 aSegmentStart, PRUint32 aSegmentLength);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    PRBool InitTextRun(gfxTextRun *aRun,
+                       const PRUnichar *aString, PRUint32 aLength,
+                       PRUint32 aLayoutStart, PRUint32 aLayoutLength,
+                       PRUint32 aOffsetInTextRun, PRUint32 aLengthInTextRun);
     
     
     nsRefPtr<MacOSFamilyEntry>    mLastPrefFamily;
