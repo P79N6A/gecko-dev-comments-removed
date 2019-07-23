@@ -168,8 +168,13 @@ var StarUI = {
     var bundle = this._element("bundle_browser");
 
     
+    
+    
+    
     this._element("editBookmarkPanelTitle").value =
-      bundle.getString("editBookmarkPanel.pageBookmarkedTitle");
+      this._batching ?
+        bundle.getString("editBookmarkPanel.pageBookmarkedTitle") :
+        bundle.getString("editBookmarkPanel.editBookmarkTitle");
 
     
     
