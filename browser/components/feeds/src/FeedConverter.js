@@ -357,9 +357,7 @@ var FeedResultService = {
     switch (handler) {
     case "client":
       var clientApp = prefs.getComplexValue(PREF_SELECTED_APP, Ci.nsILocalFile);
-#ifdef XP_MACOSX
-      
-      
+
       
       
       
@@ -370,14 +368,14 @@ var FeedResultService = {
       var ios = 
           Cc["@mozilla.org/network/io-service;1"].
           getService(Ci.nsIIOService);
-      var macURI = ios.newURI(spec, null, null);
-      if (macURI.schemeIs("http")) {
-        macURI.scheme = "feed";
-        spec = macURI.spec;
+      var feedURI = ios.newURI(spec, null, null);
+      if (feedURI.schemeIs("http")) {
+        feedURI.scheme = "feed";
+        spec = feedURI.spec;
       }
       else
         spec = "feed:" + spec;
-#endif
+
       var ss = 
           Cc["@mozilla.org/browser/shell-service;1"].
           getService(Ci.nsIShellService);
