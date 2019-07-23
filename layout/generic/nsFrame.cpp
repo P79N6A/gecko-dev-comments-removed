@@ -1416,11 +1416,11 @@ nsIFrame::BuildDisplayListForStackingContext(nsDisplayListBuilder* aBuilder,
   
   
   set.Outlines()->SortByContentOrder(aBuilder, GetContent());
-  resultList.AppendToTop(set.Outlines());
-
 #ifdef NS_DEBUG
   DisplayDebugBorders(aBuilder, this, set);
 #endif
+  resultList.AppendToTop(set.Outlines());
+
 
   if (applyAbsPosClipping) {
     nsAbsPosClipWrapper wrapper(absPosClip);
