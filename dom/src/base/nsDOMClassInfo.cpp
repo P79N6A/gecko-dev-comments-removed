@@ -157,7 +157,7 @@
 #endif
 
 
-#ifdef WINCE
+#ifdef XP_WIN
 #undef GetClassName
 #endif
 
