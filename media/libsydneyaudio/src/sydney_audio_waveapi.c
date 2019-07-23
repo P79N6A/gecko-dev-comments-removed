@@ -196,6 +196,26 @@ int sa_stream_write(sa_stream_t *s, const void *data, size_t nbytes) {
 }
 
 
+int sa_stream_get_write_size(sa_stream_t *s, size_t *size) {
+  unsigned int avail;
+  WAVEHDR* current;
+
+  ERROR_IF_NO_INIT(s);
+
+  EnterCriticalSection(&(s->waveCriticalSection));
+  avail = s->waveFreeBlockCount * BLOCK_SIZE;
+  if (s->waveFreeBlockCount != BLOCK_COUNT) {
+    current = &(s->waveBlocks[s->waveCurrentBlock]);
+    avail += BLOCK_SIZE - current->dwUser;
+  }
+  LeaveCriticalSection(&(s->waveCriticalSection));
+
+  *size = avail;
+
+  return SA_SUCCESS;
+}
+
+
 int sa_stream_destroy(sa_stream_t *s) {
   int status;
 
@@ -293,6 +313,21 @@ int sa_stream_pause(sa_stream_t *s) {
   
   status = waveOutPause(s->hWaveOut);
   HANDLE_WAVE_ERROR(status, "resuming audio playback");
+
+  return SA_SUCCESS;
+}
+
+int sa_stream_drain(sa_stream_t *s) {
+  ERROR_IF_NO_INIT(s);
+  
+  
+  EnterCriticalSection(&(s->waveCriticalSection));
+  while(s->waveFreeBlockCount < BLOCK_COUNT) {
+    LeaveCriticalSection(&(s->waveCriticalSection));
+    Sleep(10);
+    EnterCriticalSection(&(s->waveCriticalSection));
+  }
+  LeaveCriticalSection(&(s->waveCriticalSection));
 
   return SA_SUCCESS;
 }
@@ -671,11 +706,6 @@ UNSUPPORTED(int sa_stream_pwrite_ni(sa_stream_t *s, unsigned int channel, const 
 
 
 UNSUPPORTED(int sa_stream_get_read_size(sa_stream_t *s, size_t *size))
-
-UNSUPPORTED(int sa_stream_get_write_size(sa_stream_t *s, size_t *size))
-
-
-UNSUPPORTED(int sa_stream_drain(sa_stream_t *s))
 
 
 const char *sa_strerror(int code);

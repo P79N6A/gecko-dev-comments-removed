@@ -33,27 +33,27 @@
 
 
 
-#include <AudioUnit/AudioUnit.h>
+
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/soundcard.h>
+#include <sys/ioctl.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <string.h>
+#include <pthread.h>
+#include <assert.h>
 #include "sydney_audio.h"
 
 
+#define OSS_VERSION(x, y, z) (x << 16 | y << 8 | z)
 
+#define SUPP_OSS_VERSION OSS_VERSION(3,6,1)
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+#if (SOUND_VERSION < SUPP_OSS_VERSION)
+#error Unsupported OSS Version
+#else
 
 typedef struct sa_buf sa_buf;
 struct sa_buf {
@@ -65,15 +65,17 @@ struct sa_buf {
 };
 
 struct sa_stream {
-  AudioUnit         output_unit;
+  char*                output_unit;
+  int                output_fd;
+  pthread_t         thread_id;
   pthread_mutex_t   mutex;
-  bool              playing;
+  char              playing;
   int64_t           bytes_played;
 
   
   unsigned int      rate;
-  unsigned int      n_channels;
-  unsigned int      bytes_per_ch;
+  unsigned int      channels;
+  int               format;
 
   
   sa_buf          * bl_head;
@@ -94,12 +96,61 @@ struct sa_stream {
 #error BUF_LIMIT must be at least 2!
 #endif
 
-
-static OSStatus audio_callback(void *arg, AudioUnitRenderActionFlags *action_flags,
-  const AudioTimeStamp *time_stamp, UInt32 bus_num, UInt32 n_frames, AudioBufferList *data);
-
+static void audio_callback(void* s);
 static sa_buf *new_buffer(void);
 
+
+
+
+
+
+
+
+
+static int oss_audio_format(sa_pcm_format_t sa_format, int *fmt) {
+    *fmt = -1;
+    switch (sa_format) {
+        case SA_PCM_FORMAT_U8:
+            *fmt = AFMT_U8;
+            break;
+        case SA_PCM_FORMAT_ULAW:
+            *fmt = AFMT_MU_LAW;
+            break;
+        case SA_PCM_FORMAT_ALAW:
+            *fmt = AFMT_A_LAW;
+            break;
+        
+        case SA_PCM_FORMAT_S16_LE:
+            *fmt = AFMT_S16_LE;
+            break;
+        
+        case SA_PCM_FORMAT_S16_BE:
+            *fmt = AFMT_S16_BE;
+            break;
+#if SOUND_VERSION >= OSS_VERSION(4,0,0)
+        
+        case SA_PCM_FORMAT_S24_LE:
+            *fmt = AFMT_S24_LE;
+            break;
+        
+        case SA_PCM_FORMAT_S24_BE:
+            *fmt = AFMT_S24_BE;
+            break;
+        
+        case SA_PCM_FORMAT_S32_LE:
+            *fmt = AFMT_S32_LE;
+            break;
+        
+        case SA_PCM_FORMAT_S32_BE:
+            *fmt = AFMT_S32_BE;
+            break;
+#endif
+        default:
+            return SA_ERROR_NOT_SUPPORTED;
+            break;
+    }
+    return SA_SUCCESS;
+}
 
 
 
@@ -114,8 +165,10 @@ sa_stream_create_pcm(
   sa_mode_t           mode,
   sa_pcm_format_t     format,
   unsigned  int       rate,
-  unsigned  int       n_channels
+  unsigned  int       channels
 ) {
+  sa_stream_t * s = 0;
+  int fmt = 0;
 
   
 
@@ -128,14 +181,13 @@ sa_stream_create_pcm(
   if (mode != SA_MODE_WRONLY) {
     return SA_ERROR_NOT_SUPPORTED;
   }
-  if (format != SA_PCM_FORMAT_S16_LE) {
+  if (oss_audio_format(format, &fmt) != SA_SUCCESS) {
     return SA_ERROR_NOT_SUPPORTED;
   }
 
   
 
 
-  sa_stream_t   * s;
   if ((s = malloc(sizeof(sa_stream_t))) == NULL) {
     return SA_ERROR_OOM;
   }
@@ -149,12 +201,14 @@ sa_stream_create_pcm(
     return SA_ERROR_SYSTEM;
   }
 
-  s->output_unit  = NULL;
-  s->playing      = FALSE;
+  s->output_unit  = "/dev/dsp";
+  s->output_fd    = -1;
+  s->thread_id    = 0;
+  s->playing      = 0;
   s->bytes_played = 0;
   s->rate         = rate;
-  s->n_channels   = n_channels;
-  s->bytes_per_ch = 2;
+  s->channels     = channels;
+  s->format       = fmt;
   s->bl_tail      = s->bl_head;
   s->n_bufs       = 1;
 
@@ -165,87 +219,36 @@ sa_stream_create_pcm(
 
 int
 sa_stream_open(sa_stream_t *s) {
-
   if (s == NULL) {
     return SA_ERROR_NO_INIT;
   }
-  if (s->output_unit != NULL) {
+  if (s->output_unit == NULL || s->output_fd != -1) {
     return SA_ERROR_INVALID;
   }
 
   
-
-
-  ComponentDescription desc;
-  desc.componentType         = kAudioUnitType_Output;
-  desc.componentSubType      = kAudioUnitSubType_DefaultOutput;
-  desc.componentManufacturer = kAudioUnitManufacturer_Apple;
-  desc.componentFlags        = 0;
-  desc.componentFlagsMask    = 0;
-
-  Component comp = FindNextComponent(NULL, &desc);
-  if (comp == NULL) {
-    return SA_ERROR_NO_DEVICE;
-  }
-
-  if (OpenAComponent(comp, &s->output_unit) != noErr) {
+  if ((s->output_fd = open(s->output_unit, O_WRONLY, 0)) == -1) {
     return SA_ERROR_NO_DEVICE;
   }
 
   
-
-
-  AURenderCallbackStruct input;
-  input.inputProc       = audio_callback;
-  input.inputProcRefCon = s;
-  if (AudioUnitSetProperty(s->output_unit, kAudioUnitProperty_SetRenderCallback,
-      kAudioUnitScope_Input, 0, &input, sizeof(input)) != 0) {
-    return SA_ERROR_SYSTEM;
-  }
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  AudioStreamBasicDescription fmt;
-  fmt.mFormatID         = kAudioFormatLinearPCM;
-  fmt.mFormatFlags      = kLinearPCMFormatFlagIsSignedInteger |
-#ifdef __BIG_ENDIAN__
-                          kLinearPCMFormatFlagIsBigEndian |
-#endif
-                          kLinearPCMFormatFlagIsPacked;
-  fmt.mSampleRate       = s->rate;
-  fmt.mChannelsPerFrame = s->n_channels;
-  fmt.mBitsPerChannel   = s->bytes_per_ch * 8;
-  fmt.mFramesPerPacket  = 1;  
-  fmt.mBytesPerFrame    = fmt.mChannelsPerFrame * fmt.mBitsPerChannel / 8;
-  fmt.mBytesPerPacket   = fmt.mBytesPerFrame * fmt.mFramesPerPacket;
-
-  
-
-
-
-
-
-
-  if (AudioUnitSetProperty(s->output_unit, kAudioUnitProperty_StreamFormat,
-      kAudioUnitScope_Input, 0, &fmt, sizeof(AudioStreamBasicDescription)) != 0) {
+  if (ioctl(s->output_fd, SNDCTL_DSP_SPEED, &(s->rate)) < 0) {
+    close(s->output_fd);
+    s->output_fd = -1;
     return SA_ERROR_NOT_SUPPORTED;
   }
 
-  if (AudioUnitInitialize(s->output_unit) != 0) {
-    return SA_ERROR_SYSTEM;
+  
+  if (ioctl(s->output_fd, SNDCTL_DSP_CHANNELS, &(s->channels)) < 0) {
+    close(s->output_fd);
+    s->output_fd = -1;
+    return SA_ERROR_NOT_SUPPORTED;
+  }
+
+  if (ioctl(s->output_fd, SNDCTL_DSP_SETFMT, &(s->format)) < 0 ) {
+    close(s->output_fd);
+    s->output_fd = -1;
+    return SA_ERROR_NOT_SUPPORTED;
   }
 
   return SA_SUCCESS;
@@ -254,6 +257,7 @@ sa_stream_open(sa_stream_t *s) {
 
 int
 sa_stream_destroy(sa_stream_t *s) {
+  int result = SA_SUCCESS;
 
   if (s == NULL) {
     return SA_SUCCESS;
@@ -264,15 +268,13 @@ sa_stream_destroy(sa_stream_t *s) {
   
 
 
-  int result = SA_SUCCESS;
-  if (s->output_unit != NULL) {
-    if (s->playing && AudioOutputUnitStop(s->output_unit) != 0) {
-      result = SA_ERROR_SYSTEM;
-    }
-    if (AudioUnitUninitialize(s->output_unit) != 0) {
-      result = SA_ERROR_SYSTEM;
-    }
-    if (CloseComponent(s->output_unit) != noErr) {
+  s->thread_id = 0;
+
+  
+
+
+  if (s->output_fd != -1) {
+    if (s->playing && close(s->output_fd) < 0) {
       result = SA_ERROR_SYSTEM;
     }
   }
@@ -305,6 +307,7 @@ sa_stream_destroy(sa_stream_t *s) {
 
 int
 sa_stream_write(sa_stream_t *s, const void *data, size_t nbytes) {
+  int result = SA_SUCCESS;
 
   if (s == NULL || s->output_unit == NULL) {
     return SA_ERROR_NO_INIT;
@@ -318,7 +321,6 @@ sa_stream_write(sa_stream_t *s, const void *data, size_t nbytes) {
   
 
 
-  int result = SA_SUCCESS;
   while (1) {
     unsigned int avail = s->bl_tail->size - s->bl_tail->end;
 
@@ -364,8 +366,8 @@ sa_stream_write(sa_stream_t *s, const void *data, size_t nbytes) {
           break;
         }
         while (s->n_bufs == BUF_LIMIT) {
-          pthread_mutex_unlock(&s->mutex);
           struct timespec ts = {0, 1000000};
+          pthread_mutex_unlock(&s->mutex);
           nanosleep(&ts, NULL);
           pthread_mutex_lock(&s->mutex);
         }
@@ -380,7 +382,7 @@ sa_stream_write(sa_stream_t *s, const void *data, size_t nbytes) {
       }
       s->n_bufs++;
       s->bl_tail = s->bl_tail->next;
-    
+
     } 
 
   } 
@@ -394,8 +396,8 @@ sa_stream_write(sa_stream_t *s, const void *data, size_t nbytes) {
 
 
   if (!s->playing) {
-    s->playing = TRUE;
-    if (AudioOutputUnitStart(s->output_unit) != 0) {
+    s->playing = 1;
+    if (pthread_create(&s->thread_id, NULL, (void *)audio_callback, s) != 0) {
       result = SA_ERROR_SYSTEM;
     }
   }
@@ -404,91 +406,92 @@ sa_stream_write(sa_stream_t *s, const void *data, size_t nbytes) {
 }
 
 
-static OSStatus
-audio_callback(
-  void                        * arg,
-  AudioUnitRenderActionFlags  * action_flags,
-  const AudioTimeStamp        * time_stamp,
-  UInt32                        bus_num,
-  UInt32                        n_frames,
-  AudioBufferList             * data
-) {
+static void audio_callback(void* data)
+{
+  sa_stream_t* s = (sa_stream_t*)data;
+  audio_buf_info info;
+  char* buffer = 0;
+  unsigned int avail;
+  int frames;
 
 #ifdef TIMING_TRACE
   printf(".");  
 #endif
 
-  
+  ioctl(s->output_fd, SNDCTL_DSP_GETOSPACE, &info);
+  buffer = malloc(info.bytes);
 
+  while(1) {
+    char* dst = buffer;
+    unsigned int bytes_to_copy = info.bytes;
+    int bytes = info.bytes;
 
-
-  assert(data->mNumberBuffers == 1);
-
-  sa_stream_t     * s = arg;
-
-  pthread_mutex_lock(&s->mutex);
-
-  unsigned char   * dst             = data->mBuffers[0].mData;
-  unsigned int      bytes_per_frame = s->n_channels * s->bytes_per_ch;
-  unsigned int      bytes_to_copy   = n_frames * bytes_per_frame;
-
-  
-
-
-
-
-  assert(time_stamp->mFlags & kAudioTimeStampSampleTimeValid);
-  s->bytes_played = (int64_t)time_stamp->mSampleTime * bytes_per_frame;
-
-  
-
-
-  while (1) {
-    assert(s->bl_head->start <= s->bl_head->end);
-    unsigned int avail = s->bl_head->end - s->bl_head->start;
-
-    if (avail >= bytes_to_copy) {
-
-      
-
-
-      memcpy(dst, s->bl_head->data + s->bl_head->start, bytes_to_copy);
-      s->bl_head->start += bytes_to_copy;
+    pthread_mutex_lock(&s->mutex);
+    if (!s->thread_id)
       break;
 
-    } else {
-
-      
+    
 
 
-      memcpy(dst, s->bl_head->data + s->bl_head->start, avail);
-      s->bl_head->start += avail;
-      dst += avail;
-      bytes_to_copy -= avail;
+    while (1) {
+      assert(s->bl_head->start <= s->bl_head->end);
+      avail = s->bl_head->end - s->bl_head->start;
 
-      
-
-
+      if (avail >= bytes_to_copy) {
+        
 
 
-      sa_buf  * next = s->bl_head->next;
-      if (next == NULL) {
-#ifdef TIMING_TRACE
-        printf("!");  
-#endif
-        memset(dst, 0, bytes_to_copy);
+        memcpy(dst, s->bl_head->data + s->bl_head->start, bytes_to_copy);
+        s->bl_head->start += bytes_to_copy;
+        s->bytes_played += bytes_to_copy;
         break;
-      }
-      free(s->bl_head);
-      s->bl_head = next;
-      s->n_bufs--;
+
+      } else {
+
+        sa_buf* next = 0;
+        
+
+
+        memcpy(dst, s->bl_head->data + s->bl_head->start, avail);
+        s->bl_head->start += avail;
+        dst += avail;
+        bytes_to_copy -= avail;
+        s->bytes_played += avail;
+
+        
+
+
+
+
+        next = s->bl_head->next;
+        if (next == NULL) {
+#ifdef TIMING_TRACE
+          printf("!");  
+#endif
+          bytes = bytes-bytes_to_copy;
+          break;
+        }
+        free(s->bl_head);
+        s->bl_head = next;
+        s->n_bufs--;
+
+      } 
 
     } 
 
-  } 
+    pthread_mutex_unlock(&s->mutex);
 
-  pthread_mutex_unlock(&s->mutex);
-  return noErr;
+    if(bytes > 0) {
+      frames = write(s->output_fd, buffer, bytes);
+      if (frames < 0) {
+          printf("error writing to sound device\n");
+      }
+      if (frames >= 0 && frames != bytes) {
+         printf("short write (expected %d, wrote %d)\n", (int)bytes, (int)frames);
+      }
+    }
+  }
+  free(buffer);
 }
 
 
@@ -501,6 +504,8 @@ audio_callback(
 
 int
 sa_stream_get_write_size(sa_stream_t *s, size_t *size) {
+  sa_buf  * b;
+  size_t    used = 0;
 
   if (s == NULL || s->output_unit == NULL) {
     return SA_ERROR_NO_INIT;
@@ -512,8 +517,6 @@ sa_stream_get_write_size(sa_stream_t *s, size_t *size) {
 
 
 
-  sa_buf  * b;
-  size_t    used = 0;
   for (b = s->bl_head; b != NULL; b = b->next) {
     used += b->end - b->start;
   }
@@ -526,6 +529,8 @@ sa_stream_get_write_size(sa_stream_t *s, size_t *size) {
 
 int
 sa_stream_get_position(sa_stream_t *s, sa_position_t position, int64_t *pos) {
+   int err;
+   count_info ptr;
 
   if (s == NULL || s->output_unit == NULL) {
     return SA_ERROR_NO_INIT;
@@ -533,9 +538,15 @@ sa_stream_get_position(sa_stream_t *s, sa_position_t position, int64_t *pos) {
   if (position != SA_POSITION_WRITE_SOFTWARE) {
     return SA_ERROR_NOT_SUPPORTED;
   }
+  if ((err = ioctl(s->output_fd, 
+                       SNDCTL_DSP_GETOPTR, 
+                       &ptr)) <0) {
+      fprintf(stderr, "Error reading playback position\n");
+      return SA_ERROR_OOM;
+  }
 
   pthread_mutex_lock(&s->mutex);
-  *pos = s->bytes_played;
+  *pos = (int64_t)ptr.bytes;
   pthread_mutex_unlock(&s->mutex);
   return SA_SUCCESS;
 }
@@ -549,7 +560,9 @@ sa_stream_pause(sa_stream_t *s) {
   }
 
   pthread_mutex_lock(&s->mutex);
+#if 0 
   AudioOutputUnitStop(s->output_unit);
+#endif
   pthread_mutex_unlock(&s->mutex);
   return SA_SUCCESS;
 }
@@ -569,8 +582,9 @@ sa_stream_resume(sa_stream_t *s) {
 
 
   s->bytes_played = 0;
+#if 0 
   AudioOutputUnitStart(s->output_unit);
-
+#endif
   pthread_mutex_unlock(&s->mutex);
   return SA_SUCCESS;
 }
@@ -598,33 +612,41 @@ new_buffer(void) {
 
 int
 sa_stream_set_volume_abs(sa_stream_t *s, float vol) {
-
-  if (s == NULL || s->output_unit == NULL) {
+  if (s == NULL || s->output_fd == -1) {
     return SA_ERROR_NO_INIT;
   }
-
-  pthread_mutex_lock(&s->mutex);
-  AudioUnitSetParameter(s->output_unit, kHALOutputParam_Volume,
-      kAudioUnitParameterFlag_Output, 0, vol, 0);
-  pthread_mutex_unlock(&s->mutex);
+#if SOUND_VERSION >= OSS_VERSION(4,0,0)
+  int mvol = ((int)(100*vol)) | ((int)(100*vol) << 8);
+  if (ioctl(s->output_fd, SNDCTL_DSP_SETPLAYVOL, &mvol) < 0){
+    return SA_ERROR_SYSTEM;
+  }
   return SA_SUCCESS;
+#else
+  return SA_ERROR_NOT_SUPPORTED;
+#endif
 }
 
 
 int
 sa_stream_get_volume_abs(sa_stream_t *s, float *vol) {
 
-  if (s == NULL || s->output_unit == NULL) {
+  if (vol == NULL) {
+    return SA_ERROR_INVALID;
+  }
+  *vol = 0.0f;
+  if (s == NULL || s->output_fd == -1) {
     return SA_ERROR_NO_INIT;
   }
-
-  pthread_mutex_lock(&s->mutex);
-  Float32 local_vol = 0;
-  AudioUnitGetParameter(s->output_unit, kHALOutputParam_Volume,
-      kAudioUnitParameterFlag_Output, 0, &local_vol);
-  *vol = local_vol;
-  pthread_mutex_unlock(&s->mutex);
+#if SOUND_VERSION >= OSS_VERSION(4,0,0)
+  int mvol;
+  if (ioctl(s->output_fd, SNDCTL_DSP_SETPLAYVOL, &mvol) < 0){
+    return SA_ERROR_SYSTEM;
+  }
+  *vol = ((mvol & 0xFF) + (mvol >> 8)) / 200.0f;
   return SA_SUCCESS;
+#else
+  return SA_ERROR_NOT_SUPPORTED;
+#endif
 }
 
 
@@ -694,3 +716,4 @@ UNSUPPORTED(int sa_stream_drain(sa_stream_t *s))
 
 const char *sa_strerror(int code) { return NULL; }
 
+#endif

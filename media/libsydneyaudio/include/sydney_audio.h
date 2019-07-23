@@ -12,10 +12,45 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include <sys/types.h>
 #if !defined (WIN32)
 #include <sys/param.h>
 #include <inttypes.h>
+#if defined(__FreeBSD__)
+#include <sys/endian.h>
+#endif
 #else
 #include <stddef.h>
 #endif
@@ -30,10 +65,22 @@
 #   elif __BYTE_ORDER == __BIG_ENDIAN
 #       define SA_BIG_ENDIAN 1
 #   endif
+#elif defined(_BYTE_ORDER)
+#   if _BYTE_ORDER == _LITTLE_ENDIAN
+#       define SA_LITTLE_ENDIAN 1
+#   elif _BYTE_ORDER == _BIG_ENDIAN
+#       define SA_BIG_ENDIAN 1
+#   endif
 #elif defined(WIN32)
 #   define SA_LITTLE_ENDIAN 1
 #elif defined(__APPLE__)
 #   if defined(__BIG_ENDIAN__)
+#       define SA_BIG_ENDIAN 1
+#   else
+#       define SA_LITTLE_ENDIAN 1
+#   endif
+#elif defined(SOLARIS)
+#   if defined(_BIG_ENDIAN)
 #       define SA_BIG_ENDIAN 1
 #   else
 #       define SA_LITTLE_ENDIAN 1

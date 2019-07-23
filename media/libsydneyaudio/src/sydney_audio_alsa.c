@@ -177,19 +177,19 @@ sa_stream_open(sa_stream_t *s) {
   }
 
   if (snd_pcm_open(&s->output_unit, 
-		   "default", 
-		   SND_PCM_STREAM_PLAYBACK, 
-		   0) < 0) {
+                   "default", 
+                   SND_PCM_STREAM_PLAYBACK, 
+                   0) < 0) {
     return SA_ERROR_NO_DEVICE;
   }
   
   if (snd_pcm_set_params(s->output_unit,
-			 SND_PCM_FORMAT_S16_LE,
-			 SND_PCM_ACCESS_RW_INTERLEAVED,
-			 s->n_channels,
-			 s->rate,
-			 1,
-			 0) < 0) {
+                         SND_PCM_FORMAT_S16_LE,
+                         SND_PCM_ACCESS_RW_INTERLEAVED,
+                         s->n_channels,
+                         s->rate,
+                         1,
+                         0) < 0) {
     snd_pcm_close(s->output_unit);
     s->output_unit = NULL;
     return SA_ERROR_NOT_SUPPORTED;
@@ -367,13 +367,13 @@ static void audio_callback(void* data)
   buffer = malloc(period_size * bytes_per_frame);
  
   while(1) {
-   char* dst = buffer;
-   unsigned int bytes_to_copy   = period_size * bytes_per_frame;
-   snd_pcm_sframes_t frames;
+    char* dst = buffer;
+    unsigned int bytes_to_copy   = period_size * bytes_per_frame;
+    snd_pcm_sframes_t frames;
 
-   pthread_mutex_lock(&s->mutex);
-   if (!s->thread_id)
-     break;
+    pthread_mutex_lock(&s->mutex);
+    if (!s->thread_id)
+      break;
 
     
 
@@ -383,42 +383,42 @@ static void audio_callback(void* data)
       assert(s->bl_head->start <= s->bl_head->end);
 
       if (avail >= bytes_to_copy) {
-	
+        
 
 
-	memcpy(dst, s->bl_head->data + s->bl_head->start, bytes_to_copy);
-	s->bl_head->start += bytes_to_copy;
-	s->bytes_played += bytes_to_copy;
-	break;
-	
+        memcpy(dst, s->bl_head->data + s->bl_head->start, bytes_to_copy);
+        s->bl_head->start += bytes_to_copy;
+        s->bytes_played += bytes_to_copy;
+        break;
+    
       } else {
-	sa_buf* next = 0;
-	
+        sa_buf* next = 0;
+        
 
 
-	memcpy(dst, s->bl_head->data + s->bl_head->start, avail);
-	s->bl_head->start += avail;
-	dst += avail;
-	bytes_to_copy -= avail;
-	s->bytes_played += avail;
+        memcpy(dst, s->bl_head->data + s->bl_head->start, avail);
+        s->bl_head->start += avail;
+        dst += avail;
+        bytes_to_copy -= avail;
+        s->bytes_played += avail;
 
-	
-
-
+        
 
 
-	next = s->bl_head->next;
-	if (next == NULL) {
+
+
+        next = s->bl_head->next;
+        if (next == NULL) {
 #ifdef TIMING_TRACE
-	  printf("!");  
+          printf("!");  
 #endif
-	  memset(dst, 0, bytes_to_copy);
-	  break;
-	}
-	free(s->bl_head);
-	s->bl_head = next;
-	s->n_bufs--;
-	
+          memset(dst, 0, bytes_to_copy);
+          break;
+        }
+        free(s->bl_head);
+        s->bl_head = next;
+        s->n_bufs--;
+    
       } 
       
     } 
@@ -429,10 +429,10 @@ static void audio_callback(void* data)
     if (frames < 0) {
       frames = snd_pcm_recover(s->output_unit, frames, 1);
       if (frames < 0) {
-	printf("snc_pcm_recover error: %s\n", snd_strerror(frames));
+        printf("snc_pcm_recover error: %s\n", snd_strerror(frames));
       }
       if(frames > 0 && frames < period_size)
-	printf("short write (expected %d, wrote %d)\n", (int)period_size, (int)frames);;
+        printf("short write (expected %d, wrote %d)\n", (int)period_size, (int)frames);;
     }
   }
   free(buffer);
@@ -461,10 +461,9 @@ sa_stream_get_write_size(sa_stream_t *s, size_t *size) {
 
 
 
-  for (b = s->bl_head; b != NULL; b = b->next) {
-    used += b->end - b->start;
-  }
-  *size = BUF_SIZE * BUF_LIMIT - used;
+  unsigned int avail = s->bl_tail->size - s->bl_tail->end;
+  avail += (BUF_LIMIT - s->n_bufs) * BUF_SIZE;
+  *size = avail;
 
   pthread_mutex_unlock(&s->mutex);
   return SA_SUCCESS;
@@ -536,6 +535,33 @@ new_buffer(void) {
     b->next  = NULL;
   }
   return b;
+}
+
+
+int
+sa_stream_drain(sa_stream_t *s)
+{
+  if (s == NULL || s->output_unit == NULL) {
+    return SA_ERROR_NO_INIT;
+  }
+
+  while (1) {
+    pthread_mutex_lock(&s->mutex);
+    sa_buf  * b;
+    size_t    used = 0;
+    for (b = s->bl_head; b != NULL; b = b->next) {
+      used += b->end - b->start;
+    }
+    pthread_mutex_unlock(&s->mutex);
+
+    if (used == 0) {
+      break;
+    }
+
+    struct timespec ts = {0, 1000000};
+    nanosleep(&ts, NULL);
+  }
+  return SA_SUCCESS;
 }
 
 
@@ -703,7 +729,6 @@ UNSUPPORTED(int sa_stream_write_ni(sa_stream_t *s, unsigned int channel, const v
 UNSUPPORTED(int sa_stream_pwrite(sa_stream_t *s, const void *data, size_t nbytes, int64_t offset, sa_seek_t whence))
 UNSUPPORTED(int sa_stream_pwrite_ni(sa_stream_t *s, unsigned int channel, const void *data, size_t nbytes, int64_t offset, sa_seek_t whence))
 UNSUPPORTED(int sa_stream_get_read_size(sa_stream_t *s, size_t *size))
-UNSUPPORTED(int sa_stream_drain(sa_stream_t *s))
 
 const char *sa_strerror(int code) { return NULL; }
 
