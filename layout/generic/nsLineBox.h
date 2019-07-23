@@ -317,6 +317,20 @@ public:
   PRBool ResizeReflowOptimizationDisabled() const {
     return mFlags.mResizeReflowOptimizationDisabled;
   }
+
+  
+  void SetHasBullet() {
+    mFlags.mHasBullet = PR_TRUE;
+    InvalidateCachedIsEmpty();
+  }
+  void ClearHasBullet() {
+    mFlags.mHasBullet = PR_FALSE;
+    InvalidateCachedIsEmpty();
+  }
+  PRBool HasBullet() const {
+    return mFlags.mHasBullet;
+  }
+  
   
   
   PRInt32 GetChildCount() const {
@@ -484,9 +498,12 @@ public:
     PRUint32 mResizeReflowOptimizationDisabled: 1;  
     PRUint32 mEmptyCacheValid: 1;
     PRUint32 mEmptyCacheState: 1;
+    
+    
+    PRUint32 mHasBullet : 1;
     PRUint32 mBreakType : 4;
 
-    PRUint32 mChildCount : 18;
+    PRUint32 mChildCount : 17;
   };
 
   struct ExtraData {
