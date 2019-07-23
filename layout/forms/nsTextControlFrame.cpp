@@ -1415,7 +1415,10 @@ nsTextControlFrame::CreateFrameFor(nsIContent*      aContent)
   
   
 
-  editorFlags |= nsIPlaintextEditor::eEditorUseAsyncUpdatesMask;
+  
+  
+  
+  
 
   
   
