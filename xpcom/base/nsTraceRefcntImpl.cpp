@@ -61,6 +61,10 @@
 #endif
 #endif
 
+#ifdef NS_TRACE_MALLOC
+#include "nsTraceMalloc.h"
+#endif
+
 #ifdef HAVE_LIBDL
 #include <dlfcn.h>
 #endif
@@ -899,6 +903,13 @@ NS_LogInit()
 #ifdef NS_IMPL_REFCNT_LOGGING
   if (++gInitCount)
     nsTraceRefcntImpl::SetActivityIsLegal(PR_TRUE);
+#endif
+
+#ifdef NS_TRACE_MALLOC
+  
+  
+  if (!NS_TraceMallocHasStarted())
+    NS_TraceMallocStartup(-1);  
 #endif
 }
 

@@ -167,6 +167,11 @@ PR_EXTERN(int) NS_TraceMallocStartupArgs(int argc, char* argv[]);
 
 
 
+PR_EXTERN(PRBool) NS_TraceMallocHasStarted(void);
+
+
+
+
 PR_EXTERN(void) NS_TraceMallocShutdown(void);
 
 
