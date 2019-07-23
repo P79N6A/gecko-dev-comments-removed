@@ -485,17 +485,17 @@ nsProtocolProxyService::PrefsChanged(nsIPrefBranch *prefBranch,
         if (mProxyConfig == eProxyConfig_PAC) {
             prefBranch->GetCharPref(PROXY_PREF("autoconfig_url"),
                                     getter_Copies(tempString));
-        } else {
+        } else if (mProxyConfig == eProxyConfig_WPAD) {
             
             
             
             
             
             
-            if (mSystemProxySettings)
-                mSystemProxySettings->GetPACURI(tempString);
-            else
-                tempString.AssignLiteral(WPAD_URL);
+            tempString.AssignLiteral(WPAD_URL);
+        } else if (mSystemProxySettings) {
+            
+            mSystemProxySettings->GetPACURI(tempString);
         }
         if (!tempString.IsEmpty())
             ConfigureFromPAC(tempString);
