@@ -99,7 +99,7 @@ public:
   virtual nsresult Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const;
 
 protected:
-  void GetSrc(nsAString& src);
+  nsresult LoadSVGImage(PRBool aForce, PRBool aNotify);
 
   virtual LengthAttributesInfo GetLengthInfo();
   virtual StringAttributesInfo GetStringInfo();
@@ -255,13 +255,6 @@ nsSVGImageElement::DidChangeString(PRUint8 aAttrEnum, PRBool aDoSetAttr)
   nsSVGImageElementBase::DidChangeString(aAttrEnum, aDoSetAttr);
 
   if (aAttrEnum == HREF) {
-    nsAutoString href;
-    GetSrc(href);
-
-#ifdef DEBUG_tor
-    fprintf(stderr, "nsSVGImageElement - URI <%s>\n", ToNewCString(href));
-#endif
-
     
     
     if (nsContentUtils::GetBoolPref("dom.disable_image_src_set") &&
@@ -269,25 +262,25 @@ nsSVGImageElement::DidChangeString(PRUint8 aAttrEnum, PRBool aDoSetAttr)
       return;
     }
 
-    LoadImage(href, PR_TRUE, PR_TRUE);
+    LoadSVGImage(PR_TRUE, PR_TRUE);
   }
 }
 
 
 
-void nsSVGImageElement::GetSrc(nsAString& src)
+nsresult
+nsSVGImageElement::LoadSVGImage(PRBool aForce, PRBool aNotify)
 {
   
-
   nsCOMPtr<nsIURI> baseURI = GetBaseURI();
 
-  nsAutoString relURIStr(mStringAttributes[HREF].GetAnimValue());
-  relURIStr.Trim(" \t\n\r");
+  nsAutoString href(mStringAttributes[HREF].GetAnimValue());
+  href.Trim(" \t\n\r");
 
-  if (baseURI && !relURIStr.IsEmpty()) 
-    NS_MakeAbsoluteURI(src, relURIStr, baseURI);
-  else
-    src = relURIStr;
+  if (baseURI && !href.IsEmpty())
+    NS_MakeAbsoluteURI(href, href, baseURI);
+
+  return LoadImage(href, aForce, aNotify);
 }
 
 
@@ -305,12 +298,9 @@ nsSVGImageElement::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
 
   
   
-  nsAutoString href;
-  if (GetAttr(kNameSpaceID_XLink, nsGkAtoms::href, href)) {
-    
-    
-    LoadImage(href, PR_FALSE, PR_FALSE);
-  }
+  
+  
+  LoadSVGImage(PR_FALSE, PR_FALSE);
 
   return rv;
 }
