@@ -1689,14 +1689,6 @@ nsXULDocument::RemoveSubtreeFromDocument(nsIContent* aElement)
     
     nsresult rv;
 
-    if (aElement->NodeInfo()->Equals(nsGkAtoms::keyset, kNameSpaceID_XUL)) {
-        nsCOMPtr<nsIXBLService> xblService(do_GetService("@mozilla.org/xbl;1"));
-        if (xblService) {
-            nsCOMPtr<nsPIDOMEventTarget> piTarget(do_QueryInterface(aElement));
-            xblService->DetachGlobalKeyHandler(piTarget);
-        }
-    }
-
     
     PRUint32 count = aElement->GetChildCount();
 
