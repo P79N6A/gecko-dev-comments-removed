@@ -103,8 +103,8 @@ typedef PRUint32 nsFrameState;
 
 
 #define NS_IPRESSHELL_IID \
-{ 0xfa1bf801, 0x9fb6, 0x4d19, \
-  { 0x8d, 0x33, 0x69, 0x8e, 0x99, 0x61, 0xfc, 0x10 } }
+{ 0xfa7f090d, 0xb19a, 0x4ef8, \
+  { 0x95, 0x52, 0x82, 0x99, 0x2a, 0x3b, 0x4a, 0x83 } }
 
 
 #define NS_PRESSHELL_SCROLL_TOP      0
@@ -792,11 +792,6 @@ public:
 
   void SetCanvasBackground(nscolor aColor) { mCanvasBackgroundColor = aColor; }
   nscolor GetCanvasBackground() { return mCanvasBackgroundColor; }
-
-  
-
-
-  virtual void UpdateCanvasBackground() = 0;
 
 protected:
   
