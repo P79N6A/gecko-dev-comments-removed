@@ -2,7 +2,6 @@
 #define nsCppSharedAllocator_h__
 
 #include "nsMemory.h"     
-#include "nscore.h"       
 #include NEW_H					
 
 
