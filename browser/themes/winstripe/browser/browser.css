@@ -148,22 +148,6 @@ menuitem.bookmark-item {
 
 
 
-
-.bookmark-item[dragover-left="true"] {
-  -moz-border-left-colors: #000000;
-}
-.bookmark-item[dragover-right="true"] {
-  -moz-border-right-colors: #000000;
-}
-.bookmark-item[dragover-top="true"] {
-  -moz-border-top-colors: #000000;
-}
-.bookmark-item[dragover-bottom="true"] {
-  -moz-border-bottom-colors: #000000;
-}
-
-
-
 .bookmark-item  {
   list-style-image: url("chrome://global/skin/icons/folder-item.png");
   -moz-image-region: rect(0px, 16px, 16px, 0px)
@@ -1696,17 +1680,25 @@ toolbarbutton.bookmark-item[dragover="true"][open="true"] {
   -moz-image-region: rect(0px, 16px, 16px, 0px) !important;
 }
 
-.bookmark-item[dragover-into="true"] {
+
+.bookmark-item[dragover-into="true"] > .menu-iconic-text {
   background: Highlight !important;
   color: HighlightText !important;
 }
 
-.bookmark-item[dragover-top="true"] {
-  -moz-border-top-colors: #000000;
+
+.menupopup-drop-indicator-bar {
+  position: relative;
+  
+  margin-top: -1px;
+  margin-bottom: -1px;
 }
 
-.bookmark-item[dragover-bottom="true"] {
-  -moz-border-bottom-colors: #000000;
+.menupopup-drop-indicator {
+  list-style-image: none;
+  height: 2px;
+  -moz-margin-end: -4em;
+  background-color: Highlight;
 }
 
 
