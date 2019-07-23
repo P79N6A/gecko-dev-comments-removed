@@ -509,8 +509,8 @@ function getTargetFile(aFpP,  aSkipPrompt)
                           .getService(Components.interfaces.nsIDownloadManager);
   try {                          
     var lastDir;
-    if (inPrivateBrowsing && gDownloadLastDir.path)
-      lastDir = gDownloadLastDir.path;
+    if (inPrivateBrowsing && gDownloadLastDir.file)
+      lastDir = gDownloadLastDir.file;
     else
       lastDir = prefs.getComplexValue("lastDir", nsILocalFile);
     if ((!aSkipPrompt || !useDownloadDir) && lastDir.exists())
@@ -558,7 +558,7 @@ function getTargetFile(aFpP,  aSkipPrompt)
     
     var directory = fp.file.parent.QueryInterface(nsILocalFile);
     if (inPrivateBrowsing)
-      gDownloadLastDir.path = directory;
+      gDownloadLastDir.file = directory;
     else
       prefs.setComplexValue("lastDir", nsILocalFile, directory);
 
