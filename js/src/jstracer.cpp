@@ -2002,10 +2002,10 @@ bool TraceRecorder::record_JSOP_LEAVEWITH()
 }
 bool TraceRecorder::record_JSOP_RETURN()
 {
-    
-    set(&cx->fp->argv[-2], stack(-1));
+    LIns *i = stack(-1); 
     if (!leaveFrame()) 
         return false;
+    stack(0, i); 
     atoms = cx->fp->down->script->atomMap.vector;
     return true;
 }
