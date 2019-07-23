@@ -202,7 +202,8 @@ public:
   
   
   
-  nsresult SetPopupPosition(nsIFrame* aAnchorFrame);
+  
+  nsresult SetPopupPosition(nsIFrame* aAnchorFrame, PRBool aIsMove = PR_FALSE);
 
   PRBool HasGeneratedChildren() { return mGeneratedChildren; }
   void SetGeneratedChildren() { mGeneratedChildren = PR_TRUE; }
@@ -273,7 +274,9 @@ public:
 
   
   
-  void MoveTo(PRInt32 aLeft, PRInt32 aTop);
+  
+  
+  void MoveTo(PRInt32 aLeft, PRInt32 aTop, PRBool aUpdateAttrs);
 
   PRBool GetAutoPosition();
   void SetAutoPosition(PRBool aShouldAutoPosition);
@@ -290,8 +293,6 @@ public:
   void SetPreferredSize(nsSize aSize) { mPrefSize = aSize; }
 
 protected:
-  
-  void MoveToInternal(PRInt32 aLeft, PRInt32 aTop);                             
 
   
   virtual void GetLayoutFlags(PRUint32& aFlags);

@@ -777,7 +777,7 @@ nsMenuPopupFrame::AdjustPositionForAnchorAlign(const nsRect& anchorRect,
   
   
   
-  nsMargin margin;
+  nsMargin margin(0, 0, 0, 0);
   GetStyleMargin()->GetMargin(margin);
   switch (popupAlign) {
     case POPUPALIGNMENT_TOPLEFT:
@@ -880,9 +880,9 @@ nsMenuPopupFrame::FlipOrResize(nscoord& aScreenPoint, nscoord aSize,
 }
 
 nsresult
-nsMenuPopupFrame::SetPopupPosition(nsIFrame* aAnchorFrame)
+nsMenuPopupFrame::SetPopupPosition(nsIFrame* aAnchorFrame, PRBool aIsMove)
 {
-  if (!mShouldAutoPosition && !mInContentShell) 
+  if (!mShouldAutoPosition && !aIsMove && !mInContentShell)
     return NS_OK;
 
   nsPresContext* presContext = PresContext();
@@ -950,7 +950,7 @@ nsMenuPopupFrame::SetPopupPosition(nsIFrame* aAnchorFrame)
   
   PRBool hFlip = PR_FALSE, vFlip = PR_FALSE;
   
-  nsMargin margin;
+  nsMargin margin(0, 0, 0, 0);
   GetStyleMargin()->GetMargin(margin);
 
   
@@ -1016,6 +1016,11 @@ nsMenuPopupFrame::SetPopupPosition(nsIFrame* aAnchorFrame)
     
     vFlip = PR_TRUE;
   }
+
+  
+  
+  if (aIsMove && mPopupType == ePopupTypePanel && !mInContentShell)
+    hFlip = vFlip = PR_FALSE;
 
   
   
@@ -1487,11 +1492,11 @@ nsMenuPopupFrame::MoveToAttributePosition()
   mContent->GetAttr(kNameSpaceID_None, nsGkAtoms::left, left);
   mContent->GetAttr(kNameSpaceID_None, nsGkAtoms::top, top);
   PRInt32 err1, err2;
-  mScreenXPos = left.ToInteger(&err1);
-  mScreenYPos = top.ToInteger(&err2);
+  PRInt32 xpos = left.ToInteger(&err1);
+  PRInt32 ypos = top.ToInteger(&err2);
 
   if (NS_SUCCEEDED(err1) && NS_SUCCEEDED(err2))
-    MoveToInternal(mScreenXPos, mScreenYPos);
+    MoveTo(xpos, ypos, PR_FALSE);
 }
 
 void
@@ -1510,50 +1515,32 @@ nsMenuPopupFrame::Destroy()
   nsBoxFrame::Destroy();
 }
 
-void
-nsMenuPopupFrame::MoveTo(PRInt32 aLeft, PRInt32 aTop)
-{
-  
-  nsAutoString left, top;
-  left.AppendInt(aLeft);
-  top.AppendInt(aTop);
-
-  nsWeakFrame weakFrame(this);
-  mContent->SetAttr(kNameSpaceID_None, nsGkAtoms::left, left, PR_FALSE);
-  if (!weakFrame.IsAlive()) {
-    return;
-  }
-  mContent->SetAttr(kNameSpaceID_None, nsGkAtoms::top, top, PR_FALSE);
-  if (!weakFrame.IsAlive()) {
-    return;
-  }
-
-  MoveToInternal(aLeft, aTop);
-}
 
 void
-nsMenuPopupFrame::MoveToInternal(PRInt32 aLeft, PRInt32 aTop)
+nsMenuPopupFrame::MoveTo(PRInt32 aLeft, PRInt32 aTop, PRBool aUpdateAttrs)
 {
   
   if (mInContentShell)
     return;
 
-  nsIView* view = GetView();
-  NS_ASSERTION(view->GetParent(), "Must have parent!");
+  
+  
+  
+  mScreenXPos = aLeft;
+  mScreenYPos = aTop;
 
-  
-  nsIntPoint screenPos = view->GetParent()->GetScreenPosition();
+  SetPopupPosition(nsnull, PR_TRUE);
 
-  nsPresContext* context = PresContext();
-  aLeft = context->AppUnitsToDevPixels(nsPresContext::CSSPixelsToAppUnits(aLeft));
-  aTop = context->AppUnitsToDevPixels(nsPresContext::CSSPixelsToAppUnits(aTop));
-
-  
-  
-  
-  nsIWidget* widget = view->GetWidget();
-  if (widget) 
-    widget->Move(aLeft - screenPos.x, aTop - screenPos.y);
+  nsCOMPtr<nsIContent> popup = mContent;
+  if (aUpdateAttrs && (popup->HasAttr(kNameSpaceID_None, nsGkAtoms::left) ||
+                       popup->HasAttr(kNameSpaceID_None, nsGkAtoms::top)))
+  {
+    nsAutoString left, top;
+    left.AppendInt(aLeft);
+    top.AppendInt(aTop);
+    popup->SetAttr(kNameSpaceID_None, nsGkAtoms::left, left, PR_FALSE);
+    popup->SetAttr(kNameSpaceID_None, nsGkAtoms::top, top, PR_FALSE);
+  }
 }
 
 PRBool

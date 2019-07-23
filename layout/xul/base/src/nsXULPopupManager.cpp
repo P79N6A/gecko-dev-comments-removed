@@ -247,7 +247,7 @@ nsXULPopupManager::AdjustPopupsOnWindowChange()
   while (item) {
     
     if (item->Frame()->GetAutoPosition())
-      item->Frame()->SetPopupPosition(nsnull);
+      item->Frame()->SetPopupPosition(nsnull, PR_TRUE);
     item = item->GetParent();
   }
 }
