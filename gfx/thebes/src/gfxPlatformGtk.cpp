@@ -63,6 +63,12 @@
 #include <gdk/gdkx.h>
 #include "gfxXlibSurface.h"
 #include "cairo-xlib.h"
+
+
+#if defined(__APPLE__) && defined(Status)
+#undef Status
+#endif
+
 #endif 
 
 #ifdef MOZ_DFB
