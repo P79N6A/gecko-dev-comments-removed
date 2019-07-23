@@ -1508,6 +1508,7 @@ static JSStdName standard_class_names[] = {
     {js_InitTypedArrayClasses,  EAGER_CLASS_ATOM(Int32Array), NULL},
     {js_InitTypedArrayClasses,  EAGER_CLASS_ATOM(Uint32Array), NULL},
     {js_InitTypedArrayClasses,  EAGER_CLASS_ATOM(Float32Array), NULL},
+    {js_InitTypedArrayClasses,  EAGER_CLASS_ATOM(Float64Array), NULL},
 
     {NULL,                      0, NULL, NULL}
 };
@@ -5186,7 +5187,6 @@ JS_IsConstructing(JSContext *cx)
 JS_PUBLIC_API(JSStackFrame *)
 JS_SaveFrameChain(JSContext *cx)
 {
-    CHECK_REQUEST(cx);
     JSStackFrame *fp = js_GetTopStackFrame(cx);
     if (!fp)
         return NULL;
@@ -5197,7 +5197,6 @@ JS_SaveFrameChain(JSContext *cx)
 JS_PUBLIC_API(void)
 JS_RestoreFrameChain(JSContext *cx, JSStackFrame *fp)
 {
-    CHECK_REQUEST(cx);
     JS_ASSERT_NOT_ON_TRACE(cx);
     JS_ASSERT(!cx->fp);
     if (!fp)
