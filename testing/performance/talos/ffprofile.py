@@ -34,8 +34,6 @@
 
 
 
-
-
 """A set of functions to set up a Firefox profile with the correct
    preferences and extensions in the given directory.
 
@@ -55,7 +53,12 @@ import tempfile
 import time
 
 import ffprocess
-import paths
+import config
+
+if config.OS is "linux":
+    from ffprofile_linux import *
+elif config.OS is "win32":
+    from ffprofile_win32 import *
 
 
 def PrefString(name, value, newline):
@@ -79,20 +82,6 @@ def PrefString(name, value, newline):
     
     out_value = '"%s"' % value
   return 'user_pref("%s", %s);%s' % (name, out_value, newline)
-
-
-def MakeDirectoryContentsWritable(dirname):
-  """Recursively makes all the contents of a directory writable.
-     Uses os.chmod(filename, 0777), which works on Windows.
-
-  Args:
-    dirname: Name of the directory to make contents writable.
-  """
-
-  for (root, dirs, files) in os.walk(dirname):
-    os.chmod(root, 0777)
-    for filename in files:
-      os.chmod(os.path.join(root, filename), 0777)
 
 
 def CreateTempProfileDir(source_profile, prefs, extensions):
@@ -149,7 +138,7 @@ def InitializeNewProfile(firefox_path, profile_dir):
   """
 
   
-  cmd = ffprocess.GenerateFirefoxCommandLine(firefox_path, profile_dir, paths.INIT_URL)
+  cmd = ffprocess.GenerateFirefoxCommandLine(firefox_path, profile_dir, config.INIT_URL)
   handle = os.popen(cmd)
 
   

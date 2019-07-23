@@ -35,7 +35,6 @@
 
 
 
-
 """A set of functions to run the Ts test.
 
    The Ts test measures startup time for Firefox.  It does this by running
@@ -55,7 +54,7 @@ import time
 
 import ffprocess
 import ffprofile
-import paths
+import config
 
 
 
@@ -96,7 +95,7 @@ def RunStartupTest(firefox_path, profile_dir, num_runs, timeout):
     
     
     time_arg = int(time.time() * 1000)
-    url = paths.TS_URL + str(time_arg)
+    url = config.TS_URL + str(time_arg)
     command_line = ffprocess.GenerateFirefoxCommandLine(firefox_path, profile_dir, url)
     (match, timed_out) = ffprocess.RunProcessAndWaitForOutput(command_line,
                                                               'firefox',
@@ -110,12 +109,11 @@ def RunStartupTest(firefox_path, profile_dir, num_runs, timeout):
   return startup_times
 
 
-def RunStartupTests(source_profile_dir, profile_configs, num_runs):
+def RunStartupTests(profile_configs, num_runs):
   """Runs the startup tests with profiles created from the
      given base profile directory and list of configurations.
 
   Args:
-    source_profile_dir:  Full path to base directory to copy profile from.
     profile_configs:  Array of configuration options for each profile.
       These are of the format:
       [{prefname:prevalue,prefname2:prefvalue2},{extensionguid:path_to_extension}],[{prefname...
@@ -128,7 +126,7 @@ def RunStartupTests(source_profile_dir, profile_configs, num_runs):
   all_times = []
   for config in profile_configs:
     
-    profile_dir = ffprofile.CreateTempProfileDir(source_profile_dir,
+    profile_dir = ffprofile.CreateTempProfileDir(config[5],
                                                  config[0],
                                                  config[1])
 

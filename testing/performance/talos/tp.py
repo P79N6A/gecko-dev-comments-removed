@@ -35,7 +35,6 @@
 
 
 
-
 """A set of functions to run the Tp test.
 
    The Tp test measures page load times in Firefox.  It does this with a
@@ -54,12 +53,16 @@ import os
 import re
 import shutil
 import time
-import win32pdh
-import win32pdhutil
+import sys
 
 import ffprocess
 import ffprofile
-import paths
+import config
+
+if config.OS == "linux":
+    from tp_linux import *
+elif config.OS == "win32":
+    from tp_win32 import *
 
 
 
@@ -67,66 +70,7 @@ TP_REGEX = re.compile('__start_page_load_report(.*)__end_page_load_report',
                       re.DOTALL | re.MULTILINE)
 
 
-def AddCounter(counter_name):
-  """Adds a pdh query and counter of the given name to Firefox.
-  
-  Args: counter_name: The name of the counter to add, i.e. "% Processor Time"
-  
-  Returns:
-    (query handle, counter handle)
-  """
-  
-  path = win32pdh.MakeCounterPath( (None,
-                                    'process',
-                                    'firefox',
-                                    None,
-                                    -1,
-                                    counter_name) )
-  hq = win32pdh.OpenQuery()
-  try:
-    hc = win32pdh.AddCounter(hq, path)
-  except:
-    win32pdh.CloseQuery(hq)
-  return hq, hc
-
-
-def CleanupCounter(hq, hc):
-  """Cleans up a counter after it is no longer needed.
-  
-  Args:
-    hq: handle to the query for the counter
-    hc: handle to the counter
-  """
-  
-  try:
-    win32pdh.RemoveCounter(hc)
-    win32pdh.CloseQuery(hq)
-  except:
-    
-    pass
-
-
-def GetCounterValue(hq, hc):
-  """Returns the current value of the given counter
-  
-  Args:
-    hq: Handle of the query for the counter
-    hc: Handle of the counter
-  
-  Returns:
-    The current value of the counter
-  """
-  
-  try:
-    win32pdh.CollectQueryData(hq)
-    type, val = win32pdh.GetFormattedCounterValue(hc, win32pdh.PDH_FMT_LONG)
-    return val
-  except:
-    return None
-
-
-def RunPltTests(source_profile_dir,
-                profile_configs,
+def RunPltTests(profile_configs,
                 num_cycles,
                 counters,
                 resolution):
@@ -134,7 +78,6 @@ def RunPltTests(source_profile_dir,
      base diectory and list of configuations.
   
   Args:
-    source_profile_dir:  Full path to base directory to copy profile from.
     profile_configs:  Array of configuration options for each profile.
       These are of the format:
       [{prefname:prevalue,prefname2:prefvalue2},
@@ -156,35 +99,42 @@ def RunPltTests(source_profile_dir,
   
   counter_data = []
   plt_results = []
-  for config in profile_configs:
+  results_string = []
+  for pconfig in profile_configs:
+    print "in tp"
+    print pconfig
+    sys.stdout.flush()
+    rstring = ""
     
-    profile_dir = ffprofile.CreateTempProfileDir(source_profile_dir,
-                                                 config[0],
-                                                 config[1])
-  
+    profile_dir = ffprofile.CreateTempProfileDir(pconfig[5],
+                                                 pconfig[0],
+                                                 pconfig[1])
+    print "created profile" 
     
     
     
-    ffprofile.InitializeNewProfile(config[2], profile_dir)
+    ffprofile.InitializeNewProfile(pconfig[2], profile_dir)
+    print "initialized firefox"
+    sys.stdout.flush()
     ffprocess.SyncAndSleep()
 
     
-    timeout = 300
+    timeout = 10000
     total_time = 0
     output = ''
-    url = paths.TP_URL + '?cycles=' + str(num_cycles)
-    command_line = ffprocess.GenerateFirefoxCommandLine(config[2], profile_dir, url)
+    url = config.TP_URL + '?cycles=' + str(num_cycles)
+    command_line = ffprocess.GenerateFirefoxCommandLine(pconfig[2], profile_dir, url)
     handle = os.popen(command_line)
     
-    
-    win32pdh.EnumObjects(None, None, 0, 1)
-    
-    
+    time.sleep(1)
+
+    cm = CounterManager("firefox", counters)
+
+    cm.startMonitor()
+
     counts = {}
-    counter_handles = {}
     for counter in counters:
       counts[counter] = []
-      counter_handles[counter] = AddCounter(counter)
     
     while total_time < timeout:
     
@@ -194,11 +144,9 @@ def RunPltTests(source_profile_dir,
       
       
       for count_type in counters:
-        val = GetCounterValue(counter_handles[count_type][0],
-                              counter_handles[count_type][1])
+        val = cm.getCounterValue(count_type)
+
         if (val):
-          
-          
           counts[count_type].append(val)
 
       
@@ -206,12 +154,13 @@ def RunPltTests(source_profile_dir,
       output += current_output
       match = TP_REGEX.search(output)
       if match:
+        rstring += match.group(1)
         plt_results.append(match.group(1))
-        break;
-    
-    
-    for counter in counters:
-      CleanupCounter(counter_handles[counter][0], counter_handles[counter][1])
+        break
+
+    cm.stopMonitor()
+   
+    print "got tp results from browser" 
 
     
     
@@ -226,5 +175,6 @@ def RunPltTests(source_profile_dir,
     shutil.rmtree(profile_dir)
     
     counter_data.append(counts)
-  
-  return (plt_results, counter_data)
+    results_string.append(rstring)
+
+  return (results_string, plt_results, counter_data)

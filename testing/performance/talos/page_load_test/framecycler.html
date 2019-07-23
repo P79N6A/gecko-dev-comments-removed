@@ -1,54 +1,6 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 <html>
+<script language="Javascript" type="text/javascript" src="parray.js"></script>
 <script>
-  var win = null;
-  var pages = [
-    "bugzilla.mozilla.org/",
-    "lxr.mozilla.org/",
-    "vanilla-page/",
-  ];
-  var pages_i18n = [
-    "bugzilla.mozilla.org/",
-    "lxr.mozilla.org/",
-    "vanilla-page/",
-  ];
 
   var NUM_PAGES;
   var NUM_CYCLES;
@@ -111,6 +63,18 @@
       sum = sum + ary[i];
     }
 
+    // median
+    sorted_ary = ary.concat();
+    sorted_ary.sort();
+    // remove longest run
+    sorted_ary.pop();
+    if (sorted_ary.length%2) {
+      r.median = sorted_ary[(sorted_ary.length-1)/2]; 
+    }else{
+      var n = Math.floor(sorted_ary.length / 2);
+      r.median = (sorted_ary[n] + sorted_ary[n + 1]) / 2;
+    }
+
     // ignore max value when computing mean and stddev
     r.mean = (sum - r.max) / (ary.length - 1);
 
@@ -134,18 +98,63 @@
     tr.appendChild(td);
     return td;
   }
-  
-  function loadReport() {
-    win.addEventListener("load", showReport, true);
-    var baseUri = document.location.href.substr(0, document.location.href.lastIndexOf('/') + 1);
-    win.document.location = baseUri + "report.html";
+
+  function dumpReport() {
+    var all = new Array();
+    var counter = 0;
+    
+    for (var i = 0; i < timeVals.length; ++i) {
+      for (var j = 0; j < timeVals[i].length; ++j) {
+        all[counter] = timeVals[i][j];
+        ++counter;
+      }
+    }
+
+    // avg and avg median are cumulative for all the pages
+    var avgs = new Array();
+    var medians = new Array();
+    for (var i = 0; i < timeVals.length; ++i) {
+       avgs[i] = getArrayStats(timeVals[i]).mean;
+       medians[i] = getArrayStats(timeVals[i]).median;
+    }
+    var avg = getArrayStats(avgs).mean;
+    var avgmed = getArrayStats(medians).mean;
+    var rstring = "__start_page_load_report";
+
+    var r = getArrayStats(all);
+    //dump(
+    //  "(tinderbox dropping follows)\n"+
+    //  "_x_x_mozilla_page_load,"+avgmed+","+r.max+","+r.min+"\n"+
+    //  "_x_x_mozilla_page_load_details,avgmedian|"+avgmed+"|average|"+avg.toFixed(2)+"|minimum|"+r.min+"|maximum|"+r.max+"|stddev|"+r.stdd.toFixed(2)+":"
+    //);
+
+    for (var i = 0; i < timeVals.length; ++i) {
+      r = getArrayStats(timeVals[i]);
+      fields = pages[i].split('/');
+      rstring += "page:" + fields[5] + ":" + r.median.toFixed(2) + "\n";
+      //dump(
+      //  '|'+
+      //  i+';'+
+      //  pages[i]+';'+
+      //  r.median+';'+
+      //  r.mean+';'+
+      //  r.min+';'+
+      //  r.max
+      //);
+      for (var j = 0; j < timeVals[i].length; ++j) {
+        //dump(
+        //  ';'+timeVals[i][j]
+        //);
+      }
+    } 
+    rstring += "__end_page_load_report";
+    //alert(rstring);
+    dump(rstring);
   }
 
   function showReport() {
-    var doc = win.document;
+    var doc = frames["content"].document;
     var tbody = doc.getElementById("tbody");
-    var sum_mean = 0;
-    var sum_stdd = 0;
     for (var i = 0; i < timeVals.length; ++i) {
       var tr = doc.createElement("TR");
 
@@ -156,9 +165,7 @@
       appendTableCol(tr, r.max.toFixed(2));
       appendTableCol(tr, r.mean.toFixed(2));
       appendTableCol(tr, r.stdd.toFixed(2));
-      sum_mean += r.mean;
-      sum_stdd += r.stdd;
-      //appendTableCol(tr, r.chi2.toFixed(2));
+      appendTableCol(tr, r.median.toFixed(2));
 
       for (var j = 0; j < timeVals[i].length; ++j) {
         var tv = timeVals[i][j];
@@ -169,24 +176,23 @@
 
       tbody.appendChild(tr);
     }
-    dump("__start_page_load_report\n");
-    dump("mean: " + sum_mean.toFixed(2) + "\n");
-    dump("stdd: " + sum_stdd.toFixed(2) + "\n");
-    dump("__end_page_load_report\n");
-    win.close()
-    window.close()
   }
 
   function loadPage(i) {
     tstart = new Date();
-    win.addEventListener("load", winLoad, true);
-    win.document.location = "base/" + pages[i] + "index.html";
-  }  
+    frames["content"].document.location = pages[i];
+  }
 
-  function winLoad() {
+  function frameLoad() {
+    if (cycle == NUM_CYCLES) {
+      showReport();
+      dumpReport();
+      window.close();
+      return;
+    }
 
     var tend = new Date();
-    var href = win.document.location.href;
+    var href = frames["content"].document.location.href;
     if (href == "about:blank")
       return;
     var tdelta = tend - tstart;
@@ -195,35 +201,31 @@
 
     var text = (cycle + 1) + ', ' + (index + 1) + ', ' + fields[fields.length - 2] + ", " + tdelta;
 
-    var body = document.body;
+    var doc = frames["header"].document;
+    var body = doc.body;
     while (body.firstChild)
       body.removeChild(body.firstChild);
-    body.appendChild(document.createTextNode(text));
+    body.appendChild(doc.createTextNode(text));
 
     if (++index == NUM_PAGES) {
       index = 0;
       if (++cycle == NUM_CYCLES) {
         // display summary
-        try {
-          win.removeEventListener("load", winLoad, true);
-        } catch (e) { alert("displaying summary, caught " + e); }
-        win.document.location = "about:blank";
-        window.setTimeout(loadReport, 500);
+        frames["content"].document.location = "report.html";
         return;
       }
     }
 
-    try {
-      win.removeEventListener("load", winLoad, true);
-    } catch (e) { alert("Displaying page " + index + " caught " + e); }
-    win.document.location = "about:blank";
     window.setTimeout("loadPage(" + index + ")", 500);
   }
 
   function init() {
-    win = window.open("about:blank", "Page Load Test");
+    window.resizeTo(800, 800);
     window.setTimeout("loadPage(" + index + ")", 500);
   }
 </script>
-<body onload="init();"></body>
+<frameset rows="40,*" onload="init()">
+  <frame name="header" src="header.html">
+  <frame name="content" src="" onload="frameLoad()">
+</frameset>
 </html>
