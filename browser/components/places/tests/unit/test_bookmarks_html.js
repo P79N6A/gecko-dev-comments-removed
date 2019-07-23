@@ -142,7 +142,7 @@ function testCanonicalBookmarks(aFolder) {
     
     do_check_eq("test post keyword", testBookmark1.title);
     
-    do_check_eq("test", bmsvc.getKeywordForBookmark(testBookmark1.bookmarkId));
+    do_check_eq("test", bmsvc.getKeywordForBookmark(testBookmark1.itemId));
     
     
     

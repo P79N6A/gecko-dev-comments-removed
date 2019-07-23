@@ -100,9 +100,9 @@ function run_test() {
   const NHQO = Ci.nsINavHistoryQueryOptions;
 
   function checkOrder(a, b, c) {
-    do_check_eq(root.getChild(0).bookmarkId, a);
-    do_check_eq(root.getChild(1).bookmarkId, b);
-    do_check_eq(root.getChild(2).bookmarkId, c);
+    do_check_eq(root.getChild(0).itemId, a);
+    do_check_eq(root.getChild(1).itemId, b);
+    do_check_eq(root.getChild(2).itemId, c);
   }
 
   
@@ -128,20 +128,17 @@ function run_test() {
 
   
   
+  
 
-  annosvc.setAnnotationString(bmsvc.getItemURI(id1), "testAnno", "a", 0, 0);
-  annosvc.setAnnotationString(bmsvc.getItemURI(id3), "testAnno", "b", 0, 0);
+  annosvc.setItemAnnotationString(id1, "testAnno", "a", 0, 0);
+  annosvc.setItemAnnotationString(id3, "testAnno", "b", 0, 0);
   result.sortingAnnotation = "testAnno";
   result.sortingMode = NHQO.SORT_BY_ANNOTATION_DESCENDING;
 
   
   checkOrder(id3, id1, id2);
-  
-  
-  annosvc.setAnnotationInt32(bmsvc.getItemURI(id3), "testAnno", 10, 0, 0);
 
   
-  
-  result.sortingMode = result.sortingMode;
-  checkOrder(id1, id2, id3);
+  annosvc.setItemAnnotationString(id1, "testAnno", "c", 0, 0);
+  checkOrder(id1, id3, id2);
 }

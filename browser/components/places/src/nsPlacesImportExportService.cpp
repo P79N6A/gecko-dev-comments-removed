@@ -824,16 +824,9 @@ BookmarkContentSink::HandleLinkBegin(const nsIParserNode& node)
   if (webPanel.LowerCaseEqualsLiteral("true")) {
     
 
-    nsCOMPtr<nsIURI> placeURI;
-    rv = mBookmarksService->GetItemURI(frame.mPreviousId,
-                                       getter_AddRefs(placeURI));
-    NS_ASSERTION(NS_SUCCEEDED(rv),
-                 "failed to get a place: uri for a new bookmark");
-    if (NS_SUCCEEDED(rv)) {
-      mAnnotationService->SetAnnotationInt32(placeURI, LOAD_IN_SIDEBAR_ANNO,
-                                             1, 0,
-                                             nsIAnnotationService::EXPIRE_NEVER);
-    }
+    mAnnotationService->SetItemAnnotationInt32(frame.mPreviousId, LOAD_IN_SIDEBAR_ANNO,
+                                               1, 0,
+                                               nsIAnnotationService::EXPIRE_NEVER);
   }
   
 }
@@ -1516,15 +1509,15 @@ nsPlacesImportExportService::WriteItem(nsINavHistoryResultNode* aItem,
   NS_ENSURE_SUCCESS(rv, rv);
 
   
-  PRInt64 bookmarkId;
-  rv = aItem->GetBookmarkId(&bookmarkId);
+  PRInt64 itemId;
+  rv = aItem->GetItemId(&itemId);
   NS_ENSURE_SUCCESS(rv, rv);
 
   
   rv = aOutput->Write(kIdAttribute, sizeof(kIdAttribute)-1, &dummy);
   NS_ENSURE_SUCCESS(rv, rv);
   nsCAutoString id;
-  id.AppendInt(bookmarkId);
+  id.AppendInt(itemId);
   rv = aOutput->Write(id.get(), id.Length(), &dummy);
   NS_ENSURE_SUCCESS(rv, rv);
   rv = aOutput->Write(kQuoteStr, sizeof(kQuoteStr)-1, &dummy);
@@ -1532,7 +1525,7 @@ nsPlacesImportExportService::WriteItem(nsINavHistoryResultNode* aItem,
 
   
   nsAutoString keyword;
-  rv = mBookmarksService->GetKeywordForBookmark(bookmarkId, keyword);
+  rv = mBookmarksService->GetKeywordForBookmark(itemId, keyword);
   NS_ENSURE_SUCCESS(rv, rv);
   if (!keyword.IsEmpty()) {
     rv = aOutput->Write(kKeywordAttribute, sizeof(kKeywordAttribute)-1, &dummy);
@@ -1546,14 +1539,10 @@ nsPlacesImportExportService::WriteItem(nsINavHistoryResultNode* aItem,
   }
 
   
-  nsCOMPtr<nsIURI> placeURI;
-  rv = mBookmarksService->GetItemURI(bookmarkId, getter_AddRefs(placeURI));
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  
   
   PRBool loadInSidebar = PR_FALSE;
-  rv = mAnnotationService->HasAnnotation(placeURI, LOAD_IN_SIDEBAR_ANNO, &loadInSidebar);
+  rv = mAnnotationService->ItemHasAnnotation(itemId, LOAD_IN_SIDEBAR_ANNO,
+                                             &loadInSidebar);
   NS_ENSURE_SUCCESS(rv, rv);
   if (loadInSidebar)
     aOutput->Write(kWebPanelAttribute, sizeof(kWebPanelAttribute)-1, &dummy);

@@ -52,6 +52,13 @@ try {
 } 
 
 
+try {
+  var annosvc= Cc["@mozilla.org/browser/annotation-service;1"].getService(Ci.nsIAnnotationService);
+} catch(ex) {
+  do_throw("Could not get annotation service\n");
+} 
+
+
 var observer = {
   onBeginUpdateBatch: function() {
     this._beginUpdateBatch = true;
@@ -59,27 +66,25 @@ var observer = {
   onEndUpdateBatch: function() {
     this._endUpdateBatch = true;
   },
-  onItemAdded: function(id, uri, folder, index) {
-    this._itemAdded = uri;
+  onItemAdded: function(id, folder, index) {
     this._itemAddedId = id;
     this._itemAddedFolder = folder;
     this._itemAddedIndex = index;
   },
-  onItemRemoved: function(id, uri, folder, index) {
-    this._itemRemoved = uri;
+  onItemRemoved: function(id, folder, index) {
     this._itemRemovedId = id;
     this._itemRemovedFolder = folder;
     this._itemRemovedIndex = index;
   },
-  onItemChanged: function(id, uri, property, value) {
+  onItemChanged: function(id, property, isAnnotationProperty, value) {
     this._itemChangedId = id;
-    this._itemChanged = uri;
     this._itemChangedProperty = property;
+    this._itemChanged_isAnnotationProperty = isAnnotationProperty;
     this._itemChangedValue = value;
   },
-  onItemVisited: function(uri, visitID, time) {
-    this._itemVisited = uri;
-    this._itemVisitedID = visitID;
+  onItemVisited: function(id, visitID, time) {
+    this._itemVisitedId = id;
+    this._itemVisitedVistId = visitID;
     this._itemVisitedTime = time;
   },
   onFolderAdded: function(folder, parent, index) {
@@ -151,14 +156,13 @@ function run_test() {
   
   var newId = bmsvc.insertItem(testRoot, uri("http://google.com/"), bmsvc.DEFAULT_INDEX);
   do_check_eq(observer._itemAddedId, newId);
-  do_check_eq(observer._itemAdded.spec, "http://google.com/");
   do_check_eq(observer._itemAddedFolder, testRoot);
   do_check_eq(observer._itemAddedIndex, testStartIndex);
+  do_check_eq(bmsvc.getBookmarkURI(newId).spec, "http://google.com/");
 
   
   bmsvc.setItemTitle(newId, "Google");
   do_check_eq(observer._itemChangedId, newId);
-  do_check_eq(observer._itemChanged.spec, "http://google.com/");
   do_check_eq(observer._itemChangedProperty, "title");
   do_check_eq(observer._itemChangedValue, "Google");
 
@@ -196,38 +200,32 @@ function run_test() {
   
   var newId2 = bmsvc.insertItem(workFolder, uri("http://developer.mozilla.org/"), 0);
   do_check_eq(observer._itemAddedId, newId2);
-  do_check_eq(observer._itemAdded.spec, "http://developer.mozilla.org/");
   do_check_eq(observer._itemAddedFolder, workFolder);
   do_check_eq(observer._itemAddedIndex, 0);
 
   
   bmsvc.setItemTitle(newId2, "DevMo");
-  do_check_eq(observer._itemChanged.spec, "http://developer.mozilla.org/");
   do_check_eq(observer._itemChangedProperty, "title");
 
   
   var newId3 = bmsvc.insertItem(workFolder, uri("http://msdn.microsoft.com/"), bmsvc.DEFAULT_INDEX);
   do_check_eq(observer._itemAddedId, newId3);
-  do_check_eq(observer._itemAdded.spec, "http://msdn.microsoft.com/");
   do_check_eq(observer._itemAddedFolder, workFolder);
   do_check_eq(observer._itemAddedIndex, 1);
 
   
   bmsvc.setItemTitle(newId3, "MSDN");
-  do_check_eq(observer._itemChanged.spec, "http://msdn.microsoft.com/");
   do_check_eq(observer._itemChangedProperty, "title");
 
   
   bmsvc.removeItem(newId2);
   do_check_eq(observer._itemRemovedId, newId2);
-  do_check_eq(observer._itemRemoved.spec, "http://developer.mozilla.org/");
   do_check_eq(observer._itemRemovedFolder, workFolder);
   do_check_eq(observer._itemRemovedIndex, 0);
 
   
   var newId4 = bmsvc.insertItem(workFolder, uri("http://developer.mozilla.org/"), bmsvc.DEFAULT_INDEX);
   do_check_eq(observer._itemAddedId, newId4);
-  do_check_eq(observer._itemAdded.spec, "http://developer.mozilla.org/");
   do_check_eq(observer._itemAddedFolder, workFolder);
   do_check_eq(observer._itemAddedIndex, 1);
   
@@ -240,24 +238,21 @@ function run_test() {
   
   var newId5 = bmsvc.insertItem(homeFolder, uri("http://espn.com/"), bmsvc.DEFAULT_INDEX);
   do_check_eq(observer._itemAddedId, newId5);
-  do_check_eq(observer._itemAdded.spec, "http://espn.com/");
   do_check_eq(observer._itemAddedFolder, homeFolder);
   do_check_eq(observer._itemAddedIndex, 0);
 
   
   bmsvc.setItemTitle(newId5, "ESPN");
-  do_check_eq(observer._itemChanged.spec, "http://espn.com/");
+  do_check_eq(observer._itemChangedId, newId5);
   do_check_eq(observer._itemChangedProperty, "title");
 
   
   var newId6 = bmsvc.insertItem(testRoot, uri("place:domain=google.com&group=1"), bmsvc.DEFAULT_INDEX);
-  do_check_eq(observer._itemAdded.spec, "place:domain=google.com&group=1");
   do_check_eq(observer._itemAddedFolder, testRoot);
   do_check_eq(observer._itemAddedIndex, 3);
 
   
   bmsvc.setItemTitle(newId6, "Google Sites");
-  do_check_eq(observer._itemChanged.spec, "place:domain=google.com&group=1");
   do_check_eq(observer._itemChangedProperty, "title");
 
   
@@ -396,9 +391,9 @@ function run_test() {
     for (var i=0; i < cc; ++i) {
       var node = rootNode.getChild(i);
       if (node.type == node.RESULT_TYPE_FOLDER)
-        do_check_eq(node.bookmarkId, -1);
+        do_check_eq(node.itemId, -1);
       else
-        do_check_true(node.bookmarkId > 0);
+        do_check_true(node.itemId > 0);
     }
     rootNode.containerOpen = false;
   }
@@ -441,9 +436,8 @@ function run_test() {
   var newId10 = bmsvc.insertItem(testRoot, uri("http://foo10.com/"), bmsvc.DEFAULT_INDEX);
   bmsvc.changeBookmarkURI(newId10, uri("http://foo11.com/"));
   do_check_eq(observer._itemChangedId, newId10);
-  do_check_eq(observer._itemChanged.spec, "http://foo11.com/");
   do_check_eq(observer._itemChangedProperty, "uri");
-  do_check_eq(observer._itemChangedValue, "");
+  do_check_eq(observer._itemChangedValue, "http://foo11.com/");
 
   
   var newId11 = bmsvc.insertItem(testRoot, uri("http://foo11.com/"), bmsvc.DEFAULT_INDEX);
@@ -467,7 +461,6 @@ function run_test() {
   bmsvc.toolbarFolder = newToolbarFolderId;
   do_check_eq(bmsvc.toolbarFolder, newToolbarFolderId);
   do_check_eq(observer._itemChangedId, newToolbarFolderId);
-  do_check_eq(observer._itemChanged.spec, bmsvc.getFolderURI(newToolbarFolderId).spec);
   do_check_eq(observer._itemChangedProperty, "became_toolbar_folder");
   do_check_eq(observer._itemChangedValue, "");
 
@@ -477,16 +470,22 @@ function run_test() {
   
   var newId13 = bmsvc.insertItem(testRoot, uri("http://foobarcheese.com/"), bmsvc.DEFAULT_INDEX);
   do_check_eq(observer._itemAddedId, newId13);
-  do_check_eq(observer._itemAdded.spec, "http://foobarcheese.com/");
   do_check_eq(observer._itemAddedFolder, testRoot);
   do_check_eq(observer._itemAddedIndex, 13);
 
   
   bmsvc.setItemTitle(newId13, "ZZZXXXYYY");
   do_check_eq(observer._itemChangedId, newId13);
-  do_check_eq(observer._itemChanged.spec, "http://foobarcheese.com/");
   do_check_eq(observer._itemChangedProperty, "title");
   do_check_eq(observer._itemChangedValue, "ZZZXXXYYY");
+
+  
+  observer._itemChangedId = -1;
+  annosvc.setItemAnnotationString(newId3, "test-annotation", "foo", 0, 0);
+  do_check_eq(observer._itemChangedId, newId3);
+  do_check_eq(observer._itemChangedProperty, "test-annotation");
+  do_check_true(observer._itemChanged_isAnnotationProperty);
+  do_check_eq(observer._itemChangedValue, "");
 
   
   try {
@@ -503,12 +502,17 @@ function run_test() {
     do_check_eq(cc, 1);
     var node = rootNode.getChild(0);
     do_check_eq(node.title, "ZZZXXXYYY");
-    do_check_true(node.bookmarkId > 0);
+    do_check_true(node.itemId > 0);
     rootNode.containerOpen = false;
   }
   catch(ex) {
     do_throw("bookmarks query: " + ex);
   }
+
+  
+  do_check_true(annosvc.itemHasAnnotation(newId3, "test-annotation"));
+  bmsvc.removeItem(newId3);
+  do_check_false(annosvc.itemHasAnnotation(newId3, "test-annotation"));
 
   
   var uri1 = uri("http://foo.tld/a");

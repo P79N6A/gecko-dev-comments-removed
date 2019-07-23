@@ -38,46 +38,128 @@
 
 
 
+
 try {
   var histsvc = Cc["@mozilla.org/browser/nav-history-service;1"].getService(Ci.nsINavHistoryService);
 } catch(ex) {
   do_throw("Could not get history service\n");
-} 
+}
+
+
+try {
+  var bmsvc = Cc["@mozilla.org/browser/nav-bookmarks-service;1"].getService(Ci.nsINavBookmarksService);
+} catch(ex) {
+  do_throw("Could not get nav-bookmarks-service\n");
+}
 
 
 try {
   var annosvc= Cc["@mozilla.org/browser/annotation-service;1"].getService(Ci.nsIAnnotationService);
 } catch(ex) {
   do_throw("Could not get annotation service\n");
-} 
+}
+
+var annoObserver = {
+  PAGE_lastSet_URI: "",
+  PAGE_lastSet_AnnoName: "",
+
+  onPageAnnotationSet: function(aURI, aName) {
+    this.PAGE_lastSet_URI = aURI.spec;
+    this.PAGE_lastSet_AnnoName = aName;
+  },
+
+  ITEM_lastSet_Id: -1,
+  ITEM_lastSet_AnnoName: "",
+  onItemAnnotationSet: function(aItemId, aName) {
+    this.ITEM_lastSet_Id = aItemId;
+    this.ITEM_lastSet_AnnoName = aName;
+  },
+
+  PAGE_lastRemoved_URI: "",
+  PAGE_lastRemoved_AnnoName: "",
+  onPageAnnotationRemoved: function(aURI, aName) {
+    this.PAGE_lastRemoved_URI = aURI.spec;
+    this.PAGE_lastRemoved_AnnoName = aName;
+  },
+
+  ITEM_lastRemoved_Id: -1,
+  ITEM_lastRemoved_AnnoName: "",
+  onItemAnnotationRemoved: function(aItemId, aName) {
+    this.ITEM_lastRemoved_Id = aItemId;
+    this.ITEM_lastRemoved_AnnoName = aName;
+  }
+};
 
 
 function run_test() {
-  
   var testURI = uri("http://mozilla.com/");
+  var testItemId = bmsvc.insertItem(bmsvc.bookmarksRoot, testURI, -1);
   var testAnnoName = "moz-test-places/annotations";
   var testAnnoVal = "test";
 
-  
-  try {
-    annosvc.setAnnotationString(testURI, testAnnoName, testAnnoVal, 0, 0);
-  } catch(ex) {
-    do_throw("unable to add annotation");
-  }
+  annosvc.addObserver(annoObserver);
 
   
-  var storedAnnoVal = annosvc.getAnnotationString(testURI, testAnnoName);
+  try {
+    annosvc.setPageAnnotationString(testURI, testAnnoName, testAnnoVal, 0, 0);
+  } catch(ex) {
+    do_throw("unable to add page-annotation");
+  }
+  do_check_eq(annoObserver.PAGE_lastSet_URI, testURI.spec);
+  do_check_eq(annoObserver.PAGE_lastSet_AnnoName, testAnnoName);
+
+  
+  do_check_true(annosvc.pageHasAnnotation(testURI, testAnnoName));
+  var storedAnnoVal = annosvc.getPageAnnotationString(testURI, testAnnoName);
   do_check_eq(testAnnoVal, storedAnnoVal);
 
   
   try {
-    annosvc.getAnnotationString(testURI, "blah");
-    do_throw("fetching annotation that doesn't exist, should've thrown");
+    annosvc.setItemAnnotationString(testItemId, testAnnoName, testAnnoVal, 0, 0);
+  } catch(ex) {
+    do_throw("unable to add item annotation");
+  }
+  do_check_eq(annoObserver.ITEM_lastSet_Id, testItemId);
+  do_check_eq(annoObserver.ITEM_lastSet_AnnoName, testAnnoName);
+
+  
+  var uri2 = uri("http://www.tests.tld");
+  annosvc.setPageAnnotationString(uri2, testAnnoName, testAnnoVal, 0, 0);
+  var pages = annosvc.getPagesWithAnnotation(testAnnoName, { });
+  do_check_eq(pages.length, 2);
+  
+  do_check_false(pages[0].equals(pages[1]));
+  do_check_true(pages[0].equals(testURI) || pages[1].equals(testURI));
+  do_check_true(pages[0].equals(uri2) || pages[1].equals(uri2));
+
+  
+  var testItemId2 = bmsvc.insertItem(bmsvc.bookmarksRoot, uri2, -1);
+  annosvc.setItemAnnotationString(testItemId2, testAnnoName, testAnnoVal, 0, 0);
+  var items = annosvc.getItemsWithAnnotation(testAnnoName, { });
+  do_check_eq(items.length, 2);
+  
+  do_check_true(items[0] != items[1]);
+  do_check_true(items[0] == testItemId || items[1] == testItemId);
+  do_check_true(items[0] == testItemId2 || items[1] == testItemId2);
+
+  
+  try {
+    annosvc.getPageAnnotationString(testURI, "blah");
+    do_throw("fetching page-annotation that doesn't exist, should've thrown");
+  } catch(ex) {}
+  try {
+    annosvc.getItemAnnotationString(testURI, "blah");
+    do_throw("fetching item-annotation that doesn't exist, should've thrown");
   } catch(ex) {}
 
   
   var flags = {}, exp = {}, mimeType = {}, storageType = {};
-  annosvc.getAnnotationInfo(testURI, testAnnoName, flags, exp, mimeType, storageType);
+  annosvc.getPageAnnotationInfo(testURI, testAnnoName, flags, exp, mimeType, storageType);
+  do_check_eq(flags.value, 0);
+  do_check_eq(exp.value, 0);
+  do_check_eq(mimeType.value, null);
+  do_check_eq(storageType.value, Ci.nsIAnnotationService.TYPE_STRING);
+  annosvc.getItemAnnotationInfo(testItemId, testAnnoName, flags, exp, mimeType, storageType);
   do_check_eq(flags.value, 0);
   do_check_eq(exp.value, 0);
   do_check_eq(mimeType.value, null);
@@ -85,6 +167,11 @@ function run_test() {
 
   
   var annoNames = annosvc.getPageAnnotationNames(testURI, {});
+  do_check_eq(annoNames.length, 1);
+  do_check_eq(annoNames[0], "moz-test-places/annotations");
+
+  
+  var annoNames = annosvc.getItemAnnotationNames(testItemId, {});
   do_check_eq(annoNames.length, 1);
   do_check_eq(annoNames[0], "moz-test-places/annotations");
 
@@ -99,84 +186,143 @@ function run_test() {
   
   var int32Key = testAnnoName + "/types/Int32";
   var int32Val = 23;
-  annosvc.setAnnotationInt32(testURI, int32Key, int32Val, 0, 0);
+  annosvc.setPageAnnotationInt32(testURI, int32Key, int32Val, 0, 0);
+  do_check_true(annosvc.pageHasAnnotation(testURI, int32Key));
   var flags = {}, exp = {}, mimeType = {}, storageType = {};
-  annosvc.getAnnotationInfo(testURI, int32Key, flags, exp, mimeType, storageType);
+  annosvc.getPageAnnotationInfo(testURI, int32Key, flags, exp, mimeType,
+                                storageType);
   do_check_eq(flags.value, 0);
   do_check_eq(exp.value, 0);
   do_check_eq(mimeType.value, null);
   do_check_eq(storageType.value, Ci.nsIAnnotationService.TYPE_INT32);
-  var storedVal = annosvc.getAnnotationInt32(testURI, int32Key);
-  do_check_eq(int32Val, storedVal);
-  do_check_eq(typeof storedVal, "number");
+  var storedVal = annosvc.getPageAnnotationInt32(testURI, int32Key);
+  do_check_true(int32Val === storedVal);
+  annosvc.setItemAnnotationInt32(testItemId, int32Key, int32Val, 0, 0);
+  do_check_true(annosvc.itemHasAnnotation(testItemId, int32Key));
+  annosvc.getItemAnnotationInfo(testItemId, int32Key, flags, exp, mimeType,
+                                storageType);
+  do_check_eq(flags.value, 0);
+  do_check_eq(exp.value, 0);
+  do_check_eq(mimeType.value, null);
+  do_check_eq(storageType.value, Ci.nsIAnnotationService.TYPE_INT32);
+  storedVal = annosvc.getItemAnnotationInt32(testItemId, int32Key);
+  do_check_true(int32Val === storedVal);
 
   
   var int64Key = testAnnoName + "/types/Int64";
   var int64Val = 4294967296;
-  annosvc.setAnnotationInt64(testURI, int64Key, int64Val, 0, 0);
-  var flags = {}, exp = {}, mimeType = {}, storageType = {};
-  annosvc.getAnnotationInfo(testURI, int64Key, flags, exp, mimeType, storageType);
+  annosvc.setPageAnnotationInt64(testURI, int64Key, int64Val, 0, 0);
+  annosvc.getPageAnnotationInfo(testURI, int64Key, flags, exp, mimeType, storageType);
   do_check_eq(flags.value, 0);
   do_check_eq(exp.value, 0);
   do_check_eq(mimeType.value, null);
   do_check_eq(storageType.value, Ci.nsIAnnotationService.TYPE_INT64);
-  var storedVal = annosvc.getAnnotationInt64(testURI, int64Key);
-  do_check_eq(int64Val, storedVal);
-  do_check_eq(typeof storedVal, "number");
+  storedVal = annosvc.getPageAnnotationInt64(testURI, int64Key);
+  do_check_true(int64Val === storedVal);
+  annosvc.setItemAnnotationInt64(testItemId, int64Key, int64Val, 0, 0);
+  do_check_true(annosvc.itemHasAnnotation(testItemId, int64Key));
+  annosvc.getItemAnnotationInfo(testItemId, int64Key, flags, exp, mimeType,
+                                storageType);
+  do_check_eq(flags.value, 0);
+  do_check_eq(exp.value, 0);
+  do_check_eq(mimeType.value, null);
+  do_check_eq(storageType.value, Ci.nsIAnnotationService.TYPE_INT64);
+  storedVal = annosvc.getItemAnnotationInt64(testItemId, int64Key);
+  do_check_true(int64Val === storedVal);
 
   
   var doubleKey = testAnnoName + "/types/Double";
   var doubleVal = 0.000002342;
-  annosvc.setAnnotationDouble(testURI, doubleKey, doubleVal, 0, 0);
-  var flags = {}, exp = {}, mimeType = {}, storageType = {};
-  annosvc.getAnnotationInfo(testURI, doubleKey, flags, exp, mimeType, storageType);
+  annosvc.setPageAnnotationDouble(testURI, doubleKey, doubleVal, 0, 0);
+  annosvc.getPageAnnotationInfo(testURI, doubleKey, flags, exp, mimeType, storageType);
   do_check_eq(flags.value, 0);
   do_check_eq(exp.value, 0);
   do_check_eq(mimeType.value, null);
   do_check_eq(storageType.value, Ci.nsIAnnotationService.TYPE_DOUBLE);
-  var storedVal = annosvc.getAnnotationDouble(testURI, doubleKey);
-  do_check_eq(doubleVal, storedVal);
-  do_check_true(Math.round(storedVal) != storedVal);
+  storedVal = annosvc.getPageAnnotationDouble(testURI, doubleKey);
+  do_check_true(doubleVal === storedVal);
+  annosvc.setItemAnnotationDouble(testItemId, doubleKey, doubleVal, 0, 0);
+  do_check_true(annosvc.itemHasAnnotation(testItemId, doubleKey));
+  annosvc.getItemAnnotationInfo(testItemId, doubleKey, flags, exp, mimeType,
+                                storageType);
+  do_check_eq(flags.value, 0);
+  do_check_eq(exp.value, 0);
+  do_check_eq(mimeType.value, null);
+  do_check_eq(storageType.value, Ci.nsIAnnotationService.TYPE_DOUBLE);
+  storedVal = annosvc.getItemAnnotationDouble(testItemId, doubleKey);
+  do_check_true(doubleVal === storedVal);
 
   
   var binaryKey = testAnnoName + "/types/Binary";
   var binaryVal = Array.prototype.map.call("splarg", function(x) { return x.charCodeAt(0); });
-  annosvc.setAnnotationBinary(testURI, binaryKey, binaryVal, binaryVal.length, "text/plain", 0, 0);
-  var flags = {}, exp = {}, mimeType = {}, storageType = {};
-  annosvc.getAnnotationInfo(testURI, binaryKey, flags, exp, mimeType, storageType);
+  annosvc.setPageAnnotationBinary(testURI, binaryKey, binaryVal, binaryVal.length, "text/plain", 0, 0);
+  annosvc.getPageAnnotationInfo(testURI, binaryKey, flags, exp, mimeType, storageType);
   do_check_eq(flags.value, 0);
   do_check_eq(exp.value, 0);
   do_check_eq(mimeType.value, "text/plain");
   do_check_eq(storageType.value, Ci.nsIAnnotationService.TYPE_BINARY);
-  var data = {}, length = {}, mimeType = {};
-  annosvc.getAnnotationBinary(testURI, binaryKey, data, length, mimeType);
+  var data = {}, length = {};
+  annosvc.getPageAnnotationBinary(testURI, binaryKey, data, length, mimeType);
+  do_check_eq(binaryVal.toString(), data.value.toString());
+  do_check_eq(typeof data.value, "object");
+  annosvc.setItemAnnotationBinary(testItemId, binaryKey, binaryVal,
+                                  binaryVal.length, "text/plain", 0, 0);
+  annosvc.getItemAnnotationInfo(testItemId, binaryKey, flags, exp, mimeType,
+                                storageType);
+  do_check_eq(flags.value, 0);
+  do_check_eq(exp.value, 0);
+  do_check_eq(mimeType.value, "text/plain");
+  do_check_eq(storageType.value, Ci.nsIAnnotationService.TYPE_BINARY);
+  annosvc.getItemAnnotationBinary(testItemId, binaryKey, data, length,
+                                  mimeType);
   do_check_eq(binaryVal.toString(), data.value.toString());
   do_check_eq(typeof data.value, "object");
 
   
   try {
-    annosvc.getAnnotationString(testURI, int32Key);
-    do_throw("annotation string accessor didn't throw for a wrong type!");
+    annosvc.getPageAnnotationString(testURI, int32Key);
+    do_throw("page-annotation string accessor didn't throw for a wrong type!");
+    annosvc.getItemAnnotationString(testItemId, int32Key);
+    do_throw("item-annotation string accessor didn't throw for a wrong type!");
   } catch(ex) {}
 
   try {
-    annosvc.getAnnotationInt32(testURI, int64Key);
-    do_throw("annotation int32 accessor didn't throw for a wrong type!");
+    annosvc.getPageAnnotationInt32(testURI, int64Key);
+    do_throw("page-annotation int32 accessor didn't throw for a wrong type!");
+    annosvc.getItemAnnotationInt32(testItemId, int64Key);
+    do_throw("item-annotation int32 accessor didn't throw for a wrong type!");
   } catch(ex) {}
 
   try {
-    annosvc.getAnnotationInt64(testURI, int32Key);
-    do_throw("annotation int64 accessor didn't throw for a wrong type!");
+    annosvc.getPageAnnotationInt64(testURI, int32Key);
+    do_throw("page-annotation int64 accessor didn't throw for a wrong type!");
+    annosvc.getItemAnnotationInt64(testItemId, int32Key);
+    do_throw("item-annotation int64 accessor didn't throw for a wrong type!");   
   } catch(ex) {}
 
   try {
-    annosvc.getAnnotationDouble(testURI, int32Key);
-    do_throw("annotation double accessor didn't throw for a wrong type!");
+    annosvc.getPageAnnotationDouble(testURI, int32Key);
+    do_throw("page-annotation double accessor didn't throw for a wrong type!");
+    annosvc.getItemAnnotationDouble(testItemId, int32Key);
+    do_throw("item-annotation double accessor didn't throw for a wrong type!");
   } catch(ex) {}
 
   try {
     var data = {}, length = {}, mimeType = {};
-    annosvc.getAnnotationBinary(testURI, int32Key, data, length, mimeType);
-    do_throw("annotation binary accessor didn't throw for a wrong type!");
+    annosvc.getPageAnnotationBinary(testURI, int32Key, data, length, mimeType);
+    do_throw("page-annotation binary accessor didn't throw for a wrong type!");
+    annosvc.getItemAnnotationBinary(testItemId, int32Key, data, length,
+                                    mimeType);
+    do_throw("item-annotation binary accessor didn't throw for a wrong type!");
   } catch(ex) {}
+
+  
+  annosvc.removePageAnnotation(testURI, int32Key);
+  annosvc.removeItemAnnotation(testItemId, int32Key);
+  do_check_eq(annoObserver.PAGE_lastRemoved_URI, testURI.spec);
+  do_check_eq(annoObserver.PAGE_lastRemoved_AnnoName, int32Key);
+  do_check_eq(annoObserver.ITEM_lastRemoved_Id, testItemId);
+  do_check_eq(annoObserver.ITEM_lastRemoved_AnnoName, int32Key);
+
+  annosvc.removeObserver(annoObserver);
 }

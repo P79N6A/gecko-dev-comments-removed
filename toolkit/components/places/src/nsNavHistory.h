@@ -220,7 +220,7 @@ public:
   static const PRInt32 kGetInfoIndex_Title;
   static const PRInt32 kGetInfoIndex_RevHost;
   static const PRInt32 kGetInfoIndex_VisitCount;
-  static const PRInt32 kGetInfoIndex_BookmarkItemId;
+  static const PRInt32 kGetInfoIndex_ItemId;
 
   
   mozIStorageStatement* DBGetURLPageInfoFull()
