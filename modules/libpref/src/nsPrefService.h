@@ -36,6 +36,7 @@
 
 
 
+
 #ifndef nsPrefService_h__
 #define nsPrefService_h__
 
@@ -77,8 +78,7 @@ protected:
 
 private:
   nsCOMPtr<nsIPrefBranch2> mRootBranch;
-  nsCOMPtr<nsIFile>       mCurrentFile;
-  PRPackedBool            mDontWriteUserPrefs;
+  nsCOMPtr<nsIFile>        mCurrentFile;
 };
 
 #endif 
