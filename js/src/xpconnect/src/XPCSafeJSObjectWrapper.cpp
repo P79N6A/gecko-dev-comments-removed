@@ -812,32 +812,44 @@ XPC_SJOW_Call(JSContext *cx, JSObject *obj, uintN argc, jsval *argv,
               jsval *rval)
 {
   JSObject *tmp = FindSafeObject(cx, obj);
-  JSObject *unsafeObj;
+  JSObject *unsafeObj, *callThisObj = nsnull;
 
   if (tmp) {
     
     
     
+    
+    
     obj = tmp;
-
-    unsafeObj = GetUnsafeObject(cx, obj);
-
-    if (!unsafeObj) {
-      return ThrowException(NS_ERROR_UNEXPECTED, cx);
-    }
   } else {
     
     
     
     
     
-    unsafeObj = obj;
+    callThisObj = obj;
+
+    
+    
+    if (!CanCallerAccess(cx, callThisObj)) {
+      
+      return JS_FALSE;
+    }
 
     obj = FindSafeObject(cx, JSVAL_TO_OBJECT(argv[-2]));
 
     if (!obj) {
       return ThrowException(NS_ERROR_INVALID_ARG, cx);
     }
+  }
+
+  unsafeObj = GetUnsafeObject(cx, obj);
+  if (!unsafeObj) {
+    return ThrowException(NS_ERROR_UNEXPECTED, cx);
+  }
+
+  if (!callThisObj) {
+    callThisObj = unsafeObj;
   }
 
   JSObject *funToCall = GetUnsafeObject(cx, JSVAL_TO_OBJECT(argv[-2]));
@@ -886,7 +898,7 @@ XPC_SJOW_Call(JSContext *cx, JSObject *obj, uintN argc, jsval *argv,
   if (JSVAL_IS_PRIMITIVE(cwval)) {
     
     callWrapper =
-      ::JS_NewFunction(cx, XPC_SJOW_CallWrapper, 0, 0, unsafeObj,
+      ::JS_NewFunction(cx, XPC_SJOW_CallWrapper, 0, 0, callThisObj,
                        "XPC_SJOW_CallWrapper");
     if (!callWrapper) {
       return JS_FALSE;
@@ -934,7 +946,7 @@ XPC_SJOW_Call(JSContext *cx, JSObject *obj, uintN argc, jsval *argv,
   }
 
   jsval val;
-  JSBool ok = ::JS_CallFunctionValue(cx, unsafeObj, scriptedFunVal, argc + 2,
+  JSBool ok = ::JS_CallFunctionValue(cx, callThisObj, scriptedFunVal, argc + 2,
                                      args, &val);
 
   if (args != argsBuf) {
