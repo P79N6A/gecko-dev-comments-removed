@@ -2990,12 +2990,12 @@ nsCSSFrameConstructor::GetPseudoCellFrame(PRInt32                  aNameSpaceID,
 }
 
 nsresult 
-nsCSSFrameConstructor::GetParentFrame(PRInt32                  aNameSpaceID,
-                                      nsIFrame&                aParentFrameIn, 
-                                      nsIAtom*                 aChildFrameType, 
-                                      nsFrameConstructorState& aState, 
-                                      nsIFrame*&               aParentFrame,
-                                      PRBool&                  aIsPseudoParent)
+nsCSSFrameConstructor::CreateRequiredPseudoFrames(PRInt32                  aNameSpaceID,
+                                                  nsIFrame&                aParentFrameIn,
+                                                  nsIAtom*                 aChildFrameType,
+                                                  nsFrameConstructorState& aState,
+                                                  nsIFrame*&               aParentFrame,
+                                                  PRBool&                  aIsPseudoParent)
 {
   nsresult rv = NS_OK;
 
@@ -3008,15 +3008,7 @@ nsCSSFrameConstructor::GetParentFrame(PRInt32                  aNameSpaceID,
   nsFrameState savedStateBits  = aState.mAdditionalStateBits;
   aState.mAdditionalStateBits &= ~NS_FRAME_GENERATED_CONTENT;
 
-  if (nsGkAtoms::tableOuterFrame == aChildFrameType) { 
-    if (IsTableRelated(parentFrameType, PR_TRUE) &&
-        (nsGkAtoms::tableCaptionFrame != parentFrameType) ) { 
-      rv = GetPseudoCellFrame(aNameSpaceID, aState, aParentFrameIn);
-      if (NS_FAILED(rv)) return rv;
-      pseudoParentFrame = pseudoFrames.mCellInner.mFrame;
-    }
-  } 
-  else if (nsGkAtoms::tableCaptionFrame == aChildFrameType) { 
+  if (nsGkAtoms::tableCaptionFrame == aChildFrameType) { 
     if (nsGkAtoms::tableOuterFrame != parentFrameType) { 
       rv = GetPseudoTableFrame(aNameSpaceID, aState, aParentFrameIn);
       if (NS_FAILED(rv)) return rv;
@@ -3060,16 +3052,11 @@ nsCSSFrameConstructor::GetParentFrame(PRInt32                  aNameSpaceID,
       pseudoParentFrame = pseudoFrames.mRow.mFrame;
     }
   }
-  else if (nsGkAtoms::tableFrame == aChildFrameType) { 
-    NS_ASSERTION(PR_FALSE, "GetParentFrame called on nsGkAtoms::tableFrame child");
+#ifdef DEBUG
+  else {
+    NS_ERROR("Unexpected frame type in CreateRequiredPseudoFrames");
   }
-  else { 
-    if (IsTableRelated(parentFrameType, PR_FALSE)) { 
-      rv = GetPseudoCellFrame(aNameSpaceID, aState, aParentFrameIn);
-      if (NS_FAILED(rv)) return rv;
-      pseudoParentFrame = pseudoFrames.mCellInner.mFrame;
-    }
-  }
+#endif
   
   if (pseudoParentFrame) {
     aParentFrame = pseudoParentFrame;
@@ -3139,6 +3126,15 @@ nsCSSFrameConstructor::AdjustParentFrame(nsFrameConstructorState&     aState,
     
     aState.PushFloatContainingBlock(aParentFrame, aSaveState);
     aCreatedPseudo = PR_TRUE;
+
+    
+    
+    
+    
+    
+    if (aState.mPseudoFrames.mTableOuter.mFrame) {
+      ProcessPseudoFrames(aState, nsGkAtoms::tableOuterFrame);
+    }
   }
   return NS_OK;
 }
@@ -3194,30 +3190,13 @@ nsCSSFrameConstructor::ConstructTableFrame(nsFrameConstructorState& aState,
 #endif
     aNewOuterFrame = NS_NewTableOuterFrame(mPresShell, outerStyleContext);
 
-  nsIFrame* parentFrame = aContentParent;
-  nsFrameItems* frameItems = &aChildItems;
-  
-  nsFrameConstructorSaveState floatSaveState;
-  if (!aIsPseudo) {
-    
-    PRBool hasPseudoParent = PR_FALSE;
-    GetParentFrame(aNameSpaceID,*parentFrame, nsGkAtoms::tableOuterFrame,
-                   aState, parentFrame, hasPseudoParent);
-    if (!hasPseudoParent && !aState.mPseudoFrames.IsEmpty()) {
-      ProcessPseudoFrames(aState, aChildItems);
-    }
-    if (hasPseudoParent) {
-      aState.PushFloatContainingBlock(parentFrame, floatSaveState);
-      frameItems = &aState.mPseudoFrames.mCellInner.mChildList;
-      if (aState.mPseudoFrames.mTableOuter.mFrame) {
-        ProcessPseudoFrames(aState, nsGkAtoms::tableOuterFrame);
-      }
-    }
-  }
+  NS_ASSERTION(!IsTableRelated(aContentParent->GetType(), PR_TRUE) ||
+               aContentParent->GetType() == nsGkAtoms::tableCaptionFrame,
+               "Unexpected parent frame for table");
 
   nsIFrame* geometricParent = aState.GetGeometricParent
                                 (outerStyleContext->GetStyleDisplay(),
-                                 parentFrame);
+                                 aContentParent);
 
   
   
@@ -3239,8 +3218,8 @@ nsCSSFrameConstructor::ConstructTableFrame(nsFrameConstructorState& aState,
     
     aNewOuterFrame->SetInitialChildList(nsnull, aNewInnerFrame);
 
-    rv = aState.AddChild(aNewOuterFrame, *frameItems, aContent,
-                         aStyleContext, parentFrame);
+    rv = aState.AddChild(aNewOuterFrame, aChildItems, aContent,
+                         aStyleContext, aContentParent);
     if (NS_FAILED(rv)) {
       return rv;
     }
@@ -3289,9 +3268,9 @@ nsCSSFrameConstructor::ConstructTableCaptionFrame(nsFrameConstructorState& aStat
   nsIFrame* parentFrame = aParentFrameIn;
   *aHasPseudoParent = PR_FALSE;
   
-  GetParentFrame(aNameSpaceID, *aParentFrameIn, 
-                 nsGkAtoms::tableCaptionFrame, aState, parentFrame,
-                 *aHasPseudoParent);
+  CreateRequiredPseudoFrames(aNameSpaceID, *aParentFrameIn,
+                             nsGkAtoms::tableCaptionFrame, aState, parentFrame,
+                             *aHasPseudoParent);
   if (!*aHasPseudoParent && !aState.mPseudoFrames.IsEmpty()) {
     ProcessPseudoFrames(aState, aChildItems);
   }
@@ -3333,9 +3312,9 @@ nsCSSFrameConstructor::ConstructTableRowGroupFrame(nsFrameConstructorState& aSta
   *aHasPseudoParent = PR_FALSE;
   if (!aIsPseudo) {
     
-    GetParentFrame(aNameSpaceID, *aParentFrameIn, 
-                   nsGkAtoms::tableRowGroupFrame, aState, parentFrame,
-                   *aHasPseudoParent);
+    CreateRequiredPseudoFrames(aNameSpaceID, *aParentFrameIn,
+                               nsGkAtoms::tableRowGroupFrame, aState,
+                               parentFrame, *aHasPseudoParent);
     if (!*aHasPseudoParent && !aState.mPseudoFrames.IsEmpty()) {
       ProcessPseudoFrames(aState, aChildItems);
     }
@@ -3403,9 +3382,9 @@ nsCSSFrameConstructor::ConstructTableColGroupFrame(nsFrameConstructorState& aSta
   *aHasPseudoParent = PR_FALSE;
   if (!aIsPseudo) {
     
-    GetParentFrame(aNameSpaceID, *aParentFrameIn,
-                   nsGkAtoms::tableColGroupFrame, aState, parentFrame,
-                   *aHasPseudoParent);
+    CreateRequiredPseudoFrames(aNameSpaceID, *aParentFrameIn,
+                               nsGkAtoms::tableColGroupFrame, aState,
+                               parentFrame, *aHasPseudoParent);
     if (!*aHasPseudoParent && !aState.mPseudoFrames.IsEmpty()) {
       ProcessPseudoFrames(aState, aChildItems);
     }
@@ -3452,9 +3431,9 @@ nsCSSFrameConstructor::ConstructTableRowFrame(nsFrameConstructorState& aState,
   *aHasPseudoParent = PR_FALSE;
   if (!aIsPseudo) {
     
-    GetParentFrame(aNameSpaceID, *aParentFrameIn,
-                   nsGkAtoms::tableRowFrame, aState, parentFrame,
-                   *aHasPseudoParent);
+    CreateRequiredPseudoFrames(aNameSpaceID, *aParentFrameIn,
+                               nsGkAtoms::tableRowFrame, aState, parentFrame,
+                               *aHasPseudoParent);
     if (!*aHasPseudoParent && !aState.mPseudoFrames.IsEmpty()) {
       ProcessPseudoFrames(aState, aChildItems);
     }
@@ -3507,9 +3486,9 @@ nsCSSFrameConstructor::ConstructTableColFrame(nsFrameConstructorState& aState,
   *aHasPseudoParent = PR_FALSE;
   if (!aIsPseudo) {
     
-    GetParentFrame(aNameSpaceID, *aParentFrameIn,
-                   nsGkAtoms::tableColFrame, aState, parentFrame,
-                   *aHasPseudoParent);
+    CreateRequiredPseudoFrames(aNameSpaceID, *aParentFrameIn,
+                               nsGkAtoms::tableColFrame, aState, parentFrame,
+                               *aHasPseudoParent);
     if (!*aHasPseudoParent && !aState.mPseudoFrames.IsEmpty()) {
       ProcessPseudoFrames(aState, aChildItems);
     }
@@ -3568,9 +3547,9 @@ nsCSSFrameConstructor::ConstructTableCellFrame(nsFrameConstructorState& aState,
   if (!aIsPseudo) {
     
     
-    GetParentFrame(aNameSpaceID, *aParentFrameIn,
-                   nsGkAtoms::tableCellFrame, aState, parentFrame,
-                   *aHasPseudoParent);
+    CreateRequiredPseudoFrames(aNameSpaceID, *aParentFrameIn,
+                               nsGkAtoms::tableCellFrame, aState, parentFrame,
+                               *aHasPseudoParent);
     if (!*aHasPseudoParent && !aState.mPseudoFrames.IsEmpty()) {
       ProcessPseudoFrames(aState, aChildItems);
     }
@@ -5881,8 +5860,7 @@ nsCSSFrameConstructor::FindDisplayData(const nsStyleDisplay* aDisplay,
   if (NS_STYLE_DISPLAY_TABLE == aDisplay->mDisplay ||
       NS_STYLE_DISPLAY_INLINE_TABLE == aDisplay->mDisplay) {
     static const FrameConstructionData sTableData =
-      FULL_CTOR_FCDATA(FCDATA_IS_TABLE_PART,
-                       &nsCSSFrameConstructor::ConstructTable);
+      FULL_CTOR_FCDATA(0, &nsCSSFrameConstructor::ConstructTable);
     return &sTableData;
   }
 
