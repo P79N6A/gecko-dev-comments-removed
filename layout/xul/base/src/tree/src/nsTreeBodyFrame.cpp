@@ -1351,18 +1351,8 @@ nsTreeBodyFrame::CheckTextForBidi(nsAutoString& aText)
   
   
   
-  const PRUnichar* text = aText.get();
-  PRUint32 length = aText.Length();
-  PRUint32 i;
-  for (i = 0; i < length; ++i) {
-    PRUnichar ch = text[i];
-    
-    
-    
-    if (ch >= 0xD800 || IS_IN_BMP_RTL_BLOCK(ch)) {
-      PresContext()->SetBidiEnabled();
-      break;
-    }
+  if (HasRTLChars(aText)) {
+    PresContext()->SetBidiEnabled();
   }
 }
 

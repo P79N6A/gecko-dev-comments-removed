@@ -214,7 +214,7 @@ typedef enum nsCharType nsCharType;
 
 
 
-  PRBool HasRTLChars(nsAString& aString);
+  PRBool HasRTLChars(const nsAString& aString);
 
 
 

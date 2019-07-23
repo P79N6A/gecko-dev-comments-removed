@@ -944,6 +944,11 @@ nsImageFrame::DisplayAltText(nsPresContext*      aPresContext,
   const PRUnichar* str = aAltText.get();
   PRInt32          strLen = aAltText.Length();
   nscoord          y = aRect.y;
+
+  if (!aPresContext->BidiEnabled() && HasRTLChars(aAltText)) {
+    aPresContext->SetBidiEnabled();
+  }
+
   
   PRBool firstLine = PR_TRUE;
   while ((strLen > 0) && (firstLine || (y + maxDescent) < aRect.YMost())) {
