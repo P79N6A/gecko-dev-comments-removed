@@ -63,10 +63,17 @@
 }
 
 
+#identity-popup-more-info-button:-moz-system-metric(windows-default-theme) {
+  margin-bottom: 0;
+  -moz-margin-end: 0;
+}
+
+
 
 #identity-popup-container:-moz-system-metric(windows-default-theme) {
   -moz-padding-start: 6px;
   -moz-padding-end: 6px;
+  padding-bottom: 9px;
 }
 
 #sidebar-splitter:-moz-system-metric(windows-default-theme) {
