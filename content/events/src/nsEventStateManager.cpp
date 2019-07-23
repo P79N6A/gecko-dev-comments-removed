@@ -5074,6 +5074,9 @@ nsEventStateManager::SetContentCaretVisible(nsIPresShell* aPresShell,
       caret->SetCaretDOMSelection(domSelection);
 
       
+      caret->SetIgnoreUserModify(aVisible);
+
+      
       
       
 
@@ -5112,12 +5115,19 @@ nsEventStateManager::ResetBrowseWithCaret()
   if (itemType == nsIDocShellTreeItem::typeChrome)
     return;  
 
+  nsIPresShell *presShell = mPresContext->GetPresShell();
+
   nsCOMPtr<nsIEditorDocShell> editorDocShell(do_QueryInterface(shellItem));
   if (editorDocShell) {
     PRBool isEditable;
     editorDocShell->GetEditable(&isEditable);
-    if (isEditable) {
-      return;  
+    if (presShell && isEditable) {
+      nsCOMPtr<nsIHTMLDocument> doc =
+        do_QueryInterface(presShell->GetDocument());
+      if (!doc || doc->GetEditingState() != nsIHTMLDocument::eContentEditable) {
+        return;  
+                 
+      }
     }
   }
 
@@ -5126,7 +5136,6 @@ nsEventStateManager::ResetBrowseWithCaret()
 
   mBrowseWithCaret = browseWithCaret;
 
-  nsIPresShell *presShell = mPresContext->GetPresShell();
 
   
   

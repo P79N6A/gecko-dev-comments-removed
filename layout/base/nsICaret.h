@@ -57,10 +57,9 @@ class nsISelection;
 class nsIDOMNode;
 
 
-
 #define NS_ICARET_IID \
-{ 0x6226083a, 0x84e4, 0x4177, \
-  { 0x94, 0xa0, 0xf3, 0xb3, 0x99, 0xdf, 0xee, 0xbf } }
+{ 0xb899c578, 0x0894, 0x4d3b, \
+  { 0x81, 0xa0, 0x7a, 0xfe, 0x4f, 0xb9, 0xa9, 0x39 } }
 
 class nsICaret: public nsISupports
 {
@@ -178,6 +177,16 @@ public:
                           nsIRenderingContext *aCtx,
                           const nsPoint &aOffset,
                           nscolor aColor) = 0;
+
+  
+
+
+
+
+
+
+
+  virtual void SetIgnoreUserModify(PRBool aIgnoreUserModify) = 0;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsICaret, NS_ICARET_IID)
