@@ -500,10 +500,9 @@ var gEditItemOverlay = {
   },
 
   onLocationFieldBlur: function EIO_onLocationFieldBlur() {
-    
     var uri;
     try {
-      uri = IO.newURI(this._element("locationField").value);
+      uri = PlacesUtils.createFixedURI(this._element("locationField").value);
     }
     catch(ex) { return; }
 
@@ -522,10 +521,9 @@ var gEditItemOverlay = {
   },
 
   onFeedLocationFieldBlur: function EIO_onFeedLocationFieldBlur() {
-    
     var uri;
     try {
-      uri = IO.newURI(this._element("feedLocationField").value);
+      uri = PlacesUtils.createFixedURI(this._element("feedLocationField").value);
     }
     catch(ex) { return; }
 
@@ -537,10 +535,9 @@ var gEditItemOverlay = {
   },
 
   onSiteLocationFieldBlur: function EIO_onSiteLocationFieldBlur() {
-    
     var uri = null;
     try {
-      uri = IO.newURI(this._element("siteLocationField").value);
+      uri = PlacesUtils.createFixedURI(this._element("siteLocationField").value);
     }
     catch(ex) {  }
 

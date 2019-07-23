@@ -183,6 +183,12 @@ var PlacesUtils = {
                             getService(Ci.nsIClipboard);
   },
 
+  get URIFixup() {
+    delete this.URIFixup;
+    return this.URIFixup = Cc["@mozilla.org/docshell/urifixup;1"].
+                           getService(Ci.nsIURIFixup);
+  },
+
   
 
 
@@ -192,6 +198,16 @@ var PlacesUtils = {
   _uri: function PU__uri(aSpec) {
     NS_ASSERT(aSpec, "empty URL spec");
     return IO.newURI(aSpec);
+  },
+
+  
+
+
+
+
+
+  createFixedURI: function PU_createFixedURI(aSpec) {
+    return this.URIFixup.createFixupURI(aSpec, 0);
   },
 
   
