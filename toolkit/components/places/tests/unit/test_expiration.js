@@ -604,7 +604,6 @@ function startExpireBoth() {
   var age = (Date.now() - (86400 * 2 * 1000)) * 1000;
   dump("AGE: " + age + "\n");
   histsvc.addVisit(testURI, age, null, histsvc.TRANSITION_TYPED, false, 0);
-  histsvc.addVisit(testURI, age, null, histsvc.TRANSITION_TYPED, false, 0);
   annosvc.setPageAnnotation(testURI, testAnnoName, testAnnoVal, 0, annosvc.EXPIRE_WITH_HISTORY);
 
   
@@ -615,7 +614,8 @@ function startExpireBoth() {
   prefs.setIntPref("browser.history_expire_days_min", 1);
 
   
-  ghist.addURI(triggerURI, false, true, null);
+  histsvc.addVisit(triggerURI, Date.now() * 1000, null, histsvc.TRANSITION_TYPED, false, 0);
+  annosvc.setPageAnnotation(triggerURI, testAnnoName, testAnnoVal, 0, annosvc.EXPIRE_WITH_HISTORY);
 
   
   do_timeout(3600, "checkExpireBoth();"); 
@@ -625,7 +625,68 @@ function checkExpireBoth() {
   try {
     do_check_eq(observer.expiredURI, testURI.spec);
     do_check_eq(annosvc.getPageAnnotationNames(testURI, {}).length, 0);
+    do_check_eq(annosvc.getPageAnnotationNames(triggerURI, {}).length, 1);
   } catch(ex) {}
   dump("done expiration test 3\n");
+  startExpireNeitherOver()
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function startExpireNeitherOver() {
+  dump("startExpireNeitherOver()\n");
+  
+  histsvc.removeAllPages();
+  observer.expiredURI = null;
+
+  
+  histsvc.addVisit(testURI, Date.now() * 1000, null, histsvc.TRANSITION_TYPED, false, 0);
+  annosvc.setPageAnnotation(testURI, testAnnoName, testAnnoVal, 0, annosvc.EXPIRE_WITH_HISTORY);
+
+  
+  prefs.setIntPref("browser.history_expire_sites", 1);
+  
+  prefs.setIntPref("browser.history_expire_days_min", 2);
+  
+  prefs.setIntPref("browser.history_expire_days", 3);
+
+  
+  histsvc.addVisit(triggerURI, Date.now() * 1000, null, histsvc.TRANSITION_TYPED, false, 0);
+  annosvc.setPageAnnotation(triggerURI, testAnnoName, testAnnoVal, 0, annosvc.EXPIRE_WITH_HISTORY);
+
+  
+  do_timeout(3600, "checkExpireNeitherOver();"); 
+}
+
+function checkExpireNeitherOver() {
+  dump("checkExpireNeitherOver()\n");
+  try {
+    do_check_eq(observer.expiredURI, null);
+    do_check_eq(annosvc.getPageAnnotationNames(testURI, {}).length, 1);
+    do_check_eq(annosvc.getPageAnnotationNames(triggerURI, {}).length, 1);
+  } catch(ex) {
+    do_throw(ex);
+  }
+  dump("done incremental expiration test 4\n");
   do_test_finished();
 }

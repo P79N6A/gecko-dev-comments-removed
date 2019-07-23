@@ -245,10 +245,10 @@ nsNavHistoryExpire::ClearHistory()
   mozIStorageConnection* connection = mHistory->GetStorageConnection();
   NS_ENSURE_TRUE(connection, NS_ERROR_OUT_OF_MEMORY);
 
-  PRBool keepGoing;
-  nsresult rv = ExpireItems(0, &keepGoing);
-  if (NS_FAILED(rv))
-    NS_WARNING("ExpireItems failed.");
+  
+  nsresult rv = connection->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
+      "DELETE FROM moz_historyvisits"));
+  NS_ENSURE_SUCCESS(rv, rv);
 
   rv = ExpireHistoryParanoid(connection, -1);
   if (NS_FAILED(rv))
@@ -352,7 +352,7 @@ nsNavHistoryExpire::ExpireItems(PRUint32 aNumToExpire, PRBool* aKeepGoing)
     
     expireTime = 0;
   } else {
-    expireTime = PR_Now() - GetExpirationTimeAgo();
+    expireTime = PR_Now() - GetExpirationTimeAgo(mHistory->mExpireDaysMax);
   }
 
   
@@ -450,40 +450,31 @@ nsNavHistoryExpireRecord::nsNavHistoryExpireRecord(
 
 
 
-
 nsresult
 nsNavHistoryExpire::FindVisits(PRTime aExpireThreshold, PRUint32 aNumToExpire,
                                mozIStorageConnection* aConnection,
                                nsTArray<nsNavHistoryExpireRecord>& aRecords)
 {
   
-  
-  nsCAutoString sqlBase;
-  sqlBase.AssignLiteral(
-    "SELECT v.id, v.place_id, v.visit_date, h.url, h.favicon_id, h.hidden, "
-    "(SELECT fk FROM moz_bookmarks WHERE fk = h.id) "
-    "FROM moz_places h JOIN moz_historyvisits v ON h.id = v.place_id ");
-
-  
-  nsCAutoString sqlMaxAge;
-  sqlMaxAge.Assign(sqlBase);
-
-  if (aNumToExpire) {
-    
-    sqlMaxAge.AppendLiteral("WHERE v.visit_date < ?1 "
-                            "ORDER BY v.visit_date ASC LIMIT ?2");
-  }
-
   nsCOMPtr<mozIStorageStatement> selectStatement;
-  nsresult rv = aConnection->CreateStatement(sqlMaxAge, getter_AddRefs(selectStatement));
+  nsresult rv = aConnection->CreateStatement(NS_LITERAL_CSTRING(
+      "SELECT v.id, v.place_id, v.visit_date, h.url, h.favicon_id, h.hidden, "
+        "(SELECT fk FROM moz_bookmarks WHERE fk = h.id) "
+      "FROM moz_places h JOIN moz_historyvisits v ON h.id = v.place_id "
+      "WHERE v.visit_date < ?1 "
+      "ORDER BY v.visit_date ASC LIMIT ?2"),
+    getter_AddRefs(selectStatement));
+    NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  PRTime expireMaxTime = aExpireThreshold ? aExpireThreshold : LL_MAXINT;
+  rv = selectStatement->BindInt64Parameter(0, expireMaxTime);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  if (aNumToExpire) {
-    rv = selectStatement->BindInt64Parameter(0, aExpireThreshold);
-    NS_ENSURE_SUCCESS(rv, rv);
-    rv = selectStatement->BindInt64Parameter(1, aNumToExpire);
-    NS_ENSURE_SUCCESS(rv, rv);
-  }
+  
+  PRInt32 numToExpire = aNumToExpire ? aNumToExpire : -1;
+  rv = selectStatement->BindInt64Parameter(1, numToExpire);
+  NS_ENSURE_SUCCESS(rv, rv);
 
   PRBool hasMore = PR_FALSE;
   while (NS_SUCCEEDED(selectStatement->ExecuteStep(&hasMore)) && hasMore) {
@@ -492,32 +483,43 @@ nsNavHistoryExpire::FindVisits(PRTime aExpireThreshold, PRUint32 aNumToExpire,
   }
 
   
-  if (!aRecords.Length()) {
-    nsCAutoString sqlMinAge;
-    sqlMinAge.Assign(sqlBase);
-
+  
+  if (aRecords.Length() < aNumToExpire) {
     
-    
-    
-    sqlMinAge.AppendLiteral("WHERE v.visit_date < ?1 "
-                            "ORDER BY v.visit_date DESC LIMIT ?2 OFFSET ?3");
-
-    nsCOMPtr<mozIStorageStatement> selectMinStatement;
-    nsresult rv = aConnection->CreateStatement(sqlMinAge, getter_AddRefs(selectMinStatement));
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    PRInt64 minDaysAgo = mHistory->mExpireDaysMin * 86400 * PR_USEC_PER_SEC;
-    PRTime minThreshold = PR_Now() - minDaysAgo;
-    rv = selectMinStatement->BindInt64Parameter(0, minThreshold);
-    NS_ENSURE_SUCCESS(rv, rv);
-    rv = selectMinStatement->BindInt64Parameter(1, aNumToExpire);
-    NS_ENSURE_SUCCESS(rv, rv);
-    rv = selectMinStatement->BindInt32Parameter(2, mHistory->mExpireSites);
+    nsCOMPtr<mozIStorageStatement> countStatement;
+    rv = aConnection->CreateStatement(NS_LITERAL_CSTRING(
+        "SELECT count(*) FROM moz_places WHERE visit_count > 0"),
+      getter_AddRefs(countStatement));
     NS_ENSURE_SUCCESS(rv, rv);
 
     hasMore = PR_FALSE;
-    while (NS_SUCCEEDED(selectMinStatement->ExecuteStep(&hasMore)) && hasMore) {
-      nsNavHistoryExpireRecord record(selectMinStatement);
+    
+    PRInt32 pageCount = mHistory->mExpireSites;
+    if (NS_SUCCEEDED(countStatement->ExecuteStep(&hasMore)) && hasMore) {
+      rv = countStatement->GetInt32(0, &pageCount);
+      NS_ENSURE_SUCCESS(rv, rv);
+    }
+
+    
+    if (pageCount <= mHistory->mExpireSites)
+        return NS_OK;
+
+    rv = selectStatement->Reset();
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    
+    PRTime expireMinTime = PR_Now() -
+                           GetExpirationTimeAgo(mHistory->mExpireDaysMin);
+    rv = selectStatement->BindInt64Parameter(0, expireMinTime);
+    NS_ENSURE_SUCCESS(rv, rv);
+    
+    numToExpire = aNumToExpire - aRecords.Length();
+    rv = selectStatement->BindInt64Parameter(1, numToExpire);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    hasMore = PR_FALSE;
+    while (NS_SUCCEEDED(selectStatement->ExecuteStep(&hasMore)) && hasMore) {
+      nsNavHistoryExpireRecord record(selectStatement);
       aRecords.AppendElement(record);
     }
   }
@@ -1025,7 +1027,7 @@ nsNavHistoryExpire::ComputeNextExpirationTime(
             
 
   PRTime minTime = statement->AsInt64(0);
-  mNextExpirationTime = minTime + GetExpirationTimeAgo();
+  mNextExpirationTime = minTime + GetExpirationTimeAgo(mHistory->mExpireDaysMax);
 }
 
 
@@ -1059,19 +1061,15 @@ nsNavHistoryExpire::TimerCallback(nsITimer* aTimer, void* aClosure)
 
 
 PRTime
-nsNavHistoryExpire::GetExpirationTimeAgo()
+nsNavHistoryExpire::GetExpirationTimeAgo(PRInt32 aExpireDays)
 {
-  PRInt64 expireDays = mHistory->mExpireDaysMax;
+  
+  
+  const PRInt32 maxDays = 106751991;
+  if (aExpireDays > maxDays)
+    aExpireDays = maxDays;
 
   
   
-  const PRInt64 maxDays = 106751991;
-  if (expireDays > maxDays)
-    expireDays = maxDays;
-
-  
-  const PRInt64 secsPerDay = 24*60*60;
-  const PRInt64 usecsPerSec = 1000000;
-  const PRInt64 usecsPerDay = secsPerDay * usecsPerSec;
-  return expireDays * usecsPerDay;
+  return (PRTime)aExpireDays * 86400 * PR_USEC_PER_SEC;
 }
