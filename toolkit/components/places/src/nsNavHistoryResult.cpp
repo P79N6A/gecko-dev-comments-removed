@@ -2603,14 +2603,6 @@ nsNavHistoryQueryResultNode::OnItemMoved(PRInt64 aFolder, PRInt64 aOldParent,
     return Refresh();
   return NS_OK;
 }
-NS_IMETHODIMP
-nsNavHistoryQueryResultNode::OnFolderChanged(PRInt64 aFolder,
-                                              const nsACString& property)
-{
-  if (mLiveUpdate == QUERYUPDATE_COMPLEX_WITH_BOOKMARKS)
-    return Refresh();
-  return NS_OK;
-}
 
 
 
@@ -3355,62 +3347,6 @@ nsNavHistoryFolderResultNode::OnItemMoved(PRInt64 aItemId, PRInt64 aOldParent,
 
 
 
-
-
-NS_IMETHODIMP
-nsNavHistoryFolderResultNode::OnFolderChanged(PRInt64 aFolder,
-                                              const nsACString& property)
-{
-  
-  
-  
-  
-
-  if (property.EqualsLiteral("title")) {
-    nsNavBookmarks* bookmarks = nsNavBookmarks::GetBookmarksService();
-    NS_ENSURE_TRUE(bookmarks, NS_ERROR_OUT_OF_MEMORY);
-
-    nsAutoString title;
-    bookmarks->GetItemTitle(mItemId, title);
-    mTitle = NS_ConvertUTF16toUTF8(title);
-
-    PRInt32 sortType = GetSortType();
-    if ((sortType == nsINavHistoryQueryOptions::SORT_BY_TITLE_ASCENDING ||
-         sortType == nsINavHistoryQueryOptions::SORT_BY_TITLE_DESCENDING) &&
-        mParent) {
-      PRInt32 ourIndex = mParent->FindChild(this);
-      SortComparator comparator = GetSortingComparator(sortType);
-      nsCAutoString sortingAnnotation;
-      GetSortingAnnotation(sortingAnnotation);
-      if (mParent->DoesChildNeedResorting(ourIndex, comparator, sortingAnnotation.get())) {
-        
-        
-        mParent->RemoveChildAt(ourIndex, PR_TRUE);
-        mParent->InsertChildAt(this,
-                               mParent->FindInsertionPoint(this, comparator, sortingAnnotation.get()),
-                               PR_TRUE);
-        return NS_OK;
-      }
-    }
-  } else {
-    NS_NOTREACHED("Unknown folder change event");
-    return NS_ERROR_FAILURE;
-  }
-
-  
-  nsNavHistoryResult* result = GetResult();
-  NS_ENSURE_TRUE(result, NS_ERROR_FAILURE);
-  if (result->GetView())
-    result->GetView()->ItemChanged(
-        NS_STATIC_CAST(nsNavHistoryResultNode*, this));
-  return NS_OK;
-}
-
-
-
-
-
-
 nsNavHistorySeparatorResultNode::nsNavHistorySeparatorResultNode()
   : nsNavHistoryResultNode(EmptyCString(), EmptyCString(),
                            0, 0, EmptyCString())
@@ -3876,20 +3812,6 @@ nsNavHistoryResult::OnItemMoved(PRInt64 aItemId,
                                           aNewParent, aNewIndex));
   return NS_OK;
 }
-
-
-
-
-NS_IMETHODIMP
-nsNavHistoryResult::OnFolderChanged(PRInt64 aFolder,
-                                   const nsACString &aProperty)
-{
-  ENUMERATE_BOOKMARK_OBSERVERS_FOR_FOLDER(aFolder,
-      OnFolderChanged(aFolder, aProperty));
-  ENUMERATE_HISTORY_OBSERVERS(OnFolderChanged(aFolder, aProperty));
-  return NS_OK;
-}
-
 
 
 
