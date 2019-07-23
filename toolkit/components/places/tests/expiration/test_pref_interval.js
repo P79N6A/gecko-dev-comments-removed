@@ -47,11 +47,77 @@
 
 
 
-const MAX_WAIT_SECONDS = 4;
-const INTERVAL_CUSHION = 2;
 
-let os = Cc["@mozilla.org/observer-service;1"].
-         getService(Ci.nsIObserverService);
+
+const DEFAULT_TIMER_DELAY_SECONDS = 3 * 60;
+
+
+
+
+const Cm = Components.manager;
+const TIMER_CONTRACT_ID = "@mozilla.org/timer;1";
+
+
+let gOriginalFactory = Cm.getClassObjectByContractID(TIMER_CONTRACT_ID,
+                                                     Ci.nsIFactory);
+
+
+let gMockTimerFactory = {
+  createInstance: function MTF_createInstance(aOuter, aIID) {
+    if (aOuter != null)
+      throw Cr.NS_ERROR_NO_AGGREGATION;
+    return mockTimerImpl.QueryInterface(aIID);
+  },
+
+  QueryInterface: XPCOMUtils.generateQI([
+    Ci.nsIFactory,
+  ])
+}
+
+let mockTimerImpl = {
+  initWithCallback: function MTI_initWithCallback(aCallback, aDelay, aType) {
+    print("Checking timer delay equals expected interval value");
+    if (!gCurrentTest)
+      return;
+    do_check_eq(aDelay, gCurrentTest.expectedTimerDelay * 1000)
+
+    do_execute_soon(run_next_test);
+  },
+
+  cancel: function() {},
+  initWithFuncCallback: function() {},
+  init: function() {},
+
+  QueryInterface: XPCOMUtils.generateQI([
+    Ci.nsITimer,
+  ])
+}
+
+function replace_timer_factory() {
+  let classInfo = gOriginalFactory.QueryInterface(Ci.nsIClassInfo);
+  let componentRegistrar = Cm.QueryInterface(Ci.nsIComponentRegistrar);
+  componentRegistrar.registerFactory(classInfo.classID,
+                                     "Mock " + classInfo.classDescription,
+                                     TIMER_CONTRACT_ID,
+                                     gMockTimerFactory);
+}
+
+do_register_cleanup(function() {
+  
+  
+  shutdownExpiration();
+
+  
+  let classInfo = gOriginalFactory.QueryInterface(Ci.nsIClassInfo);
+  let componentRegistrar = Cm.QueryInterface(Ci.nsIComponentRegistrar);
+  componentRegistrar.unregisterFactory(classInfo.classID,
+                                       gMockTimerFactory);
+  componentRegistrar.registerFactory(classInfo.classID,
+                                     classInfo.classDescription,
+                                     TIMER_CONTRACT_ID,
+                                     gOriginalFactory);
+});
+
 
 let gTests = [
 
@@ -59,23 +125,24 @@ let gTests = [
   
   { desc: "Set interval to 1s.",
     interval: 1,
-    expectedNotification: true,
+    expectedTimerDelay: 1
   },
 
   { desc: "Set interval to a negative value.",
     interval: -1,
-    expectedNotification: false, 
+    expectedTimerDelay: DEFAULT_TIMER_DELAY_SECONDS
   },
 
   { desc: "Set interval to 0.",
     interval: 0,
-    expectedNotification: false, 
+    expectedTimerDelay: DEFAULT_TIMER_DELAY_SECONDS
   },
 
   { desc: "Set interval to a large value.",
     interval: 100,
-    expectedNotification: false, 
+    expectedTimerDelay: 100
   },
+
 ];
 
 let gCurrentTest;
@@ -89,6 +156,9 @@ function run_test() {
   catch (ex) {}
 
   
+  replace_timer_factory();
+
+  
   force_expiration_start();
 
   run_next_test();
@@ -99,29 +169,10 @@ function run_next_test() {
   if (gTests.length) {
     gCurrentTest = gTests.shift();
     print(gCurrentTest.desc);
-    gCurrentTest.receivedNotification = false;
-    gCurrentTest.observer = {
-      observe: function(aSubject, aTopic, aData) {
-        gCurrentTest.receivedNotification = true;
-      }
-    };
-    os.addObserver(gCurrentTest.observer, TOPIC_EXPIRATION_FINISHED, false);
     setInterval(gCurrentTest.interval);
-    let waitSeconds = Math.min(MAX_WAIT_SECONDS,
-                               gCurrentTest.interval + INTERVAL_CUSHION);
-    do_timeout(waitSeconds * 1000, check_result);
   }
   else {
     clearInterval();
     do_test_finished();
   }
-}
-
-function check_result() {
-  os.removeObserver(gCurrentTest.observer, TOPIC_EXPIRATION_FINISHED);
-
-  do_check_eq(gCurrentTest.receivedNotification,
-              gCurrentTest.expectedNotification);
-
-  run_next_test();
 }
