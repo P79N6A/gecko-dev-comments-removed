@@ -1150,6 +1150,12 @@ nsresult nsOggDecodeStateMachine::Run()
           mAudioStream->Drain();
           LOG(PR_LOG_DEBUG, ("End nsAudioStream::Drain"));
           mon.Enter();
+
+          
+          
+          
+          StopPlayback();
+
           if (mState != DECODER_STATE_COMPLETED)
             continue;
         }

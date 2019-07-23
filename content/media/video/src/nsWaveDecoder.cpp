@@ -731,6 +731,10 @@ nsWaveStateMachine::Run()
         monitor.Exit();
         mAudioStream->Drain();
         monitor.Enter();
+
+        
+        
+        CloseAudioStream();
       }
 
       if (mState == STATE_ENDED) {
