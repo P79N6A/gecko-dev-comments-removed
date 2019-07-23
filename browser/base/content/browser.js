@@ -2558,7 +2558,6 @@ function onExitPrintPreview()
 {
   
   gInPrintPreviewMode = false;
-  FullZoom.setSettingValue();
   toggleAffectedChrome(false);
 }
 
@@ -4229,7 +4228,7 @@ var XULBrowserWindow = {
   
   onUpdateCurrentBrowser: function (aStateFlags, aStatus, aMessage, aTotalProgress) {
     if (FullZoom.updateBackgroundTabs)
-      FullZoom.onLocationChange(gBrowser.currentURI);
+      FullZoom.onLocationChange(gBrowser.currentURI, true);
     var nsIWebProgressListener = Components.interfaces.nsIWebProgressListener;
     var loadingDone = aStateFlags & nsIWebProgressListener.STATE_STOP;
     
@@ -4296,7 +4295,7 @@ var TabsProgressListener = {
   onLocationChange: function (aBrowser, aWebProgress, aRequest, aLocationURI) {
     
     if (aBrowser.contentWindow == aWebProgress.DOMWindow)
-      FullZoom.onLocationChange(aLocationURI, aBrowser);
+      FullZoom.onLocationChange(aLocationURI, false, aBrowser);
   },
   
   onStatusChange: function (aBrowser, aWebProgress, aRequest, aStatus, aMessage) {

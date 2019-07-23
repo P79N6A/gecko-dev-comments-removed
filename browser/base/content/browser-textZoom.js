@@ -266,8 +266,19 @@ var FullZoom = {
 
   
 
-  onLocationChange: function FullZoom_onLocationChange(aURI, aBrowser) {
-    if (!aURI)
+  
+
+
+
+
+
+
+
+
+
+
+  onLocationChange: function FullZoom_onLocationChange(aURI, aIsTabSwitch, aBrowser) {
+    if (!aURI || (aIsTabSwitch && !this.siteSpecific))
       return;
     this._applyPrefToSetting(this._cps.getPref(aURI, this.name), aBrowser);
   },
@@ -302,11 +313,6 @@ var FullZoom = {
     this._removePref();
   },
 
-  setSettingValue: function FullZoom_setSettingValue() {
-    var value = this._cps.getPref(gBrowser.currentURI, this.name);
-    this._applyPrefToSetting(value);
-  },
-
   
 
 
@@ -329,12 +335,13 @@ var FullZoom = {
   _applyPrefToSetting: function FullZoom__applyPrefToSetting(aValue, aBrowser) {
     var browser = aBrowser || gBrowser.selectedBrowser;
 
-    if (!this.siteSpecific || gInPrintPreviewMode ||
-        browser.contentDocument instanceof Ci.nsIImageDocument)
-      return;
+    var resetZoom = (!this.siteSpecific || gInPrintPreviewMode ||
+                     browser.contentDocument instanceof Ci.nsIImageDocument);
 
     try {
-      if (typeof aValue != "undefined")
+      if (resetZoom)
+        ZoomManager.setZoomForBrowser(browser, 1);
+      else if (typeof aValue != "undefined")
         ZoomManager.setZoomForBrowser(browser, this._ensureValid(aValue));
       else if (typeof this.globalValue != "undefined")
         ZoomManager.setZoomForBrowser(browser, this.globalValue);
