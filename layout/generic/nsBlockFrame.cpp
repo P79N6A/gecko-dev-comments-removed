@@ -2609,6 +2609,8 @@ nsBlockFrame::PullFrameFrom(nsBlockReflowState& aState,
           aFromContainer->SetOverflowLines(fromLineList);
         } else {
           delete fromLineList;
+          
+          
         }
       }
     }
@@ -5348,6 +5350,12 @@ nsBlockFrame::DoRemoveFrame(nsIFrame* aDeletedFrame, PRUint32 aFlags)
           SetOverflowLines(lineList);
         } else {
           delete lineList;
+          
+          
+          
+          line_start = mLines.begin();
+          line_end = mLines.end();
+          line = line_end;
         }
       }
       cur->Destroy(presShell);
@@ -5482,16 +5490,22 @@ nsBlockFrame::StealFrame(nsPresContext* aPresContext,
           if (searchingOverflowList) {
             
             nsLineList* lineList = RemoveOverflowLines();
-            lineList->erase(line);
+            line = lineList->erase(line);
             if (!lineList->empty()) {
               nsresult rv = SetOverflowLines(lineList);
               NS_ENSURE_SUCCESS(rv, rv);
             } else {
               delete lineList;
+              
+              
+              
+              line_start = mLines.begin();
+              line_end = mLines.end();
+              line = line_end;
             }
           }
           else {
-            mLines.erase(line);
+            line = mLines.erase(line);
           }
           lineBox->Destroy(aPresContext->PresShell());
           if (line != line_end) {
