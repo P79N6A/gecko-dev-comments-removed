@@ -220,13 +220,13 @@ private:
       
       
       
-      mDiscardable = PR_FALSE;
-      if (mDiscardTimer) {
-        nsresult rv = mDiscardTimer->Cancel();
-        if (!NS_SUCCEEDED(rv))
-          NS_WARNING("Discard Timer failed to cancel!");
-        mDiscardTimer = nsnull;
-      }
+      
+      
+      
+      
+      
+      
+      LockImage();
     }
     return mAnim;
   }
@@ -353,7 +353,6 @@ private:
   nsresult WriteToDecoder(const char *aBuffer, PRUint32 aCount);
   nsresult DecodeSomeData(PRUint32 aMaxBytes);
   PRBool   IsDecodeFinished();
-  nsresult EnableDiscarding();
 
   
   enum eShutdownIntent {
