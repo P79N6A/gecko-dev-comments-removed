@@ -284,6 +284,28 @@ var XPCOMUtils = {
   
 
 
+
+
+  IterSimpleEnumerator: function XPCU_IterSimpleEnumerator(e, i)
+  {
+    while (e.hasMoreElements())
+      yield e.getNext().QueryInterface(i);
+  },
+
+  
+
+
+
+
+  IterStringEnumerator: function XPCU_IterStringEnumerator(e)
+  {
+    while (e.hasMore())
+      yield e.getNext();
+  },
+
+  
+
+
   _getFactory: function XPCOMUtils__getFactory(component) {
     var factory = component.prototype._xpcom_factory;
     if (!factory) {
@@ -314,3 +336,4 @@ function makeQI(interfaceNames) {
     throw Cr.NS_ERROR_NO_INTERFACE;
   };
 }
+
