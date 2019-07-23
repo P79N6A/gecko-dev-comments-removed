@@ -1077,8 +1077,15 @@ nsXBLBinding::ChangeDocument(nsIDocument* aOldDocument, nsIDocument* aNewDocumen
       if (mPrototypeBinding->HasImplementation()) { 
         nsIScriptGlobalObject *global = aOldDocument->GetScopeObject();
         if (global) {
+          JSObject *scope = global->GetGlobalJSObject();
+          
+          
+          
+          
+          
+
           nsCOMPtr<nsIScriptContext> context = global->GetContext();
-          if (context) {
+          if (context && scope) {
             JSContext *cx = (JSContext *)context->GetNativeContext();
  
             nsCxPusher pusher;
@@ -1087,8 +1094,7 @@ nsXBLBinding::ChangeDocument(nsIDocument* aOldDocument, nsIDocument* aNewDocumen
             nsCOMPtr<nsIXPConnectJSObjectHolder> wrapper;
             jsval v;
             nsresult rv =
-              nsContentUtils::WrapNative(cx, global->GetGlobalJSObject(),
-                                         mBoundElement, &v,
+              nsContentUtils::WrapNative(cx, scope, mBoundElement, &v,
                                          getter_AddRefs(wrapper));
             if (NS_FAILED(rv))
               return;
