@@ -316,6 +316,42 @@ void nsHTMLReflowState::InitCBReflowState()
   mCBReflowState = parentReflowState->mCBReflowState;
 }
 
+
+
+
+
+
+
+
+
+static PRBool
+IsQuirkContainingBlockHeight(const nsHTMLReflowState* rs) 
+{
+  nsIAtom* frameType = rs->frame->GetType();
+  if (nsGkAtoms::blockFrame == frameType ||
+      nsGkAtoms::areaFrame == frameType ||
+      nsGkAtoms::scrollFrame == frameType) {  
+
+    if (nsGkAtoms::areaFrame == frameType) {
+      
+      if (rs->frame->GetStyleContext()->GetPseudoType() ==
+          nsCSSAnonBoxes::scrolledContent) {
+        return PR_FALSE;
+      }
+    }
+    
+    
+    
+    if (NS_AUTOHEIGHT == rs->mComputedHeight) {
+      if (!rs->frame->GetStyleDisplay()->IsAbsolutelyPositioned()) {
+        return PR_FALSE;
+      }
+    }
+  }
+  return PR_TRUE;
+}
+
+
 void
 nsHTMLReflowState::InitResizeFlags(nsPresContext* aPresContext)
 {
@@ -361,14 +397,33 @@ nsHTMLReflowState::InitResizeFlags(nsPresContext* aPresContext)
        frame->IsBoxFrame()) &&
       mCBReflowState) {
     const nsHTMLReflowState *rs = this;
+    PRBool hitCBReflowState = PR_FALSE;
     do {
       rs = rs->parentReflowState;
+      if (!rs) {
+        break;
+      }
+        
       if (rs->frame->GetStateBits() & NS_FRAME_CONTAINS_RELATIVE_HEIGHT)
         break; 
       rs->frame->AddStateBits(NS_FRAME_CONTAINS_RELATIVE_HEIGHT);
-    } while (rs != mCBReflowState);
-  }
+      
+      
+      
+      if (rs == mCBReflowState) {
+        hitCBReflowState = PR_TRUE;
+      }
 
+    } while (!hitCBReflowState ||
+             (eCompatibility_NavQuirks == aPresContext->CompatibilityMode() &&
+              !IsQuirkContainingBlockHeight(rs)));
+    
+    
+    
+    
+    
+    
+  }
   if (frame->GetStateBits() & NS_FRAME_IS_DIRTY) {
     
     
@@ -1286,7 +1341,9 @@ GetVerticalMarginBorderPadding(const nsHTMLReflowState* aReflowState)
 
 
 
-nscoord
+
+
+static nscoord
 CalcQuirkContainingBlockHeight(const nsHTMLReflowState* aCBReflowState)
 {
   nsHTMLReflowState* firstAncestorRS = nsnull; 
@@ -1298,7 +1355,7 @@ CalcQuirkContainingBlockHeight(const nsHTMLReflowState* aCBReflowState)
   nscoord result = NS_AUTOHEIGHT; 
                              
   const nsHTMLReflowState* rs = aCBReflowState;
-  for (; rs && rs->frame; rs = (nsHTMLReflowState *)(rs->parentReflowState)) { 
+  for (; rs; rs = (nsHTMLReflowState *)(rs->parentReflowState)) { 
     nsIAtom* frameType = rs->frame->GetType();
     
     
