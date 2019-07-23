@@ -2385,7 +2385,6 @@ nsCycleCollector::ExplainLiveExpectedGarbage()
     {
         
         
-        PRUint32 suspectCurrentCount = mBuf.GetSize();
         mExpectedGarbage.EnumerateEntries(&AddExpectedGarbage, this);
 
         GCGraphBuilder builder(mGraph, mRuntimes);
@@ -2394,6 +2393,11 @@ nsCycleCollector::ExplainLiveExpectedGarbage()
             if (mRuntimes[i])
                 mRuntimes[i]->BeginCycleCollection(builder);
         }
+
+        
+        
+        
+        PRUint32 suspectCurrentCount = builder.Count();
 
         MarkRoots(builder);
         ScanRoots();
