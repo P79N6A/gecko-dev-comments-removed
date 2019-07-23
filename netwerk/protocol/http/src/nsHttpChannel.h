@@ -169,11 +169,13 @@ private:
     nsresult ProcessNotModified();
     nsresult ProcessRedirection(PRUint32 httpStatus);
     nsresult ProcessAuthentication(PRUint32 httpStatus);
+    nsresult ProcessFallback(PRBool *fallingBack);
     PRBool   ResponseWouldVary();
 
     
     void     HandleAsyncRedirect();
     void     HandleAsyncNotModified();
+    void     HandleAsyncFallback();
     nsresult PromptTempRedirect();
     nsresult SetupReplacementChannel(nsIURI *, nsIChannel *, PRBool preserveMethod);
 
@@ -301,6 +303,11 @@ private:
     PRUint8                           mRedirectionLimit;
 
     
+    
+    
+    nsCString                         mFallbackKey;
+
+    
     PRUint32                          mIsPending                : 1;
     PRUint32                          mWasOpened                : 1;
     PRUint32                          mApplyConversion          : 1;
@@ -316,6 +323,12 @@ private:
     PRUint32                          mResuming                 : 1;
     PRUint32                          mInitedCacheEntry         : 1;
     PRUint32                          mCacheForOfflineUse       : 1;
+    
+    
+    PRUint32                          mCachingOpportunistically : 1;
+    
+    
+    PRUint32                          mFallbackChannel          : 1;
     PRUint32                          mTracingEnabled           : 1;
 
     class nsContentEncodings : public nsIUTF8StringEnumerator
