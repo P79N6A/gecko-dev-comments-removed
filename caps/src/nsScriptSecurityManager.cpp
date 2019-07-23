@@ -1708,7 +1708,8 @@ nsScriptSecurityManager::CanExecuteScripts(JSContext* cx,
             if (NS_FAILED(rv)) return rv;
             if (appType == nsIDocShell::APP_TYPE_MAIL) 
             {
-                *result = mIsMailJavaScriptEnabled;
+                
+                *result = PR_FALSE; 
             }
         }
     }
