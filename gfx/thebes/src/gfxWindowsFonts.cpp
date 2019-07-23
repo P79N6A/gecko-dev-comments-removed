@@ -981,6 +981,17 @@ gfxWindowsFontGroup::InitFontList()
         mFonts.AppendElements(mFontEntries.Length());
     }
 
+    
+    mUnderlineOffset = UNDERLINE_OFFSET_NOT_SET;
+}
+
+gfxFloat 
+gfxWindowsFontGroup::GetUnderlineOffset()
+{
+    if (mUnderlineOffset != UNDERLINE_OFFSET_NOT_SET)
+        return mUnderlineOffset;
+
+    
     if (!mStyle.systemFont) {
         for (PRUint32 i = 0; i < mFontEntries.Length(); ++i) {
             if (mFontEntries[i]->mIsBadUnderlineFont) {
@@ -992,6 +1003,10 @@ gfxWindowsFontGroup::InitFontList()
         }
     }
 
+    if (mUnderlineOffset == UNDERLINE_OFFSET_NOT_SET)
+        mUnderlineOffset = GetFontAt(0)->GetMetrics().underlineOffset;
+
+    return mUnderlineOffset;
 }
 
 static PRBool
@@ -1351,7 +1366,7 @@ public:
         mAlternativeString(nsnull), mScriptItem(aItem),
         mScript(aItem->a.eScript), mGroup(aGroup),
         mNumGlyphs(0), mMaxGlyphs(ESTIMATE_MAX_GLYPHS(aLength)),
-        mFontSelected(PR_FALSE)
+        mFontSelected(PR_FALSE), mForceGDIPlace(PR_FALSE)
     {
         NS_ASSERTION(mMaxGlyphs < 65535, "UniscribeItem is too big, ScriptShape() will fail!");
         mGlyphs.SetLength(mMaxGlyphs);
@@ -1402,6 +1417,19 @@ public:
                 mGlyphs.SetLength(mMaxGlyphs);
                 mAttr.SetLength(mMaxGlyphs);
                 continue;
+            }
+
+            
+            
+            
+            
+            
+            
+
+            if (sa.fNoGlyphIndex) {
+                mForceGDIPlace = PR_TRUE;
+                NS_WARNING("Uniscribe refuses to shape with given font");
+                return ShapeGDI();
             }
 
             if (rv == E_PENDING) {
@@ -1527,6 +1555,9 @@ public:
     HRESULT Place() {
         mOffsets.SetLength(mNumGlyphs);
         mAdvances.SetLength(mNumGlyphs);
+
+        if (mForceGDIPlace)
+            return PlaceGDI();
 
         PRBool allCJK = PR_TRUE;
 
@@ -1770,6 +1801,11 @@ private:
     nsRefPtr<gfxWindowsFont> mCurrentFont;
 
     PRPackedBool mFontSelected;
+
+    
+    
+    
+    PRPackedBool mForceGDIPlace;
 
     nsTArray<gfxTextRange> mRanges;
 };

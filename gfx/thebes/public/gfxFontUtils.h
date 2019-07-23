@@ -334,16 +334,22 @@ public:
     
     
     
-    
     static nsresult
     MakeEOTHeader(const PRUint8 *aFontData, PRUint32 aFontDataLength,
-                            nsTArray<PRUint8> *aHeader, PRBool *aIsCFF);
+                  nsTArray<PRUint8> *aHeader);
 #endif
 
     
     
     static PRBool
-    ValidateSFNTHeaders(const PRUint8 *aFontData, PRUint32 aFontDataLength);
+    ValidateSFNTHeaders(const PRUint8 *aFontData, PRUint32 aFontDataLength,
+                        PRBool *aIsCFF = nsnull);
+    
+    
+    
+    static nsresult
+    RenameFont(const nsAString& aName, const PRUint8 *aFontData, 
+               PRUint32 aFontDataLength, nsTArray<PRUint8> *aNewFont);
     
     static inline bool IsJoiner(PRUint32 ch) {
         return (ch == 0x200C ||
