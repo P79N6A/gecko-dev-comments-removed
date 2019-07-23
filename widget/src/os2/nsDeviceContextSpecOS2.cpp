@@ -346,11 +346,13 @@ NS_IMETHODIMP nsDeviceContextSpecOS2::GetSurfaceForPrinter(gfxASurface **surface
 
   PRInt16 outputFormat;
   mPrintSettings->GetOutputFormat(&outputFormat);
-  
-  printf("print output format is %d but we are setting it to %d (PDF)\n",
-         outputFormat, nsIPrintSettings::kOutputFormatPDF);
-  outputFormat = nsIPrintSettings::kOutputFormatPDF;
-  mPrintSettings->SetOutputFormat(outputFormat); 
+  int printerDest;
+  GetDestination(printerDest);
+  if (printerDest != printPreview) {
+    
+    outputFormat = nsIPrintSettings::kOutputFormatPDF;
+    mPrintSettings->SetOutputFormat(outputFormat); 
+  }
 
   if (outputFormat == nsIPrintSettings::kOutputFormatPDF) {
     nsXPIDLString filename;
@@ -402,12 +404,9 @@ NS_IMETHODIMP nsDeviceContextSpecOS2::GetSurfaceForPrinter(gfxASurface **surface
     newSurface = new(std::nothrow) gfxPDFSurface(stream, gfxSize(width, height));
   } else {
     int numCopies = 0;
-    int printerDest = 0;
-    char *filename = nsnull;
-
     GetCopies(numCopies);
-    GetDestination(printerDest);
-    if (!printerDest) {
+    char *filename = nsnull;
+    if (printerDest == printToFile) {
       GetPath(&filename);
     }
     mPrintingStarted = PR_TRUE;
