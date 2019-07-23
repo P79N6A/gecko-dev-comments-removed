@@ -122,22 +122,14 @@ enum nsCSSUnit {
   
   
   eCSSUnit_Inch         = 100,    
-  eCSSUnit_Foot         = 101,    
-  eCSSUnit_Mile         = 102,    
 
   
   eCSSUnit_Millimeter   = 207,    
   eCSSUnit_Centimeter   = 208,    
-  eCSSUnit_Meter        = 210,    
-  eCSSUnit_Kilometer    = 213,    
 
   
   eCSSUnit_Point        = 300,    
   eCSSUnit_Pica         = 301,    
-
-  
-  eCSSUnit_Didot        = 400,    
-  eCSSUnit_Cicero       = 401,    
 
   
   
@@ -203,7 +195,7 @@ public:
   PRBool    IsLengthUnit() const
     { return eCSSUnit_Inch <= mUnit && mUnit <= eCSSUnit_Pixel; }
   PRBool    IsFixedLengthUnit() const  
-    { return eCSSUnit_Inch <= mUnit && mUnit <= eCSSUnit_Cicero; }
+    { return eCSSUnit_Inch <= mUnit && mUnit <= eCSSUnit_Pica; }
   PRBool    IsRelativeLengthUnit() const  
     { return eCSSUnit_EM <= mUnit && mUnit <= eCSSUnit_Pixel; }
   PRBool    IsAngularUnit() const  
