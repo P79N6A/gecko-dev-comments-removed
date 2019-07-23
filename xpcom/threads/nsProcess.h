@@ -40,7 +40,7 @@
 #ifndef _nsPROCESSWIN_H_
 #define _nsPROCESSWIN_H_
 
-#if defined(XP_WIN) && !defined (WINCE) 
+#if defined(XP_WIN)
 #define PROCESSMODEL_WINAPI
 #endif
 
