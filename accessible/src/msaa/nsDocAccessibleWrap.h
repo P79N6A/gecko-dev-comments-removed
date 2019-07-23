@@ -92,7 +92,7 @@ public:
          VARIANT varChild,
          BSTR __RPC_FAR *pszValue);
 
-    NS_IMETHOD FireAnchorJumpEvent();
+    virtual void FireAnchorJumpEvent();
 };
 
 #endif

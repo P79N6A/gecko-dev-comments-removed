@@ -69,33 +69,32 @@ class nsRootAccessible : public nsDocAccessibleWrap,
 {
   NS_DECL_ISUPPORTS_INHERITED
 
-  public:
-    nsRootAccessible(nsIDOMNode *aDOMNode, nsIWeakReference* aShell);
-    virtual ~nsRootAccessible();
+public:
+  nsRootAccessible(nsIDOMNode *aDOMNode, nsIWeakReference* aShell);
+  virtual ~nsRootAccessible();
 
-    
-    NS_IMETHOD GetName(nsAString& aName);
-    NS_IMETHOD GetParent(nsIAccessible * *aParent);
-    NS_IMETHOD GetRelationByType(PRUint32 aRelationType,
-                                 nsIAccessibleRelation **aRelation);
+  
+  NS_IMETHOD GetName(nsAString& aName);
+  NS_IMETHOD GetParent(nsIAccessible * *aParent);
+  NS_IMETHOD GetRelationByType(PRUint32 aRelationType,
+                               nsIAccessibleRelation **aRelation);
 
-    
-    NS_IMETHOD FireDocLoadEvents(PRUint32 aEventType);
+  
+  NS_IMETHOD HandleEvent(nsIDOMEvent* aEvent);
 
-    
-    NS_IMETHOD HandleEvent(nsIDOMEvent* aEvent);
+  
+  virtual nsresult Init();
+  virtual nsresult Shutdown();
 
-    
-    virtual nsresult Init();
-    virtual nsresult Shutdown();
+  
+  virtual nsresult GetRoleInternal(PRUint32 *aRole);
+  virtual nsresult GetStateInternal(PRUint32 *aState, PRUint32 *aExtraState);
 
-    
-    virtual nsresult GetRoleInternal(PRUint32 *aRole);
-    virtual nsresult GetStateInternal(PRUint32 *aState, PRUint32 *aExtraState);
+  
+  virtual void FireDocLoadEvents(PRUint32 aEventType);
 
-    void ShutdownAll();
-    
-    NS_DECLARE_STATIC_IID_ACCESSOR(NS_ROOTACCESSIBLE_IMPL_CID)
+  
+  NS_DECLARE_STATIC_IID_ACCESSOR(NS_ROOTACCESSIBLE_IMPL_CID)
 
     
 

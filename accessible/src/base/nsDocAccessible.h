@@ -41,7 +41,6 @@
 
 #include "nsHyperTextAccessibleWrap.h"
 #include "nsIAccessibleDocument.h"
-#include "nsPIAccessibleDocument.h"
 #include "nsIDocument.h"
 #include "nsIDocumentObserver.h"
 #include "nsIEditor.h"
@@ -56,9 +55,16 @@ class nsIScrollableView;
 
 const PRUint32 kDefaultCacheSize = 256;
 
+#define NS_DOCACCESSIBLE_IMPL_CID                       \
+{  /* 0ed1be1d-52a7-4bfd-b4f5-0de7caed4617 */           \
+  0x0ed1be1d,                                           \
+  0x52a7,                                               \
+  0x4bfd,                                               \
+  { 0xb4, 0xf5, 0x0d, 0xe7, 0xca, 0xed, 0x46, 0x17 }    \
+}
+
 class nsDocAccessible : public nsHyperTextAccessibleWrap,
                         public nsIAccessibleDocument,
-                        public nsPIAccessibleDocument,
                         public nsIDocumentObserver,
                         public nsIObserver,
                         public nsIScrollPositionListener,
@@ -68,50 +74,50 @@ class nsDocAccessible : public nsHyperTextAccessibleWrap,
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(nsDocAccessible, nsAccessible)
 
   NS_DECL_NSIACCESSIBLEDOCUMENT
-  NS_DECL_NSPIACCESSIBLEDOCUMENT
+  NS_DECLARE_STATIC_IID_ACCESSOR(NS_DOCACCESSIBLE_IMPL_CID)
+
   NS_DECL_NSIOBSERVER
 
-  public:
-    nsDocAccessible(nsIDOMNode *aNode, nsIWeakReference* aShell);
-    virtual ~nsDocAccessible();
+public:
+  nsDocAccessible(nsIDOMNode *aNode, nsIWeakReference* aShell);
+  virtual ~nsDocAccessible();
 
-    
-    NS_IMETHOD GetName(nsAString& aName);
-    NS_IMETHOD GetDescription(nsAString& aDescription);
-    NS_IMETHOD GetAttributes(nsIPersistentProperties **aAttributes);
-    NS_IMETHOD GetFocusedChild(nsIAccessible **aFocusedChild);
-    NS_IMETHOD GetParent(nsIAccessible **aParent);
-    NS_IMETHOD TakeFocus(void);
+  
+  NS_IMETHOD GetName(nsAString& aName);
+  NS_IMETHOD GetDescription(nsAString& aDescription);
+  NS_IMETHOD GetAttributes(nsIPersistentProperties **aAttributes);
+  NS_IMETHOD GetFocusedChild(nsIAccessible **aFocusedChild);
+  NS_IMETHOD GetParent(nsIAccessible **aParent);
+  NS_IMETHOD TakeFocus(void);
 
-    
-    NS_IMETHOD ScrollPositionWillChange(nsIScrollableView *aView, nscoord aX, nscoord aY);
-    virtual void ViewPositionDidChange(nsIScrollableView* aScrollable) {}
-    NS_IMETHOD ScrollPositionDidChange(nsIScrollableView *aView, nscoord aX, nscoord aY);
+  
+  NS_IMETHOD ScrollPositionWillChange(nsIScrollableView *aView,
+                                      nscoord aX, nscoord aY);
+  virtual void ViewPositionDidChange(nsIScrollableView* aScrollable) {}
+  NS_IMETHOD ScrollPositionDidChange(nsIScrollableView *aView,
+                                     nscoord aX, nscoord aY);
 
-    
-    NS_DECL_NSIDOCUMENTOBSERVER
+  
+  NS_DECL_NSIDOCUMENTOBSERVER
 
-    static void FlushEventsCallback(nsITimer *aTimer, void *aClosure);
+  
+  virtual nsresult Init();
+  virtual nsresult Shutdown();
+  virtual nsIFrame* GetFrame();
+  virtual PRBool IsDefunct();
 
-    
-    virtual nsresult Init();
-    virtual nsresult Shutdown();
-    virtual nsIFrame* GetFrame();
-
-    
+  
   virtual nsresult GetRoleInternal(PRUint32 *aRole);
   virtual nsresult GetStateInternal(PRUint32 *aState, PRUint32 *aExtraState);
   virtual nsresult GetARIAState(PRUint32 *aState);
   virtual void SetRoleMapEntry(nsRoleMapEntry* aRoleMapEntry);
 
-    
-    NS_IMETHOD GetAssociatedEditor(nsIEditor **aEditor);
+  
+  NS_IMETHOD GetAssociatedEditor(nsIEditor **aEditor);
 
-    
+  
 
-
-
-
+  
 
 
 
@@ -120,21 +126,67 @@ class nsDocAccessible : public nsHyperTextAccessibleWrap,
 
 
 
+  nsresult FireDelayedToolkitEvent(PRUint32 aEvent, nsIDOMNode *aDOMNode,
+                                   nsAccEvent::EEventRule aAllowDupes = nsAccEvent::eRemoveDupes,
+                                   PRBool aIsAsynch = PR_FALSE);
 
-    nsresult FireDelayedToolkitEvent(PRUint32 aEvent, nsIDOMNode *aDOMNode,
-                                     nsAccEvent::EEventRule aAllowDupes = nsAccEvent::eRemoveDupes,
-                                     PRBool aIsAsynch = PR_FALSE);
-
-    
-
+  
 
 
 
-    nsresult FireDelayedAccessibleEvent(nsIAccessibleEvent *aEvent);
 
-    void ShutdownChildDocuments(nsIDocShellTreeItem *aStart);
+  nsresult FireDelayedAccessibleEvent(nsIAccessibleEvent *aEvent);
 
-  protected:
+  
+
+
+
+
+
+
+
+
+
+
+
+  void InvalidateCacheSubtree(nsIContent *aContent, PRUint32 aEvent);
+
+  
+
+
+
+
+
+  void CacheAccessNode(void *aUniqueID, nsIAccessNode *aAccessNode);
+
+  
+
+
+  void FlushPendingEvents();
+
+  
+
+
+
+
+  virtual void FireDocLoadEvents(PRUint32 aEventType);
+
+  
+
+
+  virtual void FireAnchorJumpEvent();
+
+  
+
+
+  static void FlushEventsCallback(nsITimer *aTimer, void *aClosure);
+
+protected:
+  
+
+
+  void ShutdownChildDocuments(nsIDocShellTreeItem *aStart);
+
     virtual void GetBoundsRect(nsRect& aRect, nsIFrame** aRelativeFrame);
     virtual nsresult AddEventListeners();
     virtual nsresult RemoveEventListeners();
@@ -229,5 +281,8 @@ protected:
     static PRUint32 gLastFocusedAccessiblesState;
     static nsIAtom *gLastFocusedFrameType;
 };
+
+NS_DEFINE_STATIC_IID_ACCESSOR(nsDocAccessible,
+                              NS_DOCACCESSIBLE_IMPL_CID)
 
 #endif  
