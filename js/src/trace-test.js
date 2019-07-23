@@ -1332,6 +1332,13 @@ this.__proto__.a = 3; for (var j = 0; j < 4; ++j) { [a]; }
 testGlobalProtoAccess.expected = "ok";
 test(testGlobalProtoAccess);
 
+function testSetPropNeitherMissNorHit() {
+    for (var j = 0; j < 5; ++j) { if (({}).__proto__ = 1) { } }
+    return "ok";
+}
+testSetPropNeitherMissNorHit.expected = "ok";
+test(testSetPropNeitherMissNorHit);
+
 
 print("\npassed:", passes.length && passes.join(","));
 print("\nFAILED:", fails.length && fails.join(","));
