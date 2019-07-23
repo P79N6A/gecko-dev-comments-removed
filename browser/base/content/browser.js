@@ -47,6 +47,7 @@
 #   Edward Lee <edward.lee@engineering.uiuc.edu>
 #   Paul O’Shannessy <paul@oshannessy.com>
 #   Nils Maier <maierman@web.de>
+#   Rob Arnold <robarnold@cmu.edu>
 #
 # Alternatively, the contents of this file may be used under the terms of
 # either the GNU General Public License Version 2 or later (the "GPL"), or
@@ -134,6 +135,29 @@ let gInitialPages = [
 #include browser-fullZoom.js
 #include browser-places.js
 #include browser-tabPreviews.js
+
+#ifdef XP_WIN
+#ifndef WINCE
+#define WIN7_FEATURES
+XPCOMUtils.defineLazyGetter(this, "Win7Features", function () {
+  const WINTASKBAR_CONTRACTID = "@mozilla.org/windows-taskbar;1";
+  let taskbar = Cc[WINTASKBAR_CONTRACTID].getService(Ci.nsIWinTaskbar);
+  if (taskbar.available) {
+    Cu.import("resource://gre/modules/wintaskbar/preview-per-tab.jsm");
+    return {
+      onOpenWindow: function () {
+        AeroPeek.onOpenWindow(window);
+      },
+      onCloseWindow: function () {
+        AeroPeek.onCloseWindow(window);
+      }
+    };
+  } else {
+    return { onOpenWindow: function () {}, onCloseWindow: function () {} };
+  }
+});
+#endif
+#endif
 
 
 
@@ -1341,10 +1365,17 @@ function delayedStartup(isLoadingBlank, mustLoadSidebar) {
   gBrowser.mPanelContainer.addEventListener("InstallBrowserTheme", LightWeightThemeWebInstaller, false, true);
   gBrowser.mPanelContainer.addEventListener("PreviewBrowserTheme", LightWeightThemeWebInstaller, false, true);
   gBrowser.mPanelContainer.addEventListener("ResetBrowserThemePreview", LightWeightThemeWebInstaller, false, true);
+
+#ifdef WIN7_FEATURES
+  Win7Features.onOpenWindow();
+#endif
 }
 
 function BrowserShutdown()
 {
+#ifdef WIN7_FEATURES
+  Win7Features.onCloseWindow();
+#endif
   gPrefService.removeObserver(ctrlTab.prefName, ctrlTab);
   gPrefService.removeObserver(allTabs.prefName, allTabs);
   tabPreviews.uninit();
@@ -1432,7 +1463,7 @@ function nonBrowserWindowStartup()
 
   
   
-  if (window.location.href == "chrome://browser/content/hiddenWindow.xul")
+  if (window.location.href == "chrome:
   {
     var hiddenWindowDisabledItems = ['cmd_close', 'minimizeWindow', 'zoomWindow'];
     for (var id in hiddenWindowDisabledItems)
@@ -1765,14 +1796,14 @@ function openLocation() {
     }
     else {
       
-      win = window.openDialog("chrome://browser/content/", "_blank",
+      win = window.openDialog("chrome:
                               "chrome,all,dialog=no", "about:blank");
       win.addEventListener("load", openLocationCallback, false);
     }
     return;
   }
 #endif
-  openDialog("chrome://browser/content/openLocation.xul", "_blank",
+  openDialog("chrome:
              "chrome,modal,titlebar", window);
 }
 
@@ -1786,7 +1817,7 @@ function BrowserOpenTab()
 {
   if (!gBrowser) {
     
-    window.openDialog("chrome://browser/content/", "_blank",
+    window.openDialog("chrome:
                       "chrome,all,dialog=no", "about:blank");
     return;
   }
@@ -2090,7 +2121,7 @@ function BrowserPageInfo(doc, initialTab)
   var args = {doc: doc, initialTab: initialTab};
   return toOpenDialogByTypeAndUrl("Browser:page-info",
                                   doc ? doc.location : window.content.document.location,
-                                  "chrome://browser/content/pageinfo/pageInfo.xul",
+                                  "chrome:
                                   "chrome,toolbar,dialog=no,resizable",
                                   args);
 }
@@ -2307,11 +2338,11 @@ function BrowserImport()
   if (win)
     win.focus();
   else {
-    window.openDialog("chrome://browser/content/migration/migration.xul",
+    window.openDialog("chrome:
                       "migration", "centerscreen,chrome,resizable=no");
   }
 #else
-  window.openDialog("chrome://browser/content/migration/migration.xul",
+  window.openDialog("chrome:
                     "migration", "modal,centerscreen,chrome,resizable=no");
 #endif
 }
@@ -2344,7 +2375,7 @@ function BrowserOnCommand(event) {
           Components.utils.reportError("Couldn't get ssl_override pref: " + e);
         }
         
-        window.openDialog('chrome://pippki/content/exceptionDialog.xul',
+        window.openDialog('chrome:
                           '','chrome,centerscreen,modal', params);
         
         
@@ -2432,7 +2463,7 @@ function BrowserOnCommand(event) {
         notificationBox.appendNotification(
           title,
           value,
-          "chrome://global/skin/icons/blacklist_favicon.png",
+          "chrome:
           notificationBox.PRIORITY_CRITICAL_HIGH,
           buttons
         );
@@ -2602,10 +2633,10 @@ function getMarkupDocumentViewer()
 function FillInHTMLTooltip(tipElement)
 {
   var retVal = false;
-  if (tipElement.namespaceURI == "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul")
+  if (tipElement.namespaceURI == "http:
     return retVal;
 
-  const XLinkNS = "http://www.w3.org/1999/xlink";
+  const XLinkNS = "http:
 
 
   var titleText = null;
