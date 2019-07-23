@@ -123,7 +123,15 @@ class nsAccessNode: public nsIAccessNode
 
   static nsApplicationAccessible* GetApplicationAccessible();
 
-    already_AddRefed<nsRootAccessible> GetRootAccessible();
+  
+
+
+  nsDocAccessible* GetDocAccessible() const;
+
+  
+
+
+  already_AddRefed<nsRootAccessible> GetRootAccessible();
 
     static nsIDOMNode *gLastFocusedNode;
 
@@ -185,11 +193,6 @@ protected:
     nsresult MakeAccessNode(nsIDOMNode *aNode, nsIAccessNode **aAccessNode);
 
     nsPresContext* GetPresContext();
-
-  
-
-
-  nsDocAccessible* GetDocAccessible() const;
 
     void LastRelease();
 

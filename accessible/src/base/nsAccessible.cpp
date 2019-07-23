@@ -881,15 +881,10 @@ nsAccessible::GetChildAtPoint(PRInt32 aX, PRInt32 aY, PRBool aDeepestChild,
   
   
   
-  nsCOMPtr<nsIAccessibleDocument> accDocument;
-  rv = GetAccessibleDocument(getter_AddRefs(accDocument));
-  NS_ENSURE_SUCCESS(rv, rv);
+  nsDocAccessible *accDocument = GetDocAccessible();
   NS_ENSURE_TRUE(accDocument, NS_ERROR_FAILURE);
 
-  nsRefPtr<nsAccessNode> docAccessNode =
-    nsAccUtils::QueryAccessNode(accDocument);
-
-  nsIFrame *frame = docAccessNode->GetFrame();
+  nsIFrame *frame = accDocument->GetFrame();
   NS_ENSURE_STATE(frame);
 
   nsPresContext *presContext = frame->PresContext();
