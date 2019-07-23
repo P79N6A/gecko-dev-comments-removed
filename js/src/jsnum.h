@@ -442,6 +442,127 @@ js_DoubleToECMAInt32(jsdouble d)
     }
 
     return int32(du.d);
+#elif defined (__arm__) && defined (__GNUC__)
+    int32_t i;
+    uint32_t    tmp0;
+    uint32_t    tmp1;
+    uint32_t    tmp2;
+    asm (
+    
+    
+    
+    
+    
+
+    
+    
+    
+    
+
+    
+"   mov     %1, %R4, LSR #20\n"
+"   bic     %1, %1, #(1 << 11)\n"  
+
+    
+    
+"   orr     %R4, %R4, #(1 << 20)\n"
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+"   sub     %1, %1, #0xff\n"
+"   subs    %1, %1, #0x300\n"
+"   bmi     8f\n"
+
+    
+    
+
+    
+"   subs    %3, %1, #52\n"         
+"   bmi     1f\n"
+
+    
+    
+    
+    
+    
+    
+"   bic     %2, %3, #0xff\n"
+"   orr     %3, %3, %2, LSR #3\n"
+    
+    
+"   mov     %Q4, %Q4, LSL %3\n"
+"   b       2f\n"
+"1:\n" 
+    
+    
+"   rsb     %3, %1, #52\n"
+"   mov     %Q4, %Q4, LSR %3\n"
+
+    
+    
+    
+
+"2:\n"
+    
+    
+    
+    
+    
+    
+    
+"   subs    %3, %1, #31\n"          
+"   mov     %1, %R4, LSL #11\n"     
+"   bmi     3f\n"
+
+    
+    
+"   bic     %2, %3, #0xff\n"
+"   orr     %3, %3, %2, LSR #3\n"
+    
+"   mov     %2, %1, LSL %3\n"
+"   b       4f\n"
+"3:\n" 
+    
+    
+"   rsb     %3, %3, #0\n"          
+"   mov     %2, %1, LSR %3\n"      
+
+    
+    
+    
+
+"4:\n"
+    
+"   orr     %Q4, %Q4, %2\n"
+    
+    
+    
+"   eor     %Q4, %Q4, %R4, ASR #31\n"
+"   add     %0, %Q4, %R4, LSR #31\n"
+"   b       9f\n"
+"8:\n"
+    
+    
+"   mov     %0, #0\n"
+"9:\n"
+    : "=r" (i), "=&r" (tmp0), "=&r" (tmp1), "=&r" (tmp2)
+    : "r" (d)
+    : "cc"
+        );
+    return i;
 #else
     int32 i;
     jsdouble two32, two31;
