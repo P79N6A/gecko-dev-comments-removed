@@ -2002,6 +2002,10 @@ nsNavHistory::GetUpdateRequirements(const nsCOMArray<nsNavHistoryQuery>& aQuerie
       domainBasedItems = PR_TRUE;
   }
 
+  if (aOptions->ResultType() ==
+      nsINavHistoryQueryOptions::RESULTS_AS_TAG_QUERY)
+    return QUERYUPDATE_COMPLEX_WITH_BOOKMARKS;
+
   
   
   
