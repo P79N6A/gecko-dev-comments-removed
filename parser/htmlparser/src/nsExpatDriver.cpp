@@ -659,6 +659,9 @@ nsExpatDriver::HandleStartDoctypeDecl(const PRUnichar* aDoctypeName,
     
     mInInternalSubset = PR_TRUE;
     mInternalSubset.SetCapacity(1024);
+  } else {
+    
+    mInternalSubset.SetIsVoid(PR_TRUE);
   }
 
   return NS_OK;

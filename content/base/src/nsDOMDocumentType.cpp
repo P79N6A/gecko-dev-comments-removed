@@ -198,9 +198,7 @@ nsDOMDocumentType::GetSystemId(nsAString& aSystemId)
 NS_IMETHODIMP
 nsDOMDocumentType::GetInternalSubset(nsAString& aInternalSubset)
 {
-  
   aInternalSubset = mInternalSubset;
-
   return NS_OK;
 }
 
