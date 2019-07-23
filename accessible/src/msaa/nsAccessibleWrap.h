@@ -307,7 +307,7 @@ class nsAccessibleWrap : public nsAccessible,
                                            UINT *puArgErr);
 
   
-  virtual nsresult FireAccessibleEvent(nsIAccessibleEvent *aEvent);
+  virtual nsresult HandleAccEvent(nsAccEvent *aEvent);
 
   
   static PRInt32 GetChildIDFor(nsIAccessible* aAccessible);
@@ -342,7 +342,7 @@ class nsAccessibleWrap : public nsAccessible,
   void UnattachIEnumVariant();
 
 protected:
-  virtual nsresult FirePlatformEvent(nsIAccessibleEvent *aEvent);
+  virtual nsresult FirePlatformEvent(nsAccEvent *aEvent);
 
   
   

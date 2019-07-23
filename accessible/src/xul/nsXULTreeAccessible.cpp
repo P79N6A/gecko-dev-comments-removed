@@ -683,7 +683,7 @@ nsXULTreeAccessible::TreeViewChanged()
   
   
   
-  nsCOMPtr<nsIAccessibleEvent> eventDestroy =
+  nsRefPtr<nsAccEvent> eventDestroy =
     new nsAccEvent(nsIAccessibleEvent::EVENT_HIDE, this, PR_FALSE);
   if (!eventDestroy)
     return;
@@ -694,7 +694,7 @@ nsXULTreeAccessible::TreeViewChanged()
 
   mTree->GetView(getter_AddRefs(mTreeView));
 
-  nsCOMPtr<nsIAccessibleEvent> eventCreate =
+  nsRefPtr<nsAccEvent> eventCreate =
     new nsAccEvent(nsIAccessibleEvent::EVENT_SHOW, this, PR_FALSE);
   if (!eventCreate)
     return;
