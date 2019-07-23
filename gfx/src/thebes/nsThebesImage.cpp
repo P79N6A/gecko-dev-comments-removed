@@ -244,6 +244,12 @@ nsThebesImage::ImageUpdated(nsIDeviceContext *aContext, PRUint8 aFlags, nsIntRec
         return NS_ERROR_OUT_OF_MEMORY;
 
     mDecoded.UnionRect(mDecoded, *aUpdateRect);
+
+    
+    
+    nsIntRect boundsRect(0, 0, mWidth, mHeight);
+    mDecoded.IntersectRect(mDecoded, boundsRect);
+
 #ifdef XP_MACOSX
     if (mQuartzSurface)
         mQuartzSurface->Flush();
@@ -547,8 +553,6 @@ nsThebesImage::Draw(gfxContext*        aContext,
         NS_WARNING("Destination area too large, bailing out");
         return;
     }
-
-    
     
     
     
@@ -562,6 +566,11 @@ nsThebesImage::Draw(gfxContext*        aContext,
     gfxMatrix deviceToImage = deviceToUser;
     deviceToImage.Multiply(userSpaceToImageSpace);
   
+    PRBool pushedGroup = PR_FALSE;
+    if (currentTarget->GetType() != gfxASurface::SurfaceTypeQuartz) {
+        
+        
+
     
     if (!IsSafeImageTransformComponent(deviceToImage.xx) ||
         !IsSafeImageTransformComponent(deviceToImage.xy) ||
@@ -571,7 +580,6 @@ nsThebesImage::Draw(gfxContext*        aContext,
         return;
     }
 
-    PRBool pushedGroup = PR_FALSE;
     if (!IsSafeImageTransformComponent(deviceToImage.x0) ||
         !IsSafeImageTransformComponent(deviceToImage.y0)) {
         
@@ -592,6 +600,7 @@ nsThebesImage::Draw(gfxContext*        aContext,
         pushedGroup = PR_TRUE;
     }
     
+    }
   
     nsRefPtr<gfxPattern> pattern = new gfxPattern(surface);
     pattern->SetMatrix(userSpaceToImageSpace);
