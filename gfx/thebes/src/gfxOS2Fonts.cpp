@@ -349,14 +349,14 @@ cairo_font_face_t *gfxOS2Font::CairoFontFace()
         FcPatternDestroy(fcPattern);
 
         if (fcMatch) {
-            if (fcW >= FC_WEIGHT_DEMIBOLD && GetName() == NS_LITERAL_STRING("Workplace Sans")) {
+            int w = FC_WEIGHT_REGULAR;
+            FcPatternGetInteger(fcMatch, FC_WEIGHT, 0, &w);
+            if (fcW >= FC_WEIGHT_DEMIBOLD && w < FC_WEIGHT_DEMIBOLD) {
                 
                 
                 FcPatternAddBool(fcMatch, FC_EMBOLDEN, FcTrue);
-            } else {
-                
-                FcPatternAddBool(fcMatch, FC_ANTIALIAS, mAntialias);
             }
+            FcPatternAddBool(fcMatch, FC_ANTIALIAS, mAntialias);
             FcPatternAddInteger(fcMatch, FC_HINT_STYLE, mHinting);
 
             
