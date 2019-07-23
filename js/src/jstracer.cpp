@@ -2854,9 +2854,6 @@ js_DeleteRecorder(JSContext* cx)
     JSTraceMonitor* tm = &JS_TRACE_MONITOR(cx);
 
     
-    JS_ASSERT(tm->onTrace);
-    tm->onTrace = false;
-
     delete tm->recorder;
     tm->recorder = NULL;
 }
@@ -2883,15 +2880,6 @@ js_StartRecorder(JSContext* cx, VMSideExit* anchor, Fragment* f, TreeInfo* ti,
                  VMSideExit* expectedInnerExit, Fragment* outer)
 {
     JSTraceMonitor* tm = &JS_TRACE_MONITOR(cx);
-
-    
-
-
-
-
-
-    JS_ASSERT(!tm->onTrace);
-    tm->onTrace = true;
 
     
     tm->recorder = new (&gc) TraceRecorder(cx, anchor, f, ti,
@@ -3201,16 +3189,6 @@ js_RecordTree(JSContext* cx, JSTraceMonitor* tm, Fragment* f, Fragment* outer)
     return true;
 }
 
-static inline bool isSlotUndemotable(JSContext* cx, TreeInfo* ti, unsigned slot)
-{
-    if (slot < ti->stackSlots)
-        return oracle.isStackSlotUndemotable(cx, slot);
-
-    JSTraceMonitor* tm = &JS_TRACE_MONITOR(cx);
-    uint16* gslots = tm->globalSlots->data();
-    return oracle.isGlobalSlotUndemotable(cx, gslots[slot - ti->stackSlots]);
-}
-
 JS_REQUIRES_STACK static bool
 js_AttemptToStabilizeTree(JSContext* cx, VMSideExit* exit, Fragment* outer)
 {
@@ -3234,11 +3212,8 @@ js_AttemptToStabilizeTree(JSContext* cx, VMSideExit* exit, Fragment* outer)
     
 
 
-    uint8* m2;
-    Fragment* f;
     TreeInfo* ti;
-    bool matched;
-    bool undemote;
+    Fragment* f;
     bool bound = false;
     unsigned int checkSlots;
     for (f = from->first; f != NULL; f = f->peer) {
@@ -3248,33 +3223,7 @@ js_AttemptToStabilizeTree(JSContext* cx, VMSideExit* exit, Fragment* outer)
         JS_ASSERT(exit->numStackSlots == ti->stackSlots);
         
         checkSlots = JS_MIN(exit->numStackSlots + exit->numGlobalSlots, ti->typeMap.length());
-        m = getFullTypeMap(exit);
-        m2 = ti->typeMap.data();
-        
-
-
-
-
-
-
-        matched = true;
-        undemote = false;
-        for (uint32 i = 0; i < checkSlots; i++) {
-            
-            if (m[i] == m2[i])
-                continue;
-            matched = false;
-            
-
-
-            if (m[i] == JSVAL_INT && m2[i] == JSVAL_DOUBLE && isSlotUndemotable(cx, ti, i)) {
-                undemote = true;
-            } else {
-                undemote = false;
-                break;
-            }
-        }
-        if (matched) {
+        if (memcmp(getFullTypeMap(exit), ti->typeMap.data(), checkSlots) == 0) {
             
             if (from != f) {
                 ti->dependentTrees.addUnique(from);
@@ -3298,11 +3247,6 @@ js_AttemptToStabilizeTree(JSContext* cx, VMSideExit* exit, Fragment* outer)
             JS_ASSERT(bound);
             debug_only_v(js_DumpPeerStability(tm->fragmento, f->ip);)
             break;
-        } else if (undemote) {
-            
-            js_TrashTree(cx, f);
-            
-            return false;
         }
     }
     if (bound)
@@ -3779,11 +3723,8 @@ js_ExecuteTree(JSContext* cx, Fragment* f, uintN& inlineCallCount,
 
 
 
-
-    bool onTrace = tm->onTrace;
-    if (!onTrace)
-        tm->onTrace = true;
-    VMSideExit* lr;
+    JS_ASSERT(!tm->onTrace);
+    tm->onTrace = true;
     
     debug_only(fflush(NULL);)
     GuardRecord* rec;
@@ -3792,13 +3733,13 @@ js_ExecuteTree(JSContext* cx, Fragment* f, uintN& inlineCallCount,
 #else
     rec = u.func(&state, NULL);
 #endif
-    lr = (VMSideExit*)rec->exit;
+    VMSideExit* lr = (VMSideExit*)rec->exit;
 
     AUDIT(traceTriggered);
 
     JS_ASSERT(lr->exitType != LOOP_EXIT || !lr->calldepth);
 
-    tm->onTrace = onTrace;
+    tm->onTrace = false;
 
     
 
@@ -4363,7 +4304,7 @@ js_FlushJITCache(JSContext* cx)
 JS_FORCES_STACK JSStackFrame *
 js_GetTopStackFrame(JSContext *cx)
 {
-    if (JS_EXECUTING_TRACE(cx)) {
+    if (JS_ON_TRACE(cx)) {
         
 
 
