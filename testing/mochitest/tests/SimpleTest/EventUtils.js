@@ -211,18 +211,15 @@ function synthesizeMouse(aTarget, aOffsetX, aOffsetY, aEvent, aWindow)
     var modifiers = _parseModifiers(aEvent);
 
     var rect = aTarget.getBoundingClientRect();
-
-    
-    
-    var left = Math.round(rect.left + aOffsetX);
-    var top = Math.round(rect.top + aOffsetY);
+    var left = rect.left;
+    var top = rect.top;
 
     if (aEvent.type) {
-      utils.sendMouseEvent(aEvent.type, left, top, button, clickCount, modifiers);
+      utils.sendMouseEvent(aEvent.type, left + aOffsetX, top + aOffsetY, button, clickCount, modifiers);
     }
     else {
-      utils.sendMouseEvent("mousedown", left, top, button, clickCount, modifiers);
-      utils.sendMouseEvent("mouseup", left, top, button, clickCount, modifiers);
+      utils.sendMouseEvent("mousedown", left + aOffsetX, top + aOffsetY, button, clickCount, modifiers);
+      utils.sendMouseEvent("mouseup", left + aOffsetX, top + aOffsetY, button, clickCount, modifiers);
     }
   }
 }
