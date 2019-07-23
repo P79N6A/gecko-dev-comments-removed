@@ -828,6 +828,21 @@ PrintWinCodebase(nsGlobalWindow *win)
 
 const PRUint32 MAYBE_GC_OPERATION_WEIGHT = 5000 * JS_OPERATION_WEIGHT_BASE;
 
+static void
+MaybeGC(JSContext *cx)
+{
+  size_t bytes = cx->runtime->gcBytes;
+  size_t lastBytes = cx->runtime->gcLastBytes;
+
+  if ((bytes > 8192 && bytes / 16 > lastBytes)
+#ifdef DEBUG
+      || cx->runtime->gcZeal > 0
+#endif
+      ) {
+    JS_GC(cx);
+  }
+}
+
 JSBool JS_DLL_CALLBACK
 nsJSContext::DOMOperationCallback(JSContext *cx)
 {
@@ -845,7 +860,7 @@ nsJSContext::DOMOperationCallback(JSContext *cx)
   
   PRTime callbackTime = ctx->mOperationCallbackTime;
 
-  JS_MaybeGC(cx);
+  MaybeGC(cx);
 
   
   ctx->mOperationCallbackTime = callbackTime;
@@ -3207,12 +3222,12 @@ nsJSContext::ScriptEvaluated(PRBool aTerminated)
 
 #ifdef JS_GC_ZEAL
   if (mContext->runtime->gcZeal >= 2) {
-    ::JS_MaybeGC(mContext);
+    MaybeGC(mContext);
   } else
 #endif
   if (mNumEvaluations > 20) {
     mNumEvaluations = 0;
-    ::JS_MaybeGC(mContext);
+    MaybeGC(mContext);
   }
 
   mOperationCallbackTime = LL_ZERO;
