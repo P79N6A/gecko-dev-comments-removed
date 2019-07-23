@@ -663,6 +663,9 @@ private:
   
 
 #define FCDATA_IS_INLINE 0x2000
+  
+
+#define FCDATA_IS_LINE_PARTICIPANT 0x4000
 
   
 
@@ -758,6 +761,11 @@ private:
     
     
     PRPackedBool mIsAllInline;
+    
+    
+    
+    
+    PRPackedBool mHasInlineEnds;
     
     
     PRPackedBool mIsPopup;
@@ -1255,10 +1263,12 @@ private:
   
   
   
+  
+  
   PRBool WipeContainingBlock(nsFrameConstructorState& aState,
                              nsIFrame*                aContainingBlock,
                              nsIFrame*                aFrame,
-                             const nsFrameItems&      aFrameList,
+                             const nsTArray<FrameConstructionItem>& aItems,
                              PRBool                   aIsAppend,
                              nsIFrame*                aPrevSibling);
 
@@ -1408,6 +1418,16 @@ private:
     NS_PRECONDITION(mUpdateCount != 0, "Instant counter updates are bad news");
     mCountersDirty = PR_TRUE;
   }
+
+  
+
+
+  static PRBool AnyItemsNeedBlockParent(const nsTArray<FrameConstructionItem>& aItems);
+
+  
+
+
+  static PRBool AreAllItemsInline(const nsTArray<FrameConstructionItem>& aItems);
 
 public:
   struct RestyleData;
