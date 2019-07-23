@@ -825,7 +825,7 @@ nsIndexedToHTML::OnIndexAvailable(nsIRequest *aRequest,
 
             escapedShort.Adopt(nsEscapeHTML2(description.get(), description.Length()));
             
-            escapedShort.AppendLiteral("&#8230;");
+            escapedShort.AppendLiteral("&#8230;&#8203;");
             nsString tmp;
             tmp.Adopt(nsEscapeHTML2(descriptionAffix.get(), descriptionAffix.Length()));
             escapedShort.Append(tmp);
