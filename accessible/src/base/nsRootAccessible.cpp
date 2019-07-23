@@ -345,12 +345,16 @@ nsresult nsRootAccessible::RemoveEventListeners()
     target->RemoveEventListener(NS_LITERAL_STRING("pagehide"), this, PR_TRUE);
   }
 
+  
+  
+  nsDocAccessible::RemoveEventListeners();
+
   if (mCaretAccessible) {
     mCaretAccessible->Shutdown();
     mCaretAccessible = nsnull;
   }
 
-  return nsDocAccessible::RemoveEventListeners();
+  return NS_OK;
 }
 
 nsCaretAccessible*
