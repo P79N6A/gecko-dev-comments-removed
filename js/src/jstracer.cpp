@@ -241,6 +241,7 @@ static bool did_we_check_sse2 = false;
 
 #ifdef JS_JIT_SPEW
 bool js_verboseDebug = getenv("TRACEMONKEY") && strstr(getenv("TRACEMONKEY"), "verbose");
+bool js_verboseStats = getenv("TRACEMONKEY") && strstr(getenv("TRACEMONKEY"), "stats");
 #endif
 
 
@@ -3572,6 +3573,13 @@ js_RecordLoopEdge(JSContext* cx, TraceRecorder* r, uintN& inlineCallCount)
     if (nesting_enabled && f) {
 
         
+        if (r->getCallDepth() > 0 && 
+            cx->fp->argc > cx->fp->fun->nargs) {
+            js_AbortRecording(cx, "Can't call inner tree with extra args in pending frame");
+            return false;
+        }
+
+        
         if (tm->reservedDoublePoolPtr < (tm->reservedDoublePool + MAX_NATIVE_STACK_SLOTS) &&
             !js_ReplenishReservedPool(cx, tm)) {
             js_AbortRecording(cx, "Couldn't call inner tree (out of memory)");
@@ -4522,7 +4530,7 @@ extern void
 js_FinishJIT(JSTraceMonitor *tm)
 {
 #ifdef JS_JIT_SPEW
-    if (jitstats.recorderStarted) {
+    if (js_verboseStats && jitstats.recorderStarted) {
         printf("recorder: started(%llu), aborted(%llu), completed(%llu), different header(%llu), "
                "trees trashed(%llu), slot promoted(%llu), unstable loop variable(%llu), "
                "breaks(%llu), returns(%llu), unstableInnerCalls(%llu)\n",
