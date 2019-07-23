@@ -129,7 +129,13 @@
 #endif
 
 #elif defined(NTO) 
+#if (__GNUC__ == 2) && (__GNUC_MINOR__ <= 7)
+
 #define CFRONT_STYLE_THIS_ADJUST
+#else
+
+#define THUNK_BASED_THIS_ADJUST
+#endif
 
 #elif defined(__BEOS__) 
 #define CFRONT_STYLE_THIS_ADJUST
@@ -162,4 +168,10 @@
 
 #if defined(THUNK_BASED_THIS_ADJUST) && defined(CFRONT_STYLE_THIS_ADJUST)
 #error "need to define only ONE 'this' adjust scheme"    
+#endif
+
+#if defined(__QNXNTO__)
+
+
+#define KEEP_STACK_16_BYTE_ALIGNED
 #endif
