@@ -389,6 +389,19 @@ class nsParser : public nsIParser,
       return sSpeculativeThreadPool;
     }
 
+    
+
+
+
+
+    virtual void ScriptExecuting();
+
+    
+
+
+
+    virtual void ScriptDidExecute();
+
  protected:
 
     void Initialize(PRBool aConstructor = PR_FALSE);
@@ -472,6 +485,7 @@ protected:
     PRInt32             mCharsetSource;
     
     PRUint16            mFlags;
+    PRUint32            mScriptsExecuting;
 
     nsString            mUnusedInput;
     nsCString           mCharset;

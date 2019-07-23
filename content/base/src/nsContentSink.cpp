@@ -344,6 +344,10 @@ nsContentSink::ScriptAvailable(nsresult aResult,
                                PRInt32 aLineNo)
 {
   PRUint32 count = mScriptElements.Count();
+  if (mParser && NS_SUCCEEDED(aResult)) {
+    
+    mParser->ScriptExecuting();
+  }
 
   if (count == 0) {
     return NS_OK;
@@ -395,13 +399,13 @@ nsContentSink::ScriptEvaluated(nsresult aResult,
                                nsIScriptElement *aElement,
                                PRBool aIsInline)
 {
+  if (mParser) {
+    mParser->ScriptDidExecute();
+  }
+
   
   PRInt32 count = mScriptElements.Count();
-  if (count == 0) {
-    return NS_OK;
-  }
-  
-  if (aElement != mScriptElements[count - 1]) {
+  if (count == 0 || aElement != mScriptElements[count - 1]) {
     return NS_OK;
   }
 
@@ -1728,14 +1732,6 @@ nsContentSink::WillBuildModelImpl()
   }
 
   mScrolledToRefAlready = PR_FALSE;
-}
-
-void
-nsContentSink::ContinueInterruptedParsing()
-{
-  if (mParser) {
-    mParser->ContinueInterruptedParsing();
-  }
 }
 
 void
