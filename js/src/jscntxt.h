@@ -132,7 +132,25 @@ typedef struct JSTraceMonitor {
 
 
 
-    JSBool                  onTrace;
+
+
+
+
+
+
+
+
+
+    JSPackedBool            onTrace;
+
+    
+
+
+
+    JSPackedBool            prohibitRecording;
+
+    
+    JSPackedBool            useReservedObjects;
 
     CLS(nanojit::LirBuffer) lirbuf;
     CLS(nanojit::Fragmento) fragmento;
@@ -149,7 +167,6 @@ typedef struct JSTraceMonitor {
 
 
     JSObject                *reservedObjects;
-    JSBool                  useReservedObjects;
 
     
 
