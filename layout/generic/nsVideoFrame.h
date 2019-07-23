@@ -63,6 +63,10 @@ public:
                               const nsRect&           aDirtyRect,
                               const nsDisplayListSet& aLists);
 
+  NS_IMETHOD AttributeChanged(PRInt32 aNameSpaceID,
+                              nsIAtom* aAttribute,
+                              PRInt32 aModType);
+
   void PaintVideo(nsIRenderingContext& aRenderingContext,
                    const nsRect& aDirtyRect, nsPoint aPt);
                               
@@ -101,14 +105,33 @@ public:
 #endif
 
 protected:
+
+  
+  
+  PRBool HasVideoElement();
+
+  
   
   
   PRBool HasVideoData();
+  
+  
+  
+  PRBool ShouldDisplayPoster();
+
+  
+  
+  nsresult UpdatePosterSource(PRBool aNotify);
 
   virtual ~nsVideoFrame();
 
   nsMargin mBorderPadding;
+  
+  
   nsCOMPtr<nsIContent> mVideoControls;
+  
+  
+  nsCOMPtr<nsIContent> mPosterImage;
 };
 
 #endif 

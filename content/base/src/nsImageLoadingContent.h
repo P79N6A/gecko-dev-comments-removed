@@ -260,9 +260,20 @@ private:
 
   ImageObserver mObserverList;
 
+  
+
+
+
+  PRInt32 mForcedImageState;
+
   PRInt16 mImageBlockingStatus;
   PRPackedBool mLoadingEnabled : 1;
   PRPackedBool mStartingLoad : 1;
+
+  
+
+
+  PRPackedBool mIsImageStateForced : 1;
 
   
 
