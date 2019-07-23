@@ -51,18 +51,96 @@
 
 
 
+nsXULColumnsAccessible::
+  nsXULColumnsAccessible(nsIDOMNode *aDOMNode, nsIWeakReference *aShell) :
+  nsAccessibleWrap(aDOMNode, aShell)
+{
+}
+
+NS_IMETHODIMP
+nsXULColumnsAccessible::GetRole(PRUint32 *aRole)
+{
+  NS_ENSURE_ARG_POINTER(aRole);
+
+  *aRole = nsIAccessibleRole::ROLE_LIST;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsXULColumnsAccessible::GetState(PRUint32 *aState, PRUint32 *aExtraState)
+{
+  NS_ENSURE_ARG_POINTER(aState);
+
+  if (aExtraState)
+    *aExtraState = 0;
+
+  *aState = nsIAccessibleStates::STATE_READONLY;
+  return NS_OK;
+}
 
 
 
 
+nsXULColumnItemAccessible::
+  nsXULColumnItemAccessible(nsIDOMNode *aDOMNode, nsIWeakReference *aShell) :
+  nsLeafAccessible(aDOMNode, aShell)
+{
+}
 
+NS_IMETHODIMP
+nsXULColumnItemAccessible::GetRole(PRUint32 *aRole)
+{
+  NS_ENSURE_ARG_POINTER(aRole);
 
+  *aRole = nsIAccessibleRole::ROLE_COLUMNHEADER;
+  return NS_OK;
+}
 
+NS_IMETHODIMP
+nsXULColumnItemAccessible::GetState(PRUint32 *aState, PRUint32 *aExtraState)
+{
+  NS_ENSURE_ARG_POINTER(aState);
 
+  if (aExtraState)
+    *aExtraState = 0;
 
+  *aState = nsIAccessibleStates::STATE_READONLY;
+  return NS_OK;
+}
 
+NS_IMETHODIMP
+nsXULColumnItemAccessible::GetName(nsAString& aName)
+{
+  return GetXULName(aName);
+}
 
+NS_IMETHODIMP
+nsXULColumnItemAccessible::GetNumActions(PRUint8 *aNumActions)
+{
+  NS_ENSURE_ARG_POINTER(aNumActions);
 
+  *aNumActions = 1;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsXULColumnItemAccessible::GetActionName(PRUint8 aIndex, nsAString& aName)
+{
+  if (aIndex != eAction_Click)
+    return NS_ERROR_INVALID_ARG;
+
+  aName.AssignLiteral("click");
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsXULColumnItemAccessible::DoAction(PRUint8 aIndex)
+{
+  if (aIndex != eAction_Click)
+    return NS_ERROR_INVALID_ARG;
+
+  return DoCommand();
+}
 
 
 

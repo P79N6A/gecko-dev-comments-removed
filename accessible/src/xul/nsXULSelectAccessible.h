@@ -40,8 +40,44 @@
 
 #include "nsCOMPtr.h"
 #include "nsXULMenuAccessible.h"
+#include "nsBaseWidgetAccessible.h"
 
 class nsIWeakReference;
+
+
+
+
+
+class nsXULColumnsAccessible : public nsAccessibleWrap
+{
+public:
+  nsXULColumnsAccessible(nsIDOMNode* aDOMNode, nsIWeakReference* aShell);
+
+  
+  NS_IMETHOD GetRole(PRUint32 *aRole);
+  NS_IMETHOD GetState(PRUint32 *aState, PRUint32 *aExtraState);
+};
+
+
+
+
+
+class nsXULColumnItemAccessible : public nsLeafAccessible
+{
+public:
+  nsXULColumnItemAccessible(nsIDOMNode* aDOMNode, nsIWeakReference* aShell);
+
+  
+  NS_IMETHOD GetRole(PRUint32 *aRole);
+  NS_IMETHOD GetName(nsAString& aName);
+  NS_IMETHOD GetState(PRUint32 *aState, PRUint32 *aExtraState);
+
+  NS_IMETHOD GetNumActions(PRUint8 *aNumActions);
+  NS_IMETHOD GetActionName(PRUint8 aIndex, nsAString& aName);
+  NS_IMETHOD DoAction(PRUint8 aIndex);
+
+  enum { eAction_Click = 0 };
+};
 
 
 
