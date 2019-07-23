@@ -1570,8 +1570,12 @@ nsPlainTextSerializer::OutputQuotesAndIndent(PRBool stripTrailingSpaces )
 
 
 void
-nsPlainTextSerializer::Write(const nsAString& aString)
+nsPlainTextSerializer::Write(const nsAString& aStr)
 {
+  
+  
+  nsAutoString str(aStr);
+
 #ifdef DEBUG_wrapping
   printf("Write(%s): wrap col = %d\n",
          NS_ConvertUTF16toUTF8(aString).get(), mWrapColumn);
@@ -1580,17 +1584,32 @@ nsPlainTextSerializer::Write(const nsAString& aString)
   PRInt32 bol = 0;
   PRInt32 newline;
   
-  PRInt32 totLen = aString.Length();
+  PRInt32 totLen = str.Length();
 
   
   if (totLen <= 0) return;
 
   
   
+  if (mFlags & nsIDocumentEncoder::OutputFormatFlowed) {
+    PRUnichar nbsp = 160;
+    for (PRUint32 i = totLen-1; i >= 0; i--) {
+      PRUnichar c = str[i];
+      if ('\n' == c || '\r' == c || ' ' == c || '\t' == c)
+        continue;
+      if (nbsp == c)
+        str.Replace(i, 1, ' ');
+      else
+        break;
+    }
+  }
+
+  
+  
   
   if ((mPreFormatted && !mWrapColumn) || IsInPre()
       || ((((!mQuotesPreformatted && mSpanLevel > 0) || mDontWrapAnyQuotes))
-          && mEmptyLines >= 0 && aString.First() == PRUnichar('>'))) {
+          && mEmptyLines >= 0 && str.First() == PRUnichar('>'))) {
     
 
     
@@ -1610,8 +1629,8 @@ nsPlainTextSerializer::Write(const nsAString& aString)
 
       
       
-      nsAString::const_iterator iter;           aString.BeginReading(iter);
-      nsAString::const_iterator done_searching; aString.EndReading(done_searching);
+      nsAString::const_iterator iter;           str.BeginReading(iter);
+      nsAString::const_iterator done_searching; str.EndReading(done_searching);
       iter.advance(bol); 
       PRInt32 new_newline = bol;
       newline = kNotFound;
@@ -1627,7 +1646,7 @@ nsPlainTextSerializer::Write(const nsAString& aString)
       
       if(newline == kNotFound) {
         
-        nsAutoString stringpart(Substring(aString, bol, totLen - bol));
+        nsAutoString stringpart(Substring(str, bol, totLen - bol));
         if(!stringpart.IsEmpty()) {
           PRUnichar lastchar = stringpart[stringpart.Length()-1];
           if((lastchar == '\t') || (lastchar == ' ') ||
@@ -1645,7 +1664,9 @@ nsPlainTextSerializer::Write(const nsAString& aString)
       } 
       else {
         
-        nsAutoString stringpart(Substring(aString, bol, newline-bol));
+        nsAutoString stringpart(Substring(str, bol, newline-bol));
+        if (mFlags & nsIDocumentEncoder::OutputFormatFlowed)
+          stringpart.Trim(" ", PR_FALSE, PR_TRUE, PR_TRUE);
         mInWhitespace = PR_TRUE;
         mCurrentLine.Assign(stringpart);
         outputLineBreak = PR_TRUE;
@@ -1681,10 +1702,6 @@ nsPlainTextSerializer::Write(const nsAString& aString)
 #endif
     return;
   }
-
-  
-  
-  nsAutoString str(aString);
 
   
   
