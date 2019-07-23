@@ -161,9 +161,10 @@ function downloadCompleted(aDownload)
 
     
     
-    if (!gSearching)
+    if (!gSearching) {
       gDownloadsView.insertBefore(dl, gDownloadsDoneArea.nextSibling);
-    else
+      evenOddCellAttribution();
+    } else
       removeFromView(dl);
 
     
@@ -848,6 +849,7 @@ function removeFromView(aDownload)
   let index = gDownloadsView.selectedIndex;
   gDownloadsView.removeChild(aDownload);
   gDownloadsView.selectedIndex = Math.min(index, gDownloadsView.itemCount - 1);
+  evenOddCellAttribution();
 }
 
 function getReferrerOrSource(aDownload)
@@ -876,6 +878,25 @@ function buildDefaultView()
   var children = gDownloadsView.children;
   if (children.length > 0)
     gDownloadsView.selectedItem = children[0];
+}
+
+ 
+
+
+
+function evenOddCellAttribution()
+{
+  let alternateCell = false;
+  let allDownloadsInView = gDownloadsView.getElementsByTagName("richlistitem");
+
+  for (let i = 0; i < allDownloadsInView.length; i++) {
+    if (alternateCell)
+      allDownloadsInView[i].setAttribute("alternate", "true");
+    else 
+      allDownloadsInView[i].removeAttribute("alternate");
+
+    alternateCell = !alternateCell;
+  }
 }
 
 
@@ -923,6 +944,7 @@ function buildDownloadList(aStmt, aRef)
     if (dl)
       gDownloadsView.insertBefore(dl, aRef.nextSibling);
   }
+  evenOddCellAttribution();
 }
 
 var gActiveDownloadsQuery = null;
