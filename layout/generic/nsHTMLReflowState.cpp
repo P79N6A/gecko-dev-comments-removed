@@ -1500,12 +1500,11 @@ CalcQuirkContainingBlockHeight(const nsHTMLReflowState* aCBReflowState)
       
     }
     
-    
-    else if (nsGkAtoms::areaFrame == frameType) {
+    else if (nsGkAtoms::blockFrame == frameType &&
+             nsGkAtoms::canvasFrame ==
+               rs->parentReflowState->frame->GetType()) {
       
-      if (nsGkAtoms::canvasFrame == rs->parentReflowState->frame->GetType()) {
-        result -= GetVerticalMarginBorderPadding(secondAncestorRS);
-      }
+      result -= GetVerticalMarginBorderPadding(secondAncestorRS);
     }
     break;
   }
