@@ -220,6 +220,15 @@ public:
 
 
 
+    eMetric_WindowsDefaultTheme,
+
+    
+
+
+
+
+
+
 
 
 

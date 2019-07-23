@@ -43,6 +43,7 @@
 
 
 
+
 #include "nsCSSRuleProcessor.h"
 
 #define PL_ARENA_CONST_ALIGN_MASK 7
@@ -780,6 +781,11 @@ InitSystemMetrics()
   lookAndFeel->GetMetric(nsILookAndFeel::eMetric_ImagesInMenus, metricResult);
   if (metricResult) {
     sSystemMetrics->AppendElement(do_GetAtom("images-in-menus"));
+  }
+
+  rv = lookAndFeel->GetMetric(nsILookAndFeel::eMetric_WindowsDefaultTheme, metricResult);
+  if (NS_SUCCEEDED(rv) && metricResult) {
+    sSystemMetrics->AppendElement(do_GetAtom("windows-default-theme"));
   }
 
   return PR_TRUE;
