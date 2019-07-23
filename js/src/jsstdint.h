@@ -71,6 +71,9 @@ typedef JSUint32 uint32_t;
 typedef JSUint64 uint64_t;
 
 
+#define _STDINT_H
+
+
 
 
 
