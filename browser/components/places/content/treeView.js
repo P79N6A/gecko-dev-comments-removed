@@ -355,20 +355,22 @@ PlacesTreeView.prototype = {
     if (newElements.length)
       this._tree.rowCountChanged(startReplacement, newElements.length);
 
-    
-    for (var i = 0; i < toOpenElements.length; i++) {
-      var item = toOpenElements[i];
-      var parent = item.parent;
+    if (!this._flatList) {
       
-      while (parent) {
-        if (parent.uri == item.uri)
-          break;
-        parent = parent.parent;
+      for (var i = 0; i < toOpenElements.length; i++) {
+        var item = toOpenElements[i];
+        var parent = item.parent;
+        
+        while (parent) {
+          if (parent.uri == item.uri)
+            break;
+          parent = parent.parent;
+        }
+        
+        
+        if (!parent)
+          item.containerOpen = !item.containerOpen;
       }
-      
-      
-      if (!parent)
-        item.containerOpen = !item.containerOpen;
     }
 
     this._tree.endUpdateBatch();
@@ -1000,11 +1002,6 @@ PlacesTreeView.prototype = {
 
     var nodeType = node.type;
     if (PlacesUtils.containerTypes.indexOf(nodeType) != -1) {
-      
-      
-      
-      if (this._flatList)
-        aProperties.AppendElement(this._getAtomFor("container"));
       if (nodeType == Ci.nsINavHistoryResultNode.RESULT_TYPE_QUERY)
         aProperties.AppendElement(this._getAtomFor("query"));
       else if (nodeType == Ci.nsINavHistoryResultNode.RESULT_TYPE_FOLDER ||
@@ -1025,8 +1022,6 @@ PlacesTreeView.prototype = {
 
   isContainer: function PTV_isContainer(aRow) {
     this._ensureValidRow(aRow);
-    if (this._flatList)
-      return false; 
 
     var node = this._visibleElements[aRow];
     if (PlacesUtils.nodeIsContainer(node)) {
@@ -1095,7 +1090,7 @@ PlacesTreeView.prototype = {
       if (node.parent && PlacesUtils.nodeIsReadOnly(node.parent))
         return false;
     }
-    return PlacesControllerDragHelper.canDrop(this, aOrientation);
+    return PlacesControllerDragHelper.canDrop();
   },
 
   
@@ -1307,6 +1302,11 @@ PlacesTreeView.prototype = {
     if (!PlacesUtils.nodeIsContainer(node))
       return; 
 
+    if (this._flatList && this._openContainerCallback) {
+      this._openContainerCallback(node);
+      return;
+    }
+
     var resource = this._getResourceForNode(node);
     if (resource) {
       const openLiteral = PlacesUtils.RDF.GetResource("http://home.netscape.com/NC-rdf#open");
@@ -1456,7 +1456,7 @@ PlacesTreeView.prototype = {
   performActionOnCell: function(aAction, aRow, aColumn) { }
 };
 
-function PlacesTreeView(aShowRoot, aFlatList) {
+function PlacesTreeView(aShowRoot, aFlatList, aOnOpenFlatContainer) {
   if (aShowRoot && aFlatList)
     throw("Flat-list mode is not supported when show-root is set");
 
@@ -1468,4 +1468,5 @@ function PlacesTreeView(aShowRoot, aFlatList) {
   this._visibleElements = [];
   this._showRoot = aShowRoot;
   this._flatList = aFlatList;
+  this._openContainerCallback = aOnOpenFlatContainer;
 }

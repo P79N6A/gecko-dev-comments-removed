@@ -1411,7 +1411,12 @@ PlacesMenuDNDObserver.prototype = {
   },
 
   canDrop: function TBV_DO_canDrop(event, session) {
-    return PlacesControllerDragHelper.canDrop(this._view._viewer, -1);
+    
+    var resultNode = this._popup._resultNode;
+    if (!PlacesUtils.nodeIsFolder(resultNode))
+      return null;
+
+    return PlacesControllerDragHelper.canDrop();
   },
 
   onDragOver: function TBV_DO_onDragOver(event, flavor, session) {
@@ -1547,18 +1552,7 @@ var PlacesControllerDragHelper = {
 
 
 
-
-
-
-
-
-
-  canDrop: function PCDH_canDrop(view, orientation) {
-    var root = view.result.root;
-    if (PlacesUtils.nodeIsReadOnly(root) || 
-        !PlacesUtils.nodeIsFolder(root))
-      return false;
-
+  canDrop: function PCDH_canDrop() {
     var session = this.getSession();
     if (session) {
       var types = PlacesUtils.GENERIC_VIEW_DROP_TYPES;

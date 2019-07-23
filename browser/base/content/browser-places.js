@@ -774,10 +774,9 @@ var BookmarksMenuDropHandler = {
 
 
   canDrop: function BMDH_canDrop(event, session) {
-    var view = document.getElementById("bookmarksMenuPopup");
-    return PlacesControllerDragHelper.canDrop(view._viewer, -1);
+    return PlacesControllerDragHelper.canDrop();
   },
-  
+
   
 
 
