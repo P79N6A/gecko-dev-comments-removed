@@ -140,8 +140,7 @@ class nsAccessNode: public nsIAccessNode
     
 
 
-    
-    virtual PRBool IsDefunct() { return !mDOMNode || !GetPresShell().get(); }
+    virtual PRBool IsDefunct() { return !mDOMNode; }
 
     
 
