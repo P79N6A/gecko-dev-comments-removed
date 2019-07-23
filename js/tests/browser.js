@@ -568,18 +568,27 @@ function gczeal(z)
   javascriptoptions.setIntPref('gczeal', Number(z));
 }
 
+var gJit = { content: undefined, chrome: undefined };
+
 function jit(on)
 {
-  var javascriptoptions = new Preferences('javascript.options.jit.');
+  var jitoptions = new Preferences('javascript.options.jit.');
+
+  if (typeof gJit.content == 'undefined')
+  {
+    gJit.content = jitoptions.getBoolPref('content');
+    gJit.chrome  = jitoptions.getBoolPref('chrome');
+  }
+
   if (on)
   {
-    javascriptoptions.setBoolPref('content', true);
-    javascriptoptions.setBoolPref('chrome', true);
+    jitoptions.setBoolPref('content', true);
+    jitoptions.setBoolPref('chrome', false);
   }
   else
   {
-    javascriptoptions.setBoolPref('content', false);
-    javascriptoptions.setBoolPref('chrome', false);
+    jitoptions.setBoolPref('content', false);
+    jitoptions.setBoolPref('chrome', false);
   }
 }
 
@@ -625,11 +634,24 @@ function jsTestDriverBrowserInit()
     gczeal(zeal);
   }
 
+
+
+
+
+
+
+
+
+
   var jitmatches = /;jit/.exec(document.location.search);
 
   if (jitmatches)
   {
     jit(true);
+  }
+  else
+  {
+    jit(false);
   }
 
   var versionmatches = /version=([.0-9]*)/.exec(value);
@@ -750,6 +772,18 @@ function jsTestDriverEnd()
   {
     var javascriptoptions = new Preferences('javascript.options.');
     javascriptoptions.clearPref('gczeal');
+
+    var jitoptions = new Preferences('javascript.options.jit.');
+    if (typeof gJit.content != 'undefined')
+    {
+      jitoptions.setBoolPref('content', gJit.content);
+    }
+
+    if (typeof gJit.chrome != 'undefined')
+    {
+      jitoptions.setBoolPref('chrome', gJit.chrome);
+    }
+
     optionsReset();
   }
   catch(ex)
