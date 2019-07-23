@@ -133,8 +133,8 @@ function viewSource(url)
       }
     }
     
-    if (window.arguments.length >= 3) {
-      arg = window.arguments[2];
+    if (window.arguments.length >= 5) {
+      arg = window.arguments[4];
 
       try {
         if (arg === true) {
@@ -149,16 +149,16 @@ function viewSource(url)
     
     
     
-    if (window.arguments.length >= 5) {
-      arg = window.arguments[4];
+    if (window.arguments.length >= 4) {
+      arg = window.arguments[3];
       gGoToLine = parseInt(arg);
     }
     
     
     
     
-    if (window.arguments.length >= 4) {
-      arg = window.arguments[3];
+    if (window.arguments.length >= 3) {
+      arg = window.arguments[2];
 
       try {
         if (typeof(arg) == "object" && arg != null) {
