@@ -62,6 +62,8 @@ let (ios = Components.classes["@mozilla.org/network/io-service;1"]
 
 
 if ("@mozilla.org/toolkit/crash-reporter;1" in Components.classes) {
+  
+  
   let (crashReporter =
         Components.classes["@mozilla.org/toolkit/crash-reporter;1"]
         .getService(Components.interfaces.nsICrashReporter)) {
