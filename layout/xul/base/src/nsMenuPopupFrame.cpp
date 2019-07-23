@@ -763,6 +763,9 @@ nsMenuPopupFrame::AdjustPositionForAnchorAlign(const nsRect& anchorRect,
   
   nsPoint pnt;
   switch (popupAnchor) {
+    case POPUPALIGNMENT_TOPLEFT:
+      pnt = anchorRect.TopLeft();
+      break;
     case POPUPALIGNMENT_TOPRIGHT:
       pnt = anchorRect.TopRight();
       break;
@@ -771,10 +774,6 @@ nsMenuPopupFrame::AdjustPositionForAnchorAlign(const nsRect& anchorRect,
       break;
     case POPUPALIGNMENT_BOTTOMRIGHT:
       pnt = anchorRect.BottomRight();
-      break;
-    case POPUPALIGNMENT_TOPLEFT:
-    default:
-      pnt = anchorRect.TopLeft();
       break;
   }
 
@@ -785,6 +784,9 @@ nsMenuPopupFrame::AdjustPositionForAnchorAlign(const nsRect& anchorRect,
   nsMargin margin(0, 0, 0, 0);
   GetStyleMargin()->GetMargin(margin);
   switch (popupAlign) {
+    case POPUPALIGNMENT_TOPLEFT:
+      pnt.MoveBy(margin.left, margin.top);
+      break;
     case POPUPALIGNMENT_TOPRIGHT:
       pnt.MoveBy(-mRect.width - margin.right, margin.top);
       break;
@@ -793,10 +795,6 @@ nsMenuPopupFrame::AdjustPositionForAnchorAlign(const nsRect& anchorRect,
       break;
     case POPUPALIGNMENT_BOTTOMRIGHT:
       pnt.MoveBy(-mRect.width - margin.right, -mRect.height - margin.bottom);
-      break;
-    case POPUPALIGNMENT_TOPLEFT:
-    default:
-      pnt.MoveBy(margin.left, margin.top);
       break;
   }
 
@@ -860,7 +858,6 @@ nsMenuPopupFrame::FlipOrResize(nscoord& aScreenPoint, nscoord aSize,
           aScreenPoint = aScreenEnd - aSize;
         }
         else {
-          aScreenPoint = aAnchorEnd + aMarginBegin;
           popupSize = aScreenEnd - aScreenPoint;
         }
       }
@@ -883,22 +880,7 @@ nsMenuPopupFrame::FlipOrResize(nscoord& aScreenPoint, nscoord aSize,
     }
   }
 
-  
-  
-  
-  if (aScreenPoint < aScreenBegin) {
-    aScreenPoint = aScreenBegin;
-  }
-  if (aScreenPoint > aScreenEnd) {
-    aScreenPoint = aScreenEnd - aSize;
-  }
-
-  
-  
-  if (popupSize <= 0 || aSize < popupSize) {
-    popupSize = aSize;
-  }
-  return NS_MIN(popupSize, aScreenEnd - aScreenPoint);
+  return popupSize;
 }
 
 nsresult
