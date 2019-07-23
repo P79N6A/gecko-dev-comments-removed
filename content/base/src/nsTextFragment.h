@@ -47,7 +47,6 @@
 #include "nsAString.h"
 class nsString;
 class nsCString;
-class nsDOMNodeAllocator;
 
 
 
@@ -86,11 +85,13 @@ public:
   
 
 
-  nsTextFragment(nsDOMNodeAllocator* aAllocator);
+  nsTextFragment()
+    : m1b(nsnull), mAllBits(0)
+  {
+    NS_ASSERTION(sizeof(FragmentBits) == 4, "Bad field packing!");
+  }
 
   ~nsTextFragment();
-
-  nsDOMNodeAllocator* Allocator() { return mAllocator; }
 
   
 
@@ -204,7 +205,6 @@ public:
 
 private:
   void ReleaseText();
-  void* CloneMemory(const void* aPtr, PRSize aSize);
 
   union {
     PRUnichar *m2b;
@@ -215,7 +215,6 @@ private:
     PRUint32 mAllBits;
     FragmentBits mState;
   };
-  nsDOMNodeAllocator* mAllocator;
 };
 
 #endif 
