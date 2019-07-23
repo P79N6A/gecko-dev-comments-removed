@@ -262,21 +262,23 @@ nsDisplayListBuilder::Allocate(size_t aSize) {
 
 void
 nsDisplayListBuilder::AccumulateVisibleRegionOfMovingContent(const nsRegion& aMovingContent,
-                                                             const nsRegion& aVisibleRegion)
+                                                             const nsRegion& aVisibleRegionBeforeMove,
+                                                             const nsRegion& aVisibleRegionAfterMove)
 {
   if (!mSaveVisibleRegionOfMovingContent)
     return;
 
+  nsRegion beforeRegion = aMovingContent;
+  beforeRegion.MoveBy(-mMoveDelta);
+  beforeRegion.And(beforeRegion, aVisibleRegionBeforeMove);
+  nsRegion afterRegion = aMovingContent;
+  afterRegion.And(afterRegion, aVisibleRegionAfterMove);
   
-  
-  nsRegion r = aMovingContent;
-  r.MoveBy(-mMoveDelta);
-  r.Or(r, aMovingContent);
-  
-  r.And(r, aVisibleRegion);
   
   mSaveVisibleRegionOfMovingContent->Or(
-      *mSaveVisibleRegionOfMovingContent, r);
+      *mSaveVisibleRegionOfMovingContent, beforeRegion);
+  mSaveVisibleRegionOfMovingContent->Or(
+      *mSaveVisibleRegionOfMovingContent, afterRegion);
   mSaveVisibleRegionOfMovingContent->SimplifyOutward(15);
 }
 
@@ -314,7 +316,11 @@ nsDisplayList::GetBounds(nsDisplayListBuilder* aBuilder) const {
 
 void
 nsDisplayList::ComputeVisibility(nsDisplayListBuilder* aBuilder,
-                                 nsRegion* aVisibleRegion) {
+                                 nsRegion* aVisibleRegion,
+                                 nsRegion* aVisibleRegionBeforeMove) {
+  NS_ASSERTION((aVisibleRegionBeforeMove != nsnull) == aBuilder->HasMovingFrames(),
+               "Should have aVisibleRegionBeforeMove when there are moving frames");
+
   nsAutoTArray<nsDisplayItem*, 512> elements;
   FlattenTo(&elements);
 
@@ -322,7 +328,8 @@ nsDisplayList::ComputeVisibility(nsDisplayListBuilder* aBuilder,
   nsRect movingContentAccumulatedBounds;
   
   
-  nsRegion movingContentVisibleRegion;
+  nsRegion movingContentVisibleRegionBeforeMove;
+  nsRegion movingContentVisibleRegionAfterMove;
 
   for (PRInt32 i = elements.Length() - 1; i >= 0; --i) {
     nsDisplayItem* item = elements[i];
@@ -342,7 +349,8 @@ nsDisplayList::ComputeVisibility(nsDisplayListBuilder* aBuilder,
       if (movingContentAccumulatedBounds.IsEmpty()) {
         
         
-        movingContentVisibleRegion = *aVisibleRegion;
+        movingContentVisibleRegionBeforeMove = *aVisibleRegionBeforeMove;
+        movingContentVisibleRegionAfterMove = *aVisibleRegion;
       }
       nscoord appUnitsPerPixel = f->PresContext()->AppUnitsPerDevPixel();
       nsRect roundOutBounds = bounds.
@@ -352,26 +360,29 @@ nsDisplayList::ComputeVisibility(nsDisplayListBuilder* aBuilder,
     }
 
     nsRegion itemVisible;
-    itemVisible.And(*aVisibleRegion, bounds);
+    if (aVisibleRegionBeforeMove) {
+      
+      itemVisible.Or(*aVisibleRegion, *aVisibleRegionBeforeMove);
+      itemVisible.And(itemVisible, bounds);
+    } else {
+      itemVisible.And(*aVisibleRegion, bounds);
+    }
     item->mVisibleRect = itemVisible.GetBounds();
 
     if (!item->mVisibleRect.IsEmpty() &&
-        item->ComputeVisibility(aBuilder, aVisibleRegion)) {
+        item->ComputeVisibility(aBuilder, aVisibleRegion, aVisibleRegionBeforeMove)) {
       AppendToBottom(item);
 
-      
       if (item->IsOpaque(aBuilder) && f) {
-        nsRect opaqueArea;
-        if (isMoving) {
-          
-          
-          
-          
-          opaqueArea.IntersectRect(bounds - aBuilder->GetMoveDelta(), bounds);
-        } else {
-          opaqueArea = bounds;
+        
+        aBuilder->SubtractFromVisibleRegion(aVisibleRegion, nsRegion(bounds));
+
+        if (aVisibleRegionBeforeMove) {
+          nsRect opaqueAreaBeforeMove =
+            isMoving ? bounds - aBuilder->GetMoveDelta() : bounds;
+          aBuilder->SubtractFromVisibleRegion(aVisibleRegionBeforeMove,
+                                              nsRegion(opaqueAreaBeforeMove));
         }
-        aBuilder->SubtractFromVisibleRegion(aVisibleRegion, nsRegion(opaqueArea));
       }
     } else {
       item->~nsDisplayItem();
@@ -379,7 +390,9 @@ nsDisplayList::ComputeVisibility(nsDisplayListBuilder* aBuilder,
   }
 
   aBuilder->AccumulateVisibleRegionOfMovingContent(
-      nsRegion(movingContentAccumulatedBounds), movingContentVisibleRegion);
+    nsRegion(movingContentAccumulatedBounds),
+    movingContentVisibleRegionBeforeMove,
+    movingContentVisibleRegionAfterMove);
 
 #ifdef DEBUG
   mDidComputeVisibility = PR_TRUE;
@@ -719,13 +732,20 @@ nsDisplayOutline::Paint(nsDisplayListBuilder* aBuilder,
 
 PRBool
 nsDisplayOutline::ComputeVisibility(nsDisplayListBuilder* aBuilder,
-                                    nsRegion* aVisibleRegion) {
-  if (!nsDisplayItem::ComputeVisibility(aBuilder, aVisibleRegion))
+                                    nsRegion* aVisibleRegion,
+                                    nsRegion* aVisibleRegionBeforeMove) {
+  NS_ASSERTION((aVisibleRegionBeforeMove != nsnull) == aBuilder->HasMovingFrames(),
+               "Should have aVisibleRegionBeforeMove when there are moving frames");
+
+  if (!nsDisplayItem::ComputeVisibility(aBuilder, aVisibleRegion,
+                                        aVisibleRegionBeforeMove))
     return PR_FALSE;
 
   const nsStyleOutline* outline = mFrame->GetStyleOutline();
-  nsPoint origin = aBuilder->ToReferenceFrame(mFrame);
-  if (nsRect(origin, mFrame->GetSize()).Contains(aVisibleRegion->GetBounds()) &&
+  nsRect borderBox(aBuilder->ToReferenceFrame(mFrame), mFrame->GetSize());
+  if (borderBox.Contains(aVisibleRegion->GetBounds()) &&
+      (!aVisibleRegionBeforeMove ||
+       borderBox.Contains(aVisibleRegionBeforeMove->GetBounds())) &&
       !nsLayoutUtils::HasNonZeroCorner(outline->mOutlineRadius)) {
     if (outline->mOutlineOffset >= 0) {
       
@@ -747,14 +767,21 @@ nsDisplayCaret::Paint(nsDisplayListBuilder* aBuilder,
 
 PRBool
 nsDisplayBorder::ComputeVisibility(nsDisplayListBuilder* aBuilder,
-                                   nsRegion* aVisibleRegion) {
-  if (!nsDisplayItem::ComputeVisibility(aBuilder, aVisibleRegion))
+                                   nsRegion* aVisibleRegion,
+                                   nsRegion* aVisibleRegionBeforeMove) {
+  NS_ASSERTION((aVisibleRegionBeforeMove != nsnull) == aBuilder->HasMovingFrames(),
+               "Should have aVisibleRegionBeforeMove when there are moving frames");
+
+  if (!nsDisplayItem::ComputeVisibility(aBuilder, aVisibleRegion,
+                                        aVisibleRegionBeforeMove))
     return PR_FALSE;
 
   nsRect paddingRect = mFrame->GetPaddingRect() - mFrame->GetPosition() +
     aBuilder->ToReferenceFrame(mFrame);
   const nsStyleBorder *styleBorder;
   if (paddingRect.Contains(aVisibleRegion->GetBounds()) &&
+      (!aVisibleRegionBeforeMove ||
+       paddingRect.Contains(aVisibleRegionBeforeMove->GetBounds())) &&
       !(styleBorder = mFrame->GetStyleBorder())->IsBorderImageLoaded() &&
       !nsLayoutUtils::HasNonZeroCorner(styleBorder->mBorderRadius)) {
     
@@ -797,13 +824,21 @@ nsDisplayBoxShadowOuter::GetBounds(nsDisplayListBuilder* aBuilder) {
 
 PRBool
 nsDisplayBoxShadowOuter::ComputeVisibility(nsDisplayListBuilder* aBuilder,
-                                           nsRegion* aVisibleRegion) {
-  if (!nsDisplayItem::ComputeVisibility(aBuilder, aVisibleRegion))
+                                           nsRegion* aVisibleRegion,
+                                           nsRegion* aVisibleRegionBeforeMove) {
+  NS_ASSERTION((aVisibleRegionBeforeMove != nsnull) == aBuilder->HasMovingFrames(),
+               "Should have aVisibleRegionBeforeMove when there are moving frames");
+
+  if (!nsDisplayItem::ComputeVisibility(aBuilder, aVisibleRegion,
+                                        aVisibleRegionBeforeMove))
     return PR_FALSE;
 
   nsPoint origin = aBuilder->ToReferenceFrame(mFrame);
+  nsRect visibleBounds = aVisibleRegion->GetBounds();
+  if (aVisibleRegionBeforeMove) {
+    visibleBounds.UnionRect(visibleBounds, aVisibleRegionBeforeMove->GetBounds());
+  }
   nsRect frameRect(origin, mFrame->GetSize());
-  const nsRect visibleBounds = aVisibleRegion->GetBounds();
   if (!frameRect.Contains(visibleBounds))
     return PR_TRUE;
 
@@ -856,8 +891,9 @@ nsDisplayWrapList::GetBounds(nsDisplayListBuilder* aBuilder) {
 
 PRBool
 nsDisplayWrapList::ComputeVisibility(nsDisplayListBuilder* aBuilder,
-                                     nsRegion* aVisibleRegion) {
-  mList.ComputeVisibility(aBuilder, aVisibleRegion);
+                                     nsRegion* aVisibleRegion,
+                                     nsRegion* aVisibleRegionBeforeMove) {
+  mList.ComputeVisibility(aBuilder, aVisibleRegion, aVisibleRegionBeforeMove);
   
   return mList.GetTop() != nsnull;
 }
@@ -1010,19 +1046,32 @@ void nsDisplayOpacity::Paint(nsDisplayListBuilder* aBuilder,
 }
 
 PRBool nsDisplayOpacity::ComputeVisibility(nsDisplayListBuilder* aBuilder,
-                                           nsRegion* aVisibleRegion) {
+                                           nsRegion* aVisibleRegion,
+                                           nsRegion* aVisibleRegionBeforeMove) {
+  NS_ASSERTION((aVisibleRegionBeforeMove != nsnull) == aBuilder->HasMovingFrames(),
+               "Should have aVisibleRegionBeforeMove when there are moving frames");
+
   
   
   
   
   
   nsRegion visibleUnderChildren = *aVisibleRegion;
+  nsRegion visibleUnderChildrenBeforeMove;
+  if (aVisibleRegionBeforeMove) {
+    visibleUnderChildrenBeforeMove = *aVisibleRegionBeforeMove;
+  }
   PRBool anyVisibleChildren =
-    nsDisplayWrapList::ComputeVisibility(aBuilder, &visibleUnderChildren);
+    nsDisplayWrapList::ComputeVisibility(aBuilder, &visibleUnderChildren,
+      aVisibleRegionBeforeMove ? &visibleUnderChildrenBeforeMove : nsnull);
   if (!anyVisibleChildren)
     return PR_FALSE;
 
-  mNeedAlpha = visibleUnderChildren.Intersects(mVisibleRect);
+  
+  
+  
+  mNeedAlpha = aVisibleRegionBeforeMove ||
+    visibleUnderChildren.Intersects(mVisibleRect);
   return PR_TRUE;
 }
 
@@ -1073,12 +1122,14 @@ void nsDisplayClip::Paint(nsDisplayListBuilder* aBuilder,
 }
 
 PRBool nsDisplayClip::ComputeVisibility(nsDisplayListBuilder* aBuilder,
-                                        nsRegion* aVisibleRegion) {
-  nsRegion clipped;
-  clipped.And(*aVisibleRegion, mClip);
+                                        nsRegion* aVisibleRegion,
+                                        nsRegion* aVisibleRegionBeforeMove) {
+  NS_ASSERTION((aVisibleRegionBeforeMove != nsnull) == aBuilder->HasMovingFrames(),
+               "Should have aVisibleRegionBeforeMove when there are moving frames");
 
-  if (aBuilder->HasMovingFrames() &&
-      !aBuilder->IsMovingFrame(mClippingFrame)) {
+  PRBool isMoving = aBuilder->IsMovingFrame(mClippingFrame);
+
+  if (aBuilder->HasMovingFrames() && !isMoving) {
     
     
     
@@ -1087,14 +1138,35 @@ PRBool nsDisplayClip::ComputeVisibility(nsDisplayListBuilder* aBuilder,
     
     nsRegion r;
     r.Sub(mClip + aBuilder->GetMoveDelta(), mClip);
-    aBuilder->AccumulateVisibleRegionOfMovingContent(r, *aVisibleRegion);
+    
+    
+    
+    aBuilder->AccumulateVisibleRegionOfMovingContent(r, *aVisibleRegionBeforeMove,
+                                                     nsRegion());
   }
 
-  nsRegion rNew(clipped);
-  PRBool anyVisible = nsDisplayWrapList::ComputeVisibility(aBuilder, &rNew);
-  nsRegion subtracted;
-  subtracted.Sub(clipped, rNew);
-  aBuilder->SubtractFromVisibleRegion(aVisibleRegion, subtracted);
+  nsRegion clipped;
+  clipped.And(*aVisibleRegion, mClip);
+  nsRegion clippedBeforeMove;
+  if (aVisibleRegionBeforeMove) {
+    nsRect beforeMoveClip = isMoving ? mClip - aBuilder->GetMoveDelta() : mClip;
+    clippedBeforeMove.And(*aVisibleRegionBeforeMove, beforeMoveClip);
+  }
+
+  nsRegion finalClipped(clipped);
+  nsRegion finalClippedBeforeMove(clippedBeforeMove);
+  PRBool anyVisible =
+    nsDisplayWrapList::ComputeVisibility(aBuilder, &finalClipped,
+      aVisibleRegionBeforeMove ? &finalClippedBeforeMove : nsnull);
+
+  nsRegion removed;
+  removed.Sub(clipped, finalClipped);
+  aBuilder->SubtractFromVisibleRegion(aVisibleRegion, removed);
+  if (aVisibleRegionBeforeMove) {
+    removed.Sub(clippedBeforeMove, finalClippedBeforeMove);
+    aBuilder->SubtractFromVisibleRegion(aVisibleRegionBeforeMove, removed);
+  }
+
   return anyVisible;
 }
 
@@ -1300,14 +1372,26 @@ void nsDisplayTransform::Paint(nsDisplayListBuilder *aBuilder,
 }
 
 PRBool nsDisplayTransform::ComputeVisibility(nsDisplayListBuilder *aBuilder,
-                                             nsRegion *aVisibleRegion)
+                                             nsRegion *aVisibleRegion,
+                                             nsRegion *aVisibleRegionBeforeMove)
 {
+  NS_ASSERTION((aVisibleRegionBeforeMove != nsnull) == aBuilder->HasMovingFrames(),
+               "Should have aVisibleRegionBeforeMove when there are moving frames");
+
   
 
 
   nsRegion untransformedVisible =
     UntransformRect(mVisibleRect, mFrame, aBuilder->ToReferenceFrame(mFrame));
-  mStoredList.ComputeVisibility(aBuilder, &untransformedVisible);
+
+  nsRegion untransformedVisibleBeforeMove;
+  if (aVisibleRegionBeforeMove) {
+    
+    
+    untransformedVisibleBeforeMove = untransformedVisible;
+  }
+  mStoredList.ComputeVisibility(aBuilder, &untransformedVisible,
+                                &untransformedVisibleBeforeMove);
   return PR_TRUE;
 }
 
@@ -1534,15 +1618,25 @@ void nsDisplaySVGEffects::Paint(nsDisplayListBuilder* aBuilder,
 }
 
 PRBool nsDisplaySVGEffects::ComputeVisibility(nsDisplayListBuilder* aBuilder,
-                                              nsRegion* aVisibleRegion) {
+                                              nsRegion* aVisibleRegion,
+                                              nsRegion* aVisibleRegionBeforeMove) {
+  NS_ASSERTION((aVisibleRegionBeforeMove != nsnull) == aBuilder->HasMovingFrames(),
+               "Should have aVisibleRegionBeforeMove when there are moving frames");
+
   nsPoint offset = aBuilder->ToReferenceFrame(mEffectsFrame);
-  nsRect dirtyRect = nsSVGIntegrationUtils::GetRequiredSourceForInvalidArea(mEffectsFrame,
-      mVisibleRect - offset) + offset;
+  nsRect dirtyRect =
+    nsSVGIntegrationUtils::GetRequiredSourceForInvalidArea(mEffectsFrame,
+                                                           mVisibleRect - offset) +
+    offset;
 
   
   
-  nsRegion childrenVisibleRegion(dirtyRect);
-  nsDisplayWrapList::ComputeVisibility(aBuilder, &childrenVisibleRegion);
+  nsRegion childrenVisible(dirtyRect);
+  
+  
+  nsRegion childrenVisibleBeforeMove(dirtyRect);
+  nsDisplayWrapList::ComputeVisibility(aBuilder, &childrenVisible,
+    aVisibleRegionBeforeMove ? &childrenVisibleBeforeMove : nsnull);
   return PR_TRUE;
 }
 

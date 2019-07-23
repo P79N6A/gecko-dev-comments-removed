@@ -1118,7 +1118,7 @@ nsLayoutUtils::PaintFrame(nsIRenderingContext* aRenderingContext, nsIFrame* aFra
 #endif
 
   nsRegion visibleRegion = aDirtyRegion;
-  list.ComputeVisibility(&builder, &visibleRegion);
+  list.ComputeVisibility(&builder, &visibleRegion, nsnull);
 
 #ifdef DEBUG
   if (gDumpPaintList) {
@@ -1285,7 +1285,8 @@ nsLayoutUtils::ComputeRepaintRegionForCopy(nsIFrame* aRootFrame,
   
   
   nsRegion visibleRegion(aUpdateRect);
-  list.ComputeVisibility(&builder, &visibleRegion);
+  nsRegion visibleRegionBeforeMove(aUpdateRect);
+  list.ComputeVisibility(&builder, &visibleRegion, &visibleRegionBeforeMove);
 
 #ifdef DEBUG
   if (gDumpRepaintRegionForCopy) {
