@@ -85,6 +85,7 @@
 
 #include "nsTimerImpl.h"
 #include "TimerThread.h"
+#include "nsTimeStamp.h"
 
 #include "nsThread.h"
 #include "nsProcess.h"
@@ -140,6 +141,10 @@ NS_DECL_CLASSINFO(nsStringInputStream)
 
 #include <locale.h>
 
+#include "nsXPCOM.h"
+
+using mozilla::TimeStamp;
+
 
 
 
@@ -161,7 +166,6 @@ NS_GENERIC_FACTORY_CONSTRUCTOR(nsProcess)
 
 #define NS_ENVIRONMENT_CLASSNAME "Environment Service"
 
-#include "nsXPCOM.h"
 
 #define NS_SUPPORTS_ID_CLASSNAME "Supports ID"
 #define NS_SUPPORTS_CSTRING_CLASSNAME "Supports String"
@@ -543,6 +547,10 @@ NS_InitXPCOM3(nsIServiceManager* *result,
     NS_LogInit();
 
     
+    rv = TimeStamp::Startup();
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    
     rv = nsThreadManager::get()->Init();
     if (NS_FAILED(rv)) return rv;
 
@@ -874,6 +882,8 @@ NS_ShutdownXPCOM(nsIServiceManager* servMgr)
 
     NS_IF_RELEASE(gDebug);
 
+    TimeStamp::Shutdown();
+    
     NS_LogTerm();
 
 #ifdef GC_LEAK_DETECTOR
