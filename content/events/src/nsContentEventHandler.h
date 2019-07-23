@@ -77,6 +77,10 @@ public:
   nsresult OnQueryTextRect(nsQueryContentEvent* aEvent);
   
   nsresult OnQueryEditorRect(nsQueryContentEvent* aEvent);
+  
+  nsresult OnQueryContentState(nsQueryContentEvent* aEvent);
+  
+  nsresult OnQuerySelectionAsTransferable(nsQueryContentEvent* aEvent);
 
   
   nsresult OnSelectionEvent(nsSelectionEvent* aEvent);

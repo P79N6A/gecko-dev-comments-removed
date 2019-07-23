@@ -54,6 +54,7 @@
 #include "nsIWidget.h"
 #include "nsTArray.h"
 #include "nsTraceRefcnt.h"
+#include "nsITransferable.h"
 
 class nsIRenderingContext;
 class nsIRegion;
@@ -362,6 +363,11 @@ class nsHashKey;
 
 
 #define NS_QUERY_EDITOR_RECT             (NS_QUERY_CONTENT_EVENT_START + 5)
+
+
+#define NS_QUERY_CONTENT_STATE           (NS_QUERY_CONTENT_EVENT_START + 6)
+
+#define NS_QUERY_SELECTION_AS_TRANSFERABLE (NS_QUERY_CONTENT_EVENT_START + 7)
 
 
 #ifdef MOZ_MEDIA
@@ -1012,6 +1018,9 @@ public:
     
     nsIWidget* mFocusedWidget;
     PRPackedBool mReversed; 
+    PRPackedBool mHasSelection; 
+    
+    nsCOMPtr<nsITransferable> mTransferable;
   } mReply;
 };
 

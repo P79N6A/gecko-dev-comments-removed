@@ -70,6 +70,12 @@ class nsCopySupport
     
     static nsresult GetClipboardEventTarget(nsISelection *aSel,
                                             nsIDOMNode **aEventTarget);
+
+    
+    
+    static nsresult GetTransferableForSelection(nsISelection * aSelection,
+                                                nsIDocument * aDocument,
+                                                nsITransferable ** aTransferable);
 };
 
 #endif
