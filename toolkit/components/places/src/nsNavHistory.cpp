@@ -106,7 +106,7 @@ using namespace mozilla::places;
 #define PREF_BROWSER_HISTORY_EXPIRE_DAYS_MIN    "history_expire_days_min"
 #define PREF_BROWSER_HISTORY_EXPIRE_DAYS_MAX    "history_expire_days"
 #define PREF_BROWSER_HISTORY_EXPIRE_SITES       "history_expire_sites"
-#define PREF_DB_CACHE_PERCENTAGE                "history_cache_percentage"
+
 #define PREF_FRECENCY_NUM_VISITS                "places.frecency.numVisits"
 #define PREF_FRECENCY_FIRST_BUCKET_CUTOFF       "places.frecency.firstBucketCutoff"
 #define PREF_FRECENCY_SECOND_BUCKET_CUTOFF      "places.frecency.secondBucketCutoff"
@@ -127,14 +127,15 @@ using namespace mozilla::places;
 #define PREF_FRECENCY_DEFAULT_VISIT_BONUS       "places.frecency.defaultVisitBonus"
 #define PREF_FRECENCY_UNVISITED_BOOKMARK_BONUS  "places.frecency.unvisitedBookmarkBonus"
 #define PREF_FRECENCY_UNVISITED_TYPED_BONUS     "places.frecency.unvisitedTypedBonus"
+
 #define PREF_LAST_VACUUM                        "places.last_vacuum"
 
+#define PREF_CACHE_TO_MEMORY_PERCENTAGE         "places.database.cache_to_memory_percentage"
 
 
 
 
-
-#define DEFAULT_DB_CACHE_PERCENTAGE 6
+#define DATABASE_DEFAULT_CACHE_TO_MEMORY_PERCENTAGE 6
 
 
 
@@ -717,17 +718,24 @@ nsNavHistory::InitDB()
       "PRAGMA synchronous = FULL"));
   NS_ENSURE_SUCCESS(rv, rv);
 
-
   
+  
+  
+  nsCOMPtr<nsIPrefBranch> prefs =
+    do_GetService("@mozilla.org/preferences-service;1");
+  NS_WARN_IF_FALSE(prefs, "Unable to get the preferences service");
   PRInt32 cachePercentage;
-  if (NS_FAILED(mPrefBranch->GetIntPref(PREF_DB_CACHE_PERCENTAGE,
-                                        &cachePercentage)))
-    cachePercentage = DEFAULT_DB_CACHE_PERCENTAGE;
+  if (!prefs || NS_FAILED(prefs->GetIntPref(PREF_CACHE_TO_MEMORY_PERCENTAGE,
+                                            &cachePercentage)))
+    cachePercentage = DATABASE_DEFAULT_CACHE_TO_MEMORY_PERCENTAGE;
+  
   if (cachePercentage > 50)
-    cachePercentage = 50; 
+    cachePercentage = 50;
   if (cachePercentage < 0)
     cachePercentage = 0;
   PRInt64 cacheSize = PR_GetPhysicalMemorySize() * cachePercentage / 100;
+
+  
   PRInt64 cachePages = cacheSize / pageSize;
 
   
