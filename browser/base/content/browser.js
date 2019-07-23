@@ -1547,40 +1547,36 @@ function initializeSanitizer()
 
 
 
-  (function() {
-    var prefService = Cc["@mozilla.org/preferences-service;1"].
-                      getService(Ci.nsIPrefService);
-    if (!prefService.getBoolPref("privacy.sanitize.migrateFx3Prefs")) {
-      var itemBranch = prefService.getBranch("privacy.item.");
-      var itemCount = { value: 0 };
-      var itemArray = itemBranch.getChildList("", itemCount);
+  if (!gPrefService.getBoolPref("privacy.sanitize.migrateFx3Prefs")) {
+    let itemBranch = gPrefService.getBranch("privacy.item.");
+    let itemCount = { value: 0 };
+    let itemArray = itemBranch.getChildList("", itemCount);
 
-      
-      var doMigrate = itemArray.some(function (name) itemBranch.prefHasUserValue(name));
-      
-      if (!doMigrate)
-        doMigrate = prefService.getBoolPref("privacy.sanitize.sanitizeOnShutdown");
+    
+    let doMigrate = itemArray.some(function (name) itemBranch.prefHasUserValue(name));
+    
+    if (!doMigrate)
+      doMigrate = gPrefService.getBoolPref("privacy.sanitize.sanitizeOnShutdown");
 
-      if (doMigrate) {
-        var cpdBranch = prefService.getBranch("privacy.cpd.");
-        var clearOnShutdownBranch = prefService.getBranch("privacy.clearOnShutdown.");
-        itemArray.forEach(function (name) {
-          try {
-            
-            
-            if (name != "passwords" && name != "offlineApps")
-              cpdBranch.setBoolPref(name, itemBranch.getBoolPref(name));
-            clearOnShutdownBranch.setBoolPref(name, itemBranch.getBoolPref(name));
-          }
-          catch(e) {
-            Components.utils.reportError("Exception thrown during privacy pref migration: " + e);
-          }
-        });
-      }
-
-      prefService.setBoolPref("privacy.sanitize.migrateFx3Prefs", true);
+    if (doMigrate) {
+      let cpdBranch = gPrefService.getBranch("privacy.cpd.");
+      let clearOnShutdownBranch = gPrefService.getBranch("privacy.clearOnShutdown.");
+      itemArray.forEach(function (name) {
+        try {
+          
+          
+          if (name != "passwords" && name != "offlineApps")
+            cpdBranch.setBoolPref(name, itemBranch.getBoolPref(name));
+          clearOnShutdownBranch.setBoolPref(name, itemBranch.getBoolPref(name));
+        }
+        catch(e) {
+          Cu.reportError("Exception thrown during privacy pref migration: " + e);
+        }
+      });
     }
-  })();
+
+    gPrefService.setBoolPref("privacy.sanitize.migrateFx3Prefs", true);
+  }
 }
 
 function gotoHistoryIndex(aEvent)
@@ -3042,7 +3038,7 @@ const BrowserSearch = {
           setTimeout(BrowserSearch.webSearch, 0);
         }
 
-        win = window.openDialog("chrome:
+        win = window.openDialog("chrome://browser/content/", "_blank",
                                 "chrome,all,dialog=no", "about:blank");
         win.addEventListener("load", webSearchCallback, false);
       }
@@ -3206,7 +3202,7 @@ function addToUrlbarHistory(aUrlToAdd) {
 
 function toJavaScriptConsole()
 {
-  toOpenWindowByType("global:console", "chrome:
+  toOpenWindowByType("global:console", "chrome://global/content/console.xul");
 }
 
 function BrowserDownloadsUI()
