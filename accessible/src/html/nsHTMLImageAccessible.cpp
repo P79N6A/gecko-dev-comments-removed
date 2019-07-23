@@ -130,24 +130,34 @@ nsHTMLImageAccessible::GetState(PRUint32 *aState, PRUint32 *aExtraState)
 
 NS_IMETHODIMP nsHTMLImageAccessible::GetName(nsAString& aName)
 {
+  aName.Truncate();
+  if (IsDefunct())
+    return NS_ERROR_FAILURE;
+  
   nsCOMPtr<nsIContent> content(do_QueryInterface(mDOMNode));
-  if (!content) {
-    return NS_ERROR_FAILURE;  
-  }
-
-  if (!content->GetAttr(kNameSpaceID_None, nsAccessibilityAtoms::alt,
-                        aName)) {
-    if (mRoleMapEntry) {
+  NS_ASSERTION(content, "Image node always supports nsIContent");
+    
+  
+  
+  
+  PRBool hasAltAttrib =
+    content->GetAttr(kNameSpaceID_None, nsAccessibilityAtoms::alt, aName);
+  if (aName.IsEmpty()) {
+    if (content->HasAttr(kNameSpaceID_None, nsAccessibilityAtoms::aria_labelledby)) {
       
       
-      return GetHTMLName(aName, PR_FALSE);
+      GetHTMLName(aName, PR_FALSE);
     }
-    if (!content->GetAttr(kNameSpaceID_None, nsAccessibilityAtoms::title,
-                          aName)) {
-      aName.SetIsVoid(PR_TRUE); 
+    if (aName.IsEmpty()) { 
+      content->GetAttr(kNameSpaceID_None, nsAccessibilityAtoms::title, aName);
+      if (!hasAltAttrib && aName.IsEmpty()) { 
+        
+        
+        
+        aName.SetIsVoid(PR_TRUE);
+      }
     }
   }
-
   return NS_OK;
 }
 
