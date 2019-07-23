@@ -170,7 +170,7 @@ js_ValueToBoolean(jsval v)
     if (JSVAL_IS_OBJECT(v))
         return JS_TRUE;
     if (JSVAL_IS_STRING(v))
-        return JSSTRING_LENGTH(JSVAL_TO_STRING(v)) != 0;
+        return JSVAL_TO_STRING(v)->length() != 0;
     if (JSVAL_IS_INT(v))
         return JSVAL_TO_INT(v) != 0;
     if (JSVAL_IS_DOUBLE(v)) {

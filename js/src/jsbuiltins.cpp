@@ -177,7 +177,7 @@ js_StringToNumber(JSContext* cx, JSString* str)
     const jschar* ep;
     jsdouble d;
 
-    JSSTRING_CHARS_AND_END(str, bp, end);
+    str->getCharsAndEnd(bp, end);
     if ((!js_strtod(cx, bp, end, &ep, &d) ||
          js_SkipWhiteSpace(ep, end) != end) &&
         (!js_strtointeger(cx, bp, end, &ep, 0, &d) ||
@@ -196,7 +196,7 @@ js_StringToInt32(JSContext* cx, JSString* str)
     const jschar* ep;
     jsdouble d;
 
-    JSSTRING_CHARS_AND_END(str, bp, end);
+    str->getCharsAndEnd(bp, end);
     if (!js_strtod(cx, bp, end, &ep, &d) || js_SkipWhiteSpace(ep, end) != end)
         return 0;
     return js_DoubleToECMAInt32(d);

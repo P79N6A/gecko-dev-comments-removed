@@ -37,7 +37,6 @@
 
 
 
-
 #ifndef jscompat_h___
 #define jscompat_h___
 
