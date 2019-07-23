@@ -342,8 +342,12 @@ PRBool nsWindow::OnPaint(HDC aDC)
     RECT updateRect;
     if (!GetUpdateRect(mWnd, &updateRect, FALSE) ||
         (updateRect.left == updateRect.right &&
-         updateRect.top == updateRect.bottom))
+         updateRect.top == updateRect.bottom)) {
+      PAINTSTRUCT ps;
+      BeginPaint(mWnd, &ps);
+      EndPaint(mWnd, &ps);
       return PR_TRUE;
+    }
 
     PluginInstanceParent* instance = reinterpret_cast<PluginInstanceParent*>(
       ::GetPropW(mWnd, L"PluginInstanceParentProperty"));
