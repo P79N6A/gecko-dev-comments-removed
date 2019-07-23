@@ -136,6 +136,7 @@ public:
                 PRBool aSyncLoad,
                 PRBool aAllowUnsafeRules,
                 PRBool aUseSystemPrincipal,
+                const nsCString& aCharset,
                 nsICSSLoaderObserver* aObserver,
                 nsIPrincipal* aLoaderPrincipal);
 
@@ -223,6 +224,10 @@ public:
 
   
   nsCOMPtr<nsIPrincipal> mLoaderPrincipal;
+
+  
+  
+  nsCString mCharsetHint;
 };
 
 class nsURIAndPrincipalHashKey : public nsURIHashKey
@@ -350,11 +355,13 @@ public:
 
   NS_IMETHOD LoadSheet(nsIURI* aURL,
                        nsIPrincipal* aOriginPrincipal,
+                       const nsCString& aCharset,
                        nsICSSLoaderObserver* aObserver,
                        nsICSSStyleSheet** aSheet);
 
   NS_IMETHOD LoadSheet(nsIURI* aURL,
                        nsIPrincipal* aOriginPrincipal,
+                       const nsCString& aCharset,
                        nsICSSLoaderObserver* aObserver);
 
   
@@ -424,6 +431,7 @@ private:
                                         PRBool aAllowUnsafeRules,
                                         PRBool aUseSystemPrincipal,
                                         nsIPrincipal* aOriginPrincipal,
+                                        const nsCString& aCharset,
                                         nsICSSStyleSheet** aSheet,
                                         nsICSSLoaderObserver* aObserver);
 

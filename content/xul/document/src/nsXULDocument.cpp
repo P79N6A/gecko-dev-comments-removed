@@ -3899,7 +3899,8 @@ nsXULDocument::AddPrototypeSheets()
         nsCOMPtr<nsICSSStyleSheet> incompleteSheet;
         rv = CSSLoader()->LoadSheet(uri,
                                     mCurrentPrototype->DocumentPrincipal(),
-                                    this, getter_AddRefs(incompleteSheet));
+                                    EmptyCString(), this,
+                                    getter_AddRefs(incompleteSheet));
 
         
         

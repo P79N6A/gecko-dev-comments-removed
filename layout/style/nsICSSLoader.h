@@ -214,8 +214,14 @@ public:
 
 
 
+
+
+
+
+
   NS_IMETHOD LoadSheet(nsIURI* aURL,
                        nsIPrincipal* aOriginPrincipal,
+                       const nsCString& aCharset,
                        nsICSSLoaderObserver* aObserver,
                        nsICSSStyleSheet** aSheet) = 0;
 
@@ -225,6 +231,7 @@ public:
 
   NS_IMETHOD LoadSheet(nsIURI* aURL,
                        nsIPrincipal* aOriginPrincipal,
+                       const nsCString& aCharset,
                        nsICSSLoaderObserver* aObserver) = 0;
 
   
