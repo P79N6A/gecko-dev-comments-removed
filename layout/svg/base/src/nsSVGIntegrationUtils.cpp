@@ -141,9 +141,17 @@ nsSVGIntegrationUtils::GetInvalidAreaForChangedSource(nsIFrame* aFrame,
   
   nsIFrame* firstFrame =
     nsLayoutUtils::GetFirstContinuationOrSpecialSibling(aFrame);
-  nsSVGFilterFrame* filterFrame = nsSVGEffects::GetFilterFrame(firstFrame);
-  if (!filterFrame)
+  nsSVGEffects::EffectProperties effectProperties =
+    nsSVGEffects::GetEffectProperties(firstFrame);
+  if (!effectProperties.mFilter)
     return aInvalidRect;
+  nsSVGFilterFrame* filterFrame = nsSVGEffects::GetFilterFrame(firstFrame);
+  if (!filterFrame) {
+    
+    
+    
+    return aFrame->GetOverflowRect();
+  }
 
   PRInt32 appUnitsPerDevPixel = aFrame->PresContext()->AppUnitsPerDevPixel();
   nsRect userSpaceRect = GetNonSVGUserSpace(firstFrame);

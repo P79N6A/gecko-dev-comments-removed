@@ -692,10 +692,9 @@ nsFrameManager::RemoveFrame(nsIFrame*       aParentFrame,
                             nsIAtom*        aListName,
                             nsIFrame*       aOldFrame)
 {
-#ifdef DEBUG  
   PRBool wasDestroyingFrames = mIsDestroyingFrames;
   mIsDestroyingFrames = PR_TRUE;
-#endif
+
   
   
   
@@ -705,9 +704,9 @@ nsFrameManager::RemoveFrame(nsIFrame*       aParentFrame,
   aOldFrame->Invalidate(aOldFrame->GetOverflowRect());
 
   nsresult rv = aParentFrame->RemoveFrame(aListName, aOldFrame);
-#ifdef DEBUG  
+
   mIsDestroyingFrames = wasDestroyingFrames;
-#endif
+
   return rv;
 }
 
