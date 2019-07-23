@@ -81,8 +81,12 @@ var HandlerServiceTest = {
   init: function HandlerServiceTest_init() {
     
     
-    try        { this._dirSvc.get("UMimTyp", Ci.nsIFile) }
-    catch (ex) { this._dirSvc.registerProvider(this) }
+    try {
+      this._dirSvc.get("UMimTyp", Ci.nsIFile);
+    } catch (ex) {
+      this._dirSvc.registerProvider(this);
+      this._providerRegistered = true;
+    }
 
     
     
@@ -99,6 +103,9 @@ var HandlerServiceTest = {
     
     
     this._deleteDatasourceFile();
+    
+    if (this._providerRegistered)
+      this._dirSvc.unregisterProvider(this);
   },
 
 
