@@ -298,15 +298,6 @@ nsXPConnect::GetXPConnect()
 }
 
 
-
-
-
-
-#ifdef GC_MARK_DEBUG
-extern "C" JS_FRIEND_DATA(FILE *) js_DumpGCHeap;
-#endif
-
-
 nsXPConnect*
 nsXPConnect::GetSingleton()
 {
@@ -331,15 +322,29 @@ nsXPConnect::ReleaseXPConnectSingleton()
         }
 #endif
 
-#ifdef GC_MARK_DEBUG
+#ifdef DEBUG
+        
         
         XPCCallContext ccx(NATIVE_CALLER);
         if(ccx.IsValid())
         {
-            FILE* oldFileHandle = js_DumpGCHeap;
-            js_DumpGCHeap = stdout;
-            JS_GC(ccx);
-            js_DumpGCHeap = oldFileHandle;
+            const char* dumpName = getenv("XPC_SHUTDOWN_HEAP_DUMP");
+            if(dumpName)
+            {
+                FILE* dumpFile = (*dumpName == '\0' ||
+                                  strcmp(dumpName, "stdout") == 0)
+                                 ? stdout
+                                 : fopen(dumpName, "w");
+                if(dumpFile)
+                {
+                    JS_DumpHeap(ccx, nsnull, 0, nsnull,
+                                NS_STATIC_CAST(size_t, -1), nsnull,
+                                NS_REINTERPRET_CAST(JSPrintfFormater, fprintf),
+                                dumpFile);
+                    if(dumpFile != stdout)
+                        fclose(dumpFile);
+                }
+            }
         }
 #endif
 #ifdef XPC_DUMP_AT_SHUTDOWN
