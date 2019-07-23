@@ -107,9 +107,6 @@
 #define NS_STYLE_FLOAT_EDGE_MARGIN        1
 
 
-#define NS_STYLE_KEY_EQUIVALENT_NONE      0
-
-
 #define NS_STYLE_USER_FOCUS_NONE            0
 #define NS_STYLE_USER_FOCUS_IGNORE          1
 #define NS_STYLE_USER_FOCUS_NORMAL          2
