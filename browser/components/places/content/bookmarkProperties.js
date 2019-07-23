@@ -87,6 +87,11 @@
 
 
 
+const LAST_USED_ANNO = "bookmarkPropertiesDialog/lastUsed";
+
+
+const MAX_FOLDER_ITEM_IN_MENU_LIST = 5;
+
 const BOOKMARK_ITEM = 0;
 const BOOKMARK_FOLDER = 1;
 const LIVEMARK_CONTAINER = 2;
@@ -135,12 +140,20 @@ var BookmarkPropertiesPanel = {
   _microsummaries: null,
 
   
+  
+  
+  
+  
+  
+  _folderTreeHeight: null,
+
+  
 
 
 
   _getAcceptLabel: function BPP__getAcceptLabel() {
     if (this._action == ACTION_ADD)
-      return this._strings.getString("dialogAcceptLabelAdd");
+      return this._strings.getString("dialogAcceptLabelAddItem");
     if (this._action == ACTION_ADD_WITH_ITEMS)
       return this._strings.getString("dialogAcceptLabelAddMulti");
 
@@ -185,6 +198,11 @@ var BookmarkPropertiesPanel = {
         this._itemTitle = dialogInfo.title;
       if ("defaultInsertionPoint" in dialogInfo)
         this._defaultInsertionPoint = dialogInfo.defaultInsertionPoint;
+      else {
+        
+        this._defaultInsertionPoint =
+          new InsertionPoint(PlacesUtils.bookmarks.bookmarksRoot, -1);
+      }
 
       switch(dialogInfo.type) {
         case "bookmark":
@@ -314,7 +332,6 @@ var BookmarkPropertiesPanel = {
 
 
 
-
   _getURITitleFromHistory: function BPP__getURITitleFromHistory(aURI) {
     NS_ASSERT(aURI instanceof Ci.nsIURI);
 
@@ -330,31 +347,92 @@ var BookmarkPropertiesPanel = {
     this._tm = window.opener.PlacesUtils.tm;
 
     this._determineItemInfo();
-    
-    
-    
-    var self = this;
-    setTimeout(function() { self._initFolderTree(); }, 0);
-    
     this._populateProperties();
     this._forceHideRows();
     this.validateChanges();
-    this._updateSize();
-  },
-  
-  
 
-
-  _initFolderTree: function BPP__initFolderTree() {
+    this._folderMenuList = this._element("folderMenuList");
     this._folderTree = this._element("folderTree");
-    this._folderTree.peerDropTypes = [];
-    this._folderTree.childDropTypes = [];
-    if (isElementVisible(this._folderTree)) {
-      if (this._defaultInsertionPoint)
-        this._folderTree.selectFolders([this._defaultInsertionPoint.folderId]);
-      else
-        this._folderTree.selectFolders([PlacesUtils.bookmarks.bookmarksRoot]);
+    if (isElementVisible(this._folderMenuList))
+      this._initFolderMenuList();
+
+    window.sizeToContent();
+
+    
+    this._folderTreeHeight = parseInt(this._folderTree.getAttribute("height"));
+  },
+
+  
+
+
+
+
+
+
+
+  _appendFolderItemToMenupopup:
+  function BPP__appendFolderItemToMenuList(aMenupopup, aFolderId) {
+    
+    this._element("foldersSeparator").hidden = false;
+
+    var folderMenuItem = document.createElement("menuitem");
+    var folderTitle = PlacesUtils.bookmarks.getFolderTitle(aFolderId)
+    folderMenuItem.folderId = aFolderId;
+    folderMenuItem.setAttribute("label", folderTitle);
+    folderMenuItem.className = "menuitem-iconic folder-icon";
+    aMenupopup.appendChild(folderMenuItem);
+    return folderMenuItem;
+  },
+
+  _initFolderMenuList: function BPP__initFolderMenuList() {
+    
+    var annos = PlacesUtils.annotations;
+    var folderURIs = annos.getPagesWithAnnotation(LAST_USED_ANNO, { });
+
+    
+    if (folderURIs.length == 0) {
+      this._element("foldersSeparator").hidden = true;
+      return;
     }
+
+    
+
+
+
+
+
+
+
+    var folders = [];
+    var history = PlacesUtils.history;
+    for (var i=0; i < folderURIs.length; i++) {
+      var queryString = folderURIs[i].spec;
+      var queries = { };
+      history.queryStringToQueries(queryString, queries, {  },
+                                   {  });
+      var folderId = queries.value[0].getFolders({})[0];
+      NS_ASSERT(queries.value[0].folderCount == 1,
+                "Bogus uri is annotated with the LAST_USED_ANNO annotation");
+      var lastUsed = annos.getAnnotationInt64(folderURIs[i], LAST_USED_ANNO);
+      folders.push({ folderId: folderId, lastUsed: lastUsed });
+    }
+    folders.sort(function(a, b) {
+      if (b.lastUsed < a.lastUsed)
+        return -1;
+      if (b.lastUsed > a.lastUsed)
+        return 1;
+      return 0;
+    });
+
+    var numberOfItems = Math.min(MAX_FOLDER_ITEM_IN_MENU_LIST, folders.length);
+    var menupopup = this._folderMenuList.menupopup;
+    for (i=0; i < numberOfItems; i++) {
+      this._appendFolderItemToMenupopup(menupopup, folders[i].folderId);
+    }
+
+    var defaultItem =
+      this._getFolderMenuItem(this._defaultInsertionPoint.folderId, true);
+    this._folderMenuList.selectedItem = defaultItem;
   },
 
   QueryInterface: function BPP_QueryInterface(aIID) {
@@ -383,7 +461,7 @@ var BookmarkPropertiesPanel = {
     if (hiddenRows.indexOf("location") != -1)
       this._element("locationRow").hidden = true;
     if (hiddenRows.indexOf("keyword") != -1)
-      this._element("shortcutRow").hidden = true;
+      this._element("keywordRow").hidden = true;
     if (hiddenRows.indexOf("description")!= -1)
       this._element("descriptionRow").hidden = true;
     if (hiddenRows.indexOf("folder picker") != -1)
@@ -418,7 +496,7 @@ var BookmarkPropertiesPanel = {
     }
     else {
       this._element("locationRow").hidden = true;
-      this._element("shortcutRow").hidden = true;
+      this._element("keywordRow").hidden = true;
       this._element("loadInSidebarCheckbox").hidden = true;
     }
 
@@ -538,9 +616,10 @@ var BookmarkPropertiesPanel = {
         
         
         
+        
         if (namePicker.selectedItem == childNodes[i])
           namePicker.value = newLabel;
-        
+
         childNodes[i].label = newLabel;
         return;
       }
@@ -556,18 +635,15 @@ var BookmarkPropertiesPanel = {
     namePicker.setAttribute("droppable", "true");
   },
 
-  
-
-
-  _updateSize: function BPP__updateSize() {
-    var width = window.outerWidth;
-    window.sizeToContent();
-    window.resizeTo(width, window.outerHeight);
-  },
-
   onDialogUnload: function BPP_onDialogUnload() {
     if (this._microsummaries)
       this._microsummaries.removeObserver(this);
+
+    
+    if (!this._folderTree.collapsed) {
+      this._folderTree.setAttribute("height",
+                                    this._folderTree.boxObject.height);
+    }
   },
 
   onDialogAccept: function BPP_onDialogAccept() {
@@ -647,14 +723,12 @@ var BookmarkPropertiesPanel = {
               "_getCreateItemTransaction called when editing an item");
 
     var containerId, indexInContainer = -1;
-    if (isElementVisible(this._folderTree))
-      containerId =  asFolder(this._folderTree.selectedNode).folderId;
-    else if (this._defaultInsertionPoint) {
+    if (isElementVisible(this._folderMenuList))
+      containerId = this._getFolderIdFromMenuList();
+    else {
       containerId = this._defaultInsertionPoint.folderId;
       indexInContainer = this._defaultInsertionPoint.index;
     }
-    else
-      containerId = PlacesUtils.bookmarks.bookmarksRoot;
 
     if (this._itemType == BOOKMARK_ITEM) {
       var uri = PlacesUtils._uri(this._element("editURLBar").value);
@@ -824,6 +898,9 @@ var BookmarkPropertiesPanel = {
         NS_ASSERT(createTxn, "failed to get a create-item transaction");
 
         
+        this._markFolderAsRecentlyUsed(createTxn.container);
+
+        
         createTxn.childTransactions =
           createTxn.childTransactions.concat(transactions);
 
@@ -845,5 +922,128 @@ var BookmarkPropertiesPanel = {
 
   onNamePickerInput: function BPP_onNamePickerInput() {
     this._element("userEnteredName").label = this._element("namePicker").value;
+  },
+
+  toggleTreeVisibility: function BPP_toggleTreeVisibility() {
+    var expander = this._element("expander");
+    if (!this._folderTree.collapsed) { 
+      expander.className = "down";
+      expander.setAttribute("tooltiptext",
+                            expander.getAttribute("tooltiptextdown"));
+      document.documentElement.buttons = "accept,cancel";
+
+      this._folderTreeHeight = this._folderTree.boxObject.height;
+      this._folderTree.setAttribute("height", this._folderTreeHeight);
+      this._folderTree.collapsed = true;
+      resizeTo(window.outerWidth, window.outerHeight - this._folderTreeHeight);
+    }
+    else {
+      expander.className = "up";
+      expander.setAttribute("tooltiptext",
+                            expander.getAttribute("tooltiptextup"));
+      document.documentElement.buttons = "accept,cancel, extra2";
+
+      if (!this._folderTree.treeBoxObject.view.isContainerOpen(0))
+        this._folderTree.treeBoxObject.view.toggleOpenState(0);
+      this._folderTree.selectFolders([this._getFolderIdFromMenuList()]);
+      this._folderTree.focus();
+
+      this._folderTree.collapsed = false;
+      resizeTo(window.outerWidth, window.outerHeight + this._folderTreeHeight);
+    }
+  },
+
+  _getFolderIdFromMenuList:
+  function BPP__getFolderIdFromMenuList() {
+    var selectedItem = this._folderMenuList.selectedItem
+    switch (selectedItem.id) {
+      case "bookmarksRootItem":
+        return PlacesUtils.bookmarksRootId;
+      case "toolbarFolderItem":
+        return PlacesUtils.toolbarFolderId;
+    }
+
+    NS_ASSERT("folderId" in selectedItem,
+              "Invalid menuitem in the folders-menulist");
+    return selectedItem.folderId;
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+  _getFolderMenuItem:
+  function BPP__getFolderMenuItem(aFolderId, aCheckStaticFolderItems) {
+    var menupopup = this._folderMenuList.menupopup;
+
+    
+    for (var i=3;  i < menupopup.childNodes.length; i++) {
+      if (menupopup.childNodes[i].folderId == aFolderId)
+        return menupopup.childNodes[i];
+    }
+
+    if (aCheckStaticFolderItems) {
+      if (aFolderId == PlacesUtils.bookmarksRootId)
+        return this._element("bookmarksRootItem")
+      if (aFolderId == PlacesUtils.toolbarFolderId)
+        return this._element("toolbarFolderItem")
+    }
+
+    
+    if (menupopup.childNodes.length == 3 + MAX_FOLDER_ITEM_IN_MENU_LIST)
+      menupopup.removeChild(menupopup.lastChild);
+
+    return this._appendFolderItemToMenupopup(menupopup, aFolderId);
+  },
+
+  onMenuListFolderSelect: function BPP_onMenuListFolderSelect(aEvent) {
+    if (this._folderTree.hidden)
+      return;
+
+    this._folderTree.selectFolders([this._getFolderIdFromMenuList()]);
+  },
+
+  onFolderTreeSelect: function BPP_onFolderTreeSelect() {
+    var selectedNode = this._folderTree.selectedNode;
+    if (!selectedNode)
+      return;
+
+    var folderId = asFolder(selectedNode).folderId;
+    
+    
+    var oldSelectedItem = this._folderMenuList.selectedItem;
+    if ((oldSelectedItem.id == "toolbarFolderItem" &&
+         folderId == PlacesUtils.bookmarks.toolbarFolder) ||
+        (oldSelectedItem.id == "bookmarksRootItem" &&
+         folderId == PlacesUtils.bookmarks.bookmarksRoot))
+      return;
+
+    var folderItem = this._getFolderMenuItem(folderId, false);
+    this._folderMenuList.selectedItem = folderItem;
+  },
+
+  _markFolderAsRecentlyUsed:
+  function BPP__markFolderAsRecentlyUsed(aFolderId) {
+    
+    
+    var folderURI = PlacesUtils.bookmarks.getFolderURI(aFolderId);
+    PlacesUtils.annotations
+               .setAnnotationInt64(folderURI, LAST_USED_ANNO,
+                                   new Date().getTime(), 0,
+                                   Ci.nsIAnnotationService.EXPIRE_NEVER);
+  },
+
+  newFolder: function BPP_newFolder() {
+    
+    this._folderTree.focus();
+    goDoCommand("placesCmd_new:folder");
   }
 };
