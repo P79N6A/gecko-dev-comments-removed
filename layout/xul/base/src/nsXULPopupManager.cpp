@@ -1219,12 +1219,6 @@ PRBool
 nsXULPopupManager::MayShowPopup(nsMenuPopupFrame* aPopup)
 {
   
-  if (IsPopupOpen(aPopup->GetContent())) {
-    NS_WARNING("Refusing to show duplicate popup");
-    return PR_FALSE;
-  }
-
-  
   
   NS_ASSERTION(!aPopup->IsOpen() || IsPopupOpen(aPopup->GetContent()),
                "popup frame state doesn't match XULPopupManager open state");
@@ -1240,6 +1234,12 @@ nsXULPopupManager::MayShowPopup(nsMenuPopupFrame* aPopup)
   
   if (state != ePopupClosed && state != ePopupInvisible)
     return PR_FALSE;
+
+  
+  if (IsPopupOpen(aPopup->GetContent())) {
+    NS_WARNING("Refusing to show duplicate popup");
+    return PR_FALSE;
+  }
 
   
   nsCOMPtr<nsIWidget> widget;
