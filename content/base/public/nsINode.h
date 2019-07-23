@@ -143,11 +143,8 @@ enum {
                                  NODE_HAS_EDGE_CHILD_SELECTOR |
                                  NODE_HAS_SLOW_SELECTOR_NOAPPEND,
 
-  NODE_MAY_HAVE_CONTENT_EDITABLE_ATTR
-                               = 0x00040000U,
-
   
-  NODE_SCRIPT_TYPE_OFFSET =               19,
+  NODE_SCRIPT_TYPE_OFFSET =               18,
 
   NODE_SCRIPT_TYPE_SIZE =                  4,
 
@@ -442,7 +439,10 @@ public:
 
 
 
-  virtual nsresult RemoveChildAt(PRUint32 aIndex, PRBool aNotify) = 0;
+
+  virtual nsresult RemoveChildAt(PRUint32 aIndex, 
+                                 PRBool aNotify, 
+                                 PRBool aMutationEvent = PR_TRUE) = 0;
 
   
 
