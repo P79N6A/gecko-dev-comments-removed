@@ -357,9 +357,17 @@ private:
 
 
   nsresult MakeWindow(const nsSize& aSize);
+
+  
+
+
+  nsresult CreateDeviceContext(nsIWidget* aWidget);
+
+  
+
+
   nsresult InitInternal(nsIWidget* aParentWidget,
                         nsISupports *aState,
-                        nsIDeviceContext* aDeviceContext,
                         const nsRect& aBounds,
                         PRBool aDoCreation,
                         PRBool aInPrintPreview,
@@ -407,7 +415,7 @@ protected:
   
 
   nsWeakPtr mContainer; 
-  nsCOMPtr<nsIDeviceContext> mDeviceContext;   
+  nsCOMPtr<nsIDeviceContext> mDeviceContext;  
 
   
   
@@ -480,6 +488,7 @@ protected:
 
 static NS_DEFINE_CID(kViewManagerCID,       NS_VIEW_MANAGER_CID);
 static NS_DEFINE_CID(kWidgetCID,            NS_CHILD_CID);
+static NS_DEFINE_CID(kDeviceContextCID,     NS_DEVICE_CONTEXT_CID);
 
 
 nsresult
@@ -657,10 +666,12 @@ DocumentViewerImpl::GetContainer(nsISupports** aResult)
 
 NS_IMETHODIMP
 DocumentViewerImpl::Init(nsIWidget* aParentWidget,
-                         nsIDeviceContext* aDeviceContext,
                          const nsRect& aBounds)
 {
-  return InitInternal(aParentWidget, nsnull, aDeviceContext, aBounds, PR_TRUE, PR_FALSE);
+  nsresult rv = CreateDeviceContext(aParentWidget);
+  NS_ENSURE_SUCCESS(rv, rv);
+  
+  return InitInternal(aParentWidget, nsnull, aBounds, PR_TRUE, PR_FALSE);
 }
 
 nsresult
@@ -794,7 +805,6 @@ DocumentViewerImpl::InitPresentationStuff(PRBool aDoInitialReflow, PRBool aReena
 nsresult
 DocumentViewerImpl::InitInternal(nsIWidget* aParentWidget,
                                  nsISupports *aState,
-                                 nsIDeviceContext* aDeviceContext,
                                  const nsRect& aBounds,
                                  PRBool aDoCreation,
                                  PRBool aInPrintPreview,
@@ -804,8 +814,6 @@ DocumentViewerImpl::InitInternal(nsIWidget* aParentWidget,
 
   nsresult rv = NS_OK;
   NS_ENSURE_TRUE(mDocument, NS_ERROR_NULL_POINTER);
-
-  mDeviceContext = aDeviceContext;
 
   PRBool makeCX = PR_FALSE;
   if (aDoCreation) {
@@ -819,7 +827,7 @@ DocumentViewerImpl::InitInternal(nsIWidget* aParentWidget,
             new nsPresContext(mDocument, nsPresContext::eContext_Galley);
       NS_ENSURE_TRUE(mPresContext, NS_ERROR_OUT_OF_MEMORY);
 
-      nsresult rv = mPresContext->Init(aDeviceContext); 
+      nsresult rv = mPresContext->Init(mDeviceContext); 
       if (NS_FAILED(rv)) {
         mPresContext = nsnull;
         return rv;
@@ -1242,8 +1250,7 @@ DocumentViewerImpl::Open(nsISupports *aState, nsISHEntry *aSHEntry)
   nsRect bounds;
   mWindow->GetBounds(bounds);
 
-  nsresult rv = InitInternal(mParentWidget, aState, mDeviceContext, bounds,
-                             PR_FALSE, PR_FALSE);
+  nsresult rv = InitInternal(mParentWidget, aState, bounds, PR_FALSE, PR_FALSE);
   NS_ENSURE_SUCCESS(rv, rv);
 
   if (mDocument)
@@ -1872,8 +1879,6 @@ DocumentViewerImpl::Show(void)
   }
 
   if (mDocument && !mPresShell && !mWindow) {
-    nsresult rv;
-
     nsCOMPtr<nsIBaseWindow> base_win(do_QueryReferent(mContainer));
     NS_ENSURE_TRUE(base_win, NS_ERROR_UNEXPECTED);
 
@@ -1881,7 +1886,8 @@ DocumentViewerImpl::Show(void)
     NS_ENSURE_TRUE(mParentWidget, NS_ERROR_UNEXPECTED);
     mParentWidget->Release(); 
 
-    mDeviceContext = mParentWidget->GetDeviceContext();
+    nsresult rv = CreateDeviceContext(mParentWidget);
+    NS_ENSURE_SUCCESS(rv, rv);
 
     
     NS_ASSERTION(!mPresContext, "Shouldn't have a prescontext if we have no shell!");
@@ -2269,6 +2275,18 @@ DocumentViewerImpl::MakeWindow(const nsSize& aSize)
   
 
   return rv;
+}
+
+nsresult
+DocumentViewerImpl::CreateDeviceContext(nsIWidget* aWidget)
+{
+  NS_PRECONDITION(!mDeviceContext, "How come we're calling this?");
+  if (aWidget) {
+    mDeviceContext = do_CreateInstance(kDeviceContextCID);
+    NS_ENSURE_TRUE(mDeviceContext, NS_ERROR_FAILURE);
+    mDeviceContext->Init(aWidget->GetNativeData(NS_NATIVE_WIDGET));
+  }
+  return NS_OK;
 }
 
 
@@ -4105,7 +4123,7 @@ NS_IMETHODIMP DocumentViewerImpl::SetPageMode(PRBool aPageMode, nsIPrintSettings
     nsresult rv = mPresContext->Init(mDeviceContext);
     NS_ENSURE_SUCCESS(rv, rv);
   }
-  InitInternal(mParentWidget, nsnull, mDeviceContext, bounds, PR_TRUE, PR_FALSE, PR_FALSE);
+  InitInternal(mParentWidget, nsnull, bounds, PR_TRUE, PR_FALSE, PR_FALSE);
   mViewManager->EnableRefresh(NS_VMREFRESH_NO_SYNC);
 
   Show();
