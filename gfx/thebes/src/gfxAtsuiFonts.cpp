@@ -452,9 +452,8 @@ PRBool gfxAtsuiFont::TestCharacterMap(PRUint32 aCh) {
 
 
 
-static gfxAtsuiFont *
-GetOrMakeFont(ATSUFontID aFontID, const gfxFontStyle *aStyle,
-              nsTArray<nsRefPtr<gfxFont> > *aFonts)
+static already_AddRefed<gfxAtsuiFont>
+GetOrMakeFont(ATSUFontID aFontID, const gfxFontStyle *aStyle)
 {
     const nsAString& name =
         gfxQuartzFontCache::SharedFontCache()->GetPostscriptNameForFontID(aFontID);
@@ -465,12 +464,8 @@ GetOrMakeFont(ATSUFontID aFontID, const gfxFontStyle *aStyle,
             return nsnull;
         gfxFontCache::GetCache()->AddNew(font);
     }
-    
-    nsRefPtr<gfxFont> *destination = aFonts->AppendElement();
-    if (!destination)
-        return nsnull;
-    destination->swap(font);
-    gfxFont *f = *destination;
+    gfxFont *f = nsnull;
+    font.swap(f);
     return static_cast<gfxAtsuiFont *>(f);
 }
 
@@ -493,7 +488,11 @@ gfxAtsuiFontGroup::gfxAtsuiFontGroup(const nsAString& families,
         
         ATSUFontID fontID = gfxQuartzFontCache::SharedFontCache()->GetDefaultATSUFontID (aStyle);
         NS_ASSERTION(fontID != kATSUInvalidFontID, "invalid default font returned by GetDefaultATSUFontID");
-        GetOrMakeFont(fontID, aStyle, &mFonts);
+
+        nsRefPtr<gfxAtsuiFont> font = GetOrMakeFont(fontID, aStyle);
+        if (font) {
+            mFonts.AppendElement(font);
+        }
     }
 }
 
@@ -510,7 +509,10 @@ gfxAtsuiFontGroup::FindATSUFont(const nsAString& aName,
 
     if (fontID != kATSUInvalidFontID && !fontGroup->HasFont(fontID)) {
         
-        GetOrMakeFont(fontID, fontStyle, &fontGroup->mFonts);
+        nsRefPtr<gfxAtsuiFont> font = GetOrMakeFont(fontID, fontStyle);
+        if (font) {
+            fontGroup->mFonts.AppendElement(font);
+        }
     }
 
     return PR_TRUE;
@@ -719,7 +721,7 @@ gfxAtsuiFontGroup::MakeTextRun(const PRUint8 *aString, PRUint32 aLength,
     return textRun;
 }
 
-gfxAtsuiFont*
+already_AddRefed<gfxAtsuiFont>
 gfxAtsuiFontGroup::FindFontFor(ATSUFontID fid)
 {
     gfxAtsuiFont *font;
@@ -733,7 +735,9 @@ gfxAtsuiFontGroup::FindFontFor(ATSUFontID fid)
             return font;
     }
 
-    return GetOrMakeFont(fid, GetStyle(), &mFonts);
+    
+    nsRefPtr<gfxAtsuiFont> f = GetOrMakeFont(fid, GetStyle());
+    return f.forget();
 }
 
 PRBool
@@ -1207,6 +1211,8 @@ struct AFLClosure {
     nsTArray<nsRefPtr<gfxFont> > *fontArray;
 };
 
+
+
 PRBool
 AppendFontToList(const nsAString& aName,
                  const nsACString& aGenericName,
@@ -1219,7 +1225,10 @@ AppendFontToList(const nsAString& aName,
 
     if (fontID != kATSUInvalidFontID) {
         
-        GetOrMakeFont(fontID, afl->style, afl->fontArray);
+        nsRefPtr<gfxAtsuiFont> font = GetOrMakeFont(fontID, afl->style);
+        if (font) {
+            afl->fontArray->AppendElement(font);
+        }
     }
 
     return PR_TRUE;
