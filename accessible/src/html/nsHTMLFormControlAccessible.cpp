@@ -283,15 +283,18 @@ NS_IMETHODIMP nsHTMLButtonAccessible::GetName(nsAString& aName)
   }
 
   nsAutoString name;
-  if (!content->GetAttr(kNameSpaceID_None, nsAccessibilityAtoms::value,
-                        name) &&
-      !content->GetAttr(kNameSpaceID_None, nsAccessibilityAtoms::alt,
-                        name)) {
-    if (mRoleMapEntry) {
-      
-      GetHTMLName(name, PR_FALSE);
-    }
-    if (name.IsEmpty()) {
+  
+  if (content->HasAttr(kNameSpaceID_None,
+                       nsAccessibilityAtoms::aria_labelledby)) {
+    GetHTMLName(name, PR_FALSE);
+  }
+
+  if (name.IsEmpty()) {
+    
+    if (!content->GetAttr(kNameSpaceID_None, nsAccessibilityAtoms::value,
+                          name) &&
+        !content->GetAttr(kNameSpaceID_None, nsAccessibilityAtoms::alt,
+                          name)) {
       
       nsIFrame* frame = GetFrame();
       if (frame) {
