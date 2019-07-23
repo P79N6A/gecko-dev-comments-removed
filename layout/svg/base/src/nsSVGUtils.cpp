@@ -514,18 +514,21 @@ nsSVGUtils::GetCTM(nsSVGElement *aElement, PRBool aScreenCTM)
 
   while (ancestor && ancestor->GetNameSpaceID() == kNameSpaceID_SVG &&
                      ancestor->Tag() != nsGkAtoms::foreignObject) {
-    element = static_cast<nsSVGElement*>(ancestor);
-    matrix *= element->PrependLocalTransformTo(gfxMatrix()); 
-    if (!aScreenCTM && EstablishesViewport(element)) {
-      if (!element->NodeInfo()->Equals(nsGkAtoms::svg, kNameSpaceID_SVG) &&
-          !element->NodeInfo()->Equals(nsGkAtoms::symbol, kNameSpaceID_SVG)) {
-        NS_ERROR("New (SVG > 1.1) SVG viewport establishing element?");
-        return gfxMatrix(0.0, 0.0, 0.0, 0.0, 0.0, 0.0); 
+    
+    if (ancestor->IsNodeOfType(nsINode::eSVG)) {
+      element = static_cast<nsSVGElement*>(ancestor);
+      matrix *= element->PrependLocalTransformTo(gfxMatrix()); 
+      if (!aScreenCTM && EstablishesViewport(element)) {
+        if (!element->NodeInfo()->Equals(nsGkAtoms::svg, kNameSpaceID_SVG) &&
+            !element->NodeInfo()->Equals(nsGkAtoms::symbol, kNameSpaceID_SVG)) {
+          NS_ERROR("New (SVG > 1.1) SVG viewport establishing element?");
+          return gfxMatrix(0.0, 0.0, 0.0, 0.0, 0.0, 0.0); 
+        }
+        
+        return matrix;
       }
-      
-      return matrix;
     }
-    ancestor = GetParentElement(element);      
+    ancestor = GetParentElement(ancestor);      
   }
   if (!aScreenCTM) {
     
