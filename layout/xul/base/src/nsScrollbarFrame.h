@@ -99,6 +99,8 @@ public:
 
   virtual PRBool IsContainingBlock() const;
 
+  virtual nsIAtom* GetType() const;  
+
   
   virtual void SetScrollbarMediatorContent(nsIContent* aMediator);
   virtual nsIScrollbarMediator* GetScrollbarMediator();

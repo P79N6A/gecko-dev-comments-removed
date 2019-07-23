@@ -50,6 +50,9 @@ public:
 
 protected:
 
+  
+  static const int kThemeScrollBarArrowsBoth = 2;
+
 typedef enum {
   
   
