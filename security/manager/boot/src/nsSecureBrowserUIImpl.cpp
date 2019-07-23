@@ -1187,15 +1187,20 @@ nsresult nsSecureBrowserUIImpl::UpdateSecurityState(nsIRequest* aRequest)
   lockIconState warnSecurityState = lis_no_security;
   PRBool showWarning = PR_FALSE;
 
-  UpdateMyFlags(showWarning, warnSecurityState);
+  PRBool mustTellTheWorld = UpdateMyFlags(showWarning, warnSecurityState);
+  if (!mustTellTheWorld)
+    return NS_OK;
+
   return TellTheWorld(showWarning, warnSecurityState, aRequest);
 }
 
 
 
-void nsSecureBrowserUIImpl::UpdateMyFlags(PRBool &showWarning, lockIconState &warnSecurityState)
+
+PRBool nsSecureBrowserUIImpl::UpdateMyFlags(PRBool &showWarning, lockIconState &warnSecurityState)
 {
   nsAutoMonitor lock(mMonitor);
+  PRBool mustTellTheWorld = PR_FALSE;
 
   lockIconState newSecurityState;
 
@@ -1255,8 +1260,8 @@ void nsSecureBrowserUIImpl::UpdateMyFlags(PRBool &showWarning, lockIconState &wa
 
   if (mNotifiedSecurityState != newSecurityState)
   {
-    
-    
+    mustTellTheWorld = PR_TRUE;
+
     
     
 
@@ -1327,7 +1332,12 @@ void nsSecureBrowserUIImpl::UpdateMyFlags(PRBool &showWarning, lockIconState &wa
     }
   }
 
-  mNotifiedToplevelIsEV = mNewToplevelIsEV;
+  if (mNotifiedToplevelIsEV != mNewToplevelIsEV) {
+    mustTellTheWorld = PR_TRUE;
+    mNotifiedToplevelIsEV = mNewToplevelIsEV;
+  }
+
+  return mustTellTheWorld;
 }
 
 nsresult nsSecureBrowserUIImpl::TellTheWorld(PRBool showWarning, 
