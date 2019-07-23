@@ -44,7 +44,8 @@
 #include "nsAutoPtr.h"
 #include <gtk/gtk.h>
 
-class nsClipboard : public nsIClipboard
+class nsClipboard : public nsIClipboard,
+                    public nsIObserver
 {
 public:
     nsClipboard();
@@ -53,17 +54,16 @@ public:
     NS_DECL_ISUPPORTS
     
     NS_DECL_NSICLIPBOARD
+    NS_DECL_NSIOBSERVER
 
     
     
-    nsresult  Init                (void);
-    
-    void      SelectionGetEvent   (GtkWidget         *aWidget,
-                                   GtkSelectionData  *aSelectionData,
-                                   guint              aTime);
-    void      SelectionClearEvent (GtkWidget         *aWidget,
-                                   GdkEventSelection *aEvent);
+    nsresult  Init              (void);
 
+    
+    void   SelectionGetEvent    (GtkClipboard     *aGtkClipboard,
+                                 GtkSelectionData *aSelectionData);
+    void   SelectionClearEvent  (GtkClipboard     *aGtkClipboard);
 
 private:
     
@@ -71,15 +71,12 @@ private:
     static GtkSelectionData     *GetTargets       (GdkAtom aWhichClipboard);
 
     
+    nsresult                     Store            (void);
+
+    
     
     nsITransferable             *GetTransferable  (PRInt32 aWhichClipboard);
 
-    
-    void                         AddTarget        (GdkAtom aName,
-                                                   GdkAtom aClipboard);
-
-    
-    GtkWidget                   *mWidget;
     
     
     nsCOMPtr<nsIClipboardOwner>  mSelectionOwner;
