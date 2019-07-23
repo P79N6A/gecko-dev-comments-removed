@@ -367,7 +367,7 @@ typedef enum JSBuiltinStatus {
 struct InterpState
 {
     double        *sp;                  
-    void          *rp;                  
+    FrameInfo**   rp;                   
     JSContext     *cx;                  
     double        *eos;                 
     void          *eor;                 
