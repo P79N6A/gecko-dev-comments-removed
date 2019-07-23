@@ -394,7 +394,9 @@ struct JSObject {
     static const uint32 JSSLOT_ARRAY_UNUSED = JSSLOT_PRIVATE + 2;
 
     
-    JS_STATIC_ASSERT(JSSLOT_ARRAY_LENGTH == JSSLOT_PRIVATE);
+    
+    
+    inline void staticAssertArrayLengthIsInPrivateSlot();
 
   public:
     inline uint32 getArrayLength() const;
