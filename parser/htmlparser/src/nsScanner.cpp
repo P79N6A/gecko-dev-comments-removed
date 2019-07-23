@@ -97,8 +97,13 @@ nsScanner::nsScanner(const nsAString& anHTMLString, const nsACString& aCharset,
   mSlidingBuffer = nsnull;
   mCountRemaining = 0;
   mFirstNonWhitespacePosition = -1;
-  AppendToBuffer(anHTMLString);
-  mSlidingBuffer->BeginReading(mCurrentPosition);
+  if (AppendToBuffer(anHTMLString)) {
+    mSlidingBuffer->BeginReading(mCurrentPosition);
+  } else {
+    
+    memset(&mCurrentPosition, 0, sizeof(mCurrentPosition));
+    mEndPosition = mCurrentPosition;
+  }
   mMarkPosition = mCurrentPosition;
   mIncremental = PR_FALSE;
   mUnicodeDecoder = 0;
@@ -277,7 +282,8 @@ PRBool nsScanner::UngetReadable(const nsAString& aBuffer) {
 
 
 nsresult nsScanner::Append(const nsAString& aBuffer) {
-  AppendToBuffer(aBuffer);
+  if (!AppendToBuffer(aBuffer))
+    return NS_ERROR_OUT_OF_MEMORY;
   return NS_OK;
 }
 
@@ -339,12 +345,12 @@ nsresult nsScanner::Append(const char* aBuffer, PRUint32 aLen,
     } while (NS_FAILED(res) && (aLen > 0));
 
     buffer->SetDataLength(totalChars);
-    AppendToBuffer(buffer, aRequest);
-
     
     
     
     res = NS_OK; 
+    if (!AppendToBuffer(buffer, aRequest))
+      res = NS_ERROR_OUT_OF_MEMORY;
   }
   else {
     NS_WARNING("No decoder found.");
@@ -1141,19 +1147,21 @@ void nsScanner::ReplaceCharacter(nsScannerIterator& aPosition,
   }
 }
 
-void nsScanner::AppendToBuffer(nsScannerString::Buffer* aBuf,
-                               nsIRequest *aRequest)
+PRBool nsScanner::AppendToBuffer(nsScannerString::Buffer* aBuf,
+                                 nsIRequest *aRequest)
 {
   if (nsParser::sParserDataListeners && mParser &&
       NS_FAILED(mParser->DataAdded(Substring(aBuf->DataStart(),
                                              aBuf->DataEnd()), aRequest))) {
     
 
-    return;
+    return mSlidingBuffer != nsnull;
   }
 
   if (!mSlidingBuffer) {
     mSlidingBuffer = new nsScannerString(aBuf);
+    if (!mSlidingBuffer)
+      return PR_FALSE;
     mSlidingBuffer->BeginReading(mCurrentPosition);
     mMarkPosition = mCurrentPosition;
     mSlidingBuffer->EndReading(mEndPosition);
@@ -1182,6 +1190,7 @@ void nsScanner::AppendToBuffer(nsScannerString::Buffer* aBuf,
       ++iter;
     }
   }
+  return PR_TRUE;
 }
 
 
