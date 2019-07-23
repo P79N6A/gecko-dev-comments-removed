@@ -408,8 +408,10 @@ var PlacesUtils = {
 
 
   nodeIsLivemarkContainer: function PU_nodeIsLivemarkContainer(aNode) {
+    
+    
     return this.nodeIsFolder(aNode) &&
-           this.livemarks.isLivemark(aNode.itemId);
+           this._annotations.itemHasAnnotation(aNode, LMANNO_FEEDURI);
   },
 
  
