@@ -192,6 +192,12 @@ enum { XKeyPress = KeyPress };
 #include <winuser.h>
 #endif
 
+#ifdef XP_OS2
+#define INCL_PM
+#define INCL_GPI
+#include <os2.h>
+#endif
+
 #ifdef CreateEvent 
 #undef CreateEvent
 #endif
@@ -1823,7 +1829,7 @@ nsObjectFrame::PaintPlugin(nsIRenderingContext& aRenderingContext,
       
       HPS hps = (HPS)aRenderingContext.GetNativeGraphicData(nsIRenderingContext::NATIVE_OS2_PS);
       if (reinterpret_cast<HPS>(window->window) != hps) {
-        window->window = reinterpret_cast<nsPluginPort*>(hps);
+        window->window = reinterpret_cast<void*>(hps);
         doupdatewindow = PR_TRUE;
       }
       LONG lPSid = GpiSavePS(hps);
