@@ -5518,6 +5518,33 @@ public:
   nsRefPtr<nsGlobalWindow> mWindow;
 };
 
+PRBool
+nsGlobalWindow::CanClose()
+{
+  if (!mDocShell)
+    return PR_TRUE;
+
+  
+  
+  
+  
+
+  nsCOMPtr<nsIContentViewer> cv;
+  mDocShell->GetContentViewer(getter_AddRefs(cv));
+  if (cv) {
+    PRBool canClose;
+    nsresult rv = cv->PermitUnload(PR_FALSE, &canClose);
+    if (NS_SUCCEEDED(rv) && !canClose)
+      return PR_FALSE;
+
+    rv = cv->RequestWindowClose(&canClose);
+    if (NS_SUCCEEDED(rv) && !canClose)
+      return PR_FALSE;
+  }
+
+  return PR_TRUE;
+}
+
 NS_IMETHODIMP
 nsGlobalWindow::Close()
 {
@@ -5547,7 +5574,6 @@ nsGlobalWindow::Close()
 
   
   
-  nsresult rv = NS_OK;
   if (!mHadOriginalOpener && !nsContentUtils::IsCallerTrustedForWrite()) {
     PRBool allowClose =
       nsContentUtils::GetBoolPref("dom.allow_scripts_to_close_windows",
@@ -5569,24 +5595,8 @@ nsGlobalWindow::Close()
     }
   }
 
-  
-  
-  
-  
-
-  nsCOMPtr<nsIContentViewer> cv;
-  mDocShell->GetContentViewer(getter_AddRefs(cv));
-  if (!mInClose && !mIsClosed && cv) {
-    PRBool canClose;
-
-    rv = cv->PermitUnload(PR_FALSE, &canClose);
-    if (NS_SUCCEEDED(rv) && !canClose)
-      return NS_OK;
-
-    rv = cv->RequestWindowClose(&canClose);
-    if (NS_SUCCEEDED(rv) && !canClose)
-      return NS_OK;
-  }
+  if (!mInClose && !mIsClosed && !CanClose())
+    return NS_OK;
 
   
   
@@ -5606,6 +5616,36 @@ nsGlobalWindow::Close()
     return NS_OK;
   }
 
+  return FinalClose();
+}
+
+nsresult
+nsGlobalWindow::ForceClose()
+{
+  if (IsFrame() || !mDocShell) {
+    
+    
+
+    return NS_OK;
+  }
+
+  if (mHavePendingClose) {
+    
+    
+    return NS_OK;
+  }
+
+  mInClose = PR_TRUE;
+
+  DispatchCustomEvent("DOMWindowClose");
+
+  return FinalClose();
+}
+
+nsresult
+nsGlobalWindow::FinalClose()
+{
+  nsresult rv;
   
   mIsClosed = PR_TRUE;
 
