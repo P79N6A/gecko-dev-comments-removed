@@ -2386,7 +2386,24 @@ nsNavHistoryQueryResultNode::FillChildren()
     if (comparator) {
       nsCAutoString sortingAnnotation;
       GetSortingAnnotation(sortingAnnotation);
-      RecursiveSort(sortingAnnotation.get(), comparator);
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      if (IsContainersQuery() &&
+          sortType == mOptions->SortingMode() &&
+          (sortType == nsINavHistoryQueryOptions::SORT_BY_TITLE_ASCENDING ||
+           sortType == nsINavHistoryQueryOptions::SORT_BY_TITLE_DESCENDING))
+        nsNavHistoryContainerResultNode::RecursiveSort(sortingAnnotation.get(), comparator);
+      else
+        RecursiveSort(sortingAnnotation.get(), comparator);
     }
   }
 
@@ -2570,9 +2587,11 @@ nsNavHistoryQueryResultNode::RecursiveSort(
 
   if (!IsContainersQuery())
     mChildren.Sort(aComparator, data);
-  else
-    for (PRInt32 i = 0; i < mChildren.Count(); i ++)
+
+  for (PRInt32 i = 0; i < mChildren.Count(); i++) {
+    if (mChildren[i]->IsContainer())
       mChildren[i]->GetAsContainer()->RecursiveSort(aData, aComparator);
+  }
 }
 
 

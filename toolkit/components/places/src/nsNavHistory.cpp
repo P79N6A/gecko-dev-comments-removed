@@ -91,6 +91,7 @@
 #include "mozIStorageValueArray.h"
 #include "mozStorageCID.h"
 #include "mozStorageHelper.h"
+#include "mozIStorageError.h"
 #include "nsPlacesTriggers.h"
 #include "nsAppDirectoryServiceDefs.h"
 #include "nsIIdleService.h"
@@ -3024,6 +3025,9 @@ private:
 
   void OrderByColumnIndexAsc(PRInt32 aIndex);
   void OrderByColumnIndexDesc(PRInt32 aIndex);
+  
+  void OrderByTextColumnIndexAsc(PRInt32 aIndex);
+  void OrderByTextColumnIndexDesc(PRInt32 aIndex);
 
   const nsCString& mConditions;
   PRBool mUseLimit;
@@ -3714,11 +3718,11 @@ PlacesSQLQueryBuilder::SelectAsSite()
             "AND rev_host <> '.' "
             "AND visit_count > 0 "
         ") "
-      "ORDER BY 1 ASC)",
+      "ORDER BY 1 ASC) ",
       nsINavHistoryQueryOptions::RESULTS_AS_URI,
-      nsINavHistoryQueryOptions::SORT_BY_TITLE_ASCENDING,
+      mSortingMode,
       nsINavHistoryQueryOptions::RESULTS_AS_URI,
-      nsINavHistoryQueryOptions::SORT_BY_TITLE_ASCENDING);
+      mSortingMode);
   
   } else {
 
@@ -3802,11 +3806,11 @@ PlacesSQLQueryBuilder::SelectAsSite()
           "{QUERY_OPTIONS} "
           "{ADDITIONAL_CONDITIONS} "        
         "ORDER BY 1 ASC "
-      ")",
+      ") ",
       nsINavHistoryQueryOptions::RESULTS_AS_URI,
-      nsINavHistoryQueryOptions::SORT_BY_TITLE_ASCENDING,
+      mSortingMode,
       nsINavHistoryQueryOptions::RESULTS_AS_URI,
-      nsINavHistoryQueryOptions::SORT_BY_TITLE_ASCENDING);
+      mSortingMode);
   }
 
   return NS_OK;
@@ -3913,6 +3917,10 @@ PlacesSQLQueryBuilder::OrderBy()
       
       if (mMaxResults > 0)
         OrderByColumnIndexDesc(nsNavHistory::kGetInfoIndex_VisitDate);
+      else if (mSortingMode == nsINavHistoryQueryOptions::SORT_BY_TITLE_ASCENDING)
+        OrderByTextColumnIndexAsc(nsNavHistory::kGetInfoIndex_Title);
+      else
+        OrderByTextColumnIndexDesc(nsNavHistory::kGetInfoIndex_Title);
       break;
     case nsINavHistoryQueryOptions::SORT_BY_DATE_ASCENDING:
       OrderByColumnIndexAsc(nsNavHistory::kGetInfoIndex_VisitDate);
@@ -3967,6 +3975,18 @@ void PlacesSQLQueryBuilder::OrderByColumnIndexAsc(PRInt32 aIndex)
 void PlacesSQLQueryBuilder::OrderByColumnIndexDesc(PRInt32 aIndex)
 {
   mQueryString += nsPrintfCString(128, " ORDER BY %d DESC", aIndex+1);
+}
+
+void PlacesSQLQueryBuilder::OrderByTextColumnIndexAsc(PRInt32 aIndex)
+{
+  mQueryString += nsPrintfCString(128, " ORDER BY %d COLLATE NOCASE ASC",
+                                  aIndex+1);
+}
+
+void PlacesSQLQueryBuilder::OrderByTextColumnIndexDesc(PRInt32 aIndex)
+{
+  mQueryString += nsPrintfCString(128, " ORDER BY %d COLLATE NOCASE DESC",
+                                  aIndex+1);
 }
 
 nsresult
@@ -4163,13 +4183,21 @@ nsNavHistory::GetQueryResults(nsNavHistoryQueryResultNode *aResultNode,
                                      paramsPresent, addParams);
   NS_ENSURE_SUCCESS(rv,rv);
 
-#ifdef DEBUG_FRECENCY
-  printf("Constructed the query: %s\n", PromiseFlatCString(queryString).get());
-#endif
-
   
   nsCOMPtr<mozIStorageStatement> statement;
   rv = mDBConn->CreateStatement(queryString, getter_AddRefs(statement));
+#ifdef DEBUG
+  if (NS_FAILED(rv)) {
+    nsCAutoString lastErrorString;
+    (void)mDBConn->GetLastErrorString(lastErrorString);
+    PRInt32 lastError = 0;
+    (void)mDBConn->GetLastError(&lastError);
+    printf("Places failed to create a statement from this query:\n%s\nStorage error (%ld): %s\n",
+           PromiseFlatCString(queryString).get(),
+           lastError,
+           PromiseFlatCString(lastErrorString).get());
+  }
+#endif
   NS_ENSURE_SUCCESS(rv, rv);
 
   if (paramsPresent) {
