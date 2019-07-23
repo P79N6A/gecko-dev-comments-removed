@@ -72,6 +72,7 @@
 #include "nsPresShellIterator.h"
 #include "nsGUIEvent.h"
 #include "nsEventDispatcher.h"
+#include "nsISHistory.h"
 
 #include "nsIURI.h"
 #include "nsIURL.h"
@@ -342,12 +343,6 @@ SetTreeOwnerAndChromeEventHandlerOnDocshellTree(nsIDocShellTreeItem* aItem,
                                                 nsIDOMEventTarget* aHandler)
 {
   NS_PRECONDITION(aItem, "Must have item");
-#ifdef DEBUG
-  PRInt32 itemType;
-  aItem->GetItemType(&itemType);
-  NS_ASSERTION(itemType == nsIDocShellTreeItem::typeContent,
-               "How did something else get in here?");
-#endif
 
   aItem->SetTreeOwner(aOwner);
   nsCOMPtr<nsIDocShell> shell(do_QueryInterface(aItem));
@@ -428,6 +423,26 @@ AddTreeItemToTreeOwner(nsIDocShellTreeItem* aItem, nsIContent* aOwningContent,
   return retval;
 }
 
+static PRBool
+AllDescendantsOfType(nsIDocShellTreeItem* aParentItem, PRInt32 aType)
+{
+  PRInt32 childCount = 0;
+  aParentItem->GetChildCount(&childCount);
+
+  for (PRInt32 i = 0; i < childCount; ++i) {
+    nsCOMPtr<nsIDocShellTreeItem> kid;
+    aParentItem->GetChildAt(i, getter_AddRefs(kid));
+
+    PRInt32 kidType;
+    kid->GetItemType(&kidType);
+    if (kidType != aType || !AllDescendantsOfType(kid, aType)) {
+      return PR_FALSE;
+    }
+  }
+
+  return PR_TRUE;
+}
+
 nsresult
 nsFrameLoader::SwapWithOtherLoader(nsFrameLoader* aOther,
                                    nsRefPtr<nsFrameLoader>& aFirstToSwap,
@@ -463,6 +478,7 @@ nsFrameLoader::SwapWithOtherLoader(nsFrameLoader* aOther,
 
   
   
+  
   nsCOMPtr<nsIDocShellTreeItem> ourTreeItem = do_QueryInterface(ourDochell);
   nsCOMPtr<nsIDocShellTreeItem> otherTreeItem =
     do_QueryInterface(otherDocshell);
@@ -470,6 +486,32 @@ nsFrameLoader::SwapWithOtherLoader(nsFrameLoader* aOther,
   ourTreeItem->GetSameTypeRootTreeItem(getter_AddRefs(ourRootTreeItem));
   otherTreeItem->GetSameTypeRootTreeItem(getter_AddRefs(otherRootTreeItem));
   if (ourRootTreeItem != ourTreeItem || otherRootTreeItem != otherTreeItem) {
+    nsCOMPtr<nsIWebNavigation> ourRootWebnav =
+      do_QueryInterface(ourRootTreeItem);
+    nsCOMPtr<nsIWebNavigation> otherRootWebnav =
+      do_QueryInterface(otherRootTreeItem);
+
+    if (!ourRootWebnav || !otherRootWebnav) {
+      return NS_ERROR_NOT_IMPLEMENTED;
+    }
+
+    nsCOMPtr<nsISHistory> ourHistory;
+    nsCOMPtr<nsISHistory> otherHistory;
+    ourRootWebnav->GetSessionHistory(getter_AddRefs(ourHistory));
+    otherRootWebnav->GetSessionHistory(getter_AddRefs(otherHistory));
+
+    if (ourHistory || otherHistory) {
+      return NS_ERROR_NOT_IMPLEMENTED;
+    }
+  }
+
+  
+  
+  PRInt32 ourType = nsIDocShellTreeItem::typeChrome;
+  PRInt32 otherType = nsIDocShellTreeItem::typeChrome;
+  ourTreeItem->GetItemType(&ourType);
+  otherTreeItem->GetItemType(&otherType);
+  if (ourType != otherType) {
     return NS_ERROR_NOT_IMPLEMENTED;
   }
 
@@ -477,12 +519,9 @@ nsFrameLoader::SwapWithOtherLoader(nsFrameLoader* aOther,
   
   
   
-  PRInt32 ourType = nsIDocShellTreeItem::typeChrome;
-  PRInt32 otherType = nsIDocShellTreeItem::typeChrome;
-  ourTreeItem->GetItemType(&ourType);
-  otherTreeItem->GetItemType(&otherType);
-  if (ourType != nsIDocShellTreeItem::typeContent ||
-      otherType != nsIDocShellTreeItem::typeContent) {
+  if (ourType != nsIDocShellTreeItem::typeContent &&
+      (!AllDescendantsOfType(ourTreeItem, ourType) ||
+       !AllDescendantsOfType(otherTreeItem, otherType))) {
     return NS_ERROR_NOT_IMPLEMENTED;
   }
   
@@ -497,6 +536,15 @@ nsFrameLoader::SwapWithOtherLoader(nsFrameLoader* aOther,
   ourTreeItem->GetParent(getter_AddRefs(ourParentItem));
   otherTreeItem->GetParent(getter_AddRefs(otherParentItem));
   if (!ourParentItem || !otherParentItem) {
+    return NS_ERROR_NOT_IMPLEMENTED;
+  }
+
+  
+  PRInt32 ourParentType = nsIDocShellTreeItem::typeContent;
+  PRInt32 otherParentType = nsIDocShellTreeItem::typeContent;
+  ourParentItem->GetItemType(&ourParentType);
+  otherParentItem->GetItemType(&otherParentType);
+  if (ourParentType != otherParentType) {
     return NS_ERROR_NOT_IMPLEMENTED;
   }
 
@@ -612,9 +660,9 @@ nsFrameLoader::SwapWithOtherLoader(nsFrameLoader* aOther,
                                                   ourChromeEventHandler);
 
   AddTreeItemToTreeOwner(ourTreeItem, otherContent, otherOwner,
-                         nsIDocShellTreeItem::typeChrome, nsnull);
-  AddTreeItemToTreeOwner(otherTreeItem, ourContent, ourOwner,
-                         nsIDocShellTreeItem::typeChrome, nsnull);
+                         otherParentType, nsnull);
+  AddTreeItemToTreeOwner(otherTreeItem, ourContent, ourOwner, ourParentType,
+                         nsnull);
 
   
   
