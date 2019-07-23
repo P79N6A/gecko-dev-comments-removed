@@ -102,10 +102,10 @@ static const char kObserverServiceContractID[] = "@mozilla.org/observer-service;
 
 
 #define XPC_SERIALIZATION_BUFFER_SIZE   (64 * 1024)
-#define XPC_DESERIALIZATION_BUFFER_SIZE (8 * 1024)
+#define XPC_DESERIALIZATION_BUFFER_SIZE (12 * 8192)
 
 
-static const int kFastLoadWriteDelay = 5000;   
+static const int kFastLoadWriteDelay = 10000;   
 
 #ifdef PR_LOGGING
 
