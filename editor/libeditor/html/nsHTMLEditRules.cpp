@@ -84,6 +84,7 @@
 #include "nsFrameSelection.h"
 #include "nsIDOM3Node.h"
 #include "nsContentUtils.h"
+#include "nsTArray.h"
 
 
 
@@ -5758,39 +5759,42 @@ nsHTMLEditRules::GetNodesForOperation(nsCOMArray<nsIDOMRange>& inArrayOfRanges,
   
   if (!aDontTouchContent)
   {
-    nsVoidArray rangeItemArray;
-    
-    
+    nsAutoTArray<nsRangeStore, 16> rangeItemArray;
+    if (!rangeItemArray.AppendElements(rangeCount)) {
+      return NS_ERROR_OUT_OF_MEMORY;
+    }
+
+    NS_ASSERTION(rangeCount == rangeItemArray.Length(), "How did that happen?");
+
     
     for (i = 0; i < (PRInt32)rangeCount; i++)
     {
       opRange = inArrayOfRanges[0];
-      nsRangeStore *item = new nsRangeStore();
-      if (!item) return NS_ERROR_NULL_POINTER;
+      nsRangeStore *item = rangeItemArray.Elements() + i;
       item->StoreRange(opRange);
       mHTMLEditor->mRangeUpdater.RegisterRangeItem(item);
-      rangeItemArray.AppendElement((void*)item);
       inArrayOfRanges.RemoveObjectAt(0);
     }    
     
-    for (i = rangeCount-1; i >= 0; i--)
+    
+    for (i = rangeCount-1; i >= 0 && NS_SUCCEEDED(res); i--)
     {
-      nsRangeStore *item = (nsRangeStore*)rangeItemArray.ElementAt(i);
-      res = BustUpInlinesAtRangeEndpoints(*item);
-      if (NS_FAILED(res)) return res;    
+      res = BustUpInlinesAtRangeEndpoints(rangeItemArray[i]);
     } 
     
     for (i = 0; i < rangeCount; i++)
     {
-      nsRangeStore *item = (nsRangeStore*)rangeItemArray.ElementAt(0);
-      if (!item) return NS_ERROR_NULL_POINTER;
-      rangeItemArray.RemoveElementAt(0);
+      nsRangeStore *item = rangeItemArray.Elements() + i;
       mHTMLEditor->mRangeUpdater.DropRangeItem(item);
-      res = item->GetRange(address_of(opRange));
-      if (NS_FAILED(res)) return res;
-      delete item;
+      nsresult res2 = item->GetRange(address_of(opRange));
+      if (NS_FAILED(res2) && NS_SUCCEEDED(res)) {
+        
+        
+        res = res2;
+      }
       inArrayOfRanges.AppendObject(opRange);
-    }    
+    }
+    if (NS_FAILED(res)) return res;
   }
   
   for (i = 0; i < rangeCount; i++)
