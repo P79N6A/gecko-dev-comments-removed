@@ -3766,13 +3766,15 @@ nsGenericElement::doReplaceOrInsertBefore(PRBool aReplace,
     return NS_ERROR_DOM_HIERARCHY_REQUEST_ERR;
   }
 
+  nsIDocument *doc = container->GetOwnerDoc();
+
   
   
   
   if (!container->HasSameOwnerDoc(newContent) &&
       (nodeType != nsIDOMNode::DOCUMENT_TYPE_NODE ||
        newContent->GetOwnerDoc())) {
-    nsCOMPtr<nsIDOM3Document> domDoc = do_QueryInterface(aDocument);
+    nsCOMPtr<nsIDOM3Document> domDoc = do_QueryInterface(doc);
 
     if (domDoc) {
       nsCOMPtr<nsIDOMNode> adoptedKid;
@@ -3780,6 +3782,9 @@ nsGenericElement::doReplaceOrInsertBefore(PRBool aReplace,
       NS_ENSURE_SUCCESS(rv, rv);
 
       NS_ASSERTION(adoptedKid == aNewChild, "Uh, adopt node changed nodes?");
+      NS_ASSERTION(container->HasSameOwnerDoc(newContent) &&
+                   doc == container->GetOwnerDoc(),
+                   "ownerDocument changed again after adopting!");
     }
   }
 
@@ -3860,6 +3865,10 @@ nsGenericElement::doReplaceOrInsertBefore(PRBool aReplace,
       for (i = 0; i < count; ++i) {
         
         nsIContent* childContent = fragChildren[i];
+        if (!container->HasSameOwnerDoc(childContent) ||
+            doc != childContent->GetOwnerDoc()) {
+          return NS_ERROR_DOM_WRONG_DOCUMENT_ERR;
+        }
 
         nsCOMPtr<nsIDOMNode> tmpNode = do_QueryInterface(childContent);
         PRUint16 tmpType = 0;
@@ -3911,7 +3920,6 @@ nsGenericElement::doReplaceOrInsertBefore(PRBool aReplace,
     }
 
     
-    nsIDocument* doc = container->GetOwnerDoc();
     nsPIDOMWindow* window = nsnull;
     if (doc && (window = doc->GetInnerWindow()) &&
         window->HasMutationListeners(NS_EVENT_BITS_MUTATION_NODEINSERTED)) {
@@ -3969,6 +3977,10 @@ nsGenericElement::doReplaceOrInsertBefore(PRBool aReplace,
       }
 
       if (guard.Mutated(1)) {
+        if (doc != newContent->GetOwnerDoc()) {
+          return NS_ERROR_DOM_WRONG_DOCUMENT_ERR;
+        }
+
         insPos = refContent ? container->IndexOf(refContent) :
                               container->GetChildCount();
         if (insPos < 0) {
