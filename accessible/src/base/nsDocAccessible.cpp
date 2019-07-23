@@ -1350,6 +1350,15 @@ nsDocAccessible::ARIAAttributeChanged(nsIContent* aContent, nsIAtom* aAttribute)
     
     
     InvalidateCacheSubtree(aContent, nsIAccessibleEvent::EVENT_DOM_SIGNIFICANT_CHANGE);
+    return;
+  }
+
+  
+  
+  if (aAttribute == nsAccessibilityAtoms::aria_grabbed ||
+      aAttribute == nsAccessibilityAtoms::aria_dropeffect) {
+    FireDelayedToolkitEvent(nsIAccessibleEvent::EVENT_OBJECT_ATTRIBUTE_CHANGED,
+                           targetNode);
   }
 }
 
