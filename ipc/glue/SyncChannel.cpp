@@ -94,7 +94,15 @@ SyncChannel::Send(Message* msg, Message* reply)
         NewRunnableMethod(this, &SyncChannel::OnSend, msg));
 
     
-    WaitForNotify();
+    
+    
+    
+    
+    do {
+        
+        WaitForNotify();
+    } while(Connected() &&
+            mPendingReply != mRecvd.type() && !mRecvd.is_reply_error());
 
     if (!Connected()) {
         ReportConnectionError("SyncChannel");
@@ -109,11 +117,13 @@ SyncChannel::Send(Message* msg, Message* reply)
 
     
     NS_ABORT_IF_FALSE(mRecvd.is_sync() && mRecvd.is_reply() &&
-                      (mPendingReply == mRecvd.type() || mRecvd.is_reply_error()),
+                      (mPendingReply == mRecvd.type() ||
+                       mRecvd.is_reply_error()),
                       "unexpected sync message");
 
     mPendingReply = 0;
     *reply = mRecvd;
+    mRecvd = Message();
 
     return true;
 }
