@@ -38,6 +38,7 @@
 
 
 
+
 var PlacesOrganizer = {
   _places: null,
   _content: null,
@@ -1732,11 +1733,11 @@ var ViewMenu = {
 
     var columnId;
     if (aColumn) {
-      columnId = aColumn.getAttribute("anonid")
+      columnId = aColumn.getAttribute("anonid");
       if (!aDirection) {
         var sortColumn = this._getSortColumn();
-        aDirection = sortColumn ?
-                     sortColumn.getAttribute("sortDirection") : "descending";
+        if (sortColumn)
+          aDirection = sortColumn.getAttribute("sortDirection");
       }
     }
     else {
@@ -1744,47 +1745,38 @@ var ViewMenu = {
       columnId = sortColumn ? sortColumn.getAttribute("anonid") : "title";
     }
 
-    var sortingMode;
-    var sortingAnnotation = "";
-    const NHQO = Ci.nsINavHistoryQueryOptions;
-    switch (columnId) {
-      case "title":
-        sortingMode = aDirection == "descending" ?
-          NHQO.SORT_BY_TITLE_DESCENDING : NHQO.SORT_BY_TITLE_ASCENDING;
-        break;
-      case "url":
-        sortingMode = aDirection == "descending" ?
-          NHQO.SORT_BY_URI_DESCENDING : NHQO.SORT_BY_URI_ASCENDING;
-        break;
-      case "date":
-        sortingMode = aDirection == "descending" ?
-          NHQO.SORT_BY_DATE_DESCENDING : NHQO.SORT_BY_DATE_ASCENDING;
-        break;
-      case "visitCount":
-        sortingMode = aDirection == "descending" ?
-          NHQO.SORT_BY_VISITCOUNT_DESCENDING : NHQO.SORT_BY_VISITCOUNT_ASCENDING;
-        break;
-      case "keyword":
-        sortingMode = aDirection == "descending" ?
-          NHQO.SORT_BY_KEYWORD_DESCENDING : NHQO.SORT_BY_KEYWORD_ASCENDING;
-        break;
-      case "description":
-        sortingAnnotation = DESCRIPTION_ANNO;
-        sortingMode = aDirection == "descending" ?
-          NHQO.SORT_BY_ANNOTATION_DESCENDING : NHQO.SORT_BY_ANNOTATION_ASCENDING;
-        break;
-      case "dateAdded":
-        sortingMode = aDirection == "descending" ?
-          NHQO.SORT_BY_DATEADDED_DESCENDING : NHQO.SORT_BY_DATEADDED_ASCENDING;
-        break;
-      case "lastModified":
-        sortingMode = aDirection == "descending" ?
-          NHQO.SORT_BY_LASTMODIFIED_DESCENDING : NHQO.SORT_BY_LASTMODIFIED_ASCENDING;
-        break;
-      default:
-        throw("Invalid Column");
-    }
-    result.sortingAnnotation = sortingAnnotation;
-    result.sortingMode = sortingMode;
+    
+    
+    
+    
+    
+    
+    
+    var colLookupTable = {
+      title:        { key: "TITLE",        dir: "ascending"  },
+      tags:         { key: "TAGS",         dir: "ascending"  },
+      url:          { key: "URI",          dir: "ascending"  },
+      date:         { key: "DATE",         dir: "descending" },
+      visitCount:   { key: "VISITCOUNT",   dir: "descending" },
+      keyword:      { key: "KEYWORD",      dir: "ascending"  },
+      dateAdded:    { key: "DATEADDED",    dir: "descending" },
+      lastModified: { key: "LASTMODIFIED", dir: "descending" },
+      description:  { key: "ANNOTATION",
+                      dir: "ascending",
+                      anno: DESCRIPTION_ANNO }
+    };
+
+    
+    if (!colLookupTable.hasOwnProperty(columnId))
+      throw("Invalid column");
+
+    
+    
+    
+    aDirection = (aDirection || colLookupTable[columnId].dir).toUpperCase();
+
+    var sortConst = "SORT_BY_" + colLookupTable[columnId].key + "_" + aDirection;
+    result.sortingAnnotation = colLookupTable[columnId].anno || "";
+    result.sortingMode = Ci.nsINavHistoryQueryOptions[sortConst];
   }
 };

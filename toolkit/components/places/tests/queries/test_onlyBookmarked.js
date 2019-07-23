@@ -136,23 +136,26 @@ function run_test() {
   compareArrayToResult(testData, root);
   LOG("end live-update test");
 
-  
-  var updateBatch = {
-    runBatched: function (aUserData) {
-      liveUpdateTestData[0].uri = "http://bookmarked3.com";
-      liveUpdateTestData[1].uri = "http://bookmarked-elsewhere3.com";
-      populateDB(liveUpdateTestData);
-      testData.push(liveUpdateTestData[0]);
-      testData.push(liveUpdateTestData[1]);
-    }
-  };
 
-  histsvc.runInBatchMode(updateBatch, null);
 
-  
-  LOG("begin batched test");
-  compareArrayToResult(testData, root);
-  LOG("end batched test");
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
   
   root.containerOpen = false;
