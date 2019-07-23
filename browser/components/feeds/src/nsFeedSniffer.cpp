@@ -362,8 +362,8 @@ nsFeedSniffer::GetMIMETypeFromContent(nsIRequest* request,
   
   if (!isFeed) {
     isFeed = ContainsTopLevelSubstring(dataString, "<rdf:RDF") &&
-      dataString.Find(NS_RDF) &&
-      dataString.Find(NS_RSS);
+      dataString.Find(NS_RDF) != -1 &&
+      dataString.Find(NS_RSS) != -1;
   }
 
   
