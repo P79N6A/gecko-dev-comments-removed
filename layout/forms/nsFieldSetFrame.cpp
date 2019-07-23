@@ -418,7 +418,6 @@ nsFieldSetFrame::Reflow(nsPresContext*           aPresContext,
     reflowLegend = mLegendFrame != nsnull;
   } else {
     reflowContent = mContentFrame && NS_SUBTREE_DIRTY(mContentFrame);
-
     reflowLegend = mLegendFrame && NS_SUBTREE_DIRTY(mLegendFrame);
   }
 
@@ -438,17 +437,13 @@ nsFieldSetFrame::Reflow(nsPresContext*           aPresContext,
 
   
   const nsMargin &borderPadding = aReflowState.mComputedBorderPadding;
-  const nsMargin &padding       = aReflowState.mComputedPadding;
-  nsMargin border = borderPadding - padding;  
+  nsMargin border = borderPadding - aReflowState.mComputedPadding;  
 
   
   
   nsMargin legendMargin(0,0,0,0);
   
   if (reflowLegend) {
-    const nsStyleMargin* marginStyle = mLegendFrame->GetStyleMargin();
-    marginStyle->GetMargin(legendMargin);
-
     nsHTMLReflowState legendReflowState(aPresContext, aReflowState,
                                         mLegendFrame, availSize);
 
@@ -460,6 +455,7 @@ nsFieldSetFrame::Reflow(nsPresContext*           aPresContext,
     printf("  returned (%d, %d)\n", legendDesiredSize.width, legendDesiredSize.height);
 #endif
     
+    legendMargin = mLegendFrame->GetUsedMargin();
     mLegendRect.width  = legendDesiredSize.width + legendMargin.left + legendMargin.right;
     mLegendRect.height = legendDesiredSize.height + legendMargin.top + legendMargin.bottom;
     mLegendRect.x = borderPadding.left;
@@ -491,7 +487,11 @@ nsFieldSetFrame::Reflow(nsPresContext*           aPresContext,
   } else if (!mLegendFrame) {
     mLegendRect.Empty();
     mLegendSpace = 0;
-  } 
+  } else {
+    
+    
+    legendMargin = mLegendFrame->GetUsedMargin();
+  }
 
   
   if (reflowContent) {
@@ -532,7 +532,7 @@ nsFieldSetFrame::Reflow(nsPresContext*           aPresContext,
   if (mLegendFrame) {
     
     if (contentRect.width > mLegendRect.width) {
-      PRInt32 align = ((nsLegendFrame*)mLegendFrame)->GetAlign();
+      PRInt32 align = static_cast<nsLegendFrame*>(mLegendFrame)->GetAlign();
 
       switch(align) {
         case NS_STYLE_TEXT_ALIGN_RIGHT:
