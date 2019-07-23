@@ -167,7 +167,7 @@ namespace nanojit
         
         
 
-        evictScratchRegs();
+        evictScratchRegsExcept(0);
 
         const CallInfo* call = ins->callInfo();
         
@@ -393,13 +393,17 @@ namespace nanojit
 
         } else {
             int d = findMemFor(ins);
-            if (rmask(r) & GpRegs) {
+            if (ins->isI32()) {
+                NanoAssert(rmask(r) & GpRegs);
                 LD(r, d, FP);
-            } else if (rmask(r) & XmmRegs) {
-                SSE_LDQ(r, d, FP);
             } else {
-                NanoAssert(rmask(r) & x87Regs);
-                FLDQ(d, FP);
+                NanoAssert(ins->isF64());
+                if (rmask(r) & XmmRegs) {
+                    SSE_LDQ(r, d, FP);
+                } else {
+                    NanoAssert(rmask(r) & x87Regs);
+                    FLDQ(d, FP);
+                }
             }
         }
     }
@@ -992,12 +996,10 @@ namespace nanojit
         prepareResultReg(div, rmask(EAX));
 
         Register rDivR = findRegFor(divR, (GpRegs & ~(rmask(EAX)|rmask(EDX))));
-
         Register rDivL = !divL->isInReg() ? EAX : divL->getReg();
 
         DIV(rDivR);
         CDQ();     
-
         if (EAX != rDivL)
             MR(EAX, rDivL);
 
@@ -1028,7 +1030,6 @@ namespace nanojit
     
     void Assembler::asm_neg_not(LInsp ins)
     {
-        LOpcode op = ins->opcode();
         LIns* lhs = ins->oprnd1();
 
         Register rr = prepareResultReg(ins, GpRegs);
@@ -1036,11 +1037,12 @@ namespace nanojit
         
         Register ra = !lhs->isInReg() ? rr : lhs->getReg();
 
-        if (op == LIR_not)
+        if (ins->isop(LIR_not)) {
             NOT(rr);
-        else
+        } else {
+            NanoAssert(ins->isop(LIR_neg));
             NEG(rr);
-
+        }
         if (rr != ra)
             MR(rr, ra);
 

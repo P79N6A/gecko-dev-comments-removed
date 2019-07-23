@@ -846,7 +846,7 @@ Assembler::asm_call(LInsp ins)
     
     
 
-    evictScratchRegs();
+    evictScratchRegsExcept(0);
 
     const CallInfo* call = ins->callInfo();
     ArgSize sizes[MAXARGS];
