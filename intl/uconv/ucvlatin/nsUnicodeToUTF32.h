@@ -51,18 +51,19 @@
 
 
 
-class nsUnicodeToUTF32Base : public nsIUnicodeEncoder
+class nsUnicodeToUTF32 : public nsIUnicodeEncoder
 {
    NS_DECL_ISUPPORTS
 
-protected:
+public:
 
  
 
 
-  nsUnicodeToUTF32Base() {mBOM = 0; mHighSurrogate = 0;}
-  virtual ~nsUnicodeToUTF32Base() {}
+  nsUnicodeToUTF32() {mHighSurrogate = 0;}
+  virtual ~nsUnicodeToUTF32() {}
 
+protected:
   PRUnichar  mHighSurrogate;
 
   NS_IMETHOD GetMaxLength(const PRUnichar * aSrc, PRInt32 aSrcLength, 
@@ -71,15 +72,13 @@ protected:
   
   
 
-  NS_IMETHOD Reset() {mBOM = 0; mHighSurrogate = 0; return NS_OK;}
+  NS_IMETHOD Reset() {mHighSurrogate = 0; return NS_OK;}
   NS_IMETHOD FillInfo(PRUint32* aInfo);
   NS_IMETHOD SetOutputErrorBehavior(PRInt32 aBehavior, 
                                     nsIUnicharEncoder * aEncoder, 
                                     PRUnichar aChar) 
                                     {return NS_OK;}
 
-protected:
-  PRUnichar mBOM;
 };
 
 
@@ -92,7 +91,7 @@ protected:
 
 
 
-class nsUnicodeToUTF32BE : public nsUnicodeToUTF32Base
+class nsUnicodeToUTF32BE : public nsUnicodeToUTF32
 {
 public:
 
@@ -116,7 +115,7 @@ public:
 
 
 
-class nsUnicodeToUTF32LE : public nsUnicodeToUTF32Base
+class nsUnicodeToUTF32LE : public nsUnicodeToUTF32
 {
 public:
 
@@ -125,32 +124,6 @@ public:
   NS_IMETHOD Convert(const PRUnichar * aSrc, PRInt32 * aSrcLength, 
                      char * aDest, PRInt32 * aDestLength);
   NS_IMETHOD Finish(char * aDest, PRInt32 * aDestLength);
-
-};
-
-
-
-
-
-
-
-
-
-
-#ifdef IS_LITTLE_ENDIAN
-class nsUnicodeToUTF32 : public nsUnicodeToUTF32LE
-#elif defined(IS_BIG_ENDIAN)
-class nsUnicodeToUTF32 : public nsUnicodeToUTF32BE
-#else
-#error "Unknown endianness"
-#endif
-{
-public:
-  nsUnicodeToUTF32() {mBOM = 0xFEFF; mHighSurrogate = 0;};
-
-  
-  
-  NS_IMETHOD Reset() {mBOM = 0xFEFF; mHighSurrogate = 0; return NS_OK;};
 
 };
 

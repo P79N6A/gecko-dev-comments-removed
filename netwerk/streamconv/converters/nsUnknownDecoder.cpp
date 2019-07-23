@@ -571,7 +571,8 @@ PRBool nsUnknownDecoder::LastDitchSniff(nsIRequest* aRequest)
     if ((buf[0] == 0xFE && buf[1] == 0xFF) || 
         (buf[0] == 0xFF && buf[1] == 0xFE) || 
         (buf[0] == 0xEF && buf[1] == 0xBB && buf[2] == 0xBF) || 
-        (buf[0] == 0 && buf[1] == 0 && buf[2] == 0xFE && buf[3] == 0xFF)) { 
+        (buf[0] == 0 && buf[1] == 0 && buf[2] == 0xFE && buf[3] == 0xFF) || 
+        (buf[0] == 0 && buf[1] == 0 && buf[2] == 0xFF && buf[3] == 0xFE)) { 
         
       mContentType = TEXT_PLAIN;
       return PR_TRUE;

@@ -523,7 +523,7 @@ public:
 
 
   static PRBool CheckForBOM(const unsigned char* aBuffer, PRUint32 aLength,
-                            nsACString& aCharset, PRBool *bigEndian = nsnull);
+                            nsACString& aCharset);
 
 
   
