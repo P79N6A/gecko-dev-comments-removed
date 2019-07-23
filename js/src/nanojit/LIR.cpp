@@ -50,43 +50,28 @@ namespace nanojit
 	#ifdef FEATURE_NANOJIT
 
 	const uint8_t operandCount[] = {
-			0, 0, 0, 0, 0, 2, 2, 2, 2, 2, 
-		0, 2, 2, 0, 2, 1, 1, 0, 0, 0,
-		0, 0, 1, 1, 0, 2, 2, 2, 2, 2,
-		2, 2, 0, 0, 2, 2, 1, 2, 2, 2,
-#if defined NANOJIT_64BIT
-		0, 2, 2, 2, 1, 2, 2, 2, 1, 1,
-#else
-		1, 2, 2, 2, 1, 2, 2, 2, 1, 1,
-#endif
-		1, 1, 2, 1, 1, 2, 2, 2, 2, 2,
-		2, 2, 2, 2, 2, 1, 1, 2, 2, 2,
-		2, 2, 2, 2, 2, 2, 2, 2, 2, 1,
-		2, 0, 0, 2, 2, 2, 2, 2, 2, 2,
-		2, 2, 2, 2, 2, 2, 2, 0, 2, 2,
-		1, 2, 2, 2, 2, 2, 1, 1, 2, 2,
-		2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
-		2, 2, 2, 2, 2, 2, 2, 2, 
+#define OPDEF(op, number, operands) \
+        operands,
+#define OPDEF64(op, number, operands) \
+        operands,
+#include "LIRopcode.tbl"
+#undef OPDEF
+#undef OPDEF64
+        0
 	};
 
 	
 	#ifdef NJ_VERBOSE
 
 	const char* lirNames[] = {
-		"start","nearskip","skip","neartramp","tramp","5","6","7","8","addp",
-		"param","st","ld","alloc","sti","ret","live","calli","call","loop",
-	 "x","j","jt","jf","label","ldcs","feq","flt","fgt","fle",
-	 "fge","cmov","short","int","ldc","","neg","add","sub","mul",
-	 "callh","and","or","xor","not","lsh","rsh","ush","xt","xf",
-	 "qlo","qhi","ldcb","ov","cs","eq","lt","gt","le","ge",
-	 "ult","ugt","ule","uge",
-	 "LIR64","file","line","67","68","69",
-	 "70","71","72","73","74","stq","ldq","77","stqi","fret",
-	 "80","fcalli","fcall","83","84","85","86","87","88","89",
-	 "90","91","92","93","94","95","96","quad","ldqc","99",
-	 "fneg","fadd","fsub","fmul","fdiv","qjoin","i2f","u2f","qior","qilsh",
-	 "110","111","112","113","114","115","116","117","118","119",
-	 "120","121","122","123","124","125","126","127"
+#define OPDEF(op, number, operands) \
+        #op,
+#define OPDEF64(op, number, operands) \
+        #op,
+#include "LIRopcode.tbl"
+#undef OPDEF
+#undef OPDEF64
+        NULL
 	};
 
 	#endif 
@@ -851,6 +836,11 @@ namespace nanojit
 				oprnd1 = t;
 			}
 			else if (v >= LIR_lt && v <= LIR_uge) {
+				NanoStaticAssert((LIR_lt ^ 1) == LIR_gt);
+				NanoStaticAssert((LIR_le ^ 1) == LIR_ge);
+				NanoStaticAssert((LIR_ult ^ 1) == LIR_ugt);
+				NanoStaticAssert((LIR_ule ^ 1) == LIR_uge);
+
 				
 				LIns *t = oprnd2;
 				oprnd2 = oprnd1;

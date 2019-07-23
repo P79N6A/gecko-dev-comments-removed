@@ -105,6 +105,20 @@ namespace nanojit
 
 
 
+
+	#ifdef __SUNPRO_CC
+		#define NanoStaticAssert(condition)
+	#else
+		#define NanoStaticAssert(condition) \
+			extern void nano_static_assert(int arg[(condition) ? 1 : -1])
+	#endif
+
+
+	
+
+
+
+
 }
 
 #ifdef AVMPLUS_VERBOSE
