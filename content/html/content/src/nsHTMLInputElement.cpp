@@ -2711,6 +2711,15 @@ nsHTMLInputElement::SubmitNamesValues(nsIFormSubmission* aFormSubmission,
       }
     }
 
+    if (files.Count() == 0) {
+      
+      
+      aFormSubmission->AddNameFilePair(this, name, EmptyString(), nsnull,
+                                       NS_LITERAL_CSTRING("application/octet-stream"),
+                                       PR_FALSE);
+
+    }
+
     return NS_OK;
   }
 
