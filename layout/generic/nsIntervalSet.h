@@ -78,11 +78,6 @@ public:
     
 
 
-    PRBool HasPoint(coord_type aPoint) const;
-
-    
-
-
 
     PRBool Intersects(coord_type aBegin, coord_type aEnd) const;
 

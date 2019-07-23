@@ -271,12 +271,6 @@ public:
 
   PRBool CheckForCollapsedBottomMarginFromClearanceLine();
 
-  
-
-
-
-  nsIFrame* GetTopBlockChild(nsPresContext *aPresContext);
-
   static nsresult GetCurrentLine(nsBlockReflowState *aState, nsLineBox **aOutCurrentLine);
 
   static PRBool BlockIsMarginRoot(nsIFrame* aBlock);

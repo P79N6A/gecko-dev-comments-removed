@@ -109,15 +109,6 @@ public:
   virtual PRInt32 FindLineContaining(nsIFrame* aFrame) = 0;
 
   
-
-
-
-
-
-
-  virtual PRInt32 FindLineAt(nscoord aY) = 0;
-
-  
   
   
   

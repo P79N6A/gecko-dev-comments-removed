@@ -92,12 +92,6 @@ public:
   NS_HIDDEN_(void) Destroy();
 
   
-
-
-
-  NS_HIDDEN_(nsIFrame*) GetCanvasFrame();
-
-  
   NS_HIDDEN_(nsPlaceholderFrame*) GetPlaceholderFrameFor(nsIFrame* aFrame);
   NS_HIDDEN_(nsresult)
     RegisterPlaceholderFrame(nsPlaceholderFrame* aPlaceholderFrame);
@@ -116,7 +110,6 @@ public:
   NS_HIDDEN_(void) ClearUndisplayedContentIn(nsIContent* aContent,
                                              nsIContent* aParentContent);
   NS_HIDDEN_(void) ClearAllUndisplayedContentIn(nsIContent* aParentContent);
-  NS_HIDDEN_(void) ClearUndisplayedContentMap();
 
   
   NS_HIDDEN_(nsresult) AppendFrames(nsIFrame*       aParentFrame,

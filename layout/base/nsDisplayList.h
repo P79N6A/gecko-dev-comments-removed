@@ -770,10 +770,6 @@ public:
   
 
 
-  void DeleteBottom();
-  
-
-
   void DeleteAll();
   
   

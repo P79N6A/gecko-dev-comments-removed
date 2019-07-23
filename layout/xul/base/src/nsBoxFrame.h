@@ -206,11 +206,6 @@ public:
   static nsresult LayoutChildAt(nsBoxLayoutState& aState, nsIBox* aBox, const nsRect& aRect);
 
   
-  
-  
-  void FireDOMEventSynch(const nsAString& aDOMEventName, nsIContent *aContent = nsnull);
-
-  
 
 
 

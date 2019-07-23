@@ -201,11 +201,6 @@ public:
   
 
 
-  nsresult GetBidiEngine(nsBidi** aBidiEngine);
-
-  
-
-
 
 
 

@@ -66,11 +66,6 @@ public:
   
 
 
-  NS_IMETHOD GetOptionSelected(PRInt32 index, PRBool* value) = 0;
-
-  
-
-
 
   NS_IMETHOD DoneAddingChildren(PRBool aIsDone) = 0;
 

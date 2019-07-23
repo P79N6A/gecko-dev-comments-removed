@@ -1916,30 +1916,6 @@ nsBoxFrame::RegUnregAccessKey(PRBool aDoReg)
   return rv;
 }
 
-void
-nsBoxFrame::FireDOMEventSynch(const nsAString& aDOMEventName, nsIContent *aContent)
-{
-  
-  
-  nsPresContext *presContext = PresContext();
-  nsIContent *content = aContent ? aContent : mContent;
-  if (content && presContext) {
-    
-    nsCOMPtr<nsIDOMEvent> event;
-    if (NS_SUCCEEDED(nsEventDispatcher::CreateEvent(presContext, nsnull,
-                                                    NS_LITERAL_STRING("Events"),
-                                                    getter_AddRefs(event)))) {
-      event->InitEvent(aDOMEventName, PR_TRUE, PR_TRUE);
-
-      nsCOMPtr<nsIPrivateDOMEvent> privateEvent(do_QueryInterface(event));
-      privateEvent->SetTrusted(PR_TRUE);
-
-      nsEventDispatcher::DispatchDOMEvent(content, nsnull, event,
-                                          presContext, nsnull);
-    }
-  }
-}
-
 PRBool
 nsBoxFrame::SupportsOrdinalsInChildren()
 {

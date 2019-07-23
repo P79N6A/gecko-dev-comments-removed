@@ -1760,63 +1760,6 @@ nsLayoutUtils::GetParentOrPlaceholderFor(nsFrameManager* aFrameManager,
 }
 
 nsIFrame*
-nsLayoutUtils::GetClosestCommonAncestorViaPlaceholders(nsIFrame* aFrame1,
-                                                       nsIFrame* aFrame2,
-                                                       nsIFrame* aKnownCommonAncestorHint)
-{
-  NS_PRECONDITION(aFrame1, "aFrame1 must not be null");
-  NS_PRECONDITION(aFrame2, "aFrame2 must not be null");
-
-  nsPresContext* presContext = aFrame1->PresContext();
-  if (presContext != aFrame2->PresContext()) {
-    
-    return nsnull;
-  }
-  nsFrameManager* frameManager = presContext->PresShell()->FrameManager();
-
-  nsAutoTArray<nsIFrame*, 8> frame1Ancestors;
-  nsIFrame* f1;
-  for (f1 = aFrame1; f1 && f1 != aKnownCommonAncestorHint;
-       f1 = GetParentOrPlaceholderFor(frameManager, f1)) {
-    frame1Ancestors.AppendElement(f1);
-  }
-  if (!f1 && aKnownCommonAncestorHint) {
-    
-    
-    aKnownCommonAncestorHint = nsnull;
-  }
-
-  nsAutoTArray<nsIFrame*, 8> frame2Ancestors;
-  nsIFrame* f2;
-  for (f2 = aFrame2; f2 && f2 != aKnownCommonAncestorHint;
-       f2 = GetParentOrPlaceholderFor(frameManager, f2)) {
-    frame2Ancestors.AppendElement(f2);
-  }
-  if (!f2 && aKnownCommonAncestorHint) {
-    
-    
-    return GetClosestCommonAncestorViaPlaceholders(aFrame1, aFrame2, nsnull);
-  }
-
-  
-  
-  
-  
-  nsIFrame* lastCommonFrame = aKnownCommonAncestorHint;
-  PRInt32 last1 = frame1Ancestors.Length() - 1;
-  PRInt32 last2 = frame2Ancestors.Length() - 1;
-  while (last1 >= 0 && last2 >= 0) {
-    nsIFrame* frame1 = frame1Ancestors.ElementAt(last1);
-    if (frame1 != frame2Ancestors.ElementAt(last2))
-      break;
-    lastCommonFrame = frame1;
-    last1--;
-    last2--;
-  }
-  return lastCommonFrame;
-}
-
-nsIFrame*
 nsLayoutUtils::GetNextContinuationOrSpecialSibling(nsIFrame *aFrame)
 {
   nsIFrame *result = aFrame->GetNextContinuation();

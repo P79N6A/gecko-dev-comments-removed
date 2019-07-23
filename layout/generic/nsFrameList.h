@@ -215,14 +215,6 @@ public:
 
   nsFrameList ExtractTail(FrameLinkEnumerator& aLink);
 
-  
-
-
-
-
-
-  void SortByContentOrder();
-
   nsIFrame* FirstChild() const {
     return mFirstChild;
   }
@@ -243,7 +235,6 @@ public:
   }
 
   PRBool ContainsFrame(const nsIFrame* aFrame) const;
-  PRBool ContainsFrameBefore(const nsIFrame* aFrame, const nsIFrame* aEnd) const;
 
   PRInt32 GetLength() const;
 

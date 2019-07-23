@@ -889,12 +889,6 @@ public:
 
 
 
-
-
-
-
-
-  nsRect GetMarginRect() const;
   nsRect GetPaddingRect() const;
   nsRect GetContentRect() const;
 
@@ -1032,15 +1026,6 @@ public:
                         const nsRect&           aClipRect,
                         PRBool                  aClipBorderBackground = PR_FALSE,
                         PRBool                  aClipAll = PR_FALSE);
-
-  
-
-
-
-  nsresult Clip(nsDisplayListBuilder* aBuilder,
-                const nsDisplayListSet& aFromSet,
-                const nsDisplayListSet& aToSet,
-                const nsRect& aClipRect);
 
   enum {
     DISPLAY_CHILD_FORCE_PSEUDO_STACKING_CONTEXT = 0x01,

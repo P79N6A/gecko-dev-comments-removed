@@ -240,9 +240,7 @@ public:
   static nsIFrame* GetFrameAtOrBefore(nsIFrame*       aParentFrame,
                                       nsIFrame*       aPriorChildFrame,
                                       nsIAtom*        aChildType);
-  PRBool IsAutoWidth(PRBool* aIsPctWidth = nsnull);
   PRBool IsAutoHeight();
-  static PRBool IsPctHeight(nsStyleContext* aStyleContext);
   
   
 
@@ -382,9 +380,6 @@ public:
   virtual PRInt32 GetColumnWidth(PRInt32 aColIndex);
 
   
-  virtual void SetColumnWidth(PRInt32 aColIndex, nscoord aWidth);
-
-  
   virtual nscoord GetCellSpacingX();
 
   
@@ -422,11 +417,6 @@ public:
 
 
   PRBool HasMoreThanOneCell(PRInt32 aRowIndex) const;
-
-  
-
-
-  PRInt32 GetEffectiveCOLSAttribute();
 
   
 
@@ -655,14 +645,6 @@ public:
   
   
   PRBool RowHasSpanningCells(PRInt32 aRowIndex, PRInt32 aNumEffCols);
-
-  
-  
-  PRBool ColIsSpannedInto(PRInt32 aColIndex);
-
-  
-  
-  PRBool ColHasSpanningCells(PRInt32 aColIndex);
 
 protected:
 

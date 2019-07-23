@@ -436,11 +436,6 @@ public:
 
   
   
-  static nsLineBox* FindLineContaining(nsLineList& aLines, nsIFrame* aFrame,
-                                       PRInt32* aFrameIndexInLine);
-
-  
-  
   
   
   
@@ -1545,7 +1540,6 @@ public:
                      nsRect& aLineBounds,
                      PRUint32* aLineFlags);
   virtual PRInt32 FindLineContaining(nsIFrame* aFrame);
-  virtual PRInt32 FindLineAt(nscoord aY);
   NS_IMETHOD FindFrameAt(PRInt32 aLineNumber,
                          nscoord aX,
                          nsIFrame** aFrameFound,

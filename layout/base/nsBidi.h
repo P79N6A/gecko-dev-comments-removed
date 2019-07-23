@@ -444,41 +444,6 @@ public:
   nsBidi();
 
   
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  nsBidi(PRUint32 aMaxLength, PRUint32 aMaxRunCount);
-
-  
   virtual ~nsBidi();
 
 

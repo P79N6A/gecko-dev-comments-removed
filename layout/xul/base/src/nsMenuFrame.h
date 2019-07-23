@@ -123,8 +123,6 @@ public:
   NS_IMETHOD SetDebug(nsBoxLayoutState& aState, PRBool aDebug);
 #endif
 
-  NS_IMETHOD IsActive(PRBool& aResult) { aResult = PR_TRUE; return NS_OK; }
-
   
   
   

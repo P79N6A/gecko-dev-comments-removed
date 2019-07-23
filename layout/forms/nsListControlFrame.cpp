@@ -1645,14 +1645,6 @@ nsListControlFrame::FireOnChange()
   }
 }
 
-
-NS_IMETHODIMP
-nsListControlFrame::GetOptionSelected(PRInt32 aIndex, PRBool* aValue)
-{
-  *aValue = IsContentSelectedByIndex(aIndex);
-  return NS_OK;
-}
-
 NS_IMETHODIMP
 nsListControlFrame::OnSetSelectedIndex(PRInt32 aOldIndex, PRInt32 aNewIndex)
 {

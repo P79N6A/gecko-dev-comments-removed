@@ -349,20 +349,6 @@ nsButtonFrameRenderer::GetButtonInnerFocusBorderAndPadding()
   return result;
 }
 
-nsMargin
-nsButtonFrameRenderer::GetButtonOutlineBorderAndPadding()
-{
-  nsMargin borderAndPadding(0,0,0,0);
-  return borderAndPadding;
-}
-
-
-nsMargin
-nsButtonFrameRenderer::GetFullButtonBorderAndPadding()
-{
-  return GetAddedButtonBorderAndPadding() + GetButtonBorderAndPadding();
-}
-
 
 nsMargin
 nsButtonFrameRenderer::GetAddedButtonBorderAndPadding()

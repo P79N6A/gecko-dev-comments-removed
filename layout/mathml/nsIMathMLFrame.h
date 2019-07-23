@@ -84,9 +84,6 @@ public:
   SetBoundingMetrics(const nsBoundingMetrics& aBoundingMetrics) = 0;
 
   NS_IMETHOD
-  GetReference(nsPoint& aReference) = 0;
-
-  NS_IMETHOD
   SetReference(const nsPoint& aReference) = 0;
 
   virtual eMathMLFrameType GetMathMLFrameType() = 0;
@@ -118,28 +115,18 @@ public:
           nsHTMLReflowMetrics& aDesiredStretchSize) = 0;
 
  
-
-
-
+ 
   NS_IMETHOD
   GetEmbellishData(nsEmbellishData& aEmbellishData) = 0;
 
-  NS_IMETHOD
-  SetEmbellishData(const nsEmbellishData& aEmbellishData) = 0;
-
 
  
  
 
  
-
-
 
   NS_IMETHOD
   GetPresentationData(nsPresentationData& aPresentationData) = 0;
-
-  NS_IMETHOD
-  SetPresentationData(const nsPresentationData& aPresentationData) = 0;
 
   
 

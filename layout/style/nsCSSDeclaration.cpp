@@ -118,12 +118,6 @@ nsCSSDeclaration::RemoveProperty(nsCSSProperty aProperty)
   return NS_OK;
 }
 
-nsresult
-nsCSSDeclaration::AppendComment(const nsAString& aComment)
-{
-  return  NS_OK;
-}
-
 PRBool nsCSSDeclaration::AppendValueToString(nsCSSProperty aProperty, nsAString& aResult) const
 {
   nsCSSCompressedDataBlock *data = GetValueIsImportant(aProperty)

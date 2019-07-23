@@ -732,20 +732,6 @@ public:
   
 
 
-
-
-
-
-
-
-
-  static nsIFrame*
-  GetClosestCommonAncestorViaPlaceholders(nsIFrame* aFrame1, nsIFrame* aFrame2,
-                                          nsIFrame* aKnownCommonAncestorHint);
-
-  
-
-
   static nsIFrame*
   GetNextContinuationOrSpecialSibling(nsIFrame *aFrame);
 
