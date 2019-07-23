@@ -556,7 +556,7 @@ nsSVGGlyphFrame::GetCharacterPosition(gfxContext *aContext,
   if (!textPath)
     return NS_OK;
 
-  nsAutoPtr<nsSVGFlattenedPath> data(textPath->GetFlattenedPath());
+  nsRefPtr<gfxFlattenedPath> data = textPath->GetFlattenedPath();
 
   
   if (!data)
@@ -578,25 +578,25 @@ nsSVGGlyphFrame::GetCharacterPosition(gfxContext *aContext,
     cairo_text_extents(ctx,
                        NS_ConvertUTF16toUTF8(Substring(aText, i, 1)).get(),
                        &extent);
-    float advance = extent.x_advance;
+    float halfAdvance = extent.x_advance / 2.0;
 
     
-    if (x + advance / 2 > length)
+    if (x + halfAdvance > length)
       break;
 
     
-    if (x + advance / 2 >= 0.0f) {
+    if (x + halfAdvance >= 0.0f) {
       cp[i].draw = PR_TRUE;
 
       
       
       
-      data->FindPoint(advance, x, mY,
-                      &(cp[i].x),
-                      &(cp[i].y),
-                      &(cp[i].angle));
+      gfxPoint pt = data->FindPoint(gfxPoint(x + halfAdvance, mY),
+                                    &(cp[i].angle));
+      cp[i].x = pt.x - cos(cp[i].angle) * halfAdvance;
+      cp[i].y = pt.y - sin(cp[i].angle) * halfAdvance;
     }
-    x += advance;
+    x += 2 * halfAdvance;
   }
 
   *aCharacterPosition = cp;
