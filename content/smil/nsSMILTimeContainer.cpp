@@ -120,10 +120,12 @@ nsSMILTimeContainer::SetCurrentTime(nsSMILTime aSeekTo)
   
   
   
-  mParentOffset = GetParentTime() - aSeekTo;
+  nsSMILTime parentTime = GetParentTime();
+  mParentOffset = parentTime - aSeekTo;
 
   if (mPauseState) {
     mNeedsPauseSample = PR_TRUE;
+    mPauseStart = parentTime;
   }
 
   
