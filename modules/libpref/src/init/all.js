@@ -543,6 +543,12 @@ pref("javascript.options.jit.content",      true);
 pref("javascript.options.jit.chrome",       false);
 
 
+
+
+pref("javascript.options.mem.high_water_mark", 32);
+pref("javascript.options.mem.gc_frequency",   1600);
+
+
 pref("security.enable_java",                true);
 pref("advanced.mailftp",                    false);
 pref("image.animation_mode",                "normal");
