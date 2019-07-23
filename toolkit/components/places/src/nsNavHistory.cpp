@@ -125,6 +125,9 @@
 #define HISTORY_TITLE_LENGTH_MAX 4096
 
 
+#define DB_FILENAME NS_LITERAL_STRING("places.sqlite")
+
+
 
 #ifdef LAZY_ADD
 
@@ -398,35 +401,60 @@ nsNavHistory::InitDB(PRBool *aDoImport)
   *aDoImport = PR_FALSE;
 
   
+  nsCOMPtr<nsIFile> profDir;
   nsCOMPtr<nsIFile> dbFile;
   rv = NS_GetSpecialDirectory(NS_APP_USER_PROFILE_50_DIR,
-                              getter_AddRefs(dbFile));
+                              getter_AddRefs(profDir));
   NS_ENSURE_SUCCESS(rv, rv);
-  rv = dbFile->Append(NS_LITERAL_STRING("places.sqlite"));
+  rv = profDir->Clone(getter_AddRefs(dbFile));
+  NS_ENSURE_SUCCESS(rv, rv);
+  rv = dbFile->Append(DB_FILENAME);
   NS_ENSURE_SUCCESS(rv, rv);
 
   
-  PRBool exists;
-  rv = dbFile->Exists(&exists);
+  PRBool dbExists;
+  rv = dbFile->Exists(&dbExists);
   NS_ENSURE_SUCCESS(rv, rv);
-  if (!exists) {
+
+  
+  mDBService = do_GetService(MOZ_STORAGE_SERVICE_CONTRACTID, &rv);
+  NS_ENSURE_SUCCESS(rv, rv);
+  rv = mDBService->OpenDatabase(dbFile, getter_AddRefs(mDBConn));
+  if (rv == NS_ERROR_FILE_CORRUPTED) {
+    dbExists = PR_FALSE;
+    
+    nsAutoString corruptFileName;
+    rv = dbFile->GetLeafName(corruptFileName);
+    NS_ENSURE_SUCCESS(rv, rv);
+    corruptFileName.Append(NS_LITERAL_STRING(".corrupt"));
+
+    nsCOMPtr<nsIFile> corruptBackup;
+    rv = profDir->Clone(getter_AddRefs(corruptBackup));
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    rv = corruptBackup->Append(corruptFileName);
+    NS_ENSURE_SUCCESS(rv, rv);
+    rv = corruptBackup->CreateUnique(nsIFile::NORMAL_FILE_TYPE, 0600);
+    NS_ENSURE_SUCCESS(rv, rv);
+    rv = dbFile->MoveTo(nsnull, corruptFileName);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    rv = profDir->Clone(getter_AddRefs(dbFile));
+    NS_ENSURE_SUCCESS(rv, rv);
+    rv = dbFile->Append(DB_FILENAME);
+    NS_ENSURE_SUCCESS(rv, rv);
+    rv = mDBService->OpenDatabase(dbFile, getter_AddRefs(mDBConn));
+  }
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  if (!dbExists) {
     nsCOMPtr<nsIPrefBranch> prefs(do_GetService("@mozilla.org/preferences-service;1"));
     if (prefs) {
       rv = prefs->SetBoolPref(PREF_BROWSER_IMPORT_BOOKMARKS, PR_TRUE);
       NS_ENSURE_SUCCESS(rv, rv);
     }
   }
-
-  mDBService = do_GetService(MOZ_STORAGE_SERVICE_CONTRACTID, &rv);
-  NS_ENSURE_SUCCESS(rv, rv);
-  rv = mDBService->OpenDatabase(dbFile, getter_AddRefs(mDBConn));
-  if (rv == NS_ERROR_FILE_CORRUPTED) {
-    
-    rv = dbFile->Remove(PR_FALSE);
-    NS_ENSURE_SUCCESS(rv, rv);
-    rv = mDBService->OpenDatabase(dbFile, getter_AddRefs(mDBConn));
-  }
-  NS_ENSURE_SUCCESS(rv, rv);
 
   
   
