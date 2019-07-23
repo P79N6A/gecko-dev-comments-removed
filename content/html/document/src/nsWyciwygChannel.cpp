@@ -176,11 +176,6 @@ nsWyciwygChannel::GetLoadFlags(PRUint32 * aLoadFlags)
 NS_IMETHODIMP
 nsWyciwygChannel::GetOriginalURI(nsIURI* *aURI)
 {
-  
-  
-  NS_ASSERTION(mOriginalURI != mURI,
-               "nsWyciwygChannel::GetOriginalURI - mOriginalURI not set!\n");
-  
   *aURI = mOriginalURI;
   NS_ADDREF(*aURI);
   return NS_OK;
