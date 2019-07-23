@@ -797,10 +797,6 @@ CalculateContainingBlockSizeForAbsolutes(const nsHTMLReflowState& aReflowState,
     if (aLastRS != &aReflowState) {
       
       
-      NS_ASSERTION(aLastRS->frame->GetStyleDisplay()->IsBlockOutside(),
-                   "Wrapping frame should be block-level");
-      
-      
       nsIScrollableFrame* scrollFrame;
       CallQueryInterface(aLastRS->frame, &scrollFrame);
       nsMargin scrollbars(0,0,0,0);
