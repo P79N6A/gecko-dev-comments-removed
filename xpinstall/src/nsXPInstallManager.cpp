@@ -957,7 +957,6 @@ void nsXPInstallManager::Shutdown(PRInt32 status)
         
         mDlg->OnStateChange(0, nsIXPIProgressDialog::DIALOG_CLOSE, 0 );
         mDlg = nsnull;
-        mDialogOpen = PR_FALSE;
     }
 
     if (mNeedsShutdown)
