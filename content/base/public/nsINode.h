@@ -79,49 +79,64 @@ enum {
 
   
   
+  
+  
+  
   NODE_IS_ANONYMOUS =            0x00000008U,
+
+  
+  
+  
+  
+  
   
   NODE_IS_IN_ANONYMOUS_SUBTREE = 0x00000010U,
 
   
   
-  NODE_MAY_HAVE_FRAME =          0x00000020U,
+  
+  
+  NODE_IS_NATIVE_ANONYMOUS_ROOT = 0x00000020U,
 
   
   
-  NODE_FORCE_XBL_BINDINGS =      0x00000040U,
-
-  
-  NODE_MAY_BE_IN_BINDING_MNGR =  0x00000080U,
-
-  NODE_IS_EDITABLE =             0x00000100U,
+  NODE_MAY_HAVE_FRAME =          0x00000040U,
 
   
   
-  NODE_MAY_HAVE_ID =             0x00000200U,
-  
-  
-  NODE_MAY_HAVE_CLASS =          0x00000400U,
-  NODE_MAY_HAVE_STYLE =          0x00000800U,
-
-  NODE_IS_INSERTION_PARENT =     0x00001000U,
+  NODE_FORCE_XBL_BINDINGS =      0x00000080U,
 
   
-  NODE_HAS_EMPTY_SELECTOR =      0x00002000U,
+  NODE_MAY_BE_IN_BINDING_MNGR =  0x00000100U,
+
+  NODE_IS_EDITABLE =             0x00000200U,
 
   
   
-  NODE_HAS_SLOW_SELECTOR =       0x00004000U,
+  NODE_MAY_HAVE_ID =             0x00000400U,
+  
+  
+  NODE_MAY_HAVE_CLASS =          0x00000800U,
+  NODE_MAY_HAVE_STYLE =          0x00001000U,
+
+  NODE_IS_INSERTION_PARENT =     0x00002000U,
+
+  
+  NODE_HAS_EMPTY_SELECTOR =      0x00004000U,
 
   
   
-  NODE_HAS_EDGE_CHILD_SELECTOR = 0x00008000U,
+  NODE_HAS_SLOW_SELECTOR =       0x00008000U,
+
+  
+  
+  NODE_HAS_EDGE_CHILD_SELECTOR = 0x00010000U,
 
   
   
   
   NODE_HAS_SLOW_SELECTOR_NOAPPEND
-                               = 0x00010000U,
+                               = 0x00020000U,
 
   NODE_ALL_SELECTOR_FLAGS =      NODE_HAS_EMPTY_SELECTOR |
                                  NODE_HAS_SLOW_SELECTOR |
@@ -129,7 +144,7 @@ enum {
                                  NODE_HAS_SLOW_SELECTOR_NOAPPEND,
 
   
-  NODE_SCRIPT_TYPE_OFFSET =               17,
+  NODE_SCRIPT_TYPE_OFFSET =               18,
 
   NODE_SCRIPT_TYPE_SIZE =                  4,
 
@@ -154,8 +169,8 @@ inline nsINode* NODE_FROM(C& aContent, D& aDocument)
 
 
 #define NS_INODE_IID \
-{ 0x075803c5, 0xb37f, 0x489f, \
-  { 0x9b, 0x17, 0x9a, 0x60, 0x44, 0x5d, 0x66, 0x1b } }
+{ 0x7bccc9bd, 0x30eb, 0x47c0, \
+ { 0x8b, 0xc7, 0x6f, 0x19, 0x75, 0xc8, 0xe7, 0xd7 } }
  
 
 
@@ -643,7 +658,10 @@ public:
 
   void SetFlags(PtrBits aFlagsToSet)
   {
-    NS_ASSERTION(!(aFlagsToSet & (NODE_IS_ANONYMOUS | NODE_MAY_HAVE_FRAME)) ||
+    NS_ASSERTION(!(aFlagsToSet & (NODE_IS_ANONYMOUS |
+                                  NODE_MAY_HAVE_FRAME |
+                                  NODE_IS_NATIVE_ANONYMOUS_ROOT |
+                                  NODE_IS_IN_ANONYMOUS_SUBTREE)) ||
                  IsNodeOfType(eCONTENT),
                  "Flag only permitted on nsIContent nodes");
     PtrBits* flags = HasSlots() ? &FlagsAsSlots()->mFlags :
@@ -653,6 +671,11 @@ public:
 
   void UnsetFlags(PtrBits aFlagsToUnset)
   {
+    NS_ASSERTION(!(aFlagsToUnset &
+                   (NODE_IS_ANONYMOUS |
+                    NODE_IS_IN_ANONYMOUS_SUBTREE |
+                    NODE_IS_NATIVE_ANONYMOUS_ROOT)),
+                 "Trying to unset write-only flags");
     PtrBits* flags = HasSlots() ? &FlagsAsSlots()->mFlags :
                                   &mFlagsOrSlots;
     *flags &= ~aFlagsToUnset;
