@@ -6935,19 +6935,6 @@ nsTypedSelection::GetPointFromOffset(nsIFrame *aFrame, PRInt32 aContentOffset, n
   
   
 
-  nsIPresShell *shell = mFrameSelection->GetShell();
-  if (!shell)
-    return NS_ERROR_NULL_POINTER;
-
-  nsPresContext *presContext = shell->GetPresContext();
-  if (!presContext)
-    return NS_ERROR_NULL_POINTER;
-  
-  
-  
-  
-  
-
   nsIWidget* widget = nsnull;
   nsIView *closestView = nsnull;
   nsPoint offset(0, 0);
@@ -6970,25 +6957,8 @@ nsTypedSelection::GetPointFromOffset(nsIFrame *aFrame, PRInt32 aContentOffset, n
   
   
   
-  
-  
 
-  nsCOMPtr<nsIRenderingContext> rendContext;
-
-  rv = presContext->DeviceContext()->
-    CreateRenderingContext(closestView, *getter_AddRefs(rendContext));
-  
-  if (NS_FAILED(rv))
-    return rv;
-
-  if (!rendContext)
-    return NS_ERROR_NULL_POINTER;
-
-  
-  
-  
-
-  rv = aFrame->GetPointFromOffset(presContext, rendContext, aContentOffset, aPoint);
+  rv = aFrame->GetPointFromOffset(aContentOffset, aPoint);
 
   return rv;
 }

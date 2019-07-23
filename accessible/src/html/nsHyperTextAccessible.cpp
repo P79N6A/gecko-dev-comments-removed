@@ -289,13 +289,13 @@ nsIntRect nsHyperTextAccessible::GetBoundsForString(nsIFrame *aFrame, PRUint32 a
 
     
     nsPoint frameTextStartPoint;
-    rv = frame->GetPointFromOffset(context, rc, startContentOffset, &frameTextStartPoint);
+    rv = frame->GetPointFromOffset(startContentOffset, &frameTextStartPoint);
     NS_ENSURE_SUCCESS(rv, nsRect());   
     frameScreenRect.x += context->AppUnitsToDevPixels(frameTextStartPoint.x);
 
     
     nsPoint frameTextEndPoint;
-    rv = frame->GetPointFromOffset(context, rc, startContentOffset + frameSubStringLength, &frameTextEndPoint);
+    rv = frame->GetPointFromOffset(startContentOffset + frameSubStringLength, &frameTextEndPoint);
     NS_ENSURE_SUCCESS(rv, nsRect());   
     frameScreenRect.width = context->AppUnitsToDevPixels(frameTextEndPoint.x - frameTextStartPoint.x);
 

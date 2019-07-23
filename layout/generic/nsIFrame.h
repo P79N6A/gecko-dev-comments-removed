@@ -104,8 +104,8 @@ typedef class nsIFrame nsIBox;
 
 
 #define NS_IFRAME_IID \
-{ 0x4c0cfb5b, 0x864d, 0x46c5, \
-  { 0xad, 0x78, 0xb1, 0xb4, 0xde, 0x35, 0xa4, 0xc3 } }
+{ 0x39681dd7, 0x5db6, 0x4e38, \
+  { 0xb8, 0x4c, 0x5d, 0x9a, 0x16, 0x3c, 0x98, 0x7a } }
 
 
 
@@ -991,9 +991,7 @@ public:
 
 
 
-  NS_IMETHOD  GetPointFromOffset(nsPresContext*          inPresContext,
-                                 nsIRenderingContext*     inRendContext,
-                                 PRInt32                  inOffset,
+  NS_IMETHOD  GetPointFromOffset(PRInt32                  inOffset,
                                  nsPoint*                 outPoint) = 0;
   
   

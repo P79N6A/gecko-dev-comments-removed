@@ -91,8 +91,7 @@ class nsTextAccessibleWrap : public nsTextAccessible,
                                  PRInt32* aWidth, PRInt32* aHeight);
 
     
-    nsIFrame* GetPointFromOffset(nsIFrame *aContainingFrame, nsPresContext *aPresContext,
-                                 nsIRenderingContext *aRenderingContext,
+    nsIFrame* GetPointFromOffset(nsIFrame *aContainingFrame,
                                  PRInt32 aOffset, PRBool aPreferNext, nsPoint& aOutPoint);
 };
 

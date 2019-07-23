@@ -315,26 +315,9 @@ NS_IMETHODIMP nsCaret::GetCaretCoordinates(EViewCoordinates aRelativeToType,
   GetViewForRendering(theFrame, aRelativeToType, viewOffset, &drawingView, outView);
   if (!drawingView)
     return NS_ERROR_UNEXPECTED;
-  
-  
-  nsCOMPtr<nsIPresShell> presShell = do_QueryReferent(mPresShell);
-  if (!presShell)
-    return NS_ERROR_FAILURE;
-  nsPresContext *presContext = presShell->GetPresContext();
-
-  
-  nsCOMPtr<nsIRenderingContext> rendContext;  
-  err = presContext->DeviceContext()->
-    CreateRenderingContext(drawingView, *getter_AddRefs(rendContext));
-  if (NS_FAILED(err))
-    return err;
-  if (!rendContext)
-    return NS_ERROR_UNEXPECTED;
-
-  
+ 
   nsPoint   framePos(0, 0);
-  err = theFrame->GetPointFromOffset(presContext, rendContext, theFrameOffset,
-                                     &framePos);
+  err = theFrame->GetPointFromOffset(theFrameOffset, &framePos);
   if (NS_FAILED(err))
     return err;
 
