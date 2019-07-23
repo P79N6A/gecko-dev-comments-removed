@@ -7333,6 +7333,8 @@ arm_read_auxv()
                 uint32_t hwcap = aux.a_un.a_val;
                 if (getenv("ARM_FORCE_HWCAP"))
                     hwcap = strtoul(getenv("ARM_FORCE_HWCAP"), NULL, 0);
+                else if (getenv("_SBOX_DIR"))
+                    continue;  
                 
                 
                 arm_has_vfp = (hwcap & 64) != 0;
@@ -7343,6 +7345,8 @@ arm_read_auxv()
                 const char *plat = (const char*) aux.a_un.a_val;
                 if (getenv("ARM_FORCE_PLATFORM"))
                     plat = getenv("ARM_FORCE_PLATFORM");
+                else if (getenv("_SBOX_DIR"))
+                    continue;  
                 
                 
                 
@@ -7353,14 +7357,6 @@ arm_read_auxv()
                     ((plat[2] == 'l') || (plat[2] == 'b')))
                 {
                     arm_arch = plat[1] - '0';
-                }
-                else
-                {
-                    
-                    
-                    
-                    if (getenv("_SBOX_DIR") == NULL)
-                        JS_ASSERT(false);
                 }
             }
         }
