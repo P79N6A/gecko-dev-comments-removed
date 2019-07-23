@@ -823,17 +823,10 @@ nsSecureBrowserUIImpl::OnStateChange(nsIWebProgress* aWebProgress,
 #endif
 
   PRBool isSubDocumentRelevant = PR_TRUE;
-  PRBool isImageRequest = PR_FALSE;
 
   
   nsCOMPtr<imgIRequest> imgRequest(do_QueryInterface(aRequest));
   if (imgRequest) {
-    
-    
-    
-    
-    isImageRequest = PR_TRUE;
-
     
     imgRequest->GetURI(getter_AddRefs(uri));
   } else { 
@@ -998,11 +991,8 @@ nsSecureBrowserUIImpl::OnStateChange(nsIWebProgress* aWebProgress,
     
     
 
-    if (!isImageRequest) 
-    {
-      nsAutoMonitor lock(mMonitor);
-      PL_DHashTableOperate(&mTransferringRequests, aRequest, PL_DHASH_ADD);
-    }
+    nsAutoMonitor lock(mMonitor);
+    PL_DHashTableOperate(&mTransferringRequests, aRequest, PL_DHASH_ADD);
     
     return NS_OK;
   }
@@ -1013,12 +1003,7 @@ nsSecureBrowserUIImpl::OnStateChange(nsIWebProgress* aWebProgress,
       &&
       aProgressStateFlags & STATE_IS_REQUEST)
   {
-    if (isImageRequest) 
-    {
-      requestHasTransferedData = PR_TRUE;
-    }
-    else
-    {
+    { 
       nsAutoMonitor lock(mMonitor);
       PLDHashEntryHdr *entry = PL_DHashTableOperate(&mTransferringRequests, aRequest, PL_DHASH_LOOKUP);
       if (PL_DHASH_ENTRY_IS_BUSY(entry))
@@ -1027,6 +1012,22 @@ nsSecureBrowserUIImpl::OnStateChange(nsIWebProgress* aWebProgress,
 
         requestHasTransferedData = PR_TRUE;
       }
+    }
+
+    if (!requestHasTransferedData) {
+      
+      
+      
+      nsCOMPtr<nsISecurityInfoProvider> securityInfoProvider =
+        do_QueryInterface(aRequest);
+      
+      
+      
+      PRBool hasTransferred;
+      requestHasTransferedData =
+        securityInfoProvider &&
+        (NS_FAILED(securityInfoProvider->GetHasTransferredData(&hasTransferred)) ||
+         hasTransferred);
     }
   }
 
