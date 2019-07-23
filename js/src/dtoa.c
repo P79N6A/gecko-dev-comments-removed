@@ -3140,7 +3140,9 @@ dtoa
 		if (ilim < 0 || cmp(b,S = multadd(S,5,0)) <= 0) {
 			
  no_digits:
-			k = -1 - ndigits;
+			
+			*s++ = '0';
+			k = 0;
 			goto ret;
 			}
  one_digit:
