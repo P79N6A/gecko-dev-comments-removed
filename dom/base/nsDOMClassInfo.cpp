@@ -144,7 +144,6 @@
 #include "nsIObjectFrame.h"
 #include "nsIObjectLoadingContent.h"
 #include "nsIPluginHost.h"
-#include "nsPIPluginHost.h"
 
 
 #ifdef XP_WIN
@@ -9728,9 +9727,8 @@ nsHTMLPluginObjElementSH::NewResolve(nsIXPConnectWrappedNative *wrapper,
       
 
       nsCOMPtr<nsIPluginHost> pluginHost = do_GetService(MOZ_PLUGIN_HOST_CONTRACTID);
-      nsCOMPtr<nsPIPluginHost> piPluginHost(do_QueryInterface(pluginHost));
-      if (piPluginHost)
-        piPluginHost->SetIsScriptableInstance(pi, PR_TRUE);
+      if (pluginHost)
+        pluginHost->SetIsScriptableInstance(pi, PR_TRUE);
 
       nsCOMPtr<nsIXPConnectJSObjectHolder> holder;
       rv = sXPConnect->WrapNative(cx, obj, pi, *iid, getter_AddRefs(holder));
