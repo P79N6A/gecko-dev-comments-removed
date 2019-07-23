@@ -2495,6 +2495,7 @@ TraceRecorder::synthesize_frame(JSFunction* fun, JSStackFrame* down, uintN argc,
     JSInlineFrame* newifp;
 
     nframeslots = JS_HOWMANY(sizeof(JSInlineFrame), sizeof(jsval));
+    nbytes = (nframeslots + script->nslots) * sizeof(jsval);
 
     
     if (fun->nargs <= argc) {
