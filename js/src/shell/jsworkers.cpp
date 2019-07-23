@@ -48,6 +48,7 @@
 #include "jsapi.h"
 #include "jscntxt.h"
 #include "jshashtable.h"
+#include "jsstdint.h"
 #include "jslock.h"
 #include "jsvector.h"
 #include "jsworkers.h"
@@ -158,7 +159,7 @@ class WorkerParent {
 
     bool addChild(Worker *w) {
         AutoLock hold(getLock());
-        return children.put(w);
+        return children.put(w) != NULL;
     }
 
     
