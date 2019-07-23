@@ -773,6 +773,7 @@ protected:
 
   float                 mTextZoom;      
   float                 mFullZoom;      
+  PRInt32               mCurAppUnitsPerDevPixel;
   PRInt32               mAutoQualityMinFontSizePixelsPref;
 
 #ifdef IBMBIDI
