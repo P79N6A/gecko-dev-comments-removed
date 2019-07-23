@@ -8715,6 +8715,8 @@ nsCSSFrameConstructor::ContentInserted(nsIContent*            aContainer,
     
     isAppend = PR_TRUE;
     
+    parentFrame = nsLayoutUtils::GetLastContinuationWithChild(parentFrame);
+    
     parentFrame = ::GetAdjustedParentFrame(parentFrame, parentFrame->GetType(),
                                            aContainer, aIndexInContainer);
     parentFrame =
