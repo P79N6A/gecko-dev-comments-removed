@@ -207,23 +207,6 @@ menuitem.bookmark-item {
 
 
 
-#editBMPanel_toolbarFolderItem {
-  list-style-image: url("chrome://browser/skin/places/bookmarksToolbar.png") !important;
-  -moz-image-region: auto !important;
-}
-
-#editBMPanel_bmRootItem {
-  list-style-image: url("chrome://browser/skin/places/bookmarksMenu.png") !important;
-  -moz-image-region: auto !important;
-}
-
-#editBMPanel_unfiledRootItem {
-  list-style-image: url("chrome://browser/skin/places/unsortedBookmarks.png") !important;
-  -moz-image-region: auto !important;
-}
-
-
-
 .toolbarbutton-1 {
   -moz-box-orient: vertical;
   min-width: 0;

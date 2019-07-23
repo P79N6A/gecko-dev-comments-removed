@@ -460,7 +460,7 @@ var PlacesUIUtils = {
     if (aDefaultInsertionPoint) {
       info.defaultInsertionPoint = aDefaultInsertionPoint;
       if (!aShowPicker)
-        info.hiddenRows = ["folder picker"];
+        info.hiddenRows = ["folderPicker"];
     }
 
     if (aLoadInSidebar)
@@ -496,7 +496,7 @@ var PlacesUIUtils = {
     var info = {
       action: "add",
       type: "bookmark",
-      hiddenRows: ["location", "description", "loadInSidebar"]
+      hiddenRows: ["description"]
     };
     if (aURI)
       info.uri = aURI;
@@ -511,14 +511,18 @@ var PlacesUIUtils = {
     if (aDefaultInsertionPoint) {
       info.defaultInsertionPoint = aDefaultInsertionPoint;
       if (!aShowPicker)
-        info.hiddenRows.push("folder picker");
+        info.hiddenRows.push("folderPicker");
     }
 
     if (aLoadInSidebar)
       info.loadBookmarkInSidebar = true;
+    else
+      info.hiddenRows = info.hiddenRows.concat(["location", "loadInSidebar"]);
 
     if (typeof(aKeyword) == "string") {
       info.keyword = aKeyword;
+      
+      info.hiddenRows.push("tags");
       if (typeof(aPostData) == "string")
         info.postData = aPostData;
       if (typeof(aCharSet) == "string")
@@ -578,7 +582,7 @@ var PlacesUIUtils = {
     if (aDefaultInsertionPoint) {
       info.defaultInsertionPoint = aDefaultInsertionPoint;
       if (!aShowPicker)
-        info.hiddenRows = ["folder picker"];
+        info.hiddenRows = ["folderPicker"];
     }
     return this._showBookmarkDialog(info);
   },
@@ -598,7 +602,7 @@ var PlacesUIUtils = {
     var info = {
       action: "add",
       type: "livemark",
-      hiddenRows: ["feedURI", "siteURI", "description"]
+      hiddenRows: ["feedLocation", "siteLocation", "description"]
     };
 
     if (aFeedURI)
@@ -616,7 +620,7 @@ var PlacesUIUtils = {
     if (aDefaultInsertionPoint) {
       info.defaultInsertionPoint = aDefaultInsertionPoint;
       if (!aShowPicker)
-        info.hiddenRows.push("folder picker");
+        info.hiddenRows.push("folderPicker");
     }
     this._showBookmarkDialog(info, true);
   },
@@ -689,16 +693,12 @@ var PlacesUIUtils = {
     if (aDefaultInsertionPoint) {
       info.defaultInsertionPoint = aDefaultInsertionPoint;
       if (!aShowPicker)
-        info.hiddenRows.push("folder picker");
+        info.hiddenRows.push("folderPicker");
     }
     return this._showBookmarkDialog(info);
   },
 
   
-
-
-
-
 
 
 
@@ -717,11 +717,7 @@ var PlacesUIUtils = {
 
     var features;
     if (aMinimalUI)
-#ifdef XP_MACOSX
       features = "centerscreen,chrome,dialog,resizable,modal";
-#else
-      features = "centerscreen,chrome,dialog,resizable,dependent";
-#endif
     else
       features = "centerscreen,chrome,modal,resizable=no";
     window.openDialog(dialogURL, "",  features, aInfo);

@@ -140,19 +140,6 @@ menuitem.bookmark-item {
 }
 
 
-#editBMPanel_toolbarFolderItem {
-  list-style-image: url("chrome://browser/skin/places/bookmarksToolbar.png") !important;  
-}
-
-#editBMPanel_bmRootItem {
-  list-style-image: url("chrome://browser/skin/places/bookmarksMenu.png") !important;  
-}
-
-#editBMPanel_unfiledRootItem {
-  list-style-image: url("chrome://browser/skin/places/unsortedBookmarks.png") !important;  
-}
-
-
 .bookmark-item[dragover-into="true"] {
   background: Highlight !important;
   color: HighlightText !important;

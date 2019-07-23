@@ -336,6 +336,10 @@ var gEditItemOverlay = {
     this._folderMenuList.selectedItem = defaultItem;
 
     
+    this._folderMenuList.setAttribute("selectedIndex",
+                                      this._folderMenuList.selectedIndex);
+
+    
     this._element("foldersSeparator").hidden = (menupopup.childNodes.length <= 6);
     this._folderMenuList.disabled = this._readOnly;
   },
@@ -798,6 +802,9 @@ var gEditItemOverlay = {
   },
 
   onFolderMenuListCommand: function EIO_onFolderMenuListCommand(aEvent) {
+    
+    this._folderMenuList.setAttribute("selectedIndex",
+                                      this._folderMenuList.selectedIndex);
     if (aEvent.target.id == "editBMPanel_chooseFolderMenuItem") {
       
       
