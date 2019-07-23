@@ -288,11 +288,10 @@ namespace nanojit
             allow &= ~rmask(rb);
         }
         rr = prepResultReg(ins, allow);
-        Reservation* rA = getresv(a);
         
-        if (rA == 0 || (ra = rA->reg) == UnknownReg) {
+        if (a->isUnusedOrHasUnknownReg()) {
             ra = findSpecificRegFor(a, rr);
-        } else if (!(allow & rmask(ra))) {
+        } else if (!(allow & rmask(a->getReg()))) {
             
             
             
@@ -300,6 +299,8 @@ namespace nanojit
             NanoAssert(a->isop(LIR_quad) || a->isop(LIR_ldq) || a->isop(LIR_ldqc)|| a->isop(LIR_u2f) || a->isop(LIR_float));
             allow &= ~rmask(rr);
             ra = findRegFor(a, allow);
+        } else {
+            ra = a->getReg();
         }
         if (a == b) {
             rb = ra;
@@ -786,10 +787,7 @@ namespace nanojit
         LIns *a = cond->oprnd1();
         Register ra, rb;
         if (a != b) {
-            Reservation *resva, *resvb;
-            findRegFor2(GpRegs, a, resva, b, resvb);
-            ra = resva->reg;
-            rb = resvb->reg;
+            findRegFor2b(GpRegs, a, ra, b, rb);
         } else {
             
             ra = rb = findRegFor(a, GpRegs);
@@ -903,27 +901,27 @@ namespace nanojit
     }
 
     void Assembler::fcmp(LIns *a, LIns *b) {
-        Reservation *resva, *resvb;
-        findRegFor2(FpRegs, a, resva, b, resvb);
-        emitprr(X64_ucomisd, resva->reg, resvb->reg);
+        Register ra, rb;
+        findRegFor2b(FpRegs, a, ra, b, rb);
+        emitprr(X64_ucomisd, ra, rb);
     }
 
-    void Assembler::asm_restore(LIns *ins, Reservation *resv, Register r) {
+    void Assembler::asm_restore(LIns *ins, Reservation *unused, Register r) {
         (void) r;
         if (ins->isop(LIR_alloc)) {
-            int d = disp(resv);
+            int d = disp(ins);
             emitrm(X64_leaqrm, r, d, FP);
         }
         else if (ins->isconst()) {
-            if (!resv->arIndex) {
-                ins->resv()->clear();
+            if (!ins->getArIndex()) {
+                ins->markAsClear();
             }
             
             emit_int(r, ins->imm32());
         }
         else if (ins->isconstq() && IsGpReg(r)) {
-            if (!resv->arIndex) {
-                ins->resv()->clear();
+            if (!ins->getArIndex()) {
+                ins->markAsClear();
             }
             
             emit_quad(r, ins->imm64());
@@ -1008,13 +1006,13 @@ namespace nanojit
         dr = ins->disp();
         LIns *base = ins->oprnd1();
         rb = getBaseReg(base, dr, BaseRegs);
-        Reservation *resv = getresv(ins);
-        if (resv && (rr = resv->reg) != UnknownReg) {
-            
-            freeRsrcOf(ins, false);
-        } else {
+        if (ins->isUnusedOrHasUnknownReg()) {
             
             rr = prepResultReg(ins, GpRegs & ~rmask(rb));
+        } else {
+            
+            rr = ins->getReg();
+            freeRsrcOf(ins, false);
         }
     }
 
@@ -1055,9 +1053,8 @@ namespace nanojit
         Register b = getBaseReg(base, d, BaseRegs);
 
         
-        Reservation *resv = getresv(value);
         Register r;
-        if (!resv || (r = resv->reg) == UnknownReg) {
+        if (value->isUnusedOrHasUnknownReg()) {
             RegisterMask allow;
             
             if (value->isFloat() || value->isop(LIR_float) || value->isop(LIR_fmod)) {
@@ -1066,6 +1063,8 @@ namespace nanojit
                 allow = GpRegs;
             }
             r = findRegFor(value, allow & ~rmask(b));
+        } else {
+            r = value->getReg();
         }
 
         if (IsGpReg(r)) {
@@ -1173,13 +1172,13 @@ namespace nanojit
     void Assembler::regalloc_unary(LIns *ins, RegisterMask allow, Register &rr, Register &ra) {
         LIns *a = ins->oprnd1();
         rr = prepResultReg(ins, allow);
-        Reservation* rA = getresv(a);
         
-        if (rA == 0 || (ra = rA->reg) == UnknownReg) {
+        if (a->isUnusedOrHasUnknownReg()) {
             ra = findSpecificRegFor(a, rr);
         } else {
             
             
+            ra = a->getReg();
         }
         NanoAssert(allow & rmask(rr));
     }
