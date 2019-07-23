@@ -90,6 +90,17 @@ function nsPlacesDBFlush()
 
   
   this._timer = this._newTimer();
+
+  
+  
+
+  this.__defineGetter__("_db", function() {
+    delete this._db;
+    return this._db = Cc["@mozilla.org/browser/nav-history-service;1"].
+                      getService(Ci.nsPIPlacesDatabase).
+                      DBConnection;
+  });
+
 }
 
 nsPlacesDBFlush.prototype = {
@@ -311,16 +322,6 @@ nsPlacesDBFlush.prototype = {
     Ci.mozIStorageStatementCallback,
   ])
 };
-
-
-
-
-nsPlacesDBFlush.prototype.__defineGetter__("_db", function() {
-  delete nsPlacesDBFlush._db;
-  return nsPlacesDBFlush._db = Cc["@mozilla.org/browser/nav-history-service;1"].
-                               getService(Ci.nsPIPlacesDatabase).
-                               DBConnection;
-});
 
 
 
