@@ -744,10 +744,17 @@ public:
 
 
 
+
+
+
+
+
+
     PRUint32 BreakAndMeasureText(PRUint32 aStart, PRUint32 aMaxLength,
                                  PRBool aLineBreakBefore, gfxFloat aWidth,
                                  PropertyProvider *aProvider,
                                  PRBool aSuppressInitialBreak,
+                                 gfxFloat *aTrimWhitespace,
                                  Metrics *aMetrics, PRBool aTightBoundingBox,
                                  PRBool *aUsedHyphenation,
                                  PRUint32 *aLastBreak);
