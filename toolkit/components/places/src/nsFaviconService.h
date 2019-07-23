@@ -64,6 +64,9 @@ namespace places {
 
 
 
+#define MAX_ICON_FILESIZE(s) ((PRUint32) s*s*4)
+
+
 class mozIStorageStatementCallback;
 
 class FaviconLoadListener;
@@ -112,6 +115,7 @@ public:
   nsresult OptimizeFaviconImage(const PRUint8* aData, PRUint32 aDataLen,
                                 const nsACString& aMimeType,
                                 nsACString& aNewData, nsACString& aNewMimeType);
+  PRInt32 GetOptimizedIconDimension() { return mOptimizedIconDimension; }
 
   
 

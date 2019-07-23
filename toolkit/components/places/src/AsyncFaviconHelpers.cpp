@@ -533,9 +533,10 @@ EnsureDatabaseEntryStep::Run()
   
   FAVICONSTEP_CANCEL_IF_TRUE(!stmt, PR_FALSE);
   mozStorageStatementScoper scoper(stmt);
-  rv = BindStatementURI(stmt, 0, mStepper->mIconURI);
+  rv = stmt->BindNullParameter(0);
   FAVICONSTEP_FAIL_IF_FALSE(NS_SUCCEEDED(rv));
-
+  rv = BindStatementURI(stmt, 1, mStepper->mIconURI);
+  FAVICONSTEP_FAIL_IF_FALSE(NS_SUCCEEDED(rv));
   nsCOMPtr<mozIStoragePendingStatement> ps;
   rv = stmt->ExecuteAsync(this, getter_AddRefs(ps));
   FAVICONSTEP_FAIL_IF_FALSE(NS_SUCCEEDED(rv));
@@ -757,6 +758,104 @@ FetchNetworkIconStep::OnChannelRedirect(nsIChannel* oldChannel,
                                         PRUint32 flags)
 {
   mChannel = newChannel;
+  return NS_OK;
+}
+
+
+
+
+
+NS_IMPL_ISUPPORTS_INHERITED0(
+  SetFaviconDataStep
+, AsyncFaviconStep
+)
+ASYNC_STATEMENT_HANDLEERROR_IMPL(SetFaviconDataStep)
+ASYNC_STATEMENT_EMPTY_HANDLERESULT_IMPL(SetFaviconDataStep)
+
+
+void
+SetFaviconDataStep::Run()
+{
+  NS_ASSERTION(mStepper, "Step is not associated to a stepper");
+  FAVICONSTEP_FAIL_IF_FALSE(mStepper->mIconURI);
+  FAVICONSTEP_FAIL_IF_FALSE(mStepper->mData.Length() > 0);
+  FAVICONSTEP_FAIL_IF_FALSE(!mStepper->mMimeType.IsEmpty());
+
+  nsresult rv;
+  if (!(mStepper->mIconStatus & ICON_STATUS_CHANGED)) {
+    
+    rv = mStepper->Step();
+    FAVICONSTEP_FAIL_IF_FALSE(NS_SUCCEEDED(rv));
+    return;
+  }
+
+  nsFaviconService* fs = nsFaviconService::GetFaviconService();
+  FAVICONSTEP_FAIL_IF_FALSE(fs);
+
+  
+  
+  
+  nsCAutoString newData, newMimeType;
+  if (mStepper->mData.Length() > MAX_ICON_FILESIZE(fs->GetOptimizedIconDimension())) {
+    rv = fs->OptimizeFaviconImage(TO_INTBUFFER(mStepper->mData),
+                                  mStepper->mData.Length(),
+                                  mStepper->mMimeType,
+                                  newData,
+                                  newMimeType);
+    if (NS_SUCCEEDED(rv) && newData.Length() < mStepper->mData.Length()) {
+      mStepper->mData = newData;
+      mStepper->mMimeType = newMimeType;
+    }
+
+    
+    
+    FAVICONSTEP_CANCEL_IF_TRUE(mStepper->mData.Length() > MAX_FAVICON_SIZE, PR_FALSE);
+  }
+
+  
+  mozIStorageStatement* stmt =
+    fs->GetStatementById(mozilla::places::DB_INSERT_ICON);
+  
+  FAVICONSTEP_CANCEL_IF_TRUE(!stmt, PR_FALSE);
+  mozStorageStatementScoper scoper(stmt);
+
+  if (!mStepper->mIconId) {
+    rv = stmt->BindNullParameter(0);
+  }
+  else {
+    rv = stmt->BindInt64Parameter(0, mStepper->mIconId);
+  }
+  FAVICONSTEP_FAIL_IF_FALSE(NS_SUCCEEDED(rv));
+  rv = BindStatementURI(stmt, 1, mStepper->mIconURI);
+  FAVICONSTEP_FAIL_IF_FALSE(NS_SUCCEEDED(rv));
+  rv = stmt->BindBlobParameter(2, TO_INTBUFFER(mStepper->mData),
+                                     mStepper->mData.Length());
+  FAVICONSTEP_FAIL_IF_FALSE(NS_SUCCEEDED(rv));
+  rv = stmt->BindUTF8StringParameter(3, mStepper->mMimeType);
+  FAVICONSTEP_FAIL_IF_FALSE(NS_SUCCEEDED(rv));
+  rv = stmt->BindInt64Parameter(4, mStepper->mExpiration);
+  FAVICONSTEP_FAIL_IF_FALSE(NS_SUCCEEDED(rv));
+
+  nsCOMPtr<mozIStoragePendingStatement> ps;
+  rv = stmt->ExecuteAsync(this, getter_AddRefs(ps));
+  FAVICONSTEP_FAIL_IF_FALSE(NS_SUCCEEDED(rv));
+
+  
+  scoper.Abandon();
+}
+
+
+NS_IMETHODIMP
+SetFaviconDataStep::HandleCompletion(PRUint16 aReason)
+{
+  FAVICONSTEP_FAIL_IF_FALSE_RV(aReason == mozIStorageStatementCallback::REASON_FINISHED, NS_OK);
+
+  mStepper->mIconStatus |= ICON_STATUS_SAVED;
+
+  
+  nsresult rv = mStepper->Step();
+  FAVICONSTEP_FAIL_IF_FALSE_RV(NS_SUCCEEDED(rv), rv);
+
   return NS_OK;
 }
 

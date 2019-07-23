@@ -348,6 +348,21 @@ private:
   nsCString mData;
 };
 
+
+
+
+
+class SetFaviconDataStep : public AsyncFaviconStep
+                         , public mozilla::places::AsyncStatementCallback
+{
+public:
+  NS_DECL_ISUPPORTS_INHERITED
+  NS_DECL_MOZISTORAGESTATEMENTCALLBACK
+
+  SetFaviconDataStep() {};
+  void Run();
+};
+
 } 
 } 
 
