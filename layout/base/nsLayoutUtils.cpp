@@ -1021,7 +1021,7 @@ PruneDisplayListForExtraPage(nsDisplayListBuilder* aBuilder,
       } else {
         
         
-        i->nsDisplayItem::~nsDisplayItem();
+        i->~nsDisplayItem();
       }
     }
   }
