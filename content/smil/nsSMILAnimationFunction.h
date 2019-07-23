@@ -263,9 +263,9 @@ protected:
   void     UnsetKeySplines();
 
   
-  nsresult InterpolateResult(const nsSMILValueArray& aValues,
-                             nsSMILValue& aResult,
-                             nsSMILValue& aBaseValue);
+  virtual nsresult InterpolateResult(const nsSMILValueArray& aValues,
+                                     nsSMILValue& aResult,
+                                     nsSMILValue& aBaseValue);
   nsresult AccumulateResult(const nsSMILValueArray& aValues,
                             nsSMILValue& aResult);
 
