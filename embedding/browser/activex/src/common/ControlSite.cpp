@@ -60,6 +60,7 @@ public:
 BOOL
 CDefaultControlSiteSecurityPolicy::ClassImplementsCategory(const CLSID &clsid, const CATID &catid, BOOL &bClassExists)
 {
+#ifndef WINCE
     bClassExists = FALSE;
 
     
@@ -116,6 +117,8 @@ CDefaultControlSiteSecurityPolicy::ClassImplementsCategory(const CLSID &clsid, c
             return TRUE;
         }
     }
+#endif
+
     return FALSE;
 }
 
@@ -477,13 +480,13 @@ HRESULT CControlSite::Attach(HWND hwndParent, const RECT &rcPos, IUnknown *pInit
     m_spIOleInPlaceObject = m_spObject;
     m_spIOleInPlaceObjectWindowless = m_spObject;
 
-    m_spIOleInPlaceObject->SetObjectRects(&m_rcObjectPos, &m_rcObjectPos);
-
     
     if (m_bVisibleAtRuntime)
     {
         DoVerb(OLEIVERB_INPLACEACTIVATE);
     }
+
+    m_spIOleInPlaceObject->SetObjectRects(&m_rcObjectPos, &m_rcObjectPos);
 
     
     
@@ -1273,7 +1276,9 @@ HRESULT STDMETHODCALLTYPE CControlSite::TransformCoords( POINTL __RPC_FAR *pPtlH
     }
 
     HDC hdc = ::GetDC(m_hWndParent);
+#ifndef WINCE
     ::SetMapMode(hdc, MM_HIMETRIC);
+#endif
     POINT rgptConvert[2];
     rgptConvert[0].x = 0;
     rgptConvert[0].y = 0;
@@ -1282,7 +1287,9 @@ HRESULT STDMETHODCALLTYPE CControlSite::TransformCoords( POINTL __RPC_FAR *pPtlH
     {
         rgptConvert[1].x = pPtlHimetric->x;
         rgptConvert[1].y = pPtlHimetric->y;
+#ifndef WINCE
         ::LPtoDP(hdc, rgptConvert, 2);
+#endif
         if (dwFlags & XFORMCOORDS_SIZE)
         {
             pPtfContainer->x = (float)(rgptConvert[1].x - rgptConvert[0].x);
@@ -1302,7 +1309,9 @@ HRESULT STDMETHODCALLTYPE CControlSite::TransformCoords( POINTL __RPC_FAR *pPtlH
     {
         rgptConvert[1].x = (int)(pPtfContainer->x);
         rgptConvert[1].y = (int)(pPtfContainer->y);
+#ifndef WINCE
         ::DPtoLP(hdc, rgptConvert, 2);
+#endif
         if (dwFlags & XFORMCOORDS_SIZE)
         {
             pPtlHimetric->x = rgptConvert[1].x - rgptConvert[0].x;

@@ -135,6 +135,16 @@
 #ifdef XPC_IDISPATCH_SUPPORT
 
 
+#ifdef WINCE
+
+
+
+
+
+#include <windows.h>
+static FARPROC GetProcAddressA(HMODULE hMod, wchar_t *procName);
+#endif 
+
 #include <atlbase.h>
 #include "oaidl.h"
 
@@ -4157,6 +4167,27 @@ XPC_SOW_WrapObject(JSContext *cx, JSObject *parent, jsval v,
                    jsval *vp);
 
 #ifdef XPC_IDISPATCH_SUPPORT
+
+#ifdef WINCE
+
+FARPROC GetProcAddressA(HMODULE hMod, wchar_t *procName) {
+  FARPROC ret = NULL;
+  int len = wcslen(procName);
+  char *s = new char[len + 1];
+
+  for (int i = 0; i < len; i++) {
+    s[i] = (char) procName[i];
+  }
+  s[len-1] = 0;
+
+  ret = ::GetProcAddress(hMod, s);
+  delete [] s;
+
+  return ret;
+}
+#endif 
+
+
 
 #include "XPCDispPrivate.h"
 #endif

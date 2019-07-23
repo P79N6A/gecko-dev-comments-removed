@@ -57,6 +57,10 @@
 
 
 
+#ifdef WINCE
+#define USE_HTIFACE
+#endif
+
 #ifdef USE_HTIFACE
 #include <htiface.h>
 #endif
@@ -939,7 +943,27 @@ public:
         mData(NULL),
         mUseTarget(NULL)
     {
+#ifdef MOZ_FLASH_ACTIVEX_PATCH
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+#else
         MozAxPlugin::AddRef();
+#endif
     }
 
     HRESULT Init(PluginInstanceData *pData)
@@ -1009,7 +1033,11 @@ public:
         {
             mWindow->Release();
         }
+#ifdef MOZ_FLASH_ACTIVEX_PATCH
+        
+#else
         MozAxPlugin::Release();
+#endif
     }
 
 BEGIN_COM_MAP(IEDocument)

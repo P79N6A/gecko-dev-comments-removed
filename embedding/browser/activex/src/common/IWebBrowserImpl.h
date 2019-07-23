@@ -41,6 +41,9 @@
 
 #include <mshtml.h>
 
+
+typedef long SHANDLE_PTR;
+
 #include "nsIWebNavigation.h"
 #include "nsIPrefBranch.h"
 #include "nsIPrefLocalizedString.h"
