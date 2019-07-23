@@ -181,7 +181,7 @@ public:
 
 
 
-  PRBool IsActive() const
+  PRBool IsActiveOrFrozen() const
   {
     
 

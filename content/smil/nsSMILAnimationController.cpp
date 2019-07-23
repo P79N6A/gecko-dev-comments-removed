@@ -440,11 +440,18 @@ nsSMILAnimationController::AddAnimationToCompositorTable(
     
     return;
 
-  nsSMILCompositor* result = aCompositorTable->PutEntry(key);
+  nsSMILAnimationFunction& func = aElement->AnimationFunction();
 
   
   
-  result->AddAnimationFunction(&aElement->AnimationFunction());
+  
+  if (func.IsActiveOrFrozen()) {
+    nsSMILCompositor* result = aCompositorTable->PutEntry(key);
+
+    
+    
+    result->AddAnimationFunction(&func);
+  }
 }
 
 
