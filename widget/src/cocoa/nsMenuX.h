@@ -119,9 +119,11 @@ protected:
   PRUint32                  mVisibleItemsCount; 
   nsMenuObjectX*            mParent; 
   nsMenuBarX*               mMenuBar; 
+  
   nsRefPtr<nsMenuItemIconX> mIcon;
   GeckoNSMenu*              mNativeMenu; 
   MenuDelegate*             mMenuDelegate; 
+  
   NSMenuItem*               mNativeMenuItem; 
   PRPackedBool              mIsEnabled;
   PRPackedBool              mDestroyHandlerCalled;

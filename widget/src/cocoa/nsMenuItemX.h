@@ -95,10 +95,12 @@ protected:
   void SetKeyEquiv(PRUint8 aModifiers, const nsString &aText);
 
   EMenuItemType             mType;
+  
   NSMenuItem*               mNativeMenuItem;      
   nsMenuX*                  mMenuParent;          
   nsMenuBarX*               mMenuBar;             
   nsCOMPtr<nsIContent>      mCommandContent;
+  
   nsRefPtr<nsMenuItemIconX> mIcon;
   PRBool                    mIsChecked;
 };
