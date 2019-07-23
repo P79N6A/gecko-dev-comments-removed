@@ -242,24 +242,31 @@ function test() {
   
   Sanitizer.prefs.setIntPref("timeSpan", 4);
   s.sanitize();
+
   
-  ok(!bhist.isVisited(makeURI("http://today.com")), "Pretend visit to today.com should now be deleted");
+  
+  
+  
+  
+  var today = isToday(new Date(now_uSec/1000));
+  if (today) {
+    ok(!bhist.isVisited(makeURI("http://today.com")), "Pretend visit to today.com should now be deleted");
+    ok(!formhist.nameExists("today"), "today form entry should be deleted");
+    ok(!downloadExists(5555554), "'Today' download should now be deleted");
+  }
+
   ok(bhist.isVisited(makeURI("http://before-today.com")), "Pretend visit to before-today.com should still exist");
-
-  ok(!formhist.nameExists("today"), "today form entry should be deleted");
   ok(formhist.nameExists("b4today"), "b4today form entry should still exist");
-
-  ok(!downloadExists(5555554), "'Today' download should now be deleted");
   ok(downloadExists(5555550), "Year old download should still be present");
 
   
   Sanitizer.prefs.setIntPref("timeSpan", 0);
   s.sanitize();
-  
+
   ok(!bhist.isVisited(makeURI("http://before-today.com")), "Pretend visit to before-today.com should now be deleted");
 
   ok(!formhist.nameExists("b4today"), "b4today form entry should be deleted");
-  
+
   ok(!downloadExists(5555550), "Year old download should now be deleted");
 
 }
@@ -594,4 +601,8 @@ function downloadExists(aID)
   var rows = stmt.executeStep();
   stmt.finalize();
   return rows;
+}
+
+function isToday(aDate) {
+  return aDate.getDate() == new Date().getDate();
 }
