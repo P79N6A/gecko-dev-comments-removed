@@ -53,7 +53,9 @@ const nsLocalFile = Components.Constructor("@mozilla.org/file/local;1",
 
 var Cc = Components.classes;
 var Ci = Components.interfaces;
-Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
+let Cu = Components.utils;
+Cu.import("resource://gre/modules/XPCOMUtils.jsm");
+Cu.import("resource://gre/modules/DownloadUtils.jsm");
 
 const nsIDM = Ci.nsIDownloadManager;
 
@@ -79,28 +81,15 @@ var gUserInteracted = false;
 let gStr = {
   paused: "paused",
   cannotPause: "cannotPause",
-  statusFormat: "statusFormat2",
-  transferSameUnits: "transferSameUnits",
-  transferDiffUnits: "transferDiffUnits",
-  transferNoTotal: "transferNoTotal",
-  timeMinutesLeft: "timeMinutesLeft",
-  timeSecondsLeft: "timeSecondsLeft",
-  timeFewSeconds: "timeFewSeconds",
-  timeUnknown: "timeUnknown",
   doneStatus: "doneStatus",
   doneSize: "doneSize",
   doneSizeUnknown: "doneSizeUnknown",
-  doneScheme: "doneScheme",
-  doneFileScheme: "doneFileScheme",
   stateFailed: "stateFailed",
   stateCanceled: "stateCanceled",
   stateBlocked: "stateBlocked",
   stateDirty: "stateDirty",
   yesterday: "yesterday",
   monthDate: "monthDate",
-
-  units: ["bytes", "kilobyte", "megabyte", "gigabyte"],
-
   fileExecutableSecurityWarningTitle: "fileExecutableSecurityWarningTitle",
   fileExecutableSecurityWarningDontAsk: "fileExecutableSecurityWarningDontAsk"
 };
@@ -108,7 +97,8 @@ let gStr = {
 
 gDownloadManager.DBConnection.createFunction("getDisplayHost", 1, {
   QueryInterface: XPCOMUtils.generateQI([Ci.mozIStorageFunction]),
-  onFunctionCall: function(aArgs) getHost(aArgs.getUTF8String(0))[0]
+  onFunctionCall: function(aArgs)
+    DownloadUtils.getURIHost(aArgs.getUTF8String(0))[0]
 });
 
 
@@ -814,94 +804,45 @@ function updateStatus(aItem, aDownload) {
   let state = Number(aItem.getAttribute("state"));
   switch (state) {
     case nsIDM.DOWNLOAD_PAUSED:
-    case nsIDM.DOWNLOAD_DOWNLOADING:
+    {
       let currBytes = Number(aItem.getAttribute("currBytes"));
       let maxBytes = Number(aItem.getAttribute("maxBytes"));
 
-      
-      let ([progress, progressUnits] = convertByteUnits(currBytes),
-           [total, totalUnits] = convertByteUnits(maxBytes),
-           transfer) {
-        if (total < 0)
-          transfer = gStr.transferNoTotal;
-        else if (progressUnits == totalUnits)
-          transfer = gStr.transferSameUnits;
-        else
-          transfer = gStr.transferDiffUnits;
-
-        transfer = replaceInsert(transfer, 1, progress);
-        transfer = replaceInsert(transfer, 2, progressUnits);
-        transfer = replaceInsert(transfer, 3, total);
-        transfer = replaceInsert(transfer, 4, totalUnits);
-
-        if (state == nsIDM.DOWNLOAD_PAUSED) {
-          status = replaceInsert(gStr.paused, 1, transfer);
-
-          
-          break;
-        }
-
-        
-        status = replaceInsert(gStr.statusFormat, 1, transfer);
-      }
-
-      
-      let speed = aDownload ? aDownload.speed : 0;
-
-      
-      let ([rate, unit] = convertByteUnits(speed)) {
-        
-        status = replaceInsert(status, 2, rate);
-        
-        status = replaceInsert(status, 3, unit);
-      }
-
-      
-      let (remain) {
-        if ((speed > 0) && (maxBytes > 0)) {
-          let seconds = Math.ceil((maxBytes - currBytes) / speed);
-          let lastSec = Number(aItem.getAttribute("lastSeconds"));
-
-          
-          
-          
-          let (diff = seconds - lastSec) {
-            if (diff > 0 && diff <= 10)
-              seconds = lastSec;
-            else
-              aItem.setAttribute("lastSeconds", seconds);
-          }
-
-          
-          if (seconds <= 3)
-            remain = gStr.timeFewSeconds;
-          
-          else if (seconds <= 60)
-            remain = replaceInsert(gStr.timeSecondsLeft, 1, seconds);
-          else
-            remain = replaceInsert(gStr.timeMinutesLeft, 1,
-                                   Math.ceil(seconds / 60));
-        } else {
-          remain = gStr.timeUnknown;
-        }
-
-        
-        status = replaceInsert(status, 4, remain);
-      }
+      let transfer = DownloadUtils.getTransferTotal(currBytes, maxBytes);
+      status = replaceInsert(gStr.paused, 1, transfer);
 
       break;
+    }
+    case nsIDM.DOWNLOAD_DOWNLOADING:
+    {
+      let currBytes = Number(aItem.getAttribute("currBytes"));
+      let maxBytes = Number(aItem.getAttribute("maxBytes"));
+      
+      let speed = aDownload ? aDownload.speed : 0;
+      let lastSec = Number(aItem.getAttribute("lastSeconds"));
+
+      let newLast;
+      [status, newLast] =
+        DownloadUtils.getDownloadStatus(currBytes, maxBytes, speed, lastSec);
+
+      
+      aItem.setAttribute("lastSeconds", newLast);
+
+      break;
+    }
     case nsIDM.DOWNLOAD_FINISHED:
     case nsIDM.DOWNLOAD_FAILED:
     case nsIDM.DOWNLOAD_CANCELED:
     case nsIDM.DOWNLOAD_BLOCKED:
     case nsIDM.DOWNLOAD_DIRTY:
+    {
       let (stateSize = {}) {
         stateSize[nsIDM.DOWNLOAD_FINISHED] = function() {
           
           let fileSize = Number(aItem.getAttribute("maxBytes"));
           let sizeText = gStr.doneSizeUnknown;
           if (fileSize >= 0) {
-            let [size, unit] = convertByteUnits(fileSize);
+            let [size, unit] = DownloadUtils.convertByteUnits(fileSize);
             sizeText = replaceInsert(gStr.doneSize, 1, size);
             sizeText = replaceInsert(sizeText, 2, unit);
           }
@@ -916,13 +857,15 @@ function updateStatus(aItem, aDownload) {
         status = replaceInsert(gStr.doneStatus, 1, stateSize[state]());
       }
 
-      let [displayHost, fullHost] = getHost(getReferrerOrSource(aItem));
+      let [displayHost, fullHost] =
+        DownloadUtils.getURIHost(getReferrerOrSource(aItem));
       
       status = replaceInsert(status, 2, displayHost);
       
       statusTip = fullHost;
 
       break;
+    }
   }
 
   aItem.setAttribute("status", status);
@@ -994,86 +937,10 @@ function updateTime(aItem)
 
 
 
-function convertByteUnits(aBytes)
-{
-  let unitIndex = 0;
-
-  
-  
-  while ((aBytes >= 999.5) && (unitIndex < gStr.units.length - 1)) {
-    aBytes /= 1024;
-    unitIndex++;
-  }
-
-  
-  
-  aBytes = aBytes.toFixed((aBytes > 0) && (aBytes < 100) ? 1 : 0);
-
-  return [aBytes, gStr.units[unitIndex]];
-}
 
 
 
 
-
-
-
-
-
-function getHost(aURIString)
-{
-  let ioService = Cc["@mozilla.org/network/io-service;1"].
-                  getService(Ci.nsIIOService);
-  let eTLDService = Cc["@mozilla.org/network/effective-tld-service;1"].
-                    getService(Ci.nsIEffectiveTLDService);
-  let idnService = Cc["@mozilla.org/network/idn-service;1"].
-                   getService(Ci.nsIIDNService);
-
-  
-  let uri = ioService.newURI(aURIString, null, null);
-
-  
-  if (uri instanceof Ci.nsINestedURI)
-    uri = uri.innermostURI;
-
-  let fullHost;
-  try {
-    
-    fullHost = uri.host;
-  } catch (e) {
-    fullHost = "";
-  }
-
-  let displayHost;
-  try {
-    
-    let baseDomain = eTLDService.getBaseDomain(uri);
-
-    
-    displayHost = idnService.convertToDisplayIDN(baseDomain, {});
-  } catch (e) {
-    
-    displayHost = fullHost;
-  }
-
-  
-  if (uri.scheme == "file") {
-    
-    displayHost = gStr.doneFileScheme;
-    fullHost = displayHost;
-  } else if (displayHost.length == 0) {
-    
-    displayHost = replaceInsert(gStr.doneScheme, 1, uri.scheme);
-    fullHost = displayHost;
-  } else if (uri.port != -1) {
-    
-    let port = ":" + uri.port;
-    displayHost += port;
-    fullHost += port;
-  }
-
-  return [displayHost, fullHost];
-}
 
 function replaceInsert(aText, aIndex, aValue)
 {
