@@ -42,8 +42,6 @@
 
 #include "nsIComponentManager.h"
 #include "nsIConsoleService.h"
-#include "nsIDocument.h"
-#include "nsIDOMDocument.h"
 #include "nsIEventTarget.h"
 #include "nsIGenericFactory.h"
 #include "nsIJSContextStack.h"
@@ -89,14 +87,6 @@ PR_STATIC_ASSERT(THREADPOOL_MAX_THREADS >= 1);
 #define THREADPOOL_IDLE_THREADS 3
 
 PR_STATIC_ASSERT(THREADPOOL_MAX_THREADS >= THREADPOOL_IDLE_THREADS);
-
-
-
-
-
-#define THREADPOOL_THREAD_CAP 20
-
-PR_STATIC_ASSERT(THREADPOOL_THREAD_CAP >= THREADPOOL_MAX_THREADS);
 
 
 
@@ -396,7 +386,6 @@ DOMWorkerOperationCallback(JSContext* aCx)
   nsRefPtr<nsDOMWorkerPool> pool;
 
   PRBool wasSuspended = PR_FALSE;
-  PRBool extraThreadAllowed = PR_FALSE;
   jsrefcount suspendDepth = 0;
 
   while (1) {
@@ -406,9 +395,7 @@ DOMWorkerOperationCallback(JSContext* aCx)
            static_cast<void*>(worker)));
 
       if (wasSuspended) {
-        if (extraThreadAllowed) {
-          gDOMThreadService->ChangeThreadPoolMaxThreads(-1);
-        }
+        gDOMThreadService->ChangeThreadPoolMaxThreads(-1);
         JS_ResumeRequest(aCx, suspendDepth);
       }
 
@@ -419,9 +406,7 @@ DOMWorkerOperationCallback(JSContext* aCx)
     
     if (!worker->IsSuspended()) {
       if (wasSuspended) {
-        if (extraThreadAllowed) {
-          gDOMThreadService->ChangeThreadPoolMaxThreads(-1);
-        }
+        gDOMThreadService->ChangeThreadPoolMaxThreads(-1);
         JS_ResumeRequest(aCx, suspendDepth);
       }
       break;
@@ -443,9 +428,7 @@ DOMWorkerOperationCallback(JSContext* aCx)
 
       
       
-      
-      extraThreadAllowed =
-        NS_SUCCEEDED(gDOMThreadService->ChangeThreadPoolMaxThreads(1));
+      gDOMThreadService->ChangeThreadPoolMaxThreads(1);
 
       
       wasSuspended = PR_TRUE;
@@ -782,14 +765,6 @@ nsDOMThreadService::CreateJSContext()
   JS_SetOperationCallback(cx, DOMWorkerOperationCallback,
                           100 * JS_OPERATION_WEIGHT_BASE);
 
-  static JSSecurityCallbacks securityCallbacks = {
-    nsDOMWorkerSecurityManager::JSCheckAccess,
-    NULL,
-    NULL
-  };
-
-  JS_SetContextSecurityCallbacks(cx, &securityCallbacks);
-
   nsresult rv = nsContentUtils::XPConnect()->
     SetSecurityManagerForJSContext(cx, gWorkerSecurityManager, 0);
   NS_ENSURE_SUCCESS(rv, nsnull);
@@ -857,11 +832,6 @@ nsDOMThreadService::ChangeThreadPoolMaxThreads(PRInt16 aDelta)
   PRInt32 newThreadCount = (PRInt32)currentThreadCount + (PRInt32)aDelta;
   NS_ASSERTION(newThreadCount >= THREADPOOL_MAX_THREADS,
                "Can't go below initial thread count!");
-
-  if (newThreadCount > THREADPOOL_THREAD_CAP) {
-    NS_WARNING("Thread pool cap reached!");
-    return NS_ERROR_FAILURE;
-  }
 
   rv = mThreadPool->SetThreadLimit((PRUint32)newThreadCount);
   NS_ENSURE_SUCCESS(rv, rv);
@@ -1008,13 +978,7 @@ nsDOMThreadService::CreatePool(nsIDOMWorkerPool** _retval)
 
   NS_ENSURE_TRUE(mThreadPool, NS_ERROR_ILLEGAL_DURING_SHUTDOWN);
 
-  nsIDOMDocument* domDocument = nsContentUtils::GetDocumentFromCaller();
-  NS_ENSURE_TRUE(domDocument, NS_ERROR_UNEXPECTED);
-
-  nsCOMPtr<nsIDocument> callingDocument(do_QueryInterface(domDocument));
-  NS_ENSURE_TRUE(callingDocument, NS_ERROR_NO_INTERFACE);
-
-  nsRefPtr<nsDOMWorkerPool> pool(new nsDOMWorkerPool(callingDocument));
+  nsRefPtr<nsDOMWorkerPool> pool(new nsDOMWorkerPool());
   NS_ENSURE_TRUE(pool, NS_ERROR_OUT_OF_MEMORY);
 
   nsresult rv = pool->Init();
