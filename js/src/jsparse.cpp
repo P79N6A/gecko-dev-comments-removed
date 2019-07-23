@@ -2186,6 +2186,23 @@ LeaveFunction(JSParseNode *fn, JSTreeContext *funtc, JSTreeContext *tc,
                 dn->pn_op = JSOP_CALLEE;
                 dn->pn_cookie = MAKE_UPVAR_COOKIE(funtc->staticLevel, 0);
                 dn->pn_dflags |= PND_BOUND;
+
+                
+
+
+
+
+
+
+
+
+
+
+
+
+
+                if (dn->isFunArg())
+                    fn->pn_funbox->tcflags |= TCF_FUN_USES_ARGUMENTS;
                 continue;
             }
 
