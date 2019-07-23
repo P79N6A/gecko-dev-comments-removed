@@ -127,7 +127,7 @@ function testtag_tree_columns(tree, expectedColumns, testid)
 
     
     
-    var adj = (c == expectedColumns.length - 1) ? 1 : 0;
+    var adj = 1;
     is(column.x + adj >= x, true, adjtestid + "position is after last column " +
        column.x + "," + column.width + "," + x);
     is(column.width > 0, true, adjtestid + "width is greater than 0");
