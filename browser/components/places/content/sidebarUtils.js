@@ -69,5 +69,37 @@ var SidebarUtils = {
       tbo.view.selection.select(row.value);
       aTree.controller.openSelectedNodeWithEvent(aEvent);
     }
+  },
+  
+  
+
+
+
+  handleTreeMouseMove: function SU_handleTreeMouseMove(aEvent) {
+    if (aEvent.target.localName != "treechildren")
+      return;
+
+    var tree = aEvent.target.parentNode;
+    var tbo = tree.treeBoxObject;
+    var row = { }, col = { }, obj = { };
+    tbo.getCellAt(aEvent.clientX, aEvent.clientY, row, col, obj);
+
+    
+    
+    
+    
+    if (row.value != -1) {
+      var cell = tree.view.nodeForTreeIndex(row.value);
+      if (PlacesUtils.nodeIsURI(cell))
+        window.top.XULBrowserWindow.setOverLink(cell.uri, null);
+      else
+        this.clearURLFromStausBar();
+    }
+    else
+      this.clearURLFromStausBar();
+  },
+
+  clearURLFromStausBar: function SU_clearURLFromStausBar() {
+    window.top.XULBrowserWindow.setOverLink("", null);  
   }
 };
