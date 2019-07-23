@@ -907,6 +907,7 @@ nsOperaCookieMigrator::AddCookie(nsICookieManager2* aManager)
                               mCurrCookie.data, 
                               mCurrCookie.isSecure, 
                               PR_FALSE, 
+                              PR_FALSE, 
                               PRInt64(mCurrCookie.expiryTime));
 
   mCurrCookie.isSecure = 0;

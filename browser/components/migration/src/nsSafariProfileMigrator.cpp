@@ -823,7 +823,10 @@ nsSafariProfileMigrator::CopyCookies(PRBool aReplace)
 
       expiryTime += SAFARI_DATE_OFFSET;
       cookieManager->Add(domain, path, name, value,
-                         PR_FALSE, PR_FALSE, expiryTime);
+                         PR_FALSE, 
+                         PR_FALSE, 
+                         PR_FALSE, 
+                         expiryTime);
     }
   }
   ::CFRelease(safariCookies);

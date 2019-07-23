@@ -1843,8 +1843,9 @@ nsIEProfileMigrator::CopyCookiesFromBuffer(char *aBuffer,
                                 stringPath,
                                 stringName,
                                 nsDependentCString(value),
-                                flagsValue & 0x1,
-                                PR_FALSE,
+                                flagsValue & 0x1, 
+                                PR_FALSE, 
+                                PR_FALSE, 
                                 PRInt64(expirationDate));
     if (NS_FAILED(onerv)) {
       rv = onerv;
