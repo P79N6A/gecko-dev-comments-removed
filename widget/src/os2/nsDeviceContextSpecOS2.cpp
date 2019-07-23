@@ -438,6 +438,19 @@ NS_IMETHODIMP nsDeviceContextSpecOS2::GetSurfaceForPrinter(gfxASurface **surface
 
     
     
+    if (DevQueryCaps(mPrintDC, CAPS_WIDTH, 1, &value) && width > (double)value)
+      width = (double)value;
+    if (DevQueryCaps(mPrintDC, CAPS_HEIGHT, 1, &value) && height > (double)value)
+      height = (double)value;
+
+#ifdef debug_thebes_print
+    printf("nsDeviceContextSpecOS2::GetSurfaceForPrinter(): capped? %fx%fpx (res=%fx%f)\n"
+           "  expected size: %7.2f MiB per page\n",
+           width, height, hDPI, vDPI, width*height*4./1024./1024.);
+#endif
+
+    
+    
     newSurface = new(std::nothrow)
       gfxOS2Surface(mPrintDC, gfxIntSize(int(ceil(width)), int(ceil(height))));
   }
@@ -476,6 +489,13 @@ NS_IMETHODIMP nsDeviceContextSpecOS2::BeginDocument(PRUnichar* aTitle,
          NS_LossyConvertUTF16toASCII(nsString(aTitle)).get(),
          NS_LossyConvertUTF16toASCII(nsString(aPrintToFileName)).get());
 #endif
+  
+  PRInt16 outputFormat;
+  mPrintSettings->GetOutputFormat(&outputFormat);
+  if (outputFormat != nsIPrintSettings::kOutputFormatNative) {
+    return NS_OK;
+  }
+
   char *title = GetACPString(aTitle);
   const PSZ pszGenericDocName = "Mozilla Document";
   PSZ pszDocName = title ? title : pszGenericDocName;
@@ -492,6 +512,12 @@ NS_IMETHODIMP nsDeviceContextSpecOS2::BeginDocument(PRUnichar* aTitle,
 
 NS_IMETHODIMP nsDeviceContextSpecOS2::EndDocument()
 {
+  PRInt16 outputFormat;
+  mPrintSettings->GetOutputFormat(&outputFormat);
+  if (outputFormat != nsIPrintSettings::kOutputFormatNative) {
+    return NS_OK;
+  }
+
   LONG lOutCount = 2;
   USHORT usJobID = 0;
   LONG lResult = DevEscape(mPrintDC, DEVESC_ENDDOC, 0L, (PBYTE)NULL,
@@ -501,6 +527,12 @@ NS_IMETHODIMP nsDeviceContextSpecOS2::EndDocument()
 
 NS_IMETHODIMP nsDeviceContextSpecOS2::BeginPage()
 {
+  PRInt16 outputFormat;
+  mPrintSettings->GetOutputFormat(&outputFormat);
+  if (outputFormat != nsIPrintSettings::kOutputFormatNative) {
+    return NS_OK;
+  }
+
   if (mPrintingStarted) {
     
     mPrintingStarted = PR_FALSE;
