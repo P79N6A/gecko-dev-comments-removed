@@ -61,33 +61,14 @@ function HistorySidebarInit()
     document.getElementById("bydayandsite").setAttribute("checked", "true");
   else
     document.getElementById("byday").setAttribute("checked", "true");
-
-  initContextMenu();
   
   searchHistory("");
-}
-
-function initContextMenu() {
-  
-  document.getElementById("placesContext")
-          .insertBefore(document.getElementById("addBookmarkContextItem"),
-                        document.getElementById("placesContext_copy"));
 }
 
 function GroupBy(groupingType)
 {
   gHistoryGrouping = groupingType;
   searchHistory(gSearchBox.value);
-}
-
-function historyAddBookmarks()
-{ 
-  
-  
-  
-  var node = gHistoryTree.selectedNode;
-  if (node && PlacesUtils.nodeIsURI(node))
-    PlacesUIUtils.showMinimalAddBookmarkUI(PlacesUtils._uri(node.uri), node.title);
 }
 
 function searchHistory(aInput)
