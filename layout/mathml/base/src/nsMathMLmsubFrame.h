@@ -37,6 +37,7 @@
 
 
 
+
 #ifndef nsMathMLmsubFrame_h___
 #define nsMathMLmsubFrame_h___
 

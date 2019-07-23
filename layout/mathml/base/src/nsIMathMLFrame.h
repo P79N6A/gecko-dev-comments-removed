@@ -35,6 +35,7 @@
 
 
 
+
 #ifndef nsIMathMLFrame_h___
 #define nsIMathMLFrame_h___
 

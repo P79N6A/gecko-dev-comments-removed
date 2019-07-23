@@ -35,6 +35,7 @@
 
 
 
+
 #ifndef nsMathMLmtableFrame_h___
 #define nsMathMLmtableFrame_h___
 

@@ -36,6 +36,7 @@
 
 
 
+
 #ifndef nsMathMLmpaddedFrame_h___
 #define nsMathMLmpaddedFrame_h___
 

@@ -40,6 +40,7 @@
 
 
 
+
 #ifndef nsMathMLForeignFrameWrapper_h___
 #define nsMathMLForeignFrameWrapper_h___
 

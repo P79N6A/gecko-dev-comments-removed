@@ -36,6 +36,7 @@
 
 
 
+
 #ifndef nsMathMLmphantomFrame_h___
 #define nsMathMLmphantomFrame_h___
 

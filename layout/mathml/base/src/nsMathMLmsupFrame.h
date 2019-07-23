@@ -37,6 +37,7 @@
 
 
 
+
 #ifndef nsMathMLmsupFrame_h___
 #define nsMathMLmsupFrame_h___
 

@@ -37,6 +37,7 @@
 
 
 
+
 #ifndef nsMathMLmrootFrame_h___
 #define nsMathMLmrootFrame_h___
 

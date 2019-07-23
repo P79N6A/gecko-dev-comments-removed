@@ -37,6 +37,7 @@
 
 
 
+
 #ifndef nsMathMLmoverFrame_h___
 #define nsMathMLmoverFrame_h___
 

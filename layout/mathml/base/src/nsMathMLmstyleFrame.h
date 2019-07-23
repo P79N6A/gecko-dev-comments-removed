@@ -36,6 +36,7 @@
 
 
 
+
 #ifndef nsMathMLmstyleFrame_h___
 #define nsMathMLmstyleFrame_h___
 

@@ -36,6 +36,7 @@
 
 
 
+
 #ifndef nsMathMLmfencedFrame_h___
 #define nsMathMLmfencedFrame_h___
 
