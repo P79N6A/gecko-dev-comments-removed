@@ -2105,6 +2105,15 @@ nsScriptSecurityManager::GetFunctionObjectPrincipal(JSContext *cx,
                                                     nsresult *rv)
 {
     NS_PRECONDITION(rv, "Null out param");
+    if (!JS_ObjectIsFunction(cx, obj))
+    {
+        
+        nsIPrincipal *result = doGetObjectPrincipal(obj);
+        if (!result)
+            *rv = NS_ERROR_FAILURE;
+        return result;
+    }
+
     JSFunction *fun = (JSFunction *) caps_GetJSPrivate(obj);
     JSScript *script = JS_GetFunctionScript(cx, fun);
 
