@@ -4989,11 +4989,6 @@ nsTextFrame::SetSelectedRange(PRUint32 aStart,
   if (aStart == aEnd)
     return;
 
-  
-  
-  if (aSelected && ParentDisablesSelection())
-    return;
-
   if (aType == nsISelectionController::SELECTION_NORMAL) {
     
     PRBool selectable;

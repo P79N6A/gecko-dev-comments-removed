@@ -563,8 +563,6 @@ protected:
   
   virtual PRIntn GetSkipSides() const;
 
-  virtual PRBool ParentDisablesSelection() const; 
-
 public:
   PRBool IsRowInserted() const;
   void   SetRowInserted(PRBool aValue);

@@ -4261,35 +4261,6 @@ nsFrame::XMLQuote(nsString& aString)
 #endif
 
 PRBool
-nsFrame::ParentDisablesSelection() const
-{
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  
-  return PR_FALSE;
-}
-
-PRBool
 nsIFrame::IsVisibleForPainting(nsDisplayListBuilder* aBuilder) {
   if (!GetStyleVisibility()->IsVisible())
     return PR_FALSE;

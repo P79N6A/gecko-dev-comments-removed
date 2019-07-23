@@ -521,16 +521,6 @@ nsTableCellFrame::GetSkipSides() const
   return skip;
 }
 
-PRBool nsTableCellFrame::ParentDisablesSelection() const 
-{
-  PRBool returnval;
-  if (NS_FAILED(GetSelected(&returnval)))
-    return PR_FALSE;
-  if (returnval)
-    return PR_TRUE;
-  return nsFrame::ParentDisablesSelection();
-}
-
  void
 nsTableCellFrame::GetSelfOverflow(nsRect& aOverflowArea)
 {

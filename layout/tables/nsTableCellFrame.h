@@ -235,8 +235,6 @@ protected:
   
   virtual PRIntn GetSkipSides() const;
 
-  virtual PRBool ParentDisablesSelection() const; 
-
   
 
 
