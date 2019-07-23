@@ -204,6 +204,26 @@ protected:
   
 
 
+  PRBool IsPaused();
+
+  
+
+
+  PRBool IsResumable();
+
+  
+
+
+  PRBool WasResumed();
+
+  
+
+
+  PRBool IsRealPaused();
+
+  
+
+
   PRBool IsFinishable();
 
   
@@ -241,8 +261,6 @@ private:
 
   PRTime mStartTime;
   PRTime mLastUpdate;
-  PRBool mPaused;
-  PRBool mWasResumed;
   PRUint64 mResumedAt;
   double mSpeed;
 
