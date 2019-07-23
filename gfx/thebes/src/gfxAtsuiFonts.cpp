@@ -273,10 +273,6 @@ gfxAtsuiFont::InitMetrics(ATSUFontID aFontID, ATSFontRef aFontRef)
     mMetrics.spaceWidth = GetCharWidth(' ', &glyphID);
     mSpaceGlyph = glyphID;
 
-    mMetrics.zeroOrAveCharWidth = GetCharWidth('0', &glyphID);
-    if (glyphID == 0) 
-        mMetrics.zeroOrAveCharWidth = mMetrics.aveCharWidth;
-
     SanitizeMetrics(&mMetrics, mFontEntry->FamilyEntry()->IsBadUnderlineFontFamily());
 
 #if 0
