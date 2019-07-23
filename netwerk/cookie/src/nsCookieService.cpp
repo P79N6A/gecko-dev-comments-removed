@@ -1045,7 +1045,7 @@ nsCookieService::ImportCookies(nsIFile *aCookieFile)
     const nsASingleFragmentCString &host = Substring(buffer, hostIndex, isDomainIndex - hostIndex - 1);
     
     
-    if (isDomain && !host.IsEmpty() && host.First() != '.' ||
+    if ((isDomain && !host.IsEmpty() && host.First() != '.') ||
         host.FindChar(':') != kNotFound) {
       continue;
     }
