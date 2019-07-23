@@ -476,9 +476,17 @@ FindTextRunSegmentLength(gfxTextRun *aTextRun, PRUint32 aOffset, PRUint32 aMaxLe
 PRUint32
 gfxAtsuiFontGroup::GuessMaximumStringLength()
 {
-    gfxFloat maxAdvance = GetFontAt(0)->GetMetrics().maxAdvance;
     
-    PRUint32 chars = 0x7FFF/PRUint32(maxAdvance);
+    
+    
+    
+    
+    
+    
+    
+    
+    PRUint32 maxAdvance = PRUint32(GetFontAt(0)->GetMetrics().maxAdvance);
+    PRUint32 chars = 0x7FFF/PR_MAX(1, maxAdvance);
     return PR_MAX(1, chars);
 }
 
