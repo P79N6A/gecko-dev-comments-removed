@@ -570,9 +570,65 @@ nsDOMWorkerScope::GetHelperForLanguage(PRUint32 aLanguage,
   nsIXPCScriptable::USE_JSSTUB_FOR_SETPROPERTY           | \
   nsIXPCScriptable::DONT_ENUM_QUERY_INTERFACE            | \
   nsIXPCScriptable::CLASSINFO_INTERFACES_ONLY            | \
-  nsIXPCScriptable::DONT_REFLECT_INTERFACE_NAMES
+  nsIXPCScriptable::DONT_REFLECT_INTERFACE_NAMES         | \
+  nsIXPCScriptable::WANT_ADDPROPERTY
+
+#define XPC_MAP_WANT_ADDPROPERTY
 
 #include "xpc_map_end.h"
+
+NS_IMETHODIMP
+nsDOMWorkerScope::AddProperty(nsIXPConnectWrappedNative* aWrapper,
+                              JSContext* aCx,
+                              JSObject* aObj,
+                              jsval aId,
+                              jsval* aVp,
+                              PRBool* _retval)
+{
+  
+  
+  *_retval = PR_TRUE;
+
+  
+  
+  
+  JSObject* funObj;
+  if (!(JSVAL_IS_STRING(aId) &&
+        JSVAL_IS_OBJECT(*aVp) &&
+        (funObj = JSVAL_TO_OBJECT(*aVp)) &&
+        JS_ObjectIsFunction(aCx, funObj))) {
+    return NS_OK;
+  }
+
+  const char* name = JS_GetStringBytes(JSVAL_TO_STRING(aId));
+
+  
+  SetListenerFunc func;
+  if (!strcmp(name, "onmessage")) {
+    func = &nsDOMWorkerScope::SetOnmessage;
+  }
+  else if (!strcmp(name, "onerror")) {
+    func = &nsDOMWorkerScope::SetOnerror;
+  }
+  else {
+    
+    return NS_OK;
+  }
+
+  
+  nsCOMPtr<nsIDOMEventListener> listener;
+  nsresult rv =
+    nsContentUtils::XPConnect()->WrapJS(aCx, funObj,
+                                        NS_GET_IID(nsIDOMEventListener),
+                                        getter_AddRefs(listener));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  rv = (this->*func)(listener);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  return NS_OK;
+}
 
 NS_IMETHODIMP
 nsDOMWorkerScope::GetSelf(nsIWorkerGlobalScope** aSelf)
