@@ -136,8 +136,7 @@ public:
     NS_IMETHOD RemoveElementForID(const nsAString& aID, nsIContent* aElement);
     NS_IMETHOD GetElementsForID(const nsAString& aID,
                                 nsCOMArray<nsIContent>& aElements);
-    NS_IMETHOD AddForwardReference(nsForwardReference* aRef);
-    NS_IMETHOD ResolveForwardReferences();
+
     NS_IMETHOD GetScriptGlobalObjectOwner(nsIScriptGlobalObjectOwner** aGlobalOwner);
     NS_IMETHOD AddSubtreeToDocument(nsIContent* aElement);
     NS_IMETHOD RemoveSubtreeFromDocument(nsIContent* aElement);
@@ -255,9 +254,6 @@ protected:
     nsresult
     Persist(nsIContent* aElement, PRInt32 aNameSpaceID, nsIAtom* aAttribute);
 
-    nsresult
-    DestroyForwardReferences();
-
     
     
     
@@ -296,9 +292,6 @@ protected:
     typedef nsInterfaceHashtable<nsISupportsHashKey, nsIXULTemplateBuilder>
         BuilderTable;
     BuilderTable* mTemplateBuilderTable;
-
-    nsVoidArray mForwardReferences;
-    nsForwardReference::Phase mResolutionPhase;
 
     PRUint32 mPendingSheets;
 
@@ -433,6 +426,35 @@ protected:
 
 
     nsresult AddPrototypeSheets();
+
+
+protected:
+    
+
+
+
+
+
+
+    
+
+
+
+
+    nsTArray<nsAutoPtr<nsForwardReference> > mForwardReferences;
+
+    
+    nsForwardReference::Phase mResolutionPhase;
+
+    
+
+
+    nsresult AddForwardReference(nsForwardReference* aRef);
+
+    
+
+
+    nsresult ResolveForwardReferences();
 
     
 
