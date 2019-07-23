@@ -430,21 +430,6 @@ public:
             *m++ = getStoreType(*vp));
         return out->insGuard(v, c, x);
     }
-
-    
-
-
-    virtual LInsp insStore(LIns* value, LIns* base, LIns* disp) {
-        if (base == _fragment->lirbuf->sp && isPromoteInt(value))
-            value = demote(out, value);
-        return out->insStore(value, base, disp);
-    }
-
-    virtual LInsp insStorei(LIns* value, LIns* base, int32_t d) {
-        if (base == _fragment->lirbuf->sp && isPromoteInt(value))
-            value = demote(out, value);
-        return out->insStorei(value, base, d);
-    }
 };
 
 TraceRecorder::TraceRecorder(JSContext* cx, GuardRecord* _anchor,
@@ -857,6 +842,11 @@ TraceRecorder::set(jsval* p, LIns* i, bool initializing)
 {
     JS_ASSERT(initializing || tracker.has(p));
     tracker.set(p, i);
+    
+
+
+    if (isPromoteInt(i))
+        i = ::demote(lir, i);
     lir->insStorei(i, lirbuf->sp, -treeInfo->nativeStackBase + nativeFrameOffset(p) + 8);
 }
 
