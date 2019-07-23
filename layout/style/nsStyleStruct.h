@@ -193,6 +193,8 @@ struct nsStyleBackground {
   PRBool HasFixedBackground() const;
 };
 
+
+
 #define BORDER_COLOR_FOREGROUND   0x20
 #define OUTLINE_COLOR_INITIAL     0x80
 
@@ -1321,6 +1323,8 @@ struct nsStyleColumn {
 
   nscolor      mColumnRuleColor;  
   PRUint8      mColumnRuleStyle;  
+  
+  
   PRPackedBool mColumnRuleColorIsForeground;
 
   void SetColumnRuleWidth(nscoord aWidth) {
