@@ -1277,15 +1277,16 @@ void
 TreeInfo::mergeGlobalsFromInnerTree(Fragment* inner)
 {
     TreeInfo* ti = (TreeInfo*)inner->vmprivate;
-    Queue<uint16>* gslots = &ti->globalSlots;
-    uint16* data = gslots->data();
-    unsigned length = gslots->length();
+    uint16* slots = ti->globalSlots.data();
+    uint8* types = ti->globalTypeMap.data();
+    unsigned length = ti->globalSlots.length();
     
     bool changed = false;
     for (unsigned n = 0; n < length; ++n) {
-        uint16 slot = data[n];
+        uint16 slot = slots[n];
         if (!globalSlots.contains(slot)) {
             globalSlots.add(slot);
+            globalTypeMap.add(types[n]);
             changed = true;
         }
     }
@@ -1575,7 +1576,8 @@ js_ContinueRecording(JSContext* cx, TraceRecorder* r, jsbytecode* oldpc, uintN& 
     }
     
     Fragment* f = fragmento->getLoop(cx->fp->regs->pc);
-    if (f && !r->getCallDepth()) { 
+    if (f->code() && !r->getCallDepth()) { 
+        JS_ASSERT(f->vmprivate);
         
     }
     
