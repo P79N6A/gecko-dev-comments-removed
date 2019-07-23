@@ -42,12 +42,15 @@
 #ifndef nsFontFaceLoader_h_
 #define nsFontFaceLoader_h_
 
+#include "nsCOMPtr.h"
+#include "nsIPresShell.h"
 #include "nsIStreamLoader.h"
 #include "nsIURI.h"
 #include "gfxUserFontSet.h"
 
 class nsIRequest;
 class nsISupports;
+class nsIPresShell;
 class nsPresContext;
 class nsIPrincipal;
 
@@ -56,7 +59,7 @@ class nsFontFaceLoader : public nsIStreamLoaderObserver
 public:
 
   nsFontFaceLoader(gfxFontEntry *aFontToLoad, nsIURI *aFontURI, 
-                   gfxUserFontSet::LoaderContext *aContext);
+                   nsIPresShell *aShell);
   virtual ~nsFontFaceLoader();
 
   NS_DECL_ISUPPORTS
@@ -65,33 +68,31 @@ public:
   
   nsresult Init();  
 
-  
-  static nsresult CreateHandler(gfxFontEntry *aFontToLoad, 
-                                const gfxFontFaceSrc *aFontFaceSrc,
-                                gfxUserFontSet::LoaderContext *aContext);
-                              
-private:
-
   static nsresult CheckLoadAllowed(nsIPrincipal* aSourcePrincipal,
                                    nsIURI* aTargetURI,
                                    nsISupports* aContext);
   
-  nsRefPtr<gfxFontEntry>              mFontEntry;
-  nsCOMPtr<nsIURI>                    mFontURI;
-  gfxUserFontSet::LoaderContext*      mLoaderContext;
+private:
+
+  nsRefPtr<gfxFontEntry>  mFontEntry;
+  nsCOMPtr<nsIURI>        mFontURI;
+  nsCOMPtr<nsIPresShell>  mShell;
 };
 
-class nsFontFaceLoaderContext : public gfxUserFontSet::LoaderContext {
+
+
+class nsUserFontSet : public gfxUserFontSet
+{
 public:
-  nsFontFaceLoaderContext(nsPresContext* aContext)
-    : gfxUserFontSet::LoaderContext(nsFontFaceLoader::CreateHandler), 
-      mPresContext(aContext)
-  {
-
-  }
-
-  nsPresContext*    mPresContext;
+  nsUserFontSet(nsPresContext *aContext);
+  ~nsUserFontSet();
+  
+  
+  
+  nsresult StartLoad(gfxFontEntry *aFontToLoad, 
+                     const gfxFontFaceSrc *aFontFaceSrc);
+protected:
+  nsPresContext *mPresContext;  
 };
-
 
 #endif 

@@ -144,24 +144,10 @@ class gfxProxyFontEntry;
 class THEBES_API gfxUserFontSet {
 
 public:
-    class LoaderContext;
-    typedef nsresult (*LoaderCallback) (gfxFontEntry *aFontToLoad,
-                                        const gfxFontFaceSrc *aFontFaceSrc,
-                                        LoaderContext *aContextData);
-
-    class LoaderContext {
-    public:
-        LoaderContext(LoaderCallback aLoader)
-            : mUserFontSet(nsnull), mLoaderProc(aLoader) { }
-        virtual ~LoaderContext() { }
-
-        gfxUserFontSet* mUserFontSet;
-        LoaderCallback  mLoaderProc;
-    };
 
     THEBES_INLINE_DECL_REFCOUNTING(gfxUserFontSet)
 
-    gfxUserFontSet(LoaderContext *aContext);
+    gfxUserFontSet();
     virtual ~gfxUserFontSet();
 
     enum {
@@ -201,7 +187,13 @@ public:
 
     
     gfxFontEntry *FindFontEntry(const nsAString& aName, 
-                                const gfxFontStyle& aFontStyle, PRBool& aNeedsBold);
+                                const gfxFontStyle& aFontStyle, 
+                                PRBool& aNeedsBold);
+                                
+    
+    
+    virtual nsresult StartLoad(gfxFontEntry *aFontToLoad, 
+                               const gfxFontFaceSrc *aFontFaceSrc) = 0;
 
     
     
@@ -232,9 +224,6 @@ protected:
     nsRefPtrHashtable<nsStringHashKey, gfxMixedFontFamily> mFontFamilies;
 
     PRUint64        mGeneration;
-
-    
-    nsAutoPtr<LoaderContext> mLoaderContext;
 };
 
 
