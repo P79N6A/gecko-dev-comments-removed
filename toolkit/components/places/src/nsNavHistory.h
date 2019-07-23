@@ -206,10 +206,6 @@ public:
   PRBool IsHistoryDisabled() { return mExpireDays == 0; }
 
   
-  void SaveExpandItem(const nsAString& aTitle);
-  void SaveCollapseItem(const nsAString& aTitle);
-
-  
   mozIStorageStatement* DBGetURLPageInfo() { return mDBGetURLPageInfo; }
 
   
@@ -469,6 +465,10 @@ protected:
   static void LazyTimerCallback(nsITimer* aTimer, void* aClosure);
   void CommitLazyMessages();
 #endif
+
+  nsresult ConstructQueryString(const nsCOMArray<nsNavHistoryQuery>& aQueries, 
+                                nsNavHistoryQueryOptions *aOptions,
+                                nsCString &queryString);
 
   nsresult QueryToSelectClause(nsNavHistoryQuery* aQuery,
                                nsNavHistoryQueryOptions* aOptions,
