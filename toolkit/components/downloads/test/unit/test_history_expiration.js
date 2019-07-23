@@ -84,7 +84,6 @@ function run_test()
     stmt.reset();
     stmt.finalize();
   }
-  dump("added the download to the database\n");
 
   let histsvc = Cc["@mozilla.org/browser/nav-history-service;1"].
                 getService(Ci.nsINavHistoryService);
@@ -93,14 +92,6 @@ function run_test()
   let yesterday = Date.now() - 24 * 60 * 60 * 1000;
   histsvc.addVisit(theURI, yesterday * 1000, null,
                    histsvc.TRANSITION_DOWNLOAD, false, 0);
-  dump("added the download to history\n");
-  let histobs = {
-    onPageExpired: function(aURI, aVisitTime, aWholeVisit)
-    {
-      dump("onPageExpired(" + aURI.spec + ", " + aVisitTime + ", " + aWholeVisit + ")\n");
-    }
-  };
-  histsvc.addObserver(histobs, false);
 
   
   let histobs = dm.QueryInterface(Ci.nsINavHistoryObserver);
@@ -112,7 +103,6 @@ function run_test()
   const kRemoveTopic = "download-manager-remove-download";
   let testObs = {
     observe: function(aSubject, aTopic, aData) {
-      dump("observing " + aTopic + "\n");
       if (aTopic != kRemoveTopic)
         return;
 
@@ -124,7 +114,6 @@ function run_test()
       histobs.onEndUpdateBatch();
       obs.removeObserver(testObs, kRemoveTopic);
       do_test_finished();
-      dump("and we are done\n");
     }
   };
   obs.addObserver(testObs, kRemoveTopic, false);
@@ -138,5 +127,4 @@ function run_test()
 
   
   do_test_pending();
-  dump("waiting for the observer callback\n");
 }
