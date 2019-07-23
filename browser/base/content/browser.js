@@ -6912,6 +6912,10 @@ let gPrivateBrowsingUI = {
     this._setPBMenuTitle("stop");
 
     document.getElementById("menu_import").setAttribute("disabled", "true");
+    
+    
+    
+    document.getElementById("Tools:Sanitize").setAttribute("disabled", "true");
 
     this._privateBrowsingAutoStarted = this._privateBrowsingService.autoStarted;
 
@@ -6939,6 +6943,10 @@ let gPrivateBrowsingUI = {
       BrowserSearch.searchBar.textbox.reset();
 
     document.getElementById("menu_import").removeAttribute("disabled");
+
+    
+    
+    document.getElementById("Tools:Sanitize").removeAttribute("disabled");
 
     if (gFindBar)
       gFindBar.getElement("findbar-textbox").reset();
