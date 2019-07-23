@@ -1632,23 +1632,46 @@ NS_IMETHODIMP nsHyperTextAccessible::SetCaretOffset(PRInt32 aCaretOffset)
 
 
 
-NS_IMETHODIMP nsHyperTextAccessible::GetCaretOffset(PRInt32 *aCaretOffset)
+NS_IMETHODIMP
+nsHyperTextAccessible::GetCaretOffset(PRInt32 *aCaretOffset)
 {
-  *aCaretOffset = 0;
+  *aCaretOffset = -1;
 
+  
+  
+  PRBool isInsideOfFocusedNode =
+    nsCoreUtils::IsAncestorOf(gLastFocusedNode, mDOMNode);
+
+  if (!isInsideOfFocusedNode && mDOMNode != gLastFocusedNode &&
+      !nsCoreUtils::IsAncestorOf(mDOMNode, gLastFocusedNode))
+    return NS_OK;
+
+  
+  
   nsCOMPtr<nsISelection> domSel;
   nsresult rv = GetSelections(nsISelectionController::SELECTION_NORMAL,
                               nsnull, getter_AddRefs(domSel));
   NS_ENSURE_SUCCESS(rv, rv);
 
-  nsCOMPtr<nsIDOMNode> caretNode;
-  rv = domSel->GetFocusNode(getter_AddRefs(caretNode));
+  nsCOMPtr<nsIDOMNode> focusNode;
+  rv = domSel->GetFocusNode(getter_AddRefs(focusNode));
   NS_ENSURE_SUCCESS(rv, rv);
 
-  PRInt32 caretOffset;
-  domSel->GetFocusOffset(&caretOffset);
+  PRInt32 focusOffset;
+  rv = domSel->GetFocusOffset(&focusOffset);
+  NS_ENSURE_SUCCESS(rv, rv);
 
-  return DOMPointToHypertextOffset(caretNode, caretOffset, aCaretOffset);
+  
+  
+  if (isInsideOfFocusedNode) {
+    nsCOMPtr<nsIDOMNode> resultNode =
+      nsCoreUtils::GetDOMNodeFromDOMPoint(focusNode, focusOffset);
+    if (resultNode != mDOMNode &&
+        !nsCoreUtils::IsAncestorOf(mDOMNode, resultNode))
+      return NS_OK;
+  }
+
+  return DOMPointToHypertextOffset(focusNode, focusOffset, aCaretOffset);
 }
 
 PRInt32 nsHyperTextAccessible::GetCaretLineNumber()

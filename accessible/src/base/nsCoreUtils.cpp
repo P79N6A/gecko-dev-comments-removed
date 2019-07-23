@@ -192,6 +192,31 @@ nsCoreUtils::GetDOMElementFor(nsIDOMNode *aNode)
   return element;
 }
 
+already_AddRefed<nsIDOMNode>
+nsCoreUtils::GetDOMNodeFromDOMPoint(nsIDOMNode *aNode, PRUint32 aOffset)
+{
+  nsIDOMNode *resultNode = nsnull;
+
+  nsCOMPtr<nsIContent> content(do_QueryInterface(aNode));
+  if (content && content->IsNodeOfType(nsINode::eELEMENT)) {
+
+    PRInt32 childCount = static_cast<PRInt32>(content->GetChildCount());
+    NS_ASSERTION(aOffset >= 0 && aOffset <= childCount,
+                 "Wrong offset of the DOM point!");
+
+    
+    
+    
+    if (aOffset != childCount) {
+      CallQueryInterface(content->GetChildAt(aOffset), &resultNode);
+      return resultNode;
+    }
+  }
+
+  NS_IF_ADDREF(resultNode = aNode);
+  return resultNode;
+}
+
 nsIContent*
 nsCoreUtils::GetRoleContent(nsIDOMNode *aDOMNode)
 {

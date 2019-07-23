@@ -448,29 +448,16 @@ nsAccUtils::GetTextAccessibleFromSelection(nsISelection *aSelection,
   
   
 
-  nsCOMPtr<nsIDOMNode> resultNode;
-  aSelection->GetFocusNode(getter_AddRefs(resultNode));
-  if (!resultNode)
+  nsCOMPtr<nsIDOMNode> focusNode;
+  aSelection->GetFocusNode(getter_AddRefs(focusNode));
+  if (!focusNode)
     return nsnull;
 
-  
-  nsCOMPtr<nsIContent> content(do_QueryInterface(resultNode));
-  if (content && content->IsNodeOfType(nsINode::eELEMENT)) {
-    PRInt32 offset = 0;
-    aSelection->GetFocusOffset(&offset);
+  PRInt32 focusOffset = 0;
+  aSelection->GetFocusOffset(&focusOffset);
 
-    PRInt32 childCount = static_cast<PRInt32>(content->GetChildCount());
-    NS_ASSERTION(offset >= 0 && offset <= childCount,
-                 "Wrong focus offset in selection!");
-
-    
-    
-    
-    if (offset != childCount) {
-      nsCOMPtr<nsIContent> child = content->GetChildAt(offset);
-      resultNode = do_QueryInterface(child);
-    }
-  }
+  nsCOMPtr<nsIDOMNode> resultNode =
+    nsCoreUtils::GetDOMNodeFromDOMPoint(focusNode, focusOffset);
 
   nsIAccessibilityService *accService = nsAccessNode::GetAccService();
 
