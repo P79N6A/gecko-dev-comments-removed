@@ -48,14 +48,14 @@ public:
   virtual ~nsTransformingTextRunFactory() {}
 
   
-  gfxTextRun* MakeTextRun(const PRUint8* aString, PRUint32 aLength,
-                          const gfxFontGroup::Parameters* aParams,
-                          gfxFontGroup* aFontGroup, PRUint32 aFlags,
-                          nsStyleContext** aStyles, PRBool aOwnsFactory = PR_TRUE);
-  gfxTextRun* MakeTextRun(const PRUnichar* aString, PRUint32 aLength,
-                          const gfxFontGroup::Parameters* aParams,
-                          gfxFontGroup* aFontGroup, PRUint32 aFlags,
-                          nsStyleContext** aStyles, PRBool aOwnsFactory = PR_TRUE);
+  nsTransformedTextRun* MakeTextRun(const PRUint8* aString, PRUint32 aLength,
+                                    const gfxFontGroup::Parameters* aParams,
+                                    gfxFontGroup* aFontGroup, PRUint32 aFlags,
+                                    nsStyleContext** aStyles, PRBool aOwnsFactory = PR_TRUE);
+  nsTransformedTextRun* MakeTextRun(const PRUnichar* aString, PRUint32 aLength,
+                                    const gfxFontGroup::Parameters* aParams,
+                                    gfxFontGroup* aFontGroup, PRUint32 aFlags,
+                                    nsStyleContext** aStyles, PRBool aOwnsFactory = PR_TRUE);
 
   virtual void RebuildTextRun(nsTransformedTextRun* aTextRun, gfxContext* aRefContext) = 0;
 };
