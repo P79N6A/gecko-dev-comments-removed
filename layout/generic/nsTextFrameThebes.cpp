@@ -3572,6 +3572,11 @@ nsContinuingTextFrame::Destroy()
       !mPrevContinuation ||
       mPrevContinuation->GetStyleContext() != GetStyleContext()) {
     ClearTextRun();
+    
+    
+    if (mPrevContinuation) {
+      (static_cast<nsTextFrame*>(mPrevContinuation))->ClearTextRun();
+    }
   }
   nsSplittableFrame::RemoveFromFlow(this);
   
