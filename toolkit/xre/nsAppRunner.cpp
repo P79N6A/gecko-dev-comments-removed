@@ -207,6 +207,33 @@
 #define NS_CRASHREPORTER_CONTRACTID "@mozilla.org/toolkit/crash-reporter;1"
 #endif
 
+#ifdef WINCE
+class WindowsMutex {
+public:
+  WindowsMutex(const wchar_t *name) {
+    mHandle = CreateMutexW(0, FALSE, name);
+  }
+
+  ~WindowsMutex() {
+    Unlock();
+    CloseHandle(mHandle);
+  }
+
+  PRBool Lock(DWORD timeout = INFINITE) {
+    DWORD state = WaitForSingleObject(mHandle, timeout);
+    return state == WAIT_OBJECT_0;
+  }
+  
+  void Unlock() {
+    if (mHandle)
+      ReleaseMutex(mHandle);
+  }
+
+protected:
+  HANDLE mHandle;
+};
+#endif
+
 
 
 
@@ -2578,10 +2605,7 @@ int
 XRE_main(int argc, char* argv[], const nsXREAppData* aAppData)
 {
 #ifdef MOZ_SPLASHSCREEN
-  nsSplashScreen *splashScreen =
-    nsSplashScreen::GetOrCreate();
-  if (splashScreen)
-    splashScreen->Open();
+  nsSplashScreen *splashScreen = nsnull;
 #endif
 
 #ifdef XP_WIN
@@ -2702,8 +2726,6 @@ XRE_main(int argc, char* argv[], const nsXREAppData* aAppData)
     }
   }
 
-  MOZ_SPLASHSCREEN_UPDATE(10);
-
   ScopedAppData appData(aAppData);
   gAppData = &appData;
 
@@ -2717,6 +2739,64 @@ XRE_main(int argc, char* argv[], const nsXREAppData* aAppData)
     Output(PR_TRUE, "Error: App:BuildID not specified in application.ini\n");
     return 1;
   }
+
+#ifdef MOZ_SPLASHSCREEN
+  
+  PRBool wantsSplash = PR_TRUE;
+  PRBool isNoSplash = (CheckArg("nosplash") == ARG_FOUND);
+  PRBool isNoRemote = (CheckArg("no-remote") == ARG_FOUND);
+
+#ifdef WINCE
+  
+  
+  WindowsMutex winStartupMutex(L"FirefoxStartupMutex");
+
+  
+  PRBool needsMutexLock = ! winStartupMutex.Lock(100);
+
+  
+  
+  
+  
+  
+  
+  if (!needsMutexLock && !isNoRemote) {
+    
+    static PRUnichar classNameBuffer[128];
+    _snwprintf(classNameBuffer, sizeof(classNameBuffer) / sizeof(PRUnichar),
+               L"%S%s",
+               gAppData->name, L"MessageWindow");
+    HANDLE h = FindWindowW(classNameBuffer, 0);
+    if (h) {
+      
+      
+      
+      wantsSplash = PR_FALSE;
+      CloseHandle(h);
+    } else {
+      
+      
+      
+      wantsSplash = PR_TRUE;
+    }
+  }
+#endif
+
+  if (wantsSplash && !isNoSplash)
+    splashScreen = nsSplashScreen::GetOrCreate();
+
+  if (splashScreen)
+    splashScreen->Open();
+
+#ifdef WINCE
+  
+  
+  if (needsMutexLock)
+    winStartupMutex.Lock();
+#endif
+
+#endif
+
 
   ScopedLogging log;
 
@@ -3121,6 +3201,11 @@ XRE_main(int argc, char* argv[], const nsXREAppData* aAppData)
 
     rv = dirProvider.SetProfile(profD, profLD);
     NS_ENSURE_SUCCESS(rv, 1);
+
+#ifdef WINCE
+    
+    winStartupMutex.Unlock();
+#endif
 
     
 
