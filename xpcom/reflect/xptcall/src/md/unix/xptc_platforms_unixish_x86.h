@@ -67,7 +67,7 @@
 
 
 
-#if defined(LINUX)
+#if defined(LINUX) || (defined(__GLIBC__) && defined(__FreeBSD_kernel__))
 
 #if (__GNUC__ == 2) && (__GNUC_MINOR__ <= 7)
 
