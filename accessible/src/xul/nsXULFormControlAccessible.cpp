@@ -883,6 +883,9 @@ nsXULTextFieldAccessible::nsXULTextFieldAccessible(nsIDOMNode* aNode, nsIWeakRef
 
 NS_IMPL_ISUPPORTS_INHERITED3(nsXULTextFieldAccessible, nsAccessible, nsHyperTextAccessible, nsIAccessibleText, nsIAccessibleEditableText)
 
+
+
+
 NS_IMETHODIMP nsXULTextFieldAccessible::GetValue(nsAString& aValue)
 {
   PRUint32 state;
@@ -902,6 +905,7 @@ NS_IMETHODIMP nsXULTextFieldAccessible::GetValue(nsAString& aValue)
   }
   return NS_ERROR_FAILURE;
 }
+
 
 already_AddRefed<nsIDOMNode> nsXULTextFieldAccessible::GetInputField()
 {
@@ -1061,4 +1065,33 @@ NS_IMETHODIMP nsXULTextFieldAccessible::GetAssociatedEditor(nsIEditor **aEditor)
   nsCOMPtr<nsIDOMNSEditableElement> editableElt(do_QueryInterface(inputField));
   NS_ENSURE_TRUE(editableElt, NS_ERROR_FAILURE);
   return editableElt->GetEditor(aEditor);
+}
+
+
+
+
+void
+nsXULTextFieldAccessible::CacheChildren()
+{
+  
+  
+  nsCOMPtr<nsIDOMNode> inputNode(GetInputField());
+  nsCOMPtr<nsIContent> inputContent(do_QueryInterface(inputNode));
+  if (!inputContent)
+    return;
+
+  nsAccessibleTreeWalker walker(mWeakShell, inputNode, PR_FALSE);
+  walker.mState.frame = inputContent->GetPrimaryFrame();
+
+  walker.GetFirstChild();
+  while (walker.mState.accessible) {
+    nsRefPtr<nsAccessible> acc =
+      nsAccUtils::QueryObject<nsAccessible>(walker.mState.accessible);
+
+    mChildren.AppendElement(acc);
+
+    acc->SetParent(this);
+
+    walker.GetNextSibling();
+  }
 }

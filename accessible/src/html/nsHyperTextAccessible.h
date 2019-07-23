@@ -157,9 +157,6 @@ public:
 protected:
 
   
-  virtual void CacheChildren();
-
-  
 
   
 
