@@ -13,7 +13,7 @@
 #include "png.h"
 
 
-typedef version_1_2_34 Your_png_h_is_not_version_1_2_34;
+typedef version_1_2_35 Your_png_h_is_not_version_1_2_35;
 
 
 
@@ -697,7 +697,7 @@ png_charp PNGAPI
 png_get_copyright(png_structp png_ptr)
 {
    png_ptr = png_ptr;  
-   return ((png_charp) "\n libpng version 1.2.34 - December 18, 2008\n\
+   return ((png_charp) "\n libpng version 1.2.35 - February 14, 2009\n\
    Copyright (c) 1998-2008 Glenn Randers-Pehrson\n\
    Copyright (c) 1996-1997 Andreas Dilger\n\
    Copyright (c) 1995-1996 Guy Eric Schalnat, Group 42, Inc.\n");
