@@ -4132,7 +4132,9 @@ TraceRecorder::record_EnterFrame()
 
     if (++callDepth >= MAX_CALLDEPTH)
         ABORT_TRACE("exceeded maximum call depth");
-    if (fp->script == fp->down->script)
+    
+    
+    if (fp->script == fp->down->script && fp->down->down && fp->down->down->script == fp->script)
         ABORT_TRACE("recursive call");
     
     debug_only_v(printf("EnterFrame %s, callDepth=%d\n",
