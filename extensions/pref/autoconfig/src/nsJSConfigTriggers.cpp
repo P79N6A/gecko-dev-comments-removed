@@ -152,6 +152,8 @@ nsresult CentralizedAdminPrefManagerInit()
     if (!autoconfig_cx)
         return NS_ERROR_OUT_OF_MEMORY;
 
+    JSAutoRequest ar(autoconfig_cx);
+
     JS_SetErrorReporter(autoconfig_cx, autoConfigErrorReporter);
 
     
