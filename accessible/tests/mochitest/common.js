@@ -177,7 +177,7 @@ const DONOTFAIL_IF_NO_INTERFACE = 2;
 function getAccessible(aAccOrElmOrID, aInterfaces, aElmObj, aDoNotFailIf)
 {
   if (!aAccOrElmOrID)
-    return;
+    return null;
 
   var elm = null;
 
