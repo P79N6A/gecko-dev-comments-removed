@@ -115,6 +115,8 @@ private:
   
   nsRange(const nsRange&);
   nsRange& operator=(const nsRange&);
+
+  nsINode* IsValidBoundary(nsINode* aNode);
  
 public:
 

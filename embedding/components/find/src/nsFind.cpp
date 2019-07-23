@@ -39,7 +39,6 @@
 
 
 
-
 #include "nsFind.h"
 #include "nsContentCID.h"
 #include "nsIEnumerator.h"
@@ -65,6 +64,7 @@
 #include "nsIDOMElement.h"
 #include "nsIWordBreaker.h"
 #include "nsCRT.h"
+#include "nsIRange.h"
 
 
 #define CHAR_TO_UNICHAR(c) ((PRUnichar)(const unsigned char)c)
@@ -303,7 +303,7 @@ nsFindContentIterator::Reset()
   
   
   
-  nsCOMPtr<nsIDOMRange> range (do_CreateInstance(kRangeCID));
+  nsCOMPtr<nsIDOMRange> range = nsFind::CreateRange();
   range->SetStart(mStartNode, mStartOffset);
   range->SetEnd(mEndNode, mEndOffset);
   mOuterIterator->Init(range);
@@ -400,8 +400,8 @@ nsFindContentIterator::SetupInnerIterator(nsIContent* aContent)
   editor->GetRootElement(getter_AddRefs(rootElement));
   nsCOMPtr<nsIContent> rootContent(do_QueryInterface(rootElement));
 
-  nsCOMPtr<nsIDOMRange> innerRange(do_CreateInstance(kRangeCID));
-  nsCOMPtr<nsIDOMRange> outerRange(do_CreateInstance(kRangeCID));
+  nsCOMPtr<nsIDOMRange> innerRange = nsFind::CreateRange();
+  nsCOMPtr<nsIDOMRange> outerRange = nsFind::CreateRange();
   if (!innerRange || !outerRange) {
     return;
   }
@@ -1210,7 +1210,7 @@ nsFind::Find(const PRUnichar *aPatText, nsIDOMRange* aSearchRange,
         
         nsCOMPtr<nsIDOMNode> startParent;
         nsCOMPtr<nsIDOMNode> endParent;
-        nsCOMPtr<nsIDOMRange> range (do_CreateInstance(kRangeCID));
+        nsCOMPtr<nsIDOMRange> range = CreateRange();
         if (range)
         {
           PRInt32 matchStartOffset, matchEndOffset;
@@ -1328,3 +1328,17 @@ nsFind::Find(const PRUnichar *aPatText, nsIDOMRange* aSearchRange,
 }
 
 
+already_AddRefed<nsIDOMRange>
+nsFind::CreateRange()
+{
+  nsCOMPtr<nsIRange> range = do_CreateInstance(kRangeCID);
+  if (!range) {
+    return nsnull;
+  }
+
+  range->SetMaySpanAnonymousSubtrees(PR_TRUE);
+
+  nsIDOMRange* result;
+  CallQueryInterface(range.get(), &result);
+  return result;
+}
