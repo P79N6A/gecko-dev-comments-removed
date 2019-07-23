@@ -6709,8 +6709,14 @@ nsDocShell::RestoreFromHistory()
         viewer->SetPreviousViewer(mContentViewer);
     }
 
+    
+    mContentViewer = nsnull;
+
+    
+    
+    DestroyChildren();
+
     mContentViewer.swap(viewer);
-    viewer = nsnull; 
 
     
     
@@ -6764,8 +6770,6 @@ nsDocShell::RestoreFromHistory()
     
     mContentViewer->SetSticky(sticky);
 
-    
-    DestroyChildren();
     NS_ENSURE_SUCCESS(rv, rv);
 
     
@@ -7311,6 +7315,10 @@ nsDocShell::SetupNewViewer(nsIContentViewer * aNewViewer)
         mContentViewer = nsnull;
     }
 
+    
+    
+    DestroyChildren();
+
     mContentViewer = aNewViewer;
 
     nsCOMPtr<nsIWidget> widget;
@@ -7366,9 +7374,6 @@ nsDocShell::SetupNewViewer(nsIContentViewer * aNewViewer)
     
     
     
-
-    
-    DestroyChildren();
 
     return NS_OK;
 }
