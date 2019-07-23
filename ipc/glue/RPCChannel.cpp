@@ -279,14 +279,6 @@ RPCChannel::Call(Message* msg, Message* reply)
             }
 
             if (0 == StackDepth()) {
-                
-                
-                
-                
-                
-                EnqueuePendingMessages();
-
-                
                 RPC_ASSERT(
                     mOutOfTurnReplies.empty(),
                     "still have pending replies with no pending out-calls",
@@ -375,6 +367,22 @@ RPCChannel::OnMaybeDequeueOne()
     AssertWorkerThread();
     mMutex.AssertNotCurrentThreadOwns();
 
+    if (IsOnCxxStack())
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        return;
+
     Message recvd;
     {
         MutexAutoLock lock(mMutex);
@@ -394,6 +402,7 @@ RPCChannel::OnMaybeDequeueOne()
         mPending.pop();
     }
 
+    RPC_ASSERT(!IsOnCxxStack(), "RPCChannel code not on C++ stack");
     CxxStackFrame f(*this, IN_MESSAGE, &recvd);
 
     if (recvd.is_rpc())
@@ -592,6 +601,17 @@ RPCChannel::UnblockFromParent()
         NS_RUNTIMEABORT("child tried to block parent");
     MutexAutoLock lock(mMutex);
     mBlockedOnParent = false;
+}
+
+void
+RPCChannel::ExitedCxxStack()
+{
+    Listener()->OnExitedCxxStack();
+    {
+        MutexAutoLock lock(mMutex);
+        
+        EnqueuePendingMessages();
+    }
 }
 
 void
