@@ -62,6 +62,7 @@ class nsILayoutHistoryState;
 class nsIEditor;
 struct nsRect;
 struct nsSize;
+class nsHTMLFormElement;
 
 typedef nsMappedAttributeElement nsGenericHTMLElementBase;
 
@@ -506,7 +507,7 @@ public:
 
 
 
-  already_AddRefed<nsIDOMHTMLFormElement> FindForm(nsIForm* aCurrentForm = nsnull);
+  nsHTMLFormElement* FindForm(nsHTMLFormElement* aCurrentForm = nsnull);
 
   virtual void RecompileScriptEventListeners();
 
@@ -855,7 +856,7 @@ protected:
   FocusTristate FocusState();
 
   
-  nsIForm* mForm;
+  nsHTMLFormElement* mForm;
 };
 
 

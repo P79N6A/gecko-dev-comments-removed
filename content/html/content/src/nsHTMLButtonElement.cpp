@@ -61,6 +61,7 @@
 #include "nsPresState.h"
 #include "nsLayoutErrors.h"
 #include "nsFocusManager.h"
+#include "nsHTMLFormElement.h"
 
 #define NS_IN_SUBMIT_CLICK      (1 << 0)
 #define NS_OUTER_ACTIVATE_EVENT (1 << 1)
@@ -464,8 +465,9 @@ nsHTMLButtonElement::PostHandleEvent(nsEventChainPostVisitor& aVisitor)
         
         
         if (presShell) {
-          nsCOMPtr<nsIContent> form(do_QueryInterface(mForm));
-          presShell->HandleDOMEventWithTarget(form, &event, &status);
+          
+          nsRefPtr<nsHTMLFormElement> form(mForm);
+          presShell->HandleDOMEventWithTarget(mForm, &event, &status);
         }
       }
     }

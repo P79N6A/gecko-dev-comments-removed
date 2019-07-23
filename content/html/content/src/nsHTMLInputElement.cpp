@@ -115,6 +115,7 @@
 #include "nsIDOMWindowInternal.h"
 
 #include "mozAutoDocUpdate.h"
+#include "nsHTMLFormElement.h"
 
 
 
@@ -1341,10 +1342,11 @@ nsHTMLInputElement::MaybeSubmitForm(nsPresContext* aPresContext)
     shell->HandleDOMEventWithTarget(submitContent, &event, &status);
   } else if (mForm->HasSingleTextControl()) {
     
-    nsCOMPtr<nsIContent> form = do_QueryInterface(mForm);
+    
+    nsRefPtr<nsHTMLFormElement> form(mForm);
     nsFormEvent event(PR_TRUE, NS_FORM_SUBMIT);
     nsEventStatus status  = nsEventStatus_eIgnore;
-    shell->HandleDOMEventWithTarget(form, &event, &status);
+    shell->HandleDOMEventWithTarget(mForm, &event, &status);
   }
 
   return NS_OK;
@@ -2050,8 +2052,9 @@ nsHTMLInputElement::PostHandleEvent(nsEventChainPostVisitor& aVisitor)
             
             
             if (presShell) {
-              nsCOMPtr<nsIContent> form(do_QueryInterface(mForm));
-              presShell->HandleDOMEventWithTarget(form, &event, &status);
+              
+              nsRefPtr<nsHTMLFormElement> form(mForm);
+              presShell->HandleDOMEventWithTarget(mForm, &event, &status);
             }
           }
           break;
