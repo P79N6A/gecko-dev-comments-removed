@@ -37,7 +37,7 @@
 
 
 
-#include "nsCommonWidget.h"
+#include "nsWindow.h"
 #include "nsQtKeyUtils.h"
 #include "keysym2ucs.h"
 

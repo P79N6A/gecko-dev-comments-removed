@@ -178,6 +178,20 @@ keyEventToContextMenuEvent(const nsKeyEvent* aKeyEvent,
 
 nsWindow::nsWindow()
 {
+    mIsTopLevel       = PR_FALSE;
+    mIsDestroyed      = PR_FALSE;
+    mNeedsResize      = PR_FALSE;
+    mNeedsMove        = PR_FALSE;
+    mListenForResizes = PR_FALSE;
+    mIsShown          = PR_FALSE;
+    mNeedsShow        = PR_FALSE;
+    mEnabled          = PR_TRUE;
+    mCreated          = PR_FALSE;
+    mPlaced           = PR_FALSE;
+
+    mPreferredWidth   = 0;
+    mPreferredHeight  = 0;
+
     mDrawingarea         = nsnull;
     mIsVisible           = PR_FALSE;
     mActivatePending     = PR_FALSE;
@@ -232,8 +246,7 @@ nsWindow::ReleaseGlobals()
 {
 }
 
-NS_IMPL_ISUPPORTS_INHERITED1(nsWindow, nsCommonWidget,
-                             nsISupportsWeakReference)
+NS_IMPL_ISUPPORTS1(nsWindow, nsISupportsWeakReference)
 
 NS_IMETHODIMP
 nsWindow::Create(nsIWidget        *aParent,
@@ -507,12 +520,6 @@ nsWindow::SetSizeMode(PRInt32 aMode)
     mSizeState = mSizeMode;
 
     return rv;
-}
-
-NS_IMETHODIMP
-nsWindow::Enable(PRBool aState)
-{
-    return NS_ERROR_NOT_IMPLEMENTED;
 }
 
 typedef void (* SetUserTimeFunc)(QWidget* aWindow, quint32 aTimestamp);
@@ -2746,4 +2753,326 @@ nsWindow::imEndEvent(QEvent * )
 {
     qWarning("XXX imComposeEvent");
     return nsEventStatus_eIgnore;
+}
+
+nsIWidget *
+nsWindow::GetParent(void)
+{
+    return mParent;
+}
+
+void
+nsWindow::CommonCreate(nsIWidget *aParent, PRBool aListenForResizes)
+{
+    mParent = aParent;
+    mListenForResizes = aListenForResizes;
+    mCreated = PR_TRUE;
+}
+
+void
+nsWindow::DispatchGotFocusEvent(void)
+{
+    nsGUIEvent event(PR_TRUE, NS_GOTFOCUS, this);
+    nsEventStatus status;
+    DispatchEvent(&event, status);
+}
+
+void
+nsWindow::DispatchLostFocusEvent(void)
+{
+    nsGUIEvent event(PR_TRUE, NS_LOSTFOCUS, this);
+    nsEventStatus status;
+    DispatchEvent(&event, status);
+}
+
+void
+nsWindow::DispatchActivateEvent(void)
+{
+    nsGUIEvent event(PR_TRUE, NS_ACTIVATE, this);
+    nsEventStatus status;
+    DispatchEvent(&event, status);
+}
+
+void
+nsWindow::DispatchDeactivateEvent(void)
+{
+    nsGUIEvent event(PR_TRUE, NS_DEACTIVATE, this);
+    nsEventStatus status;
+    DispatchEvent(&event, status);
+}
+
+void
+nsWindow::DispatchResizeEvent(nsRect &aRect, nsEventStatus &aStatus)
+{
+    nsSizeEvent event(PR_TRUE, NS_SIZE, this);
+
+    event.windowSize = &aRect;
+    event.refPoint.x = aRect.x;
+    event.refPoint.y = aRect.y;
+    event.mWinWidth = aRect.width;
+    event.mWinHeight = aRect.height;
+
+    nsEventStatus status;
+    DispatchEvent(&event, status); 
+}
+
+NS_IMETHODIMP
+nsWindow::DispatchEvent(nsGUIEvent *aEvent,
+                              nsEventStatus &aStatus)
+{
+#ifdef DEBUG
+    debug_DumpEvent(stdout, aEvent->widget, aEvent,
+                    nsCAutoString("something"), 0);
+#endif
+
+    aStatus = nsEventStatus_eIgnore;
+
+    
+    if (mEventCallback)
+        aStatus = (* mEventCallback)(aEvent);
+
+    
+    if ((aStatus != nsEventStatus_eIgnore) && mEventListener)
+        aStatus = mEventListener->ProcessEvent(*aEvent);
+
+    return NS_OK;
+}
+
+NS_IMETHODIMP
+nsWindow::Show(PRBool aState)
+{
+    mIsShown = aState;
+
+    LOG(("nsWindow::Show [%p] state %d\n", (void *)this, aState));
+
+    
+    
+    
+    if ((aState && !AreBoundsSane()) || !mCreated) {
+        LOG(("\tbounds are insane or window hasn't been created yet\n"));
+        mNeedsShow = PR_TRUE;
+        return NS_OK;
+    }
+
+    
+    if (!aState)
+        mNeedsShow = PR_FALSE;
+
+    
+    
+    if (aState) {
+        if (mNeedsMove) {
+            LOG(("\tresizing\n"));
+            NativeResize(mBounds.x, mBounds.y, mBounds.width, mBounds.height,
+                         PR_FALSE);
+        } else if (mNeedsResize) {
+            NativeResize(mBounds.width, mBounds.height, PR_FALSE);
+        }
+    }
+
+    NativeShow(aState);
+
+    return NS_OK;
+}
+
+NS_IMETHODIMP
+nsWindow::Resize(PRInt32 aWidth, PRInt32 aHeight, PRBool aRepaint)
+{
+    mBounds.width = aWidth;
+    mBounds.height = aHeight;
+
+    if (!mCreated)
+        return NS_OK;
+
+    
+    
+    
+
+    
+    if (mIsShown) {
+        
+        if (AreBoundsSane()) {
+            
+            
+
+            
+            
+            
+            
+            if (mIsTopLevel || mNeedsShow)
+                NativeResize(mBounds.x, mBounds.y,
+                             mBounds.width, mBounds.height, aRepaint);
+            else
+                NativeResize(mBounds.width, mBounds.height, aRepaint);
+
+            
+            if (mNeedsShow)
+                NativeShow(PR_TRUE);
+        }
+        else {
+            
+            
+            
+            
+            
+            
+            if (!mNeedsShow) {
+                mNeedsShow = PR_TRUE;
+                NativeShow(PR_FALSE);
+            }
+        }
+    }
+    
+    
+    else {
+        if (AreBoundsSane() && mListenForResizes) {
+            
+            
+            
+            NativeResize(aWidth, aHeight, aRepaint);
+        }
+        else {
+            mNeedsResize = PR_TRUE;
+        }
+    }
+
+    
+    if (mIsTopLevel || mListenForResizes) {
+        nsRect rect(mBounds.x, mBounds.y, aWidth, aHeight);
+        nsEventStatus status;
+        DispatchResizeEvent(rect, status);
+    }
+
+    return NS_OK;
+}
+
+NS_IMETHODIMP
+nsWindow::Resize(PRInt32 aX, PRInt32 aY, PRInt32 aWidth, PRInt32 aHeight,
+                       PRBool aRepaint)
+{
+    mBounds.x = aX;
+    mBounds.y = aY;
+    mBounds.width = aWidth;
+    mBounds.height = aHeight;
+
+    mPlaced = PR_TRUE;
+
+    if (!mCreated)
+        return NS_OK;
+
+    
+    
+    
+
+    
+    if (mIsShown) {
+        
+        if (AreBoundsSane()) {
+            
+            NativeResize(aX, aY, aWidth, aHeight, aRepaint);
+            
+            if (mNeedsShow)
+                NativeShow(PR_TRUE);
+        }
+        else {
+            
+            
+            
+            
+            
+            
+            if (!mNeedsShow) {
+                mNeedsShow = PR_TRUE;
+                NativeShow(PR_FALSE);
+            }
+        }
+    }
+    
+    
+    else {
+        if (AreBoundsSane() && mListenForResizes){
+            
+            
+            
+            NativeResize(aX, aY, aWidth, aHeight, aRepaint);
+        }
+        else {
+            mNeedsResize = PR_TRUE;
+            mNeedsMove = PR_TRUE;
+        }
+    }
+
+    if (mIsTopLevel || mListenForResizes) {
+        
+        nsRect rect(aX, aY, aWidth, aHeight);
+        nsEventStatus status;
+        DispatchResizeEvent(rect, status);
+    }
+
+    return NS_OK;
+}
+
+NS_IMETHODIMP
+nsWindow::GetPreferredSize(PRInt32 &aWidth,
+                                 PRInt32 &aHeight)
+{
+    aWidth  = mPreferredWidth;
+    aHeight = mPreferredHeight;
+    return (mPreferredWidth != 0 && mPreferredHeight != 0) ? 
+        NS_OK : NS_ERROR_FAILURE;
+}
+
+NS_IMETHODIMP
+nsWindow::SetPreferredSize(PRInt32 aWidth,
+                                 PRInt32 aHeight)
+{
+    mPreferredWidth  = aWidth;
+    mPreferredHeight = aHeight;
+    return NS_OK;
+}
+
+NS_IMETHODIMP
+nsWindow::Enable(PRBool aState)
+{
+    mEnabled = aState;
+
+    return NS_OK;
+}
+
+NS_IMETHODIMP
+nsWindow::IsEnabled(PRBool *aState)
+{
+    *aState = mEnabled;
+
+    return NS_OK;
+}
+
+void
+nsWindow::OnDestroy(void)
+{
+    if (mOnDestroyCalled)
+        return;
+
+    mOnDestroyCalled = PR_TRUE;
+
+    
+    nsBaseWidget::OnDestroy();
+
+    
+    mParent = nsnull;
+
+    nsCOMPtr<nsIWidget> kungFuDeathGrip = this;
+
+    nsGUIEvent event(PR_TRUE, NS_DESTROY, this);
+    nsEventStatus status;
+    DispatchEvent(&event, status);
+}
+
+PRBool
+nsWindow::AreBoundsSane(void)
+{
+    if (mBounds.width > 0 && mBounds.height > 0)
+        return PR_TRUE;
+
+    return PR_FALSE;
 }
