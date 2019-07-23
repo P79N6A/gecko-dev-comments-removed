@@ -198,8 +198,6 @@ namespace nanojit
     
     Register Assembler::registerAlloc(LIns* ins, RegisterMask setA___, RegisterMask set_P__)
     {
-        NanoAssert(ins->isUsed());
-
         Register r;
         RegisterMask set__F_ = _allocator.free;
         RegisterMask setA_F_ = setA___ & set__F_;
@@ -225,7 +223,7 @@ namespace nanojit
             
             
             LIns* vic = findVictim(setA___);
-            NanoAssert(vic->isUsed());
+            NanoAssert(vic->isInReg());
             r = vic->getReg();
 
             evict(vic);
@@ -247,7 +245,6 @@ namespace nanojit
     Register Assembler::registerAllocTmp(RegisterMask allow)
     {
         LIns dummyIns;
-        dummyIns.markAsUsed();
         Register r = registerAlloc(&dummyIns, allow, 0);
 
         
@@ -325,7 +322,6 @@ namespace nanojit
             LIns* ins = _entries[i];
             if (!ins)
                 continue;
-            Register r = ins->getReg();
             uint32_t arIndex = ins->getArIndex();
             NanoAssert(arIndex != 0);
             if (ins->isop(LIR_alloc)) {
@@ -343,7 +339,8 @@ namespace nanojit
             else {
                 NanoAssertMsg(arIndex == i, "Stack record index mismatch");
             }
-            NanoAssertMsg(r == UnknownReg || regs.isConsistent(r, ins), "Register record mismatch");
+            NanoAssertMsg(!ins->isInReg() || regs.isConsistent(ins->getReg(), ins),
+                          "Register record mismatch");
         }
     }
 
@@ -397,31 +394,16 @@ namespace nanojit
 
         if (ia == ib) {
             ra = rb = findRegFor(ia, allowa & allowb);  
+
+        } else if (ib->isInRegMask(allowb)) {
+            
+            
+            rb = ib->getReg();
+            ra = findRegFor(ia, allowa & ~rmask(rb));
+
         } else {
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            bool rbDone = !ib->isUnusedOrHasUnknownReg() && (rb = ib->getReg(), allowb & rmask(rb));
-            if (rbDone) {
-                allowa &= ~rmask(rb);   
-            }
             ra = findRegFor(ia, allowa);
-            if (!rbDone) {
-                allowb &= ~rmask(ra);
-                rb = findRegFor(ib, allowb);
-            }
+            rb = findRegFor(ib, allowb & ~rmask(ra));
         }
     }
 
@@ -493,13 +475,7 @@ namespace nanojit
 
         Register r;
 
-        if (!ins->isUsed()) {
-            
-            
-            ins->markAsUsed();
-            r = registerAlloc(ins, allow, hint(ins));
-
-        } else if (!ins->hasKnownReg()) {
+        if (!ins->isInReg()) {
             
             r = registerAlloc(ins, allow, hint(ins));
 
@@ -564,11 +540,9 @@ namespace nanojit
             findMemFor(ins);
         }
 
-        NanoAssert(ins->isUnusedOrHasUnknownReg());
+        NanoAssert(!ins->isInReg());
         NanoAssert(_allocator.free & rmask(r));
 
-        if (!ins->isUsed())
-            ins->markAsUsed();
         ins->setReg(r);
         _allocator.removeFree(r);
         _allocator.addActive(r, ins);
@@ -595,29 +569,27 @@ namespace nanojit
 #if NJ_USES_QUAD_CONSTANTS
         NanoAssert(!ins->isconstq());
 #endif
-        if (!ins->isUsed())
-            ins->markAsUsed();
-        if (!ins->getArIndex()) {
+        if (!ins->isInAr()) {
             uint32_t const arIndex = arReserve(ins);
             ins->setArIndex(arIndex);
             NanoAssert(_activation.isValidEntry(ins->getArIndex(), ins) == (arIndex != 0));
         }
-        return disp(ins);
+        return arDisp(ins);
     }
 
     
     
     
-    Register Assembler::prepResultReg(LIns *ins, RegisterMask allow)
+    Register Assembler::deprecated_prepResultReg(LIns *ins, RegisterMask allow)
     {
 #ifdef NANOJIT_IA32
         const bool pop = (allow & rmask(FST0)) &&
-                         (ins->isUnusedOrHasUnknownReg() || ins->getReg() != FST0);
+                         (!ins->isInReg() || ins->getReg() != FST0);
 #else
         const bool pop = false;
 #endif
         Register r = findRegFor(ins, allow);
-        freeRsrcOf(ins, pop);
+        deprecated_freeRsrcOf(ins, pop);
         return r;
     }
 
@@ -662,7 +634,7 @@ namespace nanojit
         
 #ifdef NANOJIT_IA32
         const bool pop = (allow & rmask(FST0)) &&
-                         (ins->isUnusedOrHasUnknownReg() || ins->getReg() != FST0);
+                         (!ins->isInReg() || ins->getReg() != FST0);
 #else
         const bool pop = false;
 #endif
@@ -673,7 +645,7 @@ namespace nanojit
 
     void Assembler::asm_spilli(LInsp ins, bool pop)
     {
-        int d = disp(ins);
+        int d = ins->isInAr() ? arDisp(ins) : 0;
         Register r = ins->getReg();
         verbose_only( if (d && (_logc->lcbits & LC_Assembly)) {
                          setOutputForEOL("  <= spill %s",
@@ -682,26 +654,30 @@ namespace nanojit
     }
 
     
-    void Assembler::freeRsrcOf(LIns *ins, bool pop)
+    void Assembler::deprecated_freeRsrcOf(LIns *ins, bool pop)
     {
-        Register r = ins->getReg();
-        if (isKnownReg(r)) {
+        if (ins->isInReg()) {
             asm_spilli(ins, pop);
-            _allocator.retire(r);   
+            _allocator.retire(ins->getReg());   
+            ins->clearReg();
         }
-        arFreeIfInUse(ins);        
-        ins->markAsClear();
+        if (ins->isInAr()) {
+            arFree(ins);                        
+            ins->clearArIndex();
+        }
     }
 
     
     void Assembler::freeResourcesOf(LIns *ins)
     {
-        Register r = ins->getReg();
-        if (isKnownReg(r)) {
-            _allocator.retire(r);   
+        if (ins->isInReg()) {
+            _allocator.retire(ins->getReg());   
+            ins->clearReg();
         }
-        arFreeIfInUse(ins);        
-        ins->markAsClear();
+        if (ins->isInAr()) {
+            arFree(ins);                        
+            ins->clearArIndex();
+        }
     }
 
     
@@ -740,8 +716,7 @@ namespace nanojit
         asm_restore(vic, r);
 
         _allocator.retire(r);
-        if (vic->isUsed())
-            vic->setReg(UnknownReg);
+        vic->clearReg();
 
         
         
@@ -1012,11 +987,7 @@ namespace nanojit
                 
                 _allocator.retire(r);
                 NanoAssert(r == ins->getReg());
-                ins->setReg(UnknownReg);
-
-                if (!ins->getArIndex()) {
-                    ins->markAsClear();
-                }
+                ins->clearReg();
             }
         }
     }
@@ -1196,12 +1167,12 @@ namespace nanojit
                 
                 case LIR_alloc: {
                     countlir_alloc();
-                    NanoAssert(ins->getArIndex() != 0);
-                    Register r = ins->getReg();
-                    if (isKnownReg(r)) {
+                    NanoAssert(ins->isInAr());
+                    if (ins->isInReg()) {
+                        Register r = ins->getReg();
                         asm_restore(ins, r);
                         _allocator.retire(r);
-                        ins->setReg(UnknownReg);
+                        ins->clearReg();
                     }
                     freeResourcesOf(ins);
                     break;
@@ -1223,7 +1194,7 @@ namespace nanojit
                 case LIR_callh:
                 {
                     
-                    prepResultReg(ins, rmask(retRegs[1]));
+                    deprecated_prepResultReg(ins, rmask(retRegs[1]));
                     
                     findSpecificRegFor(ins->oprnd1(), retRegs[0]);
                     break;
@@ -1724,10 +1695,10 @@ namespace nanojit
     void Assembler::reserveSavedRegs()
     {
         LirBuffer *b = _thisfrag->lirbuf;
-        for (int i=0, n = NumSavedRegs; i < n; i++) {
-            LIns *p = b->savedRegs[i];
-            if (p)
-                findMemFor(p);
+        for (int i = 0, n = NumSavedRegs; i < n; i++) {
+            LIns *ins = b->savedRegs[i];
+            if (ins)
+                findMemFor(ins);
         }
     }
 
@@ -1932,13 +1903,13 @@ namespace nanojit
         return i;
     }
 
-    void Assembler::arFreeIfInUse(LIns* ins)
+    void Assembler::arFree(LIns* ins)
     {
+        NanoAssert(ins->isInAr());
         uint32_t arIndex = ins->getArIndex();
-        if (arIndex) {
-            NanoAssert(_activation.isValidEntry(arIndex, ins));
-            _activation.freeEntryAt(arIndex);        
-        }
+        NanoAssert(arIndex);
+        NanoAssert(_activation.isValidEntry(arIndex, ins));
+        _activation.freeEntryAt(arIndex);        
     }
 
     

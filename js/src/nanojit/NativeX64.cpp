@@ -616,16 +616,15 @@ namespace nanojit
 #ifdef _DEBUG
         RegisterMask originalAllow = allow;
 #endif
-        rb = UnknownReg;
         LIns *a = ins->oprnd1();
         LIns *b = ins->oprnd2();
         if (a != b) {
             rb = findRegFor(b, allow);
             allow &= ~rmask(rb);
         }
-        rr = prepResultReg(ins, allow);
+        rr = deprecated_prepResultReg(ins, allow);
         
-        if (a->isUnusedOrHasUnknownReg()) {
+        if (!a->isInReg()) {
             ra = findSpecificRegForUnallocated(a, rr);
         } else if (!(allow & rmask(a->getReg()))) {
             
@@ -715,7 +714,7 @@ namespace nanojit
         Register rr, ra;
         if (op == LIR_mul) {
             
-            rr = prepResultReg(ins, GpRegs);
+            rr = deprecated_prepResultReg(ins, GpRegs);
             LIns *a = ins->oprnd1();
             ra = findRegFor(a, GpRegs);
             IMULI(rr, ra, imm);
@@ -762,7 +761,7 @@ namespace nanojit
         if (ins->opcode() == LIR_mod) {
             
             div = ins->oprnd1();
-            prepResultReg(ins, rmask(RDX));
+            deprecated_prepResultReg(ins, rmask(RDX));
         } else {
             div = ins;
             evictIfActive(RDX);
@@ -773,10 +772,10 @@ namespace nanojit
         LIns *lhs = div->oprnd1();
         LIns *rhs = div->oprnd2();
 
-        prepResultReg(div, rmask(RAX));
+        deprecated_prepResultReg(div, rmask(RAX));
 
         Register rhsReg = findRegFor(rhs, GpRegs & ~(rmask(RAX)|rmask(RDX)));
-        Register lhsReg = lhs->isUnusedOrHasUnknownReg()
+        Register lhsReg = !lhs->isInReg()
                           ? findSpecificRegForUnallocated(lhs, RAX)
                           : lhs->getReg();
         IDIV(rhsReg);
@@ -859,7 +858,7 @@ namespace nanojit
 
     void Assembler::asm_call(LIns *ins) {
         Register retReg = ( ins->isop(LIR_fcall) ? XMM0 : retRegs[0] );
-        prepResultReg(ins, rmask(retReg));
+        deprecated_prepResultReg(ins, rmask(retReg));
 
         
         
@@ -994,14 +993,14 @@ namespace nanojit
     
 
     void Assembler::asm_i2f(LIns *ins) {
-        Register r = prepResultReg(ins, FpRegs);
+        Register r = deprecated_prepResultReg(ins, FpRegs);
         Register b = findRegFor(ins->oprnd1(), GpRegs);
         CVTSI2SD(r, b);     
         XORPS(r);           
     }
 
     void Assembler::asm_u2f(LIns *ins) {
-        Register r = prepResultReg(ins, FpRegs);
+        Register r = deprecated_prepResultReg(ins, FpRegs);
         Register b = findRegFor(ins->oprnd1(), GpRegs);
         NanoAssert(ins->oprnd1()->isI32());
         
@@ -1032,7 +1031,7 @@ namespace nanojit
 
         
         
-        const Register rr = prepResultReg(ins, GpRegs);
+        const Register rr = deprecated_prepResultReg(ins, GpRegs);
         const Register rf = findRegFor(iffalse, GpRegs & ~rmask(rr));
 
         LOpcode condop = cond->opcode();
@@ -1262,7 +1261,7 @@ namespace nanojit
         if (op == LIR_feq) {
             
             
-            Register r = prepResultReg(ins, 1<<RAX|1<<RCX|1<<RDX|1<<RBX);
+            Register r = deprecated_prepResultReg(ins, 1<<RAX|1<<RCX|1<<RDX|1<<RBX);
             MOVZX8(r, r);       
             X86_AND8R(r);       
             X86_SETNP(r);       
@@ -1275,7 +1274,7 @@ namespace nanojit
                 op = LIR_fge;
                 LIns *t = a; a = b; b = t;
             }
-            Register r = prepResultReg(ins, GpRegs); 
+            Register r = deprecated_prepResultReg(ins, GpRegs); 
             MOVZX8(r, r);
             if (op == LIR_fgt)
                 SETA(r);
@@ -1293,20 +1292,16 @@ namespace nanojit
 
     void Assembler::asm_restore(LIns *ins, Register r) {
         if (ins->isop(LIR_alloc)) {
-            int d = disp(ins);
+            int d = arDisp(ins);
             LEAQRM(r, d, FP);
         }
         else if (ins->isconst()) {
-            if (!ins->getArIndex()) {
-                ins->markAsClear();
-            }
+            ins->clearReg();
             
             MOVI(r, ins->imm32());
         }
         else if (ins->isconstq() && IsGpReg(r)) {
-            if (!ins->getArIndex()) {
-                ins->markAsClear();
-            }
+            ins->clearReg();
             
             asm_quad(r, ins->imm64());
         }
@@ -1330,7 +1325,7 @@ namespace nanojit
     void Assembler::asm_cond(LIns *ins) {
         LOpcode op = ins->opcode();
         
-        Register r = prepResultReg(ins, GpRegs);
+        Register r = deprecated_prepResultReg(ins, GpRegs);
         
         MOVZX8(r, r);
         switch (op) {
@@ -1390,13 +1385,13 @@ namespace nanojit
         dr = ins->disp();
         LIns *base = ins->oprnd1();
         rb = getBaseReg(base, dr, BaseRegs);
-        if (ins->isUnusedOrHasUnknownReg() || !(allow & rmask(ins->getReg()))) {
-            rr = prepResultReg(ins, allow & ~rmask(rb));
+        if (!ins->isInRegMask(allow)) {
+            rr = deprecated_prepResultReg(ins, allow & ~rmask(rb));
         } else {
             
             rr = ins->getReg();
             NanoAssert(allow & rmask(rr));
-            freeRsrcOf(ins, false);
+            deprecated_freeRsrcOf(ins, false);
         }
     }
 
@@ -1541,7 +1536,7 @@ namespace nanojit
     }
 
     void Assembler::asm_int(LIns *ins) {
-        Register r = prepResultReg(ins, GpRegs);
+        Register r = deprecated_prepResultReg(ins, GpRegs);
         int32_t v = ins->imm32();
         if (v == 0) {
             
@@ -1554,7 +1549,7 @@ namespace nanojit
     void Assembler::asm_quad(LIns *ins) {
         uint64_t v = ins->imm64();
         RegisterMask allow = v == 0 ? GpRegs|FpRegs : GpRegs;
-        Register r = prepResultReg(ins, allow);
+        Register r = deprecated_prepResultReg(ins, allow);
         if (v == 0) {
             if (IsGpReg(r)) {
                 
@@ -1580,7 +1575,7 @@ namespace nanojit
             
             if (a < (uint32_t)NumArgRegs) {
                 
-                prepResultReg(ins, rmask(argRegs[a]));
+                deprecated_prepResultReg(ins, rmask(argRegs[a]));
             } else {
                 
                 
@@ -1589,16 +1584,16 @@ namespace nanojit
         }
         else {
             
-            prepResultReg(ins, rmask(savedRegs[a]));
+            deprecated_prepResultReg(ins, rmask(savedRegs[a]));
         }
     }
 
     
     void Assembler::regalloc_unary(LIns *ins, RegisterMask allow, Register &rr, Register &ra) {
         LIns *a = ins->oprnd1();
-        rr = prepResultReg(ins, allow);
+        rr = deprecated_prepResultReg(ins, allow);
         
-        if (a->isUnusedOrHasUnknownReg()) {
+        if (!a->isInReg()) {
             ra = findSpecificRegForUnallocated(a, rr);
         } else {
             
@@ -1627,7 +1622,7 @@ namespace nanojit
             
             
             
-            rr = prepResultReg(ins, GpRegs);
+            rr = deprecated_prepResultReg(ins, GpRegs);
             ra = findRegFor(ins->oprnd1(), GpRegs & ~rmask(rr));
             XORQRR(rr, ra);                     
             asm_quad(rr, negateMask[0]);        

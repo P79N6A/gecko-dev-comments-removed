@@ -633,7 +633,7 @@ Assembler::asm_arg_64(LInsp arg, Register& r, int& stkd)
     
     NanoAssert(ARM_VFP || arg->isop(LIR_qjoin));
 
-    Register    fp_reg = UnknownReg;
+    Register    fp_reg = deprecated_UnknownReg;
 
     if (ARM_VFP) {
         fp_reg = findRegFor(arg, FpRegs);
@@ -733,7 +733,7 @@ Assembler::asm_regarg(ArgSize sz, LInsp p, Register r)
             asm_ld_imm(r, p->imm32());
         } else {
             if (p->isUsed()) {
-                if (!p->hasKnownReg()) {
+                if (!p->deprecated_hasKnownReg()) {
                     
                     int d = findMemFor(p);
                     if (p->isop(LIR_alloc)) {
@@ -743,7 +743,7 @@ Assembler::asm_regarg(ArgSize sz, LInsp p, Register r)
                     }
                 } else {
                     
-                    MOV(r, p->getReg());
+                    MOV(r, p->deprecated_getReg());
                 }
             }
             else {
@@ -772,7 +772,7 @@ Assembler::asm_stkarg(LInsp arg, int stkd)
     bool isF64 = arg->isF64();
 
     Register rr;
-    if (arg->isUsed() && (rr = arg->getReg(), isKnownReg(rr))) {
+    if (arg->isUsed() && (rr = arg->deprecated_getReg(), isKnownReg(rr))) {
         
         
         if (!ARM_VFP || !isF64) {
@@ -847,7 +847,7 @@ Assembler::asm_call(LInsp ins)
 
 
     } else {
-        prepResultReg(ins, rmask(retRegs[0]));
+        deprecated_prepResultReg(ins, rmask(retRegs[0]));
     }
 
     
@@ -875,14 +875,14 @@ Assembler::asm_call(LInsp ins)
         
         
         if (rsize == ARGSIZE_F) {
-            Register rr = ins->getReg();
+            Register rr = ins->deprecated_getReg();
 
             NanoAssert(ins->opcode() == LIR_fcall);
 
             if (!isKnownReg(rr)) {
-                int d = disp(ins);
+                int d = deprecated_disp(ins);
                 NanoAssert(d != 0);
-                freeRsrcOf(ins, false);
+                deprecated_freeRsrcOf(ins, false);
 
                 
                 
@@ -892,7 +892,7 @@ Assembler::asm_call(LInsp ins)
                 NanoAssert(IsFpReg(rr));
 
                 
-                prepResultReg(ins, rmask(rr));
+                deprecated_prepResultReg(ins, rmask(rr));
                 FMDRR(rr, R0, R1);
             }
         }
@@ -1199,7 +1199,7 @@ Assembler::asm_qjoin(LIns *ins)
     
     r = findRegFor(lo, GpRegs);
     STR(r, FP, d);
-    freeRsrcOf(ins, false); 
+    deprecated_freeRsrcOf(ins, false); 
 }
 
 void
@@ -1233,10 +1233,10 @@ void
 Assembler::asm_restore(LInsp i, Register r)
 {
     if (i->isop(LIR_alloc)) {
-        asm_add_imm(r, FP, disp(i));
+        asm_add_imm(r, FP, deprecated_disp(i));
     } else if (i->isconst()) {
-        if (!i->getArIndex()) {
-            i->markAsClear();
+        if (!i->deprecated_getArIndex()) {
+            i->deprecated_markAsClear();
         }
         asm_ld_imm(r, i->imm32());
     }
@@ -1328,12 +1328,12 @@ Assembler::asm_load64(LInsp ins)
     LIns* base = ins->oprnd1();
     int offset = ins->disp();
 
-    Register rr = ins->getReg();
-    int d = disp(ins);
+    Register rr = ins->deprecated_getReg();
+    int d = deprecated_disp(ins);
 
     Register rb = findRegFor(base, GpRegs);
     NanoAssert(IsGpReg(rb));
-    freeRsrcOf(ins, false);
+    deprecated_freeRsrcOf(ins, false);
 
     
 
@@ -1464,10 +1464,10 @@ Assembler::asm_quad(LInsp ins)
 {
     
 
-    int d = disp(ins);
-    Register rr = ins->getReg();
+    int d = deprecated_disp(ins);
+    Register rr = ins->deprecated_getReg();
 
-    freeRsrcOf(ins, false);
+    deprecated_freeRsrcOf(ins, false);
 
     if (ARM_VFP && isKnownReg(rr))
     {
@@ -1506,7 +1506,7 @@ Assembler::asm_nongp_copy(Register r, Register s)
 Register
 Assembler::asm_binop_rhs_reg(LInsp)
 {
-    return UnknownReg;
+    return deprecated_UnknownReg;
 }
 
 
@@ -2012,7 +2012,7 @@ Assembler::B_cond_chk(ConditionCode _c, NIns* _t, bool _chk)
 void
 Assembler::asm_i2f(LInsp ins)
 {
-    Register rr = prepResultReg(ins, FpRegs);
+    Register rr = deprecated_prepResultReg(ins, FpRegs);
     Register srcr = findRegFor(ins->oprnd1(), GpRegs);
 
     
@@ -2025,7 +2025,7 @@ Assembler::asm_i2f(LInsp ins)
 void
 Assembler::asm_u2f(LInsp ins)
 {
-    Register rr = prepResultReg(ins, FpRegs);
+    Register rr = deprecated_prepResultReg(ins, FpRegs);
     Register sr = findRegFor(ins->oprnd1(), GpRegs);
 
     
@@ -2038,7 +2038,7 @@ Assembler::asm_u2f(LInsp ins)
 void Assembler::asm_f2i(LInsp ins)
 {
     
-    Register rr = prepResultReg(ins, GpRegs);
+    Register rr = deprecated_prepResultReg(ins, GpRegs);
     Register sr = findRegFor(ins->oprnd1(), FpRegs);
 
     FMRS(rr, FpSingleScratch);
@@ -2049,11 +2049,11 @@ void
 Assembler::asm_fneg(LInsp ins)
 {
     LInsp lhs = ins->oprnd1();
-    Register rr = prepResultReg(ins, FpRegs);
+    Register rr = deprecated_prepResultReg(ins, FpRegs);
 
-    Register sr = ( lhs->isUnusedOrHasUnknownReg()
+    Register sr = ( !lhs->isInReg()
                   ? findRegFor(lhs, FpRegs)
-                  : lhs->getReg() );
+                  : lhs->deprecated_getReg() );
 
     FNEGD(rr, sr);
 }
@@ -2069,7 +2069,7 @@ Assembler::asm_fop(LInsp ins)
 
     
 
-    Register rr = prepResultReg(ins, FpRegs);
+    Register rr = deprecated_prepResultReg(ins, FpRegs);
 
     Register ra = findRegFor(lhs, FpRegs);
     Register rb = (rhs == lhs) ? ra : findRegFor(rhs, FpRegs & ~rmask(ra));
@@ -2239,7 +2239,7 @@ void
 Assembler::asm_fcond(LInsp ins)
 {
     
-    Register r = prepResultReg(ins, AllowableFlagRegs);
+    Register r = deprecated_prepResultReg(ins, AllowableFlagRegs);
 
     switch (ins->opcode()) {
         case LIR_feq: SETEQ(r); break;
@@ -2256,7 +2256,7 @@ Assembler::asm_fcond(LInsp ins)
 void
 Assembler::asm_cond(LInsp ins)
 {
-    Register r = prepResultReg(ins, AllowableFlagRegs);
+    Register r = deprecated_prepResultReg(ins, AllowableFlagRegs);
     LOpcode op = ins->opcode();
 
     switch(op)
@@ -2296,13 +2296,13 @@ Assembler::asm_arith(LInsp ins)
     RegisterMask    allow = GpRegs;
 
     
-    Register        rr = prepResultReg(ins, allow);
+    Register        rr = deprecated_prepResultReg(ins, allow);
 
     
     
-    Register        ra = ( lhs->isUnusedOrHasUnknownReg()
+    Register        ra = ( !lhs->isInReg()
                          ? findSpecificRegFor(lhs, rr)
-                         : lhs->getReg() );
+                         : lhs->deprecated_getReg() );
 
     
     NanoAssert(isKnownReg(rr));
@@ -2326,7 +2326,7 @@ Assembler::asm_arith(LInsp ins)
         if ((op == LIR_add || op == LIR_iaddp) && lhs->isop(LIR_ialloc)) {
             
             
-            Register    rs = prepResultReg(ins, allow);
+            Register    rs = deprecated_prepResultReg(ins, allow);
             int         d = findMemFor(lhs) + rhs->imm32();
 
             NanoAssert(isKnownReg(rs));
@@ -2468,14 +2468,14 @@ void
 Assembler::asm_neg_not(LInsp ins)
 {
     LOpcode op = ins->opcode();
-    Register rr = prepResultReg(ins, GpRegs);
+    Register rr = deprecated_prepResultReg(ins, GpRegs);
 
     LIns* lhs = ins->oprnd1();
     
     
-    Register ra = ( lhs->isUnusedOrHasUnknownReg()
+    Register ra = ( !lhs->isInReg()
                   ? findSpecificRegFor(lhs, rr)
-                  : lhs->getReg() );
+                  : lhs->deprecated_getReg() );
     NanoAssert(isKnownReg(ra));
 
     if (op == LIR_not)
@@ -2491,7 +2491,7 @@ Assembler::asm_load32(LInsp ins)
     LIns* base = ins->oprnd1();
     int d = ins->disp();
 
-    Register rr = prepResultReg(ins, GpRegs);
+    Register rr = deprecated_prepResultReg(ins, GpRegs);
     Register ra = getBaseReg(base, d, GpRegs);
 
     switch (op) {
@@ -2549,7 +2549,7 @@ Assembler::asm_cmov(LInsp ins)
     NanoAssert(condval->isCmp());
     NanoAssert(op == LIR_cmov && iftrue->isI32() && iffalse->isI32());
 
-    const Register rr = prepResultReg(ins, GpRegs);
+    const Register rr = deprecated_prepResultReg(ins, GpRegs);
 
     
     
@@ -2585,7 +2585,7 @@ Assembler::asm_cmov(LInsp ins)
 void
 Assembler::asm_qhi(LInsp ins)
 {
-    Register rr = prepResultReg(ins, GpRegs);
+    Register rr = deprecated_prepResultReg(ins, GpRegs);
     LIns *q = ins->oprnd1();
     int d = findMemFor(q);
     LDR(rr, FP, d+4);
@@ -2594,7 +2594,7 @@ Assembler::asm_qhi(LInsp ins)
 void
 Assembler::asm_qlo(LInsp ins)
 {
-    Register rr = prepResultReg(ins, GpRegs);
+    Register rr = deprecated_prepResultReg(ins, GpRegs);
     LIns *q = ins->oprnd1();
     int d = findMemFor(q);
     LDR(rr, FP, d);
@@ -2611,23 +2611,23 @@ Assembler::asm_param(LInsp ins)
         uint32_t abi_regcount = abi == ABI_CDECL ? 4 : abi == ABI_FASTCALL ? 2 : abi == ABI_THISCALL ? 1 : 0;
         if (a < abi_regcount) {
             
-            prepResultReg(ins, rmask(argRegs[a]));
+            deprecated_prepResultReg(ins, rmask(argRegs[a]));
         } else {
             
-            Register r = prepResultReg(ins, GpRegs);
+            Register r = deprecated_prepResultReg(ins, GpRegs);
             int d = (a - abi_regcount) * sizeof(intptr_t) + 8;
             LDR(r, FP, d);
         }
     } else {
         
-        prepResultReg(ins, rmask(savedRegs[a]));
+        deprecated_prepResultReg(ins, rmask(savedRegs[a]));
     }
 }
 
 void
 Assembler::asm_int(LInsp ins)
 {
-    Register rr = prepResultReg(ins, GpRegs);
+    Register rr = deprecated_prepResultReg(ins, GpRegs);
     asm_ld_imm(rr, ins->imm32());
 }
 
