@@ -100,8 +100,20 @@ class nsDocAccessible : public nsHyperTextAccessibleWrap,
     NS_IMETHOD_(nsIFrame *) GetFrame(void);
 
     
+
+
+
+
+
+
+
+
+
+
+
     nsresult FireDelayedToolkitEvent(PRUint32 aEvent, nsIDOMNode *aDOMNode,
-                                     void *aData, PRBool aAllowDupes = PR_FALSE);
+                                     void *aData, PRBool aAllowDupes = PR_FALSE,
+                                     PRBool aIsAsynch = PR_FALSE);
 
     
 
@@ -110,8 +122,12 @@ class nsDocAccessible : public nsHyperTextAccessibleWrap,
 
 
 
+
+
+
     nsresult FireDelayedAccessibleEvent(nsIAccessibleEvent *aEvent,
-                                        PRBool aAllowDupes = PR_FALSE);
+                                        PRBool aAllowDupes = PR_FALSE,
+                                        PRBool aIsAsynch = PR_FALSE);
 
     void ShutdownChildDocuments(nsIDocShellTreeItem *aStart);
 
@@ -121,7 +137,7 @@ class nsDocAccessible : public nsHyperTextAccessibleWrap,
     virtual nsresult RemoveEventListeners();
     void AddScrollListener();
     void RemoveScrollListener();
-    void RefreshNodes(nsIDOMNode *aStartNode, PRUint32 aChangeEvent);
+    void RefreshNodes(nsIDOMNode *aStartNode);
     static void ScrollTimerCallback(nsITimer *aTimer, void *aClosure);
     void CheckForEditor();
     virtual void SetEditor(nsIEditor *aEditor);

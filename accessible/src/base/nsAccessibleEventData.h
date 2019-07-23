@@ -46,21 +46,29 @@
 #include "nsIAccessible.h"
 #include "nsIAccessibleDocument.h"
 #include "nsIDOMNode.h"
+class nsIPresShell;
 
 class nsAccEvent: public nsIAccessibleEvent
 {
 public:
   
-  nsAccEvent(PRUint32 aEventType, nsIAccessible *aAccessible, void *aEventData);
+  nsAccEvent(PRUint32 aEventType, nsIAccessible *aAccessible, void *aEventData, PRBool aIsAsynch = PR_FALSE);
   
-  nsAccEvent(PRUint32 aEventType, nsIDOMNode *aDOMNode, void *aEventData);
+  nsAccEvent(PRUint32 aEventType, nsIDOMNode *aDOMNode, void *aEventData, PRBool aIsAsynch = PR_FALSE);
   virtual ~nsAccEvent() {}
 
   NS_DECL_ISUPPORTS
   NS_DECL_NSIACCESSIBLEEVENT
 
+  static void GetLastEventAttributes(nsIDOMNode *aNode,
+                                      nsIPersistentProperties *aAttributes);
+  static nsIDOMNode* nsAccEvent::GetLastEventAtomicRegion(nsIDOMNode *aNode);
+
 protected:
   already_AddRefed<nsIAccessible> GetAccessibleByNode();
+
+  void CaptureIsFromUserInput(PRBool aIsAsynch);
+  PRBool mIsFromUserInput;
 
 private:
   PRUint32 mEventType;
@@ -68,7 +76,26 @@ private:
   nsCOMPtr<nsIDOMNode> mDOMNode;
   nsCOMPtr<nsIAccessibleDocument> mDocAccessible;
 
+  static PRBool gLastEventFromUserInput;
+  static nsIDOMNode* gLastEventNodeWeak;
+
 public:
+  
+
+
+
+
+
+  static void PrepareForEvent(nsIDOMNode *aChangeNode,
+                              PRBool aForceIsFromUserInput = PR_FALSE);
+
+  
+
+
+
+
+  static void PrepareForEvent(nsIAccessibleEvent *aEvent);
+
   void *mEventData;
 };
 

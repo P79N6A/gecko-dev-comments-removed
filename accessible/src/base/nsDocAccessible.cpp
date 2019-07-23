@@ -951,6 +951,11 @@ nsDocAccessible::AttributeChanged(nsIDocument *aDocument, nsIContent* aContent,
   }
 
   
+  
+  
+  nsAccEvent::PrepareForEvent(targetNode);
+
+  
   if (aAttribute == nsAccessibilityAtoms::disabled) {
     
     
@@ -979,14 +984,14 @@ nsDocAccessible::AttributeChanged(nsIDocument *aDocument, nsIContent* aContent,
   if (aNameSpaceID == kNameSpaceID_XHTML2_Unofficial ||
       aNameSpaceID == kNameSpaceID_XHTML) {
     if (aAttribute == nsAccessibilityAtoms::role)
-      InvalidateCacheSubtree(aContent, nsIAccessibleEvent::EVENT_REORDER);
+      InvalidateCacheSubtree(aContent, nsIAccessibleEvent::EVENT_DOM_SIGNIFICANT_CHANGE);
     return;
   }
 
   if (aAttribute == nsAccessibilityAtoms::href ||
       aAttribute == nsAccessibilityAtoms::onclick ||
       aAttribute == nsAccessibilityAtoms::droppable) {
-    InvalidateCacheSubtree(aContent, nsIAccessibleEvent::EVENT_REORDER);
+    InvalidateCacheSubtree(aContent, nsIAccessibleEvent::EVENT_DOM_SIGNIFICANT_CHANGE);
     return;
   }
 
@@ -1112,7 +1117,7 @@ nsDocAccessible::ARIAAttributeChanged(nsIContent* aContent, nsIAtom* aAttribute)
     if (HasRoleAttribute(aContent)) {
       
       
-      InvalidateCacheSubtree(aContent, nsIAccessibleEvent::EVENT_REORDER);
+      InvalidateCacheSubtree(aContent, nsIAccessibleEvent::EVENT_DOM_SIGNIFICANT_CHANGE);
     }
   }
 }
@@ -1139,7 +1144,7 @@ void nsDocAccessible::ContentAppended(nsIDocument *aDocument,
     
     
     
-    InvalidateCacheSubtree(child, nsIAccessibleEvent::EVENT_SHOW);
+    InvalidateCacheSubtree(child, nsIAccessibleEvent::EVENT_DOM_CREATE);
   }
 }
 
@@ -1173,7 +1178,7 @@ nsDocAccessible::ContentInserted(nsIDocument *aDocument, nsIContent* aContainer,
   
   
   
-  InvalidateCacheSubtree(aChild, nsIAccessibleEvent::EVENT_SHOW);
+  InvalidateCacheSubtree(aChild, nsIAccessibleEvent::EVENT_DOM_CREATE);
 }
 
 void
@@ -1183,7 +1188,7 @@ nsDocAccessible::ContentRemoved(nsIDocument *aDocument, nsIContent* aContainer,
   FireTextChangedEventOnDOMNodeRemoved(aChild, aContainer, aIndexInContainer);
 
   
-  InvalidateCacheSubtree(aChild, nsIAccessibleEvent::EVENT_HIDE);
+  InvalidateCacheSubtree(aChild, nsIAccessibleEvent::EVENT_DOM_DESTROY);
 }
 
 void
@@ -1364,17 +1369,20 @@ nsDocAccessible::FireTextChangedEventOnDOMNodeRemoved(nsIContent *aChild,
 nsresult nsDocAccessible::FireDelayedToolkitEvent(PRUint32 aEvent,
                                                   nsIDOMNode *aDOMNode,
                                                   void *aData,
-                                                  PRBool aAllowDupes)
+                                                  PRBool aAllowDupes,
+                                                  PRBool aIsAsynch)
 {
-  nsCOMPtr<nsIAccessibleEvent> event = new nsAccEvent(aEvent, aDOMNode, aData);
+  nsCOMPtr<nsIAccessibleEvent> event =
+    new nsAccEvent(aEvent, aDOMNode, aData, PR_TRUE);
   NS_ENSURE_TRUE(event, NS_ERROR_OUT_OF_MEMORY);
 
-  return FireDelayedAccessibleEvent(event);
+  return FireDelayedAccessibleEvent(event, aAllowDupes, aIsAsynch);
 }
 
 nsresult
 nsDocAccessible::FireDelayedAccessibleEvent(nsIAccessibleEvent *aEvent,
-                                           PRBool aAllowDupes)
+                                           PRBool aAllowDupes,
+                                           PRBool aIsAsynch)
 {
   PRBool isTimerStarted = PR_TRUE;
   PRInt32 numQueuedEvents = mEventsToFire.Count();
@@ -1389,6 +1397,13 @@ nsDocAccessible::FireDelayedAccessibleEvent(nsIAccessibleEvent *aEvent,
 
   nsCOMPtr<nsIDOMNode> newEventDOMNode;
   aEvent->GetDOMNode(getter_AddRefs(newEventDOMNode));
+
+  if (!aIsAsynch) {
+    
+    
+    
+    nsAccEvent::PrepareForEvent(newEventDOMNode);
+  }
 
   if (numQueuedEvents == 0) {
     isTimerStarted = PR_FALSE;
@@ -1470,11 +1485,14 @@ NS_IMETHODIMP nsDocAccessible::FlushPendingEvents()
           accessibleText->GetSelectionCount(&selectionCount);
           if (selectionCount) {  
             nsAccUtils::FireAccEvent(nsIAccessibleEvent::EVENT_TEXT_SELECTION_CHANGED,
-                                     accessible);
+                                     accessible, PR_TRUE);
           }
         } 
       }
       else {
+        
+        
+        nsAccEvent::PrepareForEvent(accessibleEvent);
         FireAccessibleEvent(accessibleEvent);
       }
     }
@@ -1490,11 +1508,8 @@ void nsDocAccessible::FlushEventsCallback(nsITimer *aTimer, void *aClosure)
   accessibleDoc->FlushPendingEvents();
 }
 
-void nsDocAccessible::RefreshNodes(nsIDOMNode *aStartNode, PRUint32 aChangeEvent)
+void nsDocAccessible::RefreshNodes(nsIDOMNode *aStartNode)
 {
-  NS_ASSERTION(aChangeEvent != nsIAccessibleEvent::EVENT_SHOW,
-               "nsDocAccessible::RefreshNodes isn't supposed to work with show event.");
-
   nsCOMPtr<nsIDOMNode> iterNode(aStartNode), nextNode;
   nsCOMPtr<nsIAccessNode> accessNode;
 
@@ -1565,10 +1580,25 @@ void nsDocAccessible::RefreshNodes(nsIDOMNode *aStartNode, PRUint32 aChangeEvent
 NS_IMETHODIMP nsDocAccessible::InvalidateCacheSubtree(nsIContent *aChild,
                                                       PRUint32 aChangeEventType)
 {
-  NS_ASSERTION(aChangeEventType == nsIAccessibleEvent::EVENT_REORDER ||
-               aChangeEventType == nsIAccessibleEvent::EVENT_SHOW ||
-               aChangeEventType == nsIAccessibleEvent::EVENT_HIDE,
+  PRBool isHiding = 
+    aChangeEventType == nsIAccessibleEvent::EVENT_ASYNCH_HIDE ||
+    aChangeEventType == nsIAccessibleEvent::EVENT_DOM_DESTROY;
+
+  PRBool isShowing = 
+    aChangeEventType == nsIAccessibleEvent::EVENT_ASYNCH_SHOW ||
+    aChangeEventType == nsIAccessibleEvent::EVENT_DOM_CREATE;
+
+  PRBool isChanging = 
+    aChangeEventType == nsIAccessibleEvent::EVENT_DOM_SIGNIFICANT_CHANGE ||
+    aChangeEventType == nsIAccessibleEvent::EVENT_ASYNCH_SIGNIFICANT_CHANGE;
+
+  NS_ASSERTION(isChanging || isHiding || isShowing,
                "Incorrect aChangeEventType passed in");
+
+  PRBool isAsynch = 
+    aChangeEventType == nsIAccessibleEvent::EVENT_ASYNCH_HIDE ||
+    aChangeEventType == nsIAccessibleEvent::EVENT_ASYNCH_SHOW ||
+    aChangeEventType == nsIAccessibleEvent::EVENT_ASYNCH_SIGNIFICANT_CHANGE;
 
   
   
@@ -1591,10 +1621,11 @@ NS_IMETHODIMP nsDocAccessible::InvalidateCacheSubtree(nsIContent *aChild,
     return InvalidateChildren();
   }
 
+  
   nsCOMPtr<nsIAccessNode> childAccessNode;
   GetCachedAccessNode(childNode, getter_AddRefs(childAccessNode));
   nsCOMPtr<nsIAccessible> childAccessible = do_QueryInterface(childAccessNode);
-  if (!childAccessible && aChangeEventType != nsIAccessibleEvent::EVENT_HIDE) {
+  if (!childAccessible && isHiding) {
     
     
     GetAccService()->GetAccessibleFor(childNode, getter_AddRefs(childAccessible));
@@ -1604,28 +1635,35 @@ NS_IMETHODIMP nsDocAccessible::InvalidateCacheSubtree(nsIContent *aChild,
   nsAutoString localName;
   childNode->GetLocalName(localName);
   const char *hasAccessible = childAccessible ? " (acc)" : "";
-  if (aChangeEventType == nsIAccessibleEvent::EVENT_HIDE) {
+  if (aChangeEventType == nsIAccessibleEvent::EVENT_ASYNCH_HIDE) {
     printf("[Hide %s %s]\n", NS_ConvertUTF16toUTF8(localName).get(), hasAccessible);
   }
-  else if (aChangeEventType == nsIAccessibleEvent::EVENT_SHOW) {
+  else if (aChangeEventType == nsIAccessibleEvent::EVENT_ASYNCH_SHOW) {
     printf("[Show %s %s]\n", NS_ConvertUTF16toUTF8(localName).get(), hasAccessible);
   }
-  else if (aChangeEventType == nsIAccessibleEvent::EVENT_REORDER) {
-    printf("[Reorder %s %s]\n", NS_ConvertUTF16toUTF8(localName).get(), hasAccessible);
+  else if (aChangeEventType == nsIAccessibleEvent::EVENT_ASYNCH_SIGNIFICANT_CHANGE) {
+    printf("[Layout change %s %s]\n", NS_ConvertUTF16toUTF8(localName).get(), hasAccessible);
+  }
+  else if (aChangeEventType == nsIAccessibleEvent::EVENT_DOM_CREATE) {
+    printf("[Create %s %s]\n", NS_ConvertUTF16toUTF8(localName).get(), hasAccessible);
+  }
+  else if (aChangeEventType == nsIAccessibleEvent::EVENT_DOM_DESTROY) {
+    printf("[Destroy  %s %s]\n", NS_ConvertUTF16toUTF8(localName).get(), hasAccessible);
+  }
+  else if (aChangeEventType == nsIAccessibleEvent::EVENT_DOM_SIGNIFICANT_CHANGE) {
+    printf("[Type change %s %s]\n", NS_ConvertUTF16toUTF8(localName).get(), hasAccessible);
   }
 #endif
 
-  if (aChangeEventType == nsIAccessibleEvent::EVENT_HIDE ||
-      aChangeEventType == nsIAccessibleEvent::EVENT_REORDER) {
+  if (!isShowing) {
     
     
-    if (childAccessible)
-      nsAccUtils::FireAccEvent(nsIAccessibleEvent::EVENT_HIDE, childAccessible);
-  }
-
-  
-  if (aChangeEventType != nsIAccessibleEvent::EVENT_SHOW) {
-    RefreshNodes(childNode, aChangeEventType);
+    if (childAccessible) {
+      PRUint32 removalEvent = isAsynch ? nsIAccessibleEvent::EVENT_ASYNCH_HIDE : nsIAccessibleEvent::EVENT_DOM_DESTROY;
+      nsAccUtils::FireAccEvent(removalEvent, childAccessible, isAsynch);
+    }
+    
+    RefreshNodes(childNode);
   }
 
   
@@ -1646,46 +1684,35 @@ NS_IMETHODIMP nsDocAccessible::InvalidateCacheSubtree(nsIContent *aChild,
     privateContainerAccessible->InvalidateChildren();
   }
 
-  
-  
-  
-  
-  nsCOMPtr<nsIAccessNode> containerAccessNode =
-    do_QueryInterface(containerAccessible);
-  if (containerAccessNode) {
-    nsCOMPtr<nsIDOMNode> containerNode;
-    containerAccessNode->GetDOMNode(getter_AddRefs(containerNode));
-    if (containerNode) {
-      FireDelayedToolkitEvent(nsIAccessibleEvent::EVENT_REORDER,
-                              containerNode, nsnull);
+  if (aChild && !isHiding) {
+    
+    
+    
+    
+    
+    PRUint32 additionEvent = isAsynch ? nsIAccessibleEvent::EVENT_ASYNCH_SHOW :
+                                        nsIAccessibleEvent::EVENT_DOM_CREATE;
+    if (!isAsynch) {
+      
+      nsAccEvent::PrepareForEvent(childNode);
     }
-  }
+    FireDelayedToolkitEvent(additionEvent, childNode, nsnull, PR_TRUE, isAsynch);
 
-  if (aChild && (aChangeEventType == nsIAccessibleEvent::EVENT_SHOW ||
-      aChangeEventType == nsIAccessibleEvent::EVENT_REORDER)) {
     
-    
-    
-    
-    
-    FireDelayedToolkitEvent(nsIAccessibleEvent::EVENT_SHOW, childNode, nsnull);
     nsAutoString role;
     if (GetRoleAttribute(aChild, role) &&
         StringEndsWith(role, NS_LITERAL_STRING(":menu"), nsCaseInsensitiveStringComparator())) {
       FireDelayedToolkitEvent(nsIAccessibleEvent::EVENT_MENUPOPUP_START,
-                              childNode, nsnull);
+                              childNode, nsnull, PR_TRUE, isAsynch);
     }
-  }
 
-  
-  if (aChangeEventType != nsIAccessibleEvent::EVENT_HIDE) {
+    
     nsIContent *ancestor = aChild;
-    nsAutoString role;
     while (ancestor) {
       if (GetRoleAttribute(ancestor, role) &&
           StringEndsWith(role, NS_LITERAL_STRING(":alert"), nsCaseInsensitiveStringComparator())) {
         nsCOMPtr<nsIDOMNode> alertNode(do_QueryInterface(ancestor));
-        FireDelayedToolkitEvent(nsIAccessibleEvent::EVENT_ALERT, alertNode, nsnull);
+        FireDelayedToolkitEvent(nsIAccessibleEvent::EVENT_ALERT, alertNode, nsnull, PR_FALSE, isAsynch);
         break;
       }
       ancestor = ancestor->GetParent();
@@ -1755,7 +1782,7 @@ void nsDocAccessible::DocLoadCallback(nsITimer *aTimer, void *aClosure)
     docShellTreeItem->GetSameTypeRootTreeItem(getter_AddRefs(sameTypeRoot));
     if (sameTypeRoot != docShellTreeItem) {
       
-      docAcc->InvalidateCacheSubtree(nsnull, nsIAccessibleEvent::EVENT_REORDER);
+      docAcc->InvalidateCacheSubtree(nsnull, nsIAccessibleEvent::EVENT_DOM_SIGNIFICANT_CHANGE);
       return;
     }
 

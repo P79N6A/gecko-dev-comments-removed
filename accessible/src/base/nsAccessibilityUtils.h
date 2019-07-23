@@ -111,7 +111,8 @@ public:
   
 
 
-  static nsresult FireAccEvent(PRUint32 aEventType, nsIAccessible *aAccessible);
+  static nsresult FireAccEvent(PRUint32 aEventType, nsIAccessible *aAccessible,
+                               PRBool aIsAsynch = PR_FALSE);
 };
 
 #endif

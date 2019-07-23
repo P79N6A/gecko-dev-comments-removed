@@ -425,7 +425,8 @@ void nsRootAccessible::TryFireEarlyLoadEvent(nsIDOMNode *aDocNode)
 PRBool nsRootAccessible::FireAccessibleFocusEvent(nsIAccessible *aAccessible,
                                                   nsIDOMNode *aNode,
                                                   nsIDOMEvent *aFocusEvent,
-                                                  PRBool aForceEvent)
+                                                  PRBool aForceEvent,
+                                                  PRBool aIsAsynch)
 {
   if (mCaretAccessible) {
     nsCOMPtr<nsIDOMNSEvent> nsevent(do_QueryInterface(aFocusEvent));
@@ -510,7 +511,7 @@ PRBool nsRootAccessible::FireAccessibleFocusEvent(nsIAccessible *aAccessible,
   }
 
   FireDelayedToolkitEvent(nsIAccessibleEvent::EVENT_FOCUS,
-                          finalFocusNode, nsnull);
+                          finalFocusNode, nsnull, PR_FALSE, aIsAsynch);
 
   return PR_TRUE;
 }
@@ -607,12 +608,12 @@ nsresult nsRootAccessible::HandleEventWithTarget(nsIDOMEvent* aEvent,
     return NS_OK;
   }
 
-  if (eventType.EqualsLiteral("TreeViewChanged")) {
+  if (eventType.EqualsLiteral("TreeViewChanged")) { 
     NS_ENSURE_TRUE(localName.EqualsLiteral("tree"), NS_OK);
     nsCOMPtr<nsIContent> treeContent = do_QueryInterface(aTargetNode);
-
+    nsAccEvent::PrepareForEvent(aTargetNode, PR_TRUE);
     return accService->InvalidateSubtreeFor(eventShell, treeContent,
-                                            nsIAccessibleEvent::EVENT_REORDER);
+                                            nsIAccessibleEvent::EVENT_ASYNCH_SIGNIFICANT_CHANGE);
   }
 
   nsCOMPtr<nsIAccessible> accessible;
@@ -764,7 +765,7 @@ nsresult nsRootAccessible::HandleEventWithTarget(nsIDOMEvent* aEvent,
       
       
       
-      event = nsIAccessibleEvent::EVENT_SHOW;
+      event = nsIAccessibleEvent::EVENT_ASYNCH_SHOW;
     }
     if (event) {
       nsAccUtils::FireAccEvent(event, accessible);
@@ -822,13 +823,16 @@ nsresult nsRootAccessible::HandleEventWithTarget(nsIDOMEvent* aEvent,
           return NS_OK;
       }
     }
-    FireAccessibleFocusEvent(accessible, aTargetNode, aEvent, PR_TRUE);
+    nsAccEvent::PrepareForEvent(aTargetNode, PR_TRUE);  
+    FireAccessibleFocusEvent(accessible, aTargetNode, aEvent, PR_TRUE, PR_TRUE);
   }
-  else if (eventType.EqualsLiteral("DOMMenuBarActive")) {
-    nsAccUtils::FireAccEvent(nsIAccessibleEvent::EVENT_MENU_START, accessible);
+  else if (eventType.EqualsLiteral("DOMMenuBarActive")) {  
+    nsAccEvent::PrepareForEvent(aTargetNode, PR_TRUE);
+    nsAccUtils::FireAccEvent(nsIAccessibleEvent::EVENT_MENU_START, accessible, PR_TRUE);
   }
-  else if (eventType.EqualsLiteral("DOMMenuBarInactive")) {
-    nsAccUtils::FireAccEvent(nsIAccessibleEvent::EVENT_MENU_END, accessible);
+  else if (eventType.EqualsLiteral("DOMMenuBarInactive")) {  
+    nsAccEvent::PrepareForEvent(aTargetNode, PR_TRUE);
+    nsAccUtils::FireAccEvent(nsIAccessibleEvent::EVENT_MENU_END, accessible, PR_TRUE);
     FireCurrentFocusEvent();
   }
   else if (eventType.EqualsLiteral("ValueChange")) {

@@ -54,10 +54,8 @@ class imgIContainer;
 
 
 #define NS_IEVENTSTATEMANAGER_IID \
-{ 0x9d25327a, 0x7a17, 0x4d19, \
-  { 0x92, 0x8c, 0xf7, 0xf3, 0xac, 0x19, 0xb7, 0x63 } }
-
-
+{ 0xfb7516ff, 0x2f01, 0x4893, \
+  { 0x84, 0xe8, 0xe4, 0xb2, 0x82, 0x81, 0x30, 0x23 } };
 
 #define NS_EVENT_NEEDS_FRAME(event) (!NS_IS_FOCUS_EVENT(event))
 
@@ -145,6 +143,15 @@ public:
   NS_IMETHOD ShiftFocus(PRBool aDirection, nsIContent* aStart)=0;
 
   NS_IMETHOD NotifyDestroyPresContext(nsPresContext* aPresContext) = 0;
+  
+  
+
+
+
+
+
+
+  NS_IMETHOD_(PRBool) IsHandlingUserInputExternal() = 0;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsIEventStateManager, NS_IEVENTSTATEMANAGER_IID)

@@ -46,11 +46,11 @@ const PRUint32 kEVENT_LAST_ENTRY  = 0xffffffff;
 
 static const PRUint32 gWinEventMap[] = {
   kEVENT_WIN_UNKNOWN,                                
-  kEVENT_WIN_UNKNOWN,                                
+  EVENT_OBJECT_SHOW,                                 
+  EVENT_OBJECT_HIDE,                                 
   kEVENT_WIN_UNKNOWN,                                
   EVENT_OBJECT_SHOW,                                 
   EVENT_OBJECT_HIDE,                                 
-  EVENT_OBJECT_REORDER,                              
   kEVENT_WIN_UNKNOWN,                                
   IA2_EVENT_ACTIVE_DECENDENT_CHANGED,                
   EVENT_OBJECT_FOCUS,                                

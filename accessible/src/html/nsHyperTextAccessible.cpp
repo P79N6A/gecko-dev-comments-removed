@@ -525,7 +525,12 @@ nsresult nsHyperTextAccessible::DOMPointToHypertextOffset(nsIDOMNode* aNode, PRI
      
     findNode = do_QueryInterface(parentContent->GetChildAt(aNodeOffset));
     if (!findNode && !aNodeOffset) {
-      NS_ASSERTION(!SameCOMIdentity(parentContent, mDOMNode), "Cannot find child for DOMPointToHypertextOffset search");
+      if (SameCOMIdentity(parentContent, mDOMNode)) {
+        
+        
+        *aHyperTextOffset = 0;
+        return NS_OK;
+      }
       findNode = do_QueryInterface(parentContent); 
     }
   }
