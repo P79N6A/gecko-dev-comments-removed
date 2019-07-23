@@ -1581,6 +1581,11 @@ nsOSHelperAppService::GetMIMEInfoFromOS(const nsACString& aType,
     }
 
     
+    
+    
+    nsAutoString byExtDefault;
+    miByExt->GetDefaultDescription(byExtDefault);
+    retval->SetDefaultDescription(byExtDefault);
     retval->CopyBasicDataTo(miByExt);
 
     miByExt.swap(retval);
