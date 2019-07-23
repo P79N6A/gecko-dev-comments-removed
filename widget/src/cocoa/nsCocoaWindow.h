@@ -199,17 +199,6 @@ public:
                                    nsWidgetInitData *aInitData = nsnull);
 
     NS_IMETHOD              Destroy();
-     
-     
-
-    virtual nsresult        StandardCreate(nsIWidget *aParent,
-                                    const nsIntRect &aRect,
-                                    EVENT_CALLBACK aHandleEventFunction,
-                                    nsIDeviceContext *aContext,
-                                    nsIAppShell *aAppShell,
-                                    nsIToolkit *aToolkit,
-                                    nsWidgetInitData *aInitData,
-                                    nsNativeWidget aNativeWindow = nsnull);
 
     NS_IMETHOD              Show(PRBool aState);
     virtual nsIWidget*      GetSheetWindowParent(void);
@@ -283,7 +272,26 @@ public:
     static void UnifiedShading(void* aInfo, const float* aIn, float* aOut);
 
 protected:
+
   
+  
+  nsresult             StandardCreate(nsIWidget *aParent,
+                                      const nsIntRect &aRect,
+                                      EVENT_CALLBACK aHandleEventFunction,
+                                      nsIDeviceContext *aContext,
+                                      nsIAppShell *aAppShell,
+                                      nsIToolkit *aToolkit,
+                                      nsWidgetInitData *aInitData,
+                                      nsNativeWidget aNativeWindow = nsnull);
+  nsresult             CreateNativeWindow(const nsIntRect &aRect,
+                                          nsBorderStyle aBorderStyle);
+  nsresult             CreatePopupContentView(const nsIntRect &aRect,
+                                              EVENT_CALLBACK aHandleEventFunction,
+                                              nsIDeviceContext *aContext,
+                                              nsIAppShell *aAppShell,
+                                              nsIToolkit *aToolkit);
+  void                 DestroyNativeWindow();
+
   nsIWidget*           mParent;         
   NSWindow*            mWindow;         
   WindowDelegate*      mDelegate;       
