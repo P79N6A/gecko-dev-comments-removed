@@ -187,11 +187,38 @@ builtin_String_p_substring_1(JSContext *cx, JSString *str, jsint begin)
 }
 
 JSString* FASTCALL
-builtin_ConcatStrings(JSContext *cx, JSString* left, JSString* right)
+builtin_ConcatStrings(JSContext* cx, JSString* left, JSString* right)
 {
     
-    
     return js_ConcatStrings(cx, left, right);
+}
+
+JSString* FASTCALL
+builtin_String_getelem(JSContext* cx, JSString* str, jsint i)
+{
+    if ((size_t)i >= JSSTRING_LENGTH(str))
+        return NULL;
+    
+    str = js_GetUnitString(cx, str, (size_t)i);
+    return str;
+}
+
+JSString* FASTCALL
+builtin_String_fromCharCode(JSContext* cx, jsint i)
+{
+    jschar c = (jschar)i;
+    
+    
+    
+    return js_NewStringCopyN(cx, &c, 1);
+}
+
+jsint FASTCALL
+builtin_String_p_charCodeAt(JSString* str, jsint i)
+{
+    if (i < 0 || (jsint)JSSTRING_LENGTH(str) <= i)
+        return -1;
+    return JSSTRING_CHARS(str)[i];
 }
 
 #define LO ARGSIZE_LO
