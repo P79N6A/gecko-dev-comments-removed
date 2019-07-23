@@ -193,6 +193,9 @@ public:
   
   void ClearAll();
 
+  nsresult
+  CloneFrom(nsDOMStorage* aThat);
+
   nsIDOMStorageItem* GetNamedItem(const nsAString& aKey, nsresult* aResult);
 
   static nsDOMStorage* FromSupports(nsISupports* aSupports)
@@ -243,6 +246,9 @@ protected:
   
   nsCString mScopeDBKey;
   nsCString mQuotaDomainDBKey;
+
+  friend class nsIDOMStorage2;
+  nsPIDOMStorage* mSecurityChecker;
 
 public:
   
