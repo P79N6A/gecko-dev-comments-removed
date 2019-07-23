@@ -1189,21 +1189,11 @@ private:
 
 
 
-
-
-
-
-
-
-
-  nsIFrame* MoveFramesToEndOfIBSplit(nsFrameConstructorState& aState,
-                                     nsIFrame* aExistingEndFrame,
-                                     PRBool aIsPositioned,
-                                     nsIContent* aContent,
-                                     nsStyleContext* aStyleContext,
-                                     nsIFrame* aFramesToMove,
-                                     nsIFrame* aBlockPart,
-                                     nsFrameConstructorState* aTargetState);
+  void MoveFramesToEndOfIBSplit(nsFrameConstructorState& aState,
+                                nsIFrame* aExistingEndFrame,
+                                nsIFrame* aFramesToMove,
+                                nsIFrame* aBlockPart,
+                                nsFrameConstructorState* aTargetState);
 
   nsresult ProcessInlineChildren(nsFrameConstructorState& aState,
                                  nsIContent*              aContent,
