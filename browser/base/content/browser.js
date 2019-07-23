@@ -2086,9 +2086,8 @@ function BrowserViewSourceOfDocument(aDocument)
 
 
 
-function BrowserPageInfo(doc, initialTab, imageUrl)
-{
-  var args = {doc: doc, initialTab: initialTab, imageUrl: imageUrl};
+function BrowserPageInfo(doc, initialTab, imageElement) {
+  var args = {doc: doc, initialTab: initialTab, imageElement: imageElement};
   return toOpenDialogByTypeAndUrl("Browser:page-info",
                                   doc ? doc.location : window.content.document.location,
                                   "chrome:
