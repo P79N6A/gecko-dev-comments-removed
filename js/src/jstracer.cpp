@@ -1971,11 +1971,35 @@ TraceRecorder::cmp(LOpcode op, bool negate)
 {
     jsval& r = stackval(-1);
     jsval& l = stackval(-2);
-    if (isNumber(l) && isNumber(r)) {
-        LIns* x = lir->ins2(op, get(&l), get(&r));
+    LIns* x;
+    bool cond;
+    if (JSVAL_IS_STRING(l) && JSVAL_IS_STRING(r)) {
+        LIns* args[] = { get(&r), get(&l) };
+        x = lir->ins1(LIR_i2f, lir->insCall(F_CompareStrings, args));
+        x = lir->ins2i(op, x, 0);
+        jsint result = js_CompareStrings(JSVAL_TO_STRING(l), JSVAL_TO_STRING(r));
+        switch (op) {
+          case LIR_flt:
+            cond = result < 0;
+            break;
+          case LIR_fgt:
+            cond = result > 0;
+            break;
+          case LIR_fle:
+            cond = result <= 0;
+            break;
+          case LIR_fge:
+            cond = result >= 0;
+            break;
+          default:
+            JS_ASSERT(0 && "unexpected comparison op for strings");
+            return false;
+        }
+    } else if (isNumber(l) && isNumber(r)) {
+        
+        x = lir->ins2(op, get(&l), get(&r));
         if (negate)
             x = lir->ins_eq0(x);
-        bool cond;
         switch (op) {
           case LIR_flt:
             cond = asNumber(l) < asNumber(r);
@@ -1994,21 +2018,22 @@ TraceRecorder::cmp(LOpcode op, bool negate)
             cond = (asNumber(l) == asNumber(r)) ^ negate;
             break;
         }
-
-        
-
-        if (cx->fp->regs->pc[1] == JSOP_IFEQ || cx->fp->regs->pc[1] == JSOP_IFNE)
-            guard(cond, x, BRANCH_EXIT);
-
-        
-
-
-
-
-        set(&l, x);
-        return true;
+    } else {
+        return false;
     }
-    return false;
+
+    
+
+    if (cx->fp->regs->pc[1] == JSOP_IFEQ || cx->fp->regs->pc[1] == JSOP_IFNE)
+        guard(cond, x, BRANCH_EXIT);
+    
+    
+
+
+
+
+    set(&l, x);
+    return true;
 }
 
 bool
