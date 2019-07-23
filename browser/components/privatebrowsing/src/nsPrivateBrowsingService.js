@@ -80,6 +80,7 @@ const Cr = Components.results;
 function PrivateBrowsingService() {
   this._obs.addObserver(this, "profile-after-change", true);
   this._obs.addObserver(this, "quit-application-granted", true);
+  this._obs.addObserver(this, "private-browsing", true);
 }
 
 PrivateBrowsingService.prototype = {
@@ -132,22 +133,13 @@ PrivateBrowsingService.prototype = {
       this.privateBrowsingEnabled = false;
   },
 
-  _onPrivateBrowsingModeChanged: function PBS__onPrivateBrowsingModeChanged() {
+  _onBeforePrivateBrowsingModeChange: function PBS__onBeforePrivateBrowsingModeChange() {
     
     if (!this._autoStart) {
-      
-      let sdr = Cc["@mozilla.org/security/sdr;1"].
-                getService(Ci.nsISecretDecoderRing);
-      sdr.logoutAndTeardown();
-
-      
-      let authMgr = Cc['@mozilla.org/network/http-auth-manager;1'].
-                    getService(Ci.nsIHttpAuthManager);
-      authMgr.clearAll();
-
       let ss = Cc["@mozilla.org/browser/sessionstore;1"].
                getService(Ci.nsISessionStore);
-      if (this.privateBrowsingEnabled) {
+
+      if (this._inPrivateBrowsing) {
         
         this._saveSession = true;
         var prefBranch = Cc["@mozilla.org/preferences-service;1"].
@@ -158,63 +150,67 @@ PrivateBrowsingService.prototype = {
         } catch (ex) {}
 
         
-        if (this._saveSession && !this._savedBrowserState) {
+        if (this._saveSession && !this._savedBrowserState)
           this._savedBrowserState = ss.getBrowserState();
-
-          
-          this._closeAllWindows();
-
-          
-          this._openAboutPrivateBrowsing();
-        }
       }
-      else {
+      if (!this.quitting && this._saveSession) {
         
-        let consoleService = Cc["@mozilla.org/consoleservice;1"].
-                             getService(Ci.nsIConsoleService);
-        consoleService.logStringMessage(null); 
-        consoleService.reset();
+        let transitionState = {
+          "windows": [{
+            "tabs": [{
+              "entries": [{
+                "url": "about:blank"
+              }]
+            }],
+            "_closedTabs": []
+          }]
+        };
+        
+        
+        ss.setBrowserState(JSON.stringify(transitionState));
 
+        let browser = Cc["@mozilla.org/appshell/window-mediator;1"].
+                      getService(Ci.nsIWindowMediator).
+                      getMostRecentWindow("navigator:browser").gBrowser;
         
-        if (this._saveSession && this._savedBrowserState) {
-          if (!this._quitting) { 
-            ss.setBrowserState(this._savedBrowserState);
-          }
-          this._savedBrowserState = null;
-        }
+        
+        browser.addTab();
+        browser.removeTab(browser.tabContainer.firstChild);
       }
     }
     else
       this._saveSession = false;
   },
 
-#ifndef XP_WIN
-#define BROKEN_WM_Z_ORDER
-#endif
-
-  _closeAllWindows: function PBS__closeAllWindows() {
-    let windowMediator = Cc["@mozilla.org/appshell/window-mediator;1"].
-                         getService(Ci.nsIWindowMediator);
-#ifdef BROKEN_WM_Z_ORDER
-    let windowsEnum = windowMediator.getEnumerator("navigator:browser");
-#else
-    let windowsEnum = windowMediator.getZOrderDOMWindowEnumerator("navigator:browser", false);
-#endif
-
-    while (windowsEnum.hasMoreElements()) {
-      let win = windowsEnum.getNext();
-      win.close();
+  _onAfterPrivateBrowsingModeChange: function PBS__onAfterPrivateBrowsingModeChange() {
+    
+    
+    if (!this._autoStart && this._saveSession) {
+      let ss = Cc["@mozilla.org/browser/sessionstore;1"].
+               getService(Ci.nsISessionStore);
+      
+      
+      if (!this._inPrivateBrowsing) {
+        ss.setBrowserState(this._savedBrowserState);
+        this._savedBrowserState = null;
+      }
+      else {
+        
+        
+        let privateBrowsingState = {
+          "windows": [{
+            "tabs": [{
+              "entries": [{
+                "url": "about:privatebrowsing"
+              }]
+            }],
+            "_closedTabs": []
+          }]
+        };
+        
+        ss.setBrowserState(JSON.stringify(privateBrowsingState));
+      }
     }
-  },
-
-  _openAboutPrivateBrowsing: function PBS__openAboutPrivateBrowsing() {
-    let windowWatcher = Cc["@mozilla.org/embedcomp/window-watcher;1"].
-                        getService(Ci.nsIWindowWatcher);
-    let url = Cc["@mozilla.org/supports-string;1"].
-              createInstance(Ci.nsISupportsString);
-    url.data = "about:privatebrowsing";
-    windowWatcher.openWindow(null, "chrome://browser/content/browser.xul",
-                             null, "chrome,all,resizable=yes,dialog=no", url);
   },
 
   _canEnterPrivateBrowsingMode: function PBS__canEnterPrivateBrowsingMode() {
@@ -254,6 +250,25 @@ PrivateBrowsingService.prototype = {
         break;
       case "quit-application-granted":
         this._unload();
+        break;
+      case "private-browsing":
+        
+        let sdr = Cc["@mozilla.org/security/sdr;1"].
+                  getService(Ci.nsISecretDecoderRing);
+        sdr.logoutAndTeardown();
+    
+        
+        let authMgr = Cc['@mozilla.org/network/http-auth-manager;1'].
+                      getService(Ci.nsIHttpAuthManager);
+        authMgr.clearAll();
+
+        if (!this._inPrivateBrowsing) {
+          
+          let consoleService = Cc["@mozilla.org/consoleservice;1"].
+                               getService(Ci.nsIConsoleService);
+          consoleService.logStringMessage(null); 
+          consoleService.reset();
+        }
         break;
     }
   },
@@ -301,9 +316,17 @@ PrivateBrowsingService.prototype = {
         let quitting = Cc["@mozilla.org/supports-PRBool;1"].
                        createInstance(Ci.nsISupportsPRBool);
         quitting.data = this._quitting;
+
+        
+        this._obs.notifyObservers(quitting, "private-browsing-change-granted", data);
+
+        
+        this._onBeforePrivateBrowsingModeChange();
+
         this._obs.notifyObservers(quitting, "private-browsing", data);
 
-        this._onPrivateBrowsingModeChanged();
+        
+        this._onAfterPrivateBrowsingModeChange();
       }
     } catch (ex) {
       Cu.reportError("Exception thrown while processing the " +
