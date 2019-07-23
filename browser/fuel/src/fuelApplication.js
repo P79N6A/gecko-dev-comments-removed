@@ -527,10 +527,7 @@ Extensions.prototype = {
   },
   
   has : function exts_has(aId) {
-    
-    
-    
-    return !!(this._extmgr.getItemForID(aId).type);
+    return this._extmgr.getItemForID(aId) != null;
   },
   
   get : function exts_get(aId) {
