@@ -127,3 +127,39 @@ function doKey(aKey, modifier) {
     wutils.sendKeyEvent("keypress", key, 0, modifier);
     wutils.sendKeyEvent("keyup",    key, 0, modifier);
 }
+
+
+function commonInit() {
+    netscape.security.PrivilegeManager.enablePrivilege('UniversalXPConnect');
+
+    var pwmgr = Components.classes["@mozilla.org/login-manager;1"].
+                getService(Components.interfaces.nsILoginManager);
+    ok(pwmgr != null, "Access LoginManager");
+
+
+    
+    var logins = pwmgr.getAllLogins({});
+    if (logins.length) {
+        
+        pwmgr.removeAllLogins();
+    }
+    var disabledHosts = pwmgr.getAllDisabledHosts({});
+    if (disabledHosts.length) {
+        
+        for each (var host in disabledHosts)
+            pwmgr.setLoginSavingEnabled(host, true);
+    }
+
+    
+    var login = Components.classes["@mozilla.org/login-manager/loginInfo;1"].
+                createInstance(Components.interfaces.nsILoginInfo);
+    login.init("http://localhost:8888", "http://localhost:8888", null,
+               "testuser", "testpass", "uname", "pword");
+    pwmgr.addLogin(login);
+
+    
+    logins = pwmgr.getAllLogins({});
+    is(logins.length, 1, "Checking for successful init login");
+    disabledHosts = pwmgr.getAllDisabledHosts({});
+    is(disabledHosts.length, 0, "Checking for no disabled hosts");
+}
