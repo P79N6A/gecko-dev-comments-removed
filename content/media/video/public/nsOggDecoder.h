@@ -333,7 +333,7 @@ class nsOggDecoder : public nsMediaDecoder
 
   
   
-  virtual void NetworkError();
+  void NetworkError();
 
   
   
@@ -348,10 +348,11 @@ class nsOggDecoder : public nsMediaDecoder
   
   virtual PRBool GetSeekable();
 
-  
-  nsChannelReader* GetReader() { return mReader; }
-
 protected:
+  
+  
+  
+  void ChangeState(PlayState aState);
 
   
   
@@ -371,11 +372,6 @@ protected:
 
 
 
-
-  
-  
-  
-  void ChangeState(PlayState aState);
 
   
   
@@ -490,7 +486,7 @@ private:
   
   
   
-  nsAutoPtr<nsChannelReader> mReader;
+  nsChannelReader* mReader;
 
   
   
@@ -507,7 +503,7 @@ private:
   
   
   
-  PlayState mNextState;	
+  PlayState mNextState;
 };
 
 #endif
