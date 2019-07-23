@@ -590,6 +590,23 @@ class nsTArray : public nsTArray_base {
     }
 
     
+    template<class Item, class Comparator>
+    PRBool
+    GreatestIndexLtEq(const Item& item,
+                      index_type& idx,
+                      const Comparator& comp) const {
+      return GreatestIndexLtEq(item, comp, &idx);
+    }
+
+    
+    template<class Item>
+    PRBool
+    GreatestIndexLtEq(const Item& item,
+                      index_type& idx) const {
+      return GreatestIndexLtEq(item, nsDefaultComparator<elem_type, Item>(), &idx);
+    }
+
+    
     
     
     template<class Item, class Comparator>
