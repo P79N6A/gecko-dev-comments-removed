@@ -111,7 +111,7 @@ const nsString& gfxFontEntry::FamilyName()
 }
 
 already_AddRefed<gfxFont>
-gfxFontEntry::GetOrMakeFont(const gfxFontStyle *aStyle, PRBool aNeedsBold)
+gfxFontEntry::FindOrMakeFont(const gfxFontStyle *aStyle, PRBool aNeedsBold)
 {
     
     nsRefPtr<gfxFont> font = gfxFontCache::GetCache()->Lookup(Name(), aStyle);
@@ -1428,7 +1428,7 @@ gfxFontGroup::gfxFontGroup(const nsAString& aFamilies, const gfxFontStyle *aStyl
             gfxPlatformFontList::PlatformFontList()->GetDefaultFont(aStyle, needsBold);
         NS_ASSERTION(defaultFont, "invalid default font returned by GetDefaultFont");
 
-        nsRefPtr<gfxFont> font = defaultFont->GetOrMakeFont(aStyle, needsBold);
+        nsRefPtr<gfxFont> font = defaultFont->FindOrMakeFont(aStyle, needsBold);
         if (font) {
             mFonts.AppendElement(font);
         }
@@ -1476,7 +1476,7 @@ gfxFontGroup::FindPlatformFont(const nsAString& aName,
 
     
     if (fe && !fontGroup->HasFont(fe)) {
-        nsRefPtr<gfxFont> font = fe->GetOrMakeFont(fontStyle, needsBold);
+        nsRefPtr<gfxFont> font = fe->FindOrMakeFont(fontStyle, needsBold);
         if (font) {
             fontGroup->mFonts.AppendElement(font);
         }
@@ -2098,7 +2098,7 @@ gfxFontGroup::WhichPrefFontSupportsChar(PRUint32 aCh)
             gfxFontEntry *fe = family->FindFontForStyle(mStyle, needsBold);
             
             if (fe && fe->TestCharacterMap(aCh)) {
-                nsRefPtr<gfxFont> prefFont = fe->GetOrMakeFont(&mStyle, needsBold);
+                nsRefPtr<gfxFont> prefFont = fe->FindOrMakeFont(&mStyle, needsBold);
                 if (!prefFont) continue;
                 mLastPrefFamily = family;
                 mLastPrefFont = prefFont;
@@ -2119,7 +2119,7 @@ gfxFontGroup::WhichSystemFontSupportsChar(PRUint32 aCh)
     gfxFontEntry *fe = 
         gfxPlatformFontList::PlatformFontList()->FindFontForChar(aCh, GetFontAt(0));
     if (fe) {
-        nsRefPtr<gfxFont> font = fe->GetOrMakeFont(&mStyle, PR_FALSE); 
+        nsRefPtr<gfxFont> font = fe->FindOrMakeFont(&mStyle, PR_FALSE); 
         return font.forget();
     }
 
