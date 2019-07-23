@@ -79,28 +79,52 @@ JSBool
 xpc_qsThrow(JSContext *cx, nsresult rv);
 
 
-JSBool
-xpc_qsThrowGetterSetterFailed(JSContext *cx, nsresult rv,
-                              XPCWrappedNative *wrapper, jsval memberId);
+
+
+
+
+
+
+
+
+
+
+
 
 JSBool
-xpc_qsThrowMethodFailed(JSContext *cx, nsresult rv,
-                        XPCWrappedNative *wrapper, jsval *vp);
+xpc_qsThrowGetterSetterFailed(JSContext *cx, nsresult rv,
+                              JSObject *obj, jsval memberId);
+
+
+
+
+
+
+JSBool
+xpc_qsThrowMethodFailed(JSContext *cx, nsresult rv, jsval *vp);
 
 JSBool
 xpc_qsThrowMethodFailedWithCcx(XPCCallContext &ccx, nsresult rv);
 
 
+
+
+
+
 void
-xpc_qsThrowBadArg(JSContext *cx, nsresult rv,
-                  XPCWrappedNative *wrapper, jsval *vp, uintN paramnum);
+xpc_qsThrowBadArg(JSContext *cx, nsresult rv, jsval *vp, uintN paramnum);
 
 void
 xpc_qsThrowBadArgWithCcx(XPCCallContext &ccx, nsresult rv, uintN paramnum);
 
+
+
+
+
+
 void
-xpc_qsThrowBadSetterValue(JSContext *cx, nsresult rv,
-                          XPCWrappedNative *wrapper, jsval propId);
+xpc_qsThrowBadSetterValue(JSContext *cx, nsresult rv, JSObject *obj,
+                          jsval propId);
 
 
 
@@ -240,6 +264,36 @@ public:
     xpc_qsACString(JSContext *cx, jsval *pval);
 };
 
+struct xpc_qsSelfRef
+{
+    xpc_qsSelfRef() {}
+    explicit xpc_qsSelfRef(nsISupports *p) : ptr(p) {}
+    ~xpc_qsSelfRef() { NS_IF_RELEASE(ptr); }
+
+    nsISupports* ptr;
+};
+
+struct xpc_qsTempRoot
+{
+  public:
+    explicit xpc_qsTempRoot(JSContext *cx)
+        : mContext(cx) {
+        JS_PUSH_SINGLE_TEMP_ROOT(cx, JSVAL_NULL, &mTvr);
+    }
+
+    ~xpc_qsTempRoot() {
+        JS_POP_TEMP_ROOT(mContext, &mTvr);
+    }
+
+    jsval * addr() {
+        return &mTvr.u.value;
+    }
+
+  private:
+    JSContext *mContext;
+    JSTempValueRooter mTvr;
+};
+
 
 
 
@@ -268,7 +322,11 @@ xpc_qsUnwrapThisImpl(JSContext *cx,
                      JSObject *obj,
                      const nsIID &iid,
                      void **ppThis,
-                     XPCWrappedNative **ppWrapper);
+                     nsISupports **ppThisRef,
+                     jsval *vp);
+
+
+
 
 
 
@@ -288,19 +346,23 @@ inline JSBool
 xpc_qsUnwrapThis(JSContext *cx,
                  JSObject *obj,
                  T **ppThis,
-                 XPCWrappedNative **ppWrapper)
+                 nsISupports **pThisRef,
+                 jsval *pThisVal)
 {
     return xpc_qsUnwrapThisImpl(cx,
                                 obj,
                                 NS_GET_TEMPLATE_IID(T),
                                 reinterpret_cast<void **>(ppThis),
-                                ppWrapper);
+                                pThisRef,
+                                pThisVal);
 }
 
 JSBool
 xpc_qsUnwrapThisFromCcxImpl(XPCCallContext &ccx,
                             const nsIID &iid,
-                            void **ppThis);
+                            void **ppThis,
+                            nsISupports **pThisRef,
+                            jsval *vp);
 
 
 
@@ -309,10 +371,15 @@ xpc_qsUnwrapThisFromCcxImpl(XPCCallContext &ccx,
 template <class T>
 inline JSBool
 xpc_qsUnwrapThisFromCcx(XPCCallContext &ccx,
-                        T **ppThis)
+                        T **ppThis,
+                        nsISupports **pThisRef,
+                        jsval *pThisVal)
 {
-    return xpc_qsUnwrapThisFromCcxImpl(ccx, NS_GET_TEMPLATE_IID(T),
-                                       reinterpret_cast<void **>(ppThis));
+    return xpc_qsUnwrapThisFromCcxImpl(ccx,
+                                       NS_GET_TEMPLATE_IID(T),
+                                       reinterpret_cast<void **>(ppThis),
+                                       pThisRef,
+                                       pThisVal);
 }
 
 nsresult
