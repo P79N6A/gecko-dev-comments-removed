@@ -441,9 +441,13 @@ public:
   
   
   
+  
+  
+  
   static PRBool RFindLineContaining(nsIFrame* aFrame,
                                     const nsLineList_iterator& aBegin,
                                     nsLineList_iterator& aEnd,
+                                    nsIFrame* aLastFrameBeforeEnd,
                                     PRInt32* aFrameIndexInLine);
 
 #ifdef DEBUG

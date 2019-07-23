@@ -4742,6 +4742,7 @@ nsBlockFrame::AddFrames(nsFrameList& aFrameList, nsIFrame* aPrevSibling)
     
     if (! nsLineBox::RFindLineContaining(aPrevSibling,
                                          begin_lines(), prevSibLine,
+                                         mFrames.LastChild(),
                                          &prevSiblingIndex)) {
       
       
