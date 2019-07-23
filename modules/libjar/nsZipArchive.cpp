@@ -538,6 +538,8 @@ nsresult nsZipArchive::BuildFileList()
 
   
   buf = startp + centralOffset;
+  if (endp - buf < sizeof(PRUint32))
+      return NS_ERROR_FILE_CORRUPTED;
   PRUint32 sig = xtolong(buf);
   while (sig == CENTRALSIG) {
     
