@@ -181,6 +181,10 @@ namespace nanojit
     
     
     
+    
+    
+    
+    
     struct Reservation
     {
         uint32_t arIndex:16;    

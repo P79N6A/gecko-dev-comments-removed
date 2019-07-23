@@ -243,30 +243,27 @@ namespace nanojit
 
     void Assembler::registerConsistencyCheck()
     {
-        
-        RegAlloc *regs = &_allocator;
-        RegisterMask managed = regs->managed;
-        Register r = FirstReg;
-        while(managed)
-        {
-            if (managed&1)
-            {
-                if (regs->isFree(r))
-                {
-                    NanoAssertMsgf(regs->getActive(r)==0, "register %s is free but assigned to ins", gpn(r));
-                }
-                else
-                {
-                    LIns* ins = regs->getActive(r);
+        RegisterMask managed = _allocator.managed;
+        for (Register r = FirstReg; r <= LastReg; r = nextreg(r)) {
+            if (rmask(r) & managed) {
+                
+                
+                if (_allocator.isFree(r)) {
+                    NanoAssertMsgf(_allocator.getActive(r)==0,
+                        "register %s is free but assigned to ins", gpn(r));
+                } else {
                     
-                    Register r2 = ins->getReg();
-                    NanoAssertMsg(regs->getActive(r2)==ins, "Register record mismatch");
+                    
+                    LIns* ins = _allocator.getActive(r);
+                    NanoAssert(ins);
+                    NanoAssertMsg(r == ins->getReg(), "Register record mismatch");
                 }
+            } else {
+                
+                
+                NanoAssert(!_allocator.isFree(r));
+                NanoAssert(!_allocator.getActive(r));
             }
-
-            
-            r = nextreg(r);
-            managed >>= 1;
         }
     }
     #endif 
@@ -773,15 +770,13 @@ namespace nanojit
         for (Register r = FirstReg; r <= LastReg; r = nextreg(r))
         {
             LIns *ins = _allocator.getActive(r);
-            if (ins)
-            {
+            if (ins) {
                 
                 _allocator.retire(r);
                 NanoAssert(r == ins->getReg());
                 ins->setReg(UnknownReg);
 
-                if (!ins->getArIndex())
-                {
+                if (!ins->getArIndex()) {
                     ins->markAsClear();
                 }
             }

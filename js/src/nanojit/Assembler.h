@@ -64,6 +64,42 @@ namespace nanojit
 
     #define STACK_GRANULARITY        sizeof(void *)
 
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
     struct AR
     {
         LIns*           entry[ NJ_MAX_STACK_ENTRY ];    

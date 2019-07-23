@@ -127,8 +127,53 @@ namespace nanojit
 
         debug_only( uint32_t    countActive(); )
         debug_only( bool        isConsistent(Register r, LIns* v); )
-        debug_only( RegisterMask managed; )    
+        debug_only( RegisterMask managed; )     
 
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
         LIns*           active[LastReg + 1];    
         int32_t         usepri[LastReg + 1];    
         RegisterMask    free;
