@@ -354,7 +354,7 @@ class nsXMLContentSerializer : public nsIContentSerializer {
   nsCString mCharset;
   
   
-  PRInt32   mColPos;
+  PRUint32   mColPos;
 
   
   PRPackedBool mDoFormat;
@@ -367,7 +367,7 @@ class nsXMLContentSerializer : public nsIContentSerializer {
   PRPackedBool mDoWrap;
 
   
-  PRInt32   mMaxColumn;
+  PRUint32   mMaxColumn;
 
   
   nsString   mIndent;

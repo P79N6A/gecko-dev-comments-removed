@@ -359,31 +359,31 @@ protected:
   PRUint32 mDeflectedCount;
 
   
-  PRInt32 mInteractiveDeflectCount;
-  PRInt32 mPerfDeflectCount;
+  PRUint32 mInteractiveDeflectCount;
+  PRUint32 mPerfDeflectCount;
 
   
   
   
-  PRInt32 mPendingEventMode;
+  PRUint32 mPendingEventMode;
 
   
-  PRInt32 mEventProbeRate;
+  PRUint32 mEventProbeRate;
 
   
   PRBool mHasPendingEvent;
 
   
-  PRInt32 mCurrentParseEndTime;
+  PRUint32 mCurrentParseEndTime;
 
   
-  PRInt32 mInteractiveParseTime;
-  PRInt32 mPerfParseTime;
+  PRUint32 mInteractiveParseTime;
+  PRUint32 mPerfParseTime;
 
   
-  PRInt32 mInteractiveTime;
+  PRUint32 mInteractiveTime;
   
-  PRInt32 mInitialPerfTime;
+  PRUint32 mInitialPerfTime;
 
   
   PRBool mEnablePerfMode;
