@@ -940,42 +940,7 @@ function updateStatus(aItem, aDownload) {
         status = replaceInsert(gStr.doneStatus, 1, stateSize[state]());
       }
 
-      let (displayHost,
-           ioService = Cc["@mozilla.org/network/io-service;1"].
-                       getService(Ci.nsIIOService),
-           eTLDService = Cc["@mozilla.org/network/effective-tld-service;1"].
-                         getService(Ci.nsIEffectiveTLDService)) {
-        
-        let uri = ioService.newURI(getReferrerOrSource(aItem), null, null);
-
-        
-        if (uri instanceof Ci.nsINestedURI)
-          uri = uri.innermostURI
-
-        try {
-          
-          displayHost = eTLDService.getBaseDomain(uri);
-        } catch (e) {
-          try {
-            
-            displayHost = uri.host;
-          } catch (e) {
-            displayHost = "";
-          }
-        }
-
-        
-        if (uri.scheme == "file") {
-          
-          displayHost = gStr.doneFileScheme;
-        } else if (displayHost.length == 0) {
-          
-          displayHost = replaceInsert(gStr.doneScheme, 1, uri.scheme);
-        } else if (uri.port != -1) {
-          
-          displayHost += ":" + uri.port;
-        }
-
+      let (displayHost = getDisplayHost(getReferrerOrSource(aItem))) {
         
         status = replaceInsert(status, 2, displayHost);
       }
@@ -1052,6 +1017,61 @@ function convertByteUnits(aBytes)
   aBytes = aBytes.toFixed((aBytes > 0) && (aBytes < 100) ? 1 : 0);
 
   return [aBytes, gStr.units[unitIndex]];
+}
+
+
+
+
+
+
+
+
+
+function getDisplayHost(aURIString)
+{
+  let ioService = Cc["@mozilla.org/network/io-service;1"].
+                  getService(Ci.nsIIOService);
+  let eTLDService = Cc["@mozilla.org/network/effective-tld-service;1"].
+                    getService(Ci.nsIEffectiveTLDService);
+  let idnService = Cc["@mozilla.org/network/idn-service;1"].
+                   getService(Ci.nsIIDNService);
+
+  
+  let uri = ioService.newURI(aURIString, null, null);
+
+  
+  if (uri instanceof Ci.nsINestedURI)
+    uri = uri.innermostURI;
+
+  let displayHost;
+  try {
+    
+    let baseDomain = eTLDService.getBaseDomain(uri);
+
+    
+    displayHost = idnService.convertToDisplayIDN(baseDomain, {});
+  } catch (e) {
+    try {
+      
+      displayHost = uri.host;
+    } catch (e) {
+      displayHost = "";
+    }
+  }
+
+  
+  if (uri.scheme == "file") {
+    
+    displayHost = gStr.doneFileScheme;
+  } else if (displayHost.length == 0) {
+    
+    displayHost = replaceInsert(gStr.doneScheme, 1, uri.scheme);
+  } else if (uri.port != -1) {
+    
+    displayHost += ":" + uri.port;
+  }
+
+  return displayHost;
 }
 
 function replaceInsert(aText, aIndex, aValue)
