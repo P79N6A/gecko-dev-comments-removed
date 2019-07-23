@@ -671,15 +671,6 @@ class nsIWidget : public nsISupports {
 
 
 
-    NS_IMETHOD Invalidate(PRBool aIsSynchronous) = 0;
-
-    
-
-
-
-
-
-
     NS_IMETHOD Invalidate(const nsIntRect & aRect, PRBool aIsSynchronous) = 0;
 
     

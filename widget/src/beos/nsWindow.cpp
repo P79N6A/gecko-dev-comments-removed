@@ -1422,40 +1422,6 @@ NS_METHOD nsWindow::SetCursor(nsCursor aCursor)
 
 
 
-NS_METHOD nsWindow::Invalidate(PRBool aIsSynchronous)
-{
-	nsresult rv = NS_ERROR_FAILURE;
-	
-	
-	
-	
-	BRegion reg;
-	reg.MakeEmpty();
-	if (mView && mView->LockLooper())
-	{
-		if (PR_TRUE == aIsSynchronous)
-		{
-			mView->paintregion.Include(mView->Bounds());
-			reg.Include(mView->Bounds());
-		}
-		else
-		{
-			mView->Draw(mView->Bounds());
-			rv = NS_OK;
-		}
-		mView->UnlockLooper();
-	}
-	
-	if (PR_TRUE == aIsSynchronous)
-		rv = OnPaint(&reg);
-	return rv;
-}
-
-
-
-
-
-
 NS_METHOD nsWindow::Invalidate(const nsRect & aRect, PRBool aIsSynchronous)
 {
 	nsresult rv = NS_ERROR_FAILURE;
