@@ -66,6 +66,9 @@ nsDownloadManagerUI.prototype = {
       return;
     }
 
+    
+    
+    
     var window = null;
     try {
       if (aWindowContext)
