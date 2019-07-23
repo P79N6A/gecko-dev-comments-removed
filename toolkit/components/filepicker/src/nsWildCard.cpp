@@ -46,6 +46,7 @@
 
 
 
+
 #include "nsWildCard.h"
 #include "nsCRT.h"
 #include "plstr.h"
@@ -77,7 +78,7 @@ _valid_subexp(PRUnichar *expr, PRUnichar stop)
             ++nsc;
             if((!expr[++x]) || (expr[x] == ']'))
                 return INVALID_SXP;
-            for(++x;expr[x] && (expr[x] != ']');++x)
+            for(;expr[x] && (expr[x] != ']');++x)
                 if(expr[x] == '\\')
                     if(!expr[++x])
                         return INVALID_SXP;
@@ -235,8 +236,16 @@ _shexp_match(const PRUnichar *str, const PRUnichar *expr,
                 else {
                     int matched;
                     
-                    for (matched=0;expr[y] != ']';y++)
+                    for (matched=0;expr[y] != ']';y++) {
+                        
+                        if('\\' == expr[y] && ']' == expr[y+1]) {
+                            if(']' == str[x])
+                                matched |= 1;
+                            y++; 
+                            continue;
+                        }
                         matched |= (str[x] == expr[y]);
+                    }
                     if (neg ^ (!matched))
                         ret = NOMATCH;
                 }
