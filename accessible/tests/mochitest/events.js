@@ -2,6 +2,7 @@
 
 
 const EVENT_DOM_DESTROY = nsIAccessibleEvent.EVENT_DOM_DESTROY;
+const EVENT_FOCUS = nsIAccessibleEvent.EVENT_FOCUS;
 const EVENT_NAME_CHANGE = nsIAccessibleEvent.EVENT_NAME_CHANGE;
 const EVENT_REORDER = nsIAccessibleEvent.EVENT_REORDER;
 
@@ -77,6 +78,13 @@ function unregisterA11yEventListener(aEventType, aEventHandler)
 }
 
 
+
+
+
+
+
+
+const INVOKER_ACTION_FAILED = 1;
 
 
 
@@ -219,7 +227,11 @@ function eventQueue(aEventType)
 
     this.setEventHandler(invoker);
 
-    invoker.invoke();
+    if (invoker.invoke() == INVOKER_ACTION_FAILED) {
+      
+      this.processNextInvoker();
+      return;
+    }
 
     if (invoker.doNotExpectEvents) {
       
@@ -259,6 +271,12 @@ function eventQueue(aEventType)
       var idx = this.mEventSeqIdx + 1;
 
       if (gA11yEventDumpID) { 
+
+        if (aEvent instanceof nsIDOMEvent) {
+          var info = "Event type: " + aEvent.type;
+          info += ". Target: " + prettyName(aEvent.originalTarget);
+          dumpInfoToDOM(info);
+        }
 
         var currType = this.getEventType(idx);
         var currTarget = this.getEventTarget(idx);
@@ -368,8 +386,10 @@ function eventQueue(aEventType)
       return target1 == target2;
     }
 
+    
+    
     var target2 = (aEvent instanceof nsIDOMEvent) ?
-      aEvent.target : aEvent.DOMNode;
+      aEvent.originalTarget : aEvent.DOMNode;
     return target1 == target2;
   }
 
@@ -497,12 +517,20 @@ function removeA11yEventListener(aEventType, aEventHandler)
   return true;
 }
 
-function dumpInfoToDOM(aInfo)
+
+
+
+
+
+
+
+function dumpInfoToDOM(aInfo, aDumpNode)
 {
-  if (!gA11yEventDumpID)
+  var dumpID = gA11yEventDumpID ? gA11yEventDumpID : aDumpNode;
+  if (!dumpID)
     return;
 
-  var dumpElm = document.getElementById(gA11yEventDumpID);
+  var dumpElm = document.getElementById(dumpID);
 
   var containerTagName = document instanceof nsIDOMHTMLDocument ?
     "div" : "description";
