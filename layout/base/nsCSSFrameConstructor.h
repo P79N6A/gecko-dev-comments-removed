@@ -138,6 +138,31 @@ private:
                               nsIContent* aChild,
                               PRInt32 aIndex);
 
+  
+  
+  void IssueSingleInsertNofications(nsIContent* aContainer,
+                                    PRInt32 aStartIndexInContainer,
+                                    PRInt32 aEndIndexInContainer,
+                                    PRBool aAllowLazyConstruction);
+  
+  
+  
+  
+  
+  
+  
+  nsIFrame* GetRangeInsertionPoint(nsIContent* aContainer,
+                                   nsIFrame* aParentFrame,
+                                   PRInt32 aStartIndexInContainer,
+                                   PRInt32 aEndIndexInContainer,
+                                   PRBool aAllowLazyConstruction);
+
+  
+  PRBool MaybeRecreateForFrameset(nsIContent* aContainer,
+                                  nsIFrame* aParentFrame,
+                                  PRUint32 aStartIndexInContainer,
+                                  PRUint32 aEndIndexInContainer);
+
 public:
   
 
@@ -197,6 +222,21 @@ public:
                            PRInt32                aIndexInContainer,
                            nsILayoutHistoryState* aFrameState,
                            PRBool                 aAllowLazyConstruction);
+
+  
+  
+  
+  
+  
+  
+  
+  
+  nsresult ContentRangeInserted(nsIContent*            aContainer,
+                                nsIContent*            aChild,
+                                PRInt32                aIndexInContainer,
+                                PRInt32                aEndIndexInContainer,
+                                nsILayoutHistoryState* aFrameState,
+                                PRBool                 aAllowLazyConstruction);
 
   enum RemoveFlags { REMOVE_CONTENT, REMOVE_FOR_RECONSTRUCTION };
   nsresult ContentRemoved(nsIContent* aContainer,
@@ -1731,14 +1771,26 @@ private:
   
   
   nsIFrame* FindPreviousSibling(const ChildIterator& aFirst,
-                                ChildIterator aIter);
+                                ChildIterator aIter,
+                                PRUint8& aTargetContentDisplay);
 
   
   
   
   nsIFrame* FindNextSibling(ChildIterator aIter,
-                            const ChildIterator& aLast);
+                            const ChildIterator& aLast,
+                            PRUint8& aTargetContentDisplay);
 
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
   
   
   
@@ -1748,7 +1800,12 @@ private:
                                     nsIContent* aContainer,
                                     nsIContent* aChild,
                                     PRInt32 aIndexInContainer,
-                                    PRBool* aIsAppend);
+                                    PRBool* aIsAppend,
+                                    PRBool* aIsRangeInsertSafe,
+                                    PRInt32 aStartSkipIndexInContainer = -1,
+                                    nsIContent* aStartSkipChild = nsnull,
+                                    PRInt32 aEndSkipIndexInContainer = -1,
+                                    nsIContent *aEndSkipChild = nsnull);
 
   
   

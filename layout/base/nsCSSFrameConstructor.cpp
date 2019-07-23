@@ -5880,16 +5880,16 @@ nsCSSFrameConstructor::FindFrameForContentSibling(nsIContent* aContent,
 
 nsIFrame*
 nsCSSFrameConstructor::FindPreviousSibling(const ChildIterator& aFirst,
-                                           ChildIterator aIter)
+                                           ChildIterator aIter,
+                                           PRUint8& aTargetContentDisplay)
 {
   nsIContent* child = *aIter;
 
-  PRUint8 childDisplay = UNSET_DISPLAY;
   
   
   while (aIter-- != aFirst) {
     nsIFrame* prevSibling =
-      FindFrameForContentSibling(*aIter, child, childDisplay, PR_TRUE);
+      FindFrameForContentSibling(*aIter, child, aTargetContentDisplay, PR_TRUE);
 
     if (prevSibling) {
       
@@ -5902,7 +5902,8 @@ nsCSSFrameConstructor::FindPreviousSibling(const ChildIterator& aFirst,
 
 nsIFrame*
 nsCSSFrameConstructor::FindNextSibling(ChildIterator aIter,
-                                       const ChildIterator& aLast)
+                                       const ChildIterator& aLast,
+                                       PRUint8& aTargetContentDisplay)
 {
   if (aIter == aLast) {
     
@@ -5911,11 +5912,10 @@ nsCSSFrameConstructor::FindNextSibling(ChildIterator aIter,
   }
 
   nsIContent* child = *aIter;
-  PRUint8 childDisplay = UNSET_DISPLAY;
 
   while (++aIter != aLast) {
     nsIFrame* nextSibling =
-      FindFrameForContentSibling(*aIter, child, childDisplay, PR_FALSE);
+      FindFrameForContentSibling(*aIter, child, aTargetContentDisplay, PR_FALSE);
 
     if (nextSibling) {
       
@@ -5953,8 +5953,25 @@ nsCSSFrameConstructor::GetInsertionPrevSibling(nsIFrame*& aParentFrame,
                                                nsIContent* aContainer,
                                                nsIContent* aChild,
                                                PRInt32 aIndexInContainer,
-                                               PRBool* aIsAppend)
+                                               PRBool* aIsAppend,
+                                               PRBool* aIsRangeInsertSafe,
+                                               PRInt32 aStartSkipIndexInContainer,
+                                               nsIContent* aStartSkipChild,
+                                               PRInt32 aEndSkipIndexInContainer,
+                                               nsIContent *aEndSkipChild)
 {
+  NS_PRECONDITION((aStartSkipIndexInContainer >= 0) == !!aStartSkipChild,
+                  "aStartSkipIndexInContainer >= 0 iff aStartSkipChild");
+  NS_PRECONDITION((aEndSkipIndexInContainer >= 0) == !!aEndSkipChild,
+                  "aEndSkipIndexInContainer >= 0 iff aEndSkipChild");
+  NS_PRECONDITION((aStartSkipIndexInContainer >= 0 &&
+                   aEndSkipIndexInContainer >= 0 &&
+                   aEndSkipIndexInContainer > aStartSkipIndexInContainer) ||
+                  (aStartSkipIndexInContainer == -1 &&
+                   aEndSkipIndexInContainer == -1),
+                  "aStartSkipIndexInContainer and aEndSkipIndexInContainer "
+                  "should both be valid and in correct order or both invalid");
+
   *aIsAppend = PR_FALSE;
 
   
@@ -5968,8 +5985,14 @@ nsCSSFrameConstructor::GetInsertionPrevSibling(nsIFrame*& aParentFrame,
   ChildIterator first, last;
   ChildIterator::Init(container, &first, &last);
   ChildIterator iter(first);
+  PRBool xblCase = PR_FALSE;
   if (iter.XBLInvolved() || container != aContainer) {
-    iter.seek(aChild);
+    xblCase = PR_TRUE;
+    if (aStartSkipChild) {
+      iter.seek(aStartSkipChild);
+    } else {
+      iter.seek(aChild);
+    }
     
     
     
@@ -5978,8 +6001,13 @@ nsCSSFrameConstructor::GetInsertionPrevSibling(nsIFrame*& aParentFrame,
     
     
     
-    iter.seek(aIndexInContainer);
-    NS_ASSERTION(*iter == aChild, "Someone screwed up the indexing");
+    if (aStartSkipIndexInContainer >= 0) {
+      iter.seek(aStartSkipIndexInContainer);
+      NS_ASSERTION(*iter == aStartSkipChild, "Someone screwed up the indexing");
+    } else {
+      iter.seek(aIndexInContainer);
+      NS_ASSERTION(*iter == aChild, "Someone screwed up the indexing");
+    }
   }
 #ifdef DEBUG
   else {
@@ -5988,7 +6016,8 @@ nsCSSFrameConstructor::GetInsertionPrevSibling(nsIFrame*& aParentFrame,
   }
 #endif
 
-  nsIFrame* prevSibling = FindPreviousSibling(first, iter);
+  PRUint8 childDisplay = UNSET_DISPLAY;
+  nsIFrame* prevSibling = FindPreviousSibling(first, iter, childDisplay);
 
   
   
@@ -5998,7 +6027,15 @@ nsCSSFrameConstructor::GetInsertionPrevSibling(nsIFrame*& aParentFrame,
   }
   else {
     
-    nsIFrame* nextSibling = FindNextSibling(iter, last);
+    if (aEndSkipChild) {
+      if (xblCase) {
+        iter.seek(aEndSkipChild);
+        iter--;
+      } else {
+        iter.seek(aEndSkipIndexInContainer-1);
+      }
+    }
+    nsIFrame* nextSibling = FindNextSibling(iter, last, childDisplay);
 
     if (nextSibling) {
       aParentFrame = nextSibling->GetParent()->GetContentInsertionFrame();
@@ -6028,6 +6065,7 @@ nsCSSFrameConstructor::GetInsertionPrevSibling(nsIFrame*& aParentFrame,
     }
   }
 
+  *aIsRangeInsertSafe = (childDisplay == UNSET_DISPLAY);
   return prevSibling;
 }
 
@@ -6046,16 +6084,21 @@ InvalidateCanvasIfNeeded(nsIPresShell* presShell, nsIContent* node);
 #ifdef MOZ_XUL
 
 static
+PRBool
+IsXULListBox(nsIContent* aContainer)
+{
+  return (aContainer->IsXUL() && aContainer->Tag() == nsGkAtoms::listbox);
+}
+
+static
 nsListBoxBodyFrame*
 MaybeGetListBoxBodyFrame(nsIContent* aContainer, nsIContent* aChild)
 {
   if (!aContainer)
     return nsnull;
 
-  if (aContainer->IsXUL() &&
-      aChild->IsXUL() &&
-      aContainer->Tag() == nsGkAtoms::listbox &&
-      aChild->Tag() == nsGkAtoms::listitem) {
+  if (IsXULListBox(aContainer) &&
+      aChild->IsXUL() && aChild->Tag() == nsGkAtoms::listitem) {
     nsCOMPtr<nsIDOMXULElement> xulElement = do_QueryInterface(aContainer);
     nsCOMPtr<nsIBoxObject> boxObject;
     xulElement->GetBoxObject(getter_AddRefs(boxObject));
@@ -6235,10 +6278,8 @@ nsCSSFrameConstructor::CreateNeededFrames(nsIContent* aContent)
       if (inRun) {
         inRun = PR_FALSE;
         
-        for (PRUint32 j = startOfRun; j < i; j++) {
-          ContentInserted(aContent, aContent->GetChildAt(j), j, nsnull,
-                          PR_FALSE);
-        }
+        ContentRangeInserted(aContent, firstChildInRun, startOfRun, i,
+                             nsnull, PR_FALSE);
       }
     }
   }
@@ -6273,6 +6314,125 @@ void nsCSSFrameConstructor::CreateNeededFrames()
     CreateNeededFrames(rootContent);
     EndUpdate();
   }
+}
+
+void
+nsCSSFrameConstructor::IssueSingleInsertNofications(nsIContent* aContainer,
+                                                    PRInt32 aStartIndexInContainer,
+                                                    PRInt32 aEndIndexInContainer,
+                                                    PRBool aAllowLazyConstruction)
+{
+  for (PRUint32 i = aStartIndexInContainer;
+       i < (PRUint32)aEndIndexInContainer;
+       i++) {
+    nsIContent* child = aContainer->GetChildAt(i);
+    if ((child->GetPrimaryFrame() ||
+         mPresShell->FrameManager()->GetUndisplayedContent(child))
+#ifdef MOZ_XUL
+        
+        
+        && !MaybeGetListBoxBodyFrame(aContainer, child)
+#endif
+        ) {
+      
+      
+      
+      continue;
+    }
+    
+    ContentInserted(aContainer, child, i, mTempFrameTreeState,
+                    aAllowLazyConstruction);
+  }
+}
+
+nsIFrame*
+nsCSSFrameConstructor::GetRangeInsertionPoint(nsIContent* aContainer,
+                                              nsIFrame* aParentFrame,
+                                              PRInt32 aStartIndexInContainer,
+                                              PRInt32 aEndIndexInContainer,
+                                              PRBool aAllowLazyConstruction)
+{
+  
+  
+  
+  nsIFrame* insertionPoint;
+  PRBool multiple = PR_FALSE;
+  GetInsertionPoint(aParentFrame, nsnull, &insertionPoint, &multiple);
+  if (! insertionPoint)
+    return nsnull; 
+ 
+  PRBool hasInsertion = PR_FALSE;
+  if (!multiple) {
+    nsIDocument* document = nsnull; 
+    nsIContent *firstAppendedChild =
+      aContainer->GetChildAt(aStartIndexInContainer);
+    if (firstAppendedChild) {
+      document = firstAppendedChild->GetDocument();
+    }
+    if (document &&
+        document->BindingManager()->GetInsertionParent(firstAppendedChild)) {
+      hasInsertion = PR_TRUE;
+    }
+  }
+
+  if (multiple || hasInsertion) {
+    
+    
+    PRUint32 childCount = 0;
+
+    if (!multiple) {
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      childCount = insertionPoint->GetContent()->GetChildCount();
+    }
+ 
+    
+    
+    
+    if (multiple || aEndIndexInContainer != -1 || childCount > 0) {
+      
+      
+      
+      
+      
+      PRUint32 endIndex = aEndIndexInContainer == -1 ?
+        aContainer->GetChildCount() : aEndIndexInContainer;
+      IssueSingleInsertNofications(aContainer, aStartIndexInContainer,
+                                   endIndex, aAllowLazyConstruction);
+      return nsnull;
+    }
+  }
+
+  return insertionPoint;
+}
+
+PRBool
+nsCSSFrameConstructor::MaybeRecreateForFrameset(nsIContent* aContainer,
+                                                nsIFrame* aParentFrame,
+                                                PRUint32 aStartIndexInContainer,
+                                                PRUint32 aEndIndexInContainer)
+{
+  if (aParentFrame->GetType() == nsGkAtoms::frameSetFrame) {
+    
+    for (PRUint32 i = aStartIndexInContainer;
+         i < aEndIndexInContainer;
+         ++i) {
+      if (IsSpecialFramesetChild(aContainer->GetChildAt(i))) {
+        
+        RecreateFramesForContent(aParentFrame->GetContent(), PR_FALSE);
+        return PR_TRUE;
+      }
+    }
+  }
+  return PR_FALSE;
 }
 
 nsresult
@@ -6322,98 +6482,22 @@ nsCSSFrameConstructor::ContentAppended(nsIContent*     aContainer,
     return NS_OK;
   }
 
-  
-  
-  
-  
-  nsIFrame* insertionPoint;
-  PRBool multiple = PR_FALSE;
-  GetInsertionPoint(parentFrame, nsnull, &insertionPoint, &multiple);
-  if (! insertionPoint)
-    return NS_OK; 
-
-  PRBool hasInsertion = PR_FALSE;
-  if (!multiple) {
-    nsIDocument* document = nsnull; 
-    nsIContent *firstAppendedChild =
-      aContainer->GetChildAt(aNewIndexInContainer);
-    if (firstAppendedChild) {
-      document = firstAppendedChild->GetDocument();
-    }
-    if (document &&
-        document->BindingManager()->GetInsertionParent(firstAppendedChild)) {
-      hasInsertion = PR_TRUE;
-    }
-  }
-  
-  if (multiple || hasInsertion) {
-    
-    
-    PRUint32 childCount = 0;
-      
-    if (!multiple) {
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      childCount = insertionPoint->GetContent()->GetChildCount();
-    }
-
-    if (multiple || childCount > 0) {
-      
-      
-      
-      
-      
-      PRUint32 containerCount = aContainer->GetChildCount();
-      for (PRUint32 i = aNewIndexInContainer; i < containerCount; i++) {
-        nsIContent* content = aContainer->GetChildAt(i);
-        if ((content->GetPrimaryFrame() ||
-             mPresShell->FrameManager()->GetUndisplayedContent(content))
-#ifdef MOZ_XUL
-            
-            
-            && !MaybeGetListBoxBodyFrame(aContainer, content)
-#endif
-            ) {
-          
-          
-          
-          continue;
-        }
-        LAYOUT_PHASE_TEMP_EXIT();
-        
-        ContentInserted(aContainer, content, i, mTempFrameTreeState,
-                        aAllowLazyConstruction);
-        LAYOUT_PHASE_TEMP_REENTER();
-      }
-
-      return NS_OK;
-    }
+  LAYOUT_PHASE_TEMP_EXIT();
+  parentFrame = GetRangeInsertionPoint(aContainer, parentFrame,
+                  aNewIndexInContainer, -1, aAllowLazyConstruction);
+  LAYOUT_PHASE_TEMP_REENTER();
+  if (!parentFrame) {
+    return NS_OK;
   }
 
-  parentFrame = insertionPoint;
-
-  if (parentFrame->GetType() == nsGkAtoms::frameSetFrame) {
-    
-    PRUint32 count = aContainer->GetChildCount();
-    for (PRUint32 i = aNewIndexInContainer; i < count; ++i) {
-      if (IsSpecialFramesetChild(aContainer->GetChildAt(i))) {
-        
-        LAYOUT_PHASE_TEMP_EXIT();
-        nsresult rv = RecreateFramesForContent(parentFrame->GetContent(), PR_FALSE);
-        LAYOUT_PHASE_TEMP_REENTER();
-        return rv;
-      }
-    }
+  LAYOUT_PHASE_TEMP_EXIT();
+  if (MaybeRecreateForFrameset(aContainer, parentFrame, aNewIndexInContainer,
+                               aContainer->GetChildCount())) {
+    LAYOUT_PHASE_TEMP_REENTER();
+    return NS_OK;
   }
-  
+  LAYOUT_PHASE_TEMP_REENTER();  
+
   if (parentFrame->IsLeaf()) {
     
     
@@ -6579,24 +6663,20 @@ nsCSSFrameConstructor::ContentAppended(nsIContent*     aContainer,
                           containingBlock, frameItems); 
   }
 
-  nsresult result = NS_OK;
-
   
-  if (NS_SUCCEEDED(result)) {
-    
-    
-    if (captionItems.NotEmpty()) { 
-      NS_ASSERTION(nsGkAtoms::tableFrame == frameType, "how did that happen?");
-      nsIFrame* outerTable = parentFrame->GetParent();
-      if (outerTable) {
-        state.mFrameManager->AppendFrames(outerTable, nsGkAtoms::captionList,
-                                          captionItems);
-      }
+  
+  
+  if (captionItems.NotEmpty()) { 
+    NS_ASSERTION(nsGkAtoms::tableFrame == frameType, "how did that happen?");
+    nsIFrame* outerTable = parentFrame->GetParent();
+    if (outerTable) {
+      state.mFrameManager->AppendFrames(outerTable, nsGkAtoms::captionList,
+                                        captionItems);
     }
+  }
 
-    if (frameItems.NotEmpty()) { 
-      AppendFrames(state, parentFrame, frameItems, prevSibling);
-    }
+  if (frameItems.NotEmpty()) { 
+    AppendFrames(state, parentFrame, frameItems, prevSibling);
   }
 
   
@@ -6664,41 +6744,102 @@ nsCSSFrameConstructor::ContentInserted(nsIContent*            aContainer,
                                        nsILayoutHistoryState* aFrameState,
                                        PRBool                 aAllowLazyConstruction)
 {
+  return ContentRangeInserted(aContainer,
+                              aChild,
+                              aIndexInContainer,
+                              aIndexInContainer+1,
+                              aFrameState,
+                              aAllowLazyConstruction);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+nsresult
+nsCSSFrameConstructor::ContentRangeInserted(nsIContent*            aContainer,
+                                            nsIContent*            aChild,
+                                            PRInt32                aIndexInContainer,
+                                            PRInt32                aEndIndexInContainer,
+                                            nsILayoutHistoryState* aFrameState,
+                                            PRBool                 aAllowLazyConstruction)
+{
   AUTO_LAYOUT_PHASE_ENTRY_POINT(mPresShell->GetPresContext(), FrameC);
   NS_PRECONDITION(mUpdateCount != 0,
                   "Should be in an update while creating frames");
+
+  NS_PRECONDITION(aChild, "must always pass a child");
 
   
   
 #ifdef DEBUG
   if (gNoisyContentUpdates) {
-    printf("nsCSSFrameConstructor::ContentInserted container=%p child=%p "
-           "index=%d lazy=%d\n",
-           static_cast<void*>(aContainer),
-           static_cast<void*>(aChild),
-           aIndexInContainer,
-           aAllowLazyConstruction);
+    printf("nsCSSFrameConstructor::ContentRangeInserted container=%p child=%p"
+           "index=%d endindex=%d lazy=%d\n",
+           static_cast<void*>(aContainer), static_cast<void*>(aChild),
+           aIndexInContainer, aEndIndexInContainer, aAllowLazyConstruction);
     if (gReallyNoisyContentUpdates) {
-      (aContainer ? aContainer : aChild)->List(stdout, 0);
+      if (aContainer) {
+        aContainer->List(stdout,0);
+      } else {
+        aChild->List(stdout, 0);
+      }
     }
   }
 #endif
 
   nsresult rv = NS_OK;
 
+  PRBool isSingleInsert = (aIndexInContainer + 1 == aEndIndexInContainer);
+  NS_ASSERTION(isSingleInsert || !aAllowLazyConstruction,
+               "range insert shouldn't be lazy");
+  NS_ASSERTION(isSingleInsert || !aContainer ||
+               aEndIndexInContainer < aContainer->GetChildCount(),
+               "end index should not include all nodes");
+
 #ifdef MOZ_XUL
-  
-  
-  if (NotifyListBoxBody(mPresShell->GetPresContext(), aContainer, aChild,
-                        aIndexInContainer, 
-                        mDocument, nsnull, CONTENT_INSERTED))
-    return NS_OK;
+  if (aContainer && IsXULListBox(aContainer)) {
+    if (isSingleInsert) {
+      
+      
+      if (NotifyListBoxBody(mPresShell->GetPresContext(), aContainer, aChild,
+                            aIndexInContainer, 
+                            mDocument, nsnull, CONTENT_INSERTED)) {
+        return NS_OK;
+      }
+    } else {
+      
+      
+      LAYOUT_PHASE_TEMP_EXIT();
+      IssueSingleInsertNofications(aContainer, aIndexInContainer,
+                                   aEndIndexInContainer,
+                                   aAllowLazyConstruction);
+      LAYOUT_PHASE_TEMP_REENTER();
+      return NS_OK;
+    }
+  }
 #endif 
   
   
   
   
   if (! aContainer) {
+    NS_ASSERTION(isSingleInsert,
+                 "root node insertion should be a single insertion");
     nsIContent *docElement = mDocument->GetRootContent();
 
     if (aChild != docElement) {
@@ -6717,7 +6858,7 @@ nsCSSFrameConstructor::ContentInserted(nsIContent*            aContainer,
       InvalidateCanvasIfNeeded(mPresShell, aChild);
 #ifdef DEBUG
       if (gReallyNoisyContentUpdates) {
-        printf("nsCSSFrameConstructor::ContentInserted: resulting frame "
+        printf("nsCSSFrameConstructor::ContentRangeInserted: resulting frame "
                "model:\n");
         mFixedContainingBlock->List(stdout, 0);
       }
@@ -6738,33 +6879,69 @@ nsCSSFrameConstructor::ContentInserted(nsIContent*            aContainer,
     return NS_OK;
   }
 
-  
-  
-  
-  nsIFrame* insertionPoint;
-  GetInsertionPoint(parentFrame, aChild, &insertionPoint);
-  if (! insertionPoint)
-    return NS_OK; 
+  if (isSingleInsert) {
+    
+    
+    
+    nsIFrame* insertionPoint;
+    GetInsertionPoint(parentFrame, aChild, &insertionPoint);
+    if (! insertionPoint)
+      return NS_OK; 
 
-  parentFrame = insertionPoint;
+    parentFrame = insertionPoint;
+  } else {
+    
+    
+    LAYOUT_PHASE_TEMP_EXIT();
+    parentFrame = GetRangeInsertionPoint(aContainer, parentFrame,
+      aIndexInContainer, aEndIndexInContainer, aAllowLazyConstruction);
+    LAYOUT_PHASE_TEMP_REENTER();
+    if (!parentFrame) {
+      return NS_OK;
+    }
+  }
 
-  PRBool isAppend;
+  PRBool isAppend, isRangeInsertSafe;
   nsIFrame* prevSibling =
     GetInsertionPrevSibling(parentFrame, aContainer, aChild, aIndexInContainer,
-                            &isAppend);
+                            &isAppend, &isRangeInsertSafe);
+
+  
+  if (!isSingleInsert && !isRangeInsertSafe) {
+    
+    LAYOUT_PHASE_TEMP_EXIT();
+    IssueSingleInsertNofications(aContainer, aIndexInContainer,
+                                 aEndIndexInContainer, aAllowLazyConstruction);
+    LAYOUT_PHASE_TEMP_REENTER();
+    return NS_OK;
+  }
 
   nsIContent* container = parentFrame->GetContent();
 
   nsIAtom* frameType = parentFrame->GetType();
-  if (frameType == nsGkAtoms::frameSetFrame &&
-      IsSpecialFramesetChild(aChild)) {
-    
+  if (isSingleInsert) {
+    if (frameType == nsGkAtoms::frameSetFrame &&
+        IsSpecialFramesetChild(aChild)) {
+      
+      LAYOUT_PHASE_TEMP_EXIT();
+      nsresult rv = RecreateFramesForContent(parentFrame->GetContent(), PR_FALSE);
+      LAYOUT_PHASE_TEMP_REENTER();
+      return rv;
+    }
+  } else {
     LAYOUT_PHASE_TEMP_EXIT();
-    nsresult rv = RecreateFramesForContent(parentFrame->GetContent(), PR_FALSE);
+    if (MaybeRecreateForFrameset(aContainer, parentFrame,
+          aIndexInContainer, aEndIndexInContainer)) {
+      LAYOUT_PHASE_TEMP_REENTER();
+      return NS_OK;
+    }
     LAYOUT_PHASE_TEMP_REENTER();
-    return rv;
   }
 
+  
+  
+  NS_ASSERTION(isSingleInsert || frameType != nsGkAtoms::fieldSetFrame,
+               "Unexpected parent");
   if (frameType == nsGkAtoms::fieldSetFrame &&
       aChild->Tag() == nsGkAtoms::legend) {
     
@@ -6782,7 +6959,12 @@ nsCSSFrameConstructor::ContentInserted(nsIContent*            aContainer,
   
   if (parentFrame->IsLeaf()) {
     
-    aChild->UnsetFlags(NODE_DESCENDANTS_NEED_FRAMES | NODE_NEEDS_FRAME);
+    if (isSingleInsert) {
+      aChild->UnsetFlags(NODE_DESCENDANTS_NEED_FRAMES | NODE_NEEDS_FRAME);
+    } else {
+      ClearLazyBitsInChildren(aContainer, aIndexInContainer,
+                              aEndIndexInContainer);
+    }
     return NS_OK;
   }
 
@@ -6855,9 +7037,23 @@ nsCSSFrameConstructor::ContentInserted(nsIContent*            aContainer,
       
       
       
-      prevSibling =
-        GetInsertionPrevSibling(parentFrame, aContainer, aChild,
-                                aIndexInContainer, &isAppend);
+      prevSibling = GetInsertionPrevSibling(parentFrame, aContainer, aChild,
+        aIndexInContainer, &isAppend, &isRangeInsertSafe);
+
+      
+      if (!isSingleInsert && !isRangeInsertSafe) {
+        
+        RecoverLetterFrames(state.mFloatedItems.containingBlock);
+
+        
+        LAYOUT_PHASE_TEMP_EXIT();
+        IssueSingleInsertNofications(aContainer, aIndexInContainer,
+                                     aEndIndexInContainer,
+                                     aAllowLazyConstruction);
+        LAYOUT_PHASE_TEMP_REENTER();
+        return NS_OK;
+      }
+
       container = parentFrame->GetContent();
       frameType = parentFrame->GetType();
     }
@@ -6893,16 +7089,25 @@ nsCSSFrameConstructor::ContentInserted(nsIContent*            aContainer,
                         items);
   }
 
-  AddFrameConstructionItems(state, aChild, aIndexInContainer, parentFrame, items);
+  if (isSingleInsert) {
+    AddFrameConstructionItems(state, aChild, aIndexInContainer, parentFrame, items);
+  } else {
+    for (PRUint32 i = aIndexInContainer;
+         i < (PRUint32)aEndIndexInContainer;
+         ++i) {
+      nsIContent* child = aContainer->GetChildAt(i);
+      AddFrameConstructionItems(state, child, i, parentFrame, items);
+    }
+  }
 
-  if (aIndexInContainer + 1 < PRInt32(aContainer->GetChildCount()) &&
+  if (aEndIndexInContainer < PRInt32(aContainer->GetChildCount()) &&
       parentType == eTypeBlock && haveNoXBLChildren) {
     
     
     
     
     
-    AddTextItemIfNeeded(state, parentFrame, aContainer, aIndexInContainer + 1,
+    AddTextItemIfNeeded(state, parentFrame, aContainer, aEndIndexInContainer,
                         items);
   }
 
@@ -6926,13 +7131,19 @@ nsCSSFrameConstructor::ContentInserted(nsIContent*            aContainer,
   ConstructFramesFromItemList(state, items, parentFrame, frameItems);
 
   if (frameItems.NotEmpty()) {
-    InvalidateCanvasIfNeeded(mPresShell, aChild);
-    
-    if (nsGkAtoms::tableCaptionFrame == frameItems.FirstChild()->GetType()) {
-      NS_ASSERTION(frameItems.OnlyChild(),
-                   "adding a non caption frame to the caption childlist?");
-      captionItems.AddChild(frameItems.FirstChild());
-      frameItems.Clear();
+    if (isSingleInsert) {
+      InvalidateCanvasIfNeeded(mPresShell, aChild);
+    } else {
+      for (PRUint32 i = aIndexInContainer;
+           i < (PRUint32)aEndIndexInContainer;
+           ++i) {
+        InvalidateCanvasIfNeeded(mPresShell, aContainer->GetChildAt(i));
+      }
+    }
+
+    if (nsGkAtoms::tableFrame == frameType ||
+        nsGkAtoms::tableOuterFrame == frameType) {
+      PullOutCaptionFrames(frameItems, captionItems);
     }
   }
 
@@ -6997,45 +7208,71 @@ nsCSSFrameConstructor::ContentInserted(nsIContent*            aContainer,
     }
   }
       
-  if (NS_SUCCEEDED(rv) && frameItems.NotEmpty()) {
-    NS_ASSERTION(captionItems.IsEmpty(), "leaking caption frames");
+  
+  
+  if (captionItems.NotEmpty()) {
+    NS_ASSERTION(nsGkAtoms::tableFrame == frameType ||
+                 nsGkAtoms::tableOuterFrame == frameType,
+                 "parent for caption is not table?");
+    
+    
+    
+    nsIFrame* captionParent = parentFrame;
+    PRBool captionIsAppend;
+    nsIFrame* captionPrevSibling = nsnull;
+
+    
+    PRBool ignored;
+    if (isSingleInsert) {
+      captionPrevSibling =
+        GetInsertionPrevSibling(captionParent, aContainer, aChild,
+                                aIndexInContainer, &captionIsAppend, &ignored);
+    } else {
+      nsIContent* firstCaption = captionItems.FirstChild()->GetContent();
+      
+      
+      
+      captionPrevSibling =
+        GetInsertionPrevSibling(captionParent, aContainer, firstCaption,
+          aContainer->IndexOf(firstCaption), &captionIsAppend, &ignored,
+          aIndexInContainer, aChild,
+          aEndIndexInContainer, aContainer->GetChildAt(aEndIndexInContainer));
+    }
+
+    nsIFrame* outerTable = nsnull;
+    if (GetCaptionAdjustedParent(captionParent, captionItems.FirstChild(),
+                                 &outerTable)) {
+      
+      
+      
+      NS_ASSERTION(nsGkAtoms::tableOuterFrame == outerTable->GetType(),
+                   "Pseudo frame construction failure; "
+                   "a caption can be only a child of an outer table frame");
+
+      
+      
+      
+      if (captionPrevSibling &&
+          captionPrevSibling->GetParent() != outerTable) {
+          captionPrevSibling = nsnull;
+      }
+      if (captionIsAppend) {
+        state.mFrameManager->AppendFrames(outerTable, nsGkAtoms::captionList,
+                                          captionItems);
+      } else {
+        state.mFrameManager->InsertFrames(outerTable, nsGkAtoms::captionList,
+                                          captionPrevSibling, captionItems);
+      }
+    }
+  }
+
+  if (frameItems.NotEmpty()) {
     
     if (isAppend) {
       AppendFrames(state, parentFrame, frameItems, prevSibling);
     } else {
       state.mFrameManager->InsertFrames(parentFrame, nsnull, prevSibling,
                                         frameItems);
-    }
-  }
-  else {
-    
-    if (NS_SUCCEEDED(rv) && captionItems.NotEmpty()) {
-      nsIFrame* outerTableFrame;
-      if (GetCaptionAdjustedParent(parentFrame, captionItems.FirstChild(),
-                                   &outerTableFrame)) {
-        
-        
-        
-        if (prevSibling && prevSibling->GetParent() != outerTableFrame) {
-          prevSibling = nsnull;
-        }
-        
-        
-        
-        NS_ASSERTION(nsGkAtoms::tableOuterFrame == outerTableFrame->GetType(),
-                     "Pseudo frame construction failure, "
-                     "a caption can be only a child of a outer table frame");
-        if (isAppend) {
-          state.mFrameManager->AppendFrames(outerTableFrame,
-                                            nsGkAtoms::captionList,
-                                            captionItems);
-        }
-        else {
-          state.mFrameManager->InsertFrames(outerTableFrame,
-                                            nsGkAtoms::captionList,
-                                            prevSibling, captionItems);
-        }
-      }
     }
   }
 
@@ -7047,7 +7284,7 @@ nsCSSFrameConstructor::ContentInserted(nsIContent*            aContainer,
 
 #ifdef DEBUG
   if (gReallyNoisyContentUpdates && parentFrame) {
-    printf("nsCSSFrameConstructor::ContentInserted: resulting frame model:\n");
+    printf("nsCSSFrameConstructor::ContentRangeInserted: resulting frame model:\n");
     parentFrame->List(stdout, 0);
   }
 #endif
