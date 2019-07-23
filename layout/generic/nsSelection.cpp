@@ -1583,7 +1583,7 @@ nsFrameSelection::GetFrameFromLevel(nsIFrame    *aFrameIn,
   PRUint8 foundLevel = 0;
   nsIFrame *foundFrame = aFrameIn;
 
-  nsCOMPtr<nsIFrameEnumerator> frameTraversal;
+  nsCOMPtr<nsIBidirectionalEnumerator> frameTraversal;
   nsresult result;
   nsCOMPtr<nsIFrameTraversal> trav(do_CreateInstance(kFrameTraversalCID,&result));
   if (NS_FAILED(result))
@@ -1598,17 +1598,25 @@ nsFrameSelection::GetFrameFromLevel(nsIFrame    *aFrameIn,
                                    );
   if (NS_FAILED(result))
     return result;
+  nsISupports *isupports = nsnull;
 
   do {
     *aFrameOut = foundFrame;
     if (aDirection == eDirNext)
-      frameTraversal->Next();
+      result = frameTraversal->Next();
     else 
-      frameTraversal->Prev();
+      result = frameTraversal->Prev();
 
-    foundFrame = frameTraversal->CurrentItem();
-    if (!foundFrame)
-      return NS_ERROR_FAILURE;
+    if (NS_FAILED(result))
+      return result;
+    result = frameTraversal->CurrentItem(&isupports);
+    if (NS_FAILED(result))
+      return result;
+    if (!isupports)
+      return NS_ERROR_NULL_POINTER;
+    
+    
+    foundFrame = (nsIFrame *)isupports;
     foundLevel = NS_GET_EMBEDDING_LEVEL(foundFrame);
 
   } while (foundLevel > aBidiLevel);

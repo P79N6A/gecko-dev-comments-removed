@@ -149,7 +149,7 @@
 #include "nsDOMDataTransfer.h"
 #include "nsContentAreaDragDrop.h"
 #ifdef MOZ_XUL
-#include "nsTreeBodyFrame.h"
+#include "nsITreeBoxObject.h"
 #endif
 
 #ifdef XP_MACOSX
@@ -2304,9 +2304,9 @@ nsEventStateManager::DoDefaultDragStart(nsPresContext* aPresContext,
           if (presShell) {
             nsIFrame* frame = presShell->GetPrimaryFrameFor(content);
             if (frame) {
-              nsTreeBodyFrame* treeBody;
-              CallQueryInterface(frame, &treeBody);
-              treeBody->GetSelectionRegion(getter_AddRefs(region));
+              nsITreeBoxObject* treeBoxObject;
+              CallQueryInterface(frame, &treeBoxObject);
+              treeBoxObject->GetSelectionRegion(getter_AddRefs(region));
             }
           }
         }
@@ -4362,7 +4362,7 @@ nsEventStateManager::GetNextTabbableContent(nsIContent* aRootContent,
   nsresult rv;
   nsCOMPtr<nsIFrameTraversal> trav(do_CreateInstance(kFrameTraversalCID, &rv));
   NS_ENSURE_SUCCESS(rv, rv);
-  nsCOMPtr<nsIFrameEnumerator> frameTraversal;
+  nsCOMPtr<nsIBidirectionalEnumerator> frameTraversal;
 
   
   if (!aStartFrame) {
@@ -4381,7 +4381,7 @@ nsEventStateManager::GetNextTabbableContent(nsIContent* aRootContent,
                                 );
     NS_ENSURE_SUCCESS(rv, rv);
     if (!forward) {
-      frameTraversal->Last();
+      rv = frameTraversal->Last();
     }
   }
   else {
@@ -4397,16 +4397,15 @@ nsEventStateManager::GetNextTabbableContent(nsIContent* aRootContent,
         !aStartContent->IsNodeOfType(nsINode::eHTML)) {
       
       
-      if (forward)
-        frameTraversal->Next();
-      else
-        frameTraversal->Prev();
+      rv = forward ? frameTraversal->Next() : frameTraversal->Prev();
     }
   }
 
   
-  while (1) {
-    *aResultFrame = frameTraversal->CurrentItem();
+  while (NS_SUCCEEDED(rv)) {
+    nsISupports* currentItem;
+    frameTraversal->CurrentItem(&currentItem);
+    *aResultFrame = (nsIFrame*)currentItem;
     if (!*aResultFrame) {
       break;
     }
@@ -4438,10 +4437,7 @@ nsEventStateManager::GetNextTabbableContent(nsIContent* aRootContent,
         return NS_OK;
       }
     }
-    if (forward)
-      frameTraversal->Next();
-    else
-      frameTraversal->Prev();
+    rv = forward ? frameTraversal->Next() : frameTraversal->Prev();
   }
 
   
@@ -5548,7 +5544,7 @@ nsEventStateManager::GetDocSelectionLocation(nsIContent **aStartContent,
         if (nodeValue.Length() == *aStartOffset && !isFormControl &&
             startContent != mDocument->GetRootContent()) {
           
-          nsCOMPtr<nsIFrameEnumerator> frameTraversal;
+          nsCOMPtr<nsIBidirectionalEnumerator> frameTraversal;
 
           nsCOMPtr<nsIFrameTraversal> trav(do_CreateInstance(kFrameTraversalCID,
                                                              &rv));
@@ -5570,8 +5566,9 @@ nsEventStateManager::GetDocSelectionLocation(nsIContent **aStartContent,
             
             
             frameTraversal->Next();
-            newCaretFrame = frameTraversal->CurrentItem();
-            if (nsnull == newCaretFrame) {
+            nsISupports* currentItem;
+            frameTraversal->CurrentItem(&currentItem);
+            if (nsnull == (newCaretFrame = static_cast<nsIFrame*>(currentItem))) {
               break;
             }
             newCaretContent = newCaretFrame->GetContent();            
