@@ -234,14 +234,22 @@ nsMenuBarListener::KeyPress(nsIDOMEvent* aKeyEvent)
       keyEvent->GetKeyCode(&keyCode);
       keyEvent->GetCharCode(&charCode);
 
+      PRBool hasAccessKeyCandidates = charCode != 0;
+      if (!hasAccessKeyCandidates) {
+        nsEvent* nativeEvent = nsContentUtils::GetNativeEvent(aKeyEvent);
+        nsKeyEvent* nativeKeyEvent = static_cast<nsKeyEvent*>(nativeEvent);
+        if (nativeKeyEvent) {
+          nsAutoTArray<PRUint32, 10> keys;
+          nsContentUtils::GetAccessKeyCandidates(nativeKeyEvent, keys);
+          hasAccessKeyCandidates = !keys.IsEmpty();
+        }
+      }
+
       
       if (keyCode != (PRUint32)mAccessKey)
         mAccessKeyDown = PR_FALSE;
 
-      
-      
-      if (IsAccessKeyPressed(keyEvent) && charCode)
-      {
+      if (IsAccessKeyPressed(keyEvent) && hasAccessKeyCandidates) {
         
         
         

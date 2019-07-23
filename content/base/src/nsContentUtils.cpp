@@ -4001,6 +4001,124 @@ nsContentUtils::DOMEventToNativeKeyEvent(nsIDOMEvent* aDOMEvent,
 
 
 void
+nsContentUtils::GetAccelKeyCandidates(nsIDOMEvent* aDOMEvent,
+                  nsTArray<nsShortcutCandidate>& aCandidates)
+{
+  NS_PRECONDITION(aCandidates.IsEmpty(), "aCandidates must be empty");
+
+  nsAutoString eventType;
+  aDOMEvent->GetType(eventType);
+  
+  if (!eventType.EqualsLiteral("keypress"))
+    return;
+
+  nsKeyEvent* nativeKeyEvent =
+    static_cast<nsKeyEvent*>(GetNativeEvent(aDOMEvent));
+  if (nativeKeyEvent) {
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    if (nativeKeyEvent->charCode) {
+      nsShortcutCandidate key(nativeKeyEvent->charCode, PR_FALSE);
+      aCandidates.AppendElement(key);
+    }
+
+    if (!nativeKeyEvent->isShift) {
+      for (PRUint32 i = 0;
+           i < nativeKeyEvent->alternativeCharCodes.Length(); ++i) {
+        PRUint32 ch =
+          nativeKeyEvent->alternativeCharCodes[0].mUnshiftedCharCode;
+        if (!ch || ch == nativeKeyEvent->charCode)
+          continue;
+
+        nsShortcutCandidate key(ch, PR_FALSE);
+        aCandidates.AppendElement(key);
+      }
+    } else {
+      for (PRUint32 i = 0;
+           i < nativeKeyEvent->alternativeCharCodes.Length(); ++i) {
+        PRUint32 ch = nativeKeyEvent->alternativeCharCodes[i].mShiftedCharCode;
+        if (!ch)
+          continue;
+
+        if (ch != nativeKeyEvent->charCode) {
+          nsShortcutCandidate key(ch, PR_FALSE);
+          aCandidates.AppendElement(key);
+        }
+
+        
+        
+        
+        
+        PRUint32 unshiftCh =
+          nativeKeyEvent->alternativeCharCodes[i].mUnshiftedCharCode;
+        if (ch == unshiftCh ||
+            (IS_IN_BMP(ch) && IS_IN_BMP(unshiftCh) &&
+             ToLowerCase(PRUnichar(ch)) == ToLowerCase(PRUnichar(unshiftCh))))
+          continue;
+
+        
+        
+        nsShortcutCandidate key(ch, PR_TRUE);
+        aCandidates.AppendElement(key);
+      }
+    }
+  } else {
+    nsCOMPtr<nsIDOMKeyEvent> key(do_QueryInterface(aDOMEvent));
+    PRUint32 charCode;
+    key->GetCharCode(&charCode);
+    if (charCode) {
+      nsShortcutCandidate key(charCode, PR_FALSE);
+      aCandidates.AppendElement(key);
+    }
+  }
+}
+
+
+void
+nsContentUtils::GetAccessKeyCandidates(nsKeyEvent* aNativeKeyEvent,
+                                       nsTArray<PRUint32>& aCandidates)
+{
+  NS_PRECONDITION(aCandidates.IsEmpty(), "aCandidates must be empty");
+
+  
+  
+  
+  
+  if (aNativeKeyEvent->charCode) {
+    PRUint32 ch = aNativeKeyEvent->charCode;
+    if (IS_IN_BMP(ch))
+      ch = ToLowerCase(PRUnichar(ch));
+    aCandidates.AppendElement(ch);
+  }
+  for (PRUint32 i = 0;
+       i < aNativeKeyEvent->alternativeCharCodes.Length(); ++i) {
+    PRUint32 ch[2] =
+      { aNativeKeyEvent->alternativeCharCodes[i].mUnshiftedCharCode,
+        aNativeKeyEvent->alternativeCharCodes[i].mShiftedCharCode };
+    for (PRUint32 j = 0; j < 2; ++j) {
+      if (!ch[j])
+        continue;
+      if (IS_IN_BMP(ch[j]))
+        ch[j] = ToLowerCase(PRUnichar(ch[j]));
+      
+      if (aCandidates.IndexOf(ch[j]) == aCandidates.NoIndex)
+        aCandidates.AppendElement(ch[j]);
+    }
+  }
+  return;
+}
+
+
+void
 nsContentUtils::AddScriptBlocker()
 {
   if (!sScriptBlockerCount) {

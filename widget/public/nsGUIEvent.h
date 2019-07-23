@@ -56,6 +56,7 @@
 #include "nsIDOMKeyEvent.h"
 #include "nsWeakPtr.h"
 #include "nsIWidget.h"
+#include "nsTArray.h"
 
 class nsIRenderingContext;
 class nsIRegion;
@@ -700,6 +701,16 @@ public:
 
 
 
+struct nsAlternativeCharCode {
+  nsAlternativeCharCode(PRUint32 aUnshiftedCharCode,
+                        PRUint32 aShiftedCharCode) :
+    mUnshiftedCharCode(aUnshiftedCharCode), mShiftedCharCode(aShiftedCharCode)
+  {
+  }
+  PRUint32 mUnshiftedCharCode;
+  PRUint32 mShiftedCharCode;
+};
+
 class nsKeyEvent : public nsInputEvent
 {
 public:
@@ -713,6 +724,9 @@ public:
   PRUint32        keyCode;   
   
   PRUint32        charCode;
+  
+  
+  nsTArray<nsAlternativeCharCode> alternativeCharCodes;
   
   PRBool          isChar;
 };

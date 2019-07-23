@@ -280,6 +280,47 @@ nsNativeKeyBindings::KeyPress(const nsNativeKeyEvent& aEvent,
   else
     keyCode = DOMKeyCodeToGdkKeyCode(aEvent.keyCode);
 
+  if (KeyPressInternal(aEvent, aCallback, aCallbackData, keyCode))
+    return PR_TRUE;
+
+  nsKeyEvent *nativeKeyEvent = static_cast<nsKeyEvent*>(aEvent.nativeEvent);
+  if (!nativeKeyEvent || nativeKeyEvent->eventStructType != NS_KEY_EVENT &&
+      nativeKeyEvent->message != NS_KEY_PRESS)
+    return PR_FALSE;
+
+  for (PRUint32 i = 0; i < nativeKeyEvent->alternativeCharCodes.Length(); ++i) {
+    PRUint32 ch = nativeKeyEvent->isShift ?
+        nativeKeyEvent->alternativeCharCodes[i].mShiftedCharCode :
+        nativeKeyEvent->alternativeCharCodes[i].mUnshiftedCharCode;
+    if (ch && ch != aEvent.charCode) {
+      keyCode = gdk_unicode_to_keyval(ch);
+      if (KeyPressInternal(aEvent, aCallback, aCallbackData, keyCode))
+        return PR_TRUE;
+    }
+  }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  return PR_FALSE;
+}
+
+PRBool
+nsNativeKeyBindings::KeyPressInternal(const nsNativeKeyEvent& aEvent,
+                                      DoCommandCallback aCallback,
+                                      void *aCallbackData,
+                                      PRUint32 aKeyCode)
+{
   int modifiers = 0;
   if (aEvent.altKey)
     modifiers |= GDK_MOD1_MASK;
@@ -295,19 +336,7 @@ nsNativeKeyBindings::KeyPress(const nsNativeKeyEvent& aEvent,
   gHandled = PR_FALSE;
 
   gtk_bindings_activate(GTK_OBJECT(mNativeTarget),
-                        keyCode, GdkModifierType(modifiers));
-
-
-
-
-
-
-
-
-
-
-
-
+                        aKeyCode, GdkModifierType(modifiers));
 
   gCurrentCallback = nsnull;
   gCurrentCallbackData = nsnull;

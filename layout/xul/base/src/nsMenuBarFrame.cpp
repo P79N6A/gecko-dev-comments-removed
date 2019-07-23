@@ -64,6 +64,8 @@
 #include "nsISound.h"
 #include "nsWidgetsCID.h"
 #endif
+#include "nsContentUtils.h"
+#include "nsUTF8Utils.h"
 
 
 
@@ -209,8 +211,17 @@ nsMenuBarFrame::FindMenuWithShortcut(nsIDOMKeyEvent* aKeyEvent)
 {
   PRUint32 charCode;
   aKeyEvent->GetCharCode(&charCode);
-  if (!charCode) 
-    return nsnull;
+
+  nsAutoTArray<PRUint32, 10> accessKeys;
+  nsEvent* nativeEvent = nsContentUtils::GetNativeEvent(aKeyEvent);
+  nsKeyEvent* nativeKeyEvent = static_cast<nsKeyEvent*>(nativeEvent);
+  if (nativeKeyEvent)
+    nsContentUtils::GetAccessKeyCandidates(nativeKeyEvent, accessKeys);
+  if (accessKeys.IsEmpty() && charCode)
+    accessKeys.AppendElement(charCode);
+
+  if (accessKeys.IsEmpty())
+    return nsnull; 
 
   
   nsIFrame* immediateParent = nsnull;
@@ -218,28 +229,38 @@ nsMenuBarFrame::FindMenuWithShortcut(nsIDOMKeyEvent* aKeyEvent)
   if (!immediateParent)
     immediateParent = this;
 
+  
+  nsIFrame* foundMenu = nsnull;
+  PRUint32 foundIndex = accessKeys.NoIndex;
   nsIFrame* currFrame = immediateParent->GetFirstChild(nsnull);
 
   while (currFrame) {
     nsIContent* current = currFrame->GetContent();
-    
+
     
     if (nsXULPopupManager::IsValidMenuItem(PresContext(), current, PR_FALSE)) {
       
       nsAutoString shortcutKey;
       current->GetAttr(kNameSpaceID_None, nsGkAtoms::accesskey, shortcutKey);
       if (!shortcutKey.IsEmpty()) {
-        
-        PRUnichar letter = PRUnichar(charCode); 
-        if ( shortcutKey.Equals(Substring(&letter, &letter+1),
-                                nsCaseInsensitiveStringComparator()) )  {
-          
-          return (currFrame->GetType() == nsGkAtoms::menuFrame) ?
-                 static_cast<nsMenuFrame *>(currFrame) : nsnull;
+        ToLowerCase(shortcutKey);
+        nsAutoString::const_iterator start, end;
+        shortcutKey.BeginReading(start);
+        shortcutKey.EndReading(end);
+        PRUint32 ch = UTF16CharEnumerator::NextChar(start, end);
+        PRUint32 index = accessKeys.IndexOf(ch);
+        if (index != accessKeys.NoIndex &&
+            (foundIndex == kNotFound || index < foundIndex)) {
+          foundMenu = currFrame;
+          foundIndex = index;
         }
       }
     }
     currFrame = currFrame->GetNextSibling();
+  }
+  if (foundMenu) {
+    return (foundMenu->GetType() == nsGkAtoms::menuFrame) ?
+           static_cast<nsMenuFrame *>(foundMenu) : nsnull;
   }
 
   

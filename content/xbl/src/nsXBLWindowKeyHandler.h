@@ -81,12 +81,18 @@ protected:
                                 nsXBLPrototypeHandler* aHandler);
 
   
+  PRBool WalkHandlersAndExecute(nsIDOMEvent* aEvent, nsIAtom* aEventType,
+                                nsXBLPrototypeHandler* aHandler,
+                                PRUint32 aCharCode, PRBool aIgnoreShiftKey);
+
+  
   
   nsresult EnsureHandlers(PRBool *aIsEditor);
 
   
   PRBool EventMatched(nsXBLPrototypeHandler* inHandler, nsIAtom* inEventType,
-                      nsIDOMEvent* inEvent);
+                      nsIDOMEvent* inEvent, PRUint32 aCharCode,
+                      PRBool aIgnoreShiftKey);
 
   
   PRBool IsEditor() ;
