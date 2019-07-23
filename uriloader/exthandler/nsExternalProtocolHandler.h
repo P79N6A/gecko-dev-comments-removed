@@ -62,7 +62,7 @@ public:
 
 protected:
   
-  PRBool HaveOSProtocolHandler(nsIURI * aURI);
+  PRBool HaveExternalProtocolHandler(nsIURI * aURI);
 	nsCString	m_schemeName;
   nsCOMPtr<nsIExternalProtocolService> m_extProtService;
 };
