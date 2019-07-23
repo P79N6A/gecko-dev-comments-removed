@@ -370,10 +370,16 @@ nsSVGInnerSVGFrame::GetCanvasTM()
     parentTM->Translate(x, y, getter_AddRefs(xyTM));
 
     
-    nsCOMPtr<nsIDOMSVGMatrix> viewBoxToViewportTM;
+    nsCOMPtr<nsIDOMSVGMatrix> viewBoxTM;
     nsSVGSVGElement *svgElement = static_cast<nsSVGSVGElement*>(mContent);
-    svgElement->GetViewboxToViewportTransform(getter_AddRefs(viewBoxToViewportTM));
-    xyTM->Multiply(viewBoxToViewportTM, getter_AddRefs(mCanvasTM));
+    nsresult res =
+      svgElement->GetViewboxToViewportTransform(getter_AddRefs(viewBoxTM));
+    if (NS_SUCCEEDED(res) && viewBoxTM) {
+      xyTM->Multiply(viewBoxTM, getter_AddRefs(mCanvasTM));
+    } else {
+      NS_WARNING("We should propagate the fact that the viewBox is invalid.");
+      mCanvasTM = xyTM;
+    }
   }    
 
   nsIDOMSVGMatrix* retval = mCanvasTM.get();
