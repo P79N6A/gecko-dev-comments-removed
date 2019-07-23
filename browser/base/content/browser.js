@@ -4195,7 +4195,21 @@ nsBrowserStatusHandler.prototype =
       this.securityButton.removeAttribute("label");
 
     this.securityButton.setAttribute("tooltiptext", this._tooltipText);
-    getIdentityHandler().checkIdentity(this._state, gBrowser.contentWindow.location);
+
+    
+    
+    
+    var location = gBrowser.contentWindow.location;
+    var locationObj = {};
+    try {
+      locationObj.host = location.host;
+      locationObj.hostname = location.hostname
+    } catch (ex) {
+      
+      
+      
+    }
+    getIdentityHandler().checkIdentity(this._state, locationObj);
   },
 
   
@@ -6400,6 +6414,7 @@ IdentityHandler.prototype = {
   },
   
   
+
 
 
 
