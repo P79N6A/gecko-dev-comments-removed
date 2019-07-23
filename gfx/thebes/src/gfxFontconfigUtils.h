@@ -62,10 +62,7 @@ public:
         return sUtils;
     }
 
-    static void Shutdown() {
-        delete sUtils;
-        sUtils = nsnull;
-    }
+    static void Shutdown();
 
     nsresult GetFontList(const nsACString& aLangGroup,
                          const nsACString& aGenericFamily,
@@ -81,6 +78,14 @@ public:
 
     static PRUint8 GetThebesStyle(FcPattern *aPattern); 
     static PRUint16 GetThebesWeight(FcPattern *aPattern);
+
+    
+
+
+
+
+    static void GetSampleLangForGroup(const nsACString& aLangGroup,
+                                      nsACString *aFcLang);
 
 protected:
     static gfxFontconfigUtils* sUtils;
