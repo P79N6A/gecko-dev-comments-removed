@@ -87,6 +87,10 @@ JS_BEGIN_EXTERN_C
 
 
 
+
+
+
+
 struct JSString {
     size_t          length;
     union {
@@ -101,11 +105,13 @@ struct JSString {
 
 
 
+
 #define JSSTRFLAG_DEPENDENT         JSSTRING_BIT(JS_BITS_PER_WORD - 1)
 #define JSSTRFLAG_PREFIX            JSSTRING_BIT(JS_BITS_PER_WORD - 2)
 #define JSSTRFLAG_MUTABLE           JSSTRFLAG_PREFIX
+#define JSSTRFLAG_ATOMIZED          JSSTRING_BIT(JS_BITS_PER_WORD - 3)
 
-#define JSSTRING_LENGTH_BITS        (JS_BITS_PER_WORD - 2)
+#define JSSTRING_LENGTH_BITS        (JS_BITS_PER_WORD - 3)
 #define JSSTRING_LENGTH_MASK        JSSTRING_BITMASK(JSSTRING_LENGTH_BITS)
 
 
@@ -117,6 +123,9 @@ struct JSString {
 #define JSSTRING_IS_MUTABLE(str)    (((str)->length & (JSSTRFLAG_DEPENDENT |  \
                                                        JSSTRFLAG_MUTABLE)) == \
                                      JSSTRFLAG_MUTABLE)
+#define JSSTRING_IS_ATOMIZED(str)   (((str)->length & (JSSTRFLAG_DEPENDENT |  \
+                                                       JSSTRFLAG_ATOMIZED)) ==\
+                                     JSSTRFLAG_ATOMIZED)
 
 #define JSSTRING_CHARS(str)         (JSSTRING_IS_DEPENDENT(str)               \
                                      ? JSSTRDEP_CHARS(str)                    \
@@ -148,13 +157,44 @@ struct JSString {
 #define JSFLATSTR_CHARS(str)                                                  \
     (JS_ASSERT(JSSTRING_IS_FLAT(str)), (str)->u.chars)
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#define JSFLATSTR_SET_ATOMIZED(str)                                           \
+    ((void)(JS_ASSERT(JSSTRING_IS_FLAT(str) && !JSSTRING_IS_MUTABLE(str)),    \
+            (str)->length |= JSSTRFLAG_ATOMIZED))
+
 #define JSFLATSTR_SET_MUTABLE(str)                                            \
-    ((void)(JS_ASSERT(JSSTRING_IS_FLAT(str)),                                 \
+    ((void)(JS_ASSERT(JSSTRING_IS_FLAT(str) && !JSSTRING_IS_ATOMIZED(str)),   \
             (str)->length |= JSSTRFLAG_MUTABLE))
 
 #define JSFLATSTR_CLEAR_MUTABLE(str)                                          \
     ((void)(JS_ASSERT(JSSTRING_IS_FLAT(str)),                                 \
-            (str)->length &= ~JSSTRFLAG_MUTABLE))
+            JSSTRING_HAS_FLAG(str, JSSTRFLAG_MUTABLE) &&                      \
+            ((str)->length &= ~JSSTRFLAG_MUTABLE)))
 
 
 #define JSSTRDEP_START_BITS         (JSSTRING_LENGTH_BITS-JSSTRDEP_LENGTH_BITS)
