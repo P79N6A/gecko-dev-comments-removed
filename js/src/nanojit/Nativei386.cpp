@@ -878,8 +878,15 @@ namespace nanojit
 			Register ra;
 
 			
-			if (rA == 0 || (ra = rA->reg) == UnknownReg)
+			if (rA == 0 || (ra = rA->reg) == UnknownReg) {
 				ra = findSpecificRegFor(lhs, rr);
+			} else if ((rmask(ra) & XmmRegs) == 0) {
+				
+
+
+
+				ra = findRegFor(lhs, XmmRegs);
+			}
 			
 
 			static const AVMPLUS_ALIGN16(uint32_t) negateMask[] = {0,0x80000000,0,0};
@@ -975,8 +982,15 @@ namespace nanojit
 			Register ra;
 
 			
-			if (rA == 0 || (ra = rA->reg) == UnknownReg)
+			if (rA == 0 || (ra = rA->reg) == UnknownReg) {
 				ra = findSpecificRegFor(lhs, rr);
+			} else if ((rmask(ra) & XmmRegs) == 0) {
+				
+
+
+
+				ra = findRegFor(lhs, XmmRegs);
+			}
 			
 
 			if (lhs == rhs)
