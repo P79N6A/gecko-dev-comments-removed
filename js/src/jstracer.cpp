@@ -536,7 +536,7 @@ public:
 
 
 void
-TypeMap::captureGlobalTypes(JSContext* cx, Queue<uint16>& slots)
+TypeMap::captureGlobalTypes(JSContext* cx, SlotList& slots)
 {
     unsigned ngslots = slots.length();
     uint16* gslots = slots.data();
