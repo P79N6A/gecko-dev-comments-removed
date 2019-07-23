@@ -4684,6 +4684,10 @@ CSSParserImpl::ParseChoice(nsCSSValue aValues[],
       if ((found & bit) == 0) {
         if (ParseSingleValueProperty(aValues[index], aPropIDs[index])) {
           found |= bit;
+          
+          
+          
+          break;
         }
       }
     }
@@ -5690,6 +5694,8 @@ CSSParserImpl::ParseSingleValueProperty(nsCSSValue& aValue,
                         nsCSSProps::kWordwrapKTable);
   case eCSSProperty_z_index:
     return ParseVariant(aValue, VARIANT_AHI, nsnull);
+  case eCSSPropertyExtra_x_none_value:
+    return ParseVariant(aValue, VARIANT_NONE | VARIANT_INHERIT, nsnull);
   }
   
   
@@ -7367,32 +7373,56 @@ CSSParserImpl::ParseFontRanges(nsCSSValue& aValue)
 PRBool
 CSSParserImpl::ParseListStyle()
 {
-  const PRInt32 numProps = 3;
+  
+  
+  
+  
+  
   static const nsCSSProperty listStyleIDs[] = {
+    eCSSPropertyExtra_x_none_value,
     eCSSProperty_list_style_type,
     eCSSProperty_list_style_position,
     eCSSProperty_list_style_image
   };
 
-  nsCSSValue  values[numProps];
-  PRInt32 index;
-  PRInt32 found = ParseChoice(values, listStyleIDs, numProps);
-  if ((found < 1) || (PR_FALSE == ExpectEndProperty())) {
+  nsCSSValue values[NS_ARRAY_LENGTH(listStyleIDs)];
+  PRInt32 found =
+    ParseChoice(values, listStyleIDs, NS_ARRAY_LENGTH(listStyleIDs));
+  if (found < 1 || !ExpectEndProperty()) {
     return PR_FALSE;
   }
 
-  
-  if ((found & 1) == 0) {
-    values[0].SetIntValue(NS_STYLE_LIST_STYLE_DISC, eCSSUnit_Enumerated);
-  }
-  if ((found & 2) == 0) {
-    values[1].SetIntValue(NS_STYLE_LIST_STYLE_POSITION_OUTSIDE, eCSSUnit_Enumerated);
-  }
-  if ((found & 4) == 0) {
-    values[2].SetNoneValue();
+  if ((found & (1|2|8)) == (1|2|8)) {
+    if (values[0].GetUnit() == eCSSUnit_None) {
+      
+      
+      
+      return PR_FALSE;
+    } else {
+      NS_ASSERTION(found == (1|2|4|8) && values[0] == values[1] &&
+                   values[0] == values[2] && values[0] == values[3],
+                   "should be a special value");
+    }
   }
 
-  for (index = 0; index < numProps; index++) {
+  
+  if ((found & 2) == 0) {
+    if (found & 1) {
+      values[1].SetNoneValue();
+    } else {
+      values[1].SetIntValue(NS_STYLE_LIST_STYLE_DISC, eCSSUnit_Enumerated);
+    }
+  }
+  if ((found & 4) == 0) {
+    values[2].SetIntValue(NS_STYLE_LIST_STYLE_POSITION_OUTSIDE,
+                          eCSSUnit_Enumerated);
+  }
+  if ((found & 8) == 0) {
+    values[3].SetNoneValue();
+  }
+
+  
+  for (PRUint32 index = 1; index < NS_ARRAY_LENGTH(listStyleIDs); ++index) {
     AppendValue(listStyleIDs[index], values[index]);
   }
   return PR_TRUE;

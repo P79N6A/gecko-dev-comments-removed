@@ -62,7 +62,10 @@ enum nsCSSProperty {
   #include "nsCSSPropList.h"
   #undef CSS_PROP_SHORTHAND
 
-  eCSSProperty_COUNT
+  eCSSProperty_COUNT,
+
+  
+  eCSSPropertyExtra_x_none_value
 };
 
 
