@@ -128,6 +128,9 @@ function test() {
   browserWindowsCount(1, "Only one browser window should be open initially");
 
   waitForExplicitFinish();
+  
+  
+  requestLongerTimeout(2);
 
   
   
