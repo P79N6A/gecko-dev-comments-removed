@@ -558,6 +558,10 @@ DOMWorkerOperationCallback(JSContext* aCx)
         NS_SUCCEEDED(gDOMThreadService->ChangeThreadPoolMaxThreads(1));
 
       
+      
+      JS_FlushCaches(aCx);
+
+      
       wasSuspended = PR_TRUE;
     }
 
