@@ -278,6 +278,13 @@ class HashTable : AllocPolicy
 #endif
     {}
 
+
+
+
+
+#ifdef _MSC_VER
+# pragma optimize("", off)
+#endif
     bool init(uint32 capacity)
     {
         if (capacity < sMinSize)
@@ -296,6 +303,9 @@ class HashTable : AllocPolicy
         METER(memset(&stats, 0, sizeof(stats)));
         return true;
     }
+#ifdef _MSC_VER
+# pragma optimize("", on)
+#endif
 
     ~HashTable()
     {
