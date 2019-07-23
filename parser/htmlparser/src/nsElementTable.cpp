@@ -890,7 +890,7 @@ const nsHTMLElement gHTMLElements[] = {
               eHTMLTag_unknown,eHTMLTag_unknown,
               &gRootTags,&gRootTags,
      0,0,0,0,
-              kFlowEntity, kFlowEntity|kSelf, kNone,
+              kFlowEntity|kHeadMisc, kFlowEntity|kSelf, kNone,
            0, kNoPropRange,
            0,0,eHTMLTag_unknown,
                         0
