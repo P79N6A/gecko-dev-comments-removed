@@ -95,8 +95,8 @@ typedef nsEventStatus (* EVENT_CALLBACK)(nsGUIEvent *event);
 
 
 #define NS_IWIDGET_IID \
-{ 0x8c91457a, 0xef86, 0x4da1, \
-  { 0xb4, 0xf9, 0x36, 0x02, 0x2d, 0xcc, 0x6c, 0x7e } }
+{ 0x7E01D11D, 0xDAFC, 0x4A5E, \
+  { 0x8C, 0x0A, 0x74, 0x42, 0xA2, 0xE1, 0x72, 0x52 } }
 
 
 
@@ -1147,6 +1147,24 @@ class nsIWidget : public nsISupports {
     
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+    virtual nsresult ForceUpdateNativeMenuAt(const nsAString& indexString) = 0;
+
+    
+
+
     NS_IMETHOD ResetInputState()=0;
 
     
@@ -1221,14 +1239,6 @@ class nsIWidget : public nsISupports {
 
 
     NS_IMETHOD GetToggledKeyState(PRUint32 aKeyCode, PRBool* aLEDState) = 0;
-
-    
-
-
-
-
-
-    virtual nsresult ForceNativeMenuReload() = 0;
 
 protected:
     
