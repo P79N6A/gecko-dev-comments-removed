@@ -122,7 +122,7 @@ public:
   nsTArray<nsCString> mMimeDescriptionArray; 
   char          **mExtensionsArray;
   PRLibrary     *mLibrary;
-  nsIPlugin     *mEntryPoint;
+  nsCOMPtr<nsIPlugin> mEntryPoint;
   PRPackedBool  mCanUnloadLibrary;
   PRPackedBool  mXPConnected;
   PRPackedBool  mIsJavaPlugin;
@@ -342,7 +342,6 @@ private:
   
   void UnloadUnusedLibraries();
   
-  char *mPluginPath;
   nsRefPtr<nsPluginTag> mPlugins;
   nsRefPtr<nsPluginTag> mCachedPlugins;
   PRPackedBool mPluginsLoaded;
