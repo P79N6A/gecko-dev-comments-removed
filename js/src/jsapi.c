@@ -732,10 +732,10 @@ JS_NewRuntime(uint32 maxbytes)
     rt->stateChange = JS_NEW_CONDVAR(rt->gcLock);
     if (!rt->stateChange)
         goto bad;
-    rt->scopeSharingDone = JS_NEW_CONDVAR(rt->gcLock);
-    if (!rt->scopeSharingDone)
+    rt->titleSharingDone = JS_NEW_CONDVAR(rt->gcLock);
+    if (!rt->titleSharingDone)
         goto bad;
-    rt->scopeSharingTodo = NO_SCOPE_SHARING_TODO;
+    rt->titleSharingTodo = NO_TITLE_SHARING_TODO;
     rt->debuggerLock = JS_NEW_LOCK();
     if (!rt->debuggerLock)
         goto bad;
@@ -792,8 +792,8 @@ JS_DestroyRuntime(JSRuntime *rt)
         JS_DESTROY_LOCK(rt->rtLock);
     if (rt->stateChange)
         JS_DESTROY_CONDVAR(rt->stateChange);
-    if (rt->scopeSharingDone)
-        JS_DESTROY_CONDVAR(rt->scopeSharingDone);
+    if (rt->titleSharingDone)
+        JS_DESTROY_CONDVAR(rt->titleSharingDone);
     if (rt->debuggerLock)
         JS_DESTROY_LOCK(rt->debuggerLock);
 #else
@@ -866,8 +866,8 @@ JS_EndRequest(JSContext *cx)
 {
 #ifdef JS_THREADSAFE
     JSRuntime *rt;
-    JSScope *scope, **todop;
-    uintN nshares;
+    JSTitle *title, **todop;
+    JSBool shared;
 
     CHECK_REQUEST(cx);
     JS_ASSERT(cx->requestDepth > 0);
@@ -880,15 +880,15 @@ JS_EndRequest(JSContext *cx)
         cx->outstandingRequests--;
 
         
-        todop = &rt->scopeSharingTodo;
-        nshares = 0;
-        while ((scope = *todop) != NO_SCOPE_SHARING_TODO) {
-            if (scope->ownercx != cx) {
-                todop = &scope->u.link;
+        todop = &rt->titleSharingTodo;
+        shared = JS_FALSE;
+        while ((title = *todop) != NO_TITLE_SHARING_TODO) {
+            if (title->ownercx != cx) {
+                todop = &title->u.link;
                 continue;
             }
-            *todop = scope->u.link;
-            scope->u.link = NULL;       
+            *todop = title->u.link;
+            title->u.link = NULL;       
 
             
 
@@ -897,15 +897,15 @@ JS_EndRequest(JSContext *cx)
 
 
 
-            if (js_DropObjectMap(cx, &scope->map, NULL)) {
-                js_InitLock(&scope->lock);
-                scope->u.count = 0;                 
-                js_FinishSharingScope(cx, scope);   
-                nshares++;
+            if (js_DropObjectMap(cx, TITLE_TO_MAP(title), NULL)) {
+                js_InitLock(&title->lock);
+                title->u.count = 0;   
+                js_FinishSharingTitle(cx, title); 
+                shared = JS_TRUE;
             }
         }
-        if (nshares)
-            JS_NOTIFY_ALL_CONDVAR(rt->scopeSharingDone);
+        if (shared)
+            JS_NOTIFY_ALL_CONDVAR(rt->titleSharingDone);
 
         
         JS_ASSERT(rt->requestCount > 0);
@@ -2943,10 +2943,10 @@ JS_SealObject(JSContext *cx, JSObject *obj, JSBool deep)
 
 #if defined JS_THREADSAFE && defined DEBUG
     
-    if (scope->ownercx != cx) {
+    if (scope->title.ownercx != cx) {
         JS_LOCK_OBJ(cx, obj);
         JS_ASSERT(OBJ_SCOPE(obj) == scope);
-        JS_ASSERT(scope->ownercx == cx);
+        JS_ASSERT(scope->title.ownercx == cx);
         JS_UNLOCK_SCOPE(cx, scope);
     }
 #endif

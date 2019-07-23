@@ -197,6 +197,9 @@ JS_BEGIN_EXTERN_C
 
 struct JSScope {
     JSObjectMap     map;                
+#ifdef JS_THREADSAFE
+    JSTitle         title;              
+#endif
     JSObject        *object;            
     uint32          shape;              
     uint8           flags;              
@@ -206,19 +209,13 @@ struct JSScope {
     uint32          removedCount;       
     JSScopeProperty **table;            
     JSScopeProperty *lastProp;          
-#ifdef JS_THREADSAFE
-    JSContext       *ownercx;           
-    JSThinLock      lock;               
-    union {                             
-        jsrefcount  count;              
-        JSScope     *link;              
-    } u;
-#ifdef JS_DEBUG_SCOPE_LOCKS
-    const char      *file[4];           
-    unsigned int    line[4];            
-#endif
-#endif
 };
+
+#ifdef JS_THREADSAFE
+JS_STATIC_ASSERT(offsetof(JSScope, title) == sizeof(JSObjectMap));
+#endif
+
+#define JS_IS_SCOPE_LOCKED(cx, scope)   JS_IS_TITLE_LOCKED(cx, &(scope)->title)
 
 #define OBJ_SCOPE(obj)                  ((JSScope *)(obj)->map)
 #define SCOPE_GENERATE_PCTYPE(cx,scope) ((scope)->shape = js_GenerateShape(cx))

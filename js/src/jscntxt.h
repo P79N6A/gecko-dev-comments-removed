@@ -308,8 +308,8 @@ struct JSRuntime {
 
 
 
-    PRCondVar           *scopeSharingDone;
-    JSScope             *scopeSharingTodo;
+    PRCondVar           *titleSharingDone;
+    JSTitle             *titleSharingTodo;
 
 
 
@@ -318,7 +318,7 @@ struct JSRuntime {
 
 
 
-#define NO_SCOPE_SHARING_TODO   ((JSScope *) 0xfeedbeef)
+#define NO_TITLE_SHARING_TODO   ((JSTitle *) 0xfeedbeef)
 
     
 
@@ -429,11 +429,11 @@ struct JSRuntime {
 
     
     jsrefcount          claimAttempts;
-    jsrefcount          claimedScopes;
+    jsrefcount          claimedTitles;
     jsrefcount          deadContexts;
     jsrefcount          deadlocksAvoided;
     jsrefcount          liveScopes;
-    jsrefcount          sharedScopes;
+    jsrefcount          sharedTitles;
     jsrefcount          totalScopes;
     jsrefcount          liveScopeProps;
     jsrefcount          liveScopePropsPreSweep;
@@ -769,8 +769,8 @@ struct JSContext {
     jsrefcount          requestDepth;
     
     jsrefcount          outstandingRequests;
-    JSScope             *scopeToShare;      
-    JSScope             *lockedSealedScope; 
+    JSTitle             *titleToShare;      
+    JSTitle             *lockedSealedTitle; 
 
     JSCList             threadLinks;        
 
