@@ -261,6 +261,7 @@ NS_IMETHODIMP nsIDNService::IsACE(const nsACString & input, PRBool *_retval)
   return NS_OK;
 }
 
+
 NS_IMETHODIMP nsIDNService::Normalize(const nsACString & input, nsACString & output)
 {
   
