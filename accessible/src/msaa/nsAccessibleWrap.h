@@ -322,9 +322,6 @@ protected:
   
   PRUint16 mEnumVARIANTPosition;
 
-  
-  static PRBool MustPrune(nsIAccessible *aAccessible);
-
   enum navRelations {
     NAVRELATION_CONTROLLED_BY = 0x1000,
     NAVRELATION_CONTROLLER_FOR = 0x1001,

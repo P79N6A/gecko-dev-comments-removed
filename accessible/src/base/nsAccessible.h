@@ -156,12 +156,16 @@ public:
   static PRBool IsLeaf(nsIAccessible *aAcc) { PRInt32 numChildren; aAcc->GetChildCount(&numChildren); return numChildren > 0; }
   static PRBool IsNodeRelevant(nsIDOMNode *aNode); 
   
+
+
+  static PRBool MustPrune(nsIAccessible *aAccessible);
+  
   already_AddRefed<nsIAccessible> GetParent() {
     nsIAccessible *parent = nsnull;
     GetParent(&parent);
     return parent;
   }
-
+  
 protected:
   PRBool MappedAttrState(nsIContent *aContent, PRUint32 *aStateInOut, nsStateMapEntry *aStateMapEntry);
   virtual nsIFrame* GetBoundsFrame();

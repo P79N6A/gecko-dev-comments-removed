@@ -115,9 +115,6 @@ public:
       return returnedString.get();
     }
 
-    
-    static PRBool MustPrune(nsIAccessible *aAccessible);
-
 protected:
     nsresult FireAtkStateChangeEvent(nsIAccessibleEvent *aEvent,
                                      AtkObject *aObject);
