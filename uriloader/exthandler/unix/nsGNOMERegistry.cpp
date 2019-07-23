@@ -50,6 +50,10 @@
 #ifdef MOZ_WIDGET_GTK2
 #include <glib.h>
 #include <glib-object.h>
+
+#ifdef MOZ_PLATFORM_HILDON
+#include <libintl.h>
+#endif
 #endif
 
  PRBool
@@ -153,7 +157,18 @@ nsGNOMERegistry::GetFromType(const nsACString& aMIMEType)
 
   nsCAutoString name;
   handlerApp->GetName(name);
+#ifdef MOZ_PLATFORM_HILDON
+  
+  
+  
+  
+  
+  const char kDefaultTextDomain [] = "maemo-af-desktop";
+  nsCAutoString realName (dgettext(kDefaultTextDomain, PromiseFlatCString(name).get()));
+  mimeInfo->SetDefaultDescription(NS_ConvertUTF8toUTF16(realName));
+#else
   mimeInfo->SetDefaultDescription(NS_ConvertUTF8toUTF16(name));
+#endif
   mimeInfo->SetPreferredAction(nsIMIMEInfo::useSystemDefault);
 
   nsMIMEInfoBase* retval;
