@@ -66,14 +66,6 @@ const kPhishWardenEnabledPref = "browser.safebrowsing.enabled";
 
 
 
-const kTestUrls = {
-  "http:
-  "http:
-  "http:
-}
-
-
-
 
 
 
@@ -84,8 +76,6 @@ function PROT_PhishingWarden() {
   PROT_ListWarden.call(this);
 
   this.debugZone = "phishwarden";
-  this.testing_ = false;
-  this.browserViews_ = [];
 
   
   this.prefs_ = new G_Preferences();
@@ -105,9 +95,6 @@ function PROT_PhishingWarden() {
 }
 
 PROT_PhishingWarden.inherits(PROT_ListWarden);
-
-
-
 
 PROT_PhishingWarden.prototype.QueryInterface = function(iid) {
   if (iid.equals(Ci.nsISupports) || 
@@ -136,9 +123,6 @@ PROT_PhishingWarden.prototype.shutdown = function() {
 
  
 PROT_PhishingWarden.prototype.maybeToggleUpdateChecking = function() {
-  if (this.testing_)
-    return;
-
   var phishWardenEnabled = this.prefs_.getPref(kPhishWardenEnabledPref, null);
 
   G_Debug(this, "Maybe toggling update checking. " +
