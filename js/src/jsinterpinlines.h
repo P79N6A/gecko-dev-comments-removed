@@ -457,18 +457,11 @@ PRIMITIVE(guard_both_jsvals_are_string)(jsval& a, jsval& b)
 static inline void
 PRIMITIVE(trace_start)(JSContext* cx, jsbytecode* pc)
 {
-    
-    
 }
-
-
-
-
 
 static inline void
 PRIMITIVE(trace_stop)(JSContext* cx, const char* op)
 {
-    
 }
 
 #endif 
