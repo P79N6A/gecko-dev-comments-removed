@@ -655,8 +655,7 @@ namespace nanojit
         
         verbose_only(
         ReverseLister *pp_init = NULL;
-        ReverseLister *pp_after_sf1 = NULL;
-        ReverseLister *pp_after_sf2 = NULL;
+        ReverseLister *pp_after_sf = NULL;
         )
 
         
@@ -676,23 +675,13 @@ namespace nanojit
         })
 
         
-        StackFilter storefilter1(prev, alloc, frag->lirbuf, frag->lirbuf->sp);
-        prev = &storefilter1;
+        StackFilter stackfilter(prev, alloc, frag->lirbuf, frag->lirbuf->sp, frag->lirbuf->rp);
+        prev = &stackfilter;
 
-        verbose_only( if (_logc->lcbits & LC_AfterSF_SP) {
-        pp_after_sf1 = new (alloc) ReverseLister(prev, alloc, frag->lirbuf->names, _logc,
-                                                 "After Storefilter(sp)");
-        prev = pp_after_sf1;
-        })
-
-        
-        StackFilter storefilter2(prev, alloc, frag->lirbuf, frag->lirbuf->rp);
-        prev = &storefilter2;
-
-        verbose_only( if (_logc->lcbits & LC_AfterSF_RP) {
-        pp_after_sf2 = new (alloc) ReverseLister(prev, alloc, frag->lirbuf->names, _logc,
-                                                 "After StoreFilter(rp) (final LIR)");
-        prev = pp_after_sf2;
+        verbose_only( if (_logc->lcbits & LC_AfterSF) {
+        pp_after_sf = new (alloc) ReverseLister(prev, alloc, frag->lirbuf->names, _logc,
+                                                "After StackFilter");
+        prev = pp_after_sf;
         })
 
         _inExit = false;
@@ -721,8 +710,7 @@ namespace nanojit
         
         verbose_only(
         if (pp_init)        pp_init->finish();
-        if (pp_after_sf1)   pp_after_sf1->finish();
-        if (pp_after_sf2)   pp_after_sf2->finish();
+        if (pp_after_sf)    pp_after_sf->finish();
         )
     }
 
