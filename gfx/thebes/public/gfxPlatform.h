@@ -46,6 +46,8 @@
 #include "gfxASurface.h"
 
 class gfxImageSurface;
+class gfxFontGroup;
+class gfxFontStyle;
 
 class THEBES_API gfxPlatform {
 public:
@@ -118,6 +120,12 @@ public:
                                      FontResolverCallback aCallback,
                                      void *aClosure,
                                      PRBool& aAborted) = 0;
+
+    
+
+
+    virtual gfxFontGroup *CreateFontGroup(const nsAString &aFamilies,
+                                          const gfxFontStyle *aStyle) = 0;
 
     
     static PRBool DoesARGBImageDataHaveAlpha(PRUint8* data,
