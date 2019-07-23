@@ -56,6 +56,7 @@ class gfxTextRun;
 class nsIAtom;
 class gfxFont;
 class gfxFontGroup;
+typedef struct _cairo cairo_t;
 
 #define FONT_STYLE_NORMAL              0
 #define FONT_STYLE_ITALIC              1
@@ -230,75 +231,6 @@ protected:
 };
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-class THEBES_API gfxGlyphExtents {
-public:
-    gfxGlyphExtents(PRUint32 aAppUnitsPerDevUnit) :
-        mAppUnitsPerDevUnit(aAppUnitsPerDevUnit) {
-        mTightGlyphExtents.Init();
-    }
-
-    enum { INVALID_WIDTH = 0xFFFF };
-
-    
-    
-    
-    
-    PRUint16 GetContainedGlyphWidthAppUnits(PRUint32 aGlyphID) const {
-        if (aGlyphID >= mWidthsForContainedGlyphsAppUnits.Length())
-            return INVALID_WIDTH;
-        return mWidthsForContainedGlyphsAppUnits[aGlyphID];
-    }
-    
-    PRBool IsGlyphKnown(PRUint32 aGlyphID) const {
-        if (aGlyphID < mWidthsForContainedGlyphsAppUnits.Length() &&
-            mWidthsForContainedGlyphsAppUnits[aGlyphID] != INVALID_WIDTH)
-            return PR_TRUE;
-        return mTightGlyphExtents.GetEntry(aGlyphID) != nsnull;
-    }
-
-    PRBool IsGlyphKnownWithTightExtents(PRUint32 aGlyphID) const {
-        return mTightGlyphExtents.GetEntry(aGlyphID) != nsnull;
-    }
-
-    
-    gfxRect GetTightGlyphExtentsAppUnits(gfxFont *aFont, gfxContext *aContext, PRUint32 aGlyphID);
-
-    void SetContainedGlyphWidthAppUnits(PRUint32 aGlyphID, PRUint16 aWidth);
-    void SetTightGlyphExtents(PRUint32 aGlyphID, const gfxRect& aExtentsAppUnits);
-
-    PRUint32 GetAppUnitsPerDevUnit() { return mAppUnitsPerDevUnit; }
-
-private:
-    class HashEntry : public nsUint32HashKey {
-    public:
-        
-        
-        HashEntry(KeyTypePointer aPtr) : nsUint32HashKey(aPtr) {}
-        HashEntry(const HashEntry& toCopy) : nsUint32HashKey(toCopy) {
-          x = toCopy.x; y = toCopy.y; width = toCopy.width; height = toCopy.height;
-        }
-
-        float x, y, width, height;
-    };
-
-    nsTArray<PRUint16>      mWidthsForContainedGlyphsAppUnits;
-    nsTHashtable<HashEntry> mTightGlyphExtents;
-    PRUint32                mAppUnitsPerDevUnit;
-};
-
-
 class THEBES_API gfxFont {
 public:
     nsrefcnt AddRef(void) {
@@ -327,7 +259,7 @@ protected:
 
 public:
     gfxFont(const nsAString &aName, const gfxFontStyle *aFontGroup);
-    virtual ~gfxFont();
+    virtual ~gfxFont() {}
 
     const nsString& GetName() const { return mName; }
     const gfxFontStyle *GetStyle() const { return &mStyle; }
@@ -457,7 +389,6 @@ public:
     virtual RunMetrics Measure(gfxTextRun *aTextRun,
                                PRUint32 aStart, PRUint32 aEnd,
                                PRBool aTightBoundingBox,
-                               gfxContext *aContextForTightBoundingBox,
                                Spacing *aSpacing);
     
 
@@ -474,21 +405,14 @@ public:
     
     virtual PRUint32 GetSpaceGlyph() = 0;
 
-    gfxGlyphExtents *GetOrCreateGlyphExtents(PRUint32 aAppUnitsPerDevUnit);
-
-    
-    virtual void SetupGlyphExtents(gfxContext *aContext, PRUint32 aGlyphID,
-                                   PRBool aNeedTight, gfxGlyphExtents *aExtents);
-
-    
-    virtual PRBool SetupCairoFont(gfxContext *aContext) = 0;
-
 protected:
     
-    nsString                   mName;
-    nsExpirationState          mExpirationState;
-    gfxFontStyle               mStyle;
-    nsAutoTArray<gfxGlyphExtents*,1> mGlyphExtentsArray;
+    nsString          mName;
+    nsExpirationState mExpirationState;
+    gfxFontStyle      mStyle;
+
+    
+    virtual PRBool SetupCairoFont(cairo_t *aCR) = 0;
 };
 
 class THEBES_API gfxTextRunFactory {
@@ -762,7 +686,6 @@ public:
 
     Metrics MeasureText(PRUint32 aStart, PRUint32 aLength,
                         PRBool aTightBoundingBox,
-                        gfxContext *aRefContextForTightBoundingBox,
                         PropertyProvider *aProvider);
 
     
@@ -853,15 +776,12 @@ public:
 
 
 
-
-
     PRUint32 BreakAndMeasureText(PRUint32 aStart, PRUint32 aMaxLength,
                                  PRBool aLineBreakBefore, gfxFloat aWidth,
                                  PropertyProvider *aProvider,
                                  PRBool aSuppressInitialBreak,
                                  gfxFloat *aTrimWhitespace,
                                  Metrics *aMetrics, PRBool aTightBoundingBox,
-                                 gfxContext *aRefContextForTightBoundingBox,
                                  PRBool *aUsedHyphenation,
                                  PRUint32 *aLastBreak);
 
@@ -1012,8 +932,6 @@ public:
         PRBool CanBreakBefore() const { return (mValue & FLAG_CAN_BREAK_BEFORE) != 0; }
         
         PRUint32 SetCanBreakBefore(PRBool aCanBreakBefore) {
-            NS_ASSERTION(aCanBreakBefore == PR_FALSE || aCanBreakBefore == PR_TRUE,
-                         "Bogus break-before value!");
             PRUint32 breakMask = aCanBreakBefore*FLAG_CAN_BREAK_BEFORE;
             PRUint32 toggle = breakMask ^ (mValue & FLAG_CAN_BREAK_BEFORE);
             mValue ^= toggle;
@@ -1152,8 +1070,6 @@ public:
                            PRUint32 aNumGlyphs);
     void SetMissingGlyph(PRUint32 aCharIndex, PRUint32 aChar);
     void SetSpaceGlyph(gfxFont *aFont, gfxContext *aContext, PRUint32 aCharIndex);
-    
-    void FetchGlyphExtents(gfxContext *aRefContext);
 
     
     
@@ -1163,7 +1079,6 @@ public:
         
         return mDetailedGlyphs ? mDetailedGlyphs[aCharIndex].get() : nsnull;
     }
-    PRBool HasDetailedGlyphs() { return mDetailedGlyphs.get() != nsnull; }
     PRUint32 CountMissingGlyphs();
     const GlyphRun *GetGlyphRuns(PRUint32 *aNumGlyphRuns) {
         *aNumGlyphRuns = mGlyphRuns.Length();
@@ -1242,14 +1157,12 @@ private:
     gfxFloat GetPartialLigatureWidth(PRUint32 aStart, PRUint32 aEnd, PropertyProvider *aProvider);
     void AccumulatePartialLigatureMetrics(gfxFont *aFont,
                                           PRUint32 aStart, PRUint32 aEnd, PRBool aTight,
-                                          gfxContext *aRefContext,
                                           PropertyProvider *aProvider,
                                           Metrics *aMetrics);
 
     
     void AccumulateMetricsForRun(gfxFont *aFont, PRUint32 aStart,
                                  PRUint32 aEnd, PRBool aTight,
-                                 gfxContext *aRefContext,
                                  PropertyProvider *aProvider,
                                  PRUint32 aSpacingStart, PRUint32 aSpacingEnd,
                                  Metrics *aMetrics);
