@@ -5757,15 +5757,12 @@ function IdentityHandler() {
   this._stringBundle = document.getElementById("bundle_browser");
   this._staticStrings = {};
   this._staticStrings[this.IDENTITY_MODE_DOMAIN_VERIFIED] = {
-    title: this._stringBundle.getString("identity.domainverified.title"),
     encryption_label: this._stringBundle.getString("identity.encrypted")  
   };
   this._staticStrings[this.IDENTITY_MODE_IDENTIFIED] = {
-    title: this._stringBundle.getString("identity.identified.title"),
     encryption_label: this._stringBundle.getString("identity.encrypted")
   };
   this._staticStrings[this.IDENTITY_MODE_UNKNOWN] = {
-    title: this._stringBundle.getString("identity.unknown.title"),
     encryption_label: this._stringBundle.getString("identity.unencrypted")  
   };
 
@@ -5790,8 +5787,8 @@ IdentityHandler.prototype = {
     this._identityPopup = document.getElementById("identity-popup");
     this._identityBox = document.getElementById("identity-box");
     this._identityPopupContentBox = document.getElementById("identity-popup-content-box");
-    this._identityPopupTitle = document.getElementById("identity-popup-title");
-    this._identityPopupContent = document.getElementById("identity-popup-content");
+    this._identityPopupContentHost = document.getElementById("identity-popup-content-host");
+    this._identityPopupContentOwner = document.getElementById("identity-popup-content-owner");
     this._identityPopupContentSupp = document.getElementById("identity-popup-content-supplemental");
     this._identityPopupContentVerif = document.getElementById("identity-popup-content-verifier");
     this._identityPopupEncLabel = document.getElementById("identity-popup-encryption-label");
@@ -5837,6 +5834,7 @@ IdentityHandler.prototype = {
     
     
     result.caOrg =  cert.issuerOrganization || cert.issuerCommonName;
+    result.cert = cert;
     
     return result;
   },
@@ -5898,9 +5896,42 @@ IdentityHandler.prototype = {
       
       
       
-      var icon_label = this._lastHost; 
+      
+      var icon_label = "";
+      switch (gPrefService.getIntPref("browser.identity.ssl_domain_display")) {
+        case 2 : 
+          icon_label = this._lastHost;
+          break;
+        case 1 : 
+          if (!this._eTLDService)
+            this._eTLDService = Cc["@mozilla.org/network/effective-tld-service;1"]
+                                .getService(Ci.nsIEffectiveTLDService);
+          try {
+            icon_label = this._eTLDService.getBaseDomainFromHost(this._lastHost);
+          } catch (e) {
+            
+            
+            icon_label = this._lastHost;
+          }
+      }
+      
+      
+      
+      var lookupHost = this._lastHost;
+      if (lookupHost.indexOf(':') < 0)
+        lookupHost += ":443";
+
+      
+      if (!this._overrideService)
+        this._overrideService = Components.classes["@mozilla.org/security/certoverride;1"]
+                                          .getService(Components.interfaces.nsICertOverrideService);
+
+      
+      
       var tooltip = this._stringBundle.getFormattedString("identity.identified.verifier",
                                                           [iData.caOrg]);
+      if (this._overrideService.hasMatchingOverride(lookupHost, iData.cert, {}, {}))
+        tooltip = this._stringBundle.getString("identity.identified.verified_by_you");
     }
     else if (newMode == this.IDENTITY_MODE_IDENTIFIED) {
       
@@ -5914,7 +5945,7 @@ IdentityHandler.prototype = {
         icon_label = iData.subjectOrg;
     }
     else {
-      tooltip = this._stringBundle.getString("identity.unknown.body");
+      tooltip = this._stringBundle.getString("identity.unknown.tooltip");
       icon_label = "";
     }
     
@@ -5936,30 +5967,42 @@ IdentityHandler.prototype = {
     this._identityPopupContentBox.className = newMode;
     
     
-    this._identityPopupTitle.value = this._staticStrings[newMode].title;
     this._identityPopupEncLabel.textContent = this._staticStrings[newMode].encryption_label;
     
     
     var supplemental = "";
     var verifier = "";
       
+    
+    if (!this._eTLDService)
+      this._eTLDService = Cc["@mozilla.org/network/effective-tld-service;1"]
+                          .getService(Ci.nsIEffectiveTLDService);
+                                
     if (newMode == this.IDENTITY_MODE_DOMAIN_VERIFIED) {
       var iData = this.getIdentityData();
 
-      var body = this._lastHost;     
-      verifier = this._stringBundle.getFormattedString("identity.identified.verifier",
-                                                       [iData.caOrg]);
-      supplemental = this._stringBundle.getString("identity.domainverified.supplemental");
+      try {
+        var host = this._eTLDService.getBaseDomainFromHost(this._lastHost);
+      } catch (e) {
+        
+        host = this._lastHost;
+      }
+      var owner = this._stringBundle.getString("identity.ownerUnknown");
+      verifier = this._identityBox.tooltipText;
+      supplemental = "";
     }
     else if (newMode == this.IDENTITY_MODE_IDENTIFIED) {
       
       iData = this.getIdentityData();
 
-      
-      
-      body = iData.subjectOrg; 
-      verifier = this._stringBundle.getFormattedString("identity.identified.verifier",
-                                                       [iData.caOrg]);
+      try {
+        host = this._eTLDService.getBaseDomainFromHost(this._lastHost);
+      } catch (e) {
+        
+        host = this._lastHost;
+      }
+      owner = iData.subjectOrg; 
+      verifier = this._identityBox.tooltipText;
 
       
       if (iData.city)
@@ -5973,11 +6016,14 @@ IdentityHandler.prototype = {
         supplemental += iData.country;
     }
     else {
-      body = this._stringBundle.getString("identity.unknown.body");
+      
+      host = "";
+      owner = "";
     }
     
     
-    this._identityPopupContent.textContent = body;
+    this._identityPopupContentHost.textContent = host;
+    this._identityPopupContentOwner.textContent = owner;
     this._identityPopupContentSupp.textContent = supplemental;
     this._identityPopupContentVerif.textContent = verifier;
   },
