@@ -318,7 +318,14 @@ nsHttpConnection::OnHeadersAvailable(nsAHttpTransaction *trans,
             mKeepAlive = PR_FALSE;
         else {
             mKeepAlive = PR_TRUE;
-            mSupportsPipelining = SupportsPipelining(responseHead);
+
+            
+            
+            
+            
+            
+            if (!mSSLProxyConnectStream)
+              mSupportsPipelining = SupportsPipelining(responseHead);
         }
     }
     mKeepAliveMask = mKeepAlive;
