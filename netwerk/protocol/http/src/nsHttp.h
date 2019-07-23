@@ -110,6 +110,10 @@ typedef PRUint8 nsHttpVersion;
 
 
 
+#define NS_HTTP_LOAD_ANONYMOUS       (1<<4)
+
+
+
 
 
 
