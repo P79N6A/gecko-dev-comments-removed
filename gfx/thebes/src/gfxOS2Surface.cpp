@@ -129,6 +129,47 @@ gfxOS2Surface::gfxOS2Surface(HWND aWnd)
     Init(surf);
 }
 
+gfxOS2Surface::gfxOS2Surface(HDC aDC, const gfxIntSize& aSize)
+    : mHasWnd(PR_FALSE), mDC(aDC), mBitmap(nsnull), mSize(aSize)
+{
+#ifdef DEBUG_thebes_2
+    printf("gfxOS2Surface[%#x]::gfxOS2Surface(HDC=%#x, Size=%dx%d)\n", (unsigned int)this,
+           (unsigned int)aDC, aSize.width, aSize.height);
+#endif
+    SIZEL sizel = { 0, 0 }; 
+    mPS = GpiCreatePS(0, mDC, &sizel, PU_PELS | GPIT_MICRO | GPIA_ASSOC);
+    NS_ASSERTION(mPS != GPI_ERROR, "Could not create PS on print DC!");
+
+    
+    BITMAPINFOHEADER2 hdr = { 0 };
+    hdr.cbFix = sizeof(BITMAPINFOHEADER2);
+    hdr.cx = mSize.width;
+    hdr.cy = mSize.height;
+    hdr.cPlanes = 1;
+
+    
+    LONG lBitCount = 0;
+    DevQueryCaps(mDC, CAPS_COLOR_BITCOUNT, 1, &lBitCount);
+    hdr.cBitCount = (USHORT)lBitCount;
+
+    mBitmap = GpiCreateBitmap(mPS, &hdr, 0, 0, 0);
+    NS_ASSERTION(mBitmap != GPI_ERROR, "Could not create bitmap for printer!");
+    
+    GpiSetBitmap(mPS, mBitmap);
+
+    
+    cairo_surface_t *surf = cairo_os2_surface_create(mPS, mSize.width, mSize.height);
+#ifdef DEBUG_thebes_2
+    printf("  type(%#x)=%d (ID=%#x, h/w=%d/%d)\n", (unsigned int)surf,
+           cairo_surface_get_type(surf), (unsigned int)mPS, mSize.width, mSize.height);
+#endif
+    
+    
+    
+
+    Init(surf);
+}
+
 gfxOS2Surface::~gfxOS2Surface()
 {
 #ifdef DEBUG_thebes_2

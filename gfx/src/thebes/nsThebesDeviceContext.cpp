@@ -711,6 +711,24 @@ nsThebesDeviceContext::CalcPrintingSize()
         break;
     }
 #endif
+
+#ifdef XP_OS2
+    case gfxASurface::SurfaceTypeOS2:
+    {
+        inPoints = PR_FALSE;
+        
+        
+        size = reinterpret_cast<gfxOS2Surface*>(mPrintingSurface.get())->GetSize();
+        
+        HDC dc = GetPrintHDC();
+        LONG value;
+        if (DevQueryCaps(dc, CAPS_COLOR_BITCOUNT, 1, &value))
+            mDepth = value;
+        else
+            mDepth = 8; 
+        break;
+    }
+#endif
     default:
         NS_ASSERTION(0, "trying to print to unknown surface type");
     }

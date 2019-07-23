@@ -52,6 +52,8 @@ public:
                   gfxASurface::gfxImageFormat aImageFormat);
     
     gfxOS2Surface(HWND aWnd);
+    
+    gfxOS2Surface(HDC aDC, const gfxIntSize& aSize);
     virtual ~gfxOS2Surface();
 
     

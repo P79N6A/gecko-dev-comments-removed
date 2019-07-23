@@ -92,7 +92,4 @@ HDC PrnOpenDC( PRTQUEUE *pPrintQueue, PSZ pszApplicationName, int copies, int de
 
 BOOL PrnQueryHardcopyCaps( HDC hdc, PHCINFO pHCInfo);
 
-
-BOOL PrnAbortJob( HDC hdc);
-
 #endif
