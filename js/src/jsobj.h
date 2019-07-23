@@ -441,11 +441,9 @@ js_NewObject(JSContext *cx, JSClass *clasp, JSObject *proto, JSObject *parent,
 
 
 
-
-
 extern JSObject *
 js_NewObjectWithGivenProto(JSContext *cx, JSClass *clasp, JSObject *proto,
-                           JSObject *parent, uintN objectSize, uintN flags);
+                           JSObject *parent, uintN objectSize);
 
 
 
