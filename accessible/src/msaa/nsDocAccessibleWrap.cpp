@@ -39,8 +39,6 @@
 #include "nsDocAccessibleWrap.h"
 #include "ISimpleDOMDocument_i.c"
 #include "nsIAccessibilityService.h"
-#include "nsIAccessibleEvent.h"
-#include "nsEventMap.h"
 #include "nsIDocShell.h"
 #include "nsIDocShellTreeNode.h"
 #include "nsIFrame.h"
@@ -164,101 +162,6 @@ STDMETHODIMP nsDocAccessibleWrap::get_accChild(
 NS_IMETHODIMP nsDocAccessibleWrap::Shutdown()
 {
   return nsDocAccessible::Shutdown();
-}
-
-NS_IMETHODIMP
-nsDocAccessibleWrap::FireToolkitEvent(PRUint32 aEvent, nsIAccessible* aAccessible, void* aData)
-{
-  NS_ENSURE_TRUE(aEvent > 0 && aEvent < nsIAccessibleEvent::EVENT_LAST_ENTRY,
-                 NS_ERROR_FAILURE);
-
-  NS_ASSERTION(gWinEventMap[nsIAccessibleEvent::EVENT_LAST_ENTRY] == kEVENT_LAST_ENTRY,
-               "MSAA event map skewed");
-
-  PRUint32 winEvent = gWinEventMap[aEvent];
-  if (!winEvent)
-    return NS_OK;
-
-  
-  NS_ENSURE_TRUE(mWeakShell, NS_ERROR_FAILURE);
-
-  nsDocAccessible::FireToolkitEvent(aEvent, aAccessible, aData); 
-
-#ifdef SWALLOW_DOC_FOCUS_EVENTS
-  
-  
-  
-  if (aEvent == nsIAccessibleEvent::EVENT_FOCUS) {
-    
-    
-    nsCOMPtr<nsIAccessibleDocument> accessibleDoc(do_QueryInterface(aAccessible));
-    if (accessibleDoc)
-      return NS_OK;
-  }
-#endif
-
-  PRInt32 childID, worldID = OBJID_CLIENT;
-  PRUint32 role = ROLE_SYSTEM_TEXT; 
-
-  HWND hWnd = (HWND)mWnd;
-
-  if (NS_SUCCEEDED(aAccessible->GetRole(&role)) && role == ROLE_SYSTEM_CARET) {
-    childID = CHILDID_SELF;
-    worldID = OBJID_CARET;
-  }
-  else {
-    childID = GetChildIDFor(aAccessible); 
-    if (!childID) {
-      return NS_OK; 
-    }
-    if (aAccessible != this) {
-      
-      nsCOMPtr<nsIAccessible> accessible;
-      if (aEvent == nsIAccessibleEvent::EVENT_HIDE) {
-        
-        aAccessible->GetParent(getter_AddRefs(accessible));
-      }
-      else {
-        accessible = aAccessible;
-      }
-      nsCOMPtr<nsPIAccessNode> privateAccessNode =
-        do_QueryInterface(accessible);
-      if (privateAccessNode) {
-        nsIFrame *frame = privateAccessNode->GetFrame();
-        if (frame) {
-          hWnd = (HWND)frame->GetWindow()->GetNativeData(NS_NATIVE_WINDOW); 
-        }
-      }
-    }
-  }
-
-  
-  
-  
-  
-  
-
-  
-  NotifyWinEvent(winEvent, hWnd, worldID, childID);
-
-  return NS_OK;
-}
-
-PRInt32 nsDocAccessibleWrap::GetChildIDFor(nsIAccessible* aAccessible)
-{
-  
-  
-
-  void *uniqueID;
-  nsCOMPtr<nsIAccessNode> accessNode(do_QueryInterface(aAccessible));
-  if (!accessNode) {
-    return 0;
-  }
-  accessNode->GetUniqueID(&uniqueID);
-
-  
-  
-  return - NS_PTR_TO_INT32(uniqueID);
 }
 
 NS_IMETHODIMP nsDocAccessibleWrap::FireAnchorJumpEvent()

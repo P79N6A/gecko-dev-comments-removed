@@ -38,7 +38,10 @@
 
 #include "nsAccessibleWrap.h"
 #include "nsAccessibilityAtoms.h"
+
+#include "nsIAccessibleDocument.h"
 #include "nsIAccessibleSelectable.h"
+#include "nsIAccessibleEvent.h"
 #include "nsIAccessibleWin32Object.h"
 
 #include "Accessible2_i.c"
@@ -56,6 +59,7 @@
 #include "nsTextFormatter.h"
 #include "nsIView.h"
 #include "nsRoleMap.h"
+#include "nsEventMap.h"
 #include "nsArrayUtils.h"
 
 
@@ -1408,6 +1412,112 @@ NS_IMETHODIMP nsAccessibleWrap::GetNativeInterface(void **aOutAccessible)
 
 
 
+NS_IMETHODIMP
+nsAccessibleWrap::FireAccessibleEvent(nsIAccessibleEvent *aEvent)
+{
+  NS_ENSURE_ARG(aEvent);
+
+  nsresult rv = nsAccessible::FireAccessibleEvent(aEvent);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  PRUint32 eventType = 0;
+  aEvent->GetEventType(&eventType);
+
+  NS_ENSURE_TRUE(eventType > 0 &&
+                 eventType < nsIAccessibleEvent::EVENT_LAST_ENTRY,
+                 NS_ERROR_FAILURE);
+
+  PRUint32 winLastEntry = gWinEventMap[nsIAccessibleEvent::EVENT_LAST_ENTRY];
+  NS_ASSERTION(winLastEntry == kEVENT_LAST_ENTRY,
+               "MSAA event map skewed");
+
+  PRUint32 winEvent = gWinEventMap[eventType];
+  if (!winEvent)
+    return NS_OK;
+
+  
+  NS_ENSURE_TRUE(mWeakShell, NS_ERROR_FAILURE);
+
+  nsCOMPtr<nsIAccessible> accessible;
+  aEvent->GetAccessible(getter_AddRefs(accessible));
+  if (!accessible)
+    return NS_OK;
+
+  PRInt32 childID, worldID = OBJID_CLIENT;
+  PRUint32 role = ROLE_SYSTEM_TEXT; 
+
+  nsCOMPtr<nsIAccessNode> accessNode(do_QueryInterface(accessible));
+  NS_ENSURE_STATE(accessNode);
+
+  HWND hWnd = 0;
+
+  if (NS_SUCCEEDED(accessible->GetRole(&role)) && role == ROLE_SYSTEM_CARET) {
+    childID = CHILDID_SELF;
+    worldID = OBJID_CARET;
+  } else {
+    childID = GetChildIDFor(accessible); 
+    if (!childID)
+      return NS_OK; 
+
+    
+    nsCOMPtr<nsIAccessible> newAccessible;
+    if (eventType == nsIAccessibleEvent::EVENT_HIDE) {
+      
+      
+      accessible->GetParent(getter_AddRefs(newAccessible));
+    } else {
+      newAccessible = accessible;
+    }
+
+    nsCOMPtr<nsPIAccessNode> privateAccessNode =
+      do_QueryInterface(newAccessible);
+    if (privateAccessNode) {
+      nsIFrame *frame = privateAccessNode->GetFrame();
+      if (frame)
+        hWnd = (HWND)frame->GetWindow()->GetNativeData(NS_NATIVE_WINDOW);
+    }
+  }
+
+  if (!hWnd) {
+    void* handle = nsnull;
+    nsCOMPtr<nsIAccessibleDocument> accessibleDoc;
+    accessNode->GetAccessibleDocument(getter_AddRefs(accessibleDoc));
+    NS_ENSURE_STATE(accessibleDoc);
+    accessibleDoc->GetWindowHandle(&handle);
+    hWnd = (HWND)handle;
+  }
+
+  
+  
+  
+  
+  
+
+  
+  NotifyWinEvent(winEvent, hWnd, worldID, childID);
+
+  return NS_OK;
+}
+
+
+
+PRInt32 nsAccessibleWrap::GetChildIDFor(nsIAccessible* aAccessible)
+{
+  
+  
+  
+
+  void *uniqueID;
+  nsCOMPtr<nsIAccessNode> accessNode(do_QueryInterface(aAccessible));
+  if (!accessNode) {
+    return 0;
+  }
+  accessNode->GetUniqueID(&uniqueID);
+
+  
+  
+  return - NS_PTR_TO_INT32(uniqueID);
+}
 
 IDispatch *nsAccessibleWrap::NativeAccessible(nsIAccessible *aXPAccessible)
 {

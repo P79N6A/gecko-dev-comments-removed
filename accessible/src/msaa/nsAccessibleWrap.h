@@ -271,6 +271,12 @@ class nsAccessibleWrap : public nsAccessible,
         LCID lcid, WORD wFlags, DISPPARAMS *pDispParams,
         VARIANT *pVarResult, EXCEPINFO *pExcepInfo, UINT *puArgErr);
 
+  
+  NS_IMETHOD FireAccessibleEvent(nsIAccessibleEvent *aEvent);
+
+  
+  static PRInt32 GetChildIDFor(nsIAccessible* aAccessible);
+
   virtual void GetXPAccessibleFor(const VARIANT& aVarChild, nsIAccessible **aXPAccessible);
   NS_IMETHOD GetNativeInterface(void **aOutAccessible);
 
