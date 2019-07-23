@@ -2766,7 +2766,7 @@ SessionStoreService.prototype = {
     let normalWindowIndex = 0;
     
     while (normalWindowIndex < this._closedWindows.length &&
-           this._closedWindows[normalWindowIndex].isPopup)
+           !!this._closedWindows[normalWindowIndex].isPopup)
       normalWindowIndex++;
     if (normalWindowIndex >= maxWindowsUndo)
       spliceTo = normalWindowIndex + 1;

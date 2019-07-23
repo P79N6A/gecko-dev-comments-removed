@@ -113,7 +113,7 @@ function test() {
   
   function test_behavior (callback) {
     
-    function openWindowRec(windowsToOpen, expectedResults) {
+    function openWindowRec(windowsToOpen, expectedResults, recCallback) {
       
       if (!windowsToOpen.length) {
         let closedWindowData = JSON.parse(ss.getClosedWindowData());
@@ -130,7 +130,7 @@ function test() {
            "There were " + oResults.normal + " normal windows to repoen");
 
         
-        executeSoon(callback);
+        executeSoon(recCallback);
         return;
       }
       
@@ -149,7 +149,7 @@ function test() {
           executeSoon(function() {
             window.close();
             executeSoon(function() {
-              openWindowRec(windowsToOpen, expectedResults);
+              openWindowRec(windowsToOpen, expectedResults, recCallback);
             });
           });
         }, true);
