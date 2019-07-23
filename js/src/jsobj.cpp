@@ -299,7 +299,7 @@ js_SetProtoOrParent(JSContext *cx, JSObject *obj, uint32 slot, JSObject *pobj,
 
 
 
-        JSObject *oldproto = STOBJ_GET_PROTO(obj);
+        JSObject *oldproto = obj;
         while (oldproto && OBJ_IS_NATIVE(oldproto)) {
             JS_LOCK_OBJ(cx, oldproto);
             JSScope *scope = OBJ_SCOPE(oldproto);
