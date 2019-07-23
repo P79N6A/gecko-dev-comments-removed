@@ -166,6 +166,11 @@ gfxWindowsSurface::OptimizeToDDB(HDC dc, const gfxIntSize& size, gfxImageFormat 
 
     gfxWindowsSurface *raw = (gfxWindowsSurface*) (wsurf.get());
     NS_ADDREF(raw);
+
+    
+    
+    cairo_win32_surface_set_can_convert_to_dib(raw->CairoSurface(), TRUE);
+
     return raw;
 }
 
