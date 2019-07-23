@@ -42,8 +42,33 @@ function test() {
 
   waitForExplicitFinish();
 
+  
+  gPrefService.setIntPref("browser.sessionstore.interval", 100000);
+
+  
+  
   let ss = Cc["@mozilla.org/browser/sessionstore;1"].
            getService(Ci.nsISessionStore);
+  let blankState = JSON.stringify({
+    windows: [{
+      tabs: [{ entries: [{ url: "about:blank" }] }],
+      _closedTabs: []
+    }],
+    _closedWindows: []
+  });
+  ss.setBrowserState(blankState);
+
+  
+  let os = Cc["@mozilla.org/observer-service;1"].
+           getService(Ci.nsIObserverService);
+  os.addObserver({observe: function(aSubject, aTopic, aData) {
+    os.removeObserver(this, aTopic);
+    info("sessionstore.js was written");
+    if (gPrefService.prefHasUserValue("browser.sessionstore.interval"))
+      gPrefService.clearUserPref("browser.sessionstore.interval");
+
+    executeSoon(continue_test);
+  }}, "sessionstore-state-write-complete", false);
 
   
   let profilePath = Cc["@mozilla.org/file/directory_service;1"].
@@ -54,42 +79,10 @@ function test() {
   if (sessionStoreJS.exists())
     sessionStoreJS.remove(false);
   ok(sessionStoreJS.exists() == false, "sessionstore.js was removed");
-  
-  
-  gPrefService.setIntPref("browser.sessionstore.interval", 100);
-  
-  sessionStoreJS = profilePath.clone();
-  sessionStoreJS.append("sessionstore.js");
-
-  
-  let os = Cc["@mozilla.org/observer-service;1"].
-           getService(Ci.nsIObserverService);
-  os.addObserver({observe: function(aSubject, aTopic, aData) {
-    if (gPrefService.prefHasUserValue("browser.sessionstore.interval"))
-      gPrefService.clearUserPref("browser.sessionstore.interval");
-    os.removeObserver(this, aTopic);
-    executeSoon(continue_test);
-  }}, "sessionstore-state-write-complete", false);
-
-  
-  os.addObserver({observe: function(aSubject, aTopic, aData) {
-    
-    
-    
-    info("Windows status has been restored, was that expected?");
-    os.removeObserver(this, aTopic);
-  }}, "sessionstore-windows-restored", false);
 
   
   
-  let blankState = JSON.stringify({
-    windows: [{
-      tabs: [{ entries: [{ url: "about:blank" }] }],
-      _closedTabs: []
-    }],
-    _closedWindows: []
-  });
-  ss.setBrowserState(blankState);
+  gPrefService.setIntPref("browser.sessionstore.interval", 0);
 }
 
 function continue_test() {
