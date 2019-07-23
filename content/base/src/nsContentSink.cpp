@@ -1087,11 +1087,22 @@ nsContentSink::ProcessOfflineManifest(nsIContent *aElement)
     return;
   }
 
-  nsresult rv;
-
   
   nsAutoString manifestSpec;
   aElement->GetAttr(kNameSpaceID_None, nsGkAtoms::manifest, manifestSpec);
+  ProcessOfflineManifest(manifestSpec);
+}
+
+void
+nsContentSink::ProcessOfflineManifest(const nsAString& aManifestSpec)
+{
+  
+  
+  if (!mDocShell) {
+    return;
+  }
+
+  nsresult rv;
 
   
   nsCOMPtr<nsIApplicationCache> applicationCache;
@@ -1115,7 +1126,7 @@ nsContentSink::ProcessOfflineManifest(nsIContent *aElement)
     }
   }
 
-  if (manifestSpec.IsEmpty() && !applicationCache) {
+  if (aManifestSpec.IsEmpty() && !applicationCache) {
     
     
     return;
@@ -1124,12 +1135,12 @@ nsContentSink::ProcessOfflineManifest(nsIContent *aElement)
   CacheSelectionAction action = CACHE_SELECTION_NONE;
   nsCOMPtr<nsIURI> manifestURI;
 
-  if (manifestSpec.IsEmpty()) {
+  if (aManifestSpec.IsEmpty()) {
     action = CACHE_SELECTION_RESELECT_WITHOUT_MANIFEST;
   }
   else {
     nsContentUtils::NewURIWithDocumentCharset(getter_AddRefs(manifestURI),
-                                              manifestSpec, mDocument,
+                                              aManifestSpec, mDocument,
                                               mDocumentURI);
     if (!manifestURI) {
       return;

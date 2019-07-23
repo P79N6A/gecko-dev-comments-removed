@@ -161,8 +161,6 @@ class nsHtml5StreamParser : public nsIStreamListener,
       mObserver = aObserver;
     }
 
-    void SetSpeculativeLoaderWithDocument(nsIDocument* aDocument);
-
     nsresult GetChannel(nsIChannel** aChannel);
 
     
@@ -453,11 +451,6 @@ class nsHtml5StreamParser : public nsIStreamListener,
     
     nsCOMPtr<nsIRunnable>         mExecutorFlusher;
     
-    
-
-
-    nsCOMPtr<nsIDocument>         mDocument;
-
     
 
 
