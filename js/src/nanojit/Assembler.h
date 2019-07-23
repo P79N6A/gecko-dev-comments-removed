@@ -124,9 +124,11 @@ namespace nanojit
         uint32_t reserveEntry(LIns* ins); 
 
         #ifdef _DEBUG
+        void validateQuick();
+        void validateFull();
         void validate();
         bool isValidEntry(uint32_t idx, LIns* ins) const; 
-        void checkForResourceConsistency(const RegAlloc& regs) const;
+        void checkForResourceConsistency(const RegAlloc& regs);
         void checkForResourceLeaks() const;
         #endif
 
@@ -143,7 +145,7 @@ namespace nanojit
 
     inline AR::AR()
     {
-         _entries[0] = 0; 
+         _entries[0] = NULL; 
          clear();
     }
 
