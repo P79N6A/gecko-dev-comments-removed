@@ -14,6 +14,16 @@ states = [
 ]
 
 
+event_start = 8;
+
+flush_reasons = [
+    'B',
+    'O',
+    'S',
+    'G'
+]
+
+
 reasons = [
     'none',
     'abort',

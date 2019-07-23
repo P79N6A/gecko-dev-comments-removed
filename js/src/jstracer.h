@@ -1134,13 +1134,17 @@ js_StopTraceVis(JSContext *cx, JSObject *obj, uintN argc, jsval *argv,
 
 
 enum TraceVisState {
+    
     S_EXITLAST,
+    
     S_INTERP,
     S_MONITOR,
     S_RECORD,
     S_COMPILE,
     S_EXECUTE,
-    S_NATIVE
+    S_NATIVE,
+    
+    S_RESET = 8
 };
 
 
@@ -1171,6 +1175,13 @@ enum TraceVisExitReason {
     R_OTHER_EXIT
 };
 
+enum TraceVisFlushReason {
+    FR_DEEP_BAIL,
+    FR_OOM,
+    FR_GLOBAL_SHAPE_MISMATCH,
+    FR_GLOBALS_FULL
+};
+
 const unsigned long long MS64_MASK = 0xfull << 60;
 const unsigned long long MR64_MASK = 0x1full << 55;
 const unsigned long long MT64_MASK = ~(MS64_MASK | MR64_MASK);
@@ -1193,6 +1204,17 @@ js_LogTraceVisState(JSContext *cx, TraceVisState s, TraceVisExitReason r)
     if (traceVisScriptTable) {
         js_StoreTraceVisState(cx, s, r);
     }
+}
+
+
+
+
+
+
+static inline void
+js_LogTraceVisEvent(JSContext *cx, TraceVisState s, TraceVisFlushReason r)
+{
+    js_LogTraceVisState(cx, s, (TraceVisExitReason) r);
 }
 
 static inline void
