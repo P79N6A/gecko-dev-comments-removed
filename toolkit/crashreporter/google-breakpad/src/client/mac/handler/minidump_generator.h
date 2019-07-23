@@ -68,6 +68,18 @@ typedef MDRawContextPPC MinidumpContext;
 
 
 
+#if __DARWIN_UNIX03 || !TARGET_CPU_X86 || TARGET_CPU_X86_64
+
+
+
+
+#define REGISTER_FROM_THREADSTATE(a, b) ((a)->__ ## b)
+#else
+#define REGISTER_FROM_THREADSTATE(a, b) (a->b)
+#endif
+
+
+
 
 
 
@@ -90,9 +102,11 @@ class MinidumpGenerator {
   bool Write(const char *path);
 
   
-  void SetExceptionInformation(int type, int code, mach_port_t thread_name) {
+  void SetExceptionInformation(int type, int code, int subcode,
+                               mach_port_t thread_name) {
     exception_type_ = type;
     exception_code_ = code;
+    exception_subcode_ = subcode;
     exception_thread_ = thread_name;
   }
 
@@ -138,6 +152,7 @@ class MinidumpGenerator {
   
   int exception_type_;
   int exception_code_;
+  int exception_subcode_;
   mach_port_t exception_thread_;
   mach_port_t crashing_task_;
   mach_port_t handler_thread_;

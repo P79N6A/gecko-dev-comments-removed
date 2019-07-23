@@ -342,6 +342,12 @@ class ExceptionHandler {
 
   
   
+  
+  
+  volatile bool is_shutdown_;
+
+  
+  
   CRITICAL_SECTION handler_critical_section_;
 
   
@@ -391,10 +397,11 @@ class ExceptionHandler {
 
   
   
+  
   static CRITICAL_SECTION handler_stack_critical_section_;
 
   
-  static bool handler_stack_critical_section_initialized_;
+  volatile static LONG instance_count_;
 
   
   explicit ExceptionHandler(const ExceptionHandler &);

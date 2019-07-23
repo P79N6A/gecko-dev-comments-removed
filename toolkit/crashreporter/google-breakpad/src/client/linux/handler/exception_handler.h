@@ -36,6 +36,7 @@
 
 #include <map>
 #include <string>
+#include <signal.h>
 #include <vector>
 
 #include "client/linux/handler/minidump_generator.h"
@@ -147,6 +148,8 @@ class ExceptionHandler {
   
   void TeardownHandler(int signo);
   
+  void TeardownHandler(int signo, struct sigaction *old);
+  
   void TeardownAllHandler();
 
   
@@ -193,10 +196,6 @@ class ExceptionHandler {
   bool installed_handler_;
 
   
-  typedef void (*sighandler_t)(int);
-  std::map<int, sighandler_t> old_handlers_;
-
-  
   
   
   static std::vector<ExceptionHandler *> *handler_stack_;
@@ -210,6 +209,16 @@ class ExceptionHandler {
   
   explicit ExceptionHandler(const ExceptionHandler &);
   void operator=(const ExceptionHandler &);
+
+  
+  struct sigaction act_;
+
+
+  
+  
+  
+  
+  struct sigaction old_actions_[NSIG];
 };
 
 }  
