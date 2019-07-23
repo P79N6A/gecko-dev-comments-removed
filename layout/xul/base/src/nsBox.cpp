@@ -606,11 +606,9 @@ nsBox::SyncLayout(nsBoxLayoutState& aState)
   nsRect rect(nsPoint(0, 0), GetSize());
 
   if (ComputesOwnOverflowArea()) {
-    nsRect* overflow = GetOverflowAreaProperty();
-    if (overflow)
-      rect = *overflow;
-
-  } else {
+    rect = GetOverflowRect();
+  }
+  else {
     if (!DoesClipChildren()) {
       
       
@@ -619,9 +617,7 @@ nsBox::SyncLayout(nsBoxLayoutState& aState)
       
       nsIFrame* box = GetChildBox();
       while (box) {
-        nsRect* overflowArea = box->GetOverflowAreaProperty();
-        nsRect bounds = overflowArea ? *overflowArea + box->GetPosition()
-                                     : box->GetRect();
+        nsRect bounds = box->GetOverflowRect() + box->GetPosition();
         rect.UnionRect(rect, bounds);
 
         box = box->GetNextBox();

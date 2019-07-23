@@ -1678,6 +1678,13 @@ public:
 
 
 
+
+
+
+
+
+
+
   nsRect GetOverflowRect() const;
 
   
@@ -1931,14 +1938,6 @@ NS_PTR_TO_INT32(frame->GetProperty(nsGkAtoms::baseLevel))
 
 #define NS_GET_EMBEDDING_LEVEL(frame) \
 NS_PTR_TO_INT32(frame->GetProperty(nsGkAtoms::embeddingLevel))
-
-  
-
-
-
-
-
-  nsRect* GetOverflowAreaProperty(PRBool aCreateIfNecessary = PR_FALSE);
 
   
 
@@ -2209,6 +2208,8 @@ protected:
 private:
   NS_IMETHOD_(nsrefcnt) AddRef(void) = 0;
   NS_IMETHOD_(nsrefcnt) Release(void) = 0;
+
+  nsRect* GetOverflowAreaProperty(PRBool aCreateIfNecessary = PR_FALSE);
 };
 
 
