@@ -1721,8 +1721,11 @@ moz_gtk_check_menu_item_paint(GdkDrawable* drawable, GdkRectangle* rect,
       
       offset = GTK_CONTAINER(gCheckMenuItemWidget)->border_width + 
              gCheckMenuItemWidget->style->xthickness + 2;
+
       
-      x = rect->x + offset;
+
+
+      x = rect->x + offset + 3;
       y = rect->y + (rect->height - indicator_size) / 2;
                                                                                 
       TSOffsetStyleGCs(style, x, y);
