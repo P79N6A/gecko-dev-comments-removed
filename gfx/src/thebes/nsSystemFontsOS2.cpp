@@ -222,6 +222,9 @@ nsresult nsSystemFontsOS2::GetSystemFont(nsSystemFontID aID, nsString* aFontName
     }
 
     
+    aFontStyle->stretch = NS_FONT_STRETCH_NORMAL;
+
+    
     NS_NAMED_LITERAL_CSTRING(spcItalic, " Italic");
     NS_NAMED_LITERAL_CSTRING(spcOblique, " Oblique");
     NS_NAMED_LITERAL_CSTRING(spcObli, " Obli");

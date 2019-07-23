@@ -5742,7 +5742,7 @@ CSSParserImpl::ParseFontDescriptorValue(nsCSSFontDesc aDescID,
     
     nsAutoString valueStr;
     aValue.GetStringValue(valueStr);
-    nsFont font(valueStr, 0, 0, 0, 0, 0);
+    nsFont font(valueStr, 0, 0, 0, 0, 0, 0);
     ExtractFirstFamilyData dat;
 
     font.EnumerateFamilies(ExtractFirstFamily, (void*) &dat);
@@ -7306,7 +7306,7 @@ CSSParserImpl::ParseFontSrc(nsCSSValue& aValue)
 
       
       
-      nsFont font(family, 0, 0, 0, 0, 0);
+      nsFont font(family, 0, 0, 0, 0, 0, 0);
       ExtractFirstFamilyData dat;
 
       font.EnumerateFamilies(ExtractFirstFamily, (void*) &dat);

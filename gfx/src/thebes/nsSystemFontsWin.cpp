@@ -65,6 +65,9 @@ nsresult nsSystemFontsWin::CopyLogFontToNSFont(HDC* aHDC, const LOGFONTW* ptrLog
             FONT_WEIGHT_BOLD : FONT_WEIGHT_NORMAL);
 
   
+  aFontStyle->stretch = NS_FONT_STRETCH_NORMAL;
+
+  
   float mPixelScale = 1.0f;
   
   

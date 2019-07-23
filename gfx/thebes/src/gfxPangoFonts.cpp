@@ -2245,7 +2245,9 @@ gfxFcFont::GetOrMakeFont(FcPattern *aPattern)
         
         
         NS_NAMED_LITERAL_CSTRING(langGroup, "x-unicode");
-        gfxFontStyle fontStyle(style, weight, size, langGroup, 0.0,
+        
+        gfxFontStyle fontStyle(style, weight, NS_FONT_STRETCH_NORMAL,
+                               size, langGroup, 0.0,
                                PR_TRUE, PR_FALSE, PR_FALSE);
 
         nsRefPtr<gfxFontEntry> fe;

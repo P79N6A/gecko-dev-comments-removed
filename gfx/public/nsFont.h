@@ -87,6 +87,10 @@ struct NS_GFX nsFont {
 
   
   
+  PRInt16 stretch;
+
+  
+  
   PRUint8 decorations;
 
   
@@ -100,13 +104,13 @@ struct NS_GFX nsFont {
 
   
   nsFont(const char* aName, PRUint8 aStyle, PRUint8 aVariant,
-         PRUint16 aWeight, PRUint8 aDecoration, nscoord aSize,
-         float aSizeAdjust=0.0f);
+         PRUint16 aWeight, PRInt16 aStretch, PRUint8 aDecoration,
+         nscoord aSize, float aSizeAdjust=0.0f);
 
   
   nsFont(const nsString& aName, PRUint8 aStyle, PRUint8 aVariant,
-         PRUint16 aWeight, PRUint8 aDecoration, nscoord aSize,
-         float aSizeAdjust=0.0f);
+         PRUint16 aWeight, PRInt16 aStretch, PRUint8 aDecoration,
+         nscoord aSize, float aSizeAdjust=0.0f);
 
   
   nsFont(const nsFont& aFont);

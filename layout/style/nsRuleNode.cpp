@@ -917,6 +917,7 @@ CheckFontCallback(const nsRuleDataStruct& aData,
   
   const nsCSSValue& size = fontData.mSize;
   const nsCSSValue& weight = fontData.mWeight;
+  const nsCSSValue& stretch = fontData.mStretch;
   if ((size.IsRelativeLengthUnit() && size.GetUnit() != eCSSUnit_Pixel) ||
       size.GetUnit() == eCSSUnit_Percent ||
       (size.GetUnit() == eCSSUnit_Enumerated &&
@@ -925,6 +926,9 @@ CheckFontCallback(const nsRuleDataStruct& aData,
 #ifdef MOZ_MATHML
       fontData.mScriptLevel.GetUnit() == eCSSUnit_Integer ||
 #endif
+      (stretch.GetUnit() == eCSSUnit_Enumerated &&
+       (stretch.GetIntValue() == NS_FONT_STRETCH_NARROWER ||
+        stretch.GetIntValue() == NS_FONT_STRETCH_WIDER)) ||
       (weight.GetUnit() == eCSSUnit_Enumerated &&
        (weight.GetIntValue() == NS_STYLE_FONT_WEIGHT_BOLDER ||
         weight.GetIntValue() == NS_STYLE_FONT_WEIGHT_LIGHTER))) {
@@ -2608,6 +2612,26 @@ nsRuleNode::SetFont(nsPresContext* aPresContext, nsStyleContext* aContext,
                 0, 0,
                 NS_STYLE_FONT_WEIGHT_NORMAL,
                 systemFont.weight);
+
+  
+  if (eCSSUnit_Enumerated == aFontData.mStretch.GetUnit()) {
+    PRInt32 value = aFontData.mStretch.GetIntValue();
+    switch (value) {
+      case NS_FONT_STRETCH_WIDER:
+      case NS_FONT_STRETCH_NARROWER:
+        aInherited = PR_TRUE;
+        aFont->mFont.stretch = aParentFont->mFont.stretch + value;
+        break;
+      default:
+        aFont->mFont.stretch = value;
+        break;
+    }
+  } else
+    SetDiscrete(aFontData.mStretch, aFont->mFont.stretch, aInherited,
+                SETDSC_NORMAL | SETDSC_SYSTEM_FONT,
+                aParentFont->mFont.stretch,
+                defaultVariableFont->stretch,
+                0, 0, NS_FONT_STRETCH_NORMAL, systemFont.stretch);
 
 #ifdef MOZ_MATHML
   
