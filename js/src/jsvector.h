@@ -229,21 +229,6 @@ class Vector : AllocPolicy
     union {
         BufferPtrs ptrs;
         char mBuf[sInlineBytes];
-
-#if __GNUC__
-        
-
-
-
-
-
-
-
-
-
-
-        jschar unused1_;
-#endif
     } u;
 
     
@@ -375,9 +360,6 @@ class Vector : AllocPolicy
     
 
     
-
-
-
     bool reserve(size_t capacity);
 
     

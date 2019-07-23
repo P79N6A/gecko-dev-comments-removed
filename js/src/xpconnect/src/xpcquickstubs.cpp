@@ -173,7 +173,7 @@ GeneratePropertyOp(JSContext *cx, JSObject *obj, jsval idval, uintN argc,
 
     JSObject *funobj = JS_GetFunctionObject(fun);
 
-    js::AutoValueRooter tvr(cx, OBJECT_TO_JSVAL(funobj));
+    JSAutoTempValueRooter tvr(cx, OBJECT_TO_JSVAL(funobj));
 
     
     
@@ -198,7 +198,7 @@ ReifyPropertyOps(JSContext *cx, JSObject *obj, jsval idval, jsid interned_id,
 {
     
     jsval roots[2] = { JSVAL_NULL, JSVAL_NULL };
-    js::AutoArrayRooter tvr(cx, 2, roots);
+    JSAutoTempValueRooter tvr(cx, 2, roots);
 
     uintN attrs = JSPROP_SHARED;
     JSObject *getterobj;

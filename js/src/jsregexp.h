@@ -65,15 +65,13 @@ struct JSRegExpStatics {
     JSSubString rightContext;   
 };
 
-namespace js { class AutoValueRooter; }
-
 extern JS_FRIEND_API(void)
 js_SaveAndClearRegExpStatics(JSContext *cx, JSRegExpStatics *statics,
-                             js::AutoValueRooter *tvr);
+                             JSTempValueRooter *tvr);
 
 extern JS_FRIEND_API(void)
 js_RestoreRegExpStatics(JSContext *cx, JSRegExpStatics *statics,
-                        js::AutoValueRooter *tvr);
+                        JSTempValueRooter *tvr);
 
 
 
@@ -120,7 +118,7 @@ struct JSRegExp {
 };
 
 extern JSRegExp *
-js_NewRegExp(JSContext *cx, js::TokenStream *ts,
+js_NewRegExp(JSContext *cx, JSTokenStream *ts,
              JSString *str, uintN flags, JSBool flat);
 
 extern JSRegExp *
@@ -183,8 +181,8 @@ js_regexp_toString(JSContext *cx, JSObject *obj, jsval *vp);
 
 
 extern JSObject *
-js_NewRegExpObject(JSContext *cx, js::TokenStream *ts,
-                   const jschar *chars, size_t length, uintN flags);
+js_NewRegExpObject(JSContext *cx, JSTokenStream *ts,
+                   jschar *chars, size_t length, uintN flags);
 
 extern JSBool
 js_XDRRegExpObject(JSXDRState *xdr, JSObject **objp);
