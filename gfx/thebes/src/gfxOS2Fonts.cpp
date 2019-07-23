@@ -61,8 +61,9 @@ gfxOS2Font::gfxOS2Font(gfxOS2FontEntry *aFontEntry, const gfxFontStyle *aFontSty
       mHinting(FC_HINT_MEDIUM), mAntialias(FcTrue)
 {
 #ifdef DEBUG_thebes_2
-    printf("gfxOS2Font[%#x]::gfxOS2Font(\"%s\", aFontStyle)\n",
-           (unsigned)this, NS_LossyConvertUTF16toASCII(aName).get());
+    printf("gfxOS2Font[%p]::gfxOS2Font(%p \"%s\", aFontStyle)\n",
+           (void *)this, (void *)aFontEntry,
+           NS_LossyConvertUTF16toASCII(aFontEntry->Name()).get());
 #endif
     
     nsCOMPtr<nsIPrefBranch> prefbranch = do_GetService(NS_PREFSERVICE_CONTRACTID);
