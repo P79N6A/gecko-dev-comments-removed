@@ -2193,6 +2193,14 @@ nsNavHistoryQueryResultNode::GetUri(nsACString& aURI)
 
 
 
+NS_IMETHODIMP
+nsNavHistoryQueryResultNode::GetFolderItemId(PRInt64* aItemId)
+{
+  *aItemId = mItemId;
+  return NS_OK;
+}
+
+
 
 NS_IMETHODIMP
 nsNavHistoryQueryResultNode::GetQueries(PRUint32* queryCount,
@@ -2952,6 +2960,15 @@ nsNavHistoryFolderResultNode::GetChildrenReadOnly(PRBool *aChildrenReadOnly)
   return bookmarks->GetFolderReadonly(mItemId, aChildrenReadOnly);
 }
 
+
+
+
+NS_IMETHODIMP
+nsNavHistoryFolderResultNode::GetFolderItemId(PRInt64* aItemId)
+{
+  *aItemId = mItemId;
+  return NS_OK;
+}
 
 
 
