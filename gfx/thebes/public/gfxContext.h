@@ -581,4 +581,35 @@ private:
     PRInt32 mFlags;
 };
 
+
+
+
+
+
+
+class THEBES_API gfxContextAutoSaveRestore
+{
+public:
+  gfxContextAutoSaveRestore() : mContext(nsnull) {}
+
+  gfxContextAutoSaveRestore(gfxContext *aContext) : mContext(aContext) {
+    mContext->Save();
+  }
+
+  ~gfxContextAutoSaveRestore() {
+    if (mContext) {
+      mContext->Restore();
+    }
+  }
+
+  void SetContext(gfxContext *aContext) {
+    NS_ASSERTION(!mContext, "Not going to call Restore() on some context!!!");
+    mContext = aContext;
+    mContext->Save();    
+  }
+
+private:
+  gfxContext *mContext;
+};
+
 #endif 
