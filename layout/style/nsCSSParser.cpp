@@ -5893,6 +5893,7 @@ CSSParserImpl::ParseBackground()
   nsAutoParseCompoundProperty compound(this);
 
   
+  mTempData.SetPropertyBit(eCSSProperty_background_color);
   mTempData.mColor.mBackColor.mXValue.SetColorValue(NS_RGBA(0, 0, 0, 0));
   mTempData.mColor.mBackColor.mYValue.SetColorValue(NS_RGBA(0, 0, 0, 0));
 
@@ -5955,7 +5956,6 @@ CSSParserImpl::ParseBackground()
       *source = simpleHeads[i];
     }
 
-    mTempData.SetPropertyBit(eCSSProperty_background_color);
     mTempData.SetPropertyBit(eCSSProperty_background_image);
     mTempData.SetPropertyBit(eCSSProperty_background_repeat);
     mTempData.SetPropertyBit(eCSSProperty_background_attachment);
