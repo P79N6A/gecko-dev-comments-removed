@@ -3658,30 +3658,19 @@ nsBlockFrame::ReflowInlineFrame(nsBlockReflowState& aState,
         }
       }
       aLine->SetBreakTypeAfter(breakType);
-      if (NS_FRAME_IS_NOT_COMPLETE(frameReflowStatus)) {
+      if (NS_FRAME_IS_COMPLETE(frameReflowStatus)) {
         
-        
-        PRBool madeContinuation;
-        rv = CreateContinuationFor(aState, aLine, aFrame, madeContinuation);
+        rv = SplitLine(aState, aLineLayout, aLine, aFrame->GetNextSibling(), aLineReflowStatus);
         NS_ENSURE_SUCCESS(rv, rv);
-        if (!aLineLayout.GetLineEndsInBR()) {
+
+        if (NS_INLINE_IS_BREAK_AFTER(frameReflowStatus) &&
+            !aLineLayout.GetLineEndsInBR()) {
           
-          aLine->SetLineWrapped(PR_TRUE);
-        }
-      }
-
-      
-      rv = SplitLine(aState, aLineLayout, aLine, aFrame->GetNextSibling(), aLineReflowStatus);
-      NS_ENSURE_SUCCESS(rv, rv);
-
-      if (NS_FRAME_IS_NOT_COMPLETE(frameReflowStatus) ||
-          (NS_INLINE_IS_BREAK_AFTER(frameReflowStatus) &&
-           !aLineLayout.GetLineEndsInBR())) {
-        
-        
-        nsLineList_iterator next = aLine.next();
-        if (next != end_lines() && !next->IsBlock()) {
-          next->MarkDirty();
+          
+          nsLineList_iterator next = aLine.next();
+          if (next != end_lines() && !next->IsBlock()) {
+            next->MarkDirty();
+          }
         }
       }
     }
@@ -3691,14 +3680,13 @@ nsBlockFrame::ReflowInlineFrame(nsBlockReflowState& aState,
     
     
     *aLineReflowStatus = LINE_REFLOW_TRUNCATED;
-  }  
-  else if (NS_FRAME_IS_NOT_COMPLETE(frameReflowStatus)) {
-    
+  }
 
+  if (NS_FRAME_IS_NOT_COMPLETE(frameReflowStatus)) {
+    
+    
     nsIAtom* frameType = aFrame->GetType();
 
-    
-    
     PRBool madeContinuation;
     rv = (nsGkAtoms::placeholderFrame == frameType)
          ? SplitPlaceholder(aState, aFrame)
