@@ -776,8 +776,10 @@ call_enumerate(JSContext *cx, JSObject *obj)
 
 
 
-        JS_ASSERT(prop && pobj == obj);
-        OBJ_DROP_PROPERTY(cx, pobj, prop);
+        if (prop) {
+            JS_ASSERT(pobj == obj);
+            OBJ_DROP_PROPERTY(cx, pobj, prop);
+        }
     }
     ok = JS_TRUE;
 
