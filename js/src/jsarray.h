@@ -79,6 +79,9 @@ extern JSClass js_ArrayClass, js_SlowArrayClass;
 
 
 
+
+
+
 static JS_INLINE JSObject *
 js_GetProtoIfDenseArray(JSContext *cx, JSObject *obj)
 {
