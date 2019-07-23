@@ -37,7 +37,7 @@
 
 
 #include "nsAccessNodeWrap.h"
-#include "nsAppRootAccessible.h"
+#include "nsApplicationAccessibleWrap.h"
 
 
 

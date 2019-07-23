@@ -40,6 +40,7 @@
 
 
 #include "nsAccessibleWrap.h"
+#include "nsApplicationAccessibleWrap.h"
 #include "nsRootAccessible.h"
 #include "nsDocAccessibleWrap.h"
 #include "nsIAccessibleValue.h"
@@ -63,9 +64,8 @@
 #include "nsMaiInterfaceDocument.h"
 #include "nsMaiInterfaceImage.h"
 
-#include "nsAppRootAccessible.h"
 
-extern "C" GType g_atk_hyperlink_impl_type; 
+extern "C" GType g_atk_hyperlink_impl_type;
 
 
 

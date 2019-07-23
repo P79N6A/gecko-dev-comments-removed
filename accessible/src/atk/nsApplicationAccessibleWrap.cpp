@@ -39,9 +39,10 @@
 
 
 
+#include "nsApplicationAccessibleWrap.h"
+
 #include "nsCOMPtr.h"
 #include "nsMai.h"
-#include "nsAppRootAccessible.h"
 #include "prlink.h"
 #include "prenv.h"
 #include "nsIPrefBranch.h"
