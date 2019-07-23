@@ -155,6 +155,8 @@ public:
 
   void InstantiateInsertionPoints(nsXBLBinding* aBinding);
 
+  
+  
   nsIContent* GetInsertionPoint(nsIContent* aBoundElement,
                                 nsIContent* aCopyRoot, nsIContent *aChild,
                                 PRUint32* aIndex);

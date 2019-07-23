@@ -68,6 +68,7 @@ class nsPresContext;
 class nsStyleChangeList;
 class nsIFrame;
 struct nsGenConInitializer;
+class ChildIterator;
 
 struct nsFindFrameHint
 {
@@ -1283,14 +1284,15 @@ private:
 
   
   
-  nsIFrame* FindPreviousSibling(nsIContent* aContainer,
-                                PRInt32     aIndexInContainer,
-                                nsIContent* aChild);
+  
+  nsIFrame* FindPreviousSibling(const ChildIterator& aFirst,
+                                ChildIterator aIter);
 
   
-  nsIFrame* FindNextSibling(nsIContent* aContainer,
-                            PRInt32     aIndexInContainer,
-                            nsIContent* aChild);
+  
+  
+  nsIFrame* FindNextSibling(ChildIterator aIter,
+                            const ChildIterator& aIter);
 
   
   
@@ -1300,22 +1302,6 @@ private:
                         nsIContent*            aContent,
                         PRUint8&               aDisplay);
   
-  
-
-
-
-  nsIFrame*
-  FindPreviousAnonymousSibling(nsIContent*   aContainer,
-                               nsIContent*   aChild);
-
-  
-
-
-
-  nsIFrame*
-  FindNextAnonymousSibling(nsIContent*   aContainer,
-                           nsIContent*   aChild);
-
   void QuotesDirty() {
     NS_PRECONDITION(mUpdateCount != 0, "Instant quote updates are bad news");
     mQuotesDirty = PR_TRUE;

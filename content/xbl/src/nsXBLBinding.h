@@ -144,6 +144,8 @@ public:
 
   nsInsertionPointList* GetExistingInsertionPointsFor(nsIContent* aParent);
 
+  
+  
   nsIContent* GetInsertionPoint(nsIContent* aChild, PRUint32* aIndex);
 
   nsIContent* GetSingleInsertionPoint(PRUint32* aIndex,

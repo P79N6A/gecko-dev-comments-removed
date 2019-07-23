@@ -155,6 +155,12 @@ public:
 
 
 
+  
+  
+  
+  
+  
+  
   nsIContent* GetInsertionPoint(nsIContent* aParent,
                                 nsIContent* aChild, PRUint32* aIndex);
 

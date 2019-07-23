@@ -7232,114 +7232,6 @@ nsCSSFrameConstructor::AppendFrames(nsFrameConstructorState&       aState,
 
 #define UNSET_DISPLAY 255
 
-nsIFrame*
-nsCSSFrameConstructor::FindPreviousAnonymousSibling(nsIContent*   aContainer,
-                                                    nsIContent*   aChild)
-{
-  nsCOMPtr<nsIDOMDocumentXBL> xblDoc(do_QueryInterface(mDocument));
-  NS_ASSERTION(xblDoc, "null xblDoc for content element in FindNextAnonymousSibling");
-  if (! xblDoc)
-    return nsnull;
-
-  
-  
-  nsCOMPtr<nsIDOMNodeList> nodeList;
-  nsCOMPtr<nsIDOMElement> elt(do_QueryInterface(aContainer));
-  xblDoc->GetAnonymousNodes(elt, getter_AddRefs(nodeList));
-
-  if (! nodeList)
-    return nsnull;
-
-  PRUint32 length;
-  nodeList->GetLength(&length);
-
-  PRInt32 index;
-  for (index = PRInt32(length) - 1; index >= 0; --index) {
-    nsCOMPtr<nsIDOMNode> node;
-    nodeList->Item(PRUint32(index), getter_AddRefs(node));
-
-    nsCOMPtr<nsIContent> child = do_QueryInterface(node);
-    if (child == aChild)
-      break;
-  }
-
-  
-  
-  PRUint8 childDisplay = UNSET_DISPLAY;
-  while (--index >= 0) {
-    nsCOMPtr<nsIDOMNode> node;
-    nodeList->Item(PRUint32(index), getter_AddRefs(node));
-
-    nsCOMPtr<nsIContent> child = do_QueryInterface(node);
-
-    
-    
-    nsIFrame* prevSibling = FindFrameForContentSibling(child, aChild,
-                                                       childDisplay, PR_TRUE);
-    if (prevSibling) {
-      
-      return prevSibling;
-    }
-  }
-
-  return nsnull;
-}
-
-
-
-
-
-nsIFrame*
-nsCSSFrameConstructor::FindNextAnonymousSibling(nsIContent*   aContainer,
-                                                nsIContent*   aChild)
-{
-  nsCOMPtr<nsIDOMDocumentXBL> xblDoc(do_QueryInterface(mDocument));
-  NS_ASSERTION(xblDoc, "null xblDoc for content element in FindNextAnonymousSibling");
-  if (! xblDoc)
-    return nsnull;
-
-  
-  nsCOMPtr<nsIDOMNodeList> nodeList;
-  nsCOMPtr<nsIDOMElement> elt(do_QueryInterface(aContainer));
-  xblDoc->GetAnonymousNodes(elt, getter_AddRefs(nodeList));
-
-  if (! nodeList)
-    return nsnull;
-
-  PRUint32 length;
-  nodeList->GetLength(&length);
-
-  PRInt32 index;
-  for (index = 0; index < PRInt32(length); ++index) {
-    nsCOMPtr<nsIDOMNode> node;
-    nodeList->Item(PRUint32(index), getter_AddRefs(node));
-
-    nsCOMPtr<nsIContent> child = do_QueryInterface(node);
-    if (child == aChild)
-      break;
-  }
-
-  
-  
-  PRUint8 childDisplay = UNSET_DISPLAY;
-  while (++index < PRInt32(length)) {
-    nsCOMPtr<nsIDOMNode> node;
-    nodeList->Item(PRUint32(index), getter_AddRefs(node));
-
-    nsCOMPtr<nsIContent> child = do_QueryInterface(node);
-
-    
-    nsIFrame* nextSibling = FindFrameForContentSibling(child, aChild,
-                                                       childDisplay, PR_FALSE);
-    if (nextSibling) {
-      
-      return nextSibling;
-    }
-  }
-
-  return nsnull;
-}
-
 
 
 
@@ -7464,36 +7356,20 @@ nsCSSFrameConstructor::FindFrameForContentSibling(nsIContent* aContent,
   return sibling;
 }
 
-
-
-
-
 nsIFrame*
-nsCSSFrameConstructor::FindPreviousSibling(nsIContent* aContainer,
-                                           PRInt32     aIndexInContainer,
-                                           nsIContent* aChild)
+nsCSSFrameConstructor::FindPreviousSibling(const ChildIterator& aFirst,
+                                           ChildIterator aIter)
 {
-  NS_ASSERTION(aContainer, "null argument");
-
-  ChildIterator first, iter;
-  nsresult rv = ChildIterator::Init(aContainer, &first, &iter);
-  NS_ENSURE_SUCCESS(rv, nsnull);
-  iter.seek(aIndexInContainer);
+  nsIContent* child = *aIter;
 
   PRUint8 childDisplay = UNSET_DISPLAY;
   
   
-  while (iter-- != first) {
+  while (aIter-- != aFirst) {
     nsIFrame* prevSibling =
-      FindFrameForContentSibling(nsCOMPtr<nsIContent>(*iter), aChild,
-                                 childDisplay, PR_TRUE);
+      FindFrameForContentSibling(*aIter, child, childDisplay, PR_TRUE);
 
     if (prevSibling) {
-#ifdef DEBUG
-      nsIFrame* containerFrame = nsnull;
-      containerFrame = mPresShell->GetPrimaryFrameFor(aContainer);
-      NS_ASSERTION(prevSibling != containerFrame, "Previous Sibling is the Container's frame");
-#endif
       
       return prevSibling;
     }
@@ -7502,30 +7378,22 @@ nsCSSFrameConstructor::FindPreviousSibling(nsIContent* aContainer,
   return nsnull;
 }
 
-
-
-
-
 nsIFrame*
-nsCSSFrameConstructor::FindNextSibling(nsIContent* aContainer,
-                                       PRInt32     aIndexInContainer,
-                                       nsIContent* aChild)
+nsCSSFrameConstructor::FindNextSibling(ChildIterator aIter,
+                                       const ChildIterator& aLast)
 {
-  ChildIterator iter, last;
-  nsresult rv = ChildIterator::Init(aContainer, &iter, &last);
-  NS_ENSURE_SUCCESS(rv, nsnull);
-  iter.seek(aIndexInContainer);
-
-  
-  if (iter == last)
+  if (aIter == aLast) {
+    
+    
     return nsnull;
+  }
 
+  nsIContent* child = *aIter;
   PRUint8 childDisplay = UNSET_DISPLAY;
 
-  while (++iter != last) {
+  while (++aIter != aLast) {
     nsIFrame* nextSibling =
-      FindFrameForContentSibling(nsCOMPtr<nsIContent>(*iter), aChild,
-                                 childDisplay, PR_FALSE);
+      FindFrameForContentSibling(*aIter, child, childDisplay, PR_FALSE);
 
     if (nextSibling) {
       
@@ -7540,19 +7408,17 @@ nsCSSFrameConstructor::FindNextSibling(nsIContent* aContainer,
 static nsIFrame*
 GetAdjustedParentFrame(nsIFrame*       aParentFrame,
                        nsIAtom*        aParentFrameType,
-                       nsIContent*     aParentContent,
-                       PRInt32         aChildIndex)
+                       nsIContent*     aChildContent)
 {
   NS_PRECONDITION(nsGkAtoms::tableOuterFrame != aParentFrameType,
                   "Shouldn't be happening!");
   
-  nsIContent *childContent = aParentContent->GetChildAt(aChildIndex);
   nsIFrame* newParent = nsnull;
 
   if (nsGkAtoms::fieldSetFrame == aParentFrameType) {
     
     
-    nsCOMPtr<nsIDOMHTMLLegendElement> legendContent(do_QueryInterface(childContent));
+    nsCOMPtr<nsIDOMHTMLLegendElement> legendContent(do_QueryInterface(aChildContent));
     if (!legendContent) {
       newParent = GetFieldSetBlockFrame(aParentFrame);
     }
@@ -7657,36 +7523,15 @@ nsCSSFrameConstructor::ContentAppended(nsIContent*     aContainer,
       
       
       
-      nsIContent* insertionContent = insertionPoint->GetContent();
+      
       
       PRUint32 containerCount = aContainer->GetChildCount();
       for (PRUint32 i = aNewIndexInContainer; i < containerCount; i++) {
-        nsIContent *child = aContainer->GetChildAt(i);
-        if (multiple) {
-          
-          
-          GetInsertionPoint(parentFrame, child, &insertionPoint);
-          if (!insertionPoint) {
-            
-            
-            continue;
-          }
-          insertionContent = insertionPoint->GetContent();
-        }
-
+        LAYOUT_PHASE_TEMP_EXIT();
         
-        ChildIterator iter, last;
-        for (ChildIterator::Init(insertionContent, &iter, &last);
-         iter != last;
-         ++iter) {
-          LAYOUT_PHASE_TEMP_EXIT();
-          nsIContent* item = nsCOMPtr<nsIContent>(*iter);
-          if (item == child)
-            
-            ContentInserted(aContainer, child,
-                            iter.position(), mTempFrameTreeState);
-          LAYOUT_PHASE_TEMP_REENTER();
-        }
+        ContentInserted(aContainer, aContainer->GetChildAt(i), i,
+                        mTempFrameTreeState);
+        LAYOUT_PHASE_TEMP_REENTER();
       }
 
       return NS_OK;
@@ -7738,8 +7583,9 @@ nsCSSFrameConstructor::ContentAppended(nsIContent*     aContainer,
 
   nsIAtom* frameType = parentFrame->GetType();
   
-  parentFrame = ::GetAdjustedParentFrame(parentFrame, frameType,
-                                         aContainer, aNewIndexInContainer);
+  
+  NS_ASSERTION(frameType != nsGkAtoms::fieldSetFrame,
+               "Unexpected parent");
 
   
   nsIFrame* parentAfterFrame;
@@ -7910,6 +7756,9 @@ PRBool NotifyListBoxBody(nsPresContext*    aPresContext,
             return PR_TRUE;
           }
         } else {
+          
+          
+          
           listBoxBodyFrame->OnContentInserted(aPresContext, aChild);
           return PR_TRUE;
         }
@@ -7948,6 +7797,8 @@ nsCSSFrameConstructor::ContentInserted(nsIContent*            aContainer,
   nsresult rv = NS_OK;
 
 #ifdef MOZ_XUL
+  
+  
   if (NotifyListBoxBody(mPresShell->GetPresContext(), aContainer, aChild,
                         aIndexInContainer, 
                         mDocument, nsnull, CONTENT_INSERTED))
@@ -8031,27 +7882,25 @@ nsCSSFrameConstructor::ContentInserted(nsIContent*            aContainer,
   
   nsIContent* container = parentFrame->GetContent();
 
-  
-  
-  
-  
-  
-  
-  
-  nsIFrame* prevSibling = (aIndexInContainer >= 0)
-    ? FindPreviousSibling(container, aIndexInContainer, aChild)
-    : FindPreviousAnonymousSibling(aContainer, aChild);
+  ChildIterator first, last;
+  ChildIterator::Init(container, &first, &last);
+  ChildIterator iter(first);
+  if (iter.XBLInvolved() || container != aContainer) {
+    iter.seek(aChild);
+    
+    
+    
+    
+  } else {
+    
+    iter.seek(aIndexInContainer);
+    NS_ASSERTION(*iter == aChild, "Someone screwed up the indexing");
+  }
+
+  nsIFrame* prevSibling = FindPreviousSibling(first, iter);
 
   PRBool    isAppend = PR_FALSE;
   nsIFrame* appendAfterFrame;  
-  nsIFrame* nextSibling = nsnull;
-    
-  
-  if (! prevSibling) {
-    nextSibling = (aIndexInContainer >= 0)
-      ? FindNextSibling(container, aIndexInContainer, aChild)
-      : FindNextAnonymousSibling(aContainer, aChild);
-  }
 
   
   
@@ -8059,21 +7908,27 @@ nsCSSFrameConstructor::ContentInserted(nsIContent*            aContainer,
   if (prevSibling) {
     parentFrame = prevSibling->GetParent()->GetContentInsertionFrame();
   }
-  else if (nextSibling) {
-    parentFrame = nextSibling->GetParent()->GetContentInsertionFrame();
-  }
   else {
     
-    isAppend = PR_TRUE;
-    
-    parentFrame = nsLayoutUtils::GetLastContinuationWithChild(parentFrame);
-    
-    parentFrame = ::GetAdjustedParentFrame(parentFrame, parentFrame->GetType(),
-                                           aContainer, aIndexInContainer);
-    parentFrame =
-      ::AdjustAppendParentForAfterContent(mPresShell->GetPresContext(),
-                                          aContainer, parentFrame,
-                                          &appendAfterFrame);
+    nsIFrame* nextSibling = FindNextSibling(iter, last);
+
+    if (nextSibling) {
+      parentFrame = nextSibling->GetParent()->GetContentInsertionFrame();
+    }
+    else {
+      
+      isAppend = PR_TRUE;
+      
+      parentFrame = nsLayoutUtils::GetLastContinuationWithChild(parentFrame);
+      
+      parentFrame = ::GetAdjustedParentFrame(parentFrame,
+                                             parentFrame->GetType(),
+                                             aChild);
+      parentFrame =
+        ::AdjustAppendParentForAfterContent(mPresShell->GetPresContext(),
+                                            aContainer, parentFrame,
+                                            &appendAfterFrame);
+    }
   }
 
   if (parentFrame->GetType() == nsGkAtoms::frameSetFrame &&
@@ -8143,17 +7998,14 @@ nsCSSFrameConstructor::ContentInserted(nsIContent*            aContainer,
 
       
       
-      
-      prevSibling = (aIndexInContainer >= 0)
-        ? FindPreviousSibling(container, aIndexInContainer, aChild)
-        : FindPreviousAnonymousSibling(aContainer, aChild);
-
-      
-      if (! prevSibling) {
-        nextSibling = (aIndexInContainer >= 0)
-          ? FindNextSibling(container, aIndexInContainer, aChild)
-          : FindNextAnonymousSibling(aContainer, aChild);
+      ChildIterator::Init(container, &first, &last);
+      if (container == aContainer && !last.XBLInvolved()) {
+        last.seek(aIndexInContainer);
+      } else {
+        last.seek(aChild);
       }
+
+      prevSibling = FindPreviousSibling(first, last);
     }
   }
 
@@ -10581,8 +10433,7 @@ nsCSSFrameConstructor::ProcessChildren(nsFrameConstructorState& aState,
     for (ChildIterator::Init(aContent, &iter, &last);
          iter != last;
          ++iter) {
-      rv = ConstructFrame(aState, nsCOMPtr<nsIContent>(*iter),
-                          aFrame, aFrameItems);
+      rv = ConstructFrame(aState, *iter, aFrame, aFrameItems);
       if (NS_FAILED(rv))
         return rv;
     }
@@ -11995,8 +11846,7 @@ nsCSSFrameConstructor::ProcessInlineChildren(nsFrameConstructorState& aState,
        ++iter) {
     
     nsIFrame* oldLastChild = aFrameItems.lastChild;
-    rv = ConstructFrame(aState, nsCOMPtr<nsIContent>(*iter),
-                        aFrame, aFrameItems);
+    rv = ConstructFrame(aState, *iter, aFrame, aFrameItems);
 
     if (NS_FAILED(rv)) {
       return rv;

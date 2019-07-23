@@ -43,8 +43,7 @@
 
 #include "nsCOMPtr.h"
 #include "nsIContent.h"
-#include "nsIDOMNodeList.h"
-#include "nsIDOMNode.h"
+#include "nsINodeList.h"
 
 
 
@@ -55,9 +54,14 @@
 class NS_STACK_CLASS ChildIterator
 {
 protected:
+  
+  
+  
+
+  
   nsCOMPtr<nsIContent> mContent;
   PRUint32 mIndex;
-  nsCOMPtr<nsIDOMNodeList> mNodes;
+  nsCOMPtr<nsINodeList> mNodes;
 
 public:
   ChildIterator()
@@ -97,21 +101,15 @@ public:
     return result;
   }
 
-  already_AddRefed<nsIContent> get() const {
-    nsIContent* result = nsnull;
-    if (mNodes) {
-      nsCOMPtr<nsIDOMNode> node;
-      mNodes->Item(mIndex, getter_AddRefs(node));
-      CallQueryInterface(node, &result);
-    } else {
-      result = mContent->GetChildAt(PRInt32(mIndex));
-      NS_IF_ADDREF(result);
+  nsIContent* get() const {
+    if (XBLInvolved()) {
+      return mNodes->GetNodeAt(mIndex);
     }
 
-    return result;
+    return mContent->GetChildAt(mIndex);
   }
 
-  already_AddRefed<nsIContent> operator*() const { return get(); }
+  nsIContent* operator*() const { return get(); }
 
   PRBool operator==(const ChildIterator& aOther) const {
     return mContent == aOther.mContent && mIndex == aOther.mIndex;
@@ -129,20 +127,42 @@ public:
     
     
     
-    PRUint32 length;
-    if (mNodes)
-      mNodes->GetLength(&length);
-    else
-      length = mContent->GetChildCount();
+    PRUint32 l = length();
 
-    NS_ASSERTION(PRInt32(aIndex) >= 0 && aIndex <= length, "out of bounds");
+    NS_ASSERTION(PRInt32(aIndex) >= 0 && aIndex <= l, "out of bounds");
 
     
-    if (aIndex > length)
-      aIndex = length;
+    if (aIndex > l)
+      aIndex = l;
 
     mIndex = aIndex;
   }
+
+  void seek(nsIContent* aContent) {
+    PRInt32 index;
+    if (XBLInvolved()) {
+      index = mNodes->IndexOf(aContent);
+    } else {
+      index = mContent->IndexOf(aContent);
+    }
+    
+    
+    
+    
+    
+    
+    
+    
+    if (index != -1) {
+      mIndex = index;
+    } else {
+      
+      
+      mIndex = length();
+    }
+  }
+
+  PRBool XBLInvolved() const { return mNodes != nsnull; }
 
   
 
@@ -152,4 +172,15 @@ public:
   static nsresult Init(nsIContent*    aContent,
                        ChildIterator* aFirst,
                        ChildIterator* aLast);
+
+private:
+  PRUint32 length() {
+    PRUint32 l;
+    if (XBLInvolved()) {
+      mNodes->GetLength(&l);
+    } else {
+      l = mContent->GetChildCount();
+    }
+    return l;
+  }
 };
