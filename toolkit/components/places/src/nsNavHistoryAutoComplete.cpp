@@ -104,7 +104,7 @@
 
 
 const PRUnichar kTitleTagsSeparatorChars[] = { ' ', 0x2013, ' ', 0 };
-const nsString kTitleTagsSeparator = nsAutoString(kTitleTagsSeparatorChars);
+#define TITLE_TAGS_SEPARATOR nsAutoString(kTitleTagsSeparatorChars)
 
 
 
@@ -772,7 +772,7 @@ nsNavHistory::AutoCompleteProcessSearch(mozIStorageStatement* aQuery,
 
       
       if (showTags)
-        title += kTitleTagsSeparator + entryTags;
+        title += TITLE_TAGS_SEPARATOR + entryTags;
 
       
       
