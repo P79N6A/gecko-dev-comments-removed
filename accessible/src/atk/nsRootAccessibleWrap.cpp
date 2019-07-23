@@ -138,35 +138,40 @@ nsresult nsRootAccessibleWrap::HandleEventWithTarget(nsIDOMEvent *aEvent,
         return NS_OK;
     }
 
-    StateChange stateData;
     nsCOMPtr<nsPIAccessible> privAcc(do_QueryInterface(accessible));
 
     if (eventType.EqualsLiteral("CheckboxStateChange") || 
         eventType.EqualsLiteral("RadioStateChange")) { 
-        stateData.state = State(accessible);
+
+        PRUint32 state = State(accessible);
+
         
         
-        stateData.enable = (stateData.state &
-          (nsIAccessibleStates::STATE_CHECKED |
-           nsIAccessibleStates::STATE_SELECTED)) != 0;
-        stateData.state = nsIAccessibleStates::STATE_CHECKED;
-        privAcc->FireToolkitEvent(nsIAccessibleEvent::EVENT_STATE_CHANGE,
-                                  accessible, &stateData);
+        PRBool isEnabled = (state & (nsIAccessibleStates::STATE_CHECKED |
+                            nsIAccessibleStates::STATE_SELECTED)) != 0;
+
+        nsCOMPtr<nsIAccessibleStateChangeEvent> accEvent =
+            new nsAccStateChangeEvent(accessible,
+                                      nsIAccessibleStates::STATE_CHECKED,
+                                      PR_FALSE, isEnabled);
+        FireAccessibleEvent(accEvent);
+
         
-        if (eventType.EqualsLiteral("RadioStateChange") &&
-            stateData.enable) {
+        if (eventType.EqualsLiteral("RadioStateChange") && isEnabled) {
             FireAccessibleFocusEvent(accessible, aTargetNode, aEvent);
         }
         return NS_OK;
     }
 
     if (eventType.EqualsLiteral("OpenStateChange")) {
-        stateData.state = State(accessible); 
-        stateData.enable = (stateData.state & nsIAccessibleStates::STATE_EXPANDED) != 0;
-        stateData.state = nsIAccessibleStates::STATE_EXPANDED;
-        privAcc->FireToolkitEvent(nsIAccessibleEvent::EVENT_STATE_CHANGE,
-                                  accessible, &stateData);
-        return NS_OK;
+        PRUint32 state = State(accessible); 
+        PRBool isEnabled = (state & nsIAccessibleStates::STATE_EXPANDED) != 0;
+
+        nsCOMPtr<nsIAccessibleStateChangeEvent> accEvent =
+            new nsAccStateChangeEvent(accessible,
+                                      nsIAccessibleStates::STATE_EXPANDED,
+                                      PR_FALSE, isEnabled);
+        return FireAccessibleEvent(accEvent);
     }
 
 #ifdef MOZ_XUL
@@ -212,8 +217,8 @@ nsresult nsRootAccessibleWrap::HandleEventWithTarget(nsIDOMEvent *aEvent,
             for (PRInt32 index = 0; index < childCount; index++) {
                 accessible->GetChildAt(index, getter_AddRefs(radioAcc));
                 if (radioAcc) {
-                    stateData.state = State(radioAcc);
-                    if (stateData.state & (nsIAccessibleStates::STATE_CHECKED |
+                    PRUint32 state = State(radioAcc);
+                    if (state & (nsIAccessibleStates::STATE_CHECKED |
                         nsIAccessibleStates::STATE_SELECTED)) {
                         break;
                     }
@@ -229,10 +234,11 @@ nsresult nsRootAccessibleWrap::HandleEventWithTarget(nsIDOMEvent *aEvent,
         }
         if (accessible) {
             
-            stateData.enable = PR_TRUE;
-            stateData.state = nsIAccessibleStates::STATE_FOCUSED;
-            privAcc->FireToolkitEvent(nsIAccessibleEvent::EVENT_STATE_CHANGE, accessible,
-                                      &stateData);
+            nsCOMPtr<nsIAccessibleStateChangeEvent> accEvent =
+                new nsAccStateChangeEvent(accessible,
+                                          nsIAccessibleStates::STATE_FOCUSED,
+                                          PR_FALSE, PR_TRUE);
+            return FireAccessibleEvent(accEvent);
         }
     }
     else if (eventType.EqualsLiteral("select")) {
