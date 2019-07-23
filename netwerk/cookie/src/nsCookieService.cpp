@@ -2084,7 +2084,10 @@ nsCookieService::CheckDomain(nsCookieAttributes &aCookieAttributes,
 
   
   if (!aCookieAttributes.host.IsEmpty()) {
-    aCookieAttributes.host.Trim(".");
+    
+    if (aCookieAttributes.host.First() == '.')
+      aCookieAttributes.host.Cut(0, 1);
+
     
     ToLowerCase(aCookieAttributes.host);
 
