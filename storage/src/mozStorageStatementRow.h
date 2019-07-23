@@ -64,7 +64,9 @@ protected:
         return mStatement->GetNativeStatementPointer();
     }
 
-    nsRefPtr<mozStorageStatement> mStatement;
+    mozStorageStatement *mStatement;
+
+    friend class mozStorageStatement;
 };
 
 #endif 
