@@ -58,6 +58,14 @@ JS_BEGIN_EXTERN_C
 #define JSSTRING_BIT(n)             ((size_t)1 << (n))
 #define JSSTRING_BITMASK(n)         (JSSTRING_BIT(n) - 1)
 
+#define UNIT_STRING_SPACE(sp)    ((jschar *) ((sp) + UNIT_STRING_LIMIT))
+#define UNIT_STRING_SPACE_RT(rt) UNIT_STRING_SPACE((rt)->unitStrings)
+
+#define IN_UNIT_STRING_SPACE(sp,cp)                                           \
+    ((size_t)((cp) - UNIT_STRING_SPACE(sp)) < 2 * UNIT_STRING_LIMIT)
+#define IN_UNIT_STRING_SPACE_RT(rt,cp)                                        \
+    IN_UNIT_STRING_SPACE((rt)->unitStrings, cp)
+
 class TraceRecorder;
 
 extern jschar *
@@ -570,16 +578,6 @@ js_NewStringCopyN(JSContext *cx, const jschar *s, size_t n);
 
 extern JSString *
 js_NewStringCopyZ(JSContext *cx, const jschar *s);
-
-
-
-
-
-
-
-
-extern void
-js_FinalizeStringRT(JSRuntime *rt, JSString *str, intN type, JSContext *cx);
 
 
 

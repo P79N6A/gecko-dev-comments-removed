@@ -3247,7 +3247,7 @@ js_DestroyScriptsToGC(JSContext *cx, JSThreadData *data)
 }
 
 static void
-FinalizeObject(JSContext *cx, JSObject *obj)
+js_FinalizeObject(JSContext *cx, JSObject *obj)
 {
     
     if (!obj->map)
@@ -3269,6 +3269,71 @@ FinalizeObject(JSContext *cx, JSObject *obj)
     if (JS_LIKELY(OBJ_IS_NATIVE(obj)))
         OBJ_SCOPE(obj)->drop(cx, obj);
     js_FreeSlots(cx, obj);
+}
+
+static JSStringFinalizeOp str_finalizers[GCX_NTYPES - GCX_EXTERNAL_STRING] = {
+    NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL
+};
+
+intN
+js_ChangeExternalStringFinalizer(JSStringFinalizeOp oldop,
+                                 JSStringFinalizeOp newop)
+{
+    uintN i;
+
+    for (i = 0; i != JS_ARRAY_LENGTH(str_finalizers); i++) {
+        if (str_finalizers[i] == oldop) {
+            str_finalizers[i] = newop;
+            return (intN) i;
+        }
+    }
+    return -1;
+}
+
+
+
+
+
+void
+js_FinalizeStringRT(JSRuntime *rt, JSString *str, intN type, JSContext *cx)
+{
+    jschar *chars;
+    JSBool valid;
+    JSStringFinalizeOp finalizer;
+
+    JS_RUNTIME_UNMETER(rt, liveStrings);
+    if (str->isDependent()) {
+        
+        JS_ASSERT(type < 0);
+        JS_ASSERT(str->dependentBase());
+        JS_RUNTIME_UNMETER(rt, liveDependentStrings);
+        valid = JS_TRUE;
+    } else {
+        
+        chars = str->flatChars();
+        valid = (chars != NULL);
+        if (valid) {
+            if (IN_UNIT_STRING_SPACE_RT(rt, chars)) {
+                JS_ASSERT(rt->unitStrings[*chars] == str);
+                JS_ASSERT(type < 0);
+                rt->unitStrings[*chars] = NULL;
+            } else if (type < 0) {
+                free(chars);
+            } else {
+                JS_ASSERT((uintN) type < JS_ARRAY_LENGTH(str_finalizers));
+                finalizer = str_finalizers[type];
+                if (finalizer) {
+                    
+
+
+
+                    finalizer(cx, str);
+                }
+            }
+        }
+    }
+    if (valid && str->isDeflated())
+        js_PurgeDeflatedStringCache(rt, str);
 }
 
 
@@ -3607,7 +3672,7 @@ js_GC(JSContext *cx, JSGCInvocationKind gckind)
                         type = flags & GCF_TYPEMASK;
                         switch (type) {
                           case GCX_OBJECT:
-                            FinalizeObject(cx, (JSObject *) thing);
+                            js_FinalizeObject(cx, (JSObject *) thing);
                             break;
                           case GCX_DOUBLE:
                             

@@ -348,6 +348,16 @@ js_AddAsGCBytes(JSContext *cx, size_t sz);
 extern void
 js_RemoveAsGCBytes(JSRuntime* rt, size_t sz);
 
+
+
+
+
+
+
+
+extern void
+js_FinalizeStringRT(JSRuntime *rt, JSString *str, intN type, JSContext *cx);
+
 #ifdef DEBUG_notme
 #define JS_GCMETER 1
 #endif
