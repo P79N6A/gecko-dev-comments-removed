@@ -4893,20 +4893,20 @@ ShouldPutNextSiblingOnNewLine(nsIFrame* aLastFrame)
 }
 
 nsresult
-nsBlockFrame::AddFrames(nsIFrame* aFrameList,
+nsBlockFrame::AddFrames(const nsFrameList& aFrameList,
                         nsIFrame* aPrevSibling)
 {
   
   ClearLineCursor();
 
-  if (nsnull == aFrameList) {
+  if (aFrameList.IsEmpty()) {
     return NS_OK;
   }
 
   
   
   if (!aPrevSibling && mBullet && !HaveOutsideBullet()) {
-    NS_ASSERTION(!nsFrameList(aFrameList).ContainsFrame(mBullet),
+    NS_ASSERTION(!aFrameList.ContainsFrame(mBullet),
                  "Trying to make mBullet prev sibling to itself");
     aPrevSibling = mBullet;
   }
@@ -4961,7 +4961,7 @@ nsBlockFrame::AddFrames(nsIFrame* aFrameList,
     }
 
     
-    aPrevSibling->SetNextSibling(aFrameList);
+    aPrevSibling->SetNextSibling(aFrameList.FirstChild());
   }
   else if (! mLines.empty()) {
     prevSiblingNextFrame = mLines.front()->mFirstChild;
@@ -4971,7 +4971,7 @@ nsBlockFrame::AddFrames(nsIFrame* aFrameList,
 
   
   
-  nsIFrame* newFrame = aFrameList;
+  nsIFrame* newFrame = aFrameList.FirstChild();
   while (newFrame) {
     NS_ASSERTION(newFrame->GetType() != nsGkAtoms::placeholderFrame ||
                  (!newFrame->GetStyleDisplay()->IsAbsolutelyPositioned() &&

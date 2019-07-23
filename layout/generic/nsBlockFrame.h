@@ -396,7 +396,7 @@ protected:
 
 
 
-  virtual nsresult AddFrames(nsIFrame* aFrameList,
+  virtual nsresult AddFrames(const nsFrameList& aFrameList,
                              nsIFrame* aPrevSibling);
 
 #ifdef IBMBIDI
