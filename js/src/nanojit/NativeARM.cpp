@@ -519,13 +519,7 @@ Assembler::nFragExit(LInsp guard)
         
         JMP_far(_epilogue);
 
-        
-        
-        
-        
-        
-        
-        asm_ld_imm(R2, int(gr));
+        asm_ld_imm(R0, int(gr));
 
         
         
@@ -555,10 +549,6 @@ Assembler::genEpilogue()
     RegisterMask savingMask = rmask(FP) | rmask(PC);
 
     POP_mask(savingMask); 
-
-    
-    
-    MOV(R0,R2); 
 
     return _nIns;
 }
