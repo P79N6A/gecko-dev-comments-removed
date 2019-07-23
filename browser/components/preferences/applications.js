@@ -987,17 +987,10 @@ var gApplicationsPane = {
     return visibleTypes;
   },
 
-  
-  
-  
-  
   _matchesFilter: function(aType) {
     var filterValue = this._filter.value.toLowerCase();
     return aType.description.toLowerCase().indexOf(filterValue) != -1 ||
-           this._describePreferredAction(aType).toLowerCase().indexOf(filterValue) != -1 ||
-           aType.type.toLowerCase().indexOf(filterValue) != -1 ||
-           (aType.primaryExtension &&
-            aType.primaryExtension.toLowerCase().indexOf(filterValue) != -1);
+           this._describePreferredAction(aType).toLowerCase().indexOf(filterValue) != -1;
   },
 
   
