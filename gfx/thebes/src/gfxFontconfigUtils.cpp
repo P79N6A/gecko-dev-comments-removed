@@ -77,6 +77,17 @@ gfxFontconfigUtils::GetThebesStyle(FcPattern *aPattern)
     return FONT_STYLE_NORMAL;
 }
 
+ int
+gfxFontconfigUtils::GetFcSlant(const gfxFontStyle& aFontStyle)
+{
+    if (aFontStyle.style == FONT_STYLE_ITALIC)
+        return FC_SLANT_ITALIC;
+    if (aFontStyle.style == FONT_STYLE_OBLIQUE)
+        return FC_SLANT_OBLIQUE;
+
+    return FC_SLANT_ROMAN;
+}
+
 
 #ifndef FC_WEIGHT_THIN 
 #define FC_WEIGHT_THIN              0 // 2.1.93
@@ -87,6 +98,10 @@ gfxFontconfigUtils::GetThebesStyle(FcPattern *aPattern)
 
 #ifndef FC_WEIGHT_BOOK
 #define FC_WEIGHT_BOOK              75
+#endif
+
+#ifndef FC_WEIGHT_EXTRABLACK
+#define FC_WEIGHT_EXTRABLACK        215
 #endif
 
  PRUint16
@@ -120,11 +135,155 @@ gfxFontconfigUtils::GetThebesWeight(FcPattern *aPattern)
     return 901;
 }
 
+ int
+gfxFontconfigUtils::FcWeightForBaseWeight(PRInt8 aBaseWeight)
+{
+    switch (aBaseWeight) {
+        case 2:
+            return FC_WEIGHT_EXTRALIGHT;
+        case 3:
+            return FC_WEIGHT_LIGHT;
+        case 4:
+            return FC_WEIGHT_REGULAR;
+        case 5:
+            return FC_WEIGHT_MEDIUM;
+        case 6:
+            return FC_WEIGHT_DEMIBOLD;
+        case 7:
+            return FC_WEIGHT_BOLD;
+        case 8:
+            return FC_WEIGHT_EXTRABOLD;
+        case 9:
+            return FC_WEIGHT_BLACK;
+    }
+
+    
+    return aBaseWeight < 2 ? FC_WEIGHT_THIN : FC_WEIGHT_EXTRABLACK;
+}
+
+
+
+
+ int
+GuessFcWeight(const gfxFontStyle& aFontStyle)
+{
+    
+
+
+
+
+
+
+
+    PRInt8 weight;
+    PRInt8 offset;
+    aFontStyle.ComputeWeightAndOffset(&weight, &offset);
+
+    
+    NS_ASSERTION(weight >= 0 && weight <= 10,
+                 "base weight out of range");
+
+    
+    
+    
+
+    
+    static const int lighterGuess[11] =
+        { 0, 0, 1, 1, 2, 3, 4, 4, 6, 7, 8 };
+    
+    static const int bolderGuess[11] =
+        { 2, 3, 4, 6, 7, 7, 8, 9, 10, 10, 10 };
+
+    while (offset < 0) {
+        weight = lighterGuess[weight];
+        offset++;
+    }
+    while (offset > 0) {
+        weight = bolderGuess[weight];
+        offset--;
+    }
+
+    return gfxFontconfigUtils::FcWeightForBaseWeight(weight);
+}
+
+static void
+AddString(FcPattern *aPattern, const char *object, const char *aString)
+{
+    
+    const FcChar8 *fcString = gfxFontconfigUtils::ToFcChar8(aString);
+    
+    FcPatternAddString(aPattern, object, const_cast<FcChar8*>(fcString));
+}
+
+static void
+AddLangGroup(FcPattern *aPattern, const nsACString& aLangGroup)
+{
+    
+    nsCAutoString lang;
+    gfxFontconfigUtils::GetSampleLangForGroup(aLangGroup, &lang);
+
+    if (!lang.IsEmpty()) {
+        AddString(aPattern, FC_LANG, lang.get());
+    }
+}
+
+
+nsReturnRef<FcPattern>
+gfxFontconfigUtils::NewPattern(const nsStringArray& aFamilies,
+                               const gfxFontStyle& aFontStyle,
+                               const char *aLang)
+{
+    nsAutoRef<FcPattern> pattern(FcPatternCreate());
+    if (!pattern)
+        return nsReturnRef<FcPattern>();
+
+    FcPatternAddDouble(pattern, FC_PIXEL_SIZE, aFontStyle.size);
+    FcPatternAddInteger(pattern, FC_SLANT, GetFcSlant(aFontStyle));
+    FcPatternAddInteger(pattern, FC_WEIGHT, GuessFcWeight(aFontStyle));
+
+    if (aLang) {
+        AddString(pattern, FC_LANG, aLang);
+    }
+
+    for (PRInt32 i = 0; i < aFamilies.Count(); ++i) {
+        NS_ConvertUTF16toUTF8 family(*aFamilies[i]);
+        AddString(pattern, FC_FAMILY, family.get());
+    }
+
+    return pattern.out();
+}
+
 gfxFontconfigUtils::gfxFontconfigUtils()
     : mLastConfig(NULL)
 {
-    mAliasTable.Init(50);
+    mFontsByFamily.Init(50);
+    mLangSupportTable.Init(20);
+    UpdateFontListInternal();
 }
+
+#if 0
+PR_STATIC_CALLBACK(PLDHashOperator)
+GetFamilyNamesCallback(FamilyHashEntry *aEntry, void *aData)
+{
+    nsStringArray *names = static_cast<nsStringArray *>(aData);
+
+    const FcChar8 *name = aEntry->GetName();
+
+    
+    
+    names.AppendString(NS_ConvertUTF8toUTF16(ToCString(sname)));
+}
+
+    if (aLangGroup.IsEmpty()) {
+        nsresult rv = UpdateFontListInternal();
+        if (NS_FAILED(rv))
+            return rv;
+
+        mFonts.EnumerateEntries(GetFamilyNamesCallback, &aListOfFonts);
+
+    } else {
+    }
+#endif
 
 nsresult
 gfxFontconfigUtils::GetFontList(const nsACString& aLangGroup,
@@ -133,21 +292,14 @@ gfxFontconfigUtils::GetFontList(const nsACString& aLangGroup,
 {
     aListOfFonts.Clear();
 
-    nsresult rv = UpdateFontListInternal();
+    nsCStringArray fonts;
+    nsresult rv = GetFontListInternal(fonts, aLangGroup);
     if (NS_FAILED(rv))
         return rv;
 
-    nsCStringArray tmpFonts;
-    nsCStringArray *fonts = &mFonts;
-    if (!aLangGroup.IsEmpty() || !aGenericFamily.IsEmpty()) {
-        rv = GetFontListInternal(tmpFonts, &aLangGroup);
-        if (NS_FAILED(rv))
-            return rv;
-        fonts = &tmpFonts;
+    for (PRInt32 i = 0; i < fonts.Count(); ++i) {
+        aListOfFonts.AppendString(NS_ConvertUTF8toUTF16(*fonts.CStringAt(i)));
     }
-
-    for (PRInt32 i = 0; i < fonts->Count(); ++i)
-         aListOfFonts.AppendString(NS_ConvertUTF8toUTF16(*fonts->CStringAt(i)));
 
     aListOfFonts.Sort();
 
@@ -254,7 +406,7 @@ gfxFontconfigUtils::GetSampleLangForGroup(const nsACString& aLangGroup,
 
     const MozLangGroupData *langGroup = nsnull;
 
-    for (unsigned int i=0; i < NS_ARRAY_LENGTH(MozLangGroups); ++i) {
+    for (unsigned int i = 0; i < NS_ARRAY_LENGTH(MozLangGroups); ++i) {
         if (aLangGroup.Equals(MozLangGroups[i].mozLangGroup,
                               nsCaseInsensitiveCStringComparator())) {
             langGroup = &MozLangGroups[i];
@@ -309,25 +461,9 @@ gfxFontconfigUtils::GetSampleLangForGroup(const nsACString& aLangGroup,
     }
 }
 
-static void
-AddLangGroup(FcPattern *aPattern, const nsACString& aLangGroup)
-{
-    
-    nsCAutoString lang;
-    gfxFontconfigUtils::GetSampleLangForGroup(aLangGroup, &lang);
-
-    if (!lang.IsEmpty()) {
-        
-        const FcChar8 *fcString = reinterpret_cast<const FcChar8*>(lang.get());
-        
-        FcPatternAddString(aPattern, FC_LANG, const_cast<FcChar8*>(fcString));
-    }
-}
-
-
 nsresult
 gfxFontconfigUtils::GetFontListInternal(nsCStringArray& aListOfFonts,
-                                        const nsACString *aLangGroup)
+                                        const nsACString& aLangGroup)
 {
     FcPattern *pat = NULL;
     FcObjectSet *os = NULL;
@@ -345,8 +481,8 @@ gfxFontconfigUtils::GetFontListInternal(nsCStringArray& aListOfFonts,
         goto end;
 
     
-    if (aLangGroup && !aLangGroup->IsEmpty()) {
-        AddLangGroup(pat, *aLangGroup);
+    if (!aLangGroup.IsEmpty()) {
+        AddLangGroup(pat, aLangGroup);
     }
 
     fs = FcFontList(NULL, pat, os);
@@ -413,16 +549,38 @@ gfxFontconfigUtils::UpdateFontListInternal(PRBool aForce)
     if (currentConfig == mLastConfig)
         return NS_OK;
 
-    mFonts.Clear();
-    mAliasForSingleFont.Clear();
+    
+    FcFontSet *fontSet = FcConfigGetFonts(currentConfig, FcSetSystem);
+
+    mFontsByFamily.Clear();
+    mLangSupportTable.Clear();
     mAliasForMultiFonts.Clear();
-    mNonExistingFonts.Clear();
 
-    mAliasTable.Clear();
+    
+    for (int f = 0; f < fontSet->nfont; ++f) {
+        FcPattern *font = fontSet->fonts[f];
 
-    nsresult rv = GetFontListInternal(mFonts);
-    if (NS_FAILED(rv))
-        return rv;
+        FcChar8 *family;
+        for (int v = 0;
+             FcPatternGetString(font, FC_FAMILY, v, &family) == FcResultMatch;
+             ++v) {
+            FontsByFcStrEntry *entry = mFontsByFamily.PutEntry(family);
+            if (entry) {
+                PRBool added = entry->AddFont(font);
+
+                if (!entry->mKey) {
+                    
+                    
+                    
+                    if (added) {
+                        entry->mKey = family;
+                    } else {
+                        mFontsByFamily.RawRemoveEntry(entry);
+                    }
+                }
+            }
+        }
+    }
 
     
     
@@ -463,70 +621,8 @@ gfxFontconfigUtils::UpdateFontListInternal(PRBool aForce)
         }
     }
 
-    for (PRInt32 i = 0; i < mAliasForMultiFonts.Count(); i++) {
-        nsRefPtr<gfxFontNameList> fonts = new gfxFontNameList;
-        nsCAutoString fontname(*mAliasForMultiFonts.CStringAt(i));
-        rv = GetResolvedFonts(fontname, fonts);
-        if (NS_FAILED(rv))
-            return rv;
-
-        nsCAutoString key;
-        ToLowerCase(fontname, key);
-        mAliasTable.Put(key, fonts);
-    }
-
     mLastConfig = currentConfig;
     return NS_OK;
-}
-
-nsresult
-gfxFontconfigUtils::GetResolvedFonts(const nsACString& aName,
-                                     gfxFontNameList* aResult)
-{
-    FcPattern *pat = NULL;
-    FcFontSet *fs = NULL;
-    FcResult fresult;
-    aResult->Clear();
-    nsresult rv = NS_ERROR_FAILURE;
-
-    pat = FcPatternCreate();
-    if (!pat)
-        goto end;
-
-    FcDefaultSubstitute(pat);
-    FcPatternAddString(pat, FC_FAMILY,
-                       (FcChar8 *)nsPromiseFlatCString(aName).get());
-    
-    FcPatternDel(pat, FC_LANG);
-    FcConfigSubstitute(NULL, pat, FcMatchPattern);
-
-    fs = FcFontSort(NULL, pat, FcTrue, NULL, &fresult);
-    if (!fs)
-        goto end;
-
-    rv = NS_OK;
-    for (int i = 0; i < fs->nfont; i++) {
-        char *family;
-
-        if (FcPatternGetString(fs->fonts[i], FC_FAMILY, 0,
-                               (FcChar8 **) &family) != FcResultMatch ||
-            mAliasForMultiFonts.IndexOfIgnoreCase(nsDependentCString(family)) >= 0 ||
-            IsExistingFont(nsDependentCString(family)) == 0)
-        {
-            continue;
-        }
-        NS_ConvertUTF8toUTF16 actualName(family);
-        if (aResult->Exists(actualName))
-            continue;
-        aResult->AppendElement(actualName);
-    }
-
-  end:
-    if (pat)
-        FcPatternDestroy(pat);
-    if (fs)
-        FcFontSetDestroy(fs);
-    return rv;
 }
 
 nsresult
@@ -548,14 +644,11 @@ gfxFontconfigUtils::GetStandardFamilyName(const nsAString& aFontName, nsAString&
 
     NS_ConvertUTF16toUTF8 fontname(aFontName);
 
-    if (mFonts.IndexOf(fontname) >= 0) {
-        aFamilyName.Assign(aFontName);
-        return NS_OK;
-    }
-
-    if (mNonExistingFonts.IndexOf(fontname) >= 0)
+    
+    if (!IsExistingFamily(fontname))
         return NS_OK;
 
+    
     FcPattern *pat = NULL;
     FcObjectSet *os = NULL;
     FcFontSet *givenFS = NULL;
@@ -655,87 +748,203 @@ gfxFontconfigUtils::ResolveFontName(const nsAString& aFontName,
         return rv;
 
     NS_ConvertUTF16toUTF8 fontname(aFontName);
-    if (mAliasForMultiFonts.IndexOfIgnoreCase(fontname) >= 0) {
-        nsCAutoString key;
-        ToLowerCase(fontname, key);
-        nsRefPtr<gfxFontNameList> fonts;
-        if (!mAliasTable.Get(key, &fonts))
-            NS_ERROR("The mAliasTable was broken!");
-        for (PRUint32 i = 0; i < fonts->Length(); i++) {
-            aAborted = !(*aCallback)(fonts->ElementAt(i), aClosure);
-            if (aAborted)
-                break;
-        }
-    } else {
-        PRInt32 result = IsExistingFont(fontname);
-        if (result < 0)
-            return NS_ERROR_FAILURE;
-
-        if (result > 0)
-            aAborted = !(*aCallback)(aFontName, aClosure);
-    }
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    if (IsExistingFamily(fontname) ||
+        mAliasForMultiFonts.IndexOfIgnoreCase(fontname))
+        aAborted = !(*aCallback)(aFontName, aClosure);
 
     return NS_OK;
 }
 
-PRInt32
-gfxFontconfigUtils::IsExistingFont(const nsACString &aFontName)
+PRBool
+gfxFontconfigUtils::IsExistingFamily(const nsCString& aFamilyName)
+{
+    return mFontsByFamily.GetEntry(ToFcChar8(aFamilyName.get())) != nsnull;
+}
+
+const nsTArray< nsCountedRef<FcPattern> >&
+gfxFontconfigUtils::GetFontsForFamily(const FcChar8 *aFamilyName)
+{
+    FontsByFcStrEntry *entry = mFontsByFamily.GetEntry(aFamilyName);
+
+    if (!entry)
+        return mEmptyPatternArray;
+
+    return entry->GetFonts();
+}
+
+static FcLangResult
+CompareLangString(const FcChar8 *aLangA, const FcChar8 *aLangB) {
+    FcLangResult result = FcLangDifferentLang;
+    for (PRUint32 i = 0; ; ++i) {
+        FcChar8 a = FcToLower(aLangA[i]);
+        FcChar8 b = FcToLower(aLangB[i]);
+
+        if (a != b) {
+            if ((a == '\0' && b == '-') || (a == '-' && b == '\0'))
+                return FcLangDifferentCountry;
+
+            return result;
+        }
+        if (a == '\0')
+            return FcLangEqual;
+
+        if (a == '-') {
+            result = FcLangDifferentCountry;
+        }
+    }
+}
+
+
+FcLangResult
+gfxFontconfigUtils::GetLangSupport(FcPattern *aFont, const FcChar8 *aLang)
 {
     
     
-    if (mNonExistingFonts.IndexOf(aFontName) >= 0)
-        return 0;
-    if (mAliasForSingleFont.IndexOf(aFontName) >= 0)
-        return 1;
-    if (mFonts.IndexOf(aFontName) >= 0)
-        return 1;
+    
+    
+    
+    FcValue value;
+    FcLangResult best = FcLangDifferentLang;
+    int v = 0;
+    while (FcPatternGet(aFont, FC_LANG, v, &value) == FcResultMatch) {
+        ++v;
 
-    
-    
-    
-    
-    
-    
-    
-    
+        FcLangResult support;
+        switch (value.type) {
+            case FcTypeLangSet:
+                support = FcLangSetHasLang(value.u.l, aLang);
+                break;
+            case FcTypeString:
+                support = CompareLangString(value.u.s, aLang);
+                break;
+            default:
+                
+                return FcLangEqual;
+        }
 
-    FcPattern *pat = NULL;
-    FcObjectSet *os = NULL;
-    FcFontSet *fs = NULL;
-    PRInt32 result = -1;
-
-    pat = FcPatternCreate();
-    if (!pat)
-        goto end;
-
-    FcPatternAddString(pat, FC_FAMILY,
-                       (FcChar8 *)nsPromiseFlatCString(aFontName).get());
-
-    os = FcObjectSetBuild(FC_FAMILY, NULL);
-    if (!os)
-        goto end;
-
-    fs = FcFontList(NULL, pat, os);
-    if (!fs)
-        goto end;
-
-    
-    if (fs->nfont > 0) {
-        mAliasForSingleFont.AppendCString(aFontName);
-        result = 1;
-    } else {
-        mNonExistingFonts.AppendCString(aFontName);
-        result = 0;
+        if (support < best) { 
+            if (support == FcLangEqual)
+                return support;
+            best = support;
+        }        
     }
 
-  end:
-    if (pat)
-        FcPatternDestroy(pat);
-    if (os)
-        FcObjectSetDestroy(os);
-    if (fs)
-        FcFontSetDestroy(fs);
-    return result;
+    
+    
+    if (v == 0)
+        return FcLangEqual;        
+
+    return best;
+}
+
+gfxFontconfigUtils::LangSupportEntry *
+gfxFontconfigUtils::GetLangSupportEntry(const FcChar8 *aLang, PRBool aWithFonts)
+{
+    
+    
+    
+    
+
+    LangSupportEntry *entry = mLangSupportTable.PutEntry(aLang);
+    if (!entry)
+        return nsnull;
+
+    FcLangResult best = FcLangDifferentLang;
+
+    if (!entry->IsKeyInitialized()) {
+        entry->InitKey(aLang);
+    } else {
+        
+        if (!aWithFonts)
+            return entry;
+
+        best = entry->mSupport;
+        
+        
+        if (best == FcLangDifferentLang || entry->mFonts.Length() > 0)
+            return entry;
+    }
+
+    
+    FcFontSet *fontSet = FcConfigGetFonts(NULL, FcSetSystem);
+
+    nsAutoTArray<FcPattern*,100> fonts;
+
+    for (int f = 0; f < fontSet->nfont; ++f) {
+        FcPattern *font = fontSet->fonts[f];
+
+        FcLangResult support = GetLangSupport(font, aLang);
+
+        if (support < best) { 
+            best = support;
+            if (aWithFonts) {
+                fonts.Clear();
+            } else if (best == FcLangEqual) {
+                break;
+            }
+        }
+
+        
+        
+        
+        
+        
+        if (aWithFonts && support != FcLangDifferentLang && support == best) {
+            fonts.AppendElement(font);
+        }
+    }
+
+    entry->mSupport = best;
+    if (aWithFonts) {
+        if (fonts.Length() != 0) {
+            entry->mFonts.AppendElements(fonts.Elements(), fonts.Length());
+        } else if (best != FcLangDifferentLang) {
+            
+            
+            
+            
+            
+            mLastConfig = NULL; 
+            UpdateFontListInternal(PR_TRUE);
+            return GetLangSupportEntry(aLang, aWithFonts);
+        }
+    }
+
+    return entry;
+}
+
+FcLangResult
+gfxFontconfigUtils::GetBestLangSupport(const FcChar8 *aLang)
+{
+    UpdateFontListInternal();
+
+    LangSupportEntry *entry = GetLangSupportEntry(aLang, PR_FALSE);
+    if (!entry)
+        return FcLangEqual;
+
+    return entry->mSupport;
+}
+
+const nsTArray< nsCountedRef<FcPattern> >&
+gfxFontconfigUtils::GetFontsForLang(const FcChar8 *aLang)
+{
+    LangSupportEntry *entry = GetLangSupportEntry(aLang, PR_TRUE);
+    if (!entry)
+        return mEmptyPatternArray;
+
+    return entry->mFonts;
 }
 
 PRBool
@@ -746,4 +955,3 @@ gfxFontNameList::Exists(nsAString& aName) {
     }
     return PR_FALSE;
 }
-
