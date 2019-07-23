@@ -130,7 +130,7 @@ class nsMediaDecoder : public nsIObserver
 
   
   
-  virtual PRUint32 GetBytesLoaded() = 0;
+  virtual PRUint64 GetBytesLoaded() = 0;
 
   
   
@@ -152,7 +152,7 @@ class nsMediaDecoder : public nsIObserver
   virtual void Progress();
 
   
-  virtual void UpdateBytesDownloaded(PRUint32 aBytes) = 0;
+  virtual void UpdateBytesDownloaded(PRUint64 aBytes) = 0;
 
   
   

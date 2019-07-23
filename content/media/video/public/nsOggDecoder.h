@@ -326,7 +326,7 @@ class nsOggDecoder : public nsMediaDecoder
   void GetCurrentURI(nsIURI** aURI);
   nsIPrincipal* GetCurrentPrincipal();
 
-  virtual void UpdateBytesDownloaded(PRUint32 aBytes);
+  virtual void UpdateBytesDownloaded(PRUint64 aBytes);
 
   
   
@@ -378,7 +378,7 @@ protected:
 
   
   
-  virtual PRUint32 GetBytesLoaded();
+  virtual PRUint64 GetBytesLoaded();
 
   
   
@@ -411,7 +411,7 @@ private:
 
 
   
-  PRUint32 mBytesDownloaded;
+  PRUint64 mBytesDownloaded;
 
   
   nsCOMPtr<nsIURI> mURI;
