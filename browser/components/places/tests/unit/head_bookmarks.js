@@ -40,6 +40,7 @@
 version(170);
 
 const NS_APP_USER_PROFILE_50_DIR = "ProfD";
+const NS_APP_PROFILE_DIR_STARTUP = "ProfDS";
 var Ci = Components.interfaces;
 var Cc = Components.classes;
 var Cr = Components.results;
@@ -51,33 +52,39 @@ function LOG(aMsg) {
   print(aMsg);
 }
 
+var dirSvc = Cc["@mozilla.org/file/directory_service;1"].
+             getService(Ci.nsIProperties);
+var gTestRoot = dirSvc.get("CurProcD", Ci.nsILocalFile);
+gTestRoot = gTestRoot.parent.parent;
+gTestRoot.append("_tests");
+gTestRoot.append("xpcshell-simple");
+gTestRoot.append("test_browser_places");
+gTestRoot.normalize();
 
-var dirSvc = Cc["@mozilla.org/file/directory_service;1"].getService(Ci.nsIProperties);
-var profileDir = null;
-try {
-  profileDir = dirSvc.get(NS_APP_USER_PROFILE_50_DIR, Ci.nsIFile);
-} catch (e) {}
-if (!profileDir) {
-  
-  
-  var provider = {
-    getFile: function(prop, persistent) {
-      persistent.value = true;
-      if (prop == NS_APP_USER_PROFILE_50_DIR) {
-        return dirSvc.get("CurProcD", Ci.nsIFile);
-      }
-      throw Cr.NS_ERROR_FAILURE;
-    },
-    QueryInterface: function(iid) {
-      if (iid.equals(Ci.nsIDirectoryServiceProvider) ||
-          iid.equals(Ci.nsISupports)) {
-        return this;
-      }
-      throw Cr.NS_ERROR_NO_INTERFACE;
+
+var gProfD = gTestRoot.clone();
+gProfD.append("profile");
+if (gProfD.exists())
+  gProfD.remove(true);
+gProfD.create(Ci.nsIFile.DIRECTORY_TYPE, 0755);
+
+var dirProvider = {
+  getFile: function(prop, persistent) {
+    persistent.value = true;
+    if (prop == NS_APP_USER_PROFILE_50_DIR ||
+        prop == NS_APP_PROFILE_DIR_STARTUP)
+      return gProfD.clone();
+    return null;
+  },
+  QueryInterface: function(iid) {
+    if (iid.equals(Ci.nsIDirectoryServiceProvider) ||
+        iid.equals(Ci.nsISupports)) {
+      return this;
     }
-  };
-  dirSvc.QueryInterface(Ci.nsIDirectoryService).registerProvider(provider);
-}
+    throw Cr.NS_ERROR_NO_INTERFACE;
+  }
+};
+dirSvc.QueryInterface(Ci.nsIDirectoryService).registerProvider(dirProvider);
 
 var XULAppInfo = {
   vendor: "Mozilla",
@@ -119,23 +126,11 @@ var updateSvc = Cc["@mozilla.org/updates/update-service;1"].
 
 var iosvc = Cc["@mozilla.org/network/io-service;1"].getService(Ci.nsIIOService);
 
+
+
+Cc["@mozilla.org/browser/livemark-service;2"].getService(Ci.nsILivemarkService);
+Cc["@mozilla.org/feed-processor;1"].createInstance(Ci.nsIFeedProcessor);
+
 function uri(spec) {
   return iosvc.newURI(spec, null, null);
 }
-
-function cleanUp() {
-  try {
-    
-    var file = dirSvc.get('ProfD', Ci.nsIFile);
-    file.append("places.sqlite");
-    if (file.exists())
-      file.remove(false);
-
-    
-    file = dirSvc.get('ProfD', Ci.nsIFile);
-    file.append("bookmarks.exported.html");
-    if (file.exists())
-      file.remove(false);
-  } catch(ex) { dump("Exception: " + ex); }
-}
-cleanUp();
