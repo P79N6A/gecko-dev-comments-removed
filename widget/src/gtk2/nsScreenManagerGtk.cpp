@@ -161,7 +161,7 @@ nsScreenManagerGtk :: Init()
   }
   
   
-  if (!screenInfo) {
+  if (!screenInfo || numScreens == 1) {
     nsRefPtr<nsScreenGtk> screen;
     numScreens = 1;
 
