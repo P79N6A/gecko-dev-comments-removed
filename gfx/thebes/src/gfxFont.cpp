@@ -1486,7 +1486,6 @@ gfxTextRun::ComputeLigatureData(PRUint32 aPartStart, PRUint32 aPartEnd,
             }
         }
     }
-    NS_ASSERTION(totalClusterCount > 0, "Ligature involving no clusters??");
     result.mPartAdvance = ligatureWidth*partClusterIndex/totalClusterCount;
     result.mPartWidth = ligatureWidth*partClusterCount/totalClusterCount;
 
@@ -2246,33 +2245,6 @@ gfxTextRun::SortGlyphRuns()
     }
 }
 
-void
-gfxTextRun::SanitizeGlyphRuns()
-{
-    if (mGlyphRuns.Length() <= 1)
-        return;
-
-    
-    
-    
-    
-    PRInt32 i;
-    for (i = mGlyphRuns.Length() - 1; i >= 0; --i) {
-        GlyphRun& run = mGlyphRuns[i];
-        while (mCharacterGlyphs[run.mCharacterOffset].IsLigatureContinuation() &&
-               run.mCharacterOffset < mCharacterCount) {
-            run.mCharacterOffset++;
-        }
-        
-        if ((i < mGlyphRuns.Length() - 1 &&
-             run.mCharacterOffset >= mGlyphRuns[i+1].mCharacterOffset) ||
-            (i == mGlyphRuns.Length() - 1 &&
-             run.mCharacterOffset == mCharacterCount)) {
-            mGlyphRuns.RemoveElementAt(i);
-        }
-    }
-}
-
 PRUint32
 gfxTextRun::CountMissingGlyphs()
 {
@@ -2349,13 +2321,6 @@ gfxTextRun::SetMissingGlyph(PRUint32 aIndex, PRUint32 aChar)
 void
 gfxTextRun::RecordSurrogates(const PRUnichar *aString)
 {
-    
-    
-    
-    
-    
-    
-
     if (!(mFlags & gfxTextRunFactory::TEXT_HAS_SURROGATES))
         return;
 
@@ -2444,9 +2409,6 @@ gfxTextRun::CopyGlyphDataFrom(gfxTextRun *aSource, PRUint32 aStart,
         PRUint32 end = iter.GetStringEnd();
 #endif
         PRUint32 start = iter.GetStringStart();
-        
-        
-        
         NS_ASSERTION(aSource->IsClusterStart(start),
                      "Started word in the middle of a cluster...");
         NS_ASSERTION(end == aSource->GetLength() || aSource->IsClusterStart(end),

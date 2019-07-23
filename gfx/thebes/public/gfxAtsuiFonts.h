@@ -40,8 +40,6 @@
 #ifndef GFX_ATSUIFONTS_H
 #define GFX_ATSUIFONTS_H
 
-#ifndef __LP64__ 
-
 #include "cairo.h"
 #include "gfxTypes.h"
 #include "gfxFont.h"
@@ -68,7 +66,7 @@ public:
     float GetCharWidth(PRUnichar c, PRUint32 *aGlyphID = nsnull);
     float GetCharHeight(PRUnichar c);
 
-    ATSFontRef GetATSFontRef();
+    ATSUFontID GetATSUFontID();
 
     cairo_font_face_t *CairoFontFace() { return mFontFace; }
     cairo_scaled_font_t *CairoScaledFont() { return mScaledFont; }
@@ -146,7 +144,7 @@ public:
         return static_cast<gfxAtsuiFont*>(static_cast<gfxFont*>(mFonts[aFontIndex]));
     }
 
-    PRBool HasFont(ATSFontRef aFontRef);
+    PRBool HasFont(ATSUFontID fid);
 
     inline gfxAtsuiFont* WhichFontSupportsChar(nsTArray< nsRefPtr<gfxFont> >& aFontList, 
                                                PRUint32 aCh)
@@ -209,7 +207,4 @@ protected:
     PRBool                        mLastPrefFirstFont;  
     eFontPrefLang                 mPageLang;
 };
-
-#endif 
-
 #endif 
