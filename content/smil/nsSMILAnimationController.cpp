@@ -262,6 +262,32 @@ nsSMILAnimationController::StopTimer()
 
 
 
+PR_CALLBACK PLDHashOperator
+RemoveCompositorFromTable(nsSMILCompositor* aCompositor,
+                          void* aData)
+{
+  nsSMILCompositorTable* lastCompositorTable =
+    static_cast<nsSMILCompositorTable*>(aData); 
+  lastCompositorTable->RemoveEntry(aCompositor->GetKey());
+  return PL_DHASH_NEXT;
+}
+
+PR_CALLBACK PLDHashOperator
+DoClearAnimationEffects(nsSMILCompositor* aCompositor,
+                        void* )
+{
+  aCompositor->ClearAnimationEffects();
+  return PL_DHASH_NEXT;
+}
+
+PR_CALLBACK PLDHashOperator
+DoComposeAttribute(nsSMILCompositor* aCompositor,
+                   void* )
+{
+  aCompositor->ComposeAttribute();
+  return PL_DHASH_NEXT;
+}
+
 void
 nsSMILAnimationController::DoSample()
 {
@@ -325,14 +351,16 @@ nsSMILAnimationController::DoSample(PRBool aSkipUnchangedContainers)
     
     
     
+    currentCompositorTable->EnumerateEntries(RemoveCompositorFromTable,
+                                             mLastCompositorTable);
+
     
     
-    
-    
+    mLastCompositorTable->EnumerateEntries(DoClearAnimationEffects, nsnull);
   }
 
   
-  nsSMILCompositor::ComposeAttributes(*currentCompositorTable);
+  currentCompositorTable->EnumerateEntries(DoComposeAttribute, nsnull);
 
   
   mLastCompositorTable = currentCompositorTable.forget();

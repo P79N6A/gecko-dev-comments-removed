@@ -85,6 +85,19 @@ nsSMILCompositor::AddAnimationFunction(nsSMILAnimationFunction* aFunc)
   }
 }
 
+nsISMILAttr*
+nsSMILCompositor::CreateSMILAttr()
+{
+  if (mKey.mIsCSS) {
+    
+    
+    
+  } else {
+    return mKey.mElement->GetAnimatedAttr(mKey.mAttributeName);
+  }
+  return nsnull;
+}
+
 void
 nsSMILCompositor::ComposeAttribute()
 {
@@ -93,15 +106,7 @@ nsSMILCompositor::ComposeAttribute()
 
   
   
-  nsAutoPtr<nsISMILAttr> smilAttr;
-  if (mKey.mIsCSS) {
-    
-    
-    
-  } else {
-    smilAttr = mKey.mElement->GetAnimatedAttr(mKey.mAttributeName);
-  }
-
+  nsAutoPtr<nsISMILAttr> smilAttr(CreateSMILAttr());
   if (!smilAttr) {
     
     return;
@@ -163,16 +168,17 @@ nsSMILCompositor::ComposeAttribute()
   } 
 }
 
- void
-nsSMILCompositor::ComposeAttributes(nsSMILCompositorTable& aCompositorTable)
+void
+nsSMILCompositor::ClearAnimationEffects()
 {
-  aCompositorTable.EnumerateEntries(DoComposeAttribute, nsnull);
+  if (!mKey.mElement || !mKey.mAttributeName)
+    return;
+
+  nsAutoPtr<nsISMILAttr> smilAttr(CreateSMILAttr());
+  if (!smilAttr) {
+    
+    return;
+  }
+  smilAttr->ClearAnimValue();
 }
 
- PR_CALLBACK PLDHashOperator
-nsSMILCompositor::DoComposeAttribute(nsSMILCompositor* aCompositor,
-                                     void* )
-{ 
-  aCompositor->ComposeAttribute();
-  return PL_DHASH_NEXT;
-}

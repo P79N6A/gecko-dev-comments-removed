@@ -95,7 +95,12 @@ public:
   void AddAnimationFunction(nsSMILAnimationFunction* aFunc);
   
   
-  static void ComposeAttributes(nsSMILCompositorTable& aCompositorTable);
+  
+  
+  void ComposeAttribute();
+
+  
+  void ClearAnimationEffects();
 
   
   void Traverse(nsCycleCollectionTraversalCallback* aCallback);
@@ -103,8 +108,7 @@ public:
  private:
   
   
-  
-  void ComposeAttribute();
+  nsISMILAttr* CreateSMILAttr();
 
   
   PR_STATIC_CALLBACK(PLDHashOperator) DoComposeAttribute(
