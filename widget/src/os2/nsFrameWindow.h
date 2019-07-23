@@ -34,64 +34,76 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef _nsframewindow_h
 #define _nsframewindow_h
-
-
-
-
-
-
-
-
 
 #include "nsWindow.h"
 #include "nssize.h"
 
+
+
+
+
 class nsFrameWindow : public nsWindow
 {
- public:
-   nsFrameWindow();
-   virtual ~nsFrameWindow();
+public:
+  nsFrameWindow();
+  virtual ~nsFrameWindow();
 
-   
-   HWND GetMainWindow() const { return mFrameWnd; }
+  
+  virtual nsresult      CreateWindow(nsWindow* aParent,
+                                     HWND aParentWnd,
+                                     const nsIntRect& aRect,
+                                     PRUint32 aStyle);
+  NS_IMETHOD            Show(PRBool aState);
+  NS_IMETHOD            GetClientBounds(nsIntRect& aRect);
 
- protected:
-   PFNWP  fnwpDefFrame;
-   nsSize mSizeClient;
-   nsSize mSizeBorder;
-   PRBool mNeedActivation;
+protected:
+  
+  virtual HWND          GetMainWindow()     const {return mFrameWnd;}
+  virtual void          ActivateTopLevelWidget();
+  virtual PRBool        OnReposition(PSWP pSwp);
+  virtual PRInt32       GetClientHeight()   {return mSizeClient.height;}
 
-   
-   virtual void ActivateTopLevelWidget();
+  
+  PRUint32              GetFCFlags();
+  void                  UpdateClientSize();
+  void                  SetWindowListVisibility(PRBool aState);
+  MRESULT               FrameMessage(ULONG msg, MPARAM mp1, MPARAM mp2);
 
-   
-   virtual void RealDoCreate( HWND hwndP, nsWindow *aParent,
-                              const nsIntRect &aRect,
-                              EVENT_CALLBACK aHandleEventFunction,
-                              nsIDeviceContext *aContext,
-                              nsIAppShell *aAppShell,
-                              nsWidgetInitData *aInitData, HWND hwndO);
+  friend MRESULT EXPENTRY fnwpFrame(HWND hwnd, ULONG msg,
+                                    MPARAM mp1, MPARAM mp2);
 
-   
-   PRBool OnReposition( PSWP pSwp);
-
-   
-   void    UpdateClientSize();
-   PRInt32 GetClientHeight() { return mSizeClient.height; }
-
-   
-   MRESULT FrameMessage( ULONG msg, MPARAM mp1, MPARAM mp2);
-
-   NS_IMETHOD Show( PRBool bState);
-   void SetWindowListVisibility( PRBool bState);
-
-   
-   NS_IMETHOD GetClientBounds( nsIntRect &aRect);
-
-   friend MRESULT EXPENTRY fnwpFrame( HWND, ULONG, MPARAM, MPARAM);
-   static BOOL fHiddenWindowCreated;
+  PFNWP         mPrevFrameProc;
+  nsSize        mSizeClient;
+  PRBool        mNeedActivation;
 };
 
-#endif
+#endif 
+
+
+

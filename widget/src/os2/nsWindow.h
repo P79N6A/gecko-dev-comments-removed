@@ -51,21 +51,81 @@
 
 
 
+
+
+
+
+
+
+
+
+
 #ifndef _nswindow_h
 #define _nswindow_h
 
-#include "nsWidgetDefs.h"
 #include "nsBaseWidget.h"
-#include "nsToolkit.h"
-#include "gfxOS2Surface.h"
-#include "gfxContext.h"
+#include "gfxASurface.h"
 
-class imgIContainer;
+#define INCL_DOS
+#define INCL_WIN
+#define INCL_NLS
+#define INCL_GPI
+#include <os2.h>
+
+
+
+
+
+#ifndef WM_MOUSEENTER
+#define WM_MOUSEENTER   0x041E
+#endif
+
+#ifndef WM_MOUSELEAVE
+#define WM_MOUSELEAVE   0x041F
+#endif
+
+#ifndef WM_FOCUSCHANGED
+#define WM_FOCUSCHANGED 0x000E
+#endif
+
+extern "C" {
+  PVOID  APIENTRY WinQueryProperty(HWND hwnd, PCSZ pszNameOrAtom);
+  PVOID  APIENTRY WinRemoveProperty(HWND hwnd, PCSZ pszNameOrAtom);
+  BOOL   APIENTRY WinSetProperty(HWND hwnd, PCSZ pszNameOrAtom,
+                                 PVOID pvData, ULONG ulFlags);
+  APIRET APIENTRY DosQueryModFromEIP(HMODULE* phMod, ULONG* pObjNum,
+                                     ULONG BuffLen,  PCHAR pBuff,
+                                     ULONG* pOffset, ULONG Address);
+}
+
+
+
+
+
+#define kWindowClassName            "MozillaWindowClass"
+#define QWL_NSWINDOWPTR             (QWL_USER+4)
+
+
+#define kIsInitialized              0x0001
+#define kIsDBCS                     0x0002
+#define kIsTrackPoint               0x0004
+
+
+#define nsWindowState_ePrecreate    0x0001      // Create() not called yet
+#define nsWindowState_eInCreate     0x0002      // processing Create() method
+#define nsWindowState_eLive         0x0004      // active, existing window
+#define nsWindowState_eClosing      0x0008      // processing Close() method
+#define nsWindowState_eDoingDelete  0x0010      // object destructor running
+#define nsWindowState_eDead         0x0100      // window destroyed
+
+
+
 
 
 
 #ifdef DEBUG_FOCUS
-  #define DEBUGFOCUS(what) fprintf(stderr, "[%8x]  %8lx  (%02d)  "#what"\n", (int)this, mWnd, mWindowIdentifier)
+  #define DEBUGFOCUS(what) fprintf(stderr, "[%8x]  %8lx  (%02d)  "#what"\n", \
+                                   (int)this, mWnd, mWindowIdentifier)
 #else
   #define DEBUGFOCUS(what)
 #endif
@@ -73,282 +133,165 @@ class imgIContainer;
 
 
 
+class imgIContainer;
+class gfxOS2Surface;
+
+MRESULT EXPENTRY fnwpNSWindow(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2);
+MRESULT EXPENTRY fnwpFrame(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2);
 
 
 
 
-
-   
-   #define   nsWindowState_ePrecreate      0x00000001
-   
-   #define   nsWindowState_eInCreate       0x00000002
-   
-   #define      nsWindowState_eLive        0x00000004
-   
-   #define      nsWindowState_eClosing     0x00000008
-   
-   #define      nsWindowState_eDoingDelete 0x00000010
-   
-   #define      nsWindowState_eDead        0x00000100         
-
-MRESULT EXPENTRY fnwpNSWindow( HWND, ULONG, MPARAM, MPARAM);
-MRESULT EXPENTRY fnwpFrame( HWND, ULONG, MPARAM, MPARAM);
 
 class nsWindow : public nsBaseWidget
 {
- public:
-   
-   nsWindow();
-   virtual ~nsWindow();
+public:
+  nsWindow();
+  virtual ~nsWindow();
 
-   static void ReleaseGlobals();
+  
+  NS_IMETHOD            Create(nsIWidget* aParent,
+                               nsNativeWidget aNativeParent,
+                               const nsIntRect& aRect,
+                               EVENT_CALLBACK aHandleEventFunction,
+                               nsIDeviceContext* aContext,
+                               nsIAppShell* aAppShell = nsnull,
+                               nsIToolkit* aToolkit = nsnull,
+                               nsWidgetInitData* aInitData = nsnull);
+  NS_IMETHOD            Destroy();
+  virtual nsIWidget*    GetParent();
+  NS_IMETHOD            Enable(PRBool aState);
+  NS_IMETHOD            IsEnabled(PRBool* aState);
+  NS_IMETHOD            Show(PRBool aState);
+  NS_IMETHOD            IsVisible(PRBool& aState);
+  NS_IMETHOD            SetFocus(PRBool aRaise);
+  NS_IMETHOD            Invalidate(const nsIntRect& aRect,
+                                   PRBool aIsSynchronous);
+  NS_IMETHOD            Update();
+  gfxASurface*          GetThebesSurface();
+  virtual void*         GetNativeData(PRUint32 aDataType);
+  virtual void          FreeNativeData(void* aDatum, PRUint32 aDataType);
+  NS_IMETHOD            CaptureMouse(PRBool aCapture);
+  virtual PRBool        HasPendingInputEvent();
+  virtual void          Scroll(const nsIntPoint& aDelta,
+                               const nsTArray<nsIntRect>& aDestRects,
+                               const nsTArray<Configuration>& aReconfigureChildren);
+  NS_IMETHOD            GetBounds(nsIntRect& aRect);
+  NS_IMETHOD            GetClientBounds(nsIntRect& aRect);
+  virtual nsIntPoint    WidgetToScreenOffset();
+  NS_IMETHOD            Move(PRInt32 aX, PRInt32 aY);
+  NS_IMETHOD            Resize(PRInt32 aWidth, PRInt32 aHeight,
+                               PRBool  aRepaint);
+  NS_IMETHOD            Resize(PRInt32 aX, PRInt32 aY,
+                               PRInt32 aWidth, PRInt32 aHeight,
+                               PRBool  aRepaint);
+  NS_IMETHOD            PlaceBehind(nsTopLevelWidgetZPlacement aPlacement,
+                                    nsIWidget* aWidget, PRBool aActivate);
+  NS_IMETHOD            SetZIndex(PRInt32 aZIndex);
+  virtual nsresult      ConfigureChildren(const nsTArray<Configuration>& aConfigurations);
+  NS_IMETHOD            SetSizeMode(PRInt32 aMode);
+  NS_IMETHOD            HideWindowChrome(PRBool aShouldHide);
+  NS_IMETHOD            SetTitle(const nsAString& aTitle); 
+  NS_IMETHOD            SetIcon(const nsAString& aIconSpec); 
+  NS_IMETHOD            ConstrainPosition(PRBool aAllowSlop,
+                                          PRInt32* aX, PRInt32* aY);
+  NS_IMETHOD            SetCursor(nsCursor aCursor);
+  NS_IMETHOD            SetCursor(imgIContainer* aCursor,
+                                  PRUint32 aHotspotX, PRUint32 aHotspotY);
+  NS_IMETHOD            CaptureRollupEvents(nsIRollupListener* aListener,
+                                            nsIMenuRollup* aMenuRollup,
+                                            PRBool aDoCapture, PRBool aConsumeRollupEvent);
+  NS_IMETHOD            GetToggledKeyState(PRUint32 aKeyCode,
+                                           PRBool* aLEDState);
+  NS_IMETHOD            DispatchEvent(nsGUIEvent* event,
+                                      nsEventStatus& aStatus);
 
-   
-
-   
-   NS_IMETHOD Create( nsIWidget *aParent,
-                      nsNativeWidget aNativeParent,
-                      const nsIntRect &aRect,
-                      EVENT_CALLBACK aHandleEventFunction,
-                      nsIDeviceContext *aContext,
-                      nsIAppShell *aAppShell = nsnull,
-                      nsIToolkit *aToolkit = nsnull,
-                      nsWidgetInitData *aInitData = nsnull);
-   gfxASurface* GetThebesSurface();
-   NS_IMETHOD Destroy(); 
-
-   
-   virtual nsIWidget *GetParent();
-
-   NS_IMETHOD SetSizeMode(PRInt32 aMode);
-
-   
-   NS_IMETHOD Show( PRBool bState);
-   NS_IMETHOD ConstrainPosition(PRBool aAllowSlop, PRInt32 *aX, PRInt32 *aY);
-   NS_IMETHOD Move( PRInt32 aX, PRInt32 aY);
-   NS_IMETHOD Resize( PRInt32 aWidth,
-                      PRInt32 aHeight,
-                      PRBool   aRepaint);
-   NS_IMETHOD Resize( PRInt32 aX,
-                      PRInt32 aY,
-                      PRInt32 aWidth,
-                      PRInt32 aHeight,
-                      PRBool   aRepaint);
-   NS_IMETHOD GetClientBounds( nsIntRect &aRect);
-   NS_IMETHOD Enable( PRBool aState);
-   NS_IMETHOD IsEnabled(PRBool *aState);
-   NS_IMETHOD SetFocus(PRBool aRaise);
-   NS_IMETHOD GetBounds(nsIntRect &aRect);
-   NS_IMETHOD IsVisible( PRBool &aState);
-   NS_IMETHOD PlaceBehind(nsTopLevelWidgetZPlacement aPlacement,
-                          nsIWidget *aWidget, PRBool aActivate);
-   NS_IMETHOD SetZIndex(PRInt32 aZIndex);
-
-   NS_IMETHOD CaptureMouse(PRBool aCapture);
-
-   virtual nsIntPoint WidgetToScreenOffset();
-   NS_IMETHOD DispatchEvent( struct nsGUIEvent *event, nsEventStatus &aStatus);
-   NS_IMETHOD CaptureRollupEvents(nsIRollupListener * aListener, nsIMenuRollup * aMenuRollup,
-                                  PRBool aDoCapture, PRBool aConsumeRollupEvent);
-
-   virtual PRBool          HasPendingInputEvent();
-
-   
-   NS_IMETHOD              SetCursor( nsCursor aCursor);
-   NS_IMETHOD              SetCursor(imgIContainer* aCursor,
-                                     PRUint32 aHotspotX, PRUint32 aHotspotY);
-   NS_IMETHOD              HideWindowChrome(PRBool aShouldHide);
-   NS_IMETHOD              SetTitle( const nsAString& aTitle); 
-   NS_IMETHOD              SetIcon(const nsAString& aIconSpec); 
-   NS_IMETHOD              Invalidate( const nsIntRect & aRect, PRBool aIsSynchronous);
-   NS_IMETHOD              Update();
-   virtual nsresult        ConfigureChildren(const nsTArray<Configuration>& aConfigurations);
-   virtual void            Scroll(const nsIntPoint& aDelta,
-                                  const nsTArray<nsIntRect>& aDestRects,
-                                  const nsTArray<Configuration>& aReconfigureChildren);
-   NS_IMETHOD              GetToggledKeyState(PRUint32 aKeyCode, PRBool* aLEDState);
-
-   
-   virtual void  *GetNativeData( PRUint32 aDataType);
-   virtual void   FreeNativeData( void *aDatum, PRUint32 aDataType);
-   virtual HWND   GetMainWindow() const           { return mWnd; }
-
-   
-   ULONG  GetNextID()    { return mNextID++; }
-   void   NS2PM_PARENT( POINTL &ptl);
-   void   NS2PM( POINTL &ptl);
-   void   NS2PM( RECTL &rcl);
+  
+  static void           ReleaseGlobals();
 
 protected:
-   static  BOOL            DealWithPopups ( ULONG inMsg, MRESULT* outResult ) ;
+  
+  virtual void          OnDestroy();
 
-   static  PRBool          EventIsInsideWindow(nsWindow* aWindow); 
+  
+  static void           InitGlobals();
+  virtual nsresult      CreateWindow(nsWindow* aParent,
+                                     HWND aParentWnd,
+                                     const nsIntRect& aRect,
+                                     PRUint32 aStyle);
+  virtual HWND          GetMainWindow()     const {return mWnd;}
+  static nsWindow*      GetNSWindowPtr(HWND aWnd);
+  static PRBool         SetNSWindowPtr(HWND aWnd, nsWindow* aPtr);
+  void                  NS2PM(POINTL& ptl);
+  void                  NS2PM(RECTL& rcl);
+  void                  NS2PM_PARENT(POINTL& ptl);
+  void                  ActivatePlugin(HWND aWnd);
+  void                  SetPluginClipRegion(const Configuration& aConfiguration);
+  HWND                  GetPluginClipWindow(HWND aParentWnd);
+  virtual void          ActivateTopLevelWidget();
+  HBITMAP               DataToBitmap(PRUint8* aImageData, PRUint32 aWidth,
+                                     PRUint32 aHeight, PRUint32 aDepth);
+  HBITMAP               CreateBitmapRGB(PRUint8* aImageData,
+                                        PRUint32 aWidth, PRUint32 aHeight);
+  HBITMAP               CreateTransparencyMask(gfxASurface::gfxImageFormat format,
+                                               PRUint8* aImageData,
+                                               PRUint32 aWidth, PRUint32 aHeight);
+  static PRBool         EventIsInsideWindow(nsWindow* aWindow); 
+  static PRBool         RollupOnButtonDown(ULONG aMsg);
+  static void           RollupOnFocusLost(HWND aFocus);
+  MRESULT               ProcessMessage(ULONG msg, MPARAM mp1, MPARAM mp2);
+  virtual PRBool        OnReposition(PSWP pNewSwp);
+  PRBool                OnPaint();
+  PRBool                OnMouseChord(MPARAM mp1, MPARAM mp2);
+  PRBool                OnDragDropMsg(ULONG msg, MPARAM mp1, MPARAM mp2,
+                                      MRESULT& mr);
+  PRBool                CheckDragStatus(PRUint32 aAction, HPS* aHps);
+  PRBool                ReleaseIfDragHPS(HPS aHps);
+  PRBool                OnTranslateAccelerator(PQMSG pQmsg);
+  PRBool                DispatchKeyEvent(MPARAM mp1, MPARAM mp2);
+  void                  InitEvent(nsGUIEvent& event, nsIntPoint* pt = 0);
+  PRBool                DispatchWindowEvent(nsGUIEvent* event);
+  PRBool                DispatchWindowEvent(nsGUIEvent* event,
+                                            nsEventStatus& aStatus);
+  PRBool                DispatchCommandEvent(PRUint32 aEventCommand);
+  PRBool                DispatchDragDropEvent(PRUint32 aMsg);
+  PRBool                DispatchMoveEvent(PRInt32 aX, PRInt32 aY);
+  PRBool                DispatchResizeEvent(PRInt32 aClientX, 
+                                            PRInt32 aClientY);
+  PRBool                DispatchMouseEvent(PRUint32 aEventType,
+                                           MPARAM mp1, MPARAM mp2, 
+                                           PRBool aIsContextMenuKey = PR_FALSE,
+                                           PRInt16 aButton = nsMouseEvent::eLeftButton);
+  PRBool                DispatchActivationEvent(PRUint32 aEventType);
+  PRBool                DispatchScrollEvent(ULONG msg, MPARAM mp1, MPARAM mp2);
+  virtual PRInt32       GetClientHeight()   {return mBounds.height;}
 
-   static  nsWindow *      GetNSWindowPtr(HWND aWnd);
-   static  BOOL            SetNSWindowPtr(HWND aWnd, nsWindow * ptr);
+  friend MRESULT EXPENTRY fnwpNSWindow(HWND hwnd, ULONG msg,
+                                       MPARAM mp1, MPARAM mp2);
+  friend MRESULT EXPENTRY fnwpFrame(HWND hwnd, ULONG msg,
+                                    MPARAM mp1, MPARAM mp2);
 
-   static  nsWindow*   gCurrentWindow;
-   
-   virtual PCSZ  WindowClass();
-   virtual ULONG WindowStyle();
-
-   
-   virtual void     PostCreateWidget()            {}
-   virtual PRInt32  GetClientHeight()             { return mBounds.height; }
-   virtual void     SetupForPrint( HWND ) {}
-
-   
-   virtual nsresult GetWindowText( nsString &str, PRUint32 *rc);
-   virtual void     AddToStyle( ULONG style);
-   virtual void     RemoveFromStyle( ULONG style);
-
-   
-   
-
-   
-   virtual PRBool ProcessMessage( ULONG m, MPARAM p1, MPARAM p2, MRESULT &r);
-
-           void   ActivatePlugin(HWND aWnd);
-   virtual void   ActivateTopLevelWidget();
-   virtual PRBool OnPaint();
-   virtual void   OnDestroy();
-   virtual PRBool OnReposition( PSWP pNewSwp);
-   virtual PRBool OnResize( PRInt32 aX, PRInt32 aY);
-   virtual PRBool OnMove( PRInt32 aX, PRInt32 aY);
-   virtual PRBool OnKey( MPARAM mp1, MPARAM mp2);
-   virtual PRBool DispatchFocus( PRUint32 aEventType);
-   virtual PRBool OnScroll( ULONG msgid, MPARAM mp1, MPARAM mp2);
-   virtual PRBool OnVScroll( MPARAM mp1, MPARAM mp2);
-   virtual PRBool OnHScroll( MPARAM mp1, MPARAM mp2);
-   virtual PRBool OnControl( MPARAM mp1, MPARAM mp2);
-   
-   virtual PRBool OnPresParamChanged( MPARAM mp1, MPARAM mp2);
-   virtual PRBool OnDragDropMsg(ULONG msg, MPARAM mp1, MPARAM mp2, MRESULT &mr);
-
-   static BOOL sIsRegistered;
-
-   
-   HWND      mWnd;            
-   HWND      mFrameWnd;       
-   PFNWP     mPrevWndProc;    
-   nsWindow *mParent;         
-   ULONG     mNextID;         
-   HPOINTER  mFrameIcon;      
-   VDKEY     mDeadKey;        
-   BOOL      mHaveDeadKey;    
-   QMSG      mQmsg;
-   PRBool    mIsTopWidgetWindow;
-   BOOL      mIsScrollBar;
-   BOOL      mIsDestroying;
-   BOOL      mInSetFocus;
-   BOOL      mChromeHidden;
-   nsContentType mContentType;
-   HPS       mDragHps;        
-   PRUint32  mDragStatus;     
-   HPOINTER  mCssCursorHPtr;  
-   nsCOMPtr<imgIContainer> mCssCursorImg;  
-   HWND      mClipWnd;        
-
-   HWND      GetParentHWND() const;
-   HWND      GetHWND() const   { return mWnd; }
-   PFNWP     GetPrevWP() const { return mPrevWndProc; }
-
-   
-   nsToolkit     *mOS2Toolkit;
-   PRInt32        mWindowState;
-   nsRefPtr<gfxOS2Surface> mThebesSurface;
-
-   
-   void DoCreate( HWND hwndP, nsWindow *wndP, const nsIntRect &rect,
-                  EVENT_CALLBACK aHandleEventFunction,
-                  nsIDeviceContext *aContext, nsIAppShell *aAppShell,
-                  nsIToolkit *aToolkit, nsWidgetInitData *aInitData);
-
-   virtual void RealDoCreate( HWND hwndP, nsWindow *aParent,
-                              const nsIntRect &aRect,
-                              EVENT_CALLBACK aHandleEventFunction,
-                              nsIDeviceContext *aContext,
-                              nsIAppShell *aAppShell,
-                              nsWidgetInitData *aInitData,
-                              HWND hwndOwner = 0);
-
-   
-   virtual ULONG GetFCFlags();
-
-   virtual void SubclassWindow(BOOL bState);
-
-   PRBool  ConvertStatus( nsEventStatus aStatus)
-                        { return aStatus == nsEventStatus_eConsumeNoDefault; }
-   void    InitEvent( nsGUIEvent &event, nsIntPoint *pt = 0);
-   virtual PRBool DispatchWindowEvent(nsGUIEvent* event);
-   virtual PRBool DispatchWindowEvent(nsGUIEvent*event, nsEventStatus &aStatus);
-   PRBool  DispatchStandardEvent( PRUint32 aMsg);
-   PRBool  DispatchCommandEvent(PRUint32 aEventCommand);
-   PRBool  DispatchDragDropEvent( PRUint32 aMsg);
-   virtual PRBool DispatchMouseEvent(PRUint32 aEventType, MPARAM mp1, MPARAM mp2, 
-                                     PRBool aIsContextMenuKey = PR_FALSE,
-                                     PRInt16 aButton = nsMouseEvent::eLeftButton);
-   virtual PRBool DispatchResizeEvent( PRInt32 aClientX, PRInt32 aClientY);
-   void GetNonClientBounds(nsIntRect &aRect);
-   void ConstrainZLevel(HWND *aAfter);
-
-   PRBool   CheckDragStatus(PRUint32 aAction, HPS * oHps);
-   PRBool   ReleaseIfDragHPS(HPS aHps);
-
-   HBITMAP DataToBitmap(PRUint8* aImageData, PRUint32 aWidth,
-                        PRUint32 aHeight, PRUint32 aDepth);
-   HBITMAP CreateBitmapRGB(PRUint8* aImageData, PRUint32 aWidth, PRUint32 aHeight);
-   HBITMAP CreateTransparencyMask(gfxASurface::gfxImageFormat format,
-                                  PRUint8* aImageData, PRUint32 aWidth, PRUint32 aHeight);
-
-   void SetPluginClipRegion(const Configuration& aConfiguration);
-   HWND GetPluginClipWindow(HWND aParentWnd);
-
-   
-   enum {
-      CREATE,
-      DESTROY,
-      SET_FOCUS,
-      UPDATE_WINDOW,
-      SET_TITLE,
-      GET_TITLE
-   };
-   friend MRESULT EXPENTRY fnwpNSWindow( HWND, ULONG, MPARAM, MPARAM);
-   friend MRESULT EXPENTRY fnwpFrame( HWND, ULONG, MPARAM, MPARAM);
+  HWND          mWnd;               
+  nsWindow*     mParent;            
+  PRBool        mIsTopWidgetWindow; 
+  PRInt32       mWindowState;       
+  PRBool        mIsDestroying;      
+  PRBool        mInSetFocus;        
+  HPS           mDragHps;           
+  PRUint32      mDragStatus;        
+  HWND          mClipWnd;           
+  HPOINTER      mCssCursorHPtr;     
+  nsCOMPtr<imgIContainer> mCssCursorImg;
+  nsRefPtr<gfxOS2Surface> mThebesSurface;
+  HWND          mFrameWnd;          
+  HPOINTER      mFrameIcon;         
+  PRBool        mChromeHidden;      
 #ifdef DEBUG_FOCUS
-   int mWindowIdentifier;
+  int           mWindowIdentifier;  
 #endif
 };
 
-#define PM2NS_PARENT NS2PM_PARENT
-#define PM2NS NS2PM
+#endif 
 
-#define PMSCAN_PADMULT      0x37
-#define PMSCAN_PAD7         0x47
-#define PMSCAN_PAD8         0x48
-#define PMSCAN_PAD9         0x49
-#define PMSCAN_PADMINUS     0x4A
-#define PMSCAN_PAD4         0x4B
-#define PMSCAN_PAD5         0x4C
-#define PMSCAN_PAD6         0x4D
-#define PMSCAN_PADPLUS      0x4E
-#define PMSCAN_PAD1         0x4F
-#define PMSCAN_PAD2         0x50
-#define PMSCAN_PAD3         0x51
-#define PMSCAN_PAD0         0x52
-#define PMSCAN_PADPERIOD    0x53
-#define PMSCAN_PADDIV       0x5c
 
-#define isNumPadScanCode(scanCode) !( (scanCode < PMSCAN_PAD7) ||      \
-                                      (scanCode > PMSCAN_PADPERIOD) || \
-                                      (scanCode == PMSCAN_PADMULT) ||  \
-                                      (scanCode == PMSCAN_PADDIV) ||   \
-                                      (scanCode == PMSCAN_PADMINUS) || \
-                                      (scanCode == PMSCAN_PADPLUS) )
-#define isNumlockOn (BOOL)WinGetKeyState(HWND_DESKTOP, VK_NUMLOCK) & 0x0001
 
-extern PRUint32 WMChar2KeyCode( MPARAM mp1, MPARAM mp2);
-
-extern nsWindow *NS_HWNDToWindow( HWND hwnd);
-
-#endif

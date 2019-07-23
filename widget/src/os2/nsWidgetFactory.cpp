@@ -60,8 +60,6 @@
 #include "nsWidgetsCID.h"
 
 
-
-
 #include "nsAppShell.h"
 #include "nsAppShellSingleton.h"
 #include "nsBidiKeyboard.h"

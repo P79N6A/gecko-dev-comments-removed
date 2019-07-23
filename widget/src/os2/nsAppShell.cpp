@@ -38,7 +38,6 @@
 
 
 #include "nsAppShell.h"
-#include "nsToolkit.h"
 #include "nsThreadUtils.h"
 
 static UINT sMsgId;
