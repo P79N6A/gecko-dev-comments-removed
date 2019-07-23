@@ -48,7 +48,6 @@ DEBUG = true;
 
 
 
-
 function createServer()
 {
   return new nsHttpServer();
@@ -99,6 +98,65 @@ function fileContents(file)
   var contents = sis.read(file.fileSize);
   sis.close();
   return contents;
+}
+
+
+
+
+
+
+
+
+
+
+
+function LineIterator(data)
+{
+  var start = 0, index = 0;
+  do
+  {
+    index = data.indexOf("\r\n");
+    if (index >= 0)
+      yield data.substring(0, index);
+    else
+      yield data;
+
+    data = data.substring(index + 2);
+  }
+  while (index >= 0);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+function expectLines(iter, expectedLines)
+{
+  var index = 0;
+  for (var line in iter)
+  {
+    if (expectedLines.length == index)
+      throw "Error: got more than " + expectedLines.length + " expected lines!";
+
+    var expected = expectedLines[index++];
+    if (expected !== line)
+      throw "Error on line " + index + "!\n" +
+            "  actual: '" + line + "',\n" +
+            "  expect: '" + expected + "'";
+  }
+
+  if (expectedLines.length !== index)
+  {
+    throw "Expected more lines!  Got " + index +
+          ", expected " + expectedLines.length;
+  }
 }
 
 
@@ -210,3 +268,168 @@ function runHttpTests(testArray, done)
   performNextTest();
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function RawTest(host, port, data, responseCheck)
+{
+  if (0 > port || 65535 < port || port % 1 !== 0)
+    throw "bad port";
+  if (!/^[\x00-\xff]*$/.test(data))
+    throw "bad data contains non-byte-valued character";
+
+  this.host = host;
+  this.port = port;
+  this.data = data;
+  this.responseCheck = responseCheck;
+}
+
+
+
+
+
+
+
+
+
+function runRawTests(testArray, done)
+{
+  do_test_pending();
+
+  var sts = Cc["@mozilla.org/network/socket-transport-service;1"]
+              .getService(Ci.nsISocketTransportService);
+
+  var currentThread = Cc["@mozilla.org/thread-manager;1"]
+                        .getService()
+                        .currentThread;
+  
+  
+  function performNextTest()
+  {
+    if (++testIndex == testArray.length)
+    {
+      do_test_finished();
+      done();
+      return;
+    }
+
+
+    var rawTest = testArray[testIndex];
+
+    var transport =
+      sts.createTransport(null, 0, rawTest.host, rawTest.port, null);
+
+    var inStream = transport.openInputStream(0, 0, 0)
+                            .QueryInterface(Ci.nsIAsyncInputStream);
+    var outStream  = transport.openOutputStream(0, 0, 0)
+                              .QueryInterface(Ci.nsIAsyncOutputStream);
+
+    
+    dataIndex = 0;
+    received = "";
+
+    waitForMoreInput(inStream);
+    waitToWriteOutput(outStream);
+  }
+
+  function waitForMoreInput(stream)
+  {
+    stream.asyncWait(reader, 0, 0, currentThread);
+  }
+
+  function waitToWriteOutput(stream)
+  {
+    stream.asyncWait(writer, 0, testArray[testIndex].data.length - dataIndex,
+                     currentThread);
+  }
+
+  
+  var testIndex = -1;
+
+  
+  var dataIndex = 0;
+
+  
+  var received = "";
+
+  
+  var reader =
+    {
+      onInputStreamReady: function(stream)
+      {
+        var bis = new BinaryInputStream(stream);
+
+        var av = 0;
+        try
+        {
+          av = bis.available();
+        }
+        catch (e) {  }
+
+        if (av > 0)
+        {
+          received += String.fromCharCode.apply(null, bis.readByteArray(av));
+          waitForMoreInput(stream);
+          return;
+        }
+
+        var rawTest = testArray[testIndex];
+        try
+        {
+          rawTest.responseCheck(received);
+        }
+        catch (e)
+        {
+          do_throw("error thrown by responseCheck: " + e);
+        }
+        finally
+        {
+          stream.close();
+          performNextTest();
+        }
+      }
+    };
+
+  
+  var writer = 
+    {
+      onOutputStreamReady: function(stream)
+      {
+        var data = testArray[testIndex].data.substring(dataIndex);
+
+        var written = 0;
+        try
+        {
+          written = stream.write(data, data.length);
+          dataIndex += written;
+        }
+        catch (e) {  }
+
+        
+        if (written != 0)
+          waitToWriteOutput(stream);
+        else
+          stream.close();
+      }
+    };
+
+  performNextTest();
+}

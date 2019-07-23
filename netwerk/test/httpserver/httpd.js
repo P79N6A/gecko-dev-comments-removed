@@ -207,9 +207,6 @@ const FileInputStream = CC("@mozilla.org/network/file-input-stream;1",
 const StreamCopier = CC("@mozilla.org/network/async-stream-copier;1",
                         "nsIAsyncStreamCopier",
                         "init");
-const Pump = CC("@mozilla.org/network/input-stream-pump;1",
-                "nsIInputStreamPump",
-                "init");
 const ConverterInputStream = CC("@mozilla.org/intl/converter-input-stream;1",
                                 "nsIConverterInputStream",
                                 "init");
@@ -339,6 +336,9 @@ function nsHttpServer()
   this._handler = new ServerHandler(this);
 
   
+  this._identity = new ServerIdentity();
+
+  
 
 
   this._doQuit = false;
@@ -423,6 +423,7 @@ nsHttpServer.prototype =
 
     dumpn(">>> listening on port " + socket.port);
     socket.asyncListen(this);
+    this._identity._initialize(port, true);
     this._socket = socket;
   },
 
@@ -437,6 +438,11 @@ nsHttpServer.prototype =
     dumpn(">>> stopping listening on port " + this._socket.port);
     this._socket.close();
     this._socket = null;
+
+    
+    
+    this._identity._teardown();
+
     this._doQuit = false;
 
     
@@ -507,6 +513,14 @@ nsHttpServer.prototype =
   },
 
   
+  
+  
+  get identity()
+  {
+    return this._identity;
+  },
+
+  
 
   
   
@@ -572,6 +586,263 @@ nsHttpServer.prototype =
     this._doQuit = true;
   }
 
+};
+
+
+
+
+
+
+
+
+
+
+
+
+const HOST_REGEX =
+  new RegExp("^(?:" +
+               
+               "(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\\.)*" +
+               
+               "[a-z](?:[a-z0-9-]*[a-z0-9])?" +
+             "|" +
+               
+               "\\d+\\.\\d+\\.\\d+\\.\\d+" +
+             ")$",
+             "i");
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function ServerIdentity()
+{
+  
+  this._primaryScheme = "http";
+
+  
+  this._primaryHost = "127.0.0.1"
+
+  
+  this._primaryPort = -1;
+
+  
+
+
+
+  this._defaultPort = -1;
+
+  
+
+
+
+
+
+
+
+
+
+
+
+  this._locations = { "xlocalhost": {} };
+}
+ServerIdentity.prototype =
+{
+  
+
+
+
+  _initialize: function(port, addSecondaryDefault)
+  {
+    if (this._primaryPort !== -1)
+      this.add("http", "localhost", port);
+    else
+      this.setPrimary("http", "localhost", port);
+    this._defaultPort = port;
+
+    
+    if (addSecondaryDefault)
+      this.add("http", "127.0.0.1", port);
+  },
+
+  
+
+
+
+
+  _teardown: function()
+  {
+    
+    this.remove("http", "127.0.0.1", this._defaultPort);
+
+    
+    
+    if (this._primaryScheme == "http" &&
+        this._primaryHost == "localhost" &&
+        this._primaryPort == this._defaultPort)
+    {
+      
+      
+      var port = this._defaultPort;
+      this._defaultPort = -1;
+      this.remove("http", "localhost", port);
+
+      
+      this._primaryPort = -1;
+    }
+    else
+    {
+      
+      this.remove("http", "localhost", this._defaultPort);
+    }
+  },
+
+  
+  
+  
+  get primaryScheme()
+  {
+    if (this._primaryPort === -1)
+      throw Cr.NS_ERROR_NOT_INITIALIZED;
+    return this._primaryScheme;
+  },
+
+  
+  
+  
+  get primaryHost()
+  {
+    if (this._primaryPort === -1)
+      throw Cr.NS_ERROR_NOT_INITIALIZED;
+    return this._primaryHost;
+  },
+
+  
+  
+  
+  get primaryPort()
+  {
+    if (this._primaryPort === -1)
+      throw Cr.NS_ERROR_NOT_INITIALIZED;
+    return this._primaryPort;
+  },
+
+  
+  
+  
+  add: function(scheme, host, port)
+  {
+    this._validate(scheme, host, port);
+    
+    var entry = this._locations["x" + host];
+    if (!entry)
+      this._locations["x" + host] = entry = {};
+
+    entry[port] = scheme;
+  },
+
+  
+  
+  
+  remove: function(scheme, host, port)
+  {
+    this._validate(scheme, host, port);
+
+    var entry = this._locations["x" + host];
+    if (!entry)
+      return false;
+
+    var present = port in entry;
+    delete entry[port];
+
+    if (this._primaryScheme == scheme &&
+        this._primaryHost == host &&
+        this._primaryPort == port &&
+        this._defaultPort !== -1)
+    {
+      
+      
+      this._primaryPort = -1;
+      this._initialize(this._defaultPort, false);
+    }
+
+    return present;
+  },
+
+  
+  
+  
+  has: function(scheme, host, port)
+  {
+    this._validate(scheme, host, port);
+
+    return "x" + host in this._locations &&
+           scheme === this._locations["x" + host][port];
+  },
+  
+  
+  
+  
+  getScheme: function(host, port)
+  {
+    this._validate("http", host, port);
+
+    var entry = this._locations["x" + host];
+    if (!entry)
+      return "";
+
+    return entry[port] || "";
+  },
+  
+  
+  
+  
+  setPrimary: function(scheme, host, port)
+  {
+    this._validate(scheme, host, port);
+
+    this.add(scheme, host, port);
+
+    this._primaryScheme = scheme;
+    this._primaryHost = host;
+    this._primaryPort = port;
+  },
+
+  
+
+
+
+
+
+  _validate: function(scheme, host, port)
+  {
+    if (scheme !== "http" && scheme !== "https")
+    {
+      dumpn("*** server only supports http/https schemes: '" + scheme + "'");
+      dumpStack();
+      throw Cr.NS_ERROR_ILLEGAL_VALUE;
+    }
+    if (!HOST_REGEX.test(host))
+    {
+      dumpn("*** unexpected host: '" + host + "'");
+      throw Cr.NS_ERROR_ILLEGAL_VALUE;
+    }
+    if (port < 0 || port > 65535)
+    {
+      dumpn("*** unexpected port: '" + port + "'");
+      throw Cr.NS_ERROR_ILLEGAL_VALUE;
+    }
+  }
 };
 
 
@@ -865,8 +1136,6 @@ RequestReader.prototype =
     
     
     
-    
-    
 
     this._data.appendBytes(readBytes(input, count));
 
@@ -902,11 +1171,78 @@ RequestReader.prototype =
     var metadata = this._metadata;
     var headers = metadata._headers;
 
-    var isHttp11 = metadata._httpVersion.equals(nsHttpVersion.HTTP_1_1);
-
     
-    if (isHttp11 && !headers.hasHeader("Host"))
-      throw HTTP_400;
+    var identity = this._connection.server.identity;
+    if (metadata._httpVersion.atLeast(nsHttpVersion.HTTP_1_1))
+    {
+      if (!headers.hasHeader("Host"))
+      {
+        dumpn("*** malformed HTTP/1.1 or greater request with no Host header!");
+        throw HTTP_400;
+      }
+
+      
+      
+      
+      
+      if (!metadata._host)
+      {
+        var host, port;
+        var hostPort = headers.getHeader("Host");
+        var colon = hostPort.indexOf(":");
+        if (colon < 0)
+        {
+          host = hostPort;
+          port = "";
+        }
+        else
+        {
+          host = hostPort.substring(0, colon);
+          port = hostPort.substring(colon + 1);
+        }
+
+        
+        
+        
+        if (!HOST_REGEX.test(host) || !/^\d*$/.test(port))
+        {
+          dumpn("*** malformed hostname (" + hostPort + ") in Host " +
+                "header, 400 time");
+          throw HTTP_400;
+        }
+
+        
+        
+        
+        
+        
+        port = +port || 80;
+
+        var scheme = identity.getScheme(host, port);
+        if (!scheme)
+        {
+          dumpn("*** unrecognized hostname (" + hostPort + ") in Host " +
+                "header, 400 time");
+          throw HTTP_400;
+        }
+
+        metadata._scheme = scheme;
+        metadata._host = host;
+        metadata._port = port;
+      }
+    }
+    else
+    {
+      NS_ASSERT(metadata._host === undefined,
+                "HTTP/1.0 doesn't allow absolute paths in the request line!");
+
+      metadata._scheme = identity.primaryScheme;
+      metadata._host = identity.primaryHost;
+      metadata._port = identity.primaryPort;
+    }
+
+    NS_ASSERT(identity.has(metadata._scheme, metadata._host, metadata._port),
+              "must have a location we recognize by now!");
   },
 
   
@@ -998,8 +1334,7 @@ RequestReader.prototype =
     try
     {
       metadata._httpVersion = new nsHttpVersion(match[1]);
-      if (!metadata._httpVersion.equals(nsHttpVersion.HTTP_1_0) &&
-          !metadata._httpVersion.equals(nsHttpVersion.HTTP_1_1))
+      if (!metadata._httpVersion.atLeast(nsHttpVersion.HTTP_1_0))
         throw "unsupported HTTP version";
     }
     catch (e)
@@ -1010,24 +1345,45 @@ RequestReader.prototype =
 
 
     var fullPath = request[1];
+    var serverIdentity = this._connection.server.identity;
+
+    var scheme, host, port;
 
     if (fullPath.charAt(0) != "/")
     {
       
-      
+      if (!metadata._httpVersion.atLeast(nsHttpVersion.HTTP_1_1))
+        throw HTTP_400;
+
       try
       {
         var uri = Cc["@mozilla.org/network/io-service;1"]
                     .getService(Ci.nsIIOService)
                     .newURI(fullPath, null, null);
         fullPath = uri.path;
+        scheme = uri.scheme;
+        host = metadata._host = uri.asciiHost;
+        port = uri.port;
+        if (port === -1)
+        {
+          if (scheme === "http")
+            port = 80;
+          else if (scheme === "https")
+            port = 443;
+          else
+            throw HTTP_400;
+        }
       }
-      catch (e) {  }
-      if (fullPath.charAt(0) != "/")
+      catch (e)
       {
-        this.errorCode = 400;
-        return;
+        
+        
+        
+        throw HTTP_400;
       }
+
+      if (!serverIdentity.has(scheme, host, port) || fullPath.charAt(0) != "/")
+        throw HTTP_400;
     }
 
     var splitter = fullPath.indexOf("?");
@@ -1041,6 +1397,10 @@ RequestReader.prototype =
       metadata._path = fullPath.substring(0, splitter);
       metadata._queryString = fullPath.substring(splitter + 1);
     }
+
+    metadata._scheme = scheme;
+    metadata._host = host;
+    metadata._port = port;
 
     
     this._state = READER_IN_HEADERS;
@@ -2399,7 +2759,10 @@ ServerHandler.prototype =
       response.setStatusLine(metadata.httpVersion, 200, "OK");
       response.setHeader("Content-Type", "text/plain", false);
 
-      var body = "Request (semantically equivalent, slightly reformatted):\n\n";
+      var body = "Request-URI: " +
+                 metadata.scheme + "://" + metadata.host + ":" + metadata.port +
+                 metadata.path + "\n\n";
+      body += "Request (semantically equivalent, slightly reformatted):\n\n";
       body += metadata.method + " " + metadata.path;
 
       if (metadata.queryString)
@@ -2615,7 +2978,6 @@ Response.prototype =
   get httpVersion()
   {
     this._ensureAlive();
-
     return this._httpVersion.toString();
   },
 
@@ -2938,6 +3300,14 @@ nsHttpVersion.prototype =
   {
     return this.major == otherVersion.major &&
            this.minor == otherVersion.minor;
+  },
+
+  
+  atLeast: function(otherVersion)
+  {
+    return this.major > otherVersion.major ||
+           (this.major == otherVersion.major &&
+            this.minor >= otherVersion.minor);
   }
 };
 
@@ -3096,12 +3466,23 @@ nsSimpleEnumerator.prototype =
 
 function Request(port)
 {
+  
   this._method = "";
+
+  
   this._path = "";
+
+  
   this._queryString = "";
-  this._host = "";
+
+  
+  this._scheme = "http";
+
+  
+  this._host = undefined;
+
+  
   this._port = port;
-  this._host = "localhost"; 
 
   
 
@@ -3118,6 +3499,14 @@ function Request(port)
 Request.prototype =
 {
   
+
+  
+  
+  
+  get scheme()
+  {
+    return this._scheme;
+  },
 
   
   
@@ -3366,6 +3755,7 @@ function server(port, basePath)
   if (lp)
     srv.registerDirectory("/", lp);
   srv.registerContentType("sjs", SJS_TYPE);
+  srv.identity.setPrimary("http", "localhost", port);
   srv.start(port);
 
   var thread = gThreadManager.currentThread;
