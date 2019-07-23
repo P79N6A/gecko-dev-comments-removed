@@ -144,6 +144,11 @@ function run_test()
   testnum++;
 
   
+  
+  
+  if ("nsIMsgFolder" in Ci)
+    prefs.setIntPref("browser.formfill.expire_days", 30);
+  
   prefs.setIntPref("browser.history_expire_days", 30);
   do_check_true(fh.entryExists("179DaysOld", "foo"));
   do_check_true(fh.entryExists("bar", "31days"));
