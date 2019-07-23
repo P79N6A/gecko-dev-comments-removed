@@ -388,6 +388,29 @@ LoginTest.initStorage(storage, INDIR, "signons-2d-10.txt");
 LoginTest.checkStorageData(storage, [], [testuser1, testuser2]);
 
 
+
+
+
+
+
+
+
+testnum++;
+
+testdesc = "checking import of JS formSubmitURL entries"
+
+testuser1.init("http://jstest.site.org", "javascript:", null,
+               "dummydude", "itsasecret", "put_user_here", "put_pw_here");
+LoginTest.initStorage(storage, INDIR, "signons-427033-1.txt",
+                               OUTDIR, "output-427033-1.txt");
+LoginTest.checkStorageData(storage, [], [testuser1]);
+
+testdesc = "[flush and reload for verification]"
+LoginTest.initStorage(storage, OUTDIR, "output-427033-1.txt");
+LoginTest.checkStorageData(storage, [], [testuser1]);
+
+
+
 } catch (e) {
     throw "FAILED in test #" + testnum + " -- " + testdesc + ": " + e;
 }

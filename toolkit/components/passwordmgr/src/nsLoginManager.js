@@ -876,10 +876,13 @@ LoginManager.prototype = {
 
 
 
-    _getPasswordOrigin : function (uriString) {
+    _getPasswordOrigin : function (uriString, allowJS) {
         var realm = "";
         try {
             var uri = this._ioService.newURI(uriString, null, null);
+
+            if (allowJS && uri.scheme == "javascript")
+                return "javascript:"
 
             realm = uri.scheme + "://" + uri.host;
 
@@ -909,7 +912,7 @@ LoginManager.prototype = {
         if (uriString == "")
             uriString = form.baseURI; 
 
-        return this._getPasswordOrigin(uriString);
+        return this._getPasswordOrigin(uriString, true);
     },
 
 
