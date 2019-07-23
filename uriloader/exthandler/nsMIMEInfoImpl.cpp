@@ -345,13 +345,55 @@ nsMIMEInfoBase::GetLocalFileFromURI(nsIURI *aURI, nsILocalFile **aFile)
   return CallQueryInterface(file, aFile);
 }
 
+NS_IMETHODIMP
+nsMIMEInfoBase::LaunchWithFile(nsIFile* aFile)
+{
+  nsresult rv;
+
+  
+  NS_ASSERTION(mClass == eMIMEInfo,
+               "nsMIMEInfoBase should have mClass == eMIMEInfo");
+
+  if (mPreferredAction == useSystemDefault) {
+    return LaunchDefaultWithFile(aFile);
+  }
+
+  if (mPreferredAction == useHelperApp) {
+    if (!mPreferredApplication)
+      return NS_ERROR_FILE_NOT_FOUND;
+
+    
+    nsCOMPtr<nsILocalHandlerApp> localHandler = 
+      do_QueryInterface(mPreferredApplication, &rv);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    nsCOMPtr<nsIFile> executable;
+    rv = localHandler->GetExecutable(getter_AddRefs(executable));
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    nsCAutoString path;
+    aFile->GetNativePath(path);
+    return LaunchWithIProcess(executable, path);
+  }
+
+  return NS_ERROR_INVALID_ARG;
+}
 
 NS_IMETHODIMP
 nsMIMEInfoBase::LaunchWithURI(nsIURI* aURI)
 {
-  nsCOMPtr<nsILocalFile> docToLoad;
   nsresult rv;
+
   
+  
+  
+  NS_ASSERTION(mClass == eProtocolInfo,
+               "nsMIMEInfoBase should be a protocol handler");
+
+  if (mPreferredAction == useSystemDefault) {
+    return LoadUriInternal(aURI);
+  }
+
   if (mPreferredAction == useHelperApp) {
     if (!mPreferredApplication)
       return NS_ERROR_FILE_NOT_FOUND;
@@ -373,35 +415,10 @@ nsMIMEInfoBase::LaunchWithURI(nsIURI* aURI)
     NS_ENSURE_SUCCESS(rv, rv);
 
     
-    rv = GetLocalFileFromURI(aURI, getter_AddRefs(docToLoad));
-    if (NS_FAILED(rv)) {
-
-      
-      NS_ASSERTION(mClass == eProtocolInfo,
-                   "nsMIMEInfoBase should be a protocol handler");
-
-      
-      nsCAutoString spec;
-      aURI->GetSpec(spec);
-      return LaunchWithIProcess(executable, spec);
-    }
-
-    
-    
-
-    nsCAutoString path;
-    docToLoad->GetNativePath(path);
-    return LaunchWithIProcess(executable, path);
-  }
-  else if (mPreferredAction == useSystemDefault) {
-    if (mClass == eProtocolInfo)
-      return LoadUriInternal(aURI);
-
-    rv = GetLocalFileFromURI(aURI, getter_AddRefs(docToLoad));
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    return LaunchDefaultWithFile(docToLoad);
-  }
+    nsCAutoString spec;
+    aURI->GetSpec(spec);
+    return LaunchWithIProcess(executable, spec);
+  } 
 
   return NS_ERROR_INVALID_ARG;
 }
