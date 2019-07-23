@@ -37,6 +37,7 @@
 
 
 
+
 let EXPORTED_SYMBOLS = [
   "NetUtil",
 ];
@@ -45,8 +46,15 @@ let EXPORTED_SYMBOLS = [
 
 
 
+
+
+
 const Ci = Components.interfaces;
 const Cc = Components.classes;
+const Cr = Components.results;
+
+
+
 
 const NetUtil = {
     
@@ -64,12 +72,19 @@ const NetUtil = {
 
 
 
-    asyncCopy: function _asyncCopy(aSource, aSink, aCallback) {
+
+
+    asyncCopy: function NetUtil_asyncCopy(aSource, aSink, aCallback)
+    {
         if (!aSource || !aSink) {
-            throw "Must have a source and a sink";
+            let exception = new Components.Exception(
+                "Must have a source and a sink",
+                Cr.NS_ERROR_INVALID_ARG,
+                Components.stack.caller
+            );
+            throw exception;
         }
 
-        const ioUtil = Cc["@mozilla.org/io-util;1"].getService(Ci.nsIIOUtil);
         var sourceBuffered = ioUtil.inputStreamIsBuffered(aSource);
         var sinkBuffered = ioUtil.outputStreamIsBuffered(aSink);
 
@@ -108,5 +123,43 @@ const NetUtil = {
         
         copier.asyncCopy(observer, null);
         return copier;
-    }
+    },
+
+    
+
+
+
+
+
+
+
+
+
+
+
+    newURI: function NetUtil_newURI(aSpec, aOriginCharset, aBaseURI)
+    {
+        if (!aSpec) {
+            let exception = new Components.Exception(
+                "Must have a non-null spec",
+                Cr.NS_ERROR_INVALID_ARG,
+                Components.stack.caller
+            );
+            throw exception;
+        }
+
+        return ioService.newURI(aSpec, aOriginCharset, aBaseURI);
+    },
 };
+
+
+
+
+Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
+
+
+XPCOMUtils.defineLazyServiceGetter(this, "ioUtil", "@mozilla.org/io-util;1",
+                                   "nsIIOUtil");
+XPCOMUtils.defineLazyServiceGetter(this, "ioService",
+                                   "@mozilla.org/network/io-service;1",
+                                   "nsIIOService");
