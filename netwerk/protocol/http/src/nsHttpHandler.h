@@ -107,8 +107,6 @@ public:
     
     PRBool         CanCacheAllSSLContent()   { return mEnablePersistentHttpsCaching; }
 
-    PRBool         PromptTempRedirect()      { return mPromptTempRedirect; }
-
     nsHttpAuthCache     *AuthCache() { return &mAuthCache; }
     nsHttpConnectionMgr *ConnMgr()   { return mConnMgr; }
 
@@ -301,8 +299,6 @@ private:
     PRPackedBool   mUserAgentIsDirty; 
 
     PRPackedBool   mUseCache;
-
-    PRPackedBool   mPromptTempRedirect;
     
     
     PRPackedBool   mSendSecureXSiteReferrer;
