@@ -135,7 +135,7 @@ nsHttpAuthManager::SetAuthIdentity(const nsACString & aScheme,
                                   PromiseFlatCString(aRealm).get(),
                                   nsnull,  
                                   nsnull,  
-                                  ident,
+                                  &ident,
                                   nsnull); 
 }
 

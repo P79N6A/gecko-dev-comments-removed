@@ -324,12 +324,21 @@ nsHttpNTLMAuth::GenerateCredentials(nsIHttpChannel  *httpChannel,
                                     const PRUnichar *pass,
                                     nsISupports    **sessionState,
                                     nsISupports    **continuationState,
+                                    PRUint32       *aFlags,
                                     char           **creds)
 
 {
     LOG(("nsHttpNTLMAuth::GenerateCredentials\n"));
 
     *creds = nsnull;
+    *aFlags = 0;
+
+    
+    
+    
+    
+    if (!user || !pass)
+        *aFlags = USING_INTERNAL_IDENTITY;
 
     nsresult rv;
     nsCOMPtr<nsIAuthModule> module = do_QueryInterface(*continuationState, &rv);

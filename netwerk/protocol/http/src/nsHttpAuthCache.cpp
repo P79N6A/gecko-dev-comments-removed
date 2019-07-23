@@ -146,7 +146,7 @@ nsHttpAuthCache::SetAuthEntry(const char *scheme,
                               const char *realm,
                               const char *creds,
                               const char *challenge,
-                              const nsHttpAuthIdentity &ident,
+                              const nsHttpAuthIdentity *ident,
                               nsISupports *metadata)
 {
     nsresult rv;
@@ -387,7 +387,7 @@ nsHttpAuthEntry::Set(const char *path,
                      const char *realm,
                      const char *creds,
                      const char *chall,
-                     const nsHttpAuthIdentity &ident,
+                     const nsHttpAuthIdentity *ident,
                      nsISupports *metadata)
 {
     char *newRealm, *newCreds, *newChall;
@@ -415,7 +415,17 @@ nsHttpAuthEntry::Set(const char *path,
         memcpy(newChall, chall, challLen);
     newChall[challLen] = 0;
 
-    nsresult rv = mIdent.Set(ident);
+    nsresult rv;
+    if (ident) {
+        rv = mIdent.Set(*ident);
+    } 
+    else if (mIdent.IsEmpty()) {
+        
+        
+        
+        
+        rv = mIdent.Set(nsnull, nsnull, nsnull);
+    }
     if (NS_FAILED(rv)) {
         free(newRealm);
         return rv;
@@ -512,7 +522,7 @@ nsHttpAuthNode::SetAuthEntry(const char *path,
                              const char *realm,
                              const char *creds,
                              const char *challenge,
-                             const nsHttpAuthIdentity &ident,
+                             const nsHttpAuthIdentity *ident,
                              nsISupports *metadata)
 {
     
