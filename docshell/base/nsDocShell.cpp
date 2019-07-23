@@ -3624,9 +3624,11 @@ nsDocShell::SetPositionAndSize(PRInt32 x, PRInt32 y, PRInt32 cx,
     mBounds.width = cx;
     mBounds.height = cy;
 
-    if (mContentViewer) {
+    
+    nsCOMPtr<nsIContentViewer> viewer = mContentViewer;
+    if (viewer) {
         
-        NS_ENSURE_SUCCESS(mContentViewer->SetBounds(mBounds), NS_ERROR_FAILURE);
+        NS_ENSURE_SUCCESS(viewer->SetBounds(mBounds), NS_ERROR_FAILURE);
     }
 
     return NS_OK;

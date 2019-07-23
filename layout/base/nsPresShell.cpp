@@ -2480,29 +2480,40 @@ PresShell::ResizeReflow(nscoord aWidth, nscoord aHeight)
     return NS_OK;
 
   NS_ASSERTION(mViewManager, "Must have view manager");
-  mViewManager->BeginUpdateViewBatch();
+  nsCOMPtr<nsIViewManager> viewManager = mViewManager;
+  viewManager->BeginUpdateViewBatch();
 
   
+  nsCOMPtr<nsIPresShell> kungFuDeathGrip(this);
+
   
-
-  WillCauseReflow();
-  WillDoReflow();
-
-  {
+  mFrameConstructor->ProcessPendingRestyles();
+  if (!mIsDestroying) {
     
-    AUTO_LAYOUT_PHASE_ENTRY_POINT(GetPresContext(), Reflow);
-    mIsReflowing = PR_TRUE;
+    
 
-    mDirtyRoots.RemoveElement(rootFrame);
-    DoReflow(rootFrame);
-    mIsReflowing = PR_FALSE;
+    WillCauseReflow();
+    WillDoReflow();
+
+    {
+      
+      AUTO_LAYOUT_PHASE_ENTRY_POINT(GetPresContext(), Reflow);
+      mIsReflowing = PR_TRUE;
+
+      mDirtyRoots.RemoveElement(rootFrame);
+      DoReflow(rootFrame);
+      mIsReflowing = PR_FALSE;
+    }
+
+    DidCauseReflow();
+    DidDoReflow();
   }
 
-  DidCauseReflow();
-  DidDoReflow();
-  mViewManager->EndUpdateViewBatch(NS_VMREFRESH_NO_SYNC);
+  viewManager->EndUpdateViewBatch(NS_VMREFRESH_NO_SYNC);
 
-  CreateResizeEventTimer();
+  if (!mIsDestroying) {
+    CreateResizeEventTimer();
+  }
 
   return NS_OK; 
 }
@@ -6223,26 +6234,31 @@ PresShell::ProcessReflowCommands(PRBool aInterruptible)
 
     DidDoReflow();
 
+    
+    if (!mIsDestroying) {
 #ifdef DEBUG
-    if (VERIFY_REFLOW_DUMP_COMMANDS & gVerifyReflowFlags) {
-      printf("\nPresShell::ProcessReflowCommands() finished: this=%p\n", (void*)this);
-    }
-    DoVerifyReflow();
+      if (VERIFY_REFLOW_DUMP_COMMANDS & gVerifyReflowFlags) {
+        printf("\nPresShell::ProcessReflowCommands() finished: this=%p\n",
+               (void*)this);
+      }
+      DoVerifyReflow();
 #endif
 
-    
-    
-    
-    
-    
-    if (mDirtyRoots.Count())
-      PostReflowEvent();
+      
+      
+      
+      
+      
+      if (mDirtyRoots.Count())
+        PostReflowEvent();
+    }
   }
   
   MOZ_TIMER_DEBUGLOG(("Stop: Reflow: PresShell::ProcessReflowCommands(), this=%p\n", this));
   MOZ_TIMER_STOP(mReflowWatch);  
 
-  if (mShouldUnsuppressPainting && mDirtyRoots.Count() == 0) {
+  if (!mIsDestroying && mShouldUnsuppressPainting &&
+      mDirtyRoots.Count() == 0) {
     
     
     
