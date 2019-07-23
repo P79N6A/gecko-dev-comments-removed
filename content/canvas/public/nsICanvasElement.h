@@ -39,10 +39,10 @@
 #define nsICanvasElement_h___
 
 #include "nsISupports.h"
-#include "nsRect.h"
 
 class gfxContext;
 class nsIFrame;
+struct gfxRect;
 
 
 #define NS_ICANVASELEMENT_IID \
@@ -93,7 +93,7 @@ public:
 
 
 
-  NS_IMETHOD InvalidateFrameSubrect (const nsRect& damageRect) = 0;
+  NS_IMETHOD InvalidateFrameSubrect (const gfxRect& damageRect) = 0;
 
   
 
