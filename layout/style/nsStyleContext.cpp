@@ -463,12 +463,118 @@ nsStyleContext::CalcStyleDifference(nsStyleContext* aOther)
 
 #undef DO_STRUCT_DIFFERENCE
 
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  nsStyleContext *thisVis = GetStyleIfVisited(),
+                *otherVis = aOther->GetStyleIfVisited();
+  if (!thisVis != !otherVis) {
+    
+    
+    NS_UpdateHint(hint, nsChangeHint_RepaintFrame);
+  } else if (thisVis && !NS_IsHintSubset(nsChangeHint_RepaintFrame, hint)) {
+    
+    PRBool change = PR_FALSE;
+
+    
+    
+    
+    
+    
+    if (PeekStyleColor()) {
+      if (thisVis->GetStyleColor()->mColor !=
+          otherVis->GetStyleColor()->mColor) {
+        change = PR_TRUE;
+      }
+    }
+
+    
+    if (!change && PeekStyleBackground()) {
+      if (thisVis->GetStyleBackground()->mBackgroundColor !=
+          otherVis->GetStyleBackground()->mBackgroundColor) {
+        change = PR_TRUE;
+      }
+    }
+
+    
+    if (!change && PeekStyleBorder()) {
+      const nsStyleBorder *thisVisBorder = thisVis->GetStyleBorder();
+      const nsStyleBorder *otherVisBorder = otherVis->GetStyleBorder();
+      NS_FOR_CSS_SIDES(side) {
+        PRBool thisFG, otherFG;
+        nscolor thisColor, otherColor;
+        thisVisBorder->GetBorderColor(side, thisColor, thisFG);
+        otherVisBorder->GetBorderColor(side, otherColor, otherFG);
+        if (thisFG != otherFG || (!thisFG && thisColor != otherColor)) {
+          change = PR_TRUE;
+          break;
+        }
+      }
+    }
+
+    
+    if (!change && PeekStyleOutline()) {
+      const nsStyleOutline *thisVisOutline = thisVis->GetStyleOutline();
+      const nsStyleOutline *otherVisOutline = otherVis->GetStyleOutline();
+      PRBool haveColor;
+      nscolor thisColor, otherColor;
+      if (thisVisOutline->GetOutlineInitialColor() != 
+            otherVisOutline->GetOutlineInitialColor() ||
+          (haveColor = thisVisOutline->GetOutlineColor(thisColor)) != 
+            otherVisOutline->GetOutlineColor(otherColor) ||
+          (haveColor && thisColor != otherColor)) {
+        change = PR_TRUE;
+      }
+    }
+
+    
+    if (!change && PeekStyleColumn()) {
+      const nsStyleColumn *thisVisColumn = thisVis->GetStyleColumn();
+      const nsStyleColumn *otherVisColumn = otherVis->GetStyleColumn();
+      if (thisVisColumn->mColumnRuleColor != otherVisColumn->mColumnRuleColor ||
+          thisVisColumn->mColumnRuleColorIsForeground !=
+            otherVisColumn->mColumnRuleColorIsForeground) {
+        change = PR_TRUE;
+      }
+    }
+
+    
+    if (!change && PeekStyleSVG()) {
+      const nsStyleSVG *thisVisSVG = thisVis->GetStyleSVG();
+      const nsStyleSVG *otherVisSVG = otherVis->GetStyleSVG();
+      if (thisVisSVG->mFill != otherVisSVG->mFill ||
+          thisVisSVG->mStroke != otherVisSVG->mStroke) {
+        change = PR_TRUE;
+      }
+    }
+
+    if (change) {
+      NS_UpdateHint(hint, nsChangeHint_RepaintFrame);
+    }
+  }
+
   return hint;
 }
 
 void
 nsStyleContext::Mark()
 {
+  if (mStyleIfVisited)
+    mStyleIfVisited->Mark();
+
   
   mRuleNode->Mark();
 

@@ -7652,6 +7652,13 @@ nsCSSFrameConstructor::DoContentStateChanged(nsIContent* aContent,
       ++mHoverGeneration;
     }
 
+    if (aStateMask & NS_EVENT_STATE_VISITED) {
+      
+      
+      
+      NS_UpdateHint(hint, nsChangeHint_RepaintFrame);
+    }
+
     PostRestyleEvent(aContent, rshint, hint);
   }
 }

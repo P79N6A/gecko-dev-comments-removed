@@ -131,6 +131,48 @@ public:
     { return !!(mBits & NS_STYLE_HAS_PSEUDO_ELEMENT_DATA); }
 
   
+  
+  
+  PRBool RelevantLinkVisited() const
+    { return !!(mBits & NS_STYLE_RELEVANT_LINK_VISITED); }
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  nsStyleContext* GetStyleIfVisited()
+    { return mStyleIfVisited; }
+
+  
+  void SetStyleIfVisited(already_AddRefed<nsStyleContext> aStyleIfVisited)
+  {
+    NS_ASSERTION(!mStyleIfVisited, "should only be set once");
+    mStyleIfVisited = aStyleIfVisited;
+
+    NS_ASSERTION(GetStyleIfVisited()->GetPseudo() == GetPseudo(),
+                 "pseudo tag mismatch");
+    if (GetParent() && GetParent()->GetStyleIfVisited()) {
+      NS_ASSERTION(GetStyleIfVisited()->GetParent() ==
+                     GetParent()->GetStyleIfVisited() ||
+                   GetStyleIfVisited()->GetParent() == GetParent(),
+                   "parent mismatch");
+    } else {
+      NS_ASSERTION(GetStyleIfVisited()->GetParent() == GetParent(),
+                   "parent mismatch");
+    }
+  }
+
+  
   NS_HIDDEN_(void) SetStyle(nsStyleStructID aSID, void* aStruct);
 
   
@@ -243,7 +285,7 @@ protected:
   #undef STYLE_STRUCT_RESET
   #undef STYLE_STRUCT_INHERITED
 
-  nsStyleContext* const mParent;
+  nsStyleContext* const mParent; 
 
   
   
@@ -255,6 +297,11 @@ protected:
   nsStyleContext* mEmptyChild;
   nsStyleContext* mPrevSibling;
   nsStyleContext* mNextSibling;
+
+  
+  
+  
+  nsRefPtr<nsStyleContext> mStyleIfVisited;
 
   
   
