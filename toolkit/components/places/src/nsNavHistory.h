@@ -98,8 +98,10 @@
 
 #define PRIVATEBROWSING_NOTINITED (PRBool(0xffffffff))
 
-#define PLACES_INIT_COMPLETE_EVENT_TOPIC "places-init-complete"
-#define PLACES_DB_LOCKED_EVENT_TOPIC "places-database-locked"
+#define PLACES_INIT_COMPLETE_TOPIC "places-init-complete"
+#define PLACES_DB_LOCKED_TOPIC "places-database-locked"
+#define PLACES_AUTOCOMPLETE_FEEDBACK_UPDATED_TOPIC "places-autocomplete-feedback-updated"
+#define PLACES_VACUUM_STARTING_TOPIC "places-vacuum-starting"
 
 class mozIAnnotationService;
 class nsNavHistory;
@@ -429,6 +431,15 @@ protected:
 
 
   nsresult FinalizeStatements();
+
+  
+
+
+  NS_HIDDEN_(nsresult) DecayFrecency();
+  
+
+
+  NS_HIDDEN_(nsresult) VacuumDatabase();
 
   
   NS_DECL_NSICHARSETRESOLVER
