@@ -45,7 +45,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include "jstypes.h"
-#include "jsstdint.h"
 #include "jsbit.h"
 #include "jsprf.h"
 #include "jsutil.h"
@@ -4290,7 +4289,8 @@ PutProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
                 attr = (JSXML *) JS_GetPrivate(cx, JSVAL_TO_OBJECT(*vp));
 
                 
-                xml->xml_kids.vector[i] = attr->xml_kids.vector[0];
+                if (attr->xml_kids.length != 0)
+                    xml->xml_kids.vector[i] = attr->xml_kids.vector[0];
             }
         }
 
