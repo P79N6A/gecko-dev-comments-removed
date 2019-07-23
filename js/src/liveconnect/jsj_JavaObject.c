@@ -1060,9 +1060,6 @@ JSObjectOps JavaObject_ops = {
     NULL,                           
     NULL,                           
     NULL,                           
-    NULL,                           
-    NULL,                           
-    NULL,                           
     jsj_wrapper_getRequiredSlot,    
     jsj_wrapper_setRequiredSlot     
 };

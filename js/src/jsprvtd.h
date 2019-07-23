@@ -361,15 +361,6 @@ typedef void
 
 
 
-typedef JSBool
-(* JSSetObjectSlotOp)(JSContext *cx, JSObject *obj, uint32 slot,
-                      JSObject *pobj);
-
-
-
-
-
-
 
 
 
