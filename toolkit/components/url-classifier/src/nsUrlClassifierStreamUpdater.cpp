@@ -62,151 +62,11 @@ static const PRLogModuleInfo *gUrlClassifierStreamUpdaterLog = nsnull;
 
 
 
-class nsUrlClassifierStreamUpdater;
-
-class TableUpdateListener : public nsIStreamListener
-{
-public:
-  TableUpdateListener(nsIUrlClassifierCallback *aSuccessCallback,
-                      nsIUrlClassifierCallback *aUpdateErrorCallback,
-                      nsIUrlClassifierCallback *aDownloadErrorCallback,
-                      nsUrlClassifierStreamUpdater* aStreamUpdater);
-  nsCOMPtr<nsIUrlClassifierDBService> mDBService;
-
-  NS_DECL_ISUPPORTS
-  NS_DECL_NSIREQUESTOBSERVER
-  NS_DECL_NSISTREAMLISTENER
-
-private:
-  ~TableUpdateListener() {}
-
-  
-  nsCOMPtr<nsIUrlClassifierCallback> mSuccessCallback;
-  nsCOMPtr<nsIUrlClassifierCallback> mUpdateErrorCallback;
-  nsCOMPtr<nsIUrlClassifierCallback> mDownloadErrorCallback;
-
-  
-  nsUrlClassifierStreamUpdater *mStreamUpdater;
-};
-
-TableUpdateListener::TableUpdateListener(
-                                nsIUrlClassifierCallback *aSuccessCallback,
-                                nsIUrlClassifierCallback *aUpdateErrorCallback,
-                                nsIUrlClassifierCallback *aDownloadErrorCallback,
-                                nsUrlClassifierStreamUpdater* aStreamUpdater)
-{
-  mSuccessCallback = aSuccessCallback;
-  mDownloadErrorCallback = aDownloadErrorCallback;
-  mUpdateErrorCallback = aUpdateErrorCallback;
-  mStreamUpdater = aStreamUpdater;
-}
-
-NS_IMPL_ISUPPORTS2(TableUpdateListener, nsIStreamListener, nsIRequestObserver)
-
-NS_IMETHODIMP
-TableUpdateListener::OnStartRequest(nsIRequest *request, nsISupports* context)
-{
-  nsresult rv;
-  if (!mDBService) {
-    mDBService = do_GetService(NS_URLCLASSIFIERDBSERVICE_CONTRACTID, &rv);
-    NS_ENSURE_SUCCESS(rv, rv);
-  }
-
-  nsCOMPtr<nsIHttpChannel> httpChannel = do_QueryInterface(request);
-  NS_ENSURE_STATE(httpChannel);
-
-  nsresult status;
-  rv = httpChannel->GetStatus(&status);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  LOG(("OnStartRequest (status %d)", status));
-
-  if (NS_ERROR_CONNECTION_REFUSED == status ||
-      NS_ERROR_NET_TIMEOUT == status) {
-    
-    mDownloadErrorCallback->HandleEvent(nsCString());
-    return NS_ERROR_ABORT;
-  }
-
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-TableUpdateListener::OnDataAvailable(nsIRequest *request,
-                                     nsISupports* context,
-                                     nsIInputStream *aIStream,
-                                     PRUint32 aSourceOffset,
-                                     PRUint32 aLength)
-{
-  if (!mDBService)
-    return NS_ERROR_NOT_INITIALIZED;
-
-  LOG(("OnDataAvailable (%d bytes)", aLength));
-
-  
-  nsCOMPtr<nsIHttpChannel> httpChannel = do_QueryInterface(request);
-  NS_ENSURE_STATE(httpChannel);
-
-  nsresult rv;
-  PRBool succeeded = PR_FALSE;
-  rv = httpChannel->GetRequestSucceeded(&succeeded);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  if (!succeeded) {
-    
-    LOG(("HTTP request returned failure code."));
-
-    PRUint32 status;
-    rv = httpChannel->GetResponseStatus(&status);
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    nsCAutoString strStatus;
-    strStatus.AppendInt(status);
-    mDownloadErrorCallback->HandleEvent(strStatus);
-    return NS_ERROR_ABORT;
-  }
-
-  
-  nsCString chunk;
-  rv = NS_ConsumeStream(aIStream, aLength, chunk);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  
-
-  rv = mDBService->Update(chunk);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-TableUpdateListener::OnStopRequest(nsIRequest *request, nsISupports* context,
-                                   nsresult aStatus)
-{
-  if (!mDBService)
-    return NS_ERROR_NOT_INITIALIZED;
-
-  LOG(("OnStopRequest status: %d", aStatus));
-
-  
-  
-  if (NS_SUCCEEDED(aStatus))
-    mDBService->Finish(mSuccessCallback, mUpdateErrorCallback);
-  else
-    mDBService->CancelStream();
-
-  mStreamUpdater->DownloadDone();
-
-  return NS_OK;
-}
-
-
-
 
 
 nsUrlClassifierStreamUpdater::nsUrlClassifierStreamUpdater()
   : mIsUpdating(PR_FALSE), mInitialized(PR_FALSE), mUpdateUrl(nsnull),
-   mListener(nsnull), mChannel(nsnull)
+    mChannel(nsnull)
 {
 #if defined(PR_LOGGING)
   if (!gUrlClassifierStreamUpdaterLog)
@@ -215,8 +75,11 @@ nsUrlClassifierStreamUpdater::nsUrlClassifierStreamUpdater()
 
 }
 
-NS_IMPL_ISUPPORTS2(nsUrlClassifierStreamUpdater,
+NS_IMPL_ISUPPORTS5(nsUrlClassifierStreamUpdater,
                    nsIUrlClassifierStreamUpdater,
+                   nsIUrlClassifierUpdateObserver,
+                   nsIRequestObserver,
+                   nsIStreamListener,
                    nsIObserver)
 
 
@@ -225,8 +88,13 @@ NS_IMPL_ISUPPORTS2(nsUrlClassifierStreamUpdater,
 void
 nsUrlClassifierStreamUpdater::DownloadDone()
 {
+  LOG(("nsUrlClassifierStreamUpdater::DownloadDone [this=%p]", this));
   mIsUpdating = PR_FALSE;
-  mChannel = nsnull;
+
+  mPendingUpdateUrls.Clear();
+  mSuccessCallback = nsnull;
+  mUpdateErrorCallback = nsnull;
+  mDownloadErrorCallback = nsnull;
 }
 
 
@@ -254,6 +122,37 @@ nsUrlClassifierStreamUpdater::SetUpdateUrl(const nsACString & aUpdateUrl)
   return NS_OK;
 }
 
+nsresult
+nsUrlClassifierStreamUpdater::FetchUpdate(nsIURI *aUpdateUrl,
+                                          const nsACString & aRequestBody)
+{
+  nsresult rv;
+  rv = NS_NewChannel(getter_AddRefs(mChannel), aUpdateUrl);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  if (!aRequestBody.IsEmpty()) {
+    rv = AddRequestBody(aRequestBody);
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
+
+  
+  rv = mChannel->AsyncOpen(this, nsnull);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  return NS_OK;
+}
+
+nsresult
+nsUrlClassifierStreamUpdater::FetchUpdate(const nsACString & aUpdateUrl,
+                                          const nsACString & aRequestBody)
+{
+  nsCOMPtr<nsIURI> uri;
+  nsresult rv = NS_NewURI(getter_AddRefs(uri), aUpdateUrl);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  return FetchUpdate(uri, aRequestBody);
+}
+
 NS_IMETHODIMP
 nsUrlClassifierStreamUpdater::DownloadUpdates(
                                 const nsACString &aRequestBody,
@@ -273,6 +172,8 @@ nsUrlClassifierStreamUpdater::DownloadUpdates(
     return NS_ERROR_NOT_INITIALIZED;
   }
 
+  nsresult rv;
+
   if (!mInitialized) {
     
     
@@ -283,27 +184,99 @@ nsUrlClassifierStreamUpdater::DownloadUpdates(
       return NS_ERROR_FAILURE;
 
     observerService->AddObserver(this, gQuitApplicationMessage, PR_FALSE);
+
+    mDBService = do_GetService(NS_URLCLASSIFIERDBSERVICE_CONTRACTID, &rv);
+    NS_ENSURE_SUCCESS(rv, rv);
+
     mInitialized = PR_TRUE;
   }
 
-  
-  nsresult rv;
-  rv = NS_NewChannel(getter_AddRefs(mChannel), mUpdateUrl);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  rv = AddRequestBody(aRequestBody);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  
-  mListener = new TableUpdateListener(aSuccessCallback, aUpdateErrorCallback,
-                                      aDownloadErrorCallback, this);
-
-  
-  rv = mChannel->AsyncOpen(mListener.get(), nsnull);
-  NS_ENSURE_SUCCESS(rv, rv);
+  mSuccessCallback = aSuccessCallback;
+  mUpdateErrorCallback = aUpdateErrorCallback;
+  mDownloadErrorCallback = aDownloadErrorCallback;
 
   mIsUpdating = PR_TRUE;
   *_retval = PR_TRUE;
+
+  mDBService->BeginUpdate(this);
+
+  return FetchUpdate(mUpdateUrl, aRequestBody);
+}
+
+
+
+
+NS_IMETHODIMP
+nsUrlClassifierStreamUpdater::UpdateUrlRequested(const nsACString &aUrl)
+{
+  LOG(("Queuing requested update from %s\n", PromiseFlatCString(aUrl).get()));
+
+  
+  if (StringBeginsWith(aUrl, NS_LITERAL_CSTRING("data:"))) {
+    mPendingUpdateUrls.AppendElement(aUrl);
+  } else {
+    mPendingUpdateUrls.AppendElement(NS_LITERAL_CSTRING("http://") + aUrl);
+  }
+
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsUrlClassifierStreamUpdater::StreamFinished()
+{
+  nsresult rv;
+
+  
+  if (mPendingUpdateUrls.Length() > 0) {
+    rv = FetchUpdate(mPendingUpdateUrls[0], NS_LITERAL_CSTRING(""));
+    if (NS_FAILED(rv)) {
+      LOG(("Error fetching update url: %s\n", mPendingUpdateUrls[0].get()));
+      mDBService->CancelUpdate();
+      return rv;
+    }
+
+    mPendingUpdateUrls.RemoveElementAt(0);
+  } else {
+    mDBService->FinishUpdate();
+  }
+
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsUrlClassifierStreamUpdater::UpdateSuccess(PRUint32 requestedTimeout)
+{
+  LOG(("nsUrlClassifierStreamUpdater::UpdateSuccess [this=%p]", this));
+  NS_ASSERTION(mPendingUpdateUrls.Length() == 0,
+               "Didn't fetch all update URLs.");
+
+  
+  nsCOMPtr<nsIUrlClassifierCallback> successCallback = mSuccessCallback;
+  DownloadDone();
+
+  nsCAutoString strTimeout;
+  strTimeout.AppendInt(requestedTimeout);
+  if (successCallback) {
+    successCallback->HandleEvent(strTimeout);
+  }
+
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsUrlClassifierStreamUpdater::UpdateError(PRUint32 result)
+{
+  LOG(("nsUrlClassifierStreamUpdater::UpdateSuccess [this=%p]", this));
+
+  
+  nsCOMPtr<nsIUrlClassifierCallback> errorCallback = mUpdateErrorCallback;
+  DownloadDone();
+
+  nsCAutoString strResult;
+  strResult.AppendInt(result);
+  if (errorCallback) {
+    errorCallback->HandleEvent(strResult);
+  }
 
   return NS_OK;
 }
@@ -335,6 +308,109 @@ nsUrlClassifierStreamUpdater::AddRequestBody(const nsACString &aRequestBody)
   NS_ENSURE_SUCCESS(rv, rv);
 
   return NS_OK;
+}
+
+
+
+
+
+NS_IMETHODIMP
+nsUrlClassifierStreamUpdater::OnStartRequest(nsIRequest *request, nsISupports* context)
+{
+  nsresult rv;
+
+  rv = mDBService->BeginStream();
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  nsCOMPtr<nsIHttpChannel> httpChannel = do_QueryInterface(request);
+  if (httpChannel) {
+    nsresult status;
+    rv = httpChannel->GetStatus(&status);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    LOG(("OnStartRequest (status %x)", status));
+
+    if (NS_ERROR_CONNECTION_REFUSED == status ||
+        NS_ERROR_NET_TIMEOUT == status) {
+      
+      mDownloadErrorCallback->HandleEvent(nsCString());
+      return NS_ERROR_ABORT;
+    }
+  }
+
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsUrlClassifierStreamUpdater::OnDataAvailable(nsIRequest *request,
+                                              nsISupports* context,
+                                              nsIInputStream *aIStream,
+                                              PRUint32 aSourceOffset,
+                                              PRUint32 aLength)
+{
+  if (!mDBService)
+    return NS_ERROR_NOT_INITIALIZED;
+
+  LOG(("OnDataAvailable (%d bytes)", aLength));
+
+  nsresult rv;
+
+  
+  nsCOMPtr<nsIHttpChannel> httpChannel = do_QueryInterface(request);
+  if (httpChannel) {
+    PRBool succeeded = PR_FALSE;
+    rv = httpChannel->GetRequestSucceeded(&succeeded);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    if (!succeeded) {
+      
+      LOG(("HTTP request returned failure code."));
+
+      PRUint32 status;
+      rv = httpChannel->GetResponseStatus(&status);
+      NS_ENSURE_SUCCESS(rv, rv);
+
+      nsCAutoString strStatus;
+      strStatus.AppendInt(status);
+      mDownloadErrorCallback->HandleEvent(strStatus);
+      return NS_ERROR_ABORT;
+    }
+  }
+
+  
+  nsCString chunk;
+  rv = NS_ConsumeStream(aIStream, aLength, chunk);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
+
+  rv = mDBService->UpdateStream(chunk);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsUrlClassifierStreamUpdater::OnStopRequest(nsIRequest *request, nsISupports* context,
+                                            nsresult aStatus)
+{
+  if (!mDBService)
+    return NS_ERROR_NOT_INITIALIZED;
+
+  LOG(("OnStopRequest (status %x)", aStatus));
+
+  nsresult rv;
+
+  
+  
+  if (NS_SUCCEEDED(aStatus))
+    rv = mDBService->FinishStream();
+  else
+    rv = mDBService->CancelUpdate();
+
+  mChannel = nsnull;
+
+  return rv;
 }
 
 

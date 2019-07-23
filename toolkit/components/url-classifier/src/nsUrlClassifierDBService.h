@@ -92,6 +92,7 @@ private:
   nsresult Shutdown();
   
   nsCOMPtr<nsUrlClassifierDBServiceWorker> mWorker;
+  nsCOMPtr<nsUrlClassifierDBServiceWorker> mWorkerProxy;
 
   
   

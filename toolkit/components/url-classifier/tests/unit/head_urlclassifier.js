@@ -50,6 +50,11 @@ function cleanUp() {
   } catch (e) {}
 }
 
+var dbservice = Cc["@mozilla.org/url-classifier/dbservice;1"].getService(Ci.nsIUrlClassifierDBService);
+var streamUpdater = Cc["@mozilla.org/url-classifier/streamupdater;1"]
+                    .getService(Ci.nsIUrlClassifierStreamUpdater);
+
+
 
 
 
@@ -82,6 +87,167 @@ function buildUpdate(update) {
   }
 
   return updateStr;
+}
+
+function buildPhishingUpdate(chunks) {
+  return buildUpdate({"test-phish-simple" : chunks});
+}
+
+
+
+
+function doSimpleUpdate(updateText, success, failure) {
+  var listener = {
+    QueryInterface: function(iid)
+    {
+      if (iid.equals(Ci.nsISupports) ||
+          iid.equals(Ci.nsIUrlClassifierUpdateObserver))
+        return this;
+      throw Cr.NS_ERROR_NO_INTERFACE;
+    },
+
+    updateUrlRequested: function(url) { },
+    streamCompleted: function() { },
+    updateError: function(errorCode) { failure(errorCode); },
+    updateSuccess: function(requestedTimeout) { success(requestedTimeout); }
+  };
+
+  dbservice.beginUpdate(listener);
+  dbservice.beginStream();
+  dbservice.updateStream(updateText);
+  dbservice.finishStream();
+  dbservice.finishUpdate();
+}
+
+
+
+
+
+function doStreamUpdate(updateText, success, failure, downloadFailure) {
+  var dataUpdate = "data:," + encodeURIComponent(updateText);
+
+  if (!downloadFailure)
+    downloadFailure = failure;
+
+  streamUpdater.updateUrl = dataUpdate;
+  streamUpdater.downloadUpdates("", success, failure, downloadFailure);
+}
+
+var gAssertions = {
+
+tableData : function(expectedTables, cb)
+{
+  dbservice.getTables(function(tables) {
+      
+      var parts = tables.split("\n");
+      parts.sort();
+      tables = parts.join("\n");
+
+      
+      
+      do_check_eq(tables, "\n" + expectedTables);
+      cb();
+    });
+},
+
+checkUrls: function(urls, expected, cb)
+{
+  var doLookup = function() {
+    if (urls.length > 0) {
+      var fragment = urls.shift();
+      dbservice.lookup("http://" + fragment,
+                       function(arg) {
+                         do_check_eq(expected, arg);
+                         doLookup();
+                       }, true);
+    } else {
+      cb();
+    }
+  }
+  doLookup();
+},
+
+urlsDontExist: function(urls, cb)
+{
+  this.checkUrls(urls, '', cb);
+},
+
+urlsExist: function(urls, cb)
+{
+  this.checkUrls(urls, 'test-phish-simple', cb);
+},
+
+subsDontExist: function(urls, cb)
+{
+  
+  cb();
+},
+
+subsExist: function(urls, cb)
+{
+  
+  cb();
+}
+
+};
+
+
+
+
+function checkAssertions(assertions, doneCallback)
+{
+  var checkAssertion = function() {
+    for (var i in assertions) {
+      var data = assertions[i];
+      delete assertions[i];
+      gAssertions[i](data, checkAssertion);
+      return;
+    }
+
+    doneCallback();
+  }
+
+  checkAssertion();
+}
+
+function updateError(arg)
+{
+  do_throw(arg);
+}
+
+
+function doUpdateTest(updates, assertions, successCallback, errorCallback) {
+  dbservice.resetDatabase();
+
+  var runUpdate = function() {
+    if (updates.length > 0) {
+      var update = updates.shift();
+      doStreamUpdate(update, runUpdate, errorCallback);
+    } else {
+      checkAssertions(assertions, successCallback);
+    }
+  }
+
+  runUpdate();
+}
+
+var gTests;
+var gNextTest = 0;
+
+function runNextTest()
+{
+  if (gNextTest >= gTests.length) {
+    do_test_finished();
+    return;
+  }
+
+  gTests[gNextTest++]();
+}
+
+function runTests(tests)
+{
+  gTests = tests;
+  runNextTest();
 }
 
 cleanUp();
