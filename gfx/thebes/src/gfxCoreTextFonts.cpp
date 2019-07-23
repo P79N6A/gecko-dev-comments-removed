@@ -449,9 +449,9 @@ gfxCoreTextFont::InitTextRun(gfxTextRun *aTextRun,
 
     
     
-    const UniChar beginLTR[]    = { 0x202d };
-    const UniChar beginRTL[]    = { 0x202e };
-    const UniChar endBidiWrap[] = { 0x202c };
+    const UniChar beginLTR[]    = { 0x202d, 0x20 };
+    const UniChar beginRTL[]    = { 0x202e, 0x20 };
+    const UniChar endBidiWrap[] = { 0x20, 0x202c };
 
     PRUint32 startOffset;
     CFStringRef stringObj;
@@ -638,8 +638,6 @@ gfxCoreTextFont::SetGlyphsFromRun(gfxTextRun *aTextRun,
         charToGlyph[offset] = NO_GLYPH;
     for (PRInt32 g = 0; g < numGlyphs; ++g) {
         PRInt32 loc = glyphToChar[g] - stringRange.location;
-        if (loc == 0 && !isLTR)
-            ++loc; 
         if (loc >= 0 && loc < stringRange.length) {
             charToGlyph[loc] = g;
         }
