@@ -209,40 +209,15 @@ AppendUTF16toUTF8( const nsAString& aSource, nsACString& aDest )
         if(!SetLengthForWritingC(aDest, old_dest_length + count))
             return;
 
-        nsACString::iterator dest;
-        aDest.BeginWriting(dest);
+        
 
-        dest.advance(old_dest_length);
+        ConvertUTF16toUTF8 converter(aDest.BeginWriting() + old_dest_length);
+        copy_string(aSource.BeginReading(source_start),
+                    aSource.EndReading(source_end), converter);
 
-        if (count <= (PRUint32)dest.size_forward())
-          {
-            
-            
-            
-
-            
-
-            ConvertUTF16toUTF8 converter(dest.get());
-            copy_string(aSource.BeginReading(source_start),
-                        aSource.EndReading(source_end), converter);
-
-            if (converter.Size() != count)
-              {
-                NS_ERROR("Input invalid or incorrect length was calculated");
-
-                aDest.SetLength(old_dest_length);
-              }
-          }
-        else
-          {
-            
-            
-            
-            
-
-            aDest.Replace(old_dest_length, count,
-                          NS_ConvertUTF16toUTF8(aSource));
-          }
+        NS_ASSERTION(converter.Size() == count,
+                     "Unexpected disparity between CalculateUTF8Size and "
+                     "ConvertUTF16toUTF8");
       }
   }
 
@@ -257,46 +232,29 @@ AppendUTF8toUTF16( const nsACString& aSource, nsAString& aDest )
 
     PRUint32 count = calculator.Length();
 
+    
     if (count)
       {
         PRUint32 old_dest_length = aDest.Length();
 
         
         if(!SetLengthForWriting(aDest, old_dest_length + count))
-            return;
+          return;
 
-        nsAString::iterator dest;
-        aDest.BeginWriting(dest);
+        
 
-        dest.advance(old_dest_length);
+        ConvertUTF8toUTF16 converter(aDest.BeginWriting() + old_dest_length);
+        copy_string(aSource.BeginReading(source_start),
+                    aSource.EndReading(source_end), converter);
 
-        if (count <= (PRUint32)dest.size_forward())
+        NS_ASSERTION(converter.ErrorEncountered() ||
+                     converter.Length() == count,
+                     "CalculateUTF8Length produced the wrong length");
+
+        if (converter.ErrorEncountered())
           {
-            
-            
-            
-
-            
-
-            ConvertUTF8toUTF16 converter(dest.get());
-            copy_string(aSource.BeginReading(source_start),
-                        aSource.EndReading(source_end), converter);
-
-            if (converter.Length() != count)
-              {
-                NS_ERROR("Input wasn't UTF8 or incorrect length was calculated");
-                aDest.SetLength(old_dest_length);
-              }
-          }
-        else
-          {
-            
-            
-            
-            
-
-            aDest.Replace(old_dest_length, count,
-                          NS_ConvertUTF8toUTF16(aSource));
+            NS_ERROR("Input wasn't UTF8 or incorrect length was calculated");
+            aDest.SetLength(old_dest_length);
           }
       }
   }

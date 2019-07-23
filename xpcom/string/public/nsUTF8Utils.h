@@ -387,6 +387,8 @@ class ConvertUTF8toUTF16
 
     size_t Length() const { return mBuffer - mStart; }
 
+    PRBool ErrorEncountered() const { return mErrorEncountered; }
+
     void NS_ALWAYS_INLINE write( const value_type* start, PRUint32 N )
       {
         if ( mErrorEncountered )
@@ -489,18 +491,47 @@ class CalculateUTF8Length
             else if ( UTF8traits::is3byte(*p) )
                 p += 3;
             else if ( UTF8traits::is4byte(*p) ) {
+                
+                
+                
+                
+                
+                
+
+                
+                
+                
+                
+                
+                
+
+                
+                
+                
+
+                
+                
+                
+                
+                
+                
+                
+                
+
+                
+                
+                
+                
+                
+
+                if (p + 4 <= end) {
+                  PRUint32 c = ((PRUint32)(p[0] & 0x07)) << 6 |
+                               ((PRUint32)(p[1] & 0x30));
+                  if (c >= 0x010 && c < 0x110)
+                    ++mLength;
+                }
+
                 p += 4;
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                ++mLength;
             }
             else if ( UTF8traits::is5byte(*p) )
                 p += 5;
