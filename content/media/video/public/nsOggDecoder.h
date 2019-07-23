@@ -342,6 +342,12 @@ class nsOggDecoder : public nsMediaDecoder
   
   virtual void SetTotalBytes(PRInt64 aBytes);
 
+  
+  virtual void SetSeekable(PRBool aSeekable);
+
+  
+  virtual PRBool GetSeekable();
+
 protected:
   
   
@@ -451,7 +457,16 @@ private:
   PRInt64 mContentLength;
 
   
+  
+  
+  PRInt64 mDuration;
+
+  
   PRPackedBool mNotifyOnShutdown;
+
+  
+  
+  PRPackedBool mSeekable;
 
   
 
