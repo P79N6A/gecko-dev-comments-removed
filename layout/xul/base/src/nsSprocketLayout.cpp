@@ -1255,7 +1255,7 @@ nsSprocketLayout::ComputeChildSizes(nsIBox* aBox,
 
           
           if (!computedBoxSizes->valid) {
-            PRInt32 newSize = pref + sizeRemaining*flex/spacerConstantsRemaining; 
+            PRInt32 newSize = pref + PRInt32(PRInt64(sizeRemaining) * flex / spacerConstantsRemaining);
 
             if (newSize<=min) {
               computedBoxSizes->size = min;
@@ -1297,7 +1297,7 @@ nsSprocketLayout::ComputeChildSizes(nsIBox* aBox,
       flex = boxSizes->flex;
 
       if (!computedBoxSizes->valid) {
-        computedBoxSizes->size = pref + flex*sizeRemaining/spacerConstantsRemaining; 
+        computedBoxSizes->size = pref + PRInt32(PRInt64(sizeRemaining) * flex / spacerConstantsRemaining);
         computedBoxSizes->valid = PR_TRUE;
       }
 
