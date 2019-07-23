@@ -174,9 +174,6 @@ nsBoxObject::GetOffsetRect(nsRect& aRect)
     nsPoint origin = frame->GetPositionIgnoringScrolling();
 
     
-    nsRect rcFrame = nsLayoutUtils::GetAllInFlowBoundingRect(frame);
-        
-    
     nsIContent *docElement = mContent->GetCurrentDoc()->GetRootContent();
     nsIFrame* parent = frame->GetParent();
     for (;;) {
@@ -210,10 +207,16 @@ nsBoxObject::GetOffsetRect(nsRect& aRect)
 
     aRect.x = nsPresContext::AppUnitsToIntCSSPixels(origin.x);
     aRect.y = nsPresContext::AppUnitsToIntCSSPixels(origin.y);
+    
+    
+    
+    
+    
+    nsRect rcFrame = nsLayoutUtils::GetAllInFlowRectsUnion(frame, parent);
     aRect.width = nsPresContext::AppUnitsToIntCSSPixels(rcFrame.width);
     aRect.height = nsPresContext::AppUnitsToIntCSSPixels(rcFrame.height);
   }
- 
+
   return NS_OK;
 }
 

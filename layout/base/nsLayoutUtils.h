@@ -471,13 +471,27 @@ public:
                           PRInt32&   aIndex,
                           PRInt32&   aTextWidth);
 
+  class RectCallback {
+  public:
+    virtual void AddRect(const nsRect& aRect) = 0;
+  };
   
 
 
 
 
 
-  static nsRect GetAllInFlowBoundingRect(nsIFrame* aFrame);
+
+
+
+  static void GetAllInFlowRects(nsIFrame* aFrame, nsIFrame* aRelativeTo,
+                                RectCallback* aCallback);
+
+  
+
+
+
+  static nsRect GetAllInFlowRectsUnion(nsIFrame* aFrame, nsIFrame* aRelativeTo);
 
   
 
