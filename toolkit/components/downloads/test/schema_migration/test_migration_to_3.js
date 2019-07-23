@@ -36,10 +36,11 @@
 
 
 
+
 function run_test()
 {
   
-  importDatabaseFile("v1.sqlite");
+  importDatabaseFile("v2.sqlite");
 
   
   
@@ -49,20 +50,14 @@ function run_test()
   var stmt = null;
 
   
-  do_check_true(dbConn.schemaVersion >= 2);
+  do_check_true(dbConn.schemaVersion >= 3);
 
   
-  try {
-    
-    stmt = dbConn.createStatement("SELECT iconURL FROM moz_downloads");
-    do_throw("should not get here");
-  } catch (e) {
-    do_check_eq(Cr.NS_ERROR_FAILURE, e.result);
-  }
+  stmt = dbConn.createStatement("SELECT referrer FROM moz_downloads");
 
   
   stmt = dbConn.createStatement(
-    "SELECT name, source, target, startTime, endTime, state " +
+    "SELECT name, source, target, startTime, endTime, state, referrer " +
     "FROM moz_downloads " +
     "WHERE id = 2");
   stmt.executeStep();
@@ -74,6 +69,7 @@ function run_test()
   do_check_eq(1180493839859230, stmt.getInt64(3));
   do_check_eq(1180493839859230, stmt.getInt64(4));
   do_check_eq(1, stmt.getInt32(5));
+  do_check_true(stmt.getIsNull(6));
   stmt.reset();
 
   cleanup();
