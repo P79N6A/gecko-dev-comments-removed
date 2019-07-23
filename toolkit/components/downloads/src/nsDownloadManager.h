@@ -272,6 +272,12 @@ protected:
 
   PRBool IsFinished();
 
+  
+
+
+
+  nsresult FailDownload(nsresult aStatus, const PRUnichar *aMessage);
+
   nsDownloadManager *mDownloadManager;
   nsCOMPtr<nsIURI> mTarget;
 
