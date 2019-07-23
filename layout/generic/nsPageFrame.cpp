@@ -537,18 +537,17 @@ nsPageFrame::PaintPageContent(nsIRenderingContext& aRenderingContext,
   nsRect rect = aDirtyRect;
   float scale = PresContext()->GetPageScale();
   aRenderingContext.PushState();
-  
-  
-  nsRect clipRect(nsPoint(0, 0), GetSize());
-  clipRect.Deflate(mPD->mReflowMargin);
-  aRenderingContext.SetClipRect(clipRect, nsClipCombine_kIntersect);
-  
-  
   nsPoint framePos = aPt + pageContentFrame->GetOffsetTo(this);
   aRenderingContext.Translate(framePos.x, framePos.y);
+  
+  
   rect -= framePos;
   aRenderingContext.Scale(scale, scale);
   rect.ScaleRoundOut(1.0f / scale);
+  
+  
+  nsRect clipRect(nsPoint(0, 0), pageContentFrame->GetSize());
+  aRenderingContext.SetClipRect(clipRect, nsClipCombine_kIntersect);
 
   const nsStyleBorder* border = GetStyleBorder();
   const nsStylePadding* padding = GetStylePadding();

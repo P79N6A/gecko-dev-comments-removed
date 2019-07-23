@@ -824,6 +824,101 @@ void nsDisplaySolidColor::Paint(nsDisplayListBuilder* aBuilder,
   aCtx->FillRect(aDirtyRect);
 }
 
+
+
+
+
+
+
+
+
+
+
+static void
+PruneDisplayListForExtraPage(nsDisplayListBuilder* aBuilder,
+        nsIFrame* aExtraPage, nscoord aY, nsDisplayList* aList)
+{
+  nsDisplayList newList;
+  
+  nsIFrame* mainPage = aBuilder->ReferenceFrame();
+
+  while (PR_TRUE) {
+    nsDisplayItem* i = aList->RemoveBottom();
+    if (!i)
+      break;
+    nsDisplayList* subList = i->GetList();
+    if (subList) {
+      PruneDisplayListForExtraPage(aBuilder, aExtraPage, aY, subList);
+      if (i->GetType() == nsDisplayItem::TYPE_CLIP) {
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        nsDisplayClip* clip = static_cast<nsDisplayClip*>(i);
+        clip->SetClipRect(clip->GetClipRect() + nsPoint(0, aY) -
+                aExtraPage->GetOffsetTo(mainPage));
+      }
+      newList.AppendToTop(i);
+    } else {
+      nsIFrame* f = i->GetUnderlyingFrame();
+      if (f && nsLayoutUtils::IsProperAncestorFrameCrossDoc(mainPage, f)) {
+        
+        newList.AppendToTop(i);
+      } else {
+        
+        
+        i->nsDisplayItem::~nsDisplayItem();
+      }
+    }
+  }
+  aList->AppendToTop(&newList);
+}
+
+static nsresult
+BuildDisplayListForExtraPage(nsDisplayListBuilder* aBuilder,
+        nsIFrame* aPage, nscoord aY, nsDisplayList* aList)
+{
+  nsDisplayList list;
+  
+  
+  
+  
+  
+  
+  nsresult rv = aPage->BuildDisplayListForStackingContext(aBuilder, nsRect(), &list);
+  if (NS_FAILED(rv))
+    return rv;
+  PruneDisplayListForExtraPage(aBuilder, aPage, aY, &list);
+  aList->AppendToTop(&list);
+  return NS_OK;
+}
+
+static nsIFrame*
+GetNextPage(nsIFrame* aPageContentFrame)
+{
+  
+  nsIFrame* pageFrame = aPageContentFrame->GetParent();
+  NS_ASSERTION(pageFrame->GetType() == nsGkAtoms::pageFrame,
+               "pageContentFrame has unexpected parent");
+  nsIFrame* nextPageFrame = pageFrame->GetNextSibling();
+  if (!nextPageFrame)
+    return nsnull;
+  NS_ASSERTION(nextPageFrame->GetType() == nsGkAtoms::pageFrame,
+               "pageFrame's sibling is not a page frame...");
+  nsIFrame* f = nextPageFrame->GetFirstChild(nsnull);
+  NS_ASSERTION(f, "pageFrame has no page content frame!");
+  NS_ASSERTION(f->GetType() == nsGkAtoms::pageContentFrame,
+               "pageFrame's child is not page content!");
+  return f;
+}
+
 nsresult
 nsLayoutUtils::PaintFrame(nsIRenderingContext* aRenderingContext, nsIFrame* aFrame,
                           const nsRegion& aDirtyRegion, nscolor aBackground)
@@ -839,6 +934,24 @@ nsLayoutUtils::PaintFrame(nsIRenderingContext* aRenderingContext, nsIFrame* aFra
     nsAutoDisableGetUsedXAssertions disableAssert;
     rv =
       aFrame->BuildDisplayListForStackingContext(&builder, dirtyRect, &list);
+    
+    if (NS_SUCCEEDED(rv) && aFrame->GetType() == nsGkAtoms::pageContentFrame) {
+      
+      
+      
+      
+      
+      
+      
+      nsIFrame* page = aFrame;
+      nscoord y = aFrame->GetSize().height;
+      while ((page = GetNextPage(page)) != nsnull) {
+        rv = BuildDisplayListForExtraPage(&builder, page, y, &list);
+        if (NS_FAILED(rv))
+          break;
+        y += page->GetSize().height;
+      }
+    }
   }
 
   builder.LeavePresShell(aFrame, dirtyRect);
