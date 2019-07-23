@@ -171,9 +171,6 @@ nsDeque& nsDeque::Erase() {
 
 
 
-
-
-
 PRBool nsDeque::GrowCapacity() {
   PRInt32 theNewSize=mCapacity<<2;
   NS_ASSERTION(theNewSize>mCapacity, "Overflow");
