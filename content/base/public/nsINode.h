@@ -45,7 +45,6 @@
 #include "nsINodeInfo.h"
 #include "nsCOMPtr.h"
 #include "nsWrapperCache.h"
-#include "nsIProgrammingLanguage.h" 
 
 class nsIContent;
 class nsIDocument;
@@ -240,8 +239,8 @@ private:
 
 
 #define NS_INODE_IID \
-{ 0xfc22c6df, 0x3e8e, 0x47c3, \
-  { 0x96, 0xa6, 0xaf, 0x14, 0x3c, 0x05, 0x88, 0x68 } }
+{ 0x7bccc9bd, 0x30eb, 0x47c0, \
+ { 0x8b, 0xc7, 0x6f, 0x19, 0x75, 0xc8, 0xe7, 0xd7 } }
  
 
 
@@ -863,21 +862,6 @@ public:
     nsIContent* const * mEnd;
   };
 
-  
-
-
-
-  virtual PRUint32 GetScriptTypeID() const
-  { return nsIProgrammingLanguage::JAVASCRIPT; }
-
-  
-
-
-  virtual nsresult SetScriptTypeID(PRUint32 aLang)
-  {
-    NS_NOTREACHED("SetScriptTypeID not implemented");
-    return NS_ERROR_NOT_IMPLEMENTED;
-  }
 protected:
 
   
