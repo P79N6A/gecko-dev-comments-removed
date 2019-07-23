@@ -3240,8 +3240,7 @@ nsContentUtils::HasMutationListeners(nsINode* aNode,
   }
 
   
-  nsCOMPtr<nsPIDOMWindow> window;
-  window = do_QueryInterface(doc->GetScriptGlobalObject());
+  nsPIDOMWindow* window = doc->GetInnerWindow();
   
   
   if (window && !window->HasMutationListeners(aType)) {
