@@ -1226,8 +1226,13 @@ struct TreeMatchContext {
   
   const PRBool mForStyling;
 
+  
+  
+  PRBool mHaveRelevantLink;
+
   TreeMatchContext(PRBool aForStyling)
     : mForStyling(aForStyling)
+    , mHaveRelevantLink(PR_FALSE)
   {
   }
 };
@@ -1256,8 +1261,20 @@ struct NodeMatchContext {
   
   const PRInt32 mStateMask;
 
-  NodeMatchContext(PRInt32 aStateMask)
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  const PRBool mIsRelevantLink;
+
+  NodeMatchContext(PRInt32 aStateMask, PRBool aIsRelevantLink)
     : mStateMask(aStateMask)
+    , mIsRelevantLink(aIsRelevantLink)
   {
   }
 };
@@ -1874,6 +1891,12 @@ static PRBool SelectorMatches(RuleProcessorData &data,
 {
   NS_PRECONDITION(!aSelector->IsPseudoElement(),
                   "Pseudo-element snuck into SelectorMatches?");
+  NS_ABORT_IF_FALSE(aTreeMatchContext.mForStyling ||
+                    !aNodeMatchContext.mIsRelevantLink,
+                    "mIsRelevantLink should be set to false when mForStyling "
+                    "is false since we don't know how to set it correctly in "
+                    "Has(Attribute|State)DependentStyle");
+
   
   
   if ((kNameSpaceID_Unknown != aSelector->mNameSpace &&
@@ -2099,7 +2122,8 @@ static PRBool SelectorMatches(RuleProcessorData &data,
 
 static PRBool SelectorMatchesTree(RuleProcessorData& aPrevData,
                                   nsCSSSelector* aSelector,
-                                  TreeMatchContext& aTreeMatchContext)
+                                  TreeMatchContext& aTreeMatchContext,
+                                  PRBool aLookForRelevantLink)
 {
   nsCSSSelector* selector = aSelector;
   RuleProcessorData* prevdata = &aPrevData;
@@ -2117,6 +2141,8 @@ static PRBool SelectorMatchesTree(RuleProcessorData& aPrevData,
     RuleProcessorData* data;
     if (PRUnichar('+') == selector->mOperator ||
         PRUnichar('~') == selector->mOperator) {
+      
+      aLookForRelevantLink = PR_FALSE;
       data = prevdata->mPreviousSiblingData;
       if (!data) {
         nsIContent* content = prevdata->mContent;
@@ -2158,7 +2184,18 @@ static PRBool SelectorMatchesTree(RuleProcessorData& aPrevData,
     if (! data) {
       return PR_FALSE;
     }
-    NodeMatchContext nodeContext(0);
+    NodeMatchContext nodeContext(0, aLookForRelevantLink && data->IsLink());
+    if (nodeContext.mIsRelevantLink) {
+      
+      
+      
+      
+      
+      
+      
+      aLookForRelevantLink = PR_FALSE;
+      aTreeMatchContext.mHaveRelevantLink = PR_TRUE;
+    }
     if (SelectorMatches(*data, selector, nodeContext, aTreeMatchContext)) {
       
       
@@ -2179,7 +2216,8 @@ static PRBool SelectorMatchesTree(RuleProcessorData& aPrevData,
         
         
         
-        if (SelectorMatchesTree(*data, selector, aTreeMatchContext)) {
+        if (SelectorMatchesTree(*data, selector, aTreeMatchContext,
+                                aLookForRelevantLink)) {
           return PR_TRUE;
         }
       }
@@ -2203,10 +2241,14 @@ static void ContentEnumFunc(nsICSSStyleRule* aRule, nsCSSSelector* aSelector,
   RuleProcessorData* data = (RuleProcessorData*)aData;
 
   TreeMatchContext treeContext(PR_TRUE);
-  NodeMatchContext nodeContext(0);
+  NodeMatchContext nodeContext(0, data->IsLink());
+  if (nodeContext.mIsRelevantLink) {
+    treeContext.mHaveRelevantLink = PR_TRUE;
+  }
   if (SelectorMatches(*data, aSelector, nodeContext, treeContext)) {
     nsCSSSelector *next = aSelector->mNext;
-    if (!next || SelectorMatchesTree(*data, next, treeContext)) {
+    if (!next || SelectorMatchesTree(*data, next, treeContext,
+                                     !nodeContext.mIsRelevantLink)) {
       
       
       
@@ -2355,10 +2397,11 @@ nsCSSRuleProcessor::HasStateDependentStyle(StateRuleProcessorData* aData)
       
       
       TreeMatchContext treeContext(PR_FALSE);
-      NodeMatchContext nodeContext(aData->mStateMask);
+      NodeMatchContext nodeContext(aData->mStateMask, PR_FALSE);
       if ((possibleChange & ~hint) &&
           SelectorMatches(*aData, selector, nodeContext, treeContext) &&
-          SelectorMatchesTree(*aData, selector->mNext, treeContext)) {
+          SelectorMatchesTree(*aData, selector->mNext, treeContext, PR_FALSE))
+      {
         hint = nsRestyleHint(hint | possibleChange);
       }
     }
@@ -2395,10 +2438,10 @@ AttributeEnumFunc(nsCSSSelector* aSelector, AttributeEnumData* aData)
   
   
   TreeMatchContext treeContext(PR_FALSE);
-  NodeMatchContext nodeContext(0);
+  NodeMatchContext nodeContext(0, PR_FALSE);
   if ((possibleChange & ~(aData->change)) &&
       SelectorMatches(*data, aSelector, nodeContext, treeContext) &&
-      SelectorMatchesTree(*data, aSelector->mNext, treeContext)) {
+      SelectorMatchesTree(*data, aSelector->mNext, treeContext, PR_FALSE)) {
     aData->change = nsRestyleHint(aData->change | possibleChange);
   }
 }
@@ -2940,10 +2983,10 @@ nsCSSRuleProcessor::SelectorListMatches(RuleProcessorData& aData,
     NS_ASSERTION(sel, "Should have *some* selectors");
     NS_ASSERTION(!sel->IsPseudoElement(), "Shouldn't have been called");
     TreeMatchContext treeContext(PR_FALSE);
-    NodeMatchContext nodeContext(0);
+    NodeMatchContext nodeContext(0, PR_FALSE);
     if (SelectorMatches(aData, sel, nodeContext, treeContext)) {
       nsCSSSelector* next = sel->mNext;
-      if (!next || SelectorMatchesTree(aData, next, treeContext)) {
+      if (!next || SelectorMatchesTree(aData, next, treeContext, PR_FALSE)) {
         return PR_TRUE;
       }
     }
