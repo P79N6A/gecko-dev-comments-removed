@@ -4938,24 +4938,6 @@ var contentAreaDNDObserver = {
 
       var dragType = aXferData.flavour.contentType;
       var dragData = aXferData.data;
-      if (dragType == TAB_DROP_TYPE) {
-        
-        
-        if (dragData instanceof XULElement && dragData.localName == "tab" &&
-            dragData.ownerDocument.defaultView == window) {
-          
-          
-          
-          if (aEvent.screenY > gBrowser.mPanelContainer.boxObject.screenY +
-                               dragData.boxObject.height / 2) {
-            gBrowser.replaceTabWithWindow(dragData);
-            aEvent.dataTransfer.dropEffect = "move";
-            return;
-          }
-        }
-        aEvent.dataTransfer.dropEffect = "none";
-        return;
-      }
 
       var url = transferUtils.retrieveURLFromData(dragData, dragType);
 
