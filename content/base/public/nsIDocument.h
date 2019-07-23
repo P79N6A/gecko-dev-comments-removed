@@ -941,6 +941,16 @@ public:
     mJSObject = aJSObject;
   }
 
+  
+  
+  virtual already_AddRefed<nsIParser> GetFragmentParser() {
+    return nsnull;
+  }
+
+  virtual void SetFragmentParser(nsIParser* aParser) {
+    
+  }
+
 protected:
   ~nsIDocument()
   {
