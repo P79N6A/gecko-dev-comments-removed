@@ -188,6 +188,10 @@ nsMathMLmsqrtFrame::Reflow(nsPresContext*          aPresContext,
   nsCOMPtr<nsIFontMetrics> fm;
   renderingContext.GetFontMetrics(*getter_AddRefs(fm));
 
+  
+  
+  
+  
   nscoord ruleThickness, leading, em;
   GetRuleThickness(renderingContext, fm, ruleThickness);
 
@@ -213,6 +217,18 @@ nsMathMLmsqrtFrame::Reflow(nsPresContext*          aPresContext,
     psi += bmOne.ascent - bmBase.ascent;
 
   
+  nscoord onePixel = nsPresContext::CSSPixelsToAppUnits(1);
+  if (ruleThickness < onePixel) {
+    ruleThickness = onePixel;
+  }
+
+  
+  
+  nscoord delta = psi % onePixel;
+  if (delta)
+    psi += onePixel - delta; 
+
+  
   nsBoundingMetrics contSize = bmBase;
   contSize.ascent = ruleThickness;
   contSize.descent = bmBase.ascent + bmBase.descent + psi;
@@ -227,21 +243,6 @@ nsMathMLmsqrtFrame::Reflow(nsPresContext*          aPresContext,
   
   mSqrChar.GetBoundingMetrics(bmSqr);
 
-  
-  
-  ruleThickness = bmSqr.ascent;
-  
-  nscoord onePixel = nsPresContext::CSSPixelsToAppUnits(1);
-  if (ruleThickness < onePixel) {
-    ruleThickness = onePixel;
-  }
-
-  
-  
-  nscoord delta = psi % onePixel;
-  if (delta)
-    psi += onePixel - delta; 
-
   nscoord dx = 0, dy = 0;
   
   dy = leading; 
@@ -253,7 +254,8 @@ nsMathMLmsqrtFrame::Reflow(nsPresContext*          aPresContext,
   
   mBoundingMetrics.ascent = bmBase.ascent + psi + ruleThickness;
   mBoundingMetrics.descent = 
-    PR_MAX(bmBase.descent, (bmSqr.descent - (bmBase.ascent + psi)));
+    PR_MAX(bmBase.descent,
+           (bmSqr.ascent + bmSqr.descent - mBoundingMetrics.ascent));
   mBoundingMetrics.width = bmSqr.width + bmBase.width;
   mBoundingMetrics.leftBearing = bmSqr.leftBearing;
   mBoundingMetrics.rightBearing = bmSqr.width + 
