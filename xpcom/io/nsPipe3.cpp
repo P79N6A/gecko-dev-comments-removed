@@ -536,7 +536,29 @@ nsPipe::AdvanceWriteCursor(PRUint32 bytesWritten)
 
         mWriteCursor = newWriteCursor;
 
-        NS_ASSERTION(mReadCursor != mWriteCursor, "read cursor is bad");
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        NS_ASSERTION(mReadCursor != mWriteCursor ||
+                     (mBuffer.GetSegment(0) == mReadCursor &&
+                      mWriteCursor == mWriteLimit),
+                     "read cursor is bad");
 
         
         if (mWriteCursor == mWriteLimit) {
