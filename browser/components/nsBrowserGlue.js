@@ -360,16 +360,19 @@ BrowserGlue.prototype = {
       }
 
       
-      
-      var profDir = dirService.get("ProfD", Ci.nsILocalFile);
-      var bookmarksBackup = profDir.clone();
-      bookmarksBackup.append("bookmarks.preplaces.html");
-      if (!bookmarksBackup.exists()) {
+      if (prefBranch.getBoolPref("browser.bookmarks.overwrite")) {
         
-        try {
-          bookmarksFile.copyTo(profDir, "bookmarks.preplaces.html");
-        } catch(ex) {
-          dump("nsBrowserGlue::_initPlaces(): copy of bookmarks.html to bookmarks.preplaces.html failed: " + ex + "\n");
+        
+        var profDir = dirService.get("ProfD", Ci.nsILocalFile);
+        var bookmarksBackup = profDir.clone();
+        bookmarksBackup.append("bookmarks.preplaces.html");
+        if (!bookmarksBackup.exists()) {
+          
+          try {
+            bookmarksFile.copyTo(profDir, "bookmarks.preplaces.html");
+          } catch(ex) {
+            dump("nsBrowserGlue::_initPlaces(): copy of bookmarks.html to bookmarks.preplaces.html failed: " + ex + "\n");
+          }
         }
       }
     }

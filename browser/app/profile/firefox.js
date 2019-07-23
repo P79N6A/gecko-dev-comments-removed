@@ -294,6 +294,10 @@ pref("browser.bookmarks.sort.direction", "descending");
 pref("browser.bookmarks.sort.resource", "rdf:http://home.netscape.com/NC-rdf#Name");
 
 
+
+pref("browser.bookmarks.overwrite",               false);
+
+
 pref("dom.disable_open_during_load",              true);
 #ifdef DEBUG
 pref("javascript.options.showInConsole",          true);
