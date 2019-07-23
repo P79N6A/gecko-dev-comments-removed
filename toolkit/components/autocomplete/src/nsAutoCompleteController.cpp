@@ -574,12 +574,16 @@ nsAutoCompleteController::HandleDelete(PRBool *_retval)
     popup->SetSelectedIndex(index);
 
     
-    nsAutoString value;
-    if (NS_SUCCEEDED(GetResultValueAt(index, PR_TRUE, value))) {
-      CompleteValue(value, PR_FALSE);
-
+    PRBool shouldComplete = PR_FALSE;
+    mInput->GetCompleteDefaultIndex(&shouldComplete);
+    if (shouldComplete) {
+      nsAutoString value;
+      if (NS_SUCCEEDED(GetResultValueAt(index, PR_TRUE, value))) {
+        CompleteValue(value);
       
-      *_retval = PR_TRUE;
+        
+        *_retval = PR_TRUE;
+      }
     }
 
     
@@ -1349,8 +1353,6 @@ nsAutoCompleteController::CompleteDefaultIndex(PRInt32 aSearchIndex)
   if (!shouldComplete)
     return NS_OK;
 
-  nsCOMPtr<nsIAutoCompleteSearch> search;
-  mSearches->GetElementAt(aSearchIndex, getter_AddRefs(search));
   nsCOMPtr<nsIAutoCompleteResult> result;
   mResults->GetElementAt(aSearchIndex, getter_AddRefs(result));
   NS_ENSURE_TRUE(result != nsnull, NS_ERROR_FAILURE);
@@ -1363,7 +1365,7 @@ nsAutoCompleteController::CompleteDefaultIndex(PRInt32 aSearchIndex)
 
   nsAutoString resultValue;
   result->GetValueAt(defaultIndex, resultValue);
-  CompleteValue(resultValue, PR_TRUE);
+  CompleteValue(resultValue);
 
   mDefaultIndexCompleted = PR_TRUE;
 
@@ -1371,8 +1373,7 @@ nsAutoCompleteController::CompleteDefaultIndex(PRInt32 aSearchIndex)
 }
 
 nsresult
-nsAutoCompleteController::CompleteValue(nsString &aValue,
-                                        PRBool selectDifference)
+nsAutoCompleteController::CompleteValue(nsString &aValue)
 
 
 
@@ -1388,8 +1389,6 @@ nsAutoCompleteController::CompleteValue(nsString &aValue,
     
     mInput->SetTextValue(aValue);
   } else {
-    PRInt32 findIndex;  
-
     nsresult rv;
     nsCOMPtr<nsIIOService> ios = do_GetService(NS_IOSERVICE_CONTRACTID, &rv);
     NS_ENSURE_SUCCESS(rv, rv);
@@ -1399,7 +1398,7 @@ nsAutoCompleteController::CompleteValue(nsString &aValue,
       
       
       
-      findIndex = 7; 
+      const PRInt32 findIndex = 7; 
 
       if ((endSelect < findIndex + mSearchStringLength) ||
           !scheme.LowerCaseEqualsLiteral("http") ||
@@ -1407,31 +1406,23 @@ nsAutoCompleteController::CompleteValue(nsString &aValue,
             mSearchString, nsCaseInsensitiveStringComparator())) {
         return NS_OK;
       }
+
+      mInput->SetTextValue(mSearchString +
+                           Substring(aValue, mSearchStringLength + findIndex,
+                                     endSelect));
+
+      endSelect -= findIndex; 
     } else {
       
       
       
-      nsString::const_iterator iter, end;
-      aValue.BeginReading(iter);
-      aValue.EndReading(end);
-      const nsString::const_iterator::pointer start = iter.get();
-      ++iter;  
+      mInput->SetTextValue(mSearchString + NS_LITERAL_STRING(" >> ") + aValue);
 
-      FindInReadable(mSearchString, iter, end,
-                     nsCaseInsensitiveStringComparator());
-
-      findIndex = iter.get() - start;
+      endSelect = mSearchString.Length() + 4 + aValue.Length();
     }
-
-    mInput->SetTextValue(mSearchString +
-                         Substring(aValue, mSearchStringLength + findIndex,
-                                   endSelect));
-
-    endSelect -= findIndex; 
   }
 
-  mInput->SelectTextRange(selectDifference ?
-                          mSearchStringLength : endSelect, endSelect);
+  mInput->SelectTextRange(mSearchStringLength, endSelect);
 
   return NS_OK;
 }
