@@ -84,17 +84,31 @@ public:
   
 
 
-  static nsresult GetAccessibilityService(nsIAccessibilityService** aResult);
-
-  
-
-
-  static nsIAccessibilityService* GetAccessibilityService();
-
-  
-
-
   static PRBool gIsShutdown;
+
+  
+
+
+
+
+
+
+
+
+  nsresult GetAccessible(nsIDOMNode *aNode, nsIPresShell *aPresShell,
+                         nsIWeakReference *aWeakShell, nsIFrame *aFrameHint,
+                         PRBool *aIsHidden, nsIAccessible **aAccessible);
+
+  
+
+
+
+
+
+
+  nsresult GetAccessibleInWeakShell(nsIDOMNode *aNode,
+                                    nsIWeakReference *aPresShell,
+                                    nsIAccessible **aAccessible);
 
 private:
   
@@ -170,9 +184,23 @@ private:
 
   void ProcessDocLoadEvent(nsIWebProgress *aWebProgress, PRUint32 aEventType);
 
+  friend nsAccessibilityService* GetAccService();
+
+  friend nsresult  NS_GetAccessibilityService(nsIAccessibilityService** aResult);
+
+  
   NS_DECL_RUNNABLEMETHOD_ARG2(nsAccessibilityService, ProcessDocLoadEvent,
                               nsCOMPtr<nsIWebProgress>, PRUint32)
 };
+
+
+
+
+inline nsAccessibilityService*
+GetAccService()
+{
+  return nsAccessibilityService::gAccessibilityService;
+}
 
 
 
