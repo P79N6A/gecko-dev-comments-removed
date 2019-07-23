@@ -4422,6 +4422,17 @@ nsNavHistory::OnIdle()
       NS_ENSURE_SUCCESS(rv, rv);
     }
 
+    
+    
+    
+    
+    
+    rv = mDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
+        "DELETE FROM moz_annos WHERE id IN (SELECT a.id FROM moz_annos a "
+        "JOIN moz_anno_attributes n ON a.anno_attribute_id = n.id "
+        "WHERE n.name = 'livemark/expiration')"));
+    NS_ENSURE_SUCCESS(rv, rv);
+
 #if 0
     
     

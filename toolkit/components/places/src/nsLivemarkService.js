@@ -42,6 +42,7 @@
 
 
 
+
 const Cc = Components.classes;
 const Ci = Components.interfaces;
 const Cr = Components.results;
@@ -58,7 +59,6 @@ const LS_CLASSID = Components.ID("{dca61eb5-c7cd-4df1-b0fb-d0722baba251}");
 const LS_CLASSNAME = "Livemark Service";
 const LS_CONTRACTID = "@mozilla.org/browser/livemark-service;2";
 
-const LIVEMARK_TIMEOUT = 15000; 
 const PLACES_BUNDLE_URI = "chrome://places/locale/places.properties";
 const DEFAULT_LOAD_MSG = "Live Bookmark loading...";
 const DEFAULT_FAIL_MSG = "Live Bookmark feed failed to load.";
@@ -90,6 +90,10 @@ const ERROR_EXPIRATION = 600000;
 
 
 const IDLE_TIMELIMIT = 1800000;
+
+
+
+const MAX_REFRESH_TIME = 3600000;
 
 var gIoService = Cc[IO_CONTRACTID].getService(Ci.nsIIOService);
 var gStringBundle;
@@ -183,18 +187,24 @@ LivemarkService.prototype = {
   start: function LS_start() {
     if (this._updateTimer)
       return;
-    this._updateTimer = new G_Alarm(BindToObject(this._fireTimer, this),
-                                    LIVEMARK_TIMEOUT, true );
+    
+    
+    
+    this._checkAllLivemarks();
+    
+    var refresh_time = Math.min(Math.floor(gExpiration / 4), MAX_REFRESH_TIME);
+    this._updateTimer = new G_Alarm(BindToObject(this._checkAllLivemarks, this),
+                                    refresh_time, true );
   },
 
-  
-  _pushLivemark: function LS__pushLivemark(folderId, feedURI) {
-    return this._livemarks.push({folderId: folderId, feedURI: feedURI});
+  _pushLivemark: function LS__pushLivemark(aFolderId, aFeedURI) {
+    
+    return this._livemarks.push({folderId: aFolderId, feedURI: aFeedURI});
   },
 
-  _getLivemarkIndex: function LS__getLivemarkIndex(folderId) {
-    for (var i=0; i < this._livemarks.length; ++i) {
-      if (this._livemarks[i].folderId == folderId)
+  _getLivemarkIndex: function LS__getLivemarkIndex(aFolderId) {
+    for (var i = 0; i < this._livemarks.length; ++i) {
+      if (this._livemarks[i].folderId == aFolderId)
         return i;
     }
     throw Cr.NS_ERROR_INVALID_ARG;
@@ -216,38 +226,39 @@ LivemarkService.prototype = {
     }
   },
 
-  _fireTimer: function LS__fireTimer() {
-    for (var i=0; i < this._livemarks.length; ++i) {
+  _checkAllLivemarks: function LS__checkAllLivemarks() {
+    
+    for (var i = 0; i < this._livemarks.length; ++i) {
       this._updateLivemarkChildren(i, false);
     }
   },
 
-  deleteLivemarkChildren: function LS_deleteLivemarkChildren(folderId) {
-    this._bms.removeFolderChildren(folderId);
+  deleteLivemarkChildren: function LS_deleteLivemarkChildren(aFolderId) {
+    this._bms.removeFolderChildren(aFolderId);
   },
 
-  insertLivemarkLoadingItem: function LS_insertLivemarkLoading(bms, livemark) {
+  insertLivemarkLoadingItem: function LS_insertLivemarkLoading(aBms, aLivemark) {
     var loadingURI = gIoService.newURI("about:livemark-loading", null, null);
-    if (!livemark.loadingId || livemark.loadingId == -1)
-      livemark.loadingId = bms.insertBookmark(livemark.folderId, loadingURI,
+    if (!aLivemark.loadingId || aLivemark.loadingId == -1)
+      aLivemark.loadingId = aBms.insertBookmark(aLivemark.folderId, loadingURI,
                                               0, this._loading);
   },
 
   _updateLivemarkChildren:
-  function LS__updateLivemarkChildren(index, forceUpdate) {
-    if (this._livemarks[index].locked)
+  function LS__updateLivemarkChildren(aIndex, aForceUpdate) {
+    if (this._livemarks[aIndex].locked)
       return false;
 
-    var livemark = this._livemarks[index];
+    var livemark = this._livemarks[aIndex];
     livemark.locked = true;
     try {
       
       
       
       
-      var exprTime = this._ans.getPageAnnotation(livemark.feedURI,
-                                                 LMANNO_EXPIRATION);
-      if (!forceUpdate && exprTime > Date.now()) {
+      var expireTime = this._ans.getItemAnnotation(livemark.folderId,
+                                                   LMANNO_EXPIRATION);
+      if (!aForceUpdate && expireTime > Date.now()) {
         
         livemark.locked = false;
         return false;
@@ -256,12 +267,13 @@ LivemarkService.prototype = {
       
       
       
+      
       var idleTime = 0;
       try {
         idleTime = this._idleService.idleTime;
-      } catch (ex) {  }
-      if (idleTime > IDLE_TIMELIMIT)
-      {
+      }
+      catch (ex) {  }
+      if (idleTime > IDLE_TIMELIMIT) {
         livemark.locked = false;
         return false;
       }
@@ -303,115 +315,122 @@ LivemarkService.prototype = {
     return true;
   },
 
-  createLivemark: function LS_createLivemark(folder, name, siteURI,
-                                             feedURI, index) {
+  createLivemark: function LS_createLivemark(aParentId, aName, aSiteURI,
+                                             aFeedURI, aIndex) {
     
-    if (this.isLivemark(folder))
+    if (this.isLivemark(aParentId))
       throw Cr.NS_ERROR_INVALID_ARG;
-    var livemarkID = this._createFolder(folder, name, siteURI, feedURI, index);
+
+    var folderId = this._createFolder(aParentId, aName, aSiteURI,
+                                      aFeedURI, aIndex);
 
     
-    this._updateLivemarkChildren(
-      this._pushLivemark(livemarkID, feedURI) - 1,
-      false
-    );
+    this._updateLivemarkChildren(this._pushLivemark(folderId, aFeedURI) - 1,
+                                 false);
 
-    return livemarkID;
+    return folderId;
   },
 
   createLivemarkFolderOnly:
-  function LS_createLivemarkFolderOnly(folder, name, siteURI, feedURI, index) {
-    var livemarkID = this._createFolder(folder, name, siteURI, feedURI, index);
-    this._pushLivemark(livemarkID, feedURI);
-    var livemarkIndex = this._getLivemarkIndex(livemarkID);
+  function LS_createLivemarkFolderOnly(aParentId, aName, aSiteURI,
+                                       aFeedURI, aIndex) {
+    
+    if (this.isLivemark(aParentId))
+      throw Cr.NS_ERROR_INVALID_ARG;
+
+    var folderId = this._createFolder(aParentId, aName, aSiteURI,
+                                      aFeedURI, aIndex);
+
+    var livemarkIndex = this._pushLivemark(folderId, aFeedURI) - 1;
     var livemark = this._livemarks[livemarkIndex];
     this.insertLivemarkLoadingItem(this._bms, livemark);
 
-    return livemarkID;
+    return folderId;
   },
 
   _createFolder:
-  function LS__createFolder(folder, name, siteURI, feedURI, index) {
-    var livemarkID = this._bms.createFolder(folder, name, index);
-    this._bms.setFolderReadonly(livemarkID, true);
+  function LS__createFolder(aParentId, aName, aSiteURI, aFeedURI, aIndex) {
+    var folderId = this._bms.createFolder(aParentId, aName, aIndex);
+    this._bms.setFolderReadonly(folderId, true);
 
     
-    this._ans.setItemAnnotation(livemarkID, LMANNO_FEEDURI, feedURI.spec, 0,
+    this._ans.setItemAnnotation(folderId, LMANNO_FEEDURI, aFeedURI.spec, 0,
                                 this._ans.EXPIRE_NEVER);
 
-    if (siteURI) {
+    if (aSiteURI) {
       
-      this._setSiteURISecure(livemarkID, feedURI, siteURI);
+      this._setSiteURISecure(folderId, aFeedURI, aSiteURI);
     }
 
-    return livemarkID;
+    return folderId;
   },
 
-  isLivemark: function LS_isLivemark(folder) {
-    return this._ans.itemHasAnnotation(folder, LMANNO_FEEDURI);
+  isLivemark: function LS_isLivemark(aFolderId) {
+    return this._ans.itemHasAnnotation(aFolderId, LMANNO_FEEDURI);
   },
 
-  _ensureLivemark: function LS__ensureLivemark(container) {
-    if (!this.isLivemark(container))
+  _ensureLivemark: function LS__ensureLivemark(aFolderId) {
+    if (!this.isLivemark(aFolderId))
       throw Cr.NS_ERROR_INVALID_ARG;
   },
 
-  getSiteURI: function LS_getSiteURI(container) {
-    this._ensureLivemark(container);
+  getSiteURI: function LS_getSiteURI(aFolderId) {
+    this._ensureLivemark(aFolderId);
 
-    if (this._ans.itemHasAnnotation(container, LMANNO_SITEURI)) {
+    if (this._ans.itemHasAnnotation(aFolderId, LMANNO_SITEURI)) {
       var siteURIString =
-        this._ans.getItemAnnotation(container, LMANNO_SITEURI);
+        this._ans.getItemAnnotation(aFolderId, LMANNO_SITEURI);
 
       return gIoService.newURI(siteURIString, null, null);
     }
     return null;
   },
 
-  setSiteURI: function LS_setSiteURI(container, siteURI) {
-    this._ensureLivemark(container);
+  setSiteURI: function LS_setSiteURI(aFolderId, aSiteURI) {
+    this._ensureLivemark(aFolderId);
 
-    if (!siteURI) {
-      this._ans.removeItemAnnotation(container, LMANNO_SITEURI);
+    if (!aSiteURI) {
+      this._ans.removeItemAnnotation(aFolderId, LMANNO_SITEURI);
       return;
     }
 
-    var livemarkIndex = this._getLivemarkIndex(container);
+    var livemarkIndex = this._getLivemarkIndex(aFolderId);
     var livemark = this._livemarks[livemarkIndex];
-    this._setSiteURISecure(container, livemark.feedURI, siteURI);
+    this._setSiteURISecure(aFolderId, livemark.feedURI, aSiteURI);
   },
 
-  _setSiteURISecure: function LS__setSiteURISecure(container, feedURI, siteURI) {
+  _setSiteURISecure:
+  function LS__setSiteURISecure(aFolderId, aFeedURI, aSiteURI) {
     var secMan = Cc[SEC_CONTRACTID].getService(Ci.nsIScriptSecurityManager);
-    var feedPrincipal = secMan.getCodebasePrincipal(feedURI);
+    var feedPrincipal = secMan.getCodebasePrincipal(aFeedURI);
     try {
-      secMan.checkLoadURIWithPrincipal(feedPrincipal, siteURI, SEC_FLAGS);
-    } catch (e) {
+      secMan.checkLoadURIWithPrincipal(feedPrincipal, aSiteURI, SEC_FLAGS);
+    }
+    catch (e) {
       return;
     }
-    this._ans.setItemAnnotation(container, LMANNO_SITEURI, siteURI.spec,
+    this._ans.setItemAnnotation(aFolderId, LMANNO_SITEURI, aSiteURI.spec,
                                 0, this._ans.EXPIRE_NEVER);
   },
 
-  getFeedURI: function LS_getFeedURI(container) {
-    if (this._ans.itemHasAnnotation(container, LMANNO_FEEDURI))
-      return gIoService.newURI(this._ans.getItemAnnotation(container,
+  getFeedURI: function LS_getFeedURI(aFolderId) {
+    if (this._ans.itemHasAnnotation(aFolderId, LMANNO_FEEDURI))
+      return gIoService.newURI(this._ans.getItemAnnotation(aFolderId,
                                                            LMANNO_FEEDURI),
                                null, null);
-
     return null;
   },
 
-  setFeedURI: function LS_setFeedURI(container, feedURI) {
-    if (!feedURI)
+  setFeedURI: function LS_setFeedURI(aFolderId, aFeedURI) {
+    if (!aFeedURI)
       throw Cr.NS_ERROR_INVALID_ARG;
 
-    this._ans.setItemAnnotation(container, LMANNO_FEEDURI, feedURI.spec, 0,
+    this._ans.setItemAnnotation(aFolderId, LMANNO_FEEDURI, aFeedURI.spec, 0,
                                 this._ans.EXPIRE_NEVER);
 
     
-    var livemarkIndex = this._getLivemarkIndex(container);
-    this._livemarks[livemarkIndex].feedURI = feedURI;
+    var livemarkIndex = this._getLivemarkIndex(aFolderId);
+    this._livemarks[livemarkIndex].feedURI = aFeedURI;
   },
 
   reloadAllLivemarks: function LS_reloadAllLivemarks() {
@@ -420,8 +439,8 @@ LivemarkService.prototype = {
     }
   },
 
-  reloadLivemarkFolder: function LS_reloadLivemarkFolder(folderID) {
-    var livemarkIndex = this._getLivemarkIndex(folderID);
+  reloadLivemarkFolder: function LS_reloadLivemarkFolder(aFolderId) {
+    var livemarkIndex = this._getLivemarkIndex(aFolderId);
     this._updateLivemarkChildren(livemarkIndex, true);
   },
 
@@ -433,7 +452,9 @@ LivemarkService.prototype = {
   onItemVisited: function() { },
   onItemMoved: function() { },
 
-  onItemRemoved: function(aItemId, aParentFolder, aIndex) {
+  onItemRemoved: function(aItemId, aParentId, aIndex) {
+    
+    
     try {
       var livemarkIndex = this._getLivemarkIndex(aItemId);
     }
@@ -446,38 +467,28 @@ LivemarkService.prototype = {
     
     this._livemarks.splice(livemarkIndex, 1);
 
-    
-    
-    var stillInUse = false;
-    stillInUse = this._livemarks.some(
-                 function(mark) { return mark.feedURI.equals(livemark.feedURI) }
-                 );
-    if (!stillInUse) {
-      this._ans.removePageAnnotation(livemark.feedURI, LMANNO_EXPIRATION);
-    }
-
     if (livemark.loadGroup)
       livemark.loadGroup.cancel(NS_BINDING_ABORTED);
   },
 
-  createInstance: function LS_createInstance(outer, iid) {
-    if (outer != null)
+  createInstance: function LS_createInstance(aOuter, aIID) {
+    if (aOuter != null)
       throw Cr.NS_ERROR_NO_AGGREGATION;
-    return this.QueryInterface(iid);
+    return this.QueryInterface(aIID);
   },
 
-  QueryInterface: function LS_QueryInterface(iid) {
-    if (iid.equals(Ci.nsILivemarkService) ||
-        iid.equals(Ci.nsIFactory) ||
-        iid.equals(Ci.nsINavBookmarkObserver) ||
-        iid.equals(Ci.nsISupports))
+  QueryInterface: function LS_QueryInterface(aIID) {
+    if (aIID.equals(Ci.nsILivemarkService) ||
+        aIID.equals(Ci.nsIFactory) ||
+        aIID.equals(Ci.nsINavBookmarkObserver) ||
+        aIID.equals(Ci.nsISupports))
       return this;
     throw Cr.NS_ERROR_NOT_IMPLEMENTED;
   }
 };
 
-function LivemarkLoadListener(livemark) {
-  this._livemark = livemark;
+function LivemarkLoadListener(aLivemark) {
+  this._livemark = aLivemark;
   this._livemark.loadingId = -1;
   this._processor = null;
   this._isAborted = false;
@@ -562,7 +573,7 @@ LivemarkLoadListener.prototype = {
   
 
 
-  handleResult: function LLL_handleResult(result) {
+  handleResult: function LLL_handleResult(aResult) {
     if (this._isAborted) {
       if (this._livemark.loadingId != -1) {
         this._bms.removeItem(this._livemark.loadingId);
@@ -574,7 +585,7 @@ LivemarkLoadListener.prototype = {
     }
     try {
       
-      this._bms.runInBatchMode(this, result);
+      this._bms.runInBatchMode(this, aResult);
     }
     finally {
       this._processor.listener = null;
@@ -586,42 +597,41 @@ LivemarkLoadListener.prototype = {
   deleteLivemarkChildren: LivemarkService.prototype.deleteLivemarkChildren,
 
   insertLivemarkChild:
-  function LS_insertLivemarkChild(folderId, uri, title) {
-    var id = this._bms.insertBookmark(folderId, uri, this._bms.DEFAULT_INDEX,
-                                      title);
+  function LS_insertLivemarkChild(aFolderId, aUri, aTitle) {
+    this._bms.insertBookmark(aFolderId, aUri, this._bms.DEFAULT_INDEX, aTitle);
   },
 
   
 
 
-  onDataAvailable: function LLL_onDataAvailable(request, context, inputStream,
-                                                sourceOffset, count) {
-    this._processor.onDataAvailable(request, context, inputStream,
-                                    sourceOffset, count);
+  onDataAvailable: function LLL_onDataAvailable(aRequest, aContext, aInputStream,
+                                                aSourceOffset, aCount) {
+    this._processor.onDataAvailable(aRequest, aContext, aInputStream,
+                                    aSourceOffset, aCount);
   },
 
   
 
 
-  onStartRequest: function LLL_onStartRequest(request, context) {
+  onStartRequest: function LLL_onStartRequest(aRequest, aContext) {
     if (this._isAborted)
       throw Cr.NS_ERROR_UNEXPECTED;
 
-    var channel = request.QueryInterface(Ci.nsIChannel);
+    var channel = aRequest.QueryInterface(Ci.nsIChannel);
 
     
     this._processor = Cc[FP_CONTRACTID].createInstance(Ci.nsIFeedProcessor);
     this._processor.listener = this;
     this._processor.parseAsync(null, channel.URI);
 
-    this._processor.onStartRequest(request, context);
+    this._processor.onStartRequest(aRequest, aContext);
   },
 
   
 
 
-  onStopRequest: function LLL_onStopRequest(request, context, status) {
-    if (!Components.isSuccessCode(status)) {
+  onStopRequest: function LLL_onStopRequest(aRequest, aContext, aStatus) {
+    if (!Components.isSuccessCode(aStatus)) {
       
       this._setResourceTTL(ERROR_EXPIRATION);
       this._isAborted = true;
@@ -635,21 +645,21 @@ LivemarkLoadListener.prototype = {
     }
     
     try {
-      this._processor.onStopRequest(request, context, status);
+      this._processor.onStopRequest(aRequest, aContext, aStatus);
 
       
-      var channel = request.QueryInterface(Ci.nsICachingChannel);
+      var channel = aRequest.QueryInterface(Ci.nsICachingChannel);
       if (channel) {
         var entryInfo = channel.cacheToken.QueryInterface(Ci.nsICacheEntryInfo);
         if (entryInfo) {
           
           
-          var expiresTime = entryInfo.expirationTime * 1000;
+          var expireTime = entryInfo.expirationTime * 1000;
           var nowTime = Date.now();
 
           
-          if (expiresTime > nowTime) {
-            this._setResourceTTL(Math.max((expiresTime - nowTime),
+          if (expireTime > nowTime) {
+            this._setResourceTTL(Math.max((expireTime - nowTime),
                                  gExpiration));
             return;
           }
@@ -660,53 +670,53 @@ LivemarkLoadListener.prototype = {
     this._setResourceTTL(this._ttl);
   },
 
-  _setResourceTTL: function LLL__setResourceTTL(milliseconds) {
-    var exptime = Date.now() + milliseconds;
-    this._ans.setPageAnnotation(this._livemark.feedURI, LMANNO_EXPIRATION,
-                                exptime, 0,
+  _setResourceTTL: function LLL__setResourceTTL(aMilliseconds) {
+    var expireTime = Date.now() + aMilliseconds;
+    this._ans.setItemAnnotation(this._livemark.folderId, LMANNO_EXPIRATION,
+                                expireTime, 0,
                                 Ci.nsIAnnotationService.EXPIRE_NEVER);
   },
 
   
 
 
-  notifyCertProblem: function LLL_certProblem(socketInfo, status, targetSite) {
+  notifyCertProblem: function LLL_certProblem(aSocketInfo, aStatus, aTargetSite) {
     return true;
   },
 
   
 
 
-  notifySSLError: function LLL_SSLError(socketInfo, error, targetSite) {
+  notifySSLError: function LLL_SSLError(aSocketInfo, aError, aTargetSite) {
     return true;
   },
 
   
 
 
-  getInterface: function LLL_getInterface(iid) {
-    return this.QueryInterface(iid);
+  getInterface: function LLL_getInterface(aIID) {
+    return this.QueryInterface(aIID);
   },
 
   
 
 
-  QueryInterface: function LLL_QueryInterface(iid) {
-    if (iid.equals(Ci.nsIFeedResultListener) ||
-        iid.equals(Ci.nsIStreamListener) ||
-        iid.equals(Ci.nsIRequestObserver)||
-        iid.equals(Ci.nsINavHistoryBatchCallback) ||
-        iid.equals(Ci.nsIBadCertListener2) ||
-        iid.equals(Ci.nsISSLErrorListener) ||
-        iid.equals(Ci.nsIInterfaceRequestor) ||
-        iid.equals(Ci.nsISupports))
+  QueryInterface: function LLL_QueryInterface(aIID) {
+    if (aIID.equals(Ci.nsIFeedResultListener) ||
+        aIID.equals(Ci.nsIStreamListener) ||
+        aIID.equals(Ci.nsIRequestObserver)||
+        aIID.equals(Ci.nsINavHistoryBatchCallback) ||
+        aIID.equals(Ci.nsIBadCertListener2) ||
+        aIID.equals(Ci.nsISSLErrorListener) ||
+        aIID.equals(Ci.nsIInterfaceRequestor) ||
+        aIID.equals(Ci.nsISupports))
       return this;
     throw Cr.NS_ERROR_NO_INTERFACE;
   },
 }
 
-function GenericComponentFactory(ctor) {
-  this._ctor = ctor;
+function GenericComponentFactory(aCtor) {
+  this._ctor = aCtor;
 }
 
 GenericComponentFactory.prototype = {
@@ -714,16 +724,16 @@ GenericComponentFactory.prototype = {
   _ctor: null,
 
   
-  createInstance: function(outer, iid) {
-    if (outer != null)
+  createInstance: function(aOuter, aIID) {
+    if (aOuter != null)
       throw Cr.NS_ERROR_NO_AGGREGATION;
-    return (new this._ctor()).QueryInterface(iid);
+    return (new this._ctor()).QueryInterface(aIID);
   },
 
   
-  QueryInterface: function(iid) {
-    if (iid.equals(Ci.nsIFactory) ||
-        iid.equals(Ci.nsISupports))
+  QueryInterface: function(aIID) {
+    if (aIID.equals(Ci.nsIFactory) ||
+        aIID.equals(Ci.nsISupports))
       return this;
     throw Cr.NS_ERROR_NO_INTERFACE;
   },
@@ -731,40 +741,40 @@ GenericComponentFactory.prototype = {
 };
 
 var Module = {
-  QueryInterface: function(iid) {
-    if (iid.equals(Ci.nsIModule) ||
-        iid.equals(Ci.nsISupports))
+  QueryInterface: function(aIID) {
+    if (aIID.equals(Ci.nsIModule) ||
+        aIID.equals(Ci.nsISupports))
       return this;
 
     throw Cr.NS_ERROR_NO_INTERFACE;
   },
 
-  getClassObject: function M_getClassObject(cm, cid, iid) {
-    if (!iid.equals(Ci.nsIFactory))
+  getClassObject: function M_getClassObject(aCompMgr, aCID, aIID) {
+    if (!aIID.equals(Ci.nsIFactory))
       throw Cr.NS_ERROR_NOT_IMPLEMENTED;
-    if (cid.equals(LS_CLASSID))
+    if (aCID.equals(LS_CLASSID))
       return new GenericComponentFactory(LivemarkService);
 
     throw Cr.NS_ERROR_NO_INTERFACE;
   },
 
-  registerSelf: function(cm, file, location, type) {
-    var cr = cm.QueryInterface(Ci.nsIComponentRegistrar);
+  registerSelf: function(aCompMgr, aFile, aLocation, aType) {
+    var cr = aCompMgr.QueryInterface(Ci.nsIComponentRegistrar);
 
     cr.registerFactoryLocation(LS_CLASSID, LS_CLASSNAME,
-      LS_CONTRACTID, file, location, type);
+      LS_CONTRACTID, aFile, aLocation, aType);
   },
 
-  unregisterSelf: function M_unregisterSelf(cm, location, type) {
-    var cr = cm.QueryInterface(Ci.nsIComponentRegistrar);
-    cr.unregisterFactoryLocation(LS_CLASSID, location);
+  unregisterSelf: function M_unregisterSelf(aCompMgr, aLocation, aType) {
+    var cr = aCompMgr.QueryInterface(Ci.nsIComponentRegistrar);
+    cr.unregisterFactoryLocation(LS_CLASSID, aLocation);
   },
 
-  canUnload: function M_canUnload(cm) {
+  canUnload: function M_canUnload(aCompMgr) {
     return true;
   }
 };
 
-function NSGetModule(cm, file) {
+function NSGetModule(aCompMgr, aFile) {
   return Module;
 }
