@@ -65,6 +65,7 @@
 
 #include "nsCRT.h"
 
+#include <locale.h>
 #include <freetype/tttables.h>
 
 #include <cairo.h>
@@ -544,12 +545,13 @@ gfxPangoFont::GetMetrics()
     if (NS_LIKELY(GetStyle()->size > 0.0)) {
         font = GetPangoFont(); 
         PangoLanguage *lang = GetPangoLanguage(GetStyle()->langGroup);
+        
+        
+        
+        
+        if (!lang)
+            lang = pango_language_from_string(setlocale(LC_CTYPE, NULL));
 
-        
-        
-        
-        
-        
         pfm = pango_font_get_metrics(font, lang);
     } else {
         
