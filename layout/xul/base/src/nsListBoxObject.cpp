@@ -202,6 +202,9 @@ nsListBoxObject::GetListBoxBody(PRBool aFlush)
   nsCOMPtr<nsIContent> content;
   FindBodyContent(frame->GetContent(), getter_AddRefs(content));
 
+  if (!content)
+    return nsnull;
+
   
   frame = content->GetPrimaryFrame();
   if (!frame)
