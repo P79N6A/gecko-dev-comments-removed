@@ -1348,7 +1348,7 @@ nsAutoCompleteController::CompleteDefaultIndex(PRInt32 aSearchIndex)
   if (!shouldComplete)
     return NS_OK;
 
-  nsIAutoCompleteResult *result = mResults[aSearchIndex];
+  nsIAutoCompleteResult *result = mResults.SafeObjectAt(aSearchIndex);
   NS_ENSURE_TRUE(result != nsnull, NS_ERROR_FAILURE);
 
   
@@ -1466,7 +1466,7 @@ nsAutoCompleteController::RowIndexToSearch(PRInt32 aRowIndex, PRInt32 *aSearchIn
   
   
   for (PRUint32 i = 0; i < count; ++i) {
-    nsIAutoCompleteResult *result = mResults[i];
+    nsIAutoCompleteResult *result = mResults.SafeObjectAt(i);
     if (!result)
       continue;
 
