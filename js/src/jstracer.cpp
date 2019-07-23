@@ -1711,7 +1711,7 @@ public:
     }
 
     LIns *split(LIns *a) {
-        if (a->isQuad() && !a->isop(LIR_qjoin)) {
+        if (a->isF64() && !a->isop(LIR_qjoin)) {
             
             a = ins2(LIR_qjoin, lo(a), hi(a));
         }
@@ -4309,7 +4309,7 @@ TraceRecorder::guard(bool expected, LIns* cond, VMSideExit* exit)
 
     if (!cond->isCond()) {
         expected = !expected;
-        cond = cond->isQuad() ? lir->ins_peq0(cond) : lir->ins_eq0(cond);
+        cond = cond->isI32() ? lir->ins_eq0(cond) : lir->ins_peq0(cond);
     }
 
     LIns* guardIns =
@@ -4628,7 +4628,7 @@ class SlotMap : public SlotVisitorBase
             mRecorder.set(info.vp, mRecorder.f2i(mRecorder.get(info.vp)));
         } else if (info.lastCheck == TypeCheck_Demote) {
             JS_ASSERT(info.type == TT_INT32 || info.type == TT_DOUBLE);
-            JS_ASSERT(mRecorder.get(info.vp)->isQuad());
+            JS_ASSERT(mRecorder.get(info.vp)->isF64());
 
             
             mRecorder.set(info.vp, mRecorder.get(info.vp), false, false);
@@ -8463,7 +8463,7 @@ TraceRecorder::f2u(LIns* f)
 JS_REQUIRES_STACK LIns*
 TraceRecorder::makeNumberInt32(LIns* f)
 {
-    JS_ASSERT(f->isQuad());
+    JS_ASSERT(f->isF64());
     LIns* x;
     if (!isPromote(f)) {
         x = f2i(f);
@@ -9622,7 +9622,7 @@ JS_REQUIRES_STACK LIns*
 TraceRecorder::box_jsval(jsval v, LIns* v_ins)
 {
     if (isNumber(v)) {
-        JS_ASSERT(v_ins->isQuad());
+        JS_ASSERT(v_ins->isF64());
         if (fcallinfo(v_ins) == &js_UnboxDouble_ci)
             return fcallarg(v_ins, 0);
         if (isPromoteInt(v_ins)) {
