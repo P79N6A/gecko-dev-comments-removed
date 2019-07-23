@@ -48,7 +48,7 @@
 
 
 
- 
+
 #ifndef nsWildCard_h__
 #define nsWildCard_h__
 
