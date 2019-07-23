@@ -417,6 +417,12 @@ nsresult SetExceptionHandler(nsILocalFile* aXREDirectory,
     AnnotateCrashReport(NS_LITERAL_CSTRING("ServerURL"),
                         nsDependentCString(aServerURL));
 
+  
+  nsCAutoString timeString;
+  timeString.AppendInt(time(NULL));
+  AnnotateCrashReport(NS_LITERAL_CSTRING("StartupTime"),
+                      timeString);
+
 #if defined(XP_MACOSX)
   
   
