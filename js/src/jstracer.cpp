@@ -1936,7 +1936,7 @@ js_ExecuteTree(JSContext* cx, Fragment** treep, uintN& inlineCallCount,
                GuardRecord** innermostNestedGuardp);
 
 bool
-js_ContinueRecording(JSContext* cx, TraceRecorder* r, jsbytecode* oldpc, uintN& inlineCallCount)
+js_RecordBranch(JSContext* cx, TraceRecorder* r, jsbytecode* oldpc, uintN& inlineCallCount)
 {
 #ifdef JS_THREADSAFE
     if (OBJ_SCOPE(JS_GetGlobalForObject(cx, cx->fp->scopeChain))->title.ownercx != cx) {
@@ -1944,6 +1944,9 @@ js_ContinueRecording(JSContext* cx, TraceRecorder* r, jsbytecode* oldpc, uintN& 
         return false; 
     }
 #endif
+    
+    if (cx->fp->regs->pc > oldpc)
+        return true;
     Fragmento* fragmento = JS_TRACE_MONITOR(cx).fragmento;
     if (r->isLoopHeader(cx)) { 
         if (fragmento->assm()->error()) {
@@ -2196,13 +2199,13 @@ js_ExecuteTree(JSContext* cx, Fragment** treep, uintN& inlineCallCount,
 }
 
 bool
-js_LoopEdge(JSContext* cx, jsbytecode* oldpc, uintN& inlineCallCount)
+js_MonitorBranch(JSContext* cx, jsbytecode* oldpc, uintN& inlineCallCount)
 {
     JSTraceMonitor* tm = &JS_TRACE_MONITOR(cx);
 
     
     if (tm->recorder) {
-        if (js_ContinueRecording(cx, tm->recorder, oldpc, inlineCallCount))
+        if (js_RecordBranch(cx, tm->recorder, oldpc, inlineCallCount))
             return true;
         
     }
@@ -2210,6 +2213,10 @@ js_LoopEdge(JSContext* cx, jsbytecode* oldpc, uintN& inlineCallCount)
 
     
     jsbytecode* pc = cx->fp->regs->pc;
+    if (pc > oldpc)
+        return false;
+    
+    
     Fragment* f;
     JSFragmentCacheEntry* cacheEntry = &tm->fcache[jsuword(pc) & JS_FRAGMENT_CACHE_MASK];
     if (cacheEntry->pc == pc) {
@@ -4999,8 +5006,7 @@ TraceRecorder::record_JSOP_BINDNAME()
     jsuword pcval;
     if (!test_property_cache(obj, obj_ins, obj2, pcval))
         return false;
-    if (obj2 != obj)
-        ABORT_TRACE("JSOP_BINDNAME found a non-direct property on the global object");
+    JS_ASSERT(obj2 == obj);
 
     stack(0, obj_ins);
     return true;
