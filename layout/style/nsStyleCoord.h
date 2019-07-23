@@ -93,6 +93,10 @@ public:
     return mUnit;
   }
 
+  PRBool IsAngleValue(void) const {
+    return eStyleUnit_Degree <= mUnit && mUnit <= eStyleUnit_Radian;
+  }
+
   nscoord     GetCoordValue(void) const;
   PRInt32     GetIntValue(void) const;
   float       GetPercentValue(void) const;
