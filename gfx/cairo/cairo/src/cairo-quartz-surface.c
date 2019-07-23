@@ -696,11 +696,31 @@ static const CGFunctionCallbacks gradient_callbacks = {
     0, ComputeGradientValue, (CGFunctionReleaseInfoCallback) cairo_pattern_destroy
 };
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+static const float nonrepeating_gradient_input_value_range[2] = { -0.001f, 1.f };
+
 static CGFunctionRef
 CreateGradientFunction (const cairo_gradient_pattern_t *gpat)
 {
     cairo_pattern_t *pat;
-    float input_value_range[2] = { 0.f, 1.f };
 
     if (_cairo_pattern_create_copy (&pat, &gpat->base))
 	
@@ -709,7 +729,7 @@ CreateGradientFunction (const cairo_gradient_pattern_t *gpat)
 
     return CGFunctionCreate (pat,
 			     1,
-			     input_value_range,
+			     nonrepeating_gradient_input_value_range,
 			     4,
 			     gradient_output_value_ranges,
 			     &gradient_callbacks);
