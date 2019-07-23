@@ -908,18 +908,12 @@ PlacesController.prototype = {
       if (this._shouldSkipNode(node, removedFolders))
         continue;
 
-      if (PlacesUtils.nodeIsFolder(node)) {
-        
-        
-        removedFolders.push(node);
-      }
-      else if (PlacesUtils.nodeIsTagQuery(node.parent)) {
+      if (PlacesUtils.nodeIsTagQuery(node.parent)) {
         
         
         var tagItemId = PlacesUtils.getConcreteItemId(node.parent);
         var uri = PlacesUtils._uri(node.uri);
         transactions.push(PlacesUIUtils.ptm.untagURI(uri, [tagItemId]));
-        continue;
       }
       else if (PlacesUtils.nodeIsTagQuery(node) && node.parent &&
                PlacesUtils.nodeIsQuery(node.parent) &&
@@ -933,7 +927,6 @@ PlacesController.prototype = {
         var URIs = PlacesUtils.tagging.getURIsForTag(tag);
         for (var j = 0; j < URIs.length; j++)
           transactions.push(PlacesUIUtils.ptm.untagURI(URIs[j], [tag]));
-        continue;
       }
       else if (PlacesUtils.nodeIsURI(node) &&
                PlacesUtils.nodeIsQuery(node.parent) &&
@@ -943,19 +936,26 @@ PlacesController.prototype = {
         var bhist = PlacesUtils.history.QueryInterface(Ci.nsIBrowserHistory);
         bhist.removePage(PlacesUtils._uri(node.uri));
         
-        continue;
       }
-      else if (PlacesUtils.nodeIsQuery(node) &&
+      else if (node.itemId == -1 &&
+               PlacesUtils.nodeIsQuery(node) &&
                asQuery(node).queryOptions.queryType ==
                  Ci.nsINavHistoryQueryOptions.QUERY_TYPE_HISTORY) {
         
         
+        
         this._removeHistoryContainer(node);
         
-        continue;
       }
-
-      transactions.push(PlacesUIUtils.ptm.removeItem(node.itemId));
+      else {
+        
+        if (PlacesUtils.nodeIsFolder(node)) {
+          
+          
+          removedFolders.push(node);
+        }
+        transactions.push(PlacesUIUtils.ptm.removeItem(node.itemId));
+      }
     }
   },
 
