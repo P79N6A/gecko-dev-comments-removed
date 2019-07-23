@@ -696,6 +696,117 @@ nsresult nsSVGUtils::GetReferencedFrame(nsIFrame **aRefFrame, nsIURI* aURI, nsIC
 }
 
 nsresult
+nsSVGUtils::GetNearestViewportElement(nsIContent *aContent,
+                                      nsIDOMSVGElement * *aNearestViewportElement)
+{
+  *aNearestViewportElement = nsnull;
+
+  nsBindingManager *bindingManager = nsnull;
+  
+  
+  
+  
+  nsIDocument* ownerDoc = aContent->GetOwnerDoc();
+  if (ownerDoc) {
+    bindingManager = ownerDoc->BindingManager();
+  }
+
+  nsCOMPtr<nsIContent> element = aContent;
+  nsCOMPtr<nsIContent> ancestor;
+  unsigned short ancestorCount = 0;
+
+  while (1) {
+
+    ancestor = nsnull;
+    if (bindingManager) {
+      
+      ancestor = bindingManager->GetInsertionParent(element);
+    }
+    if (!ancestor) {
+      
+      ancestor = element->GetParent();
+    }
+
+    nsCOMPtr<nsIDOMSVGFitToViewBox> fitToViewBox = do_QueryInterface(element);
+
+    if (fitToViewBox && (ancestor || ancestorCount)) {
+      
+      nsCOMPtr<nsIDOMSVGElement> SVGElement = do_QueryInterface(element);
+      SVGElement.swap(*aNearestViewportElement);
+      return NS_OK;
+    }
+
+    if (!ancestor) {
+      
+      break;
+    }
+
+    element = ancestor;
+    ancestorCount++;
+  }
+
+  return NS_OK;
+}
+
+nsresult
+nsSVGUtils::GetFarthestViewportElement(nsIContent *aContent,
+                                       nsIDOMSVGElement * *aFarthestViewportElement)
+{
+  *aFarthestViewportElement = nsnull;
+
+  nsBindingManager *bindingManager = nsnull;
+  
+  
+  
+  
+  nsIDocument* ownerDoc = aContent->GetOwnerDoc();
+  if (ownerDoc) {
+    bindingManager = ownerDoc->BindingManager();
+  }
+
+  nsCOMPtr<nsIContent> element = aContent;
+  nsCOMPtr<nsIContent> ancestor;
+  nsCOMPtr<nsIDOMSVGElement> SVGElement;
+  unsigned short ancestorCount = 0;
+
+  while (1) {
+
+    ancestor = nsnull;
+    if (bindingManager) {
+      
+      ancestor = bindingManager->GetInsertionParent(element);
+    }
+    if (!ancestor) {
+      
+      ancestor = element->GetParent();
+    }
+
+    nsCOMPtr<nsIDOMSVGFitToViewBox> fitToViewBox = do_QueryInterface(element);
+
+    if (fitToViewBox) {
+      
+      SVGElement = do_QueryInterface(element);
+    }
+
+    if (!ancestor) {
+      
+      break;
+    }
+
+    element = ancestor;
+    ancestorCount++;
+  }
+
+  if (ancestorCount == 0 || !SVGElement) {
+    
+    return NS_OK;
+  }
+
+  SVGElement.swap(*aFarthestViewportElement);
+  return NS_OK;
+}
+
+nsresult
 nsSVGUtils::GetBBox(nsFrameList *aFrames, nsIDOMSVGRect **_retval)
 {
   *_retval = nsnull;

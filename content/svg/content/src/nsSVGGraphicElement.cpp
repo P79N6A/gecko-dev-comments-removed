@@ -47,6 +47,7 @@
 #include "nsIFrame.h"
 #include "nsISVGChildFrame.h"
 #include "nsIDOMSVGPoint.h"
+#include "nsIDOMSVGFitToViewBox.h"
 #include "nsSVGUtils.h"
 #include "nsDOMError.h"
 
@@ -75,15 +76,112 @@ nsSVGGraphicElement::nsSVGGraphicElement(nsINodeInfo *aNodeInfo)
 
 NS_IMETHODIMP nsSVGGraphicElement::GetNearestViewportElement(nsIDOMSVGElement * *aNearestViewportElement)
 {
-  NS_NOTYETIMPLEMENTED("nsSVGGraphicElement::GetNearestViewportElement");
-  return NS_ERROR_NOT_IMPLEMENTED;
+  nsBindingManager *bindingManager = nsnull;
+  
+  
+  
+  
+  nsIDocument* ownerDoc = GetOwnerDoc();
+  if (ownerDoc) {
+    bindingManager = ownerDoc->BindingManager();
+  }
+
+  nsCOMPtr<nsIContent> element = this;
+  nsCOMPtr<nsIContent> ancestor;
+  nsCOMPtr<nsIDOMSVGFitToViewBox> fitToViewBox;
+  unsigned short ancestorCount = 0;
+
+  while (1) {
+
+    ancestor = nsnull;
+    if (bindingManager) {
+      
+      ancestor = bindingManager->GetInsertionParent(element);
+    }
+    if (!ancestor) {
+      
+      ancestor = element->GetParent();
+    }
+
+    fitToViewBox = do_QueryInterface(element);
+
+    if (fitToViewBox && (ancestor || ancestorCount)) {
+      
+      nsCOMPtr<nsIDOMSVGElement> SVGElement = do_QueryInterface(element);
+      *aNearestViewportElement = SVGElement;
+      NS_ADDREF(*aNearestViewportElement);
+      return NS_OK;
+    }
+
+    if (!ancestor) {
+      
+      break;
+    }
+
+    element = ancestor;
+    ancestorCount++;
+  }
+
+  *aNearestViewportElement = nsnull;
+  return NS_OK;
 }
 
 
 NS_IMETHODIMP nsSVGGraphicElement::GetFarthestViewportElement(nsIDOMSVGElement * *aFarthestViewportElement)
 {
-  NS_NOTYETIMPLEMENTED("nsSVGGraphicElement::GetFarthestViewportElement");
-  return NS_ERROR_NOT_IMPLEMENTED;
+  *aFarthestViewportElement = nsnull;
+
+  nsBindingManager *bindingManager = nsnull;
+  
+  
+  
+  
+  nsIDocument* ownerDoc = GetOwnerDoc();
+  if (ownerDoc) {
+    bindingManager = ownerDoc->BindingManager();
+  }
+
+  nsCOMPtr<nsIContent> element = this;
+  nsCOMPtr<nsIContent> ancestor;
+  nsCOMPtr<nsIDOMSVGFitToViewBox> fitToViewBox;
+  unsigned short ancestorCount = 0;
+
+  while (1) {
+
+    ancestor = nsnull;
+    if (bindingManager) {
+      
+      ancestor = bindingManager->GetInsertionParent(element);
+    }
+    if (!ancestor) {
+      
+      ancestor = element->GetParent();
+    }
+
+    fitToViewBox = do_QueryInterface(element);
+
+    if (fitToViewBox) {
+      
+      nsCOMPtr<nsIDOMSVGElement> SVGElement = do_QueryInterface(element);
+      *aFarthestViewportElement = SVGElement;
+    }
+
+    if (!ancestor) {
+      
+      break;
+    }
+
+    element = ancestor;
+    ancestorCount++;
+  }
+
+  if (ancestorCount == 0) {
+    
+    *aFarthestViewportElement = nsnull;
+  }
+
+  NS_IF_ADDREF(*aFarthestViewportElement);
+  return NS_OK;
 }
 
 

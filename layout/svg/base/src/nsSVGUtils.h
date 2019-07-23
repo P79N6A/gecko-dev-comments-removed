@@ -54,6 +54,7 @@ class nsIDOMSVGRect;
 class nsFrameList;
 class nsIFrame;
 struct nsStyleSVGPaint;
+class nsIDOMSVGElement;
 class nsIDOMSVGLength;
 class nsIDOMSVGMatrix;
 class nsIURI;
@@ -239,6 +240,18 @@ public:
 
   static nsresult GetReferencedFrame(nsIFrame **aRefFrame, nsIURI* aURI,
                                      nsIContent *aContent, nsIPresShell *aPresShell);
+
+  
+
+
+  static nsresult GetNearestViewportElement(nsIContent *aContent,
+                                            nsIDOMSVGElement * *aNearestViewportElement);
+
+  
+
+
+  static nsresult GetFarthestViewportElement(nsIContent *aContent,
+                                             nsIDOMSVGElement * *aFarthestViewportElement);
 
   
 
