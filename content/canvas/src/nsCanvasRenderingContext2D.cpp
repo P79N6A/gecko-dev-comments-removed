@@ -391,39 +391,15 @@ protected:
 
 
 
-
-    PRBool OperatorAffectsUncoveredAreas(gfxContext::GraphicsOperator op) const
-    {
-        return PR_FALSE;
-        
-#if 0
-        return op == gfxContext::OPERATOR_IN ||
-               op == gfxContext::OPERATOR_OUT ||
-               op == gfxContext::OPERATOR_DEST_IN ||
-               op == gfxContext::OPERATOR_DEST_ATOP ||
-               op == gfxContext::OPERATOR_SOURCE;
-#endif
-    }
-
-    
-
-
-
     PRBool NeedToDrawShadow()
     {
         ContextState& state = CurrentState();
 
         
-        PRBool doDraw = state.colorStyles[STYLE_SHADOW] != 0 ||
-                        state.shadowOffset.x != 0 ||
-                        state.shadowOffset.y != 0;
-        PRBool isColor = CurrentState().StyleIsColor(STYLE_SHADOW);
-
         
-        
-        return (doDraw || !isColor) && (!isColor ||
-               NS_GET_A(state.colorStyles[STYLE_SHADOW]) != 0 ||
-               OperatorAffectsUncoveredAreas(mThebes->CurrentOperator()));
+        return state.StyleIsColor(STYLE_SHADOW) &&
+               NS_GET_A(state.colorStyles[STYLE_SHADOW]) > 0 &&
+               (state.shadowOffset != gfxPoint(0, 0) || state.shadowBlur != 0);
     }
 
     
