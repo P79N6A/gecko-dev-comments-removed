@@ -1230,18 +1230,21 @@ namespace nanojit
             
             AbiKind abi = _thisfrag->lirbuf->abi;
             uint32_t abi_regcount = max_abi_regs[abi];
+            
+            
+            
+            
+            NanoAssert(abi_regcount <= sizeof(argRegs)/sizeof(argRegs[0]));
             if (arg < abi_regcount) {
                 
                 prepareResultReg(ins, rmask(argRegs[arg]));
                 
-
             } else {
                 
                 Register r = prepareResultReg(ins, GpRegs);
                 int d = (arg - abi_regcount) * sizeof(intptr_t) + 8;
                 LD(r, d, FP);
             }
-
         } else {
             
             prepareResultReg(ins, rmask(savedRegs[arg]));
