@@ -725,6 +725,7 @@ STDMETHODIMP nsDataObj::EnumFormatEtc(DWORD dwDir, LPENUMFORMATETC *ppEnum)
   if (NULL == *ppEnum)
     return ResultFromScode(E_FAIL);
 
+  (*ppEnum)->Reset();
   
   return NOERROR;
 }

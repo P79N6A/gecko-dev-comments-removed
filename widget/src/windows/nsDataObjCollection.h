@@ -35,10 +35,11 @@
 
 
 
+
 #ifndef _NSDATAOBJCOLLECTION_H_
 #define _NSDATAOBJCOLLECTION_H_
 
-#define INITGUID
+#include <initguid.h>
 
 #ifdef __MINGW32__
 #include <unknwn.h>
@@ -50,28 +51,11 @@
 #include "nsString.h"
 #include "nsTArray.h"
 #include "nsAutoPtr.h"
+#include "nsDataObj.h"
 
 class CEnumFormatEtc;
-class nsITransferable;
 
 #define MULTI_MIME "Mozilla/IDataObjectCollectionFormat"
-
-#if NOT_YET
-
-EXTERN_C GUID CDECL IID_DATA_OBJ_COLLECTION = 
-    { 0x6e99c280, 0xd820, 0x11d3, { 0xbb, 0x6f, 0xbb, 0xf2, 0x6b, 0xfe, 0x62, 0x3c } };
-
-
-class nsPIDataObjCollection : IUnknown
-{
-public:
-
-  STDMETHODIMP AddDataObject(IDataObject * aDataObj) = 0;
-  STDMETHODIMP GetNumDataObjects(PRInt32* outNum) = 0;
-  STDMETHODIMP GetDataObjectAt(PRUint32 aItem, IDataObject** outItem) = 0;
-
-};
-#endif
 
 
 DEFINE_GUID(IID_IDataObjCollection, 
@@ -90,118 +74,111 @@ public:
 
 
  
-class nsDataObjCollection : public IDataObject, public nsIDataObjCollection 
+class nsDataObjCollection : public nsIDataObjCollection, public nsDataObj
 {
-	public: 
-		nsDataObjCollection();
-		~nsDataObjCollection();
+  public:
+    nsDataObjCollection();
+    ~nsDataObjCollection();
 
-	public: 
-		STDMETHODIMP_(ULONG) AddRef        ();
-		STDMETHODIMP 			QueryInterface(REFIID, void**);
-		STDMETHODIMP_(ULONG) Release       ();
+  public: 
+    STDMETHODIMP_(ULONG) AddRef        ();
+    STDMETHODIMP       QueryInterface(REFIID, void**);
+    STDMETHODIMP_(ULONG) Release       ();
 
-	public: 
-		virtual HRESULT AddSetFormat(FORMATETC&  FE);
-		virtual HRESULT AddGetFormat(FORMATETC&  FE);
+  public: 
+    virtual HRESULT AddSetFormat(FORMATETC&  FE);
+    virtual HRESULT AddGetFormat(FORMATETC&  FE);
 
-		virtual HRESULT GetBitmap(FORMATETC&  FE, STGMEDIUM&  STM);
-		virtual HRESULT GetDib   (FORMATETC&  FE, STGMEDIUM&  STM);
-		virtual HRESULT GetMetafilePict(FORMATETC&  FE, STGMEDIUM&  STM);
-
-		virtual HRESULT SetBitmap(FORMATETC&  FE, STGMEDIUM&  STM);
-		virtual HRESULT SetDib   (FORMATETC&  FE, STGMEDIUM&  STM);
-		virtual HRESULT SetMetafilePict(FORMATETC&  FE, STGMEDIUM&  STM);
+    virtual HRESULT GetFile(LPFORMATETC pFE, LPSTGMEDIUM pSTM);
+    virtual HRESULT GetText(LPFORMATETC pFE, LPSTGMEDIUM pSTM);
+    virtual HRESULT GetFileDescriptors(LPFORMATETC pFE, LPSTGMEDIUM pSTM);
+    virtual HRESULT GetFileContents(LPFORMATETC pFE, LPSTGMEDIUM pSTM);
+    virtual HRESULT GetFirstSupporting(LPFORMATETC pFE, LPSTGMEDIUM pSTM);
 
     
-    void AddDataFlavor(nsString * aDataFlavor, LPFORMATETC aFE);
-    void SetTransferable(nsITransferable * aTransferable);
-
-#if NOT_YET
-    
-    STDMETHODIMP AddDataObject(IDataObject * aDataObj);
-    STDMETHODIMP GetNumDataObjects(PRInt32* outNum) { *outNum = mDataObjects.Length(); }
-    STDMETHODIMP GetDataObjectAt(PRUint32 aItem, IDataObject** outItem) { *outItem = mDataObjects.SafeElementAt(aItem, nsRefPtr<IDataObject>()); }
-#endif
+    void AddDataFlavor(const char * aDataFlavor, LPFORMATETC aFE);
 
     
     void AddDataObject(IDataObject * aDataObj);
     PRInt32 GetNumDataObjects() { return mDataObjects.Length(); }
-    IDataObject* GetDataObjectAt(PRUint32 aItem) { return mDataObjects.SafeElementAt(aItem, nsRefPtr<IDataObject>()); }
+    nsDataObj* GetDataObjectAt(PRUint32 aItem)
+            { return mDataObjects.SafeElementAt(aItem, nsRefPtr<nsDataObj>()); }
 
-		
-		CLSID GetClassID() const;
+    
+    CLSID GetClassID() const;
 
-	public: 
-			  
+  public:
+    
+    
+    
+    
+    STDMETHODIMP GetData  (LPFORMATETC pFE, LPSTGMEDIUM pSTM);
 
-		
-		
-		
-		
-		STDMETHODIMP GetData	(LPFORMATETC pFE, LPSTGMEDIUM pSTM);
+    
+    
+    STDMETHODIMP GetDataHere (LPFORMATETC pFE, LPSTGMEDIUM pSTM);
 
-		
-		
-		STDMETHODIMP GetDataHere (LPFORMATETC pFE, LPSTGMEDIUM pSTM);
+    
+    
+    STDMETHODIMP QueryGetData (LPFORMATETC pFE);
 
-		
-		
-		STDMETHODIMP QueryGetData (LPFORMATETC pFE);
+    
+    
+    
+    STDMETHODIMP GetCanonicalFormatEtc (LPFORMATETC pFE, LPFORMATETC pCanonFE);
 
-		
-		
-		
-		STDMETHODIMP GetCanonicalFormatEtc (LPFORMATETC pFE, LPFORMATETC pCanonFE);
+    
+    
+    
+    
+    STDMETHODIMP SetData  (LPFORMATETC pFE, LPSTGMEDIUM pSTM, BOOL release);
 
-		
-		
-		
-		
-		STDMETHODIMP SetData	(LPFORMATETC pFE, LPSTGMEDIUM pSTM, BOOL release);
+    
+    
+    
+    STDMETHODIMP EnumFormatEtc  (DWORD direction, LPENUMFORMATETC* ppEnum);
 
-		
-		
-		
-		STDMETHODIMP EnumFormatEtc	(DWORD direction, LPENUMFORMATETC* ppEnum);
+    
+    
+    
+    STDMETHODIMP DAdvise  (LPFORMATETC pFE, DWORD flags, LPADVISESINK pAdvise,
+                   DWORD* pConn);
 
-		
-		
-		
-		STDMETHODIMP DAdvise	(LPFORMATETC pFE, DWORD flags, LPADVISESINK pAdvise,
-									 DWORD* pConn);
+    
+    STDMETHODIMP DUnadvise (DWORD pConn);
 
-		
-		STDMETHODIMP DUnadvise (DWORD pConn);
-
-		
-		
+    
+    
       
-		STDMETHODIMP EnumDAdvise (LPENUMSTATDATA *ppEnum);
+    STDMETHODIMP EnumDAdvise (LPENUMSTATDATA *ppEnum);
 
-	public: 
+  public:
+    
+    
 
-		
-		
+    
+    
+        
+    
+    STDMETHOD(EndOperation)(HRESULT hResult, IBindCtx *pbcReserved,
+                            DWORD dwEffects);
+    STDMETHOD(GetAsyncMode)(BOOL *pfIsOpAsync);
+    STDMETHOD(InOperation)(BOOL *pfInAsyncOp);
+    STDMETHOD(SetAsyncMode)(BOOL fDoOpAsync);
+    STDMETHOD(StartOperation)(IBindCtx *pbcReserved);
 
-		
-		
-
-	protected:
+  protected:
     BOOL FormatsMatch(const FORMATETC& source, const FORMATETC& target) const;
 
-		ULONG        m_cRef;              
+    ULONG m_cRef;              
 
-    nsTArray<nsString> mDataFlavors;
+    
+    CEnumFormatEtc   * m_enumFE;
 
-    nsITransferable  * mTransferable; 
-                                      
-
-    CEnumFormatEtc   * m_enumFE;      
-                                      
-
-    nsTArray<nsRefPtr<IDataObject> > mDataObjects;
+    nsTArray<nsRefPtr<nsDataObj> > mDataObjects;
+    
+    BOOL mIsAsyncMode;
+    BOOL mIsInOperation;
 };
-
 
 #endif
