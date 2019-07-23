@@ -178,9 +178,72 @@ static SIZE GetGutterSize(HANDLE theme, HDC hdc)
     return ret;
 }
 
-static PRBool IsFrameRTL(nsIFrame *frame)
+static inline PRBool IsFrameRTL(nsIFrame *frame)
 {
   return frame->GetStyleVisibility()->mDirection == NS_STYLE_DIRECTION_RTL;
+}
+
+static HRESULT DrawThemeBGRTLAware(HANDLE theme, HDC hdc, int part, int state,
+                                   const RECT *widgetRect, const RECT *clipRect,
+                                   PRBool isRTL)
+{
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  if (isRTL) {
+    HGDIOBJ hObj = GetCurrentObject(hdc, OBJ_BITMAP);
+    BITMAP bitmap;
+    POINT vpOrg;
+
+    if (hObj &&
+        GetObject(hObj, sizeof(bitmap), &bitmap) &&
+        GetViewportOrgEx(hdc, &vpOrg))
+    {
+      RECT newWRect(*widgetRect);
+      newWRect.left = bitmap.bmWidth - (widgetRect->right + 2*vpOrg.x);
+      newWRect.right = bitmap.bmWidth - (widgetRect->left + 2*vpOrg.x);
+
+      RECT newCRect;
+      RECT *newCRectPtr = NULL;
+
+      if (clipRect) {
+        newCRect.top = clipRect->top;
+        newCRect.bottom = clipRect->bottom;
+        newCRect.left = bitmap.bmWidth - (clipRect->right + 2*vpOrg.x);
+        newCRect.right = bitmap.bmWidth - (clipRect->left + 2*vpOrg.x);
+        newCRectPtr = &newCRect;
+      }
+
+      SetLayout(hdc, LAYOUT_RTL);
+      HRESULT hr = nsUXThemeData::drawThemeBG(theme, hdc, part, state, &newWRect, newCRectPtr);
+      SetLayout(hdc, 0);
+
+      if (hr == S_OK)
+        return hr;
+    }
+  }
+
+  
+  return nsUXThemeData::drawThemeBG(theme, hdc, part, state, widgetRect, clipRect);
 }
 
 HANDLE
