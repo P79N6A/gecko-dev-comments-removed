@@ -400,7 +400,6 @@ class nsIPluginInstance;
 
 
 class nsIPluginManager;                 
-class nsIFileUtilities;                 
 class nsIPluginInstancePeer;            
 class nsIWindowlessPluginInstancePeer;  
 class nsIPluginTagInfo;                 

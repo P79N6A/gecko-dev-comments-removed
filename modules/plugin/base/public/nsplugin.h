@@ -83,7 +83,6 @@
 
 
 
-
  
 
 #ifndef nsplugins_h___
@@ -156,14 +155,6 @@
 
 
 #include "nsIPluginManager2.h"
-
-
-
-
-
-
-
-#include "nsIFileUtilities.h"
 
 
 
