@@ -109,6 +109,7 @@
 #include "nsIProperty.h"
 #include "nsSupportsArray.h"
 #include "nsTArray.h"
+#include "prclist.h"
 
 #include "nsIXPCScriptNotify.h"  
 
@@ -695,12 +696,14 @@ private:
 public:
 #endif
 
+    
+    JSContext2XPCContextMap*  GetContextMap() const {return mContextMap;}
+
 private:
     XPCJSRuntime(); 
     XPCJSRuntime(nsXPConnect* aXPConnect,
                  nsIJSRuntimeService* aJSRuntimeService);
 
-    JSContext2XPCContextMap*  GetContextMap() const {return mContextMap;}
     JSBool GenerateStringIDs(JSContext* cx);
     void PurgeXPCContextList();
 
@@ -831,6 +834,8 @@ public:
         }
 
     void DebugDump(PRInt16 depth);
+    void AddScope(PRCList *scope) { PR_INSERT_AFTER(scope, &mScopes); }
+    void RemoveScope(PRCList *scope) { PR_REMOVE_LINK(scope); }
 
     ~XPCContext();
 
@@ -848,6 +853,9 @@ private:
     LangType mCallingLangType;
     PRUint16 mSecurityManagerFlags;
     JSPackedBool mMarked;
+
+    
+    PRCList mScopes;
 };
 
 
@@ -1088,7 +1096,7 @@ xpc_TraceForValidWrapper(JSTracer *trc, XPCWrappedNative* wrapper);
 
 
 
-class XPCWrappedNativeScope
+class XPCWrappedNativeScope : public PRCList
 {
 public:
 
@@ -1174,6 +1182,9 @@ public:
 
     void Traverse(nsCycleCollectionTraversalCallback &cb);
 
+    XPCContext *GetContext() { return mContext; }
+    void SetContext(XPCContext *xpcc) { mContext = nsnull; }
+
 #ifndef XPCONNECT_STANDALONE
     
 
@@ -1205,6 +1216,7 @@ private:
     JSObject*                        mGlobalJSObject;
     JSObject*                        mPrototypeJSObject;
     JSObject*                        mPrototypeJSFunction;
+    XPCContext*                      mContext;
 
 #ifndef XPCONNECT_STANDALONE
     
