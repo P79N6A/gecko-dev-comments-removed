@@ -63,8 +63,10 @@ JS_BEGIN_EXTERN_C
 
 
 
+
+
 typedef struct JSGSNCache {
-    JSScript        *script;
+    jsbytecode      *code;
     JSDHashTable    table;
 #ifdef JS_GSNMETER
     uint32          hits;
@@ -79,7 +81,7 @@ typedef struct JSGSNCache {
 
 #define GSN_CACHE_CLEAR(cache)                                                \
     JS_BEGIN_MACRO                                                            \
-        (cache)->script = NULL;                                               \
+        (cache)->code = NULL;                                                 \
         if ((cache)->table.ops) {                                             \
             JS_DHashTableFinish(&(cache)->table);                             \
             (cache)->table.ops = NULL;                                        \
