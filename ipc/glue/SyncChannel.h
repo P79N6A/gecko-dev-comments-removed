@@ -59,7 +59,8 @@ protected:
     typedef std::queue<Message> MessageQueue;
 
 public:
-    class  SyncListener : public AsyncChannel::Listener
+    class  SyncListener : 
+        public AsyncChannel::AsyncListener
     {
     public:
         virtual ~SyncListener() { }
