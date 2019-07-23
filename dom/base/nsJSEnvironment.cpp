@@ -158,6 +158,8 @@ static PRLogModuleInfo* gJSDiagnostics;
 
 #define NS_PROBABILITY_MULTIPLIER   3
 
+
+
 #define NS_MIN_CC_INTERVAL          10000 // ms
 
 
@@ -263,7 +265,7 @@ nsUserActivityObserver::Observe(nsISupports* aSubject, const char* aTopic,
     if (sUserIsActive) {
       sUserIsActive = PR_FALSE;
       if (!sGCTimer) {
-        nsJSContext::CC();
+        nsJSContext::IntervalCC();
         return NS_OK;
       }
     }
@@ -3578,16 +3580,7 @@ nsJSContext::MaybeCC(PRBool aHigherProbability)
       ((sCCSuspectChanges > NS_MIN_SUSPECT_CHANGES &&
         GetGCRunsSinceLastCC() > NS_MAX_GC_COUNT) ||
        (sCCSuspectChanges > NS_MAX_SUSPECT_CHANGES))) {
-    if ((PR_Now() - sPreviousCCTime) >=
-        PRTime(NS_MIN_CC_INTERVAL * PR_USEC_PER_MSEC)) {
-      nsJSContext::CC();
-      return PR_TRUE;
-    }
-#ifdef DEBUG_smaug
-    else {
-      printf("Running CC was delayed because of NS_MIN_CC_INTERVAL.\n");
-    }
-#endif
+    return IntervalCC();
   }
   return PR_FALSE;
 }
@@ -3599,8 +3592,23 @@ nsJSContext::CCIfUserInactive()
   if (sUserIsActive) {
     MaybeCC(PR_TRUE);
   } else {
-    CC();
+    IntervalCC();
   }
+}
+
+
+PRBool
+nsJSContext::IntervalCC()
+{
+  if ((PR_Now() - sPreviousCCTime) >=
+      PRTime(NS_MIN_CC_INTERVAL * PR_USEC_PER_MSEC)) {
+    nsJSContext::CC();
+    return PR_TRUE;
+  }
+#ifdef DEBUG_smaug
+  printf("Running CC was delayed because of NS_MIN_CC_INTERVAL.\n");
+#endif
+  return PR_FALSE;
 }
 
 

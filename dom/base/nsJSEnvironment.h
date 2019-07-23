@@ -193,6 +193,10 @@ public:
   static PRBool MaybeCC(PRBool aHigherProbability);
 
   
+  
+  static PRBool IntervalCC();
+
+  
   static void CCIfUserInactive();
 
   static void FireGCTimer(PRBool aLoadInProgress);
