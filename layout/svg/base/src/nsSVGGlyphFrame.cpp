@@ -103,8 +103,12 @@ public:
 
 
 
-  void SetupGlobalTransform(const gfxMatrix& aInitialMatrix);
-
+  void SetInitialMatrix(gfxContext *aContext) {
+    mInitialMatrix = aContext->CurrentMatrix();
+    if (mInitialMatrix.IsSingular()) {
+      mInError = PR_TRUE;
+    }
+  }
   
 
 
@@ -305,11 +309,14 @@ nsSVGGlyphFrame::PaintSVG(nsSVGRenderState *aContext, nsRect *aDirtyRect)
 
   gfxContext *gfx = aContext->GetGfxContext();
   PRUint16 renderMode = aContext->GetRenderMode();
-  gfxMatrix matrix = gfx->CurrentMatrix();
 
   if (renderMode != nsSVGRenderState::NORMAL) {
+
+    gfxMatrix matrix = gfx->CurrentMatrix();
+    SetupGlobalTransform(gfx);
+
     CharacterIterator iter(this, PR_TRUE);
-    iter.SetupGlobalTransform(matrix);
+    iter.SetInitialMatrix(gfx);
 
     if (GetClipRule() == NS_STYLE_FILL_RULE_EVENODD)
       gfx->SetFillRule(gfxContext::FILL_RULE_EVEN_ODD);
@@ -329,19 +336,24 @@ nsSVGGlyphFrame::PaintSVG(nsSVGRenderState *aContext, nsRect *aDirtyRect)
   }
 
   
+  
   gfx->Save();
+  SetupGlobalTransform(gfx);
+
   if (HasFill() && SetupCairoFill(gfx)) {
+    gfxMatrix matrix = gfx->CurrentMatrix();
     CharacterIterator iter(this, PR_TRUE);
-    iter.SetupGlobalTransform(matrix);
+    iter.SetInitialMatrix(gfx);
 
     FillCharacters(&iter, gfx);
+    gfx->SetMatrix(matrix);
   }
 
   if (HasStroke() && SetupCairoStroke(gfx)) {
     
     
     CharacterIterator iter(this, PR_TRUE);
-    iter.SetupGlobalTransform(matrix);
+    iter.SetInitialMatrix(gfx);
 
     gfx->NewPath();
     AddCharactersToPath(&iter, gfx);
@@ -423,8 +435,9 @@ NS_IMETHODIMP
 nsSVGGlyphFrame::UpdateCoveredRegion()
 {
   nsRefPtr<gfxContext> tmpCtx = MakeTmpCtx();
+  SetupGlobalTransform(tmpCtx);
   CharacterIterator iter(this, PR_TRUE);
-  iter.SetupGlobalTransform(gfxMatrix());
+  iter.SetInitialMatrix(tmpCtx);
   
   gfxRect extent;
 
@@ -547,8 +560,9 @@ nsSVGGlyphFrame::GetBBox(nsIDOMSVGRect **_retval)
   *_retval = nsnull;
 
   nsRefPtr<gfxContext> tmpCtx = MakeTmpCtx();
+  SetupGlobalTransform(tmpCtx);
   CharacterIterator iter(this, PR_TRUE);
-  iter.SetupGlobalTransform(gfxMatrix());
+  iter.SetInitialMatrix(tmpCtx);
   AddCharactersToPath(&iter, tmpCtx);
 
   tmpCtx->IdentityMatrix();
@@ -1165,8 +1179,9 @@ PRBool
 nsSVGGlyphFrame::ContainsPoint(float x, float y)
 {
   nsRefPtr<gfxContext> tmpCtx = MakeTmpCtx();
+  SetupGlobalTransform(tmpCtx);
   CharacterIterator iter(this, PR_TRUE);
-  iter.SetupGlobalTransform(gfxMatrix());
+  iter.SetInitialMatrix(tmpCtx);
   
   PRInt32 i;
   while ((i = iter.NextChar()) >= 0) {
@@ -1188,15 +1203,16 @@ nsSVGGlyphFrame::GetGlobalTransform(gfxMatrix *aMatrix)
   if (!ctm)
     return PR_FALSE;
 
-  gfxMatrix matrix = nsSVGUtils::ConvertSVGMatrixToThebes(ctm);
+  *aMatrix = nsSVGUtils::ConvertSVGMatrixToThebes(ctm);
+  return !aMatrix->IsSingular();
+}
 
-  if (matrix.IsSingular()) {
-    aMatrix->Reset();
-    return PR_FALSE;
-  }
-
-  *aMatrix = matrix;
-  return PR_TRUE;
+void
+nsSVGGlyphFrame::SetupGlobalTransform(gfxContext *aContext)
+{
+  gfxMatrix matrix;
+  GetGlobalTransform(&matrix);
+  aContext->Multiply(matrix);
 }
 
 void
@@ -1310,16 +1326,6 @@ CharacterIterator::CharacterIterator(nsSVGGlyphFrame *aSource,
       !aSource->GetCharacterPositions(&mPositions, mMetricsScale)) {
     mInError = PR_TRUE;
   }
-}
-
-void
-CharacterIterator::SetupGlobalTransform(const gfxMatrix& aMatrix)
-{
-  if (!mSource->GetGlobalTransform(&mInitialMatrix)) {
-    mInError = PR_TRUE;
-    return;
-  }
-  mInitialMatrix.Multiply(aMatrix);
 }
 
 PRBool
