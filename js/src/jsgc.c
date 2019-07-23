@@ -2660,11 +2660,9 @@ js_TraceStackFrame(JSTracer *trc, JSStackFrame *fp)
 
 
 
-        if (fp->regs) {
-            nslots = (uintN) (fp->regs->sp - fp->spbase);
-            JS_ASSERT(nslots <= fp->script->depth);
-            TRACE_JSVALS(trc, nslots, fp->spbase, "operand");
-        }
+        nslots = (uintN) (fp->sp - fp->spbase);
+        JS_ASSERT(nslots <= fp->script->depth);
+        TRACE_JSVALS(trc, nslots, fp->spbase, "operand");
     }
 
     
