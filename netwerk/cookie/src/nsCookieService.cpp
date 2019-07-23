@@ -618,16 +618,18 @@ nsCookieService::Observe(nsISupports     *aSubject,
     
     RemoveAllFromMemory();
 
-    if (!nsCRT::strcmp(aData, NS_LITERAL_STRING("shutdown-cleanse").get()) && mDBConn) {
-      
-      nsresult rv = mDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING("DELETE FROM moz_cookies"));
-      if (NS_FAILED(rv))
-        NS_WARNING("db delete failed");
-    }
+    if (mDBConn) {
+      if (!nsCRT::strcmp(aData, NS_LITERAL_STRING("shutdown-cleanse").get())) {
+        
+        nsresult rv = mDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING("DELETE FROM moz_cookies"));
+        if (NS_FAILED(rv))
+          NS_WARNING("db delete failed");
+      }
 
-    
-    mDBConn->Close();
-    mDBConn = nsnull;
+      
+      mDBConn->Close();
+      mDBConn = nsnull;
+    }
 
   } else if (!strcmp(aTopic, "profile-do-change")) {
     
