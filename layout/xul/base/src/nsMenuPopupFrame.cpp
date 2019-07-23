@@ -983,7 +983,10 @@ nsMenuPopupFrame::SetPopupPosition(nsIFrame* aAnchorFrame, PRBool aIsMove)
 
     
     
-    screenPoint.x += presContext->CSSPixelsToAppUnits(mXPos);
+    if (GetStyleVisibility()->mDirection == NS_STYLE_DIRECTION_RTL)
+      screenPoint.x -= presContext->CSSPixelsToAppUnits(mXPos);
+    else
+      screenPoint.x += presContext->CSSPixelsToAppUnits(mXPos);
     screenPoint.y += presContext->CSSPixelsToAppUnits(mYPos);
   }
   else {
