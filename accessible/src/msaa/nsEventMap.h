@@ -137,6 +137,7 @@ static const PRUint32 gWinEventMap[] = {
   IA2_EVENT_OBJECT_ATTRIBUTE_CHANGED,                
   IA2_EVENT_PAGE_CHANGED,                            
   kEVENT_WIN_UNKNOWN,                                
+  EVENT_OBJECT_REORDER,                              
   kEVENT_LAST_ENTRY                                  
 };
 
