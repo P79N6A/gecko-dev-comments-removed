@@ -35,21 +35,19 @@
 
 
 
+
 #include "nsScreenManagerGtk.h"
 #include "nsScreenGtk.h"
 #include "nsIComponentManager.h"
 #include "nsRect.h"
 #include "nsAutoPtr.h"
+#include "prlink.h"
 
 #include <gdk/gdkx.h>
 
-#ifdef MOZ_ENABLE_XINERAMA
 
-extern "C"
-{
-#include <X11/extensions/Xinerama.h>
-}
-#endif 
+typedef Bool (*_XnrmIsActive_fn)(Display *dpy);
+typedef XineramaScreenInfo* (*_XnrmQueryScreens_fn)(Display *dpy, int *number);
 
 nsScreenManagerGtk :: nsScreenManagerGtk ( )
 {
@@ -79,23 +77,26 @@ nsScreenManagerGtk :: EnsureInit(void)
     if (!mCachedScreenArray) {
       return NS_ERROR_OUT_OF_MEMORY;
     }
-#ifdef MOZ_ENABLE_XINERAMA
+    XineramaScreenInfo *screenInfo = NULL;
+
     
-    XineramaScreenInfo *screenInfo;
-    if (XineramaIsActive(GDK_DISPLAY())) {
-      screenInfo = XineramaQueryScreens(GDK_DISPLAY(), &mNumScreens);
+    PRLibrary* xineramalib = PR_LoadLibrary("libXinerama.so.1");
+    if (xineramalib) {
+      _XnrmIsActive_fn _XnrmIsActive = (_XnrmIsActive_fn)
+          PR_FindFunctionSymbol(xineramalib, "XineramaIsActive");
+
+      _XnrmQueryScreens_fn _XnrmQueryScreens = (_XnrmQueryScreens_fn)
+          PR_FindFunctionSymbol(xineramalib, "XineramaQueryScreens");
+          
+      
+      if (_XnrmIsActive && _XnrmQueryScreens &&
+          _XnrmIsActive(GDK_DISPLAY())) {
+        screenInfo = _XnrmQueryScreens(GDK_DISPLAY(), &mNumScreens);
+      }
     }
-    else {
-      screenInfo = NULL;
-      mNumScreens = 1;
-    }
-#else
-    mNumScreens = 1;
-#endif
     
     
-    
-    if (mNumScreens < 2) {
+    if (!screenInfo) {
       mNumScreens = 1;
       nsRefPtr<nsScreenGtk> screen = new nsScreenGtk();
       if (!screen)
@@ -109,7 +110,6 @@ nsScreenManagerGtk :: EnsureInit(void)
     
     
     
-#ifdef MOZ_ENABLE_XINERAMA
     else {
 #ifdef DEBUG
       printf("Xinerama superpowers activated for %d screens!\n", mNumScreens);
@@ -132,10 +132,9 @@ nsScreenManagerGtk :: EnsureInit(void)
     if (screenInfo) {
       XFree(screenInfo);
     }
-#endif 
   }
 
-  return NS_OK;;
+  return NS_OK;
 }
 
 
