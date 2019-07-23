@@ -96,12 +96,11 @@ struct nsRowGroupReflowState {
 
 
 
-class nsTableRowGroupFrame
-  : public nsHTMLContainerFrame
-  , public nsILineIterator
+class nsTableRowGroupFrame : public nsHTMLContainerFrame, public nsILineIteratorNavigator
 {
 public:
-  NS_IMETHOD QueryInterface(const nsIID &aIID, void **aInstancePtr);
+  
+  NS_DECL_ISUPPORTS_INHERITED
 
   
 
@@ -228,8 +227,6 @@ public:
 
 
 public:
-  virtual void DisposeLineIterator() { }
-
   
   
   
@@ -240,12 +237,12 @@ public:
   
 
 
-  virtual PRInt32 GetNumLines();
+  NS_IMETHOD GetNumLines(PRInt32* aResult);
 
   
 
 
-  virtual PRBool GetDirection();
+  NS_IMETHOD GetDirection(PRBool* aIsRightToLeft);
   
   
 
@@ -270,12 +267,13 @@ public:
 
 
 
-  virtual PRInt32 FindLineContaining(nsIFrame* aFrame);
+
+  NS_IMETHOD FindLineContaining(nsIFrame* aFrame, PRInt32* aLineNumberResult);
   
   
 
 
-  virtual PRInt32 FindLineAt(nscoord aY);
+  NS_IMETHOD FindLineAt(nscoord aY, PRInt32* aLineNumberResult);
 
   
 
@@ -374,8 +372,6 @@ public:
     return GetStyleContext()->GetPseudoType() == nsCSSAnonBoxes::scrolledContent ||
            GetStyleDisplay()->mOverflowY == NS_STYLE_OVERFLOW_CLIP;
   }
-
-  virtual nsILineIterator* GetLineIterator() { return this; }
 
 protected:
   nsTableRowGroupFrame(nsStyleContext* aContext);

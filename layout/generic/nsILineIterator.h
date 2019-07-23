@@ -37,11 +37,26 @@
 #ifndef nsILineIterator_h___
 #define nsILineIterator_h___
 
-#include "nscore.h"
-#include "nsCoord.h"
+#include "nsISupports.h"
 
-class nsIFrame;
-struct nsRect;
+
+#define NS_ILINE_ITERATOR_IID \
+ { 0xa6cf90ff, 0x15b3, 0x11d2,{0x93, 0x2e, 0x00, 0x80, 0x5f, 0x8a, 0xdd, 0x32}}
+
+
+#define NS_ILINE_ITERATOR_NAV_IID \
+ { 0x80aa3d7a, 0xe0bf, 0x4e18,{0x8a, 0x82, 0x21, 0x10, 0x39, 0x7d, 0x7b, 0xc4}}
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -52,36 +67,17 @@ struct nsRect;
 
 #define NS_LINE_FLAG_ENDS_IN_BREAK      0x4
 
-
-
-
-
-
-
-
-
-
-
-class nsILineIterator
-{
-protected:
-  ~nsILineIterator() { }
-
+class nsILineIterator : public nsISupports {
 public:
-  virtual void DisposeLineIterator() = 0;
+  NS_DECLARE_STATIC_IID_ACCESSOR(NS_ILINE_ITERATOR_IID)
 
   
-
-
-  virtual PRInt32 GetNumLines() = 0;
+  NS_IMETHOD GetNumLines(PRInt32* aResult) = 0;
 
   
-
-
-
-
-
-  virtual PRBool GetDirection() = 0;
+  
+  
+  NS_IMETHOD GetDirection(PRBool* aIsRightToLeft) = 0;
 
   
   
@@ -103,19 +99,18 @@ public:
                      PRUint32* aLineFlags) = 0;
 
   
-
-
-
-  virtual PRInt32 FindLineContaining(nsIFrame* aFrame) = 0;
+  
+  
+  NS_IMETHOD FindLineContaining(nsIFrame* aFrame,
+                                PRInt32* aLineNumberResult) = 0;
 
   
-
-
-
-
-
-
-  virtual PRInt32 FindLineAt(nscoord aY) = 0;
+  
+  
+  
+  
+  NS_IMETHOD FindLineAt(nscoord aY,
+                        PRInt32* aLineNumberResult) = 0;
 
   
   
@@ -141,30 +136,15 @@ public:
 #endif
 };
 
-class nsAutoLineIterator
-{
+NS_DEFINE_STATIC_IID_ACCESSOR(nsILineIterator, NS_ILINE_ITERATOR_IID)
+
+
+class nsILineIteratorNavigator : public nsILineIterator {
 public:
-  nsAutoLineIterator() : mRawPtr(nsnull) { }
-  nsAutoLineIterator(nsILineIterator *i) : mRawPtr(i) { }
-
-  ~nsAutoLineIterator() {
-    if (mRawPtr)
-      mRawPtr->DisposeLineIterator();
-  }
-
-  operator nsILineIterator*() { return mRawPtr; }
-  nsILineIterator* operator->() { return mRawPtr; }
-
-  nsILineIterator* operator=(nsILineIterator* i) {
-    if (mRawPtr)
-      mRawPtr->DisposeLineIterator();
-
-    mRawPtr = i;
-    return i;
-  }
-
-private:
-  nsILineIterator* mRawPtr;
+  NS_DECLARE_STATIC_IID_ACCESSOR(NS_ILINE_ITERATOR_NAV_IID)
 };
 
-#endif 
+NS_DEFINE_STATIC_IID_ACCESSOR(nsILineIteratorNavigator,
+                              NS_ILINE_ITERATOR_NAV_IID)
+
+#endif
