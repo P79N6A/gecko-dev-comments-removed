@@ -2692,7 +2692,7 @@ let XPathHelper = {
       return "";
     
     let prefix = this.namespacePrefixes[aNode.namespaceURI] || null;
-    let tag = (prefix ? prefix + ":" : "") + aNode.localName;
+    let tag = (prefix ? prefix + ":" : "") + this.escapeName(aNode.localName);
     
     
     if (aNode.id)
@@ -2726,6 +2726,16 @@ let XPathHelper = {
 
   resolveNS: function sss_xph_resolveNS(aPrefix) {
     return XPathHelper.namespaceURIs[aPrefix] || null;
+  },
+
+  
+
+
+  escapeName: function sss_xph_escapeName(aName) {
+    
+    
+    return /^\w+$/.test(aName) ? aName :
+           "*[local-name()=" + this.quoteArgument(aName) + "]";
   },
 
   
