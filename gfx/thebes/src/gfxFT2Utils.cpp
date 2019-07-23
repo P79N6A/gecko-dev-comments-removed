@@ -45,6 +45,10 @@
 #include FT_TRUETYPE_TAGS_H
 #include FT_TRUETYPE_TABLES_H
 
+#ifdef CAIRO_HAS_FC_FONT
+#include <fontconfig/fcfreetype.h>
+#endif
+
 
 static inline FT_Long
 ScaleRoundDesignUnits(FT_Short aDesignMetric, FT_Fixed aScale)
@@ -301,7 +305,22 @@ gfxFT2LockedFace::GetGlyph(PRUint32 aCharCode)
     if (NS_UNLIKELY(!mFace))
         return 0;
 
+#ifdef CAIRO_HAS_FC_FONT
+    
+    
+    
+    
+    
+    
+    
+    if (!mFace->charmap || mFace->charmap->encoding != FT_ENCODING_UNICODE) {
+        FT_Select_Charmap(mFace, FT_ENCODING_UNICODE);
+    }
+
+    return FcFreeTypeCharIndex(mFace, aCharCode);
+#else
     return FT_Get_Char_Index(mFace, aCharCode);
+#endif
 }
 
 PRUint32

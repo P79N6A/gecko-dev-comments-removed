@@ -68,7 +68,7 @@ public:
 
 
 
-    virtual PRUint32 GetGlyph(PRUint32 aCharCode);
+    PRUint32 GetGlyph(PRUint32 aCharCode);
 
     void GetMetrics(gfxFont::Metrics* aMetrics, PRUint32* aSpaceGlyph);
 

@@ -519,33 +519,6 @@ protected:
     static cairo_user_data_key_t sGfxFontKey;
 };
 
-class gfxFcLockedFace : public gfxFT2LockedFace {
-public:
-    gfxFcLockedFace(gfxFT2FontBase *aFont) : gfxFT2LockedFace(aFont) {};
-    ~gfxFcLockedFace() {};
-    virtual PRUint32 GetGlyph(PRUint32 aCharCode);
-};
-
-PRUint32
-gfxFcLockedFace::GetGlyph(PRUint32 aCharCode)
-{
-    if (NS_UNLIKELY(!mFace))
-        return 0;
-
-    
-    
-    
-    
-    
-    
-    
-    if (!mFace->charmap || mFace->charmap->encoding != FT_ENCODING_UNICODE) {
-        FT_Select_Charmap(mFace, FT_ENCODING_UNICODE);
-    }
-
-    return FcFreeTypeCharIndex(mFace, aCharCode);
-}
-
 
 
 
@@ -2156,7 +2129,7 @@ GetFTLibrary()
         if (!font)
             return NULL;
 
-        gfxFcLockedFace face(font);
+        gfxFT2LockedFace face(font);
         if (!face.get())
             return NULL;
 
