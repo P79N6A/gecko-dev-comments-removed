@@ -175,8 +175,11 @@ nsSVGRectElement::ConstructPath(gfxContext *aCtx)
 
   
 
-  if (width <= 0 || height <= 0 || ry < 0 || rx < 0)
+  if (width <= 0 || height <= 0)
     return;
+
+  rx = NS_MAX(rx, 0.0f);
+  ry = NS_MAX(ry, 0.0f);
 
   
   if (rx == 0 && ry == 0) {
