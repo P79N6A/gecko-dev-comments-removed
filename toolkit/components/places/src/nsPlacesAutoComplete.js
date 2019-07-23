@@ -402,7 +402,6 @@ nsPlacesAutoComplete.prototype = {
     result.setSearchString(aSearchString);
     result.setListener(this);
     this._result = result;
-    this._notifyResults(true);
 
     
     if (!this._enabled) {
