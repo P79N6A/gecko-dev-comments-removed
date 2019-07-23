@@ -526,17 +526,33 @@ nsHttpServer.prototype =
   
   
   
-  getState: function(k)
+  getState: function(path, k)
   {
-    return this._handler._getState(k);
+    return this._handler._getState(path, k);
   },
 
   
   
   
-  setState: function(k, v)
+  setState: function(path, k, v)
   {
-    return this._handler._setState(k, v);
+    return this._handler._setState(path, k, v);
+  },
+
+  
+  
+  
+  getSharedState: function(k)
+  {
+    return this._handler._getSharedState(k);
+  },
+
+  
+  
+  
+  setSharedState: function(k, v)
+  {
+    return this._handler._setSharedState(k, v);
   },
 
   
@@ -1981,9 +1997,10 @@ function ServerHandler(server)
   this._indexHandler = defaultIndexHandler;
 
   
-
-
   this._state = {};
+
+  
+  this._sharedState = {};
 }
 ServerHandler.prototype =
 {
@@ -2386,7 +2403,7 @@ ServerHandler.prototype =
     const PR_RDONLY = 0x01;
 
     var type = this._getTypeFromFile(file);
-    if (type == SJS_TYPE)
+    if (type === SJS_TYPE)
     {
       var fis = new FileInputStream(file, PR_RDONLY, 0444,
                                     Ci.nsIFileInputStream.CLOSE_ON_EOF);
@@ -2400,8 +2417,10 @@ ServerHandler.prototype =
         
         
         var self = this;
-        s.importFunction(function getState(k) { return self._getState(k); });
-        s.importFunction(function setState(k, v) { self._setState(k, v); });
+        s.importFunction(function getState(k) { return self._getState(metadata.path, k); });
+        s.importFunction(function setState(k, v) { self._setState(metadata.path, k, v); });
+        s.importFunction(function getSharedState(k) { return self._getSharedState(k); });
+        s.importFunction(function setSharedState(k, v) { self._setSharedState(k, v); });
 
         try
         {
@@ -2485,13 +2504,14 @@ ServerHandler.prototype =
 
 
 
-  _getState: function(k)
+
+
+  _getState: function(path, k)
   {
-    NS_ASSERT(typeof k == "string");
     var state = this._state;
-    if (k in state)
-      return state[k];
-    return state[k] = "";
+    if (path in state && k in state[path])
+      return state[path][k];
+    return "";
   },
 
   
@@ -2503,10 +2523,49 @@ ServerHandler.prototype =
 
 
 
-  _setState: function(k, v)
+
+
+  _setState: function(path, k, v)
   {
-    NS_ASSERT(typeof v == "string");
-    this._state[k] = String(v);
+    if (typeof v !== "string")
+      throw new Exception("non-string value passed");
+    var state = this._state;
+    if (!(path in state))
+      state[path] = {};
+    state[path][k] = v;
+  },
+
+  
+
+
+
+
+
+
+
+
+  _getSharedState: function(k)
+  {
+    var state = this._sharedState;
+    if (k in state)
+      return state[k];
+    return "";
+  },
+
+  
+
+
+
+
+
+
+
+
+  _setSharedState: function(k, v)
+  {
+    if (typeof v !== "string")
+      throw new Exception("non-string value passed");
+    this._sharedState[k] = v;
   },
 
   
