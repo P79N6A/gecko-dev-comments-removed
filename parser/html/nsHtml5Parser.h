@@ -563,6 +563,11 @@ class nsHtml5Parser : public nsIParser,
 
 
     PRBool                        mSuspending;
+    
+    
+
+
+    PRBool                        mSuppressEOF;
 
     
 
