@@ -96,6 +96,9 @@ struct THEBES_API gfxRect {
     PRBool Contains(const gfxRect& aRect) const;
     
 
+    gfxPoint TopLeft() { return pos; }
+    gfxPoint BottomRight() { return gfxPoint(XMost(), YMost()); }
+
     void Inset(gfxFloat k) {
         pos.x += k;
         pos.y += k;
