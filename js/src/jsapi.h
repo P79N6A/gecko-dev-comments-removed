@@ -1207,7 +1207,10 @@ typedef enum JSGCParamKey {
     JSGC_BYTES = 4,
 
     
-    JSGC_NUMBER = 5
+    JSGC_NUMBER = 5,
+
+    
+    JSGC_MAX_CODE_CACHE_BYTES = 6
 } JSGCParamKey;
 
 extern JS_PUBLIC_API(void)
@@ -1215,6 +1218,12 @@ JS_SetGCParameter(JSRuntime *rt, JSGCParamKey key, uint32 value);
 
 extern JS_PUBLIC_API(uint32)
 JS_GetGCParameter(JSRuntime *rt, JSGCParamKey key);
+
+extern JS_PUBLIC_API(void)
+JS_SetGCParameterForThread(JSContext *cx, JSGCParamKey key, uint32 value);
+
+extern JS_PUBLIC_API(uint32)
+JS_GetGCParameterForThread(JSContext *cx, JSGCParamKey key);
 
 
 

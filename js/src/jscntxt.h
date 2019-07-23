@@ -157,6 +157,12 @@ struct JSTraceMonitor {
 
 
 
+    uint32                  maxCodeCacheBytes;
+
+    
+
+
+
     JSPackedBool            useReservedObjects;
     JSObject                *reservedObjects;
 
