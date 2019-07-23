@@ -2707,9 +2707,6 @@ CSS_PROP_FONT(
 #endif
 #endif
 
-
-
-#ifndef CSS_PROP_LIST_EXCLUDE_INTERNAL
 CSS_PROP_SVGRESET(
     clip-path,
     clip_path,
@@ -3045,7 +3042,6 @@ CSS_PROP_SVG(
     kTextRenderingKTable,
     offsetof(nsStyleSVG, mTextRendering),
     eStyleAnimType_EnumU8)
-#endif 
 
 
 
