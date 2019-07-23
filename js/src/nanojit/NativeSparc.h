@@ -73,7 +73,6 @@ namespace nanojit
     const int NJ_LOG2_PAGE_SIZE = 13; 
 #endif
     const int NJ_MAX_REGISTERS = 30; 
-    const int NJ_STACK_OFFSET = 0;
 
     const int LARGEST_UNDERRUN_PROT = 32;  
 

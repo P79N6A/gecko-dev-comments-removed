@@ -327,7 +327,8 @@ namespace nanojit
 
     inline int32_t disp(Reservation* r)
     {
-        return stack_direction((int32_t)STACK_GRANULARITY) * int32_t(r->arIndex) + NJ_STACK_OFFSET;
+        
+        return stack_direction(4 * int32_t(r->arIndex));
     }
 }
 #endif 
