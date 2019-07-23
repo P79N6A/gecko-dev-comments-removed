@@ -1112,7 +1112,7 @@ function Startup()
         
         gUpdateContextMenus = gUpdateContextMenusNoBrowser;
 #endif
-        document.getElementById("viewGroup").hidden = true;
+        document.getElementById("topBar").hidden = true;
         document.getElementById("extensionsView").setAttribute("norestart", "");
         showView("updates");
         showMessage(URI_NOTIFICATION_ICON_INFO,
