@@ -125,8 +125,13 @@ _cairo_hull_vertex_compare (const void *av, const void *bv)
 static int
 _cairo_hull_prev_valid (cairo_hull_t *hull, int num_hull, int index)
 {
+    
+
+
+    if (index == 0)
+	return 0;
+
     do {
-	
 	index--;
     } while (hull[index].discard);
 
