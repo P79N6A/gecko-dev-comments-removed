@@ -85,7 +85,11 @@ protected:
 
   
   already_AddRefed<nsIDOMHTMLCollection> GetAreaCollection();
-  already_AddRefed<nsIAccessible>
+
+  
+
+
+  already_AddRefed<nsAccessible>
     GetAreaAccessible(nsIDOMHTMLCollection* aAreaNodes, PRInt32 aAreaNum);
 
   
