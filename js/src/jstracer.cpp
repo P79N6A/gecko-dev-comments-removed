@@ -1250,7 +1250,7 @@ ValueToNative(JSContext* cx, jsval v, uint8 type, double* slot)
 
 
 static jsval
-AllocateDoubleFromReservePool(JSContext* cx)
+AllocateDoubleFromRecoveryPool(JSContext* cx)
 {
     JSTraceMonitor* tm = &JS_TRACE_MONITOR(cx);
     JS_ASSERT(tm->recoveryDoublePoolPtr > tm->recoveryDoublePool);
@@ -1258,7 +1258,7 @@ AllocateDoubleFromReservePool(JSContext* cx)
 }
 
 static bool
-ReplenishReservePool(JSContext* cx, JSTraceMonitor* tm, bool& didGC)
+js_ReplenishRecoveryPool(JSContext* cx, JSTraceMonitor* tm)
 {
     
     JS_ASSERT((size_t) (tm->recoveryDoublePoolPtr - tm->recoveryDoublePool) <
@@ -1268,29 +1268,31 @@ ReplenishReservePool(JSContext* cx, JSTraceMonitor* tm, bool& didGC)
 
 
 
-
     JSRuntime* rt = cx->runtime;
     uintN gcNumber = rt->gcNumber;
-    didGC = false;
-    for (; tm->recoveryDoublePoolPtr < tm->recoveryDoublePool + MAX_NATIVE_STACK_SLOTS;
-         ++tm->recoveryDoublePoolPtr) {
-        if (!js_NewDoubleInRootedValue(cx, 0.0, tm->recoveryDoublePoolPtr)) {
-            didGC = true;
+    jsval* ptr = tm->recoveryDoublePoolPtr; 
+    while (ptr < tm->recoveryDoublePool + MAX_NATIVE_STACK_SLOTS) {
+        if (!js_NewDoubleInRootedValue(cx, 0.0, ptr)) 
+            goto oom;
+        if (rt->gcNumber != gcNumber) {
             JS_ASSERT(tm->recoveryDoublePoolPtr == tm->recoveryDoublePool);
-            return false;
+            ptr = tm->recoveryDoublePool;
+            if (uintN(rt->gcNumber - gcNumber) > uintN(1))
+                goto oom;
+            continue;
         }
-        if (tm->recoveryDoublePoolPtr == tm->recoveryDoublePool) {
-            if (gcNumber != rt->gcNumber) {
-                if (didGC)
-                    return false;
-                didGC = true;
-            }
-        } else {
-            JS_ASSERT(rt->gcNumber == gcNumber ||
-                      (rt->gcNumber - gcNumber == (unsigned) 1 && didGC));
-        }
+        ++ptr;
     }
+    tm->recoveryDoublePoolPtr = ptr;
     return true;
+
+oom:
+    
+
+
+
+    tm->recoveryDoublePoolPtr = tm->recoveryDoublePool;
+    return false;
 }
 
 
@@ -1332,7 +1334,7 @@ NativeToValue(JSContext* cx, jsval& v, uint8 type, double* slot)
             JS_ASSERT(ok);
             return true;
         }
-        v = AllocateDoubleFromReservePool(cx);
+        v = AllocateDoubleFromRecoveryPool(cx);
         JS_ASSERT(JSVAL_IS_DOUBLE(v) && *JSVAL_TO_DOUBLE(v) == 0.0);
         *JSVAL_TO_DOUBLE(v) = d;
         return true;
@@ -2493,6 +2495,24 @@ js_DeleteRecorder(JSContext* cx)
     tm->recorder = NULL;
 }
 
+
+
+
+
+static inline bool
+js_CheckGlobalObjectShape(JSContext* cx, JSTraceMonitor* tm, JSObject* globalObj)
+{
+    
+    if (tm->globalSlots->length() && (OBJ_SHAPE(globalObj) != tm->globalShape)) {
+        AUDIT(globalShapeMismatchAtEntry);
+        debug_only_v(printf("Global shape mismatch (%u vs. %u), flushing cache.\n",
+                            OBJ_SHAPE(globalObj), tm->globalShape);)
+        js_FlushJITCache(cx);
+        return false;
+    }
+    return true;
+}
+
 static bool
 js_StartRecorder(JSContext* cx, SideExit* anchor, Fragment* f, TreeInfo* ti,
         unsigned ngslots, uint8* globalTypeMap, uint8* stackTypeMap, 
@@ -2884,9 +2904,6 @@ static SideExit*
 js_ExecuteTree(JSContext* cx, Fragment* f, uintN& inlineCallCount, 
                SideExit** innermostNestedGuardp);
 
-static bool
-js_CheckIfFlushNeeded(JSContext* cx);
-
 static nanojit::Fragment*
 js_FindVMCompatiblePeer(JSContext* cx, Fragment* f);
 
@@ -2937,12 +2954,21 @@ js_RecordLoopEdge(JSContext* cx, TraceRecorder* r, uintN& inlineCallCount)
     if (nesting_enabled && f) {
         JSTraceMonitor* tm = &JS_TRACE_MONITOR(cx);
         
-        if (js_CheckIfFlushNeeded(cx)) {
-            if (tm->recorder)
-                js_AbortRecording(cx, "Couldn't call inner tree (prep failed)");
+        
+        if (tm->recoveryDoublePoolPtr < (tm->recoveryDoublePool + MAX_NATIVE_STACK_SLOTS) &&
+            !js_ReplenishRecoveryPool(cx, tm)) {
+            js_AbortRecording(cx, "Couldn't call inner tree (out of memory)");
+            return false; 
+        }
+        
+        
+
+        JSObject* globalObj = JS_GetGlobalForObject(cx, cx->fp->scopeChain);
+        if (!js_CheckGlobalObjectShape(cx, tm, globalObj)) {
+            js_AbortRecording(cx, "Couldn't call inner tree (prep failed)");
             return false;
         }
-
+        
         debug_only_v(printf("Looking for type-compatible peer (%s:%d@%d)\n",
                             cx->fp->script->filename,
                             js_PCToLineNumber(cx, cx->fp->script, cx->fp->regs->pc),
@@ -3214,38 +3240,6 @@ js_FindVMCompatiblePeer(JSContext* cx, Fragment* f)
 
 
 
-
-static bool
-js_CheckIfFlushNeeded(JSContext* cx)
-{
-    JSObject* globalObj;
-    JSTraceMonitor* tm;
-
-    tm = &JS_TRACE_MONITOR(cx);
-
-    
-    globalObj = JS_GetGlobalForObject(cx, cx->fp->scopeChain);
-    if (tm->globalSlots->length() && (OBJ_SHAPE(globalObj) != tm->globalShape)) {
-        AUDIT(globalShapeMismatchAtEntry);
-        debug_only_v(printf("Global shape mismatch (%u vs. %u), flushing cache.\n",
-                            OBJ_SHAPE(globalObj), tm->globalShape);)
-        js_FlushJITCache(cx);
-        return true;
-    }
-
-    
-    if (tm->recoveryDoublePoolPtr < tm->recoveryDoublePool + MAX_NATIVE_STACK_SLOTS) {
-        bool didGC;
-        if (!ReplenishReservePool(cx, tm, didGC) || didGC)
-            return true;
-    }
-
-    return false;
-}
-
-
-
-
 static SideExit*
 js_ExecuteTree(JSContext* cx, Fragment* f, uintN& inlineCallCount, 
                SideExit** innermostNestedGuardp)
@@ -3253,10 +3247,10 @@ js_ExecuteTree(JSContext* cx, Fragment* f, uintN& inlineCallCount,
     JS_ASSERT(f->code() && f->vmprivate);
 
     JSTraceMonitor* tm = &JS_TRACE_MONITOR(cx);
+    JSObject* globalObj = JS_GetGlobalForObject(cx, cx->fp->scopeChain);
     TreeInfo* ti = (TreeInfo*)f->vmprivate;
     unsigned ngslots = tm->globalSlots->length();
     uint16* gslots = tm->globalSlots->data();
-    JSObject* globalObj = JS_GetGlobalForObject(cx, cx->fp->scopeChain);
     unsigned globalFrameSize = STOBJ_NSLOTS(globalObj);
     double* global = (double*)alloca((globalFrameSize+1) * sizeof(double));
     double stack_buffer[MAX_NATIVE_STACK_SLOTS];
@@ -3267,8 +3261,10 @@ js_ExecuteTree(JSContext* cx, Fragment* f, uintN& inlineCallCount,
     
     JS_ASSERT(tm->recoveryDoublePoolPtr >= tm->recoveryDoublePool + MAX_NATIVE_STACK_SLOTS);
 
+#ifdef DEBUG
     memset(stack_buffer, 0xCD, sizeof(stack_buffer));
     memset(global, 0xCD, (globalFrameSize+1)*sizeof(double));
+#endif    
 
     debug_only(*(uint64*)&global[globalFrameSize] = 0xdeadbeefdeadbeefLL;)
     debug_only_v(printf("entering trace at %s:%u@%u, native stack slots: %u code: %p\n",
@@ -3490,7 +3486,17 @@ js_MonitorLoopEdge(JSContext* cx, uintN& inlineCallCount)
     }
     JS_ASSERT(!tm->recorder);
 
-again:    
+    
+    
+    if (tm->recoveryDoublePoolPtr < (tm->recoveryDoublePool + MAX_NATIVE_STACK_SLOTS) &&
+        !js_ReplenishRecoveryPool(cx, tm)) {
+        return false; 
+    }
+    
+    
+    JSObject* globalObj = JS_GetGlobalForObject(cx, cx->fp->scopeChain);
+    js_CheckGlobalObjectShape(cx, tm, globalObj);
+    
     jsbytecode* pc = cx->fp->regs->pc;
     Fragmento* fragmento = tm->fragmento;
     Fragment* f;
@@ -3498,10 +3504,6 @@ again:
     if (!f)
         f = fragmento->getAnchor(pc);
 
-    
-    if (js_CheckIfFlushNeeded(cx)) 
-        goto again;
-    
     
 
     if (!f->code() && !f->peer) {
