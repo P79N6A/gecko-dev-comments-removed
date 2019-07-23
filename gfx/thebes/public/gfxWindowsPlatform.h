@@ -43,12 +43,22 @@
 #define MOZ_FT2_FONTS 1
 #endif
 
+
+
+
+
+
+#include "cairo.h"
+
 #include "gfxFontUtils.h"
 #include "gfxWindowsSurface.h"
 #ifdef MOZ_FT2_FONTS
 #include "gfxFT2Fonts.h"
 #else
 #include "gfxWindowsFonts.h"
+#ifdef CAIRO_HAS_DWRITE_FONT
+#include "gfxDWriteFonts.h"
+#endif
 #endif
 #include "gfxPlatform.h"
 
@@ -92,6 +102,9 @@ public:
 
         
         RENDER_DDRAW_GL,
+
+        
+        RENDER_DIRECT2D,
 
         
         RENDER_MODE_MAX
@@ -147,6 +160,10 @@ public:
 
     void ClearPrefFonts() { mPrefFonts.Clear(); }
 
+#ifdef CAIRO_HAS_DWRITE_FONT
+    IDWriteFactory *GetDWriteFactory() { return mDWriteFactory; }
+#endif
+
 #ifdef MOZ_FT2_FONTS
     FT_Library GetFTLibrary();
 #endif
@@ -158,6 +175,10 @@ protected:
 
 private:
     void Init();
+
+#ifdef CAIRO_HAS_DWRITE_FONT
+    nsRefPtr<IDWriteFactory> mDWriteFactory;
+#endif
 
     virtual qcms_profile* GetPlatformCMSOutputProfile();
 

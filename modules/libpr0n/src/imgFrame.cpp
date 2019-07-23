@@ -126,6 +126,11 @@ static PRBool ShouldUseImageSurfaces()
 #elif defined(USE_WIN_SURFACE)
   static const DWORD kGDIObjectsHighWaterMark = 7000;
 
+  if (gfxWindowsPlatform::GetPlatform()->GetRenderMode() ==
+      gfxWindowsPlatform::RENDER_DIRECT2D) {
+    return PR_TRUE;
+  }
+
   
   
   
