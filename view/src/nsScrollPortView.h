@@ -44,7 +44,7 @@
 #include "nsITimer.h"
 
 class nsISupportsArray;
-class SmoothScroll;
+class AsyncScroll;
 
 
 
@@ -88,15 +88,15 @@ public:
   nsView*     GetScrolledView() const { return GetFirstChild(); }
 
 private:
-  NS_IMETHOD  ScrollToImpl(nscoord aX, nscoord aY, PRUint32 aUpdateFlags);
+  NS_IMETHOD  ScrollToImpl(nscoord aX, nscoord aY);
 
   
-  SmoothScroll* mSmoothScroll;
+  AsyncScroll* mAsyncScroll;
 
   
   void        IncrementalScroll();
   PRBool      IsSmoothScrollingEnabled();
-  static void SmoothScrollAnimationCallback(nsITimer *aTimer, void* aESM);
+  static void AsyncScrollCallback(nsITimer *aTimer, void* aSPV);
 
 protected:
   virtual ~nsScrollPortView();
@@ -106,6 +106,7 @@ protected:
   PRBool CannotBitBlt(nsView* aScrolledView);
 
   nscoord             mOffsetX, mOffsetY;
+  nscoord             mDestinationX, mDestinationY;
   PRUint32            mScrollProperties;
   nscoord             mLineHeight;
   nsISupportsArray   *mListeners;
