@@ -127,8 +127,8 @@ typedef struct CapturingContentInfo {
 } CapturingContentInfo;
 
 #define NS_IPRESSHELL_IID     \
-{ 0xc8f0b83e, 0x7457, 0x4367, \
-  { 0xa9, 0x82, 0xe1, 0xfa, 0x11, 0xf9, 0x60, 0xbc } }
+{ 0x1ebeb94c, 0x2112, 0x431d, \
+  { 0xac, 0x6b, 0xdf, 0x26, 0x13, 0x83, 0xea, 0xfb } }
 
 
 #define NS_PRESSHELL_SCROLL_TOP      0
@@ -240,12 +240,9 @@ public:
   nsIViewManager* GetViewManager() const { return mViewManager; }
 
 #ifdef _IMPL_NS_LAYOUT
-  nsStyleSet*  StyleSet() { return mStyleSet; }
+  nsStyleSet* StyleSet() const { return mStyleSet; }
 
-  nsCSSFrameConstructor* FrameConstructor()
-  {
-    return mFrameConstructor;
-  }
+  nsCSSFrameConstructor* FrameConstructor() const { return mFrameConstructor; }
 
   nsFrameManager* FrameManager() const {
     return reinterpret_cast<nsFrameManager*>
@@ -260,7 +257,7 @@ public:
   
   
   NS_HIDDEN_(void) SetAuthorStyleDisabled(PRBool aDisabled);
-  NS_HIDDEN_(PRBool) GetAuthorStyleDisabled();
+  NS_HIDDEN_(PRBool) GetAuthorStyleDisabled() const;
 
   
 
@@ -301,7 +298,7 @@ public:
 
 
 
-  const nsFrameSelection* ConstFrameSelection() { return mSelection; }
+  const nsFrameSelection* ConstFrameSelection() const { return mSelection; }
 
   
   
@@ -561,8 +558,8 @@ public:
 
 
   virtual nsRectVisibility GetRectVisibility(nsIFrame *aFrame,
-                                             const nsRect &aRect, 
-                                             nscoord aMinTwips) = 0;
+                                             const nsRect &aRect,
+                                             nscoord aMinTwips) const = 0;
 
   
 
@@ -580,12 +577,12 @@ public:
   
 
 
-  virtual NS_HIDDEN_(nsresult) GetLinkLocation(nsIDOMNode* aNode, nsAString& aLocation) = 0;
+  virtual NS_HIDDEN_(nsresult) GetLinkLocation(nsIDOMNode* aNode, nsAString& aLocation) const = 0;
 
   
 
 
-  virtual NS_HIDDEN_(already_AddRefed<nsCaret>) GetCaret() = 0;
+  virtual NS_HIDDEN_(already_AddRefed<nsCaret>) GetCaret() const = 0;
 
   
 
