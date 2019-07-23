@@ -314,6 +314,8 @@ protected:
   void NotifyInsert(nsIContent* aContent,
                     nsIContent* aChildContent,
                     PRInt32 aIndexInContainer);
+  void NotifyRootInsertion();
+  
   PRBool IsMonolithicContainer(nsHTMLTag aTag);
 
 #ifdef NS_DEBUG
@@ -2343,24 +2345,7 @@ HTMLContentSink::OpenContainer(const nsIParserNode& aNode)
         
         AddAttributes(aNode, mRoot, PR_TRUE, mNotifiedRootInsertion);
         if (!mNotifiedRootInsertion) {
-          NS_ASSERTION(!mLayoutStarted,
-                       "How did we start layout without notifying on root?");
-          
-          
-          
-          
-          
-          
-          
-          mNotifiedRootInsertion = PR_TRUE;
-          PRInt32 index = mDocument->IndexOf(mRoot);
-          NS_ASSERTION(index != -1, "mRoot not child of document?");
-          NotifyInsert(nsnull, mRoot, index);
-
-          
-          
-          
-          UpdateChildCounts();
+          NotifyRootInsertion();
         }
       }
       break;
@@ -3061,6 +3046,30 @@ HTMLContentSink::NotifyInsert(nsIContent* aContent,
   mInNotification--;
 }
 
+void
+HTMLContentSink::NotifyRootInsertion()
+{
+  NS_PRECONDITION(!mNotifiedRootInsertion, "Double-notifying on root?");
+  NS_ASSERTION(!mLayoutStarted,
+               "How did we start layout without notifying on root?");
+  
+  
+  
+  
+  
+  
+  
+  mNotifiedRootInsertion = PR_TRUE;
+  PRInt32 index = mDocument->IndexOf(mRoot);
+  NS_ASSERTION(index != -1, "mRoot not child of document?");
+  NotifyInsert(nsnull, mRoot, index);
+
+  
+  
+  
+  UpdateChildCounts();
+}
+
 PRBool
 HTMLContentSink::IsMonolithicContainer(nsHTMLTag aTag)
 {
@@ -3198,11 +3207,11 @@ HTMLContentSink::FlushPendingNotifications(mozFlushType aType)
 {
   
   
-  if (mCurrentContext && !mInNotification) {
+  if (!mInNotification) {
     if (aType >= Flush_ContentAndNotify) {
-      mCurrentContext->FlushTags();
+      FlushTags();
     }
-    else {
+    else if (mCurrentContext) {
       mCurrentContext->FlushText();
     }
     if (aType >= Flush_Layout) {
@@ -3216,6 +3225,11 @@ HTMLContentSink::FlushPendingNotifications(mozFlushType aType)
 nsresult
 HTMLContentSink::FlushTags()
 {
+  if (!mNotifiedRootInsertion) {
+    NotifyRootInsertion();
+    return NS_OK;
+  }
+  
   return mCurrentContext ? mCurrentContext->FlushTags() : NS_OK;
 }
 
