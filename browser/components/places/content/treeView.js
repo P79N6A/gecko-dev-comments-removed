@@ -299,25 +299,26 @@ PlacesTreeView.prototype = {
     var replaceCount = this._countVisibleRowsForItem(aContainer);
 
     
+    
+    
+    
+    if (aContainer.viewIndex != -1)
+      replaceCount-=1;
+
+    
     var nodesToSelect = [];
     var selection = this.selection;
     var rc = selection.getRangeCount();
     for (var rangeIndex = 0; rangeIndex < rc; rangeIndex++) {
       var min = { }, max = { };
       selection.getRangeAt(rangeIndex, min, max);
-      if (min.value > startReplacement + replaceCount)
+      var lastIndex = Math.min(max.value, startReplacement + replaceCount -1);
+      if (min.value < startReplacement || min.value > lastIndex)
         continue;
 
-      for (var nodeIndex = min.value; nodeIndex <= max.value; nodeIndex++)
+      for (var nodeIndex = min.value; nodeIndex <= lastIndex; nodeIndex++)
         nodesToSelect.push(this._visibleElements[nodeIndex]);
     }
-
-    
-    
-    
-    
-    if (aContainer.viewIndex != -1)
-      replaceCount-=1;
 
     
     for (var i = 0; i < replaceCount; i++)
@@ -660,7 +661,7 @@ PlacesTreeView.prototype = {
   itemRemoved: function PTV_itemRemoved(aParent, aItem, aOldIndex) {
     NS_ASSERT(this._result, "Got a notification but have no result!");
     if (!this._tree)
-        return; 
+      return; 
 
     var oldViewIndex = aItem.viewIndex;
     if (oldViewIndex < 0)
@@ -709,6 +710,55 @@ PlacesTreeView.prototype = {
     
     if (!aParent.hasChildren)
       this.itemChanged(aParent);
+  },
+
+  
+
+
+
+  itemMoved:
+  function PTV_itemMoved(aItem, aOldParent, aOldIndex, aNewParent, aNewIndex) {
+    NS_ASSERT(this._result, "Got a notification but have no result!");
+    if (!this._tree)
+      return; 
+
+    var oldViewIndex = aItem.viewIndex;
+    if (oldViewIndex < 0)
+      return; 
+
+    
+    var count = this._countVisibleRowsForItem(aItem);
+
+    
+    var nodesToSelect = [];
+    var selection = this.selection;
+    var rc = selection.getRangeCount();
+    for (var rangeIndex = 0; rangeIndex < rc; rangeIndex++) {
+      var min = { }, max = { };
+      selection.getRangeAt(rangeIndex, min, max);
+      var lastIndex = Math.min(max.value, oldViewIndex + count -1);
+      if (min.value < oldViewIndex || min.value > lastIndex)
+        continue;
+
+      for (var nodeIndex = min.value; nodeIndex <= lastIndex; nodeIndex++)
+        nodesToSelect.push(this._visibleElements[nodeIndex]);
+    }
+    if (nodesToSelect.length > 0)
+      selection.selectEventsSuppressed = true;
+
+    
+    this._visibleElements.splice(oldViewIndex, count);
+    this._tree.rowCountChanged(oldViewIndex, -count);
+    this.itemInserted(aNewParent, aItem, aNewIndex);
+
+    
+    if (nodesToSelect.length > 0) {
+      for each (var node in nodesToSelect) {
+        var index = node.viewIndex;
+        selection.rangedSelect(index, index, true);
+      }
+      selection.selectEventsSuppressed = false;
+    }
   },
 
   
