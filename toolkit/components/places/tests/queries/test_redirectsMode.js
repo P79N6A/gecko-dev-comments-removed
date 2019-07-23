@@ -266,6 +266,14 @@ function add_visits_to_database() {
       isInQuery: true }));
 
   
+  visits.push({ isBookmark: true,
+    uri: "http://unvisited.bookmark.com/",
+    parentFolder: bmsvc.bookmarksMenuFolder,
+    index: bmsvc.DEFAULT_INDEX,
+    title: "Unvisited Bookmark",
+    isInQuery: false });
+
+  
   populateDB(visits);
 }
 

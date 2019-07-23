@@ -93,9 +93,6 @@
 #include "nsNetCID.h"
 
 
-#define IN_MEMORY_SQLITE_TEMP_STORE
-
-
 #define LAZY_ADD
 
 #define QUERYUPDATE_TIME 0
@@ -103,18 +100,6 @@
 #define QUERYUPDATE_COMPLEX 2
 #define QUERYUPDATE_COMPLEX_WITH_BOOKMARKS 3
 #define QUERYUPDATE_HOST 4
-
-
-
-
-#define SQL_STR_FRAGMENT_MAX_VISIT_DATE_BASE( __place_relation, __table_name ) \
-  "(SELECT visit_date FROM " __table_name \
-  " WHERE place_id = " __place_relation \
-  " AND visit_type NOT IN (0,4,7) ORDER BY visit_date DESC LIMIT 1)"
-
-#define SQL_STR_FRAGMENT_MAX_VISIT_DATE( __place_relation ) \
-  "IFNULL( " SQL_STR_FRAGMENT_MAX_VISIT_DATE_BASE( __place_relation, "moz_historyvisits_temp") \
-          ", " SQL_STR_FRAGMENT_MAX_VISIT_DATE_BASE( __place_relation, "moz_historyvisits") ")"
 
 
 
@@ -498,6 +483,7 @@ protected:
   nsresult MigrateV6Up(mozIStorageConnection *aDBConn);
   nsresult MigrateV7Up(mozIStorageConnection *aDBConn);
   nsresult MigrateV8Up(mozIStorageConnection *aDBConn);
+  nsresult MigrateV9Up(mozIStorageConnection *aDBConn);
 
   nsresult RemovePagesInternal(const nsCString& aPlaceIdsQueryString);
 
