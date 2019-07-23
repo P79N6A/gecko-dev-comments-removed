@@ -211,7 +211,6 @@
 #define	STDERR_FILENO 2
 #define	PATH_MAX MAX_PATH
 #define	vsnprintf _vsnprintf
-#define	alloca _alloca
 #define	assert(f)
 
 static unsigned long tlsIndex = 0xffffffff;
@@ -3978,9 +3977,8 @@ isalloc_validate(const void *ptr)
 	if (chunk != ptr) {
 		arena_t *arena;
 		unsigned i;
-		arena_t **arenas_snapshot = alloca(narenas * sizeof(arena_t*));
 
-		if (narenas == 1) {
+		if (narenas > 1) {
 			
 
 
@@ -3988,9 +3986,6 @@ isalloc_validate(const void *ptr)
 
 
 
-			arenas_snapshot[0] = arenas[0];
-		} else {
-			
 
 
 
@@ -3998,15 +3993,11 @@ isalloc_validate(const void *ptr)
 
 
 			malloc_spin_lock(&arenas_lock);
-			memcpy(&arenas_snapshot, arenas, sizeof(arena_t *) *
-			    narenas);
 			malloc_spin_unlock(&arenas_lock);
 		}
 
-		
 		for (i = 0; i < narenas; i++) {
-			arena = arenas_snapshot[i];
-
+			arena = arenas[i];
 			if (arena != NULL) {
 				
 				malloc_spin_lock(&arena->lock);
