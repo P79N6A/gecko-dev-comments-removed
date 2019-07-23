@@ -67,7 +67,7 @@ namespace storage {
 
 
 
-#define MAX_MILLISECONDS_BETWEEN_RESULTS 75
+#define MAX_MILLISECONDS_BETWEEN_RESULTS 100
 #define MAX_ROWS_PER_RESULT 15
 
 
@@ -202,8 +202,8 @@ AsyncExecuteStatements::AsyncExecuteStatements(StatementDataArray &aStatements,
 , mTransactionManager(nsnull)
 , mCallback(aCallback)
 , mCallingThread(::do_GetCurrentThread())
-, mMaxWait(TimeDuration::FromMilliseconds(MAX_MILLISECONDS_BETWEEN_RESULTS))
-, mIntervalStart(TimeStamp::Now())
+, mMaxIntervalWait(::PR_MicrosecondsToInterval(MAX_MILLISECONDS_BETWEEN_RESULTS))
+, mIntervalStart(::PR_IntervalNow())
 , mState(PENDING)
 , mCancelRequested(PR_FALSE)
 , mMutex(aConnection->sharedAsyncExecutionMutex)
@@ -399,9 +399,9 @@ AsyncExecuteStatements::buildAndNotifyResults(sqlite3_stmt *aStatement)
   
   
   
-  TimeStamp now = TimeStamp::Now();
-  TimeDuration delta = now - mIntervalStart;
-  if (mResultSet->rows() >= MAX_ROWS_PER_RESULT || delta > mMaxWait) {
+  PRIntervalTime now = ::PR_IntervalNow();
+  PRIntervalTime delta = now - mIntervalStart;
+  if (mResultSet->rows() >= MAX_ROWS_PER_RESULT || delta > mMaxIntervalWait) {
     
     rv = notifyResults();
     if (NS_FAILED(rv))
