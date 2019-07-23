@@ -293,7 +293,7 @@ class nsOggDecoder : public nsMediaDecoder
 
   nsOggDecoder();
   ~nsOggDecoder();
-  PRBool Init();
+  virtual PRBool Init(nsHTMLMediaElement* aElement);
 
   
   

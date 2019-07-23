@@ -69,7 +69,7 @@ class nsMediaDecoder : public nsIObserver
   
   
   
-  virtual PRBool Init();
+  virtual PRBool Init(nsHTMLMediaElement* aElement);
 
   
   virtual void GetCurrentURI(nsIURI** aURI) = 0;
@@ -154,12 +154,6 @@ class nsMediaDecoder : public nsIObserver
 
   
   virtual PRBool GetSeekable() = 0;
-
-  
-  virtual void ElementAvailable(nsHTMLMediaElement* anElement);
-
-  
-  virtual void ElementUnavailable();
 
   
   virtual void Invalidate();
