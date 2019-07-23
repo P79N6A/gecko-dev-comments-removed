@@ -292,7 +292,12 @@ struct FrameInfo {
     jsbytecode*     pc;         
     jsbytecode*     imacpc;     
     uint16          spdist;     
-    uint16          argc;       
+
+    
+
+
+
+    uint16          argc;
 
     
 
@@ -304,6 +309,14 @@ struct FrameInfo {
 
 
     int32          spoffset;
+
+    
+    enum { CONSTRUCTING_MASK = 0x8000 };
+    void   set_argc(uint16 argc, bool constructing) {
+        this->argc = argc | (constructing ? CONSTRUCTING_MASK : 0);
+    }
+    uint16 get_argc() const { return argc & ~CONSTRUCTING_MASK; }
+    bool   is_constructing() const { return (argc & CONSTRUCTING_MASK) != 0; }
 };
 
 struct UnstableExit
