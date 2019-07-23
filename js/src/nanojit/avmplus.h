@@ -64,11 +64,14 @@
 
 
 
-typedef JSUint8 uint8_t;
+typedef JSUint8  uint8_t;
+typedef JSInt8   int8_t;
 typedef JSUint16 uint16_t;
+typedef JSInt16  int16_t;
 typedef JSUint32 uint32_t;
 typedef JSInt32  int32_t;
 typedef JSUint64 uint64_t;
+typedef JSInt64  int64_t;
 #else
 #include <stdint.h>
 #endif
