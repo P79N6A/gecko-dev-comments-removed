@@ -38,6 +38,7 @@
 #include "nsReadableUtils.h"
 #include "nsSimplePageSequence.h"
 #include "nsPresContext.h"
+#include "gfxContext.h"
 #include "nsIRenderingContext.h"
 #include "nsGkAtoms.h"
 #include "nsIDeviceContext.h"
@@ -619,6 +620,20 @@ nsSimplePageSequenceFrame::PrintNextPage()
       PresContext()->PresShell()->
               CreateRenderingContext(mCurrentPageFrame,
                                      getter_AddRefs(renderingContext));
+
+#if defined(XP_UNIX) && !defined(XP_MACOSX)
+      
+      PRInt32 orientation;
+      mPageData->mPrintSettings->GetOrientation(&orientation);
+      if (nsIPrintSettings::kLandscapeOrientation == orientation) {
+        
+        float offset = POINTS_PER_INCH_FLOAT *
+           (mCurrentPageFrame->GetSize().height / float(dc->AppUnitsPerInch()));
+        renderingContext->ThebesContext()->Translate(gfxPoint(offset, 0));
+        renderingContext->ThebesContext()->Rotate(M_PI/2);
+      }
+#endif 
+
       nsRect drawingRect(nsPoint(0, 0),
                          mCurrentPageFrame->GetSize());
       nsRegion drawingRegion(drawingRect);

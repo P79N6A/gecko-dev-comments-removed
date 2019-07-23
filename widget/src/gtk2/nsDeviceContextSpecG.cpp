@@ -417,6 +417,17 @@ NS_IMETHODIMP nsDeviceContextSpecGTK::GetSurfaceForPrinter(gfxASurface **aSurfac
 
   double width, height;
   mPrintSettings->GetEffectivePageSize(&width, &height);
+
+  
+  
+  PRInt32 orientation;
+  mPrintSettings->GetOrientation(&orientation);
+  if (nsIPrintSettings::kLandscapeOrientation == orientation) {
+    double tmp = width;
+    width = height;
+    height = tmp;
+  }
+
   
   width  /= TWIPS_PER_POINT_FLOAT;
   height /= TWIPS_PER_POINT_FLOAT;
