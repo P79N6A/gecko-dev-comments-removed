@@ -39,9 +39,10 @@
 #   Joe Hughes <joe@retrovirus.com>
 #   Pamela Greene <pamg.bugs@gmail.com>
 #   Michael Ventnor <m.ventnor@gmail.com>
-#   Simon BÃ¼nzli <zeniko@gmail.com>
+#   Simon Bünzli <zeniko@gmail.com>
 #   Johnathan Nightingale <johnath@mozilla.com>
 #   Ehsan Akhgari <ehsan.akhgari@gmail.com>
+#   Dão Gottwald <dao@mozilla.com>
 #
 # Alternatively, the contents of this file may be used under the terms of
 # either the GNU General Public License Version 2 or later (the "GPL"), or
@@ -1877,28 +1878,60 @@ function checkForDirectoryListing()
   }
 }
 
+function URLBarSetURI(aURI) {
+  var value = getBrowser().userTypedValue;
+  var state = "invalid";
+
+  if (!value) {
+    if (aURI) {
+      
+      
+      
+      if (!gURIFixup)
+        gURIFixup = Cc["@mozilla.org/docshell/urifixup;1"]
+                      .getService(Ci.nsIURIFixup);
+      try {
+        aURI = gURIFixup.createExposableURI(aURI);
+      } catch (ex) {}
+    } else {
+      aURI = getWebNavigation().currentURI;
+    }
+
+    value = aURI.spec;
+    if (value == "about:blank") {
+      
+      
+      if (!content.opener)
+        value = "";
+    } else {
+      
+      try {
+        value = decodeURI(value).replace(/%/g, "%25");
+      } catch(e) {}
+
+      state = "valid";
+    }
+  }
+
+  gURLBar.value = value;
+  SetPageProxyState(state);
+}
 
 
-function handleURLBarRevert()
-{
-  var url = getWebNavigation().currentURI.spec;
+
+function handleURLBarRevert() {
   var throbberElement = document.getElementById("navigator-throbber");
-
   var isScrolling = gURLBar.popupOpen;
+
+  gBrowser.userTypedValue = null;
 
   
   
   if ((!throbberElement || !throbberElement.hasAttribute("busy")) && !isScrolling) {
-    if (url != "about:blank" || content.opener) {
-      gURLBar.value = url;
+    URLBarSetURI();
+    if (gURLBar.value)
       gURLBar.select();
-      SetPageProxyState("valid");
-    } else { 
-      gURLBar.value = "";
-    }
   }
-
-  gBrowser.userTypedValue = null;
 
   
   
@@ -3033,10 +3066,8 @@ function BrowserToolboxCustomizeDone(aToolboxChanged)
   UpdateUrlbarSearchSplitterState();
 
   
-  var url = getWebNavigation().currentURI.spec;
   if (gURLBar) {
-    gURLBar.value = url == "about:blank" ? "" : url;
-    SetPageProxyState("valid");
+    URLBarSetURI();
     XULBrowserWindow.asyncUpdateUI();
     PlacesStarButton.updateState();
   }
@@ -3466,8 +3497,8 @@ nsBrowserStatusHandler.prototype =
     if (aWebProgress.DOMWindow == content) {
 
       if ((location == "about:blank" && !content.opener) ||
-           location == "") {                        
-        location = "";                              
+           location == "") {  
+                              
         this.reloadCommand.setAttribute("disabled", "true");
         this.reloadSkipCacheCommand.setAttribute("disabled", "true");
       } else {
@@ -3478,33 +3509,8 @@ nsBrowserStatusHandler.prototype =
       if (!gBrowser.mTabbedMode && aWebProgress.isLoadingDocument)
         gBrowser.setIcon(gBrowser.mCurrentTab, null);
 
-      
-      
       if (gURLBar) {
-        var userTypedValue = browser.userTypedValue;
-        if (!userTypedValue) {
-          
-          
-          
-          if (!gURIFixup)
-            gURIFixup = Components.classes["@mozilla.org/docshell/urifixup;1"]
-                                  .getService(Components.interfaces.nsIURIFixup);
-          if (location && gURIFixup) {
-            try {
-              location = gURIFixup.createExposableURI(aLocationURI).spec;
-            } catch (ex) {}
-          }
-
-          gURLBar.value = location;
-          SetPageProxyState("valid");
-
-          
-          
-          browser.userTypedValue = userTypedValue;
-        } else {
-          gURLBar.value = userTypedValue;
-          SetPageProxyState("invalid");
-        }
+        URLBarSetURI(aLocationURI);
 
         
         PlacesStarButton.updateState();
